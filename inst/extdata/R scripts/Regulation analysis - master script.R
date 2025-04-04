@@ -1,6 +1,6 @@
 # Note:
 # This master script hasn't been used in a long time and probably isn't too reliable.
-# In particular, it seems heavily affected by the calls flow order issues ("leaks"as I call them) which I have observed when shiny and/or svDialogs are being used.
+# In particular, it seems heavily affected by the issues affecting the order of calls ("leaks", as I call them) which I have observed when shiny and/or svDialogs are being used.
 # Proceed cautiously...
 
 #### Code chunk - Initialization
