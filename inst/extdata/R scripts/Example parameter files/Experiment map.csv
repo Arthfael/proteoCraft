@@ -1,0 +1,10 @@
+"Aggr_Experiment","Aggr_Replicate","Aggr_Condition","Reference","MQ.Exp","Fractions","Isobaric.label","Isobaric.label.details","Aggr_Isobaric.set","Sample.name","Use","Ratio.name"
+"GG",1,"ctrl",FALSE,"GG","1;2;3;4;5;6;7;8",0,"126",1,"ctrl_1","TRUE",NA
+"GG",2,"ctrl",FALSE,"GG","1;2;3;4;5;6;7;8",1,"127N",1,"ctrl_2","TRUE",NA
+"GG",3,"ctrl",FALSE,"GG","1;2;3;4;5;6;7;8",2,"127C",1,"ctrl_3","TRUE",NA
+"GG",1,"overexpression",TRUE,"GG","1;2;3;4;5;6;7;8",4,"128C",1,"overexpression_1","TRUE",NA
+"GG",2,"overexpression",TRUE,"GG","1;2;3;4;5;6;7;8",5,"129N",1,"overexpression_2","TRUE",NA
+"GG",3,"overexpression",TRUE,"GG","1;2;3;4;5;6;7;8",6,"129C",1,"overexpression_3","TRUE",NA
+"GG",1,"inhibitor",FALSE,"GG","1;2;3;4;5;6;7;8",7,"130N",1,"inhibitor_1","TRUE",NA
+"GG",2,"inhibitor",FALSE,"GG","1;2;3;4;5;6;7;8",8,"130C",1,"inhibitor_2","TRUE",NA
+"GG",3,"inhibitor",FALSE,"GG","1;2;3;4;5;6;7;8",9,"131",1,"inhibitor_3","TRUE",NA
