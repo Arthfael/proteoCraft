@@ -1,0 +1,5 @@
+a 9:1 mix of the iST kit's LC-LOAD buffer and 0.15% w/v N-Dodecyl-β-D-maltoside (DDM, 0.015% final)
+the iST kit's LC LOAD buffer
+1% TFA (Trifluoroacetic Acid)
+1% FA (Formic Acid)
+5% FA (Formic Acid)

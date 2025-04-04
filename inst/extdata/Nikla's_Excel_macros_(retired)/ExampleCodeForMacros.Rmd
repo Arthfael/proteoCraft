@@ -1,0 +1,73 @@
+
+
+```{r}
+
+SequColoring <- paste("WScript",
+    '"S:/Scientific_Service_Unit/LifeScienceFacilities/Mass_Spec/Niklas macros/sequence coloring/sequ_color_only_VBS.vbs"',
+    '/fpathXlsm:"S:\\Scientific_Service_Unit\\LifeScienceFacilities\\Mass_Spec\\Niklas macros\\sequence coloring\\sequ_color_only_VBA.xlsm"', #fullpath of SequColorVBA.xlsm
+    '/fpathPeptides:"S:\\Scientific_Service_Unit\\LifeScienceFacilities\\Mass_Spec\\Niklas macros\\temp2.csv"', #fullpath of peptides.csv
+    '/fpathProt:"S:\\Scientific_Service_Unit\\LifeScienceFacilities\\Mass_Spec\\Niklas macros\\temp1.csv"', #fullpath of proteins.csv
+    '/fpathGrps:"S:\\Scientific_Service_Unit\\LifeScienceFacilities\\Mass_Spec\\Niklas macros\\proteinGroups.xlsx"', #fullpath of proteinGroups.xlsx
+    '/shGrps:"PG - general"', #sheet name of proteinsGroups.xlsx
+    '/colPepID:"ID"', #col name of peptide ID
+    '/colPepSequ:"Sequence"', #col name of peptide sequence
+    '/colProtAcc:"Accession"', #col name of Accession No.
+    '/colProtPepIDs:"Peptide IDs"', #col name of list of peptide IDs
+    '/colProtSequ:"Sequence"', #col name of protein sequence
+    '/colGrpsProtIDs:"Protein IDs"',
+    '/colGrpsSequ:"1st accession sequence coverage (peptides)"',
+    '/HeaderRow:"1"', #row of header in proteingroups.xlsx
+    '/StartDataRow:"3"', #first row of data in proteingroups.xlsx
+    sep = " ")
+
+
+
+system(command = SequColoring,
+       wait = TRUE)
+
+
+FormatBar <- paste("WScript",
+    '"S:/Scientific_Service_Unit/LifeScienceFacilities/Mass_Spec/Niklas macros/format as bar/Format_as_bar_VBS.vbs"',
+    '/fpathXlsm:"S:\\Scientific_Service_Unit\\LifeScienceFacilities\\Mass_Spec\\Niklas macros\\format as bar\\format_as_bar_VBA.xlsm"', #fullpath of SequColorVBA.xlsm
+    '/fpathGrps:"S:\\Scientific_Service_Unit\\LifeScienceFacilities\\Mass_Spec\\Niklas macros\\proteinGroups.xlsx"', #fullpath of proteinGroups.xlsx
+    '/shGrps:"PG - general"', #sheet name of proteinsGroups.xlsx
+    '/colFormatBar:"9;10"', #col numbers for bar-format separated with ";"
+    '/StartDataRow:"3"', #first row of data in proteingroups.xlsx
+    sep = " ")
+
+system(command = FormatBar,
+       wait = TRUE)
+
+
+FormatAsNumber <- paste("WScript",
+    '"S:/Scientific_Service_Unit/LifeScienceFacilities/Mass_Spec/Niklas macros/format as number/Format_as_num_VBS.vbs"',
+    '/fpathXlsm:"S:\\Scientific_Service_Unit\\LifeScienceFacilities\\Mass_Spec\\Niklas macros\\format as number\\format_as_num_VBA.xlsm"', #fullpath of SequColorVBA.xlsm
+    '/fpathGrps:"S:\\Scientific_Service_Unit\\LifeScienceFacilities\\Mass_Spec\\Niklas macros\\proteinGroups.xlsx"', #fullpath of proteinGroups.xlsx
+    '/shGrps:"Summary"', #sheet name of proteinsGroups.xlsx
+    '/colFormatAsNumber:"4"', #col number, which will be formatted
+    '/rowStartEnd:"4;13"', #start row and end row divided by ";"    
+    '/countDecimals:"4"', #how many decimals the number should have
+
+    sep = " ")
+
+system(command = FormatAsNumber,
+       wait = TRUE)
+
+
+CopyColumn <- paste("WScript",
+    '"S:/Scientific_Service_Unit/LifeScienceFacilities/Mass_Spec/Niklas macros/copy_column/copy_column_VBS.vbs"',
+    '/fpathXlsm:"S:\\Scientific_Service_Unit\\LifeScienceFacilities\\Mass_Spec\\Niklas macros\\copy_column\\copy_column_VBA.xlsm"', #fullpath of copy_column_VBA.xlsm
+    '/fpathGrps:"S:\\Scientific_Service_Unit\\LifeScienceFacilities\\Mass_Spec\\Niklas macros\\proteinGroups.xlsx"', #fullpath of workbook
+    '/shSource:"PG - general"', #sheet to copy from
+    '/shDesti:"Sheet1;Sheet2;Sheet3"', #sheets, where to paste    
+    '/colToCopy:"1st accession sequence coverage (peptides)"', #col number, which will be formatted
+    '/HeaderRow:"1"', #row, where header of data starts 
+    '/StartDataRow:"3"', #first row of data and -1 for header
+
+    sep = " ")
+
+system(command = CopyColumn,
+       wait = TRUE)
+
+```
+
