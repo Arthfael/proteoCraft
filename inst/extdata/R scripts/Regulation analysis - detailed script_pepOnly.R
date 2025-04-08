@@ -8182,7 +8182,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     if (MakeRatios) { a <- KolEdit(ColumnsTbl$Col, intColsTbl, ratColsTbl) } else { a <- KolEdit(ColumnsTbl$Col, intColsTbl) }
     ColumnsTbl$edit_Col <- unlist(a)
     #
-    Src <- paste0(libPath, "/extdata/R scripts/Sources/parWrite_Excel_core_script.R")
+    Src <- paste0(libPath, "/extdata/R scripts/Sources/fstWrite_Excel_core_script.R")
     #rstudioapi::documentOpen(Src)
     source(Src)
   }

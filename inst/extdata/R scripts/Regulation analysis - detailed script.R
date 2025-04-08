@@ -14300,7 +14300,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     if (MakeRatios) { a <- KolEdit(ColumnsTbl$Col, intColsTbl, ratColsTbl) } else { a <- KolEdit(ColumnsTbl$Col, intColsTbl) }
     ColumnsTbl$edit_Col <- unlist(a)
     #
-    Src <- paste0(libPath, "/extdata/R scripts/Sources/parWrite_Excel_core_script.R")
+    Src <- paste0(libPath, "/extdata/R scripts/Sources/fstWrite_Excel_core_script.R")
     #rstudioapi::documentOpen(Src)
     source(Src)
     #saveFun(WorkBook, file = "WorkBook_bckp.RData")
@@ -14787,7 +14787,7 @@ if (MakeRatios) { a <- KolEdit(ColumnsTbl$Col, intColsTbl, ratColsTbl) } else { 
 ColumnsTbl$edit_Col <- unlist(a)
 #wb_save(WorkBook, paste0(wd, "/tst.xlsx"));xl_open(paste0(wd, "/tst.xlsx"))
 #
-Src <- paste0(libPath, "/extdata/R scripts/Sources/parWrite_Excel_core_script.R")
+Src <- paste0(libPath, "/extdata/R scripts/Sources/fstWrite_Excel_core_script.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 #saveFun(WorkBook, file = "WorkBook_bckp.RData")
@@ -14931,7 +14931,7 @@ if (saintExprs) {
   #
   a <- KolEdit(ColumnsTbl$Col, ratColsTbl)
   ColumnsTbl$edit_Col <- unlist(a)
-  Src <- paste0(libPath, "/extdata/R scripts/Sources/parWrite_Excel_core_script.R")
+  Src <- paste0(libPath, "/extdata/R scripts/Sources/fstWrite_Excel_core_script.R")
   #rstudioapi::documentOpen(Src)
   source(Src)
   #saveFun(WorkBook, file = "WorkBook_bckp.RData")
