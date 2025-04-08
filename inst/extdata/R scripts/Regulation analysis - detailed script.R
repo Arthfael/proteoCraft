@@ -124,13 +124,11 @@ if (("try-error" %in% class(tst))||(!file.exists(tst))) {
 # Fast save and load functions
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 # Set Shiny options, load functions for creating a Word report, create Excel styles
 Src <- paste0(libPath, "/extdata/R scripts/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 #### Code chunk - Select input/output folders and define experimental structure
@@ -168,7 +166,6 @@ updt_proteoCraft %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$
 # Define input, output, project folder etc...
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Start_analysis.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 LocAnalysis %<o% (WorkFlow %in% c("LOCALISATION", "LOCALIZATION"))
 
@@ -200,7 +197,6 @@ setDTthreads(threads = N.clust)
 # Load PSMs
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Load_PSMs.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 # MS raw files map
@@ -208,7 +204,6 @@ tstFrMp <- FALSE
 while(!tstFrMp) {
   Src <- paste0(libPath, "/extdata/R scripts/Sources/Fractions_Map_editor.R")
   #rstudioapi::documentOpen(Src)
-  
   source(Src)
 }
 
@@ -515,7 +510,6 @@ tstXpMp <- FALSE
 while(!tstXpMp) {
   Src <- paste0(libPath, "/extdata/R scripts/Sources/Experiment_Map_editor.R")
   #rstudioapi::documentOpen(Src)
-  
   source(Src)
 }
 #
@@ -523,7 +517,6 @@ while(!tstXpMp) {
 #### Code chunk - Load and process search database(s)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Process_Fasta_DBs.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
@@ -915,13 +908,11 @@ FactorsLevels <- FactorsLevels[Factors]
 # Protein headers for shiny
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 #
 # Proteins of interest
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protList.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 #
 # Targets
@@ -929,7 +920,6 @@ source(Src)
 # Here, if necessary, we will remap those to valid IDs:
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Targets.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 #
 # KnockOut, KnockIn of KnockDown
@@ -944,13 +934,11 @@ if (sum(c("knockout", "knockin", "knockdown") %in% tst)) {
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protList2.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 #
 # Protein headers for shiny (update)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 #### Code chunk - Define analysis parameters
@@ -3041,11 +3029,9 @@ if (exists("Tim")) {
 # Refresh list of interesting proteins:
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protList.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protList2.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 if ("Prot.list_separate.plots" %in% colnames(Param)) {
@@ -4268,7 +4254,6 @@ saveImgFun(BckUpFl)
 # DIA-only: MS2-based correction of MS1-based quantitative values
 Src <- paste0(libPath, "/extdata/R scripts/Sources/MS2corr2MS1.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 rm(list = ls()[which(!ls() %in% .obj)])
@@ -8769,7 +8754,6 @@ ebamDir <- paste0(wd, "/", ebamSubDir)
 dataType <- "PG"
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Av_and_Stat_tests.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 ### Visualize P-values
@@ -9024,7 +9008,6 @@ if (globalGO) {
   source(parSrc)
   Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_prepare.R")
   #rstudioapi::documentOpen(Src)
-  
   source(Src)
 }
 
@@ -9238,7 +9221,6 @@ if (!class(tempVP) %in% c("try-error", "character")) {
   insrt <- ""
   Src <- paste0(libPath, "/extdata/R scripts/Sources/thresholds_Excel.R")
   #rstudioapi::documentOpen(Src)
-  
   source(Src)
   #
   thresh <- lapply(names(tempVP$Thresholds$Absolute), function(x) {
@@ -9362,7 +9344,6 @@ if (("Q.values" %in% colnames(Param))&&(is.logical(Param$Q.values))&&(Param$Q.va
     insrt <- "_Qvalues"
     Src <- paste0(libPath, "/extdata/R scripts/Sources/thresholds_Excel.R")
     #rstudioapi::documentOpen(Src)
-    
     source(Src)
     #
     DatAnalysisTxt <- paste0(DatAnalysisTxt, " Q-values were computed using package qvalue.")
@@ -9576,7 +9557,6 @@ if (("F.test" %in% colnames(Param))&&(Param$F.test)) {
   #
   Src <- paste0(libPath, "/extdata/R scripts/Sources/run_F_test.R")
   #rstudioapi::documentOpen(Src)
-  
   tstFtst <- try(source(Src), silent = TRUE)
   #
   if (!"try-error" %in% class(tstFtst)) {
@@ -9978,7 +9958,6 @@ if (saintExprs) {
     insrt <- ""
     Src <- paste0(libPath, "/extdata/R scripts/Sources/thresholds_Excel.R")
     #rstudioapi::documentOpen(Src)
-    
     source(Src)
     #
     # Folder cleanup
@@ -12075,7 +12054,6 @@ Example: \"GO:0031012;2\"
         insrt <- ""
         Src <- paste0(libPath, "/extdata/R scripts/Sources/thresholds_Excel.R")
         #rstudioapi::documentOpen(Src)
-        
         source(Src)
         #
         g <- grep("Regulated - ", colnames(tempVP3$Protein_groups_file), value = TRUE)
@@ -12249,7 +12227,6 @@ Example: \"GO:0031012;2\"
 ### Check that CytoScape is installed and can run, then launch it.
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 #### Code chunk - Gene Ontology terms enrichment analysis
@@ -12272,7 +12249,6 @@ if (enrichGO||globalGO) {
   # Initialize ClueGO
   Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_init.R")
   #rstudioapi::documentOpen(Src)
-  
   source(Src)
   #
   if (enrichGO) {
@@ -12404,14 +12380,12 @@ if (enrichGO||globalGO) {
             #
             Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
             #rstudioapi::documentOpen(Src)
-            
             source(Src)
             #
             clueGO_outDir <- dir
             clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
             Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
             #rstudioapi::documentOpen(Src)
-            
             source(Src)
             #
             # Cleanup - do it now, not within sources!
@@ -12569,14 +12543,12 @@ if (enrichGO||globalGO) {
     #
     Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
     #rstudioapi::documentOpen(Src)
-    
     source(Src)
     #
     clueGO_outDir <- dir
     clueGO_type <- "Enrichment/Depletion (Two-sided hypergeometric test)"
     Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
     #rstudioapi::documentOpen(Src)
-    
     source(Src)
     #
     # Cleanup - do it now, not within sources!
@@ -13027,7 +12999,6 @@ if ("PTM.analysis" %in% colnames(Param)) {
           #
           Src <- paste0(libPath, "/extdata/R scripts/Sources/Av_and_Stat_tests.R")
           #rstudioapi::documentOpen(Src)
-          
           source(Src)
           #
           #kol <- grep(topattern(paste0("Mean ", pepRf)), colnames(ptmpep), value = TRUE)
@@ -13128,7 +13099,6 @@ if ("PTM.analysis" %in% colnames(Param)) {
           insrt <- ""
           Src <- paste0(libPath, "/extdata/R scripts/Sources/thresholds_Excel.R")
           #rstudioapi::documentOpen(Src)
-          
           source(Src)
           #
           #
@@ -13240,7 +13210,6 @@ if ("PTM.analysis" %in% colnames(Param)) {
             #
             Src <- paste0(libPath, "/extdata/R scripts/Sources/run_F_test.R")
             #rstudioapi::documentOpen(Src)
-            
             tstFtst <- try(source(Src), silent = TRUE)
             #
             if (!"try-error" %in% class(tstFtst)) {
@@ -13578,14 +13547,12 @@ if ("PTM.analysis" %in% colnames(Param)) {
                     #
                     Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
                     #rstudioapi::documentOpen(Src)
-                    
                     source(Src)
                     #
                     clueGO_outDir <- dir
                     clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
                     Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
                     #rstudioapi::documentOpen(Src)
-                    
                     source(Src)
                     #
                     # Cleanup - do it now, not within sources!
@@ -13883,7 +13850,6 @@ Script <- readLines(ScriptPath)
 #### Code chunk - XML coverage columns
 Src <- paste0(libPath, "/extdata/R scripts/Sources/xml_Coverage_columns.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 # To do: also PTMs in a different color (one for all)
 
@@ -14336,7 +14302,6 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     #
     Src <- paste0(libPath, "/extdata/R scripts/Sources/parWrite_Excel_core_script.R")
     #rstudioapi::documentOpen(Src)
-    
     source(Src)
     #saveFun(WorkBook, file = "WorkBook_bckp.RData")
     #wb_save(WorkBook, paste0(wd, "/tst.xlsx")); xl_open(paste0(wd, "/tst.xlsx"))
@@ -14824,7 +14789,6 @@ ColumnsTbl$edit_Col <- unlist(a)
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/parWrite_Excel_core_script.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 #saveFun(WorkBook, file = "WorkBook_bckp.RData")
 #wb_save(WorkBook, paste0(wd, "/tst.xlsx")); xl_open(paste0(wd, "/tst.xlsx"))
@@ -14969,7 +14933,6 @@ if (saintExprs) {
   ColumnsTbl$edit_Col <- unlist(a)
   Src <- paste0(libPath, "/extdata/R scripts/Sources/parWrite_Excel_core_script.R")
   #rstudioapi::documentOpen(Src)
-  
   source(Src)
   #saveFun(WorkBook, file = "WorkBook_bckp.RData")
   #wb_save(WorkBook, paste0(wd, "/tst.xlsx")); xl_open(paste0(wd, "/tst.xlsx"))
@@ -14978,14 +14941,12 @@ if (saintExprs) {
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Write_Excel_end_script.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 #WorkBook$get_active_sheet()
 #xl_open(repFl)
 
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
-
 source(parSrc)#### Code chunk - Amica input tables
 # Write tables for Amica input:
 ## PG table
@@ -15101,7 +15062,8 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     vennRoot <- ""
     myData <- PG
     myRef <- paste0("Mean ", prtRfRoot)
-    infoKol <- c("Leading protein IDs", "Genes")
+    infoKol <- "Genes"
+    idKol <- "Leading protein IDs"
     if (F.test) {
       Ftest_Filt <- Reg_filters$"F-tests"$"By condition"
       myFData <- F_test_data
@@ -15112,9 +15074,11 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     ttest_Filt <- PTMs_Reg_filters[[Ptm]]$"t-tests"$"By condition"
     vennRoot <- paste0(Ptm, " ")
     myData <- PTMs_pep[[Ptm]]
-    myRef <- grep("^Mean [^ ]+ log10\\(", colnames(myData), value = TRUE)
+    myRef <- grep("^Mean ([^ ]+ )?log10\\(", colnames(myData), value = TRUE)
     myRef <- paste0(unique(gsub(" - .*", "", myRef)), " - ")
+    myRef <- myRef[length(myRef)]
     infoKol <- "Proteins"
+    idKol <- "Modified sequence"
     if (F.test) {
       Ftest_Filt <- PTMs_Reg_filters[[Ptm]]$"F-tests"$"By condition"
       myFData <- PTMs_F_test_data[[Ptm]]
@@ -15173,7 +15137,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     wbKount <- wbKount+1
     SheetNm <- "Sample groups composition"
     addWorksheet(wb, SheetNm)
-    writeData(wb, SheetNm, myData[, c("id", infoKol)], 1, 1)
+    writeData(wb, SheetNm, myData[, c("id", idKol, infoKol)], 1, 1)
     l <- length(comp_list)
     tmp <- sapply(names(comp_list), function(grp) {
       res <- rep("", nrow(myData))
@@ -15229,7 +15193,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
       if (OK) {
         comp_list <- comp_list[VennExp]
         kr <- paste0("Regulated - ", nmz)
-        tmp <- myData[unique(unlist(comp_list)), c(infoKol[1], "id", kr)]
+        tmp <- myData[unique(unlist(comp_list)), c(idKol, infoKol, "id", kr)]
         if (r == "up") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
         if (r == "down") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
         tst <- apply(tmp[, kr], 1, function(x) { length(w[which(x %in% good)]) })
@@ -15248,7 +15212,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
         wbKount <- wbKount+1
         SheetNm <- paste0("t-test ", r)
         addWorksheet(wb, SheetNm)
-        writeData(wb, SheetNm, myData[, c("id", infoKol)], 1, 1)
+        writeData(wb, SheetNm, myData[, c("id", idKol, infoKol)], 1, 1)
         l <- length(comp_list)
         tmp <- sapply(names(comp_list), function(grp) {
           res <- rep("", nrow(myData))
@@ -15303,7 +15267,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
           if (OK) {
             comp_list <- comp_list[VennExp]
             kr <- paste0("Regulated - ", nms)
-            tmp <- myData[unique(unlist(comp_list)), c(infoKol[1], "id", kr)]
+            tmp <- myData[unique(unlist(comp_list)), c(idKol, infoKol, "id", kr)]
             if (r == "up") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
             if (r == "down") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
             tst <- apply(tmp[, kr], 1, function(x) { length(w[which(x %in% good)]) })
@@ -15323,7 +15287,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
             wbKount <- wbKount+1
             SheetNm <- paste0("t-test ", j, " ", r)
             addWorksheet(wb, SheetNm)
-            writeData(wb, SheetNm, myData[, c("id", infoKol)], 1, 1)
+            writeData(wb, SheetNm, myData[, c("id", idKol, infoKol)], 1, 1)
             l <- length(comp_list)
             tmp <- sapply(names(comp_list), function(grp) {
               res <- rep("", nrow(myData))
@@ -15369,7 +15333,11 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
           if (length(w) <= VennMx) {
             comp_list <- comp_list[w]
             w <- unique(unlist(comp_list))
-            tmp <- myFData[w, infoKol[1], drop = FALSE]
+            wN <- which(!infoKol %in% colnames(myFData))
+            if (length(wN)) {
+              myFData[, infoKol[wN]] <- myData[match(myFData[[idKol]], myData[[idKol]]), infoKol]
+            }
+            tmp <- myFData[w, c(idKol, infoKol)]
             tmp$id <- myData$id[w]
             kr <- paste0("mod. F-test Regulated - ", nmz)
             tmp[, kr] <- myFData[w, kr]
@@ -15392,7 +15360,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
             wbKount <- wbKount+1
             SheetNm <- paste0("F-test global ", r)
             addWorksheet(wb, SheetNm)
-            writeData(wb, SheetNm, myData[, c("id", infoKol)], 1, 1)
+            writeData(wb, SheetNm, myData[, c("id", idKol, infoKol)], 1, 1)
             l <- length(comp_list)
             tmp <- sapply(names(comp_list), function(grp) {
               res <- rep("", nrow(myData))
@@ -16139,7 +16107,6 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
     ### Check that CytoScape is installed and can run, then launch it.
     Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
     #rstudioapi::documentOpen(Src)
-    
     source(Src)
     #
     # Create directory for CytoScape networks
@@ -16297,7 +16264,6 @@ MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style
 # Finalize analysis
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Finalize_analysis.R")
 #rstudioapi::documentOpen(Src)
-
 #loadFun(BckUpFl)
 source(Src)
 

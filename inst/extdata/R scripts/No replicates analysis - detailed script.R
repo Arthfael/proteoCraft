@@ -102,13 +102,11 @@ if (("try-error" %in% class(tst))||(!file.exists(tst))) {
 # Fast save and load functions
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 # Set Shiny options, load functions for creating a Word report, create Excel styles
 Src <- paste0(libPath, "/extdata/R scripts/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 # shiny used to cause issues with View() for data.frames, possibly by importing jsonlite,
@@ -127,7 +125,6 @@ updt_proteoCraft %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$
 # Define input, output, project folder etc...
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Start_analysis.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 AnalysisParam %<o% list("Input folder" = indir,
                         "Output folder" = outdir,
@@ -141,7 +138,6 @@ setDTthreads(threads = N.clust)
 # Load PSMs
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Load_PSMs.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 FracMapPath %<o% paste0(wd, "/", FracMapNm, ".csv")
@@ -464,7 +460,6 @@ IsBioID2 %<o% FALSE
 #### Code chunk - Load and process search database(s)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Process_Fasta_DBs.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
@@ -1454,7 +1449,6 @@ Exp <- Exp[which(Exp %in% ev$Experiment)] # Update experiments
 # DIA-only: MS2-based correction of MS1-based quantitative values
 Src <- paste0(libPath, "/extdata/R scripts/Sources/MS2corr2MS1.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 #### Code chunk - Pepper correction
@@ -2712,7 +2706,6 @@ if (globalGO) {
   source(parSrc)
   Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_prepare.R")
   #rstudioapi::documentOpen(Src)
-  
   source(Src)
 }
 
@@ -3709,14 +3702,12 @@ saveImgFun(BckUpFl)
 ### Check that CytoScape is installed and can run, then launch it.
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 # Initialize ClueGO
 if (enrichGO||globalGO) {
   Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_init.R")
   #rstudioapi::documentOpen(Src)
-  
   source(Src)
 }
   
@@ -3737,14 +3728,12 @@ if (globalGO) {
   #
   Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
   #rstudioapi::documentOpen(Src)
-  
   source(Src)
   #
   clueGO_outDir <- dir
   clueGO_type <- "Enrichment/Depletion (Two-sided hypergeometric test)"
   Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
   #rstudioapi::documentOpen(Src)
-  
   source(Src)
   #
   # Cleanup - do it now, not within sources!
@@ -3834,14 +3823,12 @@ if (globalGO) {
       #
       Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
       #rstudioapi::documentOpen(Src)
-      
       source(Src)
       #
       clueGO_outDir <- dir
       clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
       Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
       #rstudioapi::documentOpen(Src)
-      
       source(Src)
       #
       # Cleanup - do it now, not within sources!
@@ -3932,14 +3919,12 @@ if (globalGO) {
           #
           Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
           #rstudioapi::documentOpen(Src)
-          
           source(Src)
           #
           clueGO_outDir <- dir
           clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
           Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
           #rstudioapi::documentOpen(Src)
-          
           source(Src)
           #
           # Cleanup - do it now, not within sources!
@@ -5212,7 +5197,6 @@ saveImgFun(BckUpFl)
 #### Code chunk - XML coverage columns
 Src <- paste0(libPath, "/extdata/R scripts/Sources/xml_Coverage_columns.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 # Calculate maximum expected coverage per group
 if (WorkFlow == "Band ID") {
@@ -5529,7 +5513,6 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     #
     Src <- paste0(libPath, "/extdata/R scripts/Sources/Write_Excel_core_script.R")
     #rstudioapi::documentOpen(Src)
-    
     source(Src)
   }
 }
@@ -5851,12 +5834,10 @@ ColumnsTbl$edit_Col <- unlist(a)
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Write_Excel_core_script.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Write_Excel_end_script.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 #xl_open(repFl)
 
@@ -6565,7 +6546,6 @@ write.csv(temp, paste0(dir, "/Modifications.csv"), row.names = FALSE)
 # Finalize analysis
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Finalize_analysis.R")
 #rstudioapi::documentOpen(Src)
-
 #loadFun(BckUpFl)
 source(Src)
 

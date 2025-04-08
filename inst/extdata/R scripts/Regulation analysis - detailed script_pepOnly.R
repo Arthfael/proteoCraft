@@ -103,13 +103,11 @@ if (("try-error" %in% class(tst))||(!file.exists(tst))) {
 # Fast save and load functions
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 # Set Shiny options, load functions for creating a Word report, create Excel styles
 Src <- paste0(libPath, "/extdata/R scripts/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 #### Code chunk - Select input/output folders and define experimental structure
@@ -147,7 +145,6 @@ updt_proteoCraft %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$
 # Define input, output, project folder etc...
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Start_analysis.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 LocAnalysis %<o% (WorkFlow %in% c("LOCALISATION", "LOCALIZATION"))
 
@@ -179,7 +176,6 @@ setDTthreads(threads = N.clust)
 # Load PSMs
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Load_PSMs.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 # MS raw files map
@@ -187,7 +183,6 @@ tstFrMp <- FALSE
 while(!tstFrMp) {
   Src <- paste0(libPath, "/extdata/R scripts/Sources/Fractions_Map_editor.R")
   #rstudioapi::documentOpen(Src)
-  
   source(Src)
 }
 
@@ -494,7 +489,6 @@ tstXpMp <- FALSE
 while(!tstXpMp) {
   Src <- paste0(libPath, "/extdata/R scripts/Sources/Experiment_Map_editor.R")
   #rstudioapi::documentOpen(Src)
-  
   source(Src)
 }
 #
@@ -502,7 +496,6 @@ while(!tstXpMp) {
 #### Code chunk - Load and process search database(s)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Process_Fasta_DBs.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
@@ -893,13 +886,11 @@ FactorsLevels <- FactorsLevels[Factors]
 # Protein headers for shiny
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 #
 # Proteins of interest
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protList.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 #
 # Targets
@@ -907,7 +898,6 @@ source(Src)
 # Here, if necessary, we will remap those to valid IDs:
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Targets.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 #
 # KnockOut, KnockIn of KnockDown
@@ -922,13 +912,11 @@ if (sum(c("knockout", "knockin", "knockdown") %in% tst)) {
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protList2.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 #
 # Protein headers for shiny (update)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 #### Code chunk - Define analysis parameters
@@ -2991,11 +2979,9 @@ if (exists("Tim")) {
 # Refresh list of interesting proteins:
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protList.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protList2.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 if ("Prot.list_separate.plots" %in% colnames(Param)) {
@@ -4218,7 +4204,6 @@ saveImgFun(BckUpFl)
 # DIA-only: MS2-based correction of MS1-based quantitative values
 Src <- paste0(libPath, "/extdata/R scripts/Sources/MS2corr2MS1.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 rm(list = ls()[which(!ls() %in% .obj)])
@@ -6719,7 +6704,6 @@ if (globalGO) {
   source(parSrc)
   Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_prepare.R")
   #rstudioapi::documentOpen(Src)
-  
   source(Src)
 }
 
@@ -6876,7 +6860,6 @@ if (F.test) {
 ### Check that CytoScape is installed and can run, then launch it.
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 #### Code chunk - Modified peptides analysis
@@ -6930,7 +6913,6 @@ if ("PTM.analysis" %in% colnames(Param)) {
       # Initialize ClueGO
       Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_init.R")
       #rstudioapi::documentOpen(Src)
-      
       source(Src)
       #
     }
@@ -7095,7 +7077,6 @@ if ("PTM.analysis" %in% colnames(Param)) {
           #
           Src <- paste0(libPath, "/extdata/R scripts/Sources/Av_and_Stat_tests.R")
           #rstudioapi::documentOpen(Src)
-          
           source(Src)
           #
           #kol <- grep(topattern(paste0("Mean ", pepRf)), colnames(ptmpep), value = TRUE)
@@ -7196,7 +7177,6 @@ if ("PTM.analysis" %in% colnames(Param)) {
           insrt <- ""
           Src <- paste0(libPath, "/extdata/R scripts/Sources/thresholds_Excel.R")
           #rstudioapi::documentOpen(Src)
-          
           source(Src)
           #
           #
@@ -7304,7 +7284,6 @@ if ("PTM.analysis" %in% colnames(Param)) {
             #
             Src <- paste0(libPath, "/extdata/R scripts/Sources/run_F_test.R")
             #rstudioapi::documentOpen(Src)
-            
             tstFtst <- try(source(Src), silent = TRUE)
             #
             if (!"try-error" %in% class(tstFtst)) {
@@ -7625,14 +7604,12 @@ if ("PTM.analysis" %in% colnames(Param)) {
                     #
                     Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
                     #rstudioapi::documentOpen(Src)
-                    
                     source(Src)
                     #
                     clueGO_outDir <- dir
                     clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
                     Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
                     #rstudioapi::documentOpen(Src)
-                    
                     source(Src)
                     #
                     # Cleanup - do it now, not within sources!
@@ -7790,8 +7767,9 @@ if ("PTM.analysis" %in% colnames(Param)) {
         warning(paste0("PTM \"", ptm, "\" could not be recognized, please use names consistent with those specified in the search."))
       }
     }
-  }
-}
+  } else { stop("Really? There is no PTM-modified class of peptides to analyze? Why did you run this workflow then?") }
+} else { stop("Really? There is no PTM-modified class of peptides to analyze? Why did you run this workflow then?") }
+
 # Once we are done with using GO stuff, backup the final versions
 if (Annotate) {
   # (Testing for existence in case we are rerunning part of the script)
@@ -7951,6 +7929,8 @@ QualFilt %<o% c("In list", "Potential contaminant", "Only identified by site")
 if ((DiscFilt)&&(DiscFiltMode == DiscFiltModes[3])) { QualFilt <- c(QualFilt, DiscFiltCols) }
 II <- setNames(1, "All peptidoforms")
 if ((exists("PTMs_pep"))&&(length(PTMs_pep))) {
+  stop("Really? There is no PTM-modified class of peptides to analyze? Why did you run this workflow then?")
+} else {
   Mod2Write <- names(PTMs_pep)
   II[paste0(Mod2Write, "-mod. pept.")] <- 1+(seq_along(length(Mod2Write)))
 }
@@ -8204,20 +8184,387 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     #
     Src <- paste0(libPath, "/extdata/R scripts/Sources/parWrite_Excel_core_script.R")
     #rstudioapi::documentOpen(Src)
-    
     source(Src)
   }
 }
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Write_Excel_end_script.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 #WorkBook$get_active_sheet()
 #xl_open(repFl)
 
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
+
+
+
+#### Code chunk - Venn diagrams
+# cleanNms2 function specifically designed to clean names for Venn diagrams
+cleanNms2 %<o% function(names, groups = VPAL, sep = "\n/vs/\n", simplify) {
+  isList <- ("list" %in% class(names))
+  if (missing(simplify)) { simplify <- !isList }
+  if (!isList) {
+    names <- sapply(strsplit(gsub("^\\(|\\)$", "", names), "\\) - \\("), unlist)
+  }
+  uNms <- unique(unlist(names))
+  nuNms <- as.data.frame(t(as.data.frame(strsplit(uNms, "___"))))
+  colnames(nuNms) <- groups$names
+  nuNms$Full <- uNms
+  w <- which(sapply(groups$names, function(x) { length(unique(nuNms[[x]])) }) > 1)
+  nuNms$New <- do.call(paste, c(nuNms[, groups$names[w], drop = FALSE], sep = ""))
+  nuNames <- lapply(names, function(x) { nuNms$New[match(x, nuNms$Full) ]})
+  if (simplify) { nuNames <- sapply(nuNames, paste, collapse = sep) }
+  return(nuNames)
+}
+#
+msg <- "Venn diagrams"
+ReportCalls <- AddMsg2Report(Space = FALSE)
+HdrStlVenn <- createStyle(textDecoration = "bold", halign = "left", valign = "bottom", wrapText = TRUE,
+                          numFmt = "TEXT", fontSize = 12, textRotation = 60)
+Mod2Venn <- names(PTMs_pep)
+II <- setNames(1, "All peptidoforms")
+#if ((exists("PTMs_pep"))&&(length(PTMs_pep))) {
+  Mod2Write <- names(PTMs_pep)
+  II[paste0(Mod2Write, "-mod. pept.")] <- 1+(seq_along(length(Mod2Write)))
+#}
+for (ii in II[2:length(II)]) { #ii <- II[2] #ii <- II[3]
+  if (ii == 1) {
+    # Placeholder
+    # dir <- paste0(wd, "/Venn diagrams")
+    # ttest_Filt <- Reg_filters$"t-tests"$"By condition"
+    # vennRoot <- ""
+    # myData <- pep
+    # myRef <- grep("^Mean [^ ]+ log10\\(", colnames(myData), value = TRUE)
+    # myRef <- paste0(unique(gsub(" - .*", "", myRef)), " - ")
+    # myRef <- myRef[length(myRef)]
+    # idKol <- "Modified sequence"
+    # infoKol <- "Proteins"
+    # if (F.test) {
+    #   Ftest_Filt <- Reg_filters$"F-tests"$"By condition"
+    #   myFData <- F_test_data
+    # }
+  } else {
+    Ptm <- Mod2Venn[ii-1]
+    dir <- paste0(wd, "/Reg. analysis/", Ptm, "/Venn diagrams")
+    ttest_Filt <- PTMs_Reg_filters[[Ptm]]$"t-tests"$"By condition"
+    vennRoot <- paste0(Ptm, " ")
+    myData <- PTMs_pep[[Ptm]]
+    myRef <- grep("^Mean ([^ ]+ )?log10\\(", colnames(myData), value = TRUE)
+    myRef <- paste0(unique(gsub(" - .*", "", myRef)), " - ")
+    myRef <- myRef[length(myRef)]
+    infoKol <- "Proteins"
+    idKol <- "Modified sequence"
+    if (F.test) {
+      Ftest_Filt <- PTMs_Reg_filters[[Ptm]]$"F-tests"$"By condition"
+      myFData <- PTMs_F_test_data[[Ptm]]
+    }
+  }
+  topTitle <- paste0("Venn diagram - ", names(II)[ii])
+  infoKol <- infoKol[which(infoKol %in% colnames(myData))]
+  if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+  dirlist <- unique(c(dirlist, dir))
+  #
+  wb <- createWorkbook()
+  wbKount <- 0
+  #
+  dir2 <- paste0(dir, "/Observations")
+  if (!dir.exists(dir2)) { dir.create(dir2, recursive = TRUE) }
+  dirlist <- unique(c(dirlist, dir2))
+  setwd(dir2)
+  #View(myData[, paste0(myRef, VPAL$values)])
+  comp_list <- setNames(lapply(VPAL$values, function(grp) { #grp <- VPAL$values[1]
+    x <- myData[[paste0(myRef, grp)]]
+    which(is.all.good(as.numeric(x), 2))
+  }), cleanNms2(VPAL$values))
+  w <- which(sapply(comp_list, length) > 0)
+  VennExp <- names(comp_list)[w]
+  OK <- length(w) > 1
+  ttl <- paste0(vennRoot, "LFQ Venn diagram, all")
+  if (length(w) > VennMx) {
+    msg <- paste0("Too many groups, select at least 2 and up to ", VennMx,
+                  " to include in Venn diagram ", ttl)
+    opt <- sapply(VennExp, function(x) { paste(c(x, rep(" ", 200-nchar(x))), collapse = "") })
+    VennExp <- VennExp[match(dlg_list(opt, opt[1:VennMx], TRUE, msg)$res, opt)]
+    if (length(VennExp) == 1) {
+      OK <- FALSE
+      if (!is.na(VennExp)) {
+        warning("Skipping per-sample-group observations Venn diagrams: you should have selected at least 2 groups!")
+      }
+    }
+    if ((length(VennExp) > VennMx)&&(length(VennExp) < 1)) {
+      msg <- paste0("Skipping per-sample-group observations Venn diagrams: you should have selected ", VennMx, " groups at most!")
+      warning(msg)
+      OK <- FALSE
+    }
+  }
+  if (OK) {
+    cat("Creating per-sample-group observations Venn diagrams...\n")
+    comp_list <- comp_list[VennExp]
+    plot <- venn(comp_list, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)
+    plot <- plot + ggtitle(topTitle, subtitle = "Global, LFQ") +
+      theme(plot.title = element_text(size = 15),
+            plot.subtitle = element_text(size = 10))
+    poplot(plot)
+    ggsave(paste0(dir2, "/", ttl, ".jpg"), plot, dpi = 150)
+    ggsave(paste0(dir2, "/", ttl, ".pdf"), plot, dpi = 150)
+    #system(paste0("open \"", dir2, "/", ttl, ".jpg", "\""))
+    ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_img(Report, \"", dir2, "/", ttl, ".jpg\", height = 6, width = 6)"))
+    wbKount <- wbKount+1
+    SheetNm <- "Sample groups composition"
+    addWorksheet(wb, SheetNm)
+    writeData(wb, SheetNm, myData[, c("id", idKol, infoKol)], 1, 1)
+    l <- length(comp_list)
+    tmp <- sapply(names(comp_list), function(grp) {
+      res <- rep("", nrow(myData))
+      res[comp_list[[grp]]] <- "+"
+      return(res)
+    })
+    writeData(wb, SheetNm, tmp, 4, 1)
+    setRowHeights(wb, SheetNm, 1, 120)
+    addStyle(wb, SheetNm, HdrStlVenn, 1, 1:(l+3))
+  } else {
+    msg <- paste0(ttl, ": not enough groups to compare!")
+    ReportCalls <- AddMsg2Report(Space = FALSE)
+  }
+  #
+  dir2 <- paste0(dir, "/Stat. tests")
+  if (!dir.exists(dir2)) { dir.create(dir2, recursive = TRUE) }
+  dirlist <- unique(c(dirlist, dir2))
+  setwd(dir2)
+  #
+  vennlev <- c("up", "down")[1:(1+TwoSided)]
+  if (("Venn.Groups" %in% colnames(Param))&&(Param$Venn.Groups != "")) { VennGrp <- Param$Venn.Groups } else { VennGrp <- "GLOBAL" }
+  if (toupper(VennGrp) == "GLOBAL") { VennGrp <- "GLOBAL" }
+  nmz <- names(ttest_Filt)
+  if (length(nmz) > 1) {
+    msg <- " - t-tests"
+    ReportCalls <- AddMsg2Report(Space = FALSE)
+    for (r in vennlev) { #r <- "up"
+      ReportCalls <- AddMsg2Report(Msg = r, Offset = TRUE, Space = FALSE)
+      comp_list <- setNames(lapply(nmz, function(x) {
+        ttest_Filt[[x]][[paste0("Filter_", r)]]
+      }), cleanNms2(nmz))
+      w <- which(sapply(comp_list, length) > 0)
+      VennExp <- names(comp_list)[w]
+      OK <- length(w) > 1
+      ttl <- gsub("^g", "G", paste0(vennRoot, "t-tests Venn diagram, all, ", r))
+      if (length(w) > VennMx) {
+        msg <- paste0("Too many groups, select at least 2 and up to ", VennMx,
+                      " to include in Venn diagram ", ttl)
+        opt <- sapply(VennExp, function(x) { paste(c(x, rep(" ", 200-nchar(x))), collapse = "") })
+        VennExp <- VennExp[match(dlg_list(opt, opt[1:VennMx], TRUE, msg)$res, opt)]
+        if (length(VennExp) == 1) {
+          OK <- FALSE
+          if (!is.na(VennExp)) {
+            warning(ttl, ": skipping per-sample-group observations. You should have selected at least 2 groups!")
+          }
+        }
+        if ((length(VennExp) > VennMx)&&(length(VennExp) < 1)) {
+          msg <- paste0(ttl, ": skipping per-sample-group observations. You should have selected ", VennMx, " groups at most!")
+          warning(msg)
+          OK <- FALSE
+        }
+      }
+      if (OK) {
+        comp_list <- comp_list[VennExp]
+        kr <- paste0("Regulated - ", nmz)
+        tmp <- myData[unique(unlist(comp_list)), c(idKol, infoKol, "id", kr)]
+        if (r == "up") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
+        if (r == "down") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
+        tst <- apply(tmp[, kr], 1, function(x) { length(w[which(x %in% good)]) })
+        tmp <- tmp[order(tst, decreasing = TRUE),]
+        write.csv(tmp, paste0(dir2, "/", ttl, " - table.csv"), row.names = FALSE)
+        plot <- venn(comp_list, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)
+        plot <- plot +
+          ggtitle(topTitle, subtitle = paste0("t-tests, ", r)) +
+          theme(plot.title = element_text(size = 15),
+                plot.subtitle = element_text(size = 10))
+        poplot(plot)
+        ggsave(paste0(dir2, "/", ttl, ".jpg"), plot, dpi = 150)
+        ggsave(paste0(dir2, "/", ttl, ".pdf"), plot, dpi = 150)
+        #system(paste0("open \"", dir2, "/", ttl, ".jpg", "\""))
+        ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_img(Report, \"", dir2, "/", ttl, ".jpg\", height = 6, width = 6)"))
+        wbKount <- wbKount+1
+        SheetNm <- paste0("t-test ", r)
+        addWorksheet(wb, SheetNm)
+        writeData(wb, SheetNm, myData[, c("id", idKol, infoKol)], 1, 1)
+        l <- length(comp_list)
+        tmp <- sapply(names(comp_list), function(grp) {
+          res <- rep("", nrow(myData))
+          res[comp_list[[grp]]] <- "+"
+          return(res)
+        })
+        writeData(wb, SheetNm, tmp, 4, 1)
+        setRowHeights(wb, SheetNm, 1, 120)
+        addStyle(wb, SheetNm, HdrStlVenn, 1, 1:(l+3))
+      } else {
+        msg <- paste0(ttl, ": not enough groups with regulated proteins to compare!")
+        ReportCalls <- AddMsg2Report(Space = FALSE)
+      }
+    }
+    ReportCalls <- AddSpace2Report()
+  }
+  VennGrp2 <- parse.Param.aggreg(Param_filter(Param$Venn.Groups, "Rep"))
+  if ((VennGrp != "GLOBAL")&&(length(VennGrp2$values) > 1)) {
+    for (i in VennGrp2$values) { #i <- VennGrp2$values[1]
+      nms <- nmz[which(nmz %in% Exp.map[which(Exp.map[[VennGrp2$column]] == i), VPAL$column])]
+      if (length(nms) > 1) {
+        j <- cleanNms(i)
+        msg <- paste0(" - ", j)
+        ReportCalls <- AddMsg2Report(Space = FALSE)
+        for (r in vennlev) { #r <- "up"
+          ReportCalls <- AddMsg2Report(Msg = r, Offset = TRUE, Space = FALSE)
+          ttl <- paste0(vennRoot, "t-tests Venn diagram, ", j, ", ", r)
+          comp_list <- setNames(lapply(nms, function(x) {
+            ttest_Filt[[x]][[paste0("Filter_", r)]]
+          }), cleanNms2(nms))
+          w <- which(sapply(comp_list, length) > 0)
+          VennExp <- names(comp_list)[w]
+          OK <- length(w) > 1
+          ttl <- gsub("^g", "G", paste0(vennRoot, "t-tests Venn diagram, all, ", r))
+          if (length(w) > VennMx) {
+            msg <- paste0("Too many groups, select at least 2 and up to ", VennMx,
+                          " to include in Venn diagram ", ttl)
+            opt <- sapply(VennExp, function(x) { paste(c(x, rep(" ", 200-nchar(x))), collapse = "") })
+            VennExp <- VennExp[match(dlg_list(opt, opt[1:VennMx], TRUE, msg)$res, opt)]
+            if (length(VennExp) == 1) {
+              OK <- FALSE
+              if (!is.na(VennExp)) {
+                warning(ttl, ": skipping per-sample-group observations. You should have selected at least 2 groups!")
+              }
+            }
+            if ((length(VennExp) > VennMx)&&(length(VennExp) < 1)) {
+              msg <- paste0(ttl, ": skipping per-sample-group observations. You should have selected ", VennMx, " groups at most!")
+              warning(msg)
+              OK <- FALSE
+            }
+          }
+          if (OK) {
+            comp_list <- comp_list[VennExp]
+            kr <- paste0("Regulated - ", nms)
+            tmp <- myData[unique(unlist(comp_list)), c(idKol, infoKol, "id", kr)]
+            if (r == "up") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
+            if (r == "down") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
+            tst <- apply(tmp[, kr], 1, function(x) { length(w[which(x %in% good)]) })
+            tmp <- tmp[order(tst, decreasing = TRUE),]
+            write.csv(tmp, paste0(dir2, "/", ttl, " - table.csv"), row.names = FALSE)
+            names(comp_list) <- cleanNms(names(comp_list))
+            plot <- venn(comp_list, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)
+            plot <- plot +
+              ggtitle(topTitle, subtitle = paste0("t-tests, subgroup = ", j, ", ", r)) +
+              theme(plot.title = element_text(size = 15),
+                    plot.subtitle = element_text(size = 10))
+            poplot(plot)
+            ggsave(paste0(dir2, "/", ttl, ".jpg"), plot, dpi = 150)
+            ggsave(paste0(dir2, "/", ttl, ".pdf"), plot, dpi = 150)
+            #system(paste0("open \"", dir2, "/", ttl, ".jpg", "\""))
+            ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_img(Report, \"", dir2, "/", ttl, ".jpg\", height = 6, width = 6)"))
+            wbKount <- wbKount+1
+            SheetNm <- paste0("t-test ", j, " ", r)
+            addWorksheet(wb, SheetNm)
+            writeData(wb, SheetNm, myData[, c("id", idKol, infoKol)], 1, 1)
+            l <- length(comp_list)
+            tmp <- sapply(names(comp_list), function(grp) {
+              res <- rep("", nrow(myData))
+              res[comp_list[[grp]]] <- "+"
+              return(res)
+            })
+            writeData(wb, SheetNm, tmp, 4, 1)
+            setRowHeights(wb, SheetNm, 1, 120)
+            addStyle(wb, SheetNm, HdrStlVenn, 1, 1:(l+3))
+          } else {
+            msg <- paste0(ttl, ": not enough groups with regulated proteins to compare!")
+            ReportCalls <- AddMsg2Report(Space = FALSE)
+          }
+        }
+        ReportCalls <- AddSpace2Report()
+      } else {
+        msg <- paste0("t-tests Venn diagrams: ", i, " - could not draw: not enough groups to compare!")
+        ReportCalls <- AddMsg2Report()
+      }
+    }
+  }
+  if (F.test) {
+    dir2 <- paste0(dir, "/Stat. tests")
+    if (!dir.exists(dir2)) { dir.create(dir2, recursive = TRUE) }
+    dirlist <- unique(c(dirlist, dir2))
+    setwd(dir2)
+    #
+    nmz <- names(Ftest_Filt)
+    nmz <- nmz[which(!grepl(" VS ", nmz))]
+    if (length(nmz) > 1) {
+      msg <- " - F-tests"
+      ReportCalls <- AddMsg2Report(Space = FALSE)
+      for (r in vennlev) { #r <- "up"
+        ReportCalls <- AddMsg2Report(Msg = r, Offset = TRUE, Space = FALSE)
+        ttl <- paste0(vennRoot, "Venn diagram - F-test, global - ", r)
+        nmz2 <- cleanNms2(nmz)
+        comp_list <- setNames(lapply(nmz, function(x) {
+          Ftest_Filt[[x]][[paste0("Filter_", r)]]
+        }), nmz2)
+        tst <- sapply(comp_list, length)
+        w <- which(tst > 0)
+        if (length(w) > 1) {
+          if (length(w) <= VennMx) {
+            comp_list <- comp_list[w]
+            w <- unique(unlist(comp_list))
+            wN <- which(!infoKol %in% colnames(myFData))
+            if (length(wN)) {
+              myFData[, infoKol[wN]] <- myData[match(myFData[[idKol]], myData[[idKol]]), infoKol]
+            }
+            tmp <- myFData[w, c(idKol, infoKol)]
+            tmp$id <- myData$id[w]
+            kr <- paste0("mod. F-test Regulated - ", nmz)
+            tmp[, kr] <- myFData[w, kr]
+            if (r == "up") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
+            if (r == "down") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
+            tst <- apply(tmp[, kr], 1, function(x) { length(w[which(x %in% good)]) })
+            tmp <- tmp[order(tst, decreasing = TRUE),]
+            write.csv(tmp, paste0(dir2, "/", ttl, " - table.csv"), row.names = FALSE)
+            names(comp_list) <- cleanNms(names(comp_list))
+            plot <- venn(comp_list, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)
+            plot <- plot +
+              ggtitle(topTitle, subtitle = paste0(vennRoot, "F-test, ", r)) +
+              theme(plot.title = element_text(size = 15),
+                    plot.subtitle = element_text(size = 10))
+            poplot(plot)
+            ggsave(paste0(dir2, "/", ttl, ".jpg"), plot, dpi = 150)
+            ggsave(paste0(dir2, "/", ttl, ".pdf"), plot, dpi = 150)
+            #system(paste0("open \"", dir2, "/", ttl, ".jpg", "\""))
+            ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_img(Report, \"", dir2, "/", ttl, ".jpg\", height = 6, width = 6)"))
+            wbKount <- wbKount+1
+            SheetNm <- paste0("F-test global ", r)
+            addWorksheet(wb, SheetNm)
+            writeData(wb, SheetNm, myData[, c("id", idKol, infoKol)], 1, 1)
+            l <- length(comp_list)
+            tmp <- sapply(names(comp_list), function(grp) {
+              res <- rep("", nrow(myData))
+              res[comp_list[[grp]]] <- "+"
+              return(res)
+            })
+            writeData(wb, SheetNm, tmp, 4, 1)
+            setRowHeights(wb, SheetNm, 1, 120)
+            addStyle(wb, SheetNm, HdrStlVenn, 1, 1:(l+3))
+          } else {
+            msg <- paste0("Could not draw global F-tests Venn diagram: more than ", VennMx, " groups to compare!")
+            ReportCalls <- AddMsg2Report(Space = FALSE)
+          }
+          ReportCalls <- AddSpace2Report()
+        } else {
+          msg <- "Could not draw global F-tests Venn diagram: not enough groups with regulated proteins to compare!"
+          ReportCalls <- AddMsg2Report()
+        }
+      }
+    } else {
+      msg <- "Could not draw global F-tests Venn diagram: not enough groups to compare!"
+      ReportCalls <- AddMsg2Report()
+    }
+  }
+  if (wbKount) { saveWorkbook(wb, paste0(dir2, "/Venn diagrams.xlsx"), overwrite = TRUE) }
+  setwd(wd)
+  ReportCalls <- AddSpace2Report()
+}
 
 #### Code chunk - Finalize analysis and export results
 # Remove empty directories:
@@ -8245,7 +8592,6 @@ MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style
 # Finalize analysis
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Finalize_analysis.R")
 #rstudioapi::documentOpen(Src)
-
 source(Src)
 
 # End logging:
