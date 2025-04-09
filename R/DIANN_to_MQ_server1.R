@@ -1,7 +1,7 @@
 #' DIANN_to_MQ_server2
 #'
 #' @description 
-#' Server for app used to deciding whether to update PTM marks.
+#' Server for app used to decide whether to update PTM marks.
 #' 
 #' @export
 

@@ -16,7 +16,7 @@ DIANN_to_MQ_server2 <- function(input, output, session) {
   #  - The function takes a parallel cluster for internal calculations. We can't nest parallelization within parallelization.
   #
   con <- file(fl, "r+")
-  ModTbl <- unserialize(con)
+  ModTbl <- unserialize(connection = con)
   nr <- nrow(ModTbl)
   if (nr) {
     ModTbl$Name <- gsub(":", "_", ModTbl$Name) # This must be reverted before serializing!

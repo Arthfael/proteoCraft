@@ -61,6 +61,7 @@ DIANN_to_MQ <- function(DIANN_fl,
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
+  #
   cleanUp <- FALSE
   if (misFun(cl)) {
     dc <- parallel::detectCores()
@@ -185,7 +186,7 @@ DIANN_to_MQ <- function(DIANN_fl,
     }
   }, silent = TRUE)
   #
-  # Create MQ-like file
+  # Create MQ-like table
   if (!"File.Name" %in% colnames(DIANN)) {
     stopifnot("Run.Index" %in% colnames(DIANN),
               file.exists(log_Fl))
