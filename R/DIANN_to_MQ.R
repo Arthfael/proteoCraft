@@ -22,6 +22,7 @@
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
 #' @param shinyOpt One of "popup" (default), "pane", "dialog", or "browser".
+#' @param digPattern Default = "KR" for trypsin. Only used for the "Missed cleavages" column. Vector of amino acids after which the enzyme cleaves. 
 #' 
 #' @examples
 #' DIANN_fl <- rstudioapi::selectFile()
@@ -41,7 +42,8 @@ DIANN_to_MQ <- function(DIANN_fl,
                         N.clust,
                         N.reserved = 1,
                         cl,
-                        shinyOpt = "popup") {
+                        shinyOpt = "popup",
+                        digPattern = "KR") {
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::DIANN_to_MQ);TESTING <- TRUE
   #DIANN_fl <- PSMsFls; cl <- parClust
@@ -236,7 +238,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   tmp$Comp <- gsub("\\)[A-Z]*\\(", "___",
                    gsub("^_[A-Z]*\\(|\\)[A-Z]*_$|^_[A-Z]+_$", "",
                         gsub("\\[", "(",
-                             gsub("\\]", ")", tmp$ModSeq)))) 
+                             gsub("\\]", ")", tmp$ModSeq))))
   tmp$Comp <- strsplit(tmp$Comp, "___")
   comps <- unique(unlist(tmp$Comp))
   gC <- sum(grepl("^UniMod:", comps))
@@ -310,12 +312,13 @@ DIANN_to_MQ <- function(DIANN_fl,
                          DM = fit$coefficients)
       Mods$LibDM <- suppressWarnings(as.numeric(gsub(".*mod_", "", Mods$Name)))
       Mods$AA <- gsub("mod_.*", "", Mods$Name)
+      precVal <- 0.02
       Mods$Options <- apply(Mods[, c("DM", "AA")], 1, function(x) {
         dm <- as.numeric(x[[1]])
         if (substr(x[[2]], 1, 1) == "_") {
-          w <- which((abs(UniMod$MonoMass - dm) <= 0.02)&(UniMod$Site %in% c(substr(x[[2]], 2, 2), "N-term")))
+          w <- which((abs(UniMod$MonoMass - dm) <= precVal)&(UniMod$Site %in% c(substr(x[[2]], 2, 2), "N-term")))
         } else {
-          w <- which((abs(UniMod$MonoMass - dm) <= 0.02)&(UniMod$Site == x[[2]]))
+          w <- which((abs(UniMod$MonoMass - dm) <= precVal)&(UniMod$Site == x[[2]]))
         }
         if (length(w)) {
           Ddm <- dm - UniMod$MonoMass[w]
@@ -370,8 +373,8 @@ DIANN_to_MQ <- function(DIANN_fl,
       con <- file(fl, "r+")
       serialize(Mods, con)
       suppressWarnings(suppressMessages(try(close(con), silent = TRUE))) # Only necessary in function mode
+      #runApp2 <- "print(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))"
       eval(parse(text = runApp2))
-      #print(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))
       con <- file(fl, "r")
       Mods <- unserialize(con)
       suppressWarnings(suppressMessages(try(close(con), silent = TRUE))) # Only necessary in function mode
@@ -431,14 +434,14 @@ DIANN_to_MQ <- function(DIANN_fl,
     tmp <- aggregate(gsub("^_", "", Mods$AA), list(Mods$Match), function(x) { sort(unique(x)) })
     allPTMs$Site <- allPTMs$AA <- tmp$x[match(allPTMs$`Full name`, tmp$Group.1)]
     w <- which(allPTMs$Position == "Any N-term")
-    if (length(w)) { allPTMs$Site[w] <- sapply(allPTMs$Site[w], function(x) { paste0("n", x) }) }
+    if (length(w)) { allPTMs$Site[w] <- lapply(allPTMs$Site[w], function(x) { paste0("n", x) }) }
     w <- which(allPTMs$Position == "Any C-term")
-    if (length(w)) { allPTMs$Site[w] <- sapply(allPTMs$Site[w], function(x) { paste0("c", x) }) }
+    if (length(w)) { allPTMs$Site[w] <- lapply(allPTMs$Site[w], function(x) { paste0("c", x) }) }
     w <- which(allPTMs$Position == "Protein N-term")
     if (length(w)) { allPTMs$Site[w] <- "[^" }
     w <- which(allPTMs$Position == "Protein C-term")
     if (length(w)) { allPTMs$Site[w] <- "^]" }
-    allPTMs$Site_long <- sapply(strsplit(gsub("\\^", "", sapply(allPTMs$Site, paste, collapse = "")), ""), function(x) {
+    allPTMs$Site_long <- lapply(strsplit(gsub("\\^", "", lapply(allPTMs$Site, paste, collapse = "")), ""), function(x) {
       x[which(x %in% c("[", "n"))] <- "N-term"
       x[which(x %in% c("]", "c"))] <- "C-term"
       return(x)
@@ -458,9 +461,11 @@ DIANN_to_MQ <- function(DIANN_fl,
       m$AA[which(sapply(m$AA, length) == 0)] <- "X"
       if ("Acetyl" %in% m$"Full name") { r <- which(m$"Full name" == "Acetyl") } else { r <- 1 }
       s <- c(1:nrow(m)); s <- s[which(s != r)]
-      test <- apply(m[s, c("AA", "Mark")], 1, function(x) { paste0(tolower(x[[1]]), substr(x[[2]], 1, 1)) })
-      w1 <- which(!test %in% allPTMs$Mark)
-      m$Mark[s][w1] <- test
+      test <- apply(m[s, c("AA", "Mark")], 1, function(x) { paste0(tolower(x[[1]]), substr(x[[2]], 1, 1))[1] })
+      w0 <- which(!test %in% allPTMs$Mark)
+      if (length(w0)) {
+        m$Mark[s][w0] <- test[w0[1]]
+      }
       w1 <- which(test %in% allPTMs$Mark)
       if (length(w1)) {
         # not tested
@@ -690,8 +695,10 @@ DIANN_to_MQ <- function(DIANN_fl,
   #
   EV$Type <- "LIB-DIA" # This may need to change if important; usually diaNN recommends library-free + MBR, not library-based searches;
   # Not sure if MaxQuant assigns a type for each different way to run DIA
-  tmp <- gsub("[K,R]$", "", EV$Sequence)
-  EV$"Missed cleavages" <- nchar(tmp) - nchar(gsub("[K,R]", "", tmp))
+  warning("Calculating missed cleavages assuming trypsin digest... If this is a problem add ")
+  digPat <- paste(c("[", digPattern, "]"), collapse = "")
+  tmp <- gsub(paste0(digPat, "$"), "", EV$Sequence)
+  EV$"Missed cleavages" <- nchar(tmp) - nchar(gsub(digPat, "", tmp))
   EV$"Potential contaminant" <- ""
   if ("Search_ID" %in% colnames(DIANN)) {
     EV$Search_ID <- DIANN$PSMs_file # In cases where the input is a hybrid report created by the merging script in .../Utils

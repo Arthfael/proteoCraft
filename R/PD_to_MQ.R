@@ -198,7 +198,11 @@ PD_to_MQ <- function(PD,
       EV$"m/z" <- PD$"m/z [Da]"-LabelMass*(NIsobar)/EV$Charge
     }
   }
-  EV$Mass <- EV$Charge*(EV$"m/z"-1.007276466879)
+  #massH <- as.numeric(gsub("_.*", "", isoProbs$Monoisotopic[match("H", isoProbs$Atom)]))
+  #massElectr <- 0.00054858
+  #massProt <- massH + massElectr
+  massProt <- 1.007276466879
+  EV$Mass <- EV$Charge * (EV$"m/z" - massProt)
   # (Using here the average of a hydrogen, not the mass of a proton:
   # these H+ come from the environment and are actually hydrons: not just protons but also some deuterons and tritons)
   EV$"Mass error [Da]" <- PD$"Deltam/z [Da]"
