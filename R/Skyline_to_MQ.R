@@ -1,10 +1,10 @@
 #' Skyline_to_MQ
 #'
-#' @description 
-#' Converts a Skyline tsv export table to a table with MaxQuant evidence.txt-like formating.
+#' @description
+#' Converts a Skyline .tsv or .csv export table (PSMs or Transitions) to a table with MaxQuant evidence.txt-like formatting.
 #' As with the other functions of this type, the idea is not to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.
 #' 
-#' The output is a list of 3 items:
+#' The output is a list of 2 items:
 #' - Evidence: a data.frame similar to the evidence.txt table MaxQuant creates
 #' - PTMs: a modifications table
 #' 
