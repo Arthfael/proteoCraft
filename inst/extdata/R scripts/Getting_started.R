@@ -9,8 +9,8 @@
 unloadNamespace("proteoCraft")
 remove.packages("proteoCraft")
 pak::pkg_install("Arthfael/proteoCraft", upgrade = TRUE, ask = FALSE)
-# or
-devtools::install_github("Arthfael/proteoCraft", upgrade = TRUE)
+# Alternative way to install:
+#devtools::install_github("Arthfael/proteoCraft", upgrade = TRUE)
 
 # Load the package
 library(proteoCraft)
