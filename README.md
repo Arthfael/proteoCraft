@@ -28,6 +28,7 @@ Input data can be the output from:
 There is burgeoning support for:
  - Proteome Discoverer (conversion function exists but integration with analysis scripts deprecated)
  - Skyline (new basic conversion function in the works, probably needs fuller development and integration with the scripts but for now allows to deal with .tsv/.csv exports assuming a core of columns were exported)
+
 Depending on search parameters you may encounter unexpected situations, as we have not tested every possible situation but only ones occurring in our facility. It is likely that some options in some software will break the conversion functions, especially for the more versatile engines such as FragPipe. If that happens, get in touch and we will add support asap.
 We would like to add Spectronaut/Peaks/AlphaPept support too eventually.
 
