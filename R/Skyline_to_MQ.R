@@ -101,12 +101,15 @@ Skyline_to_MQ <- function(Skyline_fl,
   }
   #
   minCols <- c("Replicate Name", "Peptide", "Protein", "Missed Cleavages", "Precursor Charge", "Precursor Mz", 
-               "Peptide Retention Time", "Min Start Time", "Max End Time", "Is Decoy")
-  if (sum(!minCols %in% colnames(Skyline))) {
+               "Peptide Retention Time", "Min Start Time", "Max End Time")
+  w <- which(!minCols %in% colnames(Skyline))
+  if (length(w)) {
     stop(paste0("The following columns are required in the Skyline export:\n - ",
-                paste(minCols, collapse = "\n - "), "\n"))
+                paste(minCols[w], collapse = "\n - "), "\n"))
   }
-  Skyline$"Is Decoy" <- as.logical(Skyline$"Is Decoy")
+  if ("Is Decoy" %in% colnames(Skyline)) {
+    Skyline$"Is Decoy" <- as.logical(Skyline$"Is Decoy")
+  }
   #
   fileCols <- c("File Path", "File Name", "Replicate Name") # Order of decreasing priority
   w <- which(fileCols %in% colnames(Skyline))
@@ -150,7 +153,7 @@ Skyline_to_MQ <- function(Skyline_fl,
                       c("", ",\n`Detection Q Value` = mean(`Detection Q Value`)")[("Detection Q Value" %in% colnames(Skyline))+1],
                       c("", ",\n`Library Probability Score` = mean(`Library Probability Score`)")[("Library Probability Score" %in% colnames(Skyline))+1],
                       c("", ",\n`Library Score1` = mean(`Library Score1`)")[("Library Score1" %in% colnames(Skyline))+1],
-                      ", `Is Decoy` = unique(`Is Decoy`))")
+                      c("", ",\n`Is Decoy` = unique(`Is Decoy`)")[("Is Decoy" %in% colnames(Skyline))+1], ")")
     byLst <- "list(`Replicate Name`, `File Name`, `File Path`, `Peptide`, `Modified sequence`, `Protein`, `Missed Cleavages`, `Precursor Charge`,
                   `Precursor Mz`, `Peptide Retention Time`, `Min Start Time`, `Max End Time`)"
     aggrCall <- paste0("Skyline2 <- Skyline2[, ", aggrLst, ", by = ", byLst, "]")
@@ -197,7 +200,9 @@ Skyline_to_MQ <- function(Skyline_fl,
   }
   #
   # Reverse
-  EV$"Reverse" <- c("", "+")[Skyline$"Is Decoy" + 1]
+  if ("Is Decoy" %in% colnames(Skyline)) {
+    EV$"Reverse" <- c("", "+")[Skyline$"Is Decoy" + 1]
+  }
   #
   # Score
   scoreCols <- c("Library Score1", "Library Probability Score") # The order matters slightly
