@@ -60,13 +60,15 @@ Volcano.plot(
   N.clust,
   N.reserved = 1,
   cl,
-  reg.root
+  reg.root,
+  SAM = FALSE,
+  curved_Thresh
 )
 }
 \arguments{
 \item{Prot}{The protein/protein groups table. It will be added columns saying whether a protein group is regulated or not for each test performed (i.e. each "aggregate")}
 
-\item{mode}{One of "standard", "custom", or "curved".}
+\item{mode}{One of "standard" or "custom". Ignored if SAM = TRUE.}
 
 \item{X.root}{Root of the names for X-axis log-scale values. If missing, defaults are provided in mode = "custom" in the parameters file.}
 
@@ -181,7 +183,11 @@ Volcano.plot(
 
 \item{cl}{Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!}
 
-\item{reg.root}{Classically, this function would output a "Regulated - ..." column per sample group, based on applying the thresholds (either provided directly - significance is read from the table using "FDR.root", and FC threshold are either applied directly using "arbitrary.thresh" or calculated based on "Ref.Ratio.values"). Providing this input allows the function to bypass this step and apply colors based on a pre-determined decision.}
+\item{reg.root}{Classically, this function would output a "Regulated - ..." column per sample group, based on applying the thresholds (either provided directly - significance is read from the table using "FDR.root", and FC threshold are either applied directly using "arbitrary.thresh" or calculated based on "Ref.Ratio.values"). Providing this input allows the function to bypass this step and apply colors based on a pre-determined decision (used for the F-test currently). Automatically set to "Regulated - " if SAM is TRUE.}
+
+\item{SAM}{FALSE by default. If TRUE, then a curved threshold is applied based on the SAM analysis.}
+
+\item{curved_Thresh}{Curved threshold parameters, only used if mode = "curved".\cr A named list, with one item for each (same names as the ones appended to X.root and Y.root in Prot column names).\cr Each item should be a named list of S0 (single value), Si (single value) and d (one value per FDR level) numerics.}
 }
 \description{
 A function to create volcano plots.
