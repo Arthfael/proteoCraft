@@ -246,6 +246,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   modsType <- "No idea"
   if (gC == l) { modsType <- "UniMod" }
   if (modsType == "No idea") {
+    screenRes <- rpanel::rp.screenresolution()
     if (shinyOpt == "popup") {
       runApp1 <- "print(shiny::shinyApp(proteoCraft::DIANN_to_MQ_ui1(tstMap), proteoCraft::DIANN_to_MQ_server1, options = list(height = screenRes$height, width = screenRes$width)))"
       runApp2 <- "print(shiny::shinyApp(proteoCraft::DIANN_to_MQ_ui2, proteoCraft::DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))"

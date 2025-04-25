@@ -4,7 +4,7 @@
 #' A function to create volcano plots.
 #' 
 #' @param Prot The protein/protein groups table. It will be added columns saying whether a protein group is regulated or not for each test performed (i.e. each "aggregate")
-#' @param mode One of "standard", "custom", or "curved". 
+#' @param mode One of "standard" or "custom". Ignored if SAM = TRUE. 
 #' @param X.root Root of the names for X-axis log-scale values. If missing, defaults are provided in mode = "custom" in the parameters file.
 #' @param Y.root Root of the names for Y-axis values (usually -log10(Pvalues)). If missing, default are provided in mode = "custom" in the parameters file.
 #' @param X.normalized Is X normalized? Assumed to be TRUE by default.
@@ -65,7 +65,9 @@
 #' @param N.clust A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
-#' @param reg.root Classically, this function would output a "Regulated - ..." column per sample group, based on applying the thresholds (either provided directly - significance is read from the table using "FDR.root", and FC threshold are either applied directly using "arbitrary.thresh" or calculated based on "Ref.Ratio.values"). Providing this input allows the function to bypass this step and apply colors based on a pre-determined decision.
+#' @param reg.root Classically, this function would output a "Regulated - ..." column per sample group, based on applying the thresholds (either provided directly - significance is read from the table using "FDR.root", and FC threshold are either applied directly using "arbitrary.thresh" or calculated based on "Ref.Ratio.values"). Providing this input allows the function to bypass this step and apply colors based on a pre-determined decision (used for the F-test currently). Automatically set to "Regulated - " if SAM is TRUE.
+#' @param SAM FALSE by default. If TRUE, then a curved threshold is applied based on the SAM analysis. 
+#' @param curved_Thresh Curved threshold parameters, only used if mode = "curved".\cr A named list, with one item for each (same names as the ones appended to X.root and Y.root in Prot column names).\cr Each item should be a named list of S0 (single value), Si (single value) and d (one value per FDR level) numerics.
 #'
 #' @examples                 
 #' PG <- Volcano.plot(Prot = PG, mode = "custom", experiments.map = Exp.map,
@@ -136,16 +138,17 @@ Volcano.plot <- function(Prot,
                          N.clust,
                          N.reserved = 1,
                          cl,
-                         reg.root # DO NOT give this one a default non-null value to avoid uncontrolled behavious when rerunning the function!
-                         ) {
+                         reg.root, # DO NOT give this one a default non-null value to avoid uncontrolled behaviour when rerunning the function!
+                         SAM = FALSE,
+                         curved_Thresh) {
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::Volcano.plot); Symmetrical <- TRUE; TESTING <- TRUE; cl <- parClust
   #
-  #Prot = PG; mode = "custom"; experiments.map = Exp.map; X.root = paste0("Mean ", Prot.Rat.Root); Y.root = pvalue.col[which(pvalue.use)]; aggregate.map = Aggregate.map; aggregate.name = Volcano.plots.Aggregate.Level$aggregate; aggregate.list = Aggregate.list;parameters = Param; save = c("jpeg", "pdf"); labels = "FDR"; Ref.Ratio.values = Ref.Ratios; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = FDR.thresholds; arbitrary.lines = arbitrary.thr; proteins = prot.list;  proteins_split = protsplit; return = TRUE;  return.plot = TRUE; title.root = "FDR-type ";  subfolder = "Reg. analysis/t-tests"; subfolderpertype = FALSE; Alpha = "Rel. log10(Peptides count)"; Size = "Av. log10 abundance";  Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; FDR.thresh = FDR.thresholds
+  #Prot = PG; mode = "custom"; experiments.map = Exp.map; X.root = paste0("Mean ", Prot.Rat.Root); Y.root = pvalue.col[which(pvalue.use)]; aggregate.map = Aggregate.map; aggregate.name = Volcano.plots.Aggregate.Level$aggregate; aggregate.list = Aggregate.list;parameters = Param; save = c("jpeg", "pdf"); labels = c("FDR", "both")[isSAM+1]; Ref.Ratio.values = Ref.Ratios; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = FDR.thresholds; arbitrary.lines = arbitrary.thr; proteins = prot.list;  proteins_split = protsplit; return = TRUE;  return.plot = TRUE; title.root = "FDR-type ";  subfolder = "Reg. analysis/t-tests"; subfolderpertype = FALSE; Alpha = "Rel. log10(Peptides count)"; Size = "Av. log10 abundance";  Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; FDR.thresh = FDR.thresholds; SAM = isSAM; curved_Thresh = SAM_thresh
   # OR (F-test, proteins)
   #Prot = tmpData; mode = "custom"; experiments.map = contr; X.root = paste0("Mean ", ratRef); Y.root = paste0(F_Root, " - "); aggregate.map = aggr_dummy; aggregate.list = aggr_list_dummy; aggregate.name = "Contrast"; parameters = Param; save = c("jpeg", "pdf"); FDR.root = "mod. F-test Significant-FDR="; Ref.Ratio.values = refRat_F; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = F_FDR.thresholds; arbitrary.lines = arbitrary.thr; proteins = prot.list; proteins_split = protsplit; Proteins.col = idCol; return = TRUE; return.plot = TRUE; title = "F-test volcano plot "; subfolder = ohDeer; subfolderpertype = FALSE; Symmetrical = TRUE; Alpha = Alpha; Size = "Rel. av. log10 abundance"; Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; plotly_labels = plotlyLab; Ref.Ratio.method = paste0("obs", RefRat_Mode); reg.root = regRoot_F
   # OR (modified peptides)
-  #Prot = ptmpep; mode = "custom"; experiments.map = Exp.map; X.root = paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)]); Y.root = pvalue.col[which(pvalue.use)]; aggregate.map = Aggregate.map; aggregate.list = Aggregate.list; aggregate.name = VPAL$aggregate; parameters = P; save = c("jpeg", "pdf"); labels = "FDR"; Ref.Ratio.values = PTMs_ref.ratios[[ptm]]; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = PTMs_FDR.thresholds[[ptm]]; arbitrary.lines = arbitrary.thr; proteins = prot.list; Proteins.col = "Name"; return = TRUE; return.plot = TRUE; title = paste0(Ptm, " volcano plot_"); subfolder = dir[2]; subfolderpertype = FALSE; Symmetrical = TwoSided; Size = "Rel. av. log10 abundance"; Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; plotly_labels = c(PepLabKol, paste0(Ptm, "-site"))
+  #Prot = ptmpep; mode = "custom"; experiments.map = Exp.map; X.root = paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)]); Y.root = pvalue.col[which(pvalue.use)]; aggregate.map = Aggregate.map; aggregate.list = Aggregate.list; aggregate.name = VPAL$aggregate; parameters = P; save = c("jpeg", "pdf"); labels = c("FDR", "both")[isSAM+1]; Ref.Ratio.values = PTMs_ref.ratios[[ptm]]; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = PTMs_FDR.thresholds[[ptm]]; arbitrary.lines = arbitrary.thr; proteins = prot.list; Proteins.col = "Name"; return = TRUE; return.plot = TRUE; title = paste0(Ptm, " volcano plot_"); subfolder = dir[2]; subfolderpertype = FALSE; Symmetrical = TwoSided; Size = "Rel. av. log10 abundance"; Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; plotly_labels = c(PepLabKol, paste0(Ptm, "-site")); SAM = isSAM; curved_Thresh = PTMs_sam_Thresh[[Ptm]]
   # OR (SAINTexpress)
   #Prot = allSAINTs;Proteins.col = "Protein";mode = "custom";experiments.map = Exp.map;X.root = fcRt;Y.root = fdrRt;aggregate.map = Aggregate.map;aggregate.name = VPAL$aggregate;aggregate.list = Aggregate.list;parameters = Parma;save = c("jpeg", "pdf");labels = "thresholds";Ref.Ratio.values = Ref.Ratios;ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates);arbitrary.lines = ArbThr;proteins = prot.list;proteins_split = protsplit;return = TRUE;return.plot = TRUE;title = "SAINTexpress volcano plot_";subfolder = "Reg. analysis/SAINTexpress";subfolderpertype = FALSE;Symmetrical = TwoSided;Alpha = "Av. log10 abundance";Size = "Av. log10 abundance";Size.max = 2;plotly = create_plotly;plotly_local = create_plotly_local;plotly_labels = labKol
   # OR (SSDs)
@@ -211,7 +214,13 @@ Volcano.plot <- function(Prot,
   }
   upColRg <- c("blue", "green")
   downColRg <- c("red", "orange")
-  if ("FDR" %in% labels) {
+  regProvided <- ((!misFun(reg.root))&&(!is.null(reg.root)))
+  if (SAM) {
+    mode <- "curved"
+    reg.root <- "Regulated - "
+    regProvided <- TRUE
+  }
+  if (("FDR" %in% labels)||(mode == "curved")) {
     if (misFun(FDR.thresh)) { stop("\"FDR.thresh\" must be provided if labels = \"FDR\"!") }
     f <- grep(proteoCraft::topattern(FDR.root), colnames(Prot), value = TRUE)
     FDR.values <- as.numeric(unique(gsub("%( - .+)?$", "", gsub(proteoCraft::topattern(FDR.root), "", f))))
@@ -290,37 +299,35 @@ Volcano.plot <- function(Prot,
   }
   dfltPM <- TRUE
   if (mode == "custom") {
-    if (toupper(parameters$Plot.threshold.values) != "CURVED") {
-      a1 <- set_colnames(as.data.frame(proteoCraft::Isapply(strsplit(unlist(strsplit(parameters$Plot.metrics, "; *")), ": *"), unlist)),
-                         c("Axis", "Name"))
-      if (misFun(Y.root)) {
-        Y.root <- paste0(gsub("[\\. -_]+$", "", a$Name[which(a1$Axis == "Y")]), " - ")
-      }
-      if (parameters$Plot.threshold.metrics != "") {
-        dfltPM <- FALSE
-        Plot.metrics <- as.data.frame(strsplit(unlist(strsplit(parameters$Plot.threshold.metrics, "; *")), ": *"))
-        Plot.metrics <- as.data.frame(t(Plot.metrics)) 
-        rownames(Plot.metrics) <- NULL
-        colnames(Plot.metrics) <- c("Levels", "Axis")
-        Plot.metrics$Root <- c(X.root, Y.root)[match(Plot.metrics$Axis, a1$Axis)]
-        a2 <- set_colnames(as.data.frame(t(sapply(strsplit(unlist(strsplit(parameters$Plot.threshold.values, "; *")), ": *"), unlist))),
-                           c("Direction", "Text.value"))
-        Plot.metrics$Text.value <- a2$Text.value[match(Plot.metrics$Levels, a2$Direction)]
-        Plot.metrics$Value <- sapply(Plot.metrics$Text.value, function(x) { eval(parse(text = x)) })
-        a3 <- set_colnames(as.data.frame(t(sapply(strsplit(unlist(strsplit(parameters$Plot.threshold.tests, "; *")), ": *"), unlist))),
-                           c("Direction", "Test"))
-        Plot.metrics$Test <- a3$Test[match(Plot.metrics$Levels, a3$Direction)]
-        a4 <- set_colnames(as.data.frame(t(sapply(strsplit(unlist(strsplit(parameters$Plot.threshold.colours, "; *")), ": *"), unlist))),
-                           c("Direction", "Colour"))
-        Plot.metrics$Colour <- a4$Colour[match(Plot.metrics$Levels, a4$Direction)]
-        a5 <- unlist(strsplit(parameters$Plot.areas.colours, "; *"))
-        a5 <- as.data.frame(strsplit(a5, "[_:] *"))
-        Plot.colours <- as.data.frame(sapply(Plot.metrics$Levels[which(Plot.metrics$Axis == "X")], function(x) {
-          sapply(Plot.metrics$Levels[which(Plot.metrics$Axis == "Y")], function(y) {
-            a5[3, which((a5[1,] == x)&(a5[2,] == y))]
-          })
-        }))
-      }
+    a1 <- set_colnames(as.data.frame(proteoCraft::Isapply(strsplit(unlist(strsplit(parameters$Plot.metrics, "; *")), ": *"), unlist)),
+                       c("Axis", "Name"))
+    if (misFun(Y.root)) {
+      Y.root <- paste0(gsub("[\\. -_]+$", "", a$Name[which(a1$Axis == "Y")]), " - ")
+    }
+    if (parameters$Plot.threshold.metrics != "") {
+      dfltPM <- FALSE
+      Plot.metrics <- as.data.frame(strsplit(unlist(strsplit(parameters$Plot.threshold.metrics, "; *")), ": *"))
+      Plot.metrics <- as.data.frame(t(Plot.metrics)) 
+      rownames(Plot.metrics) <- NULL
+      colnames(Plot.metrics) <- c("Levels", "Axis")
+      Plot.metrics$Root <- c(X.root, Y.root)[match(Plot.metrics$Axis, a1$Axis)]
+      a2 <- set_colnames(as.data.frame(t(sapply(strsplit(unlist(strsplit(parameters$Plot.threshold.values, "; *")), ": *"), unlist))),
+                         c("Direction", "Text.value"))
+      Plot.metrics$Text.value <- a2$Text.value[match(Plot.metrics$Levels, a2$Direction)]
+      Plot.metrics$Value <- sapply(Plot.metrics$Text.value, function(x) { eval(parse(text = x)) })
+      a3 <- set_colnames(as.data.frame(t(sapply(strsplit(unlist(strsplit(parameters$Plot.threshold.tests, "; *")), ": *"), unlist))),
+                         c("Direction", "Test"))
+      Plot.metrics$Test <- a3$Test[match(Plot.metrics$Levels, a3$Direction)]
+      a4 <- set_colnames(as.data.frame(t(sapply(strsplit(unlist(strsplit(parameters$Plot.threshold.colours, "; *")), ": *"), unlist))),
+                         c("Direction", "Colour"))
+      Plot.metrics$Colour <- a4$Colour[match(Plot.metrics$Levels, a4$Direction)]
+      a5 <- unlist(strsplit(parameters$Plot.areas.colours, "; *"))
+      a5 <- as.data.frame(strsplit(a5, "[_:] *"))
+      Plot.colours <- as.data.frame(sapply(Plot.metrics$Levels[which(Plot.metrics$Axis == "X")], function(x) {
+        sapply(Plot.metrics$Levels[which(Plot.metrics$Axis == "Y")], function(y) {
+          a5[3, which((a5[1,] == x)&(a5[2,] == y))]
+        })
+      }))
     }
   }
   if (dfltPM) {
@@ -344,7 +351,7 @@ Volcano.plot <- function(Prot,
     } else {
       tmpmetr <- data.frame(Levels = c("strict", "loose"),
                             Axis = "Y",
-                            Name = Y.root,
+                            Name = setNames(Y.root, NULL), # (names to NULL to suppress a useless warning)
                             Value = c(-log10(0.01), -log10(0.05)),
                             Test = ">=",
                             Colour = c("orange", "gold"))
@@ -403,13 +410,17 @@ Volcano.plot <- function(Prot,
   # Default colors
   myColors <- setNames(c("black", "black", "purple", c("brown", "firebrick1")[proteins_split+1]),
                        c("non significant", "too small FC", "target", "protein in list"))
+  if (("FDR" %in% labels)||(mode == "curved")) {
+    myColors[c(paste0("up, FDR = ", FDR_table$FDR, "%"),
+               paste0("down, FDR = ", FDR_table$FDR, "%"))] <- c(FDR_table$fdr.col.up, FDR_table$fdr.col.down)
+  }
   #
   # Filter samples for available valid data
   tstTbl <- data.frame(Sample = A,
                        logFC = xKols %in% colnames(Prot),
                        PVal = yKols %in% colnames(Prot))
   tstTbl$All_OK <- tstTbl$logFC & tstTbl$PVal
-  if (!misFun(reg.root)) {
+  if (regProvided) {
     labels <- c("regulated",
                 labels[which(labels == c("proteins"))])
     regKols <- setNames(paste0(reg.root, A), A)
@@ -471,14 +482,18 @@ Volcano.plot <- function(Prot,
   A <- A[wOK]
   xKols <- xKols[A]
   yKols <- yKols[A]
-  if (!misFun(reg.root)) { regKols <- regKols[A] }
+  if (regProvided) { regKols <- regKols[A] }
   Symmetrical <- Symmetrical[A]
   Wych <- Wych[A]
   #
   # Define global x-limits
   tmp <- Prot[, xKols, drop = FALSE]
   xlim <- proteoCraft::is.all.good(as.numeric(unlist(tmp)))
-  if (X.normalized) { xlim <- max(abs(xlim))*c(-1, 1) } else { xlim <- c(min(xlim), max(xlim)) }
+  if (X.normalized) {
+    xlim <- max(abs(xlim))*c(-1, 1)
+  } else {
+    xlim <- c(min(xlim), max(xlim))
+  }
   xspan <- xlim[2]-xlim[1]
   xlim <- xlim + xspan*c(-0.05, 0.05)
   #
@@ -559,7 +574,7 @@ Volcano.plot <- function(Prot,
     temp$X <- Prot[[e[1]]]
     temp$Y <- Prot[[e[2]]]
     temp <- temp[Wych[[i]],]
-    if ("FDR" %in% labels) {
+    if (("FDR" %in% labels)||(mode == "curved")) {
       fdr_table <- FDR_table
       if ("Sample" %in% colnames(fdr_table)) {
         fdr_table <- fdr_table[which(fdr_table$Sample == i),]
@@ -626,7 +641,7 @@ Volcano.plot <- function(Prot,
       target <- unique(gsub("^CON_+", "", target))
     }
     i2 <- proteoCraft::cleanNms(i)
-    if (!misFun(reg.root)) {
+    if (regProvided) {
       rgKol <- regKols[i]
       temp$Colour <- Prot[Wych[[i]], rgKol]
       # Important to simplify the specific/anti-specific categories:
@@ -681,38 +696,61 @@ Volcano.plot <- function(Prot,
         xlim[1] <- min(c(xlim[1], plot.metrics$Value[w.d]*1.1), na.rm = TRUE)
       }
     }
-    if (misFun(reg.root)) {
+    if (mode == "curved") {
+      if (!i %in% names(curved_Thresh)) {
+        warning(paste0(i, " not found among the names of curved_Thresh!"))
+      } else {
+        #curved_Thresh <- SAM_thresh
+        dec <- curved_Thresh[[i]]$decision
+        mKol <- rev(colnames(dec))[1]
+        dec <- dec[match(dec[[mKol]], Prot[[mKol]]),]
+        dec <- dec[Wych[[i]],]
+        samS0 <- curved_Thresh[[i]]$S0
+        samDF <- curved_Thresh[[i]]$degFr
+        samD <- curved_Thresh[[i]]$d
+        samD <- samD[which(!is.na(samD$D)),]
+        samD <- samD[order(samD$FDR, decreasing = TRUE),]
+        samMd <- c(median(temp$X, na.rm = TRUE), 0)[X.normalized + 1]
+      }
+    }
+    if (!regProvided) {
       if ("FDR" %in% labels) {
         for (f3 in fdr.values) {
           temp$Colour[which(temp$FDR == paste0("FDR ", f3, "%"))] <- "too small FC"
           temp$Colour[which((proteoCraft::logical.op(temp$X,
-                                               plot.metrics$Test[w.u],
-                                               plot.metrics$Value[w.u]))
+                                                     plot.metrics$Test[w.u],
+                                                     plot.metrics$Value[w.u]))
                             &(temp$FDR == paste0("FDR ", f3, "%")))] <- paste0("up, FDR = ", f3, "%")
           if (symm) {
             temp$Colour[which((proteoCraft::logical.op(temp$X,
-                                                 plot.metrics$Test[w.d],
-                                                 plot.metrics$Value[w.d]))&(temp$FDR == paste0("FDR ", f3, "%")))] <- paste0("down, FDR = ", f3, "%")
+                                                       plot.metrics$Test[w.d],
+                                                       plot.metrics$Value[w.d]))&(temp$FDR == paste0("FDR ", f3, "%")))] <- paste0("down, FDR = ", f3, "%")
           }
         }
-        myColors[c(paste0("up, FDR = ", fdr_table$FDR, "%"),
-                   paste0("down, FDR = ", fdr_table$FDR, "%"))] <- c(fdr_table$fdr.col.up, fdr_table$fdr.col.down)
       } else {
-        if (mode == "curved") {
-          # Placeholder.
-          # This needs rewriting with a real, non arbitrary curved function (see the SAM method)
-          temp$Threshold <- curved.threshold(temp$X)
-          if (!symm) { temp$Threshold[which(temp$X) < 0] <- NA }
-          temp$Colour[which((!is.na(temp$Threshold))&(temp$X > 0)&(temp$Y > temp$Threshold))] <- "up"
-          temp$Colour[which((!is.na(temp$Threshold))&(temp$X < 0)&(temp$Y > temp$Threshold))] <- "down"
-          myColors[c("up", "down")] <- c("red","green")
+        if ((mode == "curved")&&(i %in% names(curved_Thresh))) {
+          for (f3 in samD$FDR) { #f3 <- samD$FDR[1]
+            wA <- which(dec[[paste0(f3, "FDR")]] == "+")
+            w <- which(FDR_table$FDR == f3*100 & FDR_table$Sample == i)
+            if (length(wA)) {
+              wU <- wA[which(temp$X[wA] > samMd)]
+              temp$Colour[wU] <- FDR_table$fdr.col.up[w]
+              if (symm) {
+                #wA[which(!wA %in% c(wU, wD))]
+                wD <- wA[which(temp$X[wA] < samMd)]
+                temp$Colour[wU] <- FDR_table$fdr.col.down[w]
+              }
+            }
+          }
         } else {
           test.u <- proteoCraft::logical.op(temp$X,
                                       plot.metrics$Test[w.u],
                                       plot.metrics$Value[w.u])
-          if (symm) { test.d <- proteoCraft::logical.op(temp$X,
-                                                  plot.metrics$Test[w.d],
-                                                  signif(plot.metrics$Value[w.d], 3)) }
+          if (symm) {
+            test.d <- proteoCraft::logical.op(temp$X,
+                                              plot.metrics$Test[w.d],
+                                              signif(plot.metrics$Value[w.d], 3))
+          }
           if ((mode == "standard")&&(!misFun(arbitrary.thresh))) {
             fdr <- as.numeric(gsub("% FDR$", "", plot.metrics$Levels[which(plot.metrics$Axis == "Y")]))/100
             fdr <- sort(fdr)
@@ -781,7 +819,7 @@ Volcano.plot <- function(Prot,
     #if (!is.numeric(Size)) {
     #  fillScale <- ggplot2::scale_fill_manual(name = "fill", values = myColors, guide = FALSE)
     #}
-    if (misFun(reg.root)) {
+    if (!regProvided) {
       Prot[[paste0("Regulated - ", i)]] <- ""
       Prot[Wych[[i]], paste0("Regulated - ", i)] <- as.character(temp$Colour)
     }
@@ -828,11 +866,10 @@ Volcano.plot <- function(Prot,
       noLbl <- noLbl[which(!noLbl %in% w)]
     }
     temp$Labels[noLbl] <- ""
-    if ("FDR" %in% labels) {
+    if (("FDR" %in% labels)||(mode == "curved")) {
       w1 <- which(temp$Colour %in% c(paste0("up, FDR = ", fdr.values, "%"), paste0("down, FDR = ", fdr.values, "%")))
     } else {
-      if (toupper(parameters$Plot.threshold.values) == "CURVED") { w1 <- which(temp$Colour %in% c("up", "down")) } else {
-        if (symm) { w1 <- which(temp$Colour %in% c(up_Nms, dwn_Nms)) } else { w1 <- which(temp$Colour %in% up_Nms) } }
+      if (symm) { w1 <- which(temp$Colour %in% c(up_Nms, dwn_Nms)) } else { w1 <- which(temp$Colour %in% up_Nms) }
     }
     w0 <- which(temp$Colour %in% c("non significant", "too small FC"))
     if ((prot_split)&&("Colour2" %in% colnames(temp))) {
@@ -920,18 +957,66 @@ Volcano.plot <- function(Prot,
     if (prot_split) {
       suppressWarnings(eval(parse(text = plot.txt_2)))
     } # This is the plot for proteins of interest
-    if (mode == "curved") {
-      offset <- c(median(proteoCraft::is.all.good(temp$X)), 0)[X.normalized + 1]
-      plot <- plot +
-        ggplot2::stat_function(fun = function(x) {
-          proteoCraft::curved.threshold(x) + offset
-        }, xlim = xlim)
-      if (prot_split) {
-        plot_prot <- plot_prot +
-          ggplot2::stat_function(fun = function(x) {
-            proteoCraft::curved.threshold(x) + offset
-          }, xlim = xlim)
+    if ((mode == "curved")&&(i %in% names(curved_Thresh))) {
+      # See "Uses and Misuses of the Fudge Factor in Quantitative Discovery Proteomics", Gianetto et al., Proteomics 2016
+      # https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/epdf/10.1002/pmic.201600132
+      # Note that in formula (9), "FC" is actually a logFC - it is clearly meant to be negative in some cases and expected to be normally distributed.
+      # Also see their supplementary materials, with R code.
+      SAM_thresh <- function(x, s0, conf, df) {
+        -log10(2*(1 - pt(conf*(1 + s0/(abs(x)/conf - s0)), df)))
       }
+      #suppressWarnings(eval(parse(text = plot.txt)))
+      plot <- plot +
+        ggplot2::annotate("text", x = xlim[1]+xspan*0.02, y = ylim*0.98, label = paste0("SAM: s0 = ", signif(samS0, 5)),
+                          vjust = 1, hjust = 0, size = 3.5)
+      #poplot(plot)
+      # w <- which(FDR_table$FDR == f3*100 & FDR_table$Sample == i)
+      # threshCol <- FDR_table[w, paste0("fdr.col.", c("up", "down"))]
+      # threshCol <- hex2RGB(threshCol)
+      # threshCol <- as.data.frame(threshCol@coords)
+      # threshCol <- apply(threshCol, 2, function(x) { round(sqrt(mean(x^2))) }) # 255-base colors are not linear, go figure! One learns a new thing every day!
+      # threshCol <- RGB(threshCol[1], threshCol[2], threshCol[3])
+      # threshCol <- hex(threshCol)
+      ta <- data.frame(a = c(0.01, 0.05),
+                       Colour = c("blue4", "blue"))
+      ta$Ta = sapply(ta$a, function(x) { qt(1-x, samDF) })
+      xlim[1] <- min(c(-ta$Ta*samS0*2, xlim[1]))
+      xlim[2] <- max(c(ta$Ta*samS0*2, xlim[2]))
+      #suppressWarnings(eval(parse(text = plot.txt)))
+      plot <- plot +
+        ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[1], samDF) },
+                               color = ta$Colour[1], xlim = c(ta$Ta[1]*samS0, xlim[2]), linetype = "dotted") +
+        ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[1], samDF) },
+                               color = ta$Colour[1], xlim = c(xlim[1], -ta$Ta[1]*samS0), linetype = "dotted") +
+        ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[2], samDF) },
+                               color = ta$Colour[2], xlim = c(ta$Ta[2]*samS0, xlim[2]), linetype = "dotted") +
+        ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[2], samDF) },
+                               color = ta$Colour[2], xlim = c(xlim[1], -ta$Ta[2]*samS0), linetype = "dotted") +
+        ggplot2::annotate("text", x = xlim[2], y = -log10(2*(1 - pt(ta$Ta[1], samDF)))*1.05,
+                          label = paste0(100*(1-ta$a[1]), "% conf. lev."),
+                          color = ta$Colour[1], hjust = 1, size = 3.5) +
+        ggplot2::annotate("text", x = xlim[2], y = -log10(2*(1 - pt(ta$Ta[2], samDF)))*1.05,
+                          label = paste0(100*(1-ta$a[2]), "% conf. lev."),
+                          color = ta$Colour[2], hjust = 1, size = 3.5)
+        if (prot_split) {
+          plot2 <- plot2
+          ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[1], samDF) },
+                                 color = ta$Colour[1], xlim = c(ta$Ta[1]*samS0, xlim[2]), linetype = "dotted") +
+            ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[1], samDF) },
+                                   color = ta$Colour[1], xlim = c(xlim[1], -ta$Ta[1]*samS0), linetype = "dotted") +
+            ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[2], samDF) },
+                                   color = ta$Colour[2], xlim = c(ta$Ta[2]*samS0, xlim[2]), linetype = "dotted") +
+            ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[2], samDF) },
+                                   color = ta$Colour[2], xlim = c(xlim[1], -ta$Ta[2]*samS0), linetype = "dotted") +
+            ggplot2::annotate("text", x = xlim[2], y = -log10(2*(1 - pt(ta$Ta[1], samDF)))*1.05,
+                              label = paste0(100*(1-ta$a[1]), "% conf. lev."),
+                              color = ta$Colour[1], hjust = 1, size = 3.5) +
+            ggplot2::annotate("text", x = xlim[2], y = -log10(2*(1 - pt(ta$Ta[2], samDF)))*1.05,
+                              label = paste0(100*(1-ta$a[2]), "% conf. lev."),
+                              color = ta$Colour[2], hjust = 1, size = 3.5)
+        }
+      }
+      #poplot(plot)
     } else {
       for (l in 1:nrow(plot.metrics)) {
         if (plot.metrics$Axis[l] == "X") {

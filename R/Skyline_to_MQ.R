@@ -36,7 +36,7 @@ Skyline_to_MQ <- function(Skyline_fl,
                           shinyOpt = "popup",
                           digPattern = "KR") {
   TESTING <- FALSE
-  #proteoCraft::DefArg(proteoCraft::Skyline_to_MQ);TESTING <- TRUE
+  #proteoCraft::DefArg(proteoCraft::Skyline_to_MQ);cl <- parClust;TESTING <- TRUE
   #Skyline_fl <- skyline_fl
   #
   if (TESTING) {
@@ -214,33 +214,39 @@ Skyline_to_MQ <- function(Skyline_fl,
   # Process modifications
   wMod <- grep("\\(", EV$`Modified sequence`)
   mWMod <- match(unique(EV$`Modified sequence`[wMod]), EV$`Modified sequence`)
-  tmp <- data.frame(Seq = EV$Sequence[mWMod],
-                    ModSeq = EV$`Modified sequence`[mWMod]#,
-                    #Z = EV$Charge[mWMod]
-                    )
-  gU <- grep("UniMod:", tmp$ModSeq, ignore.case = TRUE)
+  modsTmp <- data.frame(Seq = EV$Sequence[mWMod],
+                        ModSeq = EV$`Modified sequence`[mWMod]#,
+                        #Z = EV$Charge[mWMod]
+  )
+  gU <- grep("UniMod:", modsTmp$ModSeq, ignore.case = TRUE)
   if (sum(gU)) {
     EV$"Modified sequence"[wMod] <- gsub("UniMod:", "UniMod:", EV$"Modified sequence"[wMod], ignore.case = TRUE)
-    tmp$ModSeq[gU] <- gsub("UniMod:", "UniMod:", tmp$ModSeq[gU], ignore.case = TRUE)
+    modsTmp$ModSeq[gU] <- gsub("UniMod:", "UniMod:", modsTmp$ModSeq[gU], ignore.case = TRUE)
   }
-  tmp$Comp <- gsub("\\)[A-Z]*\\(", "___",
+  modsTmp$Comp <- gsub("\\)[A-Z]*\\(", "___",
                    gsub("^_[A-Z]*\\(|\\)[A-Z]*_$|^_[A-Z]+_$", "",
                         gsub("\\[", "(",
-                             gsub("\\]", ")", tmp$ModSeq))))
+                             gsub("\\]", ")", modsTmp$ModSeq))))
   # f0 <- function(x) { Peptides::mz(x[[1]], as.integer(x[[2]]), cysteins = 0) }
   # environment(f0) <- .GlobalEnv
-  # tmp$Theoretical <- parallel::parApply(cl, tmp[, c("Seq", "Z")], 1, f0)
-  tmp$Comp <- gsub("\\)[A-Z]*\\(", "___",
-                   gsub("^_[A-Z]*\\(|\\)[A-Z]*_$|^_[A-Z]+_$", "",
-                        gsub("\\[", "(",
-                             gsub("\\]", ")", tmp$ModSeq))))
-  tmp$Comp <- strsplit(tmp$Comp, "___")
-  comps <- unique(unlist(tmp$Comp))
-  gC <- sum(grepl("^UniMod:", comps, ignore.case = TRUE))
-  l <- length(comps)
-  modsType <- "No idea"
-  if (gC == l) { modsType <- "UniMod" }
-  if (modsType == "No idea") {
+  # modsTmp$Theoretical <- parallel::parApply(cl, modsTmp[, c("Seq", "Z")], 1, f0)
+  modsTmp$Comp <- strsplit(modsTmp$Comp, "___")
+  comps <- unique(unlist(modsTmp$Comp))
+  allPTMsLst <- list()
+  gUM <- grep("^UniMod:", comps, ignore.case = TRUE)
+  gNI <- grep("^UniMod:", comps, ignore.case = TRUE, invert = TRUE)
+  if (length(gUM)) {
+    tmp <- data.frame("UniMod" = comps[gUM],
+                      origMark = comps[gUM],
+                      check.names = FALSE)
+    tmp[, c("Full name", "Mass delta")] <- UniMod[match(gsub("UniMod:", "", tmp$UniMod), UniMod$UnimodId),
+                                                  c("Name", "MonoMass")]
+    tmp$Source <- "UniMod"
+    tmp$"Mass delta" 
+    allPTMsLst$UniMod <- tmp
+  }
+  if (length(gNI)) {
+    screenRes <- rpanel::rp.screenresolution()
     if (shinyOpt == "popup") {
       #runApp1 <- "print(shiny::shinyApp(proteoCraft::DIANN_to_MQ_ui1(tstMap), proteoCraft::DIANN_to_MQ_server1, options = list(height = screenRes$height, width = screenRes$width)))"
       runApp2 <- "print(shiny::shinyApp(proteoCraft::DIANN_to_MQ_ui2, proteoCraft::DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))"
@@ -259,6 +265,8 @@ Skyline_to_MQ <- function(Skyline_fl,
       #runApp1 <- "print(shiny::shinyApp(proteoCraft::DIANN_to_MQ_ui1(tstMap), proteoCraft::DIANN_to_MQ_server1, options = list(height = \"100%\", width = \"100%\", launch.browser = TRUE)))"
       runApp2 <- "print(shiny::shinyApp(proteoCraft::DIANN_to_MQ_ui2, proteoCraft::DIANN_to_MQ_server2, options = list(height = \"100%\", width = \"100%\", launch.browser = TRUE)))"
     }
+    #
+    tmp <- modsTmp[which(sapply(modsTmp$Comp, function(x) { sum(comps[gNI] %in% x) }) > 0),]
     # Here we will want to make sense of those mods
     # First, get the precise mass shift for each, so we can narrow down options
     f0 <- function(x) {
@@ -271,6 +279,7 @@ Skyline_to_MQ <- function(Skyline_fl,
     environment(f0) <- .GlobalEnv
     tmp$Mods <- parallel::parLapply(cl, tmp$ModSeq, f0)
     Mods <- sort(unique(unlist(tmp$Mods)))
+    Mods <- Mods[which(gsub(".*mod_", "", Mods) %in% comps[gNI])]
     # parallel::clusterExport(cl, "Mods", envir = environment())
     # f0 <- function(x) {
     #   x <- aggregate(x, list(x), length)
@@ -285,10 +294,10 @@ Skyline_to_MQ <- function(Skyline_fl,
     # fit <- lm.fit(d.matr, tmp$DM)
     Mods <- data.frame(Name = Mods, #DM = fit$coefficients,
                        origMark = gsub(".*mod_", "", Mods))
-    Mods$DM <- suppressWarnings(as.numeric(Mods$origMark))
+    Mods$DM <- suppressWarnings(as.numeric(gsub("_.*", "", Mods$origMark)))
     Mods$AA <- gsub("mod_.*", "", Mods$Name)
     precVal <- 1
-    Mods$Options <- apply(Mods[, c("DM", "AA")], 1, function(x) {
+    Mods$Options <- apply(Mods[, c("DM", "AA")], 1, function(x) { #x <- Mods[1, c("DM", "AA")]
       dm <- as.numeric(x[[1]])
       if (substr(x[[2]], 1, 1) == "_") {
         w <- which((abs(UniMod$MonoMass - dm) <= precVal)&(UniMod$Site %in% c(substr(x[[2]], 2, 2), "N-term")))
@@ -367,28 +376,20 @@ Skyline_to_MQ <- function(Skyline_fl,
     allPTMs$Position[grep("N-term", allPTMs$"Full name", ignore.case = TRUE)] <- "Any N-term"
     allPTMs$Position[grep("protein C-term", allPTMs$"Full name", ignore.case = TRUE)] <- "Protein C-term"
     allPTMs$Position[grep("protein N-term", allPTMs$"Full name", ignore.case = TRUE)] <- "Protein N-term"
+    allPTMs$Source <- "No idea"
+    allPTMsLst$"No idea" <- allPTMs
   }
-  if (modsType == "UniMod") {
-    allPTMs <- data.frame("UniMod" = comps,
-                          origMark = comps,
-                          check.names = FALSE)
-    allPTMs$"Full name" <- UniMod$Name[match(gsub("UniMod:", "", allPTMs$UniMod),
-                                             UniMod$UnimodId)]
-  }
-  if (modsType == "StrangerThings") {
-    allPTMs <- data.frame("Full name" = comps,
-                          origMark = comps,
-                          check.names = FALSE)
-    allPTMs$UniMod <- NA
-  }
+  allPTMs <- plyr::rbind.fill(allPTMsLst)
   allPTMs$Type <- "Variable"
   allPTMs$Type[which(allPTMs$"Full name" %in% Fixed.mods)] <- "Fixed"
   allPTMs$Mark <- tolower(substr(allPTMs$"Full name", 1, 2))  
   ## Identify affected Amino Acids
-  if (modsType == "UniMod") {
-    allPTMs$AA <- list(NA)
+  allPTMs$AA <- allPTMs$Site <- allPTMs$Site_long <- list(NA)
+  wUM <- which(allPTMs$Source == "UniMod")
+  wNI <- which(allPTMs$Source == "No idea")
+  if (length(wUM)) {
     uMdSq <- unique(EV$`Modified sequence`)
-    for (i in 1:nrow(allPTMs)) { #i <- 1
+    for (i in wUM) { #i <- wUM[1]
       uMdSq <- unique(EV$`Modified sequence`)
       temp <- gsub(proteoCraft::topattern(paste0("(", allPTMs$UniMod[i], ")"), start = FALSE),
                    ">>>.___", uMdSq)
@@ -397,28 +398,18 @@ Skyline_to_MQ <- function(Skyline_fl,
       allPTMs$AA[[i]] <- unique(substr(temp2, nc-3, nc-3))
     }
   }
-  if (modsType == "StrangerThings") {
-    allPTMs$AA <- list(NA)
-    for (i in 1:nrow(allPTMs)) { #i <- 1
-      temp <- gsub(proteoCraft::topattern(paste0("(", allPTMs$`Full name`[i], ")"), start = FALSE),
-                   ">>>.___", EV$`Modified sequence`)
-      temp2 <- grep(">>>$", unlist(strsplit(temp, "\\.___")), value = TRUE)
-      nc <- nchar(temp2)
-      allPTMs$AA[[i]] <- unique(substr(temp2, nc-3, nc-3))
-    }
-  }
-  if (modsType == "No idea") {
-    tmp <- aggregate(gsub("^_", "", Mods$AA), list(Mods$Match), function(x) { sort(unique(x)) })
-    allPTMs$Site <- allPTMs$AA <- tmp$x[match(allPTMs$`Full name`, tmp$Group.1)]
-    w <- which(allPTMs$Position == "Any N-term")
-    if (length(w)) { allPTMs$Site[w] <- lapply(allPTMs$Site[w], function(x) { paste0("n", x) }) }
-    w <- which(allPTMs$Position == "Any C-term")
-    if (length(w)) { allPTMs$Site[w] <- lapply(allPTMs$Site[w], function(x) { paste0("c", x) }) }
-    w <- which(allPTMs$Position == "Protein N-term")
-    if (length(w)) { allPTMs$Site[w] <- "[^" }
-    w <- which(allPTMs$Position == "Protein C-term")
-    if (length(w)) { allPTMs$Site[w] <- "^]" }
-    allPTMs$Site_long <- lapply(strsplit(gsub("\\^", "", lapply(allPTMs$Site, paste, collapse = "")), ""), function(x) {
+  if (length(wNI)) {
+    tmp <- aggregate(gsub("^_", "", Mods$AA[wNI]), list(Mods$Match[wNI]), function(x) { sort(unique(x)) })
+    allPTMs$Site[wNI] <- allPTMs$AA[wNI] <- tmp$x[match(allPTMs$`Full name`[wNI], tmp$Group.1)]
+    w <- which(allPTMs$Position[wNI] == "Any N-term")
+    if (length(w)) { allPTMs$Site[wNI][w] <- lapply(allPTMs$Site[wNI][w], function(x) { paste0("n", x) }) }
+    w <- which(allPTMs$Position[wNI] == "Any C-term")
+    if (length(w)) { allPTMs$Site[wNI][w] <- lapply(allPTMs$Site[wNI][w], function(x) { paste0("c", x) }) }
+    w <- which(allPTMs$Position[wNI] == "Protein N-term")
+    if (length(w)) { allPTMs$Site[wNI][w] <- "[^" }
+    w <- which(allPTMs$Position[wNI] == "Protein C-term")
+    if (length(w)) { allPTMs$Site[wNI][w] <- "^]" }
+    allPTMs$Site_long[wNI] <- lapply(strsplit(gsub("\\^", "", lapply(allPTMs$Site[wNI], paste, collapse = "")), ""), function(x) {
       x[which(x %in% c("[", "n"))] <- "N-term"
       x[which(x %in% c("]", "c"))] <- "C-term"
       return(x)
@@ -467,9 +458,7 @@ Skyline_to_MQ <- function(Skyline_fl,
       allPTMs[w,] <- m
     }
   }
-  if (modsType == "No idea") {
-    allPTMs$"Old mark" <- allPTMs$origMark
-  }
+  allPTMs$"Old mark" <- allPTMs$origMark
   if (!"UniMod" %in% colnames(allPTMs)) {
     allPTMs$UniMod <- UniMod$UnimodId[match(allPTMs$`Full name`, UniMod$Name)] # Is not meant to always work
     # Sometimes there will be discrepancies, where UniMod has a compatible isobaric PTM with a different name!
@@ -481,9 +470,10 @@ Skyline_to_MQ <- function(Skyline_fl,
       stopifnot(max(tst, na.rm = TRUE) < 0.1)
     }
   }
-  # #
-  if (modsType == "UniMod") {
-    tmpMds <- proteoCraft::listMelt(allPTMs$AA, 1:nrow(allPTMs), c("AA", "Row"))
+  #
+  tmpMdsLst <- list()
+  if (length(wUM)) {
+    tmpMds <- proteoCraft::listMelt(allPTMs$AA[wUM], wUM, c("AA", "Row"))
     kol <- c("UniMod", "Full name", "Mark")
     #kol %in% colnames(allPTMs)
     tmpMds[, c("UniMod", "Name", "Mark")] <- allPTMs[tmpMds$Row, kol]
@@ -491,18 +481,18 @@ Skyline_to_MQ <- function(Skyline_fl,
     if (length(w)) {
       tmpMds$UniMod[w] <- paste0("UniMod:", tmpMds$UniMod[w])
     }
+    tmpMds$Old <- tmpMds$UniMod
+    tmpMds$Source <- "UniMod"
+    tmpMdsLst[["UniMod"]] <- tmpMds
   }
-  if (modsType == "StrangerThings") {
-    tmpMds <- proteoCraft::listMelt(allPTMs$AA, 1:nrow(allPTMs), c("AA", "Row"))
-    kol <- c("Full name", "Mark")
-    #kol %in% colnames(allPTMs)
-    tmpMds[, c("Name", "Mark")] <- allPTMs[tmpMds$Row, kol]
-  }
-  if (modsType == "No idea") {
-    tmpMds <- proteoCraft::listMelt(allPTMs$`Old mark`, allPTMs$`Full name`, c("Old", "Name"))
+  if (length(wNI)) {
+    tmpMds <- proteoCraft::listMelt(allPTMs$`Old mark`[wNI], allPTMs$`Full name`[wNI], c("Old", "Name"))
     tmpMds$Mark <- allPTMs$Mark[match(tmpMds$Name, allPTMs$`Full name`)]
+    tmpMds$Source <- "No Idea"
+    tmpMdsLst[["No Idea"]] <- tmpMds
   }
-  parallel::clusterExport(cl, list("tmpMds", "modsType"), envir = environment())
+  tmpMds <- plyr::rbind.fill(tmpMdsLst)
+  parallel::clusterExport(cl, list("tmpMds"), envir = environment())
   uMdSq <- unique(EV$`Modified sequence`[wMod])
   temp1 <- strsplit(uMdSq, "\\(|\\)")
   f0 <- function(x) {
@@ -513,15 +503,7 @@ Skyline_to_MQ <- function(Skyline_fl,
     nc <- nchar(x1[rg-1])
     aa <- substr(x1[rg-1], nc, nc)
     if (nc[1] == 1) { aa[1] <- substr(x1[3], 1, 1) }
-    if (modsType == "UniMod") {
-      m <- match(x1[rg], tmpMds$UniMod)
-    }
-    if (modsType == "StrangerThings") {
-      m <- match(x1[rg], tmpMds$Name)
-    }
-    if (modsType == "No idea") {
-      m <- match(x1[rg], tmpMds$Old)
-    }
+    m <- match(x1[rg], tmpMds$Old)
     x1[rg] <- paste0("(", tmpMds$Mark[m], ")")
     x2[rg] <- paste0("(", tmpMds$Name[m], ")")
     x1 <- paste(x1, collapse = "")
@@ -534,6 +516,8 @@ Skyline_to_MQ <- function(Skyline_fl,
   EV$`Modified sequence_verbose` <- paste0("_", EV$Sequence, "_")
   EV$`Modified sequence`[wMod] <- temp2[, 1]
   EV$`Modified sequence_verbose`[wMod] <- temp2[, 2]
+  #tst <- unique(unlist(strsplit(gsub("[A-Z]", "", EV$`Modified sequence`[wMod]), "[\\(\\)]")))
+  #tst <- unique(unlist(strsplit(gsub("[A-Z]", "", EV$`Modified sequence_verbose`[wMod]), "[\\(\\)]")))
   #
   EV$Modifications <- "Unmodified"
   uMdSq <- unique(EV$`Modified sequence`[wMod])
@@ -543,13 +527,11 @@ Skyline_to_MQ <- function(Skyline_fl,
   f0 <- function(x) { x[which(!x %in% c("", Fixed.mods))] }
   environment(f0) <- .GlobalEnv
   tempMod2 <- parallel::parLapply(cl, tempMod2, f0)
-  if (modsType == "No idea") {
-    f0 <- function(x) {
-      tmpMds$Name[match(x, tmpMds$Mark)]
-    } 
-    environment(f0) <- .GlobalEnv
-    tempMod2 <- parallel::parLapply(cl, tempMod2, f0)
-  }
+  f0 <- function(x) {
+    tmpMds$Name[match(x, tmpMds$Mark)]
+  } 
+  environment(f0) <- .GlobalEnv
+  tempMod2 <- parallel::parLapply(cl, tempMod2, f0)
   f0 <- function(x) {
     if (!length(x)) { x <- "Unmodified" } else {
       x <- aggregate(x, list(x), length)
