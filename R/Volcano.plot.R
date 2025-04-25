@@ -998,23 +998,22 @@ Volcano.plot <- function(Prot,
         ggplot2::annotate("text", x = xlim[2], y = -log10(2*(1 - pt(ta$Ta[2], samDF)))*1.05,
                           label = paste0(100*(1-ta$a[2]), "% conf. lev."),
                           color = ta$Colour[2], hjust = 1, size = 3.5)
-        if (prot_split) {
-          plot2 <- plot2
+      if (prot_split) {
+        plot2 <- plot2
+        ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[1], samDF) },
+                               color = ta$Colour[1], xlim = c(ta$Ta[1]*samS0, xlim[2]), linetype = "dotted") +
           ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[1], samDF) },
-                                 color = ta$Colour[1], xlim = c(ta$Ta[1]*samS0, xlim[2]), linetype = "dotted") +
-            ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[1], samDF) },
-                                   color = ta$Colour[1], xlim = c(xlim[1], -ta$Ta[1]*samS0), linetype = "dotted") +
-            ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[2], samDF) },
-                                   color = ta$Colour[2], xlim = c(ta$Ta[2]*samS0, xlim[2]), linetype = "dotted") +
-            ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[2], samDF) },
-                                   color = ta$Colour[2], xlim = c(xlim[1], -ta$Ta[2]*samS0), linetype = "dotted") +
-            ggplot2::annotate("text", x = xlim[2], y = -log10(2*(1 - pt(ta$Ta[1], samDF)))*1.05,
-                              label = paste0(100*(1-ta$a[1]), "% conf. lev."),
-                              color = ta$Colour[1], hjust = 1, size = 3.5) +
-            ggplot2::annotate("text", x = xlim[2], y = -log10(2*(1 - pt(ta$Ta[2], samDF)))*1.05,
-                              label = paste0(100*(1-ta$a[2]), "% conf. lev."),
-                              color = ta$Colour[2], hjust = 1, size = 3.5)
-        }
+                                 color = ta$Colour[1], xlim = c(xlim[1], -ta$Ta[1]*samS0), linetype = "dotted") +
+          ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[2], samDF) },
+                                 color = ta$Colour[2], xlim = c(ta$Ta[2]*samS0, xlim[2]), linetype = "dotted") +
+          ggplot2::stat_function(fun = function(x) { SAM_thresh(x, samS0, ta$Ta[2], samDF) },
+                                 color = ta$Colour[2], xlim = c(xlim[1], -ta$Ta[2]*samS0), linetype = "dotted") +
+          ggplot2::annotate("text", x = xlim[2], y = -log10(2*(1 - pt(ta$Ta[1], samDF)))*1.05,
+                            label = paste0(100*(1-ta$a[1]), "% conf. lev."),
+                            color = ta$Colour[1], hjust = 1, size = 3.5) +
+          ggplot2::annotate("text", x = xlim[2], y = -log10(2*(1 - pt(ta$Ta[2], samDF)))*1.05,
+                            label = paste0(100*(1-ta$a[2]), "% conf. lev."),
+                            color = ta$Colour[2], hjust = 1, size = 3.5)
       }
       #poplot(plot)
     } else {
