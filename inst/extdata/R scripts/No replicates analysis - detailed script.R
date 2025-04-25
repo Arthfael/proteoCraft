@@ -118,9 +118,10 @@ RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
 if (RunByMaster) { ScriptPath <- BehindTheScenes$ScriptFile }
 Script %<o% readLines(ScriptPath)
 
-# Update the proteoCraft package? (Usually a good idea)
-msg <- "Should we update the proteoCraft package? (recommended)"
-updt_proteoCraft %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
+# Update the proteoCraft package?
+# msg <- "Should we update the proteoCraft package?"
+# updt_proteoCraft %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
+updt_proteoCraft %<o% FALSE
 
 # Define input, output, project folder etc...
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Start_analysis.R")

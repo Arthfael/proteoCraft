@@ -138,9 +138,10 @@ if (!exists("AllAnsw")) {
 }
 AllAnsw %<o% AllAnsw
 
-# Update the proteoCraft package? (Usually a good idea)
-msg <- "Should we update the proteoCraft package? (recommended)"
-updt_proteoCraft %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
+# Update the proteoCraft package?
+# msg <- "Should we update the proteoCraft package?"
+# updt_proteoCraft %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
+updt_proteoCraft %<o% FALSE
 
 # Define input, output, project folder etc...
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Start_analysis.R")
@@ -767,8 +768,9 @@ if (file.exists(FracMapPath)) {
   }
   tst <- sum(is.na(ev2fr))
   if (tst) {
-    stop()
+    warning(paste0("Removing ", tst, " PSMs not matching selected raw files..."))
     ev <- ev[which(!is.na(ev2fr)),]
+    ev2fr <- ev2fr[which(!is.na(ev2fr))]
   }
   if (!"MQ.Exp" %in% colnames(ev)) {
     ev$MQ.Exp <- Frac.map$MQ.Exp[ev2fr]
@@ -1048,11 +1050,12 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
 #
 # Defaults
 RefRat_Mode %<o% "2" # Values: RefRat_Mode = "2" or "1" # For now not a user-modifiable parameter, however this may change
+StudentRoot %<o% "Student's t-test -log10(Pvalue) - "
 WelchRoot %<o% "Welch's t-test -log10(Pvalue) - "
 modRoot %<o% "Moderated t-test -log10(Pvalue) - "
 permRoot %<o% "Permutations t-test -log10(Pvalue) - "
 samRoot %<o% "SAM -log10(Pvalue) - "
-pvalue.col %<o% c(WelchRoot, modRoot, permRoot, samRoot)
+pvalue.col %<o% c(StudentRoot, WelchRoot, modRoot, permRoot, samRoot, odpRoot, lrtRoot)
 names(pvalue.col) <- sapply(pvalue.col, function(x) { unlist(strsplit(x, "\\.|\\'|\\ "))[1] })
 ParamFls <- c(paste0(wd, "/Parameters.csv"),
               paste0(libPath, "/extData/Parameters_template.csv"))
@@ -1390,6 +1393,7 @@ for (w in wMp) {
   lstFct <- append(lstFct, blck)
 }
 #
+useSAM_thresh %<o% TRUE
 tstAdvOpt <- try(sum(file.exists(Param$Custom.PGs, Param$TrueDisc_filter, Param$CRAPome_file)) > 0)
 if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
 #if (!Param$Param_suppress_UI) {
@@ -1491,9 +1495,18 @@ if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
              checkboxInput("Mirror", "Revert fold changes on plots? (default: log fold change = log2(Sample/Reference); revert: log2(Reference/Sample))",
                            Param$Mirror.Ratios, "100%")),
       column(4,
-             h5(strong(" -> T-test: select default variant")),
+             h5(strong(" -> Volcano plot: select default variant")),
              radioButtons("TtstPval", "", names(pvalue.col), names(pvalue.col)[2], TRUE, "100%"),
-             h6(em("(you can change this later after comparing each test's power)")),
+             h6(em(" - Welch's t-test is a modified form of Student's which is more robust to variance inequality.")),
+             h6(em(" - The Moderated t-test (limma) gets a more robust estimate of individual variances using global dataset variance.")),
+             h6(em(" - A Permutation t-test is based on permutations of the samples from each group.")),
+             h6(em(" - SAM's modified t-test corrects for poor variance estimates for very reproducible data by optimizing and adding a small constant s0 to the denominator of the test.")),
+             #h6(em("(you can change which one will be used for Volcano plots later, after we compare each test's power)")), # Not for now for this workflow,
+             # but this could be done by turning the code for this into an app which is called individually for each PTM class.
+             # This would mean allowing for a different selection for each PTM class.
+             # We will anyway want to allow for multiple tests selected in the future, so go out of the "choose one t-test" variant approach...
+             checkboxInput("useSAM_thresh", "Option: plot SAM-based curved significance thresholds for Student's t-test", TRUE, "100%"),
+             radioButtons("TtstPval", "", names(pvalue.col), names(pvalue.col)[2], TRUE, "100%"),
              br(),
              h5(strong(" -> F-test")),
              checkboxInput("Ftest", "run?", fTstDflt, "100%"),
@@ -1514,11 +1527,6 @@ if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
                          KontGrp,
                          width = "100%"))
     ),
-    h5(strong("F-test")),
-    fluidRow(column(1, checkboxInput("Ftest", "", fTstDflt, "100%")),
-    #          withSpinner(uiOutput("F_test_grps"))
-    ),
-    br(),
     tags$hr(style="border-color: black;"),
     withSpinner(uiOutput("GO")),
     tags$hr(style="border-color: black;"),
@@ -2099,9 +2107,14 @@ if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
     # Proteins of interest
     observeEvent(input$IntProt, {
       Par <- PARAM()
-      Par$Prot.list_pep <- Par$Prot.list <- paste(db$`Protein ID`[dbOrd][match(input$IntProt, protHeads)], collapse = ";")
+      Par$Prot.list <- paste(db$`Protein ID`[dbOrd][match(input$IntProt, protHeads)], collapse = ";")
       PARAM(Par)
     }, ignoreNULL = FALSE)
+    # Use curved SAM thresholds for Student's t-test
+    observeEvent(input$useSAM_thresh, {
+      useSAM_thresh <<- input$useSAM_thresh
+      #output$F_test_grps <- updtFTstUI()
+    })
     # F-test
     observeEvent(input$FTest, {
       Par <- PARAM()
@@ -2240,26 +2253,21 @@ if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
   factLevComb1 <- apply(Exp.map[, kolVPAL, drop = FALSE], 1 , paste, collapse = " ")
   #factLevComb2 <- apply(Exp.map[, kolRRG, drop = FALSE], 1 , paste, collapse = " ")
   factLevComb2 <- apply(Exp.map[, kolRG, drop = FALSE], 1 , paste, collapse = " ")
-  if (("Reference" %in% colnames(Exp.map))&&("logical" %in% class(Exp.map$Reference))&&(sum(Exp.map$Reference))&&(sum(!Exp.map$Reference))) {
-    w <- which(Exp.map$Reference)
-    rfLev <- aggregate(factLevComb1[w], list(factLevComb2[w]), function(x) {
-      x <- unique(x)
-      stopifnot(length(x) == 1)
-      return(x)
-    })
-    a <- aggregate(factLevComb1, list(factLevComb2), function(x) { list(unique(x)) })
-    rfLev$y <- a$x[match(rfLev$Group.1, a$Group.1)]
-    colnames(rfLev) <- c("Group", "Reference level", "All levels")
-  } else {
-    rfLev <- data.frame("Group" = unique(factLevComb2))
-    rfLev$"Reference level" <- sapply(rfLev$Group, function(x) {
-      w <- which(factLevComb2 == x)
-      return(factLevComb1[w[1]])
-    })
-    rfLev$"All levels" <- lapply(rfLev$Group, function(x) {
-      unique(factLevComb1[which(factLevComb2 == x)])
-    })
-  }
+  refTst <- ("Reference" %in% colnames(Exp.map))&&("logical" %in% class(Exp.map$Reference))&&(sum(Exp.map$Reference))&&(sum(!Exp.map$Reference))
+  rfLev <- data.frame("Group" = unique(factLevComb2))
+  rfLev$"All levels" <- lapply(rfLev$Group, function(x) {
+    unique(factLevComb1[which(factLevComb2 == x)])
+  })
+  rfLev$"Reference level" <- sapply(rfLev$"All levels", function(x) { #x <- unlist(rfLev$"All levels"[2])
+    if (refTst) {
+      w <- which(Exp.map$Reference[match(x, factLevComb1)])
+      if (length(w)) { w <- w[1] } else { w <- 1 }
+      rs <- x[w]
+    } else {
+      rs <- factLevComb1[w[1]]
+    }
+    return(rs)
+  })
   makeSec <- FALSE
   # if (Param$F.test) {
   #   Factors3 <- Factors2[which(sapply(Factors2, function(Fact) {
@@ -2634,7 +2642,13 @@ if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
     return(w[which(factLevComb1[w] == rfLev$"Reference level"[i])])
   })
   Exp.map$Reference <- 1:nrow(Exp.map) %in% unlist(wRf)
-  write.csv(ExpMap, ExpMapPath, row.names = FALSE)
+  tmp <- Exp.map
+  tmp$MQ.Exp <- sapply(tmp$MQ.Exp, paste, collapse = ";")
+  tst <- try(write.csv(tmp, file = ExpMapPath, row.names = FALSE), silent = TRUE)
+  if ("try-error" %in% class(tst)) {
+    dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+    write.csv(tmp, file = ExpMapPath, row.names = FALSE)
+  }
   tmp <- data.frame(x1 = colnames(Param), x2 = unlist(Param[1,]))
   colnames(tmp) <- NULL
   write.csv(tmp, paste0(wd, "/Parameters.csv"), row.names = FALSE)
@@ -6646,6 +6660,8 @@ source(parSrc)
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
+useSAM %<o% ((names(pvalue.col)[which(pvalue.use)] == "Student")&&(useSAM_thresh)&&)
+
 #### Code chunk - Annotations
 # (still required for dataset enrichment analysis, and also for output tables; not for the GO terms enrichment analysis)
 # I used to get functional annotations for all proteins in the protein group.
@@ -7146,6 +7162,28 @@ if ("PTM.analysis" %in% colnames(Param)) {
           #k1 <- grep(topattern(paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)])), colnames(ptmpep), value = TRUE)
           #df1 <- ptmpep[, k1]
           subDr <- gsub(topattern(wd), "", dir[2])
+          if (useSAM) {
+            # In this case, we bypass the original decision and base it off SAM even though we plot Student's P-values
+            for (i in names(PTMs_SAM_thresh[[Ptm]])) { #i <- names(PTMs_SAM_thresh[[Ptm]])[1]
+              dec <- PTMs_SAM_thresh[[Ptm]][[i]]$decision
+              mKol <- rev(colnames(dec))[1]
+              FCkol <- paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)], i)
+              stopifnot(FCkol %in% names(ptmpep))
+              regKol <- paste0("Regulated - ", i)
+              ptmpep[[regKol]] <- "non significant"
+              fdrs <- as.numeric(gsub("FDR$", "", colnames(dec)[which(colnames(dec) != mKol)]))
+              fdrs <- sort(fdrs, decreasing = TRUE)
+              for (f in fdrs) { #f <- fdrs[1]
+                w <- which(ptmpep[[mKol]] %in% dec[which(dec[[paste0(f, "FDR")]] == "+"), mKol])
+                if (length(w)) {
+                  ptmpep[which(ptmpep[w, FCkol] > 0), regKol] <- paste0("up, FDR = ", f*100, "%")
+                  if (TwoSided) {
+                    ptmpep[which(ptmpep[w, FCkol] < 0), regKol] <- paste0("down, FDR = ", f*100, "%")
+                  }
+                }
+              }
+            }
+          }
           tempVPptm <- Volcano.plot(ptmpep, "custom",
                                     paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)]),
                                     pvalue.col[which(pvalue.use)],
@@ -7155,7 +7193,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
                                     aggregate.name = VPAL$aggregate,
                                     parameters = P,
                                     save = c("jpeg", "pdf"),
-                                    labels = "FDR",
+                                    labels = c("FDR", "both")[useSAM+1],
                                     Ref.Ratio.values = ref.rat,
                                     Ref.Ratio.method = paste0("obs", RefRat_Mode),
                                     ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates),
@@ -7167,7 +7205,8 @@ if ("PTM.analysis" %in% colnames(Param)) {
                                     Size = "Rel. av. log10 abundance", Size.max = 2,
                                     plotly = create_plotly, plotly_local = create_plotly_local,
                                     plotly_labels = c(PepLabKol, paste0(Ptm, "-site")),
-                                    cl = parClust)
+                                    cl = parClust,
+                                    SAM = useSAM, curved_Thresh = PTMs_sam_Thresh[[Ptm]])
           #k2 <- grep(topattern(paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)])), colnames(ptmpep), value = TRUE)
           #df2 <- ptmpep[, k2]
           #pepPlotFun(df1, df2, "Before VS after volc. plot", dir[1], FALSE)
