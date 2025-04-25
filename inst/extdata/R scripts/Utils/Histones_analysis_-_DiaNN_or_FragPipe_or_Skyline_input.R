@@ -14,6 +14,8 @@ require(ggplot2)
 require(viridis)
 homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
 
+#proteoCraft::load_Bckp()
+
 # For now I always need that one,
 # but this could be easily modified
 dbFl <- "D:/Fasta_databases/Mus_musculus/Mus_musculus_(C57BL-6J)_UP_20230201_Iso_noDupl_cont.fasta"
@@ -21,15 +23,11 @@ dbFl <- "D:/Fasta_databases/Mus_musculus/Mus_musculus_(C57BL-6J)_UP_20230201_Iso
 updateMe <- c(TRUE, FALSE)[match(dlg_message("Update the proteoCraft package?", "yesno")$res, c("yes", "no"))]
 if (updateMe) {
   try(unloadNamespace("proteoCraft"), silent = TRUE)
+  remove.packages("proteoCraft")
   pak::pkg_install("Arthfael/proteoCraft")
 }
 require(proteoCraft)
 
-# This file is hard-coded in here: this is the table of mass-shift-to-PTM-name matches.
-# You can edit it but PLEASE stick to the current layout/logic or the script will BREAK!
-modTblFl <- rstudioapi::selectFile("histone_modification_masses.xlsx")
-stopifnot(file.exists(modTblFl))
-# 
 # saveFun2 <- function(x, file) {
 #   tmp <- paste0("qs::qsavem(", deparse(substitute(x)),
 #                 ", file = '", file, "', nthreads = max(c(parallel::detectCores()-1, 1)))")
@@ -46,33 +44,15 @@ stopifnot(file.exists(modTblFl))
 # loadFun <- function(file) {
 #   qs::qload(file, env = globalenv(), nthreads = max(c(parallel::detectCores()-1, 1)))
 # }
-library(qs2)
-saveFun %<o% function(x, file) {
-  if (!exists(deparse(substitute(x)), envir = .GlobalEnv)) { error("Object doesn't exist!") }
-  tmp <- paste0("qs2::qs_savem(", deparse(substitute(x)),
-                ", file = '", file, "', nthreads = max(c(parallel::detectCores()-1, 1)))")
-  #cat(tmp)
-  eval(parse(text = tmp))
-}
-saveImgFun <- function(file) { # This one adapted from https://github.com/qsbase/qs2/issues/new?template=Blank+issue
-  obj <- base::ls(envir = .GlobalEnv)
-  if (exists(".obj", envir = .GlobalEnv)) {
-    obj <- unique(c(".obj", obj))
-    obj <- obj[which(sapply(obj, exists, envir = .GlobalEnv))]
-  }
-  obj <- grep("^[A-Za-z\\.][A-Za-z\\.0-9_]*$", obj, value = TRUE)
-  do.call(qs2::qs_savem,
-          c(lapply(obj, as.symbol),
-            file = file,
-            nthreads = parallel::detectCores()-1)
-  )
-}
-loadFun %<o% function(file) {
-  tst <- try(qs2::qs_readm(file, env = globalenv(), nthreads = max(c(parallel::detectCores()-1, 1))), silent = TRUE)
-  if ("try-error" %in% class(tst)) { load(file, envir = globalenv()) }
-  require(proteoCraft) # This is because we have to remove the 
-}
-#proteoCraft::load_Bckp()
+RPath <- as.data.frame(library()$results)
+RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
+libPath <- paste0(RPath, "/proteoCraft")
+homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+
+# Fast save and load functions
+Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
 
 # Create parallel processing cluster
 N.clust <- detectCores()-1
@@ -502,143 +482,154 @@ saveImgFun(backupFl)
 # and to convert to MQ-like format we got a name from UniMod which may be incorrect.
 # We also need to resolve ambiguous cases, where a single "mark" is assigned to 2 or more distinct PTMs.
 # Let's do all of this at once.
-modTbl <- openxlsx2::read_xlsx(modTblFl)
-colnames(modTbl)[1] <- "Priority"
-modTbl <- modTbl[which(!is.na(modTbl$"molecular weight")),]
-modTbl$`molecular weight` <- as.numeric(modTbl$`molecular weight`)
-modTbl$Priority[which(is.na(modTbl$Priority))] <- ""
-modTbl <- modTbl[which(modTbl$Priority != "Not analysed"),]
-tmp <- listMelt(strsplit(modTbl$`modified residues`, ","), 1:nrow(modTbl), c("Pos", "row"))
-tmp[, c("MW", "Name")] <- modTbl[tmp$row, c("molecular weight", "Modification")]
-tst <- aggregate(tmp$Name, list(tmp$Pos, tmp$MW), function(x) { length(unique(x)) })
-stopifnot(max(tst$x) == 1) # We assume that there is only one mod name for each combination of position and mass shift
-if (inputType %in% c("DiaNN", "Skyline")) {
-  if ("Pos" %in% colnames(mods)) {
-    mods$Site <- mods$Pos
-  } else {
-    if ("AA" %in% colnames(mods)) {
-      mods$Site <- mods$A
-    } else { stop() }
-  }
-  mods$"Mass delta" <- mods$Delta
-}
-mods2 <- listMelt(mods$Site, 1:nrow(mods), c("Pos", "row"))
-mods2[, c("MW", "Name", "Mark")] <- mods[mods2$row, c("Mass delta", "Full name", "Mark")]
-kol <- c("Pos", "MW")
-tmp$aggr <- do.call(paste, c(tmp[, kol], sep = "___"))
-mods2$aggr <- do.call(paste, c(mods2[, kol], sep = "___"))
-mods2$newName <- ""
-mods2$newMark <- mods2$Mark
-w <- which(mods2$aggr %in% tmp$aggr)
-mods2$newName[w] <- tmp$Name[match(mods2$aggr[w], tmp$aggr)]
-g1 <- grep("-", mods2$newName[w])
-g2 <- grep("-", mods2$newName[w], invert = TRUE)
-if (length(g1)) {
-  mods2$newMark[w[g1]] <- sapply(strsplit(tolower(mods2$newName[w[g1]]), "-"), function(x) {
-    paste0(substr(x[[1]], 1, 1), substr(x[[2]], 1, 1))
-  })
-}
-if (length(g2)) {
-  mods2$newMark[w[g2]] <- substr(tolower(mods2$newName[w[g2]]), 1, 2)
-}
-tst <- aggregate(mods2$MW, list(mods2$newMark), unique)
-wMult <- which(sapply(tst$x, length) > 1)
-if (length(wMult)) {
-  mods2$newMark_tmp <- mods2$newMark
-  for (i in wMult) {
-    #i <- wMult[1]
-    w <- which(mods2$newMark_tmp == tst$Group.1[i])
-    m <- mods2[w,]
-    m$Pos[which(sapply(m$Pos, length) == 0)] <- "X"
-    r <- 1
-    s <- 1:nrow(m); s <- s[which(s != r)]
-    tst <- lapply(s, function(x) {
-      paste0(tolower(m$Pos[[x]]), substr(m$newMark[[x]], 1, 1))
-    })
-    tst <- lapply(1:length(tst), function(x) {
-      rs <- tst[[x]]
-      rs[which(!rs %in% mods2$newMark)]
-    })
-    l <- length(tst)
-    if (l > 1) {
-      for (i in 2:l) {
-        tst[[i]] <- tst[[i]][which(!tst[[i]] %in% unlist(tst[1:(i-1)]))]
-      }
+msg <- paste0("Do you want to load an external table of PTMs names to force some names on specific ones?")
+opt <- c("Yes                                                                                                               ",
+         "No                                                                                                                ")
+useExtTbl <- c(TRUE, FALSE)[match(dlg_list(opt, opt[2], title = msg)$res, opt)]
+if (useExtTbl) {
+  # This file is hard-coded in here: this is the table of mass-shift-to-PTM-name matches.
+  # You can edit it but PLEASE stick to the current layout/logic or the script will BREAK!
+  modTblFl <- rstudioapi::selectFile("histone_modification_masses.xlsx")
+  stopifnot(file.exists(modTblFl))
+  #
+  useExtTbl <- dlg_message() 
+  modTbl <- openxlsx2::read_xlsx(modTblFl)
+  #openxlsx2::xl_open(modTblFl)
+  colnames(modTbl)[1] <- "Priority"
+  modTbl <- modTbl[which(!is.na(modTbl$"molecular weight")),]
+  modTbl$`molecular weight` <- as.numeric(modTbl$`molecular weight`)
+  modTbl$Priority[which(is.na(modTbl$Priority))] <- ""
+  modTbl <- modTbl[which(modTbl$Priority != "Not analysed"),]
+  tmp <- listMelt(strsplit(modTbl$`modified residues`, ","), 1:nrow(modTbl), c("Pos", "row"))
+  tmp[, c("MW", "Name")] <- modTbl[tmp$row, c("molecular weight", "Modification")]
+  tst <- aggregate(tmp$Name, list(tmp$Pos, tmp$MW), function(x) { length(unique(x)) })
+  stopifnot(max(tst$x) == 1) # We assume that there is only one mod name for each combination of position and mass shift
+  if (inputType %in% c("DiaNN", "Skyline")) {
+    if ("Pos" %in% colnames(mods)) {
+      mods$Site <- mods$Pos
+    } else {
+      if ("AA" %in% colnames(mods)) {
+        mods$Site <- mods$A
+      } else { stop() }
     }
-    tst <- sapply(tst, function(x) {
-      x <- unlist(x)
-      if (length(x)) { x <- x[1] } else { x <- "That didnae work, did it?" }
-      return(x)
+    mods$"Mass delta" <- mods$Delta
+  }
+  mods2 <- listMelt(mods$Site, 1:nrow(mods), c("Pos", "row"))
+  mods2[, c("MW", "Name", "Mark")] <- mods[mods2$row, c("Mass delta", "Full name", "Mark")]
+  kol <- c("Pos", "MW")
+  tmp$aggr <- do.call(paste, c(tmp[, kol], sep = "___"))
+  mods2$aggr <- do.call(paste, c(mods2[, kol], sep = "___"))
+  mods2$newName <- ""
+  mods2$newMark <- mods2$Mark
+  w <- which(mods2$aggr %in% tmp$aggr)
+  mods2$newName[w] <- tmp$Name[match(mods2$aggr[w], tmp$aggr)]
+  g1 <- grep("-", mods2$newName[w])
+  g2 <- grep("-", mods2$newName[w], invert = TRUE)
+  if (length(g1)) {
+    mods2$newMark[w[g1]] <- sapply(strsplit(tolower(mods2$newName[w[g1]]), "-"), function(x) {
+      paste0(substr(x[[1]], 1, 1), substr(x[[2]], 1, 1))
     })
-    tst2 <- ((tst %in% mods2$newMark)|(tst == "That didnae work, did it?"))
-    w2 <- which(!tst2)
-    m$newMark[s][w2] <- tst[w2]
-    w1 <- which(tst2)
-    if (length(w1)) {
-      # not tested
-      s1 <- s[w1]
-      rs <- c()
-      kount <- 1
-      char <- c(0:9, letters)
-      taken <- unique(c(mods2$newMark, m$newMark))
-      for (j in s1) {
-        tst <- paste0(tolower(m$Pos[s1]), char[kount])
-        while (((tst) %in% taken)&&(kount < length(char))) {
-          kount <- kount+1
+  }
+  if (length(g2)) {
+    mods2$newMark[w[g2]] <- substr(tolower(mods2$newName[w[g2]]), 1, 2)
+  }
+  tst <- aggregate(mods2$MW, list(mods2$newMark), unique)
+  wMult <- which(sapply(tst$x, length) > 1)
+  if (length(wMult)) {
+    mods2$newMark_tmp <- mods2$newMark
+    for (i in wMult) {
+      #i <- wMult[1]
+      w <- which(mods2$newMark_tmp == tst$Group.1[i])
+      m <- mods2[w,]
+      m$Pos[which(sapply(m$Pos, length) == 0)] <- "X"
+      r <- 1
+      s <- 1:nrow(m); s <- s[which(s != r)]
+      tst <- lapply(s, function(x) {
+        paste0(tolower(m$Pos[[x]]), substr(m$newMark[[x]], 1, 1))
+      })
+      tst <- lapply(1:length(tst), function(x) {
+        rs <- tst[[x]]
+        rs[which(!rs %in% mods2$newMark)]
+      })
+      l <- length(tst)
+      if (l > 1) {
+        for (i in 2:l) {
+          tst[[i]] <- tst[[i]][which(!tst[[i]] %in% unlist(tst[1:(i-1)]))]
+        }
+      }
+      tst <- sapply(tst, function(x) {
+        x <- unlist(x)
+        if (length(x)) { x <- x[1] } else { x <- "That didnae work, did it?" }
+        return(x)
+      })
+      tst2 <- ((tst %in% mods2$newMark)|(tst == "That didnae work, did it?"))
+      w2 <- which(!tst2)
+      m$newMark[s][w2] <- tst[w2]
+      w1 <- which(tst2)
+      if (length(w1)) {
+        # not tested
+        s1 <- s[w1]
+        rs <- c()
+        kount <- 1
+        char <- c(0:9, letters)
+        taken <- unique(c(mods2$newMark, m$newMark))
+        for (j in s1) {
           tst <- paste0(tolower(m$Pos[s1]), char[kount])
+          while (((tst) %in% taken)&&(kount < length(char))) {
+            kount <- kount+1
+            tst <- paste0(tolower(m$Pos[s1]), char[kount])
+          }
+          if (kount == length(char)) {
+            stop("I am really out of options here, never thought this would go this far! Check the code just in case, this should never happen.")
+          } else {
+            rs <- c(rs, tst)
+          }
         }
-        if (kount == length(char)) {
-          stop("I am really out of options here, never thought this would go this far! Check the code just in case, this should never happen.")
-        } else {
-          rs <- c(rs, tst)
-        }
+        m$newMark[[s1]] <- rs
       }
-      m$newMark[[s1]] <- rs
+      mods2[w,] <- m
     }
-    mods2[w,] <- m
   }
+  tst <- aggregate(mods2$MW, list(mods2$newMark), unique)
+  stopifnot(is.numeric(tst$x))
+  mods <- mods2; rm(mods2)
+  w <- which(mods$newName == "")
+  mods$newName[w] <- mods$Name[w]
+  mods$newName <- gsub("\\)", ">", gsub("\\(", "<", mods$newName))
+  nmKol <- "Name"
+  if (!"Modified sequence_verbose" %in% colnames(ev)) {
+    ev$"Modified sequence_verbose" <- ev$`Modified sequence`
+    nmKol <- "Mark"
+  }
+  unq <- grep("\\(", unique(ev$`Modified sequence_verbose`), value = TRUE)
+  mods2 <- mods
+  mods2$newMark <- paste0("(", mods2$newMark, ")")
+  mods2$newName <- paste0("(", mods2$newName, ")")
+  clusterExport(parClust, list("mods2", "nmKol"), envir = environment())
+  unq2 <- as.data.frame(t(parSapply(parClust, unq, function(x) {
+    #x <- unq[1]
+    x <- y <- proteoCraft::annot_to_tabl(x)[[1]]
+    w <- which(x$Annotations != "")
+    m <- match(x$Annotations[w], mods2[[nmKol]])
+    x$Annotations[w] <- mods2$newMark[m]
+    y$Annotations[w] <- mods2$newName[m]
+    x <- do.call(paste, c(x, sep = "", collapse = ""))
+    y <- do.call(paste, c(y, sep = "", collapse = ""))
+    return(c(x, y))
+  })))
+  tst1 <- gsub("\\)[A-Z]*\\(", "___", gsub("_[A-Z]+_|_[A-Z]*\\(|\\)[A-Z]*_", "", unq2[[1]]))
+  tst2 <- gsub("\\)[A-Z]*\\(", "___", gsub("_[A-Z]+_|_[A-Z]*\\(|\\)[A-Z]*_", "", unq2[[2]]))
+  tst1 <- unique(unlist(strsplit(tst1, "___")))
+  tst2 <- unique(unlist(strsplit(tst2, "___")))
+  stopifnot(sum(!tst1 %in% mods$newMark) == 0,
+            sum(!tst2 %in% mods$newName) == 0)
+  w <- which(ev$`Modified sequence_verbose` %in% unq)
+  m <- match(ev$`Modified sequence_verbose`[w], unq)
+  ev$`Modified sequence`[w] <- unq2[m, 1]
+  ev$`Modified sequence_verbose`[w] <- unq2[m, 2]
+  # Done!!!
+  # Pfeewwwww...
 }
-tst <- aggregate(mods2$MW, list(mods2$newMark), unique)
-stopifnot(is.numeric(tst$x))
-mods <- mods2; rm(mods2)
-w <- which(mods$newName == "")
-mods$newName[w] <- mods$Name[w]
-mods$newName <- gsub("\\)", ">", gsub("\\(", "<", mods$newName))
-nmKol <- "Name"
-if (!"Modified sequence_verbose" %in% colnames(ev)) {
-  ev$"Modified sequence_verbose" <- ev$`Modified sequence`
-  nmKol <- "Mark"
-}
-unq <- grep("\\(", unique(ev$`Modified sequence_verbose`), value = TRUE)
-mods2 <- mods
-mods2$newMark <- paste0("(", mods2$newMark, ")")
-mods2$newName <- paste0("(", mods2$newName, ")")
-clusterExport(parClust, list("mods2", "nmKol"), envir = environment())
-unq2 <- as.data.frame(t(parSapply(parClust, unq, function(x) {
-  #x <- unq[1]
-  x <- y <- proteoCraft::annot_to_tabl(x)[[1]]
-  w <- which(x$Annotations != "")
-  m <- match(x$Annotations[w], mods2[[nmKol]])
-  x$Annotations[w] <- mods2$newMark[m]
-  y$Annotations[w] <- mods2$newName[m]
-  x <- do.call(paste, c(x, sep = "", collapse = ""))
-  y <- do.call(paste, c(y, sep = "", collapse = ""))
-  return(c(x, y))
-})))
-tst1 <- gsub("\\)[A-Z]*\\(", "___", gsub("_[A-Z]+_|_[A-Z]*\\(|\\)[A-Z]*_", "", unq2[[1]]))
-tst2 <- gsub("\\)[A-Z]*\\(", "___", gsub("_[A-Z]+_|_[A-Z]*\\(|\\)[A-Z]*_", "", unq2[[2]]))
-tst1 <- unique(unlist(strsplit(tst1, "___")))
-tst2 <- unique(unlist(strsplit(tst2, "___")))
-stopifnot(sum(!tst1 %in% mods$newMark) == 0,
-          sum(!tst2 %in% mods$newName) == 0)
-w <- which(ev$`Modified sequence_verbose` %in% unq)
-m <- match(ev$`Modified sequence_verbose`[w], unq)
-ev$`Modified sequence`[w] <- unq2[m, 1]
-ev$`Modified sequence_verbose`[w] <- unq2[m, 2]
-# Done!!!
-# Pfeewwwww...
-map <- FracMap
-#
 
 # Edit samples map
 smplsMapFl <- paste0(dstDir, "/Samples_map.csv")
@@ -807,14 +798,16 @@ write.csv(Ordered2, file = paste0(dstDir, "/Ordered_histone_domains.csv"), row.n
 #                                 Et voila, done!                                 #
 ###################################################################################
 
-tmp <- data.frame(ModSeq =  ev$"Modified sequence_verbose")
-tmp$tst <- gsub("^_[A-Z]+_$|^_[A-Z]*\\(|\\)[A-Z]*_$", "",
-                gsub("\\)[A-Z]+\\(", "___", tmp$ModSeq))
-tst <- unlist(strsplit(tmp$tst, "___"))
-tst <- aggregate(tst, list(tst), length)
-nrow(tst) # Number of identified PTMs
-length(unique(mods$newName)) # Number of searched PTMs
-stopifnot(sum(!tst$Group.1 %in% mods$newName) == 0) # Checking that the names match
+if (useExtTbl) {
+  tmp <- data.frame(ModSeq =  ev$"Modified sequence_verbose")
+  tmp$tst <- gsub("^_[A-Z]+_$|^_[A-Z]*\\(|\\)[A-Z]*_$", "",
+                  gsub("\\)[A-Z]+\\(", "___", tmp$ModSeq))
+  tst <- unlist(strsplit(tmp$tst, "___"))
+  tst <- aggregate(tst, list(tst), length)
+  nrow(tst) # Number of identified PTMs
+  length(unique(mods$newName)) # Number of searched PTMs
+  stopifnot(sum(!tst$Group.1 %in% mods$newName) == 0) # Checking that the names match
+}
 
 tmp <- strsplit(ev$Proteins, ";")
 tmp <- proteoCraft::listMelt(tmp, 1:nrow(ev), c("ID", "row"))
@@ -1069,12 +1062,11 @@ w <- which((labCol %in% colnames(ev))&(!labCol %in% colnames(evSum)))
 if (length(w)) { evSum[, labCol[w]] <- ev[match(evSum$`Modified sequence`, ev$`Modified sequence`), labCol[w]] }
 w <- which((labCol %in% colnames(evSum))&(!labCol %in% colnames(pep)))
 if (length(w)) { pep[, labCol[w]] <- evSum[match(pep$`Modified sequence`, evSum$`Modified sequence`), labCol[w]] }
-labCol <- labCol[which(labCol %in% colnames(pep))]
-
 pep$ModSeq <- gsub("^_|_$", "", pep$`Modified sequence`)
 pep$Name <- db$`Common Name`[match(gsub(";.*", "", pep$Proteins), db$`Protein ID`)]
 w <- which(is.na(pep$Name))
 pep$Name[w] <- "No match!"
+labCol <- labCol[which(labCol %in% colnames(pep))]
 clusterExport(parClust, "labCol", envir = environment())
 pep$Label <- parApply(parClust, pep[, labCol, drop = FALSE], 1, function(x) {
   paste0(labCol, ": ", x, collapse = "\n")
@@ -1293,7 +1285,7 @@ if (statTsts) {
   }
   #cat(designCall, "\n")
   eval(parse(text = designCall))
-  
+  #
   # Define contrasts
   expContrasts <- list()
   for (ratGrp in compGrps) {
@@ -1320,13 +1312,13 @@ if (statTsts) {
   #cat(contrCall, "\n")
   eval(parse(text = contrCall))
   expContrasts$Name <- colnames(contrMatr)
-  
+  #
   colMatch <- data.frame(x = c("up", "down", "n.s.", "n.t."),
                          y = c(1, -1, 0, NA))
   myColors <- setNames(c("limegreen","red3", "black", "grey"),
                        c("up", "down", "n.s.", "n.t."))
   colScale <- scale_colour_manual(name = "colour", values = myColors)
-  
+  #
   FDR <- 0.3
   FC <- 1.5
   l10FC <- log10(FC) # For decideTests, to which we feed log10 data and so which needs a log10 FC!
@@ -1465,7 +1457,7 @@ if (statTsts) {
         geom_hline(yintercept = -log10(thresh), color = "purple", linetype = "dashed") +
         scale_alpha_identity(guide = "none") + scale_size_identity(guide = "none") +
         scale_y_continuous(expand = c(0, 0))
-      poplot(plot)
+      #poplot(plot)
       ggsave(paste0(dstDir, "/", ttl, ".jpeg"), plot, dpi = 300)
       plotLy <- ggplotly(plot, tooltip = c("x", "y", "text"))
       htmlwidgets::saveWidget(plotLy, paste0(dstDir, "/", ttl, ".html"), selfcontained = TRUE)
