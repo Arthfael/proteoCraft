@@ -143,34 +143,39 @@ kol <- kol[which(kol %in% colnames(myData))]
 tmpVal <- myData[, kol]
 clusterExport(parClust, list("tmpVal", "Nested", "AltHyp"), envir = environment())
 #
-# - Welch's t-test:
-tmp <- lapply(1:nrow(expContr), function(x) { #x <- 1
-  em <- expContr$Map[x][[1]]
-  k0 <- em$Expression_Column[which(em$Reference)]
-  k1 <- em$Expression_Column[which(!em$Reference)]
-  clusterExport(parClust, list("k1", "k0"), envir = environment())
-  RES <- parSapply(parClust, 1:nrow(tmpVal), function(y) {
-    v0 <- as.numeric(tmpVal[y, k0])
-    v1 <- as.numeric(tmpVal[y, k1])
-    if (Nested) {
-      w <- which((proteoCraft::is.all.good(v0, 2))&(proteoCraft::is.all.good(v1, 2)))
-      v0 <- v0[w]; v1 <- v1[w]
-    } else {
-      v0 <- proteoCraft::is.all.good(v0)
-      v1 <- proteoCraft::is.all.good(v1)
-    }
-    if ((length(unique(v0)) > 1)&&(length(unique(v1)) > 1)) {
-      res <- -log10(t.test(x = v1, y = v0, paired = Nested, alternative = AltHyp)$p.value)
-    } else { res <- NA }
-    return(res)
+# - Student's and Welch's t-tests:
+for (ii in 1:2) {
+  tmp <- lapply(1:nrow(expContr), function(x) { #x <- 1
+    em <- expContr$Map[x][[1]]
+    k0 <- em$Expression_Column[which(em$Reference)]
+    k1 <- em$Expression_Column[which(!em$Reference)]
+    clusterExport(parClust, list("k1", "k0"), envir = environment())
+    RES <- parSapply(parClust, 1:nrow(tmpVal), function(y) {
+      v0 <- as.numeric(tmpVal[y, k0])
+      v1 <- as.numeric(tmpVal[y, k1])
+      if (Nested) {
+        w <- which((proteoCraft::is.all.good(v0, 2))&(proteoCraft::is.all.good(v1, 2)))
+        v0 <- v0[w]; v1 <- v1[w]
+      } else {
+        v0 <- proteoCraft::is.all.good(v0)
+        v1 <- proteoCraft::is.all.good(v1)
+      }
+      if ((length(unique(v0)) > 1)&&(length(unique(v1)) > 1)) {
+        res <- -log10(t.test(x = v1, y = v0, paired = Nested, alternative = AltHyp,
+                             var.equal = (ii == 1))$p.value)
+      } else { res <- NA }
+      return(res)
+    })
+    return(RES)
   })
-  return(RES)
-})
-tmp <- set_colnames(do.call(cbind, tmp), paste0(WelchRoot, expContr$name))
-myData[, colnames(tmp)] <- tmp
-
+  tmp <- set_colnames(do.call(cbind, tmp),
+                      paste0(c(StudentRoot, WelchRoot)[ii],
+                             expContr$name))
+  myData[, colnames(tmp)] <- tmp
+}
+#
 # - Permutations t-test:
-#   (We will ignore nesting here!!!)
+#   (We must obviously ignore nesting here!!!)
 tmp <- lapply(1:nrow(expContr), function(x) { #x <- 1
   RES <- rep(NA, nrow(tmpVal))
   em <- expContr$Map[x][[1]]
@@ -229,7 +234,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1] #TEST <- TESTs[2]
     nmRoot <- deqmsRoot
     insrt <- "DEqMS mod. t-test"
   }
-  #fit <- lmFit(tmpVal, designMatr, trend = TRUE, robust = TRUE)
+  #fit <- lmFit(tmpVal2, designMatr, trend = TRUE, robust = TRUE)
   fit <- lmFit(tmpVal2, designMatr)
   fit$genes <- myData[[namesCol]]
   fit <- contrasts.fit(fit, contrMatr)
@@ -629,6 +634,7 @@ tmpVal2 <- as.data.frame(tmpVal2)
 rownames(tmpVal2) <- paste0(namesRoot, as.character(1:nrow(tmpVal2)))
 require(siggenes)
 clusterCall(parClust, function() library(siggenes))
+if (exists("samThresh")) { rm(samThresh) }
 for (taest in c("SAM", "EBAM")) { #taest <- "SAM" #taest <- "EBAM"
   tstTst <- try({
     tmp <- lapply(1:nrow(expContr), function(x) { #x <- 1
@@ -661,21 +667,15 @@ for (taest in c("SAM", "EBAM")) { #taest <- "SAM" #taest <- "EBAM"
         }
         if (taest == "SAM") {
           samK <- paste0(samRoots, nm)
-          temp <- siggenes::sam(tmpVal3[wh,], clss, method = "d.stat", s.alpha = seq(0, 1, 0.01))
-          if ("s0" %in% slotNames(temp)) { s0 <- slot(temp, "s0") } else { s0 <- numeric() }
-          # tstA <- data.frame(D = temp@d, # This is whichever statistic is calculated by the test, e.g. modified/moderated t-statistic
-          #                    Dbar = temp@d.bar,
-          #                    Pval = temp@p.value)
-          # clusterExport(parClust, list("tst", "tstA", "wh"), envir = environment())
-          # tstA$Pval2 <- parSapply(parClust, 1:nrow(tstA), function(x) {
-          #   2*pt(q = abs(tstA$D[x]), df = tst[wh][x]-1, lower.tail = FALSE)
-          # }) # Just checking: calculating P-values the "standard way" gives a different - but similar - result:
-          # plot <- ggplot(tstA) +
-          #   geom_point(aes(x = D, y = -log10(Pval)), colour = "blue") +
-          #   geom_point(aes(x = D, y = -log10(Pval2)), colour = "red") +
-          #   theme_bw()
-          # poplot(plot)
-          pVal <- -log10(temp@p.value)
+          tmpSIGGENES <- siggenes::sam(tmpVal3[wh,], clss, method = "d.stat", s.alpha = seq(0, 1, 0.01)#, gene.names = rownames(tmpVal3)[wh]
+                                       , control = samControl(delta = (1:1000)/1000) # Because I like overkill
+                                       , rand = mySeed)
+          #print(tmpSIGGENES)
+          #summary(tmpSIGGENES)
+          # NB: The current siggenes vignette has a typo: obviously FDR isn't equal to p0*False/FDR but to p0*False/Called
+          if ("s0" %in% slotNames(tmpSIGGENES)) { s0 <- slot(tmpSIGGENES, "s0") } else { s0 <- numeric(0) }
+          #si <- median(apply(tmpVal3[wh,], 1, sd, na.rm = TRUE))
+          pVal <- -log10(tmpSIGGENES@p.value)
           RES <- data.frame(A = rep(NA, nrow(myData)),
                             B = rep(NA, nrow(myData)))
           colnames(RES) <- samK
@@ -684,34 +684,44 @@ for (taest in c("SAM", "EBAM")) { #taest <- "SAM" #taest <- "EBAM"
         if (taest == "EBAM") {
           ebamK <- paste0(ebamRoot, nm)
           a0 <- suppressWarnings(find.a0(tmpVal3[wh,], clss))
-          temp <- siggenes::ebam(a0, delta = 1-BH.FDR)
+          tmpSIGGENES <- siggenes::ebam(a0, delta = 1-BH.FDR, rand = mySeed)
+          #print(tmpSIGGENES)
+          #summary(tmpSIGGENES)
         }
-        #print(temp)
-        #summary(temp)
-        clusterExport(parClust, c("nm2", "temp", "taest"), envir = environment())
+        clusterExport(parClust, c("nm2", "tmpSIGGENES", "taest"), envir = environment())
         tmpSig <- setNames(parLapply(parClust, bhFDRs, function(f) { #f <- bhFDRs[1]
-          d <- siggenes::findDelta(temp, fdr = f)
+          d <- siggenes::findDelta(tmpSIGGENES, fdr = f, prec = 10)
           if (!is.null(d)) {
+            if ("numeric" %in% class(d)) {
+              d <- data.frame(Delta = d["Delta"],
+                              Called = d["Called"],
+                              FDR = d["FDR"])
+            } else {
+              d <- as.data.frame(d)
+            }
             dr <- c(samDir, ebamDir)[match(taest, c("SAM", "EBAM"))]
             XLfun <- eval(parse(text = paste0("siggenes::", tolower(taest), "2excel")))
-            if ("matrix" %in% class(d)) {
-              if (nrow(d) == 2) {
-                warning(paste0(taest, ": poor Delta estimate for group ", nm2, " at ", 100*f, "% FDR"))
-                dlt <- d[1, 1]
-              } else { dlt <- d[2, 1] }
-            } else { dlt <- d["Delta"] }
-            XLfun(temp, dlt, paste0(dr, "/Delta plot - ", nm2, ", ", f, " FDR.csv"))
+            dlt <- max(d$Delta[which(d$FDR <= f)])
+            if (!length(dlt)) {
+              warning(paste0(taest, ": poor Delta estimate for group ", nm2, " at ", 100*f, "% FDR"))
+              dlt <- 0
+            }
+            XLfun(tmpSIGGENES, dlt, paste0(dr, "/", taest, " - ", nm2, ", ", f, " FDR.csv"), what = "both")
             jpeg(filename = paste0(dr, "/Delta plot - ", nm2, ", ", f, " FDR.jpeg"))
-            plot(temp, dlt)
+            plot(tmpSIGGENES, dlt)
             dev.off()
-            print("a")
-            reg <- siggenes::list.siggenes(temp, dlt)
-            reg <- list(d = d, Result = reg)
-          } else { reg <- list(d = NA,
-                               Result = c()) }
-          return(reg)
+            res <- siggenes::list.siggenes(tmpSIGGENES, dlt)
+            res <- list(Delta.est = d,
+                        Delta = dlt,
+                        Result = res)
+          } else {
+            res <- list(Delta.est = NA,
+                        Delta = NA,
+                        Result = c())
+          }
+          return(res)
         }), paste0(as.character(bhFDRs), "FDR"))
-        tmpSig2 <- as.data.frame(sapply(names(tmpSig), function(f) {
+        tmpSig2 <- as.data.frame(sapply(names(tmpSig), function(f) { #f <- names(tmpSig)[1]
           x <- tmpSig[[f]]$Result
           y <- rep("", nrow(myData))
           if (length(x)) {
@@ -720,15 +730,31 @@ for (taest in c("SAM", "EBAM")) { #taest <- "SAM" #taest <- "EBAM"
           }
           return(y)
         }))
-        tmpSig2 <- do.call(paste, c(tmpSig2, sep = "/"))
-        #unique(tmpSig2)
+        tmpSig3 <- do.call(paste, c(tmpSig2, sep = "/"))
+        tmpSig2[[namesCol]] <- myData[[namesCol]]
+        D <- sapply(names(tmpSig), function(f) { tmpSig[[f]]$Delta })
+        F <- sapply(names(tmpSig), function(f) { tmpSig[[f]]$Delta.FDR })
+        D <- data.frame(d = setNames(D, NULL),
+                        FDR = as.numeric(gsub("FDR$", "", names(D))))
+        D <- aggregate(D$FDR, list(D$d), max)
+        colnames(D) <- c("D", "FDR")
+        
+        real FDR, not closest!
+        
+        
+        #unique(tmpSig3)
         if (taest == "SAM") {
-          RES[[samK[2]]] <- tmpSig2
+          RES[[samK[2]]] <- tmpSig3
           RES <- list(Val = RES,
-                      S0 = s0)
+                      siggenesOut = tmpSIGGENES,
+                      decision = tmpSig2,
+                      S0 = s0,
+                      #Si = si,
+                      d = D,
+                      degFr = length(c(k0, k1))-2)
         }
         if (taest == "EBAM") {
-          RES <- data.frame(tmpSig2)
+          RES <- data.frame(tmpSig3)
           colnames(RES) <- ebamK
           RES <- list(Val = RES)
         }
@@ -740,8 +766,8 @@ for (taest in c("SAM", "EBAM")) { #taest <- "SAM" #taest <- "EBAM"
     tmp <- cbind.data.frame(lapply(tstTst, function(x) { x$Val }))
     myData[, colnames(tmp)] <- tmp
     if (taest == "SAM") {
-      S0 <- setNames(lapply(tstTst, function(x) { x$S0 }), expContr$name)
-      saveFun(S0, paste0(samDir, "/S0.RData"))
+      samThresh <- setNames(lapply(tstTst, function(x) { x[c("siggenesOut", "decision", "S0", #"Si",
+                                                             "d", "degFr")] }), expContr$name)
     }
   }
 }
@@ -811,17 +837,27 @@ pVals <- try(lapply(vpals, function(vpal) { #vpal <- vpals[1] #vpal <- vpals[2] 
   }
   #cat(bsCall)
   eval(parse(text = bsCall))
-  full_model <- edge::fullModel(de_obj)
-  null_model <- edge::nullModel(de_obj)
-  # Fit
-  ef_obj <- edge::fit_models(de_obj, stat.type = "odp")
+  # Not used, good for checking:
+  full_model <- edge::fullModel(de_obj) # Not used, good for checking
+  null_model <- edge::nullModel(de_obj) # Not used, good for checking
+  full_matrix <- fullMatrix(de_obj)
+  null_matrix <- nullMatrix(de_obj)
+  #
+  #pData(de_obj)
   #getMethod("fit_models", signature = "deSet")
   res <- as.data.frame(matrix(rep(NA, nr*2), ncol = 2))
   #
   # optimal discovery procedure
   odpTmp <- try({
+    # Fit
+    odp_fit <- edge::fit_models(de_obj, stat.type = "odp")
     # Currently this is often failing and I do not know why!!!
-    de_odp <- edge::odp(de_obj, ef_obj, bs.its = 50, seed = mySeed, lambda = 0)
+    #de_odp <- try(edge::odp(de_obj, bs.its = 50, seed = mySeed), silent = TRUE)
+    de_odp <- try(edge::odp(de_obj, odp_fit, bs.its = 50, n.mods = 50, verbose = TRUE, seed = mySeed), silent = TRUE)
+    if ("try-error"%in% class(de_odp)) {
+      de_odp <- edge::odp(de_obj, odp_fit, bs.its = 50, n.mods = 50, verbose = TRUE, seed = mySeed, lambda = 0)
+    }
+    #summary(de_odp)
     # lambda = 0 is from troubleshooting error:
     # "Error in smooth.spline(lambda, pi0, df = smooth.df) : missing or infinite values in inputs are not allowed",
     # cf. https://support.bioconductor.org/p/105623/
@@ -837,7 +873,9 @@ pVals <- try(lapply(vpals, function(vpal) { #vpal <- vpals[1] #vpal <- vpals[2] 
   #
   # likelihood ratio test
   lrtTmp <- try({
-    de_lrt <- edge::lrt(de_obj, ef_obj, seed = mySeed)
+    # Fit
+    lrt_fit <- edge::fit_models(de_obj, stat.type = "lrt")
+    de_lrt <- edge::lrt(de_obj, lrt_fit, seed = mySeed)
   }, silent = TRUE)
   lrtTst <- (!"try-error" %in% class(lrtTmp))
   if (lrtTst) {
@@ -876,7 +914,14 @@ for (k in c(meanCol, welchCol, permCol, modCol, samCol)) { myData[[k]] <- as.num
 # Assign results
 if (dataType == "modPeptides") {
   ptmpep <- myData
+  if (!exists("PTMs_SAM_thresh")) { PTMs_SAM_thresh %<o% list() }
+  if (exists("samThresh")) {
+    PTMs_SAM_thresh[[Ptm]] <- samThresh
+  }
 }
 if (dataType == "PG") {
   PG <- myData
+  if (exists("samThresh")) {
+    SAM_thresh %<o% samThresh
+  }
 }
