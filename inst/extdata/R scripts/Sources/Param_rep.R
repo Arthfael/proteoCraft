@@ -605,10 +605,8 @@ ui <- fluidPage(
              # but this could be done by turning the code for this into an app which is called individually for each PTM class.
              # This would mean allowing for a different selection for each PTM class.
              # We will anyway want to allow for multiple tests selected in the future, so go out of the "choose one t-test" variant approach...
-             h6(em("(you can change which one will be used for Volcano plots later, after we compare each test's power)")),
-             checkboxInput("useSAM_thresh", "For Student's t-test, plot SAM-based curved significance thresholds?", useSAM_thresh, "100%"),
-             br(),
-           }
+             h6(em("(you can change which one will be used for Volcano plots later, after we compare each test's power)"))
+           },
            checkboxInput("useSAM_thresh", "For Student's t-test, plot SAM-based curved significance thresholds?", useSAM_thresh, "100%"),
            br(),
            h5(strong(" -> ANOVA (moderated F-test - limma)")),
