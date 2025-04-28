@@ -33,7 +33,7 @@ pat <- paste0(pat, "| *#.*")
 #system(paste0("open \"", f1, "\""))
 #system(paste0("open \"", f2, "\""))
 i <- 1
-fl1 <- readLines(f1); fl2 <- readLines(f2); fl1 <- gsub(pat, "", fl1); fl2 <- gsub(pat, "", fl2); w <- suppressWarnings(which(fl1 != fl2)); if (length(w) > 0) { cat(paste0("Line ", w[i], ":\n\n - file 1: ", fl1[w[i]], "\n\n - file 2: ", fl2[w[i]], "\n")) } else { system(paste0("open \"", f1, "\"")); system(paste0("open \"", f2, "\"")); print("Both scripts are identical!") }
+fl1 <- readLines(f1); fl2 <- readLines(f2); fl1 <- gsub(pat, "", fl1); fl2 <- gsub(pat, "", fl2); w <- suppressWarnings(which(fl1 != fl2)); if (length(w) > 0) { cat(paste0("Line ", w[i], ":\n\n - file 1: ", fl1[w[i]], "\n\n - file 2: ", fl2[w[i]], "\n")) } else { rstudioapi::documentOpen(f1); rstudioapi::documentOpen(f2); print("Both scripts are identical!") }
 #
 
 g1 <- which(fl1 != ""); g2 <- which(fl2 != "")
