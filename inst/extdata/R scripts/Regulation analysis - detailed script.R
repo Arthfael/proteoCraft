@@ -950,6 +950,9 @@ source(Src)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Param_rep.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
+Src <- paste0(libPath, "/extdata/R scripts/Sources/Param_rep_stat.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
 
 # Start writing Materials and Methods
 Src <- paste0(libPath, "/extdata/R scripts/Sources/autoMatMet.R")
