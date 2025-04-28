@@ -947,10 +947,10 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 source(Src)
 
 # Define analysis parameters
-Src <- paste0(libPath, "/extdata/R scripts/Sources/Param_rep.R")
+Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_Main.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
-Src <- paste0(libPath, "/extdata/R scripts/Sources/Param_rep_stat.R")
+Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_Stats.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
