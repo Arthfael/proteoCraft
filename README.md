@@ -60,4 +60,3 @@ In case this fails just manually install the missing ones.
  - <i>Checking peptide-to-protein assignments provided by the search software (recommended),<i/>
  - <i>Extracting TIC/Base peak information from Thermo files using the rawrr package,<i/>
  - <i>Cytoscape-dependent steps.<i/>
-
