@@ -55,10 +55,9 @@ In case this fails just manually install the missing ones.
  - Up to v_6.4.0.0, some shiny apps in these workflows (specifically filling down dropdown menu selections) did not work if shiny_1.8.0 or later was used. This should be fixed now, and with the way the code was rewritten should also be faster and still work with older version. Still, kt keep an eye on it...
 
 #### <i>Note on speed:</i>
-<i>
-This package has been somewhat optimised for speed, but many steps could still probably be faster. The current main bottlenecks include:
- - Extracting MS methods using ScanHeadsMan,
- - Checking peptide-to-protein assignments provided by the search software (recommended),
- - Extracting TIC/Base peak information from Thermo files using the rawrr package,
- - Cytoscape-dependent steps.
-<i/>
+<i>This package has been somewhat optimised for speed, but many steps could still probably be faster. The current main bottlenecks include:<i/>
+ - <i>Extracting MS methods using ScanHeadsMan,<i/>
+ - <i>Checking peptide-to-protein assignments provided by the search software (recommended),<i/>
+ - <i>Extracting TIC/Base peak information from Thermo files using the rawrr package,<i/>
+ - <i>Cytoscape-dependent steps.<i/>
+
