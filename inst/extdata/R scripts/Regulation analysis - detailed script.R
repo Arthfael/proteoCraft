@@ -127,12 +127,12 @@ if (("try-error" %in% class(tst))||(!file.exists(tst))) {
 # Fast save and load functions
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # Set Shiny options, load functions for creating a Word report, create Excel styles
 Src <- paste0(libPath, "/extdata/R scripts/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 #### Code chunk - Select input/output folders and define experimental structure
 # Get local work directory:
@@ -170,7 +170,7 @@ updt_proteoCraft %<o% FALSE
 # Define input, output, project folder etc...
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Start_analysis.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 LocAnalysis %<o% (WorkFlow %in% c("LOCALISATION", "LOCALIZATION"))
 
 setwd(wd)
@@ -195,20 +195,20 @@ if (! paste0(wd, "/Workflow control/Data_analysis_log_", start_date, ".txt") %in
 sink(paste0("Workflow control/Data_analysis_log_", start_date, ".txt"), type = "output", append = TRUE, split = TRUE)
 
 # Create parallel processing cluster
-source(parSrc)
+source(parSrc, local = FALSE)
 setDTthreads(threads = N.clust)
 
 # Load PSMs
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Load_PSMs.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # MS raw files map
 tstFrMp <- FALSE
 while(!tstFrMp) {
   Src <- paste0(libPath, "/extdata/R scripts/Sources/Fractions_Map_editor.R")
   #rstudioapi::documentOpen(Src)
-  source(Src)
+  source(Src, local = FALSE)
 }
 
 # Create Experimental Factors
@@ -514,14 +514,14 @@ tstXpMp <- FALSE
 while(!tstXpMp) {
   Src <- paste0(libPath, "/extdata/R scripts/Sources/Experiment_Map_editor.R")
   #rstudioapi::documentOpen(Src)
-  source(Src)
+  source(Src, local = FALSE)
 }
 #
 
 #### Code chunk - Load and process search database(s)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Process_Fasta_DBs.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
 
@@ -584,7 +584,7 @@ if (Annotate) {
       warning("No annotations file(s) provided, skipping annotations!")
       Annotate <- FALSE
     } else {
-      source(parSrc)
+      source(parSrc, local = FALSE)
       Parsed_annotations <- lapply(AnnotFls, function(x) { #x <- AnnotFls[1]
         # If the annotations is not present locally, make a local copy
         if (!file.exists(basename(x))) { fs::file_copy(x, wd) }
@@ -698,7 +698,7 @@ if ((SearchSoft == "MAXQUANT")&&(LabelType == "Isobaric")) {
 
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc)
+source(parSrc, local = FALSE)
 
 # Fractions map
 Exp.map$Use <- as.logical(Exp.map$Use)
@@ -913,19 +913,19 @@ FactorsLevels <- FactorsLevels[Factors]
 # Protein headers for shiny
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 #
 # Proteins of interest
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protList.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 #
 # Targets
 # Sometimes the user does not fill the Target factor with valid protein IDs... but this is what we would actually need.
 # Here, if necessary, we will remap those to valid IDs:
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Targets.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 #
 # KnockOut, KnockIn or KnockDown
 tst <- tolower(gsub("[- _]", "", Factors))
@@ -939,25 +939,61 @@ if (sum(c("knockout", "knockin", "knockdown") %in% tst)) {
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protList2.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 #
 # Protein headers for shiny (update)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # Define analysis parameters
 Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_Main.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
+# Temporary solution to the app contamination issue: unload-reload packages
+unloadNamespace("pRolocGUI")
+unloadNamespace("colourpicker")
+unloadNamespace("devtools")
+unloadNamespace("miniUI")
+unloadNamespace("shinyWidgets")
+unloadNamespace("shinyFiles")
+unloadNamespace("DEP")
+unloadNamespace("shiny")
+unloadNamespace("shinyjs")
+unloadNamespace("shinyWidgets")
+unloadNamespace("shinyhelper")
+unloadNamespace("shinyFiles")
+unloadNamespace("shinydashboardPlus")
+unloadNamespace("shinydashboard")
+unloadNamespace("shinycssloaders")
+unloadNamespace("shinyBS")
+unloadNamespace("DT")
+library("pRolocGUI", character.only = TRUE)
+library("colourpicker", character.only = TRUE)
+library("devtools", character.only = TRUE)
+library("miniUI", character.only = TRUE)
+library("shinyWidgets", character.only = TRUE)
+library("shinyFiles", character.only = TRUE)
+library("DEP", character.only = TRUE)
+library("shiny", character.only = TRUE)
+library("shinyjs", character.only = TRUE)
+library("shinyWidgets", character.only = TRUE)
+library("shinyhelper", character.only = TRUE)
+library("shinyFiles", character.only = TRUE)
+library("shinydashboard", character.only = TRUE)
+library("shinydashboardPlus", character.only = TRUE)
+library("shinycssloaders", character.only = TRUE)
+library("shinyBS", character.only = TRUE)
+library("DT", character.only = TRUE)
+#
 Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_Stats.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # Start writing Materials and Methods
 Src <- paste0(libPath, "/extdata/R scripts/Sources/autoMatMet.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # Start of processing of evidences table
 ReportCalls <- AddSpace2Report()
@@ -1014,7 +1050,7 @@ if (Update_Prot_matches) {
   if (exists("evmatch")) {
     temp <- evmatch
   } else {
-    source(parSrc)
+    source(parSrc, local = FALSE)
     temp <- ProtMatch2(unique(ev$Sequence), db,
                        cl = parClust) # (ignore the warning for now until we remove contaminant evidences)
   }
@@ -1022,7 +1058,7 @@ if (Update_Prot_matches) {
   wh2 <- which(temp$Sequence %in% ev$Sequence)
   mtch1 <- match(ev$Sequence[wh1], temp$Sequence)
   if (!"Proteins" %in% colnames(ev)) { ev$Proteins <- "" } else {
-    source(parSrc)
+    source(parSrc, local = FALSE)
     tmpPs <- unique(temp$Sequence[wh2])
     tmpE <- ev$Proteins[match(tmpPs, ev$Sequence)]
     tmpP <- temp$Proteins[match(tmpPs, temp$Sequence)]
@@ -1128,11 +1164,11 @@ Script <- readLines(ScriptPath)
 gc()
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc)
+source(parSrc, local = FALSE)
 
 # Filter to keep only evidences with valid quantitative values:
 if (LabelType == "LFQ") {
-  source(parSrc)
+  source(parSrc, local = FALSE)
   if ((Param$Label == "DIA")&&("MS2 intensities" %in% colnames(ev))) {
     ev$MS2_intensities <- strsplit(ev$"MS2 intensities", ";")
     ev$MS2_intensities <- parLapply(parClust, ev$MS2_intensities, as.numeric) # (Let's keep this as a numeric list)
@@ -1232,7 +1268,7 @@ if ((!is.na(minInt))&&(is.numeric(minInt))&&(is.finite(minInt))&&(minInt >= 0)) 
 ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file") # Update again
 #
 if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
-  source(parSrc)
+  source(parSrc, local = FALSE)
   data <- ev
   colnames(data)[which(colnames(data) == "MQ.Exp")] <- "Parent sample"
   if (("PTM-enriched" %in% colnames(Frac.map))&&(sum(Modifs$"Full name" %in% Frac.map$"PTM-enriched"))) {
@@ -1338,7 +1374,7 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
         if ((tst[1] >= tst[2]*3)||(tst[1] <= tst[2]/3)) {
           wrpKl <- paste0(paste0("`", X, "`"), "+", paste0("`", Y, "`"))
           tmp <- data2[, c(X, Y)]
-          source(parSrc)
+          source(parSrc, local = FALSE)
           clusterExport(parClust, "tmp", envir = environment())
           data2[[wrpKl]] <- as.factor(parApply(parClust, data2[, c(X, Y)], 1, function(x) { paste(x, collapse = " ") }))
         } else {
@@ -1466,7 +1502,7 @@ if ((LabelType == "Isobaric")&&("Label.Purities.file" %in% colnames(Param))&&(!P
             sum(sapply(1:length(lb), function(y) { A[y+x-1, y] == 100 }))
           }) == length(lb))
           A <- A[(1:length(lb))+w-1,]
-          source(parSrc)
+          source(parSrc, local = FALSE)
           exports <- list("A", "e", "kol")
           clusterExport(parClust, exports, envir = environment())
           clusterCall(parClust, function() library(matlib))
@@ -1584,14 +1620,14 @@ saveImgFun(BckUpFl)
 # DIA-only: MS2-based correction of MS1-based quantitative values
 Src <- paste0(libPath, "/extdata/R scripts/Sources/MS2corr2MS1.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 gc()
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc)
+source(parSrc, local = FALSE)
 
 #### Code chunk - Optional - Normalize evidence MS1 intensities, then, if applicable, MS2 reporter (Isobaric labelling) or fragment (DIA) intensities
 # Step 0 for DIA measurements
@@ -2013,13 +2049,13 @@ Script <- readLines(ScriptPath)
 gc()
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc)
+source(parSrc, local = FALSE)
 
 #### Code chunk - Create modified peptides table
 tmp <- as.character(ev$id)
 tmp2 <- data.table(id = tmp, mqxp = ev$MQ.Exp, mod = ev$"Modified sequence")
 tmp2 <- tmp2[order(ev$id, decreasing = FALSE),]
-source(parSrc)
+source(parSrc, local = FALSE)
 exports <- list("tmp2", "Exp.map")
 clusterExport(parClust, exports, envir = environment())
 clusterCall(parClust, function() library(data.table))
@@ -2190,7 +2226,7 @@ if (!"Use" %in% colnames(Exp.map)) { Exp.map$Use <- TRUE } else {
     Exp.map$Use[which(is.na(Exp.map$Use))] <- TRUE
   }
 }
-source(parSrc)
+source(parSrc, local = FALSE)
 exports <- list("smpls", "Exp.map", "tmp", "pep.ref", "LabelType", "is.all.good")
 if (LabelType == "Isobaric") {
   tmp <- ev[, c("MQ.Exp", "Modified sequence",
@@ -2643,7 +2679,7 @@ Script <- readLines(ScriptPath)
 gc()
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc)
+source(parSrc, local = FALSE)
 
 #### Code chunk - Impute missing peptide intensities
 if (Impute) {
@@ -3186,7 +3222,7 @@ if (Param$Norma.Pep.Intens) {
     #temp_norm3$"Modified sequence" <- NULL
     exports <- list("MQ.Exp", "temp_norm3", "pep.ref", "laststep", "currstep", "Param", "RSA",
                     "RefGrp", "NormGrps2")
-    source(parSrc)
+    source(parSrc, local = FALSE)
     clusterExport(parClust, exports, envir = environment())
     clusterCall(parClust, function() library(proteoCraft))
     #if (Param$Adv.Norma.Pep.Intens.Type == "C") { # "C" here means by columns
@@ -3993,7 +4029,7 @@ gc()
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 stopCluster(parClust)
-source(parSrc)
+source(parSrc, local = FALSE)
 
 #### Code chunk - Assemble protein groups
 ReportCalls <- AddSpace2Report()
@@ -4007,7 +4043,7 @@ if ("Prot.Only.with.at.least" %in% colnames(Param)) {
 } else { NPep <- 1 }
 .obj <- unique(c(.obj, "NPep"))
 tm1 <- Sys.time()
-source(parSrc)
+source(parSrc, local = FALSE)
 PG_assembly <- PG_assemble(pep, "id", "Proteins", db, "Evidence IDs", ev, Custom_PGs = custPGs, Npep = NPep,
                            cl = parClust)
 saveFun(PG_assembly, file = "PG_assembly.RData")
@@ -4074,7 +4110,7 @@ if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 300)
 ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300)
 
-source(parSrc)
+source(parSrc, local = FALSE)
 tmp1 <- strsplit(pep$Proteins, ";")
 tmp2 <- db[which(db$"Protein ID" %in% unlist(tmp1)), c("Protein ID", "Gene", "Name", "Common Name")]
 exports <- list("tmp1", "tmp2")
@@ -4107,7 +4143,7 @@ if (tstFllID) {
   tmp3 <- db$"Full ID"
   exports <- append(exports, "tmp3")
 }
-source(parSrc)
+source(parSrc, local = FALSE)
 clusterExport(parClust, exports, envir = environment())
 for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
   if (i == "No Isoforms") { j <- i } else { j <- gsub("s$", "", i) }
@@ -4219,7 +4255,7 @@ PG$"Sequence (1st accession)" <- db$Sequence[match(sapply(strsplit(PG$"Leading p
                                                    db$"Protein ID")]
 
 # Number of spectra, evidences and peptides per sample:
-source(parSrc)
+source(parSrc, local = FALSE)
 clusterCall(parClust, function() library(proteoCraft))
 clusterCall(parClust, function() library(reshape))
 clusterCall(parClust, function() library(data.table))
@@ -4408,7 +4444,7 @@ Script <- readLines(ScriptPath)
 gc()
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc)
+source(parSrc, local = FALSE)
 
 #### Code chunk - Calculate protein group-level quantitative values
 # You may want to exclude peptides based on how many samples they are found in:
@@ -4457,7 +4493,7 @@ if (QuantUMS) {
   pep$Weights <- pep$"Quantity Quality"
 } else {
   weightsInsrt <- "-log(PEP)/CV" 
-  source(parSrc)
+  source(parSrc, local = FALSE)
   Kols <- paste0(pep.ref[length(pep.ref)], Exp.map$Ref.Sample.Aggregate)
   Kols <- Kols[which(Kols %in% colnames(pep))]
   tmp <- pep[, Kols]
@@ -4570,7 +4606,7 @@ if ((Param$QuantMeth %in% c("Prot.Quant", "Prot.Quant + weights", "Prot.Quant.Un
                                   "only unique and razor peptidoforms were used; ",
                                   tmpMod2Xclud, " peptidoforms and their unmodified counterparts were excluded from the calculations.",
                                   collapse = " "), DatAnalysisTxt)
-    source(parSrc)
+    source(parSrc, local = FALSE)
     quant.data1 <- Prot.Quant(Prot = PG, Peptide.IDs = Pep4Quant, Pep = pep[Pep2Use,], id = "id",
                               Summary.method = "mean", #Summary.weights = "Weights",
                               Intensity.weights = FALSE,
@@ -4599,7 +4635,7 @@ if ((Param$QuantMeth %in% c("Prot.Quant", "Prot.Quant + weights", "Prot.Quant.Un
                                   "only unique and razor peptidoforms were used; ",
                                   tmpMod2Xclud, "peptidoforms and their unmodified counterparts were excluded from the calculations.",
                                   collapse = " "), DatAnalysisTxt)
-    source(parSrc)
+    source(parSrc, local = FALSE)
     quant.data2 <- Prot.Quant(Prot = PG, Peptide.IDs = Pep4Quant, Pep = pep[Pep2Use,], id = "id",
                               Summary.method = "weighted.mean", Summary.weights = "Weights",
                               Intensity.weights = FALSE,
@@ -4626,7 +4662,7 @@ if ((Param$QuantMeth %in% c("Prot.Quant", "Prot.Quant + weights", "Prot.Quant.Un
                                   "for protein groups with at least 3 unique peptidoforms, only unique ones were used, otherwise razor peptidoforms were also included; ",
                                   tmpMod2Xclud, "peptidoforms and their unmodified counterparts were excluded from the calculations.",
                                   collapse = " "), DatAnalysisTxt)
-    source(parSrc)
+    source(parSrc, local = FALSE)
     quant.data3 <- Prot.Quant(Prot = PG,  Mode = "PreferUnique",
                               Peptide.IDs = "Razor peptide IDs", Unique.peptide.IDs = "Unique peptide IDs",
                               Pep = pep[Pep2Use,], id = "id",
@@ -4657,7 +4693,7 @@ if ((Param$QuantMeth %in% c("Prot.Quant", "Prot.Quant + weights", "Prot.Quant.Un
                                   "for protein groups with at least 3 unique peptidoforms, only unique ones were used, otherwise razor peptidoforms were also included; ",
                                   tmpMod2Xclud, "peptidoforms and their unmodified counterparts were excluded from the calculations.",
                                   collapse = " "), DatAnalysisTxt)
-    source(parSrc)
+    source(parSrc, local = FALSE)
     quant.data4 <- Prot.Quant(Prot = PG,  Mode = "PreferUnique",
                               Peptide.IDs = "Razor peptide IDs", Unique.peptide.IDs = "Unique peptide IDs",
                               Pep = pep[Pep2Use,], id = "id",
@@ -5002,7 +5038,7 @@ Script <- readLines(ScriptPath)
 gc()
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc)
+source(parSrc, local = FALSE)
 
 #### Code chunk - Re-normalize protein group expression values
 Norma.Prot.Ratio.classic %<o% FALSE
@@ -5977,7 +6013,7 @@ Script <- readLines(ScriptPath)
 gc()
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc)
+source(parSrc, local = FALSE)
 
 #### Code chunk - Calculate average intensities and ratios, and perform a few statistical tests
 # At least, Welch's t-test and moderated t-test; for unpaired replicates a permutations t-test is also performed.
@@ -6090,7 +6126,7 @@ ebamDir <- paste0(wd, "/", ebamSubDir)
 dataType <- "PG"
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Av_and_Stat_tests.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 ### Visualize P-values
 #
@@ -6238,7 +6274,7 @@ ui <- fluidPage(
   br()
 )
 #h0 <- paste0(round(screenRes$height*0.35), "px")
-source(parSrc)
+source(parSrc, local = FALSE)
 IMGsDims <- as.data.frame(t(parSapply(parClust, IMGS, function(x) { #x <- IMGs[1]
   a <- jpeg::readJPEG(x)
   setNames(dim(a)[1:2], c("height", "width"))
@@ -6365,10 +6401,10 @@ if (globalGO) {
   PG$Ontology <- NULL # Temporary fix for now, this column is broken
   #
   stopCluster(parClust)
-  source(parSrc)
+  source(parSrc, local = FALSE)
   Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_prepare.R")
   #rstudioapi::documentOpen(Src)
-  source(Src)
+  source(Src, local = FALSE)
 }
 
 rm(list = ls()[which(!ls() %in% .obj)])
@@ -6514,7 +6550,7 @@ Script <- readLines(ScriptPath)
 gc()
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc)
+source(parSrc, local = FALSE)
 
 #### Code chunk - t-test volcano plot(s)
 #
@@ -6582,7 +6618,7 @@ if (!class(tempVP) %in% c("try-error", "character")) {
   insrt <- ""
   Src <- paste0(libPath, "/extdata/R scripts/Sources/thresholds_Excel.R")
   #rstudioapi::documentOpen(Src)
-  source(Src)
+  source(Src, local = FALSE)
   #
   thresh <- lapply(names(tempVP$Thresholds$Absolute), function(x) {
     y <- tempVP$Thresholds$Absolute[[x]]
@@ -6705,7 +6741,7 @@ if (("Q.values" %in% colnames(Param))&&(is.logical(Param$Q.values))&&(Param$Q.va
     insrt <- "_Qvalues"
     Src <- paste0(libPath, "/extdata/R scripts/Sources/thresholds_Excel.R")
     #rstudioapi::documentOpen(Src)
-    source(Src)
+    source(Src, local = FALSE)
     #
     DatAnalysisTxt <- paste0(DatAnalysisTxt, " Q-values were computed using package qvalue.")
   }
@@ -6834,7 +6870,7 @@ parLapply(parClust, 1:N.clust, function(x) {
 })
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc)
+source(parSrc, local = FALSE)
 
 #### Code chunk - F-test
 #Param <- Param.load()
@@ -6918,7 +6954,7 @@ if (("F.test" %in% colnames(Param))&&(Param$F.test)) {
   #
   Src <- paste0(libPath, "/extdata/R scripts/Sources/run_F_test.R")
   #rstudioapi::documentOpen(Src)
-  tstFtst <- try(source(Src), silent = TRUE)
+  tstFtst <- try(source(Src, local = FALSE), silent = TRUE)
   #
   if (!"try-error" %in% class(tstFtst)) {
     F.test <- TRUE
@@ -7012,7 +7048,7 @@ if (("F.test" %in% colnames(Param))&&(Param$F.test)) {
     })
     saveImgFun(BckUpFl)
     #loadFun(BckUpFl)
-    source(parSrc)
+    source(parSrc, local = FALSE)
   } else { warning("F-test analysis failed, check your parameters!")}
 }
 # Mat-meth text
@@ -7319,7 +7355,7 @@ if (saintExprs) {
     insrt <- ""
     Src <- paste0(libPath, "/extdata/R scripts/Sources/thresholds_Excel.R")
     #rstudioapi::documentOpen(Src)
-    source(Src)
+    source(Src, local = FALSE)
     #
     # Folder cleanup
     unlink(paste0(saintDir, "/", c("Interact", "Prey"), ".RDS"))
@@ -7686,7 +7722,7 @@ for (i in names(I)) { #i <- names(I)[1] #i <- names(I)[2]
     # Here we really want to optimize the number of clusters
     # Apply the same method for optimization for any clustering method
     # Number of cluster should not depend on method
-    source(parSrc)
+    source(parSrc, local = FALSE)
     clusterExport(parClust, list("temp3", "Straps"), envir = environment())
     tst <- setNames(parLapply(parClust, 2:MaxHClust, function(kl) { #kl <- 2
       try(kmeans(temp3, kl, nstart = Straps)$tot.withinss, silent = TRUE)
@@ -9415,7 +9451,7 @@ Example: \"GO:0031012;2\"
         insrt <- ""
         Src <- paste0(libPath, "/extdata/R scripts/Sources/thresholds_Excel.R")
         #rstudioapi::documentOpen(Src)
-        source(Src)
+        source(Src, local = FALSE)
         #
         g <- grep("Regulated - ", colnames(tempVP3$Protein_groups_file), value = TRUE)
         PG[, gsub("^Regulated - ", "Re-localized - ", g)] <- tempVP3$Protein_groups_file[,g]
@@ -9582,13 +9618,13 @@ Example: \"GO:0031012;2\"
   })
   saveImgFun(BckUpFl)
   #loadFun(BckUpFl)
-  source(parSrc)
+  source(parSrc, local = FALSE)
 }
 
 ### Check that CytoScape is installed and can run, then launch it.
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 #### Code chunk - Gene Ontology terms enrichment analysis
 if (enrichGO||globalGO) {
@@ -9610,7 +9646,7 @@ if (enrichGO||globalGO) {
   # Initialize ClueGO
   Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_init.R")
   #rstudioapi::documentOpen(Src)
-  source(Src)
+  source(Src, local = FALSE)
   #
   if (enrichGO) {
     Tsts <- c("t-tests", "F-tests", "Localisation", "SAINTexpress")
@@ -9741,13 +9777,13 @@ if (enrichGO||globalGO) {
             #
             Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
             #rstudioapi::documentOpen(Src)
-            source(Src)
+            source(Src, local = FALSE)
             #
             clueGO_outDir <- dir
             clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
             Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
             #rstudioapi::documentOpen(Src)
-            source(Src)
+            source(Src, local = FALSE)
             #
             # Cleanup - do it now, not within sources!
             for (i in allArgs) { try(rm(i), silent = TRUE) }
@@ -9904,13 +9940,13 @@ if (enrichGO||globalGO) {
     #
     Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
     #rstudioapi::documentOpen(Src)
-    source(Src)
+    source(Src, local = FALSE)
     #
     clueGO_outDir <- dir
     clueGO_type <- "Enrichment/Depletion (Two-sided hypergeometric test)"
     Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
     #rstudioapi::documentOpen(Src)
-    source(Src)
+    source(Src, local = FALSE)
     #
     # Cleanup - do it now, not within sources!
     for (i in allArgs) { try(rm(i), silent = TRUE) }
@@ -9937,7 +9973,7 @@ parLapply(parClust, 1:N.clust, function(x) {
 })
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc)
+source(parSrc, local = FALSE)
 
 #### Code chunk - Modified peptides analysis
 PepLabKol %<o% setNames(c("Mod. sequence", "Proteins", "Common protein names", "PEP"),
@@ -10016,7 +10052,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
         pep[[Ptm]] <- grepl(ppat, pep$"Modified sequence")
         g <- which(pep[[Ptm]])
         if (length(g)) {
-          source(parSrc)
+          source(parSrc, local = FALSE)
           ReportCalls <- AddMsg2Report(Msg = paste0(" - ", ptm), Space = FALSE)
           dir <- c("", "/t-tests")
           if (F.test) { dir <- c(dir, "/F-tests") }
@@ -10330,7 +10366,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
             #kol <- grep("ReNorm. log2", colnames(ptmpep), value = TRUE)
             #tst <- apply(ptmpep[, kol], 2, function(x) { summary(is.all.good(x)) })
             if (length(prot.list_pep)) {
-              source(parSrc)
+              source(parSrc, local = FALSE)
               pepHtmp(prot.list_pep,
                       ptmpep,
                       ptms.ref["Original"],
@@ -10360,7 +10396,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
           #
           Src <- paste0(libPath, "/extdata/R scripts/Sources/Av_and_Stat_tests.R")
           #rstudioapi::documentOpen(Src)
-          source(Src)
+          source(Src, local = FALSE)
           #
           #kol <- grep(topattern(paste0("Mean ", pepRf)), colnames(ptmpep), value = TRUE)
           #tst <- apply(ptmpep[, kol], 2, function(x) { summary(is.all.good(log10(x))) })
@@ -10483,7 +10519,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
           insrt <- ""
           Src <- paste0(libPath, "/extdata/R scripts/Sources/thresholds_Excel.R")
           #rstudioapi::documentOpen(Src)
-          source(Src)
+          source(Src, local = FALSE)
           #
           #
           ptmpep <- tempVPptm$Protein_groups_file
@@ -10594,7 +10630,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
             #
             Src <- paste0(libPath, "/extdata/R scripts/Sources/run_F_test.R")
             #rstudioapi::documentOpen(Src)
-            tstFtst <- try(source(Src), silent = TRUE)
+            tstFtst <- try(source(Src, local = FALSE), silent = TRUE)
             #
             if (!"try-error" %in% class(tstFtst)) {
               #F_test_ref_ratios %<o% F_volc$`Reference ratios` # Not needed
@@ -10931,13 +10967,13 @@ if ("PTM.analysis" %in% colnames(Param)) {
                     #
                     Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
                     #rstudioapi::documentOpen(Src)
-                    source(Src)
+                    source(Src, local = FALSE)
                     #
                     clueGO_outDir <- dir
                     clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
                     Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
                     #rstudioapi::documentOpen(Src)
-                    source(Src)
+                    source(Src, local = FALSE)
                     #
                     # Cleanup - do it now, not within sources!
                     for (i in allArgs) { try(rm(i), silent = TRUE) }
@@ -11121,7 +11157,7 @@ gc()
 # It makes sense to close/re-create parallel clusters regularly to reduce memory usage
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc)
+source(parSrc, local = FALSE)
 
 #### Code chunk - Proteome ruler
 if (protrul) {
@@ -11212,7 +11248,7 @@ if (tmp > defSc) {
   sc <- ceiling(nrow(Frac.map)/Nplts)
 }
 sc <- max(c(sc, 1))
-source(parSrc)
+source(parSrc, local = FALSE)
 Exp_summary %<o% MQ.summary(ev = ev, pg = PG, wd = wd, mods = mods, save = "pdf",
                             raw.files = rawFiles, sc = sc, cl = parClust, MQtxt = indir)
 Exp_summary$"Biological sample" <- ""
@@ -11234,7 +11270,7 @@ Script <- readLines(ScriptPath)
 #### Code chunk - XML coverage columns
 Src <- paste0(libPath, "/extdata/R scripts/Sources/xml_Coverage_columns.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 # To do: also PTMs in a different color (one for all)
 
 #### Code chunk - GO term columns
@@ -11686,7 +11722,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     #
     Src <- paste0(libPath, "/extdata/R scripts/Sources/fstWrite_Excel_core_script.R")
     #rstudioapi::documentOpen(Src)
-    source(Src)
+    source(Src, local = FALSE)
     #saveFun(WorkBook, file = "WorkBook_bckp.RData")
     #wb_save(WorkBook, paste0(wd, "/tst.xlsx")); xl_open(paste0(wd, "/tst.xlsx"))
     #loadFun("WorkBook_bckp.RData")
@@ -12173,7 +12209,7 @@ ColumnsTbl$edit_Col <- unlist(a)
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/fstWrite_Excel_core_script.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 #saveFun(WorkBook, file = "WorkBook_bckp.RData")
 #wb_save(WorkBook, paste0(wd, "/tst.xlsx")); xl_open(paste0(wd, "/tst.xlsx"))
 #loadFun("WorkBook_bckp.RData")
@@ -12317,7 +12353,7 @@ if (saintExprs) {
   ColumnsTbl$edit_Col <- unlist(a)
   Src <- paste0(libPath, "/extdata/R scripts/Sources/fstWrite_Excel_core_script.R")
   #rstudioapi::documentOpen(Src)
-  source(Src)
+  source(Src, local = FALSE)
   #saveFun(WorkBook, file = "WorkBook_bckp.RData")
   #wb_save(WorkBook, paste0(wd, "/tst.xlsx")); xl_open(paste0(wd, "/tst.xlsx"))
   #loadFun("WorkBook_bckp.RData")
@@ -12325,13 +12361,13 @@ if (saintExprs) {
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Write_Excel_end_script.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 #WorkBook$get_active_sheet()
 #xl_open(repFl)
 
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
-source(parSrc)#### Code chunk - Amica input tables
+source(parSrc, local = FALSE)#### Code chunk - Amica input tables
 # Write tables for Amica input:
 ## PG table
 if (Param$Amica) {
@@ -12408,7 +12444,7 @@ if (Param$Amica) {
 
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc)
+source(parSrc, local = FALSE)
 
 #### Code chunk - Venn diagrams
 # cleanNms2 function specifically designed to clean names for Venn diagrams
@@ -12800,7 +12836,7 @@ if (length(protlspep)) { # Coverage
   prots <- protlspep[w]
   tst <- unique(unlist(tst))
   tmpPep <- pep[tst, c("Proteins", "Modified sequence", xKol)]
-  source(parSrc)
+  source(parSrc, local = FALSE)
   clusterExport(parClust, list("tmpDB", "tmpPep", "pep.ref", "xKol", "wd", "VPAL", "Exp.map", "Exp"), envir = environment())
   lst <- parLapply(parClust, prots, function(i) { #i <- prots[1]
     nm <- tmpDB$"Common Name"[match(i, tmpDB$"Protein ID")]
@@ -12870,7 +12906,7 @@ if (length(protlspep)) { # XICs
     XIC_fls <- list.files(xicDir, "\\.parquet$", full.names = TRUE)
     if (length(XIC_fls)) {
       require(arrow)
-      source(parSrc)
+      source(parSrc, local = FALSE)
       g <- grsep2(protlspep, ev$Proteins)
       u <- ev$"Mod. seq. (DiaNN format)"[g]
       tmp <- Frac.map$`Raw files name`
@@ -12967,7 +13003,7 @@ if (length(protlspep)) { # XICs
   }
 }
 if (length(protlspep)) {
-  source(parSrc)
+  source(parSrc, local = FALSE)
   dir <- paste0(wd, "/Heatmaps")
   pepHtmp(protlspep,
           pep,
@@ -13062,7 +13098,7 @@ if (length(protlspep)) {
   g2 <- grsep2(protlspep, db$`Protein ID`)
   dbPDB <- db$PDB[g2]
   dbPID <- db$"Protein ID"[g2]
-  source(parSrc)
+  source(parSrc, local = FALSE)
   clusterExport(parClust,
                 list("prVect", "wd", "PDB_in_DB", "SCV_PTMs", "dbPDB", "dbPID", "Modifs", "valid_url", "dirlist", "modSq"),
                 envir = environment())
@@ -13190,7 +13226,7 @@ IDs <- unique(unlist(lapply(names(Reg_filters), function(x) {
 w <- which(db$`Protein ID` %in% IDs)
 allTaxIDs <- unique(db$TaxID[w])
 tmpPG <- tmpPG[which(tmpPG$value %in% IDs),]
-source(parSrc)
+source(parSrc, local = FALSE)
 allProteins_mapped <- try(setNames(lapply(allTaxIDs, function(txid) { #txid <- allTaxIDs[1]
   kol <- c("Protein ID", "Common Name", "TAIR")
   kol <- kol[which(kol %in% colnames(db))]
@@ -13334,7 +13370,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
   filtersDF$GraphType <- GraphTypes[2]
   filtersDF$GraphType[1:nr] <- GraphTypes[1]
   txidsTst <- (length(unique(filtersDF$TaxID)) > 1)+1
-  source(parSrc)
+  source(parSrc, local = FALSE)
   clusterExport(parClust, c("wd", "filtersDF", "allProteins_mapped", "tmpPG", "GraphTypes", "Exp", "txidsTst"), envir = environment())
   tstSTRINGs <- parLapply(parClust, 1:nrow(filtersDF), function(i) { #i <- 1 #i <- 4 #i <- 10 #i <- 11
     fltNm <- proteoCraft::cleanNms(filtersDF$Name[i], rep = "_")
@@ -13491,7 +13527,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
     ### Check that CytoScape is installed and can run, then launch it.
     Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
     #rstudioapi::documentOpen(Src)
-    source(Src)
+    source(Src, local = FALSE)
     #
     # Create directory for CytoScape networks
     dirs <- paste0(wd, "/Cytoscape/", GraphTypes)
@@ -13649,7 +13685,7 @@ MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Finalize_analysis.R")
 #rstudioapi::documentOpen(Src)
 #loadFun(BckUpFl)
-source(Src)
+source(Src, local = FALSE)
 
 # End logging:
 sink(NULL, type = "message")

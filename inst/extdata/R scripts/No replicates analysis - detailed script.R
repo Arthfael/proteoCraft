@@ -102,12 +102,12 @@ if (("try-error" %in% class(tst))||(!file.exists(tst))) {
 # Fast save and load functions
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # Set Shiny options, load functions for creating a Word report, create Excel styles
 Src <- paste0(libPath, "/extdata/R scripts/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # shiny used to cause issues with View() for data.frames, possibly by importing jsonlite,
 # which I know also caused the same problem (and is also imported by DT)
@@ -126,20 +126,20 @@ updt_proteoCraft %<o% FALSE
 # Define input, output, project folder etc...
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Start_analysis.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 AnalysisParam %<o% list("Input folder" = indir,
                         "Output folder" = outdir,
                         "Temp. folder" = wd,
                         "N. of threads" = N.clust)
 
 # Create parallel processing cluster
-source(parSrc)
+source(parSrc, local = FALSE)
 setDTthreads(threads = N.clust)
 
 # Load PSMs
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Load_PSMs.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 FracMapPath %<o% paste0(wd, "/", FracMapNm, ".csv")
 if (!file.exists(FracMapPath)) {
@@ -461,7 +461,7 @@ IsBioID2 %<o% FALSE
 #### Code chunk - Load and process search database(s)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Process_Fasta_DBs.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
 
@@ -1275,7 +1275,7 @@ if (Update_Prot_matches) {
   if (!"Proteins" %in% colnames(ev)) { ev$Proteins <- "" } else {
     tmpE <- strsplit(ev$Proteins[w], ";")
     tmpP <- strsplit(temp$Proteins[m], ";")
-    source(parSrc)
+    source(parSrc, local = FALSE)
     tst1 <- parLapply(parClust, tmpE, sort)
     tst1 <- parSapply(parClust, tst1, paste, collapse = ";")
     tst2 <- parLapply(parClust, tmpP, sort)
@@ -1450,7 +1450,7 @@ Exp <- Exp[which(Exp %in% ev$Experiment)] # Update experiments
 # DIA-only: MS2-based correction of MS1-based quantitative values
 Src <- paste0(libPath, "/extdata/R scripts/Sources/MS2corr2MS1.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 #### Code chunk - Pepper correction
 runPepper <- c(TRUE, FALSE)[match(dlg_message("Should we run Pepper ML-based PSMs intensity correction?", "yesno")$res,
@@ -2022,7 +2022,7 @@ if (length(Exp) > 1) {
   }
   comb <- as.data.frame(gtools::combinations(length(Exp), 2, Exp))
   temp2 <- temp[, grep(topattern("log10(Intensity) - "), colnames(temp), value = TRUE)]
-  source(parSrc)
+  source(parSrc, local = FALSE)
   clusterExport(parClust, "temp2", envir = environment())
   temp2 <- parApply(parClust, comb, 1, function(x) {
     temp3 <- temp2[, paste0("log10(Intensity) - ", unlist(x))]
@@ -2156,7 +2156,7 @@ if (MakeRatios) {
 Script <- readLines(ScriptPath)
 gc()
 stopCluster(parClust)
-source(parSrc)
+source(parSrc, local = FALSE)
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -2241,7 +2241,7 @@ if (tstFllID) {
   tmp3 <- db$"Full ID"
   exports <- append(exports, "tmp3")
 }
-source(parSrc)
+source(parSrc, local = FALSE)
 clusterExport(parClust, exports, envir = environment())
 for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
   if (i == "No Isoforms") { j <- i } else { j <- gsub("s$", "", i) }
@@ -2322,7 +2322,7 @@ if (IsBioID) {
 }
 
 # Number of spectra, evidences and peptides per sample:
-source(parSrc)
+source(parSrc, local = FALSE)
 clusterCall(parClust, function() library(proteoCraft))
 clusterCall(parClust, function() library(reshape))
 clusterCall(parClust, function() library(data.table))
@@ -2495,7 +2495,7 @@ if (ImputeMissData) {
 # Coverage columns
 PG$"1st accession" <- sapply(strsplit(PG$`Leading protein IDs`, ";"), function(x) { unlist(x)[1] })
 PG$"Sequence (1st accession)" <- db$Sequence[match(PG$`1st accession`, db$`Protein ID`)]
-source(parSrc)
+source(parSrc, local = FALSE)
 clusterExport(parClust, "Coverage", envir = environment())
 for (exp in Exp) { #exp <- Exp[1]
   temp <- PG[, c("1st accession", "Sequence (1st accession)", paste0("Peptide IDs - ", exp))]
@@ -2704,10 +2704,10 @@ if (globalGO) {
   PG$Ontology <- NULL # Temporary fix for now, this column is broken
   #
   stopCluster(parClust)
-  source(parSrc)
+  source(parSrc, local = FALSE)
   Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_prepare.R")
   #rstudioapi::documentOpen(Src)
-  source(Src)
+  source(Src, local = FALSE)
 }
 
 #### Code chunk - Correlation and distribution plots
@@ -2724,7 +2724,7 @@ if (length(Exp) > 1) {
     if (length(kolZ)) {
       kount <- kount + 1
       temp2 <- PG[, kolZ] 
-      source(parSrc)
+      source(parSrc, local = FALSE)
       clusterExport(parClust, list("kol", "temp2", "klnm"), envir = environment())
       temp2 <- parApply(parClust, comb, 1, function(x) {
         temp3 <- temp2[, paste0(kol, unlist(x))]
@@ -3353,7 +3353,7 @@ saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
 #### Code chunk - Summary table and QC plots
-source(parSrc)
+source(parSrc, local = FALSE)
 Exp_summary %<o% MQ.summary(wd = wd, ev = ev, pg = PG, mods = setNames(Modifs$Mark, Modifs$"Full name"),
                             raw.files = rawFiles, sc = max(c(20, round(length(rawFiles2)/length(Exp)))),
                             save = c("jpeg", "pdf"), cl = parClust, MQtxt = indir)
@@ -3703,17 +3703,17 @@ saveImgFun(BckUpFl)
 ### Check that CytoScape is installed and can run, then launch it.
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # Initialize ClueGO
 if (enrichGO||globalGO) {
   Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_init.R")
   #rstudioapi::documentOpen(Src)
-  source(Src)
+  source(Src, local = FALSE)
 }
   
 #### Code chunk - Gene Ontology terms enrichment analysis
-source(parSrc)
+source(parSrc, local = FALSE)
 create_plotly %<o% TRUE
 if (globalGO) {
   ref <- rev(PG.int.cols[which(PG.int.cols != paste0("Imput. ", PG.int.cols["Original"]))])[1]
@@ -3729,13 +3729,13 @@ if (globalGO) {
   #
   Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
   #rstudioapi::documentOpen(Src)
-  source(Src)
+  source(Src, local = FALSE)
   #
   clueGO_outDir <- dir
   clueGO_type <- "Enrichment/Depletion (Two-sided hypergeometric test)"
   Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
   #rstudioapi::documentOpen(Src)
-  source(Src)
+  source(Src, local = FALSE)
   #
   # Cleanup - do it now, not within sources!
   for (i in allArgs) { try(rm(i), silent = TRUE) }
@@ -3824,13 +3824,13 @@ if (globalGO) {
       #
       Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
       #rstudioapi::documentOpen(Src)
-      source(Src)
+      source(Src, local = FALSE)
       #
       clueGO_outDir <- dir
       clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
       Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
       #rstudioapi::documentOpen(Src)
-      source(Src)
+      source(Src, local = FALSE)
       #
       # Cleanup - do it now, not within sources!
       for (i in allArgs) { try(rm(i), silent = TRUE) }
@@ -3920,13 +3920,13 @@ if (globalGO) {
           #
           Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
           #rstudioapi::documentOpen(Src)
-          source(Src)
+          source(Src, local = FALSE)
           #
           clueGO_outDir <- dir
           clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
           Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
           #rstudioapi::documentOpen(Src)
-          source(Src)
+          source(Src, local = FALSE)
           #
           # Cleanup - do it now, not within sources!
           for (i in allArgs) { try(rm(i), silent = TRUE) }
@@ -4625,7 +4625,7 @@ saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
 #### Code chunk - Protein group profile plots and sorting plots
-source(parSrc)
+source(parSrc, local = FALSE)
 require(RColorBrewer)
 require(colorspace)
 QuantTypes %<o% c("LFQ", "Coverage", "Spectra")
@@ -4893,7 +4893,7 @@ PG$temp <- NULL
 
 # Similar profiles but at peptides level
 # This chunk has been vastly improved, and the others should be improved on the same model!!! 
-source(parSrc)
+source(parSrc, local = FALSE)
 clusterExport(parClust, "abbrFun", envir = environment())
 plotPepProf %<o% TRUE # For now, should come under control of a parameter eventually
 if (plotPepProf) {
@@ -5191,14 +5191,14 @@ if (NegFilt) {
 Script <- readLines(ScriptPath)
 gc()
 stopCluster(parClust)
-source(parSrc)
+source(parSrc, local = FALSE)
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
 #### Code chunk - XML coverage columns
 Src <- paste0(libPath, "/extdata/R scripts/Sources/xml_Coverage_columns.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 # Calculate maximum expected coverage per group
 if (WorkFlow == "Band ID") {
   m <- match(frstProt, db$`Protein ID`)
@@ -5514,7 +5514,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     #
     Src <- paste0(libPath, "/extdata/R scripts/Sources/fstWrite_Excel_core_script.R")
     #rstudioapi::documentOpen(Src)
-    source(Src)
+    source(Src, local = FALSE)
   }
 }
 #saveFun(WorkBook, file = "WorkBook_bckp.RData")
@@ -5835,11 +5835,11 @@ ColumnsTbl$edit_Col <- unlist(a)
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/fstWrite_Excel_core_script.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Write_Excel_end_script.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 #xl_open(repFl)
 
 # Save special quantitative table for proteins of interest
@@ -6110,7 +6110,7 @@ saveImgFun(BckUpFl)
 # Write Materials and Methods
 Src <- paste0(libPath, "/extdata/R scripts/Sources/autoMatMet.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # Write PTMs table
 temp <- Modifs
@@ -6124,7 +6124,7 @@ write.csv(temp, paste0(dir, "/Modifications.csv"), row.names = FALSE)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Finalize_analysis.R")
 #rstudioapi::documentOpen(Src)
 #loadFun(BckUpFl)
-source(Src)
+source(Src, local = FALSE)
 
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)

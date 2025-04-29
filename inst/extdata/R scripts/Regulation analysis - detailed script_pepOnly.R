@@ -104,12 +104,12 @@ if (("try-error" %in% class(tst))||(!file.exists(tst))) {
 # Fast save and load functions
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # Set Shiny options, load functions for creating a Word report, create Excel styles
 Src <- paste0(libPath, "/extdata/R scripts/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 #### Code chunk - Select input/output folders and define experimental structure
 # Get local work directory:
@@ -147,7 +147,7 @@ updt_proteoCraft %<o% FALSE
 # Define input, output, project folder etc...
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Start_analysis.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 LocAnalysis %<o% (WorkFlow %in% c("LOCALISATION", "LOCALIZATION"))
 
 setwd(wd)
@@ -172,20 +172,20 @@ if (! paste0(wd, "/Workflow control/Data_analysis_log_", start_date, ".txt") %in
 sink(paste0("Workflow control/Data_analysis_log_", start_date, ".txt"), type = "output", append = TRUE, split = TRUE)
 
 # Create parallel processing cluster
-source(parSrc)
+source(parSrc, local = FALSE)
 setDTthreads(threads = N.clust)
 
 # Load PSMs
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Load_PSMs.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # MS raw files map
 tstFrMp <- FALSE
 while(!tstFrMp) {
   Src <- paste0(libPath, "/extdata/R scripts/Sources/Fractions_Map_editor.R")
   #rstudioapi::documentOpen(Src)
-  source(Src)
+  source(Src, local = FALSE)
 }
 
 # Create Experimental Factors
@@ -491,14 +491,14 @@ tstXpMp <- FALSE
 while(!tstXpMp) {
   Src <- paste0(libPath, "/extdata/R scripts/Sources/Experiment_Map_editor.R")
   #rstudioapi::documentOpen(Src)
-  source(Src)
+  source(Src, local = FALSE)
 }
 #
 
 #### Code chunk - Load and process search database(s)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Process_Fasta_DBs.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
 
@@ -561,7 +561,7 @@ if (Annotate) {
       warning("No annotations file(s) provided, skipping annotations!")
       Annotate <- FALSE
     } else {
-      source(parSrc)
+      source(parSrc, local = FALSE)
       Parsed_annotations <- lapply(AnnotFls, function(x) { #x <- AnnotFls[1]
         # If the annotations is not present locally, make a local copy
         if (!file.exists(basename(x))) { fs::file_copy(x, wd) }
@@ -889,19 +889,19 @@ FactorsLevels <- FactorsLevels[Factors]
 # Protein headers for shiny
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 #
 # Proteins of interest
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protList.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 #
 # Targets
 # Sometimes the user does not fill the Target factor with valid protein IDs... but this is what we would actually need.
 # Here, if necessary, we will remap those to valid IDs:
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Targets.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 #
 # KnockOut, KnockIn or KnockDown
 tst <- tolower(gsub("[- _]", "", Factors))
@@ -915,25 +915,61 @@ if (sum(c("knockout", "knockin", "knockdown") %in% tst)) {
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protList2.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 #
 # Protein headers for shiny (update)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # Define analysis parameters
 Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_Main.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
+# Temporary solution to the app contamination issue: unload-reload packages
+unloadNamespace("pRolocGUI")
+unloadNamespace("colourpicker")
+unloadNamespace("devtools")
+unloadNamespace("miniUI")
+unloadNamespace("shinyWidgets")
+unloadNamespace("shinyFiles")
+unloadNamespace("DEP")
+unloadNamespace("shiny")
+unloadNamespace("shinyjs")
+unloadNamespace("shinyWidgets")
+unloadNamespace("shinyhelper")
+unloadNamespace("shinyFiles")
+unloadNamespace("shinydashboardPlus")
+unloadNamespace("shinydashboard")
+unloadNamespace("shinycssloaders")
+unloadNamespace("shinyBS")
+unloadNamespace("DT")
+library("pRolocGUI", character.only = TRUE)
+library("colourpicker", character.only = TRUE)
+library("devtools", character.only = TRUE)
+library("miniUI", character.only = TRUE)
+library("shinyWidgets", character.only = TRUE)
+library("shinyFiles", character.only = TRUE)
+library("DEP", character.only = TRUE)
+library("shiny", character.only = TRUE)
+library("shinyjs", character.only = TRUE)
+library("shinyWidgets", character.only = TRUE)
+library("shinyhelper", character.only = TRUE)
+library("shinyFiles", character.only = TRUE)
+library("shinydashboard", character.only = TRUE)
+library("shinydashboardPlus", character.only = TRUE)
+library("shinycssloaders", character.only = TRUE)
+library("shinyBS", character.only = TRUE)
+library("DT", character.only = TRUE)
+#
 Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_Stats.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # Start writing Materials and Methods
 Src <- paste0(libPath, "/extdata/R scripts/Sources/autoMatMet.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # Start of processing of evidences table
 ReportCalls <- AddSpace2Report()
@@ -990,7 +1026,7 @@ if (Update_Prot_matches) {
   if (exists("evmatch")) {
     temp <- evmatch
   } else {
-    source(parSrc)
+    source(parSrc, local = FALSE)
     temp <- ProtMatch2(unique(ev$Sequence), db,
                        cl = parClust) # (ignore the warning for now until we remove contaminant evidences)
   }
@@ -998,7 +1034,7 @@ if (Update_Prot_matches) {
   wh2 <- which(temp$Sequence %in% ev$Sequence)
   mtch1 <- match(ev$Sequence[wh1], temp$Sequence)
   if (!"Proteins" %in% colnames(ev)) { ev$Proteins <- "" } else {
-    source(parSrc)
+    source(parSrc, local = FALSE)
     tmpPs <- unique(temp$Sequence[wh2])
     tmpE <- ev$Proteins[match(tmpPs, ev$Sequence)]
     tmpP <- temp$Proteins[match(tmpPs, temp$Sequence)]
@@ -1107,7 +1143,7 @@ saveImgFun(BckUpFl)
 
 # Filter to keep only evidences with valid quantitative values:
 if (LabelType == "LFQ") {
-  source(parSrc)
+  source(parSrc, local = FALSE)
   if ((Param$Label == "DIA")&&("MS2 intensities" %in% colnames(ev))) {
     ev$MS2_intensities <- strsplit(ev$"MS2 intensities", ";")
     ev$MS2_intensities <- parLapply(parClust, ev$MS2_intensities, as.numeric) # (Let's keep this as a numeric list)
@@ -1207,7 +1243,7 @@ if ((!is.na(minInt))&&(is.numeric(minInt))&&(is.finite(minInt))&&(minInt >= 0)) 
 ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file") # Update again
 #
 if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always
-  source(parSrc)
+  source(parSrc, local = FALSE)
   data <- ev
   colnames(data)[which(colnames(data) == "MQ.Exp")] <- "Parent sample"
   if (("PTM-enriched" %in% colnames(Frac.map))&&(sum(Modifs$"Full name" %in% Frac.map$"PTM-enriched"))) {
@@ -1442,7 +1478,7 @@ if ((LabelType == "Isobaric")&&("Label.Purities.file" %in% colnames(Param))&&(!P
             sum(sapply(1:length(lb), function(y) { A[y+x-1, y] == 100 }))
           }) == length(lb))
           A <- A[(1:length(lb))+w-1,]
-          source(parSrc)
+          source(parSrc, local = FALSE)
           exports <- list("A", "e", "kol")
           clusterExport(parClust, exports, envir = environment())
           clusterCall(parClust, function() library(matlib))
@@ -1560,7 +1596,7 @@ saveImgFun(BckUpFl)
 # DIA-only: MS2-based correction of MS1-based quantitative values
 Src <- paste0(libPath, "/extdata/R scripts/Sources/MS2corr2MS1.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
@@ -1992,7 +2028,7 @@ saveImgFun(BckUpFl)
 tmp <- as.character(ev$id)
 tmp2 <- data.table(id = tmp, mqxp = ev$MQ.Exp, mod = ev$"Modified sequence")
 tmp2 <- tmp2[order(ev$id, decreasing = FALSE),]
-source(parSrc)
+source(parSrc, local = FALSE)
 exports <- list("tmp2", "Exp.map")
 clusterExport(parClust, exports, envir = environment())
 clusterCall(parClust, function() library(data.table))
@@ -2154,7 +2190,7 @@ if (!"Use" %in% colnames(Exp.map)) { Exp.map$Use <- TRUE } else {
     Exp.map$Use[which(is.na(Exp.map$Use))] <- TRUE
   }
 }
-source(parSrc)
+source(parSrc, local = FALSE)
 exports <- list("smpls", "Exp.map", "tmp", "pep.ref", "LabelType", "is.all.good")
 if (LabelType == "Isobaric") {
   tmp <- ev[, c("MQ.Exp", "Modified sequence",
@@ -3140,7 +3176,7 @@ if (Param$Norma.Pep.Intens) {
     #temp_norm3$"Modified sequence" <- NULL
     exports <- list("MQ.Exp", "temp_norm3", "pep.ref", "laststep", "currstep", "Param", "RSA",
                     "RefGrp", "NormGrps2")
-    source(parSrc)
+    source(parSrc, local = FALSE)
     clusterExport(parClust, exports, envir = environment())
     clusterCall(parClust, function() library(proteoCraft))
     #if (Param$Adv.Norma.Pep.Intens.Type == "C") { # "C" here means by columns
@@ -3998,7 +4034,7 @@ Script <- readLines(ScriptPath)
 gc()
 # It makes sense to close/re-create parallel clusters regularly to reduce memory usage
 stopCluster(parClust)
-source(parSrc)
+source(parSrc, local = FALSE)
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -4059,10 +4095,10 @@ if (globalGO) {
   PG$Ontology <- NULL # Temporary fix for now, this column is broken
   #
   stopCluster(parClust)
-  source(parSrc)
+  source(parSrc, local = FALSE)
   Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_prepare.R")
   #rstudioapi::documentOpen(Src)
-  source(Src)
+  source(Src, local = FALSE)
 }
 
 # Define design matrix and contrasts (limma) 
@@ -4218,7 +4254,7 @@ if (F.test) {
 ### Check that CytoScape is installed and can run, then launch it.
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 #### Code chunk - Modified peptides analysis
 PepLabKol %<o% setNames(c("Mod. sequence", "Proteins", "Common protein names", "PEP"),
@@ -4271,7 +4307,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
       # Initialize ClueGO
       Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_init.R")
       #rstudioapi::documentOpen(Src)
-      source(Src)
+      source(Src, local = FALSE)
       #
     }
     tmp <- PTMs; l <- length(tmp)
@@ -4294,7 +4330,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
         pep[[Ptm]] <- grepl(ppat, pep$"Modified sequence")
         g <- which(pep[[Ptm]])
         if (length(g)) {
-          source(parSrc)
+          source(parSrc, local = FALSE)
           ReportCalls <- AddMsg2Report(Msg = paste0(" - ", ptm), Space = FALSE)
           dir <- c("", "/t-tests")
           if (F.test) { dir <- c(dir, "/F-tests") }
@@ -4435,7 +4471,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
           #
           Src <- paste0(libPath, "/extdata/R scripts/Sources/Av_and_Stat_tests.R")
           #rstudioapi::documentOpen(Src)
-          source(Src)
+          source(Src, local = FALSE)
           #
           #kol <- grep(topattern(paste0("Mean ", pepRf)), colnames(ptmpep), value = TRUE)
           #tst <- apply(ptmpep[, kol], 2, function(x) { summary(is.all.good(log10(x))) })
@@ -4558,7 +4594,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
           insrt <- ""
           Src <- paste0(libPath, "/extdata/R scripts/Sources/thresholds_Excel.R")
           #rstudioapi::documentOpen(Src)
-          source(Src)
+          source(Src, local = FALSE)
           #
           #
           ptmpep <- tempVPptm$Protein_groups_file
@@ -4665,7 +4701,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
             #
             Src <- paste0(libPath, "/extdata/R scripts/Sources/run_F_test.R")
             #rstudioapi::documentOpen(Src)
-            tstFtst <- try(source(Src), silent = TRUE)
+            tstFtst <- try(source(Src, local = FALSE), silent = TRUE)
             #
             if (!"try-error" %in% class(tstFtst)) {
               #F_test_ref_ratios %<o% F_volc$`Reference ratios` # Not needed
@@ -4985,13 +5021,13 @@ if ("PTM.analysis" %in% colnames(Param)) {
                     #
                     Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
                     #rstudioapi::documentOpen(Src)
-                    source(Src)
+                    source(Src, local = FALSE)
                     #
                     clueGO_outDir <- dir
                     clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
                     Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
                     #rstudioapi::documentOpen(Src)
-                    source(Src)
+                    source(Src, local = FALSE)
                     #
                     # Cleanup - do it now, not within sources!
                     for (i in allArgs) { try(rm(i), silent = TRUE) }
@@ -5168,7 +5204,7 @@ Script <- readLines(ScriptPath)
 gc()
 # It makes sense to close/re-create parallel clusters regularly to reduce memory usage
 stopCluster(parClust)
-source(parSrc)
+source(parSrc, local = FALSE)
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -5565,13 +5601,13 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     #
     Src <- paste0(libPath, "/extdata/R scripts/Sources/fstWrite_Excel_core_script.R")
     #rstudioapi::documentOpen(Src)
-    source(Src)
+    source(Src, local = FALSE)
   }
 }
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Write_Excel_end_script.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 #WorkBook$get_active_sheet()
 #xl_open(repFl)
 
@@ -5973,7 +6009,7 @@ MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style
 # Finalize analysis
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Finalize_analysis.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 # End logging:
 sink(NULL, type = "message")
