@@ -1,7 +1,7 @@
 #### Code chunk - Define analysis parameters
 # Create first PCA to check on sample relationships
 if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
-  source(parSrc)
+  source(parSrc, local = FALSE)
   data <- ev
   colnames(data)[which(colnames(data) == "MQ.Exp")] <- "Parent sample"
   data <- data[which(data$Reverse != "+"),]
@@ -495,7 +495,7 @@ tstAdvOpt <- try(sum(file.exists(Param$Custom.PGs, Param$TrueDisc_filter, Param$
 if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
 #if (!Param$Param_suppress_UI) {
 appNm <- paste0(dtstNm, " - Parameters")
-ui <- fluidPage(
+ui1 <- fluidPage(
   useShinyjs(),
   extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
   titlePanel(tag("u", "Parameters"),
@@ -669,7 +669,8 @@ ui <- fluidPage(
   br()
 )
 if (exists("appRunTest")) { rm(appRunTest) }
-server <- function(input, output, session) {
+server1 <- function(input, output, session) {
+  appRunTest <- TRUE
   # Initialize variables to create in main environment
   PARAM <- reactiveVal(Param)
   m4Quant <- reactiveVal(Mod4Quant)
@@ -1319,21 +1320,21 @@ server <- function(input, output, session) {
     assign("Param", Par, envir = .GlobalEnv)
     assign("Mod4Quant", m4Quant(), envir = .GlobalEnv)
     assign("Mod2Xclud", m2Xclud(), envir = .GlobalEnv)
-    assign("appRunTest", TRUE, envir = .GlobalEnv)
+    assign("appRunTest", appRunTest, envir = .GlobalEnv)
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
   session$onSessionEnded(function() { 
-    assign("appRunTest", TRUE, envir = .GlobalEnv)
+    assign("appRunTest", appRunTest, envir = .GlobalEnv)
     stopApp()
   })
 }
+appTxt1 <- gsub("myApp", "myApp1", gsub("\\(ui", "(ui1", gsub(", server", ", server1", runApp)))
 runKount <- 0
 while ((!runKount)||(!exists("appRunTest"))) {
-  eval(parse(text = runApp))
+  eval(parse(text = appTxt1), envir = .GlobalEnv)
   runKount <- runKount+1
 }
-if (exists("appRunTest")) { rm(appRunTest) }
 #
 Param$Volcano.plots.Aggregate.Level <- Param_filter(Param$Ratios.Groups.Ref.Aggregate.Level, "Rep")
 Param$Ratios.Ref.Groups <- paste0(Param$Ratios.Groups, c("", ";Rep")[Param$Is])

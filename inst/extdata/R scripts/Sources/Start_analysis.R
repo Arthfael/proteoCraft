@@ -404,7 +404,7 @@ RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winsl
 #     Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
 #     #system(paste0("open \"", Src, "\""))
 
-#     source(Src)
+#     source(Src, local = FALSE)
 #   } else {
 #     saveImgFun <- function(file) { # This one adapted from https://github.com/qsbase/qs2/issues/new?template=Blank+issue
 #       obj <- base::ls(envir = .GlobalEnv)
@@ -445,7 +445,7 @@ RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winsl
 #     Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
 #     #system(paste0("open \"", Src, "\""))
 
-#     source(Src)
+#     source(Src, local = FALSE)
 #   } else {
 #     loadFun %<o% function(file) {
 #       tst <- try(qs2::qs_readm(file, env = globalenv(), nthreads = max(c(parallel::detectCores()-1, 1))), silent = TRUE)

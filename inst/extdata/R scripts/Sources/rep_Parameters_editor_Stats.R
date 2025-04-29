@@ -42,7 +42,7 @@ makeSec <- FALSE
 # }
 wdth <- paste0(30*max(c(nchar(unlist(rfLev$`All levels`)), 2)), "px")
 appNm <- paste0(dtstNm, " - Stat-tests")
-ui <- fluidPage(
+ui2 <- fluidPage(
   useShinyjs(),
   extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
   titlePanel(tag("u", "Statistical test - define comparisons"), 
@@ -96,7 +96,8 @@ rfLev2$"Reference level" <- sapply(1:nrow(rfLev2), function(i) {
                            width = wdth))
 })
 if (exists("appRunTest")) { rm(appRunTest) }
-server <- function(input, output, session) {
+server2 <- function(input, output, session) {
+  appRunTest <- TRUE
   output$refLevels <- renderDT({ rfLev2 },
                                FALSE,
                                escape = FALSE,
@@ -396,21 +397,21 @@ server <- function(input, output, session) {
       input[[paste0("Ref_", as.character(x))]]
     })
     assign("rfLev", rfLev, envir = .GlobalEnv)
-    assign("appRunTest", TRUE, envir = .GlobalEnv)
+    assign("appRunTest", appRunTest, envir = .GlobalEnv)
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
   session$onSessionEnded(function() {
-    assign("appRunTest", TRUE, envir = .GlobalEnv)
+    assign("appRunTest", appRunTest, envir = .GlobalEnv)
     stopApp()
   })
 }
+appTxt2 <- gsub("myApp", "myApp2", gsub("\\(ui", "(ui2", gsub(", server", ", server2", runApp)))
 runKount <- 0
 while ((!runKount)||(!exists("appRunTest"))) {
-  eval(parse(text = runApp))
+  eval(parse(text = appTxt2), envir = .GlobalEnv)
   runKount <- runKount+1
 }
-if (exists("appRunTest")) { rm(appRunTest) }
 #
 wRf <- lapply(1:nrow(rfLev), function(i) { #i <- 1
   w <- which(factLevComb2 == rfLev$Group[i])
@@ -771,10 +772,10 @@ if (exists("Tim")) {
 # Refresh list of interesting proteins:
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protList.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protList2.R")
 #rstudioapi::documentOpen(Src)
-source(Src)
+source(Src, local = FALSE)
 
 if ("Prot.list_separate.plots" %in% colnames(Param)) {
   protsplit %<o% Param$Prot.list_separate.plots
@@ -979,4 +980,4 @@ rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc)
+source(parSrc, local = FALSE)

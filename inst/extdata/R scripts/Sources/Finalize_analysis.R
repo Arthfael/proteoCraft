@@ -5,7 +5,7 @@ Src <- paste0(wd, "/tmp.R")
 write(tmp, Src)
 MatMetFl <- paste0(wd, "/Materials and methods_WIP.docx")
 tst <- try({
-  source(Src)
+  source(Src, local = FALSE)
   MatMet %<o% MatMet
   print(MatMet, target = MatMetFl)
 }, silent = TRUE)
@@ -23,7 +23,7 @@ if (scrptType == "withReps") {
   Src <- paste0(wd, "/tmp.R")
   write(tmp, Src)
   tst <- try({
-    source(Src)
+    source(Src, local = FALSE)
     Report %<o% Report
     print(Report, target = paste0(wd, "/Workflow control/Analysis report.docx"))
   }, silent = TRUE)

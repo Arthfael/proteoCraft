@@ -42,7 +42,7 @@ if ((LabelType == "LFQ")&&(isDIA)&&("MS2_intensities" %in% colnames(ev))) { # We
                               MS1_Av = mean(MS1, na.rm = TRUE)),
                        by = list(`Modified sequence` = MS2Tbl$mod, Charge = MS2Tbl$Z)]
       MS2Tbl <- as.data.frame(MS2Tbl)
-      source(parSrc)
+      source(parSrc, local = FALSE)
       tst1 <- parSapply(parClust, MS2Tbl$IDs, length)
       wMult <- which(tst1 > 1)
       MS2Tbl <- MS2Tbl[wMult,]

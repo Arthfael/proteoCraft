@@ -3,12 +3,16 @@ screenRes %<o% rpanel::rp.screenresolution()
 shinyOpts %<o% c("RStudio", "System default browser")
 shinyOpt %<o% svDialogs::dlg_list(shinyOpts, title = "Open Shiny apps in...")$res
 if (shinyOpt == shinyOpts[1]) {
-  runApp %<o% "print(shiny::shinyApp(ui, server, options = list(height = screenRes$height, width = screenRes$width)))"
+  #runApp %<o% "print(shiny::shinyApp(ui, server, options = list(height = screenRes$height, width = screenRes$width)))"
+  runApp %<o% c("myApp <- shiny::shinyApp(ui, server, options = list(height = screenRes$height, width = \"100%\"))",
+                "shiny::runApp(myApp)")
   #myViewer %<o% shiny::dialogViewer("Viewer", width = screenRes$width, height = screenRes$height)
-  #runApp %<o% "shiny::runGadget(shiny::shinyApp(ui, server), viewer = myViewer, stopOnCancel = FALSE)"
+  # runApp %<o% c("myApp <- shiny::shinyApp(ui, server)",
+  #               "shiny::runGadget(myApp, viewer = myViewer, stopOnCancel = FALSE)")
 }
 if (shinyOpt == shinyOpts[2]) {
-  runApp %<o% "print(shinyApp(ui, server, options = list(height = \"100%\", width = \"100%\", launch.browser = TRUE)))"
+  runApp %<o% c("myApp <- shiny::shinyApp(ui, server, options = list(height = \"100%\", width = \"100%\", launch.browser = TRUE))",
+                "print(myApp)")
 }
 jsToggleFS %<o% "shinyjs.toggleFullScreen = function() {
         var element = document.documentElement,

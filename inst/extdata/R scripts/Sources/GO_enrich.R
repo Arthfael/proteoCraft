@@ -55,7 +55,7 @@
 # - GlobalScales: If TRUE (default), single consistent X and Y scales are applied on all plots, otherwise plot-specific scales are applied.
 
 # Check our parent cluster
-source(parSrc)
+source(parSrc, local = FALSE)
 
 # Argument names
 allArgs <- c("db_ID_col",

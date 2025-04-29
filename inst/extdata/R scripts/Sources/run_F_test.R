@@ -5,7 +5,7 @@
 ############################
 
 # Check our parent cluster
-source(parSrc)
+source(parSrc, local = FALSE)
 clusterExport(parClust, list("AltHyp", "Nested"), envir = environment())
 clusterCall(parClust, function() library(siggenes))
 

@@ -1,6 +1,6 @@
 if (!dir.exists(samDir)) { dir.create(samDir, recursive = TRUE) }
 if (!dir.exists(ebamDir)) { dir.create(ebamDir, recursive = TRUE) }
-source(parSrc)
+source(parSrc, local = FALSE)
 clusterExport(parClust, list("AltHyp", "Nested", "samDir", "ebamDir"), envir = environment())
 clusterCall(parClust, function() library(siggenes))
 if (dataType == "modPeptides") {

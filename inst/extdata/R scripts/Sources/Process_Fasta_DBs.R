@@ -372,7 +372,8 @@ if (!require(pack, character.only = TRUE)) {
   pak::pkg_install(pack, ask = FALSE, upgrade = TRUE, dependencies = TRUE)
 }
 if (!require(pack, character.only = TRUE)) {
-  source(paste0(libPath, "/extdata/R scripts/Sources/taxonomy.R"))
+  Src2 <- paste0(libPath, "/extdata/R scripts/Sources/taxonomy.R")
+  source(Src2, local = FALSE)
 }
 tst %<o% try(setNames(lapply(Sp, function(x) {
   suppressMessages(taxonomy(organism = x, db = "ncbi", output = "classification"))
@@ -398,7 +399,7 @@ if (taxTst) {
     x$name[match("superkingdom", x$rank)]
   })
 }
-source(parSrc)
+source(parSrc, local = FALSE)
 dbs <- lapply(whFnd, function(i) { #i <- whFnd[1]
   tmp <- Format.DB(unlist(fastasTbl$Data[[i]]), in.env = TRUE, mode = fastasTbl$Type[i], parallel = TRUE, cl = parClust)
   tmp$Source <- fastasTbl$Type[i]

@@ -411,7 +411,7 @@ if (SearchSoft == "DIANN") {
     ReLoadPSMsBckp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = FALSE)$res, c("yes", "no"))]
   }
   if (ReLoadPSMsBckp) { loadFun(PSMsBckp) } else {
-    source(parSrc)
+    source(parSrc, local = FALSE)
     ev_DIANN2MQ <- DIANN_to_MQ(PSMsFls,
                                cl = parClust)
     saveFun(ev_DIANN2MQ, file = PSMsBckp)
@@ -503,7 +503,7 @@ if (SearchSoft == "FRAGPIPE") {
     ReLoadPSMsBckp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = FALSE)$res, c("yes", "no"))]
   }
   if (ReLoadPSMsBckp) { loadFun(PSMsBckp) } else {
-    source(parSrc)
+    source(parSrc, local = FALSE)
     ev_FP2MQ <- FP_to_MQ(FP_WorkflowFl,
                          FP_ManifestFl,
                          FailIfNoQuant = TRUE,
