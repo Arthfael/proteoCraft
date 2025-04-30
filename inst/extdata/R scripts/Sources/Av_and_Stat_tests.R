@@ -700,7 +700,7 @@ for (taest in c("SAM", "EBAM")) { #taest <- "SAM" #taest <- "EBAM"
               d <- as.data.frame(d)
             }
             dr <- c(samDir, ebamDir)[match(taest, c("SAM", "EBAM"))]
-            XLfun <- eval(parse(text = paste0("siggenes::", tolower(taest), "2excel")))
+            XLfun <- eval(parse(text = paste0("siggenes::", tolower(taest), "2excel")), envir = .GlobalEnv)
             dlt <- max(d$Delta[which(d$FDR <= f)])
             if (!length(dlt)) {
               warning(paste0(taest, ": poor Delta estimate for group ", nm2, " at ", 100*f, "% FDR"))
@@ -738,10 +738,6 @@ for (taest in c("SAM", "EBAM")) { #taest <- "SAM" #taest <- "EBAM"
                         FDR = as.numeric(gsub("FDR$", "", names(D))))
         D <- aggregate(D$FDR, list(D$d), max)
         colnames(D) <- c("D", "FDR")
-        
-        real FDR, not closest!
-        
-        
         #unique(tmpSig3)
         if (taest == "SAM") {
           RES[[samK[2]]] <- tmpSig3
@@ -796,9 +792,9 @@ vpals <- vpals$Group.1[which(!vpals$x)]
 kol <- paste0(intRef, expMap$Ref.Sample.Aggregate)
 tmpDat <- myData[, kol]
 nr <- nrow(myData)
-clusterExport(parClust, list("tmpDat", "expMap", "RG", "VPAL", "Coefficients", "Coeff2", "intRef", "tstAdj", "wAdj", "WorkFlow", "nr",
-                             "odpRoot", "lrtRoot", "Exp"),
-              envir = environment())
+# clusterExport(parClust, list("tmpDat", "expMap", "RG", "VPAL", "Coefficients", "Coeff2", "intRef", "tstAdj", "wAdj", "WorkFlow", "nr",
+#                              "odpRoot", "lrtRoot", "Exp"),
+#               envir = environment())
 pVals <- try(lapply(vpals, function(vpal) { #vpal <- vpals[1] #vpal <- vpals[2] #vpal <- vpals[3]
   # Does not seem to work when run as parLapply, I could not figure out the issue
   grp <- unique(expMap[which(expMap[[VPAL$column]] == vpal), RG$column])
@@ -829,14 +825,14 @@ pVals <- try(lapply(vpals, function(vpal) { #vpal <- vpals[1] #vpal <- vpals[2] 
     if (ncol(adjVar)) {
       bsCall <- gsub("\\)$", ", adj.var = adjVar)", bsCall)
       covCall <- paste0("cov <- data.frame(", paste0(Coefficients[wAdj], " = ", Coefficients[wAdj], collapse = ", "), ")")
-      eval(parse(text = covCall))
+      eval(parse(text = covCall), envir = .GlobalEnv)
     }
   }
   if (WorkFlow == "TIMECOURSE") {
     bsCall <- gsub("\\)$", ", tme = em2$Time.point, sampling = \"timecourse\", basis.df = 4)", bsCall)
   }
   #cat(bsCall)
-  eval(parse(text = bsCall))
+  eval(parse(text = bsCall), envir = .GlobalEnv)
   # Not used, good for checking:
   full_model <- edge::fullModel(de_obj) # Not used, good for checking
   null_model <- edge::nullModel(de_obj) # Not used, good for checking
