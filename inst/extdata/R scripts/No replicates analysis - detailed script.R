@@ -235,7 +235,7 @@ server <- function(input, output, session) {
 }
 runKount <- 0
 while ((!runKount)||(!exists("frMap2"))) {
-  eval(parse(text = runApp))
+  eval(parse(text = runApp), envir = .GlobalEnv)
   runKount <- runKount+1
 }
 FracMap %<o% frMap2
@@ -421,7 +421,7 @@ server <- function(input, output, session) {
 }
 runKount <- 0
 while ((!runKount)||(!exists("smplMap2"))) {
-  eval(parse(text = runApp))
+  eval(parse(text = runApp), envir = .GlobalEnv)
   runKount <- runKount+1
 }
 SamplesMap %<o% smplMap2
@@ -1157,7 +1157,7 @@ server <- function(input, output, session) {
   #observeEvent(input$cancel, { stopApp() })
   session$onSessionEnded(function() { stopApp() })
 }
-eval(parse(text = runApp))
+eval(parse(text = runApp), envir = .GlobalEnv)
 #
 # Post-processing
 prot.list %<o% AnalysisParam$Prot.list
@@ -1877,7 +1877,7 @@ if (runPepper) {
     tmp2[, Exp][w] <- NA
     tmp2 <- as.data.table(tmp2)
     txt2 <- paste0("tmp2 <- tmp2[, list(", txt, "), by = list(Proteins = Proteins)]")
-    eval(parse(text = txt2))
+    eval(parse(text = txt2), envir = .GlobalEnv)
     tmp2 <- as.data.frame(tmp2)
     assign(names(obj)[i], tmp2)
     tmp2 <- colSums(tmp2[, Exp], na.rm = TRUE)
