@@ -86,7 +86,8 @@ if (!RunByMaster) {
   scrptPaths <- setNames(ScriptPath,
                          c("Replicates",
                            "No replicates")[match(scrptType, c("withReps", "noReps"))])
-  WorkFlows %<o% eval(parse(text = gsub("^###-\\|-### *Workflows: *", "", grep("^###-\\|-### *Workflows: *", readLines(scrptPaths), value = TRUE))))
+  WorkFlows %<o% eval(parse(text = gsub("^###-\\|-### *Workflows: *", "", grep("^###-\\|-### *Workflows: *", readLines(scrptPaths), value = TRUE))),
+                      envir = .GlobalEnv)
   if (!exists("WorkFlow")) {
     WorkFlow <- WorkFlows[1]
   } else {
@@ -352,7 +353,7 @@ if (!RunByMaster) {
     shiny::observeEvent(input$cancel, { shiny::stopApp() })
     session$onSessionEnded(function() { shiny::stopApp() })
   })
-  eval(parse(text = runApp))
+  eval(parse(text = runApp), envir = .GlobalEnv)
   #
   SearchSoft %<o% SearchSoft
   #

@@ -64,7 +64,7 @@ if (writeRaws) {
   ext <- gsub(".*\\.", "", rawFiles[w])
   for (xt in unique(ext)) {
     w2 <- which(ext == xt)
-    eval(parse(text = paste0("copFun <- fs::", c("file", "dir")[(xt == "d")+1], "_copy")))
+    eval(parse(text = paste0("copFun <- fs::", c("file", "dir")[(xt == "d")+1], "_copy")), envir = .GlobalEnv)
     for (fl in rawFiles[w[w2]]) {
       Tsts$"MS files"[[fl]] <- try(copFun(fl, dir, overwrite = FALSE), silent = TRUE)
     }

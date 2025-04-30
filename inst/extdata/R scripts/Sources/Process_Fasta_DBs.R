@@ -355,7 +355,7 @@ server <- function(input, output, session) {
 }
 runKount <- 0
 while ((!runKount)||(!exists("fastasTbl3"))) {
-  eval(parse(text = runApp))
+  eval(parse(text = runApp), envir = .GlobalEnv)
   runKount <- runKount+1
 }
 fastasTbl %<o% fastasTbl3

@@ -12,7 +12,7 @@ if (.Platform$OS.type == "windows") {
       tmp <- paste0("qs2::qs_savem(", deparse(substitute(x)),
                     ", file = '", file, "', nthreads = max(c(parallel::detectCores()-1, 1)))")
       #cat(tmp)
-      eval(parse(text = tmp))
+      eval(parse(text = tmp), envir = .GlobalEnv)
     }
     saveImgFun <- function(file) { # This one adapted from https://github.com/qsbase/qs2/issues/new?template=Blank+issue
       obj <- base::ls(envir = .GlobalEnv)

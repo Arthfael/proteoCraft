@@ -94,7 +94,7 @@ contrCall_F <- paste0("contrMatr_F %<o% makeContrasts(",
                       paste(expContr_F$Contrasts, collapse = ", "),
                       ", levels = designMatr)")
 #cat(contrCall_F, "\n")
-eval(parse(text = contrCall_F))
+eval(parse(text = contrCall_F), envir = .GlobalEnv)
 
 # Average LFCs
 # (Calculate average ratios)

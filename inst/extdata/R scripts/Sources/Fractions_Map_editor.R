@@ -241,7 +241,7 @@ server <- function(input, output, session) {
 }
 runKount <- 0
 while ((!runKount)||(!exists("FracMap3"))) {
-  eval(parse(text = runApp))
+  eval(parse(text = runApp), envir = .GlobalEnv)
   runKount <- runKount+1
 }
 #

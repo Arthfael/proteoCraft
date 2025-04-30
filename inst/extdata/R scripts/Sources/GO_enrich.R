@@ -1020,8 +1020,7 @@ if (length(wFltL)) {
         }
         #cat(plot.txt)
         #options(warn = -1)
-        suppressWarnings(eval(parse(text = plot.txt)))
-        #eval(parse(text = plot.txt), envir = globalenv()) # for testing only
+        suppressWarnings(eval(parse(text = plot.txt), envir = .GlobalEnv))
         plot <- plot +
           ggplot2::geom_hline(data = thresh, ggplot2::aes(yintercept = `-log10(Threshold)`, colour = Colour)) +
           ggplot2::geom_text(data = thresh, ggplot2::aes(label = Label, y = `-log10(Threshold)`+Ymax*0.01, colour = Colour),
@@ -1067,7 +1066,7 @@ if (length(wFltL)) {
           plot.txt2 <- paste0("plot2 <- ggplot2::ggplot(GO_tbl) + ggplot2::geom_point(ggplot2::aes(", aes2, "), ", # non.aes, 
                               ") + ggplot2::guides(colour = \"none\") + ",
                               pluses)
-          suppressWarnings(eval(parse(text = plot.txt2)))
+          suppressWarnings(eval(parse(text = plot.txt2), envir = .GlobalEnv))
           if (length(winf)) {
             plot2 <- plot2 +
               ggplot2::geom_hline(yintercept = Ymax, colour = "black", linetype = "dotted")
@@ -1134,7 +1133,7 @@ if (length(wFltL)) {
                   ggplot2::coord_cartesian(clip = \"off\")")
             text_tmp <- gsub("INSERT1", "", gsub("^PLOT", "barplot1", barplot_txt))
             #cat(text_tmp)
-            suppressWarnings(eval(parse(text = text_tmp)))
+            suppressWarnings(eval(parse(text = text_tmp), envir = .GlobalEnv))
             barplot1 <- barplot1 +
               ggplot2::geom_text(ggplot2::aes(label = Label3, x = X), y = -Ymax/20, hjust = 1, angle = 60, cex = 3) +
               ggplot2::theme(panel.spacing = ggplot2::unit(9, "lines"),
@@ -1175,7 +1174,7 @@ if (length(wFltL)) {
                                ", text1 = Label, text2 = Count, text3 = Y, text4 = Mapping",
                                gsub("^PLOT", "barplot2", barplot_txt))
               #cat(text_tmp)
-              suppressWarnings(eval(parse(text = text_tmp)))
+              suppressWarnings(eval(parse(text = text_tmp), envir = .GlobalEnv))
               barplot_ly <- plotly::ggplotly(barplot2, tooltip = c("text1", "text2", "text3", "text4"))
               setwd(plotly_subfolder)
               htmlwidgets::saveWidget(barplot_ly, paste0(barnm, ".html"), selfcontained = TRUE)

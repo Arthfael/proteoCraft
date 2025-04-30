@@ -57,10 +57,14 @@ for (Fact in Factors2) { if (!Fact %in% colnames(ExpMap)) { ExpMap[[Fact]] <- "?
 tmp <- aggregate(FracMap$Fraction, list(FracMap[[frKl]]), function(x) { paste(sort(unique(x)), collapse = ";") })
 ExpMap$Fractions <- tmp$x[match(ExpMap$MQ.Exp, tmp$Group.1)]
 ExpMap$Use <- as.logical(sapply(strsplit(ExpMap$MQ.Exp, ";"), function(x) { max(FracMap$Use[match(x, FracMap[[frKl]])]) }))
-tst <- try(write.csv(ExpMap, file = ExpMapPath, row.names = FALSE), silent = TRUE)
+tmpTbl <- ExpMap
+tst <- lapply(colnames(tmpTbl), function(x) { typeof(tmpTbl[[x]]) })
+w <- which(tst == "list")
+if (length(w)) { for (i in w) { tmpTbl[[i]] <- sapply(tmpTbl[[i]], paste, collapse = ";") }}
+tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
 if ("try-error" %in% class(tst)) {
   dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-  write.csv(ExpMap, file = ExpMapPath, row.names = FALSE)
+  write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE)
 }
 ExpMap <- ExpMap[which(ExpMap$MQ.Exp %in% FracMap[[frKl]]),]
 #
@@ -328,7 +332,7 @@ server <- function(input, output, session) {
 }
 runKount <- 0
 while ((!runKount)||(!exists("ExpData3"))) {
-  eval(parse(text = runApp))
+  eval(parse(text = runApp), envir = .GlobalEnv)
   runKount <- runKount+1
 }
 #
@@ -338,10 +342,14 @@ k0 <- k0[which(!k0 %in% colnames(Exp.map))]
 if (length(k0)) {
   Exp.map[, k0] <- Exp.map[match(Exp.map$MQ.Exp, Exp.map$MQ.Exp), k0]
 }
-tst <- try(write.csv(Exp.map, file = ExpMapPath, row.names = FALSE), silent = TRUE)
+tmpTbl <- Exp.map
+tst <- lapply(colnames(tmpTbl), function(x) { typeof(tmpTbl[[x]]) })
+w <- which(tst == "list")
+if (length(w)) { for (i in w) { tmpTbl[[i]] <- sapply(tmpTbl[[i]], paste, collapse = ";") }}
+tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
 if ("try-error" %in% class(tst)) {
   dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-  write.csv(Exp.map, file = ExpMapPath, row.names = FALSE)
+  write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE)
 }
 #
 #system(paste0("open \"", wd, "/", ExpMapNm, ".csv\""))
