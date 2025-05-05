@@ -140,7 +140,8 @@ if (isOK) {
     gse <- gses[[grp]]$GSE
     try({
       plot <- dotplot(gse, showCategory = 10, split = ".sign") + facet_grid(.~.sign) +
-        theme(axis.text.y = element_text(size = 5), axis.text.y = element_text(size = 5))
+        theme(axis.text.x = element_text(size = 5),
+              axis.text.y = element_text(size = 5))
       #plot <- dotplot(gse, showCategory = 10, color = "pvalue", split = ".sign") + facet_grid(.~.sign)
       ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
       ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
