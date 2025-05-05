@@ -25,6 +25,7 @@ fls <- paste0(homePath, "/", c("Regulation analysis - master script.R",
 tst <- sum(!file.exists(fls))
 if (tst) { proteoCraft::Configure() }
 scrptType %<o% "noReps"
+scrptTypeFull %<o% "noReps_PG_and_PTMs"
 
 # Parameters used by the master script:
 ###-|-### Workflows: setNames(c("Discovery -> no comparisons, complex sample", "Band ID -> no comparisons, focus on coverage and the top proteins", "Regulation -> ratio analysis (up and down)", "Pull-down (incl. BioID) -> ratio analysis (choice between up only or up and down)"), c("Discovery", "Band ID", "Regulation", "Pull-down"))
@@ -2940,6 +2941,13 @@ if (length(M)) {
   ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
 }
 
+# Gene-Set Enrichment Analysis (GSEA)
+dataType <- "PG"
+Src <- paste0(libPath, "/extdata/R scripts/Sources/GSEA.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+#
+
 if (MakeRatios) {
   FC_filt %<o% c()
   FC_Smpls %<o% list()
@@ -3310,6 +3318,12 @@ if (MakeRatios) {
       poplot(plot)
       ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
       ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+      #
+      # Gene-Set Enrichment Analysis (GSEA)
+      dataType <- "modPeptides"
+      Src <- paste0(libPath, "/extdata/R scripts/Sources/GSEA.R")
+      #rstudioapi::documentOpen(Src)
+      source(Src, local = FALSE)
       #
       PTMs_pep[[ptm]] <- ptmpep
     }
