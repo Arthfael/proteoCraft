@@ -11,7 +11,8 @@ idCol <- "Leading protein IDs"
 if (dataType == "modPeptides") {
   #reNorm <- FALSE
   myData <- ptmpep
-  ratRef <- pepRatRf
+  if (scrptType == "withReps") { ratRef <- paste0("Mean ", pepRatRf) }
+  if (scrptType == "noReps") { ratRef <- PTMs_ratRf[length(PTMs_ratRf)] }
   idCol <- "Protein"
   namesRoot <- "Pep"
   ohDeer <- paste0(wd, "/Reg. analysis/", ptm, "/GSEA")
@@ -19,14 +20,15 @@ if (dataType == "modPeptides") {
 if (dataType == "PG") {
   #reNorm <- Norma.Prot.Ratio.classic
   myData <- PG
-  ratRef <- Prot.Rat.Root
+  if (scrptType == "withReps") { ratRef <- paste0("Mean ", Prot.Rat.Root) }
+  if (scrptType == "noReps") { ratRef <- PG.rat.cols }
   idCol <- "Leading protein IDs"
   namesRoot <- "PG"
   ohDeer <- paste0(wd, "/Reg. analysis/GSEA")
 }
 if (!dir.exists(ohDeer)) { dir.create(ohDeer, recursive = TRUE) }
 dirlist <- unique(c(dirlist, ohDeer))
-log2Col <- paste0("Mean ", ratRef, VPAL$values)
+log2Col <- paste0(ratRef, VPAL$values)
 log2Col <- log2Col[which(log2Col %in% colnames(myData))]
 isOK <- length(log2Col) > 0
 if (isOK) {
