@@ -83,7 +83,9 @@ if (isOK) {
   orgDBpkg <- orgDBs$db[match(organism, orgDBs$Full)]
   packs <- c("GO.db", "clusterProfiler", "pathview", "enrichplot", "DOSE", orgDBpkg)
   for (pck in packs) {
-    if (!require(pck, character.only = TRUE)) { pak::pkg_install(pck) }
+    if (!require(pck, character.only = TRUE)) {
+      pak::pkg_install(pck, upgrade = FALSE, ask = FALSE)
+    }
   }
   for (pck in packs) {
     if (usePar) {
@@ -110,7 +112,7 @@ if (isOK) {
     tmp <- na.omit(tmp)
     tmp <- sort(tmp, decreasing = TRUE)
     tmp <- tmp[which(nchar(names(tmp)) > 0)]
-    gse <- gseGO(tmp, 
+    gse <- gseGO(tmp,
                  ont = "ALL", 
                  keyType = keyType, 
                  nPerm = 10000, 
@@ -120,7 +122,8 @@ if (isOK) {
                  verbose = TRUE, 
                  OrgDb = orgDBpkg, 
                  pAdjustMethod = "none")
-    return(gse)
+    return(list(GSE = gse,
+                lFC = tmp))
   }
   if (usePar) {
     clusterExport(parClust, list("idCol", "log2Col", "keyType", "tmpDat"), envir = environment())
@@ -133,38 +136,54 @@ if (isOK) {
   #
   # GSEA dot plots
   nmRoot <- "GSEA dotplot"
-  lapply(names(gses), function(grp) {
-    gse <- gses[[grp]]
-    plot <- dotplot(gse, showCategory = 10, split = ".sign") + facet_grid(.~.sign)
-    #plot <- dotplot(gse, showCategory = 10, color = "pvalue", split = ".sign") + facet_grid(.~.sign)
-    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
-    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+  lapply(names(gses), function(grp) { #grp <- names(gses)[1]
+    gse <- gses[[grp]]$GSE
+    try({
+      plot <- dotplot(gse, showCategory = 10, split = ".sign") + facet_grid(.~.sign) +
+        theme(axis.text.y = element_text(size = 5), axis.text.y = element_text(size = 5))
+      #plot <- dotplot(gse, showCategory = 10, color = "pvalue", split = ".sign") + facet_grid(.~.sign)
+      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
+      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+    }, silent = TRUE)
   })
   #
   # GSEA enrichment map plots
   nmRoot <- "GSEA enrichment map"
-  lapply(names(gses), function(grp) {
-    gse <- gses[[grp]]
-    plot <- emapplot(gse, showCategory = 10)
-    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
-    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+  lapply(names(gses), function(grp) { #grp <- names(gses)[1]
+    gse <- gses[[grp]]$GSE
+    try({
+      d <- GOSemSim::godata(orgDBpkg, ont = "BP") # It seems to use BP here since we are interested in which biological processes are reacting to the perturbation
+      gse2 <- pairwise_termsim(gse, method = "Wang", semData = d)
+      plot <- emapplot(gse2, showCategory = 50)
+      l <- length(plot$layers)
+      w <- which(sapply(1:l, function(x) { "GeomTextRepel" %in% class(plot$layers[[x]]$geom) }))
+      plot$layers[[w]]$aes_params$size <- 2
+      #getMethod("emapplot", "gseaResult")
+      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
+      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+    }, silent = TRUE)
   })
   #
   # GSEA category net plots
   nmRoot <- "GSEA category net plot"
-  lapply(names(gses), function(grp) {
-    gse <- gses[[grp]]
-    plot <- cnetplot(gse, categorySize = "pvalue", foldChange = gene_list, showCategory = 3)
-    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
-    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+  lapply(names(gses), function(grp) { #grp <- names(gses)[1]
+    try({
+      gse <- gses[[grp]]$GSE
+      lFC <- gses[[grp]]$lFC
+      plot <- cnetplot(gse, categorySize = "pvalue", foldChange = lFC, showCategory = 3)
+      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
+      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+    }, silent = TRUE)
   })
   # GSEA ridge plots
   nmRoot <- "GSEA ridge plot"
-  lapply(names(gses), function(grp) {
-    gse <- gses[[grp]]
-    plot <- ridgeplot(gse) + labs(x = "enrichment distribution")
-    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
-    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+  lapply(names(gses), function(grp) { #grp <- names(gses)[1]
+    try({
+      gse <- gses[[grp]]$GSE
+      plot <- ridgeplot(gse) + labs(x = "enrichment distribution")
+      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
+      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+    }, silent = TRUE)
   })
   # See https://learn.gencore.bio.nyu.edu/rna-seq-analysis/gene-set-enrichment-analysis/ for more
 }
