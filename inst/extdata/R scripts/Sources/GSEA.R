@@ -130,11 +130,41 @@ if (isOK) {
     gses <- lapply(log2Col, f0)
   }
   gses <- setNames(gses, proteoCraft::cleanNms(gsub(proteoCraft::topattern(ratRef), "", log2Col)))
+  #
+  # GSEA dot plots
+  nmRoot <- "GSEA dotplot"
   lapply(names(gses), function(grp) {
     gse <- gses[[grp]]
     plot <- dotplot(gse, showCategory = 10, split = ".sign") + facet_grid(.~.sign)
     #plot <- dotplot(gse, showCategory = 10, color = "pvalue", split = ".sign") + facet_grid(.~.sign)
-    ggplot2::ggsave(paste0(ohDeer, "/", grp, " GSEA dotplot.jpeg"), plot, dpi = 300)
-    ggplot2::ggsave(paste0(ohDeer, "/", grp, " GSEA dotplot.pdf"), plot, dpi = 300)
+    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
+    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
   })
+  #
+  # GSEA enrichment map plots
+  nmRoot <- "GSEA enrichment map"
+  lapply(names(gses), function(grp) {
+    gse <- gses[[grp]]
+    plot <- emapplot(gse, showCategory = 10)
+    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
+    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+  })
+  #
+  # GSEA category net plots
+  nmRoot <- "GSEA category net plot"
+  lapply(names(gses), function(grp) {
+    gse <- gses[[grp]]
+    plot <- cnetplot(gse, categorySize = "pvalue", foldChange = gene_list, showCategory = 3)
+    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
+    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+  })
+  # GSEA ridge plots
+  nmRoot <- "GSEA ridge plot"
+  lapply(names(gses), function(grp) {
+    gse <- gses[[grp]]
+    plot <- ridgeplot(gse) + labs(x = "enrichment distribution")
+    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
+    ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+  })
+  # See https://learn.gencore.bio.nyu.edu/rna-seq-analysis/gene-set-enrichment-analysis/ for more
 }
