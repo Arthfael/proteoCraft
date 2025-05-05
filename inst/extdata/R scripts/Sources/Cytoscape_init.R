@@ -1,4 +1,4 @@
-### Check that CytoScape is installed and can run, then launch it.
+### Check that Cytoscape is installed and can run, then launch it.
 # This will be used to run a ClueGO analysis and to draw protein interaction networks 
 if (CytoScape) {
   #suppressMessages(tst <- try(cytoscapePing(), silent = TRUE))
