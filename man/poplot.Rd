@@ -18,5 +18,5 @@ poplot(plot, height = 10, width = 10, new.window = TRUE, max.gr.dev = 62)
 \item{max.gr.dev}{62 by default, the maximum number of graphical devices which the system will allow to be open simultaneously. I could not find the information anywhere but checked on 3 different PCs and the result was always 62.}
 }
 \description{
-A wrapup for plotting in a popup window (or not: can also just do in local window). Should work on all devices. Some strange people like Macs.
+A wrapup for plotting in a popup window (or not: can also just do in local window). Should work on all devices (some strange people like Macs.)
 }
