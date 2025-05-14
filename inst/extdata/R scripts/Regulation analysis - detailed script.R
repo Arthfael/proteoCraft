@@ -7,17 +7,18 @@ options(install.packages.compile.from.source = "never")
 ## The proteoCraft package can be re-installed at any time in the workflow (there is a specific script for this in the package's library folder),
 ## or just load it here:
 if (exists(".obj")) { rm(".obj") }
-require(proteoCraft)
+myPackNm %<o% "proteoCraft"
+library(myPackNm, character.only = FALSE)
 dirlist %<o% c() # This should go!!!
 ReUseAnsw %<o% FALSE
 ReLoadPSMsBckp %<o% FALSE
 
 RPath %<o% as.data.frame(library()$results)
-RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
-libPath %<o% paste0(RPath, "/proteoCraft")
-homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
-parSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
+RPath <- normalizePath(RPath$LibPath[match(myPackNm, RPath$Package)], winslash = "/")
+libPath %<o% paste0(RPath, "/", myPackNm)
+homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/", myPackNm)
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1, 1)) }
+parSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
 fls <- paste0(homePath, "/", c("Regulation analysis - master script.R",
                                "Regulation analysis - detailed script.R",
                                "Regulation analysis - detailed script_pepOnly.R",
@@ -26,7 +27,7 @@ fls <- paste0(homePath, "/", c("Regulation analysis - master script.R",
                                "Default_locations.xlsx",
                                "LC_columns.xlsx"))
 tst <- sum(!file.exists(fls))
-if (tst) { proteoCraft::Configure() }
+if (tst) { eval(parse(text = paste0(myPackNm, "::Configure()"))) }
 scrptType %<o% "withReps"
 scrptTypeFull %<o% "withReps_PG_and_PTMs"
 
@@ -950,7 +951,7 @@ source(Src, local = FALSE)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_Main.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
-# Temporary solution to the app contamination issue: unload-reload packages
+# Temporary solution to the cross-app contamination issue: unload-reload packages
 unloadNamespace("pRolocGUI")
 unloadNamespace("colourpicker")
 unloadNamespace("devtools")
