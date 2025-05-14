@@ -158,7 +158,7 @@ if (!is.null(TargDir)) {
         #
         #
         # Decide whether to invoice and if so, which files to use to calculate MS time
-        # (e.g. exclude some blanks, reruns, failes injections etc...)
+        # (e.g. exclude some blanks, reruns, failed injections etc...)
         #msgRoot <- paste0("Cloning from \n       ", gsub(".*/", ".../", TargDir), "\nto \n       ", gsub(".*/", ".../", DestDir), "\n")
         msgRoot <- paste0("Cloning from \n       ", TargDir, "\nto\n       ",
                           DestDir, "\n")
@@ -170,6 +170,120 @@ if (!is.null(TargDir)) {
         FilesDF$BrukerD[wI] <- grepl("[^/]\\.d", dirname(FilesDF$Files[wI]), ignore.case = TRUE) # Bruker .d folders
         isThermo <- sum(FilesDF$ThermoRaw) > 0
         isBruker <- sum(FilesDF$BrukerD) > 0
+        if (isThermo) {
+          # We will try to read instrument time from the raw file
+          # Typically, MS spectra do not cover the whole chromatogram, but the pressure profile does.
+          # So we will focus on that:
+          # 1 - Download pressure extracted script
+          pressScript <- paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads/mzML_pressure_to_csv.py")
+          if (!file.exists(pressScript)) {
+            download.file("https://gist.githubusercontent.com/caetera/0921b33f0c6201a538436906cc965fff/raw/d1af134fe228ce6a23be3e5bc3c49d20a8447ab2/mzML_pressure_to_csv.py",
+                          pressScript)
+          }
+          stopifnot(file.exists(pressScript))
+          # Create temporary python pressure script edited to create a more predictably named output
+          tmp <- suppressWarnings(readLines(pressScript))
+          w <- which(tmp == "        csv_path = file.replace('.mzML', f'_{convert_to_safe_filename(chrom_name)}.csv')")
+          tmp[w] <- "        csv_path = file.replace('.mzML', f'.csv')"
+          pressScript2 <- paste0(DestDir, "/pressScript.py")
+          write(tmp, pressScript2)
+          # 2 - Convert files to mzML
+          rawFiles <- FilesDF$Files[which(FilesDF$ThermoRaw)]
+          mzMLs <- gsub("\\.raw$", ".mzML", rawFiles, ignore.case = TRUE)
+          wDel <- which(!file.exists(mzMLs))
+          pressFls <- gsub("\\.mzML$", ".csv", mzMLs)
+          w <- which(!file.exists(mzMLs))
+          if (length(w)) {
+            # Convert to mzML
+            deer <- list()
+            ParsDirs <- grep("/ThermoRawFileParser", c(list.dirs("C:/Program Files", full.names = TRUE, recursive = FALSE),
+                                                       list.dirs(paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads"), full.names = TRUE, recursive = FALSE)),
+                             value = TRUE)
+            tst <- sapply(ParsDirs, function(x) { "ThermoRawFileParser.exe" %in% list.files(x) })
+            ParsDirs <- ParsDirs[which(tst)]
+            if (!length(ParsDirs)) {
+              url <- "https://github.com/compomics/ThermoRawFileParser/releases/download/v1.4.4/ThermoRawFileParser1.4.4.zip"
+              require(curl)
+              dstfl <- paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads/ThermoRawFileParser1.4.4.zip")
+              curl_download(url, dstfl)
+              ParsDirs <- "C:/ThermoRawFileParser/V_1.4.4"
+              if (!dir.exists(ParsDirs)) { dir.create(ParsDirs, recursive = TRUE) }
+              unzip(dstfl, exdir = ParsDirs)
+            }
+            if (length(ParsDirs) > 1) {
+              tst <- sapply(ParsDirs, function(x) { file.info(x)$ctime })
+              ParsDirs <- ParsDirs[which(tst == max(tst))[1]]
+            }
+            deer$ParsDir <- ParsDirs
+            MSConvertInst <- ("C:/Program Files/ProteoWizard"%in% list.dirs("C:/Program Files", recursive = FALSE))
+            if (!MSConvertInst) {
+              tst <- grep("ProteoWizard ", list.dirs("C:/Users/Thermo/AppData/Local/Apps", full.names = FALSE), value = TRUE)
+              if (length(tst)) {
+                MSConvertInst <- TRUE
+                MSConvertDir <- paste0("C:/Users/Thermo/AppData/Local/Apps/", tst[1])
+                deer$MSConvertDir <- MSConvertDir
+              }
+            } else {
+              MSConvertDirs <- grep("/ProteoWizard/ProteoWizard [^/]+",
+                                    list.dirs("C:/Program Files/ProteoWizard", recursive = FALSE), value = TRUE)
+              if (!length(MSConvertDirs)) { MSConvertInst <- FALSE } else {
+                #MSConvertDirs <- c("C:/Program Files/ProteoWizard/ProteoWizard 3.0.19172.57d620127",
+                #                   "C:/Program Files/ProteoWizard/ProteoWizard 3.0.22099.89b871a",
+                #                  "C:/Program Files/ProteoWizard/ProteoWizard 3.0.22317.1e024d4")
+                MSConvertVers <- as.data.frame(t(sapply(strsplit(gsub(".*/ProteoWizard ", "", MSConvertDirs), "\\."), unlist)))
+                MSConvertVers <- MSConvertVers[order(MSConvertVers$V1, MSConvertVers$V2, MSConvertVers$V3, MSConvertVers$V4, decreasing = TRUE),]
+                MSConvertVers <- MSConvertVers[1,]
+                MSConvertDir <- paste0("C:/Program Files/ProteoWizard/ProteoWizard ", paste(MSConvertVers, collapse = "."))
+                deer$MSConvertDir <- MSConvertDir
+              }
+            }
+            Convert_mode <- "thermorawfileparser"
+            zlib <- TRUE
+            PeakPicking <- TRUE
+            clusterExport(parClust, list("rawFiles", "mzMLs", "pressFls", "w"), envir = environment())
+            cat("Temporarily converting", length(w), "Thermo raw files to mzML to extract run time...\n")
+            # (Unfortunately, it does not seem to work if I include only the pressure chromatograms...)
+            if (tolower(Convert_mode) == "thermorawfileparser") { # Mode 1: using ThermoRawFileParser
+              clusterExport(parClust, list("DestDir", "deer", "zlib", "PeakPicking"), envir = environment())
+              tst <- parSapply(parClust, w, function(i) { #i <- w[1]
+                cmd <- paste0("\"", deer$ParsDir, "/ThermoRawFileParser.exe\" -i=\"",
+                              rawFiles[i], "\" -b=\"", gsub(".*/", paste0(DestDir, "/"), mzMLs[i]), "\" -f=2 -a",
+                              c(" -z", "")[zlib+1], c(" -p", "")[PeakPicking+1]#, " -L=1"
+                              )
+                write(cmd, paste0(DestDir, "/tmp", i, ".bat"))
+                cmd2 <- paste0("\"", DestDir, "/tmp", i, ".bat\"") # I have to go through an intermediate batch file to run cmd,
+                # because it is one of those which works in Windows command line but not when passed to system() or shell() in R.
+                #cat(cmd)
+                #writeClipboard(cmd)
+                system(cmd2)
+                unlink(paste0(DestDir, "/tmp", i, ".bat"))
+              })
+            }
+            if (tolower(Convert_mode) == "msconvert") { # Mode 2: using msconvert
+              write(rawFiles[w], file = paste0(DestDir, "/tmp_MS_files.txt"))
+              precRecal <- FALSE
+              cmd <- paste0("\"", deer$MSConvertDir, "/msconvert.exe\" -f \"", DestDir, "/tmp_MS_files.txt\" -o \"",
+                            DestDir, "\" --mzML --64 -z --filter \"peakPicking true 1-\""#, " --filter \"msLevel 1-1\""
+                            )
+              #cat(cmd)
+              system(cmd)
+              unlink(paste0(DestDir, "/tmp_MS_files.txt"))
+            }
+          }
+          # 3 - get pressure traces
+          clusterExport(parClust, list("pressScript2", "mzMLs"), envir = environment())
+          tst <- parSapply(parClust, w, function(i) { #i <- w[1]
+            cmd <- paste0("python \"", pressScript2, "\" ", paste0("\"", mzMLs[i], "\"", collapse = " "))
+            #cat(cmd)
+            system(cmd)
+          })
+          
+          # 4 - read run times from pressure trace
+
+          # 5 - Cleanup
+          unlink(mzMLs[wDel])
+          
+        }
         if (isBruker) {
           dDrs <- unique(grep("[^/]+\\.d$", dirname(FilesDF$Files[which(FilesDF$BrukerD)]), value = TRUE))
           tst <- parSapply(parClust, dDrs, function(dr) {
@@ -186,7 +300,7 @@ if (!is.null(TargDir)) {
         }
         justSimul <- FALSE
         if (isMS) {
-          modes <- c("Copy data to the archive                                                                               ",
+          modes <- c("Copy data to the destination folder                                                                    ",
                      "Run invoicing part only                                                                                ")
           justSimul <- c(FALSE, TRUE)[match(dlg_list(modes, modes[1], title = "MS acquisition folder detected. What do you want to do?")$res, modes)]
           ## Thermo case
