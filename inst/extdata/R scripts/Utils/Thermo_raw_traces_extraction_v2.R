@@ -1791,6 +1791,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                   quant[, c(Factors, "Raw file name")] <- ExpMap2[match(quant$"Raw file", ExpMap2$`MS raw file`), c(Factors, "MS raw file name")]
                   quant$"Peak intensity (rounded)" <- round(quant$"Peak intensity")
                   quant$Color_class <- em01$Color_class[match(quant$"Raw file", em01$`MS raw file`)]
+                  fwrite(quant, paste0(wd, "/", ttl, "_quant.csv"), quote = FALSE, sep = ",", col.names = TRUE, na = "NA")
                 }
                 #
                 for (fct in Factors) {
