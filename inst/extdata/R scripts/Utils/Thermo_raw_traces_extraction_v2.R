@@ -31,7 +31,7 @@ if (length(w)) { pak::pkg_history(cran_req[w], character.only = TRUE) }
 for (pck in cran_req) { library(pck, character.only = TRUE) }
 if (!require(proteoCraft)) {
   pak::pkg_install("Arthfael/proteoCraft")
-  librray(proteoCraft)
+  library(proteoCraft)
 }
 
 # Work-in-Progress only behaviour
@@ -43,10 +43,10 @@ contigEq <- function(data, value, position) {
   id == id[position]
 }
 
-RPath %<o% as.data.frame(library()$results)
+RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
-libPath %<o% paste0(RPath, "/proteoCraft")
-homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/aRmel")
+libPath <- paste0(RPath, "/proteoCraft")
+homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/aRmel")
 # Set Shiny options, load functions for creating a Word report, create Excel styles
 Src <- paste0(libPath, "/extdata/R scripts/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
@@ -54,7 +54,7 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/ShinyOpt_Styles_and_Report.R"
 source(Src)
 
 # Create cluster
-parSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
+parSrc <- paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
 #rstudioapi::documentOpen(parSrc)
 source(parSrc)
 
@@ -352,6 +352,9 @@ FactorsLevels$Replicate <- 1:max(tmp)
 FactorsLevels$Role <- unique(c("Blank", "Buffer_control", "Tag_control", "Standard", "Sample", FactorsLevels$Role))
 FactorsLevels$Nucleotide <- unique(c(unlist(analysisTypes$Nucleotides[which(analysisTypes$Type %in% analysisType)]),
                                      "none", FactorsLevels$Nucleotide))
+tmp <- FactorsLevels$Nucleotide[which(!FactorsLevels$Nucleotide %in% "none")]
+FactorsLevels$Samples_group <- unique(c(paste0("Standard_", tmp), FactorsLevels$Samples_group))
+
 #rm(Factors, FactorsLevels)
 intFact <- c("Replicate", "Isobaric.set")
 dfltInt <- c(1, 1)
@@ -1266,6 +1269,41 @@ for (k in colnames(ExpMap2)) {
     ExpMap2[[k]] <- factor(ExpMap2[[k]], levels = c(FactorsLevels[[k]], "_"))
   }
 }
+fact <- Factors[which(!Factors %in% c("Replicate", "Samples_group", "Samples_group2"))]
+fact <- fact[which(sapply(fact, function(x) {
+  length(unique(ExpMap2[[x]]))
+}) > 1)]
+if (length(fact) > 1) {
+  # Check for synonymous factors
+  tmp <- ExpMap2[, fact]
+  for (fct in fact) {
+    tmp[[fct]] <- as.numeric(as.factor(tmp[[fct]]))
+  }
+  comb <- gtools::combinations(length(fact), 2, fact)
+  comb <- as.data.frame(comb)
+  tst <- apply(comb, 1, function(x) {
+    identical(tmp[[x[1]]], tmp[[x[2]]])
+  })
+  w <- which(tst)
+  if (length(w)) {
+    fct2Remov <- unique(comb[w, 2])
+    fact <- fact[which(!fact %in% fct2Remov)]
+  }
+}
+if (!length(fact)) {
+  fact <- "Protein"
+}
+fact <- unique(c(fact, "Role"))
+ExpMap2$Samples_group2 <- do.call(paste, c(ExpMap2[, fact, drop = FALSE], sep = " "))
+tst <- aggregate(ExpMap2$Samples_group, list(ExpMap2$Samples_group2), function(x) { length(unique(x)) })
+if (max(tst$x) > 1) {
+  fact <- unique(c(fact, "Samples_group"))
+  ExpMap2$Samples_group2 <- do.call(paste, c(ExpMap2[, fact, drop = FALSE], sep = " "))
+}
+Samples_group2 <- unique(ExpMap2$Samples_group2)
+FactorsLevels[["Samples_group2"]] <- Samples_group2
+Factors <- unique(c("Samples_group2", Factors))
+ExpMap2$Samples_group2 <- factor(ExpMap2$Samples_group2, levels = FactorsLevels[["Samples_group2"]])
 
 # Peak extract
 propFlt <- function(x,
@@ -1631,7 +1669,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
           RTchrm <- chrm[which((chrm$`Retention time` >= RTlim$Start)&(chrm$`Retention time` <= RTlim$End)),]
           Targ <- rtRanges$Nucleotide[I]
           w0 <- which(RTchrm$`Raw file` %in% ExpMap2$`MS raw file`[rg0])
-          for (prot in Protein) { #prot <- Protein[2] # Let's plot each protein separately
+          for (prot in Protein) { #prot <- Protein[1] #prot <- Protein[2] #prot <- Protein[3] # Let's plot each protein separately
             pat <- paste0("^", grp, " ", prot, " ")
             flRgs <- grep(paste0(pat, "[0-9]+$"), names(flRanges), value = TRUE) # Here these are file ranges, not RT ranges
             if (length(flRgs)) {
@@ -1644,7 +1682,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                 em01 <- ExpMap2[which((ExpMap2$Protein == prot)|(ExpMap2$Role %in% c("Standard", "Buffer_control"))),]
               }
               em1 <- em01[which(!em01$Role %in% c("Standard", "Buffer_control")),]
-              Factors3 <- Factors[which(Factors != "Replicate")]
+              Factors3 <- Factors[which(!Factors %in% c("Replicate", "Samples_group"))] # Not using Samples_group because we replace it with Samples_group2!!!
               tst <- sapply(Factors3, function(fct) {
                 (fct %in% colnames(em1))&&(length(unique(em1[[fct]])) > 1)
               })
@@ -1745,7 +1783,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                   names(quantLst) <- c(stdF, f2)
                   #
                   quant <- sapply(quantLst, function(x) { x$Quant })
-                  quant <- data.frame("Raw file" = f,
+                  quant <- data.frame("Raw file" = names(quantLst),
                                       "Peak intensity" = quant,
                                       check.names = FALSE)
                   quant[, c("Peak start", "Peak apex", "Peak end")] <- as.data.frame(t(sapply(quantLst, function(x) { x$PeakRT })))
@@ -1758,7 +1796,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                 for (fct in Factors) {
                   RTchrm01[[fct]] <- factor(RTchrm01[[fct]], unique(em01[[fct]]))
                 }
-                RTchrm01$Color_class <- em01$Color_class[match(RTchrm01$Samples_group, em01$Samples_group)]
+                RTchrm01$Color_class <- em01$Color_class[match(RTchrm01$Samples_group2, em01$Samples_group2)]
                 #RTchrm1 <- RTchrm01[which(!RTchrm01$Role %in% c("Standard", "Buffer_control")),]
                 #RTchrm0 <- RTchrm01[which(RTchrm01$Role %in% c("Standard", "Buffer_control")),]
                 #smpls <- unique(RTchrm1$Sample)
