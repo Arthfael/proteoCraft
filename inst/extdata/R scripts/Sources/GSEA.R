@@ -32,7 +32,7 @@ log2Col <- paste0(ratRef, VPAL$values)
 log2Col <- log2Col[which(log2Col %in% colnames(myData))]
 isOK <- length(log2Col) > 0
 if (isOK) {
-  #
+  # For now only the following 20 organisms are supported, because we need their annotations package:
   orgDBs <- data.frame(Full = c("Homo sapiens",
                                 "Pan troglodytes",
                                 "Macaca mulatta",
@@ -73,11 +73,21 @@ if (isOK) {
                               "org.EcK12.eg.db",
                               "org.EcSakai.eg.db",
                               "org.Mxanthus.db"))
+  # I will need to make this more universal.
+  # ...
   if (Org$Organism %in% orgDBs$Full) { organism <- Org$Organism } else {
     organism <- dlg_list(c(orgDBs$Full, "none of these"),
                          orgDBs$Full[1], title = "Select organism")$res
   }
   isOK <- organism != "none of these"
+  # See https://guangchuangyu.github.io/2016/01/go-analysis-using-clusterprofiler/ for how to create annotations with the format clusterProfiler expects
+  #BiocManager::install("AnnotationHub")
+  #library(AnnotationHub)
+  #hub <- AnnotationHub()
+  #query(hub, organism)
+  #myOrgAnnot <- hub[db$`Protein ID`]
+  # ...
+  # test this: can I use this and skip altogether the db package installation step?
 }
 if (isOK) {
   orgDBpkg <- orgDBs$db[match(organism, orgDBs$Full)]
@@ -134,15 +144,20 @@ if (isOK) {
   }
   gses <- setNames(gses, proteoCraft::cleanNms(gsub(proteoCraft::topattern(ratRef), "", log2Col)))
   #
+  d <- GOSemSim::godata(annoDb = orgDBpkg, ont = "BP") # It seems to make sense use BP here since we are interested in which biological processes are reacting to the perturbation
+  nCat <- 50
+  #
   # GSEA dot plots
   nmRoot <- "GSEA dotplot"
   lapply(names(gses), function(grp) { #grp <- names(gses)[1]
     gse <- gses[[grp]]$GSE
     try({
-      plot <- dotplot(gse, showCategory = 10, split = ".sign") + facet_grid(.~.sign) +
-        theme(axis.text.x = element_text(size = 5),
-              axis.text.y = element_text(size = 5))
-      #plot <- dotplot(gse, showCategory = 10, color = "pvalue", split = ".sign") + facet_grid(.~.sign)
+      plot <- dotplot(gse, showCategory = nCat, split = ".sign", font.size = 4,
+                      label_format = 500 # don't you dare wrap my labels!!!
+      ) + facet_grid(.~.sign) +
+        coord_fixed(0.025)
+      #plot <- dotplot(gse, showCategory = nCat, color = "pvalue", split = ".sign") + facet_grid(.~.sign)
+      #poplot(plot)
       ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
       ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
     }, silent = TRUE)
@@ -153,35 +168,70 @@ if (isOK) {
   lapply(names(gses), function(grp) { #grp <- names(gses)[1]
     gse <- gses[[grp]]$GSE
     try({
-      d <- GOSemSim::godata(orgDBpkg, ont = "BP") # It seems to use BP here since we are interested in which biological processes are reacting to the perturbation
       gse2 <- pairwise_termsim(gse, method = "Wang", semData = d)
-      plot <- emapplot(gse2, showCategory = 50)
+      plot <- emapplot(gse2, showCategory = nCat)
       l <- length(plot$layers)
       w <- which(sapply(1:l, function(x) { "GeomTextRepel" %in% class(plot$layers[[x]]$geom) }))
       plot$layers[[w]]$aes_params$size <- 2
       #getMethod("emapplot", "gseaResult")
+      #poplot(plot)
       ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
       ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
     }, silent = TRUE)
   })
   #
   # GSEA category net plots
+  if (!"Label" %in% colnames(db)) {
+    db$Label <- do.call(paste, c(db[, c("Common Name", "Protein ID")], sep = "\n"))
+  }
   nmRoot <- "GSEA category net plot"
+  # For this plot it would be nice to be able to:
+  # - Do it for GO terms of interest only
+  # - Update labels to ones more informative
+  # - Plot as interactive plotly
+  #  (see commented discussion below about how to achieve this)
   lapply(names(gses), function(grp) { #grp <- names(gses)[1]
+    gse <- gses[[grp]]$GSE
     try({
-      gse <- gses[[grp]]$GSE
       lFC <- gses[[grp]]$lFC
-      plot <- cnetplot(gse, categorySize = "pvalue", foldChange = lFC, showCategory = 3)
+      plot <- cnetplot(gse, categorySize = "pvalue", foldChange = lFC, showCategory = 10, colorEdge = TRUE,
+                       #cex_label_category = 1.2, cex_label_gene = 0.8 # Those parameters do not work for me...
+      )
+      # ... so I used a hacky solution:
+      l <- length(plot$layers)
+      w <- which(sapply(1:l, function(x) { "GeomTextRepel" %in% class(plot$layers[[x]]$geom) }))
+      plot$layers[[w]]$aes_params$size <- 1.6 # Downside: applies to both categories and proteins!
+      # Edit labels
+      plot$data$label <- plot$data$label
+      w <- which(plot$data$label %in% db$`Protein ID`)
+      plot$data$label[w] <- db$Label[match(plot$data$label[w], db$`Protein ID`)]
+      #
+      #poplot(plot)
       ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
       ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+      #
+      # plot2 <- plotly::ggplotly(plot, tooltip = "label")
+      # htmlwidgets::saveWidget(plot2, paste0(ohDeer, "/", grp, " ", nmRoot, ".html"),
+      #                         selfcontained = TRUE)
+      # Doesn't work, even though the 
+      # Maybe the solution would be to get the data from the ggplot created, including the segment layer, which uses its own data,
+      # and rewrite my own ggplot2 call?
+      # That way I could also easily filter for specific GO terms.
+      # TBC...
     }, silent = TRUE)
   })
+  #
   # GSEA ridge plots
   nmRoot <- "GSEA ridge plot"
   lapply(names(gses), function(grp) { #grp <- names(gses)[1]
+    gse <- gses[[grp]]$GSE
     try({
-      gse <- gses[[grp]]$GSE
-      plot <- ridgeplot(gse) + labs(x = "enrichment distribution")
+      plot <- ridgeplot(gse, 100,
+                        label_format = 500 # don't you dare wrap my labels!!!
+      ) + labs(x = "enrichment distribution") +
+        theme(axis.text.x = element_text(size = 4.5),
+              axis.text.y = element_text(size = 4.5))
+      #poplot(plot)
       ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
       ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
     }, silent = TRUE)

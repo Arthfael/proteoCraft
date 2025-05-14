@@ -111,13 +111,13 @@ k2 <- k2[which(!k2 %in% c(k1, "Sample name", "Use"))]
 ExpData <- ExpData[which(ExpData$MQ.Exp %in% MQ.Exp), ]
 L <- length(ALLIDS)
 #
-# Original table width
+# Original table column widths
 wTest0 <- setNames(sapply(colnames(ExpData), function(k) { #k <- colnames(ExpData)[1]
   tst <- k %in% Fact2
   x <- max(c(nchar(k),
              nchar(as.character(ExpData[[k]])) + 3 + 3*tst), na.rm = TRUE)
   if (tst) {
-    x <- max(c(x, nchar(FactorsLevels[[k]]) + 6))
+    x <- max(c(x, nchar(FactorsLevels[[k]]) + 6), na.rm = TRUE)
   }
   x <- x*10
   if (is.na(x)) { x <- 15 } else { x <- max(c(ceiling(x/10)*10, 30)) }
@@ -168,7 +168,7 @@ ExpData2$Use <- shinyCheckInput(ExpData$Use,
                                 "Use")
 ExpData2$Use___FD <- shinyFDInput("Use", nr, TRUE)
 ExpData2 <- ExpData2[, c(kol2, kol, "Use", "Use___FD", "Sample name")]
-# Update table width
+# Estimate table column widths
 wTest1 <- sapply(colnames(ExpData2), function(k) { #k <- colnames(ExpData2)[1]
   if (k == "Parent sample") { k <- "MQ.Exp" }
   if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
@@ -235,19 +235,19 @@ server <- function(input, output, session) {
   #
   # Render dummy table
   output$ExpTbl <- DT::renderDT({ ExpData2 },
-    FALSE,
-    escape = FALSE,
-    selection = "none",
-    rownames = FALSE,
-    editable = edith,
-    options = list(dom = "t",
-                   paging = FALSE,
-                   ordering = FALSE,
-                   autowidth = TRUE,
-                   columnDefs = wTest1,
-                   scrollX = FALSE),
-    # the callback is essential to capture the inputs in each row
-    callback = JS("table.rows().every(function(i, tab, row) {
+                                FALSE,
+                                escape = FALSE,
+                                selection = "none",
+                                rownames = FALSE,
+                                editable = edith,
+                                options = list(dom = "t",
+                                               paging = FALSE,
+                                               ordering = FALSE,
+                                               autowidth = TRUE,
+                                               columnDefs = wTest1,
+                                               scrollX = FALSE),
+                                # the callback is essential to capture the inputs in each row
+                                callback = JS("table.rows().every(function(i, tab, row) {
         var $this = $(this.node());
         $this.attr('id', this.data()[0]);
         $this.addClass('shiny-input-container');
