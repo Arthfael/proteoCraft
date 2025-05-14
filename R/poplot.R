@@ -1,7 +1,7 @@
 #' poplot
 #'
 #' @description 
-#' A wrapup for plotting in a popup window (or not: can also just do in local window). Should work on all devices. Some strange people like Macs.
+#' A wrapup for plotting in a popup window (or not: can also just do in local window). Should work on all devices (some strange people like Macs.)
 #' 
 #' @param plot Plot to print.
 #' @param height Height of the popup. Default = 10.
