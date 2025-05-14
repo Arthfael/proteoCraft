@@ -422,6 +422,32 @@ Mirror.Ratios %<o% FALSE
 if ("Mirror.Ratios" %in% colnames(Param)) { Mirror.Ratios <- Param$Mirror.Ratios <- as.logical(Param$Mirror.Ratios) }
 Param$Mirror.Ratios <- Mirror.Ratios
 TwoSidedDeflt <- c(c("Up-only", "Down-only")[Mirror.Ratios+1], "Both directions")[TwoSidedDeflt+1]
+# ROC
+rockOOOOOOON %<o% ((Annotate)&(scrptTypeFull == "withReps_PG_and_PTMs"))
+ROC_GOterms %<o% c()
+ROCfilt_GOterms_Pos %<o% c()
+ROCfilt_GOterms_Neg %<o% c()
+if (rockOOOOOOON) {
+  if ("ROC.GO.terms" %in% colnames(Param)) {
+    Param$ROC_GOterms <- Param$ROC.GO.terms
+    Param$ROC.GO.terms <- NULL
+  }
+  if ("ROC_GOterms" %in% colnames(Param)) { 
+    tmp <- unlist(strsplit(Param$ROC_GOterms, ";"))
+    tmp <- tmp[which(tmp %in% GO_terms$ID)]
+    if (length(tmp)) { ROC_GOterms <- tmp }
+  }
+  if ("ROCfilt_GOterms_Pos" %in% colnames(Param)) {
+    tmp <- unlist(strsplit(Param$ROCfilt_GOterms_Pos, ";"))
+    tmp <- tmp[which(tmp %in% GO_terms$ID)]
+    if (length(tmp)) { ROCfilt_GOterms_Pos <- tmp }
+  }
+  if ("ROCfilt_GOterms_Neg" %in% colnames(Param)) {
+    tmp <- unlist(strsplit(Param$ROCfilt_GOterms_Neg, ";"))
+    tmp <- tmp[which(tmp %in% GO_terms$ID)]
+    if (length(tmp)) { ROCfilt_GOterms_Neg <- tmp }
+  }
+}
 #
 mnFct <- c("Experiment", "Replicate")
 if (WorkFlow == "TIMECOURSE") { mnFct <- c(mnFct, "Time.point") }
@@ -520,13 +546,15 @@ ui1 <- fluidPage(
   tags$hr(style = "border-color: black;"),
   h4(strong("Data processing")),
   fluidRow(
-    column(3, numericInput("minInt",
-                           "Exclude PSMs with intensity lower than...",
-                           minInt,
-                           0,
-                           .Machine$double.xmax,
-                           width = "100%")),
-    column(3, checkboxInput("Impute", "Impute missing peptides-level values?", Impute, "100%")),
+    column(3,
+           numericInput("minInt",
+                        "Exclude PSMs with intensity lower than...",
+                        minInt,
+                        0,
+                        .Machine$double.xmax,
+                        width = "100%")),
+    column(3,
+           checkboxInput("Impute", "Impute missing peptides-level values?", Impute, "100%")),
     column(3,
            checkboxInput("Update_Prot_matches", paste0("Update ", names(SearchSoft), "'s original protein-to-peptides assignments?"), Update_Prot_matches, "100%"),
            bsTooltip("Update_Prot_matches",
@@ -534,6 +562,12 @@ ui1 <- fluidPage(
                      placement = "right", trigger = "hover", options = list(container = "body")),
            withSpinner(uiOutput("ReloadMatches"))
     )),
+  br(),
+  if (rockOOOOOOON) {
+    fluidRow(column(6,
+                    checkboxInput("ROC1on", "PSMs-level ROC filter", length(ROC_GOterms) > 0, "100%"),
+                    withSpinner(uiOutput("ROC1")))),
+  }
   tags$hr(style="border-color: black;"),
   withSpinner(uiOutput("IsobarCorr")),
   withSpinner(uiOutput("Norm")),
@@ -628,6 +662,10 @@ ui1 <- fluidPage(
                        KontGrp,
                        width = "100%"))
   ),
+  if (rockOOOOOOON) {
+    checkboxInput("ROC2on", "ROC analysis", length(ROC_GOterms) > 0, "100%"),
+    withSpinner(uiOutput("ROC2")),
+  }
   tags$hr(style="border-color: black;"),
   withSpinner(uiOutput("GO")),
   tags$hr(style="border-color: black;"),
@@ -676,6 +714,11 @@ server1 <- function(input, output, session) {
   m4Quant <- reactiveVal(Mod4Quant)
   m2Xclud <- reactiveVal(Mod2Xclud)
   ADVOPT <- reactiveVal(tstAdvOpt)
+  if (rockOOOOOOON) {
+    ROC1ON <- reactiveVal(length(c(ROCfilt_GOterms_Pos,
+                                   ROCfilt_GOterms_Neg)) > 0)
+    ROC2ON <- reactiveVal(length(ROC_GOterms) > 0)
+  }
   #
   # Dynamic UI
   # Map Parameters to Factors
@@ -787,52 +830,72 @@ server1 <- function(input, output, session) {
   })
   # Normalisations
   output$Norm <- renderUI({
-    lst <- list(list(fluidRow(column(1, h4(strong("Normalisations"))),
-                              column(2, checkboxInput("Norm", "Normalize data",
+    lst <- list(list(fluidRow(column(2,
+                                     h4(strong("Normalisations"))),
+                              column(3,
+                                     br(),
+                                     checkboxInput("Norm", "Normalize data",
                                                       sum(Param$Norma.Ev.Intens,
                                                           Param$Norma.Pep.Intens,
                                                           Param$Norma.Prot.Ratio) > 0, "100%"))),
                      br(),
-                     fluidRow(column(1, h5(strong(" -> PSMs-level: "))),
-                              column(3, checkboxInput("evLM", "Levenberg-Marquardt",
+                     fluidRow(column(1,
+                                     h5(strong(" -> PSMs-level: "))),
+                              column(2,
+                                     br(),
+                                     checkboxInput("evLM", "Levenberg-Marquardt",
                                                       Param$Adv.Norma.Ev.Intens, "100%"))),
                      br(),
-                     fluidRow(column(1, h5(strong(" -> Peptidoforms-level: "))),
-                              column(2, radioButtons("pepShape", "Corrections",
+                     fluidRow(column(1,
+                                     h5(strong(" -> Peptidoforms-level: "))),
+                              column(2,
+                                     br(),
+                                     radioButtons("pepShape", "Corrections",
                                                      c("none", "vsn", "loess"),
                                                      shpDflt, TRUE, "100%")),
-                              column(2, checkboxInput("pepLM", "Levenberg-Marquardt",
+                              column(2,
+                                     br(),
+                                     checkboxInput("pepLM", "Levenberg-Marquardt",
                                                       Param$Adv.Norma.Pep.Intens, "100%"))),
                      br()))
     if ((LabelType == "Isobaric")&&(length(Iso) > 1)) {
-      lst <- append(lst, list(fluidRow(column(2, checkboxInput("IRS", "IRS", Param$Norma.Pep.Intens.IRS, "100%")))))
+      lst <- append(lst,
+                    list(fluidRow(column(2,
+                                         br(),
+                                         checkboxInput("IRS", "IRS", Param$Norma.Pep.Intens.IRS, "100%")))))
       dfltChan <- unlist(strsplit(Param$Norma.Pep.Intens.IRS_Ref_channels, ";"))
       dfltChan <- dfltChan[which(dfltChan %in% get(IsobarLab))]
       if (length(dfltChan) != length(Iso)) { dfltChan <- rep(get(IsobarLab)[1], length(Iso)) }
       dfltChan <- reactiveVal(dfltChan)
       for (i in length(Iso)) {
         m <- unique(Exp.map[which(Exp.map$Isobaric.set == Iso[i])],)
-        lst <- append(lst, list(fluidRow(column(2, h5(strong(em(paste0(" -> ",
-                                                                       paste(dfltChan(), collapse = " / "),
-                                                                       ": "))))),
-                                         column(2, pickerInput(paste0("intRef", Iso[i]),
-                                                               paste0("- Isobaric set ", Iso[i]),
-                                                               m$Isobaric.label, dfltChan()[i], TRUE,
-                                                               pickerOptions(title = "Search me",
-                                                                             `live-search` = TRUE,
-                                                                             actionsBox = TRUE,
-                                                                             deselectAllText = "Clear search",
-                                                                             showTick = TRUE)
+        lst <- append(lst, list(fluidRow(column(1,
+                                                h5(strong(em(paste0(" -> ",
+                                                                    paste(dfltChan(), collapse = " / "),
+                                                                    ": "))))),
+                                         column(2,
+                                                br(),
+                                                pickerInput(paste0("intRef", Iso[i]),
+                                                            paste0("- Isobaric set ", Iso[i]),
+                                                            m$Isobaric.label, dfltChan()[i], TRUE,
+                                                            pickerOptions(title = "Search me",
+                                                                          `live-search` = TRUE,
+                                                                          actionsBox = TRUE,
+                                                                          deselectAllText = "Clear search",
+                                                                          showTick = TRUE)
                                          ))),
                                 br()))
       }
     }
     if (scrptTypeFull == "withReps_PG_and_PTMs") {
       lst <- append(lst, list(fluidRow(column(1, h5(strong(" -> Protein Groups-level: "))),
-                                       column(2, checkboxInput("prtLM", "Levenberg-Marquardt",
+                                       column(2,
+                                              br(),
+                                              checkboxInput("prtLM", "Levenberg-Marquardt",
                                                                Param$Adv.Norma.Prot.Intens, "100%")),
                                        br()),
                               fluidRow(column(2,
+                                              br(),
                                               pickerInput("prt2PrtSlct", " -> To selected proteins ",
                                                           protHeads, prt2PrtSlctDflt, TRUE,
                                                           pickerOptions(title = "Search me",
@@ -865,7 +928,8 @@ server1 <- function(input, output, session) {
                                                           deselectAllText = "Clear search",
                                                           showTick = TRUE))),
                       column(1, checkboxInput("GO2Int", "Use GO terms to define list of proteins of interest?",
-                                              Param$GO.terms.for.proteins.of.interest , "100%"))))
+                                              as.character(toupper(Param$GO.terms.for.proteins.of.interest)) == "TRUE", # Clumsy but possibly more backwards proof
+                                              "100%"))))
       )
     }
     return(lst)
@@ -923,8 +987,6 @@ server1 <- function(input, output, session) {
     }
   })
   #
-  #
-  # Event observers
   # Optional input files
   updtOptOn <- function(reactive = TRUE) {
     if (reactive) { tst <- ADVOPT() } else { tst <- tstAdvOpt }
@@ -936,7 +998,7 @@ server1 <- function(input, output, session) {
         fluidRow(column(12, em("->"), 
                         shinyFilesButton("CustPG", em("Custom Protein Groups"), "", FALSE), br(),
                         em("Allows \"cheating\" with the naive Protein Groups assembly algorithm."), br(),
-                        em("Useful when e.g. samples express from a custom construct to which matching peptides should be assigned in priority."), br(),
+                        em("Useful when for instance genetically-motified/transduced samples synthesize a custom protein (e.g. fusion construct) to which matching peptides should be assigned in priority over the canonical form."), br(),
                         em("Should be a table with two columns: \"Leading protein IDs\" (\";\"-separated) and \"Priority\" (integer)."), br(),
                         strong("Current selection = "), span(Param$Custom.PGs, style = "color:blue", .noWS = "outside"),
                         br(),
@@ -968,6 +1030,8 @@ server1 <- function(input, output, session) {
     renderUI(lst)
   }
   output$AdvOpt <- updtOptOn(FALSE)
+  # Event observers
+  # Optional input files
   observeEvent(input$AdvOptOn, {
     ADVOPT(input$AdvOptOn)
     output$AdvOpt <- updtOptOn()
@@ -1011,6 +1075,75 @@ server1 <- function(input, output, session) {
       }
   }
   })
+  # ROC
+  # Optional input files
+  if (rockOOOOOOON) {
+    updtROC1 <- function(reactive = TRUE) {
+      if (reactive) { tst <- ROC1ON() } else { tst <- length(c(ROCfilt_GOterms_Pos, ROCfilt_GOterms_Neg)) > 0 }
+      if (tst) {
+        lst <- list(
+          fluidRow(column(4,
+                          pickerInput("ROC1_pos", "Positive GO terms", allGO, ROCfilt_GOterms_Pos, TRUE,
+                                      pickerOptions(title = "Search me",
+                                                    `live-search` = TRUE,
+                                                    actionsBox = TRUE,
+                                                    deselectAllText = "Clear search",
+                                                    showTick = TRUE))),
+                   column(4,
+                          pickerInput("ROC1_neg", "Negative GO terms", allGO, ROCfilt_GOterms_Neg, TRUE,
+                                      pickerOptions(title = "Search me",
+                                                    `live-search` = TRUE,
+                                                    actionsBox = TRUE,
+                                                    deselectAllText = "Clear search",
+                                                    showTick = TRUE)),
+                          em("Optional: these can be used for an inverted ROC analysis."))))
+      } else { lst <- list(list(em(""))) }
+      renderUI(lst)
+    }
+    updtROC2 <- function(reactive = TRUE) {
+      if (reactive) { tst <- ROC2ON() } else { tst <- length(ROC_GOterms) > 0 }
+      if (tst) {
+        lst <- list(
+          fluidRow(column(4,
+                          pickerInput("ROC2_terms", "GO terms to evaluate", allGO, ROC_GOterms, TRUE,
+                                      pickerOptions(title = "Search me",
+                                                    `live-search` = TRUE,
+                                                    actionsBox = TRUE,
+                                                    deselectAllText = "Clear search",
+                                                    showTick = TRUE)))))
+      } else { lst <- list(list(em(""))) }
+      renderUI(lst)
+    }
+    output$ROC1 <- updtROC1(FALSE)
+    output$ROC2 <- updtROC1(FALSE)
+    observeEvent(input$ROC1on, {
+      ROC1ON(input$ROC1on)
+      output$ROC1 <- updtROC1()
+    })
+    observeEvent(input$ROC2on, {
+      ROC2ON(input$ROC2on)
+      output$ROC2 <- updtROC2()
+    })
+    observeEvent(input$ROC1_pos, {
+      Par <- PARAM()
+      ROCfilt_GOterms_Pos <<- allGO2[match(input$ROC1_pos, allGO)]
+      Par$ROCfilt_GOterms_Pos <- paste(ROCfilt_GOterms_Pos, collapse = ";")
+      PARAM(Par)
+    })
+    observeEvent(input$ROC1_neg, {
+      Par <- PARAM()
+      ROCfilt_GOterms_Neg <<- allGO2[match(input$ROC1_neg, allGO)]
+      Par$ROCfilt_GOterms_Neg <- paste(ROCfilt_GOterms_Neg, collapse = ";")
+      PARAM(Par)
+    })
+    observeEvent(input$ROC2_terms, {
+      Par <- PARAM()
+      ROC_GOterms <<- allGO2[match(input$ROC2_terms, allGO)]
+      Par$ROC_GOterms <- paste(ROC_GOterms, collapse = ";")
+      PARAM(Par)
+    })
+  }
+  #
   # Minimum intensity
   observeEvent(input$minInt, {
     assign("minInt", as.numeric(input$minInt), envir = .GlobalEnv)
@@ -1253,7 +1386,7 @@ server1 <- function(input, output, session) {
   }
   observeEvent(input$GO2Int, {
     Par <- PARAM()
-    Par$GO.terms.for.proteins.of.interest <- input$GO2Int
+    Par$GO.terms.for.proteins.of.interest <- paste(input$GO2Int, collapse = ";")
     PARAM(Par)
   })
   #
