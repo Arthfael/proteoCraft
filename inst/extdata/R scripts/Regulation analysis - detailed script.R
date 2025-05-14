@@ -8,7 +8,7 @@ options(install.packages.compile.from.source = "never")
 ## or just load it here:
 if (exists(".obj")) { rm(".obj") }
 myPackNm %<o% "proteoCraft"
-library(myPackNm, character.only = FALSE)
+library(myPackNm, character.only = TRUE)
 dirlist %<o% c() # This should go!!!
 ReUseAnsw %<o% FALSE
 ReLoadPSMsBckp %<o% FALSE
@@ -667,6 +667,9 @@ if (Annotate) {
   write.csv(db, "Parsed, annotated search db.csv", row.names = FALSE)
   #db <- read.csv("Parsed, annotated search db.csv", check.names = FALSE, colClasses = "character")
 }
+source(parSrc, local = FALSE)
+Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_prepare.R") # Doing this earlier but also keep latter instance for now
+source(Src, local = FALSE)
 
 # Create experiment Factors shortcuts
 Aggregates %<o% Factors
@@ -1507,7 +1510,7 @@ if ((LabelType == "Isobaric")&&("Label.Purities.file" %in% colnames(Param))&&(!P
           exports <- list("A", "e", "kol")
           clusterExport(parClust, exports, envir = environment())
           clusterCall(parClust, function() library(matlib))
-          clusterCall(parClust, function() library(proteoCraft))
+          clusterCall(parClust, function() library(myPackNm, character.only = TRUE))
           temp <- as.data.frame(t(parApply(parClust, e[,kol], 1, function(x) {
             b <- as.numeric(x)
             b[which(!is.all.good(b, 2))] <- 0
@@ -1583,7 +1586,7 @@ if ((LabelType == "Isobaric")&&("Label.Purities.file" %in% colnames(Param))&&(!P
           exports <- list("A", "e", "kol")
           clusterExport(parClust, exports, envir = environment())
           clusterCall(parClust, function() library(matlib))
-          clusterCall(parClust, function() library(proteoCraft))
+          clusterCall(parClust, function() library(myPackNm, character.only = TRUE))
           temp <- as.data.frame(t(parApply(parClust, e[,kol], 1, function(x) {
             b <- as.numeric(x)
             b[which(!is.all.good(b, 2))] <- 0
@@ -1815,7 +1818,7 @@ if (Param$Norma.Ev.Intens) {
         AdvNorm.Ev.RepIntens %<o% data.frame(Group = Iso)
         tmpEv <- ev[, c("Isobaric.set", "Unique State", k0)]
         if ("Fraction" %in% colnames(ev)) { tmpEv$Fraction <- ev$Fraction } else { tmpEV$Fraction <- 1 }
-        clusterCall(parClust, function() library(proteoCraft))
+        clusterCall(parClust, function() library(myPackNm, character.only = TRUE))
         m4 <- tstRI <- list()
         msg <- "     Estimating normalisation factors within..."
         ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Print = FALSE)
@@ -1967,7 +1970,7 @@ if (Param$Norma.Ev.Intens) {
   }
 }
 # If isobaric, re-scale reporter intensities to total evidence intensities:
-# Important: this bit must remain after the normalisation of MS1 intensities
+# Important: this bit must remain after the normalization of MS1 intensities
 if (LabelType == "Isobaric") {
   DatAnalysisTxt <- gsub("\\.$", ", then reporter intensities were re-scaled using MS1 intensities.", DatAnalysisTxt)
   ev.ref["Adjusted"] <- paste0("adj. ", ev.ref["Original"])
@@ -2051,6 +2054,102 @@ gc()
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 source(parSrc, local = FALSE)
+
+
+#### Code chunk - ROC analysis
+# Only basic in place now, add shiny app
+# see https://rpubs.com/Wangzf/pROC
+if (length(ROCfilt_GOterms_Pos)) {
+  ROCfilt_Pos <- unique(unlist(lapply(ROCfilt_GOterms_Pos, function(x) {
+    GO_terms$Offspring[match(x, GO_terms$ID)]
+  })))
+  if (length(ROCfilt_GOterms_Neg)) {
+    ROCfilt_Neg <- unique(unlist(lapply(ROCfilt_GOterms_Neg, function(x) {
+      GO_terms$Offspring[match(x, GO_terms$ID)]
+    })))
+    ROCfilt_Pos <- ROCfilt_Pos[which(!ROCfilt_Pos %in% ROCfilt_Neg)]
+    ROCfilt_Neg <- ROCfilt_Neg[which(!ROCfilt_Neg %in% ROCfilt_Pos)]
+  }
+}
+if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
+  pack <- "pROC"
+  bioc_req <- unique(c(bioc_req, pack))
+  if (!require(pack, character.only = TRUE)) { biocInstall(pack) }
+  msg <- "PSMs filtering using ROC analysis"
+  ReportCalls <- AddMsg2Report()
+  dir <- paste0(wd, "/Workflow control/", evNm, "s/ROC analysis")
+  dirlist <- unique(c(dirlist, dir))
+  if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+  tmp <- data.table(Proteins = ev$Proteins, Sequence = ev$Sequence)
+  tmp <- tmp[, list(Proteins = unique(Proteins)), by = list(Sequence = Sequence)]
+  tmp <- as.data.frame(tmp)
+  tmp <- listMelt(strsplit(tmp$Proteins, ";"), tmp$Sequence, c("Protein", "Sequence"))
+  tmp2 <- data.table(Intensity = ev$Intensity, Sequence = ev$Sequence)
+  tmp2 <- tmp2[, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(Sequence = Sequence)]
+  tmp2 <- as.data.frame(tmp2)
+  tmp2 <- tmp2[which(tmp2$Intensity > 0),]
+  tmp2$Predictor <- log10(tmp2$Intensity)
+  tmp2 <- tmp2[order(tmp2$Predictor, decreasing = TRUE),]
+  tmp3 <- listMelt(strsplit(db$`GO-ID`, ";"), db$`Protein ID`, c("Term", "Protein"))
+  tmp3 <- tmp3[which(tmp3$Term %in% c(ROCfilt_Pos, ROCfilt_Neg)),]
+}
+tst <- rep(FALSE, 2)
+if (length(ROCfilt_Pos)) {
+  tmp2$"True Positive" <- FALSE
+  p <- tmp3$Protein[which(tmp3$Term %in% ROCfilt_Pos)]
+  s <- tmp$Sequence[match(p, tmp$Protein)]
+  w <- which(tmp2$Sequence %in% s)
+  tmp2$"True Positive"[w] <- TRUE
+  if (sum(tmp2$"True Positive") < 10) {
+    msg <- "Not enough TRUE positives for ROC analysis (min = 10), skipping!"
+    ReportCalls <- AddMsg2Report(Warning = TRUE, Print = FALSE)
+  } else {
+    rocobj1 <- pROC::roc(tmp2$"True Positive", tmp2$Predictor)
+    rocPlot1 <- pROC::ggroc(rocobj1, color = "red") +
+      theme_bw()
+    tst[1] <- TRUE
+  }
+}
+if (length(ROCfilt_Neg)) {
+  tmp2$"Not True Negative" <- TRUE
+  p <- tmp3$Protein[which(tmp3$Term %in% ROCfilt_Neg)]
+  s <- tmp$Sequence[match(p, tmp$Protein)]
+  w <- which(tmp2$Sequence %in% s)
+  tmp2$"Not True Negative"[w] <- FALSE
+  if (sum(!tmp2$"Not True Negative") < 10) {
+    msg <- "Not enough TRUE negatives for ROC analysis (min = 10), skipping!"
+    ReportCalls <- AddMsg2Report(Warning = TRUE, Print = FALSE)
+  } else {
+    rocobj2 <- pROC::roc(tmp2$`Not True Negative`, tmp2$Predictor)
+    rocPlot2 <- pROC::ggroc(rocobj2, color = "blue") +
+      theme_bw()
+    tst[2] <- TRUE
+  }
+}
+ttl <- paste0("PSMs ROC analysis")
+plotPath <- paste0(dir, "/", ttl, ".png")
+if (sum(tst)) {
+  if (sum(tst) == 2) {
+    pack <- "gridExtra"
+    cran_req <- unique(c(cran_req, pack))
+    if (!require(pack, character.only = TRUE)) { pak:pkg_install(pack) }
+    rocPlot1 <- as.grob(rocPlot1)
+    rocPlot2 <- as.grob(rocPlot2)
+    png(plotPath); grid.arrange(rocPlot1, rocPlot2); dev.off()
+  } else {
+    rocPlot <- get(paste0("rocPlot", which(tst)))
+    ggsave(plotPath, rocPlot)
+  }
+  system(paste0("open \"", plotPath, "\""))
+  ROCintPerc %<o% NA
+  msg <- "Look at the ROC analysis image then enter the percentage of values to keep..."
+  while ((is.na(ROCintPerc))||(ROCintPerc <= 0)||(ROCintPerc > 100)) {
+    suppressWarnings({ ROCintPerc <- as.numeric(dlg_input(msg, 100)$res) })
+  }
+  # Would be much better with, wait for it, a shiny app!
+  tmp2Flt <- tmp2[1:round(nrow(tmp2)*ROCintPerc/100),]
+  ev <- ev[which(ev$Sequence %in% tmp2Flt$Sequence),]
+}
 
 #### Code chunk - Create modified peptides table
 tmp <- as.character(ev$id)
@@ -3110,7 +3209,7 @@ if (Param$Norma.Pep.Intens) {
                     "RefGrp", "NormGrps2")
     source(parSrc, local = FALSE)
     clusterExport(parClust, exports, envir = environment())
-    clusterCall(parClust, function() library(proteoCraft))
+    clusterCall(parClust, function() library(myPackNm, character.only = TRUE))
     #if (Param$Adv.Norma.Pep.Intens.Type == "C") { # "C" here means by columns
       refgrp <- unique(RefGrp)
       norm_temp <- parSapply(parClust, refgrp, function(i) { #i <- refgrp[1]
@@ -3774,7 +3873,7 @@ if (Param$Norma.Pep.Ratio) {
       agg <- Adv.Norma.Pep.Ratio.Type.Group$values[which(test > 1)]
       exports <- list("agg", "Adv.Norma.Pep.Ratio.Type.Group", "Exp.map", "pep.ratios.ref", "pep", "Param")
       clusterExport(parClust, exports, envir = environment())
-      clusterCall(parClust, function() library(proteoCraft))
+      clusterCall(parClust, function() library(myPackNm, character.only = TRUE))
       norm_temp <- parSapply(parClust, 0:length(agg), function(i) { #i <- 1
         if (i == 0) {
           kol <- grep(paste0(topattern(pep.ratios.ref[1]), ".+_REF\\.to\\.REF_"), colnames(pep), value = TRUE)
@@ -4077,7 +4176,7 @@ if (length(w) == 2) {
 #
 # If Arabidopsis:
 if (("ARATH" %in% db$Organism)||(3702 %in% db$TaxID)) {
-  fl <- system.file("extdata", "Uniprot2AGI.txt", package = "proteoCraft")
+  fl <- system.file("extdata", "Uniprot2AGI.txt", package = myPackNm)
   tmp <- read.delim(fl, header = FALSE)
   colnames(tmp) <- c("UniProt", "TAIR")
   klnm <- "TAIR"
@@ -4142,7 +4241,7 @@ PG$"Sequence (1st accession)" <- db$Sequence[match(sapply(strsplit(PG$"Leading p
 
 # Number of spectra, evidences and peptides per sample:
 source(parSrc, local = FALSE)
-clusterCall(parClust, function() library(proteoCraft))
+clusterCall(parClust, function() library(myPackNm, character.only = TRUE))
 clusterCall(parClust, function() library(reshape))
 clusterCall(parClust, function() library(data.table))
 temp_PG <- data.frame(id = PG$id, Accession1 = sapply(strsplit(PG$"Leading protein IDs", ";"), function(x) { unlist(x)[1] }))
@@ -6297,16 +6396,16 @@ rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 
 #### Code chunk - ROC analysis
-warning("Parameter \"ROC.GO.terms\" is currently not supported in the Parameters shiny App! Add it!")
-if (("ROC.GO.terms" %in% colnames(Param))&&(!as.character(Param$ROC.GO.terms) %in% c("", "NA", NA, " "))) {
-  ROC_GO.terms %<o% unique(unlist(strsplit(Param$ROC.GO.terms, ";")))
-  ROC_GO.terms <- ROC_GO.terms[which(ROC_GO.terms %in% GO_terms$ID)]
-  if (length(ROC_GO.terms)) {
+if (("ROC_GOterms" %in% colnames(Param))&&(!as.character(Param$ROC_GOterms) %in% c("", "NA", NA, " "))) {
+  library(ggplot2)
+  ROC_GOterms %<o% unique(unlist(strsplit(Param$ROC_GOterms, ";")))
+  ROC_GOterms <- ROC_GOterms[which(ROC_GOterms %in% GO_terms$ID)]
+  if (length(ROC_GOterms)) {
     msg <- "ROC analysis"
     ReportCalls <- AddMsg2Report()
-    ROC_GO.terms <- unique(unlist(c(ROC_GO.terms, GO_terms$Offspring[match(ROC_GO.terms, GO_terms$ID)])))
+    ROC_GOterms <- unique(unlist(c(ROC_GOterms, GO_terms$Offspring[match(ROC_GOterms, GO_terms$ID)])))
     PG$"True Positive" <- FALSE
-    PG$"True Positive"[grsep2(ROC_GO.terms, PG$`GO-ID`)] <- TRUE
+    PG$"True Positive"[grsep2(ROC_GOterms, PG$`GO-ID`)] <- TRUE
     if (sum(PG$"True Positive") < 10) {
       msg <- "Not enough TRUE positives for ROC analysis (min = 10), skipping!"
       ReportCalls <- AddMsg2Report(Warning = TRUE, Print = FALSE)
@@ -6324,10 +6423,11 @@ if (("ROC.GO.terms" %in% colnames(Param))&&(!as.character(Param$ROC.GO.terms) %i
           pkol <- paste0(pvalue.col[which(pvalue.use)], grp)
           w2 <- which(is.all.good(PG[[pkol]], 2))
           PG$Predictor <- 10^(-PG[[pkol]])
-          rocobj <- roc(PG[w2, ], "True Positive", "Predictor")
+          rocobj <- pROC::roc(PG[w2, ], "True Positive", "Predictor")
           ttl <- paste0("ROC analysis - ", grp2)
-          plot <- geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dotted") +
-            ggroc(rocobj) + theme_bw() + ggtitle(ttl)
+          plot <- pROC::ggroc(rocobj, color = "red") +
+            geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dotted") +
+             theme_bw() + ggtitle(ttl)
           poplot(plot)
           ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300)
           ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300)
@@ -7008,7 +7108,7 @@ if (saintExprs) {
   #if ("try-error" %in% class(tst)) { try(download.file(url, destfile, "wget"), silent = TRUE) }
   # Description:
   # http://saint-apms.sourceforge.net/Main.html
-  fl <- system.file("extdata", "SAINTexpress-manual.pdf", package = "proteoCraft")
+  fl <- system.file("extdata", "SAINTexpress-manual.pdf", package = myPackNm)
   try(file.copy(fl, saintDir), silent = TRUE)
   #
   Indiq <- c("T", "C")
@@ -8935,7 +9035,7 @@ Example: \"GO:0031012;2\"
         library(Biobase)
         library(MSnbase)
         library(pRoloc)
-        library(proteoCraft)
+        library(myPackNm, character.only = TRUE)
       })
       f0 <- function(grp) { #grp <- SubCellFracAggr$values[1]
         ttl_s <- c()
@@ -10098,7 +10198,7 @@ for (nm in unique(c(names(pep.ratios.ref), names(Prot.Rat.Root)))) { #nm <- name
   Styles[[paste0(rpl, ", avg.")]] <- "Summary Ratios"
   Styles[[paste0(rpl, ", indiv.")]] <- "Individual Ratios"
 }
-fl <- system.file("extdata", "Report - column names - with replicates.xlsx", package = "proteoCraft")
+fl <- system.file("extdata", "Report - column names - with replicates.xlsx", package = myPackNm)
 styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[,1]
 WorkBook %<o% wb_load(fl)
 repFl <- paste0(wd, "/Tables/Report_", dtstNm, ".xlsx")
@@ -10106,7 +10206,7 @@ WorkBook <- wb_add_data(WorkBook, "Description", dtstNm, wb_dims(2, 5))
 WorkBook <- wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"), wb_dims(3, 5))
 WorkBook <- wb_add_data(WorkBook, "Description", WhoAmI, wb_dims(4, 5))
 tmp <- loadedPackages(TRUE)
-WorkBook <- wb_add_data(WorkBook, "Description", tmp$Version[grep("proteoCraft", tmp$Name)], wb_dims(5, 5))
+WorkBook <- wb_add_data(WorkBook, "Description", tmp$Version[grep(myPackNm, tmp$Name)], wb_dims(5, 5))
 WorkBook <- wb_set_base_font(WorkBook, 11, font_name = "Calibri")
 cat(" - Writing Excel report...\n")
 #
