@@ -35,7 +35,7 @@ rstudioapi::documentOpen(f2)
 ## 
 #system(paste0("open \"", f1, "\""))
 #system(paste0("open \"", f2, "\""))
-i <- 3
+i <- 1
 fl1 <- readLines(f1); fl2 <- readLines(f2); fl1 <- gsub(pat, "", fl1); fl2 <- gsub(pat, "", fl2); w1 <- which(fl1 != ""); w2 <- which(fl2 != ""); w <- suppressWarnings(which(fl1[w1] != fl2[w2])); if (length(w) > 0) { cat(paste0("Line ", paste(unique(c(w1[w[i]], w2[w[i]])), collapse = "/"), ":\n\n - file 1: ", fl1[w1][w[i]], "\n\n - file 2: ", fl2[w2][w[i]], "\n")) } else { print("Both scripts are identical!") }
 #
 
