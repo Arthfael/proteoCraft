@@ -423,11 +423,10 @@ if ("Mirror.Ratios" %in% colnames(Param)) { Mirror.Ratios <- Param$Mirror.Ratios
 Param$Mirror.Ratios <- Mirror.Ratios
 TwoSidedDeflt <- c(c("Up-only", "Down-only")[Mirror.Ratios+1], "Both directions")[TwoSidedDeflt+1]
 # ROC
-rockOOOOOOON %<o% ((Annotate)&(scrptTypeFull == "withReps_PG_and_PTMs"))
 ROC_GOterms %<o% c()
 ROCfilt_GOterms_Pos %<o% c()
 ROCfilt_GOterms_Neg %<o% c()
-if (rockOOOOOOON) {
+if ((Annotate)&&(scrptType == "withReps")) {
   if ("ROC.GO.terms" %in% colnames(Param)) {
     Param$ROC_GOterms <- Param$ROC.GO.terms
     Param$ROC.GO.terms <- NULL
@@ -563,11 +562,11 @@ ui1 <- fluidPage(
            withSpinner(uiOutput("ReloadMatches"))
     )),
   br(),
-  if (rockOOOOOOON) {
+  if ((Annotate)&&(scrptType == "withReps")) {
     fluidRow(column(6,
                     checkboxInput("ROC1on", "PSMs-level ROC filter", length(ROC_GOterms) > 0, "100%"),
-                    withSpinner(uiOutput("ROC1")))),
-  }
+                    withSpinner(uiOutput("ROC1"))))
+  },
   tags$hr(style="border-color: black;"),
   withSpinner(uiOutput("IsobarCorr")),
   withSpinner(uiOutput("Norm")),
@@ -662,10 +661,11 @@ ui1 <- fluidPage(
                        KontGrp,
                        width = "100%"))
   ),
-  if (rockOOOOOOON) {
-    checkboxInput("ROC2on", "ROC analysis", length(ROC_GOterms) > 0, "100%"),
-    withSpinner(uiOutput("ROC2")),
-  }
+  if ((Annotate)&&(scrptType == "withReps")) {
+    fluidRow(column(4,
+                    checkboxInput("ROC2on", "ROC analysis", length(ROC_GOterms) > 0, "100%"),
+                    withSpinner(uiOutput("ROC2"))))
+  },
   tags$hr(style="border-color: black;"),
   withSpinner(uiOutput("GO")),
   tags$hr(style="border-color: black;"),
@@ -714,7 +714,7 @@ server1 <- function(input, output, session) {
   m4Quant <- reactiveVal(Mod4Quant)
   m2Xclud <- reactiveVal(Mod2Xclud)
   ADVOPT <- reactiveVal(tstAdvOpt)
-  if (rockOOOOOOON) {
+  if ((Annotate)&&(scrptType == "withReps")) {
     ROC1ON <- reactiveVal(length(c(ROCfilt_GOterms_Pos,
                                    ROCfilt_GOterms_Neg)) > 0)
     ROC2ON <- reactiveVal(length(ROC_GOterms) > 0)
@@ -1077,7 +1077,7 @@ server1 <- function(input, output, session) {
   })
   # ROC
   # Optional input files
-  if (rockOOOOOOON) {
+  if ((Annotate)&&(scrptType == "withReps")) {
     updtROC1 <- function(reactive = TRUE) {
       if (reactive) { tst <- ROC1ON() } else { tst <- length(c(ROCfilt_GOterms_Pos, ROCfilt_GOterms_Neg)) > 0 }
       if (tst) {

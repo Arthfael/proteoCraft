@@ -149,7 +149,7 @@ for (ii in 1:2) {
     em <- expContr$Map[x][[1]]
     k0 <- em$Expression_Column[which(em$Reference)]
     k1 <- em$Expression_Column[which(!em$Reference)]
-    clusterExport(parClust, list("k1", "k0"), envir = environment())
+    clusterExport(parClust, list("k1", "k0", "ii"), envir = environment())
     RES <- parSapply(parClust, 1:nrow(tmpVal), function(y) {
       v0 <- as.numeric(tmpVal[y, k0])
       v1 <- as.numeric(tmpVal[y, k1])
