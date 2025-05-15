@@ -2055,7 +2055,6 @@ saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 source(parSrc, local = FALSE)
 
-
 #### Code chunk - ROC analysis
 # Only basic in place now, add shiny app
 # see https://rpubs.com/Wangzf/pROC
@@ -2090,6 +2089,7 @@ if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
   tmp2 <- tmp2[which(tmp2$Intensity > 0),]
   tmp2$Predictor <- log10(tmp2$Intensity)
   tmp2 <- tmp2[order(tmp2$Predictor, decreasing = TRUE),]
+  #tmp2$Predictor <- nrow(tmp2):1 # Does not have an effect on the result!
   tmp3 <- listMelt(strsplit(db$`GO-ID`, ";"), db$`Protein ID`, c("Term", "Protein"))
   tmp3 <- tmp3[which(tmp3$Term %in% c(ROCfilt_Pos, ROCfilt_Neg)),]
 }
