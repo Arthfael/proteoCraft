@@ -7,15 +7,15 @@ options(install.packages.compile.from.source = "never")
 ## The proteoCraft package can be re-installed at any time in the workflow (there is a specific script for this in the package's library folder),
 ## or just load it here:
 if (exists(".obj")) { rm(".obj") }
-myPackNm %<o% "proteoCraft"
-library(myPackNm, character.only = TRUE)
+#myPackNm %<o% "proteoCraft" # Bad idea
+library(proteoCraft, character.only = TRUE)
 #ReUseAnsw %<o% FALSE
 ReLoadPSMsBckp %<o% FALSE
 
 RPath %<o% as.data.frame(library()$results)
-RPath <- normalizePath(RPath$LibPath[match(myPackNm, RPath$Package)], winslash = "/")
-libPath %<o% paste0(RPath, "/", myPackNm)
-homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/", myPackNm)
+RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
+libPath %<o% paste0(RPath, "/proteoCraft")
+homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
 fls <- paste0(homePath, "/", c("Regulation analysis - master script.R",
                                "Regulation analysis - detailed script.R",
                                "Regulation analysis - detailed script_pepOnly.R",
@@ -24,7 +24,7 @@ fls <- paste0(homePath, "/", c("Regulation analysis - master script.R",
                                "Default_locations.xlsx",
                                "LC_columns.xlsx"))
 tst <- sum(!file.exists(fls))
-if (tst) { eval(parse(text = paste0(myPackNm, "::Configure()"))) }
+if (tst) { proteoCraft::Configure() }
 scrptType %<o% "noReps"
 scrptTypeFull %<o% "noReps_PG_and_PTMs"
 
@@ -1464,7 +1464,7 @@ runPepper <- c(TRUE, FALSE)[match(dlg_message("Should we run Pepper ML-based PSM
 if (runPepper) {
   if (!require("qs", quietly = TRUE)) { install.packages("qs") }
   library(qs)
-  PepScrptsDir %<o% paste0(RPath, "/", myPackNm, "/extdata/Pepper")
+  PepScrptsDir %<o% paste0(RPath, "/proteoCraft/extdata/Pepper")
   stopifnot(dir.exists(PepScrptsDir))
   pyInit <- paste0(PepScrptsDir, "/Python_start.R")
   source(pyInit)
@@ -2328,7 +2328,7 @@ if (IsBioID) {
 
 # Number of spectra, evidences and peptides per sample:
 source(parSrc, local = FALSE)
-clusterCall(parClust, function() library(myPackNm, character.only = TRUE))
+clusterCall(parClust, function() library(proteoCraft))
 clusterCall(parClust, function() library(reshape))
 clusterCall(parClust, function() library(data.table))
 temp_PG <- data.frame(id = PG$id, Accession1 = sapply(strsplit(PG$"Leading protein IDs", ";"), function(x) { unlist(x)[1] }))
@@ -3449,7 +3449,7 @@ if (prot.list.Cond) {
   names(pepR) <- apply(comb, 1, function(x) { paste0(x[[1]], " (X) vs ", x[[2]], " (Y)") })
   tmpPep <- pep[, grep(topattern(int.col), colnames(pep), value = TRUE)]
   clusterCall(parClust, function() library(Peptides))
-  clusterCall(parClust, function() library(myPackNm, character.only = TRUE))
+  clusterCall(parClust, function() library(proteoCraft))
   clusterCall(parClust, function() library(magrittr))
   clusterCall(parClust, function() library(plotly))
   clusterCall(parClust, function() library(htmlwidgets))
@@ -5286,7 +5286,7 @@ if (MakeRatios) {
     Styles[[paste0(rpl, ", indiv.")]] <- "Individual Ratios"
   }
 }
-fl <- system.file("extdata", "Report - column names - no replicates.xlsx", package = myPackNm)
+fl <- system.file("extdata", "Report - column names - no replicates.xlsx", package = "proteoCraft")
 styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[,1]
 # wb <- loadWorkbook(fl)
 # addWorksheet(wb, "tmp")
@@ -5305,7 +5305,7 @@ WorkBook <- wb_add_data(WorkBook, "Description", dtstNm, wb_dims(2, 5))
 WorkBook <- wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"), wb_dims(3, 5))
 WorkBook <- wb_add_data(WorkBook, "Description", WhoAmI, wb_dims(4, 5))
 tmp <- loadedPackages(TRUE)
-WorkBook <- wb_add_data(WorkBook, "Description", tmp$Version[grep(myPackNm, tmp$Name)], wb_dims(5, 5))
+WorkBook <- wb_add_data(WorkBook, "Description", tmp$Version[grep("proteoCraft", tmp$Name)], wb_dims(5, 5))
 cat(" - Writing Excel report...\n")
 # Function for editing the header
 KolEdit <- function(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {

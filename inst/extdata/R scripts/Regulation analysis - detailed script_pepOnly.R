@@ -7,16 +7,16 @@ options(install.packages.compile.from.source = "never")
 ## The proteoCraft package can be re-installed at any time in the workflow (there is a specific script for this in the package's library folder),
 ## or just load it here:
 if (exists(".obj")) { rm(".obj") }
-myPackNm %<o% "proteoCraft"
-library(myPackNm, character.only = TRUE)
+#myPackNm %<o% "proteoCraft" # Bad idea
+library(proteoCraft)
 dirlist %<o% c() # This should go!!!
 ReUseAnsw %<o% FALSE
 ReLoadPSMsBckp %<o% FALSE
 
 RPath %<o% as.data.frame(library()$results)
-RPath <- normalizePath(RPath$LibPath[match(myPackNm, RPath$Package)], winslash = "/")
-libPath %<o% paste0(RPath, "/", myPackNm)
-homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/", myPackNm)
+RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
+libPath %<o% paste0(RPath, "/proteoCraft")
+homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
 fls <- paste0(homePath, "/", c("Regulation analysis - master script.R",
                                "Regulation analysis - detailed script.R",
                                "Regulation analysis - detailed script_pepOnly.R",
@@ -25,7 +25,7 @@ fls <- paste0(homePath, "/", c("Regulation analysis - master script.R",
                                "Default_locations.xlsx",
                                "LC_columns.xlsx"))
 tst <- sum(!file.exists(fls))
-if (tst) { eval(parse(text = paste0(myPackNm, "::Configure()"))) }
+if (tst) { proteoCraft::Configure() }
 scrptType %<o% "withReps"
 scrptTypeFull %<o% "withReps_PTMs_only"
 
@@ -1486,7 +1486,7 @@ if ((LabelType == "Isobaric")&&("Label.Purities.file" %in% colnames(Param))&&(!P
           exports <- list("A", "e", "kol")
           clusterExport(parClust, exports, envir = environment())
           clusterCall(parClust, function() library(matlib))
-          clusterCall(parClust, function() library(myPackNm, character.only = TRUE))
+          clusterCall(parClust, function() library(proteoCraft))
           temp <- as.data.frame(t(parApply(parClust, e[,kol], 1, function(x) {
             b <- as.numeric(x)
             b[which(!is.all.good(b, 2))] <- 0
@@ -1562,7 +1562,7 @@ if ((LabelType == "Isobaric")&&("Label.Purities.file" %in% colnames(Param))&&(!P
           exports <- list("A", "e", "kol")
           clusterExport(parClust, exports, envir = environment())
           clusterCall(parClust, function() library(matlib))
-          clusterCall(parClust, function() library(myPackNm, character.only = TRUE))
+          clusterCall(parClust, function() library(proteoCraft))
           temp <- as.data.frame(t(parApply(parClust, e[,kol], 1, function(x) {
             b <- as.numeric(x)
             b[which(!is.all.good(b, 2))] <- 0
@@ -1792,7 +1792,7 @@ if (Param$Norma.Ev.Intens) {
         AdvNorm.Ev.RepIntens %<o% data.frame(Group = Iso)
         tmpEv <- ev[, c("Isobaric.set", "Unique State", k0)]
         if ("Fraction" %in% colnames(ev)) { tmpEv$Fraction <- ev$Fraction } else { tmpEV$Fraction <- 1 }
-        clusterCall(parClust, function() library(myPackNm, character.only = TRUE))
+        clusterCall(parClust, function() library(proteoCraft))
         m4 <- tstRI <- list()
         msg <- "     Estimating normalisation factors within..."
         ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Print = FALSE)
@@ -3070,7 +3070,7 @@ if (Param$Norma.Pep.Intens) {
                     "RefGrp", "NormGrps2")
     source(parSrc, local = FALSE)
     clusterExport(parClust, exports, envir = environment())
-    clusterCall(parClust, function() library(myPackNm, character.only = TRUE))
+    clusterCall(parClust, function() library(proteoCraft))
     #if (Param$Adv.Norma.Pep.Intens.Type == "C") { # "C" here means by columns
       refgrp <- unique(RefGrp)
       norm_temp <- parSapply(parClust, refgrp, function(i) { #i <- refgrp[1]
@@ -3787,7 +3787,7 @@ if (Param$Norma.Pep.Ratio) {
       agg <- Adv.Norma.Pep.Ratio.Type.Group$values[which(test > 1)]
       exports <- list("agg", "Adv.Norma.Pep.Ratio.Type.Group", "Exp.map", "pep.ratios.ref", "pep", "Param")
       clusterExport(parClust, exports, envir = environment())
-      clusterCall(parClust, function() library(myPackNm, character.only = TRUE))
+      clusterCall(parClust, function() library(proteoCraft))
       norm_temp <- parSapply(parClust, 0:length(agg), function(i) { #i <- 1
         if (i == 0) {
           kol <- grep(paste0(topattern(pep.ratios.ref[1]), ".+_REF\\.to\\.REF_"), colnames(pep), value = TRUE)
@@ -4210,7 +4210,7 @@ for (nm in names(pep.ref)) { #nm <- names(pep.ref[1])
   Styles[[paste0(rpl, ", avg.")]] <- "Summary Expr"
   Styles[[paste0(rpl, ", indiv.")]] <- "Individual Expr"
 }
-fl <- system.file("extdata", "Report - column names - with replicates.xlsx", package = myPackNm)
+fl <- system.file("extdata", "Report - column names - with replicates.xlsx", package = "proteoCraft")
 styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[,1]
 WorkBook %<o% wb_load(fl)
 repFl <- paste0(wd, "/Tables/Report_", dtstNm, ".xlsx")
@@ -4218,7 +4218,7 @@ WorkBook <- wb_add_data(WorkBook, "Description", dtstNm, wb_dims(2, 5))
 WorkBook <- wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"), wb_dims(3, 5))
 WorkBook <- wb_add_data(WorkBook, "Description", WhoAmI, wb_dims(4, 5))
 tmp <- loadedPackages(TRUE)
-WorkBook <- wb_add_data(WorkBook, "Description", tmp$Version[grep(myPackNm, tmp$Name)], wb_dims(5, 5))
+WorkBook <- wb_add_data(WorkBook, "Description", tmp$Version[grep("proteoCraft", tmp$Name)], wb_dims(5, 5))
 WorkBook <- wb_set_base_font(WorkBook, 11, font_name = "Calibri")
 cat(" - Writing Excel report...\n")
 #
