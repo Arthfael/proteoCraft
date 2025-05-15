@@ -1077,7 +1077,7 @@ server1 <- function(input, output, session) {
   })
   # ROC
   # Optional input files
-  if ((Annotate)&&(scrptType == "withReps")) {
+  if ((Annotate)&&(scrptType == "withReps")) { # Not implemented yet for script without Reps
     updtROC1 <- function(reactive = TRUE) {
       if (reactive) { tst <- ROC1ON() } else { tst <- length(c(ROCfilt_GOterms_Pos, ROCfilt_GOterms_Neg)) > 0 }
       if (tst) {
