@@ -16,7 +16,7 @@ Calculates the geometric mean of linear-scale data.
 NB: I don't think that this function is being used anymore, is it?
 }
 \examples{
-> geomean(c(1, 3))
-  1.732051
+geomean(c(1, 3))
+#  1.732051
   
 }

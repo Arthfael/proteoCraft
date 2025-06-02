@@ -30,7 +30,6 @@ width <- paste0(30*max(c(nchar(as.character(lev)), 2)), "px")
 nr <- nrow(df)
 server <- function(input, output, session) {
 
-...
   Table <- df
   Table$Choice <- shinySelectInput(Table$Choice,
                                    "Choice",
@@ -38,7 +37,6 @@ server <- function(input, output, session) {
                                    width)
   Table$Choice___INCR <- shinyPlusFD("Choice",
                                      nr)
-...
 
 }
 

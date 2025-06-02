@@ -11,7 +11,7 @@ shinyFDInput(root, l, useIcon = FALSE, width = "15px")
 
 \item{l}{Number of rows of the table.}
 
-\item{useIcon}{Default = FALSE, in which case the letter "V" is displayed. If set to TRUE, icon("arrow-down") will be displayed instead (note that this may not always work.)}
+\item{useIcon}{Ignored, only kept because of old code!}
 
 \item{width}{The width of the input, e.g. '400px', or '100%'; see htmltools::validateCssUnit().\cr Default = "15px"}
 }
@@ -27,7 +27,6 @@ width <- paste0(30*max(c(nchar(as.character(lev)), 2)), "px")
 nr <- nrow(df)
 server <- function(input, output, session) {
 
-...
   Table <- df
   Table$Choice <- shinySelectInput(Table$Choice,
                                    "Choice",
@@ -36,7 +35,6 @@ server <- function(input, output, session) {
   Table$Choice___FD <- shinyFDInput("Choice",
                                     nr,
                                     TRUE)
-...
 
 }
 

@@ -19,11 +19,7 @@ Convenience wrapper for shiny::checkboxInput for use in DT data table columns.
 
 server <- function(input, output, session) {
 
-...
-
   Table$CheckBox <- shinyCheckInput(Table$UseThisSample)
-
-...
 
 }
 

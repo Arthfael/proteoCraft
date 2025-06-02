@@ -15,9 +15,9 @@ Param_filter(param, filter)
 A simple function to remove some covariates from semicolon-separated covariate aggregate parameters.
 }
 \examples{
-> Param$Ratios.Groups.Ref.Aggregate.Level
-[1] "Exp;Con;Rep"
-> Param_filter(Param$Ratios.Groups.Ref.Aggregate.Level, "Rep")
-[1] "Exp;Con"
+Param$Ratios.Groups.Ref.Aggregate.Level
+# [1] "Exp;Con;Rep"
+Param_filter(Param$Ratios.Groups.Ref.Aggregate.Level, "Rep")
+# [1] "Exp;Con"
 
 }

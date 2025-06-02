@@ -27,13 +27,13 @@ Slated for phasing out and deletion: this is rather old and clumsy.
 }
 \examples{
 pep <- col.aggr(Out = pep, In = ev, Out.names = c("Modified.sequence", "PEP"), In.names = c("Modified.sequence", "PEP"), FUN = function(x) {
-  x <- aRmel::is.all.good(as.numeric(x))
+  x <- proteoCraft::is.all.good(as.numeric(x))
   if (length(x) > 0) {
     return(min(x))
   } else {
     return(NA)
   }
 })
-Result: pep now has a "PEP" column with PEP scores. Takes seconds or minutes where sapply takes hours.
+# Result: pep now has a "PEP" column with PEP scores. Takes seconds or minutes where sapply takes hours.
 
 }

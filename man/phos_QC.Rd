@@ -37,6 +37,6 @@ A function to create a column saying whether a phospho-peptide is high quality o
 Useful for creating a table of, e.g. sequence with amino-acid modifications, site probabilities, etc...
 }
 \examples{
-> phospep$High_Quality <- phos_QC(phospep)
+phospep$High_Quality <- phos_QC(phospep)
 
 }

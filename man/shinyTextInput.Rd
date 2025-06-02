@@ -21,12 +21,8 @@ Convenience wrapper for shiny::textInput for use in DT data table columns.
 
 server <- function(input, output, session) {
 
-...
-
   Table$Free_input <- shinyTextInput("Enter something...",
-                                     ""FreeInput)
-
-...
+                                     "FreeInput")
 
 }
 

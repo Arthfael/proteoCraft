@@ -37,12 +37,8 @@ A function to create numeric input columns for use in DT data table columns.
 
 server <- function(input, output, session) {
 
-...
-
   Table$Counts <- shinyNumInput(Table$Counts, 0, Inf, 1, root = "Counts")
   Table$Intensity <- shinyNumInput(Table$Counts, root = "Intensity")
-
-...
 
 }
 

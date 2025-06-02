@@ -22,11 +22,7 @@ This is specifically to query users for a proportion (between 0 and 1 by steps o
 
 server <- function(input, output, session) {
 
-...
-
   Table$Proportion <- shinyPropInput(Table$Proportion)
-
-...
 
 }
 

@@ -53,6 +53,6 @@ A function to quickly import MaxQuant's main output datatables into the above en
 }
 \examples{
 MQ.load()
-Result: the environment should now contain ev, pep and prot objects.
+# Result: the environment should now contain ev, pep and prot objects.
 
 }

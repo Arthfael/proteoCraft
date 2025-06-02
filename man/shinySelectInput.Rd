@@ -27,14 +27,11 @@ lev <- unique(df$Choice)
 width <- paste0(30*max(c(nchar(as.character(lev)), 2)), "px")
 server <- function(input, output, session) {
 
-...
   Table <- df
   Table$Choice <- shinySelectInput(Table$Choice,
                                    "Choice",
                                    lev,
                                    width)
-
-...
 
 }
 

@@ -16,7 +16,7 @@ A function to filter numeric vectors to just include real numbers.
 }
 \examples{
 is.all.good(c(1, NA, NaN, 2, -Inf, +Inf))
-[1] 1 2
+# [1] 1 2
 is.all.good(c(1, NA, NaN, 2, -Inf, +Inf), mode = "logical")
-[1]  TRUE FALSE FALSE  TRUE FALSE FALSE
+# [1]  TRUE FALSE FALSE  TRUE FALSE FALSE
 }

@@ -19,7 +19,7 @@ insertElems(vect, pos, elems, warn = FALSE)
 Nifty little function to insert elements in a vector after the indicated positions.
 }
 \examples{
-> insertElems(c(1:4), 3, "A")
-[1] "1" "2" "A" "3" "4"
+insertElems(c(1:4), 3, "A")
+# [1] "1" "2" "A" "3" "4"
 
 }
