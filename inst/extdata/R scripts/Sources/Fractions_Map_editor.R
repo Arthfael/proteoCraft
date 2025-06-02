@@ -133,22 +133,28 @@ if (exists("FracMap3")) { rm(FracMap3) }
 appNm <- paste0(dtstNm, " - MS files map")
 ui <- fluidPage(
   useShinyjs(),
+  setBackgroundColor( # Doesn't work
+    color = c(#"#F8F8FF",
+      "#EFE6F5"),
+    gradient = "linear",
+    direction = "bottom"
+  ),
   extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
   # Dummy, hidden div to load arrow-down icon
-  tags$div(
-    class="container",
-    style="display: none;",
-    tags$div(
-      style="margin-top: 50xp;",
-      actionButton(
-        "add_thing",
-        label="do it",
-        class="btn-success",
-        icon=icon("arrow-down")
-      )
-    )
-  ),
-  #
+  # tags$div(
+  #   class = "container",
+  #   style = "display: none;",
+  #   tags$div(
+  #     style = "margin-top: 50xp;",
+  #     actionButton(
+  #       "add_thing",
+  #       label="do it",
+  #       class="btn-success",
+  #       icon=icon("arrow-down")
+  #     )
+  #   )
+  # ),
+  # #
   tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
   titlePanel(tag("u", FracMapNm),
              appNm),
@@ -165,7 +171,7 @@ ui <- fluidPage(
                " sample)."))),
   br(),
   mainPanel(#tabsetPanel(tabPanel(
-    actionButton("saveBtn", "Save"),
+    actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
     DT::DTOutput("FracTbl", width = paste0(wTest2, "px")),
     br(),
     width = 12

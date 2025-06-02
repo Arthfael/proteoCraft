@@ -269,6 +269,12 @@ rws <- seq_len(nr)
 appNm <- paste0(dtstNm, " - Fasta databases")
 ui <- fluidPage(
   useShinyjs(),
+  setBackgroundColor( # Doesn't work
+    color = c(#"#F8F8FF",
+      "#E1E2ED"),
+    gradient = "linear",
+    direction = "bottom"
+  ),
   extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
   tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
   titlePanel(tag("u", "Fasta databases"),
@@ -280,7 +286,7 @@ ui <- fluidPage(
   h4("Regexes should be compatible with R's grep function:"),
   h5(" - Use the \"Contaminants regex\" column when a fasta contains a mixture of non-contaminants and contaminant proteins. Matches to the Protein IDs (accession) column will be marked as contaminants."),
   h5(" - Use the \"Reverse regex\" column when a fasta contains reverse proteins (decoys). Matches to the Full ID column will be removed from the database."), br(),
-  actionButton("saveBtn", "Save"),
+  actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
   DTOutput("Fastas")
 )
 if (exists("fastasTbl3")) { rm(ExpData3) }

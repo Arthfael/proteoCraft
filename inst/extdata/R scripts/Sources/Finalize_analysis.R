@@ -40,7 +40,7 @@ writeLines(capture.output(sessionInfo()), paste0(dir, "/sessionInfo.txt"))
 
 # Copy script itself and guide to the results there:
 #file.copy(system.file("extdata/R scripts", "Regulation analysis - master script.R", package = "proteoCraft"), wd, overwrite = TRUE)
-file.copy(ScriptPath, wd, overwrite = TRUE)
+if (dirname(ScriptPath) != wd) { file.copy(ScriptPath, wd, overwrite = TRUE) }
 file.copy(system.file("extdata", paste0("Guide to the Results (", c("", "no ")[match(scrptType,
                                                                                      c("withReps", "noReps"))],
                                         "replicates).docx"), package = "proteoCraft"), wd, overwrite = TRUE)

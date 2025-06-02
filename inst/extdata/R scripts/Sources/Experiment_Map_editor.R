@@ -42,9 +42,9 @@ if (!exists("ExpMap")) {
   if (LabelType == "Isobaric") {
     ExpMap <- data.frame("Experiment" = "?",
                          "Replicate" = "?",
-                         "MQ.Exp" = rep(MQ.Exp, length(get(IsobarLab))),
+                         "MQ.Exp" = unlist(sapply(MQ.Exp, function(x) { rep(x, length(get(IsobarLab))) })),
                          "Reference" = FALSE,
-                         "Sample name" = rep(MQ.Exp, length(get(IsobarLab))),
+                         "Sample name" = unlist(sapply(MQ.Exp, function(x) { rep(x, length(get(IsobarLab))) })),
                          "Isobaric.label" = rep(get(IsobarLab), length(MQ.Exp)),
                          "Isobaric.label.details" = rep(IsobarLabDet, length(MQ.Exp)),
                          "Isobaric.set" = "?",
@@ -112,7 +112,7 @@ ExpData <- ExpData[which(ExpData$MQ.Exp %in% MQ.Exp), ]
 L <- length(ALLIDS)
 #
 # Original table column widths
-wTest0 <- setNames(sapply(colnames(ExpData), function(k) { #k <- colnames(ExpData)[1]
+wTest0 <- setNames(vapply(colnames(ExpData), function(k) { #k <- colnames(ExpData)[1]
   tst <- k %in% Fact2
   x <- max(c(nchar(k),
              nchar(as.character(ExpData[[k]])) + 3 + 3*tst), na.rm = TRUE)
@@ -122,7 +122,7 @@ wTest0 <- setNames(sapply(colnames(ExpData), function(k) { #k <- colnames(ExpDat
   x <- x*10
   if (is.na(x)) { x <- 15 } else { x <- max(c(ceiling(x/10)*10, 30)) }
   return(x)
-}), colnames(ExpData))
+}, 1), colnames(ExpData))
 #
 # Dummy table for app
 tst <- sapply(FactorsLevels, length)
@@ -169,18 +169,19 @@ ExpData2$Use <- shinyCheckInput(ExpData$Use,
 ExpData2$Use___FD <- shinyFDInput("Use", nr, TRUE)
 ExpData2 <- ExpData2[, c(kol2, kol, "Use", "Use___FD", "Sample name")]
 # Estimate table column widths
-wTest1 <- sapply(colnames(ExpData2), function(k) { #k <- colnames(ExpData2)[1]
+wTest1 <- vapply(colnames(ExpData2), function(k) { #k <- colnames(ExpData2)[1]
   if (k == "Parent sample") { k <- "MQ.Exp" }
   if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
   return(x)
-})
+}, 1)
 wTest2 <- sum(wTest1)
 wTest1 <- paste0(as.character(wTest1), "px")
 wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
 wTest1 <- apply(wTest1, 1, function(x) {
+  x2 <- as.integer(x[[2]])
   list(width = x[[1]],
-       targets = x[[2]],
-       names = colnames(ExpData2)[x[[2]]+1])
+       targets = x2,
+       names = colnames(ExpData2)[x2+1])
 })
 #
 g <- grep("___((FD)|(INCR))$", colnames(ExpData2))
@@ -200,21 +201,27 @@ edith$enable <- list(columns = tmp)
 appNm <- paste0(dtstNm, " - Exp. map")
 ui <- fluidPage(
   useShinyjs(),
+  setBackgroundColor( # Doesn't work
+    color = c(#"#F8F8FF",
+      "#EBEFF7"),
+    gradient = "linear",
+    direction = "bottom"
+  ),
   extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
   # Dummy, hidden div to load arrow-down icon
-  tags$div(
-    class = "container",
-    style = "display: none;",
-    tags$div(
-      style = "margin-top: 50xp;",
-      actionButton(
-        "add_thing",
-        label = "do it",
-        class = "btn-success",
-        icon = icon("arrow-down")
-      )
-    )
-  ),
+  # tags$div(
+  #   class = "container",
+  #   style = "display: none;",
+  #   tags$div(
+  #     style = "margin-top: 50xp;",
+  #     actionButton(
+  #       "add_thing",
+  #       label = "do it",
+  #       class = "btn-success",
+  #       icon = icon("arrow-down")
+  #     )
+  #   )
+  # ),
   #
   tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
   titlePanel(tag("u", ExpMapNm),
@@ -225,7 +232,7 @@ ui <- fluidPage(
   h4(em(tags$div("\"Parent sample\" is equivalent with \"Experiments\" in the sense of MaxQuant's \"Raw data\" or FragPipe's \"Workflow\" tabs.", tags$br(),
                  "Note that this is different from the meaning of \"Experiment\" we use here (that of a group of samples to process together and compare to each other)."))),
   br(),
-  actionButton("saveBtn", "Save"),
+  actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
   withSpinner(DT::DTOutput("ExpTbl", width = wTest2))
 )
 if (exists("ExpData3")) { rm(ExpData3) }
@@ -248,12 +255,12 @@ server <- function(input, output, session) {
                                                scrollX = FALSE),
                                 # the callback is essential to capture the inputs in each row
                                 callback = JS("table.rows().every(function(i, tab, row) {
-        var $this = $(this.node());
-        $this.attr('id', this.data()[0]);
-        $this.addClass('shiny-input-container');
-      });
-      Shiny.unbindAll(table.table().node());
-      Shiny.bindAll(table.table().node());"))
+  var $this = $(this.node());
+  $this.attr('id', this.data()[0]);
+  $this.addClass('shiny-input-container');
+});
+Shiny.unbindAll(table.table().node());
+Shiny.bindAll(table.table().node());"))
   #
   # Fill down
   sapply(1:L, function(x) {

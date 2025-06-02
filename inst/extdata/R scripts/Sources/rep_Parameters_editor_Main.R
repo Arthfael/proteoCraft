@@ -248,6 +248,22 @@ if (Annotate) {
   w <- c(which(allGO %in% dftlGO),
          which(!allGO %in% dftlGO))
   allGO <- allGO[w]; allGO2 <- allGO2[w]
+  # allGO = Names
+  # allGO2 = IDs
+  if (("Norma.Prot.Ratio.to.GO" %in% colnames(Param))&&
+      ("character" %in% class(Param$Norma.Prot.Ratio.to.GO))&&
+      (nchar(Param$Norma.Prot.Ratio.to.GO))) {
+    tmp <- unlist(strsplit(Param$Norma.Prot.Ratio.to.GO, ";"))
+    tmp <- tmp[which(tmp %in% allGO2)]
+    if (length(tmp)) {
+      nrm2GO <- allGO[match(tmp, allGO2)]
+      nrm2GOall <- c(nrm2GO,
+                     allGO[which(!allGO %in% nrm2GO)])
+    }
+  } else {
+    nrm2GOall <- allGO
+    nrm2GO <- c()
+  }
 }
 if (!"GO.terms.for.proteins.of.interest" %in% colnames(Param)) { Param$GO.terms.for.proteins.of.interest <- FALSE }
 if (!"Amica" %in% colnames(Param)) { Param$Amica <- TRUE }
@@ -426,7 +442,8 @@ TwoSidedDeflt <- c(c("Up-only", "Down-only")[Mirror.Ratios+1], "Both directions"
 ROC_GOterms %<o% c()
 ROCfilt_GOterms_Pos %<o% c()
 ROCfilt_GOterms_Neg %<o% c()
-if ((Annotate)&&(scrptType == "withReps")) {
+annotRep <- ((Annotate)&&(scrptType == "withReps"))
+if (annotRep) {
   if ("ROC.GO.terms" %in% colnames(Param)) {
     Param$ROC_GOterms <- Param$ROC.GO.terms
     Param$ROC.GO.terms <- NULL
@@ -447,23 +464,164 @@ if ((Annotate)&&(scrptType == "withReps")) {
     if (length(tmp)) { ROCfilt_GOterms_Neg <- tmp }
   }
 }
+if (length(ROC_GOterms)) {
+  ROC2_GOterms_dflt <- allGO[match(ROC_GOterms, allGO2)]
+  w <- c(which(allGO %in% ROC2_GOterms_dflt),
+         which(!allGO %in% ROC2_GOterms_dflt))
+  ROC2_allGO1 <- allGO[w]
+  ROC2_allGO2 <- allGO2[w]
+}
+if (length(ROCfilt_GOterms_Pos)) {
+  ROC1_GOterms_Pos_dflt <- allGO[match(ROCfilt_GOterms_Pos, allGO2)]
+  w <- c(which(allGO %in% ROC1_GOterms_Pos_dflt),
+         which(!allGO %in% ROC1_GOterms_Pos_dflt))
+  ROC1_allGOPos1 <- allGO[w]
+  ROC1_allGOPos2 <- allGO2[w]
+}
+if (length(ROCfilt_GOterms_Neg)) {
+  ROC1_GOterms_Neg_dflt <- allGO[match(ROCfilt_GOterms_Neg, allGO2)]
+  w <- c(which(allGO %in% ROC1_GOterms_Neg_dflt),
+         which(!allGO %in% ROC1_GOterms_Neg_dflt))
+  ROC1_allGONeg1 <- allGO[w]
+  ROC1_allGONeg2 <- allGO2[w]
+}
+#
+if (!exists("normDat")) {
+  normDat <- sum(Param$Norma.Ev.Intens,
+                 Param$Norma.Pep.Intens,
+                 Param$Norma.Prot.Ratio) > 0
+}
+normDat %<o% normDat
+# - Peptide normalisation methods
+#   Currently not implemented:
+#      - Quantile: what's the point of being quantitative if we are going to replace measurements with quantiles? I do not see for now a rationale to implement this.
+#      - RUV normalisation (see https://www.bioconductor.org/packages/release/bioc/vignettes/RUVnormalize/inst/doc/RUVnormalize.pdf)
+pepNormMethods %<o% list(list(Method = "median",
+                              Source = "pepNorm_General.R",
+                              funCall = "normFun <- function(x) { median(x, na.rm = TRUE) }"),
+                         list(Method = "mean",
+                              Source = "pepNorm_General.R",
+                              funCall = "normFun <- function(x) { mean(x, na.rm = TRUE) }"),
+                         list(Method = "Levenberg-Marquardt",
+                              Source = "pepNorm_General.R",
+                              funCall = "normFun <- function(x) { median(x, na.rm = TRUE) }" # used for the surrounding steps
+                         ),
+                         list(Method = "sum",
+                              Source = "pepNorm_General.R",
+                              funCall = "normFun <- function(x) { log10(sum(10^x, na.rm = TRUE)) }"),
+                         list(Method = "logSum",
+                              Source = "pepNorm_General.R",
+                              funCall = "normFun <- function(x) { median(x, na.rm = TRUE) }"),
+                         list(Method = "max",
+                              Source = "pepNorm_General.R",
+                              funCall = "normFun <- function(x) { max(x, na.rm = TRUE) }"),
+                         list(Method = "mode",
+                              Source = "pepNorm_General.R",
+                              funCall = "normFun <- function(x) { modeest::mlv(is.all.good(x), method = \"Parzen\") }"),
+                         list(Method = "proteins",
+                              Source = "pepNorm_General.R",
+                              funCall = "normFun <- function(x) { mean(x, na.rm = TRUE) }", # used for the surrounding steps
+                              Proteins = NA),
+                         list(Method = "biotinylated proteins",
+                              Source = "pepNorm_General.R",
+                              funCall = "normFun <- function(x) { mean(x, na.rm = TRUE) }" # used for the surrounding steps
+                         ),
+                         list(Method = "GO terms",
+                              Source = "pepNorm_General.R",
+                              funCall = "normFun <- function(x) { mean(x, na.rm = TRUE) }", # used for the surrounding steps
+                              Terms = NA),
+                         list(Method = "LOESS",
+                              Source = "pepNorm_Shape.R"),
+                         list(Method = "VSN",
+                              Source = "pepNorm_Shape.R"),
+                         list(Method = "IRS",
+                              Source = "pepNorm_IRS.R"),
+                         list(Method = "ComBat",
+                              Source = "pepNorm_ComBat.R",
+                              Batch = NA
+                         ))
+L <- length(pepNormMethods)
+pepNormMethodsDF <- data.frame(Method = vapply(1:L, function(i) { pepNormMethods[[i]]$Method }, "a"),
+                               Source = vapply(1:L, function(i) { pepNormMethods[[i]]$Source }, "a"))
+# General normalisation methods
+genPepNormMeth <- pepNormMethodsDF$Method[which(pepNormMethodsDF$Source == "pepNorm_General.R")]
+# genPepNormMeth <- genPepNormMeth[which(!genPepNormMeth %in% c("proteins", "GO terms"))] # These have their own box // NO THEY DON'T, NOT AS STEPS!
+if (!IsBioID) {
+  genPepNormMeth <- genPepNormMeth[which(genPepNormMeth != "biotinylated proteins")]
+}
+# "Shape" (variance stabilisation) normalisation methods
+shapePepNormMeth <- pepNormMethodsDF$Method[which(pepNormMethodsDF$Source == "pepNorm_Shape.R")]
+# Default normalisation sequence
+dfltNormSeq <- list(list(Method = "median"),
+                    list(Method = "Levenberg-Marquardt"),
+                    list(Method = "IRS"),
+                    list(Method = "ComBat",
+                         Batch = "Replicate"
+                    ))
+if (LabelType != "Isobaric") {
+  dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, function(x) { x$Method }, "a") != "IRS")]
+}
+if (!Nested) {
+  dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, function(x) { x$Method }, "a") != "ComBat")]
+}
+if (exists("pepNormSeq")) { dfltNormSeq <- pepNormSeq }
+normSeqProc12 <- function(seq) { #seq <- dfltNormSeq
+  l <- length(seq)
+  stopifnot(l > 0)
+  vapply(1:l, function(i) {
+    x <- seq[[i]]$Method
+    if ("Batch" %in% names(seq[[i]])) {
+      x <- paste0(x, ": ", paste(seq[[i]]$Batch, collapse = ";"))
+    }
+    return(paste0(i, " - ", x))
+  }, "a")
+}
+normSeqProc21 <- function(seq2) { #seq2 <- dfltNormSeq2
+  l <- length(seq2)
+  stopifnot(l > 0)
+  seq2 <- gsub("^[0-9]+ - ", "", seq2)
+  dict <- vapply(pepNormMethods, function(i) { i$Method }, "")
+  lapply(1:l, function(i) {
+    x <- unlist(strsplit(seq2[[i]], ": "))
+    rs <- list(Method = x[[1]])
+    m <- match(x[[1]], dict)
+    nms <- names(pepNormMethods[[m]])
+    nms <- nms[which(nms != "Method")]
+    if (length(nms)) {
+      rs[nms] <- pepNormMethods[[m]][nms]
+    }
+    if (length(x) == 2) {
+      rs$Batch <- unlist(strsplit(x[[2]], ";"))
+    }
+    return(rs)
+  })
+}
+if (!exists("normSequence")) { normSequence %<o% dfltNormSeq }
+dfltNormSeq2 <- normSeqProc12(normSequence)
+
 #
 mnFct <- c("Experiment", "Replicate")
 if (WorkFlow == "TIMECOURSE") { mnFct <- c(mnFct, "Time.point") }
 l <- length(mnFct)
-coreNms <- setNames(c("Ratios.Groups.Ref.Aggregate.Level", "Norm.Groups", "Ratios.Groups", "Batch.correction", "GO.enrichment.Ref.Aggr"),
-                    c(paste0("Individual Sample___Combination of Factors required to distinguish individual samples./nMust include ",
-                             paste(mnFct[1:(l-1)], collapse = ", "), " and ", mnFct[l], "."),
-                      "Normalisation groups___Factor(s) defining groups of samples to normalize to each-other. Note that which, if any, normalisations apply will be defined further down",
-                      "Ratio groups___Factor(s) defining comparison groups, i.e. groups of samples, including at least some References (i.e. Controls), to compare to each others./nMust include Experiment, cannot include Replicate.",
-                      "Batch___Optional: Factor(s) defining batches used for sva::ComBat-based correction.",
-                      "GO enrichment___Optional: Only protein groups with at least one valid value in corresponding samples will be used as references for GO-terms enrichment tests."))
+coreNms <- setNames(c("Ratios.Groups.Ref.Aggregate.Level",
+                      "Norm.Groups",
+                      "Ratios.Groups",
+                      "GO.enrichment.Ref.Aggr"
+                      #, "Batch.correction"
+                      ),
+                      c(paste0("Individual Sample___Combination of Factors required to distinguish individual samples./nMust include ",
+                               paste(mnFct[1:(l-1)], collapse = ", "), " and ", mnFct[l], "."),
+                        "Normalisation groups___Factor(s) defining groups of samples to normalize to each-other. Note that which, if any, normalisations apply will be defined further down",
+                        "Ratio groups___Factor(s) defining comparison groups, i.e. groups of samples, including at least some References (i.e. Controls), to compare to each others./nMust include Experiment, cannot include Replicate.",
+                        "GO enrichment___Optional: Only protein groups with at least one valid value in corresponding samples will be used as references for GO-terms enrichment tests."
+                        #, "Batch___Optional: Factor(s) defining batches used for sva::ComBat-based correction."
+                      ))
 for (nm in coreNms) { if (!nm %in% colnames(Param)) { Param[[nm]] <- "Exp" } }
 wMp <- c(which(colnames(Param) == coreNms[1]),
          which(colnames(Param) == coreNms[2]),
          which(colnames(Param) == coreNms[3]),
          which(colnames(Param) == coreNms[4]),
-         which(colnames(Param) == coreNms[5]),
+         #which(colnames(Param) == coreNms[5]),
          which((Param[1,] == "MAP2FACTS")&(!colnames(Param) %in% coreNms)))
 lstFct <- list()
 dfltFct <- list()
@@ -519,11 +677,21 @@ useSAM_thresh %<o% TRUE
 tstAdvOpt <- try(sum(file.exists(Param$Custom.PGs, Param$TrueDisc_filter, Param$CRAPome_file)) > 0)
 if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
 #if (!Param$Param_suppress_UI) {
+#
+
+#
 appNm <- paste0(dtstNm, " - Parameters")
 ui1 <- fluidPage(
   useShinyjs(),
+  setBackgroundColor( # Doesn't work
+    color = c(#"#F8F8FF",
+      "#E6F7F4"),
+    gradient = "linear",
+    direction = "bottom"
+  ),
   extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
   titlePanel(tag("u", "Parameters"),
+             #em(appNm)), # Doesn't work =(
              appNm),
   h2(dtstNm), 
   tags$hr(style = "border-color: black;"),
@@ -562,18 +730,19 @@ ui1 <- fluidPage(
            withSpinner(uiOutput("ReloadMatches"))
     )),
   br(),
-  if ((Annotate)&&(scrptType == "withReps")) {
+  if (annotRep) {
     fluidRow(column(6,
                     checkboxInput("ROC1on", "PSMs-level ROC filter", length(ROC_GOterms) > 0, "100%"),
                     withSpinner(uiOutput("ROC1"))))
   },
-  tags$hr(style="border-color: black;"),
+  tags$hr(style = "border-color: black;"),
   withSpinner(uiOutput("IsobarCorr")),
+  h4(strong("Normalisation")),
   withSpinner(uiOutput("Norm")),
   br(),
   # Quantitation
   ## Choice of algorithm + Proteomics ruler
-  tags$hr(style="border-color: black;"),
+  tags$hr(style = "border-color: black;"),
   h4(strong("Protein Groups quantitation")),
   fluidRow(column(2, selectInput("QuantMeth",
                                  "Protein Groups-level quantitation algorithm:",
@@ -650,8 +819,8 @@ ui1 <- fluidPage(
            h5("Benjamini-Hochberg FDR thresholds"),
            withSpinner(uiOutput("FDR")),
            numericInput("FDR", "", 0.01, 0, 1),
-           actionButton("AddFDR", "Add threshold"),
-           actionButton("RemvFDR", "Remove threshold")),
+           actionBttn("AddFDR", "Add threshold", color = "primary", size = "xs", style = "pill"),
+           actionBttn("RemvFDR", "Remove threshold", color = "primary", size = "xs", style = "pill")),
     column(2,
            radioButtons("typeOfThresh", "Ratios thresholds: use...", threshOpt, threshDflt, FALSE, "100%"),
            numericInput("RatCont", "Threshold value = ", KontRt, 0, 100, 0.001, width = "100%"),
@@ -661,16 +830,16 @@ ui1 <- fluidPage(
                        KontGrp,
                        width = "100%"))
   ),
-  if ((Annotate)&&(scrptType == "withReps")) {
+  if (annotRep) {
     fluidRow(column(4,
-                    checkboxInput("ROC2on", "ROC analysis", length(ROC_GOterms) > 0, "100%"),
+                    checkboxInput("ROC2on", "ROC analysis of P-values (experimental)", length(ROC_GOterms) > 0, "100%"),
                     withSpinner(uiOutput("ROC2"))))
   },
-  tags$hr(style="border-color: black;"),
+  tags$hr(style = "border-color: black;"),
   withSpinner(uiOutput("GO")),
-  tags$hr(style="border-color: black;"),
+  tags$hr(style = "border-color: black;"),
   withSpinner(uiOutput("CytoScape")),
-  tags$hr(style="border-color: black;"),
+  tags$hr(style = "border-color: black;"),
   h4(strong("Post-translational modifications (PTMs)")),
   fluidRow(column(2, pickerInput("PTMsQuant", "Select PTM(s) eligible for use for Protein Groups quantitation:",
                                  Modifs$`Full name`[which(Modifs$Type == "Variable")], ptmDflt1, TRUE,
@@ -699,22 +868,211 @@ ui1 <- fluidPage(
   h4(strong("Output tables")),
   fluidRow(column(2, checkboxInput("Amica", "Write tables compatible with https://bioapps.maxperutzlabs.ac.at/app/amica", Param$Amica, "100%"))),
   br(),
-  tags$hr(style="border-color: black;"),
+  tags$hr(style = "border-color: black;"),
   checkboxInput("AdvOptOn", "Advanced options", tstAdvOpt),
   withSpinner(uiOutput("AdvOpt")),
   br(),
-  actionButton("saveBtn", "Save"),
+  actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+  br(),
   br()
+  # ,
+  # setBackgroundColor( # Doesn't work
+  #    color = c("#F8F8FF", "#91E0E3"),
+  #    gradient = "linear",
+  #    direction = "bottom"
+  # )
 )
 if (exists("appRunTest")) { rm(appRunTest) }
 server1 <- function(input, output, session) {
-  appRunTest <- TRUE
+  NORMALIZE <- reactiveVal(normDat)
+  NORMSEQ <- reactiveVal(dfltNormSeq2)
+  #
+  # Server sub-functions
+  # (unfortunately, it does not look like these can be pre-created outside the server - the reactive objects do not work if they are)
+  updtNorm <- function(reactive = TRUE) {
+    if (reactive) {
+      nrmSq2 <- NORMSEQ()
+      nrm <- NORMALIZE()
+    } else {
+      nrmSq2 <- dfltNormSeq2
+      nrm <- normDat
+    }
+    nrmSq <- normSeqProc21(nrmSq2)
+    if (nrm) {
+      lst <- list(list(
+        #
+        # Parameters shared by multiple normalisations
+        h5("Re-normalize to ..."),
+        fluidRow(column(3,
+                        pickerInput("nrm2PrtSlct", " -> select proteins",
+                                    protHeads, nrm2PrtSlctDflt, TRUE,
+                                    pickerOptions(title = "Search me",
+                                                  `live-search` = TRUE,
+                                                  actionsBox = TRUE,
+                                                  deselectAllText = "Clear search",
+                                                  showTick = TRUE))),
+                 if (Annotate) {
+                   column(3,
+                          pickerInput("nrm2GOSlct", " -> select GO terms",
+                                      nrm2GOall, nrm2GO, TRUE,
+                                      pickerOptions(title = "Search me",
+                                                    `live-search` = TRUE,
+                                                    actionsBox = TRUE,
+                                                    deselectAllText = "Clear search",
+                                                    showTick = TRUE)))
+                 },
+                 if (WorkFlow == "BIOID") {
+                   column(3,
+                          checkboxInput("prt2Biot", " -> all biotinylated proteins: ",
+                                        Param$Norma.Prot.Ratio.to.Biot, "100%"))
+                 },
+        ),
+        br(),
+        #
+        # PSMs normalisations
+        fluidRow(column(1,
+                        strong(" -> PSMs-level:")),
+                 column(2,
+                        checkboxInput("evLM", "Levenberg-Marquardt",
+                                      Param$Adv.Norma.Ev.Intens, "100%"))),
+        br(),
+        #
+        # Peptidoforms
+        fluidRow(column(6,
+                        selectInput("PepNormSeq",
+                                    " -> Peptidoforms-level:",
+                                    nrmSq2,
+                                    nrmSq2,
+                                    TRUE,
+                                    TRUE,
+                                    width = "90%"))),
+        #h5(strong(em(paste(nrmSq2, collapse = " -> ")))),
+        fluidRow(column(2,
+                        actionBttn("addClassicNorm", "Add classic normalisation", color = "primary", size = "xs", style = "pill"),
+                        pickerInput("ClassicNormMeth", "methods:", genPepNormMeth, genPepNormMeth[1], width = "80%")),
+                 column(2,
+                        actionBttn("addVarCorr", "Add variance intensity-bias correction", color = "primary", size = "xs", style = "pill"),
+                        pickerInput("VarCorrMeth", "methods:", shapePepNormMeth, shapePepNormMeth[1], width = "80%")),
+                 column(2,
+                        actionBttn("addComBat", "Add ComBat batch correction", color = "primary", size = "xs", style = "pill"),
+                        pickerInput("ComBatBatch",
+                                    "batches (select one or more):",
+                                    Factors,
+                                    c("Replicate", "Batch")[("Batch" %in% Factors)+1],
+                                    TRUE,
+                                    width = "80%")),
+                 if (LabelType == "Isobaric") {
+                   column(2,
+                          actionBttn("addIRS", "Add IRS batch correction", color = "primary", size = "xs", style = "pill"),
+                          h5(em("IRS = Internal Reference Scaling")))
+                 },
+        ),
+        h5(em("(It goes without saying that you should aim for a REASONABLE normalisation scheme!!!)")),
+        br()
+      ))
+      #
+      # Protein groups
+      if (scrptTypeFull == "withReps_PG_and_PTMs") {
+        lst <- append(lst, list(fluidRow(column(2,
+                                                h5(strong(" -> Protein Groups-level:"))),
+                                         column(2,
+                                                checkboxInput("prtLM", "Levenberg-Marquardt",
+                                                              Param$Adv.Norma.Prot.Intens, "100%")))
+        ))
+      }
+      lst <- append(lst, list(br()))
+    } else {
+      lst <- list(list(br()))
+    }
+    renderUI(lst)
+  }
+  updtOptOn <- function(reactive = TRUE) {
+    if (reactive) { tst <- ADVOPT() } else { tst <- tstAdvOpt }
+    if (tst) {
+      if (reactive) { rgKol <- input[["Ratios.Groups"]] } else { rgKol <- dfltFct[["Ratios.Groups"]] }
+      RatGrps <- paste(unique(apply(ExpMap[, rgKol, drop = FALSE], 1, paste, collapse = " ")), collapse = " / ")
+      lst <- vector("list", 1)
+      lst[[1]] <- list(
+        fluidRow(column(12, em("->"), 
+                        shinyFilesButton("CustPG", em("Custom Protein Groups"), "", FALSE), br(),
+                        em("Allows \"cheating\" with the naive Protein Groups assembly algorithm."), br(),
+                        em("Useful when for instance genetically-motified/transduced samples synthesize a custom protein (e.g. fusion construct) to which matching peptides should be assigned in priority over the canonical form."), br(),
+                        em("Should be a table with two columns: \"Leading protein IDs\" (\";\"-separated) and \"Priority\" (integer)."), br(),
+                        strong("Current selection = "), span(Param$Custom.PGs, style = "color:blue", .noWS = "outside"),
+                        br(),
+                        br()
+        )),
+        fluidRow(column(12, em("->"), 
+                        shinyFilesButton("TrueDisc", em("TRUE/FALSE protein discovery filter"), "", FALSE), br(),
+                        em("Select TRUE/FALSE protein discovery filter .csv file (useful when you know from another experiment which proteins are contaminants)."), br(),
+                        em("Should contain a \"Protein ID\" column and one TRUE/FALSE column per \"Ratio group\" value."),
+                        em("Current values: "), em(RatGrps), br(),
+                        br(),
+                        em(DiscFiltModesHlp[1]), br(),
+                        em(DiscFiltModesHlp[2]), br(),
+                        em(DiscFiltModesHlp[3]), br(),
+                        strong("Current selection = "), span(Param$TrueDisc_filter, style = "color:blue", .noWS = "outside"),
+                        br(),
+                        br()
+        )),
+        fluidRow(column(12, em("->"),
+                        shinyFilesButton("CRAPome", em("CRAPome filter"), "", FALSE), br(),
+                        em("CRAPome-like filter: 1 column table of protein accessions to mark as contaminants."), br(),
+                        em("Column name = \"Protein ID\" or \"Protein IDs\", use \";\" if including more than one ID per row)."), br(),
+                        strong("Current selection = "), span(Param$CRAPome_file, style = "color:blue", .noWS = "outside"),
+                        br(),
+                        br()
+        ))
+      )
+    } else { lst <- list(list(em(""))) }
+    renderUI(lst)
+  }
+  if (annotRep) { # Not implemented yet for script without Reps
+    updtROC1 <- function(reactive = TRUE) {
+      if (reactive) { tst <- ROC1ON() } else { tst <- length(c(ROCfilt_GOterms_Pos, ROCfilt_GOterms_Neg)) > 0 }
+      if (tst) {
+        lst <- list(
+          fluidRow(column(4,
+                          pickerInput("ROC1_pos", "Positive GO term(s)", ROC1_allGOPos1, ROC1_GOterms_Pos_dflt, TRUE,
+                                      pickerOptions(title = "Search me",
+                                                    `live-search` = TRUE,
+                                                    actionsBox = TRUE,
+                                                    deselectAllText = "Clear search",
+                                                    showTick = TRUE))),
+                   column(4,
+                          pickerInput("ROC1_neg", "Negative GO term(s)", ROC1_allGONeg1, ROC1_GOterms_Neg_dflt, TRUE,
+                                      pickerOptions(title = "Search me",
+                                                    `live-search` = TRUE,
+                                                    actionsBox = TRUE,
+                                                    deselectAllText = "Clear search",
+                                                    showTick = TRUE)),
+                          em("Optional: these can be used for an inverted ROC analysis."))))
+      } else { lst <- list(list(em(""))) }
+      renderUI(lst)
+    }
+    updtROC2 <- function(reactive = TRUE) {
+      if (reactive) { tst <- ROC2ON() } else { tst <- length(ROC_GOterms) > 0 }
+      if (tst) {
+        lst <- list(
+          fluidRow(column(4,
+                          em("GO terms to evaluate acceptable P-value significance thresholds, e.g. if you know that all proteins with a given term should be significant. Currently this is only used for personal interpretation of the plots and not fed back into the automated significance analysis."),
+                          pickerInput("ROC2_terms", "", ROC2_allGO1, ROC2_GOterms_dflt, TRUE,
+                                      pickerOptions(title = "Search me",
+                                                    `live-search` = TRUE,
+                                                    actionsBox = TRUE,
+                                                    deselectAllText = "Clear search",
+                                                    showTick = TRUE)))))
+      } else { lst <- list(list(em(""))) }
+      renderUI(lst)
+    }
+  }
+  #
   # Initialize variables to create in main environment
   PARAM <- reactiveVal(Param)
   m4Quant <- reactiveVal(Mod4Quant)
   m2Xclud <- reactiveVal(Mod2Xclud)
   ADVOPT <- reactiveVal(tstAdvOpt)
-  if ((Annotate)&&(scrptType == "withReps")) {
+  if (annotRep) {
     ROC1ON <- reactiveVal(length(c(ROCfilt_GOterms_Pos,
                                    ROCfilt_GOterms_Neg)) > 0)
     ROC2ON <- reactiveVal(length(ROC_GOterms) > 0)
@@ -724,54 +1082,6 @@ server1 <- function(input, output, session) {
   # Map Parameters to Factors
   output$PSMsPCA <- renderPlotly(plot_lyPSMsPCA)
   output$FactMappings <- renderUI({
-    # lst <- list()
-    # for (w in wMp) {
-    #   Opt <- Factors
-    #   dflt <- dfdflt <- c("Experiment", "Replicate")[(colnames(Param)[w] == "Batch.correction")+1]
-    #   if (!Param[1, w] %in% c("AUTOFACT", "MAP2FACTS")) {
-    #     dflt <- Factors[match(unlist(strsplit(Param[1, w], ";")), names(Factors))]
-    #     if ((length(dflt) == 1)&&(is.na(dflt))) { dflt <- dfdflt }
-    #   }
-    #   if (colnames(Param)[w] == "Ratios.Groups.Ref.Aggregate.Level") {
-    #     dflt <- unique(c(dflt, mnFct))
-    #   }
-    #   if (colnames(Param)[w] == "Ratios.Groups") {
-    #     Opt <- Factors[which(Factors != "Replicate")]
-    #     dflt <- dflt[which(dflt != "Replicate")]
-    #   }
-    #   lbl <- gsub("\\.", " ", colnames(Param)[w])
-    #   if (colnames(Param)[w] %in% coreNms) {
-    #     lbl <- unlist(strsplit(names(coreNms)[match(colnames(Param)[w], coreNms)], "___"))
-    #   } else { lbl <- c(gsub("\\.", " ", colnames(Param)[w]), Param_Help[w]) }
-    #   names(Opt) <- NULL
-    #   names(dflt) <- NULL
-    #   blck <- list(list(br()),
-    #                tags$table(
-    #                  tags$tr(width = "80%",
-    #                          tags$td(width = "25%",
-    #                                  div(strong(lbl[1]))),
-    #                          tags$td(width = "55%",
-    #                                  selectInput(colnames(Param)[w],
-    #                                              "",
-    #                                              Opt,
-    #                                              dflt,
-    #                                              TRUE,
-    #                                              TRUE)),
-    #                          #addTooltip(session, colnames(Param)[w], Param_Help[w], "bottom", "hover", list(container = "body"))
-    #                  )
-    #                ))
-    #   lbl2 <- unlist(strsplit(lbl[2], "/n"))
-    #   for (lbl2a in lbl2) { blck <- append(blck, list(span(em(lbl2a)), br())) }
-    #   if (colnames(Param)[w] == "Ratios.Groups") {
-    #     dflt <- Param$Ratios.Groups_Nested
-    #     if (!is.logical(dflt)) { dflt <- WorkFlow != "Regulation" }
-    #     blck <- append(blck, list(radioButtons("IsNested", "Nested design? (i.e. are replicates paired?)",
-    #                                            c(TRUE, FALSE), dflt, TRUE)))
-    #   }
-    #   blck <- append(blck, list(br()))
-    #   lst <- append(lst, blck)
-    # }
-    # return(lst)
     lstFct
   })
   output$RatioGroups <- renderUI({
@@ -818,6 +1128,7 @@ server1 <- function(input, output, session) {
     }
     return(lst)
   })
+  #
   # Labels purity correction - only for isobarically labelled samples
   output$IsobarCorr <- renderUI({
     if (LabelType == "Isobaric") {
@@ -828,91 +1139,9 @@ server1 <- function(input, output, session) {
     }
     return(list(lst))
   })
+  #
   # Normalisations
-  output$Norm <- renderUI({
-    lst <- list(list(fluidRow(column(2,
-                                     h4(strong("Normalisations"))),
-                              column(3,
-                                     br(),
-                                     checkboxInput("Norm", "Normalize data",
-                                                      sum(Param$Norma.Ev.Intens,
-                                                          Param$Norma.Pep.Intens,
-                                                          Param$Norma.Prot.Ratio) > 0, "100%"))),
-                     br(),
-                     fluidRow(column(1,
-                                     h5(strong(" -> PSMs-level: "))),
-                              column(2,
-                                     br(),
-                                     checkboxInput("evLM", "Levenberg-Marquardt",
-                                                      Param$Adv.Norma.Ev.Intens, "100%"))),
-                     br(),
-                     fluidRow(column(1,
-                                     h5(strong(" -> Peptidoforms-level: "))),
-                              column(2,
-                                     br(),
-                                     radioButtons("pepShape", "Corrections",
-                                                     c("none", "vsn", "loess"),
-                                                     shpDflt, TRUE, "100%")),
-                              column(2,
-                                     br(),
-                                     checkboxInput("pepLM", "Levenberg-Marquardt",
-                                                      Param$Adv.Norma.Pep.Intens, "100%"))),
-                     br()))
-    if ((LabelType == "Isobaric")&&(length(Iso) > 1)) {
-      lst <- append(lst,
-                    list(fluidRow(column(2,
-                                         br(),
-                                         checkboxInput("IRS", "IRS", Param$Norma.Pep.Intens.IRS, "100%")))))
-      dfltChan <- unlist(strsplit(Param$Norma.Pep.Intens.IRS_Ref_channels, ";"))
-      dfltChan <- dfltChan[which(dfltChan %in% get(IsobarLab))]
-      if (length(dfltChan) != length(Iso)) { dfltChan <- rep(get(IsobarLab)[1], length(Iso)) }
-      dfltChan <- reactiveVal(dfltChan)
-      for (i in length(Iso)) {
-        m <- unique(Exp.map[which(Exp.map$Isobaric.set == Iso[i])],)
-        lst <- append(lst, list(fluidRow(column(1,
-                                                h5(strong(em(paste0(" -> ",
-                                                                    paste(dfltChan(), collapse = " / "),
-                                                                    ": "))))),
-                                         column(2,
-                                                br(),
-                                                pickerInput(paste0("intRef", Iso[i]),
-                                                            paste0("- Isobaric set ", Iso[i]),
-                                                            m$Isobaric.label, dfltChan()[i], TRUE,
-                                                            pickerOptions(title = "Search me",
-                                                                          `live-search` = TRUE,
-                                                                          actionsBox = TRUE,
-                                                                          deselectAllText = "Clear search",
-                                                                          showTick = TRUE)
-                                         ))),
-                                br()))
-      }
-    }
-    if (scrptTypeFull == "withReps_PG_and_PTMs") {
-      lst <- append(lst, list(fluidRow(column(1, h5(strong(" -> Protein Groups-level: "))),
-                                       column(2,
-                                              br(),
-                                              checkboxInput("prtLM", "Levenberg-Marquardt",
-                                                               Param$Adv.Norma.Prot.Intens, "100%")),
-                                       br()),
-                              fluidRow(column(2,
-                                              br(),
-                                              pickerInput("prt2PrtSlct", " -> To selected proteins ",
-                                                          protHeads, prt2PrtSlctDflt, TRUE,
-                                                          pickerOptions(title = "Search me",
-                                                                        `live-search` = TRUE,
-                                                                        actionsBox = TRUE,
-                                                                        deselectAllText = "Clear search",
-                                                                        showTick = TRUE)),
-                                              br())),
-                              if (WorkFlow == "BIOID") {
-                                fluidRow(column(2,
-                                                checkboxInput("prt2Biot", " -> To all biotinylated-proteins: ",
-                                                              Param$Norma.Prot.Ratio.to.Biot, "100%")))
-                              }
-      ))
-    }
-    return(lst)
-  })
+  output$Norm <- updtNorm(FALSE)
   #
   # GO
   output$GO <- renderUI({
@@ -988,47 +1217,6 @@ server1 <- function(input, output, session) {
   })
   #
   # Optional input files
-  updtOptOn <- function(reactive = TRUE) {
-    if (reactive) { tst <- ADVOPT() } else { tst <- tstAdvOpt }
-    if (tst) {
-      if (reactive) { rgKol <- input[["Ratios.Groups"]] } else { rgKol <- dfltFct[["Ratios.Groups"]] }
-      RatGrps <- paste(unique(apply(ExpMap[, rgKol, drop = FALSE], 1, paste, collapse = " ")), collapse = " / ")
-      lst <- vector("list", 1)
-      lst[[1]] <- list(
-        fluidRow(column(12, em("->"), 
-                        shinyFilesButton("CustPG", em("Custom Protein Groups"), "", FALSE), br(),
-                        em("Allows \"cheating\" with the naive Protein Groups assembly algorithm."), br(),
-                        em("Useful when for instance genetically-motified/transduced samples synthesize a custom protein (e.g. fusion construct) to which matching peptides should be assigned in priority over the canonical form."), br(),
-                        em("Should be a table with two columns: \"Leading protein IDs\" (\";\"-separated) and \"Priority\" (integer)."), br(),
-                        strong("Current selection = "), span(Param$Custom.PGs, style = "color:blue", .noWS = "outside"),
-                        br(),
-                        br()
-        )),
-        fluidRow(column(12, em("->"), 
-                        shinyFilesButton("TrueDisc", em("TRUE/FALSE protein discovery filter"), "", FALSE), br(),
-                        em("Select TRUE/FALSE protein discovery filter .csv file (useful when you know from another experiment which proteins are contaminants)."), br(),
-                        em("Should contain a \"Protein ID\" column and one TRUE/FALSE column per \"Ratio group\" value."),
-                        em("Current values: "), em(RatGrps), br(),
-                        br(),
-                        em(DiscFiltModesHlp[1]), br(),
-                        em(DiscFiltModesHlp[2]), br(),
-                        em(DiscFiltModesHlp[3]), br(),
-                        strong("Current selection = "), span(Param$TrueDisc_filter, style = "color:blue", .noWS = "outside"),
-                        br(),
-                        br()
-        )),
-        fluidRow(column(12, em("->"),
-                        shinyFilesButton("CRAPome", em("CRAPome filter"), "", FALSE), br(),
-                        em("CRAPome-like filter: 1 column table of protein accessions to mark as contaminants."), br(),
-                        em("Column name = \"Protein ID\" or \"Protein IDs\", use \";\" if including more than one ID per row)."), br(),
-                        strong("Current selection = "), span(Param$CRAPome_file, style = "color:blue", .noWS = "outside"),
-                        br(),
-                        br()
-        ))
-      )
-    } else { lst <- list(list(em(""))) }
-    renderUI(lst)
-  }
   output$AdvOpt <- updtOptOn(FALSE)
   # Event observers
   # Optional input files
@@ -1077,43 +1265,7 @@ server1 <- function(input, output, session) {
   })
   # ROC
   # Optional input files
-  if ((Annotate)&&(scrptType == "withReps")) { # Not implemented yet for script without Reps
-    updtROC1 <- function(reactive = TRUE) {
-      if (reactive) { tst <- ROC1ON() } else { tst <- length(c(ROCfilt_GOterms_Pos, ROCfilt_GOterms_Neg)) > 0 }
-      if (tst) {
-        lst <- list(
-          fluidRow(column(4,
-                          pickerInput("ROC1_pos", "Positive GO terms", allGO, ROCfilt_GOterms_Pos, TRUE,
-                                      pickerOptions(title = "Search me",
-                                                    `live-search` = TRUE,
-                                                    actionsBox = TRUE,
-                                                    deselectAllText = "Clear search",
-                                                    showTick = TRUE))),
-                   column(4,
-                          pickerInput("ROC1_neg", "Negative GO terms", allGO, ROCfilt_GOterms_Neg, TRUE,
-                                      pickerOptions(title = "Search me",
-                                                    `live-search` = TRUE,
-                                                    actionsBox = TRUE,
-                                                    deselectAllText = "Clear search",
-                                                    showTick = TRUE)),
-                          em("Optional: these can be used for an inverted ROC analysis."))))
-      } else { lst <- list(list(em(""))) }
-      renderUI(lst)
-    }
-    updtROC2 <- function(reactive = TRUE) {
-      if (reactive) { tst <- ROC2ON() } else { tst <- length(ROC_GOterms) > 0 }
-      if (tst) {
-        lst <- list(
-          fluidRow(column(4,
-                          pickerInput("ROC2_terms", "GO terms to evaluate", allGO, ROC_GOterms, TRUE,
-                                      pickerOptions(title = "Search me",
-                                                    `live-search` = TRUE,
-                                                    actionsBox = TRUE,
-                                                    deselectAllText = "Clear search",
-                                                    showTick = TRUE)))))
-      } else { lst <- list(list(em(""))) }
-      renderUI(lst)
-    }
+  if (annotRep) { # Not implemented yet for script without Reps
     output$ROC1 <- updtROC1(FALSE)
     output$ROC2 <- updtROC1(FALSE)
     observeEvent(input$ROC1on, {
@@ -1126,19 +1278,19 @@ server1 <- function(input, output, session) {
     })
     observeEvent(input$ROC1_pos, {
       Par <- PARAM()
-      ROCfilt_GOterms_Pos <<- allGO2[match(input$ROC1_pos, allGO)]
+      ROCfilt_GOterms_Pos <<- ROC1_allGOPos2[match(input$ROC1_pos, ROC1_allGOPos1)]
       Par$ROCfilt_GOterms_Pos <- paste(ROCfilt_GOterms_Pos, collapse = ";")
       PARAM(Par)
     })
     observeEvent(input$ROC1_neg, {
       Par <- PARAM()
-      ROCfilt_GOterms_Neg <<- allGO2[match(input$ROC1_neg, allGO)]
+      ROCfilt_GOterms_Neg <<- ROC1_allGONeg2[match(input$ROC1_neg, ROC1_allGONeg1)]
       Par$ROCfilt_GOterms_Neg <- paste(ROCfilt_GOterms_Neg, collapse = ";")
       PARAM(Par)
     })
     observeEvent(input$ROC2_terms, {
       Par <- PARAM()
-      ROC_GOterms <<- allGO2[match(input$ROC2_terms, allGO)]
+      ROC_GOterms <<- ROC2_allGO2[match(input$ROC2_terms, ROC2_allGO1)]
       Par$ROC_GOterms <- paste(ROC_GOterms, collapse = ";")
       PARAM(Par)
     })
@@ -1193,6 +1345,8 @@ server1 <- function(input, output, session) {
   })
   # Normalisations
   observeEvent(input$Norm, {
+    output$Norm <- updtNorm()
+    NORMALIZE(input$Norm)
     Par <- PARAM()
     Par$Norma.Ev.Intens <- input$Norm
     Par$Norma.Pep.Intens <- input$Norm
@@ -1204,16 +1358,78 @@ server1 <- function(input, output, session) {
     Par$Adv.Norma.Ev.Intens <- input$evLM
     PARAM(Par)
   })
-  observeEvent(input$pepShape, {
+  # observeEvent(input$pepShape, {
+  #   Par <- PARAM()
+  #   Par$Norma.Pep.Intens.Shape <- input$pepShape
+  #   PARAM(Par)
+  # })
+  observeEvent(input$nrm2PrtSlct, {
     Par <- PARAM()
-    Par$Norma.Pep.Intens.Shape <- input$pepShape
+    Par$Norma.Prot.Ratio.to.proteins <- paste(db$`Protein ID`[dbOrd][match(input$nrm2PrtSlct, protHeads)],
+                                              collapse = ";")
     PARAM(Par)
-  })
-  observeEvent(input$pepLM, {
-    Par <- PARAM()
-    Par$Adv.Norma.Pep.Intens <- input$pepLM
-    PARAM(Par)
-  })
+  }, ignoreNULL = FALSE)
+  if (Annotate) {
+    observeEvent(input$nrm2GOSlct, {
+      Par <- PARAM()
+      tmpGO <- allGO2[match(input$nrm2GOSlct, allGO)]
+      Par$Norma.Prot.Ratio.to.GO <- paste(tmpGO, collapse = ";")
+      PARAM(Par)
+    }, ignoreNULL = FALSE)
+  }
+  observeEvent(input$addClassicNorm, {
+    tmp <- NORMSEQ()
+    tmp <- c(tmp, paste0(length(tmp)+1, " - ", input$ClassicNormMeth))
+    NORMSEQ(tmp)
+    updateSelectInput(inputId = "PepNormSeq",
+                      choices = tmp,
+                      selected = tmp)
+    assign("normSequence", normSeqProc21(tmp), envir = .GlobalEnv)
+  }, ignoreInit = TRUE)
+  observeEvent(input$addVarCorr, {
+    tmp <- NORMSEQ()
+    tmp <- c(tmp, paste0(length(tmp)+1, " - ", input$VarCorrMeth))
+    NORMSEQ(tmp)
+    updateSelectInput(inputId = "PepNormSeq",
+                      choices = tmp,
+                      selected = tmp)
+    assign("normSequence", normSeqProc21(tmp), envir = .GlobalEnv)
+  }, ignoreInit = TRUE)
+  observeEvent(input$addComBat, {
+    tmp <- NORMSEQ()
+    tmp <- c(tmp, paste0(length(tmp)+1, " - ", paste0("ComBat: ", paste(input$ComBatBatch, collapse = ";"))))
+    NORMSEQ(tmp)
+    updateSelectInput(inputId = "PepNormSeq",
+                      choices = tmp,
+                      selected = tmp)
+    assign("normSequence", normSeqProc21(tmp), envir = .GlobalEnv)
+  }, ignoreInit = TRUE)
+  if (LabelType == "Isobaric") {
+    observeEvent(input$addIRS, {
+      tmp <- NORMSEQ()
+      tmp <- c(tmp, paste0(length(tmp)+1, " - IRS"))
+      NORMSEQ(tmp)
+      updateSelectInput(inputId = "PepNormSeq",
+                        choices = tmp,
+                        selected = tmp)
+      assign("normSequence", normSeqProc21(tmp), envir = .GlobalEnv)
+    }, ignoreInit = TRUE)
+  }
+  observeEvent(input$PepNormSeq, {
+    tmp <- input$PepNormSeq
+    tmp <- paste0(1:length(tmp), gsub("^[0-9]+ - ", " - ", input$PepNormSeq))
+    NORMSEQ(tmp)
+    updateSelectInput(inputId = "PepNormSeq",
+                      choices = tmp,
+                      selected = tmp)
+    assign("normSequence", normSeqProc21(tmp), envir = .GlobalEnv)
+  }, ignoreInit = TRUE)
+  #
+  # observeEvent(input$pepLM, {
+  #   Par <- PARAM()
+  #   Par$Adv.Norma.Pep.Intens <- input$pepLM
+  #   PARAM(Par)
+  # })
   if ((LabelType == "Isobaric")&&(length(Iso) > 1)) {
     observeEvent(input$IRS, {
       Par <- PARAM()
@@ -1237,12 +1453,6 @@ server1 <- function(input, output, session) {
       Par$Adv.Norma.Prot.Intens <- input$prtLM
       PARAM(Par)
     })
-    observeEvent(input$prt2PrtSlct, {
-      Par <- PARAM()
-      Par$Norma.Prot.Ratio.to.proteins <- paste(db$`Protein ID`[dbOrd][match(input$prt2PrtSlct, protHeads)],
-                                                collapse = ";")
-      PARAM(Par)
-    }, ignoreNULL = FALSE)
     if (WorkFlow == "BIOID") {
       observeEvent(input$prt2Biot, {
         Par <- PARAM()
@@ -1453,12 +1663,11 @@ server1 <- function(input, output, session) {
     assign("Param", Par, envir = .GlobalEnv)
     assign("Mod4Quant", m4Quant(), envir = .GlobalEnv)
     assign("Mod2Xclud", m2Xclud(), envir = .GlobalEnv)
-    assign("appRunTest", appRunTest, envir = .GlobalEnv)
+    assign("appRunTest", TRUE, envir = .GlobalEnv)
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
   session$onSessionEnded(function() { 
-    assign("appRunTest", appRunTest, envir = .GlobalEnv)
     stopApp()
   })
 }

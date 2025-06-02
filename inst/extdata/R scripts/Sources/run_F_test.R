@@ -41,6 +41,7 @@ if (dataType == "modPeptides") {
   mtchCol <- "Modified sequence"
   plotlyLab = c(PepLabKol, paste0(Ptm, "-site"))
   myData$"-log10(PEP)" <- -log10(myData$PEP)
+  Size <- "Rel. av. log10 abundance"
   Alpha <- "-log10(PEP)"
   refRat <- ref.rat
 }
@@ -54,6 +55,7 @@ if (dataType == "PG") {
   ohDeer <- paste0(wd, "/Reg. analysis/F-tests")
   idCol <- "Protein IDs"
   plotlyLab <- PrLabKol
+  Size <- "Rel. av. log10 abundance"
   Alpha <- "Rel. log10(Peptides count)"
   refRat <- Ref.Ratios
 }
@@ -301,7 +303,7 @@ dev.off()
 kol <- unique(c(idCol, plotlyLab, "Potential contaminant", Param$Plot.labels, xCol, Alpha, fdrKol, regKol))
 kol <- kol[which(kol %in% colnames(myData))]
 my_F_Data[, kol] <- myData[, kol]
-my_F_Data[["Rel. av. log10 abundance"]] <- rowMeans(my_F_Data[, xCol, drop = FALSE], na.rm = TRUE)
+my_F_Data[["Rel. av. log10 abundance"]] <- myData[[Size]]
 tmp <- lapply(1:length(xCol), function(x) { myData[, F_Root, drop = FALSE] })
 tmp <- do.call(cbind, tmp)
 dummyPVCol <- gsub(topattern(paste0("Mean ", ratRef)), paste0(F_Root, " - "), xCol)

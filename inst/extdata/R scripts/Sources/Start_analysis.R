@@ -167,7 +167,7 @@ if (!RunByMaster) {
                                               shiny::br())),
                                           shiny::br(),
                                           shiny::em("Once you are finished, click "),
-                                          shiny::actionButton("saveBtn", "Save"),
+                                          shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
                                           shiny::em(" to continue."),
                                           shiny::br(),
                                           shiny::em("Saving is only possible once:"),
@@ -567,6 +567,8 @@ if (renv) {
     renv::snapshot(force = TRUE, prompt = FALSE, exclude = "fastSave")
   }
 }
+LocAnalysis %<o% (WorkFlow %in% c("LOCALISATION", "LOCALIZATION"))
+IsBioID %<o% (gsub(" |_|-|\\.", "", toupper(WorkFlow)) == "BIOID")
 # Update values
 RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")

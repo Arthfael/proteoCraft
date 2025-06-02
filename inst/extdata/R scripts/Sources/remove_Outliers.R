@@ -18,7 +18,8 @@ wTest1 <- sapply(colnames(Include), function(k) { #k <- colnames(Include)[1]
   if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
   return(x)
 })
-wTest2 <- sum(wTest1)
+wTest1 <- round(wTest1*screenRes$width*0.45/sum(wTest1))
+#sum(wTest1)
 wTest1 <- paste0(as.character(wTest1), "px")
 wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
 wTest1 <- apply(wTest1, 1, function(x) {
@@ -27,8 +28,15 @@ wTest1 <- apply(wTest1, 1, function(x) {
        names = colnames(Include)[x[[2]]+1])
 })
 #
+if (exists("appRunTest")) { rm(appRunTest) }
 ui <- fluidPage(
   useShinyjs(),
+  setBackgroundColor( # Doesn't work
+    color = c(#"#F8F8FF",
+      "#E5EDE1"),
+    gradient = "linear",
+    direction = "bottom"
+  ),
   extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
   tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
   titlePanel(tag("u", "Check for outliers"),
@@ -41,15 +49,17 @@ ui <- fluidPage(
   br(),
   sidebarLayout(
     sidebarPanel(
-      actionButton("saveBtn", "Save"),
+      actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
       span(uiOutput("Msg"), style = "color:red"),
       br(),
       DTOutput("Include"),
-      br()
+      br(),
+      width = 6
     ),
     mainPanel(
-      plotlyOutput("PCA", height = "800px"),
+      plotlyOutput("PCA", height = paste0(screenRes$width*0.4, "px")),
       br(),
+      width = 6
     )
   ))
 server <- function(input, output, session) {
@@ -118,13 +128,18 @@ server <- function(input, output, session) {
         write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE)
       }
       #
+      assign("appRunTest", TRUE, envir = .GlobalEnv)
       stopApp()
     }
   })
   #observeEvent(input$cancel, { stopApp() })
   session$onSessionEnded(function() { stopApp() })
 }
-eval(parse(text = runApp), envir = .GlobalEnv)
+runKount <- 0
+while ((!runKount)||(!exists("appRunTest"))) {
+  eval(parse(text = runApp), envir = .GlobalEnv)
+  runKount <- runKount+1
+}
 #
 #tmp <- read.csv(Param$Experiments.map)
 #tmp$Use <- Exp.map$Use
