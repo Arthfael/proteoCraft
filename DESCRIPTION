@@ -1,17 +1,72 @@
 Package: proteoCraft
-Version: 1.0.1
-Date: 2025-04-25
 Title: Functions and scripts for Proteomics Data Analysis
-Authors@R: c(person("Armel", "Developer", role = c("aut", "cre"),
-                     email = "armel.nicolas@ista.ac.at"))
+Version: 1.1.0
+Date: 2025-06-02
+Authors@R: 
+    person("Armel", "Developer", , "armel.nicolas@ista.ac.at", role = c("aut", "cre"))
 Author: Armel Nicolas [aut, cre]
 Maintainer: Armel Nicolas <armel.nicolas@ista.ac.at>
-Depends: R (>= 4.0.0)
 Description: Functions and scripts for Proteomics Data Analysis.
 License: GPL (>= 2)
 URL:
 BugReports: armel.nicolas@ista.ac.at
+Depends: 
+    R (>= 4.0.0)
+Imports: 
+    AnnotationDbi,
+    arrow,
+    biomaRt,
+    curl,
+    data.table,
+    fastSave,
+    ggdendro,
+    ggplot2,
+    ggplotify,
+    ggrepel,
+    GO.db,
+    GofKmt,
+    gplots,
+    grDevices,
+    grid,
+    gtools,
+    htmlwidgets,
+    imputeLCMD,
+    isobar,
+    magrittr,
+    MASS,
+    minpack.lm,
+    nls2,
+    norm,
+    officer,
+    openxlsx,
+    openxlsx2,
+    OrgMassSpecR,
+    pak,
+    parallel,
+    Peptides,
+    plotly,
+    plyr,
+    qs,
+    qs2,
+    rawrr,
+    reshape,
+    reshape2,
+    rpanel,
+    RSQLite,
+    rstudioapi,
+    shiny,
+    shinyjs,
+    shinyWidgets,
+    stringi,
+    svDialogs,
+    tictoc,
+    topGO,
+    unimod,
+    UniProt.ws,
+    utils,
+    viridis,
+    XML,
+    xml2
+Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
-Encoding: UTF-8
-Imports: data.table

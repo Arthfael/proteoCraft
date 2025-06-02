@@ -1,10 +1,14 @@
 Changelog
 #########
 
+Vers. 1.1.0
+ - Complete re-writing of the peptide intensities normalisation code, to allow for complete control over the normalisation sequence.
+
 Vers. 1.0.1
  - Statistics: SAM support improved, Student's classic t-test added (we were always using Welch's), added SAM-based curved thresholds optionally for Student's t-test.
  - Moved modified peptides to sources.
  - Added GSEA all analysis scripts.
+ - New script for Thermo raw file trace extraction.
 
 Vers. 1.0.0
 
