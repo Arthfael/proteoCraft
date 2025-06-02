@@ -1,11 +1,14 @@
 #
 options(stringsAsFactors = FALSE)
+options(buildtools.check = function(action) TRUE )
 rm(list = ls()[!ls() %in% c("fls")])
 
 if (!require(pak)) { install.packages("pak") }
 
 getInt <- FALSE
 cran_req <- c("pak",
+              "officer",
+              "devtools",
               "data.table",
               "XML",
               "plyr",
@@ -27,10 +30,13 @@ cran_req <- c("pak",
               "gtools")
 tst <- sapply(cran_req, function(pck) { require(pck, character.only = TRUE, quietly = TRUE) })
 w <- which(!tst)
-if (length(w)) { pak::pkg_history(cran_req[w], character.only = TRUE) }
+if (length(w)) { pak::pkg_install(cran_req[w]) }
 for (pck in cran_req) { library(pck, character.only = TRUE) }
 if (!require(proteoCraft)) {
-  pak::pkg_install("Arthfael/proteoCraft")
+  tst <- try(pak::pkg_install("Arthfael/proteoCraft"))
+  if ("try-error" %in% clas(tst)) {
+    tst <- try(devtools::install_github("Arthfael/proteoCraft"))
+  }
   library(proteoCraft)
 }
 
@@ -520,7 +526,7 @@ server <- function(input, output, session) {
   output$minFact <- renderUI({ HTML(paste0(" - ", minFact, " => ", minFactDesc, collapse = "<br>")) })
   output$fctrMsg <- renderUI({ em(" ") })
   # Initialize
-  output$Factors <- updtFactUI(reactive = FALSE)
+  output$Factors <- updtFactUI(FALSE)
   #
   # Observers for files selection
   observeEvent(input$Order, {
@@ -733,7 +739,7 @@ if (!exists("ExpMap")) {
 }
 for (Fact in Factors2) { ExpMap[[Fact]] <- "?" }
 # Edit map
-ExpData <- read.csv(ExpMapPath, check.names = FALSE)
+ExpData <- ExpMap#read.csv(ExpMapPath, check.names = FALSE)
 for (Fact in Factors[which(!Factors %in% colnames(ExpData))]) { ExpData[[Fact]] <- "?" }
 tst <- sapply(FactorsLevels, length)
 Fact1 <- Factors[which(tst == 1)]
@@ -1629,12 +1635,16 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
   chrm <- chrm[which((chrm$`Retention time` >= fullRTRange[1])&(chrm$`Retention time` <= fullRTRange[2])),]
   Ykol <- c("Intensity", "Pressure")[(nm == "Pressure")+1]
   if ("data.frame" %in% class(chrm)) {
+    if (nm == "Pressure") { # We only plot the first minute to check for bubbles
+      chrm <- chrm[which(chrm$`Retention time` <= 1),]
+    }
     if (!nm %in% c("TIC", "BPC", "Pressure")) {
       tmp <- unlist(strsplit(nm, " for "))
       mass <- as.numeric(tmp[1])
       ms2 <- tmp[2]
       ms2Trg <- as.numeric(gsub(".* ", "", ms2))
     }
+    chrm <- chrm[which(chrm$`Raw file name` %in% ExpMap$`MS raw file name`),]
     chrm$`Raw file` <- factor(chrm$`Raw file`, levels = c(slctFls, blnkFls))
     chrm$`Raw file name` <- factor(chrm$`Raw file name`, levels = c(slctFls0, blnkFls0))
     chrm$Sort <- match(chrm$`Raw file`, ExpMap2$`MS raw file`)
@@ -1659,7 +1669,13 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
     availGrps <- unique(chrm$"Analysis_group")
     availGrps <- availGrps[which(!is.na(availGrps))]
     for (grp in availGrps) { #grp <- availGrps[1]
-      availRTRgs <- which(sapply(rtRanges$"Analysis_group", function(x) { grp %in% x })) # Available RT ranges to plot for this analysis group
+      availRTRgs <- 1
+      if (!nm %in% names(allChroms)[1:3]) {
+        availRTRgs <- 1:nrow(rtRanges)
+      }
+      availRTRgs <- availRTRgs[which(sapply(rtRanges$"Analysis_group"[availRTRgs], function(x) {
+        grp %in% x
+      }))] # Available RT ranges to plot for this analysis group
       #
       if (length(availRTRgs)) {
         # Look at the different RT ranges
@@ -1677,9 +1693,9 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
               #
               # Create formula for facet_grid:
               if (is.na(prot)) {
-                em01 <- ExpMap2[which((is.na(ExpMap2$Protein))|(ExpMap2$Role %in% c("Standard", "Buffer_control"))),]
+                em01 <- ExpMap2[which((is.na(ExpMap2$Protein))|(ExpMap2$Role %in% c("Standard", "Buffer_control", "Tag_control"))),]
               } else {
-                em01 <- ExpMap2[which((ExpMap2$Protein == prot)|(ExpMap2$Role %in% c("Standard", "Buffer_control"))),]
+                em01 <- ExpMap2[which((ExpMap2$Protein == prot)|(ExpMap2$Role %in% c("Standard", "Buffer_control", "Tag_control"))),]
               }
               em1 <- em01[which(!em01$Role %in% c("Standard", "Buffer_control")),]
               Factors3 <- Factors[which(!Factors %in% c("Replicate", "Samples_group"))] # Not using Samples_group because we replace it with Samples_group2!!!
@@ -1814,7 +1830,8 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                   coord_fixed(xRange/(yMax*3)) + facet_grid(Form) +
                   #scale_linetype_manual(values = lnTypes, guide = "legend") +
                   theme_bw() +
-                  theme(strip.text.y = element_text(angle = 0)) +
+                  theme(strip.text.y = element_text(angle = 0),
+                        legend.position = "bottom") +
                   ylim(0, yMax)
                 #
                 if (quantThisOne2) {
@@ -1824,11 +1841,13 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                     geom_vline(data = quant, aes(xintercept = `Peak end`), linetype = "dotted") +
                     geom_text(data = quant, aes(label = `Peak intensity (rounded)`,
                                                 x = min(RTchrm01$`Retention time`) + xRange*0.05),
-                              y = yMax*0.8, hjust = 0, size = 2.5)
+                              y = yMax*0.8, hjust = 0, size = 2.5, show.legend = FALSE)
                   poplot(plot, 12, 22)
                 }
-                ggsave(paste0(wd, "/", ttl, ".jpeg"), plot, dpi = 300)
-                ggsave(paste0(wd, "/", ttl, ".pdf"), plot, dpi = 300)
+                wdth <- (max(Replicate)+2)*2
+                ggsave(paste0(wd, "/", ttl, ".jpeg"), plot, dpi = 300, width = wdth, units = "in")
+                ggsave(paste0(wd, "/", ttl, ".pdf"), plot, dpi = 300, width = wdth, units = "in")
+                system(paste0("open \"", wd, "/", ttl, ".jpeg\""))
               }
             }
           }
@@ -1853,6 +1872,7 @@ sapply(nms, function(nm) { #nm <- "BPC"
   x <- x[, c("Raw file", colnames(x)[which(colnames(x) != "Raw file")])]
   data.table::fwrite(x, paste0(wd, "/", nm2), row.names = FALSE, na = "NA")
 })
+openwd()
 
 # To do:
 # - Parallelize plots printing bit

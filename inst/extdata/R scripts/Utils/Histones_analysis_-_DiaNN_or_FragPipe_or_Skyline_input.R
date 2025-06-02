@@ -5,7 +5,7 @@ if (!require(pak)) {
   install.packages("pak")
   library(pak)
 }
-pkgs <- c("rstudioapi", "qs", "plyr", "data.table", "openxlsx2", "svDialogs", "parallel", "limma", "plotly", "ggplot2", "viridis", "proteoCraft")
+pkgs <- c("rstudioapi", "qs2", "plyr", "data.table", "openxlsx2", "svDialogs", "parallel", "limma", "plotly", "ggplot2", "viridis", "proteoCraft")
 tst <- sapply(pkgs, function(pkg) { require(pkg, character.only = TRUE) })
 if (sum(!tst)) {
   pak::pkg_install(pkgs[which(!tst)])
@@ -682,6 +682,7 @@ if ((length(u) == 1)&&(is.na(u))) {
 Exp <- unique(ev$Experiment)
 
 # Edit groups map
+statTsts <- FALSE
 grpsMapFl <- paste0(dstDir, "/Groups_map.csv")
 ok <- FALSE
 kount <- 0
@@ -727,6 +728,14 @@ smplsMap$Reference <- grpsMap$Reference[match(smplsMap$Group, grpsMap$Group)]
 isQuant <- ("Intensity" %in% colnames(ev))
 if (!isQuant) {
   warning("No Intensity column detected, this is necessary for going further with this workflow...")
+}
+
+Nested <- FALSE
+if (statTsts) {
+  # Nested (paired) replicates?
+  opt <- c("Yes                                                                                                                                                               ",
+           "No                                                                                                                                                                ")
+  Nested <- c(TRUE, FALSE)[match(dlg_list(opt, opt[2], title = "Are the replicates paired?")$res, opt)]
 }
 
 Remove0Int <- FALSE
@@ -968,6 +977,7 @@ sum(nSites$`Nb. of sites`[which(!nSites$PTM %in% c("Carbamidomethyl", "Oxidation
 saveImgFun(backupFl)
 #loadFun(backupFl)
 
+# Coverage maps
 kol <- c("Experiment", "Histone(s)", "Intensity", "Modified sequence", "Modified sequence_verbose")
 kol %in% colnames(histEv)
 tmpEv <- histEv[, kol]
@@ -1022,6 +1032,9 @@ for (e in Exp) { #e <- Exp[1]
     }
   }
 }
+
+smpls <- unique(smplsMap$New)
+
 #openwd(histDir)
 data.table::fwrite(histEv, paste0(histDir, "/Hist_peptidoforms.tsv"),
                    sep = "\t", row.names = FALSE, na = "NA")
@@ -1036,14 +1049,12 @@ kol1 <- kol[which(!kol %in% kol2)]
 tmp <- do.call(paste, c(evSum[, kol1], sep = "_<>_"))
 tmp <- aggregate(1:nrow(evSum), list(tmp), min)
 pep <- evSum[tmp$x, kol1]
-
-smpls <- unique(smplsMap$New)
-
+#
 # Quantitative values
-intRoot <- "Intensity - "
-logIntRoot <- "log10(int.) - "
+intType <- "Original"
+intRoot <- setNames("Intensity - ", intType)
+logIntRoot <- setNames("log10(int.) - ", intType)
 ratRoot <- "log2(Ratio) - "
-quntCol <- paste0(intRoot, smpls)
 #
 tmp <- evSum[, c("Experiment", "Modified sequence", "Intensity")]
 exports <- list("smpls", "smplsMap", "tmp", "intRoot", "is.all.good")
@@ -1064,9 +1075,9 @@ tmp4 <- setNames(parLapply(parClust, smpls, function(smpl) { #smpl <- smpls[1]
 }), smpls)
 for (smpl in smpls) { #smpl <- smpls[1]
   tmp <- tmp4[[smpl]]
-  pep[[paste0(intRoot, smpl)]] <- NA
+  pep[[paste0(intRoot[intType], smpl)]] <- NA
   w <- which(pep$"Modified sequence" %in% tmp$mod)
-  pep[w, paste0(intRoot, smpl)] <- tmp$Intensity[match(pep$"Modified sequence"[w], tmp$mod)]
+  pep[w, paste0(intRoot[intType], smpl)] <- tmp$Intensity[match(pep$"Modified sequence"[w], tmp$mod)]
 }
 pep$id <- 1:nrow(pep)
 #
@@ -1085,6 +1096,11 @@ pep$Label <- parApply(parClust, pep[, labCol, drop = FALSE], 1, function(x) {
   paste0(labCol, ": ", x, collapse = "\n")
 })
 pep$Sequence <- ev$Sequence[match(pep$`Modified sequence_verbose`, ev$`Modified sequence_verbose`)]
+intType <- "Original"
+normSummary <- data.frame(Sample = smpls, Original = sapply(smpls, function(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) }))
+
+#
+saveImgFun(backupFl)
 
 # Batch correction:
 kol <- colnames(smplsMap)
@@ -1092,7 +1108,17 @@ kol <- kol[which(!kol %in% c("Old", "New", "Group", "Comparison_group",  "Refere
 kol <- kol[which(sapply(kol, function(k) {
   length(unique(smplsMap[[k]])) > 1
 }))]
-myBatches <- dlg_list(kol, kol[which(kol != "Replicate")], title = "Select any known batch variables to sequentially correct for", multiple = TRUE)$res
+dflt <- kol
+if (!Nested) {
+  dflt <- dflt[which(dflt != "Replicate")]
+}
+if (exists("myBatches")) {
+  dflt <- myBatches
+}
+kol <- setNames(sapply(kol, function(k) { paste(c(k, rep(" ", max(c(200, nchar(k))))), collapse = "") }), kol)
+dflt <- setNames(kol[match(dflt, names(kol))], dflt)
+myBatches <- dlg_list(kol, dflt, title = "Select any known batch variables to explore sequentially correcting against", multiple = TRUE)$res
+myBatches <- names(kol)[match(myBatches, kol)]
 combatNorm <- length(myBatches)
 if (combatNorm) {
   #
@@ -1126,11 +1152,12 @@ if (combatNorm) {
   for (pkg in pkgs) {
     library(pkg, character.only = TRUE)
   }
-  pepIntLst <- scoresLst <- PCAlyLst <- PCsLst <- list()
+  scoresLst <- PCAlyLst <- PCsLst <- list()
+  orig <- "original"
   prevBatch <- sapply(myBatches, function(btch) {
     m <- match(btch, myBatches)
     if (m == 1) {
-      rs <- "original"
+      rs <- orig
     } else {
       rs <- myBatches[m - 1]
     }
@@ -1138,96 +1165,38 @@ if (combatNorm) {
   })
   #
   # Prepare data
-  intCol <- paste0("Intensity - ", smpls)
-  edata <- pep[, intCol]
-  for (k in intCol) {
+  intCols <- paste0(intRoot[intType], smpls)
+  logIntCols <- gsub(proteoCraft::topattern(intRoot[intType]), logIntRoot[intType], intCols)
+  edata <- pep[, intCols]
+  for (k in intCols) {
     edata[[k]] <- log10(edata[[k]])
   }
-  colnames(edata) <- paste0("log10 ", colnames(edata))
-  intCol <- paste0("log10 ", intCol)
+  colnames(edata) <- logIntCols
   grps <- smplsMap$Group[match(smpls, smplsMap$New)]
   #
   # Impute missing values
   tempImp <- proteoCraft::Data_Impute2(edata, grps)
-  edata <- tempImp$Imputed_data
-  test <- apply(edata, 1, function(x) { length(is.all.good(x)) })
-  wAG <- which(test == length(intCol))
-  edata <- edata[wAG,]
-  pepIntLst[["original"]] <- edata <- tempImp$Imputed_data
+  impEdata <- tempImp$Imputed_data
+  impVal <- tempImp$Positions_Imputed
   #
   # First let's look at the pre-batch correction data with PCA plots:
-  pcaBatchPlots <- function(dat,
-                            root,
-                            batches = myBatches,
-                            map = smplsMap,
-                            dir = btchDir,
-                            ttl = "PCA plot - SVA batch corr.",
-                            printMe = FALSE) {
-    pc0 <- prcomp(t(dat), scale. = TRUE)
-    scores0 <- as.data.frame(pc0$x)
-    kol <- colnames(scores0)
-    scores0$Sample <- rownames(scores0) <- proteoCraft::gsub_Rep("^log10 Intensity - ", "", rownames(scores0))
-    scores0[, batches] <- map[match(scores0$Sample, map$New), batches]
-    pv0 <- round(100*(pc2$sdev)^2 / sum(pc2$sdev^2), 0)
-    pv0 <- pv0[which(pv0 > 0)]
-    pv0 <- paste0(root, ": ", paste(sapply(1:length(pv0), function(x) {
-      paste0("PC", x, ": ", pv0[x], "%")
-    }), collapse = ", "))
-    #print(pv0)
-    scores0$Corrected <- root
-    #scores0$Batch <- do.call(paste, c(scores0[, batches], sep = " / "))
-    plotlyPCA <- list()
-    if ("PC2" %in% colnames(scores0)) {
-      for (btch in batches) {
-        scores1 <- scores0
-        scores1$Batch <- scores1[[btch]]
-        nm1 <- paste0(ttl, " (", root, ", color = ", btch, ")")
-        plot <- ggplot(scores1) +
-          geom_point(aes(x = PC1, y = PC2, color = Batch)) +
-          coord_fixed() + theme_bw() +
-          geom_hline(yintercept = 0, colour = "black") + geom_vline(xintercept = 0, colour = "black") +
-          ggtitle(nm1, subtitle = pv0) +
-          geom_text_repel(aes(x = PC1, y = PC2, label = Sample),
-                          size = 2.5, show.legend = FALSE)
-        #poplot(plot)
-        ggsave(paste0(dir, "/", nm1, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-        ggsave(paste0(dir, "/", nm1, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
-        #
-        scores1$Batch <- factor(scores1$Batch)
-        if ("PC3" %in% colnames(scores1)) {
-          plotlyPCA1 <- plot_ly(scores1, x = ~PC1, y = ~PC2, z = ~PC3,
-                                color = ~Batch,
-                                text = ~Sample, type = "scatter3d", mode = "markers")
-          plotlyPCA1 <- add_trace(plotlyPCA1, scores1, x = ~PC1, y = ~PC2, z = ~PC3,
-                                  type = "scatter3d", mode = "text", showlegend = FALSE)
-        } else {
-          plotlyPCA1 <- plot_ly(scores1, x = ~PC1, y = ~PC2,
-                                color = ~Batch,
-                                text = ~Sample, type = "scatter", mode = "markers")
-          plotlyPCA1 <- add_trace(plotlyPCA1, scores1, x = ~PC1, y = ~PC2,
-                                  type = "scatter", mode = "text", showlegend = FALSE)
-        }
-        plotlyPCA1 <- layout(plotlyPCA1, title = nm1)
-        plotlyPCA[[btch]] <- plotlyPCA1
-        suppressWarnings(saveWidget(plotlyPCA1, paste0(dir, "/", nm1, ".html")))
-        if (printMe) { system(paste0("open \"", dir, "/", nm1, ".html")) }
-      }
-    } else { stop("PCA failed, investigate!") }
-    w <- which(colnames(scores0) %in% kol)
-    colnames(scores0)[w] <- paste0(root, "_", colnames(scores0)[w])
-    return(list(Scores = scores0,
-                PlotLy = plotlyPCA,
-                PCs = pc0))
+  tst <- try(pcaBatchPlots, silent = TRUE)
+  if ("try-error" %in% class(tst)) {
+    source("H:/aRmel_package/proteoCraft/R/pcaBatchPlots.R")
   }
-  tmp <- pcaBatchPlots(edata, "original")
-  PCAlyLst[["original"]] <- tmp$PlotLy
-  scoresLst[["original"]] <- tmp$Scores
-  PCsLst[["original"]] <- tmp$PCs
+  tmp <- pcaBatchPlots(impEdata,
+                       orig,
+                       intRoot = logIntRoot[intType],
+                       map = smplsMap,
+                       SamplesCol = "New")
+  PCAlyLst[[orig]] <- tmp$PlotLy
+  scoresLst[[orig]] <- tmp$Scores
+  PCsLst[[orig]] <- tmp$PCs
   #
-  mod <- model.matrix(~as.factor(smplsMap$Group), data = smplsMap)
   mod0 <- model.matrix(~1, data = smplsMap)
-  n.sv <- sva::num.sv(edata, mod, method = "leek")
-  KeepComBatRes <- (n.sv > 0)
+  mod <- model.matrix(~as.factor(smplsMap$Group), data = smplsMap)
+  n.sv <- sva::num.sv(impEdata, mod, method = "leek")
+  KeepComBatResDflt <- (n.sv > 0)
   if (n.sv == 0) {
     msg <- "We do not estimate that there are any surrogate variables hidden in the data -> no batch correction required. Correct nonetheless?"
     opt <- c("No                                                                                                                                                                                                                                                                                                                ",
@@ -1236,33 +1205,56 @@ if (combatNorm) {
   }
 }
 if (combatNorm) {
+  ComBat_Data <- list()
+  KeepComBatRes <- c()
   for (btch in myBatches) { #btch <- myBatches[1] #btch <- myBatches[2]
-    last <- btch
-    prev <- prevBatch[btch]
-    combat_edata <- ComBat(dat = pepIntLst[[prev]], batch = smplsMap[[btch]], mod = mod0, par.prior = TRUE)
+    keepCmBtRs <- KeepComBatResDflt
+    combat_edata <- list()
+    for (grp in Groups) { #grp <- Groups[1]
+      last <- btch
+      prev <- prevBatch[btch]
+      w <- which(smplsMap$Group == grp)
+      k <- paste0(logIntRoot[intType], smplsMap$New[w])
+      mod0a <- model.matrix(~1, data = smplsMap[w,])
+      combat_edata[[grp]] <- ComBat(dat = impEdata[, k],
+                                    batch = smplsMap[[btch]][w],
+                                    mod = mod0a,
+                                    par.prior = TRUE)
+    }
+    combat_edata <- do.call(cbind, combat_edata)
+    combat_edata <- as.data.frame(combat_edata)
     # Plot
-    tmp <- pcaBatchPlots(combat_edata, btch)
+    tmp <- pcaBatchPlots(combat_edata,
+                         btch,
+                         intRoot = logIntRoot[intType],
+                         map = smplsMap,
+                         SamplesCol = "New")
     PCAlyLst[[btch]] <- tmp$PlotLy
     scoresLst[[btch]] <- tmp$Scores
-    pepIntLst[[btch]] <- combat_edata
     PCsLst[[btch]] <- tmp$PCs
     #
-    appNm <- paste0(prev, " -> ", btch)
+    appNm <- paste0("Batch corr.: ", prev, " -> ", btch)
     msg <- "Keep results from ComBat batch correction? (untick to cancel correction)"
-    PCs <- data.frame("Component" = paste0("PC", as.character(1:length(pc2$sdev))),
+    PCs <- data.frame("Component" = paste0("PC", as.character(1:length(PCsLst[[prev]]$sdev))),
                       "Before (%)" = round(100*(PCsLst[[prev]]$sdev)^2 / sum(PCsLst[[prev]]$sdev^2), 0),
                       "After (%)" = round(100*(PCsLst[[btch]]$sdev)^2 / sum(PCsLst[[btch]]$sdev^2), 0))
     if (exists("IHAVERUN")) { rm(IHAVERUN) }
     ui <- fluidPage(
       useShinyjs(),
+      setBackgroundColor( # Doesn't work
+        color = c(#"#F8F8FF",
+          "#EEFAE6"),
+        gradient = "linear",
+        direction = "bottom"
+      ),
       extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
       tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
       titlePanel(tag("u", appNm),
                  appNm),
       br(),
       fluidRow(column(5,
-                      checkboxInput("KeepResults", msg, KeepComBatRes),
-                      actionButton("saveBtn", "Save"),
+                      checkboxInput("KeepResults", msg, keepCmBtRs),
+                      actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
                       h4("Recommended criteria:"),
                       h5(HTML("&nbsp;Does the original grouping follow known batches?")),
                       h5(HTML("&nbsp;&nbsp;-> If no: only accept the correction if it improves the apparent grouping of expected sample groups.")),
@@ -1301,20 +1293,24 @@ if (combatNorm) {
       Shiny.unbindAll(table.table().node());
       Shiny.bindAll(table.table().node());"))
       observeEvent(input[["KeepResults"]], {
-        assign("KeepComBatRes", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
+        assign("keepCmBtRs", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
       })
       observeEvent(input$saveBtn, {
+        assign("keepCmBtRs", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
         assign("IHAVERUN", TRUE, .GlobalEnv)
         stopApp()
       })
       #observeEvent(input$cancel, { stopApp() })
       session$onSessionEnded(function() { stopApp() })
     }
-    while (!exists("IHAVERUN")) {
+    runKount <- 0
+    while ((!runKount)||(!exists("IHAVERUN"))) {
       eval(parse(text = runApp), envir = .GlobalEnv)
+      runKount <- runKount+1
     }
-    msg <- paste0(" -> correction of ", btch, "-batch associated effect from ", prev, " ", c("rejec", "accep")[KeepComBatRes+1], "ted.\n")
-    if (!KeepComBatRes) {
+    #
+    msg <- paste0(" -> correction of ", btch, "-batch associated effect from ", prev, " ", c("rejec", "accep")[keepCmBtRs+1], "ted.\n")
+    if (!keepCmBtRs) {
       last <- prev
       m <- match(btch, myBatches)
       if (m < length(myBatches)) {
@@ -1322,28 +1318,36 @@ if (combatNorm) {
       }
     }
     cat(msg)
+    ComBat_Data[[btch]] <- combat_edata
+    KeepComBatRes[btch] <- keepCmBtRs
+  }
+  w <- which(KeepComBatRes)
+  if (length(w)) {
+    # If accepted batch correction, we must now put the data back into our pep object
+    #
+    btch <- names(KeepComBatRes)[max(which(KeepComBatRes))]
+    btchCorrData <- ComBat_Data[[btch]]
+    # New expression column root names
+    intType <- "ComBat"
+    intRoot["ComBat"] <- "ComBat corr. int. - "
+    logIntRoot["ComBat"] <- "ComBat corr. log10(int.) - "
+    # De-log
+    for (k in logIntCols) {
+      btchCorrData[[k]] <- 10^(btchCorrData[[k]])
+    }
+    colnames(btchCorrData) <- gsub(proteoCraft::topattern(logIntRoot["Original"]),
+                                   intRoot["ComBat"],
+                                   colnames(btchCorrData))
+    # Re-introduce missing values
+    w <- which(impVal, arr.ind = TRUE)
+    btchCorrData[w] <- pep[, intCols][w]
+    #View(pep[, intCols]);View(btchCorrData)
+    #
+    comBatCols <- colnames(btchCorrData)
+    pep[, comBatCols] <- btchCorrData[, comBatCols]
+    normSummary[[intType]] <- sapply(smpls, function(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) })
   }
 }
-
-
-
-REWRITE by applying the correction to each Comparison Group sequentially
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # Define Core peptides as peptides matching the non-tail ordered region of histones 
 pep$isCore <- FALSE
@@ -1361,98 +1365,115 @@ pep$isCore[w] <- apply(pep[w, c("Sequence", "tmp")], 1, function(x) { #x <- pep[
 pep$tmp <- NULL
 
 # Normalize
+quntCol <- paste0(intRoot[intType], smpls)
 if (length(Exp) > 1) {
   normOpt <- c("Histone-fold region of all core histones",
                "Histone-fold region of all core histones, per histone (-> non-histone peptides excluded from analysis!)",
-               "All proteins")
+               "All proteins",
+               "Do not normalize")
   opt2 <- setNames(sapply(normOpt, function(x) { paste(c(x, rep(" ", 150 - nchar(x))), collapse = "") }), normOpt)
   normMeth <- dlg_list(opt2, opt2[1], title = "Select which normalization method you wish to use")$res
   normMeth <- names(opt2[match(normMeth, opt2)])
-  if (normMeth %in% normOpt[1:2]) {
-    w <- which(pep$isCore)
-    if (!length(w)) { stop("Not enough peptides to normalize") }
-    pep$isModified <- gsub("^_|_$", "", pep$`Modified sequence`) != pep$Sequence
-    tst <- sum(!pep$isModified[w])
-    if (tst) {
-      msg <- paste0("Should we exclude modified peptides from the set used for normalization?\n(out of a total of ", length(w), " histone ordered region peptidoforms, ", tst, " are unmodified)")
-      removeMods <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
-      if (removeMods) {
-        w <- w[which(!pep$isModified[w])]
+  if (normMeth %in% normOpt[1:3]) {
+    intRoot["Normalized"] <- "norm. int. - "
+    logIntRoot["Normalized"] <- "norm.  log10(int.) - "
+    quntCol2 <- paste0(intRoot["Normalized"], smpls)
+    if (normMeth %in% normOpt[1:2]) {
+      w <- which(pep$isCore)
+      if (!length(w)) { stop("Not enough peptides to normalize") }
+      pep$isModified <- gsub("^_|_$", "", pep$`Modified sequence`) != pep$Sequence
+      tst <- sum(!pep$isModified[w])
+      if (tst) {
+        msg <- paste0("Should we exclude modified peptides from the set used for normalization?\n(out of a total of ", length(w), " histone ordered region peptidoforms, ", tst, " are unmodified)")
+        removeMods <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
+        if (removeMods) {
+          w <- w[which(!pep$isModified[w])]
+        }
       }
-    }
-    # Global normalisation to histones
-    #View(pep[w, c("id", quntCol)])
-    tmp <- proteoCraft::AdvNorm.IL(pep[w, c("id", quntCol)], "id", quntCol)
-    #View(tmp)
-    #tst <- sapply(paste0("AdvNorm.", quntCol), function(x) { summary(tmp[[x]]) });View(tst)
-    x <- unlist(pep[w, quntCol])
-    x <- x[which(x > 0)]
-    M <- median(x, na.rm = TRUE)
-    m <- sapply(paste0("AdvNorm.", quntCol), function(x) {
-      x <- unlist(tmp[[x]])
+      # Global normalisation to histones
+      #View(pep[w, c("id", quntCol)])
+      tmp <- proteoCraft::AdvNorm.IL(pep[w, c("id", quntCol)], "id", quntCol)
+      #View(tmp)
+      #tst <- sapply(paste0("AdvNorm.", quntCol), function(x) { summary(tmp[[x]]) });View(tst)
+      x <- unlist(pep[w, quntCol])
       x <- x[which(x > 0)]
-      median(is.all.good(as.numeric(x)))
-    })
-    pep[, quntCol] <- sweep(pep[, quntCol], 2, m, "/")*M
-    if (normMeth == normOpt[2]) {
-      # Here we want to normalize each peptide to the parent protein(s)
-      # I guess we can calculate normalization factors for each unique protein,
-      # then average those if a peptide matches several proteins?
-      w <- which(pep$`Histone(s)` != "")
-      prt2pep <- proteoCraft::listMelt(strsplit(pep$Proteins[w], ";"), w, c("Protein", "pepRow"))
-      prt2pep <- aggregate(prt2pep$pepRow, list(prt2pep$Protein), list)
-      prt2pep$id <- sapply(prt2pep$x, function(x) { pep$id[unlist(x)] })
-      prt2pep$Core <- sapply(prt2pep$id, function(x) {
-        x[which(pep$isCore[match(x, pep$id)])]
+      M <- median(x, na.rm = TRUE)
+      m <- sapply(paste0("AdvNorm.", quntCol), function(x) {
+        x <- unlist(tmp[[x]])
+        x <- x[which(x > 0)]
+        median(is.all.good(as.numeric(x)))
       })
-      wL <- which(sapply(prt2pep$Core, length) > 0)
-      prt2pep <- prt2pep[wL,]
-      # Calculate Core peptides-only re-normalization factor at protein level:
-      #prt2pep$Norm <- lapply(1:nrow(prt2pep), function(x) { c() })
-      tmp <- pep[, c("id", quntCol)]
-      clusterExport(parClust, list("tmp", "quntCol", "smpls"), envir = environment())
-      prt2pep[, smpls] <- as.data.frame(t(parSapply(parClust, prt2pep$Core, function(x) { #x <- prt2pep$Core[2]
-        tmp1 <- tmp[match(unlist(x), tmp$id),]
-        M <- unlist(tmp1[, quntCol])
-        M <- M[which(M > 0)]
-        M <- median(M, na.rm = TRUE)
-        tmp1 <- proteoCraft::AdvNorm.IL(tmp1, "id", quntCol)
-        #View(tmp)
-        #tst <- sapply(paste0("AdvNorm.", quntCol), function(x) { summary(tmp[[x]]) });View(tst)
-        m <- sapply(paste0("AdvNorm.", quntCol), function(x) {
-          x <- unlist(tmp1[[x]])
-          x <- x[which(x > 0)]
-          median(proteoCraft::is.all.good(as.numeric(x)))
+      pep[, quntCol2] <- sweep(pep[, quntCol], 2, m, "/")*M
+      if (normMeth == normOpt[2]) {
+        # Here we want to normalize each peptide to the parent protein(s)
+        # I guess we can calculate normalization factors for each unique protein,
+        # then average those if a peptide matches several proteins?
+        w <- which(pep$`Histone(s)` != "")
+        prt2pep <- proteoCraft::listMelt(strsplit(pep$Proteins[w], ";"), w, c("Protein", "pepRow"))
+        prt2pep <- aggregate(prt2pep$pepRow, list(prt2pep$Protein), list)
+        prt2pep$id <- sapply(prt2pep$x, function(x) { pep$id[unlist(x)] })
+        prt2pep$Core <- sapply(prt2pep$id, function(x) {
+          x[which(pep$isCore[match(x, pep$id)])]
         })
-        return(setNames(M/m, smpls)) 
-      })))
-      #
-      # Turn it into peptide-level normalization factors, averaging as needed
-      pep2prt <- listMelt(prt2pep$x, prt2pep$Group.1, c("pep", "prot"))
-      pep2prt[, smpls] <- prt2pep[match(pep2prt$prot, prt2pep$Group.1[wL]), smpls]
-      Norm <- aggregate(pep2prt[, smpls], list(pep2prt$pep), function(x) { exp(mean(log(x), na.rm = TRUE)) })
-      # If we cannot calculate a normalization factor, we need to remove the peptide
-      tst <- parApply(parClust, Norm[, smpls], 1, function(x) { length(proteoCraft::is.all.good(x)) })
-      Norm <- Norm[which(tst > 0),]
-      #
-      # Now we need to remove peptides which cannot be normalized with this method
-      wN <- which(!pep$id %in% Norm$Group.1)
-      wY <- which(pep$id %in% Norm$Group.1)
-      warning(paste0("Removing ", length(w), " non-normalizable peptides (keeping ", length(wY), ")"))
-      pep <- pep[wY,]
-      Norm <- Norm[match(pep$id, Norm$Group.1),]
-      #
-      # Finally we apply the normalization
-      for (i in 1:length(smpls)) {
-        pep[[quntCol[i]]] <- pep[[quntCol[i]]]*Norm[[smpls[i]]]
+        wL <- which(sapply(prt2pep$Core, length) > 0)
+        prt2pep <- prt2pep[wL,]
+        # Calculate Core peptides-only re-normalization factor at protein level:
+        #prt2pep$Norm <- lapply(1:nrow(prt2pep), function(x) { c() })
+        tmp <- pep[, c("id", quntCol2)]
+        clusterExport(parClust, list("tmp", "quntCol2", "smpls"), envir = environment())
+        prt2pep[, smpls] <- as.data.frame(t(parSapply(parClust, prt2pep$Core, function(x) { #x <- prt2pep$Core[2]
+          tmp1 <- tmp[match(unlist(x), tmp$id),]
+          M <- unlist(tmp1[, quntCol2])
+          M <- M[which(M > 0)]
+          M <- median(M, na.rm = TRUE)
+          tmp1 <- proteoCraft::AdvNorm.IL(tmp1, "id", quntCol2)
+          #View(tmp)
+          #tst <- sapply(paste0("AdvNorm.", quntCol2), function(x) { summary(tmp[[x]]) });View(tst)
+          m <- sapply(paste0("AdvNorm.", quntCol2), function(x) {
+            x <- unlist(tmp1[[x]])
+            x <- x[which(x > 0)]
+            median(proteoCraft::is.all.good(as.numeric(x)))
+          })
+          return(setNames(M/m, smpls)) 
+        })))
+        #
+        # Turn it into peptide-level normalization factors, averaging as needed
+        pep2prt <- listMelt(prt2pep$x, prt2pep$Group.1, c("pep", "prot"))
+        pep2prt[, smpls] <- prt2pep[match(pep2prt$prot, prt2pep$Group.1[wL]), smpls]
+        Norm <- aggregate(pep2prt[, smpls], list(pep2prt$pep), function(x) { exp(mean(log(x), na.rm = TRUE)) })
+        # If we cannot calculate a normalization factor, we need to remove the peptide
+        tst <- parApply(parClust, Norm[, smpls], 1, function(x) { length(proteoCraft::is.all.good(x)) })
+        Norm <- Norm[which(tst > 0),]
+        #
+        # Now we need to remove peptides which cannot be normalized with this method
+        wN <- which(!pep$id %in% Norm$Group.1)
+        wY <- which(pep$id %in% Norm$Group.1)
+        warning(paste0("Removing ", length(w), " non-normalizable peptides (keeping ", length(wY), ")"))
+        pep <- pep[wY,]
+        Norm <- Norm[match(pep$id, Norm$Group.1),]
+        #
+        # Finally we apply the normalization
+        for (i in 1:length(smpls)) {
+          pep[[quntCol2[i]]] <- pep[[quntCol2[i]]]*Norm[[smpls[i]]]
+        }
       }
     }
-  }
-  if (normMeth == normOpt[3]) {
-    tmp <- proteoCraft::AdvNorm.IL(pep[, c("id", quntCol)], "id", quntCol)
-    pep[, quntCol] <- tmp[, paste0("AdvNorm.", quntCol)]
+    if (normMeth == normOpt[3]) {
+      tmp <- proteoCraft::AdvNorm.IL(pep[, c("id", quntCol)], "id", quntCol)
+      pep[, quntCol2] <- tmp[, paste0("AdvNorm.", quntCol)]
+    }
+    intType <- "Normalized"
+    normSummary[[intType]] <- sapply(smpls, function(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) })
+    quntCol <- paste0(intRoot[intType], smpls) # Update
   }
 }
+
+# Look at shift induced by normalization for all samples
+normTst <- data.frame(Sample = smpls, NormFact = round(normSummary[[intType]]/normSummary$Original, 3))
+max(normTst$NormFact)/min(normTst$NormFact)
+write.csv(normTst, paste0(dstDir, "/Norm. summary.csv"), row.names = FALSE)
+#tmp <- paste0(do.call(paste, c(normTst, sep = " ->\t\t")), "\n")
+#writeClipboard(capture.output(cat(tmp)))
 
 # Table of PTM sites
 kol <- c("Sequence", "Modified sequence_verbose", "Proteins")
@@ -1507,6 +1528,7 @@ tmp$Sites <- lapply(1:nrow(tmp), function(x) { #x <- 1
   return(tbl$Site)
 })
 Sites <- listMelt(tmp$Sites, tmp$pepID, c("Site", "pepID"))
+quntCol <- paste0(intRoot[intType], smpls) # Update
 Sites[, quntCol] <- pep[match(Sites$pepID, pep$id), quntCol]
 Sites2 <- Sites
 Sites2$pepID <- NULL
@@ -1536,9 +1558,6 @@ if (statTsts) {
     try(stopCluster(parClust), silent = TRUE)
     parClust <- makeCluster(N.clust, type = "SOCK")
   }
-  opt <- c("Yes                                                                                                                                                               ",
-           "No                                                                                                                                                                ")
-  Nested <- c(TRUE, FALSE)[match(dlg_list(opt, opt[2], title = "Are the replicates paired?")$res, opt)]
   #
   clusterExport(parClust, list("Nested"), envir = environment())
   #reNorm <- FALSE
@@ -1596,12 +1615,14 @@ if (statTsts) {
   l10FC <- log10(FC) # For decideTests, to which we feed log10 data and so which needs a log10 FC!
   l2FC <- log2(FC) # For plotting
   statsXprs <- expression({
-    intCols <- grep(intRoot, colnames(myData), value = TRUE)
+    intCols <- grep(intRoot[intType], colnames(myData), value = TRUE)
     w <- which(myData[, intCols] == 0, arr.ind = TRUE)
     if (nrow(w)) {
       myData[, intCols][w] <- NA
     }
-    myData[, gsub(intRoot, logIntRoot, intCols)] <- log10(myData[, intCols])
+    myData[, gsub(intRoot[intType],
+                  logIntRoot[intType],
+                  intCols)] <- log10(myData[, intCols])
     #
     # First calculate mean per group
     for (grp in Groups) { #grp <- Groups[1] #grp <- Groups[2]
@@ -1610,11 +1631,11 @@ if (statTsts) {
       e1 <- smplsMap[w,]
       stopifnot(length(unique(e1$New)) == length(e1$New))
       smpls1 <- e1$New
-      col1 <- paste0(logIntRoot, smpls1)
+      col1 <- paste0(logIntRoot[intType], smpls1)
       w1 <- which(col1 %in% colnames(myData))
       if (length(w1)) { # Calculate average expression
         e1 <- e1[w1,]; col1 <- col1[w1]
-        ke1 <- paste0("Mean ", logIntRoot, grp)
+        ke1 <- paste0("Mean ", logIntRoot[intType], grp)
         tempVal <- myData[, col1, drop = FALSE]
         row.names(tempVal) <- myData[[namesCol]]
         if (length(w1) == 1) {
@@ -1652,19 +1673,19 @@ if (statTsts) {
         rps <- rps[which(!is.na(rps$Sample)),]
         myData[, paste0(ratRoot, nm, " ", uRps)] <- cbind(lapply(uRps, function(x) { #x <- uRps[1]
           m <- match(x, rps$Rep)
-          (myData[[paste0(logIntRoot, rps$Sample[m])]] - myData[[paste0(logIntRoot, rps$Ref[m])]])/log10(2)
+          (myData[[paste0(logIntRoot[intType], rps$Sample[m])]] - myData[[paste0(logIntRoot[intType], rps$Ref[m])]])/log10(2)
         }))
         myData[[paste0(ratRoot, nm)]] <- apply(myData[, paste0(ratRoot, nm, " ", uRps)], 1, mean, na.rm = TRUE)
       }
     } else {
       myData[, paste0(ratRoot, gsub("Group_", "", colnames(contrMatr)))] <- cbind(lapply(1:nrow(expContrasts), function(x) { #x <- 1
         x <- gsub("^Group_", "", expContrasts[x,])
-        (myData[[paste0("Mean ", logIntRoot, x[1])]] - myData[[paste0("Mean ", logIntRoot, x[2])]])/log10(2)
+        (myData[[paste0("Mean ", logIntRoot[intType], x[1])]] - myData[[paste0("Mean ", logIntRoot[intType], x[2])]])/log10(2)
       }))
     }
-    #View(myData[, c(paste0(logIntRoot, smplsMap$Sample), paste0(ratRoot, gsub("Group_", "", colnames(contrMatr))))])
+    #View(myData[, c(paste0(logIntRoot[intType], smplsMap$Sample), paste0(ratRoot, gsub("Group_", "", colnames(contrMatr))))])
     #
-    tempVal <- myData[, paste0(logIntRoot, smplsMap$Sample)]
+    tempVal <- myData[, paste0(logIntRoot[intType], smplsMap$Sample)]
     fit <- lmFit(tempVal, designMatr) # It's a nested design
     fit <- contrasts.fit(fit, contrMatr)
     fit <- eBayes(fit) # Assumes 1% of genes change!!!
@@ -1682,9 +1703,9 @@ if (statTsts) {
       tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
       nm <- paste(tmp, collapse = " - ")
       sig <- proteoCraft::FDR(as.data.frame(pVal),
-                        pvalue_col = colnames(pVal)[i],
-                        fdr = 30,
-                        returns = c(TRUE, TRUE))
+                              pvalue_col = colnames(pVal)[i],
+                              fdr = 30,
+                              returns = c(TRUE, TRUE))
       #View(sig$`Significance vector`)
       myData[[paste0("Signif. - ", nm)]] <- sig$`Significance vector`
       FDR_thresh[[nm]] <- sig$Thresholds
@@ -1756,7 +1777,7 @@ if (statTsts) {
 for (cmpGrp in compGrps) { #cmpGrp <- compGrps[1]
   grps <- unique(grpsMap$Group[which(grpsMap$Comparison_group == cmpGrp)])
   grps2smpls <- setNames(lapply(grps, function(grp) { unique(smplsMap$New[which(smplsMap$Group == grp)]) }), grps)
-  grps2kol <- setNames(lapply(grps2smpls, function(x) { paste0("Intensity - ", x) }), grps)
+  grps2kol <- setNames(lapply(grps2smpls, function(x) { paste0(intRoot[intType], x) }), grps)
   stopifnot(sum(!unlist(grps2kol) %in% colnames(pep)) == 0,
             sum(!unlist(grps2kol) %in% colnames(Sites)) == 0)
   for (grp1 in grps) { #grp1 <- grps[1]
@@ -1787,7 +1808,7 @@ smplsMap2 <- smplsMap[order(smplsMap$Comparison_group,
                             smplsMap$Replicate),]
 smpls2 <- unique(smplsMap2$New)
 Groups2 <- unique(smplsMap2$Group)
-kol <- c(paste0("Intensity - ", smpls2),
+kol <- c(paste0(intRoot[intType], smpls2),
          paste0("Specific - ", Groups2))
 tmp <- pep[which(pep$`Histone(s)` != ""),]
 tmp$Modifications <- gsub(",", ";", tmp$`Modified sequence`)
@@ -1832,12 +1853,12 @@ if (length(Exp) > 1) {
   KlustMeth <- 2
   KlustRoot <- paste0("Cluster (", c("K-means", "hierarch.")[KlustMeth], ") - ")
   normTypes <- c("Norm. by row", "Z-scored")
-  kol <- paste0(intRoot, smpls)
+  kol <- paste0(intRoot[intType], smpls)
   plotLeatMaps <- list()
   prot.list.Cond <- TRUE
   prot.list <- histDB$`Protein ID`
   KlustKols <- c()
-  
+  #
   Filter <- list("Global" = 1:nrow(pep),
                  "Histones only" = which(pep$`Histone(s)` != ""))
   for (normType in normTypes) { #normType <- normTypes[1]
@@ -2250,3 +2271,18 @@ if (length(Exp) > 1) {
     }
   }
 }
+# Save modifications table
+tmp <- Modifs
+tmp$Site_long <- NULL
+tmp$Site <- NULL
+tmp$origMark <- NULL
+for (k in colnames(tmp)) {
+  if (typeof(tmp[[k]]) == "list") { tmp[[k]] <- vapply(tmp[[k]], paste, "", collapse = ";") }
+}
+write.csv(tmp, paste0(dstDir, "/Mods table.csv"), row.names = FALSE)
+
+# Done!
+ScriptPath %<o% normalizePath(gtools::script_file(), winslash = "/")
+if (dirname(ScriptPath) != dstDir) { file.copy(ScriptPath, dstDir, overwrite = TRUE) }
+saveImgFun(backupFl)
+openwd(dstDir)
