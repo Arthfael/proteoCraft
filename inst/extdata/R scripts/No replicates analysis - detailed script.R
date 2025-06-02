@@ -178,13 +178,19 @@ appNm <- paste0(dtstNm, " - ", FracMapNm)
 ui <- shinyUI(fluidPage(titlePanel(tag("u", FracMapNm),
                                    appNm),
                         useShinyjs(),
+                        setBackgroundColor( # Doesn't work
+                          color = c(#"#F8F8FF",
+                            "#EFE6F5"),
+                          gradient = "linear",
+                          direction = "bottom"
+                        ),
                         extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
                         mainPanel(#tabsetPanel(tabPanel(
                           DT::DToutput("FracMap_data"),
                           br(),
                           #actionButton("viewBtn", "View"),
                           #br(),
-                          actionButton("saveBtn", "Save"),
+                          actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
                           #br(),
                           #DT::dataTableOutput("updated.df")
                           #))
@@ -312,6 +318,12 @@ appNm <- paste0(dtstNm, " - Experiment map")
 ui <- shinyUI(fluidPage(titlePanel(tag("u", "Experiment map"),
                                    appNm),
                         useShinyjs(),
+                        setBackgroundColor( # Doesn't work
+                          color = c(#"#F8F8FF",
+                            "#EBEFF7"),
+                          gradient = "linear",
+                          direction = "bottom"
+                        ),
                         extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
                         tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
                         mainPanel(h4("Optional: define samples order"),
@@ -320,7 +332,7 @@ ui <- shinyUI(fluidPage(titlePanel(tag("u", "Experiment map"),
                                   span(uiOutput("Message"), style = "color:red"),
                                   DT::DToutput("smplMap_data"),
                                   br(),
-                                  actionButton("saveBtn", "Save"),
+                                  actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
                         )))
 if (exists("smplMap2")) { rm(smplMap2) }
 server <- function(input, output, session) {
@@ -806,6 +818,12 @@ if ((is.na(Venn_Obs))||(is.null(Venn_Obs))) { Venn_Obs <- FALSE }
 appNm <- paste0(dtstNm, " - Parameters")
 ui <- fluidPage(
   useShinyjs(),
+  setBackgroundColor( # Doesn't work
+    color = c(#"#F8F8FF",
+      "#E6F7F4"),
+    gradient = "linear",
+    direction = "bottom"
+  ),
   extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
   titlePanel(tag("u", "Parameters"),
              appNm),
@@ -831,7 +849,7 @@ ui <- fluidPage(
            ),
            column(2, checkboxInput("prtNorm", "Normalize data",
                                             AnalysisParam$NormalizePG, "100%"))),
-  tags$hr(style="border-color: black;"),
+  tags$hr(style = "border-color: black;"),
   br(),
   # Quantitation
   ## Choice of algorithm + Proteomics ruler
@@ -864,7 +882,7 @@ ui <- fluidPage(
   fluidRow(column(2, radioButtons("Clustering", "Clustering method", klustChoices, klustChoices[1], TRUE, "100%"))),
   checkboxInput("Venn_Obs", "Draw Venn diagrams?", Venn_Obs, "100%"),
   br(),
-  tags$hr(style="border-color: black;"),
+  tags$hr(style = "border-color: black;"),
   withSpinner(uiOutput("GO")),
   h4("Post-translational modifications (PTMs)"),
   fluidRow(column(2, pickerInput("PTMsQuant", "Select PTM(s) eligible for use for Protein Groups quantitation:",
@@ -882,11 +900,11 @@ ui <- fluidPage(
            #column(2, checkboxInput("PTMsReNorm", "Re-normalize modified peptides ratios to those of parent Protein Group(s)?", TRUE, "100%"))
   ),
   br(),
-  tags$hr(style="border-color: black;"),
+  tags$hr(style = "border-color: black;"),
   checkboxInput("AdvOptOn", "Advanced options", tstAdvOpt),
   withSpinner(uiOutput("AdvOpt")),
   br(),
-  actionButton("saveBtn", "Save"),
+  actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
   br()
 )
 server <- function(input, output, session) {
