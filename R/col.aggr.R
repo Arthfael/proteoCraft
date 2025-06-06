@@ -21,7 +21,7 @@
 #'     return(NA)
 #'   }
 #' })
-#' Result: pep now has a "PEP" column with PEP scores. Takes seconds or minutes where sapply takes hours.
+#' # Result: pep now has a "PEP" column with PEP scores. Takes seconds or minutes where sapply takes hours.
 #' 
 #' @export
 

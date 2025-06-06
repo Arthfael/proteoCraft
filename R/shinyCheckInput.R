@@ -11,11 +11,7 @@
 #' 
 #' server <- function(input, output, session) {
 #' 
-#' ...
-#' 
 #'   Table$CheckBox <- shinyCheckInput(Table$UseThisSample)
-#' 
-#' ...
 #' 
 #' }
 #' 

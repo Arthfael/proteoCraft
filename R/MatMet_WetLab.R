@@ -23,31 +23,63 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                           exp.map.col = "MQ.Exp",
                           Label = "LFQ",
                           Columns = "default") {
+  TESTING <- FALSE
   #rm(list = ls()[which(!ls() %in% c("wd", "Exp.map"))])
   #proteoCraft::DefArg(proteoCraft::"MatMet_WetLab")
-  if (!missing("Label")) { Label <- toupper(gsub("-", "", Label)) }
+  #TESTING <- TRUE
+  #
+  if (TESTING) {
+    # Note:
+    # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
+    misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
+  } else { misFun <- missing }
+  #
+  if (!misFun(Label)) { Label <- toupper(gsub("-", "", Label)) }
+  #
   # LC columns
-  path <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R")
+  colChar <- "Name | Material | Length (cm) | ID (µm) | Particles size (µm) | Vendor | P/N"
   colTst <- (Columns != "default")&(file.exists(Columns))
-  if (!colTst) { Columns <- paste0(path, "/proteoCraft/LC_columns.xlsx") }
+  libPath <- as.data.frame(library()$results)
+  libPath <- normalizePath(libPath$LibPath[match("proteoCraft", libPath$Package)], winslash = "/")
+  proteoPath <- paste0(libPath, "/proteoCraft")
+  myPath <- pkgPath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+  if (!colTst) {
+    dfltLocFl <- paste0(pkgPath, "/Default_locations.xlsx")
+    if (file.exists(dfltLocFl)) {
+      dfltLoc <- openxlsx2::read_xlsx(dfltLocFl)
+      tmpPath <- dfltLoc$Path[match("Temporary folder", dfltLoc$Folder)]
+      myPath <- tmpPath
+      Columns <- paste0(tmpPath, "/LC_columns.xlsx")
+    } else {
+      Columns <- paste0(pkgPath, "/LC_columns.xlsx")
+    }
+    if (!file.exists(Columns)) {
+      Columns <- paste0(proteoPath, "/extdata/LC_columns.xlsx")
+    }
+  }
+  Columns2 <- paste0(myPath, "/LC_columns.xlsx")
+  colTst <- file.exists(Columns)
   if (colTst) {
-    allKolumns <- openxlsx::read.xlsx(Columns, check.names = FALSE)
+    allKolumns <- openxlsx2::read_xlsx(Columns)
   } else {
+    # Should never happen now that we distribute "LC_columns.xlsx" with the package
     Kolumns <- c("EasySpray C18 column (2 µm particle size, 75 µm ID x 50 cm length, ThermoFisher Scientific P/N ES903)",
                  "200 cm C18 µPAC column (micro-Pillar Array Column, PharmaFluidics P/N 5525031518210B)",
                  "50 cm C18 µPAC GEN2 column (2nd generation micro-Pillar Array Column, PharmaFluidics P/N COL-nano050G2B)")
     preKolumns <- c("Acclaim PepMap C18 pre-column (5 µm particle size, 0.3 mm ID x 5 mm length, ThermoFisher Scientific P/N 160454)",
                     "C18 µPAC trapping-column (PharmaFluidics P/N 55250200018001)")
     allKolumns <- data.frame(Name = c(Kolumns, preKolumns),
+                             Class = c(Kolumns, preKolumns),
                              Material = "C18",
+                             "Vendor" = c("ThermoFisher Scientific", "PharmaFluidics", "PharmaFluidics", "ThermoFisher Scientific", "PharmaFluidics"),
                              "Length.(cm)" = c(50, 200, 50, 0.5, NA),
                              "ID.(µm)" = c(75, NA, NA, 300, NA),
                              "Particles.size.(µm)" = c(2, NA, NA, 5, NA),
-                             "Vendor" = c("ThermoFisher Scientific", "PharmaFluidics", "PharmaFluidics", "ThermoFisher Scientific", "PharmaFluidics"),
+                             "Pore.size.(Å)" = NA,
                              "P/N" = c("ES903", "5525031518210B", "COL-nano050G2B", "160454", "55250200018001"),
-                             Function = c("Analytical", "Analytical", "Analytical", "Trap",  "Trap"),
+                             Type = c("Analytical", "Analytical", "Analytical", "Trap",  "Trap"),
+                             Description = "",
                              check.names = FALSE)
-    Columns <- paste0(path, "/proteoCraft/LC_columns.xlsx")
   }
   if (!"Description" %in% colnames(allKolumns)) { allKolumns$Description <- "" }
   kolDescr <- function(Colonnes) {
@@ -77,7 +109,9 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
   w <- 1:nrow(allKolumns)
   allKolumns$Description[w] <- kolDescr(allKolumns[w,])
   Kolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Fractionation")], "Add new..."))
+  preKolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Trap")], "None (direct injection)", "Add new..."))
   AddKolKount  <- 0
+  #View(allKolumns)
   #
   N <- nrow(exp.map)
   if ("Use" %in% colnames(exp.map)) { N <- sum(as.logical(exp.map$Use)) }
@@ -269,9 +303,8 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                 return(max(c(x1, min(c(60, x2), na.rm = TRUE))))
               })
               setColWidths(wb, "Sheet1", 1:ncol(allKolumns), tst)
-              #saveWorkbook(wb, gsub("\\.xlsx$", "2.xlsx", Columns, ""), TRUE)
-              try(saveWorkbook(wb, Columns, TRUE), silent = TRUE) # We do not want the function to fail if this fails, it isn't worth the trouble
-              #proteoCraft::openwd(dirname(Columns))
+              try(saveWorkbook(wb, Columns2, TRUE), silent = TRUE) # We do not want the function to fail if this fails, it isn't worth the trouble
+              #proteoCraft::openwd(dirname(Columns2))
             }
             FracCol <- paste0("a", c("", "n")[(tolower(substr(FracCol, 1, 1)) %in% c("a", "e", "i", "o", "u"))+1], " ", FracCol)
             FracMPA <- svDialogs::dlg_input("Enter the composition of solvent A?",

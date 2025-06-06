@@ -13,11 +13,7 @@
 #' 
 #' server <- function(input, output, session) {
 #' 
-#' ...
-#' 
 #'   Table$Proportion <- shinyPropInput(Table$Proportion)
-#' 
-#' ...
 #' 
 #' }
 #' 

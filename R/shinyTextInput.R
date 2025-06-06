@@ -12,12 +12,8 @@
 #' 
 #' server <- function(input, output, session) {
 #' 
-#' ...
-#' 
 #'   Table$Free_input <- shinyTextInput("Enter something...",
-#'                                      ""FreeInput)
-#' 
-#' ...
+#'                                      "FreeInput")
 #' 
 #' }
 #' 

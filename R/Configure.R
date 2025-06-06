@@ -9,7 +9,9 @@
 #' @export
 
 Configure <- function() {
-  pth <- .libPaths()[1]
+  libPath <- as.data.frame(library()$results)
+  libPath <- normalizePath(libPath$LibPath[match("proteoCraft", libPath$Package)], winslash = "/")
+  proteoPath <- paste0(libPath, "/proteoCraft")
   homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
   #
   # Create home directory
@@ -19,7 +21,7 @@ Configure <- function() {
   } else { paste0("Existing package HOME found in \"", homePath, "\"\n") }
   #
   # Default LC column definitions
-  KolDef1 <- paste0(pth, "/proteoCraft/extdata/LC_columns.xlsx")
+  KolDef1 <- paste0(proteoPath, "/extdata/LC_columns.xlsx")
   KolDef2 <- paste0(homePath, "/LC_columns.xlsx")
   if ((file.exists(KolDef1))&&(!file.exists(KolDef2))) {
     tst <- try(file.copy(KolDef1, homePath, overwrite = FALSE), silent = TRUE)
@@ -28,7 +30,7 @@ Configure <- function() {
   } else { cat(" - Default LC columns Excel table already found in HOME.\n") }
   #
   # Default locations table
-  locDef1 <- paste0(pth, "/proteoCraft/extdata/Default_locations.xlsx")
+  locDef1 <- paste0(proteoPath, "/extdata/Default_locations.xlsx")
   locDef2 <- paste0(homePath, "/Default_locations.xlsx")
   if ((file.exists(locDef1))&&(!file.exists(locDef2))) {
     tst <- try(file.copy(locDef1, homePath, overwrite = FALSE), silent = TRUE)
@@ -84,7 +86,7 @@ Configure <- function() {
     openxlsx::saveWorkbook(wb, locDef2, overwrite = TRUE)
   }
   # Sample solvent definitions - used by MatMet_WetLab()
-  fl0 <- paste0(pth, "/proteoCraft/extdata/Sample_solvents.txt")
+  fl0 <- paste0(proteoPath, "/extdata/Sample_solvents.txt")
   fl1 <- paste0(homePath, "/Sample_solvents.txt")
   if (file.exists(fl1)) {
     opt0 <- readLines(fl0)
@@ -101,7 +103,7 @@ Configure <- function() {
                "Regulation analysis - detailed script",
                "Regulation analysis - detailed script_pepOnly",
                "No replicates analysis - detailed script")
-  extDr1 <- paste0(pth, "/proteoCraft/extdata/R scripts")
+  extDr1 <- paste0(proteoPath, "/extdata/R scripts")
   fls <- paste0(extDr1, "/", scrpts2, ".R")
   for (fl in fls) {
     tst <- try(file.copy(fl, homePath, overwrite = TRUE), silent = TRUE)

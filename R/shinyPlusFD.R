@@ -19,7 +19,6 @@
 #' nr <- nrow(df)
 #' server <- function(input, output, session) {
 #' 
-#' ...
 #'   Table <- df
 #'   Table$Choice <- shinySelectInput(Table$Choice,
 #'                                    "Choice",
@@ -27,7 +26,6 @@
 #'                                    width)
 #'   Table$Choice___INCR <- shinyPlusFD("Choice",
 #'                                      nr)
-#' ...
 #' 
 #' }
 #' 
@@ -45,9 +43,23 @@ shinyPlusFD <- function(root,
     width <- paste0((nchar(buttonLabel) + 1)*10, "px")
   }
   inputs <- vapply(rg, function(i) {
-    as.character(shiny::actionButton(ids[i],
+    if (!nchar(buttonLabel)) {
+      rs <- shinyWidgets::actionBttn(ids[i],
+                                     "",
+                                     shiny::icon("arrow-down"),
+                                     size = "xs",
+                                     color = "primary",
+                                     style = "pill",
+                                     width = width)
+    } else {
+      rs <- shinyWidgets::actionBttn(ids[i],
                                      buttonLabel,
-                                     width = width))
+                                     size = "xs",
+                                     color = "primary",
+                                     style = "pill",
+                                     width = width)
+    }
+    return(as.character(rs))
   }, "a")
   inputs
 }

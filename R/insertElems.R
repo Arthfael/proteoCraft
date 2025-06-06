@@ -9,8 +9,8 @@
 #' @param warn Should we display a warning when we have no choice but to convert a vector from numeric to character? Default = FALSE.
 #' 
 #' @examples
-#' > insertElems(c(1:4), 3, "A")
-#' [1] "1" "2" "A" "3" "4"
+#' insertElems(c(1:4), 3, "A")
+#' # [1] "1" "2" "A" "3" "4"
 #' 
 #' @export
 

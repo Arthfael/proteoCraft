@@ -31,82 +31,87 @@ cor_mod_seq <- function(Pep,
   #Pep <- ev
   stopifnot(modseqcol %in% colnames(Pep),
             modcol %in% colnames(Pep))
-  seq <- Pep[[modseqcol]]
-  witch <- grep("\\(", seq)
-  if (length(witch)) {
-    seq <- seq[witch]
-    seq1 <- strsplit(seq, "\\(|\\)")
-    taest <- unique(nchar(unlist(sapply(seq1, function(x) { x[(1:floor(length(x)/2))*2] }))))
+  Seq <- Pep[[modseqcol]]
+  uSeq <- unique(Seq)
+  w_uMd <- grep("\\(", uSeq)
+  if (length(w_uMd)) {
+    uMdSeq <- uSeq[w_uMd]
+    seq1 <- strsplit(uMdSeq, "\\(|\\)")
+    taest <- unique(nchar(unlist(lapply(seq1, function(x) { x[(1:floor(length(x)/2))*2] }))))
     taest <- (length(taest) > 1)||(taest != 2)
     if (taest) {
       warning("Modified sequences are in the new MaxQuant format and will be converted to the old (more concise) one!")
       Pep[[paste0(modseqcol, "_verbose")]] <- Pep[[modseqcol]]
-      w1 <- which(colnames(Pep) == modseqcol)
-      w2 <- which(colnames(Pep) == paste0(modseqcol, "_verbose"))
+      w1 <- match(modseqcol, colnames(Pep))
+      w2 <- match(paste0(modseqcol, "_verbose"), colnames(Pep))
       w0 <- which(!colnames(Pep) %in% c(modseqcol, paste0(modseqcol, "_verbose")))
       w0l <- w0[which(w0 < w1)]
       w0h <- w0[which(w0 > w1)]
-      if (length(w0l) > 0) { temp <- Pep[, colnames(Pep)[c(w0l, w1, w2)]] } else { temp <- Pep[, colnames(Pep)[c(w1, w2)]] }
-      if (length(w0h) > 0) { temp[, colnames(Pep[w0h])] <- Pep[, colnames(Pep[w0h])] }
-      Pep <- temp
-      seq2 <- strsplit(gsub("[^\\(\\)]", "", seq), "")
-      seq2 <- sapply(seq2, function(x) { #x <- seq2[[1]]
-        tst1 <- sapply(1:length(x), function(y) { length(which(x[1:y] == "(")) })
-        tst2 <- sapply(1:length(x), function(y) { length(which(x[1:y] == ")")) })
+      if (length(w0l) > 0) { tmPep <- Pep[, colnames(Pep)[c(w0l, w1, w2)]] } else { tmPep <- Pep[, colnames(Pep)[c(w1, w2)]] }
+      if (length(w0h) > 0) { tmPep[, colnames(Pep[w0h])] <- Pep[, colnames(Pep[w0h])] }
+      Pep <- tmPep
+      seq2 <- strsplit(gsub("[^\\(\\)]", "", uMdSeq), "")
+      seq2 <- lapply(seq2, function(x) { #x <- seq2[[1]]
+        l <- length(x)
+        tst1 <- vapply(1:l, function(y) { length(which(x[1:y] == "(")) }, 1)
+        tst2 <- vapply(1:l, function(y) { length(which(x[1:y] == ")")) }, 1)
         ends <- which(tst2-tst1 == 0)
         starts <- 1
-        if (length(ends) > 1) {  starts <- c(starts, ends[1:(length(ends)-1)]+1) }
+        if (length(ends) > 1) { starts <- c(starts, ends[1:(length(ends)-1)]+1) }
         x[which((x == "("))] <- "_[_"
         x[which((x == ")"))] <- "_]_"
         x[starts] <- "("
         x[ends] <- ")"
         return(x)
       })
-      seq1 <- sapply(sapply(1:length(seq1), function(x) { #x <- 1
+      seq1 <- vapply(lapply(1:length(seq1), function(x) { #x <- 1
         l <- length(seq1[[x]])
         r <- rep("", l*2-1)
         r[(1:l)*2-1] <- seq1[[x]]
         r[(1:(l-1))*2] <- seq2[[x]]
         return(r)
-      }), paste, collapse = "")
+      }), paste, "", collapse = "")
       seq1 <- strsplit(seq1, "\\(|\\)")
-      mods <- unique(unlist(sapply(seq1, function(x) { #x <- seq1[1]
+      mods <- unique(unlist(lapply(seq1, function(x) { #x <- seq1[1]
         x[(1:floor(length(x)/2))*2]
       })))
-      mods <- data.frame(ModName = mods, `Full name` = gsub("_\\[_", "(", gsub("_\\]_", ")", mods)), check.names = FALSE)
+      mods <- data.frame(ModName = mods,
+                         `Full name` = gsub("_\\[_", "(", gsub("_\\]_", ")", mods)),
+                         check.names = FALSE)
       mods$Mark <- tolower(substr(mods$"Full name", 1, 2))
       mods$Type <- "Variable" # MaxQuant only reports variable modifications
       ## Identify affected AA
-      mods$AA <- list(rep(c(), nrow(mods)))
-      for (i in 1:nrow(mods)) { #i <- 1
+      nr <- nrow(mods)
+      mods$AA <- list(rep(c(), nr))
+      for (i in 1:nr) { #i <- 1
         m <- proteoCraft::topattern(paste0("(", mods$"Full name"[i], ")"), start = FALSE)
-        w <- grep(m, Pep[[modseqcol]], value = TRUE)
+        w <- grep(m, uMdSeq, value = TRUE)
         if (length(w) > 0) {
-          w <- sapply(strsplit(w, m), function(x) {
+          w <- lapply(strsplit(w, m), function(x) {
             x <- unlist(x)
             x <- x[1:(length(x)-1)]
-            return(unique(unlist(sapply(x, function(y) { rev(unlist(strsplit(y, "")))[1] }))))
+            return(unique(unlist(lapply(x, function(y) { rev(unlist(strsplit(y, "")))[1] }))))
           })
           mods$AA[i] <- list(sort(unique(unlist(w))))
         }
       }
     } else {
       message("No need to convert modified sequences as they are already in the old format, skipping.")
-      mods <- data.frame(`Full name` = sort(unique(gsub("[0-9]+ ", "", unlist(sapply(strsplit(Pep[which(Pep[[modcol]] != "Unmodified"), modcol], ","), unlist))))),
+      mods <- data.frame(`Full name` = sort(unique(gsub("[0-9]+ ", "", unlist(strsplit(unique(Pep[which(Pep[[modcol]] != "Unmodified"), modcol]), ","))))),
                          check.names = FALSE)
       mods$Type <- "Variable"
       mods$Mark <- tolower(substr(mods$"Full name", 1, 2))
+      nr <- nrow(mods)
       ## Identify affected AA
-      mods$AA <- list(rep(c(), nrow(mods)))
-      for (i in 1:nrow(mods)) {
+      mods$AA <- list(rep(c(), nr))
+      for (i in 1:nr) {
         m <- proteoCraft::topattern(mods$"Full name"[i], start = FALSE)
-        W <- grep(paste0("^", m, "$|^[0-9]+ ", m, "$"), Pep[[modcol]])
-        if (length(W) > 0) {
-          e <- Pep[W, modseqcol]
-          e <- sapply(strsplit(e, paste0("\\(", mods$Mark[i], "\\)")), function(x) {
+        e <- grep(paste0("^", m, "$|^[0-9]+ ", m, "$"), unique(Pep[[modcol]]), value = TRUE)
+        if (length(e)) {
+          e <- lapply(strsplit(e, paste0("\\(", mods$Mark[i], "\\)")), function(x) {
             x <- unlist(x)
             x <- x[1:(length(x)-1)]
-            return(unique(unlist(sapply(x, function(y) { rev(unlist(strsplit(y, "")))[1] }))))
+            return(unique(unlist(lapply(x, function(y) { rev(unlist(strsplit(y, "")))[1] }))))
           })
           mods$AA[i] <- list(sort(unique(unlist(e))))
         }
@@ -116,14 +121,15 @@ cor_mod_seq <- function(Pep,
     ## We want to fix that so that each modification has a unique mark:
     test <- aggregate(mods$Mark, list(mods$Mark), length)
     W <- which(test$x > 1)
+    nuMdSeq <- uMdSeq
     #Modifs$Mark <- Modifs$"Old mark"
-    if (length(W) > 0) {
+    if (length(W)) {
       mods$"Old mark" <- mods$Mark
       for (i in W) {
         #i <- W[1]
         w <- which(mods$Mark == test$Group.1[i])
         m <- mods[w,]
-        m$AA[which(sapply(m$AA, length) == 0)] <- "X"
+        m$AA[which(vapply(m$AA, length, 1) == 0)] <- "X"
         if ("Acetyl (Protein N-term)" %in% m$"Full name") { r <- which(m$"Full name" == "Acetyl (Protein N-term)") } else { r <- 1 }
         s <- c(1:nrow(m)); s <- s[which(s != r)]
         test <- apply(m[s, c("AA", "Mark")], 1, function(x) { paste0(tolower(x[[1]]), substr(x[[2]], 1, 1)) })
@@ -133,7 +139,7 @@ cor_mod_seq <- function(Pep,
         if (length(w1) > 0) {
           # not tested
           s <- s[w1]
-          test <- sapply(s, list)
+          test <- lapply(s, list)
           kount <- 1
           char <- c(c(0:9), letters)
           taken <- unique(c(mods$Mark, m$Mark))
@@ -157,15 +163,15 @@ cor_mod_seq <- function(Pep,
         ## Now fix modification marks in modified sequence:
         ## - this is for the rare case where we have old style modified sequences but some duplicate marks:
         w <- which(mods$"Old mark" != mods$Mark)
-        test <- apply(mods[,c("AA", "Old mark")], 1, function(x) {paste0(x[[1]], "\\(", x[[2]], "\\)")})
-        repl <- apply(mods[,c("AA", "Mark")], 1, function(x) {paste0(x[[1]], "(", x[[2]], ")")})
+        test <- apply(mods[, c("AA", "Old mark")], 1, function(x) { paste0(x[[1]], "\\(", x[[2]], "\\)") })
+        repl <- apply(mods[, c("AA", "Mark")], 1, function(x) { paste0(x[[1]], "(", x[[2]], ")") })
         for (i in w) {
           m <- test[[i]]
           r <- repl[[i]]
           for (j in 1:length(m)) {
-            test2 <- sapply(test, function(x) {m[[j]] %in% unlist(x)})
+            test2 <- vapply(test, function(x) { m[[j]] %in% unlist(x) }, TRUE)
             if (sum(which(test2) != i) == 0) {
-              seq <- gsub(m[[j]], r[[j]], seq)
+              nuMdSeq <- gsub(m[[j]], r[[j]], nuMdSeq)
             } else { stop("Don't know yet how to deal with this case!!!") }
           }
         }
@@ -175,12 +181,13 @@ cor_mod_seq <- function(Pep,
       ## Now fix modification marks in modified sequence
       ## - this is the general case for new style modified sequences:
       for (i in 1:nrow(mods)) {
-        seq <- gsub(proteoCraft::topattern(paste0("(", mods$"Full name"[i], ")"), start = FALSE),
-                    paste0("(", mods$Mark[i], ")"), seq)
+        nuMdSeq <- gsub(proteoCraft::topattern(paste0("(", mods$"Full name"[i], ")"), start = FALSE),
+                        paste0("(", mods$Mark[i], ")"), nuMdSeq)
       }
       mods$ModName <- NULL
     }
-    Pep[witch, modseqcol] <- seq
+    w_Md <- which(Seq %in% uMdSeq)
+    Pep[[modseqcol]][w_Md] <- nuMdSeq[match(Seq[w_Md], uMdSeq)]
   } else {
     warning("Not a single modified peptide was identified, is this normal?")
     mods <- data.frame(`Full name` = NA,

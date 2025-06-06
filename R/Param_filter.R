@@ -7,10 +7,10 @@
 #' @param filter Which covariate(s) to filter.
 #' 
 #' @examples
-#' > Param$Ratios.Groups.Ref.Aggregate.Level
-#' [1] "Exp;Con;Rep"
-#' > Param_filter(Param$Ratios.Groups.Ref.Aggregate.Level, "Rep")
-#' [1] "Exp;Con"
+#' Param$Ratios.Groups.Ref.Aggregate.Level
+#' # [1] "Exp;Con;Rep"
+#' Param_filter(Param$Ratios.Groups.Ref.Aggregate.Level, "Rep")
+#' # [1] "Exp;Con"
 #' 
 #' @export
 

@@ -14,7 +14,7 @@
 #' @param PEP_col The name of the Posterior Error Probability column. Default = "PEP"
 #' 
 #' @examples
-#' > phospep$High_Quality <- phos_QC(phospep)
+#' phospep$High_Quality <- phos_QC(phospep)
 #' 
 #' @export
 

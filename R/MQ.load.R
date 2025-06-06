@@ -19,7 +19,7 @@
 #'
 #' @examples
 #' MQ.load()
-#' Result: the environment should now contain ev, pep and prot objects.
+#' # Result: the environment should now contain ev, pep and prot objects.
 #' 
 #' @export
 

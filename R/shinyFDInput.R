@@ -6,7 +6,7 @@
 #' 
 #' @param root Root of the created input names. Names generated will be of the form "root___i___FD", where i is the 1:n row number.
 #' @param l Number of rows of the table.
-#' @param useIcon Default = FALSE, in which case the letter "V" is displayed. If set to TRUE, icon("arrow-down") will be displayed instead (note that this may not always work.)
+#' @param useIcon Ignored, only kept because of old code!
 #' @param width The width of the input, e.g. '400px', or '100%'; see htmltools::validateCssUnit().\cr Default = "15px"
 #' 
 #' @examples
@@ -17,7 +17,6 @@
 #' nr <- nrow(df)
 #' server <- function(input, output, session) {
 #' 
-#' ...
 #'   Table <- df
 #'   Table$Choice <- shinySelectInput(Table$Choice,
 #'                                    "Choice",
@@ -26,7 +25,6 @@
 #'   Table$Choice___FD <- shinyFDInput("Choice",
 #'                                     nr,
 #'                                     TRUE)
-#' ...
 #' 
 #' }
 #' 
@@ -43,16 +41,13 @@ shinyFDInput <- function(root,
     width <- paste0(15, "px")
   }
   inputs <- vapply(rg, function(i) {
-    if (useIcon) {
-      as.character(shiny::actionButton(ids[i],
-                                       "",
-                                       shiny::icon("arrow-down"),
-                                       width))
-    } else {
-      as.character(shiny::actionButton(ids[i],
-                                       "V", # Used because the letter V points downwards...
-                                       width = width))
-    }
+    as.character(shinyWidgets::actionBttn(ids[i],
+                                          "",
+                                          shiny::icon("arrow-down"),
+                                          size = "xs",
+                                          color = "primary",
+                                          style = "pill",
+                                          width = width))
   }, "a")
   inputs
 }

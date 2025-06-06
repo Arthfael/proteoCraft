@@ -8,8 +8,8 @@
 #' @param filter If set to TRUE (default), this will remove all non numeric, NA, NaN and +/-Inf values.
 #' 
 #' @examples
-#' > geomean(c(1, 3))
-#'   1.732051
+#' geomean(c(1, 3))
+#' #  1.732051
 #'   
 #' @export
 
