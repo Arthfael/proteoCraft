@@ -120,23 +120,25 @@ Configure <- function() {
   vendorsLab <- lapply(vendors@x, function(x) {
     x@label
   })
-  vendorsInstr <- lapply(1:length(vendorsLab), function(x) { #x <- 5
+  vendorsInstr <- lapply(1:length(vendorsLab), function(x) { #x <- 2 #x <- 5
     trm <- rols::Term(ol, names(vendorsLab)[[x]])
     models <- rols::children(trm)
     if (!is.null(models)) {
       rs <- vapply(models@x, function(y) { y@label }, "")
-      g <- grep(" series$", rs, ignore.case = TRUE)
-      if (length(g)) {
-        rs2 <- lapply(g, function(y) {
+      rs2 <- lapply(1:length(rs), function(y) { #y <- g[1]
+        try({
           trm2 <- rols::Term(ol, names(rs)[y])
           mods <- rols::children(trm2)
           mods <- vapply(mods@x, function(z) { z@label }, "")
-        })
-        rs <- rs[-g]
-        rs <- c(rs, unlist(mods))
-      }
-      return(data.frame(Vendor = gsub(" instrument model$", "", vendorsLab[[x]]),
-                        Instrument = rs))
+        }, silent = TRUE)
+      })
+      w <- which(vapply(rs2, function(x) { "try-error" %in% class(x) }, TRUE))
+      if (length(w)) { rs2[w] <- rs[w] }
+      rs <- unlist(rs2)
+      rs <- rs[grep("^MS:[0-9]+$", names(rs))]
+      rs <- data.frame(Vendor = gsub(" instrument model$", "", vendorsLab[[x]]),
+                       Instrument = rs)
+      return(rs)
     } else { return(NULL) }
   })
   vendorsInstr <- do.call(rbind, vendorsInstr)
