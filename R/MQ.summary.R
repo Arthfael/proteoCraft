@@ -37,7 +37,6 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                        cl,
                        MQtxt = indir) {
   TESTING <- FALSE
-  cleanUp <- FALSE
   #proteoCraft::DefArg(proteoCraft::MQ.summary)
   #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = sc
   #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = max(c(20, round(length(rawFiles2)/length(Exp)))); save = c("jpeg", "pdf")
@@ -339,7 +338,17 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     if ("Path" %in% colnames(Raw)) {
       we <- which(file.exists(gsub("\\.[^\\.]+$", ".raw", Raw$Path)))
       if (length(we)) {
-        if (misFun(cl)) {
+        #
+        # Create cluster
+        tstCl <- misFun(cl)
+        if (!misFun(cl)) {
+          tstCl <- suppressWarnings(try({
+            a <- 1
+            clusterExport(cl, "a", envir = environment())
+          }, silent = TRUE))
+          tstCl <- !"try-error" %in% class(tstCl)
+        }
+        if ((misFun(cl))||(!tstCl)) {
           dc <- parallel::detectCores()
           if (misFun(N.reserved)) { N.reserved <- 1 }
           if (misFun(N.clust)) {
@@ -351,8 +360,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             }
           }
           cl <- parallel::makeCluster(N.clust, type = "SOCK")
-          cleanUp <- TRUE
         }
+        N.clust <- length(cl)
+        #
         if (!suppressWarnings(require(rawrr))) {
           pak::pkg_install("rawrr", ask = FALSE)
           #install.packages('http://fgcz-ms.uzh.ch/~cpanse/rawrr_0.2.1.tar.gz', repo = NULL)
@@ -383,7 +393,6 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         environment(f1) <- .GlobalEnv
         tic <- try(parallel::parLapply(cl, we, f0), silent = TRUE)
         bpc <- try(parallel::parLapply(cl, we, f1), silent = TRUE)
-        if (cleanUp) { parallel::stopCluster(cl) }
         if (!"try-error" %in% c(class(tic), class(bpc))) {
           for (chrmtp in names(chromtypes)) { #chrmtp <- names(chromtypes)[1]
             temp <- get(chromtypes[chrmtp])
@@ -794,5 +803,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     #}
   }
   setwd(wd0)
+  #
+  parallel::stopCluster(cl)
   return(Res)
 }

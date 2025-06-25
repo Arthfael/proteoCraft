@@ -33,7 +33,7 @@ PD_to_MQ <- function(PD,
   if (Isobaric) {
     stopifnot(Label %in% c("TMT0plex", "TMTpro0plex", "TMT2plex", "TMT6to11plex", "TMTpro16plex", "iodoTMT0plex", "iodoTMT6plex", "aminoxyTMT0plex", "aminoxyTMT6plex", "iTRAQ4plex", "iTRAQ8plex"))
     LabelKlass <- c("TMT", "iodoTMT", "iTRAQ")
-    LabelKlass <- LabelKlass[which(sapply(LabelKlass, function(x) { grepl(proteoCraft::topattern(x), Label) }))]
+    LabelKlass <- LabelKlass[which(vapply(LabelKlass, function(x) { grepl(proteoCraft::topattern(x), Label) }, TRUE))]
     # NB: the different iTRAQ channels are only isobaric at a lower resolution than for TMT:
     # In two given TMTs channels, including 10-11plex, while isotopologues are used for encoding channels,
     # the total number of isotopes of each atom is the same. Thus TMT is truly isobaric.
@@ -60,14 +60,14 @@ PD_to_MQ <- function(PD,
   temp <- gsub("\\(Prot\\)", "[Prot]", PD$Modifications)
   temp <- strsplit(gsub("\\)", "", gsub("\\(", "_", temp)), "; ")
   PD[,c("temp_mod", "temp_pos")] <- ""
-  w <- which(sapply(temp, length) > 0)
+  w <- which(vapply(temp, length, 1) > 0)
   PD[w, c("temp_mod", "temp_pos")] <- proteoCraft::Isapply(temp[w], function(x) { #x <- temp[[1]]
     x <- unlist(x)
     x <- as.data.frame(strsplit(x, "_"))
     x1 <- strsplit(as.character(x[2,]), "\\+")
     names(x1) <- x[1,]
     x1 <- reshape2::melt(x1)
-    x1 <- apply(x1, 2, paste, collapse = ";")
+    x1 <- do.call(paste, c(x1, sep = ";"))
     return(x1)
   })
   Modifs <- data.frame(`Full name` = unique(unlist(strsplit(PD$temp_mod, ";"))), check.names = FALSE)
@@ -92,7 +92,7 @@ PD_to_MQ <- function(PD,
       #i <- W[1]
       w <- which(Modifs$Mark == test$Group.1[i])
       m <- Modifs[w,]
-      m$AA[which(sapply(m$AA, length) == 0)] <- "X"
+      m$AA[which(vapply(m$AA, length, 1) == 0)] <- "X"
       if ("Acetyl" %in% m$"Full name") { r <- which(m$"Full name" == "Acetyl") } else { r <- 1 }
       s <- c(1:nrow(m)); s <- s[which(s != r)]
       test <- apply(m[s, c("AA", "Mark")], 1, function(x) { paste0(tolower(x[[1]]), substr(x[[2]], 1, 1)) })
@@ -126,14 +126,14 @@ PD_to_MQ <- function(PD,
   EV$Modifications <- "Unmodified"
   EV$"Modified sequence" <- paste0("_", EV$Sequence, "_")
   temp <- strsplit(PD$temp_mod, ";")
-  w <- which(sapply(temp, function(x) { length(x[which(!x %in% Fixed.mods)]) }) > 0)
-  EV$Modifications[w] <- sapply(temp[w], function(x) {
+  w <- which(vapply(temp, function(x) { length(x[which(!x %in% Fixed.mods)]) }, 1) > 0)
+  EV$Modifications[w] <- vapply(temp[w], function(x) {
     x <- x[which(! x %in% Fixed.mods)]
     x <- aggregate(x, list(x), length)
     x <- x[order(x$Group.1),2:1]
     x <- apply(x, 1, function(y) { gsub("^1 ", "", paste(y, collapse = " ")) } )
     return(paste(x, collapse = ","))
-  })
+  }, "")
   temp <- PD[w,c("temp_mod", "temp_pos")]
   colnames(temp) <- c("mod", "pos")
   temp$mod <- strsplit(temp$mod, ";")
@@ -162,12 +162,12 @@ PD_to_MQ <- function(PD,
         sq$mod[which(sq$pos %in% md[,1])] <- md[match(sq$pos[which(sq$pos %in% md[,1])], md[,1]),2]
       } else { stop("Amino acids and positions do not match!") }
     }
-    wh2 <- which(sapply(sq$mod, length) > 0)
-    sq$mod[wh2] <- sapply(sq$mod[wh2], function(y) {
+    wh2 <- which(vapply(sq$mod, length, 1) > 0)
+    sq$mod[wh2] <- vapply(sq$mod[wh2], function(y) {
       return(paste0("(", paste(Modifs$Mark[match(unlist(y), Modifs$"Full name")], collapse = ","), ")"))
-    })
-    sq$mod[which(sapply(sq$mod, is.null))] <- ""
-    return(paste(apply(sq[,c("seq", "mod")], 1, paste, collapse = ""), collapse = ""))
+    }, "")
+    sq$mod[which(vapply(sq$mod, is.null, TRUE))] <- ""
+    return(paste(do.call(paste, c(sq[, c("seq", "mod")], sep = "")), collapse = ""))
   })
   EV$"Leading proteins" <- gsub("; ", ";", PD$"Master Protein Accessions")
   EV$Proteins <- gsub("; ", ";", PD$"Protein Accessions")
@@ -185,7 +185,7 @@ PD_to_MQ <- function(PD,
   if (!Isobaric) { EV$"m/z" <- PD$"m/z [Da]" } else {
     ## Fix masses to the MQ format (isobaric tag mass removed)
     IsoTaest <- as.data.frame(sapply(unique(unlist(strsplit(PD$temp_mod, ";"))), function(m) {
-      sapply(strsplit(PD$temp_mod, ";"), function(x) { length(which(unlist(x) == m)) })
+      vapply(strsplit(PD$temp_mod, ";"), function(x) { length(which(unlist(x) == m)) }, 1)
     }))
     KTaest <- nchar(EV$Sequence)-nchar(gsub("K", "", EV$Sequence))+1
     taest <- sweep(IsoTaest, 1, KTaest, "-")
@@ -263,9 +263,9 @@ PD_to_MQ <- function(PD,
     EV$"Search Engine" <- PD$"Identifying Node"
     EV$test <- apply(EV[, c("Modified sequence", "Charge", "Retention time", "Raw file", "MS/MS scan number")], 1, paste, collapse = "_-_")
     evtemp <- data.frame(test = unique(EV$test))
-    evtemp[,c("Modified sequence", "Charge", "Retention time", "Raw file", "MS/MS scan number")] <- proteoCraft::Isapply(strsplit(unique(evtemp$test), "_-_"), unlist)
-    evtemp$Spectrum <- apply(evtemp[, c("Raw file", "MS/MS scan number")], 1, paste, collapse = "_-_")
-    evtemp$Identification <- apply(evtemp[, c("Modified sequence", "Charge")], 1, paste, collapse = "_-_")
+    evtemp[, c("Modified sequence", "Charge", "Retention time", "Raw file", "MS/MS scan number")] <- proteoCraft::Isapply(strsplit(unique(evtemp$test), "_-_"), unlist)
+    evtemp$Spectrum <- do.call(paste, c(evtemp[, c("Raw file", "MS/MS scan number")], sep = "_-_"))
+    evtemp$Identification <- do.call(paste, c(evtemp[, c("Modified sequence", "Charge")], sep = "_-_"))
     test <- aggregate(evtemp$Identification, list(evtemp$Spectrum), length)
     w <- which(test$x > 1)
     if (length(w) > 0) {

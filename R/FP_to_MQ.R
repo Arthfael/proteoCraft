@@ -50,9 +50,17 @@ FP_to_MQ <- function(FP_Workflow,
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
-  # Create cluster (some steps are slow otherwise)
-  cleanUp <- FALSE
-  if (misFun(cl)) {
+  #
+  # Create cluster
+  tstCl <- misFun(cl)
+  if (!misFun(cl)) {
+    tstCl <- suppressWarnings(try({
+      a <- 1
+      clusterExport(cl, "a", envir = environment())
+    }, silent = TRUE))
+    tstCl <- !"try-error" %in% class(tstCl)
+  }
+  if ((misFun(cl))||(!tstCl)) {
     dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1 }
     if (misFun(N.clust)) {
@@ -64,8 +72,8 @@ FP_to_MQ <- function(FP_Workflow,
       }
     }
     cl <- parallel::makeCluster(N.clust, type = "SOCK")
-    cleanUp <- TRUE
   }
+  N.clust <- length(cl)
   #
   # Load FragPipe parameter file
   if ((!TESTING)&&((missing("FP_Workflow"))||(!file.exists(FP_Workflow)))) {
@@ -854,6 +862,7 @@ FP_to_MQ <- function(FP_Workflow,
                 WorkFlow = FP_Wrkflw)
   }
   if (isTMT) { Res[["TMT_annotations"]] <- TMTtbl }
-  if (cleanUp) { parallel::stopCluster(cl) }
+  #
+  parallel::stopCluster(cl)
   return(Res)
 }

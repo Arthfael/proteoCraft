@@ -5,14 +5,14 @@
 #' 
 #' @param dat Input data matrix, expected to be log-transformed!
 #' @param root Just a name to stick to the 
-#' @param batches Relevant batches, default = myBatches; should be column names of map!
-#' @param map The experiment map connecting samples to batches. Default = Exp.map
+#' @param batches Relevant batches, default = myBatches; should be valid column names of map!
+#' @param map Map connecting samples to batches. Note that this may produce incorrect results if dat has repeated column names!
 #' @param SamplesCol Name of the sample colum in the map, default = "Ref.Sample.Aggregate"
 #' @param intRoot Root of the expression columns in the file, default = "log10 Intensity - "; if a character of length 0, all columns are assumed to be expression columns!
 #' @param dir Directory where to save the plots, default = btchDir
 #' @param ttl Plot title root, default = "PCA plot - SVA batch corr."
 #' @param openMe Should we open the plotly plot? (default = FALSE)
-#' @param isRef
+#' @param isRef Whether a column in dat is an IRS reference column (mixed sample).
 #'
 #' @examples
 #'   scoresLst <- PCAlyLst <- PCsLst <- list()
@@ -43,22 +43,34 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
                           ttl = "PCA plot - SVA batch corr.",
                           openMe = FALSE,
                           isRef) {
+  #proteoCraft::DefArg(pcaBatchPlots)
   if (missing(map)) { stop() }
-  stopifnot(batches %in% colnames(map),
-            ncol(dat) > 1,
-            nrow(dat) > 0)
   if (nchar(intRoot)) {
     pat <- proteoCraft::topattern(intRoot)
     dat <- dat[, grep(proteoCraft::topattern(intRoot), colnames(dat), value = TRUE)]
     colnames(dat) <- gsub(pat, "", colnames(dat))
   }
+  stopifnot(batches %in% colnames(map),
+            ncol(dat) > 1,
+            nrow(dat) > 0)
+  map$Sample_name <- map[[SamplesCol]]
+  colnames(dat) <- proteoCraft::cleanNms(colnames(dat))
   map$Sample_name <- proteoCraft::cleanNms(map[[SamplesCol]])
+  m <- match(colnames(dat), map$Sample_name)
+  stopifnot(sum(is.na(m)) == 0)
+  map <- map[m,]
+  if (length(batches) > 1) {
+    whichBatch <- map$myBatch <- do.call(paste, c(map[, batches], sep = " "))
+  } else {
+    whichBatch <- map$myBatch <- map[, batches]
+  }
   pc0 <- prcomp(t(dat), scale. = TRUE)
   scores0 <- as.data.frame(pc0$x)
   kol <- colnames(scores0)
   scores0$Sample <- rownames(scores0) <- proteoCraft::cleanNms(rownames(scores0))
-  scores0[, batches] <- map[match(scores0$Sample, map$Sample_name),
-                            batches]
+  scores0[, paste(batches, collapse = " ")] <- whichBatch
+  scores0[, batches] <- map[, batches]
+  scores0$Batch <- whichBatch
   #
   pv0 <- round(100*(pc0$sdev)^2 / sum(pc0$sdev^2), 0)
   pv0 <- pv0[which(pv0 > 0)]
@@ -70,24 +82,31 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
   scores0$Type <- "Individual sample"
   #scores0$Batch <- do.call(paste, c(scores0[, batches], sep = " / "))
   if (!missing(isRef)) {
-    w <- which(isRef)
-    map2 <- map[which(map$Sample_name %in% scores0$Sample[w]),]
-    grps <- aggregate(map2$Sample_name, list(map2[[batches]]), unique)
-    datAv0 <- setNames(lapply(grps$x, function(x) {
-      apply(scores0[match(x, scores0$Sample), kol, drop = FALSE],
-            2, function(y) {
-              mean(proteoCraft::is.all.good(y))
-            })
-    }), grps$Group.1)
-    datAv0 <- do.call(rbind, c(datAv0))
-    datAv0 <- as.data.frame(datAv0)
-    datAv0[[batches]] <- grps$Group.1
-    datAv0$Sample <- row.names(datAv0) <- paste0("Avg.", datAv0[[batches]])
-    datAv0$Corrected <- root
-    datAv0$Type <- "Batch average"
-    scores0 <- rbind(scores0,
-                     datAv0)
+    wR <- which(isRef)
+    if (length(wR)) {
+      grps <- aggregate(colnames(dat)[wR], list(whichBatch[wR]), function(x) { list(unique(x)) })
+      l <- vapply(grps$x, length, 1)
+    }
   }
+  if ((missing(isRef))||(!length(wR))||(min(l) < 1)) {
+      grps <- aggregate(colnames(dat), list(whichBatch), function(x) { list(unique(x)) })
+  }
+  datAv0 <- setNames(lapply(grps$x, function(x) {
+    apply(scores0[match(x, scores0$Sample), kol, drop = FALSE],
+          2, function(y) {
+            mean(proteoCraft::is.all.good(y))
+          })
+  }), grps$Group.1)
+  datAv0 <- do.call(rbind, c(datAv0))
+  datAv0 <- as.data.frame(datAv0)
+  datAv0$Batch <- grps$Group.1
+  datAv0[[batches]] <- map[match(grps$Group.1, map$myBatch), batches]
+  datAv0$Sample <- #row.names(datAv0) <-
+    paste0("Avg.", datAv0[[batches]])
+  datAv0$Corrected <- root
+  datAv0$Type <- "Batch average"
+  scores0 <- rbind(scores0,
+                   datAv0)
   plotlyPCA <- list()
   if ("PC2" %in% colnames(scores0)) {
     for (btch in batches) { #btch <- batches[1]
@@ -105,6 +124,7 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
         ggrepel::geom_text_repel(ggplot2::aes(x = PC1, y = PC2, label = Sample),
                                  size = 2.5, show.legend = FALSE)
       #poplot(plot)
+      if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
       ggplot2::ggsave(paste0(dir, "/", nm1, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
       ggplot2::ggsave(paste0(dir, "/", nm1, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
       #

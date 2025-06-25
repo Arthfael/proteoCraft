@@ -54,7 +54,7 @@ TopN <- function(N = 3,
     a <- paste(c(paste(c(proteoCraft::AA, "_"), collapse = "|"), sapply(Mods, function(x) {
       paste0("\\(", x, "\\)")
     })), collapse = "|")
-    test <- sapply(gsub(a, "", Pep[[Mod.Nms]]), function(x) {nchar(x)})
+    test <- vapply(gsub(a, "", Pep[[Mod.Nms]]), function(x) { nchar(x) }, 1)
   }
   pep1 <- Pep[which(!test),]
   log.Pep.Intens <- as.integer(log.Pep.Intens)
@@ -111,9 +111,9 @@ TopN <- function(N = 3,
       for (o in Pep.Intens.Nms) {
         y <- res[[o]]
         for (n in 1:(N-1)) {
-          y1 <- sapply(y, function(x) {unlist(x)[n]})
+          y1 <- sapply(y, function(x) { unlist(x)[n] })
           y1 <- as.data.frame(y1)
-          y1$N <- sapply(y, function(x) {unlist(x)[N]})
+          y1$N <- sapply(y, function(x) { unlist(x)[N] })
           options(warn = -1)
           y2 <- apply(y1, 1, function(x) {
             x <- proteoCraft::is.all.good(as.numeric(x))
@@ -132,9 +132,9 @@ TopN <- function(N = 3,
       }
       y <- temp2
       for (n in 1:(N-1)) {
-        y1 <- sapply(y, function(x) {unlist(x)[n]})
+        y1 <- sapply(y, function(x) { unlist(x)[n] })
         y1 <- as.data.frame(y1)
-        y1$N <- sapply(y, function(x) {unlist(x)[N]})
+        y1$N <- sapply(y, function(x) { unlist(x)[N] })
         options(warn = -1)
         y2 <- apply(y1, 1, function(x) { length(proteoCraft::is.all.good(as.numeric(x))) }) == 2
         options(warn = 0)

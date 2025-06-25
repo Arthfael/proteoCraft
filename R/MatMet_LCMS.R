@@ -39,9 +39,17 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
-  # Create cluster (some steps are slow otherwise)
-  cleanUp <- FALSE
-  if (misFun(cl)) {
+  #
+  # Create cluster
+  tstCl <- misFun(cl)
+  if (!misFun(cl)) {
+    tstCl <- suppressWarnings(try({
+      a <- 1
+      clusterExport(cl, "a", envir = environment())
+    }, silent = TRUE))
+    tstCl <- !"try-error" %in% class(tstCl)
+  }
+  if ((misFun(cl))||(!tstCl)) {
     dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1 }
     if (misFun(N.clust)) {
@@ -53,13 +61,25 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       }
     }
     cl <- parallel::makeCluster(N.clust, type = "SOCK")
-    cleanUp <- TRUE
   }
+  N.clust <- length(cl)
+  #
   #
   Moult <- length(RawFiles) > 1
   #
   # LC columns
-  colChar <- "Name | Material | Length (cm) | ID (µm) | Particles size (µm) | Vendor | P/N"
+  colChar <- c("Name",
+               "Class",
+               "Vendor",
+               "Length.(cm)",
+               "ID.(µm)",
+               "Particles.size.(µm)",
+               "Pore.size.(Å)",
+               "Material",
+               "Type",
+               "Description",
+               "P/N",
+               "Function")
   colTst <- (Columns != "default")&(file.exists(Columns))
   libPath <- as.data.frame(library()$results)
   libPath <- normalizePath(libPath$LibPath[match("proteoCraft", libPath$Package)], winslash = "/")
@@ -296,27 +316,19 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       kol <- svDialogs::dlg_list(unique(c(kol, Kolumns)), kol,
                                  title = paste0(uBrMeth$Root[i], " - select column used:"))$res
       if (kol == "Add new...") {
-        cat(colChar, "\n")
-        kol <- svDialogs::dlg_input("Fill in new column's characteristics (\"|\"-separated):",
-                                    colChar)$res
-        kol <- unlist(strsplit(kol, " *\\| *"))
-        l <- length(kol)
-        if (l < 7) { kol <- c(kol, rep(NA, 7-l)) }
-        kol <- kol[1:7]
-        tmp <- as.data.frame(t(as.data.frame(kol)))
-        colnames(tmp) <- c("Name", "Material", "Length.(cm)", "ID.(µm)", "Particles.size.(µm)", "Vendor", "P/N")
-        tmp$Function <- "Analytical"
-        tmp$Description <- kolDescr(tmp)
-        k <- colnames(allKolumns)
-        k <- k[which(!k %in% colnames(tmp))]
-        tmp[,k] <- NA
-        tmp[1, which(tmp[1,] == "NA")] <- NA
-        allKolumns <- rbind(allKolumns, tmp)
+        colCharDf <- data.frame(Description = "Analytical")
+        for (kk in colChar[which(colChar != "Function")]) {
+          colCharDf[[kk]] <- svDialogs::dlg_input(paste0("Enter value for field \"", kk, "\""), "")$res
+        }
+        kol <- colCharDf$Name
+        allKolumns <- plyr::rbind.fill(allKolumns, colCharDf)
         rownames(allKolumns) <- NULL
         tst <- apply(allKolumns, 1, paste, collapse = "|")
         tst <- aggregate(1:length(tst), list(tst), min)
         allKolumns <- allKolumns[sort(tst$x),]
-        Kolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Analytical")], "None (direct infusion)", "Add new..."))
+        Kolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Analytical")],
+                            "None (direct infusion)",
+                            "Add new..."))
         AddKolKount <- AddKolKount + 1
         kol <- tmp$Description
       }
@@ -326,22 +338,19 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         kol <- svDialogs::dlg_list(unique(c(kol, preKolumns)), kol,
                                    title = paste0(uBrMeth$Root[i],  " - select trap used:"))$res
         if (kol == "Add new...") {
-          cat(colChar, "\n")
-          kol <- svDialogs::dlg_input("Fill in new trap's characteristics (\"|\"-separated):",
-                                      colChar)$res
-          tmp <- as.data.frame(t(as.data.frame(unlist(strsplit(kol, " *\\| *")))))
-          colnames(tmp) <- c("Name", "Material", "Length.(cm)", "ID.(µm)", "Particles.size.(µm)", "Vendor", "P/N")
-          tmp$Function <- "Trap"
-          k <- colnames(allKolumns)
-          k <- k[which(!k %in% colnames(tmp))]
-          tmp[,k] <- NA
-          tmp$Description <- kolDescr(tmp)
-          allKolumns <- rbind(allKolumns, tmp)
+          colCharDf <- data.frame(Description = "Trap")
+          for (kk in colChar[which(colChar != "Function")]) {
+            colCharDf[[kk]] <- svDialogs::dlg_input(paste0("Enter value for field \"", kk, "\""), "")$res
+          }
+          kol <- colCharDf$Name
+          allKolumns <- plyr::rbind.fill(allKolumns, colCharDf)
           rownames(allKolumns) <- NULL
           tst <- apply(allKolumns, 1, paste, collapse = "|")
           tst <- aggregate(1:length(tst), list(tst), min)
           allKolumns <- allKolumns[sort(tst$x),]
-          preKolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Trap")],  "None (direct injection)", "Add new..."))
+          preKolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Trap")],
+                                 "None (direct injection)",
+                                 "Add new..."))
           AddKolKount <- AddKolKount + 1
           kol <- tmp$Description
         }
@@ -1002,6 +1011,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     try(saveWorkbook(wb, Columns2, TRUE), silent = TRUE) # We do not want the function to fail if this fails, it isn't worth the trouble
     #proteoCraft::openwd(dirname(Columns2))
   }
-  if (cleanUp) { parallel::stopCluster(cl) }
+  #
+  parallel::stopCluster(cl)
   return(AllLCMSTexts)
 }

@@ -46,21 +46,29 @@ Skyline_to_MQ <- function(Skyline_fl,
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
   #
-  cleanUp <- FALSE
-  if (misFun(cl)) {
+  # Create cluster
+  tstCl <- misFun(cl)
+  if (!misFun(cl)) {
+    tstCl <- suppressWarnings(try({
+      a <- 1
+      clusterExport(cl, "a", envir = environment())
+    }, silent = TRUE))
+    tstCl <- !"try-error" %in% class(tstCl)
+  }
+  if ((misFun(cl))||(!tstCl)) {
     dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1 }
     if (misFun(N.clust)) {
       N.clust <- max(c(dc-N.reserved, 1))
     } else {
       if (N.clust > max(c(dc-N.reserved, 1))) {
-        warning("   More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
+        warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
         N.clust <- max(c(dc-N.reserved, 1))
       }
     }
     cl <- parallel::makeCluster(N.clust, type = "SOCK")
-    cleanUp <- TRUE
   }
+  N.clust <- length(cl)
   #
   shinyOpt <- tolower(shinyOpt)
   if (!shinyOpt %in% c("popup", "dialog", "pane", "browser")) { shinyOpt <- "popup" }
@@ -549,6 +557,8 @@ Skyline_to_MQ <- function(Skyline_fl,
                          EV)
   Res <- list(Evidence = EV,
               PTMs = allPTMs)
-  if (cleanUp) { parallel::stopCluster(cl) }
+  
+  #
+  parallel::stopCluster(cl)
   return(Res)
 }

@@ -69,11 +69,21 @@ Digest <- function(Seq,
             missed >= 0,
             min(nchar(Cut)) == 2,
             max(nchar(Cut)) == 2)
-  usePar <- cleanUp <- FALSE
+  usePar <- FALSE
   if ((length(Seq) > parThresh)&&((missed > 0)||(length(loose.avoid)))) {
     usePar <- require(parallel)
     if (usePar) {
-      if (misFun(cl)) {
+      #
+      # Create cluster
+      tstCl <- misFun(cl)
+      if (!misFun(cl)) {
+        tstCl <- suppressWarnings(try({
+          a <- 1
+          clusterExport(cl, "a", envir = environment())
+        }, silent = TRUE))
+        tstCl <- !"try-error" %in% class(tstCl)
+      }
+      if ((misFun(cl))||(!tstCl)) {
         dc <- parallel::detectCores()
         if (misFun(N.reserved)) { N.reserved <- 1 }
         if (misFun(N.clust)) {
@@ -85,8 +95,9 @@ Digest <- function(Seq,
           }
         }
         cl <- parallel::makeCluster(N.clust, type = "SOCK")
-        cleanUp <- TRUE
-      } else { N.clust <- length(cl) }
+      }
+      N.clust <- length(cl)
+      #
     }
   }
   RemoveNtermMet <- tolower(RemoveNtermMet)
@@ -107,8 +118,8 @@ Digest <- function(Seq,
   SEQ <- data.table::data.table(SEQ = SEQ, Name = names(SEQ))
   SEQ <- SEQ[, list(x = list(SEQ)), by = list(Group.1 = Name)]
   SEQ <- as.data.frame(SEQ)
-  stopifnot(min(sapply(SEQ$x, length)) == 1)
-  stopifnot(max(sapply(SEQ$x, length)) == 1) # This indicates that the same accession has been provided with different sequences,
+  stopifnot(min(vapply(SEQ$x, length, 1)) == 1)
+  stopifnot(max(vapply(SEQ$x, length, 1)) == 1) # This indicates that the same accession has been provided with different sequences,
   # which is not acceptable!
   # Create non-redundant protein names
   SEQ <- setNames(unlist(SEQ$x), SEQ$Group.1)
@@ -123,9 +134,9 @@ Digest <- function(Seq,
                         End = Chnks)
     stopifnot(Chnks$Start[1] == 1,
               rev(Chnks$End)[1] == lSEQ,
-              sum(sapply(1:(nrow(Chnks)-1), function(x) {
+              sum(vapply(1:(nrow(Chnks)-1), function(x) {
                 Chnks$Start[x+1]-Chnks$End[x]-1
-              })) == 0)
+              }, 1)) == 0)
     Chnks <- apply(Chnks, 1, function(x) { SEQ[x[[1]]:x[[2]]] })
   }
   # Optional characters test
@@ -200,7 +211,7 @@ Digest <- function(Seq,
     # Apply missed cleavages
     Rs <- Sq
     if (missed) {
-      L <- sapply(Sq, length)
+      L <- vapply(Sq, length, 1)
       # Seeing the size of the input, a good old "for" loop here is actually probably a good idea
       # so as not to overly tax memory...
       for (ms in 1:missed) { #ms <- 1
@@ -208,7 +219,7 @@ Digest <- function(Seq,
         w <- which(L >= ms+1)
         if (length(w)) {
           temp <- setNames(lapply(w, function(x) { #x <- 1
-            sapply(1:(L[x]-ms), function(p) { paste(Sq[[x]][p:(p+ms)], collapse = "") })
+            vapply(1:(L[x]-ms), function(p) { paste(Sq[[x]][p:(p+ms)], collapse = "") }, "")
           }), names(Sq)[w])
           Rs[w] <- mapply(c, Rs[w], temp, SIMPLIFY = FALSE)
         }
@@ -223,14 +234,16 @@ Digest <- function(Seq,
       # Restore cuts
       for (C in Cut) { temp$value <- gsub("_$", "", gsub(gsub("_", "", C), C, temp$value)) }
       temp$value <- strsplit(temp$value, "_")
-      L <- sapply(temp$value, length)
+      L <- vapply(temp$value, length, 1)
       if (length(L)) {
-        temp$value <- sapply(1:length(L), function(x) { #x <- 1
+        temp$value <- vapply(1:length(L), function(x) { #x <- 1
           paste(unlist(sapply(1:L[x], function(p1) {
-            sapply(p1:L[x], function(p2) { paste(temp$value[[x]][p1:p2], collapse = "") })
+            vapply(p1:L[x], function(p2) {
+              paste(temp$value[[x]][p1:p2], collapse = "")
+            }, "")
           })), collapse = ";")
           # Collapsing seems actually more efficient here - the vectors end up shorter
-        })
+        }, "")
         temp <- aggregate(temp$value, list(temp$L1), paste, collapse = ";") # Not accelerated by data.table!
         temp <- setNames(strsplit(temp$x, ";"), temp$Group.1)
         w <- which(names(Rs) %in% names(temp))
@@ -245,7 +258,7 @@ Digest <- function(Seq,
     Rs <- lapply(Rs, function(x) { unique(x[which(nchar(x) >= min)]) }) # Filter for min and remove rare duplicates
     if (max) { Rs <- lapply(Rs, function(x) { x[which(nchar(x) <= max)] }) } # Optional: filter for max
     #tst <- unique(gsub("[A-Z]", "", unlist(Rs)))
-    if (cllpsTst) { Rs <- sapply(Rs, paste, collapse = cllps) }
+    if (cllpsTst) { Rs <- vapply(Rs, paste, "", collapse = cllps) }
     return(Rs)
   }
   if (usePar) {
@@ -254,10 +267,11 @@ Digest <- function(Seq,
                                      "loose.avoid", "missed", "min", "max", "cllpsTst", "cllps"),
                             envir = environment())
     RES <- parallel::parLapply(cl, Chnks, F0)
+    #
+    parallel::stopCluster(cl)
     RES <- do.call(c, RES)
   } else {
     RES <- F0(SEQ)
   }
-  if (cleanUp) { parallel::stopCluster(cl) }
   if (!TESTING) { return(RES) }
 }

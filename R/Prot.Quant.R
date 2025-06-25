@@ -124,9 +124,17 @@ Prot.Quant <- function(Prot,
   if (misFun(Refs_Mode)) { Refs_Mode <- 2 }
   if (!as.numeric(Refs_Mode) %in% 1:2) { Refs_Mode <- 2 }
   Refs_Mode <- as.character(Refs_Mode)
-  # Create cluster (some steps are slow otherwise)
-  cleanUp <- FALSE
-  if (misFun(cl)) {
+  #
+  # Create cluster
+  tstCl <- misFun(cl)
+  if (!misFun(cl)) {
+    tstCl <- suppressWarnings(try({
+      a <- 1
+      clusterExport(cl, "a", envir = environment())
+    }, silent = TRUE))
+    tstCl <- !"try-error" %in% class(tstCl)
+  }
+  if ((misFun(cl))||(!tstCl)) {
     dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1 }
     if (misFun(N.clust)) {
@@ -138,8 +146,8 @@ Prot.Quant <- function(Prot,
       }
     }
     cl <- parallel::makeCluster(N.clust, type = "SOCK")
-    cleanUp <- TRUE
   }
+  N.clust <- length(cl)
   #
   # Adapted from https://www.r-bloggers.com/2020/12/going-parallel-understanding-load-balancing-in-r/
   zigzag_ord <- function(x, n = length(cl)) {
@@ -808,6 +816,7 @@ Prot.Quant <- function(Prot,
   ord2 <- ord[nuOrd,]
   res2 <- res2[order(ord2$Original),]
   rownames(res2) <- rownames(Prot)
-  if (cleanUp) { parallel::stopCluster(cl) }
+  #
+  parallel::stopCluster(cl)
   return(res2)
 }

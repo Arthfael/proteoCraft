@@ -2,10 +2,11 @@
 #'
 #' @description
 #' 
-#' This function is very slow and should not be used! It is only provided for legacy purposes. Instead use ProtMatch2, which is ~50 times faster without requiring parallelisation!
+#' This function is very slow and should not be used! It is only provided for legacy purposes. Instead use ProtMatch2, which is ~50-to-1000 times faster!
 #' 
-#' MaxQuant (or other search software) does not report all proteins from the database which match a specific sequence.
-#' While this may be correct from their point of view, I think I should report all matches.
+#' Some search software do not report all proteins from the database which match a specific sequence.
+#' Others, such as MaxQuant, do report weird matches for a minority of PSMs, or miss a few perfectly valid matches.
+#' While this may be correct from their point of view, this function allows re-checking matches for consistency between software.
 #' This will return a data frame of matches between observed peptides and protein IDs from a formatted protein sequences database.
 #' 
 #' @param Seq Character vector of peptide sequences.
@@ -17,8 +18,14 @@
 #' @param max For digestion. The maximum length of peptides to report. Set to 100 (default) to allow even very large peptides. If one of the peptides in Seq in longer, than that length will be used instead.
 #' @param missed Let's say we have observations with up to 6 missed cleavages. This will probably break the function. In this case, it is better to specify a smaller number of missed cleavages, e.g. 2.
 
-ProtMatch <- function(Seq, DB, Cut = c("K_", "R_"), strict.avoid = "", loose.avoid = c("K_P", "R_P"),
-                      min = 7, max = 100, missed = 2) {
+ProtMatch <- function(Seq,
+                      DB,
+					  Cut = c("K_", "R_"),
+					  strict.avoid = "",
+					  loose.avoid = c("K_P", "R_P"),
+                      min = 7,
+					  max = 100,
+					  missed = 2) {
   #proteoCraft::DefArg(proteoCraft::ProtMatch); w <- 1:nrow(ev); Seq = unique(ev$Sequence[w]); DB = db; min = MinPepSz
   stopifnot( min(nchar(Cut)) == 2, max(nchar(Cut)) == 2)
   if (!is.logical(max)) { max <- max(c(max, nchar(Seq))) }
@@ -34,21 +41,23 @@ ProtMatch <- function(Seq, DB, Cut = c("K_", "R_"), strict.avoid = "", loose.avo
   # Identify matching proteins:
   # Digest database and match to predicted peptides:
   dig <- proteoCraft::Digest(setNames(DB$Sequence, DB$`Protein ID`),
-                       Cut,
-                       strict.avoid,
-                       loose.avoid,
-                       missed,
-                       min,
-                       max,
-                       FALSE)
-  w <- which(sapply(dig, length) == 0)
-  if (length(w)) {
-    warning("Some protein digests did not result in any peptide sequences, investigate!!!")
-    dig <- dig[which(sapply(dig, length) > 0)]
+                             Cut,
+                             strict.avoid,
+                             loose.avoid,
+                             missed,
+                             min,
+                             max,
+                             FALSE)
+  lTst <- vapply(dig, length, 1)
+  w <- which(lTst == 0)
+  lW <- length(w)
+  if (lW) {
+    warning(paste0(lW, " protein digest", c("", "s")[(lW > 1)+1], " did not result in any peptide sequences, investigate!!!"))
+    dig <- dig[which(lTst > 0)]
   }
   temp2 <- magrittr::set_colnames(reshape2::melt(dig), c("Pep", "Prot"))
   #temp2$Sequence <- paste0("_", DB$Sequence[match(temp2$Prot, DB$`Protein ID`)], "_")
-  #tst <- sapply(1:nrow(temp2), function(x) { length(unlist(strsplit(temp2$Sequence[x], temp2$Pep[x]))) })
+  #tst <- vapply(1:nrow(temp2), function(x) { length(unlist(strsplit(temp2$Sequence[x], temp2$Pep[x]))) }, 1)
   #min(tst) > 2
   #temp2a <- temp2[which(temp2$Pep %in% Seq$Sequence),]
   #temp2b <- temp2[which(gsub("I", "L", temp2$Pep) %in% gsub("I", "L", Seq$Sequence)),] # There is a peptides assignment loss, though less than 1%

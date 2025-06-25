@@ -64,21 +64,29 @@ DIANN_to_MQ <- function(DIANN_fl,
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
   #
-  cleanUp <- FALSE
-  if (misFun(cl)) {
+  # Create cluster
+  tstCl <- misFun(cl)
+  if (!misFun(cl)) {
+    tstCl <- suppressWarnings(try({
+      a <- 1
+      clusterExport(cl, "a", envir = environment())
+    }, silent = TRUE))
+    tstCl <- !"try-error" %in% class(tstCl)
+  }
+  if ((misFun(cl))||(!tstCl)) {
     dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1 }
     if (misFun(N.clust)) {
       N.clust <- max(c(dc-N.reserved, 1))
     } else {
       if (N.clust > max(c(dc-N.reserved, 1))) {
-        warning("   More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
+        warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
         N.clust <- max(c(dc-N.reserved, 1))
       }
     }
     cl <- parallel::makeCluster(N.clust, type = "SOCK")
-    cleanUp <- TRUE
   }
+  N.clust <- length(cl)
   #
   UniMod <- unimod::modifications
   # Remove:
@@ -696,7 +704,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   #
   EV$Type <- "LIB-DIA" # This may need to change if important; usually diaNN recommends library-free + MBR, not library-based searches;
   # Not sure if MaxQuant assigns a type for each different way to run DIA
-  warning("Calculating missed cleavages assuming trypsin digest... If this is a problem add ")
+  warning("Calculating missed cleavages assuming trypsin digest... If this is a problem add arguments for different digestion patterns!!!")
   digPat <- paste(c("[", digPattern, "]"), collapse = "")
   tmp <- gsub(paste0(digPat, "$"), "", EV$Sequence)
   EV$"Missed cleavages" <- nchar(tmp) - nchar(gsub(digPat, "", tmp))
@@ -719,6 +727,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   Res <- list(Evidence = EV,
               PTMs = allPTMs,
               QuantUMS = QuantUMS)
-  if (cleanUp) { parallel::stopCluster(cl) }
+  #
+  parallel::stopCluster(cl)
   return(Res)
 }

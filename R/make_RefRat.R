@@ -39,9 +39,15 @@ make_RefRat <- function(data = pep,
     warning("Invalid \"logRat\" argument, must be valid log base!")
     logRat <- 2
   }
-  rGrp <- proteoCraft::parse.Param.aggreg(parameters$Ratios.Groups)
-  rrGrp <- proteoCraft::parse.Param.aggreg(parameters$Ratios.Ref.Groups)
-  smplsGrp <- proteoCraft::parse.Param.aggreg(parameters$Volcano.plots.Aggregate.Level)
+  if (exists("Ratios.Groups", .GlobalEnv)) { rGrp <- Ratios.Groups } else {
+    rGrp <- proteoCraft::parse.Param.aggreg(parameters$Ratios.Groups)
+  }
+  if (exists("Ratios.Ref.Groups", .GlobalEnv)) { rrGrp <- Ratios.Ref.Groups } else {
+    rrGrp <- proteoCraft::parse.Param.aggreg(parameters$Ratios.Ref.Groups)
+  }
+  if (exists("Volcano.plots.Aggregate.Level", .GlobalEnv)) { smplsGrp <- Volcano.plots.Aggregate.Level } else {
+    smplsGrp <- proteoCraft::parse.Param.aggreg(parameters$Ratios.Ref.Groups)
+  }
   #
   if (mode == "1") {
     # Here we are measuring intrinsic variability by comparing intra-sample group variation for control/reference sample group(s) only

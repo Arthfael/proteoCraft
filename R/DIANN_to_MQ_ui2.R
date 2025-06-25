@@ -8,6 +8,12 @@
 DIANN_to_MQ_ui2 <- function() {
   return(shiny::shinyUI(shiny::fluidPage(
     shinyjs::useShinyjs(),
+    shinyWidgets::setBackgroundColor( # Doesn't work
+      color = c(#"#F8F8FF",
+        "#F5EDE4"),
+      gradient = "linear",
+      direction = "bottom"
+    ),
     shinyjs::extendShinyjs(text = paste(readLines(system.file("extdata",
                                                               "jsToggleFS.txt", package = "proteoCraft")),
                                         collapse = "\n"),
@@ -21,5 +27,5 @@ DIANN_to_MQ_ui2 <- function() {
                                      shiny::column(4, shiny::strong("... or pick from UniMod matches here:"))),
                      shiny::uiOutput("PTMs"),
                      shiny::span(shiny::uiOutput("Msg"), style = "color:blue", .noWS = "outside"),
-                     shiny::actionButton("saveBtn", "Save")))))
+                     shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill")))))
 }

@@ -14,7 +14,7 @@
 #' @param Name.rule Regex rule used to parse the header and extract the protein name. Only used if operating in custom mode. Default is "^>[a-z]{2}\\|[^\\|]*\\|([^_]*)" (UniProt).
 #' @param Unique If TRUE (default), will filter fasta to provide only one accession per sequence. (This may mean that only 1 gene will be retained where several encode the exact same protein, but reducing redundancy is good for FDR.)
 #' @param IDs_only Allows extracting just the IDs (default = FALSE). Used internally only.
-#' @param parallel Defult = FALSE; if TRUE, uses parallel processing and the next few arguments.
+#' @param parallel Default = FALSE; if TRUE, uses parallel processing and the next few arguments.
 #' @param N.clust A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
@@ -47,7 +47,33 @@ Format.DB <- function(file,
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
-  cleanUp <- FALSE
+  #
+  # Create cluster
+  if (parallel) {
+    tstCl <- misFun(cl)
+    if (!misFun(cl)) {
+      tstCl <- suppressWarnings(try({
+        a <- 1
+        clusterExport(cl, "a", envir = environment())
+      }, silent = TRUE))
+      tstCl <- !"try-error" %in% class(tstCl)
+    }
+    if ((misFun(cl))||(!tstCl)) {
+      dc <- parallel::detectCores()
+      if (misFun(N.reserved)) { N.reserved <- 1 }
+      if (misFun(N.clust)) {
+        N.clust <- max(c(dc-N.reserved, 1))
+      } else {
+        if (N.clust > max(c(dc-N.reserved, 1))) {
+          warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
+          N.clust <- max(c(dc-N.reserved, 1))
+        }
+      }
+      cl <- parallel::makeCluster(N.clust, type = "SOCK")
+    }
+    N.clust <- length(cl)
+  }
+  #
   mode2 <- gsub("-|_|\\.| ", "", toupper(mode))
   # Check mode
   if (!mode2 %in% c("UNIPROT", "UNIPROTKB", "SWISSPROT", "TREMBL", "ENSEMBL", "REFSEQRNA", "REFSEQPROTEIN",
@@ -112,22 +138,6 @@ Format.DB <- function(file,
   }
   headRs <- grep("^>", DB)
   lH <- length(headRs)
-  if (parallel) {
-    dc <- detectCores()
-    if (misFun(N.clust)) { N.clust <- max(c(dc-N.reserved, 1)) }
-    if (N.clust > max(c(dc-N.reserved, 1))) {
-      warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
-      N.clust <- max(c(dc-N.reserved, 1))
-    }
-    parallel <- lH >= N.clust*20
-  }
-  if (parallel) {
-    if (misFun(cl)) {
-      if (misFun(N.reserved)) { N.reserved <- 1 }
-      cl <- parallel::makeCluster(N.clust, type = "SOCK")
-      cleanUp <- TRUE
-    }
-  } else { N.clust <- 1 }
   if (parallel) {
     RG <- round(length(DB)*(1:N.clust)/N.clust)
     RG[1:(N.clust-1)] <- sapply(RG[1:(N.clust-1)], function(x) {
@@ -286,6 +296,9 @@ Format.DB <- function(file,
     res <- parallel::parLapply(cl, batChes, F0)
   } else { res <- lapply(batChes, F0) }
   res <- plyr::rbind.fill(res)
-  if (cleanUp) { parallel::stopCluster(cl) }
+  #
+  if (parallel) {
+    parallel::stopCluster(cl)
+  }
   return(res)
 }

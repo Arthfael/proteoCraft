@@ -98,6 +98,7 @@ Configure <- function() {
   } else {
     try(file.copy(fl0, homePath, overwrite = FALSE), silent = TRUE)
   }
+  #
   # Also copy analysis scripts to home
   scrpts2 <- c("Regulation analysis - master script",
                "Regulation analysis - detailed script",
@@ -110,4 +111,38 @@ Configure <- function() {
     print(tst)
   }
   cat("Updated analysis scripts in HOME...")
+  #
+  # Download MS instrument ontology
+  if (!require(rols)) { pak::pkg_install("rols") }
+  ol <- rols::Ontology("ms")
+  instrMod <- rols::Term(ol, "MS:1000031")
+  vendors <- rols::children(instrMod)  # get all levels
+  vendorsLab <- lapply(vendors@x, function(x) {
+    x@label
+  })
+  vendorsInstr <- lapply(1:length(vendorsLab), function(x) { #x <- 5
+    trm <- rols::Term(ol, names(vendorsLab)[[x]])
+    models <- rols::children(trm)
+    if (!is.null(models)) {
+      rs <- vapply(models@x, function(y) { y@label }, "")
+      g <- grep(" series$", rs, ignore.case = TRUE)
+      if (length(g)) {
+        rs2 <- lapply(g, function(y) {
+          trm2 <- rols::Term(ol, names(rs)[y])
+          mods <- rols::children(trm2)
+          mods <- vapply(mods@x, function(z) { z@label }, "")
+        })
+        rs <- rs[-g]
+        rs <- c(rs, unlist(mods))
+      }
+      return(data.frame(Vendor = gsub(" instrument model$", "", vendorsLab[[x]]),
+                        Instrument = rs))
+    } else { return(NULL) }
+  })
+  vendorsInstr <- do.call(rbind, vendorsInstr)
+  vendorsInstr$Term <- rownames(vendorsInstr)
+  rownames(vendorsInstr) <- NULL
+  write.csv(vendorsInstr, paste0(homePath, "/MS_models.csv"))
+  #
+  cat("Done\n")
 }

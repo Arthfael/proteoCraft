@@ -29,11 +29,19 @@
 #'                          conds = Cond, tp = Time.Pts, save = FALSE)
 #' @export
 
-Time.Profile <- function(df, prot = "", prot.col = "Protein IDs", exprs.root = "Ratio_Mean log2_",
-                         exprs.name = "Ratio", error.root = FALSE, conds, tp, save = FALSE,
-                         title = "", labels = FALSE) {
+Time.Profile <- function(df,
+                         prot = "",
+						 prot.col = "Protein IDs",
+						 exprs.root = "Ratio_Mean log2_",
+                         exprs.name = "Ratio",
+						 error.root = FALSE,
+						 conds,
+						 tp,
+						 save = FALSE,
+                         title = "",
+						 labels = FALSE) {
   a1 <- as.character(sapply(conds, function(x) {
-    sapply(names(tp), function(y) {paste0(exprs.root, x, ".", y)})
+    sapply(names(tp), function(y) { paste0(exprs.root, x, ".", y) })
   }))
   if (error.root != FALSE) {
     a2 <- as.character(sapply(conds, function(x) {sapply(names(tp), function(y) {
@@ -49,8 +57,8 @@ Time.Profile <- function(df, prot = "", prot.col = "Protein IDs", exprs.root = "
     for (i in test) {
       temp <- as.data.frame(as.numeric(df[i,a1]))
       colnames(temp) <- "Expression"
-      temp$Condition <- as.character(sapply(conds, function(x) {sapply(c(1:length(tp)), function(y) {x})}))
-      temp$Time.point <- as.numeric(sapply(c(1:length(conds)), function(x) {sapply(tp, function(y) {y})}))
+      temp$Condition <- as.character(sapply(conds, function(x) { sapply(1:length(tp), function(y) { x }) }))
+      temp$Time.point <- as.numeric(sapply(c(1:length(conds)), function(x) { sapply(tp, function(y) { y }) }))
       plot <- ggplot2::ggplot(temp) +
         ggplot2::geom_line(data = temp,
                            ggplot2::aes(x = Time.point, y = Expression, group = Condition,

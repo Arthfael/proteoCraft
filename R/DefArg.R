@@ -27,11 +27,11 @@ DefArg <- function(FUN,
   if (class(FUN) == "character") { FUN <- eval(parse(text = FUN)) }
   args <- formals(FUN)
   if (remove_NULLs) {
-    args <- args[which(!sapply(args, is.null))]
+    args <- args[which(!vapply(args, is.null, TRUE))]
   }
-  args <- args[which(!sapply(args, function(x) {
-    max(("name" %in% class(x))&(as.character(x) == ""))
-  }))]
+  args <- args[which(!vapply(args, function(x) {
+    ("name" %in% class(x))&(as.character(x) == "")
+  }, TRUE))]
   args <- lapply(args, eval)
-  sapply(names(args), function(x) { assign(x, args[[x]], envir = .GlobalEnv) })
+  lapply(names(args), function(x) { try(assign(x, args[[x]], envir = .GlobalEnv), silent = TRUE) })
 }

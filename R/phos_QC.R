@@ -30,26 +30,27 @@ phos_QC <- function(PhPep,
   if (!P_col %in% colnames(PhPep)) { stop("The site probabilities column was not found!") }
   if (!ScD_col %in% colnames(PhPep)) { stop("The score differences column was not found!") }
   l <- nrow(PhPep)
-  if (l == 0) { stop("There are no rows to analyse!") }
+  if (!l) { stop("There are no rows to analyse!") }
   M <- proteoCraft::annot_to_tabl(PhPep[[ModSeq_col]])
   P <- proteoCraft::annot_to_tabl(PhPep[[P_col]], Nterm = FALSE, Cterm = FALSE, numeric_data = TRUE)
   ScD <- proteoCraft::annot_to_tabl(PhPep[[ScD_col]], Nterm = FALSE, Cterm = FALSE, numeric_data = TRUE)
-  res <- sapply(c(1:l), function(x) {
+  res <- vapply(1:l, function(x) {
     m <- M[[x]]
     p <- P[[x]]
     scd <- ScD[[x]]
-    if (class(m) == "data.frame") {
-      stopifnot(class(p) == "data.frame", class(scd) == "data.frame")
+    if ("data.frame" %in% class(m)) {
+      stopifnot("data.frame" %in% class(p),
+	            "data.frame" %in% class(scd))
       m$P <- as.numeric(p$Annotations)
       m$ScD <- as.numeric(scd$Annotations)
       m <- m[2:(nrow(m)-1),]
       w <- which(m$Annotations == "ph")
-      test <- sapply(w, function(y) {
+      test <- vapply(w, function(y) {
         (m$P[[y]] >= min_P)&(m$ScD[[y]] >= min_delta_sc)
-      })
+      }, TRUE)
       r <- (sum(test) == length(w))&(PhPep[x,PEP_col] <= max_PEP)
     } else { r <- FALSE }
     return(r)
-  })
+  }, TRUE)
   return(res)
 }

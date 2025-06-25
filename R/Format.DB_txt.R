@@ -70,7 +70,30 @@ Format.DB_txt <- function(txt,
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
-  cleanUp <- FALSE
+  #
+  # Create cluster
+  tstCl <- misFun(cl)
+  if (!misFun(cl)) {
+    tstCl <- suppressWarnings(try({
+      a <- 1
+      clusterExport(cl, "a", envir = environment())
+    }, silent = TRUE))
+    tstCl <- !"try-error" %in% class(tstCl)
+  }
+  if ((misFun(cl))||(!tstCl)) {
+    dc <- parallel::detectCores()
+    if (misFun(N.reserved)) { N.reserved <- 1 }
+    if (misFun(N.clust)) {
+      N.clust <- max(c(dc-N.reserved, 1))
+    } else {
+      if (N.clust > max(c(dc-N.reserved, 1))) {
+        warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
+        N.clust <- max(c(dc-N.reserved, 1))
+      }
+    }
+    cl <- parallel::makeCluster(N.clust, type = "SOCK")
+  }
+  N.clust <- length(cl)
   #
   # Detect whether txt is actually a path rather than the database already in environment. 
   if ((length(txt) == 1)&&(file.exists(txt))) {
@@ -81,25 +104,6 @@ Format.DB_txt <- function(txt,
   G1 <- grep("^ID ", txt)
   lG <- length(G1)
   #
-  cleanUp <- FALSE
-  if ((misFun(N.reserved))||(!is.integer(N.reserved))||(N.reserved < 1)) { N.reserved <- 1}
-  if (usePar) {
-    dc <- parallel::detectCores()
-    if (misFun(N.clust)) {
-      N.clust <- max(c(dc-N.reserved, 1))
-    } else {
-      if (N.clust > max(c(dc-N.reserved, 1))) {
-        warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
-        N.clust <- max(c(dc-N.reserved, 1))
-      }
-    }
-    if (misFun(cl)) {
-      dc <- parallel::detectCores()
-      if (misFun(N.reserved)) { N.reserved <- 1 }
-      cl <- parallel::makeCluster(N.clust, type = "SOCK")
-      cleanUp <- TRUE
-    }
-  }
   if (usePar) {
     RG <- round(length(txt)*(1:N.clust)/N.clust)
     if (N.clust > 1) {
@@ -440,6 +444,6 @@ Format.DB_txt <- function(txt,
   rownames(rsTbl) <- 1:nrow(rsTbl)
   #rsTbl <- rsTbl[match(tstA$Accession, rsTbl$Accession),]
   #
-  if (cleanUp) { parallel::stopCluster(cl) }
+  parallel::stopCluster(cl)
   return(rsTbl)
 }

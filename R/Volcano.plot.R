@@ -162,9 +162,17 @@ Volcano.plot <- function(Prot,
   if (return.plot) {
     plotEval <- function(plot) { ggplotify::as.ggplot(ggplotify::as.grob(plot)) }
   }
-  # Create cluster (some steps are slow otherwise)
-  cleanUp <- FALSE
-  if (misFun(cl)) {
+  #
+  # Create cluster
+  tstCl <- misFun(cl)
+  if (!misFun(cl)) {
+    tstCl <- suppressWarnings(try({
+      a <- 1
+      clusterExport(cl, "a", envir = environment())
+    }, silent = TRUE))
+    tstCl <- !"try-error" %in% class(tstCl)
+  }
+  if ((misFun(cl))||(!tstCl)) {
     dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1 }
     if (misFun(N.clust)) {
@@ -176,8 +184,8 @@ Volcano.plot <- function(Prot,
       }
     }
     cl <- parallel::makeCluster(N.clust, type = "SOCK")
-    cleanUp <- TRUE
   }
+  N.clust <- length(cl)
   #
   RES <- NA
   #
@@ -1370,6 +1378,7 @@ Volcano.plot <- function(Prot,
   if ((plotly)&&(!plotly_local)) { RES$"Plotly plots" <- volcPlotly2 }
   #
   setwd(origWD)
-  if (cleanUp) { parallel::stopCluster(cl) }
+  #
+  parallel::stopCluster(cl)
   return(RES)
 }

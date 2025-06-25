@@ -37,7 +37,7 @@ Isapply <- function(x, FUN, ..., simplify = TRUE, USE.NAMES = TRUE, col.names, c
     if  (sum(c("data.frame", "matrix") %in% class(res)) > 0) {
       colnames(res) <- col.names
     } else {
-      warning("Argument \"col.names\" will be ignored as results are 1D!")
+      warning("Argument \"col.names\" will be ignored as the result is a vector, not tabular data!")
     }
   }
   return(res)

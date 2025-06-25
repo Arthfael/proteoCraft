@@ -196,14 +196,14 @@ load_Bckp <- function(backup,
           if (length(tst)) {
             tst <- tst[order(tst, decreasing = TRUE)]
             rs <- scrpt$row[ghash][which(scrpt$row[ghash] > tst[1])][1]
-            cat(paste0("   FYI, the last object listed in .obj is \"", names(tst)[1], "\".\n"))
+            cat(paste0("\n   FYI, the last object listed in .obj is \"", names(tst)[1], "\".\n"))
             #system(paste0("open \"", ScriptPath, "\""))
             if (rs >= max(scrpt$row[g0])) {
               cat("\n   Backup analysis suggests that this backup had reached the end of the analysis, so there should be nothing more to run...\nBut maybe you want to re-runs some parts without starting from scratch?\n")
               cat("   (opening script...)\n")
               rstudioapi::documentOpen(ScriptPath)
             } else {
-              cat(paste0("We thus suggest starting execution from row ", rs, "...\n"))
+              cat(paste0("\n   -> We thus suggest starting execution from row ", rs, "...\n"))
               cat("   (opening script at the corresponding line...)\n")
               rstudioapi::documentOpen(ScriptPath, line = rs)
             }
@@ -216,5 +216,5 @@ load_Bckp <- function(backup,
   }
   if (exists("mySeed")) { set.seed(mySeed) }
   if (usePar) { parClust <<- parClust } # Export cluster
-  cat("You're good to go!\n")
+  cat("\nYou're good to go!\n")
 }

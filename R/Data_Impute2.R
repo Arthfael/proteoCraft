@@ -23,7 +23,8 @@ Data_Impute2 <- function(quant_data,
                          groups,
                          is.log = TRUE,
                          seed) {
-  #proteoCraft::DefArg(proteoCraft::Data_Impute2); quant_data <- temp; groups = grps
+  #proteoCraft::DefArg(proteoCraft::Data_Impute2)
+  #quant_data <- temp; groups = grps
   if (missing(seed)) { if (exists("mySeed")) { seed <- mySeed } else { seed <- 1234567 } }
   set.seed(seed)
   norm::rngseed(seed)
@@ -51,9 +52,13 @@ Data_Impute2 <- function(quant_data,
     for (grp in unique(groups)) { #grp <- unique(groups)[1]
       # Groups, where we have at least one non-missing value: MAR
       m <- which(groups == grp)
-      w <- which(rowSums(is.na(imputed_data[, m, drop = FALSE])) < length(m))
-      ms <- imputeLCMD::model.Selector(imputed_data[w, m, drop = FALSE])
-      imputed_data[w, m] <- imputeLCMD::impute.MAR(imputed_data[w, m, drop = FALSE], ms, "KNN")
+      rwSms <- rowSums(is.na(imputed_data[, m, drop = FALSE]))
+      #aggregate(rwSms, list(rwSms), length)
+      w <- which() < length(m))
+      if (length(w)) {
+        ms <- imputeLCMD::model.Selector(imputed_data[w, m, drop = FALSE])
+        imputed_data[w, m] <- imputeLCMD::impute.MAR(imputed_data[w, m, drop = FALSE], ms, "KNN")
+      }
     }
     # Step 2: apply MNAR correction to remaining misses within imputed data
     w <- which(is.na(imputed_data), arr.ind = TRUE)

@@ -43,9 +43,17 @@ GO_map <- function(DB,
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
   #
-  # Create cluster (some steps are slow otherwise)
-  cleanUp <- FALSE
-  if (misFun(cl)) {
+  # Create cluster
+  tstCl <- misFun(cl)
+  if (!misFun(cl)) {
+    tstCl <- suppressWarnings(try({
+      a <- 1
+      clusterExport(cl, "a", envir = environment())
+    }, silent = TRUE))
+    tstCl <- !"try-error" %in% class(tstCl)
+  }
+  if ((misFun(cl))||(!tstCl)) {
+    dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1 }
     if (misFun(N.clust)) {
       N.clust <- max(c(dc-N.reserved, 1))
@@ -56,8 +64,8 @@ GO_map <- function(DB,
       }
     }
     cl <- parallel::makeCluster(N.clust, type = "SOCK")
-    cleanUp <- TRUE
   }
+  N.clust <- length(cl)
   #
   method <- toupper(method)
   Ont <- c("BP", "CC", "MF")
@@ -194,6 +202,7 @@ GO_map <- function(DB,
     Res$GO.terms <- GO.terms
   }
   if (TESTING) { tm2 <<- Sys.time() }
-  if (cleanUp) { parallel::stopCluster(cl) }
+  #
+  parallel::stopCluster(cl)
   return(Res)
 }

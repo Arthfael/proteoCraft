@@ -37,7 +37,18 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
   if (!misFun(Label)) { Label <- toupper(gsub("-", "", Label)) }
   #
   # LC columns
-  colChar <- "Name | Material | Length (cm) | ID (µm) | Particles size (µm) | Vendor | P/N"
+  colChar <- c("Name",
+               "Class",
+               "Vendor",
+               "Length.(cm)",
+               "ID.(µm)",
+               "Particles.size.(µm)",
+               "Pore.size.(Å)",
+               "Material",
+               "Type",
+               "Description",
+               "P/N",
+               "Function")
   colTst <- (Columns != "default")&(file.exists(Columns))
   libPath <- as.data.frame(library()$results)
   libPath <- normalizePath(libPath$LibPath[match("proteoCraft", libPath$Package)], winslash = "/")
@@ -108,8 +119,10 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
   #w <- which((nchar(allKolumns$Description) == 0)|(is.na(allKolumns$Description)))
   w <- 1:nrow(allKolumns)
   allKolumns$Description[w] <- kolDescr(allKolumns[w,])
-  Kolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Fractionation")], "Add new..."))
-  preKolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Trap")], "None (direct injection)", "Add new..."))
+  Kolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Fractionation")],
+                      "Add new..."))
+  preKolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Trap")], "None (direct injection)",
+                         "Add new..."))
   AddKolKount  <- 0
   #View(allKolumns)
   #
@@ -272,21 +285,12 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
             FracCol <- svDialogs::dlg_list(Kolumns, Kolumns[1],
                                            title = paste0("Which column was used for offline fractionation?"))$res
             if (FracCol == "Add new...") {
-              kol <- svDialogs::dlg_input("Fill in new column's characteristics (\"|\"-separated):",
-                                          "Name | Material | Length (cm) | ID (µm) | Particles size (µm) | Vendor | P/N")$res
-              kol <- unlist(strsplit(kol, " *\\| *"))
-              l <- length(kol)
-              if (l < 7) { kol <- c(kol, rep(NA, 7-l)) }
-              kol <- kol[1:7]
-              tmp <- as.data.frame(t(as.data.frame(kol)))
-              colnames(tmp) <- c("Name", "Material", "Length.(cm)", "ID.(µm)", "Particles.size.(µm)", "Vendor", "P/N")
-              tmp$Function <- "Fractionation"
-              tmp$Description <- kolDescr(tmp)
-              k <- colnames(allKolumns)
-              k <- k[which(!k %in% colnames(tmp))]
-              tmp[,k] <- NA
-              tmp[1, which(tmp[1,] == "NA")] <- NA
-              allKolumns <- rbind(allKolumns, tmp)
+              colCharDf <- data.frame(Description = "Fractionation")
+              for (kk in colChar[which(colChar != "Function")]) {
+                colCharDf[[kk]] <- svDialogs::dlg_input(paste0("Enter value for field \"", kk, "\""), "")$res
+              }
+              FracCol <- colCharDf$Name
+              allKolumns <- plyr::rbind.fill(allKolumns, colCharDf)
               rownames(allKolumns) <- NULL
               tst <- apply(allKolumns, 1, paste, collapse = "|")
               tst <- aggregate(1:length(tst), list(tst), min)

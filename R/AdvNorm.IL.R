@@ -32,10 +32,10 @@
 #' @export
 
 AdvNorm.IL <- function(df,
-                        ids.col = "Unique State",
-                        exprs.col,
-                        exprs.log = FALSE,
-                        K = 5) {
+                       ids.col = "Unique State",
+                       exprs.col,
+                       exprs.log = FALSE,
+                       K = 5) {
   # NB:
   # The function does not lend itself well to parallelization. It is much easier to parallelize different calls to the function.
   TESTING <- FALSE
@@ -54,7 +54,7 @@ AdvNorm.IL <- function(df,
   }
   #
   # Convert to linear if required:
-  if (exprs.log) { for (i in exprs.col) { df[[i]] <- exprs.log.base^df[[i]] } }
+  if (exprs.log) { for (klnm in exprs.col) { df[[klnm]] <- exprs.log.base^df[[klnm]] } }
   # Original medians
   ## Global
   M1 <- proteoCraft::is.all.good(unlist(df[, exprs.col]))
