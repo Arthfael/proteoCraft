@@ -54,7 +54,7 @@ Data_Impute2 <- function(quant_data,
       m <- which(groups == grp)
       rwSms <- rowSums(is.na(imputed_data[, m, drop = FALSE]))
       #aggregate(rwSms, list(rwSms), length)
-      w <- which() < length(m))
+      w <- which(rwSms) < length(m)
       if (length(w)) {
         ms <- imputeLCMD::model.Selector(imputed_data[w, m, drop = FALSE])
         imputed_data[w, m] <- imputeLCMD::impute.MAR(imputed_data[w, m, drop = FALSE], ms, "KNN")
