@@ -30,6 +30,26 @@ if (!require(proteoCraft)) {
     #cat(cmd)
     suppressMessages(suppressWarnings(shell(cmd, intern = TRUE)))
   }
+  topattern <- function(x, start = TRUE, end = FALSE, collapse = "|") {
+    x <- gsub("\\\\", "\\\\\\\\", as.character(x)) # Should be first so as not to escape escape signs!
+    x <- gsub("\\.", "\\\\.", x)
+    x <- gsub("\\*", "\\\\*", x)
+    x <- gsub("\\$", "\\\\$", x)
+    x <- gsub("\\^", "\\\\^", x)
+    x <- gsub("\\+", "\\\\+", x)
+    x <- gsub("\\?", "\\\\?", x)
+    x <- gsub("\\{", "\\\\{", x)
+    x <- gsub("\\}", "\\\\}", x)
+    x <- gsub("\\[", "\\\\[", x)
+    x <- gsub("\\]", "\\\\]", x)
+    x <- gsub("\\(", "\\\\(", x)
+    x <- gsub("\\)", "\\\\)", x)
+    x <- gsub("\\|", "\\\\|", x)
+    if (start) { x <- paste0("^", x) }
+    if (end) { x <- paste0(x, "$") }
+    if ((length(x) > 1)&&(collapse != FALSE)) { x <- paste(x, collapse = collapse) }
+    return(x)
+  }
 } else { openwd <- proteoCraft::openwd }
 
 if ((exists("TargDir"))&&(!is.null(TargDir))&&(dir.exists(TargDir))) {
