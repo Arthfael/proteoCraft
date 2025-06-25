@@ -22,21 +22,22 @@ shpDr <- paste0(nrmDr, "/Step ", nrmStp, " - ", normMeth)
 if (!dir.exists(shpDr)) { dir.create(shpDr, recursive = TRUE) }
 dirlist <- unique(c(dirlist, shpDr))
 #
-A <- parApply(parClust, tmpDat1[wAG1, allSamples], 1, function(x) { mean(proteoCraft::is.all.good(x)) })
+currSamples <- allSamples[which(allSamples %in% colnames(tmpDat1))]
+A <- parApply(parClust, tmpDat1[wAG1, currSamples], 1, function(x) { mean(proteoCraft::is.all.good(x)) })
 #
 # Impute
-ImpGrps <- Exp.map[match(allSamples, Exp.map$Ref.Sample.Aggregate),
+ImpGrps <- Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),
                    VPAL$column]
-tmp <- proteoCraft::Data_Impute2(tmpDat1[, allSamples], ImpGrps)
+tmp <- proteoCraft::Data_Impute2(tmpDat1[, currSamples], ImpGrps)
 tmpDat1a <- tmp$Imputed_data
 wPos <- which(tmp$Positions_Imputed, arr.ind = TRUE)
 tmpDat1a[, c("id", "Group")] <- tmpDat1[, c("id", "Group")] 
 
 # Visualize - before
-temp_plotA <- tmpDat1a[wAG1, c("id", "Group", allSamples)]
+temp_plotA <- tmpDat1a[wAG1, c("id", "Group", currSamples)]
 colnames(temp_plotA) <- proteoCraft::cleanNms(colnames(temp_plotA))
 temp_plotA <- reshape::melt(temp_plotA, id.vars = c("id", "Group"))
-temp_plotA$A <- rep(A, length(allSamples))
+temp_plotA$A <- rep(A, length(currSamples))
 temp_plotA <- temp_plotA[which(proteoCraft::is.all.good(temp_plotA$value, 2)),]
 temp_plotA$M <- temp_plotA$value - temp_plotA$A
 annot <- data.frame(variable = unique(temp_plotA$variable))
@@ -73,7 +74,7 @@ MAplotA <- ggplot(temp_plotA) +
   theme(legend.position = "bottom")
 #poplot(MAplotA, 12, 22)
 #
-tmpDat2 <- tmpDat1[, allSamples]*NA
+tmpDat2 <- tmpDat1[, currSamples]*NA
 #
 # Apply correction per peptides normalisation group
 library(ggpubr)
@@ -86,10 +87,10 @@ for (lGrp in NormGrps$Group) { #lGrp <- NormGrps$Group[1]
   # For each row, the mean of the distribution will be the mean of the row;
   # and the sd will be based on a LOESS regression estimate (nearest neighbours if missing):
   # Normalisation proper:
-  if (normMeth == "LOESS") { tmpDat1b <- limma::normalizeCyclicLoess(as.matrix(tmpDat1a[grpMtch, allSamples])) }
-  if (normMeth == "VSN") { tmpDat1b <- vsn::justvsn(as.matrix(10^tmpDat1a[grpMtch, allSamples]))/log2(10) }
-  tmpDat2[grpMtch, allSamples] <- tmpDat1b[, allSamples]
-  sd1 <- meanSdPlot(as.matrix(tmpDat1a[grpMtch, allSamples]), plot = FALSE)$gg
+  if (normMeth == "LOESS") { tmpDat1b <- limma::normalizeCyclicLoess(as.matrix(tmpDat1a[grpMtch, currSamples])) }
+  if (normMeth == "VSN") { tmpDat1b <- vsn::justvsn(as.matrix(10^tmpDat1a[grpMtch, currSamples]))/log2(10) }
+  tmpDat2[grpMtch, currSamples] <- tmpDat1b[, currSamples]
+  sd1 <- meanSdPlot(as.matrix(tmpDat1a[grpMtch, currSamples]), plot = FALSE)$gg
   sd2 <- meanSdPlot(as.matrix(tmpDat1b), plot = FALSE)$gg
   SDttl <- "mean SD plot"
   if (length(NormGrps$Group) > 1) { SDttl <- paste0(SDttl, " - ", lGrp) }
@@ -107,13 +108,13 @@ for (lGrp in NormGrps$Group) { #lGrp <- NormGrps$Group[1]
 #
 wAG2 <- wAG1
 # Remove imputed data:
-if (nrow(wPos)) { tmpDat2[wPos] <- tmpDat1[, allSamples][wPos] }
+if (nrow(wPos)) { tmpDat2[wPos] <- tmpDat1[, currSamples][wPos] }
 # Visualize - after
-temp_plotB <- tmpDat2[wAG2, allSamples]
+temp_plotB <- tmpDat2[wAG2, currSamples]
 colnames(temp_plotB) <- proteoCraft::cleanNms(colnames(temp_plotB))
 temp_plotB[, c("id", "Group")] <- tmpDat1[, c("id", "Group")]
 temp_plotB <- reshape::melt(temp_plotB, id.vars = c("id", "Group"))
-temp_plotB$A <- rep(A, length(allSamples))
+temp_plotB$A <- rep(A, length(currSamples))
 temp_plotB <- temp_plotB[which(proteoCraft::is.all.good(temp_plotB$value, 2)),]
 temp_plotB$M <- temp_plotB$value - temp_plotB$A
 annot <- data.frame(variable = unique(temp_plotB$variable))

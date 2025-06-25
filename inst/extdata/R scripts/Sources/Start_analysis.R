@@ -102,10 +102,6 @@ if (!RunByMaster) {
   #
   if ((!exists("indir"))||(!dir.exists(indir))) { indir <- inRoot2[grep("^Search folder ", names(inRoot2))[1]] }
   if ((!exists("outdir"))||(!dir.exists(outdir))) { outdir <- inRoot2[grep("^Results delivery folder ", names(inRoot2))[1]] }
-  indir %<o% indir
-  outdir %<o% outdir
-  WhoAmI %<o% WhoAmI
-  WorkFlow %<o% WorkFlow
   append <- FALSE
   defRt <- inRoot2[match(gsub("/.*", "/", inRoot2[grep("^Search folder ", names(inRoot2))]), inRoot2)]
   tmp <- c("MaxQuant", "DiaNN", "FragPipe", "Proteome Discoverer")
@@ -391,6 +387,10 @@ if (!RunByMaster) {
   #
   WorkFlow <- names(WorkFlows)[match(WorkFlow, WorkFlows)]
 }
+indir %<o% indir
+outdir %<o% outdir
+WhoAmI %<o% WhoAmI
+WorkFlow %<o% WorkFlow
 #create_project(path = wd, open = FALSE, rstudio = TRUE)
 #usethis::proj_set(wd)
 BckUpFl %<o% paste0(wd, "/Backup.RData")
@@ -569,9 +569,128 @@ if (renv) {
 }
 LocAnalysis %<o% (WorkFlow %in% c("LOCALISATION", "LOCALIZATION"))
 IsBioID %<o% (gsub(" |_|-|\\.", "", toupper(WorkFlow)) == "BIOID")
+#
 # Update values
 RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 libPath <- paste0(RPath, "/proteoCraft")
 parSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
+#
+# Detect backups and decide whether to keep them
+labelMode <- match(LabelType, c("LFQ", "Isobaric"))
+FracMapNm %<o% "Fractions map"
+FracMapPath %<o% paste0(wd, "/", FracMapNm, ".csv")
+intPrtFst %<o% paste0(wd, "/Proteins of interest.fasta")
+allBckps %<o% data.frame(Full = FracMapPath,
+                         File = basename(FracMapPath),
+                         Role = "Map of MS files to biological samples")
+allBckps$ObjNm <- list("FracMap")
+if (scrptType == "withReps") {
+  ExpMapNm %<o% "Experiment map"
+  ExpMapPath %<o% paste0(wd, "/", ExpMapNm, ".csv")
+  tmpDF <- data.frame(File = c(basename(ExpMapPath),
+                               "Factors.RData",
+                               "Parameters.csv"),
+                      Role = c("Experimental structure map",
+                               "Experimental factors",
+                               "Analysis parameters"))
+  tmpDF$ObjNm <- list("ExpMap",
+                      c("Factors", "FactorsLevels"),
+                      "Param")
+  tmpDF$Full <- paste0(wd, "/", tmpDF$File)
+  allBckps <- rbind(allBckps, tmpDF)
+}
+if (scrptType == "noReps") {
+  SamplesMapNm %<o% "Samples map"
+  SamplesMapPath %<o% paste0(wd, "/", SamplesMapNm, ".csv")
+  allBckps <- rbind(allBckps,
+                    data.frame(Full = SamplesMapPath,
+                               File = basename(SamplesMapPath),
+                               Role = "Experimental structure map",
+                               ObjNm = "SamplesMap"))
+}
+tmpDF <- data.frame(File = c(basename(intPrtFst),
+                             "Parsed_annotations.RData",
+                             "evmatch.RData"),
+                    Role = c("FASTA of proteins of special interest",
+                             "Parsed functional annotations",
+                             "Matches of peptide sequences to parent proteins"),
+                    ObjNm = c("prot.list",
+                              "Parsed_annotations",
+                              "evmatch"))
+tmpDF$Full <- paste0(wd, "/", tmpDF$File)
+allBckps <- rbind(allBckps, tmpDF)
+if (SearchSoft %in% c("DIANN", "FRAGPIPE")) {
+  m <- match(SearchSoft, c("DIANN", "FRAGPIPE"))
+  PSMsBckp %<o% paste0(c("diaNN", "FragPipe")[m], " PSMs converted to MQ-like format.RData")
+  tmpDF <- data.frame(File = PSMsBckp,
+                      Role = "Processed PSMs",
+                      ObjNm = paste0("ev_", c("DIANN", "FP")[m], "2MQ"))
+  tmpDF$Full <- paste0(wd, "/", tmpDF$File)
+  allBckps <- rbind(allBckps, tmpDF)
+}
+#View(allBckps[which(!file.exists(allBckps$Full)),])
+reloadedBckps <- allBckps <- allBckps[which(file.exists(allBckps$Full)),]
+reloadedBckps %<o% allBckps
+if (nrow(allBckps)) {
+  allBckps$Dir <- dirname(allBckps$Full)
+  allBckps$Value <- allBckps$File
+  w <- which(allBckps$Dir != wd)
+  if (length(w)) { allBckps$Value[w] <- allBckps$Full[w] }
+  allBckps$Value <- paste0(do.call(paste, c(allBckps[, c("Role", "Value")], sep = " (file = ")), ")")
+  bckps2Reload %<o% dlg_list(allBckps$Value, allBckps$Value, TRUE, title = "Backups detected: which should we reload?")$res
+  if (length(bckps2Reload)) {
+    reloadedBckps <- allBckps[match(bckps2Reload, allBckps$Value),]
+    for (i in 1:nrow(reloadedBckps)) {
+      ext <- tolower(gsub(".*\\.", "", reloadedBckps$File[i]))
+      if (ext == "fasta") { fastas <- unique(c(fastas, reloadedBckps$Full[i])) }
+      if (ext == "rdata") { loadFun(reloadedBckps$Full[i]) }
+      if (ext == "csv") {
+        tmp <- read.csv(reloadedBckps$Full[i], check.names = FALSE)
+        areUok <- TRUE
+        if (reloadedBckps$Role[i] == "Map of MS files to biological samples") {
+          colnames(tmp)[which(colnames(tmp) == "Raw.file")] <- "Raw file" # Backwards compatibility
+          if (!c("Parent sample", "MQ.Exp")[labelMode] %in% colnames(tmp)) {
+            warning("Invalid Fractions map reloaded, ignoring...")
+            areUok <- FALSE
+          }
+        }
+        if ((reloadedBckps$Role[i] == "Experimental structure map")&&(scrptType == "withReps")) {
+          # Backwards compatibility
+          colnames(tmp)[which(colnames(tmp) == "Sample.name")] <- "Sample name" 
+          #colnames(tmp)[which(colnames(tmp) == "Isobaric.set")] <- "Isobaric set"
+          colnames(tmp)[which(colnames(tmp) == "Isobaric.label")] <- "Isobaric label"
+          colnames(tmp)[which(colnames(tmp) == "Isobaric.label.details")] <- "Isobaric label details"
+          if (exists("FracMap")) {
+            expKl <- c("MQ.Exp", "Parent sample")
+            expKl <- expKl[which(expKl %in% colnames(FracMap))[1]]
+            tst <- unique(FracMap[[expKl]][which(FracMap$Use)])
+            if (sum(!tst %in% tmp[[c("Sample name", "MQ.Exp")[labelMode]]])) {
+              warning("Invalid Experiment map reloaded, ignoring...")
+              areUok <- FALSE
+            }
+          }
+        }
+        if (areUok) { assign(reloadedBckps$ObjNm[[i]], tmp) }
+      }
+    }
+  }
+}
+.obj <- unique(c(.obj, unlist(reloadedBckps$ObjNm)))
+if ((!nrow(reloadedBckps))||(!"FASTA of proteins of special interest" %in% reloadedBckps$Role)) {
+  loadInt %<o% c(TRUE, FALSE)[match(dlg_message("Load a fasta of proteins of interest?", "yesno")$res, c("yes", "no"))]
+  if (loadInt) {
+    intFast <- selectFile(paste0("Select proteins of interest fasta", intPrtFst), path = wd)
+    if (!is.null(intFast)) {
+      intFast <- gsub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), intFast)
+      if (intFast != intPrtFst) {
+        file.copy(intFast, intPrtFst, TRUE)
+        cat(paste0("   FYI: a copy of your input fasta has been saved at \"", intPrtFst, "\"..."))
+      }
+      fastas <- unique(c(fastas, intPrtFst))
+    }
+  }
+}
+Reuse_Prot_matches %<o% ("Matches of peptide sequences to parent proteins" %in% reloadedBckps$Role)
+#
 saveImgFun(BckUpFl)

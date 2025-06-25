@@ -2,11 +2,14 @@
 #if (!Param$Param_suppress_UI) {
 #dlg_message("Remember: replace this app with a \"Statistics: contrasts editor\" app!", "ok")
 #
+expMap <- Exp.map # temporary aliases
+expMap$Row <- 1:nrow(Exp.map)
 vpal <- unlist(strsplit(Param$Volcano.plots.Aggregate.Level, ";"))
+#
 # We should select a reference level per ratio group, not ratio reference group!
 #rrg <- unlist(strsplit(Param$Ratios.Ref.Groups, ";"))
 rg <- unlist(strsplit(Param$Ratios.Groups, ";"))
-if (length(unique(Exp.map$Experiment)) == 1) {
+if (length(unique(expMap$Experiment)) == 1) {
   if (length(vpal) > 1)  { vpal <- vpal[which(vpal != "Exp")] }
   #if (length(rrg) > 1)  { rrg <- rrg[which(rrg != "Exp")] }
   if (length(rg) > 1)  { rg <- rg[which(rg != "Exp")] }
@@ -14,29 +17,47 @@ if (length(unique(Exp.map$Experiment)) == 1) {
 kolVPAL <- Factors[vpal]
 #kolRRG <- Factors[rrg]
 kolRG <- Factors[rg]
-factLevComb1 <- apply(Exp.map[, kolVPAL, drop = FALSE], 1 , paste, collapse = " ")
-#factLevComb2 <- apply(Exp.map[, kolRRG, drop = FALSE], 1 , paste, collapse = " ")
-factLevComb2 <- apply(Exp.map[, kolRG, drop = FALSE], 1 , paste, collapse = " ")
-refTst <- ("Reference" %in% colnames(Exp.map))&&("logical" %in% class(Exp.map$Reference))&&(sum(Exp.map$Reference))&&(sum(!Exp.map$Reference))
+factLevComb1 <- do.call(paste, c(expMap[, kolVPAL, drop = FALSE], sep = " ")) # Sample group levels
+factLevComb2 <- do.call(paste, c(expMap[, kolRG, drop = FALSE], sep = " ")) # Ratio group levels
+#factLevComb3 <- do.call(paste, c(expMap[, kolRRG, drop = FALSE], sep = " ")) # Ratio reference group levels - currently not used
+refTst <- ("Reference" %in% colnames(expMap))&&("logical" %in% class(expMap$Reference))&&(sum(expMap$Reference))&&(sum(!expMap$Reference))
 rfLev <- data.frame("Group" = unique(factLevComb2))
 rfLev$"All levels" <- lapply(rfLev$Group, function(x) {
   unique(factLevComb1[which(factLevComb2 == x)])
 })
-rfLev$"Reference level" <- sapply(rfLev$"All levels", function(x) { #x <- unlist(rfLev$"All levels"[2])
+# Remove groups with one sample group - no comparison possible!
+tstL <- vapply(rfLev$"All levels", length, 1)
+w1 <- which(tstL == 1)
+l1 <- length(w1)
+if (l1) {
+  tmp <- rfLev$Group[w1]
+  t1 <- l1 > 1
+  if (t1) { tmp <- paste0(paste(rfLev$Group[w1[1:(l1-1)]], collapse = ", "), " and ", rfLev$Group[w1[l1]]) }
+  msg <- paste0("Ratio group", c("", "s")[(l1 > 1)+1], " ", tmp, " contain", c("", "s")[t1+1], " only one samples group, skipping!")
+  warning(msg)
+  lev2Rmv <- unique(unlist(rfLev$`All levels`[w1]))
+  w <- which(!factLevComb1 %in% lev2Rmv)
+  expMap <- expMap[w,] # We want to keep those in the original, Exp.map, e.g. for mixed channels for TMT IRS normalization!!!
+  factLevComb1 <- factLevComb1[w]
+  factLevComb2 <- factLevComb2[w] # Ratio group levels
+  #factLevComb3 <- factLevComb3[w] # Ratio reference group levels - currently not used
+  rfLev <- rfLev[-w1,]
+}
+rfLev$"Reference level" <- vapply(rfLev$"All levels", function(x) { #x <- unlist(rfLev$"All levels"[2])
   if (refTst) {
-    w <- which(Exp.map$Reference[match(x, factLevComb1)])
+    w <- which(expMap$Reference[match(x, factLevComb1)])
     if (length(w)) { w <- w[1] } else { w <- 1 }
     rs <- x[w]
   } else {
     rs <- factLevComb1[w[1]]
   }
   return(rs)
-})
+}, "")
 makeSec <- FALSE
 # if (Param$F.test) {
-#   Factors3 <- Factors2[which(sapply(Factors2, function(Fact) {
+#   Factors3 <- Factors2[which(vapply(Factors2, function(Fact) {
 #     length(FactorsLevels[[Fact]]) > 1
-#   }))]
+#   }, TRUE))]
 #   if (WorkFlow == "TIMECOURSE") { Factors3 <- unique(c(Factors3, "Time.point")) }
 #   makeSec <- length(Factors3) > 1
 # }
@@ -44,12 +65,18 @@ wdth <- paste0(30*max(c(nchar(unlist(rfLev$`All levels`)), 2)), "px")
 appNm <- paste0(dtstNm, " - Stat-tests")
 ui2 <- fluidPage(
   useShinyjs(),
+  setBackgroundColor( # Doesn't work
+    color = c(#"#F8F8FF",
+      "#ECE6F7"),
+    gradient = "linear",
+    direction = "bottom"
+  ),
   extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
   titlePanel(tag("u", "Statistical test - define comparisons"), 
              appNm),
   h2(dtstNm), 
   br(),
-  actionButton("saveBtn", "Save"),
+  actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
   br(),
   fluidPage(
     h3(" -> T-tests: define reference factors combination per comparisons group."),
@@ -128,7 +155,7 @@ server2 <- function(input, output, session) {
   #   # Parse F-test Parameters
   #   fFact <- fRef <- FALSE
   #   #Fact <- Factors2[which(!Factors2 %in% c("Experiment", "Replicate"))]
-  #   #w <- sapply(Fact, function(x) { length(FactorsLevels[[x]]) > 1 })
+  #   #w <- which(vapply(Fact, function(x) { length(FactorsLevels[[x]]) > 1 }, TRUE))
   #   #Fact[w]
   #   #tmp <- setNames(substr(Fact, 1, 3), Fact)
   #   #Param$F.test_factors <- paste0(paste(tmp[1:2], collapse = "___"), "_;_", tmp[3])
@@ -149,7 +176,7 @@ server2 <- function(input, output, session) {
   #   }
   #   if (fFact && fRef) {
   #     F_Fact <- strsplit(F_Fact, "_;_")
-  #     stopifnot(max(sapply(F_Fact, length)) <= 3) # We can have at most 3 factors aggregates: factors for primary and secondary contrasts, and blocking factors for nested designs.
+  #     stopifnot(max(vapply(F_Fact, length, 1)) <= 3) # We can have at most 3 factors aggregates: factors for primary and secondary contrasts, and blocking factors for nested designs.
   #     F_Fact <- lapply(F_Fact, function(x) { x[1:min(c(2, length(x)))] }) # We will add nesting later for simplicity using the UI. 
   #     F_Fact <- lapply(F_Fact, function(x) {
   #       x <- strsplit(x, "___")
@@ -158,7 +185,7 @@ server2 <- function(input, output, session) {
   #     })
   #     F_Fact <- setNames(F_Fact, paste0("Analysis_", 1:length(F_Fact)))
   #     F_Ref <- strsplit(F_Ref, "_;_")
-  #     stopifnot(max(sapply(F_Ref, length)) <= 2) # We can have at most 2 here: no blocking factors.
+  #     stopifnot(max(vapply(F_Ref, length, 1)) <= 2) # We can have at most 2 here: no blocking factors.
   #     F_Ref <- lapply(F_Ref, function(x) { x[1:min(c(2, length(x)))] })
   #     F_Ref <- lapply(F_Ref, function(x) {
   #       x <- strsplit(x, "___")
@@ -168,15 +195,15 @@ server2 <- function(input, output, session) {
   #     F_Ref <- setNames(F_Ref, paste0("Analysis_", 1:length(F_Ref)))
   #     tst <- length(F_Fact) == length(F_Ref)
   #     if (tst) {
-  #       tst <- sum(sapply(1:length(F_Fact), function(x) { length(F_Fact[[x]]) != length(F_Ref[[x]]) })) == 0
+  #       tst <- sum(vapply(1:length(F_Fact), function(x) { length(F_Fact[[x]]) != length(F_Ref[[x]]) }, TRUE)) == 0
   #       if (tst) {
   #         tmp <- substr(Factors, 1, 3)
   #         tst <- sum(unlist(sapply(1:length(F_Fact), function(x) {
   #           sapply(1:length(F_Ref[[x]]), function(y) {
   #             if (length(F_Fact[[x]][[y]]) > 0) {
-  #               sapply(1:length(F_Fact[[x]][[y]]), function(z) {
+  #               vapply(1:length(F_Fact[[x]][[y]]), function(z) {
   #                 sum(!F_Ref[[x]][[y]][[z]] %in% FactorsLevels[[Factors[match(substr(F_Fact[[x]][[y]][[z]],1 , 3), tmp)]]])
-  #               })  
+  #               }, 1)  
   #             } else { 0 }
   #           })
   #         }))) == 0
@@ -293,7 +320,7 @@ server2 <- function(input, output, session) {
   #   })
   #   # Observers for factor reference selection
   #   # These will change the selected value for other factors in the column, if incompatible
-  #   EM <- Exp.map
+  #   EM <- expMap
   #   for (Fact in Factors3) { EM[which(is.na(EM[[Fact]])), Fact] <- "NA" }
   #   output$Msg <- renderUI({ em(" ") })
   #   sapply(Factors3, function(Fact) {
@@ -378,11 +405,11 @@ server2 <- function(input, output, session) {
     #   # Update parameters here!
     #   if (nrow(F_Analyses)) {
     #     PAR <- Param
-    #     tmpFct <- data.frame(Prim = sapply(F_Analyses$Primary, function(x) { paste(substr(x, 1, 3), collapse = "___") }))
-    #     tmpRf <- data.frame(Prim = sapply(F_Analyses$Primary_Ref, paste, collapse = "___"))
+    #     tmpFct <- data.frame(Prim = vapply(F_Analyses$Primary, function(x) { paste(substr(x, 1, 3), collapse = "___") }, ""))
+    #     tmpRf <- data.frame(Prim = vapply(F_Analyses$Primary_Ref, paste, "", collapse = "___"))
     #     if (makeSec) {
-    #       tmpFct$Sec <- sapply(F_Analyses$Secondary, function(x) { paste(substr(x, 1, 3), collapse = "___") })
-    #       tmpRf$Sec <- sapply(F_Analyses$Secondary_Ref, paste, collapse = "___")
+    #       tmpFct$Sec <- vapply(F_Analyses$Secondary, function(x) { paste(substr(x, 1, 3), collapse = "___") }, "")
+    #       tmpRf$Sec <- vapply(F_Analyses$Secondary_Ref, paste, "", collapse = "___")
     #     } else {
     #       tmpFct$Sec <- ""
     #       tmpRf$Sec <- ""
@@ -413,13 +440,12 @@ while ((!runKount)||(!exists("appRunTest"))) {
   runKount <- runKount+1
 }
 #
-wRf <- lapply(1:nrow(rfLev), function(i) { #i <- 1
-  w <- which(factLevComb2 == rfLev$Group[i])
-  return(w[which(factLevComb1[w] == rfLev$"Reference level"[i])])
-})
+wRf <- lapply(1:nrow(rfLev), function(i) { #i <- 1 #i <- 2
+  expMap$Row[which((factLevComb2 == rfLev$Group[i])&(factLevComb1 == rfLev$"Reference level"[i]))]
+}) # Row indices valid for Exp.map, not necessarily for expMap!
 Exp.map$Reference <- 1:nrow(Exp.map) %in% unlist(wRf)
 tmp <- Exp.map
-tmp$MQ.Exp <- sapply(tmp$MQ.Exp, paste, collapse = ";")
+tmp$MQ.Exp <- vapply(tmp$MQ.Exp, paste, "", collapse = ";")
 tst <- try(write.csv(tmp, file = ExpMapPath, row.names = FALSE), silent = TRUE)
 if ("try-error" %in% class(tst)) {
   dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
@@ -427,7 +453,11 @@ if ("try-error" %in% class(tst)) {
 }
 tmp <- data.frame(x1 = colnames(Param), x2 = unlist(Param[1,]))
 colnames(tmp) <- NULL
-write.csv(tmp, paste0(wd, "/Parameters.csv"), row.names = FALSE)
+tst <- try(write.csv(tmp, ParamPath, row.names = FALSE), silent = TRUE)
+if ("try-error" %in% class(tst)) {
+  dlg_message(paste0("File \"", ParamPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+  write.csv(tmp, file = ParamPath, row.names = FALSE)
+}
 #}
 # if (Param$Param_suppress_UI) { # Candidate for deletion to simplify: the UI just works!
 #   Param <- Param.load()
@@ -441,7 +471,7 @@ write.csv(tmp, paste0(wd, "/Parameters.csv"), row.names = FALSE)
 #   ObjNm <- "Mod4Quant"
 #   if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
 #     msg <- "Which modifications are eligible for protein group quantitation?"
-#     mods <- setNames(sapply(Modifs$`Full name`, function(x) { paste(c(x, rep(" ", 200-nchar(x))), collapse = "") }), Modifs$`Full name`)
+#     mods <- setNames(vapply(Modifs$`Full name`, function(x) { paste(c(x, rep(" ", 200-nchar(x))), collapse = "") }, ""), Modifs$`Full name`)
 #     pre <- mods[which(!grepl("phospho", Modifs$`Full name`, ignore.case = TRUE))]
 #     tmp <- dlg_list(mods, pre, multiple = TRUE, title = msg)$res
 #     if (length(tmp)) {
@@ -590,7 +620,7 @@ if (length(tstEnrich)) {
       tst <- tst[which(!is.na(tst$Sample)),]
       tst <- tst[which(tst$Sample %in% unlist(Exp.map$MQ.Exp)),]
       tst <- tst[which(tst$Sample %in% unlist(Exp.map$MQ.Exp)),]
-      #which(sapply(Exp.map$MQ.Exp, function(y) { x %in% unlist(y) }))
+      #which(vapply(Exp.map$MQ.Exp, function(y) { x %in% unlist(y) }, TRUE))
       tst2 <- reshape2::melt(tst)
       colnames(tst2) <- gsub("\\(|\\)|\\[|\\]", "", gsub(" ", "_", colnames(tst2)))
       frml <- as.formula(paste0("MS_file ~ `", gsub("\\(|\\)|\\[|\\]", "", gsub(" ", "_", Mod)), "`"))
@@ -631,8 +661,8 @@ if (length(tstEnrich)) {
 
 # Write PTMs table
 temp <- Modifs
-w <- which(sapply(colnames(Modifs), function(x) { class(Modifs[[x]]) }) == "list")
-for (i in w) { temp[[i]] <- sapply(temp[[i]],  paste, collapse = ", ") }
+w <- which(vapply(colnames(Modifs), function(x) { "list" %in% class(Modifs[[x]]) }, TRUE))
+for (i in w) { temp[[i]] <- vapply(temp[[i]], paste, "", collapse = ", ") }
 dir <- paste0(wd, "/Workflow control")
 dirlist <- unique(c(dirlist, dir))
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
@@ -655,7 +685,7 @@ if (length(Aggregates) > 1) {
     for (j in 1:ncol(I)) {
       kount <- kount + 1
       J <- I[,j]
-      names(J) <- Aggregates[sapply(J, function(x) {which(names(Aggregates) == x)})]
+      names(J) <- Aggregates[match(J, names(Aggregates))]
       Exp.map[paste(J, collapse = "")] <- apply(Exp.map[, names(J)], 1, function(x) {
         paste(x, collapse = "___")
       })
@@ -668,7 +698,7 @@ if (length(Aggregates) > 1) {
   temp1$Characteristics <- temp2
   Aggregate.map <- rbind(Aggregate.map, temp1)
 }
-Aggregate.list %<o% sapply(Aggregate.map$Aggregate.Name, function(x) { get(x) })
+Aggregate.list %<o% setNames(lapply(Aggregate.map$Aggregate.Name, function(x) { get(x) }), Aggregate.map$Aggregate.Name)
 #This doesn't work for the master/detailed dual script approach (issue with environments!):
 
 # Define reference sample aggregate, as well as ratio groups, ratio ref group and volcano plot aggregates:
@@ -693,23 +723,26 @@ if (("Batch.correction" %in% colnames(Param))&&(!as.character(Param$Batch.correc
 a <- RSA$names
 if (length(a) == 1) {
   Exp.map$Ref.Sample.Aggregate <- Exp.map[[a]]
-} else { Exp.map$Ref.Sample.Aggregate <- apply(Exp.map[, a], 1, paste, collapse = "___") }
+} else { Exp.map$Ref.Sample.Aggregate <- do.call(paste, c(Exp.map[, a], sep = "___")) }
 Exp.map <- Exp.map[order(Exp.map[[VPAL$column]], Exp.map$Replicate),]
-tst <- setNames(lapply(MQ.Exp, function(x) { which(sapply(Exp.map$MQ.Exp, function(y) { sum(y %in% x) }) > 0) }), MQ.Exp)
-tst2 <- sapply(tst, length)
+if (!"list" %in% class(Exp.map$MQ.Exp)) { Exp.map$MQ.Exp <- strsplit(Exp.map$MQ.Exp, ";") }
+tstMQXp <- listMelt(Exp.map$MQ.Exp, 1:nrow(Exp.map), c("MQ.Exp", "Row"))
+tstMQXp <- aggregate(tstMQXp$Row, list(tstMQXp$MQ.Exp), list)
+tstMQXp <- setNames(tstMQXp$x, tstMQXp$Group.1) 
+MQ.Exp <- MQ.Exp[which(MQ.Exp %in% names(tstMQXp))]
+ev <- ev[which(ev$MQ.Exp %in% names(tstMQXp)),]
 if (LabelType == "LFQ") {
-  stopifnot(max(tst2) == 1)
-  tst <- tst[which(tst2 == 1)]
+  aggrCol <- "RSA"
+  tstMQXp2 <- setNames(vapply(MQ.Exp, function(x) { unique(Exp.map$Ref.Sample.Aggregate[tstMQXp[[x]]]) }, ""), MQ.Exp) # Here for LFQ we should not have multiples, this should fail if it is the case!!!
+  ev[[aggrCol]] <- tstMQXp2[ev$MQ.Exp]
+  tmp <- ev[, c("Proteins", "Intensity", aggrCol)]
 }
-MQ.Exp <- MQ.Exp[which(MQ.Exp %in% names(tst))]
-ev <- ev[which(ev$MQ.Exp %in% names(tst)),]
-if (LabelType == "LFQ") {
-  ev$RSA <- Exp.map$Ref.Sample.Aggregate[match(ev$MQ.Exp, names(tst))]
-  tmp <- ev[, c("Proteins", "Intensity", "RSA")]
-} else {
+if (LabelType == "Isobaric") {
   # Isobaric case - subtle difference
+  aggrCol <- "Iso"
+  tstMQXp2 <- setNames(vapply(MQ.Exp, function(x) { unique(Exp.map$Isobaric.set[tstMQXp[[x]]]) }, 1), MQ.Exp)
   tmp <- ev[, c("Proteins", "Intensity")]
-  tmp$RSA <- Exp.map$Ref.Sample.Aggregate[match(ev$MQ.Exp, names(tst))]
+  tmp[[aggrCol]] <- tstMQXp2[ev$MQ.Exp]
 }
 # Plot of contamination levels per sample
 dir <- paste0(wd, "/Summary plots")
@@ -737,12 +770,20 @@ tmp$Organism <- tmp2$x[match(1:nrow(tmp), tmp2$Group.1)]
 tmp <- tmp[which(!is.na(tmp$Organism)),]
 tmp$Organism <- factor(tmp$Organism, levels = c("Contaminant", "Target"))
 tmp$Intensity <- as.numeric(tmp$Intensity)
-tmp <- aggregate(tmp$Intensity, list(tmp$RSA, tmp$Organism), sum, na.rm = TRUE)
-colnames(tmp) <- c("Sample", "Organism", "Total intensity")
-tmp$Sample <- factor(cleanNms(tmp$Sample), levels = cleanNms(Exp.map$Ref.Sample.Aggregate))
+tmp <- aggregate(tmp$Intensity, list(tmp[[aggrCol]], tmp$Organism), sum, na.rm = TRUE)
+if (LabelType == "LFQ") {
+  k <- "Sample"
+  colnames(tmp) <- c(k, "Organism", "Total intensity")
+  tmp[[k]] <- factor(cleanNms(tmp[[k]]), levels = cleanNms(unique(Exp.map$Ref.Sample.Aggregate)))
+}
+if (LabelType == "Isobaric") {
+  k <- "Isobaric.set"
+  colnames(tmp) <- c(k, "Organism", "Total intensity")
+  tmp[[k]] <- factor(cleanNms(tmp[[k]]), levels = Iso)
+}
 ttl <- "Contributions to TIC"
 plot <- ggplot(tmp) +
-  geom_bar(stat = "identity", aes(x = Sample, y = `Total intensity`, fill = Organism)) +
+  geom_bar(stat = "identity", aes(x = .data[[k]], y = `Total intensity`, fill = Organism)) +
   theme_bw() + scale_fill_viridis(discrete = TRUE, begin = 0.8, end = 0.2) +
   ggtitle(ttl, subtitle = "Summed TIC for each class of identified peptides") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
@@ -872,7 +913,7 @@ if (("Cont.DB" %in% colnames(Param))&&(!toupper(as.character(Param$Cont.DB)) %in
   temp$"Potential contaminant" <- "+"
   # Remove all evidences which match one of these proteins:
   #test <- strsplit(ev$Proteins, ";")
-  #test <- sapply(test, function(x) {sum(x %in% temp$"Protein ID")}) > 0
+  #test <- vapply(test, function(x) { sum(x %in% temp$"Protein ID") }, 1) > 0
   #cont.ev %<o% ev[which(test),]
   #ev <- ev[which(!test),]
   if (exists("contDB")) { contDB <- plyr::rbind.fill(list(contDB, temp)) } else { contDB <- temp }
@@ -903,7 +944,7 @@ if (DiscFilt) {
   DiscFiltFl %<o% Param$TrueDisc_filter
   DiscFiltTbl %<o% read.csv(DiscFiltFl, check.names = FALSE)
   tst2 <- sum(!c("Protein ID", RG$values) %in% colnames(DiscFiltTbl)) == 0
-  tst3 <- (!sum(!"logical" %in% sapply(RG$values, function(x) { class(DiscFiltTbl[[x]]) })))
+  tst3 <- sum(!vapply(RG$values, function(x) { !"logical" %in% class(DiscFiltTbl[[x]]) }, TRUE))
   if (tst2+tst3 == 2) {
     DiscFiltMode %<o% Param$TrueDisc_filter_mode
     if (!DiscFiltMode %in% DiscFiltModes) { DiscFiltMode <- DiscFiltModes[1] }

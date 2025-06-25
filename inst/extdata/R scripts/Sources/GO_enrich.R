@@ -572,7 +572,7 @@ if (length(wFltL)) {
           annot = topGO::annFUN.gene2GO,
           gene2GO = Mappings)
     }), Ont)
-    cat("Performing Fisher exact text:\n")
+    cat("Performing Fisher exact test:\n")
     resultFisher <- setNames(lapply(Ont, function(ont) { #ont <- Ont[1]
       cat(paste0(" - ", ont, " terms\n"))
       try(topGO::getSigGroups(GOdata[[ont]], FishTst), silent = TRUE)
@@ -636,7 +636,12 @@ if (length(wFltL)) {
   #environment(Fisher0) <- .GlobalEnv # Only needed if code run as function!
   cat("     Running Fisher tests...\n")
   clusterCall(parClust, function() library(topGO))
-  GO_tbls <- setNames(parallel::parLapply(parClust, names(mapFilters), Fisher0), names(mapFilters))
+  tst <- try({
+    GO_tbls <- setNames(parallel::parLapply(parClust, names(mapFilters), Fisher0), names(mapFilters))
+  })
+  if ("try-error" %in% class(tst)) {
+    GO_tbls <- setNames(lapply(names(mapFilters), Fisher0), names(mapFilters))
+  }
   #sapply(GO_tbls, function(x) { x$Outcome })
   GO_tbls <- GO_tbls[which(sapply(GO_tbls, function(x) { x$Outcome }))]
   cat("     Processing results...\n")
@@ -1201,8 +1206,12 @@ if (length(wFltL)) {
       }
       #environment(plotsF0) <- .GlobalEnv # Only needed if code run as function!
       cat("     Drawing plots...\n")
-      tstPlots <- setNames(parallel::parLapply(parClust, names(GO_tbls2), plotsF0),
-                           names(GO_tbls2))
+      tst <- try({ tstPlots <- setNames(parallel::parLapply(parClust, names(GO_tbls2), plotsF0),
+                                        names(GO_tbls2)) }, silent = TRUE)
+      if ("try-error" %in% class(tst)) {
+        tstPlots <- setNames(lapply(names(GO_tbls2), plotsF0),
+                             names(GO_tbls2))
+      }
       lapply(names(GO_tbls2), function(flt) { #flt <- names(GO_tbls2)[1]
         nms <- names(tstPlots[[flt]]$GO_plots)
         GO_plots[nms] <<- tstPlots[[flt]]$GO_plots[nms]

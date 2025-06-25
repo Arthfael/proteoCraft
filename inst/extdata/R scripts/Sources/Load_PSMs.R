@@ -7,7 +7,9 @@ if (SearchSoft == "MAXQUANT") {
   } else {
     filt <- matrix(c("MaxQuant parameters xml file", "*.xml"), ncol = 2)
     msg <- "Select MaxQuant mqpar.xml file"
-    ObjNm %<c% choose.files(paste0(gsub("(/combined)?/txt.*", "", indir), "/*.xml"), msg, FALSE, filt, 1)
+    tmp <- choose.files(paste0(gsub("(/combined)?/txt.*", "", indir), "/*.xml"), msg, FALSE, filt, 1)
+    tmp <- gsub("\\\\", "/", tmp)
+    ObjNm %<c% tmp
     indir2 <- dirname(get(ObjNm))
     if (scrptType == "withReps") {
       AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
@@ -29,16 +31,16 @@ if (SearchSoft == "MAXQUANT") {
   MQvers %<o% gsub(" *</?maxQuantVersion> *", "", grep("<maxQuantVersion>", mqpar, value = TRUE))
   MQFold %<o% paste0("C:/MaxQuant/MaxQuant_", c("", "v"), MQvers)
   MQFold <- MQFold[which(dir.exists(MQFold))]
-  dr <- gsub("\\\\", "/", gsub(" *</?fixedCombinedFolder> *", "", grep("<fixedCombinedFolder>", mqpar, value = TRUE)))
-  if (dr == "") { dr <- indir }
+  dr <- gsub("\\\\", "/", gsub(" *</?fixed((Combined)|(Search))Folder> *", "", grep("<fixed((Combined)|(Search))Folder>", mqpar, value = TRUE)))
+  if ((!length(dr))||(dr == "")) { dr <- indir }
   PSMsFl %<o% paste0(dr, c("", "/txt", "/combined/txt"), "/evidence.txt")
   PSMsFl <- PSMsFl[which(file.exists(PSMsFl))]
   if (length(PSMsFl) > 1) {
     msg <- "I could not identify MaxQuant's evidence.txt file, please select it manually:"
     PSMsFl <- choose.files(paste0(indir, "/*.txt"), msg)
   }
-  tmp <- data.table::fread(PSMsFl, integer64 = "numeric", check.names = FALSE, data.table = FALSE)
-  Cor_MQ <- cor_mod_seq(tmp)
+  tmpMQ <- data.table::fread(PSMsFl, integer64 = "numeric", check.names = FALSE, data.table = FALSE)
+  Cor_MQ <- cor_mod_seq(tmpMQ)
   ev %<o% Cor_MQ$Peptides
   Modifs %<o% Cor_MQ$PTMs
   #
@@ -171,7 +173,7 @@ if (SearchSoft == "MAXQUANT") {
   g5 <- as.integer(gsub(" *</?int> *", "", mqpar[(g5[1]+1):(g5[2]-1)]))
   FracMap %<o% data.frame("Raw file" = rawFiles,
                           "Raw files name" = rawFiles2,
-                          "Parent sample" = g2,
+                          "MQ.Exp" = g2,
                           "Fraction" = g3,
                           "PTMs" = g4,
                           "Parameter group" = g5,
@@ -190,11 +192,9 @@ if (SearchSoft == "MAXQUANT") {
     }
   }
   if (tmp == "NEUCODE") { stop("NeuCode SILAC-labeling is not supported by this workflow!") }
-  LabelType %<o% c("LFQ", "Isobaric", "Isobaric", "LFQ", "LFQ", "LFQ", "LFQ")[match(tmp, c("STANDARD", "REPORTERIONMS2", "REPORTERIONMS3", "BOXCAR", "TIMSDDA", "TIMSMAXDIA", "BOXCARMAXDIA"))]
+  LabelType %<o% c("LFQ", "Isobaric", "Isobaric", "Isobaric", "Isobaric", "LFQ", "LFQ", "LFQ", "LFQ")[match(tmp,
+                                                                                    c("STANDARD", "REPORTERMS2", "REPORTERMS3", "REPORTERIONMS2", "REPORTERIONMS3", "BOXCAR", "TIMSDDA", "TIMSMAXDIA", "BOXCARMAXDIA"))]
   if ((scrptType == "noReps")&&(LabelType != "LFQ")) { stop("Currently, this workflow only supports LFQ experiments!") }
-  #
-  MinPepSz %<o% as.integer(gsub(" *</?minPepLen> *", "", grep(" *</?minPepLen> *", mqpar, value = TRUE)))
-  Missed %<o% as.integer(gsub(" *</?maxMissedCleavages> *", "", grep(" *</?maxMissedCleavages> *", mqpar, value = TRUE)))
   if (LabelType == "Isobaric") { # Currently used only with Reps
     FracMap$Isobaric.set <- c(1, "?")[(nrow(FracMap) > 1)+1]
     lab <- gsub(" *</?((inter)|(termi))nalLabel> *", "", grep("<((inter)|(termi))nalLabel>", mqpar, value = TRUE))
@@ -205,8 +205,15 @@ if (SearchSoft == "MAXQUANT") {
     kol <- grep("^Reporter intensity [0-9]+$", colnames(ev), value = TRUE)
     stopifnot(length(kol) > 0)
     val <- as.integer(gsub("^Reporter intensity ", "", kol))
-    get(IsobarLab) %<c% val
+    IsobarLab %<c% val
+  } else {
+    FracMap$"Parent sample" <- FracMap$MQ.Exp
+    k <- colnames(FracMap)[which(colnames(FracMap) != "Parent sample")]
+    FracMap <- FracMap[, c("Parent sample", k)]
   }
+  #
+  MinPepSz %<o% as.integer(gsub(" *</?min((PepLen)|(PeptideLength))> *", "", grep(" *</?min((PepLen)|(PeptideLength))> *", mqpar, value = TRUE)))
+  Missed %<o% as.integer(gsub(" *</?maxMissedCleavages> *", "", grep(" *</?maxMissedCleavages> *", mqpar, value = TRUE)))
 }
 if (SearchSoft == "DIANN") {
   isDIA %<o% TRUE
@@ -405,7 +412,6 @@ if (SearchSoft == "DIANN") {
       }
     }
   }
-  PSMsBckp <- "diaNN PSMs converted to MQ-like format.RData"
   if (file.exists(PSMsBckp)) {
     msg <- "Processing PSM tables can be slow.\nA backup has been found in the temporary folder, should we re-load it?"
     ReLoadPSMsBckp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = FALSE)$res, c("yes", "no"))]
@@ -497,7 +503,6 @@ if (SearchSoft == "FRAGPIPE") {
   }
   ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_fpar(Report, fpar(ftext(\" -> FragPipe manifest file: \", prop = WrdFrmt$Body_text), fp_p = WrdFrmt$left))")
   ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_fpar(Report, fpar(ftext(paste0(\"     \", FP_ManifestFl), prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$left))")
-  PSMsBckp <- "FragPipe PSMs converted to MQ-like format.RData"
   if (file.exists(PSMsBckp)) {
     msg <- "Processing PSM tables can be slow.\nA backup has been found in the temporary folder, should we re-load it?"
     ReLoadPSMsBckp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = FALSE)$res, c("yes", "no"))]
@@ -640,11 +645,15 @@ if (SearchSoft == "FRAGPIPE") {
   Samples %<o% FP_Manifest$Samples
   FracMap %<o% data.frame("Raw file" = rawFiles,
                           "Raw files name" = rawFiles2,
-                          "Parent sample" = Samples,
+                          "MQ.Exp" = Samples,
                           "Fraction" = 1,
                           "Use" = TRUE,
                           check.names = FALSE)
-  if (LabelType == "Isobaric") { FracMap$Isobaric.set <- c(1, "?")[(nrow(FracMap) > 1)+1] }
+  if (LabelType == "Isobaric") {
+    FracMap$Isobaric.set <- c(1, "?")[(nrow(FracMap) > 1)+1]
+  } else {
+    FracMap$"Parent sample" <- FracMap$MQ.Exp
+  }
   pat <- topattern("msfragger.digest_min_length=")
   MinPepSz %<o% as.integer(gsub(pat, "", grep(pat, FP_Workflow, value = TRUE)))
   Ump %<o% as.logical(toupper(gsub(topattern("diaumpire.run-diaumpire="), "", grep(topattern("diaumpire.run-diaumpire="), FP_Workflow, value = TRUE))))
@@ -654,5 +663,8 @@ if (SearchSoft == "FRAGPIPE") {
   Missed %<o% as.integer(gsub(pat, "", grep(pat, FP_Workflow, value = TRUE)))
 }
 if (SearchSoft == "PROTEOMEDISCOVERER") { stop("This part has not yet been re-written for PD!") }
-FracMapNm %<o% "Fractions map"
 stopifnot(nrow(ev) > 0)
+#
+if (!file.exists(FracMapPath)) {
+  write.csv(FracMap, file = FracMapPath, row.names = FALSE)
+}

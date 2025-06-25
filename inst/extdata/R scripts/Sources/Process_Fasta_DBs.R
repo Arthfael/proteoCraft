@@ -2,19 +2,7 @@
 SSH_on %<o% FALSE
 fastas <- unique(fastas)
 #fastas <- fastas$Full
-loadInt %<o% c(TRUE, FALSE)[match(dlg_message("Load a fasta of proteins of interest?", "yesno")$res, c("yes", "no"))]
-intPrtFst %<o% paste0(wd, "/Proteins of interest.fasta")
-if (loadInt) {
-  intFast <- selectFile(paste0("Select proteins of interest fasta", intPrtFst), path = wd)
-  if (!is.null(intFast)) {
-    intFast <- gsub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), intFast)
-    if (intFast != intPrtFst) {
-      file.copy(intFast, intPrtFst, TRUE)
-      cat(paste0("   FYI: a copy of your input fasta has been saved at \"", intPrtFst, "\"..."))
-    }
-  }
-}
-if (file.exists(intPrtFst)) { fastas <- unique(c(fastas, intPrtFst)) }
+#
 fastasTbl %<o% data.frame(Full = fastas,
                           Name = basename(fastas),
                           Dir = dirname(fastas),
@@ -289,7 +277,7 @@ ui <- fluidPage(
   actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
   DTOutput("Fastas")
 )
-if (exists("fastasTbl3")) { rm(ExpData3) }
+if (exists("fastasTbl3")) { rm(fastasTbl3) }
 server <- function(input, output, session) {
   # Output
   fastasTbl3 <- fastasTbl
@@ -437,13 +425,15 @@ for (i in 1:nrow(fastasTbl)) { if (!file.exists(paste0(wd, "/", fastasTbl$Name[i
 if (scrptType == "noReps") { AnalysisParam$fastasTbl <- list(fastasTbl$Full) }
 
 # Filter for repeats, mark as contaminants
-tst <- aggregate(db$`Potential contaminant`, list(db$`Protein ID`), c)
+tmp <- as.data.table(db[, c("Potential contaminant", "Protein ID")])
+tst <- tmp[, list(x = c(`Potential contaminant`)), by = list(Group.1 = `Protein ID`)]
+tst <- as.data.frame(tst)
 u <- tst$Group.1
-tst$L <- sapply(tst$x, length)
+tst$L <- vapply(tst$x, length, 1)
 w <- which(tst$L > 1)
 if (length(w)) {
   tst <- tst[w,]
-  tst$Cont <- sapply(tst$x, function(x) { c("", "+")[("+" %in% x)+1] })
+  tst$Cont <- vapply(tst$x, function(x) { c("", "+")[("+" %in% x)+1] }, "")
   w <- which(db$`Protein ID` %in% tst$Group.1)
   db$`Potential contaminant`[w] <- tst$Cont[match(db$`Protein ID`[w], tst$Group.1)]
   db <- db[match(u, db$`Protein ID`),]
@@ -501,19 +491,19 @@ if (SearchSoft %in% c("MAXQUANT", "DIANN", "FRAGPIPE")) {
                                  contDB[which(!contDB$`Full ID` %in% tst$`Protein ID`),])
       w1 <- which(grepl("^>(sp)|(tr)\\|", contDB$Header))
       org <- unique(contDB$Organism_Full[w1])
-      require(UniProt.ws)
+      library(UniProt.ws)
       txIDs <- setNames(lapply(org, function(x) { c() }), org)
       w <- which(org %in% names(Taxonomies))
       if (length(w)) { txIDs[w] <- Taxonomies[w] }
       w <- which(!org %in% names(Taxonomies))
       if (length(w)) {
-        txIDs[w] <- setNames(lapply(org[w], function(x) {
+        txIDs[w] <- setNames(parLapply(parClust, org[w], function(x) {
           tst <- try(myTAI::taxonomy(organism = x, db = "ncbi", output = "classification"), silent = TRUE)
           if ("try-error" %in% class(tst)) { rs <- list(Outcome = FALSE) } else {
             rs <- list(Outcome = TRUE,
                        Res = tst) 
           }
-        }), org)
+        }), org[w])
         wY <- w[which(sapply(txIDs[w], function(x) { x$Outcome }))]
         wN <- w[which(!sapply(txIDs[w], function(x) { x$Outcome }))]
         txIDs[wN] <- c()

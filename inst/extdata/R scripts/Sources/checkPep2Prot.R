@@ -1,0 +1,93 @@
+# Update peptide-to-protein mappings
+# FragPipe only reports one protein per PSM, and among other search software, MaxQuant at least is also not fully exhaustive.
+# While this may be correct from their point of view, I think I should report all matches.
+setwd(wd)
+#ev$Proteins <- gsub(";CON_", ";", gsub("^CON_", "", gsub(";CON__", ";", gsub("^CON__", "", ev$Proteins))))
+if (Update_Prot_matches) {
+  ReportCalls$Calls <- append(ReportCalls$Calls,
+                              paste0("body_add_fpar(Report, fpar(ftext(\" - Checking ", names(SearchSoft), "'s peptide sequence to protein assignments:\", prop = WrdFrmt$Body_text), fp_p = WrdFrmt$just))"))
+  msg <- "ing peptide-to-protein matches...\n"
+  if (Reuse_Prot_matches) {
+    msg <- paste0("Re-load", msg)
+    cat(msg)
+    Pep2Prot <- evmatch
+  } else {
+    msg <- paste0("Check", msg)
+    cat(msg)
+    source(parSrc, local = FALSE) # Always a good idea to check your cluster before such a big function...
+    Pep2Prot <- ProtMatch2(unique(ev$Sequence), db,
+                           cl = parClust) # (ignore the warning for now until we remove contaminant evidences)
+  }
+  wh1 <- which(ev$Sequence %in% Pep2Prot$Sequence)
+  wh2 <- which(Pep2Prot$Sequence %in% ev$Sequence)
+  mtch1 <- match(ev$Sequence[wh1], Pep2Prot$Sequence)
+  if (!"Proteins" %in% colnames(ev)) { ev$Proteins <- "" } else {
+    source(parSrc, local = FALSE)
+    tmpPs <- unique(Pep2Prot$Sequence[wh2])
+    tmpE <- ev$Proteins[match(tmpPs, ev$Sequence)]
+    tmpP <- Pep2Prot$Proteins[match(tmpPs, Pep2Prot$Sequence)]
+    tmpE <- strsplit(tmpE, ";")
+    tmpP <- strsplit(tmpP, ";")
+    f0 <- function(x) { paste(sort(x), collapse = ";") }
+    tst1 <- parSapply(parClust, tmpE, f0)
+    tst2 <- parSapply(parClust, tmpP, f0)
+    wN <- which(tst1 != tst2)
+    ViewTst <- FALSE
+    if ((length(wN))&&(ViewTst)) {
+      # Below some code to help with investigations...
+      tst <- data.frame(Seq = tmpPs[wN],
+                        Orig = tst1[wN],
+                        Corr = tst2[wN])
+      tst$Orig <- strsplit(tst$Orig, ";")
+      #View(tst)
+      tst$Corr <- strsplit(tst$Corr, ";")
+      f0 <- function(x, y) { x[which(!x %in% y)] }
+      tst$In_Orig_only <- lapply(1:nrow(tst), function(x) { f0(unlist(tst$Orig[[x]]),
+                                                               unlist(tst$Corr[[x]])) })
+      tst$In_Corr_only <- lapply(1:nrow(tst), function(x) { f0(unlist(tst$Corr[[x]]),
+                                                               unlist(tst$Orig[[x]])) })
+      tst$In_Orig_only_in_db <- vapply(tst$In_Orig_only, function(x) { sum(x %in% db$`Protein ID`) }, 1)
+      sum(unlist(tst$In_Orig_only_in_db))
+      sum(!unlist(tst$In_Orig_only_in_db))
+      w <- which(tst$In_Orig_only_in_db > 0)
+      View(tst[w,])
+      # lapply(1:nrow(tst), function(x) { f0(unlist(tst$Orig[[x]]),
+      #                                      unlist(tst$Corr[[x]])) })
+    }
+    tst <- sum(tst1 != tst2)
+    if (tst) {
+      msg <- paste0("Corrected ", tst, " out of ", nrow(Pep2Prot), " assignments (~", round(tst/nrow(Pep2Prot), 2), "%)!
+Prior investigations have identified 3 cases:
+ 1) Protein present in original column but not corrected results:
+   a) If redundant entries were present in the search fasta, then they would have usually been filtered by this workflow when it loads and parses the fasta database.
+   b) More rarely, the accession is present in the db... but for every peptide we have checked so far the protein sequence was not compatible with it (even allowing for I/L ambiguity)!!!
+ 2) Present in corrected but not original. We have multiple times verified that some search software (at least MaxQuant) miss some proteins despite a peptide being a canonical digestion product for it!
+All this supports the need to stringently check a search engine's assignments!
+Of course, in some cases (e.g. all assignments corrected) discrepancies can also be due to differences in how fasta headers are processed to extract protein accessions!
+")
+      if (SearchSoft == "FRAGPIPE") {
+        msg <- paste0(msg, " In addition, FragPipe only reports one protein per PSM for some reason...
+Hence it is to be expected that a very high percentage of assignments should be corrected there.
+")
+      }
+    } else { msg <- "All assignments validated.\n" }
+    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
+  }
+  ev$Proteins[wh1] <- Pep2Prot$Proteins[mtch1]
+  if (!Reuse_Prot_matches) {
+    # Save in case you need to reload:
+    evmatch <- ev[, c("Sequence", "Proteins")]
+    saveFun(evmatch, file = paste0(wd, "/evmatch.RData"))
+  }
+} else {
+  kol <- c("Leading proteins", "Proteins")
+  kol <- kol[which(kol %in% colnames(ev))]
+  tmp <- ev[, kol, drop = FALSE]
+  for (k in kol) { tmp[[k]] <- strsplit(tmp[[k]], ";") }
+  ev$Proteins <- parApply(parClust, tmp, 1, function(x) {
+    paste(unique(unlist(x)), collapse = ";")
+  })
+}
+tst <- unique(unlist(strsplit(ev$Proteins, ";")))
+if ("NA" %in% tst) { stop("\"NA\" is not an accepted protein accession!") }
+#View(ev[, c("Sequence", "Proteins")])

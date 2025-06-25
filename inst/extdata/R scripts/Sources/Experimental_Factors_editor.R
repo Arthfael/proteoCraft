@@ -35,12 +35,20 @@ if (WorkFlow == "BIOID") {
 }
 if (!exists("FactorsLevels")) {
   FactorsLevels %<o% setNames(lapply(Factors, function(x) { c("") }), Factors)
+  if (LabelType == "Isobaric") {
+    FactorsLevels["Isobaric.set"] <- sort(unique(FracMap$Isobaric.set))
+  }
 }
 w <- which(!Factors %in% names(FactorsLevels))
 if (length(w)) {
   FactorsLevels[Factors[w]] <- c()
 }
 Factors %<o% Factors[which(!is.na(Factors))]
+if (LabelType == "Isobaric") {
+  for (Fct in Factors[which(!Factors %in% c("Experiment", "Replicate", "Isobaric.set"))]) {
+    FactorsLevels[[Fct]] <- unique(c(FactorsLevels[[Fct]], "Mixed_IRS"))
+  }
+}
 FactorsLevels %<o% FactorsLevels[Factors]
 #rm(Factors, FactorsLevels)
 # Do not use my usual meta-coding approach!!! It is flexible... but not reactive, and almost as bad as shiny to debug!

@@ -26,12 +26,31 @@ if (dataType == "PG") {
   namesRoot <- "PG"
   ohDeer <- paste0(wd, "/Reg. analysis/GSEA")
 }
-if (!dir.exists(ohDeer)) { dir.create(ohDeer, recursive = TRUE) }
-dirlist <- unique(c(dirlist, ohDeer))
-log2Col <- paste0(ratRef, VPAL$values)
+if (scrptType == "withReps") {
+  log2Col <- paste0(ratRef, VPAL$values)
+}
+if (scrptType == "noReps") {
+  log2Col <- paste0(ratRef, Exp)
+}
 log2Col <- log2Col[which(log2Col %in% colnames(myData))]
+if (!dir.exists(ohDeer)) { dir.create(ohDeer, recursive = TRUE) }
+if (exists("dirlist")) { dirlist <- unique(c(dirlist, ohDeer)) }
 isOK <- length(log2Col) > 0
 if (isOK) {
+  if (!exists("Org")) {
+    kol <- c("Organism_Full", "Organism")
+    kol <- kol[which(kol %in% colnames(db))]
+    tst <- sapply(kol, function(x) { length(unique(db[which(!as.character(db[[x]]) %in% c("", "NA")), x])) })
+    kol <- kol[order(tst, decreasing = TRUE)][1]
+    w <- which(db$`Potential contaminant` != "+")
+    Org %<o% aggregate(w, list(db[w, kol]), length)
+    colnames(Org) <- c("Organism", "Count")
+    Org <- Org[which(Org$Count == max(Org$Count)[1]),]
+    Org$Source <- aggregate(db$Source[which(db[[kol]] %in% Org$Organism)], list(db[which(db[[kol]] %in% Org$Organism), kol]), function(x) {
+      unique(x[which(!is.na(x))])
+    })$x
+    Org$Source[which(is.na(Org$Source))] <- ""
+  }
   # For now only the following 20 organisms are supported, because we need their annotations package:
   orgDBs <- data.frame(Full = c("Homo sapiens",
                                 "Pan troglodytes",
@@ -107,21 +126,26 @@ if (isOK) {
   eval(parse(text = paste0("myKeys <- keytypes(", orgDBpkg, ")")))
   if (!"UNIPROT" %in% myKeys) {
     if ((organism == "Arabidopsis thaliana")&&("TAIR" %in% colnames(db))) {
-      if (!"TAIR" %in% colnames(myData)) {
-        myData$TAIR <- db$TAIR[match(gsub(";.*", "", myData[[idCol]]), db$`Protein ID`)]
-      }
+      myData$TAIR <- gsub(";.*", "", db$TAIR[match(gsub(";.*", "", myData[[idCol]]), db$`Protein ID`)])
       keyType <- idCol <- "TAIR"
     } else { isOK <- FALSE }
   }
 }
 if (isOK) {
   tmpDat <- myData[, c(idCol, log2Col)]
+  tmpDat <- tmpDat[which((nchar(tmpDat[[idCol]]) > 0)&(!is.na(tmpDat[[idCol]]))),]
+  if (length(unique(tmpDat[[idCol]])) < nrow(tmpDat)) {
+    tmpDat <- aggregate(tmpDat[[log2Col]], list(tmpDat[[idCol]]), mean, na.rm = TRUE)
+    colnames(tmpDat) <- c(idCol, log2Col)
+  }
   f0 <- function(kol) { #kol <- log2Col[1]
     tmp <- setNames(tmpDat[[kol]],
                     gsub(";.*", "", tmpDat[[idCol]]))
+    tmp <- tmp[which(!is.na(tmp))]
     tmp <- na.omit(tmp)
     tmp <- sort(tmp, decreasing = TRUE)
     tmp <- tmp[which(nchar(names(tmp)) > 0)]
+    #View(tmp)
     gse <- gseGO(tmp,
                  ont = "ALL", 
                  keyType = keyType, 
@@ -144,7 +168,7 @@ if (isOK) {
   }
   gses <- setNames(gses, proteoCraft::cleanNms(gsub(proteoCraft::topattern(ratRef), "", log2Col)))
   #
-  d <- GOSemSim::godata(annoDb = orgDBpkg, ont = "BP") # It seems to make sense use BP here since we are interested in which biological processes are reacting to the perturbation
+  d <- GOSemSim::godata(annoDb = orgDBpkg, ont = "BP") # It seems to make sense to use BP here since we are interested in which biological processes are reacting to the perturbation
   nCat <- 50
   #
   # GSEA dot plots

@@ -17,21 +17,22 @@ dirlist <- unique(c(dirlist, btchDir))
 #
 # Let's do some imputation:
 # (remember to remove those afterwards!)
-ImpGrps <- Exp.map[match(allSamples, Exp.map$Ref.Sample.Aggregate),
+currSamples <- allSamples[which(allSamples %in% colnames(tmpDat1))]
+ImpGrps <- Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),
                    VPAL$column]
-tmpDat2 <- tmpDat2Imp <- tmpDat1Imp <- tmpDat1[, allSamples]*NA
-Pos <- matrix(rep(FALSE, nrow(tmpDat2)*length(allSamples)), ncol = length(allSamples))
+tmpDat2 <- tmpDat1[, currSamples]*NA
 #
 myBatch3 <- myBatch2 <- myBatch <- normSequence[[nrmStp]]$Batch #myBatch <- "Lit"
 if (length(myBatch) > 1) {
   myBatch2 <- paste(substr(myBatch, 1, 3), collapse = "")
   myBatch3 <- paste(myBatch, collapse = "/")
 }
-mod0a <- model.matrix(~1, data = Exp.map)
+mod0a <- model.matrix(~1, data = Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),])
 #
 # Impute
-tmp <- proteoCraft::Data_Impute2(tmpDat1[, allSamples], ImpGrps)
-tmpDat1Imp[grpMtch,] <- test$Imputed_data
+tmp <- proteoCraft::Data_Impute2(tmpDat1[, currSamples], ImpGrps)
+tmpDat2Imp <- tmpDat1Imp <- tmp$Imputed_data
+Pos <- tmp$Positions_Imputed
 #
 for (lGrp in NormGrps$Group) { #lGrp <- NormGrps$Group[1] # Longitudinal group (peptide class)
   grpMtch <- match(NormGrps$IDs[[match(lGrp, NormGrps$Group)]],
@@ -40,22 +41,23 @@ for (lGrp in NormGrps$Group) { #lGrp <- NormGrps$Group[1] # Longitudinal group (
   #
   # For ComBat we only use the longitudinal groups (peptide normalisation group),
   # not the transversal groups (comparison/ratio groups).
-  # Indeed, batches will often intersect with the latter 
-  tmpDat2Imp[grpMtch, allSamples] <- ComBat(dat = tmpDat1Imp[grpMtch,],
-                                            batch = Exp.map[[myBatch2]],
+  # Indeed, batches will often intersect with the latter
+  btchs <- Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate), myBatch2]
+  tmpDat2Imp[grpMtch, currSamples] <- ComBat(dat = tmpDat1Imp[grpMtch,],
+                                            batch = btchs,
                                             mod = mod0a,
                                             par.prior = TRUE)
 }
-tmpDat2 <- tmpDat2Imp
+tmpDat2 <- tmpDat2Imp[, currSamples]
 #
 wAG2 <- wAG1
 # Remove imputed data:
 w <- which(Pos, arr.ind = TRUE)
-if (nrow(w)) { tmpDat2[w] <- tmpDat1[, allSamples][w] }
+if (nrow(w)) { tmpDat2[, currSamples][w] <- tmpDat1[, currSamples][w] }
 #
 # Plot
 PCAlyLst <- scoresLst <- PCsLst <- list()
-tmp <- pcaBatchPlots(tmpDat1Imp[wAG1, allSamples],
+tmp <- pcaBatchPlots(tmpDat1Imp[wAG1, currSamples],
                      "original",
                      myBatch2,
                      Exp.map,
@@ -63,7 +65,7 @@ tmp <- pcaBatchPlots(tmpDat1Imp[wAG1, allSamples],
 PCAlyLst[["original"]] <- tmp$PlotLy
 scoresLst[["original"]] <- tmp$Scores
 PCsLst[["original"]] <- tmp$PCs
-tmp <- pcaBatchPlots(tmpDat2Imp[wAG1, allSamples],
+tmp <- pcaBatchPlots(tmpDat2Imp[wAG1, currSamples],
                      "original",
                      myBatch2,
                      Exp.map,

@@ -13,8 +13,9 @@ if (length(Iso) <= 1) {
   if (!dir.exists(irsDr)) { dir.create(irsDr, recursive = TRUE) }
   dirlist <- unique(c(dirlist, irsDr))
   #
-  m <- match(allSamples, Exp.map$Ref.Sample.Aggregate)
-  design <- data.frame(Sample = allSamples,
+  currSamples <- allSamples[which(allSamples %in% colnames(tmpDat1))]
+  m <- match(currSamples, Exp.map$Ref.Sample.Aggregate)
+  design <- data.frame(Sample = currSamples,
                        Iso = Exp.map$Isobaric.set[m],
                        Samples_group = Exp.map[m, VPAL$column])
   design$Original.order <- 1:nrow(design)
@@ -43,12 +44,12 @@ if (length(Iso) <= 1) {
       # Column "All channels" MUST be present and valid
       tst2 <- sum((!"All channels" %in% colnames(IsoMap))&&
                     (sum(sapply(IsoMap$"All channels", function(x) {
-                      !x %in% unique(unlist(Exp.map$Isobaric.label.details))
+                      !x %in% unique(unlist(Exp.map$"Isobaric label details"))
                     }))))
       # IF column "Reference channel(s)" is present, it MUST be valid
       tst3 <- FALSE
       if ("Reference channel(s)" %in% colnames(IsoMap)) {
-        tst3 <- aggregate(Exp.map$Isobaric.label.details, list(Exp.map$Isobaric.set), list)
+        tst3 <- aggregate(Exp.map$"Isobaric label details", list(Exp.map$Isobaric.set), list)
         tst3 <- sum(vapply(IsoMap$Set, function(i) {
           x <- IsoMap$"Reference channel(s)"[[i]]
           x <- x[which(x != "")]
@@ -62,7 +63,7 @@ if (length(Iso) <= 1) {
     }
   }
   if (!exists("IsoMap")) {
-    IsoMap <- aggregate(Exp.map$Isobaric.label.details, list(Exp.map$Isobaric.set), list)
+    IsoMap <- aggregate(Exp.map$"Isobaric label details", list(Exp.map$Isobaric.set), list)
     colnames(IsoMap) <- c("Set", "All channels")
     IsoMap$"Reference channel(s)" <- lapply(1:nrow(IsoMap), function(x) { })
   }
@@ -170,61 +171,93 @@ Shiny.bindAll(table.table().node());"))
     dlg_message(paste0("File \"", IsoMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
     write.csv(tmpTbl, file = IsoMapPath, row.names = FALSE)
   }
+  #
+  # Temporarily impute (unavoidable here if we want to show PCAs)
+  ImpGrps <- Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),
+                     VPAL$column]
+  tmp <- proteoCraft::Data_Impute2(tmpDat1[, currSamples], ImpGrps)
+  tmpDat1Imp <- tmp$Imputed_data
+  Pos <- tmp$Positions_Imputed
+  #
   # A more complex description of IRS can be found here
   # https://pwilmart.github.io/IRS_normalization/understanding_IRS.html
   # However there is a mistake in the code there, as the geometric row means (instead of row sums) should be used, as for the average
   # Here the code is also adapted for log scale
   setNms <- paste0("Set", as.character(IsoMap$Set))
   # All samples per set
+  mixed <- unique(unlist(lapply(Factors, function(x) { which(Exp.map[[x]] == "Mixed_IRS") })))
+  mixedSets <- paste0("Set", as.character(unique(Exp.map$Isobaric.set[mixed])))
   irsSamples <- setNames(lapply(1:nrow(IsoMap), function(i) {
-    Exp.map$Ref.Sample.Aggregate[which(Exp.map$Isobaric.set == IsoMap$Set[i])]
+    Exp.map$Ref.Sample.Aggregate[which((! 1:nrow(Exp.map) %in% mixed)&(Exp.map$Isobaric.set == IsoMap$Set[i]))]
   }), setNms)
-  # log10 row sums
-  irsRowMeans <- lapply(irsSamples, function(x) {
-    #log10(parApply(parClust, tmpDat1[, x], 1, function(y) { sum(10^proteoCraft::is.all.good(y)) }))
-    #parApply(parClust, tmpDat1[, x], 1, function(y) { sum(proteoCraft::is.all.good(y)) })
-    parApply(parClust, tmpDat1[, x], 1, function(y) { mean(proteoCraft::is.all.good(y)) })
-  })
+  # Either intensity from IRS channel, or failing that log10 row means for the group
+  irsRowMeans <- setNames(lapply(setNms, function(nm) {
+    if (nm %in% mixedSets) {
+      x <- tmpDat1Imp[, Exp.map$Ref.Sample.Aggregate[mixed[which(mixedSets == nm)]], drop = FALSE]
+    } else {
+      x <- tmpDat1Imp[, irsSamples[[nm]]]
+    }
+    #log10(parApply(parClust, tmpDat1Imp[, x], 1, function(y) { sum(10^proteoCraft::is.all.good(y)) }))
+    #parApply(parClust, tmpDat1Imp[, x], 1, function(y) { sum(proteoCraft::is.all.good(y)) })
+    x <- parApply(parClust, x, 1, function(y) { mean(proteoCraft::is.all.good(y)) })
+    return(x)
+  }), setNms)
+  #View(do.call(cbind, irsRowMeans))
   # log10 geometric mean
-  allMeans <- parApply(parClust, tmpDat1[, allSamples], 1, function(x) {
+  allMeans <- parApply(parClust, tmpDat1Imp[, currSamples], 1, function(x) {
     #log10(mean(10^proteoCraft::is.all.good(x)))
     mean(proteoCraft::is.all.good(x))
   })
+  #View(data.frame(meanOfAll = allMeans))
   # log10 scaling factors:
   irsFact <- setNames(lapply(setNms, function(x) {
     allMeans - irsRowMeans[[x]]
   }), setNms)
+  #View(do.call(cbind, irsFact))
   # log10 new data
-  tmpDat2 <- lapply(setNms, function(x) { #x <- setNms[1]
-    sweep(tmpDat1[, irsSamples[[x]]], 1, irsFact[[x]], "+")
+  tmpDat2Imp <- lapply(setNms, function(x) { #x <- setNms[1]
+    sweep(tmpDat1Imp[, irsSamples[[x]]], 1, irsFact[[x]], "+")
   })
-  tmpDat2 <- do.call(cbind, c(tmpDat2))
+  tmpDat2Imp <- do.call(cbind, c(tmpDat2Imp))
+  #View(tmpDat2Imp)
+  # Remove imputed values
+  tmpDat2 <- tmpDat2Imp
+  w <- which(!currSamples %in% colnames(tmpDat2))
+  tmpDat2[, currSamples[w]] <- NA
+  wImp <- which(Pos, arr.ind = TRUE)
+  if (nrow(wImp)) { tmpDat2[, currSamples][wImp] <- tmpDat1[, currSamples][wImp] }
+  tmpDat2 <- tmpDat2[, colnames(tmpDat2Imp)]
   #
   wAG2 <- wAG1
-  wAGstrict <- which(parApply(parClust, tmpDat2, 1, function(x) { length(proteoCraft::is.all.good(x)) }) == length(allSamples))
+  #wAGstrict <- which(parApply(parClust, tmpDat2, 1, function(x) { length(proteoCraft::is.all.good(x)) }) == length(currSamples))
   # Plot
+  map <- Exp.map[, c("Ref.Sample.Aggregate", "Isobaric.set")]
+  w1 <- which(colnames(tmpDat1Imp) %in% map$Ref.Sample.Aggregate) # Should be all
   PCAlyLst <- scoresLst <- PCsLst <- list()
   prev <- "before"
-  tmp <- pcaBatchPlots(tmpDat1[wAGstrict, allSamples],
+  tmp <- pcaBatchPlots(tmpDat1Imp[, currSamples],
                        prev,
                        "Isobaric.set",
-                       Exp.map,
+                       map = Exp.map,
+                       SamplesCol = "Ref.Sample.Aggregate",
                        intRoot = "",
                        dir = irsDr,
                        ttl = "PCA plot - IRS batch corr.",
-                       isRef = allSamples %in% unlist(irsSamples))
+                       isRef = !currSamples %in% unlist(irsSamples))
   PCAlyLst[[prev]] <- tmp$PlotLy
   scoresLst[[prev]] <- tmp$Scores
   PCsLst[[prev]] <- tmp$PCs
   curr <- "IRS"
-  tmp <- pcaBatchPlots(tmpDat2[wAGstrict, allSamples],
+  w <- which(currSamples %in% colnames(tmpDat2Imp))
+  tmp <- pcaBatchPlots(tmpDat2Imp[, currSamples[w]],
                        curr,
                        "Isobaric.set",
-                       Exp.map,
+                       map = Exp.map,
+                       SamplesCol = "Ref.Sample.Aggregate",
                        intRoot = "",
                        dir = irsDr,
                        ttl = "PCA plot - IRS batch corr.",
-                       isRef = allSamples %in% unlist(irsSamples))
+                       isRef = !currSamples[w] %in% unlist(irsSamples))
   PCAlyLst[[curr]] <- tmp$PlotLy
   scoresLst[[curr]] <- tmp$Scores
   PCsLst[[curr]] <- tmp$PCs
@@ -265,11 +298,11 @@ Shiny.bindAll(table.table().node());"))
   server <- function(input, output, session) {
     output$Before <- renderPlotly(PCAlyLst[[prev]]$Isobaric.set)
     output$After <- renderPlotly(PCAlyLst[[curr]]$Isobaric.set)
-    observeEvent(input[["KeepResults"]], {
-      assign("KeepIRSRes", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
+    observeEvent(input[["KeepIRSRes"]], {
+      assign("KeepIRSRes", as.logical(input[["KeepIRSRes"]]), envir = .GlobalEnv)
     })
     observeEvent(input$saveBtn, {
-      assign("KeepIRSRes", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
+      assign("KeepIRSRes", as.logical(input[["KeepIRSRes"]]), envir = .GlobalEnv)
       assign("IHAVERUN", TRUE, .GlobalEnv)
       stopApp()
     })

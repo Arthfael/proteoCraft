@@ -29,6 +29,14 @@ wTest1 <- apply(wTest1, 1, function(x) {
 })
 #
 if (exists("appRunTest")) { rm(appRunTest) }
+dotLab <- RSA$names
+colLab <- VPAL$names
+if (length(Exp) == 1) {
+  dotLab <- dotLab[which(dotLab != "Experiment")]
+  colLab <- colLab[which(colLab != "Experiment")]
+}
+dotLab <- paste(dotLab, collapse = " ")
+colLab <- paste(colLab, collapse = " ")
 ui <- fluidPage(
   useShinyjs(),
   setBackgroundColor( # Doesn't work
@@ -57,6 +65,11 @@ ui <- fluidPage(
       width = 6
     ),
     mainPanel(
+      h4(em("Plot mappings:")),
+      h5(em(paste0("Dot labels = ", dotLab))),
+      h5(em(paste0("Colour = ", outlierAnnot_color))),
+      h5(em(paste0("Colour labels = ", colLab))),
+      h5(em(paste0("Shape = ", outlierAnnot_shape))),
       plotlyOutput("PCA", height = paste0(screenRes$width*0.4, "px")),
       br(),
       width = 6
@@ -66,21 +79,21 @@ server <- function(input, output, session) {
   tstGrps <- aggregate(Exp.map$Use, list(Exp.map[[VPAL$column]]), sum)
   if (min(tstGrps$x) < 2) { shinyjs::disable("saveBtn") }
   if (min(tstGrps$x) >= 2) { shinyjs::enable("saveBtn") }
-  output$Include <- renderDT( { Include },
-                              FALSE,
-                              escape = FALSE,
-                              selection = "none",
-                              editable = FALSE,
-                              rownames = FALSE,
-                              options = list(
-                                dom = "t",
-                                paging = FALSE,
-                                ordering = FALSE,
-                                autowidth = TRUE,
-                                columnDefs = wTest1,
-                                scrollX = FALSE
-                              ),
-                              callback = JS("table.rows().every(function(i, tab, row) {
+  output$Include <- renderDT({ Include },
+                             FALSE,
+                             escape = FALSE,
+                             selection = "none",
+                             editable = FALSE,
+                             rownames = FALSE,
+                             options = list(
+                               dom = "t",
+                               paging = FALSE,
+                               ordering = FALSE,
+                               autowidth = TRUE,
+                               columnDefs = wTest1,
+                               scrollX = FALSE
+                             ),
+                             callback = JS("table.rows().every(function(i, tab, row) {
         var $this = $(this.node());
         $this.attr('id', this.data()[0]);
         $this.addClass('shiny-input-container');

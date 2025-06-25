@@ -25,13 +25,13 @@ MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style
 #
 # 2) LCMS
 MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_fpar(MatMet, fpar(ftext(\"LC-MS/MS analysis\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))")
-LCMSMeth <- try(MatMet_LCMS(), silent = TRUE)
+LCMSMeth <- try(MatMet_LCMS(cl = parClust), silent = TRUE)
 if ((("try-error" %in% class(LCMSMeth))||(is.null(LCMSMeth)))&&("mzML" %in% gsub(".*\\.", "", rawFiles))) {
   tmp <- gsub("\\.mzML", ".raw", rawFiles)
-  LCMSMeth <- try(MatMet_LCMS(RawFiles = tmp), silent = TRUE)
+  LCMSMeth <- try(MatMet_LCMS(RawFiles = tmp, cl = parClust), silent = TRUE)
   if ((("try-error" %in% class(LCMSMeth))||(is.null(LCMSMeth)))&&("mzML" %in% gsub(".*\\.", "", rawFiles))) {
     tmp <- gsub("\\.mzML", ".d", rawFiles)
-    LCMSMeth <- try(MatMet_LCMS(RawFiles = tmp), silent = TRUE)
+    LCMSMeth <- try(MatMet_LCMS(RawFiles = tmp, cl = parClust), silent = TRUE)
   }
 }
 if ((("try-error" %in% class(LCMSMeth)))||(is.null(LCMSMeth))) { LCMSMeth <- "TEMPLATE" }
@@ -39,7 +39,7 @@ L <- length(LCMSMeth)
 if (L > 1) {
   LCMSMeth <- lapply(1:length(LCMSMeth), function(x) { c(paste0("Method ", x, ":"), LCMSMeth[[x]]) })
 }
-LCMSMeth <- unlist(LCMSMeth)
+LCMSMeth %<o% unlist(LCMSMeth)
 MatMetCalls$Texts$LCMS <- LCMSMeth
 for (i in 1:length(LCMSMeth)) {
   MatMetCalls$Calls <- append(MatMetCalls$Calls, paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$LCMS[", i,"], prop = WrdFrmt$",

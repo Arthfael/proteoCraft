@@ -17,8 +17,10 @@ wAG2 <- wAG1
 Outcome <- TRUE
 txt2 <- ""
 #
-m1 <- normFun(unlist(tmpDat1[wAG1, allSamples])) # Keep original global scale
-tmpDat2 <- tmpDat1[, allSamples]*NA
+currSamples <- allSamples[which(allSamples %in% colnames(tmpDat1))]
+#View(tmpDat1[wAG1, currSamples])
+m1 <- normFun(unlist(tmpDat1[wAG1, currSamples])) # Keep original global scale
+tmpDat2 <- tmpDat1[, currSamples]*NA
 normFlt <- tmpDat1$id
 if (normSequence[[nrmStp]]$Method == "GO terms") {
   Norma.Prot.Ratio.to.GO %<o% unlist(strsplit(Param$Norma.Prot.Ratio.to.GO, ";"))
@@ -81,7 +83,7 @@ if (Outcome) {
             m <- sapply(smpls, function(smpl) { normFun(proteoCraft::is.all.good(tmpDat1[grpMtch2, smpl])) })
           }
           #m <- m-mean(m)
-          tmpDat2[grpMtch, smpls] <- sweep(tmpDat1[grpMtch, smpls], 1, m, "-")
+          tmpDat2[grpMtch, smpls] <- sweep(tmpDat1[grpMtch, smpls], 2, m, "-")
           m3 <- normFun(proteoCraft::is.all.good(unlist(tmpDat2[grpMtch, smpls]))) # Keep group's original scale
           tmpDat2[grpMtch, smpls] <- tmpDat2[grpMtch, smpls] + (m2 - m3)
         }

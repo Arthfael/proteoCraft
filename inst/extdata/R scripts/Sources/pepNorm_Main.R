@@ -15,7 +15,12 @@ if (lNorm) {
   strt <- rev(strt[which(strt %in% names(pep.ref))])[1]
   rf <- pep.ref[strt]
   kol <- grep(topattern(rf), colnames(pep), value = TRUE)
-  tmpDat1 <- do.call(cbind, lapply(kol, function(k) { log10(pep[[k]]) }))
+  tmpDat1 <- do.call(cbind, lapply(kol, function(k) {
+    val <- log10(pep[[k]])
+    w <- which(!is.all.good(val, 2))
+    val[w] <- NA # We shouldn't have to deal with other types of invalid values! They break the rest.
+    return(val)
+  }))
   tmpDat1 <- as.data.frame(tmpDat1)
   colnames(tmpDat1) <- allSamples <- gsub(topattern(rf), "", kol)
   addKol <- setNames(c("id", "Group", "Modified sequence", "Proteins"),
@@ -25,7 +30,7 @@ if (lNorm) {
   pepNorm[[1]] <- list(Data = tmpDat1,
                        Filter = wAG1,
                        Pass = TRUE)
-  #
+  #View(tmpDat1[wAG1, allSamples])
   tmp <- Data_Impute2(tmpDat1[wAG1, allSamples],
                       Exp.map[match(allSamples, Exp.map$Ref.Sample.Aggregate), VPAL$column])
   tmp <- as.matrix(tmp$Imputed_data)
@@ -39,9 +44,9 @@ if (lNorm) {
                        "PCA plot - before norm.")
   #
   for (nrmStp in 1:lNorm) { #nrmStp <- 1 #nrmStp <- nrmStp+1
-    cat(" ->", nrmStp, normSequence[[nrmStp]]$Method, "\n")
     rg <- 1:nrmStp # (and not 1:(nrmStp-1): the first in the list is pre-norm data -> there is an offset)
-    prevStp <- max(which(sapply(rg, function(i) { pepNorm[[i]]$Pass })))
+    prevStp <- max(which(vapply(rg, function(i) { pepNorm[[i]]$Pass }, TRUE)))
+    cat("\n +++ Step", nrmStp, normSequence[[nrmStp]]$Method, "\n    input = step", prevStp-1, "\n")
     tmpDat1 <- pepNorm[[prevStp]]$Data # The first in the list is pre-norm data -> offset
     #View(tmpDat1)
     #normSequence[[nrmStp]]$Method
@@ -49,9 +54,9 @@ if (lNorm) {
     if (length(w)) { tmpDat1[, addKol[w]] <- pep[, names(addKol)[w]] }
     wAG1 <- pepNorm[[prevStp]]$Filter
     nrmSrc <- paste0(libPath, "/extdata/R scripts/Sources/", normSequence[[nrmStp]]$Source)
-    source(nrmSrc, local = FALSE)
     #rstudioapi::documentOpen(nrmSrc)
-    # These shources should all take as inputs:
+    source(nrmSrc, local = FALSE)
+    # These sources should all take as inputs:
     #   - tmpDat1 -> data from previous step
     #   - wAG1 -> filter (though they are all currently the same values... as should be expected)
     # ... and create the following outputs:
@@ -67,12 +72,14 @@ if (lNorm) {
                                 Text = txt2,
                                 Pass = Outcome)
   }
-  wNorm <- which(sapply(pepNorm, function(x) { x$Pass }))
+  wNorm <- which(vapply(pepNorm, function(x) { x$Pass }, TRUE))
   wNorm <- wNorm[which(wNorm != 1)]
   if (length(wNorm)) {
     # Visualisations
     dat <- lapply(c(1, wNorm), function(i) {
-      x <- as.data.frame(pepNorm[[i]]$Data[, allSamples])
+      df <- as.data.frame(pepNorm[[i]]$Data)
+      currSamples <- allSamples[which(allSamples %in% colnames(df))]
+      x <- df[, currSamples]
       colnames(x) <- proteoCraft::cleanNms(colnames(x))
       x[, addKol] <- pep[, names(addKol)]
       x <- x[pepNorm[[i]]$Filter,]
@@ -89,7 +96,7 @@ if (lNorm) {
     dat <- do.call(rbind, dat)
     unique(dat$Norm)
     dat$Norm <- factor(dat$Norm, levels = c("1 - Original",
-                                            paste0(wNorm, " - ", sapply(normSequence[wNorm-1], function(x) { x$Method }))))
+                                            paste0(wNorm, " - ", vapply(normSequence[wNorm-1], function(x) { x$Method }, ""))))
     ttl <- "Peptides intensity normalisation"
     kolz <- "."
     if (length(unique(pep$Normalisation_group)) > 1) { kolz <- c(kolz, "Normalisation_group") }
@@ -109,10 +116,12 @@ if (lNorm) {
     ReportCalls <- AddPlot2Report(Dir = nrmDr)
     #
     finNorm <- max(wNorm)
-    newDat <- pepNorm[[finNorm]]$Data[, allSamples]
-    tmp <- as.data.frame(newDat)
+    newDat <- as.data.frame(pepNorm[[finNorm]]$Data)
+    currSamples <- allSamples[which(allSamples %in% colnames(newDat))]
+    newDat <- newDat[, currSamples]
+    tmp <- newDat
     tmp <- proteoCraft::Data_Impute2(tmp,
-                                     Exp.map[match(allSamples, Exp.map$Ref.Sample.Aggregate), VPAL$column])
+                                     Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate), VPAL$column])
     tmp <- as.matrix(tmp$Imputed_data)
     tst <- pcaBatchPlots(tmp,
                          "Normalisation",
@@ -124,6 +133,12 @@ if (lNorm) {
                          "PCA plot - final norm.")
     # De-log
     newDatLin <- newDat
+    wHere <- which(RSA$values %in% colnames(newDatLin))
+    Ref.Sample.Aggregate$values <- RSA$values <- RSA$values[wHere]
+    Exp.map <- Exp.map[which(Exp.map$Ref.Sample.Aggregate %in% RSA$values),]
+    Volcano.plots.Aggregate.Level$values <- VPAL$values <- unique(Exp.map[[VPAL$column]])
+    Ratios.Ref.Groups$values <- RRG$values <- unique(Exp.map[[RRG$column]])
+    Ratios.Groups$values <- RG$values <- unique(Exp.map[[RG$column]])
     for (smpl in RSA$values) {
       newDatLin[[smpl]] <- 10^newDatLin[[smpl]]
     }
