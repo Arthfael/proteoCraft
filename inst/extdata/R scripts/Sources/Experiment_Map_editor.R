@@ -4,6 +4,9 @@ library(shiny)
 library(shinyjs)
 library(DT)
 #
+expKl <- c("MQ.Exp", "Parent sample")
+expKl <- expKl[which(expKl %in% colnames(FracMap))[1]]
+
 Factors2 %<o% Factors[which(!Factors %in% c("Experiment",
                                             "Replicate",
                                             "Isobaric.set",

@@ -577,7 +577,7 @@ libPath <- paste0(RPath, "/proteoCraft")
 parSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
 #
 # Detect backups and decide whether to keep them
-labelMode <- match(LabelType, c("LFQ", "Isobaric"))
+#labelMode <- match(LabelType, c("LFQ", "Isobaric"))
 FracMapNm %<o% "Fractions map"
 FracMapPath %<o% paste0(wd, "/", FracMapNm, ".csv")
 intPrtFst %<o% paste0(wd, "/Proteins of interest.fasta")
@@ -650,7 +650,8 @@ if (nrow(allBckps)) {
         areUok <- TRUE
         if (reloadedBckps$Role[i] == "Map of MS files to biological samples") {
           colnames(tmp)[which(colnames(tmp) == "Raw.file")] <- "Raw file" # Backwards compatibility
-          if (!c("Parent sample", "MQ.Exp")[labelMode] %in% colnames(tmp)) {
+          if (sum(!c("Parent sample", "MQ.Exp")#[labelMode]
+                  %in% colnames(tmp)) == 2) {
             warning("Invalid Fractions map reloaded, ignoring...")
             areUok <- FALSE
           }
@@ -664,11 +665,11 @@ if (nrow(allBckps)) {
           if (exists("FracMap")) {
             expKl <- c("MQ.Exp", "Parent sample")
             expKl <- expKl[which(expKl %in% colnames(FracMap))[1]]
-            tst <- unique(FracMap[[expKl]][which(FracMap$Use)])
-            if (sum(!tst %in% tmp[[c("Sample name", "MQ.Exp")[labelMode]]])) {
-              warning("Invalid Experiment map reloaded, ignoring...")
-              areUok <- FALSE
-            }
+            # tst <- unique(FracMap[[expKl]][which(FracMap$Use)])
+            # if (sum(!tst %in% tmp[[c("Sample name", "MQ.Exp")[labelMode]]])) {
+            #   warning("Invalid Experiment map reloaded, ignoring...")
+            #   areUok <- FALSE
+            # }
           }
         }
         if (areUok) { assign(reloadedBckps$ObjNm[[i]], tmp) }

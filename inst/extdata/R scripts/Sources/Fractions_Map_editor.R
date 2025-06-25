@@ -4,6 +4,7 @@ library(shiny)
 library(shinyjs)
 library(DT)
 #
+labelMode <- match(LabelType, c("LFQ", "Isobaric"))
 # Important distinction here:
 # - If LabelType == "LFQ", a priori "Parent sample" == MQ.Exp, but this can be changed!
 # - If LabelType == "Isobaric", at this stage each raw file maps to a single MQ.Exp but normally to several "Parent sample" values!
