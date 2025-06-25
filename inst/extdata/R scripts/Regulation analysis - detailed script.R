@@ -238,16 +238,11 @@ evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
 
 #### Code chunk - Load and process annotations
 ## This includes a QC step in case the database differs slightly from the one used by MQ, or if somehow some IDs have not been properly parsed.
-FndAnnotFl <- "Parsed_annotations.RData" %in% list.files(wd)
-if (FndAnnotFl) {
-  msg <- "Functional annotations backup detected - reuse it?"
-  tst <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
-  if (tst) { msg <- "" } else { FndAnnotFl <- FALSE }
-}
 GO.col %<o% c("GO", "GO-ID")
 ObjNm <- "Annotate"
 if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
-  if (FndAnnotFl) { tmp <- TRUE } else {
+  tmp <- "Parsed functional annotations" %in% reloadedBckps$Role
+  if (!tmp) {
     msg <- "Can you provide functional annotations? (required for GO analysis)"
     tmp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
   }
@@ -260,9 +255,8 @@ if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[mat
   if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
 }
 if (Annotate) {
-  if (FndAnnotFl) { loadFun("Parsed_annotations.RData") }
-  if (exists("Parsed_annotations")) { Parsed_annotations <- Parsed_annotations } else {
-    AnnotFls <- sapply(gsub("\\.fa((s(ta(\\.fas)?)?)|a?)?$", ".txt", fastasTbl$Full), function(x) {
+  if (!exists("Parsed_annotations")) {
+    AnnotFls <- vapply(gsub("\\.fa((s(ta(\\.fas)?)?)|a?)?$", ".txt", fastasTbl$Full), function(x) {
       x2 <- gsub(".+/", "D:/Fasta_databases/", x)
       if (!file.exists(x)) {
         if (file.exists(x2)) {
@@ -271,7 +265,7 @@ if (Annotate) {
         } else { x <- NA }
       }
       return(x)
-    })
+    }, "")
     AnnotFls %<o% AnnotFls[which(!is.na(AnnotFls))]
     if (!length(AnnotFls)) {
       moar <- TRUE
@@ -309,10 +303,8 @@ if (Annotate) {
       tst3 <- tst3[, list(x = unique(A2)), by = list(Group.1 = A1)]
       tst3 <- as.data.frame(tst3)
       stopifnot(length(tst3$x) == length(unique(tst3$x)), "character" %in% class(tst3$x))
-      #View(tst3[which(sapply(tst3$x, length) > 1),])
-      #View(tst3[which(sapply(tst3$x, length) == 0),])
-      saveFun(Parsed_annotations, file = "Parsed_annotations.RData")
-      #loadFun("Parsed_annotations.RData")
+      #View(tst3[which(vapply(tst3$x, length, 1) > 1),])
+      #View(tst3[which(vapply(tst3$x, length, 1) == 0),])
       #View(Parsed_annotations[, c("GO", "GO-ID")])
     }
   }
@@ -326,10 +318,10 @@ if (Annotate) {
   tst2$ID <- gsub(".*\\[|\\]$", "", tst2$name)
   tst1$ID <- tst2$ID[match(tst1$name, tst2$name)]
   tst3 <- set_colnames(aggregate(tst2$name, list(tst2$ID), unique), c("ID", "names"))
-  tst3$L <- sapply(tst3$names, length)
+  tst3$L <- vapply(tst3$names, length, 1)
   if (max(tst3$L) > 1) { # this would indicate degeneracy and the need to fix names
     tst3 <- tst3[which(tst3$L > 1),]
-    tst3$name <- sapply(tst3$names, function(x) { x[[1]] })
+    tst3$name <- vapply(tst3$names, function(x) { x[[1]] }, "")
     rws <- unique(unlist(tst2$rows[which(tst2$ID %in% tst3$ID)]))
     tst1 <- tst1[which(tst1$row %in% rws),]
     tst2 <- tst2[which(tst2$ID %in% tst3$ID),]
@@ -342,11 +334,12 @@ if (Annotate) {
                  by = list(tst1$row)]
     tst1 <- as.data.frame(tst1)
     Parsed_annotations[w, c("GO", "GO-ID")] <- tst1[match(w, tst1$tst1), c("GO", "ID")]
-    saveFun(Parsed_annotations, file = "Parsed_annotations.RData")
   }
 }
 Annotate <- exists("Parsed_annotations") # Update condition
 if (Annotate) {
+  Parsed_annotations %<o% Parsed_annotations
+  saveFun(Parsed_annotations, file = "Parsed_annotations.RData")
   #db <- db[, which(!colnames(db) %in% annot.col)]
   kol <- colnames(Parsed_annotations)
   annot.col %<o% kol[which(!kol %in% c("Accession", "id", "ID", "Names", "Sequence", "MW (Da)"))]
@@ -369,12 +362,14 @@ if (Annotate) {
   tst3 <- data.table(A1 = tst1, A2 = tst2)
   tst3 <- tst3[, list(x = unique(A2)), by = list(Group.1 = A1)]
   tst3 <- as.data.frame(tst3)
-  #View(tst3[which(sapply(tst3$x, length) > 1),])
-  #View(tst3[which(sapply(tst3$x, length) == 0),])
+  #View(tst3[which(vapply(tst3$x, length, 1) > 1),])
+  #View(tst3[which(vapply(tst3$x, length, 1) == 0),])
   stopifnot(length(tst3$x) == length(unique(tst3$x)), "character" %in% class(tst3$x))
   db$Ontology <- NULL # Temporary fix for now, this column is broken
   #
-  write.csv(db, "Parsed, annotated search db.csv", row.names = FALSE)
+  data.table::fwrite(db, paste0(wd, "/Parsed, annotated search db.csv"), quote = FALSE, sep = ",", row.names = FALSE, col.names = TRUE, na = "NA")
+  #db <- data.table::fread(paste0(wd, "/Parsed, annotated search db.csv"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
+  #write.csv(db, "Parsed, annotated search db.csv", row.names = FALSE)
   #db <- read.csv("Parsed, annotated search db.csv", check.names = FALSE, colClasses = "character")
 }
 source(parSrc, local = FALSE)
@@ -405,7 +400,7 @@ MQ.Frac %<o% sort(suppressWarnings(unique(as.integer(unlist(strsplit(as.characte
 
 # Test
 if ((SearchSoft == "MAXQUANT")&&(LabelType == "Isobaric")) {
-  tst <- sum(!paste0("Reporter intensity ", Exp.map$Isobaric.label) %in% colnames(ev))
+  tst <- sum(!paste0("Reporter intensity ", Exp.map$"Isobaric label") %in% colnames(ev))
   stopifnot(tst == 0)
   # If this is not correct, then we should consider re-introducing older "Code chunk - Isobarically-labelled samples only! Check whether 1 must be subtracted from MaxQuant's isobaric labels index"
 }
@@ -424,7 +419,7 @@ if (file.exists(FracMapPath)) {
   }
   Frac.map <- Frac.map[which(Frac.map$Use),]
   MQ.Exp <- MQ.Exp[which(MQ.Exp %in% unique(unlist(Frac.map$MQ.Exp[which(Frac.map$Use)])))]
-  Exp.map <- Exp.map[which(sapply(Exp.map$MQ.Exp, function(x) { sum(x %in% MQ.Exp) }) > 0),]
+  Exp.map <- Exp.map[which(vapply(Exp.map$MQ.Exp, function(x) { sum(x %in% MQ.Exp) }, 1) > 0),]
   Frac.map <- Frac.map[which(Frac.map$MQ.Exp %in% MQ.Exp),]
   #Frac.map$"Raw file" <- gsub("\\\\", "/", Frac.map$"Raw file") # Redundant
   #ev$"Raw file path" <- gsub_Rep("\\\\", "/", ev$"Raw file path")
@@ -453,14 +448,14 @@ if (file.exists(FracMapPath)) {
   test <- sort(unique(Frac.map$MQ.Exp))
   if (sum(test != sort(MQ.Exp))) { stop("Column \"Experiment\" not defined properly in Fractions map!") }
   Frac.map <- Frac.map[which(Frac.map$MQ.Exp %in% MQ.Exp),]
-  Frac.map$Experiment <- sapply(Frac.map$MQ.Exp, function(x) { #x <- Frac.map$MQ.Exp[1]
-    x1 <- unlist(unique(Exp.map$Experiment[which(sapply(Exp.map$MQ.Exp, function(y) { x %in% unlist(y) }))]))
+  Frac.map$Experiment <- vapply(Frac.map$MQ.Exp, function(x) { #x <- Frac.map$MQ.Exp[1]
+    x1 <- unlist(unique(Exp.map$Experiment[which(vapply(Exp.map$MQ.Exp, function(y) { x %in% unlist(y) }, TRUE))]))
     if (length(x1) == 1) { return(x1) } else {
       if (length(x1) > 1) { stop(paste0(x, " - each raw file must be mapped to exactly one Experiment!")) } else {
         return(NA)
       }
     }
-  })
+  }, "")
   Frac.map <- Frac.map[which(!is.na(Frac.map$Experiment)),]
   if (("Replicate" %in% colnames(Frac.map))&&(sum(sort(unique(Frac.map$Replicate)) != sort(Rep)) != 0)) {
     stop("Replicates from Fractions map and Experiment map do not match!")
@@ -527,7 +522,7 @@ if (file.exists(FracMapPath)) {
       paste0("Rep", paste(x, collapse = "_"))
     })
     ev$Replicate <- Frac.map$Replicate[ev2fr]
-  } else { Frac.map$Unique.Frac.ID <- apply(Frac.map[, c("MQ.Exp", "Fraction")], 1, paste, collapse = "_") }
+  } else { Frac.map$Unique.Frac.ID <- do.call(paste, c(Frac.map[, c("MQ.Exp", "Fraction")], sep = "_")) }
   if (LabelType == "Isobaric") {
     if (!"Isobaric.set" %in% colnames(Frac.map)) {
       if (test.iso.set) { stop("The fractions map does not include an isobaric set column!") } else {
@@ -538,7 +533,7 @@ if (file.exists(FracMapPath)) {
   }
   # Filter for ones to keep
   MQ.Exp <- MQ.Exp[which(MQ.Exp %in% Frac.map$MQ.Exp)]
-  Exp.map <- Exp.map[which(sapply(Exp.map$MQ.Exp, function(x) { sum(x %in% MQ.Exp) > 0 })),]
+  Exp.map <- Exp.map[which(vapply(Exp.map$MQ.Exp, function(x) { sum(x %in% MQ.Exp) }, 1) > 0),]
   Frac.map$Fraction <- as.numeric(gsub("^ | $", "", Frac.map$Fraction))
   ev <- ev[which(ev$MQ.Exp %in% MQ.Exp),]
   ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file")
@@ -555,8 +550,8 @@ if (file.exists(FracMapPath)) {
     warning("Column \"Norma.groups\" in the Fractions Map is deprecated, use \"PTM-enriched\" instead!")
   }
   Unique.Frac %<o% data.frame(Unique.Frac.ID = unique(Frac.map$Unique.Frac.ID))
-  Unique.Frac$Raw.files <- sapply(Unique.Frac$Unique.Frac.ID, function(x) {
-    list(Frac.map$"Raw file"[which(Frac.map$Unique.Frac.ID == x)])
+  Unique.Frac$Raw.files <- lapply(Unique.Frac$Unique.Frac.ID, function(x) {
+    Frac.map$"Raw file"[which(Frac.map$Unique.Frac.ID == x)]
   })
   ev$"Unique Frac" <- Frac.map$Unique.Frac.ID[ev2fr]
 } else {
@@ -568,7 +563,7 @@ if (file.exists(FracMapPath)) {
   if (LabelType == "Isobaric") {
     if (length(Iso) == 1) {
       ev$Isobaric.set <- Iso
-      kol <- c(kol, "Isobaric.set")
+      kol <- c(kol, Isobaric.set)
     } else { stop("There are several Isobaric sets in Exp.map, yet Fractions map is missing!") }
   }
   Frac.map %<o% set_colnames(aggregate(ev[, kol], list(ev$"Raw file path"), unique), c("Raw file", kol))
@@ -620,10 +615,11 @@ if (LabelType == "Isobaric") {
 FactorsLevels <- setNames(lapply(Factors, function(Fact) {
   unique(Exp.map[[Fact]])
 }), Factors)
-w <- which(sapply(FactorsLevels, length) > 0)
+w <- which(vapply(FactorsLevels, length, 1) > 0)
 Factors <- Factors[w]
 FactorsLevels <- FactorsLevels[Factors]
 
+#### Code chunk - Define analysis parameters
 # Protein headers for shiny
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
@@ -660,6 +656,10 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
+# PCA prior to shiny app
+Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_PCA.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 # Define analysis parameters
 Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_Main.R")
 #rstudioapi::documentOpen(Src)
@@ -737,117 +737,17 @@ for (i in c("Potential contaminant", "Reverse")) {
   ev[w, i] <- ""
 }
 
-#### Code chunk - Update evidences-to-protein mappings
-# FragPipe only reports one protein per PSM, and among other search software, MaxQuant at least is also not fully exhaustive.
-# While this may be correct from their point of view, I think I should report all matches.
-setwd(wd)
-#ev$Proteins <- gsub(";CON_", ";", gsub("^CON_", "", gsub(";CON__", ";", gsub("^CON__", "", ev$Proteins))))
-if (Update_Prot_matches) {
-  ReportCalls$Calls <- append(ReportCalls$Calls,
-                              paste0("body_add_fpar(Report, fpar(ftext(\" - Checking ", names(SearchSoft), "'s peptide sequence to protein assignments:\", prop = WrdFrmt$Body_text), fp_p = WrdFrmt$just))"))
-  Reuse_Prot_matches <- FALSE
-  ObjNm <- "Reuse_Prot_matches"
-  if ("evmatch.RData" %in% list.files(wd)) {
-    if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
-      msg <- "Some backed-up protein matches are available in the folder, do you want to reuse them?\n"
-      tmp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
-      if (is.na(tmp)) { tmp <- FALSE }
-      ObjNm %<c% tmp
-      tmp <- AllAnsw[1,]
-      tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
-      tmp$Value <- list(get(ObjNm))
-      m <- match(ObjNm, AllAnsw$Parameter)
-      if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
-    }
-  }
-  if (Reuse_Prot_matches) { loadFun(paste0(wd, "/evmatch.RData")) }
-  if (exists("evmatch")) {
-    temp <- evmatch
-  } else {
-    source(parSrc, local = FALSE)
-    temp <- ProtMatch2(unique(ev$Sequence), db,
-                       cl = parClust) # (ignore the warning for now until we remove contaminant evidences)
-  }
-  wh1 <- which(ev$Sequence %in% temp$Sequence)
-  wh2 <- which(temp$Sequence %in% ev$Sequence)
-  mtch1 <- match(ev$Sequence[wh1], temp$Sequence)
-  if (!"Proteins" %in% colnames(ev)) { ev$Proteins <- "" } else {
-    source(parSrc, local = FALSE)
-    tmpPs <- unique(temp$Sequence[wh2])
-    tmpE <- ev$Proteins[match(tmpPs, ev$Sequence)]
-    tmpP <- temp$Proteins[match(tmpPs, temp$Sequence)]
-    tmpE <- strsplit(tmpE, ";")
-    tmpP <- strsplit(tmpP, ";")
-    f0 <- function(x) { paste(sort(x), collapse = ";") }
-    tst1 <- parSapply(parClust, tmpE, f0)
-    tst2 <- parSapply(parClust, tmpP, f0)
-    wN <- which(tst1 != tst2)
-    ViewTst <- FALSE
-    if ((length(wN))&&(ViewTst)) {
-      # Below some code to help with investigations...
-      tst <- data.frame(Seq = tmpPs[wN],
-                        Orig = tst1[wN],
-                        Corr = tst2[wN])
-      tst$Orig <- strsplit(tst$Orig, ";")
-      #View(tst)
-      tst$Corr <- strsplit(tst$Corr, ";")
-      f0 <- function(x, y) { x[which(!x %in% y)] }
-      tst$In_Orig_only <- lapply(1:nrow(tst), function(x) { f0(unlist(tst$Orig[[x]]),
-                                                               unlist(tst$Corr[[x]])) })
-      tst$In_Corr_only <- lapply(1:nrow(tst), function(x) { f0(unlist(tst$Corr[[x]]),
-                                                               unlist(tst$Orig[[x]])) })
-      tst$In_Orig_only_in_db <- sapply(tst$In_Orig_only, function(x) { sum(x %in% db$`Protein ID`) })
-      sum(unlist(tst$In_Orig_only_in_db))
-      sum(!unlist(tst$In_Orig_only_in_db))
-      w <- which(tst$In_Orig_only_in_db > 0)
-      View(tst[w,])
-      # lapply(1:nrow(tst), function(x) { f0(unlist(tst$Orig[[x]]),
-      #                                      unlist(tst$Corr[[x]])) })
-    }
-    tst <- sum(tst1 != tst2)
-    if (tst) {
-      msg <- paste0("Corrected ", tst, " out of ", nrow(temp), " assignments (~", round(tst/nrow(temp), 2), "%)!
-Prior investigations have identified 3 cases:
- 1) Protein present in original column but not corrected results:
-   a) If redundant entries were present in the search fasta, then they would have usually been filtered by this workflow when it loads and parses the fasta database.
-   b) More rarely, the accession is present in the db... but for every peptide we have checked so far the protein sequence was not compatible with it (even allowing for I/L ambiguity)!!!
- 2) Present in corrected but not original. We have multiple times verified that some search software (at least MaxQuant) miss some proteins despite a peptide being a canonical digestion product for it!
-All this supports the need to stringently check a search engine's assignments!
-Of course, in some cases (e.g. all assignments corrected) discrepancies can also be due to differences in how fasta headers are processed to extract protein accessions!
-")
-      if (SearchSoft == "FRAGPIPE") {
-        msg <- paste0(msg, " In addition, FragPipe only reports one protein per PSM for some reason...
-Hence it is to be expected that a very high percentage of assignments should be corrected there.
-")
-      }
-    } else { msg <- "All assignments validated.\n" }
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
-  }
-  ev$Proteins[wh1] <- temp$Proteins[mtch1]
-  if (!Reuse_Prot_matches) {
-    # Save in case you need to reload:
-    evmatch <- ev[, c("Sequence", "Proteins")]
-    saveFun(evmatch, file = paste0(wd, "/evmatch.RData"))
-  }
-} else {
-  kol <- c("Leading proteins", "Proteins")
-  kol <- kol[which(kol %in% colnames(ev))]
-  tmp <- ev[, kol, drop = FALSE]
-  for (k in kol) { tmp[[k]] <- strsplit(tmp[[k]], ";") }
-  ev$Proteins <- parApply(parClust, tmp, 1, function(x) {
-    paste(unique(unlist(x)), collapse = ";")
-  })
-}
-tst <- unique(unlist(strsplit(ev$Proteins, ";")))
-if ("NA" %in% tst) { stop("\"NA\" is not an accepted protein accession!") }
-#View(ev[, c("Sequence", "Proteins")])
+#### Code chunk - Update peptide-to-protein mappings
+Src <- paste0(libPath, "/extdata/R scripts/Sources/checkPep2Prot.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 #test <- c()
 #if (!is.null(prot.list)) {
 #  a <- paste0(";", ev$Proteins, ";")
 #  b <- prot.list
 #  a1 <- paste0(";", b, ";")
-#  test <- unique(unlist(sapply(a1, function(x) {ev$id[grep(x, a)]})))
+#  test <- unique(unlist(lapply(a1, function(x) { ev$id[grep(x, a)] })))
 #}
 #kol <- which(toupper(colnames(ev)) %in% c("CONTAMINANT", "POTENTIAL CONTAMINANT"))
 #ev <- ev[which((is.na(ev[[kol]]))|(ev[[kol]] == "")|(ev$id %in% test)),]
@@ -863,9 +763,9 @@ if (l) {
   ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
   ev$"Tryptic peptide?"[w] <- FALSE
   temp <- data.frame(Seq = unique(ev$Sequence[w]))
-  temp$Proteins <- sapply(temp$Seq, function(x) {
+  temp$Proteins <- vapply(temp$Seq, function(x) {
     paste(db$"Protein ID"[grep(x, db$Sequence)], collapse = ";")
-  })
+  }, "")
   ev$Proteins[w] <- temp$Proteins[match(ev$Sequence[w], temp$Seq)]
   ev <- ev[which(ev$Proteins != ""),]
 }
@@ -915,13 +815,15 @@ if (LabelType == "Isobaric") { # If isobaric
   w <- which(kol %in% colnames(ev))
   # Remove unused channels (if applicable)
   tmpIso <- get(IsobarLab)[w]
-  u <- sort(as.numeric(unique(Exp.map$Isobaric.label)))
+  u <- sort(as.numeric(unique(Exp.map$"Isobaric label")))
   w1 <- which(tmpIso %in% u)
   w2 <- which(!tmpIso %in% u)
   if (length(w2)) {
-    ev <- ev[, which(!colnames(ev) %in% unlist(sapply(tmpIso[w2], function(x) {
+    kol <- lapply(tmpIso[w2], function(x) {
       paste0(c("Reporter intensity corrected ", "Reporter intensity ", "Reporter intensity count "), x)
-    })))]
+    })
+    w <- which(!colnames(ev) %in% unlist(kol))
+    ev <- ev[, w]
   }
   assign(IsobarLab, tmpIso[w1])
   #
@@ -990,9 +892,9 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
   data <- data[which(data$Reverse != "+"),]
   data <- data[which((is.na(data$"Potential contaminant"))|(data$"Potential contaminant" != "+")),]
   if (LabelType == "Isobaric") {
-    kol <- grep(paste0(topattern(ev.ref["Original"]), "[0-9]+$"), colnames(data), value = TRUE)
-  } else { kol <- ev.col["Original"] }
-  w <- which(rowSums(data[, kol, drop = FALSE], na.rm = TRUE) > 0)
+    quntKol <- grep(paste0(topattern(ev.ref["Original"]), "[0-9]+$"), colnames(data), value = TRUE)
+  } else { quntKol <- ev.col["Original"] }
+  w <- which(rowSums(data[, quntKol, drop = FALSE], na.rm = TRUE) > 0)
   data <- data[w,]
   if (!"Fraction" %in% colnames(data)) { data$Fraction <- 1 }
   Fraction <- sort(unique(data$Fraction), decreasing = FALSE)
@@ -1001,14 +903,14 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
   if (LabelType == "Isobaric") {
     X <- "Label"
     kols <- c("Fraction", "Parent sample", "Experiment") # The order matters!
-    tst <- sapply(kols, function(x) { length(unique(data[[x]])) })
+    tst <- vapply(kols, function(x) { length(unique(data[[x]])) }, 1)
     w1 <- which(tst > 1)
     w2 <- which(tst >= 1) 
     if (length(w1)) { Y <- kols[w1[1]] } else { Y <- kols[w2[1]] }
   }
   if (LabelType == "LFQ") {
     kols <- c("Parent sample", "Fraction", "Experiment") # The order matters!
-    tst <- sapply(kols, function(x) { length(unique(data[[x]])) })
+    tst <- vapply(kols, function(x) { length(unique(data[[x]])) }, 1)
     w1 <- which(tst > 1)
     w2 <- which(tst >= 1) 
     X <- kols[w1[1]]
@@ -1016,7 +918,7 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
   }
   kols <- kols[which(!kols %in% c(X, Y))]
   if (length(kols) > 1) {
-    data$Group <- apply(data[, kols], 1, paste, collapse = " ")
+    data$Group <- do.call(paste, c(data[, kols], sep = " "))
     Grpkol <- "Group"
   } else { Grpkol <- kols }
   grps <- sort(unique(data[[Grpkol]]))
@@ -1039,20 +941,22 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
     ls <- lapply(lsKl, function(kl) { data2[[kl]] })
     tmp <- do.call(paste, c(data2[, lsKl], sep = "---"))
     if (LabelType == "Isobaric") {
-      kol2 <- gsub(topattern(ev.ref["Original"]), "", kol)
-      data2a <- as.data.table(data2[, kol])
-      colnames(data2a) <- kol
+      quntKol2 <- gsub(topattern(ev.ref["Original"]), "", quntKol)
+      data2a <- as.data.table(data2[, quntKol])
+      colnames(data2a) <- quntKol
       data2a$Group <- tmp
       data2a <- data2a[, lapply(.SD, sum, na.rm = TRUE), keyby = Group]
-      colnames(data2a) <- c("Group", kol)
+      colnames(data2a) <- c("Group", quntKol)
       data2a <- as.data.frame(data2a)
-      data2a[, kol2] <- log10(data2a[, kol])
-      data2a <- data2a[, which(!colnames(data2a) %in% kol)]
+      data2a[, quntKol2] <- log10(data2a[, quntKol])
+      data2a <- data2a[, which(!colnames(data2a) %in% quntKol)]
       data2a[, lsKl] <- data2[match(data2a$Group, tmp), lsKl]
       data2a$Group <- NULL
+      data2 <- data2a
+      smplKl <- "Label"
     }
     if (LabelType == "LFQ") {
-      if (X == "Parent sample") { kol2 <- get("MQ.Exp") } else { kol2 <- get(X) }
+      if (X == "Parent sample") { quntKol2 <- get("MQ.Exp") } else { quntKol2 <- get(X) }
       data2a <- data.table(Intensity = data2[[ev.col["Original"]]], Group = tmp)
       data2a <- data2a[, list(`log10(Intensity)` = sum(Intensity, na.rm = TRUE)),
                        keyby = Group]
@@ -1061,15 +965,16 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
       data2a[, lsKl] <- data2[match(data2a$Group, tmp), lsKl]
       data2a$Group <- NULL
       data2 <- spread(data2a, X, "log10(Intensity)")
+      smplKl <- "Parent sample"
     }
-    tmp <- data2[, kol2]
-    avkol <- rowMeans(data2[, kol2], na.rm = TRUE)
-    data2[, kol2] <- sweep(data2[, kol2], 1, avkol, "-")/log10(2)
-    kol <- c("Modified sequence", Y)
-    if ("PTM-enrich." %in% colnames(data2)) { kol <- c(kol, "PTM-enrich.") }
+    tmp <- data2[, quntKol2]
+    avkol <- rowMeans(data2[, quntKol2], na.rm = TRUE)
+    data2[, quntKol2] <- sweep(data2[, quntKol2], 1, avkol, "-")/log10(2)
+    kol_ <- c("Modified sequence", Y)
+    if ("PTM-enrich." %in% colnames(data2)) { kol_ <- c(kol_, "PTM-enrich.") }
     #data2 <- as.data.table(data2)
-    data2 <- set_colnames(reshape2::melt(data2, id.vars = kol),
-                          c(kol, X, "log2(Ratio)"))
+    data2 <- set_colnames(reshape2::melt(data2, id.vars = kol_),
+                          c(kol_, X, "log2(Ratio)"))
     data2 <- as.data.frame(data2)
     data2$"Mean log10(Intensity)" <- avkol
     w1 <- is.all.good(data2$"Mean log10(Intensity)", 2)
@@ -1077,7 +982,7 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
     w <- which(w1 & w2)
     if (length(w)) {
       data2 <- data2[w,]
-      tst <- sapply(c(Y, X), function(x) { length(unique(data2[[x]])) })
+      tst <- vapply(c(Y, X), function(x) { length(unique(data2[[x]])) }, 1)
       wrpKl <- c(Y, X)
       if (1 %in% tst) {
         wrpKl <- c(Y, X)[which(tst > 1)]
@@ -1093,7 +998,8 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
           wrpKl <- c(Y, X)
         }
       }
-      annot <- aggregate(data2$"log2(Ratio)", list(data2[[wrpKl]]), function(x) {
+      lst <- lapply(wrpKl, function(k) { data2[[k]] })
+      annot <- aggregate(data2$"log2(Ratio)", lst, function(x) {
         x <- is.all.good(x)
         c(paste0("Median: ", signif(median(x), 3)), paste0("IQR: ", signif(IQR(x), 3)))
       })
@@ -1126,11 +1032,11 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
         if (length(unique(data$`PTM-enrich.`)) == 1) { plot <- plot + guides(colour = "none") }
       } else {
         plot <- ggplot(data2) + geom_scattermore(aes(x = `Mean log10(Intensity)`, y = `log2(Ratio)`,
-                                                     colour = `Parent sample`), size = 1#, alpha = 0.1
+                                                     colour = .data[[smplKl]]), size = 1#, alpha = 0.1
                                                  )
       }
       plot <- plot + scale_color_viridis(begin = 0.25, discrete = TRUE, option = "D") +
-        geom_hline(yintercept = 0, colour = "grey") + xlab("A = mean log10(Intensity)") + ylab("M = sample log2(Ratio)") +
+        geom_hline(yintercept = 0, colour = "grey") + xlab("A = mean log10(Intensity)") + ylab("M = log2(Ratio)") +
         geom_smooth(aes(x = `Mean log10(Intensity)`, y = `log2(Ratio)`), color = "purple", formula = "y ~ s(x, bs = 'cs')", # Note that this fails sometimes, may be a package version issue
                     linewidth = 0.1, linetype = "dashed", method = 'gam') +
         geom_text(data = annot2, aes(x = Amax, y = Y, label = Tag), hjust = 1, cex = 2) +
@@ -1168,159 +1074,11 @@ ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_fpar(Report, fpar(ftext
 ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_table(Report, AA_biases)")
 ReportCalls <- AddSpace2Report()
 
-if ((LabelType == "Isobaric")&&("Label.Purities.file" %in% colnames(Param))&&(!Param$Label.Purities.file %in% c("", " ", "NA", NA))&&(file.exists(Param$Label.Purities.file))) {
-  if (!require("matlib", quietly = TRUE)) { install.packages("matlib") }
-  cran_req <- c(cran_req, "matlib")
-  Iso.purity <- read.csv(Param$Label.Purities.file)
-  msg <- "Correct evidence reporter intensities for labels purity."
-  ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
-  DatAnalysisTxt <- paste0(DatAnalysisTxt, " Reporter intensities were corrected for ", IsobarLab, " label purity factors.")
-  if (colnames(Iso.purity)[1] == "New.format") {
-    Iso.purity <- read.csv(Param$Label.Purities.file, check.names = FALSE)
-    Iso.purity <- Iso.purity[, 2:ncol(Iso.purity)]
-    Iso.purity$"Isobaric set" <- lapply(strsplit(as.character(Iso.purity$"Isobaric set"), ";"), as.integer)
-    test <- sort(unique(unlist(Iso.purity$"Isobaric set")))
-    if (exists("Iso")) {
-      if (!sum(!Iso %in% test)) {
-        test <- data.frame("Isobaric set" = test, check.names = FALSE)
-        test$"Purity table" <- sapply(test$"Isobaric set", function(x) {
-          list(Iso.purity[which(sapply(Iso.purity$"Isobaric set", function(y) { x %in% y })),
-                          which(colnames(Iso.purity) != "Isobaric set")])
-        })
-        kol <- paste0("corr. ", ev.ref["Original"], get(IsobarLab))
-        kol <- kol[which(paste0(ev.ref["Original"], get(IsobarLab)) %in% colnames(ev))]
-        ev[, kol] <- NA
-        for (i in Iso) { #i <- Iso[1]
-          wI <- which(ev$"Raw file path" %in% Frac.map$"Raw file"[which(Frac.map$Isobaric.set == i)])
-          e <- ev[wI,]
-          pt <- test$"Purity table"[[which(test$"Isobaric set" == i)]]
-          lb <- Exp.map$Isobaric.label[which(Exp.map$Isobaric.set == i)]
-          lb2 <- Exp.map$Isobaric.label.details[which(Exp.map$Isobaric.set == i)]
-          kol <- paste0(ev.ref[length(ev.ref)], lb)
-          w <- which(kol %in% colnames(e))
-          kol <- kol[w] ; lb <- lb[w] ; lb2 <- lb2[w]
-          o <- order(as.numeric(lb))
-          kol <- kol[o] ; lb <- lb[o] ; lb2 <- lb2[o]
-          w <- match(lb2, pt$"Isobaric label details")
-          pt <- pt[w,]
-          w <- which(colnames(pt) != "Isobaric label details")
-          A <- matrix(rep(0, length(lb)*(length(lb)+length(w)-1)), ncol = length(lb))
-          for (j in 1:length(lb2)) {
-            tmp <- as.numeric(pt[j, w])
-            tmp[which(is.na(tmp))] <- 0
-            A[j:(j+length(w)-1), j] <- tmp
-          }
-          w <- which(sapply(1:length(w), function(x) {
-            sum(sapply(1:length(lb), function(y) { A[y+x-1, y] == 100 }))
-          }) == length(lb))
-          A <- A[(1:length(lb))+w-1,]
-          source(parSrc, local = FALSE)
-          exports <- list("A", "e", "kol")
-          clusterExport(parClust, exports, envir = environment())
-          clusterCall(parClust, function() library(matlib))
-          clusterCall(parClust, function() library(proteoCraft))
-          temp <- as.data.frame(t(parApply(parClust, e[,kol], 1, function(x) {
-            b <- as.numeric(x)
-            b[which(!is.all.good(b, 2))] <- 0
-            sb <- sum(b)
-            if (sb > 0) {
-              #showEqn(round(A, 3), b)
-              #res <- as.numeric(gsub(".+= +", "", Solve(A, b))) # I stopped using this since it seems to return approximations sometimes
-              res <- solve(A, b)
-              # There are cases where we will get negative values which we will have to truncate:
-              res[which(res < 0)] <- 0
-              res <- #round(
-                res*sb/sum(res)
-              #, 0)# I used to round here, but do not think it's necessary
-              # print(res/b)
-            } else { res <- rep(NA, length(kol)) }
-            res <- setNames(res, kol)
-            return(res)
-          })))
-          e[, gsub(topattern(ev.ref[length(ev.ref)]), paste0("corr. ", ev.ref["Original"]), kol)] <- temp[, kol]
-          ev[wI,] <- e
-        }
-        ev.ref["Corrected"] <- paste0("corr. ", ev.ref["Original"])
-        cat("Reporter Intensity correction done!\n")
-      } else { warning("Some Isobaric sets are not defined in the labels purity table, skipping!") }
-    } else { stop("There should be an \"Iso\" (Isobaric sets) object by now!") }
-  } else {
-    Iso.purity$Isobaric.set <- as.character(Iso.purity$Isobaric.set)
-    test <- sort(unique(as.integer(unlist(strsplit(Iso.purity$Isobaric.set, ";")))))
-    if (exists("Iso")) {
-      if (!sum(!Iso %in% test)) {
-        test <- test[which(test %in% Iso)]
-        test <- data.frame(Isobaric.set = test)
-        test$Purity.table <- sapply(test$Isobaric.set, function(x) {
-          list(Iso.purity[which(sapply(lapply(strsplit(Iso.purity$Isobaric.set, ";"), as.integer), function(y) { x %in% unlist(y) })),
-                          which(colnames(Iso.purity) != "Isobaric.set")])
-        })
-        kol <- paste0("corr. ", ev.ref["Original"], get(IsobarLab))
-        kol <- kol[which(paste0(ev.ref["Original"], get(IsobarLab)) %in% colnames(ev))]
-        ev[, kol] <- NA
-        for (i in Iso) { #i <- Iso[1]
-          wI <- which(ev$"Raw file path" %in% Frac.map$"Raw file"[which(Frac.map$Isobaric.set == i)])
-          e <- ev[wI,]
-          pt <- test$Purity.table[[which(test$Isobaric.set == i)]]
-          lb <- Exp.map$Isobaric.label[which(Exp.map$Isobaric.set == i)]
-          lb2 <- Exp.map$Isobaric.label.details[which(Exp.map$Isobaric.set == i)]
-          kol <- paste0(ev.ref[length(ev.ref)], lb)
-          w <- which(kol %in% colnames(e))
-          kol <- kol[w] ; lb <- lb[w] ; lb2 <- lb2[w]
-          o <- order(as.numeric(lb))
-          kol <- kol[o] ; lb <- lb[o] ; lb2 <- lb2[o]
-          pt <- pt[which(pt$Isobaric.label.details %in% lb2),]
-          kol2 <- c("MI_minus.2", "MI_minus.1", "Monoisotopic", "MI_plus.1", "MI_plus.2")
-          kol3 <- c("Who_minus.2", "Who_minus.1", "Who_plus.1", "Who_plus.2")
-          pt[,kol2] <- sweep(pt[,kol2], 1, rowSums(pt[,kol2]), "/")
-          A <- as.data.frame(matrix(rep(0, length(lb)*(length(lb)+4)), nrow = length(lb)))
-          colnames(A) <- c("-2", "-1", lb2, "+1", "+2")
-          kount <- 0
-          for (l in lb2) { #l <- lb2[2]
-            kount <- kount+1
-            tmp <- unlist(pt[which(pt$Isobaric.label.details == l), kol3])
-            wc <- wc2 <- which(tmp != "")
-            wc2[which(wc2 > 2)] <- wc2[which(wc2 > 2)]+1
-            fact <- pt[which(pt$Isobaric.label.details == l), kol2]
-            fact <- fact[sort(c(3, wc2))]
-            names(fact) <- c(l, tmp[wc])[order(c(3, wc2))]
-            fact <- fact[which(names(fact) %in% colnames(A))]
-            if (length(fact)) {
-              mcola <- sapply(names(fact), function(x) {which(colnames(A) == x)})
-              A[kount,mcola] <- fact
-            }
-          }
-          A <- as.matrix(A[,3:(length(lb)+2)])
-          exports <- list("A", "e", "kol")
-          clusterExport(parClust, exports, envir = environment())
-          clusterCall(parClust, function() library(matlib))
-          clusterCall(parClust, function() library(proteoCraft))
-          temp <- as.data.frame(t(parApply(parClust, e[,kol], 1, function(x) {
-            b <- as.numeric(x)
-            b[which(!is.all.good(b, 2))] <- 0
-            sb <- sum(b)
-            if (sb > 0) {
-              #showEqn(round(A, 3), b)
-              #res <- as.numeric(gsub(".+= +", "", Solve(A, b))) # I stopped using this since it seems to return approximations sometimes
-              res <- solve(A, b)
-              # There are cases where we will get negative values which we will have to truncate:
-              res[which(res < 0)] <- 0
-              res <- #round(
-                res*sb/sum(res)
-              #, 0)# I used to round here, but do not think it's necessary
-              # print(res/b)
-            } else { res <- rep(NA, length(kol)) }
-            return(res)
-          })))
-          e[, gsub(topattern(ev.ref[length(ev.ref)]), paste0("corr. ", ev.ref["Original"]), kol)] <- temp
-          ev[wI,] <- e
-        }
-        ev.ref["Corrected"] <- paste0("corr. ", ev.ref["Original"])
-        cat("Reporter Intensity correction done!\n")
-      } else { warning("Some Isobaric sets are not defined in the labels purity table, skipping!") }
-    } else { stop("There should be an \"Iso\" (Isobaric sets) object by now!") }
-  }
-}
+#### Code chunk - Isobaric label purity correction
+Src <- paste0(libPath, "/extdata/R scripts/Sources/isobarCorr.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
 ev$"Unique State" <- do.call(paste, c(ev[, c("Modified sequence", "Charge")], sep = ""))
 
 rm(list = ls()[which(!ls() %in% .obj)])
@@ -1334,427 +1092,10 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/MS2corr2MS1.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-rm(list = ls()[which(!ls() %in% .obj)])
-Script <- readLines(ScriptPath)
-gc()
-saveImgFun(BckUpFl)
-#loadFun(BckUpFl)
-source(parSrc, local = FALSE)
-
 #### Code chunk - Optional - Normalize evidence MS1 intensities, then, if applicable, MS2 reporter (Isobaric labelling) or fragment (DIA) intensities
-# Step 0 for DIA measurements
-# For DIA we have more accurate estimates of the ratio between samples from measurements of fragments (MS2-based quant)
-# We will re-scale total precursor intensities across samples based on the relative amounts of each sample
-#Param$Norma.Ev.Intens <- FALSE
-if (Param$Norma.Ev.Intens) {
-  msg <- paste0(evNm, "s-level normalisations:\n------------------------------------\n")
-  ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
-  # Define groups - this will ensure that, if phospho (or other) -enrichment took place, these peptides will be normalized separately
-  ev$"Normalisation group" <- "Standard"
-  if ("PTM-enriched" %in% colnames(Frac.map)) {
-    # (In column "PTM enriched", use NA to indicate no enrichment!!!)
-    if (!"PTM-enriched" %in% colnames(Frac.map)) { Frac.map$"PTM-enriched" <- NA }
-    ptmChck <- unique(Frac.map$"PTM-enriched")
-    ptmChck <- ptmChck[which(!is.na(ptmChck))]
-    if (sum(!ptmChck %in% Modifs$`Full name`)) { stop("Some of the modifications in column \"PTM-enriched\" of Fractions map are invalid!") }
-    # Here is what we want to do for those modifications:
-    # - For enriched samples, keep only peptides with the target modification
-    # - For other samples, remove all peptides with the modification which were also found in enriched samples
-    if (length(ptmChck)) {
-      for (ptm in ptmChck) { #ptm <- ptmChck[1]
-        # Below "modified" means "modified with ptm" and "enriched" means "enriched for ptm"
-        mrk <- Modifs$Mark[match(ptm, Modifs$`Full name`)]
-        rw1 <- Frac.map$"Raw file"[which(Frac.map$"PTM-enriched" == ptm)]
-        rw0 <- Frac.map$"Raw file"[which((is.na(Frac.map$"PTM-enriched"))|(Frac.map$"PTM-enriched" != ptm))]
-        w1 <- ev$id[which(ev$"Raw file path" %in% rw1)] # PSMs from enriched runs
-        ev$"Normalisation group"[match(w1, ev$id)] <- ptm
-        w0 <- ev$id[which(ev$"Raw file path" %in% rw0)] # PSMs from non-enriched runs
-        w2 <- ev$id[which(!ev$"Raw file path" %in% c(rw0, rw1))] # Any others
-        w1a <- w1[grep(mrk, ev$"Modified sequence"[match(w1, ev$id)])] # Modified PSMs from enriched samples (i.e. what we were trying to enrich!)
-        if (length(w1a)) {
-          w0a <- w0[which(!ev$"Modified sequence"[match(w0, ev$id)] %in% unique(ev$"Modified sequence"[match(w1a, ev$id)]))] # Un-modified PSMs from non-enriched runs
-          l1 <- length(w1)-length(w1a) # This is the number of un-modified PSMs we are removing from enriched runs
-          l0 <- length(w0)-length(w0a) # This is the number of modified PSMs we are removing from non-enriched runs
-          if (l1) {
-            msg <- paste0("Removing ", l1, " peptide evidences without the ", ptm, " modification from ", ptm,
-                          "-enriched raw files (", round(100*l1/length(w1), 2), "%)!")
-            ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
-          }
-          if (l0) {
-            msg <- paste0("Removing ", l0, " ", ptm, "-modified peptide evidences from un-enriched samples!")
-            ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
-          }
-          ev <- ev[which(ev$id %in% c(w0a, w1a, w2)),]
-        } else {
-          msg <- paste0("Not a single ", ptm, "-modified evidence found in ", ptm, "-enriched raw files, investigate!")
-          ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
-        }
-      }
-    }
-  }
-  nms <- Norm.Groups$names
-  w <- which(!nms %in% colnames(ev))
-  if (length(w)) { ev[, nms[w]] <- Exp.map[match(ev$MQ.Exp, Exp.map$MQ.Exp), nms[w]] }
-  ev$"Normalisation group" <- do.call(paste, c(ev[, c(nms, "Normalisation group")], sep = "_"))
-  # Now, those groups are fine, but we also want to normalize per fraction at this stage so that each series of
-  # equivalent fractions from different samples get normalized to each other.
-  mrmgrps <- unique(ev$"Normalisation group")
-  fr <- unique(ev$Fraction)
-  tmp <- data.frame(Grp = as.character(sapply(mrmgrps, function(x) { rep(x, length(fr)) })),
-                    Frac = as.character(rep(fr, length(mrmgrps))))
-  tmp$Nm <- apply(tmp, 1, paste, collapse = "_")
-  ev$"Normalisation group + Fraction" <- NA
-  for (i in 1:nrow(tmp)) {
-    w <- which((ev$"Normalisation group" == tmp$Grp[i])&(ev$Fraction == tmp$Frac[i]))
-    ev$"Normalisation group + Fraction"[w] <- tmp$Nm[i]
-  }
-  Norma.Ev.Intens.Groups %<o% set_colnames(aggregate(ev$"Normalisation group + Fraction", list(ev$"Raw file path"), unique),
-                                           c("Raw file", "Groups"))
-  tst <- aggregate(Norma.Ev.Intens.Groups$"Raw file", list(Norma.Ev.Intens.Groups$Groups), length)
-  w <- which(tst$x > 1)
-  #tst <- aggregate(Norma.Ev.Intens.Groups$"Raw file", list(Norma.Ev.Intens.Groups$Groups), list)
-  if (length(w)) {
-    msg <- " - Normalizing MS1-level PSM intensities"
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
-    if (length(w) > 1) { cat(" (per fraction/PTM enrichment group)\n") }
-    msg <- "   - Classic normalisation to the median"
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
-    Norma.Ev.Intens.Groups <- Norma.Ev.Intens.Groups[which(Norma.Ev.Intens.Groups$Groups %in% tst$Group.1[w]),]
-    # (Per fractions X PTM enrichment group)
-    # Step 1a:
-    ev.col["Normalisation"] <- paste0("norm. ", ev.col["Original"])
-    ev[[ev.col["Normalisation"]]] <- NA
-    Norm.Ev %<o% data.frame(Group = unique(Norma.Ev.Intens.Groups$Groups))
-    Grps2 <- MQ.Exp
-    Grps2Kol <- "MQ.Exp"
-    if (LabelType == "Isobaric") {
-      Grps2 <- Iso
-      Grps2Kol <- "Isobaric.set"
-    }
-    for (grp2 in Grps2) { Norm.Ev[[paste0("Grp", grp2)]] <- 1 }
-    for (grp in Norm.Ev$Group) { #grp <- Norm.Ev$Group[1]
-      r <- Norma.Ev.Intens.Groups$"Raw file"[which(Norma.Ev.Intens.Groups$Groups == grp)]
-      wg <- which(ev$"Raw file path" %in% r)
-      M <- 10^median(is.all.good(log10(unlist(ev[wg, ev.col["Original"]])))) # For preserving original scale
-      #M <- 10^mlv(is.all.good(log10(unlist(w[wg, ev.col["Original"]]))), method = "Parzen")[1]
-      for (grp2 in Grps2) { #grp2 <- Grps2[1]
-        w2 <- which(ev[wg, Grps2Kol] == grp2)
-        if (length(w2)) {
-          m <- 10^median(is.all.good(log10(ev[wg[w2], ev.col["Original"]])))
-          #m <- 10^mlv(is.all.good(log10(ev[wg[w2], ev.col["Original"]])), method = "Parzen")[1]
-          ev[wg[w2], ev.col["Normalisation"]] <- ev[wg[w2], ev.col["Original"]]*M/m
-          Norm.Ev[match(grp, Norm.Ev$Group), paste0("Grp", grp2)] <- m/M
-        }
-      }
-    }
-    if (("Adv.Norma.Ev.Intens" %in% colnames(Param))&&(Param$Adv.Norma.Ev.Intens != FALSE)) {
-      msg <- c("   - Levenberg-Marquardt normalisation to finely align values..."#, 
-               #"     (this can take some time)",
-               #"     ..."
-               )
-      ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Print = FALSE)
-      cat(paste0(msg, "\n", collapse = "\n"))
-      txtAdv <- "Evidence MS1 intensities"
-      ev.col["Advanced normalisation"] <- paste0("AdvNorm. ", ev.col["Original"])
-      ev[[ev.col["Advanced normalisation"]]] <- NA
-      AdvNorm.Ev %<o% data.frame(Group = unique(Norma.Ev.Intens.Groups$Groups))
-      for (grp2 in Grps2) { AdvNorm.Ev[[paste0("Grp", grp2)]] <- 1 }
-      for (grp in Norm.Ev$Group) { #grp <- Norm.Ev$Group[1]
-        w <- which(Norma.Ev.Intens.Groups$Groups == grp)
-        r <- Norma.Ev.Intens.Groups$"Raw file"[which(Norma.Ev.Intens.Groups$Groups == grp)]
-        wg <- which(ev$"Raw file path" %in% r)
-        tmp <- data.table(Uniq = ev$`Unique State`[wg], Grp = ev[wg, Grps2Kol], Int = ev[wg, ev.col["Normalisation"]])
-        tmp <- tmp[, list(x = sum(Int, na.rm = TRUE)), keyby = list(Group.1 = Uniq, Group.2 = Grp)]
-        tmp <- as.data.frame(tmp)
-        tmp <- suppressMessages(reshape2::dcast(tmp, Group.1~Group.2))
-        colnames(tmp) <- c("Unique State", paste0("Grp", colnames(tmp)[2:ncol(tmp)]))
-        kol <- paste0("Grp", Grps2)
-        w <- which(kol %in% colnames(tmp))
-        kol <- kol[w] 
-        tmp2 <- AdvNorm.IL(tmp, "Unique State", kol, FALSE, 5)
-        m2 <- setNames(sapply(Grps2[w], function(x) {
-          mean(tmp[[paste0("Grp", x)]]/tmp2[[paste0("AdvNorm.Grp", x)]], na.rm = TRUE)
-        }), kol)
-        for (grp2 in Grps2) {
-          w2 <- which(ev[wg, Grps2Kol] == grp2)
-          ev[wg[w2], ev.col["Advanced normalisation"]] <- ev[wg[w2], ev.col["Normalisation"]]/m2[paste0("Grp", grp2)]
-        }
-        AdvNorm.Ev[match(grp, AdvNorm.Ev$Group), kol] <- 1/m2
-      }
-      cat("     Done!\n")
-    }
-    cat("\n")
-  } else {
-    cat(" - Skipping MS1-level PSM intensity normalisation since all groups contain exactly 1 MS file.\n\n")
-  }
-  if (LabelType == "Isobaric") {
-    msg <- " - Normalizing Reporter intensities"
-    if (length(Iso) > 1) { msg <- c(msg, paste0("   (per ", IsobarLab, " sample)\n")) }
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
-    msg <- " - Classic normalisation to the median"
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
-    # Per combined sample
-    er1 <- ev.ref["Normalisation"] <- paste0("Norm. ", ev.ref["Original"])
-    er0 <- ev.ref[match("Normalisation", names(ev.ref))-1]
-    k0 <- paste0(er0, get(IsobarLab))
-    k1 <- paste0(er1, get(IsobarLab))
-    ev[, k1] <- NA
-    Norm.Ev.RepIntens %<o% data.frame(Group = Iso)
-    for (ch in get(IsobarLab)) { Norm.Ev.RepIntens[[paste0("Channel_", ch)]] <- 1 }
-    for (i in Iso) { #i <- Iso[1]
-      wg <- which(ev$Isobaric.set == i)
-      M3 <- 10^median(is.all.good(log10(unlist(ev[wg, k0])))) # For preserving original scale
-      #M <- 10^mlv(is.all.good(log10(unlist(w[wg, ev.col["Original"]]))), method = "Parzen")[1]
-      m3 <- sapply(get(IsobarLab), function(ch) { 10^median(is.all.good(log10(ev[wg, paste0(er0, ch)]))) })
-      ev[wg, k1] <- sweep(ev[wg, k0], 2, M3/m3, "*")
-      Norm.Ev.RepIntens[match(i, Norm.Ev.RepIntens$Group), paste0("Channel_", get(IsobarLab))] <- m3/M3
-    }
-    tstAdvNrm <- FALSE
-    if (("Adv.Norma.Ev.Intens" %in% colnames(Param))&&(Param$Adv.Norma.Ev.Intens != FALSE)) {
-      if (Param$Adv.Norma.Ev.Intens.Type == "C") {
-        msg <- c("   - Levenberg-Marquardt normalisation...", "     (please wait)", "     ...")
-        ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Print = FALSE)
-        cat(paste0(msg, "\n", collapse = "\n"))
-        # Per combined sample
-        # Because this is computationally expensive, we are doing it per Fraction then averaging:
-        # the values should be the same across fractions
-        er1 <- ev.ref["Advanced normalisation"] <- paste0("AdvNorm. ", ev.ref["Original"])
-        er0 <- ev.ref["Normalisation"]
-        k0 <- paste0(er0, get(IsobarLab))
-        k1 <- paste0(er1, get(IsobarLab))
-        ev[, k1] <- NA
-        AdvNorm.Ev.RepIntens %<o% data.frame(Group = Iso)
-        tmpEv <- ev[, c("Isobaric.set", "Unique State", k0)]
-        if ("Fraction" %in% colnames(ev)) { tmpEv$Fraction <- ev$Fraction } else { tmpEV$Fraction <- 1 }
-        clusterCall(parClust, function() library(proteoCraft))
-        m4 <- tstRI <- list()
-        msg <- "     Estimating normalisation factors within..."
-        ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Print = FALSE)
-        for (i in Iso) {#i <- Iso[1]
-          msg <- paste0("     ...", IsobarLab, " sample ", i, "...")
-          ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Print = FALSE)
-          wi <- which(tmpEv$Isobaric.set == i)
-          tmp <- aggregate(tmpEv[wi, k0], list(tmpEv$`Unique State`[wi], tmpEv$Fraction[wi]), sum, na.rm = TRUE)
-          colnames(tmp)[which(colnames(tmp) == "Group.1")] <- "Unique State"
-          colnames(tmp)[which(colnames(tmp) == "Group.2")] <- "Fraction"
-          Fr <- unique(tmp$Fraction)
-          clusterExport(parClust, list("tmp", "k0", "Fr"), envir = environment())
-          # Create normalized data
-          tmp2 <- setNames(parLapply(parClust, Fr, function(fr) {
-            AdvNorm.IL(tmp[which(tmp$Fraction == fr),], "Unique State", k0, FALSE, 5)
-          }), paste0("Fr. ", Fr))
-          # Compute normalisation factors
-          tmp2F <- as.data.frame(sapply(Fr, function(fr) {
-            sapply(1:length(get(IsobarLab)), function(x) {
-              setNames(mean(tmp[which(tmp$Fraction == fr), k0[x]]/(tmp2[[paste0("Fr. ", fr)]][, paste0("AdvNorm.", k0[x])]),
-                            na.rm = TRUE), paste0("Ch. ", get(IsobarLab)[x]))
-            })
-          }))
-          colnames(tmp2F) <- paste0("Fr. ", Fr)
-          stopifnot(!sum(rownames(tmp2F) != paste0("Ch. ", get(IsobarLab))))
-          tstRI[[i]] <- tmp2F
-          tmp2F$Label <- get(IsobarLab)
-          # Number of valid values
-          tmp2K <- as.data.frame(sapply(Fr, function(fr) {
-            sapply(1:length(get(IsobarLab)), function(x) {
-              length(is.all.good(log10(tmp[which(tmp$Fraction == fr), k0[x]])))
-            })
-          }))
-          colnames(tmp2K) <- paste0("Fr. ", Fr)
-          rownames(tmp2F) <- paste0("Ch. ", get(IsobarLab))
-          tmp2K$Label <- get(IsobarLab)
-          # Calculate weighted mean
-          tmp2NormFact <- setNames(sapply(get(IsobarLab), function(x) {
-            weighted.mean(tmp2F[match(x, tmp2F$Label), paste0("Fr. ", Fr)],
-                          tmp2K[match(x, tmp2K$Label), paste0("Fr. ", Fr)])
-          }), paste0("Ch ", get(IsobarLab)))
-          tmp2NormFact[which(is.na(tmp2NormFact))] <- 1 # Better not normalize than corrupt data!
-          m4[[i]] <- tmp2NormFact
-        }
-        # Apply results
-        m4 <- as.data.frame(t(sapply(m4, unlist)))
-        for (i in Iso) {
-          wi <- which(tmpEv$Isobaric.set == i)
-          ev[wi, k1] <- sweep(ev[wi, k0], 2, unlist(m4[which(rownames(m4) == i), paste0("Ch ", get(IsobarLab))]), "/")
-        }
-        AdvNorm.Ev.RepIntens[, paste0("Channel_", get(IsobarLab))] <- 1/m4[match(AdvNorm.Ev.RepIntens$Group, rownames(m4)), paste0("Ch ", get(IsobarLab))]
-        tstAdvNrm <- TRUE
-        cat("     Done!\n")
-      } else {
-        stop("Not implemented yet, I need to update the current AdvNorm function as it takes too long or crashes.")
-      }
-    }
-    # Combine results of all reporter intensity normalisation steps
-    Norm.Ev.RepIntens.All %<o% Norm.Ev.RepIntens
-    rownames(Norm.Ev.RepIntens.All) <- Norm.Ev.RepIntens.All$Group; Norm.Ev.RepIntens.All$Group <- NULL
-    Norm.Ev.RepIntens.All <- suppressMessages(reshape2::melt(Norm.Ev.RepIntens.All))
-    Norm.Ev.RepIntens.All$Iso <- Iso
-    Norm.Ev.RepIntens.All$Channel <- as.numeric(gsub("^Channel_", "", Norm.Ev.RepIntens.All$variable))
-    Norm.Ev.RepIntens.All$Fraction <- "All"
-    if (tstAdvNrm) {
-      tmp2tst <- suppressMessages(melt(tstRI))
-      colnames(tmp2tst)[which(colnames(tmp2tst) == "L1")] <- "Iso"
-      tmp2tst$Channel <- get(IsobarLab)
-      tmp2tst$Fraction <- as.numeric(gsub("^Fr\\. ", "", tmp2tst$variable))
-      for (i in Iso) {
-        for (ch in get(IsobarLab)) {
-          w1 <- which((Norm.Ev.RepIntens.All$Iso == i)&(Norm.Ev.RepIntens.All$Channel == ch))
-          w2 <- which((tmp2tst$Iso == i)&(tmp2tst$Channel == ch))
-          tmp2tst$value[w2] <- tmp2tst$value[w2]*Norm.Ev.RepIntens.All$value[w1]
-        }
-      }
-      tmp2tst$Fraction <- factor(tmp2tst$Fraction, levels = 1:max(tmp2tst$Fraction))
-      Norm.Ev.RepIntens.All <- tmp2tst
-    }
-    Norm.Ev.RepIntens.All$Channel <- factor(Norm.Ev.RepIntens.All$Channel, levels = 0:max(Norm.Ev.RepIntens.All$Channel))
-    Norm.Ev.RepIntens.All$Iso <- factor(paste0(IsobarLab, " sample ", Norm.Ev.RepIntens.All$Iso), levels = paste0(IsobarLab, " sample ", Iso))
-    w <- (("Adv.Norma.Ev.Intens" %in% colnames(Param))&(Param$Adv.Norma.Ev.Intens != FALSE))+1
-    DatAnalysisTxt <- paste0(DatAnalysisTxt, " MS1 intensities and ", IsobarLab, " reporter intensities were re-normalized ",
-                             c("to the median", "using the Levenberg-Marquardt procedure to minimize sample-to-sample differences")[w], ".")
-    # Visualize results
-    dir <- paste0(wd, "/Workflow control/", evNm, "s/Reporter intensities")
-    if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    dirlist <- unique(c(dirlist, dir))
-    ttl <- "Reporter intensities trend VS fractions"
-    plot <- ggplot(Norm.Ev.RepIntens.All) +
-      geom_tile(aes(x = Fraction, y = Channel, fill = value), linewidth = 1, width = 1) +
-      scale_fill_viridis_d(begin = 0.25) +
-      coord_fixed() + theme_bw() + ylab(paste0(IsobarLab, " channel")) + ggtitle(ttl)
-    if (length(Iso) > 1) { plot <- plot + facet_wrap(~Iso) }
-    print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
-    ReportCalls <- AddPlot2Report()
-  } else {
-    w <- (("Adv.Norma.Ev.Intens" %in% colnames(Param))&(Param$Adv.Norma.Ev.Intens != FALSE))+1
-    DatAnalysisTxt <- paste0(DatAnalysisTxt, " MS1 intensities were re-normalized ",
-                             c("to the median", "using the Levenberg-Marquardt procedure to minimize sample-to-sample differences")[w], ".")
-  }
-  if ((LabelType == "LFQ")&&(Param$Label == "DIA")&&("MS2_intensities" %in% colnames(ev))) {
-    # If isobaric, re-scale MS2 intensities to apply MS1 normalisation factors
-    # Important: this bit must remain after the normalisation of MS1 intensities
-    DatAnalysisTxt <- gsub("\\.$", ", then individual MS2 intensities were re-scaled using MS1 intensities.", DatAnalysisTxt)
-    kol <- gsub("Intensity", "MS2 intensities", ev.col[length(ev.col)])
-    stopifnot(grepl("MS2 intensities", kol))
-    ev[[kol]] <- ev$MS2_intensities # (Let's keep this as a numeric list)
-    for (smpl in RSA$values) {
-      mqe <- unlist(Exp.map$MQ.Exp[match(smpl, Exp.map$Ref.Sample.Aggregate)])
-      w <- which(ev$MQ.Exp %in% mqe)
-      mRt <- median(is.all.good(ev[w, ev.col[length(ev.col)]]/ev[w, ev.col["Original"]]))
-      clusterExport(parClust, "mRt", envir = environment())
-      ev[[kol]][w] <- parLapply(parClust, ev[[kol]][w], function(x) { x*mRt })
-    }
-    if (Param$Norma.Ev.Intens&&Param$Norma.Ev.Intens.show) {
-      kol2 <- unique(c("id", "MQ.Exp", "MS2_intensities", kol))
-      tst <- set_colnames(ev[, kol2], kol2)
-      # Here it is easier to sum per row (otherwise this makes for very slow processing, creates a very huge table and plot, with little added value)
-      kolz <- colnames(tst)[which(!colnames(tst) %in% c("id", "MQ.Exp"))]
-      for (kl in kolz) {
-        if (class(tst[[kl]]) != "list") { tst[[kl]] <- sapply(strsplit(tst[[kl]], ";"), as.numeric) }
-        tst[[kl]] <- parSapply(parClust, tst[[kl]], sum)
-      }
-      tst <- reshape2::melt(tst, id.vars = c("id", "MQ.Exp"))
-      tst$value <- log10(tst$value)
-      tst$variable <- as.character(tst$variable)
-      tst$Norm <- "Original"
-      tst$Norm[which(tst$variable == kol)] <- "Normalised"
-      tst$Norm <- factor(tst$Norm, levels = c("Original", "Normalised"))
-      ttl <- "Evidence intensity normalisation"
-      dir <- paste0(wd, "/Workflow control/", evNm, "s/Normalisation")
-      if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-      dirlist <- unique(c(dirlist, dir))
-      plot <- ggplot(tst) +
-        geom_violin(aes(x = MQ.Exp, y = value, color = Norm, fill = Norm), alpha = 0.25) +
-        geom_boxplot(aes(x = MQ.Exp, y = value, color = Norm, fill = Norm), alpha = 0.5) +
-        scale_color_viridis_d(begin = 0.25) +
-        scale_fill_viridis_d(begin = 0.25) +
-        facet_wrap(~Norm, scales = "free") + theme_bw() + ggtitle(ttl) +
-        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-      print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
-      ReportCalls <- AddPlot2Report()
-    }
-  }
-}
-# If isobaric, re-scale reporter intensities to total evidence intensities:
-# Important: this bit must remain after the normalization of MS1 intensities
-if (LabelType == "Isobaric") {
-  DatAnalysisTxt <- gsub("\\.$", ", then reporter intensities were re-scaled using MS1 intensities.", DatAnalysisTxt)
-  ev.ref["Adjusted"] <- paste0("adj. ", ev.ref["Original"])
-  k0 <- paste0(ev.ref[match("Adjusted", names(ev.ref))-1], get(IsobarLab))
-  k1 <- paste0(ev.ref["Adjusted"], get(IsobarLab))
-  temp <- rowSums(ev[, k0], na.rm = TRUE)
-  ev[, k1] <- sweep(ev[,k0], 1, ev[, ev.col[length(ev.col)]]/temp, "*")
-  if (Param$Norma.Ev.Intens&&Param$Norma.Ev.Intens.show) {
-    er0 <- ev.ref[match("Normalisation", names(ev.ref))-1]
-    er1 <- ev.ref["Adjusted"]
-    a0 <- paste0(er0, get(IsobarLab))
-    a1 <- paste0(er1, get(IsobarLab))
-    test <- ev[,c("MQ.Exp", a0, a1)]
-    test <- reshape2::melt(test, id.vars = "MQ.Exp")
-    test$Norm <- NA
-    test$Norm[which(test$variable %in% a0)] <- "Original"
-    test$Norm[which(test$variable %in% a1)] <- "Normalised"
-    test$Norm <- factor(test$Norm, levels = c("Original", "Normalised"))
-    test$value <- log10(test$value)
-    ttl <- "Evidence intensity normalisation"
-    dir <- paste0(wd, "/Workflow control/", evNm, "s/Normalisation")
-    if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    dirlist <- unique(c(dirlist, dir))
-    test$Channel <- as.numeric(gsub(topattern(c(er0, er1)), "", as.character(test$variable)))
-    test$Channel <- factor(test$Channel, levels = sort(unique(test$Channel)))
-    plot <- ggplot(test) +
-      geom_violin(aes(x = Channel, y = value, color = Channel, fill= Channel), alpha = 0.25) +
-      geom_boxplot(aes(x = Channel, y = value, color = Channel, fill = Channel), alpha = 0.5) +
-      scale_color_viridis_d(begin = 0.25) +
-      scale_fill_viridis_d(begin = 0.25) +
-      facet_grid(MQ.Exp ~ Norm, scales = "free", space = "free") + theme_bw() + ggtitle(ttl) +
-      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-    print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
-    ReportCalls <- AddPlot2Report()
-  }
-  #Isobaric data: valid values
-  kol <- grep(topattern(ev.ref["Original"]), colnames(ev), value = TRUE)
-  kol <- grep(" count ", kol, value = TRUE, invert = TRUE)
-  tst1 <- sapply(MQ.Exp, function(x) { sapply(gsub(topattern(ev.ref["Original"]), "", kol), function(y) {
-    w <- which((Exp.map$MQ.Exp == x)&(Exp.map$Isobaric.label == y))
-    if (length(w)) { res <- cleanNms(Exp.map$Ref.Sample.Aggregate[w]) } else { res <- "" }
-    return(res)
-  })})
-  tst2 <- set_rownames(sapply(MQ.Exp, function(x) { sapply(kol, function(y) {
-    sum(ev[which(ev$MQ.Exp == x), y] > 0)
-  })}), rownames(tst1))
-  tst3 <- set_rownames(sapply(MQ.Exp, function(x) { sapply(kol, function(y) {
-    round(median(is.all.good(log10(ev[which(ev$MQ.Exp == x), y]))), 2)
-  })}), rownames(tst1))
-  tst <- rbind(rep("", length(MQ.Exp)),
-               c("Samples", rep("", length(MQ.Exp)-1)),
-               colnames(tst1),
-               tst1,
-               rep("", length(MQ.Exp)),
-               c("Number of valid values", rep("", length(MQ.Exp)-1)), 
-               colnames(tst2),
-               tst2,
-               rep("", length(MQ.Exp)),
-               c("Median log10", rep("", length(MQ.Exp)-1)), 
-               colnames(tst3),
-               tst3,
-               rep("", length(MQ.Exp)))
-  colnames(tst) <- NULL
-  data.table::fwrite(tst, paste0(wd, "/Workflow control/Valid values test.csv"), quote = FALSE, sep = ",", col.names = FALSE, na = "NA")
-  #system(paste0("open \"", wd, "/Workflow control/Valid values test.csv\""))
-  ReportCalls$Calls <- append(ReportCalls$Calls,
-                              "body_add_fpar(Report, fpar(ftext(\"Number of valid values per sample and channel:\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))")
-  ReportCalls$Objects$Valid_values <- as.data.frame(tst)
-  ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_table(Report, ReportCalls$Objects$Valid_values)")
-  ReportCalls <- AddSpace2Report()
-  ## To do here:
-  ## Format table
-  ## Add fraction-specificity
-}
+Src <- paste0(libPath, "/extdata/R scripts/Sources/evNorm.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
@@ -1764,257 +1105,14 @@ saveImgFun(BckUpFl)
 source(parSrc, local = FALSE)
 
 #### Code chunk - ROC analysis for optimizing a threshold to include/exclude peptides mapped to specific GO terms
-# Only basic in place now, add shiny app
-# see https://rpubs.com/Wangzf/pROC
-if (length(ROCfilt_GOterms_Pos)) {
-  ROCfilt_Pos <- unique(unlist(lapply(ROCfilt_GOterms_Pos, function(x) {
-    GO_terms$Offspring[match(x, GO_terms$ID)]
-  })))
-  if (length(ROCfilt_GOterms_Neg)) {
-    ROCfilt_Neg <- unique(unlist(lapply(ROCfilt_GOterms_Neg, function(x) {
-      GO_terms$Offspring[match(x, GO_terms$ID)]
-    })))
-    ROCfilt_Pos <- ROCfilt_Pos[which(!ROCfilt_Pos %in% ROCfilt_Neg)]
-    ROCfilt_Neg <- ROCfilt_Neg[which(!ROCfilt_Neg %in% ROCfilt_Pos)]
-  }
-}
-if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
-  pack <- "pROC"
-  bioc_req <- unique(c(bioc_req, pack))
-  if (!require(pack, character.only = TRUE)) { biocInstall(pack) }
-  msg <- "PSMs filtering using ROC analysis"
-  ReportCalls <- AddMsg2Report()
-  dir <- paste0(wd, "/Workflow control/", evNm, "s/ROC analysis")
-  dirlist <- unique(c(dirlist, dir))
-  if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  tmp <- data.table(Proteins = ev$Proteins, Sequence = ev$Sequence)
-  tmp <- tmp[, list(Proteins = unique(Proteins)), by = list(Sequence = Sequence)]
-  tmp <- as.data.frame(tmp)
-  tmp <- listMelt(strsplit(tmp$Proteins, ";"), tmp$Sequence, c("Protein", "Sequence"))
-  tmp2 <- data.table(Intensity = ev$Intensity, Sequence = ev$Sequence)
-  tmp2 <- tmp2[, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(Sequence = Sequence)]
-  tmp2 <- as.data.frame(tmp2)
-  tmp2 <- tmp2[which(tmp2$Intensity > 0),]
-  tmp2$Predictor <- log10(tmp2$Intensity)
-  tmp2 <- tmp2[order(tmp2$Predictor, decreasing = TRUE),]
-  #tmp2$Predictor <- nrow(tmp2):1 # Does not have an effect on the result!
-  tmp3 <- listMelt(strsplit(db$`GO-ID`, ";"), db$`Protein ID`, c("Term", "Protein"))
-  tmp3 <- tmp3[which(tmp3$Term %in% c(ROCfilt_Pos, ROCfilt_Neg)),]
-}
-tst <- rep(FALSE, 2)
-if (length(ROCfilt_Pos)) {
-  tmp2$"True Positive" <- FALSE
-  p <- tmp3$Protein[which(tmp3$Term %in% ROCfilt_Pos)]
-  s <- tmp$Sequence[match(p, tmp$Protein)]
-  w <- which(tmp2$Sequence %in% s)
-  tmp2$"True Positive"[w] <- TRUE
-  if (sum(tmp2$"True Positive") < 10) {
-    msg <- "Not enough TRUE positives for ROC analysis (min = 10), skipping!"
-    ReportCalls <- AddMsg2Report(Warning = TRUE, Print = FALSE)
-  } else {
-    rocobj1 <- pROC::roc(tmp2$"True Positive", tmp2$Predictor)
-    rocPlot1 <- pROC::ggroc(rocobj1, color = "red") +
-      theme_bw()
-    tst[1] <- TRUE
-  }
-}
-if (length(ROCfilt_Neg)) {
-  tmp2$"Not True Negative" <- TRUE
-  p <- tmp3$Protein[which(tmp3$Term %in% ROCfilt_Neg)]
-  s <- tmp$Sequence[match(p, tmp$Protein)]
-  w <- which(tmp2$Sequence %in% s)
-  tmp2$"Not True Negative"[w] <- FALSE
-  if (sum(!tmp2$"Not True Negative") < 10) {
-    msg <- "Not enough TRUE negatives for ROC analysis (min = 10), skipping!"
-    ReportCalls <- AddMsg2Report(Warning = TRUE, Print = FALSE)
-  } else {
-    rocobj2 <- pROC::roc(tmp2$`Not True Negative`, tmp2$Predictor)
-    rocPlot2 <- pROC::ggroc(rocobj2, color = "blue") +
-      theme_bw()
-    tst[2] <- TRUE
-  }
-}
-ttl <- paste0("PSMs ROC analysis")
-plotPath <- paste0(dir, "/", ttl, ".png")
-if (sum(tst)) {
-  if (sum(tst) == 2) {
-    pack <- "gridExtra"
-    cran_req <- unique(c(cran_req, pack))
-    if (!require(pack, character.only = TRUE)) { pak:pkg_install(pack) }
-    rocPlot1 <- as.grob(rocPlot1)
-    rocPlot2 <- as.grob(rocPlot2)
-    png(plotPath); grid.arrange(rocPlot1, rocPlot2); dev.off()
-  } else {
-    rocPlot <- get(paste0("rocPlot", which(tst)))
-    ggsave(plotPath, rocPlot)
-  }
-  system(paste0("open \"", plotPath, "\""))
-  ROCintPerc %<o% NA
-  msg <- "Look at the ROC analysis image then enter the percentage of values to keep..."
-  while ((is.na(ROCintPerc))||(ROCintPerc <= 0)||(ROCintPerc > 100)) {
-    suppressWarnings({ ROCintPerc <- as.numeric(dlg_input(msg, 100)$res) })
-  }
-  # Would be much better with, wait for it, a shiny app!
-  tmp2Flt <- tmp2[1:round(nrow(tmp2)*ROCintPerc/100),]
-  ev <- ev[which(ev$Sequence %in% tmp2Flt$Sequence),]
-}
+Src <- paste0(libPath, "/extdata/R scripts/Sources/ROC1.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 #### Code chunk - Create modified peptides table
-tmp <- as.character(ev$id)
-tmp2 <- data.table(id = tmp, mqxp = ev$MQ.Exp, mod = ev$"Modified sequence")
-tmp2 <- tmp2[order(ev$id, decreasing = FALSE),]
-source(parSrc, local = FALSE)
-exports <- list("tmp2", "Exp.map")
-clusterExport(parClust, exports, envir = environment())
-clusterCall(parClust, function() library(data.table))
-tmp4 <- setNames(parLapply(parClust, c("ALLMYSAMPLESTUDUDUDUMMMDADA", RSA$values), function(i) {
-  tmp3 <- copy(tmp2) # Because of how data.tables work! No idea how that plays with clusters...
-  if (i != "ALLMYSAMPLESTUDUDUDUMMMDADA") {
-    mqe <- unlist(Exp.map$MQ.Exp[which(Exp.map$Ref.Sample.Aggregate == i)])
-    tmp3 <- tmp3[which(tmp3$mqxp %in% mqe), c("id", "mod")]
-  }
-  tmp3 <- as.data.frame(tmp3[, list(IDs = paste(id, collapse = ";")),
-                             keyby = list(ModSeq = mod)])
-  return(tmp3)
-}), c("ALLMYSAMPLESTUDUDUDUMMMDADA", RSA$values))
-pep %<o% set_colnames(tmp4[["ALLMYSAMPLESTUDUDUDUMMMDADA"]], c("Modified sequence", "Evidence IDs"))
-for (i in RSA$values) {
-  tmp <- tmp4[[i]]
-  ki <- paste0("Evidence IDs - ", i)
-  pep[[ki]] <- tmp$IDs[match(pep$"Modified sequence", tmp$ModSeq)]
-  pep[which(is.na(pep[[ki]])), ki] <- ""
-}
-pep$id <- c(1:nrow(pep))
-rvmtch2 <- match(pep$"Modified sequence", ev$"Modified sequence")
-if ("Modified sequence_verbose" %in% colnames(ev)) {
-  pep$"Modified sequence_verbose" <- ev$"Modified sequence_verbose"[rvmtch2]
-}
-pep$Sequence <- ev$Sequence[rvmtch2]
-pep$Proteins <- ev$Proteins[rvmtch2]
-tmp <- data.table(mod = ev$"Modified sequence", PEP = ev$PEP)
-tmp <- as.data.frame(tmp[, list(PEP = min(PEP, na.rm = TRUE)), by = list(mod)])
-pep$PEP <- tmp$PEP[match(pep$"Modified sequence", tmp$mod)]
-mtch <- match(ev$Sequence, pep$Sequence)
-mtch2 <- match(ev$"Modified sequence", pep$"Modified sequence")
-# Amino Acid counts
-sq <- pep$Sequence
-clusterExport(parClust, "sq", envir = environment())
-tmp <- parSapply(parClust, proteoCraft::AA, function(aa) {
-  nchar(sq) - nchar(gsub(aa, "", sq))
-})
-colnames(tmp) <- paste0(colnames(tmp), " Count")
-pep[, colnames(tmp)] <- tmp
-ev[, paste0(AA, " Count")] <- pep[mtch, paste0(AA, " Count")]
-for (aa in c("O", "U")) { # Only keep the selenocysteine and pyrrolysine amino acid columns if they are non-empty (NB: pyrrolysine should really only be in some bacteria)
-  if (sum(ev[[paste0(aa, " Count")]]) == 0) {
-    ev[[paste0(aa, " Count")]] <- NULL
-    pep[[paste0(aa, " Count")]] <- NULL
-  }
-}
-#
-pep$Length <- nchar(pep$Sequence)
-ev$Length <- pep$Length[mtch]
-tmp <- data.table(mod = ev$"Modified sequence", Intensity = ev$Intensity)
-tmp$Intensity[which(!is.all.good(tmp$Intensity, 2))] <- NA
-w2 <- which(ev$MQ.Exp %in% unique(unlist(Exp.map$MQ.Exp[which(Exp.map$Use)])))
-tmp2 <- copy(tmp)
-tmp2 <- tmp2[w2, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
-pep$Intensity <- tmp2$Intensity[match(pep$"Modified sequence", tmp2$mod)]
-if ((sum(!Exp.map$Use))||(length(unique(ev$MQ.Exp)) > length(unique(unlist(Exp.map$MQ.Exp))))) {
-  tmp3 <- copy(tmp)
-  tmp3 <- tmp3[, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
-  pep$"Intensity (all samples including unused)" <- tmp3$Intensity[match(pep$"Modified sequence", tmp3$mod)]
-}
-ev$"Peptide ID" <- pep$id[mtch2]
-#
-# Peptide name
-tmp <- pep[, c("Proteins", "Modified sequence")]
-w <- which(nchar(tmp$Proteins) > 13)
-tmp$Proteins[w] <- paste0(substr(tmp$Proteins[w], 1, 12), "...")
-tmp$"Modified sequence" <- gsub("_", "", tmp$"Modified sequence")
-pep$"Peptide name" <- do.call(paste, c(tmp, sep = "\n"))
-ev$"Peptide name" <- pep$"Peptide name"[mtch2]
-#
-# Modification site probabilities, score differences, site IDs, etc...
-wPr <- which(paste0(Modifs$"Full name", " Probabilities") %in% colnames(ev))
-if (length(wPr)) {
-  for (i in wPr) { #i <- wPr[1]
-    for (j in c(" Probabilities", " Score Diffs")) { #j <- " Probabilities"
-      j1 <- paste0(Modifs$"Full name"[i], j)
-      temp <- ev[, c("Modified sequence", j1, "PEP")]
-      temp <- temp[which(temp[[j1]] != ""),]
-      a0 <- unique(temp$"Modified sequence")
-      clusterExport(parClust, list("temp", "j1"), envir = environment())
-      b1 <- parLapply(parClust, a0, function(x) { temp[which(temp$"Modified sequence" == x), j1] })
-      b2 <- parLapply(parClust, a0, function(x) { temp$PEP[which(temp$"Modified sequence" == x)] })
-      l <- sapply(b1, function(x) { length(unique(x)) })
-      wb <- which(l == 1)
-      if (length(wb)) { b1[wb] <- sapply(b1[wb], function(x) {unique(x)}) } 
-      wb <- which(l > 1)
-      if (length(wb)) {
-        temp1 <- cbind(b1[wb], b2[wb])
-        clusterExport(parClust, "temp1", envir = environment())
-        b1[wb] <- parApply(parClust, temp1, 1, function(x) {
-          p <- 1-x[[2]]
-          p <- p/sum(p)
-          x <- x[[1]]
-          s <- unlist(strsplit(unique(gsub("\\([^\\)]+\\)", "", x)), ""))
-          an <- proteoCraft::Isapply(x, function(y) {
-            as.numeric(proteoCraft::annot_to_tabl(y, Nterm = FALSE, Cterm = FALSE, numeric_data = TRUE)[[1]]$Annotations)
-          })
-          an <- sweep(an, 1, p, "*")
-          n <- which(apply(an, 2, function(y) { length(proteoCraft::is.all.good(y)) }) == 0)
-          an <- colSums(an, na.rm = TRUE)
-          an[n] <- NA
-          n <- which(!is.na(an))
-          an <- paste0("(", round(an[n], 3), ")")
-          x <- paste(proteoCraft::insertElems(s, n-1, an), collapse = "")
-          return(x)
-        })
-      }
-      b2 <- unlist(b1)
-      if (length(b2) != length(b1)) { stop("Something went awry!") }
-      pep[[j1]] <- ""
-      wp <- which(pep$"Modified sequence" %in% a)
-      pep[wp,j1] <- b2[match(pep$"Modified sequence"[wp], a)]
-    }
-    j1 <- paste0(j, " site IDs")
-    pep[[j1]] <- NA
-    w <- which(!is.na(ev[[j1]]))
-    if (length(w)) {
-      e <- ev[w,]
-      temp <- aggregate(as.character(e[[j1]]), list(e$"Modified sequence"), function(x) {
-        paste(sort(unlist(strsplit(x, ";"))), collapse = ";")
-      })
-      w1 <- which(pep$"Modified sequence" %in% e$"Modified sequence")
-      pep[w1, j1] <- temp$x[match(pep$"Modified sequence"[w1], temp$Group.1)]
-    }
-  }
-}
-
-pep[, c("Reverse", "Potential contaminant")] <- ev[rvmtch2, c("Reverse", "Potential contaminant")]
-if ((Param$Norma.Pep.Intens)||(Param$Norma.Pep.Ratio)) {
-  if (Param$Norma.Ev.Intens) {
-    tst <- aggregate(ev$"Normalisation group", list(ev$"Modified sequence"), unique)
-    if ("character" %in% class(tst$x)) { # It could be that the same sequence is in different normalization groups - if so we do not want to re-use PSM-level normalisation groups!
-      pep$"Normalisation group" <- ev$"Normalisation group"[rvmtch2]
-    } else { pep$"Normalisation group" <- "Standard" }
-  } else { pep$"Normalisation group" <- "Standard" }
-  pep$MQ.Exp <- ev$MQ.Exp[match(pep$"Modified sequence", ev$"Modified sequence")]
-  nms <- Norm.Groups$names
-  w <- which(!nms %in% colnames(pep))
-  if (length(w)) { pep[, nms[w]] <- Exp.map[match(pep$MQ.Exp, Exp.map$MQ.Exp), nms[w]] }
-  pep$"Normalisation group" <- do.call(paste, c(pep[, c(nms, "Normalisation group")], sep = "_"))
-}
-if ("Quantity Quality" %in% colnames(ev)) { # Dia-NN specific:
-  tmp <- data.table(Qual = ev$"Quantity Quality", ModSeq = ev$"Modified sequence")
-  tmp <- tmp[, list(Qual= mean(Qual)), by = list(ModSeq)]
-  tmp <- as.data.frame(tmp)
-  pep$"Quantity Quality" <- tmp$Qual[match(pep$"Modified sequence", tmp$ModSeq)]
-}
-# Interesting note by Vadim on the balance between using more noisy peptides for quant vs fewer high quality ones:
-#   https://github.com/vdemichev/DiaNN/issues/1102
-# As I expected, they find out that using more is better than filtering.
+Src <- paste0(libPath, "/extdata/R scripts/Sources/pepMake.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 #### Code chunk - Peptidoforms-level, calculate quantitation and test for outliers
 ## (future option, or when executing line-by-line: remove outliers/samples which will not be used)
@@ -2038,7 +1136,7 @@ source(parSrc, local = FALSE)
 exports <- list("smpls", "Exp.map", "tmp", "pep.ref", "LabelType", "is.all.good")
 if (LabelType == "Isobaric") {
   tmp <- ev[, c("MQ.Exp", "Modified sequence",
-                paste0(ev.ref[length(ev.ref)], as.character(sort(as.numeric(unique(Exp.map$Isobaric.label))))))]
+                paste0(ev.ref[length(ev.ref)], as.character(sort(as.numeric(unique(Exp.map$"Isobaric label"))))))]
   exports <- append(exports, "ev.ref")
 }
 if (LabelType == "LFQ") {
@@ -2047,7 +1145,10 @@ if (LabelType == "LFQ") {
 }
 smpls <- unique(Exp.map$Ref.Sample.Aggregate[which(Exp.map$Use)])
 clusterExport(parClust, exports, envir = environment())
-clusterCall(parClust, function() library(data.table))
+clusterCall(parClust, function() {
+  library(data.table)
+  return(0)
+})
 tmp4 <- setNames(parLapply(parClust, smpls, function(smpl) { #smpl <- smpls[1]
   m <- match(smpl, Exp.map$Ref.Sample.Aggregate)
   mqe <- unlist(Exp.map$MQ.Exp[m])
@@ -2055,19 +1156,18 @@ tmp4 <- setNames(parLapply(parClust, smpls, function(smpl) { #smpl <- smpls[1]
   tmp2 <- data.frame(mod = NA, Intensity = NA)
   if (length(w2)) {
     if (LabelType == "Isobaric") {
-      # Not tested! If buggy, look at older versions from before the Feb. 2024 rewrite!
-      j <- as.character(sort(as.numeric(Exp.map$Isobaric.label[m])))
-      tmp3 <- tmp[, paste0(ev.ref[length(ev.ref)], j)]
+      j <- as.character(sort(as.numeric(Exp.map$"Isobaric label"[m])))
+      tmp3 <- tmp[w2, paste0(ev.ref[length(ev.ref)], j), drop = FALSE]
       for (k in j) {
         kk <- paste0(ev.ref[length(ev.ref)], j)
         tmp3[which(!is.all.good(tmp3[[kk]], 2)), kk] <- NA
       }
       if (length(j) > 1) { tmp3 <- apply(tmp3, 1, sum, na.rm = TRUE) } # Ultra-rare cases where the same parent sample is in different isobaric channels in different fractions
-      tmp2 <- data.table(mod = tmp[w2, "Modified sequence"],
-                         Intensity = tmp3)
+      tmp2 <- data.table(mod = tmp$"Modified sequence"[w2],
+                         Intensity = unlist(tmp3))
     }
     if (LabelType == "LFQ") {
-      tmp2 <- data.table(mod = tmp[w2, "Modified sequence"],
+      tmp2 <- data.table(mod = tmp$"Modified sequence"[w2],
                          Intensity = tmp[w2, ev.col[length(ev.col)]])
       tmp2$Intensity[which(!is.all.good(tmp2$Intensity, 2))] <- NA
     }
@@ -2100,16 +1200,18 @@ if (length(pc1$rotation)) {
     rownames(scores1) <- NULL
     pv1 <- round(100*(pc1$sdev)^2 / sum(pc1$sdev^2), 0)
     pv1 <- pv1[which(pv1 > 0)]
-    pv1 <- paste0("Original: ", paste(sapply(1:length(pv1), function(x) {
+    pv1 <- paste0("Original: ", paste(vapply(1:length(pv1), function(x) {
       paste0("PC", x, ": ", pv1[x], "%")
-    }), collapse = ", "))
-    w <- which(sapply(VPAL$names, function(x) { length(unique(scores1[[x]])) }) > 1)
+    }, ""), collapse = ", "))
+    w <- which(vapply(VPAL$names, function(x) { length(unique(scores1[[x]])) }, 1) > 1)
     w <- w[which(tolower(substr(names(w), 1, 3)) != "rep")]
     scores1$Samples_group <- do.call(paste, c(scores1[, VPAL$names[w], drop = FALSE], sep = " "))
-    scores1$Label <- apply(scores1[, RSA$names, drop = FALSE], 1, paste, collapse = "-")
+    scores1$Label <- do.call(paste, c(scores1[, RSA$names, drop = FALSE], sep = " "))
+    outlierAnnot_shape %<o% "Replicate"
+    outlierAnnot_color %<o% "Samples_group"
     ttl <- "PCA plot - Preliminary - peptide level"
     plot <- ggplot(scores1) +
-      geom_point(aes(x = PC1, y = PC2, colour = Samples_group, shape = Use)) +
+      geom_point(aes(x = PC1, y = PC2, colour = .data[[outlierAnnot_color]], shape = .data[[outlierAnnot_shape]])) +
       scale_color_viridis_d(begin = 0.25) +
       coord_fixed() + theme_bw() +
       geom_hline(yintercept = 0, colour = "black") + geom_vline(xintercept = 0, colour = "black") +
@@ -2121,13 +1223,13 @@ if (length(pc1$rotation)) {
     ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
     ReportCalls <- AddPlot2Report()
     Symb <- rep(c("circle", "diamond", "square", "cross", "x"), max(as.numeric(Rep)))[1:max(as.numeric(Rep))]             
-    Symb <- Symb[as.numeric(scores1$Replicate)]
+    Symb <- Symb[as.numeric(scores1[[outlierAnnot_shape]])]
     # Custom color scale
     scores1$"Samples group" <- factor(scores1$Samples_group)
     if ("PC3" %in% colnames(scores1)) {
       plot_lyPCA <- plot_ly(scores1, x = ~PC1, y = ~PC2, z = ~PC3,
                             text = ~Label, type = "scatter3d", mode = "markers",
-                            color = ~`Samples group`, colors = "viridis",
+                            color = ~get(outlierAnnot_color), colors = "viridis",
                             symbol = I(Symb))
     } else {
       plot_lyPCA <- plot_ly(scores1, x = ~PC1, y = ~PC2,
@@ -2136,6 +1238,7 @@ if (length(pc1$rotation)) {
                             symbol = I(Symb))
     }
     plot_lyPCA %<o% layout(plot_lyPCA, title = ttl)
+    renderPlotly({ plot_lyPCA <- plot_lyPCA })
     saveWidget(plot_lyPCA, paste0(wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"),
                selfcontained = TRUE)
     #system(paste0("open \"", wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"))
@@ -2216,9 +1319,9 @@ pepHtmp %<o% function(intProt = prot.list_pep,
       if (length(grs)) {
         Seq <- DB$Sequence[match(plp, DB$"Protein ID")]
         temp <- tmpPep[grs, c("Sequence", "Modified sequence", g)]
-        temp$tst1 <- sapply(temp$Sequence, function(x) { nchar(unlist(strsplit(Seq, x))[1]) })
-        temp$tst2 <- sapply(temp$Sequence, nchar)
-        temp$tst3 <- sapply(temp$"Modified sequence", nchar)
+        temp$tst1 <- vapply(temp$Sequence, function(x) { nchar(unlist(strsplit(Seq, x))[1]) }, 1)
+        temp$tst2 <- vapply(temp$Sequence, nchar, 1)
+        temp$tst3 <- vapply(temp$"Modified sequence", nchar, 1)
         temp <- temp[order(temp$tst1, temp$tst2, temp$tst3),]
         w <- which(rowSums(temp[, g], na.rm = TRUE) == 0)
         if (length(w)) {
@@ -2411,7 +1514,9 @@ tst <- sapply(Aggr$values, function(x) {
 })
 colnames(tst) <- cleanNms(colnames(tst))
 tst <- apply(tst, 1, function(x) { colnames(tst)[which(x == max(x))][1] })
-tst2 <- aggregate(ev$Charge, list(ev$`Modified sequence`), function(x) { round(mean(x)) })
+tst2 <- as.data.table(ev[, c("Charge", "Modified sequence")])
+tst2 <- tst2[, list(x = round(mean(Charge))), by = list(Group.1 = `Modified sequence`)]
+tst2 <- as.data.frame(tst2)
 temp2 <- data.frame("log10(Mean)" = log10(rowMeans(temp, na.rm = TRUE)),
                     "log10(Variance)" = log10(apply(temp, 1, var, na.rm = TRUE)),
                     "Strongest in..." = tst,
@@ -2431,10 +1536,11 @@ ggsave(paste0(dir, "/", ttl, " - ", rfnm, ".jpeg"), plot, width = 10, height = 1
 ggsave(paste0(dir, "/", ttl, " - ", rfnm, ".pdf"), plot, width = 10, height = 10, units = "in", dpi = 300)
 ReportCalls <- AddPlot2Report(Title = paste0(ttl, " - ", rfnm))
 #
-# - Run normalisation
+# - Run normalisations
 if (Param$Norma.Pep.Intens) {
   Src <- paste0(libPath, "/extdata/R scripts/Sources/pepNorm_Main.R")
   #rstudioapi::documentOpen(Src)
+  #rstudioapi::documentOpen(nrmSrc)
   source(Src, local = FALSE)
 }
 #
@@ -2447,11 +1553,17 @@ w <- which(apply(temp, 1, function(x) { length(is.all.good(x)) }) > 0)
 temp <- temp[w,]
 Aggr <- VPAL
 if (LocAnalysis) { Aggr <- parse.Param.aggreg("Exp;Com") }
-tst <- sapply(Aggr$values, function(x) {
+tst <- setNames(lapply(Aggr$values, function(x) { #x <- Aggr$values[2]
   em <- Exp.map[which(Exp.map[[Aggr$column]] == x),]
-  kl <- paste0(pep.ref[rfnm], em$Ref.Sample.Aggregate)
-  return(rowMeans(temp[, kl, drop = FALSE], na.rm = TRUE))
-})
+  if (nrow(em)) {
+    kl <- paste0(pep.ref[rfnm], em$Ref.Sample.Aggregate)
+    return(rowMeans(temp[, kl, drop = FALSE], na.rm = TRUE))
+  } else {
+    return(NULL)
+  }
+}), Aggr$values)
+tst <- tst[which(!sapply(tst, is.null))]
+tst <- as.data.frame(do.call(cbind, tst))
 kol <- colnames(tst) <- cleanNms(colnames(tst))
 tst <- apply(tst, 1, function(x) { kol[which(x == max(x))][1] })
 tst2 <- aggregate(ev$Charge, list(ev$`Modified sequence`), function(x) { round(mean(x)) })
@@ -2492,9 +1604,9 @@ pep.ratios.ref %<o% c(Ratios = paste0("log2(", pep.ratios.root, ") - "))
 kount <- 0
 for (i in RRG$values) { #i <- RRG$values[1]
   j <- setNames(unlist(strsplit(i, "___")), RRG$names)
-  temp <- sapply(RRG$names, function(x) { list(which(Exp.map[[x]] == j[[x]])) })
+  temp <- lapply(RRG$names, function(x) { which(Exp.map[[x]] == j[[x]]) })
   temp2 <- sort(unique(unlist(temp)))
-  test <- sapply(temp2, function(x) { sum(sapply(temp, function(y) {x %in% unlist(y)})) })
+  test <- vapply(temp2, function(x) { sum(vapply(temp, function(y) { x %in% unlist(y) }, TRUE)) }, 1)
   temp2 <- temp2[which(test == length(temp))]
   temp3 <- Exp.map[temp2,]
   temp3 <- temp3[which(temp3$Reference),]
@@ -2523,9 +1635,9 @@ ratios.2.ref$Used_by <- list(NA)
 # this will be useful further down the line.
 for (i in RRG$values) { #i <- RRG$values[1]
   j <- set_names(unlist(strsplit(i, "___")), RRG$names)
-  temp <- sapply(RRG$names, function(x) { list(which(Exp.map[[x]] == j[[x]])) })
+  temp <- lapply(RRG$names, function(x) { which(Exp.map[[x]] == j[[x]]) })
   temp2 <- sort(unique(unlist(temp)))
-  test <- sapply(temp2, function(x) { sum(sapply(temp, function(y) {x %in% unlist(y)})) })
+  test <- vapply(temp2, function(x) { sum(vapply(temp, function(y) { x %in% unlist(y) }, TRUE)) }, 1)
   temp2 <- temp2[which(test == length(temp))]
   temp3 <- Exp.map[temp2,]
   # Get reference
@@ -2561,7 +1673,7 @@ temp[, RSA$names] <- Isapply(strsplit(as.character(temp$variable), "___"), unlis
 temp$variable <- as.factor(cleanNms(as.character(temp$variable)))
 temp[, c("Ratios group", "#")] <- Isapply(strsplit(as.character(temp$variable), "_REF\\.to\\.REF_"), unlist)
 aggr <- RSA$names
-tst <- sapply(aggr, function(a) { length(get(substr(a, 1, 3))) })
+tst <- vapply(aggr, function(a) { length(get(substr(a, 1, 3))) }, 1)
 aggr <- aggr[which(tst > 1)]
 facets <- (length(aggr) > 0)
 if (facets) {
@@ -2655,14 +1767,17 @@ if (Param$Norma.Pep.Ratio) {
   if (("Adv.Norma.Pep.Ratio" %in% colnames(Param))&&(Param$Adv.Norma.Pep.Ratio != FALSE)) {
     if (Param$Adv.Norma.Pep.Ratio.Type == "C") {
       k <- Adv.Norma.Pep.Ratio.Type.Group$column
-      test <- sapply(Adv.Norma.Pep.Ratio.Type.Group$values, function(i) { #i <- Adv.Norma.Pep.Ratio.Type.Group$values[1]
+      test <- vapply(Adv.Norma.Pep.Ratio.Type.Group$values, function(i) { #i <- Adv.Norma.Pep.Ratio.Type.Group$values[1]
         i <- Exp.map$Ref.Sample.Aggregate[which(Exp.map[[k]] == i)]
         return(length(which(paste0(pep.ratios.ref[length(pep.ratios.ref)], i) %in% colnames(pep))))
-      })
+      }, 1)
       agg <- Adv.Norma.Pep.Ratio.Type.Group$values[which(test > 1)]
       exports <- list("agg", "Adv.Norma.Pep.Ratio.Type.Group", "Exp.map", "pep.ratios.ref", "pep", "Param")
       clusterExport(parClust, exports, envir = environment())
-      clusterCall(parClust, function() library(proteoCraft))
+      clusterCall(parClust, function() {
+        library(proteoCraft)
+        return(0)
+      })
       norm_temp <- parSapply(parClust, 0:length(agg), function(i) { #i <- 1
         if (i == 0) {
           kol <- grep(paste0(topattern(pep.ratios.ref[1]), ".+_REF\\.to\\.REF_"), colnames(pep), value = TRUE)
@@ -2670,11 +1785,11 @@ if (Param$Norma.Pep.Ratio) {
           x <- agg[i]
           j <- unlist(strsplit(x, "___"))
           names(j) <- Adv.Norma.Pep.Ratio.Type.Group$names
-          temp <- sapply(Adv.Norma.Pep.Ratio.Type.Group$names, function(x) {
-            list(which(Exp.map[[x]] == j[[x]]))
+          temp <- lapply(Adv.Norma.Pep.Ratio.Type.Group$names, function(x) {
+            which(Exp.map[[x]] == j[[x]])
           })
           temp2 <- sort(unique(unlist(temp)))
-          test <- sapply(temp2, function(x) { sum(sapply(temp, function(y) {x %in% unlist(y)})) })
+          test <- vapply(temp2, function(x) { sum(vapply(temp, function(y) { x %in% unlist(y) }, TRUE)) }, 1)
           temp2 <- temp2[which(test == length(temp))]
           temp3 <- Exp.map[temp2,]
           kol <- paste0(pep.ratios.ref[length(pep.ratios.ref)], temp3$Ref.Sample.Aggregate)
@@ -2712,10 +1827,10 @@ if (Param$Norma.Pep.Ratio) {
     for (i in Ratios.Plot.split$values) { #i <- Ratios.Plot.split$values[1]
       j <- unlist(strsplit(i, "___"))
       names(j) <- unlist(Aggregate.map$Characteristics[which(Aggregate.map$Aggregate.Name == Ratios.Plot.split$aggregate)])
-      #k <- sapply(c(1:length(j)), function(x) {list(which((Exp.map[[names(j)[x]]] == j[x])&(!Exp.map$Reference)))})
-      k <- sapply(c(1:length(j)), function(x) {list(which(Exp.map[[names(j)[x]]] == j[x]))})
+      #k <- lapply(c(1:length(j)), function(x) { which((Exp.map[[names(j)[x]]] == j[x])&(!Exp.map$Reference)) })
+      k <- lapply(c(1:length(j)), function(x) { which(Exp.map[[names(j)[x]]] == j[x]) })
       l <- sort(unique(unlist(k)))
-      test <- sapply(l, function(x) { sum(sapply(k, function(y) {x %in% y})) == length(k) })
+      test <- vapply(l, function(x) { sum(vapply(k, function(y) { x %in% y }, TRUE)) == length(k) }, 1)
       temp <- Exp.map$Ref.Sample.Aggregate[l[which(test)]]
       a1 <- paste0(pep.ratios.ref[1], temp)
       a2 <- paste0(pep.ratios.ref[length(pep.ratios.ref)], temp)
@@ -2740,7 +1855,9 @@ if (Param$Norma.Pep.Ratio) {
           temp$Colour <- do.call(paste, c(temp2[, Ratios.Plot.colour$names], sep = "_"))
         } else { temp$Colour <- temp2[[Ratios.Plot.colour$names]] }
         temp$X <- do.call(paste, c(temp[, c("Norm", "Colour")], sep = "_"))
-        temp$X <- factor(temp$X, levels = unlist(sapply(c("Original", "Normalised"), function(x) {paste(x, unique(temp2[[Ratios.Plot.colour$names]]), sep = "_")})))
+        temp$X <- factor(temp$X, levels = unique(unlist(vapply(c("Original", "Normalised"), function(x) {
+          paste(x, unique(temp2[[Ratios.Plot.colour$names]]), sep = "_")
+        }, ""))))
         temp <- temp[which(is.all.good(temp$value, 2)),]
         dir <- paste0(wd, "/Workflow control/Peptides/Ratios")
         if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
@@ -2816,13 +1933,15 @@ if ("Prot.Only.with.at.least" %in% colnames(Param)) {
   }
 } else { NPep <- 1 }
 .obj <- unique(c(.obj, "NPep"))
+#
 tm1 <- Sys.time()
 source(parSrc, local = FALSE)
-PG_assembly <- PG_assemble(pep, "id", "Proteins", db, "Evidence IDs", ev, Custom_PGs = custPGs, Npep = NPep,
-                           cl = parClust)
-saveFun(PG_assembly, file = "PG_assembly.RData")
+Src <- paste0(libPath, "/extdata/R scripts/Sources/PG_assemble.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 #loadFun("PG_assembly.RData")
 tm2 <- Sys.time()
+#
 PG %<o% PG_assembly$Protein.groups
 pep <- PG_assembly$Peptides
 db <- PG_assembly$Database
@@ -2846,9 +1965,9 @@ if (length(g)) {
 }
 #
 if (tstorg) {
-  test <- sapply(strsplit(PG$`Protein IDs`, ";"), function(x) {
+  test <- vapply(strsplit(PG$`Protein IDs`, ";"), function(x) {
     paste(sort(unique(c(db[match(x, db$`Protein ID`), dbOrgKol]))), collapse = ";")
-  })
+  }, "")
   pgOrgKol %<o% c("Organism", "Organism(s)")[(sum(grepl(";", test))>0)+1]
   PG[[pgOrgKol]] <- test
 }
@@ -3018,22 +2137,28 @@ if (IsBioID) {
       temp <- temp[which(temp$value %in% pep$id[g]),]
       temp <- aggregate(temp$value, list(temp$L1), function(x) { paste(sort(x), collapse = ";") })
       PG[wpg, "Biot. peptide IDs"] <- temp$x[match(PG$id[wpg], temp$Group.1)]
-      PG[["Biot. peptides count"]] <- sapply(strsplit(PG[["Biot. peptide IDs"]], ";"), length)
+      PG[["Biot. peptides count"]] <- vapply(strsplit(PG[["Biot. peptide IDs"]], ";"), length, 1)
       PG[["Biot. peptides [%]"]] <- round(100*PG[["Biot. peptides count"]]/PG$"Peptides count", 1)
       IsBioID2 <- TRUE
     } else { warning("I could not find any biotinylated peptides!") }
   } else { warning("I could not identify any biotinylated PTMs in the modifications table, did you include them in the search?") }
 }
 # First sequence
-PG$"Sequence (1st accession)" <- db$Sequence[match(sapply(strsplit(PG$"Leading protein IDs", ";"), function(x) { x[[1]] }),
-                                                   db$"Protein ID")]
+m <- match(vapply(strsplit(PG$"Leading protein IDs", ";"), function(x) { x[[1]] }, ""),
+           db$"Protein ID")
+PG$"Protein ID (1st accession)" <- db$`Protein ID`[m]
+PG$"Sequence (1st accession)" <- db$Sequence[m]
 
 # Number of spectra, evidences and peptides per sample:
 source(parSrc, local = FALSE)
-clusterCall(parClust, function() library(proteoCraft))
-clusterCall(parClust, function() library(reshape))
-clusterCall(parClust, function() library(data.table))
-temp_PG <- data.frame(id = PG$id, Accession1 = sapply(strsplit(PG$"Leading protein IDs", ";"), function(x) { unlist(x)[1] }))
+clusterCall(parClust, function() {
+  library(proteoCraft)
+  library(reshape)
+  library(data.table)
+  return(0)
+})
+temp_PG <- data.frame(id = PG$id,
+                      Accession1 = PG$`Protein ID (1st accession)`)
 temp_PG$Pep <- parLapply(parClust, strsplit(PG$"Peptide IDs", ";"), as.integer)
 tmp <- pep[, c("id", "Sequence")]
 clusterExport(parClust, "tmp", envir = environment())
@@ -3054,14 +2179,14 @@ if (CreateMSMSKol) {
   #PG[, paste0("Spectr", c("al count", "um IDs"))]
   temp <- listMelt(lapply(strsplit(PG$`Evidence IDs`, ";"), as.integer), PG$id, c("Ev_id", "PG_id"))
   temp$MSMSIDs <- ev$temp[match(temp$Ev_id, ev$id)]
-  temp <- temp[which(sapply(temp$MSMSIDs, length) > 0),] # Remove Match-Between-Runs evidences (no MS/MS)
+  temp <- temp[which(vapply(temp$MSMSIDs, length, 1) > 0),] # Remove Match-Between-Runs evidences (no MS/MS)
   temp <- listMelt(temp$MSMSIDs, temp$PG_id, c("MSMSIDs", "PG_id"))
   temp <- do.call(data.frame, aggregate(temp$MSMSIDs, list(temp$PG_id), function(x) {
     x <- unique(x)
     return(c(Count = length(x), List = list(x)))
   }))
   temp$x.Count <- unlist(temp$x.Count)
-  temp$Pasted <- sapply(temp$x.List, function(x) { paste(sort(as.numeric(unlist(x))), collapse = ";") })
+  temp$Pasted <- vapply(temp$x.List, function(x) { paste(sort(as.numeric(unlist(x))), collapse = ";") }, "")
   PG[, paste0("Spectr", c("al count", "um IDs"))] <- temp[match(PG$id, temp$Group.1), c("x.Count", "Pasted")]
   ev$temp <- NULL
 }
@@ -3113,7 +2238,7 @@ temp <- parApply(parClust, Samplez, 1, function(Smpl) { #Smpl <- unlist(Samplez[
       return(c(Count = length(x), List = list(x)))
     }))
     temp1$x.Count <- unlist(temp1$x.Count)
-    temp1$Pasted <- sapply(temp1$x.List, function(x) { paste(sort(as.numeric(unlist(x))), collapse = ";") })
+    temp1$Pasted <- vapply(temp1$x.List, function(x) { paste(sort(as.numeric(unlist(x))), collapse = ";") }, "")
     tmp <- temp1$x.List
     tmp <- listMelt(tmp)
     tmp$Seq <- temp_pep$Sequence[match(as.numeric(tmp$value), temp_pep$id)]
@@ -3138,7 +2263,7 @@ temp <- parApply(parClust, Samplez, 1, function(Smpl) { #Smpl <- unlist(Samplez[
         return(c(Count = length(x), List = list(x)))
       }))
       temp3$x.Count <- unlist(temp3$x.Count)
-      temp3$Pasted <- sapply(temp3$x.List, function(x) { paste(sort(as.numeric(unlist(x))), collapse = ";") })
+      temp3$Pasted <- vapply(temp3$x.List, function(x) { paste(sort(as.numeric(unlist(x))), collapse = ";") }, "")
       w <- which(res$id %in% temp3$Group.1)
       m <- match(res$id[w], temp3$Group.1)
       res[w, kols] <- temp3[m, c("x.Count", "Pasted")]
@@ -3248,7 +2373,7 @@ if ("PepFoundInAtLeastGrp" %in% colnames(Param)) {
 tst <- pep[, unlist(kol)]
 clusterExport(parClust, list("tst", "kol", "PepFoundInAtLeastGrp"), envir = environment())
 tst <- parSapply(parClust, 1:nrow(pep), function(x) {
-  max(sapply(kol, function(y) { sum(proteoCraft::is.all.good(unlist(tst[x, y])) > 0) }) >= PepFoundInAtLeastGrp)
+  max(vapply(kol, function(kl) { sum(proteoCraft::is.all.good(unlist(tst[x, kl])) > 0) }, 1) >= PepFoundInAtLeastGrp)
 }) > 0
 Pep2Use %<o% which(tst)
 #length(Pep2Use)/nrow(pep)
@@ -3631,7 +2756,7 @@ if (QuantMethods_all) {
   NormFact1 <- sapply(1:length(QuantMethods), function(i) {
     tmp <- get(QuantData[i])
     tmp$"Leading protein IDs" <- PG$"Leading protein IDs"
-    tmp2 <- tmp[,expscol]
+    tmp2 <- tmp[, expscol]
     tmp2 <- rowMeans(tmp2, na.rm = TRUE)
     w <- which(PG$"Leading protein IDs" %in% tmp$"Leading protein IDs")
     res <- rep(NA, nrow(PG))
@@ -3692,7 +2817,7 @@ if (QuantMethods_all) {
     tmp2 <- tmp1
     tmp2$X <- tmp2[[paste0(comb[i, 1], " - renorm")]]
     tmp2$Y <- tmp2[[paste0(comb[i, 2], " - renorm")]]
-    tst <- sapply(RSA$names, function(x) { length(get(substr(x, 1, 3))) })
+    tst <- vapply(RSA$names, function(x) { length(get(substr(x, 1, 3))) }, 1)
     tst <- RSA$names[which(tst > 1)]
     form <- as.formula(paste0(tst[1], "~", paste(tst[2:length(tst)], collapse = "+")))
     ttl1 <- paste0("LFQ method comparison: ", comb[i, 1], " VS ", comb[i, 2])
@@ -3805,7 +2930,6 @@ if (Mirror.Ratios) {
     InvertedOnce %<o% TRUE
   }
 }
-
 
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
@@ -3987,15 +3111,15 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
                       xpMed2-xpMed1,
                       "+")
         # References
-        rrg <- RRG$values[which(sapply(RRG$values, function(x) {
+        rrg <- RRG$values[which(vapply(RRG$values, function(x) {
           unique(Exp.map[which(Exp.map[[RRG$column]] == x), RG$column] == grp)
-        }))]
+        }, TRUE))]
         #xpMed2-xpMed1
         rfMed1 <- apply(quant.data.norm[nrmFlt, rfKol, drop = FALSE], 2, median, na.rm = TRUE)
-        rfMed2 <- sapply(rrg, function(x) { #x <- rrg[1]
+        rfMed2 <- vapply(rrg, function(x) { #x <- rrg[1]
           x <- Exp.map$Ref.Sample.Aggregate[which((Exp.map[[RRG$column]] == x)&(Exp.map$Reference))]
           median(rowMeans(tmp2[, paste0(Prot.Expr.Root, x), drop = FALSE], na.rm = TRUE), na.rm = TRUE)
-        })
+        }, 1)
         #rfMed2-rfMed1
         tmp3 <- sweep(quant.data.norm[, rfKol, drop = FALSE],
                       2, 
@@ -4022,7 +3146,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
         }))
         colnames(tmpNrm2) <- RG$values
         globMed1 <- median(is.all.good(unlist(tmpNrm2)))
-        xpMed1 <- apply(tmpNrm2, 2 , median, na.rm = TRUE)
+        xpMed1 <- apply(tmpNrm2, 2, median, na.rm = TRUE)
         tmpNrm2$id <- ids
         tmp2 <- proteoCraft::AdvNorm.IL(tmpNrm2, "id", RG$values, TRUE, 5)
         tmp2$id <- NULL
@@ -4081,12 +3205,12 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
     kPpR <- kPpR[which(kPpR %in% colnames(pep))]
     kPrR <- kPrR[which(kPrR %in% colnames(quant.data))]
     pep.quant.data.norm <- pep[, c(kPpE, kPpR)]
-    diffE <- 10^sapply(kPrE, function(x) {
+    diffE <- 10^vapply(kPrE, function(x) {
       mean(is.all.good(unlist(quant.data.norm[x] - quant.data[x])))
-    })
-    diffR <- sapply(kPrR, function(x) {
+    }, 1)
+    diffR <- vapply(kPrR, function(x) {
       mean(is.all.good(unlist(quant.data.norm[x] - quant.data[x])))
-    })
+    }, 1)
     pep.quant.data.norm[, kPpE] <- sweep(pep.quant.data.norm[, kPpE], 2, diffE, "*")
     pep.quant.data.norm[, kPpR] <- sweep(pep.quant.data.norm[, kPpR], 2, diffR, "+")
     # Also pep.ref.ratios
@@ -4338,7 +3462,7 @@ test[which(!w), RSA$names] <- Isapply(strsplit(test$variable[which(!w)], "___"),
 #test[which(w), RRG$names] <- a <- Isapply(strsplit(gsub_Rep("\\.REF$", "", test$variable[which(w)]), "___"), unlist)
 #test$REF <- c("Individual", "Reference")[1+grepl("\\.REF$", test$variable)]
 a <- RSA$names
-w <- which(sapply(a, function(x) {length(unique(test[[x]]))}) > 1)
+w <- which(vapply(a, function(x) { length(unique(test[[x]])) }, 1) > 1)
 if (length(w)) { a <- a[w] }
 test[[a[1]]] <- factor(test[[a[1]]], levels = sort(unique(test[[a[1]]])))
 test <- test[which(is.all.good(test$value, 2)),]
@@ -4352,9 +3476,9 @@ binz[1] <- binz[1]-0.000001
 testI <- data.frame(Intensity = (binz[2:(nbinz+1)]+binz[1:nbinz])/2)
 for (v in unique(test$variable)) {
   wv <- which(test$variable == v)
-  testI[[v]] <- sapply(1:nbinz, function(x) {
+  testI[[v]] <- vapply(1:nbinz, function(x) {
     sum((test$value[wv] > binz[x])&(test$value[wv] <= binz[x+1]))
-  })
+  }, 1)
 }
 testI <- reshape2::melt(testI, id.vars = "Intensity")
 testI[, a] <- test[match(testI$variable, test$variable), a]
@@ -4395,7 +3519,7 @@ test[which(!w), RSA$names] <- Isapply(strsplit(test$variable[which(!w)], "___"),
 #test[which(w), RRG$names] <- a <- Isapply(strsplit(gsub_Rep("\\.REF$", "", test$variable[which(w)]), "___"), unlist)
 #test$REF <- c("Individual", "Reference")[1+grepl("\\.REF$", test$variable)]
 a <- RSA$names
-w <- which(sapply(a, function(x) {length(unique(test[[x]]))}) > 1)
+w <- which(vapply(a, function(x) { length(unique(test[[x]])) }, 1) > 1)
 if (length(w)) { a <- a[w] }
 test[[a[1]]] <- factor(test[[a[1]]], levels = sort(unique(test[[a[1]]])))
 test <- test[which(is.all.good(test$value, 2)),]
@@ -4409,9 +3533,9 @@ binz[1] <- binz[1]-0.000001
 testR <- data.frame(Intensity = (binz[2:(nbinz+1)]+binz[1:nbinz])/2)
 for (v in unique(test$variable)) {
   wv <- which(test$variable == v)
-  testR[[v]] <- sapply(1:nbinz, function(x) {
+  testR[[v]] <- vapply(1:nbinz, function(x) {
     sum((test$value[wv] > binz[x])&(test$value[wv] <= binz[x+1]))
-  })
+  }, 1)
 }
 testR <- reshape2::melt(testR, id.vars = "Intensity")
 testR[, a] <- test[match(testR$variable, test$variable), a]
@@ -4479,7 +3603,7 @@ if (LocAnalysis) {
     tmp2 <- data.frame(`Modified sequence` = pep$"Modified sequence", check.names = FALSE)
     for (mqexp in MQ.Exp) { #mqexp <- MQ.Exp[1]
       em <- Exp.map[which(Exp.map$MQ.Exp == mqexp),]
-      m <- match(chan, em$Isobaric.label)
+      m <- match(chan, em$"Isobaric label")
       w <- which(!is.na(m))
       kol2c <- paste0(pep.ref["Original"], em$Ref.Sample.Aggregate[m[w]])
       tmp2[, kol2c] <- 0
@@ -4516,12 +3640,12 @@ if (LocAnalysis) {
   # Calculate ratio before/after, per samples group
   BefAft <- tmp2[, kol2c]/tmp1[, kol1]
   colnames(BefAft) <- RSA$values[WhInColNms]
-  BefAft <- sapply(VPAL$values, function(x) {
+  BefAft <- vapply(VPAL$values, function(x) {
     x <- Exp.map$Ref.Sample.Aggregate[which(Exp.map[[VPAL$column]] == x)]
     x <- x[which(x %in% RSA$values[WhInColNms])]
     x <- median(unlist(BefAft[, x]), na.rm = TRUE)
     return(x)
-  })
+  }, 1)
   # This is the ratio between values at the start of the workflow and final peptidoforms values 
   #
   # Next, we can apply proportion of total material loaded
@@ -4683,7 +3807,7 @@ if (Param$Prot.Only.with.Quant) {
   PG <- PG[which((test1 > 0)|(test2 > 0)),]
 }
 if (!"Peptides count" %in% colnames(PG)) {
-  PG$"Peptides count" <- sapply(strsplit(PG$"Peptide IDs", ";"), length)
+  PG$"Peptides count" <- vapply(strsplit(PG$"Peptide IDs", ";"), length, 1)
 }
 #if ("Prot.Only.with.at.least" %in% colnames(Param)) {
 #  n <- as.numeric(Param$Prot.Only.with.at.least)
@@ -4724,14 +3848,14 @@ w <- which(g %in% colnames(PG))
 g <- g[w]
 smpls <- cleanNms(RSA$values[w])
 corMap <- sapply(1:length(g), function(x) {
-  sapply(1:length(g), function(y) {
+  vapply(1:length(g), function(y) {
     if (x > y) {
       x <- PG[[g[x]]]
       y <- PG[[g[y]]]
       w <- which((is.all.good(x, 2))&(is.all.good(y, 2)))
       return(cor(x[w], y[w], method = "pearson"))
     } else { return(NA) }
-  })
+  }, 1)
 })
 rownames(corMap) <- colnames(corMap) <- smpls
 corMap <- reshape2::melt(corMap, measure.vars = smpls)
@@ -4831,9 +3955,9 @@ AltHyp %<o% c(c("greater", "lower")[Mirror.Ratios+1], "two.sided")[TwoSided+1]
 #  From Exp.map to design matrix
 #Coefficients %<o% Factors[which(!Factors %in% c("Experiment", "Replicate"))]
 Coefficients %<o% VPAL$names
-w <- which(sapply(Coefficients, function(x) { length(unique(FactorsLevels[[x]])) < nrow(Exp.map) }))
+w <- which(vapply(Coefficients, function(x) { length(unique(FactorsLevels[[x]])) < nrow(Exp.map) }, TRUE))
 Coefficients <- Coefficients[w]
-w <- which(sapply(Coefficients, function(x) { length(unique(Exp.map[[x]])) > 1 }))
+w <- which(vapply(Coefficients, function(x) { length(unique(Exp.map[[x]])) > 1 }, TRUE))
 Coefficients <- Coefficients[w]
 expMap %<o% Exp.map
 expMap <- expMap[order(#expMap[[RRG$column]], # Do not use RRG here
@@ -4922,7 +4046,7 @@ temp <- lapply(VPAL$values, function(vpal) { #vpal <- VPAL$values[1]
   } else { x <- NA }
   return(x)
 })
-temp <- temp[which(sapply(temp, function(x) { "data.frame" %in% class(x) }))]
+temp <- temp[which(vapply(temp, function(x) { "data.frame" %in% class(x) }, TRUE))]
 temp <- plyr::rbind.fill(temp)
 kol <- colnames(temp)
 kol <- kol[which(kol != "Group")]
@@ -4981,9 +4105,9 @@ for (nm in 1:length(temp2)) {
 # P-values histogram:
 nbin <- 20
 bd <- (0:nbin)/nbin
-w <- which(sapply(pvalue.col, function(type) { #type <- pvalue.col[1]
+w <- which(vapply(pvalue.col, function(type) { #type <- pvalue.col[1]
   length(grep(topattern(type), colnames(PG))) > 0
-}))
+}, TRUE))
 temp <- lapply(pvalue.col[w], function(type) { #type <- pvalue.col[w][1]
   kol <- grep(topattern(type), colnames(PG), value = TRUE)
   if (!length(kol)) { stop(type) }
@@ -4992,7 +4116,7 @@ temp <- lapply(pvalue.col[w], function(type) { #type <- pvalue.col[w][1]
   temp <- reshape::melt(temp, measure.vars = colnames(temp))
   temp$value <- 10^(-temp$value)
   temp <- temp[which(is.all.good(temp$value, 2)),]
-  temp$Bin <- sapply(temp$value, function(x) { min(which(bd >= x))-1 })
+  temp$Bin <- vapply(temp$value, function(x) { min(which(bd >= x))-1 }, 1)
   res <- aggregate(temp$Bin, list(temp$variable, temp$Bin), length)
   colnames(res) <- c("Group", "Bin", "Count")
   grps <- unique(res$Group)
@@ -5132,66 +4256,13 @@ if (useSAM) {
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 
-#### Code chunk - Annotations
-# (still required for dataset enrichment analysis, and also for output tables; not for the GO terms enrichment analysis)
-# I used to get functional annotations for all proteins in the protein group.
-# However we are now - and I think with reason - only using annotations from the leading protein(s)!
-p <- strsplit(PG$"Leading protein IDs", ";") #Here taking just the minimum set of protein IDs to explain the observed dataset.
-db$Observed <- db$"Protein ID" %in% unique(unlist(p))
-if (globalGO) {
-  temp <- listMelt(strsplit(PG$"Leading protein IDs", ";"), PG$id)
-  kol <- annot.col[which(annot.col %in% colnames(db))]
-  if ("Taxonomy" %in% kol) {
-    PG$Taxonomy <- db$Taxonomy[match(gsub(";.*", "", PG$`Leading protein IDs`), db$`Protein ID`)]
-  }
-  kol2 <- annot.col[which(!annot.col %in% "Taxonomy")]
-  kol2 <- annot.col[which(annot.col %in% colnames(db))]
-  temp[, kol2] <- db[match(temp$value, db$"Protein ID"), kol2]
-  tst1 <- unlist(strsplit(temp$`GO-ID`, ";"))
-  tst2 <- unlist(strsplit(temp$GO, ";"))
-  tst2a <- gsub(".*\\[|\\]$", "", tst2)
-  tst3 <- data.table(A1 = tst1, A2 = tst2)
-  tst3 <- tst3[, list(x = unique(A2)), by = list(Group.1 = A1)]
-  tst3 <- as.data.frame(tst3)
-  stopifnot(length(tst3$x) == length(unique(tst3$x)),
-            "character" %in% class(tst3$x),
-            length(which(temp$value != temp$Accession)) == 0)
-  for (i in kol2) { temp[[i]] <- strsplit(as.character(temp[[i]]), ";") }
-  f0 <- function(x) { list(unique(unlist(x))) }
-  temp <- aggregate(temp[, kol2], list(temp$L1), f0)
-  #
-  # Below commented data.table aggregation code... which is slower so not used.
-  #
-  # temp2 <- as.data.table(temp[, c("L1", kol2)])
-  # temp2 <- temp2[, lapply(.SD, f0), by = list(Group.1 = L1), .SDcols = kol2]
-  # temp2 <- as.data.frame(temp2)
-  #
-  for (i in kol2) {
-    temp[[i]] <- parSapply(parClust, temp[[i]], function(x) { paste(unique(unlist(x)), collapse = ";") }) # Do not use sort here or it will break the correspondance between "GO" and "GO-ID"
-  }
-  tst1 <- unlist(strsplit(temp$`GO-ID`, ";"))
-  tst2 <- unlist(strsplit(temp$GO, ";"))
-  tst3 <- data.table(A1 = tst1, A2 = tst2)
-  tst3 <- tst3[, list(x = unique(A2)), by = list(Group.1 = A1)]
-  tst3 <- as.data.frame(tst3)
-  stopifnot(length(tst3$x) == length(unique(tst3$x)), "character" %in% class(tst3$x))
-  #
-  PG[, kol2] <- temp[match(PG$id, temp$Group.1), kol2]
-  #
-  #View(tst3[which(sapply(tst3$x, length) > 1),])
-  #View(tst3[which(sapply(tst3$x, length) == 0),])
-  #
-  # Also peptides (minor approximation: use first protein group)
-  pep[, kol] <- PG[match(as.integer(gsub(";.*", "", pep$`Protein group ID`)), PG$id), kol]
-  #
-  PG$Ontology <- NULL # Temporary fix for now, this column is broken
-  #
-  stopCluster(parClust)
-  source(parSrc, local = FALSE)
-  Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_prepare.R")
-  #rstudioapi::documentOpen(Src)
-  source(Src, local = FALSE)
-}
+#### Code chunk - Prepare Annotations and (if applicable) GO terms
+# NB: I used to get functional annotations for all proteins in the protein group.
+#     However we are now - and I think with reason - only using annotations from the leading protein(s)!
+setwd(wd)
+Src <- paste0(libPath, "/extdata/R scripts/Sources/Annotate_me.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
@@ -5239,18 +4310,18 @@ if (length(ROC_GOterms)) {
 
 #### Code chunk - Estimate P-value significance for a set of accepted FDRs
 ## NB: For graphical reasons (volcano plots), there is only support for 4 different FDR values. This should suffice anyway.
-a <- sapply(strsplit(Param$Plot.metrics, ";"), function(x) {strsplit(x, ":")})
+a <- sapply(strsplit(Param$Plot.metrics, ";"), function(x) { strsplit(x, ":") })
 a[[2]][2] <- gsub("\\.$", "", pvalue.col[which(pvalue.use)])
-Param$Plot.metrics <- paste(sapply(a, function(x) {paste(x, collapse = ":")}), collapse = ";")
+Param$Plot.metrics <- paste(vapply(a, paste, "", collapse = ":"), collapse = ";")
 FDR.thresholds %<o% c()
 
 A <- VPAL$values
-test <- sapply(A, function(x) { #x <- A[6]
+test <- vapply(A, function(x) { #x <- A[6]
   x <- paste0(pvalue.col[which(pvalue.use)], x)
   r <- x %in% colnames(PG)
   if (r) { r <- length(is.all.good(as.numeric(PG[[x]]))) > 0 }
   return(r)
-})
+}, TRUE)
 A <- A[which(test)]
 PG <- PG[, grep("^Significant-FDR=", colnames(PG), invert = TRUE)]
 for (a in A) { #a <- A[1]
@@ -5588,7 +4659,7 @@ if ("ref" %in% filter_types) {
     warning("Grouping filter by reference is not feasible if replicates are paired!")
     filter_types <- filter_types[which(filter_types != "ref")]
   } else {
-    if (sum(sapply(RG$names, function(x) {! x %in% RSA$names })) > 0) {
+    if (sum(vapply(RG$names, function(x) { !x %in% RSA$names }, TRUE)) > 0) {
       warning("Grouping filter by reference is not feasible if the factors used for \"RG\" are not included in those used for \"RRG\"!")
       filter_types <- filter_types[which(filter_types != "ref")]
     }
@@ -5612,9 +4683,9 @@ if ("ref" %in% filter_types) {
   Reg_filters$"t-tests"$"By reference" <- list()
   g2 <- as.data.frame(t(as.data.frame(strsplit(g1, "___"))))
   colnames(g2) <- VPAL$names
-  tst <- apply(Exp.map[, RRG$names, drop = FALSE], 1, paste, collapse = "___")
-  tmp <- apply(g2[,RRG$names, drop = FALSE], 1, paste, collapse = "___")
-  g2$Ref <- sapply(tmp, function(x) { y <- unique(tst[which((Exp.map$Reference)&(tst == x))]) })
+  tst <- do.call(paste, c(Exp.map[, RRG$names, drop = FALSE], sep = "___"))
+  tmp <- do.call(paste, c(g2[, RRG$names, drop = FALSE], sep = "___"))
+  g2$Ref <- vapply(tmp, function(x) { unique(tst[which((Exp.map$Reference)&(tst == x))]) }, "")
   for (i in unique(g2$Ref)) {
     w <- which(g2$Ref == i)
     u <- grep("^up|^Specific", unique(as.character(PG[, g[w]])), value = TRUE)
@@ -5691,8 +4762,8 @@ if (F.test) {
   # stopifnot(length(tmp2) == length(tmp2))
   # tmp1 <- strsplit(tmp1, "_;_")
   # tmp2 <- strsplit(tmp2, "_;_")
-  # stopifnot(sum(!sapply(tmp1, function(x) { length(x) %in% c(2:3)[Nested+1] })) == 0,
-  #           sum(!sapply(tmp2, function(x) { length(x) == 2 })) == 0) # If this breaks, this will mean that these parameters are not built the way I remember them to be.
+  # stopifnot(sum(!vapply(tmp1, function(x) { length(x) %in% c(2:3)[Nested+1] }, TRUE)) == 0,
+  #           sum(!vapply(tmp2, function(x) { length(x) == 2 }, TRUE)) == 0) # If this breaks, this will mean that these parameters are not built the way I remember them to be.
   # # Anyway, this code is in dire need of a refresher! It would be a welcome occasion to fix it.
   # #
   # tmp1 <- lapply(tmp1, function(x) { Factors[x] })
@@ -6051,7 +5122,7 @@ if (saintExprs) {
     return(rs)
   }), Grps)
   setwd(wd)
-  saintst <- saintst[which(sapply(saintst, function(x) { x$Outcome} ))]
+  saintst <- saintst[which(vapply(saintst, function(x) { x$Outcome }, TRUE))]
   l <- length(saintst)
   if (l) {
     nms <- names(saintst)
@@ -6323,16 +5394,16 @@ for (tt in WhTsts) { #tt <- WhTsts[1]
         temp[2:(N+1), 1] <- temp[1, 2:(N+1)] <- names(flt)
         for (i in 2:(N+1)) {
           x <- flt[[temp[i, 1]]]$Filter
-          temp[i, 2:(N+1)] <- sapply(temp[1, 2:(N+1)], function(y) { sum(x %in% flt[[y]]$Filter) })
+          temp[i, 2:(N+1)] <- vapply(temp[1, 2:(N+1)], function(y) { sum(x %in% flt[[y]]$Filter) }, 1)
         }
         nms <- cleanNms(names(flt))
-        tst <- sapply(strsplit(nms, " - "), length)
+        tst <- vapply(strsplit(nms, " - "), length, 1)
         tst <- (min(tst) > 1)&(length(unique(tst)) == 1)
         if (tst) {
           tst <- as.data.frame(t(sapply(strsplit(nms, " - "), unlist)))
           l <- apply(tst, 2, function(x) { length(unique(x)) })
           tst <- tst[, which(l > 1), drop = FALSE]
-          nms <- apply(tst, 1, paste, collapse = " - ")
+          nms <- do.call(paste, c(tst, sep = " - "))
         }
         temp[2:(N+1), 1] <- temp[1, 2:(N+1)] <- nms
         nm <- paste0("N. of co-regulated PGs\n", tstrt, "\n(", tolower(bee), ")")
@@ -6374,7 +5445,7 @@ lblKol <- RSA$names
 if ((length(Exp) == 1)&&(length(lblKol) > 1))  { lblKol <- lblKol[which(lblKol != "Experiment")] }
 wSmpls <- which(paste0(Prot.Expr.Root, Exp.map$Ref.Sample.Aggregate) %in% colnames(PG))
 xMap <- Exp.map[wSmpls,]
-Samples <- apply(xMap[, lblKol, drop = FALSE], 1, paste, collapse = " ")
+Samples <- do.call(paste, c(xMap[, lblKol, drop = FALSE], sep = " "))
 if (("GO.enrichment.Ref.Aggr" %in% colnames(Param))&&(Param$GO.enrichment.Ref.Aggr %in% Aggregate.map$Aggregate.Name)) {
   ClustGrp <- Param$GO.enrichment.Ref.Aggr
 } else {
@@ -6390,7 +5461,7 @@ if (length(ClustGrp$values) > 1) { for (i in ClustGrp$values) {
   iNm <- cleanNms(i)
   I[[iNm]] <- Samples[which(xMap[[ClustGrp$column]] %in% i)]
 } }
-I <- I[which(sapply(I, length) > 1)]
+I <- I[which(vapply(I, length, 1) > 1)]
 Heatmaps %<o% list()
 NHClust %<o% list()
 NVClust %<o% list()
@@ -6415,8 +5486,8 @@ plotLeatMaps %<o% list()
 for (i in names(I)) { #i <- names(I)[1] #i <- names(I)[2]
   smpls <- I[[i]]
   smplsMtch <- match(smpls, Samples)
-  tstlblKol <- sapply(lblKol, function(x) { length(unique(xMap[smplsMtch, x])) })
-  smpls <- apply(xMap[match(smpls, Samples), lblKol[which(tstlblKol > 1)], drop = FALSE], 1, paste, collapse = " ")
+  tstlblKol <- vapply(lblKol, function(x) { length(unique(xMap[smplsMtch, x])) }, 1)
+  smpls <- do.call(paste, c(xMap[match(smpls, Samples), lblKol[which(tstlblKol > 1)], drop = FALSE], sep = " "))
   xMap$Samples <- smpls
   kol <- paste0(prtRfRoot, xMap$Ref.Sample.Aggregate[smplsMtch])
   msg <- paste0("Creating ", c("", paste0(i, " "))[(i == "Global")+1], "heatmap",
@@ -6529,7 +5600,7 @@ for (i in names(I)) { #i <- names(I)[1] #i <- names(I)[2]
     tst <- setNames(parLapply(parClust, 2:MaxHClust, function(kl) { #kl <- 2
       try(kmeans(temp3, kl, nstart = Straps)$tot.withinss, silent = TRUE)
     }), 2:MaxHClust)
-    tst <- tst[which(sapply(tst, function(x) { !"try-error" %in% class(x) }))]
+    tst <- tst[which(vapply(tst, function(x) { !"try-error" %in% class(x) }, TRUE))]
     tst <- setNames(as.numeric(tst)/kmeans(temp3, 1, nstart = 1)$tot.withinss, names(tst))
     yScl2 <- max(tst)
     tst2 <- data.frame("Number of clusters k" = as.integer(names(tst)),
@@ -6899,17 +5970,16 @@ pv <- paste0("Components: ", paste(sapply(1:length(pv), function(x) {
   paste0("PC", x, ": ", pv[x], "%")
 }), collapse = ", "))
 scores$Sample <- rownames(scores)
-scores$Group <- cleanNms(sapply(scores$Sample, function(x) {
+scores$Group <- cleanNms(vapply(scores$Sample, function(x) {
   Exp.map[which(Exp.map[[RSA$aggregate]] == x), VPAL$column]
-}))
+}, ""))
 scores[, RSA$names] <- Isapply(strsplit(scores$Sample, "___"), unlist)
 if (exists("Tim")) {
   scores$"Time.point" <- as.numeric(scores[[Aggregates[[which(names(Aggregates) == "Tim")]]]])
 }
-a <- RG$column
-scores$Ratios.Groups <- sapply(scores$Sample, function(x) {
-  Exp.map[which(Exp.map$Ref.Sample.Aggregate == x),a]
-})
+scores$Ratios.Groups <- vapply(scores$Sample, function(x) {
+  Exp.map[which(Exp.map$Ref.Sample.Aggregate == x), RG$column]
+}, "")
 scores$Sample <- cleanNms(scores$Sample)
 if (exists("Tim")) {
   if (length(Exp) > 1) { form <- "Experiment ~ Time.point" } else { form <- "~Time.point" }
@@ -7011,15 +6081,15 @@ if (length(filt) > 2) {
       SubCellMark2$Comp <- SubCellMark[match(SubCellMark2$value, names(SubCellMark))]
       SubCellMark2$L1 <- PG$Label[match(SubCellMark2$L1, PG$id)]
       SubCellMark2 <- aggregate(SubCellMark2$Comp, list(SubCellMark2$L1), unique)
-      SubCellMark2 <- SubCellMark2[which(sapply(SubCellMark2$x, length) == 1),]
+      SubCellMark2 <- SubCellMark2[which(vapply(SubCellMark2$x, length, 1) == 1),]
       SubCellMark2$x <- unlist(SubCellMark2$x)
       SubCellMark2 <- setNames(SubCellMark2$x, SubCellMark2$Group.1)
     } else {
       tst <- setNames(lapply(CompGOTerms, function(x) { grep(x, PG$"GO-ID") }), names(CompGOTerms))
       tst2 <- unique(unlist(tst))
-      tst2 <- tst2[which(sapply(tst2, function(x) { sum(sapply(tst, function(y) { x %in% y })) }) == 1)]
+      tst2 <- tst2[which(vapply(tst2, function(x) { sum(vapply(tst, function(y) { x %in% y }, TRUE)) }, 1) == 1)]
       tst <- lapply(tst, function(x) { x[which(x %in% tst2)] })
-      tst <- tst[which(sapply(tst, length) > 0)]
+      tst <- tst[which(vapply(tst, length, 1) > 0)]
       SubCellMark2 %<o% listMelt(tst)
       SubCellMark2$value <- PG$Label[SubCellMark2$value]
       SubCellMark2 <- setNames(SubCellMark2$L1, SubCellMark2$value)
@@ -7223,7 +6293,10 @@ ggQuant %<o% list()
 ggProf %<o% list()
 QuantLy %<o% list()
 ProfLy %<o% list()
-clusterCall(parClust, function() library(ggplot2))
+clusterCall(parClust, function() {
+  library(ggplot2)
+  return(0)
+})
 cat("Drawing protein group profile plots\n")
 for (QuantType in QuantTypes) { #QuantType <- "Expression"
   cat(" ->", QuantType, "\n")
@@ -7400,7 +6473,7 @@ for (QuantType in QuantTypes) { #QuantType <- "Expression"
       if ("try-error" %in% class(tmp)) {
         stop("Raaaaaahhhh!!!! This error is caused by how pandoc (called by htmlwidgets above) handles memory. I hoped that the non-parallel lapply above could avoid the issue encountered with parLapply, but this error proves me wrong. If you encounter this, you probably need more RAM.")
       } else {
-        wN <- sapply(tmp, function(x) { x$plotly_saved })
+        wN <- which(vapply(tmp, function(x) { x$plotly_saved }, TRUE))
         if (length(wN)){
           # The hope here is maybe some succeeded and we can get away with 
           f0 <- function(x) {
@@ -7676,9 +6749,9 @@ if (exists("Tim")) {
   temp <- list()
   for (i in A) { #i <- A[1]
     i1 <- unlist(strsplit(i, "___"))
-    e <- sapply(c(1:length(o)), function(x) { which(Exp.map[[o[x]]] == i1[x]) })
+    e <- lapply(1:length(o), function(x) { which(Exp.map[[o[x]]] == i1[x]) })
     l <- unique(unlist(e))
-    t <- sapply(l, function(x) {length(which(unlist(e) == x)) == length(o)})
+    t <- vapply(l, function(x) { length(which(unlist(e) == x)) == length(o) }, TRUE)
     l <- l[which(t)]
     e <- Exp.map[l,]
     t1 <- paste0(r, e[[a1]])
@@ -7820,7 +6893,7 @@ Example: \"GO:0031012;2\"
   }
   if (length(CompGOTerms2)) {
     CompGOTerms2 <- data.frame(Term = CompGOTerms2)
-    CompGOTerms2$Offspring <- sapply(CompGOTerms2$Term, function(x) { GOCCOFFSPRING[[x]] })
+    CompGOTerms2$Offspring <- lapply(CompGOTerms2$Term, function(x) { GOCCOFFSPRING[[x]] })
     allOffspr <- unlist(CompGOTerms2$Offspring)
     allOffspr <- aggregate(allOffspr, list(allOffspr), length)
     CompGOTerms2$Offspring <- lapply(CompGOTerms2$Offspring, function(x) {
@@ -7831,9 +6904,9 @@ Example: \"GO:0031012;2\"
     tst <- setNames(lapply(CompGOTerms2$All, function(x) { grep(paste(x, collapse = "|"), PG$"GO-ID") }),
                     CompGOTerms2$Name)
     tst2 <- unique(unlist(tst))
-    tst2 <- tst2[which(sapply(tst2, function(x) { sum(sapply(tst, function(y) { x %in% y })) }) == 1)]
+    tst2 <- tst2[which(vapply(tst2, function(x) { sum(vapply(tst, function(y) { x %in% y }, TRUE)) }, 1) == 1)]
     tst <- lapply(tst, function(x) { x[which(x %in% tst2)] })
-    tst <- tst[which(sapply(tst, length) > 0)]
+    tst <- tst[which(vapply(tst, length, 1) > 0)]
     SubCellMark2 %<o% listMelt(tst) # Overwrite former value
     SubCellMark2$value <- PG$Label[SubCellMark2$value]
     SubCellMark2 <- setNames(SubCellMark2$L1, SubCellMark2$value)
@@ -7852,6 +6925,7 @@ Example: \"GO:0031012;2\"
         library(MSnbase)
         library(pRoloc)
         library(proteoCraft)
+        return(0)
       })
       f0 <- function(grp) { #grp <- SubCellFracAggr$values[1]
         ttl_s <- c()
@@ -8047,7 +7121,7 @@ Example: \"GO:0031012;2\"
       }
       tmpClass <- parLapply(parClust, SubCellFracAggr$values, f0)
       names(tmpClass) <- SubCellFracAggr$values
-      grps <- names(tmpClass)[which(sapply(tmpClass, function(x) { x$Success }))]
+      grps <- names(tmpClass)[which(vapply(tmpClass, function(x) { x$Success }, TRUE))]
       for (grp in grps) {
         ttls <- c(ttls, tmpClass[[grp]]$Titles)
         lokol <- tmpClass[[grp]]$Column
@@ -8078,8 +7152,8 @@ Example: \"GO:0031012;2\"
   SubCellFracAggr2 %<o% parse.Param.aggreg(Param_filter(Param$Volcano.plots.Aggregate.Level, "Com"))
   SSD.Root %<o% "log10(SSD) - "
   SSD.Pval.Root %<o% "Welch's t-test on SSDs -log10(Pvalue) - "
-  WhRef <- sapply(SubCellFracAggr2$values, function(x) { unique(Exp.map$Reference[which(Exp.map[[SubCellFracAggr2$column]] == x)]) })
-  tst <- sapply(WhRef, length)
+  WhRef <- lapply(SubCellFracAggr2$values, function(x) { unique(Exp.map$Reference[which(Exp.map[[SubCellFracAggr2$column]] == x)]) })
+  tst <- vapply(WhRef, length, 1)
   if (max(tst) == 1) {
     tempDat2 <- 10^tempDat
     wh0 <- which(WhRef)
@@ -8173,7 +7247,7 @@ Example: \"GO:0031012;2\"
       w <- rep(FALSE, nrow(test))
       test[which(!w), SubCellFracAggr$names] <- Isapply(strsplit(test$variable[which(!w)], "___"), unlist)
       a <- SubCellFracAggr$names
-      w <- which(sapply(a, function(x) { length(unique(test[[x]])) }) > 1)
+      w <- which(vapply(a, function(x) { length(unique(test[[x]])) }, 1) > 1)
       if (length(w)) { a <- a[w] }
       test[[a[1]]] <- factor(test[[a[1]]], levels = sort(unique(test[[a[1]]])))
       test <- test[which(is.all.good(test$value, 2)),]
@@ -8187,9 +7261,9 @@ Example: \"GO:0031012;2\"
       testI <- data.frame(Intensity = (binz[2:(nbinz+1)]+binz[1:nbinz])/2)
       for (v in unique(test$variable)) {
         wv <- which(test$variable == v)
-        testI[[v]] <- sapply(1:nbinz, function(x) {
+        testI[[v]] <- vapply(1:nbinz, function(x) {
           sum((test$value[wv] > binz[x])&(test$value[wv] <= binz[x+1]))
-        })
+        }, 1)
       }
       testI <- reshape2::melt(testI, id.vars = "Intensity")
       testI[, a] <- test[match(testI$variable, test$variable), a]
@@ -8314,7 +7388,7 @@ Example: \"GO:0031012;2\"
               kol <- paste0(PepRoot, Prfl$Sample)
               pepPrfl <- pep[match(as.integer(unlist(strsplit(PG$`Peptide IDs`[wup], ";"))), pep$id),
                              c("Modified sequence", "Sequence", kol)]
-              Match <- sapply(pepPrfl$Sequence, function(x) { nchar(unlist(strsplit(Seq, x))[1]) })
+              Match <- vapply(pepPrfl$Sequence, function(x) { nchar(unlist(strsplit(Seq, x))[1]) }, 1)
               pepPrfl <- pepPrfl[order(Match),]
               pepPrfl[, kol] <- sweep(pepPrfl[, kol], 1, rowMax(as.matrix(pepPrfl[, kol])), "/")
               mSeq <- unique(pepPrfl$"Modified sequence") 
@@ -8579,9 +7653,7 @@ if (enrichGO||globalGO) {
             if ((!exists("GO_mappings"))&&(file.exists("GO_mappings.RData"))) {
               loadFun("GO_mappings.RData")
             }
-            if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) {
-              loadFun("GO_terms.RData")
-            }
+            if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) { loadFun("GO_terms.RData") }
             #
             Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
             #rstudioapi::documentOpen(Src)
@@ -8613,7 +7685,7 @@ if (enrichGO||globalGO) {
               temp <- GO_Plots[[tstbee]]$GO_terms
               temp$Mapping <- NULL
               if ("Offspring" %in% colnames(temp)) {
-                temp$Offspring <- sapply(temp$Offspring, paste, collapse = ";")
+                temp$Offspring <- vapply(temp$Offspring, paste, "", collapse = ";")
               }
               temp$`Protein table row(s)` <- NULL
               colnames(temp) <- cleanNms(colnames(temp))
@@ -8638,7 +7710,7 @@ if (enrichGO||globalGO) {
               Reg_GO_terms[[tstbee]] <- temp
               #temp <- Reg_GO_terms[[tstbee]]
               write.csv(temp, file = paste0(dir, "/GO terms - ", tstbee, ".csv"), row.names = FALSE)
-              w <- which(sapply(colnames(temp), function(x) { class(temp[[x]]) }) == "character")
+              w <- which(vapply(colnames(temp), function(x) { "character" %in% class(temp[[x]]) }, TRUE))
               if (length(w)) {
                 for (i in w) { #i <- w[1]
                   w1 <- which(nchar(temp[[colnames(temp)[i]]]) > ExcelMax)
@@ -8679,7 +7751,7 @@ if (enrichGO||globalGO) {
                 if (length(Kol2)) {
                   if (length(Kol2) > 1) {
                     w <- which(apply(Reg_GO_terms[[tstbee]][,Kol2], 1, function(x) {"+" %in% x}))
-                  } else { w <- which(sapply(Reg_GO_terms[[tstbee]][,Kol2], function(x) {"+" %in% x})) }
+                  } else { w <- which(vapply(Reg_GO_terms[[tstbee]][,Kol2], function(x) { "+" %in% x }, TRUE)) }
                   write.csv(Reg_GO_terms[[tstbee]][w,], file = paste0(dir, "/Regulated GO terms - ", tstbee, ".csv"),
                             row.names = FALSE)
                 }
@@ -8695,19 +7767,19 @@ if (enrichGO||globalGO) {
                   names(W) <- gsub(paste0("^Significance - | ", max(BH.FDR)*100, "%$"), "", Kol3)
                   temp[2:(N+1), 1] <- temp[1, 2:(N+1)] <- names(W)
                   for (i in 2:(N+1)) { #i <- 2
-                    temp[i, 2:(N+1)] <- sapply(Kol3, function(x) {
+                    temp[i, 2:(N+1)] <- vapply(Kol3, function(x) {
                       sum((GO_Plots[[tstbee]]$GO_terms[[x]] == "+")&(GO_Plots[[tstbee]]$GO_terms[[Kol3[i]]] == "+"),
                           na.rm = TRUE)
-                    })
+                    }, 1)
                   }
                   names(W) <- cleanNms(gsub(" [0-9]+%$", "", names(W)))
-                  tst <- sapply(strsplit(names(W), " - "), length)
+                  tst <- vapply(strsplit(names(W), " - "), length, 1)
                   tst <- (min(tst) > 1)&(length(unique(tst)) == 1)
                   if (tst) {
                     tst <- as.data.frame(t(sapply(strsplit(names(W), " - "), unlist)))
                     l <- apply(tst, 2, function(x) { length(unique(x)) })
-                    tst <- tst[,which(l > 1)]
-                    names(W) <- apply(tst, 1, paste, collapse = " - ")
+                    tst <- tst[, which(l > 1)]
+                    names(W) <- do.call(paste, c(tst, sep = " - "))
                   }
                   temp[2:(N+1), 1] <- temp[1, 2:(N+1)] <- names(W)
                   nm <- paste0("N. of co-regulated GO terms\n", tstrt, "\n(", tolower(bee), ")")
@@ -8742,9 +7814,7 @@ if (enrichGO||globalGO) {
     if ((!exists("GO_mappings"))&&(file.exists("GO_mappings.RData"))) {
       loadFun("GO_mappings.RData")
     }
-    if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) {
-      loadFun("GO_terms.RData")
-    }
+    if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) { loadFun("GO_terms.RData") }
     #
     Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_enrich.R")
     #rstudioapi::documentOpen(Src)
@@ -8913,7 +7983,7 @@ source(Src, local = FALSE)
 #### Code chunk - GO term columns
 GO_PG_col %<o% unique(unlist(strsplit(Param$GO.tabs, ";")))
 if (length(GO_PG_col)) {
-  if (!exists("GO_terms")) { loadFun("GO_terms.RData") }
+  if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) { loadFun("GO_terms.RData") }
   GO_PG_col <- GO_PG_col[which(GO_PG_col %in% GO_terms$ID)]
   if (length(GO_PG_col)) {
     tmp <- listMelt(strsplit(PG$`GO-ID`, ";"), 1:nrow(PG), c("Term", "Row"))
@@ -8926,7 +7996,7 @@ if (length(GO_PG_col)) {
     tmp <- tmp[which(tmp$Term %in% unlist(Offspring)),]
     tmp <- aggregate(tmp$Row, list(tmp$Term), c)
     colnames(tmp) <- c("Term", "Rows")
-    w <- which(sapply(GO_PG_col, function(x) { sum(Offspring[[x]] %in% tmp$Term) }) == 0)
+    w <- which(vapply(GO_PG_col, function(x) { sum(Offspring[[x]] %in% tmp$Term) }, TRUE) == 0)
     if (length(w)) {
       msg <- stringi::stri_join("No proteins found for the following GO terms:",
                                 stringi::stri_join("\n - ", GO_terms$Term[match(GO_PG_col[w], GO_terms$ID)],
@@ -8945,9 +8015,9 @@ if (length(GO_PG_col)) {
         PG[w2, GO_PG_col2[go]] <- "+"
       }
       #View(PG[, GO_PG_col2])
-      tst <- setNames(sapply(GO_PG_col2, function(x) {
+      tst <- setNames(vapply(GO_PG_col2, function(x) {
         sum(PG[[x]] == "+")
-      }), GO_PG_col2)
+      }, 1), GO_PG_col2)
       tst <- paste0(GO_PG_col2, " -> ", tst, collapse = "\n - ")
       tst <- paste0("Number of protein groups per GO term of interest\n - ", tst, "\n\n")
       cat(tst)
@@ -8961,7 +8031,7 @@ if (length(GO_PG_col)) {
 dir <- paste0(wd, "/Tables")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 dirlist <- unique(c(dirlist, dir))
-w <- which(sapply(colnames(ev), function(x) { "list" %in% class(ev[[x]]) }))
+w <- which(vapply(colnames(ev), function(x) { "list" %in% class(ev[[x]]) }, TRUE))
 if (length(w)) { for (i in w) { ev[[i]] <- parSapply(parClust, ev[[i]], paste, collapse = ";") } }
 data.table::fwrite(ev, paste0(dir, "/evidence.tsv"), sep = "\t", row.names = FALSE, na = "NA")
 #
@@ -9084,7 +8154,7 @@ KolEdit <- function(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   # Those names must be unique if the data is to be written as a table!
   # Which is annoying, because this limits how much fat we can cut
   tst <- aggregate(KolNames, list(KolNames), c)
-  tst$L <- sapply(tst$x, length)
+  tst$L <- vapply(tst$x, length, 1)
   tst <- tst[which(tst$Group.1 != ""),]
   stopifnot(max(tst$L) == 1)
   #tst$x[which(tst$L > 1)]
@@ -9182,7 +8252,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
       w <- which(res$Log %in% colnames(tempData))
       return(res[w,])
     }), names(intRf))
-    w <- which(sapply(intColsTbl, nrow) > 0)
+    w <- which(vapply(intColsTbl, nrow, 1) > 0)
     intColsTbl <- intColsTbl[w]; intRf <- intRf[w]
     quantCols <- intCols <- lapply(intColsTbl, function(x) { x$Log })
     ratColsTbl <- setNames(lapply(names(ratRf), function(nm) {
@@ -9194,7 +8264,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
       w <- which(res$Log %in% colnames(tempData))
       return(res[w,])
     }), names(ratRf))
-    w <- which(sapply(ratColsTbl, nrow) > 0)
+    w <- which(vapply(ratColsTbl, nrow, 1) > 0)
     ratColsTbl <- ratColsTbl[w]; ratRf <- ratRf[w]
     ratCols <- lapply(ratColsTbl, function(x) { x$Log })
     grl <- unlist(ratCols)
@@ -9321,7 +8391,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     # - Filters
     ColumnsTbl[["Filters"]] <- qualFlt
     # Melt
-    ColumnsTbl <- ColumnsTbl[which(sapply(ColumnsTbl, function(x) { length(x[which(!is.na(x))]) }) > 0)]
+    ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, function(x) { length(x[which(!is.na(x))]) }, 1) > 0)]
     ColumnsTbl <- set_colnames(reshape::melt.list(ColumnsTbl), c("Col", "Grp"))
     #tst <- aggregate(ColumnsTbl$Grp, list(ColumnsTbl$Col), length); View(tst)
     #aggregate(ColumnsTbl$Grp, list(ColumnsTbl$Col), unique)
@@ -9436,7 +8506,7 @@ KolEdit <- function(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl, locTbl =
   # Those names must be unique if the data is to be written as a table!
   # Which is annoying, because this limits how much fat we can cut
   tst <- aggregate(KolNames, list(KolNames), c)
-  tst$L <- sapply(tst$x, length)
+  tst$L <- vapply(tst$x, length, 1)
   tst <- tst[which(tst$Group.1 != ""),]
   stopifnot(max(tst$L) == 1)
   #tst$x[which(tst$L > 1)]
@@ -9504,7 +8574,7 @@ intColsTbl <- setNames(lapply(names(intRf), function(nm) { #nm <- names(intRf)[1
   w <- which(res$Log %in% colnames(tempData))
   return(res[w,])
 }), names(intRf))
-w <- which(sapply(intColsTbl, nrow) > 0)
+w <- which(vapply(intColsTbl, nrow, 1) > 0)
 intColsTbl <- intColsTbl[w]; intRf <- intRf[w]
 quantCols <- intCols <- lapply(intColsTbl, function(x) { x$Log })
 gel <- unlist(intCols)
@@ -9524,7 +8594,7 @@ ratColsTbl <- setNames(lapply(names(ratRf), function(nm) {
   w <- which(res$Log %in% colnames(tempData))
   return(res[w,])
 }), names(ratRf))
-w <- which(sapply(ratColsTbl, nrow) > 0)
+w <- which(vapply(ratColsTbl, nrow, 1) > 0)
 ratColsTbl <- ratColsTbl[w]; ratRf <- ratRf[w]
 ratCols <- lapply(ratColsTbl, function(x) { x$Log })
 grl <- unlist(ratCols)
@@ -9611,14 +8681,14 @@ if (F.test) {
   tempData[, Fkol] <- tmpPGf[match(tempData$`Protein IDs`, tmpPGf$`Protein IDs`), Fkol]
 }
 if (Annotate&&LocAnalysis) {
-  loadFun("GO_terms.RData") # Re-load object
+  if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) { loadFun("GO_terms.RData") }
   GOCC <- GO_terms$ID[which(GO_terms$Ontology == "CC")]
   tempData$"GO-ID (CC)" <- lapply(strsplit(tempData$`GO-ID`, ";"), function(x) { x[which(x %in% GOCC)] })
-  w <- which(sapply(tempData$"GO-ID (CC)", length) > 0)
+  w <- which(vapply(tempData$"GO-ID (CC)", length, 1) > 0)
   tempData$"GO (CC)" <- ""
-  tempData$"GO (CC)"[w] <- sapply(tempData$"GO-ID (CC)"[w], function(x) {
+  tempData$"GO (CC)"[w] <- vapply(tempData$"GO-ID (CC)"[w], function(x) {
     paste(GO_terms$Term[match(x, GO_terms$ID)], collapse = ";")
-  })
+  }, "")
   if (LocAnalysis2) {
     for (k in lokol6) {
       tempData[which(tempData[[k]] == "non significant"), k] <- "n.s."
@@ -9718,7 +8788,7 @@ if ((exists("KlustKols"))&&(length(KlustKols))) { ColumnsTbl[["Cluster"]] <- Klu
 # - Coverage
 ColumnsTbl[["Coverage"]] <- covcol
 # Melt
-ColumnsTbl <- ColumnsTbl[which(sapply(ColumnsTbl, function(x) { length(x[which(!is.na(x))]) }) > 0)]
+ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, function(x) { length(x[which(!is.na(x))]) }, 1) > 0)]
 ColumnsTbl <- listMelt(ColumnsTbl, names(ColumnsTbl), c("Col", "Grp"))
 stopifnot(nrow(ColumnsTbl) == length(unique(ColumnsTbl$Col)))
 #tst <- aggregate(ColumnsTbl$Col, list(ColumnsTbl$Col), length)
@@ -9871,7 +8941,7 @@ if (saintExprs) {
     # Those names must be unique if the data is to be written as a table!
     # Which is annoying, because this limits how much fat we can cut
     tst <- aggregate(KolNames, list(KolNames), c)
-    tst$L <- sapply(tst$x, length)
+    tst$L <- vapply(tst$x, length, 1)
     tst <- tst[which(tst$Group.1 != ""),]
     stopifnot(max(tst$L) == 1)
     #tst$x[which(tst$L > 1)]
@@ -9892,7 +8962,7 @@ if (saintExprs) {
     w <- which(res$Log %in% colnames(tempData))
     return(res[w,])
   }), names(ratRf))
-  w <- which(sapply(ratColsTbl, nrow) > 0)
+  w <- which(vapply(ratColsTbl, nrow, 1) > 0)
   ratColsTbl <- ratColsTbl[w]; ratRf <- ratRf[w]
   ratCols <- lapply(ratColsTbl, function(x) { x$Log })
   grl <- unlist(ratCols)
@@ -9947,7 +9017,7 @@ if (saintExprs) {
   # - Filters
   ColumnsTbl$Filters <- qualFlt
   # Melt
-  ColumnsTbl <- ColumnsTbl[which(sapply(ColumnsTbl, function(x) { length(x[which(!is.na(x))]) }) > 0)]
+  ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, function(x) { length(x[which(!is.na(x))]) }, 1) > 0)]
   ColumnsTbl <- listMelt(ColumnsTbl, names(ColumnsTbl), c("Col", "Grp"))
   stopifnot(nrow(ColumnsTbl) == length(unique(ColumnsTbl$Col)))
   #tst <- aggregate(ColumnsTbl$Col, list(ColumnsTbl$Col), length)
@@ -10017,10 +9087,10 @@ if (Param$Amica) {
                         razorUniqueCount = PG$"Razor + unique peptides",
                         Potential.contaminant = PG$"Potential contaminant")
   tmp <- data.frame(IDs = PG$"Peptide IDs", Razor = PG$"Peptide is razor")
-  tmp$Razor <- sapply(strsplit(tmp$Razor, ";"), function(x) {
+  tmp$Razor <- lapply(strsplit(tmp$Razor, ";"), function(x) {
     as.logical(toupper(x))
   })
-  tmp$IDs <- sapply(strsplit(tmp$IDs, ";"), as.numeric)
+  tmp$IDs <- lapply(strsplit(tmp$IDs, ";"), as.numeric)
   tmp$RazorIDs <- apply(tmp[, c("IDs", "Razor")], 1, function(x) {
     x[[1]][which(x[[2]])]
   })
@@ -10095,10 +9165,10 @@ cleanNms2 %<o% function(names, groups = VPAL, sep = "\n/vs/\n", simplify) {
   nuNms <- as.data.frame(t(as.data.frame(strsplit(uNms, "___"))))
   colnames(nuNms) <- groups$names
   nuNms$Full <- uNms
-  w <- which(sapply(groups$names, function(x) { length(unique(nuNms[[x]])) }) > 1)
+  w <- which(vapply(groups$names, function(x) { length(unique(nuNms[[x]])) }, 1) > 1)
   nuNms$New <- do.call(paste, c(nuNms[, groups$names[w], drop = FALSE], sep = ""))
   nuNames <- lapply(names, function(x) { nuNms$New[match(x, nuNms$Full) ]})
-  if (simplify) { nuNames <- sapply(nuNames, paste, collapse = sep) }
+  if (simplify) { nuNames <- vapply(nuNames, paste, "", collapse = sep) }
   return(nuNames)
 }
 #
@@ -10158,14 +9228,14 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     x <- myData[[paste0(myRef, grp)]]
     which(is.all.good(as.numeric(x), 2))
   }), cleanNms2(VPAL$values))
-  w <- which(sapply(comp_list, length) > 0)
+  w <- which(vapply(comp_list, length, 1) > 0)
   VennExp <- names(comp_list)[w]
   OK <- length(w) > 1
   ttl <- paste0(vennRoot, "LFQ Venn diagram, all")
   if (length(w) > VennMx) {
     msg <- paste0("Too many groups, select at least 2 and up to ", VennMx,
                   " to include in Venn diagram ", ttl)
-    opt <- sapply(VennExp, function(x) { paste(c(x, rep(" ", 200-nchar(x))), collapse = "") })
+    opt <- vapply(VennExp, function(x) { paste(c(x, rep(" ", 200-nchar(x))), collapse = "") }, "")
     VennExp <- VennExp[match(dlg_list(opt, opt[1:VennMx], TRUE, msg)$res, opt)]
     if (length(VennExp) == 1) {
       OK <- FALSE
@@ -10226,14 +9296,14 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
       comp_list <- setNames(lapply(nmz, function(x) {
         ttest_Filt[[x]][[paste0("Filter_", r)]]
       }), cleanNms2(nmz))
-      w <- which(sapply(comp_list, length) > 0)
+      w <- which(vapply(comp_list, length, 1) > 0)
       VennExp <- names(comp_list)[w]
       OK <- length(w) > 1
       ttl <- gsub("^g", "G", paste0(vennRoot, "t-tests Venn diagram, all, ", r))
       if (length(w) > VennMx) {
         msg <- paste0("Too many groups, select at least 2 and up to ", VennMx,
                       " to include in Venn diagram ", ttl)
-        opt <- sapply(VennExp, function(x) { paste(c(x, rep(" ", 200-nchar(x))), collapse = "") })
+        opt <- vapply(VennExp, function(x) { paste(c(x, rep(" ", 200-nchar(x))), collapse = "") }, "")
         VennExp <- VennExp[match(dlg_list(opt, opt[1:VennMx], TRUE, msg)$res, opt)]
         if (length(VennExp) == 1) {
           OK <- FALSE
@@ -10300,14 +9370,14 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
           comp_list <- setNames(lapply(nms, function(x) {
             ttest_Filt[[x]][[paste0("Filter_", r)]]
           }), cleanNms2(nms))
-          w <- which(sapply(comp_list, length) > 0)
+          w <- which(vapply(comp_list, length, 1) > 0)
           VennExp <- names(comp_list)[w]
           OK <- length(w) > 1
           ttl <- gsub("^g", "G", paste0(vennRoot, "t-tests Venn diagram, all, ", r))
           if (length(w) > VennMx) {
             msg <- paste0("Too many groups, select at least 2 and up to ", VennMx,
                           " to include in Venn diagram ", ttl)
-            opt <- sapply(VennExp, function(x) { paste(c(x, rep(" ", 200-nchar(x))), collapse = "") })
+            opt <- vapply(VennExp, function(x) { paste(c(x, rep(" ", 200-nchar(x))), collapse = "") }, "")
             VennExp <- VennExp[match(dlg_list(opt, opt[1:VennMx], TRUE, msg)$res, opt)]
             if (length(VennExp) == 1) {
               OK <- FALSE
@@ -10384,7 +9454,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
         comp_list <- setNames(lapply(nmz, function(x) {
           Ftest_Filt[[x]][[paste0("Filter_", r)]]
         }), nmz2)
-        tst <- sapply(comp_list, length)
+        tst <- vapply(comp_list, length, 1)
         w <- which(tst > 0)
         if (length(w) > 1) {
           if (length(w) <= VennMx) {
@@ -10450,7 +9520,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
 #### Code chunk - Coverage maps, XICs and heatmaps for proteins of interest
 protlspep <- prot.list_pep
 if (length(protlspep)) {
-  test <- sapply(protlspep, function(i) { length(grsep2(i, PG$"Leading protein IDs")) })
+  test <- vapply(protlspep, function(i) { length(grsep2(i, PG$"Leading protein IDs")) }, 1)
   if (0 %in% test) {
     w <- which(test == 0)
     for (w1 in w) {
@@ -10469,7 +9539,7 @@ if (length(protlspep)) { # Coverage
   xKol <- paste0(pep.ref[length(pep.ref)], Exp.map$Ref.Sample.Aggregate) 
   tmpDB <- db[match(protlspep, db$"Protein ID"), c("Common Name", "Protein ID", "Sequence")]
   tst <- lapply(protlspep, function(x) { grsep2(x, pep$Proteins) })
-  w <- which(sapply(tst, length) > 0)
+  w <- which(vapply(tst, length, 1) > 0)
   prots <- protlspep[w]
   tst <- unique(unlist(tst))
   tmpPep <- pep[tst, c("Proteins", "Modified sequence", xKol)]
@@ -10700,11 +9770,11 @@ if (length(protlspep)) {
               msg <- paste0("Enter the chemical formula of modification ", Modifs$"Full name"[i], " (Example: enter \"H(-1) N(-1) O\" for \"deamidation (NQ)\")")
               Modifs$Composition[i] <- dlg_input(msg, "")$res
             }
-            w <- which(sapply(colnames(Modifs), function(x) { class(Modifs[[x]]) }) == "list")
-            for (i in w) { temp[[i]] <- sapply(temp[[i]],  paste, collapse = ", ") }
+            w <- which(vapply(colnames(Modifs), function(x) { "list" %in% class(Modifs[[x]]) }, 1))
+            for (i in w) { temp[[i]] <- vapply(temp[[i]], paste, 1, collapse = ", ") }
             write.csv(temp, "Workflow control/Modifications.csv", row.names = FALSE)
           }
-          Modifs$"Mass shift" <- sapply(strsplit(Modifs$Composition, " "), function(x) {
+          Modifs$"Mass shift" <- vapply(strsplit(Modifs$Composition, " "), function(x) {
             #x <- strsplit(Modifs$Composition, " ")[1]
             x <- unlist(x)
             x <- as.data.frame(t(sapply(strsplit(gsub("\\)$", "", x), "\\("), function(y) {
@@ -10717,7 +9787,7 @@ if (length(protlspep)) {
             # If it ever does, I should expand the table to add isotopic probabilities for more elements!!!
             x <- sum(as.numeric(gsub("_.+", "", IsotopeProbs$Monoisotopic[m]))*as.integer(x[[2]]))
             return(x)
-          })
+          }, 1)
         } else {
           warning("Could not map PTMs to mass shifts, these will be ignored from the SCV visualisations.")
           SCV_PTMs <- FALSE
@@ -10793,12 +9863,12 @@ if (length(protlspep)) {
           tmp <- gsub("_", "", tmp)
           tmp <- gsub("\\)", "]_",gsub("\\(", "_[", tmp))
           tmp <- strsplit(tmp, "_")
-          tmp <- sapply(tmp, function(x) { #x <- tmp[1]
+          tmp <- vapply(tmp, function(x) { #x <- tmp[1]
             x <- unlist(x)
             w <- grep("\\[.+\\]", x)
             x[w] <- paste0("[", round(Modifs$"Mass shift"[match(x[w], paste0("[", Modifs$Mark, "]"))], 0), "]")
             return(paste(x, collapse = ""))
-          })
+          }, "")
         } else { tmp <- gsub("[^A-Z]", "", tmp) }
         write(tmp, paste0(dir, "/SCV - observed peptides.txt"))
         OutCome <- TRUE
@@ -10894,7 +9964,7 @@ allProteins_mapped <- try(setNames(lapply(allTaxIDs, function(txid) { #txid <- a
     if (rs$Outcome) { rs$Result <- a }
     return(rs)
   })
-  w <- which(sapply(res, function(rs) { rs$Outcome&&("data.frame" %in% class(rs$Result)) }))
+  w <- which(vapply(res, function(rs) { (rs$Outcome)&&("data.frame" %in% class(rs$Result)) }, TRUE))
   res <- res[w]
   if (length(res)) {
     res <- lapply(res, function(rs) { rs$Result })
@@ -10921,9 +9991,9 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
       Filt[[nm]]
     })
     filtDF$Reg <- filtDF$TaxID <- c()
-    w <- which(sapply(filtDF$Filter, function(flt) {
-      (sum(c("Ratios", "Filter") %in% names(flt)) == 2)
-    }))
+    w <- which(vapply(filtDF$Filter, function(flt) {
+      sum(c("Ratios", "Filter") %in% names(flt)) == 2
+    }, TRUE))
     filtDF <- filtDF[w,]
     nr <- nrow(filtDF)
     if (nr) {
@@ -10995,7 +10065,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
       })
       filtDF <- plyr::rbind.fill(filtDF)
       if (!is.null(filtDF$Reg)) {
-        filtDF <- filtDF[which(sapply(filtDF$Reg, function(x) { ("data.frame" %in% class(x))&&(nrow(x) > 0) })),]
+        filtDF <- filtDF[which(vapply(filtDF$Reg, function(x) { ("data.frame" %in% class(x))&&(nrow(x) > 0) }, TRUE)),]
       }
     }
     return(filtDF)
@@ -11109,9 +10179,9 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
     }), GraphTypes)
     intNets %<o% setNames(lapply(GraphTypes, function(grphType) {
       w <- which(filtersDF$GraphType == grphType)
-      w <- w[which(sapply(w, function(x) { ("list" %in% class(tstSTRINGs[[x]]$Data)) }))]
+      w <- w[which(vapply(w, function(x) { "list" %in% class(tstSTRINGs[[x]]$Data) }, TRUE))]
       setNames(lapply(w, function(x) { tstSTRINGs[[x]]$Data }),
-               sapply(w, function(x) { tstSTRINGs[[x]]$Name }))
+               vapply(w, function(x) { tstSTRINGs[[x]]$Name }, ""))
     }), GraphTypes)
     for (grphType in GraphTypes) { #grphType <- GraphTypes[1]
       if (length(STRINGplots[[grphType]])) {
@@ -11183,22 +10253,22 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
           intNet <- intNets[[grphType]][[Nm]]$Network
           mappings <- intNets[[grphType]][[Nm]]$Mapping
           # Legacy code for if doing by protein, not protein groups
-          #mappings$name <- sapply(match(mappings$queryItem, db$"Protein ID"), function(m) {
+          #mappings$name <- vapply(match(mappings$queryItem, db$"Protein ID"), function(m) {
           #  paste(c(paste0("Nm: ", db$"Common Name"[m]),
           #          paste0("Pr: ", db$"Protein ID"[m]),
           #          paste0("Gn: ", db$Gene[m])), collapse = "\n")
-          #})
+          #}, "")
           #if (!grepl("^SAINTexpress_", Nm)) {
-          mappings$name <- sapply(match(mappings$queryItem, db$`Protein ID`), function(m) {
+          mappings$name <- vapply(match(mappings$queryItem, db$`Protein ID`), function(m) {
             x <- c(paste0("Nm: ", db$`Common Name`[m]),
                    paste0("Pr: ", db$`Protein ID`[m]),
                    paste0("Gn: ", db$Gene[m]))
             if ("TAIR" %in% colnames(mappings)) { x <- c(paste0("TAIR: ", db$TAIR[m], " "), x) }
             return(paste(x, collapse = "\n"))
-          })
+          }, "")
           #  mappings$PG <- allSAINTs$PG_id[match(mappings$queryItem, allSAINTs$Protein)]
           #} else {
-          #   mappings$name <- sapply(match(mappings$PG, PG$id), function(m) {
+          #   mappings$name <- vapply(match(mappings$PG, PG$id), function(m) {
           #     pr <- unlist(strsplit(PG$"Leading protein IDs"[m], ";"))
           #     if (length(pr) > 1) { pr <- c(pr[1], "...") }
           #     gn <- unlist(strsplit(PG$Genes[m], ";"))
@@ -11208,7 +10278,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
           #            paste0("Gn: ", paste(gn, collapse = ";")))
           #     if ("TAIR" %in% colnames(mappings)) { x <- c(paste0("TAIR: ", PG$TAIR[m], " "), x) }
           #     return(paste(x, collapse = "\n"))
-          #   }) 
+          #   }, "") 
           #   mappings$PG <- allSAINTs$PG_id[match(mappings$queryItem, allSAINTs$Protein)]
           # }
           mappings$"Av. log10 expression" <- PG$"Av. log10 abundance"[match(mappings$PG, PG$id)]
@@ -11271,7 +10341,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
   }
   # Then close Cytoscape:
   RCy3::closeSession(save.before.closing = FALSE)
-  cmd <- paste0("taskkill/im \"", gsub(".+/", "", CytoScVrs), "\" /f")
+  cmd <- paste0("taskkill/im \"", gsub(".+/", "", CytoScExe), "\" /f")
   #cat(cmd)
   shell(cmd)
 }
@@ -11291,7 +10361,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
 #     for (i in prot) {
 #       temp <- ev[grsep2(i, ev$"Leading proteins"),]
 #       temp <- sapply(unique(ev$Type), function(x) {
-#         sapply(unique(ev$"Raw file"), function(y) { length(which((temp$Type == x)&(temp$"Raw file" == y))) })
+#         vapply(unique(ev$"Raw file"), function(y) { length(which((temp$Type == x)&(temp$"Raw file" == y))) }, 1)
 #       })
 #       write.csv(temp, paste0(dir, "/Ev table - ", i, ".csv"))
 #     }
@@ -11320,6 +10390,11 @@ for (i in 1:length(MatMetCalls$Texts$DatAnalysis)) {
 MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style = \"Normal\")")
 #
 
+# Write SDRF file in case you want to submit to PRIDE
+Src <- paste0(libPath, "/extdata/R scripts/Sources/SDRF_4_PRIDE.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
 # Finalize analysis
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Finalize_analysis.R")
 #rstudioapi::documentOpen(Src)
@@ -11346,7 +10421,7 @@ setwd(wd); saveImgFun(BckUpFl) # Leave an ultimate backup in the temporary folde
 setwd(procdir)
 pkgs <- gtools::loadedPackages()
 dscrptFl <- paste0(procdir, "/DESCRIPTION")
-tmp <- paste0("", do.call(paste, c(pkgs[, c("Name", "Version")], sep = " (")), ")")
+tmp <- paste0(do.call(paste, c(pkgs[, c("Name", "Version")], sep = " (")), ")")
 tmp <- paste0("Depends: ", paste(tmp, collapse = ", "))
 write(tmp, dscrptFl)
 renv::snapshot(force = TRUE, prompt = FALSE, type = "explicit")
