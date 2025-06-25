@@ -491,7 +491,6 @@ source(Src, local = FALSE)
 
 evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
 
-# Annotate
 #### Code chunk - Load and process annotations
 ## This includes a QC step in case the database differs slightly from the one used by MQ, or if somehow some IDs have not been properly parsed.
 GO.col %<o% c("GO", "GO-ID")
@@ -502,7 +501,8 @@ if (!Annotate) {
 }
 if (Annotate) {
   if (!exists("Parsed_annotations")) {
-    AnnotFls <- vapply(gsub("\\.fa((s(ta(\\.fas)?)?)|a?)?$", ".txt", fastasTbl$Full), function(x) {
+    tmpFls <- gsub("\\.fa((s(ta(\\.fas)?)?)|a?)?$", ".txt", fastasTbl$Full)
+    AnnotFls <- vapply(tmpFls, function(x) { #x <- tmpFls[1]
       x2 <- gsub(".+/", "D:/Fasta_databases/", x)
       if (!file.exists(x)) {
         if (file.exists(x2)) {
@@ -510,7 +510,7 @@ if (Annotate) {
           x <- x2
         } else { x <- NA }
       }
-      return(x)
+      return(as.character(x))
     }, "")
     AnnotFls %<o% AnnotFls[which(!is.na(AnnotFls))]
     if (!length(AnnotFls)) {

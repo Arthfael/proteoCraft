@@ -256,7 +256,8 @@ if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[mat
 }
 if (Annotate) {
   if (!exists("Parsed_annotations")) {
-    AnnotFls <- vapply(gsub("\\.fa((s(ta(\\.fas)?)?)|a?)?$", ".txt", fastasTbl$Full), function(x) {
+    tmpFls <- gsub("\\.fa((s(ta(\\.fas)?)?)|a?)?$", ".txt", fastasTbl$Full)
+    AnnotFls <- vapply(tmpFls, function(x) { #x <- tmpFls[1]
       x2 <- gsub(".+/", "D:/Fasta_databases/", x)
       if (!file.exists(x)) {
         if (file.exists(x2)) {
@@ -264,7 +265,7 @@ if (Annotate) {
           x <- x2
         } else { x <- NA }
       }
-      return(x)
+      return(as.character(x))
     }, "")
     AnnotFls %<o% AnnotFls[which(!is.na(AnnotFls))]
     if (!length(AnnotFls)) {
