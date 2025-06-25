@@ -617,10 +617,9 @@ Prot.Quant <- function(Prot,
       }
       return(res)
     }
-    exports <- list("temp.ids", "tmpPep", "Pep.Ratios.Nms","Min.N", "id", "Ratios.SD", "Ratios.Pvalue", "ratios.fun", 
+    exports <- list("temp.ids", "tmpPep", "Pep.Ratios.Nms", "Min.N", "id", "Ratios.SD", "Ratios.Pvalue", "ratios.fun", 
                     "Summary.method", "sum.func", "Max.N", "Pep.Intens.Nms", "Summary.weights", "t.test")
     parallel::clusterExport(cl, exports, envir = environment())
-    #clusterCall(cl, function() library(stats))
     f0 <- function(x) { ratios.fun(unlist(x)) }
     environment(f0) <- .GlobalEnv
     res <- parallel::parSapply(cl, temp.ids, f0, USE.NAMES = TRUE)
@@ -654,7 +653,6 @@ Prot.Quant <- function(Prot,
   #match(prot.list, db$`Protein ID`)
   #proteoCraft::grsep(prot.list[2], x = Prot$`Leading protein IDs`)
   #View(ord)
-  #clusterCall(cl, function() library(minpack.lm))
   f0 <- function(ids) {
     proteoCraft::LFQ.lm(ids,
                   InputTabl = tmpPep,

@@ -113,6 +113,10 @@ Configure <- function() {
   cat("Updated analysis scripts in HOME...")
   #
   # Download MS instrument ontology
+  #   This can fail (stack too deep) when some packages are loaded,
+  #   probably because of conflict between internally used functions sharing a same name and not called with package::...
+  #   Solution I should try: run this on a cluster without loading those packages?
+  #
   if (!require(rols)) { pak::pkg_install("rols") }
   ol <- rols::Ontology("ms")
   instrMod <- rols::Term(ol, "MS:1000031")
@@ -136,9 +140,11 @@ Configure <- function() {
       if (length(w)) { rs2[w] <- rs[w] }
       rs <- unlist(rs2)
       rs <- rs[grep("^MS:[0-9]+$", names(rs))]
-      rs <- data.frame(Vendor = gsub(" instrument model$", "", vendorsLab[[x]]),
-                       Instrument = rs)
-      return(rs)
+      if (length(rs)) {
+        rs <- data.frame(Vendor = gsub(" instrument model$", "", vendorsLab[[x]]),
+                         Instrument = rs)
+        return(rs)
+      } else { return(NULL) }
     } else { return(NULL) }
   })
   vendorsInstr <- do.call(rbind, vendorsInstr)
