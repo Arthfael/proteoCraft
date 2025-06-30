@@ -22,9 +22,9 @@ pcaBatchPlots(
 
 \item{root}{Just a name to stick to the}
 
-\item{batches}{Relevant batches, default = myBatches; should be column names of map!}
+\item{batches}{Relevant batches, default = myBatches; should be valid column names of map!}
 
-\item{map}{The experiment map connecting samples to batches. Default = Exp.map}
+\item{map}{Map connecting samples to batches. Note that this may produce incorrect results if dat has repeated column names!}
 
 \item{SamplesCol}{Name of the sample colum in the map, default = "Ref.Sample.Aggregate"}
 
@@ -36,7 +36,7 @@ pcaBatchPlots(
 
 \item{openMe}{Should we open the plotly plot? (default = FALSE)}
 
-\item{isRef}{}
+\item{isRef}{Whether a column in dat is an IRS reference column (mixed sample).}
 }
 \description{
 A function to make PCA (ggplot and plotly) plots for the purpose of monitoring the effects of batch corrections.

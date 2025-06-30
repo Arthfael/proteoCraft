@@ -36,7 +36,7 @@ Format.DB(
 
 \item{IDs_only}{Allows extracting just the IDs (default = FALSE). Used internally only.}
 
-\item{parallel}{Defult = FALSE; if TRUE, uses parallel processing and the next few arguments.}
+\item{parallel}{Default = FALSE; if TRUE, uses parallel processing and the next few arguments.}
 
 \item{N.clust}{A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.}
 

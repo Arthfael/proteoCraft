@@ -4,12 +4,15 @@
 \alias{Configure}
 \title{Configure}
 \usage{
-Configure()
+Configure(updateOntologies = FALSE)
+}
+\arguments{
+\item{updateOntologies}{Should we update ontologies? This is a very slow process, so false by default.}
 }
 \description{
 Configuration function which will make sure some files from the package are moved to its subfolder in HOME upon first installation.
 }
 \examples{
-aRmel::Configure()
+proteoCraft::Configure()
 
 }

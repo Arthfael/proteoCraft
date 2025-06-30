@@ -33,9 +33,10 @@ ProtMatch(
 \item{missed}{Let's say we have observations with up to 6 missed cleavages. This will probably break the function. In this case, it is better to specify a smaller number of missed cleavages, e.g. 2.}
 }
 \description{
-This function is very slow and should not be used! It is only provided for legacy purposes. Instead use ProtMatch2, which is ~50 times faster without requiring parallelisation!
+This function is very slow and should not be used! It is only provided for legacy purposes. Instead use ProtMatch2, which is ~50-to-1000 times faster!
 
-MaxQuant (or other search software) does not report all proteins from the database which match a specific sequence.
-While this may be correct from their point of view, I think I should report all matches.
+Some search software do not report all proteins from the database which match a specific sequence.
+Others, such as MaxQuant, do report weird matches for a minority of PSMs, or miss a few perfectly valid matches.
+While this may be correct from their point of view, this function allows re-checking matches for consistency between software.
 This will return a data frame of matches between observed peptides and protein IDs from a formatted protein sequences database.
 }

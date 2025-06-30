@@ -6,22 +6,31 @@
 \usage{
 MatMet_LCMS(
   ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730",
-  LocalRoot = "D:/groups_temp/",
-  ArchiveRoot = "Q:/MS/Acquired data/",
+  LocalRoot = "...Search_Folder/",
+  ArchiveRoot = "...Archive/Acquired data/",
   RawFiles = rawFiles,
-  Columns = "default"
+  Columns = "default",
+  N.clust,
+  N.reserved = 1,
+  cl
 )
 }
 \arguments{
-\item{ScanHdsMnLoc}{ScanHeadsman path.\cr Default = "C:/ScanHeadsman-1.2.20200730" - so far for us version 1.2 works, 1.3 does not.}
+\item{ScanHdsMnLoc}{ScanHeadsman path. Default = "C:/ScanHeadsman-1.2.20200730"; so far for us 1.2 works, 1.3 does not.}
 
-\item{LocalRoot}{What is the root of the folder structure in the local folder. If the raw files are not local but were moved to an archive, this root will be replaced by that of the archive, see ArchiveRoot.\cr Default = "D:/groups_temp/"}
+\item{LocalRoot}{What is the root of the folder structure in the local folder. If the raw files are not local but were moved to an archive, this root will be replaced by that of the archive, see ArchiveRoot. Default = "D:/groups_temp/"}
 
-\item{ArchiveRoot}{If the raw files are not local but were moved to an archive, where would that be?\cr Default = "Q:/MS/Acquired data/"}
+\item{ArchiveRoot}{If the raw files are not local but were moved to an archive, where would that be? Default = "Q:/MS/Acquired data/"}
 
 \item{RawFiles}{The raw files from which to attempt to extract the method.}
 
 \item{Columns}{Path to a table of LC columns to pick from.}
+
+\item{N.clust}{A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.}
+
+\item{N.reserved}{Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.}
+
+\item{cl}{Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!}
 }
 \description{
 A function to write the LC-MS part of Materials & Methods, pulling information from the methods file.

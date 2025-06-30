@@ -27,7 +27,22 @@ ProtMatch2(
 \item{cl}{Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!}
 }
 \description{
-Once again, the function has been radically re-written, though without renaming it this time!
-The indexing from the previous version is gone, replaced by better parallelisation and data.tables use, yielding a small improvement.
-A small, rare bug is also corrected in the process.
+A function to match observed peptide sequences to a protein digest:
+  - Some search software do not report all proteins from the database which match a specific sequence.
+  - Others, such as MaxQuant, do report weird matches for a minority of PSMs, or miss a few perfectly valid matches.
+ Whilst this may be correct from their point of view, this function allows re-checking matches for consistency between software.
+ This will return a data frame of matches between observed peptides and protein IDs from a formatted protein sequences database.
+
+10/06/2025
+----------
+Aaand... once again, this function has been radically re-written. Again, I did not rename it, because as far as I can tell the outcome is the same!
+
+The way the previous version used data.tables was not that great (creating un-necessarily large tables), and the function remained too slow.
+I have dropped those parts and instead have focused on filtering stuff as early as possible.
+I have also improved the parallelisation: now instead of using clusterExport() for large objects, the functions writes (then deletes) temporary .RDS files.
+If at some point writing those should fail, we could try the following solutions:
+ - using tmpfile() for those instead of a fixed-name file,
+ - or allow reverting to clusterExport() if .RDS serialization doesn't work.
+
+These changes have yielded an about 20x gain in speed, turning the function from a cumbersome monster to a rather fast one.
 }
