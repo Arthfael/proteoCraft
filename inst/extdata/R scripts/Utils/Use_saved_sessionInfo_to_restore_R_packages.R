@@ -15,7 +15,7 @@ except <- c("parallel", "snow", "rstudioapi", "BiocManager", "pak")
 # These include packages which this script itself uses, and some RCpp-related packages which fail because of some gcc-related issues
 # (it seems to forget to release some handles?)
 sessInfFl <- rstudioapi::selectFile()
-
+#system(paste0("open \"", sessInfFl, "\""))
 sessInf <- readLines(sessInfFl)
 
 warning("This script does not check your R version! (yet) - remember to check!")
@@ -93,7 +93,7 @@ if (length(w)) {
     }
   }
   
-  # Make cluster
+  # Make/check cluster
   N.clust <- parallel::detectCores()-1
   a <- 1
   tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
