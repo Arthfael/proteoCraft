@@ -621,6 +621,12 @@ Factors <- Factors[w]
 FactorsLevels <- FactorsLevels[Factors]
 
 #### Code chunk - Define analysis parameters
+#
+# PCA prior to shiny app
+Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_PCA.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+#
 # Protein headers for shiny
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
@@ -656,11 +662,7 @@ source(Src, local = FALSE)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
-
-# PCA prior to shiny app
-Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_PCA.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+#
 # Define analysis parameters
 Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_Main.R")
 #rstudioapi::documentOpen(Src)
@@ -4720,10 +4722,7 @@ if (sum(c("dat", "dat2") %in% filter_types)) {
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 gc()
-parLapply(parClust, 1:N.clust, function(x) {
-  rm(list = ls())
-  gc()
-})
+try({ stopCluster(parClust) }, silent = TRUE)
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 source(parSrc, local = FALSE)
@@ -7870,25 +7869,25 @@ source(parSrc, local = FALSE)
 #### Code chunk - Proteome ruler
 if (protrul) {
   ProtRulRoot %<o% "log10(est. copies/cell) - "
-  temp <- PG
+  tempPG <- PG
   exprsRt <- paste0("Mean ", prtRfRoot)
   if (LocAnalysis) {
-    temp <- temp[, grep(topattern(exprsRt), colnames(temp), invert = TRUE)]
+    tempPG <- tempPG[, grep(topattern(exprsRt), colnames(tempPG), invert = TRUE)]
     for (grp2 in SubCellFracAggr2$values) { #grp2 <- SubCellFracAggr2$values[1]
       em2 <- Exp.map[which(Exp.map[[SubCellFracAggr2$column]] == grp2),]
       for (grp in unique(em2[[SubCellFracAggr$column]])) { #grp <- unique(em2[[SubCellFracAggr$column]])[1]
         em <- em2[which(em2[[SubCellFracAggr$column]] == grp),]
         kol <- paste0(prtRfRoot, em$Ref.Sample.Aggregate)
-        temp[[paste0(prtRfRoot, grp)]] <- apply(10^temp[, kol], 1, function(x) {
+        tempPG[[paste0(prtRfRoot, grp)]] <- apply(10^tempPG[, kol], 1, function(x) {
           log10(sum(is.all.good(x)))
         })
       }
-      temp[[paste0(exprsRt, grp2)]] <- apply(temp[, paste0(prtRfRoot, unique(em2[[SubCellFracAggr$column]]))], 1, function(x) {
+      tempPG[[paste0(exprsRt, grp2)]] <- apply(tempPG[, paste0(prtRfRoot, unique(em2[[SubCellFracAggr$column]]))], 1, function(x) {
         mean(is.all.good(x))
       })
     }
   }
-  temp <- try(Prot.Ruler(temp, db, exprsRt, NuclL = ProtRulNuclL), silent = TRUE)
+  temp <- try(Prot.Ruler(tempPG, db, exprsRt, NuclL = ProtRulNuclL), silent = TRUE)
   if (class(temp) == "list") {
     db <- temp$Database
     temp <- temp$Protein.groups

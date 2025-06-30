@@ -587,7 +587,6 @@ if (LabelType == "Isobaric") {
   ev <- ev[, which(!colnames(ev) %in% korkol)]
 }
 
-#### Code chunk - Define analysis parameters
 # Update Factors
 FactorsLevels <- setNames(lapply(Factors, function(Fact) {
   unique(Exp.map[[Fact]])
@@ -596,6 +595,13 @@ w <- which(vapply(FactorsLevels, length, 1) > 0)
 Factors <- Factors[w]
 FactorsLevels <- FactorsLevels[Factors]
 
+#### Code chunk - Define analysis parameters
+#
+# PCA prior to shiny app
+Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_PCA.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+#
 # Protein headers for shiny
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
@@ -631,11 +637,7 @@ source(Src, local = FALSE)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
-
-# PCA prior to shiny app
-Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_PCA.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+#
 # Define analysis parameters
 Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_Main.R")
 #rstudioapi::documentOpen(Src)
