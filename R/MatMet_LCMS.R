@@ -41,7 +41,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
   } else { misFun <- missing }
   #
   # Create cluster
-  tstCl <- misFun(cl)
+  tstCl <- stopCl <- misFun(cl)
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
@@ -1012,6 +1012,6 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     #proteoCraft::openwd(dirname(Columns2))
   }
   #
-  parallel::stopCluster(cl)
+  if (stopCl) { parallel::stopCluster(cl) }
   return(AllLCMSTexts)
 }

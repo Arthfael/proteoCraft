@@ -340,7 +340,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       if (length(we)) {
         #
         # Create cluster
-        tstCl <- misFun(cl)
+        tstCl <- stopCl <- misFun(cl)
         if (!misFun(cl)) {
           tstCl <- suppressWarnings(try({
             a <- 1
@@ -372,7 +372,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         chromtypes <- setNames(c("tic", "bpc"), c("TIC", "Base peak"))
         exports <- list("Raw", "rawFls", "we")
         clusterExport(cl, exports, envir = environment())
-        #clusterCall(cl, function() library(rawrr))
+        #clusterCall(cl, function() { library(rawrr); return(0) })
         f0 <- function(x) {
           x2 <- rawrr::readChromatogram(Raw$Path[x], type = "tic")
           return(data.frame("Raw file" = Raw$`Raw file`[x],
@@ -804,6 +804,6 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
   }
   setwd(wd0)
   #
-  parallel::stopCluster(cl)
+  if (stopCl) { parallel::stopCluster(cl) }
   return(Res)
 }

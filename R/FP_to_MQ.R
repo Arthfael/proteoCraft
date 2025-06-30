@@ -52,7 +52,7 @@ FP_to_MQ <- function(FP_Workflow,
   } else { misFun <- missing }
   #
   # Create cluster
-  tstCl <- misFun(cl)
+  tstCl <- stopCl <- misFun(cl)
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
@@ -863,6 +863,6 @@ FP_to_MQ <- function(FP_Workflow,
   }
   if (isTMT) { Res[["TMT_annotations"]] <- TMTtbl }
   #
-  parallel::stopCluster(cl)
+  if (stopCl) { parallel::stopCluster(cl) }
   return(Res)
 }

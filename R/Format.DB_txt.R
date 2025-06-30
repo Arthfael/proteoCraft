@@ -72,7 +72,7 @@ Format.DB_txt <- function(txt,
   } else { misFun <- missing }
   #
   # Create cluster
-  tstCl <- misFun(cl)
+  tstCl <- stopCl <- misFun(cl)
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
@@ -444,6 +444,6 @@ Format.DB_txt <- function(txt,
   rownames(rsTbl) <- 1:nrow(rsTbl)
   #rsTbl <- rsTbl[match(tstA$Accession, rsTbl$Accession),]
   #
-  parallel::stopCluster(cl)
+  if (stopCl) { parallel::stopCluster(cl) }
   return(rsTbl)
 }

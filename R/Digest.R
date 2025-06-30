@@ -75,7 +75,7 @@ Digest <- function(Seq,
     if (usePar) {
       #
       # Create cluster
-      tstCl <- misFun(cl)
+      tstCl <- stopCl <- misFun(cl)
       if (!misFun(cl)) {
         tstCl <- suppressWarnings(try({
           a <- 1
@@ -268,7 +268,7 @@ Digest <- function(Seq,
                             envir = environment())
     RES <- parallel::parLapply(cl, Chnks, F0)
     #
-    parallel::stopCluster(cl)
+    if (stopCl) { parallel::stopCluster(cl) }
     RES <- do.call(c, RES)
   } else {
     RES <- F0(SEQ)

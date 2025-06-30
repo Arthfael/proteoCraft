@@ -126,7 +126,7 @@ Prot.Quant <- function(Prot,
   Refs_Mode <- as.character(Refs_Mode)
   #
   # Create cluster
-  tstCl <- misFun(cl)
+  tstCl <- stopCl <- misFun(cl)
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
@@ -815,6 +815,6 @@ Prot.Quant <- function(Prot,
   res2 <- res2[order(ord2$Original),]
   rownames(res2) <- rownames(Prot)
   #
-  parallel::stopCluster(cl)
+  if (stopCl) { parallel::stopCluster(cl) }
   return(res2)
 }

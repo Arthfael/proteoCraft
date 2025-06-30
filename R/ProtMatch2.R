@@ -49,7 +49,7 @@ ProtMatch2 <- function(Seq,
   } else { misFun <- missing }
   #
   # Create cluster
-  tstCl <- misFun(cl)
+  tstCl <- stopCl <- misFun(cl)
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
@@ -253,6 +253,6 @@ ProtMatch2 <- function(Seq,
   }
   row.names(Res) <- 1:nrow(Res)
   #
-  parallel::stopCluster(cl)
+  if (stopCl) { parallel::stopCluster(cl) }
   return(Res)
 }

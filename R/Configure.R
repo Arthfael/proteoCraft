@@ -3,12 +3,14 @@
 #' @description
 #' Configuration function which will make sure some files from the package are moved to its subfolder in HOME upon first installation.
 #' 
+#' @param updateOntologies Should we update ontologies? This is a very slow process, so false by default.
+#' 
 #' @examples
 #' proteoCraft::Configure()
 #' 
 #' @export
 
-Configure <- function() {
+Configure <- function(updateOntologies = FALSE) {
   libPath <- as.data.frame(library()$results)
   libPath <- normalizePath(libPath$LibPath[match("proteoCraft", libPath$Package)], winslash = "/")
   proteoPath <- paste0(libPath, "/proteoCraft")
@@ -103,7 +105,8 @@ Configure <- function() {
   scrpts2 <- c("Regulation analysis - master script",
                "Regulation analysis - detailed script",
                "Regulation analysis - detailed script_pepOnly",
-               "No replicates analysis - detailed script")
+               "No replicates analysis - detailed script",
+               "Reload_renv_from_lock_file.R")
   extDr1 <- paste0(proteoPath, "/extdata/R scripts")
   fls <- paste0(extDr1, "/", scrpts2, ".R")
   for (fl in fls) {
@@ -112,45 +115,227 @@ Configure <- function() {
   }
   cat("Updated analysis scripts in HOME...")
   #
-  # Download MS instrument ontology
-  #   This can fail (stack too deep) when some packages are loaded,
-  #   probably because of conflict between internally used functions sharing a same name and not called with package::...
-  #   Solution I should try: run this on a cluster without loading those packages?
+  # Download ontologies relevant for writing an SDRF file
+  #   This sometimes fail with `Error: C stack usage SOMEABSURDLYLARGENUMBER is too close to the limit` when other packages are loaded,
+  #   I suspect because of a conflict between internally used functions sharing a same name and not called with package::...
+  #   Solution: run this on a cluster without loading those packages!
+  #
+  # The next step will be to build a shiny app (one more!) into SDRF_4_PRIDE.R to allow selectized choice of valid term(s) for each ontology.
   #
   if (!require(rols)) { pak::pkg_install("rols") }
-  ol <- rols::Ontology("ms")
-  instrMod <- rols::Term(ol, "MS:1000031")
-  vendors <- rols::children(instrMod)  # get all levels
-  vendorsLab <- lapply(vendors@x, function(x) {
-    x@label
+  tmpCl <- parallel::makeCluster(1, "SOCK")
+  get_all_terms <- function(ontology, size = 500) {
+    all_terms <- list()
+    page <- 0L
+    repeat {
+      res <- GET(
+        sprintf("https://www.ebi.ac.uk/ols4/api/ontologies/%s/terms", ontology),
+        query = list(size = size, page = page)
+      )
+      stop_for_status(res)
+      dat <- content(res, as = "parsed", simplifyDataFrame = TRUE)
+      terms <- dat$`_embedded`$terms
+      if (length(terms) == 0) break
+      w <- which(vapply(colnames(terms), function(x) { "data.frame" %in% class(terms[[x]]) }, TRUE))
+      while (length(w)) {
+        b <- lapply(w, function(i) {
+          a <- terms[[i]]
+          return(a)
+        })
+        b <- do.call(cbind, b)
+        terms <- terms[, -w]
+        terms[, colnames(b)] <- b
+        w <- which(vapply(colnames(terms), function(x) { "data.frame" %in% class(terms[[x]]) }, TRUE))
+      }
+      page <- page + 1L
+      all_terms[[page]] <- terms
+    }
+    all_terms <- do.call(plyr::rbind.fill, all_terms)
+  }
+  parallel::clusterExport(tmpCl, list("homePath", "get_all_terms"), envir = environment())
+  parallel::clusterCall(tmpCl, function() {
+    library(rols)
+    library(httr)
+    library(jsonlite)
+    return(0)
   })
-  vendorsInstr <- lapply(1:length(vendorsLab), function(x) { #x <- 2 #x <- 5
-    trm <- rols::Term(ol, names(vendorsLab)[[x]])
-    models <- rols::children(trm)
-    if (!is.null(models)) {
-      rs <- vapply(models@x, function(y) { y@label }, "")
-      rs2 <- lapply(1:length(rs), function(y) { #y <- g[1]
-        try({
-          trm2 <- rols::Term(ol, names(rs)[y])
-          mods <- rols::children(trm2)
-          mods <- vapply(mods@x, function(z) { z@label }, "")
-        }, silent = TRUE)
+  # - Species: too large, takes forever and not worth it: we already usually have it (taxID is basically it)
+  # if ((!file.exists(paste0(homePath, "/Species.csv")))||(updateOntologies)) {
+  #   parallel::clusterCall(tmpCl, function() {
+  #     # Get NCBITaxon root terms from OLS4
+  #     sp_terms <- get_all_terms("NCBITaxon", size = 1000)
+  #     sp <- sp_terms[, c("label", "description", "synonyms", "iri", "short_form")]
+  #     w <- which(vapply(colnames(sp), function(x) { "list" %in% class(sp[[x]]) }, TRUE))
+  #     if (length(w)) {
+  #       for (i in w) {
+  #         #sp[[i]] <- vapply(sp[[i]], paste, "", collapse = ";")
+  #         sp[[i]] <- vapply(sp[[i]], function(x) { x <- c(unlist(x), "")[1] }, "") # We don't need all that clutter here
+  #       }
+  #     }
+  #     write.csv(sp, paste0(homePath, "/Species.csv"), row.names = FALSE)
+  #   })
+  # }
+  # - Tissue
+  if ((!file.exists(paste0(homePath, "/Tissues.csv")))||(updateOntologies)) {
+    parallel::clusterCall(tmpCl, function() {
+      #ol <- rols::Ontology("bto") # Unfortunately this is not currently supported
+      # Get BTO root terms from OLS4
+      bto_terms <- get_all_terms("bto", size = 1000)
+      #btoTerms <- unique(bto_terms$label)
+      #btoTerms <- btoTerms[which((!is.na(btoTerms))&(nchar(btoTerms) > 0))]
+      bto <- bto_terms[, c("label", "description", "synonyms", "iri", "short_form")]
+      w <- which(vapply(colnames(bto), function(x) { "list" %in% class(bto[[x]]) }, TRUE))
+      if (length(w)) {
+        for (i in w) {
+          #bto[[i]] <- vapply(bto[[i]], paste, "", collapse = ";")
+          bto[[i]] <- vapply(bto[[i]], function(x) { x <- c(unlist(x), "")[1] }, "") # We don't need all that clutter here
+        }
+      }
+      write.csv(bto, paste0(homePath, "/Tissues.csv"), row.names = FALSE)
+    })
+  }
+  # - Modifications
+  if ((!file.exists(paste0(homePath, "/Modifications.csv")))||(updateOntologies)) {
+    parallel::clusterCall(tmpCl, function() {
+      # Get MOD root terms from OLS4
+      mod_terms <- get_all_terms("mod", size = 1000)
+      mod <- mod_terms[, c("label", "description", "synonyms", "iri", "short_form")]
+      w <- which(vapply(colnames(mod), function(x) { "list" %in% class(mod[[x]]) }, TRUE))
+      if (length(w)) {
+        for (i in w) {
+          #mod[[i]] <- vapply(mod[[i]], paste, "", collapse = ";")
+          mod[[i]] <- vapply(mod[[i]], function(x) { x <- c(unlist(x), "")[1] }, "") # We don't need all that clutter here
+        }
+      }
+      write.csv(mod, paste0(homePath, "/Modifications.csv"), row.names = FALSE)
+    })
+  }
+  # - Cell type
+  if ((!file.exists(paste0(homePath, "/Cell_types.csv")))||(updateOntologies)) {
+    parallel::clusterCall(tmpCl, function() {
+      # Get Cell Type root terms from OLS4
+      cl_terms <- get_all_terms("CL", size = 1000)
+      cl <- cl_terms[, c("label", "description", "synonyms", "iri", "short_form")]
+      w <- which(vapply(colnames(cl), function(x) { "list" %in% class(cl[[x]]) }, TRUE))
+      if (length(w)) {
+        for (i in w) {
+          #cl[[i]] <- vapply(cl[[i]], paste, "", collapse = ";")
+          cl[[i]] <- vapply(cl[[i]], function(x) { x <- c(unlist(x), "")[1] }, "") # We don't need all that clutter here
+        }
+      }
+      write.csv(cl, paste0(homePath, "/Cell_types.csv"), row.names = FALSE)
+    })
+  }
+  # - Disease
+  if ((!file.exists(paste0(homePath, "/Diseases.csv")))||(updateOntologies)) {
+    parallel::clusterCall(tmpCl, function() {
+      # Get Disease root terms from OLS4
+      dis_terms <- get_all_terms("DOID", size = 1000)
+      dis <- dis_terms[, c("label", "description", "synonyms", "iri", "short_form")]
+      w <- which(vapply(colnames(dis), function(x) { "list" %in% class(dis[[x]]) }, TRUE))
+      if (length(w)) {
+        for (i in w) {
+          #dis[[i]] <- vapply(dis[[i]], paste, "", collapse = ";")
+          dis[[i]] <- vapply(dis[[i]], function(x) { x <- c(unlist(x), "")[1] }, "") # We don't need all that clutter here
+        }
+      }
+      write.csv(dis, paste0(homePath, "/Diseases.csv"), row.names = FALSE)
+    })
+  }
+  # - PRIDE
+  if ((!file.exists(paste0(homePath, "/PRIDE.csv")))||(!file.exists(paste0(homePath, "/MS_acq_meth.csv")))||(updateOntologies)) {
+    parallel::clusterCall(tmpCl, function() {
+      # Get Disease root terms from OLS4
+      pride_terms <- get_all_terms("PRIDE", size = 1000)
+      pride <- pride_terms[, c("label", "description", "synonyms", "iri", "short_form")]
+      w <- which(vapply(colnames(pride), function(x) { "list" %in% class(pride[[x]]) }, TRUE))
+      if (length(w)) {
+        for (i in w) {
+          #pride[[i]] <- vapply(pride[[i]], paste, "", collapse = ";")
+          pride[[i]] <- vapply(pride[[i]], function(x) { x <- c(unlist(x), "")[1] }, "") # We don't need all that clutter here
+        }
+      }
+      get_term_children <- function(children_url) {
+        res <- httr::GET(children_url)
+        stop_for_status(res)
+        dat <- jsonlite::fromJSON(httr::content(res, "text"), flatten = TRUE)
+        dat$`_embedded`$terms
+      }
+      acqMeth <- list()
+      k <- 0L
+      parent <- pride_terms[which(pride_terms$label == "Proteomics data acquisition method"),]
+      repeat {
+        if (!"_links.children.href" %in% colnames(parent)) {
+          # first loop, dealing with the modified output of get_all_terms()
+          children_url <- parent[, grep("^href\\.[0-9]+$", colnames(parent), value = TRUE)]
+          wChildr <- grep("children", children_url[1,])
+          children_url <- unique(children_url[, wChildr])
+        } else {
+          # unmodified results
+          children_url <- parent$"_links.children.href"
+        }
+        childr <- lapply(children_url, function(url) { get_term_children(url) })
+        childr <- do.call(rbind, childr)
+        childr[, c("label", "obo_id")]
+        if (!nrow(childr)) break
+        k <- k + 1L
+        wN <- which(!childr$has_children)
+        wY <- which(childr$has_children)
+        acqMeth[[k]] <- childr[, c("label", "iri")]
+        if (!length(wY)) break
+        parent <- childr[wY,]
+      }
+      acqMeth <- do.call(rbind, acqMeth)
+      if ((!file.exists(paste0(homePath, "/PRIDE.csv")))||(updateOntologies)) {
+        write.csv(pride, paste0(homePath, "/PRIDE.csv"), row.names = FALSE)
+      }
+      if ((!file.exists(paste0(homePath, "/MS_acq_meth.csv")))||(updateOntologies)) {
+        write.csv(acqMeth, paste0(homePath, "/MS_acq_meth.csv"), row.names = FALSE)
+      }
+    })
+  }
+  # - MS instrument ontology
+  if ((!file.exists(paste0(homePath, "/MS_models.csv")))||(updateOntologies)) {
+    # For this rols works, yay!
+    parallel::clusterCall(tmpCl, function() {
+      ol <- rols::Ontology("ms")
+      instrMod <- rols::Term(ol, "MS:1000031")
+      vendors <- rols::children(instrMod)  # get all levels
+      vendorsLab <- lapply(vendors@x, function(x) {
+        x@label
       })
-      w <- which(vapply(rs2, function(x) { "try-error" %in% class(x) }, TRUE))
-      if (length(w)) { rs2[w] <- rs[w] }
-      rs <- unlist(rs2)
-      rs <- rs[grep("^MS:[0-9]+$", names(rs))]
-      if (length(rs)) {
-        rs <- data.frame(Vendor = gsub(" instrument model$", "", vendorsLab[[x]]),
-                         Instrument = rs)
-        return(rs)
-      } else { return(NULL) }
-    } else { return(NULL) }
-  })
-  vendorsInstr <- do.call(rbind, vendorsInstr)
-  vendorsInstr$Term <- rownames(vendorsInstr)
-  rownames(vendorsInstr) <- NULL
-  write.csv(vendorsInstr, paste0(homePath, "/MS_models.csv"))
+      vendorsInstr <- lapply(1:length(vendorsLab), function(x) { #x <- 2 #x <- 5
+        trm <- rols::Term(ol, names(vendorsLab)[[x]])
+        models <- rols::children(trm)
+        if (!is.null(models)) {
+          rs <- vapply(models@x, function(y) { y@label }, "")
+          rs2 <- lapply(1:length(rs), function(y) { #y <- g[1]
+            try({
+              trm2 <- rols::Term(ol, names(rs)[y])
+              mods <- rols::children(trm2)
+              mods <- vapply(mods@x, function(z) { z@label }, "")
+            }, silent = TRUE)
+          })
+          w <- which(vapply(rs2, function(x) { "try-error" %in% class(x) }, TRUE))
+          if (length(w)) { rs2[w] <- rs[w] }
+          rs <- unlist(rs2)
+          rs <- rs[grep("^MS:[0-9]+$", names(rs))]
+          if (length(rs)) {
+            rs <- data.frame(Vendor = gsub(" instrument model$", "", vendorsLab[[x]]),
+                             Instrument = rs)
+            return(rs)
+          } else { return(NULL) }
+        } else { return(NULL) }
+      })
+      vendorsInstr <- do.call(rbind, vendorsInstr)
+      vendorsInstr$Term <- rownames(vendorsInstr)
+      rownames(vendorsInstr) <- NULL
+      write.csv(vendorsInstr, paste0(homePath, "/MS_models.csv"), row.names = FALSE)
+      return(0)
+    })
+  }
+  #
+  parallel::stopCluster(tmpCl)
   #
   cat("Done\n")
 }

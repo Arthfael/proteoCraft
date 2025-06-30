@@ -50,7 +50,7 @@ Format.DB <- function(file,
   #
   # Create cluster
   if (parallel) {
-    tstCl <- misFun(cl)
+    tstCl <- stopCl <- misFun(cl)
     if (!misFun(cl)) {
       tstCl <- suppressWarnings(try({
         a <- 1
@@ -297,7 +297,7 @@ Format.DB <- function(file,
   } else { res <- lapply(batChes, F0) }
   res <- plyr::rbind.fill(res)
   #
-  if (parallel) {
+  if ((parallel)&&(stopCl)) {
     parallel::stopCluster(cl)
   }
   return(res)

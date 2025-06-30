@@ -142,7 +142,7 @@ Volcano.plot <- function(Prot,
                          SAM = FALSE,
                          curved_Thresh) {
   TESTING <- FALSE
-  #proteoCraft::DefArg(proteoCraft::Volcano.plot); Symmetrical <- TRUE; TESTING <- TRUE; cl <- parClust
+  #proteoCraft::DefArg(proteoCraft::Volcano.plot); Symmetrical <- TRUE; TESTING <- TRUE; cl <- parClust;if (!exists("isSAM")) { isSAM <- FALSE };if (!exists("SAM_thresh")) { SAM_thresh <- NA }
   #
   #Prot = PG; mode = "custom"; experiments.map = Exp.map; X.root = paste0("Mean ", Prot.Rat.Root); Y.root = pvalue.col[which(pvalue.use)]; aggregate.map = Aggregate.map; aggregate.name = Volcano.plots.Aggregate.Level$aggregate; aggregate.list = Aggregate.list;parameters = Param; save = c("jpeg", "pdf"); labels = c("FDR", "both")[isSAM+1]; Ref.Ratio.values = Ref.Ratios; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = FDR.thresholds; arbitrary.lines = arbitrary.thr; proteins = prot.list;  proteins_split = protsplit; return = TRUE;  return.plot = TRUE; title.root = "FDR-type ";  subfolder = "Reg. analysis/t-tests"; subfolderpertype = FALSE; Alpha = "Rel. log10(Peptides count)"; Size = "Av. log10 abundance";  Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; FDR.thresh = FDR.thresholds; SAM = isSAM; curved_Thresh = SAM_thresh
   # OR (F-test, proteins)
@@ -164,7 +164,7 @@ Volcano.plot <- function(Prot,
   }
   #
   # Create cluster
-  tstCl <- misFun(cl)
+  tstCl <- stopCl <- misFun(cl)
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
@@ -841,14 +841,14 @@ Volcano.plot <- function(Prot,
       colScale2 <- ggplot2::scale_colour_manual(name = "colour", values = myColors2)
       #if (!is.numeric(Size)) { fillScale2 <- ggplot2::scale_fill_manual(name = "fill", values = myColors2, guide = FALSE) }
       if (length(prots)) {
-        w <- proteoCraft::grsep2(prots, temp[[Proteins.col]])
-        if ((!length(w))&&(prot_split)) {
+        wLst <- proteoCraft::grsep2(prots, temp[[Proteins.col]])
+        if ((!length(wLst))&&(prot_split)) {
           warning("No matches for proteins in list, no split plot will be created.")
           prot_split <- FALSE
         }
-        if (!prot_split) { temp$Colour[w] <- "protein in list" } else {
-          temp$Colour2[w] <- "protein in list"
-          temp$Labels2[w] <- temp$Labels[w]
+        if (!prot_split) { temp$Colour[wLst] <- "protein in list" } else {
+          temp$Colour2[wLst] <- "protein in list"
+          temp$Labels2[wLst] <- temp$Labels[wLst]
         }
       } else {
         if (prot_split) {
@@ -948,7 +948,13 @@ Volcano.plot <- function(Prot,
     }), collapse = ", ")
     non.aes <- gsub("^dummy = NA, ", "", non.aes)
     pluses <- paste(pluses, collapse = " + ")
+    plotMetr.lst[[i]] <- plot.metrics
+    #
     plot.txt <- paste0("plot <- ggplot2::ggplot(temp) + ggplot2::geom_point(ggplot2::aes(", aes, "), ", non.aes, ") + ", pluses)
+    #cat(plot.txt)
+    suppressWarnings(eval(parse(text = plot.txt)))
+    #suppressWarnings(eval(parse(text = plot.txt), envir = globalenv())) # for testing only
+    #poplot(plot)
     if (prot_split) {
       plot.txt_2 <- gsub("^plot <- ", "plot_prot <- ",
                          gsub("Colour", "Colour2",
@@ -956,16 +962,14 @@ Volcano.plot <- function(Prot,
                                    #gsub("fillScale", "fillScale2",
                                    plot.txt#)
                               )))
+      #cat(plot.txt2)
+      suppressWarnings(eval(parse(text = plot.txt_2))) # This is the plot for proteins of interest
+      #poplot(plot_prot)
     }
-    #cat(plot.txt)
-    suppressWarnings(eval(parse(text = plot.txt)))
-    #
-    plotMetr.lst[[i]] <- plot.metrics
-    #suppressWarnings(eval(parse(text = plot.txt), envir = globalenv())) # for testing only
-    if (prot_split) {
-      suppressWarnings(eval(parse(text = plot.txt_2)))
-    } # This is the plot for proteins of interest
+    # Significance thresholds
     if ((mode == "curved")&&(i %in% names(curved_Thresh))) {
+      # Option 1: curved SAM thresholds
+      #
       # See "Uses and Misuses of the Fudge Factor in Quantitative Discovery Proteomics", Gianetto et al., Proteomics 2016
       # https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/epdf/10.1002/pmic.201600132
       # Note that in formula (9), "FC" is actually a logFC - it is clearly meant to be negative in some cases and expected to be normally distributed.
@@ -1025,6 +1029,7 @@ Volcano.plot <- function(Prot,
       }
       #poplot(plot)
     } else {
+      # Option 2: straight horizontal/vertical thresholds
       for (l in 1:nrow(plot.metrics)) {
         if (plot.metrics$Axis[l] == "X") {
           if ((plot.metrics$Levels[l] == "up")||(symm)) {
@@ -1178,6 +1183,9 @@ Volcano.plot <- function(Prot,
     }
     #
     Plots$Unlabelled[[ttl]] <- plotEval(plot)
+    if (prot_split) {
+      Plots$"Proteins in list - unlabelled"[[ttl]] <- plotEval(plot_prot)
+    }
     if (show.labels) {
       plot2 <- plot
       W <- which(temp$Labels != "")
@@ -1219,23 +1227,20 @@ Volcano.plot <- function(Prot,
               ggrepel::geom_text_repel(data = lab2,
                                        ggplot2::aes(label = Labels2, x = X, y = Y,
                                                     colour = Colour2, alpha = Alpha),
-                                       force = 4, cex = cex, lineheight = lineheight,
+                                       force = 4, cex = cex, lineheight = lineheight, max.overlaps = 250,
                                        show.legend = FALSE)
           } else {
             plot_prot2 <- plot_prot2 +
               ggrepel::geom_text_repel(data = lab2,
                                        ggplot2::aes(label = Labels2, x = X, y = Y,
                                                     colour = Colour2), alpha = 1,
-                                       force = 4, cex = cex, lineheight = lineheight,
+                                       force = 4, cex = cex, lineheight = lineheight, max.overlaps = 250,
                                        show.legend = FALSE)
           }
           Plots$"Proteins in list - labelled"[[ttl]] <- plotEval(plot_prot2)
         }
       }
     } else { proteoCraft::poplot(plot) }
-    if (prot_split) {
-      Plots$"Proteins in list - unlabelled"[[ttl]] <- plotEval(plot_prot)
-    }
     tr <- gsub("/|:|\\*|\\?|<|>|\\||/", "-", title.root)
     tt <- gsub("/|:|\\*|\\?|<|>|\\||/", "-", ttl)
     nm <- paste0(tr, tt)
@@ -1379,6 +1384,6 @@ Volcano.plot <- function(Prot,
   #
   setwd(origWD)
   #
-  parallel::stopCluster(cl)
+  if (stopCl) { parallel::stopCluster(cl) }
   return(RES)
 }

@@ -33,6 +33,7 @@ Prot.Ruler <- function(Prot,
   #proteoCraft::DefArg(proteoCraft::Prot.Ruler)
   #Prot <- PG; DB <- db; Expr.roots = c(Prot.Expr.Root, paste0("Mean ", Prot.Expr.Root))
   #Prot <- PG; DB <- db; Expr.roots = ref
+  #Prot <- temp; DB <- db; Expr.roots = exprsRt; NuclL = ProtRulNuclL
   PrRulerRoot <- "log10(est. copies/cell) - "
   if (is.logical(log.Expr)) {
     if (!log.Exp) { PrRulerRoot <- "est. copies/cell - " }
@@ -95,7 +96,9 @@ Prot.Ruler <- function(Prot,
       Orgs <- Orgs[which(Orgs$Kingdom == "Eukaryota"),]
     }
     if (nrow(Orgs) > MaxOrg) {
-      orgChc <- svDialogs::dlg_list(Orgs$Organism, Orgs$Organism[1], TRUE, "Choose organism(s) for which you want to calculate a Proteomic Ruler value for:")$res
+      opt <- vapply(Orgs$Organism, function(x) { paste(c(x, rep(" ", max(c(1, 250-nchar(x))))), collapse = "") }, "")
+      orgChc <- svDialogs::dlg_list(opt, opt[1], TRUE, "Choose organism(s) for which you want to calculate a Proteomic Ruler value for:")$res
+      orgChc <- Orgs$Organism[match(orgChc, opt)]
       Orgs <- Orgs[which(Orgs$Organism %in% orgChc),]
     }
   } else {
@@ -103,7 +106,7 @@ Prot.Ruler <- function(Prot,
     m <- match(Orgs, orgmap$Linnean_name)
     Kngdm <- orgmap$Kingdom[m]
     while (Kngdm != "Eukaryota") {
-      Orgs <- dlgInput("Enter the Linnaean name of the relevant organism:\nThis must be a Eukaryote!", "Homo sapiens")$res
+      Orgs <- dlgInput("Enter the Linnaean name of the relevant organism:\nThis must be a Eukaryote:\n - Bacteria do not have histones.\n - Archaea do, but inter-nucleosome distance does not seem to be as consistent than in Eukaryotes.\n", "Homo sapiens")$res
       m <- match(Orgs, orgmap$Linnean_name)
       Kngdm <- orgmap$Kingdom[m]
     }

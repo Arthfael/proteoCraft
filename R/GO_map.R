@@ -44,7 +44,7 @@ GO_map <- function(DB,
   } else { misFun <- missing }
   #
   # Create cluster
-  tstCl <- misFun(cl)
+  tstCl <- stopCl <- misFun(cl)
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
@@ -203,6 +203,6 @@ GO_map <- function(DB,
   }
   if (TESTING) { tm2 <<- Sys.time() }
   #
-  parallel::stopCluster(cl)
+  if (stopCl) { parallel::stopCluster(cl) }
   return(Res)
 }

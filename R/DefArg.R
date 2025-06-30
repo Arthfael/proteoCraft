@@ -30,7 +30,7 @@ DefArg <- function(FUN,
     args <- args[which(!vapply(args, is.null, TRUE))]
   }
   args <- args[which(!vapply(args, function(x) {
-    ("name" %in% class(x))&(as.character(x) == "")
+    ("name" %in% class(x))&&(length(x) == 1)&&(as.character(x) == "")
   }, TRUE))]
   args <- lapply(args, eval)
   lapply(names(args), function(x) { try(assign(x, args[[x]], envir = .GlobalEnv), silent = TRUE) })

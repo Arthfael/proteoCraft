@@ -47,7 +47,7 @@ Skyline_to_MQ <- function(Skyline_fl,
   } else { misFun <- missing }
   #
   # Create cluster
-  tstCl <- misFun(cl)
+  tstCl <- stopCl <- misFun(cl)
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
@@ -559,6 +559,6 @@ Skyline_to_MQ <- function(Skyline_fl,
               PTMs = allPTMs)
   
   #
-  parallel::stopCluster(cl)
+  if (stopCl) { parallel::stopCluster(cl) }
   return(Res)
 }

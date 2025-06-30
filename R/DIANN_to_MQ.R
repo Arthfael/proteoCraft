@@ -65,7 +65,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   } else { misFun <- missing }
   #
   # Create cluster
-  tstCl <- misFun(cl)
+  tstCl <- stopCl <- misFun(cl)
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
@@ -728,6 +728,6 @@ DIANN_to_MQ <- function(DIANN_fl,
               PTMs = allPTMs,
               QuantUMS = QuantUMS)
   #
-  parallel::stopCluster(cl)
+  if (stopCl) { parallel::stopCluster(cl) }
   return(Res)
 }
