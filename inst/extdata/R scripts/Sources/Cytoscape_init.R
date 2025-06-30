@@ -5,7 +5,7 @@ if (CytoScape) {
   #tst <- "tst"
   #class(tst) <- "try-error" # Create dummy tst
   dlg_message("Check that no other RStudio session (or other process) is using Cytoscape before clicking \"ok\" to continue...", "ok")
-  shell(paste0("open \"", CytoScExe, "\""))
+  shell(paste0("open \"", CytoScExe[1], "\"")) # Should be length 1 already, but you never know - in this case it's better in most cases to run with any version than break
   suppressMessages(tst <- try(RCy3::cytoscapePing(), silent = TRUE))
   kount <- 0
   while (("try-error" %in% class(tst))&&(kount < 12)) { # Give it 1 min max!

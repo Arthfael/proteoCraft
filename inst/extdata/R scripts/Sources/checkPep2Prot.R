@@ -10,6 +10,7 @@ if (Update_Prot_matches) {
   if (Reuse_Prot_matches) {
     msg <- paste0("Re-load", msg)
     cat(msg)
+    if (!exists("evmatch")) { loadFun(paste0(wd, "/evmatch.RData")) }
     Pep2Prot <- evmatch
   } else {
     msg <- paste0("Check", msg)

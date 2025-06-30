@@ -14,6 +14,7 @@ if (dataType == "modPeptides") {
   if (scrptType == "withReps") { ratRef <- paste0("Mean ", pepRatRf) }
   if (scrptType == "noReps") { ratRef <- PTMs_ratRf[length(PTMs_ratRf)] }
   idCol <- "Protein"
+  myData$Protein <- gsub(";.*", "", myData$Proteins)
   namesRoot <- "Pep"
   ohDeer <- paste0(wd, "/Reg. analysis/", ptm, "/GSEA")
 }
@@ -116,10 +117,13 @@ if (isOK) {
       pak::pkg_install(pck, upgrade = FALSE, ask = FALSE)
     }
   }
-  for (pck in packs) {
-    if (usePar) {
-      clusterCall(parClust, function() library(pck, character.only = TRUE))
-    } else {
+  if (usePar) {
+    clusterCall(parClust, function() {
+      for (pck in packs) { library(pck, character.only = TRUE) }
+      return(0)
+    })
+  } else {
+    for (pck in packs) {
       library(pck, character.only = TRUE)
     }
   }

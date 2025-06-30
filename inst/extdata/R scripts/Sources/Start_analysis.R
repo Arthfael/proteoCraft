@@ -630,8 +630,8 @@ if (SearchSoft %in% c("DIANN", "FRAGPIPE")) {
   allBckps <- rbind(allBckps, tmpDF)
 }
 #View(allBckps[which(!file.exists(allBckps$Full)),])
-reloadedBckps <- allBckps <- allBckps[which(file.exists(allBckps$Full)),]
-reloadedBckps %<o% allBckps
+allBckps <- allBckps[which(file.exists(allBckps$Full)),]
+reloadedBckps %<o% allBckps[NULL,]
 if (nrow(allBckps)) {
   allBckps$Dir <- dirname(allBckps$Full)
   allBckps$Value <- allBckps$File
@@ -675,9 +675,9 @@ if (nrow(allBckps)) {
         if (areUok) { assign(reloadedBckps$ObjNm[[i]], tmp) }
       }
     }
+    .obj <- unique(c(.obj, unlist(reloadedBckps$ObjNm)))
   }
 }
-.obj <- unique(c(.obj, unlist(reloadedBckps$ObjNm)))
 if ((!nrow(reloadedBckps))||(!"FASTA of proteins of special interest" %in% reloadedBckps$Role)) {
   loadInt %<o% c(TRUE, FALSE)[match(dlg_message("Load a fasta of proteins of interest?", "yesno")$res, c("yes", "no"))]
   if (loadInt) {

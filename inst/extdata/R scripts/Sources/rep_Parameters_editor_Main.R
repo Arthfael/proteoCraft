@@ -51,10 +51,7 @@ if (ParamFl == ParamFls[2]) {
     Param$Prot.list_pep <- paste(unique(c(tmp, unlist(strsplit(Param$Prot.list_pep, ";")))), collapse = ";")
   }
   ptmDflt2 <- Param$PTM.analysis <- paste(grep("^[Pp]hospho", Modifs$`Full name`, value = TRUE), collapse = ";")
-  fTstDflt <- Param$F.test
-  if (grepl("^TF_((TRUE)|(FALSE))$", fTstDflt)) { fTstDflt <- as.logical(gsub("^TF_", "", fTstDflt)) }
-  if (!is.logical(fTstDflt)) { fTstDflt <- TRUE }
-  Param$F.test <- fTstDflt
+  #
   Param$GO.enrichment <- TRUE
 } else {
   ptmDflt2 <- ""
@@ -73,9 +70,12 @@ Mod2Xclud %<o% set_colnames(Modifs[which(!Modifs$Mark %in% Mod4Quant), c("Mark",
                             c("Mark", "Where"))
 goDflt <- suppressWarnings(as.logical(Param$GO.enrichment))
 if ((!is.logical(goDflt))||(is.na(goDflt))) { goDflt <- TRUE }
-fTstDflt <- suppressWarnings(as.logical(Param$F.test))
-if ((!is.logical(fTstDflt))||(is.na(fTstDflt))) { fTstDflt <- TRUE }
-Param$F.test <- fTstDflt
+#
+if (exists("F.test")) { fTstDflt <- F.test } else { fTstDflt <- Param$F.test }
+if (!length(fTstDflt)) { fTstDflt <- TRUE }
+fTstDflt <- suppressWarnings(as.logical(fTstDflt[1]))
+if (is.na(fTstDflt)) { fTstDflt <- TRUE }
+#
 # if ((!"Param_suppress_UI" %in% colnames(Param))||(!is.logical(Param$Param_suppress_UI))) {
 #   # This is to allow bypassing UI-based parameters creation.
 #   # Could be useful in cases you have created custom values for parameters which the script can handle but which,
@@ -148,7 +148,9 @@ if (is.na(shpDflt)) { shpDflt <- "none" }
 pr <- c("Norma.Ev.Intens", "Norma.Pep.Intens", "Adv.Norma.Pep.Intens", "Norma.Pep.Intens.IRS", "Norma.Prot.Ratio", "Adv.Norma.Prot.Intens")
 for (p in pr) { if ((!p %in% colnames(Param))||(!is.logical(Param[[p]]))||(is.na(Param[[p]]))) { Param[[p]] <- TRUE } }
 p <- "Adv.Norma.Ev.Intens"
-if ((!p %in% colnames(Param))||(!is.logical(Param[[p]]))||(is.na(Param[[p]]))) { Param[[p]] <- (length(unique(FracMap$Fraction)) > 1)|(length(unique(FracMap$`PTM-enriched`)) > 1) } 
+if ((!p %in% colnames(Param))||(!is.logical(Param[[p]]))||(is.na(Param[[p]]))) {
+  Param[[p]] <- (length(unique(FracMap$Fraction)) > 1)|(length(unique(FracMap$`PTM-enriched`)) > 1)
+} 
 if (!toupper(as.character(Param$Norma.Pep.Intens.Shape)) %in% c("FALSE", "VSN", "LOESS")) { Norma.Pep.Intens.Shape <- FALSE }
 pr <- c("Norma.Pep.Ratio", "Adv.Norma.Pep.Ratio", "Norma.Prot.Ratio.to.Biot")
 for (p in pr) { if ((!is.logical(Param[[p]]))||(is.na(Param[[p]]))) { Param[[p]] <- FALSE } }
@@ -309,6 +311,7 @@ ROCfilt_GOterms_Pos %<o% c()
 ROCfilt_GOterms_Neg %<o% c()
 annotRep <- ((Annotate)&&(scrptType == "withReps"))
 if (annotRep) {
+  if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) { loadFun("GO_terms.RData") }
   if ("ROC.GO.terms" %in% colnames(Param)) {
     Param$ROC_GOterms <- Param$ROC.GO.terms
     Param$ROC.GO.terms <- NULL
@@ -366,7 +369,7 @@ normDat %<o% normDat
 # - Peptide normalisation methods
 #   Currently not implemented:
 #      - Quantile: what's the point of being quantitative if we are going to replace measurements with quantiles? I do not see for now a rationale to implement this.
-#      - RUV normalisation (see https://www.bioconductor.org/packages/release/bioc/vignettes/RUVnormalize/inst/doc/RUVnormalize.pdf)
+#      - RUV normalization (could be interesting, see https://www.bioconductor.org/packages/release/bioc/vignettes/RUVnormalize/inst/doc/RUVnormalize.pdf)
 pepNormMethods %<o% list(list(Method = "median",
                               Source = "pepNorm_General.R",
                               funCall = "normFun <- function(x) { median(x, na.rm = TRUE) }"),
@@ -577,8 +580,8 @@ ui1 <- fluidPage(
   h4(strong("Factors")),
   span("Here we map specific actions to experimental Factors:"),
   fluidRow(column(4,
-                  withSpinner(uiOutput("FactMappings")),
-                  uiOutput("RSA_msg")),
+                  uiOutput("RSA_msg"),
+                  withSpinner(uiOutput("FactMappings"))),
            column(8, withSpinner(plotlyOutput("PSMsPCA", height = "600px")))),
   br(),
   tags$hr(style = "border-color: black;"),
@@ -707,7 +710,7 @@ ui1 <- fluidPage(
   br(),
   fluidRow(column(2,
                   h5(strong(" -> ANOVA (moderated F-test //limma)")),
-                  checkboxInput("Run?", "", fTstDflt, "100%"),
+                  checkboxInput("run_F_test", "Run?", fTstDflt, "100%"),
                   em("(only makes sense if Nb. sample groups > 2)")),
            column(2,
                   uiOutput("sntXprs")),
@@ -770,6 +773,7 @@ server1 <- function(input, output, session) {
   NORMSEQ <- reactiveVal(dfltNormSeq2)
   PURFL <- reactiveVal(Param$Label.Purities.file)
   RSA_Msg <- reactiveVal("")
+  F_TEST <- reactiveVal(fTstDflt)
   #
   # Server sub-functions
   # (unfortunately, it does not look like these can be pre-created outside the server - the reactive objects do not work if they are)
@@ -954,7 +958,6 @@ server1 <- function(input, output, session) {
     if (reactive) { myMsg <- RSA_Msg() } else { myMsg <- "" }
     renderUI(h4(strong(em(myMsg, style = "color:red", .noWS = "outside"))))
   }
-  output$RSA_msg <- updtRSAmsg(FALSE)
   #
   # Initialize variables to create in main environment
   PARAM <- reactiveVal(Param)
@@ -969,6 +972,7 @@ server1 <- function(input, output, session) {
   #
   # Dynamic UI
   # Map Parameters to Factors
+  output$RSA_msg <- updtRSAmsg(FALSE)
   output$PSMsPCA <- renderPlotly(plot_lyPSMsPCA)
   output$FactMappings <- renderUI({
     lstFct
@@ -979,20 +983,25 @@ server1 <- function(input, output, session) {
   # Factors
   sapply(wMp, function(w) {
     observeEvent(input[[colnames(Param)[w]]], {
-      tmpVal <- input[[colnames(Param)[w]]]
+      tmpVal <- input[[colnames(Param)[w]]] # Current aggregate
       if (colnames(Param)[w] == "Ratios.Groups.Ref.Aggregate.Level") {
+        # For ref samples aggregate - the aggregate which defines individual samples /// what a terrible name I chose back then... ///
+        # we have to do some extra homework:
         l <- length(tmpVal)
         tst2 <- tst3 <- tst4 <- FALSE
+        l2 <- 2
         if (length(tmpVal)) {
           tst2 <- sum(!c("Experiment", "Replicate") %in% tmpVal)
-          tmpRSA <- do.call(paste, c(Exp.map[, tmpVal], sep = "___"))
+          tmpRSA <- do.call(paste, c(Exp.map[, tmpVal, drop = FALSE], sep = "___"))
           UtmpRSA <- unique(tmpRSA)
           tst3 <- length(UtmpRSA) < nrow(Exp.map)
-          tmpVal2 <- tmpVal[which(tmpVal != "Replicate")]
+          tmpVal2 <- tmpVal[which(tmpVal != "Replicate")] # Defines sample groups...
           if (length(tmpVal2)) {
-            tmpVPAL <- do.call(paste, c(Exp.map[, tmpVal2], sep = "___"))
-            tst4 <- aggregate(1:nrow(Exp.map), list(tmpVPAL, Exp.map$Replicate), length)
+            xpRws <- 1:nrow(Exp.map)
+            tmpVPAL <- do.call(paste, c(Exp.map[, tmpVal2, drop = FALSE], sep = "___"))
+            tst4 <- aggregate(xpRws, list(tmpVPAL, Exp.map$Replicate), length)
             tst4 <- max(tst4$x) > 1
+            l2 <- length(unique(tmpVPAL))
           }
         }
         if ((l < 3)||(tst2)||(tst3)||(tst4)) {
@@ -1007,6 +1016,19 @@ server1 <- function(input, output, session) {
           shinyjs::enable("saveBtn")
         }
         output$RSA_msg <- updtRSAmsg()
+        #
+        dflt <- F_TEST()
+        tmpVal <- input$Ratios.Groups.Ref.Aggregate.Level
+        if (!length(dflt)) { dflt <- TRUE }
+        dflt <- suppressWarnings(as.logical(dflt[1]))
+        if (is.na(dflt)) { dflt <- TRUE }
+        updateCheckboxInput(session = getDefaultReactiveDomain(),
+                            inputId = "run_F_test",
+                            label = "Run?",
+                            value = fTstDflt)
+        if (l2 < 3) {
+          shinyjs::disable("run_F_test")
+        } else { shinyjs::enable("run_F_test") }
       }
       Par <- PARAM()
       Par[colnames(Par)[w]] <- paste0(tmpVal, collapse = ";")
@@ -1492,9 +1514,10 @@ server1 <- function(input, output, session) {
     #output$F_test_grps <- updtFTstUI()
   })
   # F-test
-  observeEvent(input$FTest, {
+  observeEvent(input$run_F_test, {
     Par <- PARAM()
-    Par$F.test <- input$FTest
+    Par$F.test <- tmp <- as.logical(input$run_F_test)
+    F_TEST(tmp)
     PARAM(Par)
     #output$F_test_grps <- updtFTstUI()
   })
