@@ -13,7 +13,7 @@ require(proteoCraft)
 
 #load_Bckp()
 
-if (LabelType %in% c("LFQ", "DIA")) {
+if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value should be "LFQ", not "DIA"!
   w <- which(c("Organism_Full", "Organism") %in% colnames(db))
   tstorg %<o% (length(w) > 0)
   if (tstorg) {

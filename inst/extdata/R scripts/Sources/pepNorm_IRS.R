@@ -7,7 +7,7 @@ txt2 <- ""
 if (length(Iso) <= 1) {
   if (length(Iso) == 1) {
     warning("Skipping IRS normalisation: there is only 1 Isobarically labelled sample (aka \"Isobaric Set\")")
-  } else { stop("\"LabelType\" is \"Isobaric\" but \"Iso\" has invalid length, investigate!") }
+  } else { stop("\"LabelType\" is set to \"Isobaric\" but \"Iso\" has invalid length, investigate!") }
 } else {
   irsDr <- paste0(nrmDr, "/Step ", nrmStp, " - IRS normalisation")
   if (!dir.exists(irsDr)) { dir.create(irsDr, recursive = TRUE) }
@@ -321,4 +321,3 @@ Shiny.bindAll(table.table().node());"))
   Outcome <- KeepComBatRes
   cat(msg)
 }
-  
