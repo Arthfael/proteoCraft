@@ -575,7 +575,7 @@ if (!"Use" %in% colnames(Exp.map)) { Exp.map$Use <- TRUE } else {
   }
 }
 source(parSrc, local = FALSE)
-exports <- list("smpls", "Exp.map", "tmp", "pep.ref", "LabelType", "is.all.good")
+exports <- list("smpls", "Exp.map", "tmp", "pep.ref", "LabelType")
 if (LabelType == "Isobaric") {
   tmp <- ev[, c("MQ.Exp", "Modified sequence",
                 paste0(ev.ref[length(ev.ref)], as.character(sort(as.numeric(unique(Exp.map$"Isobaric label"))))))]
@@ -602,7 +602,7 @@ tmp4 <- setNames(parLapply(parClust, smpls, function(smpl) { #smpl <- smpls[1]
       tmp3 <- tmp[w2, paste0(ev.ref[length(ev.ref)], j), drop = FALSE]
       for (k in j) {
         kk <- paste0(ev.ref[length(ev.ref)], j)
-        tmp3[which(!is.all.good(tmp3[[kk]], 2)), kk] <- NA
+        tmp3[which(!proteoCraft::is.all.good(tmp3[[kk]], 2)), kk] <- NA
       }
       if (length(j) > 1) { tmp3 <- apply(tmp3, 1, sum, na.rm = TRUE) } # Ultra-rare cases where the same parent sample is in different isobaric channels in different fractions
       tmp2 <- data.table(mod = tmp$"Modified sequence"[w2],
@@ -611,7 +611,7 @@ tmp4 <- setNames(parLapply(parClust, smpls, function(smpl) { #smpl <- smpls[1]
     if (LabelType == "LFQ") {
       tmp2 <- data.table(mod = tmp$"Modified sequence"[w2],
                          Intensity = tmp[w2, ev.col[length(ev.col)]])
-      tmp2$Intensity[which(!is.all.good(tmp2$Intensity, 2))] <- NA
+      tmp2$Intensity[which(!proteoCraft::is.all.good(tmp2$Intensity, 2))] <- NA
     }
     tmp2 <- tmp2[, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
     tmp2 <- as.data.frame(tmp2)
