@@ -431,9 +431,11 @@ while (getRTRange) {
     if (kount > 1) {
       x <- x[which((x$`Retention time` >= RTRange[1])&(x$`Retention time` <= RTRange[2])),]
     }
-    rgX <- max(x$`Retention time`, na.rm = TRUE)-min(x$`Retention time`, na.rm = TRUE)
+    xLim <- c(min(x$`Retention time`, na.rm = TRUE), max(x$`Retention time`, na.rm = TRUE))
+    rgX <- xLim[2]-xLim[1]
     Ykol <- c("Intensity", "Pressure")[(nm == "Pressure")+1]
-    rgY <- max(c(x[[Ykol]], 100), na.rm = TRUE)-min(x[[Ykol]], na.rm = TRUE) # Hard-coded minimum 100 max Y to avoid issues when values are very low!
+    yLim <- c(min(x[[Ykol]], na.rm = TRUE), max(c(x[[Ykol]], 100), na.rm = TRUE)) # Hard-coded minimum 100 max Y to avoid issues when values are very low!
+    rgY <- yLim[2]-yLim[1]
     if ("data.frame" %in% class(x)) {
       if (!nm %in% c("TIC", "BPC", "Pressure")) {
         tmp <- unlist(strsplit(nm, " for "))
@@ -464,7 +466,8 @@ while (getRTRange) {
             #geom_point() +
             geom_line(aes(group = `Raw file name`)) +
             theme_bw()  +
-            theme(strip.text.y = element_text(angle = 0))
+            theme(strip.text.y = element_text(angle = 0)) +
+            xlim(xLim[1], xLim[2]) + ylim(yLim[1], yLim[2])
           # Only pop up pressure and XIC plots
           if (!nm %in% c("TIC", "BPC")) { windows(22, 12); print(plot) }
           ggsave(paste0(wd, "/", ttl, ".jpeg"), plot, dpi = 100)

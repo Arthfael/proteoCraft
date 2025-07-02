@@ -1885,7 +1885,7 @@ if (length(Exp) > 1) {
       temp <- temp[w,]
       imputed <- imputed[w,]
       rwMns <- rowMeans(temp)
-      if (normType == "rowNorm") {
+      if (normType == "Norm. by row") {
         temp <- sweep(temp, 1, rwMns, "-")
       }
       if (normType == "Z-scored") {
