@@ -597,7 +597,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   tempMod3 <- parSapply(cl, tempMod2, f0)
   EV$Modifications[wMod] <- tempMod3[match(EV$`Modified sequence`[wMod], uMdSq)]
   # M/Z
-  cat("   Calculating theoretical m/z values...\n")
+  #cat("   Calculating theoretical m/z values...\n")
   parallel::clusterExport(cl, "allPTMs", envir = environment())
   f0 <- function(x) {
     x <- x[which(x != "")]

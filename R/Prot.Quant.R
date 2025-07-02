@@ -111,14 +111,14 @@ Prot.Quant <- function(Prot,
                        cl) {
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::Prot.Quant);TESTING <- TRUE; cl <- parClust
-  #Prot = PG;  Mode = "PreferUnique";Peptide.IDs = "Razor peptide IDs"; Unique.peptide.IDs = "Unique peptide IDs";Pep = pep; id = "id";Summary.method = "mean";Intensity.weights = FALSE;experiments.map = Exp.map; param = Param;Pep.Intens.root = pep.ref[length(pep.ref)];Pep.Ratios.root = pep.ratios.ref[length(pep.ratios.ref)];log.Pep.Intens = FALSE; log.Pep.Ratios = 2;Prot.LFQ.to.log = TRUE; Prot.Ratios.to.log = TRUE;Mods = Mod4Quant; Mods.to.Exclude = Mod2Xclud; Discard.unmod = Discard.unmod;Min.N = 1; N.clust = N.clust;Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1]
+  #Prot = PG; Mode = "PreferUnique";Peptide.IDs = "Razor peptide IDs"; Unique.peptide.IDs = "Unique peptide IDs";Pep = pep; id = "id";Summary.method = "mean";Intensity.weights = FALSE;experiments.map = Exp.map; param = Param;Pep.Intens.root = pep.ref[length(pep.ref)];Pep.Ratios.root = pep.ratios.ref[length(pep.ratios.ref)];log.Pep.Intens = FALSE; log.Pep.Ratios = 2;Prot.LFQ.to.log = TRUE; Prot.Ratios.to.log = TRUE;Mods = Mod4Quant; Mods.to.Exclude = Mod2Xclud; Discard.unmod = Discard.unmod;Min.N = 1; N.clust = N.clust;Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1]
   #Prot = PG; Peptide.IDs = Pep4Quant; Mode = "PreferUnique"; Pep = pep; Summary.method = "mean"; Intensity.weights = FALSE; Skip.ratios = !MakeRatios; experiments.map = Exp.map; ref.groups = RefGrp; ratio.groups = RatGrp; sample.groups = SmplGrp; Pep.Intens.root = paste0(int.col, " - "); Pep.Ratios.root = paste0(rat.cols["Original"], " - "); log.Pep.Intens = FALSE; log.Pep.Ratios = 2; Prot.LFQ.to.log = TRUE; Prot.Ratios.to.log = TRUE; Mods = Mod4Quant; Mods.to.Exclude = Mod2Xclud; Min.N = 1; N.clust = N.clust; Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1]
   if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
-  if (!is.null(Refs_AllGroups)) {
+  if ((exists("Refs_AllGroups"))&&(!is.null(Refs_AllGroups))) {
     warning("Argument \"Refs_AllGroups\" is deprecated, use argument Refs_Mode instead.")
   }
   if (misFun(Refs_Mode)) { Refs_Mode <- 2 }
@@ -270,7 +270,11 @@ Prot.Quant <- function(Prot,
     stopifnot(length(Pep.Ratios.Nms) > 0)
   }
   #
-  Pep$UnmodSeq <- gsub("^_|_$|\\([^\\)]+\\)", "", Pep[[Mod.Nms]])
+  if ("Sequence" %in% colnames(Pep)) {
+    Pep$UnmodSeq <- Pep$Sequence
+  } else {
+    Pep$UnmodSeq <- gsub("^_|_$|\\([^\\)]+\\)", "", Pep[[Mod.Nms]])
+  }
   test <- rep(TRUE, nrow(Pep))
   # Identify peptides with modifications not included in "Mods"
   if (sum(Mods != FALSE)) {
@@ -641,28 +645,28 @@ Prot.Quant <- function(Prot,
   }
   # Calculate absolute abundance values for all conditions:
   ## This uses the Levenberg-Marquardt procedure to align peptide profiles and is based on the "best flyer" hypothesis.
+  #if (TESTING) {
+    cat(" - exporting to cluster...\n")
+  #}
   Viz <- FALSE
   tmpPep <- Pep[, c(id, Summary.weights, Pep.Intens.Nms)]
   exports <- list("temp.ids", "tmpPep", "id", "Pep.Intens.Nms", "Min.N", "Max.N",
                   "Summary.method", "Summary.weights", "Viz")
   parallel::clusterExport(cl, exports, envir = environment())
-  #if (TESTING) {
-    cat(" - exporting to cluster...\n")
-  #}
   #db$`Common Name`[match(prot.list, db$`Protein ID`)]
   #match(prot.list, db$`Protein ID`)
   #proteoCraft::grsep(prot.list[2], x = Prot$`Leading protein IDs`)
   #View(ord)
   f0 <- function(ids) {
     proteoCraft::LFQ.lm(ids,
-                  InputTabl = tmpPep,
-                  id = id,
-                  IntensCol = Pep.Intens.Nms,
-                  Summary.method = Summary.method,
-                  Summary.weights = Summary.weights,
-                  Min.N = Min.N,
-                  Max.N = Max.N,
-                  Viz = Viz)
+                        InputTabl = tmpPep,
+                        id = id,
+                        IntensCol = Pep.Intens.Nms,
+                        Summary.method = Summary.method,
+                        Summary.weights = Summary.weights,
+                        Min.N = Min.N,
+                        Max.N = Max.N,
+                        Viz = Viz)
   }
   environment(f0) <- .GlobalEnv
   #if (TESTING) {

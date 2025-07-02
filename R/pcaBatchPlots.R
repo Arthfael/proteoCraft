@@ -13,6 +13,7 @@
 #' @param ttl Plot title root, default = "PCA plot - SVA batch corr."
 #' @param openMe Should we open the plotly plot? (default = FALSE)
 #' @param isRef Whether a column in dat is an IRS reference column (mixed sample).
+#' @param make_Avg In case isRef is missing, should we plot also the average of each batch? FALSE by default.
 #'
 #' @examples
 #'   scoresLst <- PCAlyLst <- PCsLst <- list()
@@ -42,8 +43,13 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
                           dir = btchDir,
                           ttl = "PCA plot - SVA batch corr.",
                           openMe = FALSE,
-                          isRef) {
+                          isRef,
+                          make_Avg = FALSE) {
   #proteoCraft::DefArg(pcaBatchPlots)
+  suppressWarnings({
+    make_Avg <- as.logical(make_Avg)
+    if (is.na(make_Avg)) { make_Avg <- FALSE }
+  })
   if (missing(map)) { stop() }
   if (nchar(intRoot)) {
     pat <- proteoCraft::topattern(intRoot)
@@ -82,31 +88,38 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
   scores0$Type <- "Individual sample"
   #scores0$Batch <- do.call(paste, c(scores0[, batches], sep = " / "))
   if (!missing(isRef)) {
+    make_Avg <- TRUE
+    refRoot <- "IntRef."
+    refType <- "Internal reference"
     wR <- which(isRef)
     if (length(wR)) {
       grps <- aggregate(colnames(dat)[wR], list(whichBatch[wR]), function(x) { list(unique(x)) })
       l <- vapply(grps$x, length, 1)
     }
   }
-  if ((missing(isRef))||(!length(wR))||(min(l) < 1)) {
+  if (make_Avg) {
+    if ((missing(isRef))||(!length(wR))||(min(l) < 1)) {
+      refRoot <- "Avg."
+      refType <- "Batch average"
       grps <- aggregate(colnames(dat), list(whichBatch), function(x) { list(unique(x)) })
+    }
+    datAv0 <- setNames(lapply(grps$x, function(x) {
+      apply(scores0[match(x, scores0$Sample), kol, drop = FALSE],
+            2, function(y) {
+              mean(proteoCraft::is.all.good(y))
+            })
+    }), grps$Group.1)
+    datAv0 <- do.call(rbind, c(datAv0))
+    datAv0 <- as.data.frame(datAv0)
+    datAv0$Batch <- grps$Group.1
+    datAv0[[batches]] <- map[match(grps$Group.1, map$myBatch), batches]
+    datAv0$Sample <- #row.names(datAv0) <-
+      paste0(refRoot, datAv0[[batches]])
+    datAv0$Corrected <- root
+    datAv0$Type <- "Batch average"
+    scores0 <- rbind(scores0,
+                     datAv0)
   }
-  datAv0 <- setNames(lapply(grps$x, function(x) {
-    apply(scores0[match(x, scores0$Sample), kol, drop = FALSE],
-          2, function(y) {
-            mean(proteoCraft::is.all.good(y))
-          })
-  }), grps$Group.1)
-  datAv0 <- do.call(rbind, c(datAv0))
-  datAv0 <- as.data.frame(datAv0)
-  datAv0$Batch <- grps$Group.1
-  datAv0[[batches]] <- map[match(grps$Group.1, map$myBatch), batches]
-  datAv0$Sample <- #row.names(datAv0) <-
-    paste0("Avg.", datAv0[[batches]])
-  datAv0$Corrected <- root
-  datAv0$Type <- "Batch average"
-  scores0 <- rbind(scores0,
-                   datAv0)
   plotlyPCA <- list()
   if ("PC2" %in% colnames(scores0)) {
     for (btch in batches) { #btch <- batches[1]
@@ -129,10 +142,10 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
       ggplot2::ggsave(paste0(dir, "/", nm1, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
       #
       if ("PC3" %in% colnames(scores1)) {
-        if (!missing(isRef)) {
+        if (make_Avg) {
           plotlyPCA1 <- plotly::plot_ly(scores1, x = ~PC1, y = ~PC2, z = ~PC3,
                                         color = ~Batch, colors = "viridis",
-                                        text = ~Sample, type = "scatter3d", mode = "markers", symbol = ~Type,
+                                        text = ~Sample, type = "scatter3d", mode = "markers", #symbol = ~Type,
                                         symbols = as.character(seq_along(unique(scores1$Type))))
         } else {
           plotlyPCA1 <- plotly::plot_ly(scores1, x = ~PC1, y = ~PC2, z = ~PC3,
@@ -142,10 +155,10 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
         plotlyPCA1 <- plotly::add_trace(plotlyPCA1, scores1, x = ~PC1, y = ~PC2, z = ~PC3,
                                         type = "scatter3d", mode = "text", showlegend = FALSE)
       } else {
-        if (!missing(isRef)) {
+        if (make_Avg) {
           plotlyPCA1 <- plotly::plot_ly(scores1, x = ~PC1, y = ~PC2,
                                         color = ~Batch, colors = "viridis",
-                                        text = ~Sample, type = "scatter", mode = "markers", symbol = ~Type,
+                                        text = ~Sample, type = "scatter", mode = "markers", #symbol = ~Type,
                                         symbols = as.character(seq_along(unique(scores1$Type))))
         } else {
           plotlyPCA1 <- plotly::plot_ly(scores1, x = ~PC1, y = ~PC2,
