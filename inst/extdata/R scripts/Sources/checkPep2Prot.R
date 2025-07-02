@@ -58,19 +58,15 @@ if (Update_Prot_matches) {
     tst <- sum(tst1 != tst2)
     if (tst) {
       msg <- paste0("Corrected ", tst, " out of ", nrow(Pep2Prot), " assignments (~", round(tst/nrow(Pep2Prot), 2), "%)!
-Prior investigations have identified 3 cases:
+Note that we did not take into account retention time or ion mobility!
+Discrepancies with the original search engine matches can have several causes:
  1) Protein present in original column but not corrected results:
    a) If redundant entries were present in the search fasta, then they would have usually been filtered by this workflow when it loads and parses the fasta database.
    b) More rarely, the accession is present in the db... but for every peptide we have checked so far the protein sequence was not compatible with it (even allowing for I/L ambiguity)!!!
- 2) Present in corrected but not original. We have multiple times verified that some search software (at least MaxQuant) miss some proteins despite a peptide being a canonical digestion product for it!
-All this supports the need to stringently check a search engine's assignments!
-Of course, in some cases (e.g. all assignments corrected) discrepancies can also be due to differences in how fasta headers are processed to extract protein accessions!
+ 2) Present in corrected but not original:
+   a) Some search engines seem to miss some protein matches (at least old versions of MaxQuant) or to report only one out of several possible protein matches (some versions of FragPipe).
+   b) In the case of I/L ambiguity, for newer search engines using modern spectrum prediction, retention time and/or ion mobility prediction models, this may be actually correct and reflect incompatibility of the latter characteristics.
 ")
-      if (SearchSoft == "FRAGPIPE") {
-        msg <- paste0(msg, " In addition, FragPipe only reports one protein per PSM for some reason...
-Hence it is to be expected that a very high percentage of assignments should be corrected there.
-")
-      }
     } else { msg <- "All assignments validated.\n" }
     ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
   }

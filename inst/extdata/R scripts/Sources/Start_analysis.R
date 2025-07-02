@@ -19,27 +19,23 @@ mySeed %<o% mySeed
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1, 1)) }
 if (!exists("writeRaws")) { writeRaws <- TRUE }
 if (!exists("writeSearch")) { writeSearch <- TRUE }
+
 ObjNm <- "ProcessedByUs"
-if ((scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
-  ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]]
-} else {
-  if (scrptType == "withReps") {
-    if (!exists(ObjNm)) { ObjNm %<c% TRUE }
-    if (!exists(ObjNm)) {
-      if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
-        ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]]
-      } else { ObjNm %<c% TRUE }
-    }
-    AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
-    tmp <- AllAnsw[1,]
-    tmp[, c("Parameter", "Message")] <- c(ObjNm, "No questions asked!")
-    tmp$Value <- list(get(ObjNm))
-    m <- match(ObjNm, AllAnsw$Parameter)
-    if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
-  } else {
-    ObjNm %<c% TRUE
-  }
+if ((!exists(ObjNm))&&(scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
+  ProcessedByUs <- AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]]
 }
+ProcessedByUs <- as.logical(ProcessedByUs)
+if (is.na(ProcessedByUs)) { ProcessedByUs <- TRUE }
+ProcessedByUs %<o% ProcessedByUs
+if (scrptType == "withReps") {
+  AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
+  tmp <- AllAnsw[1,]
+  tmp[, c("Parameter", "Message")] <- c(ObjNm, "No questions asked!")
+  tmp$Value <- list(get(ObjNm))
+  m <- match(ObjNm, AllAnsw$Parameter)
+  if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
+}
+
 N.clust %<o% N.clust
 writeRaws %<o% writeRaws
 writeSearch %<o% writeSearch
@@ -584,7 +580,7 @@ intPrtFst %<o% paste0(wd, "/Proteins of interest.fasta")
 allBckps %<o% data.frame(Full = FracMapPath,
                          File = basename(FracMapPath),
                          Role = "Map of MS files to biological samples")
-allBckps$ObjNm <- list("FracMap")
+allBckps$ObjNm <- list("FracMap_reloaded")
 if (scrptType == "withReps") {
   ExpMapNm %<o% "Experiment map"
   ExpMapPath %<o% paste0(wd, "/", ExpMapNm, ".csv")
@@ -672,6 +668,7 @@ if (nrow(allBckps)) {
             # }
           }
         }
+        rm(list = c(reloadedBckps$ObjNm[[i]])) # We want to make sure that no invalid version of the object lingers
         if (areUok) { assign(reloadedBckps$ObjNm[[i]], tmp) }
       }
     }
@@ -693,5 +690,6 @@ if ((!nrow(reloadedBckps))||(!"FASTA of proteins of special interest" %in% reloa
   }
 }
 Reuse_Prot_matches %<o% ("Matches of peptide sequences to parent proteins" %in% reloadedBckps$Role)
+ReLoadPSMsBckp %<o% ("Processed PSMs" %in% reloadedBckps$Role)
 #
 saveImgFun(BckUpFl)

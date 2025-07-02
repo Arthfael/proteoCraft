@@ -108,15 +108,15 @@ if (SearchSoft == "MAXQUANT") {
       newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
       newFlsTst <- gsub(".*/", "", newFls)
       wNA <- which(is.na(tbl$nuLoc))
-      tst <- sapply(tbl$file[wNA], function(x) {
+      tst <- vapply(tbl$file[wNA], function(x) {
         x <- newFls[which(newFlsTst == x)]
         if (length(x) > 1) {
           nc <- nchar(x)
           x <- x[which(nc == min(nc))]
         }
-        x
-      })
-      tst <- tst[which(sapply(tst, length) == 1)]
+        return(x)
+      }, "")
+      tst <- tst[which(vapply(tst, length, 1) == 1)]
       tst <- setNames(unlist(tst), names(tst))
       wY2 <- which(is.na(tbl$nuLoc)&(tbl$file %in% names(tst)))
       wN2 <- which(is.na(tbl$nuLoc)&(!tbl$file %in% names(tst)))
@@ -356,7 +356,7 @@ if (SearchSoft == "DIANN") {
     lN <- length(wN)
     tstY1 <- (lY > 0)+1 # Did we manage to locate some files automatically?
     tstY2 <- (lY > 1)+1 # ... more than 1?
-    tstN1 <- (lN > 0)+1 # Did we fail to for some?
+    tstN1 <- (lN > 0)+1 # Did we fail to locate some?
     tstN2 <- (lN > 1)+1 # ... more than 1?
     if (tstY1 == 2) {
       updtFls <- TRUE
@@ -374,15 +374,15 @@ if (SearchSoft == "DIANN") {
       newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
       newFlsTst <- gsub(".*/", "", newFls)
       wNA <- which(is.na(tbl$nuLoc))
-      tst <- sapply(tbl$file[wNA], function(x) {
-        x <- newFls[which(newFlsTst == x)]
+      tst <- vapply(tbl$file[wNA], function(x) {
+        x <- newFls[which((newFlsTst == x)|(gsub(" ", "", newFlsTst) == x))]
         if (length(x) > 1) {
           nc <- nchar(x)
           x <- x[which(nc == min(nc))]
         }
-        x
-      })
-      tst <- tst[which(sapply(tst, length) == 1)]
+        return(x)
+      }, "")
+      tst <- tst[which(vapply(tst, length, 1) == 1)]
       if (length(tst)) {
         tst <- setNames(unlist(tst), names(tst))
         wY2 <- which(is.na(tbl$nuLoc)&(tbl$file %in% names(tst)))
@@ -412,11 +412,10 @@ if (SearchSoft == "DIANN") {
       }
     }
   }
-  if (file.exists(PSMsBckp)) {
-    msg <- "Processing PSM tables can be slow.\nA backup has been found in the temporary folder, should we re-load it?"
-    ReLoadPSMsBckp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = FALSE)$res, c("yes", "no"))]
+  if ((ReLoadPSMsBckp)&&(file.exists(PSMsBckp))) {
+    loadFun(PSMsBckp)
   }
-  if (ReLoadPSMsBckp) { loadFun(PSMsBckp) } else {
+  if (!exists("ev_DIANN2MQ")) {
     source(parSrc, local = FALSE)
     ev_DIANN2MQ <- DIANN_to_MQ(PSMsFls,
                                cl = parClust)
@@ -430,7 +429,8 @@ if (SearchSoft == "DIANN") {
   if (updtFls) {
     w <- which(rawFiles != nuRawFiles)
     m <- lapply(rawFiles[w], function(fl) { which(ev$`Raw file path` == fl) })
-    wL <- which(sapply(m, length) > 0)
+    lTst <- vapply(m, length, 1)
+    wL <- which(lTst > 0)
     if (length(wL)) {
       m <- listMelt(m[wL], nuRawFiles[w[wL]])
       stopifnot(length(which(is.na(m$L1))) == 0)
@@ -457,7 +457,7 @@ if (SearchSoft == "DIANN") {
   }
   temp <- unlist(strsplit(DIANNCall, " --missed-cleavages "))
   if (length(temp) == 2) { Missed %<o% as.integer(gsub(" --.+", "", unlist(strsplit(DIANNCall, " --missed-cleavages "))[2])) } else {
-    Missed %<o% (max(sapply(strsplit(ev$Sequence, "R|K"), length))-1)
+    Missed %<o% (max(vapply(strsplit(ev$Sequence, "R|K"), length, 1))-1)
   }
 }
 if (SearchSoft == "FRAGPIPE") {
@@ -503,11 +503,10 @@ if (SearchSoft == "FRAGPIPE") {
   }
   ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_fpar(Report, fpar(ftext(\" -> FragPipe manifest file: \", prop = WrdFrmt$Body_text), fp_p = WrdFrmt$left))")
   ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_fpar(Report, fpar(ftext(paste0(\"     \", FP_ManifestFl), prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$left))")
-  if (file.exists(PSMsBckp)) {
-    msg <- "Processing PSM tables can be slow.\nA backup has been found in the temporary folder, should we re-load it?"
-    ReLoadPSMsBckp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = FALSE)$res, c("yes", "no"))]
+  if ((ReLoadPSMsBckp)&&(file.exists(PSMsBckp))) {
+    loadFun(PSMsBckp)
   }
-  if (ReLoadPSMsBckp) { loadFun(PSMsBckp) } else {
+  if (!exists("ev_FP2MQ")) {
     source(parSrc, local = FALSE)
     ev_FP2MQ <- FP_to_MQ(FP_WorkflowFl,
                          FP_ManifestFl,
@@ -590,15 +589,15 @@ if (SearchSoft == "FRAGPIPE") {
         newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
         newFlsTst <- gsub(".*/", "", newFls)
         wNA <- which(is.na(tbl$nuLoc))
-        tst <- sapply(tbl$file[wNA], function(x) {
+        tst <- vapply(tbl$file[wNA], function(x) {
           x <- newFls[which(newFlsTst == x)]
           if (length(x) > 1) {
             nc <- nchar(x)
             x <- x[which(nc == min(nc))]
           }
-          x
-        })
-        tst <- tst[which(sapply(tst, length) == 1)]
+          return(x)
+        }, "")
+        tst <- tst[which(vapply(tst, length, 1) == 1)]
         tst <- setNames(unlist(tst), names(tst))
         wY2 <- which(is.na(tbl$nuLoc)&(tbl$file %in% names(tst)))
         wN2 <- which(is.na(tbl$nuLoc)&(!tbl$file %in% names(tst)))
@@ -665,6 +664,28 @@ if (SearchSoft == "FRAGPIPE") {
 if (SearchSoft == "PROTEOMEDISCOVERER") { stop("This part has not yet been re-written for PD!") }
 stopifnot(nrow(ev) > 0)
 #
+if (exists("FracMap_reloaded")) {
+  m <- match(FracMap_reloaded$`Raw file`, FracMap$`Raw file`)
+  tst <- sum(is.na(m))
+  if (tst) {
+    m <- match(gsub(" ", "", FracMap_reloaded$`Raw file`), gsub(" ", "", FracMap$`Raw file`))
+    tst <- sum(is.na(m))
+  }
+  if (tst) {
+    m <- match(FracMap_reloaded$`Raw files name`, FracMap$`Raw files name`)
+    tst <- sum(is.na(m))
+  }
+  if (tst) {
+    m <- match(gsub(" ", "", FracMap_reloaded$`Raw files name`), gsub(" ", "", FracMap$`Raw files name`))
+    tst <- sum(is.na(m))
+  }
+  if (!tst) {
+    FracMap_reloaded[, c("Raw file", "Raw files name")] <- FracMap[m, c("Raw file", "Raw files name")]
+    FracMap <- FracMap_reloaded
+  } else {
+    rm(FracMap_reloaded)
+  }
+}
 if (!file.exists(FracMapPath)) {
   write.csv(FracMap, file = FracMapPath, row.names = FALSE)
 }

@@ -173,15 +173,13 @@ if (("Prot.Quant.Use" %in% colnames(Param))&&(!gsub(" |_|-|\\.", "", toupper(Par
 if (("Update_Prot_matches" %in% colnames(Param))&&(is.logical(Param$Update_Prot_matches))&&(!is.na(Param$Update_Prot_matches))) {
   Update_Prot_matches %<o% Param$Update_Prot_matches
 } else {
-  Update_Prot_matches %<o% TRUE
+  Update_Prot_matches %<o% (SearchSoft %in% c("MAXQUANT", "FRAGPIPE"))
   Param$Update_Prot_matches <- Update_Prot_matches
 }
-if (("Reuse_Prot_matches" %in% colnames(Param))&&(is.logical(Param$Reuse_Prot_matches))&&(!is.na(Param$Reuse_Prot_matches))) {
-  Reuse_Prot_matches %<o% Param$Reuse_Prot_matches
-} else {
-  Reuse_Prot_matches %<o% ("evmatch.RData" %in% list.files(wd))
-  Param$Reuse_Prot_matches <- Reuse_Prot_matches
-}
+# if (exists("Reuse_Prot_matches")) { Reuse_Prot_matches <- as.logical(Reuse_Prot_matches) }
+# if (is.na(Reuse_Prot_matches)) { Reuse_Prot_matches <- ("evmatch.RData" %in% list.files(wd)) }
+# Param$Reuse_Prot_matches <- Reuse_Prot_matches
+# Reuse_Prot_matches %<o% Reuse_Prot_matches
 if (("Pep.Impute" %in% colnames(Param))&&(is.logical(Param$Pep.Impute))&&(!is.na(Param$Pep.Impute))) {
   Impute %<o% as.logical(Param$Pep.Impute)
 } else {
@@ -561,6 +559,8 @@ if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
 #
 
 #
+mtchCheckMsg1 <- "Checking assignments may result in removal of some identifications."
+mtchCheckMsg2 <- "We only recommend it now where the search software used did not use modern prediction tools for retention time or ion mobility predition in the identification process."
 appNm <- paste0(dtstNm, " - Parameters")
 ui1 <- fluidPage(
   useShinyjs(),
@@ -607,11 +607,13 @@ ui1 <- fluidPage(
            checkboxInput("Impute", "Impute missing peptides-level values?", Impute, "100%")),
     column(3,
            checkboxInput("Update_Prot_matches", paste0("Update ", names(SearchSoft), "'s original protein-to-peptides assignments?"), Update_Prot_matches, "100%"),
-           bsTooltip("Update_Prot_matches",
-                     "Checking assignments may result in removal of some identifications. It is nonetheless recommended because we have observed occasional inconsistent peptides-to-protein assignments with some search software.",
-                     placement = "right", trigger = "hover", options = list(container = "body")),
-           withSpinner(uiOutput("ReloadMatches"))
-    )),
+           shinyBS::bsTooltip("Update_Prot_matches",
+                              paste0(mtchCheckMsg1, "\n", mtchCheckMsg1),
+                              placement = "right", trigger = "hover", options = list(container = "body")),
+           h5(mtchCheckMsg1),
+           h5(mtchCheckMsg2)#, withSpinner(uiOutput("ReloadMatches"))
+           )
+  ),
   br(),
   if (annotRep) {
     fluidRow(column(6,
@@ -633,22 +635,19 @@ ui1 <- fluidPage(
                                  QMdefnm,
                                  width = "100%")),
            column(2,
-                  checkboxInput("ProtRul",
-                                "Apply Proteomic Ruler to estimate copy numbers per cell? (uses signal from all histones as reference; assumes inter-nucleosomal space = 196 bp, do not use if this assumption does not hold!)",
-                                protrul,
-                                "100%"),
-                  numericInput("ProtRulNuclL",
-                               "Use inter-nucleosome length = ? (kb)",
-                               ProtRulNuclL,
-                               1,
-                               Inf,
-                               1,
-                               "100%")),
-           column(2, selectInput("Prot.Quant.Use",
-                                 "Peptides eligible for quantitation:",
-                                 c("Unique", "Razor", "All"),
-                                 dfltP4Q,
-                                 width = "100%")),
+                  selectInput("Prot.Quant.Use",
+                              "Peptides eligible for quantitation:",
+                              c("Unique", "Razor", "All"),
+                              dfltP4Q,
+                              width = "100%"),
+                  pickerInput("PTMsQuant", "Select PTM(s) eligible for use for Protein Groups quantitation:",
+                              Modifs$`Full name`#[which(Modifs$Type == "Variable")] # Keep all here, otherwise we may mistakenly exclude carbamidomethyl peptides!!!
+                              , ptmDflt1, TRUE,
+                              pickerOptions(title = "Search me",
+                                            `live-search` = TRUE,
+                                            actionsBox = TRUE,
+                                            deselectAllText = "Clear search",
+                                            showTick = TRUE))),
            column(2,
                   h5("Use only peptidoforms found in at least how many samples in..."),
                   numericInput("PepFoundInAtLeast",
@@ -659,13 +658,25 @@ ui1 <- fluidPage(
                                1,
                                mxRp,
                                1,
+                               "100%")),
+           column(2,
+                  checkboxInput("ProtRul",
+                                "Apply Proteomic Ruler to estimate copy numbers per cell? (uses signal from all histones as reference; assumes inter-nucleosomal space = 196 bp, do not use if this assumption does not hold!)",
+                                protrul,
+                                "100%"),
+                  numericInput("ProtRulNuclL",
+                               "Use inter-nucleosome length = ? (kb)",
+                               ProtRulNuclL,
+                               1,
+                               Inf,
+                               1,
                                "100%"))
   ),
   # Note to self: I am for now excluding some methods, because I need to add code to calculate some columns for those, namely ratios.
   # This should be remedied asap, especially since there include such community favourites as IQ (= MaxLFQ) and Top3!!!
   br(),
   tags$hr(style = "border-color: black;"),
-  fluidRow(column(2, radioButtons("Clustering", "Clustering method", klustChoices, klustChoices[1], TRUE, "100%"))),
+  fluidRow(column(2, radioButtons("Clustering", "Heatmaps: clustering method", klustChoices, klustChoices[1], TRUE, "100%"))),
   br(),
   tags$hr(style = "border-color: black;"),
   h4(strong("Statistical testing")),
@@ -682,7 +693,7 @@ ui1 <- fluidPage(
            h6(em(" - Welch's t-test is a modified form of Student's original version which is more robust to variance inequality.")),
            h6(em(" - Moderated t-test (//limma): re-samples individual row variances using global dataset variance to provide a more robust estimate.")),
            h6(em(" - Permutation t-test (//coin): based on permutations of the samples from each group.")),
-           h6(em(" - SAM's modified t-test (//siggenes): corrects for poor variance estimates for very reproducible data by optimizing a small constant s0 added to the denominator of the test statistic.")),
+           h6(em(" - SAM's modified t-test (//siggenes): corrects for poor variance estimates for low replicate number data by optimizing a small constant s0 added to the denominator of the test statistic.")),
            h6(em(" - LRT (Likelihood Ratio Test //edge): tests for the ratio of the likelihoods of observed data under two models (explanatory variable has an effect /vs/ no effect)")),
            h6(em(" - ODP (Optimal Discovery Procedure, Storey et al., 2007 //edge): uses all relevant information from all genes in order to test each one for differential expression; has been demonstrated to have optimal power.")),
            if (scrptTypeFull == "withReps_PG_and_PTMs") {
@@ -711,7 +722,7 @@ ui1 <- fluidPage(
   fluidRow(column(2,
                   h5(strong(" -> ANOVA (moderated F-test //limma)")),
                   checkboxInput("run_F_test", "Run?", fTstDflt, "100%"),
-                  em("(only makes sense if Nb. sample groups > 2)")),
+                  em("(only makes sense if N(sample groups) > 2)")),
            column(2,
                   uiOutput("sntXprs")),
            if (annotRep) {
@@ -726,14 +737,7 @@ ui1 <- fluidPage(
   withSpinner(uiOutput("CytoScape")),
   tags$hr(style = "border-color: black;"),
   h4(strong("Post-translational modifications (PTMs)")),
-  fluidRow(column(2, pickerInput("PTMsQuant", "Select PTM(s) eligible for use for Protein Groups quantitation:",
-                                 Modifs$`Full name`[which(Modifs$Type == "Variable")], ptmDflt1, TRUE,
-                                 pickerOptions(title = "Search me",
-                                               `live-search` = TRUE,
-                                               actionsBox = TRUE,
-                                               deselectAllText = "Clear search",
-                                               showTick = TRUE))),
-           column(2, pickerInput("PTMsStats", "Select PTM(s) (if any) for which statistical tests will be performed and subtables written:",
+  fluidRow(column(2, pickerInput("PTMsStats", "Select PTM(s) (if any) for which statistical tests will be performed and subtables written:",
                                  Modifs$`Full name`[which(Modifs$Type == "Variable")],
                                  unlist(strsplit(ptmDflt2, ";")), TRUE,
                                  pickerOptions(title = "Search me",
@@ -1147,17 +1151,17 @@ server1 <- function(input, output, session) {
   # }
   #output$F_test_grps <- updtFTstUI(reactive = FALSE)
   #
-  output$ReloadMatches <- renderUI({
-    if ("evmatch.RData" %in% list.files(wd)) {
-      msg <- "Peptide-to-protein matches backup detected in folder: do you want to reload it?\n"
-      lst <- list(list(list(br()),
-                       tags$table(
-                         tags$tr(width = "100%", tags$td(width = "55%", checkboxInput("Reuse_Prot_matches", msg, TRUE)))
-                       )))
-    } else {
-      em(" ")
-    }
-  })
+  # output$ReloadMatches <- renderUI({
+  #   if ("evmatch.RData" %in% list.files(wd)) {
+  #     msg <- "Peptide-to-protein matches backup detected in folder: do you want to reload it?\n"
+  #     lst <- list(list(list(br()),
+  #                      tags$table(
+  #                        tags$tr(width = "100%", tags$td(width = "55%", checkboxInput("Reuse_Prot_matches", msg, TRUE)))
+  #                      )))
+  #   } else {
+  #     em(" ")
+  #   }
+  # })
   #
   # Optional input files
   output$AdvOpt <- updtOptOn(FALSE)
@@ -1263,14 +1267,14 @@ server1 <- function(input, output, session) {
     Par <- PARAM()
     Par$Update_Prot_matches <- input$Update_Prot_matches
     PARAM(Par)
-    if (input$Update_Prot_matches) { shinyjs::enable("Reuse_Prot_matches") }
-    if (!input$Update_Prot_matches) { shinyjs::disable("Reuse_Prot_matches") }
+    #if (input$Update_Prot_matches) { shinyjs::enable("Reuse_Prot_matches") }
+    #if (!input$Update_Prot_matches) { shinyjs::disable("Reuse_Prot_matches") }
   })
-  observeEvent(input[["Reuse_Prot_matches"]], {
-    Par <- PARAM()
-    Par$Reuse_Prot_matches <- input$Reuse_Prot_matches
-    PARAM(Par)
-  })
+  # observeEvent(input[["Reuse_Prot_matches"]], {
+  #   Par <- PARAM()
+  #   Par$Reuse_Prot_matches <- input$Reuse_Prot_matches
+  #   PARAM(Par)
+  # })
   # Clustering method
   observeEvent(input$Clustering, {
     assign("KlustMeth", match(input$Clustering, klustChoices), envir = .GlobalEnv)

@@ -13,6 +13,11 @@ Factors2 %<o% Factors[which(!Factors %in% c("Experiment",
                                             "Time.point"))]
 #
 labelMode <- match(LabelType, c("LFQ", "Isobaric"))
+if (exists("Exp.map")) {
+  tst <- (sum(!c("MQ.Exp", "Sample name") %in% colnames(Exp.map)) == 0)&&
+    (sum(!FracMap[[expKl]] %in% Exp.map$MQ.Exp) == 0)
+  if (tst) { ExpMap <- Exp.map }
+}
 if (!exists("ExpMap")) {
   if (LabelType == "LFQ") {
     ExpMap <- data.frame("Experiment" = "?",
@@ -36,12 +41,18 @@ if (!exists("ExpMap")) {
                          check.names = FALSE)
   }
 }
+if (!"list" %in% class(ExpMap$MQ.Exp)) {
+  ExpMap$MQ.Exp <- strsplit(ExpMap$MQ.Exp, ";")
+}
 if ((LocAnalysis)&&(!"Proportion" %in% colnames(ExpMap))) { ExpMap$Proportion <- 1 }
 for (Fact in Factors2) { if (!Fact %in% colnames(ExpMap)) { ExpMap[[Fact]] <- "?" } }
 tmp <- aggregate(FracMap$Fraction, list(FracMap[[expKl]]), function(x) { paste(sort(unique(x)), collapse = ";") })
-ExpMap$Fractions <- tmp$x[match(ExpMap$MQ.Exp, tmp$Group.1)]
+tmp2 <- listMelt(ExpMap$MQ.Exp, 1:nrow(ExpMap))
+tmp2$Fractions <- tmp$x[match(tmp2$value, tmp$Group.1)]
+tmp2 <- aggregate(tmp2$Fractions, list(tmp2$L1), function(x) { paste(as.character(sort(unique(as.integer(x)))), collapse = ";") })
+ExpMap$Fractions <- tmp2$x[match(1:nrow(ExpMap), tmp2$Group.1)]
 if (LabelType == "LFQ") {
-  ExpMap$Use <- as.logical(vapply(strsplit(ExpMap$MQ.Exp, ";"), function(x) { max(FracMap$Use[match(x, FracMap[[expKl]])]) }, 1))
+  ExpMap$Use <- as.logical(vapply(ExpMap$MQ.Exp, function(x) { max(FracMap$Use[match(x, FracMap[[expKl]])]) }, 1))
 }
 tmpTbl <- ExpMap
 tst <- lapply(colnames(tmpTbl), function(x) { typeof(tmpTbl[[x]]) })
@@ -52,14 +63,14 @@ if ("try-error" %in% class(tst)) {
   dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE)
 }
-ExpMap <- ExpMap[which(vapply(strsplit(ExpMap$MQ.Exp, ";"), function(x) { sum(x %in% FracMap[[expKl]]) > 0 }, TRUE)),]
+ExpMap <- ExpMap[which(vapply(ExpMap$MQ.Exp, function(x) { sum(x %in% FracMap[[expKl]]) > 0 }, TRUE)),]
 #
 # Edit map
 ExpData <- read.csv(ExpMapPath, check.names = FALSE)
-ExpData <- ExpData[which(ExpData$MQ.Exp %in% FracMap[[expKl]]),]
+ExpData <- ExpData[which(vapply(ExpData$MQ.Exp, function(x) { sum(x %in% FracMap[[expKl]]) }, 1) > 0),]
 for (Fact in Factors[which(!Factors %in% colnames(ExpData))]) { ExpData[[Fact]] <- "?" }
 if (LabelType == "LFQ") {
-  ExpData$Use <- as.logical(vapply(strsplit(ExpData$MQ.Exp, ";"), function(x) { max(FracMap$Use[match(x, FracMap[[expKl]])]) }, 1))
+  ExpData$Use <- as.logical(vapply(ExpData$MQ.Exp, function(x) { max(FracMap$Use[match(x, FracMap[[expKl]])]) }, 1))
 }
 if (LocAnalysis) {
   if (!"Proportion" %in% colnames(ExpData)) {
@@ -96,7 +107,7 @@ dflt_Rpl <- FactorsLevels[["Replicate"]][dflt_Rpl] # Easy template
 k1 <- c("MQ.Exp", "Experiment", "Replicate")
 k2 <- colnames(ExpData)
 k2 <- k2[which(!k2 %in% c(k1, "Sample name", "Use"))]
-ExpData <- ExpData[which(ExpData$MQ.Exp %in% MQ.Exp), ]
+ExpData <- ExpData[which(vapply(ExpData$MQ.Exp, function(x) { sum(x %in% MQ.Exp) }, 1) > 0), ]
 #
 if (LabelType == "Isobaric") {
   ExpData$"Parent sample" <- do.call(paste, c(ExpData[, c("MQ.Exp", "Isobaric label details")], sep = "_"))
@@ -197,6 +208,8 @@ isoMsg <- ""
 if (LabelType == "Isobaric") {
   isoMsg <- "This is an isobarically-labelled experiment: assign value \"Mixed_IRS\", if and as relevant, where the value is available, otherwise use NA. For replicates assign an arbitrary replicate number."
 }
+#
+ExpData2$MQ.Exp <- vapply(ExpData2$MQ.Exp, paste, "", collapse = ";")
 #
 appNm <- paste0(dtstNm, " - Exp. map")
 ui <- fluidPage(
@@ -366,7 +379,9 @@ Exp.map %<o% ExpData3
 k0 <- colnames(ExpMap)
 k0 <- k0[which(!k0 %in% colnames(Exp.map))]
 if (length(k0)) {
-  Exp.map[, k0] <- Exp.map[match(Exp.map$MQ.Exp, Exp.map$MQ.Exp), k0]
+  e1 <- vapply(Exp.map$MQ.Exp, paste, "", collapse = ";")
+  e3 <- vapply(ExpData3$MQ.Exp, paste, "", collapse = ";")
+  Exp.map[, k0] <- ExpData3[match(e1, e3), k0]
 }
 Exp.map$Use <- as.logical(Exp.map$Use)
 Exp.map$Use[which(is.na(Exp.map$Use))] <- FALSE

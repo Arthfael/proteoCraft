@@ -118,6 +118,7 @@ for (k0 in kol0) { #k0 <- parKol #k0 <-  "Isobaric.set"
   ALLFDIDS <- c(ALLFDIDS, paste0(k1, "___", rws, "___FD"))
   kol <- c(kol, k1, fdNm)
 }
+kol <- grep("^MQ[ \\.]Exp", kol, value = TRUE, invert = TRUE)
 FracMap2 <- FracMap2[, kol]
 wTest1 <- sapply(colnames(FracMap2), function(k1) { #k1 <- colnames(FracMap2)[1] #k1 <- "IsobaricSet"
   if (k1 %in% names(wTest0)) {
@@ -196,7 +197,6 @@ ui <- fluidPage(
     br(),
     width = 12
   ))
-if (exists("FracMap3")) { rm(FracMap3) }
 server <- function(input, output, session) {
   # Initialize output table
   FracMap3 <- FracMap
@@ -251,8 +251,10 @@ server <- function(input, output, session) {
   })
   # Manual cell edit (sample names)
   observeEvent(input$FracTbl_cell_edit, {
-    FracMap3[input$FracTbl_cell_edit$row,
-            input$FracTbl_cell_edit$col+1] <- input$FracTbl_cell_edit$value
+    k2 <- colnames(FracTbl_cell_edit$col+1)
+    print(k2)
+    m3 <- match(k2, colnames(FracMap3))
+    FracMap3[input$FracTbl_cell_edit$row, m3] <- input$FracTbl_cell_edit$value
   })
   # Save
   observeEvent(input$saveBtn, {
@@ -294,6 +296,7 @@ if (LabelType == "LFQ") {
 }
 FracMap <- FracMap[which(FracMap$Use),]
 MQ.Exp %<o% sort(unique(FracMap$MQ.Exp))
+#
 kol <- setNames(c("Raw file", "Fraction", "PTM-enriched"), c("Raw files", "Fractions", "Type of PTM-enrichment sample"))
 if (LabelType == "Isobaric") {
   kol["Isobaric.set"] <- "Isobaric.set"
