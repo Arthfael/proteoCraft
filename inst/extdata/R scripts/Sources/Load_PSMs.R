@@ -1,5 +1,6 @@
 # Load PSMs
 QuantUMS %<o% FALSE
+LabelType %<o% "LFQ" # Default
 if (SearchSoft == "MAXQUANT") {
   ObjNm <- "mqparFile"
   if ((scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
@@ -192,8 +193,9 @@ if (SearchSoft == "MAXQUANT") {
     }
   }
   if (tmp == "NEUCODE") { stop("NeuCode SILAC-labeling is not supported by this workflow!") }
-  LabelType %<o% c("LFQ", "Isobaric", "Isobaric", "Isobaric", "Isobaric", "LFQ", "LFQ", "LFQ", "LFQ")[match(tmp,
-                                                                                    c("STANDARD", "REPORTERMS2", "REPORTERMS3", "REPORTERIONMS2", "REPORTERIONMS3", "BOXCAR", "TIMSDDA", "TIMSMAXDIA", "BOXCARMAXDIA"))]
+  m <- match(tmp,
+             c("STANDARD", "REPORTERMS2", "REPORTERMS3", "REPORTERIONMS2", "REPORTERIONMS3", "BOXCAR", "TIMSDDA", "TIMSMAXDIA", "BOXCARMAXDIA"))
+  LabelType <- c("LFQ", "Isobaric", "Isobaric", "Isobaric", "Isobaric", "LFQ", "LFQ", "LFQ", "LFQ")[m]
   if ((scrptType == "noReps")&&(LabelType != "LFQ")) { stop("Currently, this workflow only supports LFQ experiments!") }
   if (LabelType == "Isobaric") { # Currently used only with Reps
     FracMap$Isobaric.set <- c(1, "?")[(nrow(FracMap) > 1)+1]
@@ -450,7 +452,6 @@ if (SearchSoft == "DIANN") {
                           "Fraction" = 1,
                           "Use" = TRUE,
                           check.names = FALSE)
-  LabelType %<o% "LFQ"
   temp <- unlist(strsplit(DIANNCall, " --min-pep-len "))
   if (length(temp) == 2) { MinPepSz %<o% as.integer(gsub(" --.+", "", unlist(strsplit(DIANNCall, " --min-pep-len "))[2])) } else {
     MinPepSz %<o% min(nchar(ev$Sequence))
@@ -520,12 +521,12 @@ if (SearchSoft == "FRAGPIPE") {
   FP_Workflow %<o% ev_FP2MQ$WorkFlow
   if ("TMT_annotations" %in% names(ev_FP2MQ)) {
     FP_TMT_annot %<o% ev_FP2MQ$TMT_annotations
-    LabelType %<o% "Isobaric"
+    LabelType <- "Isobaric"
     IsobarLab %<o% "TMT"
     IsobarLabPrec %<o% paste0(IsobarLab, unique(FP_TMT_annot$plex), "plex")
     IsobarLab %<c% unique(FP_TMT_annot$channel_code)
     IsobarLabDet %<o% unique(FP_TMT_annot$channel)
-  } else { LabelType %<o% "LFQ" }
+  }
   rawFiles %<o% FP_Manifest$Path
   rawFilesExt <- gsub(".*\\.", "", rawFiles)
   wNtFnd <- which(!file.exists(rawFiles))
