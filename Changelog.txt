@@ -1,5 +1,7 @@
 Changelog
 #########
+Vers. 2.1.0
+ - Fixed a bug which caused Carbamidomethyl peptides to be excluded when quantifying proteins.
 
 Vers. 1.1.0
  - Complete re-writing of the peptide intensities normalisation code, to allow for complete control over the normalisation sequence.
