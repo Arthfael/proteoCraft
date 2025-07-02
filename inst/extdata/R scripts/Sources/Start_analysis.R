@@ -22,7 +22,7 @@ if (!exists("writeSearch")) { writeSearch <- TRUE }
 
 ObjNm <- "ProcessedByUs"
 if (!exists(ObjNm)) {
-  if (scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
+  if ((scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
     ProcessedByUs <- AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]]
   } else {
     ProcessedByUs <- TRUE
