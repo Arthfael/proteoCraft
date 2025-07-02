@@ -252,7 +252,6 @@ server <- function(input, output, session) {
   # Manual cell edit (sample names)
   observeEvent(input$FracTbl_cell_edit, {
     k2 <- colnames(FracTbl_cell_edit$col+1)
-    print(k2)
     m3 <- match(k2, colnames(FracMap3))
     FracMap3[input$FracTbl_cell_edit$row, m3] <- input$FracTbl_cell_edit$value
   })
