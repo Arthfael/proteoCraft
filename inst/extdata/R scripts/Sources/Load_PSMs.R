@@ -690,3 +690,6 @@ if (exists("FracMap_reloaded")) {
 if (!file.exists(FracMapPath)) {
   write.csv(FracMap, file = FracMapPath, row.names = FALSE)
 }
+if (exists("fastas_reloaded")) {
+  fastas <- unique(c(fastas, fastas_reloaded))
+}

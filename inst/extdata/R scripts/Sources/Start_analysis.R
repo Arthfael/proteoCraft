@@ -642,7 +642,7 @@ if (nrow(allBckps)) {
     reloadedBckps <- allBckps[match(bckps2Reload, allBckps$Value),]
     for (i in 1:nrow(reloadedBckps)) {
       ext <- tolower(gsub(".*\\.", "", reloadedBckps$File[i]))
-      if (ext == "fasta") { fastas <- unique(c(fastas, reloadedBckps$Full[i])) }
+      if (ext == "fasta") { fastas_reloaded <- reloadedBckps$Full[i] }
       if (ext == "rdata") { loadFun(reloadedBckps$Full[i]) }
       if (ext == "csv") {
         tmp <- read.csv(reloadedBckps$Full[i], check.names = FALSE)
