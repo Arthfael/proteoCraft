@@ -21,12 +21,15 @@ if (!exists("writeRaws")) { writeRaws <- TRUE }
 if (!exists("writeSearch")) { writeSearch <- TRUE }
 
 ObjNm <- "ProcessedByUs"
-if ((!exists(ObjNm))&&(scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
-  ProcessedByUs <- AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]]
+if (!exists(ObjNm)) {
+  if (scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
+    ProcessedByUs <- AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]]
+  } else {
+    ProcessedByUs <- TRUE
+  }
 }
-ProcessedByUs <- as.logical(ProcessedByUs)
+ProcessedByUs %<o% as.logical(ProcessedByUs)
 if (is.na(ProcessedByUs)) { ProcessedByUs <- TRUE }
-ProcessedByUs %<o% ProcessedByUs
 if (scrptType == "withReps") {
   AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
   tmp <- AllAnsw[1,]
