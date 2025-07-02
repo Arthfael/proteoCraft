@@ -3338,10 +3338,10 @@ poplot(plot)
 ggsave(paste0(wd, "/Summary plots/", ttl, ".jpeg"), plot, dpi = 150, width = 10, height = 10, units = "in")
 ggsave(paste0(wd, "/Summary plots/", ttl, ".pdf"), plot, dpi = 150, width = 10, height = 10, units = "in")
 
-#
-AA_biases %<o% AA_bias(ev, db)
-write.csv(AA_biases, file = "Amino Acid composition biases.csv", row.names = FALSE)
-View(AA_biases)
+# Test for amino acid biases:
+Src <- paste0(libPath, "/extdata/R scripts/Sources/AA_biases_test.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 Script <- readLines(ScriptPath)
 gc()
