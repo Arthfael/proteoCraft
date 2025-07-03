@@ -37,6 +37,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                        cl,
                        MQtxt = indir) {
   TESTING <- FALSE
+  tstCl <- stopCl <- misFun(cl)
   #proteoCraft::DefArg(proteoCraft::MQ.summary)
   #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = sc
   #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = max(c(20, round(length(rawFiles2)/length(Exp)))); save = c("jpeg", "pdf")
@@ -340,7 +341,6 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       if (length(we)) {
         #
         # Create cluster
-        tstCl <- stopCl <- misFun(cl)
         if (!misFun(cl)) {
           tstCl <- suppressWarnings(try({
             a <- 1

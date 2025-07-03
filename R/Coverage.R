@@ -780,7 +780,7 @@ Coverage <- function(proteins,
             return(rs)
           })
           if (length(XML_Cov) > 1) {
-            rs2 <- fmt_txt(";")
+            rs2 <- openxlsx2::fmt_txt(";")
             txt <- paste0("XML_Cov <- ", paste(sapply(1:length(XML_Cov), function(x) {
               paste0("XML_Cov[[", x, "]][[1]]")
             }), collapse = " + rs2 + "))
