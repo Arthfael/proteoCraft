@@ -1,11 +1,6 @@
 # XML coverage columns
 require(openxlsx2)
-a <- 1
-tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-if ("try-error" %in% class(tst)) { #stopCluster(parClust)
-  try(stopCluster(parClust), silent = TRUE)
-  parClust %<o% makeCluster(N.clust, type = "SOCK")
-}
+source(parSrc)
 xmlCovCol %<o% c()
 frstProt <- gsub(";.*", "", PG$"Leading protein IDs")
 tmpLs <- list()
@@ -35,8 +30,15 @@ tmpLs <- tmpLs[, c("Sequence", "PepSeq")]
 require(openxlsx2)
 #clusterExport(parClust, "Coverage", envir = environment())
 clusterCall(parClust, function() library(openxlsx2))
-res <- parApply(parClust, tmpLs[, c("Sequence", "PepSeq")], 1, function(x) {
-  proteoCraft::Coverage(x[[1]], x[[2]], "XML", colour = "#006666")
+res <- parApply(parClust, tmpLs[, c("Sequence", "PepSeq")], 1, function(x) { #x <- tmpLs[1, c("Sequence", "PepSeq")]
+  prsq <- x[[1]]
+  ppsq <- x[[2]]
+  if (!is.na(prsq)) {
+    rs <- proteoCraft::Coverage(prsq, ppsq, "XML", colour = "#006666")
+  } else {
+    rs <- list(openxlsx2::fmt_txt("", color = openxlsx2::wb_color(hex = "grey")))
+  }
+  return(rs)
 })
 res <- sapply(res, function(x) { x[[1]] })
 n <- nrow(PG)

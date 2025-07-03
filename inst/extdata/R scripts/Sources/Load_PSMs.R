@@ -682,7 +682,8 @@ if (exists("FracMap_reloaded")) {
   }
   if (!tst) {
     FracMap_reloaded[, c("Raw file", "Raw files name")] <- FracMap[m, c("Raw file", "Raw files name")]
-    FracMap <- FracMap_reloaded
+    FracMap <- FracMap_reloaded[match]
+    ev$`Raw file` <- FracMap$`Raw files name`[match(ev$`Raw file path`, FracMap$`Raw file`)]
   } else {
     rm(FracMap_reloaded)
   }
