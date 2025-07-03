@@ -3528,8 +3528,8 @@ plotsList1 <- parLapply(parClust, 1:nrow(Comb), function(i) { #i <- 1
     ggplot2::scale_y_continuous(expand = c(0, 0))
   plot1ly <- plotly::plot_ly(data = dat, x = ~X, y = ~Y, fill = ~Group, type = "scatter", mode = "markers")
   plot1ly <- plotly::layout(plot1ly,
-                            xaxis = list(range = list(0, 5)),
-                            yaxis = list(range = list(0, 5)),
+                            xaxis = list(range = list(0, 5), title = X),
+                            yaxis = list(range = list(0, 5), title = Y),
                             showlegend = FALSE)
   #proteoCraft::poplot(plot1, 12, 20)
   Img1 <- paste0(pvalDir, "/", gsub(":", " - ", ttl1))
