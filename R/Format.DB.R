@@ -39,9 +39,8 @@ Format.DB <- function(file,
                       N.reserved = 1,
                       cl) {
   TESTING <- FALSE
-  #TESTING <- TRUE
-  #proteoCraft::DefArg(proteoCraft::Format.DB)
-  
+  #TESTING <- TRUE;proteoCraft::DefArg(proteoCraft::Format.DB)
+  #file = unlist(fastasTbl$Data[[i]]); in.env = TRUE; mode = fastasTbl$Type[i]; parallel = TRUE; cl = parClust
   if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
@@ -139,8 +138,9 @@ Format.DB <- function(file,
   headRs <- grep("^>", DB)
   lH <- length(headRs)
   if (parallel) {
-    RG <- round(length(DB)*(1:N.clust)/N.clust)
-    RG[1:(N.clust-1)] <- sapply(RG[1:(N.clust-1)], function(x) {
+    n <- min(c(length(headRs), N.clust))
+    RG <- unique(round(length(DB)*(1:n)/n))
+    RG[1:(n-1)] <- sapply(RG[1:(n-1)], function(x) {
       max(headRs[which(headRs < x)+1])-1
     })
     batChes <- setNames(lapply(1:length(RG), function(x) {
