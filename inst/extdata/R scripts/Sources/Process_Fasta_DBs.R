@@ -394,7 +394,7 @@ if (taxTst) {
   })
 }
 source(parSrc, local = FALSE)
-dbs <- lapply(whFnd, function(i) { #i <- whFnd[1]
+dbs <- lapply(whFnd, function(i) { #i <- whFnd[1] #i <- whFnd[2]
   tmp <- Format.DB(unlist(fastasTbl$Data[[i]]), in.env = TRUE, mode = fastasTbl$Type[i], parallel = TRUE, cl = parClust)
   tmp$Source <- fastasTbl$Type[i]
   tmp$"Potential contaminant" <- c("", "+")[fastasTbl$Contaminant[i]+1]

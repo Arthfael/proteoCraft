@@ -168,9 +168,8 @@ for (ii in 1:2) {
     })
     return(RES)
   })
-  tmp <- set_colnames(do.call(cbind, tmp),
-                      paste0(c(StudentRoot, WelchRoot)[ii],
-                             expContr$name))
+  tmp <- as.data.frame(do.call(cbind, tmp))
+  colnames(tmp) <- paste0(c(StudentRoot, WelchRoot)[ii], expContr$name)
   myData[, colnames(tmp)] <- tmp
 }
 #
