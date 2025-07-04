@@ -1,7 +1,7 @@
 Package: proteoCraft
 Title: Functions and scripts for Proteomics Data Analysis
-Version: 2.1.0
-Date: 2025-07-02
+Version: 2.1.1
+Date: 2025-07-04
 Authors@R: 
     person("Armel", "Developer", , "armel.nicolas@ista.ac.at", role = c("aut", "cre"))
 Author: Armel Nicolas [aut, cre]
@@ -30,8 +30,10 @@ Imports:
     grid,
     gtools,
     htmlwidgets,
+    httr,
     imputeLCMD,
     isobar,
+    jsonlite,
     magrittr,
     MASS,
     minpack.lm,
@@ -46,11 +48,11 @@ Imports:
     Peptides,
     plotly,
     plyr,
-    qs,
     qs2,
     rawrr,
     reshape,
     reshape2,
+    rols,
     rpanel,
     RSQLite,
     rstudioapi,
@@ -59,7 +61,6 @@ Imports:
     shinyWidgets,
     stringi,
     svDialogs,
-    tictoc,
     topGO,
     unimod,
     UniProt.ws,
