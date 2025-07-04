@@ -104,10 +104,10 @@ if (("try-error" %in% class(tst))||(!file.exists(tst))) {
   rawrr::installRawrrExe()
 }
 
-# Fast save and load functions
-Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+# # Fast save and load functions
+# Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
+# #rstudioapi::documentOpen(Src)
+# source(Src, local = FALSE)
 
 # Load backup?
 load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Do you want to load a backup?", "yesno")$res, c("yes", "no"))]
