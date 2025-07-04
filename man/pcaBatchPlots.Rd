@@ -14,7 +14,8 @@ pcaBatchPlots(
   dir = btchDir,
   ttl = "PCA plot - SVA batch corr.",
   openMe = FALSE,
-  isRef
+  isRef,
+  make_Avg = FALSE
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ pcaBatchPlots(
 \item{openMe}{Should we open the plotly plot? (default = FALSE)}
 
 \item{isRef}{Whether a column in dat is an IRS reference column (mixed sample).}
+
+\item{make_Avg}{In case isRef is missing, should we plot also the average of each batch? FALSE by default.}
 }
 \description{
 A function to make PCA (ggplot and plotly) plots for the purpose of monitoring the effects of batch corrections.
