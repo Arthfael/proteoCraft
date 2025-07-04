@@ -106,6 +106,13 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
+# Load backup?
+load_a_Bckp %<o% c(TRUE, FALSE)[match(dlg_message("Do you want to load a backup?", "yesno")$res, c("yes", "no"))]
+if (load_a_Bckp) {
+  tmp <- openxlsx2::read_xlsx(paste0(homePath, "/Default_locations.xlsx"))
+  load_Bckp(startDir = tmp$Path[which(tmp$Folder == "Temporary folder")])
+}
+
 # Set Shiny options, load functions for creating a Word report, create Excel styles
 Src <- paste0(libPath, "/extdata/R scripts/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)

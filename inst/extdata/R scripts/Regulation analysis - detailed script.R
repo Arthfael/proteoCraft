@@ -130,6 +130,13 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
+# Load backup?
+load_a_Bckp %<o% c(TRUE, FALSE)[match(dlg_message("Do you want to load a backup?", "yesno")$res, c("yes", "no"))]
+if (load_a_Bckp) {
+  tmp <- openxlsx2::read_xlsx(paste0(homePath, "/Default_locations.xlsx"))
+  load_Bckp(startDir = tmp$Path[which(tmp$Folder == "Temporary folder")])
+}
+
 # Set Shiny options, load functions for creating a Word report, create Excel styles
 Src <- paste0(libPath, "/extdata/R scripts/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
@@ -9569,10 +9576,11 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
     filtersDF <- rbind(filtersDF, filtersDF)
     filtersDF$GraphType <- GraphTypes[2]
     filtersDF$GraphType[1:nr] <- GraphTypes[1]
+    nr <- nr*2
     txidsTst <- (length(unique(filtersDF$TaxID)) > 1)+1
     source(parSrc, local = FALSE)
     clusterExport(parClust, c("wd", "filtersDF", "allProteins_mapped", "tmpPG", "GraphTypes", "Exp", "txidsTst"), envir = environment())
-    tstSTRINGs <- parLapply(parClust, 1:nrow(filtersDF), function(i) { #i <- 1 #i <- 4 #i <- 10 #i <- 11
+    tstSTRINGs <- parLapply(parClust, 1:nr, function(i) { #i <- 1 #i <- 4 #i <- 10 #i <- 11
       fltNm <- proteoCraft::cleanNms(filtersDF$Name[i], rep = "_")
       regTbl <- filtersDF$Reg[[i]]
       grphType <- filtersDF$GraphType[i]
@@ -9665,7 +9673,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
                   Bin = img_I,
                   STRINGplot = imgpath))
     })
-    STRINGplots %<o% setNames(lapply(GraphTypes, function(grphType) {
+    STRINGplots %<o% setNames(lapply(GraphTypes, function(grphType) { #grphType <- GraphTypes[1] #grphType <- GraphTypes[2]
       w <- which(filtersDF$GraphType == grphType)
       sapply(w, function(x) { tstSTRINGs[[x]]$STRINGplot })
     }), GraphTypes)
@@ -9716,126 +9724,131 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
     #
     # Cytoscape
     if (CytoScape) {
-      #if (clueGOahead) {
-      #  rqst <- paste0(clueGO_URL, "/remove-all-cluego-analysis-results")
-      #  try({
-      #    response <- httr::DELETE(rqst, httr::timeout(10), encode = "json")
-      #    if (httr::http_status(response)$category != "Success") { Sys.sleep(2) }
-      #  }, silent = TRUE)
-      #  clueGOahead <- FALSE
-      #}
-      ### Check that Cytoscape is installed and can run, then launch it.
-      Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
-      #rstudioapi::documentOpen(Src)
-      source(Src, local = FALSE)
-      #
-      # Create directory for Cytoscape networks
-      dirs <- paste0(wd, "/Cytoscape/", GraphTypes)
-      for (dir in dirs) { if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) } }
-      dirlist <- unique(c(dirlist, dir))
-      #
-      # Use Cytoscape to represent networks of gated proteins with overlayed logFC
-      msg <- "Creating Cytoscape network .cx files..."
-      ReportCalls <- AddMsg2Report()
-      cat("Creating Cytoscape networks...\n")
-      for (grphType in GraphTypes) { #grphType <- GraphTypes[1]
-        cat(" ->", grphType, "\n")
-        for (Nm in names(intNets[[grphType]])) { #Nm <- names(intNets[[grphType]])[1]
-          cat("   -", Nm, "\n")
-          intNet <- intNets[[grphType]][[Nm]]$Network
-          mappings <- intNets[[grphType]][[Nm]]$Mapping
-          # Legacy code for if doing by protein, not protein groups
-          #mappings$name <- vapply(match(mappings$queryItem, db$"Protein ID"), function(m) {
-          #  paste(c(paste0("Nm: ", db$"Common Name"[m]),
-          #          paste0("Pr: ", db$"Protein ID"[m]),
-          #          paste0("Gn: ", db$Gene[m])), collapse = "\n")
-          #}, "")
-          #if (!grepl("^SAINTexpress_", Nm)) {
-          mappings$name <- vapply(match(mappings$queryItem, db$`Protein ID`), function(m) {
-            x <- c(paste0("Nm: ", db$`Common Name`[m]),
-                   paste0("Pr: ", db$`Protein ID`[m]),
-                   paste0("Gn: ", db$Gene[m]))
-            if ("TAIR" %in% colnames(mappings)) { x <- c(paste0("TAIR: ", db$TAIR[m], " "), x) }
-            return(paste(x, collapse = "\n"))
-          }, "")
-          #  mappings$PG <- allSAINTs$PG_id[match(mappings$queryItem, allSAINTs$Protein)]
-          #} else {
-          #   mappings$name <- vapply(match(mappings$PG, PG$id), function(m) {
-          #     pr <- unlist(strsplit(PG$"Leading protein IDs"[m], ";"))
-          #     if (length(pr) > 1) { pr <- c(pr[1], "...") }
-          #     gn <- unlist(strsplit(PG$Genes[m], ";"))
-          #     if (length(gn) > 1) { gn <- c(gn[1], "...") }
-          #     x <- c(paste0("Nm: ", PG$"Common Name (short)"[m]),
-          #            paste0("Pr: ", paste(pr, collapse = ";")),
-          #            paste0("Gn: ", paste(gn, collapse = ";")))
-          #     if ("TAIR" %in% colnames(mappings)) { x <- c(paste0("TAIR: ", PG$TAIR[m], " "), x) }
-          #     return(paste(x, collapse = "\n"))
-          #   }, "") 
-          #   mappings$PG <- allSAINTs$PG_id[match(mappings$queryItem, allSAINTs$Protein)]
-          # }
-          mappings$"Av. log10 expression" <- PG$"Av. log10 abundance"[match(mappings$PG, PG$id)]
-          #if (!grepl("^SAINTexpress_", Nm)) {
-          # intNet$Linkage <- do.call(paste, c(intNet[, paste0("PG_", c("A", "B"))], sep = "_"))
-          # intNet <- Isapply(strsplit(unique(intNet$Linkage), "_"), unlist)
-          # colnames(intNet) <- paste0("PG_", c("A", "B"))
-          # for (ab in c("A", "B")) { #ab <- "A"
-          #   intNet[[paste0("Name_", ab)]] <- mappings$name[match(intNet[[paste0("PG_", ab)]], mappings$PG)]
-          # }
-          #} else {
-          intNet$Name_A <- mappings$name[match(intNet$Name_A, mappings$Name)]
-          intNet$Name_B <- mappings$name[match(intNet$Name_B, mappings$Name)]
-          #}
-          kol <- c("Name_A", "Name_B")
-          gD <- igraph::simplify(igraph::graph_from_data_frame(intNet[, kol], directed = FALSE))
-          seq <- igraph::V(gD)
-          logFC <- mappings$logFC[match(names(seq), mappings$name)]
-          w <- which(is.na(logFC))
-          logFC[w] <- 0
-          gD <- igraph::set_vertex_attr(gD, "logFC", igraph::V(gD), logFC)
-          Xprss <- mappings$"Av. log10 expression"[match(names(seq), mappings$name)]
-          gD <- igraph::set_vertex_attr(gD, "Avg_expression", igraph::V(gD), Xprss)
-          #igraph::vcount(gD)
-          #igraph::ecount(gD)
-          degAll <- igraph::degree(gD, v = igraph::V(gD), mode = "all")
-          betAll <- igraph::betweenness(gD, v = igraph::V(gD), directed = FALSE) / (((igraph::vcount(gD) - 1) * (igraph::vcount(gD)-2)) / 2)
-          betAll.norm <- (betAll - min(betAll))/(max(betAll) - min(betAll))
-          rm(betAll)
-          dsAll <- igraph::similarity(gD, vids = igraph::V(gD), mode = "all", method = "dice")
-          gD <- igraph::set_vertex_attr(gD, "degree", index = igraph::V(gD), value = degAll)
-          gD <- igraph::set_vertex_attr(gD, "betweenness", index = igraph::V(gD), value = betAll.norm)
-          #summary(gD)
-          F1 <- function(x) {
-            data.frame(V4 = dsAll[which(igraph::V(gD)$name == as.character(x$V1)),
-                                  which(igraph::V(gD)$name == as.character(x$V2))])
+      wL <- which(vapply(GraphTypes, function(grphType) { length(intNets[[grphType]]) }, 1) > 0)
+      if (length(wL)) {
+        #if (clueGOahead) {
+        #  rqst <- paste0(clueGO_URL, "/remove-all-cluego-analysis-results")
+        #  try({
+        #    response <- httr::DELETE(rqst, httr::timeout(10), encode = "json")
+        #    if (httr::http_status(response)$category != "Success") { Sys.sleep(2) }
+        #  }, silent = TRUE)
+        #  clueGOahead <- FALSE
+        #}
+        ### Check that Cytoscape is installed and can run, then launch it.
+        Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
+        #rstudioapi::documentOpen(Src)
+        source(Src, local = FALSE)
+        #
+        # Create directory for Cytoscape networks
+        dirs <- paste0(wd, "/Cytoscape/", GraphTypes)
+        for (dir in dirs) { if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) } }
+        dirlist <- unique(c(dirlist, dir))
+        #
+        # Use Cytoscape to represent networks of gated proteins with overlayed logFC
+        msg <- "Creating Cytoscape network .cx files..."
+        ReportCalls <- AddMsg2Report()
+        cat("Creating Cytoscape networks...\n")
+        for (grphType in GraphTypes[wL]) { #grphType <- GraphTypes[wL][1]
+          cat(" ->", grphType, "\n")
+          for (Nm in names(intNets[[grphType]])) { #Nm <- names(intNets[[grphType]])[1]
+            cat("   -", Nm, "\n")
+            intNet <- intNets[[grphType]][[Nm]]$Network
+            mappings <- intNets[[grphType]][[Nm]]$Mapping
+            # Legacy code for if doing by protein, not protein groups
+            #mappings$name <- vapply(match(mappings$queryItem, db$"Protein ID"), function(m) {
+            #  paste(c(paste0("Nm: ", db$"Common Name"[m]),
+            #          paste0("Pr: ", db$"Protein ID"[m]),
+            #          paste0("Gn: ", db$Gene[m])), collapse = "\n")
+            #}, "")
+            #if (!grepl("^SAINTexpress_", Nm)) {
+            mappings$name <- vapply(match(mappings$queryItem, db$`Protein ID`), function(m) {
+              x <- c(paste0("Nm: ", db$`Common Name`[m]),
+                     paste0("Pr: ", db$`Protein ID`[m]),
+                     paste0("Gn: ", db$Gene[m]))
+              if ("TAIR" %in% colnames(mappings)) { x <- c(paste0("TAIR: ", db$TAIR[m], " "), x) }
+              return(paste(x, collapse = "\n"))
+            }, "")
+            #  mappings$PG <- allSAINTs$PG_id[match(mappings$queryItem, allSAINTs$Protein)]
+            #} else {
+            #   mappings$name <- vapply(match(mappings$PG, PG$id), function(m) {
+            #     pr <- unlist(strsplit(PG$"Leading protein IDs"[m], ";"))
+            #     if (length(pr) > 1) { pr <- c(pr[1], "...") }
+            #     gn <- unlist(strsplit(PG$Genes[m], ";"))
+            #     if (length(gn) > 1) { gn <- c(gn[1], "...") }
+            #     x <- c(paste0("Nm: ", PG$"Common Name (short)"[m]),
+            #            paste0("Pr: ", paste(pr, collapse = ";")),
+            #            paste0("Gn: ", paste(gn, collapse = ";")))
+            #     if ("TAIR" %in% colnames(mappings)) { x <- c(paste0("TAIR: ", PG$TAIR[m], " "), x) }
+            #     return(paste(x, collapse = "\n"))
+            #   }, "") 
+            #   mappings$PG <- allSAINTs$PG_id[match(mappings$queryItem, allSAINTs$Protein)]
+            # }
+            mappings$"Av. log10 expression" <- PG$"Av. log10 abundance"[match(mappings$PG, PG$id)]
+            #if (!grepl("^SAINTexpress_", Nm)) {
+            # intNet$Linkage <- do.call(paste, c(intNet[, paste0("PG_", c("A", "B"))], sep = "_"))
+            # intNet <- Isapply(strsplit(unique(intNet$Linkage), "_"), unlist)
+            # colnames(intNet) <- paste0("PG_", c("A", "B"))
+            # for (ab in c("A", "B")) { #ab <- "A"
+            #   intNet[[paste0("Name_", ab)]] <- mappings$name[match(intNet[[paste0("PG_", ab)]], mappings$PG)]
+            # }
+            #} else {
+            intNet$Name_A <- mappings$name[match(intNet$Name_A, mappings$Name)]
+            intNet$Name_B <- mappings$name[match(intNet$Name_B, mappings$Name)]
+            #}
+            kol <- c("Name_A", "Name_B")
+            gD <- igraph::simplify(igraph::graph_from_data_frame(intNet[, kol], directed = FALSE))
+            seq <- igraph::V(gD)
+            logFC <- mappings$logFC[match(names(seq), mappings$name)]
+            w <- which(is.na(logFC))
+            logFC[w] <- 0
+            gD <- igraph::set_vertex_attr(gD, "logFC", igraph::V(gD), logFC)
+            Xprss <- mappings$"Av. log10 expression"[match(names(seq), mappings$name)]
+            gD <- igraph::set_vertex_attr(gD, "Avg_expression", igraph::V(gD), Xprss)
+            #igraph::vcount(gD)
+            #igraph::ecount(gD)
+            degAll <- igraph::degree(gD, v = igraph::V(gD), mode = "all")
+            betAll <- igraph::betweenness(gD, v = igraph::V(gD), directed = FALSE) / (((igraph::vcount(gD) - 1) * (igraph::vcount(gD)-2)) / 2)
+            betAll.norm <- (betAll - min(betAll))/(max(betAll) - min(betAll))
+            rm(betAll)
+            dsAll <- igraph::similarity(gD, vids = igraph::V(gD), mode = "all", method = "dice")
+            gD <- igraph::set_vertex_attr(gD, "degree", index = igraph::V(gD), value = degAll)
+            gD <- igraph::set_vertex_attr(gD, "betweenness", index = igraph::V(gD), value = betAll.norm)
+            #summary(gD)
+            F1 <- function(x) {
+              data.frame(V4 = dsAll[which(igraph::V(gD)$name == as.character(x$V1)),
+                                    which(igraph::V(gD)$name == as.character(x$V2))])
+            }
+            dataSet.ext <- plyr::ddply(intNet[, kol], .variables = kol, function(x) data.frame(F1(x)))
+            gD <- igraph::set_edge_attr(gD, "weight", index = igraph::E(gD), value = 0)
+            gD <- igraph::set_edge_attr(gD, "similarity", index = igraph::E(gD), value = 0)
+            for (i in 1:nrow(dataSet.ext)) {
+              igraph::E(gD)[as.character(dataSet.ext$V1) %--% as.character(dataSet.ext$V2)]$weight <- as.numeric(dataSet.ext$V3)
+              igraph::E(gD)[as.character(dataSet.ext$V1) %--% as.character(dataSet.ext$V2)]$similarity <- as.numeric(dataSet.ext$V4)
+            }
+            rm(dsAll, i, F1)
+            #summary(gD)
+            tst <- RCy3::createNetworkFromIgraph(gD, new.title = Nm)
+            RCy3::layoutNetwork("force-directed defaultSpringLength=70 defaultSpringCoefficient=0.000003")
+            rg <- max(abs(logFC))
+            try(RCy3::setNodeColorMapping("logFC", c(-rg, 0, rg),
+                                          c("#FF0000", "#999999", "#00FF00"), style.name = "default"), silent = TRUE)
+            RCy3::setNodeShapeDefault("ellipse", style.name = "default")
+            RCy3::setNodeFontSizeDefault(12, style.name = "default")
+            RCy3::setNodeSizeMapping("Avg_expression", style.name = "default")
+            RCy3::exportNetwork(paste0(wd, "/Cytoscape/", grphType, "/", Nm, "_", tolower(grphType), " network"), "CX")
+            RCy3::deleteAllNetworks()
           }
-          dataSet.ext <- plyr::ddply(intNet[, kol], .variables = kol, function(x) data.frame(F1(x)))
-          gD <- igraph::set_edge_attr(gD, "weight", index = igraph::E(gD), value = 0)
-          gD <- igraph::set_edge_attr(gD, "similarity", index = igraph::E(gD), value = 0)
-          for (i in 1:nrow(dataSet.ext)) {
-            igraph::E(gD)[as.character(dataSet.ext$V1) %--% as.character(dataSet.ext$V2)]$weight <- as.numeric(dataSet.ext$V3)
-            igraph::E(gD)[as.character(dataSet.ext$V1) %--% as.character(dataSet.ext$V2)]$similarity <- as.numeric(dataSet.ext$V4)
-          }
-          rm(dsAll, i, F1)
-          #summary(gD)
-          tst <- RCy3::createNetworkFromIgraph(gD, new.title = Nm)
-          RCy3::layoutNetwork("force-directed defaultSpringLength=70 defaultSpringCoefficient=0.000003")
-          rg <- max(abs(logFC))
-          try(RCy3::setNodeColorMapping("logFC", c(-rg, 0, rg),
-                                        c("#FF0000", "#999999", "#00FF00"), style.name = "default"), silent = TRUE)
-          RCy3::setNodeShapeDefault("ellipse", style.name = "default")
-          RCy3::setNodeFontSizeDefault(12, style.name = "default")
-          RCy3::setNodeSizeMapping("Avg_expression", style.name = "default")
-          RCy3::exportNetwork(paste0(wd, "/Cytoscape/", grphType, "/", Nm, "_", tolower(grphType), " network"), "CX")
-          RCy3::deleteAllNetworks()
         }
+        # Then close Cytoscape:
+        try({
+          RCy3::closeSession(save.before.closing = FALSE)
+          cmd <- paste0("taskkill/im \"", gsub(".+/", "", CytoScExe), "\" /f")
+          #cat(cmd)
+          shell(cmd)
+        }, silent = TRUE)
       }
     }
   }
-  # Then close Cytoscape:
-  RCy3::closeSession(save.before.closing = FALSE)
-  cmd <- paste0("taskkill/im \"", gsub(".+/", "", CytoScExe), "\" /f")
-  #cat(cmd)
-  shell(cmd)
 }
 
 #### Code chunk - For pull-downs: create table summarizing types of evidence for all proteins of interest
