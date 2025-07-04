@@ -20,7 +20,9 @@ load_Bckp <- function(backup,
                       clean = TRUE,
                       loadPack = TRUE) {
   #proteoCraft::DefArg(proteoCraft::load_Bckp)
+  # Cleanup workspace here
   if (clean) { rm(list = ls(), envir = .GlobalEnv) }
+  #
   TESTING <- FALSE
   #TESTING <- TRUE
   if (TESTING) {
@@ -28,14 +30,14 @@ load_Bckp <- function(backup,
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
-  # Cleanup workspace here
+  #
+  homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
   #
   if (misFun(backup)) {
     if (misFun(startDir)) {
       if ((exists("wd"))&&("character" %in% class(wd))&&(dir.exists(wd))) {
         defltdir <- wd
       } else {
-        homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
         dlft <- openxlsx::read.xlsx(paste0(homePath, "/Default_locations.xlsx"))
         defltdir <- dlft$Path[match("Temporary folder", dlft$Folder)]
       }
@@ -45,34 +47,13 @@ load_Bckp <- function(backup,
     bckp <- backup
   }
   bckpDeerayktoray <- dirname(bckp)
+  #
   #bckp <- "~/R/proteoCraft/AN_GNRGFL1_5637917142/Backup.RData"
   # Now, I have recently switched to a different, faster way of saving backups using parallelization.
   # The bit below is meant to allow some form of backwards compatibility with older backups.
   tst <- "Didnae work, matey!"
   inst <- as.data.frame(installed.packages())
-  allCores <- parallel::detectCores()
-  maxCores <- max(c(round(allCores*0.95)-1, 1)) # New slightly more conservative default
-  if (.Platform$OS.type == "windows") {
-    if (!"qs2" %in% inst$Package) {
-      install.packages("qs2")
-    }
-    inst <- as.data.frame(installed.packages())
-    if ("qs2" %in% inst$Package) {
-      tst <- try(qs2::qs_readm(bckp, env = globalenv(),
-                               nthreads = maxCores), silent = TRUE)
-    }
-    if (("try-error" %in% class(tst))&&("qs" %in% inst$Package)) {
-      tst <- try(qs::qreadm(bckp, env = globalenv(),
-                            nthreads = maxCores), silent = TRUE)
-    }
-  }
-  if ((.Platform$OS.type == "unix")&&(require(fastSave))) {
-    tst <- try(save.lbzip2(bckp, envir = globalenv()), silent = TRUE)
-  }
-  if ("try-error" %in% class(tst)) {
-    warning("This seems to be an old backup, defaulting to base R load...")
-    tst <- try(load(bckp, envir = globalenv()), silent = TRUE)
-  }
+  tst <- try(loadFun(bckp), silent = TRUE)
   if (("try-error" %in% class(tst))||(("character" %in% class(tst))&&(length(tst) == 1)&&(tst == "Didnae work, matey!"))) {
     stop("Backup re-loading failed!")
   }
@@ -99,6 +80,8 @@ load_Bckp <- function(backup,
     tmp <- paste0('package:', tmp)
     try(invisible(lapply(tmp, detach, character.only = TRUE, unload = TRUE)), silent = TRUE)
   }
+  allCores <- parallel::detectCores()
+  maxCores <- max(c(round(allCores*0.95)-1, 1)) # New slightly more conservative default
   if (loadPack) {
     if (exists("cran_req")) {
       for (pack in cran_req) { library(pack, character.only = TRUE) }
