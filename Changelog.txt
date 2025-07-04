@@ -1,5 +1,9 @@
 Changelog
 #########
+
+Vers. 2.1.1
+ - Improved resilience of qs2-based fast load/save functions to objects containing connections. Move the from sources to /R.
+
 Vers. 2.1.0
  - Fixed a bug which caused Carbamidomethyl peptides to be excluded when quantifying proteins.
 
@@ -579,7 +583,7 @@ Vers. 2.0.0.0
 
 Vers. 1.7.1.18
  - Rewriting of Prot.Ruler for increased clarity + dealing with protein groups with hybrid taxonomy. Now each organism gets its own columns (which makes more sense anyway).
- - Small update to Prot.Quant to allow it to calculate expression values only (no ratios). Also corrects issue with one sample, where the vector would be returned rotated 90°.
+ - Small update to Prot.Quant to allow it to calculate expression values only (no ratios). Also corrects issue with one sample, where the vector would be returned rotated 90Â°.
  - Fixed a minor issue with grsep2.
  - Fixed a minor issue with F_test.
 
