@@ -666,24 +666,33 @@ if (SearchSoft == "PROTEOMEDISCOVERER") { stop("This part has not yet been re-wr
 stopifnot(nrow(ev) > 0)
 #
 if (exists("FracMap_reloaded")) {
-  m <- match(FracMap_reloaded$`Raw file`, FracMap$`Raw file`)
+  m <- match(FracMap$`Raw file`, FracMap_reloaded$`Raw file`)
   tst <- sum(is.na(m))
+  gs <- FALSE
   if (tst) {
-    m <- match(gsub(" ", "", FracMap_reloaded$`Raw file`), gsub(" ", "", FracMap$`Raw file`))
+    m <- match(gsub(" ", "", FracMap$`Raw file`), gsub(" ", "", FracMap_reloaded$`Raw file`))
     tst <- sum(is.na(m))
+    gs <- TRUE
   }
   if (tst) {
-    m <- match(FracMap_reloaded$`Raw files name`, FracMap$`Raw files name`)
+    m <- match(FracMap$`Raw files name`, FracMap_reloaded$`Raw files name`)
     tst <- sum(is.na(m))
+    gs <- FALSE
   }
   if (tst) {
-    m <- match(gsub(" ", "", FracMap_reloaded$`Raw files name`), gsub(" ", "", FracMap$`Raw files name`))
+    m <- match(gsub(" ", "", FracMap$`Raw files name`), gsub(" ", "", FracMap_reloaded$`Raw files name`))
     tst <- sum(is.na(m))
+    gs <- TRUE
   }
   if (!tst) {
-    FracMap_reloaded[, c("Raw file", "Raw files name")] <- FracMap[m, c("Raw file", "Raw files name")]
-    FracMap <- FracMap_reloaded[match]
-    ev$`Raw file` <- FracMap$`Raw files name`[match(ev$`Raw file path`, FracMap$`Raw file`)]
+    k <- c("Raw file", "Raw files name")
+    FracMap[, k] <- FracMap_reloaded[m, k]
+    if (gs) {
+      mEv <- match(gsub(" ", "", ev$`Raw file path`), gsub(" ", "", FracMap$`Raw file`))
+    } else {
+      mEv <- match(ev$`Raw file path`, FracMap$`Raw file`)
+    }
+    ev$`Raw file` <- FracMap$`Raw files name`[mEv]
   } else {
     rm(FracMap_reloaded)
   }

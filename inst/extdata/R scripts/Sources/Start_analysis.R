@@ -87,7 +87,7 @@ if (!RunByMaster) {
                            "No replicates")[match(scrptType, c("withReps", "noReps"))])
   WorkFlows %<o% eval(parse(text = gsub("^###-\\|-### *Workflows: *", "", grep("^###-\\|-### *Workflows: *", readLines(scrptPaths), value = TRUE))),
                       envir = .GlobalEnv)
-  if (!exists("WorkFlow")) {
+  if ((!exists("WorkFlow"))||(is.null(WorkFlow))) {
     WorkFlow <- WorkFlows[1]
   } else {
     #if (scrptType == "withReps") { # Commented because this should apply to both, if incorrect change to if (scrptType == "noReps") {

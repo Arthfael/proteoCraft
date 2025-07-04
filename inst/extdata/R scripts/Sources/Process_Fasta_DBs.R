@@ -277,39 +277,38 @@ ui <- fluidPage(
   actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
   DTOutput("Fastas")
 )
+# Dummy table for display in app
+fastasTbl2 <- data.frame("Name" = fastasTbl$Name,
+                         "File found?" = c("-", "+")[fastasTbl$Exists+1],
+                         "Species" = fastasTbl$Species,
+                         "Type" = fastasTbl$Type,
+                         "Contaminants-only" = fastasTbl$Contaminant,
+                         check.names = FALSE)
+fastasTbl2$"Contaminants-only"[which(is.na(fastasTbl2$"Contaminants-only"))] <- FALSE # Doesn't hurts
+fastasTbl2$Type <- shinySelectInput(fastasTbl$Type,
+                                    "Type",
+                                    optSrc,
+                                    paste0(30*max(c(nchar(optSrc), 2)), "px"))
+fastasTbl2$"Contaminants-only" <- shinyCheckInput(fastasTbl2$"Contaminants-only",
+                                                  "ContOnly")
+fastasTbl2$Species <- shinySelectInput(fastasTbl$Species,
+                                       "Species",
+                                       optSpc,
+                                       paste0(30*max(c(nchar(optSpc), 2)), "px"))
+fastasTbl2$"Contaminants regex" <- fastasTbl$"Contaminants regex"
+fastasTbl2$"Reverse regex" <- fastasTbl$"Reverse regex"
+NmWdth <- paste0(as.character(min(c(80, max(nchar(fastasTbl2$Name))))*10), "px")
+wTest <- list(list(width = NmWdth, targets = 0),
+              list(width = "100px", targets = 1:6))
+edith <- list(target = "column",
+              enable = list(columns = grep(" regex$", colnames(fastasTbl2))-1))
+tmp <- c(0:(ncol(fastasTbl2)-1))
+tmp <- tmp[which(!tmp %in% edith$enable$columns)]
+edith$disable <- list(columns = tmp)
 if (exists("fastasTbl3")) { rm(fastasTbl3) }
 server <- function(input, output, session) {
   # Output
   fastasTbl3 <- fastasTbl
-  # Dummy
-  fastasTbl2 <- data.frame("Name" = fastasTbl$Name,
-                           "File found?" = c("-", "+")[fastasTbl$Exists+1],
-                           "Species" = fastasTbl$Species,
-                           "Type" = fastasTbl$Type,
-                           "Contaminants-only" = fastasTbl$Contaminant,
-                           check.names = FALSE)
-  fastasTbl2$"Contaminants-only"[which(is.na(fastasTbl2$"Contaminants-only"))] <- FALSE # Doesn't hurts
-  fastasTbl2$Type <- shinySelectInput(fastasTbl$Type,
-                                      "Type",
-                                      optSrc,
-                                      paste0(30*max(c(nchar(optSrc), 2)), "px"))
-  fastasTbl2$"Contaminants-only" <- shinyCheckInput(fastasTbl2$"Contaminants-only",
-                                                    "ContOnly")
-  fastasTbl2$Species <- shinySelectInput(fastasTbl$Species,
-                                         "Species",
-                                         optSpc,
-                                         paste0(30*max(c(nchar(optSpc), 2)), "px"))
-  fastasTbl2$"Contaminants regex" <- fastasTbl$"Contaminants regex"
-  fastasTbl2$"Reverse regex" <- fastasTbl$"Reverse regex"
-  NmWdth <- paste0(as.character(min(c(80, max(nchar(fastasTbl2$Name))))*10), "px")
-  wTest <- list(list(width = NmWdth, targets = 0),
-                list(width = "100px", targets = 1:6))
-  edith <- list(target = "column",
-                enable = list(columns = grep(" regex$", colnames(fastasTbl2))-1))
-  tmp <- c(0:(ncol(fastasTbl2)-1))
-  tmp <- tmp[which(!tmp %in% edith$enable$columns)]
-  edith$disable <- list(columns = tmp)
-  edith <<- edith
   output$Fastas <- renderDT({ fastasTbl2 },
                             FALSE,
                             escape = FALSE,
@@ -341,7 +340,7 @@ server <- function(input, output, session) {
     fastasTbl3$Contaminant <- vapply(rws, function(x) { input[[paste0("ContOnly___", as.character(x))]] }, TRUE)
     fastasTbl3$Type <- vapply(rws, function(x) { input[[paste0("Type___", as.character(x))]] }, "a")
     fastasTbl3$Species <- vapply(rws, function(x) { input[[paste0("Species___", as.character(x))]] }, "a")
-    assign("fastasTbl3", fastasTbl, envir = .GlobalEnv)
+    assign("fastasTbl3", fastasTbl3, envir = .GlobalEnv)
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
