@@ -53,7 +53,10 @@ if ("PTM.analysis" %in% colnames(Param)) {
       PTMs_GO_enrich.tbl %<o% list()
       PTMs_GO_Plots %<o% list()
       PTMs_Reg_GO_terms %<o% list()
-      #
+      # Initialize Cytoscape
+      Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
+      #rstudioapi::documentOpen(Src)
+      source(Src, local = FALSE)
       # Initialize ClueGO
       Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_init.R")
       #rstudioapi::documentOpen(Src)
@@ -928,9 +931,9 @@ if ("PTM.analysis" %in% colnames(Param)) {
                   if (bee == "Whole dataset") { flt <- list("Whole dataset" = flt) }
                   tstbee <- paste0(tstrt, "_", tolower(bee))
                   if (length(flt)) {
-                    if (tt == 1) { temp <- ptmpep }
-                    if (tt == 2) { temp <- PTMs_F_test_data[[Ptm]] }
-                    for (kol in Kol) { temp[, kol] <- ptmpep[, kol] }
+                    if (tt == 1) { tmpdat <- ptmpep }
+                    if (tt == 2) { tmpdat <- PTMs_F_test_data[[Ptm]] }
+                    for (kol in Kol) { tmpdat[, kol] <- ptmpep[, kol] }
                     flt <- flt[order(names(flt))]
                     reg <- setNames(lapply(flt, function(x) { list(x$Columns) }), names(flt))
                     reg <- set_colnames(reshape2::melt(reg), c("Name", "Bleh", "For"))
@@ -943,7 +946,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
                                                                         c(ptms.ratios.ref[length(ptms.ratios.ref)], "log2(Ratio) - ")[tt]))
                     reg$ParentFC <- gsub(".*Regulated - ", PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]], reg$Name)
                     reg$FCname <- paste0(PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]], reg$For)
-                    for (kol in Kol) { tmpdat[, kol] <- ptmpep[, kol] }
+                    tmpdat[, Kol] <- ptmpep[, Kol]
                     #tmpdat <- get(c("ptmpep", "PTMs_F_test_data[[Ptm]]", "ptmpep", "PTMs_allSAINTs")[tt]) # PTMs_allSAINTs doesn't exist
                     UF <- unique(reg$For)
                     temPTM <- as.data.frame(sapply(UF, function(x) { #x <- UF[1]
@@ -954,7 +957,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
                       return(x)
                     }))
                     colnames(temPTM) <- paste0(PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]], UF)
-                    for (kol in Kol) { temPTM[, kol] <- ptmpep[, kol] }
+                    temPTM[, Kol] <- ptmpep[, Kol]
                     #temPTM$"First protein" <- sapply(strsplit(temPTM[[myIDcol]], ";"), function(x) { unlist(x)[1] })
                     if (scrptTypeFull == "withReps_PG_and_PTMs") {
                       temp <- listMelt(strsplit(temPTM$`Protein group IDs`, ";"), temPTM$id)
