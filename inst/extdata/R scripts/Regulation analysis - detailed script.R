@@ -7355,6 +7355,13 @@ saveImgFun(BckUpFl)
 source(parSrc, local = FALSE)
 
 #### Code chunk - Modified peptides analysis
+# Initialize Cytoscape - rerun this if you restarted from a backup and are getting
+#Error in curl::curl_fetch_memory(url, handle = handle) : 
+#  Could not connect to server [localhost]:
+#  Failed to connect to localhost port...
+#Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
+#rstudioapi::documentOpen(Src)
+#source(Src, local = FALSE)
 modPepSrc <- paste0(libPath, "/extdata/R scripts/Sources/modPeptides.R")
 #rstudioapi::documentOpen(modPepSrc)
 source(modPepSrc, local = FALSE)
