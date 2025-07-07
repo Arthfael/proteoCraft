@@ -242,8 +242,8 @@ Configure <- function(updateOntologies = FALSE) {
       write.csv(dis, paste0(homePath, "/Diseases.csv"), row.names = FALSE)
     })
   }
-  # - PRIDE
-  if ((!file.exists(paste0(homePath, "/PRIDE.csv")))||(!file.exists(paste0(homePath, "/MS_acq_meth.csv")))||(updateOntologies)) {
+  # - PRIDE and quant methods
+  if ((!file.exists(paste0(homePath, "/PRIDE.csv")))||(!file.exists(paste0(homePath, "/MS_Quant_meth.csv")))||(updateOntologies)) {
     parallel::clusterCall(tmpCl, function() {
       # Get Disease root terms from OLS4
       pride_terms <- get_all_terms("PRIDE", size = 1000)
@@ -261,9 +261,9 @@ Configure <- function(updateOntologies = FALSE) {
         dat <- jsonlite::fromJSON(httr::content(res, "text"), flatten = TRUE)
         dat$`_embedded`$terms
       }
-      acqMeth <- list()
+      quantMeth <- list()
       k <- 0L
-      parent <- pride_terms[which(pride_terms$label == "Proteomics data acquisition method"),]
+      parent <- pride_terms[which(pride_terms$label %in% c("Proteomics data acquisition method", "Quantification method")),]
       repeat {
         if (!"_links.children.href" %in% colnames(parent)) {
           # first loop, dealing with the modified output of get_all_terms()
@@ -275,22 +275,23 @@ Configure <- function(updateOntologies = FALSE) {
           children_url <- parent$"_links.children.href"
         }
         childr <- lapply(children_url, function(url) { get_term_children(url) })
-        childr <- do.call(rbind, childr)
+        childr <- do.call(plyr::rbind.fill, childr)
         childr[, c("label", "obo_id")]
+        childr <- childr[grep("[Gg]el-based", childr$label, invert = TRUE),]
         if (!nrow(childr)) break
         k <- k + 1L
         wN <- which(!childr$has_children)
         wY <- which(childr$has_children)
-        acqMeth[[k]] <- childr[, c("label", "iri")]
+        quantMeth[[k]] <- childr[, c("label", "iri")]
         if (!length(wY)) break
         parent <- childr[wY,]
       }
-      acqMeth <- do.call(rbind, acqMeth)
+      quantMeth <- do.call(plyr::rbind.fill, quantMeth)
       if ((!file.exists(paste0(homePath, "/PRIDE.csv")))||(updateOntologies)) {
         write.csv(pride, paste0(homePath, "/PRIDE.csv"), row.names = FALSE)
       }
-      if ((!file.exists(paste0(homePath, "/MS_acq_meth.csv")))||(updateOntologies)) {
-        write.csv(acqMeth, paste0(homePath, "/MS_acq_meth.csv"), row.names = FALSE)
+      if ((!file.exists(paste0(homePath, "/MS_Quant_meth.csv")))||(updateOntologies)) {
+        write.csv(quantMeth, paste0(homePath, "/MS_Quant_meth.csv"), row.names = FALSE)
       }
     })
   }
@@ -304,22 +305,24 @@ Configure <- function(updateOntologies = FALSE) {
       vendorsLab <- lapply(vendors@x, function(x) {
         x@label
       })
-      vendorsInstr <- lapply(1:length(vendorsLab), function(x) { #x <- 2 #x <- 5
+      vendorsInstr <- lapply(1:length(vendorsLab), function(x) { #x <- 2 #x <- 5 #x <- 7 #x <- 10
         trm <- rols::Term(ol, names(vendorsLab)[[x]])
         models <- rols::children(trm)
         if (!is.null(models)) {
           rs <- vapply(models@x, function(y) { y@label }, "")
-          rs2 <- lapply(1:length(rs), function(y) { #y <- g[1]
+          rs2 <- setNames(lapply(1:length(rs), function(y) { #y <- g[1]
             try({
               trm2 <- rols::Term(ol, names(rs)[y])
               mods <- rols::children(trm2)
               mods <- vapply(mods@x, function(z) { z@label }, "")
             }, silent = TRUE)
-          })
+          }), names(rs))
           w <- which(vapply(rs2, function(x) { "try-error" %in% class(x) }, TRUE))
-          if (length(w)) { rs2[w] <- rs[w] }
+          if (length(w)) { rs2[names(rs)[w]] <- rs[names(rs)[w]] }
           rs <- unlist(rs2)
+          names(rs) <- gsub("^MS:[0-9]+\\.", "", names(rs))
           rs <- rs[grep("^MS:[0-9]+$", names(rs))]
+          rs <- sort(rs)
           if (length(rs)) {
             rs <- data.frame(Vendor = gsub(" instrument model$", "", vendorsLab[[x]]),
                              Instrument = rs)
