@@ -182,7 +182,7 @@ load_Bckp <- function(backup,
             cat(paste0("\n   FYI, the last object listed in .obj is \"", names(tst)[1], "\".\n"))
             #system(paste0("open \"", ScriptPath, "\""))
             if (rs >= max(scrpt$row[g0])) {
-              cat("\n   Backup analysis suggests that this backup had reached the end of the analysis, so there should be nothing more to run...\nBut maybe you want to re-runs some parts without starting from scratch?\n")
+              cat("\n   Backup analysis suggests that this backup had reached the end of the analysis, so there should be nothing more to run...\nBut maybe you want to re-run some parts without starting from scratch?\n")
               cat("   (opening script...)\n")
               rstudioapi::documentOpen(ScriptPath)
             } else {

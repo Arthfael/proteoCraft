@@ -37,7 +37,6 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                        cl,
                        MQtxt = indir) {
   TESTING <- FALSE
-  tstCl <- stopCl <- misFun(cl)
   #proteoCraft::DefArg(proteoCraft::MQ.summary)
   #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = sc
   #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = max(c(20, round(length(rawFiles2)/length(Exp)))); save = c("jpeg", "pdf")
@@ -47,6 +46,8 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
+  #
+  tstCl <- stopCl <- misFun(cl)
   if ((is.null(MQtxt))||(!dir.exists(MQtxt))) { MQtxt <- getwd() }
   wd0 <- getwd()
   if (misFun(wd)) { WD <- wd0 } else { WD <- wd }
