@@ -640,7 +640,7 @@ if (nrow(allBckps)) {
   bckps2Reload %<o% dlg_list(allBckps$Value, allBckps$Value, TRUE, title = "Backups detected: which should we reload?")$res
   if (length(bckps2Reload)) {
     reloadedBckps <- allBckps[match(bckps2Reload, allBckps$Value),]
-    for (i in 1:nrow(reloadedBckps)) {
+    for (i in 1:nrow(reloadedBckps)) { #i <- 1
       ext <- tolower(gsub(".*\\.", "", reloadedBckps$File[i]))
       if (ext == "fasta") { fastas_reloaded <- reloadedBckps$Full[i] }
       if (ext == "rdata") { loadFun(reloadedBckps$Full[i]) }

@@ -685,7 +685,7 @@ if (exists("FracMap_reloaded")) {
     gs <- TRUE
   }
   if (!tst) {
-    k <- c("Raw file", "Raw files name")
+    k <- c("Raw file", "Raw files name", "Parent sample", "Use")
     FracMap[, k] <- FracMap_reloaded[m, k]
     if (gs) {
       mEv <- match(gsub(" ", "", ev$`Raw file path`), gsub(" ", "", FracMap$`Raw file`))

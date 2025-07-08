@@ -18,6 +18,11 @@ if (exists("Exp.map")) {
     (sum(!FracMap[[expKl]] %in% Exp.map$MQ.Exp) == 0)
   if (tst) { ExpMap <- Exp.map }
 }
+if (exists("ExpMap")) {
+  tst <- (sum(!c("MQ.Exp", "Sample name") %in% colnames(ExpMap)) == 0)&&
+    (sum(!FracMap[[expKl]] %in% ExpMap$MQ.Exp) == 0)
+  if (!tst) { rm(ExpMap) }
+}
 if (!exists("ExpMap")) {
   if (LabelType == "LFQ") {
     ExpMap <- data.frame("Experiment" = "?",

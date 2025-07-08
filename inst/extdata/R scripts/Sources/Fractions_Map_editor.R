@@ -9,6 +9,7 @@ labelMode <- match(LabelType, c("LFQ", "Isobaric"))
 # - If LabelType == "LFQ", a priori "Parent sample" == MQ.Exp, but this can be changed!
 # - If LabelType == "Isobaric", at this stage each raw file maps to a single MQ.Exp but normally to several "Parent sample" values!
 #   Thus, in that case we use MQ.Exp as the basis here and do not have a "Parent sample" column!!!
+#
 if ((LabelType == "LFQ")&&(!"Parent sample" %in% colnames(FracMap))&&("MQ.Exp" %in% colnames(FracMap))) {
   FracMap$"Parent sample" <- FracMap$MQ.Exp
 }
