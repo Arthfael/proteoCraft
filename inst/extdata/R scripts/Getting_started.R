@@ -18,5 +18,5 @@ pak::pkg_install("Arthfael/proteoCraft", upgrade = TRUE, ask = FALSE)
 library(proteoCraft)
 
 # It is always a good idea to configure the package before a fresh installation,
-# or even after any update: this will move the latest analysis workflows to your temporary analysis folder
+# or even after any update: this will move a copy of the latest analysis workflows to your temporary analysis folder
 proteoCraft::Configure()
