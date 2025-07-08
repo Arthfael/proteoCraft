@@ -106,7 +106,7 @@ Configure <- function(updateOntologies = FALSE) {
                "Regulation analysis - detailed script",
                "Regulation analysis - detailed script_pepOnly",
                "No replicates analysis - detailed script",
-               "Reload_renv_from_lock_file.R")
+               "Reload_renv_from_lock_file")
   extDr1 <- paste0(proteoPath, "/extdata/R scripts")
   fls <- paste0(extDr1, "/", scrpts2, ".R")
   for (fl in fls) {
