@@ -32,6 +32,7 @@
 #' @import data.table
 #' @export
 
+cat("Protein groups inference step:\nAssembling peptides into the minimum number of protein groups required to explained the data...\n")
 Peptide.IDs <- "id"
 Proteins.col <- "Proteins"
 Evidence.IDs <- "Evidence IDs"
@@ -774,7 +775,7 @@ pg$"Unique peptides" <- vapply(pg$.unique.pep.ids, length, 1)
 # (Here, "peptide is razor" means unique OR razor.)
 # In cases of ties, we will go for lowest PEP.
 # Note that these ties would mean that some few protein groups which do get reported may not have any razor peptides.
-cat(" - Applying Occam's razor.\n")
+cat(" - Applying Occam's razor,\ni.e. assigning \"razor\" status to shared peptides for the parent group with the highest overall peptides count,\nwith protein priority (if available) and PEP as tie-breakers (in that order).")
 seq$.Protein.group.IDs <- strsplit(seq$"Protein group IDs", ";")
 ## Note here: the code below allows for multiple razor PGs.
 # This can happen if all have the same priority, number of peptides and PEPs (can happen with NA PEP values).
