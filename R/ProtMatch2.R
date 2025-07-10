@@ -37,11 +37,10 @@ ProtMatch2 <- function(Seq,
                        N.reserved = 1,
                        cl) {
   TESTING <- FALSE
-  #proteoCraft::DefArg(proteoCraft::ProtMatch2);cl <- parClust
+  #proteoCraft::DefArg(proteoCraft::ProtMatch2);cl <- parClust; TESTING <- TRUE
   #Seq = unique(ev$Sequence);DB = db
   #Seq = unique(pep$Sequence);DB = db
   #w <- 1:nrow(ev); Seq = unique(ev$Sequence[w]); DB = db
-  #TESTING <- TRUE
   if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
@@ -117,10 +116,10 @@ ProtMatch2 <- function(Seq,
     return(0)
   }
   environment(f0) <- .GlobalEnv
-  tst <- parallel::parLapply(cl, 1:N.clust, f0)
+  tst <- parallel::clusterCall(cl, f0)
   #f0 <- function(x) { exists("Dig") & exists("frstPepNoMeth") }
   #environment(f0) <- .GlobalEnv
-  #tst <- parallel::parLapply(cl, 1:N.clust, f0)
+  #tst <- parallel::clusterCall(cl, f0)
   f0 <- function(x) {
     seq <- Dig[[Nms[x]]]
     pos <- 1:length(seq)
@@ -226,7 +225,7 @@ ProtMatch2 <- function(Seq,
       fragRg <- 1:i
       Seq2flt_i <- Seq2flt[which(Seq2flt$L == i),] # = peptides with i-1 missed cleavages
       n_i <- nrow(Seq2flt_i) # = how many we have
-      cat(paste0(" -> Processing ", n_i, " peptides with ", i-1, " missed cleavage", c("", "s")[(i-1) > 1], "...\n"))
+      cat(paste0(" -> Processing ", n_i, " peptides with ", i-1, " missed cleavage", c("", "s")[((i-1) > 1)+1], "...\n"))
       allFr_i <- unique(unlist(Seq2flt_i$myDigest)) # = all their fragments
       w_i <- which(Frag2Prot$Seq %in% allFr_i) # = i-filter for our frag-2-prot table
       Frag2Prot_i <- Frag2Prot[w_i,]
@@ -237,7 +236,7 @@ ProtMatch2 <- function(Seq,
       saveRDS(Frag2Prot_i, paste0(myWD, "/tmpB.RDS"))
       saveRDS(Dig2_i, paste0(myWD, "/tmpC.RDS"))
       clusterExport(cl, list("i", "rg", "myWD", "fragRg"), envir = environment())
-      tmpResI <- parallel::parLapply(cl, 1:N.clust, f0Mtch)
+      tmpResI <- parallel::clusterCall(cl, f0Mtch)
       Res[[paste0(i, "-missed cleavages")]] <- do.call(rbind, tmpResI)
       unlink(paste0(myWD, "/tmpA.RDS"))
       unlink(paste0(myWD, "/tmpB.RDS"))
