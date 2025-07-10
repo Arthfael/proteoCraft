@@ -1,7 +1,8 @@
 # Use browser or RStudio for Shiny apps?
 screenRes %<o% rpanel::rp.screenresolution()
 shinyOpts %<o% c("RStudio", "System default browser")
-shinyOpt %<o% svDialogs::dlg_list(shinyOpts, title = "Open Shiny apps in...")$res
+#shinyOpt %<o% svDialogs::dlg_list(shinyOpts, title = "Open Shiny apps in...")$res
+shinyOpt %<o% "RStudio"
 if (shinyOpt == shinyOpts[1]) {
   #runApp %<o% "print(shiny::shinyApp(ui, server, options = list(height = screenRes$height, width = screenRes$width)))"
   runApp %<o% c("myApp <- shiny::shinyApp(ui, server, options = list(height = screenRes$height, width = \"100%\"))",

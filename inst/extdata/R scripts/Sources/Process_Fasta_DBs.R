@@ -297,7 +297,7 @@ fastasTbl2$Species <- shinySelectInput(fastasTbl$Species,
                                        paste0(30*max(c(nchar(optSpc), 2)), "px"))
 fastasTbl2$"Contaminants regex" <- fastasTbl$"Contaminants regex"
 fastasTbl2$"Reverse regex" <- fastasTbl$"Reverse regex"
-NmWdth <- paste0(as.character(min(c(80, max(nchar(fastasTbl2$Name))))*10), "px")
+NmWdth <- paste0(as.character(min(c(80, max(nchar(fastasTbl2$Name))))*8), "px")
 wTest <- list(list(width = NmWdth, targets = 0),
               list(width = "100px", targets = 1:6))
 edith <- list(target = "column",

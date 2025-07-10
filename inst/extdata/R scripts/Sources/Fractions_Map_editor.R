@@ -74,8 +74,10 @@ if (lu == nr) {
 }
 # Original table width
 wTest0 <- setNames(sapply(colnames(FracMap2a), function(k) { #k <- colnames(FracMap2a)[1]
-  x <- max(c(nchar(k),
-             nchar(as.character(FracMap2a[[k]])) + 3), na.rm = TRUE)
+  tmp <- FracMap2a[[k]]
+  if ("logical" %in% class(tmp)) { tmp <- as.integer(tmp) }
+  tmp <- as.character(tmp)
+  x <- max(nchar(c(k, tmp)) + 3, na.rm = TRUE)
   if (k == "PTMenriched") { x <- max(c(x, nchar(allPTMs) + 3), na.rm = TRUE) }
   x <- x*10
   if (is.na(x)) { x <- 15 } else { x <- max(c(ceiling(x/10)*10, 30)) }

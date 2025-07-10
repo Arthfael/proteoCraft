@@ -65,10 +65,10 @@ if (CytoScape) {
     opt <- setNames(sapply(optNms, function(x) { paste(c(x, rep(" ", 250-nchar(x))), collapse = "") }), optNms)
     tmp <- dlg_list(opt, opt[dlNew], title = msg)$res
     tmp <- optNms[match(tmp, opt)]
-    clueGOahead <- tmp == dlNew
+    clueGOahead <- tmp != dlNew
   }
   if (!clueGOahead) {
-    msg <- paste0("Download the new organism in ClueGO from within the CytoScape GUI then click \"ok\" to continue.")
+    msg <- paste0("Download the new organism in ClueGO from within the CytoScape GUI\n(click on the leftmost blue paw icon)\nthen click \"ok\" to continue.")
     dlg_message(msg, "ok")
     rqst <- paste0(clueGO_URL, "/organisms/get-all-organism-info")
     response <- httr::GET(rqst, encode = "json")

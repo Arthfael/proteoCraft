@@ -9,8 +9,10 @@ Include <- Exp.map[, c(fctrs, "Use")]
 Include$Use <- shinyCheckInput(Exp.map$Use)
 # Table width
 wTest0 <- setNames(sapply(colnames(Exp.map), function(k) { #k <- colnames(Exp.map)[1]
-  x <- max(c(nchar(k),
-             nchar(as.character(Exp.map[[k]])) + 3), na.rm = TRUE)
+  tmp <- Exp.map[[k]]
+  if ("logical" %in% class(tmp)) { tmp <- as.integer(tmp) }
+  tmp <- as.character(tmp)
+  x <- max(nchar(c(k, tmp)) + 3, na.rm = TRUE)
   x <- x*10
   return(x)
 }), colnames(Include))

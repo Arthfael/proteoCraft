@@ -2,19 +2,23 @@
 # This includes a QC step in case the database differs slightly from the one used by MQ, or if somehow some IDs have not been properly parsed.
 GO.col %<o% c("GO", "GO-ID")
 ObjNm <- "Annotate"
-if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
+if ((scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
+  ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]]
+} else {
   tmp <- "Parsed functional annotations" %in% reloadedBckps$Role
   if (!tmp) {
     msg <- "Can you provide functional annotations? (required for GO analysis)"
     tmp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
   }
   ObjNm %<c% tmp
-  AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
-  tmp <- AllAnsw[1,]
-  tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
-  tmp$Value <- list(get(ObjNm))
-  m <- match(ObjNm, AllAnsw$Parameter)
-  if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
+  if (scrptType == "withReps") {
+    AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
+    tmp <- AllAnsw[1,]
+    tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
+    tmp$Value <- list(get(ObjNm))
+    m <- match(ObjNm, AllAnsw$Parameter)
+    if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
+  }
 }
 if (Annotate) {
   if (!exists("Parsed_annotations")) {

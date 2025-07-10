@@ -36,12 +36,18 @@ sheetnmsA <- names(xlTabs)
 sheetnmsB <- sheetnmsA[which(!sheetnmsA %in% c("Description", "Quality control"))]
 cat(paste0("   Building ", tblMode2, " tab...\n"))
 if (tblMode == "pep") {
-  datCol <- ColumnsTbl$Col[unique(which(ColumnsTbl$Class %in% c(intNms(names(intRf), TRUE, "pep"),
-                                                                ratNms(names(ratRf), TRUE))))]
+  nms <- intNms(names(intRf), TRUE, "pep")
+  if (MakeRatios) {
+    nms <- c(nms, ratNms(names(ratRf), TRUE))
+  }
+  datCol <- ColumnsTbl$Col[unique(which(ColumnsTbl$Class %in% nms))]
 }
 if (tblMode == "PG") {
-  datCol <- ColumnsTbl$Col[unique(c(which(ColumnsTbl$Class %in% c(intNms(names(intColsTbl), TRUE),
-                                                                  ratNms(names(ratColsTbl), TRUE))),
+  nms <- intNms(names(intColsTbl), TRUE)
+  if (MakeRatios) {
+    nms <- c(nms, ratNms(names(ratColsTbl), TRUE))
+  }
+  datCol <- ColumnsTbl$Col[unique(c(which(ColumnsTbl$Class %in% nms),
                                     grep("est\\. copies/cell", ColumnsTbl$Class)))]
 }
 if (tblMode == "SAINTexpress") {

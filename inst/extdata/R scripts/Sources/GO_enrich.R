@@ -506,13 +506,13 @@ if ("Potential contaminant" %in% colnames(pahruhnt)) {
 mapFilters <- setNames(lapply(filters, function(x) {
   names(Mappings)[which(names(Mappings) %in% unique(unlist(strsplit(pahruhnt[unlist(x), pahrkol], ";"))))]
 }), names(filters))
-#sapply(filters, length)
-#sapply(mapFilters, length)
+#vapply(filters, length, 1)
+#vapply(mapFilters, length, 1)
 ref.mapFilters <- setNames(lapply(ref.filters, function(x) {
   names(Mappings)[which(names(Mappings) %in% unique(unlist(strsplit(pahruhnt[unlist(x), pahrkol], ";"))))]
 }), names(ref.filters))
-#sapply(ref.filters, length)
-#sapply(ref.mapFilters, length)
+#vapply(ref.filters, length, 1)
+#vapply(ref.mapFilters, length, 1)
 #
 GO_plots <- GO_FDR_thresholds <- GO_plot_ly <- list()
 kount <- 0
@@ -577,22 +577,23 @@ if (length(wFltL)) {
       cat(paste0(" - ", ont, " terms\n"))
       try(topGO::getSigGroups(GOdata[[ont]], FishTst), silent = TRUE)
     }), Ont)
-    Wh1 <- suppressWarnings(which(sapply(resultFisher, function(x) { !"try-error" %in% class(x) })))
+    Wh1 <- suppressWarnings(which(vapply(resultFisher, function(x) { !"try-error" %in% class(x) }, TRUE)))
     if (!length(Wh1)) {
       msg <- "Analysis failed, investigate!"
       if (Mode == "regulated") { paste0("Filter ", n2, ": ", msg) }
       warning(msg)
       return(list(Outcome = FALSE, Message = msg))
     } else {
-      Wh2 <- which(sapply(Ont[Wh1], function(ont) {
+      Wh2 <- which(vapply(Ont[Wh1], function(ont) {
         resultFisher[[ont]]@geneData[["Significant"]] > 0
-      }))
+      }, TRUE))
       Wh1 <- Wh1[Wh2]
       if (!length(Wh1)) {
         msg <- "0 significant GO Terms, skipping!"
         if (Mode == "regulated") { paste0("Filter ", n2, ": ", msg) }
         warning(msg)
-        return(list(Outcome = FALSE, Message = msg))
+        res <- list(Outcome = FALSE,
+                    Message = msg)
       } else {
         #cat(" -> Success...\n")
         if (length(Wh1) < length(Ont)) {
@@ -629,8 +630,8 @@ if (length(wFltL)) {
           res$genkol1 <- genkol1
           res$genkol2 <- genkol2
         }
-        return(res)
       }
+      return(res)
     }
   }
   #environment(Fisher0) <- .GlobalEnv # Only needed if code run as function!
@@ -642,9 +643,8 @@ if (length(wFltL)) {
   if ("try-error" %in% class(tst)) {
     GO_tbls <- setNames(lapply(names(mapFilters), Fisher0), names(mapFilters))
   }
-  #sapply(GO_tbls, function(x) { x$Outcome })
-  GO_tbls <- GO_tbls[which(sapply(GO_tbls, function(x) { x$Outcome }))]
-  cat("     Processing results...\n")
+  #vapply(GO_tbls, function(x) { x$Outcome }, TRUE)
+  GO_tbls <- GO_tbls[which(vapply(GO_tbls, function(x) { x$Outcome }, TRUE))]
   if (length(GO_tbls)) {
     # Define filter functions
     f0 <- function(x, filt) {
@@ -691,11 +691,11 @@ if (length(wFltL)) {
           tmpGO.terms$Term[wo] <- annotate::getGOTerm(tmpGO.terms$ID[wo])[[ont]]
         }
       }
-      tmpGO.terms <- tmpGO.terms[which(sapply(tmpGO.terms$Offspring, length) > 0),]
+      tmpGO.terms <- tmpGO.terms[which(vapply(tmpGO.terms$Offspring, length, 1) > 0),]
       tmpGO.terms$Term <- apply(tmpGO.terms[, c("Term","ID")], 1, function(x) { paste0(unlist(x[[1]]), " [", x[[2]], "]") })
       tmpGO.terms$"Protein table row(s)" <- NA
       #sum(!tmpGO.terms$ID %in% unlist(GO.terms$Offspring)) # Those new terms are all OffSpring terms of existing ones!
-      #w <- which(sapply(GO.terms$Offspring, length) > 0)
+      #w <- which(vapply(GO.terms$Offspring, length, 1) > 0)
       tmp1 <- proteoCraft::listMelt(GO.terms$Offspring, 1:nrow(GO.terms), c("ID", "Row")) # Here I can use only Offspring, the IDs in tmpGO.terms are not in GO.terms
       tmp1 <- tmp1[which(tmp1$ID %in% tmpGO.terms$ID),]
       tmp1$"Protein table row(s)" <- GO.terms$"Protein table row(s)"[tmp1$Row]
@@ -703,7 +703,7 @@ if (length(wFltL)) {
       #
       for (kl in 1:(1+GenTst)) {
         nm <- c("Protein", "Gene")[kl]
-        wh <- which(sapply(tmpGO.terms$"Protein table row(s)", length) > 0)
+        wh <- which(vapply(tmpGO.terms$"Protein table row(s)", length, 1) > 0)
         tmp1 <- proteoCraft::listMelt(tmpGO.terms$"Protein table row(s)"[wh], wh)
         tmp1$value2 <- Prot[match(tmp1$value, 1:nrow(Prot)), ID_col]
         tmp1 <- proteoCraft::listMelt(strsplit(tmp1$value2, ";"), tmp1$L1)
@@ -791,7 +791,7 @@ if (length(wFltL)) {
       if (GenTst) {
         tmp2 <- proteoCraft::listMelt(tmpProt, 1:length(tmpProt))
         tmp2$Gene <- DB[match(tmp2$value, DB[[db_ID_col]]), db_Gene_col]
-        tmp2 <- tmp2[which(sapply(tmp2$Gene, nchar) > 0),]
+        tmp2 <- tmp2[which(vapply(tmp2$Gene, nchar, 1) > 0),]
         tmp2 <- proteoCraft::listMelt(strsplit(tmp2$Gene, ";"), tmp2$L1)
         tmp2 <- aggregate(tmp2$value, list(as.numeric(tmp2$L1)), list)
         tmpGn <- data.frame(row = 1:nrow(Prot))
@@ -892,9 +892,9 @@ if (length(wFltL)) {
         }
       }
       if (!Prot_FC_is_log) { Prot[[FCkol]] <- log2(Prot[[FCkol]]) }
-      GO_tbl$logFC <- sapply(GO_tbl$Rows, function(x) {
+      GO_tbl$logFC <- vapply(GO_tbl$Rows, function(x) {
         proteoCraft::log_ratio_av(Prot[x, FCkol])
-      })
+      }, 1)
       GO.terms[[paste0("logFC - ", n1)]] <- NA
       GO.terms[wh, paste0("logFC - ", n1)] <- as.numeric(GO_tbl$logFC)
       # Calculate Z score
@@ -907,7 +907,7 @@ if (length(wFltL)) {
       } else {
         # "Z score" analog as used in package GOplot (see https://cran.r-project.org/web/packages/GOplot/vignettes/GOplot_vignette.html)
         m <- mean(proteoCraft::is.all.good(Prot[[FCkol]]))
-        GO_tbl$"Z-score" <- sapply(GO_tbl$Rows, function(x) {
+        GO_tbl$"Z-score" <- vapply(GO_tbl$Rows, function(x) {
           x <- proteoCraft::is.all.good(Prot[x, FCkol])
           l <- length(x)
           if (l) {
@@ -917,7 +917,7 @@ if (length(wFltL)) {
             x <- sum(x)/sqrt(l)
           } else { x <- NA }
           return(x)
-        })
+        }, 1)
         GO.terms[[paste0("(N_Up - N_Down)/sqrt(Tot.) - ", n1)]] <- NA
         GO.terms[wh, paste0("(N_Up - N_Down)/sqrt(Tot.) - ", n1)] <- GO_tbl$"Z-score"
       }
@@ -959,15 +959,15 @@ if (length(wFltL)) {
     }
     if (length(GO_tbls2)) {
       if (GlobalScales) {
-        Xxtr <- max(c(sapply(names(GO_tbls), function(nm) {
+        Xxtr <- max(c(vapply(names(GO_tbls), function(nm) {
           suppressWarnings(max(abs(proteoCraft::is.all.good(GO_tbls[[nm]]$Data$"Z-score"*1.05))))
-        }), 1))
+        }, 1), 1))
         Xbreadth <- 2*Xxtr
         Xmin <- -Xxtr
         Xmax <- Xxtr
-        Ymax <- max(c(sapply(names(GO_tbls), function(nm) {
+        Ymax <- max(c(vapply(names(GO_tbls), function(nm) {
           suppressWarnings(max(proteoCraft::is.all.good(c(GO_tbls[[nm]]$Data$Y, GO_tbls[[nm]]$Thresholds$"-log10(Threshold)"))))
-        }), 3))
+        }, 1), 3))
       } else {
         Xxtr <- Xbreadth <- Xmin <- Xmax <- Ymax <- ""
       }
@@ -975,10 +975,11 @@ if (length(wFltL)) {
                       "save", "origWD", "subfolder", "subfolderpertype", "bars", "graph", "True_Zscore", "scrange", "textFun", "cex", "lineheight", "repel",
                       "plotly_subfolder", "MaxTerms", "MaxTerms_bar", "MaxChar",
                       "Ont", "title", "title.root", "bars_title", "bars_title.root", "GO_FDR", "plotEval")
-      sapply(exports, function(xprt) {
+      lapply(exports, function(xprt) {
         try(parallel::clusterExport(parClust, xprt, envir = environment()), silent = TRUE)
+        return()
       })
-      plotsF0 <- function(n1) { #n1 <- names(GO_tbls2)[1]
+      plotsF0 <- function(n1) { #n1 <- names(GO_tbls2)[1] #n1 <- names(GO_tbls2)[2]
         GOplts <- list()
         n2 <- gsub("___", " ", n1)
         GO_tbl <- GO_tbls2[[n1]]$Data
@@ -1085,23 +1086,29 @@ if (length(wFltL)) {
           col_lim <- 3
           GO_tbl2 <- GO_tbl
           GO_tbl2$X <- NULL
-          kountess <- 0
-          for (ont in unique(GO_tbl2$Ontology)) { #ont <- unique(GO_tbl2$Ontology)[1]
-            tmp <- GO_tbl2[which((GO_tbl2$Ontology == ont)&(GO_tbl2$Count > 0)),]
-            if (nrow(tmp)) {
-              kountess <- kountess+1
-              tmp <- tmp[order(tmp[[paste0(c("", "adj. ")[P_adjust+1], "Pvalue")]], decreasing = FALSE),]
-              tmp <- tmp[1:min(c(nrow(tmp), MaxTerms_bar)),]
-              tmp <- tmp[order(tmp$`Z-score`, decreasing = FALSE),]
-              tmp$"Z-score*" <- tmp$`Z-score`
-              tmp$"Z-score*"[which(tmp$"Z-score*" > col_lim)] <- col_lim
-              tmp$"Z-score*"[which(tmp$"Z-score*" < -col_lim)] <- -col_lim
-              tmp$X <- 1:nrow(tmp)
-              tmp[, c("Label", "Label2", "Label3")] <- GO_tbl[match(tmp$ID, GO_tbl$ID), c("Label", "Label2", "Label3")]
-              if (kountess == 1) { GO_tbl3 <- tmp } else { GO_tbl3 <- rbind(GO_tbl3, tmp) }
-            }
+          GO_tbl3 <- data.frame()
+          wK <- which(GO_tbl2$Count > 0)
+          if (length(wK)) {
+            wOnt <- unique(GO_tbl2$Ontology[wK])
+            GO_tbl3 <- lapply(wOnt, function(ont) { #ont <- wOnt[1]
+              tmp <- GO_tbl2[wK,][which(GO_tbl2$Ontology[wK] == ont),]
+              if (nrow(tmp)) {
+                tmp <- tmp[order(tmp[[paste0(c("", "adj. ")[P_adjust+1], "Pvalue")]], decreasing = FALSE),]
+                tmp <- tmp[1:min(c(nrow(tmp), MaxTerms_bar)),]
+                tmp <- tmp[order(tmp$`Z-score`, decreasing = FALSE),]
+                tmp$"Z-score*" <- tmp$`Z-score`
+                tmp$"Z-score*"[which(tmp$"Z-score*" > col_lim)] <- col_lim
+                tmp$"Z-score*"[which(tmp$"Z-score*" < -col_lim)] <- -col_lim
+                tmp$X <- 1:nrow(tmp)
+                tmp[, c("Label", "Label2", "Label3")] <- GO_tbl[match(tmp$ID, GO_tbl$ID), c("Label", "Label2", "Label3")]
+                return(tmp)
+              } else {
+                return()
+              }
+            })
+            GO_tbl3 <- plyr::rbind.fill(GO_tbl3)
           }
-          if (kountess) {
+          if (nrow(GO_tbl3)) {
             GO_tbl3$Ontology <- factor(GO_tbl3$Ontology, levels = Ont)
             barttl <- paste0(bars_title.root, n2)
             if (P_adjust) {

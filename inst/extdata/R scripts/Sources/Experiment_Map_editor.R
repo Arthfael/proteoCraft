@@ -121,9 +121,11 @@ if (LabelType == "Isobaric") {
 }
 # Original table column widths
 wTest0 <- setNames(vapply(colnames(ExpData), function(k) { #k <- colnames(ExpData)[1]
+  tmp <- ExpData[[k]]
+  if ("logical" %in% class(tmp)) { tmp <- as.integer(tmp) }
+  tmp <- as.character(tmp)
   tst <- k %in% Fact2
-  x <- max(c(nchar(k),
-             nchar(as.character(ExpData[[k]])) + 3 + 3*tst), na.rm = TRUE)
+  x <- max(nchar(c(k, tmp)) + 3 + 3*tst, na.rm = TRUE)
   if (tst) {
     x <- max(c(x, nchar(FactorsLevels[[k]]) + 6), na.rm = TRUE)
   }
