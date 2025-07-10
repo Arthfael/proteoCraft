@@ -168,6 +168,17 @@ FracMap$Use <- as.logical(FracMap$Use)
 FracMap$Use[which(is.na(FracMap$Use))] <- TRUE
 nr <- nrow(FracMap)
 rws <- seq_len(nr)
+# Original table column widths
+wTest0 <- setNames(vapply(colnames(FracMap), function(k) { #k <- colnames(FracMap)[1]
+  tmp <- FracMap[[k]]
+  if ("logical" %in% class(tmp)) { tmp <- as.integer(tmp) }
+  tmp <- as.character(tmp)
+  x <- max(nchar(c(k, tmp)) + 3, na.rm = TRUE)
+  x <- x*10
+  if (is.na(x)) { x <- 15 } else { x <- max(c(ceiling(x/10)*10, 30)) }
+  return(x)
+}, 1), colnames(FracMap))
+# Dummy table
 frMap <- FracMap
 frMap$"Raw files name" <- NULL
 frMap$Use <- as.logical(toupper(frMap$Use))
@@ -177,8 +188,28 @@ frMap$"PTM-enriched" <- shinySelectInput(FracMap$"PTM-enriched",
                                          "PTMenriched",
                                          unique(c(Modifs$`Full name`, NA)),
                                          paste0(30*max(c(nchar(as.character(Modifs$`Full name`)), 2)), "px"))
+frMap$"Parent sample" <- shinyTextInput(frMap$"Parent sample", "Sample", paste0(wTest0["Parent sample"], "px"))
+k <- c("Raw file", "Parent sample", "Fraction", "PTM-enriched", "Bruker_run_ID", "Use")
+k <- k[which(k %in% colnames(frMap))]
+frMap <- frMap[, k]
+# Estimate dummy table column widths
+wTest1 <- vapply(colnames(frMap), function(k) { #k <- colnames(frMap)[1]
+  if ((k == "Parent sample")&&(!k %in% names(wTest0))) { k <- "MQ.Exp" }
+  if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
+  return(x)
+}, 1)
+wTest2 <- sum(wTest1) + 15 + ncol(frMap)*5
+wTest1 <- paste0(as.character(wTest1), "px")
+wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
+wTest1 <- apply(wTest1, 1, function(x) {
+  x2 <- as.integer(x[[2]])
+  list(width = x[[1]],
+       targets = x2,
+       names = colnames(frMap)[x2+1])
+})
 #
 appNm <- paste0(dtstNm, " - ", FracMapNm)
+if (exists("frMap2")) { rm(frMap2) }
 ui <- shinyUI(fluidPage(titlePanel(tag("u", FracMapNm),
                                    appNm),
                         useShinyjs(),
@@ -190,38 +221,48 @@ ui <- shinyUI(fluidPage(titlePanel(tag("u", FracMapNm),
                         ),
                         extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
                         mainPanel(
-                          DT::DTOutput("myFracMap"),
+                          withSpinner(DT::DTOutput("myFracMap", width = wTest2)),
                           br(),
                           actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
                         )))
-if (exists("frMap2")) { rm(frMap2) }
 server <- function(input, output, session) {
   frMap2 <- FracMap
   output$myFracMap <- DT::renderDT({ frMap },
-                                      FALSE,
-                                      escape = FALSE,
-                                      selection = "none",
-                                      editable = TRUE,
-                                      rownames = FALSE,
-                                      options = list(dom = "t",
-                                                     paging = FALSE,
-                                                     ordering = FALSE),
-                                      callback = JS("table.rows().every(function(i, tab, row) {
-        var $this = $(this.node());
-        $this.attr('id', this.data()[0]);
-        $this.addClass('shiny-input-container');
-      });
-      Shiny.unbindAll(table.table().node());
-      Shiny.bindAll(table.table().node());"))
-  observeEvent(input$myFracMap_cell_edit, {
-    kol <- colnames(frMap)[input$myFracMap_cell_edit$col+1]
-    frMap2[input$myFracMap_cell_edit$row, kol] <- input$myFracMap_cell_edit$value
+                                   FALSE,
+                                   escape = FALSE,
+                                   selection = "none",
+                                   rownames = FALSE,
+                                   editable = FALSE,
+                                   options = list(dom = "t",
+                                                  paging = FALSE,
+                                                  ordering = FALSE,
+                                                  autowidth = TRUE,
+                                                  columnDefs = wTest1,
+                                                  scrollX = FALSE),
+                                   # the callback is essential to capture the inputs in each row
+                                   callback = JS("table.rows().every(function(i, tab, row) {
+  var $this = $(this.node());
+  $this.attr('id', this.data()[0]);
+  $this.addClass('shiny-input-container');
+});
+Shiny.unbindAll(table.table().node());
+Shiny.bindAll(table.table().node());"))
+  observeEvent(input$myFracMap_cell_edit, { # This is not goddamn working!!!
+    kl <- colnames(frMap)[input$myFracMap_cell_edit$col+1]
+    if (kl %in% colnames(frMap2)) {
+      frMap2[input$myFracMap_cell_edit$row, kl] <<- input$myFracMap_cell_edit$value
+    } else {
+      warning(paste0("Could not find column ", kl, " from dummy table in the real table!"))
+    }
   })
   observeEvent(input$saveBtn, {
-    for (k in c("Use", "PTM-enriched")) {
+    for (k in c("Use", "PTM-enriched", "Parent sample")) {
       root <- gsub("-", "", k)
       if (k == "Use") { tp <- TRUE }
-      if (k == "PTM-enriched") { tp <- "" }
+      if (k %in% c("PTM-enriched", "Parent sample")) {
+        tp <- ""
+        if (k == "Parent sample") { root<- "Sample" }
+      }
       frMap2[[k]] <- vapply(rws, function(x) { input[[paste0(root, "___", as.character(x))]] }, tp)
     }
     assign("frMap2", frMap2, envir = .GlobalEnv)
@@ -304,8 +345,10 @@ allIDs <- as.character(sapply(smplMapKol, function(x) {
 wTest0 <- setNames(vapply(colnames(SamplesMap), function(k) { #k <- colnames(SamplesMap)[1]
   l <- k
   if (k == "MQ.Exp") { l <- "Parent sample"}
-  x <- max(c(nchar(k),
-             nchar(as.character(SamplesMap[[k]])) + 3), na.rm = TRUE)
+  tmp <- SamplesMap[[k]]
+  if ("logical" %in% class(tmp)) { tmp <- as.integer(tmp) }
+  tmp <- as.character(tmp)
+  x <- max(nchar(c(k, tmp)) + 3, na.rm = TRUE)
   x <- x*10
   if (is.na(x)) { x <- 30 } else { x <- max(c(ceiling(x/10)*10, 30)) }
   return(x)
@@ -319,7 +362,7 @@ wTest1 <- vapply(colnames(smplMap2), function(k) { #k <- colnames(smplMap2)[1]
   if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
   return(x)
 }, 1)
-wTest2 <- sum(wTest1) + 15 + ncol(smplMap2)*5
+wTest2 <- max(c(sum(wTest1) + 15 + ncol(smplMap2)*5, 600))
 wTest1 <- paste0(as.character(wTest1), "px")
 wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
 wTest1 <- apply(wTest1, 1, function(x) {
@@ -339,6 +382,14 @@ for (kol in c("Reference", "Negative Filter", "Use")) {
   }
 }
 #
+if (exists("expOrder")) {
+  tst <- sum(!exp %in% expOrder)
+  if (sum(tst)) { rm(expOrder) }
+}
+if (!exists("expOrder")) {
+  expOrder <- exp
+}
+#
 msg <- ""
 appNm <- paste0(dtstNm, " - Experiment map")
 ui <- fluidPage(useShinyjs(),
@@ -354,7 +405,7 @@ ui <- fluidPage(useShinyjs(),
                 tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
                 mainPanel(h4("Optional: define samples order"),
                           selectInput("expOrder", "",
-                                      exp, exp, TRUE, TRUE, width = "1200px"),
+                                      expOrder, expOrder, TRUE, TRUE, width = "1200px"),
                           br(),
                           br(),
                           span(uiOutput("Message"), style = "color:red"),
@@ -371,7 +422,7 @@ server <- function(input, output, session) {
                                      escape = FALSE,
                                      selection = "none",
                                      rownames = FALSE,
-                                     editable = TRUE,
+                                     editable = FALSE,
                                      options = list(dom = "t",
                                                     paging = FALSE,
                                                     ordering = FALSE,
@@ -458,17 +509,15 @@ while ((!runKount)||(!exists("smplMap3"))) {
   runKount <- runKount+1
 }
 SamplesMap %<o% smplMap3
+exp <- expOrder
+SamplesMap <- SamplesMap[match(SamplesMap$MQ.Exp, exp), ]
 #
 tst <- try(write.csv(SamplesMap, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
 if ("try-error" %in% class(tst)) {
-  dlg_message(paste0("File \"", SamplesMap, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+  dlg_message(paste0("File \"", SamplesMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   write.csv(SamplesMap, file = SamplesMapPath, row.names = FALSE)
 }
 
-if (exists("expOrder")) {
-  exp <- expOrder
-  SamplesMap <- SamplesMap[match(SamplesMap$MQ.Exp, exp), ]
-}
 if ("Negative Filter" %in% colnames(SamplesMap)) {
   SamplesMap$"Negative Filter" <- as.logical(toupper(SamplesMap$"Negative Filter"))
 }
@@ -500,135 +549,12 @@ evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
 
 #### Code chunk - Load and process annotations
 ## This includes a QC step in case the database differs slightly from the one used by MQ, or if somehow some IDs have not been properly parsed.
-GO.col %<o% c("GO", "GO-ID")
-Annotate %<o% "Parsed functional annotations" %in% reloadedBckps$Role
-if (!Annotate) {
-  msg <- "Can you provide functional annotations? (required for GO analysis)"
-  Annotate <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
-}
-if (Annotate) {
-  if (!exists("Parsed_annotations")) {
-    tmpFls <- gsub("\\.fa((s(ta(\\.fas)?)?)|a?)?$", ".txt", fastasTbl$Full)
-    AnnotFls <- vapply(tmpFls, function(x) { #x <- tmpFls[1]
-      x2 <- gsub(".+/", "D:/Fasta_databases/", x)
-      if (!file.exists(x)) {
-        if (file.exists(x2)) {
-          fs::file_copy(x2, wd)
-          x <- x2
-        } else { x <- NA }
-      }
-      return(as.character(x))
-    }, "")
-    AnnotFls %<o% AnnotFls[which(!is.na(AnnotFls))]
-    if (!length(AnnotFls)) {
-      moar <- TRUE
-      kount <- 0
-      while (moar) {
-        if (kount == 0) {
-          msg <- "No functional annotation file detected. Select one (or more)?"
-        } else { msg <- "Select more?" }
-        moar <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
-        if (moar) {
-          tmp <- read.xlsx(paste0(homePath, "/Default_locations.xlsx"))
-          tmp <- tmp$Path[match("Fasta files", tmp$Folder)]
-          if (is.na(tmp)) { tmp <- wd }
-          msg <- "Choose annotation file(s):"
-          filt <- matrix(c("Annotations txt file", "*.txt"), ncol = 2)
-          AnnotFls <- c(AnnotFls, choose.files(paste0(tmp, "/*.txt"), msg, TRUE, filt))
-          AnnotFls <- normalizePath(AnnotFls, winslash = "/")
-          AnnotFls <- AnnotFls[which(!is.na(AnnotFls))]
-          kount <- kount + 1
-        }
-      }
-    }
-    if (!length(AnnotFls)) {
-      warning("No annotations file(s) provided, skipping annotations!")
-      Annotate <- FALSE
-    } else {
-      Parsed_annotations <- lapply(AnnotFls, function(x) { #x <- AnnotFls[1]
-        # If the annotations is not present locally, make a local copy
-        if (!file.exists(basename(x))) { fs::file_copy(x, wd) }
-        # Parse it
-        return(Format.DB_txt(readLines(x), usePar = TRUE, cl = parClust))
-      })
-      Parsed_annotations <- dplyr::bind_rows(Parsed_annotations)
-      tst1 <- unlist(strsplit(Parsed_annotations$`GO-ID`, ";"))
-      tst2 <- unlist(strsplit(Parsed_annotations$GO, ";"))
-      tst3 <- data.table(A1 = tst1, A2 = tst2)
-      tst3 <- tst3[, list(x = unique(A2)), by = list(Group.1 = A1)]
-      tst3 <- as.data.frame(tst3)
-      stopifnot(length(tst3$x) == length(unique(tst3$x)),
-                "character" %in% class(tst3$x))
-      #View(tst3[which(vapply(tst3$x, length, 1) > 1),])
-      #View(tst3[which(vapply(tst3$x, length, 1) == 0),])
-      #loadFun("Parsed_annotations.RData")
-      #
-      # Check GO for name degeneracies
-      # (the same term has had different names in different files, and we allow for multiple files)
-      w <- which(nchar(Parsed_annotations$GO) > 0)
-      # rows-to-names
-      tst1 <- listMelt(strsplit(Parsed_annotations$GO[w], ";"), w, c("name", "row"))
-      # names-to-rows-to-IDs
-      tst2 <- set_colnames(aggregate(tst1$row, list(tst1$name), list), c("name", "rows"))
-      tst2$ID <- gsub(".*\\[|\\]$", "", tst2$name)
-      tst1$ID <- tst2$ID[match(tst1$name, tst2$name)]
-      tst3 <- set_colnames(aggregate(tst2$name, list(tst2$ID), unique), c("ID", "names"))
-      tst3$L <- vapply(tst3$names, length, 1)
-      if (max(tst3$L) > 1) { # this would indicate degeneracy and the need to fix names
-        tst3 <- tst3[which(tst3$L > 1),]
-        tst3$name <- vapply(tst3$names, function(x) { x[[1]] }, "")
-        rws <- unique(unlist(tst2$rows[which(tst2$ID %in% tst3$ID)]))
-        tst1 <- tst1[which(tst1$row %in% rws),]
-        tst2 <- tst2[which(tst2$ID %in% tst3$ID),]
-        tst2$name <- tst3$name[match(tst2$ID, tst3$ID)]
-        w2 <- which(tst1$ID %in% tst2$ID)
-        tst1$name[w2] <- tst2$name[match(tst1$ID[w2], tst2$ID)]
-        tst1 <- as.data.table(tst1)
-        tst1 <- tst1[, list(GO = paste(name, collapse = ";"),
-                            ID = paste(ID, collapse = ";")),
-                     by = list(tst1$row)]
-        tst1 <- as.data.frame(tst1)
-        Parsed_annotations[w, c("GO", "GO-ID")] <- tst1[match(w, tst1$tst1), c("GO", "ID")]
-      }
-    }
-  }
-}
-Annotate %<o% (file.exists("Parsed_annotations.RData")) # Update condition
-if (Annotate) {
-  Parsed_annotations %<o% Parsed_annotations
-  saveFun(Parsed_annotations, file = "Parsed_annotations.RData")
-  #db <- db[, which(!colnames(db) %in% annot.col)]
-  kol <- colnames(Parsed_annotations)
-  annot.col %<o% kol[which(!kol %in% c("Accession", "id", "ID", "Names", "Sequence", "MW (Da)"))]
-  annot.col2 %<o% annot.col[which(!annot.col %in% colnames(db))]
-  annot.col3 %<o% annot.col[which(annot.col %in% colnames(db))]
-  if (length(annot.col2)) { db[, annot.col2] <- NA }
-  mtch <- match(db$`Protein ID`, Parsed_annotations$Accession)
-  db[, annot.col2] <- Parsed_annotations[mtch, annot.col2]
-  if (length(annot.col3)) {
-    for (kol in annot.col3) { #kol <- annot.col3[1]
-      w <- which(!is.na(mtch)) # check that there is a valid match...
-      w <- w[which((is.na(db[w, kol]))|(db[w, kol] %in% c("", "NA", "NaN")))] #... and that it is useful!
-      db[w, kol] <- Parsed_annotations[mtch[w], kol]
-      w <- which((is.na(db[[kol]]))|(db[[kol]] %in% c("", "NA", "NaN"))) #... and that it is useful!
-      db[w, kol] <- ""
-    }
-  }
-  write.csv(db, "Parsed, annotated search db.csv", row.names = FALSE)
-  #db <- read.csv("Parsed, annotated search db.csv", check.names = FALSE, colClasses = "character")
-  tst1 <- unlist(strsplit(db$`GO-ID`, ";"))
-  tst2 <- unlist(strsplit(db$GO, ";"))
-  tst3 <- aggregate(tst2, list(tst1), unique)
-  stopifnot(length(tst3$x) == length(unique(tst3$x)),
-            "character" %in% class(tst3$x))
-  db$Ontology <- NULL # Temporary fix for now, this column is broken
-  #View(tst3[which(vapply(tst3$x, length, 1) > 1),])
-  #View(tst3[which(vapply(tst3$x, length, 1) == 0),])
-}
-AnalysisParam$Annotations <- Annotate
+Src <- paste0(libPath, "/extdata/R scripts/Sources/Load_Annotations.R")
+source(Src, local = FALSE)
 source(parSrc, local = FALSE)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_prepare.R") # Doing this earlier but also keep latter instance for now
 source(Src, local = FALSE)
+AnalysisParam$Annotations <- Annotate
 
 #### Code chunk - Define analysis parameters
 Exp %<o% unique(SamplesMap$Experiment)
@@ -714,12 +640,12 @@ if (("Update_Prot_matches" %in% names(AnalysisParam))&&(is.logical(AnalysisParam
   Update_Prot_matches %<o% TRUE
   AnalysisParam$Update_Prot_matches <- Update_Prot_matches
 }
-if (("Reuse_Prot_matches" %in% names(AnalysisParam))&&(is.logical(AnalysisParam$Reuse_Prot_matches))&&(!is.na(AnalysisParam$Reuse_Prot_matches))) {
-  Reuse_Prot_matches %<o% AnalysisParam$Reuse_Prot_matches
-} else {
-  Reuse_Prot_matches %<o% ("evmatch.RData" %in% list.files(wd))
-  AnalysisParam$Reuse_Prot_matches <- Reuse_Prot_matches
-}
+# if (("Reuse_Prot_matches" %in% names(AnalysisParam))&&(is.logical(AnalysisParam$Reuse_Prot_matches))&&(!is.na(AnalysisParam$Reuse_Prot_matches))) {
+#   Reuse_Prot_matches %<o% AnalysisParam$Reuse_Prot_matches
+# } else {
+#   Reuse_Prot_matches %<o% ("evmatch.RData" %in% list.files(wd))
+#   AnalysisParam$Reuse_Prot_matches <- Reuse_Prot_matches
+# }
 if (("Pep.Impute" %in% names(AnalysisParam))&&(is.logical(AnalysisParam$Pep.Impute))&&(!is.na(AnalysisParam$Pep.Impute))) {
   Impute %<o% as.logical(AnalysisParam$Pep.Impute)
 } else {
@@ -811,8 +737,10 @@ NormalizePG <- as.logical(NormalizePG)
 if ((is.na(NormalizePG))||(is.null(NormalizePG))) { NormalizePG <- FALSE }
 globalGO %<o% Annotate
 enrichGO %<o% (Annotate&MakeRatios)
-GO_filter %<o% c()
-GO_filter1 <- c()
+if (!exists("GO_filter")) {
+  GO_filter %<o% c()
+  GO_filter1 <- c()
+}
 if (globalGO) {
   if ("GO terms of interest" %in% names(AnalysisParam)) {
     GO_filter <- AnalysisParam$"GO terms of interest"
@@ -878,8 +806,8 @@ ui <- fluidPage(
                   checkboxInput("Update_Prot_matches", paste0("Update ", names(SearchSoft), "'s original protein-to-peptides assignments?"), Update_Prot_matches, "100%"),
                   bsTooltip("Update_Prot_matches",
                             "Checking assignments may result in removal of some identifications. It is nonetheless recommended because we have observed occasional inconsistent peptides-to-protein assignments with some search software.",
-                            placement = "right", trigger = "hover", options = list(container = "body")),
-                  withSpinner(uiOutput("ReloadMatches"))
+                            placement = "right", trigger = "hover", options = list(container = "body"))#,
+                  #withSpinner(uiOutput("ReloadMatches"))
            ),
            column(2, checkboxInput("prtNorm", "Normalize data",
                                             AnalysisParam$NormalizePG, "100%"))),
@@ -981,17 +909,17 @@ server <- function(input, output, session) {
     return(lst)
   })
   #
-  output$ReloadMatches <- renderUI({
-    if ("evmatch.RData" %in% list.files(wd)) {
-      msg <- "Peptide-to-protein matches backup detected in folder: do you want to reload it?\n"
-      lst <- list(list(list(br()),
-                       tags$table(
-                         tags$tr(width = "100%", tags$td(width = "55%", checkboxInput("Reuse_Prot_matches", msg, TRUE)))
-                       )))
-    } else {
-      em(" ")
-    }
-  })
+  # output$ReloadMatches <- renderUI({
+  #   if ("evmatch.RData" %in% list.files(wd)) {
+  #     msg <- "Peptide-to-protein matches backup detected in folder: do you want to reload it?\n"
+  #     lst <- list(list(list(br()),
+  #                      tags$table(
+  #                        tags$tr(width = "100%", tags$td(width = "55%", checkboxInput("Reuse_Prot_matches", msg, TRUE)))
+  #                      )))
+  #   } else {
+  #     em(" ")
+  #   }
+  # })
   #
   #
   # Event observers
@@ -1080,15 +1008,15 @@ server <- function(input, output, session) {
     Par <- PARAM()
     Par$Update_Prot_matches <- Update_Prot_matches
     PARAM(Par)
-    if (input$Update_Prot_matches) { shinyjs::enable("Reuse_Prot_matches") }
-    if (!input$Update_Prot_matches) { shinyjs::disable("Reuse_Prot_matches") }
+    # if (input$Update_Prot_matches) { shinyjs::enable("Reuse_Prot_matches") }
+    # if (!input$Update_Prot_matches) { shinyjs::disable("Reuse_Prot_matches") }
   })
-  observeEvent(input[["Reuse_Prot_matches"]], {
-    Reuse_Prot_matches <<- input$Reuse_Prot_matches
-    Par <- PARAM()
-    Par$Reuse_Prot_matches <- Reuse_Prot_matches
-    PARAM(Par)
-  })
+  # observeEvent(input[["Reuse_Prot_matches"]], {
+  #   Reuse_Prot_matches <<- input$Reuse_Prot_matches
+  #   Par <- PARAM()
+  #   Par$Reuse_Prot_matches <- Reuse_Prot_matches
+  #   PARAM(Par)
+  # })
   # Clustering method
   observeEvent(input$Clustering, {
     assign("KlustMeth", match(input$Clustering, klustChoices), envir = .GlobalEnv)
@@ -1321,6 +1249,11 @@ parLapply(parClust, 1:N.clust, function(x) {
 })
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
+
+# Create Materials and Methods template
+Src <- paste0(libPath, "/extdata/R scripts/Sources/autoMatMet.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 #### Code chunk - Update peptide-to-protein mappings
 Src <- paste0(libPath, "/extdata/R scripts/Sources/checkPep2Prot.R")
@@ -3657,6 +3590,7 @@ saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
 ### Check that CytoScape is installed and can run, then launch it.
+#CytoScape <- TRUE #You may need to reset this
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
@@ -5635,7 +5569,7 @@ if (WorkFlow == "Band ID") {
 kol <- c(kol, "Mol. weight [kDa]", covcol, "PEP", quantcol)
 if ((exists("KlustKols"))&&(length(KlustKols))) { kol <- c(kol, KlustKols) }
 qualFlt <- QualFilt
-kol <- c(kol, qualFlt[which(qualFlt != "In list")])
+kol <- unique(c(kol, qualFlt))
 if (Annotate) { kol <- c(kol, annot.col) }
 kol <- unique(kol[which(kol %in% colnames(tempData))])
 tempData <- tempData[, kol]
@@ -5700,6 +5634,7 @@ if (Annotate) {
 ColumnsTbl[["PEP"]] <- "PEP"
 # - Filters
 ColumnsTbl[["Filters"]] <- qualFlt
+ColumnsTbl[["In list"]] <- "In list"
 # - Clusters
 if ((exists("KlustKols"))&&(length(KlustKols))) { ColumnsTbl[["Cluster"]] <- KlustKols }
 # - Coverage
@@ -5712,6 +5647,7 @@ stopifnot(nrow(ColumnsTbl) == length(unique(ColumnsTbl$Col)))
 #tst[which(tst$x > 1),]
 ColumnsTbl$Class <- ""
 ColumnsTbl$Class[which(ColumnsTbl$Grp == "IDs")] <- "General Protein Group information"
+ColumnsTbl$Class[which(ColumnsTbl$Grp == "In list")] <- "In list"
 ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(pepcountcol1, pepcountcol2))] <- "Peptides count"
 ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(pepidcol1, pepidcol2))] <- "Peptide IDs"
 ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(evcountcol1, evcountcol2))] <- "Evidences count"
@@ -5760,6 +5696,7 @@ if (MakeRatios) {
 }
 w <- c(w,
        which(ColumnsTbl$Class == "QC filters"),
+       which(ColumnsTbl$Class == "In list"),
        which(ColumnsTbl$Class == "Sequence coverage [%]"),
        which(ColumnsTbl$Class == "1st accession sequence coverage (peptides)"),
        which(ColumnsTbl$Class == paste0("Cluster (", c("K-means", "hierarch.")[KlustMeth], ")")),
@@ -6068,11 +6005,6 @@ parLapply(parClust, 1:N.clust, function(x) {
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
-# Write Materials and Methods
-Src <- paste0(libPath, "/extdata/R scripts/Sources/autoMatMet.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
-
 # Write PTMs table
 temp <- Modifs
 w <- which(vapply(colnames(Modifs), function(x) { "list" %in% class(Modifs[[x]]) }, TRUE))
@@ -6109,11 +6041,17 @@ setwd(wd); saveImgFun(BckUpFl) # Leave an ultimate backup in the temporary folde
 setwd(procdir)
 pkgs <- gtools::loadedPackages()
 dscrptFl <- paste0(procdir, "/DESCRIPTION")
-tmp <- paste0("", do.call(paste, c(pkgs[, c("Name", "Version")], sep = " (")), ")")
+tmp <- paste0(do.call(paste, c(pkgs[, c("Name", "Version")], sep = " (")), ")")
 tmp <- paste0("Depends: ", paste(tmp, collapse = ", "))
 write(tmp, dscrptFl)
 renv::snapshot(force = TRUE, prompt = FALSE, type = "explicit")
 if ((exists("renv"))&&(renv)) { try(renv::deactivate(), silent = TRUE) }
+#
+# Also save a citations report
+if (!require(grateful)) {
+  pak::pkg_install("grateful")
+}
+grateful::cite_packages(out.dir = ".", pkgs = "Session")
 
 ### That's it, done!
 #openwd(outdir)

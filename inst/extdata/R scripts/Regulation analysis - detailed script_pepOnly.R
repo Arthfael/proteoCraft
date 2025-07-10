@@ -2467,6 +2467,12 @@ tmp <- paste0("Depends: ", paste(tmp, collapse = ", "))
 write(tmp, dscrptFl)
 renv::snapshot(force = TRUE, prompt = FALSE, type = "explicit")
 if ((exists("renv"))&&(renv)) { try(renv::deactivate(), silent = TRUE) }
+#
+# Also save a citations report
+if (!require(grateful)) {
+  pak::pkg_install("grateful")
+}
+grateful::cite_packages(out.dir = ".", pkgs = "Session")
 
 ### That's it, done!
 #openwd(outdir)

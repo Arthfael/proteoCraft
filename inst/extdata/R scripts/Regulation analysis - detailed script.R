@@ -4981,7 +4981,7 @@ VClustUse <- "All" # Use all
 # VClustUse <- "DEP" # Use only Differentially Expressed Proteins (from Reg_filters)
 VClustUse <- toupper(VClustUse)
 KlustRoot %<o% paste0("Cluster (", c("K-means", "hierarch.")[KlustMeth], ") - ")
-normTypes <- c("Norm. by row", "Z-scored")
+normTypes <- c("None", "Norm. by row", "Z-scored")
 plotLeatMaps %<o% list()
 for (i in names(I)) { #i <- names(I)[1] #i <- names(I)[2]
   smpls <- I[[i]]
@@ -5012,7 +5012,7 @@ for (i in names(I)) { #i <- names(I)[1] #i <- names(I)[2]
     filt[which(tst > 0)[w]] <- TRUE
     temp <- temp[w,]
     imputed <- imputed[w,]
-    rwMns <- rowMeans(temp)
+    if (normType %in% c("Norm. by row", "Z-scored")) { rwMns <- rowMeans(temp) }
     if (normType == "Norm. by row") {
       temp <- sweep(temp, 1, rwMns, "-")
     }
@@ -6080,6 +6080,9 @@ for (nm in names(ggProf)) {
 }
 
 # Visualize results
+if (!exists("xplorSrc")) {
+  xplorSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/xplorData.R") # Backwards compatibility
+}
 #rstudioapi::documentOpen(xplorSrc)
 source(xplorSrc, local = FALSE)
 
@@ -9798,6 +9801,12 @@ tmp <- paste0("Depends: ", paste(tmp, collapse = ", "))
 write(tmp, dscrptFl)
 renv::snapshot(force = TRUE, prompt = FALSE, type = "explicit")
 if ((exists("renv"))&&(renv)) { try(renv::deactivate(), silent = TRUE) }
+#
+# Also save a citations report
+if (!require(grateful)) {
+  pak::pkg_install("grateful")
+}
+grateful::cite_packages(out.dir = ".", pkgs = "Session")
 
 ### That's it, done!
 #openwd(outdir)
