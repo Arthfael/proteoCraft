@@ -47,6 +47,10 @@ Format.DB <- function(file,
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
   #
+  if (!misFun(cl)) { # Override "parallel" argument if a cluster was provided
+    parallel <- TRUE
+  }
+  #
   # Create cluster
   if (parallel) {
     tstCl <- stopCl <- misFun(cl)
@@ -140,14 +144,14 @@ Format.DB <- function(file,
   if (parallel) {
     n <- min(c(length(headRs), N.clust))
     RG <- unique(round(length(DB)*(1:n)/n))
-    RG[1:(n-1)] <- sapply(RG[1:(n-1)], function(x) {
+    RG[1:(n-1)] <- vapply(RG[1:(n-1)], function(x) {
       max(headRs[which(headRs < x)+1])-1
-    })
+    }, 1)
     batChes <- setNames(lapply(1:length(RG), function(x) {
       DB[(c(0, RG)[x]+1):(RG[x])]
     }), paste0("Batch", 1:length(RG)))
   } else { batChes <- list(Batch1 = DB) }
-  F0 <- function(btch) {
+  F0 <- function(btch) { #btch <- batChes[[1]]
     hdrs <- grep("^>", btch)
     temp1 <- data.frame(Header = btch[hdrs])
     # Batches
@@ -155,10 +159,10 @@ Format.DB <- function(file,
     if (IDs_only) { Roolz <- Roolz["Protein ID"] }
     if (mode != "TAIR") {
       for (i in 1:length(Roolz)) {
-        temp1[[names(Roolz)[i]]] <- sapply(temp1$Header, function(x) {
+        temp1[[names(Roolz)[i]]] <- vapply(temp1$Header, function(x) {
           y <- regexpr(Roolz[[i]], x, perl = TRUE)
           return(substr(x,  attributes(y)$capture.start, attributes(y)$capture.start + attributes(y)$capture.length - 1))
-        })
+        }, "")
         temp1[[names(Roolz)[i]]] <- gsub("^ +| +$", "", temp1[[names(Roolz)[i]]])
       }
     } else { # TAIR-specific behaviour
@@ -175,7 +179,7 @@ Format.DB <- function(file,
     }
     if (!IDs_only) {
       if (mode %in% c("REFSEQCDS", "NCBI", "UNIPROTKB")) {
-        temp1$"No Isoforms" <- sapply(temp1$"Protein ID", function(x) {unlist(strsplit(x, "-"))[1]})
+        temp1$"No Isoforms" <- vapply(temp1$"Protein ID", function(x) { unlist(strsplit(x, "-"))[1] }, "")
       }
       # More Ensembl-specific behaviour
       if (mode == "ENSEMBL") {
@@ -184,19 +188,19 @@ Format.DB <- function(file,
       }
       # UniProtKB-specific behaviour
       if (mode == "UNIPROTKB") {
-        temp1$Organism <- sapply(temp1$"Full ID", function(x) { unlist(strsplit(x, "_"))[2] })
+        temp1$Organism <- vapply(temp1$"Full ID", function(x) { unlist(strsplit(x, "_"))[2] }, "")
         temp1$Organism_Full <- gsub(" [A-Z]{2}=.+$", "", gsub("^>.+OS=", "", temp1$Header))
         temp1$TaxID <- NA
         w <- grep("OX=", temp1$Header)
-        temp1$TaxID[w] <- as.numeric(gsub(" .+", "", sapply(strsplit(temp1$Header[w], "OX="), function(x) {unlist(x)[2]})))
+        temp1$TaxID[w] <- as.numeric(gsub(" .+", "", vapply(strsplit(temp1$Header[w], "OX="), function(x) { unlist(x)[2] }, "")))
         temp1$"Full Name" <- apply(temp1[,c("Name", "Organism")], 1, FUN = function(x) {paste(x, collapse = "_")})
         a <- strsplit(temp1$Header, " OS=| GN=| PE=| SV=")
-        temp1$"Common Name" <- sapply(1:nrow(temp1), function(x) {
+        temp1$"Common Name" <- vapply(1:nrow(temp1), function(x) {
           x1 <- unlist(a[x])[1]
           x2 <- temp1$Organism[x]
           x <- unlist(strsplit(x1, paste0("_", x2, " ?")))
           if (length(x) == 2) { return(x[2]) } else { return("") }
-        })
+        }, "")
         a <- grep("^[I,i]soform [a-z,A-Z,0-9]+ of ", temp1$"Common Name")
         a1 <- temp1$"Common Name"[a]
         b1 <- gsub("^[I,i]soform [a-z,A-Z,0-9]+ of ", "", a1)
@@ -205,21 +209,21 @@ Format.DB <- function(file,
         b2 <- sapply(1:length(a), function(x) {
           substr(temp1$"Common Name"[a][x], start = 1, stop = c1[x]-c2[x]-4)
         })
-        temp1$"Common Name"[a] <- sapply(1:length(a), function(x) {paste(b1[x], ", ", b2[x], sep = "")})
-        temp1$Gene <- sapply(strsplit(temp1$Header, "GN="), function(x) {
+        temp1$"Common Name"[a] <- vapply(1:length(a), function(x) { paste(b1[x], ", ", b2[x], sep = "") }, "")
+        temp1$Gene <- vapply(strsplit(temp1$Header, "GN="), function(x) {
           x <- unlist(x)
           if (length(x) == 2) {
             x <- x[2]
             return(unlist(strsplit(x, " OS=| PE=| SV="))[1])
           } else { return("") }
-        })
+        }, "")
         nms.list <- c("Common Name", "Name", "Protein ID", "No Isoforms", "Full ID", "Gene")
       }
       # More RefSeq-specific behaviour
       if (mode %in% c("REFSEQRNA", "REFSEQPROTEIN")) {
         if (mode == "REFSEQRNA") {
           a <- strsplit(temp1$Header, " ")
-          temp1[,c("Organism", "Full Name")] <- as.data.frame(t(sapply(a, function(x) {
+          temp1[, c("Organism", "Full Name")] <- as.data.frame(t(sapply(a, function(x) {
             x <- unlist(x)
             x1 <- paste(x[2:3], collapse = " ")
             x2 <- paste(x[4:length(x)], collapse = " ")
@@ -227,7 +231,7 @@ Format.DB <- function(file,
           })))
         }
         if (mode == "REFSEQPROTEIN") { temp1$"Full Name" <- temp1$Name }
-        for (tt in c("transcript variant", "isoform")) {
+        for (tt in c("transcript variant", "isoform")) { #tt <- "transcript variant"
           a <- grep(tt, temp1$"Full Name", ignore.case = TRUE)
           if (length(a) > 0) {
             u <- unlist(strsplit(tt, " "))
@@ -243,39 +247,42 @@ Format.DB <- function(file,
                 x <- x[which(x != "")]
                 return(c(x[1], paste(x[2:length(x)], collapse = " ")))
               })
-            } else { temp1[a, u] <- sapply(b, function(x) { rev(unlist(x))[1] }) }
+            } else { temp1[a, u] <- vapply(b, function(x) { rev(unlist(x))[1] }, "") }
           } else { if (tt == "isoform") { nms.list <- nms.list[which(nms.list != "No Isoforms")] }}
         }
       }
       if (mode == "REFSEQCDS") {
         tt <- gsub("CCDS:CCDS[0-9]+\\.*[0-9]*,", "", temp1$Header)
-        temp1$"Gene ID" <- sapply(tt, function(x) {
+        temp1$"Gene ID" <- vapply(tt, function(x) {
           y <- regexpr("^>.*\\[db_xref=GeneID\\:([^\\]]+)\\]", x, perl = TRUE)
           return(substr(x,  attributes(y)$capture.start, attributes(y)$capture.start + attributes(y)$capture.length - 1))
-        })
+        }, "")
       }
       if (!"Common Name" %in% colnames(temp1)) {
-        temp1$"Common Name" <- sapply(strsplit(gsub(" \\[[^\\[]+\\]$", "", temp1$Header), " "), function(x) {
+        temp1$"Common Name" <- vapply(strsplit(gsub(" \\[[^\\[]+\\]$", "", temp1$Header), " "), function(x) {
           x <- unlist(x)
           if (length(x) > 1) {
             x <- paste(x[2:length(x)], collapse = " ")
           } else { x <- "" }
           return(x)
-        })
-        if (sum(nms.list %in% colnames(temp1))) {
-          tmpkol <- nms.list[which(nms.list %in% colnames(temp1))]
-          temp1$"Common Name" <- apply(temp1[,c("Common Name", tmpkol)], 1, function(x) {
+        }, "")
+        # We want to fill important columns with any value, if none is available
+        w <- which(temp1$"Common Name" %in% c("", " ", "NA", NA))
+        tmpkol <- nms.list[which(nms.list %in% colnames(temp1))]
+        if ((length(w))&&(length(tmpkol))) {
+          f0 <- function(x) {
             tt <- which(!x %in% c("", " ", "NA", NA))
             return(x[min(tt)])
-          })
+          }
+          temp1$"Common Name" <- do.call(f0, c(temp1[, c("Common Name", tmpkol)]))
         }
       }
       w <- which(as.character(temp1$"Protein ID") %in% c("", " ", "NA"))
       temp1$"Protein ID"[w] <- temp1$"Full ID"[w]
       hdrs <- c(hdrs, length(btch) + 1)
-      temp1$Sequence <- gsub(" ","",sapply(1:(length(hdrs) - 1), function(x) {
+      temp1$Sequence <- gsub(" ", "", vapply(1:(length(hdrs)-1), function(x) {
         paste(btch[(hdrs[x]+1):(hdrs[x+1]-1)], collapse = "")
-      }))
+      }, ""))
       temp1$Sequence <- gsub("\\*$", "", temp1$Sequence) # Required for some types of databases, such as TAIR
       if (Unique) {
         seq <- unique(temp1$Sequence)
@@ -295,6 +302,7 @@ Format.DB <- function(file,
     parallel::clusterExport(cl, list("Roolz", "IDs_only", "mode", "Unique"), envir = environment())
     res <- parallel::parLapply(cl, batChes, F0)
   } else { res <- lapply(batChes, F0) }
+  #
   res <- plyr::rbind.fill(res)
   #
   if ((parallel)&&(stopCl)) {
