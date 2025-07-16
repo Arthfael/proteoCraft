@@ -173,7 +173,7 @@ if (("Prot.Quant.Use" %in% colnames(Param))&&(!gsub(" |_|-|\\.", "", toupper(Par
 if (("Update_Prot_matches" %in% colnames(Param))&&(is.logical(Param$Update_Prot_matches))&&(!is.na(Param$Update_Prot_matches))) {
   Update_Prot_matches %<o% Param$Update_Prot_matches
 } else {
-  Update_Prot_matches %<o% (SearchSoft %in% c("MAXQUANT", "FRAGPIPE"))
+  Update_Prot_matches %<o% TRUE # See https://github.com/vdemichev/DiaNN/discussions/1631
   Param$Update_Prot_matches <- Update_Prot_matches
 }
 # if (exists("Reuse_Prot_matches")) { Reuse_Prot_matches <- as.logical(Reuse_Prot_matches) }

@@ -118,10 +118,10 @@ if (isOK) {
     }
   }
   if (usePar) {
-    clusterCall(parClust, function() {
+    invisible(clusterCall(parClust, function() {
       for (pck in packs) { library(pck, character.only = TRUE) }
-      return(0)
-    })
+      return()
+    }))
   } else {
     for (pck in packs) {
       library(pck, character.only = TRUE)

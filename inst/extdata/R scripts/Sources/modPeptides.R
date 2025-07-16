@@ -53,10 +53,6 @@ if ("PTM.analysis" %in% colnames(Param)) {
       PTMs_GO_enrich.tbl %<o% list()
       PTMs_GO_Plots %<o% list()
       PTMs_Reg_GO_terms %<o% list()
-      # Initialize Cytoscape
-      Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
-      #rstudioapi::documentOpen(Src)
-      source(Src, local = FALSE)
       # Initialize ClueGO
       Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_init.R")
       #rstudioapi::documentOpen(Src)
@@ -109,8 +105,10 @@ if ("PTM.analysis" %in% colnames(Param)) {
                                            gsub(ppat, ptmsh, temp$"Modified sequence"))
           #ptmpep[, c("Match(es)", paste0(Ptm, "-site(s)"))] <- ""
           dbsmall <- db[which(db$"Protein ID" %in% unique(unlist(temp[[myIDcol]]))), c("Protein ID", "Sequence")]
+          # On I/L ambiguity remaining even with newer DIA methods taking into account RT, IM and fragments intensity, see https://github.com/vdemichev/DiaNN/discussions/1631
           dbsmall$"Seq*" <- gsub("I", "L", dbsmall$Sequence)
           temp$"ModSeq*" <- gsub("I", "L", temp$"Modified sequence")
+          #
           kol <- c(myIDcol, "ModSeq*")
           temp$`ModSeq*` <- strsplit(temp$`ModSeq*`, "")
           temp2 <- temp[, kol]

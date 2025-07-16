@@ -200,7 +200,7 @@ if (SearchSoft == "DIANN") {
                       c(paste0(" against the following spectral librar", c("y", "ies")[(nL > 1)+1], ": ",
                                paste(Libraries, collapse = "/"), " (see supplementary material), using "),
                         " in library-free mode against ")[LibFree], dbTxt)
-  SearchTxt <- paste0(SearchTxt, " Match-Between-Runs was turned ", c("on", "off")[MBR], ".")
+  SearchTxt <- paste0(SearchTxt, " Match-Between-Runs was turned ", c("off", "on")[MBR], ".")
   if (length(FxMdC)) {
     if (length(FxMdC) == 1) {
       txt <- paste0("Fixed cysteine modification was set to ", FxMdC, ".")
