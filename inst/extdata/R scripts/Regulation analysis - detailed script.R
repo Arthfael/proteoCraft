@@ -597,10 +597,10 @@ if (LabelType == "LFQ") {
 }
 smpls <- unique(Exp.map$Ref.Sample.Aggregate[which(Exp.map$Use)])
 clusterExport(parClust, exports, envir = environment())
-clusterCall(parClust, function() {
+invisible(clusterCall(parClust, function() {
   library(data.table)
-  return(0)
-})
+  return()
+}))
 tmp4 <- setNames(parLapply(parClust, smpls, function(smpl) { #smpl <- smpls[1]
   m <- match(smpl, Exp.map$Ref.Sample.Aggregate)
   mqe <- unlist(Exp.map$MQ.Exp[m])
@@ -1226,10 +1226,10 @@ if (Param$Norma.Pep.Ratio) {
       agg <- Adv.Norma.Pep.Ratio.Type.Group$values[which(test > 1)]
       exports <- list("agg", "Adv.Norma.Pep.Ratio.Type.Group", "Exp.map", "pep.ratios.ref", "pep", "Param")
       clusterExport(parClust, exports, envir = environment())
-      clusterCall(parClust, function() {
+      invisible(clusterCall(parClust, function() {
         library(proteoCraft)
-        return(0)
-      })
+        return()
+      }))
       norm_temp <- parSapply(parClust, 0:length(agg), function(i) { #i <- 1
         if (i == 0) {
           kol <- grep(paste0(topattern(pep.ratios.ref[1]), ".+_REF\\.to\\.REF_"), colnames(pep), value = TRUE)
@@ -1603,12 +1603,12 @@ PG$"Sequence (1st accession)" <- db$Sequence[m]
 
 # Number of spectra, evidences and peptides per sample:
 source(parSrc, local = FALSE)
-clusterCall(parClust, function() {
+invisible(clusterCall(parClust, function() {
   library(proteoCraft)
   library(reshape)
   library(data.table)
-  return(0)
-})
+  return()
+}))
 temp_PG <- data.frame(id = PG$id,
                       Accession1 = PG$`Protein ID (1st accession)`)
 temp_PG$Pep <- parLapply(parClust, strsplit(PG$"Peptide IDs", ";"), as.integer)
@@ -5795,10 +5795,10 @@ ggQuant %<o% list()
 ggProf %<o% list()
 QuantLy %<o% list()
 ProfLy %<o% list()
-clusterCall(parClust, function() {
+invisible(clusterCall(parClust, function() {
   library(ggplot2)
-  return(0)
-})
+  return()
+}))
 cat("Drawing protein group profile plots\n")
 for (QuantType in QuantTypes) { #QuantType <- "Expression"
   cat(" ->", QuantType, "\n")
@@ -6277,14 +6277,14 @@ Example: \"GO:0031012;2\"
       exports <- list("SubCellMark2", "Exp.map", "SubCellFracAggr", "prtRfRoot", "tempDat", "VPAL", "tmpPG", "Aggregates",
                       "prot.list", "pRolocVisMeth", "Exp", "dir", "wNC")
       clusterExport(parClust, exports, envir = environment())
-      clusterCall(parClust, function() {
+      invisible(clusterCall(parClust, function() {
         library(graphics)
         library(Biobase)
         library(MSnbase)
         library(pRoloc)
         library(proteoCraft)
-        return(0)
-      })
+        return()
+      }))
       f0 <- function(grp) { #grp <- SubCellFracAggr$values[1]
         ttl_s <- c()
         grp1 <- cleanNms(grp)

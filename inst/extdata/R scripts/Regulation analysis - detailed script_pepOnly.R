@@ -568,10 +568,10 @@ if (LabelType == "LFQ") {
 }
 smpls <- unique(Exp.map$Ref.Sample.Aggregate[which(Exp.map$Use)])
 clusterExport(parClust, exports, envir = environment())
-clusterCall(parClust, function() {
+invisible(clusterCall(parClust, function() {
   library(data.table)
-  return(0)
-})
+  return()
+}))
 tmp4 <- setNames(parLapply(parClust, smpls, function(smpl) { #smpl <- smpls[1]
   m <- match(smpl, Exp.map$Ref.Sample.Aggregate)
   mqe <- unlist(Exp.map$MQ.Exp[m])
@@ -1254,10 +1254,10 @@ if (Param$Norma.Pep.Ratio) {
       agg <- Adv.Norma.Pep.Ratio.Type.Group$values[which(test > 1)]
       exports <- list("agg", "Adv.Norma.Pep.Ratio.Type.Group", "Exp.map", "pep.ratios.ref", "pep", "Param")
       clusterExport(parClust, exports, envir = environment())
-      clusterCall(parClust, function() {
+      invisible(clusterCall(parClust, function() {
         library(proteoCraft)
-        return(0)
-      })
+        return()
+      }))
       norm_temp <- parSapply(parClust, 0:length(agg), function(i) { #i <- 1
         if (i == 0) {
           kol <- grep(paste0(topattern(pep.ratios.ref[1]), ".+_REF\\.to\\.REF_"), colnames(pep), value = TRUE)

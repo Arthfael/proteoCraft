@@ -637,7 +637,7 @@ if (("ProtRulNuclL" %in% names(AnalysisParam))&&(!is.na(as.integer(AnalysisParam
 if (("Update_Prot_matches" %in% names(AnalysisParam))&&(is.logical(AnalysisParam$Update_Prot_matches))&&(!is.na(AnalysisParam$Update_Prot_matches))) {
   Update_Prot_matches %<o% AnalysisParam$Update_Prot_matches
 } else {
-  Update_Prot_matches %<o% TRUE
+  Update_Prot_matches %<o% TRUE # See https://github.com/vdemichev/DiaNN/discussions/1631
   AnalysisParam$Update_Prot_matches <- Update_Prot_matches
 }
 # if (("Reuse_Prot_matches" %in% names(AnalysisParam))&&(is.logical(AnalysisParam$Reuse_Prot_matches))&&(!is.na(AnalysisParam$Reuse_Prot_matches))) {
@@ -2256,12 +2256,12 @@ if (IsBioID) {
 
 # Number of spectra, evidences and peptides per sample:
 source(parSrc, local = FALSE)
-clusterCall(parClust, function() {
+invisible(clusterCall(parClust, function() {
   library(proteoCraft)
   library(reshape)
   library(data.table)
-  return(0)
-})
+  return()
+}))
 temp_PG <- data.frame(id = PG$id,
                       Accession1 = vapply(strsplit(PG$"Leading protein IDs", ";"), function(x) { unlist(x)[1] }, ""))
 temp_PG$Pep <- parLapply(parClust, strsplit(PG$"Peptide IDs", ";"), as.integer)
@@ -2959,8 +2959,11 @@ if (MakeRatios) {
                                        gsub(ppat, ptmsh, temp$"Modified sequence"))
       ptmpep[, c("Match(es)", paste0(Ptm, "-site(s)"))] <- ""
       dbsmall <- db[which(db$"Protein ID" %in% unique(unlist(temp$"Leading proteins"))), c("Protein ID", "Sequence")]
+      # On I/L ambiguity remaining even with newer DIA methods taking into account RT, IM and fragments intensity,
+      # see https://github.com/vdemichev/DiaNN/discussions/1631
       dbsmall$"Seq*" <- gsub("I", "L", dbsmall$Sequence)
       temp$"ModSeq*" <- gsub("I", "L", temp$`Modified sequence`)
+      #
       kol <- c("Leading proteins", "ModSeq*")
       temp$`ModSeq*` <- strsplit(temp$`ModSeq*`, "")
       ptmpep[, c("Match(es)", paste0(Ptm, "-site(s)"))] <- as.data.frame(t(apply(temp[, kol], 1, function(x) {
@@ -3315,14 +3318,14 @@ if (prot.list.Cond) {
     })
     names(pepR) <- apply(comb, 1, function(x) { paste0(x[[1]], " (X) vs ", x[[2]], " (Y)") })
     tmpPep <- pep[, grep(topattern(int.col), colnames(pep), value = TRUE)]
-    clusterCall(parClust, function() {
+    invisible(clusterCall(parClust, function() {
       library(Peptides)
       library(proteoCraft)
       library(magrittr)
       library(plotly)
       library(htmlwidgets)
-      return(0)
-    })
+      return()
+    }))
     exports <- list("prot.names", "IDs.list", "TEST0", "tmpDB", "Exp", "TMP0", "nCharLim", "wd", "int.col", "pepR", "WorkFlow", "dir")
     clusterExport(parClust, exports, envir = environment())
     #for (prnm in 1:length(prot.names)) { #prnm <- 1
@@ -4616,13 +4619,13 @@ for (QuantType in QuantTypes) { #QuantType <- "Coverage" #QuantType <- QuantType
           }
         }
       }
-      clusterCall(parClust, function() {
+      invisible(clusterCall(parClust, function() {
         library(ggplot2)
         library(plotly)
         library(AnnotationDbi)
         library(htmlwidgets)
-        return(0)
-      })
+        return()
+      }))
       clusterExport(parClust, c("QuantType", "QuantTypes", "Exp", "temp", "SubDir", "GO_filt", "GO_filter", "wd",
                                 "colScale", "fillScale", "colScale2", "fillScale2", "kolnm", "abbrFun"), envir = environment())
       #for (exp in Exp[Wh]) { #exp <- Exp[Wh][1]
