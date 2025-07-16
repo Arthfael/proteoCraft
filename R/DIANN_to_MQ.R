@@ -45,8 +45,8 @@ DIANN_to_MQ <- function(DIANN_fl,
                         shinyOpt = "popup",
                         digPattern = "KR") {
   TESTING <- FALSE
-  #proteoCraft::DefArg(proteoCraft::DIANN_to_MQ);TESTING <- TRUE
-  #DIANN_fl <- PSMsFls; cl <- parClust
+  #proteoCraft::DefArg(proteoCraft::DIANN_to_MQ);TESTING <- TRUE; cl <- parClust
+  #DIANN_fl <- PSMsFls
   #DIANN_fl <- rstudioapi::selectFile(path = paste0(getwd(), "/*.tsv"))
   #DIANN_fl <- diannRep
   shinyOpt <- tolower(shinyOpt)
@@ -58,7 +58,6 @@ DIANN_to_MQ <- function(DIANN_fl,
   # Do not change that!
   # Here, use allPTMs, elsewhere Modifs (or anything else).
   if (TESTING) {
-    tm1 <<- Sys.time()
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
@@ -69,7 +68,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
-      clusterExport(cl, "a", envir = environment())
+      parallel::clusterExport(cl, "a", envir = environment())
     }, silent = TRUE))
     tstCl <- !"try-error" %in% class(tstCl)
   }
@@ -97,7 +96,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   UniMod_D <- UniMod[which(g),]
   UniMod <- UniMod[which(!g),]
   #
-  # Read PSMs
+  # Read PSMs (report file)
   wTsv <- grep("\\.tsv$", DIANN_fl)
   wPrqt <- grep("\\.parquet$", DIANN_fl)
   lTsv <- length(wTsv)
@@ -120,7 +119,7 @@ DIANN_to_MQ <- function(DIANN_fl,
       DIANN <- DIANN_prqt
     }
   }
-  # Filter peptides with ambiguous/non-classical amino acids 
+  # Filter out peptides with ambiguous/non-classical amino acids
   uSeq <- unique(DIANN$Stripped.Sequence)
   test <- gsub(paste(proteoCraft::AA, collapse = "|"), "", uSeq)
   test <- test[match(DIANN$Stripped.Sequence, uSeq)]
@@ -563,7 +562,7 @@ DIANN_to_MQ <- function(DIANN_fl,
     return(c(x1, x2))
   }
   environment(f0) <- .GlobalEnv
-  temp2 <- as.data.frame(t(parSapply(cl, temp1, f0)))
+  temp2 <- as.data.frame(t(parallel::parSapply(cl, temp1, f0)))
   temp2 <- temp2[match(EV$`Modified sequence`[wMod], uMdSq),]
   EV$`Modified sequence_verbose` <- paste0("_", EV$Sequence, "_")
   EV$`Modified sequence`[wMod] <- temp2[, 1]
@@ -594,22 +593,23 @@ DIANN_to_MQ <- function(DIANN_fl,
     return(x)
   }
   environment(f0) <- .GlobalEnv
-  tempMod3 <- parSapply(cl, tempMod2, f0)
+  tempMod3 <- parallel::parSapply(cl, tempMod2, f0)
   EV$Modifications[wMod] <- tempMod3[match(EV$`Modified sequence`[wMod], uMdSq)]
   # M/Z
   #cat("   Calculating theoretical m/z values...\n")
   parallel::clusterExport(cl, "allPTMs", envir = environment())
   f0 <- function(x) {
     x <- x[which(x != "")]
-    x <- x[which(x != "UniMod:4")] # Peptides::mz can deal with alkylation
-    return(sum(allPTMs$`Mass shift`[match(x, paste0("UniMod:", allPTMs$UniMod))]))
+    # x <- x[which(x != "UniMod:4")] # Don't filter out carbamidomethyl! Yes, by default Peptides::mz() can deal with it,
+    # but what if we use another? Since we are writing all PTM, including variable, in DiaNN, best to just calculate all from there!
+    return(sum(allPTMs$"Mass shift"[match(x, paste0("UniMod:", allPTMs$UniMod))])) # No na.rm = TRUE: if we fail to calculate, I want to see it
   }
   environment(f0) <- .GlobalEnv
   tempMod4 <- parallel::parSapply(cl, tempMod2, f0)
   tmp1 <- do.call(paste, c(EV[, c("Sequence", "Charge")], sep = "___"))
   tmp2 <- unique(tmp1)
   tmp3 <- EV[match(tmp2, tmp1), c("Sequence", "Charge")]                              
-  f0 <- function(x) { Peptides::mz(x[[1]], as.integer(x[[2]])) }
+  f0 <- function(x) { Peptides::mz(x[[1]], as.integer(x[[2]], cysteins = 0)) }
   environment(f0) <- .GlobalEnv
   tmp3 <- parallel::parApply(cl, tmp3, 1, f0) # Peptides::mz doesn't like vectorization clearly
   EV$"Theoretical m/z" <- tmp3[match(tmp1, tmp2)] 
@@ -718,8 +718,6 @@ DIANN_to_MQ <- function(DIANN_fl,
   if (("Delta score" %in% colnames(EV))&&(!is.na(Min.Delta.Score))) {
     EV <- EV[which(EV$"Delta score" > Min.Delta.Score),]
   }
-  #
-  kol <- c("Precursor.Id", "Precursor.Lib.Index", "Decoy")
   #
   EV$id <- NULL
   EV <- cbind(data.frame(id = 1:nrow(EV)),

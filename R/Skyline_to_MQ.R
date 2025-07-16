@@ -40,7 +40,6 @@ Skyline_to_MQ <- function(Skyline_fl,
   #Skyline_fl <- skyline_fl
   #
   if (TESTING) {
-    tm1 <<- Sys.time()
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
@@ -51,7 +50,7 @@ Skyline_to_MQ <- function(Skyline_fl,
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
-      clusterExport(cl, "a", envir = environment())
+      parallel::clusterExport(cl, "a", envir = environment())
     }, silent = TRUE))
     tstCl <- !"try-error" %in% class(tstCl)
   }
@@ -519,7 +518,7 @@ Skyline_to_MQ <- function(Skyline_fl,
     return(c(x1, x2))
   }
   environment(f0) <- .GlobalEnv
-  temp2 <- as.data.frame(t(parSapply(cl, temp1, f0)))
+  temp2 <- as.data.frame(t(parallel::parSapply(cl, temp1, f0)))
   temp2 <- temp2[match(EV$`Modified sequence`[wMod], uMdSq),]
   EV$`Modified sequence_verbose` <- paste0("_", EV$Sequence, "_")
   EV$`Modified sequence`[wMod] <- temp2[, 1]
@@ -550,7 +549,7 @@ Skyline_to_MQ <- function(Skyline_fl,
     return(x)
   }
   environment(f0) <- .GlobalEnv
-  tempMod3 <- parSapply(cl, tempMod2, f0)
+  tempMod3 <- parallel::parSapply(cl, tempMod2, f0)
   EV$Modifications[wMod] <- tempMod3[match(EV$`Modified sequence`[wMod], uMdSq)]
   #
   EV <- cbind(data.frame(id = 1:nrow(EV)),

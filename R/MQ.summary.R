@@ -345,7 +345,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         if (!misFun(cl)) {
           tstCl <- suppressWarnings(try({
             a <- 1
-            clusterExport(cl, "a", envir = environment())
+            parallel::clusterExport(cl, "a", envir = environment())
           }, silent = TRUE))
           tstCl <- !"try-error" %in% class(tstCl)
         }
@@ -372,8 +372,8 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         }
         chromtypes <- setNames(c("tic", "bpc"), c("TIC", "Base peak"))
         exports <- list("Raw", "rawFls", "we")
-        clusterExport(cl, exports, envir = environment())
-        #clusterCall(cl, function() { library(rawrr); return(0) })
+        parallel::clusterExport(cl, exports, envir = environment())
+        #invisible(parallel::clusterCall(cl, function() { library(rawrr); return() }))
         f0 <- function(x) {
           x2 <- rawrr::readChromatogram(Raw$Path[x], type = "tic")
           return(data.frame("Raw file" = Raw$`Raw file`[x],
@@ -415,7 +415,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               })
               return(w)
             }
-            tmp <- parLapply(cl, rawFls, f2)
+            tmp <- parallel::parLapply(cl, rawFls, f2)
             tmp <- do.call(rbind, tmp)
             temp$tst <- tmp$tst[match(1:nrow(temp), tmp$Wh)]
             temp$tst <- (temp$tst)&(temp$Intensity > max(temp$Intensity)/10)

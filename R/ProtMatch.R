@@ -17,6 +17,9 @@
 #' @param min For digestion. The minimum length of peptides to report. Default = 7
 #' @param max For digestion. The maximum length of peptides to report. Set to 100 (default) to allow even very large peptides. If one of the peptides in Seq in longer, than that length will be used instead.
 #' @param missed Let's say we have observations with up to 6 missed cleavages. This will probably break the function. In this case, it is better to specify a smaller number of missed cleavages, e.g. 2.
+#' @param I_eq_L Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631
+#'
+#' @export
 
 ProtMatch <- function(Seq,
                       DB,
@@ -25,10 +28,20 @@ ProtMatch <- function(Seq,
 					  loose.avoid = c("K_P", "R_P"),
                       min = 7,
 					  max = 100,
-					  missed = 2) {
+					  missed = 2,
+					  I_eq_L) {
   #proteoCraft::DefArg(proteoCraft::ProtMatch); w <- 1:nrow(ev); Seq = unique(ev$Sequence[w]); DB = db; min = MinPepSz
   stopifnot( min(nchar(Cut)) == 2, max(nchar(Cut)) == 2)
   if (!is.logical(max)) { max <- max(c(max, nchar(Seq))) }
+  #
+  if ((missing(I_eq_L))||(!is.logical(I_eq_L))||(is.na(I_eq_L))) {
+    if ((exists("isDIA"))&&(is.logical(isDIA))&&(!is.na(isDIA))) {
+      I_eq_L <- !idDIA
+    } else {
+      I_eq_L <- TRUE
+    }
+  }
+  #
   Seq <- data.frame(Sequence = Seq)
   #n0 <- nchar(Seq$Sequence)
   #for (C in gsub("_", "", Cut)) { Seq[[paste0(C, ".Count")]] <- n0 - nchar(gsub(C, "", Seq$Sequence)) }
@@ -61,7 +74,11 @@ ProtMatch <- function(Seq,
   #min(tst) > 2
   #temp2a <- temp2[which(temp2$Pep %in% Seq$Sequence),]
   #temp2b <- temp2[which(gsub("I", "L", temp2$Pep) %in% gsub("I", "L", Seq$Sequence)),] # There is a peptides assignment loss, though less than 1%
-  temp2 <- temp2[which(gsub("I", "L", temp2$Pep) %in% gsub("I", "L", Seq$Sequence)),]
+  if (I_eq_L) {
+    temp2 <- temp2[which(gsub("I", "L", temp2$Pep) %in% gsub("I", "L", Seq$Sequence)),]
+  } else {
+    temp2 <- temp2[which(temp2$Pep %in% Seq$Sequence),]
+  }
   # NB: The "unique" in the call below should be required for cases where we have sequence repetitions.
   temp3 <- magrittr::set_colnames(aggregate(temp2$Prot, list(temp2$Pep), function(x) { paste(unique(x), collapse = ";") }), c("Pep", "Prot"))
   w1 <- which(Seq$Sequence %in% temp3$Pep)

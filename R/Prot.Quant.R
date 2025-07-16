@@ -130,7 +130,7 @@ Prot.Quant <- function(Prot,
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
-      clusterExport(cl, "a", envir = environment())
+      parallel::clusterExport(cl, "a", envir = environment())
     }, silent = TRUE))
     tstCl <- !"try-error" %in% class(tstCl)
   }

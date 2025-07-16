@@ -13,7 +13,7 @@
 #' 
 #' The way the previous version used data.tables was not that great (creating un-necessarily large tables), and the function remained too slow.
 #' I have dropped those parts and instead have focused on filtering stuff as early as possible.
-#' I have also improved the parallelisation: now instead of using clusterExport() for large objects, the functions writes (then deletes) temporary .RDS files.
+#' I have also improved the parallelisation: now instead of using parallel::clusterExport() for large objects, the functions writes (then deletes) temporary .RDS files.
 #' If at some point writing those should fail, we could try the following solutions:
 #'  - using tmpfile() for those instead of a fixed-name file,
 #'  - or allow reverting to clusterExport() if .RDS serialization doesn't work.
@@ -26,6 +26,7 @@
 #' @param N.clust A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1. Only used if missed > 0
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one. Only used if missed > 0
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
+#' @param I_eq_L Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631
 #'
 #' @import data.table
 #' @export
@@ -35,7 +36,8 @@ ProtMatch2 <- function(Seq,
                        Cut = c("K_", "R_"),
                        N.clust = get("N.clust"),
                        N.reserved = 1,
-                       cl) {
+                       cl,
+                       I_eq_L) {
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::ProtMatch2);cl <- parClust; TESTING <- TRUE
   #Seq = unique(ev$Sequence);DB = db
@@ -52,7 +54,7 @@ ProtMatch2 <- function(Seq,
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
-      clusterExport(cl, "a", envir = environment())
+      parallel::clusterExport(cl, "a", envir = environment())
     }, silent = TRUE))
     tstCl <- !"try-error" %in% class(tstCl)
   }
@@ -82,7 +84,9 @@ ProtMatch2 <- function(Seq,
     Seq2$DigSeq <- gsub(gsub("_", "", C), C, Seq2$DigSeq) # -> insert cut sites before conversion of Ile to Leu!
   }
   Seq2$DigSeq <- gsub("^_|_$", "", Seq2$DigSeq)
-  Seq2$DigSeq <- gsub("I", "L", Seq2$DigSeq) # -> convert Ile to Leu
+  if (I_eq_L) {
+    Seq2$DigSeq <- gsub("I", "L", Seq2$DigSeq) # -> convert Ile to Leu
+  }
   Seq2$myDigest <- strsplit(Seq2$DigSeq, "_") # -> digest
   Seq2$L <- vapply(Seq2$myDigest, length, 1)
   Seq2$Parent_ID <- paste0("lP", 1:nrow(Seq2)) # -> here "lP" stands for "long peptide" (may have missed cleavages)
@@ -110,13 +114,11 @@ ProtMatch2 <- function(Seq,
   # - Use serialization to export efficiently large objects
   saveRDS(Dig, paste0(myWD, "/tmpDig.RDS"))
   saveRDS(frstPepNoMeth, paste0(myWD, "/1stPepNoMeth.RDS"))
-  f0 <- function(x) {
+  invisible(parallel::clusterCall(cl, function(x) {
     Dig <<- readRDS(paste0(myWD, "/tmpDig.RDS")) # So it stays in cluster for next call!
     frstPepNoMeth <<- readRDS(paste0(myWD, "/1stPepNoMeth.RDS")) # Same as above
-    return(0)
-  }
-  environment(f0) <- .GlobalEnv
-  tst <- parallel::clusterCall(cl, f0)
+    return()
+  }))
   #f0 <- function(x) { exists("Dig") & exists("frstPepNoMeth") }
   #environment(f0) <- .GlobalEnv
   #tst <- parallel::clusterCall(cl, f0)
@@ -235,7 +237,7 @@ ProtMatch2 <- function(Seq,
       saveRDS(Seq2flt_i, paste0(myWD, "/tmpA.RDS"))
       saveRDS(Frag2Prot_i, paste0(myWD, "/tmpB.RDS"))
       saveRDS(Dig2_i, paste0(myWD, "/tmpC.RDS"))
-      clusterExport(cl, list("i", "rg", "myWD", "fragRg"), envir = environment())
+      parallel::clusterExport(cl, list("i", "rg", "myWD", "fragRg"), envir = environment())
       tmpResI <- parallel::clusterCall(cl, f0Mtch)
       Res[[paste0(i, "-missed cleavages")]] <- do.call(rbind, tmpResI)
       unlink(paste0(myWD, "/tmpA.RDS"))

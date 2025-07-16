@@ -153,12 +153,12 @@ Configure <- function(updateOntologies = FALSE) {
     all_terms <- do.call(plyr::rbind.fill, all_terms)
   }
   parallel::clusterExport(tmpCl, list("homePath", "get_all_terms"), envir = environment())
-  parallel::clusterCall(tmpCl, function() {
+  invisible(parallel::clusterCall(tmpCl, function() {
     library(rols)
     library(httr)
     library(jsonlite)
-    return(0)
-  })
+    return()
+  }))
   # - Species: too large, takes forever and not worth it: we already usually have it (taxID is basically it)
   # if ((!file.exists(paste0(homePath, "/Species.csv")))||(updateOntologies)) {
   #   parallel::clusterCall(tmpCl, function() {

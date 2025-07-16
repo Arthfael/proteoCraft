@@ -108,14 +108,14 @@ load_Bckp <- function(backup,
     if ((exists("parClust"))&&(exists("N.clust"))&&("cluster" %in% class(parClust))) {
       currNodes <- gsub(" .*", "", gsub("socket cluster with ", "", capture.output(parClust)))
       currNodes <- as.integer(currNodes)
-      if (currNodes != N.clust) { stopCluster(parClust) }
+      if (currNodes != N.clust) { parallel::stopCluster(parClust) }
     }
     # If not, create it:
     a <- 1
-    tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
+    tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)
     if ("try-error" %in% class(tst)) {
-      if (exists("parClust")) { try(stopCluster(parClust), silent = TRUE) }
-      parClust <- makeCluster(N.clust, type = "SOCK")
+      if (exists("parClust")) { try(parallel::stopCluster(parClust), silent = TRUE) }
+      parClust <- parallel::makeCluster(N.clust, type = "SOCK")
     }
     usePar <- TRUE
   }
@@ -170,7 +170,7 @@ load_Bckp <- function(backup,
           #environment(f0) <- .GlobalEnv
           ok <- FALSE
           if (usePar) {
-            clusterExport(parClust, list("g0", "scrpt"), envir = environment())
+            parallel::clusterExport(parClust, list("g0", "scrpt"), envir = environment())
             tst <- try(setNames(parSapply(parClust, .obj, f0), .obj), silent = TRUE)
             ok <- !("try-error" %in% class(tst))
           }

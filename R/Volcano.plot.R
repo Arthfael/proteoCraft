@@ -168,7 +168,7 @@ Volcano.plot <- function(Prot,
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
-      clusterExport(cl, "a", envir = environment())
+      parallel::clusterExport(cl, "a", envir = environment())
     }, silent = TRUE))
     tstCl <- !"try-error" %in% class(tstCl)
   }
@@ -514,7 +514,7 @@ Volcano.plot <- function(Prot,
   Prot$Labels <- Prot[[parameters$Plot.labels]]
   weech <- which(Prot$Labels != "")
   colchar <- 25
-  clusterExport(cl, "colchar", envir = environment())
+  parallel::clusterExport(cl, "colchar", envir = environment())
   f0 <- function(x) {#x <- strsplit(Prot$Labels[weech], "  ?")[1]
     x <- unlist(x)
     if (length(x) > 8) { x <- c(x[1:8], "...") } # This is because:
@@ -536,7 +536,7 @@ Volcano.plot <- function(Prot,
   }
   environment(f0) <- .GlobalEnv
   if (length(weech)) {
-    Prot$Labels[weech] <- parSapply(cl, strsplit(Prot$Labels[weech], "  ?"), f0)
+    Prot$Labels[weech] <- parallel::parSapply(cl, strsplit(Prot$Labels[weech], "  ?"), f0)
   }
   weech <- which(Prot$Labels == "")
   id.col <- unique(c(Proteins.col, "Common Names", "Common Name (short)", "Names", "Name", "Genes", "Gene", "Code"))
@@ -1360,19 +1360,19 @@ Volcano.plot <- function(Prot,
                       dpi = 300, width = 10, height = 10, units = "in")
     }
     environment(f0) <- .GlobalEnv
-    tst <- parLapply(cl, plotsLst, f0)
+    tst <- parallel::parLapply(cl, plotsLst, f0)
   }
   if (plotly&&plotly_local) {
     if (subfolderpertype) { sfpt <- paste0(subfolder, "/html") } else { sfpt <- subfolder }
     if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
     setwd(sfpt)
-    clusterExport(cl, "sfpt", envir = environment())
+    parallel::clusterExport(cl, "sfpt", envir = environment())
     f0 <- function(x) {
       htmlwidgets::saveWidget(x$Plot, paste0(sfpt, "/", x$Ttl, ".html"),
                               selfcontained = TRUE)
     }
     environment(f0) <- .GlobalEnv
-    tst <- parLapply(cl, volcPlotly, f0)
+    tst <- parallel::parLapply(cl, volcPlotly, f0)
     setwd(origWD)
   }
   thrsh <- list(Absolute = plotMetr.lst)

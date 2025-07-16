@@ -29,6 +29,7 @@
 #' @param na Only used if Mode = "Align2" or "Heat". Colour for NA values.
 #' @param maxInt If provided, the maximum of the intensity scale is not detected from the values in intensities but provided externally. Useful if drawing maps from several intensity vectors and wanting to apply a single scale to all.
 #' @param bgcol Only used if Mode = "Align2" or "Heat". Which colour should the background be? Default = "black".
+#' @param I_eq_L Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631
 #' 
 #' @examples
 #' proteins <- "MNTTDCFIALVQAIREIKALFLSRTTGKMELTLYNGEKKTFYSRPNNHDNCWLNAILQLFRYVEEPFFDWVYSSPENLTLEAIKQLEDLTGLELHEGGPPALVIWNIKHLLHTGIGTASRPSEVCMVDGTDMCLADFHAGIFLKGQEHAVFACVTSNGWYAIDDEDFYPWTPDPSDVLVFVPYDQEPLNGEWKAKVQRKLKGAGQSSPATGSQNQSGNTMHMDIVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYKGPHHHHHHTEYKPTVRLATRDDVPRAVRTLAAAFADYPATRHTVDPDRHIERVTELQELFLTRVGLDIGKVWVADDGPAVAVWTTPESVEAGAVFAEIGPRMAELSGSRLAAQQQMEGLLAPHRPKEPAWFLATVGVSPDHQGKGLGSAVVLPGVEAAERAGVPAFLETSAPRNLPFYERLGFTVTADVEVPEGPRTWCMTRKPGATRVTELLYRMKRAETYCPRPLLAIHPTEARHKQKIVAPVKQTLNFDLLKLAGDVESNPGPFFFSDVRSNFSKLVETINQMQEDMSTKHGPDFNRLVSAFEELAIGVKAIRTGLDEAKPWYKLIKLLSRLSCMAAVAARSKDPVLVAIMLADTGLEILDSTFVVKKISDSLSSLFHVPAPVFSFGAPVLLAGLVKVASSFFRSTPEDLERAEKQLKARDINDIFAILKNGEWLVKLILAIRDWIKAWIASEEKFVTMTDLVPGILEKQRDLNDPSKYKEAKEWLDNARQACLKSGNVHIANLCKVVAPAPSKSRPEPVVVCLRGKSGQGKSFLANVLAQAISTHFTGRIDSVWYCPPDPDHFDGYNQQTVVVMDDLGQNPDGKDFKYFAQMVSTTGFIPPMASLEDKGKPFNSKVIIATTNLYSGFTPRTMVCPDALNRRFHFDIDVSAKDGYKINSKLDIIKALEDTHANPVAMFQYDCALLNGMAVEMKRMQQDMFKPQPPLQNVYQLVQEVIDRVELHEKVSSHPIFKQISIPSQKSVLYFLIEKGQHEAAIEFFEGMVHDSIKEELRPLIQQTSFVKRAFKRLKENFEIVALCLTLLANIVIMIRETRKRQKMVDDAVNEYIEKANITTDDKTLDEAEKSPLETSGASTVGFRERTLPGQKACDDVNSEPAQPVEEQPQAEGPYAGPLERQKPLKVRAKLPQQEGPYAGPMERQKPLKVKAKAPVVKEGPYEGPVKKPVALKVKAKNLIVTESGAPPTDLQKMVMGNTKPVELILDGKTVAICCATGVFGTAYLVPRHLFAEKYDKIMVDGRAMTDSDYRVFEFEIKVKGQDMLSDAALMVLHRGNRVRDITKHFRDTARMKKGTPVVGVINNADVGRLIFSGEALTYKDIVVCMDGDTMPGLFAYRAATKAGYCGGAVLAKDGADTFIVGTHSAGGNGVGYCSCVSRSMLLKMKAHIDPEPHHEGLIVDTRDVEERVHVMRKTKLAPTVAHGVFNPEFGPAALSNKDPRLNEGVVLDEVIFSKHKGDTKMSEEDKALFRRCAADYASRLHSVLGTANAPLSIYEAIKGVDGLDAMEPDTAPGLPWALQGKRRGALIDFENGTVGPEVEAALKLMEKREYKFVCQTFLKDEIRPLEKVRAGKTRIVDVLPVEHILYTRMMIGRFCAQMHSNNGPQIGSAVGCNPDVDWQRFGTHFAQYRNVWDVDYSAFDANHCSDAMNIMFEEVFRTEFGFHPNAEWILKTLVNTEHAYENKRITVGGGMPSGCSATSIINTILNNIYVLYALRRHYEGVELDTYTMISYGDDIVVASDYDLDFEALKPHFKSLGQTITPADKSDKGFVLGHSITDVTFLKRHFHMDYGTGFYKPVMASKTLEAILSFARRGTIQEKLISVAGLAVHSGPDEYRRLFEPFQGLFEIPSYRSLYLRWVNAVCGDA"
@@ -65,7 +66,8 @@ Coverage <- function(proteins,
                      intensities = NULL,
                      na = "red",
                      maxInt = NULL,
-                     bgcol = "black") {
+                     bgcol = "black",
+                     I_eq_L) {
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::Coverage);TESTING = TRUE
   #proteins = P; peptides = tmp$"Modified sequence"; Mode = "Align2"; title = ttl; save = c("jpeg", "pdf"); intensities = tmp$`log10(Intensity)`
@@ -78,6 +80,14 @@ Coverage <- function(proteins,
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
+  #
+  if ((misFun(I_eq_L))||(!is.logical(I_eq_L))||(is.na(I_eq_L))) {
+    if ((exists("isDIA"))&&(is.logical(isDIA))&&(!is.na(isDIA))) {
+      I_eq_L <- !idDIA
+    } else {
+      I_eq_L <- TRUE
+    }
+  }
   if (!Mode %in% c("Coverage", "Align", "Align2", "XML", "Heat")) {
     stop("Accepted value for \"Mode\" argument:\n - \"Coverage\": only return percentage of sequence coverage\n - \"Align\": create simple peptide coverage map\n - \"Align2\": create peptide coverage map with individual peptide intensities\n - \"XML\": writes xml formated coverage text for writing into Excel tables.")
   }
@@ -188,8 +198,10 @@ Coverage <- function(proteins,
     # Account for the fact that Leucine and Isoleucine are indistinguishable by MS
     peptidesOrig <- peptides
     proteinsOrig <- proteins
-    peptides <- gsub("I", "L", peptides)
-    proteins <- gsub("I", "L", proteins)
+    if (I_eq_L) {
+      peptides <- gsub("I", "L", peptides)
+      proteins <- gsub("I", "L", proteins)
+    }
     #
     if (Mode == "Align2") {
       if (misFun(maxInt)) { maxInt <- max(intensities, na.rm = TRUE) }
@@ -617,7 +629,11 @@ Coverage <- function(proteins,
                   rg <- which((align.temp2$N %in% rg)&(align.temp2$Protein == matches2$Protein[i]))
                   stopifnot(length(rg) == matches2$Length[i])
                   #stopifnot(paste(align.temp2$AA[rg], collapse = "") == matches2$stripOrig[i])
-                  stopifnot(gsub("I", "L", paste(align.temp2$AA[rg], collapse = "")) == gsub("I", "L", matches2$stripOrig[i]))
+                  if (I_eq_L) {
+                    stopifnot(gsub("I", "L", paste(align.temp2$AA[rg], collapse = "")) == gsub("I", "L", matches2$stripOrig[i]))
+                  } else {
+                    stopifnot(paste(align.temp2$AA[rg], collapse = "") == matches2$stripOrig[i])
+                  }
                   #align.temp2$AA[rg]
                   tmp <- data.frame(A = align.temp2$Intensity[rg],
                                     B = matches2$Intensity[i])

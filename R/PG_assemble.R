@@ -91,10 +91,9 @@ PG_assemble <- function(Pep,
     cleanUp <- TRUE
   }
   #
-  a <- parallel::clusterCall(cl, function() {
+  a <- invisible(parallel::clusterCall(cl, function() {
     library(data.table)
-    return(0)
-  })    
+  }))
   #
   if (!"MW [kDa]" %in% colnames(DB)) {
     DB$"MW [kDa]" <- round(suppressWarnings(parallel::parSapply(cl, DB$Sequence, Peptides::mw))/1000, 3)
@@ -252,11 +251,11 @@ PG_assemble <- function(Pep,
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
   saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
   parallel::clusterExport(cl, "wd", envir = environment())
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
     tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   unlink(paste0(wd, "/tmp2.RDS"))
   f0 <- function(x) { sort(unique(unlist(tmp2$.Prot.ids[match(unlist(x), tmp2$id)]))) }
@@ -293,10 +292,10 @@ PG_assemble <- function(Pep,
   cat(" - Identifying, for each protein ID, whether its peptides are contained by a single other protein ID.\n")
   tmp1 <- prot[, c(".pep.ids", "pep_to_P", "Prot.id")]
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   f0 <- function(x) {
     #x <- tmp1[1,]
@@ -317,10 +316,10 @@ PG_assemble <- function(Pep,
   tmp1 <- prot[, "Prot.id", drop = FALSE]
   tmp1$temp <- protTemp
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   f0 <- function(x) {
     x2 <- unlist(x[[2]])
@@ -350,11 +349,11 @@ PG_assemble <- function(Pep,
   tmp4 <- prot[, c(".pep.ids", "Prot.id")]
   saveRDS(tmp3, paste0(wd, "/tmp3.RDS"))
   saveRDS(tmp4, paste0(wd, "/tmp4.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp3 <<- readRDS(paste0(wd, "/tmp3.RDS"))
     tmp4 <<- readRDS(paste0(wd, "/tmp4.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp3.RDS"))
   unlink(paste0(wd, "/tmp4.RDS"))
   f0 <- function(x) { tmp4$.pep.ids[match(unlist(x), tmp4$Prot.id)] }
@@ -363,10 +362,10 @@ PG_assemble <- function(Pep,
   ## Now these containers, are they "larger" (N of peptides)?
   tmp1 <- contained[, c(".pep.ids", "Container.pep.ids")]
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   f0 <- function(x) {
     x1 <- unlist(x[[1]])
@@ -381,10 +380,10 @@ PG_assemble <- function(Pep,
   #
   tmp1 <- contained$Container.is.larger
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   f0 <- function(x) { sum(x) }
   environment(f0) <- .GlobalEnv
@@ -413,11 +412,11 @@ PG_assemble <- function(Pep,
   tmp2 <- prot[, c("Contains", "Prot.id")]
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
   saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
     tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   unlink(paste0(wd, "/tmp2.RDS"))
   f0 <- function(x) {
@@ -433,11 +432,11 @@ PG_assemble <- function(Pep,
   tmp2 <- prot[, c("Protein", "Prot.id")]
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
   saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
     tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   unlink(paste0(wd, "/tmp2.RDS"))
   f0 <- function(x) { list(tmp2$Protein[match(unlist(x), tmp2$Prot.id)]) }
@@ -472,11 +471,11 @@ PG_assemble <- function(Pep,
   tmp2 <- pg$.pep.ids
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
   saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
     tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   unlink(paste0(wd, "/tmp2.RDS"))
   f0 <- function(x) {
@@ -510,11 +509,11 @@ PG_assemble <- function(Pep,
   tmp2 <- prot[, c("PEP", "Protein")]
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
   saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
     tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   unlink(paste0(wd, "/tmp2.RDS"))
   f0 <- function(x) { tmp2$PEP[match(unlist(x), tmp2$Protein)] }
@@ -523,10 +522,10 @@ PG_assemble <- function(Pep,
   #
   tmp1 <- pg$.PEPs
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   f0 <- function(x) { paste(x, collapse = ";") }
   environment(f0) <- .GlobalEnv
@@ -697,7 +696,7 @@ PG_assemble <- function(Pep,
   p1 <- unique(unlist(pg1$.pep.ids))
   p <- unique(unlist(pg$.pep.ids))
   if (sum(!p %in% p1)) { # (Sanity check)
-    if (cleanUp) { stopCluster(cl) }
+    if (cleanUp) { parallel::stopCluster(cl) }
     stop("There may be a bug, check!")
   }
   pg <- pg1; rm(pg1)
@@ -737,21 +736,21 @@ PG_assemble <- function(Pep,
   tmp2 <- pg[, c("id", "temp.pg.id")]
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
   saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
     tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   unlink(paste0(wd, "/tmp2.RDS"))
   f0 <- function(x) { tmp2$id[which(tmp2$temp.pg.id %in% unlist(x))] }
   #environment(f0) <- .GlobalEnv
   tmp1 <- seq$.PG.ids <- parallel::parSapply(cl, tmp1, f0)
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   f0 <- function(x) { paste(x, collapse = ";") }
   #environment(f0) <- .GlobalEnv
@@ -786,12 +785,12 @@ PG_assemble <- function(Pep,
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
   saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
   saveRDS(CustPG, paste0(wd, "/CustPG.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
     tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
     CustPG <<- readRDS(paste0(wd, "/CustPG.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   unlink(paste0(wd, "/tmp2.RDS"))
   unlink(paste0(wd, "/CustPG.RDS"))
@@ -830,13 +829,13 @@ PG_assemble <- function(Pep,
   saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
   saveRDS(tmp3, paste0(wd, "/tmp3.RDS"))
   saveRDS(c2, paste0(wd, "/c2.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
     tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
     tmp3 <<- readRDS(paste0(wd, "/tmp3.RDS"))
     c2 <<- readRDS(paste0(wd, "/c2.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   unlink(paste0(wd, "/tmp2.RDS"))
   unlink(paste0(wd, "/tmp3.RDS"))
@@ -888,12 +887,12 @@ PG_assemble <- function(Pep,
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
   saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
   saveRDS(tmp2, paste0(wd, "/c2.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
     tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
     c2 <<- readRDS(paste0(wd, "/c2.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   unlink(paste0(wd, "/tmp2.RDS"))
   unlink(paste0(wd, "/c2.RDS"))
@@ -955,13 +954,13 @@ PG_assemble <- function(Pep,
   saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
   saveRDS(tmp3, paste0(wd, "/tmp3.RDS"))
   saveRDS(c2, paste0(wd, "/c2.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
     tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
     tmp3 <<- readRDS(paste0(wd, "/tmp3.RDS"))
     c2 <<- readRDS(paste0(wd, "/c2.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   unlink(paste0(wd, "/tmp2.RDS"))
   unlink(paste0(wd, "/tmp3.RDS"))
@@ -1033,15 +1032,15 @@ PG_assemble <- function(Pep,
   saveRDS(c2, paste0(wd, "/c2.RDS"))
   saveRDS(ca, paste0(wd, "/ca.RDS"))
   saveRDS(cb, paste0(wd, "/cb.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
     tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
     c1 <<- readRDS(paste0(wd, "/c1.RDS"))
     c2 <<- readRDS(paste0(wd, "/c2.RDS"))
     ca <<- readRDS(paste0(wd, "/ca.RDS"))
     cb <<- readRDS(paste0(wd, "/cb.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   unlink(paste0(wd, "/tmp2.RDS"))
   unlink(paste0(wd, "/c1.RDS"))
@@ -1079,11 +1078,11 @@ PG_assemble <- function(Pep,
   tmp2 <- vapply(strsplit(pg$"Leading protein IDs", ";"), function(x) { x[1] }, "")
   saveRDS(tmp, paste0(wd, "/tmp.RDS"))
   saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp <<- readRDS(paste0(wd, "/tmp.RDS"))
     tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp.RDS"))
   unlink(paste0(wd, "/tmp2.RDS"))
   f0 <- function(x) { unlist(tmp[match(x, tmp$"Protein ID"), c("MW [kDa]", "Sequence length")]) }
@@ -1098,12 +1097,12 @@ PG_assemble <- function(Pep,
   saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
   saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
   saveRDS(tmp3, paste0(wd, "/tmp3.RDS"))
-  a <- parallel::clusterCall(cl, function() {
+  invisible(parallel::clusterCall(cl, function() {
     tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
     tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
     tmp3 <<- readRDS(paste0(wd, "/tmp3.RDS"))
-    return(0)
-  })
+    return()
+  }))
   unlink(paste0(wd, "/tmp1.RDS"))
   unlink(paste0(wd, "/tmp2.RDS"))
   unlink(paste0(wd, "/tmp3.RDS"))
@@ -1128,11 +1127,11 @@ PG_assemble <- function(Pep,
     tmp2 <- seq[, c("id", ".Evidence.IDs")]
     saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
     saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-    a <- parallel::clusterCall(cl, function() {
+    invisible(parallel::clusterCall(cl, function() {
       tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
       tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-      return(0)
-    })
+      return()
+    }))
     unlink(paste0(wd, "/tmp1.RDS"))
     unlink(paste0(wd, "/tmp2.RDS"))
     f0 <- function(x) {
@@ -1175,11 +1174,11 @@ PG_assemble <- function(Pep,
     tmp2 <- strsplit(pg$"Leading protein IDs", ";")
     saveRDS(tmp1, paste0(wd, "/tmp.RDS"))
     saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-    a <- parallel::clusterCall(cl, function() {
+    invisible(parallel::clusterCall(cl, function() {
       tmp <<- readRDS(paste0(wd, "/tmp.RDS"))
       tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-      return(0)
-    })
+      return()
+    }))
     unlink(paste0(wd, "/tmp.RDS"))
     unlink(paste0(wd, "/tmp2.RDS"))      
     f0 <- function(x) {

@@ -45,7 +45,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
   if (!misFun(cl)) {
     tstCl <- suppressWarnings(try({
       a <- 1
-      clusterExport(cl, "a", envir = environment())
+      parallel::clusterExport(cl, "a", envir = environment())
     }, silent = TRUE))
     tstCl <- !"try-error" %in% class(tstCl)
   }
@@ -624,7 +624,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
           }
         }
         if (ScanHdsMnTst) {
-          clusterExport(cl, list("ScanHdsMnLoc"), envir = environment())
+          parallel::clusterExport(cl, list("ScanHdsMnLoc"), envir = environment())
           f0 <- function(rwfl) { #rwfl <- rawMeth$Raw.file[w2][1]
             cmd <- paste0("\"", ScanHdsMnLoc, "/ScanHeadsman.exe\" \"", rwfl, "\" -n -m=1 -t=",
                           1)
@@ -632,7 +632,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
             system(cmd)
           }
           environment(f0) <- .GlobalEnv
-          tst2 <- parSapply(cl, rawMeth$Raw.file[w2], f0)
+          tst2 <- parallel::parSapply(cl, rawMeth$Raw.file[w2], f0)
           w2 <- w2[which(!tst2)]
         }
       }
@@ -643,7 +643,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         return(list(xmeth))
       }
       environment(f0) <- .GlobalEnv
-      methods <- setNames(parSapply(cl, rawMeth$Method[w], f0), rawMeth$Raw.file[w])
+      methods <- setNames(parallel::parSapply(cl, rawMeth$Method[w], f0), rawMeth$Raw.file[w])
       tmp <- sapply(methods, paste, collapse = "___")
       tst <- aggregate(1:length(methods), list(tmp), list)
       tst$Raws <- lapply(tst$Group.1, function(x) { names(tmp)[which(tmp == x)] })
