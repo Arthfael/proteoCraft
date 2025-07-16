@@ -11,7 +11,8 @@ cov3D(
   path,
   intensities = NULL,
   display = TRUE,
-  asRatios = FALSE
+  asRatios = FALSE,
+  I_eq_L
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ cov3D(
 \item{display}{Logical: should we open the plot? TRUE by default.}
 
 \item{asRatios}{Is the data fed to the intensities argument actually ratios data (default = FALSE)? If TRUE, this changes the default color scale from "viridis" to "plasma"}
+
+\item{I_eq_L}{Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631}
 }
 \description{
 This function can be used to create a 3d coverage map of identified pepides overlaid over a protein model in PDB format.

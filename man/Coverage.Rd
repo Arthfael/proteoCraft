@@ -20,7 +20,8 @@ Coverage(
   intensities = NULL,
   na = "red",
   maxInt = NULL,
-  bgcol = "black"
+  bgcol = "black",
+  I_eq_L
 )
 }
 \arguments{
@@ -60,6 +61,8 @@ Coverage(
 \item{maxInt}{If provided, the maximum of the intensity scale is not detected from the values in intensities but provided externally. Useful if drawing maps from several intensity vectors and wanting to apply a single scale to all.}
 
 \item{bgcol}{Only used if Mode = "Align2" or "Heat". Which colour should the background be? Default = "black".}
+
+\item{I_eq_L}{Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631}
 }
 \description{
 This function can be used in 5 different modes:

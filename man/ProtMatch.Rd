@@ -12,7 +12,8 @@ ProtMatch(
   loose.avoid = c("K_P", "R_P"),
   min = 7,
   max = 100,
-  missed = 2
+  missed = 2,
+  I_eq_L
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ ProtMatch(
 \item{max}{For digestion. The maximum length of peptides to report. Set to 100 (default) to allow even very large peptides. If one of the peptides in Seq in longer, than that length will be used instead.}
 
 \item{missed}{Let's say we have observations with up to 6 missed cleavages. This will probably break the function. In this case, it is better to specify a smaller number of missed cleavages, e.g. 2.}
+
+\item{I_eq_L}{Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631}
 }
 \description{
 This function is very slow and should not be used! It is only provided for legacy purposes. Instead use ProtMatch2, which is ~50-to-1000 times faster!

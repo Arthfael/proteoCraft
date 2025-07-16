@@ -10,7 +10,8 @@ ProtMatch2(
   Cut = c("K_", "R_"),
   N.clust = get("N.clust"),
   N.reserved = 1,
-  cl
+  cl,
+  I_eq_L
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ ProtMatch2(
 \item{N.reserved}{Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one. Only used if missed > 0}
 
 \item{cl}{Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!}
+
+\item{I_eq_L}{Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631}
 }
 \description{
 A function to match observed peptide sequences to a protein digest:
@@ -39,7 +42,7 @@ Aaand... once again, this function has been radically re-written. Again, I did n
 
 The way the previous version used data.tables was not that great (creating un-necessarily large tables), and the function remained too slow.
 I have dropped those parts and instead have focused on filtering stuff as early as possible.
-I have also improved the parallelisation: now instead of using clusterExport() for large objects, the functions writes (then deletes) temporary .RDS files.
+I have also improved the parallelisation: now instead of using parallel::clusterExport() for large objects, the functions writes (then deletes) temporary .RDS files.
 If at some point writing those should fail, we could try the following solutions:
  - using tmpfile() for those instead of a fixed-name file,
  - or allow reverting to clusterExport() if .RDS serialization doesn't work.
