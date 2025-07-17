@@ -889,7 +889,7 @@ tmp1 <- pg[, c2]
 tmp2 <- prot[, c(".pep.ids", "Protein")]
 saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
 saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-saveRDS(tmp2, paste0(wd, "/c2.RDS"))
+saveRDS(c2, paste0(wd, "/c2.RDS"))
 invisible(parallel::clusterCall(cl, function() {
   tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
   tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
@@ -1077,21 +1077,21 @@ pg[, c1] <- tst2
 pg$"Number of proteins" <- as.integer(pg$"Number of proteins")
 DB$temp <- NULL
 DB$"Sequence length" <- nchar(DB$Sequence)
-tmp <- DB[, c("Protein ID", "MW [kDa]", "Sequence length")]
+tmp1 <- DB[, c("Protein ID", "MW [kDa]", "Sequence length")]
 tmp2 <- vapply(strsplit(pg$"Leading protein IDs", ";"), function(x) { x[1] }, "")
-saveRDS(tmp, paste0(wd, "/tmp.RDS"))
+saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
 saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
 invisible(parallel::clusterCall(cl, function() {
-  tmp <<- readRDS(paste0(wd, "/tmp.RDS"))
+  tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
   tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
   return()
 }))
-unlink(paste0(wd, "/tmp.RDS"))
+unlink(paste0(wd, "/tmp1.RDS"))
 unlink(paste0(wd, "/tmp2.RDS"))
-f0 <- function(x) { unlist(tmp[match(x, tmp$"Protein ID"), c("MW [kDa]", "Sequence length")]) }
+f0 <- function(x) { unlist(tmp1[match(x, tmp1$"Protein ID"), c("MW [kDa]", "Sequence length")]) }
 #environment(f0) <- .GlobalEnv
 pg[, c("Mol. weight [kDa]", "Sequence length")] <- as.data.frame(t(parallel::parSapply(cl, tmp2, f0)))
-f0 <- function(x) { paste(tmp$"Sequence length"[match(x, tmp$"Protein ID")], collapse = ";") } # (I checked, the order is fine) 
+f0 <- function(x) { paste(tmp1$"Sequence length"[match(x, tmp1$"Protein ID")], collapse = ";") } # (I checked, the order is fine) 
 #environment(f0) <- .GlobalEnv
 pg$"Sequence lengths" <- parallel::parSapply(cl, tmp2, f0)
 tmp1 <- pg$.pep.ids
@@ -1173,19 +1173,19 @@ w <- which(pg$id %in% temp$Group.1)
 pg$"Unique peptide IDs"[w] <- temp$x[match(pg$id[w], temp$Group.1)]
 # Some more annotations
 if ("Common Name" %in% colnames(DB)) {
-  tmp <- DB[, c("Protein ID", "Common Name")]
+  tmp1 <- DB[, c("Protein ID", "Common Name")]
   tmp2 <- strsplit(pg$"Leading protein IDs", ";")
-  saveRDS(tmp1, paste0(wd, "/tmp.RDS"))
+  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
   saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp <<- readRDS(paste0(wd, "/tmp.RDS"))
+    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
     tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
     return()
   }))
-  unlink(paste0(wd, "/tmp.RDS"))
+  unlink(paste0(wd, "/tmp1.RDS"))
   unlink(paste0(wd, "/tmp2.RDS"))      
   f0 <- function(x) {
-    x <- tmp$"Common Name"[match(unlist(x), tmp$"Protein ID")]
+    x <- tmp1$"Common Name"[match(unlist(x), tmp1$"Protein ID")]
     x <- x[which((!is.na(x))&(x != ""))]
     paste(x, collapse = ";")
   }
@@ -1229,6 +1229,10 @@ colnames(seq)[match("Proteins", colnames(seq))] <- Proteins.col
 Pep[, colnames(seq)] <- seq[match(Pep$"Modified sequence", seq$"Modified sequence"),]
 PG_assembly <- list(Protein.groups = pg, Peptides = Pep, Database = DB)
 if (!misFun(Ev)) { PG_assembly$Evidences <- Ev }
+invisible(parallel::clusterCall(cl, function(x) {
+  try(rm(tmp1, tmp2, tmp3, tmp4, CustPG, c1, c2, ca, cb), silent = TRUE)
+  return()
+}))
 if (cleanUp) { parallel::stopCluster(cl) }
 if (TESTING) {
   tm2 <<- Sys.time()
