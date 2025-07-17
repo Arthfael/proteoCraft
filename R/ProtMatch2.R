@@ -37,7 +37,7 @@ ProtMatch2 <- function(Seq,
                        N.clust = get("N.clust"),
                        N.reserved = 1,
                        cl,
-                       I_eq_L) {
+                       I_eq_L = TRUE) {
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::ProtMatch2);cl <- parClust; TESTING <- TRUE
   #Seq = unique(ev$Sequence);DB = db
@@ -130,7 +130,7 @@ ProtMatch2 <- function(Seq,
       seq <- c(seq, frstPepNoMeth[m])
       pos <- c(pos, 1)
     }
-    rm(Dig)
+    #rm(Dig)
     return(data.frame(Pos = pos,
                       Seq = seq,
                       Prot = Nms[x]))

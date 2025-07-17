@@ -24,7 +24,7 @@ cov3D <- function(pdb,
                   intensities = NULL,
                   display = TRUE,
                   asRatios = FALSE,
-                  I_eq_L) {
+                  I_eq_L = TRUE) {
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::cov3D) ;TESTING = TRUE
   #pdb = pdbFl; peptides = tmpDat$Group.1; path = paste0(Par_dir, "/FLAG_KCC2_coverage (", pdbNm, ").html"); intensities = tmpDat$x

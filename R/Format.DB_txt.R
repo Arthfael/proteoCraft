@@ -60,10 +60,10 @@ Format.DB_txt <- function(txt,
                           cl,
                           Feat_accRgx = "[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}") {
   TESTING <- FALSE
-  Feat_isoRgx <- paste0("(", Feat_accRgx, ")(-[0-9]+)?")
   #
   #TESTING <- TRUE;proteoCraft::DefArg(proteoCraft::Format.DB_txt)
-  
+  Feat_isoRgx <- paste0("(", Feat_accRgx, ")(-[0-9]+)?")
+  #
   #txt <- readLines(AnnotFls)
   if (TESTING) {
     # Note:

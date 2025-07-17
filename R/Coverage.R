@@ -67,7 +67,7 @@ Coverage <- function(proteins,
                      na = "red",
                      maxInt = NULL,
                      bgcol = "black",
-                     I_eq_L) {
+                     I_eq_L = TRUE) {
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::Coverage);TESTING = TRUE
   #proteins = P; peptides = tmp$"Modified sequence"; Mode = "Align2"; title = ttl; save = c("jpeg", "pdf"); intensities = tmp$`log10(Intensity)`

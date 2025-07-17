@@ -29,16 +29,14 @@
 #' @export
 
 alphaDIA_to_MQ <- function(alphaDIA_fl,
-                        Fixed.mods = c("Carbamidomethyl"),
-                        N.clust,
-                        N.reserved = 1,
-                        cl,
-                        digPattern = "KR") {
+                           Fixed.mods = c("Carbamidomethyl"),
+                           N.clust,
+                           N.reserved = 1,
+                           cl,
+                           digPattern = "KR") {
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::alphaDIA_to_MQ);TESTING <- TRUE; cl <- parClust
-  #alphaDIA_fl <- PSMsFls
   #alphaDIA_fl <- rstudioapi::selectFile(path = paste0(getwd(), "/*.tsv"))
-  #alphaDIA_fl <- alphaDIARep
   #
   # NB:
   # This function deliberately uses a different object name for the PTMs table to other related functions,
@@ -114,7 +112,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
     gB <- vapply(gA, function(x) { min(gP[which(gP > x)]) }, 1)
     g0 <- unlist(lapply(1:length(gA), function(x) { (gA[x]+1):(gB[x]-1) }))
     rwFlPths <- gsub("\\\\", "/", unique(gsub(" +\\[.*", "", gsub("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: │   \033\\[[^ ]+ +", "", log[g0]))))
-    rwFls <- gsub(".*/", "", rwFlPths)
+    rwFls <- gsub(".*/|\\.[^\\.]+$", "", rwFlPths)
   } else {
     msg <- "   log.txt file missing"
     rwFls <- unique(alphaDIA$run)
@@ -292,7 +290,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   EV$"m/z (library)" <- alphaDIA$mz_library
   parallel::clusterExport(cl, "allPTMs", envir = environment())
   tmp0 <- strsplit(unique(EV$Modifications[wMod]), ";")
-  mdShft0 <- vapply(tmp1a, function(x) {
+  mdShft0 <- vapply(tmp0, function(x) {
     sum(allPTMs$`Mass shift`[match(Mods$`Full name`[match(x, Mods$`Old mark`)], allPTMs$`Full name`)]) # No na.rm = TRUE: if we fail to calculate, I want to see it
   }, 1)
   mdShft <- mdShft0[match(EV$Modifications[wMod], tmp0)]
@@ -335,7 +333,6 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   #
   # Quantitative values
   EV$"Intensity" <- as.numeric(alphaDIA$intensity)
-  EV$"MS2 intensities" <- alphaDIA[[IntColz[1]]]
   #
   EV$Type <- "LIB-DIA" # This may need to change if important.
   #

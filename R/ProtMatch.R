@@ -23,13 +23,13 @@
 
 ProtMatch <- function(Seq,
                       DB,
-					  Cut = c("K_", "R_"),
-					  strict.avoid = "",
-					  loose.avoid = c("K_P", "R_P"),
+                      Cut = c("K_", "R_"),
+                      strict.avoid = "",
+                      loose.avoid = c("K_P", "R_P"),
                       min = 7,
-					  max = 100,
-					  missed = 2,
-					  I_eq_L) {
+                      max = 100,
+                      missed = 2,
+                      I_eq_L = TRUE) {
   #proteoCraft::DefArg(proteoCraft::ProtMatch); w <- 1:nrow(ev); Seq = unique(ev$Sequence[w]); DB = db; min = MinPepSz
   stopifnot( min(nchar(Cut)) == 2, max(nchar(Cut)) == 2)
   if (!is.logical(max)) { max <- max(c(max, nchar(Seq))) }
