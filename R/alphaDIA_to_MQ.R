@@ -279,6 +279,8 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   #View(cbind(tmp1, tmp2))
   EV$"Modified sequence"[wMod] <- tmp2[, 1]
   EV$"Modified sequence_verbose"[wMod] <- tmp2[, 2]
+  EV$"Modified sequence" <- paste0("_", EV$"Modified sequence", "_")
+  EV$"Modified sequence_verbose" <- paste0("_", EV$"Modified sequence_verbose", "_")
   #
   EV$Modifications <- alphaDIA$mods
   EV$Modification_sites <- alphaDIA$mod_sites
@@ -351,7 +353,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   EV <- cbind(data.frame(id = 1:nrow(EV)),
               EV)
   Res <- list(Evidence = EV,
-              PTMs = Mods)
+              PTMs = allPTMs)
   #
   invisible(parallel::clusterCall(cl, function(x) {
     try(rm(tmp1), silent = TRUE)

@@ -42,6 +42,7 @@ ProtMatch2 <- function(Seq,
   #proteoCraft::DefArg(proteoCraft::ProtMatch2);cl <- parClust; TESTING <- TRUE
   #Seq = unique(ev$Sequence);DB = db
   #Seq = unique(pep$Sequence);DB = db
+  #Seq = uSeq;DB = db
   #w <- 1:nrow(ev); Seq = unique(ev$Sequence[w]); DB = db
   if (TESTING) {
     # Note:
@@ -114,11 +115,11 @@ ProtMatch2 <- function(Seq,
   # - Use serialization to export efficiently large objects
   saveRDS(Dig, paste0(myWD, "/tmpDig.RDS"))
   saveRDS(frstPepNoMeth, paste0(myWD, "/1stPepNoMeth.RDS"))
-  invisible(parallel::clusterCall(cl, function(x) {
+  parallel::clusterCall(cl, function(x) {
     Dig <<- readRDS(paste0(myWD, "/tmpDig.RDS")) # So it stays in cluster for next call!
     frstPepNoMeth <<- readRDS(paste0(myWD, "/1stPepNoMeth.RDS")) # Same as above
     return()
-  }))
+  })
   #f0 <- function(x) { exists("Dig") & exists("frstPepNoMeth") }
   #environment(f0) <- .GlobalEnv
   #tst <- parallel::clusterCall(cl, f0)
