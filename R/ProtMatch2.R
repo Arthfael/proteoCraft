@@ -254,6 +254,10 @@ ProtMatch2 <- function(Seq,
   }
   row.names(Res) <- 1:nrow(Res)
   #
+  invisible(parallel::clusterCall(cl, function(x) {
+    try(rm(Dig, frstPepNoMeth, Seq2flt_i, Frag2Prot_i, Dig2_i), silent = TRUE)
+    return()
+  }))
   if (stopCl) { parallel::stopCluster(cl) }
   return(Res)
 }

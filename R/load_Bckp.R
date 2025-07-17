@@ -46,6 +46,15 @@ load_Bckp <- function(backup,
   } else {
     bckp <- backup
   }
+  if ((!nchar(bckp))||(length(bckp) != 1)||(!"character" %in% class(bckp))) {
+    warning("\"backup\" must be a single length = 1 character path to a valid proteoCraft backup file!")
+    return()
+  }
+  if ((!file.exists(bckp))) {
+    warning("The specifid \"backup\" file does not exist!")
+    return()
+  }
+  wdExisted <- exists("wd", .GlobalEnv)
   bckpDeerayktoray <- dirname(bckp)
   #
   #bckp <- "~/R/proteoCraft/AN_GNRGFL1_5637917142/Backup.RData"
@@ -59,7 +68,11 @@ load_Bckp <- function(backup,
   }
   #
   if ((exists("wd"))&&(!dir.exists(wd))) {
-    warning("Invalid work directory, using parent directory of backup file instead")
+    if (!wdExisted) {
+      warning("Invalid work directory loaded from backup file, using its parent directory instead!")
+    } else {
+      warning("Setting work directory to the backup file's parent directory.")
+    }
     wd <- bckpDeerayktoray
   }
   tst <- try(setwd(wd), silent = TRUE)

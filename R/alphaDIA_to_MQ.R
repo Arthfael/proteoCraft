@@ -353,6 +353,10 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   Res <- list(Evidence = EV,
               PTMs = Mods)
   #
+  invisible(parallel::clusterCall(cl, function(x) {
+    try(rm(tmp1), silent = TRUE)
+    return()
+  }))
   if (stopCl) { parallel::stopCluster(cl) }
   return(Res)
 }
