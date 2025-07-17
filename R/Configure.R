@@ -101,11 +101,12 @@ Configure <- function(updateOntologies = FALSE) {
     try(file.copy(fl0, homePath, overwrite = FALSE), silent = TRUE)
   }
   #
-  # Also copy analysis scripts to home
+  # Also copy main data analysis scripts to home
   scrpts2 <- c("Regulation analysis - master script",
                "Regulation analysis - detailed script",
                "Regulation analysis - detailed script_pepOnly",
                "No replicates analysis - detailed script",
+               "Histones_analysis_-_DiaNN_FragPipe_Skyline_or_alphaDIA_input",
                "Reload_renv_from_lock_file")
   extDr1 <- paste0(proteoPath, "/extdata/R scripts")
   fls <- paste0(extDr1, "/", scrpts2, ".R")
