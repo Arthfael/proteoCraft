@@ -5,7 +5,7 @@
 #' 
 #' @param startVal Starting values of each text input.
 #' @param root Root of the created input names. Names generated will be of the form "root___i", where i is the 1:n row number.
-#' @param width The width of the input, e.g. '400px', or '100%'; see htmltools::validateCssUnit().
+#' @param width The width of the input, e.g. "400px", or "100%"; see htmltools::validateCssUnit().
 #' 
 #' @examples
 #' # Use within a shiny server as below:

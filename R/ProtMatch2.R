@@ -239,7 +239,7 @@ ProtMatch2 <- function(Seq,
       saveRDS(Frag2Prot_i, paste0(myWD, "/tmpB.RDS"))
       saveRDS(Dig2_i, paste0(myWD, "/tmpC.RDS"))
       parallel::clusterExport(cl, list("i", "rg", "myWD", "fragRg"), envir = environment())
-      tmpResI <- parallel::clusterCall(cl, f0Mtch)
+      tmpResI <- parallel::parLapply(cl, 1:N.clust, f0Mtch)
       Res[[paste0(i, "-missed cleavages")]] <- do.call(rbind, tmpResI)
       unlink(paste0(myWD, "/tmpA.RDS"))
       unlink(paste0(myWD, "/tmpB.RDS"))
@@ -256,7 +256,7 @@ ProtMatch2 <- function(Seq,
   row.names(Res) <- 1:nrow(Res)
   #
   invisible(parallel::clusterCall(cl, function(x) {
-    try(rm(Dig, frstPepNoMeth, Seq2flt_i, Frag2Prot_i, Dig2_i), silent = TRUE)
+    try(rm(Dig, frstPepNoMeth), silent = TRUE)
     return()
   }))
   if (stopCl) { parallel::stopCluster(cl) }

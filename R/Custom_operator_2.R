@@ -10,10 +10,10 @@
 #'  - If .obj does not exist, it is created.
 #'  
 #'  Both operators differ slightly in usage:
-#'  - "%<o%" takes the following syntax:
-#'          variable %<o% value
-#'  - "%<c%" takes the following syntax:
-#'          "variable" %<o% value
+#'  - "\%<o\%" takes the following syntax:
+#'          variable \%<o\% value
+#'  - "\%<c\%" takes the following syntax:
+#'          "variable" \%<o\% value
 #' 
 #' Careful!!!
 #' Those operators have the following limitations:
