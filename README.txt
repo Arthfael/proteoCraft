@@ -13,6 +13,7 @@ The following types of experiments are covered:
 	- Samples characterisation
 	- Gel band ID
 	- Basic, no-statistics involved comparisons between samples
+ 3) Histones modified peptides analysis.
 
 <i>(NB: All workflows could previously be run through a single master script, which ran code chunks sequentially and allowed partial processing. It is still included, but hasn't been tested/maintained in a while, so we would recommend not to use it for now.)</i>
 
