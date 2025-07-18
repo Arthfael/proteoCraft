@@ -7235,7 +7235,7 @@ saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 source(parSrc, local = FALSE)
 
-#### Code chunk - Proteome ruler
+#### Code chunk - Proteomic ruler
 if (protrul) {
   ProtRulRoot %<o% "log10(est. copies/cell) - "
   tempPG <- PG

@@ -617,15 +617,19 @@ for (p in pr) { if ((!is.logical(AnalysisParam[[p]]))||(is.na(AnalysisParam[[p]]
 # }
 # if (!QMdef %in% QuantMethods[1:6]) { QMdef <- "Prot.Quant.Unique" }
 # QMdefnm <- names(QuantMethods)[match(QMdef, QuantMethods)]
-if (("Proteome ruler calculated" %in% names(AnalysisParam))&&
-    (is.logical(AnalysisParam$"Proteome ruler calculated"))&&
-    (!is.na(AnalysisParam$"Proteome ruler calculated"))) {
-  protrul %<o% AnalysisParam$"Proteome ruler calculated"
+if ("Proteome ruler calculated" %in% names(AnalysisParam)) { # Correct typo in older versions
+  AnalysisParam$"Proteomic ruler calculated" <- AnalysisParam$"Proteome ruler calculated"
+  AnalysisParam$"Proteome ruler calculated" <- NULL
+}
+if (("Proteomic ruler calculated" %in% names(AnalysisParam))&&
+    (is.logical(AnalysisParam$"Proteomic ruler calculated"))&&
+    (!is.na(AnalysisParam$"Proteomic ruler calculated"))) {
+  protrul %<o% AnalysisParam$"Proteomic ruler calculated"
 } else {
   protrul %<o% (WorkFlow %in% c("Discovery", "Regulation"))
   # Archaea and Eukaryotes have introns and histones, Bacteria do not
   protrul <- c(protrul, FALSE)[(!isEukaLike)+1]
-  AnalysisParam$"Proteome ruler calculated" <- protrul
+  AnalysisParam$"Proteomic ruler calculated" <- protrul
 }
 #
 if (("ProtRulNuclL" %in% names(AnalysisParam))&&(!is.na(as.integer(AnalysisParam$ProtRulNuclL)))) {
@@ -1043,7 +1047,7 @@ server <- function(input, output, session) {
   observeEvent(input$ProtRul, {
     assign("protrul", input$ProtRul, envir = .GlobalEnv)
     Par <- PARAM()
-    Par$"Proteome ruler calculated" <- protrul
+    Par$"Proteomic ruler calculated" <- protrul
     PARAM(Par)
   })
   observeEvent(input$ProtRulNuclL, {
@@ -3219,7 +3223,7 @@ if (IsBioID2) {
   }
 }
 
-#### Code chunk - Proteome ruler
+#### Code chunk - Proteomic ruler
 if (protrul) {
   ref <- rev(PG.int.cols[which(PG.int.cols != paste0("Imput. ", PG.int.cols["Original"]))])[1]
   if (length(Exp) > 1) { ref <- c(ref, paste0("Mean ", gsub(" - $", "", ref))) }

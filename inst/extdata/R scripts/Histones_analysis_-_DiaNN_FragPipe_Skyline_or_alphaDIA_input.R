@@ -65,9 +65,9 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/ShinyOpt_Styles_and_Report.R"
 source(Src, local = FALSE)
 
 # Create parallel processing cluster
-Src <- paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
+parSrc <- paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(parSrc, local = FALSE)
 
 # Mode
 inputTypes <- c("DiaNN", "FragPipe", "Skyline", "alphaDIA")
@@ -390,12 +390,16 @@ Update_Prot_matches <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("ye
 if (Update_Prot_matches) {
   fl <- paste0(dstDir, "/evmatch.RData")
   if (file.exists(fl)) { loadFun(fl) } else {
-    uSeq <- unique(ev$Sequence)
-    evmatch <- ProtMatch2(uSeq, db, cl = parClust)
+    Seq <- unique(ev$Sequence)
+    DB <- db
+    Src <- paste0(libPath, "/extdata/R scripts/Sources/ProtMatch2.R")
+    #rstudioapi::documentOpen(Src)
+    source(Src, local = FALSE)
     saveFun(evmatch, fl)
   }
   ev$Search_engine_proteins <- ev$Proteins
   ev$Proteins <- evmatch$Proteins[match(ev$Sequence, evmatch$Sequence)]
+  #ev$Proteins <- ev$Search_engine_proteins
   #View(ev[, c("Search_engine_proteins", "Proteins", "Histone(s)", "Modified sequence_verbose")])
   #sum(ev$Search_engine_proteins != ev$Proteins)
   #sum(ev$Search_engine_proteins == ev$Proteins)
@@ -910,11 +914,11 @@ evSum <- evSum[, kol4]
 
 Exp <- unique(evSum$Experiment)
 
-histTst <- aggregate(evSum$"Histone(s)", list(evSum$"Histone(s)"), length)
-colnames(histTst) <- c("Histone matches", "Peptides")
-histTst <- histTst[which(histTst$`Histone matches` != ""),]
-histTst <- histTst[order(histTst$Peptides, decreasing = TRUE),]
-View(histTst)
+PSMs_per_Histone <- aggregate(evSum$"Histone(s)", list(evSum$"Histone(s)"), length)
+colnames(PSMs_per_Histone) <- c("Histone matches", "Peptides")
+PSMs_per_Histone <- PSMs_per_Histone[which(PSMs_per_Histone$`Histone matches` != ""),]
+PSMs_per_Histone <- PSMs_per_Histone[order(PSMs_per_Histone$Peptides, decreasing = TRUE),]
+View(PSMs_per_Histone)
 
 w <- which(parSapply(parClust, strsplit(evSum$`Histone(s)`, ";"), function(x) {
   x <- unlist(x)
@@ -932,16 +936,16 @@ histEv$Sequence <- ev$Sequence[match(histEv$`Modified sequence`, ev$`Modified se
 
 # Check PTMs
 wMod <- grep("\\(", histEv$`Modified sequence_verbose`)
-tmpMds <- gsub("_[A-Z]+_|_[A-Z]*\\(|\\)[A-Z]*_", "",
-               gsub("\\)[A-Z]*\\(", "___", histEv$`Modified sequence_verbose`[wMod]))
+tmpMds <- gsub("^_?[A-Z]+_?$|^_?[A-Z]*\\(|\\)[A-Z]*_?$", "",
+               gsub("\\)[A-Z]*\\(", "___", unique(histEv$`Modified sequence_verbose`[wMod])))
 ptmTst <- unlist(strsplit(tmpMds, "___"))
 ptmTst <- aggregate(ptmTst, list(ptmTst), length)
-colnames(ptmTst) <- c("PTM", "Nb. of peptides")
-ptmTst <- ptmTst[order(ptmTst$`Nb. of peptides`, decreasing = TRUE),]
+colnames(ptmTst) <- c("PTM", "Nb. of Histone peptidoforms")
+ptmTst <- ptmTst[order(ptmTst$`Nb. of Histone peptidoforms`, decreasing = TRUE),]
 View(ptmTst)
-data.table::fwrite(ptmTst, paste0(histDir, "/PTMs summary.csv"), sep = ",", row.names = FALSE, na = "NA")
+data.table::fwrite(ptmTst, paste0(histDir, "/Histone PTMs summary.csv"), sep = ",", row.names = FALSE, na = "NA")
 
-# PTM sites count
+# Histones PTM sites count
 kol <- c("Sequence", "Modified sequence_verbose", "Proteins")
 tmp <- histEv[wMod, kol]
 tst <- do.call(paste, c(tmp, sep = "___"))
@@ -988,7 +992,7 @@ nSites <- aggregate(Sites$Type, list(Sites$Type), length)
 nSites <- nSites[order(nSites$x, decreasing = TRUE),]
 colnames(nSites) <- c("PTM", "Nb. of sites")
 View(nSites)
-data.table::fwrite(nSites, paste0(histDir, "/PTM sites summary.csv"), sep = ",", row.names = FALSE, na = "NA")
+data.table::fwrite(nSites, paste0(histDir, "/Histone PTM sites summary.csv"), sep = ",", row.names = FALSE, na = "NA")
 sum(nSites$`Nb. of sites`[which(!nSites$PTM %in% c("Carbamidomethyl", "Oxidation"))])
 
 saveImgFun(backupFl)
@@ -2096,8 +2100,8 @@ if (length(Exp) > 1) {
       w1 <- which(temp2$Colour == "green")
       w2 <- which((temp2$Ymin == max(temp2$Ymin))&(temp2$Colour == "green"))
       # Color and fill scales
-      wV <- round(c(1:NVClust)*MaxVClust/NVClust)
-      wH <- round(c(1:NHClust)*MaxHClust/NHClust)
+      wV <- unique(ceiling(c(1:NVClust)*MaxVClust/NVClust))
+      wH <- unique(ceiling(c(1:NHClust)*MaxHClust/NHClust))
       vClScl <- setNames(VClustScl[wV], 1:length(wV))
       hClScl <- setNames(HClustScl[wH], 1:length(wH))
       VcolScale <- scale_color_manual(name = "Samples cluster", values = vClScl)
@@ -2143,6 +2147,7 @@ if (length(Exp) > 1) {
       #
       xCntr <- Width*0.6
       yScale <- Height*2
+      nm <- paste0("Clust. heatmap", normTypeInsrt, fltInsrt)
       GrLab <- data.frame(label = c(nm,
                                     "Sample",
                                     paste0("Chi-squared contingency test P-value: ", round(ClustChiSqTst$p.value, 5)),
@@ -2173,7 +2178,6 @@ if (length(Exp) > 1) {
       yScale <- Ylim[2]-Ylim[1]
       #
       # Create graph
-      nm <- paste0("Clust. heatmap", normTypeInsrt, fltInsrt)
       heatmap.plot <- ggplot(temp2a[w2a,]) +
         geom_rect(aes(xmin = Xmin, xmax = Xmin+1, ymin = Ymin, ymax = Ymin+1, fill = value, text = Label)) +
         geom_rect(data = temp2a[w2b,], aes(xmin = Xmin, xmax = Xmin+1, ymin = Ymin, ymax = Ymin+1, fill = value)) +
