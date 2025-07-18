@@ -13,7 +13,7 @@ ProtMatch(
   min = 7,
   max = 100,
   missed = 2,
-  I_eq_L
+  I_eq_L = TRUE
 )
 }
 \arguments{

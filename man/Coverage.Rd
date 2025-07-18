@@ -21,7 +21,7 @@ Coverage(
   na = "red",
   maxInt = NULL,
   bgcol = "black",
-  I_eq_L
+  I_eq_L = TRUE
 )
 }
 \arguments{

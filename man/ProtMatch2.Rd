@@ -11,7 +11,7 @@ ProtMatch2(
   N.clust = get("N.clust"),
   N.reserved = 1,
   cl,
-  I_eq_L
+  I_eq_L = TRUE
 )
 }
 \arguments{

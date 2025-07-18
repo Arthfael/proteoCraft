@@ -12,7 +12,7 @@ cov3D(
   intensities = NULL,
   display = TRUE,
   asRatios = FALSE,
-  I_eq_L
+  I_eq_L = TRUE
 )
 }
 \arguments{

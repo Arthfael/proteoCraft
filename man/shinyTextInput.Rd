@@ -11,7 +11,7 @@ shinyTextInput(startVal, root, width)
 
 \item{root}{Root of the created input names. Names generated will be of the form "root___i", where i is the 1:n row number.}
 
-\item{width}{The width of the input, e.g. '400px', or '100%'; see htmltools::validateCssUnit().}
+\item{width}{The width of the input, e.g. "400px", or "100%"; see htmltools::validateCssUnit().}
 }
 \description{
 Convenience wrapper for shiny::textInput for use in DT data table columns.
