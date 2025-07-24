@@ -4,7 +4,7 @@ file_path <- ".../alphaDIA/library/speclib.mbr.hdf"
 
 if (!require(rhdf5)) { pak::pkg_install("rhdf5") }
 library(rhdf5)
-myLib <- h5read(file_path, "library")
+myLib <- h5read(file_path, "library", bit64conversion = "double")
 names(myLib)
 
 fragment_intensity_df <- as.data.frame(myLib$fragment_intensity_df)

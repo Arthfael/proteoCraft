@@ -30,12 +30,15 @@ cran_req <- c("pak",
               "gtools")
 tst <- vapply(cran_req, function(pck) { require(pck, character.only = TRUE, quietly = TRUE) }, TRUE)
 w <- which(!tst)
-if (length(w)) { pak::pkg_install(cran_req[w]) }
+if (length(w)) { pak::pak(cran_req[w]) }
 for (pck in cran_req) { library(pck, character.only = TRUE) }
 if (!require(proteoCraft)) {
-  tst <- try(pak::pkg_install("Arthfael/proteoCraft"))
-  if ("try-error" %in% clas(tst)) {
-    tst <- try(devtools::install_github("Arthfael/proteoCraft"))
+  tst <- try(pak::pak("Arthfael/proteoCraft"), silent = TRUE)
+  if ("try-error" %in% class(tst)) {
+    tst <- try(devtools::install_github("Arthfael/proteoCraft"), silent = TRUE)
+  }
+  if ("try-error" %in% class(tst)) {
+    stop("Installation didn't work!")
   }
   library(proteoCraft)
 }
@@ -77,8 +80,7 @@ tst <- try({
   if (!require(rawrr, quietly = TRUE)) {
     rawrrVers <- dlg_list(rawrrVers, rawrrVers[3], title = "Select which rawrr version should be installed")$res
     if (rawrrVers == "github") {
-      if(!require(devtools)) { install.packages("devtools") }
-      devtools::install_github("cpanse/rawrr")
+      pak::pak("cpanse/rawrr")
       #install.packages('http://fgcz-ms.uzh.ch/~cpanse/rawrr_0.2.1.tar.gz', repo = NULL) # Old address, now on github
     }
     if (rawrrVers == "bioc") {
@@ -1749,6 +1751,9 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                 }
               }
               Form <- as.formula(paste0(paste(Factors3, collapse = " + "), " ~ Replicate")) # Formula for how to layout our facets on the ggplot
+              ExpMap2$Color_class <- do.call(paste, c(ExpMap2[, Factors3, drop = FALSE], sep = " "))
+              ExpMap2$Color_class[which((ExpMap2$Color_class == "NA")&(ExpMap2$Role == "Standard"))] <- "Standard"
+              ExpMap2$Color_class[which((ExpMap2$Color_class == "NA")&(ExpMap2$Role == "Buffer_control"))] <- "Buffer_control"
               em01$Color_class <- do.call(paste, c(em01[, Factors3, drop = FALSE], sep = " "))
               # } else {
               #   Form <- as.formula(paste0(". ~ Replicate")) # Formula for how to layout our facets on the ggplot
@@ -1804,14 +1809,23 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                   quant <- quant[which((!is.na(quant$`Peak intensity`))&(quant$`Peak intensity` > 0)),]
                   quant[, c(Factors, "Raw file name")] <- ExpMap2[match(quant$"Raw file", ExpMap2$`MS raw file`), c(Factors, "MS raw file name")]
                   quant$"Peak intensity (rounded)" <- round(quant$"Peak intensity")
-                  quant$Color_class <- em01$Color_class[match(quant$"Raw file", em01$`MS raw file`)]
+                  quant$Color_class <- ExpMap2$Color_class[ match(quant$"Raw file", ExpMap2$`MS raw file`)]
                   fwrite(quant, paste0(wd, "/", ttl, "_quant.csv"), quote = FALSE, sep = ",", col.names = TRUE, na = "NA")
+                  for (fct in Factors) {
+                    u1 <- unique(quant[[fct]])
+                    u2 <- unique(ExpMap2[[fct]])
+                    stopifnot(sum(!u1 %in% u2) == 0)
+                    quant[[fct]] <- factor(quant[[fct]], unique(ExpMap2[[fct]]))
+                  }
                 }
                 #
                 for (fct in Factors) {
-                  RTchrm01[[fct]] <- factor(RTchrm01[[fct]], unique(em01[[fct]]))
+                  u1 <- unique(RTchrm01[[fct]])
+                  u2 <- unique(ExpMap2[[fct]])
+                  stopifnot(sum(!u1 %in% u2) == 0)
+                  RTchrm01[[fct]] <- factor(RTchrm01[[fct]], unique(ExpMap2[[fct]]))
                 }
-                RTchrm01$Color_class <- em01$Color_class[match(RTchrm01$Samples_group2, em01$Samples_group2)]
+                RTchrm01$Color_class <- ExpMap2$Color_class[match(RTchrm01$Samples_group2, ExpMap2$Samples_group2)]
                 #RTchrm1 <- RTchrm01[which(!RTchrm01$Role %in% c("Standard", "Buffer_control")),]
                 #RTchrm0 <- RTchrm01[which(RTchrm01$Role %in% c("Standard", "Buffer_control")),]
                 #smpls <- unique(RTchrm1$Sample)
@@ -1831,7 +1845,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                   theme(strip.text.y = element_text(angle = 0),
                         legend.position = "bottom") +
                   ylim(0, yMax)
-                #windows();print(plot)
+                #poplot(plot)
                 #
                 if (quantThisOne2) {
                   plot <- plot +
@@ -1852,6 +1866,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
           }
         }
       }
+      
     }
   } else {
     if (nm %in% c("TIC", "BPC")) {
