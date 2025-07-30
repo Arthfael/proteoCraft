@@ -1,6 +1,10 @@
 # Useful commands
 
 # To clean the previous version cached by pak
+if (!require(pak)) {
+  install.packages("pak")
+}
+require(pak)
 #a <- pak::cache_summary()
 #cat(a$cachepath, "\n")
 #pak::cache_delete("proteoCraft")

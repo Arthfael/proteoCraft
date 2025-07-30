@@ -248,9 +248,11 @@ evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
 
 #### Code chunk - Load and process annotations
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Load_Annotations.R")
+#rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 source(parSrc, local = FALSE)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_prepare.R") # Doing this earlier but also keep latter instance for now
+#rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
 # Create experiment Factors shortcuts
