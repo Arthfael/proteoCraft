@@ -389,7 +389,7 @@ Volcano.plot <- function(Prot,
   Symmetrical <- Symmetrical[A]
   xKols <- setNames(paste0(X.root, A), A)
   yKols <- setNames(paste0(Y.root, A), A)
-  PorQ <- rev(unlist(strsplit(toupper(gsub("-?value.*", "", Y.root, ignore.case = "")), "")))[1]
+  PorQ <- rev(unlist(strsplit(toupper(gsub("-value.*", "", Y.root, ignore.case = TRUE)), "")))[1]
   if (!PorQ %in% c("P", "Q")) { PorQ <- "P" }
   if ((proteins_split)&&((is.null(proteins))||(length(proteins) == 0))) {
     proteins_split <- FALSE
