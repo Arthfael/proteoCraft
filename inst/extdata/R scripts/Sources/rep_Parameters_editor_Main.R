@@ -232,9 +232,14 @@ if ("Taxonomy" %in% colnames(db)) {
   SpeciesTst <- unique(db$Taxonomy[which(gsub(" *(\\(|\\[).*", "", db[[dbOrgKol]]) == mainOrg)])
   SpeciesTst <- SpeciesTst[which(as.character(SpeciesTst) != "NA")][1]
 }
-KingdomTst %<o% aggregate(db$Kingdom, list(db$Kingdom), length)
-KingdomTst <- KingdomTst[order(KingdomTst$x, decreasing = TRUE),]
-KingdomTst <- KingdomTst$Group.1[1]
+if ("Kingdom" %in% colnames(db)) {
+  KingdomTst <- aggregate(db$Kingdom, list(db$Kingdom), length)
+  KingdomTst <- KingdomTst[order(KingdomTst$x, decreasing = TRUE),]
+  KingdomTst <- KingdomTst$Group.1[1]
+} else {
+  KingdomTst <- "unknown" # Could be user prompted
+}
+KingdomTst %<o% KingdomTst
 isEukaLike %<o% (KingdomTst %in% c("Eukaryota", "Archaea"))
 if (("ProtRul" %in% colnames(Param))&&(is.logical(Param$ProtRul))&&(!is.na(Param$ProtRul))) {
   protrul %<o% Param$ProtRul

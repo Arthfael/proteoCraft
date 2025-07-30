@@ -362,7 +362,7 @@ if (length(w)) {
 Sp <- gsub(" *[\\(|\\[].*", "", fastasTbl$Species)
 pack <- "myTAI"
 if (!require(pack, character.only = TRUE)) {
-  pak::pkg_install(pack, ask = FALSE, upgrade = TRUE, dependencies = TRUE)
+  try(pak::pkg_install("drostlab/myTAI", ask = FALSE, upgrade = TRUE, dependencies = TRUE), silent = TRUE) 
 }
 if (!require(pack, character.only = TRUE)) {
   Src2 <- paste0(libPath, "/extdata/R scripts/Sources/taxonomy.R")
@@ -377,8 +377,8 @@ if ("try-error" %in% class(tst)) {
     tst %<o% try(setNames(lapply(Sp, function(x) {
       suppressMessages(taxonomy(organism = x, db = "ncbi", output = "classification"))
     }), Sp), silent = TRUE)
+    kount <- kount + 1
   } 
-  kount <- kount + 1
 }
 taxTst %<o% !"try-error" %in% class(tst)
 if (taxTst) {

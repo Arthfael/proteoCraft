@@ -134,6 +134,12 @@ if (Annotate) {
   stopifnot(length(tst3$x) == length(unique(tst3$x)), "character" %in% class(tst3$x))
   db$Ontology <- NULL # Temporary fix for now, this column is broken
   #
+  w <- which(vapply(colnames(db), function(x) { "list" %in% class(db[[x]]) }, TRUE))
+  if (length(w)) {
+    for (i in w) {
+      db[[i]] <- parSapply(parClust, db[[i]], paste, collapse = ";")
+    }
+  }
   data.table::fwrite(db, paste0(wd, "/Parsed, annotated search db.csv"),
                      quote = FALSE, sep = ",", row.names = FALSE, col.names = TRUE, na = "NA")
   #db <- data.table::fread(paste0(wd, "/Parsed, annotated search db.csv"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)

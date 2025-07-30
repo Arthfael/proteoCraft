@@ -7,6 +7,11 @@ if (Update_Prot_matches) {
   ReportCalls$Calls <- append(ReportCalls$Calls,
                               paste0("body_add_fpar(Report, fpar(ftext(\" - Checking ", names(SearchSoft), "'s peptide sequence to protein assignments:\", prop = WrdFrmt$Body_text), fp_p = WrdFrmt$just))"))
   msg <- "ing peptide-to-protein matches...\n"
+  if (exists("Reuse_Prot_matches")) {
+    if ((!is.logical(Reuse_Prot_matches))||(is.na(Reuse_Prot_matches))) {
+      Reuse_Prot_matches <- FALSE
+    }
+  }
   if (Reuse_Prot_matches) {
     msg <- paste0("Re-load", msg)
     cat(msg)
@@ -15,9 +20,14 @@ if (Update_Prot_matches) {
   } else {
     msg <- paste0("Check", msg)
     cat(msg)
+    #
     source(parSrc, local = FALSE) # Always a good idea to check your cluster before such a big function...
-    Pep2Prot <- ProtMatch2(unique(ev$Sequence), db,
-                           cl = parClust) # (ignore the warning for now until we remove contaminant evidences)
+    #
+    Seq <- unique(ev$Sequence)
+    DB <- db
+    mtchSrc <- paste0(libPath, "/extdata/R scripts/Sources/ProtMatch2.R")
+    source(mtchSrc)
+    Pep2Prot <- evmatch
   }
   wh1 <- which(ev$Sequence %in% Pep2Prot$Sequence)
   wh2 <- which(Pep2Prot$Sequence %in% ev$Sequence)
