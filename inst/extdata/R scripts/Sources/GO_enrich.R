@@ -975,10 +975,7 @@ if (length(wFltL)) {
                       "save", "origWD", "subfolder", "subfolderpertype", "bars", "graph", "True_Zscore", "scrange", "textFun", "cex", "lineheight", "repel",
                       "plotly_subfolder", "MaxTerms", "MaxTerms_bar", "MaxChar",
                       "Ont", "title", "title.root", "bars_title", "bars_title.root", "GO_FDR", "plotEval")
-      lapply(exports, function(xprt) {
-        try(parallel::clusterExport(parClust, xprt, envir = environment()), silent = TRUE)
-        return()
-      })
+      parallel::clusterExport(parClust, exports, envir = environment())
       plotsF0 <- function(n1) { #n1 <- names(GO_tbls2)[1] #n1 <- names(GO_tbls2)[2]
         GOplts <- list()
         n2 <- gsub("___", " ", n1)
@@ -996,7 +993,7 @@ if (length(wFltL)) {
         sub1 <- GO_tbl[which(GO_tbl$test),]
         sub2 <- sub1[which(sub1$Y == 0),]
         sub1 <- sub1[which(sub1$Y > 0),]
-        ttl <- paste0(title.root, n2)
+        dotTtl <- paste0(title.root, n2)
         aes <- data.frame(x = "\`Z-score\`", y = "Y", size = "Count", alpha = "Y", colour = "Ontology")
         #non.aes <- data.frame(alpha = 0.1)
         if (plotly) {
@@ -1008,7 +1005,7 @@ if (length(wFltL)) {
         }
         pluses <- c(paste0("ggplot2::ylab(\"-log10(", c("", "adj. ")[P_adjust+1], "Pvalue)\")"),
                     "ggplot2::scale_radius(range = scrange, guide = \"none\")",
-                    "ggplot2::ggtitle(ttl)", "ggplot2::facet_wrap(~Ontology)", "ggplot2::theme_bw()",
+                    "ggplot2::ggtitle(dotTtl)", "ggplot2::facet_wrap(~Ontology)", "ggplot2::theme_bw()",
                     c(paste0("ggplot2::xlab(\"", c("(N(Up) - N(Down))/sqrt(Total)",
                                                    "Z-score")[True_Zscore+1], "\")")),
                     paste0("ggplot2::xlim(", Xmin, ", ", Xmax, ")"),
@@ -1026,7 +1023,7 @@ if (length(wFltL)) {
         }
         #cat(plot.txt)
         #options(warn = -1)
-        suppressWarnings(eval(parse(text = plot.txt), envir = .GlobalEnv))
+        suppressWarnings(eval(parse(text = plot.txt)))
         plot <- plot +
           ggplot2::geom_hline(data = thresh, ggplot2::aes(yintercept = `-log10(Threshold)`, colour = Colour)) +
           ggplot2::geom_text(data = thresh, ggplot2::aes(label = Label, y = `-log10(Threshold)`+Ymax*0.01, colour = Colour),
@@ -1041,9 +1038,9 @@ if (length(wFltL)) {
                                  cex = cex, lineheight = lineheight)
         }
         if (length(winf)) { plot <- plot + ggplot2::geom_hline(yintercept = Ymax, colour = "black", linetype = "dotted") }
-        if (show) { proteoCraft::poplot(plot, 12, 20) }
+        if (show) { proteoCraft::poplot(plot, 12, 20) }        
         GOplts[[paste0("GO bubble plot - ", n1)]] <- plotEval(plot)
-        nm <- gsub("/|:|\\*|\\?|<|>|\\|", "-", ttl)
+        nm <- gsub("/|:|\\*|\\?|<|>|\\|", "-", dotTtl)
         if (nchar(nm) > 98) { nm <- substr(nm, 1, 98) }
         if (nm %in% grphs) {
           fixkount <- 0
@@ -1072,7 +1069,7 @@ if (length(wFltL)) {
           plot.txt2 <- paste0("plot2 <- ggplot2::ggplot(GO_tbl) + ggplot2::geom_point(ggplot2::aes(", aes2, "), ", # non.aes, 
                               ") + ggplot2::guides(colour = \"none\") + ",
                               pluses)
-          suppressWarnings(eval(parse(text = plot.txt2), envir = .GlobalEnv))
+          suppressWarnings(eval(parse(text = plot.txt2)))
           if (length(winf)) {
             plot2 <- plot2 +
               ggplot2::geom_hline(yintercept = Ymax, colour = "black", linetype = "dotted")
@@ -1110,7 +1107,7 @@ if (length(wFltL)) {
           }
           if (nrow(GO_tbl3)) {
             GO_tbl3$Ontology <- factor(GO_tbl3$Ontology, levels = Ont)
-            barttl <- paste0(bars_title.root, n2)
+            barTtl <- paste0(bars_title.root, n2)
             if (P_adjust) {
               thr <- lapply(unique(GO_tbl3$Ontology), function(x) {
                 data.frame(Y = -log10(GO_FDR),
@@ -1136,7 +1133,7 @@ if (length(wFltL)) {
                                               "Z-score")[True_Zscore+1], zMsg, "\") +
                   ggplot2::scale_fill_gradient2(low = \"green\", mid = \"grey\", high = \"red\", midpoint = 0, limits = c(-col_lim, col_lim)) +
                   ggplot2::scale_y_continuous(expand = c(0,0)) +
-                  ggplot2::ylab(\"-log10(", c("", "adj. ")[P_adjust+1], "Pvalue)\") + ggplot2::ggtitle(barttl) + ggplot2::theme_bw() +
+                  ggplot2::ylab(\"-log10(", c("", "adj. ")[P_adjust+1], "Pvalue)\") + ggplot2::ggtitle(barTtl) + ggplot2::theme_bw() +
                   ggplot2::theme(panel.grid.major.x = ggplot2::element_blank(),
                         axis.text.x = ggplot2::element_blank(),
                         axis.ticks = ggplot2::element_blank(),
@@ -1145,7 +1142,7 @@ if (length(wFltL)) {
                   ggplot2::coord_cartesian(clip = \"off\")")
             text_tmp <- gsub("INSERT1", "", gsub("^PLOT", "barplot1", barplot_txt))
             #cat(text_tmp)
-            suppressWarnings(eval(parse(text = text_tmp), envir = .GlobalEnv))
+            suppressWarnings(eval(parse(text = text_tmp)))
             barplot1 <- barplot1 +
               ggplot2::geom_text(ggplot2::aes(label = Label3, x = X), y = -Ymax/20, hjust = 1, angle = 60, cex = 3) +
               ggplot2::theme(panel.spacing = ggplot2::unit(9, "lines"),
@@ -1156,7 +1153,7 @@ if (length(wFltL)) {
               ggplot2::guides(colour = "none")
             if (show) { proteoCraft::poplot(barplot1, 12, 20) }
             GOplts[[paste0("GO bar plot - ", n1)]] <- plotEval(barplot1)
-            barnm <- gsub("/|:|\\*|\\?|<|>|\\|", "-", barttl)
+            barnm <- gsub("/|:|\\*|\\?|<|>|\\|", "-", barTtl)
             if (nchar(barnm) > 98) { barnm <- substr(barnm, 1, 98) }
             if (barnm %in% grphs) {
               fixkount <- 0
@@ -1186,7 +1183,7 @@ if (length(wFltL)) {
                                ", text1 = Label, text2 = Count, text3 = Y, text4 = Mapping",
                                gsub("^PLOT", "barplot2", barplot_txt))
               #cat(text_tmp)
-              suppressWarnings(eval(parse(text = text_tmp), envir = .GlobalEnv))
+              suppressWarnings(eval(parse(text = text_tmp)))
               barplot_ly <- plotly::ggplotly(barplot2, tooltip = c("text1", "text2", "text3", "text4"))
               setwd(plotly_subfolder)
               htmlwidgets::saveWidget(barplot_ly, paste0(barnm, ".html"), selfcontained = TRUE)
