@@ -51,31 +51,6 @@ Format.DB <- function(file,
     parallel <- TRUE
   }
   #
-  # Create cluster
-  if (parallel) {
-    tstCl <- stopCl <- misFun(cl)
-    if (!misFun(cl)) {
-      tstCl <- suppressWarnings(try({
-        a <- 1
-        parallel::clusterExport(cl, "a", envir = environment())
-      }, silent = TRUE))
-      tstCl <- !"try-error" %in% class(tstCl)
-    }
-    if ((misFun(cl))||(!tstCl)) {
-      dc <- parallel::detectCores()
-      if (misFun(N.reserved)) { N.reserved <- 1 }
-      if (misFun(N.clust)) {
-        N.clust <- max(c(dc-N.reserved, 1))
-      } else {
-        if (N.clust > max(c(dc-N.reserved, 1))) {
-          warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
-          N.clust <- max(c(dc-N.reserved, 1))
-        }
-      }
-      cl <- parallel::makeCluster(N.clust, type = "SOCK")
-    }
-    N.clust <- length(cl)
-  }
   #
   mode2 <- gsub("-|_|\\.| ", "", toupper(mode))
   # Check mode
@@ -140,6 +115,35 @@ Format.DB <- function(file,
     nms.list <- c("Name", "GenBank", "Gene ID", "Protein ID", "No Isoforms")
   }
   headRs <- grep("^>", DB)
+  if ((parallel)&&(length(headRs) < 500)) {
+    parallel <- FALSE
+  }
+  # Create cluster
+  if (parallel) {
+    tstCl <- stopCl <- misFun(cl)
+    if (!misFun(cl)) {
+      tstCl <- suppressWarnings(try({
+        a <- 1
+        parallel::clusterExport(cl, "a", envir = environment())
+      }, silent = TRUE))
+      tstCl <- !"try-error" %in% class(tstCl)
+    }
+    if ((misFun(cl))||(!tstCl)) {
+      dc <- parallel::detectCores()
+      if (misFun(N.reserved)) { N.reserved <- 1 }
+      if (misFun(N.clust)) {
+        N.clust <- max(c(dc-N.reserved, 1))
+      } else {
+        if (N.clust > max(c(dc-N.reserved, 1))) {
+          warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
+          N.clust <- max(c(dc-N.reserved, 1))
+        }
+      }
+      cl <- parallel::makeCluster(N.clust, type = "SOCK")
+    }
+    N.clust <- length(cl)
+  }
+  #
   lH <- length(headRs)
   if (parallel) {
     n <- min(c(length(headRs), N.clust))
