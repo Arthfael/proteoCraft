@@ -9706,7 +9706,8 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
                                           c("#FF0000", "#999999", "#00FF00"), style.name = "default"), silent = TRUE)
             RCy3::setNodeShapeDefault("ellipse", style.name = "default")
             RCy3::setNodeFontSizeDefault(12, style.name = "default")
-            RCy3::setNodeSizeMapping("Avg_expression", style.name = "default")
+            try(RCy3::setNodeSizeMapping("Avg_expression",
+                                         style.name = "default"), silent = TRUE)
             RCy3::exportNetwork(paste0(wd, "/Cytoscape/", grphType, "/", Nm, "_", tolower(grphType), " network"), "CX")
             RCy3::deleteAllNetworks()
           }
