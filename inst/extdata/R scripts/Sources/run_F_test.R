@@ -248,7 +248,7 @@ my_F_Data[, regKol] <- "non significant"
 fdrKol <- paste0("mod. F-test Significant-FDR=", rev(BH.FDR)*100, "%")
 my_F_Data[, fdrKol] <- ""
 for (fdr in rev(BH.FDR)) { #fdr <- rev(BH.FDR)[1]
-  Tsts <- decideTests(fit[NA_Filt,], c("nestedF", "global")[Nested+1], "none", fdr)
+  dTsts <- decideTests(fit[NA_Filt,], c("nestedF", "global")[Nested+1], "none", fdr)
   dTsts <- as.data.frame(dTsts)
   m <- match(rownames(my_F_Data), rownames(dTsts))
   wMtch <- which(!is.na(m))
@@ -421,3 +421,4 @@ if (dataType == "PG") {
 #
 # Cleanup
 for (i in allArgs) { try(rm(i), silent = TRUE) }
+
