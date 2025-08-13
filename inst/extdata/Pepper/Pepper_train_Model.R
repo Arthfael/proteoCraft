@@ -50,12 +50,23 @@ rownames(trainParam) <- gsub(".+/|\\.tsv$", "", trainParam$peptide_file)
 
 # Hyper-parameter tuning on one of our own datasets
 # a) Prepare one of our own datasets for one-hot-encoding
-evFl <- normalizePath(choose.files(paste0(homePath, "/evidence.tsv")), winslash = "/")
+#evFl <- normalizePath(choose.files(paste0(homePath, "/evidence.tsv")), winslash = "/")
+evFl <- rstudioapi::selectFile("Select PSMs tsv file, as saved by one of our data analysis workflows in subfolder .../Tables/",
+                               path = paste0(homePath, "/*.tsv"),
+                               filter = "PSMs tsv file (*.tsv)")
 dtst <- gsub("/Tables$", "", dirname(evFl))
 dtstnm <- gsub(".*/", "", dtst)
 dtstnm <- dlg_input("Enter a name for this dataset", dtstnm)$res
-mapFl <- normalizePath(choose.files(paste0(dtst, "/Experiment map.csv"), "Select experiment/samples .csv map"), winslash = "/")
-modFl <- normalizePath(choose.files(paste0(dtst, "/Workflow control/Modifications.csv"), "Select Modifications.csv file"), winslash = "/")
+msg <- "Select experiment/samples .csv map"
+#mapFl <- normalizePath(choose.files(paste0(dtst, "/Experiment map.csv"), msg), winslash = "/")
+mapFl <- rstudioapi::selectFile(msg,
+                                path = paste0(dtst, "/Experiment map.csv"),
+                                filter = "csv file (*.csv)")
+msg <- "Select Modifications.csv file"
+#modFl <- normalizePath(choose.files(paste0(dtst, "/Workflow control/Modifications.csv"), msg), winslash = "/")
+modFl <- rstudioapi::selectFile(msg,
+                                path = paste0(dtst, "/Workflow control/Modifications.csv"),
+                                filter = "csv file (*.csv)")
 ev <- data.table::fread(evFl, integer64 = "numeric", check.names = FALSE, data.table = FALSE)
 smplsMap <- read.csv(mapFl, check.names = FALSE)
 if ("Ref.Sample.Aggregate" %in% colnames(smplsMap)) {
