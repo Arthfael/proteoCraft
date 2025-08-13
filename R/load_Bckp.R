@@ -42,7 +42,10 @@ load_Bckp <- function(backup,
         defltdir <- dlft$Path[match("Temporary folder", dlft$Folder)]
       }
     } else { defltdir <- startDir }
-    bckp <- normalizePath(choose.files(paste0(defltdir, "/*.RData"), multi = FALSE), winslash = "/")
+    #bckp <- normalizePath(choose.files(paste0(defltdir, "/*.RData"), multi = FALSE), winslash = "/")
+    bckp <- rstudioapi::selectFile("Select backup file to load...",
+                                   path = paste0(defltdir, "/*.RData"),
+                                   filter = "RData file (*.RData)")
   } else {
     bckp <- backup
   }

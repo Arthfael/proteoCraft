@@ -39,7 +39,10 @@ load_Context <- function(record,
         defltdir <- dlft$Path[match("Temporary folder", dlft$Folder)]
       }
     } else { defltdir <- startDir }
-    record <- normalizePath(choose.files(paste0(defltdir, "/*.txt"), multi = FALSE), winslash = "/")
+    #record <- normalizePath(choose.files(paste0(defltdir, "/*.txt"), multi = FALSE), winslash = "/")
+    record <- rstudioapi::selectFile("Select dataset details record .txt file to parse...",
+                                     path = paste0(defltdir, "/*.txt"),
+                                     filter = "Text file (*.txt)")
   }
   record <- readLines(record)
   dtstNm <<- gsub("^ *-> *", "", record[grep("^Dataset name:", record)+1])
