@@ -273,7 +273,11 @@ ui <- fluidPage(
   br(),
   h4("Regexes should be compatible with R's grep function:"),
   h5(" - Use the \"Contaminants regex\" column when a fasta contains a mixture of non-contaminants and contaminant proteins. Matches to the Protein IDs (accession) column will be marked as contaminants."),
-  h5(" - Use the \"Reverse regex\" column when a fasta contains reverse proteins (decoys). Matches to the Full ID column will be removed from the database."), br(),
+  h5(" - Use the \"Reverse regex\" column when a fasta contains reverse proteins (decoys). Matches to the Full ID column will be removed from the database."),
+  br(),
+  h5(em("Whilst you have the option to choose from several types of common fasta, we only ever use UniProtKB, so for now use the other types at your own risk:")),
+  h5(em("they are likely to break the script at a later stage!")),
+  br(),
   actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
   DTOutput("Fastas")
 )

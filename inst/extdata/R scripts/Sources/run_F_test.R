@@ -421,4 +421,3 @@ if (dataType == "PG") {
 #
 # Cleanup
 for (i in allArgs) { try(rm(i), silent = TRUE) }
-

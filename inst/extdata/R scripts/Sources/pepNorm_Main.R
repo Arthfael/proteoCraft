@@ -11,8 +11,7 @@ if (lNorm) {
   # Preliminary step: log10 transformation
   #i <- grep("^Norm[0-9]+", names(pep.ref))
   #if (length(i)) { i <- min(i) - 1 } else { i <- length(pep.ref) }
-  strt <- c("Original", "Imputed")
-  strt <- rev(strt[which(strt %in% names(pep.ref))])[1]
+  strt <- c("Original", "Imputation")[Impute+1]
   rf <- pep.ref[strt]
   kol <- grep(topattern(rf), colnames(pep), value = TRUE)
   tmpDat1 <- do.call(cbind, lapply(kol, function(k) {

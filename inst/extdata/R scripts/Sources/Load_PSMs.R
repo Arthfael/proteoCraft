@@ -438,7 +438,7 @@ if (SearchSoft == "DIANN") {
       stopifnot(length(which(is.na(m$L1))) == 0)
       w2 <- which(ev$`Raw file path` %in% rawFiles[w])
       m2 <- match(w2, m$value)
-      stopifnot(length(which(is.na(m2))) == 0)
+      stopifnot(sum(is.na(m2)) == 0)
       ev$`Raw file path`[w2] <- m$L1[match(w2, m$value)]
     }
   }
@@ -668,7 +668,7 @@ stopifnot(nrow(ev) > 0)
 if (exists("FracMap_reloaded")) {
   m <- match(FracMap$`Raw file`, FracMap_reloaded$`Raw file`)
   tst <- sum(is.na(m))
-  gs <- FALSE
+  gs <- FALSE # Should we remove spaces?
   if (tst) {
     m <- match(gsub(" ", "", FracMap$`Raw file`), gsub(" ", "", FracMap_reloaded$`Raw file`))
     tst <- sum(is.na(m))
@@ -692,7 +692,12 @@ if (exists("FracMap_reloaded")) {
     } else {
       mEv <- match(ev$`Raw file path`, FracMap$`Raw file`)
     }
-    ev$`Raw file` <- FracMap$`Raw files name`[mEv]
+    tst <- sum(is.na(mEv))
+    if (!tst) {
+      ev$`Raw file` <- FracMap$`Raw files name`[mEv]
+    } else {
+      rm(FracMap_reloaded)
+    }
   } else {
     rm(FracMap_reloaded)
   }

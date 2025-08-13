@@ -32,7 +32,7 @@
 #' @import data.table
 #' @export
 
-cat("Protein groups inference step:\nAssembling peptides into the minimum number of protein groups required to explained the data...\n")
+cat("Protein groups inference step:\nAssembling peptides into the minimum number of protein groups required to explain the data...\n")
 Peptide.IDs <- "id"
 Proteins.col <- "Proteins"
 Evidence.IDs <- "Evidence IDs"

@@ -98,3 +98,45 @@ Discrepancies with the original search engine matches can have several causes:
 tst <- unique(unlist(strsplit(ev$Proteins, ";")))
 if ("NA" %in% tst) { stop("\"NA\" is not an accepted protein accession!") }
 #View(ev[, c("Sequence", "Proteins")])
+#test <- c()
+#if (!is.null(prot.list)) {
+#  a <- paste0(";", ev$Proteins, ";")
+#  b <- prot.list
+#  a1 <- paste0(";", b, ";")
+#  test <- unique(unlist(lapply(a1, function(x) { ev$id[grep(x, a)] })))
+#}
+#kol <- which(toupper(colnames(ev)) %in% c("CONTAMINANT", "POTENTIAL CONTAMINANT"))
+#ev <- ev[which((is.na(ev[[kol]]))|(ev[[kol]] == "")|(ev$id %in% test)),]
+# Test if there are still any evidences without any matching proteins from the database
+ev$"Tryptic peptide?" <- TRUE
+w <- which(ev$Proteins == "")
+l <- length(w)
+if (l) {
+  tst <- (l>1)+1
+  msg <- paste0("There ", c("is", "are")[tst], " ", length(w), " PSM", c("", "s")[tst],
+                " (", round(100*l/nrow(ev)), "%) without any matching protein from the database, probably from ",
+                c("a ", "")[tst], "non-tryptic peptide", c("", "s")[tst], ".")
+  ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
+  ev$"Tryptic peptide?"[w] <- FALSE
+  temp <- data.frame(Seq = unique(ev$Sequence[w]))
+  tmpDB <- db[, c("Protein ID", "Sequence")]
+  source(parSrc) # Check cluster for corruption!
+  saveRDS(tmpDB, "tmp.RDS")
+  invisible(clusterCall(parClust, function() {
+    tmpDB <<- readRDS("tmp.RDS")
+    return()
+  }))
+  temp$Proteins <- parSapply(parClust, temp$Seq, function(x) {
+    paste(tmpDB$"Protein ID"[grep(x, tmpDB$Sequence)], collapse = ";")
+  })
+  invisible(clusterCall(parClust, function() {
+    rm(tmpDB)
+    return()
+  }))
+  unlink("tmp.RDS")
+  ev$Proteins[w] <- temp$Proteins[match(ev$Sequence[w], temp$Seq)]
+  ev <- ev[which(ev$Proteins != ""),]
+}
+# Also remove those protein columns we will re-create later
+ev$"Leading proteins" <- NULL
+ev$"Leading razor protein" <- NULL
