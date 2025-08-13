@@ -147,7 +147,7 @@ if (max(tst$L) > 1) {
   msg <- paste0("Possible duplicate fasta databases detected:", 
                 paste(paste0("\n\n", unlist(tst$x[which(tst$L > 1)])), collapse = ""),
                 "\n\n\nAre they really duplicates?\n")
-  simplFasta <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = FALSE)$res, c("yes", "no"))]
+  simplFasta <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = TRUE)$res, c("yes", "no"))]
   if (simplFasta) {
     fastasTbl2 <- data.frame(Full = unique(fastasTbl$Full))
     fastasTbl2$Name <- gsub(".*/", "", fastasTbl2$Full)

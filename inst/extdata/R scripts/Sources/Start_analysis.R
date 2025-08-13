@@ -381,7 +381,7 @@ if (!RunByMaster) {
            "The script then attempts to copy the files to the final output directory.",
            "If this fails (e.g. because of too long paths), then you can always manually copy the analysis from the temporary folder.")
   #cat(paste0(msg, "\n"))
-  svDialogs::dlg_message(gsub("\n -> ", "\n>", msg), "ok", rstudio = FALSE)
+  svDialogs::dlg_message(gsub("\n -> ", "\n>", msg), "ok", rstudio = TRUE)
   write(c(msg, ""), paste0(wd, "/Dataset details.txt"))
   #
   WorkFlow <- names(WorkFlows)[match(WorkFlow, WorkFlows)]

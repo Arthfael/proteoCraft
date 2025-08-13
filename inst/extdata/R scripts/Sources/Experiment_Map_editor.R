@@ -448,4 +448,4 @@ if (nchar(msg) > 1000) {
   cat(msg)
   msg2 <- paste0(substr(msg, 1, 996), "...")
 }
-tstXpMp <- c(TRUE, FALSE)[match(dlg_message(msg2, "yesno", rstudio = FALSE)$res, c("yes", "no"))]
+tstXpMp <- c(TRUE, FALSE)[match(dlg_message(msg2, "yesno", rstudio = TRUE)$res, c("yes", "no"))]

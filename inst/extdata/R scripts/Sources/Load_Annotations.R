@@ -1,5 +1,9 @@
 ### Load and process annotations
 # This includes a QC step in case the database differs slightly from the one used by MQ, or if somehow some IDs have not been properly parsed.
+dfltLocsFl <- paste0(homePath, "/Default_locations.xlsx")
+dfltLocs <- openxlsx2::read_xlsx(dfltLocsFl)
+fastaLoc <- dfltLocs$Path[match("Fasta files", dfltLocs$Folder)]
+#
 GO.col %<o% c("GO", "GO-ID")
 ObjNm <- "Annotate"
 if ((scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
@@ -24,7 +28,7 @@ if (Annotate) {
   if (!exists("Parsed_annotations")) {
     tmpFls <- gsub("\\.fa((s(ta(\\.fas)?)?)|a?)?$", ".txt", fastasTbl$Full)
     AnnotFls <- vapply(tmpFls, function(x) { #x <- tmpFls[1]
-      x2 <- gsub(".+/", "D:/Fasta_databases/", x)
+      x2 <- gsub(".+/", paste0(fastaLoc, "/"), x)
       if (!file.exists(x)) {
         if (file.exists(x2)) {
           fs::file_copy(x2, wd)
@@ -34,21 +38,23 @@ if (Annotate) {
       return(as.character(x))
     }, "")
     AnnotFls %<o% AnnotFls[which(!is.na(AnnotFls))]
-    if (!length(AnnotFls)) {
+    l <- length(AnnotFls)
+    if (!l) {
       moar <- TRUE
-      kount <- 0
       while (moar) {
-        if (kount == 0) {
-          msg <- "No functional annotation file detected. Select one (or more)?"
+        if (l == 0) {
+          msg <- "No functional annotation file detected. Select one?"
         } else { msg <- "Select more?" }
         moar <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
         if (moar) {
-          msg <- "Choose annotation file(s):"
-          filt <- matrix(c("Annotations txt file", "*.txt"), ncol = 2)
-          AnnotFls <- c(AnnotFls, choose.files("D:/Fasta_databases/*.txt", msg, TRUE, filt))
-          AnnotFls <- normalizePath(AnnotFls, winslash = "/")
+          msg <- "Select annotation file"
+          #filt <- matrix(c("Annotations txt file", "*.txt"), ncol = 2)
+          #AnnotFls <- c(AnnotFls, normalizePath(choose.files(paste0(fastaLoc, "/*.txt"), msg, TRUE, filt), winslah = "/"))
+          AnnotFls <- c(AnnotFls, rstudioapi::selectFile(msg,
+                                                         path = paste0(fastaLoc, "/*.txt"),
+                                                         filter = "UniProtKB txt annotations file (*.txt)"))
           AnnotFls <- AnnotFls[which(!is.na(AnnotFls))]
-          kount <- kount + 1
+          l <- length(AnnotFls)
         }
       }
     }

@@ -6,10 +6,12 @@ if (SearchSoft == "MAXQUANT") {
   if ((scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
     ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]]
   } else {
-    filt <- matrix(c("MaxQuant parameters xml file", "*.xml"), ncol = 2)
     msg <- "Select MaxQuant mqpar.xml file"
-    tmp <- choose.files(paste0(gsub("(/combined)?/txt.*", "", indir), "/*.xml"), msg, FALSE, filt, 1)
-    tmp <- gsub("\\\\", "/", tmp)
+    #filt <- matrix(c("MaxQuant parameters xml file", "*.xml"), ncol = 2)
+    #tmp <- normalizePath(choose.files(paste0(gsub("(/combined)?/txt.*", "", indir), "/*.xml"), msg, FALSE, filt, 1), winslash = "/")
+    tmp <- rstudioapi::selectFile(msg,
+                                  path = paste0(gsub("(/combined)?/txt.*", "", indir), "/*.xml"),
+                                  filter = "XML file (*.xml)")
     ObjNm %<c% tmp
     indir2 <- dirname(get(ObjNm))
     if (scrptType == "withReps") {
@@ -37,8 +39,11 @@ if (SearchSoft == "MAXQUANT") {
   PSMsFl %<o% paste0(dr, c("", "/txt", "/combined/txt"), "/evidence.txt")
   PSMsFl <- PSMsFl[which(file.exists(PSMsFl))]
   if (length(PSMsFl) > 1) {
-    msg <- "I could not identify MaxQuant's evidence.txt file, please select it manually:"
-    PSMsFl <- choose.files(paste0(indir, "/*.txt"), msg)
+    msg <- "Could not find MaxQuant's evidence.txt file, please select it manually:"
+    #PSMsFl <- normalizePath(choose.files(paste0(indir, "/*.txt"), msg), winslash = "/")
+    PSMsFl <- rstudioapi::selectFile(msg,
+                                     path = paste0(indir, "/*.txt"),
+                                     filter = "txt files (*.txt)")
   }
   tmpMQ <- data.table::fread(PSMsFl, integer64 = "numeric", check.names = FALSE, data.table = FALSE)
   Cor_MQ <- cor_mod_seq(tmpMQ)
@@ -223,9 +228,13 @@ if (SearchSoft == "DIANN") {
   if ((scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
     ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]]
   } else {
-    filt <- matrix(c("DiaNN log file", "*.log.txt"), ncol = 2)
     msg <- "Select DiaNN log file"
-    ObjNm %<c% choose.files(paste0(indir, "/*.log.txt"), msg, multi = FALSE, filt, 1)
+    #filt <- matrix(c("DiaNN log file", "*.log.txt"), ncol = 2)
+    #tmp <- normalizePath(choose.files(paste0(indir, "/*.log.txt"), msg, multi = FALSE, filt, 1), winslash = "/")
+    tmp <- rstudioapi::selectFile(msg,
+                                  path = paste0(indir, "/*.log.txt"),
+                                  filter = "DiaNN log file (*.log.txt)")
+    ObjNm %<c% tmp
     if (scrptType == "withReps") {
       AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
       tmp <- AllAnsw[1,]
@@ -270,7 +279,9 @@ if (SearchSoft == "DIANN") {
       message("The DiaNN output folder has been renamed or moved since the search was run, but could be located automatically.")
     } else {
       warning("The DiaNN output folder has been renamed or moved since DiaNN was run.\nThe psms report could not be located automatically.\nPrompting user...")
-      PSMsFls <- rstudioapi::selectFile("Select DiaNN report file (.tsv or .parquet)", path = indir, filter = "DiaNN report file s (*.tsv|*.parquet)")
+      PSMsFls <- rstudioapi::selectFile("Select DiaNN report file (.tsv or .parquet)",
+                                        path = indir,
+                                        filter = "DiaNN report file s (*.tsv|*.parquet)")
       w <- which(file.exists(PSMsFls))
     }
   }
@@ -296,7 +307,10 @@ if (SearchSoft == "DIANN") {
           fastas[x] <- tmp
         } else {
           warning(paste0("Fasta file ", fastas[x], " has been relocated since DiaNN was run, and could not be located automatically. Prompting user..."))
-          fastas[x] <- normalizePath(choose.files(gsub("/[^/]+$", "/*.tsv", fastas[x]), "Select Fasta report file", FALSE), winslash = "/")
+          #fastas[x] <- normalizePath(choose.files(gsub("/[^/]+$", "/*.tsv", fastas[x]), "Select fasta file", FALSE), winslash = "/")
+          fastas[x] <- rstudioapi::selectFile(paste0("Select missing fasta file ", fastas[x]),
+                                              path = gsub("/[^/]+$", "/*", fastas[x]),
+                                              filter = "fasta file (*.fasta|*.fas|*.fa|*.faa|*.fasta.fas|*.txt)")
         }
       }
     }
@@ -468,7 +482,11 @@ if (SearchSoft == "FRAGPIPE") {
   } else {
     filt <- matrix(c("FragPipe workflow", "*.workflow"), ncol = 2)
     msg <- "Select FragPipe .workflow file"
-    ObjNm %<c% normalizePath(choose.files(paste0(indir, "/*.workflow"), msg, multi = FALSE, filt, 1), winslash = "/")
+    #tmp <- normalizePath(choose.files(paste0(indir, "/*.workflow"), msg, multi = FALSE, filt, 1), winslash = "/")
+    tmp <- rstudioapi::selectFile("Select FragPipe workflow file",
+                                  path = paste0(indir, "/*.workflow"),
+                                  filter = "FragPipe workflow file (*.workflow)")
+    ObjNm %<c% tmp
     if (scrptType == "withReps") {
       AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
       tmp <- AllAnsw[1,]
@@ -489,7 +507,11 @@ if (SearchSoft == "FRAGPIPE") {
   } else {
     filt <- matrix(c("FragPipe samples manifest", "*.fp-manifest"), ncol = 2)
     msg <- "Select FragPipe .fp-manifest file"
-    ObjNm %<c% normalizePath(choose.files(paste0(indir, "/*.fp-manifest"), msg, multi = FALSE, filt, 1), winslash = "/")
+    #tmp <- normalizePath(choose.files(paste0(indir, "/*.fp-manifest"), msg, multi = FALSE, filt, 1), winslash = "/")
+    tmp <- rstudioapi::selectFile("Select FragPipe manifest file",
+                                  path = paste0(indir, "/*.fp-manifest"),
+                                  filter = "FragPipe MANIFEST file (*.fp-manifest)")
+    ObjNm %<c% tmp
     if (scrptType == "withReps") {
       AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
       tmp <- AllAnsw[1,]
