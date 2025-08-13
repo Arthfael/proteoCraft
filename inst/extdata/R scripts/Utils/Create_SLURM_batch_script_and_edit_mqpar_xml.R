@@ -133,8 +133,12 @@ if (length(grep(paste0(" ", BATCH, "$"), out)) == 0) { ssh_exec_wait(sshsess, pa
 # This should have been created in MaxQuant and contain all the required information, e.g. files, search database, mods, etc...
 # Make sure it is from the same MaxQuant version you will be using.
 # Currently this does NOT check whether the raw/mzXML files actually exist!!!
-filt <- matrix(c("MaxQuant parameters xml file", "*.xml"), ncol = 2)
-xmlnm <- choose.files("D:\\groups_temp\\mqpar.xml", "Select the MaxQuant parameters file to edit", multi = FALSE, filt, 1)
+msg <- "Select the MaxQuant parameters file to edit"
+#filt <- matrix(c("MaxQuant parameters xml file", "*.xml"), ncol = 2)
+#xmlnm <- normalizePath(choose.files("D:\\groups_temp\\mqpar.xml", msg, multi = FALSE, filt, 1), winslash = "/")
+xmlnm <- rstudioapi::selectFile(msg,
+                                path = "D:\\groups_temp\\mqpar.xml",
+                                filter = "XML file (*.xml)")
 xml <- readLines(xmlnm)
 xmlnm <- basename(xmlnm)
 xmlmqvers <- unlist(strsplit(grep("maxQuantVersion", xml, value = TRUE), "> ?| ?<"))[3]
@@ -186,8 +190,12 @@ if (out != 0) { stop("MaxQuant extraction failed!") } else {
   # Also ask for local modifications file
   locmod <- c(FALSE, TRUE)[match(dlg_message("Do you want to transfer a custom modifications file?", "yesno")$res, c("no", "yes"))]
   if (locmod) {
-    filt <- matrix(c("MaxQuant modifications xml file", "*.xml"), ncol = 2)
-    locmod <- choose.files(paste0("C:\\MaxQuant\\MaxQuant_", MQvers$Version[1], "\\bin\\conf\\modifications.local.xml"), "Select the local modifications file to upload", multi = FALSE, filt, 1)
+    msg <- "Select the local modifications file to upload"
+    #filt <- matrix(c("MaxQuant modifications xml file", "*.xml"), ncol = 2)
+    #locmod <- normalizePath(choose.files(paste0("C:/MaxQuant/MaxQuant_", MQvers$Version[1], "/bin/conf/modifications.local.xml"), msg, multi = FALSE, filt, 1), winslash = "/")
+    locmod <- rstudioapi::selectFile(msg,
+                                     path = paste0("C:/MaxQuant/MaxQuant_", MQvers$Version[1], "/bin/conf/modifications.local.xml"),
+                                     filter = "XML file (*.xml)")
     scp_upload(sshsess, locmod, paste0(MQ_LOC, "/conf/"), verbose = TRUE)
   }
   SLURM <- gsub("MQ_LOC", MQ_LOC, SLURM)

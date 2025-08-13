@@ -14,6 +14,7 @@ Mode <- dlg_list(Modes, Modes[1], title = "What do you want to do?")$res
 if (Input == Inputs[1]) {
   # Detect DIA-NN exe
   DIANNdir <- grep("DIA-NN", list.dirs("C:/", recursive = FALSE), value = TRUE)
+  msg <- "Select DiaNN.exe executable"
   if (length(DIANNdir) == 1) {
     DIANNdir2 <- grep("DIA-NN", list.dirs(DIANNdir, recursive = FALSE), value = TRUE)
     stopifnot(length(DIANNdir2) > 0)
@@ -21,16 +22,26 @@ if (Input == Inputs[1]) {
     stopifnot(sum(file.exists(DIANNexe)) > 0)
     if (length(DIANNexe) > 1) {
       #DIANNexe <- DIANNexe[order(file.mtime(DIANNexe), decreasing = TRUE)[1]]
-      DIANNexe <- normalizePath(choose.files(paste0(normalizePath(DIANNdir), "\\*.exe"), "Select DiaNN.exe executable", multi = FALSE))
+      #DIANNexe <- normalizePath(choose.files(paste0(normalizePath(DIANNdir), "\\*.exe"), msg, multi = FALSE))
+      DIANNexe <- rstudioapi::selectFile(msg,
+                                         path = paste0(DIANNdir, "/*.exe"),
+                                         filter = "DiaNN exe (*.exe)")
     }
   } else {
-    DIANNexe <- normalizePath(choose.files("C:/*.exe", "Select DiaNN.exe executable", multi = FALSE))
+    #DIANNexe <- normalizePath(choose.files("C:/*.exe", msg, multi = FALSE))
+    DIANNexe <- rstudioapi::selectFile(msg,
+                                       path = "C:/*.exe",
+                                       filter = "DiaNN exe (*.exe)")
   }
   if ((length(DIANNexe) == 1)&&(file.exists(DIANNexe))) {
     DIANNexe <- gsub("\\\\DIA-NN\\.exe$", "\\\\DiaNN.exe", DIANNexe) # In case you selected the wrong executable in the folder
     DIANNexe <- paste0("\"", DIANNexe, "\"")
     #
-    DIANNlogFl <- choose.files(paste0(wd, "/*.log.txt"), "Select a DIA-NN log file", multi = FALSE)
+    msg <- "Select a DIA-NN log file"
+    #DIANNlogFl <- choose.files(paste0(wd, "/*.log.txt"), msg, multi = FALSE)
+    DIANNlogFl <- rstudioapi::selectFile(msg,
+                                         path = paste0(wd, "/*.log.txt"),
+                                         filter = "DiaNN log file (*.log.txt)")
     wd <- dirname(DIANNlogFl)
     setwd(wd)
     #
@@ -99,10 +110,18 @@ if (Input == Inputs[1]) {
 }
 # FragPipe
 if (Input == Inputs[2]) {
-  FP_Workflow <- normalizePath(choose.files(paste0(wd, "/*.workflow"), "Choose FragPipe workflow file", multi = FALSE), winslash = "/")
+  msg <- "Choose FragPipe workflow file"
+  #FP_Workflow <- normalizePath(choose.files(paste0(wd, "/*.workflow"), msg, multi = FALSE), winslash = "/")
+  FP_Workflow <- rstudioapi::selectFile(msg,
+                                        path = paste0(wd, "/*.workflow"),
+                                        filter = "FragPipe workflow file (*.workflow)")
   stopifnot(length(FP_Workflow) > 0)
   wd <- dirname(FP_Workflow)
-  FP_Manifest <- normalizePath(choose.files(paste0(wd, "/*.fp-manifest"), "Choose FragPipe manifest", multi = FALSE), winslash = "/")
+  msg <- "Choose FragPipe manifest"
+  #FP_Manifest <- normalizePath(choose.files(paste0(wd, "/*.fp-manifest"), , multi = FALSE), winslash = "/")
+  FP_Manifest <- rstudioapi::selectFile(msg,
+                                        path = paste0(wd, "/*.fp-manifest"),
+                                        filter = "FragPipe MANIFEST file (*.fp-manifest)")
   stopifnot(length(FP_Manifest) > 0)
   FP_Workflow <- readLines(FP_Workflow)
   FP_Dir <- gsub("\\\\", "", gsub("\\\\\\\\", "/", gsub("^workdir=", "", grep("^workdir=", FP_Workflow, value = TRUE))))

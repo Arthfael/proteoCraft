@@ -6,10 +6,14 @@ library(svDialogs)
 ScanHdsMnLoc <- "...User_Home/Downloads/ScanHeadsman-1.2.20200730"
 
 
-filt <- matrix(c("Thermo raw file", "*.raw"), ncol = 2)
 if (exists("dr")) { dfltdir <- dr } else { dfltdir <- "...Delivery_Folder" }
-fl <- choose.files(paste0(dfltdir, "/.raw"), "Select a single raw file", multi = FALSE, filt, 1)
-fl <- normalizePath(fl, winslash = "/")
+
+msg <- "Select a single Thermo raw file"
+#filt <- matrix(c("Thermo raw file", "*.raw"), ncol = 2)
+#fl <- normalizePath(choose.files(paste0(dfltdir, "/.raw"), msg, multi = FALSE, filt, 1), winslash = "/")
+fl <- rstudioapi::selectFile(msg,
+                             path = paste0(dfltdir, "/*.raw"),
+                             filter = "Thermo raw file (*raw)")
 dr <- dirname(fl)
 setwd(dr)
 flnm <- basename(fl)

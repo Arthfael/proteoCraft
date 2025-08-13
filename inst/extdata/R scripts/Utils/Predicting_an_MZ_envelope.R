@@ -5,10 +5,16 @@ require(ggplot2)
 require(svDialogs)
 require(proteoCraft)
 
+RPath <- as.data.frame(library()$results)
+RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
+libPath <- paste0(RPath, "/proteoCraft")
+homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+dfltLocsFl <- paste0(homePath, "/Default_locations.xlsx")
+dfltLocs <- openxlsx2::read_xlsx(dfltLocsFl)
+searchDir <- dfltLocs$Path[match("Search folder", dfltLocs$Folder)]
+
 # Choose working directory
-wd <- choose.dir("...Search_Folder/", "Select work directory (where plots will be saved)...")
-wd <- normalizePath(wd, winslash = "/")
-if (!dir.exists(wd)) { dir.create(wd, recursive = TRUE) }
+wd <- rstudioapi::selectDirectory(path = searchDir)
 setwd(wd)
 
 #Seq <- "MEVRNMVDYELLKKVVEAPGVSGYEFLGIRDVVIEEIKDYVDEVKVDKLGNVIAHKKGEGPKVMIAAHMDQIGLMVTHIEKNGFLRVAPIGGVDPKTLIAQRFKVWIDKGKFIYGVGASVPPHIQKPEDRKKAPDWDQIFIDIGAESKEEAEDMGVKIGTVITWDGRLERLGKHRFVSIAFDDRIAVYTILEVAKQLKDAKADVYFVATVQEEVGLRGARTSAFGIEPDYGFAIDVTIAADIPGTPEHKQVTHLGKGTAIKIMDRSVICHPTIVRWLEELAKKHEIPYQLEILLGGGTDAGAIHLTKAGVPTGALSVPARYIHSNTEVVDERDVDATVELMTKALENIHELKI"

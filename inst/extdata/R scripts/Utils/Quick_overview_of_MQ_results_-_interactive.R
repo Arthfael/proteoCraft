@@ -30,10 +30,12 @@ AnalysisType <- c("Discovery", "Regulation", "Pull-down")[AnalysisType]
 AnalysisParam$"Type" <- AnalysisType
 MakeRatios <- FALSE
 if (AnalysisType %in% c("Regulation", "Pull-down")) {
-  filt <- matrix(c("Samples map", "*.csv"), ncol = 2)
   msg <- "Select csv file with at least 2 columns:\n - \"MQ.exp\": experiment names used for the MaxQuant search\n - \"New name\": new sample names\nOther optional columns (required for ratio analysis):\n - \"Reference\": is this a reference sample for ratios calculations?\n - \"Ratios group\": which ratios group is this sample part of?"
-  SamplesMap_file <- choose.files(paste0(wd, "/SamplesMap.csv"), msg,
-                                  multi = FALSE, filter = filt)
+  #filt <- matrix(c("Samples map", "*.csv"), ncol = 2)
+  #SamplesMap_file <- choose.files(paste0(wd, "/SamplesMap.csv"), msg, multi = FALSE, filter = filt)
+  SamplesMap_file <- rstudioapi::selectFile(msg,
+                                         path = paste0(wd, "/SamplesMap.csv"),
+                                         filter = "csv file (*.csv)")
   SamplesMap <- read.delim(SamplesMap_file, check.names = FALSE)
   if (ncol(SamplesMap) == 1) { SamplesMap <- read.delim(SamplesMap_file, check.names = FALSE, sep = ",") }
   if (ncol(SamplesMap) == 1) { SamplesMap <- read.csv(SamplesMap_file, check.names = FALSE) }
@@ -81,8 +83,12 @@ AnalysisParam$"N. of threads" <- N.clust
 # Custom protein groups
 custPGs <- c(TRUE, FALSE)[match(dlg_message("Do you want to provide a table of a priori known protein groups?", "yesno")$res, c("yes", "no"))]
 if (custPGs) {
-  filt <- matrix(c("Custom protein groups file", "*.csv"), ncol = 2)
-  custPGs_file <- normalizePath(choose.files("Custom_PGs.csv", filters = filt), winslash = "/")
+  #filt <- matrix(c("Custom protein groups file", "*.csv"), ncol = 2)
+  #custPGs_file <- normalizePath(choose.files("Custom_PGs.csv", filters = filt, multi = FALSE), winslash = "/")
+  custPGs_file <- rstudioapi::selectFile("Select custom protein groups instructions file",
+                                         path = paste0(wd, "/Custom_PGs.csv"),
+                                         filter = "csv file (*.csv)")
+  #
   custPGs <- read.delim(custPGs_file, check.names = FALSE)
   if (colnames(custPGs)[1] != "Leading protein IDs") { custPGs <- read.delim(custPGs_file, check.names = FALSE, sep = ",") }
   if (colnames(custPGs)[1] != "Leading protein IDs") { custPGs <- read.csv(custPGs_file, check.names = FALSE) }
@@ -208,15 +214,17 @@ IDs.list <- list()
 prot.names <- c()
 protlistsource <- c()
 if (protlist) {
-  msg <- paste(c("Under which form will the proteins of interest be provided?", " - 1: fasta file(s)",
+  msg <- paste(c("Under which form will the proteins of interest be provided?", " - 1: fasta file",
                  " - 2: Protein names list (txt file, with comma, semicolon or line separated individual names)",
                  " - 3: Manually enter protein names", " - 4: Manually enter protein accessions"), collapse = "\n")
   protlistsource <- as.numeric(dlg_input(msg, 1)$res)
   while (!protlistsource %in% c(1:4)) { protlistsource <- as.numeric(dlg_input(msg, 1)$res) }
   if (protlistsource == 1) {
-    filt <- matrix(c("Fasta file", "*.fasta"), ncol = 2)
-    tmp <- choose.files(default = c("*.fasta", "Proteins of interest.fasta")[file.exists("Proteins of interest.fasta")+1],
-                        filters = filt)
+    #filt <- matrix(c("Fasta file", "*.fasta"), ncol = 2)
+    #tmp <- choose.files(default = c("*.fasta", "Proteins of interest.fasta")[file.exists("Proteins of interest.fasta")+1], filters = filt, multi = FALSE)
+    tmp <- rstudioapi::selectFile("Select proteins of interest fasta",
+                                  path = paste0(wd, "/Proteins of interest.fasta"),
+                                  filter = "fasta file (*.fasta|*.fas|*.fa|*.faa|*.fasta.fas|*.txt)")
     tmp <- setNames(lapply(tmp, Format.DB), paste0("Fasta #", 1:length(tmp)))
     tmp <- suppressMessages(melt(tmp))
     tmp$Sequence <- gsub("\\*$", "", tmp$Sequence)
@@ -224,7 +232,10 @@ if (protlist) {
   }
   if (protlistsource == 2) {
     filt <- matrix(c("Text file", "*.txt"), ncol = 2)
-    tmp <- choose.files("Proteins of interest.txt", filters = filt, multi = FALSE)
+    #tmp <- choose.files("Proteins of interest.txt", filters = filt, multi = FALSE)
+    tmp <- rstudioapi::selectFile("Select text file of proteins of interest",
+                                  path = paste0(wd, "/Proteins of interest.txt"),
+                                  filter = "txt file (*.txt)")
     tmp <- unlist(strsplit(suppressWarnings(readLines(tmp)), " ?[,;] ?"))
   }
   if (protlistsource %in% 3:4) {
@@ -335,12 +346,14 @@ AnalysisParam$"PTMs eligible for quantitation" <- list(Mod4Quant)
 # Experiments
 if ("Experiment" %in% colnames(ev)) {
   if (!exists("SamplesMap")) {
-    filt <- matrix(c("Samples map", "*.csv"), ncol = 2)
-    SamplesMap_file <- choose.files(paste0(wd, "/SamplesMap.csv"), "Select 2 column file, with two columns:\n - \"MQ.exp\": names used for the MaxQuant search\n - \"New name\": new sample names",
-                                    multi = FALSE, filter = filt)
+    msg <- "Select 2 column file, with two columns:\n - \"MQ.exp\": names used for the MaxQuant search\n - \"New name\": new sample names"
+    #filt <- matrix(c("Samples map", "*.csv"), ncol = 2)
+    SamplesMap_file <- c()
     while (!length(SamplesMap_file)) {
-      SamplesMap_file <- choose.files(paste0(wd, "/SamplesMap.csv"), "Select 2 column file, with two columns:\n - \"MQ.exp\": names used for the MaxQuant search\n - \"New name\": new sample names",
-                                      multi = FALSE, filter = filt)
+      #SamplesMap_file <- choose.files(paste0(wd, "/SamplesMap.csv"), msg, multi = FALSE, filter = filt)
+      SamplesMap_file <- rstudioapi::selectFile(msg,
+                                                path = paste0(wd, "/SamplesMap.csv"),
+                                                filter = "csv file (*.csv)")
     }
     SamplesMap <- read.delim(SamplesMap_file, check.names = FALSE)
     if (ncol(SamplesMap) == 1) { SamplesMap <- read.delim(SamplesMap_file, check.names = FALSE, sep = ",") }

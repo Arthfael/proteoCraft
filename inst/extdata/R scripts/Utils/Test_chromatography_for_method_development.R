@@ -1,7 +1,16 @@
 options(stringsAsFactors = FALSE)
 require(proteoCraft)
 require(ggplot2)
-wd <- choose.dir("...Search_Folder/")
+
+RPath <- as.data.frame(library()$results)
+RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
+libPath <- paste0(RPath, "/proteoCraft")
+homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+dfltLocsFl <- paste0(homePath, "/Default_locations.xlsx")
+dfltLocs <- openxlsx2::read_xlsx(dfltLocsFl)
+searchDir <- dfltLocs$Path[match("Search folder", dfltLocs$Folder)]
+
+wd <- rstudioapi::selectDirectory(path = searchDir)
 setwd(wd)
 MQ.load(pep = FALSE, prot = FALSE)
 plot <- ggplot(ev) + geom_density(stat = "density", aes(Retention.length*60))

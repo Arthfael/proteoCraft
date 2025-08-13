@@ -1,4 +1,4 @@
-wd <- normalizePath(choose.dir("C:/"), winslash = "/")
+wd <- rstudioapi::selectDirectory(path = "C:/")
 setwd(wd)
 tst <- grep("ScanHeadsman-1\\.2", list.dirs("C:/", recursive = FALSE), value = TRUE)
 ScanHdsMnTst <- length(tst) > 0

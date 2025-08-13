@@ -6,8 +6,15 @@ for (pack in packs) {
 }
 require(proteoCraft)
 
-dir <- choose.dir("...Search_Folder/", "Select destination directory")
-dir <- normalizePath(dir, winslash = "/")
+RPath <- as.data.frame(library()$results)
+RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
+libPath <- paste0(RPath, "/proteoCraft")
+homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+dfltLocsFl <- paste0(homePath, "/Default_locations.xlsx")
+dfltLocs <- openxlsx2::read_xlsx(dfltLocsFl)
+searchDir <- dfltLocs$Path[match("Search folder", dfltLocs$Folder)]
+
+dir <- rstudioapi::selectDirectory("Select destination directory", path = searchDir)
 
 Seq <- dlg_input("Enter protein sequence (single-letter code, capital letters only)")$res
 #Seq <- "TESTPEPTIDERANDSOMESTUFF"

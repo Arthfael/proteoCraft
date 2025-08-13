@@ -14,14 +14,14 @@ require(minpack.lm)
 # The software then complains about the lack of inclusion list, and the list must be global.
 
 # Choose working directory:
-wd <- choose.dir()
+wd <- rstudioapi::selectDirectory()
 setwd(wd)
 
 # Choose destination directory:
-destd <- choose.dir()
+destd <- rstudioapi::selectDirectory()
 
 # Choose MaxQuant evidence.txt file to process:
-ev <- file.choose()
+ev <- rstudioapi::selectFile()
 ev <- read.delim(ev)
 rm(list = ls()[which(!ls() %in% c("wd", "ev", "destd"))])
 

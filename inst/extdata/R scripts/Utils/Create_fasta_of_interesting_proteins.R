@@ -4,7 +4,11 @@ require(shiny)
 require(shinyWidgets)
 require(shinyjs)
 
-fastaFl <- normalizePath(choose.files("D:/Fasta_databases/*.fa", "Select fasta file", FALSE), winslash = "/")
+msg <- "Select fasta file"
+#fastaFl <- normalizePath(choose.files("D:/Fasta_databases/*.fa", msg, FALSE), winslash = "/")
+fastaFl <- rstudioapi::selectFile(msg,
+                                  path = "D:/Fasta_databases/*",
+                                  filter = "fasta file (*.fasta|*.fas|*.fa|*.faa|*.fasta.fas|*.txt)")
 wd <- dirname(fastaFl)
 setwd(wd)
 Sources <- c("UniProtKB", "Ensembl", "RefSeq-RNA", "RefSeq-Protein", "RefSeq-CDS", "NCBI", "TAIR", "custom")

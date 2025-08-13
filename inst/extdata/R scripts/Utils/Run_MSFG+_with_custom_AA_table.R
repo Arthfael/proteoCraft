@@ -6,7 +6,11 @@ require(rstudioapi)
 wd <- selectDirectory(path = "...Search_Folder")
 setwd(wd)
 
-fasta <- choose.files(paste0(wd, "/*.fasta"), multi = FALSE)
+#fasta <- choose.files(paste0(wd, "/*.fasta"), multi = FALSE)
+fasta <- rstudioapi::selectFile("Select fasta file",
+                               path = paste0(defltdir, "/*"),
+                               filter = "fasta file (*.fasta|*.fas|*.fa|*.faa|*.fasta.fas|*.txt)")
+
 mzMLs <- grep("\\.mzML$", list.files(), value = TRUE)
 MSGFplus <- "C:\\MSGFPlus_v20230112\\MSGFPlus.jar"
 for (mzML in mzMLs) { #mzML <- mzMLs[2]

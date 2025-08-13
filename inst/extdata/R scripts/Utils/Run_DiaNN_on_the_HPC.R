@@ -105,12 +105,13 @@ if (Mode == names(Modes)[1]) {
   }
 }
 if (Mode == names(Modes)[2]) {
-  FILES <- choose.files("", "Select input MS files files (or escape for library-building only mode - no file search)")
+  FILES <- choose.files("", "Select input MS files (or escape for library-building only mode - no file search)")
 }
 NTHREADS <- NA
 while (is.na(suppressWarnings(as.integer(NTHREADS)))) { NTHREADS <- dlg_input("How many threads would you like to request?", max(c(12, length(FILES))))$res }
 #
-filt <- matrix(c("fasta file", "faa file", "fa file", "txt (fasta) file", ".fasta", ".faa", ".fa", ".txt"), ncol = 2)
+filt <- matrix(c("fasta file", "fas file", "fa file", "faa file", "fasta.fas file", "txt (fasta) file", ".fasta", ".fas", ".fa", ".faa", "fasta.fas", ".txt"),
+               ncol = 2)
 Moar <- TRUE
 FASTAS <- c()
 dflt2 <- gsub("/[^/]+$", "/*.fasta", dflt)

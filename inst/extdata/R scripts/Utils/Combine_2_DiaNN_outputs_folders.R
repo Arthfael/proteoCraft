@@ -10,15 +10,19 @@ try(setDTthreads(threads = parallel::detectCores()-1), silent = TRUE)
 
 dflt <- "C:"
 if ((exists("dir1"))&&(dir.exists(dir1))) { dflt <- dir1 }
-fl2lg <- fl1lg <- normalizePath(choose.files(paste0(dflt, "/*.log.txt"),
-                                             "Select 1st DiaNN log file", FALSE), winslash = "/")
+#fl2lg <- fl1lg <- normalizePath(choose.files(paste0(dflt, "/*.log.txt"), "Select 1st DiaNN log file", FALSE), winslash = "/")
+fl2lg <- fl1lg <- rstudioapi::selectFile("Select 1st DiaNN log file",
+                                         path = paste0(dflt, "/*.log.txt"),
+                                         filter = "DiaNN log file (*.log.txt)")
 dir1 <- dirname(fl1lg)
-while (fl2lg ==  fl1lg) {
+while (fl2lg == fl1lg) {
   dflt <- dir1
   if ((exists("dir2"))&&(nchar(paste0(dir2, "")))&&(dir.exists(dir2))) { dflt <- dir2 }
   dflt <- gsub("/[^/]+$", "", dflt)
-  fl2lg <- normalizePath(choose.files(paste0(dflt, "/*.log.txt"),
-                                      "Select 2nd DiaNN log file", FALSE), winslash = "/")
+  #fl2lg <- normalizePath(choose.files(paste0(dflt, "/*.log.txt"), "Select 2nd DiaNN log file", FALSE), winslash = "/")
+  fl2lg <- rstudioapi::selectFile("Select 2nd DiaNN log file",
+                                  path = paste0(dflt, "/*.log.txt"),
+                                  filter = "DiaNN log file (*.log.txt)")
   dir2 <- dirname(fl2lg)
 }
 dstDir <- NA
