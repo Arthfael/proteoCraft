@@ -2,7 +2,6 @@
 #'
 #' @description
 #' A function to create a simple heatmap of a data frame.
-#' Rewritten extensively because this old one was very old, broken and unused.
 #' 
 #' @param matr The data frame or matrix to plot. If it has rownames or colnames, these will be displayed.
 #' @param title The title of the graph.
