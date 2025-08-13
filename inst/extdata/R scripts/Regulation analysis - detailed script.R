@@ -2,6 +2,7 @@
 if (!interactive()) { stop("This script should only be run within an interactive R session!") }
 options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
+options(svDialogs.rstudio = TRUE)
 #rm(list = ls()[which(!ls() %in% c("dtstNm", "wd", "indir", "outdir"))])
 
 ## The proteoCraft package can be re-installed at any time in the workflow (there is a specific script for this in the package's library folder),
@@ -9006,8 +9007,14 @@ if (length(protlspep)) {
         } else {
           if ((exists("mqFld"))&&(dir.exists(mqFld))) { dflt <- mqFld } else { dflt <- "C:" }
           dflt <- paste0(dflt, "/*.xml")
-          modFls <- choose.files(dflt, "Select MaxQuant modifications file(s) as source of PTMs mass shifts:")
-          if ((length(modFls) > 1)||(!is.na(modFls))) { mqFld <- unique(dirname(modFls)) }
+          #modFls <- choose.files(dflt, "Select MaxQuant modifications file(s) as source of PTMs mass shifts")
+          #if ((length(modFls) > 1)||(!is.na(modFls))) { mqFld <- unique(dirname(modFls)) }
+          modFls <- rstudioapi::selectFile("Select a MaxQuant modifications file as source of PTMs mass shifts",
+                                           path = dflt,
+                                           filter = "XML file (*.xml)")
+          modFls <- unique(c(modFls, rstudioapi::selectFile("Optionally also select a local MaxQuant modifications file",
+                                                            path = dflt,
+                                                            filter = "XML file (*.xml)")))
         }
         modFls <- modFls[which(!is.na(modFls))]
         if (length(modFls)) {

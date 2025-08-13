@@ -2,6 +2,7 @@
 if (!interactive()) { stop("This script should only be run within an interactive R session!") }
 options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
+options(svDialogs.rstudio = TRUE)
 #rm(list = ls()[which(!ls() %in% c("dtstNm", "wd", "indir", "outdir"))])
 
 ## The proteoCraft package can be re-installed at any time in the workflow (there is a specific script for this in the package's library folder),

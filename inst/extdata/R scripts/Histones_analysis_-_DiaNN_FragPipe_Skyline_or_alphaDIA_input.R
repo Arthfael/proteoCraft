@@ -91,23 +91,32 @@ if (inputType == "FragPipe") {
   parDir <- dirname(inDir)
 }
 if (inputType == "DiaNN") {
-  filt <- matrix(c("DiaNN log file", "*.log.txt"), ncol = 2)
   msg <- "Select DiaNN log file"
-  diaNN_log_fl <- normalizePath(choose.files(paste0(dfltDir, "/*.log.txt"), msg, multi = FALSE, filt, 1), winslash = "/")
+  #filt <- matrix(c("DiaNN log file", "*.log.txt"), ncol = 2)
+  #diaNN_log_fl <- normalizePath(choose.files(paste0(dfltDir, "/*.log.txt"), msg, multi = FALSE, filt, 1), winslash = "/")
+  diaNN_log_fl <- rstudioapi::selectFile(msg,
+                                         path = paste0(dfltDir, "/*.log.txt"),
+                                         filter = "DiaNN log file (*.log.txt)")
   dflt <- inDir <- dirname(diaNN_log_fl)
   parDir <- dirname(inDir)
 }
 if (inputType == "Skyline") {
-  filt <- matrix(c("Skyline .tsv file", "Skyline .csv file", "*.tsv", "*.csv"), ncol = 2)
   msg <- "Select Skyline export .tsv file"
-  skyline_fl <- normalizePath(choose.files(paste0(dfltDir, "/*.tsv"), msg, multi = FALSE, filt, 1), winslash = "/")
+  #filt <- matrix(c("Skyline .tsv file", "Skyline .csv file", "*.tsv", "*.csv"), ncol = 2)
+  #skyline_fl <- normalizePath(choose.files(paste0(dfltDir, "/*.tsv"), msg, multi = FALSE, filt, 1), winslash = "/")
+  skyline_fl <- rstudioapi::selectFile(msg,
+                                       path = paste0(dfltDir, "/*.tsv"),
+                                       filter = "tsv file exported from Skyline (*.tsv)")
   dflt <- inDir <- dirname(skyline_fl)
   parDir <- dirname(inDir)
 }
 if (inputType == "alphaDIA") {
-  filt <- matrix(c("alphaDIA .tsv precursors file", "alphaDIA .parquet precursors file", "*.tsv", "*.parquet"), ncol = 2)
   msg <- "Select alphaDIA precursors .tsv file"
-  alphaDIA_fl <- normalizePath(choose.files(paste0(dfltDir, "/*.tsv"), msg, multi = FALSE, filt, 1), winslash = "/")
+  #filt <- matrix(c("alphaDIA .tsv precursors file", "alphaDIA .parquet precursors file", "*.tsv", "*.parquet"), ncol = 2)
+  #alphaDIA_fl <- normalizePath(choose.files(paste0(dfltDir, "/*.tsv"), msg, multi = FALSE, filt, 1), winslash = "/")
+  alphaDIA_fl <- rstudioapi::selectFile(msg,
+                                        path = paste0(dfltDir, "/*.tsv"),
+                                        filter = "alphaDIA output tsv file (*.tsv)")
   dflt <- inDir <- dirname(alphaDIA_fl)
   parDir <- dirname(inDir)
 }
@@ -165,7 +174,12 @@ if (inputType == "DiaNN") {
       PSMsFl <- PSMsFl2
     } else {
       warning("The input folder has been renamed since DiaNN was run, and the report file could not be located automatically; prompting user...")
-      PSMsFl <- choose.files(paste0(inDir, "/*.tsv"), "Select DiaNN report file", FALSE)
+      msg <- "Select DiaNN report file"
+      xt <- gsub(".*\\.", "", PSMsFl)
+      #PSMsFl <- choose.files(paste0(inDir, "/*.", xt), msg, FALSE)
+      PSMsFl <- rstudioapi::selectFile(msg,
+                                       path = paste0(inDir, "/*.", xt),
+                                       filter = paste0("DiaNN ", xt, " report file (*.", xt, ")"))
     }
   }
   #
@@ -181,11 +195,14 @@ if (inputType == "DiaNN") {
   }
   dbFl <- gsub("\\\\", "/", gsub("^fasta ", "", grep("^fasta ", tmpCall, value = TRUE)))
   if (!length(dbFl)) { # In the case of DiaNN, sometimes there is no fasta, only a library!
-    msg <- "Select fasta file(s) used to create the library, or a compatible fasta file"
     dflt <- paste0(inDir, "/*.fasta")
-    filt <- matrix(data = c("fasta", "*.fasta;*.fas;*.fa;*.fasta.fas"), ncol = 2,
-                   dimnames = list("Fasta"))
-    dbFl <- normalizePath(choose.files(dflt, filters = filt), winslash = "/")
+    #msg <- "Select fasta file(s) used to create the library, or a compatible fasta file"
+    #filt <- matrix(data = c("fasta", "*.fasta;*.fas;*.fa;*.fasta.fas"), ncol = 2, dimnames = list("Fasta"))
+    #dbFl <- normalizePath(choose.files(dflt, filters = filt), winslash = "/")
+    msg <- "Select fasta file used to create the library, or a compatible fasta file"
+    dbFl <- rstudioapi::selectFile(msg,
+                                   path = dflt,
+                                   filter = "fasta file (*.fasta|*.fas|*.fa|*.faa|*.fasta.fas|*.txt)")
   }
   DiaNN2MQ$Exp <- Exp
   DiaNN2MQ$dbFl <- dbFl
