@@ -40,7 +40,6 @@ Imports:
     norm,
     officer,
     openxlsx,
-    openxlsx2,
     OrgMassSpecR,
     pak,
     parallel,
@@ -69,6 +68,7 @@ Imports:
 Remotes:
     barkasn/fastSave,
     rformassspectrometry/unimod
+    JanMarvin/openxlsx2@v1.14
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
