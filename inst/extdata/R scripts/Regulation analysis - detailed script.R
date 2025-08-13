@@ -393,37 +393,6 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/checkPep2Prot.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-#test <- c()
-#if (!is.null(prot.list)) {
-#  a <- paste0(";", ev$Proteins, ";")
-#  b <- prot.list
-#  a1 <- paste0(";", b, ";")
-#  test <- unique(unlist(lapply(a1, function(x) { ev$id[grep(x, a)] })))
-#}
-#kol <- which(toupper(colnames(ev)) %in% c("CONTAMINANT", "POTENTIAL CONTAMINANT"))
-#ev <- ev[which((is.na(ev[[kol]]))|(ev[[kol]] == "")|(ev$id %in% test)),]
-# Test if there are still any evidences without any matching proteins from the database
-ev$"Tryptic peptide?" <- TRUE
-w <- which(ev$Proteins == "")
-l <- length(w)
-if (l) {
-  tst <- (l>1)+1
-  msg <- paste0("There ", c("is", "are")[tst], " ", length(w), " PSM", c("", "s")[tst],
-                " (", round(100*l/nrow(ev)), "%) without any matching protein from the database, probably from ",
-                c("a ", "")[tst], "non-tryptic peptide", c("", "s")[tst], ".")
-  ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
-  ev$"Tryptic peptide?"[w] <- FALSE
-  temp <- data.frame(Seq = unique(ev$Sequence[w]))
-  temp$Proteins <- vapply(temp$Seq, function(x) {
-    paste(db$"Protein ID"[grep(x, db$Sequence)], collapse = ";")
-  }, "")
-  ev$Proteins[w] <- temp$Proteins[match(ev$Sequence[w], temp$Seq)]
-  ev <- ev[which(ev$Proteins != ""),]
-}
-# Also remove those protein columns we will re-create later
-ev$"Leading proteins" <- NULL
-ev$"Leading razor protein" <- NULL
-
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 gc()
@@ -924,6 +893,8 @@ if (l) {
 DatAnalysisTxt <- paste0(DatAnalysisTxt, " The long format ", c("evidence.txt", "main report", "psm.tsv")[match(SearchSoft, SearchSoftware)],
                          " table was consolidated into a wide format peptidoforms table, summing up quantitative values where necessary.")
 
+LocAnalysis2 %<o% FALSE
+
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 gc()
@@ -932,63 +903,15 @@ saveImgFun(BckUpFl)
 source(parSrc, local = FALSE)
 
 #### Code chunk - Impute missing peptide intensities
-if (Impute) {
-  DatAnalysisTxt <- paste0(DatAnalysisTxt,
-                           " Missing values were imputed using two different strategies: i) the KNN (K-Nearest Neighbours) method for Missing-At-Random values within sample groups, and ii) the QRICL (Quantile Regression Imputation of Left-Censored data) method for Missing-Not-At-Random values.")
-  msg <- "Imputing missing values..."
-  ReportCalls <- AddMsg2Report(Space = FALSE)
-  ref <- pep.ref[length(pep.ref)]
-  if ("Imputation" %in% names(pep.ref)) { ref <- pep.ref[match("Imputation", names(pep.ref))-1] }
-  kol <- grep(topattern(ref), colnames(pep), value = TRUE)
-  groups <- Exp.map[match(gsub(topattern(ref), "", kol), Exp.map$Ref.Sample.Aggregate), VPAL$column]
-  temp <- Data_Impute2(pep[,kol], groups, is.log = FALSE)
-  temp2 <- temp$Imputed_data
-  colnames(temp2) <- gsub(topattern(ref), paste0("imput. ", pep.ref["Original"]), colnames(temp2))
-  pep[, colnames(temp2)] <- temp2
-  pep.ref["Imputation"] <- paste0("imput. ", pep.ref["Original"])
-  rm(list = ls()[which(!ls() %in% .obj)])
-  Script <- readLines(ScriptPath)
-}
+Src <- paste0(libPath, "/extdata/R scripts/Sources/pep_Impute.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 #### Code chunk - Re-normalize peptide intensities
-# - Check variance/intensity dependency before normalisation
-rfnm <- "Original"
-ttl <- "Peptides Variance vs Intensity dependency"
-kol <- grep(topattern(pep.ref[rfnm]), colnames(pep), value = TRUE)
-temp <- pep[, kol]
-w <- which(apply(temp, 1, function(x) { length(is.all.good(x)) }) > 0)
-temp <- temp[w,]
-Aggr <- VPAL
-LocAnalysis2 %<o% FALSE
-if (LocAnalysis) { Aggr <- parse.Param.aggreg("Exp;Com") }
-tst <- sapply(Aggr$values, function(x) {
-  em <- Exp.map[which(Exp.map[[Aggr$column]] == x),]
-  kl <- paste0(pep.ref[rfnm], em$Ref.Sample.Aggregate)
-  return(rowMeans(temp[, kl, drop = FALSE], na.rm = TRUE))
-})
-colnames(tst) <- cleanNms(colnames(tst))
-tst <- apply(tst, 1, function(x) { colnames(tst)[which(x == max(x))][1] })
-tst2 <- as.data.table(ev[, c("Charge", "Modified sequence")])
-tst2 <- tst2[, list(x = round(mean(Charge))), by = list(Group.1 = `Modified sequence`)]
-tst2 <- as.data.frame(tst2)
-temp2 <- data.frame("log10(Mean)" = log10(rowMeans(temp, na.rm = TRUE)),
-                    "log10(Variance)" = log10(apply(temp, 1, var, na.rm = TRUE)),
-                    "Strongest in..." = tst,
-                    check.names = FALSE)
-temp2$"Main charge" <- paste0("Z = ", tst2$x[match(pep$`Modified sequence`[w], tst2$Group.1)])
-temp2$"Main charge" <- factor(temp2$"Main charge", levels = paste0("Z = ", as.character(1:8)))
-dir <- paste0(wd, "/Workflow control")
-if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- unique(c(dirlist, dir))
-plot <- ggplot(temp2) +
-  geom_scattermore(aes(x = `log10(Mean)`, y = `log10(Variance)`, colour = `Strongest in...`),
-                   size = 1, alpha = 1) + ggtitle(ttl, subtitle = rfnm) + coord_fixed(0.3) + theme_bw() +
-  facet_grid(`Strongest in...` ~ `Main charge`) + theme(strip.text.y.right = element_text(angle = 0)) +
-  scale_colour_viridis_d(begin = 0.25)
-#poplot(plot, 12, 22)
-ggsave(paste0(dir, "/", ttl, " - ", rfnm, ".jpeg"), plot, width = 10, height = 10, units = "in", dpi = 300)
-ggsave(paste0(dir, "/", ttl, " - ", rfnm, ".pdf"), plot, width = 10, height = 10, units = "in", dpi = 300)
-ReportCalls <- AddPlot2Report(Title = paste0(ttl, " - ", rfnm))
+rfnm <- c("Original", "Imputation")[Impute+1]
+Src <- paste0(libPath, "/extdata/R scripts/Sources/pepNorm_VarPlot.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 #
 # - Run normalisations
 if (Param$Norma.Pep.Intens) {
@@ -998,49 +921,11 @@ if (Param$Norma.Pep.Intens) {
   source(Src, local = FALSE)
 }
 #
-# - Check variance/intensity dependency after normalisation
 rfnm <- names(pep.ref)[length(pep.ref)]
-ttl <- "Peptides Variance vs Intensity dependency"
-kol <- grep(topattern(pep.ref[rfnm]), colnames(pep), value = TRUE)
-temp <- pep[, kol]
-w <- which(apply(temp, 1, function(x) { length(is.all.good(x)) }) > 0)
-temp <- temp[w,]
-Aggr <- VPAL
-if (LocAnalysis) { Aggr <- parse.Param.aggreg("Exp;Com") }
-tst <- setNames(lapply(Aggr$values, function(x) { #x <- Aggr$values[2]
-  em <- Exp.map[which(Exp.map[[Aggr$column]] == x),]
-  if (nrow(em)) {
-    kl <- paste0(pep.ref[rfnm], em$Ref.Sample.Aggregate)
-    return(rowMeans(temp[, kl, drop = FALSE], na.rm = TRUE))
-  } else {
-    return(NULL)
-  }
-}), Aggr$values)
-tst <- tst[which(!sapply(tst, is.null))]
-tst <- as.data.frame(do.call(cbind, tst))
-kol <- colnames(tst) <- cleanNms(colnames(tst))
-tst <- apply(tst, 1, function(x) { kol[which(x == max(x))][1] })
-tst2 <- aggregate(ev$Charge, list(ev$`Modified sequence`), function(x) { round(mean(x)) })
-temp2 <- data.frame("log10(Mean)" = log10(rowMeans(temp, na.rm = TRUE)),
-                    "log10(Variance)" = log10(apply(temp, 1, var, na.rm = TRUE)),
-                    "Strongest in..." = tst,
-                    check.names = FALSE)
-w <- which(!is.na(temp2$`Strongest in...`))
-temp2 <- temp2[w,]
-temp2$"Main charge" <- paste0("Z = ", tst2$x[match(pep$`Modified sequence`[w], tst2$Group.1)])
-temp2$"Main charge" <- factor(temp2$"Main charge", levels = paste0("Z = ", as.character(1:8)))
-dir <- paste0(wd, "/Workflow control")
-if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- unique(c(dirlist, dir))
-plot <- ggplot(temp2) +
-  geom_scattermore(aes(x = `log10(Mean)`, y = `log10(Variance)`, colour = `Strongest in...`),
-                   size = 1, alpha = 1) + ggtitle(ttl, subtitle = rfnm) + coord_fixed(0.3) + theme_bw() +
-  scale_color_viridis_d(begin = 0.25) +
-  facet_grid(`Strongest in...` ~ `Main charge`) + theme(strip.text.y.right = element_text(angle = 0))
-poplot(plot, 12, 22)
-ggsave(paste0(dir, "/", ttl, " - ", rfnm, ".jpeg"), plot, width = 10, height = 10, units = "in", dpi = 300)
-ggsave(paste0(dir, "/", ttl, " - ", rfnm, ".pdf"), plot, width = 10, height = 10, units = "in", dpi = 300)
-ReportCalls <- AddPlot2Report(Title = paste0(ttl, " - ", rfnm))
+Src <- paste0(libPath, "/extdata/R scripts/Sources/pepNorm_VarPlot.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+#View(pep[, grep(topattern(pep.ref[length(pep.ref)]), colnames(pep), value = TRUE)]) # Check final data visually
 
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
@@ -3347,12 +3232,17 @@ scattrMap$`Sample 2` <- factor(scattrMap$`Sample 2`, levels = smpls)
 corMap$`Sample 1` <- factor(corMap$`Sample 1`, levels = smpls)
 corMap$`Sample 2` <- factor(corMap$`Sample 2`, levels = smpls)
 ttl <- "Samples Pearson correlation map"
-plot <- ggplot(scattrMap) +
-  geom_bin2d(aes(x = X, y = Y), bins = max(c(1, round(nrow(PG)/200)))) +
+plot <- ggplot(scattrMap)
+if (nrow(PG) > 500) {
+  plot <- plot + geom_bin_2d(aes(x = X, y = Y), bins = max(c(20, round(nrow(PG)/100))))
+} else {
+  plot <- plot + geom_point(aes(x = X, y = Y))
+}
+plot <- plot +
   scale_fill_viridis() +
   new_scale("fill") +
   geom_tile(data = corMap, aes(fill = `Pearson corr.`, x = 0.5, y = 0.5), width = 1, height = 1) +
-  scale_fill_viridis(option = "B") +
+  scale_fill_viridis(option = "B") + coord_fixed() +
   facet_grid(`Sample 2`~`Sample 1`) + ggtitle(ttl) +
   theme_minimal() + theme(axis.text.x = element_blank(),
                           axis.text.y = element_blank(),
@@ -3360,8 +3250,8 @@ plot <- ggplot(scattrMap) +
                           panel.grid.minor = element_blank(),
                           panel.background = element_blank(),
                           axis.line = element_line(colour = "black"),
-                          strip.text.y.right = element_text(angle = 0, size = 5),
-                          strip.text.x.top = element_text(angle = 90, size = 5))
+                          strip.text.y.right = element_text(angle = 0, size = 5.5),
+                          strip.text.x.top = element_text(angle = 45, size = 5.5))
 print(plot) # This type of QC plot does not need to pop up, the side panel is fine
 ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 600)
 ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 600)
@@ -9810,6 +9700,9 @@ if (!require(grateful)) {
   pak::pkg_install("grateful")
 }
 grateful::cite_packages(out.dir = ".", pkgs = "Session")
+
+# Cleanup
+archiveIndir <- c(TRUE, FALSE)[match(dlg_message("Archive input (= search) folder?", "yesno")$res, c("yes", "no"))]
 
 ### That's it, done!
 #openwd(outdir)
