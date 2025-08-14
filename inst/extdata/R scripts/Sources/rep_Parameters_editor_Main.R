@@ -492,21 +492,21 @@ coreNms <- setNames(c("Ratios.Groups.Ref.Aggregate.Level",
                       "Ratios.Groups",
                       "GO.enrichment.Ref.Aggr"
                       #, "Batch.correction"
-),
-c(paste0("Individual Sample___Combination of Factors required to distinguish individual samples./nMust include ",
-         paste(mnFct[1:(l-1)], collapse = ", "), " and ", mnFct[l], "."),
-  "Normalisation groups___Factor(s) defining groups of samples to normalize to each-other. Note that which, if any, normalisations apply will be defined further down",
-  "Ratio groups___Factor(s) defining comparison groups, i.e. groups of samples, including at least some References (i.e. Controls), to compare to each others./nMust include Experiment, cannot include Replicate.",
-  "GO enrichment___Optional: Only protein groups with at least one valid value in corresponding samples will be used as references for GO-terms enrichment tests."
-  #, "Batch___Optional: Factor(s) defining batches used for sva::ComBat-based correction."
-))
+                      ),
+                    c(paste0("Individual Sample___Combination of Factors required to distinguish individual samples./nMust include ",
+                             paste(mnFct[1:(l-1)], collapse = ", "), " and ", mnFct[l], "."),
+                      "Normalisation groups___Factor(s) defining groups of samples to normalize to each-other. Note that which, if any, normalisations apply will be defined further down",
+                      "Ratio groups___Factor(s) defining comparison groups, i.e. groups of samples, including at least some References (i.e. Controls), to compare to each others./nMust include Experiment, cannot include Replicate.",
+                      "GO enrichment___Optional: Only protein groups with at least one valid value in corresponding samples will be used as references for GO-terms enrichment tests."
+                      #, "Batch___Optional: Factor(s) defining batches used for sva::ComBat-based correction."
+                    ))
 for (nm in coreNms) { if (!nm %in% colnames(Param)) { Param[[nm]] <- "Exp" } }
 wMp <- c(which(colnames(Param) == coreNms[1]),
          which(colnames(Param) == coreNms[2]),
          which(colnames(Param) == coreNms[3]),
          which(colnames(Param) == coreNms[4]),
          #which(colnames(Param) == coreNms[5]),
-         which((Param[1,] == "MAP2FACTS")&(!colnames(Param) %in% coreNms)))
+         which((Param[1,] == "MAP2FACTS")&(!colnames(Param) %in% c(coreNms, "Batch.correction"))))
 lstFct <- list()
 dfltFct <- list()
 for (w in wMp) {

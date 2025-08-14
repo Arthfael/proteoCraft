@@ -578,9 +578,9 @@ if (("Norma.Pep.Intens.Shape" %in% colnames(Param))&&(toupper(Param$Norma.Pep.In
 if (("Norma.Pep.Intens.IRS" %in% colnames(Param))&&(Param$Norma.Pep.Intens.IRS == TRUE)) {
   dir <- c(dir, "Workflow control/Peptides/Intensities/IRS normalisation")
 }
-if (("Batch.correction" %in% colnames(Param))&&(!as.character(Param$Batch.correction) %in% c("", "F", "FALSE"))) {
-  dir <- c(dir, "Workflow control/Peptides/Intensities/Batch correction")
-}
+# if (("Batch.correction" %in% colnames(Param))&&(!as.character(Param$Batch.correction) %in% c("", "F", "FALSE"))) {
+#   dir <- c(dir, "Workflow control/Peptides/Intensities/Batch correction")
+# }
 enrichGO %<o% (("GO.enrichment" %in% colnames(Param))&&(Param$GO.enrichment))
 globalGO %<o% (("GO.enrichment_Whole_dataset" %in% colnames(Param))&&(Param$GO.enrichment_Whole_dataset))
 if (enrichGO||globalGO) { dir <- c(dir, "Reg. analysis/GO enrich") }
@@ -717,9 +717,9 @@ RG %<o% Ratios.Groups
 if (("Adv.Norma.Pep.Ratio" %in% colnames(Param))&&(Param$Adv.Norma.Pep.Ratio != FALSE)) {
   parse.Param.aggreg.2("Adv.Norma.Pep.Ratio.Type.Group")
 }
-if (("Batch.correction" %in% colnames(Param))&&(!as.character(Param$Batch.correction) %in% c("", "F", "FALSE"))) {
-  parse.Param.aggreg.2("Batch.correction")
-}
+# if (("Batch.correction" %in% colnames(Param))&&(!as.character(Param$Batch.correction) %in% c("", "F", "FALSE"))) { # Deprecated!!!
+#   parse.Param.aggreg.2("Batch.correction")
+# }
 a <- RSA$names
 if (length(a) == 1) {
   Exp.map$Ref.Sample.Aggregate <- Exp.map[[a]]

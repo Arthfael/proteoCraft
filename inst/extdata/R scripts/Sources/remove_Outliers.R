@@ -6,6 +6,8 @@ appNm <- paste0(dtstNm, " - Check for outliers")
 #Exp.map$Use <- "TRUE"
 fctrs <- Factors
 Include <- Exp.map[, c(fctrs, "Use")]
+#colnames(Include) <- gsub("\\.", "_", colnames(Include))
+#fctrs <- gsub("\\.", "_", fctrs)
 Include$Use <- shinyCheckInput(Exp.map$Use)
 # Table width
 wTest0 <- setNames(sapply(colnames(Exp.map), function(k) { #k <- colnames(Exp.map)[1]
@@ -15,19 +17,22 @@ wTest0 <- setNames(sapply(colnames(Exp.map), function(k) { #k <- colnames(Exp.ma
   x <- max(nchar(c(k, tmp)) + 3, na.rm = TRUE)
   x <- x*10
   return(x)
-}), colnames(Include))
-wTest1 <- sapply(colnames(Include), function(k) { #k <- colnames(Include)[1]
+}), #gsub("\\.", "_",
+colnames(Exp.map))#)
+wTest1 <- vapply(colnames(Include), function(k) { #k <- colnames(Include)[1]
   if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
   return(x)
-})
+}, 1)
 wTest1 <- round(wTest1*screenRes$width*0.45/sum(wTest1))
 #sum(wTest1)
 wTest1 <- paste0(as.character(wTest1), "px")
 wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
 wTest1 <- apply(wTest1, 1, function(x) {
-  list(width = x[[1]],
-       targets = x[[2]],
-       names = colnames(Include)[x[[2]]+1])
+  x1 <- x[[1]]
+  x2 <- as.integer(x[[2]])
+  list(width = x1,
+       targets = x2,
+       names = colnames(Include)[x2+1])
 })
 #
 if (exists("appRunTest")) { rm(appRunTest) }
