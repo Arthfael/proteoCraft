@@ -107,28 +107,36 @@ Format.DB_txt <- function(txt,
   if (usePar) {
     RG <- round(length(txt)*(1:N.clust)/N.clust)
     if (N.clust > 1) {
-      RG[1:(N.clust-1)] <- sapply(RG[1:(N.clust-1)], function(x) {
+      RG[1:(N.clust-1)] <- vapply(RG[1:(N.clust-1)], function(x) {
         max(G1[which(G1 < x)+1])-1
-      })
+      }, 1)
     }
     batChes <- setNames(lapply(1:length(RG), function(x) {
       txt[(c(0, RG)[x]+1):(RG[x])]
     }), paste0("Batch", 1:length(RG)))
   } else { batChes <- list(Batch1 = txt) }
-  F0 <- function(btch) { #btch <- batChes[[1]]
-  #for (nm in names(batChes)) { #nm <- names(batChes)[1]
-    #print(nm)
-    #btch <- batChes[[nm]]
+  nBatches <- length(batChes)
+  if (usePar) {
+    invisible(lapply(1:nBatches, function(i) {
+      saveRDS(batChes[[i]], paste0("tmp", i, ".RDS"))
+    }))
+  }
+  F0 <- function(i) { #i <- 1
+    if (usePar) {
+      btch <- readRDS(paste0("tmp", i, ".RDS"))
+    } else {
+      btch <- batChes[[i]]
+    }
     # UniProtKB IDs
     g1 <- grep("^ID ", btch)
     tbl <- data.frame(ID = btch[g1])
     #should be faster than the previous version (commented line below, in case it causes issues):
     tbl$ID <- gsub(" .+$", "",gsub("^[^ ]+ ", "", gsub(" +", " ", tbl$ID)))
-    #tbl$ID <- sapply(strsplit(gsub(" +", " ", tbl$ID), " "), function(x) {unlist(x)[2]})
+    #tbl$ID <- vapply(strsplit(gsub(" +", " ", tbl$ID), " "), function(x) { unlist(x)[2] }, "")
     # UniProtKB Accessions
     g1 <- c(g1, length(btch)+1)
     tbl$Text <- lapply(1:nrow(tbl), function(x) { btch[g1[x]:(g1[x+1]-1)] })
-    tbl$Text2 <- paste0("<->", sapply(tbl$Text, paste, collapse = "\n<->"), "\n")
+    tbl$Text2 <- paste0("<->", vapply(tbl$Text, paste, "", collapse = "\n<->"), "\n")
     if (!usePar) {
       cat("-> Parsing txt file...\n")
       cat("   Accessions...\n")
@@ -137,8 +145,8 @@ Format.DB_txt <- function(txt,
     tbl$Accession <- gsub("<->AC +|;\n$", "", gsub(";\n<->AC +", ";", tbl$Accession))
     tbl$Accession <- gsub("; +", ";", tbl$Accession)
     # The whole function takes long, sometimes we can take a shortcut:
-    if (!is.null(filter)) {
-      w <- which(sapply(strsplit(tbl$Accession, ";"), function(x) { sum(x %in% filter) > 0 }))
+    if ((!is.null(filter))&&(!"function" %in% class(filter))) {
+      w <- which(vapply(strsplit(tbl$Accession, ";"), function(x) { sum(x %in% filter) > 0 }, TRUE))
       tbl <- tbl[w,]
       btch <- unlist(tbl$Text)
       g1 <- c(grep("^ID ", btch), length(btch)+1)
@@ -163,24 +171,27 @@ Format.DB_txt <- function(txt,
         x1 <- unlist(x[[1]])
         x2 <- unlist(x[[2]])
         l <- length(x1)
-        paste(sapply(1:l, function(y) { paste0(x1[y], " [", x2[y], "]")}), collapse = ";")
+        paste(vapply(1:l, function(y) { paste0(x1[y], " [", x2[y], "]") }, ""), collapse = ";")
       })
       tst1 <- unlist(strsplit(tbl$`GO-ID`, ";"))
       tst2 <- unlist(strsplit(tbl$GO, ";"))
       tst3 <- unlist(strsplit(tbl$Ontology, ";"))
-      tst4 <- try(aggregate(cbind(tst2, tst3), list(tst1), unique), silent = TRUE)
-      if (("try-error" %in% class(tst4))||(length(tst4[[2]]) != length(unique(tst4[[2]])))||(!"character" %in% class(tst4[[2]]))||(!"character" %in% class(tst4[[3]]))) {
-        msg <- "Gene Ontology data was not properly formatted in the input txt file!"
-        tbl$GO <- gsub("^;|;$", "", gsub(";+", "", tbl$GO))
-        tbl$`GO-ID` <- gsub("^;|;$", "", gsub(";+", "", tbl$`GO-ID`))
-        tbl$Ontology <- gsub("^;|;$", "", gsub(";+", "", tbl$Ontology))
-        tst1 <- unlist(strsplit(tbl$`GO-ID`, ";"))
-        tst2 <- unlist(strsplit(tbl$GO, ";"))
-        tst3 <- unlist(strsplit(tbl$Ontology, ";"))
+      if (sum(c(length(tst1), length(tst2), length(tst3)))) {
         tst4 <- try(aggregate(cbind(tst2, tst3), list(tst1), unique), silent = TRUE)
         if (("try-error" %in% class(tst4))||(length(tst4[[2]]) != length(unique(tst4[[2]])))||(!"character" %in% class(tst4[[2]]))||(!"character" %in% class(tst4[[3]]))) {
-          stop(msg)
-        } else { warning(gsub("\\!$", ", but we managed to make sense of it.", msg)) }
+          msg <- "Gene Ontology data was not properly formatted in the input txt file!"
+          tbl$GO <- gsub("^;|;$", "", gsub(";+", "", tbl$GO))
+          tbl$`GO-ID` <- gsub("^;|;$", "", gsub(";+", "", tbl$`GO-ID`))
+          tbl$Ontology <- gsub("^;|;$", "", gsub(";+", "", tbl$Ontology))
+          tst1 <- unlist(strsplit(tbl$`GO-ID`, ";"))
+          tst2 <- unlist(strsplit(tbl$GO, ";"))
+          tst3 <- unlist(strsplit(tbl$Ontology, ";"))
+          tst4 <- try(aggregate(cbind(tst2, tst3), list(tst1), unique), silent = TRUE)
+          if (("try-error" %in% class(tst4))||(length(tst4[[2]]) != length(unique(tst4[[2]])))||(!"character" %in% class(tst4[[2]]))||(!"character" %in% class(tst4[[3]]))) {
+            #stop(i)
+            stop(msg)
+          } else { warning(gsub("\\!$", ", but we managed to make sense of it.", msg)) }
+        }
       }
     }
     # Taxonomic information:
@@ -256,11 +267,11 @@ Format.DB_txt <- function(txt,
       tmp <- unlist(apply(tbl[, c("tmp", "Text")], 1, function(x) {
         unlist(x[2])[as.numeric(unlist(x[1]))]
       }))
-      tst <- sapply(c("^FT +MOD_RES +[0-9]+ +[0-9]+ +.+$", "^FT +MOD_RES +[0-9]+$"), function(x) {
+      tst <- vapply(c("^FT +MOD_RES +[0-9]+ +[0-9]+ +.+$", "^FT +MOD_RES +[0-9]+$"), function(x) {
         sum(grepl(x, tmp))
-      }) == length(tmp)
+      }, 1) == length(tmp)
       stopifnot(sum(tst) == 1)
-      w <- which(sapply(tbl$tmp, length) > 0)
+      w <- which(vapply(tbl$tmp, length, 1) > 0)
       tbl$"Known PTMs"[w] <- apply(tbl[w, c("Text", "tmp", "Sequence")], 1, function(x) {
         #x <- tbl[w[1], c("Text", "tmp", "Sequence")]
         seq <- paste0("_", unlist(x[[3]]), "_")
@@ -283,9 +294,9 @@ Format.DB_txt <- function(txt,
         ptms <- rbind(c(0, ""), ptms, c(nchar(seq)+1, ""))
         ptms$Group.1 <- as.integer(ptms$Group.1)
         ptms <- ptms[order(ptms$Group.1, decreasing = FALSE),]
-        tmp <- sapply(1:(nrow(ptms)-1), function(y) {
+        tmp <- vapply(1:(nrow(ptms)-1), function(y) {
           substr(seq, ptms$Group.1[y]+2, ptms$Group.1[y+1])
-        })
+        }, "")
         tmp2 <- rep("", length(tmp) + nrow(ptms)-1)
         tmp2[2*(1:length(tmp))-1] <- tmp  
         tmp2[2*(1:(nrow(ptms)-2))] <- ptms$x[2:(nrow(ptms)-1)]
@@ -300,12 +311,12 @@ Format.DB_txt <- function(txt,
       g2a <- grepl(pat, btch)
       if (sum(g2a)) {
         if (!usePar) { cat("   PDB annotations...\n") }
-        tbl$PDB <- sapply(tbl$Text, function(x) { #x <- tbl$Text[[1]]
+        tbl$PDB <- vapply(tbl$Text, function(x) { #x <- tbl$Text[[1]]
           g <- grep(pat, x, value = TRUE)
           x <- ""
           if (length(g)) { x <- paste(unique(gsub(";.+", "", gsub(pat, "", g))), collapse = ";") }
           return(x)
-        })
+        }, "")
       }
     }
     if (TAIR) {
@@ -313,12 +324,12 @@ Format.DB_txt <- function(txt,
       g2a <- grepl(pat, btch)
       if (sum(g2a)) {
         if (!usePar) { cat("   TAIR annotations...\n") }
-        tbl$TAIR <- sapply(tbl$Text, function(x) { #x <- tbl$Text[[1]]
+        tbl$TAIR <- vapply(tbl$Text, function(x) { #x <- tbl$Text[[1]]
           g <- grep(pat, x, value = TRUE)
           x <- ""
           if (length(g)) { x <- paste(unique(gsub("locus:[0-9]+; |\\.$", "", gsub(pat, "", g))), collapse = ";") }
           return(x)
-        })
+        }, "")
       }
     }
     if (WormBase) {
@@ -419,8 +430,13 @@ Format.DB_txt <- function(txt,
     exports <- list("GO", "Taxonomy", "InterPro", "Pfam", "PIRSF", "PROSITE", "EMBL", "Ensembl", "MW", "Sequence", "PTMs", "PDB", "TAIR", "WormBase",
                     "FlyBase", "Features", "Feat_isoRgx", "usePar", "filter", "TESTING")
     parallel::clusterExport(cl, exports, envir = environment())
-    rsTbl <- parallel::parLapply(cl, batChes, F0)
-  } else { rsTbl <- lapply(batChes, F0) }
+    rsTbl <- parallel::parLapply(cl, 1:nBatches, F0)
+  } else { rsTbl <- lapply(1:nBatches, F0) }
+  if (usePar) {
+    invisible(lapply(1:nBatches, function(i) {
+      unlink(paste0("tmp", i, ".RDS"))
+    }))
+  }
   rsTbl <- plyr::rbind.fill(rsTbl)
   if (MW) { rsTbl$"MW (Da)" <- as.numeric(gsub(";.*", "", rsTbl$"MW (Da)")) }
   #Cleanup

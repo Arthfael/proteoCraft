@@ -146,7 +146,7 @@ Volcano.plot <- function(Prot,
   #
   #Prot = PG; mode = "custom"; experiments.map = Exp.map; X.root = paste0("Mean ", Prot.Rat.Root); Y.root = pvalue.col[which(pvalue.use)]; aggregate.map = Aggregate.map; aggregate.name = Volcano.plots.Aggregate.Level$aggregate; aggregate.list = Aggregate.list;parameters = Param; save = c("jpeg", "pdf"); labels = c("FDR", "both")[isSAM+1]; Ref.Ratio.values = Ref.Ratios; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = FDR.thresholds; arbitrary.lines = arbitrary.thr; proteins = prot.list;  proteins_split = protsplit; return = TRUE;  return.plot = TRUE; title.root = "FDR-type ";  subfolder = "Reg. analysis/t-tests"; subfolderpertype = FALSE; Alpha = "Rel. log10(Peptides count)"; Size = "Av. log10 abundance";  Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; FDR.thresh = FDR.thresholds; SAM = isSAM; curved_Thresh = SAM_thresh
   # OR (F-test, proteins)
-  #Prot = tmpData; mode = "custom"; experiments.map = contr; X.root = paste0("Mean ", ratRef); Y.root = paste0(F_Root, " - "); aggregate.map = aggr_dummy; aggregate.list = aggr_list_dummy; aggregate.name = "Contrast"; parameters = Param; save = c("jpeg", "pdf"); FDR.root = "mod. F-test Significant-FDR="; Ref.Ratio.values = refRat_F; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = F_FDR.thresholds; arbitrary.lines = arbitrary.thr; proteins = prot.list; proteins_split = protsplit; Proteins.col = idCol; return = TRUE; return.plot = TRUE; title = "F-test volcano plot "; subfolder = ohDeer; subfolderpertype = FALSE; Symmetrical = TRUE; Alpha = Alpha; Size = "Rel. av. log10 abundance"; Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; plotly_labels = plotlyLab; Ref.Ratio.method = paste0("obs", RefRat_Mode); reg.root = regRoot_F
+  #Prot = my_F_Data; mode = "custom"; experiments.map = contr;X.root = paste0("Mean ", ratRef);Y.root = paste0(F_Root, " - ");aggregate.map = aggr_dummy; aggregate.list = aggr_list_dummy;aggregate.name = "Contrast";parameters = Param;save = c("jpeg", "pdf");FDR.root = "mod. F-test Significant-FDR=";Ref.Ratio.values = refRat_F;ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates);arbitrary.lines = arbitrary.thr;proteins = prot.list; proteins_split = protsplit; Proteins.col = idCol;return = FALSE; return.plot = TRUE; title = "F-test volcano plot ";subfolder = ohDeer; subfolderpertype = FALSE;Symmetrical = TRUE;Alpha = Alpha; Size = "Rel. av. log10 abundance"; Size.max = 2;plotly = create_plotly; plotly_local = create_plotly_local;plotly_labels = plotlyLab;Ref.Ratio.method = paste0("obs", RefRat_Mode);cl = parClust;reg.root = regRoot_F
   # OR (modified peptides)
   #Prot = ptmpep; mode = "custom"; experiments.map = Exp.map; X.root = paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)]); Y.root = pvalue.col[which(pvalue.use)]; aggregate.map = Aggregate.map; aggregate.list = Aggregate.list; aggregate.name = VPAL$aggregate; parameters = P; save = c("jpeg", "pdf"); labels = c("FDR", "both")[isSAM+1]; Ref.Ratio.values = PTMs_ref.ratios[[ptm]]; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = PTMs_FDR.thresholds[[ptm]]; arbitrary.lines = arbitrary.thr; proteins = prot.list; Proteins.col = "Name"; return = TRUE; return.plot = TRUE; title = paste0(Ptm, " volcano plot_"); subfolder = dir[2]; subfolderpertype = FALSE; Symmetrical = TwoSided; Size = "Rel. av. log10 abundance"; Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; plotly_labels = c(PepLabKol, paste0(Ptm, "-site")); SAM = isSAM; curved_Thresh = PTMs_sam_Thresh[[Ptm]]
   # OR (SAINTexpress)
@@ -162,6 +162,10 @@ Volcano.plot <- function(Prot,
   if (return.plot) {
     plotEval <- function(plot) { ggplotify::as.ggplot(ggplotify::as.grob(plot)) }
   }
+  #
+  # (Don't use as default the value in parameters$Plot.metrics: they are deprecated)
+  if (misFun(X.root)) { stop("Argument \"X.root\" is missing, investigate!") }
+  if (misFun(Y.root)) { stop("Argument \"Y.root\" is missing, investigate!") }
   #
   # Create cluster
   tstCl <- stopCl <- misFun(cl)
@@ -228,23 +232,50 @@ Volcano.plot <- function(Prot,
     reg.root <- "Regulated - "
     regProvided <- TRUE
   }
+  if (regProvided) {
+    labels <- c("regulated",
+                labels[which(labels == c("proteins"))],
+                "FDR")
+  }
   if (("FDR" %in% labels)||(mode == "curved")) {
-    if (misFun(FDR.thresh)) { stop("\"FDR.thresh\" must be provided if labels = \"FDR\"!") }
-    f <- grep(proteoCraft::topattern(FDR.root), colnames(Prot), value = TRUE)
-    FDR.values <- as.numeric(unique(gsub("%( - .+)?$", "", gsub(proteoCraft::topattern(FDR.root), "", f))))
-    g <- as.numeric(gsub("^Threshold-FDR=|%( - .+)?$", "", names(FDR.thresh)))
-    tst <- unique(grepl(" - ", names(FDR.thresh)))
-    FDR_table <- data.frame(FDR = g,
-                            Thresholds = FDR.thresh)
-    if ((length(tst) == 1)&&(tst)) {
-      FDR_table$Sample <-  gsub("^Threshold-FDR=[1-9][0-9]*\\.*[0-9]*% - ", "", names(FDR.thresh))
+    if (regProvided) {
+      xKols <- grep(topattern(X.root), colnames(Prot), value = TRUE)
+      yKols <- grep(topattern(Y.root), colnames(Prot), value = TRUE)
+      rgKols <- grep(topattern(reg.root), colnames(Prot), value = TRUE)
+      xTst <- gsub(topattern(X.root), "", xKols)
+      yTst <- gsub(topattern(Y.root), "", yKols)
+      rgTst <- gsub(topattern(reg.root), "", rgKols)
+      tstDF <- data.frame(Group = unique(c(xTst, yTst, rgTst)))
+      tstDF$X <- xKols[match(tstDF$Group, xTst)]
+      tstDF$Y <- yKols[match(tstDF$Group, yTst)]
+      tstDF$Reg <- rgKols[match(tstDF$Group, rgTst)]
+      tstDF <- tstDF[which(apply(tstDF[, c("X", "Y", "Reg")], 1, function(x) { sum(is.na(x)) }) == 0),]
+      stopifnot(nrow(tstDF) > 0)
+      FDR_table <- lapply(1:nrow(tstDF), function(x) { #x <- 1
+        fdr_table <- Prot[grep("^((up)|(down)), FDR = ", Prot[[tstDF$Reg[[x]]]]),
+                          c(tstDF$X[[x]], tstDF$Y[[x]], tstDF$Reg[[x]])]
+        fdr_table$FDRs <- as.numeric(gsub("^((up)|(down)), FDR = |%$", "", fdr_table[[tstDF$Reg[[x]]]]))
+        fdr_table <- aggregate(fdr_table[[tstDF$Y[[x]]]], list(fdr_table$FDRs), min)
+        colnames(fdr_table) <- c("FDR", "Thresholds")
+        fdr_table$Thresholds <- 10^-fdr_table$Thresholds # Because of how they are stored
+        fdr_table$Sample <- tstDF$Group[[x]]
+        return(fdr_table)
+      })
+      FDR_table <- do.call(rbind, FDR_table)
+      rownames(FDR_table) <- paste0("Threshold-FDR=", FDR_table$FDR, "% - ", FDR_table$Sample)
+    } else {
+      if (misFun(FDR.thresh)) { stop("\"FDR.thresh\" must be provided if labels = \"FDR\"!") }
+      g <- as.numeric(gsub("^Threshold-FDR=|%( - .+)?$", "", names(FDR.thresh)))
+      tst <- unique(grepl(" - ", names(FDR.thresh)))
+      FDR_table <- data.frame(FDR = g,
+                              Thresholds = FDR.thresh)
+      if ((length(tst) == 1)&&(tst)) {
+        FDR_table$Sample <-  gsub("^Threshold-FDR=[1-9][0-9]*\\.*[0-9]*% - ", "", names(FDR.thresh))
+      }
     }
-    #Automatically correct to a percentage format
-    #if (sum(FDR.values < 1) == length(FDR.values)) { FDR.values <- FDR.values*100 } # Removed, this was causing issues.
-    #if (sum(g <= 1) == length(g)) { g <- g*100 }
-    # In addition, FDR values are now ALWAYS expressed as percentages anyway!
+    f <- grep(proteoCraft::topattern(FDR.root), colnames(Prot), value = TRUE)
     FDR_table <- FDR_table[order(FDR_table$FDR, decreasing = TRUE),]
-    FDR.values <- sort(FDR.values, decreasing = TRUE)
+    FDR.values <- as.numeric(unique(gsub("%( - .+)?$", "", gsub(proteoCraft::topattern(FDR.root), "", f))))
     fdr.col.up <- grDevices::colorRampPalette(upColRg)(length(FDR.values))
     FDR_table$fdr.col.up <- fdr.col.up[sapply(FDR_table$FDR, function(x) { which(FDR.values == x )})]
     fdr.col.down <- grDevices::colorRampPalette(downColRg)(length(FDR.values))
@@ -301,17 +332,10 @@ Volcano.plot <- function(Prot,
     if (mode == "standard") { show.labels <- FALSE }
     if (mode %in%  c("standard", "custom", "curved")) { show.labels <- TRUE }
   }
-  if (misFun(X.root)) {
-    a <- as.data.frame(strsplit(unlist(strsplit(parameters$Plot.metrics, "; *")), ": *"))
-    X.root <- paste0(gsub("[\\. -_]+$", "", a[2, which(a[1,] == "X")]), " - ")
-  }
   dfltPM <- TRUE
   if (mode == "custom") {
     a1 <- set_colnames(as.data.frame(proteoCraft::Isapply(strsplit(unlist(strsplit(parameters$Plot.metrics, "; *")), ": *"), unlist)),
                        c("Axis", "Name"))
-    if (misFun(Y.root)) {
-      Y.root <- paste0(gsub("[\\. -_]+$", "", a$Name[which(a1$Axis == "Y")]), " - ")
-    }
     if (parameters$Plot.threshold.metrics != "") {
       dfltPM <- FALSE
       Plot.metrics <- as.data.frame(strsplit(unlist(strsplit(parameters$Plot.threshold.metrics, "; *")), ": *"))
@@ -372,8 +396,6 @@ Volcano.plot <- function(Prot,
                                down = grDevices::colorRampPalette(upColRg)(length(w)))
     rownames(Plot.colours) <- Plot.metrics$Levels[w]
   }
-  if (misFun(X.root)) { stop("Argument \"X.root\" is missing, investigate!") }
-  if (misFun(Y.root)) { stop("Argument \"Y.root\" is missing, investigate!") }
   #X <- gsub("\\.$", "", X.root)
   #Y <- gsub("\\.$", "", Y.root)
   B <- aggregate.name
@@ -429,8 +451,6 @@ Volcano.plot <- function(Prot,
                        PVal = yKols %in% colnames(Prot))
   tstTbl$All_OK <- tstTbl$logFC & tstTbl$PVal
   if (regProvided) {
-    labels <- c("regulated",
-                labels[which(labels == c("proteins"))])
     regKols <- setNames(paste0(reg.root, A), A)
     tstTbl$Reg <- regKols %in% colnames(Prot)
     tstTbl$All_OK <- tstTbl$All_OK & tstTbl$PVal
@@ -565,8 +585,14 @@ Volcano.plot <- function(Prot,
   for (i in A) { #i <- A[1]
     symm <- Symmetrical[i]
     prot_split <- proteins_split
-    e <- paste0(c(X.root, Y.root), i)
-    e <- e[which(e %in% colnames(Prot))]
+    xKol <- paste0(X.root, i)
+    yKol <- paste0(Y.root, i)
+    e <- c(xKol, yKol)
+    #
+    # Below: should never occur, we already checked and filtered -> candidate code for deletion:
+    #e <- e[which(e %in% colnames(Prot))]
+    #stopifnot(length(e) == 2)
+    #
     plot.metrics <- Plot.metrics
     plot.metrics$Name <- ""
     plot.colours <- Plot.colours
@@ -588,24 +614,26 @@ Volcano.plot <- function(Prot,
         fdr_table <- fdr_table[which(fdr_table$Sample == i),]
       }
       fdr.values <- fdr_table$FDR
-      f1 <- paste0(FDR.root, c(fdr.values, fdr.values/100), "%")
-      if ("Sample" %in% colnames(fdr_table)) {
-        f1 <- paste0(f1, " - ", i)
+      if (!regProvided) {
+        f1 <- paste0(FDR.root, c(fdr.values, fdr.values/100), "%")
+        if ("Sample" %in% colnames(fdr_table)) {
+          f1 <- paste0(f1, " - ", i)
+        }
+        f1 <- f1[which(f1 %in% colnames(Prot))]
+        f2 <- paste0("FDR=", fdr.values, "%")
+        temp[, f2] <- Prot[Wych[[i]], f1]
+        if (length(fdr.values) > 1) {
+          test <- apply(temp[, rev(f2)], 1, function(x) {
+            c(paste0("FDR ", sort(fdr.values), "%"), "")[which(c(x, "+") == "+")[1]]
+          })
+        } else {
+          test <- sapply(temp[[f2]], function(x) {
+            c(paste0("FDR ", sort(fdr.values), "%"), "")[which(c(x, "+") == "+")[1]]
+          })
+        }
+        temp$FDR <- test
+        for (f in f2) { temp[[f]] <- NULL }
       }
-      f1 <- f1[which(f1 %in% colnames(Prot))]
-      f2 <- paste0("FDR=", fdr.values, "%")
-      temp[, f2] <- Prot[Wych[[i]], f1]
-      if (length(fdr.values) > 1) {
-        test <- apply(temp[, rev(f2)], 1, function(x) {
-          c(paste0("FDR ", sort(fdr.values), "%"), "")[which(c(x, "+") == "+")[1]]
-        })
-      } else {
-        test <- sapply(temp[[f2]], function(x) {
-          c(paste0("FDR ", sort(fdr.values), "%"), "")[which(c(x, "+") == "+")[1]]
-        })
-      }
-      temp$FDR <- test
-      for (f in f2) { temp[[f]] <- NULL }
     }
     if (!is.numeric(Alpha)) {
       if (!Alpha %in% colnames(Prot)) {
@@ -653,8 +681,8 @@ Volcano.plot <- function(Prot,
       rgKol <- regKols[i]
       temp$Colour <- Prot[Wych[[i]], rgKol]
       # Important to simplify the specific/anti-specific categories:
-      temp$Colour <- gsub("^Specific", "Specific", temp$Colour)
-      temp$Colour <- gsub("^Anti-specific", "Anti-specific", temp$Colour)
+      temp$Colour <- gsub("^Specific.*", "Specific", temp$Colour)
+      temp$Colour <- gsub("^Anti-specific.*", "Anti-specific", temp$Colour)
     } else {
       temp$Colour <- "non significant" # Default Colour values
     }
