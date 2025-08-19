@@ -234,9 +234,9 @@ server <- function(input, output, session) {
     k1 <- tmp[[1]]
     #k0 <- kol0[match(k1, kol1)]
     i <- as.integer(tmp[[2]])
-    observeEvent(input[[id2]],
-                 {
-                   if (i < nr) {
+    if (i < nr) {
+      observeEvent(input[[id2]],
+                   {
                      x <- input[[id1]]
                      if (k1 == "Sample") { x <- as.character(x) }
                      if (k1 %in% c("Fraction", "IsobaricSet")) { x <- as.integer(x) }
@@ -249,8 +249,8 @@ server <- function(input, output, session) {
                        if (k1 == "Use") { updateCheckboxInput(session, idK, NULL, x) }
                        if (k1 == "Sample") { updateTextInput(session, idK, NULL, x) }
                      }
-                   }
-                 }, ignoreInit = TRUE)
+                   }, ignoreInit = TRUE)
+    }
   })
   # Manual cell edit (sample names)
   observeEvent(input$FracTbl_cell_edit, {

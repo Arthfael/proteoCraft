@@ -290,13 +290,13 @@ Shiny.bindAll(table.table().node());"))
     tmp <- unlist(strsplit(id1, "___"))
     fct <- tmp[[1]]
     i <- as.integer(tmp[[2]])
-    observeEvent(input[[id2]],
-                 {
-                   if (i < nr) {
+    if (i < nr) {
+      observeEvent(input[[id2]],
+                   {
                      x <- input[[id1]]
                      if (fct %in% names(facLevels2)) {
                        tp <- typeof(facLevels2[[fct]])
-                       if (typeof(x) == tp) { x <- get(paste0("as.", tp))(x) }
+                       if (typeof(x) != tp) { x <- get(paste0("as.", tp))(x) }
                      }
                      for (k in (i+1):nr) {
                        idK <- paste0(fct, "___", as.character(k))
@@ -310,8 +310,8 @@ Shiny.bindAll(table.table().node());"))
                          }
                        }
                      }
-                   }
-                 })
+                   })
+    }
   })
   # Incremental fill-down for replicates
   sapply(rws, function(i) {
@@ -320,20 +320,19 @@ Shiny.bindAll(table.table().node());"))
       id2 <- paste0("Replicate___", i, "___INCR")
       observeEvent(input[[id2]],
                    {
-                     if (i < nr) {
-                       x <- input[[id1]]
-                       tp <- typeof(facLevels2[[fct]])
-                       if (typeof(x) == tp) { x <- get(paste0("as.", tp))(x) }
-                       rplRg <- (i+1):nr
-                       l <- length(rplRg)
-                       m <- match(x, dflt_Rpl)+1
-                       rplVal <- dflt_Rpl[m:(m+l-1)]
-                       for (k in rplRg) {
-                         y <- rplVal[k-i]
-                         idK <- paste0("Replicate___", as.character(k))
-                         updateSelectInput(session, idK, NULL, facLevels2[["Replicate"]], y)
-                       }
+                     x <- input[[id1]]
+                     tp <- typeof(facLevels2[[fct]])
+                     if (typeof(x) != tp) { x <- get(paste0("as.", tp))(x) }
+                     rplRg <- (i+1):nr
+                     l <- length(rplRg)
+                     m <- match(x, dflt_Rpl)+1
+                     rplVal <- dflt_Rpl[m:(m+l-1)]
+                     for (k in rplRg) {
+                       y <- rplVal[k-i]
+                       idK <- paste0("Replicate___", as.character(k))
+                       updateSelectInput(session, idK, NULL, facLevels2[["Replicate"]], y)
                      }
+                     
                    }
       )
     }
