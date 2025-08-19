@@ -57,12 +57,18 @@ Data_Impute2 <- function(quant_data,
       w <- which(rwSms < length(m))
       if (length(w)) {
         ms <- imputeLCMD::model.Selector(imputed_data[w, m, drop = FALSE])
-        imputed_data[w, m] <- imputeLCMD::impute.MAR(imputed_data[w, m, drop = FALSE], ms, "KNN")
+        tst <- capture.output({ # Using capture.output to suppress the messages of impute.MAR which are really painful!
+          imputed_data[w, m] <- imputeLCMD::impute.MAR(imputed_data[w, m, drop = FALSE], ms, "KNN")
+        })
       }
     }
     # Step 2: apply MNAR correction to remaining misses within imputed data
     w <- which(is.na(imputed_data), arr.ind = TRUE)
-    if (nrow(w)) { imputed_data <- imputeLCMD::impute.QRILC(imputed_data)[[1]] }
+    if (nrow(w)) {
+      tst <- capture.output({
+        imputed_data <- imputeLCMD::impute.QRILC(imputed_data)[[1]]
+      })
+    }
   }
   # De-log if necessary
   if (!is.log) {
