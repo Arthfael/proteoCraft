@@ -73,22 +73,22 @@ environment(cleanRawNm) <- .GlobalEnv
 clusterExport(parClust, "cleanRawNm", envir = environment())
 
 # Install/load packages
-rawrrVers <- c("github",
-               "bioc",
-               "bioc_1.11.14")
+rawrrVersions <- c("github",
+                   "bioc",
+                   "bioc_1.11.14")
 tst <- try({
   if (!require(rawrr, quietly = TRUE)) {
-    rawrrVers <- dlg_list(rawrrVers, rawrrVers[3], title = "Select which rawrr version should be installed")$res
-    if (rawrrVers == "github") {
+    rawrrVers <- dlg_list(rawrrVersions, rawrrVersions[3], title = "Select which rawrr version should be installed")$res
+    if (rawrrVers == rawrrVersions[1]) {
       pak::pak("cpanse/rawrr")
       #install.packages('http://fgcz-ms.uzh.ch/~cpanse/rawrr_0.2.1.tar.gz', repo = NULL) # Old address, now on github
     }
-    if (rawrrVers == "bioc") {
+    if (rawrrVers == rawrrVersions[2]) {
       if (!require("BiocManager", quietly = TRUE)) { install.packages("BiocManager") }
       BiocManager::install("rawrr", version = "1.11")
       BiocManager::install("rawrr")
     }
-    if (rawrrVers == "bioc_1.11.14") {
+    if (rawrrVers == rawrrVersions[3]) {
       url <- "https://bioconductor.org/packages/3.19/bioc/src/contrib/Archive/rawrr/rawrr_1.11.14.tar.gz"
       require(curl)
       dstfl <- paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads/rawrr_1.11.14.tar.gz")
@@ -96,58 +96,58 @@ tst <- try({
       install.packages(dstfl)
     }
     # 
-    require(rawrr)
-    yesRawFileReaderLicenseIsAccepted <- function () {
-      licenseFile <- file.path(system.file(package = "rawrr"), 
-                               "rawrrassembly", "RawFileReaderLicense.txt")
-      stopifnot(file.exists(licenseFile))
-      eulaFile <- file.path(rawrrAssemblyPath(), "eula.txt")
-      msg <- c("# By changing the setting below to TRUE you are accepting ", 
-               "the Thermo License agreement.")
-      if (!file.exists(eulaFile)) {
-        file.show(licenseFile)
-        response <- "y"
-        if (tolower(response) == "y") {
-          if (isFALSE(dir.exists(dirname(eulaFile)))) {
-            dir.create(dirname(eulaFile), recursive = TRUE)
-          }
-          fileConn <- file(eulaFile)
-          writeLines(paste(msg, paste0("# ", date()), "eula=true", 
-                           sep = "\n"), fileConn)
-          close(fileConn)
-          return(TRUE %in% grepl("eula=true", tolower(readLines(eulaFile))))
-        }
-      } else { return(TRUE %in% grepl("eula=true", tolower(readLines(eulaFile)))) }
-      msg <- "Yes, we accept Thermo's License agreement, get on with it!"
-      cat(msg, "\n")
-    }
-    installRawFileReaderDLLsNoAcpt <- function (sourceUrl = .thermofisherlsmsUrl(), ...) {
-      rawfileReaderDLLsPath <- rawrrAssemblyPath()
-      if (isTRUE(dir.exists(rawfileReaderDLLsPath))) {
-        msg <- sprintf("removing files in directory '%s'", rawfileReaderDLLsPath)
-        message(msg)
-        file.remove(file.path(rawrrAssemblyPath(), list.files(rawrrAssemblyPath())))
-      }
-      if (isFALSE(dir.exists(rawfileReaderDLLsPath))) {
-        dir.create(rawfileReaderDLLsPath, recursive = TRUE)
-      }
-      #
-      stopifnot(yesRawFileReaderLicenseIsAccepted())
-      .rawfileReaderDLLs <- getAnywhere(.rawfileReaderDLLs)
-      .rawfileReaderDLLs <- .rawfileReaderDLLs$objs[[1]]
-      rv <- vapply(.rawfileReaderDLLs(), function(dll) {
-        destfile <- file.path(rawfileReaderDLLsPath, dll)
-        download.file(file.path(sourceUrl, dll), destfile = destfile, 
-                      mode = "wb", ...)
-      }, 0)
-      rv
-    }
-    installRawFileReaderDLLsNoAcpt(sourceUrl = .thermofisherlsmsUrl())
-    #rawrr::installRawFileReaderDLLs(sourceUrl = .thermofisherlsmsUrl())
-    #require(rawrr); getAnywhere(".isRawFileReaderLicenseAccepted")
-    rawrr::installRawrrExe()
   }
   require(rawrr)
+  yesRawFileReaderLicenseIsAccepted <- function () {
+    licenseFile <- file.path(system.file(package = "rawrr"), 
+                             "rawrrassembly", "RawFileReaderLicense.txt")
+    stopifnot(file.exists(licenseFile))
+    eulaFile <- file.path(rawrrAssemblyPath(), "eula.txt")
+    msg <- c("# By changing the setting below to TRUE you are accepting ", 
+             "the Thermo License agreement.")
+    if (!file.exists(eulaFile)) {
+      file.show(licenseFile)
+      response <- "y"
+      if (tolower(response) == "y") {
+        if (isFALSE(dir.exists(dirname(eulaFile)))) {
+          dir.create(dirname(eulaFile), recursive = TRUE)
+        }
+        fileConn <- file(eulaFile)
+        writeLines(paste(msg, paste0("# ", date()), "eula=true", 
+                         sep = "\n"), fileConn)
+        close(fileConn)
+        return(TRUE %in% grepl("eula=true", tolower(readLines(eulaFile))))
+      }
+    } else { return(TRUE %in% grepl("eula=true", tolower(readLines(eulaFile)))) }
+    msg <- "Yes, we accept Thermo's License agreement, get on with it!"
+    cat(msg, "\n")
+  }
+  installRawFileReaderDLLsNoAcpt <- function (sourceUrl = rawrr:::.thermofisherlsmsUrl(), ...) { #sourceUrl = rawrr:::.thermofisherlsmsUrl()
+    rawfileReaderDLLsPath <- rawrrAssemblyPath()
+    if (isTRUE(dir.exists(rawfileReaderDLLsPath))) {
+      msg <- sprintf("removing files in directory '%s'", rawfileReaderDLLsPath)
+      message(msg)
+      file.remove(file.path(rawrrAssemblyPath(), list.files(rawrrAssemblyPath())))
+    }
+    if (isFALSE(dir.exists(rawfileReaderDLLsPath))) {
+      dir.create(rawfileReaderDLLsPath, recursive = TRUE)
+    }
+    #
+    stopifnot(yesRawFileReaderLicenseIsAccepted())
+    .rawfileReaderDLLs <- getAnywhere(.rawfileReaderDLLs)
+    .rawfileReaderDLLs <- .rawfileReaderDLLs$objs[[1]]
+    rv <- vapply(.rawfileReaderDLLs(), function(dll) { #dll <- .rawfileReaderDLLs()[1]
+      destfile <- file.path(rawfileReaderDLLsPath, dll)
+      download.file(file.path(paste0(sourceUrl, #"Assemblies/",
+                                     dll)), destfile = destfile, 
+                    mode = "wb")
+    }, 0)
+    rv
+  }
+  installRawFileReaderDLLsNoAcpt(sourceUrl = rawrr:::.thermofisherlsmsUrl())
+  #rawrr::installRawFileReaderDLLs(sourceUrl = .thermofisherlsmsUrl())
+  #require(rawrr); getAnywhere(".isRawFileReaderLicenseAccepted")
+  rawrr::installRawrrExe()
 }, silent = TRUE)
 getInt <- !("try-error" %in% class(tst))
 #
@@ -217,23 +217,38 @@ if (l) {
 }
 l <- length(fls)
 if (!l) {
-  filt <- matrix(data = c("Thermo raw file", "*.raw;*.RAW"), ncol = 2,
-                 dimnames = list("raw file"))
+  wd <- rstudioapi::selectDirectory(path = dflt)
+  #filt <- matrix(data = c("Thermo raw file", "*.raw;*.RAW"), ncol = 2, dimnames = list("raw file"))
   #fls <- "B:/archive/lsfgrp/MS/Acquired data/frimlgrp/LCMS_JiFrATeplova1_m"
-  fls <- normalizePath(choose.files(paste0(dflt, "/*.raw"), filters = filt), winslash = "/")
-  fls <- fls[order(file.info(fls)$mtime, decreasing = FALSE)]
+  allRawFls <- list.files(wd, "*\\.raw$", FALSE, TRUE, TRUE, TRUE)
+  allRawFls <- setNames(allRawFls, gsub(topattern(paste0(wd, "/")), "", allRawFls))
+  age <- setNames(vapply(allRawFls, function(x) { file.info(x)$mtime }, 1), allRawFls)
+  allRawFls <- allRawFls[order(age, decreasing = TRUE)]
+  blnks <- grep("blank", allRawFls, invert = TRUE)
+  fls <- dlg_list(names(allRawFls), names(allRawFls)[blnks], TRUE, "Select raw files to analyse")$res
+  fls <- allRawFls[match(fls, names(allRawFls))]
+  names(fls) <- NULL
+  #fls <- normalizePath(choose.files(paste0(dflt, "/*.raw"), filters = filt), winslash = "/")
+  #fls <- fls[order(file.info(fls)$mtime, decreasing = FALSE)]
   if (getInt) {
-    tst <- parSapply(parClust, fls, function(fl) {
-      rawrr::readFileHeader(fl)$`Creation date`
-    }) # Get created time directly from raw file!
-    tst <- as.POSIXct.default(tst, tz = Sys.timezone(), format = "%d/%m/%Y %H:%M:%S")
+    # Here we try to obtain more realistic file modified times than from Windows, using the header
+    tst <- parSapply(parClust, fls, function(fl) { #fl <- fls[1] #fl <- B:/group/lsfgrp/Mass_Spec/Acquired_data_v2/frimlgrp/LCMS_JiFrHAi3_m/saturation_20250410102029.raw
+      require(rawrr)
+      rs <- try({ rawrr::readFileHeader(fl)$`Creation date` }, silent = TRUE)
+      if ("try-error" %in% class(rs)) {
+        #rs <- NA
+        rs <- format(file.info(fl)$mtime, "%d/%m/%Y %H:%M:%S", tz = Sys.timezone())
+      }
+      return(rs)
+    })
+    tst <- as.POSIXct(tst, tz = Sys.timezone(), format = "%d/%m/%Y %H:%M:%S")
     fls <- fls[order(tst, decreasing = FALSE)]
   }
 }
 #a <- rawrr::readFileHeader(rawfile = fl)
 
 # Work directory
-wd <- unique(dirname(fls))[1]
+#wd <- unique(dirname(fls))[1]
 dtstNm <- gsub(".*/", "", wd)
 tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
 while ("try-error" %in% class(tst)) {
@@ -265,7 +280,7 @@ if (!length(ParsDirs)) {
   unzip(dstfl, exdir = ParsDirs)
 }
 if (length(ParsDirs) > 1) {
-  tst <- vapply(ParsDirs, function(x) { file.info(x)$ctime }, "")
+  tst <- vapply(ParsDirs, function(x) { file.info(x)$ctime }, 1)
   ParsDirs <- ParsDirs[which(tst == max(tst))[1]]
 }
 deer$ParsDir <- ParsDirs
@@ -900,23 +915,22 @@ server <- function(input, output, session) {
     fct <- tmp[[1]]
     i <- as.integer(tmp[[2]])
     # observeEvent(input[[id1]],
-    observeEvent(input[[id2]],
-                 {
-                   if (i < nr) {
+    if (i < nr) {
+      observeEvent(input[[id2]],
+                   {
                      x <- input[[id1]]
                      tp <- typeof(facLevels2[[fct]])
                      if (typeof(x) == tp) { x <- get(paste0("as.", tp))(x) }
                      for (k in (i+1):nr) {
                        idK <- paste0(fct, "___", as.character(k))
-                      # if (fct == "Use") {
-                      #   updateCheckboxInput(session, idK, NULL, x)
-                      # } else {
-                         updateSelectInput(session, idK, NULL, facLevels2[[fct]], x)
-                      # }
+                       # if (fct == "Use") {
+                       #   updateCheckboxInput(session, idK, NULL, x)
+                       # } else {
+                       updateSelectInput(session, idK, NULL, facLevels2[[fct]], x)
+                       # }
                      }
-                   }
-                 }
-    )
+                   })
+    }
   })
   # Incremental fill-down for replicates
   sapply(rws, function(i) {
@@ -925,22 +939,19 @@ server <- function(input, output, session) {
       id2 <- paste0("Replicate___", i, "___INCR")
       observeEvent(input[[id2]],
                    {
-                     if (i < nr) {
-                       x <- input[[id1]]
-                       tp <- typeof(facLevels2[[fct]])
-                       if (typeof(x) == tp) { x <- get(paste0("as.", tp))(x) }
-                       rplRg <- (i+1):nr
-                       l <- length(rplRg)
-                       m <- match(x, dflt_Rpl)+1
-                       rplVal <- dflt_Rpl[m:(m+l-1)]
-                       for (k in rplRg) {
-                         y <- rplVal[k-i]
-                         idK <- paste0("Replicate___", as.character(k))
-                         updateSelectInput(session, idK, NULL, facLevels2[["Replicate"]], y)
-                       }
+                     x <- input[[id1]]
+                     tp <- typeof(facLevels2[[fct]])
+                     if (typeof(x) == tp) { x <- get(paste0("as.", tp))(x) }
+                     rplRg <- (i+1):nr
+                     l <- length(rplRg)
+                     m <- match(x, dflt_Rpl)+1
+                     rplVal <- dflt_Rpl[m:(m+l-1)]
+                     for (k in rplRg) {
+                       y <- rplVal[k-i]
+                       idK <- paste0("Replicate___", as.character(k))
+                       updateSelectInput(session, idK, NULL, facLevels2[["Replicate"]], y)
                      }
-                   }
-      )
+                   })
     }
   })
   # Manual cell edit (sample names)
