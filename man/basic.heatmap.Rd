@@ -62,5 +62,4 @@ basic.heatmap(
 }
 \description{
 A function to create a simple heatmap of a data frame.
-Rewritten extensively because this old one was very old, broken and unused.
 }
