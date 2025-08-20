@@ -1,6 +1,8 @@
 # Update peptide-to-protein mappings
 # FragPipe only reports one protein per PSM, and among other search software, MaxQuant at least is also not fully exhaustive.
 # While this may be correct from their point of view, I think I should report all matches.
+I_eq_L %<o% TRUE # Could be made a global parameter
+
 setwd(wd)
 #ev$Proteins <- gsub(";CON_", ";", gsub("^CON_", "", gsub(";CON__", ";", gsub("^CON__", "", ev$Proteins))))
 if (Update_Prot_matches) {
@@ -26,6 +28,7 @@ if (Update_Prot_matches) {
     Seq <- unique(ev$Sequence)
     DB <- db
     mtchSrc <- paste0(libPath, "/extdata/R scripts/Sources/ProtMatch2.R")
+    #rstudioapi::documentOpen(mtchSrc)
     source(mtchSrc)
     Pep2Prot <- evmatch
   }
@@ -68,7 +71,7 @@ if (Update_Prot_matches) {
     tst <- sum(tst1 != tst2)
     if (tst) {
       msg <- paste0("Corrected ", tst, " out of ", length(tst1), " assignments (~", round(100*tst/length(tst1), 2), "%)!
-Note that we did not take into account retention time or ion mobility!
+Note that we do not take into account retention time or ion mobility!
 Discrepancies with the original search engine matches can have several causes:
  1) Protein present in original column but not corrected results:
    a) If redundant entries were present in the search fasta, then they would have usually been filtered by this workflow when it loads and parses the fasta database.
@@ -118,23 +121,31 @@ if (l) {
                 c("a ", "")[tst], "non-tryptic peptide", c("", "s")[tst], ".")
   ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
   ev$"Tryptic peptide?"[w] <- FALSE
-  temp <- data.frame(Seq = unique(ev$Sequence[w]))
+  tmpEV <- data.frame(Seq = unique(ev$Sequence[w]))
+  tmpEV$Seq2 <- tmpEV$Seq
   tmpDB <- db[, c("Protein ID", "Sequence")]
+  if (I_eq_L) {
+    tmpEV$Seq2 <- gsub("I", "L", tmpEV$Seq2)
+    tmpDB$Sequence <- gsub("I", "L", tmpDB$Sequence)
+  }
   source(parSrc) # Check cluster for corruption!
-  saveRDS(tmpDB, "tmp.RDS")
+  saveRDS(tmpEV, "tmpEV.RDS")
+  saveRDS(tmpDB, "tmpDB.RDS")
   invisible(clusterCall(parClust, function() {
-    tmpDB <<- readRDS("tmp.RDS")
+    tmpEV <<- readRDS("tmpEV.RDS")
+    tmpDB <<- readRDS("tmpDB.RDS")
     return()
   }))
-  temp$Proteins <- parSapply(parClust, temp$Seq, function(x) {
-    paste(tmpDB$"Protein ID"[grep(x, tmpDB$Sequence)], collapse = ";")
+  tmpEV$Proteins <- parSapply(parClust, 1:nrow(tmpEV), function(x) {
+    paste(tmpDB$"Protein ID"[grep(tmpEV$Seq2[x], tmpDB$Sequence)], collapse = ";")
   })
   invisible(clusterCall(parClust, function() {
     rm(tmpDB)
     return()
   }))
-  unlink("tmp.RDS")
-  ev$Proteins[w] <- temp$Proteins[match(ev$Sequence[w], temp$Seq)]
+  unlink("tmpEV.RDS")
+  unlink("tmpDB.RDS")
+  ev$Proteins[w] <- tmpEV$Proteins[match(ev$Sequence[w], tmpEV$Seq)]
   ev <- ev[which(ev$Proteins != ""),]
 }
 # Also remove those protein columns we will re-create later

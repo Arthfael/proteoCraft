@@ -42,7 +42,6 @@ Cut = c("K_", "R_")
 N.clust = get("N.clust")
 N.reserved = 1
 cl = parClust
-I_eq_L = TRUE
 misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
 #
 RPath <- as.data.frame(library()$results)
