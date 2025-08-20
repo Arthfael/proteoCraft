@@ -236,9 +236,9 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     w <- which(BrMeth$LC_method.exists)
     uBrMeth$LC_method <- BrMeth$LC_method[w][match(uBrMeth$MethodID, BrMeth$MethodID[w])]
     uBrMeth$LC_meth <- lapply(uBrMeth$LC_method, function(fl) { #fl <- uBrMeth$LC_method[1]
-      x <- xmlToList(fl)
+      x <- XML::xmlToList(fl)
       lc <- x$LCMethodData$ModuleMethods$ModuleMethodData$text
-      lc <- xmlToList(lc)
+      lc <- XML::xmlToList(lc)
       #lc$ModuleMethodData$Method$AdvancedSettings
       return(lc)
     })
