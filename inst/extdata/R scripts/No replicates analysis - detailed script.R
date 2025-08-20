@@ -1248,10 +1248,7 @@ ev$"Peptide ID" <- NULL
 
 Script <- readLines(ScriptPath)
 gc()
-parLapply(parClust, 1:N.clust, function(x) {
-  rm(list = ls())
-  gc()
-})
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -1826,10 +1823,7 @@ if (runPepper) {
 
 Script <- readLines(ScriptPath)
 gc()
-parLapply(parClust, 1:N.clust, function(x) {
-  rm(list = ls())
-  gc()
-})
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -2415,10 +2409,7 @@ PG[, colnames(temp)] <- temp
 
 Script <- readLines(ScriptPath)
 gc()
-parLapply(parClust, 1:N.clust, function(x) {
-  rm(list = ls())
-  gc()
-})
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -3237,10 +3228,7 @@ if (protrul) {
 
 Script <- readLines(ScriptPath)
 gc()
-parLapply(parClust, 1:N.clust, function(x) {
-  rm(list = ls())
-  gc()
-})
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -3293,10 +3281,7 @@ source(Src, local = FALSE)
 
 Script <- readLines(ScriptPath)
 gc()
-parLapply(parClust, 1:N.clust, function(x) {
-  rm(list = ls())
-  gc()
-})
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -3590,10 +3575,7 @@ if (prot.list.Cond) {
 
 Script <- readLines(ScriptPath)
 gc()
-parLapply(parClust, 1:N.clust, function(x) {
-  rm(list = ls())
-  gc()
-})
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -4515,10 +4497,7 @@ if (length(Exp) > 1) {
 
 Script <- readLines(ScriptPath)
 gc()
-parLapply(parClust, 1:N.clust, function(x) {
-  rm(list = ls())
-  gc()
-})
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -6006,10 +5985,7 @@ fs::file_copy(ScriptPath, wd, overwrite = TRUE)
 
 Script <- readLines(ScriptPath)
 gc()
-parLapply(parClust, 1:N.clust, function(x) {
-  rm(list = ls())
-  gc()
-})
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -6031,35 +6007,6 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/Finalize_analysis.R")
 #rstudioapi::documentOpen(Src)
 #loadFun(BckUpFl)
 source(Src, local = FALSE)
-
-rm(list = ls()[which(!ls() %in% .obj)])
-Script <- readLines(ScriptPath)
-gc()
-parLapply(parClust, 1:N.clust, function(x) {
-  rm(list = ls())
-  gc()
-})
-rm(ReportCalls) # Temporary fix until I figure out how to fix the grphtype bug - I thought I had
-setwd(wd); saveImgFun(BckUpFl) # Leave an ultimate backup in the temporary folder
-#loadFun(BckUpFl)
-
-# Save final state of the environment
-# This is done within the destination folder (outdir) because it will restart the session so has to be done last
-# (this will interrupt the script flow so all commands queued after that are gone)
-setwd(procdir)
-pkgs <- gtools::loadedPackages()
-dscrptFl <- paste0(procdir, "/DESCRIPTION")
-tmp <- paste0(do.call(paste, c(pkgs[, c("Name", "Version")], sep = " (")), ")")
-tmp <- paste0("Depends: ", paste(tmp, collapse = ", "))
-write(tmp, dscrptFl)
-renv::snapshot(force = TRUE, prompt = FALSE, type = "explicit")
-if ((exists("renv"))&&(renv)) { try(renv::deactivate(), silent = TRUE) }
-#
-# Also save a citations report
-if (!require(grateful)) {
-  pak::pkg_install("grateful")
-}
-grateful::cite_packages(out.dir = ".", pkgs = "Session")
 
 ### That's it, done!
 #openwd(outdir)
