@@ -65,6 +65,7 @@ if (writeRaws) {
   for (xt in unique(ext)) {
     w2 <- which(ext == xt)
     eval(parse(text = paste0("copFun <- fs::", c("file", "dir")[(xt == "d")+1], "_copy")), envir = .GlobalEnv)
+    cat(" - Copying MS raw files to\n\t\t", dir, "\n")
     for (fl in rawFiles[w[w2]]) {
       Tsts$"MS files"[[fl]] <- try(copFun(fl, dir, overwrite = FALSE), silent = TRUE)
     }
@@ -96,6 +97,7 @@ if (writeSearch) {
     }
   }
   if (doICopy) {
+    cat(" - Copying input data from\n\t\t", indir, "\n   to\n\t\t", dir, "\n")
     Tsts$"Search folder" <- try(fs::dir_copy(indir, outdir, overwrite = FALSE), silent = TRUE)
     if (!"try-error" %in% class(Tsts$"Search folder")) { file.rename(paste0(outdir, gsub(".*/" , "/", indir)), dir) }
   }
@@ -143,6 +145,7 @@ if (length(tmpRDat)) {
   fs::file_move(tmpRDat, tmpRDat2)
 }
 # - 3d) copy analysis results
+cat(" - Copying processing results from\n\t\t", wd, "\n   to\n\t\t", procdir, "\n")
 Tsts$"Data analysis" <- try(fs::dir_copy(wd, procdir, overwrite = FALSE), silent = TRUE)
 if ("try-error" %in% class(Tsts$"Data analysis")) {
   warning("Analysis results not copied to destination - usually this is a path length issue.\nYou will have to copy them manually.")
@@ -151,7 +154,7 @@ if ("try-error" %in% class(Tsts$"Data analysis")) {
   tmpDr <- paste0(outdir, gsub(".*/" , "/", wd))
   if (("character" %in% class(Tsts$"Data analysis"))&&(Tsts$"Data analysis" == tmpDr)) {
     Tsts$"Data analysis" <- file.rename(tmpDr, procdir)
-    tmp <- grep("\\.RData$", list.files(procdir, full.names = TRUE), value = TRUE)
+    tmp <- grep("\\.RData$", list.files(procdir, all.files = TRUE, full.names = TRUE), value = TRUE)
     tmp <- grep("/Backup\\.RData$", tmp, value = TRUE, invert = TRUE) # We want to export the final Backup.RData file: it is large, but useful to have
     unlink(tmp) # Unlink the other RData files
     unlink(paste0(procdir, "/.RHistory"))
@@ -168,5 +171,59 @@ if ((is.logical(Tsts$"Data analysis"))&&(!is.na(Tsts$"Data analysis"))&&(Tsts$"D
     drs <- list.dirs(wd, recursive = FALSE, full.names = TRUE)
     unlink(drs, TRUE, TRUE)
     #openwd(wd)
+  }
+}
+
+# End logging:
+if (scrptType == "withReps") { sink(NULL, type = "message") }
+#close(logcon)
+rm(list = ls()[which(!ls() %in% .obj)])
+Script <- readLines(ScriptPath)
+gc()
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+rm(ReportCalls) # Temporary fix until I figure out how to fix the grphtype bug - I thought I had
+setwd(wd); saveImgFun(BckUpFl) # Leave an ultimate backup in the temporary folder
+#loadFun(BckUpFl)
+
+# Also save a citations report
+setwd(procdir)
+if (!require(grateful)) {
+  pak::pkg_install("grateful")
+}
+grateful::cite_packages(out.dir = ".", pkgs = "Session")
+
+# Save final state of the environment
+# This is done within the destination folder (outdir) because it will restart the session so has to be done last
+# (this will interrupt the script flow so all commands queued after that are gone)
+setwd(procdir)
+pkgs <- gtools::loadedPackages()
+dscrptFl <- paste0(procdir, "/DESCRIPTION")
+tmp <- paste0(do.call(paste, c(pkgs[, c("Name", "Version")], sep = " (")), ")")
+tmp <- paste0("Depends: ", paste(tmp, collapse = ", "))
+write(tmp, dscrptFl)
+renv::snapshot(force = TRUE, prompt = FALSE, type = "explicit")
+if ((exists("renv"))&&(renv)) { try(renv::deactivate(), silent = TRUE) }
+
+# Cleanup
+archiveIndir <- c(TRUE, FALSE)[match(dlg_message("Archive input (= search) folder?", "yesno")$res, c("yes", "no"))]
+if (archiveIndir) {
+  locsFl <- paste0(homePath, "/Default_locations.xlsx")
+  locs <- openxlsx2::read_xlsx(locsFl)
+  archDirDflt <- locs$Path[match("Archive folder", locs$Folder)]
+  if (!dir.exists(archDirDflt)) { archDirDflt <- "C:/" }
+  archDir <- selectDirectory("Select location where to archive the search data", path = archDir)
+  indirArch <- paste0(archDir, "/", gsub(".*/", "", indir))
+  if (!dir.exists(indirArch)) { dir.create(indirArch, recursive = TRUE) }
+  fls <- list.files(indir, recursive = TRUE, all.files = TRUE)
+  if (length(fls)) { # Checking because we may already have archived...
+    for (fl in fls) { #fl <- fls[1]
+      oldFl <- paste0(indir, "/", fl)
+      nuFl <- paste0(indirArch, "/", fl)
+      fs::file_move(oldFl, nuFl)
+    }
+    write(c(paste0("The data in this folder was archived at this location on ", Sys.Date()),
+            paste0("\t", indirArch),
+            ""),
+          paste0(indir, "/Archiving_log.txt"))
   }
 }

@@ -519,6 +519,12 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     assign(paste0(i, 2), tmp)
   }
   #
+  if (scrptType == "withReps") {
+    Frac.map2 <- Frac.map
+  }
+  if (scrptType == "noReps") {
+    Frac.map2 <- FracMap
+  }
   if (reload_SDRF) {
     SDRF <- auld_SDRF
     reload_SDRF <- (nrow(SDRF) >= nrow(Frac.map2))&&("comment[data file]" %in% colnames(SDRF))
@@ -540,7 +546,6 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     }
   }
   if (scrptType == "withReps") {
-    Frac.map2 <- Frac.map
     myKol <- colnames(Exp.map)[which(!colnames(Exp.map) %in% names(Aggregate.list))]
     myKol <- myKol[which(!myKol %in% c("Fractions", "Reference", "MQ.Exp", "Sample.name", "Use", "Ref.Sample.Aggregate"))]
     if (length(unique(Exp.map$Experiment)) == 1) { myKol <- myKol[which(myKol != "Experiment")] }
@@ -554,7 +559,6 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     }
   }
   if (scrptType == "noReps") {
-    Frac.map2 <- FracMap
     myKol <- colnames(SamplesMap)
     myKol <- myKol[which(!myKol %in% c("Fractions", "Reference", "MQ.Exp", "Sample.name", "Use"))]
     myKol <- grep("__$", myKol, value = TRUE, invert = TRUE)
