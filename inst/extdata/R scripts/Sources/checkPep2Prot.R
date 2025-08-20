@@ -67,7 +67,7 @@ if (Update_Prot_matches) {
     }
     tst <- sum(tst1 != tst2)
     if (tst) {
-      msg <- paste0("Corrected ", tst, " out of ", nrow(Pep2Prot), " assignments (~", round(tst/nrow(Pep2Prot), 2), "%)!
+      msg <- paste0("Corrected ", tst, " out of ", length(tst1), " assignments (~", round(100*tst/length(tst1), 2), "%)!
 Note that we did not take into account retention time or ion mobility!
 Discrepancies with the original search engine matches can have several causes:
  1) Protein present in original column but not corrected results:

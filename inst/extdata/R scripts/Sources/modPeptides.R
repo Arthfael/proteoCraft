@@ -1205,18 +1205,28 @@ if ("PTM.analysis" %in% colnames(Param)) {
 # Once we are done with using GO stuff, backup the final versions
 if (Annotate) {
   # (Testing for existence in case we are rerunning part of the script)
-  if (exists("GO_terms")) { saveFun(GO_terms, file = "GO_terms.RData") }
-  if (exists("GO_mappings")) { saveFun(GO_mappings, file = "GO_mappings.RData") }
-  # We can also remove our GO_mappings, we shan't be using them anymore
-  rm(GO_terms)
-  rm(GO_mappings)
+  if (exists("GO_terms")) {
+    saveFun(GO_terms, file = "GO_terms.RData")
+    rm(GO_terms)
+  }
+  if (exists("GO_mappings")) {
+    saveFun(GO_mappings, file = "GO_mappings.RData")
+    rm(GO_mappings)
+  }
   # otherwise they are also unused further down.
   .obj <- .obj[which(!.obj %in% c("GO_terms", "GO_mappings"))]
 }
 if (CytoScape) {
   # Then close Cytoscape:
-  RCy3::closeSession(save.before.closing = FALSE)
-  cmd <- paste0("taskkill/im \"", gsub(".+/", "", CytoScVrs), "\" /f")
-  #cat(cmd)
-  shell(cmd)
+  tst <- try({
+    invisible({
+      RCy3::closeSession(save.before.closing = FALSE)
+      cmd <- paste0("taskkill/im \"", gsub(".+/", "", CytoScVrs), "\" /f")
+      #cat(cmd)
+      shell(cmd)
+    })
+  })
+  if ("try-error" %in% class(tst)) {
+    cat("(This error can be ignored as it does not interrupt script execution.\nIt looks like you are trying to close Cytoscape although it is already open (maybe running this script by bits after an interruption?)\n\n")
+  }
 }
