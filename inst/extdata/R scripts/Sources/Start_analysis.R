@@ -563,7 +563,8 @@ require(proteoCraft)
 set.seed(mySeed)
 if (renv) {
   if (nuEnv) {
-    renv::snapshot(force = TRUE, prompt = FALSE, exclude = "fastSave")
+    renv::snapshot(force = TRUE, prompt = FALSE#, exclude = "fastSave" # We are not including fastSave anymore
+                   )
   }
 }
 LocAnalysis %<o% (WorkFlow %in% c("LOCALISATION", "LOCALIZATION"))
