@@ -13,7 +13,7 @@
 #' @export
 
 saveImgFun <- function(file) {
-  if (.Platform$OS.type == "windows") {
+  #if (.Platform$OS.type == "windows") {
     obj <- base::ls(envir = .GlobalEnv)
     if (exists(".obj", envir = .GlobalEnv)) {
       obj <- unique(c(".obj", obj))
@@ -44,8 +44,8 @@ saveImgFun <- function(file) {
               file = file,
               nthreads = max(c(parallel::detectCores()-1, 1)))
     )
-  }
-  if (.Platform$OS.type == "unix") {
-    fastSave::save.image.lbzip2(file = file)
-  }
+  # }
+  # if (.Platform$OS.type == "unix") {
+  #   fastSave::save.image.lbzip2(file = file)
+  # }
 }
