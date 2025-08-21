@@ -61,23 +61,23 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
   } else {
     if (!exists("mainOrg")) { mainOrg <- "Homo sapiens" } 
   }
-  fls <- data.frame(File = paste0(homePath, "/", c("Tissues",
-                                                   "Modifications",
-                                                   "Diseases",
-                                                   "Cell_types",
-                                                   "PRIDE",
-                                                   "MS_Quant_meth",
-                                                   "MS_models",
-                                                   paste0("DevStages_", c("Human",
-                                                                          "Mouse",
-                                                                          "Zebrafish",
-                                                                          "Fly",
-                                                                          "Worms"))), ".csv"))
-  fls$Name <- gsub("\\.csv$", "", basename(fls$File))
-  fls$Exists <- file.exists(fls$File)
-  isFnd <- setNames(fls$Exists, fls$Name)
+  ontoFls <- data.frame(File = paste0(homePath, "/", c("Tissues",
+                                                       "Modifications",
+                                                       "Diseases",
+                                                       "Cell_types",
+                                                       "PRIDE",
+                                                       "MS_Quant_meth",
+                                                       "MS_models",
+                                                       paste0("DevStages_", c("Human",
+                                                                              "Mouse",
+                                                                              "Zebrafish",
+                                                                              "Fly",
+                                                                              "Worms"))), ".csv"))
+  ontoFls$Name <- gsub("\\.csv$", "", basename(ontoFls$File))
+  ontoFls$Exists <- file.exists(ontoFls$File)
+  isFnd <- setNames(ontoFls$Exists, ontoFls$Name)
   if (isFnd["Cell_types"]) {
-    tmp <- data.table::fread(fls$File[match("Cell_types", fls$Name)])
+    tmp <- data.table::fread(ontoFls$File[match("Cell_types", ontoFls$Name)])
     availCellTypes <- sort(unique(tmp$label))
     cellTypeTxt <- " the cell type analyzed"
     if ((!exists("myCellType"))||(!is.character(myCellType))||(sum(!myCellType %in% availCellTypes))) {
@@ -89,7 +89,7 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     availCellTypes <- c(myCellType, availCellTypes[which(!availCellTypes %in% myCellType)])
   }
   if (isFnd["Tissues"]) {
-    tmp <- data.table::fread(fls$File[match("Tissues", fls$Name)])
+    tmp <- data.table::fread(ontoFls$File[match("Tissues", ontoFls$Name)])
     availTissues <- sort(unique(tmp$label))
     tissueTxt <- " the tissue or organism part analyzed"
     if ((!exists("myTissue"))||(!is.character(myTissue))||(sum(!myTissue %in% availTissues))) {
@@ -101,7 +101,7 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     availTissues <- c(myTissue, availTissues[which(!availTissues %in% myTissue)])
   }
   if (isFnd["Modifications"]) {
-    tmp <- data.table::fread(fls$File[match("Modifications", fls$Name)])
+    tmp <- data.table::fread(ontoFls$File[match("Modifications", ontoFls$Name)])
     availMods <- sort(unique(tmp$label))
     modsTxt <- " any Post-Translational Modifications which were included in the analysis"
     if ((!exists("myPTMs"))||(!is.character(myPTMs))||(sum(!myPTMs %in% availMods))) {
@@ -113,7 +113,7 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     availMods <- c(myPTMs, availMods[which(!availMods %in% myPTMs)])
   }
   if (isFnd["Diseases"]) {
-    tmp <- data.table::fread(fls$File[match("Diseases", fls$Name)])
+    tmp <- data.table::fread(ontoFls$File[match("Diseases", ontoFls$Name)])
     availDiseases <- sort(unique(tmp$label))
     diseasesTxt <- " any diseases relevant to the dataset"
     if ((!exists("myDisease"))||(!is.character(myDisease))||(sum(!myDisease %in% availDiseases))) {
@@ -125,9 +125,9 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     availDiseases <- c(myDisease, availDiseases[which(!availDiseases %in% myDisease)])
   }
   if (isFnd["MS_models"]) {
-    tmp <- data.table::fread(fls$File[match("MS_models", fls$Name)])
-    availInstr <- tmp$Instrument
-    Vendors2Instr <- aggregate(tmp$Instrument, list(tmp$Vendor), function(x) { sort(unique(x)) })
+    availInstrDF <- data.table::fread(ontoFls$File[match("MS_models", ontoFls$Name)])
+    availInstr <- availInstrDF$Instrument
+    Vendors2Instr <- aggregate(availInstrDF$Instrument, list(availInstrDF$Vendor), function(x) { sort(unique(x)) })
     colnames(Vendors2Instr) <- c("Vendor", "Instruments")
     availMSVend <- c("All vendors", sort(Vendors2Instr$Vendor))
     tmp2 <- data.frame(Vendor = "All vendors")
@@ -144,7 +144,7 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     availInstr <- c(myMSInstr, availInstr[which(!availInstr %in% myMSInstr)])
   }
   if (isFnd["MS_Quant_meth"]) {
-    tmp <- data.table::fread(fls$File[match("MS_Quant_meth", fls$Name)])
+    tmp <- data.table::fread(ontoFls$File[match("MS_Quant_meth", ontoFls$Name)])
     availQuantMeth <- sort(unique(tmp$label))
     quantMethTxt <- " relevant MS quantification method(s)"
     if ((!exists("myQuantMeth"))||(!is.character(myQuantMeth))||(!sum(myQuantMeth %in% availQuantMeth))) {
@@ -506,7 +506,13 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     eval(parse(text = appTxtA), envir = .GlobalEnv)
     runKount <- runKount+1
   }
-  if (!myVendor %in% c("Bruker Daltonics", "Thermo Fisher Scientific")) {
+  # Update myVendor
+  tmpVnd <- availMSVend[which(availMSVend != "All vendors")]
+  myVendor <- tmpVnd[which(vapply(tmpVnd, function(x) {
+    w <- which(availInstrDF$Vendor == x)
+    sum(myMSInstr %in% availInstrDF$Instrument[w])
+  }, 1) > 0)]
+  if (sum(!myVendor %in% c("Bruker Daltonics", "Thermo Fisher Scientific"))) {
     stop("Vendor not yet supported!")
   }
   # Create duplicates which we will use now to map to our data

@@ -65,7 +65,7 @@ if (writeRaws) {
   for (xt in unique(ext)) {
     w2 <- which(ext == xt)
     eval(parse(text = paste0("copFun <- fs::", c("file", "dir")[(xt == "d")+1], "_copy")), envir = .GlobalEnv)
-    cat(" - Copying MS raw files to\n\t\t", dir, "\n")
+    cat(" - Copying MS raw files to\n\t\t", dir, "\n\n")
     for (fl in rawFiles[w[w2]]) {
       Tsts$"MS files"[[fl]] <- try(copFun(fl, dir, overwrite = FALSE), silent = TRUE)
     }
@@ -97,7 +97,7 @@ if (writeSearch) {
     }
   }
   if (doICopy) {
-    cat(" - Copying input data from\n\t\t", indir, "\n   to\n\t\t", dir, "\n")
+    cat(" - Copying input data from\n\t\t", indir, "\n   to\n\t\t", dir, "\n\n")
     Tsts$"Search folder" <- try(fs::dir_copy(indir, outdir, overwrite = FALSE), silent = TRUE)
     if (!"try-error" %in% class(Tsts$"Search folder")) { file.rename(paste0(outdir, gsub(".*/" , "/", indir)), dir) }
   }
@@ -145,7 +145,7 @@ if (length(tmpRDat)) {
   fs::file_move(tmpRDat, tmpRDat2)
 }
 # - 3d) copy analysis results
-cat(" - Copying processing results from\n\t\t", wd, "\n   to\n\t\t", procdir, "\n")
+cat(" - Copying processing results from\n\t\t", wd, "\n   to\n\t\t", procdir, "\n\n")
 Tsts$"Data analysis" <- try(fs::dir_copy(wd, procdir, overwrite = FALSE), silent = TRUE)
 if ("try-error" %in% class(Tsts$"Data analysis")) {
   warning("Analysis results not copied to destination - usually this is a path length issue.\nYou will have to copy them manually.")
@@ -190,7 +190,7 @@ setwd(procdir)
 if (!require(grateful)) {
   pak::pkg_install("grateful")
 }
-grateful::cite_packages(out.dir = ".", pkgs = "Session")
+invisible(suppressMessages({ a <- captureOutput(grateful::cite_packages(out.dir = ".", pkgs = "Session", quiet = TRUE)) })) # This thing won't shut up!
 
 # Save final state of the environment
 # This is done within the destination folder (outdir) because it will restart the session so has to be done last
@@ -211,7 +211,7 @@ if (archiveIndir) {
   locs <- openxlsx2::read_xlsx(locsFl)
   archDirDflt <- locs$Path[match("Archive folder", locs$Folder)]
   if (!dir.exists(archDirDflt)) { archDirDflt <- "C:/" }
-  archDir <- selectDirectory("Select location where to archive the search data", path = archDir)
+  archDir <- selectDirectory("Select location where to archive the search data", path = archDirDflt)
   indirArch <- paste0(archDir, "/", gsub(".*/", "", indir))
   if (!dir.exists(indirArch)) { dir.create(indirArch, recursive = TRUE) }
   fls <- list.files(indir, recursive = TRUE, all.files = TRUE)
