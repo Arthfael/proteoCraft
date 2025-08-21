@@ -52,7 +52,7 @@ cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.ta
                      "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "lmtest", "ssh", "taxize", "ggdendro", "colorspace", "factoextra", "NbClust",
                      "BH", "plogr", "unimod"))
 bioc_req <- unique(c(bioc_req, "biomaRt", "GO.db", "UniProt.ws", "limma", "sva", "qvalue", "MSnbase", "DEP",
-                     "Rgraphviz", "RCy3", "siggenes", "pRoloc", "pRolocGUI", "DEqMS", "rawrr", "rbioapi", "png", "Rhdf5lib"))
+                     "Rgraphviz", "RCy3", "siggenes", "pRoloc", "pRolocGUI", "DEqMS", "rbioapi", "png", "Rhdf5lib"))
 inst <- as.data.frame(installed.packages())
 for (pack in cran_req) {
   if (!pack %in% inst$Package) {
@@ -120,12 +120,10 @@ biocInstall %<o% function(pack, load = TRUE) {
   if (load) { library(pack, character.only = TRUE) }
 }
 for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
-#devtools::install_github("cpanse/rawrr")
-#rawrr::installRawFileReaderDLLs() # Deprecated
-tst <- try(normalizePath(rawrr:::.rawrrAssembly(), winslash = "/"), silent = TRUE)
-if (("try-error" %in% class(tst))||(!file.exists(tst))) {
-  rawrr::installRawrrExe()
-}
+# For rawrr we are taking a different approach to installation
+rawrrSrc <- paste0(libPath, "/extdata/R scripts/Sources/install_rawrr.R")
+#rstudioapi::documentOpen(rawrrSrc)
+source(rawrrSrc)
 
 # # Fast save and load functions
 # Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
