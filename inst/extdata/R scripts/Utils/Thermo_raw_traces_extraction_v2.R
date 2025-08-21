@@ -73,83 +73,10 @@ environment(cleanRawNm) <- .GlobalEnv
 clusterExport(parClust, "cleanRawNm", envir = environment())
 
 # Install/load packages
-rawrrVersions <- c("github",
-                   "bioc",
-                   "bioc_1.11.14")
-tst <- try({
-  if (!require(rawrr, quietly = TRUE)) {
-    rawrrVers <- dlg_list(rawrrVersions, rawrrVersions[3], title = "Select which rawrr version should be installed")$res
-    if (rawrrVers == rawrrVersions[1]) {
-      pak::pak("cpanse/rawrr")
-      #install.packages('http://fgcz-ms.uzh.ch/~cpanse/rawrr_0.2.1.tar.gz', repo = NULL) # Old address, now on github
-    }
-    if (rawrrVers == rawrrVersions[2]) {
-      if (!require("BiocManager", quietly = TRUE)) { install.packages("BiocManager") }
-      BiocManager::install("rawrr", version = "1.11")
-      BiocManager::install("rawrr")
-    }
-    if (rawrrVers == rawrrVersions[3]) {
-      url <- "https://bioconductor.org/packages/3.19/bioc/src/contrib/Archive/rawrr/rawrr_1.11.14.tar.gz"
-      require(curl)
-      dstfl <- paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads/rawrr_1.11.14.tar.gz")
-      curl_download(url, dstfl)
-      install.packages(dstfl)
-    }
-    # 
-  }
-  require(rawrr)
-  yesRawFileReaderLicenseIsAccepted <- function () {
-    licenseFile <- file.path(system.file(package = "rawrr"), 
-                             "rawrrassembly", "RawFileReaderLicense.txt")
-    stopifnot(file.exists(licenseFile))
-    eulaFile <- file.path(rawrrAssemblyPath(), "eula.txt")
-    msg <- c("# By changing the setting below to TRUE you are accepting ", 
-             "the Thermo License agreement.")
-    if (!file.exists(eulaFile)) {
-      file.show(licenseFile)
-      response <- "y"
-      if (tolower(response) == "y") {
-        if (isFALSE(dir.exists(dirname(eulaFile)))) {
-          dir.create(dirname(eulaFile), recursive = TRUE)
-        }
-        fileConn <- file(eulaFile)
-        writeLines(paste(msg, paste0("# ", date()), "eula=true", 
-                         sep = "\n"), fileConn)
-        close(fileConn)
-        return(TRUE %in% grepl("eula=true", tolower(readLines(eulaFile))))
-      }
-    } else { return(TRUE %in% grepl("eula=true", tolower(readLines(eulaFile)))) }
-    msg <- "Yes, we accept Thermo's License agreement, get on with it!"
-    cat(msg, "\n")
-  }
-  installRawFileReaderDLLsNoAcpt <- function (sourceUrl = rawrr:::.thermofisherlsmsUrl(), ...) { #sourceUrl = rawrr:::.thermofisherlsmsUrl()
-    rawfileReaderDLLsPath <- rawrrAssemblyPath()
-    if (isTRUE(dir.exists(rawfileReaderDLLsPath))) {
-      msg <- sprintf("removing files in directory '%s'", rawfileReaderDLLsPath)
-      message(msg)
-      file.remove(file.path(rawrrAssemblyPath(), list.files(rawrrAssemblyPath())))
-    }
-    if (isFALSE(dir.exists(rawfileReaderDLLsPath))) {
-      dir.create(rawfileReaderDLLsPath, recursive = TRUE)
-    }
-    #
-    stopifnot(yesRawFileReaderLicenseIsAccepted())
-    .rawfileReaderDLLs <- getAnywhere(.rawfileReaderDLLs)
-    .rawfileReaderDLLs <- .rawfileReaderDLLs$objs[[1]]
-    rv <- vapply(.rawfileReaderDLLs(), function(dll) { #dll <- .rawfileReaderDLLs()[1]
-      destfile <- file.path(rawfileReaderDLLsPath, dll)
-      download.file(file.path(paste0(sourceUrl, #"Assemblies/",
-                                     dll)), destfile = destfile, 
-                    mode = "wb")
-    }, 0)
-    rv
-  }
-  installRawFileReaderDLLsNoAcpt(sourceUrl = rawrr:::.thermofisherlsmsUrl())
-  #rawrr::installRawFileReaderDLLs(sourceUrl = .thermofisherlsmsUrl())
-  #require(rawrr); getAnywhere(".isRawFileReaderLicenseAccepted")
-  rawrr::installRawrrExe()
-}, silent = TRUE)
-getInt <- !("try-error" %in% class(tst))
+rawrrSrc <- paste0(libPath, "/extdata/R scripts/Sources/install_rawrr.R")
+#rstudioapi::documentOpen(rawrrSrc)
+source(rawrrSrc)
+getInt <- !("try-error" %in% class(rawrr_tst))
 #
 if (getInt) {
   ticFun <- function(fl) { #fl <- fls[1]
@@ -249,6 +176,7 @@ if (!l) {
 
 # Work directory
 #wd <- unique(dirname(fls))[1]
+wd <- unique(dirname(fls)) # Update wd
 dtstNm <- gsub(".*/", "", wd)
 tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
 while ("try-error" %in% class(tst)) {
@@ -379,624 +307,635 @@ tmp <- FactorsLevels$Nucleotide[which(!FactorsLevels$Nucleotide %in% "none")]
 FactorsLevels$Samples_group <- unique(c(paste0("Standard_", tmp), FactorsLevels$Samples_group))
 
 #rm(Factors, FactorsLevels)
-intFact <- c("Replicate", "Isobaric.set")
-dfltInt <- c(1, 1)
-if (!exists("blnksPat")) { blnksPat <<- "^blank(_[0-9]+)?$" }
-appNm <- paste0(dtstNm, " - Experimental Factors")
-ui <- fluidPage(
-  useShinyjs(),
-  extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
-  titlePanel(tag("u", "Experimental structure editor"),
-             appNm),
-  h2(dtstNm), 
-  br(),
-  tags$hr(style = "border-color: black;"),
-  h3("Select MS files to analyze and plot, in the desired order!"),
-  textInput("negStrng",
-            "Blanks identification: negative filter (regular expression) to apply",
-            blnksPat),
-  h5(em("(case-sensitive; use ^ and $ for a string's beginning and end, respectively, [0-9] for any number...")),
-  h5(em("see "),
-     #a("this link", href = "https://www.tutorialspoint.com/tcl-tk/tcl_regular_expressions.htm"), # Disappointingly, the link worked but clicking it killed the app, which, well, is kinda stupid...
-     a("https://www.tutorialspoint.com/tcl-tk/tcl_regular_expressions.htm"),
-     em(" for full regex syntax)")),
-  span(uiOutput("Order")),
-  span(uiOutput("ordrMsg"), style = "color:grey"),
-  br(),
-  tags$hr(style = "border-color: black;"),
-  h3("Enter the names and levels of Experiment Factors."),
-  h4("These are, so to speak, the columns in the experiment map. Each may have different levels, for instance, Replicate: 1-2, Protein: MBP;TIR1;SLY1..."),
-  h4("The following Factors are included by defaults and cannot be removed:"),
-  uiOutput("minFact"),
-  br(),
-  sidebarLayout(
-    sidebarPanel(
-      textInput("nuFact", "Experimental Factor name(s)", ""),
-      actionButton("addFactor", "Create Factor(s)"),
-      actionButton("rmvFactor", "Remove Factor(s)"),
-      h5(em("Factor names must be:")),
-      h5(em(" - at least 3 characters long")),
-      h5(em(" - start with a capital letter,")),
-      h5(em(" - followed by only lower case letters, numbers or dots.")),
+areWeGood <- FALSE
+runStep1 <- TRUE
+while (!areWeGood) {
+  if (runStep1) {
+    intFact <- c("Replicate", "Isobaric.set")
+    dfltInt <- c(1, 1)
+    if (!exists("blnksPat")) { blnksPat <<- "^blank(_[0-9]+)?$" }
+    appNm <- paste0(dtstNm, " - Experimental Factors")
+    ui <- fluidPage(
+      useShinyjs(),
+      extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+      titlePanel(tag("u", "Experimental structure editor"),
+                 appNm),
+      h2(dtstNm), 
       br(),
+      tags$hr(style = "border-color: black;"),
+      h3("Select MS files to analyze and plot, in the desired order!"),
+      textInput("negStrng",
+                "Blanks identification: negative filter (regular expression) to apply",
+                blnksPat),
+      h5(em("(case-sensitive; use ^ and $ for a string's beginning and end, respectively, [0-9] for any number...")),
+      h5(em("see "),
+         #a("this link", href = "https://www.tutorialspoint.com/tcl-tk/tcl_regular_expressions.htm"), # Disappointingly, the link worked but clicking it killed the app, which, well, is kinda stupid...
+         a("https://www.tutorialspoint.com/tcl-tk/tcl_regular_expressions.htm"),
+         em(" for full regex syntax)")),
+      span(uiOutput("Order")),
+      span(uiOutput("ordrMsg"), style = "color:grey"),
       br(),
-    ),
-    mainPanel(
-      h5(em("Add Factor levels:")),
-      h5(em(" - use underscores, no spaces or hyphens within level names")),
-      h5(em(" - use spaces as separators to add multiple levels at a time")),
+      tags$hr(style = "border-color: black;"),
+      h3("Enter the names and levels of Experiment Factors."),
+      h4("These are, so to speak, the columns in the experiment map. Each may have different levels, for instance, Replicate: 1-2, Protein: MBP;TIR1;SLY1..."),
+      h4("The following Factors are included by defaults and cannot be removed:"),
+      uiOutput("minFact"),
       br(),
-      span(uiOutput("fctrMsg"), style = "color:red"),
-      h3("Factor levels:"),
-      uiOutput("Factors"),
-      br(),
-      br(),
-      actionButton("saveBtn", "Save")
+      sidebarLayout(
+        sidebarPanel(
+          textInput("nuFact", "Experimental Factor name(s)", ""),
+          actionButton("addFactor", "Create Factor(s)"),
+          actionButton("rmvFactor", "Remove Factor(s)"),
+          h5(em("Factor names must be:")),
+          h5(em(" - at least 3 characters long")),
+          h5(em(" - start with a capital letter,")),
+          h5(em(" - followed by only lower case letters, numbers or dots.")),
+          br(),
+          br(),
+        ),
+        mainPanel(
+          h5(em("Add Factor levels:")),
+          h5(em(" - use underscores, no spaces or hyphens within level names")),
+          h5(em(" - use spaces as separators to add multiple levels at a time")),
+          br(),
+          span(uiOutput("fctrMsg"), style = "color:red"),
+          h3("Factor levels:"),
+          uiOutput("Factors"),
+          br(),
+          br(),
+          actionButton("saveBtn", "Save")
+        )
+      )
     )
-  )
-)
-# Pre-processing for server
-# - Default order
-if (!exists("flsOrd0_dflt")) { flsOrd0_dflt <- fls0 }
-flsOrd0 <- c(flsOrd0_dflt,
-             fls0[which(!fls0 %in% flsOrd0_dflt)])
-# - Default blanks pattern
-grpOK <- FALSE
-if (nchar(blnksPat)) {
-  tst <- try(grep(blnksPat, fls0, value = TRUE), silent = TRUE)
-  grpOK <- (!"try-error" %in% class(tst))
-}
-if (grpOK) {
-  blnkFls0 <- tst
-  flsOrd0 <- flsOrd0[which(!flsOrd0 %in% blnkFls0)]
-  flsOrd0 <- c(flsOrd0,
-               fls0[which(!fls0 %in% c(flsOrd0, blnkFls0))])
-} else {
-  blnkFls0 <- c()
-}
-server <- function(input, output, session) {
-  # Initialize reactive variables
-  blanksPAT <- reactiveVal(blnksPat) # Regex pattern
-  smplFILES <- reactiveVal(flsOrd0) # Files defined as sample files based on the regex
-  flsORD <- reactiveVal(flsOrd0) # Order of sample files; may exclude some
-  FACT <- reactiveVal(Factors)
-  FACTLevels <- reactiveVal(FactorsLevels)
-  #
-  output$ordrMsg <- renderUI({ em(" ") })
-  output$Order <- renderUI(selectInput("Order",
-                                       "",
-                                       flsOrd0,
-                                       flsOrd0,
-                                       TRUE,
-                                       TRUE,
-                                       width = "1200px"))
-  updtOpt <- function(reactive = TRUE) {
-    if (reactive) {
-      blnksPat <<- blanksPAT()
-      fls0_a <- flsORD()
-    } else {
-      fls0_a <- flsOrd0
-    }
-    fls0_a <- c(fls0_a,
-                fls0[which(!flsOrd0 %in% fls0_a)])
-    grpOK <- FALSE
-    if (nchar(blnksPat)) {
-      tst <- try(grep(blnksPat, fls0_a, value = TRUE), silent = TRUE)
-      grpOK <- (!"try-error" %in% class(tst))
-    }
-    if (grpOK) {
-      blnk0_b <- tst
-      myFls0_b <- fls0_a[which(!fls0_a %in% blnk0_b)]
-    } else {
-      myFls0_b <- fls0_a
-      blnk0_b <- c()
-    }
-    if (reactive) {
-      smplFILES(myFls0_b)
-      slct <- input$Order[which(input$Order %in% myFls0_b)]
-    } else{
-      slct <- flsOrd0[which(flsOrd0 %in% myFls0_b)]
-    }
-    updateSelectInput(inputId = "Order",
-                      choices = myFls0_b,
-                      selected = slct)
-  }
-  # Create function to update output$Factors for UI
-  updtFactUI <- function(reactive = TRUE) {
-    if (reactive) {
-      FAKT <- FACT()
-      FAKTLevels <- FACTLevels()
-    } else {
-      FAKT <- Factors
-      FAKTLevels <- FactorsLevels
-    }
-    L <- length(FAKT)
-    # Update UI
-    return(renderUI({
-      lst <- vector("list", L*3)
-      for (i in 1:L) {
-        j <- i*3-2
-        Fact <- FAKT[i]
-        if (Fact %in% intFact) {
-          miN <- dfltInt[match(Fact, intFact)]
-          dflt <- max(c(miN, FAKTLevels[[Fact]]))
-          txt <- as.character(dflt)
-          if (!length(txt)) { txt <- "" }
-          lst[[j]] <- list(numericInput(paste0(Fact, "_lev"),
-                                        paste0("N. of ", gsub("\\.", " ", Fact), "s = ", txt), dflt, miN, step = 1))
-        }
-        if (Fact == "Time.point") {
-          lst[[j]] <- list(textInput(paste0(Fact, "_lev"),
-                                     paste0(Fact, ", levels (numeric(s) only!) = ", paste(FAKTLevels[[Fact]], collapse = " / ")), ""))
-        }
-        if (!Fact %in% c(intFact, "Time.point")) {
-          lst[[j]] <- list(textInput(paste0(Fact, "_lev"),
-                                     paste0(Fact, ", levels = ", paste(FAKTLevels[[Fact]], collapse = " / ")), ""))
-        }
-        lst[[j+1]] <- list(actionButton(paste0(Fact, "_levAdd"), "Add level(s)"))
-        lst[[j+2]] <- list(actionButton(paste0(Fact, "_levRmv"), "Remove level(s)"))
-      }
-      return(lst)
-    }))
-  }
-  #
-  output$minFact <- renderUI({ HTML(paste0(" - ", minFact, " => ", minFactDesc, collapse = "<br>")) })
-  output$fctrMsg <- renderUI({ em(" ") })
-  # Initialize
-  output$Factors <- updtFactUI(reactive = FALSE)
-  #
-  # Observers for files selection
-  observeEvent(input$Order, {
-    flsORD(input$Order)
-    flsOrd0_dflt <<- flsOrd0 <<- input$Order
-    n <- length(fls0) - length(flsOrd0) - length(blnkFls0)
-    if (n) {
-      output$ordrMsg <- renderUI({ em(paste0("Files currectly not selected: ", n)) })
-    } else {
-      output$ordrMsg <- renderUI({ em(" ") })
-    }
-  })
-  observeEvent(input$negStrng, {
-    blanksPAT(input$negStrng)
-    updtOpt()
-  })
-  #
-  # Observers for already extent factors
-  #  - Add new Factor level
-  sapply(Factors, function(Fact) {
-    observeEvent({ input[[paste0(Fact, "_levAdd")]] }, {
-      vals <- input[[paste0(Fact, "_lev")]]
-      vals <- vals[which(!is.na(vals))]
-      if (length(vals)) {
-        if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
-        tmp2 <- FACTLevels()
-        if (Fact %in% intFact) {
-          tmp2[[Fact]] <- 1:as.integer(max(c(vals, dfltInt[match(Fact, intFact)])))
-        } else {
-          if (Fact == "Time.point") {
-            vals <- suppressWarnings(as.numeric(vals))
-            vals <- vals[which(!is.na(vals))]
-          }
-          tmp <- unique(c(FACTLevels()[[Fact]], vals))
-          tmp <- tmp[which(tmp != "")]
-          tmp2[[Fact]] <- tmp
-        }
-        FACTLevels(tmp2)
-        output$Factors <- updtFactUI()
-      }
-    })
-  })
-  #  - Remove Factor level
-  sapply(Factors, function(Fact) {
-    observeEvent({ input[[paste0(Fact, "_levRmv")]] }, {
-      vals <- input[[paste0(Fact, "_lev")]]
-      vals <- vals[which(!is.na(vals))]
-      if (length(vals)) {
-        if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
-        tmp2 <- FACTLevels()
-        if (Fact %in% intFact) {
-          tmp2[[Fact]] <- 1:(max(c(as.integer(vals)-1, dfltInt[match(Fact, intFact)])))
-        } else {
-          if (Fact == "Time.point") {
-            vals <- suppressWarnings(as.numeric(vals))
-            vals <- vals[which(!is.na(vals))]
-          }
-          tmp2[[Fact]] <- tmp2[[Fact]][which(!tmp2[[Fact]] %in% vals)]
-        }
-        FACTLevels(tmp2)
-        output$Factors <- updtFactUI()
-      }
-    })
-  })
-  #
-  # Create new Factor(s)
-  observeEvent(input$addFactor, {
-    msg <- " "
-    Facts <- gsub("[^A-Z,a-z,0-9]", "\\.", unlist(strsplit(input$nuFact, " +")))
-    sapply(Facts, function(Fact) {
-      #if ((nchar(Fact) < 3)||(grepl("^[0-9]", Fact))||(substr(Fact, 1, 3) %in% substr(FACT(), 1, 3))) {
-      #  msg <- "Invalid Factor name! Must be at least 3 characters long and start with a capital letter! The first 3 characters must be unique to this Factor!"
-      #} else {
-        #Fact <- paste0(toupper(substr(Fact, 1, 1)), tolower(substr(Fact, 2, nchar(Fact))))
-        if (!Fact %in% FACT()) {
-          FACT(c(FACT(), Fact))
-          tmp <- FACTLevels()
-          tmp[Fact] <- list(NULL)
-          FACTLevels(tmp)
-          # Also, ABSOLUTELY crucial: create new observers for level addition/removal!!!
-          observeEvent({ input[[paste0(Fact, "_levAdd")]] }, {
-            vals <- input[[paste0(Fact, "_lev")]]
-            vals <- vals[which(!is.na(vals))]
-            if (length(vals)) {
-              if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
-              tmp2 <- FACTLevels()
-              if (Fact %in% intFact) {
-                tmp2[[Fact]] <- 1:as.integer(max(c(vals, dfltInt[match(Fact, intFact)])))
-              } else {
-                if (Fact == "Time.point") {
-                  vals <- suppressWarnings(as.numeric(vals))
-                  vals <- vals[which(!is.na(vals))]
-                }
-                tmp <- unique(c(FACTLevels()[[Fact]], vals))
-                tmp <- tmp[which(tmp != "")]
-                tmp2[[Fact]] <- tmp
-              }
-              FACTLevels(tmp2)
-              output$Factors <- updtFactUI()
-            }
-          })
-          observeEvent({ input[[paste0(Fact, "_levRmv")]] }, {
-            vals <- input[[paste0(Fact, "_lev")]]
-            vals <- vals[which(!is.na(vals))]
-            if (length(vals)) {
-              if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
-              tmp2 <- FACTLevels()
-              if (Fact %in% intFact) {
-                tmp2[[Fact]] <- 1:(max(c(as.integer(vals)-1, dfltInt[match(Fact, intFact)])))
-              } else {
-                if (Fact == "Time.point") {
-                  vals <- suppressWarnings(as.numeric(vals))
-                  vals <- vals[which(!is.na(vals))]
-                }
-                tmp <- unique(c(FACTLevels()[[Fact]], vals))
-                tmp2[[Fact]] <- tmp2[[Fact]][which(!tmp2[[Fact]] %in% vals)]
-              }
-              FACTLevels(tmp2)
-              output$Factors <- updtFactUI()
-            }
-          })
-        }
-      #}
-    })
-    output$fctrMsg <- renderUI({ em(msg) })
-    output$Factors <- updtFactUI()
-  })
-  # Remove extant Factor
-  observeEvent(input$rmvFactor, {
-    msg <- " "
-    tmp <- gsub("[^A-Z,a-z,0-9]", "\\.", input$nuFact)
-    if ((nchar(tmp) < 3)||(grepl("^[0-9]", tmp))) {
-      msg <- "Invalid Factor name! Must be at least 3 characters long and start with a capital letter!"
-    } else {
-      #tmp <- paste0(toupper(substr(tmp, 1, 1)), tolower(substr(tmp, 2, nchar(tmp))))
-      if (!tmp %in% FACT()) {
-        msg <- "Cannot remove a non-existent Factor!"
-      } else {
-        if (tmp %in% minFact) {
-          msg <- paste0("Factor ", tmp, " is included by default in this workflow and cannot be removed!")
-        } else {
-          tmp2 <- FACT()
-          tmp2 <- tmp2[which(tmp2 != tmp)]
-          FACT(tmp2)
-          FACTLevels(FACTLevels()[FACT()])
-        }
-      }
-    }
-    output$fctrMsg <- renderUI({ em(msg) })
-    output$Factors <- updtFactUI()
-  })
-  #
-  #
-  observeEvent(input$saveBtn, {
-    Factors <<- FACT()
-    FactorsLevels <<- FACTLevels()
-    flsOrd0_dflt <<- flsOrd0 <<- flsORD()
+    # Pre-processing for server
+    # - Default order
+    if (!exists("flsOrd0_dflt")) { flsOrd0_dflt <- fls0 }
+    flsOrd0 <- c(flsOrd0_dflt,
+                 fls0[which(!fls0 %in% flsOrd0_dflt)])
+    # - Default blanks pattern
     grpOK <- FALSE
     if (nchar(blnksPat)) {
       tst <- try(grep(blnksPat, fls0, value = TRUE), silent = TRUE)
       grpOK <- (!"try-error" %in% class(tst))
     }
-    if (grpOK) { blnkFls0 <<- tst } else {
-      stop("No blank files selected!!!")
+    if (grpOK) {
+      blnkFls0 <- tst
+      flsOrd0 <- flsOrd0[which(!flsOrd0 %in% blnkFls0)]
+      flsOrd0 <- c(flsOrd0,
+                   fls0[which(!fls0 %in% c(flsOrd0, blnkFls0))])
+    } else {
+      blnkFls0 <- c()
     }
-    stopApp()
+    server <- function(input, output, session) {
+      # Initialize reactive variables
+      blanksPAT <- reactiveVal(blnksPat) # Regex pattern
+      smplFILES <- reactiveVal(flsOrd0) # Files defined as sample files based on the regex
+      flsORD <- reactiveVal(flsOrd0) # Order of sample files; may exclude some
+      FACT <- reactiveVal(Factors)
+      FACTLevels <- reactiveVal(FactorsLevels)
+      #
+      output$ordrMsg <- renderUI({ em(" ") })
+      output$Order <- renderUI(selectInput("Order",
+                                           "",
+                                           flsOrd0,
+                                           flsOrd0,
+                                           TRUE,
+                                           TRUE,
+                                           width = "1200px"))
+      updtOpt <- function(reactive = TRUE) {
+        if (reactive) {
+          blnksPat <<- blanksPAT()
+          fls0_a <- flsORD()
+        } else {
+          fls0_a <- flsOrd0
+        }
+        fls0_a <- c(fls0_a,
+                    fls0[which(!flsOrd0 %in% fls0_a)])
+        grpOK <- FALSE
+        if (nchar(blnksPat)) {
+          tst <- try(grep(blnksPat, fls0_a, value = TRUE), silent = TRUE)
+          grpOK <- (!"try-error" %in% class(tst))
+        }
+        if (grpOK) {
+          blnk0_b <- tst
+          myFls0_b <- fls0_a[which(!fls0_a %in% blnk0_b)]
+        } else {
+          myFls0_b <- fls0_a
+          blnk0_b <- c()
+        }
+        if (reactive) {
+          smplFILES(myFls0_b)
+          slct <- input$Order[which(input$Order %in% myFls0_b)]
+        } else{
+          slct <- flsOrd0[which(flsOrd0 %in% myFls0_b)]
+        }
+        updateSelectInput(inputId = "Order",
+                          choices = myFls0_b,
+                          selected = slct)
+      }
+      # Create function to update output$Factors for UI
+      updtFactUI <- function(reactive = TRUE) {
+        if (reactive) {
+          FAKT <- FACT()
+          FAKTLevels <- FACTLevels()
+        } else {
+          FAKT <- Factors
+          FAKTLevels <- FactorsLevels
+        }
+        L <- length(FAKT)
+        # Update UI
+        return(renderUI({
+          lst <- vector("list", L*3)
+          for (i in 1:L) {
+            j <- i*3-2
+            Fact <- FAKT[i]
+            if (Fact %in% intFact) {
+              miN <- dfltInt[match(Fact, intFact)]
+              dflt <- max(c(miN, FAKTLevels[[Fact]]))
+              txt <- as.character(dflt)
+              if (!length(txt)) { txt <- "" }
+              lst[[j]] <- list(numericInput(paste0(Fact, "_lev"),
+                                            paste0("N. of ", gsub("\\.", " ", Fact), "s = ", txt), dflt, miN, step = 1))
+            }
+            if (Fact == "Time.point") {
+              lst[[j]] <- list(textInput(paste0(Fact, "_lev"),
+                                         paste0(Fact, ", levels (numeric(s) only!) = ", paste(FAKTLevels[[Fact]], collapse = " / ")), ""))
+            }
+            if (!Fact %in% c(intFact, "Time.point")) {
+              lst[[j]] <- list(textInput(paste0(Fact, "_lev"),
+                                         paste0(Fact, ", levels = ", paste(FAKTLevels[[Fact]], collapse = " / ")), ""))
+            }
+            lst[[j+1]] <- list(actionButton(paste0(Fact, "_levAdd"), "Add level(s)"))
+            lst[[j+2]] <- list(actionButton(paste0(Fact, "_levRmv"), "Remove level(s)"))
+          }
+          return(lst)
+        }))
+      }
+      #
+      output$minFact <- renderUI({ HTML(paste0(" - ", minFact, " => ", minFactDesc, collapse = "<br>")) })
+      output$fctrMsg <- renderUI({ em(" ") })
+      # Initialize
+      output$Factors <- updtFactUI(reactive = FALSE)
+      #
+      # Observers for files selection
+      observeEvent(input$Order, {
+        flsORD(input$Order)
+        flsOrd0_dflt <<- flsOrd0 <<- input$Order
+        n <- length(fls0) - length(flsOrd0) - length(blnkFls0)
+        if (n) {
+          output$ordrMsg <- renderUI({ em(paste0("Files currectly not selected: ", n)) })
+        } else {
+          output$ordrMsg <- renderUI({ em(" ") })
+        }
+      })
+      observeEvent(input$negStrng, {
+        blanksPAT(input$negStrng)
+        updtOpt()
+      })
+      #
+      # Observers for already extent factors
+      #  - Add new Factor level
+      sapply(Factors, function(Fact) {
+        observeEvent({ input[[paste0(Fact, "_levAdd")]] }, {
+          vals <- input[[paste0(Fact, "_lev")]]
+          vals <- vals[which(!is.na(vals))]
+          if (length(vals)) {
+            if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
+            tmp2 <- FACTLevels()
+            if (Fact %in% intFact) {
+              tmp2[[Fact]] <- 1:as.integer(max(c(vals, dfltInt[match(Fact, intFact)])))
+            } else {
+              if (Fact == "Time.point") {
+                vals <- suppressWarnings(as.numeric(vals))
+                vals <- vals[which(!is.na(vals))]
+              }
+              tmp <- unique(c(FACTLevels()[[Fact]], vals))
+              tmp <- tmp[which(tmp != "")]
+              tmp2[[Fact]] <- tmp
+            }
+            FACTLevels(tmp2)
+            output$Factors <- updtFactUI()
+          }
+        })
+      })
+      #  - Remove Factor level
+      sapply(Factors, function(Fact) {
+        observeEvent({ input[[paste0(Fact, "_levRmv")]] }, {
+          vals <- input[[paste0(Fact, "_lev")]]
+          vals <- vals[which(!is.na(vals))]
+          if (length(vals)) {
+            if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
+            tmp2 <- FACTLevels()
+            if (Fact %in% intFact) {
+              tmp2[[Fact]] <- 1:(max(c(as.integer(vals)-1, dfltInt[match(Fact, intFact)])))
+            } else {
+              if (Fact == "Time.point") {
+                vals <- suppressWarnings(as.numeric(vals))
+                vals <- vals[which(!is.na(vals))]
+              }
+              tmp2[[Fact]] <- tmp2[[Fact]][which(!tmp2[[Fact]] %in% vals)]
+            }
+            FACTLevels(tmp2)
+            output$Factors <- updtFactUI()
+          }
+        })
+      })
+      #
+      # Create new Factor(s)
+      observeEvent(input$addFactor, {
+        msg <- " "
+        Facts <- gsub("[^A-Z,a-z,0-9]", "\\.", unlist(strsplit(input$nuFact, " +")))
+        sapply(Facts, function(Fact) {
+          #if ((nchar(Fact) < 3)||(grepl("^[0-9]", Fact))||(substr(Fact, 1, 3) %in% substr(FACT(), 1, 3))) {
+          #  msg <- "Invalid Factor name! Must be at least 3 characters long and start with a capital letter! The first 3 characters must be unique to this Factor!"
+          #} else {
+          #Fact <- paste0(toupper(substr(Fact, 1, 1)), tolower(substr(Fact, 2, nchar(Fact))))
+          if (!Fact %in% FACT()) {
+            FACT(c(FACT(), Fact))
+            tmp <- FACTLevels()
+            tmp[Fact] <- list(NULL)
+            FACTLevels(tmp)
+            # Also, ABSOLUTELY crucial: create new observers for level addition/removal!!!
+            observeEvent({ input[[paste0(Fact, "_levAdd")]] }, {
+              vals <- input[[paste0(Fact, "_lev")]]
+              vals <- vals[which(!is.na(vals))]
+              if (length(vals)) {
+                if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
+                tmp2 <- FACTLevels()
+                if (Fact %in% intFact) {
+                  tmp2[[Fact]] <- 1:as.integer(max(c(vals, dfltInt[match(Fact, intFact)])))
+                } else {
+                  if (Fact == "Time.point") {
+                    vals <- suppressWarnings(as.numeric(vals))
+                    vals <- vals[which(!is.na(vals))]
+                  }
+                  tmp <- unique(c(FACTLevels()[[Fact]], vals))
+                  tmp <- tmp[which(tmp != "")]
+                  tmp2[[Fact]] <- tmp
+                }
+                FACTLevels(tmp2)
+                output$Factors <- updtFactUI()
+              }
+            })
+            observeEvent({ input[[paste0(Fact, "_levRmv")]] }, {
+              vals <- input[[paste0(Fact, "_lev")]]
+              vals <- vals[which(!is.na(vals))]
+              if (length(vals)) {
+                if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
+                tmp2 <- FACTLevels()
+                if (Fact %in% intFact) {
+                  tmp2[[Fact]] <- 1:(max(c(as.integer(vals)-1, dfltInt[match(Fact, intFact)])))
+                } else {
+                  if (Fact == "Time.point") {
+                    vals <- suppressWarnings(as.numeric(vals))
+                    vals <- vals[which(!is.na(vals))]
+                  }
+                  tmp <- unique(c(FACTLevels()[[Fact]], vals))
+                  tmp2[[Fact]] <- tmp2[[Fact]][which(!tmp2[[Fact]] %in% vals)]
+                }
+                FACTLevels(tmp2)
+                output$Factors <- updtFactUI()
+              }
+            })
+          }
+          #}
+        })
+        output$fctrMsg <- renderUI({ em(msg) })
+        output$Factors <- updtFactUI()
+      })
+      # Remove extant Factor
+      observeEvent(input$rmvFactor, {
+        msg <- " "
+        tmp <- gsub("[^A-Z,a-z,0-9]", "\\.", input$nuFact)
+        if ((nchar(tmp) < 3)||(grepl("^[0-9]", tmp))) {
+          msg <- "Invalid Factor name! Must be at least 3 characters long and start with a capital letter!"
+        } else {
+          #tmp <- paste0(toupper(substr(tmp, 1, 1)), tolower(substr(tmp, 2, nchar(tmp))))
+          if (!tmp %in% FACT()) {
+            msg <- "Cannot remove a non-existent Factor!"
+          } else {
+            if (tmp %in% minFact) {
+              msg <- paste0("Factor ", tmp, " is included by default in this workflow and cannot be removed!")
+            } else {
+              tmp2 <- FACT()
+              tmp2 <- tmp2[which(tmp2 != tmp)]
+              FACT(tmp2)
+              FACTLevels(FACTLevels()[FACT()])
+            }
+          }
+        }
+        output$fctrMsg <- renderUI({ em(msg) })
+        output$Factors <- updtFactUI()
+      })
+      #
+      #
+      observeEvent(input$saveBtn, {
+        Factors <<- FACT()
+        FactorsLevels <<- FACTLevels()
+        flsOrd0_dflt <<- flsOrd0 <<- flsORD()
+        grpOK <- FALSE
+        if (nchar(blnksPat)) {
+          tst <- try(grep(blnksPat, fls0, value = TRUE), silent = TRUE)
+          grpOK <- (!"try-error" %in% class(tst))
+        }
+        if (grpOK) { blnkFls0 <<- tst } else {
+          stop("No blank files selected!!!")
+        }
+        stopApp()
+      })
+      #observeEvent(input$cancel, { stopApp() })
+      session$onSessionEnded(function() { stopApp() })
+    }
+    eval(parse(text = runApp))
+    FactorsLevels <- setNames(lapply(Factors, function(fct) {
+      x <- FactorsLevels[[fct]]
+      x[which(!is.na(x))]
+    }), Factors)
+    Factors <- Factors[which(vapply(FactorsLevels[Factors], length, 1) > 0)]
+    stopifnot(sum(!minFact %in% Factors) == 0)
+    Factors <- c(Factors[which(Factors != "Replicate")], "Replicate")
+    FactorsLevels <- FactorsLevels[Factors]
+    FactorsLevels$Protein <- unique(c(NA, FactorsLevels$Protein))
+    tmp <- list(Factors = Factors, Levels = FactorsLevels)
+    save(tmp, file = "Factors.RData")
+    for (fct in Factors) {
+      assign(fct, FactorsLevels[[fct]])
+    }
+    slctFls <- fls[match(flsOrd0, fls0)]
+    slctFls0 <- flsOrd0
+  }
+  # Files map
+  ExpMapNm <- "Experiment map"
+  ExpMapPath <- paste0(wd, "/", ExpMapNm, ".csv")
+  Factors2 <- Factors[which(!Factors %in% minFact)]
+  if (file.exists(ExpMapPath)) {
+    ExpMap2 <- read.csv(ExpMapPath, check.names = FALSE)
+    colnames(ExpMap2)[which(colnames(ExpMap2) == "Sample.name")] <- "Sample name" # Backwards compatibility
+    reLoad <- sum(!slctFls %in% ExpMap2$`MS raw file`) == 0
+    if ((reLoad)&&(exists("ExpMap"))) {
+      reLoad <- c(TRUE, FALSE)[match(dlg_message("Reload Experiment map from disk?\n(you will still be able to edit it)", "yesno")$res, c("yes", "no"))]
+    }
+    if (reLoad) {
+      ExpMap <- ExpMap2[match(slctFls, ExpMap2$`MS raw file`), ]
+    }
+  }
+  if (!exists("ExpMap")) {
+    ExpMap <- data.frame("MS raw file" = slctFls,
+                         "MS raw file name" = slctFls0,
+                         "Role" = "Sample",
+                         "Replicate" = "?",
+                         check.names = FALSE)
+  }
+  for (Fact in Factors2) { ExpMap[[Fact]] <- "?" }
+  # Edit map
+  ExpData <- ExpMap#read.csv(ExpMapPath, check.names = FALSE)
+  for (Fact in Factors[which(!Factors %in% colnames(ExpData))]) { ExpData[[Fact]] <- "?" }
+  tst <- vapply(FactorsLevels, length, 1)
+  Fact1 <- Factors[which(tst == 1)]
+  Fact2 <- Factors[which(tst > 1)]
+  nr <- nrow(ExpData)
+  rws <- seq_len(nr)
+  AllIDs <- setNames(lapply(Fact2, function(x) { paste0(x, "___", rws)} ), Fact2)
+  ALLIDS <- setNames(unlist(AllIDs), NULL)
+  Fact2IDs <- setNames(lapply(Fact2, function(x) { paste0(x, "___", rws)} ), Fact2)
+  facLevels2 <- lapply(FactorsLevels, function(x) {
+    unique(c(x, NA))
   })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
-}
-eval(parse(text = runApp))
-FactorsLevels <- setNames(lapply(Factors, function(fct) {
-  x <- FactorsLevels[[fct]]
-  x[which(!is.na(x))]
-}), Factors)
-Factors <- Factors[which(vapply(FactorsLevels[Factors], length, 1) > 0)]
-stopifnot(sum(!minFact %in% Factors) == 0)
-Factors <- c(Factors[which(Factors != "Replicate")], "Replicate")
-FactorsLevels <- FactorsLevels[Factors]
-FactorsLevels$Protein <- unique(c(NA, FactorsLevels$Protein))
-tmp <- list(Factors = Factors, Levels = FactorsLevels)
-save(tmp, file = "Factors.RData")
-for (fct in Factors) {
-  assign(fct, FactorsLevels[[fct]])
-}
-slctFls <- fls[match(flsOrd0, fls0)]
-slctFls0 <- flsOrd0
-
-# Files map
-ExpMapNm <- "Experiment map"
-ExpMapPath <- paste0(wd, "/", ExpMapNm, ".csv")
-Factors2 <- Factors[which(!Factors %in% minFact)]
-if (file.exists(ExpMapPath)) {
-  ExpMap2 <- read.csv(ExpMapPath, check.names = FALSE)
-  colnames(ExpMap2)[which(colnames(ExpMap2) == "Sample.name")] <- "Sample name" # Backwards compatibility
-  reLoad <- sum(!slctFls %in% ExpMap2$`MS raw file`) == 0
-  if ((reLoad)&&(exists("ExpMap"))) {
-    reLoad <- c(TRUE, FALSE)[match(dlg_message("Reload Experiment map from disk?\n(you will still be able to edit it)", "yesno")$res, c("yes", "no"))]
+  facLevels2$Use <- c(TRUE, FALSE) # Not used, but just in case
+  appNm <- paste0(dtstNm, " - Experiment map")
+  if (length(Fact1)) { for (fct in Fact1) { #fct <- Fact1[1]
+    ExpData[[fct]] <- FactorsLevels[[fct]]
+  } }
+  # Pre-processing for server:
+  xpDat <- ExpData[, c("MS raw file", Factors)]
+  # - Simplify file names
+  nc <- nchar(xpDat$"MS raw file")
+  nr <- nrow(xpDat)
+  m <- min(nc) # Should always be larger or equal to 2 (much larger)
+  tst <- vapply(2:m, function(x) {
+    length(unique(substr(xpDat$"MS raw file", 1, x)))
+  }, 1) == 1
+  if (sum(!tst)) {
+    w <- which(!tst)[1]+1
+    xpDat$"MS raw file" <- substr(xpDat$"MS raw file", w, nc)
   }
-  if (reLoad) {
-    ExpMap <- ExpMap2[match(slctFls, ExpMap2$`MS raw file`), ]
-  }
-}
-if (!exists("ExpMap")) {
-  ExpMap <- data.frame("MS raw file" = slctFls,
-                       "MS raw file name" = slctFls0,
-                       "Role" = "Sample",
-                       "Replicate" = "?",
-                       check.names = FALSE)
-}
-for (Fact in Factors2) { ExpMap[[Fact]] <- "?" }
-# Edit map
-ExpData <- ExpMap#read.csv(ExpMapPath, check.names = FALSE)
-for (Fact in Factors[which(!Factors %in% colnames(ExpData))]) { ExpData[[Fact]] <- "?" }
-tst <- vapply(FactorsLevels, length, 1)
-Fact1 <- Factors[which(tst == 1)]
-Fact2 <- Factors[which(tst > 1)]
-nr <- nrow(ExpData)
-rws <- seq_len(nr)
-AllIDs <- setNames(lapply(Fact2, function(x) { paste0(x, "___", rws)} ), Fact2)
-ALLIDS <- setNames(unlist(AllIDs), NULL)
-Fact2IDs <- setNames(lapply(Fact2, function(x) { paste0(x, "___", rws)} ), Fact2)
-facLevels2 <- lapply(FactorsLevels, function(x) {
-  unique(c(x, NA))
-})
-facLevels2$Use <- c(TRUE, FALSE) # Not used, but just in case
-appNm <- paste0(dtstNm, " - Experiment map")
-if (length(Fact1)) { for (fct in Fact1) { #fct <- Fact1[1]
-  ExpData[[fct]] <- FactorsLevels[[fct]]
-} }
-# Pre-processing for server:
-xpDat <- ExpData[, c("MS raw file", Factors)]
-# - Simplify file names
-nc <- nchar(xpDat$"MS raw file")
-nr <- nrow(xpDat)
-m <- min(nc) # Should always be larger or equal to 2 (much larger)
-tst <- vapply(2:m, function(x) {
-  length(unique(substr(xpDat$"MS raw file", 1, x)))
-}, 1) == 1
-if (sum(!tst)) {
-  w <- which(!tst)[1]+1
-  xpDat$"MS raw file" <- substr(xpDat$"MS raw file", w, nc)
-}
-# - Original table column widths
-wTest0 <- setNames(vapply(colnames(ExpData), function(k) { #k <- colnames(ExpData)[1]
-  tst <- k %in% Fact2
-  if (k == "MS raw file") {
-    x <- max(c(nchar(k),
-               nchar(as.character(xpDat[[k]])) + 5 + 3*tst), na.rm = TRUE)
-  } else {
-    x <- max(c(nchar(k),
-               nchar(as.character(ExpData[[k]])) + 5 + 3*tst), na.rm = TRUE)
-  }
-  if (tst) {
-    x <- max(c(x, nchar(FactorsLevels[[k]]) + 6), na.rm = TRUE)
-  }
-  x <- x*7
-  if (is.na(x)) { x <- 15 } else { x <- max(c(ceiling(x/10)*10, 30)) }
-  return(x)
-}, 1), colnames(ExpData))
-#xpDat$Reference <- shinyCheckInput(ExpData$Reference, "Reference")
-# - Edit table
-kol <- c()
-for (fct in Fact2) { #fct <- Fact2[1]
-  IDs <- Fact2IDs[[fct]]
-  lvls <- FactorsLevels[[fct]]
-  lvls2 <- lvls[which(!is.na(lvls))]
-  xpDat[[fct]] <- shinySelectInput(ExpData[[fct]],
-                                   fct,
-                                   lvls,
-                                   paste0(30*max(c(nchar(c(as.character(lvls2), fct)), 2)), "px")#,
-                                   #c(TRUE, FALSE)[(fct %in% c("Analysis_group", "Role", "Replicate", "Protein"))+1]
-  )
-  fdNm <- paste0(fct, "___FD")
-  wTest0[fdNm] <- 15
-  xpDat[[fdNm]] <- shinyFDInput(fct, nr, TRUE, paste0(wTest0[fdNm], "px"))
-  kol <- c(kol, fct, fdNm)
-  if (fct == "Replicate") {
-    incrNm <- paste0(fct, "___INCR")
-    wTest0[incrNm] <- 15
-    xpDat[[incrNm]] <- shinyPlusFD(fct, nr, width = paste0(wTest0[incrNm], "px"))
-    kol <- c(kol, incrNm)
-  }
-}
-kol2 <- colnames(xpDat)[which(!colnames(xpDat) %in% c(kol))]
-xpDat <- xpDat[, c(kol2, kol)]
-# - Estimate table column widths
-wTest1 <- vapply(colnames(xpDat), function(k) { #k <- colnames(xpDat)[1]
-  if (k == "Parent sample") { k <- "MQ.Exp" }
-  if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
-  return(x)
-}, 1)
-wTest2 <- sum(wTest1)
-wTest1 <- paste0(as.character(wTest1), "px")
-wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
-wTest1 <- apply(wTest1, 1, function(x) {
-  list(width = x[[1]],
-       targets = x[[2]],
-       names = colnames(xpDat)[x[[2]]+1])
-})
-oTHerz <- which(colnames(xpDat) != "Parent sample")
-g <- grep("___((FD)|(INCR))$", colnames(xpDat))
-colnames(xpDat)[g] <- "" 
-edith <- list(target = "column",
-              disable = list(columns = c(0, match(Fact1, colnames(xpDat))-1)))
-tmp <- c(0:(ncol(xpDat)-1))
-tmp <- tmp[which(!tmp %in% edith$disable$columns)]
-edith$enable <- list(columns = tmp)
-L <- length(FactorsLevels[["Replicate"]])
-dflt_Rpl <- 1:(nr+L) %% L
-dflt_Rpl[which(dflt_Rpl == 0)] <- L
-dflt_Rpl <- FactorsLevels[["Replicate"]][dflt_Rpl] # Easy template
-if (exists("ExpData3")) { rm(ExpData3) }
-ui <- fluidPage(
-  useShinyjs(),
-  extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
-  # Dummy, hidden div to load arrow-down icon
-  tags$div(
-    class = "container",
-    style = "display: none;",
-    tags$div(
-      style = "margin-top: 50xp;",
-      actionButton(
-        "add_thing",
-        label = "do it",
-        class = "btn-success",
-        icon = icon("arrow-down")
-      )
+  # - Original table column widths
+  wTest0 <- setNames(vapply(colnames(ExpData), function(k) { #k <- colnames(ExpData)[1]
+    tst <- k %in% Fact2
+    if (k == "MS raw file") {
+      x <- max(c(nchar(k),
+                 nchar(as.character(xpDat[[k]])) + 5 + 3*tst), na.rm = TRUE)
+    } else {
+      x <- max(c(nchar(k),
+                 nchar(as.character(ExpData[[k]])) + 5 + 3*tst), na.rm = TRUE)
+    }
+    if (tst) {
+      x <- max(c(x, nchar(FactorsLevels[[k]]) + 6), na.rm = TRUE)
+    }
+    x <- x*7
+    if (is.na(x)) { x <- 15 } else { x <- max(c(ceiling(x/10)*10, 30)) }
+    return(x)
+  }, 1), colnames(ExpData))
+  #xpDat$Reference <- shinyCheckInput(ExpData$Reference, "Reference")
+  # - Edit table
+  kol <- c()
+  for (fct in Fact2) { #fct <- Fact2[1]
+    IDs <- Fact2IDs[[fct]]
+    lvls <- FactorsLevels[[fct]]
+    lvls2 <- lvls[which(!is.na(lvls))]
+    xpDat[[fct]] <- shinySelectInput(ExpData[[fct]],
+                                     fct,
+                                     lvls,
+                                     paste0(30*max(c(nchar(c(as.character(lvls2), fct)), 2)), "px")#,
+                                     #c(TRUE, FALSE)[(fct %in% c("Analysis_group", "Role", "Replicate", "Protein"))+1]
     )
-  ),
-  #
-  tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-  titlePanel(tag("u", ExpMapNm),
-             appNm),
-  h2(dtstNm), 
-  h3("Define the experiment's structure:"),
-  br(),
-  actionButton("saveBtn", "Save"),
-  withSpinner(DT::DTOutput("ExpTbl", width = wTest2))
-)
-server <- function(input, output, session) {
-  ExpData3 <- ExpData # Output table
-  output$ExpTbl <- renderDT({ xpDat },
-                            FALSE,
-                            escape = FALSE,
-                            selection = "none",
-                            editable = edith,
-                            rownames = FALSE,
-                            options = list(dom = "t",
-                                           paging = FALSE,
-                                           ordering = FALSE,
-                                           autowidth = TRUE,
-                                           columnDefs = wTest1,
-                                           scrollX = FALSE),
-                            # the callback is essential to capture the inputs in each row
-                            callback = JS("table.rows().every(function(i, tab, row) {
+    fdNm <- paste0(fct, "___FD")
+    wTest0[fdNm] <- 15
+    xpDat[[fdNm]] <- shinyFDInput(fct, nr, TRUE, paste0(wTest0[fdNm], "px"))
+    kol <- c(kol, fct, fdNm)
+    if (fct == "Replicate") {
+      incrNm <- paste0(fct, "___INCR")
+      wTest0[incrNm] <- 15
+      xpDat[[incrNm]] <- shinyPlusFD(fct, nr, width = paste0(wTest0[incrNm], "px"))
+      kol <- c(kol, incrNm)
+    }
+  }
+  kol2 <- colnames(xpDat)[which(!colnames(xpDat) %in% c(kol))]
+  xpDat <- xpDat[, c(kol2, kol)]
+  # - Estimate table column widths
+  wTest1 <- vapply(colnames(xpDat), function(k) { #k <- colnames(xpDat)[1]
+    if (k == "Parent sample") { k <- "MQ.Exp" }
+    if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
+    return(x)
+  }, 1)
+  wTest2 <- sum(wTest1)
+  wTest1 <- paste0(as.character(wTest1), "px")
+  wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
+  wTest1 <- apply(wTest1, 1, function(x) {
+    list(width = x[[1]],
+         targets = x[[2]],
+         names = colnames(xpDat)[x[[2]]+1])
+  })
+  oTHerz <- which(colnames(xpDat) != "Parent sample")
+  g <- grep("___((FD)|(INCR))$", colnames(xpDat))
+  colnames(xpDat)[g] <- "" 
+  edith <- list(target = "column",
+                disable = list(columns = c(0, match(Fact1, colnames(xpDat))-1)))
+  tmp <- c(0:(ncol(xpDat)-1))
+  tmp <- tmp[which(!tmp %in% edith$disable$columns)]
+  edith$enable <- list(columns = tmp)
+  L <- length(FactorsLevels[["Replicate"]])
+  dflt_Rpl <- 1:(nr+L) %% L
+  dflt_Rpl[which(dflt_Rpl == 0)] <- L
+  dflt_Rpl <- FactorsLevels[["Replicate"]][dflt_Rpl] # Easy template
+  if (exists("ExpData3")) { rm(ExpData3) }
+  ui <- fluidPage(
+    useShinyjs(),
+    extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+    # Dummy, hidden div to load arrow-down icon
+    tags$div(
+      class = "container",
+      style = "display: none;",
+      tags$div(
+        style = "margin-top: 50xp;",
+        actionButton(
+          "add_thing",
+          label = "do it",
+          class = "btn-success",
+          icon = icon("arrow-down")
+        )
+      )
+    ),
+    #
+    tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+    titlePanel(tag("u", ExpMapNm),
+               appNm),
+    h2(dtstNm), 
+    h3("Define the experiment's structure:"),
+    br(),
+    actionButton("saveBtn", "Save"),
+    withSpinner(DT::DTOutput("ExpTbl", width = wTest2))
+  )
+  server <- function(input, output, session) {
+    ExpData3 <- ExpData # Output table
+    output$ExpTbl <- renderDT({ xpDat },
+                              FALSE,
+                              escape = FALSE,
+                              selection = "none",
+                              editable = edith,
+                              rownames = FALSE,
+                              options = list(dom = "t",
+                                             paging = FALSE,
+                                             ordering = FALSE,
+                                             autowidth = TRUE,
+                                             columnDefs = wTest1,
+                                             scrollX = FALSE),
+                              # the callback is essential to capture the inputs in each row
+                              callback = JS("table.rows().every(function(i, tab, row) {
         var $this = $(this.node());
         $this.attr('id', this.data()[0]);
         $this.addClass('shiny-input-container');
       });
       Shiny.unbindAll(table.table().node());
       Shiny.bindAll(table.table().node());"))
-  #
-  # Fill down
-  sapply(1:length(ALLIDS), function(x) {
-    id1 <- ALLIDS[x]
-    id2 <- paste0(ALLIDS[x], "___FD")
-    tmp <- unlist(strsplit(id1, "___"))
-    fct <- tmp[[1]]
-    i <- as.integer(tmp[[2]])
-    # observeEvent(input[[id1]],
-    if (i < nr) {
-      observeEvent(input[[id2]],
-                   {
-                     x <- input[[id1]]
-                     tp <- typeof(facLevels2[[fct]])
-                     if (typeof(x) == tp) { x <- get(paste0("as.", tp))(x) }
-                     for (k in (i+1):nr) {
-                       idK <- paste0(fct, "___", as.character(k))
-                       # if (fct == "Use") {
-                       #   updateCheckboxInput(session, idK, NULL, x)
-                       # } else {
-                       updateSelectInput(session, idK, NULL, facLevels2[[fct]], x)
-                       # }
-                     }
-                   })
-    }
-  })
-  # Incremental fill-down for replicates
-  sapply(rws, function(i) {
-    if (i < nr) {
-      id1 <- paste0("Replicate___", i)
-      id2 <- paste0("Replicate___", i, "___INCR")
-      observeEvent(input[[id2]],
-                   {
-                     x <- input[[id1]]
-                     tp <- typeof(facLevels2[[fct]])
-                     if (typeof(x) == tp) { x <- get(paste0("as.", tp))(x) }
-                     rplRg <- (i+1):nr
-                     l <- length(rplRg)
-                     m <- match(x, dflt_Rpl)+1
-                     rplVal <- dflt_Rpl[m:(m+l-1)]
-                     for (k in rplRg) {
-                       y <- rplVal[k-i]
-                       idK <- paste0("Replicate___", as.character(k))
-                       updateSelectInput(session, idK, NULL, facLevels2[["Replicate"]], y)
-                     }
-                   })
-    }
-  })
-  # Manual cell edit (sample names)
-  observeEvent(input$ExpTbl_cell_edit, {
-    ExpData3[input$ExpTbl_cell_edit$row,
-             input$ExpTbl_cell_edit$col+1] <- input$ExpTbl_cell_edit$value
-  })
-  # Save
-  observeEvent(input$saveBtn, {
-    for (fct in #c(
-         Fact2#, "Use")
-         ) {
-      ExpData3[[fct]] <- sapply(rws, function(i) {
-        input[[paste0(fct, "___", i)]]
-      })
-      #if (fct == "Use") {
-      #  ExpData3[[fct]] <- as.logical(ExpData3[[fct]])
-      #} else {
+    #
+    # Fill down
+    sapply(1:length(ALLIDS), function(x) {
+      id1 <- ALLIDS[x]
+      id2 <- paste0(ALLIDS[x], "___FD")
+      tmp <- unlist(strsplit(id1, "___"))
+      fct <- tmp[[1]]
+      i <- as.integer(tmp[[2]])
+      # observeEvent(input[[id1]],
+      if (i < nr) {
+        observeEvent(input[[id2]],
+                     {
+                       x <- input[[id1]]
+                       tp <- typeof(facLevels2[[fct]])
+                       if (typeof(x) == tp) { x <- get(paste0("as.", tp))(x) }
+                       for (k in (i+1):nr) {
+                         idK <- paste0(fct, "___", as.character(k))
+                         # if (fct == "Use") {
+                         #   updateCheckboxInput(session, idK, NULL, x)
+                         # } else {
+                         updateSelectInput(session, idK, NULL, facLevels2[[fct]], x)
+                         # }
+                       }
+                     })
+      }
+    })
+    # Incremental fill-down for replicates
+    sapply(rws, function(i) {
+      if (i < nr) {
+        id1 <- paste0("Replicate___", i)
+        id2 <- paste0("Replicate___", i, "___INCR")
+        observeEvent(input[[id2]],
+                     {
+                       x <- input[[id1]]
+                       tp <- typeof(facLevels2[[fct]])
+                       if (typeof(x) == tp) { x <- get(paste0("as.", tp))(x) }
+                       rplRg <- (i+1):nr
+                       l <- length(rplRg)
+                       m <- match(x, dflt_Rpl)+1
+                       rplVal <- dflt_Rpl[m:(m+l-1)]
+                       for (k in rplRg) {
+                         y <- rplVal[k-i]
+                         idK <- paste0("Replicate___", as.character(k))
+                         updateSelectInput(session, idK, NULL, facLevels2[["Replicate"]], y)
+                       }
+                     })
+      }
+    })
+    # Manual cell edit (sample names)
+    observeEvent(input$ExpTbl_cell_edit, {
+      ExpData3[input$ExpTbl_cell_edit$row,
+               input$ExpTbl_cell_edit$col+1] <- input$ExpTbl_cell_edit$value
+    })
+    # Save
+    observeEvent(input$saveBtn, {
+      for (fct in #c(
+           Fact2#, "Use")
+      ) {
+        ExpData3[[fct]] <- sapply(rws, function(i) {
+          input[[paste0(fct, "___", i)]]
+        })
+        #if (fct == "Use") {
+        #  ExpData3[[fct]] <- as.logical(ExpData3[[fct]])
+        #} else {
         typ <- typeof(FactorsLevels[[fct]])
         ExpData3[[fct]] <- get(paste0("as.", typ))(ExpData3[[fct]])
         # Consider here detecting if a factor needs conversion to numeric/integer...
-      #}
-    }
-    assign("ExpData3", ExpData3, envir = .GlobalEnv)
-    stopApp()
-  })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+        #}
+      }
+      assign("ExpData3", ExpData3, envir = .GlobalEnv)
+      stopApp()
+    })
+    #observeEvent(input$cancel, { stopApp() })
+    session$onSessionEnded(function() { stopApp() })
+  }
+  runKount <- 0
+  while ((!runKount)||(!exists("ExpData3"))) {
+    eval(parse(text = runApp))
+    runKount <- runKount+1
+  }
+  runKount <- 0
+  tmpTbl <- ExpMap <- ExpData3
+  tst <- lapply(colnames(tmpTbl), function(x) { typeof(tmpTbl[[x]]) })
+  w <- which(tst == "list")
+  if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
+  tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
+  if ("try-error" %in% class(tst)) {
+    dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+    write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE)
+  }
+  ExpMap$"MS raw file name" <- slctFls0[match(ExpMap$`MS raw file`, slctFls)]
+  opt <- c("Yes, continue with the workflow.",
+           "No, go back to factors editor.",
+           "No, just rerun the table (experiment map) editor.")
+  what2do <- dlg_list(opt, opt[1], title = "Are you happy with your edits?")$res
+  areWeGood <- what2do == opt[1]
+  runStep1 <- (!areWeGood)&&(what2do == opt[2])
 }
-runKount <- 0
-while ((!runKount)||(!exists("ExpData3"))) {
-  eval(parse(text = runApp))
-  runKount <- runKount+1
-}
-runKount <- 0
-tmpTbl <- ExpMap <- ExpData3
-tst <- lapply(colnames(tmpTbl), function(x) { typeof(tmpTbl[[x]]) })
-w <- which(tst == "list")
-if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
-tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
-if ("try-error" %in% class(tst)) {
-  dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-  write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE)
-}
-ExpMap$"MS raw file name" <- slctFls0[match(ExpMap$`MS raw file`, slctFls)]
 
 #
 Quant <- TRUE
@@ -1109,22 +1048,29 @@ if (sum(!tstPress)) {
 }
 unlink(pressScript2) # Remove temporary python script 
 #
-clusterExport(parClust, "slctFls", envir = environment())
-press <- setNames(parLapply(parClust, which(tstPress), function(i) {
+# Last time I ran here I had a cluster corruption here so better to check it
+stopCluster(parClust)
+source(parSrc)
+clusterExport(parClust, c("pressFls", "slctFls", "cleanRawNm"), envir = environment())
+wPress <- which(tstPress)
+press <- parLapply(parClust, wPress, function(i) { #i <- 1
   x <- data.table::fread(pressFls[i], integer64 = "numeric", check.names = FALSE, data.table = FALSE)
   fl <- slctFls[i]
   colnames(x) <- c("Retention time", "Pressure")
   x$"Raw file" <- factor(fl, levels = slctFls)
   x$"Raw file name" <- factor(cleanRawNm(basename(fl)), levels = cleanRawNm(basename(slctFls)))
+  class(x)
   return(x)
-}), slctFls[which(tstPress)])
+})
+names(press) <- slctFls[which(tstPress)]
 allChroms <- list(Pressure = press)
 #allChroms$Pressure <- press
 #
 #chromtypes <- setNames(c("tic", "bpc", "xic"), c("TIC", "Base peak", "XIC"))
 allFls <- c(blnkFls, slctFls)
 if (getInt) {
-  tol <- as.numeric(dlg_input("Enter mass tolerance (ppm)", 20)$res)
+  tol <- 20 # In ppm!
+  #tol <- as.numeric(dlg_input("Enter mass tolerance (ppm)", tol)$res)
   clusterCall(parClust, function() library(rawrr))
   MS2s <- parLapply(parClust, allFls, function(fl) { #fl <- slctFls[1]
     x <- rawrr::readIndex(fl)
@@ -1216,6 +1162,7 @@ msg <- paste0("Extract ", c("", "another ")[(kount > 0)+1], "custom RT sub-range
 opt <- c("No                                                                           ",
          "Yes                                                                          ")
 getRTRange <- c(FALSE, TRUE)[match(dlg_list(opt, opt[1], title = msg)$res, opt)]
+if (!length(getRTRange)) { getRTRange <- FALSE }
 while (getRTRange) {
   if (length(Analysis_group) > 1) {
     dflt <- c(Analysis_group, "All")
