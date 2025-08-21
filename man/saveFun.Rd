@@ -13,7 +13,7 @@ saveFun(x, file)
 }
 \description{
 Function to save objects quickly.
-The backend used is qs2::qs_savem under Windows and fastSave::save.lbzip2 under Linux.
+The backend used is qs2::qs_savem.
 }
 \examples{
 a <- "Hello world!"

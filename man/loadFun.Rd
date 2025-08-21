@@ -13,7 +13,7 @@ loadFun(file, tryClassic = FALSE)
 }
 \description{
 Function to reload object(s) saved using saveFun() or saveImgFun().
-The backend used is qs2::qs_savem under Windows and fastSave::save.lbzip2 under Linux.
+The backend used is qs2::qs_savem.
 }
 \examples{
 a <- "Hello world!"
