@@ -13,6 +13,8 @@ library(proteoCraft)
 dirlist %<o% c() # This should go!!!
 ReUseAnsw %<o% FALSE
 ReLoadPSMsBckp %<o% FALSE
+scrptType %<o% "withReps"
+scrptTypeFull %<o% "withReps_PTMs_only"
 
 RPath %<o% as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
@@ -29,8 +31,6 @@ fls <- paste0(homePath, "/", c("Regulation analysis - master script.R",
                                "LC_columns.xlsx"))
 tst <- sum(!file.exists(fls))
 if (tst) { proteoCraft::Configure() }
-scrptType %<o% "withReps"
-scrptTypeFull %<o% "withReps_PTMs_only"
 
 # Parameters used by the master script:
 ###-|-### Workflows: setNames(c("Differential Protein Expression analysis", "Pull-Down (e.g. co-IP)", "Biotin-based Pull-Down (BioID, TurboID, APEX...)", "Time Course","SubCellular Localisation analysis"), c("REGULATION", "PULLDOWN", "BIOID", "TIMECOURSE", "LOCALISATION"))
@@ -102,11 +102,6 @@ for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
 rawrrSrc <- paste0(libPath, "/extdata/R scripts/Sources/install_rawrr.R")
 #rstudioapi::documentOpen(rawrrSrc)
 source(rawrrSrc)
-
-# # Fast save and load functions
-# Src <- paste0(libPath, "/extdata/R scripts/Sources/Save_Load_fun.R")
-# #rstudioapi::documentOpen(Src)
-# source(Src, local = FALSE)
 
 # Load backup?
 load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Do you want to load a backup?", "yesno")$res, c("yes", "no"))]
