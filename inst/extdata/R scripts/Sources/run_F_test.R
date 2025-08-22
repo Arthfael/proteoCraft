@@ -6,8 +6,8 @@
 
 # Check our parent cluster
 source(parSrc, local = FALSE)
-clusterExport(parClust, list("AltHyp", "Nested"), envir = environment())
-clusterCall(parClust, function() library(siggenes))
+parallel::clusterExport(parClust, list("AltHyp", "Nested"), envir = environment())
+invisible(parallel::clusterCall(parClust, function() { library(siggenes); return() }))
 
 # Argument names
 # Argument names
@@ -145,7 +145,7 @@ tmp <- lapply(whSimple, function(x) { #x <- whSimple[1]
       RES[[kr1]] <- rats
     } else {
       rats <- cbind(rats)
-      rs <- as.data.frame(t(parApply(parClust, rats, 1, Av_SE_fun)))
+      rs <- as.data.frame(t(parallel::parApply(parClust, rats, 1, Av_SE_fun)))
       RES[[kr1]] <- rs[, 1]
     }
   } else {
@@ -155,7 +155,7 @@ tmp <- lapply(whSimple, function(x) { #x <- whSimple[1]
     if (length(w1) == 1) {
       RES[[kr1]] <- rats
     } else {
-      rs <- as.data.frame(t(parApply(parClust, rats, 1, Av_SE_fun)))
+      rs <- as.data.frame(t(parallel::parApply(parClust, rats, 1, Av_SE_fun)))
       RES[[kr1]] <- rs[, 1]
     }
   }
@@ -200,7 +200,7 @@ wY <- which(kol %in% colnames(myData))
 kol <- kol[wY]
 tmpVal <- myData[, kol]
 colnames(tmpVal) <- rownames(designMatr)[wY]
-clusterExport(parClust, list("tmpVal", "Nested", "AltHyp"), envir = environment())
+parallel::clusterExport(parClust, list("tmpVal", "Nested", "AltHyp"), envir = environment())
 #
 # - Moderated F-test (limma):
 # Do not use duplicateCorrelation(), it is for duplicate rows!!!
@@ -365,16 +365,17 @@ thresh$Name <- NULL
 thresh$Root <- gsub(" - $", "", thresh$Root)
 thresh$Value <- thresh$Text.value
 thresh$Text.value <- NULL
-fdrThresh <- F_thresh$FDR
-if (!is.null(fdrThresh)) { # Legacy code: since 6.3.1.7, we do not get the Regulated columns from the Volcano.plot function anymore!
-  stop("Uh... why was the condition TRUE?!?!")
-  colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.up")] <- "Colour (up)"
-  colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.down")] <- "Colour (down)"
-  colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.line")] <- "Colour (line)"
-  if ("Test" %in% colnames(fdrThresh)) {
-    fdrThresh <- fdrThresh[, c("Test", colnames(fdrThresh)[which(colnames(fdrThresh) != "Test")])]
-  }
-}
+# Legacy code: since aRmel 6.3.1.7, we do not get the Regulated columns from the Volcano.plot function anymore!
+# fdrThresh <- F_thresh$FDR
+# if (!is.null(fdrThresh)) {
+#   #stop("Uh... why was the condition TRUE?!?!")
+#   colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.up")] <- "Colour (up)"
+#   colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.down")] <- "Colour (down)"
+#   colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.line")] <- "Colour (line)"
+#   if ("Test" %in% colnames(fdrThresh)) {
+#     fdrThresh <- fdrThresh[, c("Test", colnames(fdrThresh)[which(colnames(fdrThresh) != "Test")])]
+#   }
+# }
 fl <- paste0(ohDeer, "/Thresholds.xlsx")
 wb <- wb_workbook()
 wb <- wb_set_creators(wb, "Me")
@@ -392,19 +393,19 @@ wb <- wb_add_data(wb, "Thresholds", "FDR thresholds", dms)
 wb <- wb_add_font(wb, "Thresholds", dms, "Calibri", wb_color(hex = "FF000000"), bold = "true",
                   italic = "true", underline = "single")
 dms <- wb_dims(3+nrow(thresh)+4, 2)
-if (!is.null(fdrThresh)) {
-  wb <- wb_add_data_table(wb, "Thresholds", fdrThresh, dms,
-                          col_names = TRUE, table_style = "TableStyleMedium2",
-                          banded_rows = TRUE, banded_cols = FALSE)
-  wb <- wb_set_col_widths(wb, "Thresholds", 1, 3)
-  tmp1 <- rbind(colnames(thresh), thresh)
-  colnames(tmp1) <- paste0("V", 1:ncol(tmp1))
-  tmp2 <- rbind(colnames(fdrThresh), fdrThresh)
-  colnames(tmp2) <- paste0("V", 1:ncol(tmp2))
-  tst <- plyr::rbind.fill(tmp1, tmp2)
-  tst <- setNames(apply(tst, 2, function(x) { max(nchar(x), na.rm = TRUE) }), NULL)
-  wb <- wb_set_col_widths(wb, "Thresholds", 1:(length(tst)+1), c(3, tst))
-}
+# if (!is.null(fdrThresh)) {
+#   wb <- wb_add_data_table(wb, "Thresholds", fdrThresh, dms,
+#                           col_names = TRUE, table_style = "TableStyleMedium2",
+#                           banded_rows = TRUE, banded_cols = FALSE)
+#   wb <- wb_set_col_widths(wb, "Thresholds", 1, 3)
+#   tmp1 <- rbind(colnames(thresh), thresh)
+#   colnames(tmp1) <- paste0("V", 1:ncol(tmp1))
+#   tmp2 <- rbind(colnames(fdrThresh), fdrThresh)
+#   colnames(tmp2) <- paste0("V", 1:ncol(tmp2))
+#   tst <- plyr::rbind.fill(tmp1, tmp2)
+#   tst <- setNames(apply(tst, 2, function(x) { max(nchar(x), na.rm = TRUE) }), NULL)
+#   wb <- wb_set_col_widths(wb, "Thresholds", 1:(length(tst)+1), c(3, tst))
+# }
 wb_save(wb, fl)
 #xl_open(fl)
 #

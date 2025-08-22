@@ -518,10 +518,11 @@ for (pack in c(cran_req, bioc_req, "proteoCraft")) {
   # 
   # add something here to catch issues with packages which cannot be unloaded...
 }
-tst <- try(normalizePath(rawrr:::.rawrrAssembly(), winslash = "/"), silent = TRUE)
-if (("try-error" %in% class(tst))||(!file.exists(tst))) {
-  rawrr::installRawrrExe()
-}
+# For rawrr we are taking a different approach to installation
+rawrrSrc <- paste0(libPath, "/extdata/R scripts/Sources/install_rawrr.R")
+#rstudioapi::documentOpen(rawrrSrc)
+source(rawrrSrc)
+#
 data.table::setDTthreads(threads = detectCores()-1)
 #
 inst <- as.data.frame(installed.packages())

@@ -214,7 +214,8 @@ if (archiveIndir) {
   archDir <- selectDirectory("Select location where to archive the search data", path = archDirDflt)
   indirArch <- paste0(archDir, "/", gsub(".*/", "", indir))
   if (!dir.exists(indirArch)) { dir.create(indirArch, recursive = TRUE) }
-  fls <- list.files(indir, recursive = TRUE, all.files = TRUE)
+  fls <- list.files(indir, recursive = TRUE#, all.files = TRUE
+                    )
   if (length(fls)) { # Checking because we may already have archived...
     for (fl in fls) { #fl <- fls[1]
       oldFl <- paste0(indir, "/", fl)

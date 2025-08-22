@@ -636,7 +636,7 @@ if (length(wFltL)) {
   }
   #environment(Fisher0) <- .GlobalEnv # Only needed if code run as function!
   cat("     Running Fisher tests...\n")
-  clusterCall(parClust, function() library(topGO))
+  invisible(parallel::clusterCall(parClust, function() { library(topGO); return() }))
   tst <- try({
     GO_tbls <- setNames(parallel::parLapply(parClust, names(mapFilters), Fisher0), names(mapFilters))
   })
@@ -649,13 +649,13 @@ if (length(wFltL)) {
     # Define filter functions
     f0 <- function(x, filt) {
       if (length(x)) { x <- sum(x %in% filt) } else { x <- 0 }
-      as.numeric(x)
+      return(as.numeric(x))
     }
     #environment(f0) <- .GlobalEnv # Only needed if code run as function!
     f1 <- function(x, filt, ids) {
       x <- x[which(x %in% filt)]
       if (length(x)) { x <- paste(sort(unique(unlist(ids[x]))), collapse = ";") } else { x <- "" }
-      x
+      return(x)
     }
     #environment(f1) <- .GlobalEnv # Only needed if code run as function!
     #
@@ -749,30 +749,72 @@ if (length(wFltL)) {
       # since the Mappings themselves reflect it:
       fcflt <- filters[[n1]]
       rfflt <- unique(unlist(c(fcflt, ref.filters[[n1]]))) # In case we are missing somethin'
-      parallel::clusterExport(parClust, list("rfflt", "fcflt"), envir = environment())
-      GO.terms[[kkol1]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`,
-                                               f0, filt = rfflt)
-      GO.terms[[kkol2]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`,
-                                               f0, filt = fcflt)
+      #
+      # Some silly shenanigans to deal with random cluster corruption:
+      a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f0, filt = rfflt)
+      if (!length(a) == nrow(GO.terms)) {
+        stopCluster(parClust)
+        source(parSrc)
+        a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f0, filt = rfflt)
+      }
+      if (!length(a) == nrow(GO.terms)) { stop() }
+      GO.terms[[kkol1]] <- a
+      rm(a)
+      #
+      a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f0, filt = fcflt)
+      if (!length(a) == nrow(GO.terms)) {
+        stopCluster(parClust)
+        source(parSrc)
+        a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f0, filt = fcflt)
+      }
+      if (!length(a) == nrow(GO.terms)) { stop() }
+      GO.terms[[kkol2]] <- a
+      rm(a)
+      #
       GO_tbl[, c(kkol1, "Count")] <- GO.terms[match(GO_tbl$ID, GO.terms$ID), c(kkol1, kkol2)]
       stopifnot(max(GO_tbl[[kkol1]] - GO_tbl$Count) >= 0)
       ## Proteins
       tmpProt <- strsplit(Prot[[ID_col]], ";")
-      parallel::clusterExport(parClust, "tmpProt", envir = environment())
+      #parallel::clusterExport(parClust, "tmpProt", envir = environment())
       if (ID_col2_found) {
         tmpProtID <- Prot[[ID_col2]]
-        parallel::clusterExport(parClust, "tmpProtID", envir = environment())
+        #parallel::clusterExport(parClust, "tmpProtID", envir = environment())
       }
       if ((MultRef)||(kount == 1)) {
-        GO.terms[[protkol1]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`,
-                                                    f1, filt = rfflt, ids = tmpProt)
+        a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpProt)
+        if (!length(a) == nrow(GO.terms)) {
+          stopCluster(parClust)
+          source(parSrc)
+          a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpProt)
+        }
+        if (!length(a) == nrow(GO.terms)) { stop() }
+        GO.terms[[protkol1]] <- a
+        rm(a)
+        #
         if (ID_col2_found) {
-          GO.terms[[pgkol1]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`,
-                                                    f1, filt = rfflt, ids = tmpProtID)
+          a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpProtID)
+          if (!length(a) == nrow(GO.terms)) {
+            stopCluster(parClust)
+            source(parSrc)
+            a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpProt)
+          }
+          if (!length(a) == nrow(GO.terms)) { stop() }
+          GO.terms[[pgkol1]] <- a
+          rm(a)
+          #
         }
       }
-      GO.terms[[protkol2]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`,
-                                                  f1, filt = fcflt, ids = tmpProt)
+      #
+      a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpProt)
+      if (!length(a) == nrow(GO.terms)) {
+        stopCluster(parClust)
+        source(parSrc)
+        a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpProt)
+      }
+      if (!length(a) == nrow(GO.terms)) { stop() }
+      GO.terms[[protkol2]] <- a
+      rm(a)
+      #
       tst <- GO.terms[, c(protkol1, protkol2)]
       tst[[protkol1]] <- strsplit(tst[[protkol1]], ";")
       tst[[protkol2]] <- strsplit(tst[[protkol2]], ";")
@@ -780,8 +822,16 @@ if (length(wFltL)) {
       stopifnot(max(tst2) == 0)
       ## Protein groups
       if (ID_col2_found) {
-        GO.terms[[pgkol2]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`,
-                                                  f1, filt = fcflt, ids = tmpProtID)
+        a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpProtID)
+        if (!length(a) == nrow(GO.terms)) {
+          stopCluster(parClust)
+          source(parSrc)
+          a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpProtID)
+        }
+        if (!length(a) == nrow(GO.terms)) { stop() }
+        GO.terms[[pgkol2]] <- a
+        rm(a)
+        #    
         tst <- GO.terms[, c(pgkol1, pgkol2)]
         tst[[pgkol1]] <- strsplit(tst[[pgkol1]], ";")
         tst[[pgkol2]] <- strsplit(tst[[pgkol2]], ";")
@@ -796,13 +846,29 @@ if (length(wFltL)) {
         tmp2 <- aggregate(tmp2$value, list(as.numeric(tmp2$L1)), list)
         tmpGn <- data.frame(row = 1:nrow(Prot))
         tmpGn <- tmp2$x[match(tmpGn$row, tmp2$Group.1)]
-        parallel::clusterExport(parClust, "tmpGn", envir = environment())
+        #parallel::clusterExport(parClust, "tmpGn", envir = environment())
         if ((MultRef)||(kount == 1)) {
-          GO.terms[[genkol1]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`,
-                                                     f1, filt = rfflt, ids = tmpGn)
+          a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpGn)
+          if (!length(a) == nrow(GO.terms)) {
+            stopCluster(parClust)
+            source(parSrc)
+            a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpGn)
+          }
+          if (!length(a) == nrow(GO.terms)) { stop() }
+          GO.terms[[genkol1]] <- a
+          rm(a)
+          #
         }
-        GO.terms[[genkol2]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`,
-                                                   f1, filt = fcflt, ids = tmpGn)
+        a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpGn)
+        if (!length(a) == nrow(GO.terms)) {
+          stopCluster(parClust)
+          source(parSrc)
+          a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpGn)
+        }
+        if (!length(a) == nrow(GO.terms)) { stop() }
+        GO.terms[[genkol2]] <- a
+        rm(a)
+        #
         tst <- GO.terms[, c(genkol1, genkol2)]
         tst[[genkol1]] <- strsplit(tst[[genkol1]], ";")
         tst[[genkol2]] <- strsplit(tst[[genkol2]], ";")

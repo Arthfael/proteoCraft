@@ -416,8 +416,24 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1] #sheetnm <- sheetnmsB[2]
   options(scipen = opt)
   # Deal with text
   if (length(wTxt)) {
+    # We need to escape some characters!
+    scpChar <- data.frame(origChar = c("\"", "'", "<", ">", "&"),
+                          scpdChar = c("&quot;", "&apos;", "&lt;", "&gt;", "&amp;"))
     for (i in wTxt) {
       rg <- lngRws+i
+      dat <- strsplit(myData[[i]], "")
+      for (j in 1:5) { #j <- 1 #j <- 2 #j <- 3 #j <- 4 #j <- 5
+        tst <- lapply(dat, function(x) { which(x == scpChar$origChar[j]) })
+        w <- which(vapply(tst, length, 1) > 0)
+        if (length(w)) {
+          tmpScpd <- vapply(w, function(x) { #x <- w[1]
+            y <- dat[[x]]
+            y[tst[[x]]] <- scpChar$scpdChar[j]
+            y <- paste(y, collapse = "")
+          }, "")
+          myData[[i]][w] <- tmpScpd
+        }
+      }
       g <- grepl(" ", myData[[i]])+1
       cc_Rest$is[rg] <- paste0("<is><t", c("", " xml:space=\"preserve\"")[g], ">", myData[[i]], "</t></is>")
     }

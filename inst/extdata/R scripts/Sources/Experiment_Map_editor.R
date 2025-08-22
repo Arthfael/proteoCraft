@@ -1,4 +1,4 @@
-# A sourced script to edit the Experiment map (table defining experimental structure)
+### A sourced script to edit the Experiment map (table defining experimental structure)
 #
 library(shiny)
 library(shinyjs)
@@ -294,10 +294,10 @@ Shiny.bindAll(table.table().node());"))
       observeEvent(input[[id2]],
                    {
                      x <- input[[id1]]
-                     if (fct %in% names(facLevels2)) {
-                       tp <- typeof(facLevels2[[fct]])
-                       if (typeof(x) != tp) { x <- get(paste0("as.", tp))(x) }
-                     }
+                     # if (fct %in% names(facLevels2)) {
+                     #   tp <- typeof(facLevels2[[fct]])
+                     #   if (typeof(x) != tp) { x <- get(paste0("as.", tp))(x) }
+                     # }
                      for (k in (i+1):nr) {
                        idK <- paste0(fct, "___", as.character(k))
                        if (fct == "Use") {
@@ -321,8 +321,8 @@ Shiny.bindAll(table.table().node());"))
       observeEvent(input[[id2]],
                    {
                      x <- input[[id1]]
-                     tp <- typeof(facLevels2[[fct]])
-                     if (typeof(x) != tp) { x <- get(paste0("as.", tp))(x) }
+                     #tp <- typeof(facLevels2[[fct]])
+                     #if (typeof(x) != tp) { x <- get(paste0("as.", tp))(x) }
                      rplRg <- (i+1):nr
                      l <- length(rplRg)
                      m <- match(x, dflt_Rpl)+1
@@ -434,13 +434,41 @@ call <- paste0("Exp.map2 <- arrange(Exp.map2, ", paste(c("tempName", Factors), c
 eval(parse(text = call))
 Exp.map2$tempName <- NULL
 Exp.map <- Exp.map2
+kl <- c("Level", "Count")
 tst <- setNames(lapply(Factors, function(Fact) {
-  magrittr::set_colnames(aggregate(Exp.map[[Fact]], list(Exp.map[[Fact]]), length), c("Level", "Count"))
+  magrittr::set_colnames(aggregate(Exp.map[[Fact]], list(Exp.map[[Fact]]), length), kl)
 }), Factors)
+tst <- lapply(Factors, function(x) { #x <- 1 #x <- 2
+  dat <- tst[[x]]
+  rg <- (1:nrow(dat))+1
+  NC <- setNames(lapply(kl, function(k) {
+    nchar(c(k, dat[[k]]))
+  }), kl)
+  maxNC <- setNames(vapply(NC, max, 1), kl)
+  dat <- as.data.frame(do.call(cbind, lapply(kl, function(k) { #k <- kl[1]
+    dt <- as.character(dat[[k]])
+    nc <- NC[[k]][rg]
+    w <- which(nc < maxNC[k])
+    if (length(w)) {
+      dt[w] <- vapply(w, function(z) { paste(c(dt[z], rep(" ", maxNC[k] - nc[z])), collapse = "") }, "")
+    }
+    return(dt)
+  })))
+  colnames(dat) <- vapply(kl, function(k) {
+    if (NC[[k]][1] < maxNC[k]) { k <- paste(c(k, rep(" ", maxNC[k] - NC[[k]][1])), collapse = "") }
+    return(k)
+  }, "")
+  for (i in 1:ncol(dat)) {
+    dat[[colnames(dat)[i]]] <- format(dat[[colnames(dat)[i]]], width = ceiling(maxNC[[kl[i]]]*1.5), justify = "left")
+  }
+  return(dat)
+})
+
 msg2 <- msg <- paste(c("Check the number of samples per factor level below. Is everything ok? If not, click \"no\" to get back to editing the table.\n\n   -----\n", unlist(lapply(names(tst), function(nm) {
   c(paste0("-> ", nm),
-    paste0("\t", c(paste(colnames(tst[[nm]]), collapse = "\t"),
-                   apply(tst[[nm]], 1, paste, collapse = "\t"))),
+    paste0("     ",
+           c(paste(colnames(tst[[nm]]), collapse = "          "),
+                   apply(tst[[nm]], 1, paste, collapse = "          "))),
     c("\n   -----\n"))
 })), "\n"), collapse = "\n")
 if (nchar(msg) > 1000) {

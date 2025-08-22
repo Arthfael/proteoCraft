@@ -155,6 +155,8 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     }
     availQuantMeth <- c(myQuantMeth, availQuantMeth[which(!availQuantMeth %in% myQuantMeth)])
   }
+  myDS1 <- NULL
+  myDS2 <- ""
   appNm <- paste0(dtstNm, " - SDRF editor")
   uiA <- shiny::fluidPage(
     shinyjs::useShinyjs(),
@@ -351,14 +353,14 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
       if (grepl("^M((\\.)|(us))[ _\\-\\.]?musculus", myOrg)) { devOnt <- "Mouse" }
       if (grepl("^H((\\.)|(omo))[ _\\-\\.]?sapiens", myOrg)) { devOnt <- "Human" }
       if (grepl("^C((\\.)|(aenorhabditis))[ _\\-\\.]?elegans", myOrg)) { devOnt <- "Worms" }
-      dvStgDF <- read.csv(paste0(homePath, "/DevStages_", devOnt, ".csv"))
-      opt <- dvStgDF$Name
-      myDS1 <- NULL
-      myDS2 <- ""
-      if (exists("myDevStages")) {
-        myDevStages <- unique(myDevStages)
-        myDS1 <- myDevStages[which(myDevStages %in% opt)]
-        myDS2 <- paste(myDevStages[which(!myDevStages %in% opt)], collapse = "|")
+      if (!is.na(devOnt)) {
+        dvStgDF <- read.csv(paste0(homePath, "/DevStages_", devOnt, ".csv"))
+        opt <- dvStgDF$Name
+        if (exists("myDevStages")) {
+          myDevStages <- unique(myDevStages)
+          myDS1 <- myDevStages[which(myDevStages %in% opt)]
+          myDS2 <- paste(myDevStages[which(!myDevStages %in% opt)], collapse = "|")
+        }
       }
       shiny::renderUI(list(list(shiny::fluidRow(
         shiny::column(1),
@@ -559,7 +561,7 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     tmp[, myKol] <- Exp.map[tmp$L1, myKol]
     Frac.map2[, myKol] <- tmp[match(Frac.map2$MQ.Exp, tmp$value), myKol]
     if (!reload_SDRF) {
-      SDRF <- data.frame("source name" = paste0("sample ", 1:L),
+      SDRF <- data.frame("source name" = paste0("sample ", 1:nrow(Frac.map2)),
                          "characteristics[organism]" = tolower(mainOrg),
                          check.names = FALSE)
     }
@@ -572,13 +574,13 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     tmp[, myKol] <- SamplesMap[tmp$L1, myKol]
     Frac.map2[, myKol] <- tmp[match(Frac.map2$`Parent sample`, tmp$value), myKol]
     if (!reload_SDRF) {
-      SDRF <- data.frame("source name" = paste0("sample ", 1:L),
+      SDRF <- data.frame("source name" = paste0("sample ", 1:nrow(Frac.map2)),
                          "characteristics[organism]" = tolower(mainOrg),
                          check.names = FALSE)
     }
   }
   nr <- nrow(Frac.map2)
-  if (!"assay name" %in% colnames(SDRF)) { SDRF$"assay name" <- paste0("Run ", 1:L) }
+  if (!"assay name" %in% colnames(SDRF)) { SDRF$"assay name" <- paste0("Run ",  1:nrow(SDRF)) }
   if (!"comment[data file]" %in% colnames(SDRF)) {
     if (myVendor == "Bruker Daltonics") {
       SDRF$"comment[data file]" <- paste0(Frac.map2$`Raw files name`, ".d.zip")

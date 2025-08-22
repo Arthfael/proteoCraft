@@ -31,7 +31,7 @@ rawrr_tst <- try({
     #}
     # 
   }
-  yesRawFileReaderLicenseIsAccepted <- function () {
+  yesRawFileReaderLicenseIsAccepted <- function(showLicense = FALSE) {
     licenseFile <- file.path(system.file(package = "rawrr"), 
                              "rawrrassembly", "RawFileReaderLicense.txt")
     stopifnot(file.exists(licenseFile))
@@ -39,7 +39,7 @@ rawrr_tst <- try({
     msg <- c("# By changing the setting below to TRUE you are accepting ", 
              "the Thermo License agreement.")
     if (!file.exists(eulaFile)) {
-      file.show(licenseFile)
+      if (showLicense) { file.show(licenseFile) }
       response <- "y"
       if (tolower(response) == "y") {
         if (isFALSE(dir.exists(dirname(eulaFile)))) {
@@ -55,7 +55,7 @@ rawrr_tst <- try({
     msg <- "Yes, we accept Thermo's License agreement, get on with it!"
     cat(msg, "\n")
   }
-  installRawFileReaderDLLsNoAcpt <- function (sourceUrl = rawrr:::.thermofisherlsmsUrl(), ...) { #sourceUrl = rawrr:::.thermofisherlsmsUrl()
+  installRawFileReaderDLLsNoAcpt <- function(sourceUrl = rawrr:::.thermofisherlsmsUrl(), ...) { #sourceUrl = rawrr:::.thermofisherlsmsUrl()
     rawfileReaderDLLsPath <- rawrr::rawrrAssemblyPath()
     if (isTRUE(dir.exists(rawfileReaderDLLsPath))) {
       msg <- sprintf("removing files in directory '%s'", rawfileReaderDLLsPath)
@@ -77,7 +77,7 @@ rawrr_tst <- try({
     }, 0)
     rv
   }
-  installRawFileReaderDLLsNoAcpt(sourceUrl = rawrr:::.thermofisherlsmsUrl())
+  installRawFileReaderDLLsNoAcpt()
   #rawrr::installRawFileReaderDLLs(sourceUrl = .thermofisherlsmsUrl())
   #require(rawrr); getAnywhere(".isRawFileReaderLicenseAccepted")
   rawrr::installRawrrExe()

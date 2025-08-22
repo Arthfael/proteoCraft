@@ -318,11 +318,11 @@ nc <- nchar(c("Biological sample", tst[[1]]))
 mx <- max(nc)
 w <- which(nc < mx)-1
 if (length(w)) {
-  if (0 %in% w) { colnames(tst)[1] <- paste0(c(colnames(tst)[1], rep(" ", mx-nc[1])), collapse = "") }
+  if (0 %in% w) { colnames(tst)[1] <- paste0(c(colnames(tst)[1], rep("  ", mx-nc[1])), collapse = "") }
   w <- w[which(w > 0)]
-  tst[w, 1] <- sapply(w, function(x) { paste0(c(tst[x, 1], rep(" ", mx-nc[x+1])), collapse = "") })
+  tst[w, 1] <- sapply(w, function(x) { paste0(c(tst[x, 1], rep("  ", mx-nc[x+1])), collapse = "") })
 }
-msg <- c(paste(colnames(tst), collapse = "\t"), do.call(paste, c(tst, sep = "\t")))
+msg <- c(paste(colnames(tst), collapse = "          "), do.call(paste, c(tst, sep = "          ")))
 msg2 <- msg <- paste(c(paste0("Check the number of:\n - MS files\n - fractions\n - enriched sample types",
                               c("", "\n - isobaric sets")[labelMode],
                               "\nper parent biological sample below. Is everything ok? If not, click \"no\" to get back to editing the table.\n\n   -----\n"),
