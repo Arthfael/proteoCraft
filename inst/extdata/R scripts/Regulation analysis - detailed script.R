@@ -120,6 +120,7 @@ biocInstall %<o% function(pack, load = TRUE) {
   if (load) { library(pack, character.only = TRUE) }
 }
 for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
+
 # For rawrr we are taking a different approach to installation
 rawrrSrc <- paste0(libPath, "/extdata/R scripts/Sources/install_rawrr.R")
 #rstudioapi::documentOpen(rawrrSrc)
@@ -1249,11 +1250,11 @@ if (Param$Norma.Pep.Ratio) {
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 gc()
-# It makes sense to close/re-create parallel clusters regularly to reduce memory usage
-saveImgFun(BckUpFl)
-#loadFun(BckUpFl)
+# It makes sense to close/re-create parallel clusters regularly to reduce memory usage + avoid corruption
 stopCluster(parClust)
 source(parSrc, local = FALSE)
+saveImgFun(BckUpFl)
+#loadFun(BckUpFl)
 
 #### Code chunk - Assemble protein groups
 ReportCalls <- AddSpace2Report()
@@ -2724,13 +2725,17 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
       #br(),
       # fluidRow(column(4, withSpinner(plotOutput("pepIntensities"))),
       #          column(4, withSpinner(plotOutput("pepRatios")))),
-      fluidRow(column(6, withSpinner(imageOutput("pgIntensities", width = "100%", height = "100%"))),
-               column(6, withSpinner(imageOutput("pgRatios", width = "100%", height = "100%")))),
-      br(),
-      br(),
-      br(),
-      fluidRow(column(6, withSpinner(imageOutput("pepIntensities", width = "100%", height = "100%"))),
-               column(6, withSpinner(imageOutput("pepRatios", width = "100%", height = "100%")))),
+      
+      fluidRow(column(6,
+                      h4(strong(em("Intensities"))),
+                      withSpinner(imageOutput("pgIntensities", width = "100%", height = "100%")),
+                      br(),
+                      withSpinner(imageOutput("pepIntensities", width = "100%", height = "100%"))),
+               column(6,
+                      h4(strong(em("Ratios"))),
+                      withSpinner(imageOutput("pgRatios", width = "100%", height = "100%")),
+                      br(),
+                      withSpinner(imageOutput("pepRatios", width = "100%", height = "100%")))),
       br(),
       br()
     )
@@ -4108,10 +4113,11 @@ if (sum(c("dat", "dat2") %in% filter_types)) {
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 gc()
-try({ stopCluster(parClust) }, silent = TRUE)
+# It makes sense to close/re-create parallel clusters regularly to reduce memory usage + avoid corruption
+stopCluster(parClust)
+source(parSrc, local = FALSE)
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc, local = FALSE)
 
 #### Code chunk - F-test
 #Param <- Param.load()
@@ -5562,11 +5568,12 @@ if (length(filt) > 2) {
   cran_req <- unique(c(cran_req, "Rtsne"))
   if (!require("Rtsne", quietly = TRUE)) { install.packages("Rtsne") }
   require(Rtsne)
-  tsne <- try(Rtsne(temp, dims = 3, perplexity = 30, verbose = TRUE, max_iter = 500), silent = TRUE)
-  dir <- paste0(wd, "/Dimensionality red. plots/t-SNE")
-  if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dir))
+  a <- captureOutput(try({ tsne <- Rtsne(temp, dims = 3, perplexity = 30, verbose = TRUE, max_iter = 500) }, silent = TRUE)) # Trick to suppress those pesky messages!
   if (!"try-error" %in% class(tsne)) {
+    dir <- paste0(wd, "/Dimensionality red. plots/t-SNE")
+    if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+    dirlist <- unique(c(dirlist, dir))
+    #
     temp2 <- as.data.frame(tsne$Y); colnames(temp2) <- c("t-SNE Y1", "t-SNE Y2", "t-SNE Y3")
     kol <- c("Protein group", "Av. log10 abundance", "Classifier", "Alpha")
     temp2[, kol] <- scores[match(rownames(temp), rownames(scores)), kol]
@@ -5610,10 +5617,11 @@ if (length(filt) > 2) {
   if (!require("umap", quietly = TRUE)) { install.packages("umap") }
   require(umap)
   UMAP <- try(umap(temp, n_components = 3), silent = TRUE)
-  dir <- paste0(wd, "/Dimensionality red. plots/UMAP")
-  if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dir))
   if (!"try-error" %in% class(UMAP)) {
+    dir <- paste0(wd, "/Dimensionality red. plots/UMAP")
+    if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+    dirlist <- unique(c(dirlist, dir))
+    #
     UMAPlayout <- data.frame(UMAP$layout)
     kol <- c("Protein group", "Av. log10 abundance", "Classifier", "Alpha")
     UMAPlayout[, kol] <- scores[match(row.names(UMAPlayout), row.names(scores)), kol]
@@ -7040,7 +7048,7 @@ if (enrichGO||globalGO) {
     }
   }
   if (globalGO) {
-    msg <- " - Dataset"
+    msg <- "\n - Dataset"
     ReportCalls <- AddMsg2Report(Space = FALSE)
     #
     dir <- paste0(wd, "/Reg. analysis/GO enrich/Dataset")
@@ -7107,10 +7115,11 @@ source(modPepSrc, local = FALSE)
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 gc()
-# It makes sense to close/re-create parallel clusters regularly to reduce memory usage
+# It makes sense to close/re-create parallel clusters regularly to reduce memory usage + avoid corruption
+stopCluster(parClust)
+source(parSrc, local = FALSE)
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc, local = FALSE)
 
 #### Code chunk - Proteomic ruler
 if (protrul) {

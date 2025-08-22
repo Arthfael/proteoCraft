@@ -95,6 +95,7 @@ biocInstall %<o% function(pack, load = TRUE) {
   if (load) { library(pack, character.only = TRUE) }
 }
 for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
+
 # For rawrr we are taking a different approach to installation
 rawrrSrc <- paste0(libPath, "/extdata/R scripts/Sources/install_rawrr.R")
 #rstudioapi::documentOpen(rawrrSrc)
@@ -2076,6 +2077,7 @@ if (MakeRatios) {
 
 Script <- readLines(ScriptPath)
 gc()
+# It makes sense to close/re-create parallel clusters regularly to reduce memory usage + avoid corruption
 stopCluster(parClust)
 source(parSrc, local = FALSE)
 saveImgFun(BckUpFl)
@@ -5065,6 +5067,7 @@ if (NegFilt) {
 
 Script <- readLines(ScriptPath)
 gc()
+# It makes sense to close/re-create parallel clusters regularly to reduce memory usage + avoid corruption
 stopCluster(parClust)
 source(parSrc, local = FALSE)
 saveImgFun(BckUpFl)
