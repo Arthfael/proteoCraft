@@ -3,9 +3,10 @@ options(stringsAsFactors = FALSE)
 options(buildtools.check = function(action) TRUE )
 rm(list = ls()[!ls() %in% c("fls")])
 
+# Packages
+# - pak:
 if (!require(pak)) { install.packages("pak") }
-
-getInt <- FALSE
+# - 3rd party:
 cran_req <- c("pak",
               "officer",
               "devtools",
@@ -32,16 +33,27 @@ tst <- vapply(cran_req, function(pck) { require(pck, character.only = TRUE, quie
 w <- which(!tst)
 if (length(w)) { pak::pak(cran_req[w]) }
 for (pck in cran_req) { library(pck, character.only = TRUE) }
-if (!require(proteoCraft)) {
-  tst <- try(pak::pak("Arthfael/proteoCraft"), silent = TRUE)
+# - proteoCraft: check version installed
+if (!require("proteoCraft")) { pak::pak("arthfael/proteoCraft") }
+packVers <- unlist(strsplit(as.character(packageVersion("proteoCraft")), "\\."))
+packVersTst <- (packVers[[1]] >= 2)&(((packVers[[2]] == 2)&(packVers[[3]] >= 1))|((packVers[[2]] > 2)))
+if (!packVersTst) {
+  msg <- paste0("This version of the script requires proteoCraft v2.2.1 or higher, but v", paste(packVers, collapse = "."))
+  # To upgrade:
+  tst <- try({
+    unloadNamespace("proteoCraft")
+    remove.packages("proteoCraft")
+    pak::pak("arthfael/proteoCraft")
+  }, silent = TRUE)
   if ("try-error" %in% class(tst)) {
-    tst <- try(devtools::install_github("Arthfael/proteoCraft"), silent = TRUE)
+    stop(paste0(msg, " is installed.\nWe could not update the package automatically, please do it manually before going further."))
+  } else {
+    warning(paste0(msg, " was installed.\nWe did manage to update it automatically though, all good."))
   }
-  if ("try-error" %in% class(tst)) {
-    stop("Installation didn't work!")
-  }
-  library(proteoCraft)
 }
+library(proteoCraft)
+
+getInt <- FALSE
 
 # Work-in-Progress only behaviour
 WIP <- FALSE
@@ -501,6 +513,10 @@ while (!areWeGood) {
           vals <- vals[which(!is.na(vals))]
           if (length(vals)) {
             if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
+            if (("NA" %in% vals)&&(Fact == "Protein")) {
+              svDialogs::dlg_message("Warning: please note that Protein \"NA\" is currently treated as missing value and ignored for the purpose of plotting!",
+                                      "ok")
+            }
             tmp2 <- FACTLevels()
             if (Fact %in% intFact) {
               tmp2[[Fact]] <- 1:as.integer(max(c(vals, dfltInt[match(Fact, intFact)])))
@@ -1643,7 +1659,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
           RTchrm <- chrm[which((chrm$`Retention time` >= RTlim$Start)&(chrm$`Retention time` <= RTlim$End)),]
           Targ <- rtRanges$Nucleotide[I]
           w0 <- which(RTchrm$`Raw file` %in% ExpMap2$`MS raw file`[rg0])
-          for (prot in Protein) { #prot <- Protein[1] #prot <- Protein[2] #prot <- Protein[3] # Let's plot each protein separately
+          for (prot in Protein[which(Protein != "NA")]) { #prot <- Protein[1] #prot <- Protein[2] #prot <- Protein[3] # Let's plot each protein separately
             pat <- paste0("^", grp, " ", prot, " ")
             flRgs <- grep(paste0(pat, "[0-9]+$"), names(flRanges), value = TRUE) # Here these are file ranges, not RT ranges
             if (length(flRgs)) {
@@ -1708,15 +1724,13 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                   }
                 }
               }
-              Form <- as.formula(paste0(paste(Factors3, collapse = " + "), " ~ Replicate")) # Formula for how to layout our facets on the ggplot
+              Form <- list(Left = Factors3,
+                           Right = Replicate) # Formula for how to layout our facets on the ggplot
               ExpMap2$Color_class <- do.call(paste, c(ExpMap2[, Factors3, drop = FALSE], sep = " "))
               ExpMap2$Color_class[which((ExpMap2$Color_class == "NA")&(ExpMap2$Role == "Standard"))] <- "Standard"
               ExpMap2$Color_class[which((ExpMap2$Color_class == "NA")&(ExpMap2$Role == "Buffer_control"))] <- "Buffer_control"
               em01$Color_class <- do.call(paste, c(em01[, Factors3, drop = FALSE], sep = " "))
-              # } else {
-              #   Form <- as.formula(paste0(". ~ Replicate")) # Formula for how to layout our facets on the ggplot
-              #   em01$Color_class <- NA
-              # }
+              #
               em01$Color_class[which((em01$Color_class == "NA")&(em01$Role == "Standard"))] <- "Standard"
               em01$Color_class[which((em01$Color_class == "NA")&(em01$Role == "Buffer_control"))] <- "Buffer_control"
               #
@@ -1792,18 +1806,22 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                 xLim <- c(min(RTchrm01$`Retention time`),
                           max(RTchrm01$`Retention time`))
                 xRange <- xLim[2]-xLim[1]
+                Form1 <- Form
+                w <- which(vapply(Form1$Left, function(x) { length(unique(RTchrm01[[x]])) }, 1) > 1)
+                Form1$Left <- Form1$Left[w]
+                Form1 <- as.formula(paste0(paste(Form1$Left, collapse = " + "), " ~ ", Form1$Right))
                 plot <- ggplot(RTchrm01,
                                aes(x = `Retention time`, y = .data[[Ykol]], #linetype = Role,
                                    group = `Raw file name`, color = Color_class)) +
                   geom_line() +
                   ggtitle(ttl, subtitle = c("", Targ)[(!is.na(Targ))+1]) +
-                  coord_fixed(xRange/(yMax*3)) + facet_grid(Form) +
+                  coord_fixed(xRange/(yMax*3)) + facet_grid(Form1) +
                   #scale_linetype_manual(values = lnTypes, guide = "legend") +
                   theme_bw() +
                   theme(strip.text.y = element_text(angle = 0),
                         legend.position = "bottom") +
                   ylim(0, yMax)
-                #poplot(plot)
+                #poplot(plot, 12, 22)
                 #
                 if (quantThisOne2) {
                   plot <- plot +
@@ -1815,7 +1833,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                               y = yMax*0.8, hjust = 0, size = 2.5, show.legend = FALSE)
                   poplot(plot, 12, 22)
                 }
-                wdth <- (max(Replicate)+2)*2
+                wdth <- (max(Replicate)+2)*4
                 ggsave(paste0(wd, "/", ttl, ".jpeg"), plot, dpi = 300, width = wdth, units = "in")
                 ggsave(paste0(wd, "/", ttl, ".pdf"), plot, dpi = 300, width = wdth, units = "in")
                 system(paste0("open \"", wd, "/", ttl, ".jpeg\""))
@@ -1836,7 +1854,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
 }
 #nms <- names(allChroms)[which(names(allChroms) != "Pressure")] # No need to write pressure, we have it already
 nms <- names(allChroms) # Actually let's write it, it's spread over different files
-sapply(nms, function(nm) { #nm <- "BPC"
+invisible(lapply(nms, function(nm) { #nm <- "BPC"
   nm2 <- paste0(nm, ".csv")
   if (!nm %in% c("TIC", "BPC", "Pressure")) { nm2 <- paste0("XIC ", nm2) }
   x <- allChroms[[nm]]
@@ -1844,7 +1862,7 @@ sapply(nms, function(nm) { #nm <- "BPC"
   x <- x[, c("Raw file", colnames(x)[which(colnames(x) != "Raw file")])]
   data.table::fwrite(x, paste0(wd, "/", nm2), row.names = FALSE, na = "NA")
   return()
-})
+}))
 openwd()
 
 # To do:

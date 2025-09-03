@@ -90,6 +90,10 @@ if (!is.null(TargDir)) {
   if (!OngoingAcq) {
     Fls <- list.files(TargDir, recursive = TRUE, full.names = TRUE)
     if (length(Fls)) {
+      #
+      parDir <- gsub(".*/", "", TargDir)
+      rootDir <- gsub("/[^/]+$", "", TargDir)
+      #
       # Create hash function
       HashFun <- function(x) { as.character(tools::md5sum(x)) } #tools::md5sum takes a character path, not a connection
       clusterExport(parClust, "HashFun", envir = environment())
@@ -110,9 +114,6 @@ if (!is.null(TargDir)) {
       #
       DestDir <- NULL
       while (is.null(DestDir)) { DestDir <- selectDirectory("Choose location where files will be cloned and/or the log(s) saved", path = "C:/") }
-      #
-      parDir <- gsub(".*/", "", TargDir)
-      rootDir <- gsub("/[^/]+$", "", TargDir)
       #
       # Check available space
       # Adapted from https://stackoverflow.com/questions/32200879/how-to-get-disk-space-of-windows-machine-with-r
