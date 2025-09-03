@@ -231,7 +231,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   if ("First.Protein.Description" %in% colnames(DIANN)) {
     EV$"First protein name" <- DIANN$First.Protein.Description
   } else {
-    cat("   Column \"First.Protein.Description\" not found, no column of human-readable names generated.\n")
+    cat("   (Column \"First.Protein.Description\" not found, no column of human-readable names generated...)\n")
   }
   # Process modifications
   wMod <- grep("\\(", EV$`Modified sequence`)

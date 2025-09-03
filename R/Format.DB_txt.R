@@ -97,7 +97,7 @@ Format.DB_txt <- function(txt,
   #
   # Detect whether txt is actually a path rather than the database already in environment. 
   if ((length(txt) == 1)&&(file.exists(txt))) {
-    warning(paste0("File path input detected, reading data at ", txt))
+    cat(paste0("File path input detected, reading data at ", txt, "\n"))
     txt <- readLines(txt)
   }
   #

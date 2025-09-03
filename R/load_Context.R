@@ -46,11 +46,13 @@ load_Context <- function(record,
   }
   record <- readLines(record)
   dtstNm <<- gsub("^ *-> *", "", record[grep("^Dataset name:", record)+1])
-  indir <<- gsub("^ *-> *", "", record[grep("^Input directory:", record)+1])
+  inDirs <<- gsub("^ *-> *", "", record[grep("^Input directory:", record)+1])
   outdir <<- gsub("^ *-> *", "", record[grep("^Final output directory:", record)+1])
   wd <<- gsub("^ *-> *", "", record[grep("^Temporary work directory:", record)+1])
   if (!dir.exists(wd)) { dir.create(wd, recursive = TRUE) }
-  if (!dir.exists(indir)) { stop(paste0("Input directory \"", indir, "\" does not exist!")) }
+  lapply(inDirs, function(indir) {
+    if (!dir.exists(indir)) { stop(paste0("Input directory \"", indir, "\" does not exist!")) }
+  })
   setwd(wd)
-  .obj <<- c(".obj", "dtstNm", "indir", "outdir", "wd")
+  .obj <<- c(".obj", "dtstNm", "inDirs", "outdir", "wd")
 }

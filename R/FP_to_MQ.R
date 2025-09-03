@@ -42,6 +42,7 @@ FP_to_MQ <- function(FP_Workflow,
                      OpenSearch = FALSE) {
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::FP_to_MQ); cl = parClust;TESTING <- TRUE
+  #FP_Workflow <- fpWorkflowFl_i; FP_Manifest <- fpManifestFl_i
   #FP_Workflow <- FP_WorkflowFl; FP_Manifest <- FP_ManifestFl
   #FP_Workflow <- paste0(wd, "/fragpipe.workflow"); FP_Manifest <- paste0(wd, "/fragpipe-files.fp-manifest")
   #
@@ -506,7 +507,8 @@ FP_to_MQ <- function(FP_Workflow,
       }
     }
     PSMs$Sample <- FP_Mnfst$Path[PSMs2Mnsfst]
-    PSMs$Sample <- FP_Mnfst$FP_PSMs[PSMs2Mnsfst]
+    #PSMs$Sample <- FP_Mnfst$FP_PSMs[PSMs2Mnsfst] # Corrected bug... based on code but maybe this breaks something downstream -> check!!!
+    PSMs$PSMs_file <- FP_Mnfst$FP_PSMs[PSMs2Mnsfst]
   }
   # Check formats
   kols <- c("Charge", "Number of Enzymatic Termini", "Number of Missed Cleavages", "Protein Start", "Protein End")
@@ -595,7 +597,10 @@ FP_to_MQ <- function(FP_Workflow,
   if (isWellBehaved) {
     EV$Experiment <- PSMs$Sample
     #EV$"Raw file path" <- FP_Mnfst$Path[match(EV$Experiment, FP_Mnfst$Samples)] # Buggy line
-    EV$"Raw file" <- gsub("^(.*/)?interact-", "", gsub("\\\\", "/", gsub("\\.pep\\.xml$", ".d", PSMs$`Spectrum File`)))
+    EV$"Raw file" <- proteoCraft::gsub_Rep("^(.*/)?interact-", "",
+                                           proteoCraft::gsub_Rep("\\\\", "/",
+                                                                 proteoCraft::gsub_Rep("(\\.mod)?\\.pep\\.xml$", ".d",
+                                                                                       PSMs$`Spectrum File`)))
     EV$"Raw file" <- proteoCraft::gsub_Rep(".+/|\\.((raw)|(mz(X?ML|BIN))|(mgf)|(d))$", "", EV$"Raw file")
     u <- unique(EV$"Raw file")
     w <- lapply(FP_Mnfst$`File name`, function(x) { which(u == x) })
@@ -847,19 +852,21 @@ FP_to_MQ <- function(FP_Workflow,
   EV$Search_ID <- FP_Workflow
   if (isActuallyDIANN) {
     DIANN <- proteoCraft::DIANN_to_MQ(diannRep,
-                                cl = cl)
+                                      cl = cl)
     #DIANN <- DIANN_to_MQ(diannRep, cl = cl) # For testing
     Res <- list(Evidence = DIANN$Evidence,
                 PTMs = DIANN$PTMs,
                 FracMap = FP_Mnfst,
                 WorkFlow = FP_Wrkflw,
                 FP_Evidence = EV,
-                FP_PTMs = Modifs)
+                FP_PTMs = Modifs,
+                PTMs = diannRep)
   } else {
     Res <- list(Evidence = EV,
                 PTMs = Modifs,
                 FracMap = FP_Mnfst,
-                WorkFlow = FP_Wrkflw)
+                WorkFlow = FP_Wrkflw,
+                PTMs = FP_PSMs)
   }
   if (isTMT) { Res[["TMT_annotations"]] <- TMTtbl }
   #

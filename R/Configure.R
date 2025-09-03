@@ -102,7 +102,7 @@ Configure <- function(updateOntologies = FALSE) {
   }
   #
   # Also copy main data analysis scripts to home
-  scrpts2 <- c("Regulation analysis - master script",
+  scrpts2 <- c(#"Regulation analysis - master script",
                "Regulation analysis - detailed script",
                "Regulation analysis - detailed script_pepOnly",
                "No replicates analysis - detailed script",
@@ -117,9 +117,9 @@ Configure <- function(updateOntologies = FALSE) {
   cat("Updated analysis scripts in HOME...")
   #
   # Download ontologies relevant for writing an SDRF file
-  #   This sometimes fail with `Error: C stack usage SOMEABSURDLYLARGENUMBER is too close to the limit` when other packages are loaded,
-  #   I suspect because of a conflict between internally used functions sharing a same name and not called with package::...
-  #   Solution: run this on a cluster without loading those packages!
+  #   This sometimes fails with `Error: C stack usage SOMEABSURDLYLARGENUMBER is too close to the limit` when other packages are loaded,
+  #   I suspect because of a conflict between internally used functions sharing a same name and not called safely with package::function()
+  #   Solution: run this on a cluster without loading said packages!
   #
   # The next step will be to build a shiny app (one more!) into SDRF_4_PRIDE.R to allow selectized choice of valid term(s) for each ontology.
   #
@@ -193,6 +193,7 @@ Configure <- function(updateOntologies = FALSE) {
         }
       }
       write.csv(bto, paste0(homePath, "/Tissues.csv"), row.names = FALSE)
+      return()
     })
   }
   # - Modifications
@@ -209,6 +210,7 @@ Configure <- function(updateOntologies = FALSE) {
         }
       }
       write.csv(mod, paste0(homePath, "/Modifications.csv"), row.names = FALSE)
+      return()
     })
   }
   # - Cell type
@@ -225,6 +227,7 @@ Configure <- function(updateOntologies = FALSE) {
         }
       }
       write.csv(cl, paste0(homePath, "/Cell_types.csv"), row.names = FALSE)
+      return()
     })
   }
   # - Disease
@@ -241,6 +244,7 @@ Configure <- function(updateOntologies = FALSE) {
         }
       }
       write.csv(dis, paste0(homePath, "/Diseases.csv"), row.names = FALSE)
+      return()
     })
   }
   # - PRIDE and quant methods
@@ -294,6 +298,7 @@ Configure <- function(updateOntologies = FALSE) {
       if ((!file.exists(paste0(homePath, "/MS_Quant_meth.csv")))||(updateOntologies)) {
         write.csv(quantMeth, paste0(homePath, "/MS_Quant_meth.csv"), row.names = FALSE)
       }
+      return()
     })
   }
   # - MS instrument ontology
@@ -335,8 +340,60 @@ Configure <- function(updateOntologies = FALSE) {
       vendorsInstr$Term <- rownames(vendorsInstr)
       rownames(vendorsInstr) <- NULL
       write.csv(vendorsInstr, paste0(homePath, "/MS_models.csv"), row.names = FALSE)
-      return(0)
+      return()
     })
+  }
+  # Development stage ontologies
+  # For now only Zebrafish (Danio rerio) and FlyBase (Drosophila melanogaster) seem to be supported by the SDRF format... weird...
+  # I'll still get human, mouse and WormBase (C. Elegans + others) too.
+  devStgFun <- function(Ontology, parentTerm, fileName) {
+    ol <- rols::Ontology(Ontology)
+    dvStgs <- rols::Term(ol, parentTerm)
+    dvStgs2 <- rols::children(dvStgs)  # get all levels
+    dvStgs2 <- setNames(dvStgs2@x, vapply(dvStgs2@x, function(x) { x@label }, ""))
+    dvStgs2a <- lapply(1:length(dvStgs2), function(x) { #x <- 1 #x <- 98
+      trm <- dvStgs2[[x]]
+      trms <- rols::children(trm)
+      if ((!is.null(trms))&&(length(trms))) {
+        rs <- lapply(1:length(trms), function(i) { #i <- 1
+          trm <- trms[[i]]
+          rsi <- data.frame(ID = trm@obo_id,
+                            Name = trm@label,
+                            Description = paste(unlist(trm@description), collapse = "; "))
+          return(rsi)
+        })
+        rs <- do.call(rbind, rs)
+      } else {
+        rs <- data.frame(ID = trm@obo_id,
+                         Name = trm@label,
+                         Description = paste(unlist(trm@description), collapse = "; "))
+      }
+      return(rs)
+    })
+    dvStgs2a <- do.call(rbind, dvStgs2a)
+    write.csv(dvStgs2a, paste0(homePath, "/", fileName, ".csv"), row.names = FALSE)
+    return()
+  }
+  parallel::clusterExport(tmpCl, "devStgFun", envir = environment())
+  # Fly
+  if ((!file.exists(paste0(homePath, "/DevStages_Fly.csv")))||(updateOntologies)) {
+    parallel::clusterCall(tmpCl, function() { devStgFun("fbdv", "FBdv_00005259", "DevStages_Fly") })
+  }
+  # Zebrafish
+  if ((!file.exists(paste0(homePath, "/DevStages_Zebrafish.csv")))||(updateOntologies)) {
+    parallel::clusterCall(tmpCl, function() { devStgFun("zfs", "ZFS_0100000", "DevStages_Zebrafish") })
+  }
+  # Mouse
+  if ((!file.exists(paste0(homePath, "/DevStages_Mouse.csv")))||(updateOntologies)) {
+    parallel::clusterCall(tmpCl, function() { devStgFun("mmusdv", "MmusDv_0000000", "DevStages_Mouse") })
+  }
+  # Human
+  if ((!file.exists(paste0(homePath, "/DevStages_Human.csv")))||(updateOntologies)) {
+    parallel::clusterCall(tmpCl, function() { devStgFun("hsapdv", "HsapDv_0000000", "DevStages_Human") })
+  }
+  # C. elegans
+  if ((!file.exists(paste0(homePath, "/DevStages_Worms.csv")))||(updateOntologies)) {
+    parallel::clusterCall(tmpCl, function() { devStgFun("wbls", "WBls_0000075", "DevStages_Worms") })
   }
   #
   parallel::stopCluster(tmpCl)

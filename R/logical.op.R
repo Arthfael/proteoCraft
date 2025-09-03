@@ -14,9 +14,11 @@
 #' @export
 
 logical.op <- function(x, test, y, ties = TRUE) {
-  if ((length(x) > 1)&&(length(y) > 1)) {
-    if (length(x) != length(y)) { stop("x and y must be the same length!") }
-  }
+  lX <- length(x)
+  lY <- length(y)
+  if (!lX) { stop("x must be a vector of non-null length!") }
+  if (!lY) { stop("y must be a vector of non-null length!") }
+  if (lX != lY) { stop("x and y must be the same length!") }
   test <- toupper(gsub(" |_|-|\\.", "", test))
   EQUAL <- c("EQUAL", "EQUALS", "EQUALTO", "ISEQUALTO", "=", "==")
   DIFFERENT <- c("DIFFERENT", "DIFFERENTFROM", "ISDIFFERENT", "ISDIFFERENTFROM", "!=")

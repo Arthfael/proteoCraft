@@ -35,7 +35,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                        N.clust,
                        N.reserved = 1,
                        cl,
-                       MQtxt = indir) {
+                       MQtxt = inDirs[which(SearchSoft == "MAXQUANT")]) {
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::MQ.summary)
   #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = sc
@@ -48,7 +48,10 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
   } else { misFun <- missing }
   #
   tstCl <- stopCl <- misFun(cl)
-  if ((is.null(MQtxt))||(!dir.exists(MQtxt))) { MQtxt <- getwd() }
+  if (!misFun(MQtxt)) {
+    MQtxt <- MQtxt[which(dir.exists(MQtxt))]
+    if (!length(MQtxt)) { MQtxt <- getwd() }
+  } else { MQtxt <- getwd() }
   wd0 <- getwd()
   if (misFun(wd)) { WD <- wd0 } else { WD <- wd }
   WD <- gsub("/+$", "", normalizePath(WD, "/"))
@@ -98,7 +101,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     Raw <- data.frame("Raw file" = gsub("\\.((raw)|(mzX?ML)|(d)|(dia))$", "", basename(raw.files)),
                       "Directory" = dirname(raw.files),
                       "Path" = raw.files,
-                      "Extension" = sapply(strsplit(raw.files, "\\."), function(x) { rev(unlist(x))[1] }),
+                      "Extension" = vapply(strsplit(raw.files, "\\."), function(x) { rev(unlist(x))[1] }, ""),
                       "Exists" = file.exists(raw.files),
                       check.names = FALSE)
     if (length(which(!Raw$Exists))) {
@@ -107,12 +110,12 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       #Raw$Path <- NULL
     }
     # Use of file name, with or without extension, or full path, is inconsistent. remediate this:
-    tstPth <- sapply(1:3, function(x) {
+    tstPth <- vapply(1:3, function(x) {
       kol <- c("Raw file", "Path", "Path")[x]
       raws <- Raw[[kol]]
       if (x == 3) { raws <- paste0(raws, ".", Raw$Extension) }
       return(sum(raws %in% ev$`Raw file`))
-    })
+    }, 1)
     L <- length(unique(ev$`Raw file`))
     if (!L %in% tstPth) { warning("Couldn't find raw paths in evidences file.") }
     w <- which(tstPth == L)[1]
@@ -124,7 +127,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       Raw <- data.frame("Raw file" = gsub("\\.((raw)|(mzX?ML)|(d)|(dia))$", "", basename(raw)),
                         "Directory" = dirname(raw),
                         "Path" = raw,
-                        "Extension" = sapply(strsplit(raw, "\\."), function(x) { rev(unlist(x))[1] }),
+                        "Extension" = vapply(strsplit(raw, "\\."), function(x) { rev(unlist(x))[1] }, ""),
                         "Exists" = file.exists(raw),
                         check.names = FALSE)
     }
@@ -162,11 +165,11 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       temp$Proteins <- NULL; temp$"Protein groups" <- NULL
       temp <- reshape::melt.data.frame(temp, id.vars = "Sample")
       if (UseMods) {
-        temp$Modification <- sapply(as.character(temp$variable), function(x) {
+        temp$Modification <- vapply(as.character(temp$variable), function(x) {
           x <- unlist(strsplit(x, " - "))
           if (length(x) == 1) { x <- "All" } else { x <- x[1] }
           return(x)
-        })
+        }, "")
         temp$Modification <- factor(temp$Modification, levels = c("All", names(mods)))
       }
       temp$variable <- apply(cbind(grepl("evidences", temp$variable, ignore.case = TRUE),
@@ -206,7 +209,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         setwd(WD)
         if (s %in% c("jpeg", "tiff", "png", "bmp")) {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                 dpi = 300, width = 10, height = 10, units = "in")
+                          dpi = 300, width = 10, height = 10, units = "in")
         } else {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
         }
@@ -251,7 +254,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         setwd(WD)
         if (s %in% c("jpeg", "tiff", "png", "bmp")) {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                 dpi = 300, width = 10, height = 10, units = "in")
+                          dpi = 300, width = 10, height = 10, units = "in")
         } else {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
         }
@@ -289,7 +292,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         setwd(WD)
         if (s %in% c("jpeg", "tiff", "png", "bmp")) {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                 dpi = 300, width = 10, height = 10, units = "in")
+                          dpi = 300, width = 10, height = 10, units = "in")
         } else {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
         }
@@ -329,7 +332,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         setwd(WD)
         if (s %in% c("jpeg", "tiff", "png", "bmp")) {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                 dpi = 300, width = 10, height = 10, units = "in")
+                          dpi = 300, width = 10, height = 10, units = "in")
         } else {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
         }
@@ -406,13 +409,13 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             clusterExport(cl, list("temp2", "winsz"), envir = environment())
             f2 <- function(x) { #x <- rawFls[1]
               w <- data.frame(Wh = which(temp2$"Raw file path" == x))
-              w$tst <- sapply(1:length(w$Wh), function(x) {
+              w$tst <- vapply(1:length(w$Wh), function(x) {
                 m <- max(temp2$"Retention time"[w$Wh])
                 rng <- c(max(c(0, temp2$"Retention time"[w$Wh[x]]-winsz/2)),
                          min(c(temp2$"Retention time"[w$Wh[x]]+winsz/2, m)))
                 w2 <- which((temp2$"Retention time"[w$Wh] >= rng[1])&(temp2$"Retention time"[w$Wh] <= rng[2]))
                 return(temp2$Intensity[w$Wh[x]] == max(temp2$Intensity[w$Wh][w2]))
-              })
+              }, TRUE)
               return(w)
             }
             tmp <- parallel::parLapply(cl, rawFls, f2)
@@ -444,8 +447,8 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                 ggrepel::geom_text_repel(data = temp[w[w2],],
                                          ggplot2::aes(x = `Retention time`, y = Intensity,
                                                       label = Label),
-                                angle = 45, hjust = 0, cex = 2.8, force = 0.0005,
-                                direction = "y", ylim = c(1, yscl), min.segment.length = 0) +
+                                         angle = 45, hjust = 0, cex = 2.8, force = 0.0005,
+                                         direction = "y", ylim = c(1, yscl), min.segment.length = 0) +
                 ggplot2::facet_wrap(~`Raw file path`) + ggplot2::ggtitle(ttl) +
                 ggplot2::ylab("Intensity") + ggplot2::coord_fixed(Rat) + ggplot2::theme_bw() # +
               #ggplot2::scale_x_discrete(breaks = 1:floor(max(temp$"Retention time"))) # NB: Here use the global values for consistency between iterations
@@ -454,7 +457,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                 setwd(WD)
                 if (s %in% c("jpeg", "tiff", "png", "bmp")) {
                   ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                         dpi = 300, width = 10, height = 10, units = "in")
+                                  dpi = 300, width = 10, height = 10, units = "in")
                 } else {
                   ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
                 }
@@ -468,9 +471,20 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     # Number of Retention time bins
     nb <- 200
     # MSMS file
-    if ("msms.txt" %in% list.files(MQtxt)) {
-      msms <- try(data.table::fread(paste0(MQtxt, "/msms.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE), silent = TRUE)
-      if (class(msms) != "try-error") {
+    msmsOK <- FALSE
+    wMQ <- which(vapply(MQtxt, function(dir) { "msms.txt" %in% list.files(dir) }, TRUE))
+    if (length(wMQ)) {
+      msms <- lapply(MQtxt[wMQ], function(dir) {
+        tst <- try({
+          rs <- data.table::fread(paste0(dir, "/msms.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
+          rs$Search_output_dir <- dir
+          return(rs)
+        }, silent = TRUE)
+        if (class(tst) != "try-error") { return(rs) } else { return() }
+      })
+      msms <- plyr::rbind.fill(msms)
+      if (("data.frame" %in% class(msms))&&(nrow(msms))) {
+        msmsOK <- TRUE
         msms$"Raw file" <- factor(msms$"Raw file", levels = levels(rawFls))
         msms <- msms[which(!is.na(msms$"Raw file")),]
         msms <- msms[order(msms$"Retention time", decreasing = FALSE),]
@@ -507,7 +521,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             setwd(WD)
             if (s %in% c("jpeg", "tiff", "png", "bmp")) {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                     dpi = 300, width = 10, height = 10, units = "in")
+                              dpi = 300, width = 10, height = 10, units = "in")
             } else {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
             }
@@ -518,13 +532,22 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     } else { message("NB: \"msms.txt\" could not be found.") }
     #
     # MSMS scans file
-    if ("msmsScans.txt" %in% list.files(MQtxt)) {
-      msmsScans <- try(data.table::fread(paste0(MQtxt, "/msmsScans.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE), silent = TRUE)
-      if (class(msmsScans) != "try-error") {
+    wMQ <- which(vapply(MQtxt, function(dir) { "msmsScans.txt" %in% list.files(dir) }, TRUE))
+    if (length(wMQ)) {
+      msmsScans <- lapply(MQtxt[wMQ], function(dir) {
+        tst <- try({
+          rs <- data.table::fread(paste0(dir, "/msmsScans.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
+          rs$Search_output_dir <- dir
+          return(rs)
+        }, silent = TRUE)
+        if (class(tst) != "try-error") { return(rs) } else { return() }
+      })
+      msmsScans <- plyr::rbind.fill(msmsScans)
+      if (("data.frame" %in% class(msmsScans))&&(nrow(msmsScans))) {
         msmsScans <- msmsScans[order(msmsScans$"Retention time", decreasing = FALSE),]
         msmsScans <- msmsScans[order(msmsScans$"Raw file"),]
         msmsScans$Unique_scan <- gsub("___ +", "___", do.call(paste, c(msmsScans[, c("Raw file", "Scan number")], sep = "___")))
-        if ("msms.txt" %in% list.files(MQtxt)) {
+        if (msmsOK) {
           msmsScans$Identified <- c("-", "+")[msmsScans$Unique_scan %in% msms$Unique_scan+1]
         }
         msmsScans$Identified <- factor(msmsScans$Identified, levels = c("-", "+"))
@@ -555,7 +578,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             setwd(WD)
             if (s %in% c("jpeg", "tiff", "png", "bmp")) {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                     dpi = 300, width = 10, height = 10, units = "in")
+                              dpi = 300, width = 10, height = 10, units = "in")
             } else {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
             }
@@ -572,14 +595,14 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           temp[[paste0(r, "___Intensity_Not.identified")]] <- NA
           temp[[paste0(r, "___Intensity_Identified")]] <- NA
           if (length(w1)) {
-            tst1 <- sapply(m$"Retention time"[w1], function(x) { temp$Retention.time[which(temp$Retention.time >= x)[1]] })
+            tst1 <- vapply(m$"Retention time"[w1], function(x) { temp$Retention.time[which(temp$Retention.time >= x)[1]] }, 1)
             temp1 <- aggregate(m$"Precursor intensity"[w1]/m$"Precursor apex fraction"[w1], list(tst1),
                                function(x) { sum(proteoCraft::is.all.good(x)) })
             w1 <- which(temp$Retention.time %in% temp1$Group.1)
             temp[w1, paste0(r, "___Intensity_Not.identified")] <- temp1$x[match(temp$Retention.time[w1], temp1$Group.1)]
           }
           if (length(w2)) {
-            tst2 <- sapply(m$"Retention time"[w2], function(x) { temp$Retention.time[which(temp$Retention.time >= x)[1]] })
+            tst2 <- vapply(m$"Retention time"[w2], function(x) { temp$Retention.time[which(temp$Retention.time >= x)[1]] }, 1)
             temp2 <- aggregate(m$"Precursor intensity"[w2]/m$"Precursor apex fraction"[w2], list(tst2),
                                function(x) { sum(proteoCraft::is.all.good(x)) })
             w2 <- which(temp$Retention.time %in% temp2$Group.1)
@@ -615,7 +638,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             setwd(WD)
             if (s %in% c("jpeg", "tiff", "png", "bmp")) {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                     dpi = 300, width = 10, height = 10, units = "in")
+                              dpi = 300, width = 10, height = 10, units = "in")
             } else {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
             }
@@ -641,7 +664,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             setwd(WD)
             if (s %in% c("jpeg", "tiff", "png", "bmp")) {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                     dpi = 300, width = 10, height = 10, units = "in")
+                              dpi = 300, width = 10, height = 10, units = "in")
             } else {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
             }
@@ -675,7 +698,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                 setwd(WD)
                 if (s %in% c("jpeg", "tiff", "png", "bmp")) {
                   ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                         dpi = 300, width = 10, height = 10, units = "in")
+                                  dpi = 300, width = 10, height = 10, units = "in")
                 } else {
                   ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
                 }
@@ -687,9 +710,18 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       } else { warning("NB: \"msmsScans.txt\" could not be loaded and may be corrupted...") }
     } else { message("NB: \"msmsScans.txt\" could not be found.") }
     # Plot - original evidences contamination level
-    if ("evidence.txt" %in% list.files(MQtxt)) {
-      ev2 <- try(data.table::fread(paste0(MQtxt, "/evidence.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE), silent = TRUE)
-      if (!"try-error" %in% class(ev2)) {
+    wMQ <- which(vapply(MQtxt, function(dir) { "evidence.txt" %in% list.files(dir) }, TRUE))
+    if (length(wMQ)) {
+      ev2 <- lapply(MQtxt[wMQ], function(dir) {
+        tst <- try({
+          rs <- data.table::fread(paste0(dir, "/evidence.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
+          rs$Search_output_dir <- dir
+          return(rs)
+        }, silent = TRUE)
+        if (class(tst) != "try-error") { return(rs) } else { return() }
+      })
+      ev2 <- plyr::rbind.fill(ev2)
+      if (("data.frame" %in% class(ev2))&&(nrow(ev2))) {
         ev2$"Raw file" <- factor(ev2$"Raw file", levels = levels(rawFls))
         ev2$Class <- "Sample"
         w1 <- which(ev2$Reverse == "+")
@@ -722,86 +754,6 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         } }
       }
     }
-    #if ("allPeptides.txt" %in% list.files(MQtxt)) {
-    #  require(fGarch)
-    #  allpep <- read.delim("allPeptides.txt", check.names = FALSE)
-    #  allpep$Retention.times <- apply(allpep[, c("Min scan number", "Max scan number")], 1, function(x) { 
-    #    m <- match(x[[1]]:x[[2]], ms$`Scan number`)
-    #    m <- m[which(!is.na(m))]
-    #    paste(ms$`Retention time`[m], collapse = ";")
-    #  })
-    #  tst1 <- sapply(strsplit(allpep$Intensities, ";"), length)
-    #  tst2 <- sapply(strsplit(allpep$Retention.times, ";"), length)
-    #  allpep <- allpep[which(tst1 == tst2),]
-    #  psnorm_diff <- function(rt, mean, sd, xi, sampling) {
-    #    psnorm(rt+0.5*sampling, mean, sd, xi) - psnorm(rt-0.5*sampling, mean, sd, xi)
-    #  }
-    #  kount <- 0
-    #  for (i in 1:nrow(allpep)) {
-    #    temp <- data.frame(RT = as.numeric(unlist(strsplit(allpep$Retention.times[i], ";"))),
-    #                       Intensities = as.numeric(unlist(strsplit(allpep$Intensities[i], ";"))))
-    #    if (length(which(temp$RT > 0)) > 10) {
-    #      Sampling <- mean(temp$RT[2:nrow(temp)] - temp$RT[1:(nrow(temp)-1)])
-    #      S <- sum(temp$Intensities)
-    #      temp$Rel.intens <- temp$Intensities/S
-    #      Mx <- max(temp$Intensities)
-    #      M <- mean(temp$RT[which(temp$Intensities == Mx)])
-    #      SD <- sd(temp$Rel.intens)
-    #      test <- try(nls(Rel.intens ~ psnorm_diff(RT, mean, sd, xi, Sampling), data = temp,
-    #                      start = list(mean = M, sd = SD, xi = 1)), silent = TRUE)
-    #      if (class(test) == "nls") {
-    #        if (exists("fwhm")) { rm(fwhm) }
-    #        res <- as.data.frame(summary(test)$parameters)
-    #        res <- setNames(res$Estimate, rownames(res))
-    #        Mx2 <- psnorm_diff(res[["mean"]], res[["mean"]], res[["sd"]], res[["xi"]], Sampling)*S
-    #        extr <- c(min(temp$RT), max(temp$RT))
-    #        rg <- data.frame(RT = ((0:100)/100)*(extr[2]-extr[1])+extr[1])
-    #        rg$value <- psnorm_diff(rg$RT, res[["mean"]], res[["sd"]], res[["xi"]], Sampling)*S
-    #        limz <- suppressWarnings(c(L1 = max(which((rg$value < Mx2/2)&(rg$RT < res[["mean"]]))),
-    #                                   L2 = min(which((rg$value > Mx2/2)&(rg$RT < res[["mean"]]))),
-    #                                   R1 = max(which((rg$value > Mx2/2)&(rg$RT > res[["mean"]]))),
-    #                                        R2 = min(which((rg$value < Mx2/2)&(rg$RT > res[["mean"]])))))
-    #        if (length(proteoCraft::is.all.good(limz)) == 4) {
-    #          diff <- c(psnorm_diff(mean(rg$RT[limz[1:2]]), res[["mean"]], res[["sd"]], res[["xi"]], Sampling)*S,
-    #                    psnorm_diff(mean(rg$RT[limz[3:4]]), res[["mean"]], res[["sd"]], res[["xi"]], Sampling)*S)
-    #          if (max(abs((diff-Mx2/2)*2/Mx2)) > 0.01) {
-    #            while (max(abs((diff-Mx2/2)*2/Mx2)) > 0.01) {
-    #              rg <- data.frame(RT = c(((0:100)/100)*(rg$RT[limz[2]]-rg$RT[limz[1]])+rg$RT[limz[1]],
-    #                                      ((0:100)/100)*(rg$RT[limz[4]]-rg$RT[limz[3]])+rg$RT[limz[3]]))
-    #                rg$value <- psnorm_diff(rg$RT, res[["mean"]], res[["sd"]], res[["xi"]], Sampling)*S
-    #              limz <- suppressWarnings(c(L1 = max(which((rg$value < Mx2/2)&(rg$RT < res[["mean"]]))),
-    #                                         L2 = min(which((rg$value > Mx2/2)&(rg$RT < res[["mean"]]))),
-    #                                         R1 = max(which((rg$value > Mx2/2)&(rg$RT > res[["mean"]]))),
-    #                                         R2 = min(which((rg$value < Mx2/2)&(rg$RT > res[["mean"]])))))
-    #              diff <- c(psnorm_diff(mean(rg$RT[limz[1:2]]), res[["mean"]], res[["sd"]], res[["xi"]], Sampling)*S,
-    #                        psnorm_diff(mean(rg$RT[limz[3:4]]), res[["mean"]], res[["sd"]], res[["xi"]], Sampling)*S)
-    #            }
-    #          }
-    #          fwhm <- mean(rg$RT[limz[3:4]])-mean(rg$RT[limz[1:2]])
-    #          kount <- kount+1
-    #          # Neat plot to check (for one iteration only) that the fit is good:
-    #          #plot <- ggplot2::ggplot(temp) +
-    #          #  ggplot2::geom_line(ggplot2::aes(x = RT, y = Rel.intens)) +
-    #          #  ggplot2::geom_vline(xintercept = allpep$`Retention time`[i], colour = "red") +
-    #          #  ggplot2::stat_function(fun = function(rt) {
-    #          #    psnorm_diff(rt, res[["mean"]], res[["sd"]], res[["xi"]], Sampling)
-    #          #  }, colour = "blue") +
-    #          #  ggplot2::geom_segment(x = mean(rg$RT[limz[1:2]]), y = Mx2*0.5/S,
-    #          #                        xend = mean(rg$RT[limz[3:4]]), yend = Mx2*0.5/S,
-    #          #                        xcolour = "green") +
-    #          #  ggplot2::geom_text(x = mean(rg$RT[limz[1:2]]) + fwhm/2, y = Mx2*0.525/S,
-    #          #                     label = "approx. FWHM", colour = "green") +
-    #          #  ggplot2::theme_bw()
-    #          #proteoCraft::poplot(plot, 12, 22)
-    #          #Add title + save chunk!
-    #          if (kount == 1) {
-    #            Res <- data.frame(fwhm = fwhm, skewness = res[["xi"]], corr.RT = res[['mean']])
-    #          } else { Res[kount,] <- c(fwhm = fwhm, skewness = res[["xi"]], corr.RT = res[['mean']]) }
-    #        }
-    #      }
-    #    }
-    #  }
-    #}
   }
   setwd(wd0)
   #

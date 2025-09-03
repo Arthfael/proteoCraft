@@ -293,7 +293,8 @@ Format.DB <- function(file,
         if (length(seq) < nrow(temp1)) {
           wY <- match(seq, temp1$Sequence)
           wN <- which(!c(1:nrow(temp1)) %in% wY)
-          cat(paste0("", length(wN), " duplicate sequences were removed.\n"))
+          lN <- length(wN)
+          cat(paste0(lN, " duplicate sequence", c(" was", "s were")[(lN > 1)+1], " removed.\n"))
           temp1 <- temp1[wY, , drop = FALSE]
         }
       }

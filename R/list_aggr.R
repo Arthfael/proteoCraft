@@ -30,7 +30,7 @@ list_aggr <- function(origin, dest, list.col, other.col, dest.match.col, insep =
   temp <- origin[[list.col]]
   temp <- strsplit(as.character(temp), insep)
   if (length(other.col) > 1) {
-    namez <- apply(origin[,other.col], 1, function(x) {paste(x, collapse = "_-;-_")})
+    namez <- apply(origin[,other.col], 1, paste, collapse = "_-;-_")
   } else { namez <- origin[[other.col]] }
   names(temp) <- namez
   temp <- melt(temp)
@@ -42,7 +42,7 @@ list_aggr <- function(origin, dest, list.col, other.col, dest.match.col, insep =
   m[which(is.na(m))] <- nrow(temp2)+1
   res <- x[m]
   if (length(other.col) > 1) {
-    res <- as.data.frame(t(sapply(strsplit(res, "_-;-_"), function(x) {unlist(x)})))
+    res <- as.data.frame(t(sapply(strsplit(res, "_-;-_"), unlist)))
   }
   return(res)
 }
