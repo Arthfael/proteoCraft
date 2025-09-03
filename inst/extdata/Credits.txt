@@ -1,4 +1,4 @@
-Some resources in this folder are not created by us but distributed with this package for convenience:
+Some resources in this folder are not created by us but re-distributed with this package for convenience:
 
  - CCP_cRAPome.fasta is the contaminants fasta file from the Cambridge Center for Proteomics, with headers edited to be more UniProtKB-like.
 
@@ -29,7 +29,7 @@ Some resources in this folder are not created by us but distributed with this pa
 	o Format_as_bar_VBA.xlsm and Format_as_bar_VBS.vbs: format values as progress bars.
 	o Format_as_num_VBA.xlsm and Format_as_num_VBS.vbs: format values as numeric, where openxlsx was refusing/failing to do so.
 	o ExampleCodeForMacros.Rmd illustrates how the macros can be run.
-   Though very useful in their time, those were slow. As of July 2024, these are completely superseded by a openxlsx2-based solution, itself being speed-optimized as of October 2024.
+   Though very useful in their time, these were slow. As of July 2024, these are completely superseded by a much faster openxlsx2-based solution.
 
  - NCBI_GENOME_REPORTS_overview.txt is redistributed from NCBI, downloaded from ftp://ftp.ncbi.nlm.nih.gov/genomes/GENOME_REPORTS/overview.txt on 2024-07-15.
    It is currently used by the Prot.Ruler function by default.
