@@ -3,7 +3,7 @@ if (!interactive()) { stop("This script should only be run within an interactive
 options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
 options(svDialogs.rstudio = TRUE)
-#rm(list = ls()[which(!ls() %in% c("dtstNm", "wd", "indir", "outdir"))])
+#rm(list = ls()[which(!ls() %in% c("dtstNm", "wd", "inDirs", "outDir"))])
 
 ## The proteoCraft package can be re-installed at any time in the workflow (there is a specific script for this in the package's library folder),
 ## or just load it here:
@@ -12,7 +12,6 @@ if (exists(".obj")) { rm(".obj") }
 library(proteoCraft)
 dirlist %<o% c() # This should go!!!
 ReUseAnsw %<o% FALSE
-ReLoadPSMsBckp %<o% FALSE
 scrptType %<o% "withReps"
 scrptTypeFull %<o% "withReps_PG_and_PTMs"
 
@@ -22,7 +21,7 @@ libPath %<o% paste0(RPath, "/proteoCraft")
 homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1, 1)) }
 parSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
-fls <- paste0(homePath, "/", c("Regulation analysis - master script.R",
+fls <- paste0(homePath, "/", c(#"Regulation analysis - master script.R",
                                "Regulation analysis - detailed script.R",
                                "Regulation analysis - detailed script_pepOnly.R",
                                "No replicates analysis - detailed script.R",
@@ -43,16 +42,15 @@ xplorSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/xplorData.R")
 ## CRAN packages:
 if(!exists("cran_req")) { cran_req %<o% "pak" } else { cran_req %<o% cran_req }
 if(!exists("bioc_req")) { bioc_req %<o% c() } else { bioc_req %<o% bioc_req }
-cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "iq", "Rtsne", #"uchardet", # Should not be necessary anymore since Rcy3 replaced it with stringi in version 2.24.0
-                     "qs2", "shinyWidgets", "DT",
-                     "shinyBS", "stringr", "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "rgl", "ggrepel", "rstudioapi",
-                     "modeest", "minpack.lm", "snow", "viridis", "pcaMethods", "impute", "imputeLCMD", "parallel", "coin", "openxlsx", "openxlsx2", "plotly",
-                     "Peptides", "xml2", "pdftools", "statmod", "ggpolypath", "venn", "gridExtra", "svDialogs", "htmlwidgets", "magrittr", "tibble", "officer",
-                     "hexbin", "igraph", "matlib", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders", "tidyr",
-                     "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "lmtest", "ssh", "taxize", "ggdendro", "colorspace", "factoextra", "NbClust",
-                     "BH", "plogr", "unimod"))
+cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT", "shinyBS", "stringr",
+                     "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "rgl", "ggrepel", "rstudioapi", "modeest",
+                     "minpack.lm", "snow", "viridis", "pcaMethods", "impute", "imputeLCMD", "parallel", "coin", "openxlsx", "openxlsx2", "plotly",
+                     "Peptides", "xml2", "pdftools", "statmod", "ggpolypath", "venn", "gridExtra", "svDialogs", "htmlwidgets", "magrittr", "tibble",
+                     "officer", "hexbin", "igraph", "matlib", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
+                     "tidyr", "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "lmtest", "ssh", "taxize", "arrow", "unimod",
+                     "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "plogr", "iq", "Rtsne"))
 bioc_req <- unique(c(bioc_req, "biomaRt", "GO.db", "UniProt.ws", "limma", "sva", "qvalue", "MSnbase", "DEP",
-                     "Rgraphviz", "RCy3", "siggenes", "pRoloc", "pRolocGUI", "DEqMS", "rbioapi", "png", "Rhdf5lib"))
+                     "Rgraphviz", "RCy3", "siggenes", "DEqMS", "pRoloc", "pRolocGUI", "rbioapi", "png", "Rhdf5lib"))
 inst <- as.data.frame(installed.packages())
 for (pack in cran_req) {
   if (!pack %in% inst$Package) {
@@ -239,7 +237,8 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/Process_Fasta_DBs.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
+#evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
+evNm %<o% "PSM"
 
 #### Code chunk - Load and process annotations
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Load_Annotations.R")
@@ -252,6 +251,7 @@ source(Src, local = FALSE)
 
 # Create experiment Factors shortcuts
 Src <- paste0(libPath, "/extdata/R scripts/Sources/XpFact_shortcuts.R")
+#rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
 saveImgFun(BckUpFl)
@@ -357,9 +357,7 @@ source(Src, local = FALSE)
 
 # Start of processing of evidences table
 ReportCalls <- AddSpace2Report()
-ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_fpar(Report, fpar(ftext(\"Processing of the ",
-                                                      c("evidence", "PSMs", "PSMs", "identifications")[mSft],
-                                                      " table\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))"))
+ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_fpar(Report, fpar(ftext(\"Processing of the PSMs table\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))"))
 # Remove reverse database hits
 ev <- ev[which(ev$Reverse == ""),]
 
@@ -371,8 +369,8 @@ if ((RemovZ1)&&(length(w1))) {
   AmIBogus <- paste(unique(ev$"Modified sequence"[w1]), collapse = "\n")
   #cat(AmIBogus)
   cat("Removing the following presumably bogus identifications with Z=1:\n", AmIBogus, "\n")
+  ev <- ev[wHt1,]
 }
-ev <- ev[wHt1,]
 
 w <- grep("CONTAMINANT", colnames(ev), ignore.case = TRUE)
 if (length(w) > 1) { warning("Hmmm..., you might wanna check what is happening here...") } else {
@@ -539,7 +537,7 @@ source(Src, local = FALSE)
 #
 # To do:
 # - If outlier is the only reference sample in a reference group, unfortunately you will have to remove the whole group
-# - Add Pearson correlation heatmap amongst visualizations to base decision to remove outliers, it is very good!
+# - Add Pearson correlation heatmap amongst those visualizations used to decide whether to remove any outliers, it is very good!
 #
 pep.ref %<o% setNames("Evidence intensities - ", "Original")
 if (!"Use" %in% colnames(Exp.map)) { Exp.map$Use <- TRUE } else {
@@ -874,6 +872,12 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/remove_Outliers.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
+if (length(inDirs) > 1) {
+  DatAnalysisTxt <- paste0(DatAnalysisTxt, " PSM table outputs from the different searches were converted to a compatible format and concatenated into a single table, then this")
+} else {
+  DatAnalysisTxt <- paste0(DatAnalysisTxt, " The long format PSMs table")
+}
+
 g <- grep(topattern(pep.ref["Original"]), colnames(pep), value = TRUE)
 # View(pep[, g])
 test <- rowSums(pep[, g])
@@ -885,8 +889,7 @@ if (l) {
   w <- which(ev$id %in% unique(as.integer(unlist(strsplit(pep$"Evidence IDs", ";")))))
   ev <- ev[w,]
 }
-DatAnalysisTxt <- paste0(DatAnalysisTxt, " The long format ", c("evidence.txt", "main report", "psm.tsv")[match(SearchSoft, SearchSoftware)],
-                         " table was consolidated into a wide format peptidoforms table, summing up quantitative values where necessary.")
+DatAnalysisTxt <- paste0(DatAnalysisTxt, " was transformed into a wide format peptidoforms table, summing up quantitative values where necessary.")
 
 LocAnalysis2 %<o% FALSE
 
@@ -1250,11 +1253,11 @@ if (Param$Norma.Pep.Ratio) {
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 gc()
-# It makes sense to close/re-create parallel clusters regularly to reduce memory usage + avoid corruption
-stopCluster(parClust)
-source(parSrc, local = FALSE)
+# It makes sense to close/re-create parallel clusters regularly to reduce memory usage
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
+stopCluster(parClust)
+source(parSrc, local = FALSE)
 
 #### Code chunk - Assemble protein groups
 ReportCalls <- AddSpace2Report()
@@ -1721,7 +1724,7 @@ expscol <- paste0("log10(Expr.) - ", RSA$values)
 # Weights:
 # - Higher for peptides with low intra-sample group CV on average
 # - Higher for peptides with low PEP
-if (QuantUMS) {
+if ((length(inDirs) == 1)&&(QuantUMS)) {
   weightsInsrt <- "mean DiaNN \"Quantity Quality\"" 
   pep$Weights <- pep$"Quantity Quality"
 } else {
@@ -2725,17 +2728,13 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
       #br(),
       # fluidRow(column(4, withSpinner(plotOutput("pepIntensities"))),
       #          column(4, withSpinner(plotOutput("pepRatios")))),
-      
-      fluidRow(column(6,
-                      h4(strong(em("Intensities"))),
-                      withSpinner(imageOutput("pgIntensities", width = "100%", height = "100%")),
-                      br(),
-                      withSpinner(imageOutput("pepIntensities", width = "100%", height = "100%"))),
-               column(6,
-                      h4(strong(em("Ratios"))),
-                      withSpinner(imageOutput("pgRatios", width = "100%", height = "100%")),
-                      br(),
-                      withSpinner(imageOutput("pepRatios", width = "100%", height = "100%")))),
+      fluidRow(column(6, withSpinner(imageOutput("pgIntensities", width = "100%", height = "100%"))),
+               column(6, withSpinner(imageOutput("pgRatios", width = "100%", height = "100%")))),
+      br(),
+      br(),
+      br(),
+      fluidRow(column(6, withSpinner(imageOutput("pepIntensities", width = "100%", height = "100%"))),
+               column(6, withSpinner(imageOutput("pepRatios", width = "100%", height = "100%")))),
       br(),
       br()
     )
@@ -4113,11 +4112,10 @@ if (sum(c("dat", "dat2") %in% filter_types)) {
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 gc()
-# It makes sense to close/re-create parallel clusters regularly to reduce memory usage + avoid corruption
-stopCluster(parClust)
-source(parSrc, local = FALSE)
+try({ stopCluster(parClust) }, silent = TRUE)
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
+source(parSrc, local = FALSE)
 
 #### Code chunk - F-test
 #Param <- Param.load()
@@ -5568,12 +5566,11 @@ if (length(filt) > 2) {
   cran_req <- unique(c(cran_req, "Rtsne"))
   if (!require("Rtsne", quietly = TRUE)) { install.packages("Rtsne") }
   require(Rtsne)
-  a <- captureOutput(try({ tsne <- Rtsne(temp, dims = 3, perplexity = 30, verbose = TRUE, max_iter = 500) }, silent = TRUE)) # Trick to suppress those pesky messages!
+  tsne <- try(Rtsne(temp, dims = 3, perplexity = 30, verbose = TRUE, max_iter = 500), silent = TRUE)
+  dir <- paste0(wd, "/Dimensionality red. plots/t-SNE")
+  if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+  dirlist <- unique(c(dirlist, dir))
   if (!"try-error" %in% class(tsne)) {
-    dir <- paste0(wd, "/Dimensionality red. plots/t-SNE")
-    if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    dirlist <- unique(c(dirlist, dir))
-    #
     temp2 <- as.data.frame(tsne$Y); colnames(temp2) <- c("t-SNE Y1", "t-SNE Y2", "t-SNE Y3")
     kol <- c("Protein group", "Av. log10 abundance", "Classifier", "Alpha")
     temp2[, kol] <- scores[match(rownames(temp), rownames(scores)), kol]
@@ -5617,11 +5614,10 @@ if (length(filt) > 2) {
   if (!require("umap", quietly = TRUE)) { install.packages("umap") }
   require(umap)
   UMAP <- try(umap(temp, n_components = 3), silent = TRUE)
+  dir <- paste0(wd, "/Dimensionality red. plots/UMAP")
+  if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+  dirlist <- unique(c(dirlist, dir))
   if (!"try-error" %in% class(UMAP)) {
-    dir <- paste0(wd, "/Dimensionality red. plots/UMAP")
-    if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    dirlist <- unique(c(dirlist, dir))
-    #
     UMAPlayout <- data.frame(UMAP$layout)
     kol <- c("Protein group", "Av. log10 abundance", "Classifier", "Alpha")
     UMAPlayout[, kol] <- scores[match(row.names(UMAPlayout), row.names(scores)), kol]
@@ -7048,7 +7044,7 @@ if (enrichGO||globalGO) {
     }
   }
   if (globalGO) {
-    msg <- "\n - Dataset"
+    msg <- " - Dataset"
     ReportCalls <- AddMsg2Report(Space = FALSE)
     #
     dir <- paste0(wd, "/Reg. analysis/GO enrich/Dataset")
@@ -7115,11 +7111,10 @@ source(modPepSrc, local = FALSE)
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 gc()
-# It makes sense to close/re-create parallel clusters regularly to reduce memory usage + avoid corruption
-stopCluster(parClust)
-source(parSrc, local = FALSE)
+# It makes sense to close/re-create parallel clusters regularly to reduce memory usage
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
+source(parSrc, local = FALSE)
 
 #### Code chunk - Proteomic ruler
 if (protrul) {
@@ -7212,7 +7207,8 @@ if (tmp > defSc) {
 sc <- max(c(sc, 1))
 source(parSrc, local = FALSE)
 Exp_summary %<o% MQ.summary(ev = ev, pg = PG, wd = wd, mods = mods, save = "pdf",
-                            raw.files = rawFiles, sc = sc, cl = parClust, MQtxt = indir)
+                            raw.files = rawFiles, sc = sc, cl = parClust,
+                            MQtxt = inDirs[which(SearchSoft == "MAXQUANT")])
 Exp_summary$"Biological sample" <- ""
 if ("Parent sample" %in% colnames(Frac.map)) {
   Exp_summary$"Biological sample" <- Frac.map$"Parent sample"[match(Exp_summary$Sample, Frac.map$"Raw file")]
@@ -7356,7 +7352,7 @@ KolEdit <- function(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   #KolNames <- xlTabs[[sheetnm]]
   klnms <- KolNames
   KolNames <- gsub("Peptides?", "Pep.", KolNames)
-  KolNames <- gsub("Evidences?", c("PSMs", "Ev.")[(SearchSoft == "MAXQUANT")+1], KolNames)
+  KolNames <- gsub("Evidences?", "PSMs", KolNames)
   KolNames <- gsub("Spectr((al)|(um))", "Spec.", KolNames)
   KolNames <- gsub("Razor", "Raz.", KolNames)
   KolNames <- gsub("Unique", "Uniq.", KolNames)
@@ -7697,7 +7693,7 @@ KolEdit <- function(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl, locTbl =
   #KolNames <- xlTabs[[sheetnm]]
   klnms <- KolNames
   KolNames <- gsub("Peptides?", "Pep.", KolNames)
-  KolNames <- gsub("Evidences?", c("PSMs", "Ev.")[(SearchSoft == "MAXQUANT")+1], KolNames)
+  KolNames <- gsub("Evidences?", "PSMs", KolNames)
   KolNames <- gsub("Spectr((al)|(um))", "Spec.", KolNames)
   KolNames <- gsub("Razor", "Raz.", KolNames)
   KolNames <- gsub("Unique", "Uniq.", KolNames)
@@ -8863,102 +8859,104 @@ if (length(protlspep)) { # Coverage
   setwd(wd) # To make sure I return to the working directory
 }
 if (length(protlspep)) { # XICs
-  xicDir <- paste0(indir, "/report_xic")
-  if (dir.exists(xicDir)) {
-    XIC_fls <- list.files(xicDir, "\\.parquet$", full.names = TRUE)
-    if (length(XIC_fls)) {
-      require(arrow)
-      source(parSrc, local = FALSE)
-      g <- grsep2(protlspep, ev$Proteins)
-      u <- ev$"Mod. seq. (DiaNN format)"[g]
-      tmp <- Frac.map$`Raw files name`
-      clusterExport(parClust, list("tmp", "g", "u"), envir = environment())
-      XICs <- parLapply(parClust, XIC_fls, function(x) {
-        res <- arrow::read_parquet(x)
-        res$"Mod. seq." <- proteoCraft::gsub_Rep("[0-9]+$", "", res$pr)
-        res <- res[which(res$"Mod. seq." %in% u),]
-        nm <- gsub(".*/|\\.xic\\.parquet$", "", x)
-        res$File <- nm
-        res$"Seq_Run" <- do.call(paste, c(res[, c("pr", "File")], sep = ">>>"))
-        res$File <- factor(res$File, levels = tmp)
-        res <- res[which(res$feature != "index"),]
-        return(res)
-      })
-      #View(XICs[[1]])
-      XICs <- plyr::rbind.fill(XICs)
-      #View(XICs[1:100,])
-      #
-      m <- match(XICs$"Mod. seq.", ev$"Mod. seq. (DiaNN format)")
-      XICs[, c("Proteins", "Sequence", "ModSeq", "PEP", "Quantity Quality")] <- ev[m,
-                                                                                   c("Proteins", "Sequence", "Modified sequence", "PEP", "Quantity Quality")]
-      ev$tmp <- ">>>"
-      Boundaries <- do.call(paste0, c(ev[, c("Mod. seq. (DiaNN format)", "Charge", "tmp", "Raw file")]))
-      ev$tmp <- NULL
-      w <- which(Boundaries %in% XICs$Seq_Run)
-      Boundaries <- data.frame(Seq_Run = Boundaries[w],
-                               RT = ev$`Retention time`[w],
-                               `RT (start)` = ev$`Retention time (start)`[w],
-                               `RT (end)` = ev$`Retention time (end)`[w],
-                               check.names = FALSE)
-      Boundaries$File <- gsub(".*>>>", "", Boundaries$Seq_Run)
-      for (pr in protlspep) { #pr <- protlspep[1]
-        xicDir2 <- paste0(wd, "/XIC/", pr)
-        if (!dir.exists(xicDir2)) { dir.create(xicDir2, recursive = TRUE) }
-        dirlist <- unique(c(dirlist, xicDir2))
-        g <- grsep2(pr, XICs$Proteins)
-        if (length(g)) {
-          XIC <- XICs[g,]
-          pkBnds <- Boundaries[which(Boundaries$Seq_Run %in% XIC$Seq_Run),]
-          u <- unique(XIC$ModSeq)
-          clusterExport(parClust, list("XIC", "pkBnds", "xicDir2", "pr"), envir = environment())
-          parLapply(parClust, u, function(sq) { #sq <- u[1] #sq <- u[2]
-            sq2 <- gsub("^_|_$", "", sq)
-            ppXIC <- XIC[which(XIC$ModSeq == sq),]
-            yMax <- aggregate(ppXIC$value, list(ppXIC$File), max)
-            xMin <- min(ppXIC$rt)
-            bnds <- pkBnds[which(pkBnds$Seq_Run %in% ppXIC$Seq_Run),]
-            bnds$yMax <- yMax$x[match(bnds$File, yMax$Group.1)]
-            wMS1 <- which(ppXIC$feature == "ms1")
-            wMS2 <- which(ppXIC$feature != "ms1")
-            aNNOt <- aggregate(ppXIC[, c("PEP", "Quantity Quality")], list(ppXIC$File), function(x) { signif(mean(x, na.rm = TRUE), 3) })
-            colnames(aNNOt)[1] <- "File"
-            aNNOt$PEP <- paste0("PEP = ", aNNOt$PEP)
-            aNNOt$"Quantity Quality" <- paste0("Quantity Quality = ", aNNOt$"Quantity Quality")
-            aNNOt$Text <- do.call(paste, c(aNNOt[, c("PEP", "Quantity Quality")], sep = "\n"))
-            aNNOt$y <- yMax$x[match(aNNOt$File, yMax$Group.1)]
-            plot <- ggplot2::ggplot() + ggplot2::scale_y_continuous(expand = c(0, 10))
-            if (nrow(bnds)) {
+  for (indir in inDirs[which(SearchSoft == "DIANN")]) {
+    xicDir <- paste0(indir, "/report_xic")
+    if (dir.exists(xicDir)) {
+      XIC_fls <- list.files(xicDir, "\\.parquet$", full.names = TRUE)
+      if (length(XIC_fls)) {
+        require(arrow)
+        source(parSrc, local = FALSE)
+        g <- grsep2(protlspep, ev$Proteins)
+        u <- ev$"Mod. seq. (DiaNN format)"[g]
+        tmp <- Frac.map$`Raw files name`
+        clusterExport(parClust, list("tmp", "g", "u"), envir = environment())
+        XICs <- parLapply(parClust, XIC_fls, function(x) {
+          res <- arrow::read_parquet(x)
+          res$"Mod. seq." <- proteoCraft::gsub_Rep("[0-9]+$", "", res$pr)
+          res <- res[which(res$"Mod. seq." %in% u),]
+          nm <- gsub(".*/|\\.xic\\.parquet$", "", x)
+          res$File <- nm
+          res$"Seq_Run" <- do.call(paste, c(res[, c("pr", "File")], sep = ">>>"))
+          res$File <- factor(res$File, levels = tmp)
+          res <- res[which(res$feature != "index"),]
+          return(res)
+        })
+        #View(XICs[[1]])
+        XICs <- plyr::rbind.fill(XICs)
+        #View(XICs[1:100,])
+        #
+        m <- match(XICs$"Mod. seq.", ev$"Mod. seq. (DiaNN format)")
+        XICs[, c("Proteins", "Sequence", "ModSeq", "PEP", "Quantity Quality")] <- ev[m,
+                                                                                     c("Proteins", "Sequence", "Modified sequence", "PEP", "Quantity Quality")]
+        ev$tmp <- ">>>"
+        Boundaries <- do.call(paste0, c(ev[, c("Mod. seq. (DiaNN format)", "Charge", "tmp", "Raw file")]))
+        ev$tmp <- NULL
+        w <- which(Boundaries %in% XICs$Seq_Run)
+        Boundaries <- data.frame(Seq_Run = Boundaries[w],
+                                 RT = ev$`Retention time`[w],
+                                 `RT (start)` = ev$`Retention time (start)`[w],
+                                 `RT (end)` = ev$`Retention time (end)`[w],
+                                 check.names = FALSE)
+        Boundaries$File <- gsub(".*>>>", "", Boundaries$Seq_Run)
+        for (pr in protlspep) { #pr <- protlspep[1]
+          xicDir2 <- paste0(wd, "/XIC/", pr)
+          if (!dir.exists(xicDir2)) { dir.create(xicDir2, recursive = TRUE) }
+          dirlist <- unique(c(dirlist, xicDir2))
+          g <- grsep2(pr, XICs$Proteins)
+          if (length(g)) {
+            XIC <- XICs[g,]
+            pkBnds <- Boundaries[which(Boundaries$Seq_Run %in% XIC$Seq_Run),]
+            u <- unique(XIC$ModSeq)
+            clusterExport(parClust, list("XIC", "pkBnds", "xicDir2", "pr"), envir = environment())
+            parLapply(parClust, u, function(sq) { #sq <- u[1] #sq <- u[2]
+              sq2 <- gsub("^_|_$", "", sq)
+              ppXIC <- XIC[which(XIC$ModSeq == sq),]
+              yMax <- aggregate(ppXIC$value, list(ppXIC$File), max)
+              xMin <- min(ppXIC$rt)
+              bnds <- pkBnds[which(pkBnds$Seq_Run %in% ppXIC$Seq_Run),]
+              bnds$yMax <- yMax$x[match(bnds$File, yMax$Group.1)]
+              wMS1 <- which(ppXIC$feature == "ms1")
+              wMS2 <- which(ppXIC$feature != "ms1")
+              aNNOt <- aggregate(ppXIC[, c("PEP", "Quantity Quality")], list(ppXIC$File), function(x) { signif(mean(x, na.rm = TRUE), 3) })
+              colnames(aNNOt)[1] <- "File"
+              aNNOt$PEP <- paste0("PEP = ", aNNOt$PEP)
+              aNNOt$"Quantity Quality" <- paste0("Quantity Quality = ", aNNOt$"Quantity Quality")
+              aNNOt$Text <- do.call(paste, c(aNNOt[, c("PEP", "Quantity Quality")], sep = "\n"))
+              aNNOt$y <- yMax$x[match(aNNOt$File, yMax$Group.1)]
+              plot <- ggplot2::ggplot() + ggplot2::scale_y_continuous(expand = c(0, 10))
+              if (nrow(bnds)) {
+                plot <- plot +
+                  ggplot2::geom_rect(data = bnds, ggplot2::aes(xmin = `RT (start)`, ymin = 0, xmax = `RT (end)`, ymax = yMax),
+                                     fill = "lightblue", alpha = 0.2) +
+                  ggplot2::geom_vline(data = bnds, ggplot2::aes(xintercept = RT),
+                                      color = "darkblue", linewidth = 0.5) +
+                  ggplot2::geom_vline(data = bnds, ggplot2::aes(xintercept = `RT (start)`),
+                                      color = "darkblue", linewidth = 0.5, linetype = "dashed") +
+                  ggplot2::geom_vline(data = bnds, ggplot2::aes(xintercept = `RT (end)`),
+                                      color = "darkblue", linewidth = 0.5, linetype = "dashed")
+              }
+              if (length(wMS1)) {
+                plot <- plot +
+                  ggplot2::geom_line(data = ppXIC[wMS1,], ggplot2::aes(x = rt, y = value), color = "red",
+                                     linewidth = 0.5)
+              }
+              if (length(wMS2)) {
+                plot <- plot +
+                  ggplot2::geom_line(data = ppXIC[wMS2,], ggplot2::aes(x = rt, y = value, color = feature),
+                                     linewidth = 0.3)
+              }
               plot <- plot +
-                ggplot2::geom_rect(data = bnds, ggplot2::aes(xmin = `RT (start)`, ymin = 0, xmax = `RT (end)`, ymax = yMax),
-                                   fill = "lightblue", alpha = 0.2) +
-                ggplot2::geom_vline(data = bnds, ggplot2::aes(xintercept = RT),
-                                    color = "darkblue", linewidth = 0.5) +
-                ggplot2::geom_vline(data = bnds, ggplot2::aes(xintercept = `RT (start)`),
-                                    color = "darkblue", linewidth = 0.5, linetype = "dashed") +
-                ggplot2::geom_vline(data = bnds, ggplot2::aes(xintercept = `RT (end)`),
-                                    color = "darkblue", linewidth = 0.5, linetype = "dashed")
-            }
-            if (length(wMS1)) {
-              plot <- plot +
-                ggplot2::geom_line(data = ppXIC[wMS1,], ggplot2::aes(x = rt, y = value), color = "red",
-                                   linewidth = 0.5)
-            }
-            if (length(wMS2)) {
-              plot <- plot +
-                ggplot2::geom_line(data = ppXIC[wMS2,], ggplot2::aes(x = rt, y = value, color = feature),
-                                   linewidth = 0.3)
-            }
-            plot <- plot +
-              ggplot2::geom_text(data = aNNOt, ggplot2::aes(label = Text, y = y), x = xMin, hjust = 0, vjust = 1, size = 3) +
-              ggplot2::scale_colour_viridis_d() +
-              ggplot2::facet_wrap(~File, scales = "free_y") + ggplot2::theme_bw() +
-              ggplot2::ggtitle(paste0(pr, " ", sq2)) +
-              ggplot2::xlab("Retention time") + ggplot2::ylab("Intensity")
-            #proteoCraft::poplot(plot, 12, 22)
-            #
-            ggplot2::ggsave(paste0(xicDir2, "/", sq2, ".jpeg"), plot, dpi = 450, height = 10, width = 10)
-            ggplot2::ggsave(paste0(xicDir2, "/", sq2, ".pdf"), plot, height = 10, width = 10)
-          })
+                ggplot2::geom_text(data = aNNOt, ggplot2::aes(label = Text, y = y), x = xMin, hjust = 0, vjust = 1, size = 3) +
+                ggplot2::scale_colour_viridis_d() +
+                ggplot2::facet_wrap(~File, scales = "free_y") + ggplot2::theme_bw() +
+                ggplot2::ggtitle(paste0(pr, " ", sq2)) +
+                ggplot2::xlab("Retention time") + ggplot2::ylab("Intensity")
+              #proteoCraft::poplot(plot, 12, 22)
+              #
+              ggplot2::ggsave(paste0(xicDir2, "/", sq2, ".jpeg"), plot, dpi = 450, height = 10, width = 10)
+              ggplot2::ggsave(paste0(xicDir2, "/", sq2, ".pdf"), plot, height = 10, width = 10)
+            })
+          }
         }
       }
     }
@@ -8993,8 +8991,8 @@ if (length(protlspep)) {
       UniMod <- unimod::modifications
       Modifs$"Mass shift" <- UniMod$MonoMass[match(Modifs$UniMod, UniMod$UnimodId)]
     } else {
-      if (SearchSoft == "MAXQUANT") {
-        if ((length(MQFold)==1)&&(dir.exists(MQFold))) {
+      if ("MAXQUANT" %in% SearchSoft) {
+        if ((length(MQFold) == 1)&&(dir.exists(MQFold))) {
           modFls <- paste0(MQFold, "/bin/conf/modifications", c("", ".local"), ".xml")
           modFls <- modFls[which(file.exists(modFls))]
         } else {
@@ -9670,7 +9668,7 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/Finalize_analysis.R")
 source(Src, local = FALSE)
 
 ### That's it, done!
-#openwd(outdir)
+#openwd(outDir)
 #rm(list = ls())
 
 # Visualize results - already run earlier, could be expanded here to add more visualizations at further stages

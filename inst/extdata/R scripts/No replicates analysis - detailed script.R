@@ -3,7 +3,7 @@ if (!interactive()) { stop("This script should only be run within an interactive
 options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
 options(svDialogs.rstudio = TRUE)
-#rm(list = ls()[which(!ls() %in% c("dtstNm", "wd", "indir", "outdir"))])
+#rm(list = ls()[which(!ls() %in% c("dtstNm", "wd", "inDirs", "outDir"))])
 
 ## The proteoCraft package can be re-installed at any time in the workflow (there is a specific script for this in the package's library folder),
 ## or just load it here:
@@ -11,7 +11,6 @@ if (exists(".obj")) { rm(".obj") }
 #myPackNm %<o% "proteoCraft" # Bad idea
 library(proteoCraft)
 #ReUseAnsw %<o% FALSE
-ReLoadPSMsBckp %<o% FALSE
 scrptType %<o% "noReps"
 scrptTypeFull %<o% "noReps_PG_and_PTMs"
 
@@ -19,7 +18,7 @@ RPath %<o% as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 libPath %<o% paste0(RPath, "/proteoCraft")
 homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
-fls <- paste0(homePath, "/", c("Regulation analysis - master script.R",
+fls <- paste0(homePath, "/", c(#"Regulation analysis - master script.R",
                                "Regulation analysis - detailed script.R",
                                "Regulation analysis - detailed script_pepOnly.R",
                                "No replicates analysis - detailed script.R",
@@ -39,7 +38,7 @@ if (tst) { proteoCraft::Configure() }
 ## CRAN packages:
 if(!exists("cran_req")) { cran_req %<o% "pak" } else { cran_req %<o% cran_req }
 if(!exists("bioc_req")) { bioc_req %<o% c() } else { bioc_req %<o% bioc_req }
-cran_req <- unique(c(cran_req, "pak", "shiny", "renv", "R.utils", #"uchardet", # Should not be necessary anymore since Rcy3 replaced it with stringi in version 2.24.0
+cran_req <- unique(c(cran_req, "pak", "shiny", "renv", "R.utils",
                      "qs2", "DT", "ggplot2", "ggpubr", "reshape2", "compiler", "stats",
                      "rgl", "ggrepel", "rstudioapi", "gtools", "minpack.lm", "parallel", "openxlsx", "openxlsx2", "openssl", "plotly",
                      "Peptides", "venn", "ggdendro", "ggpubr", "colorspace", "ggnewscale", "viridis", "factoextra", "NbClust", "gridExtra",
@@ -131,8 +130,7 @@ updt_proteoCraft %<o% FALSE
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Start_analysis.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
-AnalysisParam %<o% list("Input folder" = indir,
-                        "Output folder" = outdir,
+AnalysisParam %<o% list("Input folder" = inDirs,
                         "Temp. folder" = wd,
                         "N. of threads" = N.clust)
 
@@ -3231,7 +3229,8 @@ saveImgFun(BckUpFl)
 source(parSrc, local = FALSE)
 Exp_summary %<o% MQ.summary(wd = wd, ev = ev, pg = PG, mods = setNames(Modifs$Mark, Modifs$"Full name"),
                             raw.files = rawFiles, sc = max(c(20, round(length(rawFiles2)/length(Exp)))),
-                            save = c("jpeg", "pdf"), cl = parClust, MQtxt = indir)
+                            save = c("jpeg", "pdf"), cl = parClust,
+                            MQtxt = inDirs[which(SearchSoft == "MAXQUANT")])
 write.csv(Exp_summary, paste0(wd, "/Workflow control/Summary.csv"), row.names = FALSE)
 #Exp_summary <- read.csv(paste0(wd, "/Workflow control/Summary.csv"), check.names = FALSE)
 
@@ -6005,5 +6004,5 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/Finalize_analysis.R")
 source(Src, local = FALSE)
 
 ### That's it, done!
-#openwd(outdir)
+#openwd(outDir)
 #rm(list = ls())

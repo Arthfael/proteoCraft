@@ -3,7 +3,7 @@ if (!interactive()) { stop("This script should only be run within an interactive
 options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
 options(svDialogs.rstudio = TRUE)
-#rm(list = ls()[which(!ls() %in% c("dtstNm", "wd", "indir", "outdir"))])
+#rm(list = ls()[which(!ls() %in% c("dtstNm", "wd", "inDirs", "outDir"))])
 
 ## The proteoCraft package can be re-installed at any time in the workflow (there is a specific script for this in the package's library folder),
 ## or just load it here:
@@ -12,7 +12,6 @@ if (exists(".obj")) { rm(".obj") }
 library(proteoCraft)
 dirlist %<o% c() # This should go!!!
 ReUseAnsw %<o% FALSE
-ReLoadPSMsBckp %<o% FALSE
 scrptType %<o% "withReps"
 scrptTypeFull %<o% "withReps_PTMs_only"
 
@@ -22,7 +21,7 @@ libPath %<o% paste0(RPath, "/proteoCraft")
 homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1, 1)) }
 parSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
-fls <- paste0(homePath, "/", c("Regulation analysis - master script.R",
+fls <- paste0(homePath, "/", c(#"Regulation analysis - master script.R",
                                "Regulation analysis - detailed script.R",
                                "Regulation analysis - detailed script_pepOnly.R",
                                "No replicates analysis - detailed script.R",
@@ -31,6 +30,7 @@ fls <- paste0(homePath, "/", c("Regulation analysis - master script.R",
                                "LC_columns.xlsx"))
 tst <- sum(!file.exists(fls))
 if (tst) { proteoCraft::Configure() }
+#xplorSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/xplorData.R")
 
 # Parameters used by the master script:
 ###-|-### Workflows: setNames(c("Differential Protein Expression analysis", "Pull-Down (e.g. co-IP)", "Biotin-based Pull-Down (BioID, TurboID, APEX...)", "Time Course","SubCellular Localisation analysis"), c("REGULATION", "PULLDOWN", "BIOID", "TIMECOURSE", "LOCALISATION"))
@@ -42,24 +42,24 @@ if (tst) { proteoCraft::Configure() }
 ## CRAN packages:
 if(!exists("cran_req")) { cran_req %<o% "pak" } else { cran_req %<o% cran_req }
 if(!exists("bioc_req")) { bioc_req %<o% c() } else { bioc_req %<o% bioc_req }
-cran_req <- unique(c(cran_req, "pak", "shiny", "renv", "R.utils", #"uchardet", # Should not be necessary anymore since Rcy3 replaced it with stringi in version 2.24.0
-                     "qs2", "shinyWidgets", "DT", "shinyBS", "stringr", "gplots", "ggplot2",
-                     "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "rgl", "ggrepel", "rstudioapi", "modeest", "minpack.lm",
-                     "snow", "viridis", "pcaMethods", "impute", "imputeLCMD", "parallel", "coin", "openxlsx", "openxlsx2", "plotly", "Peptides",
-                     "xml2", "pdftools", "statmod", "ggpolypath", "venn", "gridExtra", "svDialogs", "htmlwidgets", "magrittr", "tibble", "fs",
+cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT", "shinyBS", "stringr",
+                     "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "rgl", "ggrepel", "rstudioapi", "modeest",
+                     "minpack.lm", "snow", "viridis", "pcaMethods", "impute", "imputeLCMD", "parallel", "coin", "openxlsx", "openxlsx2", "plotly",
+                     "Peptides", "xml2", "pdftools", "statmod", "ggpolypath", "venn", "gridExtra", "svDialogs", "htmlwidgets", "magrittr", "tibble",
                      "officer", "hexbin", "igraph", "matlib", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
-                     "tidyr", "data.table", "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "lmtest", "ssh", "taxize", "arrow"))
+                     "tidyr", "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "lmtest", "ssh", "taxize", "arrow", "unimod"))
 bioc_req <- unique(c(bioc_req, "biomaRt", "GO.db", "UniProt.ws", "limma", "sva", "qvalue", "MSnbase", "DEP",
                      "Rgraphviz", "RCy3", "siggenes", "DEqMS"))
 inst <- as.data.frame(installed.packages())
 for (pack in cran_req) {
   if (!pack %in% inst$Package) {
     if (pack %in% c("pak", #"shiny",
-                    "uchardet", "openxlsx2", "taxize")) {
+                    "uchardet", #"openxlsx2",
+                    "taxize", "unimod")) {
       # Exceptions where for now we want a specific version to be installed,
       # or have to help the installer so it finds the right location
       if (pack == "pak") {
-        install.packages("pak")
+        install.packages("pak", dependencies = TRUE)
       }
       # if (pack == "shiny") { # Should be fixed now
       #   install.packages("https://cran.r-project.org/src/contrib/Archive/shiny/shiny_1.7.5.tar.gz", dependencies = TRUE)
@@ -69,22 +69,32 @@ for (pack in cran_req) {
         destfile <- "uchardet_1.1.1.tar.gz"
         tst <- try(download.file(url, destfile, "curl"), silent = TRUE)
         if ("try-error" %in% class(tst)) { try(download.file(url, destfile, "wget"), silent = TRUE) }
-        install.packages(destfile)
+        install.packages(destfile, dependencies = TRUE)
         unlink(destfile)
       }
-      if (pack == "openxlsx2") {
-        pak::pkg_install("JanMarvin/openxlsx2@v1.10", ask = FALSE) # ... until I can figure out what is happening...
-      }
+      # if (pack == "openxlsx2") {
+      #   pak::pkg_install("JanMarvin/openxlsx2@v1.10", ask = FALSE, upgrade = TRUE, dependencies = TRUE) # ... until I can figure out what is happening...
+      # }
       # if (pack == "myTAI") {
-      #   pak::pkg_install("drostlab/myTAI@v0.9.3", ask = FALSE)
+      #   pak::pkg_install("drostlab/myTAI@v0.9.3", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
       # }
       if (pack == "taxize") {
-        pak::pkg_install("ropensci/bold", ask = FALSE)
-        pak::pkg_install("ropensci/taxize", ask = FALSE)
+        pak::pkg_install("ropensci/bold", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
+        pak::pkg_install("ropensci/taxize", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
+      }
+      if (pack == "unimod") {
+        pak::pkg_install("rformassspectrometry/unimod", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
       }
     } else {
-      pak::pkg_install(pack, ask = FALSE)
-      #install.packages(pack)
+      tst <- try(pak::pkg_install(pack, ask = FALSE, upgrade = TRUE, dependencies = TRUE), silent = TRUE)
+      if ("try-error" %in% class(tst)) {
+        tst <- try(install.packages(pack, dependencies = TRUE), silent = TRUE)
+      }
+      if ("try-error" %in% class(tst)) {
+        warning(paste0("Package ", pack, " wasn't installed properly, skipping..."))
+        cran_req <- cran_req[which(cran_req != pack)]
+        bioc_req <- bioc_req[which(bioc_req != pack)]
+      }
     }
     inst <- as.data.frame(installed.packages())
   }
@@ -93,7 +103,16 @@ for (pack in cran_req) {
 biocInstall %<o% function(pack, load = TRUE) {
   inst <- as.data.frame(installed.packages())
   if (!pack %in% inst$Package) {
-    pak::pkg_install(pack, ask = FALSE)
+    tst <- try(pak::pkg_install(pack, ask = FALSE, upgrade = TRUE, dependencies = TRUE), silent = TRUE)
+    if ("try-error"%in% class(tst)) {
+      tst <- try(pak::pkg_install(pack, ask = FALSE, upgrade = TRUE, dependencies = FALSE), silent = TRUE)
+    }
+    if ("try-error"%in% class(tst)) {
+      tst <- try(pak::pkg_install(pack, ask = FALSE, upgrade = FALSE, dependencies = FALSE), silent = TRUE)
+    }
+    if ("try-error"%in% class(tst)) {
+      stop(tst)
+    }
   }
   if (load) { library(pack, character.only = TRUE) }
 }
@@ -107,8 +126,10 @@ source(rawrrSrc)
 # Load backup?
 load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Do you want to load a backup?", "yesno")$res, c("yes", "no"))]
 if (load_a_Bckp) {
-  tmp <- openxlsx2::read_xlsx(paste0(homePath, "/Default_locations.xlsx"))
-  load_Bckp(startDir = tmp$Path[which(tmp$Folder == "Temporary folder")])
+  tst <- try({
+    tmp <- openxlsx2::read_xlsx(paste0(homePath, "/Default_locations.xlsx"))
+    load_Bckp(startDir = tmp$Path[which(tmp$Folder == "Temporary folder")])
+  }, silent = TRUE)
 }
 
 # Set Shiny options, load functions for creating a Word report, create Excel styles
@@ -140,6 +161,7 @@ if (ReUseAnsw) {
 }
 if (!exists("AllAnsw")) {
   AllAnsw <- data.frame(Parameter = "Which question is it?", Message = "Message of the question")
+  AllAnsw$Value <- list("Value of the answer")
 }
 AllAnsw %<o% AllAnsw
 
@@ -214,17 +236,21 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/Process_Fasta_DBs.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
+#evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
+evNm %<o% "PSM"
 
 #### Code chunk - Load and process annotations
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Load_Annotations.R")
+#rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 source(parSrc, local = FALSE)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_prepare.R") # Doing this earlier but also keep latter instance for now
+#rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
 # Create experiment Factors shortcuts
 Src <- paste0(libPath, "/extdata/R scripts/Sources/XpFact_shortcuts.R")
+#rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
 saveImgFun(BckUpFl)
@@ -283,7 +309,7 @@ source(Src, local = FALSE)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_Main.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
-# Temporary solution to the app contamination issue: unload-reload packages
+# Temporary solution to the cross-app contamination issue: unload-reload packages
 unloadNamespace("pRolocGUI")
 unloadNamespace("colourpicker")
 unloadNamespace("devtools")
@@ -330,9 +356,7 @@ source(Src, local = FALSE)
 
 # Start of processing of evidences table
 ReportCalls <- AddSpace2Report()
-ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_fpar(Report, fpar(ftext(\"Processing of the ",
-                                                      c("evidence", "PSMs", "PSMs", "identifications")[mSft],
-                                                      " table\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))"))
+ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_fpar(Report, fpar(ftext(\"Processing of the PSMs table\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))"))
 # Remove reverse database hits
 ev <- ev[which(ev$Reverse == ""),]
 
@@ -344,8 +368,8 @@ if ((RemovZ1)&&(length(w1))) {
   AmIBogus <- paste(unique(ev$"Modified sequence"[w1]), collapse = "\n")
   #cat(AmIBogus)
   cat("Removing the following presumably bogus identifications with Z=1:\n", AmIBogus, "\n")
+  ev <- ev[wHt1,]
 }
-ev <- ev[wHt1,]
 
 w <- grep("CONTAMINANT", colnames(ev), ignore.case = TRUE)
 if (length(w) > 1) { warning("Hmmm..., you might wanna check what is happening here...") } else {
@@ -402,13 +426,15 @@ if (LabelType == "Isobaric") { # If isobaric
   w <- which(kol %in% colnames(ev))
   # Remove unused channels (if applicable)
   tmpIso <- get(IsobarLab)[w]
-  u <- sort(as.numeric(unique(Exp.map$Isobaric.label)))
+  u <- sort(as.numeric(unique(Exp.map$"Isobaric label")))
   w1 <- which(tmpIso %in% u)
   w2 <- which(!tmpIso %in% u)
   if (length(w2)) {
-    ev <- ev[, which(!colnames(ev) %in% unlist(lapply(tmpIso[w2], function(x) {
+    kol <- lapply(tmpIso[w2], function(x) {
       paste0(c("Reporter intensity corrected ", "Reporter intensity ", "Reporter intensity count "), x)
-    })))]
+    })
+    w <- which(!colnames(ev) %in% unlist(kol))
+    ev <- ev[, w]
   }
   assign(IsobarLab, tmpIso[w1])
   #
@@ -2323,5 +2349,5 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/Finalize_analysis.R")
 source(Src, local = FALSE)
 
 ### That's it, done!
-#openwd(outdir)
+#openwd(outDir)
 #rm(list = ls())
