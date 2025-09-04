@@ -25,9 +25,8 @@ AA <- proteoCraft::AA
 AA <- AA[which(!AA %in% c("O"))]
 #dbFl <- choose.files(paste0(fastaDir, "/*.fasta"), multi = FALSE) # Select fasta file
 dbFl <- rstudioapi::selectFile("Select fasta file",
-                                path = paste0(fastaDir, "/*"),
-                                filter = "fasta file (*.fasta|*.fas|*.fa|*.faa|*.fasta.fas|*.txt)")
-
+                               path = paste0(fastaDir, "/*"),
+                               filter = "fasta file (*.fasta|*.fas|*.fa|*.faa|*.fasta.fas|*.txt)")
 ext <- rev(unlist(strsplit(dbFl, "\\.")))[1] # In case the extension is different, e.g. .txt or .fa
 db <- proteoCraft::Format.DB(dbFl, cl = parClust) # loads database as table and removes duplicate entries by default
 tst <- nchar(gsub(paste(AA, collapse = "|"), "", db$Sequence))

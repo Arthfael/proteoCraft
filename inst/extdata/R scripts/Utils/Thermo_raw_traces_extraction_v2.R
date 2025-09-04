@@ -28,7 +28,8 @@ cran_req <- c("pak",
               "ggformula",
               "splines",
               "curl",
-              "gtools")
+              "gtools",
+              "ggh4x")
 tst <- vapply(cran_req, function(pck) { require(pck, character.only = TRUE, quietly = TRUE) }, TRUE)
 w <- which(!tst)
 if (length(w)) { pak::pak(cran_req[w]) }
@@ -515,7 +516,7 @@ while (!areWeGood) {
             if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
             if (("NA" %in% vals)&&(Fact == "Protein")) {
               svDialogs::dlg_message("Warning: please note that Protein \"NA\" is currently treated as missing value and ignored for the purpose of plotting!",
-                                      "ok")
+                                     "ok")
             }
             tmp2 <- FACTLevels()
             if (Fact %in% intFact) {
@@ -1060,7 +1061,7 @@ tstPress <- file.exists(pressFls)
 #stopifnot(length(w) == 0)
 if (sum(!tstPress)) {
   warning(paste0("Couldn't get pressure profile from the following file(s):",
-             paste0("\n - ", slctFls0[which(!tstPress)], collapse = ""), "\n"))
+          paste0("\n - ", slctFls0[which(!tstPress)], collapse = ""), "\n"))
 }
 unlink(pressScript2) # Remove temporary python script 
 #
@@ -1274,7 +1275,11 @@ if (!length(fact)) {
   fact <- "Protein"
 }
 fact <- unique(c(fact, "Role"))
-ExpMap2$Samples_group2 <- do.call(paste, c(ExpMap2[, fact, drop = FALSE], sep = " "))
+f0 <- function(x) {
+  x <- x[which(x != "_")]
+  paste(unique(x), collapse = " ")
+}
+ExpMap2$Samples_group2 <- apply(ExpMap2[, fact, drop = FALSE], 1, f0)
 tst <- aggregate(ExpMap2$Samples_group, list(ExpMap2$Samples_group2), function(x) { length(unique(x)) })
 if (max(tst$x) > 1) {
   fact <- unique(c(fact, "Samples_group"))
@@ -1289,7 +1294,7 @@ ExpMap2$Samples_group2 <- factor(ExpMap2$Samples_group2, levels = FactorsLevels[
 propFlt <- function(x,
                     p = 0.1, # Proportion of values to average
                     upper = TRUE, # If TRUE, the proportion applies to the upper tail of the data, if not to the lower tail.
-                    average = TRUE # If TRUE, returns mean of filtered data, if FALSE returns data 
+                    average = TRUE # If TRUE, returns mean of filtered data, if FALSE returns data
                     ) {
   x <- is.all.good(x) 
   l <- length(x)
@@ -1725,7 +1730,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                 }
               }
               Form <- list(Left = Factors3,
-                           Right = Replicate) # Formula for how to layout our facets on the ggplot
+                           Right = "Replicate") # Formula for how to layout our facets on the ggplot
               ExpMap2$Color_class <- do.call(paste, c(ExpMap2[, Factors3, drop = FALSE], sep = " "))
               ExpMap2$Color_class[which((ExpMap2$Color_class == "NA")&(ExpMap2$Role == "Standard"))] <- "Standard"
               ExpMap2$Color_class[which((ExpMap2$Color_class == "NA")&(ExpMap2$Role == "Buffer_control"))] <- "Buffer_control"
@@ -1809,19 +1814,24 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                 Form1 <- Form
                 w <- which(vapply(Form1$Left, function(x) { length(unique(RTchrm01[[x]])) }, 1) > 1)
                 Form1$Left <- Form1$Left[w]
+                #Form1 <- as.formula(paste0(" ~ ", paste(Form1$Left, collapse = " + ")))
                 Form1 <- as.formula(paste0(paste(Form1$Left, collapse = " + "), " ~ ", Form1$Right))
                 plot <- ggplot(RTchrm01,
                                aes(x = `Retention time`, y = .data[[Ykol]], #linetype = Role,
                                    group = `Raw file name`, color = Color_class)) +
                   geom_line() +
+                  ggh4x::facet_nested(Form1, nest_line = element_line(linetype = 2)) +
                   ggtitle(ttl, subtitle = c("", Targ)[(!is.na(Targ))+1]) +
-                  coord_fixed(xRange/(yMax*3)) + facet_grid(Form1) +
+                  coord_fixed(xRange/(yMax*3)) +
+                  #facet_grid(Form1) +
                   #scale_linetype_manual(values = lnTypes, guide = "legend") +
                   theme_bw() +
-                  theme(strip.text.y = element_text(angle = 0),
+                  theme(strip.text.y = element_text(angle = -90),
+                        strip.background = element_blank(),
+                        #ggh4x.facet.nestline = element_line(colour = "blue"),
                         legend.position = "bottom") +
                   ylim(0, yMax)
-                #poplot(plot, 12, 22)
+                poplot(plot, 12, 22)
                 #
                 if (quantThisOne2) {
                   plot <- plot +
