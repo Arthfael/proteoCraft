@@ -32,60 +32,58 @@ Configure <- function(updateOntologies = FALSE) {
   } else { cat(" - Default LC columns Excel table already found in HOME.\n") }
   #
   # Default locations table
-  locDef1 <- paste0(proteoPath, "/extdata/Default_locations.xlsx")
-  locDef2 <- paste0(homePath, "/Default_locations.xlsx")
-  if ((file.exists(locDef1))&&(!file.exists(locDef2))) {
-    tst <- try(file.copy(locDef1, homePath, overwrite = FALSE), silent = TRUE)
+  locDirsFl1 <- paste0(proteoPath, "/extdata/Default_locations.xlsx")
+  locDirsFl2 <- paste0(homePath, "/Default_locations.xlsx")
+  writeDefltLoc <- function(locFile = locDirsFl2, dirTbl = locDirs) {
+    # Should be rewritten with openxlsx2!!!
+    wb <- openxlsx::createWorkbook()
+    openxlsx::addWorksheet(wb, "Default_folders")
+    openxlsx::writeData(wb, "Default_folders", dirTbl)
+    openxlsx::addStyle(wb, "Default_folders",
+                       openxlsx::createStyle(textDecoration = c("bold", "underline")),
+                       1, 1:ncol(dirTbl), stack = TRUE)
+    openxlsx::addStyle(wb, "Default_folders",
+                       openxlsx::createStyle(fontName = "Consolas", textDecoration = "italic"),
+                       1:nrow(dirTbl) + 1, match("Path", colnames(dirTbl)), stack = TRUE)
+    openxlsx::addStyle(wb, "Default_folders",
+                       openxlsx::createStyle(textDecoration = "italic"), 1:nrow(dirTbl) + 1,
+                       match("Help", colnames(dirTbl)), stack = TRUE)
+    openxlsx::setColWidths(wb, "Default_folders", match(c("Folder", "Path", "Help"), colnames(dirTbl)), c(25, 60, 150))
+    openxlsx::saveWorkbook(wb, locFile, overwrite = TRUE)
+  }
+  if ((file.exists(locDirsFl1))&&(!file.exists(locDirsFl2))) {
+    tst <- try(file.copy(locDirsFl1, homePath, overwrite = FALSE), silent = TRUE)
     print(tst)
-    if (file.exists(locDef2)) {
+    if (file.exists(locDirsFl2)) {
       cat(" - Created default directories locations .xlsx table in HOME...\n")
     }
   } else {
     cat(" - Default directories locations Excel table already found in HOME")
-    tmp1 <- openxlsx::read.xlsx(locDef1)
-    tmp2 <- openxlsx::read.xlsx(locDef2)
-    w <- which(!tmp1$Folder %in% tmp2$Folder)
+    tmpDir <- openxlsx2::read_xlsx(locDirsFl1)
+    locDirs <- openxlsx2::read_xlsx(locDirsFl2)
+    w <- which(!tmpDir$Folder %in% locDirs$Folder)
     if (length(w)) {
       cat("\n   ... but we will append newly created folder definitions.\n")
-      tmp2 <- rbind(tmp2, tmp1[w,])
-      wb <- openxlsx::createWorkbook()
-      openxlsx::addWorksheet(wb, "Default_folders")
-      openxlsx::writeData(wb, "Default_folders", tmp2)
-      openxlsx::addStyle(wb, "Default_folders",
-                         openxlsx::createStyle(textDecoration = c("bold", "underline")),
-                         1, 1:ncol(tmp2), stack = TRUE)
-      openxlsx::addStyle(wb, "Default_folders",
-                         openxlsx::createStyle(fontName = "Consolas", textDecoration = "italic"),
-                         1:nrow(tmp2) + 1, match("Path", colnames(tmp2)), stack = TRUE)
-      openxlsx::addStyle(wb, "Default_folders",
-                         openxlsx::createStyle(textDecoration = "italic"), 1:nrow(tmp2) + 1,
-                         match("Help",colnames(tmp2)), stack = TRUE)
-      openxlsx::setColWidths(wb, "Default_folders", match(c("Folder", "Path", "Help"), colnames(tmp2)), c(25, 60, 150))
-      openxlsx::saveWorkbook(wb, locDef2, overwrite = TRUE)
+      locDirs <- rbind(locDirs, tmpDir[w,])
+      writeDefltLoc(locDirsFl2, locDirs)
     } else { cat(".\n") }
   }
   #
-  tmp2 <- openxlsx::read.xlsx(locDef2)
-  W <- which((tmp2$Path == "")|(!dir.exists(tmp2$Path)))
-  if (length(W)) {
-    for (w in W) {
-      tmp2$Path[w] <- rstudioapi::selectDirectory(gsub("( folder)+", " folder",
-                                                       paste0("Select ", tmp2$Folder[w], " folder")))
+  locDirs <- openxlsx2::read_xlsx(locDirsFl2)
+  locDirs <- locDirs[which(!is.na(locDirs$Folder)),] # Precaution...
+  #openxlsx2::xl_open(locDirsFl2)
+  w <- which((locDirs$Path == "")|((!dir.exists(locDirs$Path)))&(!file.exists(locDirs$Path)))
+  if (length(w)) {
+    for (i in w) {
+      if (locDirs$Folder[i] == "Python") {
+        locDirs$Path[i] <- rstudioapi::selectFile(paste0("Select ", locDirs$Folder[i], " executable (.exe file)"),
+                                                  path = "C:/PROGRA~1/*.exe")
+      } else {
+        locDirs$Path[i] <- rstudioapi::selectDirectory(gsub("( folder)+", " folder",
+                                                            paste0("Select ", locDirs$Folder[i], " folder")))
+      }
     }
-    wb <- openxlsx::createWorkbook()
-    openxlsx::addWorksheet(wb, "Default_folders")
-    openxlsx::writeData(wb, "Default_folders", tmp2)
-    openxlsx::addStyle(wb, "Default_folders",
-                       openxlsx::createStyle(textDecoration = c("bold", "underline")),
-                       1, 1:ncol(tmp2), stack = TRUE)
-    openxlsx::addStyle(wb, "Default_folders",
-                       openxlsx::createStyle(fontName = "Consolas", textDecoration = "italic"),
-                       1:nrow(tmp2) + 1, match("Path", colnames(tmp2)), stack = TRUE)
-    openxlsx::addStyle(wb, "Default_folders",
-                       openxlsx::createStyle(textDecoration = "italic"),
-                       1:nrow(tmp2) + 1, match("Help", colnames(tmp2)), stack = TRUE)
-    openxlsx::setColWidths(wb, "Default_folders", match(c("Folder", "Path", "Help"), colnames(tmp2)), c(25, 60, 150))
-    openxlsx::saveWorkbook(wb, locDef2, overwrite = TRUE)
+    writeDefltLoc(locDirsFl2, locDirs)
   }
   # Sample solvent definitions - used by MatMet_WetLab()
   fl0 <- paste0(proteoPath, "/extdata/Sample_solvents.txt")
@@ -116,6 +114,21 @@ Configure <- function(updateOntologies = FALSE) {
   }
   cat("Updated analysis scripts in HOME...")
   #
+  # Check that we have python installed
+  pyPath <- c()
+  if ("Python" %in% locDirs$Folder) {
+   pyTest <- !as.logical(try({
+      #pyPath0 <- locDirs$Path[match("Python", locDirs$Folder)]
+      #cat(pyPath <- gsub("/", "\\\\", pyPath0))
+      # Update pip
+      cmd <- "pip install --upgrade pip"
+      system(cmd, show.output.on.console = FALSE)
+      # Install sdrf-pipelines
+      cmd <- "pip install sdrf-pipelines"
+      system(cmd, show.output.on.console = FALSE)
+    }, silent = TRUE))
+  }
+  #
   # Download ontologies relevant for writing an SDRF file
   #   This sometimes fails with `Error: C stack usage SOMEABSURDLYLARGENUMBER is too close to the limit` when other packages are loaded,
   #   I suspect because of a conflict between internally used functions sharing a same name and not called safely with package::function()
@@ -129,12 +142,12 @@ Configure <- function(updateOntologies = FALSE) {
     all_terms <- list()
     page <- 0L
     repeat {
-      res <- GET(
+      res <- httr::GET(
         sprintf("https://www.ebi.ac.uk/ols4/api/ontologies/%s/terms", ontology),
         query = list(size = size, page = page)
       )
-      stop_for_status(res)
-      dat <- content(res, as = "parsed", simplifyDataFrame = TRUE)
+      httr::stop_for_status(res)
+      dat <- httr::content(res, as = "parsed", simplifyDataFrame = TRUE)
       terms <- dat$`_embedded`$terms
       if (length(terms) == 0) break
       w <- which(vapply(colnames(terms), function(x) { "data.frame" %in% class(terms[[x]]) }, TRUE))
@@ -153,7 +166,7 @@ Configure <- function(updateOntologies = FALSE) {
     }
     all_terms <- do.call(plyr::rbind.fill, all_terms)
   }
-  parallel::clusterExport(tmpCl, list("homePath", "get_all_terms"), envir = environment())
+  parallel::clusterExport(tmpCl, list("homePath", "get_all_terms", "updateOntologies"), envir = environment())
   invisible(parallel::clusterCall(tmpCl, function() {
     library(rols)
     library(httr)
@@ -247,60 +260,159 @@ Configure <- function(updateOntologies = FALSE) {
       return()
     })
   }
-  # - PRIDE and quant methods
+  # - PRIDE // obsolete
+  # if ((!file.exists(paste0(homePath, "/PRIDE.csv")))||(!file.exists(paste0(homePath, "/MS_Quant_meth.csv")))||(updateOntologies)) {
+  #   parallel::clusterCall(tmpCl, function() {
+  #     pride_terms <- get_all_terms("PRIDE", size = 1000)
+  #     pride <- pride_terms[, c("label", "description", "synonyms", "iri", "short_form")]
+  #     w <- which(vapply(colnames(pride), function(x) { "list" %in% class(pride[[x]]) }, TRUE))
+  #     if (length(w)) {
+  #       for (i in w) {
+  #         #pride[[i]] <- vapply(pride[[i]], paste, "", collapse = ";")
+  #         pride[[i]] <- vapply(pride[[i]], function(x) { x <- c(unlist(x), "")[1] }, "") # We don't need all that clutter here
+  #       }
+  #     }
+  #     get_term_children <- function(children_url) {
+  #       res <- httr::GET(children_url)
+  #       httr::stop_for_status(res)
+  #       dat <- jsonlite::fromJSON(httr::content(res, "text"), flatten = TRUE)
+  #       dat$`_embedded`$terms
+  #     }
+  #     quantMeth <- list()
+  #     k <- 0L
+  #     parent <- pride_terms[which(pride_terms$label %in% c("Proteomics data acquisition method", "Quantification method")),]
+  #     repeat {
+  #       if (!"_links.children.href" %in% colnames(parent)) {
+  #         # first loop, dealing with the modified output of get_all_terms()
+  #         children_url <- parent[, grep("^href\\.[0-9]+$", colnames(parent), value = TRUE)]
+  #         wChildr <- grep("children", children_url[1,])
+  #         children_url <- unique(children_url[, wChildr])
+  #       } else {
+  #         # unmodified results
+  #         children_url <- parent$"_links.children.href"
+  #       }
+  #       childr <- lapply(children_url, function(url) { get_term_children(url) })
+  #       childr <- do.call(plyr::rbind.fill, childr)
+  #       childr[, c("label", "obo_id")]
+  #       childr <- childr[grep("[Gg]el-based", childr$label, invert = TRUE),]
+  #       if (!nrow(childr)) break
+  #       k <- k + 1L
+  #       wN <- which(!childr$has_children)
+  #       wY <- which(childr$has_children)
+  #       quantMeth[[k]] <- childr[, c("label", "iri")]
+  #       if (!length(wY)) break
+  #       parent <- childr[wY,]
+  #     }
+  #     quantMeth <- do.call(plyr::rbind.fill, quantMeth)
+  #     if ((!file.exists(paste0(homePath, "/PRIDE.csv")))||(updateOntologies)) {
+  #       write.csv(pride, paste0(homePath, "/PRIDE.csv"), row.names = FALSE)
+  #     }
+  #     if ((!file.exists(paste0(homePath, "/MS_Quant_meth.csv")))||(updateOntologies)) {
+  #       write.csv(quantMeth, paste0(homePath, "/MS_Quant_meth.csv"), row.names = FALSE)
+  #     }
+  #     return()
+  #   })
+  # }
+  # - PRIDE: MS labelling and quantitative methods
   if ((!file.exists(paste0(homePath, "/PRIDE.csv")))||(!file.exists(paste0(homePath, "/MS_Quant_meth.csv")))||(updateOntologies)) {
+    # For this rols works, yay!
     parallel::clusterCall(tmpCl, function() {
-      # Get Disease root terms from OLS4
-      pride_terms <- get_all_terms("PRIDE", size = 1000)
-      pride <- pride_terms[, c("label", "description", "synonyms", "iri", "short_form")]
-      w <- which(vapply(colnames(pride), function(x) { "list" %in% class(pride[[x]]) }, TRUE))
-      if (length(w)) {
-        for (i in w) {
-          #pride[[i]] <- vapply(pride[[i]], paste, "", collapse = ";")
-          pride[[i]] <- vapply(pride[[i]], function(x) { x <- c(unlist(x), "")[1] }, "") # We don't need all that clutter here
+      ol <- rols::Ontology("pride")
+      ol@config$fileLocation <- "http://purl.obolibrary.org/obo/pride/releases/2025-02-17/pride.owl" # HARD FIX
+      prideDigDeep <- function(x, myTrms) { #x <- 5
+        #myTrms = labTrms
+        trm_x <- myTrms[[x]]
+        trms_x <- rols::children(trm_x)
+        rsx <- data.frame(ID = trm_x@obo_id,
+                          Name = trm_x@label,
+                          Description = paste(unlist(trm_x@description), collapse = "; "))
+        if ((!is.null(trms_x))&&(length(trms_x))) {
+          rsi <- lapply(1:length(trms_x), function(i) { #i <- 1
+            trm_i <- trms_x[[i]]
+            trms_ij <- rols::children(trm_i)
+            rs_i <- data.frame(ID = trm_i@obo_id,
+                              Name = trm_i@label,
+                              Description = paste(unlist(trm_i@description), collapse = "; "))
+            if ((!is.null(trms_ij))&&(length(trms_ij))) {
+              rs_j <- lapply(1:length(trms_ij), function(j) { #j <- 1
+                trm_j <- trms_ij[[j]]
+                trms_ijk <- rols::children(trm_j)
+                rs_j <- data.frame(ID = trm_j@obo_id,
+                                     Name = trm_j@label,
+                                     Description = paste(unlist(trm_j@description), collapse = "; "))
+                if ((!is.null(trms_ijk))&&(length(trms_ijk))) {
+                  rs_k <- lapply(1:length(trms_ijk), function(k) { #k <- 1
+                    trm_k <- trms_ijk[[k]]
+                    data.frame(ID = trm_k@obo_id,
+                               Name = trm_k@label,
+                               Description = paste(unlist(trm_k@description), collapse = "; "))
+                  })
+                  rs_k <- do.call(rbind, rs_k)
+                  rs_j <- rbind(rs_j, rs_k)
+                }
+                return(rs_j)
+              })
+              rs_j <- do.call(rbind, rs_j)
+              rs_i <- rbind(rs_i, rs_j)
+            }
+            return(rs_i)
+          })
+          rsi <- do.call(rbind, rsi)
+          rsx <- rbind(rsx, rsi)
         }
+        return(rsx)
       }
-      get_term_children <- function(children_url) {
-        res <- httr::GET(children_url)
-        stop_for_status(res)
-        dat <- jsonlite::fromJSON(httr::content(res, "text"), flatten = TRUE)
-        dat$`_embedded`$terms
+      # Labelling methods
+      topLabTrm <- rols::Term(ol, "PRIDE_0000514")
+      labTrms <- rols::children(topLabTrm)  # get all levels
+      labTrms <- setNames(labTrms@x, vapply(labTrms@x, function(x) { x@label }, ""))
+      labTrmsa <- lapply(1:length(labTrms), prideDigDeep, myTrms = labTrms)
+      labTrmsa <- do.call(rbind, labTrmsa)
+      labTrmsa <- aggregate(1:nrow(labTrmsa), list(labTrmsa$Name), function(x) {
+        data.frame(ID = labTrmsa$ID[x[1]],
+                   Description = labTrmsa$Description[x[1]])
+      })
+      colnames(labTrmsa)[1] <- "Name"
+      labTrmsa[, c("ID", "Description")] <- do.call(rbind, labTrmsa$x)
+      labTrmsa$x <- NULL
+      if ((!file.exists(paste0(homePath, "/MS_label_meth.csv")))||(updateOntologies)) {
+        write.csv(labTrmsa, paste0(homePath, "/MS_label_meth.csv"), row.names = FALSE)
       }
-      quantMeth <- list()
-      k <- 0L
-      parent <- pride_terms[which(pride_terms$label %in% c("Proteomics data acquisition method", "Quantification method")),]
-      repeat {
-        if (!"_links.children.href" %in% colnames(parent)) {
-          # first loop, dealing with the modified output of get_all_terms()
-          children_url <- parent[, grep("^href\\.[0-9]+$", colnames(parent), value = TRUE)]
-          wChildr <- grep("children", children_url[1,])
-          children_url <- unique(children_url[, wChildr])
-        } else {
-          # unmodified results
-          children_url <- parent$"_links.children.href"
-        }
-        childr <- lapply(children_url, function(url) { get_term_children(url) })
-        childr <- do.call(plyr::rbind.fill, childr)
-        childr[, c("label", "obo_id")]
-        childr <- childr[grep("[Gg]el-based", childr$label, invert = TRUE),]
-        if (!nrow(childr)) break
-        k <- k + 1L
-        wN <- which(!childr$has_children)
-        wY <- which(childr$has_children)
-        quantMeth[[k]] <- childr[, c("label", "iri")]
-        if (!length(wY)) break
-        parent <- childr[wY,]
+      # Quantitative methods
+      topMethTrm <- rols::Term(ol, "PRIDE_0000309")
+      methTrms <- rols::children(topMethTrm)  # get all levels
+      methTrms <- setNames(methTrms@x, vapply(methTrms@x, function(x) { x@label }, ""))
+      methTrmsa <- lapply(1:length(methTrms), prideDigDeep, myTrms = methTrms)
+      methTrmsa <- do.call(rbind, methTrmsa)
+      methTrmsa <- aggregate(1:nrow(methTrmsa), list(methTrmsa$Name), function(x) {
+        data.frame(ID = methTrmsa$ID[x[1]],
+                   Description = methTrmsa$Description[x[1]])
+      })
+      colnames(methTrmsa)[1] <- "Name"
+      methTrmsa[, c("ID", "Description")] <- do.call(rbind, methTrmsa$x)
+      methTrmsa$x <- NULL
+      if ((!file.exists(paste0(homePath, "/MS_quant_meth.csv")))||(updateOntologies)) {
+        write.csv(methTrmsa, paste0(homePath, "/MS_quant_meth.csv"), row.names = FALSE)
       }
-      quantMeth <- do.call(plyr::rbind.fill, quantMeth)
-      if ((!file.exists(paste0(homePath, "/PRIDE.csv")))||(updateOntologies)) {
-        write.csv(pride, paste0(homePath, "/PRIDE.csv"), row.names = FALSE)
+      # Acquisition methods
+      topMethTrm <- rols::Term(ol, "PRIDE_0000659")
+      methTrms <- rols::children(topMethTrm)  # get all levels
+      methTrms <- setNames(methTrms@x, vapply(methTrms@x, function(x) { x@label }, ""))
+      methTrmsb <- lapply(1:length(methTrms), prideDigDeep, myTrms = methTrms)
+      methTrmsb <- do.call(rbind, methTrmsb)
+      methTrmsb <- aggregate(1:nrow(methTrmsb), list(methTrmsb$Name), function(x) {
+        data.frame(ID = methTrmsb$ID[x[1]],
+                   Description = methTrmsb$Description[x[1]])
+      })
+      colnames(methTrmsb)[1] <- "Name"
+      methTrmsb[, c("ID", "Description")] <- do.call(rbind, methTrmsb$x)
+      methTrmsb$x <- NULL
+      if ((!file.exists(paste0(homePath, "/MS_acq_meth.csv")))||(updateOntologies)) {
+        write.csv(methTrmsb, paste0(homePath, "/MS_acq_meth.csv"), row.names = FALSE)
       }
-      if ((!file.exists(paste0(homePath, "/MS_Quant_meth.csv")))||(updateOntologies)) {
-        write.csv(quantMeth, paste0(homePath, "/MS_Quant_meth.csv"), row.names = FALSE)
-      }
-      return()
     })
   }
+  #
   # - MS instrument ontology
   if ((!file.exists(paste0(homePath, "/MS_models.csv")))||(updateOntologies)) {
     # For this rols works, yay!
@@ -343,6 +455,7 @@ Configure <- function(updateOntologies = FALSE) {
       return()
     })
   }
+  #
   # Development stage ontologies
   # For now only Zebrafish (Danio rerio) and FlyBase (Drosophila melanogaster) seem to be supported by the SDRF format... weird...
   # I'll still get human, mouse and WormBase (C. Elegans + others) too.

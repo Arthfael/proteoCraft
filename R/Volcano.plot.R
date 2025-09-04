@@ -23,7 +23,8 @@
 #' @param MaxLabels_priority If not printing all labels, will we favour more extreme ratios (default = "X") or more significant values ("Y")?
 #' @param proteins Optional, the character list of protein IDs to be highlighted.
 #' @param proteins_split Default = FALSE. If set to TRUE, and if there are protein matching the provided list (see "proteins" argument), then these will be highlighted in a separate graph.
-#' @param Proteins.col Default = "Protein IDs"; used for identifying matches to the "proteins" argument.
+#' @param IDs.col Default = "Protein IDs".
+#' @param Proteins.col Default = "Protein IDs"; used for identifying matches to the "proteins" argument. IF missing, IDs.col will be used.
 #' @param Ref.Ratio.values Used if the default parameter values for Ratio thresholds are to be replaced with dynamic, reference-based ones. Also requires a few arguments below.
 #' @param Ref.Ratio.method Defines how vertical ratios are computed.\cr
 #'  - "obs2": current default, will sort observations within sample groups and identify a threshold such that a proportion "ratios.FDR" of most extreme values are selected.\cr
@@ -106,6 +107,7 @@ Volcano.plot <- function(Prot,
                          arbitrary.thresh = NULL,
                          proteins = NULL,
                          proteins_split = FALSE,
+                         IDs.col = "Protein IDs",
                          Proteins.col = "Protein IDs",
                          return = FALSE,
                          return.plot = FALSE,
@@ -146,11 +148,11 @@ Volcano.plot <- function(Prot,
   #
   #Prot = PG; mode = "custom"; experiments.map = Exp.map; X.root = paste0("Mean ", Prot.Rat.Root); Y.root = pvalue.col[which(pvalue.use)]; aggregate.map = Aggregate.map; aggregate.name = Volcano.plots.Aggregate.Level$aggregate; aggregate.list = Aggregate.list;parameters = Param; save = c("jpeg", "pdf"); labels = c("FDR", "both")[isSAM+1]; Ref.Ratio.values = Ref.Ratios; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = FDR.thresholds; arbitrary.lines = arbitrary.thr; proteins = prot.list;  proteins_split = protsplit; return = TRUE;  return.plot = TRUE; title.root = "FDR-type ";  subfolder = "Reg. analysis/t-tests"; subfolderpertype = FALSE; Alpha = "Rel. log10(Peptides count)"; Size = "Av. log10 abundance";  Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; FDR.thresh = FDR.thresholds; SAM = isSAM; curved_Thresh = SAM_thresh
   # OR (F-test, proteins)
-  #Prot = my_F_Data; mode = "custom"; experiments.map = contr;X.root = paste0("Mean ", ratRef);Y.root = paste0(F_Root, " - ");aggregate.map = aggr_dummy; aggregate.list = aggr_list_dummy;aggregate.name = "Contrast";parameters = Param;save = c("jpeg", "pdf");FDR.root = "mod. F-test Significant-FDR=";Ref.Ratio.values = refRat_F;ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates);arbitrary.lines = arbitrary.thr;proteins = prot.list; proteins_split = protsplit; Proteins.col = idCol;return = FALSE; return.plot = TRUE; title = "F-test volcano plot ";subfolder = ohDeer; subfolderpertype = FALSE;Symmetrical = TRUE;Alpha = Alpha; Size = "Rel. av. log10 abundance"; Size.max = 2;plotly = create_plotly; plotly_local = create_plotly_local;plotly_labels = plotlyLab;Ref.Ratio.method = paste0("obs", RefRat_Mode);cl = parClust;reg.root = regRoot_F
+  #Prot = my_F_Data; mode = "custom"; experiments.map = contr;X.root = paste0("Mean ", ratRef);Y.root = paste0(F_Root, " - ");aggregate.map = aggr_dummy; aggregate.list = aggr_list_dummy;aggregate.name = "Contrast";parameters = Param;save = c("jpeg", "pdf");FDR.root = "mod. F-test Significant-FDR=";Ref.Ratio.values = refRat_F;ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates);arbitrary.lines = arbitrary.thr;proteins = prot.list; proteins_split = protsplit; IDs.col = idCol;return = FALSE; return.plot = TRUE; title = "F-test volcano plot ";subfolder = ohDeer; subfolderpertype = FALSE;Symmetrical = TRUE;Alpha = Alpha; Size = "Rel. av. log10 abundance"; Size.max = 2;plotly = create_plotly; plotly_local = create_plotly_local;plotly_labels = plotlyLab;Ref.Ratio.method = paste0("obs", RefRat_Mode);cl = parClust;reg.root = regRoot_F
   # OR (modified peptides)
-  #Prot = ptmpep; mode = "custom"; experiments.map = Exp.map; X.root = paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)]); Y.root = pvalue.col[which(pvalue.use)]; aggregate.map = Aggregate.map; aggregate.list = Aggregate.list; aggregate.name = VPAL$aggregate; parameters = P; save = c("jpeg", "pdf"); labels = c("FDR", "both")[isSAM+1]; Ref.Ratio.values = PTMs_ref.ratios[[ptm]]; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = PTMs_FDR.thresholds[[ptm]]; arbitrary.lines = arbitrary.thr; proteins = prot.list; Proteins.col = "Name"; return = TRUE; return.plot = TRUE; title = paste0(Ptm, " volcano plot_"); subfolder = dir[2]; subfolderpertype = FALSE; Symmetrical = TwoSided; Size = "Rel. av. log10 abundance"; Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; plotly_labels = c(PepLabKol, paste0(Ptm, "-site")); SAM = isSAM; curved_Thresh = PTMs_sam_Thresh[[Ptm]]
+  #Prot = ptmpep; mode = "custom"; experiments.map = Exp.map; X.root = paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)]); Y.root = pvalue.col[which(pvalue.use)]; aggregate.map = Aggregate.map; aggregate.list = Aggregate.list; aggregate.name = VPAL$aggregate; parameters = P; save = c("jpeg", "pdf"); labels = c("FDR", "both")[isSAM+1]; Ref.Ratio.values = PTMs_ref.ratios[[ptm]]; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = PTMs_FDR.thresholds[[ptm]]; arbitrary.lines = arbitrary.thr; proteins = prot.list; IDs.col = "Code"; Proteins.col = "Proteins";proteins_split = protsplit; return = TRUE; return.plot = TRUE; title = paste0(Ptm, " volcano plot_"); subfolder = dir[2]; subfolderpertype = FALSE; Symmetrical = TwoSided; Size = "Rel. av. log10 abundance"; Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; plotly_labels = c(PepLabKol, paste0(Ptm, "-site")); SAM = isSAM; curved_Thresh = PTMs_sam_Thresh[[Ptm]]
   # OR (SAINTexpress)
-  #Prot = allSAINTs;Proteins.col = "Protein";mode = "custom";experiments.map = Exp.map;X.root = fcRt;Y.root = fdrRt;aggregate.map = Aggregate.map;aggregate.name = VPAL$aggregate;aggregate.list = Aggregate.list;parameters = Parma;save = c("jpeg", "pdf");labels = "thresholds";Ref.Ratio.values = Ref.Ratios;ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates);arbitrary.lines = ArbThr;proteins = prot.list;proteins_split = protsplit;return = TRUE;return.plot = TRUE;title = "SAINTexpress volcano plot_";subfolder = "Reg. analysis/SAINTexpress";subfolderpertype = FALSE;Symmetrical = TwoSided;Alpha = "Av. log10 abundance";Size = "Av. log10 abundance";Size.max = 2;plotly = create_plotly;plotly_local = create_plotly_local;plotly_labels = labKol
+  #Prot = allSAINTs;IDs.col = "Protein";mode = "custom";experiments.map = Exp.map;X.root = fcRt;Y.root = fdrRt;aggregate.map = Aggregate.map;aggregate.name = VPAL$aggregate;aggregate.list = Aggregate.list;parameters = Parma;save = c("jpeg", "pdf");labels = "thresholds";Ref.Ratio.values = Ref.Ratios;ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates);arbitrary.lines = ArbThr;proteins = prot.list;proteins_split = protsplit;return = TRUE;return.plot = TRUE;title = "SAINTexpress volcano plot_";subfolder = "Reg. analysis/SAINTexpress";subfolderpertype = FALSE;Symmetrical = TwoSided;Alpha = "Av. log10 abundance";Size = "Av. log10 abundance";Size.max = 2;plotly = create_plotly;plotly_local = create_plotly_local;plotly_labels = labKol
   # OR (SSDs)
   #Prot = temp;mode = "custom";experiments.map = Exp.map;X.root = paste0("Mean ", SSD.Root);Y.root = SSD.Pval.Root;aggregate.map = Aggregate.map;aggregate.name = SubCellFracAggr2$aggregate;aggregate.list = Aggregate.list; parameters = Param;save = c("jpeg", "pdf"); labels = "FDR"; Ref.Ratio.values = RefSSDs;ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates);FDR.thresh = SSD.thresh;FDR.root = "Signif. SSDs-FDR=";arbitrary.lines = arbitrary.thr;proteins = prot.list; proteins_split = protsplit;return = TRUE; return.plot = TRUE;title = "Sum of Squared Distance volcano plot_";subfolder = "Reg. analysis/Localisation";subfolderpertype = FALSE; Symmetrical = FALSE;Alpha = "Rel. log10(Peptides count)";Size = "Av. log10 abundance"; Size.max = 2;plotly = create_plotly; plotly_local = create_plotly_local; X.normalized = FALSE
   origWD <- getwd()
@@ -166,6 +168,7 @@ Volcano.plot <- function(Prot,
   # (Don't use as default the value in parameters$Plot.metrics: they are deprecated)
   if (misFun(X.root)) { stop("Argument \"X.root\" is missing, investigate!") }
   if (misFun(Y.root)) { stop("Argument \"Y.root\" is missing, investigate!") }
+  
   #
   # Create cluster
   tstCl <- stopCl <- misFun(cl)
@@ -413,15 +416,12 @@ Volcano.plot <- function(Prot,
   yKols <- setNames(paste0(Y.root, A), A)
   PorQ <- rev(unlist(strsplit(toupper(gsub("-value.*", "", Y.root, ignore.case = TRUE)), "")))[1]
   if (!PorQ %in% c("P", "Q")) { PorQ <- "P" }
-  if ((proteins_split)&&((is.null(proteins))||(length(proteins) == 0))) {
-    proteins_split <- FALSE
-  }
   if ((length(labels) == 1)&&(labels == "proteins")&&(proteins_split)) {
     warning("Argument \"proteins_split\" will be ignored since argument \"labels\" is set to \"proteins\".")
     proteins_split <- FALSE
   } # No splitting if we are already only labeling proteins in list.
   if (misFun(plotly_labels)) { # Create those even if plotly off!
-    plotly_labels <- setNames(c("Labels", Proteins.col, "Genes"),
+    plotly_labels <- setNames(c("Labels", IDs.col, "Genes"),
                               c("Name(s)", "Accession(s)", "Gene(s)")) # (column "Labels" gets created later, before we use those columns: should not break!)
     plotly_labels <- plotly_labels[which(plotly_labels %in% colnames(Prot))]
   } else {
@@ -437,12 +437,42 @@ Volcano.plot <- function(Prot,
     if (length(w)) { names(plotly_labels)[w] <- plotly_labels[w] }
   }
   #
+  # List of proteins of interest
+  useProtList <- (!misFun(proteins))&(!is.null(proteins))&(length(proteins) > 0)
+  if (misFun(proteins_split)) { proteins_split <- FALSE}
+  if (useProtList) {
+    if ((misFun(Proteins.col))||(!Proteins.col %in% colnames(Prot))) { Proteins.col <- IDs.col }
+    proteins <- gsub("^CON_+", "", proteins)
+    Prot[[Proteins.col]] <- gsub(";CON_+", ";", gsub("^CON_+", "", Prot[[Proteins.col]]))
+    proteins <- proteins[which(proteins %in% unique(unlist(strsplit(Prot[[Proteins.col]], ";"))))]
+    useProtList <- length(proteins) > 0
+    if (useProtList) {
+      Prot$"Found_in_List" <- FALSE
+      wLst <- proteoCraft::grsep2(proteins, Prot[[Proteins.col]])
+      if (length(wLst)) {
+        Prot$"Found_in_List"[wLst] <- TRUE
+      } else {
+        useProtList <- FALSE
+        msg <- "No matches for proteins in list!"
+        if (proteins_split) {
+          msg <- paste0(msg, " (no split plot will be created)")
+          proteins_split <- FALSE
+        }
+      }
+    } else { proteins_split <- FALSE }
+  } else { proteins_split <- FALSE }
+  #
   # Default colors
   myColors <- setNames(c("black", "black", "purple", c("brown", "firebrick1")[proteins_split+1]),
                        c("non significant", "too small FC", "target", "protein in list"))
   if (("FDR" %in% labels)||(mode == "curved")) {
     myColors[c(paste0("up, FDR = ", FDR_table$FDR, "%"),
                paste0("down, FDR = ", FDR_table$FDR, "%"))] <- c(FDR_table$fdr.col.up, FDR_table$fdr.col.down)
+  }
+  if (proteins_split) {
+    myColors2 <- setNames(c("lightgrey", "purple", "brown"),
+                          c("not in list", "target", "protein in list"))
+    colScale2 <- ggplot2::scale_colour_manual(name = "colour", values = myColors2)
   }
   #
   # Filter samples for available valid data
@@ -559,7 +589,7 @@ Volcano.plot <- function(Prot,
     Prot$Labels[weech] <- parallel::parSapply(cl, strsplit(Prot$Labels[weech], "  ?"), f0)
   }
   weech <- which(Prot$Labels == "")
-  id.col <- unique(c(Proteins.col, "Common Names", "Common Name (short)", "Names", "Name", "Genes", "Gene", "Code"))
+  id.col <- unique(c(IDs.col, "Common Names", "Common Name (short)", "Names", "Name", "Genes", "Gene", "Code"))
   id.col <- c(id.col, tolower(id.col), toupper(id.col))
   id.col <- id.col[which(id.col %in% colnames(Prot))]
   if (length(weech)) {
@@ -584,7 +614,6 @@ Volcano.plot <- function(Prot,
   #
   for (i in A) { #i <- A[1]
     symm <- Symmetrical[i]
-    prot_split <- proteins_split
     xKol <- paste0(X.root, i)
     yKol <- paste0(Y.root, i)
     e <- c(xKol, yKol)
@@ -601,6 +630,11 @@ Volcano.plot <- function(Prot,
       plot.colours <- plot.colours[, which(colnames(plot.colours) != "down"), drop = FALSE]
     }
     temp <- Prot[, "Labels", drop = FALSE]
+    prot_split <- FALSE
+    if (useProtList) {
+      temp$"Found_in_List" <- Prot$"Found_in_List"
+      prot_split <- sum(temp$"Found_in_List")
+    }
     if (!Contaminants) { temp[[kontkol]] <- Prot[[kontkol]] }
     if ("Genes" %in% colnames(Prot)) { temp$Genes <- Prot$Genes }
     if (length(id.col)) { temp[, id.col] <- Prot[, id.col] }
@@ -671,10 +705,12 @@ Volcano.plot <- function(Prot,
         temp$Size <- Size.min+(temp$Size-min(temp$Size))*(Size.max-Size.min)/(max(temp$Size)-min(temp$Size))
       }
     }
-    if ("Target" %in% colnames(experiments.map)) {
+    use_target <- FALSE
+    if ("Target" %in% colnames(experiments.map)) { # i-specific!!!
       target <- unique(unlist(strsplit(experiments.map$Target[which(experiments.map[[aggregate.name]] == i)], ";")))
       target <- target[which(!target %in% c("", "NA", NA))]
       target <- unique(gsub("^CON_+", "", target))
+      use_target <- length(target) > 0
     }
     i2 <- proteoCraft::cleanNms(i)
     if (regProvided) {
@@ -859,33 +895,26 @@ Volcano.plot <- function(Prot,
       Prot[[paste0("Regulated - ", i)]] <- ""
       Prot[Wych[[i]], paste0("Regulated - ", i)] <- as.character(temp$Colour)
     }
-    if (!is.null(proteins)) {
-      proteins <- gsub("^CON_+", "", proteins)
-      prots <- proteins[which(proteins %in% unique(unlist(strsplit(temp[[Proteins.col]], ";"))))]
-      temp$Colour2 <- "not in list"
-      temp$Labels2 <- ""
-      myColors2 <- setNames(c("lightgrey", "purple", "brown"),
-                            c("not in list", "target", "protein in list"))
-      colScale2 <- ggplot2::scale_colour_manual(name = "colour", values = myColors2)
-      #if (!is.numeric(Size)) { fillScale2 <- ggplot2::scale_fill_manual(name = "fill", values = myColors2, guide = FALSE) }
-      if (length(prots)) {
-        wLst <- proteoCraft::grsep2(prots, temp[[Proteins.col]])
-        if ((!length(wLst))&&(prot_split)) {
-          warning("No matches for proteins in list, no split plot will be created.")
-          prot_split <- FALSE
-        }
-        if (!prot_split) { temp$Colour[wLst] <- "protein in list" } else {
-          temp$Colour2[wLst] <- "protein in list"
-          temp$Labels2[wLst] <- temp$Labels[wLst]
-        }
+    # List of proteins of interest
+    if (useProtList) {
+      wLst <- which(temp$"Found_in_List")
+      if (!prot_split) {
+        temp$Colour[wLst] <- "protein in list"
       } else {
-        if (prot_split) {
-          warning("No matches for proteins in list, no split plot will be created.")
-          prot_split <- FALSE
-        }
+        temp$Colour2 <- "not in list"
+        temp$Labels2 <- ""
+        temp$Colour2[wLst] <- "protein in list"
+        temp$Labels2[wLst] <- temp$Labels[wLst]
       }
     }
-    if ("Target" %in% colnames(experiments.map)) { # Will overwrite "protein in list" tag with "target" tag where relevant
+    #if (!is.numeric(Size)) { fillScale2 <- ggplot2::scale_fill_manual(name = "fill", values = myColors2, guide = FALSE) }
+    #
+    # Target
+    if (use_target) { # Will overwrite "protein in list" tag with "target" tag where relevant
+      if (!useProtList) {
+        if ((misFun(Proteins.col))||(!Proteins.col %in% colnames(Prot))) { Proteins.col <- IDs.col }
+        Prot[[Proteins.col]] <- gsub(";CON_+", ";", gsub("^CON_+", "", Prot[[Proteins.col]]))
+      }
       w <- proteoCraft::grsep2(target, temp[[Proteins.col]])
       temp$Colour[w] <- "target" # The "target" tag should be in all versions of the graph.
       if (prot_split) {
