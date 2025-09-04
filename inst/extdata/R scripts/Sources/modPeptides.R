@@ -53,6 +53,10 @@ if ("PTM.analysis" %in% colnames(Param)) {
       PTMs_GO_enrich.tbl %<o% list()
       PTMs_GO_Plots %<o% list()
       PTMs_Reg_GO_terms %<o% list()
+      ### Check that Cytoscape is installed and can run, then launch it.
+      Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
+      #rstudioapi::documentOpen(Src)
+      source(Src, local = FALSE)
       # Initialize ClueGO
       Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_init.R")
       #rstudioapi::documentOpen(Src)
@@ -541,7 +545,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
                                     Ref.Ratio.method = paste0("obs", RefRat_Mode),
                                     ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates),
                                     FDR.thresh = PTMs_FDR.thresholds[[Ptm]], arbitrary.lines = arbitrary.thr,
-                                    proteins = prot.list, Proteins.col = "Code",
+                                    proteins = prot.list, IDs.col = "Code", Proteins.col = "Proteins", proteins_split = protsplit,
                                     return = TRUE, return.plot = TRUE,
                                     title = paste0(Ptm, " volcano plot "), subfolder = subDr,
                                     subfolderpertype = FALSE, Symmetrical = TwoSided,

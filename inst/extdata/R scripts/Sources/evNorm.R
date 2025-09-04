@@ -1,9 +1,19 @@
 # Optional - Normalize evidence MS1 intensities, then, if applicable, MS2 reporter (Isobaric labelling) or fragment (DIA) intensities
 source(parSrc, local = FALSE)
 if (Param$Norma.Ev.Intens) {
-  msg <- paste0(evNm, "s-level normalisations:\n------------------------------------\n")
+  msg <- paste(c(evNm, "s-level normalisations:\n", rep("-", nchar(evNm)), "----------------------\n"))
   ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
   # Define groups - this will ensure that, if phospho (or other) -enrichment took place, these peptides will be normalized separately
+  #
+  # if (!"Search_ID" %in% colnames(ev)) {
+  #   stopifnot(length(inDirs) == 1) # If length(inDirs) > 1 then column Search_ID should be always present!!!
+  #   ev$Search_ID <- inDirs
+  # }
+  # ev$"Normalisation group" <-  ev$Search_ID
+  # Above: I don't think we want to normalize within Search_ID; normally if the same samples are run, or the same files analyzed
+  # even with different software we should expect the same normm factor...
+  # Better to distinguish enrichment method.
+  #
   ev$"Normalisation group" <- "Standard"
   if ("PTM-enriched" %in% colnames(Frac.map)) {
     # (In column "PTM enriched", use NA to indicate no enrichment!!!)
@@ -30,17 +40,17 @@ if (Param$Norma.Ev.Intens) {
           l1 <- length(w1)-length(w1a) # This is the number of un-modified PSMs we are removing from enriched runs
           l0 <- length(w0)-length(w0a) # This is the number of modified PSMs we are removing from non-enriched runs
           if (l1) {
-            msg <- paste0("Removing ", l1, " peptide evidences without the ", ptm, " modification from ", ptm,
+            msg <- paste0("Removing ", l1, " peptide PSMs without the ", ptm, " modification from ", ptm,
                           "-enriched raw files (", round(100*l1/length(w1), 2), "%)!")
             ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
           }
           if (l0) {
-            msg <- paste0("Removing ", l0, " ", ptm, "-modified peptide evidences from un-enriched samples!")
+            msg <- paste0("Removing ", l0, " ", ptm, "-modified peptide PSMs from non-enriched samples!")
             ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
           }
           ev <- ev[which(ev$id %in% c(w0a, w1a, w2)),]
         } else {
-          msg <- paste0("Not a single ", ptm, "-modified evidence found in ", ptm, "-enriched raw files, investigate!")
+          msg <- paste0("Not a single ", ptm, "-modified PSMs found in ", ptm, "-enriched raw files, investigate!")
           ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
         }
       }

@@ -10,7 +10,6 @@ parallel::clusterExport(parClust, list("AltHyp", "Nested"), envir = environment(
 invisible(parallel::clusterCall(parClust, function() { library(siggenes); return() }))
 
 # Argument names
-# Argument names
 allArgs <- c("myData",
              "intRef",
              "ratRef",
@@ -19,6 +18,7 @@ allArgs <- c("myData",
              "runLoc",
              "ohDeer",
              "idCol",
+             "protCol",
              "mtchCol",
              "plotlyLab",
              "Alpha",
@@ -38,6 +38,7 @@ if (dataType == "modPeptides") {
   runLoc <- LocAnalysis
   ohDeer <- paste0(wd, "/Reg. analysis/", ptm, "/F-tests")
   idCol <- "Name"
+  protCol <- "Proteins"
   mtchCol <- "Modified sequence"
   plotlyLab = c(PepLabKol, paste0(Ptm, "-site"))
   myData$"-log10(PEP)" <- -log10(myData$PEP)
@@ -53,7 +54,7 @@ if (dataType == "PG") {
   namesRoot <- "PG"
   runLoc <- FALSE
   ohDeer <- paste0(wd, "/Reg. analysis/F-tests")
-  idCol <- "Protein IDs"
+  idCol <- protCol <- "Protein IDs"
   plotlyLab <- PrLabKol
   Size <- "Rel. av. log10 abundance"
   Alpha <- "Rel. log10(Peptides count)"
@@ -232,7 +233,7 @@ fit$genes <- myData[#NA_Filt
 fit <- contrasts.fit(fit, contrMatr_F)
 fit <- eBayes(fit)
 # Don't use limma.one.sided, it's for the t-test P values!
-my_F_Data <- myData[, c(namesCol, idCol, mtchCol, paste0("Mean ", ratRef, expContr_F$name))]
+my_F_Data <- myData[, c(namesCol, idCol, protCol, mtchCol, paste0("Mean ", ratRef, expContr_F$name))]
 my_F_Data[[F_Root]] <- NA
 my_F_Data[#NA_Filt
   , F_Root] <- -log10(fit$F.p.value)
@@ -300,7 +301,7 @@ qqt(as.data.frame(fit$F), df = fit$df.prior + fit$df.residual, pch = 16, cex = 0
 abline(0,1)
 dev.off()
 #
-kol <- unique(c(idCol, plotlyLab, "Potential contaminant", Param$Plot.labels, xCol, Alpha, fdrKol, regKol))
+kol <- unique(c(idCol, protCol, plotlyLab, "Potential contaminant", Param$Plot.labels, xCol, Alpha, fdrKol, regKol))
 kol <- kol[which(kol %in% colnames(myData))]
 my_F_Data[, kol] <- myData[, kol]
 my_F_Data[["Rel. av. log10 abundance"]] <- myData[[Size]]
@@ -327,7 +328,7 @@ F_volc <- Volcano.plot(Prot = my_F_Data, mode = "custom", experiments.map = cont
                        Ref.Ratio.values = refRat_F,
                        ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates),
                        arbitrary.lines = arbitrary.thr,
-                       proteins = prot.list, proteins_split = protsplit, Proteins.col = idCol,
+                       proteins = prot.list, proteins_split = protsplit, IDs.col = idCol, Proteins.col = protCol,
                        return = FALSE, return.plot = TRUE, title = "F-test volcano plot ",
                        subfolder = ohDeer, subfolderpertype = FALSE,
                        Symmetrical = TRUE,

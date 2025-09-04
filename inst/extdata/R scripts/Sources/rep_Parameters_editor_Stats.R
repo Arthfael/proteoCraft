@@ -543,16 +543,6 @@ if (length(w)) {
   Param[, w] <- as.logical(Param[, w])
 }
 
-if (SearchSoft %in% c("DIANN", "FRAGPIPE")) {
-  tmp <- unlist(strsplit(Param$PSMs, ";"))
-  tmp <- tmp[which(file.exists(tmp))]
-  tmp <- tmp[which(!tmp %in% PSMsFl)]
-  if (length(tmp)) {
-    msg <- paste0("Parameter \"PSMs\" is ignored in ", SearchSoft, " mode , instead the PSMs file is detected from the search parameters\n",
-                  "The following file(s) will not be included:", paste0("\n - ", tmp), "\n")
-    ReportCalls <- AddMsg2Report(Warning = TRUE, Space = TRUE)
-  }
-}
 ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_fpar(Report, fpar(ftext(\" -> Parameters:\", prop = WrdFrmt$Body_text), fp_p = WrdFrmt$left))")
 for (i in 1:ncol(Param)) {
   ReportCalls$Calls <- append(ReportCalls$Calls,

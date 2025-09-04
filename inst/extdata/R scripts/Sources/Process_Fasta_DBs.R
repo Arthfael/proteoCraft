@@ -397,7 +397,7 @@ if (taxTst) {
   })
 }
 source(parSrc, local = FALSE)
-dbs <- lapply(whFnd, function(i) { #i <- whFnd[1] #i <- whFnd[2]
+dbs <- setNames(lapply(whFnd, function(i) { #i <- whFnd[1] #i <- whFnd[2]
   tmp <- Format.DB(unlist(fastasTbl$Data[[i]]), in.env = TRUE, mode = fastasTbl$Type[i], parallel = TRUE, cl = parClust)
   tmp$Source <- fastasTbl$Type[i]
   tmp$"Potential contaminant" <- c("", "+")[fastasTbl$Contaminant[i]+1]
@@ -416,7 +416,67 @@ dbs <- lapply(whFnd, function(i) { #i <- whFnd[1] #i <- whFnd[2]
     tmp$Kingdom <- fastasTbl$Kingdom[i]
   }
   return(tmp)
-})
+}), fastasTbl$Full[whFnd])
+#
+kol <- c("Organism_Full", "Organism")
+dbs_Org %<o% setNames(lapply(dbs, function(db) { #db <- dbs[[1]]
+  kol <- kol[which(kol %in% colnames(db))]
+  tst <- sapply(kol, function(x) { length(unique(db[which(!as.character(db[[x]]) %in% c("", "NA")), x])) })
+  kol <- kol[order(tst, decreasing = TRUE)][1]
+  w <- which(db$`Potential contaminant` != "+")
+  org %<o% aggregate(w, list(db[w, kol]), length)
+  colnames(org) <- c("Organism", "Count")
+  org <- org[which(org$Count == max(org$Count)[1]),]
+  org$Source <- aggregate(db$Source[which(db[[kol]] %in% org$Organism)], list(db[which(db[[kol]] %in% org$Organism), kol]), function(x) {
+    unique(x[which(!is.na(x))])
+  })$x
+  org$Source[which(is.na(org$Source))] <- ""
+  return(org)
+}), fastasTbl$Full[whFnd])
+dbs_Txt <- setNames(vapply(fastas_map$Actual, function(x) { #x <- fastas_map$Actual[[1]]
+  tbl <- do.call(rbind, list(dbs_Org[[x]]))
+  # tbl <- data.frame(Organism = c("Arabidopsis thaliana", "Arabidopsis thaliana", "Brassica oleracea", "Escherichia coli", "Arabidopsis thaliana", "Homo sapiens"),
+  #                   Count = c(10000, 2000, 5000, 300, 1500, 25),
+  #                   Source = c("UniprotKB", "UniprotKB", "UniprotKB", "UniprotKB", "TAIR", "UniprotKB"))
+  tbl <- aggregate(tbl$Count, list(tbl$Source, tbl$Organism), sum)
+  colnames(tbl) <- c("Source", "Organism", "Count")
+  tbl <- tbl[order(tbl$Organism),]
+  tbl <- tbl[order(tbl$Count, decreasing = TRUE),]
+  tbl <- tbl[order(tbl$Source),]
+  tbl1 <- aggregate(tbl[, c("Organism", "Count")], list(tbl$Source), list)
+  colnames(tbl1)[1] <- "Source"
+  tbl1$charTst <- lapply(tbl1$Organism, function(y) { (tolower(substr(y, 1, 1)) %in% c("a", "e", "i", "o", "u")) + 1 })
+  Txt <- vapply(1:nrow(tbl1), function(y) { #y <- 1 #y <- 2
+    org <- tbl1$Organism[[y]]
+    knt <- tbl1$Count[[y]]
+    tst <- tbl1$charTst[[y]]
+    l <- length(org)
+    if (l > 1) {
+      org <- paste0(paste(org[1:(l-1)], collapse = ", "), " and ", org[l], " databases")
+      knt <- paste0(paste(knt[1:(l-1)], collapse = ", "), " and ", knt[l], " entries, resp.")
+    } else {
+      org <- paste0("a", c("", "n")[tst], " ", org, " database")
+      knt <- paste0(as.character(knt), " entr", c("y", "ies")[(knt > 1)+1])
+    }
+    return(paste0(org, " obtained from ", tbl1$Source[y], " (", knt, ")"))
+  }, "")
+  l <- length(Txt)
+  if (l > 1) { Txt <- paste0(paste(Txt[1:(l-1)], collapse = ", "), " as well as ", Txt[l]) }
+  return(paste0(Txt, "."))
+}, ""), names(fastas_map$Actual))
+# Update MatMet_Search
+for (dir in names(MatMet_Search)) { #dir <- names(MatMet_Search)[1]
+  MatMet_Search[[dir]] <- gsub("TEMPLATELIBTEXT", dbs_Txt[dir], MatMet_Search[[dir]])
+}
+MatMet_Search <- paste(MatMet_Search, collapse = "\n")
+#cat(MatMet_Search)
+#
+Org %<o% do.call(rbind, dbs_Org)
+Org <- aggregate(Org$Count, list(Org$Organism), sum)
+colnames(Org) <- c("Organism", "Count")
+Org <- Org[order(Org$Count, decreasing = TRUE),]
+tstOrg %<o% c("", "n")[(tolower(substr(Org$Organism[1], 1, 1)) %in% c("a", "e", "i", "o", "u"))+1]
+#
 db %<o% plyr::rbind.fill(dbs)
 w <- which(db$"Protein of interest")
 w2 <- which((!db$`Protein ID` %in% db$`Protein ID`[w])|(db$`Protein of interest`))
@@ -443,23 +503,27 @@ if (length(w)) {
 }
 #
 for (i in 1:nrow(fastasTbl)) { if (!file.exists(paste0(wd, "/", fastasTbl$Name[i]))) { fs::file_copy(fastasTbl$Full[i], wd) } }
-if (SearchSoft == "FRAGPIPE") { # Remove reverse entries
-  db <- db[grep("^>rev_", db$Header, invert = TRUE),]
-}
+# Remove reverse entries
+db <- db[grep("^>rev_", db$Header, invert = TRUE),]
 
 # Also load and append contaminants database
 setwd(wd)
-if (SearchSoft %in% c("MAXQUANT", "DIANN", "FRAGPIPE")) {
+if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
   # NB:
   # DIA-NN does not provide an inbuilt contaminants database.
   # But we are providing one, slightly modified from the CCP's cRAPome.fasta, which should normally be used for DiaNN searches.
   # FragPipe can add the CCP's cRAPome.fasta to the search and we recommend to do so.
   # For MaxQuant, use the contaminants.fasta which is also copied with the package.
-  contDBFl <- paste0(libPath, "/extData/", c("CCP_cRAPome.fasta",
-                                             "contaminants.fasta")[(SearchSoft == "MAXQUANT")+1])
-  contDB <- readLines(contDBFl)
-  contDB <- Format.DB(contDB, in.env = TRUE)
-  if (SearchSoft == "MAXQUANT") {
+  contDBFls <- paste0(libPath, "/extData/", c("CCP_cRAPome.fasta",
+                                             "contaminants.fasta")[c(sum(c("DIANN", "FRAGPIPE") %in% SearchSoft),
+                                                                     "MAXQUANT" %in% SearchSoft)])
+  contDB <- lapply(contDBFls, function(contDBFl) {
+    x <- readLines(contDBFl)
+    x <- Format.DB(x, in.env = TRUE)
+    return(x)
+  })
+  contDB <- plyr::rbind.fill(contDB)
+  if ("MAXQUANT" %in% SearchSoft) {
     contCsv <- paste0(wd, "/contaminants.csv")
     if (file.exists(contCsv)) { contDB <- read.csv(contCsv, check.names = FALSE) } else {
       # This is a bastard Fasta...

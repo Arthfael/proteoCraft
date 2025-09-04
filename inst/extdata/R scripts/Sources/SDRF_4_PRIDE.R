@@ -1,36 +1,57 @@
 # This is an embryo script to write SDRF files for PRIDE submissions.
-# For now it is probably incomplete, and only works for label-free datasets
-# There will probably have to be additions for phospho-enriched samples too
-# This could get included in the two main workflows, though I think it's better to keep it separate for now...
-# Also the path to the validation tool is hard coded for now
+# For now it is incomplete, and only works for label-free datasets.
 # Assumes Trypsin
-# Assumes single instrument type for all
 # Assumes...
-# Just... check the output!!!
+# Just...
+# Check...
+# The output!!!
 #
-# Check the SDRF format here:
+# Check the specs of the SDRF format here:
 # https://github.com/bigbio/proteomics-sample-metadata/blob/master/sdrf-proteomics/README.adoc
 
 require(proteoCraft)
-
+if (!exists("homePath")) {
+  homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+}
+# For validations, make sure that python is installed and during Configure() make sure the parse_sdrf.exe script is added!!!
+locDirsFl <- paste0(homePath, "/Default_locations.xlsx")
+if (file.exists(locDirsFl)) {
+  locDirs <- openxlsx2::read_xlsx(locDirsFl)
+  if ("Python" %in% locDirs$Folder) {
+    pyTest <- !as.logical(try({
+      #pyPath0 <- locDirs$Path[match("Python", locDirs$Folder)]
+      #cat(pyPath <- gsub("/", "\\\\", pyPath0))
+      # Update pip
+      cmd <- "pip install --upgrade pip"
+      system(cmd, show.output.on.console = FALSE)
+      # Install sdrf-pipelines
+      cmd <- "pip install sdrf-pipelines"
+      system(cmd, show.output.on.console = FALSE)
+    }, silent = TRUE))
+  }
+}
 #load_Bckp()
 
 setwd(wd)
-sdrfPth <- paste0(outdir, "/SDRF.tsv")
+sdrfPth <- paste0(wd, "/SDRF.tsv")
 myOntDF <- data.frame(Name = c("CellType",
                                "Tissue",
                                "Disease",
                                "DevStages",
                                "MSInstr",
+                               "AcqMeth",
                                "QuantMeth",
+                               "LabelMeth",
                                "PTMs"),
                       Column = c("characteristics[cell type]",
                                  "characteristics[organism part]",
                                  "characteristics[disease]",
                                  "characteristics[developmental stage]",
                                  "comment[instrument]",
+                                 "comment[proteomics data acquisition method]",
                                  NA,
-                                 NA))
+                                 "comment[label]",
+                                 "characteristics[enrichment process]"))
 myOntDF$myOntology <- paste0("my", myOntDF$Name)
 if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value should be "LFQ", not "DIA"!
   reload_SDRF <- file.exists(sdrfPth)
@@ -66,15 +87,20 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
                                                        "Diseases",
                                                        "Cell_types",
                                                        "PRIDE",
-                                                       "MS_Quant_meth",
+                                                       "MS_acq_meth",
+                                                       "MS_quant_meth",
+                                                       "MS_label_meth",
                                                        "MS_models",
                                                        paste0("DevStages_", c("Human",
                                                                               "Mouse",
                                                                               "Zebrafish",
                                                                               "Fly",
-                                                                              "Worms"))), ".csv"))
+                                                                              "Worms"))),
+                                      ".csv"))
   ontoFls$Name <- gsub("\\.csv$", "", basename(ontoFls$File))
   ontoFls$Exists <- file.exists(ontoFls$File)
+  #sum(!ontoFls$Exists)
+  #View(ontoFls)
   isFnd <- setNames(ontoFls$Exists, ontoFls$Name)
   if (isFnd["Cell_types"]) {
     tmp <- data.table::fread(ontoFls$File[match("Cell_types", ontoFls$Name)])
@@ -143,9 +169,21 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     }
     availInstr <- c(myMSInstr, availInstr[which(!availInstr %in% myMSInstr)])
   }
-  if (isFnd["MS_Quant_meth"]) {
-    tmp <- data.table::fread(ontoFls$File[match("MS_Quant_meth", ontoFls$Name)])
-    availQuantMeth <- sort(unique(tmp$label))
+  if (isFnd["MS_acq_meth"]) {
+    tmp <- data.table::fread(ontoFls$File[match("MS_acq_meth", ontoFls$Name)])
+    availAcqMeth <- sort(unique(tmp$Name))
+    acqMethTxt <- " relevant MS acquisition method(s)"
+    if ((!exists("myAcqMeth"))||(!is.character(myAcqMeth))||(!sum(myAcqMeth %in% availAcqMeth))) {
+      myAcqMeth <- c()
+      myAcqMeth2 <- "not available"
+    } else {
+      myAcqMeth2 <- myAcqMeth
+    }
+    availAcqMeth <- c(myAcqMeth, availAcqMeth[which(!availAcqMeth %in% myAcqMeth)])
+  }
+  if (isFnd["MS_quant_meth"]) {
+    tmp <- data.table::fread(ontoFls$File[match("MS_quant_meth", ontoFls$Name)])
+    availQuantMeth <- sort(unique(tmp$Name))
     quantMethTxt <- " relevant MS quantification method(s)"
     if ((!exists("myQuantMeth"))||(!is.character(myQuantMeth))||(!sum(myQuantMeth %in% availQuantMeth))) {
       myQuantMeth <- c()
@@ -154,6 +192,18 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
       myQuantMeth2 <- myQuantMeth
     }
     availQuantMeth <- c(myQuantMeth, availQuantMeth[which(!availQuantMeth %in% myQuantMeth)])
+  }
+  if (isFnd["MS_label_meth"]) {
+    tmp <- data.table::fread(ontoFls$File[match("MS_label_meth", ontoFls$Name)])
+    availLabelMeth <- sort(unique(tmp$Name))
+    labelMethTxt <- " relevant MS labelling method(s)"
+    if ((!exists("myLabelMeth"))||(!is.character(myLabelMeth))||(!sum(myLabelMeth %in% availLabelMeth))) {
+      myLabelMeth <- c()
+      myLabelMeth2 <- "not available"
+    } else {
+      myLabelMeth2 <- myLabelMeth
+    }
+    availLabelMeth <- c(myLabelMeth, availLabelMeth[which(!availLabelMeth %in% myLabelMeth)])
   }
   myDS1 <- NULL
   myDS2 <- ""
@@ -249,7 +299,7 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     shiny::tags$hr(style = "border-color: black;"),
     shiny::br(),
     shiny::fluidRow(
-      shiny::column(4,
+      shiny::column(2,
                     if (isFnd["MS_models"]) {
                       shinyWidgets::pickerInput("Vendor",
                                                 "Select instrument vendor(s)",
@@ -264,9 +314,29 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
                     },
                     shiny::uiOutput("myMS_instr"),
                     shiny::br()),
-      if (isFnd["MS_Quant_meth"]) {
-        shiny::column(4,
-                      shinyWidgets::pickerInput("MS_Quant_meth",
+      if (isFnd["MS_acq_meth"]) {
+        shiny::column(2,
+                      shinyWidgets::pickerInput("MS_acq_meth",
+                                                paste0("Select", acqMethTxt),
+                                                availAcqMeth,
+                                                myAcqMeth,
+                                                TRUE,
+                                                shinyWidgets::pickerOptions(title = "Search me",
+                                                                            `live-search` = TRUE,
+                                                                            actionsBox = TRUE,
+                                                                            deselectAllText = "Clear search",
+                                                                            showTick = TRUE)),
+                      shiny::br())
+      } else {
+        shiny::column(2,
+                      shiny::textInput("MS_acq_meth",
+                                       paste0("Input", acqMethTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/pride)"),
+                                       myAcqMeth2),
+                      shiny::br())
+      },
+      if (isFnd["MS_quant_meth"]) {
+        shiny::column(2,
+                      shinyWidgets::pickerInput("MS_quant_meth",
                                                 paste0("Select", quantMethTxt),
                                                 availQuantMeth,
                                                 myQuantMeth,
@@ -278,14 +348,34 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
                                                                             showTick = TRUE)),
                       shiny::br())
       } else {
-        shiny::column(4,
-                      shiny::textInput("MS_Quant_meth",
+        shiny::column(2,
+                      shiny::textInput("MS_quant_meth",
                                        paste0("Input", quantMethTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/pride)"),
                                        myQuantMeth2),
                       shiny::br())
       },
+      if (isFnd["MS_label_meth"]) {
+        shiny::column(2,
+                      shinyWidgets::pickerInput("MS_label_meth",
+                                                paste0("Select", labelMethTxt),
+                                                availLabelMeth,
+                                                myLabelMeth,
+                                                TRUE,
+                                                shinyWidgets::pickerOptions(title = "Search me",
+                                                                            `live-search` = TRUE,
+                                                                            actionsBox = TRUE,
+                                                                            deselectAllText = "Clear search",
+                                                                            showTick = TRUE)),
+                      shiny::br())
+      } else {
+        shiny::column(2,
+                      shiny::textInput("MS_label_meth",
+                                       paste0("Input", labelMethTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/pride)"),
+                                       myLabelMeth2),
+                      shiny::br())
+      },
       if (isFnd["Modifications"]) {
-        shiny::column(4,
+        shiny::column(2,
                       shinyWidgets::pickerInput("Modifications",
                                                 paste0("Select", modsTxt),
                                                 availMods,
@@ -298,7 +388,7 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
                                                                             showTick = TRUE)),
                       shiny::br())
       } else {
-        shiny::column(4,
+        shiny::column(2,
                       shiny::textInput("Modifications",
                                        paste0("Input", modsTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/MOD)"),
                                        myPTMs2),
@@ -463,14 +553,36 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
                                         tmp)
       }
     })
-    if (isFnd["MS_Quant_meth"]) {
-      shiny::observeEvent(input$MS_Quant_meth, {
-        qtmtd <- unique(input$MS_Quant_meth)
+    if (isFnd["MS_acq_meth"]) {
+      shiny::observeEvent(input$MS_acq_meth, {
+        acqmtd <- unique(input$MS_acq_meth)
+        tmp <- c(acqmtd, availAcqMeth[which(!availAcqMeth %in% acqmtd)])
+        shinyWidgets::updatePickerInput(shiny::getDefaultReactiveDomain(),
+                                        "MS_acq_meth",
+                                        paste0("Select", acqMethTxt),
+                                        acqmtd,
+                                        tmp)
+      })
+    }
+    if (isFnd["MS_quant_meth"]) {
+      shiny::observeEvent(input$MS_quant_meth, {
+        qtmtd <- unique(input$MS_quant_meth)
         tmp <- c(qtmtd, availQuantMeth[which(!availQuantMeth %in% qtmtd)])
         shinyWidgets::updatePickerInput(shiny::getDefaultReactiveDomain(),
-                                        "MS_Quant_meth",
+                                        "MS_quant_meth",
                                         paste0("Select", quantMethTxt),
                                         qtmtd,
+                                        tmp)
+      })
+    }
+    if (isFnd["MS_label_meth"]) {
+      shiny::observeEvent(input$MS_label_meth, {
+        lblmtd <- unique(input$MS_label_meth)
+        tmp <- c(lblmtd, availLabelMeth[which(!availLabelMeth %in% lblmtd)])
+        shinyWidgets::updatePickerInput(shiny::getDefaultReactiveDomain(),
+                                        "MS_label_meth",
+                                        paste0("Select", labelMethTxt),
+                                        lblmtd,
                                         tmp)
       })
     }
@@ -496,7 +608,9 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
       assign("myDevStages", tmp, envir = .GlobalEnv)
       assign("myVendor", unique(input$Vendor), envir = .GlobalEnv)
       assign("myMSInstr", unique(input$MS_instr), envir = .GlobalEnv)
-      assign("myQuantMeth", unique(input$MS_Quant_meth), envir = .GlobalEnv)
+      assign("myAcqMeth", unique(input$MS_acq_meth), envir = .GlobalEnv)
+      assign("myQuantMeth", unique(input$MS_quant_meth), envir = .GlobalEnv)
+      assign("myLabelMeth", unique(input$MS_label_meth), envir = .GlobalEnv)
       assign("myPTMs", unique(input$Modifications), envir = .GlobalEnv)
       assign("appRunTest", TRUE, envir = .GlobalEnv)
       shiny::stopApp()
@@ -523,7 +637,7 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     tmp <- unique(get(i))
     tmp <- tmp[which(tolower(tmp) != "unknown")]
     tmp <- tmp[which(!is.na(tmp))]
-    if (!length(tmp)) { tmp <- "not available" }
+    tmp <- c(tmp, "not available")
     assign(paste0(i, 2), tmp)
   }
   #
@@ -533,6 +647,7 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
   if (scrptType == "noReps") {
     Frac.map2 <- FracMap
   }
+  reload_SDRF <- exists("auld_SDRF")
   if (reload_SDRF) {
     SDRF <- auld_SDRF
     reload_SDRF <- (nrow(SDRF) >= nrow(Frac.map2))&&("comment[data file]" %in% colnames(SDRF))
@@ -600,9 +715,9 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
       SDRF$"characteristics[biological replicate]" <- 1
     }
   }
-  if (!"comment[label]" %in% colnames(SDRF)) {
-    SDRF$"comment[label]" <- "label free" # Change this if doing TMT/SILAC!!!
-  }
+  # if (!"comment[label]" %in% colnames(SDRF)) {
+  #   SDRF$"comment[label]" <- "label free" # Change this if doing TMT/SILAC!!!
+  # }
   if (!"comment[cleavage agent details]" %in% colnames(SDRF)) {
     SDRF$"comment[cleavage agent details]" <- "NT=Trypsin; AC=MS:1001251; CS=(?⇐[KR])(?!P)" # Only trypsin supported so far!
   }
@@ -619,12 +734,14 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
   }, 1), myOntDF$Name)
   #
   myOntDF$Candidate_col_root <- list(c("Cell Type", "Cell type"),
-                                            c("Tissue", "Organ"),
-                                            c("Disease", "Illness"),
-                                            c("Developmental Stage", "Dev. Stage", "Developmental stage", "Dev. stage"),
-                                            NA,
-                                            NA,
-                                            NA)
+                                     c("Tissue", "Organ"),
+                                     c("Disease", "Illness"),
+                                     c("Developmental Stage", "Dev. Stage", "Developmental stage", "Dev. stage"),
+                                     NA,
+                                     NA,
+                                     NA,
+                                     NA,
+                                     "PTM-enriched")
   myOntDF$Candidate_col <- lapply(1:nrow(myOntDF), function(i) {
     candKols <- myOntDF$Candidate_col_root[[i]]
     candKols <- candKols[which(!is.na(candKols))]
@@ -645,7 +762,9 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     return(candKols)
   })
   ALLIDS <- editOnts <- c()
-  for (i in which(!is.na(myOntDF$Column))) { #i <- 1
+  wNotNA <- which(!is.na(myOntDF$Column))
+  #paste0("my", myOntDF$Name[wNotNA])
+  for (i in wNotNA) { #i <- wNotNA[1]
     nm <- myOntDF$Name[i]
     myOntVal <- get(paste0(myOntDF$myOntology[i], "2"))
     if (length(myOntVal) == 1) {
@@ -666,7 +785,7 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
                                       nm,
                                       myOntVal,
                                       paste0(wTest0[nm], "px"),
-                                      TRUE)
+                                      FALSE)
       SDRF2[[paste0(nm, "___FD")]] <- shinyFDInput(nm, nr)
       ALLIDS <- c(ALLIDS,
                   paste0(nm, "___", rws))
@@ -676,16 +795,22 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
   #
   if (idsL) {
     wTest1 <- vapply(colnames(SDRF2), function(k) { #k <- colnames(SDRF2)[1]
-      if (k %in% names(wTest0)) { x <- wTest0[k] } else {
-        k1 <- k
-        if (k == "MS raw file") { k1 <- "comment[data file]" }
-        if (k == "Fraction") { k1 <- "comment[fraction identifier]" }
-        if (k1 %in% colnames(SDRF)) {
-          x <- (max(nchar(c(k, SDRF[k1]))) + 6)
-        } else {
-          x <- 30
+      if (nchar(k)) {
+        if (k %in% names(wTest0)) { x <- wTest0[k] } else {
+          k1 <- k
+          if (k == "MS raw file") { k1 <- "comment[data file]" }
+          if (k == "Fraction") { k1 <- "comment[fraction identifier]" }
+          if (k1 %in% colnames(SDRF)) {
+            if (k == "MS raw file") {
+              x <- max(nchar(c(k, gsub(".*/", "", SDRF[[k1]]))))*8 + 6
+            } else {
+              x <- max(nchar(c(k, SDRF[[k1]])))*8 + 6
+            }
+          } else {
+            x <- 30
+          }
         }
-      }
+      } else { x <- 30 }
       return(x)
     }, 1)
     wTest2 <- sum(wTest1) + 15 + ncol(SDRF2)*5
@@ -805,14 +930,18 @@ Shiny.bindAll(table.table().node());"))
     SDRF[, myOntDF$Column[match(editOnts, myOntDF$Name)]] <- SDRF3[, editOnts]
   }
   #
-  if (!exists("homePath")) {
-    homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+  for (k in myKol) {
+    k1 <- tolower(k)
+    if (k == "Replicate") { k1 <- "biological replicate" }
+    SDRF[[paste0("characteristics[", k1, "]")]] <- Frac.map2[[k]]
+    SDRF[[paste0("factor value[", k1, "]")]] <- Frac.map2[[k]]
   }
-  for (k in myKol) { SDRF[[paste0("factor value[", tolower(k), "]")]] <- Frac.map2[[k]] }
   #
-  # PTMs and quant meth are not used for now: do they need to be in the SDRF?
+  # TO DO:
+  #   For DIA, it is recommended to add a "comment[MS1 scan range]" (example value = "400m/z - 1200m/z")
+  #   -> get this from the method!!!
   #
-  # Column order seems to matter...
+  # Column order matters...
   kol1 <- colnames(SDRF)
   kol2 <- c("source name",
              grep("^characteristics\\[", kol1, value = TRUE),
@@ -827,23 +956,15 @@ Shiny.bindAll(table.table().node());"))
   write.table(SDRF, sdrfPth, sep = "\t", quote = FALSE, row.names = FALSE)
   #openxlsx::openXL(sdrfPth)
   #
-  #
-  # TO DO: for validations, make sure that python is installed and during Configure() make sure the parse_sdrf.exe script is added!!!
-  fl <- paste0("", gsub("/Documents$", "", gsub("\\\\", "/", Sys.getenv("HOME"))),
-               "/AppData/Roaming/Python/Python310/Scripts/parse_sdrf.exe")
-  if (file.exists(fl)) {
+  if (pyTest) {
     cat("Validating SDRF file...\n")
-    cmd <- paste0("\"", fl, "\" validate-sdrf --sdrf_file \"", sdrfPth, "\"")
+    cmd <- paste0("parse_sdrf validate-sdrf --sdrf_file \"", sdrfPth, "\"")
     #cat(cmd)
     system(cmd)
     #openwd(dirname(sdrfPth))
-  } else {
-    cat("To allow this workflow to automatically validate this file, make sure that a) python is installed and b) follow installation instructions for https://github.com/bigbio/sdrf-pipelines - the current script will then be able to run the validation tool directly...")
+    cat("\n... but remember: it is always a good idea to also check it manually!\n")
   }
-  cat("\n... but remember: it's always a good idea to also check it manually!\n")
 } else {
   # That part would be easy to write but isn't done yet
   warning("Writing SDRF files for is only available for LFQ experiments for the time being...")  
 }
-
-  

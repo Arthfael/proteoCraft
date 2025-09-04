@@ -1,3 +1,9 @@
+####################
+# Explore the data #
+####################
+#
+# Opens a shiny app where clustering heatmaps, dimensionality reduction plots, protein profile plots or sorting plots may be visualized.
+#
 
 HEIGHT <- "500px"
 allProt <- PG$Label

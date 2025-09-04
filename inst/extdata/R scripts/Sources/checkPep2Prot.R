@@ -7,7 +7,7 @@ setwd(wd)
 #ev$Proteins <- gsub(";CON_", ";", gsub("^CON_", "", gsub(";CON__", ";", gsub("^CON__", "", ev$Proteins))))
 if (Update_Prot_matches) {
   ReportCalls$Calls <- append(ReportCalls$Calls,
-                              paste0("body_add_fpar(Report, fpar(ftext(\" - Checking ", names(SearchSoft), "'s peptide sequence to protein assignments:\", prop = WrdFrmt$Body_text), fp_p = WrdFrmt$just))"))
+                              paste0("body_add_fpar(Report, fpar(ftext(\" - Checking peptide-to-protein assignments:\", prop = WrdFrmt$Body_text), fp_p = WrdFrmt$just))"))
   msg <- "ing peptide-to-protein matches...\n"
   if (exists("Reuse_Prot_matches")) {
     if ((!is.logical(Reuse_Prot_matches))||(is.na(Reuse_Prot_matches))) {

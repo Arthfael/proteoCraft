@@ -139,7 +139,7 @@ if (isOK) {
   tmpDat <- myData[, c(idCol, log2Col)]
   tmpDat <- tmpDat[which((nchar(tmpDat[[idCol]]) > 0)&(!is.na(tmpDat[[idCol]]))),]
   if (length(unique(tmpDat[[idCol]])) < nrow(tmpDat)) {
-    tmpDat <- aggregate(tmpDat[[log2Col]], list(tmpDat[[idCol]]), mean, na.rm = TRUE)
+    tmpDat <- aggregate(tmpDat[, log2Col], list(tmpDat[[idCol]]), mean, na.rm = TRUE)
     colnames(tmpDat) <- c(idCol, log2Col)
   }
   f0 <- function(kol) { #kol <- log2Col[1]

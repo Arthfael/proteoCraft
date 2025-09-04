@@ -10,7 +10,6 @@ samRoot %<o% "SAM -log10(Pvalue) - "
 odpRoot %<o% "ODP -log10(Pvalue) - "
 lrtRoot %<o% "LRT -log10(Pvalue) - "
 #
-if (!exists("Nested")) { Nested <- FALSE }
 pvalue.col %<o% c(StudentRoot, WelchRoot, modRoot, permRoot, samRoot, odpRoot, lrtRoot)
 names(pvalue.col) <- vapply(pvalue.col, function(x) { unlist(strsplit(x, "\\.|\\'|\\ "))[1] }, "")
 ParamFls <- c(paste0(wd, "/Parameters.csv"),
@@ -26,7 +25,6 @@ Param$WD <- wd
 if (ParamFl == ParamFls[2]) {
   Param$WD <- wd
   Param$Project <- dtstNm
-  Param$Output <- SearchSoft
   Param$Fix.MQ.Isobaric.labels <- FALSE
   Param$Type <- WorkFlow
   Param$Label <- LabelType
@@ -36,7 +34,7 @@ if (ParamFl == ParamFls[2]) {
   Param$Search.DB.species <- paste(fastasTbl$Species, collapse = ";") 
   Param$Two.sided <- !(WorkFlow %in% c("PULLDOWN", "BIOID"))
   Param$Min.Pep.Size <- MinPepSz
-  Param$PSMs <- paste(PSMsFl, collapse = ";")
+  Param$PSMs <- paste(PSMsFls, collapse = ";")
   if (LabelType == "Isobaric") {
     Param$Label <- IsobarLab #
     Param$Label.Multiplicity <- length(get(IsobarLab)) #
@@ -61,8 +59,12 @@ if (ParamFl == ParamFls[2]) {
     ptmDflt2 <- tmp
   }
 }
-if ((Param$Label == "LFQ")&&(isDIA)) { Param$Label <- "DIA" }
-Param$WD <- wd # Super important!
+if ("Output" %in% colnames(Param)) { Param$Output <- NULL } # Deprecated
+tmp <- PSMsFls
+Param$Search.Engines <- 
+  
+  #if ((Param$Label == "LFQ")&&(isDIA)) { Param$Label <- "DIA" } # Nope! isDIA can be length > 1 now! 
+  Param$WD <- wd # Super important!
 ptmDflt1 <- grep("^[Pp]hospho", Modifs$`Full name`, value = TRUE, invert = TRUE)
 if (!"PTM.analysis" %in% colnames(Param)) { Param$PTM.analysis <- paste(ptmDflt2, collapse = ";") }
 Mod4Quant %<o% Modifs$Mark[match(ptmDflt1, Modifs$`Full name`)]
@@ -84,11 +86,19 @@ if (is.na(fTstDflt)) { fTstDflt <- TRUE }
 #   #
 #   # Honestly, this is bloat and needs to go!
 # }
-if (!"Ratios.Groups_Nested" %in% colnames(Param)) { Param$Ratios.Groups_Nested <- WorkFlow != "Regulation" }
+if ((!exists("Nested"))||(length(Nested) != 1)||(!is.logical(Nested))||(is.na(Nested))) {
+  if ("Ratios.Groups_Nested" %in% colnames(Param)) {
+    Nested <- Param$Ratios.Groups_Nested
+  } else {
+    Nested <- WorkFlow != "Regulation"
+  }
+}
+Param$Ratios.Groups_Nested <- Nested 
+Nested %<o% Nested
 #Param$Ratios.Groups.Ref.Aggregate.Level <- "AUTOFACT"
 #Param$Ratios.Groups.Ref.Aggregate.Level <- "Exp;Con;Rep"
 tmp <- unlist(strsplit(Param$Ratios.Groups.Ref.Aggregate.Level, ";"))
-tst <- (length(tmp)>1)||(!tmp %in% c("AUTOFACT", "MAP2FACTS"))
+tst <- (length(tmp) > 1)||(!tmp %in% c("AUTOFACT", "MAP2FACTS"))
 if (tst) {
   tst <- sum(!tmp %in% substr(Factors, 1, 3)) == 0
   if (!tst) { tmp <- "MAP2FACTS" }
@@ -492,14 +502,14 @@ coreNms <- setNames(c("Ratios.Groups.Ref.Aggregate.Level",
                       "Ratios.Groups",
                       "GO.enrichment.Ref.Aggr"
                       #, "Batch.correction"
-                      ),
-                    c(paste0("Individual Sample___Combination of Factors required to distinguish individual samples./nMust include ",
-                             paste(mnFct[1:(l-1)], collapse = ", "), " and ", mnFct[l], "."),
-                      "Normalisation groups___Factor(s) defining groups of samples to normalize to each-other. Note that which, if any, normalisations apply will be defined further down",
-                      "Ratio groups___Factor(s) defining comparison groups, i.e. groups of samples, including at least some References (i.e. Controls), to compare to each others./nMust include Experiment, cannot include Replicate.",
-                      "GO enrichment___Optional: Only protein groups with at least one valid value in corresponding samples will be used as references for GO-terms enrichment tests."
-                      #, "Batch___Optional: Factor(s) defining batches used for sva::ComBat-based correction."
-                    ))
+),
+c(paste0("Individual Sample___Combination of Factors required to distinguish individual samples./nMust include ",
+         paste(mnFct[1:(l-1)], collapse = ", "), " and ", mnFct[l], "."),
+  "Normalisation groups___Factor(s) defining groups of samples to normalize to each-other. Note that which, if any, normalisations apply will be defined further down",
+  "Ratio groups___Factor(s) defining comparison groups, i.e. groups of samples, including at least some References (i.e. Controls), to compare to each others./nMust include Experiment, cannot include Replicate.",
+  "GO enrichment___Optional: Only protein groups with at least one valid value in corresponding samples will be used as references for GO-terms enrichment tests."
+  #, "Batch___Optional: Factor(s) defining batches used for sva::ComBat-based correction."
+))
 for (nm in coreNms) { if (!nm %in% colnames(Param)) { Param[[nm]] <- "Exp" } }
 wMp <- c(which(colnames(Param) == coreNms[1]),
          which(colnames(Param) == coreNms[2]),
@@ -509,49 +519,52 @@ wMp <- c(which(colnames(Param) == coreNms[1]),
          which((Param[1,] == "MAP2FACTS")&(!colnames(Param) %in% c(coreNms, "Batch.correction"))))
 lstFct <- list()
 dfltFct <- list()
-for (w in wMp) {
+for (w in wMp) { #w <- wMp[3]
+  myFct <- colnames(Param)[w]
   Opt <- Factors
-  dflt <- dfdflt <- c("Experiment", "Replicate")[(colnames(Param)[w] == "Batch.correction")+1]
+  dflt <- dfdflt <- c("Experiment", "Replicate")[(myFct == "Batch.correction")+1]
   if (!Param[1, w] %in% c("AUTOFACT", "MAP2FACTS")) {
     dflt <- Factors[match(unlist(strsplit(Param[1, w], ";")), names(Factors))]
     if ((length(dflt) == 1)&&(is.na(dflt))) { dflt <- dfdflt }
   }
-  if (colnames(Param)[w] == "Ratios.Groups.Ref.Aggregate.Level") {
+  if (myFct == "Ratios.Groups.Ref.Aggregate.Level") {
+    Opt <- Factors
     dflt <- unique(c(dflt, mnFct))
+    dflt <- dflt[which(!dflt %in% c("Batch"))]
   }
-  if (colnames(Param)[w] == "Ratios.Groups") {
+  if (myFct %in% c("Ratios.Groups", "GO.enrichment.Ref.Aggr")) {
     Opt <- Factors[which(Factors != "Replicate")]
-    dflt <- dflt[which(dflt != "Replicate")]
+    dflt <- dflt[which(!dflt %in% c("Batch", "Replicate"))]
   }
-  lbl <- gsub("\\.", " ", colnames(Param)[w])
-  if (colnames(Param)[w] %in% coreNms) {
-    lbl <- unlist(strsplit(names(coreNms)[match(colnames(Param)[w], coreNms)], "___"))
-  } else { lbl <- c(gsub("\\.", " ", colnames(Param)[w]), Param_Help[w]) }
+  lbl <- gsub("\\.", " ", myFct)
+  if (myFct %in% coreNms) {
+    lbl <- unlist(strsplit(names(coreNms)[match(myFct, coreNms)], "___"))
+  } else { lbl <- c(gsub("\\.", " ", myFct), Param_Help[w]) }
   names(Opt) <- NULL
   names(dflt) <- NULL
-  dfltFct[[colnames(Param)[w]]] <- dflt
+  dfltFct[[myFct]] <- dflt
   blck <- list(list(br()),
                tags$table(
                  tags$tr(width = "80%",
                          tags$td(width = "25%",
                                  div(strong(lbl[1]))),
                          tags$td(width = "55%",
-                                 selectInput(colnames(Param)[w],
+                                 selectInput(myFct,
                                              "",
                                              Opt,
                                              dflt,
                                              TRUE,
                                              TRUE)),
-                         #addTooltip(session, colnames(Param)[w], Param_Help[w], "bottom", "hover", list(container = "body"))
+                         #addTooltip(session, myFct, Param_Help[w], "bottom", "hover", list(container = "body"))
                  )
                ))
   lbl2 <- unlist(strsplit(lbl[2], "/n"))
   for (lbl2a in lbl2) { blck <- append(blck, list(span(em(lbl2a)), br())) }
-  if (colnames(Param)[w] == "Ratios.Groups") {
-    dflt <- Param$Ratios.Groups_Nested
-    if (!is.logical(dflt)) { dflt <- WorkFlow != "Regulation" }
+  if (myFct == "Ratios.Groups") {
+    nstDflt <- Param$Ratios.Groups_Nested
+    if (!is.logical(nstDflt)) { nstDflt <- WorkFlow != "Regulation" }
     blck <- append(blck, list(radioButtons("IsNested", "Nested design? (i.e. are replicates paired?)",
-                                           c(TRUE, FALSE), dflt, TRUE)))
+                                           c(TRUE, FALSE), nstDflt, TRUE)))
   }
   blck <- append(blck, list(br()))
   lstFct <- append(lstFct, blck)
@@ -560,9 +573,6 @@ for (w in wMp) {
 useSAM_thresh %<o% TRUE
 tstAdvOpt <- try(sum(file.exists(Param$Custom.PGs, Param$TrueDisc_filter, Param$CRAPome_file)) > 0)
 if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
-#if (!Param$Param_suppress_UI) {
-#
-
 #
 mtchCheckMsg1 <- "Checking assignments may result in removal of some identifications."
 mtchCheckMsg2 <- "We only recommend it now where the search software used did not use modern prediction tools for retention time or ion mobility predition in the identification process."
@@ -616,13 +626,13 @@ ui1 <- fluidPage(
     column(3,
            checkboxInput("Impute", "Impute missing peptides-level values?", Impute, "100%")),
     column(3,
-           checkboxInput("Update_Prot_matches", paste0("Update ", names(SearchSoft), "'s original protein-to-peptides assignments?"), Update_Prot_matches, "100%"),
+           checkboxInput("Update_Prot_matches", paste0("Update peptide-to-protein assignments?"), Update_Prot_matches, "100%"),
            shinyBS::bsTooltip("Update_Prot_matches",
                               paste0(mtchCheckMsg1, "\n", mtchCheckMsg1),
                               placement = "right", trigger = "hover", options = list(container = "body")),
            h5(mtchCheckMsg1),
            h5(mtchCheckMsg2)#, withSpinner(uiOutput("ReloadMatches"))
-           )
+    )
   ),
   br(),
   if (annotRep) {
@@ -786,6 +796,7 @@ ui1 <- fluidPage(
   #    direction = "bottom"
   # )
 )
+#eval(parse(text = appTxt1), envir = .GlobalEnv)
 if (exists("appRunTest")) { rm(appRunTest) }
 server1 <- function(input, output, session) {
   NORMALIZE <- reactiveVal(normDat)
@@ -1027,9 +1038,10 @@ server1 <- function(input, output, session) {
   })
   # Factors
   sapply(wMp, function(w) {
-    observeEvent(input[[colnames(Param)[w]]], {
-      tmpVal <- input[[colnames(Param)[w]]] # Current aggregate
-      if (colnames(Param)[w] == "Ratios.Groups.Ref.Aggregate.Level") {
+    myFct <- colnames(Param)[w]
+    observeEvent(input[[myFct]], {
+      tmpVal <- input[[myFct]] # Current aggregate
+      if (myFct == "Ratios.Groups.Ref.Aggregate.Level") {
         # For ref samples aggregate - the aggregate which defines individual samples /// what a terrible name I chose back then... ///
         # we have to do some extra homework:
         l <- length(tmpVal)
@@ -1158,58 +1170,6 @@ server1 <- function(input, output, session) {
     }
     return(lst)
   })
-  #
-  # updtFTstUI <- function(reactive = TRUE) {
-  #   # Update UI
-  #   if (reactive) { FTst <- PARAM()$F.test } else { FTst <- Param$F.test }
-  #   return(renderUI({
-  #     if (FTst) {
-  #       lst <- list()
-  #       Opt <- Factors[which(Factors != "Replicate")]
-  #       dflt <- dfdflt <- "Experiment"
-  #       if (!Param$F.test_within %in% c("AUTOFACT", "MAP2FACTS")) {
-  #         dflt <- Factors[match(unlist(strsplit(Param$F.test_within, ";")), names(Factors))]
-  #         if ((!length(dflt))||((length(dflt) == 1)&&(is.na(dflt)))) { dflt <- dfdflt }
-  #       }
-  #       dflt <- dflt[which(dflt != "Replicate")]
-  #       lbl <- "Groups within which to perform F-tests"
-  #       names(Opt) <- NULL
-  #       names(dflt) <- NULL
-  #       w <- which(colnames(Param) == "F.test_within")
-  #       blck <- list(list(br()),
-  #                    tags$table(
-  #                      tags$tr(width = "100%",
-  #                              tags$td(width = "25%", div(strong("F-test groups"))),
-  #                              addTooltip(session, colnames(Param)[w], Param_Help[w], "bottom", "hover", list(container = "body")),
-  #                      ),
-  #                      tags$tr(width = "100%", tags$td(width = "55%",
-  #                                                      selectInput("F.test_within",
-  #                                                                  "",
-  #                                                                  Opt,
-  #                                                                  dflt,
-  #                                                                  TRUE,
-  #                                                                  TRUE)))
-  #                    ))
-  #       blck <- append(blck, list(span(em("F-tests will be performed within groups defined by the levels of the factors you choose here.")), br()))
-  #       blck <- append(blck, list(br()))
-  #       lst <- append(lst, blck)
-  #     } else { lst <- list(em("No analysis yet")) }
-  #     return(lst)
-  #   }))
-  # }
-  #output$F_test_grps <- updtFTstUI(reactive = FALSE)
-  #
-  # output$ReloadMatches <- renderUI({
-  #   if ("evmatch.RData" %in% list.files(wd)) {
-  #     msg <- "Peptide-to-protein matches backup detected in folder: do you want to reload it?\n"
-  #     lst <- list(list(list(br()),
-  #                      tags$table(
-  #                        tags$tr(width = "100%", tags$td(width = "55%", checkboxInput("Reuse_Prot_matches", msg, TRUE)))
-  #                      )))
-  #   } else {
-  #     em(" ")
-  #   }
-  # })
   #
   # Optional input files
   output$AdvOpt <- updtOptOn(FALSE)

@@ -1,5 +1,7 @@
 # Check and process Fractions map
+#ev %<o% do.call(plyr::rbind.fill, lapply(searchOutputs, function(x) { x$ev }))
 Exp.map$Use <- as.logical(Exp.map$Use)
+#MQ.Exp %<o% sort(unique(FracMap$MQ.Exp))
 MQ.Exp <- MQ.Exp[which(MQ.Exp %in% unique(unlist(Exp.map$MQ.Exp[which(Exp.map$Use)])))]
 if (file.exists(FracMapPath)) {
   Frac.map %<o% read.csv(FracMapPath, check.names = FALSE)
@@ -10,26 +12,10 @@ if (file.exists(FracMapPath)) {
   MQ.Exp <- MQ.Exp[which(MQ.Exp %in% unique(unlist(Frac.map$MQ.Exp[which(Frac.map$Use)])))]
   Exp.map <- Exp.map[which(vapply(Exp.map$MQ.Exp, function(x) { sum(x %in% MQ.Exp) }, 1) > 0),]
   Frac.map <- Frac.map[which(Frac.map$MQ.Exp %in% MQ.Exp),]
-  #Frac.map$"Raw file" <- gsub("\\\\", "/", Frac.map$"Raw file") # Redundant
-  #ev$"Raw file path" <- gsub_Rep("\\\\", "/", ev$"Raw file path")
   m <- match(ev$`Raw file`, rawFiles2)
   if (!sum(!is.na(m))) {
     stop()
-    #ev$`Raw file` <- gsub_Rep("\\.[^\\.]+$", "", ev$`Raw file`)
-    #m <- match(ev$`Raw file`, rawFiles2)
   }
-  #rawFiles <- gsub_Rep("\\\\", "/", rawFiles)
-  # if (!"Raw file path" %in% colnames(ev)) { ev$"Raw file path" <- rawFiles[match(ev$`Raw file`, rawFiles2)] } else {
-  #   ev$"Raw file path" <- gsub_Rep("\\\\", "/", ev$"Raw file path")
-  # }
-  # if (SearchSoft != "DIANN") {
-  #   Frac.map$"Raw file_Full" <- Frac.map$"Raw file"
-  #   if (SearchSoft == "MAXQUANT") {
-  #     Frac.map$"Raw file" <- gsub(".*/|\\.((raw)|(mzX?ML)|(d)|(dia))$", "", Frac.map$"Raw file", ignore.case = TRUE)
-  #   } else {
-  #     Frac.map$"Raw file" <- gsub("\\.((raw)|(mzX?ML)|(d)|(dia))$", "", Frac.map$"Raw file", ignore.case = TRUE)
-  #   }
-  # }
   if ("MQ.Exp" %in% colnames(ev)) {
     tst <- sum(is.na(ev$MQ.Exp)) == nrow(ev)
     if (tst) { ev$MQ.Exp <- NULL }
@@ -49,29 +35,6 @@ if (file.exists(FracMapPath)) {
   if (("Replicate" %in% colnames(Frac.map))&&(sum(sort(unique(Frac.map$Replicate)) != sort(Rep)) != 0)) {
     stop("Replicates from Fractions map and Experiment map do not match!")
   }
-  # if (SearchSoft == "DIANN") {
-  #   if (length(which(!unique(ev$"Raw file path") %in% unique(Frac.map$"Raw file")))) {
-  #     warning("Some evidences do not have corresponding raw files in Fractions map and shall thus be removed. Check that this is ok!")
-  #     ev <- ev[which(ev$"Raw file path" %in% unique(Frac.map$"Raw file")),]
-  #   }
-  #   ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file")
-  #   if (length(which(!unique(Frac.map$"Raw file") %in% unique(ev$"Raw file path")))) {
-  #     warning("There are some raw files for which not a single peptide evidence is present in the data!")
-  #     Frac.map <- Frac.map[which(Frac.map$"Raw file" %in% unique(ev$"Raw file path")),]
-  #   }
-  # } else {
-  #   ev$"Raw file" <- gsub_Rep("\\.((raw)|(mzX?ML)|(d)|(dia))$", "", ev$"Raw file", ignore.case = TRUE)
-  #   Frac.map$"Raw file" <- gsub("\\.((raw)|(mzX?ML)|(d)|(dia))$", "", Frac.map$"Raw file", ignore.case = TRUE)
-  #   if (length(which(!unique(ev$"Raw file") %in% unique(Frac.map$"Raw file")))) {
-  #     warning("Some evidences do not have corresponding raw files in Fractions map and shall thus be removed. Check that this is ok!")
-  #     ev <- ev[which(ev$"Raw file" %in% unique(Frac.map$"Raw file")),]
-  #   }
-  #   ev2fr %<o% match(ev$"Raw file", Frac.map$"Raw file")
-  #   if (length(which(!unique(Frac.map$"Raw file") %in% unique(ev$"Raw file")))) {
-  #     warning("There are some raw files for which not a single peptide evidence is present in the data!")
-  #     Frac.map <- Frac.map[which(Frac.map$"Raw file" %in% unique(ev$"Raw file")),]
-  #   }
-  # }
   stopifnot("Raw file" %in% colnames(Frac.map),
             "Raw file path" %in% colnames(ev))
   ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file")
@@ -101,11 +64,6 @@ if (file.exists(FracMapPath)) {
     if (length(w)) { warning("Some PSMs do not have a corresponding Samples, is this expected?\n(This is normal if you decided to not use all samples...)") }
     if (LabelType == "Isobaric") { Iso <- sort(unique(Exp.map$Isobaric.set)) }
   }
-  # if (exists("MQ.Exp2discrd")) {
-  #   ev <- ev[which(!ev$MQ.Exp %in% MQ.Exp2discrd),]
-  #   ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file")
-  #   Frac.map <- Frac.map[which(!Frac.map$MQ.Exp %in% MQ.Exp2discrd),]
-  # }
   if ("Replicate" %in% colnames(Frac.map)) {
     Frac.map$Unique.Frac.ID <- apply(Frac.map[, c("Replicate", "MQ.Exp", "Fraction")], 1, function(x) {
       paste0("Rep", paste(x, collapse = "_"))
@@ -156,10 +114,6 @@ if (file.exists(FracMapPath)) {
     } else { stop("There are several Isobaric sets in Exp.map, yet Fractions map is missing!") }
   }
   Frac.map %<o% set_colnames(aggregate(ev[, kol], list(ev$"Raw file path"), unique), c("Raw file", kol))
-  # if (exists("MQ.Exp2discrd")) {
-  #   ev <- ev[which(!ev$MQ.Exp %in% MQ.Exp2discrd),]
-  #   Frac.map <- Frac.map[which(!Frac.map$MQ.Exp %in% MQ.Exp2discrd),]
-  # }
 }
 # Filter
 Exp.map$Use <- as.logical(Exp.map$Use)
@@ -207,3 +161,4 @@ FactorsLevels <- setNames(lapply(Factors, function(Fact) {
 w <- which(vapply(FactorsLevels, length, 1) > 0)
 Factors <- Factors[w]
 FactorsLevels <- FactorsLevels[Factors]
+#rm(ev) # Nope, we keep it for now

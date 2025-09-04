@@ -46,6 +46,7 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
     X <- kols[w1[1]]
     if (length(w1) > 1) { Y <- kols[w1[2]] } else { Y <- kols[w2[2]] }
   }
+  # X and Y each have length 1!
   kols <- kols[which(!kols %in% c(X, Y))]
   if (length(kols) > 1) {
     data$Group <- do.call(paste, c(data[, kols], sep = " "))
@@ -114,18 +115,17 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
       data2 <- data2[w,]
       tst <- vapply(c(Y, X), function(x) { length(unique(data2[[x]])) }, 1)
       wrpKl <- c(Y, X)
+      wrpKl2 <- paste0("`", wrpKl, "`")
       if (1 %in% tst) {
-        wrpKl <- c(Y, X)[which(tst > 1)]
+        w <- which(tst > 1)
+        wrpKl <- wrpKl[w]
+        wrpKl2 <- wrpKl2[w]
         #if ((length(wrpKl) == 1)&&(grepl(" ", wrpKl))) { wrpKl <- paste0("`", wrpKl, "`") }
       } else {
         if ((tst[1] >= tst[2]*3)||(tst[1] <= tst[2]/3)) {
-          wrpKl <- paste0(paste0("`", X, "`"), "+", paste0("`", Y, "`"))
-          tmp <- data2[, c(X, Y)]
-          source(parSrc, local = FALSE)
-          clusterExport(parClust, "tmp", envir = environment())
-          data2[[wrpKl]] <- as.factor(parApply(parClust, data2[, c(X, Y)], 1, function(x) { paste(x, collapse = " ") }))
-        } else {
-          wrpKl <- c(Y, X)
+          wrpKl2 <- paste0("`", paste(wrpKl, collapse = " | "), "`")
+          wrpKl <- paste(wrpKl, collapse = " | ")
+          data2[[wrpKl]] <- as.factor(do.call(paste, c(data2[, c(X, Y)], sep = " | ")))
         }
       }
       lst <- lapply(wrpKl, function(k) { data2[[k]] })
@@ -166,7 +166,8 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
         )
       }
       plot <- plot + scale_color_viridis(begin = 0.25, discrete = TRUE, option = "D") +
-        geom_hline(yintercept = 0, colour = "grey") + xlab("A = mean log10(Intensity)") + ylab("M = log2(Ratio)") +
+        geom_hline(yintercept = 0, colour = "grey") +
+        xlab("A = mean log10(Intensity)") + ylab("M = log2(Ratio)") +
         geom_smooth(aes(x = `Mean log10(Intensity)`, y = `log2(Ratio)`), color = "purple", formula = "y ~ s(x, bs = 'cs')", # Note that this fails sometimes, may be a package version issue
                     linewidth = 0.1, linetype = "dashed", method = 'gam') +
         geom_text(data = annot2, aes(x = Amax, y = Y, label = Tag), hjust = 1, cex = 2) +
@@ -176,9 +177,9 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
               strip.text.x = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 7),
               strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 7))
       if (length(wrpKl) == 1) {
-        if (grepl(" ", wrpKl)) { wrpKl <- paste0("`", wrpKl, "`") }
-        plot <- plot + facet_wrap(as.formula(paste0(" ~ ", wrpKl)), drop = TRUE)
+        plot <- plot + facet_wrap(as.formula(paste0(" ~ ", wrpKl2)), drop = TRUE)
       } else {
+        # X and Y each have length 1!
         plot <- plot + facet_grid(as.formula(paste0("`", Y, "` ~ `", X, "`")), drop = TRUE)
       }
       #poplot(plot, 12, 22)

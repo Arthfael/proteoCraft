@@ -288,13 +288,14 @@ if (LabelType == "Isobaric") {
 }
 for (k in colnames(FracMap)) { FracMap[[k]] <- gsub("\t|\n|^ +| +$", "", FracMap[[k]]) } # Avoid issues with incorrect entries (hidden spaces, newlines...)
 FracMap$Use <- as.logical(toupper(FracMap$Use))
+if (LabelType == "LFQ") {
+  FracMap$"MQ.Exp" <- NULL
+  colnames(FracMap)[which(colnames(FracMap) == "Parent sample")] <- "MQ.Exp"
+}
 tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
 if ("try-error" %in% class(tst)) {
   dlg_message(paste0("File \"", FracMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   write.csv(FracMap, file = FracMapPath, row.names = FALSE)
-}
-if (LabelType == "LFQ") {
-  colnames(FracMap)[which(colnames(FracMap) == "Parent sample")] <- "MQ.Exp"
 }
 FracMap <- FracMap[which(FracMap$Use),]
 MQ.Exp %<o% sort(unique(FracMap$MQ.Exp))

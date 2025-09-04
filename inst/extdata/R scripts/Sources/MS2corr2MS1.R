@@ -5,7 +5,7 @@
 # "what is the confidence we have on the averaged MS2-based profile?"
 MS2_based_Correction %<o% TRUE
 # A column named MS2_intensities with individual MS2 fragment intensities should be present!
-if ((LabelType == "LFQ")&&(isDIA)&&("MS2_intensities" %in% colnames(ev))) { # We only run if we are in DIA mode and...
+if ((LabelType == "LFQ")&&(sum(isDIA))&&("MS2_intensities" %in% colnames(ev))) { # We only run if we are in DIA mode and...
   # ... we are either not using DiaNN or we are but we did not run QuantUMS
   if ((MS2_based_Correction)&&((SearchSoft != "DIANN")||(!QuantUMS))) {
     msg <- "Refining MS1-level measurements using MS2 data..."
@@ -27,13 +27,17 @@ if ((LabelType == "LFQ")&&(isDIA)&&("MS2_intensities" %in% colnames(ev))) { # We
       nuRef <- int.col <- int.cols["MS2-corrected"] <- paste0("MS2-corr. ", int.cols["Original"])
     }
     #
-    if ("Search_ID" %in% colnames(ev)) {
-      GrpsVct <- ev$Search_ID
-    } else { GrpsVct <- rep(1, nrow(ev)) }
-    Grps <- unique(GrpsVct)
+    if (!"Search_ID" %in% colnames(ev)) {
+      stopifnot(length(inDirs) == 1) # If length(inDirs) > 1 then column Search_ID should be always present!!!
+      ev$Search_ID <- inDirs
+      names(isDIA) <- inDirs
+    }
+    GrpsVct <- ev$Search_ID
+    Grps <- names(isDIA)[which(isDIA)]
+    Grps <- Grps[which(Grps %in% GrpsVct)]
     chckMS2Corr <- FALSE
     ev[[nuRef]] <- ev[[ref]]
-    for (grp in Grps) { #grp <- Grps[1]
+    for (grp in Grps[]) { #grp <- Grps[1]
       grpMtch <- match(grp, Grps)
       w <- which(GrpsVct == grp)
       MS2Tbl <- data.table(IDs = ev$id[w], MS1 = ev[w, ref], MS2 = ev$MS2_intensities[w],
@@ -70,13 +74,13 @@ if ((LabelType == "LFQ")&&(isDIA)&&("MS2_intensities" %in% colnames(ev))) { # We
         Dat$Weights <- rowSums(Dat[, k], na.rm = TRUE)
         #DefArg(LFQ.lm); ids = Dat$id; InputTabl = Dat; IntensCol = k; Summary.method = "weighted.mean";Summary.weights = "Weights"; Min.N = 1; Max.N = 6;Is.log = FALSE
         x <- proteoCraft::LFQ.lm(Dat$id,
-                           InputTabl = Dat,
-                           IntensCol = k,
-                           Summary.method = "weighted.mean",
-                           Summary.weights = "Weights",
-                           Min.N = 1,
-                           Max.N = 6,
-                           Is.log = FALSE)
+                                 InputTabl = Dat,
+                                 IntensCol = k,
+                                 Summary.method = "weighted.mean",
+                                 Summary.weights = "Weights",
+                                 Min.N = 1,
+                                 Max.N = 6,
+                                 Is.log = FALSE)
         # } else { x <- Dat[1, 1] }
         return(x)
       })
