@@ -21,7 +21,7 @@ if (LabelType == "Isobaric") {
 MQ.Frac %<o% sort(suppressWarnings(unique(as.integer(unlist(strsplit(as.character(Exp.map$Fractions), ";"))))), na.last = TRUE)
 
 # Test
-if ((SearchSoft == "MAXQUANT")&&(LabelType == "Isobaric")) {
+if (LabelType == "Isobaric") {
   tst <- sum(!paste0("Reporter intensity ", Exp.map$"Isobaric label") %in% colnames(ev))
   stopifnot(tst == 0)
   # If this is not correct, then we should consider re-introducing older "Code chunk - Isobarically-labelled samples only! Check whether 1 must be subtracted from MaxQuant's isobaric labels index"
