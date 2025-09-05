@@ -10,6 +10,7 @@
 #' @param intensities Values to map to the "colscale" argument so that peptides can be printed with different colors, e.g. mapped to abundance.
 #' @param display Logical: should we open the plot? TRUE by default.
 #' @param asRatios Is the data fed to the intensities argument actually ratios data (default = FALSE)? If TRUE, this changes the default color scale from "viridis" to "plasma"
+#' @param I_eq_L Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631
 #' 
 #' @examples
 #' cov3D(pdb, peptides)
@@ -22,9 +23,10 @@ cov3D <- function(pdb,
                   path,
                   intensities = NULL,
                   display = TRUE,
-                  asRatios = FALSE) {
+                  asRatios = FALSE,
+                  I_eq_L = TRUE) {
   TESTING <- FALSE
-  #aRmel::DefArg(aRmel::cov3D) ;TESTING = TRUE
+  #proteoCraft::DefArg(proteoCraft::cov3D) ;TESTING = TRUE
   #pdb = pdbFl; peptides = tmpDat$Group.1; path = paste0(Par_dir, "/FLAG_KCC2_coverage (", pdbNm, ").html"); intensities = tmpDat$x
   #pdb = pdbFl; peptides = tmpDat$Group.1; path = paste0(Par_dir, "/FLAG_KCC2_coverage - ", nm, " (", pdbNm, ").html"); intensities = tmpDat$x
   #
@@ -36,6 +38,13 @@ cov3D <- function(pdb,
   #
   wdBckp <- getwd()
   #
+  if ((misFun(I_eq_L))||(!is.logical(I_eq_L))||(is.na(I_eq_L))) {
+    if ((exists("isDIA"))&&(is.logical(isDIA))&&(!is.na(isDIA))) {
+      I_eq_L <- !idDIA
+    } else {
+      I_eq_L <- TRUE
+    }
+  }
   if ((misFun(asRatios))||(!is.logical(asRatios))||(is.na(asRatios))) {
     asRatios <- FALSE
   }
@@ -88,15 +97,21 @@ cov3D <- function(pdb,
   #peptides <- aggregate(ev$Intensity, list(ev$"Modified sequence"), sum, na.rm = TRUE)
   #intensities <- peptides$x
   #peptides <- peptides$Group.1
-  aa321 <- data.frame(aa1 = as.character(aRmel::AA_table$AA),
+  aa321 <- data.frame(aa1 = as.character(proteoCraft::AA_table$AA),
                       aa3 = c("ALA", "CYS", "ASP", "GLU", "PHE", "GLY", "HIS", "ILE", "LYS", "LEU", "MET", "ASN", "PYL", "PRO", "GLN", "ARG", "SER", "THR", "SEC", "VAL", "TRP", "TYR"))
   dat2$AA <- aa321$aa1[match(dat2$Residue, aa321$aa3)]
-  dat2$I2L <- gsub("I", "L", dat2$AA)
+  dat2$I2L <- dat2$AA
+  if (I_eq_L) {
+    dat2$I2L <- gsub("I", "L", dat2$AA)
+  }
   if ((misFun(intensities))||(is.null(intensities))) { intensities <- rep(1, length(peptides)) }
   pepTbl <- data.frame(seq = peptides,
                        int = intensities,
-                       I2Lpep = gsub("^_|_$", "", gsub("I", "L", peptides)))
-  pepTbl$I2Lpep <- setNames(aRmel::annot_to_tabl(pepTbl$I2Lpep), peptides)
+                       I2Lpep = gsub("^_|_$", "", peptides))
+  if (I_eq_L) {
+    pepTbl$I2Lpep <- gsub("I", "L", pepTbl$I2Lpep)
+  }
+  pepTbl$I2Lpep <- setNames(proteoCraft::annot_to_tabl(pepTbl$I2Lpep), peptides)
   pepTbl$matches <- setNames(lapply(pepTbl$I2Lpep, function(x) {
     l <- nrow(x)
     w <- sapply(1:l, function(y) {
