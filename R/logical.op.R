@@ -18,6 +18,16 @@ logical.op <- function(x, test, y, ties = TRUE) {
   lY <- length(y)
   if (!lX) { stop("x must be a vector of non-null length!") }
   if (!lY) { stop("y must be a vector of non-null length!") }
+  if (lX != lY) {
+    if (lX == 1) {
+      x <- rep(x, lY)
+      lX <- lY
+    }
+    if (lY == 1) {
+      y <- rep(y, lX)
+      lY <- lX
+    }
+  }
   if (lX != lY) { stop("x and y must be the same length!") }
   test <- toupper(gsub(" |_|-|\\.", "", test))
   EQUAL <- c("EQUAL", "EQUALS", "EQUALTO", "ISEQUALTO", "=", "==")
