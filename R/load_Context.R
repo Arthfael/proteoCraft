@@ -18,9 +18,9 @@ load_Context <- function(record,
                          clean = FALSE) {
   
   if (clean) { rm(list = ls(), envir = .GlobalEnv) }
-  library(aRmel)
+  library(proteoCraft)
   TESTING <- FALSE
-  #aRmel::DefArg(aRmel::load_Bckp)
+  #proteoCraft::DefArg(proteoCraft::load_Bckp)
   #TESTING <- TRUE
   if (TESTING) {
     # Note:
@@ -34,20 +34,25 @@ load_Context <- function(record,
       if ((exists("wd"))&&("character" %in% class(wd))&&(dir.exists(wd))) {
         defltdir <- wd
       } else {
-        homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/aRmel")
+        homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
         dlft <- openxlsx::read.xlsx(paste0(homePath, "/Default_locations.xlsx"))
         defltdir <- dlft$Path[match("Temporary folder", dlft$Folder)]
       }
     } else { defltdir <- startDir }
-    record <- normalizePath(choose.files(paste0(defltdir, "/*.txt"), multi = FALSE), winslash = "/")
+    #record <- normalizePath(choose.files(paste0(defltdir, "/*.txt"), multi = FALSE), winslash = "/")
+    record <- rstudioapi::selectFile("Select dataset details record .txt file to parse...",
+                                     path = paste0(defltdir, "/*.txt"),
+                                     filter = "Text file (*.txt)")
   }
   record <- readLines(record)
   dtstNm <<- gsub("^ *-> *", "", record[grep("^Dataset name:", record)+1])
-  indir <<- gsub("^ *-> *", "", record[grep("^Input directory:", record)+1])
+  inDirs <<- gsub("^ *-> *", "", record[grep("^Input directory:", record)+1])
   outdir <<- gsub("^ *-> *", "", record[grep("^Final output directory:", record)+1])
   wd <<- gsub("^ *-> *", "", record[grep("^Temporary work directory:", record)+1])
   if (!dir.exists(wd)) { dir.create(wd, recursive = TRUE) }
-  if (!dir.exists(indir)) { stop(paste0("Input directory \"", indir, "\" does not exist!")) }
+  lapply(inDirs, function(indir) {
+    if (!dir.exists(indir)) { stop(paste0("Input directory \"", indir, "\" does not exist!")) }
+  })
   setwd(wd)
-  .obj <<- c(".obj", "dtstNm", "indir", "outdir", "wd")
+  .obj <<- c(".obj", "dtstNm", "inDirs", "outdir", "wd")
 }

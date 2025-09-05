@@ -7,10 +7,13 @@
 #' !!! When editing function, always save with UTF-8 encoding!!!
 #' 
 #' @param RawFiles The raw files from which to attempt to extract the method.
-#' @param LocalRoot What is the root of the folder structure in the local folder. If the raw files are not local but were moved to an archive, this root will be replaced by that of the archive, see ArchiveRoot.\cr Default = "D:/groups_temp/"
-#' @param ArchiveRoot If the raw files are not local but were moved to an archive, where would that be?\cr Default = "Q:/MS/Acquired data/"
-#' @param ScanHdsMnLoc ScanHeadsman path.\cr Default = "C:/ScanHeadsman-1.2.20200730" - so far for us version 1.2 works, 1.3 does not.
+#' @param LocalRoot What is the root of the folder structure in the local folder. If the raw files are not local but were moved to an archive, this root will be replaced by that of the archive, see ArchiveRoot. Default = "D:/groups_temp/"
+#' @param ArchiveRoot If the raw files are not local but were moved to an archive, where would that be? Default = "Q:/MS/Acquired data/"
+#' @param ScanHdsMnLoc ScanHeadsman path. Default = "C:/ScanHeadsman-1.2.20200730"; so far for us 1.2 works, 1.3 does not.
 #' @param Columns Path to a table of LC columns to pick from.
+#' @param N.clust A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.
+#' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
+#' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
 #'
 #' @examples
 #' MatMet_Text2 <- MatMet_LCMS()
@@ -18,38 +21,107 @@
 #' @export
 
 MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should eventually be shifted to a value in the default locations table
-                        LocalRoot = "D:/groups_temp/",
-                        ArchiveRoot = "Q:/MS/Acquired data/",
+                        LocalRoot = "...Search_Folder/",
+                        ArchiveRoot = "...Archive/Acquired data/",
                         RawFiles = rawFiles,
-                        Columns = "default") {
-  #aRmel::DefArg(aRmel::MatMet_LCMS)
+                        Columns = "default",
+                        N.clust,
+                        N.reserved = 1,
+                        cl) {
+  TESTING <- FALSE
+  #proteoCraft::DefArg(proteoCraft::MatMet_LCMS)
   #RawFiles <- rawFiles <-...
   # Number of MS files
+  #TESTING <- TRUE
+  #
+  if (TESTING) {
+    # Note:
+    # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
+    misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
+  } else { misFun <- missing }
+  #
+  # Create cluster
+  tstCl <- stopCl <- misFun(cl)
+  if (!misFun(cl)) {
+    tstCl <- suppressWarnings(try({
+      a <- 1
+      parallel::clusterExport(cl, "a", envir = environment())
+    }, silent = TRUE))
+    tstCl <- !"try-error" %in% class(tstCl)
+  }
+  if ((misFun(cl))||(!tstCl)) {
+    dc <- parallel::detectCores()
+    if (misFun(N.reserved)) { N.reserved <- 1 }
+    if (misFun(N.clust)) {
+      N.clust <- max(c(dc-N.reserved, 1))
+    } else {
+      if (N.clust > max(c(dc-N.reserved, 1))) {
+        warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
+        N.clust <- max(c(dc-N.reserved, 1))
+      }
+    }
+    cl <- parallel::makeCluster(N.clust, type = "SOCK")
+  }
+  N.clust <- length(cl)
+  #
+  #
   Moult <- length(RawFiles) > 1
-  colChar <- "Name | Material | Length (cm) | ID (µm) | Particles size (µm) | Vendor | P/N"
+  #
   # LC columns
-  path <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R")
+  colChar <- c("Name",
+               "Class",
+               "Vendor",
+               "Length.(cm)",
+               "ID.(µm)",
+               "Particles.size.(µm)",
+               "Pore.size.(Å)",
+               "Material",
+               "Type",
+               "Description",
+               "P/N",
+               "Function")
   colTst <- (Columns != "default")&(file.exists(Columns))
-  if (!colTst) { Columns <- paste0(path, "/aRmel/LC_columns.xlsx") }
+  libPath <- as.data.frame(library()$results)
+  libPath <- normalizePath(libPath$LibPath[match("proteoCraft", libPath$Package)], winslash = "/")
+  proteoPath <- paste0(libPath, "/proteoCraft")
+  myPath <- pkgPath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+  if (!colTst) {
+    dfltLocFl <- paste0(pkgPath, "/Default_locations.xlsx")
+    if (file.exists(dfltLocFl)) {
+      dfltLoc <- openxlsx2::read_xlsx(dfltLocFl)
+      tmpPath <- dfltLoc$Path[match("Temporary folder", dfltLoc$Folder)]
+      myPath <- tmpPath
+      Columns <- paste0(tmpPath, "/LC_columns.xlsx")
+    } else {
+      Columns <- paste0(pkgPath, "/LC_columns.xlsx")
+    }
+    if (!file.exists(Columns)) {
+      Columns <- paste0(proteoPath, "/extdata/LC_columns.xlsx")
+    }
+  }
+  Columns2 <- paste0(myPath, "/LC_columns.xlsx")
   colTst <- file.exists(Columns)
   if (colTst) {
-    allKolumns <- openxlsx::read.xlsx(Columns, check.names = FALSE)
+    allKolumns <- openxlsx2::read_xlsx(Columns)
   } else {
+    # Should never happen now that we distribute "LC_columns.xlsx" with the package
     Kolumns <- c("EasySpray C18 column (2 µm particle size, 75 µm ID x 50 cm length, ThermoFisher Scientific P/N ES903)",
                  "200 cm C18 µPAC column (micro-Pillar Array Column, PharmaFluidics P/N 5525031518210B)",
                  "50 cm C18 µPAC GEN2 column (2nd generation micro-Pillar Array Column, PharmaFluidics P/N COL-nano050G2B)")
     preKolumns <- c("Acclaim PepMap C18 pre-column (5 µm particle size, 0.3 mm ID x 5 mm length, ThermoFisher Scientific P/N 160454)",
                     "C18 µPAC trapping-column (PharmaFluidics P/N 55250200018001)")
     allKolumns <- data.frame(Name = c(Kolumns, preKolumns),
+                             Class = c(Kolumns, preKolumns),
                              Material = "C18",
+                             "Vendor" = c("ThermoFisher Scientific", "PharmaFluidics", "PharmaFluidics", "ThermoFisher Scientific", "PharmaFluidics"),
                              "Length.(cm)" = c(50, 200, 50, 0.5, NA),
                              "ID.(µm)" = c(75, NA, NA, 300, NA),
                              "Particles.size.(µm)" = c(2, NA, NA, 5, NA),
-                             "Vendor" = c("ThermoFisher Scientific", "PharmaFluidics", "PharmaFluidics", "ThermoFisher Scientific", "PharmaFluidics"),
+                             "Pore.size.(Å)" = NA,
                              "P/N" = c("ES903", "5525031518210B", "COL-nano050G2B", "160454", "55250200018001"),
-                             Function = c("Analytical", "Analytical", "Analytical", "Trap",  "Trap"),
+                             Type = c("Analytical", "Analytical", "Analytical", "Trap",  "Trap"),
+                             Description = "",
                              check.names = FALSE)
-    Columns <- paste0(path, "/aRmel/LC_columns.xlsx")
   }
   if (!"Description" %in% colnames(allKolumns)) { allKolumns$Description <- "" }
   kolDescr <- function(Colonnes) {
@@ -88,12 +160,12 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
   w <- which(MethodsTbl$Folder == ".")
   if (length(w)) { MethodsTbl$Folder[w] <- getwd() }
   MethodsTbl$Name <- basename(MethodsTbl$Raw.file)
-  MethodsTbl$Ext <- sapply(basename(MethodsTbl$Raw.file), function(x) {
+  MethodsTbl$Ext <- vapply(basename(MethodsTbl$Raw.file), function(x) {
     if (!grepl("\\.", x)) { x <- NA } else {
       x <- rev(unlist(strsplit(x, "\\.")))[1]
     }
     return(x)
-  })
+  }, "")
   w <- which(is.na(MethodsTbl$Ext))
   if (length(w)) {
     l <- (length(w)>1)+1
@@ -101,7 +173,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     MethodsTbl <- MethodsTbl[which(!is.na(MethodsTbl$Ext)),]
   }
   # For now only Thermo raw files and Bruker d files (folders) are supported
-  w <- which(!MethodsTbl$Ext %in% c("d", "raw"))
+  w <- which(!tolower(MethodsTbl$Ext) %in% c("d", "raw"))
   if (length(w)) { 
     l <- (length(w)>1)+1
     warning(paste0("Only Thermo .raw or Bruker .d MS files are supported, skipping file", c("", "s")[l], ":",
@@ -112,12 +184,12 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
   Ext <- unique(MethodsTbl$Ext)
   if (length(Ext) > 1) { warning("Were you aware that this dataset is a mixture of Thermo .raw files and Bruker .d folders?") }
   AllLCMSTexts <- c()
-  if ("d" %in% Ext) {
+  if ("d" %in% tolower(Ext)) {
     require(XML)
     require(RSQLite)
     ADflt <- "MS-grade H₂O + 0.1% formic acid"
     BDflt <- "100% acetonitrile + 0.1% formic acid"
-    BrMeth <- MethodsTbl[which(MethodsTbl$Ext == "d"),]
+    BrMeth <- MethodsTbl[which(tolower(MethodsTbl$Ext) == "d"),]
     BrMeth$FlInfo <- paste0(BrMeth$Raw.file, "/SampleInfo.xml")
     w <- which(file.exists(BrMeth$FlInfo))
     BrMeth[, c("LC_method_fl", "MS_method_fl")] <- NA
@@ -147,7 +219,9 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     uBrMeth <- data.frame(MethodID = BrRoots,
                           Column = NA, Trap = NA, SolvA = NA, SolvB = NA)
     uBrMeth$Method <- tmp
-    BrMeth$MethodID <- sapply(BrMeth$LCMS_method_fls, function(x) { uBrMeth$MethodID[which(sapply(uBrMeth$Method, function(y) { identical(x, y) }))] })
+    BrMeth$MethodID <- sapply(BrMeth$LCMS_method_fls, function(x) {
+      uBrMeth$MethodID[which(vapply(uBrMeth$Method, function(y) { identical(x, y) }, TRUE))]
+    })
     if (length(tmp) > 1) {
       tmp2 <- paste(sapply(uBrMeth$MethodID, function(x) { paste(c(paste0(" - ", x, " files:"),
                                                             paste0("   > ", BrMeth$Raw.file[which(BrMeth$MethodID == x)])), collapse = "\n") }),
@@ -162,9 +236,9 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     w <- which(BrMeth$LC_method.exists)
     uBrMeth$LC_method <- BrMeth$LC_method[w][match(uBrMeth$MethodID, BrMeth$MethodID[w])]
     uBrMeth$LC_meth <- lapply(uBrMeth$LC_method, function(fl) { #fl <- uBrMeth$LC_method[1]
-      x <- xmlToList(fl)
+      x <- XML::xmlToList(fl)
       lc <- x$LCMethodData$ModuleMethods$ModuleMethodData$text
-      lc <- xmlToList(lc)
+      lc <- XML::xmlToList(lc)
       #lc$ModuleMethodData$Method$AdvancedSettings
       return(lc)
     })
@@ -207,7 +281,9 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     uBrMeth$Method <- apply(uBrMeth[, c("LC_meth", "MS_meth")], 1, function(x) { list(LC = x[[1]], MS = x[[2]]) })
     # Parse them and create text
     uBrMeth$Samples <- lapply(uBrMeth$MethodID, function(x) { BrMeth$Raw.file[which(BrMeth$MethodID == x)] })
-    uBrMeth$NANO <- gsub(" +", " ", gsub("Bruker *", "", gsub("\t.*", "", sapply(uBrMeth$Method, function(x) { x$LC$HyStarMethodData$ModuleName })), ignore.case = TRUE))
+    uBrMeth$NANO <- gsub(" +", " ", gsub("Bruker *", "", gsub("\t.*", "",
+                                                              vapply(uBrMeth$Method, function(x) { x$LC$HyStarMethodData$ModuleName }, "")
+                                                              ), ignore.case = TRUE))
     w <- which(uBrMeth$NANO == "nanoElute")
     uBrMeth$Root <- apply(uBrMeth[, c("MethodID", "NANO")], 1, paste, collapse = " - ")
     opt <- paste0(1:2, paste(rep(" ", 200), collapse = ""))
@@ -219,10 +295,10 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                                                    as.character(1:2))]
     }
     uBrMeth$Root <- apply(uBrMeth[, c("MethodID", "NANO")], 1, paste, collapse = " - ")
-    uBrMeth$Column <- sapply(uBrMeth$Method, function(x) { x$LC$ModuleMethodData$Method$SeparatorName })
-    uBrMeth$usesTrap <- as.logical(toupper(sapply(uBrMeth$Method, function(x) { x$LC$ModuleMethodData$Method$UsesTrapColumn })))
+    uBrMeth$Column <- vapply(uBrMeth$Method, function(x) { x$LC$ModuleMethodData$Method$SeparatorName }, "")
+    uBrMeth$usesTrap <- as.logical(toupper(vapply(uBrMeth$Method, function(x) { x$LC$ModuleMethodData$Method$UsesTrapColumn }, "")))
     w <- which(uBrMeth$usesTrap)
-    uBrMeth$Trap[w] <- sapply(uBrMeth$Method[w], function(x) { x$LC$ModuleMethodData$Method$TrapName })
+    uBrMeth$Trap[w] <- vapply(uBrMeth$Method[w], function(x) { x$LC$ModuleMethodData$Method$TrapName }, "")
     uBrMeth$OvenT <- sapply(uBrMeth$Method, function(x) {
       c(NA, x$LC$ModuleMethodData$Method$OvenTemperature)[as.logical(toupper(x$LC$ModuleMethodData$Method$IsSetTemperature))+1]
     })
@@ -240,27 +316,19 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       kol <- svDialogs::dlg_list(unique(c(kol, Kolumns)), kol,
                                  title = paste0(uBrMeth$Root[i], " - select column used:"))$res
       if (kol == "Add new...") {
-        cat(colChar, "\n")
-        kol <- svDialogs::dlg_input("Fill in new column's characteristics (\"|\"-separated):",
-                                    colChar)$res
-        kol <- unlist(strsplit(kol, " *\\| *"))
-        l <- length(kol)
-        if (l < 7) { kol <- c(kol, rep(NA, 7-l)) }
-        kol <- kol[1:7]
-        tmp <- as.data.frame(t(as.data.frame(kol)))
-        colnames(tmp) <- c("Name", "Material", "Length.(cm)", "ID.(µm)", "Particles.size.(µm)", "Vendor", "P/N")
-        tmp$Function <- "Analytical"
-        tmp$Description <- kolDescr(tmp)
-        k <- colnames(allKolumns)
-        k <- k[which(!k %in% colnames(tmp))]
-        tmp[,k] <- NA
-        tmp[1, which(tmp[1,] == "NA")] <- NA
-        allKolumns <- rbind(allKolumns, tmp)
+        colCharDf <- data.frame(Description = "Analytical")
+        for (kk in colChar[which(colChar != "Function")]) {
+          colCharDf[[kk]] <- svDialogs::dlg_input(paste0("Enter value for field \"", kk, "\""), "")$res
+        }
+        kol <- colCharDf$Name
+        allKolumns <- plyr::rbind.fill(allKolumns, colCharDf)
         rownames(allKolumns) <- NULL
         tst <- apply(allKolumns, 1, paste, collapse = "|")
         tst <- aggregate(1:length(tst), list(tst), min)
         allKolumns <- allKolumns[sort(tst$x),]
-        Kolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Analytical")], "None (direct infusion)", "Add new..."))
+        Kolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Analytical")],
+                            "None (direct infusion)",
+                            "Add new..."))
         AddKolKount <- AddKolKount + 1
         kol <- tmp$Description
       }
@@ -270,22 +338,19 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         kol <- svDialogs::dlg_list(unique(c(kol, preKolumns)), kol,
                                    title = paste0(uBrMeth$Root[i],  " - select trap used:"))$res
         if (kol == "Add new...") {
-          cat(colChar, "\n")
-          kol <- svDialogs::dlg_input("Fill in new trap's characteristics (\"|\"-separated):",
-                                      colChar)$res
-          tmp <- as.data.frame(t(as.data.frame(unlist(strsplit(kol, " *\\| *")))))
-          colnames(tmp) <- c("Name", "Material", "Length.(cm)", "ID.(µm)", "Particles.size.(µm)", "Vendor", "P/N")
-          tmp$Function <- "Trap"
-          k <- colnames(allKolumns)
-          k <- k[which(!k %in% colnames(tmp))]
-          tmp[,k] <- NA
-          tmp$Description <- kolDescr(tmp)
-          allKolumns <- rbind(allKolumns, tmp)
+          colCharDf <- data.frame(Description = "Trap")
+          for (kk in colChar[which(colChar != "Function")]) {
+            colCharDf[[kk]] <- svDialogs::dlg_input(paste0("Enter value for field \"", kk, "\""), "")$res
+          }
+          kol <- colCharDf$Name
+          allKolumns <- plyr::rbind.fill(allKolumns, colCharDf)
           rownames(allKolumns) <- NULL
           tst <- apply(allKolumns, 1, paste, collapse = "|")
           tst <- aggregate(1:length(tst), list(tst), min)
           allKolumns <- allKolumns[sort(tst$x),]
-          preKolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Trap")],  "None (direct injection)", "Add new..."))
+          preKolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Trap")],
+                                 "None (direct injection)",
+                                 "Add new..."))
           AddKolKount <- AddKolKount + 1
           kol <- tmp$Description
         }
@@ -331,11 +396,11 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                           IM = as.numeric(MobRng))
         #require(ggplot2)
         #plot1 <- ggplot(FrmDat) + geom_point(aes(x = IsolationMz, y = IsolationWidth, colour = Frame)) + theme_bw()
-        #aRmel::poplot(plot1) # -> Isolation width is strictly a function of m/z and based on the table in the timsControl GUI...
+        #proteoCraft::poplot(plot1) # -> Isolation width is strictly a function of m/z and based on the table in the timsControl GUI...
         #plot2 <- ggplot(FrmDat) + geom_point(aes(x = IsolationMz, y = CollisionEnergy, colour = Frame)) + theme_bw()
-        #aRmel::poplot(plot2) # ... but Collision Energy isn't.
+        #proteoCraft::poplot(plot2) # ... but Collision Energy isn't.
         #plot2a <- ggplot(FrmDat) + geom_point(aes(x = IsolationMz, y = CollisionEnergy, colour = ScanNumBegin)) + theme_bw()
-        #aRmel::poplot(plot2a) # ... but Collision Energy isn't.
+        #proteoCraft::poplot(plot2a) # ... but Collision Energy isn't.
       } else { isoWdths <- CEs <- NA }
       #
       props <- c("FocusPreTOF_Lens1_TransferTime_Set", "FocusPreTOF_Lens1_PrePulseStorageTime_Set",
@@ -435,7 +500,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         #plot <- ggplot(DIADat1, aes(xmin = IsolationMz-IsolationWidth/2, xmax = IsolationMz+IsolationWidth/2,
         #                            ymin = ScanNumBegin, ymax = ScanNumEnd, colour = WindowGroup)) + theme_bw() +
         #  geom_rect(alpha = 0.1) + scale_y_reverse() + xlab("M/Z") + ylab("Scan number")
-        #aRmel::poplot(plot)
+        #proteoCraft::poplot(plot)
         tmp1 <- paste0("scan ranges: ", paste(apply(DIADat1[, c("ScanNumBegin", "ScanNumEnd")], 1, paste, collapse = "-"), collapse = "/"))
         tmp2 <- paste0("isolation M/Z: ", paste(round(DIADat1$IsolationMz, 3), collapse = "/")) # That is already wayyyyyy more precise than we need!!!
         tmp3 <- paste0("collision energy: ", paste(DIADat1$CollisionEnergy, collapse = "/"))
@@ -517,14 +582,14 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     #BrMeth$LCMS_txt <- uBrMeth$LCMS_txt[match(BrMeth$MethodID, uBrMeth$MethodID)]
     AllLCMSTexts <- c(AllLCMSTexts, uBrMeth$LCMS_txt) 
   }
-  if ("raw" %in% Ext) {
-    rawMeth <- MethodsTbl[which(MethodsTbl$Ext == "raw"),]
+  if ("raw" %in% tolower(Ext)) {
+    rawMeth <- MethodsTbl[which(tolower(MethodsTbl$Ext) == "raw"),]
     rawMeth$Method <- gsub("\\.[^\\.]+$", ".methods.txt", rawMeth$Raw.file)
     rawMeth$Exists <- file.exists(gsub("\\.[^\\.]+$", ".raw", rawMeth$Raw.file)) # Because the file could be another format
     rawMeth$Method.exists <- file.exists(rawMeth$Method)
     w <- which(!rawMeth$Exists)
     if (length(w)) {
-      RootPat <- aRmel::topattern(LocalRoot)
+      RootPat <- proteoCraft::topattern(LocalRoot)
       wRY <- w[grep(RootPat, rawMeth$Folder[w])]
       wRN <- w[grep(RootPat, rawMeth$Folder[w], invert = TRUE)]
       if (length(wRY)) {
@@ -545,11 +610,11 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     if (length(c(w1, w2))) {
       if (length(w2)) {
         ScanHdsMnTst <- FALSE
-        if (!missing("ScanHdsMnLoc")) {
+        if (!misFun(ScanHdsMnLoc)) {
           ScanHdsMnTst <- file.exists(paste0(ScanHdsMnLoc, "/ScanHeadsman.exe"))
         }
         if (!ScanHdsMnTst) {
-          if (!missing("ScanHdsMnLoc")) {
+          if (!misFun(ScanHdsMnLoc)) {
             warning("Invalid ScanHdsMnLoc argument, no \"ScanHeadsman.exe\" found there!")
           }
           tst <- grep("ScanHeadsman-1\\.2", list.dirs("C:/", recursive = FALSE), value = TRUE)
@@ -559,21 +624,26 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
           }
         }
         if (ScanHdsMnTst) {
-          tst2 <- sapply(rawMeth$Raw.file[w2], function(rwfl) {
+          parallel::clusterExport(cl, list("ScanHdsMnLoc"), envir = environment())
+          f0 <- function(rwfl) { #rwfl <- rawMeth$Raw.file[w2][1]
             cmd <- paste0("\"", ScanHdsMnLoc, "/ScanHeadsman.exe\" \"", rwfl, "\" -n -m=1 -t=",
-                          parallel::detectCores()-1)
+                          1)
             #cat(paste0(cmd, "\n"))
             system(cmd)
-          })
+          }
+          environment(f0) <- .GlobalEnv
+          tst2 <- parallel::parSapply(cl, rawMeth$Raw.file[w2], f0)
           w2 <- w2[which(!tst2)]
         }
       }
       w <- unique(order(c(w1, w2)))
-      methods <- setNames(sapply(rawMeth$Method[w], function(methfl) { #methfl <- rawMeth$Method[w][1]
+      f0 <- function(methfl) { #methfl <- rawMeth$Method[w][1]
         con <- file(methfl, encoding = "UTF-16")
         xmeth <- readLines(con, skipNul = TRUE, encoding = "UTF-8")
         return(list(xmeth))
-      }), rawMeth$Raw.file[w])
+      }
+      environment(f0) <- .GlobalEnv
+      methods <- setNames(parallel::parSapply(cl, rawMeth$Method[w], f0), rawMeth$Raw.file[w])
       tmp <- sapply(methods, paste, collapse = "___")
       tst <- aggregate(1:length(methods), list(tmp), list)
       tst$Raws <- lapply(tst$Group.1, function(x) { names(tmp)[which(tmp == x)] })
@@ -593,210 +663,296 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         TXT <- c()
         #View(data.frame(Method = meth[which(meth != "")]))
         meth <- meths[[Imeth]]
-        g <- grep("Method 1 is ", meth)
-        lcMeth <- meth[1:(g-1)]
-        msMeth <- meth[g:length(meth)]
-        INSTR <- gsub("^ +Method of ", "", msMeth[3])
-        NANO <- gsub(" +", " ", gsub("Thermo", "", gsub("_", " ", gsub("^Instrument: | on .*", "", grep("^Instrument: ", lcMeth, value = TRUE, ignore.case = TRUE))), ignore.case = TRUE))
-        ADflt <- "MS-grade H₂O + 0.1% formic acid"
-        BDflt <- "80% acetonitrile in H₂O + 0.08% formic acid"
-        if (NANO %in% c("RSLC Nano", "Vanquish NEO")) {
-          NANOMAKER <- "ThermoFisher Scientific"
-          if (NANO == "RSLC Nano") {
-            NANO <- "Ultimate 3000 RSLC_Nano"
-            FloNomPat <- "PumpModule\\.NC_Pump\\.Flow\\.Nominal"
-            GradBPat <- "PumpModule\\.NC_Pump\\.%B\\.Value"
-          }
-          if (NANO == "Vanquish NEO") {
-            FloNomPat <- "Neo\\.PumpModule\\.Pump\\.Flow\\.Nominal"
-            GradBPat <- "Neo\\.PumpModule\\.Pump\\.%B\\.Value"
-          }
-          g <- grep(" *\\[min\\]", lcMeth)
-          RnLns <- gsub(" *\\[min\\].*", "", lcMeth[g])
-          w <- which(!is.na(suppressWarnings(as.numeric(RnLns))))
-          RnLns <- as.numeric(RnLns[w]) ; g <- g[w]
-          RnStrtLn <- min(RnLns)
-          RnEndLn <- max(RnLns)
-          g <- c(g, length(lcMeth))
-          tmp <- lapply(1:length(RnLns), function(x) {
-            lcMeth[g[x]:(g[x+1]-1)]
-          })
-          Grad <- data.frame(Time = RnLns)
-          Grad$Flow.Nominal <- sapply(tmp, function(x) { #x <- tmp[[1]]
-            suppressWarnings(as.numeric(gsub(paste0(" *", FloNomPat, ": * | *\\[.+$"), "", grep(paste0(" *", FloNomPat, ": *"), x, value = TRUE))))*1000
-          })
-          Grad$B.Value <- sapply(tmp, function(x) { #x <- tmp[[1]]
-            suppressWarnings(as.numeric(gsub(paste0(" *", GradBPat, ": * | *\\[.+$"), "", grep(paste0(" *", GradBPat, ": *"), x, value = TRUE))))
-          })
-          Grad <- Grad[which(sapply(Grad$Flow.Nominal, length) == 1),]
-          Grad$Flow.Nominal <- as.numeric(Grad$Flow.Nominal)
-          Grad$B.Value <- as.numeric(Grad$B.Value)
-          Grad <- aggregate(Grad[, c("Flow.Nominal", "B.Value")], list(Grad$Time), unique)
-          colnames(Grad)[1] <- "Time"
-          FLOWVALUE <- unique(Grad$Flow.Nominal)
-          kol <- svDialogs::dlg_list(Kolumns, title = paste0(ThRoots[Imeth],
-                                                             " - select column used:"))$res
-          if (kol == "Add new...") {
-            cat(colChar, "\n")
-            kol <- svDialogs::dlg_input("Fill in new column's characteristics (\"|\"-separated):",
-                                        colChar)$res
-            kol <- unlist(strsplit(kol, " *\\| *"))
-            l <- length(kol)
-            if (l < 7) { kol <- c(kol, rep(NA, 7-l)) }
-            kol <- kol[1:7]
-            tmp <- as.data.frame(t(as.data.frame(kol)))
-            colnames(tmp) <- c("Name", "Material", "Length.(cm)", "ID.(µm)", "Particles.size.(µm)", "Vendor", "P/N")
-            tmp$Function <- "Analytical"
-            tmp$Description <- kolDescr(tmp)
-            k <- colnames(allKolumns)
-            k <- k[which(!k %in% colnames(tmp))]
-            tmp[,k] <- NA
-            tmp[1, which(tmp[1,] == "NA")] <- NA
-            allKolumns <- rbind(allKolumns, tmp)
-            rownames(allKolumns) <- NULL
-            tst <- apply(allKolumns, 1, paste, collapse = "|")
-            tst <- aggregate(1:length(tst), list(tst), min)
-            allKolumns <- allKolumns[sort(tst$x),]
-            Kolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Analytical")], "None (direct infusion)", "Add new..."))
-            AddKolKount <- AddKolKount + 1
-            kol <- tmp$Description
-          }
-          COLUMN <- kol
-          tstCol <- tolower(substring(COLUMN, 1, 1)) %in% c("a", "e", "i", "o", "u")
-          if (COLUMN != "None (direct infusion)") {
-            kol <- svDialogs::dlg_list(preKolumns, preKolumns[1],
-                                       title = paste0(ThRoots[Imeth],
-                                                      " - select trap used:"))$res
+        if ((length(meth))&&(sum(nchar(meth)))) {
+          g <- grep("Method 1 is ", meth)
+          lcMeth <- meth[1:(g-1)]
+          msMeth <- meth[g:length(meth)]
+          INSTR <- gsub("^ +Method of ", "", msMeth[3])
+          NANO <- gsub(" +", " ", gsub("Thermo", "", gsub("_", " ", gsub("^Instrument: | on .*", "", grep("^Instrument: ", lcMeth, value = TRUE, ignore.case = TRUE))), ignore.case = TRUE))
+          ADflt <- "MS-grade H₂O + 0.1% formic acid"
+          BDflt <- "80% acetonitrile in H₂O + 0.08% formic acid"
+          if (NANO %in% c("RSLC Nano", "Vanquish NEO")) {
+            NANOMAKER <- "ThermoFisher Scientific"
+            if (NANO == "RSLC Nano") {
+              NANO <- "Ultimate 3000 RSLC_Nano"
+              FloNomPat <- "PumpModule\\.NC_Pump\\.Flow\\.Nominal"
+              GradBPat <- "PumpModule\\.NC_Pump\\.%B\\.Value"
+            }
+            if (NANO == "Vanquish NEO") {
+              FloNomPat <- "Neo\\.PumpModule\\.Pump\\.Flow\\.Nominal"
+              GradBPat <- "Neo\\.PumpModule\\.Pump\\.%B\\.Value"
+            }
+            g <- grep(" *\\[min\\]", lcMeth)
+            RnLns <- gsub(" *\\[min\\].*", "", lcMeth[g])
+            w <- which(!is.na(suppressWarnings(as.numeric(RnLns))))
+            RnLns <- as.numeric(RnLns[w]) ; g <- g[w]
+            RnStrtLn <- min(RnLns)
+            RnEndLn <- max(RnLns)
+            g <- c(g, length(lcMeth))
+            tmp <- lapply(1:length(RnLns), function(x) {
+              lcMeth[g[x]:(g[x+1]-1)]
+            })
+            Grad <- data.frame(Time = RnLns)
+            Grad$Flow.Nominal <- sapply(tmp, function(x) { #x <- tmp[[1]]
+              suppressWarnings(as.numeric(gsub(paste0(" *", FloNomPat, ": * | *\\[.+$"), "", grep(paste0(" *", FloNomPat, ": *"), x, value = TRUE))))*1000
+            })
+            Grad$B.Value <- sapply(tmp, function(x) { #x <- tmp[[1]]
+              suppressWarnings(as.numeric(gsub(paste0(" *", GradBPat, ": * | *\\[.+$"), "", grep(paste0(" *", GradBPat, ": *"), x, value = TRUE))))
+            })
+            Grad <- Grad[which(sapply(Grad$Flow.Nominal, length) == 1),]
+            Grad$Flow.Nominal <- as.numeric(Grad$Flow.Nominal)
+            Grad$B.Value <- as.numeric(Grad$B.Value)
+            Grad <- aggregate(Grad[, c("Flow.Nominal", "B.Value")], list(Grad$Time), unique)
+            colnames(Grad)[1] <- "Time"
+            FLOWVALUE <- unique(Grad$Flow.Nominal)
+            kol <- svDialogs::dlg_list(Kolumns, title = paste0(ThRoots[Imeth],
+                                                               " - select column used:"))$res
             if (kol == "Add new...") {
               cat(colChar, "\n")
-              kol <- svDialogs::dlg_input("Fill in new trap's characteristics (\"|\"-separated):",
+              kol <- svDialogs::dlg_input("Fill in new column's characteristics (\"|\"-separated):",
                                           colChar)$res
-              tmp <- as.data.frame(t(as.data.frame(unlist(strsplit(kol, " *\\| *")))))
+              kol <- unlist(strsplit(kol, " *\\| *"))
+              l <- length(kol)
+              if (l < 7) { kol <- c(kol, rep(NA, 7-l)) }
+              kol <- kol[1:7]
+              tmp <- as.data.frame(t(as.data.frame(kol)))
               colnames(tmp) <- c("Name", "Material", "Length.(cm)", "ID.(µm)", "Particles.size.(µm)", "Vendor", "P/N")
-              tmp$Function <- "Trap"
+              tmp$Function <- "Analytical"
+              tmp$Description <- kolDescr(tmp)
               k <- colnames(allKolumns)
               k <- k[which(!k %in% colnames(tmp))]
               tmp[,k] <- NA
-              tmp$Description <- kolDescr(tmp)
+              tmp[1, which(tmp[1,] == "NA")] <- NA
               allKolumns <- rbind(allKolumns, tmp)
               rownames(allKolumns) <- NULL
               tst <- apply(allKolumns, 1, paste, collapse = "|")
               tst <- aggregate(1:length(tst), list(tst), min)
               allKolumns <- allKolumns[sort(tst$x),]
-              preKolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Trap")], "None (direct injection)", "Add new..."))
+              Kolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Analytical")], "None (direct infusion)", "Add new..."))
               AddKolKount <- AddKolKount + 1
               kol <- tmp$Description
             }
-            PRECOLUMN <- kol
-            tstPreCol <- tolower(substring(PRECOLUMN, 1, 1)) %in% c("a", "e", "i", "o", "u")
-            SolvA <- svDialogs::dlg_input(paste0(ThRoots[Imeth],
-                                                 " - confirm nanoLC solvent A composition:"),
-                                          ADflt)$res
-            SolvB <- svDialogs::dlg_input(paste0(ThRoots[Imeth],
-                                                 " - confirm nanoLC solvent B composition:"),
-                                          BDflt)$res
-            stopifnot(length(FLOWVALUE) == 1) # Unexpected situation, currently un-handled
-            Grad.Baseline <- min(Grad$B.Value)
-            Grad.Plateau <- max(Grad$B.Value)
-            Grad.PlateauL <- round(Grad$Time[rev(which(Grad$B.Value == Grad.Plateau))[1]] - Grad$Time[which(Grad$B.Value == Grad.Plateau)[1]], 0)
-            GradStrt <- Grad$Time[which(Grad$B.Value == Grad.Baseline)[1]]
-            tmp1 <- Grad$Time[which(Grad$B.Value == Grad.Plateau)[1]]
-            tmp0 <- Grad$Time[which(Grad$Time == tmp1)-1]
-            GradEnd <- c(tmp0, tmp1)[(tmp1 - tmp0 > 1)+1]
-            GRADLENGTH <- GradEnd-GradStrt
-            Grad <- Grad[which(Grad$Time == GradStrt)[1]:which(Grad$Time == GradEnd),]
-            Grad <- paste(apply(Grad[, c("Time", "B.Value")], 1, function(x) { paste0(x[[1]], " min, ", x[[2]], "%") }), collapse = "; ")
-            Grad <- paste0(Grad, ", followed immediately by a ", Grad.PlateauL, " min plateau at ", Grad.Plateau, "%")
-          }
-          tstNano <- tolower(substring(NANO, 1, 1)) %in% c("a", "e", "i", "o", "u")
-          tstInstr <- tolower(substring(INSTR, 1, 1)) %in% c("a", "e", "i", "o", "u")
-          Moult2 <- length(RawFiles) > 1
-          LCtxt <- TRUE
-        } else {
-          warning("This function can currently only process Thermo Dionex Ultimate 3000 RSLC_Nano or Waters nanoACQUITY methods!")
-        }
-        if (grepl("Q[-, ]Exactive", INSTR, ignore.case = TRUE)) {
-          INSTRMAKER <- "ThermoFisher Scientific"
-          POL <- gsub("^ *Polarity *| *$", "", grep("^Polarity", msMeth, value = TRUE))
-          POL <- c("+", "-")[match(POL, c("positive", "negative"))]
-          FWHM <- gsub("^ *Chrom\\. peak width \\(FWHM\\) *| *s *$", "", grep("Chrom\\. peak width \\(FWHM\\)", msMeth, value = TRUE))
-          msMeth2 <- msMeth[grep(" +Experiments?$", msMeth)[1]:length(msMeth)]
-          MS1 <- data.frame(Start = grep("FULL MS*", msMeth2))
-          DIAtst <- c("dd-MS² / dd-SIM", "DIA") %in% msMeth2
-          if (!sum(DIAtst)) {
-            warning("Message from function:\nSorry, I can currently only deal with DDA or DIA methods.")
-          }
-          if (sum(DIAtst) == 2) {
-            warning("Message from function:\nThis LC-MS method seems to combine both DDA and DIA scans, I cannot make sense of it in my current code.\nPlease rewrite me!")
-          }
-          if (sum(DIAtst) == 1) {
-            MS2Type <- c("dd-MS² / dd-SIM", "DIA")[which(DIAtst)]
-            MS2 <- data.frame(Start = which(msMeth2 == MS2Type)[1],
-                              End = which(msMeth2 == "                                     Setup")-2)
-            MS1$End <- MS2$Start-2
-            MS1$Data <- apply(MS1[, c("Start", "End")], 1, function(x) { list(msMeth2[x[[1]]:x[[2]]]) })
-            MS2$Data <- apply(MS2[, c("Start", "End")], 1, function(x) { list(msMeth2[x[[1]]:x[[2]]]) })
-            MSs <- setNames(lapply(c("MS1", "MS2"), function(x) { get(x) }), c("MS1", "MS2"))
-            SPECTTYPE <- sapply(c("MS1", "MS2"), function(x) { #x <- "MS1"
-              ln <- grep("Spectrum data type", unlist(MSs[[x]]$Data))
-              if (length(ln) == 1) { res <- gsub("^ *Spectrum data type *| *$", "", unlist(MSs[[x]]$Data)[ln]) } else { res <- NA }
-              return(res)
-            })
-            RES <- sapply(c("MS1", "MS2"), function(x) { #x <- "MS1"
-              ln <- grep("Resolution", unlist(MSs[[x]]$Data))
-              stopifnot(length(ln) == 1)
-              return(gsub("^ *Resolution *| *$", "", unlist(MSs[[x]]$Data)[ln]))
-            })
-            AGC <- sapply(c("MS1", "MS2"), function(x) { #x <- "MS1"
-              ln <- grep("AGC target *[1-9][0-9]*e[1-9][0-9]*", unlist(MSs[[x]]$Data))
-              stopifnot(length(ln) == 1)
-              return(gsub("^ *AGC target *| *$", "", unlist(MSs[[x]]$Data)[ln]))
-            })
-            USCNS <- sapply(c("MS1", "MS2"), function(x) { #x <- "MS1"
-              ln <- grep("Microscans", unlist(MSs[[x]]$Data))
-              stopifnot(length(ln) == 1)
-              return(as.integer(gsub("^ *Microscans *| *$", "", unlist(MSs[[x]]$Data)[ln])))
-            })
-            MAXIT <- sapply(c("MS1", "MS2"), function(x) { #x <- "MS1"
-              ln <- grep("^ *Maximum IT*", unlist(MSs[[x]]$Data))
-              stopifnot(length(ln) == 1)
-              return(gsub("^ *Maximum IT *| *$", "", unlist(MSs[[x]]$Data)[ln]))
-            })
-            TOPN <- gsub("^ *Loop count *| *$", "", grep("Loop count", unlist(MSs$MS2$Data), value = TRUE))
-            ISOWIN <- gsub("^ *Isolation window *| *$", "", grep("Isolation window", unlist(MSs$MS2$Data), value = TRUE))
-            ISOWINOFFSET <- gsub("^ *Isolation offset *| *$", "", grep("Isolation offset", unlist(MSs$MS2$Data), value = TRUE))
-            if (ISOWINOFFSET == "0.0 m/z") { ISOWINOFFSET <- "(no offset)"} else { ISOWINOFFSET <- paste0("with ", ISOWINOFFSET, " offset") }
-            F1MSS <- gsub("^ *Fixed first mass *| *$", "", grep("Fixed first mass", unlist(MSs$MS2$Data), value = TRUE))
-            F1MSStst <- suppressWarnings(as.numeric(F1MSS))
-            if ((!is.na(F1MSStst))&&(F1MSStst > 0)) { F1MSS <- paste0(F1MSS, " m/z fixed first mass, ") } else { F1MSS <- "" }
-            NCE <- gsub("^ *\\(N\\)CE */ *stepped *\\(N\\)CE +nce: *| *$", "", grep("\\(N\\)CE */ *stepped \\(N\\)CE +nce:", unlist(MSs$MS2$Data), value = TRUE))
-            SCRNG <- sapply(c("MS1", "MS2"), function(x) { #x <- "MS1"
-              ln <- grep("^ *Scan range*", unlist(MSs[[x]]$Data))
-              #stopifnot(length(ln) == 1)
-              return(gsub("^ *Scan range *| *$", "", unlist(MSs[[x]]$Data)[ln]))
-            })
-            if (DIAtst[[1]]) {
-              # DDA method
-              ExclZ <- gsub("^ *Charge exclusion *| *$", "", grep("Charge exclusion", unlist(MSs$MS2$Data), value = TRUE))
-              ExclZ <- unlist(strsplit(ExclZ, ", +"))
-              tst1 <- "unassigned" %in% ExclZ
-              EXCLZ <- "excluding"
-              if (tst1) {
-                #EXCLZ <- paste0(EXCLZ, " unassigned charges, charges ")
-                ExclZ <- ExclZ[which(ExclZ != "unassigned")]
+            COLUMN <- kol
+            tstCol <- tolower(substring(COLUMN, 1, 1)) %in% c("a", "e", "i", "o", "u")
+            if (COLUMN != "None (direct infusion)") {
+              kol <- svDialogs::dlg_list(preKolumns, preKolumns[1],
+                                         title = paste0(ThRoots[Imeth],
+                                                        " - select trap used:"))$res
+              if (kol == "Add new...") {
+                cat(colChar, "\n")
+                kol <- svDialogs::dlg_input("Fill in new trap's characteristics (\"|\"-separated):",
+                                            colChar)$res
+                tmp <- as.data.frame(t(as.data.frame(unlist(strsplit(kol, " *\\| *")))))
+                colnames(tmp) <- c("Name", "Material", "Length.(cm)", "ID.(µm)", "Particles.size.(µm)", "Vendor", "P/N")
+                tmp$Function <- "Trap"
+                k <- colnames(allKolumns)
+                k <- k[which(!k %in% colnames(tmp))]
+                tmp[,k] <- NA
+                tmp$Description <- kolDescr(tmp)
+                allKolumns <- rbind(allKolumns, tmp)
+                rownames(allKolumns) <- NULL
+                tst <- apply(allKolumns, 1, paste, collapse = "|")
+                tst <- aggregate(1:length(tst), list(tst), min)
+                allKolumns <- allKolumns[sort(tst$x),]
+                preKolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Trap")], "None (direct injection)", "Add new..."))
+                AddKolKount <- AddKolKount + 1
+                kol <- tmp$Description
               }
-              ExclZ[which(nchar(ExclZ) == 1)] <- paste0(ExclZ[which(nchar(ExclZ) == 1)], POL)
-              tst2 <- (length(grep("^>", ExclZ)) == 1)&&(grep("^>", ExclZ) == length(ExclZ))
-              if (tst2) { ExclZ <- ExclZ[1:(length(ExclZ)-1)] }
-              if (length(ExclZ) > 1) { ExclZ <- c(paste(ExclZ[1:(length(ExclZ)-1)], collapse = ", "), ExclZ[length(ExclZ)]) }
-              ExclZ <- paste(ExclZ, collapse = c(" and ", ", ")[(tst1|tst2)+1])
-              EXCLZ <- paste0("excluding charges ", ExclZ)
-              if (tst1||tst2) {
-                if (tst1+tst2) { EXCLZ <- paste0(EXCLZ, " and higher or unassigned,") } else {
-                  EXCLZ <- paste0(EXCLZ, " and ", c("higher", "unassigned")[which(c(tst1, tst2))], ",")
+              PRECOLUMN <- kol
+              tstPreCol <- tolower(substring(PRECOLUMN, 1, 1)) %in% c("a", "e", "i", "o", "u")
+              SolvA <- svDialogs::dlg_input(paste0(ThRoots[Imeth],
+                                                   " - confirm nanoLC solvent A composition:"),
+                                            ADflt)$res
+              SolvB <- svDialogs::dlg_input(paste0(ThRoots[Imeth],
+                                                   " - confirm nanoLC solvent B composition:"),
+                                            BDflt)$res
+              stopifnot(length(FLOWVALUE) == 1) # Unexpected situation, currently un-handled
+              Grad.Baseline <- min(Grad$B.Value)
+              Grad.Plateau <- max(Grad$B.Value)
+              Grad.PlateauL <- round(Grad$Time[rev(which(Grad$B.Value == Grad.Plateau))[1]] - Grad$Time[which(Grad$B.Value == Grad.Plateau)[1]], 0)
+              GradStrt <- Grad$Time[which(Grad$B.Value == Grad.Baseline)[1]]
+              tmp1 <- Grad$Time[which(Grad$B.Value == Grad.Plateau)[1]]
+              tmp0 <- Grad$Time[which(Grad$Time == tmp1)-1]
+              GradEnd <- c(tmp0, tmp1)[(tmp1 - tmp0 > 1)+1]
+              GRADLENGTH <- GradEnd-GradStrt
+              Grad <- Grad[which(Grad$Time == GradStrt)[1]:which(Grad$Time == GradEnd),]
+              Grad <- paste(apply(Grad[, c("Time", "B.Value")], 1, function(x) { paste0(x[[1]], " min, ", x[[2]], "%") }), collapse = "; ")
+              Grad <- paste0(Grad, ", followed immediately by a ", Grad.PlateauL, " min plateau at ", Grad.Plateau, "%")
+            }
+            tstNano <- tolower(substring(NANO, 1, 1)) %in% c("a", "e", "i", "o", "u")
+            tstInstr <- tolower(substring(INSTR, 1, 1)) %in% c("a", "e", "i", "o", "u")
+            Moult2 <- length(RawFiles) > 1
+            LCtxt <- TRUE
+          } else {
+            warning("This function can currently only process Thermo Dionex Ultimate 3000 RSLC_Nano or Waters nanoACQUITY methods!")
+          }
+          if (grepl("Q[-, ]Exactive", INSTR, ignore.case = TRUE)) {
+            INSTRMAKER <- "ThermoFisher Scientific"
+            POL <- gsub("^ *Polarity *| *$", "", grep("^Polarity", msMeth, value = TRUE))
+            POL <- c("+", "-")[match(POL, c("positive", "negative"))]
+            FWHM <- gsub("^ *Chrom\\. peak width \\(FWHM\\) *| *s *$", "", grep("Chrom\\. peak width \\(FWHM\\)", msMeth, value = TRUE))
+            msMeth2 <- msMeth[grep(" +Experiments?$", msMeth)[1]:length(msMeth)]
+            MS1 <- data.frame(Start = grep("FULL MS*", msMeth2))
+            DIAtst <- c("dd-MS² / dd-SIM", "DIA") %in% msMeth2
+            if (!sum(DIAtst)) {
+              warning("Message from function:\nSorry, I can currently only deal with DDA or DIA methods.")
+            }
+            if (sum(DIAtst) == 2) {
+              warning("Message from function:\nThis LC-MS method seems to combine both DDA and DIA scans, I cannot make sense of it in my current code.\nPlease rewrite me!")
+            }
+            if (sum(DIAtst) == 1) {
+              MS2Type <- c("dd-MS² / dd-SIM", "DIA")[which(DIAtst)]
+              MS2 <- data.frame(Start = which(msMeth2 == MS2Type)[1],
+                                End = which(msMeth2 == "                                     Setup")-2)
+              MS1$End <- MS2$Start-2
+              MS1$Data <- apply(MS1[, c("Start", "End")], 1, function(x) { list(msMeth2[x[[1]]:x[[2]]]) })
+              MS2$Data <- apply(MS2[, c("Start", "End")], 1, function(x) { list(msMeth2[x[[1]]:x[[2]]]) })
+              MSs <- setNames(lapply(c("MS1", "MS2"), function(x) { get(x) }), c("MS1", "MS2"))
+              SPECTTYPE <- sapply(c("MS1", "MS2"), function(x) { #x <- "MS1"
+                ln <- grep("Spectrum data type", unlist(MSs[[x]]$Data))
+                if (length(ln) == 1) { res <- gsub("^ *Spectrum data type *| *$", "", unlist(MSs[[x]]$Data)[ln]) } else { res <- NA }
+                return(res)
+              })
+              RES <- sapply(c("MS1", "MS2"), function(x) { #x <- "MS1"
+                ln <- grep("Resolution", unlist(MSs[[x]]$Data))
+                stopifnot(length(ln) == 1)
+                return(gsub("^ *Resolution *| *$", "", unlist(MSs[[x]]$Data)[ln]))
+              })
+              AGC <- sapply(c("MS1", "MS2"), function(x) { #x <- "MS1"
+                ln <- grep("AGC target *[1-9][0-9]*e[1-9][0-9]*", unlist(MSs[[x]]$Data))
+                stopifnot(length(ln) == 1)
+                return(gsub("^ *AGC target *| *$", "", unlist(MSs[[x]]$Data)[ln]))
+              })
+              USCNS <- sapply(c("MS1", "MS2"), function(x) { #x <- "MS1"
+                ln <- grep("Microscans", unlist(MSs[[x]]$Data))
+                stopifnot(length(ln) == 1)
+                return(as.integer(gsub("^ *Microscans *| *$", "", unlist(MSs[[x]]$Data)[ln])))
+              })
+              MAXIT <- sapply(c("MS1", "MS2"), function(x) { #x <- "MS1"
+                ln <- grep("^ *Maximum IT*", unlist(MSs[[x]]$Data))
+                stopifnot(length(ln) == 1)
+                return(gsub("^ *Maximum IT *| *$", "", unlist(MSs[[x]]$Data)[ln]))
+              })
+              TOPN <- gsub("^ *Loop count *| *$", "", grep("Loop count", unlist(MSs$MS2$Data), value = TRUE))
+              ISOWIN <- gsub("^ *Isolation window *| *$", "", grep("Isolation window", unlist(MSs$MS2$Data), value = TRUE))
+              ISOWINOFFSET <- gsub("^ *Isolation offset *| *$", "", grep("Isolation offset", unlist(MSs$MS2$Data), value = TRUE))
+              if (ISOWINOFFSET == "0.0 m/z") { ISOWINOFFSET <- "(no offset)"} else { ISOWINOFFSET <- paste0("with ", ISOWINOFFSET, " offset") }
+              F1MSS <- gsub("^ *Fixed first mass *| *$", "", grep("Fixed first mass", unlist(MSs$MS2$Data), value = TRUE))
+              F1MSStst <- suppressWarnings(as.numeric(F1MSS))
+              if ((!is.na(F1MSStst))&&(F1MSStst > 0)) { F1MSS <- paste0(F1MSS, " m/z fixed first mass, ") } else { F1MSS <- "" }
+              NCE <- gsub("^ *\\(N\\)CE */ *stepped *\\(N\\)CE +nce: *| *$", "", grep("\\(N\\)CE */ *stepped \\(N\\)CE +nce:", unlist(MSs$MS2$Data), value = TRUE))
+              SCRNG <- sapply(c("MS1", "MS2"), function(x) { #x <- "MS1"
+                ln <- grep("^ *Scan range*", unlist(MSs[[x]]$Data))
+                #stopifnot(length(ln) == 1)
+                return(gsub("^ *Scan range *| *$", "", unlist(MSs[[x]]$Data)[ln]))
+              })
+              if (DIAtst[[1]]) {
+                # DDA method
+                ExclZ <- gsub("^ *Charge exclusion *| *$", "", grep("Charge exclusion", unlist(MSs$MS2$Data), value = TRUE))
+                ExclZ <- unlist(strsplit(ExclZ, ", +"))
+                tst1 <- "unassigned" %in% ExclZ
+                EXCLZ <- "excluding"
+                if (tst1) {
+                  #EXCLZ <- paste0(EXCLZ, " unassigned charges, charges ")
+                  ExclZ <- ExclZ[which(ExclZ != "unassigned")]
                 }
+                ExclZ[which(nchar(ExclZ) == 1)] <- paste0(ExclZ[which(nchar(ExclZ) == 1)], POL)
+                tst2 <- (length(grep("^>", ExclZ)) == 1)&&(grep("^>", ExclZ) == length(ExclZ))
+                if (tst2) { ExclZ <- ExclZ[1:(length(ExclZ)-1)] }
+                if (length(ExclZ) > 1) { ExclZ <- c(paste(ExclZ[1:(length(ExclZ)-1)], collapse = ", "), ExclZ[length(ExclZ)]) }
+                ExclZ <- paste(ExclZ, collapse = c(" and ", ", ")[(tst1|tst2)+1])
+                EXCLZ <- paste0("excluding charges ", ExclZ)
+                if (tst1||tst2) {
+                  if (tst1+tst2) { EXCLZ <- paste0(EXCLZ, " and higher or unassigned,") } else {
+                    EXCLZ <- paste0(EXCLZ, " and ", c("higher", "unassigned")[which(c(tst1, tst2))], ",")
+                  }
+                }
+                DYNEXCL <- as.numeric(gsub("^ *Dynamic exclusion *|  *s *$", "", grep("Dynamic exclusion", unlist(MSs$MS2$Data), value = TRUE)))
+                MStxt <- paste0(MStxt, "up to ", TOPN, " MS2s per cycle. ",
+                                "DDA MS2 parameters: ")
+                if (!is.na(SPECTTYPE["MS2"])) { MStxt <- paste0(MStxt, SPECTTYPE["MS2"], " mode, ") }
+                MStxt <- paste0(MStxt, USCNS["MS2"], " microscan", c("", "s")[(USCNS["MS2"] > 1)+1], ", ",
+                                RES["MS2"], " resolution, ",
+                                "AGC target ", AGC["MS2"], ", ",
+                                MAXIT["MS2"], " maximum IT, ",
+                                ISOWIN, " isolation window ", ISOWINOFFSET, ", ", 
+                                F1MSS,
+                                SCRNG["MS1"], ", ",
+                                "NCE ", NCE, ", ",
+                                EXCLZ, " ",
+                                DYNEXCL, "s dynamic exclusion.")
               }
-              DYNEXCL <- as.numeric(gsub("^ *Dynamic exclusion *|  *s *$", "", grep("Dynamic exclusion", unlist(MSs$MS2$Data), value = TRUE)))
+              if (DIAtst[[2]]) {
+                # DIA method
+                InclStrt <- grep(" +Mass +Formula +Species +CS +Polarity +Start +End +\\(N\\)CE +MSX +ID +Comment", msMeth2)
+                InclHdr <- msMeth2[InclStrt]
+                InclUnit <- msMeth2[InclStrt+1]
+                InclMn <- InclStrt+2
+                InclRg <- grep(" *[0-9]+\\.*[0-9]* +((Posi)|(Nega))tive +", msMeth2[InclMn:length(msMeth2)]) + InclMn - 1
+                InclMx <- max(InclRg[which(sapply(InclRg, function(x) {
+                  sum(!InclMn:x %in% InclRg) == 0
+                }))])
+                InclWind <- msMeth2[InclMn:InclMx]
+                brks <- unlist(strsplit(InclHdr, ""))
+                l <- length(brks)
+                brks <- which(vapply(2:l, function(x) { (brks[x] == " ")&(brks[x-1] != " ") }, TRUE))
+                brks <- c(0, brks)
+                l <- length(brks)
+                InclWind <- as.data.frame(sapply(2:l, function(x) {
+                  gsub("^ +", "", substr(InclWind, brks[x-1]+1, brks[x]))
+                }))
+                colnames(InclWind) <- sapply(2:l, function(x) {
+                  df <- data.frame(x = gsub("^ +", "", substr(InclHdr, brks[x-1]+1, brks[x])),
+                                   y = gsub("^ +", "", substr(InclUnit, brks[x-1]+1, brks[x])))
+                  x <- gsub(" +$", "", do.call(paste, c(df, sep = " ")))
+                })
+                InclWind$`Mass [m/z]` <- as.numeric(InclWind$`Mass [m/z]`)
+                InclWind$`Start [min]` <- as.numeric(InclWind$`Start [min]`)
+                InclWind$`End [min]` <- as.numeric(InclWind$`End [min]`)
+                InclWind <- InclWind[order(InclWind$`Start [min]`, InclWind$`Mass [m/z]`, decreasing = FALSE),]
+                NWind <- nrow(InclWind)
+                #if (length(InclWind) == TOPN) {
+                InclWindL <- InclWind$`Mass [m/z]`-as.numeric(gsub(" m/z$", "", ISOWIN))/2
+                InclWindR <- InclWind$`Mass [m/z]`+as.numeric(gsub(" m/z$", "", ISOWIN))/2
+                OLtst <- unique(round(InclWindR[1:(NWind-1)] - InclWindL[2:NWind], 3))
+                stopifnot(length(OLtst) == 1)
+                if (OLtst == 0) { OLtxt <- "no overlap" }
+                if (OLtst > 0) { OLtxt <- paste0(OLtst, " m/z overlap") }
+                if (OLtst < 0) { OLtxt <- paste0(OLtst, " m/z non-covered gap between adjacent windows") }
+                #}
+              }
+              MStxt <- TRUE
+            }
+          } else {
+            warning("This function currently can only process Q Exactive type methods!")
+          }
+          if (LCtxt) {
+            LCtxt <- paste0(c("The s", "S")[Moult2+1], "ample", c(" was", "s were")[Moult2+1], " analyzed by LC-MS/MS on a",
+                            c("", "n")[tstNano+1], " ", NANO, " nano-HPLC (",
+                            NANOMAKER, ") coupled with a", c("", "n")[tstInstr+1], " ", INSTR, " (", INSTRMAKER, ")")
+            if (COLUMN != "None (direct infusion)") {
+              if (PRECOLUMN != "None (direct injection)") {
+                LCtxt <- paste0(LCtxt, ", concentrated over a", c("", "n")[tstPreCol+1], " ", PRECOLUMN, ", then ")
+              } else { LCtxt <- paste0(LCtxt, ". ", c("The s", "S")[Moult2+1], "ample", c(" was", "s were")[Moult2+1], " ") }
+              LCtxt <- paste0(LCtxt, "bound to a", c("", "n")[tstCol+1], " ", COLUMN, " and eluted over the following ", GRADLENGTH,
+                              " min gradient: solvent A, ", SolvA, "; ", "solvent B, ", SolvB, "; ",
+                              "constant ", FLOWVALUE, " nL/min flow; ",
+                              "B percentage: ", Grad, ".")
+            } else { LCtxt <- paste0(LCtxt, " by direct infusion.") }
+          } else { LCtxt <- "TEMPLATE" }
+          if (MStxt) {
+            MStxt <- paste0("Mass spectra were acquired in positive mode with a Data ", c("D", "Ind")[which(DIAtst)], "ependent Acquisition (D",
+                            c("D", "I")[which(DIAtst)], "A) method: ",
+                            "FWHM ", FWHM, " s, ",
+                            "MS1 parameters: ")
+            if (!is.na(SPECTTYPE["MS1"])) { MStxt <- paste0(MStxt, SPECTTYPE["MS1"], " mode, ") }
+            MStxt <- paste0(MStxt,
+                            USCNS["MS1"], " microscan", c("", "s")[(USCNS["MS1"] > 1)+1], ", ",
+                            RES["MS1"], " resolution, ",
+                            "AGC target ", AGC["MS1"], ", ",
+                            MAXIT["MS1"], " maximum IT, ",
+                            SCRNG["MS1"], "; ")
+            if (DIAtst[[1]]) {
               MStxt <- paste0(MStxt, "up to ", TOPN, " MS2s per cycle. ",
                               "DDA MS2 parameters: ")
               if (!is.na(SPECTTYPE["MS2"])) { MStxt <- paste0(MStxt, SPECTTYPE["MS2"], " mode, ") }
@@ -812,108 +968,26 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                               DYNEXCL, "s dynamic exclusion.")
             }
             if (DIAtst[[2]]) {
-              # DIA method
-              InclStrt <- grep(" +Mass +Formula +Species +CS +Polarity +Start +End +\\(N\\)CE +MSX +ID +Comment", msMeth2)
-              InclHdr <- msMeth2[InclStrt]
-              InclUnit <- msMeth2[InclStrt+1]
-              InclMn <- InclStrt+2
-              InclRg <- grep(" *[0-9]+\\.*[0-9]* +((Posi)|(Nega))tive +", msMeth2[InclMn:length(msMeth2)]) + InclMn - 1
-              InclMx <- max(InclRg[which(sapply(InclRg, function(x) {
-                sum(!InclMn:x %in% InclRg) == 0
-              }))])
-              InclWind <- msMeth2[InclMn:InclMx]
-              brks <- unlist(strsplit(InclHdr, ""))
-              l <- length(brks)
-              brks <- which(vapply(2:l, function(x) { (brks[x] == " ")&(brks[x-1] != " ") }, TRUE))
-              brks <- c(0, brks)
-              l <- length(brks)
-              InclWind <- as.data.frame(sapply(2:l, function(x) {
-                gsub("^ +", "", substr(InclWind, brks[x-1]+1, brks[x]))
-              }))
-              colnames(InclWind) <- sapply(2:l, function(x) {
-                df <- data.frame(x = gsub("^ +", "", substr(InclHdr, brks[x-1]+1, brks[x])),
-                                 y = gsub("^ +", "", substr(InclUnit, brks[x-1]+1, brks[x])))
-                x <- gsub(" +$", "", do.call(paste, c(df, sep = " ")))
-              })
-              InclWind$`Mass [m/z]` <- as.numeric(InclWind$`Mass [m/z]`)
-              InclWind$`Start [min]` <- as.numeric(InclWind$`Start [min]`)
-              InclWind$`End [min]` <- as.numeric(InclWind$`End [min]`)
-              InclWind <- InclWind[order(InclWind$`Start [min]`, InclWind$`Mass [m/z]`, decreasing = FALSE),]
-              NWind <- nrow(InclWind)
-              #if (length(InclWind) == TOPN) {
-              InclWindL <- InclWind$`Mass [m/z]`-as.numeric(gsub(" m/z$", "", ISOWIN))/2
-              InclWindR <- InclWind$`Mass [m/z]`+as.numeric(gsub(" m/z$", "", ISOWIN))/2
-              OLtst <- unique(round(InclWindR[1:(NWind-1)] - InclWindL[2:NWind], 3))
-              stopifnot(length(OLtst) == 1)
-              if (OLtst == 0) { OLtxt <- "no overlap" }
-              if (OLtst > 0) { OLtxt <- paste0(OLtst, " m/z overlap") }
-              if (OLtst < 0) { OLtxt <- paste0(OLtst, " m/z non-covered gap between adjacent windows") }
-              #}
+              MStxt <- paste0(MStxt, "DIA scans: ",
+                              c("", paste0(TOPN, " MS2 scans per cycle, "))[(TOPN != NWind)+1],
+                              NWind, " windows of ", ISOWIN, " width per cycle covering the range from ", min(InclWindL), " to ",
+                              max(InclWindR), " m/z (", OLtxt, "), ")
+              if (!is.na(SPECTTYPE["MS2"])) { MStxt <- paste0(MStxt, "spectra acquired in ", SPECTTYPE["MS2"], " mode, ") }
+              MStxt <- paste0(MStxt,
+                              USCNS["MS2"], " microscan", c("", "s")[(USCNS["MS2"] > 1)+1], ", at ",
+                              RES["MS2"], " resolution; ",
+                              "AGC target ", AGC["MS2"], ", ",
+                              MAXIT["MS2"], " maximum IT, ",
+                              F1MSS,
+                              "NCE ", NCE, ".")
             }
-            MStxt <- TRUE
-          }
+          } else { MStxt <- "TEMPLATE" }
+          TXT <- paste0(LCtxt, " ", MStxt)
+          #writeClipboard(TXT)
+          ThLCMSTexts <- c(ThLCMSTexts, TXT)
         } else {
-          warning("This function currently can only process Q Exactive type methods!")
+          warning("Empty method...")
         }
-        if (LCtxt) {
-          LCtxt <- paste0(c("The s", "S")[Moult2+1], "ample", c(" was", "s were")[Moult2+1], " analyzed by LC-MS/MS on a",
-                          c("", "n")[tstNano+1], " ", NANO, " nano-HPLC (",
-                          NANOMAKER, ") coupled with a", c("", "n")[tstInstr+1], " ", INSTR, " (", INSTRMAKER, ")")
-          if (COLUMN != "None (direct infusion)") {
-            if (PRECOLUMN != "None (direct injection)") {
-              LCtxt <- paste0(LCtxt, ", concentrated over a", c("", "n")[tstPreCol+1], " ", PRECOLUMN, ", then ")
-            } else { LCtxt <- paste0(LCtxt, ". ", c("The s", "S")[Moult2+1], "ample", c(" was", "s were")[Moult2+1], " ") }
-            LCtxt <- paste0(LCtxt, "bound to a", c("", "n")[tstCol+1], " ", COLUMN, " and eluted over the following ", GRADLENGTH,
-                            " min gradient: solvent A, ", SolvA, "; ", "solvent B, ", SolvB, "; ",
-                            "constant ", FLOWVALUE, " nL/min flow; ",
-                            "B percentage: ", Grad, ".")
-          } else { LCtxt <- paste0(LCtxt, " by direct infusion.") }
-        } else { LCtxt <- "TEMPLATE" }
-        if (MStxt) {
-          MStxt <- paste0("Mass spectra were acquired in positive mode with a Data ", c("D", "Ind")[which(DIAtst)], "ependent Acquisition (D",
-                          c("D", "I")[which(DIAtst)], "A) method: ",
-                          "FWHM ", FWHM, " s, ",
-                          "MS1 parameters: ")
-          if (!is.na(SPECTTYPE["MS1"])) { MStxt <- paste0(MStxt, SPECTTYPE["MS1"], " mode, ") }
-          MStxt <- paste0(MStxt,
-                          USCNS["MS1"], " microscan", c("", "s")[(USCNS["MS1"] > 1)+1], ", ",
-                          RES["MS1"], " resolution, ",
-                          "AGC target ", AGC["MS1"], ", ",
-                          MAXIT["MS1"], " maximum IT, ",
-                          SCRNG["MS1"], "; ")
-          if (DIAtst[[1]]) {
-            MStxt <- paste0(MStxt, "up to ", TOPN, " MS2s per cycle. ",
-                            "DDA MS2 parameters: ")
-            if (!is.na(SPECTTYPE["MS2"])) { MStxt <- paste0(MStxt, SPECTTYPE["MS2"], " mode, ") }
-            MStxt <- paste0(MStxt, USCNS["MS2"], " microscan", c("", "s")[(USCNS["MS2"] > 1)+1], ", ",
-                            RES["MS2"], " resolution, ",
-                            "AGC target ", AGC["MS2"], ", ",
-                            MAXIT["MS2"], " maximum IT, ",
-                            ISOWIN, " isolation window ", ISOWINOFFSET, ", ", 
-                            F1MSS,
-                            SCRNG["MS1"], ", ",
-                            "NCE ", NCE, ", ",
-                            EXCLZ, " ",
-                            DYNEXCL, "s dynamic exclusion.")
-          }
-          if (DIAtst[[2]]) {
-            MStxt <- paste0(MStxt, "DIA scans: ",
-                            c("", paste0(TOPN, " MS2 scans per cycle, "))[(TOPN != NWind)+1],
-                            NWind, " windows of ", ISOWIN, " width per cycle covering the range from ", min(InclWindL), " to ",
-                            max(InclWindR), " m/z (", OLtxt, "), ")
-            if (!is.na(SPECTTYPE["MS2"])) { MStxt <- paste0(MStxt, "spectra acquired in ", SPECTTYPE["MS2"], " mode, ") }
-            MStxt <- paste0(MStxt,
-                            USCNS["MS2"], " microscan", c("", "s")[(USCNS["MS2"] > 1)+1], ", at ",
-                            RES["MS2"], " resolution; ",
-                            "AGC target ", AGC["MS2"], ", ",
-                            MAXIT["MS2"], " maximum IT, ",
-                            F1MSS,
-                            "NCE ", NCE, ".")
-          }
-        } else { MStxt <- "TEMPLATE" }
-        TXT <- paste0(LCtxt, " ", MStxt)
-        #writeClipboard(TXT)
-        ThLCMSTexts <- c(ThLCMSTexts, TXT)
       }
     } else {
       warning("All files and their methods are missing, at least one file or one method is required!")
@@ -928,15 +1002,16 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     addWorksheet(wb, "Sheet1")
     writeData(wb, "Sheet1", allKolumns, 1, 1)
     addStyle(wb, "Sheet1", Head, 1, c(1:ncol(allKolumns)))
-    tst <- sapply(1:ncol(allKolumns), function(x) {
+    tst <- vapply(1:ncol(allKolumns), function(x) {
       x1 <- ceiling(nchar(colnames(allKolumns)[x])*1.2)
       x2 <- ceiling(nchar(allKolumns[[x]])*1.2)
       return(max(c(x1, min(c(60, x2), na.rm = TRUE))))
-    })
+    }, 1)
     setColWidths(wb, "Sheet1", 1:ncol(allKolumns), tst)
-    #saveWorkbook(wb, gsub("\\.xlsx$", "2.xlsx", Columns, ""), TRUE)
-    try(saveWorkbook(wb, Columns, TRUE), silent = TRUE) # We do not want the function to fail if this fails, it isn't worth the trouble
-    #aRmel::openwd(dirname(Columns))
+    try(saveWorkbook(wb, Columns2, TRUE), silent = TRUE) # We do not want the function to fail if this fails, it isn't worth the trouble
+    #proteoCraft::openwd(dirname(Columns2))
   }
+  #
+  if (stopCl) { parallel::stopCluster(cl) }
   return(AllLCMSTexts)
 }

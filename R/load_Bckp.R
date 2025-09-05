@@ -19,8 +19,10 @@ load_Bckp <- function(backup,
                       startDir,
                       clean = TRUE,
                       loadPack = TRUE) {
-  #aRmel::DefArg(aRmel::load_Bckp)
+  #proteoCraft::DefArg(proteoCraft::load_Bckp)
+  # Cleanup workspace here
   if (clean) { rm(list = ls(), envir = .GlobalEnv) }
+  #
   TESTING <- FALSE
   #TESTING <- TRUE
   if (TESTING) {
@@ -28,64 +30,59 @@ load_Bckp <- function(backup,
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
-  # Cleanup workspace here
+  #
+  homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
   #
   if (misFun(backup)) {
     if (misFun(startDir)) {
       if ((exists("wd"))&&("character" %in% class(wd))&&(dir.exists(wd))) {
         defltdir <- wd
       } else {
-        homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/aRmel")
         dlft <- openxlsx::read.xlsx(paste0(homePath, "/Default_locations.xlsx"))
         defltdir <- dlft$Path[match("Temporary folder", dlft$Folder)]
       }
     } else { defltdir <- startDir }
-    bckp <- normalizePath(choose.files(paste0(defltdir, "/*.RData"), multi = FALSE), winslash = "/")
+    #bckp <- normalizePath(choose.files(paste0(defltdir, "/*.RData"), multi = FALSE), winslash = "/")
+    bckp <- rstudioapi::selectFile("Select backup file to load...",
+                                   path = paste0(defltdir, "/*.RData"),
+                                   filter = "RData file (*.RData)")
   } else {
     bckp <- backup
   }
+  if ((!nchar(bckp))||(length(bckp) != 1)||(!"character" %in% class(bckp))) {
+    warning("\"backup\" must be a single length = 1 character path to a valid proteoCraft backup file!")
+    return()
+  }
+  if ((!file.exists(bckp))) {
+    warning("The specifid \"backup\" file does not exist!")
+    return()
+  }
+  wdExisted <- exists("wd", .GlobalEnv)
   bckpDeerayktoray <- dirname(bckp)
-  #bckp <- "~/R/aRmel/AN_GNRGFL1_5637917142/Backup.RData"
+  #
+  #bckp <- "~/R/proteoCraft/AN_GNRGFL1_5637917142/Backup.RData"
   # Now, I have recently switched to a different, faster way of saving backups using parallelization.
   # The bit below is meant to allow some form of backwards compatibility with older backups.
   tst <- "Didnae work, matey!"
   inst <- as.data.frame(installed.packages())
-  allCores <- parallel::detectCores()
-  maxCores <- max(c(round(allCores*0.95)-1, 1)) # New slightly more conservative default
-  if (.Platform$OS.type == "windows") {
-    if (!"qs2" %in% inst$Package) {
-      install.packages("qs2")
-    }
-    inst <- as.data.frame(installed.packages())
-    if ("qs2" %in% inst$Package) {
-      tst <- try(qs2::qs_readm(bckp, env = globalenv(),
-                               nthreads = maxCores), silent = TRUE)
-    }
-    if (("try-error" %in% class(tst))&&("qs" %in% inst$Package)) {
-      tst <- try(qs::qreadm(bckp, env = globalenv(),
-                            nthreads = maxCores), silent = TRUE)
-    }
-  }
-  if ((.Platform$OS.type == "unix")&&(require(fastSave))) {
-    tst <- try(save.lbzip2(bckp, envir = globalenv()), silent = TRUE)
-  }
-  if ("try-error" %in% class(tst)) {
-    warning("This seems to be an old backup, defaulting to base R load...")
-    tst <- try(load(bckp, envir = globalenv()), silent = TRUE)
-  }
+  tst <- try(proteoCraft::loadFun(bckp), silent = TRUE)
   if (("try-error" %in% class(tst))||(("character" %in% class(tst))&&(length(tst) == 1)&&(tst == "Didnae work, matey!"))) {
     stop("Backup re-loading failed!")
   }
   #
   if ((exists("wd"))&&(!dir.exists(wd))) {
-    warning("Invalid work directory, using parent directory of backup file instead")
+    if (!wdExisted) {
+      warning("Invalid work directory loaded from backup file, using its parent directory instead!")
+    } else {
+      warning("Setting work directory to the backup file's parent directory.")
+    }
     wd <- bckpDeerayktoray
   }
   tst <- try(setwd(wd), silent = TRUE)
   #
   # Important
   # #########
-  # Sometimes, when the package (aRmel) has been updated, and a backup is then loaded using this function,
+  # Sometimes, when the package (proteoCraft) has been updated, and a backup is then loaded using this function,
   # it appears like old versions of the package are being loaded too.
   # The chunk below is an attempt to fix the issue, but may not work.
   #
@@ -99,6 +96,8 @@ load_Bckp <- function(backup,
     tmp <- paste0('package:', tmp)
     try(invisible(lapply(tmp, detach, character.only = TRUE, unload = TRUE)), silent = TRUE)
   }
+  allCores <- parallel::detectCores()
+  maxCores <- max(c(round(allCores*0.95)-1, 1)) # New slightly more conservative default
   if (loadPack) {
     if (exists("cran_req")) {
       for (pack in cran_req) { library(pack, character.only = TRUE) }
@@ -107,7 +106,7 @@ load_Bckp <- function(backup,
     if (exists("bioc_req")) {
       for (pack in bioc_req) { library(pack, character.only = TRUE) }
     }
-    library("aRmel", character.only = TRUE)
+    library("proteoCraft", character.only = TRUE)
   }
   # Re-create parallel cluster
   usePar <- FALSE
@@ -125,14 +124,14 @@ load_Bckp <- function(backup,
     if ((exists("parClust"))&&(exists("N.clust"))&&("cluster" %in% class(parClust))) {
       currNodes <- gsub(" .*", "", gsub("socket cluster with ", "", capture.output(parClust)))
       currNodes <- as.integer(currNodes)
-      if (currNodes != N.clust) { stopCluster(parClust) }
+      if (currNodes != N.clust) { parallel::stopCluster(parClust) }
     }
     # If not, create it:
     a <- 1
-    tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
+    tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)
     if ("try-error" %in% class(tst)) {
-      if (exists("parClust")) { try(stopCluster(parClust), silent = TRUE) }
-      parClust <- makeCluster(N.clust, type = "SOCK")
+      if (exists("parClust")) { try(parallel::stopCluster(parClust), silent = TRUE) }
+      parClust <- parallel::makeCluster(N.clust, type = "SOCK")
     }
     usePar <- TRUE
   }
@@ -187,7 +186,7 @@ load_Bckp <- function(backup,
           #environment(f0) <- .GlobalEnv
           ok <- FALSE
           if (usePar) {
-            clusterExport(parClust, list("g0", "scrpt"), envir = environment())
+            parallel::clusterExport(parClust, list("g0", "scrpt"), envir = environment())
             tst <- try(setNames(parSapply(parClust, .obj, f0), .obj), silent = TRUE)
             ok <- !("try-error" %in% class(tst))
           }
@@ -196,14 +195,14 @@ load_Bckp <- function(backup,
           if (length(tst)) {
             tst <- tst[order(tst, decreasing = TRUE)]
             rs <- scrpt$row[ghash][which(scrpt$row[ghash] > tst[1])][1]
-            cat(paste0("   FYI, the last object listed in .obj is \"", names(tst)[1], "\".\n"))
+            cat(paste0("\n   FYI, the last object listed in .obj is \"", names(tst)[1], "\".\n"))
             #system(paste0("open \"", ScriptPath, "\""))
             if (rs >= max(scrpt$row[g0])) {
-              cat("\n   Backup analysis suggests that this backup had reached the end of the analysis, so there should be nothing more to run...\nBut maybe you want to re-runs some parts without starting from scratch?\n")
+              cat("\n   Backup analysis suggests that this backup had reached the end of the analysis, so there should be nothing more to run...\nBut maybe you want to re-run some parts without starting from scratch?\n")
               cat("   (opening script...)\n")
               rstudioapi::documentOpen(ScriptPath)
             } else {
-              cat(paste0("We thus suggest starting execution from row ", rs, "...\n"))
+              cat(paste0("\n   -> We thus suggest starting execution from row ", rs, "...\n"))
               cat("   (opening script at the corresponding line...)\n")
               rstudioapi::documentOpen(ScriptPath, line = rs)
             }
@@ -216,5 +215,5 @@ load_Bckp <- function(backup,
   }
   if (exists("mySeed")) { set.seed(mySeed) }
   if (usePar) { parClust <<- parClust } # Export cluster
-  cat("You're good to go!\n")
+  cat("\nYou're good to go!\n")
 }
