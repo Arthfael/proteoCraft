@@ -4824,6 +4824,11 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/GSEA.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
+try({ stopCluster(parClust) }, silent = TRUE)
+saveImgFun(BckUpFl)
+#loadFun(BckUpFl)
+source(parSrc, local = FALSE)
+
 #### Code chunk - Heatmaps with clustering at samples and protein groups level, highlighting proteins of interest
 dir <- paste0(wd, "/Clustering")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
@@ -4870,6 +4875,21 @@ VClustUse <- toupper(VClustUse)
 KlustRoot %<o% paste0("Cluster (", c("K-means", "hierarch.")[KlustMeth], ") - ")
 normTypes <- c("None", "Norm. by row", "Z-scored")
 plotLeatMaps %<o% list()
+
+
+
+
+
+kol <- paste0(prtRfRoot, xMap$Ref.Sample.Aggregate)
+tmpDat <- set_rownames(set_colnames(PG[, kol], smpls), PG$Label)
+Gr <- xMap[smplsMtch, RG$column]
+Gr <- setNames(match(Gr, unique(Gr)), Gr)
+
+
+
+
+
+
 for (i in names(I)) { #i <- names(I)[1] #i <- names(I)[2]
   smpls <- I[[i]]
   smplsMtch <- match(smpls, Samples)
@@ -9587,17 +9607,20 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
             }
             rm(dsAll, i, F1)
             #summary(gD)
-            tst <- RCy3::createNetworkFromIgraph(gD, new.title = Nm)
-            RCy3::layoutNetwork("force-directed defaultSpringLength=70 defaultSpringCoefficient=0.000003")
-            rg <- max(abs(logFC))
-            try(RCy3::setNodeColorMapping("logFC", c(-rg, 0, rg),
-                                          c("#FF0000", "#999999", "#00FF00"), style.name = "default"), silent = TRUE)
-            RCy3::setNodeShapeDefault("ellipse", style.name = "default")
-            RCy3::setNodeFontSizeDefault(12, style.name = "default")
-            try(RCy3::setNodeSizeMapping("Avg_expression",
-                                         style.name = "default"), silent = TRUE)
-            RCy3::exportNetwork(paste0(wd, "/Cytoscape/", grphType, "/", Nm, "_", tolower(grphType), " network"), "CX")
-            RCy3::deleteAllNetworks()
+            exprs <- expression({
+              tst <- RCy3::createNetworkFromIgraph(gD, new.title = Nm)
+              RCy3::layoutNetwork("force-directed defaultSpringLength=70 defaultSpringCoefficient=0.000003")
+              rg <- max(abs(logFC))
+              try(RCy3::setNodeColorMapping("logFC", c(-rg, 0, rg),
+                                            c("#FF0000", "#999999", "#00FF00"), style.name = "default"), silent = TRUE)
+              RCy3::setNodeShapeDefault("ellipse", style.name = "default")
+              RCy3::setNodeFontSizeDefault(12, style.name = "default")
+              try(RCy3::setNodeSizeMapping("Avg_expression",
+                                           style.name = "default"), silent = TRUE)
+              RCy3::exportNetwork(paste0(wd, "/Cytoscape/", grphType, "/", Nm, "_", tolower(grphType), " network"), "CX")
+              RCy3::deleteAllNetworks()
+            })
+            tst <- try(eval(exprs), silent = TRUE)
           }
         }
         # Then close Cytoscape:
@@ -9664,7 +9687,6 @@ source(Src, local = FALSE)
 # Finalize analysis
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Finalize_analysis.R")
 #rstudioapi::documentOpen(Src)
-#loadFun(BckUpFl)
 source(Src, local = FALSE)
 
 ### That's it, done!
