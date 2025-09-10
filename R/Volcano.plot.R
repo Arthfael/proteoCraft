@@ -151,6 +151,8 @@ Volcano.plot <- function(Prot,
   #Prot = my_F_Data; mode = "custom"; experiments.map = contr;X.root = paste0("Mean ", ratRef);Y.root = paste0(F_Root, " - ");aggregate.map = aggr_dummy; aggregate.list = aggr_list_dummy;aggregate.name = "Contrast";parameters = Param;save = c("jpeg", "pdf");FDR.root = "mod. F-test Significant-FDR=";Ref.Ratio.values = refRat_F;ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates);arbitrary.lines = arbitrary.thr;proteins = prot.list; proteins_split = protsplit; IDs.col = idCol;return = FALSE; return.plot = TRUE; title = "F-test volcano plot ";subfolder = ohDeer; subfolderpertype = FALSE;Symmetrical = TRUE;Alpha = Alpha; Size = "Rel. av. log10 abundance"; Size.max = 2;plotly = create_plotly; plotly_local = create_plotly_local;plotly_labels = plotlyLab;Ref.Ratio.method = paste0("obs", RefRat_Mode);cl = parClust;reg.root = regRoot_F
   # OR (modified peptides)
   #Prot = ptmpep; mode = "custom"; experiments.map = Exp.map; X.root = paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)]); Y.root = pvalue.col[which(pvalue.use)]; aggregate.map = Aggregate.map; aggregate.list = Aggregate.list; aggregate.name = VPAL$aggregate; parameters = P; save = c("jpeg", "pdf"); labels = c("FDR", "both")[isSAM+1]; Ref.Ratio.values = PTMs_ref.ratios[[ptm]]; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = PTMs_FDR.thresholds[[ptm]]; arbitrary.lines = arbitrary.thr; proteins = prot.list; IDs.col = "Code"; Proteins.col = "Proteins";proteins_split = protsplit; return = TRUE; return.plot = TRUE; title = paste0(Ptm, " volcano plot_"); subfolder = dir[2]; subfolderpertype = FALSE; Symmetrical = TwoSided; Size = "Rel. av. log10 abundance"; Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; plotly_labels = c(PepLabKol, paste0(Ptm, "-site")); SAM = isSAM; curved_Thresh = PTMs_sam_Thresh[[Ptm]]
+  # OR (F-test, modified peptides)
+  #Prot = my_F_Data;mode = "custom";experiments.map = contr;X.root = paste0("Mean ", ratRef);Y.root = paste0(F_Root, " - ");aggregate.map = aggr_dummy;aggregate.list = aggr_list_dummy;aggregate.name = "Contrast";parameters = Param;save = c("jpeg", "pdf");FDR.root = "mod. F-test Significant-FDR=";Ref.Ratio.values = refRat_F;ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates);arbitrary.lines = arbitrary.thr;proteins = prot.list;proteins_split = protsplit;IDs.col = idCol;Proteins.col = protCol;return = FALSE;return.plot = TRUE;title = "F-test volcano plot ";subfolder = ohDeer;subfolderpertype = FALSE;Symmetrical = TRUE;Alpha = Alpha;Size = "Rel. av. log10 abundance";Size.max = 2;plotly = create_plotly;plotly_local = create_plotly_local;plotly_labels = plotlyLab;Ref.Ratio.method = paste0("obs", RefRat_Mode);reg.root = regRoot_F
   # OR (SAINTexpress)
   #Prot = allSAINTs;IDs.col = "Protein";mode = "custom";experiments.map = Exp.map;X.root = fcRt;Y.root = fdrRt;aggregate.map = Aggregate.map;aggregate.name = VPAL$aggregate;aggregate.list = Aggregate.list;parameters = Parma;save = c("jpeg", "pdf");labels = "thresholds";Ref.Ratio.values = Ref.Ratios;ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates);arbitrary.lines = ArbThr;proteins = prot.list;proteins_split = protsplit;return = TRUE;return.plot = TRUE;title = "SAINTexpress volcano plot_";subfolder = "Reg. analysis/SAINTexpress";subfolderpertype = FALSE;Symmetrical = TwoSided;Alpha = "Av. log10 abundance";Size = "Av. log10 abundance";Size.max = 2;plotly = create_plotly;plotly_local = create_plotly_local;plotly_labels = labKol
   # OR (SSDs)
@@ -168,7 +170,6 @@ Volcano.plot <- function(Prot,
   # (Don't use as default the value in parameters$Plot.metrics: they are deprecated)
   if (misFun(X.root)) { stop("Argument \"X.root\" is missing, investigate!") }
   if (misFun(Y.root)) { stop("Argument \"Y.root\" is missing, investigate!") }
-  
   #
   # Create cluster
   tstCl <- stopCl <- misFun(cl)
@@ -240,6 +241,7 @@ Volcano.plot <- function(Prot,
                 labels[which(labels == c("proteins"))],
                 "FDR")
   }
+  useFDRtbl <- FALSE
   if (("FDR" %in% labels)||(mode == "curved")) {
     if (regProvided) {
       xKols <- grep(topattern(X.root), colnames(Prot), value = TRUE)
@@ -257,12 +259,16 @@ Volcano.plot <- function(Prot,
       FDR_table <- lapply(1:nrow(tstDF), function(x) { #x <- 1
         fdr_table <- Prot[grep("^((up)|(down)), FDR = ", Prot[[tstDF$Reg[[x]]]]),
                           c(tstDF$X[[x]], tstDF$Y[[x]], tstDF$Reg[[x]])]
-        fdr_table$FDRs <- as.numeric(gsub("^((up)|(down)), FDR = |%$", "", fdr_table[[tstDF$Reg[[x]]]]))
-        fdr_table <- aggregate(fdr_table[[tstDF$Y[[x]]]], list(fdr_table$FDRs), min)
-        colnames(fdr_table) <- c("FDR", "Thresholds")
-        fdr_table$Thresholds <- 10^-fdr_table$Thresholds # Because of how they are stored
-        fdr_table$Sample <- tstDF$Group[[x]]
-        return(fdr_table)
+        if (nrow(fdr_table)) {
+          fdr_table$FDRs <- as.numeric(gsub("^((up)|(down)), FDR = |%$", "", fdr_table[[tstDF$Reg[[x]]]]))
+          fdr_table <- aggregate(fdr_table[[tstDF$Y[[x]]]], list(fdr_table$FDRs), min)
+          colnames(fdr_table) <- c("FDR", "Thresholds")
+          fdr_table$Thresholds <- 10^-fdr_table$Thresholds # Because of how they are stored
+          fdr_table$Sample <- tstDF$Group[[x]]
+          return(fdr_table)
+        } else {
+          return()
+        }
       })
       FDR_table <- do.call(rbind, FDR_table)
       rownames(FDR_table) <- paste0("Threshold-FDR=", FDR_table$FDR, "% - ", FDR_table$Sample)
@@ -276,11 +282,14 @@ Volcano.plot <- function(Prot,
         FDR_table$Sample <-  gsub("^Threshold-FDR=[1-9][0-9]*\\.*[0-9]*% - ", "", names(FDR.thresh))
       }
     }
+    useFDRtbl <- nrow(FDR_table) > 0
+  }
+  if (useFDRtbl) {
     f <- grep(proteoCraft::topattern(FDR.root), colnames(Prot), value = TRUE)
     FDR_table <- FDR_table[order(FDR_table$FDR, decreasing = TRUE),]
     FDR.values <- as.numeric(unique(gsub("%( - .+)?$", "", gsub(proteoCraft::topattern(FDR.root), "", f))))
     fdr.col.up <- grDevices::colorRampPalette(upColRg)(length(FDR.values))
-    FDR_table$fdr.col.up <- fdr.col.up[sapply(FDR_table$FDR, function(x) { which(FDR.values == x )})]
+    FDR_table$fdr.col.up <- fdr.col.up[sapply(FDR_table$FDR, function(x) { which(FDR.values == x ) })]
     fdr.col.down <- grDevices::colorRampPalette(downColRg)(length(FDR.values))
     FDR_table$fdr.col.down <- fdr.col.down[sapply(FDR_table$FDR, function(x) { which(FDR.values == x )})]
     fdr.col.line <- rainbow(n = length(FDR.values), start = 2/6, end = 1/6, v = 0.75)
@@ -349,7 +358,7 @@ Volcano.plot <- function(Prot,
       a2 <- set_colnames(as.data.frame(t(sapply(strsplit(unlist(strsplit(parameters$Plot.threshold.values, "; *")), ": *"), unlist))),
                          c("Direction", "Text.value"))
       Plot.metrics$Text.value <- a2$Text.value[match(Plot.metrics$Levels, a2$Direction)]
-      Plot.metrics$Value <- sapply(Plot.metrics$Text.value, function(x) { eval(parse(text = x)) })
+      Plot.metrics$Value <- vapply(Plot.metrics$Text.value, function(x) { eval(parse(text = x)) }, 1)
       a3 <- set_colnames(as.data.frame(t(sapply(strsplit(unlist(strsplit(parameters$Plot.threshold.tests, "; *")), ": *"), unlist))),
                          c("Direction", "Test"))
       Plot.metrics$Test <- a3$Test[match(Plot.metrics$Levels, a3$Direction)]
@@ -373,7 +382,7 @@ Volcano.plot <- function(Prot,
                                Test = c("<=", ">="),
                                Colour = c("red", "red"),
                                Text.value = c("log2(1/2)", "log2(2)"))
-    Plot.metrics$Value <- sapply(Plot.metrics$Text.value, function(x) { eval(parse(text = x)) })
+    Plot.metrics$Value <- vapply(Plot.metrics$Text.value, function(x) { eval(parse(text = x)) }, 1)
     # NB: These defaults may be overwritten by the "Ref.Ratio.values" argument for each plot.
     # Horizontal (P-value) thresholds
     if ((mode == "standard")&&(!misFun(arbitrary.thresh))) {
@@ -465,7 +474,7 @@ Volcano.plot <- function(Prot,
   # Default colors
   myColors <- setNames(c("black", "black", "purple", c("brown", "firebrick1")[proteins_split+1]),
                        c("non significant", "too small FC", "target", "protein in list"))
-  if (("FDR" %in% labels)||(mode == "curved")) {
+  if (useFDRtbl) {
     myColors[c(paste0("up, FDR = ", FDR_table$FDR, "%"),
                paste0("down, FDR = ", FDR_table$FDR, "%"))] <- c(FDR_table$fdr.col.up, FDR_table$fdr.col.down)
   }
@@ -533,7 +542,7 @@ Volcano.plot <- function(Prot,
       if (!Contaminants) { wych <- wych & (Prot[[kontkol]] != "+") }
       return(which(wych))
     }), A[wOK])
-    tstTbl$All_OK[wOK] <- sapply(Wych, length) > 0
+    tstTbl$All_OK[wOK] <- vapply(Wych, length, 1) > 0
   }
   wOK <- which(tstTbl$All_OK)
   if (!length(wOK)) { stop("Not a single sample group with valid statistics detected!\nCheck inputs or statistical analysis") }
@@ -572,16 +581,17 @@ Volcano.plot <- function(Prot,
     # and
     #b) do you really expect a protein label more than 8 words long to be helpful?
     # Usually this will not be an issue with Uniprot but can be for other databases, e.g. TAIR, where protein names contain additional information for unknown proteins.
-    nch <- sapply(1:length(x), function(y) { nchar(paste(x[1:y], collapse = " ")) })
     nc <- min(ceiling((sum(nchar(x)) + length(x) - 1)/colchar), length(x))
     if (nc > 1) {
       tstbrk <- cbind(0, gtools::combinations(length(x)-1, nc-1), length(x))
       tstbrk <- apply(tstbrk, 1, function(y) {
-        sapply(1:nc, function(z) { paste(x[(y[z]+1):y[z+1]], collapse = " ") })
+        vapply(1:nc, function(z) { paste(x[(y[z]+1):y[z+1]], collapse = " ") }, "")
       })
       tstsd <- apply(tstbrk, 2, function(y) { sum(nchar(y)^2) })
       label <- paste(tstbrk[, which(tstsd == min(tstsd))[1]], collapse = "\n")
+      rm(tstbrk, tstsd)
     } else { label <- paste(x, collapse = " ") }
+    rm(x, nc)
     return(label)
   }
   environment(f0) <- .GlobalEnv
@@ -596,13 +606,13 @@ Volcano.plot <- function(Prot,
     kount <- 0
     while ((length(weech))&&(kount < length(id.col))) {
       kount <- kount+1
-      Prot$Labels[weech] <- sapply(Prot[weech, id.col[kount]], function(x) {
+      Prot$Labels[weech] <- vapply(Prot[weech, id.col[kount]], function(x) {
         if (x == "") { res <- "" } else {
           x <- unlist(strsplit(x, ";"))
           if (length(x) == 1) { res <- x } else { res <- paste0(x[1], ";...") }
         }
         return(res)
-      })
+      }, "")
       weech <- which(Prot$Labels == "")
     }
     if (length(weech)) { Prot$Labels[weech] <- paste0("Default_label_", c(1:length(weech))) }
@@ -613,6 +623,7 @@ Volcano.plot <- function(Prot,
   if (show.labels) { Plots$Labelled <- list() }
   #
   for (i in A) { #i <- A[1]
+    cat(i, "\n")
     symm <- Symmetrical[i]
     xKol <- paste0(X.root, i)
     yKol <- paste0(Y.root, i)
@@ -642,7 +653,7 @@ Volcano.plot <- function(Prot,
     temp$X <- Prot[[e[1]]]
     temp$Y <- Prot[[e[2]]]
     temp <- temp[Wych[[i]],]
-    if (("FDR" %in% labels)||(mode == "curved")) {
+    if (useFDRtbl) {
       fdr_table <- FDR_table
       if ("Sample" %in% colnames(fdr_table)) {
         fdr_table <- fdr_table[which(fdr_table$Sample == i),]
@@ -800,7 +811,7 @@ Volcano.plot <- function(Prot,
           }
         }
       } else {
-        if ((mode == "curved")&&(i %in% names(curved_Thresh))) {
+        if (useFDRtbl) {
           for (f3 in samD$FDR) { #f3 <- samD$FDR[1]
             wA <- which(dec[[paste0(f3, "FDR")]] == "+")
             w <- which(FDR_table$FDR == f3*100 & FDR_table$Sample == i)
@@ -990,7 +1001,7 @@ Volcano.plot <- function(Prot,
     pluses <- gsub(", ___\\)", ")", pluses)
     pluses <- pluses[which(pluses != "ggplot2::guides(___)")]
     test1 <- sapply(aes[1,], function(x) { which(colnames(temp) == x) })
-    test2 <- sapply(test1, function(x) { "numeric" %in% class(temp[[x]]) })
+    test2 <- vapply(test1, function(x) { "numeric" %in% class(temp[[x]]) }, TRUE)
     test1 <- test1[which(test2)]
     test <- apply(temp, 1, function(x) {
       length(proteoCraft::is.all.good(as.numeric(unlist(x[test1]))))
@@ -1419,6 +1430,7 @@ Volcano.plot <- function(Prot,
     environment(f0) <- .GlobalEnv
     tst <- parallel::parLapply(cl, plotsLst, f0)
   }
+  #
   if (plotly&&plotly_local) {
     if (subfolderpertype) { sfpt <- paste0(subfolder, "/html") } else { sfpt <- subfolder }
     if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
@@ -1432,8 +1444,9 @@ Volcano.plot <- function(Prot,
     tst <- parallel::parLapply(cl, volcPlotly, f0)
     setwd(origWD)
   }
+  #
   thrsh <- list(Absolute = plotMetr.lst)
-  if ("FDR" %in% labels) { thrsh$FDR <- FDR_table }
+  if (useFDRtbl) { thrsh$FDR <- FDR_table }
   RES <- list(Thresholds = thrsh)
   if (return) { RES$Protein_groups_file <- Prot }
   if (return.plot) { RES$Plots <- Plots }

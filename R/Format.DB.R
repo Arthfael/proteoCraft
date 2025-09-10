@@ -300,6 +300,7 @@ Format.DB <- function(file,
       }
       temp1$Sequence <- setNames(temp1$Sequence, temp1$"Protein ID")
     } else { temp1 <- temp1$"Protein ID" }
+    rm(list = setdiff(ls(), "temp1"))
     return(temp1)
   }
   if (parallel) {

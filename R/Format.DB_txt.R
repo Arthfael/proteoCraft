@@ -62,6 +62,7 @@ Format.DB_txt <- function(txt,
   TESTING <- FALSE
   #
   #TESTING <- TRUE;proteoCraft::DefArg(proteoCraft::Format.DB_txt)
+  #txt = annot_Fl;Features = TRUE;cl = parClust
   Feat_isoRgx <- paste0("(", Feat_accRgx, ")(-[0-9]+)?")
   #
   #txt <- readLines(AnnotFls)
@@ -102,6 +103,7 @@ Format.DB_txt <- function(txt,
   }
   #
   G1 <- grep("^ID ", txt)
+  if (!length(G1)) { stop("Invalid file loaded!") }
   lG <- length(G1)
   #
   if (usePar) {
@@ -423,6 +425,7 @@ Format.DB_txt <- function(txt,
       })
     }
     #for (kol in colnames(tbl)) { g <- grep("\n|>>>|<->", tbl[[kol]]) ; if (length(g)) { stop(kol) } } # Check for residuals of our parsing tricks
+    rm(list = setdiff(ls(), "tbl"))
     return(tbl)
   }
   if (usePar) {

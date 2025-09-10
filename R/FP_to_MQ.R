@@ -485,7 +485,7 @@ FP_to_MQ <- function(FP_Workflow,
   if (isWellBehaved) {
     PSMs <- lapply(1:length(Samples), function(x) { #x <- 1
       res <- data.table::fread(FP_PSMs[x], integer64 = "numeric", check.names = FALSE,
-                               data.table = FALSE, fill = TRUE)
+                               data.table = FALSE, fill = TRUE, sep = "\t")
       if (nrow(res)) {
         res$Sample <- Samples[x]
         res$PSMs_file <- FP_PSMs[x]
@@ -572,7 +572,7 @@ FP_to_MQ <- function(FP_Workflow,
   # Create MQ-like file
   kol <- c("Spectrum File", "Peptide", "Modified Peptide", "Charge", "Hyperscore",
            "Spectrum", "Intensity", "Retention", "Protein")
-  #print(kol[which(!kol %in% colnames(DIANN))])
+  #print(kol[which(!kol %in% colnames(PSMs))])
   stopifnot(sum(!kol %in% colnames(PSMs)) == 0)
   EV <- data.frame("Sequence" = PSMs$Peptide,
                    "Length" = nchar(PSMs$Peptide),
