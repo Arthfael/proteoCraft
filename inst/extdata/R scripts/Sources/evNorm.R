@@ -1,7 +1,12 @@
 # Optional - Normalize evidence MS1 intensities, then, if applicable, MS2 reporter (Isobaric labelling) or fragment (DIA) intensities
 source(parSrc, local = FALSE)
+#
+stopifnot(length(unique(ev$id)) == nrow(ev)) # Important check to have
+# What if we combined several searches and forgot to assign new IDs?
+# We must avoid IDs collisions!
+#
 if (Param$Norma.Ev.Intens) {
-  msg <- paste(c(evNm, "s-level normalisations:\n", rep("-", nchar(evNm)), "----------------------\n"))
+  msg <- paste(c(evNm, "s-level normalisations:\n", rep("-", nchar(evNm)), "-----------------------\n"), collapse = "")
   ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
   # Define groups - this will ensure that, if phospho (or other) -enrichment took place, these peptides will be normalized separately
   #
@@ -30,25 +35,30 @@ if (Param$Norma.Ev.Intens) {
         mrk <- Modifs$Mark[match(ptm, Modifs$`Full name`)]
         rw1 <- Frac.map$"Raw file"[which(Frac.map$"PTM-enriched" == ptm)]
         rw0 <- Frac.map$"Raw file"[which((is.na(Frac.map$"PTM-enriched"))|(Frac.map$"PTM-enriched" != ptm))]
-        w1 <- ev$id[which(ev$"Raw file path" %in% rw1)] # PSMs from enriched runs
-        ev$"Normalisation group"[match(w1, ev$id)] <- ptm
-        w0 <- ev$id[which(ev$"Raw file path" %in% rw0)] # PSMs from non-enriched runs
-        w2 <- ev$id[which(!ev$"Raw file path" %in% c(rw0, rw1))] # Any others
-        w1a <- w1[grep(mrk, ev$"Modified sequence"[match(w1, ev$id)])] # Modified PSMs from enriched samples (i.e. what we were trying to enrich!)
-        if (length(w1a)) {
-          w0a <- w0[which(!ev$"Modified sequence"[match(w0, ev$id)] %in% unique(ev$"Modified sequence"[match(w1a, ev$id)]))] # Un-modified PSMs from non-enriched runs
-          l1 <- length(w1)-length(w1a) # This is the number of un-modified PSMs we are removing from enriched runs
-          l0 <- length(w0)-length(w0a) # This is the number of modified PSMs we are removing from non-enriched runs
+        sum(rw1 %in% rw0)
+        w1 <- which(ev$"Raw file path" %in% rw1)
+        w0 <- which(ev$"Raw file path" %in% rw0)
+        sum(w1 %in% w0)
+        i1 <- ev$id[w1] # IDs of PSMs from enriched runs
+        i0 <- ev$id[w0] # IDs of PSMs from non-enriched runs
+        ev$"Normalisation group"[match(i1, ev$id)] <- ptm
+        i2 <- ev$id[which(!ev$"Raw file path" %in% c(rw0, rw1))] # Any others
+        m1 <- match(i1, ev$id)
+        i1m <- i1[grep(mrk, ev$"Modified sequence"[m1])] # Modified PSMs from enriched samples (i.e. what we were trying to enrich!)
+        if (length(i1m)) {
+          i0u <- i0[which(!ev$"Modified sequence"[match(i0, ev$id)] %in% unique(ev$"Modified sequence"[match(i1m, ev$id)]))] # Un-modified PSMs from non-enriched runs
+          l1 <- length(i1)-length(i1m) # This is the number of un-modified PSMs we are removing from enriched runs
+          l0 <- length(i0)-length(i0u) # This is the number of modified PSMs we are removing from non-enriched runs
           if (l1) {
             msg <- paste0("Removing ", l1, " peptide PSMs without the ", ptm, " modification from ", ptm,
-                          "-enriched raw files (", round(100*l1/length(w1), 2), "%)!")
+                          "-enriched raw files (", round(100*l1/length(i1), 2), "%)!")
             ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
           }
           if (l0) {
             msg <- paste0("Removing ", l0, " ", ptm, "-modified peptide PSMs from non-enriched samples!")
             ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
           }
-          ev <- ev[which(ev$id %in% c(w0a, w1a, w2)),]
+          ev <- ev[which(ev$id %in% c(i0u, i1m, i2)),]
         } else {
           msg <- paste0("Not a single ", ptm, "-modified PSMs found in ", ptm, "-enriched raw files, investigate!")
           ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)

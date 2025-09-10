@@ -1187,7 +1187,8 @@ QuantUMS %<o% setNames(vapply(searchOutputs, function(x) {
   return(x)
 }, TRUE), inDirs)
 #  - PSMs: 
-ev %<o% do.call(plyr::rbind.fill, lapply(searchOutputs, function(x) { x$ev }))
+ev %<o% do.call(plyr::rbind.fill, lapply(searchOutputs, function(x) { x$ev }));ev$id <- 1:nrow(ev) ### THE 2ND PART IS SO IMPORTANT I AM PUTTING THEM ON 1 ROW
+
 #tstEvs <- do.call(plyr::rbind.fill, lapply(searchOutputs, function(x) { x$ev[1:10,] }));View(tstEvs)
 
 if (exists("FracMap_reloaded")) {
@@ -1210,7 +1211,7 @@ if (exists("FracMap_reloaded")) {
     gs <- TRUE
   }
   if (!tst) {
-    k <- c("Raw file", "Raw files name", "Parent sample", "Use")
+    k <- c("Raw file", "Raw files name", "Parent sample", "Fraction", "Use", "PTM-enriched")
     k <- k[which(k %in% colnames(FracMap_reloaded))]
     FracMap[, k] <- FracMap_reloaded[m, k]
     if (LabelType == "LFQ") {
@@ -1233,9 +1234,9 @@ if (exists("FracMap_reloaded")) {
     rm(FracMap_reloaded)
   }
 }
-if (!file.exists(FracMapPath)) {
+#if (!file.exists(FracMapPath)) {
   write.csv(FracMap, file = FracMapPath, row.names = FALSE)
-}
+#}
 if (exists("fastas_reloaded")) {
   fastas <- unique(c(fastas, fastas_reloaded))
 }

@@ -478,7 +478,20 @@ Org <- Org[order(Org$Count, decreasing = TRUE),]
 tstOrg %<o% c("", "n")[(tolower(substr(Org$Organism[1], 1, 1)) %in% c("a", "e", "i", "o", "u"))+1]
 #
 db %<o% plyr::rbind.fill(dbs)
-w <- which(db$"Protein of interest")
+#
+# In case we are assembling several databases into one, we may have redundant sequences.
+# Remove them, keeping in priority those matching our accessions of interest.
+wInt <- which(db$"Protein of interest")
+wRst <- which(!db$"Protein of interest")
+db <- db[c(wInt, wRst),]
+tst <- data.table::data.table(Row = 1:nrow(db), Seq = db$Sequence)
+tst <- tst[, list(Row = min(Row)), by = list(Seq)]
+n <- nrow(db)-nrow(tst)
+if (n) {
+  cat("(Removing", n, "redundant protein sequences from the", c("", "combined")[(length(dbs) > 1)+1], "database.)\n")
+  db <- db[tst$Row,]
+}
+#
 w2 <- which((!db$`Protein ID` %in% db$`Protein ID`[w])|(db$`Protein of interest`))
 db <- db[w2,]
 db <- db[order(db$"Protein of interest", decreasing = TRUE),]

@@ -224,14 +224,14 @@ if ("PTM.analysis" %in% colnames(Param)) {
           # Optional: normalize to parent protein group
           if ((scrptTypeFull == "withReps_PG_and_PTMs")&&(PTM_normalize[[Ptm]])) {
             # Step 1: normalize ratios:
-            # We essentially want to correct the fold change of the parent peptide with that of the parent protein
+            # We essentially want to correct the fold change of each modified peptide by that of the parent protein
             #
             #
             #
             ################################
             #         IMPORTANT!!!         #
             ################################
-            # NB:
+            #
             #  This can only work if any protein groups-level re-normalisation is propagated back onto peptides!!!
             #  This is currently the case. Make sure it stays so!
             #
@@ -270,11 +270,19 @@ if ("PTM.analysis" %in% colnames(Param)) {
               return(unlist(y))
             })
             tmpPGRat <- as.data.frame(t(tmpPGRat))
-            # We have some missing values here, which will mean we cannot test some peptides.
+            #
+            # We have some missing values here, which will mean loss of values for some peptides.
+            # We will need to replace them... with what?
             # In most experiments most proteins do not change.
-            # For now we will impute the missing values.
-            # Alternatively, I have also code to replace them with the median ratio value for that sample.
-            # In the future, it would be nice to have this under the control of a parameter.
+            #  - For now we replace missing values with the median of the column (NAsReplMeth == 2)
+            #  - Alternatively, there is also code for imputation (NAsReplMeth == 1),
+            #    but in this context this means adding random variation and does not feel like a good idea.
+            #
+            # (In the future, it would be possible to have this under the control of a parameter.)
+            #
+            # Note that for now the correction is sample-specific, but it could also be sample group-specific
+            # (use average value). There are pros and cons to this.
+            #
             #PTM_normalize_NAsReplaceMethod[[Ptm]] <- 0
             PTM_normalize_NAsReplaceMethod[[Ptm]] <- NAsReplMeth
             #PTM_normalize_NAsReplaceMethod[[Ptm]] <- 2
@@ -309,20 +317,27 @@ if ("PTM.analysis" %in% colnames(Param)) {
                 tmpPGXpr[w, k] <- median(PG[[k]], na.rm = TRUE)
               }
             }
+            #sum(is.na(unlist(tmpPGRat)))
+            #sum(is.na(unlist(tmpPGXpr)))
             # Ref-to-Ref ratios:
             temp <- make_RefRat(data = tmpPGXpr,
                                 int.root = Prot.Expr.Root,
                                 rat.root = Prot.Rat.Root,
                                 logInt = 10)
+            #sum(is.na(unlist(temp)))
             tmpPGRat[, colnames(temp)] <- temp
             #
             tmpPGRat <- tmpPGRat[match(ptmpep$"Protein group IDs", uPG), ]
             tmpPGXpr <- tmpPGXpr[match(ptmpep$"Protein group IDs", uPG), ]
+            #sum(is.na(unlist(tmpPGRat)))
+            #sum(is.na(unlist(tmpPGXpr)))
             #
             #View(tmpPGRat[grsep2(prot.list[1], ptmpep$Proteins),])
             #
             #tst1 <- apply(ptmpep[, kol0], 2, summary);View(tst1)
             ptmpep[, paste0("ReNorm. ", kolRPp)] <- ptmpep[, kolRPp] - tmpPGRat[, kolRPp]
+            #sum(is.na(unlist(ptmpep[, paste0("ReNorm. ", kolRPp)]))) == sum(is.na(unlist(ptmpep[, kolRPp])))
+            #
             #View(ptmpep[, paste0("ReNorm. ", kolRPp)])
             #tst2 <- apply(ptmpep[, paste0("ReNorm. ", kol0)], 2, summary);View(tst2)
             #tstPlot <- FALSE
@@ -348,19 +363,23 @@ if ("PTM.analysis" %in% colnames(Param)) {
             # and subtract them from the peptide quant values
             # (so not keeping the row sums constant)
             # This ensures the correction is applied consistently.
-            kolRPp <- grep("_REF\\.to\\.REF_", kolRPp, value = TRUE, invert = TRUE)
+            #
+            kolRPp1 <- grep("_REF\\.to\\.REF_", kolRPp, value = TRUE, invert = TRUE) # Pep. orig. rat. per sample
             kolEPp1 <- gsub(topattern(ptms.ratios.ref["Original"]),
-                            ptms.ref["Original"], kolRPp)
-            kolRNrmEPp1 <- paste0("ReNorm. ", kolEPp1)
-            ptmpep[, kolRNrmEPp1] <- ptmpep[, kolEPp1] - tmpPGRat[, kolRPp]/log2(10)
+                            ptms.ref["Original"], kolRPp1) # Pep. orig. int. per sample
+            kolRNrmEPp1 <- paste0("ReNorm. ", kolEPp1) # Pep. renorm. int. per sample
+            ptmpep[, kolRNrmEPp1] <- ptmpep[, kolEPp1] - tmpPGRat[, kolRPp1]/log2(10)
+            # Nested case:
+            # (deal with samples without ratios, i.e. ref. samples in nested case)
             kolEPp0 <- paste0(ptms.ref["Original"], Exp.map$Ref.Sample.Aggregate)
             kolEPp0 <- kolEPp0[which(!kolEPp0 %in% kolEPp1)]
             kolRNrmEPp <- kolRNrmEPp1
-            if (length(kolEPp0)) { #Nested case
+            if (length(kolEPp0)) {
               kolRNrmEPp0 <- paste0("ReNorm. ", kolEPp0)
-              ptmpep[, kolRNrmEPp0] <- ptmpep[, kolEPp0]
+              ptmpep[, kolRNrmEPp0] <- ptmpep[, kolEPp0] # These do not change after renorm (parent PG logFC = 0)
               kolRNrmEPp <- c(kolRNrmEPp0, kolRNrmEPp)
             }
+            #
             kolEPp <- c(kolEPp0, kolEPp1)
             temp1 <- ptmpep[, kolEPp]
             temp2 <- ptmpep[, kolRNrmEPp]
@@ -368,12 +387,13 @@ if ("PTM.analysis" %in% colnames(Param)) {
             w2 <- which(is.infinite(as.matrix(temp2)), arr.ind = TRUE)
             if (nrow(w1)) { temp1[w1] <- NA }
             if (nrow(w2)) { temp2[w2] <- NA }
+            #sum(is.na(unlist(temp1))) == sum(is.na(unlist(temp1)))
             beforSum <- rowSums(temp1, na.rm = TRUE)
             afterSum <- rowSums(temp2, na.rm = TRUE)
-            test <- all(is.all.good(beforSum, 2) == is.all.good(afterSum, 2)) #
-            #print(test)
+            #test <- all(is.all.good(beforSum, 2) == is.all.good(afterSum, 2)); print(test)
             #View(data.frame(Before = beforSum, After = afterSum))
             ptmpep[, kolRNrmEPp] <- sweep(ptmpep[, kolRNrmEPp], 1, beforSum-afterSum, "-")
+            #sum(is.na(unlist(ptmpep[, kolRNrmEPp])))
             # What about ref columns?
             for (grp in RRG$values) { #grp <- RRG$values[1]
               em <- Exp.map[which(Exp.map[[RRG$column]] == grp),]
@@ -382,14 +402,19 @@ if ("PTM.analysis" %in% colnames(Param)) {
               kolRNrmEPpRf <- paste0(ptms.ref["ReNorm."], grp, ".REF")
               kolRNrmE0 <- paste0(ptms.ref["ReNorm."], em$Ref.Sample.Aggregate[w0])
               if (length(w0) == 1) {
+                # Nested
                 ptmpep[[kolRNrmEPpRf]] <- ptmpep[[kolRNrmE0]]
               } else {
+                # Non-nested
                 ptmpep[[kolRNrmEPpRf]] <- parApply(parClust, ptmpep[, kolRNrmE0], 1, log_ratio_av)
               }
             }
             #if (tstPlot) {
             k1 <- grep(topattern(ptms.ref["Original"]), colnames(ptmpep), value = TRUE)
-            k2 <- grep(topattern(ptms.ref["ReNorm."]), colnames(ptmpep), value = TRUE)
+            k2 <- gsub(topattern(ptms.ref["Original"]), ptms.ref["ReNorm."], k1)
+            k2a <- grep(topattern(ptms.ref["ReNorm."]), colnames(ptmpep), value = TRUE)
+            sum(!k2 %in% k2a) == 0
+            sum(!k2a %in% k2) == 0
             df1 <- ptmpep[, k1]
             df2 <- ptmpep[, k2]
             w <- which(is.na(df1), arr.ind = TRUE)

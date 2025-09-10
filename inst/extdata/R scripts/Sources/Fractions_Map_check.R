@@ -1,5 +1,5 @@
 # Check and process Fractions map
-#ev %<o% do.call(plyr::rbind.fill, lapply(searchOutputs, function(x) { x$ev }))
+#ev %<o% do.call(plyr::rbind.fill, lapply(searchOutputs, function(x) { x$ev })); ev$id <- 1:nrow(ev)
 Exp.map$Use <- as.logical(Exp.map$Use)
 #MQ.Exp %<o% sort(unique(FracMap$MQ.Exp))
 MQ.Exp <- MQ.Exp[which(MQ.Exp %in% unique(unlist(Exp.map$MQ.Exp[which(Exp.map$Use)])))]

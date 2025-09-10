@@ -4,6 +4,9 @@
 #                          #
 ############################
 
+if (!require(limma)) { pak::pak("limma") }
+library(limma)
+
 # Check our parent cluster
 source(parSrc, local = FALSE)
 parallel::clusterExport(parClust, list("AltHyp", "Nested"), envir = environment())
@@ -202,17 +205,17 @@ kol <- kol[wY]
 tmpVal <- myData[, kol]
 colnames(tmpVal) <- rownames(designMatr)[wY]
 parallel::clusterExport(parClust, list("tmpVal", "Nested", "AltHyp"), envir = environment())
-#
+
 # - Moderated F-test (limma):
 # Do not use duplicateCorrelation(), it is for duplicate rows!!!
-## Test for heteroskedasticity
+## Test for heteroskedasticity - if the est is significant, we use a more robust call 
 varMatr <- apply(tmpVal, 1, var, na.rm = TRUE)
 meanMatr <- rowMeans(tmpVal, na.rm = TRUE)
 varMeanMatr <- data.frame("variance" = varMatr,
                           "mean" = meanMatr,
                           row.names = names(varMatr))
 lmMod <- lm(variance ~ mean, data = varMeanMatr)
-tst <- lmtest::bptest(lmMod)
+heteroSkedTst <- lmtest::bptest(lmMod)
 ## Filter
 NA_Filt <- as.data.frame(sapply(1:ncol(designMatr), function(x) { #x <- 1
   kols <- row.names(designMatr)[which(designMatr[,x] == 1)]
@@ -220,14 +223,14 @@ NA_Filt <- as.data.frame(sapply(1:ncol(designMatr), function(x) { #x <- 1
 }))
 NA_Filt <- which(rowSums(NA_Filt) == ncol(NA_Filt)) # We will apply this result to decideTests
 ## Fit model
-if (tst$p.value < 0.01) {
+if (heteroSkedTst$p.value < 0.01) {
   warning("Data may not be heteroskedastic, using trend = TRUE and robust = TRUE")
-  fit <- lmFit(tmpVal#[NA_Filt,]
-               , designMatr, trend = TRUE, robust = TRUE)
 } else {
   fit <- lmFit(tmpVal#[NA_Filt,]
-               , designMatr)
+               , designMatr, weights = arrWghts)
 }
+fit <- voomaLmFit(tmpVal#[NA_Filt,]
+                  , designMatr)
 fit$genes <- myData[#NA_Filt
   , namesCol]
 fit <- contrasts.fit(fit, contrMatr_F)
@@ -291,6 +294,94 @@ for (i in 1:nrow(expContr_F)) { #i <- 1
 }
 myData[, c(F_Root, fdrKol, regKol)] <- my_F_Data[, c(F_Root, fdrKol, regKol)]
 #View(my_F_Data)
+
+# Mulcom - essentially a "moderated" Dunnett's test
+# Was a good idea... but it is reproducibly causing R to crash...
+# I will give it up for now...
+if ((!exists("Mulcom"))||(length(Mulcom) != 1)||(!is.logical(Mulcom))||(is.na(Mulcom))) { Mulcom <- FALSE }
+Mulcom %<o% Mulcom
+if (Mulcom) {
+  if(!require(Biobase)) { pak::pak("Biobase") }
+  library(Biobase)
+  if(!require(Mulcom)) { pak::pak("Mulcom") }
+  library(Mulcom)
+  # See https://bioconductor.statistik.tu-dortmund.de/packages/3.1/bioc/vignettes/Mulcom/inst/doc/MulcomVignette.pdf
+  m <- match(colnames(tmpVal), rownames(designMatr))
+  grps <- apply(designMatr[m,], 1, function(x) { colnames(designMatr)[which(x == 1)] })
+  grps <- gsub("^Group_", "", grps)
+  grps2 <- match(grps, unique(grps))-1
+  tmpVal2 <- proteoCraft::Data_Impute2(tmpVal, grps)
+  tmpVal2 <- as.matrix(tmpVal2$Imputed_data)
+  # rownames(tmpVal2) <- myData[[idCol]]
+  # colnames(tmpVal2) <- gsub("___", "_", colnames(tmpVal2))
+  # phDat <- data.frame(Sample = colnames(tmpVal2),
+  #                     Group = grps2)
+  # rownames(phDat) <- colnames(tmpVal2)
+  # phDat <- Biobase::AnnotatedDataFrame(data = phDat)
+  # ftDat <- myData[, unique(c(idCol, protCol)), drop = FALSE]
+  # rownames(ftDat) <- rownames(tmpVal2)
+  # ftDat <- Biobase::AnnotatedDataFrame(data = ftDat)
+  # tmpVal2 <- Biobase::ExpressionSet(assayData = tmpVal2,
+  #                                   phenoData = phDat,
+  #                                   featureData = ftDat)
+  # mulcom_scores <- mulScores(tmpVal2, grps2)
+  #data(benchVign)
+  #eset <- exprs(Affy); index = Affy$Groups
+  #mulcom_scores <- mulScores(Affy, Affy$Groups)
+  #
+  # A slightly rewritten function because the original crashes the R session during the C call... though the reason why is not obvious...
+  # It is also rewritten more concisely for clarity.
+  # Unfortunately... it still crashes!
+  mulScores2 <- function(eset, index) {
+    #eset <- tmpVal2; index = grps2
+    data(benchVign)
+    eset <- exprs(Affy); index = Affy$Groups
+    
+    if ((!is.vector(index))||(sum(c("ExpressionSet", "matrix", "data.frame") %in% class(eset)) == 0)) {
+      stop("error in input files", call. = FALSE)
+    }
+    mulcom <- new("MULCOM")
+    if ("ExpressionSet" %in% class(eset)) {
+      data <- as.vector(as.matrix(exprs(eset)))
+      rwNms <- featureNames(eset)
+    } else {
+      if ("data.frame" %in% class(eset)) { eset <- as.matrix(eset) }
+      data <- as.vector(eset)
+      rwNms <- rownames(eset)
+    } 
+    Grps <- index
+    nGrps <- length(levels(factor(Grps)))
+    nGrps_1 <- nGrps - 1
+    nRws <- nrow(eset)
+    nCol <- ncol(eset)
+    reference <- c(0)
+    means <- mse <- c(seq(0, 0, length = nRws*nGrps_1))
+    SS <- c(seq(0, 0, length = nRws*nGrps))
+    harmonic_means <- c(seq(0, 0, length = nGrps_1))
+    sss2 <- c(seq(0, 0, length = nRws))
+    out <- .Call("Single_SimulationC", as.double(data), 
+                 as.double(means), as.double(harmonic_means), 
+                 as.double(SS), as.double(sss2), as.double(mse), 
+                 as.integer(nRws), as.integer(nCol), as.integer(Grps), 
+                 as.integer(nGrps), as.integer(reference),
+                 PACKAGE = "Mulcom")
+    mulcom@FC <- t(data.frame(matrix(out[[2]],
+                                     ncol = nGrps_1,
+                                     byrow = TRUE),
+                              row.names = rwNms))
+    mulcom@HM <- matrix(out[[3]],
+                        ncol = nGrps_1,
+                        byrow = TRUE)
+    mse <- data.frame(matrix(out[[6]],
+                             ncol = nGrps_1,
+                             byrow = TRUE),
+                      row.names = rwNms)
+    mulcom@MSE_Corrected <- t(mse)
+    return(mulcom)
+  }
+  mulcomScore <- mulScores2(tmpVal2, grps2)
+}
+
 #
 # Plot F-test results
 # Q-Q plot

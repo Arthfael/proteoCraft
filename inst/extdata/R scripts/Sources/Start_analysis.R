@@ -655,7 +655,10 @@ if (nrow(allBckps)) {
             expKl <- expKl[which(expKl %in% colnames(FracMap))[1]]
           }
         }
-        rm(list = c(reloadedBckps$ObjNm[[i]])) # We want to make sure that no invalid version of the object lingers
+        if (exists(reloadedBckps$ObjNm[[i]])) {
+          # We want to make sure that no invalid version of the object lingers
+          rm(list = c(reloadedBckps$ObjNm[[i]]))
+        }
         if (areUok) { assign(reloadedBckps$ObjNm[[i]], tmp) }
       }
     }
