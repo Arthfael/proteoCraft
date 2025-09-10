@@ -1194,8 +1194,8 @@ if (Param$Norma.Pep.Ratio) {
             temp2[w, colnames(tmp)] <- tmp[, colnames(tmp)]
           }
           #cat("Advanced peptides ratio normalisation done for samples group", x, "\n")
-          return(list(temp2))
           temp2$"Modified sequence" <- NULL
+          return(list(temp2))
         }
       })
     } else {
@@ -1944,9 +1944,8 @@ source(Src, local = FALSE)
 #xl_open(repFl)
 
 rm(list = ls()[which(!ls() %in% .obj)])
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
-
-
 
 #### Code chunk - Venn diagrams
 # cleanNms2 function specifically designed to clean names for Venn diagrams

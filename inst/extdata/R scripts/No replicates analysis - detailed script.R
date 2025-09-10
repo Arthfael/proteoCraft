@@ -2027,6 +2027,7 @@ if (length(Exp) > 1) {
     ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
   } else { warning("Do we really have enough data to continue? Investigate...") }
 }
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 
 # Calculate peptide ratios
 rat.col %<o% "log2(Ratio)"
@@ -2198,10 +2199,12 @@ for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
       if (!length(x)) { x <- "" }
       if (i == "Genes") { x <- unique(x) }
       x <- x[which(x != "")]
-      return(paste(x, collapse = ";"))
+      x <- paste(x, collapse = ";")
+      return(x)
     })
   }
 }
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 # Simplify Gene columns
 genkol <- c("Genes", "Gene names")
 w <- which(genkol %in% colnames(PG))
@@ -2671,6 +2674,7 @@ if (length(Exp) > 1) {
 g <- as.character(sapply(PG.int.cols, function(x) { grep(topattern(x), colnames(PG), value = TRUE) }))
 test <- vapply(g, function(x) { length(is.all.good(PG[[x]])) }, 1)
 print(test)
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 
 # Intensities distribution:
 long.dat <- list()
@@ -3563,7 +3567,7 @@ if (prot.list.Cond) {
           }
         }
       }
-    })
+    }))
   }
 }
 
@@ -4764,6 +4768,7 @@ for (QuantType in QuantTypes) { #QuantType <- "Coverage" #QuantType <- QuantType
   }
 }
 PG$temp <- NULL
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 
 # Similar profiles but at peptides level
 # This chunk has been vastly improved, and the others should be improved on the same model!!! 
@@ -5049,6 +5054,7 @@ if (plotPepProf) {
   unlink(paste0(wd, "/tmp.RDS"))
   pep$temp <- NULL
 }
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 
 # Negative filter
 if (NegFilt) {

@@ -144,10 +144,10 @@ if (inputType == "FragPipe") {
   }
   FP2MQ <- FP_to_MQ(FP_WorkflowFl, FP_ManifestFl, cl = parClust)
   ev <- FP2MQ$Evidence
-  ev$`Raw file name` <- ev$`Raw files`
+  ev$`Raw file name` <- ev$`Raw file`
   #
   rawFiles <- unique(ev$"Raw file path")
-  rawFiles2 <- unique(ev$`Raw files`)
+  rawFiles2 <- unique(ev$`Raw file`)
   dbFl <- gsub("\\\\", "", gsub("\\\\\\\\", "/", gsub("^database.db-path=", "", grep("^database.db-path=", FP2MQ$WorkFlow, value = TRUE))))
   #
   ev$Bruker_runID <- as.integer(gsub(".*_|\\.d$", "", ev$`Raw file name`))
@@ -376,7 +376,7 @@ if (length(w)) {
   }
 }
 if ((!exists("annot_Fl"))||(!file.exists(annot_Fl))||(gsub(".*\\.", "", annot_Fl) != "txt")) {
-  annot_Fl <- gsub("\\.fasta$", ".txt", dbFl)
+  annot_Fl <- gsub("\\.fas.*$", ".txt", dbFl)
 }
 tst <- file.exists(annot_Fl)
 while (!tst) {
@@ -892,6 +892,7 @@ w <- which(tst > 0)
 #View(ev[w, c("Modified sequence_verbose", "Histone(s)", "Proteins")])
 #View(ev[grep("phospho", ev$`Modified sequence_verbose`, ignore.case = TRUE), c("Modified sequence_verbose", "Histone(s)", "Proteins")])
 
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 saveImgFun(backupFl)
 #loadFun(backupFl)
 
@@ -1146,244 +1147,248 @@ kol <- kol[which(!kol %in% c("Old", "New", "Group", "Comparison_group",  "Refere
 kol <- kol[which(sapply(kol, function(k) {
   length(unique(smplsMap[[k]])) > 1
 }))]
-dflt <- kol
-if (!Nested) {
-  dflt <- dflt[which(dflt != "Replicate")]
-}
-if (exists("myBatches")) {
-  dflt <- myBatches
-}
-kol <- setNames(sapply(kol, function(k) { paste(c(k, rep(" ", max(c(200, nchar(k))))), collapse = "") }), kol)
-dflt <- setNames(kol[match(dflt, names(kol))], dflt)
-myBatches <- dlg_list(kol, dflt, title = "Select any known batch variables to explore sequentially correcting against", multiple = TRUE)$res
-myBatches <- names(kol)[match(myBatches, kol)]
-combatNorm <- length(myBatches)
-if (combatNorm) {
-  #
-  # Check for synonymous batches
-  tmp <- smplsMap[, myBatches]
-  for (btch in myBatches) {
-    tmp[[btch]] <- as.numeric(as.factor(tmp[[btch]]))
+if (length(kol)) {
+  dflt <- kol
+  if (!Nested) {
+    dflt <- dflt[which(dflt != "Replicate")]
   }
-  comb <- gtools::combinations(length(myBatches), 2, myBatches)
-  comb <- as.data.frame(comb)
-  tst <- apply(comb, 1, function(x) {
-    identical(tmp[[x[1]]], tmp[[x[2]]])
-  })
-  w <- which(tst)
-  if (length(w)) {
-    btchs2Remove <- unique(comb[w, 2])
-    warning(paste0("The following batches are synonymous: ",
-                   paste(do.call(paste, c(comb[w,], sep = " and ")), collapse = ", "),
-                   ".\nThe following batches will be removed: ", btchs2Remove))
-    myBatches <- myBatches[which(!myBatches %in% btchs2Remove)]
+  if (exists("myBatches")) {
+    dflt <- myBatches
   }
-  #
-  btchDir <- paste0(dstDir, "/Batch correction")
-  if (!dir.exists(btchDir)) { dir.create(btchDir, recursive = TRUE) }
-  pkgs <- unique(c(pkgs, "sva", "plotly", "htmlwidgets", "shiny", "shinyjs", "shinycssloaders", "DT", "ggrepel"))
-  for (pkg in pkgs) {
-    if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
-      pak::pkg_install(pkg, ask = FALSE)
+  kol <- setNames(sapply(kol, function(k) { paste(c(k, rep(" ", max(c(200, nchar(k))))), collapse = "") }), kol)
+  dflt <- setNames(kol[match(dflt, names(kol))], dflt)
+  myBatches <- dlg_list(kol, dflt,
+                        title = "Select any known batch variables to explore sequentially correcting against",
+                        multiple = TRUE)$res
+  myBatches <- names(kol)[match(myBatches, kol)]
+  combatNorm <- length(myBatches)
+  if (combatNorm) {
+    #
+    # Check for synonymous batches
+    tmp <- smplsMap[, myBatches]
+    for (btch in myBatches) {
+      tmp[[btch]] <- as.numeric(as.factor(tmp[[btch]]))
     }
-  }
-  for (pkg in pkgs) {
-    library(pkg, character.only = TRUE)
-  }
-  scoresLst <- PCAlyLst <- PCsLst <- list()
-  orig <- "original"
-  prevBatch <- sapply(myBatches, function(btch) {
-    m <- match(btch, myBatches)
-    if (m == 1) {
-      rs <- orig
-    } else {
-      rs <- myBatches[m - 1]
+    comb <- gtools::combinations(length(myBatches), 2, myBatches)
+    comb <- as.data.frame(comb)
+    tst <- apply(comb, 1, function(x) {
+      identical(tmp[[x[1]]], tmp[[x[2]]])
+    })
+    w <- which(tst)
+    if (length(w)) {
+      btchs2Remove <- unique(comb[w, 2])
+      warning(paste0("The following batches are synonymous: ",
+                     paste(do.call(paste, c(comb[w,], sep = " and ")), collapse = ", "),
+                     ".\nThe following batches will be removed: ", btchs2Remove))
+      myBatches <- myBatches[which(!myBatches %in% btchs2Remove)]
     }
-    return(rs)
-  })
-  #
-  # Prepare data
-  intCols <- paste0(intRoot[intType], smpls)
-  logIntCols <- gsub(proteoCraft::topattern(intRoot[intType]), logIntRoot[intType], intCols)
-  edata <- pep[, intCols]
-  for (k in intCols) {
-    edata[[k]] <- log10(edata[[k]])
-  }
-  colnames(edata) <- logIntCols
-  grps <- smplsMap$Group[match(smpls, smplsMap$New)]
-  #
-  # Impute missing values
-  tempImp <- proteoCraft::Data_Impute2(edata, grps)
-  impEdata <- tempImp$Imputed_data
-  impVal <- tempImp$Positions_Imputed
-  #
-  # First let's look at the pre-batch correction data with PCA plots:
-  tst <- try(pcaBatchPlots, silent = TRUE)
-  if ("try-error" %in% class(tst)) {
-    source("H:/aRmel_package/proteoCraft/R/pcaBatchPlots.R")
-  }
-  tmp <- pcaBatchPlots(impEdata,
-                       orig,
-                       intRoot = logIntRoot[intType],
-                       map = smplsMap,
-                       SamplesCol = "New")
-  PCAlyLst[[orig]] <- tmp$PlotLy
-  scoresLst[[orig]] <- tmp$Scores
-  PCsLst[[orig]] <- tmp$PCs
-  #
-  mod0 <- model.matrix(~1, data = smplsMap)
-  mod <- model.matrix(~as.factor(smplsMap$Group), data = smplsMap)
-  n.sv <- sva::num.sv(impEdata, mod, method = "leek")
-  KeepComBatResDflt <- (n.sv > 0)
-  if (n.sv == 0) {
-    msg <- "We do not estimate that there are any surrogate variables hidden in the data -> no batch correction required. Correct nonetheless?"
-    opt <- c("No                                                                                                                                                                                                                                                                                                                ",
-             "Yes                                                                                                                                                                                                                                                                                                               ")
-    combatNorm <- c(FALSE, TRUE)[match(dlg_list(opt, opt[1], title = msg)$res, opt)]
-  }
-}
-if (combatNorm) {
-  ComBat_Data <- list()
-  KeepComBatRes <- c()
-  for (btch in myBatches) { #btch <- myBatches[1] #btch <- myBatches[2]
-    keepCmBtRs <- KeepComBatResDflt
-    combat_edata <- list()
-    for (grp in Groups) { #grp <- Groups[1]
-      last <- btch
-      prev <- prevBatch[btch]
-      w <- which(smplsMap$Group == grp)
-      k <- paste0(logIntRoot[intType], smplsMap$New[w])
-      mod0a <- model.matrix(~1, data = smplsMap[w,])
-      combat_edata[[grp]] <- ComBat(dat = impEdata[, k],
-                                    batch = smplsMap[[btch]][w],
-                                    mod = mod0a,
-                                    par.prior = TRUE)
+    #
+    btchDir <- paste0(dstDir, "/Batch correction")
+    if (!dir.exists(btchDir)) { dir.create(btchDir, recursive = TRUE) }
+    pkgs <- unique(c(pkgs, "sva", "plotly", "htmlwidgets", "shiny", "shinyjs", "shinycssloaders", "DT", "ggrepel"))
+    for (pkg in pkgs) {
+      if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
+        pak::pkg_install(pkg, ask = FALSE)
+      }
     }
-    combat_edata <- do.call(cbind, combat_edata)
-    combat_edata <- as.data.frame(combat_edata)
-    # Plot
-    tmp <- pcaBatchPlots(combat_edata,
-                         btch,
+    for (pkg in pkgs) {
+      library(pkg, character.only = TRUE)
+    }
+    scoresLst <- PCAlyLst <- PCsLst <- list()
+    orig <- "original"
+    prevBatch <- sapply(myBatches, function(btch) {
+      m <- match(btch, myBatches)
+      if (m == 1) {
+        rs <- orig
+      } else {
+        rs <- myBatches[m - 1]
+      }
+      return(rs)
+    })
+    #
+    # Prepare data
+    intCols <- paste0(intRoot[intType], smpls)
+    logIntCols <- gsub(proteoCraft::topattern(intRoot[intType]), logIntRoot[intType], intCols)
+    edata <- pep[, intCols]
+    for (k in intCols) {
+      edata[[k]] <- log10(edata[[k]])
+    }
+    colnames(edata) <- logIntCols
+    grps <- smplsMap$Group[match(smpls, smplsMap$New)]
+    #
+    # Impute missing values
+    tempImp <- proteoCraft::Data_Impute2(edata, grps)
+    impEdata <- tempImp$Imputed_data
+    impVal <- tempImp$Positions_Imputed
+    #
+    # First let's look at the pre-batch correction data with PCA plots:
+    tst <- try(pcaBatchPlots, silent = TRUE)
+    if ("try-error" %in% class(tst)) {
+      source("H:/aRmel_package/proteoCraft/R/pcaBatchPlots.R")
+    }
+    tmp <- pcaBatchPlots(impEdata,
+                         orig,
                          intRoot = logIntRoot[intType],
                          map = smplsMap,
                          SamplesCol = "New")
-    PCAlyLst[[btch]] <- tmp$PlotLy
-    scoresLst[[btch]] <- tmp$Scores
-    PCsLst[[btch]] <- tmp$PCs
+    PCAlyLst[[orig]] <- tmp$PlotLy
+    scoresLst[[orig]] <- tmp$Scores
+    PCsLst[[orig]] <- tmp$PCs
     #
-    appNm <- paste0("Batch corr.: ", prev, " -> ", btch)
-    msg <- "Keep results from ComBat batch correction? (untick to cancel correction)"
-    PCs <- data.frame("Component" = paste0("PC", as.character(1:length(PCsLst[[prev]]$sdev))),
-                      "Before (%)" = round(100*(PCsLst[[prev]]$sdev)^2 / sum(PCsLst[[prev]]$sdev^2), 0),
-                      "After (%)" = round(100*(PCsLst[[btch]]$sdev)^2 / sum(PCsLst[[btch]]$sdev^2), 0))
-    if (exists("IHAVERUN")) { rm(IHAVERUN) }
-    ui <- fluidPage(
-      useShinyjs(),
-      setBackgroundColor( # Doesn't work
-        color = c(#"#F8F8FF",
-          "#EEFAE6"),
-        gradient = "linear",
-        direction = "bottom"
-      ),
-      extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
-      tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-      titlePanel(tag("u", appNm),
-                 appNm),
-      br(),
-      fluidRow(column(5,
-                      checkboxInput("KeepResults", msg, keepCmBtRs),
-                      actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-                      h4("Recommended criteria:"),
-                      h5(HTML("&nbsp;Does the original grouping follow known batches?")),
-                      h5(HTML("&nbsp;&nbsp;-> If no: only accept the correction if it improves the apparent grouping of expected sample groups.")),
-                      h5(HTML("&nbsp;&nbsp;-> If yes: accept the correction if...")),
-                      h5(HTML("&nbsp;&nbsp;&nbsp;- ... it removes the original grouping by batches...")),
-                      h5(HTML("&nbsp;&nbsp;&nbsp;- ... or it improves the apparent grouping of expected sample groups.")),
-                      withSpinner(DTOutput("PCs")),
-                      br(),
-                      br(),
-                      br()),
-               column(7,
-                      withSpinner(plotlyOutput("Before", height = "550px")),
-                      withSpinner(plotlyOutput("After", height = "550px")))),
-      br(),
-      br()
-    )
-    server <- function(input, output, session) {
-      output$Before <- renderPlotly(PCAlyLst[[prev]][[btch]])
-      output$After <- renderPlotly(PCAlyLst[[btch]][[btch]])
-      output$PCs <- renderDT({ PCs },
-                             FALSE,
-                             escape = FALSE,
-                             selection = "none",
-                             editable = FALSE,
-                             rownames = FALSE,
-                             options = list(
-                               dom = 't',
-                               paging = FALSE,
-                               ordering = FALSE
-                             ),
-                             callback = JS("table.rows().every(function(i, tab, row) {
+    mod0 <- model.matrix(~1, data = smplsMap)
+    mod <- model.matrix(~as.factor(smplsMap$Group), data = smplsMap)
+    n.sv <- sva::num.sv(impEdata, mod, method = "leek")
+    KeepComBatResDflt <- (n.sv > 0)
+    if (n.sv == 0) {
+      msg <- "We do not estimate that there are any surrogate variables hidden in the data -> no batch correction required. Correct nonetheless?"
+      opt <- c("No                                                                                                                                                                                                                                                                                                                ",
+               "Yes                                                                                                                                                                                                                                                                                                               ")
+      combatNorm <- c(FALSE, TRUE)[match(dlg_list(opt, opt[1], title = msg)$res, opt)]
+    }
+  }
+  if (combatNorm) {
+    ComBat_Data <- list()
+    KeepComBatRes <- c()
+    for (btch in myBatches) { #btch <- myBatches[1] #btch <- myBatches[2]
+      keepCmBtRs <- KeepComBatResDflt
+      combat_edata <- list()
+      for (grp in Groups) { #grp <- Groups[1]
+        last <- btch
+        prev <- prevBatch[btch]
+        w <- which(smplsMap$Group == grp)
+        k <- paste0(logIntRoot[intType], smplsMap$New[w])
+        mod0a <- model.matrix(~1, data = smplsMap[w,])
+        combat_edata[[grp]] <- ComBat(dat = impEdata[, k],
+                                      batch = smplsMap[[btch]][w],
+                                      mod = mod0a,
+                                      par.prior = TRUE)
+      }
+      combat_edata <- do.call(cbind, combat_edata)
+      combat_edata <- as.data.frame(combat_edata)
+      # Plot
+      tmp <- pcaBatchPlots(combat_edata,
+                           btch,
+                           intRoot = logIntRoot[intType],
+                           map = smplsMap,
+                           SamplesCol = "New")
+      PCAlyLst[[btch]] <- tmp$PlotLy
+      scoresLst[[btch]] <- tmp$Scores
+      PCsLst[[btch]] <- tmp$PCs
+      #
+      appNm <- paste0("Batch corr.: ", prev, " -> ", btch)
+      msg <- "Keep results from ComBat batch correction? (untick to cancel correction)"
+      PCs <- data.frame("Component" = paste0("PC", as.character(1:length(PCsLst[[prev]]$sdev))),
+                        "Before (%)" = round(100*(PCsLst[[prev]]$sdev)^2 / sum(PCsLst[[prev]]$sdev^2), 0),
+                        "After (%)" = round(100*(PCsLst[[btch]]$sdev)^2 / sum(PCsLst[[btch]]$sdev^2), 0))
+      if (exists("IHAVERUN")) { rm(IHAVERUN) }
+      ui <- fluidPage(
+        useShinyjs(),
+        setBackgroundColor( # Doesn't work
+          color = c(#"#F8F8FF",
+            "#EEFAE6"),
+          gradient = "linear",
+          direction = "bottom"
+        ),
+        extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+        tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+        titlePanel(tag("u", appNm),
+                   appNm),
+        br(),
+        fluidRow(column(5,
+                        checkboxInput("KeepResults", msg, keepCmBtRs),
+                        actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+                        h4("Recommended criteria:"),
+                        h5(HTML("&nbsp;Does the original grouping follow known batches?")),
+                        h5(HTML("&nbsp;&nbsp;-> If no: only accept the correction if it improves the apparent grouping of expected sample groups.")),
+                        h5(HTML("&nbsp;&nbsp;-> If yes: accept the correction if...")),
+                        h5(HTML("&nbsp;&nbsp;&nbsp;- ... it removes the original grouping by batches...")),
+                        h5(HTML("&nbsp;&nbsp;&nbsp;- ... or it improves the apparent grouping of expected sample groups.")),
+                        withSpinner(DTOutput("PCs")),
+                        br(),
+                        br(),
+                        br()),
+                 column(7,
+                        withSpinner(plotlyOutput("Before", height = "550px")),
+                        withSpinner(plotlyOutput("After", height = "550px")))),
+        br(),
+        br()
+      )
+      server <- function(input, output, session) {
+        output$Before <- renderPlotly(PCAlyLst[[prev]][[btch]])
+        output$After <- renderPlotly(PCAlyLst[[btch]][[btch]])
+        output$PCs <- renderDT({ PCs },
+                               FALSE,
+                               escape = FALSE,
+                               selection = "none",
+                               editable = FALSE,
+                               rownames = FALSE,
+                               options = list(
+                                 dom = 't',
+                                 paging = FALSE,
+                                 ordering = FALSE
+                               ),
+                               callback = JS("table.rows().every(function(i, tab, row) {
         var $this = $(this.node());
         $this.attr('id', this.data()[0]);
         $this.addClass('shiny-input-container');
       });
       Shiny.unbindAll(table.table().node());
       Shiny.bindAll(table.table().node());"))
-      observeEvent(input[["KeepResults"]], {
-        assign("keepCmBtRs", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
-      })
-      observeEvent(input$saveBtn, {
-        assign("keepCmBtRs", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
-        assign("IHAVERUN", TRUE, .GlobalEnv)
-        stopApp()
-      })
-      #observeEvent(input$cancel, { stopApp() })
-      session$onSessionEnded(function() { stopApp() })
-    }
-    runKount <- 0
-    while ((!runKount)||(!exists("IHAVERUN"))) {
-      eval(parse(text = runApp), envir = .GlobalEnv)
-      runKount <- runKount+1
-    }
-    #
-    msg <- paste0(" -> correction of ", btch, "-batch associated effect from ", prev, " ", c("rejec", "accep")[keepCmBtRs+1], "ted.\n")
-    if (!keepCmBtRs) {
-      last <- prev
-      m <- match(btch, myBatches)
-      if (m < length(myBatches)) {
-        prevBatch[m+1] <- prev
+        observeEvent(input[["KeepResults"]], {
+          assign("keepCmBtRs", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
+        })
+        observeEvent(input$saveBtn, {
+          assign("keepCmBtRs", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
+          assign("IHAVERUN", TRUE, .GlobalEnv)
+          stopApp()
+        })
+        #observeEvent(input$cancel, { stopApp() })
+        session$onSessionEnded(function() { stopApp() })
       }
+      runKount <- 0
+      while ((!runKount)||(!exists("IHAVERUN"))) {
+        eval(parse(text = runApp), envir = .GlobalEnv)
+        runKount <- runKount+1
+      }
+      #
+      msg <- paste0(" -> correction of ", btch, "-batch associated effect from ", prev, " ", c("rejec", "accep")[keepCmBtRs+1], "ted.\n")
+      if (!keepCmBtRs) {
+        last <- prev
+        m <- match(btch, myBatches)
+        if (m < length(myBatches)) {
+          prevBatch[m+1] <- prev
+        }
+      }
+      cat(msg)
+      ComBat_Data[[btch]] <- combat_edata
+      KeepComBatRes[btch] <- keepCmBtRs
     }
-    cat(msg)
-    ComBat_Data[[btch]] <- combat_edata
-    KeepComBatRes[btch] <- keepCmBtRs
-  }
-  w <- which(KeepComBatRes)
-  if (length(w)) {
-    # If accepted batch correction, we must now put the data back into our pep object
-    #
-    btch <- names(KeepComBatRes)[max(which(KeepComBatRes))]
-    btchCorrData <- ComBat_Data[[btch]]
-    # New expression column root names
-    intType <- "ComBat"
-    intRoot["ComBat"] <- "ComBat corr. int. - "
-    logIntRoot["ComBat"] <- "ComBat corr. log10(int.) - "
-    # De-log
-    for (k in logIntCols) {
-      btchCorrData[[k]] <- 10^(btchCorrData[[k]])
+    w <- which(KeepComBatRes)
+    if (length(w)) {
+      # If accepted batch correction, we must now put the data back into our pep object
+      #
+      btch <- names(KeepComBatRes)[max(which(KeepComBatRes))]
+      btchCorrData <- ComBat_Data[[btch]]
+      # New expression column root names
+      intType <- "ComBat"
+      intRoot["ComBat"] <- "ComBat corr. int. - "
+      logIntRoot["ComBat"] <- "ComBat corr. log10(int.) - "
+      # De-log
+      for (k in logIntCols) {
+        btchCorrData[[k]] <- 10^(btchCorrData[[k]])
+      }
+      colnames(btchCorrData) <- gsub(proteoCraft::topattern(logIntRoot["Original"]),
+                                     intRoot["ComBat"],
+                                     colnames(btchCorrData))
+      # Re-introduce missing values
+      w <- which(impVal, arr.ind = TRUE)
+      btchCorrData[w] <- pep[, intCols][w]
+      #View(pep[, intCols]);View(btchCorrData)
+      #
+      comBatCols <- colnames(btchCorrData)
+      pep[, comBatCols] <- btchCorrData[, comBatCols]
+      normSummary[[intType]] <- sapply(smpls, function(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) })
     }
-    colnames(btchCorrData) <- gsub(proteoCraft::topattern(logIntRoot["Original"]),
-                                   intRoot["ComBat"],
-                                   colnames(btchCorrData))
-    # Re-introduce missing values
-    w <- which(impVal, arr.ind = TRUE)
-    btchCorrData[w] <- pep[, intCols][w]
-    #View(pep[, intCols]);View(btchCorrData)
-    #
-    comBatCols <- colnames(btchCorrData)
-    pep[, comBatCols] <- btchCorrData[, comBatCols]
-    normSummary[[intType]] <- sapply(smpls, function(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) })
   }
 }
 
@@ -2309,6 +2314,7 @@ if (length(Exp) > 1) {
     }
   }
 }
+invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
 # Save modifications table
 tmp <- Modifs
 tmp$Site_long <- NULL
@@ -2320,7 +2326,7 @@ for (k in colnames(tmp)) {
 write.csv(tmp, paste0(dstDir, "/Mods table.csv"), row.names = FALSE)
 
 # Done!
-ScriptPath %<o% normalizePath(gtools::script_file(), winslash = "/")
+ScriptPath <- normalizePath(gtools::script_file(), winslash = "/")
 if (dirname(ScriptPath) != dstDir) { file.copy(ScriptPath, dstDir, overwrite = TRUE) }
 saveImgFun(backupFl)
 openwd(dstDir)
