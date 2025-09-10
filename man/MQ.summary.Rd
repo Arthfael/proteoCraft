@@ -19,7 +19,7 @@ MQ.summary(
   N.clust,
   N.reserved = 1,
   cl,
-  MQtxt = indir
+  MQtxt = inDirs[which(SearchSoft == "MAXQUANT")]
 )
 }
 \arguments{

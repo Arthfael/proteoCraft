@@ -28,6 +28,7 @@ Volcano.plot(
   arbitrary.thresh = NULL,
   proteins = NULL,
   proteins_split = FALSE,
+  IDs.col = "Protein IDs",
   Proteins.col = "Protein IDs",
   return = FALSE,
   return.plot = FALSE,
@@ -119,7 +120,9 @@ Volcano.plot(
 
 \item{proteins_split}{Default = FALSE. If set to TRUE, and if there are protein matching the provided list (see "proteins" argument), then these will be highlighted in a separate graph.}
 
-\item{Proteins.col}{Default = "Protein IDs"; used for identifying matches to the "proteins" argument.}
+\item{IDs.col}{Default = "Protein IDs".}
+
+\item{Proteins.col}{Default = "Protein IDs"; used for identifying matches to the "proteins" argument. IF missing, IDs.col will be used.}
 
 \item{return}{Should we return a column with significance levels? Default = FALSE.}
 
