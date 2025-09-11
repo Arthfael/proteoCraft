@@ -60,8 +60,8 @@ if ((exists("outDir"))&&(length(outDir) == 1)&&(!is.na(outDir))&&(dir.exists(out
 if (!dir.exists(dflt)) { dflt <- wd }
 outDir %<o% rstudioapi::selectDirectory("Select data delivery folder",
                                         path = dflt)
-ok2Deliver <- (exists("outDir"))&&(length(outDir) == 1)&&(!is.na(outDir))&&(dir.exists(outDir))
-dataDeliveryOk <- FALSE
+ok2Deliver %<o% (exists("outDir"))&&(length(outDir) == 1)&&(!is.na(outDir))&&(dir.exists(outDir))
+dataDeliveryOk %<o% FALSE
 if (ok2Deliver) {
   Tsts <- list()
   # - 1/ MS files
@@ -88,7 +88,9 @@ if (ok2Deliver) {
       }
     }
   } else {
-    file.copy(system.file("extdata", "MS_files.txt", package = "proteoCraft"), dir, overwrite = TRUE)
+    if (!length(list.files(dir))) {
+      file.copy(system.file("extdata", "MS_files.txt", package = "proteoCraft"), dir, overwrite = TRUE)
+    }
   }
   # - 2 Input directories
   topSrchDir <- paste0(outDir, "/2_Search(es)")
@@ -163,9 +165,11 @@ if (ok2Deliver) {
       })
     }
   } else {
-    tmp <- c("Output files from the search(es), as well as details about search parameters, are available from the facility upon request.",
-             "")
-    write(tmp, paste0(topSrchDir, "/Search_results_note.txt"))
+    if (!"Search_results.txt" %in% list.files(topSrchDir)) {
+      tmp <- c("Output files from the search(es), as well as details about search parameters, are available from the facility upon request.",
+               "")
+      write(tmp, paste0(topSrchDir, "/Search_results.txt"))
+    }
   }
   #
   # - 3 Post-processing directory
@@ -250,26 +254,28 @@ if (!require(grateful)) {
 invisible(suppressMessages({ a <- captureOutput(grateful::cite_packages(out.dir = ".", pkgs = "Session", quiet = TRUE)) })) # This thing won't shut up!
 
 # Cleanup
-if (dataDeliveryOk) {
-  tstL <- (length(inDirs) > 1)+1
-  if (tstL-1) { 
-    msg <- paste0("Which input (= search) folder(s) would you like to archive?", c("", "s")[tstL], "?")
-    opt <- gsub(".*/", ".../", inDirs)
+locsFl <- paste0(homePath, "/Default_locations.xlsx")
+locs <- openxlsx2::read_xlsx(locsFl)
+archDirDflt <- locs$Path[match("Archive folder (searches)", locs$Folder)]
+archDirDflt <- archDirDflt[which(dir.exists(archDirDflt))]
+if ((dataDeliveryOk)&&(length(archDirDflt) == 1)) {
+  inDirs2 <- grep(topattern(archDirDflt), inDirs, value = TRUE, invert = TRUE)
+  L <- length(inDirs2)
+  inDirs2Arch <- c()
+  if (L == 1) {
+    msg <- "Archive input (= search) folder?"
+    archiveIndirs <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
+    inDirs2Arch <- inDirs2[which(archiveIndirs)]
+  }
+  if (L > 1) { 
+    msg <- paste0("Which input (= search) folder(s) would you like to archive?")
+    opt <- gsub(".*/", ".../", inDirs2)
     nc <- max(c(nchar(opt), 200))
     opt <- vapply(opt, function(x) { paste(c(x, rep(" ", nc-nchar(x))), collapse = "") }, "")
     archiveIndirs <- dlg_list(opt, opt, TRUE, title = msg)$res
-    inDirs2Arch <- inDirs[match(archiveIndirs, opt)]
-  } else {
-    msg <- "Archive input (= search) folder?"
-    archiveIndirs <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
-    inDirs2Arch <- inDirs[which(archiveIndirs)]
+    inDirs2Arch <- inDirs2[match(archiveIndirs, opt)]
   }
   if (length(inDirs2Arch)) {
-    locsFl <- paste0(homePath, "/Default_locations.xlsx")
-    locs <- openxlsx2::read_xlsx(locsFl)
-    archDirDflt <- locs$Path[match("Archive folder", locs$Folder)]
-    if (!dir.exists(archDirDflt)) { archDirDflt <- "C:/" }
-    archDir <- selectDirectory("Select location where to archive the search data", path = archDirDflt)
     lapply(inDirs2Arch, function(indir) { #indir <- inDirs2Arch[1]
       indirArch <- paste0(archDir, "/", gsub(".*/", "", indir))
       if (!dir.exists(indirArch)) { dir.create(indirArch, recursive = TRUE) }
@@ -300,7 +306,6 @@ if (dataDeliveryOk) {
     })
   }
 }
-
 
 # Save final state of the environment
 # This is done within the destination folder (outDir) because it will restart the session so has to be done last

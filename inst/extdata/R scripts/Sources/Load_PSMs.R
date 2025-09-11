@@ -513,7 +513,7 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     }
     if (exists("ev_DIANN2MQ")) { rm(ev_DIANN2MQ) }
     psmsBckpFl_i <- paste0("diaNN PSMs converted to MQ-like format_", dir_i, ".RData")
-    if ((psmsBckpFl_i %in% reloadedBckps)&&(file.exists(psmsBckpFl_i))) {
+    if ((psmsBckpFl_i %in% reloadedBckps$File)&&(file.exists(psmsBckpFl_i))) {
       loadFun(psmsBckpFl_i)
     }
     if (!exists("ev_DIANN2MQ")) {
@@ -685,7 +685,7 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                                                           "), prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$left))"))
     if (exists("ev_FP2MQ")) { rm(ev_FP2MQ) }
     psmsBckpFl_i <- paste0("FragPipe PSMs converted to MQ-like format_", dir_i, ".RData")
-    if ((psmsBckpFl_i %in% reloadedBckps)&&(file.exists(psmsBckpFl_i))) {
+    if ((psmsBckpFl_i %in% reloadedBckps$File)&&(file.exists(psmsBckpFl_i))) {
       loadFun(psmsBckpFl_i)
     }
     if (!exists("ev_FP2MQ")) {
@@ -1137,6 +1137,21 @@ fastas_map$Actual <- setNames(lapply(names(fastas_map$Original), function(nm) {
   fastas[match(fastas_map$Original[[nm]], orig_fastas)]
 }), names(fastas_map$Original))
 fastas %<o% unique(fastas)
+if ((!nrow(reloadedBckps))||(!"FASTA of proteins of special interest" %in% reloadedBckps$Role)) {
+  loadInt %<o% c(TRUE, FALSE)[match(dlg_message("Load a fasta of proteins of interest?", "yesno")$res, c("yes", "no"))]
+  if (loadInt) {
+    intFast <- selectFile(paste0("Select proteins of interest fasta", intPrtFst), path = wd)
+    if (!is.null(intFast)) {
+      intFast <- gsub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), intFast)
+      if (intFast != intPrtFst) {
+        file.copy(intFast, intPrtFst, TRUE)
+        cat(paste0("   FYI: a copy of your input fasta has been saved at \"", intPrtFst, "\"..."))
+      }
+      fastas <- unique(c(fastas, intPrtFst))
+    }
+  }
+}
+
 #  - FracMap
 FracMap %<o% lapply(searchOutputs, function(x) { x$FracMap })
 FracMap <- do.call(plyr::rbind.fill, c(FracMap))
@@ -1192,6 +1207,7 @@ ev %<o% do.call(plyr::rbind.fill, lapply(searchOutputs, function(x) { x$ev }));e
 #tstEvs <- do.call(plyr::rbind.fill, lapply(searchOutputs, function(x) { x$ev[1:10,] }));View(tstEvs)
 
 if (exists("FracMap_reloaded")) {
+  FracMap_bckp <- FracMap
   m <- match(FracMap$`Raw file`, FracMap_reloaded$`Raw file`)
   tst <- sum(is.na(m))
   gs <- FALSE # Should we remove spaces?
@@ -1215,8 +1231,12 @@ if (exists("FracMap_reloaded")) {
     k <- k[which(k %in% colnames(FracMap_reloaded))]
     FracMap[, k] <- FracMap_reloaded[m, k]
     if (LabelType == "LFQ") {
-      if ("MQ.Exp" %in% colnames(FracMap_reloaded)) {
-        FracMap$"Parent sample" <- FracMap_reloaded$MQ.Exp
+      if ("Parent sample" %in% colnames(FracMap_reloaded)) {
+        FracMap$"Parent sample" <- FracMap_reloaded$"Parent sample"[m]
+      } else {
+        if ("MQ.Exp" %in% colnames(FracMap_reloaded)) {
+          FracMap$"Parent sample" <- FracMap_reloaded$MQ.Exp[m]
+        }
       }
     }
     if (gs) {
@@ -1229,6 +1249,7 @@ if (exists("FracMap_reloaded")) {
       ev$`Raw file` <- FracMap$`Raw files name`[mEv]
     } else {
       rm(FracMap_reloaded)
+      FracMap <- FracMap_bckp
     }
   } else {
     rm(FracMap_reloaded)

@@ -13,17 +13,17 @@ Factors2 %<o% Factors[which(!Factors %in% c("Experiment",
                                             "Time.point"))]
 #
 labelMode <- match(LabelType, c("LFQ", "Isobaric"))
-if (exists("Exp.map")) {
+if ((exists("Exp.map"))&&(nrow(Exp.map))) {
   tst <- (sum(!c("MQ.Exp", "Sample name") %in% colnames(Exp.map)) == 0)&&
     (sum(!FracMap[[expKl]] %in% Exp.map$MQ.Exp) == 0)
   if (tst) { ExpMap <- Exp.map }
 }
-if (exists("ExpMap")) {
+if ((exists("ExpMap"))&&(nrow(ExpMap))) {
   tst <- (sum(!c("MQ.Exp", "Sample name") %in% colnames(ExpMap)) == 0)&&
     (sum(!FracMap[[expKl]] %in% ExpMap$MQ.Exp) == 0)
   if (!tst) { rm(ExpMap) }
 }
-if (!exists("ExpMap")) {
+if ((!exists("ExpMap"))||(!nrow(ExpMap))) {
   if (LabelType == "LFQ") {
     ExpMap <- data.frame("Experiment" = "?",
                          "Replicate" = "?",
@@ -265,6 +265,7 @@ server <- function(input, output, session) {
   output$ExpTbl <- DT::renderDT({ ExpData2 },
                                 FALSE,
                                 escape = FALSE,
+                                class = "compact",
                                 selection = "none",
                                 rownames = FALSE,
                                 editable = edith,

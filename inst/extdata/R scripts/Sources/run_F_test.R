@@ -225,20 +225,17 @@ NA_Filt <- which(rowSums(NA_Filt) == ncol(NA_Filt)) # We will apply this result 
 ## Fit model
 if (heteroSkedTst$p.value < 0.01) {
   warning("Data may not be heteroskedastic, using trend = TRUE and robust = TRUE")
-} else {
-  fit <- lmFit(tmpVal#[NA_Filt,]
-               , designMatr, weights = arrWghts)
 }
-fit <- voomaLmFit(tmpVal#[NA_Filt,]
+fit <- voomaLmFit(tmpVal[NA_Filt,]
                   , designMatr)
-fit$genes <- myData[#NA_Filt
+fit$genes <- myData[NA_Filt
   , namesCol]
 fit <- contrasts.fit(fit, contrMatr_F)
 fit <- eBayes(fit)
 # Don't use limma.one.sided, it's for the t-test P values!
 my_F_Data <- myData[, c(namesCol, idCol, protCol, mtchCol, paste0("Mean ", ratRef, expContr_F$name))]
 my_F_Data[[F_Root]] <- NA
-my_F_Data[#NA_Filt
+my_F_Data[NA_Filt
   , F_Root] <- -log10(fit$F.p.value)
 #topTable - not used, using decideTests instead
 # tpTbl <- topTable(fit, NULL, nrow(my_F_Data)#length(NA_Filt)
@@ -252,7 +249,7 @@ my_F_Data[, regKol] <- "non significant"
 fdrKol <- paste0("mod. F-test Significant-FDR=", rev(BH.FDR)*100, "%")
 my_F_Data[, fdrKol] <- ""
 for (fdr in rev(BH.FDR)) { #fdr <- rev(BH.FDR)[1]
-  dTsts <- decideTests(fit[NA_Filt,], c("nestedF", "global")[Nested+1], "none", fdr)
+  dTsts <- decideTests(fit, c("nestedF", "global")[Nested+1], "none", fdr)
   dTsts <- as.data.frame(dTsts)
   m <- match(rownames(my_F_Data), rownames(dTsts))
   wMtch <- which(!is.na(m))
@@ -419,7 +416,8 @@ F_volc <- Volcano.plot(Prot = my_F_Data, mode = "custom", experiments.map = cont
                        Ref.Ratio.values = refRat_F,
                        ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates),
                        arbitrary.lines = arbitrary.thr,
-                       proteins = prot.list, proteins_split = protsplit, IDs.col = idCol, Proteins.col = protCol,
+                       proteins = prot.list, proteins_split = protsplit, IDs.col = idCol,
+                       Proteins.col = protCol,
                        return = FALSE, return.plot = TRUE, title = "F-test volcano plot ",
                        subfolder = ohDeer, subfolderpertype = FALSE,
                        Symmetrical = TRUE,
@@ -429,6 +427,13 @@ F_volc <- Volcano.plot(Prot = my_F_Data, mode = "custom", experiments.map = cont
                        Ref.Ratio.method = paste0("obs", RefRat_Mode),
                        cl = parClust,
                        reg.root = regRoot_F)
+#
+# Save plotly plots
+dr <- ohDeer
+myPlotLys <- F_volc
+Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Volcano_plotlys.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 #
 tmp_Fdat <- F_volc$Protein_groups_file
 if (!is.null(tmp_Fdat)) { # Legacy code: since 6.3.1.7, we do not get the Regulated columns from the Volcano.plot function anymore!

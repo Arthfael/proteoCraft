@@ -306,6 +306,7 @@ if (!RunByMaster) {
       return(DT::renderDT({ dat2 },
                           FALSE,
                           escape = FALSE,
+                          class = "compact",
                           selection = "none",
                           rownames = FALSE,
                           editable = FALSE,

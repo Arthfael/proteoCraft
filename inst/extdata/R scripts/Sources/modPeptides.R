@@ -533,7 +533,8 @@ if ("PTM.analysis" %in% colnames(Param)) {
           ReportCalls <- AddMsg2Report(Msg = " - t-tests", Space = FALSE)
           #k1 <- grep(topattern(paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)])), colnames(ptmpep), value = TRUE)
           #df1 <- ptmpep[, k1]
-          subDr <- gsub(topattern(wd), "", dir[2])
+          #subDr <- gsub(topattern(wd), "", dir[2])
+          subDr <- dir[2]
           if (useSAM) {
             # In this case, we bypass the original decision and base it off SAM even though we plot Student's P-values
             for (i in names(PTMs_SAM_thresh[[Ptm]])) { #i <- names(PTMs_SAM_thresh[[Ptm]])[1]
@@ -556,6 +557,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
               }
             }
           }
+          setwd(subDr)
           tempVPptm <- Volcano.plot(ptmpep, "custom",
                                     paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)]),
                                     pvalue.col[which(pvalue.use)],
@@ -570,8 +572,8 @@ if ("PTM.analysis" %in% colnames(Param)) {
                                     Ref.Ratio.method = paste0("obs", RefRat_Mode),
                                     ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates),
                                     FDR.thresh = PTMs_FDR.thresholds[[Ptm]], arbitrary.lines = arbitrary.thr,
-                                    proteins = prot.list, IDs.col = "Code", Proteins.col = "Proteins", proteins_split = protsplit,
-                                    return = TRUE, return.plot = TRUE,
+                                    proteins = prot.list, IDs.col = "Code", Proteins.col = "Proteins",
+                                    proteins_split = protsplit, return = TRUE, return.plot = TRUE,
                                     title = paste0(Ptm, " volcano plot "), subfolder = subDr,
                                     subfolderpertype = FALSE, Symmetrical = TwoSided,
                                     Size = "Rel. av. log10 abundance", Size.max = 2,
@@ -583,6 +585,12 @@ if ("PTM.analysis" %in% colnames(Param)) {
           #df2 <- ptmpep[, k2]
           #pepPlotFun(df1, df2, "Before VS after volc. plot", dir[1], FALSE)
           #
+          # Save plotly plots
+          dr <- subDr
+          myPlotLys <- tempVPptm
+          Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Volcano_plotlys.R")
+          #rstudioapi::documentOpen(Src)
+          source(Src, local = FALSE)
           #
           VP_list <- tempVPptm
           insrt <- ""
@@ -697,9 +705,9 @@ if ("PTM.analysis" %in% colnames(Param)) {
             expMap$Group_ <- Group_
             dataType <- "modPeptides"
             #
-            Src <- paste0(libPath, "/extdata/R scripts/Sources/run_F_test.R")
-            #rstudioapi::documentOpen(Src)
-            tstFtst <- try(source(Src, local = FALSE), silent = TRUE)
+            FSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/run_F_test.R")
+            #rstudioapi::documentOpen(FSrc)
+            tstFtst <- try(source(FSrc, local = FALSE), silent = TRUE)
             #
             if (!"try-error" %in% class(tstFtst)) {
               #F_test_ref_ratios %<o% F_volc$`Reference ratios` # Not needed
@@ -1066,7 +1074,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
                     source(Src, local = FALSE)
                     #
                     # Cleanup - do it now, not within sources!
-                    for (i in allArgs) { try(rm(i), silent = TRUE) }
+                    try(rm(list = allArgs), silent = TRUE)
                     #
                     PTMs_GO_Plots[[Ptm]][[tstbee]] <- goRES
                     #

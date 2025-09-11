@@ -865,6 +865,7 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
       output$SDRF_tbl <- DT::renderDT({ SDRF2 },
                                     FALSE,
                                     escape = FALSE,
+                                    class = "compact",
                                     selection = "none",
                                     rownames = FALSE,
                                     editable = FALSE,

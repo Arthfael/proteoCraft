@@ -208,6 +208,7 @@ server <- function(input, output, session) {
   output$FracTbl <- DT::renderDT({ FracMap2 },
                                  FALSE,
                                  escape = FALSE,
+                                 class = "compact",
                                  selection = "none",
                                  rownames = FALSE,
                                  editable = edith,

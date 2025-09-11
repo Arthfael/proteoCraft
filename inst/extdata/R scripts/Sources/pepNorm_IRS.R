@@ -125,6 +125,7 @@ if (length(Iso) <= 1) {
     output$IsoMap <- DT::renderDT({ IsoMap2 },
                                   FALSE,
                                   escape = FALSE,
+                                  class = "compact",
                                   selection = "none",
                                   editable = FALSE,
                                   rownames = FALSE,

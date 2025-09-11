@@ -14,7 +14,7 @@ if (clueGOahead) {
   minPercGenesMapped %<o% c(4, 10)[m]
   cat(paste0("   | Parameters:",
              "\n   |> min. genes per term = ", minGenesPerTerm,
-             "\n   |> min. % og genes mapped = ", minPercGenesMapped,
+             "\n   |> min. % of genes mapped = ", minPercGenesMapped,
              "\n   |> min. GO level = ", minLvl,
              "\n   |> max. GO level = ", maxLvl, 
              "\n   |> Kappa level = ", Kappa, " ]\n"))
@@ -157,7 +157,7 @@ if (clueGOahead) {
           writeLines(a, imgFl)
           #system(paste0("open \"", imgFl, "\""))
         }
-      } else { cat("      -> Warning: ", msg, "\n") }
+      }
     }, silent = TRUE)
     if ("try-error" %in% class(clueTST)) {
       warning(paste0("ClueGO analysis failed for ", nm2))

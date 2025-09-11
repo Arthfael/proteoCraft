@@ -67,6 +67,7 @@ if (Annotate) {
         # If the annotations is not present locally, make a local copy
         if (!file.exists(basename(x))) { fs::file_copy(x, wd) }
         # Parse it
+        #tst <- Format.DB_txt(x, usePar = TRUE, cl = parClust)
         return(Format.DB_txt(x, usePar = TRUE, cl = parClust))
       })
       Parsed_annotations <- dplyr::bind_rows(Parsed_annotations)
@@ -81,6 +82,10 @@ if (Annotate) {
       #View(Parsed_annotations[, c("GO", "GO-ID")])
     }
   }
+}
+Annotate <- exists("Parsed_annotations")
+if (Annotate) {
+  Parsed_annotations %<o% Parsed_annotations
   # Check GO for name degeneracies
   # (the same term has had different names in different files, and we allow for multiple files)
   w <- which(nchar(Parsed_annotations$GO) > 0)
@@ -106,12 +111,9 @@ if (Annotate) {
                         ID = paste(ID, collapse = ";")),
                  by = list(tst1$row)]
     tst1 <- as.data.frame(tst1)
+    w <- which(w %in% tst1$tst1)
     Parsed_annotations[w, c("GO", "GO-ID")] <- tst1[match(w, tst1$tst1), c("GO", "ID")]
   }
-}
-Annotate <- exists("Parsed_annotations") # Update condition
-if (Annotate) {
-  Parsed_annotations %<o% Parsed_annotations
   saveFun(Parsed_annotations, file = "Parsed_annotations.RData")
   #db <- db[, which(!colnames(db) %in% annot.col)]
   kol <- colnames(Parsed_annotations)

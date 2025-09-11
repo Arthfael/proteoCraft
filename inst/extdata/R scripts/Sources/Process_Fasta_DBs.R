@@ -185,15 +185,16 @@ fastasTbl$Data[whFnd] <- lapply(whFnd, function(x) {
   return(rs)
 })
 fastasTbl$Headers[whFnd] <- lapply(fastasTbl$Data[whFnd], function(x) { grep("^>", x, value = TRUE) })
-fastasTbl$Type[whFnd] <- sapply(fastasTbl$Headers[whFnd], function(x) { #x <- fastasTbl$Headers[whFnd[1]]
+fastasTbl$Type[whFnd] <- vapply(fastasTbl$Headers[whFnd], function(x) { #x <- fastasTbl$Headers[whFnd[1]]
   x <- unlist(x)[1]
-  if (grepl("^>(rev_)?[a-z]{2}\\|[^\\|]+\\|[^ ]+ ", x)) { res <- "UniprotKB" } else {
-    if (grepl("^>(rev_)?ATl", x)) { res <- "TAIR" } else {
+  # Note: the , in {2,} below is a concession to Bella who always, always, uses more than two characters here.
+  if (grepl("^>(rev_)?[a-z]{2,}\\|[^\\|]+\\|[^ ]+ ?", x)) { res <- "UniprotKB" } else {
+    if (grepl("^>(rev_)?AT1", x)) { res <- "TAIR" } else {
       if (grepl("^>(rev_)?[WYN]P_", x)) { res <- "NCBI" } else { res <- "unknown" }
     }
   }
   return(res)
-})
+}, "")
 fastasTbl$Species[whFnd] <- sapply(fastasTbl$Headers[whFnd], function(hdrs) { #hdrs <- fastasTbl$Headers[whFnd[1]]
   hdrs <- unlist(hdrs)
   orgpat <- c(" +OS=", "\\[[^\\[]+\\]")
@@ -316,6 +317,7 @@ server <- function(input, output, session) {
   output$Fastas <- renderDT({ fastasTbl2 },
                             FALSE,
                             escape = FALSE,
+                            class = "compact",
                             selection = "none",
                             editable = edith,
                             rownames = FALSE,

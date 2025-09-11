@@ -509,4 +509,3 @@ kol <- kol[which(kol %in% colnames(PG))]
 temp <- PG[, c("Leading protein IDs", "Protein names", "Genes", "Mol. weight [kDa]",
                kol, KlustKols)]
 write.csv(temp, paste0(dir, "/Protein Groups and Clusters.csv"), row.names = FALSE)
-#

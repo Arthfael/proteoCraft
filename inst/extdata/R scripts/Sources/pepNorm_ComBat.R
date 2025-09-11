@@ -66,7 +66,7 @@ PCAlyLst[["original"]] <- tmp$PlotLy
 scoresLst[["original"]] <- tmp$Scores
 PCsLst[["original"]] <- tmp$PCs
 tmp <- pcaBatchPlots(tmpDat2Imp[wAG1, currSamples],
-                     "original",
+                     myBatch2,
                      myBatch2,
                      Exp.map,
                      intRoot = "")
@@ -118,6 +118,7 @@ server <- function(input, output, session) {
   output$PCs <- renderDT({ PCs },
                          FALSE,
                          escape = FALSE,
+                         class = "compact",
                          selection = "none",
                          editable = FALSE,
                          rownames = FALSE,

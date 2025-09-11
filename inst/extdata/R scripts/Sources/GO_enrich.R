@@ -64,8 +64,8 @@ allArgs <- c("db_ID_col",
              "ID_col2",
              "db_Gene_col",
              "Prot",
-             "filters",
-             "ref.filters",
+             "filters", # MUST STAY HERE
+             "ref.filters", # MUST STAY HERE
              "Prot_FC_root",
              "Prot_FC_is_log",
              "show",
@@ -527,7 +527,7 @@ if (!MultRef) {
   GenKol1 <- paste0("Genes - parent ", c("dataset", "database")[match(Mode, c("regulated", "dataset"))])
 }
 # Process and test filters to generate plots input data
-wFltL <- which(lapply(filters, length) > 0)
+wFltL <- which(vapply(filters, length, 1) > 0)
 if (length(wFltL)) {
   mapFilters <- mapFilters[wFltL]
   ref.mapFilters <- ref.mapFilters[wFltL]
@@ -926,7 +926,7 @@ if (length(wFltL)) {
           if (Mode == "dataset") { FCkol <- gsub(" (- )?$", "", Prot_FC_root) }
         }
       } else {
-        Prot_FC_root <- FCkol
+        FCkol <- Prot_FC_root
       }
       FCkol <- FCkol[which(FCkol %in% colnames(Prot))]
       if (!length(FCkol)) {
@@ -1300,4 +1300,3 @@ if (kount) {
   if (!P_adjust) { goRES$GO_FDR_thresholds <- GO_FDR_thresholds }
   if (plotly) { goRES[["GO_plotly"]] <- GO_plot_ly }
 } else { goRES <- NA }
-#

@@ -128,6 +128,7 @@ server2 <- function(input, output, session) {
   output$refLevels <- renderDT({ rfLev2 },
                                FALSE,
                                escape = FALSE,
+                               class = "compact",
                                selection = "none",
                                editable = TRUE,
                                rownames = FALSE,
