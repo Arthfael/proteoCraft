@@ -223,6 +223,7 @@ server <- function(input, output, session) {
   output$myFracMap <- DT::renderDT({ frMap },
                                    FALSE,
                                    escape = FALSE,
+                                   class = "compact",
                                    selection = "none",
                                    rownames = FALSE,
                                    editable = FALSE,
@@ -413,6 +414,7 @@ server <- function(input, output, session) {
   output$mySampleMap <- DT::renderDT({ smplMap2 },
                                      FALSE,
                                      escape = FALSE,
+                                     class = "compact",
                                      selection = "none",
                                      rownames = FALSE,
                                      editable = FALSE,
@@ -518,7 +520,7 @@ AnalysisParam$"Ratios analysis" <- MakeRatios
 # Rename "MQ.Exp" to "Experiment"
 colnames(SamplesMap)[which(colnames(SamplesMap) == "MQ.Exp")] <- "Experiment"
 
-# Labelling - now detected earlier
+# Labelling
 AnalysisParam$"Label type" <- LabelType
 int.cols %<o%  c()
 #if (LabelType == "Isobaric") { int.cols["Original"] <- int.col <- paste0("Reporter intensity ", Labels) }
@@ -538,14 +540,17 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/Process_Fasta_DBs.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
+evNm %<o% "PSM"
+#evNm %<o% c("PSM", "Evidence")[(SearchSoft == "MAXQUANT")+1]
 
 #### Code chunk - Load and process annotations
 ## This includes a QC step in case the database differs slightly from the one used by MQ, or if somehow some IDs have not been properly parsed.
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Load_Annotations.R")
+#rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 source(parSrc, local = FALSE)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_prepare.R") # Doing this earlier but also keep latter instance for now
+#rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 AnalysisParam$Annotations <- Annotate
 
@@ -600,16 +605,16 @@ if ((!p %in% names(AnalysisParam))||(!is.logical(AnalysisParam[[p]]))||(is.na(An
 if ((!is.null(AnalysisParam$Norma.Pep.Intens.Shape))&&(!toupper(as.character(AnalysisParam$Norma.Pep.Intens.Shape)) %in% c("FALSE", "VSN", "LOESS"))) { Norma.Pep.Intens.Shape <- FALSE }
 pr <- c("Norma.Pep.Ratio", "Adv.Norma.Pep.Ratio", "Norma.Prot.Ratio.to.Biot")
 for (p in pr) { if ((!is.logical(AnalysisParam[[p]]))||(is.na(AnalysisParam[[p]]))) { AnalysisParam[[p]] <- FALSE } }
-# QuantMethods %<o% setNames(c("Prot.Quant", "Prot.Quant + weights", "Prot.Quant.Unique", "Prot.Quant.Unique + weights",
-#                              "Prot.Quant2 + weights", "Prot.Quant2", "IQ_MaxLFQ", "Top3", "Top1"),
-#                            c(paste0("Profile_avg.", c("", ", weights = -log10(PEP)/CV", c(", unique peptides in priority", ", weights = -log10(PEP)/CV, unique peptides in priority"))),
-#                              paste0("Profile_avg.v2", c(", weights = -log10(PEP)/CV", "")), "MaxLFQ (iq)", "Top3", "Top1"))
-# QMdef <- "Prot.Quant.Unique"
-# if (("QuantMeth" %in% names(AnalysisParam))&&(AnalysisParam$QuantMeth %in% QuantMethods)) { QMdef <- AnalysisParam$QuantMeth } else {
-#   AnalysisParam$QuantMeth <- QMdef
-# }
-# if (!QMdef %in% QuantMethods[1:6]) { QMdef <- "Prot.Quant.Unique" }
-# QMdefnm <- names(QuantMethods)[match(QMdef, QuantMethods)]
+QuantMethods %<o% setNames(c("Prot.Quant", "Prot.Quant + weights", "Prot.Quant.Unique", "Prot.Quant.Unique + weights",
+                             "Prot.Quant2 + weights", "Prot.Quant2", "IQ_MaxLFQ", "Top3", "Top1"),
+                           c(paste0("Profile_avg.", c("", ", weights = -log10(PEP)/CV", c(", unique peptides in priority", ", weights = -log10(PEP)/CV, unique peptides in priority"))),
+                             paste0("Profile_avg.v2", c(", weights = -log10(PEP)/CV", "")), "MaxLFQ (iq)", "Top3", "Top1"))
+QMdef <- "Prot.Quant.Unique"
+if (("QuantMeth" %in% names(AnalysisParam))&&(AnalysisParam$QuantMeth %in% QuantMethods)) { QMdef <- AnalysisParam$QuantMeth } else {
+  AnalysisParam$QuantMeth <- QMdef
+}
+if (!QMdef %in% QuantMethods[1:6]) { QMdef <- "Prot.Quant.Unique" }
+QMdefnm <- names(QuantMethods)[match(QMdef, QuantMethods)]
 if ("Proteome ruler calculated" %in% names(AnalysisParam)) { # Correct typo in older versions
   AnalysisParam$"Proteomic ruler calculated" <- AnalysisParam$"Proteome ruler calculated"
   AnalysisParam$"Proteome ruler calculated" <- NULL
@@ -775,146 +780,167 @@ if (length(tmp)) {
 CytoScExe <- CytoScExe[1]
 #
 appNm <- paste0(dtstNm, " - Parameters")
-ui <- fluidPage(
-  useShinyjs(),
-  setBackgroundColor( # Doesn't work
+ui <- shiny::fluidPage(
+  shinyjs::useShinyjs(),
+  shinyWidgets::setBackgroundColor( # Doesn't work
     color = c(#"#F8F8FF",
       "#E6F7F4"),
     gradient = "linear",
     direction = "bottom"
   ),
-  extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
-  titlePanel(tag("u", "Parameters"),
-             appNm),
-  h2(dtstNm), 
-  br(),
-  tags$hr(style = "border-color: black;"),
-  h4("Proteins of interest"),
-  pickerInput("IntProt", NULL, protHeads, protDeflt, TRUE,
-              pickerOptions(title = "Search me",
-                            `live-search` = TRUE,
-                            actionsBox = TRUE,
-                            deselectAllText = "Clear search")),
-  br(),
-  tags$hr(style = "border-color: black;"),
-  h4("Data processing"),
-  fluidRow(column(2, checkboxInput("Impute", "Impute missing peptides-level values?", Impute, "100%")),
-           column(2,
-                  checkboxInput("Update_Prot_matches", paste0("Update ", names(SearchSoft), "'s original protein-to-peptides assignments?"), Update_Prot_matches, "100%"),
-                  bsTooltip("Update_Prot_matches",
-                            "Checking assignments may result in removal of some identifications. It is nonetheless recommended because we have observed occasional inconsistent peptides-to-protein assignments with some search software.",
-                            placement = "right", trigger = "hover", options = list(container = "body"))#,
-                  #withSpinner(uiOutput("ReloadMatches"))
+  shinyjs::extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+  shiny::titlePanel(shiny::tag("u", "Parameters"),
+                    appNm),
+  shiny::h2(dtstNm), 
+  shiny::br(),
+  shiny::tags$hr(style = "border-color: black;"),
+  shiny::h4("Proteins of interest"),
+  shinyWidgets::pickerInput("IntProt", NULL, protHeads, protDeflt, TRUE,
+                            shinyWidgets::pickerOptions(title = "Search me",
+                                                        `live-search` = TRUE,
+                                                        actionsBox = TRUE,
+                                                        deselectAllText = "Clear search")),
+  shiny::br(),
+  shiny::tags$hr(style = "border-color: black;"),
+  shiny::h4("Data processing"),
+  shiny::fluidRow(shiny::column(2,
+                                shiny::checkboxInput("Impute", "Impute missing peptides-level values?",
+                                                     Impute, "100%")),
+                  shiny::column(2,
+                                shiny::checkboxInput("Update_Prot_matches",
+                                                     paste0("Update ", names(SearchSoft),
+                                                            "'s original protein-to-peptides assignments?"),
+                                                     Update_Prot_matches, "100%"),
+                                shinyBS::bsTooltip("Update_Prot_matches",
+                                                   "Checking assignments may result in removal of some identifications. It is nonetheless recommended because we have observed occasional inconsistent peptides-to-protein assignments with some search software.",
+                                                   placement = "right", trigger = "hover",
+                                                   options = list(container = "body"))#,
+                  #shinycssloaders::withSpinner(shiny::uiOutput("ReloadMatches"))
            ),
-           column(2, checkboxInput("prtNorm", "Normalize data",
-                                            AnalysisParam$NormalizePG, "100%"))),
-  tags$hr(style = "border-color: black;"),
-  br(),
+           shiny::column(2, shiny::checkboxInput("prtNorm", "Normalize data",
+                                                 AnalysisParam$NormalizePG, "100%"))),
+  shiny::tags$hr(style = "border-color: black;"),
+  shiny::br(),
   # Quantitation
   ## Choice of algorithm + Proteomics ruler
-  h4("Protein Groups quantitation"),
-  fluidRow(
-    #column(2, selectInput("QuantMeth", "Protein Groups-level quantitation algorithm:", names(QuantMethods)[1:6], QMdefnm, width = "100%")),
-    column(2, selectInput("Pep4Quant", "Peptides eligible for quantitation (where available, unique peptides will be prioritized)",
-                          Pep4QuantOpt, Pep4Quant, width = "100%")),
-    column(2, numericInput("NPep", "Min. number of peptidoforms for discovery/quantitation",
-                           NPep, 1, width = "100%")),
-    column(2, numericInput("PepFoundInAtLeast",
-                           "Use only peptidoforms found in at least how many samples?",
-                           PepFoundInAtLeast, 1, length(Exp), 1, "100%"))),
-  br(),
-  fluidRow(
-    column(2,
-           checkboxInput("ProtRul",
-                         "Apply Proteomic Ruler to estimate copy numbers per cell? (uses signal from all histones as reference; assumes inter-nucleosomal space = 196 bp, do not use if this assumption does not hold!)",
-                         protrul, "100%"),
-           numericInput("ProtRulNuclL", "Use inter-nucleosome length = ? (kb)", ProtRulNuclL, 1, Inf, 1, "100%")),
-    column(2,
-           checkboxInput("removeMBR",
-                         "Exclude match-between-runs peptides from coverage analysis?",
-                         removeMBR, "100%"))),
-  withSpinner(uiOutput("Ratios")),
+  shiny::h4("Protein Groups quantitation"),
+  shiny::fluidRow(
+    #shiny::column(2,
+    shiny::selectInput("QuantMeth", "Protein Groups-level quantitation algorithm:",
+                       names(QuantMethods)[1:6], QMdefnm, width = "100%"),
+    shiny::column(2,
+                  shiny::selectInput("Pep4Quant", "Peptides eligible for quantitation (where available, unique peptides will be prioritized)",
+                                     Pep4QuantOpt, Pep4Quant, width = "100%")),
+    shiny::column(2,
+                  shiny::numericInput("NPep", "Min. number of peptidoforms for discovery/quantitation",
+                                      NPep, 1, width = "100%")),
+    shiny::column(2,
+                  shiny::numericInput("PepFoundInAtLeast",
+                                      "Use only peptidoforms found in at least how many samples?",
+                                      PepFoundInAtLeast, 1, length(Exp), 1, "100%"))),
+  shiny::br(),
+  shiny::fluidRow(
+    shiny::column(2,
+                  shiny::checkboxInput("ProtRul",
+                                       "Apply Proteomic Ruler to estimate copy numbers per cell? (uses signal from all histones as reference; assumes inter-nucleosomal space = 196 bp, do not use if this assumption does not hold!)",
+                                       protrul, "100%"),
+                  shiny::numericInput("ProtRulNuclL", "Use inter-nucleosome length = ? (kb)",
+                                      ProtRulNuclL, 1, Inf, 1, "100%")),
+    shiny::column(2,
+                  shiny::checkboxInput("removeMBR",
+                                       "Exclude match-between-runs peptides from coverage analysis?",
+                                       removeMBR, "100%"))),
+  shinycssloaders::withSpinner(uiOutput("Ratios")),
   # Note to self: I am for now excluding some methods, because I need to add code to calculate some columns for those, namely ratios.
   # This should be remedied asap, especially since there include such community favourites as IQ (= MaxLFQ) and Top3!!!
-  br(),
-  tags$hr(style = "border-color: black;"),
-  fluidRow(column(2, radioButtons("Clustering", "Clustering method", klustChoices, klustChoices[1], TRUE, "100%"))),
-  checkboxInput("Venn_Obs", "Draw Venn diagrams?", Venn_Obs, "100%"),
-  br(),
-  tags$hr(style = "border-color: black;"),
-  withSpinner(uiOutput("GO")),
-  h4("Post-translational modifications (PTMs)"),
-  fluidRow(column(2, pickerInput("PTMsQuant", "Select PTM(s) eligible for use for Protein Groups quantitation:",
-                                 Modifs$`Full name`, ptmDflt1, TRUE,
-                                 pickerOptions(title = "Search me",
-                                               `live-search` = TRUE,
-                                               actionsBox = TRUE,
-                                               deselectAllText = "Clear search"))),
-           column(2, pickerInput("Mod2Write", "Select PTM(s) for which to write a specific tab in the report",
-                                 Modifs$`Full name`, ptmDflt2, TRUE,
-                                 pickerOptions(title = "Search me",
-                                               `live-search` = TRUE,
-                                               actionsBox = TRUE,
-                                               deselectAllText = "Clear search"))),
+  shiny::br(),
+  shiny::tags$hr(style = "border-color: black;"),
+  shiny::fluidRow(shiny::column(2,
+                                shiny::radioButtons("Clustering", "Clustering method",
+                                                    klustChoices, klustChoices[1], TRUE, "100%"))),
+  shiny::checkboxInput("Venn_Obs", "Draw Venn diagrams?", Venn_Obs, "100%"),
+  shiny::br(),
+  shiny::tags$hr(style = "border-color: black;"),
+  shinycssloaders::withSpinner(uiOutput("GO")),
+  shiny::h4("Post-translational modifications (PTMs)"),
+  shiny::fluidRow(shiny::column(2,
+                                shinyWidgets::pickerInput("PTMsQuant", "Select PTM(s) eligible for use for Protein Groups quantitation:",
+                                                          Modifs$`Full name`, ptmDflt1, TRUE,
+                                                          shinyWidgets::pickerOptions(title = "Search me",
+                                                                                      `live-search` = TRUE,
+                                                                                      actionsBox = TRUE,
+                                                                                      deselectAllText = "Clear search"))),
+                  shiny::column(2, shinyWidgets::pickerInput("Mod2Write", "Select PTM(s) for which to write a specific tab in the report",
+                                                             Modifs$`Full name`, ptmDflt2, TRUE,
+                                                             shinyWidgets::pickerOptions(title = "Search me",
+                                                                                         `live-search` = TRUE,
+                                                                                         actionsBox = TRUE,
+                                                                                         deselectAllText = "Clear search"))),
            #column(2, checkboxInput("PTMsReNorm", "Re-normalize modified peptides ratios to those of parent Protein Group(s)?", TRUE, "100%"))
   ),
-  br(),
-  tags$hr(style = "border-color: black;"),
-  checkboxInput("AdvOptOn", "Advanced options", tstAdvOpt),
-  withSpinner(uiOutput("AdvOpt")),
-  br(),
-  actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-  br(),
-  br()
+  shiny::br(),
+  shiny::tags$hr(style = "border-color: black;"),
+  shiny::checkboxInput("AdvOptOn", "Advanced options", tstAdvOpt),
+  shinycssloaders::withSpinner(uiOutput("AdvOpt")),
+  shiny::br(),
+  shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+  shiny::br(),
+  shiny::br()
 )
 server <- function(input, output, session) {
   # Initialize variables to create in main environment
-  m4Quant <- reactiveVal(Mod4Quant)
-  m2Xclud <- reactiveVal(Mod2Xclud)
-  ADVOPT <- reactiveVal(tstAdvOpt)
-  PARAM <- reactiveVal(AnalysisParam)
+  m4Quant <- shiny::reactiveVal(Mod4Quant)
+  m2Xclud <- shiny::reactiveVal(Mod2Xclud)
+  ADVOPT <- shiny::reactiveVal(tstAdvOpt)
+  PARAM <- shiny::reactiveVal(AnalysisParam)
   #
   # Ratios
-  output$Ratios <- renderUI({
+  output$Ratios <- shiny::renderUI({
     if (MakeRatios) {
       lst <- list(list(h4("Ratios analysis")),
-                  list(fluidRow(column(3, numericInput("RatiosThresh", "Fold change threshold (log2)",
-                                                       RatiosThresh, 0, width = "100%")),
-                                column(3, checkboxInput("RatiosThresh_2sided",
-                                                        "Are you interested in down-regulated protein groups as well?",
-                                                        RatiosThresh_2sided, "100%")))))
+                  list(shiny::fluidRow(shiny::column(3,
+                                                     shiny::numericInput("RatiosThresh", "Fold change threshold (log2)",
+                                                                         RatiosThresh, 0, width = "100%")),
+                                       shiny::column(3,
+                                                     shiny::checkboxInput("RatiosThresh_2sided",
+                                                                          "Are you interested in down-regulated protein groups as well?",
+                                                                          RatiosThresh_2sided, "100%")))))
     } else { lst <- list() }
     return(lst)
   })
   #
   # GO
-  output$GO <- renderUI({
+  output$GO <- shiny::renderUI({
     lst <- list(list(br()))
     if (Annotate) {
       lst <- list(
         list(h4("GO terms enrichment"),
-             fluidRow(column(1, checkboxInput("GOenrich", "GO enrichment", globalGO, "100%")),
-                      column(2, pickerInput("GO.tabs", "GO terms of interest", allGO, GO_filter1, TRUE,
-                                            pickerOptions(title = "Search me",
-                                                          `live-search` = TRUE,
-                                                          actionsBox = TRUE,
-                                                          deselectAllText = "Clear search"))),
-                      column(1, checkboxInput("GO2Int", "Use GO terms to define list of proteins of interest?",
-                                              AnalysisParam$GO.terms.for.proteins.of.interest , "100%"))))
+             shiny::fluidRow(shiny::column(1,
+                                           shiny::checkboxInput("GOenrich", "GO enrichment", globalGO, "100%")),
+                             shiny::column(2,
+                                           shinyWidgets::pickerInput("GO.tabs", "GO terms of interest",
+                                                                     allGO, GO_filter1, TRUE,
+                                                                     shinyWidgets::pickerOptions(title = "Search me",
+                                                                                                 `live-search` = TRUE,
+                                                                                                 actionsBox = TRUE,
+                                                                                                 deselectAllText = "Clear search"))),
+                             shiny::column(1,
+                                           shiny::checkboxInput("GO2Int", "Use GO terms to define list of proteins of interest?",
+                                                                AnalysisParam$GO.terms.for.proteins.of.interest , "100%"))))
       )
     }
     return(lst)
   })
   #
-  # output$ReloadMatches <- renderUI({
+  # output$ReloadMatches <- shiny::renderUI({
   #   if ("evmatch.RData" %in% list.files(wd)) {
   #     msg <- "Peptide-to-protein matches backup detected in folder: do you want to reload it?\n"
   #     lst <- list(list(list(br()),
-  #                      tags$table(
-  #                        tags$tr(width = "100%", tags$td(width = "55%", checkboxInput("Reuse_Prot_matches", msg, TRUE)))
+  #                      shiny::tags$table(
+  #                        shiny::tags$tr(width = "100%", shiny::tags$td(width = "55%", shiny::checkboxInput("Reuse_Prot_matches", msg, TRUE)))
   #                      )))
   #   } else {
-  #     em(" ")
+  #     shiny::em(" ")
   #   }
   # })
   #
@@ -925,46 +951,54 @@ server <- function(input, output, session) {
     if (reactive) { tst <- ADVOPT() } else { tst <- tstAdvOpt }
     if (tst) {
       lst <- vector("list", 1)
-      lst[[1]] <- list(fluidRow(column(2, em("->"), 
-                                       shinyFilesButton("CustPG", em("Custom Protein Groups"), "", FALSE), br(),
-                                       em("Allows \"cheating\" with the naive Protein Groups assembly algorithm."), br(),
-                                       em("Useful when e.g. samples express from a custom construct to which matching peptides should be assigned in priority."), br(),
-                                       em("Should be a table with two columns: \"Leading protein IDs\" (\";\"-separated) and \"Priority\" (integer)."), br(), br(),
-                                       em("Current selection = "), span(AnalysisParam$Custom.PGs, style = "color:blue", .noWS = "outside"),
-                                       br()
+      lst[[1]] <- list(shiny::fluidRow(shiny::column(2,
+                                                     shiny::em("->"), 
+                                                     shinyFiles::shinyFilesButton("CustPG",
+                                                                                  shiny::em("Custom Protein Groups"), "", FALSE),
+                                                     shiny::br(),
+                                                     shiny::em("Allows \"cheating\" with the naive Protein Groups assembly algorithm."), shiny::br(),
+                                                     shiny::em("Useful when e.g. samples express from a custom construct to which matching peptides should be assigned in priority."), shiny::br(),
+                                                     shiny::em("Should be a table with two columns: \"Leading protein IDs\" (\";\"-separated) and \"Priority\" (integer)."),
+                                                     shiny::br(), shiny::br(),
+                                                     shiny::em("Current selection = "),
+                                                     shiny::span(AnalysisParam$Custom.PGs, style = "color:blue", .noWS = "outside"),
+                                                     shiny::br()
       ),
-      column(2, em("->"),
-             shinyFilesButton("CRAPome", em("CRAPome filter"), "", FALSE), br(),
-             em("CRAPome-like filter: 1 column table of protein accessions to mark as contaminants."), br(),
-             em("Column name = \"Protein ID\" or \"Protein IDs\", use \";\" if including more than one ID per row)."), br(), br(),
-             em("Current selection = "), span(AnalysisParam$CRAPome_file, style = "color:blue", .noWS = "outside"),
-             br()
+      shiny::column(2,
+                    shiny::em("->"),
+                    shinyFiles::shinyFilesButton("CRAPome", shiny::em("CRAPome filter"), "", FALSE), shiny::br(),
+                    shiny::em("CRAPome-like filter: 1 column table of protein accessions to mark as contaminants."), shiny::br(),
+                    shiny::em("Column name = \"Protein ID\" or \"Protein IDs\", use \";\" if including more than one ID per row)."),
+                    shiny::br(), shiny::br(),
+                    shiny::em("Current selection = "),
+                    shiny::span(AnalysisParam$CRAPome_file, style = "color:blue", .noWS = "outside"),
+                    shiny::br()
       )
       ))
     } else { lst <- list(list(em(""))) }
-    renderUI(lst)
+    shiny::renderUI(lst)
   }
   output$AdvOpt <- updtOptOn(FALSE)
-  observeEvent(input$AdvOptOn, {
+  shiny::observeEvent(input$AdvOptOn, {
     ADVOPT(input$AdvOptOn)
     output$AdvOpt <- updtOptOn()
   })
-  observe({ shinyFileChoose(input, "CustPG", roots = getVolumes(), filetypes = "csv")
+  shiny::observe({ shinyFiles::shinyFileChoose(input, "CustPG", roots = shinyFiles::getVolumes(), filetypes = "csv")
     {
       tmp <- input$CustPG
       if ((!is.null(tmp))&&(is.list(tmp))) {
-        tmp <- parseFilePaths(getVolumes(), tmp)$datapath
+        tmp <- shinyFiles::parseFilePaths(shinyFiles::getVolumes(), tmp)$datapath
         Par <- PARAM()
         Par$Custom.PGs <- normalizePath(tmp, winslash = "/")
         PARAM(Par)
       }
-  }
+    }
   })
-  observe({ shinyFileChoose(input, "CRAPome", roots = getVolumes(), filetypes = "csv" )
+  shiny::observe({ shinyFiles::shinyFileChoose(input, "CRAPome", roots = shinyFiles::getVolumes(), filetypes = "csv" )
     {
       tmp <- input$CRAPome
       if ((!is.null(tmp))&&(is.list(tmp))) {
-        tmp <- parseFilePaths(getVolumes(), tmp)$datapath
+        tmp <- shinyFiles::parseFilePaths(getVolumes(), tmp)$datapath
         Par <- PARAM()
         Par$CRAPome_file <- normalizePath(tmp, winslash = "/")
         PARAM(Par)
@@ -973,34 +1007,34 @@ server <- function(input, output, session) {
   })
   #
   # Pep4Quant
-  observeEvent(input$Pep4Quant, {
+  shiny::observeEvent(input$Pep4Quant, {
     Pep4Quant <<- input$Pep4Quant
     Par <- PARAM()
     Par$"Peptide classes eligible for quantitation" <- Pep4Quant
     PARAM(Par)
   })
   #
-  observeEvent(input$RatiosThresh, {
+  shiny::observeEvent(input$RatiosThresh, {
     RatiosThresh <<- input$RatiosThresh
     Par <- PARAM()
     Par$"Ratios analysis - threshold" <- RatiosThresh
     PARAM(Par)
   })
-  observeEvent(input$RatiosThresh_2sided, {
+  shiny::observeEvent(input$RatiosThresh_2sided, {
     RatiosThresh_2sided <<- input$RatiosThresh_2sided
     Par <- PARAM()
     Par$"Ratios analysis - threshold is two-sided" <- RatiosThresh_2sided
     PARAM(Par)
   })
   # Impute?
-  observeEvent(input$Impute, {
+  shiny::observeEvent(input$Impute, {
     ImputeMissData <<- input$Impute
     Par <- PARAM()
     Par$ImputeMissData <- ImputeMissData
     PARAM(Par)
   })
   # Update PSM-to-Protein matches?
-  observeEvent(input$Update_Prot_matches, {
+  shiny::observeEvent(input$Update_Prot_matches, {
     Update_Prot_matches <<- input$Update_Prot_matches
     Par <- PARAM()
     Par$Update_Prot_matches <- Update_Prot_matches
@@ -1015,17 +1049,17 @@ server <- function(input, output, session) {
   #   PARAM(Par)
   # })
   # Clustering method
-  observeEvent(input$Clustering, {
+  shiny::observeEvent(input$Clustering, {
     assign("KlustMeth", match(input$Clustering, klustChoices), envir = .GlobalEnv)
   })
   # Are analyses Two-sided?
-  observeEvent(input$TwoSided, {
+  shiny::observeEvent(input$TwoSided, {
     Par <- PARAM()
     Par$Two.sided <- input$TwoSided == "Both directions"
     PARAM(Par)
   })
   # Normalizations
-  observeEvent(input$prtNorm, {
+  shiny::observeEvent(input$prtNorm, {
     assign("NormalizePG", as.logical(input$prtNorm), envir = .GlobalEnv)
     Par <- PARAM()
     Par$NormalizePG <- NormalizePG
@@ -1037,45 +1071,45 @@ server <- function(input, output, session) {
   #   Par$QuantMeth <- QuantMethods[match(input$QuantMeth, names(QuantMethods))]
   #   PARAM(Par)
   # })
-  observeEvent(input$ProtRul, {
+  shiny::observeEvent(input$ProtRul, {
     assign("protrul", input$ProtRul, envir = .GlobalEnv)
     Par <- PARAM()
     Par$"Proteomic ruler calculated" <- protrul
     PARAM(Par)
   })
-  observeEvent(input$ProtRulNuclL, {
+  shiny::observeEvent(input$ProtRulNuclL, {
     assign("ProtRulNuclL", as.integer(input$ProtRulNuclL), envir = .GlobalEnv)
     Par <- PARAM()
     Par$ProtRulNuclL <- ProtRulNuclL
     PARAM(Par)
   })
-  observeEvent(input$removeMBR, {
+  shiny::observeEvent(input$removeMBR, {
     assign("removeMBR", input$ProtRul, envir = .GlobalEnv)
     Par <- PARAM()
     Par$"Proteins list: remove match-between-runs" <- removeMBR
     PARAM(Par)
   })
-  observeEvent(input$NPep, {
+  shiny::observeEvent(input$NPep, {
     assign("NPep", input$NPep, envir = .GlobalEnv)
     Par <- PARAM()
     Par$"N. of peptidoforms for quantitation" <- NPep
     PARAM(Par)
   })
-  observeEvent(input$PepFoundInAtLeast, {
+  shiny::observeEvent(input$PepFoundInAtLeast, {
     assign("PepFoundInAtLeast", as.integer(input$PepFoundInAtLeast), envir = .GlobalEnv)
     Par <- PARAM()
     Par$PepFoundInAtLeast <- PepFoundInAtLeast
     PARAM(Par)
   })
   # Proteins of interest
-  observeEvent(input$IntProt, {
+  shiny::observeEvent(input$IntProt, {
     assign("prot.list", db$`Protein ID`[dbOrd][match(input$IntProt, protHeads)], envir = .GlobalEnv)
     Par <- PARAM()
     Par$Prot.list <- prot.list
     PARAM(Par)
   }, ignoreNULL = FALSE)
   # GO enrichment
-  observeEvent(input$GOenrich, {
+  shiny::observeEvent(input$GOenrich, {
     assign("globalGO", as.logical(input$GOenrich), envir = .GlobalEnv)
     assign("enrichGO", globalGO&MakeRatios, envir = .GlobalEnv)
     Par <- PARAM()
@@ -1084,7 +1118,7 @@ server <- function(input, output, session) {
   })
   # GO terms of interest
   if (Annotate) {
-    observeEvent(input$GO.tabs, {
+    shiny::observeEvent(input$GO.tabs, {
       assign("GO_filter", allGO2[match(input$GO.tabs, allGO)], envir = .GlobalEnv)
       if (length(GO_filter1)) {
         mY <- match(GO_filter1, allGO)
@@ -1096,27 +1130,27 @@ server <- function(input, output, session) {
       Par$"GO terms of interest" <- GO_filter
       PARAM(Par)
     }, ignoreNULL = FALSE)
-    observeEvent(input$GO2Int, {
+    shiny::observeEvent(input$GO2Int, {
       Par <- PARAM()
       Par$GO.terms.for.proteins.of.interest <- input$GO2Int
       PARAM(Par)
     })
   }
   #
-  observeEvent(input$Venn_Obs, {
+  shiny::observeEvent(input$Venn_Obs, {
     assign("Venn_Obs", input$Venn_Obs, envir = .GlobalEnv)
     Par <- PARAM()
     Par$"Venn diagrams: observed" <- Venn_Obs
     PARAM(Par)
   })
   # PTMs to use for PG Quant
-  observeEvent(input$PTMsQuant, {
+  shiny::observeEvent(input$PTMsQuant, {
     m4Quant(Modifs$Mark[match(unlist(input$PTMsQuant), Modifs$`Full name`)])
     m2Xclud(set_colnames(Modifs[which(!Modifs$Mark %in% Mod4Quant), c("Mark", "AA")],
                          c("Mark", "Where")))
   }, ignoreNULL = FALSE)
   # PTMs to write a tab for
-  observeEvent(input$Mod2Write, {
+  shiny::observeEvent(input$Mod2Write, {
     assign("Mod2Write", Modifs$Mark[match(input$Mod2Write, Modifs$`Full name`)], envir = .GlobalEnv)
     Par <- PARAM()
     Par$Mod2Write <- Mod2Write
@@ -1130,7 +1164,7 @@ server <- function(input, output, session) {
   # })
   #
   # Save
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     Par <- PARAM()
     assign("AnalysisParam", Par, envir = .GlobalEnv)
     assign("Mod4Quant", m4Quant(), envir = .GlobalEnv)
@@ -1138,7 +1172,7 @@ server <- function(input, output, session) {
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+  session$onSessionEnded(function() { shiny::stopApp() })
 }
 eval(parse(text = runApp), envir = .GlobalEnv)
 #
@@ -3616,7 +3650,7 @@ if (globalGO) {
   source(Src, local = FALSE)
   #
   # Cleanup - do it now, not within sources!
-  for (i in allArgs) { try(rm(i), silent = TRUE) }
+  try(rm(list = allArgs), silent = TRUE)
   #
   temp <- goRES
   #
@@ -3711,7 +3745,7 @@ if (globalGO) {
       source(Src, local = FALSE)
       #
       # Cleanup - do it now, not within sources!
-      for (i in allArgs) { try(rm(i), silent = TRUE) }
+      try(rm(list = allArgs), silent = TRUE)
       #
       temp <- goRES
       #
@@ -3807,7 +3841,7 @@ if (globalGO) {
           source(Src, local = FALSE)
           #
           # Cleanup - do it now, not within sources!
-          for (i in allArgs) { try(rm(i), silent = TRUE) }
+          try(rm(list = allArgs), silent = TRUE)
           #
           PTMs_GO_Plots[[Ptm]][[tstbee]] <- goRES
           #

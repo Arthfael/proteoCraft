@@ -1319,6 +1319,7 @@ if (length(kol)) {
         output$PCs <- renderDT({ PCs },
                                FALSE,
                                escape = FALSE,
+                               class = "compact",
                                selection = "none",
                                editable = FALSE,
                                rownames = FALSE,
