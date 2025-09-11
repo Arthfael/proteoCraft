@@ -838,6 +838,7 @@ while (!areWeGood) {
     output$ExpTbl <- renderDT({ xpDat },
                               FALSE,
                               escape = FALSE,
+                              class = "compact",
                               selection = "none",
                               editable = edith,
                               rownames = FALSE,
