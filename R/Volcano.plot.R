@@ -579,7 +579,7 @@ Volcano.plot <- function(Prot,
     if (length(x) > 8) { x <- c(x[1:8], "...") } # This is because:
     # a) sentences of too many words can cause problems with subsequent combinatorial steps, slowing down the script or even causing it to fail
     # and
-    #b) do you really expect a protein label more than 8 words long to be helpful?
+    # b) do you really expect a protein label more than 8 words long to be helpful?
     # Usually this will not be an issue with Uniprot but can be for other databases, e.g. TAIR, where protein names contain additional information for unknown proteins.
     nc <- min(ceiling((sum(nchar(x)) + length(x) - 1)/colchar), length(x))
     if (nc > 1) {
@@ -1373,6 +1373,8 @@ Volcano.plot <- function(Prot,
     }
   }
   if (save) {
+    cat("   Saving ggplots...\n")
+    # Move me out of the function!!!
     if (subfolderpertype) { sfpt <- paste0(subfolder, "/", saveExt[1]) } else { sfpt <- subfolder }
     if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
     plotsLst <- lst1 <- setNames(lapply(names(Plots$Unlabelled), function(nm) {
@@ -1431,26 +1433,16 @@ Volcano.plot <- function(Prot,
     tst <- parallel::parLapply(cl, plotsLst, f0)
   }
   #
-  if (plotly&&plotly_local) {
-    if (subfolderpertype) { sfpt <- paste0(subfolder, "/html") } else { sfpt <- subfolder }
-    if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
-    setwd(sfpt)
-    parallel::clusterExport(cl, "sfpt", envir = environment())
-    f0 <- function(x) {
-      htmlwidgets::saveWidget(x$Plot, paste0(sfpt, "/", x$Ttl, ".html"),
-                              selfcontained = TRUE)
-    }
-    environment(f0) <- .GlobalEnv
-    tst <- parallel::parLapply(cl, volcPlotly, f0)
-    setwd(origWD)
-  }
-  #
   thrsh <- list(Absolute = plotMetr.lst)
   if (useFDRtbl) { thrsh$FDR <- FDR_table }
   RES <- list(Thresholds = thrsh)
   if (return) { RES$Protein_groups_file <- Prot }
   if (return.plot) { RES$Plots <- Plots }
-  if ((plotly)&&(!plotly_local)) { RES$"Plotly plots" <- volcPlotly2 }
+  if (plotly) {
+    if (plotly_local) { RES$"Plotly plots" <- volcPlotly } else {
+      RES$"Plotly plots" <- volcPlotly2
+    }
+  }
   #
   setwd(origWD)
   #

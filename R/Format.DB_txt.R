@@ -63,6 +63,7 @@ Format.DB_txt <- function(txt,
   #
   #TESTING <- TRUE;proteoCraft::DefArg(proteoCraft::Format.DB_txt)
   #txt = annot_Fl;Features = TRUE;cl = parClust
+  #txt = x; usePar = TRUE; cl = parClust 
   Feat_isoRgx <- paste0("(", Feat_accRgx, ")(-[0-9]+)?")
   #
   #txt <- readLines(AnnotFls)
@@ -98,7 +99,7 @@ Format.DB_txt <- function(txt,
   #
   # Detect whether txt is actually a path rather than the database already in environment. 
   if ((length(txt) == 1)&&(file.exists(txt))) {
-    cat(paste0("File path input detected, reading data at ", txt, "\n"))
+    cat(paste0("File path input detected, reading data at:\n", txt, "\n...\n"))
     txt <- readLines(txt)
   }
   #
@@ -107,7 +108,16 @@ Format.DB_txt <- function(txt,
   lG <- length(G1)
   #
   if (usePar) {
-    RG <- round(length(txt)*(1:N.clust)/N.clust)
+    # Create range in 3 steps to avoid:
+    #
+    #   Warning message:
+    #   In length(txt) * (1:N.clust) : NAs produced by integer overflow
+    #
+    # This happens for very large files and actually kills the function!!!
+    tmp <- round((1:N.clust)/N.clust, 4)
+    RG <- length(txt)*tmp
+    RG <- round(RG)
+    #
     if (N.clust > 1) {
       RG[1:(N.clust-1)] <- vapply(RG[1:(N.clust-1)], function(x) {
         max(G1[which(G1 < x)+1])-1
