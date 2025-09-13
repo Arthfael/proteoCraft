@@ -399,9 +399,9 @@ tst <- lapply(colnames(tmpTbl), function(x) { typeof(tmpTbl[[x]]) })
 w <- which(tst == "list")
 if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
-if ("try-error" %in% class(tst)) {
+while ("try-error" %in% class(tst)) {
   dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-  write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE)
+  tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
 }
 #
 #system(paste0("open \"", wd, "/", ExpMapNm, ".csv\""))

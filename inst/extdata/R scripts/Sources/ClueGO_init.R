@@ -64,25 +64,23 @@ if (CytoScape) {
     optNms <- c(names(clueGOrgs), dlNew)
     opt <- setNames(sapply(optNms, function(x) { paste(c(x, rep(" ", 250-nchar(x))), collapse = "") }), optNms)
     tmp <- dlg_list(opt, opt[dlNew], title = msg)$res
-    tmp <- optNms[match(tmp, opt)]
-    if ((length(tmp) > 0)&&(tmp != dlNew)) {
+    orgNm <- optNms[match(tmp, opt)]
+    if ((length(orgNm) == 1)&&(orgNm == dlNew)) {
       msg <- paste0("Download the new organism in ClueGO from within the CytoScape GUI\n(click on the leftmost blue paw icon)\nthen click \"ok\" to continue.")
       dlg_message(msg, "ok")
       rqst <- paste0(clueGO_URL, "/organisms/get-all-organism-info")
       response <- httr::GET(rqst, encode = "json")
       clueGOrgs <- httr::content(response, encode = "json")
       orgNm <- myOrgNm[which(myOrgNm %in% names(clueGOrgs))]
-      clueGOahead <- (length(orgNm) >= 1)
-      if (!clueGOahead) {
-        msg <- paste0("Download the new organism in ClueGO from within the CytoScape GUI\n(click on the leftmost blue paw icon)\nthen click \"ok\" to continue.")
-        dlg_message(msg, "ok")
-        rqst <- paste0(clueGO_URL, "/organisms/get-all-organism-info")
-        response <- httr::GET(rqst, encode = "json")
-        clueGOrgs <- httr::content(response, encode = "json")
-        orgNm <- myOrgNm[which(myOrgNm %in% names(clueGOrgs))]
-        clueGOahead <- (length(orgNm) >= 1)
+      if (!length(orgNm)) {
+        msg <- "I could not identify the organism automatically, select organism from this list"
+        optNms <- names(clueGOrgs)
+        opt <- setNames(sapply(optNms, function(x) { paste(c(x, rep(" ", 250-nchar(x))), collapse = "") }), optNms)
+        tmp <- dlg_list(opt, opt[dlNew], title = msg)$res
+        orgNm <- optNms[match(tmp, opt)]
       }
     }
+    clueGOahead <- (length(orgNm) == 1)
   }
   if (clueGOahead) {
     orgNm <- orgNm[1]
@@ -113,7 +111,8 @@ if (CytoScape) {
     cat(paste0("Analysis Parameters for ", dtstNm,
                "\nUser Home Folder: ", clueGO_Home,
                "\nCytoscape Base URL: ", cytoscp_URL,
-               "\nClueGO Base URL: ", clueGO_URL))
+               "\nClueGO Base URL: ", clueGO_URL,
+               "\nOrganism: ", orgNm, "\n"))
     #
   }
 }

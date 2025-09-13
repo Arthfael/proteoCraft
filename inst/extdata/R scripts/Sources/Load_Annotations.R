@@ -148,8 +148,16 @@ if (Annotate) {
       db[[i]] <- parSapply(parClust, db[[i]], paste, collapse = ";")
     }
   }
-  data.table::fwrite(db, paste0(wd, "/Parsed, annotated search db.csv"),
-                     quote = FALSE, sep = ",", row.names = FALSE, col.names = TRUE, na = "NA")
+  pth <- paste0(wd, "/Parsed, annotated search db.csv")
+  f0 <- function() {
+    data.table::fwrite(db, pth,
+                       quote = FALSE, sep = ",", row.names = FALSE, col.names = TRUE, na = "NA")
+  }
+  tst <- try(f0(), silent = TRUE)
+  while ("try-error" %in% class(tst)) {
+    dlg_message(paste0("File \"", pth, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+    tst <- try(f0(), silent = TRUE)
+  }
   #db <- data.table::fread(paste0(wd, "/Parsed, annotated search db.csv"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
   #write.csv(db, "Parsed, annotated search db.csv", row.names = FALSE)
   #db <- read.csv("Parsed, annotated search db.csv", check.names = FALSE, colClasses = "character")

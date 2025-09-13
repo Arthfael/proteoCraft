@@ -294,9 +294,9 @@ if (LabelType == "LFQ") {
   colnames(FracMap)[which(colnames(FracMap) == "Parent sample")] <- "MQ.Exp"
 }
 tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
-if ("try-error" %in% class(tst)) {
+while ("try-error" %in% class(tst)) {
   dlg_message(paste0("File \"", FracMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-  write.csv(FracMap, file = FracMapPath, row.names = FALSE)
+  tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
 }
 FracMap <- FracMap[which(FracMap$Use),]
 MQ.Exp %<o% sort(unique(FracMap$MQ.Exp))

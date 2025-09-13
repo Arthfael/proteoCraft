@@ -1,11 +1,11 @@
 # Write Materials and Method to text file
 setwd(wd)
 tmp <- paste0("MatMet <- ", unlist(MatMetCalls$Calls))
-Src <- paste0(wd, "/tmp.R")
-write(tmp, Src)
+tmpSrc <- paste0(wd, "/tmp.R")
+write(tmp, tmpSrc)
 MatMetFl <- paste0(wd, "/Materials and methods_WIP.docx")
 tst <- try({
-  source(Src, local = FALSE)
+  source(tmpSrc, local = FALSE)
   MatMet %<o% MatMet
   print(MatMet, target = MatMetFl)
 }, silent = TRUE)
@@ -15,20 +15,21 @@ if ("try-error" %in% class(tst)) {
   system(paste0("open \"", MatMetFl, "\""))
   dlg_message("Check materials and methods text, make any necessary edits, then save and click ok", "ok")
 }
+unlink(tmpSrc)
 
 # Write pdf report
 if (scrptType == "withReps") {
   # Write report to Word file
   tmp <- paste0("Report <- ", unlist(ReportCalls$Calls))
-  Src <- paste0(wd, "/tmp.R")
-  write(tmp, Src)
+  tmpSrc <- paste0(wd, "/tmp.R")
+  write(tmp, tmpSrc)
   tst <- try({
-    source(Src, local = FALSE)
+    source(tmpSrc, local = FALSE)
     Report %<o% Report
     print(Report, target = paste0(wd, "/Workflow control/Analysis report.docx"))
   }, silent = TRUE)
   if ("try-error" %in% class(tst)) { warning("Couldn't write pdf report, investigate...") }
-  unlink(Src)
+  unlink(tmpSrc)
   #system(paste0("open \"", wd, "/Workflow control/Analysis report.docx"))
 }
 
@@ -60,7 +61,7 @@ if ((exists("outDir"))&&(length(outDir) == 1)&&(!is.na(outDir))&&(dir.exists(out
 if (!dir.exists(dflt)) { dflt <- wd }
 outDir %<o% rstudioapi::selectDirectory("Select data delivery folder",
                                         path = dflt)
-ok2Deliver %<o% (exists("outDir"))&&(length(outDir) == 1)&&(!is.na(outDir))&&(dir.exists(outDir))
+ok2Deliver %<o% ((exists("outDir"))&&(length(outDir) == 1)&&(!is.na(outDir))&&(dir.exists(outDir)))
 dataDeliveryOk %<o% FALSE
 if (ok2Deliver) {
   Tsts <- list()
@@ -183,11 +184,11 @@ if (ok2Deliver) {
   tstDrs <- tstDrs[which(!tstDrs %in% tstDrs2)]
   if (length(tstDrs)) { for (dr in tstDrs) { unlink(dr) } } # Remove empty directories
   # - 3b) create final output directory
-  procdir %<o% paste0(outDir, "/3_Post_processing_", Sys.Date())
+  procDir %<o% paste0(outDir, "/3_Post_processing_", Sys.Date())
   g <- grep("^3(\\.[0-9]+)?_", list.dirs(outDir, FALSE, FALSE), value = TRUE)
   kount <- length(g)
   if (kount) {
-    procdir <- paste0(outDir, "/3.", kount, "_Post_processing_", Sys.Date())
+    procDir <- paste0(outDir, "/3.", kount, "_Post_processing_", Sys.Date())
   }
   #unloadNamespace("devtools")
   #unloadNamespace("usethis")
@@ -203,20 +204,20 @@ if (ok2Deliver) {
     fs::file_move(tmpRDat, tmpRDat2)
   }
   # - 3d) copy analysis results
-  cat(" - Copying processing results from\n\t\t", wd, "\n   to\n\t\t", procdir, "\n\n")
-  Tsts$"Data analysis" <- try(fs::dir_copy(wd, procdir, overwrite = FALSE), silent = TRUE)
+  cat(" - Copying processing results from\n\t\t", wd, "\n   to\n\t\t", procDir, "\n\n")
+  Tsts$"Data analysis" <- try(fs::dir_copy(wd, procDir, overwrite = FALSE), silent = TRUE)
   if ("try-error" %in% class(Tsts$"Data analysis")) {
     warning("Analysis results not copied to destination - usually this is a path length issue.\nYou will have to copy them manually.")
     Tsts$"Data analysis" <- FALSE
   } else {
     tmpDr <- paste0(outDir, gsub(".*/" , "/", wd))
     if (("character" %in% class(Tsts$"Data analysis"))&&(Tsts$"Data analysis" == tmpDr)) {
-      Tsts$"Data analysis" <- file.rename(tmpDr, procdir)
-      Tsts$"Data analysis" <- Tsts$"Data analysis" == procdir
-      tmp <- grep("\\.RData$", list.files(procdir, all.files = TRUE, full.names = TRUE), value = TRUE)
+      Tsts$"Data analysis" <- file.rename(tmpDr, procDir)
+      Tsts$"Data analysis" <- Tsts$"Data analysis" == procDir
+      tmp <- grep("\\.RData$", list.files(procDir, all.files = TRUE, full.names = TRUE), value = TRUE)
       tmp <- grep("/Backup\\.RData$", tmp, value = TRUE, invert = TRUE) # We want to export the final Backup.RData file: it is large, but useful to have
       unlink(tmp) # Unlink the other RData files
-      unlink(paste0(procdir, "/.RHistory"))
+      unlink(paste0(procDir, "/.RHistory"))
     }
   }
   # - 3e) move .RData files back
@@ -247,11 +248,13 @@ setwd(wd); saveImgFun(BckUpFl) # Leave an ultimate backup in the temporary folde
 #loadFun(BckUpFl)
 
 # Also save a citations report
-setwd(procdir)
+if (dataDeliveryOk) { setwd(procDir) } else { setwd(wd) }
 if (!require(grateful)) {
   pak::pkg_install("grateful")
 }
-invisible(suppressMessages({ a <- captureOutput(grateful::cite_packages(out.dir = ".", pkgs = "Session", quiet = TRUE)) })) # This thing won't shut up!
+invisible(suppressMessages({
+  a <- captureOutput(grateful::cite_packages(out.dir = ".", pkgs = "Session", quiet = TRUE))
+})) # This thing won't shut up!
 
 # Cleanup
 locsFl <- paste0(homePath, "/Default_locations.xlsx")
@@ -310,9 +313,9 @@ if ((dataDeliveryOk)&&(length(archDirDflt) == 1)) {
 # Save final state of the environment
 # This is done within the destination folder (outDir) because it will restart the session so has to be done last
 # (this will interrupt the script flow so all commands queued after that are gone)
-setwd(procdir)
+if (dataDeliveryOk) { setwd(procDir) } else { setwd(wd) }
 pkgs <- gtools::loadedPackages()
-dscrptFl <- paste0(procdir, "/DESCRIPTION")
+dscrptFl <- paste0(procDir, "/DESCRIPTION")
 tmp <- paste0(do.call(paste, c(pkgs[, c("Name", "Version")], sep = " (")), ")")
 tmp <- paste0("Depends: ", paste(tmp, collapse = ", "))
 write(tmp, dscrptFl)

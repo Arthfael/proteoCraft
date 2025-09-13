@@ -23,8 +23,6 @@ cleanNms2 %<o% function(names, groups = VPAL, sep = "\n/vs/\n", simplify) {
 ReportCalls <- AddSpace2Report()
 msg <- "Venn diagrams"
 ReportCalls <- AddMsg2Report()
-HdrStlVenn <- createStyle(textDecoration = "bold", halign = "left", valign = "bottom", wrapText = TRUE,
-                          numFmt = "TEXT", fontSize = 12, textRotation = 60)
 HdrStlVenn <- openxlsx2::create_cell_style(num_fmt_id = "General",
                                            horizontal = "left",
                                            vertical = "bottom",
@@ -39,7 +37,7 @@ if (("Venn.Groups" %in% colnames(Param))&&(Param$Venn.Groups != "")) {
 } else { VennGrp <- Param$Ratios.Groups }
 if (toupper(VennGrp) == "GLOBAL") { VennGrp <- "GLOBAL" }
 #if (grepl("^[A-Z][a-z]{2}(;[A-Z][a-z]{2})*$", VennGrp)) {
-  VennGrp2 <- parse.Param.aggreg(Param_filter(VennGrp, "Rep"))
+VennGrp2 <- parse.Param.aggreg(Param_filter(VennGrp, "Rep"))
 #}
 VennMx <- 7
 #
@@ -382,4 +380,3 @@ for (ii in II) { #ii <- II[1] #ii <- II[2] #ii <- II[3]
   setwd(wd)
   ReportCalls <- AddSpace2Report()
 }
-

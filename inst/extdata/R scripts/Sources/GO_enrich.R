@@ -218,7 +218,7 @@ if (Mode == "dataset") {
       subfolderpertype <- FALSE
     }
     if (scrptType == "noReps") {
-      filters <- filt
+      filters <- xprsFilt
       Prot_FC_root <- ref
     }
   }
@@ -704,14 +704,16 @@ if (length(wFltL)) {
       for (kl in 1:(1+GenTst)) {
         nm <- c("Protein", "Gene")[kl]
         wh <- which(vapply(tmpGO.terms$"Protein table row(s)", length, 1) > 0)
-        tmp1 <- proteoCraft::listMelt(tmpGO.terms$"Protein table row(s)"[wh], wh)
-        tmp1$value2 <- Prot[match(tmp1$value, 1:nrow(Prot)), ID_col]
-        tmp1 <- proteoCraft::listMelt(strsplit(tmp1$value2, ";"), tmp1$L1)
-        if (kl == 2) {
-          tmp1$value <- DB[match(tmp1$value, DB[[db_ID_col]]), db_Gene_col]
+        if (length(wh)) {
+          tmp1 <- proteoCraft::listMelt(tmpGO.terms$"Protein table row(s)"[wh], wh)
+          tmp1$value2 <- Prot[match(tmp1$value, 1:nrow(Prot)), ID_col]
+          tmp1 <- proteoCraft::listMelt(strsplit(tmp1$value2, ";"), tmp1$L1)
+          if (kl == 2) {
+            tmp1$value <- DB[match(tmp1$value, DB[[db_ID_col]]), db_Gene_col]
+          }
+          tmp1 <- aggregate(tmp1$value, list(tmp1$L1), function(x) { paste(sort(unique(x)), collapse = ";") })
+          tmpGO.terms[[paste0(nm, "s")]] <- tmp1$x[match(1:nrow(tmpGO.terms), tmp1$Group.1)] 
         }
-        tmp1 <- aggregate(tmp1$value, list(tmp1$L1), function(x) { paste(sort(unique(x)), collapse = ";") })
-        tmpGO.terms[[paste0(nm, "s")]] <- tmp1$x[match(1:nrow(tmpGO.terms), tmp1$Group.1)]
       }
       k <- colnames(GO.terms)[which(!colnames(GO.terms) %in% colnames(tmpGO.terms))]
       if (length(k)) { tmpGO.terms[, k] <- NA }

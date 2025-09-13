@@ -38,7 +38,7 @@ if (!dir.exists(ohDeer)) { dir.create(ohDeer, recursive = TRUE) }
 if (exists("dirlist")) { dirlist <- unique(c(dirlist, ohDeer)) }
 isOK <- length(log2Col) > 0
 if (isOK) {
-  if (!exists("Org")) {
+  if ((!exists("Org"))||(!"data.frame" %in% class(Org))||(nrow(Org) != 1)) {
     kol <- c("Organism_Full", "Organism")
     kol <- kol[which(kol %in% colnames(db))]
     tst <- sapply(kol, function(x) { length(unique(db[which(!as.character(db[[x]]) %in% c("", "NA")), x])) })
