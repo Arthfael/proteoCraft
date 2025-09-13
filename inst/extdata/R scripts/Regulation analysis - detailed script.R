@@ -1421,7 +1421,7 @@ if (length(w) == 2) {
   PG$Genes <- apply(temp, 1, function(x) { paste(sort(unique(unlist(x))), collapse = ";") })
   PG$"Gene names" <- NULL
 } else { if (length(w) == 1) { colnames(PG)[which(colnames(PG) %in% genkol)] <- "Genes" } }
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 #
 # If Arabidopsis:
 if (("ARATH" %in% db$Organism)||(3702 %in% db$TaxID)) {
@@ -1659,7 +1659,7 @@ temp <- parApply(parClust, Samplez, 1, function(Smpl) { #Smpl <- unlist(Samplez[
 })
 temp <- do.call(cbind, temp)
 PG[, colnames(temp)] <- temp
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 #View(PG[, grep("^Spectr|^Peptide|^Evidence", colnames(PG))])
 
 # CRAPome
@@ -1718,7 +1718,7 @@ tst <- parSapply(parClust, 1:nrow(pep), function(x) {
   x <- max(vapply(kol, function(kl) { sum(proteoCraft::is.all.good(unlist(tst[x, kl])) > 0) }, 1) >= PepFoundInAtLeastGrp)
   return(x)
 }) > 0
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 Pep2Use %<o% which(tst)
 #length(Pep2Use)/nrow(pep)
 
@@ -2276,7 +2276,7 @@ if (Mirror.Ratios) {
 }
 
 rm(list = ls()[which(!ls() %in% .obj)])
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
 gc()
 saveImgFun(BckUpFl)
@@ -3181,7 +3181,7 @@ if (!Param$Plot.labels %in% colnames(PG)) {
 }
 
 rm(list = ls()[which(!ls() %in% .obj)])
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
 
 #### Code chunk - samples Pearson correlation heatmap
@@ -3264,7 +3264,7 @@ ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 600)
 ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 600)
 
 rm(list = ls()[which(!ls() %in% .obj)])
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
 gc()
 saveImgFun(BckUpFl)
@@ -3459,7 +3459,7 @@ plotsList1 <- parLapply(parClust, 1:nrow(Comb), function(i) { #i <- 1
               Title = ttl1)
   return(lst)
 })
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 for (nm in 1:length(plotsList1)) {
   ReportCalls <- AddPlot2Report(Plot = plotsList1[[nm]]$Plot,
                                 Title = plotsList1[[nm]]$Title,
@@ -3670,7 +3670,7 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/Annotate_me.R")
 source(Src, local = FALSE)
 
 rm(list = ls()[which(!ls() %in% .obj)])
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
 
 #### Code chunk - ROC analysis
@@ -3807,7 +3807,7 @@ if (Param$Ratios.Thresholds == threshMsg) {
 }
 
 rm(list = ls()[which(!ls() %in% .obj)])
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
 gc()
 saveImgFun(BckUpFl)
@@ -4139,7 +4139,7 @@ if (sum(c("dat", "dat2") %in% filter_types)) {
 #
 
 rm(list = ls()[which(!ls() %in% .obj)])
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
 gc()
 try({ stopCluster(parClust) }, silent = TRUE)
@@ -4324,7 +4324,7 @@ if (F.test) {
     rm(list = ls()[which(!ls() %in% .obj)])
     Script <- readLines(ScriptPath)
     gc()
-    invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+    invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
     saveImgFun(BckUpFl)
     #loadFun(BckUpFl)
     source(parSrc, local = FALSE)
@@ -4873,7 +4873,7 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/cluster_Heatmap.R")
 source(Src, local = FALSE)
 
 rm(list = ls()[which(!ls() %in% .obj)])
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
 
 #### Code chunk - Dimensionality reduction plots
@@ -5204,7 +5204,7 @@ saveFun(dimRedPlotLy, file = paste0(dir, "/DimRedPlots.RData"))
 
 #### Code chunk - Protein group profile plots and sorting plots
 rm(list = ls()[which(!ls() %in% .obj)])
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
 gc()
 require(RColorBrewer)
@@ -5633,7 +5633,7 @@ if (exists("Tim")) {
 }
 
 rm(list = ls()[which(!ls() %in% .obj)])
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
 
 #### Code chunk - Sub-Cellular localisation analysis: pRoloc-based prediction of localisation + analysis of the Sums of Squared Differences of Profiles
@@ -6293,7 +6293,7 @@ Example: \"GO:0031012;2\"
   rm(list = ls()[which(!ls() %in% .obj)])
   Script <- readLines(ScriptPath)
   gc()
-  invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+  invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
   saveImgFun(BckUpFl)
   #loadFun(BckUpFl)
   source(parSrc, local = FALSE)
@@ -6643,7 +6643,7 @@ if (enrichGO||globalGO) {
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 gc()
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 source(parSrc, local = FALSE)
@@ -8161,7 +8161,7 @@ if (length(protlspep)) {
           dir,
           cl = parClust)
 }
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 
 #### Code chunk - peptide tables for visualizing the coverage of proteins of interest in 3D using SCV
 # Edit me to also just use the newer cov3D function!!!

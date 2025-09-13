@@ -273,9 +273,9 @@ while ((!runKount)||(!exists("frMap2"))) {
 FracMap %<o% frMap2
 #
 tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
-if ("try-error" %in% class(tst)) {
+while ("try-error" %in% class(tst)) {
   dlg_message(paste0("File \"", FracMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-  write.csv(FracMap, file = FracMapPath, row.names = FALSE)
+  tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
 }
 
 #FracMap <- read.csv(FracMapPath, check.names = FALSE)
@@ -306,7 +306,7 @@ if (WorkFlow %in% c("Regulation", "Pull-down")) {
 #### Code chunk - Samples map
 SamplesMapNm %<o% "Samples map"
 SamplesMapPath %<o% paste0(wd, "/", SamplesMapNm, ".csv")
-if (!file.exists(SamplesMapPath)) {
+if ((!file.exists(SamplesMapPath))||(!nrow(SamplesMap))) {
   SamplesMap %<o% data.frame("MQ.Exp" = exp,
                              "Negative Filter" = FALSE,
                              check.names = FALSE)
@@ -508,9 +508,9 @@ exp <- expOrder
 SamplesMap <- SamplesMap[match(SamplesMap$MQ.Exp, exp), ]
 #
 tst <- try(write.csv(SamplesMap, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
-if ("try-error" %in% class(tst)) {
+while ("try-error" %in% class(tst)) {
   dlg_message(paste0("File \"", SamplesMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-  write.csv(SamplesMap, file = SamplesMapPath, row.names = FALSE)
+  tst <- try(write.csv(SamplesMap, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
 }
 
 if ("Negative Filter" %in% colnames(SamplesMap)) {
@@ -787,6 +787,13 @@ ui <- shiny::fluidPage(
       "#E6F7F4"),
     gradient = "linear",
     direction = "bottom"
+  ),
+  shiny::tags$head(
+    shiny::tags$style(
+      '.inner.open {
+            overflow-y: hidden !important;
+        }'
+    )
   ),
   shinyjs::extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
   shiny::titlePanel(shiny::tag("u", "Parameters"),
@@ -1274,7 +1281,7 @@ ev$"Peptide ID" <- NULL
 
 Script <- readLines(ScriptPath)
 gc()
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -1849,7 +1856,7 @@ if (runPepper) {
 
 Script <- readLines(ScriptPath)
 gc()
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -2061,7 +2068,7 @@ if (length(Exp) > 1) {
     ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
   } else { warning("Do we really have enough data to continue? Investigate...") }
 }
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 
 # Calculate peptide ratios
 rat.col %<o% "log2(Ratio)"
@@ -2238,7 +2245,7 @@ for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
     })
   }
 }
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 # Simplify Gene columns
 genkol <- c("Genes", "Gene names")
 w <- which(genkol %in% colnames(PG))
@@ -2439,7 +2446,7 @@ PG[, colnames(temp)] <- temp
 
 Script <- readLines(ScriptPath)
 gc()
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -2708,7 +2715,7 @@ if (length(Exp) > 1) {
 g <- as.character(sapply(PG.int.cols, function(x) { grep(topattern(x), colnames(PG), value = TRUE) }))
 test <- vapply(g, function(x) { length(is.all.good(PG[[x]])) }, 1)
 print(test)
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 
 # Intensities distribution:
 long.dat <- list()
@@ -3259,7 +3266,7 @@ if (protrul) {
 
 Script <- readLines(ScriptPath)
 gc()
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -3313,7 +3320,7 @@ source(Src, local = FALSE)
 
 Script <- readLines(ScriptPath)
 gc()
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -3601,13 +3608,13 @@ if (prot.list.Cond) {
           }
         }
       }
-    }))
+    })
   }
 }
 
 Script <- readLines(ScriptPath)
 gc()
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -3628,8 +3635,9 @@ if (enrichGO||globalGO) {
 source(parSrc, local = FALSE)
 create_plotly %<o% TRUE
 if (globalGO) {
+  # Global dataset GO enrichment - expression per sample vs total proteome
   ref <- rev(PG.int.cols[which(PG.int.cols != paste0("Imput. ", PG.int.cols["Original"]))])[1]
-  filt <- setNames(lapply(Exp, function(e) { which(PG[[paste0(ref, e)]] > 0) }), Exp)
+  xprsFilt <- setNames(lapply(Exp, function(e) { which(PG[[paste0(ref, e)]] > 0) }), Exp)
   dir <- paste0(wd, "/GO enrichment analysis/Sample vs total proteome")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   setwd(dir)
@@ -3650,7 +3658,7 @@ if (globalGO) {
   source(Src, local = FALSE)
   #
   # Cleanup - do it now, not within sources!
-  try(rm(list = allArgs), silent = TRUE)
+  suppressWarnings(try(rm(list = allArgs), silent = TRUE))
   #
   temp <- goRES
   #
@@ -3680,7 +3688,6 @@ if (globalGO) {
     tst <- apply(temp[, kn, drop = FALSE], 1, function(x) { sum(x[which(!is.na(x))]) })
     temp <- temp[order(tst, decreasing = TRUE),]
     temp <- temp[order(temp$Ontology, decreasing = FALSE),]
-    write.csv(temp, file = paste0(dir, "/GO terms - Samples vs Proteome.csv"), row.names = FALSE)
     ExcelMax <- 32767
     w <- which(vapply(colnames(temp), function(x) { "character" %in% class(temp[[x]]) }, TRUE))
     if (length(w)) {
@@ -3691,33 +3698,61 @@ if (globalGO) {
         }
       }
     }
-    HdrStl <- createStyle(textDecoration = "bold", halign = "center", valign = "center", wrapText = TRUE,
-                          numFmt = "TEXT", fontSize = 12)
-    wb <- createWorkbook()
+    wb <- openxlsx2::wb_workbook()
+    myFont <- openxlsx2::create_font(sz = "12", color = openxlsx2::wb_color("#FFFFFF"))
+    wb$styles_mgr$add(myFont, "Header_font")
+    HdrStl <- openxlsx2::create_cell_style(font_id = 1,
+                                           num_fmt_id = "General",
+                                           horizontal = "justify",
+                                           vertical = "top",
+                                           text_rotation = 60,
+                                           wrap_text = TRUE)
+    wb$styles_mgr$add(HdrStl, "Header_style")
+    nTabs <- 0
     for (ont in names(Ontologies)) { #ont <- names(Ontologies)[1]
       w <- which(temp$Ontology == Ontologies[ont])
       if (length(w)) {
-        addWorksheet(wb, ont)
-        writeData(wb, ont, temp[w,])
-        setRowHeights(wb, ont, 1, 60)
-        setColWidths(wb, ont, 1:ncol(temp), 12)
-        setColWidths(wb, ont, which(colnames(temp) == "Term"), 45)
-        setColWidths(wb, ont, which(colnames(temp) %in% gn), 20)
-        setColWidths(wb, ont, which(colnames(temp) %in% pr), 20)
-        addStyle(wb, ont, HdrStl, 1, 1:ncol(temp))
-        addStyle(wb, ont, createStyle(numFmt = "0"), 2:(length(w)+1),
-                 which(colnames(temp) %in% kn), gridExpand = TRUE)
-        addStyle(wb, ont, createStyle(numFmt = "0.000"), 2:(length(w)+1),
-                 which(colnames(temp) %in% c(zs, lf, pv)), gridExpand = TRUE)
+        sheetNm <- ont
+        if (sheetNm %in% wb_get_sheet_names(wb)) {
+          wb <- openxlsx2::wb_remove_worksheet(wb, sheetNm)
+          nTabs <- nTabs + 1
+        }
+        wb <- openxlsx2::wb_add_worksheet(wb, sheetNm)
+        nTabs <- nTabs + 1
+        wb <- openxlsx2::wb_add_data_table(wb, sheetNm, temp[w,], openxlsx2::wb_dims(2, 2))
+        wb <- openxlsx2::wb_set_row_heights(wb, sheetNm, 2, 120)
+        wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1, 1)
+        wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1+1:ncol(temp), 12)
+        wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1+which(colnames(temp) == "Term"), 45)
+        wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1+which(colnames(temp) %in% c(gn, pr)), 20)
+        dms <- openxlsx2::wb_dims(2, 1+1:ncol(temp))
+        wb <- openxlsx2::wb_set_cell_style(wb, sheetNm, dms, wb$styles_mgr$get_xf_id("Header_style"))
+        dms <- openxlsx2::wb_dims(1+1:length(w), 1+which(colnames(temp) %in% kn))
+        wb <- openxlsx2::wb_add_numfmt(wb, sheetNm, dms, "0")
+        dms <- openxlsx2::wb_dims(1+1:length(w), 1+which(colnames(temp) %in% c(zs, lf, pv)))
+        wb <- openxlsx2::wb_add_numfmt(wb, sheetNm, dms, "0.000")
       }
     }
-    saveWorkbook(wb, paste0(dir, "/GO terms - Samples vs Proteome.xlsx"), overwrite = TRUE)
+    if (nTabs) {
+      goXLfl <- paste0(dir, "/GO terms - Samples vs Proteome.xlsx")
+      openxlsx2::wb_save(wb, goXLfl)
+      #openxlsx2::xl_open(goXLfl)
+    }
   }
-  #openXL(paste0(dir, "/GO terms - ", n, ".xlsx"))  
   if (enrichGO) {
     for (grp in rat.grps) { #grp <- rat.grps[1]
+      wb <- openxlsx2::wb_workbook()
+      myFont <- openxlsx2::create_font(sz = "12", color = openxlsx2::wb_color("#FFFFFF"))
+      wb$styles_mgr$add(myFont, "Header_font")
+      HdrStl <- openxlsx2::create_cell_style(font_id = 1,
+                                             num_fmt_id = "General",
+                                             horizontal = "justify",
+                                             vertical = "top",
+                                             text_rotation = 60,
+                                             wrap_text = TRUE)
+      wb$styles_mgr$add(HdrStl, "Header_style")
+      nTabs <- 0
       SmplMp <- SamplesMap[which(SamplesMap$`Ratios group` == grp),]
-      
       tmp <- paste0("Comparisons to ", SmplMp$Experiment[which(SmplMp$Reference)])
       if (length(rat.grps) > 1) { tmp <- paste0("Group", grp, " (", tmp, ")") }
       dir <- paste0(wd, "/GO enrichment analysis/", tmp)
@@ -3727,8 +3762,7 @@ if (globalGO) {
       fcFilt <- FC_filt[which(names(FC_filt) %in% SmplMp$Experiment)]
       nms <- names(fcFilt)
       filt2 <- setNames(lapply(nms, function(x) {
-        SmplMp <- SamplesMap[which(SamplesMap$`Ratios group` == grp),]
-        unique(unlist(filt[SmplMp$Reference]))
+        unique(unlist(xprsFilt[SmplMp$Experiment]))
       }), nms)
       #
       Mode <- "regulated"
@@ -3745,7 +3779,7 @@ if (globalGO) {
       source(Src, local = FALSE)
       #
       # Cleanup - do it now, not within sources!
-      try(rm(list = allArgs), silent = TRUE)
+      suppressWarnings(try(rm(list = allArgs), silent = TRUE))
       #
       temp <- goRES
       #
@@ -3775,7 +3809,6 @@ if (globalGO) {
         tst <- apply(temp[, kn, drop = FALSE], 1, function(x) { sum(x[which(!is.na(x))]) })
         temp <- temp[order(tst, decreasing = TRUE),]
         temp <- temp[order(temp$Ontology, decreasing = FALSE),]
-        write.csv(temp, file = paste0(dir, "/GO terms - Regulated vs Sample.csv"), row.names = FALSE)
         ExcelMax <- 32767
         w <- which(vapply(colnames(temp), function(x) { "character" %in% class(temp[[x]]) }, TRUE))
         if (length(w)) {
@@ -3786,28 +3819,35 @@ if (globalGO) {
             }
           }
         }
-        HdrStl <- createStyle(textDecoration = "bold", halign = "center", valign = "center", wrapText = TRUE,
-                              numFmt = "TEXT", fontSize = 12)
-        wb <- createWorkbook()
         for (ont in names(Ontologies)) { #ont <- names(Ontologies)[1]
           w <- which(temp$Ontology == Ontologies[ont])
           if (length(w)) {
-            addWorksheet(wb, ont)
-            writeData(wb, ont, temp[w,])
-            setRowHeights(wb, ont, 1, 60)
-            setColWidths(wb, ont, 1:ncol(temp), 12)
-            setColWidths(wb, ont, which(colnames(temp) == "Term"), 45)
-            setColWidths(wb, ont, which(colnames(temp) %in% gn), 20)
-            setColWidths(wb, ont, which(colnames(temp) %in% pr), 20)
-            addStyle(wb, ont, HdrStl, 1, 1:ncol(temp))
-            addStyle(wb, ont, createStyle(numFmt = "0"), 2:(length(w)+1),
-                     which(colnames(temp) %in% kn), gridExpand = TRUE)
-            addStyle(wb, ont, createStyle(numFmt = "0.000"), 2:(length(w)+1),
-                     which(colnames(temp) %in% c(zs, lf, pv)), gridExpand = TRUE)
+            sheetNm <- ont
+            if (sheetNm %in% wb_get_sheet_names(wb)) {
+              wb <- openxlsx2::wb_remove_worksheet(wb, sheetNm)
+              nTabs <- nTabs-1
+            }
+            wb <- openxlsx2::wb_add_worksheet(wb, sheetNm)
+            nTabs <- nTabs + 1
+            wb <- openxlsx2::wb_add_data_table(wb, sheetNm, temp[w,], openxlsx2::wb_dims(2, 2))
+            wb <- openxlsx2::wb_set_row_heights(wb, sheetNm, 2, 120)
+            wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1, 1)
+            wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1+1:ncol(temp), 12)
+            wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1+which(colnames(temp) == "Term"), 45)
+            wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1+which(colnames(temp) %in% c(gn, pr)), 20)
+            dms <- openxlsx2::wb_dims(2, 1+1:ncol(temp))
+            wb <- openxlsx2::wb_set_cell_style(wb, sheetNm, dms, wb$styles_mgr$get_xf_id("Header_style"))
+            dms <- openxlsx2::wb_dims(1+1:length(w), 1+which(colnames(temp) %in% kn))
+            wb <- openxlsx2::wb_add_numfmt(wb, sheetNm, dms, "0")
+            dms <- openxlsx2::wb_dims(1+1:length(w), 1+which(colnames(temp) %in% c(zs, lf, pv)))
+            wb <- openxlsx2::wb_add_numfmt(wb, sheetNm, dms, "0.000")
           }
         }
-        saveWorkbook(wb, paste0(dir, "/GO terms - Regulated vs Sample.xlsx"), overwrite = TRUE)
-        setwd(wd)
+        if (nTabs) {
+          goXLfl <- paste0(dir, "/GO terms - Comp group ", grp, ".xlsx")
+          openxlsx2::wb_save(wb, goXLfl)
+          #openxlsx2::xl_open(goXLfl)
+        }
       }
     }
     if (PTMriched) {
@@ -3841,11 +3881,78 @@ if (globalGO) {
           source(Src, local = FALSE)
           #
           # Cleanup - do it now, not within sources!
-          try(rm(list = allArgs), silent = TRUE)
+          suppressWarnings(try(rm(list = allArgs), silent = TRUE))
           #
           PTMs_GO_Plots[[Ptm]][[tstbee]] <- goRES
           #
           setwd(wd)
+          #
+          setwd(wd)
+          if (class(temp) != "logical") {
+            temp <- temp$GO_terms
+            temp$"Protein group IDs" <- vapply(temp$`Protein table row(s)`, function(x) {
+              paste(PG$id[as.numeric(x)], collapse = ";")
+            }, "")
+            temp$Mapping <- NULL
+            if ("Offspring" %in% colnames(temp)) {
+              temp$Offspring <- vapply(temp$Offspring, paste, "", collapse = ";")
+            }
+            temp$`Protein table row(s)` <- NULL
+            gn <- grep("^Genes", colnames(temp), value = TRUE)
+            pr <- grep("^Proteins", colnames(temp), value = TRUE)
+            pg <- grep("^Protein group IDs", colnames(temp), value = TRUE)
+            kn <- grep("^Count", colnames(temp), value = TRUE)
+            pv <- grep("^Pvalue", colnames(temp), value = TRUE)
+            zs <- grep("^(Z-score|\\(N_Up - N_Down\\)/sqrt\\(Tot\\.\\))", colnames(temp), value = TRUE)
+            lf <- grep("^logFC", colnames(temp), value = TRUE)
+            si <- grep("^Significance", colnames(temp), value = TRUE)
+            kl <- colnames(temp)[which(!colnames(temp) %in% c(gn, kn, pv, zs, lf, si, pg, pr))]
+            temp <- temp[, c(kl, si, gn, pg, pr, kn, pv, zs, lf)]
+            w <- apply(temp[, pv, drop = FALSE], 1, function(x) { sum(!is.na(x)) }) > 0
+            temp <- temp[w,]
+            tst <- apply(temp[, kn, drop = FALSE], 1, function(x) { sum(x[which(!is.na(x))]) })
+            temp <- temp[order(tst, decreasing = TRUE),]
+            temp <- temp[order(temp$Ontology, decreasing = FALSE),]
+            ExcelMax <- 32767
+            w <- which(vapply(colnames(temp), function(x) { "character" %in% class(temp[[x]]) }, TRUE))
+            if (length(w)) {
+              for (i in w) { #i <- w[1]
+                w1 <- which(nchar(temp[[colnames(temp)[i]]]) > ExcelMax)
+                if (length(w1)) {
+                  temp[[colnames(temp)[i]]][w1] <- paste0(substr(temp[[colnames(temp)[i]]][w1], 1, ExcelMax-3), "...")
+                }
+              }
+            }
+            for (ont in names(Ontologies)) { #ont <- names(Ontologies)[1]
+              w <- which(temp$Ontology == Ontologies[ont])
+              if (length(w)) {
+                sheetNm <- ont
+                if (sheetNm %in% wb_get_sheet_names(wb)) {
+                  wb <- openxlsx2::wb_remove_worksheet(wb, sheetNm)
+                  nTabs <- nTabs-1
+                }
+                wb <- openxlsx2::wb_add_worksheet(wb, sheetNm)
+                nTabs <- nTabs + 1
+                wb <- openxlsx2::wb_add_data_table(wb, sheetNm, temp[w,], openxlsx2::wb_dims(2, 2))
+                wb <- openxlsx2::wb_set_row_heights(wb, sheetNm, 2, 120)
+                wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1, 1)
+                wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1+1:ncol(temp), 12)
+                wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1+which(colnames(temp) == "Term"), 45)
+                wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1+which(colnames(temp) %in% c(gn, pr)), 20)
+                dms <- openxlsx2::wb_dims(2, 1+1:ncol(temp))
+                wb <- openxlsx2::wb_set_cell_style(wb, sheetNm, dms, wb$styles_mgr$get_xf_id("Header_style"))
+                dms <- openxlsx2::wb_dims(1+1:length(w), 1+which(colnames(temp) %in% kn))
+                wb <- openxlsx2::wb_add_numfmt(wb, sheetNm, dms, "0")
+                dms <- openxlsx2::wb_dims(1+1:length(w), 1+which(colnames(temp) %in% c(zs, lf, pv)))
+                wb <- openxlsx2::wb_add_numfmt(wb, sheetNm, dms, "0.000")
+              }
+            }
+            if (nTabs) {
+              goXLfl <- paste0(dir, "/GO terms - ", ptm, " - Comp group ", grp, ".xlsx")
+              openxlsx2::wb_save(wb, goXLfl)
+              #openxlsx2::xl_open(goXLfl)
+            }
+          }
         }
       }
     }
@@ -4529,7 +4636,7 @@ if (length(Exp) > 1) {
 
 Script <- readLines(ScriptPath)
 gc()
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
@@ -4802,7 +4909,7 @@ for (QuantType in QuantTypes) { #QuantType <- "Coverage" #QuantType <- QuantType
   }
 }
 PG$temp <- NULL
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 
 # Similar profiles but at peptides level
 # This chunk has been vastly improved, and the others should be improved on the same model!!! 
@@ -5088,7 +5195,7 @@ if (plotPepProf) {
   unlink(paste0(wd, "/tmp.RDS"))
   pep$temp <- NULL
 }
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 
 # Negative filter
 if (NegFilt) {
@@ -5251,7 +5358,8 @@ if ((prot.list.Cond)&&(!"In list" %in% colnames(ev))) {
   w[g] <- TRUE
   ev$"In list" <- c("", "+")[w+1]
 }
-QualFilt %<o% c(pgOrgKol, "Potential contaminant", "Only identified by site",
+QualFilt %<o% c(#pgOrgKol,
+  "Potential contaminant", "Only identified by site",
                 grep("^Quality filter: ", colnames(PG), value = TRUE))
 if (NegFilt) { QualFilt <- c(QualFilt, "Direct identification in negative filter sample(s)") }
 II <- setNames(1, "All peptidoforms")
@@ -6020,7 +6128,7 @@ fs::file_copy(ScriptPath, wd, overwrite = TRUE)
 
 Script <- readLines(ScriptPath)
 gc()
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 

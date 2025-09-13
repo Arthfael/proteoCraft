@@ -1942,7 +1942,7 @@ source(Src, local = FALSE)
 #xl_open(repFl)
 
 rm(list = ls()[which(!ls() %in% .obj)])
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
 
 #### Code chunk - Venn diagrams
