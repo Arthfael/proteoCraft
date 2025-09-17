@@ -99,6 +99,7 @@ if (isOK) {
     organism <- dlg_list(c(orgDBs$Full, "none of these"),
                          orgDBs$Full[1], title = "Select organism")$res
   }
+  if (!length(organism)) { organism <- "none of these" }
   isOK <- organism != "none of these"
   # See https://guangchuangyu.github.io/2016/01/go-analysis-using-clusterprofiler/ for how to create annotations with the format clusterProfiler expects
   #BiocManager::install("AnnotationHub")

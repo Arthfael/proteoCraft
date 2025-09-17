@@ -678,10 +678,10 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                                                filter = "FragPipe manifest file (*.fp-manifest)")
     }
     ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_fpar(Report, fpar(ftext(\" -> FragPipe workflow file: \", prop = WrdFrmt$Body_text), fp_p = WrdFrmt$left))")
-    ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_fpar(Report, fpar(ftext(paste0(\"     \", ", fpWorkflowFl_i,
+    ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_fpar(Report, fpar(ftext(paste0(\"     \"", fpWorkflowFl_i,
                                                           "), prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$left))"))
     ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_fpar(Report, fpar(ftext(\" -> FragPipe manifest file: \", prop = WrdFrmt$Body_text), fp_p = WrdFrmt$left))")
-    ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_fpar(Report, fpar(ftext(paste0(\"     \", ", fpManifestFl_i,
+    ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_fpar(Report, fpar(ftext(paste0(\"     \"", fpManifestFl_i,
                                                           "), prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$left))"))
     if (exists("ev_FP2MQ")) { rm(ev_FP2MQ) }
     psmsBckpFl_i <- paste0("FragPipe PSMs converted to MQ-like format_", dir_i, ".RData")

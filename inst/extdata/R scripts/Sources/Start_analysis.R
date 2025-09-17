@@ -629,6 +629,11 @@ if (nrow(allBckps)) {
   if (length(w)) { allBckps$Value[w] <- allBckps$Full[w] }
   allBckps$Value <- paste0(do.call(paste, c(allBckps[, c("Role", "Value")], sep = " (file = ")), ")")
   bckps2Reload %<o% dlg_list(allBckps$Value, allBckps$Value, TRUE, title = "Backups detected: which should we reload?")$res
+  #
+  unusedBckps <- allBckps[which(!allBckps$Value %in% bckps2Reload),]
+  if (nrow(unusedBckps)) { # Remove the object if it already exists and we do not want to reload it!
+    suppressWarnings(rm(list = unlist(unusedBckps$ObjNm)))
+  }
   if (length(bckps2Reload)) {
     reloadedBckps <- allBckps[match(bckps2Reload, allBckps$Value),]
     for (i in 1:nrow(reloadedBckps)) { #i <- 1

@@ -168,9 +168,9 @@ Shiny.bindAll(table.table().node());"))
   w <- which(tst == "list")
   if (length(w)) { for (i in w) { tmpTbl[[i]] <- sapply(tmpTbl[[i]], paste, collapse = ";") }}
   tst <- try(write.csv(tmpTbl, file = IsoMapPath, row.names = FALSE), silent = TRUE)
-  if ("try-error" %in% class(tst)) {
+  while ("try-error" %in% class(tst)) {
     dlg_message(paste0("File \"", IsoMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-    write.csv(tmpTbl, file = IsoMapPath, row.names = FALSE)
+    tst <- try(write.csv(tmpTbl, file = IsoMapPath, row.names = FALSE), silent = TRUE)
   }
   #
   # Temporarily impute (unavoidable here if we want to show PCAs)

@@ -5,7 +5,7 @@
 #' It takes a peptides and a data base data frames and returns a list with:
 #'  - a data.frame of parsimoniously-inferred protein groups,
 #'  - the peptides file with a few extra columns,
-#'  - the database file with a few extra columns.
+#'  - the database file with a few extra columns; this is also cleaned up to remove any NAs which can make for poor protein names/annotations.
 #'  
 #'  Note:
 #'  Pep expects a wide (peptides), rather than long (PSMs/evidences), table! Ev is only used for mapping PSMs, not to assemble protein groups.
@@ -100,7 +100,11 @@ invisible(parallel::clusterCall(cl, function() {
 if (!"MW [kDa]" %in% colnames(DB)) {
   DB$"MW [kDa]" <- round(suppressWarnings(parallel::parSapply(cl, DB$Sequence, Peptides::mw))/1000, 3)
 }
-# Peptides (a new data frame in case I screw up, but this is essentially the same as the original one)
+# We do not want any NAs in our protein and gene names!
+tmpDB <- as.matrix(DB)
+w <- which(is.na(tmpDB), arr.ind = TRUE)
+if (nrow(w)) { DB[w] <- "" }
+# Peptides (a new data frame in casTRUE# Peptides (a new data frame in case I screw up, but this is essentially the same as the original one)
 seq <- data.frame(Proteins = Pep[[Proteins.col]], "Modified sequence" = Pep$"Modified sequence",
                   Sequence = Pep$Sequence, id = Pep[[Peptide.IDs]], PEP = Pep$PEP, check.names = FALSE)
 if (!misFun(Ev)) { seq$"Evidence IDs" <- Pep[[Evidence.IDs]] }
@@ -716,7 +720,8 @@ if (CustPG) {
   seq <- rbind(seq2, seq)
   seq <- seq[match(Pep$"Modified sequence", seq$"Modified sequence"),]
 }
-if ((!is.null(ContCol))&&(ContCol %in% colnames(DB))) {
+doCont <- ((!is.null(ContCol))&&(ContCol %in% colnames(DB)))
+if (doCont) {
   tmp <- proteoCraft::listMelt(strsplit(pg$`Protein IDs`, ";"), pg$temp.pg.id)
   tmp2 <- DB$`Protein ID`[which(DB[[ContCol]] == "+")]
   tmp <- tmp[which(gsub("^CON__", "", tmp$value) %in% gsub("^CON__", "", tmp2)),]
@@ -725,7 +730,7 @@ if ((!is.null(ContCol))&&(ContCol %in% colnames(DB))) {
 cat(paste0("   Final number of protein groups: ", nrow(pg), "\n"))
 # Protein group IDs
 pg <- pg[order(pg$"Peptides count", decreasing = TRUE),]
-if ((!is.null(ContCol))&&(ContCol %in% colnames(DB))) {
+if (doCont) {
   pg <- pg[order(pg$"Potential contaminant", decreasing = FALSE),]
 }
 pg$id <- 1:nrow(pg)
@@ -775,7 +780,7 @@ pg$"Unique peptides" <- vapply(pg$.unique.pep.ids, length, 1)
 # (Here, "peptide is razor" means unique OR razor.)
 # In cases of ties, we will go for lowest PEP.
 # Note that these ties would mean that some few protein groups which do get reported may not have any razor peptides.
-cat(" - Applying Occam's razor,\n     i.e. assigning \"razor\" status to shared peptides for the parent group with the highest overall peptides count,\n     with protein priority (if available) and PEP as tie-breakers (in that order).")
+cat(" - Applying Occam's razor,\n     i.e. assigning \"razor\" status to shared peptides for the parent group with the highest overall peptides count,\n     with protein priority (if available) and PEP as tie-breakers (in that order).\n")
 seq$.Protein.group.IDs <- strsplit(seq$"Protein group IDs", ";")
 ## Note here: the code below allows for multiple razor PGs.
 # This can happen if all have the same priority, number of peptides and PEPs (can happen with NA PEP values).
@@ -1192,7 +1197,9 @@ if ("Common Name" %in% colnames(DB)) {
   #environment(f0) <- .GlobalEnv
   pg$"Common Names" <- parallel::parSapply(cl, tmp2, f0)
   w <- which(pg$"Common Names" == "")
-  if (length(w)) { if ("Protein names" %in% colnames(pg)) { pg$"Common Names"[w] <- pg$"Protein names"[w] } }
+  if (length(w)) { if ("Protein names" %in% colnames(pg)) {
+    pg$"Common Names"[w] <- pg$"Protein names"[w]
+  } }
   w <- which(pg$"Common Names" == "")
   if (length(w)) { if ("Names" %in% colnames(pg)) { pg$"Common Names"[w] <- pg$Names[w] } }
   pg$"Common Name (short)" <- vapply(strsplit(pg$"Common Names", ";"), function(x) {
@@ -1214,7 +1221,7 @@ if ("Common Name" %in% colnames(DB)) {
 # PG label column
 pg$temp <- gsub(";.+", ";...", pg$"Leading protein IDs")
 pg$Label <- apply(pg[, c("temp", "Common Name (short)")], 1, function(x) {
-  if (is.na(x[[2]])) { x <- x[[1]] } else { x <- paste0(x[[1]], " - ", x[[2]]) }
+  if ((is.na(x[[2]]))||(x[[2]] == "NA")) { x <- x[[1]] } else { x <- paste0(x[[1]], " - ", x[[2]]) }
   return(x)
 })
 pg$temp <- NULL
@@ -1227,7 +1234,9 @@ colnames(seq)[match("id", colnames(seq))] <- Peptide.IDs
 colnames(seq)[match("Evidence IDs", colnames(seq))] <- Evidence.IDs
 colnames(seq)[match("Proteins", colnames(seq))] <- Proteins.col
 Pep[, colnames(seq)] <- seq[match(Pep$"Modified sequence", seq$"Modified sequence"),]
-PG_assembly <- list(Protein.groups = pg, Peptides = Pep, Database = DB)
+PG_assembly <- list(Protein.groups = pg,
+                    Peptides = Pep,
+                    Database = DB)
 if (!misFun(Ev)) { PG_assembly$Evidences <- Ev }
 invisible(parallel::clusterCall(cl, function(x) {
   try(rm(tmp1, tmp2, tmp3, tmp4, CustPG, c1, c2, ca, cb), silent = TRUE)

@@ -66,11 +66,13 @@ if ("PTM.analysis" %in% colnames(Param)) {
     tmp <- PTMs; l <- length(tmp)
     if (l > 1) { tmp <- paste0(paste(tmp[1:(l-1)], collapse = ", "), " and ", tmp[l], "") }
     tmp2 <- setNames(sapply(PTMs, function(Ptm) { PTM_normalize[[Ptm]] }), PTMs); tmp2u <- unique(tmp2); l2u <- length(tmp2u)
-    if ((l2u == 1)&&(tmp2u)) { tmp2 <- ", normalizing ratios to parent protein group(s)." } else {
+    if ((l2u == 1)&&(tmp2u)) {
+      tmp2 <- ", re-normalizing values to account for average parent protein group(s) fold change."
+    } else {
       if (l2u > 1) {
         tmp2 <- names(tmp2)[which(tmp2)]; l2 <- length(tmp2)
         if (l2 > 1) { tmp2 <- paste0(paste(tmp2[1:(l-1)], collapse = ", "), " and ", tmp2[l], "") }
-        tmp2 <- ", normalizing ratios to parent protein group(s) for "
+        tmp2 <- ", normalizing values to correct for parent protein group(s) fold change for "
       } else { tmp2 <- "." }
     }
     DatAnalysisTxt <- paste0(DatAnalysisTxt, " Statistical analysis was performed for ", c("", "PTMs ")[(l > 1)+1], tmp,

@@ -18,20 +18,20 @@ if ("try-error" %in% class(tst)) {
 unlink(tmpSrc)
 
 # Write pdf report
-if (scrptType == "withReps") {
-  # Write report to Word file
-  tmp <- paste0("Report <- ", unlist(ReportCalls$Calls))
-  tmpSrc <- paste0(wd, "/tmp.R")
-  write(tmp, tmpSrc)
+#if (scrptType == "withReps") {
   tst <- try({
+    tmp <- paste0("Report <- ", unlist(ReportCalls$Calls))
+    tmpSrc <- paste0(wd, "/tmp.R")
+    write(tmp, tmpSrc)
     source(tmpSrc, local = FALSE)
     Report %<o% Report
+    # Write report to Word file
     print(Report, target = paste0(wd, "/Workflow control/Analysis report.docx"))
+    #system(paste0("open \"", wd, "/Workflow control/Analysis report.docx"))
+    unlink(tmpSrc)
   }, silent = TRUE)
   if ("try-error" %in% class(tst)) { warning("Couldn't write pdf report, investigate...") }
-  unlink(tmpSrc)
-  #system(paste0("open \"", wd, "/Workflow control/Analysis report.docx"))
-}
+#}
 
 # Save session info
 dir <- paste0(wd, "/Workflow control")
@@ -313,13 +313,15 @@ if ((dataDeliveryOk)&&(length(archDirDflt) == 1)) {
 # Save final state of the environment
 # This is done within the destination folder (outDir) because it will restart the session so has to be done last
 # (this will interrupt the script flow so all commands queued after that are gone)
-if (dataDeliveryOk) { setwd(procDir) } else { setwd(wd) }
+if (dataDeliveryOk) { dr <- procDir } else { dr <- wd }
+setwd(dr)
 pkgs <- gtools::loadedPackages()
-dscrptFl <- paste0(procDir, "/DESCRIPTION")
+dscrptFl <- paste0(dr, "/DESCRIPTION")
 tmp <- paste0(do.call(paste, c(pkgs[, c("Name", "Version")], sep = " (")), ")")
 tmp <- paste0("Depends: ", paste(tmp, collapse = ", "))
 write(tmp, dscrptFl)
 renv::snapshot(force = TRUE, prompt = FALSE, type = "explicit")
 if ((exists("renv"))&&(renv)) { try(renv::deactivate(), silent = TRUE) }
+setwd(wd)
 
 # Done!
