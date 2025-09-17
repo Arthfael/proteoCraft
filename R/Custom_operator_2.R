@@ -3,8 +3,9 @@
 #' @description 
 #' These custom assignment operators are meant to be used within the data analysis scripts.
 #' Both scripts regularly purge their environment of temporary files, to avoid unnecessary inflation of data.
-#' Both operators are meant to create variables which are proof against the purge
-#' Each:
+#' Both operators are meant to create variables which are proof against this purge.
+#' 
+#' Each operator:
 #'  - assigns the value on the right to the variable on the left, creating the variable if necessary,...
 #'  - ... and in addition adds the variable's name to a hidden variable, .obj, which lists all variables which should escape environment purges.
 #'  - If .obj does not exist, it is created.

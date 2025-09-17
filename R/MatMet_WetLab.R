@@ -469,7 +469,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
         opt <- unique(c(opt1, "Other..."))
         m <- max(250, nchar(opt))
         opt <- sapply(opt, function(x) { paste(c(x, rep(" ", m-nchar(x))), collapse = "") })
-        loadBuf <- svDialogs::dlg_list(opt, opt[PreOmics+1], "Which LCMS loading buffer were the samples re-dissolved in?")$res
+        loadBuf <- svDialogs::dlg_list(opt, opt[1], "Which LCMS loading buffer were the samples re-dissolved in?")$res
         loadBuf <- gsub(" +$", "", loadBuf)
         if (loadBuf == "Other...") {
           loadBuf <- svDialogs::dlg_input("Enter LCMS loading buffer composition:", "")$res

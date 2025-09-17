@@ -82,11 +82,11 @@ Coverage <- function(proteins,
   } else { misFun <- missing }
   #
   if ((misFun(I_eq_L))||(!is.logical(I_eq_L))||(is.na(I_eq_L))) {
-    if ((exists("isDIA"))&&(is.logical(isDIA))&&(!is.na(isDIA))) {
-      I_eq_L <- !idDIA
-    } else {
+    #if ((exists("isDIA"))&&(is.logical(isDIA))&&(!is.na(isDIA))) {
+    #  I_eq_L <- !isDIA # NO! Cf. Vadim's reply that at the moment models do not allow discriminating between I and L.
+    #} else {
       I_eq_L <- TRUE
-    }
+    #}
   }
   if (!Mode %in% c("Coverage", "Align", "Align2", "XML", "Heat")) {
     stop("Accepted value for \"Mode\" argument:\n - \"Coverage\": only return percentage of sequence coverage\n - \"Align\": create simple peptide coverage map\n - \"Align2\": create peptide coverage map with individual peptide intensities\n - \"XML\": writes xml formated coverage text for writing into Excel tables.")
