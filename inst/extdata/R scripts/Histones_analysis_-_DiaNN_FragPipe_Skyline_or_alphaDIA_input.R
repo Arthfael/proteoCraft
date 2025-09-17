@@ -695,9 +695,9 @@ while (!ok) {
                       Group = "?",
                       Replicate = "?")
     tst <- try(write.csv(tmp, smplsMapFl, row.names = FALSE), silent = TRUE)
-    if ("try-error" %in% class(tst)) {
+    while ("try-error" %in% class(tst)) {
       dlg_message(paste0("File \"", smplsMapFl, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-      write.csv(tmp, smplsMapFl, row.names = FALSE)
+      tst <- try(write.csv(tmp, smplsMapFl, row.names = FALSE), silent = TRUE)
     }
   }
   cmd <- paste0("open \"", smplsMapFl, "\"")

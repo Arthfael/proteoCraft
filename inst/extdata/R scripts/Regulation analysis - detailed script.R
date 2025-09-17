@@ -874,9 +874,15 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/remove_Outliers.R")
 source(Src, local = FALSE)
 
 if (length(inDirs) > 1) {
-  DatAnalysisTxt <- paste0(DatAnalysisTxt, " PSM table outputs from the different searches were converted to a compatible format and concatenated into a single table, then this")
+  paste0(DatAnalysisTxt, " PSM tables ")
+  if (length(unique(SearchSoft)) > 1) {
+    DatAnalysisTxt <- paste0(DatAnalysisTxt, "from the different search engines were converted to a similar format and ")
+  } else {
+    DatAnalysisTxt <- paste0(DatAnalysisTxt, "were ")
+  }
+  paste0(DatAnalysisTxt, "combined into a single table, then this ")
 } else {
-  DatAnalysisTxt <- paste0(DatAnalysisTxt, " The long format PSMs table")
+  DatAnalysisTxt <- paste0(DatAnalysisTxt, " The long format PSMs table ")
 }
 
 g <- grep(topattern(pep.ref["Original"]), colnames(pep), value = TRUE)
@@ -890,7 +896,7 @@ if (l) {
   w <- which(ev$id %in% unique(as.integer(unlist(strsplit(pep$"Evidence IDs", ";")))))
   ev <- ev[w,]
 }
-DatAnalysisTxt <- paste0(DatAnalysisTxt, " was transformed into a wide format peptidoforms table, summing up quantitative values where necessary.")
+DatAnalysisTxt <- paste0(DatAnalysisTxt, "was transformed into a wide format peptidoforms table, summing up quantitative values where necessary.")
 
 LocAnalysis2 %<o% FALSE
 
@@ -1246,7 +1252,7 @@ if (Param$Norma.Pep.Ratio) {
       ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
       ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
       ReportCalls <- AddPlot2Report(Title = ttl)
-      DatAnalysisTxt <- paste0(DatAnalysisTxt, " Peptide ratios were then re-normalized.")
+      #DatAnalysisTxt <- paste0(DatAnalysisTxt, " Peptide ratios were then re-normalized.")
     } else { warning("Nothing to plot for Reference-to-Reference ratios!") }
   }
 }
@@ -1286,6 +1292,16 @@ db <- PG_assembly$Database
 if ("Evidences" %in% names(PG_assembly)) { ev <- PG_assembly$Evidences }
 msg <- paste0(nrow(PG), " protein groups assembled in ", gsub("^Time difference of ", "", capture.output(tm2-tm1)))
 ReportCalls <- AddMsg2Report(Space = FALSE, Print = FALSE)
+
+
+
+# Here would be a good place to check protein taxonomy and [if necessary/as per parameters] split hybrid groups!
+# Should be controlled by a parameter only showing up if taxonomy is present in db and has more than one value!
+warning("(TO DO: add 'split-by-taxonomy?' here!)")
+# Default = TRUE
+# Don't forget to update PG IDs in PG, ev and pep afterwards! Also check potential contaminant column!
+
+
 
 # Check those rare proteins IDs which are not in the search DB (should be contaminants, there is a minor inconsistency in how they are )
 tst <- unlist(strsplit(pep$Proteins, ";"))
@@ -4341,9 +4357,9 @@ DatAnalysisTxt <- paste0(DatAnalysisTxt, " Average log10 expression values were 
                          tmpPVal, " per samples group",
                          c("", " and a global F-test")[F.test+1],
                          " (limma). Significance thresholds were calculated using the Benjamini-Hochberg procedure for False Discovery Rate (FDR) values of ", tmp,
-                         ". For all tests, regulated protein groups were defined as those with a significant P-value and a",
+                         ". For all tests, differentially expressed protein groups were defined as those with a significant P-value and a",
                          c("n absolute", "")[IsPullDown+1],
-                         " log2 ratio greater than ",
+                         " log2 average ratio greater than ",
                          c(paste0(Param$Ratios.Contamination.Rates*100, "% of ",
                                   c(paste0("control-to", c("-average", "")[Nested + 1],
                                            "-control"),
