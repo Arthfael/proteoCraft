@@ -12,6 +12,7 @@
 #' @param groups A vector of groups of length equal to the number of columns of the input data frame.
 #' @param is.log Default = TRUE. Are the input values log transformed? If set to FALSE, the data will be log-transformed prior to processing, then de-logged.
 #' @param seed Use a fixed seed for reproducibility purposes.
+#' @param min_misses Minimum number of misses for assuming MAR - this is a way to bypass imputeLCMD's model.Selector(), whose predictions as to which rows have MAR (as opposed to left censored MNAR) seem sometimes rather optimistic. The current default is 1 (i.e. no effect of this parameter), but where the data will be subjected to statistical analysis it may be a good idea to increase this to 2. 
 #' 
 #' @examples
 #' New_Data <- Data_Impute2(data)
@@ -22,12 +23,16 @@
 Data_Impute2 <- function(quant_data,
                          groups,
                          is.log = TRUE,
-                         seed) {
+                         seed,
+                         min_misses = 1) {
   #proteoCraft::DefArg(proteoCraft::Data_Impute2)
   #quant_data <- temp; groups = grps
   if (missing(seed)) { if (exists("mySeed")) { seed <- mySeed } else { seed <- 1234567 } }
   set.seed(seed)
   norm::rngseed(seed)
+  #
+  if ((!is.numeric(min_misses))||(is.na(min_misses))||(min_misses < 1)) { min_misses <- 1 }
+  min_misses <- round(min_misses)
   #
   kol <- colnames(quant_data)
   # Get class
@@ -52,9 +57,12 @@ Data_Impute2 <- function(quant_data,
     for (grp in unique(groups)) { #grp <- unique(groups)[1]
       # Groups, where we have at least one non-missing value: MAR
       m <- which(groups == grp)
-      rwSms <- rowSums(is.na(imputed_data[, m, drop = FALSE]))
-      #aggregate(rwSms, list(rwSms), length)
-      w <- which(rwSms < length(m))
+      NAs_in_Grp <- rowSums(is.na(imputed_data[, m, drop = FALSE]))
+      #aggregate(NAs_in_Grp, list(NAs_in_Grp), length)
+      #w <- which(NAs_in_Grp < length(m))
+      #w1 <- which((NAs_in_Grp < length(m))&(NAs_in_Grp >= 1))
+      #w2 <- which((NAs_in_Grp < length(m))&(NAs_in_Grp >= 2))
+      w <- which((NAs_in_Grp < length(m))&(NAs_in_Grp >= min_misses))
       if (length(w)) {
         ms <- imputeLCMD::model.Selector(imputed_data[w, m, drop = FALSE])
         tst <- capture.output({ # Using capture.output to suppress the messages of impute.MAR which are really painful!

@@ -86,14 +86,13 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
   proteoPath <- paste0(libPath, "/proteoCraft")
   myPath <- pkgPath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
   if (!colTst) {
-    dfltLocFl <- paste0(pkgPath, "/Default_locations.xlsx")
-    if (file.exists(dfltLocFl)) {
+    Columns <- paste0(pkgPath, "/LC_columns.xlsx")
+    if (!file.exists(Columns)) {
+      dfltLocFl <- paste0(pkgPath, "/Default_locations.xlsx")
       dfltLoc <- openxlsx2::read_xlsx(dfltLocFl)
       tmpPath <- dfltLoc$Path[match("Temporary folder", dfltLoc$Folder)]
       myPath <- tmpPath
       Columns <- paste0(tmpPath, "/LC_columns.xlsx")
-    } else {
-      Columns <- paste0(pkgPath, "/LC_columns.xlsx")
     }
     if (!file.exists(Columns)) {
       Columns <- paste0(proteoPath, "/extdata/LC_columns.xlsx")
@@ -183,10 +182,15 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
   #
   Ext <- unique(MethodsTbl$Ext)
   if (length(Ext) > 1) { warning("Were you aware that this dataset is a mixture of Thermo .raw files and Bruker .d folders?") }
-  AllLCMSTexts <- c()
+  # Vector of material and methods text for each LC/MS method
+  all_LCMS_txts <- c()
+  # List of all LC and MS instruments used in the dataset, without connection to methods
+  all_LCMS_instr <- list(LC = c(),
+                         MS = c())
+  # Bruker .d folders
   if ("d" %in% tolower(Ext)) {
-    require(XML)
-    require(RSQLite)
+    library(XML)
+    library(RSQLite)
     ADflt <- "MS-grade H₂O + 0.1% formic acid"
     BDflt <- "100% acetonitrile + 0.1% formic acid"
     BrMeth <- MethodsTbl[which(tolower(MethodsTbl$Ext) == "d"),]
@@ -278,7 +282,9 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                   Name = GlobMetDat$Value[which(GlobMetDat$Key == "MethodName")]))
     })
     # Put them together
-    uBrMeth$Method <- apply(uBrMeth[, c("LC_meth", "MS_meth")], 1, function(x) { list(LC = x[[1]], MS = x[[2]]) })
+    uBrMeth$Method <- apply(uBrMeth[, c("LC_meth", "MS_meth")], 1, function(x) {
+      list(LC = x[[1]],
+           MS = x[[2]]) })
     # Parse them and create text
     uBrMeth$Samples <- lapply(uBrMeth$MethodID, function(x) { BrMeth$Raw.file[which(BrMeth$MethodID == x)] })
     uBrMeth$NANO <- gsub(" +", " ", gsub("Bruker *", "", gsub("\t.*", "",
@@ -522,16 +528,24 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                   "Properties" = PropsDF2, "Text" = Txt,
                   "DIA?" = DIAtst, "DIA windows" = DIADat1,
                   "PRM?" = PRMtst, "PRM inclusion list" = PRMDat, "PRM list path" = PRMfl)
-      return(res)
+      return(list(Method = res,
+                  MS = INSTR,
+                  MS_vendor = INSTRMAKER))
     })
+    uBrMeth$MS_txt <- vapply(uBrMeth$MS_method_parsed, function(x) { x$Method$Text }, "")
+    uBrMeth$MS <- vapply(uBrMeth$MS_method_parsed, function(x) { x$MS }, "")
     kol <- c("Samples", "NANO", "Column", "Trap", "usesTrap", "OvenT", "Gradient", "Flow", "RunTime", "SolvA", "SolvB", "MS_method_parsed")
     #kol %in% colnames(uBrMeth)
-    uBrMeth$LC_txt  <- apply(uBrMeth[, kol], 1, function(x) {
+    uBrMeth$LC_method_parsed  <- apply(uBrMeth[, kol], 1, function(x) {
       #x <- uBrMeth[1, c("Samples", "NANO", "Column", "Trap", "usesTrap", "OvenT", "Gradient", "Flow", "RunTime", "SolvA", "SolvB", "MS_method_parsed")]
+      #x <- uBrMeth[1, kol]
       NANO <- x[[2]]
       Moult <- length(x[[1]]) > 1
       INSTR <- x[[12]]$Instrument
+      if (is.null(INSTR)) { INSTR <- x[[12]]$Method$Instrument }
+      if (is.null(INSTR)) { INSTR <- x[[12]]$MS }
       INSTRMAKER <- x[[12]]$Vendor
+      if (is.null(INSTRMAKER)) { INSTRMAKER <- x[[12]]$Method$Vendor }
       NANOMAKER <- "unknown manufacturer"
       if (NANO %in% c("RSLC Nano", "Vanquish NEO")) { NANOMAKER <- "ThermoFisher Scientific" }
       if (NANO %in% c(paste0("nanoElute", c("", paste0(" ", 1:2))),
@@ -562,25 +576,71 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       Grad <- Grad[which(Grad$Time == GradStrt)[1]:which(Grad$Time == GradEnd),]
       Grad <- paste(apply(Grad[, c("Time", "Mix")], 1, function(x) { paste0(x[[1]], " min, ", x[[2]], "%") }), collapse = "; ")
       Grad <- paste0(Grad, ", followed immediately by a ", Grad.PlateauL, " min plateau at ", Grad.Plateau, "%")
-      LCtxt <- paste0(c("The s", "S")[Moult+1], "ample", c(" was", "s were")[Moult+1], " analyzed by LC-MS/MS on a",
-                    c("", "n")[tstNano+1], " ", NANO, " nano-HPLC (",
-                    NANOMAKER, ") coupled with a", c("", "n")[tstInstr+1], " ", INSTR, " (", INSTRMAKER, ")")
+      LC_txt <- paste0(c("The s", "S")[Moult+1], "ample", c(" was", "s were")[Moult+1], " analyzed by LC-MS/MS on a",
+                     c("", "n")[tstNano+1], " ", NANO, " nano-HPLC (",
+                     NANOMAKER, ") coupled with a", c("", "n")[tstInstr+1], " ", INSTR, " (", INSTRMAKER, ")")
       if (COLUMN != "None (direct infusion)") {
         if (USESTRAP) {
-          LCtxt <- paste0(LCtxt, ", concentrated over a", c("", "n")[tstPreCol+1], " ", PRECOLUMN, ", then ")
-        } else { LCtxt <- paste0(LCtxt, ". ", c("The s", "S")[Moult2+1], "ample", c(" was", "s were")[Moult2+1], " ") }
-        LCtxt <- paste0(LCtxt, "bound to a", c("", "n")[tstCol+1], " ", COLUMN, " heated at ", ovenTEMP, "°C and eluted over the following ", GRADLENGTH,
-                        " min gradient: solvent A, ", SolvA, "; ", "solvent B, ", SolvB, "; ",
-                        "constant ", FLOWVALUE, " nL/min flow; ",
-                        "B percentage: ", Grad, ".")
-      } else { LCtxt <- paste0(LCtxt, " by direct infusion.") }
-      return(LCtxt)
+          LC_txt <- paste0(LC_txt, ", concentrated over a", c("", "n")[tstPreCol+1], " ", PRECOLUMN, ", then ")
+        } else { LC_txt <- paste0(LC_txt, ". ", c("The s", "S")[Moult2+1], "ample", c(" was", "s were")[Moult2+1], " ") }
+        LC_txt <- paste0(LC_txt, "bound to a", c("", "n")[tstCol+1], " ", COLUMN, " heated at ", ovenTEMP, "°C and eluted over the following ", GRADLENGTH,
+                         " min gradient: solvent A, ", SolvA, "; ", "solvent B, ", SolvB, "; ",
+                         "constant ", FLOWVALUE, " nL/min flow; ",
+                         "B percentage: ", Grad, ".")
+      } else { LC_txt <- paste0(LC_txt, " by direct infusion.") }
+      return(list(Method = LC_txt,
+                  LC = NANO,
+                  LC_vendor = NANOMAKER))
     })
-    uBrMeth$LCMS_txt <- apply(uBrMeth[, c("LC_txt", "MS_method_parsed")], 1, function(x) {
-      paste0(x[[1]], " ", x[[2]]$Text)
-    })
-    #BrMeth$LCMS_txt <- uBrMeth$LCMS_txt[match(BrMeth$MethodID, uBrMeth$MethodID)]
-    AllLCMSTexts <- c(AllLCMSTexts, uBrMeth$LCMS_txt) 
+    uBrMeth$LC_txt <- vapply(uBrMeth$LC_method_parsed, function(x) { x$Method }, "")
+    uBrMeth$LC <- vapply(uBrMeth$LC_method_parsed, function(x) { x$LC }, "")
+    tmp <- uBrMeth[, c("LC_txt", "MS_txt")]
+    #tmp <- tmp[c(1, 2, 2),]
+    #tmp$LC_txt[2] <- tmp$LC_txt[1]
+    #tmp$MS_txt[3] <- tmp$MS_txt[1]
+    tst <- vapply(c("LC_txt", "MS_txt"), function(x) { length(unique(tmp[[x]])) }, 1)
+    for (i in c("LC", "MS")) {
+      k <- paste0(i, "_txt")
+      if (tst[[k]] > 1) {
+        m <- match(tmp[[k]], unique(tmp[[k]]))
+        tmp[[k]] <- paste0(i, " method #", m, ": ", tmp[[k]])
+      }
+    }
+    tst <- tst < nrow(tmp)
+    if (sum(tst)) {
+      if (tst["LC_txt"]) {
+        tmp <- aggregate(tmp$MS_txt, list(tmp$LC_txt), unique)
+        colnames(tmp) <- c("LC_txt", "MS_txt")
+        if ("list" %in% class(tmp$MS_txt)) {
+          l <- vapply(tmp$MS_txt, length, 1)
+          w <- which(l > 1)
+          tmp$MS_txt[w] <- vapply(tmp$MS_txt[w], paste, "", collapse = "\n")
+          tmp$MS_txt <- unlist(tmp$MS_txt)
+        }
+      }
+      if (tst["MS_txt"]) {
+        tmp <- aggregate(tmp$LC_txt, list(tmp$MS_txt), unique)[, 2:1]
+        colnames(tmp) <- c("LC_txt", "MS_txt")
+        if ("list" %in% class(tmp$LC_txt)) {
+          l <- vapply(tmp$LC_txt, length, 1)
+          w <- which(l > 1)
+          tmp$LC_txt[w] <- vapply(tmp$LC_txt[w], paste, "", collapse = "\n")
+          tmp$LC_txt <- unlist(tmp$LC_txt)
+        }
+      }
+    }
+    nr <- nrow(tmp)
+    if (nr > 1) {
+      tmp$LC_txt <- paste0("Method #", 1:nr, ":\n", tmp$LC_txt)
+    }
+    brLCMS_txt <- do.call(paste, c(tmp[, c("LC_txt", "MS_txt")], sep = "\n"))
+    brLCMS_txt <- paste(brLCMS_txt, collapse = "\n")
+    #cat(brLCMS_txt)
+    # # Vector of material and methods text for each LC/MS method
+    all_LCMS_txts <- c(all_LCMS_txts, brLCMS_txt)
+    #
+    all_LCMS_instr$LC <- unique(c(all_LCMS_instr$LC, uBrMeth$LC))
+    all_LCMS_instr$MS <- unique(c(all_LCMS_instr$MS, uBrMeth$MS))
   }
   if ("raw" %in% tolower(Ext)) {
     rawMeth <- MethodsTbl[which(tolower(MethodsTbl$Ext) == "raw"),]
@@ -657,9 +717,9 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         cat(msg)
       }
       meths <- lapply(tst$x, function(method) { methods[[method[[1]]]] })
-      ThLCMSTexts <- c()
-      for (Imeth in seq(meths)) {#Imeth <- 1
-        MStxt <- LCtxt <- FALSE
+      thMeth <- lapply(seq(meths), function(Imeth) {
+        LC_txt <- MS_txt <- "TEMPLATE"
+        MSok <- LCok <- FALSE
         TXT <- c()
         #View(data.frame(Method = meth[which(meth != "")]))
         meth <- meths[[Imeth]]
@@ -782,7 +842,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
             tstNano <- tolower(substring(NANO, 1, 1)) %in% c("a", "e", "i", "o", "u")
             tstInstr <- tolower(substring(INSTR, 1, 1)) %in% c("a", "e", "i", "o", "u")
             Moult2 <- length(RawFiles) > 1
-            LCtxt <- TRUE
+            MSok <- TRUE
           } else {
             warning("This function can currently only process Thermo Dionex Ultimate 3000 RSLC_Nano or Waters nanoACQUITY methods!")
           }
@@ -868,19 +928,19 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                   }
                 }
                 DYNEXCL <- as.numeric(gsub("^ *Dynamic exclusion *|  *s *$", "", grep("Dynamic exclusion", unlist(MSs$MS2$Data), value = TRUE)))
-                MStxt <- paste0(MStxt, "up to ", TOPN, " MS2s per cycle. ",
-                                "DDA MS2 parameters: ")
-                if (!is.na(SPECTTYPE["MS2"])) { MStxt <- paste0(MStxt, SPECTTYPE["MS2"], " mode, ") }
-                MStxt <- paste0(MStxt, USCNS["MS2"], " microscan", c("", "s")[(USCNS["MS2"] > 1)+1], ", ",
-                                RES["MS2"], " resolution, ",
-                                "AGC target ", AGC["MS2"], ", ",
-                                MAXIT["MS2"], " maximum IT, ",
-                                ISOWIN, " isolation window ", ISOWINOFFSET, ", ", 
-                                F1MSS,
-                                SCRNG["MS1"], ", ",
-                                "NCE ", NCE, ", ",
-                                EXCLZ, " ",
-                                DYNEXCL, "s dynamic exclusion.")
+                MS_txt <- paste0(MS_txt, "up to ", TOPN, " MS2s per cycle. ",
+                                 "DDA MS2 parameters: ")
+                if (!is.na(SPECTTYPE["MS2"])) { MS_txt <- paste0(MS_txt, SPECTTYPE["MS2"], " mode, ") }
+                MS_txt <- paste0(MS_txt, USCNS["MS2"], " microscan", c("", "s")[(USCNS["MS2"] > 1)+1], ", ",
+                                 RES["MS2"], " resolution, ",
+                                 "AGC target ", AGC["MS2"], ", ",
+                                 MAXIT["MS2"], " maximum IT, ",
+                                 ISOWIN, " isolation window ", ISOWINOFFSET, ", ", 
+                                 F1MSS,
+                                 SCRNG["MS1"], ", ",
+                                 "NCE ", NCE, ", ",
+                                 EXCLZ, " ",
+                                 DYNEXCL, "s dynamic exclusion.")
               }
               if (DIAtst[[2]]) {
                 # DIA method
@@ -921,79 +981,130 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                 if (OLtst < 0) { OLtxt <- paste0(OLtst, " m/z non-covered gap between adjacent windows") }
                 #}
               }
-              MStxt <- TRUE
+              MSok <- TRUE
             }
           } else {
-            warning("This function currently can only process Q Exactive type methods!")
+            warning("This function currently can only process Q-Exactive type methods!")
           }
-          if (LCtxt) {
-            LCtxt <- paste0(c("The s", "S")[Moult2+1], "ample", c(" was", "s were")[Moult2+1], " analyzed by LC-MS/MS on a",
-                            c("", "n")[tstNano+1], " ", NANO, " nano-HPLC (",
-                            NANOMAKER, ") coupled with a", c("", "n")[tstInstr+1], " ", INSTR, " (", INSTRMAKER, ")")
+          if (MSok) {
+            LC_txt <- paste0(c("The s", "S")[Moult2+1], "ample", c(" was", "s were")[Moult2+1], " analyzed by LC-MS/MS on a",
+                             c("", "n")[tstNano+1], " ", NANO, " nano-HPLC (",
+                             NANOMAKER, ") coupled with a", c("", "n")[tstInstr+1], " ", INSTR, " (", INSTRMAKER, ")")
             if (COLUMN != "None (direct infusion)") {
               if (PRECOLUMN != "None (direct injection)") {
-                LCtxt <- paste0(LCtxt, ", concentrated over a", c("", "n")[tstPreCol+1], " ", PRECOLUMN, ", then ")
-              } else { LCtxt <- paste0(LCtxt, ". ", c("The s", "S")[Moult2+1], "ample", c(" was", "s were")[Moult2+1], " ") }
-              LCtxt <- paste0(LCtxt, "bound to a", c("", "n")[tstCol+1], " ", COLUMN, " and eluted over the following ", GRADLENGTH,
-                              " min gradient: solvent A, ", SolvA, "; ", "solvent B, ", SolvB, "; ",
-                              "constant ", FLOWVALUE, " nL/min flow; ",
-                              "B percentage: ", Grad, ".")
-            } else { LCtxt <- paste0(LCtxt, " by direct infusion.") }
-          } else { LCtxt <- "TEMPLATE" }
-          if (MStxt) {
-            MStxt <- paste0("Mass spectra were acquired in positive mode with a Data ", c("D", "Ind")[which(DIAtst)], "ependent Acquisition (D",
-                            c("D", "I")[which(DIAtst)], "A) method: ",
-                            "FWHM ", FWHM, " s, ",
-                            "MS1 parameters: ")
-            if (!is.na(SPECTTYPE["MS1"])) { MStxt <- paste0(MStxt, SPECTTYPE["MS1"], " mode, ") }
-            MStxt <- paste0(MStxt,
-                            USCNS["MS1"], " microscan", c("", "s")[(USCNS["MS1"] > 1)+1], ", ",
-                            RES["MS1"], " resolution, ",
-                            "AGC target ", AGC["MS1"], ", ",
-                            MAXIT["MS1"], " maximum IT, ",
-                            SCRNG["MS1"], "; ")
+                LC_txt <- paste0(LC_txt, ", concentrated over a", c("", "n")[tstPreCol+1], " ", PRECOLUMN, ", then ")
+              } else { LC_txt <- paste0(LC_txt, ". ", c("The s", "S")[Moult2+1], "ample", c(" was", "s were")[Moult2+1], " ") }
+              LC_txt <- paste0(LC_txt, "bound to a", c("", "n")[tstCol+1], " ", COLUMN, " and eluted over the following ", GRADLENGTH,
+                               " min gradient: solvent A, ", SolvA, "; ", "solvent B, ", SolvB, "; ",
+                               "constant ", FLOWVALUE, " nL/min flow; ",
+                               "B percentage: ", Grad, ".")
+            } else { LC_txt <- paste0(LC_txt, " by direct infusion.") }
+          }
+          if (MSok) {
+            MS_txt <- paste0("Mass spectra were acquired in positive mode with a Data ", c("D", "Ind")[which(DIAtst)], "ependent Acquisition (D",
+                             c("D", "I")[which(DIAtst)], "A) method: ",
+                             "FWHM ", FWHM, " s, ",
+                             "MS1 parameters: ")
+            if (!is.na(SPECTTYPE["MS1"])) { MS_txt <- paste0(MS_txt, SPECTTYPE["MS1"], " mode, ") }
+            MS_txt <- paste0(MS_txt,
+                             USCNS["MS1"], " microscan", c("", "s")[(USCNS["MS1"] > 1)+1], ", ",
+                             RES["MS1"], " resolution, ",
+                             "AGC target ", AGC["MS1"], ", ",
+                             MAXIT["MS1"], " maximum IT, ",
+                             SCRNG["MS1"], "; ")
             if (DIAtst[[1]]) {
-              MStxt <- paste0(MStxt, "up to ", TOPN, " MS2s per cycle. ",
-                              "DDA MS2 parameters: ")
-              if (!is.na(SPECTTYPE["MS2"])) { MStxt <- paste0(MStxt, SPECTTYPE["MS2"], " mode, ") }
-              MStxt <- paste0(MStxt, USCNS["MS2"], " microscan", c("", "s")[(USCNS["MS2"] > 1)+1], ", ",
-                              RES["MS2"], " resolution, ",
-                              "AGC target ", AGC["MS2"], ", ",
-                              MAXIT["MS2"], " maximum IT, ",
-                              ISOWIN, " isolation window ", ISOWINOFFSET, ", ", 
-                              F1MSS,
-                              SCRNG["MS1"], ", ",
-                              "NCE ", NCE, ", ",
-                              EXCLZ, " ",
-                              DYNEXCL, "s dynamic exclusion.")
+              MS_txt <- paste0(MS_txt, "up to ", TOPN, " MS2s per cycle. ",
+                               "DDA MS2 parameters: ")
+              if (!is.na(SPECTTYPE["MS2"])) { MS_txt <- paste0(MS_txt, SPECTTYPE["MS2"], " mode, ") }
+              MS_txt <- paste0(MS_txt, USCNS["MS2"], " microscan", c("", "s")[(USCNS["MS2"] > 1)+1], ", ",
+                               RES["MS2"], " resolution, ",
+                               "AGC target ", AGC["MS2"], ", ",
+                               MAXIT["MS2"], " maximum IT, ",
+                               ISOWIN, " isolation window ", ISOWINOFFSET, ", ", 
+                               F1MSS,
+                               SCRNG["MS1"], ", ",
+                               "NCE ", NCE, ", ",
+                               EXCLZ, " ",
+                               DYNEXCL, "s dynamic exclusion.")
             }
             if (DIAtst[[2]]) {
-              MStxt <- paste0(MStxt, "DIA scans: ",
-                              c("", paste0(TOPN, " MS2 scans per cycle, "))[(TOPN != NWind)+1],
-                              NWind, " windows of ", ISOWIN, " width per cycle covering the range from ", min(InclWindL), " to ",
-                              max(InclWindR), " m/z (", OLtxt, "), ")
-              if (!is.na(SPECTTYPE["MS2"])) { MStxt <- paste0(MStxt, "spectra acquired in ", SPECTTYPE["MS2"], " mode, ") }
-              MStxt <- paste0(MStxt,
-                              USCNS["MS2"], " microscan", c("", "s")[(USCNS["MS2"] > 1)+1], ", at ",
-                              RES["MS2"], " resolution; ",
-                              "AGC target ", AGC["MS2"], ", ",
-                              MAXIT["MS2"], " maximum IT, ",
-                              F1MSS,
-                              "NCE ", NCE, ".")
+              MS_txt <- paste0(MS_txt, "DIA scans: ",
+                               c("", paste0(TOPN, " MS2 scans per cycle, "))[(TOPN != NWind)+1],
+                               NWind, " windows of ", ISOWIN, " width per cycle covering the range from ", min(InclWindL), " to ",
+                               max(InclWindR), " m/z (", OLtxt, "), ")
+              if (!is.na(SPECTTYPE["MS2"])) { MS_txt <- paste0(MS_txt, "spectra acquired in ", SPECTTYPE["MS2"], " mode, ") }
+              MS_txt <- paste0(MS_txt,
+                               USCNS["MS2"], " microscan", c("", "s")[(USCNS["MS2"] > 1)+1], ", at ",
+                               RES["MS2"], " resolution; ",
+                               "AGC target ", AGC["MS2"], ", ",
+                               MAXIT["MS2"], " maximum IT, ",
+                               F1MSS,
+                               "NCE ", NCE, ".")
             }
-          } else { MStxt <- "TEMPLATE" }
-          TXT <- paste0(LCtxt, " ", MStxt)
+          }
+          
+          TXT <- paste0(LC_txt, " ", MS_txt)
           #writeClipboard(TXT)
-          ThLCMSTexts <- c(ThLCMSTexts, TXT)
-        } else {
-          warning("Empty method...")
+        }
+        return(list(Method = data.frame(LC_txt = LC_txt,
+                                        MS_txt = LC_txt),
+                    LC = NANO,
+                    LC_vendor = NANOMAKER,
+                    MS = INSTR,
+                    MS_vendor = INSTRMAKER))
+      })
+      thMeth_LC <- vapply(thMeth, function(x) { x$LC }, "")
+      thMeth_MS <- vapply(thMeth, function(x) { x$MS }, "")
+      all_LCMS_instr$LC <- unique(c(all_LCMS_instr$LC, thMeth_LC))
+      all_LCMS_instr$MS <- unique(c(all_LCMS_instr$MS, thMeth_MS))
+      thLCMS_txt <- lapply(thMeth, function(x) { x$Method })
+      thLCMS_txt <- do.call(rbind, thLCMS_txt)
+      tmp <- thLCMS_txt[, c("LC_txt", "MS_txt")]
+      #tmp <- tmp[c(1, 2, 2),]
+      #tmp$LC_txt[2] <- tmp$LC_txt[1]
+      #tmp$MS_txt[3] <- tmp$MS_txt[1]
+      tst <- vapply(c("LC_txt", "MS_txt"), function(x) { length(unique(tmp[[x]])) }, 1)
+      for (i in c("LC", "MS")) {
+        k <- paste0(i, "_txt")
+        if (tst[[k]] > 1) {
+          m <- match(tmp[[k]], unique(tmp[[k]]))
+          tmp[[k]] <- paste0(i, " method #", m, ": ", tmp[[k]])
         }
       }
+      tst <- tst < nrow(tmp)
+      if (sum(tst)) {
+        if (tst["LC_txt"]) {
+          tmp <- aggregate(tmp$MS_txt, list(tmp$LC_txt), unique)
+          colnames(tmp) <- c("LC_txt", "MS_txt")
+          if ("list" %in% class(tmp$MS_txt)) {
+            l <- vapply(tmp$MS_txt, length, 1)
+            w <- which(l > 1)
+            tmp$MS_txt[w] <- vapply(tmp$MS_txt[w], paste, "", collapse = "\n")
+            tmp$MS_txt <- unlist(tmp$MS_txt)
+          }
+        }
+        if (tst["MS_txt"]) {
+          tmp <- aggregate(tmp$LC_txt, list(tmp$MS_txt), unique)[, 2:1]
+          colnames(tmp) <- c("LC_txt", "MS_txt")
+          if ("list" %in% class(tmp$LC_txt)) {
+            l <- vapply(tmp$LC_txt, length, 1)
+            w <- which(l > 1)
+            tmp$LC_txt[w] <- vapply(tmp$LC_txt[w], paste, "", collapse = "\n")
+            tmp$LC_txt <- unlist(tmp$LC_txt)
+          }
+        }
+      }
+      nr <- nrow(tmp)
+      if (nr > 1) {
+        tmp$LC_txt <- paste0("Method #", 1:nr, ":\n", tmp$LC_txt)
+      }
+      thLCMS_txt <- do.call(paste, c(tmp[, c("LC_txt", "MS_txt")], sep = "\n"))
+      thLCMS_txt <- paste(thLCMS_txt, collapse = "\n")
     } else {
       warning("All files and their methods are missing, at least one file or one method is required!")
-      ThLCMSTexts <- "TEMPLATE"
+      thLCMS_txt <- "TEMPLATE"
     }
-    AllLCMSTexts <- c(AllLCMSTexts, ThLCMSTexts) 
+    all_LCMS_txts <- c(all_LCMS_txts, thLCMS_txt)
   }
   if (AddKolKount) {
     require(openxlsx)
@@ -1013,5 +1124,6 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
   }
   #
   if (stopCl) { parallel::stopCluster(cl) }
-  return(AllLCMSTexts)
+  return(list(Text = all_LCMS_txts,
+              Instruments = all_LCMS_instr))
 }
