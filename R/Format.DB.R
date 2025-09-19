@@ -312,7 +312,7 @@ Format.DB <- function(file,
   res <- plyr::rbind.fill(res)
   #
   # Check unicity of IDs!
-  IDsCheck <- aggregate(res$Sequence, list(res"Protein ID"), function(x) { length(unique(x)) })
+  IDsCheck <- aggregate(res$Sequence, list(res$"Protein ID"), function(x) { length(unique(x)) })
   if (max(IDsCheck$x) > 1) {
     stop("Database is corrupt: multiple entries were found with distinct sequences and the same protein accession!")
   }
