@@ -31,20 +31,19 @@ homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/prot
 # Run workflow of interest:
 # =========================
 # 
-# Choose below the workflow you want to run
-#
-# Full proteomics with replicates
-wrkflwSrc <- paste0(homePath, "/Regulation analysis - detailed script.R")
+# Choose below the analysis workflow you want to run:
+require(svDialogs)
+WrkFlwsTbl <- data.frame(Name = c("Protein Groups - with replicates",
+                                  "Protein Groups - no replicates",
+                                  "Modified peptidoforms - with replicates",
+                                  "Histone tails"),
+                         Script = c("Regulation analysis - detailed script",
+                                    "No replicates analysis - detailed script",
+                                    "Regulation analysis - detailed script_pepOnly",
+                                    "Histones_analysis_-_DiaNN_FragPipe_Skyline_or_alphaDIA_input"))
+myWrkFlw %<o% dlg_list(WrkFlwsTbl$Name, WrkFlwsTbl$Name[1], title = "Choose analysis workflow")$res
+wrkflwSrc %<o% paste0(homePath, "/", WrkFlwsTbl$Script[match(myWrkFlw, WrkFlwsTbl$Name)], ".R")
+#rstudioapi::documentOpen(wrkflwSrc)
 source(wrkflwSrc)
-#
-# Full proteomics without replicates
-wrkflwSrc <- paste0(homePath, "/No replicates analysis - detailed script.R")
-source(wrkflwSrc)
-#
-# Modified peptides only, with replicates
-wrkflwSrc <- paste0(homePath, "/Regulation analysis - detailed script_pepOnly.R")
-source(wrkflwSrc)
-#
-# Histones analysis
-wrkflwSrc <- paste0(homePath, "/Histones_analysis_-_DiaNN_FragPipe_Skyline_or_alphaDIA_input.R")
-source(wrkflwSrc)
+
+

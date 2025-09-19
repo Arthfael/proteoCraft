@@ -119,11 +119,6 @@ biocInstall %<o% function(pack, load = TRUE) {
 }
 for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
 
-# For rawrr we are taking a different approach to installation
-rawrrSrc <- paste0(libPath, "/extdata/R scripts/Sources/install_rawrr.R")
-#rstudioapi::documentOpen(rawrrSrc)
-source(rawrrSrc)
-
 # Load backup?
 load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Do you want to load a backup?", "yesno")$res, c("yes", "no"))]
 if (load_a_Bckp) {
@@ -205,6 +200,14 @@ setDTthreads(threads = N.clust)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Load_PSMs.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
+
+# Install and/or load rawrr only if we have .raw files
+g <- grep("\\.raw$", rawFiles, ignore.case = TRUE)
+if (length(g)) {
+  rawrrSrc <- paste0(libPath, "/extdata/R scripts/Sources/install_rawrr.R")
+  #rstudioapi::documentOpen(rawrrSrc)
+  source(rawrrSrc)
+}
 
 # MS raw files map
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Fractions_Map_editor.R")

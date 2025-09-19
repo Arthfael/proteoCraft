@@ -95,11 +95,6 @@ biocInstall %<o% function(pack, load = TRUE) {
 }
 for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
 
-# For rawrr we are taking a different approach to installation
-rawrrSrc <- paste0(libPath, "/extdata/R scripts/Sources/install_rawrr.R")
-#rstudioapi::documentOpen(rawrrSrc)
-source(rawrrSrc)
-
 # Load backup?
 load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Do you want to load a backup?", "yesno")$res, c("yes", "no"))]
 if (load_a_Bckp) {
@@ -142,6 +137,14 @@ setDTthreads(threads = N.clust)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Load_PSMs.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
+
+# Install and/or load rawrr only if we have .raw files
+g <- grep("\\.raw$", rawFiles, ignore.case = TRUE)
+if (length(g)) {
+  rawrrSrc <- paste0(libPath, "/extdata/R scripts/Sources/install_rawrr.R")
+  #rstudioapi::documentOpen(rawrrSrc)
+  source(rawrrSrc)
+}
 
 #### Code chunk - MS files map
 if ("PTM-enriched" %in% colnames(FracMap)) {
@@ -778,6 +781,16 @@ if (length(tmp)) {
   CytoScape <- FALSE
 }
 CytoScExe <- CytoScExe[1]
+if ((!exists("runPepperDflt"))||(length(runPepperDflt) != 1)||(!is.logical(runPepperDflt))||(is.na(runPepperDflt))) {
+  runPepperDflt <- FALSE
+}
+if ((exists("runPepper"))&&(length(runPepper) == 1)&&(is.logical(runPepper))&&(!is.na(runPepper))) {
+  runPepperDflt <- runPepper
+}
+if ("runPepper" %in% colnames(AnalysisParam)) {
+  runPepperDflt <- as.logical(AnalysisParam$runPepper)
+}
+if (is.na(runPepperDflt)) { runPepperDflt <- FALSE }
 #
 appNm <- paste0(dtstNm, " - Parameters")
 ui <- shiny::fluidPage(
@@ -810,22 +823,26 @@ ui <- shiny::fluidPage(
   shiny::br(),
   shiny::tags$hr(style = "border-color: black;"),
   shiny::h4("Data processing"),
-  shiny::fluidRow(shiny::column(2,
-                                shiny::checkboxInput("Impute", "Impute missing peptides-level values?",
-                                                     Impute, "100%")),
-                  shiny::column(2,
-                                shiny::checkboxInput("Update_Prot_matches",
-                                                     paste0("Update ", names(SearchSoft),
-                                                            "'s original protein-to-peptides assignments?"),
-                                                     Update_Prot_matches, "100%"),
-                                shinyBS::bsTooltip("Update_Prot_matches",
-                                                   "Checking assignments may result in removal of some identifications. It is nonetheless recommended because we have observed occasional inconsistent peptides-to-protein assignments with some search software.",
-                                                   placement = "right", trigger = "hover",
-                                                   options = list(container = "body"))#,
+  shiny::fluidRow(
+    shiny::column(2,
+                  shiny::checkboxInput("Impute", "Impute missing peptides-level values?",
+                                       Impute, "100%")),
+    shiny::column(2,
+                  shiny::checkboxInput("Update_Prot_matches",
+                                       paste0("Update ", names(SearchSoft),
+                                              "'s original protein-to-peptides assignments?"),
+                                       Update_Prot_matches, "100%"),
+                  shinyBS::bsTooltip("Update_Prot_matches",
+                                     "Checking assignments may result in removal of some identifications. It is nonetheless recommended because we have observed occasional inconsistent peptides-to-protein assignments with some search software.",
+                                     placement = "right", trigger = "hover",
+                                     options = list(container = "body"))#,
                   #shinycssloaders::withSpinner(shiny::uiOutput("ReloadMatches"))
-           ),
-           shiny::column(2, shiny::checkboxInput("prtNorm", "Normalize data",
-                                                 AnalysisParam$NormalizePG, "100%"))),
+    ),
+    shiny::column(2, shiny::checkboxInput("prtNorm", "Normalize data",
+                                          AnalysisParam$NormalizePG, "100%")),
+    shiny::column(2, shiny::checkboxInput("runPepper", "Run Pepper ML-based PSMs intensity correction?",
+                                          runPepperDflt, "100%"))
+  ),
   shiny::tags$hr(style = "border-color: black;"),
   shiny::br(),
   # Quantitation
@@ -1070,6 +1087,13 @@ server <- function(input, output, session) {
     assign("NormalizePG", as.logical(input$prtNorm), envir = .GlobalEnv)
     Par <- PARAM()
     Par$NormalizePG <- NormalizePG
+    PARAM(Par)
+  })
+  # Pepper
+  shiny::observeEvent(input$runPepper, {
+    assign("runPepper", as.logical(input$runPepper), envir = .GlobalEnv)
+    Par <- PARAM()
+    Par$runPepper <- runPepper
     PARAM(Par)
   })
   # Quantitation
@@ -1424,8 +1448,6 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/MS2corr2MS1.R")
 source(Src, local = FALSE)
 
 #### Code chunk - Pepper correction
-runPepper <- c(TRUE, FALSE)[match(dlg_message("Should we run Pepper ML-based PSMs intensity correction?", "yesno")$res,
-                                  c("yes", "no"))]
 # (Maybe this should be done at peptides level?)
 if (runPepper) {
   if (!require("qs", quietly = TRUE)) { install.packages("qs") }
