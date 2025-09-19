@@ -1,10 +1,9 @@
 ### Coverage maps for proteins of interest
+#stopCluster(parClust)
+source(parSrc)
 nCharLim <- 40
 if (prot.list.Cond) {
   setwd(wd)
-  dir <- paste0(wd, "/Protein plots")
-  #unlink(dir)
-  if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   evids <- as.integer(unlist(strsplit(PG$`Evidence IDs`[which(PG$`In list` == "+")], ";")))
   if (length(evids)) {
     TMP0 <- ev[which(ev$id %in% evids),]
@@ -13,13 +12,27 @@ if (prot.list.Cond) {
     TEST0 <- TEST0[which(TEST0$value %in% unlist(IDs.list)),]
     tmpDB <- db[which(db$`Protein ID` %in% prot.list),
                 c("Protein ID", "Common Name", "Sequence")]
-    comb <- as.data.frame(gtools::permutations(length(Exp), 2, Exp, repeats.allowed = TRUE))
-    colnames(comb) <- c("A", "B")
-    pepR <- apply(comb, 1, function(x) {
-      paste0("R = ", round(cor(pep[[paste0(int.col, " - ", x[[1]])]],
-                               pep[[paste0(int.col, " - ", x[[2]])]]), 3))
-    })
-    names(pepR) <- apply(comb, 1, function(x) { paste0(x[[1]], " (A) vs ", x[[2]], " (B)") })
+    runRat <- FALSE
+    l <- length(Exp)
+    if (l > 1) {
+      comb <- as.data.frame(gtools::permutations(l, 2, Exp, repeats.allowed = TRUE))
+      colnames(comb) <- c("A", "B")
+      comb <- comb[which(comb$A != comb$B),]
+      myComb <- do.call(paste, c(comb, sep = " / "))
+      opt <- vapply(myComb, function(x) { paste(c(x, rep(" ", max(c(1, 250-nchar(x))))), collapse = "") }, "")
+      slct <- dlg_list(opt, opt, TRUE, "Ratio plots: select comparisons of interest")$res
+      m <- match(slct, opt)
+      comb <- comb[m,]
+      myComb <- myComb[m]
+      runRat <- nrow(comb) > 0
+    } 
+    if (runRat) {
+      pepR <- apply(comb, 1, function(x) {
+        paste0("R = ", round(cor(pep[[paste0(int.col, " - ", x[[1]])]],
+                                 pep[[paste0(int.col, " - ", x[[2]])]]), 3))
+      })
+      names(pepR) <- apply(comb, 1, function(x) { paste0(x[[1]], " (A) vs ", x[[2]], " (B)") })
+    }
     tmpPep <- pep[, grep(topattern(int.col), colnames(pep), value = TRUE)]
     invisible(clusterCall(parClust, function() {
       library(Peptides)
@@ -29,7 +42,9 @@ if (prot.list.Cond) {
       library(htmlwidgets)
       return()
     }))
-    exports <- list("prot.names", "IDs.list", "TEST0", "tmpDB", "Exp", "TMP0", "nCharLim", "wd", "int.col", "pepR", "WorkFlow", "dir")
+    exports <- list("prot.names", "IDs.list", "TEST0", "tmpDB", "Exp", "TMP0", "nCharLim", "wd", "int.col",
+                    "WorkFlow", "dir", "runRat")
+    if (runRat) { exports <- append(exports, list("comb", "myComb", "pepR")) }
     clusterExport(parClust, exports, envir = environment())
     #for (prnm in 1:length(prot.names)) { #prnm <- 1
     tstProtPlots <- parLapply(parClust, 1:length(prot.names), function(prnm) { #prnm <- 1
@@ -54,24 +69,45 @@ if (prot.list.Cond) {
           w <- as.numeric(unique(TEST0$L1[w]))
           TMP <- TMP0[match(w, TMP0$id),]
           for (id in IDs) { #id <- IDs[1]
-            nm <- gsub("\\*", "STAR", gsub("/", "-", gsub(" - $", "", paste0(id, "_", tmpDB$"Common Name"[match(id, tmpDB$"Protein ID")]))))
+            idMtch <- match(id, tmpDB$"Protein ID")
+            nm <- gsub("\\*", "STAR",
+                       gsub("/", "-",
+                            gsub(" - $", "", paste0(id, "_", tmpDB$"Common Name"[idMtch]))))
             if (nchar(nm) > nCharLim) { nm <- paste0(gsub(" +$", "", substr(nm, 1, nCharLim-3)), "...") }
             nm2 <- gsub(":", "_", gsub("\\.\\.\\.$", "", nm))
             cat("Generating plots for", nm, "\n")
             setwd(wd)
-            suppressWarnings(dir.create(paste0("Protein plots/", nm2)))
-            suppressWarnings(dir.create(paste0("Protein plots/", nm2, "/Coverage")))
-            suppressWarnings(dir.create(paste0("Protein plots/", nm2, "/Coverage/Intensity")))
-            suppressWarnings(dir.create(paste0("Protein plots/", nm2, "/Coverage/PEP")))
-            suppressWarnings(dir.create(paste0("Protein plots/", nm2, "/Correlation")))
-            suppressWarnings(dir.create(paste0("Protein plots/", nm2, "/Ratios")))
-            P <- setNames(tmpDB$Sequence[match(id, tmpDB$"Protein ID")], nm)
-            P2 <- paste0("_", gsub("I", "L", P), "_")
-            s <- data.frame(Seq = unique(TMP$Sequence))
-            s$Matches <- sapply(gsub("I", "L", s$Seq), function(x) { #x <- gsub("I", "L", s$Seq[1])
-              x <- unlist(strsplit(P2, x))
-              if (length(x) == 1) { return(NA) } else { return(nchar(x[1:(length(x)-1)]) + 2) }
+            suppressWarnings({
+              drs <- paste0(wd, "/Protein plots/", nm2, c(paste0("/Coverage/", c("Intensity", "PEP")),
+                                                          "/Correlation", "/Ratios"))
+              for (dr in drs) { if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) } }
             })
+            P <- setNames(tmpDB$Sequence[match(id, tmpDB$"Protein ID")], nm)
+            P2 <- unlist(strsplit(gsub("I", "L", P), ""))
+            s <- data.frame(Seq = unique(TMP$Sequence))
+            s$Matches <- lapply(strsplit(gsub("I", "L", s$Seq), ""), function(x) {
+              #x <- strsplit(gsub("I", "L", s$Seq), "")[1]
+              # Now rewritten to get all possible matches in case a peptide matches multiple times
+              # (older versions would've missed overlapping matches)
+              rs <- NA
+              x <- unlist(x)
+              l <- length(x)
+              if (l) {
+                x <- data.frame(ind = 1:l,
+                                seq = x)
+                x$Mtch <- lapply(1:l, function(y) {
+                  which(P2 == x$seq[y]) - x$ind[y] + 1
+                })
+                x <- unlist(x$Mtch)
+                if (length(x)) {
+                  x <- aggregate(x, list(x), length)
+                  x <- x[which(x$x == l),]
+                  if (nrow(x)) { rs <- x$Group.1 }
+                }
+              }
+              return(rs)
+            })
+            s <- listMelt(s$Matches, s$Seq, c("Matches", "Seq"))
             s <- s[which(!is.na(s$Matches)),]
             if (nrow(s)) {
               s2 <- data.frame("Modified sequence" = unique(TMP$"Modified sequence"), check.names = FALSE)
@@ -94,7 +130,8 @@ if (prot.list.Cond) {
                     res$PEP <- e$PEP; rm(e)
                     res$"log10(Intensity)" <- log10(res$Intensity)
                     res$Intensity <- NULL
-                    res$Matches <- sapply(s2$Matches[match(res$"Modified sequence", s2$"Modified sequence")], paste, collapse = ";")
+                    res$Matches <- vapply(s2$Matches[match(res$"Modified sequence", s2$"Modified sequence")],
+                                          paste, "", collapse = ";")
                   } else { res <- NA }
                 } else { res <- NA }
                 return(res)
@@ -121,8 +158,8 @@ if (prot.list.Cond) {
                 }
                 setwd(wd)
                 # Correlation and ratio plots:
-                if (length(tempev) > 1) {
-                  temp1 <- reshape2::melt(tempev)
+                if ((length(tempev) > 1)&&(runRat)) {
+                  temp1 <- reshape::melt(tempev)
                   temp1$Match <- sapply(strsplit(temp1$Matches, ";"), as.integer)
                   temp1$Matches <- NULL
                   if (class(temp1$Match) == "list") { # Deal with cases with multiple peptide matches in the protein
@@ -140,29 +177,31 @@ if (prot.list.Cond) {
                   temp12 <- temp1[which(temp1$variable == "PEP"),]
                   temp11$PEP <- temp12$value[match(temp11$Dummy, temp12$Dummy)]
                   temp1 <- temp11; rm(temp11, temp12)
-                  comb <- as.data.frame(gtools::permutations(length(Exp), 2, Exp, repeats.allowed = TRUE))
-                  colnames(comb) <- c("A", "B")
-                  kount <- 0
-                  for (j in 1:nrow(comb)) { #j <- 1
-                    s1 <- temp1[which(temp1$L1 == comb[j, 1]),]
-                    s2 <- temp1[which(temp1$L1 == comb[j, 2]),]
+                  comb2 <- as.data.frame(gtools::permutations(length(Exp), 2, Exp, repeats.allowed = TRUE))
+                  colnames(comb2) <- c("A", "B")
+                  myComb2 <- do.call(paste, c(comb2, sep = " / "))
+                  comb2 <- comb2[which(myComb2 %in% myComb),]
+                  temp2 <- lapply(1:nrow(comb2), function(j) {
+                    s1 <- temp1[which(temp1$L1 == comb2[j, 1]),]
+                    s2 <- temp1[which(temp1$L1 == comb2[j, 2]),]
                     s2$tmp <- apply(s2[, c("Modified sequence", "Match")], 1, paste, collapse = "___")
                     if (sum(c(nrow(s1), nrow(s2)) > 0) == 2) {
                       wtst <- which(s1$"Modified sequence" %in% s2$"Modified sequence")
                       if (length(wtst)) {
-                        kount <- kount + 1
                         temp3 <- s1[which(s1$"Modified sequence" %in% s2$"Modified sequence"),
                                     c("Modified sequence", "Match" , "value")]
                         colnames(temp3)[which(colnames(temp3) == "value")] <- "log10(LFQ, A)"
                         temp3$"log10(LFQ, B)" <- s2$value[match(apply(temp3[, c("Modified sequence", "Match")],
-                                                                     1, paste, collapse = "___"),
-                                                               s2$tmp)]
-                        temp3$Comparison <- paste0(comb[j, 1], " (A) vs ", comb[j, 2], " (B)")
-                        if (kount == 1) { temp2 <- temp3 } else { temp2 <- rbind(temp2, temp3) }
-                      }
-                    }
-                  }
-                  if (kount) {
+                                                                      1, paste, collapse = "___"),
+                                                                s2$tmp)]
+                        temp3$Comparison <- paste0(comb2[j, 1], " (A) vs ", comb2[j, 2], " (B)")
+                        return(temp3)
+                      } else { return() }
+                    } else { return() }
+                  })
+                  temp2 <- temp2[which(vapply(temp2, function(x) { "data.frame" %in% class(x) }, TRUE))]
+                  temp2 <- do.call(rbind, temp2)
+                  if (nrow(temp2)) {
                     test <- apply(temp2[, c("log10(LFQ, A)", "log10(LFQ, B)") ], 1, function(x) { length(is.all.good(x)) }) == 2
                     temp2 <- temp2[which(test),]
                     temp3 <- as.data.frame(t(sapply(unique(temp2$Comparison), function(x) { #x <- unique(temp2$Comparison)[1]
@@ -288,6 +327,9 @@ if (prot.list.Cond) {
           }
         }
       }
+      return()
     })
   }
 }
+# This code seems to damage the cluster: check the source afterwards!
+source(parSrc)

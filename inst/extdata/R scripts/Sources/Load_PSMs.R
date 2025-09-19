@@ -1137,21 +1137,9 @@ fastas_map$Actual <- setNames(lapply(names(fastas_map$Original), function(nm) {
   fastas[match(fastas_map$Original[[nm]], orig_fastas)]
 }), names(fastas_map$Original))
 fastas %<o% unique(fastas)
-if ((!nrow(reloadedBckps))||(!"FASTA of proteins of special interest" %in% reloadedBckps$Role)) {
-  loadInt %<o% c(TRUE, FALSE)[match(dlg_message("Load a fasta of proteins of interest?", "yesno")$res, c("yes", "no"))]
-  if (loadInt) {
-    intFast <- selectFile(paste0("Select proteins of interest fasta", intPrtFst), path = wd)
-    if (!is.null(intFast)) {
-      intFast <- gsub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), intFast)
-      if (intFast != intPrtFst) {
-        file.copy(intFast, intPrtFst, TRUE)
-        cat(paste0("   FYI: a copy of your input fasta has been saved at \"", intPrtFst, "\"..."))
-      }
-      fastas <- unique(c(fastas, intPrtFst))
-    }
-  }
+if ((loadInt)&&(exists("intPrtFst"))&&(file.exists(intPrtFst))) {
+  fastas <- unique(c(fastas, intPrtFst))
 }
-
 #  - FracMap
 FracMap %<o% lapply(searchOutputs, function(x) { x$FracMap })
 FracMap <- do.call(plyr::rbind.fill, c(FracMap))

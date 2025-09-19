@@ -622,6 +622,7 @@ allBckps <- rbind(allBckps, tmp)
 #View(allBckps[which(!file.exists(allBckps$Full)),])
 allBckps <- allBckps[which(file.exists(allBckps$Full)),]
 reloadedBckps %<o% allBckps[NULL,]
+loadInt %<o% FALSE
 if (nrow(allBckps)) {
   allBckps$Dir <- dirname(allBckps$Full)
   allBckps$Value <- allBckps$File
@@ -638,7 +639,10 @@ if (nrow(allBckps)) {
     reloadedBckps <- allBckps[match(bckps2Reload, allBckps$Value),]
     for (i in 1:nrow(reloadedBckps)) { #i <- 1
       ext <- tolower(gsub(".*\\.", "", reloadedBckps$File[i]))
-      if (ext == "fasta") { fastas_reloaded <- reloadedBckps$Full[i] }
+      if (ext == "fasta") {
+        loadInt <- TRUE
+        fastas_reloaded <- reloadedBckps$Full[i]
+      }
       if (ext == "rdata") { loadFun(reloadedBckps$Full[i]) }
       if (ext == "csv") {
         tmp <- read.csv(reloadedBckps$Full[i], check.names = FALSE)
@@ -672,7 +676,7 @@ if (nrow(allBckps)) {
   }
 }
 if ((!nrow(reloadedBckps))||(!"FASTA of proteins of special interest" %in% reloadedBckps$Role)) {
-  loadInt %<o% c(TRUE, FALSE)[match(dlg_message("Load a fasta of proteins of interest?", "yesno")$res, c("yes", "no"))]
+  loadInt <- c(TRUE, FALSE)[match(dlg_message("Load a fasta of proteins of interest?", "yesno")$res, c("yes", "no"))]
   if (loadInt) {
     intFast <- selectFile(paste0("Select proteins of interest fasta", intPrtFst), path = wd)
     if (!is.null(intFast)) {
@@ -681,7 +685,8 @@ if ((!nrow(reloadedBckps))||(!"FASTA of proteins of special interest" %in% reloa
         file.copy(intFast, intPrtFst, TRUE)
         cat(paste0("   FYI: a copy of your input fasta has been saved at \"", intPrtFst, "\"..."))
       }
-      fastas <- unique(c(fastas, intPrtFst))
+      if (!exists("fastas")) { fastas <- c() }
+      intPrtFst %<o% intPrtFst
     }
   }
 }

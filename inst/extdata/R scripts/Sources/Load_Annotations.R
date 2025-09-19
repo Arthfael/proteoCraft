@@ -76,8 +76,8 @@ if (Annotate) {
   }
 }
 Annotate <- ((exists("Parsed_annotations"))
-             &("data.frame" %in% class(Parsed_annotations))
-             &(nrow(Parsed_annotations) > 0))
+             &&("data.frame" %in% class(Parsed_annotations))
+             &&(nrow(Parsed_annotations) > 0))
 if (Annotate) {
   Parsed_annotations %<o% Parsed_annotations
   #

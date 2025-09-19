@@ -161,12 +161,14 @@ if (LabelType %in% c("LFQ", "DIA")) { # Actually for DIA experiments the value s
     Vendors2Instr <- rbind(Vendors2Instr, tmp2)
     MSInstrTxt <- " the Mass Spectrometer model(s) on which the data was acquired"
     if ((!exists("myVendor"))||(!is.character(myVendor))||(sum(!myVendor %in% Vendors2Instr$Vendor))) { myVendor <- "All vendors" }
+    myMSInstr <- c()
     if ((!exists("myMSInstr"))||(!is.character(myMSInstr))||(sum(!myMSInstr %in% availInstr))) {
-      myMSInstr <- c()
-      myMSInstr2 <- "not available"
-    } else {
-      myMSInstr2 <- myMSInstr
+      if ((exists("LCMS_instr"))&&("list" %in% class(LCMS_instr))&&("MS" %in% names(LCMS_instr))) {
+        myMSInstr <- availInstr[which(availInstr %in% LCMS_instr$MS)]
+      }
     }
+    myMSInstr2 <- myMSInstr
+    if (!length(myMSInstr2)) { myMSInstr2 <- "not available" }
     availInstr <- c(myMSInstr, availInstr[which(!availInstr %in% myMSInstr)])
   }
   if (isFnd["MS_acq_meth"]) {

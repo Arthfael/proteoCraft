@@ -24,26 +24,38 @@ for (i in 1:length(WetLabMeth)) {
 MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style = \"Normal\")")
 #
 # 2) LCMS
+if ((!exists("LCMS_instr"))||(!"list" %in% class(LCMS_instr))||(sum(c("LC", "MS") %in% names(LCMS_instr)) != 2)) {
+  LCMS_instr <- list(LC = c(),
+                     MS = c())
+}
 MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_fpar(MatMet, fpar(ftext(\"LC-MS/MS analysis\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))")
-LCMSMeth <- try(MatMet_LCMS(cl = parClust), silent = TRUE)
-if ((("try-error" %in% class(LCMSMeth))||(is.null(LCMSMeth)))&&("mzML" %in% gsub(".*\\.", "", rawFiles))) {
-  tmp <- gsub("\\.mzML", ".raw", rawFiles)
-  LCMSMeth <- try(MatMet_LCMS(RawFiles = tmp, cl = parClust), silent = TRUE)
-  if ((("try-error" %in% class(LCMSMeth))||(is.null(LCMSMeth)))&&("mzML" %in% gsub(".*\\.", "", rawFiles))) {
-    tmp <- gsub("\\.mzML", ".d", rawFiles)
-    LCMSMeth <- try(MatMet_LCMS(RawFiles = tmp, cl = parClust), silent = TRUE)
+LCMS_meth_lst <- try(MatMet_LCMS(cl = parClust), silent = TRUE)
+mzMLtst <- ("mzML" %in% gsub(".*\\.", "", rawFiles))
+if (mzMLtst)) { # Fix for when we searched mzML-converted files
+  if (("try-error" %in% class(LCMS_meth_lst))||(is.null(LCMS_meth_lst))) {
+    tmp <- gsub("\\.mzML", ".raw", rawFiles)
+    LCMS_meth_lst <- try(MatMet_LCMS(RawFiles = tmp, cl = parClust), silent = TRUE)
+    if (("try-error" %in% class(LCMS_meth_lst))||(is.null(LCMS_meth_lst))) {
+      tmp <- gsub("\\.mzML", ".d", rawFiles)
+      LCMS_meth_lst <- try(MatMet_LCMS(RawFiles = tmp, cl = parClust), silent = TRUE)
+    }
   }
 }
-if ((("try-error" %in% class(LCMSMeth)))||(is.null(LCMSMeth))) { LCMSMeth <- "TEMPLATE" }
-L <- length(LCMSMeth)
-if (L > 1) {
-  LCMSMeth <- lapply(1:length(LCMSMeth), function(x) { c(paste0("Method ", x, ":"), LCMSMeth[[x]]) })
+if ((("try-error" %in% class(LCMS_meth_lst)))||(is.null(LCMS_meth_lst))) {
+  LCMS_meth <- "TEMPLATE"
+} else {
+  LCMS_meth <- LCMS_meth_lst$Text
+  LCMS_instr <- LCMS_meth_lst$Instruments
 }
-LCMSMeth %<o% unlist(LCMSMeth)
-MatMetCalls$Texts$LCMS <- LCMSMeth
-for (i in 1:length(LCMSMeth)) {
-  MatMetCalls$Calls <- append(MatMetCalls$Calls, paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$LCMS[", i,"], prop = WrdFrmt$",
-                                                        c("Body", "Template_text")[(LCMSMeth[i] == "TEMPLATE")+1], "_text), fp_p = WrdFrmt$just))"))
+LCMS_meth %<o% LCMS_meth
+LCMS_instr %<o% LCMS_instr
+MatMetCalls$Texts$LCMS <- LCMS_meth
+for (i in 1:length(LCMS_meth)) {
+  MatMetCalls$Calls <- append(MatMetCalls$Calls,
+                              paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$LCMS[", i,
+                                     "], prop = WrdFrmt$",
+                                     c("Body", "Template_text")[(LCMS_meth[i] == "TEMPLATE")+1],
+                                     "_text), fp_p = WrdFrmt$just))"))
 }
 MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style = \"Normal\")")
 #
