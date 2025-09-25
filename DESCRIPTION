@@ -1,6 +1,6 @@
 Package: proteoCraft
 Title: Functions and scripts for Proteomics Data Analysis
-Version: 3.0.5
+Version: 3.0.4
 Date: 2025-09-25
 Authors@R: 
     person("Armel", "Developer", , "armel.nicolas@ista.ac.at", role = c("aut", "cre"))
@@ -71,3 +71,4 @@ Remotes:
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
+
