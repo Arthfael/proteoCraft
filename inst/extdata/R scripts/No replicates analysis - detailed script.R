@@ -325,8 +325,8 @@ rws <- 1:nr
 #   u <- u[which(!u %in% rws)]
 #   if (length(u) < nr) { SamplesMap$Order <- rws }
 # } else { SamplesMap$Order <- rws }
-smplMapKol <- c("Reference", "Negative Filter", "Use")
-for (kol in smplMapKol) {
+smplMapKol1 <- c("Reference", "Negative Filter", "Use")
+for (kol in smplMapKol1) {
   if (kol %in% colnames(SamplesMap)) {
     SamplesMap[[kol]] <- as.logical(toupper(SamplesMap[[kol]]))
     SamplesMap[which(is.na(SamplesMap[[kol]])), kol] <- c(FALSE, TRUE)[(kol == "Use")+1]
@@ -335,6 +335,10 @@ for (kol in smplMapKol) {
 if (!"Use" %in% colnames(SamplesMap)) { SamplesMap$Use <- TRUE }
 SamplesMap$Use <- suppressWarnings(as.logical(SamplesMap$Use))
 SamplesMap$Use[which(is.na(SamplesMap$Use))] <- TRUE
+smplMapKol <- smplMapKol1
+if (MakeRatios) {
+  smplMapKol <- c("Ratios group", smplMapKol1)
+}
 allIDs <- as.character(sapply(smplMapKol, function(x) {
   paste0(x, "___", rws)
 }))
@@ -377,6 +381,12 @@ for (kol in c("Reference", "Negative Filter", "Use")) {
     IDs <- c(IDs, paste0(kol, "___", seq_len(nrow(smplMap2))))
     stopifnot(length(IDs) == length(unique(IDs)))
   }
+}
+if (MakeRatios) {
+  kol <- "Ratios group"
+  smplMap2[[kol]] <- shinyNumInput(SamplesMap[[kol]], 1, Inf, 1, 1, root = kol)
+  IDs <- c(IDs, paste0(kol, "___", seq_len(nrow(smplMap2))))
+  stopifnot(length(IDs) == length(unique(IDs)))
 }
 #
 if (exists("expOrder")) {
@@ -436,39 +446,44 @@ Shiny.unbindAll(table.table().node());
 Shiny.bindAll(table.table().node());"))
   #
  # Observe events
-  if (length(IDs)) {
-    sapply(IDs, function(id) {
-      x <- gsub(".+_", "", id)
-      kol <- substr(id, 1, nchar(id)-nchar(x)-1)
-      x <- as.integer(x)
-      observeEvent(input[[id]], {
-        SamplesMap[x, kol] <<- as.logical(input[[id]])
-        if (kol == "Use") {
-          tst <- sum(SamplesMap[kol])
-          if (!tst) {
-            msg <- "Include at least one sample!"
-            shinyjs::disable("saveBtn")
-          }
-          if (tst) {
-            msg <- " "
-            shinyjs::enable("saveBtn")
-          }
-        }
-        if ((MakeRatios)&&(kol == "Reference")) {
-          l <- length(unique(SamplesMap[[kol]]))
-          if (l != 2) {
-            msg <- "This workflow compares different samples, select one sample as reference!"
-            shinyjs::disable("saveBtn")
-          }
-          if (l == 2) {
-            msg <- " "
-            shinyjs::enable("saveBtn")
-          }
-        }
-        output$Message <- renderUI({ em(msg) })
-      })
-    })
-  }
+  # if (length(IDs)) {
+  #   sapply(IDs, function(id) {
+  #     x <- gsub(".+_", "", id)
+  #     kol <- substr(id, 1, nchar(id)-nchar(x)-1)
+  #     x <- as.integer(x)
+  #     observeEvent(input[[id]], {
+  #       cat(input[[id]], "\n")
+  #       val <- input[[id]]
+  #       if (kol %in% c("Reference", "Negative Filter", "Use")) {
+  #         val <<- as.logical(val)
+  #       }
+  #       SamplesMap[x, kol] <<- val
+  #       if (kol == "Use") {
+  #         tst <- sum(SamplesMap[kol])
+  #         if (!tst) {
+  #           msg <- "Include at least one sample!"
+  #           shinyjs::disable("saveBtn")
+  #         }
+  #         if (tst) {
+  #           msg <- " "
+  #           shinyjs::enable("saveBtn")
+  #         }
+  #       }
+  #       if ((MakeRatios)&&(kol == "Reference")) {
+  #         l <- length(unique(SamplesMap[[kol]]))
+  #         if (l != 2) {
+  #           msg <- "This workflow compares different samples, select one sample as reference!"
+  #           shinyjs::disable("saveBtn")
+  #         }
+  #         if (l == 2) {
+  #           msg <- " "
+  #           shinyjs::enable("saveBtn")
+  #         }
+  #       }
+  #       output$Message <- renderUI({ em(msg) })
+  #     })
+  #   })
+  # }
   observeEvent(input$mySampleMap_cell_edit, {
     smplMap3[input$mySampleMap_cell_edit$row,
              input$mySampleMap_cell_edit$col+1] <- input$mySampleMap_cell_edit$value
@@ -558,755 +573,9 @@ source(Src, local = FALSE)
 AnalysisParam$Annotations <- Annotate
 
 #### Code chunk - Define analysis parameters
-Exp %<o% unique(SamplesMap$Experiment)
-SpeciesTst %<o% "Unspecified"
-if ("Taxonomy" %in% colnames(db)) {
-  SpeciesTst <- unique(db$Taxonomy[which(gsub(" *(\\(|\\[).*", "", db[[dbOrgKol]]) == mainOrg)])
-  SpeciesTst <- SpeciesTst[which(as.character(SpeciesTst) != "NA")][1]
-}
-KingdomTst %<o% aggregate(db$Kingdom, list(db$Kingdom), length)
-KingdomTst <- KingdomTst[order(KingdomTst$x, decreasing = TRUE),]
-KingdomTst <- KingdomTst$Group.1[1]
-isEukaLike %<o% (KingdomTst %in% c("Eukaryota", "Archaea"))
-if (file.exists("AnalysisParam.RData")) {
-  tmp <- AnalysisParam
-  loadFun("AnalysisParam.RData")
-  for (nm in names(AnalysisParam)) {
-    if (!nm %in% names(tmp)) { tmp[[nm]] <- AnalysisParam[[nm]] }
-  }
-  AnalysisParam <- tmp
-}
-ptmDflt1 <- grep("^[Pp]hospho", Modifs$`Full name`, value = TRUE, invert = TRUE)
-ptmDflt2 <- paste(grep("^[Pp]hospho", Modifs$`Full name`, value = TRUE), collapse = ";")
-Mod4Quant %<o% Modifs$Mark[match(ptmDflt1, Modifs$`Full name`)]
-if ("PTMs eligible for quantitation" %in% names(AnalysisParam)) {
-  Mod4Quant <- AnalysisParam$"PTMs eligible for quantitation"
-}
-Mod2Xclud %<o% set_colnames(Modifs[which(!Modifs$Mark %in% Mod4Quant), c("Mark", "AA")],
-                            c("Mark", "Where"))
-if ("PTMs to exclude from quantitation" %in% names(AnalysisParam)) {
-  Mod2Xclud <- AnalysisParam$"PTMs to exclude from quantitation"
-}
-klustChoices %<o% c("K-means", "hierarchical")
-KlustMeth %<o% 2
-#
-if (Annotate) {
-  allGO <- unique(unlist(strsplit(db$GO[which(!is.na(db$GO))], ";")))
-  allGO2 <- paste0("GO:", gsub(".* \\[GO:|\\]$", "", allGO))
-}
-if (!"GO.terms.for.proteins.of.interest" %in% names(AnalysisParam)) { AnalysisParam$GO.terms.for.proteins.of.interest <- FALSE }
-if (!"Custom.PGs" %in% names(AnalysisParam)) { AnalysisParam$Custom.PGs <- "" }
-if (!"CRAPome_file" %in% names(AnalysisParam)) { AnalysisParam$CRAPome_file <- "" }
-# shpDflt <- c("none", "vsn", "loess")
-# names(shpDflt) <- gsub("^none$", "FALSE", shpDflt)
-#shpDflt <- shpDflt[match(as.character(AnalysisParam$Norma.Pep.Intens.Shape), names(shpDflt))]
-#if (is.na(shpDflt)) { shpDflt <- "none" }
-pr <- c("Norma.Ev.Intens", "Norma.Pep.Intens", "Adv.Norma.Pep.Intens", "Norma.Pep.Intens.IRS", "Norma.Prot.Ratio", "Adv.Norma.Prot.Intens")
-for (p in pr) { if ((!p %in% names(AnalysisParam))||(!is.logical(AnalysisParam[[p]]))||(is.na(AnalysisParam[[p]]))) { AnalysisParam[[p]] <- TRUE } }
-p <- "Adv.Norma.Ev.Intens"
-if ((!p %in% names(AnalysisParam))||(!is.logical(AnalysisParam[[p]]))||(is.na(AnalysisParam[[p]]))) { AnalysisParam[[p]] <- length(unique(FracMap$Fraction)) > 1 } 
-if ((!is.null(AnalysisParam$Norma.Pep.Intens.Shape))&&(!toupper(as.character(AnalysisParam$Norma.Pep.Intens.Shape)) %in% c("FALSE", "VSN", "LOESS"))) { Norma.Pep.Intens.Shape <- FALSE }
-pr <- c("Norma.Pep.Ratio", "Adv.Norma.Pep.Ratio", "Norma.Prot.Ratio.to.Biot")
-for (p in pr) { if ((!is.logical(AnalysisParam[[p]]))||(is.na(AnalysisParam[[p]]))) { AnalysisParam[[p]] <- FALSE } }
-QuantMethods %<o% setNames(c("Prot.Quant", "Prot.Quant + weights", "Prot.Quant.Unique", "Prot.Quant.Unique + weights",
-                             "Prot.Quant2 + weights", "Prot.Quant2", "IQ_MaxLFQ", "Top3", "Top1"),
-                           c(paste0("Profile_avg.", c("", ", weights = -log10(PEP)/CV", c(", unique peptides in priority", ", weights = -log10(PEP)/CV, unique peptides in priority"))),
-                             paste0("Profile_avg.v2", c(", weights = -log10(PEP)/CV", "")), "MaxLFQ (iq)", "Top3", "Top1"))
-QMdef <- "Prot.Quant.Unique"
-if (("QuantMeth" %in% names(AnalysisParam))&&(AnalysisParam$QuantMeth %in% QuantMethods)) { QMdef <- AnalysisParam$QuantMeth } else {
-  AnalysisParam$QuantMeth <- QMdef
-}
-if (!QMdef %in% QuantMethods[1:6]) { QMdef <- "Prot.Quant.Unique" }
-QMdefnm <- names(QuantMethods)[match(QMdef, QuantMethods)]
-if ("Proteome ruler calculated" %in% names(AnalysisParam)) { # Correct typo in older versions
-  AnalysisParam$"Proteomic ruler calculated" <- AnalysisParam$"Proteome ruler calculated"
-  AnalysisParam$"Proteome ruler calculated" <- NULL
-}
-if (("Proteomic ruler calculated" %in% names(AnalysisParam))&&
-    (is.logical(AnalysisParam$"Proteomic ruler calculated"))&&
-    (!is.na(AnalysisParam$"Proteomic ruler calculated"))) {
-  protrul %<o% AnalysisParam$"Proteomic ruler calculated"
-} else {
-  protrul %<o% (WorkFlow %in% c("Discovery", "Regulation"))
-  # Archaea and Eukaryotes have introns and histones, Bacteria do not
-  protrul <- c(protrul, FALSE)[(!isEukaLike)+1]
-  AnalysisParam$"Proteomic ruler calculated" <- protrul
-}
-#
-if (("ProtRulNuclL" %in% names(AnalysisParam))&&(!is.na(as.integer(AnalysisParam$ProtRulNuclL)))) {
-  ProtRulNuclL <- as.integer(AnalysisParam$ProtRulNuclL)
-} else {
-  ProtRulNuclL <- 196
-  AnalysisParam$ProtRulNuclL <- ProtRulNuclL
-}
-if (("Update_Prot_matches" %in% names(AnalysisParam))&&(is.logical(AnalysisParam$Update_Prot_matches))&&(!is.na(AnalysisParam$Update_Prot_matches))) {
-  Update_Prot_matches %<o% AnalysisParam$Update_Prot_matches
-} else {
-  Update_Prot_matches %<o% TRUE # See https://github.com/vdemichev/DiaNN/discussions/1631
-  AnalysisParam$Update_Prot_matches <- Update_Prot_matches
-}
-# if (("Reuse_Prot_matches" %in% names(AnalysisParam))&&(is.logical(AnalysisParam$Reuse_Prot_matches))&&(!is.na(AnalysisParam$Reuse_Prot_matches))) {
-#   Reuse_Prot_matches %<o% AnalysisParam$Reuse_Prot_matches
-# } else {
-#   Reuse_Prot_matches %<o% ("evmatch.RData" %in% list.files(wd))
-#   AnalysisParam$Reuse_Prot_matches <- Reuse_Prot_matches
-# }
-if (("Pep.Impute" %in% names(AnalysisParam))&&(is.logical(AnalysisParam$Pep.Impute))&&(!is.na(AnalysisParam$Pep.Impute))) {
-  Impute %<o% as.logical(AnalysisParam$Pep.Impute)
-} else {
-  Impute %<o% FALSE
-  AnalysisParam$Pep.Impute <- Impute
-}
-PepFoundInAtLeast %<o% 1
-if ("PepFoundInAtLeast" %in% names(AnalysisParam)) {
-  PepFoundInAtLeast %<o% suppressWarnings(as.integer(AnalysisParam$PepFoundInAtLeast))
-  if ((is.na(PepFoundInAtLeast))||(PepFoundInAtLeast < 1)||(PepFoundInAtLeast > length(Exp))) {
-    warning("Invalid \"PepFoundInAtLeast\" AnalysisParameter, defaulting to 1")
-    PepFoundInAtLeast <- 1
-  }
-}
-AnalysisParam$PepFoundInAtLeast <- PepFoundInAtLeast
-#
-dbOrd <- 1:nrow(db)
-protDeflt <- NULL
-tmp <- c()
-if ("Protein of interest" %in% names(db)) {
-  tmp <- unique(c(tmp, db$`Protein ID`[which(db$"Protein of interest")]))
-}
-if ("Prot.list" %in% names(AnalysisParam)) {
-  tmp <- unique(c(tmp, unlist(strsplit(AnalysisParam$Prot.list, ";"))))
-}
-if ("Prot.list_pep" %in% names(AnalysisParam)) {
-  tmp <- unique(c(tmp, unlist(strsplit(AnalysisParam$Prot.list_pep, ";"))))
-}
-if (length(tmp)) {
-  m <- match(tmp, db$`Protein ID`)
-  m <- m[which(!is.na(m))]
-  dbOrd <- c(m, which(!db$`Protein ID` %in% tmp))
-}
-protHeads <- gsub("^>", "", db$Header[dbOrd])
-if (length(tmp)) { protDeflt <- protHeads[1:length(m)] }
-#
-tstAdvOpt <- try(sum(file.exists(AnalysisParam$Custom.PGs, AnalysisParam$CRAPome_file)) > 0)
-if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
-if (MakeRatios) {
-  RatiosThresh %<o% 1
-  if ("Ratios analysis - threshold" %in% names(AnalysisParam)) {
-    RatiosThresh <- AnalysisParam$"Ratios analysis - threshold"
-  } else {
-    AnalysisParam$"Ratios analysis - threshold" <-  RatiosThresh
-  }
-  if ((is.na(RatiosThresh))||(!is.numeric(RatiosThresh))||(!RatiosThresh < 0)) {
-    RatiosThresh <- 1
-  }
-  RatiosThresh_2sided %<o% c(TRUE, FALSE)[(WorkFlow == "Pull-down")+1]
-  if ("Ratios analysis - threshold is two-sided" %in% names(AnalysisParam)) {
-    RatiosThresh_2sided <- AnalysisParam$"Ratios analysis - threshold is two-sided"
-  } else {
-    AnalysisParam$"Ratios analysis - threshold is two-sided" <- RatiosThresh_2sided
-  }
-  RatiosThresh_2sided <- as.logical(RatiosThresh_2sided)
-  if ((is.na(RatiosThresh_2sided))||(is.null(RatiosThresh_2sided))) {
-    RatiosThresh_2sided <- TRUE
-  }
-}
-NPep %<o% 2
-if ("N. of peptidoforms for quantitation" %in% names(AnalysisParam)) {
-  NPep <- AnalysisParam$"N. of peptidoforms for quantitation"
-} else { AnalysisParam$"N. of peptidoforms for quantitation" <- NPep }
-NPep <- as.integer(NPep)
-if ((is.na(NPep))||(NPep < 1)) { NPep <- 2 }
-removeMBR %<o% FALSE
-if ("Proteins list: remove match-between-runs" %in% names(AnalysisParam)) {
-  removeMBR <- as.logical(AnalysisParam$"Proteins list: remove match-between-runs")
-} else { AnalysisParam$"Proteins list: remove match-between-runs" <- as.logical(removeMBR) }
-if ((is.na(removeMBR))||(is.null(removeMBR))) { removeMBR <- FALSE }
-Pep4QuantOpt %<o% c("Unique peptide IDs", "Razor peptide IDs", "Peptide IDs")
-Pep4Quant %<o% Pep4QuantOpt[c(1, 2)[isEukaLike+1]]
-if (("Peptide classes eligible for quantitation" %in% names(AnalysisParam))&&
-    (length(AnalysisParam$"Peptide classes eligible for quantitation"))&&
-    (AnalysisParam$"Peptide classes eligible for quantitation" %in% Pep4QuantOpt)) {
-  Pep4Quant <- AnalysisParam$"Peptide classes eligible for quantitation"
-} else { AnalysisParam$"Peptide classes eligible for quantitation" <- Pep4Quant }
-ImputeMissData %<o% FALSE
-if ("ImputeMissData" %in% names(AnalysisParam)) {
-  ImputeMissData <- AnalysisParam$ImputeMissData
-} else { AnalysisParam$ImputeMissData <- ImputeMissData }
-ImputeMissData <- as.logical(ImputeMissData)
-if ((is.na(ImputeMissData))||(is.null(ImputeMissData))) { ImputeMissData <- FALSE }
-NormalizePG %<o% MakeRatios
-if ("NormalizePG" %in% names(AnalysisParam)) {
-  NormalizePG <- AnalysisParam$NormalizePG
-} else { AnalysisParam$NormalizePG <- NormalizePG }
-NormalizePG <- as.logical(NormalizePG)
-if ((is.na(NormalizePG))||(is.null(NormalizePG))) { NormalizePG <- FALSE }
-globalGO %<o% Annotate
-enrichGO %<o% (Annotate&MakeRatios)
-if (!exists("GO_filter")) {
-  GO_filter %<o% c()
-  GO_filter1 <- c()
-}
-if (globalGO) {
-  if ("GO terms of interest" %in% names(AnalysisParam)) {
-    GO_filter <- AnalysisParam$"GO terms of interest"
-  } else { AnalysisParam$"GO terms of interest" <- GO_filter }
-  GO_filter1 <- allGO[match(GO_filter, allGO2)]
-}
-#
-Mod2Write %<o% c()
-if ("Mod2Write" %in% names(AnalysisParam)) {
-  Mod2Write <- AnalysisParam$Mod2Write
-} else { AnalysisParam$Mod2Write <- Mod2Write }
-if ((length(Mod2Write))&&(!Mod2Write %in% Modifs$Mark)) { Mod2Write <- c() }
-# Venn diagrams
-Venn_Obs %<o% (length(Exp) > 1)
-if ("Venn diagrams: observed" %in% names(AnalysisParam)) {
-  Venn_Obs <- AnalysisParam$"Venn diagrams: observed"
-} else { AnalysisParam$"Venn diagrams: observed" <- Venn_Obs }
-Venn_Obs <- as.logical(Venn_Obs)
-if ((is.na(Venn_Obs))||(is.null(Venn_Obs))) { Venn_Obs <- FALSE }
-# Cytoscape
-CytoScExe %<o% c()
-tmp <- grep("cytoscape", list.dirs("C:/PROGRA~1", recursive = FALSE), value = TRUE, ignore.case = TRUE)
-CytoScape %<o% (length(tmp) > 0)
-if (length(tmp)) {
-  CytoScExe <- unlist(lapply(tmp, function(x) { grep("/Cytoscape\\.exe$", list.files(x, recursive = TRUE, full.names = TRUE), value = TRUE) }))
-  if (length(CytoScExe) > 1) {
-    tst <- sapply(CytoScExe, function(x) { file.info(x)$mtime })
-    CytoScExe <- CytoScExe[order(tst, decreasing = TRUE)]
-  }
-} else {
-  msg <- "Could not locate Cytoscape executable!"
-  ReportCalls <- AddMsg2Report()
-  CytoScape <- FALSE
-}
-CytoScExe <- CytoScExe[1]
-if ((!exists("runPepperDflt"))||(length(runPepperDflt) != 1)||(!is.logical(runPepperDflt))||(is.na(runPepperDflt))) {
-  runPepperDflt <- FALSE
-}
-if ((exists("runPepper"))&&(length(runPepper) == 1)&&(is.logical(runPepper))&&(!is.na(runPepper))) {
-  runPepperDflt <- runPepper
-}
-if ("runPepper" %in% colnames(AnalysisParam)) {
-  runPepperDflt <- as.logical(AnalysisParam$runPepper)
-}
-if (is.na(runPepperDflt)) { runPepperDflt <- FALSE }
-#
-appNm <- paste0(dtstNm, " - Parameters")
-ui <- shiny::fluidPage(
-  shinyjs::useShinyjs(),
-  shinyWidgets::setBackgroundColor( # Doesn't work
-    color = c(#"#F8F8FF",
-      "#E6F7F4"),
-    gradient = "linear",
-    direction = "bottom"
-  ),
-  shiny::tags$head(
-    shiny::tags$style(
-      '.inner.open {
-            overflow-y: hidden !important;
-        }'
-    )
-  ),
-  shinyjs::extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
-  shiny::titlePanel(shiny::tag("u", "Parameters"),
-                    appNm),
-  shiny::h2(dtstNm), 
-  shiny::br(),
-  shiny::tags$hr(style = "border-color: black;"),
-  shiny::h4("Proteins of interest"),
-  shinyWidgets::pickerInput("IntProt", NULL, protHeads, protDeflt, TRUE,
-                            shinyWidgets::pickerOptions(title = "Search me",
-                                                        `live-search` = TRUE,
-                                                        actionsBox = TRUE,
-                                                        deselectAllText = "Clear search")),
-  shiny::br(),
-  shiny::tags$hr(style = "border-color: black;"),
-  shiny::h4("Data processing"),
-  shiny::fluidRow(
-    shiny::column(2,
-                  shiny::checkboxInput("Impute", "Impute missing peptides-level values?",
-                                       Impute, "100%")),
-    shiny::column(2,
-                  shiny::checkboxInput("Update_Prot_matches",
-                                       paste0("Update ", names(SearchSoft),
-                                              "'s original protein-to-peptides assignments?"),
-                                       Update_Prot_matches, "100%"),
-                  shinyBS::bsTooltip("Update_Prot_matches",
-                                     "Checking assignments may result in removal of some identifications. It is nonetheless recommended because we have observed occasional inconsistent peptides-to-protein assignments with some search software.",
-                                     placement = "right", trigger = "hover",
-                                     options = list(container = "body"))#,
-                  #shinycssloaders::withSpinner(shiny::uiOutput("ReloadMatches"))
-    ),
-    shiny::column(2, shiny::checkboxInput("prtNorm", "Normalize data",
-                                          AnalysisParam$NormalizePG, "100%")),
-    shiny::column(2, shiny::checkboxInput("runPepper", "Run Pepper ML-based PSMs intensity correction?",
-                                          runPepperDflt, "100%"))
-  ),
-  shiny::tags$hr(style = "border-color: black;"),
-  shiny::br(),
-  # Quantitation
-  ## Choice of algorithm + Proteomics ruler
-  shiny::h4("Protein Groups quantitation"),
-  shiny::fluidRow(
-    #shiny::column(2,
-    shiny::selectInput("QuantMeth", "Protein Groups-level quantitation algorithm:",
-                       names(QuantMethods)[1:6], QMdefnm, width = "100%"),
-    shiny::column(2,
-                  shiny::selectInput("Pep4Quant", "Peptides eligible for quantitation (where available, unique peptides will be prioritized)",
-                                     Pep4QuantOpt, Pep4Quant, width = "100%")),
-    shiny::column(2,
-                  shiny::numericInput("NPep", "Min. number of peptidoforms for discovery/quantitation",
-                                      NPep, 1, width = "100%")),
-    shiny::column(2,
-                  shiny::numericInput("PepFoundInAtLeast",
-                                      "Use only peptidoforms found in at least how many samples?",
-                                      PepFoundInAtLeast, 1, length(Exp), 1, "100%"))),
-  shiny::br(),
-  shiny::fluidRow(
-    shiny::column(2,
-                  shiny::checkboxInput("ProtRul",
-                                       "Apply Proteomic Ruler to estimate copy numbers per cell? (uses signal from all histones as reference; assumes inter-nucleosomal space = 196 bp, do not use if this assumption does not hold!)",
-                                       protrul, "100%"),
-                  shiny::numericInput("ProtRulNuclL", "Use inter-nucleosome length = ? (kb)",
-                                      ProtRulNuclL, 1, Inf, 1, "100%")),
-    shiny::column(2,
-                  shiny::checkboxInput("removeMBR",
-                                       "Exclude match-between-runs peptides from coverage analysis?",
-                                       removeMBR, "100%"))),
-  shinycssloaders::withSpinner(uiOutput("Ratios")),
-  # Note to self: I am for now excluding some methods, because I need to add code to calculate some columns for those, namely ratios.
-  # This should be remedied asap, especially since there include such community favourites as IQ (= MaxLFQ) and Top3!!!
-  shiny::br(),
-  shiny::tags$hr(style = "border-color: black;"),
-  shiny::fluidRow(shiny::column(2,
-                                shiny::radioButtons("Clustering", "Clustering method",
-                                                    klustChoices, klustChoices[1], TRUE, "100%"))),
-  shiny::checkboxInput("Venn_Obs", "Draw Venn diagrams?", Venn_Obs, "100%"),
-  shiny::br(),
-  shiny::tags$hr(style = "border-color: black;"),
-  shinycssloaders::withSpinner(uiOutput("GO")),
-  shiny::h4("Post-translational modifications (PTMs)"),
-  shiny::fluidRow(shiny::column(2,
-                                shinyWidgets::pickerInput("PTMsQuant", "Select PTM(s) eligible for use for Protein Groups quantitation:",
-                                                          Modifs$`Full name`, ptmDflt1, TRUE,
-                                                          shinyWidgets::pickerOptions(title = "Search me",
-                                                                                      `live-search` = TRUE,
-                                                                                      actionsBox = TRUE,
-                                                                                      deselectAllText = "Clear search"))),
-                  shiny::column(2, shinyWidgets::pickerInput("Mod2Write", "Select PTM(s) for which to write a specific tab in the report",
-                                                             Modifs$`Full name`, ptmDflt2, TRUE,
-                                                             shinyWidgets::pickerOptions(title = "Search me",
-                                                                                         `live-search` = TRUE,
-                                                                                         actionsBox = TRUE,
-                                                                                         deselectAllText = "Clear search"))),
-           #column(2, checkboxInput("PTMsReNorm", "Re-normalize modified peptides ratios to those of parent Protein Group(s)?", TRUE, "100%"))
-  ),
-  shiny::br(),
-  shiny::tags$hr(style = "border-color: black;"),
-  shiny::checkboxInput("AdvOptOn", "Advanced options", tstAdvOpt),
-  shinycssloaders::withSpinner(uiOutput("AdvOpt")),
-  shiny::br(),
-  shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-  shiny::br(),
-  shiny::br()
-)
-server <- function(input, output, session) {
-  # Initialize variables to create in main environment
-  m4Quant <- shiny::reactiveVal(Mod4Quant)
-  m2Xclud <- shiny::reactiveVal(Mod2Xclud)
-  ADVOPT <- shiny::reactiveVal(tstAdvOpt)
-  PARAM <- shiny::reactiveVal(AnalysisParam)
-  #
-  # Ratios
-  output$Ratios <- shiny::renderUI({
-    if (MakeRatios) {
-      lst <- list(list(h4("Ratios analysis")),
-                  list(shiny::fluidRow(shiny::column(3,
-                                                     shiny::numericInput("RatiosThresh", "Fold change threshold (log2)",
-                                                                         RatiosThresh, 0, width = "100%")),
-                                       shiny::column(3,
-                                                     shiny::checkboxInput("RatiosThresh_2sided",
-                                                                          "Are you interested in down-regulated protein groups as well?",
-                                                                          RatiosThresh_2sided, "100%")))))
-    } else { lst <- list() }
-    return(lst)
-  })
-  #
-  # GO
-  output$GO <- shiny::renderUI({
-    lst <- list(list(br()))
-    if (Annotate) {
-      lst <- list(
-        list(h4("GO terms enrichment"),
-             shiny::fluidRow(shiny::column(1,
-                                           shiny::checkboxInput("GOenrich", "GO enrichment", globalGO, "100%")),
-                             shiny::column(2,
-                                           shinyWidgets::pickerInput("GO.tabs", "GO terms of interest",
-                                                                     allGO, GO_filter1, TRUE,
-                                                                     shinyWidgets::pickerOptions(title = "Search me",
-                                                                                                 `live-search` = TRUE,
-                                                                                                 actionsBox = TRUE,
-                                                                                                 deselectAllText = "Clear search"))),
-                             shiny::column(1,
-                                           shiny::checkboxInput("GO2Int", "Use GO terms to define list of proteins of interest?",
-                                                                AnalysisParam$GO.terms.for.proteins.of.interest , "100%"))))
-      )
-    }
-    return(lst)
-  })
-  #
-  # output$ReloadMatches <- shiny::renderUI({
-  #   if ("evmatch.RData" %in% list.files(wd)) {
-  #     msg <- "Peptide-to-protein matches backup detected in folder: do you want to reload it?\n"
-  #     lst <- list(list(list(br()),
-  #                      shiny::tags$table(
-  #                        shiny::tags$tr(width = "100%", shiny::tags$td(width = "55%", shiny::checkboxInput("Reuse_Prot_matches", msg, TRUE)))
-  #                      )))
-  #   } else {
-  #     shiny::em(" ")
-  #   }
-  # })
-  #
-  #
-  # Event observers
-  # Optional input files
-  updtOptOn <- function(reactive = TRUE) {
-    if (reactive) { tst <- ADVOPT() } else { tst <- tstAdvOpt }
-    if (tst) {
-      lst <- vector("list", 1)
-      lst[[1]] <- list(shiny::fluidRow(shiny::column(2,
-                                                     shiny::em("->"), 
-                                                     shinyFiles::shinyFilesButton("CustPG",
-                                                                                  shiny::em("Custom Protein Groups"), "", FALSE),
-                                                     shiny::br(),
-                                                     shiny::em("Allows \"cheating\" with the naive Protein Groups assembly algorithm."), shiny::br(),
-                                                     shiny::em("Useful when e.g. samples express from a custom construct to which matching peptides should be assigned in priority."), shiny::br(),
-                                                     shiny::em("Should be a table with two columns: \"Leading protein IDs\" (\";\"-separated) and \"Priority\" (integer)."),
-                                                     shiny::br(), shiny::br(),
-                                                     shiny::em("Current selection = "),
-                                                     shiny::span(AnalysisParam$Custom.PGs, style = "color:blue", .noWS = "outside"),
-                                                     shiny::br()
-      ),
-      shiny::column(2,
-                    shiny::em("->"),
-                    shinyFiles::shinyFilesButton("CRAPome", shiny::em("CRAPome filter"), "", FALSE), shiny::br(),
-                    shiny::em("CRAPome-like filter: 1 column table of protein accessions to mark as contaminants."), shiny::br(),
-                    shiny::em("Column name = \"Protein ID\" or \"Protein IDs\", use \";\" if including more than one ID per row)."),
-                    shiny::br(), shiny::br(),
-                    shiny::em("Current selection = "),
-                    shiny::span(AnalysisParam$CRAPome_file, style = "color:blue", .noWS = "outside"),
-                    shiny::br()
-      )
-      ))
-    } else { lst <- list(list(em(""))) }
-    shiny::renderUI(lst)
-  }
-  output$AdvOpt <- updtOptOn(FALSE)
-  shiny::observeEvent(input$AdvOptOn, {
-    ADVOPT(input$AdvOptOn)
-    output$AdvOpt <- updtOptOn()
-  })
-  shiny::observe({ shinyFiles::shinyFileChoose(input, "CustPG", roots = shinyFiles::getVolumes(), filetypes = "csv")
-    {
-      tmp <- input$CustPG
-      if ((!is.null(tmp))&&(is.list(tmp))) {
-        tmp <- shinyFiles::parseFilePaths(shinyFiles::getVolumes(), tmp)$datapath
-        Par <- PARAM()
-        Par$Custom.PGs <- normalizePath(tmp, winslash = "/")
-        PARAM(Par)
-      }
-    }
-  })
-  shiny::observe({ shinyFiles::shinyFileChoose(input, "CRAPome", roots = shinyFiles::getVolumes(), filetypes = "csv" )
-    {
-      tmp <- input$CRAPome
-      if ((!is.null(tmp))&&(is.list(tmp))) {
-        tmp <- shinyFiles::parseFilePaths(getVolumes(), tmp)$datapath
-        Par <- PARAM()
-        Par$CRAPome_file <- normalizePath(tmp, winslash = "/")
-        PARAM(Par)
-      }
-  }
-  })
-  #
-  # Pep4Quant
-  shiny::observeEvent(input$Pep4Quant, {
-    Pep4Quant <<- input$Pep4Quant
-    Par <- PARAM()
-    Par$"Peptide classes eligible for quantitation" <- Pep4Quant
-    PARAM(Par)
-  })
-  #
-  shiny::observeEvent(input$RatiosThresh, {
-    RatiosThresh <<- input$RatiosThresh
-    Par <- PARAM()
-    Par$"Ratios analysis - threshold" <- RatiosThresh
-    PARAM(Par)
-  })
-  shiny::observeEvent(input$RatiosThresh_2sided, {
-    RatiosThresh_2sided <<- input$RatiosThresh_2sided
-    Par <- PARAM()
-    Par$"Ratios analysis - threshold is two-sided" <- RatiosThresh_2sided
-    PARAM(Par)
-  })
-  # Impute?
-  shiny::observeEvent(input$Impute, {
-    ImputeMissData <<- input$Impute
-    Par <- PARAM()
-    Par$ImputeMissData <- ImputeMissData
-    PARAM(Par)
-  })
-  # Update PSM-to-Protein matches?
-  shiny::observeEvent(input$Update_Prot_matches, {
-    Update_Prot_matches <<- input$Update_Prot_matches
-    Par <- PARAM()
-    Par$Update_Prot_matches <- Update_Prot_matches
-    PARAM(Par)
-    # if (input$Update_Prot_matches) { shinyjs::enable("Reuse_Prot_matches") }
-    # if (!input$Update_Prot_matches) { shinyjs::disable("Reuse_Prot_matches") }
-  })
-  # observeEvent(input[["Reuse_Prot_matches"]], {
-  #   Reuse_Prot_matches <<- input$Reuse_Prot_matches
-  #   Par <- PARAM()
-  #   Par$Reuse_Prot_matches <- Reuse_Prot_matches
-  #   PARAM(Par)
-  # })
-  # Clustering method
-  shiny::observeEvent(input$Clustering, {
-    assign("KlustMeth", match(input$Clustering, klustChoices), envir = .GlobalEnv)
-  })
-  # Are analyses Two-sided?
-  shiny::observeEvent(input$TwoSided, {
-    Par <- PARAM()
-    Par$Two.sided <- input$TwoSided == "Both directions"
-    PARAM(Par)
-  })
-  # Normalizations
-  shiny::observeEvent(input$prtNorm, {
-    assign("NormalizePG", as.logical(input$prtNorm), envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$NormalizePG <- NormalizePG
-    PARAM(Par)
-  })
-  # Pepper
-  shiny::observeEvent(input$runPepper, {
-    assign("runPepper", as.logical(input$runPepper), envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$runPepper <- runPepper
-    PARAM(Par)
-  })
-  # Quantitation
-  # observeEvent(input$QuantMeth, {
-  #   Par <- PARAM()
-  #   Par$QuantMeth <- QuantMethods[match(input$QuantMeth, names(QuantMethods))]
-  #   PARAM(Par)
-  # })
-  shiny::observeEvent(input$ProtRul, {
-    assign("protrul", input$ProtRul, envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$"Proteomic ruler calculated" <- protrul
-    PARAM(Par)
-  })
-  shiny::observeEvent(input$ProtRulNuclL, {
-    assign("ProtRulNuclL", as.integer(input$ProtRulNuclL), envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$ProtRulNuclL <- ProtRulNuclL
-    PARAM(Par)
-  })
-  shiny::observeEvent(input$removeMBR, {
-    assign("removeMBR", input$ProtRul, envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$"Proteins list: remove match-between-runs" <- removeMBR
-    PARAM(Par)
-  })
-  shiny::observeEvent(input$NPep, {
-    assign("NPep", input$NPep, envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$"N. of peptidoforms for quantitation" <- NPep
-    PARAM(Par)
-  })
-  shiny::observeEvent(input$PepFoundInAtLeast, {
-    assign("PepFoundInAtLeast", as.integer(input$PepFoundInAtLeast), envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$PepFoundInAtLeast <- PepFoundInAtLeast
-    PARAM(Par)
-  })
-  # Proteins of interest
-  shiny::observeEvent(input$IntProt, {
-    assign("prot.list", db$`Protein ID`[dbOrd][match(input$IntProt, protHeads)], envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$Prot.list <- prot.list
-    PARAM(Par)
-  }, ignoreNULL = FALSE)
-  # GO enrichment
-  shiny::observeEvent(input$GOenrich, {
-    assign("globalGO", as.logical(input$GOenrich), envir = .GlobalEnv)
-    assign("enrichGO", globalGO&MakeRatios, envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$"GO terms enrichment analysis" <- globalGO
-    PARAM(Par)
-  })
-  # GO terms of interest
-  if (Annotate) {
-    shiny::observeEvent(input$GO.tabs, {
-      assign("GO_filter", allGO2[match(input$GO.tabs, allGO)], envir = .GlobalEnv)
-      if (length(GO_filter1)) {
-        mY <- match(GO_filter1, allGO)
-        mN <- which(!allGO %in% GO_filter1)
-        assign("allGO", allGO[c(mY, mN)], envir = .GlobalEnv)
-        assign("allGO2", allGO2[c(mY, mN)], envir = .GlobalEnv)
-      }
-      Par <- PARAM()
-      Par$"GO terms of interest" <- GO_filter
-      PARAM(Par)
-    }, ignoreNULL = FALSE)
-    shiny::observeEvent(input$GO2Int, {
-      Par <- PARAM()
-      Par$GO.terms.for.proteins.of.interest <- input$GO2Int
-      PARAM(Par)
-    })
-  }
-  #
-  shiny::observeEvent(input$Venn_Obs, {
-    assign("Venn_Obs", input$Venn_Obs, envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$"Venn diagrams: observed" <- Venn_Obs
-    PARAM(Par)
-  })
-  # PTMs to use for PG Quant
-  shiny::observeEvent(input$PTMsQuant, {
-    m4Quant(Modifs$Mark[match(unlist(input$PTMsQuant), Modifs$`Full name`)])
-    m2Xclud(set_colnames(Modifs[which(!Modifs$Mark %in% Mod4Quant), c("Mark", "AA")],
-                         c("Mark", "Where")))
-  }, ignoreNULL = FALSE)
-  # PTMs to write a tab for
-  shiny::observeEvent(input$Mod2Write, {
-    assign("Mod2Write", Modifs$Mark[match(input$Mod2Write, Modifs$`Full name`)], envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$Mod2Write <- Mod2Write
-    PARAM(Par)
-  }, ignoreNULL = FALSE)
-    # Re-normalize PTM peptides
-  # observeEvent(input$PTMsReNorm, {
-  #   Par <- PARAM()
-  #   Par$PTM.analysis_Norm <- input$PTMsReNorm
-  #   PARAM(Par)
-  # })
-  #
-  # Save
-  shiny::observeEvent(input$saveBtn, {
-    Par <- PARAM()
-    assign("AnalysisParam", Par, envir = .GlobalEnv)
-    assign("Mod4Quant", m4Quant(), envir = .GlobalEnv)
-    assign("Mod2Xclud", m2Xclud(), envir = .GlobalEnv)
-    stopApp()
-  })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { shiny::stopApp() })
-}
-eval(parse(text = runApp), envir = .GlobalEnv)
-#
-# Post-processing
-prot.list %<o% AnalysisParam$Prot.list
-if (AnalysisParam$GO.terms.for.proteins.of.interest) {
-  tmpGO <- AnalysisParam$"GO terms of interest"
-  GO_prot.list <- list()
-  GO_prot.list$Offspring <- lapply(tmpGO, function(x) {
-    ont <- Ontology(x)
-    x <- c(x, get(paste0("GO", ont, "OFFSPRING"))[[x]])
-    x <- x[which(!is.na(x))]
-    return(x)
-  })
-  tmpGO2 <- listMelt(strsplit(db$`GO-ID`, ";"), db$`Protein ID`)
-  GO_prot.list$Proteins <- lapply(GO_prot.list$Offspring, function(x) {
-    unique(tmpGO2$L1[which(tmpGO2$value %in% unlist(x))])
-  })
-  prot.list <- unique(c(prot.list, unlist(GO_prot.list$Proteins)))
-}
-prot.list.Cond %<o% (length(prot.list) > 0)
-if (prot.list.Cond) {
-  m <- match(prot.list, db$`Protein ID`)
-  x <- aggregate(db$`Protein ID`[m], list(db$`Common Name`[m]), c)
-  IDs.list %<o% setNames(as.list(x$x), x$Group.1)
-  prot.names %<o% names(IDs.list)
-  db$"Potential contaminant"[which(db$`Protein ID` %in% prot.list)] <- ""
-}
-#
-custPGs_file %<o% AnalysisParam$Custom.PGs
-custPGsTst <- (!is.na(custPGs_file))&(file.exists(custPGs_file))
-if (custPGsTst) {
-  if (dirname(custPGs_file) != wd) {
-      file.copy(custPGs_file, wd)
-      custPGs_file <- paste0(wd, "/", basename(custPGs_file))
-  }
-  custPGs %<o% read.delim(custPGs_file, check.names = FALSE)
-  if (colnames(custPGs)[1] != "Leading protein IDs") { custPGs <- read.delim(custPGs_file, check.names = FALSE, sep = ",") }
-  if (colnames(custPGs)[1] != "Leading protein IDs") { custPGs <- read.csv(custPGs_file, check.names = FALSE) }
-  if (colnames(custPGs)[1] != "Leading protein IDs") { custPGs <- read.csv(custPGs_file, check.names = FALSE, sep = "\t") }
-  if (colnames(custPGs)[1] != "Leading protein IDs") {
-    warning("I could not make sense of that file! Skipping.")
-    custPGs <- NA
-  }
-} else { custPGs %<o% NA }
-#
-if (prot.list.Cond) {
-  temp <- db[which(db$`Protein ID` %in% prot.list),]
-  writeFasta(temp, paste0(wd, "/Proteins of interest.fasta"))
-  AnalysisParam$"Proteins list: proteins" <- IDs.list
-  AnalysisParam$"Proteins list: names" <- prot.names
-}
-
-# GO terms of interest (for profile plots, LFQ plots and similar, GO-specific tabs...)
-GO_filt %<o% (length(GO_filter) > 0)
-if (GO_filt) {
-  library(GO.db)
-  AllTerms %<o% unique(unlist(strsplit(db$`GO-ID`, ";")))
-  AllTermNames %<o% unique(unlist(strsplit(db$GO, ";")))
-}
-
-# Venn diagrams
-AnalysisParam$"Venn diagrams: observed" <- Venn_Obs
-Venn_Ratios %<o% (Venn_Obs & MakeRatios)
-AnalysisParam$"Venn diagrams: regulated (up)" <- Venn_Ratios
-AnalysisParam$"Venn diagrams: regulated (down)" <- Venn_Ratios & RatiosThresh_2sided
-#
-AnalysisParam$"PTMs eligible for quantitation" <- Mod4Quant
-AnalysisParam$"PTMs to exclude from quantitation" <- Mod2Xclud
-
-# Experiments
-SamplesMapPath %<o% paste0(wd, "/SamplesMap.csv")
-tst <- (("Experiment" %in% colnames(ev))&&(sum(is.na(ev$Experiment)) == 0)) 
-if (tst) {
-  if ("Reference" %in% colnames(SamplesMap)) {
-    SamplesMap <- SamplesMap[which(!is.na(SamplesMap$Reference)),]
-  }
-  Exp %<o% SamplesMap$Experiment
-  w1 <- which(ev$Experiment %in% Exp)
-  w2 <- which(!ev$Experiment %in% Exp)
-  if (length(w2)) {
-    warning(paste0("Removing ", length(w2), " evidences from undefined experiments (check \"Reference\" column of Samples map)..."))
-    ev <- ev[w1,]
-  }
-} else {
-  Exp %<o% "Exp1"
-  ev$Experiment <- Exp
-  SamplesMap <- data.frame("Experiment" = Exp,
-                           "Ratios group" = 1,
-                           "Reference" = TRUE,
-                           "Negative Filter" = FALSE,
-                           "Use" = TRUE,
-                           check.names = FALSE)
-  tst <- try(write.csv(SamplesMap, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
-  while ("try-error" %in% class(tst)) {
-    dlg_message(paste0("File \"", SamplesMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-    tst <- try(write.csv(SamplesMap, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
-  }
-}
-if (identical(c("MQ.Exp", "Experiment") %in% colnames(SamplesMap), c(TRUE, FALSE))) {
-  # Here we use Experiment as synonym for MQ.Exp
-  colnames(SamplesMap)[which(colnames(SamplesMap) == "MQ.Exp")] <- "Experiment"
-}
+Src <- paste0(libPath, "/extdata/R scripts/Sources/noRep_Parameters_editor_Main.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 ev$"Protein group IDs" <- NULL
 ev$"Peptide ID" <- NULL
@@ -2190,7 +1459,7 @@ if (!"Protein group IDs" %in% colnames(ev)) {
   temp$Group.1 <- as.integer(temp$Group.1)
   ev$"Protein group IDs" <- temp$x[match(ev$id, temp$Group.1)]
 }
-if (tstorg) {
+if (tstOrg) {
   test <- listMelt(strsplit(PG$`Protein IDs`, ";"), PG$id)
   test$Org <- db[match(test$value, db$`Protein ID`), dbOrgKol]
   test <- test[order(test$Org, decreasing = FALSE),]
@@ -2881,10 +2150,12 @@ if (length(M)) {
 }
 
 # Gene-Set Enrichment Analysis (GSEA)
-dataType <- "PG"
-Src <- paste0(libPath, "/extdata/R scripts/Sources/GSEA.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+if (runGSEA) {
+  dataType <- "PG"
+  Src <- paste0(libPath, "/extdata/R scripts/Sources/GSEA.R")
+  #rstudioapi::documentOpen(Src)
+  source(Src, local = FALSE)
+}
 #
 
 if (MakeRatios) {
@@ -3257,10 +2528,12 @@ if (MakeRatios) {
       ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
       #
       # Gene-Set Enrichment Analysis (GSEA)
-      dataType <- "modPeptides"
-      Src <- paste0(libPath, "/extdata/R scripts/Sources/GSEA.R")
-      #rstudioapi::documentOpen(Src)
-      source(Src, local = FALSE)
+      if (runGSEA) {
+        dataType <- "modPeptides"
+        Src <- paste0(libPath, "/extdata/R scripts/Sources/GSEA.R")
+        #rstudioapi::documentOpen(Src)
+        source(Src, local = FALSE)
+      }
       #
       PTMs_pep[[ptm]] <- ptmpep
     }
@@ -3317,7 +2590,7 @@ w <- which(!is.na(m))
 tmp2 <- tmp2[w,]; m <- m[w]
 # For our purpose here we must match contaminant proteins.
 tmp2$Cont <- db$`Potential contaminant`[m]
-if (tstorg) {
+if (tstOrg) {
   tmp2$Organism <- db[m, dbOrgKol]
   tmp2 <- as.data.table(tmp2)
   f0 <- function(x) { c("Target", "Contaminant")[("Contaminant" %in% x)+1] }
@@ -4019,276 +3292,280 @@ invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
-#### Code chunk - Protein group profile plots and sorting plots
-source(parSrc, local = FALSE)
-require(RColorBrewer)
-require(colorspace)
-QuantTypes %<o% c("LFQ", "Coverage", "Spectra")
-tstorg2 %<o% c()
-if (tstorg) {
-  PG$temp <- PG[[pgOrgKol]]
-  PG$temp[which(PG$`Potential contaminant` == "+")] <- "Contaminant"
-  tstorg2 <- unique(PG$temp)
-  tstorg2 <- tstorg2[which(tstorg2 != "Contaminant")]
-}
-abbrFun %<o% function(x) { #x <- tst[[1]]
-  g1 <- grep("[A-Z]", x)
-  g2 <- grep("[a-z]", x)
-  w1 <- g2[which((g2-1) %in% g1)]
-  x[w1] <- "."
-  gsub("\\.[^ ]+", ".", paste(x, collapse = ""))
-}
-tstorg3 %<o% abbrFun(tstorg2)
-for (QuantType in QuantTypes) { #QuantType <- "Coverage" #QuantType <- QuantTypes[1]
-  myColors <- setNames("black", "-")
-  myColors2 <- setNames(c("lightgrey", "brown"), c("-", "+"))
-  if (length(tstorg2)) {
-    myColorsB <- myColors <- setNames(colorRampPalette(c("blue", "green"))(length(tstorg2)), tstorg2)
-    w <- which(names(myColorsB) != "In list")
-    names(myColorsB)[w] <- gsub("[a-z]+ ", ". ", names(myColorsB)[w])
-    names(myColorsB) <- gsub(";", "\n", names(myColorsB))
-    myColorsB[["potential contaminant"]] <- myColors[["potential contaminant"]] <- "grey"
+#### Code chunk - Protein group profile plots and ranked abundance plots
+if (runRankAbundPlots|runProfPlots) {
+  source(parSrc, local = FALSE)
+  require(RColorBrewer)
+  require(colorspace)
+  QuantTypes %<o% c("LFQ", "Coverage", "Spectra")
+  tstOrg2 %<o% c()
+  if (tstOrg) {
+    PG$temp <- PG[[pgOrgKol]]
+    PG$temp[which(PG$`Potential contaminant` == "+")] <- "Contaminant"
+    tstOrg2 <- unique(PG$temp)
+    tstOrg2 <- tstOrg2[which(tstOrg2 != "Contaminant")]
   }
-  myColorsB[[c("+", "In list")[(length(tstorg2) > 0)+1]]] <- myColors[[c("+", "In list")[(length(tstorg2) > 0)+1]]] <- "red"
-  colScale <- scale_colour_manual(name = "Category", values = myColors)
-  colScaleB <- scale_colour_manual(name = "Category", values = myColorsB)
-  fillScale <- scale_fill_manual(name = "Category", values = myColors)
-  colScale2 <- scale_colour_manual(name = "In list", values = myColors2)
-  fillScale2 <- scale_fill_manual(name = "In list", values = myColors2)
-  MainDir <- paste0(wd, "/Sorting plots")
-  SubDir <- paste0(MainDir, "/", QuantType)
-  if (!dir.exists(SubDir)) { dir.create(SubDir, recursive = TRUE) }
-  kolnm <- c("log10 LFQ", "Coverage [%]", "Spectral count")[match(QuantType, QuantTypes)]
-  ref <- c(rev(PG.int.cols[which(PG.int.cols != paste0("Imput. ", PG.int.cols["Original"]))])[1],
-           "Sequence coverage [%] - ",
-           "Spectral count - ")[match(QuantType, QuantTypes)]
-  g <- paste0(ref, Exp)
-  Wh <- which(g %in% colnames(PG))
-  g <- g[Wh]
-  if (length(g)) {
-    varkol <- c("Leading protein IDs", "Protein IDs", "Common Name (short)", "id", "Label")
-    if (prot.list.Cond) { varkol <- c(varkol, "In list") }
-    temp <- PG[, c(varkol, g)]
-    if (prot.list.Cond) { temp$`In list`[which(temp$`In list` == "")] <- "-" }
-    colnames(temp) <- gsub(topattern(ref), "", colnames(temp))
-    test <- aggregate(temp$"Label", list(temp$"Label"), length)
-    w <- which(test$x > 1)
-    if (length(w)) {
-      test <- test[w,]
-      for (i in test$Group.1) {
-        w <- which(temp$"Label" == i)
-        temp$"Label"[w[2:length(w)]] <- paste0(temp$"Label"[w[2:length(w)]], "_", 2:length(w))
+  abbrFun %<o% function(x) { #x <- tst[[1]]
+    g1 <- grep("[A-Z]", x)
+    g2 <- grep("[a-z]", x)
+    w1 <- g2[which((g2-1) %in% g1)]
+    x[w1] <- "."
+    gsub("\\.[^ ]+", ".", paste(x, collapse = ""))
+  }
+  tstOrg3 %<o% abbrFun(tstOrg2)
+  for (QuantType in QuantTypes) { #QuantType <- "Coverage" #QuantType <- QuantTypes[1]
+    myColors <- setNames("black", "-")
+    myColors2 <- setNames(c("lightgrey", "brown"), c("-", "+"))
+    if (length(tstOrg2)) {
+      myColorsB <- myColors <- setNames(colorRampPalette(c("blue", "green"))(length(tstOrg2)), tstOrg2)
+      w <- which(names(myColorsB) != "In list")
+      names(myColorsB)[w] <- gsub("[a-z]+ ", ". ", names(myColorsB)[w])
+      names(myColorsB) <- gsub(";", "\n", names(myColorsB))
+      myColorsB[["potential contaminant"]] <- myColors[["potential contaminant"]] <- "grey"
+    }
+    myColorsB[[c("+", "In list")[(length(tstOrg2) > 0)+1]]] <- myColors[[c("+", "In list")[(length(tstOrg2) > 0)+1]]] <- "red"
+    colScale <- scale_colour_manual(name = "Category", values = myColors)
+    colScaleB <- scale_colour_manual(name = "Category", values = myColorsB)
+    fillScale <- scale_fill_manual(name = "Category", values = myColors)
+    colScale2 <- scale_colour_manual(name = "In list", values = myColors2)
+    fillScale2 <- scale_fill_manual(name = "In list", values = myColors2)
+    MainDir <- paste0(wd, "/Ranked abundance")
+    SubDir <- paste0(MainDir, "/", QuantType)
+    if (!dir.exists(SubDir)) { dir.create(SubDir, recursive = TRUE) }
+    kolnm <- c("log10 LFQ", "Coverage [%]", "Spectral count")[match(QuantType, QuantTypes)]
+    ref <- c(rev(PG.int.cols[which(PG.int.cols != paste0("Imput. ", PG.int.cols["Original"]))])[1],
+             "Sequence coverage [%] - ",
+             "Spectral count - ")[match(QuantType, QuantTypes)]
+    g <- paste0(ref, Exp)
+    Wh <- which(g %in% colnames(PG))
+    g <- g[Wh]
+    if (length(g)) {
+      varkol <- c("Leading protein IDs", "Protein IDs", "Common Name (short)", "id", "Label")
+      if (prot.list.Cond) { varkol <- c(varkol, "In list") }
+      temp <- PG[, c(varkol, g)]
+      if (prot.list.Cond) { temp$`In list`[which(temp$`In list` == "")] <- "-" }
+      colnames(temp) <- gsub(topattern(ref), "", colnames(temp))
+      test <- aggregate(temp$"Label", list(temp$"Label"), length)
+      w <- which(test$x > 1)
+      if (length(w)) {
+        test <- test[w,]
+        for (i in test$Group.1) {
+          w <- which(temp$"Label" == i)
+          temp$"Label"[w[2:length(w)]] <- paste0(temp$"Label"[w[2:length(w)]], "_", 2:length(w))
+        }
+      }
+      temp <- reshape::melt.data.frame(temp, id.vars = varkol)
+      colnames(temp)[1:5] <- c(gsub(" ", "_", varkol[1:3]), "id", "Protein_Group")
+      colnames(temp)[which(colnames(temp) == "variable")] <- "Sample"
+      colnames(temp)[which(colnames(temp) == "value")] <- "Y"
+      temp <- temp[which(is.all.good(temp$Y, 2)),]
+      if (QuantType %in% c("Coverage", "Spectra")) { temp <- temp[which(temp$Y > 0),] }
+      if (nrow(temp)) {
+        if (length(tstOrg2)) { temp$Category <- PG$temp[match(temp$id, PG$id)] } else {
+          temp$Category <- "-"
+        }
+        if (prot.list.Cond) {
+          temp$Category[which(temp$"In list" == "+")] <- c("+", "In list")[(length(tstOrg2) > 0)+1]
+        }
+        lev <- c("In list", "+", tstOrg2, "-", "Contaminant")
+        lev <- lev[which(lev %in% unique(temp$Category))]
+        temp$Category <- factor(temp$Category, levels = lev)
+        if ((QuantType == "LFQ")&&(AnalysisParam$Type == "Band ID")) {
+          temp$Y <- 10^temp$Y
+          kolnm <- "LFQ"
+        }
+        temp$Value <- paste0(kolnm, ": ", temp$Y)
+        if (GO_filt) {
+          for (goID in GO_filter) { #goID <- GO_filter[1]
+            # Get children terms
+            gofilter <- unique(unlist(c(goID,
+                                        GOBPOFFSPRING[[goID]],
+                                        GOCCOFFSPRING[[goID]],
+                                        GOMFOFFSPRING[[goID]])))
+            gofilter <- gofilter[which(!is.na(gofilter))]
+            if (sum(gofilter %in% AllTerms)) {
+              temp[[goID]] <- "-"
+              wtst <- grsep2(gofilter, PG$`GO-ID`)
+              #which(vapply(strsplit(PG$`GO-ID`[-wtst],";"), function(x) { sum(x %in% gofilter) }, 1) != 0)
+              #which(vapply(strsplit(PG$`GO-ID`[wtst],";"), function(x) { sum(x %in% gofilter) }, 1) == 0)
+              wtst2 <- which(temp$id %in% PG$id[wtst])
+              temp[wtst2, goID] <- "+"
+              #aggregate(temp$`GO:0043005`, list(temp$Sample), function(x) { setNames(aggregate(x, list(x), length)$x, c("-", "+")) })
+              #View(PG[wtst, grep(topattern(PG.int.col), colnames(PG))])
+            }
+          }
+        }
+        invisible(clusterCall(parClust, function() {
+          library(ggplot2)
+          library(plotly)
+          library(AnnotationDbi)
+          library(htmlwidgets)
+          return()
+        }))
+        clusterExport(parClust, c("QuantType", "QuantTypes", "Exp", "temp", "SubDir", "GO_filt", "GO_filter", "wd",
+                                  "colScale", "fillScale", "colScale2", "fillScale2", "kolnm", "abbrFun"), envir = environment())
+        if (runRankAbundPlots) {
+          #for (exp in Exp[Wh]) { #exp <- Exp[Wh][1]
+          tst <- parSapply(parClust, Exp[Wh], function(exp) {
+            temp2 <- temp[which(temp$Sample == exp),]
+            temp2 <- temp2[order(temp2$Y, decreasing = TRUE),]
+            temp2$Protein_Group <- factor(temp2$Protein_Group, levels = temp2$Protein_Group)
+            intmin <- floor(min(temp2$Y))
+            intmax <- ceiling(max(temp2$Y))
+            intscale <- intmax-intmin
+            #xmax <- max(c(max(c(0, which(temp2$Category == "+")))+round(nrow(temp2)/15), nrow(temp2)))
+            xmax <- nrow(temp2)*18/15
+            PltTst <- setNames(c(TRUE, "+" %in% temp2$"In list"), c("All", "List"))
+            if (GO_filt) { for (goID in GO_filter) {
+              PltTst[goID] <- goID %in% colnames(temp2)
+            } }
+            for (i in 1:length(PltTst)) { #i <- 1
+              if (PltTst[i]) {
+                temp3 <- temp2
+                ttl2 <- ttl <- paste0("Ranked abundance plots ",
+                                      c("LFQ", "coverage", "spectral counts")[match(QuantType, QuantTypes)], " - ", exp)
+                if (i == 1) {
+                  catnm <- "Category"
+                  filt <- 1:nrow(temp3)
+                }
+                if (i == 2) {
+                  ttl2 <- ttl <- paste0(ttl, ", proteins of interest")
+                  temp3$"In list" <- factor(temp3$"In list", levels = c("-", "+"))
+                  catnm <- "In list"
+                  filt <- which(temp3[[catnm]] == "+")
+                }
+                if (i > 2) {
+                  goID <- names(PltTst)[i]
+                  goID2 <- gsub("^GO:", "GO", goID)
+                  nm <- AnnotationDbi::Term(goID)
+                  temp3[[goID2]] <- factor(temp3[[goID]], levels = c("-", "+"))
+                  ttl <- paste0(ttl, ", ", goID, " ", nm)
+                  ttl2 <- gsub("/|:|\\*|\\?|<|>|\\|", "-", ttl)
+                  myColors3 <- setNames(c("lightgrey", "purple"), c("-", "+"))
+                  colScale3 <- scale_colour_manual(name = goID, values = myColors3)
+                  fillScale3 <- scale_fill_manual(name = goID, values = myColors3)
+                  catnm <- goID
+                  filt <- which(temp3[[catnm]] == "+")
+                }
+                temp3$y <- temp3$Y + intmax*0.01
+                plot <- ggplot(temp3) + geom_bar(stat = "identity",
+                                                 aes(Protein_Group, Y, fill = .data[[catnm]], text = Value)) +
+                  annotate("text", nrow(temp3)/2, intmax*1.2+intscale*0.04, label = paste0(length(unique(temp3$id)), " Protein Groups"),
+                           hjust = 0.5, ) + theme_bw() + ggtitle(ttl) + ylab(kolnm) + 
+                  coord_cartesian(xlim = c(1, xmax), ylim = c(intmin, intmax*1.2+intscale*0.05)) +
+                  theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                        axis.line = element_line(colour = "black"), axis.text.x = element_blank(), axis.ticks = element_blank(),
+                        plot.margin = margin(r = 100))
+                if (i == 1) { plot <- plot + colScale + fillScale }
+                if (i == 2) { plot <- plot + colScale2 + fillScale2 }
+                if (i > 2) { plot <- plot + colScale3 + fillScale3 }
+                #poplot(plot, 12, 22)
+                plot_ly <- ggplotly(plot, tooltip = c("Protein_Group", "text"))
+                setwd(SubDir) # For some reason, unless I do this the default selfcontained = TRUE argument gets ignored and
+                # a folder with external resources is created for each html plot!
+                tst <- try(saveWidget(partial_bundle(plot_ly), paste0(SubDir, "/", ttl2, ".html")), silent = TRUE)
+                if ("try-error" %in% class(tst)) { tst <- try(saveWidget(plot_ly, paste0(ttl2, ".html")), silent = TRUE) }
+                #if ((i == 1)&&(!"try-error" %in% class(tst))) { system(paste0("open \"", SubDir, "/", ttl2, ".html")) }
+                plot <- plot +
+                  geom_text(data = temp3[filt,], angle = 45, hjust = 0, cex = 3.5,
+                            aes(Protein_Group, y, colour = .data[[catnm]], label = Protein_Group))
+                #poplot(plot, 12, 22)
+                #setwd(SubDir)
+                ggsave(filename = paste0(SubDir, "/", ttl2, ".jpeg"), plot, dpi = 600, width = 30, height = 10, units = "in")
+                ggsave(filename = paste0(SubDir, "/", ttl2, ".pdf"), plot, dpi = 600, width = 30, height = 10, units = "in")
+                setwd(wd)
+              }
+            }
+          })
+        }
+        #}
+        if ((runProfPlots)&&(length(g) > 1)) {
+          PltTst <- setNames(c(TRUE, "+" %in% temp$`In list`), c("All", "List"))
+          if (GO_filt) { for (goID in GO_filter) {
+            PltTst[gsub(":", "", goID)] <- gsub(":", "", goID) %in% colnames(temp)
+          } }
+          for (i in 1:length(PltTst)) { #i <- 1
+            MainDir <- paste0(wd, "/Profile plots")
+            SubDir <- paste0(MainDir, "/", QuantType)
+            if (!dir.exists(SubDir)) { dir.create(SubDir, recursive = TRUE) }
+            if (PltTst[i]) {
+              temp2 <- temp
+              temp2$Category <- gsub(" *[\\(\\[].*", "", temp2$Category)
+              temp2$Category <- as.factor(temp2$Category)
+              ttl2 <- ttl <- paste0("Protein group ", c("LFQ", "coverage", "spectral count")[match(QuantType, QuantTypes)],
+                                    " profiles")
+              if (i == 1) {
+                lev <- levels(temp2$Category)
+                w <- which(!lev %in% c("In list", "Contaminant"))
+                lev <- c(c("In list", "Contaminant"), lev[w])
+                w <- which(!lev %in% c("In list", "Contaminant"))
+                lev2 <- lev
+                lev2[w] <- sapply(strsplit(as.character(lev[w]), ""), abbrFun)
+                lev2[which(lev2 == "Contaminant")] <- "Cont."
+                lev2 <- gsub(";", "\n", lev2)
+                temp2$Category <- as.character(temp2$Category)
+                temp2$Category <- lev2[match(temp2$Category, lev)]
+                temp2$Category <- factor(temp2$Category, levels = lev2)
+                catnm <- "Category"
+                filt <- 1:nrow(temp2)
+              }
+              if (i == 2) {
+                ttl2 <- ttl <- paste0(ttl, ", proteins of interest")
+                temp2$"In list" <- factor(temp2$"In list", levels = c("-", "+"))
+                catnm <- "In list"
+                filt <- which(temp2[[catnm]] == "+")
+              }
+              if (i > 2) {
+                goID <- names(PltTst)[i]
+                goID2 <- gsub("^GO:", "GO", goID)
+                nm <- AnnotationDbi::Term(goID)
+                temp2[[goID]] <- factor(temp2[[goID]], levels = c("-", "+"))
+                ttl <- paste0(ttl, ", ", goID, " ", nm)
+                ttl2 <- gsub("/|:|\\*|\\?|<|>|\\|", "-", ttl)
+                myColors3 <- setNames(c("lightgrey", "purple"), c("-", "+"))
+                colScale3 <- scale_colour_manual(name = goID, values = myColors3)
+                fillScale3 <- scale_fill_manual(name = goID, values = myColors3)
+                catnm <- goID
+                filt <- which(temp2[[catnm]] == "+")
+              }
+              m <- match(temp2$Category, c("-", "Contaminant", tstOrg3, "+", "In list"))
+              temp2$LineType <- c(rep("dotted", 2), rep("dashed", length(tstOrg3)), rep("solid", 2))[m]
+              #temp2$DotSize <- c(rep(0.2, 2), rep(0.3, length(tstOrg3)), rep(0.5, 2))[m]
+              temp2$DotSize <- 1
+              #temp2$Alpha <- c(rep(0.25, 2), rep(0.5, length(tstOrg3)), rep(1, 2))[m]
+              temp2$Alpha <- 1
+              Ngl <- c(0, 90)[(length(levels(temp2[[catnm]])) > 5) + 1]
+              temp2 <- temp2[which(!is.na(temp2$Y)),]
+              wTxt <- which(temp2$Sample == rev(levels(temp2$Sample))[1])
+              frm <- as.formula(paste0("~`", catnm, "`"))
+              plot <- ggplot(temp2, aes(text1 = Protein_Group, text2 = Value)) +
+                geom_line(aes(x = Sample, y = Y, group = id, color = id), alpha = 0.1) +
+                geom_point(aes(x = Sample, y = Y, size = DotSize, color = id)) + ggtitle(ttl) + ylab(kolnm) +
+                theme_bw() + facet_grid(frm) +
+                scale_size_identity(guide = "none") + scale_linetype_identity(guide = "none") +
+                theme(legend.position = "none", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+                      strip.text = element_text(face = "bold", size = 8, lineheight = 0.8, angle = Ngl),
+                      strip.background = element_rect(fill = "lightblue", colour = "black", linewidth = 1)) +
+                scale_alpha_identity(guide = "none") + scale_color_viridis(option = "D")
+              plotxt <- plot + geom_text(data = temp2[wTxt,], aes(label = Protein_Group, x = Sample, y = Y, alpha = Alpha, color = id), hjust = 0, cex = 2)
+              poplot(plotxt, 12, 20)
+              setwd(SubDir)
+              plotlyProfiles <- ggplotly(plot, tooltip = c("text1", "text2"))
+              tst <- try(saveWidget(partial_bundle(plotlyProfiles), paste0(ttl2, ".html")), silent = TRUE)
+              if ("try-error" %in% class(tst)) { tst <- try(saveWidget(plotlyProfiles, paste0(ttl2, ".html")), silent = TRUE) }
+              if ((i == 1)&&(!"try-error" %in% class(tst))) { system(paste0("open \"", SubDir, "/", ttl2, ".html")) }
+              ggsave(paste0(SubDir, "/", ttl2, ".jpeg"), plot, dpi = 150)
+              ggsave(paste0(SubDir, "/", ttl2, ".pdf"), plot, dpi = 150)
+              setwd(wd)
+            }
+          }
+        }
       }
     }
-    temp <- reshape::melt.data.frame(temp, id.vars = varkol)
-    colnames(temp)[1:5] <- c(gsub(" ", "_", varkol[1:3]), "id", "Protein_Group")
-    colnames(temp)[which(colnames(temp) == "variable")] <- "Sample"
-    colnames(temp)[which(colnames(temp) == "value")] <- "Y"
-    temp <- temp[which(is.all.good(temp$Y, 2)),]
-    if (QuantType %in% c("Coverage", "Spectra")) { temp <- temp[which(temp$Y > 0),] }
-    if (nrow(temp)) {
-      if (length(tstorg2)) { temp$Category <- PG$temp[match(temp$id, PG$id)] } else {
-        temp$Category <- "-"
-      }
-      if (prot.list.Cond) {
-        temp$Category[which(temp$"In list" == "+")] <- c("+", "In list")[(length(tstorg2) > 0)+1]
-      }
-      lev <- c("In list", "+", tstorg2, "-", "Contaminant")
-      lev <- lev[which(lev %in% unique(temp$Category))]
-      temp$Category <- factor(temp$Category, levels = lev)
-      if ((QuantType == "LFQ")&&(AnalysisParam$Type == "Band ID")) {
-        temp$Y <- 10^temp$Y
-        kolnm <- "LFQ"
-      }
-      temp$Value <- paste0(kolnm, ": ", temp$Y)
-      if (GO_filt) {
-        for (goID in GO_filter) { #goID <- GO_filter[1]
-          # Get children terms
-          gofilter <- unique(unlist(c(goID,
-                                      GOBPOFFSPRING[[goID]],
-                                      GOCCOFFSPRING[[goID]],
-                                      GOMFOFFSPRING[[goID]])))
-          gofilter <- gofilter[which(!is.na(gofilter))]
-          if (sum(gofilter %in% AllTerms)) {
-            temp[[goID]] <- "-"
-            wtst <- grsep2(gofilter, PG$`GO-ID`)
-            #which(vapply(strsplit(PG$`GO-ID`[-wtst],";"), function(x) { sum(x %in% gofilter) }, 1) != 0)
-            #which(vapply(strsplit(PG$`GO-ID`[wtst],";"), function(x) { sum(x %in% gofilter) }, 1) == 0)
-            wtst2 <- which(temp$id %in% PG$id[wtst])
-            temp[wtst2, goID] <- "+"
-            #aggregate(temp$`GO:0043005`, list(temp$Sample), function(x) { setNames(aggregate(x, list(x), length)$x, c("-", "+")) })
-            #View(PG[wtst, grep(topattern(PG.int.col), colnames(PG))])
-          }
-        }
-      }
-      invisible(clusterCall(parClust, function() {
-        library(ggplot2)
-        library(plotly)
-        library(AnnotationDbi)
-        library(htmlwidgets)
-        return()
-      }))
-      clusterExport(parClust, c("QuantType", "QuantTypes", "Exp", "temp", "SubDir", "GO_filt", "GO_filter", "wd",
-                                "colScale", "fillScale", "colScale2", "fillScale2", "kolnm", "abbrFun"), envir = environment())
-      #for (exp in Exp[Wh]) { #exp <- Exp[Wh][1]
-      tst <- parSapply(parClust, Exp[Wh], function(exp) {
-        temp2 <- temp[which(temp$Sample == exp),]
-        temp2 <- temp2[order(temp2$Y, decreasing = TRUE),]
-        temp2$Protein_Group <- factor(temp2$Protein_Group, levels = temp2$Protein_Group)
-        intmin <- floor(min(temp2$Y))
-        intmax <- ceiling(max(temp2$Y))
-        intscale <- intmax-intmin
-        #xmax <- max(c(max(c(0, which(temp2$Category == "+")))+round(nrow(temp2)/15), nrow(temp2)))
-        xmax <- nrow(temp2)*18/15
-        PltTst <- setNames(c(TRUE, "+" %in% temp2$"In list"), c("All", "List"))
-        if (GO_filt) { for (goID in GO_filter) {
-          PltTst[goID] <- goID %in% colnames(temp2)
-        } }
-        for (i in 1:length(PltTst)) { #i <- 1
-          if (PltTst[i]) {
-            temp3 <- temp2
-            ttl2 <- ttl <- paste0("Sorting plots ",
-                                  c("LFQ", "coverage", "spectral counts")[match(QuantType, QuantTypes)], " - ", exp)
-            if (i == 1) {
-              catnm <- "Category"
-              filt <- 1:nrow(temp3)
-            }
-            if (i == 2) {
-              ttl2 <- ttl <- paste0(ttl, ", proteins of interest")
-              temp3$"In list" <- factor(temp3$"In list", levels = c("-", "+"))
-              catnm <- "In list"
-              filt <- which(temp3[[catnm]] == "+")
-            }
-            if (i > 2) {
-              goID <- names(PltTst)[i]
-              goID2 <- gsub("^GO:", "GO", goID)
-              nm <- AnnotationDbi::Term(goID)
-              temp3[[goID2]] <- factor(temp3[[goID]], levels = c("-", "+"))
-              ttl <- paste0(ttl, ", ", goID, " ", nm)
-              ttl2 <- gsub("/|:|\\*|\\?|<|>|\\|", "-", ttl)
-              myColors3 <- setNames(c("lightgrey", "purple"), c("-", "+"))
-              colScale3 <- scale_colour_manual(name = goID, values = myColors3)
-              fillScale3 <- scale_fill_manual(name = goID, values = myColors3)
-              catnm <- goID
-              filt <- which(temp3[[catnm]] == "+")
-            }
-            temp3$y <- temp3$Y + intmax*0.01
-            plot <- ggplot(temp3) + geom_bar(stat = "identity",
-                                             aes(Protein_Group, Y, fill = .data[[catnm]], text = Value)) +
-              annotate("text", nrow(temp3)/2, intmax*1.2+intscale*0.04, label = paste0(length(unique(temp3$id)), " Protein Groups"),
-                       hjust = 0.5, ) + theme_bw() + ggtitle(ttl) + ylab(kolnm) + 
-              coord_cartesian(xlim = c(1, xmax), ylim = c(intmin, intmax*1.2+intscale*0.05)) +
-              theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                    axis.line = element_line(colour = "black"), axis.text.x = element_blank(), axis.ticks = element_blank(),
-                    plot.margin = margin(r = 100))
-            if (i == 1) { plot <- plot + colScale + fillScale }
-            if (i == 2) { plot <- plot + colScale2 + fillScale2 }
-            if (i > 2) { plot <- plot + colScale3 + fillScale3 }
-            #poplot(plot, 12, 22)
-            plot_ly <- ggplotly(plot, tooltip = c("Protein_Group", "text"))
-            setwd(SubDir) # For some reason, unless I do this the default selfcontained = TRUE argument gets ignored and
-            # a folder with external resources is created for each html plot!
-            tst <- try(saveWidget(partial_bundle(plot_ly), paste0(SubDir, "/", ttl2, ".html")), silent = TRUE)
-            if ("try-error" %in% class(tst)) { tst <- try(saveWidget(plot_ly, paste0(ttl2, ".html")), silent = TRUE) }
-            #if ((i == 1)&&(!"try-error" %in% class(tst))) { system(paste0("open \"", SubDir, "/", ttl2, ".html")) }
-            plot <- plot +
-              geom_text(data = temp3[filt,], angle = 45, hjust = 0, cex = 3.5,
-                        aes(Protein_Group, y, colour = .data[[catnm]], label = Protein_Group))
-            #poplot(plot, 12, 22)
-            #setwd(SubDir)
-            ggsave(filename = paste0(SubDir, "/", ttl2, ".jpeg"), plot, dpi = 600, width = 30, height = 10, units = "in")
-            ggsave(filename = paste0(SubDir, "/", ttl2, ".pdf"), plot, dpi = 600, width = 30, height = 10, units = "in")
-            setwd(wd)
-          }
-        }
-      })
-      #}
-      if (length(g) > 1) {
-        PltTst <- setNames(c(TRUE, "+" %in% temp$`In list`), c("All", "List"))
-        if (GO_filt) { for (goID in GO_filter) {
-          PltTst[gsub(":", "", goID)] <- gsub(":", "", goID) %in% colnames(temp)
-        } }
-        for (i in 1:length(PltTst)) { #i <- 1
-          MainDir <- paste0(wd, "/Profile plots")
-          SubDir <- paste0(MainDir, "/", QuantType)
-          if (!dir.exists(SubDir)) { dir.create(SubDir, recursive = TRUE) }
-          if (PltTst[i]) {
-            temp2 <- temp
-            temp2$Category <- gsub(" *[\\(\\[].*", "", temp2$Category)
-            temp2$Category <- as.factor(temp2$Category)
-            ttl2 <- ttl <- paste0("Protein group ", c("LFQ", "coverage", "spectral count")[match(QuantType, QuantTypes)],
-                                  " profiles")
-            if (i == 1) {
-              lev <- levels(temp2$Category)
-              w <- which(!lev %in% c("In list", "Contaminant"))
-              lev <- c(c("In list", "Contaminant"), lev[w])
-              w <- which(!lev %in% c("In list", "Contaminant"))
-              lev2 <- lev
-              lev2[w] <- sapply(strsplit(as.character(lev[w]), ""), abbrFun)
-              lev2[which(lev2 == "Contaminant")] <- "Cont."
-              lev2 <- gsub(";", "\n", lev2)
-              temp2$Category <- as.character(temp2$Category)
-              temp2$Category <- lev2[match(temp2$Category, lev)]
-              temp2$Category <- factor(temp2$Category, levels = lev2)
-              catnm <- "Category"
-              filt <- 1:nrow(temp2)
-            }
-            if (i == 2) {
-              ttl2 <- ttl <- paste0(ttl, ", proteins of interest")
-              temp2$"In list" <- factor(temp2$"In list", levels = c("-", "+"))
-              catnm <- "In list"
-              filt <- which(temp2[[catnm]] == "+")
-            }
-            if (i > 2) {
-              goID <- names(PltTst)[i]
-              goID2 <- gsub("^GO:", "GO", goID)
-              nm <- AnnotationDbi::Term(goID)
-              temp2[[goID]] <- factor(temp2[[goID]], levels = c("-", "+"))
-              ttl <- paste0(ttl, ", ", goID, " ", nm)
-              ttl2 <- gsub("/|:|\\*|\\?|<|>|\\|", "-", ttl)
-              myColors3 <- setNames(c("lightgrey", "purple"), c("-", "+"))
-              colScale3 <- scale_colour_manual(name = goID, values = myColors3)
-              fillScale3 <- scale_fill_manual(name = goID, values = myColors3)
-              catnm <- goID
-              filt <- which(temp2[[catnm]] == "+")
-            }
-            m <- match(temp2$Category, c("-", "Contaminant", tstorg3, "+", "In list"))
-            temp2$LineType <- c(rep("dotted", 2), rep("dashed", length(tstorg3)), rep("solid", 2))[m]
-            #temp2$DotSize <- c(rep(0.2, 2), rep(0.3, length(tstorg3)), rep(0.5, 2))[m]
-            temp2$DotSize <- 1
-            #temp2$Alpha <- c(rep(0.25, 2), rep(0.5, length(tstorg3)), rep(1, 2))[m]
-            temp2$Alpha <- 1
-            Ngl <- c(0, 90)[(length(levels(temp2[[catnm]])) > 5) + 1]
-            temp2 <- temp2[which(!is.na(temp2$Y)),]
-            wTxt <- which(temp2$Sample == rev(levels(temp2$Sample))[1])
-            frm <- as.formula(paste0("~`", catnm, "`"))
-            plot <- ggplot(temp2, aes(text1 = Protein_Group, text2 = Value)) +
-              geom_line(aes(x = Sample, y = Y, group = id, color = id), alpha = 0.1) +
-              geom_point(aes(x = Sample, y = Y, size = DotSize, color = id)) + ggtitle(ttl) + ylab(kolnm) +
-              theme_bw() + facet_grid(frm) +
-              scale_size_identity(guide = "none") + scale_linetype_identity(guide = "none") +
-              theme(legend.position = "none", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
-                    strip.text = element_text(face = "bold", size = 8, lineheight = 0.8, angle = Ngl),
-                    strip.background = element_rect(fill = "lightblue", colour = "black", linewidth = 1)) +
-              scale_alpha_identity(guide = "none") + scale_color_viridis(option = "D")
-            plotxt <- plot + geom_text(data = temp2[wTxt,], aes(label = Protein_Group, x = Sample, y = Y, alpha = Alpha, color = id), hjust = 0, cex = 2)
-            poplot(plotxt, 12, 20)
-            setwd(SubDir)
-            plotlyProfiles <- ggplotly(plot, tooltip = c("text1", "text2"))
-            tst <- try(saveWidget(partial_bundle(plotlyProfiles), paste0(ttl2, ".html")), silent = TRUE)
-            if ("try-error" %in% class(tst)) { tst <- try(saveWidget(plotlyProfiles, paste0(ttl2, ".html")), silent = TRUE) }
-            if ((i == 1)&&(!"try-error" %in% class(tst))) { system(paste0("open \"", SubDir, "/", ttl2, ".html")) }
-            ggsave(paste0(SubDir, "/", ttl2, ".jpeg"), plot, dpi = 150)
-            ggsave(paste0(SubDir, "/", ttl2, ".pdf"), plot, dpi = 150)
-            setwd(wd)
-          }
-        }
-      }
-    }
   }
+  PG$temp <- NULL
+  invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 }
-PG$temp <- NULL
-invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 
 # Similar profiles but at peptides level
 # This chunk has been vastly improved, and the others should be improved on the same model!!! 
@@ -4324,7 +3601,7 @@ if (plotPepProf) {
   tmp3 <- data.frame(Seq = gsub("^_|_$", "", pep$`Modified sequence`), Name = tmp3$x[match(1:nrow(pep), tmp3$Group.1)])
   pep$Peptide_ID <- do.call(paste, c(tmp3, sep = "\n"))
   pep$"Peptide ID" <- gsub("\n", " ", pep$Peptide_ID)
-  if (tstorg) {
+  if (tstOrg) {
     tmp$Cont <- db$`Potential contaminant`[m]
     tmp$Org <- db[m, dbOrgKol]
     tmp1 <- aggregate(tmp$Cont, list(tmp$L1), function(x) {
@@ -4362,7 +3639,7 @@ if (plotPepProf) {
     temp_pep$`In list`[which(temp$`In list` == "")] <- "-"
     temp_pep$"In list" <- factor(temp_pep$"In list", levels = c("-", "+"))
   }
-  if (length(tstorg2)) { temp_pep$Category <- pep$temp[match(temp_pep$id, pep$id)] } else {
+  if (length(tstOrg2)) { temp_pep$Category <- pep$temp[match(temp_pep$id, pep$id)] } else {
     temp_pep$Category <- "-"
   }
   temp_pep <- temp_pep[which(temp_pep$Y > 0),]
@@ -4374,7 +3651,7 @@ if (plotPepProf) {
   plotsDF$kol[g] <- gsub_Rep("^Intensity - ", "log10(Int.) - ", plotsDF$kol[g])
   plotsDF$root[g] <- "log10(Int.) - "
   temp_pep$Sample <- gsub_Rep(".* - ", "", temp_pep$variable)
-  lev <- c("In list", "+", tstorg2, "-", "Contaminant")
+  lev <- c("In list", "+", tstOrg2, "-", "Contaminant")
   lev <- lev[which(lev %in% unique(temp_pep$Category))]
   temp_pep$Category <- factor(temp_pep$Category, levels = lev)
   #
@@ -4384,28 +3661,28 @@ if (plotPepProf) {
     write_rds(temp_pep[tmp$x[[which(tmp$Group.1 == exp)]],], paste0(wd, "/tmp_", exp, ".RDS"))
   })
   #
-  MainDir <- paste0(wd, "/Sorting plots")
+  MainDir <- paste0(wd, "/Ranked abundance")
   #
   # Scales
   myColorsB <- myColors <- setNames("black", "-")
   myColors2 <- setNames(c("lightgrey", "brown"), c("-", "+"))
-  if (length(tstorg2)) {
-    myColorsB <- myColors <- setNames(grDevices::colorRampPalette(c("blue", "green"))(length(tstorg2)), tstorg2)
+  if (length(tstOrg2)) {
+    myColorsB <- myColors <- setNames(grDevices::colorRampPalette(c("blue", "green"))(length(tstOrg2)), tstOrg2)
     w <- which(names(myColorsB) != "In list")
     names(myColorsB)[w] <- gsub("[a-z]+ ", ". ", names(myColorsB)[w])
     names(myColorsB) <- gsub(";", "\n", names(myColorsB))
     myColorsB[["potential contaminant"]] <- myColors[["potential contaminant"]] <- "grey"
   }
-  myColorsB[[c("+", "In list")[(length(tstorg2) > 0)+1]]] <- myColors[[c("+", "In list")[(length(tstorg2) > 0)+1]]] <- "red"
+  myColorsB[[c("+", "In list")[(length(tstOrg2) > 0)+1]]] <- myColors[[c("+", "In list")[(length(tstOrg2) > 0)+1]]] <- "red"
   colScale <- ggplot2::scale_colour_manual(name = "Category", values = myColors)
   colScaleB <- ggplot2::scale_colour_manual(name = "Category", values = myColorsB)
   fillScale <- ggplot2::scale_fill_manual(name = "Category", values = myColors)
   colScale2 <- ggplot2::scale_colour_manual(name = "In list", values = myColors2)
   fillScale2 <- ggplot2::scale_fill_manual(name = "In list", values = myColors2)
   #
-  clusterExport(parClust, list("plotsDF", "tstorg2", "wd", "MainDir", "myColorsB", "myColors2", "colScale", "colScaleB",
+  clusterExport(parClust, list("plotsDF", "tstOrg2", "wd", "MainDir", "myColorsB", "myColors2", "colScale", "colScaleB",
                                "fillScale", "fillScale2"), envir = environment())
-  cat("Plotting peptide sorting plots\n")
+  cat("Plotting peptide ranked abundance plots\n")
   pepSortTst <- parLapply(parClust, 1:nrow(plotsDF), function(ii) { #ii <- 1
     exp <- plotsDF$Exp[ii]
     pepQuantType <- plotsDF$Type[ii]
@@ -4439,7 +3716,7 @@ if (plotPepProf) {
     intmax <- ceiling(max(temp$Y))
     intscale <- intmax-intmin
     xmax <- nr*18/15
-    ttl <- paste0("Peptide ", gsub(" - $", "", root), " sorting plots - ", exp)
+    ttl <- paste0("Peptide ", gsub(" - $", "", root), " ranked abundance plots - ", exp)
     if (plotMode == "All") {
       catnm <- "Category"
       filt <- 1:nr
@@ -4493,7 +3770,7 @@ if (plotPepProf) {
     plotsDF2 <- plotsDF2[tst$x,]
     # temp_pep is all the data we need
     MainDir <- paste0(wd, "/Profile plots")
-    clusterExport(parClust, list("plotsDF2", "MainDir", "tstorg3"), envir = environment())
+    clusterExport(parClust, list("plotsDF2", "MainDir", "tstOrg3"), envir = environment())
     write_rds(temp_pep, paste0(wd, "/tmp.RDS"))
     cat("Plotting peptide profile plots\n")
     pepProfTst <- parLapply(parClust, 1:nrow(plotsDF2), function(ii) { #ii <- 1
@@ -4530,11 +3807,11 @@ if (plotPepProf) {
         catnm <- "In list"
         filt <- which(temp[[catnm]] == "+")
       }
-      m <- match(temp$Category, c("-", "Contaminant", tstorg3, "+", "In list"))
-      temp$LineType <- c(rep("dotted", 2), rep("dashed", length(tstorg3)), rep("solid", 2))[m]
-      #temp$DotSize <- c(rep(0.2, 2), rep(0.3, length(tstorg3)), rep(0.5, 2))[m]
+      m <- match(temp$Category, c("-", "Contaminant", tstOrg3, "+", "In list"))
+      temp$LineType <- c(rep("dotted", 2), rep("dashed", length(tstOrg3)), rep("solid", 2))[m]
+      #temp$DotSize <- c(rep(0.2, 2), rep(0.3, length(tstOrg3)), rep(0.5, 2))[m]
       temp$DotSize <- 1
-      #temp$Alpha <- c(rep(0.25, 2), rep(0.5, length(tstorg3)), rep(1, 2))[m]
+      #temp$Alpha <- c(rep(0.25, 2), rep(0.5, length(tstOrg3)), rep(1, 2))[m]
       temp$Alpha <- 1
       Ngl <- c(0, 90)[(length(levels(temp[[catnm]])) > 5) + 1]
       wTxt <- which(temp$Sample == rev(levels(temp$Sample))[1])

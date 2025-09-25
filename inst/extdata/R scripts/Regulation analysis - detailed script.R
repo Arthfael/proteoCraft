@@ -1321,7 +1321,7 @@ if (length(g)) {
   }
 }
 #
-if (tstorg) {
+if (tstOrg) {
   test <- vapply(strsplit(PG$`Protein IDs`, ";"), function(x) {
     paste(sort(unique(c(db[match(x, db$`Protein ID`), dbOrgKol]))), collapse = ";")
   }, "")
@@ -4876,10 +4876,12 @@ for (tt in WhTsts) { #tt <- WhTsts[1]
 }
 
 # Gene-Set Enrichment Analysis (GSEA)
-dataType <- "PG"
-Src <- paste0(libPath, "/extdata/R scripts/Sources/GSEA.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+if (runGSEA) {
+  dataType <- "PG"
+  Src <- paste0(libPath, "/extdata/R scripts/Sources/GSEA.R")
+  #rstudioapi::documentOpen(Src)
+  source(Src, local = FALSE)
+}
 
 try({ stopCluster(parClust) }, silent = TRUE)
 saveImgFun(BckUpFl)
@@ -5221,7 +5223,11 @@ if (length(filt) > 2) {
 ReportCalls <- AddSpace2Report()
 saveFun(dimRedPlotLy, file = paste0(dir, "/DimRedPlots.RData"))
 
-#### Code chunk - Protein group profile plots and sorting plots
+#### Code chunk - Protein group profile plots and ranked abundance plots
+Src <- paste0(libPath, "/extdata/R scripts/Sources/profile_and_rankedAbund_plots.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
 rm(list = ls()[which(!ls() %in% .obj)])
 invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
@@ -5230,16 +5236,16 @@ require(RColorBrewer)
 require(colorspace)
 QuantTypes %<o% c("Expression", "Coverage")
 if (CreateMSMSKol) { QuantTypes <- c(QuantTypes, "Spectra") }
-Qtstorg2 <- c()
-if (tstorg) {
+tstOrg2 <- c()
+if (tstOrg) {
   PG$temp <- PG[[pgOrgKol]]
   PG$temp[which(PG$`Potential contaminant` == "+")] <- "Contaminant"
-  tstorg2 <- aggregate(PG$temp, list(PG$temp), length)
-  tstorg2 <- tstorg2[order(tstorg2$x, decreasing = TRUE),]
-  tstorg2 <- tstorg2$Group.1[which(tstorg2$x > 1)]
-  tstorg2 <- tstorg2[which(tstorg2 != "Contaminant")]
+  tstOrg2 <- aggregate(PG$temp, list(PG$temp), length)
+  tstOrg2 <- tstOrg2[order(tstOrg2$x, decreasing = TRUE),]
+  tstOrg2 <- tstOrg2$Group.1[which(tstOrg2$x > 1)]
+  tstOrg2 <- tstOrg2[which(tstOrg2 != "Contaminant")]
 }
-MainDir <- paste0(wd, "/Sorting plots")
+MainDir <- paste0(wd, "/Ranked abundance")
 MainDir2 <- paste0(wd, "/Profile plots")
 dirlist <- unique(c(dirlist, MainDir, MainDir2))
 ggQuant %<o% list()
@@ -5255,17 +5261,17 @@ for (QuantType in QuantTypes) { #QuantType <- "Expression"
   cat(" ->", QuantType, "\n")
   QuantLy[[QuantType]] <- list()
   myColors <- setNames("black", "-")
-  if (length(tstorg2)) {
-    if (length(tstorg2) >= 3) {
-      if (length(tstorg2) <= 12) {
-        myColors <- c(myColors, setNames(brewer.pal(min(c(12, length(tstorg2))), "Set3"), tstorg2[min(c(12, length(tstorg2)))]))
+  if (length(tstOrg2)) {
+    if (length(tstOrg2) >= 3) {
+      if (length(tstOrg2) <= 12) {
+        myColors <- c(myColors, setNames(brewer.pal(min(c(12, length(tstOrg2))), "Set3"), tstOrg2[min(c(12, length(tstOrg2)))]))
       }
     } else {
-      myColors <- c(myColors, setNames(c("#8DD3C7", "#FFFFB3")[1:length(tstorg2)], tstorg2)) # We never expect more than a handful of organisms  
+      myColors <- c(myColors, setNames(c("#8DD3C7", "#FFFFB3")[1:length(tstOrg2)], tstOrg2)) # We never expect more than a handful of organisms  
     }
     myColors[["Contaminant"]] <- "deepskyblue"
   }
-  myColors[[c("+", "In list")[(length(tstorg2) > 0)+1]]] <- "red"
+  myColors[[c("+", "In list")[(length(tstOrg2) > 0)+1]]] <- "red"
   myColors["Specific"] <- "purple"
   SubDir <- paste0(MainDir, "/", QuantType)
   dirlist <- unique(c(dirlist, SubDir))
@@ -5302,7 +5308,7 @@ for (QuantType in QuantTypes) { #QuantType <- "Expression"
     mID <- match(temp$id, PG$id)
     if (nrow(temp)) {
       temp$"In list" <- "-"
-      if (length(tstorg2)) { temp$Category <- PG$temp[mID] } else {
+      if (length(tstOrg2)) { temp$Category <- PG$temp[mID] } else {
         temp$Category <- "-"
       }
       if (length(prot.list)) {
@@ -5310,10 +5316,10 @@ for (QuantType in QuantTypes) { #QuantType <- "Expression"
         if (length(gA1)) {
           wA1 <- which(temp$id %in% PG$id[gA1])
           temp$"In list"[wA1] <- "+"
-          temp$Category[wA1] <- c("+", "In list")[(length(tstorg2) > 0)+1]
+          temp$Category[wA1] <- c("+", "In list")[(length(tstOrg2) > 0)+1]
         }
       }
-      lev <- c("In list", "+", tstorg2, "-", "Contaminant")
+      lev <- c("In list", "+", tstOrg2, "-", "Contaminant")
       lev <- lev[which(lev %in% unique(temp$Category))]
       temp$Category <- factor(temp$Category, levels = lev)
       temp2 <- data.table(Category = temp$Category, PG = temp$`Protein Group`)
@@ -5322,7 +5328,7 @@ for (QuantType in QuantTypes) { #QuantType <- "Expression"
       temp2$Protein_group <- "darkgrey"
       w <- which(temp2$x == "Contaminant")
       suppressWarnings(temp2$Protein_group[w] <- brewer.pal(min(c(length(w), 12)), "Blues"))
-      w <- which(temp2$x %in% tstorg2)
+      w <- which(temp2$x %in% tstOrg2)
       temp2$Protein_group[w] <- rainbow_hcl(length(w))
       w <- which(temp2$x %in% c("In list",  "+"))
       temp2$Protein_group[w] <- "red"
@@ -5401,8 +5407,8 @@ for (QuantType in QuantTypes) { #QuantType <- "Expression"
         }
         evPlot <- plotEval(plot)
         RES <- list()
-        ggplot2::ggsave(paste0(pth, ".jpeg"), plot, dpi = 150, width = 10, height = 10, units = "in")
-        ggplot2::ggsave(paste0(pth, ".pdf"), plot, dpi = 150, width = 10, height = 10, units = "in")
+        #ggplot2::ggsave(paste0(pth, ".jpeg"), plot, dpi = 150, width = 10, height = 10, units = "in")
+        #ggplot2::ggsave(paste0(pth, ".pdf"), plot, dpi = 150, width = 10, height = 10, units = "in")
         setwd(wd)
         # RES$JPEG <- list(Plot = evPlot,
         #                  Path = paste0(SubDir, "/", ttl),
@@ -5454,11 +5460,11 @@ for (QuantType in QuantTypes) { #QuantType <- "Expression"
         if (!dir.exists(SubDir)) { dir.create(SubDir, recursive = TRUE) }
         temp2 <- temp
         temp2 <- temp2[order(temp2$`Leading protein IDs`, temp2$Sample),]
-        m <- match(temp2$Category, c("-", "Contaminant", tstorg2, "+", "In list"))
-        temp2$LineType <- c(rep("dotted", 2), rep("dashed", length(tstorg2)), rep("solid", 2))[m]
-        #temp2$DotSize <- c(rep(0.2, 2), rep(0.3, length(tstorg2)), rep(0.5, 2))[m]
+        m <- match(temp2$Category, c("-", "Contaminant", tstOrg2, "+", "In list"))
+        temp2$LineType <- c(rep("dotted", 2), rep("dashed", length(tstOrg2)), rep("solid", 2))[m]
+        #temp2$DotSize <- c(rep(0.2, 2), rep(0.3, length(tstOrg2)), rep(0.5, 2))[m]
         temp2$DotSize <- 1
-        #temp2$Alpha <- c(rep(0.25, 2), rep(0.5, length(tstorg2)), rep(1, 2))[m]
+        #temp2$Alpha <- c(rep(0.25, 2), rep(0.5, length(tstOrg2)), rep(1, 2))[m]
         temp2$Alpha <- 1
         temp2$Sample <- factor(cleanNms(as.character(temp2$Sample)),
                                levels = cleanNms(Agg$values))
@@ -5499,8 +5505,8 @@ for (QuantType in QuantTypes) { #QuantType <- "Expression"
         evPlot <- plotEval(plot)
         #poplot(plot, 12, 22)
         pth <- paste0(SubDir, "/", ttl)
-        ggsave(paste0(pth, ".jpeg"), plot, dpi = 150)
-        ggsave(paste0(pth, ".pdf"), plot, dpi = 150)
+        #ggsave(paste0(pth, ".jpeg"), plot, dpi = 150)
+        #ggsave(paste0(pth, ".pdf"), plot, dpi = 150)
         ggProf[[QuantType]] <- list(title = ttl, path = pth, plot = evPlot, dpi = 150, width = 10, height = 10)
       }
       ReportCalls <- AddSpace2Report()
@@ -5513,15 +5519,17 @@ saveFun(ggQuant, file = paste0(MainDir, "/ggQuantPlots.RData"))
 saveFun(ggProf, file = paste0(MainDir2, "/ggProfilePlots.RData"))
 saveFun(QuantLy, file = paste0(MainDir, "/QuantPlots.RData"))
 saveFun(ProfLy, file = paste0(MainDir2, "/ProfilePlots.RData"))
-for (QuantType in QuantTypes) {
-  tst <- parSapply(parClust, ggQuant[[QuantType]], function(x) {
-    if (!dir.exists(x$path)) { dir.create(x$path, recursive = TRUE) }
+for (QuantType in QuantTypes) { #QuantType <- QuantTypes[1]
+  tst <- parSapply(parClust, ggQuant[[QuantType]], function(x) { #x <- ggQuant[[QuantType]][[1]]
+    dr <- dirname(x$path)
+    if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
     ggplot2::ggsave(paste0(x$path, ".pdf"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
     ggplot2::ggsave(paste0(x$path, ".jpeg"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
   })
 }
 tst <- parSapply(parClust, ggProf, function(x) {
-  if (!dir.exists(x$path)) { dir.create(x$path, recursive = TRUE) }
+  dr <- dirname(x$path)
+  if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
   ggplot2::ggsave(paste0(x$path, ".pdf"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
   ggplot2::ggsave(paste0(x$path, ".jpeg"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
 })
@@ -6800,47 +6808,49 @@ source(Src, local = FALSE)
 
 #### Code chunk - GO term columns
 GO_PG_col %<o% unique(unlist(strsplit(Param$GO.tabs, ";")))
-if (length(GO_PG_col)) {
+GO_filt %<o% length(GO_PG_col) > 0
+if (GO_filt) {
   if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) { loadFun("GO_terms.RData") }
   GO_PG_col <- GO_PG_col[which(GO_PG_col %in% GO_terms$ID)]
+  GO_filt <- length(GO_PG_col) > 0
+}
+if (GO_filt) {
+  tmp <- listMelt(strsplit(PG$`GO-ID`, ";"), 1:nrow(PG), c("Term", "Row"))
+  Offspring <- setNames(lapply(GO_PG_col, function(x) { #x <- "GO:0009725"
+    ont <- Ontology(x)
+    x <- c(x, get(paste0("GO", ont, "OFFSPRING"))[[x]])
+    x <- x[which(!is.na(x))]
+    return(x)
+  }), GO_PG_col)
+  tmp <- tmp[which(tmp$Term %in% unlist(Offspring)),]
+  tmp <- aggregate(tmp$Row, list(tmp$Term), c)
+  colnames(tmp) <- c("Term", "Rows")
+  w <- which(vapply(GO_PG_col, function(x) { sum(Offspring[[x]] %in% tmp$Term) }, TRUE) == 0)
+  if (length(w)) {
+    msg <- stringi::stri_join("No proteins found for the following GO terms:",
+                              stringi::stri_join("\n - ", GO_terms$Term[match(GO_PG_col[w], GO_terms$ID)],
+                                                 collapse = ""),
+                              "\n\n")
+    cat(msg)
+    GO_PG_col <- GO_PG_col[which(GO_PG_col %in% tmp$Term)]
+  }
   if (length(GO_PG_col)) {
-    tmp <- listMelt(strsplit(PG$`GO-ID`, ";"), 1:nrow(PG), c("Term", "Row"))
-    Offspring <- setNames(lapply(GO_PG_col, function(x) { #x <- "GO:0009725"
-      ont <- Ontology(x)
-      x <- c(x, get(paste0("GO", ont, "OFFSPRING"))[[x]])
-      x <- x[which(!is.na(x))]
-      return(x)
-    }), GO_PG_col)
-    tmp <- tmp[which(tmp$Term %in% unlist(Offspring)),]
-    tmp <- aggregate(tmp$Row, list(tmp$Term), c)
-    colnames(tmp) <- c("Term", "Rows")
-    w <- which(vapply(GO_PG_col, function(x) { sum(Offspring[[x]] %in% tmp$Term) }, TRUE) == 0)
-    if (length(w)) {
-      msg <- stringi::stri_join("No proteins found for the following GO terms:",
-                                stringi::stri_join("\n - ", GO_terms$Term[match(GO_PG_col[w], GO_terms$ID)],
-                                                   collapse = ""),
-                                "\n\n")
-      cat(msg)
-      GO_PG_col <- GO_PG_col[which(GO_PG_col %in% tmp$Term)]
+    GO_PG_col2 %<o% setNames(GO_terms$Term[match(GO_PG_col, GO_terms$ID)],
+                             GO_PG_col)
+    PG[, GO_PG_col2] <- ""
+    for (go in GO_PG_col) { #go <- GO_PG_col[1]
+      w <- which(tmp$Term %in% Offspring[[go]])
+      w2 <- unique(unlist(tmp$Rows[w]))
+      PG[w2, GO_PG_col2[go]] <- "+"
     }
-    if (length(GO_PG_col)) {
-      GO_PG_col2 %<o% setNames(GO_terms$Term[match(GO_PG_col, GO_terms$ID)],
-                               GO_PG_col)
-      PG[, GO_PG_col2] <- ""
-      for (go in GO_PG_col) { #go <- GO_PG_col[1]
-        w <- which(tmp$Term %in% Offspring[[go]])
-        w2 <- unique(unlist(tmp$Rows[w]))
-        PG[w2, GO_PG_col2[go]] <- "+"
-      }
-      #View(PG[, GO_PG_col2])
-      tst <- setNames(vapply(GO_PG_col2, function(x) {
-        sum(PG[[x]] == "+")
-      }, 1), GO_PG_col2)
-      tst <- paste0(GO_PG_col2, " -> ", tst, collapse = "\n - ")
-      tst <- paste0("Number of protein groups per GO term of interest\n - ", tst, "\n\n")
-      cat(tst)
-      write(tst, paste0(wd, "/Reg. analysis/GO enrich/Dataset/GO_terms_of_interest.txt"))
-    }
+    #View(PG[, GO_PG_col2])
+    tst <- setNames(vapply(GO_PG_col2, function(x) {
+      sum(PG[[x]] == "+")
+    }, 1), GO_PG_col2)
+    tst <- paste0(GO_PG_col2, " -> ", tst, collapse = "\n - ")
+    tst <- paste0("Number of protein groups per GO term of interest\n - ", tst, "\n\n")
+    cat(tst)
+    write(tst, paste0(wd, "/Reg. analysis/GO enrich/Dataset/GO_terms_of_interest.txt"))
   }
 }
 
