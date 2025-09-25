@@ -13,7 +13,7 @@ shinyFDInput(root, l, useIcon = FALSE, width = "15px")
 
 \item{useIcon}{Ignored, only kept because of old code!}
 
-\item{width}{The width of the input, e.g. "400px", or "100%"; see htmltools::validateCssUnit().\cr Default = "15px"}
+\item{width}{The width of the input, e.g. "400px", or "100\%"; see htmltools::validateCssUnit().\cr Default = "15px"}
 }
 \description{
 A function to create column fill-down buttons for use in DT data table columns.

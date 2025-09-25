@@ -13,7 +13,7 @@ shinySelectInput(startVal, root, levels, width = "600px", NAs = TRUE)
 
 \item{levels}{Allowed values.}
 
-\item{width}{The width of the input, e.g. "400px", or "100%".\cr Default = "600px"}
+\item{width}{The width of the input, e.g. "400px", or "100\%".\cr Default = "600px"}
 
 \item{NAs}{If TRUE (default), NA selections are allowed (and NA is included as another additional allowed level). If FALSE, they are automatically replaced with the first authorized level at initialization.}
 }

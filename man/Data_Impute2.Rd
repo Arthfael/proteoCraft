@@ -4,7 +4,7 @@
 \alias{Data_Impute2}
 \title{Data_Impute2}
 \usage{
-Data_Impute2(quant_data, groups, is.log = TRUE, seed)
+Data_Impute2(quant_data, groups, is.log = TRUE, seed, min_misses = 1)
 }
 \arguments{
 \item{quant_data}{A matrix or data.frame with more than 1 column, containing missing or invalid (e.g. infinite).}
@@ -14,6 +14,8 @@ Data_Impute2(quant_data, groups, is.log = TRUE, seed)
 \item{is.log}{Default = TRUE. Are the input values log transformed? If set to FALSE, the data will be log-transformed prior to processing, then de-logged.}
 
 \item{seed}{Use a fixed seed for reproducibility purposes.}
+
+\item{min_misses}{Minimum number of misses for assuming MAR - this is a way to bypass imputeLCMD's model.Selector(), whose predictions as to which rows have MAR (as opposed to left censored MNAR) seem sometimes rather optimistic. The current default is 1 (i.e. no effect of this parameter), but where the data will be subjected to statistical analysis it may be a good idea to increase this to 2.}
 }
 \description{
 Better function to impute missing values than my former version, "Data_Impute". Uses the imputeLCMD package.

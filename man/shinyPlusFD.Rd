@@ -15,7 +15,7 @@ shinyPlusFD(root, l, buttonLabel = "+", stem = "INCR", width = "15px")
 
 \item{stem}{Input suffix. Default = "INCR"}
 
-\item{width}{The width of the input, e.g. "400px", or "100%"; see htmltools::validateCssUnit().\cr Default = "15px"}
+\item{width}{The width of the input, e.g. "400px", or "100\%"; see htmltools::validateCssUnit().\cr Default = "15px"}
 }
 \description{
 A function to create a "+" button column fill-down button for use in DT data table columns.

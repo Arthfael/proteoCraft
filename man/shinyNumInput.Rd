@@ -25,7 +25,7 @@ shinyNumInput(
 
 \item{naRep}{What to replace NA values with? Default = NA; set e.g. to 1 to use 1 as default replacement for incorrect initial inputs.}
 
-\item{width}{The width of the input, e.g. "400px", or "100%"; see htmltools::validateCssUnit().}
+\item{width}{The width of the input, e.g. "400px", or "100\%"; see htmltools::validateCssUnit().}
 
 \item{root}{Root of the created input names. Names generated will be of the form "root___i", where i is the 1:n row number.}
 }

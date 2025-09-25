@@ -9,7 +9,7 @@ shinyPropInput(startVal, width = "300px", root = "Proportion")
 \arguments{
 \item{startVal}{Starting values of each proportion.}
 
-\item{width}{The width of the input, e.g. "400px", or "100%"; see htmltools::validateCssUnit().}
+\item{width}{The width of the input, e.g. "400px", or "100\%"; see htmltools::validateCssUnit().}
 
 \item{root}{Root of the created input names, default = "Proportion". Input names generated will be of the form "root___i", where i is the 1:n row number.}
 }
