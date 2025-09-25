@@ -27,23 +27,25 @@ Input data can be the output from:
  - diaNN
  - FragPipe (using "reasonable" search parameters... FragPipe is very flexible)
 There is burgeoning support for:
- - Proteome Discoverer (conversion function exists but integration with analysis scripts deprecated)
- - Skyline (new basic conversion function in the works, probably needs fuller development and integration with the scripts but for now allows to deal with .tsv/.csv exports assuming a core of columns were exported)
+ - Proteome Discoverer: A conversion function exists but integration with the analysis scripts is currently deprecated.
+ - Skyline: A basic conversion function exists and is usable with the Histones script. It probably needs fuller development and integration with the scripts but for now allows to deal with .tsv/.csv exports assuming a set of core columns were exported.
+ - alphaDIA: A basic conversion function exists but is not integrated with the analysis scripts - for this parsing of the alphaDIA log would need to be introduced.
 
 Depending on search parameters you may encounter unexpected situations, as we have not tested every possible situation but only ones occurring in our facility. It is likely that some options in some software will break the conversion functions, especially for the more versatile engines such as FragPipe. If that happens, get in touch and we will add support asap.
-We would like to add Spectronaut/Peaks/AlphaPept support too eventually.
+We would like to add Spectronaut/Peaks/alphaDIA/SAGE support too eventually...
 
 
 ### Environment and requisites
-This is meant to run through RStudio in Windows and will probably not work without significant edits on Linux/Unix.
-This is because the scripts will sometimes:
- - use R code which is Windows-specific, e.g. makes assumptions about the type of UI/GUI available.
+This is meant to run through RStudio in Windows and will probably not work without significant edits on Linux/Unix... though here and there some work has been done towards achieving that goal.
+This limitation is because the scripts will sometimes:
+ - use R code which is Windows-specific, e.g. makes assumptions about the type of (G)UI available.
  - build and run windows command line or powershell-specific commands.
-Run this ideally on a multi-core PC optimized for data analysis with a lot of memory. Many steps are parallelized. We run tests on a Windows Server PC with 56 vCPUs and 128 GB RAM.
+Run this ideally on a multi-core PC optimized for data analysis with a lot of memory. Many steps are parallelized. We run this on a Windows Server PC with 56 vCPUs and 128 GB RAM.
 
 In addition to R and RStudio, for a smoother experience you should also install:
- - ScanHeadsMan (run by MatMet_LCMS, extracts methods from Thermo raw files)
- - Cytoscape (for ClueGO GO-terms enrichment analysis and network visualisation)
+ - Python: some python scripts are run here and there.
+ - ScanHeadsMan (run by MatMet_LCMS for extracting methods from Thermo raw files)
+ - Cytoscape (for ClueGO GO-terms enrichment analysis and STRINGdb networks visualisation)
  - Word or any software which can open .docx files (to check the Materials and Methods template text)
  - Excel or any software which can open .xlsx files (to check the final Report file)
  - Optional: a web browser for opening interactive plots (.html files)
@@ -53,11 +55,16 @@ In case this fails just manually install the missing ones.
 
 ### Troubleshooting:
  - In our hands RStudio can become very slow after some time. To solve the issue, go to Tools > Global Options..., click on Code then Diagnostics and untick "Show diagnostics for R"
- - Up to v_6.4.0.0, some shiny apps in these workflows (specifically filling down dropdown menu selections) did not work if shiny_1.8.0 or later was used. This should be fixed now, and with the way the code was rewritten should also be faster and still work with older version. Still, kt keep an eye on it...
+ - We create a parallel cluster then reuse it. It is known that after some time the cluster gets corrupted. We tend to delete/recreate it regularly but this has a cost in time. If at some point the outcome of a parallel function has a length not matching its input, your should run the following lines then restart where the workflow stopped:
+```
+> stopCluster(parClust)
+> source(parSrc)
+# (also rerun any parallel::clusterCall(...) or parallel::clusterExport(...) calls before where this failed)
+```
 
 #### <i>Note on speed:</i>
 <i>This package has been somewhat optimised for speed, but many steps could still probably be faster. The current main bottlenecks include:<i/>
  - <i>Extracting MS methods using ScanHeadsMan,<i/>
  - <i>Checking peptide-to-protein assignments provided by the search software (recommended),<i/>
- - <i>Extracting TIC/Base peak information from Thermo files using the rawrr package,<i/>
+ - <i>Extracting TIC/Base peak information from Thermo raw files using the rawrr package,<i/>
  - <i>Cytoscape-dependent steps.<i/>
