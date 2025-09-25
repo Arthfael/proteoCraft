@@ -31,7 +31,7 @@ if ((!exists("LCMS_instr"))||(!"list" %in% class(LCMS_instr))||(sum(c("LC", "MS"
 MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_fpar(MatMet, fpar(ftext(\"LC-MS/MS analysis\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))")
 LCMS_meth_lst <- try(MatMet_LCMS(cl = parClust), silent = TRUE)
 mzMLtst <- ("mzML" %in% gsub(".*\\.", "", rawFiles))
-if (mzMLtst)) { # Fix for when we searched mzML-converted files
+if (mzMLtst) { # Fix for when we searched mzML-converted files
   if (("try-error" %in% class(LCMS_meth_lst))||(is.null(LCMS_meth_lst))) {
     tmp <- gsub("\\.mzML", ".raw", rawFiles)
     LCMS_meth_lst <- try(MatMet_LCMS(RawFiles = tmp, cl = parClust), silent = TRUE)

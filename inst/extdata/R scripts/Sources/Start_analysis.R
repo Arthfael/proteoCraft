@@ -157,11 +157,11 @@ if (!RunByMaster) {
   }, "")
   fSlct0 <- function(i, data = inputTbl, opt = srchSoftOpt) {
     srchSoftOpt2 <- paste0("<option value=\"", opt, "\"",
-                           c("", " selected")[(opt == data$`Search engine`[i])+1],
+                           c("", " selected")[(opt == data$"Search engine"[i])+1],
                            ">", opt, "</option>", collapse = "")
     return(paste0("<select id=\"searchSoft___", i, "\" style=\"width:200px;\">", srchSoftOpt2, "</select>"))
   }
-  inputTbl2$`Search engine` <- vapply(1:nr0, fSlct0, "")
+  inputTbl2$"Search engine" <- vapply(1:nr0, fSlct0, "")
   inputTbl2$Remove <- vapply(paste0("removeMe___", 1:nr0), function(id) {
     as.character(shiny::actionButton(id, "Remove dataset"))
   }, "")
@@ -226,7 +226,9 @@ if (!RunByMaster) {
   slctDirXprs <- expression({
     dat <- INPUTTBL()
     nr <- nrow(dat)
-    drs <- dat$Value
+    rg <- 1:nr
+    rg0 <- rg[which(rg != i)]
+    drs <- dat$Value[rg0]
     dflt <- dat$Value[i]
     if (!dir.exists(dflt)) { dflt <- rev(drs[which(dir.exists(drs))]) }
     if (!length(dflt)) { dflt <- "C:/" }
@@ -239,11 +241,12 @@ if (!RunByMaster) {
       } else {
         dat2 <- INPUTTBL2()
         dat$Value[i] <- dat2$Value[i] <- dr
+        cat("")
         tp <- updt_Type0(dr)
-        dat$`Search engine`[i] <- tp
+        dat$"Search engine"[i] <- tp
         INPUTTBL(dat)
         inputTbl <<- dat
-        inputTbl2$`Search engine`[i] <- fSlct0(i, dat)
+        dat2$"Search engine"[i] <- fSlct0(i, dat)
         INPUTTBL2(dat2)
         inputTbl2 <<- dat2
         output$inDirs <- updt_inDirs()
@@ -253,13 +256,13 @@ if (!RunByMaster) {
   #eval(parse(text = runApp), envir = .GlobalEnv)
   srchSoftXprs <- expression({
     dat <- INPUTTBL()
-    dat$`Search engine`[i] <- ev$value
+    dat$"Search engine"[i] <- ev$value
     INPUTTBL(dat)
     if ("" %in% colnames(dat)) { stop() }
     inputTbl <<- dat
     dat2 <- INPUTTBL2()
     tmp <<- fSlct0(i, dat)
-    dat2$`Search engine`[i] <- tmp
+    dat2$"Search engine"[i] <- tmp
     INPUTTBL2(dat2)
     inputTbl2 <<- dat2
     output$inDirs <- updt_inDirs()
@@ -280,7 +283,7 @@ if (!RunByMaster) {
       dat2$`Input search folder` <- vapply(paste0("selectDir___", 1:nr2), function(id) {
         as.character(shiny::actionButton(id, "Select input"))
       }, "")
-      dat2$`Search engine` <- vapply(1:nr2, fSlct0, "", dat)
+      dat2$"Search engine" <- vapply(1:nr2, fSlct0, "", dat)
       dat2[[4]] <- vapply(paste0("removeMe___", 1:nr2), function(id) {
         as.character(shiny::actionButton(id, "Remove dataset"))
       }, "")
@@ -358,7 +361,7 @@ table.on('change', 'select', function() {
       i <- nr+1
       datDflt <- data.frame("Input search folder" = "",
                             "Value" = gsub("/[^/]+$", "", dat$Value[nr]),
-                            "Search engine" = dat$`Search engine`[nr],
+                            "Search engine" = dat$"Search engine"[nr],
                             "Remove" = "",
                             check.names = FALSE)
       rownames(datDflt) <- NULL
@@ -368,7 +371,7 @@ table.on('change', 'select', function() {
       inputTbl <<- dat
       datDflt2 <- datDflt
       datDflt2$"Input search folder" <- as.character(shiny::actionButton(paste0("selectDir___", i), "Select input"))
-      datDflt2$`Search engine` <- fSlct0(i, datDflt)
+      datDflt2$"Search engine" <- fSlct0(i, datDflt)
       datDflt2$Remove <- as.character(shiny::actionButton(paste0("removeMe___", i), "Remove dataset"))
       colnames(datDflt2)[4] <- ""
       dat2 <- rbind(dat2, datDflt2)
@@ -436,7 +439,7 @@ table.on('change', 'select', function() {
       WorkFlow <<- input$Workflow
       inputTbl <<- INPUTTBL()
       inDirs <<- inputTbl$Value
-      SearchSoft <<- inputTbl$`Search engine`
+      SearchSoft <<- inputTbl$"Search engine"
       shiny::stopApp()
     })
     shiny::observeEvent(input$cancel, { shiny::stopApp() })

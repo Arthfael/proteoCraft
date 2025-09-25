@@ -745,7 +745,7 @@ w <- which(!is.na(m))
 tmp2 <- tmp2[w,]; m <- m[w]
 # For our purpose here we must match contaminant proteins.
 tmp2$Cont <- db$`Potential contaminant`[m]
-if (tstorg) {
+if (tstOrg) {
   tmp2$Organism <- db[m, dbOrgKol]
   tmp2 <- as.data.table(tmp2)
   f0 <- function(x) { c("Target", "Contaminant")[("Contaminant" %in% x)+1] }

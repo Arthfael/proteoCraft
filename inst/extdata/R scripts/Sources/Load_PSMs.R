@@ -6,6 +6,86 @@ UniMod <- unimod::modifications
 #
 searchOutputs %<o% list()
 l_inDirs <- length(inDirs)
+
+# NB:
+# ===
+# The workflows later read MS methods from the raw files, so this checks whether they are present.
+# Sometimes, however, they, or the search folder, have been moved, so the files must be located.
+# I could ask the user's input (I do if all else fails), but it's better to interrupt the workflow as rarely as possible,
+# especially since this is nice-to-have (used for materials and methods), not essential.
+# So this script first attempts to find the files automatically by scanning expected locations...
+# And it worked well enough, until SOMEONE decided to run a MeroX search on a couple of Bruker .d files,
+# a search which got stuck at 7% but still managed to generate 50 odd gigabytes of tens of millions of small files...
+# ...
+# But.
+# I.
+# Digress.
+#
+# Stress test welcome >:D
+#
+# So.
+# We need a safe way to look for files/folders, but without spending a lifetime looking.
+# Enter, this function:
+# (courtesy of chatGPT, because that's really not the type of commands I am familiar with)
+if (!require(processx)) { pak::pak("processx") }
+library(processx)
+safe_listFls %<o% function(path,
+                           type = "files",
+                           timeout = 10) {
+  type <- substring(tolower(type), 1, 3)
+  stopifnot(type %in% c("fil", "dir"))
+  sysNm <- Sys.info()[['sysname']]
+  start <- Sys.time()
+  out <- character()
+  if (type == "fil") {
+    if (sysNm == "Windows") {
+      cmd <- sprintf('Get-ChildItem -File -Recurse -Path %s | ForEach-Object { $_.FullName }', shQuote(path))
+      p <- processx::process$new("powershell",
+                                 c("-Command", cmd),
+                                 stdout = "|",
+                                 stderr = "|")
+    }
+    if (sysNm %in% c("Linux", "Darwin")) { # Version for Unix-like OS, not tested!
+      p <- processx::process$new("find",
+                                 c(path, "-type", "f"),
+                                 stdout = "|", stderr = "|")
+    }
+  }
+  if (type == "dir") {
+    if (sysNm == "Windows") {
+      cmd <- sprintf('Get-ChildItem -Directory -Recurse -Path %s | ForEach-Object { $_.FullName }', shQuote(path))
+      p <- processx::process$new("powershell",
+                                 c("-Command", cmd),
+                                 stdout = "|",
+                                 stderr = "|")
+    }
+    if (sysNm %in% c("Linux", "Darwin")) { # Version for Unix-like OS, not tested!
+      p <- processx::process$new("find",
+                                 c(path, "-type", "d"),
+                                 stdout = "|",
+                                 stderr = "|")
+    }
+  }
+  repeat {
+    elapsed <- as.numeric(difftime(Sys.time(), start, units = "secs"))
+    if (elapsed >= timeout) {
+      p$kill()
+      break
+    }
+    poll <- p$poll_io(200)
+    if (!is.null(poll[["output"]]) && poll[["output"]] == "ready") {
+      chunk <- p$read_output_lines()
+      out <- c(out, chunk)
+    }
+    if (!p$is_alive()) {
+      # drain remaining output out <- c(out, p$read_output_lines())
+      break
+    }
+  }
+  out <- gsub("\\\\", "/", out)
+  return(out)
+}
+# Process sequentially all input directories
 for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
   cat(paste0("Processing input folder",
              c("", paste0(" #", dir_i))[(l_inDirs > 1)+1],
@@ -71,28 +151,34 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       })))
       dirs <- dirs[which(dir.exists(dirs))]
       dirs <- dirs[which(dirs != ".")]
-      dirFls <- setNames(lapply(dirs, function(dir) { list.files(dir, recursive = TRUE, full.names = TRUE) }), dirs)
-      dirDFls <- setNames(lapply(dirs, function(dir) { grep("\\.d$", list.dirs(dir, recursive = TRUE, full.names = TRUE), value = TRUE) }), dirs)
-      dirFls2 <- setNames(lapply(names(dirFls), function(nm) { basename(dirFls[[nm]]) }), dirs)
-      dirDFls2 <- setNames(lapply(names(dirDFls), function(nm) { gsub(".*/", "", dirDFls[[nm]]) }), dirs)
-      for (dir in dirs) {
-        tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1, function(x) { #x <- tbl[1, c("file", "ext")]
-          rs <- NA
-          if (x[[2]] == "d") {
-            m <- match(x[[1]], dirDFls2[[dir]])
-            if (!is.na(m)) { rs <- dirDFls[[dir]][m] }
-          } else {
-            m <- match(x[[1]], dirFls2[[dir]])
-            if (!is.na(m)) { rs <- dirFls[[dir]][m] }
-          }
-          return(rs)
-        })
+      if (length(dirs) > 1) {
+        dirTst <- lapply(dirs, function(x) { grep(topattern(x), dirs[which(dirs != x)], value = TRUE) })
+        dirs <- dirs[which(!dirs %in% unlist(dirTst))]
       }
-      tbl$nuLoc <- apply(tbl[, dirs, drop = FALSE], 1, function(x) {
-        x <- x[which(!is.na(x))]
-        if (!length(x)) { x <- NA }
-        return(x)
-      })
+      if (length(dirs)) {
+        dirFls <- setNames(lapply(dirs, safe_listFls), dirs)
+        dirDFls <- setNames(lapply(dirs, function(dr) { grep("\\.d$", safe_listFls(dr, "dir"), value = TRUE) }), dirs)
+        dirFls2 <- setNames(lapply(names(dirFls), function(nm) { basename(dirFls[[nm]]) }), dirs)
+        dirDFls2 <- setNames(lapply(names(dirDFls), function(nm) { gsub(".*/", "", dirDFls[[nm]]) }), dirs)
+        for (dir in dirs) {
+          tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1, function(x) { #x <- tbl[1, c("file", "ext")]
+            rs <- NA
+            if (x[[2]] == "d") {
+              m <- match(x[[1]], dirDFls2[[dir]])
+              if (!is.na(m)) { rs <- dirDFls[[dir]][m] }
+            } else {
+              m <- match(x[[1]], dirFls2[[dir]])
+              if (!is.na(m)) { rs <- dirFls[[dir]][m] }
+            }
+            return(rs)
+          })
+        }
+        tbl$nuLoc <- apply(tbl[, dirs, drop = FALSE], 1, function(x) {
+          x <- x[which(!is.na(x))]
+          if (!length(x)) { x <- NA }
+          return(x)
+        })
+      } else { tbl$nuLoc <- NA }
       wY <- which(!is.na(tbl$nuLoc))
       wN <- which(is.na(tbl$nuLoc))
       lY <- length(wY)
@@ -365,9 +451,9 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       psmFls_i <- paste0(diaNN_logFlDir_i, gsub(".*/", "/", psmFls_i))
       w <- which(file.exists(psmFls_i))
       if (length(w)) {
-        cat(" - The DiaNN output folder has been renamed or moved since the search was run, but could be located automatically.\n")
+        cat(" - The DiaNN output folder has been renamed or moved since the search was run, but the PSMs report could be located automatically.\n")
       } else {
-        warning(" - The DiaNN output folder has been renamed or moved since DiaNN was run.\nThe psms report could not be located automatically.\nPrompting user...\n")
+        warning(" - The DiaNN output folder has been renamed or moved since DiaNN was run.\nThe PSMs report could not be located automatically.\nPrompting user...\n")
         psmFls_i <- rstudioapi::selectFile(paste0(inDirs[dir_i], ": select DiaNN report file (.tsv or .parquet)"),
                                            path = inDirs[dir_i],
                                            filter = "DiaNN report file s (*.tsv|*.parquet)")
@@ -427,28 +513,34 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       })))
       dirs <- dirs[which(dir.exists(dirs))]
       dirs <- dirs[which(dirs != ".")]
-      dirFls <- setNames(lapply(dirs, function(dir) { list.files(dir, recursive = TRUE, full.names = TRUE) }), dirs)
-      dirDFls <- setNames(lapply(dirs, function(dir) { grep("\\.d$", list.dirs(dir, recursive = TRUE, full.names = TRUE), value = TRUE) }), dirs)
-      dirFls2 <- setNames(lapply(names(dirFls), function(nm) { basename(dirFls[[nm]]) }), dirs)
-      dirDFls2 <- setNames(lapply(names(dirDFls), function(nm) { gsub(".*/", "", dirDFls[[nm]]) }), dirs)
-      for (dir in dirs) {
-        tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1, function(x) { #x <- tbl[1, c("file", "ext")]
-          rs <- NA
-          if (x[[2]] == "d") {
-            m <- match(x[[1]], dirDFls2[[dir]])
-            if (!is.na(m)) { rs <- dirDFls[[dir]][m] }
-          } else {
-            m <- match(x[[1]], dirFls2[[dir]])
-            if (!is.na(m)) { rs <- dirFls[[dir]][m] }
-          }
-          return(rs)
-        })
+      if (length(dirs) > 1) {
+        dirTst <- lapply(dirs, function(x) { grep(topattern(x), dirs[which(dirs != x)], value = TRUE) })
+        dirs <- dirs[which(!dirs %in% unlist(dirTst))]
       }
-      tbl$nuLoc <- apply(tbl[, dirs, drop = FALSE], 1, function(x) {
-        x <- x[which(!is.na(x))]
-        if (!length(x)) { x <- NA }
-        return(x)
-      })
+      if (length(dirs)) {
+        dirFls <- setNames(lapply(dirs, safe_listFls), dirs)
+        dirDFls <- setNames(lapply(dirs, function(dr) { grep("\\.d$", safe_listFls(dr, "dir"), value = TRUE) }), dirs)
+        dirFls2 <- setNames(lapply(names(dirFls), function(nm) { basename(dirFls[[nm]]) }), dirs)
+        dirDFls2 <- setNames(lapply(names(dirDFls), function(nm) { gsub(".*/", "", dirDFls[[nm]]) }), dirs)
+        for (dir in dirs) {
+          tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1, function(x) { #x <- tbl[1, c("file", "ext")]
+            rs <- NA
+            if (x[[2]] == "d") {
+              m <- match(x[[1]], dirDFls2[[dir]])
+              if (!is.na(m)) { rs <- dirDFls[[dir]][m] }
+            } else {
+              m <- match(x[[1]], dirFls2[[dir]])
+              if (!is.na(m)) { rs <- dirFls[[dir]][m] }
+            }
+            return(rs)
+          })
+        }
+        tbl$nuLoc <- apply(tbl[, dirs, drop = FALSE], 1, function(x) {
+          x <- x[which(!is.na(x))]
+          if (!length(x)) { x <- NA }
+          return(x)
+        })
+      } else { tbl$nuLoc <- NA }
       wY <- which(!is.na(tbl$nuLoc))
       wN <- which(is.na(tbl$nuLoc))
       lY <- length(wY)
@@ -730,28 +822,34 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       })))
       dirs <- dirs[which(dir.exists(dirs))]
       dirs <- dirs[which(dirs != ".")]
-      dirFls <- setNames(lapply(dirs, function(dir) { list.files(dir, recursive = TRUE, full.names = TRUE) }), dirs)
-      dirDFls <- setNames(lapply(dirs, function(dir) { grep("\\.d$", list.dirs(dir, recursive = TRUE, full.names = TRUE), value = TRUE) }), dirs)
-      dirFls2 <- setNames(lapply(names(dirFls), function(nm) { basename(dirFls[[nm]]) }), dirs)
-      dirDFls2 <- setNames(lapply(names(dirDFls), function(nm) { gsub(".*/", "", dirDFls[[nm]]) }), dirs)
-      for (dir in dirs) {
-        tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1, function(x) { #x <- tbl[1, c("file", "ext")]
-          rs <- NA
-          if (x[[2]] == "d") {
-            m <- match(x[[1]], dirDFls2[[dir]])
-            if (!is.na(m)) { rs <- dirDFls[[dir]][m] }
-          } else {
-            m <- match(x[[1]], dirFls2[[dir]])
-            if (!is.na(m)) { rs <- dirFls[[dir]][m] }
-          }
-          return(rs)
-        })
+      if (length(dirs) > 1) {
+        dirTst <- lapply(dirs, function(x) { grep(topattern(x), dirs[which(dirs != x)], value = TRUE) })
+        dirs <- dirs[which(!dirs %in% unlist(dirTst))]
       }
-      tbl$nuLoc <- apply(tbl[, dirs, drop = FALSE], 1, function(x) {
-        x <- x[which(!is.na(x))]
-        if (!length(x)) { x <- NA }
-        return(x)
-      })
+      if (length(dirs)) {
+        dirFls <- setNames(lapply(dirs, safe_listFls), dirs)
+        dirDFls <- setNames(lapply(dirs, function(dr) { grep("\\.d$", safe_listFls(dr, "dir"), value = TRUE) }), dirs)
+        dirFls2 <- setNames(lapply(names(dirFls), function(nm) { basename(dirFls[[nm]]) }), dirs)
+        dirDFls2 <- setNames(lapply(names(dirDFls), function(nm) { gsub(".*/", "", dirDFls[[nm]]) }), dirs)
+        for (dir in dirs) {
+          tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1, function(x) { #x <- tbl[1, c("file", "ext")]
+            rs <- NA
+            if (x[[2]] == "d") {
+              m <- match(x[[1]], dirDFls2[[dir]])
+              if (!is.na(m)) { rs <- dirDFls[[dir]][m] }
+            } else {
+              m <- match(x[[1]], dirFls2[[dir]])
+              if (!is.na(m)) { rs <- dirFls[[dir]][m] }
+            }
+            return(rs)
+          })
+        }
+        tbl$nuLoc <- apply(tbl[, dirs, drop = FALSE], 1, function(x) {
+          x <- x[which(!is.na(x))]
+          if (!length(x)) { x <- NA }
+          return(x)
+        })
+      } else { tbl$nuLoc <- NA }
       wY <- which(!is.na(tbl$nuLoc))
       wN <- which(is.na(tbl$nuLoc))
       lY <- length(wY)

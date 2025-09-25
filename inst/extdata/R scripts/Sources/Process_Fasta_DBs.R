@@ -9,9 +9,9 @@ fastasTbl %<o% data.frame(Full = fastas,
                           Contaminant = FALSE)
 fastasTbl$Loc <- c("Local", "Cluster")[sapply(fastasTbl$Dir, function(x) { grepl("^/+nfs/", x) }) + 1 ]
 fastasTbl$Exists <- file.exists(fastasTbl$Full)
-fastasTbl$ExistsHere <- file.exists(fastasTbl$Name)
-fastasTbl$TXT <- gsub("\\.fa(s(ta(\\.fas)?)?)?$", ".txt", fastasTbl$Full)
-fastasTbl$TXTHere <- gsub("\\.fa(s(ta(\\.fas)?)?)?$", ".txt", fastasTbl$Name)
+fastasTbl$ExistsHere <- file.exists(paste0(wd, "/", fastasTbl$Name))
+fastasTbl$TXT <- gsub("\\.fa((s(ta(\\.fas)?)?)|(a))?$", ".txt", fastasTbl$Full) # Should catch .fasta, .fa, .faa, .fas, .fasta.fas
+fastasTbl$TXTHere <- paste0(wd, "/", gsub("\\.fa((s(ta(\\.fas)?)?)|(a))?$", ".txt", fastasTbl$Name))
 fastasTbl$TXTExists <- grepl("\\.txt$", fastasTbl$TXT)&(file.exists(fastasTbl$TXT))
 fastasTbl$TXTExistsHere <- grepl("\\.txt$", fastasTbl$TXTHere)&(file.exists(fastasTbl$TXTHere))
 w1 <- which((fastasTbl$ExistsHere)&(fastasTbl$Loc == "Cluster")) # Conflict between here and cluster
@@ -140,6 +140,7 @@ if (length(w4)) {
 }
 #
 fastasTbl <- fastasTbl[match(unique(fastasTbl$Full), fastasTbl$Full),]
+fastasTbl$Full_list <- as.list(fastasTbl$Full)
 # Sometimes, there may be several paths for a same fasta
 tst <- aggregate(fastasTbl$Full, list(fastasTbl$Name), list)
 tst$L <- sapply(tst$x, length)
@@ -149,10 +150,11 @@ if (max(tst$L) > 1) {
                 "\n\n\nAre they really duplicates?\n")
   simplFasta <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = TRUE)$res, c("yes", "no"))]
   if (simplFasta) {
-    fastasTbl2 <- data.frame(Full = unique(fastasTbl$Full))
-    fastasTbl2$Name <- gsub(".*/", "", fastasTbl2$Full)
+    fastasTbl2 <- tst[, c("Group.1", "x")]
+    colnames(fastasTbl2) <- c("Name", "Full_list")
+    fastasTbl2$Full <- fastasTbl$Full[match(fastasTbl2$Name, fastasTbl$Name)]
     fastasTbl2$Dir <- gsub("/[^/]+$", "", fastasTbl2$Full)
-    kol <- c("Loc", "Exists", "ExistsHere", "TXT", "TXTHere", "TXTExists", "TXTExistsHere")
+    kol <- c("Loc", "Exists", "ExistsHere", "TXT", "TXTHere", "TXTExists", "TXTExistsHere", "Contaminant")
     tmp <- Isapply(fastasTbl2$Full, function(x) {
       w <- which(fastasTbl$Full == x)
       if (length(w) > 1) {
@@ -162,7 +164,7 @@ if (max(tst$L) > 1) {
       return(fastasTbl[w, kol])
     })
     fastasTbl2[, kol] <- tmp
-    for (k in c("Exists", "ExistsHere", "TXTExists", "TXTExistsHere")) {
+    for (k in c("Exists", "ExistsHere", "TXTExists", "TXTExistsHere", "Contaminant")) {
       fastasTbl2[[k]] <- as.logical(fastasTbl2[[k]])
     }
     fastasTbl <- fastasTbl2; rm(fastasTbl2)
@@ -435,8 +437,10 @@ dbs_Org %<o% setNames(lapply(dbs, function(db) { #db <- dbs[[1]]
   org$Source[which(is.na(org$Source))] <- ""
   return(org)
 }), fastasTbl$Full[whFnd])
+tmp <- listMelt(fastasTbl$Full_list, fastasTbl$Full, c("Original", "Final"))
 dbs_Txt <- setNames(vapply(fastas_map$Actual, function(x) { #x <- fastas_map$Actual[[1]]
-  tbl <- do.call(rbind, list(dbs_Org[[x]]))
+  m <- unique(c(x, tmp$Final[match(x, tmp$Original)]))
+  tbl <- do.call(rbind, c(dbs_Org[m]))
   # tbl <- data.frame(Organism = c("Arabidopsis thaliana", "Arabidopsis thaliana", "Brassica oleracea", "Escherichia coli", "Arabidopsis thaliana", "Homo sapiens"),
   #                   Count = c(10000, 2000, 5000, 300, 1500, 25),
   #                   Source = c("UniprotKB", "UniprotKB", "UniprotKB", "UniprotKB", "TAIR", "UniprotKB"))
@@ -477,7 +481,7 @@ Org %<o% do.call(rbind, dbs_Org)
 Org <- aggregate(Org$Count, list(Org$Organism), sum)
 colnames(Org) <- c("Organism", "Count")
 Org <- Org[order(Org$Count, decreasing = TRUE),]
-tstOrg %<o% c("", "n")[(tolower(substr(Org$Organism[1], 1, 1)) %in% c("a", "e", "i", "o", "u"))+1]
+#tstOrgNm %<o% c("", "n")[(tolower(substr(Org$Organism[1], 1, 1)) %in% c("a", "e", "i", "o", "u"))+1]
 #
 db %<o% plyr::rbind.fill(dbs)
 #
@@ -628,6 +632,7 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
   db[w, c("Organism", "Organism_Full")] <- "Contaminant"
   db$"Protein ID"[w] <- paste0("CON__", gsub("^CON__", "", db$"Protein ID"[w]))
   contDB %<o% contDB[which(!contDB$Sequence %in% db$Sequence),]
+  contDB$"Potential contaminant" <- "+"
   db <- rbind.fill(db, contDB)
 } else { if (SearchSoft == "PROTEOMEDISCOVERER") { stop("This part has not yet been re-written for PD!") } }
 
@@ -662,14 +667,20 @@ if (length(wY)) {
 
 # Organism columns
 w <- which(c("Organism_Full", "Organism") %in% colnames(db))
-tstorg %<o% (length(w) > 0)
-if (tstorg) {
-  dbOrgKol %<o% c("Organism_Full", "Organism")[w[1]]
+tstOrg <- (length(w) > 0)
+if (tstOrg) {
+  dbOrgKol <- c("Organism_Full", "Organism")[w[1]]
   tst <- gsub(" *(\\(|\\[).*", "", db[[dbOrgKol]])
   tst <- aggregate(tst, list(tst), length)
   tst <- tst[order(tst$x, decreasing = TRUE),]
   mainOrg %<o% tst$Group.1[1]
+} else {
+  dbOrgKol <- c()
+  mainOrg <- "[UNKNOWN_ORGANISM]"
 }
+dbOrgKol %<o% dbOrgKol
+tstOrg %<o% tstOrg
+mainOrg %<o% mainOrg
 
 # We will not need the super large "Headers" and "Data" columns anymore,
 # so let's remove them to make the object smaller.

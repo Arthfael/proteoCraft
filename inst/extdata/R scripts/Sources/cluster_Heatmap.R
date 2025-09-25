@@ -137,7 +137,7 @@ if (clustHtMp) {
       wAG <- which(apply(temp, 1, function(x) { length(is.all.good(x)) }) == lXprs)
       temp <- temp[wAG,]
       if (ImputeKlust) {
-        imputed <- tmpDatImp[wAG,]
+        whImput <- tmpDatImp[wAG,]
       }
       if (normType %in% c("Norm. by row", "Z-scored")) { rwMns <- rowMeans(temp) }
       if (normType == "Norm. by row") {
@@ -199,7 +199,7 @@ if (clustHtMp) {
         NVClust[[i]] <- NGr <- max(c(1, length(mySmpls)))
       }
       if (nrow(temp2) > 2) {
-        tst <- cluster::clusGap(temp2, stats::kmeans, min(c(nrow(temp2), NGr+1)))
+        tst <- cluster::clusGap(temp2, stats::kmeans, min(c(nrow(temp2)-1, NGr-1)))
         tst2 <- as.data.frame(tst$Tab)  
         yHigh <- max(tst2$gap)
         yLow <- min(tst2$gap)
@@ -310,7 +310,8 @@ if (clustHtMp) {
       Height <- length(mySmpls)
       #
       if (ImputeKlust) {
-        whImps <- which(imputed, arr.ind = TRUE)
+        whImps <- which(whImput[match(rownames(temp), rownames(whImput)),
+                                colnames(temp)], arr.ind = TRUE)
         temp[whImps] <- NA
       }
       #
@@ -360,8 +361,9 @@ if (clustHtMp) {
       temp <- temp[, match(vlabs$label, colnames(temp))]
       temp <- temp[match(hlabs$label, rownames(temp)),]
       if (ImputeKlust) {
-        imputed <- imputed[, match(vlabs$label, colnames(imputed))]
-        imputed <- imputed[match(hlabs$label, rownames(imputed)),]
+        # Just in case: actually we do not use these downstream currently
+        whImput <- whImput[, match(vlabs$label, colnames(whImput))]
+        whImput <- whImput[match(hlabs$label, rownames(whImput)),]
       }
       # Re-introduce missing values
       MaxChar <- 13
@@ -545,7 +547,7 @@ if (clustHtMp) {
       #
       # Plotly version
       tempLy <- temp2a[w2a,]
-      tempLy$Sample <- factor(temp2$Sample, levels = smpls)
+      tempLy$Sample <- factor(tempLy$Sample, levels = smpls)
       ##tempLy$Ymin <- tempLy$Ymin+0.5
       plotleatmap <- plot_ly(data = tempLy, x = ~Xmin, y = ~Ymin, z = ~value, type = "heatmap", hovertext = tempLy$Label)
       # I cannot find a way to remove tick marks!!!!!

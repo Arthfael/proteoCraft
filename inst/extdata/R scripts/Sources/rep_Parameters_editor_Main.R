@@ -494,6 +494,35 @@ if (!exists("normSequence")) { normSequence <- dfltNormSeq }
 normSequence %<o% normSequence
 dfltNormSeq2 <- normSeqProc12(normSequence)
 #
+# Some default parameters which nicely follow the same structure
+# (NB: Pepper isn't yet integrated in the workflows with replicates)
+myPar <- c("Pepper", "GSEA", "ProfPlots", "RankAbundPlots")
+for (parI in myPar) {
+  parNm <- paste0("run", parI)
+  # Lowest level default: defined by context
+  par_dflt <- par_dflt2 <- c(FALSE,
+                             TRUE,
+                             TRUE,
+                             TRUE)[match(parI, myPar)]
+  # Middle level default: defined by existing value
+  parOK <- (exists(parNm))
+  if (parOK) {
+    tmpPar <- get(parNm)
+    parOK <- (length(tmpPar) == 1)&&(is.logical(tmpPar))&&(!is.na(tmpPar))
+  }
+  if (parOK) { par_dflt <- tmpPar }
+  # Top level default: defined by Param
+  if (parNm %in% colnames(Param)) {
+    par_dflt <- as.logical(Param[[parNm]])
+  }
+  # Backup value
+  if (is.na(par_dflt)) { par_dflt <- par_dflt2 }
+  #
+  if (!parOK) { assign(parNm, par_dflt) }
+  assign(paste0(parNm, "_dflt"), par_dflt)
+  .obj <- unique(c(.obj, parNm))
+}
+#
 mnFct <- c("Experiment", "Replicate")
 if (WorkFlow == "TIMECOURSE") { mnFct <- c(mnFct, "Time.point") }
 l <- length(mnFct)
@@ -756,7 +785,18 @@ ui1 <- fluidPage(
   ),
   tags$hr(style = "border-color: black;"),
   withSpinner(uiOutput("GO")),
-  tags$hr(style = "border-color: black;"),
+  if (scrptTypeFull == "withReps_PG_and_PTMs") {
+    tags$hr(style = "border-color: black;"),
+    h4(strong("Optional analyses")),
+    fluidRow(shiny::column(2,
+                           shiny::checkboxInput("runProfPlots", "Draw protein profile plots?",
+                                                runProfPlots_dflt, "100%"),
+                           shiny::checkboxInput("runRankAbundPlots", "Draw protein ranked abundance plots?",
+                                                runRankAbundPlots_dflt, "100%")),
+             shiny::column(2,
+                           shiny::checkboxInput("runGSEA", "Run Gene Set Enrichment Analysis (GSEA)?", runGSEA_dflt, "100%")),
+             
+  },
   withSpinner(uiOutput("CytoScape")),
   tags$hr(style = "border-color: black;"),
   h4(strong("Post-translational modifications (PTMs)")),
@@ -1169,6 +1209,34 @@ server1 <- function(input, output, session) {
       )
     }
     return(lst)
+  })
+  # # Pepper
+  # shiny::observeEvent(input$runPepper, {
+  #   assign("runPepper", as.logical(input$runPepper), envir = .GlobalEnv)
+  #   Par <- PARAM()
+  #   Par$runPepper <- runPepper
+  #   PARAM(Par)
+  # })
+  # GSEA
+  shiny::observeEvent(input$runGSEA, {
+    assign("runGSEA", as.logical(input$runGSEA), envir = .GlobalEnv)
+    Par <- PARAM()
+    Par$runGSEA <- runGSEA
+    PARAM(Par)
+  })
+  # Profile plots
+  shiny::observeEvent(input$runProfPlots, {
+    assign("runProfPlots", as.logical(input$runProfPlots), envir = .GlobalEnv)
+    Par <- PARAM()
+    Par$runProfPlots <- runProfPlots
+    PARAM(Par)
+  })
+  # Ranked abundance plots
+  shiny::observeEvent(input$runRankAbundPlots, {
+    assign("runRankAbundPlots", as.logical(input$runRankAbundPlots), envir = .GlobalEnv)
+    Par <- PARAM()
+    Par$runRankAbundPlots <- runRankAbundPlots
+    PARAM(Par)
   })
   #
   # Optional input files

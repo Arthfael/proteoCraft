@@ -825,10 +825,12 @@ if ("PTM.analysis" %in% colnames(Param)) {
           }
           #
           # Gene-Set Enrichment Analysis (GSEA)
-          dataType <- "modPeptides"
-          Src <- paste0(libPath, "/extdata/R scripts/Sources/GSEA.R")
-          #rstudioapi::documentOpen(Src)
-          source(Src, local = FALSE)
+          if (runGSEA) {
+            dataType <- "modPeptides"
+            Src <- paste0(libPath, "/extdata/R scripts/Sources/GSEA.R")
+            #rstudioapi::documentOpen(Src)
+            source(Src, local = FALSE)
+          }
           #
           # Heatmap
           g <- paste0(pepRf, RSA$values)

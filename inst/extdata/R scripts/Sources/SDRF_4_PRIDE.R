@@ -71,17 +71,24 @@ if (reload_SDRF) {
   }
 }
 #
-w <- which(c("Organism_Full", "Organism") %in% colnames(db))
-tstorg %<o% (length(w) > 0)
-if (tstorg) {
-  OrgKol %<o% c("Organism_Full", "Organism")[w[1]]
-  tst <- gsub(" *(\\(|\\[).*", "", db[[OrgKol]])
+if (!exists("tstOrg")) {
+  w <- which(c("Organism_Full", "Organism") %in% colnames(db))
+  tstOrg <- (length(w) > 0)
+}
+if (tstOrg) {
+  dbOrgKol <- c("Organism_Full", "Organism")[w[1]]
+  tst <- gsub(" *(\\(|\\[).*", "", db[[dbOrgKol]])
   tst <- aggregate(tst, list(tst), length)
   tst <- tst[order(tst$x, decreasing = TRUE),]
   mainOrg %<o% tst$Group.1[1]
 } else {
-  if (!exists("mainOrg")) { mainOrg <- "Homo sapiens" } 
+  dbOrgKol <- c()
+  mainOrg <- "[UNKNOWN_ORGANISM]"
 }
+dbOrgKol %<o% dbOrgKol
+tstOrg %<o% tstOrg
+mainOrg %<o% mainOrg
+#
 ontoFls <- data.frame(File = paste0(homePath, "/", c("Tissues",
                                                      "Modifications",
                                                      "Diseases",
@@ -222,7 +229,7 @@ uiA <- shiny::fluidPage(
                     appNm),
   shiny::h2(dtstNm),
   h5("An SDRF file is a controlled vocabulary map of MS runs to biological samples, and can be requested when uploading a dataset to public repositories such as https://www.ebi.ac.uk/pride/"),
-  if (!tstorg) {
+  if (!tstOrg) {
     shiny::fluidRow(shiny::column(4,
                                   shiny::tags$hr(style = "border-color: black;"),
                                   shiny::textInput("Organism",
@@ -404,7 +411,7 @@ uiA <- shiny::fluidPage(
 serverA <- function(input, output, session) {
   VENDOR <- shiny::reactiveVal(myVendor)
   MSINSTR <- shiny::reactiveVal(myMSInstr)
-  if (!tstorg) {
+  if (!tstOrg) {
     ORGA <- shiny::reactiveVal(mainOrg)
   }
   # MS instrument update function
@@ -588,7 +595,7 @@ serverA <- function(input, output, session) {
                                       tmp)
     })
   }
-  if (!tstorg) {
+  if (!tstOrg) {
     shiny::observeEvent(input$Organism, {
       ORGA(input$Organism)
       output$myDevStages <- updtDevStgs()
@@ -597,7 +604,7 @@ serverA <- function(input, output, session) {
   #
   # Save
   shiny::observeEvent(input$saveBtn, {
-    if (!tstorg) {
+    if (!tstOrg) {
       assign("mainOrg", unique(input$Organism), envir = .GlobalEnv)
     }
     assign("myCellType", unique(input$Cell_type), envir = .GlobalEnv)
