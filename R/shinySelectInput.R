@@ -6,7 +6,7 @@
 #' @param startVal Starting values of each text input.
 #' @param root Root of the created input names. Names generated will be of the form "root___i", where i is the 1:n row number.
 #' @param levels Allowed values.
-#' @param width The width of the input, e.g. "400px", or "100%".\cr Default = "600px"
+#' @param width The width of the input, e.g. "400px", or "100\%".\cr Default = "600px"
 #' @param NAs If TRUE (default), NA selections are allowed (and NA is included as another additional allowed level). If FALSE, they are automatically replaced with the first authorized level at initialization.
 #' 
 #' @examples

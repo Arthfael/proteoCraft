@@ -9,7 +9,7 @@
 #' @param l Number of rows of the table.
 #' @param buttonLabel Which text to display on the button. Default = "+"
 #' @param stem Input suffix. Default = "INCR"
-#' @param width The width of the input, e.g. "400px", or "100%"; see htmltools::validateCssUnit().\cr Default = "15px"
+#' @param width The width of the input, e.g. "400px", or "100\%"; see htmltools::validateCssUnit().\cr Default = "15px"
 #' 
 #' @examples
 #' # Use within a shiny server as below:

@@ -705,7 +705,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   #
   EV$Type <- "LIB-DIA" # This may need to change if important; usually diaNN recommends library-free + MBR, not library-based searches;
   # Not sure if MaxQuant assigns a type for each different way to run DIA
-  warning("Calculating missed cleavages assuming trypsin digest... If this is a problem add arguments for different digestion patterns!!!")
+  warning("Calculating missed cleavages assuming trypsin digest: if this is incorrect, add arguments for different digestion patterns!!!")
   digPat <- paste(c("[", digPattern, "]"), collapse = "")
   tmp <- gsub(paste0(digPat, "$"), "", EV$Sequence)
   EV$"Missed cleavages" <- nchar(tmp) - nchar(gsub(digPat, "", tmp))

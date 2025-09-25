@@ -5,7 +5,7 @@
 #' This is specifically to query users for a proportion (between 0 and 1 by steps of 0.001).
 #' 
 #' @param startVal Starting values of each proportion.
-#' @param width The width of the input, e.g. "400px", or "100%"; see htmltools::validateCssUnit().
+#' @param width The width of the input, e.g. "400px", or "100\%"; see htmltools::validateCssUnit().
 #' @param root Root of the created input names, default = "Proportion". Input names generated will be of the form "root___i", where i is the 1:n row number.
 #' 
 #' @examples

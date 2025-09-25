@@ -25,9 +25,16 @@ Data_Impute2 <- function(quant_data,
                          is.log = TRUE,
                          seed,
                          min_misses = 1) {
-  #proteoCraft::DefArg(proteoCraft::Data_Impute2)
+  TESTING <- FALSE
+  #proteoCraft::DefArg(proteoCraft::Data_Impute2);TESTING <- TRUE
   #quant_data <- temp; groups = grps
-  if (missing(seed)) { if (exists("mySeed")) { seed <- mySeed } else { seed <- 1234567 } }
+  #quant_data <- tmpDat; groups = Gr
+  if (TESTING) {
+    # Note:
+    # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
+    misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
+  } else { misFun <- missing }
+  if (misFun(seed)) { if (exists("mySeed")) { seed <- mySeed } else { seed <- 1234567 } }
   set.seed(seed)
   norm::rngseed(seed)
   #
@@ -39,7 +46,7 @@ Data_Impute2 <- function(quant_data,
   Klass <- class(quant_data)
   if (!sum(Klass %in% c("data.frame", "matrix"))) { stop("Input \"quant_data\" must be a matrix or data.frame!") }
   if (!"matrix" %in% Klass) { quant_data <- as.matrix(quant_data) }
-  if (missing(groups)) { groups <- rep("Group 1", length(kol)) }
+  if (misFun(groups)) { groups <- rep("Group 1", length(kol)) }
   imputed_data <- quant_data
   # If necessary log-transform
   if (!is.log) { imputed_data <- log10(imputed_data) }
@@ -54,7 +61,7 @@ Data_Impute2 <- function(quant_data,
   if (nrow(wNA)) {
     message("Missing values found, correcting (method = knn for MAR, QRILC for MNAR)!")
     # Step one: work within groups to impute MAR/MCAR
-    for (grp in unique(groups)) { #grp <- unique(groups)[1]
+    for (grp in unique(groups)) { #grp <- unique(groups)[1] #grp <- unique(groups)[2]
       # Groups, where we have at least one non-missing value: MAR
       m <- which(groups == grp)
       NAs_in_Grp <- rowSums(is.na(imputed_data[, m, drop = FALSE]))
@@ -65,9 +72,14 @@ Data_Impute2 <- function(quant_data,
       w <- which((NAs_in_Grp < length(m))&(NAs_in_Grp >= min_misses))
       if (length(w)) {
         ms <- imputeLCMD::model.Selector(imputed_data[w, m, drop = FALSE])
-        tst <- capture.output({ # Using capture.output to suppress the messages of impute.MAR which are really painful!
-          imputed_data[w, m] <- imputeLCMD::impute.MAR(imputed_data[w, m, drop = FALSE], ms, "KNN")
+        a <- capture.output({ # Using capture.output to suppress the messages of impute.MAR which are really painful!
+          tst <- try(imputeLCMD::impute.MAR(imputed_data[w, m, drop = FALSE], ms, "KNN"), silent = TRUE)
         })
+        if (!"try-error" %in% class(tst)) {
+          imputed_data[w, m] <- tst 
+        } else {
+          warning(tst[1])
+        }
       }
     }
     # Step 2: apply MNAR correction to remaining misses within imputed data

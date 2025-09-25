@@ -29,7 +29,7 @@
 writeFasta <- function(DB, destFl, filter, return = FALSE, newFl = FALSE) {
   nr <- nrow(DB)
   stopifnot(nrow(DB) > 0,
-            length(unique(DB$"Protein ID")) < nrow(DB))
+            length(unique(DB$"Protein ID")) == nrow(DB))
   if ((!missing("filter"))&&("Protein. ID" %in% colnames(DB))) {
     DB <- DB[which(DB$"Protein ID" %in% filter),]
     nr <- nrow(DB)
