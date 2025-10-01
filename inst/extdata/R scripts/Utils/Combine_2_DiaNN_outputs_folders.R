@@ -3,6 +3,8 @@
 # Useful if, for instance, you searched different files from the same experiment with different parameters but want to combine the outputs.
 # This could be easily rewritten to allow for N different folders, rather than exactly 2.
 
+warning("As of August 2025, the main scripts can now handle an arbitrary number of input directories from even different software...\nThis script is thus obsolete and should be retired.")
+
 require(rstudioapi)
 require(data.table)
 try(setDTthreads(threads = parallel::detectCores()-1), silent = TRUE)

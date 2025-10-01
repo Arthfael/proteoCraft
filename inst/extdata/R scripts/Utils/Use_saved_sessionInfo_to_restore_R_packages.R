@@ -1,9 +1,14 @@
-####################################################
-# This is a bad solution, but it works.            #
-# Use renv instead!                                #
-####################################################
-# *... but if the output of sessionInfo() is all you have, then this will get you some way...
-# ... but not all the way!
+#####################################################
+#                                                   #
+#  A script to reload the correct package versions  #
+#      using our saved output of sessionInfo()      #
+#                                                   #
+#       This is a BAD solution, but it works.       #
+#                                                   #
+#                 Use renv instead!                 #
+#                                                   #
+#####################################################
+# If the output of sessionInfo() is all you have, then this will get you some way... but maybe not all the way!
 # Assumes all packages are from cran or bioconductor (not github)
 # Other repositories are currently not supported
 # There will be some exceptions which we will just make sure we have installed/loaded from the beginning, regardless of version!
@@ -18,7 +23,12 @@ sessInfFl <- rstudioapi::selectFile()
 #system(paste0("open \"", sessInfFl, "\""))
 sessInf <- readLines(sessInfFl)
 
-warning("This script does not check your R version! (yet) - remember to check!")
+currRVers <- paste(sessionInfo()$R.version[c("major", "minor")], collapse = ".")
+reloadRVers <- gsub("^R +version +| +\\(.*", "", sessInf[1])
+if (currRVers != reloadRVers) {
+  stop(paste0("RStudio is currently using R version ", currRVers, " but the session you are trying to reload used ", reloadRVers, "!\n",
+              "This script cannot change RStudio's version during a session, so please go to 'Tools > Global Options...', change the version, restart the session then start again."))
+}
 
 # Available packages
 avail <- as.data.frame(available.packages(type = "both"))
@@ -46,7 +56,9 @@ pcksFull <- sessInf[which(sessInf == "other attached packages:"):length(sessInf)
 pcksFull <- grep("\\[[0-9]+\\]", pcksFull, value = TRUE)
 pcksFull <- unlist(strsplit(gsub(" *\\[[0-9]+\\] *", "", pcksFull), " +"))
 proteoCraft_Vers <- grep("^proteoCraft_?", pcksFull, value = TRUE)
-pcksFull <- grep("^proteoCraft_?", pcksFull, value = TRUE, invert = TRUE)
+aRmel_Vers <- grep("^aRmel_?", pcksFull, value = TRUE) # Old name
+stopifnot(length(c(proteoCraft_Vers, aRmel_Vers)) > 0)
+pcksFull <- grep("^((proteoCraft)|(aRmel))_?", pcksFull, value = TRUE, invert = TRUE)
 if (exists("except")) {
   for (pck in except) {
     pcksFull <- grep(paste0("^", pck, "_?"), pcksFull, value = TRUE, invert = TRUE)
@@ -271,11 +283,9 @@ if (length(w)) {
   pckDF$Installed <- pckDF$Package %in% inst$Package
   wNO <- which(!pckDF$Installed)
   names(pckDF$Package)[wNO]
-  
+  #
   # If any remain, you will have to install them manually from github or whichever source you like
-  # For me: remember to also install proteoCraft
-  install.packages(paste0("...Projects_Doc_Folder/Mass_Spec/proteoCraft_package/", proteoCraft_Vers, ".tar.gz"))
-  
+  #
   # Final check
   inst <- as.data.frame(installed.packages())
   tst1 <- do.call(paste, c(pckDF[, c("Package", "version")]))
@@ -283,9 +293,35 @@ if (length(w)) {
   w <- which(!tst1 %in% tst2)
   length(w)
   # Conclusion
-  # We were able to install all packages but the version number varies from the original for quite a few
+  # We were able to install all packages but the version number varies from the original for some
   # So... prefer renv!!!
   #View(pckDF[w, c("Package", "version")]);View(inst[match(pckDF$Package[w], inst$Package), c("Package", "Version")])
 } else {
   cat("All packages are installed with the correct version...\nThat was easy ^^ !\n")
 }
+
+# Remember to also install proteoCraft...
+if (length(proteoCraft_Vers)) {
+  pak::pak(paste0("Arthfael/", gsub("_", "@", proteoCraft_Vers), ".tar.gz"))
+  library(proteoCraft)
+  proteoCraft::Configure()
+}
+# ... or its older ancestor, aRmel
+if (length(aRmel_Vers)) {
+  install.packages(paste0("H:/aRmel_package/", aRmel_Vers, ".tar.gz"))
+  library(aRmel)
+  aRmel::Configure()
+}
+
+# Also setwd to expected work directory
+wd <- gsub("/Workflow control/?$", "", dirname(sessInfFl))
+setwd(wd)
+
+# Now load a backup - which may not be the one - if any - available in wd!
+#load_Bckp()
+
+# Find all R scripts currently in wd...
+#fls <- list.files(wd, "\\.R$", full.names = TRUE);fls
+#fl <- fls[6]
+#rstudioapi::documentOpen(fl)
+#openwd()
