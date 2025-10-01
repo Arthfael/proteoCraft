@@ -1279,7 +1279,7 @@ if ("Prot.Only.with.at.least" %in% colnames(Param)) {
     NPep <- 1
   }
 } else { NPep <- 1 }
-.obj <- unique(c(.obj, "NPep"))
+.obj <- unique(c("NPep", .obj))
 #
 tm1 <- Sys.time()
 source(parSrc, local = FALSE)
@@ -1745,7 +1745,7 @@ Pep2Use %<o% which(tst)
 # (These could be added relatively easily if necessary though)
 QuantData <- setNames(paste0("quant.data", 1:length(QuantMethods)), QuantMethods)
 QuantMethods_all <- FALSE
-.obj <- unique(c(.obj, "QuantData", "QuantMethods_all"))
+.obj <- unique(c("QuantData", "QuantMethods_all", .obj))
 expscol <- paste0("log10(Expr.) - ", RSA$values)
 # Weights:
 # - Higher for peptides with low intra-sample group CV on average
@@ -1786,7 +1786,7 @@ if ("Prot.Quant.Mod.Excl.is.strict" %in% colnames(Param)) {
 } else { Mod.Excl.is.strict <- FALSE }
 Discard.unmod <- Mod.Excl.is.strict+1
 if (Discard.unmod == 1) { Discard.unmod <- as.logical(Discard.unmod) }
-.obj <- unique(c(.obj, "Mod.Excl.is.strict", "Discard.unmod"))
+.obj <- unique(c("Mod.Excl.is.strict", "Discard.unmod", .obj))
 if (!grepl("^Prot\\.Quant", Param$QuantMeth)) {
   stop("NB: currently only methods 1 to 6 provide all necessary columns, not just quantitative columns per sample but also reference columns, ratios, etc... Until those are added they cannot be used by this script. Defaulting to method 3!")
   Param$QuantMeth <- "Prot.Quant.Unique"
@@ -2030,8 +2030,8 @@ if ((Param$QuantMeth == "Prot.Quant2")||(QuantMethods_all)) {
 }
 if ((Param$QuantMeth == "IQ_MaxLFQ")||(QuantMethods_all)) {
   # MaxLFQ
-  if (!require("iq", quietly = TRUE)) { install.packages("iq") }
-  library("iq")
+  if (!require(iq, quietly = TRUE)) { pak::pak("iq") }
+  library(iq)
   kol <- grep(topattern(pep.ref[length(pep.ref)]), colnames(pep), value = TRUE)
   kol <- grep("\\.REF$", kol, value = TRUE, invert = TRUE)
   Pep2Use2 <- Pep2Use
@@ -2047,7 +2047,7 @@ if ((Param$QuantMeth == "IQ_MaxLFQ")||(QuantMethods_all)) {
     }
   }
   temp <- lapply(strsplit(pep$`Protein group IDs`[Pep2Use2], ";"), as.integer)
-  temp <- listMelt(temp, pep$id[Pep2Use2])
+  temp <- listMelt(temp, pep$id[Pep2Use2], ColNames = c("PG", "id"))
   temp[, c("Modified sequence", kol)] <- pep[match(temp$id, pep$id), c("Modified sequence", kol)]
   colnames(temp) <- gsub(topattern(pep.ref[length(pep.ref)]), "", colnames(temp))
   temp <- reshape2::melt(temp, id.vars = c("PG", "id", "Modified sequence"))
@@ -2234,7 +2234,7 @@ quant.data <- get(QuantData[match(Param$QuantMeth, QuantMethods)])
 Prot.Expr.Root %<o% c(Original = "log10(Expr.) - ")
 Prot.Rat.Root %<o% pep.ratios.ref[length(pep.ratios.ref)]
 #write.csv(quant.data, file = "Quantitative data.csv", row.names = FALSE)
-.obj <- unique(c(.obj, "quant.data", "Prot.Expr.Root", "Prot.Rat.Root"))
+.obj <- unique(c("quant.data", "Prot.Expr.Root", "Prot.Rat.Root", .obj))
 DatAnalysisTxt <- paste0(DatAnalysisTxt, " Estimated expression values were log10-converted...")
 
 ### Code chunk
@@ -2253,7 +2253,7 @@ if (Mirror.Ratios) {
   if (!exists("InvertedOnce")) {
     Prot.Rat.Root.BckUp <- Prot.Rat.Root
     pep.ratios.ref.BckUp <- pep.ratios.ref    
-    .obj <- unique(c(.obj, "Prot.Rat.Root.BckUp", "pep.ratios.ref.BckUp"))
+    .obj <- unique(c("Prot.Rat.Root.BckUp", "pep.ratios.ref.BckUp", .obj))
   }
   # Protein groups
   G <- grep(topattern(Prot.Rat.Root.BckUp), colnames(quant.data), value = TRUE)
@@ -5689,7 +5689,7 @@ if (Annotate&&LocAnalysis) {
   # For sub-cellular localisation analysis, we need to define a series of compartment markers to predict protein location
   # We can use the very granular markers already defined above (pRoloc or built-in), or define new ones here
   ObjNm <- "CompGOTerms2"
-  .obj <- unique(c(.obj, ObjNm))
+  .obj <- unique(c(ObjNm, .obj))
   if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
     msg <- "Enter a list of GO Cell Compartment (GO CC) terms for compartments of interest (semicolon-separated).
 You may also include:
@@ -7106,7 +7106,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     signcol <- grep(" - Analysis_[0-9]+", signcol, invert = TRUE, value = TRUE)
     quantcol <- unlist(quantCols)
     PepColList %<o% c("gel", "grl", "quantcol", "signcol", "regcol") # These are any column for which we want to gsub "___" to " "
-    .obj <- unique(c(.obj, PepColList)) # Here easier than using a custom operator
+    .obj <- unique(c(PepColList, .obj)) # Here easier than using a custom operator
     if (ii > 1) {
       gpl <- grep(topattern(pvalue.col[which(pvalue.use)]), colnames(tempData), value = TRUE)
       quantcol <- c(quantcol, gpl)

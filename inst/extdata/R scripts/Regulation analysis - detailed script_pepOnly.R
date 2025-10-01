@@ -1783,7 +1783,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     signcol <- grep(" - Analysis_[0-9]+", signcol, invert = TRUE, value = TRUE)
     quantcol <- unlist(quantCols)
     PepColList %<o% c("gel", "grl", "quantcol", "signcol", "regcol") # These are any column for which we want to gsub "___" to " "
-    .obj <- unique(c(.obj, PepColList)) # Here easier than using a custom operator
+    .obj <- unique(c(PepColList, .obj)) # Here easier than using a custom operator
     if (ii > 1) {
       gpl <- grep(topattern(pvalue.col[which(pvalue.use)]), colnames(tempData), value = TRUE)
       quantcol <- c(quantcol, gpl)
