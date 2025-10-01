@@ -176,7 +176,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
   filtersDF <- plyr::rbind.fill(filtersDF)
   filtersDF <- filtersDF[which(paste0("TaxID_", filtersDF$TaxID) %in% names(allProteins_mapped)),]
   nr <- nrow(filtersDF)
-  if (length(nr)) {
+  if (nr) {
     filtersDF <- rbind(filtersDF, filtersDF)
     filtersDF$GraphType <- GraphTypes[2]
     filtersDF$GraphType[1:nr] <- GraphTypes[1]

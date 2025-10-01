@@ -99,7 +99,7 @@ if (clustHtMp) {
     tmpDatImp <- tmpDat$Positions_Imputed
     tmpDat <- tmpDat$Imputed_data
     rownames(tmpDatImp) <- rownames(tmpDat)
-    colnames(tmpDatImp) <- colnames(tmpDat)
+    colnames(tmpDatImp) <- xMap$Samples
     #vapply(xMap$Samples, function(x) { sum(is.na(tmpDat[[x]])) }, 1) # df
     #vapply(xMap$Samples, function(x) { sum(tmpDatImp[, x]) }, 1) # matrix
   }
@@ -133,12 +133,15 @@ if (clustHtMp) {
         }))))]
         temp <- temp[which(rownames(temp) %in% myClustFilter),]
       }
-      tst <- apply(temp, 1, function(x) { length(is.all.good(x)) }) == lXprs
-      wAG <- which(apply(temp, 1, function(x) { length(is.all.good(x)) }) == lXprs)
+      #tst <- apply(temp, 1, function(x) { length(is.all.good(x)) }) == lXprs
+      # Filter to include only rows for which we have at least one valid value
+      wAG <- which(apply(tmpDat0[, smpls], 1, function(x) { length(is.all.good(x)) }) > 0)
+      wAG <- which(rownames(temp) %in% rownames(tmpDat0)[wAG])
       temp <- temp[wAG,]
       if (ImputeKlust) {
         whImput <- tmpDatImp[wAG,]
       }
+      #
       if (normType %in% c("Norm. by row", "Z-scored")) { rwMns <- rowMeans(temp) }
       if (normType == "Norm. by row") {
         temp <- sweep(temp, 1, rwMns, "-")
@@ -217,9 +220,9 @@ if (clustHtMp) {
         vplot <- vplot +
           geom_vline(xintercept = tst2[1]+1, colour = "red", linetype = "dashed") +
           geom_vline(xintercept = NGr, colour = "orange", linetype = "dashed") +
-          geom_text(label = "Optimal number of sample clusters", x = tst2[1]+1-0.2, y = yLow+yScl*0.1,
+          geom_text(label = "opt. N. of sample clust.", x = tst2[1]+1-0.2, y = yLow+yScl*0.1,
                     colour = "red", angle = 90, hjust = 1) +
-          geom_text(label = "Number of sample groups", x = NGr+0.2, y = yLow+yScl*0.1,
+          geom_text(label = "N. of sample groups", x = NGr+0.2, y = yLow+yScl*0.1,
                     colour = "orange", angle = 90, hjust = 1) +
           theme_bw() + ggtitle(vnm)
         #poplot(vplot)
@@ -238,20 +241,24 @@ if (clustHtMp) {
       # Number of cluster should not depend on method
       source(parSrc, local = FALSE)
       clusterExport(parClust, list("temp3", "Straps"), envir = environment())
-      tst <- setNames(parLapply(parClust, 2:MaxHClust, function(kl) { #kl <- 2
+      HClust_rg <- 2:MaxHClust
+      tst <- setNames(parLapply(parClust, HClust_rg, function(kl) { #kl <- 2
         try(kmeans(temp3, kl, nstart = Straps)$tot.withinss, silent = TRUE)
-      }), 2:MaxHClust)
+      }), HClust_rg)
       tst <- tst[which(vapply(tst, function(x) { !"try-error" %in% class(x) }, TRUE))]
       tst <- setNames(as.numeric(tst)/kmeans(temp3, 1, nstart = 1)$tot.withinss, names(tst))
       yScl2 <- max(tst)
       tst2 <- data.frame("Number of clusters k" = as.integer(names(tst)),
                          "[tot WSS (k)]/[tot WSS (1)]" = tst,
                          check.names = FALSE)
-      tst <- parSapply(parClust, 2:MaxHClust, function(kl) {
-        kmeans(temp3, kl, nstart = Straps)$tot.withinss
-      })/kmeans(temp3, 1, nstart = 1)$tot.withinss
+      tst <- parLapply(parClust, HClust_rg, function(kl) {
+        try(kmeans(temp3, kl, nstart = Straps)$tot.withinss, silent = TRUE)
+      })
+      w <- which(vapply(tst, function(x) { !"try-error" %in% class(x) }, TRUE))
+      tst <- vapply(tst[w], function(x) { x }, 1)
+      tst <- tst/kmeans(temp3, 1, nstart = 1)$tot.withinss
       yScl2 <- max(tst)
-      tst2 <- data.frame("Number of clusters k" = 2:MaxHClust,
+      tst2 <- data.frame("Number of clusters k" = HClust_rg[w],
                          "[tot WSS (k)]/[tot WSS (1)]" = tst,
                          check.names = FALSE)
       # For the elbow detection method, we need to normalize to a 1x1 graph which we can rotate by 45 degrees

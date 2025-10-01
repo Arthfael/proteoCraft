@@ -257,7 +257,7 @@ for (parI in myPar) {
   #
   if (!parOK) { assign(parNm, par_dflt) }
   assign(paste0(parNm, "_dflt"), par_dflt)
-  .obj <- unique(c(.obj, parNm))
+  .obj <- unique(c(parNm, .obj))
 }
 #
 appNm <- paste0(dtstNm, " - Parameters")

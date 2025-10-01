@@ -462,7 +462,8 @@ table.on('change', 'select', function() {
   tst2 <- paste(tst2[1:(min(c(2, length(tst2))))], collapse = "")
   tst3 <- gsub("[a-z, ]", "", dtstNm)
   projDir %<o% paste0(inRoot$Path[match("Temporary folder", inRoot$Folder)], "/", tst2, "_", tst3, "_", tst)
-  wd %<o% paste0(projDir, "/Proc")
+  #wd %<o% paste0(projDir, "/Proc")
+  wd %<o% projDir
   if (!dir.exists(wd)) { dir.create(wd, recursive = TRUE) }
   setwd(projDir)
   #
@@ -675,7 +676,7 @@ if (nrow(allBckps)) {
         if (areUok) { assign(reloadedBckps$ObjNm[[i]], tmp) }
       }
     }
-    .obj <- unique(c(.obj, unlist(reloadedBckps$ObjNm)))
+    .obj <- unique(c(unlist(reloadedBckps$ObjNm), .obj))
   }
 }
 if ((!nrow(reloadedBckps))||(!"FASTA of proteins of special interest" %in% reloadedBckps$Role)) {
