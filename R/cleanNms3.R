@@ -26,45 +26,86 @@ cleanNms3 <- function(names,
                       aggregate.map = Aggregate.map,
                       aggregate.list = Aggregate.list,
                       RSA = Ref.Sample.Aggregate) {
-  warning("I CANNOT DEAL YET WITH DOUBLE CONTRAST NAMES CONTAINING A VS! HELP ME DEAL WITH THOSE!!!")
-  # E.g.:
+  #proteoCraft::DefArg(cleanNms3)
+  #
+  # For instance:
   #names <- colnames(PG)
-  namesBck <- names
-  tstA <- aggregate(1:length(namesBck), list(namesBck), c)
-  g <-  grep("___", names)
-  rts <- gsub(" [^ ]+$", "", names[g])
-  names2Fix <- gsub(".* ", "", names[g])
+  #names <- filtersDF$Name
+  #
+  nmsBckp <- names
+  tstA <- aggregate(1:length(nmsBckp), list(nmsBckp), c)
+  g <-  grep("___", names) # Names to fix are the ones where the triad "___" occurs
+  # We need to protect the ") - (" from double contrasts, as it is the only allowed occurrence of a space in the names we want to correct:
+  # But unfortunately not all occurrences of ") - (" are double contrasts, only ever the last
+  # For instance, there are two in "Mean log2(Ratio) - (Exp1___Treatment1) - (Exp1___Treatment2)"
+  # However, we know that if it is present once, then we have a double contrast!
+  g2c <- grep("\\) - \\(", names[g])
+  if (length(g2c)) {
+    names[g][g2c] <- vapply(strsplit(names[g][g2c], "\\) - \\("), function(x) { #x <- strsplit(names[g][g2c], "\\) - \\(")[1]
+      x <- unlist(x)
+      l <- length(x)
+      rg <- (l-1):l
+      x[l-1] <- paste(x[rg], collapse = "<-VERSUS->")
+      x <- x[1:(l-1)]
+      return(paste(x, collapse = ") - (")) 
+    }, "")
+  }
+  gSp <- grep(" ", names[g])
+  rts <- gsub(" [^ ]+$", "", names[g]) # Roots are defined as anything before the last occurrence of a space
+  names2Fix <- gsub(".* ", "", names[g]) # Names are after that space
+  #
+  # We need to treat separately these stupid .REF and _REF.to.REF_ columns
   gR1 <- grep("\\.REF$", names2Fix)
   gR2 <- grep("_REF\\.to\\.REF_[0-9]+$", names2Fix)
   names2Fix[gR1] <- gsub("\\.REF$", "", names2Fix[gR1])
   num2 <- gsub(".*_REF\\.to\\.REF_", "", names2Fix[gR2])
   names2Fix[gR2] <- gsub("_REF\\.to\\.REF_[0-9]+$", "", names2Fix[gR2])
-  kol <- grep("^([A-Z][a-z]{2})+$", colnames(experiments.map), value = TRUE)
   #
+  # Also deal with double contrast names
+  names2Fix <- strsplit(gsub("^\\(|\\)$", "", names2Fix), "<-VERSUS->")
+  iNms <- 1:length(names2Fix)
+  names2Fix_map <- listMelt(names2Fix, iNms)
+  names2Fix2 <- unique(names2Fix_map$value)
+  #
+  kol <- grep("^([A-Z][a-z]{2})+$", colnames(experiments.map), value = TRUE)
   Aggr <- unique(unlist(aggregate.map$Characteristics))
-  w1 <- which(sapply(Aggr, function(x) {
+  w1 <- which(vapply(Aggr, function(x) {
     length(unique(experiments.map[[x]]))
-  }) == 1)
+  }, 1) == 1)
   if (!length(w1)) {
-    names2Fix <- gsub("___", rep, names2Fix)
+    names2Fix2new <- gsub("___", rep, names2Fix2)
   } else {
-    names2Fix <- sapply(names2Fix, function(x) { #x <- names2Fix[1]
-      tst <- setNames(lapply(kol, function(y) { which(experiments.map[[y]] == x) }), kol)
-      tst <- tst[which(sapply(tst, length) > 0)[1]]
+    names2Fix2new <- vapply(names2Fix2, function(x) { #x <- names2Fix2[1] #x <- rev(names2Fix2)[1]
+      tst <- setNames(lapply(kol, function(y) { which(experiments.map[[y]] == x) }),
+                      kol)
+      tst <- tst[which(vapply(tst, length, 1) > 0)[1]]
       w <- tst[[1]]
       k <- names(tst)
       k <- aggregate.map$Characteristics[[match(k, aggregate.map$Aggregate.Name)]]
       k <- k[which(!k %in% Aggr[w1])]
       k <- RSA$names[which(RSA$names %in% k)] # for order
-      return(paste(experiments.map[w, k], collapse = rep))
-    })
+      return(unique(do.call(paste, c(experiments.map[w, k, drop = FALSE], sep = rep))))
+    }, "")
   }
+  names2Fix_map$New <- names2Fix2new[match(names2Fix_map$value, names2Fix2)]
+  names2Fix_map <- aggregate(names2Fix_map$New, list(names2Fix_map$L1), function(x) {
+    x <- unlist(x)
+    if (length(x) == 2) { x <- paste0("(", x[1], ") - (", x[2], ")") }
+    return(x)
+  })
+  names2Fix_map <- names2Fix_map[order(names2Fix_map$Group.1),]
+  w <- which(iNms %in% names2Fix_map$Group.1)
+  names2Fix[w] <- names2Fix_map$x[match(iNms[w], names2Fix_map$Group.1)]
+  #
   names2Fix[gR1] <- paste0(names2Fix[gR1], ".REF")
   names2Fix[gR2] <- paste0(names2Fix[gR2], "_REF.to.REF", num2)
-  names[g] <- paste0(rts, " ", names2Fix)
+  names2Fix <- unlist(names2Fix)
+  #
+  names[g] <- names2Fix
+  names[g][gSp] <- paste0(rts, " ", names[g][gSp])
   # Check for unicity
   tstB <- aggregate(1:length(names), list(names), c)
-  tstB$Orig <- namesBck[sapply(tstB$x, function(x) { x[[1]] })]
+  tstB$Orig <- nmsBckp[vapply(tstB$x, function(x) { x[[1]] }, 1)]
   tstB <- tstB[match(tstA$Group.1, tstB$Orig),]
   if (!identical(tstA$x, tstB$x)) {
     stop("Values corruption! Simplification is creating identity where there was none in original input!")

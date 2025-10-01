@@ -19,12 +19,11 @@ load_Bckp <- function(backup,
                       startDir,
                       clean = TRUE,
                       loadPack = TRUE) {
-  #proteoCraft::DefArg(proteoCraft::load_Bckp)
   # Cleanup workspace here
   if (clean) { rm(list = ls(), envir = .GlobalEnv) }
   #
   TESTING <- FALSE
-  #TESTING <- TRUE
+  #proteoCraft::DefArg(proteoCraft::load_Bckp); TESTING <- TRUE
   if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package
@@ -188,26 +187,58 @@ load_Bckp <- function(backup,
           if (usePar) {
             parallel::clusterExport(parClust, list("g0", "scrpt"), envir = environment())
             tst <- try(setNames(parSapply(parClust, .obj, f0), .obj), silent = TRUE)
+            #
+            # NB:
+            #   Recent change, now object names are added to .obj left, not right:
+            #   > .obj <- unique(c(objNm, .obj)))
+            #   thus we now have two ways to detect how far the script progressed:
+            #    - Using all names in .obj, we can figure out how far we have gone at any run of the script from these inputs assuming the backup wasn't discarded.
+            #    - Using just the first name in .obj for which we have a non NA value, we can figure out what was the last run chunk.
+            #
             ok <- !("try-error" %in% class(tst))
+          } else {
+            tst <- try(setNames(sapply(.obj, f0), .obj), silent = TRUE)
           }
           if (!ok) { tst <- setNames(vapply(.obj, f0, as.integer(1)), .obj) }
           tst <- tst[which((vapply(names(tst), exists, TRUE))&(!is.na(tst)))]
           if (length(tst)) {
+            m1 <- tst[1]
+            o1 <- names(tst)[1]
             tst <- tst[order(tst, decreasing = TRUE)]
-            rs <- scrpt$row[ghash][which(scrpt$row[ghash] > tst[1])][1]
-            cat(paste0("\n   FYI, the last object listed in .obj is \"", names(tst)[1], "\".\n"))
+            m2 <- tst[1]
+            o2 <- names(tst)[1]
+            rs1 <- scrpt$row[ghash][which(scrpt$row[ghash] > m1)][1]
+            rs2 <- scrpt$row[ghash][which(scrpt$row[ghash] > m2)][1]
+            # rs1 should always be smaller or equal to rs2
+            msg <- paste0("\n   FYI, the last remanent object which was added chronologically to .obj was \"", o1, "\"")
+            if (o1 != o2) {
+              msg <- paste0(msg,
+                            ",\n   but it seems that at some point the script had also been run with this data beyond this point\n   (up to the creation of remanent object ",
+                            o2, ")\n")
+            } else {
+              msg <- paste0(msg, ",\n   which seems to also be how far the script has been run with this data at any point.\n")
+            }
+            cat(msg)
             #system(paste0("open \"", ScriptPath, "\""))
-            if (rs >= max(scrpt$row[g0])) {
+            if (rs1 >= max(scrpt$row[g0])) {
               cat("\n   Backup analysis suggests that this backup had reached the end of the analysis, so there should be nothing more to run...\nBut maybe you want to re-run some parts without starting from scratch?\n")
               cat("   (opening script...)\n")
               rstudioapi::documentOpen(ScriptPath)
             } else {
-              cat(paste0("\n   -> We thus suggest starting execution from row ", rs, "...\n"))
-              cat("   (opening script at the corresponding line...)\n")
-              rstudioapi::documentOpen(ScriptPath, line = rs)
+              if (rs1 < rs2) {
+                cat(paste0("\n   -> We thus suggest starting execution from either row ", rs1, " or ", rs2, "...\n"))
+                cat(paste0("   (opening script at the line ", rs1, ")\n"))
+              } else {
+                cat(paste0("\n   -> We thus suggest starting execution from row ", rs1, "...\n"))
+                cat("   (opening script at the corresponding line...)\n")
+              }
+              rstudioapi::documentOpen(ScriptPath, line = rs1)
             }
+            #system(paste0("open \"", ScriptPath, "\""))
           }
         }
+      } else {
+        cat(" ... but it appears the file doesn't exist anymore...\n")
       }
     } else {
       cat(paste0("   FYI, the last object listed in .obj is \"", rev(.obj)[1], "\".\n"))

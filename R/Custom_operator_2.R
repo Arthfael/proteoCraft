@@ -45,5 +45,5 @@
   nm <- deparse(substitute(x)) 
   assign(nm, y, envir = .GlobalEnv)
   if (!exists(".obj")) { .obj <<- c(".obj", "%<o%", "%<c%") }
-  .obj <<- unique(c(.obj, nm))
+  .obj <<- unique(c(nm, .obj))
 }
