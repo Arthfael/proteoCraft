@@ -43,7 +43,7 @@ LFQ.lm(
 \description{
 A function which summarizes individual peptide/fragment quantitative values into a single quantitative vector, using the Levenberg-Marquardt procedure.
 Used at two levels:
-- For DIA-NN input, to summarize a peptidoform's MS1 (precursor) and MS2 (fragment) measurements into a single quantitative vector.
+- In the optional MS2corr2MS1.R source, to summarize a peptidoform's MS1 (precursor) and MS2 (fragment) measurements into a single quantitative vector.
 - In Prot.Quant, to summarize peptidoform-level information into a protein group-levels quantitative vector.
 The output is log10-transformed.
 }
