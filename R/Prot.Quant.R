@@ -752,7 +752,7 @@ Prot.Quant <- function(Prot,
             if (!log.Pep.Intens) { tmp <- tmp[which(tmp > 0)] }
             emd <- signif(median(tmp), 3)
             esd <- signif(sd(tmp), 3)
-            msg <- paste0("-> Sample ", a1, ":\n", paste0("   - log", log.Pep.Intens, "(expression): median = ", emd, ", SD = ", esd, "\n"))
+            msg <- paste0("-> Sample ", cleanNms(a1), ":\n", paste0("   - log", log.Pep.Intens, "(expression): median = ", emd, ", SD = ", esd, "\n"))
             if (paste0(Pep.Ratios.root, a1) %in% colnames(res2)) {
               tmp <- proteoCraft::is.all.good(res2[[paste0(Pep.Ratios.root, a1)]])
               rmd <- signif(median(tmp), 3)
