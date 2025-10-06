@@ -1,12 +1,13 @@
 #### Code chunk - Protein group profile plots and ranked abundance plots
-source(parSrc, local = FALSE)
-rm(list = ls()[which(!ls() %in% .obj)])
-invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
-Script <- readLines(ScriptPath)
 gc()
+Script <- readLines(ScriptPath)
+stopCluster(parClust)
+rm(list = ls()[which(!ls() %in% .obj)])
 #runRankAbundPlots %<o% TRUE
 #runProfPlots %<o% TRUE
 if (runRankAbundPlots|runProfPlots) {
+  AllTerms %<o% unique(unlist(strsplit(db$`GO-ID`, ";")))
+  AllTermNames %<o% unique(unlist(strsplit(db$GO, ";")))
   library(ggplot2)
   library(RColorBrewer)
   library(colorspace)
@@ -14,16 +15,6 @@ if (runRankAbundPlots|runProfPlots) {
   library(plotly)
   library(AnnotationDbi)
   library(htmlwidgets)
-  invisible(clusterCall(parClust, function() {
-    library(ggplot2)
-    library(RColorBrewer)
-    library(colorspace)
-    library(ggplot2)
-    library(plotly)
-    library(AnnotationDbi)
-    library(htmlwidgets)
-    return()
-  }))
   QuantTypes %<o% c("LFQ", "Coverage")
   if (CreateMSMSKol) { QuantTypes <- c(QuantTypes, "Spectra") }
   tstOrg2 %<o% c()
@@ -49,8 +40,19 @@ if (runRankAbundPlots|runProfPlots) {
   ggQuant %<o% list()
   ggProf %<o% list()
   QuantLy %<o% list()
-  ProfLy %<o% list()
+  ProfLy %<o% list()Drawing profile plots
   for (QuantType in QuantTypes) { #QuantType <- QuantTypes[1] #QuantType <- "LFQ" #QuantType <- "Coverage"
+    source(parSrc, local = FALSE)
+    invisible(clusterCall(parClust, function() {
+      library(ggplot2)
+      library(RColorBrewer)
+      library(colorspace)
+      library(ggplot2)
+      library(plotly)
+      library(AnnotationDbi)
+      library(htmlwidgets)
+      return()
+    }))
     cat(" + ", QuantType, "\n")
     QuantLy[[QuantType]] <- list()
     myColors <- setNames("black", "-")
@@ -476,13 +478,14 @@ if (runRankAbundPlots|runProfPlots) {
         }
       }
     }
+    stopCluster(parClust)
   }
   PG$temp <- NULL
-  invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
   saveFun(ggQuant, file = paste0(MainDir, "/ggQuantPlots.RData"))
   saveFun(ggProf, file = paste0(MainDir2, "/ggProfilePlots.RData"))
   saveFun(QuantLy, file = paste0(MainDir, "/QuantPlots.RData"))
   saveFun(ProfLy, file = paste0(MainDir2, "/ProfilePlots.RData"))
+  source(parSrc, local = FALSE)
   for (QuantType in QuantTypes) { #QuantType <- QuantTypes[1]
     tst <- parSapply(parClust, ggQuant[[QuantType]], function(x) { #x <- ggQuant[[QuantType]][[1]]
       dr <- dirname(x$path)

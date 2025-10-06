@@ -1,5 +1,6 @@
 ### Analysis parameters
 # Defaults
+nSmpls <- nrow(Exp.map)
 RefRat_Mode %<o% "2" # Values: RefRat_Mode = "2" or "1" # For now not a user-modifiable parameter, however this may change
 StudentRoot %<o% "Student's t-test -log10(Pvalue) - "
 WelchRoot %<o% "Welch's t-test -log10(Pvalue) - "
@@ -92,6 +93,9 @@ if ((!exists("Nested"))||(length(Nested) != 1)||(!is.logical(Nested))||(is.na(Ne
   } else {
     Nested <- WorkFlow != "Regulation"
   }
+}
+if ((!is.logical(Nested))||(length(Nested) != 1)||(is.na(Nested))) {
+  Nested <- TRUE
 }
 Param$Ratios.Groups_Nested <- Nested 
 Nested %<o% Nested
@@ -199,7 +203,7 @@ if (("Pep.Impute" %in% colnames(Param))&&(is.logical(Param$Pep.Impute))&&(!is.na
 PepFoundInAtLeast %<o% 1
 if ("PepFoundInAtLeast" %in% colnames(Param)) {
   PepFoundInAtLeast %<o% suppressWarnings(as.integer(Param$PepFoundInAtLeast))
-  if ((is.na(PepFoundInAtLeast))||(PepFoundInAtLeast < 1)||(PepFoundInAtLeast > nrow(Exp.map))) {
+  if ((is.na(PepFoundInAtLeast))||(PepFoundInAtLeast < 1)||(PepFoundInAtLeast > nSmpls)) {
     warning("Invalid \"PepFoundInAtLeast\" parameter, defaulting to 1")
     PepFoundInAtLeast <- 1
   }
@@ -428,8 +432,8 @@ pepNormMethods %<o% list(list(Method = "median",
                               Batch = NA
                          ))
 L <- length(pepNormMethods)
-pepNormMethodsDF <- data.frame(Method = vapply(1:L, function(i) { pepNormMethods[[i]]$Method }, "a"),
-                               Source = vapply(1:L, function(i) { pepNormMethods[[i]]$Source }, "a"))
+pepNormMethodsDF <- data.frame(Method = vapply(1:L, function(i) { pepNormMethods[[i]]$Method }, ""),
+                               Source = vapply(1:L, function(i) { pepNormMethods[[i]]$Source }, ""))
 # General normalisation methods
 genPepNormMeth <- pepNormMethodsDF$Method[which(pepNormMethodsDF$Source == "pepNorm_General.R")]
 # genPepNormMeth <- genPepNormMeth[which(!genPepNormMeth %in% c("proteins", "GO terms"))] # These have their own box // NO THEY DON'T, NOT AS STEPS!
@@ -451,10 +455,14 @@ if (LabelType == "Isobaric") {
     dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, function(x) { !((x$Method == "ComBat")&(x$Batch = "Isobaric.set")) }, TRUE))]
   }
 } else {
-  dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, function(x) { x$Method }, "a") != "IRS")]
+  dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, function(x) { x$Method }, "") != "IRS")]
+  dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, function(x) {
+    if ("Batch" %in% names(x)) { return(x$Batch) }
+    return("")
+  }, "") != "Isobaric.set")]
 }
 if (!Nested) {
-  dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, function(x) { x$Method }, "a") != "ComBat")]
+  dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, function(x) { x$Method }, "") != "ComBat")]
 }
 if (exists("pepNormSeq")) { dfltNormSeq <- pepNormSeq }
 #
@@ -468,7 +476,7 @@ normSeqProc12 <- function(seq) { #seq <- dfltNormSeq
       x <- paste0(x, ": ", paste(seq[[i]]$Batch, collapse = ";"))
     }
     return(paste0(i, " - ", x))
-  }, "a")
+  }, "")
 }
 normSeqProc21 <- function(seq2) { #seq2 <- dfltNormSeq2
   l <- length(seq2)
@@ -703,7 +711,7 @@ ui1 <- fluidPage(
            column(2,
                   h5("Use only peptidoforms found in at least how many samples in..."),
                   numericInput("PepFoundInAtLeast",
-                               " -> the whole dataset?", PepFoundInAtLeast, 1, nrow(Exp.map), 1, "100%"),
+                               " -> the whole dataset?", PepFoundInAtLeast, 1, nSmpls, 1, "100%"),
                   numericInput("PepFoundInAtLeastGrp",
                                " -> one sample group at least? (overrides parameter above)",
                                PepFoundInAtLeastGrp,
@@ -786,16 +794,17 @@ ui1 <- fluidPage(
   tags$hr(style = "border-color: black;"),
   withSpinner(uiOutput("GO")),
   if (scrptTypeFull == "withReps_PG_and_PTMs") {
-    tags$hr(style = "border-color: black;"),
-    h4(strong("Optional analyses")),
-    fluidRow(shiny::column(2,
-                           shiny::checkboxInput("runProfPlots", "Draw protein profile plots?",
-                                                runProfPlots_dflt, "100%"),
-                           shiny::checkboxInput("runRankAbundPlots", "Draw protein ranked abundance plots?",
-                                                runRankAbundPlots_dflt, "100%")),
-             shiny::column(2,
-                           shiny::checkboxInput("runGSEA", "Run Gene Set Enrichment Analysis (GSEA)?", runGSEA_dflt, "100%")),
-             
+    list(
+      tags$hr(style = "border-color: black;"),
+      h4(strong("Optional analyses")),
+      fluidRow(shiny::column(2,
+                             shiny::checkboxInput("runProfPlots", "Draw protein profile plots?",
+                                                  runProfPlots_dflt, "100%"),
+                             shiny::checkboxInput("runRankAbundPlots", "Draw protein ranked abundance plots?",
+                                                  runRankAbundPlots_dflt, "100%")),
+               shiny::column(2,
+                             shiny::checkboxInput("runGSEA", "Run Gene Set Enrichment Analysis (GSEA)?", runGSEA_dflt, "100%")))
+    )
   },
   withSpinner(uiOutput("CytoScape")),
   tags$hr(style = "border-color: black;"),
@@ -1052,7 +1061,9 @@ server1 <- function(input, output, session) {
   }
   updtRSAmsg <- function(reactive = TRUE) {
     if (reactive) { myMsg <- RSA_Msg() } else { myMsg <- "" }
-    renderUI(h4(strong(em(myMsg, style = "color:red", .noWS = "outside"))))
+    renderUI(h4(strong(em(myMsg,
+                          style = paste0("color:", c("black", "red")[(nchar(myMsg) > 0)+1]),
+                          .noWS = "outside"))))
   }
   #
   # Initialize variables to create in main environment
@@ -1091,27 +1102,28 @@ server1 <- function(input, output, session) {
           tst2 <- sum(!c("Experiment", "Replicate") %in% tmpVal)
           tmpRSA <- do.call(paste, c(Exp.map[, tmpVal, drop = FALSE], sep = "___"))
           UtmpRSA <- unique(tmpRSA)
-          tst3 <- length(UtmpRSA) < nrow(Exp.map)
+          tst3 <- length(UtmpRSA) < nSmpls
           tmpVal2 <- tmpVal[which(tmpVal != "Replicate")] # Defines sample groups...
           if (length(tmpVal2)) {
-            xpRws <- 1:nrow(Exp.map)
+            xpRws <- 1:nSmpls
             tmpVPAL <- do.call(paste, c(Exp.map[, tmpVal2, drop = FALSE], sep = "___"))
             tst4 <- aggregate(xpRws, list(tmpVPAL, Exp.map$Replicate), length)
             tst4 <- max(tst4$x) > 1
             l2 <- length(unique(tmpVPAL))
           }
         }
+        msg <- ""
         if ((l < 3)||(tst2)||(tst3)||(tst4)) {
           msg <- c()
           if ((l < 3)||(tst2)) { msg <- c(msg, "You MUST always include Experiment and Replicate here, as well as at least one other contrasted factor!") }
           if (tst3) { msg <- c(msg, "The chosen experimental Factors do not discriminate fully between some samples (rows in the experiment map), add more!") }
           if (tst4) { msg <- c(msg, "It is not allowed for several samples to have the same replicate number within a group!") }
-          RSA_Msg(paste(msg, collapse = " / "))
+          msg <- paste(msg, collapse = " / ")
           shinyjs::disable("saveBtn")
         } else {
-          RSA_Msg("")
           shinyjs::enable("saveBtn")
         }
+        RSA_Msg(msg)
         output$RSA_msg <- updtRSAmsg()
         #
         dflt <- F_TEST()

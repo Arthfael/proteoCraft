@@ -220,12 +220,12 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         if (length(wY2)) {
           m <- match(tbl$file[wY2], names(tst))
           tbl$nuLoc[wY2] <- tst[m]
-          msg <- "   The user was able to locate the "
+          msg <- "   The user was able to locate "
           if (length(wN2) == 0) {
-            msg <- paste0(msg, "missing file", c("", "s")[tstY2],
+            msg <- paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
                           " in directory ", newDir, "\n")
           } else {
-            msg <- paste0(msg, "following missing file", c("", "s")[tstY2],
+            msg <- paste0(msg, "the following missing file", c("", "s")[tstY2],
                           " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
           }
           cat(msg)
@@ -583,12 +583,12 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
           if (length(wY2)) {
             m <- match(tbl$file[wY2], names(tst))
             tbl$nuLoc[wY2] <- tst[m]
-            msg <- "   The user was able to locate the "
+            msg <- "   The user was able to locate "
             if (length(wN2) == 0) {
-              msg <- paste0(msg, "missing file", c("", "s")[tstY2],
+              msg <- paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
                             " in directory ", newDir, "\n")
             } else {
-              msg <- paste0(msg, "following missing file", c("", "s")[tstY2],
+              msg <- paste0(msg, "the following missing file", c("", "s")[tstY2],
                             " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
             }
             cat(msg)
@@ -893,12 +893,12 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
             if (length(wY2)) {
               m <- match(tbl$file[wY2], names(tst))
               tbl$nuLoc[wY2] <- tst[m]
-              msg <- "   The user was able to locate the "
+              msg <- "   The user was able to locate "
               if (length(wN2) == 0) {
-                msg <- paste0(msg, "missing file", c("", "s")[tstY2],
+                msg <- paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
                               " in directory ", newDir, "\n")
               } else {
-                msg <- paste0(msg, "following missing file", c("", "s")[tstY2],
+                msg <- paste0(msg, "the following missing file", c("", "s")[tstY2],
                               " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
               }
               cat(msg)

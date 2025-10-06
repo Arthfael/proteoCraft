@@ -71,8 +71,8 @@ if (reload_SDRF) {
   }
 }
 #
+w <- which(c("Organism_Full", "Organism") %in% colnames(db))
 if (!exists("tstOrg")) {
-  w <- which(c("Organism_Full", "Organism") %in% colnames(db))
   tstOrg <- (length(w) > 0)
 }
 if (tstOrg) {

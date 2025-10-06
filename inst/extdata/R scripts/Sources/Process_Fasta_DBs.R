@@ -632,8 +632,10 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
   db[w, c("Organism", "Organism_Full")] <- "Contaminant"
   db$"Protein ID"[w] <- paste0("CON__", gsub("^CON__", "", db$"Protein ID"[w]))
   contDB %<o% contDB[which(!contDB$Sequence %in% db$Sequence),]
-  contDB$"Potential contaminant" <- "+"
-  db <- rbind.fill(db, contDB)
+  if (nrow(contDB)) {
+    contDB$"Potential contaminant" <- "+"
+    db <- rbind.fill(db, contDB)
+  }
 } else { if (SearchSoft == "PROTEOMEDISCOVERER") { stop("This part has not yet been re-written for PD!") } }
 
 # Gene column!
