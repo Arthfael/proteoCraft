@@ -1746,7 +1746,7 @@ Pep2Use %<o% which(tst)
 QuantData <- setNames(paste0("quant.data", 1:length(QuantMethods)), QuantMethods)
 QuantMethods_all <- FALSE
 .obj <- unique(c("QuantData", "QuantMethods_all", .obj))
-expscol <- paste0("log10(Expr.) - ", RSA$values)
+exprsCol <- paste0("log10(Expr.) - ", RSA$values)
 # Weights:
 # - Higher for peptides with low intra-sample group CV on average
 # - Higher for peptides with low PEP
@@ -2046,28 +2046,37 @@ if ((Param$QuantMeth == "IQ_MaxLFQ")||(QuantMethods_all)) {
       Pep2Use2 <- Pep2Use2[which(!pep$Sequence[Pep2Use2] %in% seq)]
     }
   }
-  temp <- lapply(strsplit(pep$`Protein group IDs`[Pep2Use2], ";"), as.integer)
-  temp <- listMelt(temp, pep$id[Pep2Use2], ColNames = c("PG", "id"))
-  temp[, c("Modified sequence", kol)] <- pep[match(temp$id, pep$id), c("Modified sequence", kol)]
-  colnames(temp) <- gsub(topattern(pep.ref[length(pep.ref)]), "", colnames(temp))
-  temp <- reshape2::melt(temp, id.vars = c("PG", "id", "Modified sequence"))
-  temp <- temp[which((is.all.good(temp$value, 2))&(temp$value > 0)),]
-  temp$protein_list <- PG$"Leading protein IDs"[match(temp$PG, PG$id)]
-  colnames(temp)[which(colnames(temp) == "variable")] <- "sample_list"
-  temp$id <- apply(temp[, c("id", "Modified sequence")], 1, function(x) { paste(as.character(x), collapse = "") })
-  temp$quant <- log2(temp$value)
-  temp$PG <- NULL
-  temp$"Modified sequence" <- NULL
-  temp$value <- NULL
-  temp2 <- iq::create_protein_list(temp)
-  quant.data7 <- iq::create_protein_table(temp2)
-  quant.data7 <- quant.data7$estimate/log2(10)
+  # That part rewritten to bypass the very slow iq::create_protein_list() 
+  tmpPGlist <- listMelt(strsplit(PG$"Peptide IDs", ";"),
+                        1:nrow(PG),
+                        c("id", "Row"))
+  tmpPGlist$id <- as.integer(tmpPGlist$id)
+  tmpPGlist <- tmpPGlist[which(tmpPGlist$id %in% Pep$id[Pep2Use2]),]
+  tmpPep2 <- tmpPep[, c("id", kol)]
+  tmpPGlist[, kol] <- tmpPep2[match(tmpPGlist$id, tmpPep2$id), kol]
+  colnames(tmpPGlist) <- gsub(topattern(pep.ref[length(pep.ref)]), "", colnames(tmpPGlist))
+  kol2 <- gsub(topattern(pep.ref[length(pep.ref)]), "", kol)
+  tmpPGlist <- as.data.table(tmpPGlist[, c("Row", kol2)])
+  tmpPGlist <- split(tmpPGlist[, ..kol2], tmpPGlist$Row)
+  names(tmpPGlist) <- Prot$`Leading protein IDs`[as.integer(names(tmpPGlist))]
+  #
+  # This part below is horrendously SLOWWWWWWWW...
+  quant.data7 <- iq::create_protein_table(tmpPGlist)
+  
+  quant.data7 <- create_protTbl(tmpPGlist, cl = parClust)
+  
+  
+  # One more reason to use in house quant...
+  # I need to look into what that function is doing...
+  # Also to put a warning in the parameters app if this becomes an option...
+  #
+  quant.data7 <- quant.data7$estimate/log2(10) # Convert to log10
   quant.data7 <- as.data.frame(quant.data7)
   colnames(quant.data7) <- paste0("log10(Expr.) - ", colnames(quant.data7))
-  quant.data7$"Leading protein IDs" <- names(temp2)
+  quant.data7$"Leading protein IDs" <- names(tmpPGlist)
   w <- which(!PG$"Leading protein IDs" %in% quant.data7$"Leading protein IDs")
-  temp <- as.data.frame(matrix(rep(NA, length(w)*length(expscol)), ncol = length(expscol)))
-  colnames(temp) <- expscol
+  temp <- as.data.frame(matrix(rep(NA, length(w)*length(exprsCol)), ncol = length(exprsCol)))
+  colnames(temp) <- exprsCol
   temp$"Leading protein IDs" <- PG$"Leading protein IDs"[w]
   quant.data7 <- rbind(quant.data7, temp)
   quant.data7 <- quant.data7[match(PG$"Leading protein IDs", quant.data7$"Leading protein IDs"),]
@@ -2119,7 +2128,7 @@ if (QuantMethods_all) {
   NormFact1 <- sapply(1:length(QuantMethods), function(i) {
     tmp <- get(QuantData[i])
     tmp$"Leading protein IDs" <- PG$"Leading protein IDs"
-    tmp2 <- tmp[, expscol]
+    tmp2 <- tmp[, exprsCol]
     tmp2 <- rowMeans(tmp2, na.rm = TRUE)
     w <- which(PG$"Leading protein IDs" %in% tmp$"Leading protein IDs")
     res <- rep(NA, nrow(PG))
@@ -2130,7 +2139,7 @@ if (QuantMethods_all) {
   for (i in 1:length(QuantMethods)) {
     tmp1 <- get(QuantData[i])
     tmp1$"Leading protein IDs" <- PG$"Leading protein IDs"
-    tmp1 <- tmp1[, c(expscol, "Leading protein IDs")]
+    tmp1 <- tmp1[, c(exprsCol, "Leading protein IDs")]
     tmp2 <- sapply(VPAL$values, function(x) {
       kol <- paste0("log10(Expr.) - ", Exp.map$Ref.Sample.Aggregate[which(Exp.map[[VPAL$column]] == x)])
       x <- apply(tmp1[ , kol, drop = FALSE], 1, function(y) {
@@ -2150,7 +2159,7 @@ if (QuantMethods_all) {
     CV[[QuantMethods[i]]] <- mean(cv[[QuantMethods[i]]]$CV)
     tmp3 <- tmp1
     m <- match(tmp3$`Leading protein IDs`, PG$`Leading protein IDs`)
-    tmp3[, gsub(topattern("log10(Expr.) - "), "", expscol)] <- sweep(tmp3[, gsub(topattern("log10(Expr.) - "), "", expscol)], 1, NormFact1[m,i], "-")+NormFact2[m]
+    tmp3[, gsub(topattern("log10(Expr.) - "), "", exprsCol)] <- sweep(tmp3[, gsub(topattern("log10(Expr.) - "), "", exprsCol)], 1, NormFact1[m,i], "-")+NormFact2[m]
     tmp1 <- reshape2::melt(tmp1, id.vars = c("id", "Razor + unique peptides", "Leading protein IDs"))
     tmp3 <- reshape2::melt(tmp3, id.vars = c("id", "Razor + unique peptides", "Leading protein IDs"))
     colnames(tmp1) <- c("id", "Razor + unique peptides", "Leading protein IDs", "Sample", QuantMethods[i])
