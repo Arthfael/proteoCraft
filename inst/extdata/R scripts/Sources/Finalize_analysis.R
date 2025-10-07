@@ -6,6 +6,7 @@ write(tmp, tmpSrc)
 MatMetFl <- paste0(wd, "/Materials and methods_WIP.docx")
 tst <- try({
   source(tmpSrc, local = FALSE)
+  #rstudioapi::documentOpen(tmpSrc)
   MatMet %<o% MatMet
   print(MatMet, target = MatMetFl)
 }, silent = TRUE)

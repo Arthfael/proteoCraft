@@ -6,8 +6,10 @@ rm(list = ls()[which(!ls() %in% .obj)])
 #runRankAbundPlots %<o% TRUE
 #runProfPlots %<o% TRUE
 if (runRankAbundPlots|runProfPlots) {
-  AllTerms %<o% unique(unlist(strsplit(db$`GO-ID`, ";")))
-  AllTermNames %<o% unique(unlist(strsplit(db$GO, ";")))
+  if (Annotate) {
+    AllTerms %<o% unique(unlist(strsplit(db$`GO-ID`, ";")))
+    AllTermNames %<o% unique(unlist(strsplit(db$GO, ";")))
+  }
   library(ggplot2)
   library(RColorBrewer)
   library(colorspace)
@@ -40,7 +42,7 @@ if (runRankAbundPlots|runProfPlots) {
   ggQuant %<o% list()
   ggProf %<o% list()
   QuantLy %<o% list()
-  ProfLy %<o% list()Drawing profile plots
+  ProfLy %<o% list()
   for (QuantType in QuantTypes) { #QuantType <- QuantTypes[1] #QuantType <- "LFQ" #QuantType <- "Coverage"
     source(parSrc, local = FALSE)
     invisible(clusterCall(parClust, function() {
@@ -53,7 +55,7 @@ if (runRankAbundPlots|runProfPlots) {
       library(htmlwidgets)
       return()
     }))
-    cat(" + ", QuantType, "\n")
+    cat(" -> ", QuantType, "\n")
     QuantLy[[QuantType]] <- list()
     myColors <- setNames("black", "-")
     myColors2 <- setNames(c("lightgrey", "brown"), c("-", "+"))
@@ -192,12 +194,15 @@ if (runRankAbundPlots|runProfPlots) {
         temp2$Protein_group[w] <- "red"
         temp$Protein_group <- temp2$Protein_group[match(temp$`Protein Group`, temp2$Group.1)]
         testReg <- QuantType == "LFQ"
-        exports <- list("QuantType", "QuantTypes", "mySamples", "SubDir", "GO_filt", "GO_filter", "wd",
+        exports <- list("QuantType", "QuantTypes", "mySamples", "SubDir", "GO_filt", "wd",
                         "colScale", "fillScale", "colScale2", "fillScale2", "kolnm", "abbrFun",
                         "Exp", "scrptType", "testReg")
+        if (GO_filt) {
+          exports <- append(exports, "GO_filter")
+        }
         clusterExport(parClust, exports, envir = environment())
         if (runRankAbundPlots) {
-          cat("   -> Drawing ranked abundance plots\n")
+          cat("    - Drawing ranked abundance plots\n")
           saveRDS(temp, paste0(wd, "/tmp.RDS"))
           invisible(clusterCall(parClust, function() {
             temp <<- readRDS(paste0(wd, "/tmp.RDS"))
@@ -366,7 +371,7 @@ if (runRankAbundPlots|runProfPlots) {
         }
         #}
         if ((runProfPlots)&&(length(myKol) > 1)) {
-          cat("   -> Drawing profile plots\n")
+          cat("    - Drawing profile plot\n")
           PltTst <- setNames(c(TRUE, "+" %in% temp$`In list`), c("All", "List"))
           if (GO_filt) { for (goID in GO_filter) {
             PltTst[gsub(":", "", goID)] <- gsub(":", "", goID) %in% colnames(temp)
@@ -482,9 +487,11 @@ if (runRankAbundPlots|runProfPlots) {
   }
   PG$temp <- NULL
   saveFun(ggQuant, file = paste0(MainDir, "/ggQuantPlots.RData"))
-  saveFun(ggProf, file = paste0(MainDir2, "/ggProfilePlots.RData"))
   saveFun(QuantLy, file = paste0(MainDir, "/QuantPlots.RData"))
-  saveFun(ProfLy, file = paste0(MainDir2, "/ProfilePlots.RData"))
+  if (runProfPlots){
+    saveFun(ggProf, file = paste0(MainDir2, "/ggProfilePlots.RData"))
+    saveFun(ProfLy, file = paste0(MainDir2, "/ProfilePlots.RData"))
+  }
   source(parSrc, local = FALSE)
   for (QuantType in QuantTypes) { #QuantType <- QuantTypes[1]
     tst <- parSapply(parClust, ggQuant[[QuantType]], function(x) { #x <- ggQuant[[QuantType]][[1]]
@@ -494,16 +501,18 @@ if (runRankAbundPlots|runProfPlots) {
       ggplot2::ggsave(paste0(x$path, ".jpeg"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
     })
   }
-  tst <- parSapply(parClust, ggProf, function(x) {
-    dr <- dirname(x$path)
-    if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
-    ggplot2::ggsave(paste0(x$path, ".pdf"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
-    ggplot2::ggsave(paste0(x$path, ".jpeg"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
-  })
-  for (nm in names(ggProf)) {
-    ReportCalls <- AddPlot2Report(Plot = ggProf[[nm]]$plot,
-                                  Dir = dirname(ggProf[[nm]]$path),
-                                  Title = ggProf[[nm]]$title)
+  if (runProfPlots) {
+    tst <- parSapply(parClust, ggProf, function(x) {
+      dr <- dirname(x$path)
+      if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
+      ggplot2::ggsave(paste0(x$path, ".pdf"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
+      ggplot2::ggsave(paste0(x$path, ".jpeg"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
+    })
+    for (nm in names(ggProf)) {
+      ReportCalls <- AddPlot2Report(Plot = ggProf[[nm]]$plot,
+                                    Dir = dirname(ggProf[[nm]]$path),
+                                    Title = ggProf[[nm]]$title)
+    }
   }
   setwd(wd)
 }

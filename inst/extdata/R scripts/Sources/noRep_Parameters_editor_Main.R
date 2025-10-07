@@ -1,14 +1,20 @@
 #### Define analysis parameters
 Exp %<o% unique(SamplesMap$Experiment)
+moreThan1Exp %<o% (length(Exp) > 1)
 SpeciesTst %<o% "Unspecified"
 if ("Taxonomy" %in% colnames(db)) {
   SpeciesTst <- unique(db$Taxonomy[which(gsub(" *(\\(|\\[).*", "", db[[dbOrgKol]]) == mainOrg)])
   SpeciesTst <- SpeciesTst[which(as.character(SpeciesTst) != "NA")][1]
 }
-KingdomTst %<o% aggregate(db$Kingdom, list(db$Kingdom), length)
-KingdomTst <- KingdomTst[order(KingdomTst$x, decreasing = TRUE),]
-KingdomTst <- KingdomTst$Group.1[1]
-isEukaLike %<o% (KingdomTst %in% c("Eukaryota", "Archaea"))
+if ("Kingdom" %in% colnames(db)) {
+  KingdomTst %<o% aggregate(db$Kingdom, list(db$Kingdom), length)
+  KingdomTst <- KingdomTst[order(KingdomTst$x, decreasing = TRUE),]
+  KingdomTst <- KingdomTst$Group.1[1]
+  isEukaLike <- (KingdomTst %in% c("Eukaryota", "Archaea"))
+} else {
+  isEukaLike <- TRUE # Default - reasonable guess
+}
+isEukaLike %<o% isEukaLike
 if (file.exists("AnalysisParam.RData")) {
   tmp <- AnalysisParam
   loadFun("AnalysisParam.RData")
@@ -54,9 +60,11 @@ QuantMethods %<o% setNames(c("Prot.Quant", "Prot.Quant + weights", "Prot.Quant.U
                            c(paste0("Profile_avg.", c("", ", weights = -log10(PEP)/CV", c(", unique peptides in priority", ", weights = -log10(PEP)/CV, unique peptides in priority"))),
                              paste0("Profile_avg.v2", c(", weights = -log10(PEP)/CV", "")), "MaxLFQ (iq)", "Top3", "Top1"))
 QMdef <- "Prot.Quant.Unique"
-if (("QuantMeth" %in% names(AnalysisParam))&&(AnalysisParam$QuantMeth %in% QuantMethods)) { QMdef <- AnalysisParam$QuantMeth } else {
-  AnalysisParam$QuantMeth <- QMdef
+if (("QuantMeth" %in% names(AnalysisParam))&&(AnalysisParam$QuantMeth %in% QuantMethods)) {
+  QMdef <- AnalysisParam$QuantMeth
 }
+AnalysisParam$QuantMeth <- QMdef
+#
 if (!QMdef %in% QuantMethods[1:6]) { QMdef <- "Prot.Quant.Unique" }
 QMdefnm <- names(QuantMethods)[match(QMdef, QuantMethods)]
 if ("Proteome ruler calculated" %in% names(AnalysisParam)) { # Correct typo in older versions
@@ -71,45 +79,45 @@ if (("Proteomic ruler calculated" %in% names(AnalysisParam))&&
   protrul %<o% (WorkFlow %in% c("Discovery", "Regulation"))
   # Archaea and Eukaryotes have introns and histones, Bacteria do not
   protrul <- c(protrul, FALSE)[(!isEukaLike)+1]
-  AnalysisParam$"Proteomic ruler calculated" <- protrul
 }
+AnalysisParam$"Proteomic ruler calculated" <- protrul
 #
 if (("ProtRulNuclL" %in% names(AnalysisParam))&&(!is.na(as.integer(AnalysisParam$ProtRulNuclL)))) {
   ProtRulNuclL <- as.integer(AnalysisParam$ProtRulNuclL)
 } else {
   ProtRulNuclL <- 196
-  AnalysisParam$ProtRulNuclL <- ProtRulNuclL
 }
-if (("Update_Prot_matches" %in% names(AnalysisParam))&&(is.logical(AnalysisParam$Update_Prot_matches))&&(!is.na(AnalysisParam$Update_Prot_matches))) {
-  Update_Prot_matches %<o% AnalysisParam$Update_Prot_matches
-} else {
-  Update_Prot_matches %<o% TRUE # See https://github.com/vdemichev/DiaNN/discussions/1631
-  AnalysisParam$Update_Prot_matches <- Update_Prot_matches
+AnalysisParam$ProtRulNuclL <- ProtRulNuclL
+#
+Update_Prot_matches %<o% TRUE # See https://github.com/vdemichev/DiaNN/discussions/1631
+if ("Update_Prot_matches" %in% names(AnalysisParam)) {
+  Update_Prot_matches <- as.logical(AnalysisParam$Update_Prot_matches)
+  if ((is.na(Update_Prot_matches))||(is.null(Update_Prot_matches))) { ImputeMissData <- TRUE }
 }
-# if (("Reuse_Prot_matches" %in% names(AnalysisParam))&&(is.logical(AnalysisParam$Reuse_Prot_matches))&&(!is.na(AnalysisParam$Reuse_Prot_matches))) {
-#   Reuse_Prot_matches %<o% AnalysisParam$Reuse_Prot_matches
-# } else {
-#   Reuse_Prot_matches %<o% ("evmatch.RData" %in% list.files(wd))
-#   AnalysisParam$Reuse_Prot_matches <- Reuse_Prot_matches
-# }
-if (("Pep.Impute" %in% names(AnalysisParam))&&(is.logical(AnalysisParam$Pep.Impute))&&(!is.na(AnalysisParam$Pep.Impute))) {
-  Impute %<o% as.logical(AnalysisParam$Pep.Impute)
-} else {
-  Impute %<o% FALSE
-  AnalysisParam$Pep.Impute <- Impute
+AnalysisParam$Update_Prot_matches <- Update_Prot_matches
+#
+ImputeMissData %<o% FALSE
+if ("Pep.Impute" %in% names(AnalysisParam)) {
+  warning("Parameter \"Pep.Impute\" is currently not used, use \"ImputeMissData\" instead!")
+  AnalysisParam$Pep.Impute <- NULL
 }
+if ("ImputeMissData" %in% names(AnalysisParam)) {
+  ImputeMissData <- as.logical(AnalysisParam$ImputeMissData)
+  if ((is.na(ImputeMissData))||(is.null(ImputeMissData))||(!moreThan1Exp)) { ImputeMissData <- FALSE }
+}
+AnalysisParam$ImputeMissData <- ImputeMissData
+#
 PepFoundInAtLeast %<o% 1
 if ("PepFoundInAtLeast" %in% names(AnalysisParam)) {
-  PepFoundInAtLeast %<o% suppressWarnings(as.integer(AnalysisParam$PepFoundInAtLeast))
-  if ((is.na(PepFoundInAtLeast))||(PepFoundInAtLeast < 1)||(PepFoundInAtLeast > length(Exp))) {
-    warning("Invalid \"PepFoundInAtLeast\" AnalysisParameter, defaulting to 1")
+  PepFoundInAtLeast <- suppressWarnings(as.integer(AnalysisParam$PepFoundInAtLeast))
+  if ((is.na(PepFoundInAtLeast))||(PepFoundInAtLeast < 1)||(!moreThan1Exp)||(PepFoundInAtLeast > length(Exp))) {
     PepFoundInAtLeast <- 1
   }
 }
 AnalysisParam$PepFoundInAtLeast <- PepFoundInAtLeast
 #
 dbOrd <- 1:nrow(db)
-protDeflt <- NULL
+protDflt <- NULL
 tmp <- c()
 if ("Protein of interest" %in% names(db)) {
   tmp <- unique(c(tmp, db$`Protein ID`[which(db$"Protein of interest")]))
@@ -126,7 +134,7 @@ if (length(tmp)) {
   dbOrd <- c(m, which(!db$`Protein ID` %in% tmp))
 }
 protHeads <- gsub("^>", "", db$Header[dbOrd])
-if (length(tmp)) { protDeflt <- protHeads[1:length(m)] }
+if (length(tmp)) { protDflt <- protHeads[1:length(m)] }
 #
 tstAdvOpt <- try(sum(file.exists(AnalysisParam$Custom.PGs, AnalysisParam$CRAPome_file)) > 0)
 if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
@@ -157,32 +165,30 @@ if ("N. of peptidoforms for quantitation" %in% names(AnalysisParam)) {
 } else { AnalysisParam$"N. of peptidoforms for quantitation" <- NPep }
 NPep <- as.integer(NPep)
 if ((is.na(NPep))||(NPep < 1)) { NPep <- 2 }
+#
 removeMBR %<o% FALSE
 if ("Proteins list: remove match-between-runs" %in% names(AnalysisParam)) {
   removeMBR <- as.logical(AnalysisParam$"Proteins list: remove match-between-runs")
-} else { AnalysisParam$"Proteins list: remove match-between-runs" <- as.logical(removeMBR) }
-if ((is.na(removeMBR))||(is.null(removeMBR))) { removeMBR <- FALSE }
+  if ((is.na(removeMBR))||(is.null(removeMBR))||(!moreThan1Exp)) { removeMBR <- FALSE }
+}
+AnalysisParam$"Proteins list: remove match-between-runs" <- removeMBR
+#
 Pep4QuantOpt %<o% c("Unique peptide IDs", "Razor peptide IDs", "Peptide IDs")
 Pep4Quant %<o% Pep4QuantOpt[c(1, 2)[isEukaLike+1]]
 if (("Peptide classes eligible for quantitation" %in% names(AnalysisParam))&&
     (length(AnalysisParam$"Peptide classes eligible for quantitation"))&&
     (AnalysisParam$"Peptide classes eligible for quantitation" %in% Pep4QuantOpt)) {
   Pep4Quant <- AnalysisParam$"Peptide classes eligible for quantitation"
-} else { AnalysisParam$"Peptide classes eligible for quantitation" <- Pep4Quant }
-ImputeMissData %<o% FALSE
-if ("ImputeMissData" %in% names(AnalysisParam)) {
-  ImputeMissData <- AnalysisParam$ImputeMissData
-} else { AnalysisParam$ImputeMissData <- ImputeMissData }
-ImputeMissData <- as.logical(ImputeMissData)
-if ((is.na(ImputeMissData))||(is.null(ImputeMissData))) { ImputeMissData <- FALSE }
-NormalizePG %<o% MakeRatios
-if ("NormalizePG" %in% names(AnalysisParam)) {
-  NormalizePG <- AnalysisParam$NormalizePG
-} else { AnalysisParam$NormalizePG <- NormalizePG }
-NormalizePG <- as.logical(NormalizePG)
-if ((is.na(NormalizePG))||(is.null(NormalizePG))) { NormalizePG <- FALSE }
+}
+AnalysisParam$"Peptide classes eligible for quantitation" <- Pep4Quant
 #
-
+NormalizePG %<o% moreThan1Exp
+if ("NormalizePG" %in% colnames(AnalysisParam)) {
+  NormalizePG <- as.logical(AnalysisParam$NormalizePG)
+  if ((is.na(NormalizePG))||(is.null(NormalizePG))||(!moreThan1Exp)) { NormalizePG <- moreThan1Exp }
+}
+AnalysisParam$NormalizePG <- NormalizePG
+#
 # GO enrichment analysis
 # - vs total proteome
 globalGO_dflt <- (Annotate&(WorkFlow %in% c("Discovery", "Regulation", "Pull-down")))
@@ -197,24 +203,31 @@ if (is.na(globalGO_dflt)) { globalGO_dflt <- FALSE }
 globalGO %<o% globalGO
 # - vs reference sample
 enrichGO %<o% (globalGO&MakeRatios)
-if (!exists("GO_filter")) { GO_filter %<o% c() }
-if ("GO terms of interest" %in% names(AnalysisParam)) {
-  GO_filter <- AnalysisParam$"GO terms of interest"
-} else { AnalysisParam$"GO terms of interest" <- GO_filter }
-GO_filter1 <- allGO[match(GO_filter, allGO2)]
+if (Annotate) {
+  if (!exists("GO_filter")) { GO_filter %<o% c() }
+  if ("GO terms of interest" %in% names(AnalysisParam)) {
+    GO_filter <- AnalysisParam$"GO terms of interest"
+  } else { AnalysisParam$"GO terms of interest" <- GO_filter }
+  GO_filter1 <- allGO[match(GO_filter, allGO2)]
+}
 #
 Mod2Write %<o% c()
 if ("Mod2Write" %in% names(AnalysisParam)) {
   Mod2Write <- AnalysisParam$Mod2Write
 } else { AnalysisParam$Mod2Write <- Mod2Write }
 if ((length(Mod2Write))&&(!Mod2Write %in% Modifs$Mark)) { Mod2Write <- c() }
+#
 # Venn diagrams
-Venn_Obs %<o% (length(Exp) > 1)
+Venn_Obs %<o% moreThan1Exp
 if ("Venn diagrams: observed" %in% names(AnalysisParam)) {
   Venn_Obs <- AnalysisParam$"Venn diagrams: observed"
-} else { AnalysisParam$"Venn diagrams: observed" <- Venn_Obs }
+}
+Venn_Obs <- moreThan1Exp # No matter the parameters, if there is only one sample, we DO NOT draw Venn diagrams, period
 Venn_Obs <- as.logical(Venn_Obs)
 if ((is.na(Venn_Obs))||(is.null(Venn_Obs))) { Venn_Obs <- FALSE }
+AnalysisParam$"Venn diagrams: observed" <- Venn_Obs
+Venn_Obs %<o% Venn_Obs
+#
 # Cytoscape
 CytoScExe %<o% c()
 tmp <- grep("cytoscape", list.dirs("C:/PROGRA~1", recursive = FALSE), value = TRUE, ignore.case = TRUE)
@@ -238,8 +251,8 @@ for (parI in myPar) {
   parNm <- paste0("run", parI)
   # Lowest level default: defined by context
   par_dflt <- par_dflt2 <- c(FALSE,
-                             WorkFlow %in% c("Discovery", "Regulation", "Pull-down"),
-                             length(Exp) > 1,
+                             (WorkFlow %in% c("Discovery", "Regulation", "Pull-down"))&Annotate,
+                             moreThan1Exp,
                              TRUE)[match(parI, myPar)]
   # Middle level default: defined by existing value
   parOK <- (exists(parNm))
@@ -257,6 +270,7 @@ for (parI in myPar) {
   #
   if (!parOK) { assign(parNm, par_dflt) }
   assign(paste0(parNm, "_dflt"), par_dflt)
+  AnalysisParam[[parNm]] <- par_dflt
   .obj <- unique(c(parNm, .obj))
 }
 #
@@ -283,7 +297,7 @@ ui <- shiny::fluidPage(
   shiny::br(),
   shiny::tags$hr(style = "border-color: black;"),
   shiny::h4("Proteins of interest"),
-  shinyWidgets::pickerInput("IntProt", NULL, protHeads, protDeflt, TRUE,
+  shinyWidgets::pickerInput("IntProt", NULL, protHeads, protDflt, TRUE,
                             shinyWidgets::pickerOptions(title = "Search me",
                                                         `live-search` = TRUE,
                                                         actionsBox = TRUE,
@@ -292,9 +306,11 @@ ui <- shiny::fluidPage(
   shiny::tags$hr(style = "border-color: black;"),
   shiny::h4("Data processing"),
   shiny::fluidRow(
-    shiny::column(2,
-                  shiny::checkboxInput("Impute", "Impute missing peptides-level values?",
-                                       Impute, "100%")),
+    if (moreThan1Exp) {
+      shiny::column(2,
+                    shiny::checkboxInput("Impute", "Impute missing peptides-level values?",
+                                         Impute, "100%"))
+    },
     shiny::column(2,
                   shiny::checkboxInput("Update_Prot_matches",
                                        paste0("Update ", names(SearchSoft),
@@ -306,8 +322,10 @@ ui <- shiny::fluidPage(
                                      options = list(container = "body"))#,
                   #shinycssloaders::withSpinner(shiny::uiOutput("ReloadMatches"))
     ),
-    shiny::column(2, shiny::checkboxInput("prtNorm", "Normalize data",
-                                          AnalysisParam$NormalizePG, "100%")),
+    if (moreThan1Exp) {
+      shiny::column(2, shiny::checkboxInput("prtNorm", "Normalize data",
+                                            NormalizePG, "100%")) 
+    },
     shiny::column(2, shiny::checkboxInput("runPepper", "Run Pepper ML-based PSMs intensity correction?",
                                           runPepper_dflt, "100%"))
   ),
@@ -327,10 +345,13 @@ ui <- shiny::fluidPage(
     shiny::column(2,
                   shiny::numericInput("NPep", "Min. number of peptidoforms for discovery/quantitation",
                                       NPep, 1, width = "100%")),
-    shiny::column(2,
-                  shiny::numericInput("PepFoundInAtLeast",
-                                      "Use only peptidoforms found in at least how many samples?",
-                                      PepFoundInAtLeast, 1, length(Exp), 1, "100%"))),
+    if (moreThan1Exp) {
+      shiny::column(2,
+                    shiny::numericInput("PepFoundInAtLeast",
+                                        "Use only peptidoforms found in at least how many samples?",
+                                        PepFoundInAtLeast, 1, length(Exp), 1, "100%"))
+    }
+  ),
   shiny::br(),
   shiny::fluidRow(
     shiny::column(2,
@@ -339,26 +360,39 @@ ui <- shiny::fluidPage(
                                        protrul, "100%"),
                   shiny::numericInput("ProtRulNuclL", "Use inter-nucleosome length = ? (kb)",
                                       ProtRulNuclL, 1, Inf, 1, "100%")),
-    shiny::column(2,
-                  shiny::checkboxInput("removeMBR",
-                                       "Exclude match-between-runs peptides from coverage analysis?",
-                                       removeMBR, "100%"))),
+    if (moreThan1Exp) {
+      shiny::column(2,
+                    shiny::checkboxInput("removeMBR",
+                                         "Exclude match-between-runs peptides from coverage analysis?",
+                                         removeMBR, "100%")) 
+    }
+  ),
   shinycssloaders::withSpinner(uiOutput("Ratios")),
   # Note to self: I am for now excluding some methods, because I need to add code to calculate some columns for those, namely ratios.
   # This should be remedied asap, especially since there include such community favourites as IQ (= MaxLFQ) and Top3!!!
   shiny::br(),
   shiny::tags$hr(style = "border-color: black;"),
-  shiny::fluidRow(shiny::column(2,
-                                shiny::checkboxInput("runProfPlots", "Draw protein profile plots?",
-                                                     runProfPlots_dflt, "100%"),
-                                shiny::checkboxInput("runRankAbundPlots", "Draw protein ranked abundance plots?",
+  shiny::fluidRow(
+      shiny::column(2,
+                    if (moreThan1Exp) {
+                      shiny::checkboxInput("runProfPlots", "Draw protein profile plots?",
+                                           runProfPlots_dflt, "100%")
+                    },
+                    shiny::checkboxInput("runRankAbundPlots", "Draw protein ranked abundance plots?",
                                                      runRankAbundPlots_dflt, "100%")),
-                  shiny::column(2,
-                                shiny::radioButtons("Clustering", "Clustering method",
-                                                    klustChoices, klustChoices[1], TRUE, "100%")),
-                  shiny::column(2, shiny::checkboxInput("runGSEA", "Run Gene Set Enrichment Analysis (GSEA)?",
-                                                        runGSEA_dflt, "100%"))),
-  shiny::checkboxInput("Venn_Obs", "Draw Venn diagrams?", Venn_Obs, "100%"),
+      if (moreThan1Exp) {
+        shiny::column(2,
+                      shiny::radioButtons("Clustering", "Clustering method",
+                                          klustChoices, klustChoices[1], TRUE, "100%")) 
+      },
+      if (Annotate) {
+        shiny::column(2, shiny::checkboxInput("runGSEA", "Run Gene Set Enrichment Analysis (GSEA)?",
+                                              runGSEA_dflt, "100%"))
+      }
+  ),
+  if (moreThan1Exp) {
+    shiny::checkboxInput("Venn_Obs", "Draw Venn diagrams?", Venn_Obs, "100%")
+  },
   shiny::br(),
   shiny::tags$hr(style = "border-color: black;"),
   shinycssloaders::withSpinner(uiOutput("GO")),
@@ -755,7 +789,8 @@ if (prot.list.Cond) {
 }
 
 # GO terms of interest (for profile plots, LFQ plots and similar, GO-specific tabs...)
-GO_filt %<o% (length(GO_filter) > 0)
+GO_filt %<o% FALSE
+if (exists("GO_filter")) { GO_filt <- length(GO_filter) > 0 }
 if (GO_filt) {
   library(GO.db)
   AllTerms %<o% unique(unlist(strsplit(db$`GO-ID`, ";")))

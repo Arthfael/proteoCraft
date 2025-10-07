@@ -18,8 +18,9 @@ if (ProcessedByUs) {
 } else { WetLabMeth <- "TEMPLATE" }
 MatMetCalls$Texts$WetLab <- WetLabMeth
 for (i in 1:length(WetLabMeth)) {
-  MatMetCalls$Calls <- append(MatMetCalls$Calls, paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$WetLab[", i,"], prop = WrdFrmt$",
-                                                        c("Body", "Template_text")[(WetLabMeth[i] == "TEMPLATE")+1], "_text), fp_p = WrdFrmt$just))"))
+  MatMetCalls$Calls <- append(MatMetCalls$Calls,
+                              paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$WetLab[", i,"], prop = WrdFrmt$",
+                                     c("Body", "Template_text")[(WetLabMeth[i] == "TEMPLATE")+1], "_text), fp_p = WrdFrmt$just))"))
 }
 MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style = \"Normal\")")
 #
@@ -28,7 +29,8 @@ if ((!exists("LCMS_instr"))||(!"list" %in% class(LCMS_instr))||(sum(c("LC", "MS"
   LCMS_instr <- list(LC = c(),
                      MS = c())
 }
-MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_fpar(MatMet, fpar(ftext(\"LC-MS/MS analysis\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))")
+MatMetCalls$Calls <- append(MatMetCalls$Calls,
+                            "body_add_fpar(MatMet, fpar(ftext(\"LC-MS/MS analysis\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))")
 LCMS_meth_lst <- try(MatMet_LCMS(cl = parClust), silent = TRUE)
 mzMLtst <- ("mzML" %in% gsub(".*\\.", "", rawFiles))
 if (mzMLtst) { # Fix for when we searched mzML-converted files
@@ -88,8 +90,15 @@ if (scrptType == "noReps") {
   }
   DatAnalysisTxt <- paste0(DatAnalysisTxt,
                            c("", " Protein group-level quantitative values were normalized using the Levenberg-Marquardt procedure.")[NormalizePG+1])
-  MatMetCalls$Texts <- c(MatMetCalls$Texts, DatAnalysisTxt)
-  L <- length(MatMetCalls$Texts)
-  MatMetCalls$Calls <- append(MatMetCalls$Calls, paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts[", L, "], prop = WrdFrmt$Body_text), fp_p = WrdFrmt$just))"))
-  MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style = \"Normal\")")
-}
+  MatMetCalls$Texts$DatAnalysis <- c(MatMetCalls$Texts$DatAnalysis, DatAnalysisTxt)
+  L <- length(MatMetCalls$Texts$DatAnalysis)
+  for (i in 1:L) {
+    MatMetCalls$Calls <- append(MatMetCalls$Calls,
+                                paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$DatAnalysis[", i,
+                                       "], prop = WrdFrmt$",
+                                       c("Body", "Template_text")[(MatMetCalls$Texts$DatAnalysis[i] == "TEMPLATE")+1],
+                                       "_text), fp_p = WrdFrmt$just))"))
+  }
+  MatMetCalls$Calls <- append(MatMetCalls$Calls,
+                              "body_add_par(MatMet, \"\", style = \"Normal\")")
+} # For reps, this is done later
