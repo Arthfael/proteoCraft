@@ -97,7 +97,7 @@ Prot.Ruler <- function(Prot,
     }
     if (nrow(Orgs) > MaxOrg) {
       opt <- vapply(Orgs$Organism, function(x) { paste(c(x, rep(" ", max(c(1, 250-nchar(x))))), collapse = "") }, "")
-      orgChc <- svDialogs::dlg_list(opt, opt[1], TRUE, "Choose organism(s) for which you want to calculate a Proteomic Ruler value for:")$res
+      orgChc <- svDialogs::dlg_list(opt, opt[1], TRUE, "Choose organism(s) for which you want to calculate a Proteomic Ruler value")$res
       orgChc <- Orgs$Organism[match(orgChc, opt)]
       Orgs <- Orgs[which(Orgs$Organism %in% orgChc),]
     }

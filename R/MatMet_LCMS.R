@@ -71,10 +71,10 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
   colChar <- c("Name",
                "Class",
                "Vendor",
-               "Length.(cm)",
-               "ID.(µm)",
-               "Particles.size.(µm)",
-               "Pore.size.(Å)",
+               "Length (cm)",
+               "ID (µm)",
+               "Particles size (µm)",
+               "Pore size (Å)",
                "Material",
                "Type",
                "Description",
@@ -113,10 +113,10 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                              Class = c(Kolumns, preKolumns),
                              Material = "C18",
                              "Vendor" = c("ThermoFisher Scientific", "PharmaFluidics", "PharmaFluidics", "ThermoFisher Scientific", "PharmaFluidics"),
-                             "Length.(cm)" = c(50, 200, 50, 0.5, NA),
-                             "ID.(µm)" = c(75, NA, NA, 300, NA),
-                             "Particles.size.(µm)" = c(2, NA, NA, 5, NA),
-                             "Pore.size.(Å)" = NA,
+                             "Length (cm)" = c(50, 200, 50, 0.5, NA),
+                             "ID (µm)" = c(75, NA, NA, 300, NA),
+                             "Particles size (µm)" = c(2, NA, NA, 5, NA),
+                             "Pore size (Å)" = NA,
                              "P/N" = c("ES903", "5525031518210B", "COL-nano050G2B", "160454", "55250200018001"),
                              Type = c("Analytical", "Analytical", "Analytical", "Trap",  "Trap"),
                              Description = "",
@@ -124,8 +124,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
   }
   if (!"Description" %in% colnames(allKolumns)) { allKolumns$Description <- "" }
   kolDescr <- function(Colonnes) {
-    apply(Colonnes[, c("Name", "Material", "Length.(cm)", "ID.(µm)", "Particles.size.(µm)", "Vendor", "P/N"), drop = FALSE], 1, function(x) {
-      #x <- Colonnes[1, c("Name", "Material", "Length.(cm)", "ID.(µm)", "Particles.size.(µm)", "Vendor", "P/N")]
+    apply(Colonnes[, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N"), drop = FALSE], 1, function(x) {
+      #x <- Colonnes[1, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N")]
       x <- gsub("^ +| +$", "", as.character(unlist(x)))
       dimz <- c(x[3], x[4])
       w <- which(!is.na(dimz))
@@ -776,7 +776,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
               if (l < 7) { kol <- c(kol, rep(NA, 7-l)) }
               kol <- kol[1:7]
               tmp <- as.data.frame(t(as.data.frame(kol)))
-              colnames(tmp) <- c("Name", "Material", "Length.(cm)", "ID.(µm)", "Particles.size.(µm)", "Vendor", "P/N")
+              colnames(tmp) <- c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N")
               tmp$Function <- "Analytical"
               tmp$Description <- kolDescr(tmp)
               k <- colnames(allKolumns)
@@ -803,7 +803,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                 kol <- svDialogs::dlg_input("Fill in new trap's characteristics (\"|\"-separated):",
                                             colChar)$res
                 tmp <- as.data.frame(t(as.data.frame(unlist(strsplit(kol, " *\\| *")))))
-                colnames(tmp) <- c("Name", "Material", "Length.(cm)", "ID.(µm)", "Particles.size.(µm)", "Vendor", "P/N")
+                colnames(tmp) <- c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N")
                 tmp$Function <- "Trap"
                 k <- colnames(allKolumns)
                 k <- k[which(!k %in% colnames(tmp))]
