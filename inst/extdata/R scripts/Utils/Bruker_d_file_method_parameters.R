@@ -50,8 +50,8 @@ if (length(FILES)) {
     allKolumns <- openxlsx::read.xlsx(kolFl, check.names = FALSE)
     if (!"Description" %in% colnames(allKolumns)) { allKolumns$Description <- "" }
     kolDescr <- function(Colonnes) {
-      apply(Colonnes[, c("Name", "Material", "Length.(cm)", "ID.(µm)", "Particles.size.(µm)", "Vendor", "P/N"), drop = FALSE], 1, function(x) {
-        #x <- Colonnes[1, c("Name", "Material", "Length.(cm)", "ID.(µm)", "Particles.size.(µm)", "Vendor", "P/N")]
+      apply(Colonnes[, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N"), drop = FALSE], 1, function(x) {
+        #x <- Colonnes[1, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N")]
         x <- gsub("^ +| +$", "", as.character(unlist(x)))
         dimz <- c(x[3], x[4])
         w <- which(!is.na(dimz))

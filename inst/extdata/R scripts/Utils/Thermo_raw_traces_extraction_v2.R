@@ -143,64 +143,7 @@ if (!dir.exists(dflt)) { dflt <- "B:/archive/lsfgrp/MS/Acquired_data" }
 if (!dir.exists(dflt)) { dflt <- "D:/Data" }
 if (!dir.exists(dflt)) { dflt <- "D:/groups_temp" }
 
-# Raw files
-if (exists("fls")) {
-  fls <- fls[which(file.exists(fls))]
-} else { fls <- c() }
-l <- length(fls)
-if (l) {
-  msg <- paste0("There are ", l, " input Raw files already present in environment from a previous run:")
-  opt <- c("Remove them                                                                                                             ",
-           "Reprocess them                                                                                                          ")
-  startFresh <- c(TRUE, FALSE)[match(dlg_list(opt, opt[1], title = msg)$res, opt)]
-  if (startFresh) { fls <- c() }
-}
-l <- length(fls)
-if (!l) {
-  wd <- rstudioapi::selectDirectory(path = dflt)
-  #filt <- matrix(data = c("Thermo raw file", "*.raw;*.RAW"), ncol = 2, dimnames = list("raw file"))
-  #fls <- "B:/archive/lsfgrp/MS/Acquired data/frimlgrp/LCMS_JiFrATeplova1_m"
-  allRawFls <- list.files(wd, "*\\.raw$", FALSE, TRUE, TRUE, TRUE)
-  allRawFls <- setNames(allRawFls, gsub(topattern(paste0(wd, "/")), "", allRawFls))
-  age <- setNames(vapply(allRawFls, function(x) { file.info(x)$mtime }, 1), allRawFls)
-  allRawFls <- allRawFls[order(age, decreasing = TRUE)]
-  blnks <- grep("blank", allRawFls, invert = TRUE)
-  fls <- dlg_list(names(allRawFls), names(allRawFls)[blnks], TRUE, "Select raw files to analyse")$res
-  fls <- allRawFls[match(fls, names(allRawFls))]
-  names(fls) <- NULL
-  #fls <- normalizePath(choose.files(paste0(dflt, "/*.raw"), filters = filt), winslash = "/")
-  #fls <- fls[order(file.info(fls)$mtime, decreasing = FALSE)]
-  if (getInt) {
-    # Here we try to obtain more realistic file modified times than from Windows, using the header
-    tst <- parSapply(parClust, fls, function(fl) { #fl <- fls[1] #fl <- B:/group/lsfgrp/Mass_Spec/Acquired_data_v2/frimlgrp/LCMS_JiFrHAi3_m/saturation_20250410102029.raw
-      require(rawrr)
-      rs <- try({ rawrr::readFileHeader(fl)$`Creation date` }, silent = TRUE)
-      if ("try-error" %in% class(rs)) {
-        #rs <- NA
-        rs <- format(file.info(fl)$mtime, "%d/%m/%Y %H:%M:%S", tz = Sys.timezone())
-      }
-      return(rs)
-    })
-    tst <- as.POSIXct(tst, tz = Sys.timezone(), format = "%d/%m/%Y %H:%M:%S")
-    fls <- fls[order(tst, decreasing = FALSE)]
-  }
-}
-#a <- rawrr::readFileHeader(rawfile = fl)
-
-# Work directory
-#wd <- unique(dirname(fls))[1]
-wd <- unique(dirname(fls)) # Update wd
-dtstNm <- gsub(".*/", "", wd)
-tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
-while ("try-error" %in% class(tst)) {
-  wd <- rstudioapi::selectDirectory("Choose a work directory where we have write permission!", path = "D:/")
-  tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
-}
-unlink(paste0(wd, "/test.txt"))
-setwd(wd)
-clusterExport(parClust, "wd", envir = environment())
-
-# Convert to mzML
+# mzML conversion parameters
 deer <- list()
 ParsDirs <- grep("/ThermoRawFileParser",
                  c(list.dirs("C:/ThermoRawFileParser", full.names = TRUE, recursive = FALSE),
@@ -251,79 +194,137 @@ Convert_mode <- "thermorawfileparser"
 zlib <- TRUE
 PeakPicking <- TRUE
 
-# Files and Factors
-fls0 <- fls
-l0 <- l1 <- length(fls)
-tst <- sum(grepl("/", fls0))
-while ((l0 == l1)&&(tst == l0)) {
-  fls0 <- gsub("^[^/]+/", "", fls0)
-  l0 <- length(fls0)
-  tst <- sum(grepl("/", fls0))
-}
-fls0 <- gsub("\\.raw$", "", fls0)
-
-# Type of analysis
-analysisTypes <- data.frame(Type = c("AC", "GC", "PDE_A", "PDE_G", "Nuc_A", "Nuc_G"),
-                            Quantified = c("3'5'cAMP", "3'5'cGMP", "AMP", "GMP", "2'3'cAMP", "2'3'cGMP"))
-analysisTypes$Nucleotides <- list(c("3'5'cAMP", "2'3'cAMP", "ATP"),
-                                  c("3'5'cGMP", "2'3'cGMP", "GTP"),
-                                  c("3'5'cAMP", "AMP"),
-                                  c("3'5'cGMP", "GMP"),
-                                  c("2'3'cAMP", "RNA"),
-                                  c("2'3'cGMP", "RNA"))
-msg <- "What type(s) of analysis are we running?"
-opt <- vapply(analysisTypes$Type, function(x) { paste(c(x, rep(" ", max(c(100, 250-nchar(x))))), collapse = "") }, "")
-analysisType <- analysisTypes$Type[match(dlg_list(opt, opt[1], title = msg, multiple = TRUE)$res, opt)]
-
-# Get Experimental Factors
-minFact <- c("Replicate", "Analysis_group", "Samples_group", "Role", "Protein", "Nucleotide")
-minFactDesc <- setNames(c("maximum number of replicates",
-                          "group of samples to analyze together - which includes controls (buffer blank, standards, no ATP control...) and samples",
-                          "group of samples which are replicates of the same condition",
-                          "role in the experiment",
-                          "name of the protein or protein variant which you are testing",
-                          "for standards only: exact nucleotide present in the standard; choose \"none\" for samples"),
-                        minFact)
-if (file.exists("Factors.RData")) {
-  load("Factors.RData")
-  Factors <- setNames(tmp$Factors, substr(tmp$Factors, 1, 3))
-  Factors <- Factors[which(!is.na(Factors))]
-  if (length(Factors)) {
-    FactorsLevels <- tmp$Levels[Factors]
-    FactorsLevels <- lapply(FactorsLevels, function(x) { grep(" ", x, invert = TRUE, value = TRUE) }) # No spaces allowed in factor levels!!!
-    # This is strict because we use spaces in the shiny app to separate multiple levels when entered together
-  } else { rm(Factors) }
-}
-if (!exists("Factors")) {
-  Factors <- minFact
-  FactorsLevels <- setNames(lapply(Factors, function(x) { c("") }), Factors)
-} else { Factors <- unique(c(Factors, minFact)) }
-if (!exists("FactorsLevels")) {
-  FactorsLevels <- setNames(lapply(Factors, function(x) { c("") }), Factors)
-}
-w <- which(!Factors %in% names(FactorsLevels))
-if (length(w)) {
-  FactorsLevels[Factors[w]] <- c()
-}
-Factors <- Factors[which(!is.na(Factors))]
-FactorsLevels <- FactorsLevels[Factors]
-FactorsLevels$"Analysis_group" <- unique(c(analysisType, FactorsLevels$"Analysis_group"))
-tmp <- FactorsLevels$Replicate
-tmp <- suppressWarnings(as.integer(tmp))
-tmp <- tmp[which(!is.na(tmp))]
-if (!length(tmp)) { tmp <- 1 }
-FactorsLevels$Replicate <- 1:max(tmp)
-FactorsLevels$Role <- unique(c("Blank", "Buffer_control", "Tag_control", "Standard", "Sample", FactorsLevels$Role))
-FactorsLevels$Nucleotide <- unique(c(unlist(analysisTypes$Nucleotides[which(analysisTypes$Type %in% analysisType)]),
-                                     "none", FactorsLevels$Nucleotide))
-tmp <- FactorsLevels$Nucleotide[which(!FactorsLevels$Nucleotide %in% "none")]
-FactorsLevels$Samples_group <- unique(c(paste0("Standard_", tmp), FactorsLevels$Samples_group))
-
-#rm(Factors, FactorsLevels)
+# Define analysis
 areWeGood <- FALSE
-runStep1 <- TRUE
+runStep1 <- runStep2 <- TRUE
 while (!areWeGood) {
+  # Raw files
   if (runStep1) {
+    if (exists("fls")) {
+      fls <- fls[which(file.exists(fls))]
+    } else { fls <- c() }
+    l <- length(fls)
+    if (l) {
+      msg <- paste0("There are ", l, " input Raw files already present in environment from a previous run:")
+      opt <- c("Remove them                                                                                                             ",
+               "Reprocess them all                                                                                                      ",
+               "Change the selection                                                                                                    ")
+      myChoice <- dlg_list(opt, opt[1], title = msg)$res
+      if (myChoice == opt[1]) { fls <- c() }
+    }
+    l <- length(fls)
+    if ((!l)||(myChoice == opt[3])) {
+      wd <- rstudioapi::selectDirectory(path = dflt)
+      #wd <- unique(dirname(fls))
+      #filt <- matrix(data = c("Thermo raw file", "*.raw;*.RAW"), ncol = 2, dimnames = list("raw file"))
+      #fls <- "B:/archive/lsfgrp/MS/Acquired data/frimlgrp/LCMS_JiFrATeplova1_m"
+      allRawFls <- list.files(wd, "*\\.raw$", FALSE, TRUE, TRUE, TRUE)
+      allRawFls <- setNames(allRawFls, gsub(topattern(paste0(wd, "/")), "", allRawFls))
+      age <- setNames(vapply(allRawFls, function(x) { file.info(x)$mtime }, 1), allRawFls)
+      allRawFls <- allRawFls[order(age, decreasing = TRUE)]
+      blnks <- grep("blank", allRawFls, invert = TRUE)
+      fls <- dlg_list(names(allRawFls), names(allRawFls)[blnks], TRUE, "Select raw files to analyse")$res
+      fls <- allRawFls[match(fls, names(allRawFls))]
+      names(fls) <- NULL
+      #fls <- normalizePath(choose.files(paste0(dflt, "/*.raw"), filters = filt), winslash = "/")
+      #fls <- fls[order(file.info(fls)$mtime, decreasing = FALSE)]
+      if (getInt) {
+        # Here we try to obtain more realistic file modified times than from Windows, using the header
+        tst <- parSapply(parClust, fls, function(fl) { #fl <- fls[1] #fl <- B:/group/lsfgrp/Mass_Spec/Acquired_data_v2/frimlgrp/LCMS_JiFrHAi3_m/saturation_20250410102029.raw
+          require(rawrr)
+          rs <- try({ rawrr::readFileHeader(fl)$`Creation date` }, silent = TRUE)
+          if ("try-error" %in% class(rs)) {
+            #rs <- NA
+            rs <- format(file.info(fl)$mtime, "%d/%m/%Y %H:%M:%S", tz = Sys.timezone())
+          }
+          return(rs)
+        })
+        tst <- as.POSIXct(tst, tz = Sys.timezone(), format = "%d/%m/%Y %H:%M:%S")
+        fls <- fls[order(tst, decreasing = FALSE)]
+      }
+    }
+    #a <- rawrr::readFileHeader(rawfile = fl)
+    # Work directory
+    #wd <- unique(dirname(fls))[1]
+    wd <- unique(dirname(fls)) # Update wd
+    dtstNm <- gsub(".*/", "", wd)
+    tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
+    while ("try-error" %in% class(tst)) {
+      wd <- rstudioapi::selectDirectory("Choose a work directory where we have write permission!", path = "D:/")
+      tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
+    }
+    unlink(paste0(wd, "/test.txt"))
+    setwd(wd)
+    clusterExport(parClust, "wd", envir = environment())
+    # Files and Factors
+    fls0 <- fls
+    l0 <- l1 <- length(fls)
+    tst <- sum(grepl("/", fls0))
+    while ((l0 == l1)&&(tst == l0)) {
+      fls0 <- gsub("^[^/]+/", "", fls0)
+      l0 <- length(fls0)
+      tst <- sum(grepl("/", fls0))
+    }
+    fls0 <- gsub("\\.raw$", "", fls0)
+    
+    # Type of analysis
+    analysisTypes <- data.frame(Type = c("AC", "GC", "PDE_A", "PDE_G", "Nuc_A", "Nuc_G"),
+                                Quantified = c("3'5'cAMP", "3'5'cGMP", "AMP", "GMP", "2'3'cAMP", "2'3'cGMP"))
+    analysisTypes$Nucleotides <- list(c("3'5'cAMP", "2'3'cAMP", "ATP"),
+                                      c("3'5'cGMP", "2'3'cGMP", "GTP"),
+                                      c("3'5'cAMP", "AMP"),
+                                      c("3'5'cGMP", "GMP"),
+                                      c("2'3'cAMP", "RNA"),
+                                      c("2'3'cGMP", "RNA"))
+    msg <- "What type(s) of analysis are we running?"
+    opt <- vapply(analysisTypes$Type, function(x) { paste(c(x, rep(" ", max(c(100, 250-nchar(x))))), collapse = "") }, "")
+    analysisType <- analysisTypes$Type[match(dlg_list(opt, opt[1], title = msg, multiple = TRUE)$res, opt)]
+  }
+  # Edit Experimental Factors
+  if (runStep2) {
+    minFact <- c("Replicate", "Analysis_group", "Samples_group", "Role", "Protein", "Nucleotide")
+    minFactDesc <- setNames(c("maximum number of replicates",
+                              "group of samples to analyze together - which includes controls (buffer blank, standards, no ATP control...) and samples",
+                              "group of samples which are replicates of the same condition",
+                              "role in the experiment",
+                              "name of the protein or protein variant which you are testing",
+                              "for standards only: exact nucleotide present in the standard; choose \"none\" for samples"),
+                            minFact)
+    if (file.exists("Factors.RData")) {
+      load("Factors.RData")
+      Factors <- setNames(tmp$Factors, substr(tmp$Factors, 1, 3))
+      Factors <- Factors[which(!is.na(Factors))]
+      if (length(Factors)) {
+        FactorsLevels <- tmp$Levels[Factors]
+        FactorsLevels <- lapply(FactorsLevels, function(x) { grep(" ", x, invert = TRUE, value = TRUE) }) # No spaces allowed in factor levels!!!
+        # This is strict because we use spaces in the shiny app to separate multiple levels when entered together
+      } else { rm(Factors) }
+    }
+    if (!exists("Factors")) {
+      Factors <- minFact
+      FactorsLevels <- setNames(lapply(Factors, function(x) { c("") }), Factors)
+    } else { Factors <- unique(c(Factors, minFact)) }
+    if (!exists("FactorsLevels")) {
+      FactorsLevels <- setNames(lapply(Factors, function(x) { c("") }), Factors)
+    }
+    w <- which(!Factors %in% names(FactorsLevels))
+    if (length(w)) {
+      FactorsLevels[Factors[w]] <- c()
+    }
+    Factors <- Factors[which(!is.na(Factors))]
+    FactorsLevels <- FactorsLevels[Factors]
+    FactorsLevels$"Analysis_group" <- unique(c(analysisType, FactorsLevels$"Analysis_group"))
+    tmp <- FactorsLevels$Replicate
+    tmp <- suppressWarnings(as.integer(tmp))
+    tmp <- tmp[which(!is.na(tmp))]
+    if (!length(tmp)) { tmp <- 1 }
+    FactorsLevels$Replicate <- 1:max(tmp)
+    FactorsLevels$Role <- unique(c("Blank", "Buffer_control", "Tag_control", "Standard", "Sample", FactorsLevels$Role))
+    FactorsLevels$Nucleotide <- unique(c(unlist(analysisTypes$Nucleotides[which(analysisTypes$Type %in% analysisType)]),
+                                         "none", FactorsLevels$Nucleotide))
+    tmp <- FactorsLevels$Nucleotide[which(!FactorsLevels$Nucleotide %in% "none")]
+    FactorsLevels$Samples_group <- unique(c(paste0("Standard_", tmp), FactorsLevels$Samples_group))
+    #rm(Factors, FactorsLevels)
     intFact <- c("Replicate", "Isobaric.set")
     dfltInt <- c(1, 1)
     if (!exists("blnksPat")) { blnksPat <<- "^blank(_[0-9]+)?$" }
@@ -838,7 +839,6 @@ while (!areWeGood) {
     output$ExpTbl <- renderDT({ xpDat },
                               FALSE,
                               escape = FALSE,
-                              class = "compact",
                               selection = "none",
                               editable = edith,
                               rownames = FALSE,
@@ -942,17 +942,19 @@ while (!areWeGood) {
   w <- which(tst == "list")
   if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
   tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
-  while ("try-error" %in% class(tst)) {
+  if ("try-error" %in% class(tst)) {
     dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-    tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
+    write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE)
   }
   ExpMap$"MS raw file name" <- slctFls0[match(ExpMap$`MS raw file`, slctFls)]
   opt <- c("Yes, continue with the workflow.",
+           "No, go back to raw files selection.",
            "No, go back to factors editor.",
            "No, just rerun the table (experiment map) editor.")
-  what2do <- dlg_list(opt, opt[1], title = "Are you happy with your edits?")$res
+  what2do <- dlg_list(opt, opt[1], title = "Are you happy with your parameters?")$res
   areWeGood <- what2do == opt[1]
-  runStep1 <- (!areWeGood)&&(what2do == opt[2])
+  runStep1 <- (!areWeGood)&&(match(what2do, opt) <= 2)
+  runStep2 <- (!areWeGood)&&(match(what2do, opt) <= 3)
 }
 
 #
