@@ -687,7 +687,7 @@ if ((!nrow(reloadedBckps))||(!"FASTA of proteins of special interest" %in% reloa
       intFast <- gsub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), intFast)
       if (intFast != intPrtFst) {
         file.copy(intFast, intPrtFst, TRUE)
-        cat(paste0("   FYI: a copy of your input fasta has been saved at \"", intPrtFst, "\"..."))
+        cat(paste0("   FYI: a copy of your input fasta has been saved at \"", intPrtFst, "\"...\n"))
       }
       if (!exists("fastas")) { fastas <- c() }
       intPrtFst %<o% intPrtFst

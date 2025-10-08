@@ -196,7 +196,7 @@ if (Annotate) {
                        quote = FALSE, sep = ",", row.names = FALSE, col.names = TRUE, na = "NA")
   }
   tst <- try(f0(), silent = TRUE)
-  while ("try-error" %in% class(tst)) {
+  while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
     dlg_message(paste0("File \"", pth, "\" appears to be locked for editing, close the file then click ok..."), "ok")
     tst <- try(f0(), silent = TRUE)
   }

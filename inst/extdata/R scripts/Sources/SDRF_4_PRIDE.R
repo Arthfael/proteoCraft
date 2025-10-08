@@ -998,7 +998,11 @@ if (LabelType == "Isobaric") {
 #
 #View(SDRF)
 #writeClipboard(sdrfPth)
-write.table(SDRF, sdrfPth, sep = "\t", quote = FALSE, row.names = FALSE)
+tst <- try(write.table(SDRF, sdrfPth, sep = "\t", quote = FALSE, row.names = FALSE), silent = TRUE)
+while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) { # We only want this to happen if the file is locked for editing
+  dlg_message(paste0("File \"", sdrfPth, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+  tst <- try(write.table(SDRF, sdrfPth, sep = "\t", quote = FALSE, row.names = FALSE), silent = TRUE)
+}
 #openxlsx::openXL(sdrfPth)
 #
 if (pyTest) {

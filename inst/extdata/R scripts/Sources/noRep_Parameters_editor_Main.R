@@ -275,6 +275,7 @@ for (parI in myPar) {
 }
 #
 appNm <- paste0(dtstNm, " - Parameters")
+if (exists("appRunTest")) { rm(appRunTest) }
 ui <- shiny::fluidPage(
   shinyjs::useShinyjs(),
   shinyWidgets::setBackgroundColor( # Doesn't work
@@ -731,12 +732,17 @@ server <- function(input, output, session) {
     assign("AnalysisParam", Par, envir = .GlobalEnv)
     assign("Mod4Quant", m4Quant(), envir = .GlobalEnv)
     assign("Mod2Xclud", m2Xclud(), envir = .GlobalEnv)
+    assign("appRunTest", TRUE, envir = .GlobalEnv)
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
   session$onSessionEnded(function() { shiny::stopApp() })
 }
-eval(parse(text = runApp), envir = .GlobalEnv)
+runKount <- 0
+while ((!runKount)||(!exists("appRunTest"))) {
+  eval(parse(text = runApp), envir = .GlobalEnv)
+  runKount <- runKount+1
+}
 #
 # Post-processing
 prot.list %<o% AnalysisParam$Prot.list

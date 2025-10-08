@@ -64,7 +64,7 @@ tst <- lapply(colnames(tmpTbl), function(x) { typeof(tmpTbl[[x]]) })
 w <- which(tst == "list")
 if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
-while ("try-error" %in% class(tst)) {
+while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
   dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
 }
@@ -399,7 +399,7 @@ tst <- lapply(colnames(tmpTbl), function(x) { typeof(tmpTbl[[x]]) })
 w <- which(tst == "list")
 if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
-while ("try-error" %in% class(tst)) {
+while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
   dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
 }

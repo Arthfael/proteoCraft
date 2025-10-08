@@ -294,7 +294,7 @@ if (LabelType == "LFQ") {
   colnames(FracMap)[which(colnames(FracMap) == "Parent sample")] <- "MQ.Exp"
 }
 tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
-while ("try-error" %in% class(tst)) {
+while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
   dlg_message(paste0("File \"", FracMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
 }

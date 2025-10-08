@@ -90,7 +90,11 @@ w3 <- which((!fastasTbl$ExistsHere)&(fastasTbl$Exists)) # These exist in the cur
 if (length(w3)) {
   fs::file_copy(fastasTbl$Full[w3], wd)
   fastasTbl$ExistsHere[w3] <- TRUE
-  fastasTbl$Full[w3] <- paste0(wd, "/", fastasTbl$Name[w3])
+  nwFast3 <- paste0(wd, "/", fastasTbl$Name[w3])
+  w3m <- which(fastas_map$Actual %in% fastasTbl$Full[w3])
+  m3 <- match(fastas_map$Actual[w3m], fastasTbl$Full[w3])
+  fastas_map$Actual[w3m] <- nwFast3[m3]
+  fastasTbl$Full[w3] <- nwFast3
   fastasTbl$Dir[w3] <- wd
   w3b <- which((!fastasTbl$TXTExistsHere[w3])&(fastasTbl$TXTExists[w3]))
   if (length(w3b)) {

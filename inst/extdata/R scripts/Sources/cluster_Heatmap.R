@@ -611,7 +611,7 @@ if (clustHtMp) {
   #
   flPath <- paste0(clustDir, "/Protein Groups and Clusters.csv")
   tst <- try(write.csv(temp, file = flPath, row.names = FALSE), silent = TRUE)
-  while ("try-error" %in% class(tst)) {
+  while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
     dlg_message(paste0("File \"", flPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
     tst <- try(write.csv(temp, file = flPath, row.names = FALSE), silent = TRUE)
   }

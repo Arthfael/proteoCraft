@@ -38,6 +38,7 @@
 #' @import data.table
 #' @export
 
+if (!exists("I_eq_L")) { I_eq_L %<o% TRUE } # Sensible default
 Cut = c("K_", "R_")
 N.clust = get("N.clust")
 N.reserved = 1
@@ -60,10 +61,10 @@ Seq2$DigSeq <- Seq2$Sequence
 for (C in Cut) {
   repl <- gsub("_", "", C)
   Seq2$DigSeq <- stringi::stri_replace_all_regex(Seq2$DigSeq, repl, C,
-                                                 opts_regex = stri_opts_regex(dotall = TRUE)) # -> insert cut sites before conversion of Ile to Leu!
+                                                 opts_regex = stringi::stri_opts_regex(dotall = TRUE)) # -> insert cut sites before conversion of Ile to Leu!
 }
 Seq2$DigSeq <- stringi::stri_replace_all_regex(Seq2$DigSeq, "^_|_$", "",
-                                               opts_regex = stri_opts_regex(dotall = TRUE))
+                                               opts_regex = stringi::stri_opts_regex(dotall = TRUE))
 if (I_eq_L) { # Convert Ile to Leu:
   # Should be after we introduce the cuts: those could be I/L sensitive
   Seq2$DigSeq <- gsub("I", "L", Seq2$DigSeq)
@@ -80,11 +81,11 @@ for (C in Cut) {
   DBSeq <- stringi::stri_replace_all_regex(DBSeq, repl, C) # -> insert cut sites before conversion of Ile to Leu!
 }
 DBSeq <- stringi::stri_replace_all_regex(DBSeq, "^_|_$", "",
-                                         opts_regex = stri_opts_regex(dotall = TRUE))
+                                         opts_regex = stringi::stri_opts_regex(dotall = TRUE))
 if (I_eq_L) { # Convert Ile to Leu:
   # Should be after we introduce the cuts: those could be I/L sensitive
   DBSeq <- stringi::stri_replace_all_regex(DBSeq, "I", "L",
-                                           opts_regex = stri_opts_regex(dotall = TRUE)) 
+                                           opts_regex = stringi::stri_opts_regex(dotall = TRUE)) 
 }
 DBSeq <- setNames(DBSeq, Nms)
 Dig <- setNames(strsplit(DBSeq, "_"), Nms) # -> our full digest
@@ -231,22 +232,24 @@ if (length(wM)) { # Peptides with missed cleavages: the real fun begins...
     cat(paste0(" -> Processing ", n_i, " peptides with ", i-1, " missed cleavage", c("", "s")[((i-1) > 1)+1], "...\n"))
     allFr_i <- unique(unlist(Seq2flt_i$myDigest)) # = all their fragments
     w_i <- which(Frag2Prot$Seq %in% allFr_i) # = i-filter for our frag-2-prot table
-    Frag2Prot_i <- Frag2Prot[w_i,]
-    Dig2_i <- Dig2[which(Dig2$Seq %in% allFr_i),] # = all i-frag-2-prot with potential positions
-    myRng <- as.integer(round(as.numeric(1:N.clust)*n_i/N.clust)) # = ranges assigning i-peptides to cluster cores: we want to distribute our fragments over the cluster for efficient parallelisation
-    myRng <- unique(myRng)
-    myRng <- myRng[which(myRng > 0)]
-    # Export temporary objects which will be read
-    saveRDS(Seq2flt_i, paste0(myWD, "/tmpA.RDS"))
-    saveRDS(Frag2Prot_i, paste0(myWD, "/tmpB.RDS"))
-    saveRDS(Dig2_i, paste0(myWD, "/tmpC.RDS"))
-    parallel::clusterExport(parClust, list("i", "myWD"), envir = environment())
-    tmpResI <- parallel::parLapply(parClust, 1:length(myRng), f0Mtch, nFrag = i, pepRange = myRng)
-    tmpResI <- do.call(rbind, tmpResI)
-    Res[[paste0(i, "-missed cleavages")]] <- tmpResI
-    unlink(paste0(myWD, "/tmpA.RDS"))
-    unlink(paste0(myWD, "/tmpB.RDS"))
-    unlink(paste0(myWD, "/tmpC.RDS"))
+    if (length(w_i)) { # This check is necessary because of the rare - but not impossible - case where we find no peptide with N misses but some with N+1!
+      Frag2Prot_i <- Frag2Prot[w_i,]
+      Dig2_i <- Dig2[which(Dig2$Seq %in% allFr_i),] # = all i-frag-2-prot with potential positions
+      myRng <- as.integer(round(as.numeric(1:N.clust)*n_i/N.clust)) # = ranges assigning i-peptides to cluster cores: we want to distribute our fragments over the cluster for efficient parallelisation
+      myRng <- unique(myRng)
+      myRng <- myRng[which(myRng > 0)]
+      # Export temporary objects which will be read
+      saveRDS(Seq2flt_i, paste0(myWD, "/tmpA.RDS"))
+      saveRDS(Frag2Prot_i, paste0(myWD, "/tmpB.RDS"))
+      saveRDS(Dig2_i, paste0(myWD, "/tmpC.RDS"))
+      parallel::clusterExport(parClust, list("i", "myWD"), envir = environment())
+      tmpResI <- parallel::parLapply(parClust, 1:length(myRng), f0Mtch, nFrag = i, pepRange = myRng)
+      tmpResI <- do.call(rbind, tmpResI)
+      Res[[paste0(i, "-missed cleavages")]] <- tmpResI
+      unlink(paste0(myWD, "/tmpA.RDS"))
+      unlink(paste0(myWD, "/tmpB.RDS"))
+      unlink(paste0(myWD, "/tmpC.RDS"))
+    }
   }
 }
 Res <- as.data.frame(data.table::rbindlist(Res))[, c("Sequence", "Proteins")]

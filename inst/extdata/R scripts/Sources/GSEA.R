@@ -265,5 +265,11 @@ if (isOK) {
       ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
     }, silent = TRUE)
   })
+  #
+  if (exists("DatAnalysisTxt")) {
+    DatAnalysisTxt <- paste0(DatAnalysisTxt,
+                             " Gene Set Enrichment Analysis was run using clusterProfiler.")
+    
+  }
   # See https://learn.gencore.bio.nyu.edu/rna-seq-analysis/gene-set-enrichment-analysis/ for more
 }

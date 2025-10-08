@@ -73,6 +73,8 @@ if (length(SearchSoft) == 1) {
 } else {
   DatAnalysisTxt <- "The output PSMs tables from the individual engines were converted to similar formats and combined, then re-processed using in-house R scripts."
 }
+MatMetCalls$Calls <- append(MatMetCalls$Calls,
+                            "body_add_fpar(MatMet, fpar(ftext(\"Data analysis\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))")
 # For the scripts with reps we will expand this later, during subsequent parts of the script...
 if (scrptType == "noReps") {
   # ... but for the no-reps script this is done in one block here:
@@ -92,7 +94,7 @@ if (scrptType == "noReps") {
                            c("", " Protein group-level quantitative values were normalized using the Levenberg-Marquardt procedure.")[NormalizePG+1])
   MatMetCalls$Texts$DatAnalysis <- c(MatMetCalls$Texts$DatAnalysis, DatAnalysisTxt)
   L <- length(MatMetCalls$Texts$DatAnalysis)
-  for (i in 1:L) {
+  for (i in 1:length(MatMetCalls$Texts$DatAnalysis)) {
     MatMetCalls$Calls <- append(MatMetCalls$Calls,
                                 paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$DatAnalysis[", i,
                                        "], prop = WrdFrmt$",
