@@ -43,7 +43,7 @@ if (prot.list.Cond) {
       return()
     }))
     exports <- list("prot.names", "IDs.list", "TEST0", "tmpDB", "Exp", "TMP0", "nCharLim", "wd", "int.col",
-                    "WorkFlow", "dir", "runRat")
+                    "WorkFlow", "dir", "runRat", "Coverage")
     if (runRat) { exports <- append(exports, list("comb", "myComb", "pepR")) }
     clusterExport(parClust, exports, envir = environment())
     #for (prnm in 1:length(prot.names)) { #prnm <- 1
@@ -113,8 +113,11 @@ if (prot.list.Cond) {
               s2 <- data.frame("Modified sequence" = unique(TMP$"Modified sequence"), check.names = FALSE)
               s2$Sequence <- TMP$Sequence[match(s2$"Modified sequence", TMP$"Modified sequence")]
               s2$Matches <- s$Matches[match(s2$Sequence, s$Seq)]
-              # Important: should use non-imputed intensities (hence why working from ev is good here, as opposed to pep)
+              # Important: should use non-imputed intensities
+              #(hence why working from ev is good here, as opposed to pep)
               tempev <- setNames(lapply(Exp, function(exp) { #exp <- Exp[1]
+                # We are summing over modified sequence for intensities (before log transformation!)
+                # and taking the worst (highest) PEP of all PSMs to be conservative.
                 wh <- which(TMP$Experiment == exp)
                 if (length(wh)) {
                   e <- TMP[wh,]
@@ -124,7 +127,7 @@ if (prot.list.Cond) {
                                         c("Modified sequence", "Intensity"))
                     e <- set_colnames(aggregate(e$PEP[wh], list(e$"Modified sequence"[wh]), function(x) {
                       x <- is.all.good(x)
-                      if (!length(x)) { x <- NA } else { x <- max(x) } # Conservative: taking the worst estimate of PEP
+                      if (!length(x)) { x <- NA } else { x <- max(x) }
                       return(x)
                     }), c("Modified sequence", "PEP"))
                     res$PEP <- e$PEP; rm(e)
@@ -138,23 +141,30 @@ if (prot.list.Cond) {
               }), Exp)
               tempev <- tempev[which(vapply(tempev, function(x) { "data.frame" %in% class(x) }, TRUE))]
               if (length(tempev)) {
-                mxInt <- ceiling(max(is.all.good(unlist(sapply(names(tempev), function(exp) {
+                mxInt <- ceiling(max(is.all.good(as.numeric(sapply(names(tempev), function(exp) {
                   tempev[[exp]]$`log10(Intensity)`
                 })))))
-                mxPEP <- ceiling(max(is.all.good(unlist(sapply(names(tempev), function(exp) {
+                mxPEP <- ceiling(max(is.all.good(as.numeric(sapply(names(tempev), function(exp) {
                   -log10(tempev[[exp]]$PEP)
                 })))))
                 for (exp in names(tempev)) { #exp <- names(tempev)[1]
                   tmp <- tempev[[exp]]
-                  ttl <- paste0("Coverage - ", nm, " - ", exp, ", log10(intensity)")
                   setwd(paste0(wd, "/Protein plots/", nm2, "/Coverage/Intensity"))
+                  ttl1a <- paste0("Coverage - ", nm, " - ", exp, ", log10(int.)")
+                  ttl1b <- paste0("Coverage - ", nm, " - ", exp, ", sum log10(int.)")
+                  ttl2a <- paste0("Coverage - ", nm, " - ", exp, ", -log10(PEP)")
                   Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE,
-                           title = ttl, save = c("jpeg", "pdf"), intensities = tmp$`log10(Intensity)`,
+                           title = ttl1a, save = c("jpeg", "pdf"), intensities = tmp$`log10(Intensity)`,
                            maxInt = mxInt)
-                  ttl <- paste0("Coverage - ", nm, " - ", exp, ", -log10(PEP)")
+                  Coverage(P, tmp$"Modified sequence", Mode = "Heat", display = FALSE,
+                           title = ttl1b, save = c("jpeg", "pdf"), intensities = tmp$`log10(Intensity)`,
+                           maxInt = mxInt)
                   setwd(paste0(wd, "/Protein plots/", nm2, "/Coverage/PEP"))
-                  Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE, title = ttl, save = c("jpeg", "pdf"),
-                           intensities = -log10(tmp$PEP), maxInt = mxPEP, colscale = 8, na = "red")
+                  Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE,
+                           title = ttl2a, save = c("jpeg", "pdf"), intensities = -log10(tmp$PEP),
+                           maxInt = mxPEP, colscale = 8, na = "red")
+                  # (Doing summed PEP Coverage maps makes no sense)
+                  # (Note to self: as the number of peptidoforms)
                 }
                 setwd(wd)
                 # Correlation and ratio plots:
