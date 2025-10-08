@@ -249,7 +249,7 @@ while (!areWeGood) {
     wd <- unique(dirname(fls)) # Update wd
     dtstNm <- gsub(".*/", "", wd)
     tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
-    while ("try-error" %in% class(tst)) {
+    while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
       wd <- rstudioapi::selectDirectory("Choose a work directory where we have write permission!", path = "D:/")
       tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
     }
@@ -942,7 +942,7 @@ while (!areWeGood) {
   w <- which(tst == "list")
   if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
   tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
-  if ("try-error" %in% class(tst)) {
+  while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) { # We only want this to happen if the file is locked for editing
     dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
     write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE)
   }

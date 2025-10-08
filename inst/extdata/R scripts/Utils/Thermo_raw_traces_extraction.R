@@ -214,7 +214,7 @@ if (!l) {
 wd <- unique(dirname(fls))[1]
 dtst <- gsub(".*/", "", wd)
 tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
-while ("try-error" %in% class(tst)) {
+while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
   wd <- rstudioapi::selectDirectory("Choose a work directory where we have write permission!", path = "D:/")
   tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
 }
