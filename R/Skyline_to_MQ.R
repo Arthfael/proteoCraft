@@ -3,6 +3,7 @@
 #' @description
 #' Converts a Skyline .tsv or .csv export table (PSMs or Transitions) to a table with MaxQuant evidence.txt-like formatting.
 #' As with the other functions of this type, the idea is not to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.
+#' You will rarely be using Skyline for total proteome analysis, so this is not integrated with the 3 main scripts currently but only with the Histones script.
 #' 
 #' The output is a list of 2 items:
 #' - Evidence: a data.frame similar to the evidence.txt table MaxQuant creates
@@ -83,14 +84,55 @@ Skyline_to_MQ <- function(Skyline_fl,
   #
   Skyline <- data.table::fread(Skyline_fl, integer64 = "numeric", check.names = FALSE, data.table = FALSE)
   #
+  # Skyline does not seem to be very consistent in how it names columns...
+  # We may have to map them ourselves...
+  # opt <- grep("peptide|sequence", colnames(Skyline), value = TRUE, ignore.case = TRUE)
+  # opt <- grep("retention", opt, invert = TRUE, value = TRUE, ignore.case = TRUE)
+  # optUnMod <- grep("modified", opt, invert = TRUE, value = TRUE, ignore.case = TRUE)
+  # optMod <- grep("modified", opt, value = TRUE, ignore.case = TRUE)
+  # unmodSeqCol <- "Peptide"
+  # modSeqCol <- "Peptide"
+  # if (!unmodSeqCol %in% colnames(Skyline)) {
+  #   opt1 <- c(optUnMod, optMod, colnames(Skyline)[which(!colnames(Skyline) %in% opt)])
+  #   unmodSeqCol <- svDialogs::dlg_list(opt1, opt1[1], title = "Select primary peptide sequence column")$res
+  # }
+  # if (!modSeqCol %in% colnames(Skyline)) {
+  #   opt2 <- c(optMod, optUnMod, colnames(Skyline)[which(!colnames(Skyline) %in% opt)])
+  #   modSeqCol <- svDialogs::dlg_list(opt2, opt2[1], title = "Select modified peptide sequence column")$res
+  # }
+  #
+  unmodSeqCols <- paste0("Peptide", c("", " Sequence"))
+  w <- which(unmodSeqCols %in% colnames(Skyline))
+  if (!length(w)) {
+    stop(paste0("At least one of these primary sequence columns is required:\n - ",
+                paste(unmodSeqCols, collapse = "\n - "), "\n"))
+  }
+  unmodSeqCol <- unmodSeqCols[w][1]
+  #
+  modSeqCols <- paste0("Peptide Modified Sequence", c("", " Unimod Ids"))
+  w <- which(modSeqCols %in% colnames(Skyline))
+  if (!length(w)) {
+    stop(paste0("At least one of these modified sequence columns is required:\n - ",
+                paste(modSeqCols, collapse = "\n - "), "\n"))
+  }
+  modSeqCol <- modSeqCols[w][1]
+  #
+  protCols <- paste0("Protein", c("", " Accession"))
+  w <- which(protCols %in% colnames(Skyline))
+  if (!length(w)) {
+    stop(paste0("At least one of these modified protein accession columns is required:\n - ",
+                paste(protCols, collapse = "\n - "), "\n"))
+  }
+  protCol <- protCols[w][1]
+  #
   # Filter peptides with ambiguous/non-classical amino acids 
-  uSeq <- unique(Skyline$Peptide)
+  uSeq <- unique(Skyline[[unmodSeqCol]])
   test <- gsub(paste(proteoCraft::AA, collapse = "|"), "", uSeq)
-  test <- test[match(Skyline$Peptide, uSeq)]
+  test <- test[match(Skyline[[unmodSeqCol]], uSeq)]
   w <- which(test == "")
   lX <- nrow(Skyline)-length(w) 
   if (lX) {
-    u <- unique(unlist(strsplit(Skyline$Peptide, "")))
+    u <- unique(unlist(strsplit(Skyline[[unmodSeqCol]], "")))
     u <- paste(u[which(!u %in% AA)], collapse = "-")
     warning(paste0("Removing ", lX, " peptide", c("", "s")[(lX > 1)+1], " with unknown amino acids ", u, "!"))
     Skyline <- Skyline[w,]
@@ -100,14 +142,14 @@ Skyline_to_MQ <- function(Skyline_fl,
     Skyline$"Missed Cleavages" <- as.integer(Skyline$"Missed Cleavages")
   } else {
     digPat <- paste(c("[", digPattern, "]"), collapse = "")
-    tmp <- gsub(paste0(digPat, "$"), "", Skyline$Peptide)
+    tmp <- gsub(paste0(digPat, "$"), "", Skyline[[unmodSeqCol]])
     Skyline$"Missed Cleavages" <- nchar(tmp) - nchar(gsub(digPat, "", tmp))
   }
   if ("Library Ion Mobility" %in% colnames(Skyline)) {
     Skyline$"Library Ion Mobility" <- as.numeric(gsub(" .*", "", Skyline$"Library Ion Mobility"))
   }
   #
-  minCols <- c("Replicate Name", "Peptide", "Protein", "Missed Cleavages", "Precursor Charge", "Precursor Mz", 
+  minCols <- c(unmodSeqCol, modSeqCol, protCol, "Missed Cleavages", "Precursor Charge", "Precursor Mz", 
                "Peptide Retention Time", "Min Start Time", "Max End Time")
   w <- which(!minCols %in% colnames(Skyline))
   if (length(w)) {
@@ -132,14 +174,11 @@ Skyline_to_MQ <- function(Skyline_fl,
     }
   }
   #
-  modSeqCols <- paste0("Peptide Modified Sequence", c("", " Unimod Ids"))
-  w <- which(modSeqCols %in% colnames(Skyline))
-  if (!length(w)) {
-    stop(paste0("At least one of these modified sequence columns is required in the Skyline export:\n - ",
-                paste(modSeqCols, collapse = "\n - "), "\n"))
+  if (modSeqCol != "Modified sequence") {
+    Skyline$"Modified sequence" <- Skyline[[modSeqCol]]
+    Skyline[[modSeqCol]] <- NULL
+    modSeqCol <- "Modified sequence"
   }
-  Skyline$"Modified sequence" <- Skyline[[modSeqCols[w][1]]]
-  modSeqCol <- "Modified sequence"
   intCols <- c("Total Area MS1", "Area") # The order matters!
   intCols <- intCols[which(intCols %in% colnames(Skyline))]
   isTransTable <- (intCols[1] == "Total Area MS1")
@@ -161,8 +200,10 @@ Skyline_to_MQ <- function(Skyline_fl,
                       c("", ",\n`Library Probability Score` = mean(`Library Probability Score`)")[("Library Probability Score" %in% colnames(Skyline))+1],
                       c("", ",\n`Library Score1` = mean(`Library Score1`)")[("Library Score1" %in% colnames(Skyline))+1],
                       c("", ",\n`Is Decoy` = unique(`Is Decoy`)")[("Is Decoy" %in% colnames(Skyline))+1], ")")
-    byLst <- "list(`Replicate Name`, `File Name`, `File Path`, `Peptide`, `Modified sequence`, `Protein`, `Missed Cleavages`, `Precursor Charge`,
-                  `Precursor Mz`, `Peptide Retention Time`, `Min Start Time`, `Max End Time`)"
+    byLstCol <- c("Replicate Name", "File Name", "File Path", unmodSeqCol, modSeqCol, protCol, "Missed Cleavages", "Precursor Charge",
+                     "Precursor Mz", "Peptide Retention Time", "Min Start Time", "Max End Time")
+    byLstCol <- byLstCol[which(byLstCol %in% colnames(Skyline))]
+    byLst <- paste0("list(", paste0("`", byLstCol, "`", collapse = ", "), ")")
     aggrCall <- paste0("Skyline2 <- Skyline2[, ", aggrLst, ", by = ", byLst, "]")
     aggrCall <- gsub("\n *", " ", aggrCall)
     #cat(aggrCall)         
@@ -172,18 +213,17 @@ Skyline_to_MQ <- function(Skyline_fl,
     Skyline <- Skyline2
   }
   optCols <- c("Missed Cleavages", "Explicit Ion Mobility")
-  #colnames(Skyline)[which(!colnames(Skyline) %in% c(minCols, fileCols, modSeqCols, intCols, optCols, scoreCols))]
+  #colnames(Skyline)[which(!colnames(Skyline) %in% c(minCols, fileCols, modSeqCol, intCols, optCols, scoreCols))]
   #
   # Create MQ-like table
-  EV <- data.frame("Experiment" = Skyline$"Replicate Name",
-                   "Raw file" = Skyline$"File Name",
-                   "Raw file path" = Skyline$"File Path",
-                   "Sequence" = Skyline$Peptide,
-                   "Modified sequence" = paste0("_",
+  EV <- data.frame("Modified sequence" = paste0("_",
                                                 gsub("\\]", ")",
                                                      gsub("\\[", "(",
                                                           Skyline[[modSeqCol]])), "_"),
-                   "Proteins"= gsub(" / ", ";", Skyline$Protein),
+                   "Sequence" = Skyline[[unmodSeqCol]],
+                   "Raw file" = Skyline$"File Name",
+                   "Raw file path" = Skyline$"File Path",
+                   "Proteins" = gsub(" / ", ";", Skyline[[protCol]]),
                    "Intensity" = as.numeric(Skyline[[intCol]]),
                    "Charge" = as.integer(Skyline$"Precursor Charge"),
                    "m/z" = as.numeric(Skyline$"Precursor Mz"),
@@ -192,6 +232,9 @@ Skyline_to_MQ <- function(Skyline_fl,
                    "Retention time (start)" = as.numeric(Skyline$"Min Start Time"),
                    "Retention time (end)" = as.numeric(Skyline$"Max End Time"),
                    check.names = FALSE)
+  if ("Replicate Name" %in% colnames(Skyline)) {
+    EV$"Experiment" = Skyline$"Replicate Name"
+  }
   EV$"Retention length" <- EV$"Retention time (end)" - EV$"Retention time (start)"
   #
   isoProbs <- proteoCraft::IsotopeProbs

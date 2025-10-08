@@ -25,9 +25,8 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                           Columns = "default") {
   TESTING <- FALSE
   #rm(list = ls()[which(!ls() %in% c("wd", "Exp.map"))])
-  #exp.map = SamplesMap
-  #proteoCraft::DefArg(proteoCraft::"MatMet_WetLab")
-  #TESTING <- TRUE
+  #Exp.map = SamplesMap
+  #proteoCraft::DefArg(proteoCraft::"MatMet_WetLab"); TESTING <- TRUE
   #
   if (TESTING) {
     # Note:
@@ -136,8 +135,8 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
     MatMetTxt <- officer::read_docx(File2Reload)
     MatMetTxt <- officer::docx_summary(MatMetTxt)
     MatMetTxt <- MatMetTxt$text
-    MatMetTxt <- MatMetTxt[match("Samples preparation", MatMetTxt) + 1]
-    reuseMatMeth <- MatMetTxt != "TEMPLATE"
+    MatMetTxt <- MatMetTxt[grep("^Samples? preparation", MatMetTxt) + 1]
+    reuseMatMeth <- ("character" %in% class(MatMetTxt))&&(!is.na(reuseMatMeth))&&(MatMetTxt != "TEMPLATE")
   }
   if (!reuseMatMeth) {
     SPMethods <- c(paste0("iST", rep(c("", "-NHS"), 3), " kit", c(rep("", 2),
