@@ -224,7 +224,7 @@ Coverage <- function(proteins,
     if (!is.null(intensities)) { peptides$Intensity <- intensities }
     peptides$Length <- nchar(peptides$Sequence)
     seq <- unique(peptides$Sequence)
-    coverage <- c()
+    myCover <- c()
     pos <- list()
     pos2 <- data.frame(Seq = seq)
     for (P in namez) { #P <- namez[1]
@@ -250,7 +250,7 @@ Coverage <- function(proteins,
       res2[spread] <- 1
       #setNames(res2, unlist(strsplit(substr(protein, 2, nchar(protein)-1), "")))
       pos[[P]] <- res2
-      coverage[P] <- mean(pos[[P]])
+      myCover[P] <- mean(pos[[P]])
     }
     if (Mode != c("Coverage")) {
       if (Mode %in% c("Align2", "Heat")) {
@@ -291,7 +291,7 @@ Coverage <- function(proteins,
           tmpAlgn$Face <- sapply(pos[[P]], function(x) {c("plain", "bold")[x+1]})#poZ[[P]], function(x) {c("plain", "bold")[x+1]})
           tmpAlgn$Hjust <- 0.5
           YlabZ[[P]] <- c(rev(c(c(0:(max(tmpAlgn$Y, na.rm = TRUE) - 1)) * scale + 1)), "")
-          covStr <- paste0("Coverage: ", round(100*coverage[P], 1), "%")
+          covStr <- paste0("Coverage: ", round(100*myCover[P], 1), "%")
           align.temp[[P]] <- rbind(tmpAlgn,
                                    data.frame(AA = paste0("Protein name: ",  P),
                                               N = NA,
@@ -299,7 +299,7 @@ Coverage <- function(proteins,
                                               Protein = "",
                                               Legend = "not found",
                                               X = scale/2,
-                                              Y = max(tmpAlgn$Y + 1.2),
+                                              Y = max(tmpAlgn$Y) + 1.2,
                                               Face = "bold.italic",
                                               Hjust = 0.5),
                                    data.frame(AA = covStr,
@@ -308,7 +308,7 @@ Coverage <- function(proteins,
                                               Protein = "",
                                               Legend = "not found",
                                               X = scale/2,
-                                              Y = max(tmpAlgn$Y + 0.6),
+                                              Y = max(tmpAlgn$Y) + 0.6,
                                               Face = "italic",
                                               Hjust = 0.5))
         }
@@ -342,7 +342,7 @@ Coverage <- function(proteins,
                                       ) +
             ggplot2::labs(x = "", y = "Position") +
             ggplot2::xlim(Xleft, Xright) + ggplot2::ylim(Ybottom, Ytop) +
-            ggplot2::ggtitle(title, subtitle = covStr) +
+            ggplot2::ggtitle(title) +
             ggplot2::theme(panel.grid.major = ggplot2::element_blank(),
                            panel.grid.minor = ggplot2::element_blank(),
                            panel.background = ggplot2::element_blank(),
@@ -485,8 +485,10 @@ Coverage <- function(proteins,
             matches$Y2 <- matches$Y - Yextension
             #
             # Restore correct I/L sequence
-            align.temp$AA <- NULL
-            colnames(align.temp)[match("Amino_acid", colnames(align.temp))] <- "AA"
+            wAA <- which(align.temp$AA %in% proteoCraft::AA)
+            align.temp$AA[wAA] <- align.temp$Amino_acid[wAA]
+            align.temp$Amino_acid <- NULL
+            #
             if (Mode == "Align2") {
               yxRat <- yxRat2 <- 3
               covplot <- ggplot2::ggplot(align.temp) + ggplot2::coord_fixed(yxRat) +
@@ -805,7 +807,7 @@ Coverage <- function(proteins,
           return(XML_Cov)
         }
       }
-    } else { return(coverage) }
+    } else { return(myCover) }
   } else {
     if (Mode == "Coverage") { cat("No peptides provided -> coverage = 0%\n") }
     if (Mode %in% c("Align", "Align2")) { warning("No peptides to plot!") }
