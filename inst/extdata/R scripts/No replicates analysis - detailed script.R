@@ -276,7 +276,7 @@ while ((!runKount)||(!exists("frMap2"))) {
 FracMap %<o% frMap2
 #
 tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
-while ("try-error" %in% class(tst)) {
+while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) { # We only want this to happen if the file is locked for editing
   dlg_message(paste0("File \"", FracMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
 }
@@ -317,6 +317,8 @@ if ((!file.exists(SamplesMapPath))||(!nrow(SamplesMap))) {
 if (MakeRatios) {
   if (!"Ratios group" %in% colnames(SamplesMap)) { SamplesMap$"Ratios group" <- 1 }
   if (!"Reference" %in% colnames(SamplesMap)) { SamplesMap$Reference <- FALSE }
+} else {
+  SamplesMap$Reference <- NULL
 }
 nr <- nrow(SamplesMap)
 rws <- 1:nr
@@ -523,10 +525,10 @@ while ((!runKount)||(!exists("smplMap3"))) {
 }
 SamplesMap %<o% smplMap3
 exp <- expOrder
-SamplesMap <- SamplesMap[match(SamplesMap$MQ.Exp, exp), ]
+SamplesMap <- SamplesMap[match(SamplesMap$MQ.Exp, exp),]
 #
 tst <- try(write.csv(SamplesMap, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
-while ("try-error" %in% class(tst)) {
+while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) { # We only want this to happen if the file is locked for editing
   dlg_message(paste0("File \"", SamplesMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(SamplesMap, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
 }

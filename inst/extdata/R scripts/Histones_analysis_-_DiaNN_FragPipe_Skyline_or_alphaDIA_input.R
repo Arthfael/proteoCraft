@@ -405,6 +405,7 @@ if (!file.exists(parsedAnnot_Fl)) {
 msg <- paste0("Update ", inputType, "'s original protein-to-peptides assignments?")
 Update_Prot_matches <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
 if (Update_Prot_matches) {
+  I_eq_L %<o% TRUE
   fl <- paste0(dstDir, "/evmatch.RData")
   if (file.exists(fl)) { loadFun(fl) } else {
     Seq <- unique(ev$Sequence)
