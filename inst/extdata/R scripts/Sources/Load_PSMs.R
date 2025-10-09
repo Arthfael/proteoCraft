@@ -794,9 +794,9 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       cat(" -> Done!\n")
     }
     ev_i <- ev_FP2MQ$Evidence
-    if (!"Intensity" %in% colnames(ev_i)) {
-      stop(paste0("You did not tick any compatible quantitation method in the Fragpipe search in folder \"",
-                  inDirs[dir_i], "\".\nIf you know that the search did include quantitation, then function FP_to_MQ() needs an update.\nOtherwise, rerun the search with quantitation turned on and try again."))
+    if ((!"Intensity" %in% colnames(ev_i))||(!sum(!is.na(ev_i$Intensity)))||(!sum(ev_i$Intensity, na.rm = TRUE))) {
+      stop(paste0("You do not appear to have ticked any compatible quantitation method in the Fragpipe search in folder \"",
+                  inDirs[dir_i], "\"!\nIf you know that the search did include quantitation, then function FP_to_MQ() needs an update.\nOtherwise, rerun the search with quantitation turned on and try again."))
     }
     ev_i$Search_ID <- inDirs[dir_i]
     mods_i <- ev_FP2MQ$PTMs
