@@ -126,6 +126,9 @@ FP_to_MQ <- function(FP_Workflow,
     }
     TMTtbl <- read.delim(TMTtblFl, check.names = FALSE)
     TMTtbl$plex[which(is.na(TMTtbl$plex))] <- TMTplex
+    Channels <- c(126, unlist(lapply(127:134, function(x) { paste0(as.character(x), c("N", "C")) })), "135N")
+    TMTtbl$channel_code <- match(TMTtbl$channel, Channels)-1
+    tmtKols <- as.character(TMTtbl$sample)
   }
   #
   # Parse FragPipe's samples manifest
@@ -518,7 +521,14 @@ FP_to_MQ <- function(FP_Workflow,
             "Calculated Peptide Mass", "Calculated M/Z", "Delta Mass", "Expectation", "Hyperscore", "Nextscore",
             "PeptideProphet Probability", "Intensity", "Best Score with Delta Mass", "Best Score without Delta Mass")
   kols <- kols[which(kols %in% colnames(PSMs))]
-  if ((FailIfNoQuant)&&(!"Intensity" %in% kols)) { stop("No quantitative information identified in PSMs table. Either rerun FragPipe with IonQuant (or FreeQuant) turned on, or set FailIfNoQuant to FALSE if your workflow only requires identifications.") }
+  if ((FailIfNoQuant)&&((!"Intensity" %in% kols)||(!length(proteoCraft::is.all.good(PSMs$Intensity))))) {
+    if (isTMT) {
+      warning("No MS1 quantitative information identified in PSMs table! Using sum of reporter intensities!")
+      PSMs$Intensity <- rowSums(PSMs[, tmtKols, drop = FALSE], na.rm = TRUE)
+    } else {
+      stop("No MS1 quantitative information identified in PSMs table!\nEither rerun FragPipe with IonQuant (or FreeQuant) turned on, or set FailIfNoQuant to FALSE if your workflow only requires identifications.")
+    }
+  }
   for (kol in kols) { PSMs[[kol]] <- as.numeric(PSMs[[kol]]) }
   # Let's now deal with those pesky un-localised open-search delta masses!!!
   if (OpenSearch) {
@@ -845,9 +855,7 @@ FP_to_MQ <- function(FP_Workflow,
               EV)
   #
   if (isTMT) {
-    Channels <- c(126, unlist(sapply(127:134, function(x) { paste0(as.character(x), c("N", "C")) })), "135N")
-    TMTtbl$channel_code <- match(TMTtbl$channel, Channels)-1
-    EV[, paste0("Reporter intensity ", TMTtbl$channel_code)] <- PSMs[, as.character(TMTtbl$sample)]
+    EV[, paste0("Reporter intensity ", TMTtbl$channel_code)] <- PSMs[, tmtKols]
   }
   EV$Search_ID <- FP_Workflow
   if (isActuallyDIANN) {
