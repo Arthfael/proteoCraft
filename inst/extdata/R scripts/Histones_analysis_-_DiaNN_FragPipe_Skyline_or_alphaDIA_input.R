@@ -393,11 +393,15 @@ if (!file.exists(prsDB_Fl)) {
 }
 db <- db[grep("^>rev_", db$Header, invert = TRUE),] # Remove reverse database entries
 parsedAnnot_Fl <- paste0(dstDir, "/Parsed Annot.rds")
-if (!file.exists(parsedAnnot_Fl)) {
+reUseAnnotBckp <- file.exists(parsedAnnot_Fl)
+if (reUseAnnotBckp) {
+  reUseAnnotBckp <- c(TRUE, FALSE)[match(dlg_message("Parsed annotation backup found in folder. Re-use?", "yesno")$res, c("yes", "no"))]
+}
+if (reUseAnnotBckp) {
+  annot <- readRDS(parsedAnnot_Fl)
+} else {
   annot <- Format.DB_txt(annot_Fl, Features = TRUE, cl = parClust)
   saveRDS(annot, parsedAnnot_Fl)
-} else {
-  annot <- readRDS(parsedAnnot_Fl)
 }
 
 # Check peptide-to-protein assignment, and isolate histones peptides
@@ -711,7 +715,9 @@ while (!ok) {
   kount <- kount + 1
 }
 ev$Old_Experiment <- ev$Experiment
-ev$Experiment <- smplsMap$New[match(ev$Old_Experiment, smplsMap$Old)]
+m <- match(ev$Old_Experiment, smplsMap$Old)
+if (sum(is.na(m))) { stop() }
+ev$Experiment <- smplsMap$New[m]
 u <- unique(ev$Experiment)
 if ((length(u) == 1)&&(is.na(u))) {
   # For when rerunning in bits!
@@ -752,21 +758,24 @@ while (!ok) {
   ok <- (sum(!c("Group", "Reference", "Comparison_group") %in% colnames(grpsMap)) == 0)
   if (ok) {
     grpsMap$Reference <- as.logical(grpsMap$Reference)
-    tst <- aggregate(grpsMap$Reference, list(grpsMap$Comparison_group), function(x) { sum(c(FALSE %in% x, TRUE %in% x, length(unique(x)) == 2)) })
-    statTsts <- ((length(unique(tst$x)) == 1)&&(unique(tst$x) == 3))
+    statTsts_tst <- aggregate(grpsMap$Reference, list(grpsMap$Comparison_group), function(x) {
+      sum(c(FALSE %in% x,
+            TRUE %in% x,
+            length(unique(x)) == 2))
+    })
+    statTsts <- (3 %in% statTsts_tst$x)
     if (!statTsts) {
       warning("No statistical tests will be performed!")
     }
   }
   kount <- kount + 1
 }
-compGrps <- unique(grpsMap$Comparison_group)
 smplsMap$Comparison_group <- grpsMap$Comparison_group[match(smplsMap$Group, grpsMap$Group)]
 smplsMap$Reference <- grpsMap$Reference[match(smplsMap$Group, grpsMap$Group)]
 
 isQuant <- ("Intensity" %in% colnames(ev))
 if (!isQuant) {
-  warning("No Intensity column detected, this is necessary for going further with this workflow...")
+  stop("No Intensity column detected, this is necessary for going further with this workflow...")
 }
 
 Nested <- FALSE
@@ -855,9 +864,6 @@ Ordered$Ordered <- lapply(Features, function(x) { x$Ordered })
 Ordered2 <- Ordered
 Ordered2$Ordered <- sapply(Ordered2$Ordered, paste, collapse = " / ")
 write.csv(Ordered2, file = paste0(dstDir, "/Ordered_histone_domains.csv"), row.names = FALSE)
-###################################################################################
-#                                 Et voila, done!                                 #
-###################################################################################
 
 if (useExtTbl) {
   tmp <- data.frame(ModSeq =  ev$"Modified sequence_verbose")
@@ -938,6 +944,7 @@ colnames(PSMs_per_Histone) <- c("Histone matches", "Peptides")
 PSMs_per_Histone <- PSMs_per_Histone[which(PSMs_per_Histone$`Histone matches` != ""),]
 PSMs_per_Histone <- PSMs_per_Histone[order(PSMs_per_Histone$Peptides, decreasing = TRUE),]
 View(PSMs_per_Histone)
+write.csv(PSMs_per_Histone, file = paste0(dstDir, "/PSMs per Histone.csv"), row.names = FALSE)
 
 w <- which(parSapply(parClust, strsplit(evSum$`Histone(s)`, ";"), function(x) {
   x <- unlist(x)
@@ -1012,7 +1019,8 @@ nSites <- nSites[order(nSites$x, decreasing = TRUE),]
 colnames(nSites) <- c("PTM", "Nb. of sites")
 View(nSites)
 data.table::fwrite(nSites, paste0(histDir, "/Histone PTM sites summary.csv"), sep = ",", row.names = FALSE, na = "NA")
-sum(nSites$`Nb. of sites`[which(!nSites$PTM %in% c("Carbamidomethyl", "Oxidation"))])
+cat(paste0("Number of PTM sites = ",
+           sum(nSites$`Nb. of sites`[which(!nSites$PTM %in% c("Carbamidomethyl", "Oxidation"))]), "\n"))
 
 saveImgFun(backupFl)
 #loadFun(backupFl)
@@ -1100,7 +1108,7 @@ tmp <- evSum[, c("Experiment", "Modified sequence", "Intensity")]
 exports <- list("smpls", "smplsMap", "tmp", "intRoot", "is.all.good")
 clusterExport(parClust, exports, envir = environment())
 clusterCall(parClust, function() library(data.table))
-tmp4 <- setNames(parLapply(parClust, smpls, function(smpl) { #smpl <- smpls[1]
+tmp4 <- setNames(parLapply(parClust, smpls, function(smpl) { #smpl <- smpls[1] #smpl <- smpls[4]
   w <- which(tmp$Experiment == smpl)
   tmp2 <- data.frame(mod = NA, Intensity = NA)
   if (length(w)) {
@@ -1113,11 +1121,12 @@ tmp4 <- setNames(parLapply(parClust, smpls, function(smpl) { #smpl <- smpls[1]
   }
   return(tmp2)
 }), smpls)
-for (smpl in smpls) { #smpl <- smpls[1]
+for (smpl in smpls) { #smpl <- smpls[1] #smpl <- smpls[4]
   tmp <- tmp4[[smpl]]
   pep[[paste0(intRoot[intType], smpl)]] <- NA
   w <- which(pep$"Modified sequence" %in% tmp$mod)
-  pep[w, paste0(intRoot[intType], smpl)] <- tmp$Intensity[match(pep$"Modified sequence"[w], tmp$mod)]
+  m <- match(pep$"Modified sequence"[w], tmp$mod)
+  pep[w, paste0(intRoot[intType], smpl)] <- tmp$Intensity[m]
 }
 pep$id <- 1:nrow(pep)
 #
@@ -1597,22 +1606,20 @@ Sites$Label <- apply(Sites[, labCol], 1, function(x) {
 
 if (statTsts) {
   # Statistics
-  a <- 1
-  tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-  if ("try-error" %in% class(tst)) {
-    try(stopCluster(parClust), silent = TRUE)
-    parClust <- makeCluster(N.clust, type = "SOCK")
-  }
   #
+  source(parSrc)
   clusterExport(parClust, list("Nested"), envir = environment())
   #reNorm <- FALSE
-  
+  #
   # From smplsMap to design matrix
-  smplsMap$Sample <- smplsMap$New
+  grpsMap2 <- grpsMap[which(grpsMap$Comparison_group %in% statTsts_tst$Group.1[which(statTsts_tst$x == 3)]),]
+  smplsMap2 <- smplsMap[which(smplsMap$Group %in% grpsMap2$Group),]
+  smplsMap2$Sample <- smplsMap2$New
+  compGrps <- unique(grpsMap2$Comparison_group)
   Factors2 <- c("Group")
   Factors <- c("Sample", "Replicate", Factors2)
   for (fct in Factors) {
-    assign(paste0(fct, "_"), as.factor(smplsMap[[fct]]))
+    assign(paste0(fct, "_"), as.factor(smplsMap2[[fct]]))
   }
   if (Nested) {
     designCall <- paste0("designMatr <- model.matrix(~0 + Replicate_ + ", paste0(Factors2, "_", collapse = " + "), ")")
@@ -1625,7 +1632,7 @@ if (statTsts) {
   # Define contrasts
   expContrasts <- list()
   for (ratGrp in compGrps) {
-    em <- smplsMap[which(smplsMap$Comparison_group == ratGrp),]
+    em <- smplsMap2[which(smplsMap2$Comparison_group == ratGrp),]
     grp1 <- unique(em$Group[which(!em$Reference)])
     grp0 <- unique(em$Group[which(em$Reference)])
     expContrasts[[ratGrp]] <- plyr::rbind.fill(lapply(grp0, function(g0) { data.frame(x1 = paste0("Group_", grp1), x0 = paste0("Group_", g0)) }))
@@ -1672,8 +1679,8 @@ if (statTsts) {
     # First calculate mean per group
     for (grp in Groups) { #grp <- Groups[1] #grp <- Groups[2]
       #cat(" - Mean intensities ", grp, "\n")
-      w <- which(smplsMap$Group == grp)
-      e1 <- smplsMap[w,]
+      w <- which(smplsMap2$Group == grp)
+      e1 <- smplsMap2[w,]
       stopifnot(length(unique(e1$New)) == length(e1$New))
       smpls1 <- e1$New
       col1 <- paste0(logIntRoot[intType], smpls1)
@@ -1697,7 +1704,7 @@ if (statTsts) {
     if (Nested) {
       for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[1] #contr <- colnames(contrMatr)[2]
         tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
-        e <- smplsMap[which(smplsMap$Group %in% tmp),]
+        e <- smplsMap2[which(smplsMap2$Group %in% tmp),]
         uRps <- unique(e$Replicate)
         rps <- lapply(uRps, function(x) {
           x0 <- e$New[which((e$Replicate == x)&(e$Reference))]
@@ -1728,9 +1735,9 @@ if (statTsts) {
         (myData[[paste0("Mean ", logIntRoot[intType], x[1])]] - myData[[paste0("Mean ", logIntRoot[intType], x[2])]])/log10(2)
       }))
     }
-    #View(myData[, c(paste0(logIntRoot[intType], smplsMap$Sample), paste0(ratRoot, gsub("Group_", "", colnames(contrMatr))))])
+    #View(myData[, c(paste0(logIntRoot[intType], smplsMap2$Sample), paste0(ratRoot, gsub("Group_", "", colnames(contrMatr))))])
     #
-    tempVal <- myData[, paste0(logIntRoot[intType], smplsMap$Sample)]
+    tempVal <- myData[, paste0(logIntRoot[intType], smplsMap2$Sample)]
     fit <- lmFit(tempVal, designMatr) # It's a nested design
     fit <- contrasts.fit(fit, contrMatr)
     fit <- eBayes(fit) # Assumes 1% of genes change!!!
@@ -1820,16 +1827,16 @@ if (statTsts) {
 
 # Specific peptides/sites
 for (cmpGrp in compGrps) { #cmpGrp <- compGrps[1]
-  grps <- unique(grpsMap$Group[which(grpsMap$Comparison_group == cmpGrp)])
-  grps2smpls <- setNames(lapply(grps, function(grp) { unique(smplsMap$New[which(smplsMap$Group == grp)]) }), grps)
+  grps <- unique(grpsMap2$Group[which(grpsMap2$Comparison_group == cmpGrp)])
+  grps2smpls <- setNames(lapply(grps, function(grp) { unique(smplsMap2$New[which(smplsMap2$Group == grp)]) }), grps)
   grps2kol <- setNames(lapply(grps2smpls, function(x) { paste0(intRoot[intType], x) }), grps)
   stopifnot(sum(!unlist(grps2kol) %in% colnames(pep)) == 0,
             sum(!unlist(grps2kol) %in% colnames(Sites)) == 0)
   for (grp1 in grps) { #grp1 <- grps[1]
     k1 <- grps2kol[[grp1]]
-    tst <- grpsMap$Reference[match(grp1, grpsMap$Group)]
+    tst <- grpsMap2$Reference[match(grp1, grpsMap2$Group)]
     # This will mean comparing to reference
-    grp0 <- grpsMap$Group[which((grpsMap$Comparison_group == cmpGrp)&(grpsMap$Reference != tst))]
+    grp0 <- grpsMap2$Group[which((grpsMap2$Comparison_group == cmpGrp)&(grpsMap2$Reference != tst))]
     k0 <- unlist(grps2kol[grp0])
     pep[[paste0("Specific - ", grp1)]] <- vapply(1:nrow(pep), function(i) {
       x1 <- is.all.good(as.numeric(pep[i, k1]))
@@ -1848,13 +1855,14 @@ for (cmpGrp in compGrps) { #cmpGrp <- compGrps[1]
 
 # Write tables
 # - Peptides
-smplsMap2 <- smplsMap[order(smplsMap$Comparison_group,
+smplsMap3 <- smplsMap[order(smplsMap$Comparison_group,
                             smplsMap$Group,
                             smplsMap$Replicate),]
-smpls2 <- unique(smplsMap2$New)
-Groups2 <- unique(smplsMap2$Group)
-kol <- c(paste0(intRoot[intType], smpls2),
-         paste0("Specific - ", Groups2))
+smpls3 <- unique(smplsMap3$New)
+Groups3 <- unique(smplsMap3$Group)
+kol <- c(paste0(intRoot[intType], smpls3),
+         paste0("Specific - ", Groups3))
+kol <- kol[which(kol %in% colnames(pep))]
 tmp <- pep[which(pep$`Histone(s)` != ""),]
 tmp$Modifications <- gsub(",", ";", tmp$`Modified sequence`)
 tmp <- tmp[, c(colnames(tmp)[which(!colnames(tmp) %in% kol)], kol)]
@@ -1889,7 +1897,7 @@ if (length(Exp) > 1) {
   #
   ImputeKlust <- TRUE
   MaxHClust <- min(c(floor(nrow(pep)/2), 100)) # We want at most 20 clusters
-  MaxVClust <- nrow(grpsMap)
+  MaxVClust <- nrow(grpsMap2)
   VClustScl <- setNames(1:MaxVClust, paste0("Cluster", 1:MaxVClust))
   HClustScl <- setNames(1:MaxHClust, paste0("Cluster", 1:MaxHClust))
   VClustScl <- setNames(rainbow(MaxVClust), VClustScl)
@@ -2327,8 +2335,11 @@ for (k in colnames(tmp)) {
 }
 write.csv(tmp, paste0(dstDir, "/Mods table.csv"), row.names = FALSE)
 
-# Done!
 ScriptPath <- normalizePath(gtools::script_file(), winslash = "/")
 if (dirname(ScriptPath) != dstDir) { file.copy(ScriptPath, dstDir, overwrite = TRUE) }
 saveImgFun(backupFl)
 openwd(dstDir)
+
+###################################################################################
+#                                 Et voilà, done!                                 #
+###################################################################################
