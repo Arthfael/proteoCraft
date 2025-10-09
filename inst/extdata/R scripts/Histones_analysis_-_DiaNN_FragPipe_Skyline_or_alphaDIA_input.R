@@ -142,7 +142,7 @@ if (inputType == "FragPipe") {
                     FP_ManifestFl)
     FP_ManifestFl <- gsub(" +$", "", dlg_list(opt, opt[1], title = msg)$res)
   }
-  FP2MQ <- FP_to_MQ(FP_WorkflowFl, FP_ManifestFl, cl = parClust)
+  FP2MQ <- FP_to_MQ(FP_WorkflowFl, FP_ManifestFl, FailIfNoQuant = TRUE, cl = parClust)
   ev <- FP2MQ$Evidence
   ev$`Raw file name` <- ev$`Raw file`
   #
