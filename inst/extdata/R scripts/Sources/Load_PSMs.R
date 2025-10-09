@@ -85,6 +85,8 @@ safe_listFls %<o% function(path,
   out <- gsub("\\\\", "/", out)
   return(out)
 }
+
+# Now to loading us some PSMs!
 # Process sequentially all input directories
 for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
   cat(paste0("Processing input folder",
@@ -792,6 +794,10 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       cat(" -> Done!\n")
     }
     ev_i <- ev_FP2MQ$Evidence
+    if (!"Intensity" %in% colnames(ev_i)) {
+      stop(paste0("You did not tick any compatible quantitation method in the Fragpipe search in folder \"",
+                  inDirs[dir_i], "\".\nIf you know that the search did include quantitation, then function FP_to_MQ() needs an update.\nOtherwise, rerun the search with quantitation turned on and try again."))
+    }
     ev_i$Search_ID <- inDirs[dir_i]
     mods_i <- ev_FP2MQ$PTMs
     fpManifest_i <- ev_FP2MQ$FracMap
@@ -1147,6 +1153,7 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
   }
   if (SearchSoft[dir_i] == "PROTEOMEDISCOVERER") { stop("This part has not yet been re-written for Proteome Discoverer!") }
   if (SearchSoft[dir_i] == "ALPHADIA") { stop("This part has not yet been re-written for alphaDIA!") }
+  if (SearchSoft[dir_i] == "SKYLINE") { stop("This part has not yet been re-written for Skyline (besides, would you really want to use Skyline for this?)") }
   cat("\n\n")
 }
 #
