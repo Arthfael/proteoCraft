@@ -521,7 +521,7 @@ FP_to_MQ <- function(FP_Workflow,
             "Calculated Peptide Mass", "Calculated M/Z", "Delta Mass", "Expectation", "Hyperscore", "Nextscore",
             "PeptideProphet Probability", "Intensity", "Best Score with Delta Mass", "Best Score without Delta Mass")
   kols <- kols[which(kols %in% colnames(PSMs))]
-  if ((FailIfNoQuant)&&((!"Intensity" %in% kols)||(!length(proteoCraft::is.all.good(PSMs$Intensity))))) {
+  if ((FailIfNoQuant)&&((!"Intensity" %in% kols)||(!length(proteoCraft::is.all.good(PSMs$Intensity)))||(!sum(PSMs$Intensity, na.rm = TRUE)))) {
     if (isTMT) {
       warning("No MS1 quantitative information identified in PSMs table! Using sum of reporter intensities!")
       PSMs$Intensity <- rowSums(PSMs[, tmtKols, drop = FALSE], na.rm = TRUE)
