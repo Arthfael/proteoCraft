@@ -619,7 +619,7 @@ if (length(pc1$rotation)) {
     rownames(scores1) <- NULL
     pv1 <- round(100*(pc1$sdev)^2 / sum(pc1$sdev^2), 0)
     pv1 <- pv1[which(pv1 > 0)]
-    pv1 <- paste0("Original: ", paste(vapply(1:length(pv1), function(x) {
+    pv1_ <- paste0("Original: ", paste(vapply(1:length(pv1), function(x) {
       paste0("PC", x, ": ", pv1[x], "%")
     }, ""), collapse = ", "))
     w <- which(vapply(VPAL$names, function(x) { length(unique(scores1[[x]])) }, 1) > 1)
@@ -629,17 +629,24 @@ if (length(pc1$rotation)) {
     outlierAnnot_shape %<o% "Replicate"
     outlierAnnot_color %<o% "Samples_group"
     ttl <- "PCA plot - Preliminary - peptide level"
-    plot <- ggplot(scores1) +
-      geom_point(aes(x = PC1, y = PC2, colour = .data[[outlierAnnot_color]], shape = .data[[outlierAnnot_shape]])) +
+    xLab <- paste0("PC1 = ", pv1[1], "%")
+    yLab <- paste0("PC2 = ", pv1[2], "%")
+    plot <- ggplot(scores1, aes(x = PC1, y = PC2, colour = .data[[outlierAnnot_color]])) +
+      geom_point(aes(shape = .data[[outlierAnnot_shape]])) +
+      ggpubr::stat_conf_ellipse(aes(fill = .data[[outlierAnnot_color]]),
+                                alpha = 0.2, geom = "polygon", show.legend = FALSE) +
       scale_color_viridis_d(begin = 0.25) +
       coord_fixed() + theme_bw() +
+      xlab(xLab) + ylab(yLab) +
       geom_hline(yintercept = 0, colour = "black") + geom_vline(xintercept = 0, colour = "black") +
-      ggtitle(ttl, subtitle = pv1) +
-      geom_text_repel(aes(x = PC1, y = PC2, label = Label, colour = Samples_group),
-                      size = 2.5, show.legend = FALSE)
+      ggtitle(ttl#, subtitle = pv1_
+              ) +
+      geom_text_repel(aes(label = Label), size = 2.5, show.legend = FALSE)
     #poplot(plot)
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    suppressMessages({
+      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    })
     ReportCalls <- AddPlot2Report()
     Symb <- rep(c("circle", "diamond", "square", "cross", "x"), max(as.numeric(Rep)))[1:max(as.numeric(Rep))]             
     Symb <- Symb[as.numeric(scores1[[outlierAnnot_shape]])]
@@ -808,10 +815,12 @@ pepHtmp %<o% function(intProt = prot.list_pep,
             ggplot2::xlab(NULL) + ggplot2::ylab(NULL) + ggplot2::theme(legend.position = "none") +
             ggplot2::xlim(Xlim[1], Xlim[2]) + ggplot2::ylim(Ylim[1], Ylim[2])
           #proteoCraft::poplot(heatmap.plot)
-          ggplot2::ggsave(paste0(dstDir, "/", ttl, ".jpeg"), heatmap.plot,
-                          dpi = 600, width = 20, height = 12, units = "in")
-          ggplot2::ggsave(paste0(dstDir, "/", ttl, ".pdf"), heatmap.plot,
-                          dpi = 600, width = 20, height = 12, units = "in")
+          suppressMessages({
+            ggplot2::ggsave(paste0(dstDir, "/", ttl, ".jpeg"), heatmap.plot,
+                            dpi = 600, width = 20, height = 12, units = "in")
+            ggplot2::ggsave(paste0(dstDir, "/", ttl, ".pdf"), heatmap.plot,
+                            dpi = 600, width = 20, height = 12, units = "in")
+          })
           #system(paste0("open \"", dstDir, "/", ttl, ".jpeg", "\""))
           #system(paste0("open \"", dstDir, "/", ttl, ".pdf", "\""))
         }
@@ -864,8 +873,10 @@ pepPlotFun %<o% function(df1,
   plot <- plot + geom_vline(xintercept = ntrcpt, linetype = "dashed")
   print(plot) # This type of QC plot does not need to pop up, the side panel is fine
   if (save) {
-    ggsave(paste0(dir[1], "/", ttl, ".jpeg"), plot, dpi = 150)
-    ggsave(paste0(dir[1], "/", ttl, ".pdf"), plot, dpi = 150)
+    suppressMessages({
+      ggsave(paste0(dir[1], "/", ttl, ".jpeg"), plot, dpi = 150)
+      ggsave(paste0(dir[1], "/", ttl, ".pdf"), plot, dpi = 150)
+    })
   }
 }
 
@@ -1041,8 +1052,10 @@ plot <- ggplot(temp) +
 if (facets) { plot <- plot + facet_grid(form) }
 #poplot(plot, 12, 22)
 print(plot)
-ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+suppressMessages({
+  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+})
 ReportCalls <- AddPlot2Report()
 
 # Create peptide-level Ref-to-Ref ratios (useful for PTMs analysis):
@@ -1079,10 +1092,12 @@ if (("Ratios.Thresholds" %in% colnames(Param))&&(Param$Ratios.Thresholds == thre
     #facet_grid(`Ratios group` ~ `#`)
     facet_grid(.~`Ratios group`)
   print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150, width = 4*(length(unique(temp$"Ratios group"))+1),
-         height = 10, units = "in")
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150, width = 4*(length(unique(temp$"Ratios group"))+1),
-         height = 10, units = "in")
+  suppressMessages({
+    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150, width = 4*(length(unique(temp$"Ratios group"))+1),
+           height = 10, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150, width = 4*(length(unique(temp$"Ratios group"))+1),
+           height = 10, units = "in")
+  })
   ReportCalls <- AddPlot2Report()
 }
 
@@ -1220,8 +1235,12 @@ if (Param$Norma.Pep.Ratio) {
           ggtitle(ttl)
         if (length(unique(temp$Wrap)) > 1) { plot <- plot + facet_wrap(~Wrap) }
         print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-        ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-        ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+        suppressMessages({
+          ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".jpeg"), plot,
+                 dpi = 300, width = 10, height = 10, units = "in")
+          ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".pdf"), plot,
+                 dpi = 300, width = 10, height = 10, units = "in")
+        })
         ReportCalls <- AddPlot2Report(Title = ttl)
       } else { warning(paste0("Nothing to plot for level ", i)) }
     }
@@ -1252,8 +1271,12 @@ if (Param$Norma.Pep.Ratio) {
         facet_wrap(~Ratios.Group, scales = "free") +
         ggtitle(ttl)
       print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-      ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-      ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+      suppressMessages({
+        ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".jpeg"), plot,
+                 dpi = 300, width = 10, height = 10, units = "in")
+        ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".pdf"), plot,
+               dpi = 300, width = 10, height = 10, units = "in")
+      })
       ReportCalls <- AddPlot2Report(Title = ttl)
       #DatAnalysisTxt <- paste0(DatAnalysisTxt, " Peptide ratios were then re-normalized.")
     } else { warning("Nothing to plot for Reference-to-Reference ratios!") }
@@ -1357,8 +1380,10 @@ print(plot) # This type of QC plot does not need to pop up, the side panel is fi
 dir <- paste0(wd, "/Summary plots")
 dirlist<- unique(c(dirlist, dir))
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 300)
-ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300)
+suppressMessages({
+  ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 300)
+  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300)
+})
 
 source(parSrc, local = FALSE)
 tmp1 <- strsplit(pep$Proteins, ";")
@@ -2200,8 +2225,10 @@ if (QuantMethods_all) {
       coord_fixed() + theme_bw() + facet_grid(form) + xlab(comb[i, 1]) + ylab(comb[i, 2]) + ggtitle(ttl1)
     #poplot(plot1, 12, 20)
     ttl1a <- gsub("\\:", " -", ttl1)
-    ggsave(paste0(dir, "/", ttl1a, ".jpeg"), plot1, dpi = 300)
-    ggsave(paste0(dir, "/", ttl1a, ".pdf"), plot1, dpi = 300)
+    suppressMessages({
+      ggsave(paste0(dir, "/", ttl1a, ".jpeg"), plot1, dpi = 300)
+      ggsave(paste0(dir, "/", ttl1a, ".pdf"), plot1, dpi = 300)
+    })
     ReportCalls <- AddPlot2Report(Plot = plot1, Title = ttl1a)
     ttl2 <- paste0("LFQ method comparison (renormalized): ", comb[i, 1], " VS ", comb[i, 2])
     plot2 <- ggplot(tmp1) +
@@ -2211,8 +2238,10 @@ if (QuantMethods_all) {
       coord_fixed() + theme_bw() + facet_grid(form) + xlab(comb[i, 1]) + ylab(comb[i, 2]) + ggtitle(ttl2)
     print(plot2) # This type of QC plot does not need to pop up, the side panel is fine
     ttl2a <- gsub("\\:", " -", ttl1)
-    ggsave(paste0(dir, "/", ttl2a, ".jpeg"), plot2, dpi = 300)
-    ggsave(paste0(dir, "/", ttl2a, ".pdf"), plot2, dpi = 300)
+    suppressMessages({
+      ggsave(paste0(dir, "/", ttl2a, ".jpeg"), plot2, dpi = 300)
+      ggsave(paste0(dir, "/", ttl2a, ".pdf"), plot2, dpi = 300)
+    })
     ReportCalls <- AddPlot2Report(Plot = plot2, Title = ttl2a)
   }
   for (meth in QuantMethods) {
@@ -2230,8 +2259,10 @@ if (QuantMethods_all) {
     theme(strip.text.y.right = element_text(angle = 0))
   print(plot) # This type of QC plot does not need to pop up, the side panel is fine
   ttla <- gsub(":", " -", ttl)
-  ggsave(paste0(dir, "/", ttla, ".jpeg"), plot, dpi = 300)
-  ggsave(paste0(dir, "/", ttla, ".pdf"), plot, dpi = 300)
+  suppressMessages({
+    ggsave(paste0(dir, "/", ttla, ".jpeg"), plot, dpi = 300)
+    ggsave(paste0(dir, "/", ttla, ".pdf"), plot, dpi = 300)
+  })
   ReportCalls <- AddPlot2Report(Title = ttla)
 }
 ReportCalls$Calls <- append(ReportCalls$Calls,
@@ -2630,8 +2661,10 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
     nrmPlots[["PG_int"]] <- list(Path = paste0(dirPG, "/", ttlI1),
                                  Plot = plotEval(intPlot1),
                                  Ext = "jpeg")
-    #ggsave(paste0(dirPG, "/", ttlI1, ".jpeg"), intPlot1, dpi = 300)
-    #ggsave(paste0(dirPG, "/", ttlI1, ".pdf"), intPlot1, dpi = 300)
+    #suppressMessages({
+    #  ggsave(paste0(dirPG, "/", ttlI1, ".jpeg"), intPlot1, dpi = 300)
+    #  ggsave(paste0(dirPG, "/", ttlI1, ".pdf"), intPlot1, dpi = 300)
+    #})
     #ReportCalls <- AddPlot2Report(Plot = intPlot1, Title = ttlI1)
     #
     # - PG ratios
@@ -2662,8 +2695,10 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
     nrmPlots[["PG_rat"]] <- list(Path = paste0(dirPG, "/", ttlR1),
                                  Plot = plotEval(ratPlot1),
                                  Ext = "jpeg")
-    #ggsave(paste0(dirPG, "/", ttlR1, ".jpeg"), ratPlot1, dpi = 300)
-    #ggsave(paste0(dirPG, "/", ttlR1, ".pdf"), ratPlot1, dpi = 300)
+    #suppressMessages({
+    #  ggsave(paste0(dirPG, "/", ttlR1, ".jpeg"), ratPlot1, dpi = 300)
+    #  ggsave(paste0(dirPG, "/", ttlR1, ".pdf"), ratPlot1, dpi = 300)
+    #})
     #ReportCalls <- AddPlot2Report(Plot = ratPlot1, Title = ttlR1)
     #
     # - Peptide intensities
@@ -2695,8 +2730,10 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
     nrmPlots[["Pep_int"]] <- list(Path = paste0(dirPep, "/", ttlI2),
                                   Plot = plotEval(intPlot2),
                                   Ext = "jpeg")
-    #ggsave(paste0(dirPep, "/", ttlI2, ".jpeg"), intPlot2, dpi = 300)
-    #ggsave(paste0(dirPep, "/", ttlI2, ".pdf"), intPlot2, dpi = 300)
+    #suppressMessages({
+    #  ggsave(paste0(dirPep, "/", ttlI2, ".jpeg"), intPlot2, dpi = 300)
+    #  ggsave(paste0(dirPep, "/", ttlI2, ".pdf"), intPlot2, dpi = 300)
+    #})
     #ReportCalls <- AddPlot2Report(Plot = intPlot2, Title = ttlI2)
     #
     # - Peptides ratios
@@ -2727,8 +2764,10 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
     nrmPlots[["Pep_rat"]] <- list(Path = paste0(dirPep, "/", ttlR2),
                                   Plot = plotEval(ratPlot2),
                                   Ext = "jpeg")
-    #ggsave(paste0(dirPep, "/", ttlR2, ".jpeg"), ratPlot2, dpi = 300)
-    #ggsave(paste0(dirPep, "/", ttlR2, ".pdf"), ratPlot2, dpi = 300)
+    #suppressMessages({
+    #  ggsave(paste0(dirPep, "/", ttlR2, ".jpeg"), ratPlot2, dpi = 300)
+    #  ggsave(paste0(dirPep, "/", ttlR2, ".pdf"), ratPlot2, dpi = 300)
+    #})
     #ReportCalls <- AddPlot2Report(Plot = ratPlot2, Title = ttlR2)
     #
     nrmPlots2 <- lapply(nrmPlots, function(x) {
@@ -2737,7 +2776,11 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
     })
     nrmPlots <- c(nrmPlots, nrmPlots2)
     # Save plots
-    tst <- parLapply(parClust, nrmPlots, function(x) { ggplot2::ggsave(paste0(x$Path, ".", x$Ext), x$Plot, dpi = 300) })
+    tst <- parLapply(parClust, nrmPlots, function(x) {
+      suppressMessages({
+        ggplot2::ggsave(paste0(x$Path, ".", x$Ext), x$Plot, dpi = 300)
+      })
+    })
     #
     if (exists("acceptPGNorm")) {
       acceptPGNorm <- as.logical(acceptPGNorm)
@@ -2872,8 +2915,10 @@ if (length(a) == 1) { plot <- plot + facet_wrap(as.formula(paste0("~", a))) } el
   plot <- plot + facet_grid(as.formula(paste0(a[1], "~", paste(a[2:length(a)], collapse = "+"))))
 }
 print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150, width = 10, height = 10, units = "in")
-ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150, width = 10, height = 10, units = "in")
+suppressMessages({
+  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150, width = 10, height = 10, units = "in")
+  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150, width = 10, height = 10, units = "in")
+})
 ReportCalls <- AddPlot2Report()
 #
 # Test ratio values:
@@ -2929,8 +2974,10 @@ if (length(a) == 1) { plot <- plot + facet_wrap(as.formula(paste0("~", a))) } el
   plot <- plot + facet_grid(as.formula(paste0(a[1], "~", paste(a[2:length(a)], collapse = "+"))))
 }
 print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150, width = 10, height = 10, units = "in")
-ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150, width = 10, height = 10, units = "in")
+suppressMessages({
+  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150, width = 10, height = 10, units = "in")
+  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150, width = 10, height = 10, units = "in")
+})
 ReportCalls <- AddPlot2Report()
 
 # For Sub-cellular localisation analysis
@@ -3099,8 +3146,10 @@ if (LocAnalysis) {
     if (i == 2) {
       print(plot) # This type of QC plot does not need to pop up, the side panel is fine
     }
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    suppressMessages({
+      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    })
     ReportCalls <- AddPlot2Report()
   }
 }
@@ -3288,8 +3337,10 @@ plot <- plot +
                           strip.text.y.right = element_text(angle = 0, size = 5.5),
                           strip.text.x.top = element_text(angle = 45, size = 5.5))
 print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 600)
-ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 600)
+suppressMessages({
+  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 600)
+  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 600)
+})
 
 rm(list = ls()[which(!ls() %in% .obj)])
 invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
@@ -3477,10 +3528,12 @@ plotsList1 <- parLapply(parClust, 1:nrow(Comb), function(i) { #i <- 1
   w1 <- 5
   h1 <- w1*(length(unique(dat$Group)) + 0.5)/3
   plot1 <- plotEval(plot1)
-  ggplot2::ggsave(paste0(Img1, ".jpeg"), plot1, dpi = 150, width = w1,# height = h1,
-                  units = "in")
-  ggplot2::ggsave(paste0(Img1, ".pdf"), plot1, dpi = 150, width = w1,# height = h1,
-                  units = "in")
+  suppressMessages({
+    ggplot2::ggsave(paste0(Img1, ".jpeg"), plot1, dpi = 150, width = w1,# height = h1,
+                    units = "in")
+    ggplot2::ggsave(paste0(Img1, ".pdf"), plot1, dpi = 150, width = w1,# height = h1,
+                    units = "in")
+  })
   #system(paste0("open \"", Img1, ".jpeg\""))
   lst <- list(Plot = plot1,
               Plotly = plot1ly,
@@ -3538,8 +3591,10 @@ plot2 <- ggplot(temp) +
 Img2 <- paste0(pvalDir, "/", ttl2)
 w2 <- ((length(VPAL$values)+1)*1.25)*2
 h2 <- ((length(pvalue.col)+0.2)*1.25)*2
-ggsave(paste0(Img2, ".jpeg"), plot2, dpi = 300, width = w2, height = h2, units = "in")
-ggsave(paste0(Img2, ".pdf"), plot2, dpi = 300, width = w2, height = h2, units = "in")
+suppressMessages({
+  ggsave(paste0(Img2, ".jpeg"), plot2, dpi = 300, width = w2, height = h2, units = "in")
+  ggsave(paste0(Img2, ".pdf"), plot2, dpi = 300, width = w2, height = h2, units = "in")
+})
 #system(paste0("open \"", Img2, ".jpeg\""))
 ReportCalls <- AddPlot2Report(Title = ttl2, Dir = pvalDir)
 #
@@ -3732,8 +3787,10 @@ if (length(ROC_GOterms)) {
           geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dotted") +
           theme_bw() + ggtitle(ttl)
         poplot(plot)
-        ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300)
-        ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300)
+        suppressMessages({
+          ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300)
+          ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300)
+        })
         ReportCalls <- AddPlot2Report(Title = gsub(": ?", " - ", ttl))
       }
     }
@@ -4293,8 +4350,10 @@ if (F.test) {
       dirlist <- unique(c(dirlist, dir))
       if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
       ttla <- gsub(": ?", " - ", ttl)
-      ggsave(paste0(dir, "/", ttla, ".jpeg"), plot, dpi = 300)
-      ggsave(paste0(dir, "/", ttla, ".pdf"), plot, dpi = 300)
+      suppressMessages({
+        ggsave(paste0(dir, "/", ttla, ".jpeg"), plot, dpi = 300)
+        ggsave(paste0(dir, "/", ttla, ".pdf"), plot, dpi = 300)
+      })
       ReportCalls <- AddPlot2Report(Title = ttla)
     }
     #
@@ -4929,7 +4988,7 @@ pc <- prcomp(t(temp), scale. = TRUE)
 scores <- as.data.frame(pc$x)
 pv <- round(100*(pc$sdev)^2 / sum(pc$sdev^2), 0)
 pv <- pv[which(pv > 0)]
-pv <- paste0("Components: ", paste(sapply(1:length(pv), function(x) {
+pv_ <- paste0("Components: ", paste(sapply(1:length(pv), function(x) {
   paste0("PC", x, ": ", pv[x], "%")
 }), collapse = ", "))
 scores$Sample <- rownames(scores)
@@ -4949,16 +5008,20 @@ if (exists("Tim")) {
 } else { form <- "~Experiment" }
 ttl <- "PCA plot - Samples (PG-level)"
 if ("PC2" %in% colnames(scores)) {
-  plot <- ggplot(scores) +
-    geom_point(aes(x = PC1, y = PC2, color = Group)) +
+  xLab <- paste0("PC1 = ", pv[1], "%")
+  yLab <- paste0("PC2 = ", pv[2], "%")
+  plot <- ggplot(scores, aes(x = PC1, y = PC2)) +
+    geom_point(aes(color = Group)) +
+    ggpubr::stat_conf_ellipse(aes(fill = Group),
+                              alpha = 0.2, geom = "polygon", show.legend = FALSE) +
     scale_color_viridis_d(begin = 0.25) +
-    coord_fixed() +
+    coord_fixed() + theme_bw() +
+    xlab(xLab) + ylab(yLab) +
     geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
     geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
-    ggtitle(ttl, subtitle = pv) +
-    geom_text_repel(aes(x = PC1, y = PC2, label = Sample),
-                    size = 2.5, show.legend = FALSE) + 
-    theme_bw()
+    ggtitle(ttl#, subtitle = pv_
+            ) +
+    geom_text_repel(aes(label = Sample), size = 2.5, show.legend = FALSE)
   if (substr(form, 1, 1) == "~") { plot <- plot + facet_wrap(form) } else { plot <- plot + facet_grid(form) }
   #
   scores$"Samples group" <- factor(scores$Group)
@@ -4977,8 +5040,10 @@ if ("PC2" %in% colnames(scores)) {
     #system(paste0("open \"", dir, "/", ttl, ".html"))
     # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
   } else { poplot(plot, width = 18) }
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  suppressMessages({
+    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  })
   ReportCalls <- AddPlot2Report()
 } else { warning("PCA failed, investigate!") }
 
@@ -5131,8 +5196,10 @@ if (length(filt) > 2) {
     #system(paste0("open \"", dir, "/", ttl, ".html"))
     # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
   } else { poplot(plot, 12, 22) }
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  suppressMessages({
+    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  })
   ReportCalls <- AddPlot2Report()
   #
   msg <- "t-SNE plots, by protein group"
@@ -5165,8 +5232,10 @@ if (length(filt) > 2) {
                         size = 2.5, show.legend = FALSE)
     }
     #poplot(plot, width = 18)
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    suppressMessages({
+      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    })
     ReportCalls <- AddPlot2Report()
     plot_lytSNE <- plot_ly(temp2, x = ~`t-SNE Y1`, y = ~`t-SNE Y2`, z = ~`t-SNE Y3`, color = ~Classifier, #alpha = ~Alpha, (fails)
                            colors = col, size = ~`Av. log10 abundance`,
@@ -5212,8 +5281,10 @@ if (length(filt) > 2) {
                         size = 2.5, show.legend = FALSE)
     }
     #poplot(plot, width = 18)
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    suppressMessages({
+      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    })
     ReportCalls <- AddPlot2Report()
     plot_lyUMAP <- plot_ly(UMAPlayout, x = ~X1, y = ~X2, z = ~X3, color = ~Classifier, #alpha = ~Alpha, (fails)
                            colors = col, size = ~`Av. log10 abundance`,
@@ -5416,8 +5487,10 @@ for (QuantType in QuantTypes) { #QuantType <- "Expression"
         }
         evPlot <- plotEval(plot)
         RES <- list()
-        #ggplot2::ggsave(paste0(pth, ".jpeg"), plot, dpi = 150, width = 10, height = 10, units = "in")
-        #ggplot2::ggsave(paste0(pth, ".pdf"), plot, dpi = 150, width = 10, height = 10, units = "in")
+        #suppressMessages({
+        #  ggplot2::ggsave(paste0(pth, ".jpeg"), plot, dpi = 150, width = 10, height = 10, units = "in")
+        #  ggplot2::ggsave(paste0(pth, ".pdf"), plot, dpi = 150, width = 10, height = 10, units = "in")
+        #})
         setwd(wd)
         # RES$JPEG <- list(Plot = evPlot,
         #                  Path = paste0(SubDir, "/", ttl),
@@ -5514,8 +5587,10 @@ for (QuantType in QuantTypes) { #QuantType <- "Expression"
         evPlot <- plotEval(plot)
         #poplot(plot, 12, 22)
         pth <- paste0(SubDir, "/", ttl)
-        #ggsave(paste0(pth, ".jpeg"), plot, dpi = 150)
-        #ggsave(paste0(pth, ".pdf"), plot, dpi = 150)
+        #suppressMessages({
+        #  ggsave(paste0(pth, ".jpeg"), plot, dpi = 150)
+        #  ggsave(paste0(pth, ".pdf"), plot, dpi = 150)
+        #})
         ggProf[[QuantType]] <- list(title = ttl, path = pth, plot = evPlot, dpi = 150, width = 10, height = 10)
       }
       ReportCalls <- AddSpace2Report()
@@ -5532,15 +5607,19 @@ for (QuantType in QuantTypes) { #QuantType <- QuantTypes[1]
   tst <- parSapply(parClust, ggQuant[[QuantType]], function(x) { #x <- ggQuant[[QuantType]][[1]]
     dr <- dirname(x$path)
     if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
-    ggplot2::ggsave(paste0(x$path, ".pdf"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
-    ggplot2::ggsave(paste0(x$path, ".jpeg"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
+    suppressMessages({
+      ggplot2::ggsave(paste0(x$path, ".pdf"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
+      ggplot2::ggsave(paste0(x$path, ".jpeg"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
+    })
   })
 }
 tst <- parSapply(parClust, ggProf, function(x) {
   dr <- dirname(x$path)
   if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
-  ggplot2::ggsave(paste0(x$path, ".pdf"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
-  ggplot2::ggsave(paste0(x$path, ".jpeg"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
+  suppressMessages({
+    ggplot2::ggsave(paste0(x$path, ".pdf"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
+    ggplot2::ggsave(paste0(x$path, ".jpeg"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
+  })
 })
 for (nm in names(ggProf)) {
   ReportCalls <- AddPlot2Report(Plot = ggProf[[nm]]$plot,
@@ -5638,8 +5717,10 @@ if (exists("Tim")) {
       ggtitle(ttl) + guides(color = "none", group = "none") +
       facet_wrap(~Aggregate) +
       ylim(c(-ylim, ylim)) + theme_bw()
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 600, width = 10, height = 10, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 600, width = 10, height = 10, units = "in")
+    suppressMessages({
+      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 600, width = 10, height = 10, units = "in")
+      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 600, width = 10, height = 10, units = "in")
+    })
     ReportCalls <- AddPlot2Report()
     if (create_plotly) {
       #test <- aggregate(tmp$`log2(Ratio)`, list(tmp$IDs), function(x) {length(is.all.good(x)) == length(Tim)-1})
@@ -6112,8 +6193,10 @@ Example: \"GO:0031012;2\"
         plot <- plot + facet_grid(as.formula(paste0(a[1], "~", paste(a[2:length(a)], collapse = "+"))))
       }
       poplot(plot, 12, 22)
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150, width = 10, height = 10, units = "in")
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150, width = 10, height = 10, units = "in")
+      suppressMessages({
+        ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150, width = 10, height = 10, units = "in")
+        ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150, width = 10, height = 10, units = "in")
+      })
       ReportCalls <- AddPlot2Report()
       # Statistical test
       M <- median(unlist(PG[wNC, grep(topattern(SSD.Root), colnames(PG), value = TRUE)]))
@@ -6289,8 +6372,10 @@ Example: \"GO:0031012;2\"
                 xlab(NULL) + ylab(NULL) + #theme(legend.position = "none") +
                 xlim(-5-NCSc, max(temp$xend+1)) + ylim(0, max(temp$y+20))
               #poplot(plot, 12, 22)
-              ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150, width = 20, height = 12, units = "in")
-              ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150, width = 20, height = 12, units = "in")
+              suppressMessages({
+                ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150, width = 20, height = 12, units = "in")
+                ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150, width = 20, height = 12, units = "in")
+              })
             }
           }
         }
@@ -8180,8 +8265,10 @@ if (length(protlspep)) { # XICs
                 ggplot2::xlab("Retention time") + ggplot2::ylab("Intensity")
               #proteoCraft::poplot(plot, 12, 22)
               #
-              ggplot2::ggsave(paste0(xicDir2, "/", sq2, ".jpeg"), plot, dpi = 450, height = 10, width = 10)
-              ggplot2::ggsave(paste0(xicDir2, "/", sq2, ".pdf"), plot, height = 10, width = 10)
+              suppressMessages({
+                ggplot2::ggsave(paste0(xicDir2, "/", sq2, ".jpeg"), plot, dpi = 450, height = 10, width = 10)
+                ggplot2::ggsave(paste0(xicDir2, "/", sq2, ".pdf"), plot, height = 10, width = 10)
+              })
               return()
             }))
           }

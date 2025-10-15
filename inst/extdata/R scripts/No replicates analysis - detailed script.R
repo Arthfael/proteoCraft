@@ -318,6 +318,7 @@ if (MakeRatios) {
   if (!"Ratios group" %in% colnames(SamplesMap)) { SamplesMap$"Ratios group" <- 1 }
   if (!"Reference" %in% colnames(SamplesMap)) { SamplesMap$Reference <- FALSE }
 } else {
+  SamplesMap$"Ratios group" <- NULL
   SamplesMap$Reference <- NULL
 }
 nr <- nrow(SamplesMap)
@@ -641,8 +642,10 @@ if (PTMriched) {
       scale_fill_viridis(discrete = TRUE, option = "H", begin = 0.25, end = 0.8) + ggtitle(ttl) + 
       theme_bw() + theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1))
     poplot(plot)
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150)
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150)
+    suppressMessages({
+      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150)
+      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150)
+    })
     #
     PTMev2Remov[[ptm]] <- lapply(Exp, function(exp) { #exp <- Exp[1]
       res <- c()
@@ -1105,7 +1108,9 @@ if (runPepper) {
     scale_y_continuous(expand = c(0, 0)) +
     theme_bw() + ggtitle(ttl)
   poplot(plot)
-  ggsave(paste0(pepDir, "/", ttl, ".jpeg"), plot, dpi = 150)
+  suppressMessages({
+    ggsave(paste0(pepDir, "/", ttl, ".jpeg"), plot, dpi = 150)
+  })
   #
   tmp2 <- ev[[ref]]/tmp$"Pepper coefficient"[match(ev$"Modified sequence", tmp$ModSeq)]
   tmp2 <- tmp2*median(ev[[ref]])/median(tmp2)
@@ -1124,7 +1129,9 @@ if (runPepper) {
     scale_y_continuous(expand = c(0, 0)) +
     theme_bw() + ggtitle(ttl)
   poplot(plot)
-  ggsave(paste0(pepDir, "/", ttl, ".jpeg"), plot, dpi = 150)
+  suppressMessages({
+    ggsave(paste0(pepDir, "/", ttl, ".jpeg"), plot, dpi = 150)
+  })
   #
   # Test results ourselves
   g <- grep(";", ev$Proteins, invert = TRUE)
@@ -1295,8 +1302,10 @@ plot <- plot +
 poplot(plot)
 dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+suppressMessages({
+  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+})
 # Correlation:
 if (length(Exp) > 1) {
   temp <- pep[, c("Modified sequence", paste0(int.col, " - ", Exp))]
@@ -1387,8 +1396,10 @@ if (length(Exp) > 1) {
       theme_bw() + theme(strip.text.y = element_text(angle = 0, vjust = 0.5, hjust = 0),
                          strip.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0)) + ggtitle(ttl)
     poplot(plot)
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    suppressMessages({
+      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    })
   } else { warning("Do we really have enough data to continue? Investigate...") }
 }
 invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
@@ -1434,8 +1445,10 @@ if (MakeRatios) {
     xlab("log2(Ratio)")
   if (RatiosThresh_2sided) { plot <- plot + geom_vline(xintercept = -RatiosThresh, colour = "red") }
   poplot(plot)
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  suppressMessages({
+    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  })
 }
 
 Script <- readLines(ScriptPath)
@@ -1519,8 +1532,10 @@ poplot(plot)
 dir <- paste0(wd, "/Summary plots")
 #dirlist<- unique(c(dirlist, dir))
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 300)
-ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300)
+suppressMessages({
+  ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 300)
+  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300)
+})
 
 # Some more columns
 tmp <- strsplit(PG$"Leading protein IDs", ";")
@@ -2032,8 +2047,10 @@ if (length(Exp) > 1) {
                 size = 2, hjust = 0, vjust = 0, color = "red")
   }
   poplot(plot, 12, 20)
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  suppressMessages({
+    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  })
 }
 g <- as.character(sapply(PG.int.cols, function(x) { grep(topattern(x), colnames(PG), value = TRUE) }))
 test <- vapply(g, function(x) { length(is.all.good(PG[[x]])) }, 1)
@@ -2154,8 +2171,10 @@ if (length(M)) {
   #poplot(plot2)
   #poplot(plot3)
   #poplot(plot3a)
-  ggsave(paste0(dir, "/", ttl2, ".jpeg"), plot3a, dpi = 300, width = 10, height = 10, units = "in")
-  ggsave(paste0(dir, "/", ttl2, ".pdf"), plot3a, dpi = 300, width = 10, height = 10, units = "in")
+  suppressMessages({
+    ggsave(paste0(dir, "/", ttl2, ".jpeg"), plot3a, dpi = 300, width = 10, height = 10, units = "in")
+    ggsave(paste0(dir, "/", ttl2, ".pdf"), plot3a, dpi = 300, width = 10, height = 10, units = "in")
+  })
   leg3 <- get_legend(plot3)
   plot3 <- plot3 + theme(legend.position = "none")
   g2 <- ggplotGrob(plot2)
@@ -2170,13 +2189,17 @@ if (length(M)) {
                        padding = 5)
   plot4 <- as.ggplot(plot4)
   poplot(plot4)
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot4, dpi = 300, width = 10, height = 10, units = "in")
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot4, dpi = 300, width = 10, height = 10, units = "in")
+  suppressMessages({
+    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot4, dpi = 300, width = 10, height = 10, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".pdf"), plot4, dpi = 300, width = 10, height = 10, units = "in")
+  })
   #poplot(plot3)
 } else {
   poplot(plot)
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  suppressMessages({
+    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  })
 }
 
 # Gene-Set Enrichment Analysis (GSEA)
@@ -2247,8 +2270,10 @@ if (MakeRatios) {
     xlab("log2(Ratio)")
   if (RatiosThresh_2sided) { plot <- plot + geom_vline(xintercept = -RatiosThresh, colour = "red") }
   poplot(plot)
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  suppressMessages({
+    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  })
   # MA plots:
   temp <- long.dat$intens
   temp <- temp[which(temp$Experiment %in% long.dat$ratios$Experiment),]
@@ -2264,8 +2289,10 @@ if (MakeRatios) {
     xlab("A = mean log10(Intensity)") + ylab("M = sample log2(Ratio)") +
     theme(strip.text.y = element_text(angle = 0))
   poplot(plot)
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  suppressMessages({
+    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+  })
   # "Regulated/Enriched" columns
   ref <- rev(PG.int.cols[which(PG.int.cols != paste0("Imput. ", PG.int.cols["Original"]))])[1]
   for (grp in rat.grps) { #grp <- rat.grps[1]
@@ -2554,8 +2581,10 @@ if (MakeRatios) {
         xlab("log2(Ratio)")
       if (RatiosThresh_2sided) { plot <- plot + geom_vline(xintercept = -RatiosThresh, colour = "red") }
       poplot(plot)
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+      suppressMessages({
+        ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+        ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+      })
       #
       # Gene-Set Enrichment Analysis (GSEA)
       if (runGSEA) {
@@ -2643,8 +2672,10 @@ plot <- ggplot(tmp) + geom_bar(stat = "identity", aes(x = Experiment, y = `Total
   theme_bw() + scale_fill_viridis(discrete = TRUE, begin = 0.8, end = 0.2) +
   ggtitle(ttl, subtitle = "Summed TIC for each class of identified peptides")
 poplot(plot)
-ggsave(paste0(wd, "/Summary plots/", ttl, ".jpeg"), plot, dpi = 150, width = 10, height = 10, units = "in")
-ggsave(paste0(wd, "/Summary plots/", ttl, ".pdf"), plot, dpi = 150, width = 10, height = 10, units = "in")
+suppressMessages({
+  ggsave(paste0(wd, "/Summary plots/", ttl, ".jpeg"), plot, dpi = 150, width = 10, height = 10, units = "in")
+  ggsave(paste0(wd, "/Summary plots/", ttl, ".pdf"), plot, dpi = 150, width = 10, height = 10, units = "in")
+})
 
 # Test for amino acid biases:
 Src <- paste0(libPath, "/extdata/R scripts/Sources/AA_biases_test.R")
@@ -3069,8 +3100,10 @@ if (Venn_Obs) {
       plot <- plot + ggtitle("Venn diagram", subtitle = "Global, LFQ") +
         theme(plot.title = element_text(size = 15), plot.subtitle = element_text(size = 10))
       poplot(plot)
-      ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 150)
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150)
+      suppressMessages({
+        ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 150)
+        ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150)
+      })
       #system(paste0("open \"", dir, "/", ttl, ".jpg", "\""))
       wbKount <- wbKount+1
       if (SheetNm %in% names(wb)) { removeWorksheet(wb, SheetNm) } 
@@ -3165,8 +3198,10 @@ if (Venn_Ratios) {
             plot <- plot + ggtitle("Venn diagram", subtitle = sbttl) +
               theme(plot.title = element_text(size = 15), plot.subtitle = element_text(size = 10))
             poplot(plot)
-            ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 150)
-            ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150)
+            suppressMessages({
+              ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 150)
+              ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150)
+            })
             #system(paste0("open \"", dir, "/", ttl, ".jpg", "\""))
             wbKount <- wbKount+1
             if (SheetNm %in% names(wb)) { removeWorksheet(wb, SheetNm) } 
@@ -3244,8 +3279,10 @@ if (length(Exp) > 2) {
       if ("try-error" %in% class(tst)) { tst <- try(saveWidget(plot_lyPCA, paste0(wd, "/PCA plots/", ttl, ".html")), silent = TRUE) }
       if (!"try-error" %in% class(tst)) { system(paste0("open \"", wd, "/PCA plots/", ttl, ".html")) }
     } else { poplot(plot, width = 18) }
-    ggsave(paste0(wd, "/PCA plots/", ttl, ".jpeg"), plot, dpi = 150)
-    ggsave(paste0(wd, "/PCA plots/", ttl, ".pdf"), plot, dpi = 150)
+    suppressMessages({
+      ggsave(paste0(wd, "/PCA plots/", ttl, ".jpeg"), plot, dpi = 150)
+      ggsave(paste0(wd, "/PCA plots/", ttl, ".pdf"), plot, dpi = 150)
+    })
     ## 2/ Protein groups level:
     pc <- prcomp(temp, scale. = TRUE)
     scores <- as.data.frame(pc$x)
@@ -3284,8 +3321,10 @@ if (length(Exp) > 2) {
     if ((prot.list.Cond)&&(length(g1)))
       plot <- plot + geom_point(data = scores2, colour = "red", shape = 2, aes(x = PC1, y = PC2, text = `Protein group`))
   }
-  ggsave(paste0(wd, "/PCA plots/", ttl, ".jpeg"), plot, dpi = 150)
-  ggsave(paste0(wd, "/PCA plots/", ttl, ".pdf"), plot, dpi = 150)
+  suppressMessages({
+    ggsave(paste0(wd, "/PCA plots/", ttl, ".jpeg"), plot, dpi = 150)
+    ggsave(paste0(wd, "/PCA plots/", ttl, ".pdf"), plot, dpi = 150)
+  })
   if ("PC3" %in% colnames(scores)) {
     plot_lyPCAProt <- plot_ly(scores, x = ~PC1, y = ~PC2, z = ~PC3, color = ~Direction, text = ~`Protein group`,
                               type = "scatter3d", mode = "markers", showlegend = FALSE, marker = list(size = 1))
@@ -3307,8 +3346,10 @@ if (length(Exp) > 2) {
                                    aes(x = PC1, y = PC2, label = `Protein group`))
   }
   #poplot(plot, width = 18)
-  ggsave(paste0(wd, "/PCA plots/", ttl, " (labels).jpeg"), plot, dpi = 150)
-  ggsave(paste0(wd, "/PCA plots/", ttl, " (labels).pdf"), plot)
+  suppressMessages({
+    ggsave(paste0(wd, "/PCA plots/", ttl, " (labels).jpeg"), plot, dpi = 150)
+    ggsave(paste0(wd, "/PCA plots/", ttl, " (labels).pdf"), plot)
+  })
 } else { warning("No PCA plots drawn: samples are too similar!") }
 
 #### Code chunk - Heatmaps with clustering at samples and protein groups level, highlighting proteins of interest
@@ -3509,7 +3550,9 @@ if (plotPepProf) {
         ggplot2::geom_text(data = temp[filt,], angle = 45, hjust = 0, cex = 3.5, show.legend = FALSE,
                            ggplot2::aes(Peptide_ID, y, colour = .data[[catnm]], label = `Peptide ID`))
       #poplot(plot, 12, 22)
-      ggplot2::ggsave(filename = flPath, plot, dpi = 600, width = 30, height = 10, units = "in")
+      suppressMessages({
+        ggplot2::ggsave(filename = flPath, plot, dpi = 600, width = 30, height = 10, units = "in")
+      })
     }
     if (fileType == "html") {
       plot_ly <- plotly::ggplotly(plot, tooltip = c("Peptide_ID", "text"))
@@ -3596,7 +3639,9 @@ if (plotPepProf) {
           ggplot2::geom_text(data = temp[wTxt,], ggplot2::aes(label = `Peptide ID`, x = Sample, y = Y, alpha = Alpha, color = id),
                              hjust = 0, cex = 2)
         #proteoCraft::poplot(plot, 12, 22)
-        ggplot2::ggsave(filename = flPath, plot, dpi = 600, width = 30, height = 10, units = "in")
+        suppressMessages({
+          ggplot2::ggsave(filename = flPath, plot, dpi = 600, width = 30, height = 10, units = "in")
+        })
       }
       if (fileType == "html") {
         plot_ly <- plotly::ggplotly(plot, tooltip = c("Peptide_ID", "text")) # Super slowwwwww
@@ -4386,8 +4431,12 @@ if ((length(Exp) > 1)&&(!is.null(prot.list))&&(length(prot.list))) {
           xlab(NULL) + ylab(NULL) + theme(legend.position = "none") +
           xlim(Xlim[1], Xlim[2]) + ylim(Ylim[1], Ylim[2])
         poplot(heatmap.plot)
-        ggsave(paste0(dir, "/", ttl, ".jpeg"), heatmap.plot, dpi = 600, width = 20, height = 12, units = "in")
-        ggsave(paste0(dir, "/", ttl, ".pdf"), heatmap.plot, dpi = 600, width = 20, height = 12, units = "in")
+        suppressMessages({
+          ggsave(paste0(dir, "/", ttl, ".jpeg"), heatmap.plot,
+                 dpi = 600, width = 20, height = 12, units = "in")
+          ggsave(paste0(dir, "/", ttl, ".pdf"), heatmap.plot,
+                 dpi = 600, width = 20, height = 12, units = "in")
+        })
         #system(paste0("open \"", dir, "/", ttl, ".jpeg", "\""))
         #system(paste0("open \"", dir, "/", ttl, ".pdf", "\""))
       }
