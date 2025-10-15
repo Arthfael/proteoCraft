@@ -10,34 +10,40 @@ FDR(
   pvalue_root,
   pvalue_col,
   fdr,
-  returns = c(TRUE, FALSE),
-  method = "BH"
+  returns = c(TRUE, FALSE, FALSE),
+  method = "BH",
+  SIMPLIFY = TRUE
 )
 }
 \arguments{
 \item{data}{The dataframe that contains the values.}
 
-\item{aggregate}{The current aggregate to be pasted to the root of P-value column names to create the column name.}
+\item{aggregate}{The aggregate of experimental factor levels (e.g. "Exp1___KO___Treated") to be pasted to the root of P-value column names to create the column name.}
 
-\item{pvalue_root}{The root of the name of the P-values column. Default = "Ratio_Minus.log10.Pvalue." If the tag "log10" is found in that name, P-values will assume to be -log10 transformed and will be reverse transformed accordingly.}
+\item{pvalue_root}{The root of the name of the P-values column. If the tag "-log10" is found in that name, P-values will assume to be -log10 transformed and will be reverse transformed accordingly.}
 
 \item{pvalue_col}{Alternatively to the method of constructing a P-values column name used above, you may simply provide its name with this argument.}
 
-\item{fdr}{The acceptable False Discovery Rate values.}
+\item{fdr}{Vector of acceptable False Discovery Rate values. Should be in the 0-1 range - but if any value is larger than 1 the function will automatically divide values by 100 (and throw an error if values are not now in the 0-1 range). Only required if returning a vector of significance or threshold values, see returns argument.}
 
-\item{returns}{Default = c(TRUE, FALSE) Set first to TRUE to output vector of significance; set second to TRUE to output threshold values (NB: these are not-log transformed).}
+\item{returns}{Logical vector of length 3. Default = c(TRUE, FALSE, FALSE).\cr
+- Set the first value to TRUE to output a vector of significance for each value in fdr (hence, this requires the fdr argument).\cr
+- Set the second to TRUE to output threshold values (NB: these are not-log transformed) for each value in fdr (hence, this requires the fdr argument).\cr
+- Set the third to TRUE to get the adjusted p-values.\cr}
 
-\item{method}{The method to use. Default = "BH" for Benjamini-Hochberg. Alternatively use "BY" for Benjamini-Yekutieli.}
+\item{method}{Which method to use. Default = "BH" for Benjamini-Hochberg. Alternatively use "BY" for Benjamini-Yekutieli.}
+
+\item{SIMPLIFY}{Logical. Simplify the output from a list into a single object, if the output is a list of length 1? Default = TRUE although this will possibly move to FALSE in the future.}
 }
 \description{
 A function to calculate FDR thresholds and assess P-value significance.
 Default is the Benjamini-Hochberg procedure.
-Can also do the Benjamini-Yekutieli procedure under positive dependence assumptions.
+Can also do the Benjamini-Yekutieli procedure - when under positive dependence assumptions.
 }
 \examples{
 temp <- FDR(data = PG,
             aggregate,
-            pvalue_root = "Ratio_Minus.log10.Pvalue.",
+            pvalue_root = "-log10 Pvalue.",
             fdr = BH.FDR)
 
 }

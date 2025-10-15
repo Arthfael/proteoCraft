@@ -63,7 +63,8 @@ Volcano.plot(
   cl,
   reg.root,
   SAM = FALSE,
-  curved_Thresh
+  curved_Thresh,
+  saveData = FALSE
 )
 }
 \arguments{
@@ -75,7 +76,7 @@ Volcano.plot(
 
 \item{Y.root}{Root of the names for Y-axis values (usually -log10(Pvalues)). If missing, default are provided in mode = "custom" in the parameters file.}
 
-\item{X.normalized}{Is X normalized? Assumed to be TRUE by default.}
+\item{X.normalized}{Logical. Is X normalized? Assumed to be TRUE by default.}
 
 \item{experiments.map}{The experiments map.}
 
@@ -87,7 +88,7 @@ Volcano.plot(
 
 \item{parameters}{The experiment's parameters file.}
 
-\item{save}{Should the plot(s) be saved? Default = FALSE. Set it to a vector of acceptable file extensions to save to the corresponding file format.}
+\item{save}{Logical or character. Should the plot(s) be saved? Default = FALSE. Set it to a vector of ggplot2-compatible file extensions to save to the corresponding format.}
 
 \item{labels}{How to decide which point labels will be printed. Values are:\cr
 - "proteins", in which case parameters MaxLabels and MaxLabels_priority will also be used;\cr
@@ -102,7 +103,7 @@ Volcano.plot(
 \item{Ref.Ratio.values}{Used if the default parameter values for Ratio thresholds are to be replaced with dynamic, reference-based ones. Also requires a few arguments below.}
 
 \item{Ref.Ratio.method}{Defines how vertical ratios are computed.\cr
-- "obs2": current default, will sort observations within sample groups and identify a threshold such that a proportion "ratios.FDR" of most extreme values are selected.\cr
+- "obs2": current default, will sort observations within sample groups and identify a threshold such that a "ratios.FDR" proportion of most extreme values are selected.\cr
 - "obs1": does almost the same as the above, but only for control-to-control or control-to-average-control ratios within the ratios group.\cr
 - "SD": same as the previous, but will calculate the threshold using qnorm(ratios.FDR, median(Ref.Ratio.values), sd(Ref.Ratio.values)), i.e. assuming normality.\cr}
 
@@ -118,15 +119,15 @@ Volcano.plot(
 
 \item{proteins}{Optional, the character list of protein IDs to be highlighted.}
 
-\item{proteins_split}{Default = FALSE. If set to TRUE, and if there are protein matching the provided list (see "proteins" argument), then these will be highlighted in a separate graph.}
+\item{proteins_split}{Logical. Default = FALSE. If TRUE, and if there are protein matching the provided list (see "proteins" argument), then these will be highlighted in a separate graph.}
 
 \item{IDs.col}{Default = "Protein IDs".}
 
 \item{Proteins.col}{Default = "Protein IDs"; used for identifying matches to the "proteins" argument. IF missing, IDs.col will be used.}
 
-\item{return}{Should we return a column with significance levels? Default = FALSE.}
+\item{return}{Logical. Should we return a column with significance levels? Default = FALSE.}
 
-\item{return.plot}{Should we return the plot itself? Default = FALSE.}
+\item{return.plot}{Logical. Should we return the plot itself? Default = FALSE.}
 
 \item{show.labels}{Default = FALSE. If set to TRUE, the popped-up plot will be the one with labels.}
 
@@ -136,15 +137,15 @@ Volcano.plot(
 
 \item{subfolder}{Name of the sub-folder where graphs are to be saved. Default = "Reg. analysis/t-tests"}
 
-\item{subfolderpertype}{If set to TRUE (default), will save each type of graph in a dedicated sub-folder.}
+\item{subfolderpertype}{Logical. If TRUE (default), will save each type of graph in a dedicated sub-folder.}
 
 \item{Symmetrical}{Are we also interested in the left half (down-regulated) or only the right one (up-regulated)? If missing and a value for "parameters" is provided, the function will attempt to infer it from parameters' "Type", otherwise it will default to TRUE.}
 
 \item{Alpha}{Mapping of each dot's alpha level to a column. Default = 1 (no alpha variations)}
 
-\item{Alpha.identity}{Do we need to fit the Alphas into a 0:1 scale? Default = FALSE}
+\item{Alpha.identity}{Logical. Do we need to fit the Alphas into a 0:1 scale? Default = FALSE}
 
-\item{Alpha.labels}{Should labels also be affected by alpha? Default = FALSE}
+\item{Alpha.labels}{Logical. Should labels also be affected by alpha? Default = FALSE}
 
 \item{Alpha.max}{For when mapping alpha to a column. The highest allowed alpha. Default = 1}
 
@@ -164,9 +165,9 @@ Volcano.plot(
 
 \item{Ylim}{Set fixed limits for the Y axis.}
 
-\item{plotly}{Should we generate a plotly? TRUE or FALSE (default); if TRUE, the link will be automatically returned.}
+\item{plotly}{Logical. Should we generate a plotly? FALSE by default; if TRUE, the link will be automatically returned.}
 
-\item{plotly_local}{Save plotly files as local html? Default = TRUE. If set to FALSE, a valid plotly username and API key will have to be provided.}
+\item{plotly_local}{Logical. Save plotly files as local html? Default = TRUE. If set to FALSE, a valid plotly username and API key will have to be provided.}
 
 \item{plotly_username}{Plotly username, to be provided if plotly_local = FALSE}
 
@@ -176,9 +177,9 @@ Volcano.plot(
 
 \item{plotly_sharing}{One of "public", "private" or "secret". Note that which ones will work depends on the type of plotly subscription you have. Does not apply if plotly_local = TRUE}
 
-\item{plotly_labels}{Labels to be displayed in the plotly tooltip. A character corresponding to valid names of Prot columns. Naming this vector provides a way to override the original column names: what will be displayed int he tooltip will be the name in this vector, not the column name itself.}
+\item{plotly_labels}{Labels to be displayed in the plotly tooltip. A character corresponding to valid names of Prot columns. Naming this vector provides a way to override the original column names: what will be displayed in the tooltip will be the name in this vector, not the column name itself.}
 
-\item{Contaminants}{Default = FALSE. If TRUE, contaminants will be plotted too.}
+\item{Contaminants}{Logical. If FALSE (default), contaminants will be filtered out prior to drawing the plot(s).}
 
 \item{N.clust}{A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.}
 
@@ -188,9 +189,11 @@ Volcano.plot(
 
 \item{reg.root}{Classically, this function would output a "Regulated - ..." column per sample group, based on applying the thresholds (either provided directly - significance is read from the table using "FDR.root", and FC threshold are either applied directly using "arbitrary.thresh" or calculated based on "Ref.Ratio.values"). Providing this input allows the function to bypass this step and apply colors based on a pre-determined decision (used for the F-test currently). Automatically set to "Regulated - " if SAM is TRUE.}
 
-\item{SAM}{FALSE by default. If TRUE, then a curved threshold is applied based on the SAM analysis.}
+\item{SAM}{Logical. If TRUE, then a curved threshold is applied based on the SAM analysis. FALSE by default.}
 
 \item{curved_Thresh}{Curved threshold parameters, only used if mode = "curved".\cr A named list, with one item for each (same names as the ones appended to X.root and Y.root in Prot column names).\cr Each item should be a named list of S0 (single value), Si (single value) and d (one value per FDR level) numerics.}
+
+\item{saveData}{Logical. If TRUE, a file containing the processed long-format data used to create each plot will be saved locally. Default = FALSE.}
 }
 \description{
 A function to create volcano plots.
