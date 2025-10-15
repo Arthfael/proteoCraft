@@ -7,13 +7,13 @@
 #' @param mode One of "standard" or "custom". Ignored if SAM = TRUE. 
 #' @param X.root Root of the names for X-axis log-scale values. If missing, defaults are provided in mode = "custom" in the parameters file.
 #' @param Y.root Root of the names for Y-axis values (usually -log10(Pvalues)). If missing, default are provided in mode = "custom" in the parameters file.
-#' @param X.normalized Is X normalized? Assumed to be TRUE by default.
+#' @param X.normalized Logical. Is X normalized? Assumed to be TRUE by default.
 #' @param experiments.map The experiments map.
 #' @param aggregate.map The aggregate map.
 #' @param aggregate.list The named list of aggregates.
 #' @param aggregate.name The name of the aggregate to use.
 #' @param parameters The experiment's parameters file.
-#' @param save Should the plot(s) be saved? Default = FALSE. Set it to a vector of acceptable file extensions to save to the corresponding file format.
+#' @param save Logical or character. Should the plot(s) be saved? Default = FALSE. Set it to a vector of ggplot2-compatible file extensions to save to the corresponding format.
 #' @param labels How to decide which point labels will be printed. Values are:\cr
 #'  - "proteins", in which case parameters MaxLabels and MaxLabels_priority will also be used;\cr
 #'  - "thresholds", in which case proteins above thresholds will be labelled;
@@ -22,12 +22,12 @@
 #' @param MaxLabels Maximum number of labels to print. Does not apply to matches to the list provided by "proteins". Default = 50 
 #' @param MaxLabels_priority If not printing all labels, will we favour more extreme ratios (default = "X") or more significant values ("Y")?
 #' @param proteins Optional, the character list of protein IDs to be highlighted.
-#' @param proteins_split Default = FALSE. If set to TRUE, and if there are protein matching the provided list (see "proteins" argument), then these will be highlighted in a separate graph.
+#' @param proteins_split Logical. Default = FALSE. If TRUE, and if there are protein matching the provided list (see "proteins" argument), then these will be highlighted in a separate graph.
 #' @param IDs.col Default = "Protein IDs".
 #' @param Proteins.col Default = "Protein IDs"; used for identifying matches to the "proteins" argument. IF missing, IDs.col will be used.
 #' @param Ref.Ratio.values Used if the default parameter values for Ratio thresholds are to be replaced with dynamic, reference-based ones. Also requires a few arguments below.
 #' @param Ref.Ratio.method Defines how vertical ratios are computed.\cr
-#'  - "obs2": current default, will sort observations within sample groups and identify a threshold such that a proportion "ratios.FDR" of most extreme values are selected.\cr
+#'  - "obs2": current default, will sort observations within sample groups and identify a threshold such that a "ratios.FDR" proportion of most extreme values are selected.\cr
 #'  - "obs1": does almost the same as the above, but only for control-to-control or control-to-average-control ratios within the ratios group.\cr
 #'  - "SD": same as the previous, but will calculate the threshold using qnorm(ratios.FDR, median(Ref.Ratio.values), sd(Ref.Ratio.values)), i.e. assuming normality.\cr
 #' @param ratios.FDR The proportion of reference ratios to be accepted, if Ref.Ratio.values is provided. Default = 0.01.
@@ -35,17 +35,17 @@
 #' @param FDR.root The root of the columns with Significance for different FDRs. Default = "Significant-FDR="
 #' @param arbitrary.lines Default = NULL. Data.frame of arbitrary lines to add to the graph. Must have 5 columns: "slope", "yintercept", "xintercept" (if vertical line, else NA), "colour", "label".
 #' @param arbitrary.thresh Default = NULL, ignored if mode = FDR. Similar to the above, but will define only horizontal lines. The lowest will determine the threshold below which no labels are displayed (except when using the "proteins" argument).
-#' @param return Should we return a column with significance levels? Default = FALSE.
-#' @param return.plot Should we return the plot itself? Default = FALSE.
+#' @param return Logical. Should we return a column with significance levels? Default = FALSE.
+#' @param return.plot Logical. Should we return the plot itself? Default = FALSE.
 #' @param show.labels Default = FALSE. If set to TRUE, the popped-up plot will be the one with labels.
 #' @param title It is possible to set a specific title. Failing that a default one will be provided based on the value of the mode argument.
 #' @param title.root Optional argument to add a character string at the beginning of the file names when saving.
 #' @param subfolder Name of the sub-folder where graphs are to be saved. Default = "Reg. analysis/t-tests"
-#' @param subfolderpertype If set to TRUE (default), will save each type of graph in a dedicated sub-folder.
+#' @param subfolderpertype Logical. If TRUE (default), will save each type of graph in a dedicated sub-folder.
 #' @param Symmetrical Are we also interested in the left half (down-regulated) or only the right one (up-regulated)? If missing and a value for "parameters" is provided, the function will attempt to infer it from parameters' "Type", otherwise it will default to TRUE.
 #' @param Alpha Mapping of each dot's alpha level to a column. Default = 1 (no alpha variations)
-#' @param Alpha.identity Do we need to fit the Alphas into a 0:1 scale? Default = FALSE
-#' @param Alpha.labels Should labels also be affected by alpha? Default = FALSE
+#' @param Alpha.identity Logical. Do we need to fit the Alphas into a 0:1 scale? Default = FALSE
+#' @param Alpha.labels Logical. Should labels also be affected by alpha? Default = FALSE
 #' @param Alpha.max For when mapping alpha to a column. The highest allowed alpha. Default = 1
 #' @param Alpha.min For when mapping alpha to a column. The weakest allowed alpha. Default = 0.01
 #' @param Size Mapping of each dot's size to a column. Default = 1 (same size for all)
@@ -53,22 +53,23 @@
 #' @param Size.min For when mapping size to a column. The smallest allowed dot size. Default = 0.01
 #' @param cex Label text size. Default = 2
 #' @param lineheight Label interline size. Default = 1
-#' @param plotly Should we generate a plotly? TRUE or FALSE (default); if TRUE, the link will be automatically returned.
-#' @param plotly_local Save plotly files as local html? Default = TRUE. If set to FALSE, a valid plotly username and API key will have to be provided.
+#' @param plotly Logical. Should we generate a plotly? FALSE by default; if TRUE, the link will be automatically returned.
+#' @param plotly_local Logical. Save plotly files as local html? Default = TRUE. If set to FALSE, a valid plotly username and API key will have to be provided.
 #' @param plotly_username Plotly username, to be provided if plotly_local = FALSE
 #' @param plotly_API_key Plotly API key, to be provided if plotly_local = FALSE
 #' @param plotly_subfolder Default = "". Name of the plotly server sub-folder where plotly graphs are to be saved. Does not apply if plotly_local = TRUE
 #' @param plotly_sharing One of "public", "private" or "secret". Note that which ones will work depends on the type of plotly subscription you have. Does not apply if plotly_local = TRUE
-#' @param plotly_labels Labels to be displayed in the plotly tooltip. A character corresponding to valid names of Prot columns. Naming this vector provides a way to override the original column names: what will be displayed int he tooltip will be the name in this vector, not the column name itself.
+#' @param plotly_labels Labels to be displayed in the plotly tooltip. A character corresponding to valid names of Prot columns. Naming this vector provides a way to override the original column names: what will be displayed in the tooltip will be the name in this vector, not the column name itself.
 #' @param Xlim Set fixed limits for the X axis.
 #' @param Ylim Set fixed limits for the Y axis.
-#' @param Contaminants Default = FALSE. If TRUE, contaminants will be plotted too.
+#' @param Contaminants Logical. If FALSE (default), contaminants will be filtered out prior to drawing the plot(s).
 #' @param N.clust A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
 #' @param reg.root Classically, this function would output a "Regulated - ..." column per sample group, based on applying the thresholds (either provided directly - significance is read from the table using "FDR.root", and FC threshold are either applied directly using "arbitrary.thresh" or calculated based on "Ref.Ratio.values"). Providing this input allows the function to bypass this step and apply colors based on a pre-determined decision (used for the F-test currently). Automatically set to "Regulated - " if SAM is TRUE.
-#' @param SAM FALSE by default. If TRUE, then a curved threshold is applied based on the SAM analysis. 
+#' @param SAM Logical. If TRUE, then a curved threshold is applied based on the SAM analysis. FALSE by default.
 #' @param curved_Thresh Curved threshold parameters, only used if mode = "curved".\cr A named list, with one item for each (same names as the ones appended to X.root and Y.root in Prot column names).\cr Each item should be a named list of S0 (single value), Si (single value) and d (one value per FDR level) numerics.
+#' @param saveData Logical. If TRUE, a file containing the processed long-format data used to create each plot will be saved locally. Default = FALSE.
 #'
 #' @examples                 
 #' PG <- Volcano.plot(Prot = PG, mode = "custom", experiments.map = Exp.map,
@@ -142,7 +143,8 @@ Volcano.plot <- function(Prot,
                          cl,
                          reg.root, # DO NOT give this one a default non-null value to avoid uncontrolled behaviour when rerunning the function!
                          SAM = FALSE,
-                         curved_Thresh) {
+                         curved_Thresh,
+                         saveData = FALSE) {
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::Volcano.plot); Symmetrical <- TRUE; TESTING <- TRUE; cl <- parClust;if (!exists("isSAM")) { isSAM <- FALSE };if (!exists("SAM_thresh")) { SAM_thresh <- NA }
   #
@@ -150,7 +152,7 @@ Volcano.plot <- function(Prot,
   # OR (F-test, proteins)
   #Prot = my_F_Data; mode = "custom"; experiments.map = contr;X.root = paste0("Mean ", ratRef);Y.root = paste0(F_Root, " - ");aggregate.map = aggr_dummy; aggregate.list = aggr_list_dummy;aggregate.name = "Contrast";parameters = Param;save = c("jpeg", "pdf");FDR.root = "mod. F-test Significant-FDR=";Ref.Ratio.values = refRat_F;ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates);arbitrary.lines = arbitrary.thr;proteins = prot.list; proteins_split = protsplit; IDs.col = idCol;return = FALSE; return.plot = TRUE; title = "F-test volcano plot ";subfolder = ohDeer; subfolderpertype = FALSE;Symmetrical = TRUE;Alpha = Alpha; Size = "Rel. av. log10 abundance"; Size.max = 2;plotly = create_plotly; plotly_local = create_plotly_local;plotly_labels = plotlyLab;Ref.Ratio.method = paste0("obs", RefRat_Mode);cl = parClust;reg.root = regRoot_F
   # OR (modified peptides)
-  #Prot = ptmpep; mode = "custom"; experiments.map = Exp.map; X.root = paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)]); Y.root = pvalue.col[which(pvalue.use)]; aggregate.map = Aggregate.map; aggregate.list = Aggregate.list; aggregate.name = VPAL$aggregate; parameters = P; save = c("jpeg", "pdf"); labels = c("FDR", "both")[isSAM+1]; Ref.Ratio.values = PTMs_ref.ratios[[ptm]]; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = PTMs_FDR.thresholds[[ptm]]; arbitrary.lines = arbitrary.thr; proteins = prot.list; IDs.col = "Code"; Proteins.col = "Proteins";proteins_split = protsplit; return = TRUE; return.plot = TRUE; title = paste0(Ptm, " volcano plot_"); subfolder = dir[2]; subfolderpertype = FALSE; Symmetrical = TwoSided; Size = "Rel. av. log10 abundance"; Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; plotly_labels = c(PepLabKol, paste0(Ptm, "-site")); SAM = isSAM; curved_Thresh = PTMs_sam_Thresh[[Ptm]]
+  #Prot = ptmpep; mode = "custom"; experiments.map = Exp.map; X.root = paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)]); Y.root = pvalue.col[which(pvalue.use)]; aggregate.map = Aggregate.map; aggregate.list = Aggregate.list; aggregate.name = VPAL$aggregate; parameters = P; save = c("jpeg", "pdf"); labels = c("FDR", "both")[isSAM+1]; Ref.Ratio.values = PTMs_ref.ratios[[ptm]]; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = PTMs_FDR.thresholds[[ptm]]; arbitrary.lines = arbitrary.thr; proteins = prot.list; IDs.col = "Code"; Proteins.col = "Proteins";proteins_split = protsplit; return = TRUE; return.plot = TRUE; title = paste0(Ptm, " volcano plot_"); subfolder = dir[2]; subfolderpertype = FALSE; Symmetrical = TwoSided; Size = "Rel. av. log10 abundance"; Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; plotly_labels = c(PepLabKol, paste0(Ptm, "-site")); SAM = isSAM; curved_Thresh = PTMs_SAM_thresh[[Ptm]]
   # OR (F-test, modified peptides)
   #Prot = my_F_Data;mode = "custom";experiments.map = contr;X.root = paste0("Mean ", ratRef);Y.root = paste0(F_Root, " - ");aggregate.map = aggr_dummy;aggregate.list = aggr_list_dummy;aggregate.name = "Contrast";parameters = Param;save = c("jpeg", "pdf");FDR.root = "mod. F-test Significant-FDR=";Ref.Ratio.values = refRat_F;ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates);arbitrary.lines = arbitrary.thr;proteins = prot.list;proteins_split = protsplit;IDs.col = idCol;Proteins.col = protCol;return = FALSE;return.plot = TRUE;title = "F-test volcano plot ";subfolder = ohDeer;subfolderpertype = FALSE;Symmetrical = TRUE;Alpha = Alpha;Size = "Rel. av. log10 abundance";Size.max = 2;plotly = create_plotly;plotly_local = create_plotly_local;plotly_labels = plotlyLab;Ref.Ratio.method = paste0("obs", RefRat_Mode);reg.root = regRoot_F
   # OR (SAINTexpress)
@@ -163,6 +165,41 @@ Volcano.plot <- function(Prot,
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
+  # Check logicals
+  if ((!is.logical(proteins_split))||(length(proteins_split) != 1)||(is.na(proteins_split))) {
+    proteins_split <- FALSE
+  }
+  if ((!is.logical(return))||(length(return) != 1)||(is.na(return))) {
+    return <- FALSE
+  }
+  if ((!is.logical(return.plot))||(length(return.plot) != 1)||(is.na(return.plot))) {
+    return.plot <- FALSE
+  }
+  if ((!is.logical(subfolderpertype))||(length(subfolderpertype) != 1)||(is.na(subfolderpertype))) {
+    subfolderpertype <- TRUE
+  }
+  if ((!is.logical(Alpha.identity))||(length(Alpha.identity) != 1)||(is.na(Alpha.identity))) {
+    Alpha.identity <- FALSE
+  }
+  if ((!is.logical(Alpha.labels))||(length(Alpha.labels) != 1)||(is.na(Alpha.labels))) {
+    Alpha.labels <- FALSE
+  }
+  if ((!is.logical(plotly))||(length(plotly) != 1)||(is.na(plotly))) {
+    plotly <- TRUE
+  }
+  if ((!is.logical(plotly_local))||(length(plotly_local) != 1)||(is.na(plotly_local))) {
+    plotly_local <- FALSE
+  }
+  if ((!is.logical(Contaminants))||(length(Contaminants) != 1)||(is.na(Contaminants))) {
+    Contaminants <- FALSE
+  }
+  if ((!is.logical(SAM))||(length(SAM) != 1)||(is.na(SAM))) {
+    SAM <- FALSE
+  }
+  if ((!is.logical(saveData))||(length(saveData) != 1)||(is.na(saveData))) {
+    saveData <- FALSE
+  }
+  #
   if (return.plot) {
     plotEval <- function(plot) { ggplotify::as.ggplot(ggplotify::as.grob(plot)) }
   }
@@ -198,7 +235,9 @@ Volcano.plot <- function(Prot,
   RES <- NA
   #
   if (labels == "both") { labels <- c("proteins", "thresholds") }
-  stopifnot(nrow(Prot) > 0, ncol(Prot) > 0, is.character(subfolder), is.logical(subfolderpertype))
+  stopifnot(nrow(Prot) > 0,
+            ncol(Prot) > 0,
+            is.character(subfolder))
   #
   subfolder <- normalizePath(gsub("^/|/$", "", gsub("\\\\", "/", subfolder)),
                              winslash = "/", mustWork = FALSE)
@@ -572,30 +611,30 @@ Volcano.plot <- function(Prot,
   # Labels
   Prot$Labels <- Prot[[parameters$Plot.labels]]
   weech <- which(Prot$Labels != "")
-  colchar <- 25
-  parallel::clusterExport(cl, "colchar", envir = environment())
-  f0 <- function(x) {#x <- strsplit(Prot$Labels[weech], "  ?")[1]
-    x <- unlist(x)
-    if (length(x) > 8) { x <- c(x[1:8], "...") } # This is because:
-    # a) sentences of too many words can cause problems with subsequent combinatorial steps, slowing down the script or even causing it to fail
-    # and
-    # b) do you really expect a protein label more than 8 words long to be helpful?
-    # Usually this will not be an issue with Uniprot but can be for other databases, e.g. TAIR, where protein names contain additional information for unknown proteins.
-    nc <- min(ceiling((sum(nchar(x)) + length(x) - 1)/colchar), length(x))
-    if (nc > 1) {
-      tstbrk <- cbind(0, gtools::combinations(length(x)-1, nc-1), length(x))
-      tstbrk <- apply(tstbrk, 1, function(y) {
-        vapply(1:nc, function(z) { paste(x[(y[z]+1):y[z+1]], collapse = " ") }, "")
-      })
-      tstsd <- apply(tstbrk, 2, function(y) { sum(nchar(y)^2) })
-      label <- paste(tstbrk[, which(tstsd == min(tstsd))[1]], collapse = "\n")
-      rm(tstbrk, tstsd)
-    } else { label <- paste(x, collapse = " ") }
-    rm(x, nc)
-    return(label)
-  }
-  environment(f0) <- .GlobalEnv
   if (length(weech)) {
+    colchar <- 25
+    parallel::clusterExport(cl, "colchar", envir = environment())
+    f0 <- function(x) {#x <- strsplit(Prot$Labels[weech], "  ?")[1]
+      x <- unlist(x)
+      if (length(x) > 8) { x <- c(x[1:8], "...") } # This is because:
+      # a) sentences of too many words can cause problems with subsequent combinatorial steps, slowing down the script or even causing it to fail
+      # and
+      # b) do you really expect a protein label more than 8 words long to be helpful?
+      # Usually this will not be an issue with Uniprot but can be for other databases, e.g. TAIR, where protein names contain additional information for unknown proteins.
+      nc <- min(ceiling((sum(nchar(x)) + length(x) - 1)/colchar), length(x))
+      if (nc > 1) {
+        tstbrk <- cbind(0, gtools::combinations(length(x)-1, nc-1), length(x))
+        tstbrk <- apply(tstbrk, 1, function(y) {
+          vapply(1:nc, function(z) { paste(x[(y[z]+1):y[z+1]], collapse = " ") }, "")
+        })
+        tstsd <- apply(tstbrk, 2, function(y) { sum(nchar(y)^2) })
+        label <- paste(tstbrk[, which(tstsd == min(tstsd))[1]], collapse = "\n")
+        rm(tstbrk, tstsd)
+      } else { label <- paste(x, collapse = " ") }
+      rm(x, nc)
+      return(label)
+    }
+    environment(f0) <- .GlobalEnv
     Prot$Labels[weech] <- parallel::parSapply(cl, strsplit(Prot$Labels[weech], "  ?"), f0)
   }
   weech <- which(Prot$Labels == "")
@@ -623,7 +662,12 @@ Volcano.plot <- function(Prot,
   if (show.labels) { Plots$Labelled <- list() }
   #
   for (i in A) { #i <- A[1]
-    cat(i, "\n")
+    proteoCraft::cleanNms3
+    i2 <- proteoCraft::cleanNms3(i,
+                                 experiments.map = experiments.map,
+                                 aggregate.map = aggregate.map,
+                                 aggregate.list = aggregate.list)
+    cat(" -", i2, "\n")
     symm <- Symmetrical[i]
     xKol <- paste0(X.root, i)
     yKol <- paste0(Y.root, i)
@@ -723,7 +767,6 @@ Volcano.plot <- function(Prot,
       target <- unique(gsub("^CON_+", "", target))
       use_target <- length(target) > 0
     }
-    i2 <- proteoCraft::cleanNms(i)
     if (regProvided) {
       rgKol <- regKols[i]
       temp$Colour <- Prot[Wych[[i]], rgKol]
@@ -964,9 +1007,14 @@ Volcano.plot <- function(Prot,
     temp$"P-value" <- 10^(-temp$Y)
     pL_lbs <- c(plotly_labels, "X", "Y")
     pL_lbs_nms <- c(names(plotly_labels), Xlab, Ylab)
-    temp$plotly_labels <- apply(temp[, pL_lbs], 1, function(x) { #x <- temp[1, kol]
+    temp$plotly_labels <- apply(temp[, plotly_labels], 1, function(x) { #x <- temp[1, kol]
       paste0(pL_lbs_nms, ": ", gsub("\n", " ", x), collapse = "<br>")
     })
+    if (saveData) {
+      temp$Table_labels <- apply(temp[, pL_lbs], 1, function(x) { #x <- temp[1, kol]
+        paste0(names(plotly_labels), ": ", gsub("\n", " ", x), collapse = "<br>")
+      })
+    }
     aes <- data.frame(x = "X", y = "Y", text = "plotly_labels")
     non.aes <- data.frame(shape = 16)
     if (is.finite("Xlim")) { xlim <- Xlim }
@@ -1020,8 +1068,8 @@ Volcano.plot <- function(Prot,
     #
     plot.txt <- paste0("plot <- ggplot2::ggplot(temp) + ggplot2::geom_point(ggplot2::aes(", aes, "), ", non.aes, ") + ", pluses)
     #cat(plot.txt)
-    suppressWarnings(eval(parse(text = plot.txt)))
-    #suppressWarnings(eval(parse(text = plot.txt), envir = globalenv())) # for testing only
+    suppressMessages(suppressWarnings(eval(parse(text = plot.txt))))
+    #suppressMessages(suppressWarnings(eval(parse(text = plot.txt), envir = globalenv()))) # for testing only
     #poplot(plot)
     if (prot_split) {
       plot.txt_2 <- gsub("^plot <- ", "plot_prot <- ",
@@ -1031,7 +1079,7 @@ Volcano.plot <- function(Prot,
                                    plot.txt#)
                               )))
       #cat(plot.txt2)
-      suppressWarnings(eval(parse(text = plot.txt_2))) # This is the plot for proteins of interest
+      suppressMessages(suppressWarnings(eval(parse(text = plot.txt_2)))) # This is the plot for proteins of interest
       #poplot(plot_prot)
     }
     # Significance thresholds
@@ -1309,6 +1357,8 @@ Volcano.plot <- function(Prot,
         }
       }
     } else { proteoCraft::poplot(plot) }
+    #
+    # Make valid file name
     tr <- gsub("/|:|\\*|\\?|<|>|\\||/", "-", title.root)
     tt <- gsub("/|:|\\*|\\?|<|>|\\||/", "-", ttl)
     nm <- paste0(tr, tt)
@@ -1325,6 +1375,39 @@ Volcano.plot <- function(Prot,
       }
     }
     plotNms <- c(plotNms, nm)
+    # Save data for users to replot with their own methods if they feel so inclined
+    if (saveData) {
+      flPth <- paste0(subfolder, "/", nm, "_dat.csv")
+      tmpDat <- data.frame(ID = gsub("\n|<br>", " | ", temp$Table_labels),
+                           "log2FC" = temp$X,
+                           "P-value" = 10^-temp$Y,
+                           " -log10(P-value)" = temp$Y,
+                           "adj. P-value" = p.adjust(10^-temp$Y, "BH"),
+                           check.names = FALSE)
+      # About p.adjust:
+      # Sanity check that the same adjusted P.values can be obtained using:
+      # tst <- proteoCraft::FDR(tmpDat,
+      #                         i,
+      #                         pvalue_col = " -log10(P-value)",
+      #                         fdr = 10,
+      #                         returns = c(FALSE, FALSE, TRUE),
+      #                         SIMPLIFY = TRUE)
+      # tmpDat$adj2 <- tst$`Adj. P-values`
+      # max(tmpDat$`adj. P-value` - tst$`Adj. P-values`) # Should be an extremely tiny value due to rounding error
+      # plot <- ggplot2::ggplot(tmpDat) +
+      #   ggplot2::geom_point(ggplot2::aes(x = -log10(`p-value`),
+      #                                    y = -log10(`adj. P-value`)))
+      # proteoCraft::poplot(plot)
+      # plot <- ggplot2::ggplot(tmpDat) +
+      #   ggplot2::geom_point(ggplot2::aes(x = -log10(`p-value`),
+      #                                    y = -log10(adj2)))
+      # proteoCraft::poplot(plot)
+      #
+      #names(tmpDat) <- gsub("\u2013", "-", names(tmpDat)) # From when the -log10(P-value) columns was called "-log10(P-value)"... but this did not work, the column name was either corrupted when read by Excel (without this line of code) or if the line was run Excel misread it as a formula.
+      data.table::fwrite(tmpDat, flPth, sep = ",", row.names = FALSE, na = "NA")
+      #system(paste0("open \"", flPth, "\""))
+      #
+    }
     # if (save) {
     #   wLb <- length(which(temp$Labels != ""))
     #   prtSplt <- ((prot_split)&&(length(which(temp$Labels2 != ""))))
@@ -1373,7 +1456,7 @@ Volcano.plot <- function(Prot,
     }
   }
   if (save) {
-    cat("   Saving ggplots...\n")
+    cat(" -> Saving ggplots...\n")
     # Move me out of the function!!!
     if (subfolderpertype) { sfpt <- paste0(subfolder, "/", saveExt[1]) } else { sfpt <- subfolder }
     if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
@@ -1425,9 +1508,13 @@ Volcano.plot <- function(Prot,
       }
     }
     f0 <- function(x) {
-      require(ggrepel) # Even though the plot is evaluated, unless I do this the ggrepel labels are absent from the saved plot!
-      ggplot2::ggsave(paste0(x$Path, "/", x$Ttl, ".", x$Ext), x$Plot,
-                      dpi = 300, width = 10, height = 10, units = "in")
+      # Even though the plot is evaluated, we must load ggrepel explicitly on the cluster,
+      # otherwise the plot is saved without the ggrepel labels!
+      require(ggrepel)
+      suppressMessages({
+        ggplot2::ggsave(paste0(x$Path, "/", x$Ttl, ".", x$Ext), x$Plot,
+                        dpi = 300, width = 10, height = 10, units = "in")
+      })
     }
     environment(f0) <- .GlobalEnv
     tst <- parallel::parLapply(cl, plotsLst, f0)

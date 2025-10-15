@@ -80,10 +80,10 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
   #
   pv0 <- round(100*(pc0$sdev)^2 / sum(pc0$sdev^2), 0)
   pv0 <- pv0[which(pv0 > 0)]
-  pv0 <- paste0(root, ": ", paste(sapply(1:length(pv0), function(x) {
+  pv0_ <- paste0(root, ": ", paste(sapply(1:length(pv0), function(x) {
     paste0("PC", x, ": ", pv0[x], "%")
   }), collapse = ", "))
-  #print(pv0)
+  #print(pv0_)
   scores0$Corrected <- root
   scores0$Type <- "Individual sample"
   #scores0$Batch <- do.call(paste, c(scores0[, batches], sep = " / "))
@@ -127,14 +127,20 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
       scores1 <- scores0
       scores1$Batch <- scores1[[btch]]
       scores1$Batch <- factor(scores1$Batch)
-      plot <- ggplot2::ggplot(scores1) +
-        ggplot2::geom_point(ggplot2::aes(x = PC1, y = PC2, color = Batch, shape = Type)) +
+      xLab <- paste0("PC1 = ", pv0[1], "%")
+      yLab <- paste0("PC2 = ", pv0[2], "%")
+      plot <- ggplot2::ggplot(scores1, aes(x = PC1, y = PC2, color = Batch)) +
+        ggplot2::geom_point(ggplot2::aes(shape = Type)) +
+        ggpubr::stat_conf_ellipse(aes(fill = Batch),
+                                  alpha = 0.2, geom = "polygon", show.legend = FALSE) +
         ggplot2::coord_fixed() + ggplot2::theme_bw() +
+        ggplot2::xlab(xLab) + ggplot2::ylab(yLab) +
         ggplot2::geom_hline(yintercept = 0, colour = "black") +
         ggplot2::geom_vline(xintercept = 0, colour = "black") +
-        ggplot2::ggtitle(nm1, subtitle = pv0) +
+        ggplot2::ggtitle(nm1#, subtitle = pv0_
+                         ) +
         ggplot2::scale_color_viridis_d(option = "D") +
-        ggrepel::geom_text_repel(ggplot2::aes(x = PC1, y = PC2, label = Sample),
+        ggrepel::geom_text_repel(ggplot2::aes(label = Sample),
                                  size = 2.5, show.legend = FALSE)
       #poplot(plot)
       if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }

@@ -20,7 +20,7 @@ load_Bckp <- function(backup,
                       clean = TRUE,
                       loadPack = TRUE) {
   # Cleanup workspace here
-  if (clean) { rm(list = ls(), envir = .GlobalEnv) }
+  if (clean) { suppressWarnings(rm(list = ls(), envir = .GlobalEnv)) }
   #
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::load_Bckp); TESTING <- TRUE
@@ -223,7 +223,7 @@ load_Bckp <- function(backup,
             if (rs1 >= max(scrpt$row[g0])) {
               cat("\n   Backup analysis suggests that this backup had reached the end of the analysis, so there should be nothing more to run...\nBut maybe you want to re-run some parts without starting from scratch?\n")
               cat("   (opening script...)\n")
-              rstudioapi::documentOpen(ScriptPath)
+              suppressWarnings(rstudioapi::documentOpen(ScriptPath))
             } else {
               if (rs1 < rs2) {
                 cat(paste0("\n   -> We thus suggest starting execution from either row ", rs1, " or ", rs2, "...\n"))
@@ -232,7 +232,7 @@ load_Bckp <- function(backup,
                 cat(paste0("\n   -> We thus suggest starting execution from row ", rs1, "...\n"))
                 cat("   (opening script at the corresponding line...)\n")
               }
-              rstudioapi::documentOpen(ScriptPath, line = rs1)
+              suppressWarnings(rstudioapi::documentOpen(ScriptPath, line = rs1))
             }
             #system(paste0("open \"", ScriptPath, "\""))
           }
