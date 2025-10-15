@@ -1125,11 +1125,13 @@ if (length(wFltL)) {
           for (sv in save) {
             if (subfolderpertype) { sfpt <- paste0(subfolder, "/", sv) } else { sfpt <- subfolder }
             if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
-            if (sv %in% c("jpeg", "tiff", "png", "bmp")) { #Note: tiff does not seem to work currently!
-              ggplot2::ggsave(paste0(sfpt, "/", nm, ".", sv), plot, dpi = 300, width = 10, height = 10, units = "in")
-            } else {
-              ggplot2::ggsave(paste0(sfpt, "/",nm, ".", sv), plot)
-            }
+            suppressMessages({
+              if (sv %in% c("jpeg", "tiff", "png", "bmp")) { #Note: tiff does not seem to work currently!
+                ggplot2::ggsave(paste0(sfpt, "/", nm, ".", sv), plot, dpi = 300, width = 10, height = 10, units = "in")
+              } else {
+                ggplot2::ggsave(paste0(sfpt, "/",nm, ".", sv), plot)
+              }
+            })
           }
         }
         if (plotly) {
@@ -1239,11 +1241,13 @@ if (length(wFltL)) {
                 if (subfolderpertype) { sfpt <- paste0(subfolder, "/", sv) } else { sfpt <- subfolder }
                 if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
                 setwd(sfpt)
-                if (sv %in% c("jpeg", "tiff", "png", "bmp")) { #Note: tiff does not seem to work currently!
-                  ggplot2::ggsave(paste0(sfpt, "/",barnm, ".", sv), barplot1, dpi = 300, width = 10, height = 10, units = "in")
-                } else {
-                  ggplot2::ggsave(paste0(sfpt, "/",barnm, ".", sv), barplot1)
-                }
+                suppressMessages({
+                  if (sv %in% c("jpeg", "tiff", "png", "bmp")) { #Note: tiff does not seem to work currently!
+                    ggplot2::ggsave(paste0(sfpt, "/",barnm, ".", sv), barplot1, dpi = 300, width = 10, height = 10, units = "in")
+                  } else {
+                    ggplot2::ggsave(paste0(sfpt, "/",barnm, ".", sv), barplot1)
+                  }
+                })
               }
             }
             if (plotly) {

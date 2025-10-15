@@ -427,6 +427,8 @@ F_volc <- Volcano.plot(Prot = my_F_Data, mode = "custom", experiments.map = cont
                        Ref.Ratio.method = paste0("obs", RefRat_Mode),
                        cl = parClust,
                        reg.root = regRoot_F)
+stopCluster(parClust)
+source(parSrc)
 #
 # Save plotly plots
 dr <- ohDeer

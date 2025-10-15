@@ -226,8 +226,10 @@ if (clustHtMp) {
                     colour = "orange", angle = 90, hjust = 1) +
           theme_bw() + ggtitle(vnm)
         #poplot(vplot)
-        ggsave(paste0(clustDir, "/", vnm, normTypeInsrt, ".jpeg"), vplot, dpi = 150)
-        ggsave(paste0(clustDir, "/", vnm, normTypeInsrt, ".pdf"), vplot, dpi = 150)
+        suppressMessages({
+          ggsave(paste0(clustDir, "/", vnm, normTypeInsrt, ".jpeg"), vplot, dpi = 150)
+          ggsave(paste0(clustDir, "/", vnm, normTypeInsrt, ".pdf"), vplot, dpi = 150)
+        })
         NVClust[[i]] <- max(c(NGr, 2))
       }
       # 2/ At protein groups level
@@ -298,8 +300,10 @@ if (clustHtMp) {
         ggtitle(hnm) + scale_size_identity() + theme_bw() +
         theme(legend.position = "none") + ylab("Normalised total Within-clusters vs Total Sum of Squares")
       #poplot(hplot)
-      ggsave(paste0(clustDir, "/", hnm, normTypeInsrt, ".jpeg"), hplot, dpi = 150)
-      ggsave(paste0(clustDir, "/", hnm, normTypeInsrt, ".pdf"), hplot, dpi = 150)
+      suppressMessages({
+        ggsave(paste0(clustDir, "/", hnm, normTypeInsrt, ".jpeg"), hplot, dpi = 150)
+        ggsave(paste0(clustDir, "/", hnm, normTypeInsrt, ".pdf"), hplot, dpi = 150)
+      })
       # Apply cutoffs
       if (KlustMeth == 1) {
         VClusters[[i]] <- kmeans(temp3, NVClust[[i]], 100)$cluster
@@ -549,8 +553,10 @@ if (clustHtMp) {
                     y = -1, colour = "red", angle = -60, hjust = 0, cex = 2)
       }
       #poplot(heatmap.plot, 12, 20)
-      ggsave(paste0(clustDir, "/", nm, normTypeInsrt, ".jpeg"), heatmap.plot)
-      ggsave(paste0(clustDir, "/", nm, normTypeInsrt, ".pdf"), heatmap.plot)
+      suppressMessages({
+        ggsave(paste0(clustDir, "/", nm, normTypeInsrt, ".jpeg"), heatmap.plot)
+        ggsave(paste0(clustDir, "/", nm, normTypeInsrt, ".pdf"), heatmap.plot)
+      })
       #
       # Plotly version
       tempLy <- temp2a[w2a,]

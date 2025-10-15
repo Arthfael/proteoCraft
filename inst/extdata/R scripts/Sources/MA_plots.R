@@ -183,8 +183,10 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
         plot <- plot + facet_grid(as.formula(paste0("`", Y, "` ~ `", X, "`")), drop = TRUE)
       }
       #poplot(plot, 12, 22)
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, width = 10, height = 10, units = "in")
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, width = 10, height = 10, units = "in")
+      suppressMessages({
+        ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, width = 10, height = 10, units = "in")
+        ggsave(paste0(dir, "/", ttl, ".pdf"), plot, width = 10, height = 10, units = "in")
+      })
       ReportCalls <- AddPlot2Report(Space = FALSE)
     } else {
       msg <- paste0("Not enough valid data", c("", paste0(" for group ", grp))[(length(grps) > 1) + 1], " to draw an MA plot!")

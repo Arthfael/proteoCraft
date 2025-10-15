@@ -1,8 +1,11 @@
+# Sourced script to
+# - Calculate average values
+# - Run statistical tests (except F-test, which is done somewhere else)
+
 if (!dir.exists(samDir)) { dir.create(samDir, recursive = TRUE) }
 if (!dir.exists(ebamDir)) { dir.create(ebamDir, recursive = TRUE) }
 source(parSrc, local = FALSE)
 clusterExport(parClust, list("AltHyp", "Nested", "samDir", "ebamDir"), envir = environment())
-clusterCall(parClust, function() library(siggenes))
 if (dataType == "modPeptides") {
   #reNorm <- FALSE
   myData <- ptmpep
@@ -25,9 +28,9 @@ if (dataType == "PG") {
 }
 expContr <- expContrasts
 if (!dir.exists(ohDeer)) { dir.create(ohDeer, recursive = TRUE) }
-#
+
 # First calculate mean per group
-cat(" - Mean sample group intensities\n")
+cat(" -> Mean sample group intensities\n")
 for (smplGrp in VPAL$values) { #smplGrp <- VPAL$values[1] #smplGrp <- VPAL$values[2]
   w <- which(Exp.map[[VPAL$column]] == smplGrp)
   e1 <- Exp.map[w,]
@@ -45,7 +48,7 @@ for (smplGrp in VPAL$values) { #smplGrp <- VPAL$values[1] #smplGrp <- VPAL$value
     tempVal <- myData[, col1, drop = FALSE]
     row.names(tempVal) <- myData[[namesCol]]
     if (length(w1) == 1) {
-      cat(paste0("Warning: Only 1 replicate for ", i1a, "!\n"))
+      warning(paste0("     Warning: Only 1 replicate for ", i1a, "!"))
       myData[[ke1]] <- tempVal[[1]]
       if (runLoc) { myData[[kl1]] <- tempLoc[[1]] }
     } else {
@@ -63,13 +66,17 @@ for (smplGrp in VPAL$values) { #smplGrp <- VPAL$values[1] #smplGrp <- VPAL$value
   }
 }
 
+if (!"Group_" %in% colnames(expMap)) {
+  stop("Averaging and statistical tests source run too early!\nI guess you reloaded a backup and started partial execution too late in the main script?\nYou should first run the part of the script which creates contrasts!\n")
+}
 expContr$Map <- lapply(expContr$All, function(x) { #x <- expContr$All[[1]]
   em <- expMap[which(expMap$Group_ %in% unlist(x)),]
+  if (!nrow(em)) { return() }
   em$Expression_Column <- paste0(intRef, em$Ref.Sample.Aggregate)
   em$Ratios_Column <- paste0(ratRef, em$Ref.Sample.Aggregate)
   em[which(em$Expression_Column %in% colnames(myData)),]
   em <- em[c(which(em$Reference),
-             which(!em$Reference)),]
+             which(!em$Reference)),] 
   return(em)
 })
 
@@ -137,6 +144,7 @@ tmp <- do.call(cbind, tmp)
 myData[, colnames(tmp)] <- tmp
 
 # Statistical tests:
+cat(" -> Statistical tests\n")
 #
 kol <- paste0(intRef, rownames(designMatr))
 kol <- kol[which(kol %in% colnames(myData))]
@@ -145,6 +153,7 @@ clusterExport(parClust, list("tmpVal", "Nested", "AltHyp"), envir = environment(
 #
 # - Student's and Welch's t-tests:
 for (ii in 1:2) {
+  cat(paste0("   - ", c("Student", "Welch")[ii], "'s t-test\n"))
   tmp <- lapply(1:nrow(expContr), function(x) { #x <- 1
     em <- expContr$Map[x][[1]]
     k0 <- em$Expression_Column[which(em$Reference)]
@@ -175,6 +184,7 @@ for (ii in 1:2) {
 #
 # - Permutations t-test:
 #   (We must obviously ignore nesting here!!!)
+cat("   - Permutations t-test\n")
 tmp <- lapply(1:nrow(expContr), function(x) { #x <- 1
   RES <- rep(NA, nrow(tmpVal))
   em <- expContr$Map[x][[1]]
@@ -216,6 +226,7 @@ myData[, colnames(tmp)] <- tmp
 # Do not use duplicateCorrelation(), it is for duplicate rows in probe arrays!!!
 TESTs <- c("limma", "DEqMS")
 for (TEST in TESTs) { #TEST <- TESTs[1] #TEST <- TESTs[2]
+  cat(paste0("   - ", TEST, " moderated t-test\n"))
   tmpVal2 <- tmpVal
   if (TEST == "limma") {
     pRoot <- modRoot
@@ -316,12 +327,13 @@ for (TEST in TESTs) { #TEST <- TESTs[1] #TEST <- TESTs[2]
 # PolySTest
 usePolySTest <- FALSE
 if (usePolySTest) {
+  cat("   - PolySTest\n")
   packs <- c("SummarizedExperiment", "PolySTest")
   bioc_req <- unique(c(bioc_req, packs))
   for (pack in packs) {
     if (!require(pack, character.only = TRUE)) { biocInstall(pack) }
   }
-  ohDeer2 <- paste0(wd, "/Reg. analysis/PolySTests")
+  ohDeer2 <- gsub("/t-tests$", "/PolySTests", ohDeer)
   #
   kol <- paste0(intRef, rownames(designMatr))
   kol <- kol[which(kol %in% colnames(myData))]
@@ -632,9 +644,13 @@ tmpVal2 <- as.data.frame(tmpVal2)
 # So we will just create artificial short names
 rownames(tmpVal2) <- paste0(namesRoot, as.character(1:nrow(tmpVal2)))
 require(siggenes)
-clusterCall(parClust, function() library(siggenes))
+invisible(clusterCall(parClust, function() {
+  library(siggenes)
+  return()
+}))
 if (exists("samThresh")) { rm(samThresh) }
 for (taest in c("SAM", "EBAM")) { #taest <- "SAM" #taest <- "EBAM"
+  cat(paste0("   - ", taest, " test\n"))
   tstTst <- try({
     tmp <- lapply(1:nrow(expContr), function(x) { #x <- 1
       nm <- expContr$name[x]
@@ -666,9 +682,11 @@ for (taest in c("SAM", "EBAM")) { #taest <- "SAM" #taest <- "EBAM"
         }
         if (taest == "SAM") {
           samK <- paste0(samRoots, nm)
-          tmpSIGGENES <- siggenes::sam(tmpVal3[wh,], clss, method = "d.stat", s.alpha = seq(0, 1, 0.01)#, gene.names = rownames(tmpVal3)[wh]
-                                       , control = samControl(delta = (1:1000)/1000) # Because I like overkill
-                                       , rand = mySeed)
+          msg <- capture.output({
+            tmpSIGGENES <- siggenes::sam(tmpVal3[wh,], clss, method = "d.stat", s.alpha = seq(0, 1, 0.01)#, gene.names = rownames(tmpVal3)[wh]
+                                         , control = samControl(delta = (1:1000)/1000) # Because I like overkill
+                                         , rand = mySeed)
+          })
           #print(tmpSIGGENES)
           #summary(tmpSIGGENES)
           # NB: The current siggenes vignette has a typo: obviously FDR isn't equal to p0*False/FDR but to p0*False/Called
@@ -682,7 +700,7 @@ for (taest in c("SAM", "EBAM")) { #taest <- "SAM" #taest <- "EBAM"
         }
         if (taest == "EBAM") {
           ebamK <- paste0(ebamRoot, nm)
-          a0 <- suppressWarnings(find.a0(tmpVal3[wh,], clss))
+          msg <- capture.output({ a0 <- find.a0(tmpVal3[wh,], clss) })
           tmpSIGGENES <- siggenes::ebam(a0, delta = 1-BH.FDR, rand = mySeed)
           #print(tmpSIGGENES)
           #summary(tmpSIGGENES)
@@ -767,7 +785,8 @@ for (taest in c("SAM", "EBAM")) { #taest <- "SAM" #taest <- "EBAM"
   }
 }
 
-# Edge ODP and LRT
+# edge ODP and LRT
+cat("   - ODP and LRT (edge)\n")
 bioc_req <- unique(c(bioc_req, "edge"))
 biocInstall("edge")
 #
@@ -907,16 +926,14 @@ samCol <- samCol[which(samCol %in% colnames(myData))]
 for (k in c(meanCol, welchCol, permCol, modCol, samCol)) { myData[[k]] <- as.numeric( myData[[k]]) }
 #
 # Assign results
+if (!exists("samThresh")) { samThresh <- list() }
 if (dataType == "modPeptides") {
   ptmpep <- myData
-  if (!exists("PTMs_SAM_thresh")) { PTMs_SAM_thresh %<o% list() }
-  if (exists("samThresh")) {
-    PTMs_SAM_thresh[[Ptm]] <- samThresh
-  }
+  if (!exists("PTMs_SAM_thresh")) { PTMs_SAM_thresh <- list() }
+  PTMs_SAM_thresh %<o% PTMs_SAM_thresh
+  PTMs_SAM_thresh[[Ptm]] <- samThresh
 }
 if (dataType == "PG") {
   PG <- myData
-  if (exists("samThresh")) {
-    SAM_thresh %<o% samThresh
-  }
+  SAM_thresh %<o% samThresh
 }

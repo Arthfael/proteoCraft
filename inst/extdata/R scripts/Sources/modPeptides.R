@@ -29,6 +29,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
     PTMs_int.ref %<o% list()
     PTMs_rat.ref %<o% list()
     PTM_normalize_NAsReplaceMethod %<o% list()
+    PTMs_SAM_thresh %<o% list()
     if (F.test) {
       PTMs_F_test_data %<o% list()
       #PTMs_F_test_ref_ratios %<o% list() # Not needed
@@ -461,8 +462,8 @@ if ("PTM.analysis" %in% colnames(Param)) {
           #
           # Calculate average intensities and ratios, as well as Welch's t-test and moderated P-values;
           # For unpaired replicates a permutations t-test is also performed.
-          samDir <- paste0(dir[1], "/", samSubDir)
-          ebamDir <- paste0(dir[1], "/", ebamSubDir)
+          samDir <- paste0(dir[2], "/SAM")
+          ebamDir <- paste0(dir[2], "/EBAM")
           dataType <- "modPeptides"
           #
           Src <- paste0(libPath, "/extdata/R scripts/Sources/Av_and_Stat_tests.R")
@@ -559,7 +560,8 @@ if ("PTM.analysis" %in% colnames(Param)) {
               }
             }
           }
-          setwd(subDr)
+          stopCluster(parClust)
+          source(parSrc)
           tempVPptm <- Volcano.plot(ptmpep, "custom",
                                     paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)]),
                                     pvalue.col[which(pvalue.use)],
@@ -582,10 +584,14 @@ if ("PTM.analysis" %in% colnames(Param)) {
                                     plotly = create_plotly, plotly_local = create_plotly_local,
                                     plotly_labels = c(PepLabKol, paste0(Ptm, "-site")),
                                     cl = parClust,
-                                    SAM = useSAM, curved_Thresh = PTMs_sam_Thresh[[Ptm]])
+                                    SAM = useSAM, curved_Thresh = PTMs_SAM_thresh[[Ptm]]
+                                    #, saveData = TRUE
+          )
           #k2 <- grep(topattern(paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)])), colnames(ptmpep), value = TRUE)
           #df2 <- ptmpep[, k2]
           #pepPlotFun(df1, df2, "Before VS after volc. plot", dir[1], FALSE)
+          stopCluster(parClust)
+          source(parSrc)
           #
           # Save plotly plots
           dr <- subDr
@@ -737,8 +743,10 @@ if ("PTM.analysis" %in% colnames(Param)) {
                 dirlist <- unique(c(dirlist, dir))
                 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
                 ttla <- gsub(": *", " - ", ttl)
-                ggsave(paste0(dir, "/", ttla, ".jpeg"), plot, dpi = 300)
-                ggsave(paste0(dir, "/", ttla, ".pdf"), plot, dpi = 300)
+                suppressMessages({
+                  ggsave(paste0(dir, "/", ttla, ".jpeg"), plot, dpi = 300)
+                  ggsave(paste0(dir, "/", ttla, ".pdf"), plot, dpi = 300)
+                })
                 ReportCalls <- AddPlot2Report(Title = ttla)
               }
               # Create F-test filters:
@@ -902,8 +910,10 @@ if ("PTM.analysis" %in% colnames(Param)) {
                               layout_matrix = rbind(c(NA, 1, NA, 2), c(3, 3, 3, 4)),
                               padding = 5)
           nm <- gsub("\n", " - ", nm)
-          ggsave(paste0(dir[1], "/", nm, ".jpeg"), htmp, width = 20, height = 20, units = "in", dpi = 600)
-          ggsave(paste0(dir[1], "/", nm, ".pdf"), htmp, width = 20, height = 20, units = "in", dpi = 600)
+          suppressMessages({
+            ggsave(paste0(dir[1], "/", nm, ".jpeg"), htmp, width = 20, height = 20, units = "in", dpi = 600)
+            ggsave(paste0(dir[1], "/", nm, ".pdf"), htmp, width = 20, height = 20, units = "in", dpi = 600)
+          })
           ReportCalls <- AddPlot2Report(Title = nm, Dir = dir[1])
           #system(paste0("open \"", dir[1], "/", nm, ".jpeg", "\""))
           #system(paste0("open \"", dir[1], "/", nm, ".pdf", "\""))
@@ -956,7 +966,6 @@ if ("PTM.analysis" %in% colnames(Param)) {
             for (tt in WhTsts) { #tt <- 1 #tt <- 2
               tstrt <- Tsts[tt]
               stopifnot(!is.na(tstrt))
-              setwd(wd)
               dir <- paste0(wd, "/Reg. analysis/", ptm, "/GO enrich/", tstrt)
               if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
               dirlist <- unique(c(dirlist, dir))

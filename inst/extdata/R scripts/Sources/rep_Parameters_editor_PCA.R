@@ -98,7 +98,7 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
       rownames(scoresA) <- NULL
       pvA <- round(100*(pcA$sdev)^2 / sum(pcA$sdev^2), 0)
       pvA <- pvA[which(pvA > 0)]
-      pvA <- paste0("Original: ", paste(vapply(1:length(pvA), function(x) {
+      pvA2 <- paste0("Original: ", paste(vapply(1:length(pvA), function(x) {
         paste0("PC", x, ": ", pvA[x], "%")
       }, ""), collapse = ", "))
       scoresA$Label <- scoresA$Sample
@@ -118,17 +118,25 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
         scoresA$Colour <- do.call(paste, c(tmp, sep = " "))
       }
       ttl <- "PCA plot - Samples (PSMs-level)"
+      xLab <- paste0("PC1 = ", pvA[1], "%")
+      yLab <- paste0("PC2 = ", pvA[2], "%")
       plot <- ggplot(scoresA) +
         geom_point(aes(x = PC1, y = PC2, colour = Colour)) +
+        ggpubr::stat_conf_ellipse(aes(fill = Colour),
+                                  alpha = 0.2, geom = "polygon", show.legend = FALSE) +
         scale_color_viridis_d(begin = 0.25) +
         coord_fixed() + theme_bw() +
+        xlab(xLab) + ylab(yLab) +
         geom_hline(yintercept = 0, colour = "black") + geom_vline(xintercept = 0, colour = "black") +
-        ggtitle(ttl, subtitle = pvA) +
+        ggtitle(ttl#, subtitle = pvA2
+                ) +
         geom_text_repel(aes(x = PC1, y = PC2, label = Label, colour = Colour),
                         size = 2.5, show.legend = FALSE)
       #poplot(plot)
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 20, height = 20, units = "in")
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 20, height = 20, units = "in")
+      suppressMessages({
+        ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 20, height = 20, units = "in")
+        ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 20, height = 20, units = "in")
+      })
       ReportCalls <- AddPlot2Report(Space = FALSE)
       Symb <- "circle"
       # Custom color scale

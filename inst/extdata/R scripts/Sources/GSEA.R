@@ -3,8 +3,7 @@
 #    GSEA uses external annotations and correlates it with the average fold change per comparison,
 #    to show trends as to whether a specific set in enriched or not.
 
-usePar <- FALSE # For now I cannot make the parallel version work ---> this is off for the moment
-if (usePar) { source(parSrc) }
+source(parSrc)
 
 keyType <- "UNIPROT"
 idCol <- "Leading protein IDs"
@@ -112,22 +111,20 @@ if (isOK) {
 }
 if (isOK) {
   orgDBpkg <- orgDBs$db[match(organism, orgDBs$Full)]
-  packs <- c("GO.db", "clusterProfiler", "pathview", "enrichplot", "DOSE", orgDBpkg)
+  packs <- c("GO.db", "clusterProfiler", "BiocParallel", "pathview", "enrichplot", "DOSE", orgDBpkg)
   for (pck in packs) {
     if (!require(pck, character.only = TRUE)) {
       pak::pkg_install(pck, upgrade = FALSE, ask = FALSE)
     }
   }
-  if (usePar) {
-    invisible(clusterCall(parClust, function() {
-      for (pck in packs) { library(pck, character.only = TRUE) }
-      return()
-    }))
-  } else {
-    for (pck in packs) {
-      library(pck, character.only = TRUE)
-    }
+  for (pck in packs) {
+    library(pck, character.only = TRUE)
   }
+  clusterExport(parClust, "packs", envir = environment())
+  invisible(clusterCall(parClust, function() {
+    for (pck in packs) { library(pck, character.only = TRUE) }
+    return()
+  }))
   eval(parse(text = paste0("myKeys <- keytypes(", orgDBpkg, ")")))
   if (!"UNIPROT" %in% myKeys) {
     if ((organism == "Arabidopsis thaliana")&&("TAIR" %in% colnames(db))) {
@@ -143,6 +140,14 @@ if (isOK) {
     tmpDat <- aggregate(tmpDat[, log2Col], list(tmpDat[[idCol]]), mean, na.rm = TRUE)
     colnames(tmpDat) <- c(idCol, log2Col)
   }
+  cpParam <- SerialParam()
+  saveRDS(tmpDat, paste0(wd, "/tmp.RDS"))
+  clusterExport(parClust, list("idCol", "log2Col", "keyType", "wd", "orgDBpkg", "cpParam"), envir = environment())
+  invisible(clusterCall(parClust, function(x) {
+    require(clusterProfiler)
+    require(orgDBpkg, character.only = TRUE)
+    tmpDat <<- readRDS(paste0(wd, "/tmp.RDS"))
+  }))
   f0 <- function(kol) { #kol <- log2Col[1]
     tmp <- setNames(tmpDat[[kol]],
                     gsub(";.*", "", tmpDat[[idCol]]))
@@ -151,26 +156,23 @@ if (isOK) {
     tmp <- sort(tmp, decreasing = TRUE)
     tmp <- tmp[which(nchar(names(tmp)) > 0)]
     #View(tmp)
-    gse <- gseGO(tmp,
-                 ont = "ALL", 
-                 keyType = keyType, 
-                 nPerm = 10000, 
-                 minGSSize = 3, 
-                 maxGSSize = 800, 
-                 pvalueCutoff = 0.05, 
-                 verbose = TRUE, 
-                 OrgDb = orgDBpkg, 
-                 pAdjustMethod = "none")
+    gse <- suppressMessages(gseGO(tmp,
+                                  ont = "ALL", 
+                                  keyType = keyType, 
+                                  nPerm = 10000, 
+                                  minGSSize = 3, 
+                                  maxGSSize = 800, 
+                                  pvalueCutoff = 0.05, 
+                                  verbose = TRUE, 
+                                  OrgDb = orgDBpkg, 
+                                  pAdjustMethod = "none",
+                                  BPPARAM = cpParam))
     return(list(GSE = gse,
                 lFC = tmp))
   }
-  if (usePar) {
-    clusterExport(parClust, list("idCol", "log2Col", "keyType", "tmpDat"), envir = environment())
-    environment(f0) <- .GlobalEnv
-    gses <- parLapply(parClust, log2Col, f0)
-  } else {
-    gses <- lapply(log2Col, f0)
-  }
+  environment(f0) <- .GlobalEnv
+  gses <- parLapply(parClust, log2Col, f0)
+  #
   gses <- setNames(gses, proteoCraft::cleanNms(gsub(proteoCraft::topattern(ratRef), "", log2Col)))
   #
   d <- GOSemSim::godata(annoDb = orgDBpkg, ont = "BP") # It seems to make sense to use BP here since we are interested in which biological processes are reacting to the perturbation
@@ -178,36 +180,42 @@ if (isOK) {
   #
   # GSEA dot plots
   nmRoot <- "GSEA dotplot"
-  lapply(names(gses), function(grp) { #grp <- names(gses)[1]
+  invisible(lapply(names(gses), function(grp) { #grp <- names(gses)[1]
     gse <- gses[[grp]]$GSE
     try({
-      plot <- dotplot(gse, showCategory = nCat, split = ".sign", font.size = 4,
+      plot <- clusterProfiler::dotplot(gse, showCategory = nCat, split = ".sign", font.size = 4,
                       label_format = 500 # don't you dare wrap my labels!!!
-      ) + facet_grid(.~.sign) +
-        coord_fixed(0.025)
-      #plot <- dotplot(gse, showCategory = nCat, color = "pvalue", split = ".sign") + facet_grid(.~.sign)
-      #poplot(plot)
-      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
-      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+      ) + ggplot2::facet_grid(.~.sign) +
+        ggplot2::coord_fixed(0.025)
+      suppressMessages({
+        plot <- plot + viridis::scale_fill_viridis()
+        #plot <- dotplot(gse, showCategory = nCat, color = "pvalue", split = ".sign") + facet_grid(.~.sign)
+        #poplot(plot)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+      })
     }, silent = TRUE)
-  })
+  }))
   #
   # GSEA enrichment map plots
   nmRoot <- "GSEA enrichment map"
-  lapply(names(gses), function(grp) { #grp <- names(gses)[1]
+  invisible(lapply(names(gses), function(grp) { #grp <- names(gses)[1]
     gse <- gses[[grp]]$GSE
     try({
       gse2 <- pairwise_termsim(gse, method = "Wang", semData = d)
-      plot <- emapplot(gse2, showCategory = nCat)
-      l <- length(plot$layers)
-      w <- which(sapply(1:l, function(x) { "GeomTextRepel" %in% class(plot$layers[[x]]$geom) }))
-      plot$layers[[w]]$aes_params$size <- 2
-      #getMethod("emapplot", "gseaResult")
-      #poplot(plot)
-      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
-      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+      plot <- clusterProfiler::emapplot(gse2, showCategory = nCat)
+      suppressMessages({
+        plot <- plot + viridis::scale_color_viridis(option = "cividis", direction = -1)
+        l <- length(plot$layers)
+        w <- which(sapply(1:l, function(x) { "GeomTextRepel" %in% class(plot$layers[[x]]$geom) }))
+        plot$layers[[w]]$aes_params$size <- 2
+        #getMethod("emapplot", "gseaResult")
+        #poplot(plot)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+      })
     }, silent = TRUE)
-  })
+  }))
   #
   # GSEA category net plots
   if (!"Label" %in% colnames(db)) {
@@ -219,52 +227,60 @@ if (isOK) {
   # - Update labels to ones more informative
   # - Plot as interactive plotly
   #  (see commented discussion below about how to achieve this)
-  lapply(names(gses), function(grp) { #grp <- names(gses)[1]
+  invisible(lapply(names(gses), function(grp) { #grp <- names(gses)[1]
     gse <- gses[[grp]]$GSE
     try({
       lFC <- gses[[grp]]$lFC
-      plot <- cnetplot(gse, categorySize = "pvalue", foldChange = lFC, showCategory = 10, colorEdge = TRUE,
-                       #cex_label_category = 1.2, cex_label_gene = 0.8 # Those parameters do not work for me...
+      plot <- clusterProfiler::cnetplot(gse, categorySize = "pvalue", foldChange = lFC, showCategory = 10,
+                                        colorEdge = TRUE,
+                                        #cex_label_category = 1.2, cex_label_gene = 0.8 # Those parameters do not work for me...
       )
-      # ... so I used a hacky solution:
-      l <- length(plot$layers)
-      w <- which(sapply(1:l, function(x) { "GeomTextRepel" %in% class(plot$layers[[x]]$geom) }))
-      plot$layers[[w]]$aes_params$size <- 1.6 # Downside: applies to both categories and proteins!
-      # Edit labels
-      plot$data$label <- plot$data$label
-      w <- which(plot$data$label %in% db$`Protein ID`)
-      plot$data$label[w] <- db$Label[match(plot$data$label[w], db$`Protein ID`)]
-      #
-      #poplot(plot)
-      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
-      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
-      #
-      # plot2 <- plotly::ggplotly(plot, tooltip = "label")
-      # htmlwidgets::saveWidget(plot2, paste0(ohDeer, "/", grp, " ", nmRoot, ".html"),
-      #                         selfcontained = TRUE)
-      # Doesn't work, even though the 
-      # Maybe the solution would be to get the data from the ggplot created, including the segment layer, which uses its own data,
-      # and rewrite my own ggplot2 call?
-      # That way I could also easily filter for specific GO terms.
-      # TBC...
+      suppressMessages({
+        plot <- plot + viridis::scale_color_viridis()
+        # ... so I used a hacky solution:
+        l <- length(plot$layers)
+        w <- which(sapply(1:l, function(x) { "GeomTextRepel" %in% class(plot$layers[[x]]$geom) }))
+        plot$layers[[w]]$aes_params$size <- 1.6 # Downside: applies to both categories and proteins!
+        # Edit labels
+        plot$data$label <- plot$data$label
+        w <- which(plot$data$label %in% db$`Protein ID`)
+        plot$data$label[w] <- db$Label[match(plot$data$label[w], db$`Protein ID`)]
+        #
+        #poplot(plot)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+        #
+        # plot2 <- plotly::ggplotly(plot, tooltip = "label")
+        # htmlwidgets::saveWidget(plot2, paste0(ohDeer, "/", grp, " ", nmRoot, ".html"),
+        #                         selfcontained = TRUE)
+        # Doesn't work...
+        # Maybe the solution would be to get the data from the ggplot created,
+        # including the segment layer, which uses its own data,
+        # and rewrite my own ggplot2 call?
+        # That way I could also easily filter for specific GO terms.
+        # TBC...
+      })
     }, silent = TRUE)
-  })
+  }))
   #
   # GSEA ridge plots
   nmRoot <- "GSEA ridge plot"
-  lapply(names(gses), function(grp) { #grp <- names(gses)[1]
+  invisible(lapply(names(gses), function(grp) { #grp <- names(gses)[1]
     gse <- gses[[grp]]$GSE
     try({
-      plot <- ridgeplot(gse, 100,
-                        label_format = 500 # don't you dare wrap my labels!!!
-      ) + labs(x = "enrichment distribution") +
-        theme(axis.text.x = element_text(size = 4.5),
-              axis.text.y = element_text(size = 4.5))
-      #poplot(plot)
-      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
-      ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+      plot <- clusterProfiler::ridgeplot(gse, 100,
+                                         label_format = 500 # don't you dare wrap my labels!!!
+      ) + ggplot2::labs(x = "enrichment distribution") +
+        ggplot2::theme(axis.text.x = ggplot2::element_text(size = 4.5),
+                       axis.text.y = ggplot2::element_text(size = 4.5))
+      suppressMessages({
+        plot <- plot + viridis::scale_fill_viridis()
+        #poplot(plot)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+      })
     }, silent = TRUE)
-  })
+  }))
   #
   if (exists("DatAnalysisTxt")) {
     DatAnalysisTxt <- paste0(DatAnalysisTxt,

@@ -1,5 +1,5 @@
 # Save plotly plots
-cat("   Saving plotly plots...\n")
+cat(" -> Saving plotly plots...\n")
 if (!dir.exists(dr)) {
   dr2 <- paste0(wd, "/", dr)
   if (dir.exists(dr2)) {

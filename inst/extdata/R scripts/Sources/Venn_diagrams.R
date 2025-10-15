@@ -41,7 +41,8 @@ VennGrp2 <- parse.Param.aggreg(Param_filter(VennGrp, "Rep"))
 #}
 VennMx <- 7
 #
-II <- setNames(1, c("All peptidoforms", "Protein groups")[scrptMtch])
+II <- setNames(1,
+               c("All peptidoforms", "Protein groups")[scrptMtch])
 if ((exists("PTMs_pep"))&&(length(PTMs_pep))) {
   Mod2Venn <- names(PTMs_pep)
   II[paste0(Mod2Venn, "-mod. pept.")] <- 1+(seq_along(length(Mod2Venn)))
@@ -142,9 +143,14 @@ for (ii in II) { #ii <- II[1] #ii <- II[2] #ii <- II[3]
       res[comp_list[[grp]]] <- "+"
       return(res)
     })
-    wb <- openxlsx2::wb_add_data(wb, SheetNm, tmp, openxlsx2::wb_dims(2, 4))
-    wb <- openxlsx2::wb_set_row_heights(wb, SheetNm, 1, 120)
-    hdrDms <- openxlsx2::wb_dims(2, 1:l + 3)
+    tmp <- as.data.frame(tmp)
+    tmp[[idKol]] <- myData[[idKol]]
+    tmp <- tmp[, c(idKol, names(comp_list))]
+    wb <- openxlsx2::wb_add_data(wb, SheetNm, tmp, openxlsx2::wb_dims(2, 2))
+    wb <- openxlsx2::wb_set_row_heights(wb, SheetNm, 2, 120)
+    wb <- openxlsx2::wb_set_col_widths(wb, SheetNm, 1, 3)
+    wb <- openxlsx2::wb_set_col_widths(wb, SheetNm, 1, 10)
+    hdrDms <- openxlsx2::wb_dims(2, 1:(l+1) + 1)
     wb <- openxlsx2::wb_add_font(wb, SheetNm, hdrDms, size = 12, bold = TRUE)
     wb <- openxlsx2::wb_set_cell_style(wb, SheetNm, hdrDms, wb$styles_mgr$get_xf_id("Header_style"))
     vennXLfl <- paste0(dir, "/Venn diagrams.xlsx")
@@ -243,9 +249,14 @@ for (ii in II) { #ii <- II[1] #ii <- II[2] #ii <- II[3]
             res[comp_list[[grp]]] <- "+"
             return(res)
           })
-          wb <- openxlsx2::wb_add_data(wb, SheetNm, tmp, openxlsx2::wb_dims(2, 4))
-          wb <- openxlsx2::wb_set_row_heights(wb, SheetNm, 1, 120)
-          hdrDms <- openxlsx2::wb_dims(2, 1:l + 3)
+          tmp <- as.data.frame(tmp)
+          tmp[[idKol]] <- myData[[idKol]]
+          tmp <- tmp[, c(idKol, names(comp_list))]
+          wb <- openxlsx2::wb_add_data(wb, SheetNm, tmp, openxlsx2::wb_dims(2, 2))
+          wb <- openxlsx2::wb_set_row_heights(wb, SheetNm, 2, 120)
+          wb <- openxlsx2::wb_set_col_widths(wb, SheetNm, 1, 3)
+          wb <- openxlsx2::wb_set_col_widths(wb, SheetNm, 1, 10)
+          hdrDms <- openxlsx2::wb_dims(2, 1:(l+1) + 1)
           wb <- openxlsx2::wb_add_font(wb, SheetNm, hdrDms, size = 12, bold = TRUE)
           wb <- openxlsx2::wb_set_cell_style(wb, SheetNm, hdrDms, wb$styles_mgr$get_xf_id("Header_style"))
         } else {
@@ -348,9 +359,14 @@ for (ii in II) { #ii <- II[1] #ii <- II[2] #ii <- II[3]
               res[comp_list[[grp]]] <- "+"
               return(res)
             })
-            wb <- openxlsx2::wb_add_data(wb, SheetNm, tmp, openxlsx2::wb_dims(2, 4))
-            wb <- openxlsx2::wb_set_row_heights(wb, SheetNm, 1, 120)
-            hdrDms <- openxlsx2::wb_dims(2, 1:l + 3)
+            tmp <- as.data.frame(tmp)
+            tmp[[idKol]] <- myData[[idKol]]
+            tmp <- tmp[, c(idKol, names(comp_list))]
+            wb <- openxlsx2::wb_add_data(wb, SheetNm, tmp, openxlsx2::wb_dims(2, 2))
+            wb <- openxlsx2::wb_set_row_heights(wb, SheetNm, 2, 120)
+            wb <- openxlsx2::wb_set_col_widths(wb, SheetNm, 1, 3)
+            wb <- openxlsx2::wb_set_col_widths(wb, SheetNm, 1, 10)
+            hdrDms <- openxlsx2::wb_dims(2, 1:(l+1) + 1)
             wb <- openxlsx2::wb_add_font(wb, SheetNm, hdrDms, size = 12, bold = TRUE)
             wb <- openxlsx2::wb_set_cell_style(wb, SheetNm, hdrDms, wb$styles_mgr$get_xf_id("Header_style"))
           } else {
