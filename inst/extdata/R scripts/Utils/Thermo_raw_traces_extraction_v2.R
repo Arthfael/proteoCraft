@@ -1091,7 +1091,7 @@ allFls <- c(blnkFls, slctFls)
 if (getInt) {
   tol <- 20 # In ppm!
   #tol <- as.numeric(dlg_input("Enter mass tolerance (ppm)", tol)$res)
-  clusterCall(parClust, function() library(rawrr))
+  invisible(clusterCall(parClust, function() library(rawrr)))
   MS2s <- parLapply(parClust, allFls, function(fl) { #fl <- slctFls[1]
     x <- rawrr::readIndex(fl)
     x <- x[which(x$MSOrder == "Ms2"),]
@@ -1127,10 +1127,10 @@ if (getInt) {
   if (length(bpc)) { allChroms$BPC <- bpc }
   # XICs
   clusterExport(parClust, list("ms2s", "tol", "masses", "xicFun"), envir = environment())
-  fltms2 <- listMelt(masses, names(masses))
+  fltms2 <- listMelt(masses, names(masses), c("Mass", "Filter"))
   clusterExport(parClust, list("tol", "xicFun"), envir = environment())
-  xicNms <- do.call(paste, c(fltms2, sep = " for "))
-  xic <- setNames(apply(fltms2, 1, function(x) {
+  xicNms <- do.call(paste, c(fltms2[, c("Mass", "Filter")], sep = " for "))
+  xic <- setNames(apply(fltms2[, c("Mass", "Filter")], 1, function(x) {
     mass <- x[[1]]
     ms2 <- x[[2]]
     clusterExport(parClust, list("ms2", "mass"), envir = environment())
