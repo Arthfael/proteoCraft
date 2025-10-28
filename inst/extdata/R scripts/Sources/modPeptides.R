@@ -835,6 +835,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
           # Gene-Set Enrichment Analysis (GSEA)
           if (runGSEA) {
             dataType <- "modPeptides"
+            GSEAmode <- "Standard"
             Src <- paste0(libPath, "/extdata/R scripts/Sources/GSEA.R")
             #rstudioapi::documentOpen(Src)
             source(Src, local = FALSE)

@@ -63,6 +63,8 @@ if (dataType == "PG") {
   Alpha <- "Rel. log10(Peptides count)"
   refRat <- Ref.Ratios
 }
+BH.FDR_F <- sort(BH.FDR, decreasing = TRUE)
+#
 labKol <- c("Label", "Labels")
 labKol <- labKol[which(labKol %in% colnames(myData))]
 if ((length(labKol))&&(!Param$Plot.labels %in% colnames(myData))) {
@@ -185,8 +187,10 @@ if (length(whDouble)) {
   xCol <- c(xCol, colnames(tmp2))
 }
 # Ref ratios
+Param$Ratios.Contamination.Rates <- abs(as.numeric(Param$Ratios.Contamination.Rates))
 if (Param$Ratios.Thresholds == "Absolute log2 FC threshold") {
   refRat_F <- NULL
+  lfcThr <- Param$Ratios.Contamination.Rates
 }
 if (Param$Ratios.Thresholds == threshMsg) {
   refRat_F <- setNames(lapply(1:nrow(expContr_F), function(x) { #x <- 1 #x <- 4
@@ -197,7 +201,19 @@ if (Param$Ratios.Thresholds == threshMsg) {
     x <- is.all.good(as.numeric(unlist(refRat[x])))
     return(x)
   }), expContr_F$name)
+  d <- abs(unlist(refRat_F))
+  d <- sort(d, decreasing = TRUE)
+  if (Param$Ratios.Contamination.Rates > 0) {
+    d <- d[floor(length(d)*Param$Ratios.Contamination.Rates)]
+  } else {
+    d <- max(d)+0.000001
+  }
+  lfcThr <- unname(d)
 }
+if (lfcThr != 0) {
+  warning("Please note that limma allows applying a non-null lfc threshold, but does not recommend to do it (see ?decideTests for a discussion).")
+}
+
 #
 kol <- paste0(intRef, rownames(designMatr))
 wY <- which(kol %in% colnames(myData))
@@ -207,91 +223,144 @@ colnames(tmpVal) <- rownames(designMatr)[wY]
 parallel::clusterExport(parClust, list("tmpVal", "Nested", "AltHyp"), envir = environment())
 
 # - Moderated F-test (limma):
-# Do not use duplicateCorrelation(), it is for duplicate rows!!!
-## Test for heteroskedasticity - if the est is significant, we use a more robust call 
-varMatr <- apply(tmpVal, 1, var, na.rm = TRUE)
-meanMatr <- rowMeans(tmpVal, na.rm = TRUE)
-varMeanMatr <- data.frame("variance" = varMatr,
-                          "mean" = meanMatr,
-                          row.names = names(varMatr))
-lmMod <- lm(variance ~ mean, data = varMeanMatr)
-heteroSkedTst <- lmtest::bptest(lmMod)
+# Do NOT use duplicateCorrelation(), it is for duplicate rows!!!
+## Test for heteroskedasticity - commented because we always use voomaLmFit() to make us robust against it!
+# varMatr <- apply(tmpVal, 1, var, na.rm = TRUE)
+# meanMatr <- rowMeans(tmpVal, na.rm = TRUE)
+# varMeanMatr <- data.frame("variance" = varMatr,
+#                           "mean" = meanMatr,
+#                           row.names = names(varMatr))
+# lmMod <- lm(variance ~ mean, data = varMeanMatr)
+# heteroSkedTst <- lmtest::bptest(lmMod)
 ## Filter
 NA_Filt <- as.data.frame(sapply(1:ncol(designMatr), function(x) { #x <- 1
-  kols <- row.names(designMatr)[which(designMatr[,x] == 1)]
+  kols <- row.names(designMatr)[which(designMatr[, x] == 1)]
   apply(tmpVal[, kols, drop = FALSE], 1, function(y) { length(proteoCraft::is.all.good(y)) }) >= 2
 }))
 NA_Filt <- which(rowSums(NA_Filt) == ncol(NA_Filt)) # We will apply this result to decideTests
 ## Fit model
-if (heteroSkedTst$p.value < 0.01) {
-  warning("Data may not be heteroskedastic, using trend = TRUE and robust = TRUE")
-}
-fit <- voomaLmFit(tmpVal[NA_Filt,]
-                  , designMatr)
-fit$genes <- myData[NA_Filt
-  , namesCol]
-fit <- contrasts.fit(fit, contrMatr_F)
-fit <- eBayes(fit)
-# Don't use limma.one.sided, it's for the t-test P values!
+#
+# Fit with heteroskedasticity correction
+voomFit <- voomaLmFit(tmpVal[NA_Filt,], designMatr, keep.EList = TRUE)
+voomFit$genes <- myData[NA_Filt, namesCol] # For convenience
+# Compare voomaLmFit and lmFit:
+# basicFit <- lmFit(tmpVal[NA_Filt,], designMatr)
+# basicFit$genes <- myData[NA_Filt, namesCol]
+# basicFit <- contrasts.fit(basicFit, contrMatr_F)
+# basicFit <- eBayes(basicFit)
+# tstSD <- data.frame(Voom_resSD = voomFit$sigma, # Rescaling would be needed here to account for the weights
+#                     lm_resSD = basicFit$sigma)
+# a <- melt(basicFit$p.value)
+# b <- melt(voomFit$p.value)
+# tstPV <- a
+# colnames(tstPV)[which(colnames(tstPV) == "value")] <- "lmFit"
+# colnames(tstPV)[which(colnames(tstPV) == "Contrasts")] <- "Contrast"
+# tstPV$voomaLmFit <- b$value
+# plot1 <- ggplot(tstSD) +
+#   geom_point(aes(x = lm_resSD, y = Voom_resSD)) + theme_bw() +
+#   ggtitle("Residual SDs") + xlab("lmFit") + ylab("voomaLmFit") #+ coord_fixed()
+# poplot(plot1)
+# plot2 <- ggplot(tstPV) +
+#   geom_point(aes(x = lmFit, y = voomaLmFit, color = Contrast), show.legend = FALSE) +
+#   theme_bw() + scale_color_viridis_d() +
+#   ggtitle("P-values") + coord_fixed() + facet_wrap(~Contrast)
+# poplot(plot2)
+# Similar, strongly correlated p-values indicate that it is ok to use voomaLmFit() here,
+# i.e. it captures essentially the same information as lmFit() would
+# but with the additional robustness to heteroskedasticity.
+#
+#
+# Decisions from ANOVA
+# ====================
+#
+# Step 1 - run F-test
+# -------------------
+fit_F <- eBayes(voomFit) # Run F-test
 my_F_Data <- myData[, c(namesCol, idCol, protCol, mtchCol, paste0("Mean ", ratRef, expContr_F$name))]
 my_F_Data[[F_Root]] <- NA
-my_F_Data[NA_Filt
-  , F_Root] <- -log10(fit$F.p.value)
-#topTable - not used, using decideTests instead
-# tpTbl <- topTable(fit, NULL, nrow(my_F_Data)#length(NA_Filt)
-#                   , adjust.method = "none",
-#                   sort.by = "F", resort.by = "none",
-#                   confint = 0.95)
+my_F_Data[NA_Filt, F_Root] <- -log10(fit_F$F.p.value)
+# Do NOT use:
+#  - contrasts.fit() before eBayes() for the F-test!
+#  - limma.one.sided, it is for the t-test P values!
+#
+# Step 2 - run post-hoc tests (global moderated t-tests with contrasts)
+# ---------------------------------------------------------------------
+fit_postHoc <- contrasts.fit(voomFit, contrMatr_F)
+fit_postHoc <- eBayes(fit_postHoc)
+F_PVal_postHoc <- paste0(F_Root, " - ", expContr_F$name)
+my_F_Data[, F_PVal_postHoc] <- NA
+my_F_Data[NA_Filt, F_PVal_postHoc] <- -log10(fit_postHoc$p.value)
+#
+# Step 3 - make decision for each FDR value
+# -----------------------------------------
+# The decision is based on:
+#  - The global F-test
+#  - Individual t-tests
+#  - Individual fold changes
+# 
+# a) Significance columns for the F-test
+# ......................................
+fdrKol <- setNames(paste0("mod. F-test Significant-FDR=", BH.FDR_F*100, "%"),
+                   BH.FDR_F*100)
+F_fdr <- list()
+F_fdr$F_test <- proteoCraft::FDR(my_F_Data,
+                                 pvalue_col = F_Root,
+                                 fdr = BH.FDR_F,
+                                 returns = c(TRUE, TRUE, FALSE))
+my_F_Data[, fdrKol] <- F_fdr$F_test$`Significance vector`
+#
+# b) Significance columns for each post-hoc test
+# ..............................................
+# Note that this could also be done globally. But usually here people consider each test individually.
+# The decision as to whether to calculate FDR thresholds for each post hoc test indiviudally,
+# or globally for all, could be parameter controlled in the future.
+tmp <- my_F_Data[, F_PVal_postHoc, drop = FALSE]
+saveRDS(tmp, paste0(wd, "/tmp.RDS"))
+clusterExport(parClust, list("F_Root", "BH.FDR_F", "wd"))
+invisible(clusterCall(parClust, function() {
+  tmp <<- readRDS(paste0(wd, "/tmp.RDS"))
+  return()
+}))
+F_fdr[expContr_F$name] <- parLapply(parClust, expContr_F$name, function(i) { #i <- expContr_F$name[1]
+  F_pv_i <- paste0(F_Root, " - ", i)
+  return(proteoCraft::FDR(tmp,
+                          pvalue_col = F_pv_i,
+                          fdr = BH.FDR_F,
+                          returns =c(TRUE, TRUE, FALSE)))
+})
+fdrKol_contr <- c()
+for (i in expContr_F$name) {
+  fdrKol_i <- paste0(fdrKol, " - ", i)
+  fdrKol_contr <- c(fdrKol_contr, fdrKol_i)
+  my_F_Data[, fdrKol_i] <- F_fdr[[i]]$`Significance vector`
+}
+#
+# c) Final decision, based on the prior Significance columns + logFC
+# We define a single logFC threshold for the whole test
 regRoot_F <- "mod. F-test Regulated - "
 regKol <- paste0(regRoot_F, expContr_F$name)
 my_F_Data[, regKol] <- "non significant"
-# First level: get decision for each FDR value
-fdrKol <- paste0("mod. F-test Significant-FDR=", rev(BH.FDR)*100, "%")
-my_F_Data[, fdrKol] <- ""
-for (fdr in rev(BH.FDR)) { #fdr <- rev(BH.FDR)[1]
-  dTsts <- decideTests(fit, c("nestedF", "global")[Nested+1], "none", fdr)
-  dTsts <- as.data.frame(dTsts)
-  m <- match(rownames(my_F_Data), rownames(dTsts))
-  wMtch <- which(!is.na(m))
-  m <- m[wMtch]
-  dTsts <- dTsts[m,]
-  fdrkl <- paste0("mod. F-test Significant-FDR=", fdr*100, "%")
-  for (i in colnames(dTsts)) { #i <- colnames(dTsts)[1]
-    ctrst <- expContr_F$name[match(i, expContr_F$Contrasts)]
-    rgkl <- paste0(regRoot_F, ctrst)
-    wUp <- which(dTsts[[i]] == 1)
-    wDown <- which(dTsts[[i]] == -1)
-    my_F_Data[c(wUp, wDown), fdrkl] <- "+"
-    my_F_Data[wMtch[wUp], rgkl] <- paste0("up, FDR = ", fdr*100, "%")
-    my_F_Data[wMtch[wDown], rgkl] <- paste0("down, FDR = ", fdr*100, "%")
+for (fdr in BH.FDR_F) { #fdr <- BH.FDR_F[1]
+  fdrkl1 <- fdrKol[as.character(fdr*100)]
+  tst1 <- my_F_Data[[fdrkl1]] == "+"
+  for (i in expContr_F$name) { #i <- expContr_F$name[2]
+    rgkl <- paste0(regRoot_F, i)
+    fdrkl2 <- paste0(fdrKol[as.character(fdr*100)], " - ", i)
+    tst2 <- my_F_Data[[fdrkl2]] == "+"
+    fckl <- paste0("Mean ", ratRef, i)
+    tst3 <- my_F_Data[[fckl]] >= 0
+    tst4 <- abs(my_F_Data[[fckl]]) < lfcThr
+    wUp <- which(tst1&tst2&tst3)
+    wDown <- which(tst1&tst2&!tst3)
+    wNS <- which(tst1&tst2&tst4)
+    my_F_Data[wUp, rgkl] <- paste0("up, FDR = ", fdr*100, "%")
+    my_F_Data[wDown, rgkl] <- paste0("down, FDR = ", fdr*100, "%")
+    my_F_Data[wNS, rgkl] <- "too small FC"
   }
 }
-# Second level: apply lfc filtering
-if (Param$Ratios.Thresholds == "Absolute log2 FC threshold") {
-  lfcThr <- Param$Ratios.Contamination.Rates
-}
-if (Param$Ratios.Thresholds == threshMsg) {
-  d <- abs(unlist(refRat_F))
-  d <- sort(d, decreasing = TRUE)
-  if (Param$Ratios.Contamination.Rates > 0) {
-    d <- d[floor(length(d)*as.numeric(Param$Ratios.Contamination.Rates))]
-  } else {
-    d <- max(d)+0.000001
-  }
-  lfcThr <- d
-}
-if (lfcThr != 0) {
-  warning("Please note that limma allows applying a non-null lfc threshold, but does not recommend to do it (see ?decideTests for a discussion).")
-}
-for (i in 1:nrow(expContr_F)) { #i <- 1
-  fckl <- paste0("Mean ", ratRef, expContr_F$name[i])
-  rgkl <- paste0(regRoot_F, expContr_F$name[i])
-  w <- which((my_F_Data[[rgkl]] != "non significant")&(abs(my_F_Data[[fckl]]) < lfcThr))
-  my_F_Data[w, rgkl] <- "too small FC"
-}
-myData[, c(F_Root, fdrKol, regKol)] <- my_F_Data[, c(F_Root, fdrKol, regKol)]
 #View(my_F_Data)
 
+# DRAFT - UNFINISHED (CAN IT EVER BE COMPLETED AT ALL?)
 # Mulcom - essentially a "moderated" Dunnett's test
 # Was a good idea... but it is reproducibly causing R to crash...
 # I will give it up for now...
@@ -379,24 +448,12 @@ if (Mulcom) {
   mulcomScore <- mulScores2(tmpVal2, grps2)
 }
 
-#
-# Plot F-test results
-# Q-Q plot
-ttl <- "mod. F-test QQ plot"
-fl <- paste0(ohDeer, "/", ttl)
-jpeg(file = paste0(fl, ".jpeg"), width = 400, height = 350)
-qqt(as.data.frame(fit$F), df = fit$df.prior + fit$df.residual, pch = 16, cex = 0.2)
-abline(0,1)
-dev.off()
-#
-kol <- unique(c(idCol, protCol, plotlyLab, "Potential contaminant", Param$Plot.labels, xCol, Alpha, fdrKol, regKol))
-kol <- kol[which(kol %in% colnames(myData))]
+# Volcano plots
+kol <- unique(c(idCol, protCol, plotlyLab, "Potential contaminant", Param$Plot.labels,
+                xCol, Alpha, fdrKol, fdrKol_contr, regKol))
+kol <- kol[which(!kol %in% colnames(my_F_Data))]
 my_F_Data[, kol] <- myData[, kol]
 my_F_Data[["Rel. av. log10 abundance"]] <- myData[[Size]]
-tmp <- lapply(1:length(xCol), function(x) { myData[, F_Root, drop = FALSE] })
-tmp <- do.call(cbind, tmp)
-dummyPVCol <- gsub(topattern(paste0("Mean ", ratRef)), paste0(F_Root, " - "), xCol)
-my_F_Data[, dummyPVCol] <- tmp                
 contr <- data.frame(Contrast = expContr_F$name)
 if ("Target" %in% colnames(Exp.map)) {
   tmp <- gsub("^\\(|\\) - \\(.*", "", contr$Contrast)
@@ -426,7 +483,8 @@ F_volc <- Volcano.plot(Prot = my_F_Data, mode = "custom", experiments.map = cont
                        plotly_labels = plotlyLab,
                        Ref.Ratio.method = paste0("obs", RefRat_Mode),
                        cl = parClust,
-                       reg.root = regRoot_F)
+                       reg.root = regRoot_F#, saveData = TRUE
+                       )
 stopCluster(parClust)
 source(parSrc)
 #
@@ -464,17 +522,16 @@ thresh$Name <- NULL
 thresh$Root <- gsub(" - $", "", thresh$Root)
 thresh$Value <- thresh$Text.value
 thresh$Text.value <- NULL
-# Legacy code: since aRmel 6.3.1.7, we do not get the Regulated columns from the Volcano.plot function anymore!
-# fdrThresh <- F_thresh$FDR
-# if (!is.null(fdrThresh)) {
-#   #stop("Uh... why was the condition TRUE?!?!")
-#   colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.up")] <- "Colour (up)"
-#   colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.down")] <- "Colour (down)"
-#   colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.line")] <- "Colour (line)"
-#   if ("Test" %in% colnames(fdrThresh)) {
-#     fdrThresh <- fdrThresh[, c("Test", colnames(fdrThresh)[which(colnames(fdrThresh) != "Test")])]
-#   }
-# }
+# FDR thresholds
+fdrThresh <- F_thresh$FDR
+if (!is.null(fdrThresh)) {
+  colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.up")] <- "Colour (up)"
+  colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.down")] <- "Colour (down)"
+  colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.line")] <- "Colour (line)"
+  if ("Test" %in% colnames(fdrThresh)) {
+    fdrThresh <- fdrThresh[, c("Test", colnames(fdrThresh)[which(colnames(fdrThresh) != "Test")])]
+  }
+}
 fl <- paste0(ohDeer, "/Thresholds.xlsx")
 wb <- wb_workbook()
 wb <- wb_set_creators(wb, "Me")
@@ -492,19 +549,19 @@ wb <- wb_add_data(wb, "Thresholds", "FDR thresholds", dms)
 wb <- wb_add_font(wb, "Thresholds", dms, "Calibri", wb_color(hex = "FF000000"), bold = "true",
                   italic = "true", underline = "single")
 dms <- wb_dims(3+nrow(thresh)+4, 2)
-# if (!is.null(fdrThresh)) {
-#   wb <- wb_add_data_table(wb, "Thresholds", fdrThresh, dms,
-#                           col_names = TRUE, table_style = "TableStyleMedium2",
-#                           banded_rows = TRUE, banded_cols = FALSE)
-#   wb <- wb_set_col_widths(wb, "Thresholds", 1, 3)
-#   tmp1 <- rbind(colnames(thresh), thresh)
-#   colnames(tmp1) <- paste0("V", 1:ncol(tmp1))
-#   tmp2 <- rbind(colnames(fdrThresh), fdrThresh)
-#   colnames(tmp2) <- paste0("V", 1:ncol(tmp2))
-#   tst <- plyr::rbind.fill(tmp1, tmp2)
-#   tst <- setNames(apply(tst, 2, function(x) { max(nchar(x), na.rm = TRUE) }), NULL)
-#   wb <- wb_set_col_widths(wb, "Thresholds", 1:(length(tst)+1), c(3, tst))
-# }
+if (!is.null(fdrThresh)) {
+  wb <- wb_add_data_table(wb, "Thresholds", fdrThresh, dms,
+                          col_names = TRUE, table_style = "TableStyleMedium2",
+                          banded_rows = TRUE, banded_cols = FALSE)
+  wb <- wb_set_col_widths(wb, "Thresholds", 1, 3)
+  tmp1 <- rbind(colnames(thresh), thresh)
+  colnames(tmp1) <- paste0("V", 1:ncol(tmp1))
+  tmp2 <- rbind(colnames(fdrThresh), fdrThresh)
+  colnames(tmp2) <- paste0("V", 1:ncol(tmp2))
+  tst <- plyr::rbind.fill(tmp1, tmp2)
+  tst <- setNames(apply(tst, 2, function(x) { max(nchar(x), na.rm = TRUE) }), NULL)
+  wb <- wb_set_col_widths(wb, "Thresholds", 1:(length(tst)+1), c(3, tst))
+}
 wb_save(wb, fl)
 #xl_open(fl)
 #

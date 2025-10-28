@@ -110,27 +110,30 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
       if (sum(is.na(m))) {
         warning("Mapping samples through MQ.Exp to sample groups failed, check code!\nMapping colors to samples instead of sample groups...")
         scoresA$Colour <- scoresA$Sample
+        colKol <- "colKol"
       } else {
         tmp <- Exp.map[m, Factors[which(Factors != "Replicate")]]
         tmp <- tmp[, which(vapply(colnames(tmp), function(x) { length(unique(tmp[[x]])) > 1 }, TRUE)), drop = FALSE]
-        tmp <- do.call(cbind, c(list(Exp.map[, "MQ.Exp", drop = FALSE],
-                                     tmp)))
-        scoresA$Colour <- do.call(paste, c(tmp, sep = " "))
+        scoresA$"Sample group" <- do.call(paste, c(tmp, sep = " "))
+        colKol <- "Sample group"
+        # tmp <- do.call(cbind, c(list(Exp.map[, "MQ.Exp", drop = FALSE],
+        #                              tmp)))
+        # scoresA$"Sample group" <- do.call(paste, c(tmp, sep = " "))
       }
       ttl <- "PCA plot - Samples (PSMs-level)"
       xLab <- paste0("PC1 = ", pvA[1], "%")
       yLab <- paste0("PC2 = ", pvA[2], "%")
-      plot <- ggplot(scoresA) +
-        geom_point(aes(x = PC1, y = PC2, colour = Colour)) +
-        ggpubr::stat_conf_ellipse(aes(fill = Colour),
-                                  alpha = 0.2, geom = "polygon", show.legend = FALSE) +
+      plot <- ggplot(scoresA, aes(x = PC1, y = PC2, colour = .data[[colKol]])) +
+        geom_point() +
+        ggpubr::stat_conf_ellipse(aes(fill = .data[[colKol]]),
+                                  alpha = 0.1, geom = "polygon", show.legend = FALSE) +
         scale_color_viridis_d(begin = 0.25) +
         coord_fixed() + theme_bw() +
         xlab(xLab) + ylab(yLab) +
         geom_hline(yintercept = 0, colour = "black") + geom_vline(xintercept = 0, colour = "black") +
         ggtitle(ttl#, subtitle = pvA2
                 ) +
-        geom_text_repel(aes(x = PC1, y = PC2, label = Label, colour = Colour),
+        geom_text_repel(aes(x = PC1, y = PC2, label = Label, colour = .data[[colKol]]),
                         size = 2.5, show.legend = FALSE)
       #poplot(plot)
       suppressMessages({
@@ -140,7 +143,7 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
       ReportCalls <- AddPlot2Report(Space = FALSE)
       Symb <- "circle"
       # Custom color scale
-      scoresA$`Samples group` <- factor(scoresA$Colour)
+      scoresA$`Samples group` <- factor(scoresA[[colKol]])
       if ("PC3" %in% colnames(scoresA)) {
         plot_lyPSMsPCA <- plot_ly(scoresA, x = ~PC1, y = ~PC2, z = ~PC3,
                                   text = ~Label, type = "scatter3d", mode = "markers",
