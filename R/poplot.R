@@ -1,9 +1,9 @@
 #' poplot
 #'
 #' @description 
-#' A wrapup for plotting in a popup window (or not: can also just do in local window). Should work on all devices (some strange people like Macs.)
+#' A wrapup for printing a ggplot in a popup window (or not: can also just do in local window). Should work on all devices (some strange people like Macs.)
 #' 
-#' @param plot Plot to print.
+#' @param plot ggplot to print.
 #' @param height Height of the popup. Default = 10.
 #' @param width Width of the popup. Default = 15.
 #' @param new.window TRUE by default, set to FALSE to not plot in a popup window.
@@ -11,7 +11,11 @@
 #'
 #' @export
 
-poplot <- function(plot, height = 10, width = 10, new.window = TRUE, max.gr.dev = 62) {
+poplot <- function(plot,
+                   height = 10,
+                   width = 10,
+                   new.window = TRUE,
+                   max.gr.dev = 62) {
   if (max.gr.dev < 2) {
     warning("Ignoring \"max.gr.dev\" as the value isn't valid!")
     max.gr.dev <- 62

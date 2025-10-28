@@ -27,6 +27,7 @@
 #' @export
 
 writeFasta <- function(DB, destFl, filter, return = FALSE, newFl = FALSE) {
+  #proteoCraft::DefArg(writeFasta)
   nr <- nrow(DB)
   stopifnot(nrow(DB) > 0,
             length(unique(DB$"Protein ID")) == nrow(DB))

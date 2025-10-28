@@ -43,12 +43,12 @@
 #' @param subfolder Name of the sub-folder where graphs are to be saved. Default = "Reg. analysis/t-tests"
 #' @param subfolderpertype Logical. If TRUE (default), will save each type of graph in a dedicated sub-folder.
 #' @param Symmetrical Are we also interested in the left half (down-regulated) or only the right one (up-regulated)? If missing and a value for "parameters" is provided, the function will attempt to infer it from parameters' "Type", otherwise it will default to TRUE.
-#' @param Alpha Mapping of each dot's alpha level to a column. Default = 1 (no alpha variations)
+#' @param Alpha Either a single numeric value, or a length 1 character: the name of a numeric column in Prot mapping each dot's alpha level to a column. Default = 1 (no alpha variations)
 #' @param Alpha.identity Logical. Do we need to fit the Alphas into a 0:1 scale? Default = FALSE
 #' @param Alpha.labels Logical. Should labels also be affected by alpha? Default = FALSE
 #' @param Alpha.max For when mapping alpha to a column. The highest allowed alpha. Default = 1
 #' @param Alpha.min For when mapping alpha to a column. The weakest allowed alpha. Default = 0.01
-#' @param Size Mapping of each dot's size to a column. Default = 1 (same size for all)
+#' @param Size Either a single numeric value, or a length 1 character: the name of a numeric column in Prot. Default = 1 (same size for all)
 #' @param Size.max For when mapping size to a column. The largest allowed dot size. Default = 2
 #' @param Size.min For when mapping size to a column. The smallest allowed dot size. Default = 0.01
 #' @param cex Label text size. Default = 2
@@ -511,7 +511,7 @@ Volcano.plot <- function(Prot,
   } else { proteins_split <- FALSE }
   #
   # Default colors
-  myColors <- setNames(c("black", "black", "purple", c("brown", "firebrick1")[proteins_split+1]),
+  myColors <- setNames(c("lightgrey", "lightgrey", "purple", c("brown", "firebrick1")[proteins_split+1]),
                        c("non significant", "too small FC", "target", "protein in list"))
   if (useFDRtbl) {
     myColors[c(paste0("up, FDR = ", FDR_table$FDR, "%"),
@@ -724,6 +724,8 @@ Volcano.plot <- function(Prot,
         for (f in f2) { temp[[f]] <- NULL }
       }
     }
+    #
+    Alpha <- Alpha[1]
     if (!is.numeric(Alpha)) {
       if (!Alpha %in% colnames(Prot)) {
         warning("Alpha levels are not numeric or mapped to a column and will be ignored!")
@@ -745,6 +747,8 @@ Volcano.plot <- function(Prot,
         Alpha <- 1
       }
     }
+    #
+    Size <- Size[1]
     if (!is.numeric(Size)) {
       if (!Size %in% colnames(Prot)) {
         warning("Sizes are not numeric or mapped to a column and will be ignored!")

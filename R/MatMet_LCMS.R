@@ -29,10 +29,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                         N.reserved = 1,
                         cl) {
   TESTING <- FALSE
-  #proteoCraft::DefArg(proteoCraft::MatMet_LCMS)
+  #proteoCraft::DefArg(proteoCraft::MatMet_LCMS);TESTING <- TRUE
   #RawFiles <- rawFiles <-...
-  # Number of MS files
-  #TESTING <- TRUE
   #
   if (TESTING) {
     # Note:
@@ -240,11 +238,12 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     w <- which(BrMeth$LC_method.exists)
     uBrMeth$LC_method <- BrMeth$LC_method[w][match(uBrMeth$MethodID, BrMeth$MethodID[w])]
     uBrMeth$LC_meth <- lapply(uBrMeth$LC_method, function(fl) { #fl <- uBrMeth$LC_method[1]
+      if (is.na(fl)) { return() }
       x <- XML::xmlToList(fl)
       lc <- x$LCMethodData$ModuleMethods$ModuleMethodData$text
       lc <- XML::xmlToList(lc)
-      #lc$ModuleMethodData$Method$AdvancedSettings
       return(lc)
+      #lc$ModuleMethodData$Method$AdvancedSettings
     })
     # Get MS method
     BrMeth$MS_method <- paste0(BrMeth$Raw.file, "/analysis.tdf")
