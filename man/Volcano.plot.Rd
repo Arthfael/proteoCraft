@@ -141,7 +141,7 @@ Volcano.plot(
 
 \item{Symmetrical}{Are we also interested in the left half (down-regulated) or only the right one (up-regulated)? If missing and a value for "parameters" is provided, the function will attempt to infer it from parameters' "Type", otherwise it will default to TRUE.}
 
-\item{Alpha}{Mapping of each dot's alpha level to a column. Default = 1 (no alpha variations)}
+\item{Alpha}{Either a single numeric value, or a length 1 character: the name of a numeric column in Prot mapping each dot's alpha level to a column. Default = 1 (no alpha variations)}
 
 \item{Alpha.identity}{Logical. Do we need to fit the Alphas into a 0:1 scale? Default = FALSE}
 
@@ -151,7 +151,7 @@ Volcano.plot(
 
 \item{Alpha.min}{For when mapping alpha to a column. The weakest allowed alpha. Default = 0.01}
 
-\item{Size}{Mapping of each dot's size to a column. Default = 1 (same size for all)}
+\item{Size}{Either a single numeric value, or a length 1 character: the name of a numeric column in Prot. Default = 1 (same size for all)}
 
 \item{Size.max}{For when mapping size to a column. The largest allowed dot size. Default = 2}
 

@@ -15,14 +15,14 @@ Data_Impute2(quant_data, groups, is.log = TRUE, seed, min_misses = 1)
 
 \item{seed}{Use a fixed seed for reproducibility purposes.}
 
-\item{min_misses}{Minimum number of misses for assuming MAR - this is a way to bypass imputeLCMD's model.Selector(), whose predictions as to which rows have MAR (as opposed to left censored MNAR) seem sometimes rather optimistic. The current default is 1 (i.e. no effect of this parameter), but where the data will be subjected to statistical analysis it may be a good idea to increase this to 2.}
+\item{min_misses}{Minimum number of misses for assuming MAR - this is a way to bypass imputeLCMD's model.Selector(), whose predictions as to which rows are MAR (as opposed to left censored MNAR) seem sometimes rather optimistic. The current default is 1 (i.e. no effect of this parameter), but where the data will be subjected to statistical analysis it may be a good idea to increase this to 2.}
 }
 \description{
 Better function to impute missing values than my former version, "Data_Impute". Uses the imputeLCMD package.
 Works in two steps:
  - Step 1: within user-defined groups of user-defined related samples (replicates from a treatment),
-           on which it performs MAR imputation using KNN.
- - Step 2: globally on all remaining missing values, which it imputed as MNAR using QRILC.
+           on which it performs MAR/MCAR imputation using KNN.
+ - Step 2: globally on all remaining missing values, which it imputes as MNAR using QRILC.
 The output is a list of the two arrays: new quantitative values and positions which were imputed.
 }
 \examples{
