@@ -29,6 +29,7 @@ if (!exists("Factors")) {
   Factors <- minFact
   FactorsLevels %<o% setNames(lapply(Factors, function(x) { c("") }), Factors)
 } else { Factors %<o% unique(c(Factors, minFact)) }
+Factors <- Factors[which(!Factors %in% "Group")] # See below...
 if (WorkFlow == "BIOID") {
   Factors <- unique(c(Factors, "Target")) # In this case target is not obligatory
   minFactDesc["Target"] <- "ID (e.g. UniProtKB accession) in the search database(s) of the bait protein"
@@ -77,16 +78,28 @@ ui <- fluidPage(
       actionBttn("addFactor", "Create Factor(s)", color = "primary", size = "xs", style = "pill"),
       actionBttn("rmvFactor", "Remove Factor(s)", color = "primary", size = "xs", style = "pill"),
       h5(em("Factor names must be:")),
-      h5(em(" - at least 3 characters long")),
-      h5(em(" - start with a capital letter,")),
-      h5(em(" - followed by only lower case letters, numbers or dots.")),
+      h5(em("- at least 3 characters long")),
+      h5(em("- start with a capital letter,")),
+      h5(em("- followed by only lower case letters, numbers or dots.")),
+      h5(em("- These Factor names and 3-letter Factor roots are reserved:")),
+      h5(em(HTML(paste0("&emsp;- ", strong("Exp"), "eriment = always present, group of samples to analyze together")))),
+      # This one because it may conflict with other uses of Group elsewhere:
+      h5(em(HTML(paste0("&emsp;- ", strong("Gro"), "up = used internally, do not use")))),
+      h5(em(HTML(paste0("&emsp;- ", strong("Rep"), "licate = always present, strictly biological replicate")))),
+      h5(
+        em(HTML(paste0("&emsp;- ", strong("Tim"), "e.point = activates certain time-series specific functionalities")))
+      ),
+      h5(em(HTML(paste0("&emsp;- ", strong("Tar"), "get = for pull downs, the bait")))),
+      h5(em(HTML(paste0("&emsp;- ", strong("Iso"), "baric.set = for isobaric labelling only, set of labelled samples combined into a meta-sample")))),
+      h5(em(HTML(paste0("&emsp;- ", strong("Com"), "partment = for Re-localization analysis, main target compartment of the subcellular fraction")))),
       br(),
       br(),
     ),
     mainPanel(
       h5(em("Add Factor levels:")),
-      h5(em(" - use underscores, no spaces or hyphens within level names; sequences of 3 or more consecutive underscores are forbidden!\"\"")),
-      h5(em(" - use spaces to add multiple levels at a time")),
+      h5(em(" - you may use underscores, but no spaces or hyphens, within level names")),
+      h5(em(" - sequences of more than 2 consecutive underscores are forbidden!")),
+      h5(em(" - use a space to add multiple levels at a time")),
       br(),
       span(uiOutput("Message"), style = "color:red"),
       h3("Factor levels:"),
@@ -158,7 +171,8 @@ server <- function(input, output, session) {
       vals <- input[[paste0(Fact, "_lev")]]
       vals <- vals[which(!is.na(vals))]
       if (length(vals)) {
-        if ((is.character(vals))&&(Fact != "Target")) { vals <- gsub("-", ".", unlist(strsplit(vals, " "))) }
+        if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
+        if (Fact != "Target") { vals <- gsub("-", ".", vals) }
         tmp2 <- FACTLevels()
         if (Fact %in% intFact) {
           tmp2[[Fact]] <- 1:as.integer(max(c(vals, dfltInt[match(Fact, intFact)])))
@@ -182,7 +196,8 @@ server <- function(input, output, session) {
       vals <- input[[paste0(Fact, "_lev")]]
       vals <- vals[which(!is.na(vals))]
       if (length(vals)) {
-        if ((is.character(vals))&&(Fact != "Target")) { vals <- gsub("-", ".", unlist(strsplit(vals, " "))) }
+        if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
+        if (Fact != "Target") { vals <- gsub("-", ".", vals) }
         tmp2 <- FACTLevels()
         if (Fact %in% intFact) {
           tmp2[[Fact]] <- 1:(max(c(as.integer(vals)-1, dfltInt[match(Fact, intFact)])))
@@ -203,6 +218,8 @@ server <- function(input, output, session) {
   observeEvent(input$addFactor, {
     msg <- " "
     Facts <- gsub("[^A-Z,a-z,0-9]", "\\.", unlist(strsplit(input$nuFact, " +")))
+    # We must strictly disallow Group here or rewrite any bit of code where Group is used generically
+    Facts <- Facts[which(!Facts %in% c("Group"))]
     sapply(Facts, function(Fact) {
       if ((nchar(Fact) < 3)||(grepl("^[0-9]", Fact))||(substr(Fact, 1, 3) %in% substr(FACT(), 1, 3))) {
         msg <- "Invalid Factor name! Must be at least 3 characters long and start with a capital letter! The first 3 characters must be unique to this Factor!"
@@ -218,7 +235,8 @@ server <- function(input, output, session) {
             vals <- input[[paste0(Fact, "_lev")]]
             vals <- vals[which(!is.na(vals))]
             if (length(vals)) {
-              if ((is.character(vals))&&(Fact != "Target")) { vals <- gsub("-", ".", unlist(strsplit(vals, " "))) }
+              if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
+              if (Fact != "Target") { vals <- gsub("-", ".", vals) }
               tmp2 <- FACTLevels()
               if (Fact %in% intFact) {
                 tmp2[[Fact]] <- 1:as.integer(max(c(vals, dfltInt[match(Fact, intFact)])))
@@ -239,7 +257,8 @@ server <- function(input, output, session) {
             vals <- input[[paste0(Fact, "_lev")]]
             vals <- vals[which(!is.na(vals))]
             if (length(vals)) {
-              if ((is.character(vals))&&(Fact != "Target")) { vals <- gsub("-", ".", unlist(strsplit(vals, " "))) }
+              if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
+              if (Fact != "Target") { vals <- gsub("-", ".", vals) }
               tmp2 <- FACTLevels()
               if (Fact %in% intFact) {
                 tmp2[[Fact]] <- 1:(max(c(as.integer(vals)-1, dfltInt[match(Fact, intFact)])))

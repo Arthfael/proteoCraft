@@ -43,6 +43,8 @@ if ("Target" %in% colnames(Exp.map)) {
       titlePanel(tag("u", "Map pull-down baits to protein Accessions"),
                  appNm),
       br(),
+      h5("Map Target names to accessions in the search database."),
+      h5(em("(Ignore cases, such as Control/Ctrl/IgGminus/etc... where this is not feasible.)")),
       withSpinner(uiOutput("Baits")),
       actionButton("saveBtn", "Save"),
       br(),
@@ -102,7 +104,10 @@ if ("Target" %in% colnames(Exp.map)) {
     w <- which(targProt == "")
     targProt[w] <- names(targProt)[w]
     Exp.map$"Bait (aka Target) name" <- Exp.map$Target # Alias as backup
-    Exp.map$Target <- setNames(targProt[Exp.map$Target], NULL)
+    w <- which(Exp.map$Target %in% names(targProt))
+    if (length(w)) {
+      Exp.map$Target[w] <- setNames(targProt[Exp.map$Target[w]], NULL)
+    }
   }
   Tar <- unique(Exp.map$Target)
   FactorsLevels$Target <- Tar

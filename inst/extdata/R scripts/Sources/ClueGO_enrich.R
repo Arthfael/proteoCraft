@@ -32,7 +32,7 @@ if (clueGOahead) {
         # (ii == 1 is for the filter, ii == 2 is the reference)
         #
         # Useful guide to the Cytoscape RESTful API:
-        # http://127.0.0.1:1234/v1/swaggerUI/swagger-ui/index.html?url=http://127.0.0.1:1234/v1/swagger.json#/
+        # http://127.0.0.1:1234/v1/swaggerUI/swagger-ui/index.html?url=http://127.0.0.1:1234/v1/swagger.json#/Apps5832ClueGO
         # (Includes a section on ClueGO)
         #
         # Create cluster
@@ -51,23 +51,41 @@ if (clueGOahead) {
         # Set gene lists
         if (ii == 1) {
           myFlt <- myFlt1 <- filters[[nm]]
+          tmpDat <- Prot[myFlt,]
         }
         if (ii == 2) {
           myFlt <- myFlt2 <- ref.filters[[nm]]
-          stopifnot(sum(!myFlt1 %in% myFlt2) == 0)
-          #myFlt <- unique(c(myFlt1, myFlt2)) #In case I want to be 100% sure they overlap; would also sort reference into is-in/is-out
+          tmpDat <- parentData[myFlt,]
+        }
+        if ("Potential contaminant" %in% colnames(tmpDat)) {
+          w <- which((is.na(tmpDat$"Potential contaminant"))|(tmpDat$"Potential contaminant" != "+"))
+          tmpDat <- tmpDat[w,]
+        }
+        if (ii == 1) {
+          IDs_lst <- unique(unlist(strsplit(tmpDat[myFlt, ID_col], ";"))) # inherited from GO_enrich.R, which should always be run before!
+        }
+        if (ii == 2) {
+          IDs_lst <- unique(unlist(strsplit(tmpDat[, parentCol], ";"))) # inherited from GO_enrich.R, which should always be run before!
         }
         #
-        IDs_lst <- unique(unlist(strsplit(pahruhnt[myFlt, pahrkol], ";"))) # inherited from GO_enrich.R, which should always be run before!
         IDs_lst <- grep("^((cRAP)|(CON__))", IDs_lst, value = TRUE, invert = TRUE)
+        IDs_lst <- IDs_lst[which(IDs_lst != "NA")]
         #writeClipboard(IDs_lst)
         if (ii == 1) {
+          IDs_lst1 <- IDs_lst
           IDs_lst <- RJSONIO::toJSON(IDs_lst)
           rqst <- paste(clueGO_URL, "cluster", "upload-ids-list", URLencode(as.character(ii)), sep = "/")
           response <- httr::PUT(rqst, body = IDs_lst, encode = "json", httr::content_type_json())
           if (httr::http_status(response)$category != "Success") { Sys.sleep(2) }
         }
         if (ii == 2) {
+          IDs_lst2 <- IDs_lst
+          stopifnot(sum(!IDs_lst1 %in% IDs_lst2) == 0)
+          IDs_lst <- RJSONIO::toJSON(IDs_lst)
+          # We are instead saving locally and passing it later as reference list
+          #rqst <- paste(clueGO_URL, "cluster", "upload-ids-list", URLencode(as.character(ii)), sep = "/")
+          #response <- httr::PUT(rqst, body = IDs_lst, encode = "json", httr::content_type_json())
+          #if (httr::http_status(response)$category != "Success") { Sys.sleep(2) }
           write(IDs_lst, custRefFl)
         }
       }
@@ -81,7 +99,8 @@ if (clueGOahead) {
       response <- httr::PUT(rqst, encode = "json")
       if (httr::http_status(response)$category != "Success") { Sys.sleep(2) }
       #rqst <- paste0(clueGO_URL, "/stats/", URLencode(clueGO_type), "/Benjamini-Hochberg/false/false/false")
-      rqst <- paste0(clueGO_URL, "/stats/", URLencode(clueGO_type), "/Benjamini-Hochberg/false/false/true/", URLencode(custRefFl, TRUE))
+      rqst <- paste0(clueGO_URL, "/stats/", URLencode(clueGO_type), "/Benjamini-Hochberg/false/false/true/",
+                     URLencode(custRefFl, TRUE))
       response <- httr::PUT(rqst, encode = "json")
       if (httr::http_status(response)$category != "Success") { Sys.sleep(2) }
       #

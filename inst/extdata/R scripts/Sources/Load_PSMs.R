@@ -205,40 +205,51 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
         newFlsTst <- gsub(".*/", "", newFls)
         wNA <- which(is.na(tbl$nuLoc))
-        tst <- vapply(tbl$file[wNA], function(x) {
-          x <- newFls[which(newFlsTst == x)]
+        tst <- setNames(lapply(tbl$file[wNA], function(fl) { #fl <- tbl$file[wNA[1]]
+          x <- newFls[which(newFlsTst == fl)]
           if (length(x) > 1) {
             nc <- nchar(x)
             x <- x[which(nc == min(nc))]
+          } else {
+            # Backup solution in case we replaced spaces with something else - e.g. when working on Linux
+            x <- newFls[which(gsub(" ", "-", newFlsTst) == gsub(" ", "-", fl)
+                              |gsub(" ", "_", newFlsTst) == gsub(" ", "_", fl)
+                              |gsub(" ", "", newFlsTst) == gsub(" ", "", fl))]
+            if (length(x) > 1) {
+              nc <- nchar(x)
+              x <- x[which(nc == min(nc))]
+            }
           }
           return(x)
-        }, "")
+        }), tbl$file[wNA])
         tst <- tst[which(vapply(tst, length, 1) == 1)]
-        tst <- setNames(unlist(tst), names(tst))
-        wY2 <- which(is.na(tbl$nuLoc)&(tbl$file %in% names(tst)))
-        wN2 <- which(is.na(tbl$nuLoc)&(!tbl$file %in% names(tst)))
-        tstY2 <- (length(wY2) > 1)+1
-        tstN2 <- (length(wN2) > 1)+1
-        if (length(wY2)) {
-          m <- match(tbl$file[wY2], names(tst))
-          tbl$nuLoc[wY2] <- tst[m]
-          msg <- "   The user was able to locate "
-          if (length(wN2) == 0) {
-            msg <- paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
-                          " in directory ", newDir, "\n")
+        if (length(tst)) {
+          tst <- setNames(unlist(tst), names(tst))
+          wY2 <- which(is.na(tbl$nuLoc)&(tbl$file %in% names(tst)))
+          wN2 <- which(is.na(tbl$nuLoc)&(!tbl$file %in% names(tst)))
+          tstY2 <- (length(wY2) > 1)+1
+          tstN2 <- (length(wN2) > 1)+1
+          if (length(wY2)) {
+            m <- match(tbl$file[wY2], names(tst))
+            tbl$nuLoc[wY2] <- tst[m]
+            msg <- "   The user was able to locate "
+            if (length(wN2) == 0) {
+              msg <- paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
+                            " in directory ", newDir, "\n")
+            } else {
+              msg <- paste0(msg, "the following missing file", c("", "s")[tstY2],
+                            " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
+            }
+            cat(msg)
           } else {
-            msg <- paste0(msg, "the following missing file", c("", "s")[tstY2],
-                          " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
+            msg <- paste0("   The following file", c("", "s")[tstN2], " could not be located:\n",
+                          paste(paste0(" - ", tbl$path[wN], "\n\n"), collapse = ""))
           }
-          cat(msg)
-        } else {
-          msg <- paste0("   The following file", c("", "s")[tstN2], " could not be located:\n",
-                        paste(paste0(" - ", tbl$path[wN], "\n\n"), collapse = ""))
+          rawFiles_i_nu <- rawFiles_i
+          w <- which(!is.na(tbl$nuLoc))
+          updtFls <- length(w) > 0
+          rawFiles_i_nu[w] <- tbl$nuLoc[w]
         }
-        rawFiles_i_nu <- rawFiles_i
-        w <- which(!is.na(tbl$nuLoc))
-        updtFls <- length(w) > 0
-        rawFiles_i_nu[w] <- tbl$nuLoc[w]
       }
     }
     #rawFiles_i_2 <- gsub(".*[\\\\/]|\\.((raw)|(mzX?ML)|(d))$", "", rawFiles_i, ignore.case = TRUE)
@@ -567,14 +578,23 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
         newFlsTst <- gsub(".*/", "", newFls)
         wNA <- which(is.na(tbl$nuLoc))
-        tst <- vapply(tbl$file[wNA], function(x) {
-          x <- newFls[which((newFlsTst == x)|(gsub(" ", "", newFlsTst) == x))]
+        tst <- setNames(lapply(tbl$file[wNA], function(fl) { #fl <- tbl$file[wNA[1]]
+          x <- newFls[which(newFlsTst == fl)]
           if (length(x) > 1) {
             nc <- nchar(x)
             x <- x[which(nc == min(nc))]
+          } else {
+            # Backup solution in case we replaced spaces with something else - e.g. when working on Linux
+            x <- newFls[which(gsub(" ", "-", newFlsTst) == gsub(" ", "-", fl)
+                              |gsub(" ", "_", newFlsTst) == gsub(" ", "_", fl)
+                              |gsub(" ", "", newFlsTst) == gsub(" ", "", fl))]
+            if (length(x) > 1) {
+              nc <- nchar(x)
+              x <- x[which(nc == min(nc))]
+            }
           }
           return(x)
-        }, "")
+        }), tbl$file[wNA])
         tst <- tst[which(vapply(tst, length, 1) == 1)]
         if (length(tst)) {
           tst <- setNames(unlist(tst), names(tst))
@@ -881,11 +901,20 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
           newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
           newFlsTst <- gsub(".*/", "", newFls)
           wNA <- which(is.na(tbl$nuLoc))
-          tst <- setNames(lapply(tbl$file[wNA], function(x) { #x <- tbl$file[wNA[1]]
-            x <- newFls[which(newFlsTst == x)]
+          tst <- setNames(lapply(tbl$file[wNA], function(fl) { #fl <- tbl$file[wNA[1]]
+            x <- newFls[which(newFlsTst == fl)]
             if (length(x) > 1) {
               nc <- nchar(x)
               x <- x[which(nc == min(nc))]
+            } else {
+              # Backup solution in case we replaced spaces with something else - e.g. when working on Linux
+              x <- newFls[which(gsub(" ", "-", newFlsTst) == gsub(" ", "-", fl)
+                                |gsub(" ", "_", newFlsTst) == gsub(" ", "_", fl)
+                                |gsub(" ", "", newFlsTst) == gsub(" ", "", fl))]
+              if (length(x) > 1) {
+                nc <- nchar(x)
+                x <- x[which(nc == min(nc))]
+              }
             }
             return(x)
           }), tbl$file[wNA])
@@ -1296,28 +1325,48 @@ QuantUMS %<o% setNames(vapply(searchOutputs, function(x) {
 }, TRUE), inDirs)
 #  - PSMs: 
 ev %<o% do.call(plyr::rbind.fill, lapply(searchOutputs, function(x) { x$ev }));ev$id <- 1:nrow(ev) ### THE 2ND PART IS SO IMPORTANT I AM PUTTING THEM ON 1 ROW
-
+ev$`Raw file` <- gsub("\\.[^\\.]+$", "", gsub(".*/", "", ev$`Raw file path`)) # Can be a useful last check
 #tstEvs <- do.call(plyr::rbind.fill, lapply(searchOutputs, function(x) { x$ev[1:10,] }));View(tstEvs)
 
 if (exists("FracMap_reloaded")) {
+  # 1st approach - match by unmodified file path
   FracMap_bckp <- FracMap
   m <- match(FracMap$`Raw file`, FracMap_reloaded$`Raw file`)
-  tst <- sum(is.na(m))
-  gs <- FALSE # Should we remove spaces?
+  tst <- sum(is.na(m)) # Are there any NAs?
+  gs <- rep(FALSE, 3) # Should we remove spaces - and if so then how?
+  # 2nd approach - match by modified file path
   if (tst) {
-    m <- match(gsub(" ", "", FracMap$`Raw file`), gsub(" ", "", FracMap_reloaded$`Raw file`))
-    tst <- sum(is.na(m))
-    gs <- TRUE
+    m1 <- match(gsub(" ", "-", FracMap$`Raw file`), gsub(" ", "-", FracMap_reloaded$`Raw file`))
+    m2 <- match(gsub(" ", "_", FracMap$`Raw file`), gsub(" ", "_", FracMap_reloaded$`Raw file`))
+    m3 <- match(gsub(" ", "", FracMap$`Raw file`), gsub(" ", "", FracMap_reloaded$`Raw file`))
+    gs[1] <- sum(is.na(m1))
+    gs[2] <- sum(is.na(m2))
+    gs[3] <- sum(is.na(m3))
+    w <- which(!gs)
+    tst <- length(w) == 0 # If we did not find a solution, we need to go on trying
+    if (!tst) {
+      m <- get(paste0("m", w[1]))
+    }
   }
+  # 3rd approach - match by unmodified file name
   if (tst) {
     m <- match(FracMap$`Raw files name`, FracMap_reloaded$`Raw files name`)
     tst <- sum(is.na(m))
-    gs <- FALSE
+    gs <- rep(FALSE, 3)
   }
+  # 4th approach - match by modified file name
   if (tst) {
-    m <- match(gsub(" ", "", FracMap$`Raw files name`), gsub(" ", "", FracMap_reloaded$`Raw files name`))
-    tst <- sum(is.na(m))
-    gs <- TRUE
+    m1 <- match(gsub(" ", "-", FracMap$`Raw files name`), gsub(" ", "-", FracMap_reloaded$`Raw file name`))
+    m2 <- match(gsub(" ", "_", FracMap$`Raw files name`), gsub(" ", "_", FracMap_reloaded$`Raw file name`))
+    m3 <- match(gsub(" ", "", FracMap$`Raw files name`), gsub(" ", "", FracMap_reloaded$`Raw file name`))
+    gs[1] <- sum(is.na(m1))
+    gs[2] <- sum(is.na(m2))
+    gs[3] <- sum(is.na(m3))
+    w <- which(!gs)
+    tst <- length(w) == 0 # If we did not find a solution, we need to go on trying
+    if (!tst) {
+      m <- get(paste0("m", w[1]))
+    }
   }
   if (!tst) {
     k <- c("Raw file", "Raw files name", "Parent sample", "Fraction", "Use", "PTM-enriched")
@@ -1332,8 +1381,9 @@ if (exists("FracMap_reloaded")) {
         }
       }
     }
-    if (gs) {
-      mEv <- match(gsub(" ", "", ev$`Raw file path`), gsub(" ", "", FracMap$`Raw file`))
+    if (sum(gs)) {
+      rp <- c("-", "_", "")[which(gs)[1]]
+      mEv <- match(gsub(" ", rp, ev$`Raw file path`), gsub(" ", rp, FracMap$`Raw file`))
     } else {
       mEv <- match(ev$`Raw file path`, FracMap$`Raw file`)
     }
@@ -1344,6 +1394,11 @@ if (exists("FracMap_reloaded")) {
       rm(FracMap_reloaded)
       FracMap <- FracMap_bckp
     }
+    # Final final test
+    rawFiles <- unique(FracMap$`Raw file`)
+    rawFiles2 <- unique(FracMap$`Raw files name`)
+    stopifnot(sum(!rawFiles %in% ev$`Raw file path`) == 0,
+              sum(!rawFiles2 %in% ev$`Raw file`) == 0)
   } else {
     rm(FracMap_reloaded)
   }
@@ -1354,4 +1409,3 @@ if (exists("FracMap_reloaded")) {
 if (exists("fastas_reloaded")) {
   fastas <- unique(c(fastas, fastas_reloaded))
 }
-

@@ -7,175 +7,241 @@ source(parSrc)
 
 keyType <- "UNIPROT"
 idCol <- "Leading protein IDs"
-if (dataType == "modPeptides") {
-  #reNorm <- FALSE
-  myData <- ptmpep
-  if (scrptType == "withReps") { ratRef <- paste0("Mean ", pepRatRf) }
-  if (scrptType == "noReps") { ratRef <- PTMs_ratRf[length(PTMs_ratRf)] }
-  idCol <- "Protein"
-  myData$Protein <- gsub(";.*", "", myData$Proteins)
-  namesRoot <- "Pep"
-  ohDeer <- paste0(wd, "/Reg. analysis/", ptm, "/GSEA")
+if (!exists("GSEAmode")) { GSEAmode <- "standard" }
+if (GSEAmode == "standard") {
+  if (dataType == "modPeptides") {
+    myData <- ptmpep
+    if (scrptType == "withReps") { ratRef <- paste0("Mean ", pepRatRf) }
+    if (scrptType == "noReps") { ratRef <- PTMs_ratRf[length(PTMs_ratRf)] }
+    idCol <- "Protein"
+    myData$Protein <- gsub(";.*", "", myData$Proteins)
+    ohDeer <- paste0(wd, "/Reg. analysis/", ptm, "/GSEA")
+  }
+  if (dataType == "PG") {
+    myData <- PG
+    if (scrptType == "withReps") { ratRef <- paste0("Mean ", Prot.Rat.Root) }
+    if (scrptType == "noReps") { ratRef <- PG.rat.cols }
+    idCol <- "Leading protein IDs"
+    ohDeer <- paste0(wd, "/Reg. analysis/GSEA")
+  }
+  if (scrptType == "withReps") {
+    rankCol <- paste0(ratRef, VPAL$values)
+  }
+  if (scrptType == "noReps") {
+    rankCol <- paste0(ratRef, Exp)
+  }
+  rankCol <- rankCol[which(rankCol %in% colnames(myData))]
+  isOK <- length(rankCol) > 0
 }
-if (dataType == "PG") {
-  #reNorm <- Norma.Prot.Ratio.classic
-  myData <- PG
-  if (scrptType == "withReps") { ratRef <- paste0("Mean ", Prot.Rat.Root) }
-  if (scrptType == "noReps") { ratRef <- PG.rat.cols }
-  idCol <- "Leading protein IDs"
-  namesRoot <- "PG"
-  ohDeer <- paste0(wd, "/Reg. analysis/GSEA")
+if (GSEAmode == "WGCNA") {
+  if (dataType == "modPeptides") {
+    warning("Parameters for modified peptides not written yet! Why are you even running this source?")
+  }
+  if (dataType == "PG") {
+    myData <- PGmodMembership
+    myData$id <- colnames(exprData)
+    idCol <- "id"
+    ohDeer <- wgcnaDirs[3]
+    rankCol <- modNames
+  }
+  isOK <- TRUE
 }
-if (scrptType == "withReps") {
-  log2Col <- paste0(ratRef, VPAL$values)
-}
-if (scrptType == "noReps") {
-  log2Col <- paste0(ratRef, Exp)
-}
-log2Col <- log2Col[which(log2Col %in% colnames(myData))]
 if (!dir.exists(ohDeer)) { dir.create(ohDeer, recursive = TRUE) }
 if (exists("dirlist")) { dirlist <- unique(c(dirlist, ohDeer)) }
-isOK <- length(log2Col) > 0
 if (isOK) {
-  if ((!exists("Org"))||(!"data.frame" %in% class(Org))||(nrow(Org) != 1)) {
-    kol <- c("Organism_Full", "Organism")
-    kol <- kol[which(kol %in% colnames(db))]
-    tst <- sapply(kol, function(x) { length(unique(db[which(!as.character(db[[x]]) %in% c("", "NA")), x])) })
-    kol <- kol[order(tst, decreasing = TRUE)][1]
-    w <- which(db$`Potential contaminant` != "+")
-    Org %<o% aggregate(w, list(db[w, kol]), length)
-    colnames(Org) <- c("Organism", "Count")
-    Org <- Org[which(Org$Count == max(Org$Count)[1]),]
-    Org$Source <- aggregate(db$Source[which(db[[kol]] %in% Org$Organism)], list(db[which(db[[kol]] %in% Org$Organism), kol]), function(x) {
-      unique(x[which(!is.na(x))])
-    })$x
-    Org$Source[which(is.na(Org$Source))] <- ""
-  }
-  # For now only the following 20 organisms are supported, because we need their annotations package:
-  orgDBs <- data.frame(Full = c("Homo sapiens",
-                                "Pan troglodytes",
-                                "Macaca mulatta",
-                                "Mus musculus",
-                                "Rattus norvegicus",
-                                "Canis familiaris",
-                                "Sus scrofa",
-                                "Bos taurus",
-                                "Gallus gallus",
-                                "Xenopus laevis",
-                                "Danio rerio",
-                                "Caenorhabditis elegans",
-                                "Drosophila melanogaster",
-                                "Anopheles egypti",
-                                "Arabidopsis thaliana",
-                                "Saccharomyces cerevisiae",
-                                "Plasmodium falciparum",
-                                "Escherichia coli strain K12",
-                                "Escherichia coli strain Sakai",
-                                "Myxococcus xanthus"),
-                       db = c("org.Hs.eg.db",
-                              "org.Pt.eg.db",
-                              "org.Mmu.eg.db",
-                              "org.Mm.eg.db",
-                              "org.Rn.eg.db",
-                              "org.Cf.eg.db",
-                              "org.Ss.eg.db",
-                              "org.Bt.eg.db",
-                              "org.Gg.eg.db",
-                              "org.Xl.eg.db",
-                              "org.Dr.eg.db",
-                              "org.Ce.eg.db",
-                              "org.Dm.eg.db",
-                              "org.Ag.eg.db",
-                              "org.At.tair.db",
-                              "org.Sc.sgd.db",
-                              "org.Pf.plasmo.db",
-                              "org.EcK12.eg.db",
-                              "org.EcSakai.eg.db",
-                              "org.Mxanthus.db"))
-  # I will need to make this more universal.
-  # ...
-  if (Org$Organism %in% orgDBs$Full) { organism <- Org$Organism } else {
-    organism <- dlg_list(c(orgDBs$Full, "none of these"),
-                         orgDBs$Full[1], title = "Select organism")$res
-  }
-  if (!length(organism)) { organism <- "none of these" }
-  isOK <- organism != "none of these"
-  # See https://guangchuangyu.github.io/2016/01/go-analysis-using-clusterprofiler/ for how to create annotations with the format clusterProfiler expects
-  #BiocManager::install("AnnotationHub")
-  #library(AnnotationHub)
-  #hub <- AnnotationHub()
-  #query(hub, organism)
-  #myOrgAnnot <- hub[db$`Protein ID`]
-  # ...
-  # test this: can I use this and skip altogether the db package installation step?
-}
-if (isOK) {
-  orgDBpkg <- orgDBs$db[match(organism, orgDBs$Full)]
-  packs <- c("GO.db", "clusterProfiler", "BiocParallel", "pathview", "enrichplot", "DOSE", orgDBpkg)
-  for (pck in packs) {
-    if (!require(pck, character.only = TRUE)) {
-      pak::pkg_install(pck, upgrade = FALSE, ask = FALSE)
+  if (Annotate) {
+    if (!exists("GO_mappings")) { try(loadFun("GO_mappings.RData"), silent = TRUE) }
+    if (!exists("GO_terms")) { try(loadFun("GO_terms.RData"), silent = TRUE) }
+    if (sum(!c(exists("GO_mappings"), exists("GO_terms")))) {
+      Src <- paste0(libPath, "/extdata/R scripts/Sources/GO_prepare.R") # Doing this earlier but also keep latter instance for now
+      #rstudioapi::documentOpen(Src)
+      source(Src, local = FALSE)
+    }
+    term2Prot <- GO_mappings$Protein
+    term2Prot <- listMelt(strsplit(term2Prot$Protein, ";"), term2Prot$GO, c("protein", "term"))
+    term2Prot <- term2Prot[, c("term", "protein")] # The order matters actually, not the name!
+    term2name <- data.frame(term = GO_terms$ID,
+                            name = GO_terms$Term)
+  } else {
+    if ((!exists("Org"))||(!"data.frame" %in% class(Org))||(nrow(Org) != 1)) {
+      kol <- c("Organism_Full", "Organism")
+      kol <- kol[which(kol %in% colnames(db))]
+      tst <- sapply(kol, function(x) { length(unique(db[which(!as.character(db[[x]]) %in% c("", "NA")), x])) })
+      kol <- kol[order(tst, decreasing = TRUE)][1]
+      w <- which(db$`Potential contaminant` != "+")
+      Org %<o% aggregate(w, list(db[w, kol]), length)
+      colnames(Org) <- c("Organism", "Count")
+      Org <- Org[which(Org$Count == max(Org$Count)[1]),]
+      Org$Source <- aggregate(db$Source[which(db[[kol]] %in% Org$Organism)], list(db[which(db[[kol]] %in% Org$Organism), kol]), function(x) {
+        unique(x[which(!is.na(x))])
+      })$x
+      Org$Source[which(is.na(Org$Source))] <- ""
+    }
+    # For now only the following 20 organisms are supported, because we need their annotations package:
+    orgDBs <- data.frame(Full = c("Homo sapiens",
+                                  "Pan troglodytes",
+                                  "Macaca mulatta",
+                                  "Mus musculus",
+                                  "Rattus norvegicus",
+                                  "Canis familiaris",
+                                  "Sus scrofa",
+                                  "Bos taurus",
+                                  "Gallus gallus",
+                                  "Xenopus laevis",
+                                  "Danio rerio",
+                                  "Caenorhabditis elegans",
+                                  "Drosophila melanogaster",
+                                  "Anopheles egypti",
+                                  "Arabidopsis thaliana",
+                                  "Saccharomyces cerevisiae",
+                                  "Plasmodium falciparum",
+                                  "Escherichia coli strain K12",
+                                  "Escherichia coli strain Sakai",
+                                  "Myxococcus xanthus"),
+                         db = c("org.Hs.eg.db",
+                                "org.Pt.eg.db",
+                                "org.Mmu.eg.db",
+                                "org.Mm.eg.db",
+                                "org.Rn.eg.db",
+                                "org.Cf.eg.db",
+                                "org.Ss.eg.db",
+                                "org.Bt.eg.db",
+                                "org.Gg.eg.db",
+                                "org.Xl.eg.db",
+                                "org.Dr.eg.db",
+                                "org.Ce.eg.db",
+                                "org.Dm.eg.db",
+                                "org.Ag.eg.db",
+                                "org.At.tair.db",
+                                "org.Sc.sgd.db",
+                                "org.Pf.plasmo.db",
+                                "org.EcK12.eg.db",
+                                "org.EcSakai.eg.db",
+                                "org.Mxanthus.db"))
+    # I will need to make this more universal.
+    # ...
+    if (Org$Organism %in% orgDBs$Full) { organism <- Org$Organism } else {
+      organism <- dlg_list(c(orgDBs$Full, "none of these"),
+                           orgDBs$Full[1], title = "Select organism")$res
+    }
+    if (!length(organism)) { organism <- "none of these" }
+    isOK <- organism != "none of these"
+    # See https://guangchuangyu.github.io/2016/01/go-analysis-using-clusterprofiler/ for how to create annotations with the format clusterProfiler expects
+    #BiocManager::install("AnnotationHub")
+    #library(AnnotationHub)
+    #hub <- AnnotationHub()
+    #query(hub, organism)
+    #myOrgAnnot <- hub[db$`Protein ID`]
+    # ...
+    # test this: can I use this and skip altogether the db package installation step?
+    if (isOK) {
+      orgDBpkg <- orgDBs$db[match(organism, orgDBs$Full)]
+      packs <- c("GO.db", "clusterProfiler", "BiocParallel", "pathview", "enrichplot", "DOSE", orgDBpkg)
+      for (pck in packs) {
+        if (!require(pck, character.only = TRUE)) {
+          pak::pkg_install(pck, upgrade = FALSE, ask = FALSE)
+        }
+      }
+      for (pck in packs) {
+        library(pck, character.only = TRUE)
+      }
+      clusterExport(parClust, "packs", envir = environment())
+      invisible(clusterCall(parClust, function() {
+        for (pck in packs) { library(pck, character.only = TRUE) }
+        return()
+      }))
+      eval(parse(text = paste0("myKeys <- keytypes(", orgDBpkg, ")")))
+      if (!"UNIPROT" %in% myKeys) {
+        if ((organism == "Arabidopsis thaliana")&&("TAIR" %in% colnames(db))) {
+          myData$TAIR <- gsub(";.*", "", db$TAIR[match(gsub(";.*", "", myData[[idCol]]), db$`Protein ID`)])
+          keyType <- idCol <- "TAIR"
+        } else { isOK <- FALSE }
+      }
     }
   }
-  for (pck in packs) {
-    library(pck, character.only = TRUE)
-  }
-  clusterExport(parClust, "packs", envir = environment())
-  invisible(clusterCall(parClust, function() {
-    for (pck in packs) { library(pck, character.only = TRUE) }
-    return()
-  }))
-  eval(parse(text = paste0("myKeys <- keytypes(", orgDBpkg, ")")))
-  if (!"UNIPROT" %in% myKeys) {
-    if ((organism == "Arabidopsis thaliana")&&("TAIR" %in% colnames(db))) {
-      myData$TAIR <- gsub(";.*", "", db$TAIR[match(gsub(";.*", "", myData[[idCol]]), db$`Protein ID`)])
-      keyType <- idCol <- "TAIR"
-    } else { isOK <- FALSE }
-  }
 }
 if (isOK) {
-  tmpDat <- myData[, c(idCol, log2Col)]
-  tmpDat <- tmpDat[which((nchar(tmpDat[[idCol]]) > 0)&(!is.na(tmpDat[[idCol]]))),]
+  tmpDat <- myData[which((nchar(myData[[idCol]]) > 0)&(!is.na(myData[[idCol]]))),
+                   c(idCol, rankCol)]
   if (length(unique(tmpDat[[idCol]])) < nrow(tmpDat)) {
-    tmpDat <- aggregate(tmpDat[, log2Col], list(tmpDat[[idCol]]), mean, na.rm = TRUE)
-    colnames(tmpDat) <- c(idCol, log2Col)
+    tmpDat <- aggregate(tmpDat[, rankCol], list(tmpDat[[idCol]]), mean, na.rm = TRUE)
+    colnames(tmpDat) <- c(idCol, rankCol)
   }
   cpParam <- SerialParam()
-  saveRDS(tmpDat, paste0(wd, "/tmp.RDS"))
-  clusterExport(parClust, list("idCol", "log2Col", "keyType", "wd", "orgDBpkg", "cpParam"), envir = environment())
+  saveRDS(tmpDat, paste0(wd, "/tmpDat.RDS"))
+  exports <- list("idCol", "rankCol", "keyType", "wd", "cpParam", "Annotate")
+  if (Annotate) {
+    saveRDS(term2Prot, paste0(wd, "/term2Prot.RDS"))
+    saveRDS(term2name, paste0(wd, "/term2name.RDS"))
+  } else {
+    exports <- append(exports, "orgDBpkg")
+  }
+  clusterExport(parClust, exports, envir = environment())
   invisible(clusterCall(parClust, function(x) {
     require(clusterProfiler)
-    require(orgDBpkg, character.only = TRUE)
-    tmpDat <<- readRDS(paste0(wd, "/tmp.RDS"))
+    tmpDat <<- readRDS(paste0(wd, "/tmpDat.RDS"))
+    if (Annotate) {
+      term2Prot <<- readRDS(paste0(wd, "/term2Prot.RDS"))
+      term2name <<- readRDS(paste0(wd, "/term2name.RDS"))
+    } else {
+      require(orgDBpkg, character.only = TRUE)
+    }
+    return()
   }))
-  f0 <- function(kol) { #kol <- log2Col[1]
+  #
+  f0 <- function(kol, userAnnot = Annotate) { #kol <- rankCol[1]
     tmp <- setNames(tmpDat[[kol]],
-                    gsub(";.*", "", tmpDat[[idCol]]))
+                    gsub(";.*| - .*", "", tmpDat[[idCol]]))
     tmp <- tmp[which(!is.na(tmp))]
     tmp <- na.omit(tmp)
     tmp <- sort(tmp, decreasing = TRUE)
     tmp <- tmp[which(nchar(names(tmp)) > 0)]
     #View(tmp)
-    gse <- suppressMessages(gseGO(tmp,
-                                  ont = "ALL", 
-                                  keyType = keyType, 
-                                  nPerm = 10000, 
-                                  minGSSize = 3, 
-                                  maxGSSize = 800, 
-                                  pvalueCutoff = 0.05, 
-                                  verbose = TRUE, 
-                                  OrgDb = orgDBpkg, 
-                                  pAdjustMethod = "none",
-                                  BPPARAM = cpParam))
+    suppressMessages({
+      if (userAnnot) {
+        gse <- GSEA(geneList = tmp,
+                    TERM2GENE = term2Prot,
+                    TERM2NAME = term2name,
+                    nPerm = 10000,
+                    minGSSize = 3,
+                    maxGSSize = 800,
+                    pvalueCutoff = 0.05,
+                    pAdjustMethod = "none",
+                    verbose = TRUE,
+                    BPPARAM = cpParam)
+      } else {
+        gse <- gseGO(tmp,
+                     ont = "ALL", 
+                     keyType = keyType, 
+                     nPerm = 10000, 
+                     minGSSize = 3, 
+                     maxGSSize = 800, 
+                     pvalueCutoff = 0.05, 
+                     verbose = TRUE, 
+                     OrgDb = orgDBpkg, 
+                     pAdjustMethod = "none",
+                     BPPARAM = cpParam)
+      }
+    })
     return(list(GSE = gse,
                 lFC = tmp))
   }
   environment(f0) <- .GlobalEnv
-  gses <- parLapply(parClust, log2Col, f0)
+  gses <- parLapply(parClust, rankCol, f0)
   #
-  gses <- setNames(gses, proteoCraft::cleanNms(gsub(proteoCraft::topattern(ratRef), "", log2Col)))
+  # Rename
+  names(gses) <- rankCol
+  if (GSEAmode == "standard") {
+    names(gses) <- proteoCraft::cleanNms(gsub(proteoCraft::topattern(ratRef), "", names(gses)))
+  }
   #
-  d <- GOSemSim::godata(annoDb = orgDBpkg, ont = "BP") # It seems to make sense to use BP here since we are interested in which biological processes are reacting to the perturbation
+  unlink(paste0(wd, "/tmpDat.RDS"))
+  if (Annotate) {
+    unlink(paste0(wd, "/term2Prot.RDS"))
+    unlink(paste0(wd, "/term2name.RDS"))
+  }
+  #
+  #d <- GOSemSim::godata(annoDb = orgDBpkg, ont = "BP") # It seems to make sense to use BP here since we are interested in which biological processes are reacting to the perturbation
   nCat <- 50
   #
   # GSEA dot plots
@@ -282,10 +348,9 @@ if (isOK) {
     }, silent = TRUE)
   }))
   #
-  if (exists("DatAnalysisTxt")) {
+  if ((exists("DatAnalysisTxt"))&&(GSEAmode == "standard")) {
     DatAnalysisTxt <- paste0(DatAnalysisTxt,
                              " Gene Set Enrichment Analysis was run using clusterProfiler.")
-    
   }
   # See https://learn.gencore.bio.nyu.edu/rna-seq-analysis/gene-set-enrichment-analysis/ for more
 }

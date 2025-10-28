@@ -210,12 +210,29 @@ if (Mode == "regulated") {
 }
 if (Mode == "dataset") {
   True_Zscore <- FALSE
+  # NB: for "dataset", the X axis corresponds for the trend of entities to be in the lower (left)
+  # or upper (right) side of the expression range!
   if (dataType == "PG") {
     Prot <- PG
     if (scrptType == "withReps") {
       Prot_FC_root <- "Av. log10 abundance"
       subfolder <- "Reg. analysis/GO enrich/Dataset"
       subfolderpertype <- FALSE
+      # Filters
+      # - Observed protein groups - quantified or not
+      filters <- list("Observed dataset" = 1:nrow(Prot))
+      # - Quantified protein groups
+      kol <- paste0(Prot.Expr.Root, RSA$values)
+      kol <- kol[which(kol %in% colnames(Prot))]
+      filters[["Quant. - dataset"]] <- which(apply(Prot[, kol], 1, function(x) { length(is.all.good(x)) }) > 0)
+      # Quantified protein groups per sample group
+      if (!Impute) { # No point having sample-specific filters if all samples have the same amount of stuff!
+        filters[paste0("Quant. - ", VPAL$values)] <- lapply(VPAL$values, function(x) { #x <- VPAL$values[1]
+          kol <- paste0(Prot.Expr.Root, Exp.map$Ref.Sample.Aggregate[which(Exp.map[[VPAL$column]] == x)])
+          kol <- kol[which(kol %in% colnames(Prot))]
+          which(apply(Prot[, kol], 1, function(x) { length(is.all.good(as.numeric(x))) }) > 0)
+        })
+      }
     }
     if (scrptType == "noReps") {
       filters <- xprsFilt
@@ -226,6 +243,7 @@ if (Mode == "dataset") {
     # Placeholder
   }
 }
+#vapply(filters, length, 1)
 
 #Prot = GO_enrich.dat[[tstbee]]; Mode = "regulated"; filters = flt; ref.filters = Ref.Filt; Prot_FC_root = GO_enrich.FCRt[[tstbee]]; show = (bee == "By condition"); title.root = paste0("Bubble_plot_", tolower(bee)); bars_title.root = paste0("Bar_plot_", tolower(bee)); save = c("jpeg", "pdf"); return = TRUE; True_Zscore = TRUE; subfolder = dir; subfolderpertype = FALSE
 # OR (dataset)
@@ -445,16 +463,23 @@ if ((GenTst)&&(!"Genes" %in% colnames(GO.terms))) {
 }
 # Create mappings for parent dataset
 if (Mode == "regulated") {
-  pahruhnt <- Prot
-  pahrkol <- ID_col
+  # In regulated mode, our reference is the very same table we used as 
+  myCol <- parentCol <- ID_col
+  if ("Potential contaminant" %in% colnames(Prot)) {
+    myCol <- c(myCol, "Potential contaminant")
+  }
+  parentData <- Prot[, myCol, drop = FALSE]
 }
 if (Mode == "dataset") {
-  pahruhnt <- DB
-  pahrkol <- db_ID_col
+  myCol <- parentCol <- db_ID_col
+  if ("Potential contaminant" %in% colnames(DB)) {
+    myCol <- c(myCol, "Potential contaminant")
+  }
+  parentData <- DB[, myCol, drop = FALSE]
 }
 w <- which(nchar(GO.mappings$Protein$Protein) > 0)
 Mappings2 <- proteoCraft::listMelt(strsplit(GO.mappings$Protein$Protein[w], ";"), GO.mappings$Protein$GO[w])
-Mappings2 <- Mappings2[which(Mappings2$value %in% unlist(strsplit(pahruhnt[[pahrkol]], ";"))),]
+Mappings2 <- Mappings2[which(Mappings2$value %in% unlist(strsplit(parentData[[parentCol]], ";"))),]
 Mappings2 <- data.table::data.table(L1 = Mappings2$L1, value = Mappings2$value)
 Mappings2 <- Mappings2[, list(GO = list(unique(L1))), by = list(Protein = value)]
 Mappings2 <- as.data.frame(Mappings2)
@@ -464,8 +489,10 @@ Mappings <- setNames(Mappings2$GO, Mappings2$Protein)
 #
 # Check filters
 # NB:
-# - These apply to rows of Prot
-# - They are optional in "dataset" Mode, obligatory in "regulated" Mode
+# - Input filters should apply to rows of Prot
+# - Filters are:
+#    - optional in "dataset" Mode (where we could just take all proteins in Prot),
+#    - obligatory in "regulated" Mode
 defltFilt <- FALSE
 if ((Mode == "regulated")||((Mode == "dataset")&&(exists("filters")))) {
   stopifnot(class(filters) == "list", length(filters) > 0)
@@ -473,43 +500,51 @@ if ((Mode == "regulated")||((Mode == "dataset")&&(exists("filters")))) {
 } else {
   # Provide default for "dataset" Mode
   defltFilt <- TRUE
-  filters <- setNames(list(1:nrow(Prot)), "Observed dataset")
+  filters <- list("Observed dataset" = 1:nrow(Prot))
 }
 # Reference filters (optional in both Modes)
-# Those apply to rows of the parent table: Prot in "regulated" Mode, DB in "dataset" Mode!!!
+# Those apply to rows of parentData, the parent table: Prot in "regulated" Mode, DB in "dataset" Mode!!!
 # Defaults also change how we deal with parent counts:
 MultRef <- (length(ref.filters) > 1)||(!is.na(ref.filters))
 if (MultRef) {
   # Process/check if provided...
-  stopifnot(class(ref.filters) == "list", length(ref.filters) > 0, length(ref.filters) == length(filters))
+  stopifnot("list" %in% class(ref.filters),
+            length(ref.filters) > 0,
+            length(ref.filters) == length(filters))
   if (is.null(names(ref.filters))) {
     names(ref.filters) <- names(filters)
   } else {
     stopifnot(sum(sort(names(ref.filters)) != sort(names(filters))) == 0) # Both filter types must have the same names!
   }
-  ref.filters <- ref.filters[names(filters)] # Check order (since we call them by index, not name!)
+  ref.filters <- ref.filters[names(filters)] # Check order (since we may call them by index, not name!)
 } else {
   # ... otherwise provide defaults
   ref.filters <- setNames(lapply(names(filters), function(x) {
-    1:nrow(pahruhnt)
+    1:nrow(parentData)
   }), names(filters))
 }
 # Exclude contaminants
-if ("Potential contaminant" %in% colnames(pahruhnt)) {
-  wCnt <- which(pahruhnt$"Potential contaminant" == "+")
+if ("Potential contaminant" %in% colnames(parentData)) {
+  wCnt <- which((!is.na(parentData$"Potential contaminant"))&(parentData$"Potential contaminant" == "+"))
   if (length(wCnt)) {
-    filters <- setNames(lapply(filters, function(x) { x[which(!x %in% wCnt)] }), names(filters))
-    ref.filters <- setNames(lapply(ref.filters, function(x) { x[which(!x %in% wCnt)] }), names(ref.filters))
+    filters <- setNames(lapply(filters, function(x) {
+      x[which(!x %in% wCnt)]
+    }), names(filters))
+    ref.filters <- setNames(lapply(ref.filters, function(x) {
+      x[which(!x %in% wCnt)]
+    }), names(ref.filters))
   }
 }
 # Create new filters applicable to Mappings (list of GO IDs per protein) from user-provided filters
 mapFilters <- setNames(lapply(filters, function(x) {
-  names(Mappings)[which(names(Mappings) %in% unique(unlist(strsplit(pahruhnt[unlist(x), pahrkol], ";"))))]
+  # At some point a bug was introduced here applying these filters to parentData, not Prot
+  # This is corrected here:
+  names(Mappings)[which(names(Mappings) %in% unique(unlist(strsplit(Prot[unlist(x), ID_col], ";"))))]
 }), names(filters))
 #vapply(filters, length, 1)
 #vapply(mapFilters, length, 1)
 ref.mapFilters <- setNames(lapply(ref.filters, function(x) {
-  names(Mappings)[which(names(Mappings) %in% unique(unlist(strsplit(pahruhnt[unlist(x), pahrkol], ";"))))]
+  names(Mappings)[which(names(Mappings) %in% unique(unlist(strsplit(parentData[unlist(x), parentCol], ";"))))]
 }), names(ref.filters))
 #vapply(ref.filters, length, 1)
 #vapply(ref.mapFilters, length, 1)
@@ -527,7 +562,10 @@ if (!MultRef) {
   GenKol1 <- paste0("Genes - parent ", c("dataset", "database")[match(Mode, c("regulated", "dataset"))])
 }
 # Process and test filters to generate plots input data
-wFltL <- which(vapply(filters, length, 1) > 0)
+fltL <- vapply(filters, length, 1)
+flfltL <- vapply(ref.mapFilters, length, 1)
+stopifnot(max(flfltL - fltL) > 0)
+wFltL <- which(fltL > 0)
 if (length(wFltL)) {
   mapFilters <- mapFilters[wFltL]
   ref.mapFilters <- ref.mapFilters[wFltL]
@@ -724,7 +762,7 @@ if (length(wFltL)) {
     # (It is more efficient to use many threads occasionally in the vertical (GO terms) direction than systematically in the horizontal (individual filters) direction,
     # with there being only a few filters in most experiments).
     GO_tbls2 <- list()
-    for (n1 in names(GO_tbls)) { #n1 <- names(GO_tbls)[1]
+    for (n1 in names(GO_tbls)) { #n1 <- names(GO_tbls)[1] #n1 <- names(GO_tbls)[2]
       cat(paste0("      - Filter = ", proteoCraft::cleanNms(n1), "\n"))
       kount <- kount + 1
       GO_tbl <- GO_tbls[[n1]]$Output
@@ -902,7 +940,7 @@ if (length(wFltL)) {
           w <- which(GO.terms$Ontology[wh] == ont)
           if (length(w)) {
             f <- proteoCraft::FDR(data = GO.terms[wh[w],], pvalue_col = paste0("Pvalue - ", n1),
-                            returns = c(TRUE, TRUE), fdr = GO_FDR)
+                                  returns = c(TRUE, TRUE), fdr = GO_FDR)
             GO.terms[wh[w], paste0("Significance - ", n1, " ", GO_FDR*100, "%")] <- f$`Significance vector`
             thresh[[ont]] <- f$Thresholds
           }

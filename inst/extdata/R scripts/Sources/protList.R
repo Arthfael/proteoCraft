@@ -15,6 +15,10 @@ if ((exists("Param"))&&("Norma.Prot.Ratio.to.proteins" %in% colnames(Param))) {
   prot.list <- unique(c(prot.list, unlist(strsplit(Param$Norma.Prot.Ratio.to.proteins, ";"))))
 }
 if (exists("TargetProteins")) { prot.list <- unique(c(prot.list, TargetProteins)) }
-prot.list %<o% prot.list
+prot.list %<o% unique(prot.list)
 # Update backup fasta
-if (length(prot.list)) { writeFasta(db[match(prot.list, db$`Protein ID`),], intPrtFst) }
+if (length(prot.list)) {
+  m <- match(prot.list, db$`Protein ID`)
+  m <- unique(m)
+  writeFasta(db[m,], intPrtFst)
+}

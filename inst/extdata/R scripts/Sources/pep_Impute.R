@@ -1,7 +1,7 @@
 # Impute missing peptide intensities
 if (Impute) {
   DatAnalysisTxt <- paste0(DatAnalysisTxt,
-                           " Missing values were imputed using two different strategies: i) the KNN (K-Nearest Neighbours) method for Missing-At-Random values within sample groups, and ii) the QRICL (Quantile Regression Imputation of Left-Censored data) method for Missing-Not-At-Random values.")
+                           " Missing values were imputed using two different strategies: i) the KNN (K-Nearest Neighbours) method for Missing-(Completely)-At-Random values within sample groups, and ii) the QRILC (Quantile Regression Imputation of Left-Censored data) method for Missing-Not-At-Random values.")
   msg <- "Imputing missing values..."
   ReportCalls <- AddMsg2Report(Space = FALSE)
   #
@@ -36,8 +36,10 @@ if (Impute) {
   # TO DO:
   # Add a way to look at number of missed values across sample group, so we can distinguish MNAR from MAR on the plots!
   poplot(plot, 12, 22)
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150)
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150)
+  suppressMessages({
+    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150)
+    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150)
+  })
   #
   colnames(temp2) <- gsub(pat, paste0("imput. ", pep.ref["Original"]), colnames(temp2))
   pep[, colnames(temp2)] <- temp2

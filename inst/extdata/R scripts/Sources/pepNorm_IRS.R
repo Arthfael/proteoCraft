@@ -249,8 +249,8 @@ Shiny.bindAll(table.table().node());"))
   scoresLst[[prev]] <- tmp$Scores
   PCsLst[[prev]] <- tmp$PCs
   curr <- "IRS"
-  w <- which(currSamples %in% colnames(tmpDat2Imp))
-  tmp <- pcaBatchPlots(tmpDat2Imp[, currSamples[w]],
+  wHere <- which(currSamples %in% colnames(tmpDat2Imp))
+  tmp <- pcaBatchPlots(tmpDat2Imp[, currSamples[wHere]],
                        curr,
                        "Isobaric.set",
                        map = Exp.map,
@@ -258,16 +258,20 @@ Shiny.bindAll(table.table().node());"))
                        intRoot = "",
                        dir = irsDr,
                        ttl = "PCA plot - IRS batch corr.",
-                       isRef = !currSamples[w] %in% unlist(irsSamples))
+                       isRef = !currSamples[wHere] %in% unlist(irsSamples))
   PCAlyLst[[curr]] <- tmp$PlotLy
   scoresLst[[curr]] <- tmp$Scores
   PCsLst[[curr]] <- tmp$PCs
   #
   appNm <- "IRS batch correction"
   msg <- "Keep results from IRS batch correction? (untick to cancel correction)"
-  if ((!exists("KeepIRSRes"))||(length(KeepIRSRes) != 1)||(!is.logical(KeepIRSRes))||(is.na(KeepIRSRes))) {
-    KeepIRSRes <- TRUE
-  }
+  # if ((!exists("KeepIRSRes"))||(length(KeepIRSRes) != 1)||(!is.logical(KeepIRSRes))||(is.na(KeepIRSRes))) {
+  #   KeepIRSRes <- TRUE
+  # }
+  corrTst <- t.test(unlist(tmpDat2Imp[wAG1, currSamples[wHere]]),
+                    unlist(tmpDat1Imp[wAG1, currSamples[wHere]]),
+                    paired = TRUE)
+  KeepIRSRes <- corrTst$p.value < 0.01 # Default: keep results only if data is very significantly different
   if (exists("IHAVERUN")) { rm(IHAVERUN) }
   ui <- fluidPage(
     useShinyjs(),

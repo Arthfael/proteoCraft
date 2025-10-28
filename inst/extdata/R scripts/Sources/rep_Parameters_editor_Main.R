@@ -504,12 +504,13 @@ dfltNormSeq2 <- normSeqProc12(normSequence)
 #
 # Some default parameters which nicely follow the same structure
 # (NB: Pepper isn't yet integrated in the workflows with replicates)
-myPar <- c("Pepper", "GSEA", "ProfPlots", "RankAbundPlots")
+myPar <- c("Pepper", "WGCNA", "GSEA", "ProfPlots", "RankAbundPlots")
 for (parI in myPar) {
   parNm <- paste0("run", parI)
   # Lowest level default: defined by context
   par_dflt <- par_dflt2 <- c(FALSE,
                              TRUE,
+                             TRUE, # Should be (Annotate)|(Org %in% ... ), cf. GSEA source: there are 20-ish organisms for which a specific annotations package is usable
                              TRUE,
                              TRUE)[match(parI, myPar)]
   # Middle level default: defined by existing value
@@ -607,7 +608,7 @@ for (w in wMp) { #w <- wMp[3]
   lstFct <- append(lstFct, blck)
 }
 #
-useSAM_thresh %<o% TRUE
+useSAM_thresh %<o% FALSE
 tstAdvOpt <- try(sum(file.exists(Param$Custom.PGs, Param$TrueDisc_filter, Param$CRAPome_file)) > 0)
 if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
 #
@@ -660,15 +661,20 @@ ui1 <- fluidPage(
                         0,
                         .Machine$double.xmax,
                         width = "100%")),
+    # Imputation: add a new parameter here to define the counts limit between MCAR and MNAR 
     column(3,
-           checkboxInput("Impute", "Impute missing peptides-level values?", Impute, "100%")),
+           checkboxInput("Impute", "Impute missing peptides-level values?", Impute, "100%"),
+           em("Imputation is done at peptides (not PSMs or protein groups) level, after removing any outliers, before re-normalization."),
+           em("This is independent of any temporary imputations done by default to run specific procedures without data loss."),
+           em(HTML("&nsbp;- MAR/MCAR data is imputed with a KNN method.")),
+           em(HTML("&nsbp;- MNAR data is imputed with the QRILC method."))),
     column(3,
            checkboxInput("Update_Prot_matches", paste0("Update peptide-to-protein assignments?"), Update_Prot_matches, "100%"),
            shinyBS::bsTooltip("Update_Prot_matches",
                               paste0(mtchCheckMsg1, "\n", mtchCheckMsg1),
                               placement = "right", trigger = "hover", options = list(container = "body")),
-           h5(mtchCheckMsg1),
-           h5(mtchCheckMsg2)#, withSpinner(uiOutput("ReloadMatches"))
+           h5(em(mtchCheckMsg1)),
+           h5(em(mtchCheckMsg2))#, withSpinner(uiOutput("ReloadMatches"))
     )
   ),
   br(),
@@ -803,7 +809,10 @@ ui1 <- fluidPage(
                              shiny::checkboxInput("runRankAbundPlots", "Draw protein ranked abundance plots?",
                                                   runRankAbundPlots_dflt, "100%")),
                shiny::column(2,
-                             shiny::checkboxInput("runGSEA", "Run Gene Set Enrichment Analysis (GSEA)?", runGSEA_dflt, "100%")))
+                             shiny::checkboxInput("runWGCNA", "Run Weighted Gene Correlation Network Analysis (WGCNA)?",
+                                                  runWGCNA_dflt, "100%"),
+                             shiny::checkboxInput("runGSEA", "Run Gene Set Enrichment Analysis (GSEA)?",
+                                                  runGSEA_dflt, "100%")))
     )
   },
   withSpinner(uiOutput("CytoScape")),
@@ -1229,6 +1238,13 @@ server1 <- function(input, output, session) {
   #   Par$runPepper <- runPepper
   #   PARAM(Par)
   # })
+  # WGCNA
+  shiny::observeEvent(input$runWGCNA, {
+    assign("runWGCNA", as.logical(input$runWGCNA), envir = .GlobalEnv)
+    Par <- PARAM()
+    Par$runWGCNA <- runWGCNA
+    PARAM(Par)
+  })
   # GSEA
   shiny::observeEvent(input$runGSEA, {
     assign("runGSEA", as.logical(input$runGSEA), envir = .GlobalEnv)

@@ -76,9 +76,13 @@ PCsLst[[myBatch2]] <- tmp$PCs
 #
 appNm <- paste0("Batch corr.: original -> ", myBatch3)
 msg <- "Keep results from ComBat batch correction? (untick to cancel correction)"
-if ((!exists("KeepComBatRes"))||(length(KeepComBatRes) != 1)||(!is.logical(KeepComBatRes))||(is.na(KeepComBatRes))) {
-  KeepComBatRes <- TRUE
-}
+# if ((!exists("KeepComBatRes"))||(length(KeepComBatRes) != 1)||(!is.logical(KeepComBatRes))||(is.na(KeepComBatRes))) {
+#   KeepComBatRes <- TRUE
+# }
+corrTst <- t.test(unlist(tmpDat2Imp[wAG1, currSamples]),
+                  unlist(tmpDat1Imp[wAG1, currSamples]),
+                  paired = TRUE)
+KeepComBatRes <- corrTst$p.value < 0.01 # Default: keep results only if data is very significantly different
 PCs <- data.frame("Component" = paste0("PC", as.character(1:length(PCsLst[["original"]]$sdev))),
                   "Before (%)" = round(100*(PCsLst[["original"]]$sdev)^2 / sum(PCsLst[["original"]]$sdev^2), 0),
                   "After (%)" = round(100*(PCsLst[[myBatch2]]$sdev)^2 / sum(PCsLst[[myBatch2]]$sdev^2), 0))
