@@ -272,6 +272,18 @@ Shiny.bindAll(table.table().node());"))
                     unlist(tmpDat1Imp[wAG1, currSamples[wHere]]),
                     paired = TRUE)
   KeepIRSRes <- corrTst$p.value < 0.01 # Default: keep results only if data is very significantly different
+  l <- min(c(length(PCsLst[[prev]]$sdev), length(PCsLst[[curr]]$sdev)))
+  l2 <- min(c(5, l))
+  PCs <- data.frame("Component" = paste0("PC", as.character(1:l2)),
+                    "Before (%)" = round(100*(PCsLst[[prev]]$sdev[1:l2])^2 / sum(PCsLst[[prev]]$sdev^2), 0),
+                    "After (%)" = round(100*(PCsLst[[curr]]$sdev[1:l2])^2 / sum(PCsLst[[curr]]$sdev^2), 0),
+                    check.names = FALSE)
+  if (l2 < l) {
+    PCs <- rbind(PCs, data.frame(Component = "...",
+                                 "Before (%)" = "...",
+                                 "After (%)" = "...",
+                                 check.names = FALSE))
+  }
   if (exists("IHAVERUN")) { rm(IHAVERUN) }
   ui <- fluidPage(
     useShinyjs(),
@@ -293,7 +305,8 @@ Shiny.bindAll(table.table().node());"))
                     h5(HTML(paste0("&nbsp;Does the original grouping follow known ", IsobarLab, " sets (it usually does)?"))),
                     h5(HTML(paste0("&nbsp;&nbsp;-> If yes: accept the correction if it removes the original grouping by ", IsobarLab, " sets."))),
                     h5(HTML(paste0("&nbsp;&nbsp;-> If no: you can reject the correction, congratulations: you were lucky, this time there was no ",
-                                   IsobarLab, " set-related batch effect.")))),
+                                   IsobarLab, " set-related batch effect."))),
+                    withSpinner(DTOutput("PCs"))),
              br(),
              fluidRow(column(5, withSpinner(plotlyOutput("Before", height = "600px"))),
                       column(5, withSpinner(plotlyOutput("After", height = "600px"))))),
@@ -303,6 +316,26 @@ Shiny.bindAll(table.table().node());"))
   server <- function(input, output, session) {
     output$Before <- renderPlotly(PCAlyLst[[prev]]$Isobaric.set)
     output$After <- renderPlotly(PCAlyLst[[curr]]$Isobaric.set)
+    output$PCs <- renderDT({ PCs },
+                           FALSE,
+                           escape = FALSE,
+                           class = "compact",
+                           selection = "none",
+                           editable = FALSE,
+                           rownames = FALSE,
+                           options = list(
+                             dom = 't',
+                             paging = FALSE,
+                             ordering = FALSE
+                           ),
+      #                      callback = JS("table.rows().every(function(i, tab, row) {
+      #   var $this = $(this.node());
+      #   $this.attr('id', this.data()[0]);
+      #   $this.addClass('shiny-input-container');
+      # });
+      # Shiny.unbindAll(table.table().node());
+      # Shiny.bindAll(table.table().node());")
+      )
     observeEvent(input[["KeepIRSRes"]], {
       assign("KeepIRSRes", as.logical(input[["KeepIRSRes"]]), envir = .GlobalEnv)
     })
