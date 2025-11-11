@@ -64,6 +64,7 @@ load_Bckp <- function(backup,
   # The bit below is meant to allow some form of backwards compatibility with older backups.
   tst <- "Didnae work, matey!"
   inst <- as.data.frame(installed.packages())
+  cat("Reloading backup file\n   ", bckp, "\n...\nplease hold...\n")
   tst <- try(proteoCraft::loadFun(bckp), silent = TRUE)
   if (("try-error" %in% class(tst))||(("character" %in% class(tst))&&(length(tst) == 1)&&(tst == "Didnae work, matey!"))) {
     stop("Backup re-loading failed!")
