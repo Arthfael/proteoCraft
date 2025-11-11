@@ -18,6 +18,7 @@ if ("proteoCraft" %in% tmp[, 1]) {
   remove.packages("proteoCraft")
 }
 pak::pkg_install("Arthfael/proteoCraft", upgrade = TRUE, ask = FALSE)
+# May fail when updating too many packages - in that case, restart session and rerun
 # Alternative way to install:
 #devtools::install_github("Arthfael/proteoCraft", upgrade = TRUE)
 

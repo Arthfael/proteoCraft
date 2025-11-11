@@ -4172,8 +4172,9 @@ for (nm in names(ggProf)) {
 
 # Visualize results
 if (!exists("xplorSrc")) {
-  xplorSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/xplorData.R") # Backwards compatibility
+  xplorSrc <- paste0(libPath, "/extdata/R scripts/Sources/xplorData.R") # Backwards compatibility
 }
+xplorSrc %<o% xplorSrc
 #rstudioapi::documentOpen(xplorSrc)
 source(xplorSrc, local = FALSE)
 
