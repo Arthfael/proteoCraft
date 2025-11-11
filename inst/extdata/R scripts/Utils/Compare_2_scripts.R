@@ -1,3 +1,4 @@
+# Compare 2 versions of the same script to identify divergences and harmonize them 
 options(stringsAsFactors = FALSE)
 require(proteoCraft)
 require(rstudioapi)
@@ -9,7 +10,7 @@ require(openxlsx)
 wrkDr <- dirname(rstudioapi::getActiveDocumentContext()$path)
 Sys.sleep(1) # Required because sometimes R will attempt to set the word directory too quickly and fail.
 setwd(wrkDr)
-
+checkPlot <- FALSE
 
 homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
 dlft <- read.xlsx(paste0(homePath, "/Default_locations.xlsx"))
@@ -32,15 +33,7 @@ pat <- paste0(pat, "| *#.*")
 rstudioapi::documentOpen(f1)
 rstudioapi::documentOpen(f2)
 
-## 
-#system(paste0("open \"", f1, "\""))
-#system(paste0("open \"", f2, "\""))
-i <- 1
-fl1 <- readLines(f1); fl2 <- readLines(f2); fl1 <- gsub(pat, "", fl1); fl2 <- gsub(pat, "", fl2); w1 <- which(fl1 != ""); w2 <- which(fl2 != ""); w <- suppressWarnings(which(fl1[w1] != fl2[w2])); if (length(w) > 0) { cat(paste0("Line ", paste(unique(c(w1[w[i]], w2[w[i]])), collapse = "/"), ":\n\n - file 1: ", fl1[w1][w[i]], "\n\n - file 2: ", fl2[w2][w[i]], "\n")) } else { print("Both scripts are identical!") }
-#
-
-checkPlot <- FALSE
-if (checkPlot) {
+checkPlotXprs <- expression({
   g1 <- which(fl1 != ""); g2 <- which(fl2 != "")
   l1 <- length(g1); l2 <- length(g2)
   wa <- which(c(l1, l2) == max(c(l1, l2)))[1]
@@ -73,4 +66,26 @@ if (checkPlot) {
     scale_x_continuous(expand = c(0, 0), limits = range(test$X)) +
     scale_y_continuous(expand = c(0, 0), limits = range(test$Y))
   poplot(plot, 12, 20)
-}
+})
+checkScriptXprs <- expression({
+  fl1 <- readLines(f1)
+  fl2 <- readLines(f2)
+  fl1 <- gsub(pat, "", fl1)
+  fl2 <- gsub(pat, "", fl2)
+  w1 <- which(fl1 != "")
+  w2 <- which(fl2 != "")
+  w <- suppressWarnings(which(fl1[w1] != fl2[w2]))
+  if (length(w) >= i) {
+    cat(paste0("Discrepancy at line ", paste(unique(c(w1[w[i]], w2[w[i]])), collapse = "/"),
+               ":\n\n - file 1: ", fl1[w1][w[i]], "\n\n - file 2: ", fl2[w2][w[i]], "\n"))
+  } else { print("Both scripts are identical!") }
+})
+
+## 
+#system(paste0("open \"", f1, "\""))
+#system(paste0("open \"", f2, "\""))
+i <- 1
+#
+eval(checkScriptXprs)
+#
+if (checkPlot) { eval(checkPlotXprs) }

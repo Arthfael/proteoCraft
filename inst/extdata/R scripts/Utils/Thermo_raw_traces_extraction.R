@@ -20,14 +20,17 @@ require(ggplot2)
 rm(list = ls()[!ls() %in% c("fls")])
 
 # Create cluster
-if (exists("parClust")) { try(stopCluster(parClust), silent = TRUE) } # A fresh start if re-running
-N.clust <- detectCores()-1
-a <- 1
-tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-if ("try-error" %in% class(tst)) {
-  try(stopCluster(parClust), silent = TRUE)
-  parClust <- makeCluster(N.clust, type = "SOCK")
-}
+parXprs <- expression({
+  if (exists("parClust")) { try(parallel::stopCluster(parClust), silent = TRUE) } # A fresh start if re-running
+  N.clust <- parallel::detectCores()-1
+  a <- 1
+  tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)
+  if ("try-error" %in% class(tst)) {
+    try(parallel::stopCluster(parClust), silent = TRUE)
+    parClust <- parallel::makeCluster(N.clust, type = "SOCK")
+  }
+})
+eval(parXprs, .GlobalEnv)
 
 # Some useful functions
 cleanRawNm <- function(rawFileNm) { gsub("\\.raw$", "", rawFileNm, ignore.case = TRUE) }
@@ -131,6 +134,7 @@ getInt <- !("try-error" %in% class(tst))
 #
 if (getInt) {
   ticFun <- function(fl) { #fl <- fls[1]
+    cleanRawNm <- function(rawFileNm) { gsub("\\.raw$", "", rawFileNm, ignore.case = TRUE) }
     x <- try(readChromatogram(fl, type = "tic"), silent = TRUE)
     if (!"try-error" %in% class(x)) {
       res <- list(Outcome = TRUE,
@@ -144,6 +148,7 @@ if (getInt) {
     return(res)
   }
   bpcFun <- function(fl) { #fl <- fls[1]
+    cleanRawNm <- function(rawFileNm) { gsub("\\.raw$", "", rawFileNm, ignore.case = TRUE) }
     x <- try(readChromatogram(fl, type = "bpc"), silent = TRUE)
     if (!"try-error" %in% class(x)) {
       res <- list(Outcome = TRUE,
@@ -157,6 +162,7 @@ if (getInt) {
     return(res)
   }
   xicFun <- function(fl, mass, tol, filter) { #fl <- fls[1]
+    cleanRawNm <- function(rawFileNm) { gsub("\\.raw$", "", rawFileNm, ignore.case = TRUE) }
     x <- try(readChromatogram(fl, type = "xic", mass, tol, filter), silent = TRUE)
     if (!"try-error" %in% class(x)) {
       res <- list(Outcome = TRUE,
@@ -197,7 +203,7 @@ l <- length(fls)
 if (!l) {
   filt <- matrix(data = c("Thermo raw file", "*.raw;*.RAW"), ncol = 2,
                  dimnames = list("raw file"))
-  
+
   fls <- normalizePath(choose.files(paste0(dflt, "/*.raw"), filters = filt), winslash = "/")
   fls <- fls[order(file.info(fls)$mtime, decreasing = FALSE)]
   if (getInt) {
@@ -224,10 +230,12 @@ clusterExport(parClust, "wd", envir = environment())
 
 # Convert to mzML
 deer <- list()
-ParsDirs <- grep("/ThermoRawFileParser", c(list.dirs("C:/Program Files", full.names = TRUE, recursive = FALSE),
-                                           list.dirs(paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads"), full.names = TRUE, recursive = FALSE)),
+ParsDirs <- grep("/ThermoRawFileParser1\\.4", # It seems I should restrict to specific sub-versions as not all appear to work
+                 c(list.dirs("C:/ThermoRawFileParser", full.names = TRUE, recursive = FALSE),
+                   list.dirs("C:/Program Files", full.names = TRUE, recursive = FALSE),
+                   list.dirs(paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads"), full.names = TRUE, recursive = FALSE)),
                  value = TRUE)
-tst <- sapply(ParsDirs, function(x) { "ThermoRawFileParser.exe" %in% list.files(x) })
+tst <- vapply(ParsDirs, function(x) { "ThermoRawFileParser.exe" %in% list.files(x) }, TRUE)
 ParsDirs <- ParsDirs[which(tst)]
 if (!length(ParsDirs)) {
   url <- "https://github.com/compomics/ThermoRawFileParser/releases/download/v1.4.4/ThermoRawFileParser1.4.4.zip"
@@ -239,7 +247,7 @@ if (!length(ParsDirs)) {
   unzip(dstfl, exdir = ParsDirs)
 }
 if (length(ParsDirs) > 1) {
-  tst <- sapply(ParsDirs, function(x) { file.info(x)$ctime })
+  tst <- vapply(ParsDirs, function(x) { file.info(x)$ctime }, 1)
   ParsDirs <- ParsDirs[which(tst == max(tst))[1]]
 }
 deer$ParsDir <- ParsDirs
@@ -255,9 +263,6 @@ if (!MSConvertInst) {
   MSConvertDirs <- grep("/ProteoWizard/ProteoWizard [^/]+",
                         list.dirs("C:/Program Files/ProteoWizard", recursive = FALSE), value = TRUE)
   if (!length(MSConvertDirs)) { MSConvertInst <- FALSE } else {
-    
-    
-    
     MSConvertVers <- as.data.frame(t(sapply(strsplit(gsub(".*/ProteoWizard ", "", MSConvertDirs), "\\."), unlist)))
     MSConvertVers <- MSConvertVers[order(MSConvertVers$V1, MSConvertVers$V2, MSConvertVers$V3, MSConvertVers$V4, decreasing = TRUE),]
     MSConvertVers <- MSConvertVers[1,]
@@ -274,7 +279,7 @@ clusterExport(parClust, list("fls", "mzMLs", "pressFls"), envir = environment())
 w <- which((!file.exists(mzMLs))|(file.size(mzMLs) <= 2000))
 if (length(w)) {
   if (tolower(Convert_mode) == "thermorawfileparser") { # Mode 1: using ThermoRawFileParser
-    clusterExport(parClust, list("deer", "zlib", "PeakPicking"), envir = environment())
+    clusterExport(parClust, list("wd", "deer", "zlib", "PeakPicking"), envir = environment())
     tst <- parSapply(parClust, w, function(i) { #i <- w[1]
       cmd <- paste0("\"", deer$ParsDir, "/ThermoRawFileParser.exe\" -i=\"",
                     fls[i], "\" -b=\"", gsub(".*/", paste0(wd, "/"), mzMLs[i]), "\" -f=2 -a",
@@ -344,6 +349,7 @@ if (sum(!tstPress)) {
 }
 unlink(pressScript2) # Remove temporary python script 
 #
+clusterExport(parClust, "cleanRawNm", envir = environment())
 press <- setNames(parLapply(parClust, which(tstPress), function(i) {
   x <- data.table::fread(pressFls[i], integer64 = "numeric", check.names = FALSE, data.table = FALSE)
   fl <- fls[i]
@@ -358,7 +364,13 @@ allChroms <- list(Pressure = press)
 #chromtypes <- setNames(c("tic", "bpc", "xic"), c("TIC", "Base peak", "XIC"))
 if (getInt) {
   tol <- as.numeric(dlg_input("Enter mass tolerance (ppm)", 20)$res)
+  #stopCluster(parClust)
+  eval(parXprs, .GlobalEnv)
   clusterCall(parClust, function() library(rawrr))
+  invisible(clusterCall(parClust, function() {
+    library(rawrr)
+    return()
+  }))
   MS2s <- parLapply(parClust, fls, function(fl) { #fl <- fls[1]
     x <- rawrr::readIndex(fl)
     x <- x[which(x$MSOrder == "Ms2"),]
@@ -378,34 +390,60 @@ if (getInt) {
     return(mass[which(!is.na(mass))])
   }), ms2s)
   # TIC
+  #stopCluster(parClust)
+  eval(parXprs, .GlobalEnv)
+  invisible(clusterCall(parClust, function() {
+    library(rawrr)
+    return()
+  }))
   tic <- setNames(parLapply(parClust, fls, ticFun), fls)
   w <- sapply(tic, function(x) { x$Outcome })
   tic <- lapply(tic[w], function(x) { x$Output })
   if (length(tic)) { allChroms$TIC <- tic }
   # BPC
+  #stopCluster(parClust)
+  eval(parXprs, .GlobalEnv)
+  invisible(clusterCall(parClust, function() {
+    library(rawrr)
+    return()
+  }))
   bpc <- setNames(parLapply(parClust, fls, bpcFun), fls)
   w <- sapply(bpc, function(x) { x$Outcome })
   bpc <- lapply(bpc[w], function(x) { x$Output })
   if (length(bpc)) { allChroms$BPC <- bpc }
   # XICs
-  clusterExport(parClust, list("ms2s", "tol", "masses", "xicFun"), envir = environment())
+  #stopCluster(parClust)
+  eval(parXprs, .GlobalEnv)
+  invisible(clusterCall(parClust, function() {
+    library(rawrr)
+    return()
+  }))
   fltms2 <- listMelt(masses, names(masses))
+  colnames(fltms2) <- c("Mass", "Filter")
+  fltms2 <- lapply(fls, function(fl) {
+    x <- fltms2
+    x$File <- fl
+    return(x)
+  })
+  fltms2 <- do.call(rbind, fltms2)
+  fltms2$Nms <- do.call(paste, c(fltms2[, c("Mass", "Filter")], sep = " for "))
   clusterExport(parClust, list("tol", "xicFun"), envir = environment())
-  xicNms <- do.call(paste, c(fltms2, sep = " for "))
-  xic <- setNames(apply(fltms2, 1, function(x) {
-    mass <- x[[1]]
-    ms2 <- x[[2]]
-    clusterExport(parClust, list("ms2", "mass"), envir = environment())
-    setNames(parLapply(parClust, fls, function(fl) { xicFun(fl, mass, tol, ms2) }), fls)
-  }), xicNms)
-  w <- setNames(lapply(xicNms, function(x) { #x <- names(xic)[1]
-    which(sapply(xic[[x]], function(y) { y$Outcome }))
-  }), xicNms)
-  xic <- setNames(lapply(xicNms, function(x) { #x <- xicNms[1]
-    setNames(lapply(fls[w[[x]]], function(fl) { xic[[x]][[fl]]$Output }), fls[w[[x]]])
-  }), xicNms)
-  w <- which(setNames(lapply(xicNms, length), xicNms) > 0)
-  xic <- xic[w]
+  fltms2$xic <- parApply(parClust, fltms2[, c("Mass", "Filter", "File")], 1, function(x) { #x <- fltms2[1,]
+    tst <- try({ xicFun(x[[3]], x[[1]], tol, x[[2]]) }, silent = TRUE)
+    if ("try-error" %in% class(tst)) { return() }
+    return(tst)
+  })
+  uNms <- unique(fltms2$Nms)
+  xic <- setNames(lapply(uNms, function(nm) { #nm <- uNms[1]
+    w <- which((fltms2$Nms %in% nm)&(vapply(fltms2$xic, function(x) { #x <- fltms2$xic[[1]]
+      ("list" %in% class(x))&&
+        (sum(c("Outcome", "Output") %in% names(x)) == 2)&&
+        (x$Outcome)&&
+        ("data.frame" %in% class(x$Output))&&
+        (nrow(x$Output))
+    }, TRUE)))
+    setNames(lapply(w, function(x) { fltms2$xic[[x]]$Output }), fltms2$File[w])
+  }), uNms)
   for (nm in names(xic)) { allChroms[[nm]] <- xic[[nm]] }
 }
 #
@@ -462,7 +500,8 @@ while (getRTRange) {
           if (kount > 1) { ttl <- paste0(ttl, ", RT ", RTRange[1], "-", RTRange[2], " min") }
           if (length(Ranges) > 1) { ttl <- paste0(ttl, ", files ", min(rg), "-", max(rg)) }
           plot <- ggplot(x[w,], aes(x = `Retention time`, y = .data[[Ykol]], colour = `Raw file name`)) + ggtitle(ttl) +
-            coord_fixed(rgX/(rgY*3)) + facet_wrap(~`Raw file name`) +
+            coord_fixed(rgX/(rgY*3)) +
+            facet_wrap(~`Raw file name`) +
             #geom_point() +
             geom_line(aes(group = `Raw file name`)) +
             theme_bw()  +

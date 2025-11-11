@@ -6,13 +6,14 @@
 ###############################################################################################################
 
 # You could add new species simply by adding a new empty folder named after them and running this script
-require(parallel)
 RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 libPath <- paste0(RPath, "/proteoCraft")
 
 today <- gsub("-", "", as.character(Sys.Date()))
+
 # Create parallel processing cluster
+require(parallel)
 N.clust <- detectCores()-1
 a <- 1
 tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
@@ -20,6 +21,7 @@ if ("try-error" %in% class(tst)) {
   try(stopCluster(parClust), silent = TRUE)
   parClust <- makeCluster(N.clust, type = "SOCK")
 }
+
 dbDir <- "D:/Fasta_databases"
 stopifnot(dir.exists(dbDir))
 orgDirs <- grep("/", list.dirs(dbDir, full.names = FALSE), invert = TRUE, value = TRUE)
