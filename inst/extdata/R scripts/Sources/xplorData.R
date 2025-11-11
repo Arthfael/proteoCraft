@@ -32,7 +32,7 @@ ui <- fluidPage(
   #
   h4("Clustering heatmap"),
   selectInput("HeatMap", "Select heatmap", names(plotLeatMaps), "Global"),
-  radioButtons("NormType", "Normalisation method:", c("Norm. by row", "Z-scored"), "Norm. by row"),
+  radioButtons("NormType", "Normalisation method:", c("Norm. by row", "None"), "None"),
   fluidRow(withSpinner(plotlyOutput("MYplotLeatMap", height = HEIGHT))),
   #
   h4("Dimensionality reduction plots"),
