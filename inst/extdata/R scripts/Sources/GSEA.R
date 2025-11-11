@@ -8,6 +8,7 @@ source(parSrc)
 keyType <- "UNIPROT"
 idCol <- "Leading protein IDs"
 if (!exists("GSEAmode")) { GSEAmode <- "standard" }
+stopifnot(GSEAmode %in% c("standard", "WGCNA"))
 if (GSEAmode == "standard") {
   if (dataType == "modPeptides") {
     myData <- ptmpep

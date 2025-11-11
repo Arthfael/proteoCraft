@@ -620,4 +620,3 @@ sock_conns <- as.integer(rownames(open_conns[grep("sockconn", open_conns[,"class
 for (i in sock_conns) try(close(getConnection(i)), silent = TRUE)
 source(parSrc)
 #
-# Now, we have our modules, we may want to 

@@ -53,17 +53,18 @@ TESTING <- TRUE
 # https://stackoverflow.com/questions/19467133/performance-of-clusterapply-deteriorates-when-called-inside-a-function?rq=4
 # for this thread explaining how to use parallel within a function!
 #
-TESTING <- FALSE
+#TESTING <- FALSE
 #proteoCraft::DefArg(proteoCraft::PG_assemble)
 #Pep <- pep ;Ev <- ev ;DB <- db ;N.clust <- 55; Custom_PGs <- custPGs; Npep = NPep; TESTING <- TRUE
 #Pep <- pep[1:1000,] ;Ev <- ev ;DB <- db ;N.clust <- 55; Custom_PGs <- custPGs; Npep = NPep; TESTING <- TRUE
 #
 if (TESTING) {
   tm1 <<- Sys.time()
+}
   # Note:
   # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
   misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
-} else { misFun <- missing }
+#}# else { misFun <- missing }
 #
 dc <- parallel::detectCores()
 if (misFun(N.reserved)) { N.reserved <- 1 }

@@ -65,14 +65,14 @@ if ("PTM.analysis" %in% colnames(Param)) {
       #
     }
     tmp <- PTMs; l <- length(tmp)
-    if (l > 1) { tmp <- paste0(paste(tmp[1:(l-1)], collapse = ", "), " and ", tmp[l], "") }
+    if (l > 1) { tmp <- paste0(paste(tmp[seq_len(l-1)], collapse = ", "), " and ", tmp[l], "") }
     tmp2 <- setNames(sapply(PTMs, function(Ptm) { PTM_normalize[[Ptm]] }), PTMs); tmp2u <- unique(tmp2); l2u <- length(tmp2u)
     if ((l2u == 1)&&(tmp2u)) {
       tmp2 <- ", re-normalizing values to account for average parent protein group(s) fold change."
     } else {
       if (l2u > 1) {
         tmp2 <- names(tmp2)[which(tmp2)]; l2 <- length(tmp2)
-        if (l2 > 1) { tmp2 <- paste0(paste(tmp2[1:(l-1)], collapse = ", "), " and ", tmp2[l], "") }
+        if (l2 > 1) { tmp2 <- paste0(paste(tmp2[seq_len(l-1)], collapse = ", "), " and ", tmp2[l], "") }
         tmp2 <- ", normalizing values to correct for parent protein group(s) fold change for "
       } else { tmp2 <- "." }
     }
@@ -104,7 +104,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
           dirlist <- unique(c(dirlist, dir))
           pep[[paste0(Ptm, " ID")]] <- ""
           ptmpep <- pep[g,]
-          pep[g, paste0(Ptm, " ID")] <- ptmpep$ModPep_ID <- 1:nrow(ptmpep)
+          pep[g, paste0(Ptm, " ID")] <- ptmpep$ModPep_ID <- seq_len(nrow(ptmpep))
           ptmsh <- substr(p, 1, 1)
           temp <- ptmpep[, c("Modified sequence", myIDcol)]
           temp[[myIDcol]] <- strsplit(temp[[myIDcol]], ";")
@@ -122,7 +122,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
           clusterExport(parClust, list("temp2", "dbsmall", "ptmsh"), envir = environment())
           temp3 <- parApply(parClust, temp2, 1, function(x) {
             #x <- temp[1, kol]
-            #A <- sapply(1:nrow(temp), function(i) {
+            #A <- sapply(seq_len(nrow(temp)), function(i) {
             #print(i)
             #x <- temp[i, kol]
             m <- unlist(x[[2]])
@@ -200,7 +200,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
           temp2$Protein <- db$"Common Name"[match(temp2$Protein, db$"Protein ID")]
           temp2$ModSeq <- gsub("^_|_$", "", ptmpep$`Modified sequence`[w])
           ptmpep$Name[w] <- do.call(paste, c(temp2[, c("Site", "ModSeq", "Protein")], sep = "\n"))
-          ptmpep$Name[which(ptmpep$Name == "")] <- paste0("Unknown source ", ptm, "-modified peptide #", 1:length(which(ptmpep$Name == "")))
+          ptmpep$Name[which(ptmpep$Name == "")] <- paste0("Unknown source ", ptm, "-modified peptide #", seq_along(which(ptmpep$Name == "")))
           #View(ptmpep[,c("Match(es)", "Modified sequence", "Code", paste0(Ptm, "-site(s)"))])
           if (grepl("^[P,p]hospho( \\([A-Z]+\\))?$", ptm)) {
             p_col <- paste0(gsub(" |\\(|\\)", ".", ptm), ".Probabilities")
@@ -636,7 +636,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
               e0 <- unique(e$Ref.Sample.Aggregate[which(e[[VPAL$column]] == grp0)])
               kole0 <- paste0("Evidence IDs - ", e0)
               tst0 <- rowSums(ptmpep[, kole0] == "") == length(kole0)
-              for (i in 1:length(grp1)) { #i <- 1
+              for (i in seq_along(grp1)) { #i <- 1
                 e1i <- unique(e$Ref.Sample.Aggregate[which(e[[VPAL$column]] == grp1[i])])
                 kole1i <- paste0("Evidence IDs - ", e1i)
                 tst1i <- rowSums(ptmpep[, kole1i] != "") == length(kole1i)
@@ -660,7 +660,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
           PTMs_Reg_filters[[Ptm]]$"t-tests" <- list()
           if ("con" %in% filter_types) {
             PTMs_Reg_filters[[Ptm]]$"t-tests"$"By condition" <- list()
-            for (i in 1:length(g)) {
+            for (i in seq_along(g)) {
               PTMs_Reg_filters[[Ptm]]$"t-tests"$"By condition"[[g1[i]]] <- list(Columns = g[i],
                                                                                 Filter_up = sort(which(ptmpep[[g[i]]] %in% up)),
                                                                                 Filter_down = sort(which(ptmpep[[g[i]]] %in% down)),
@@ -755,7 +755,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
               PTMs_Reg_filters[[Ptm]]$"F-tests" <- list()
               if ("con" %in% filter_types) {
                 PTMs_Reg_filters[[Ptm]]$"F-tests"$"By condition" <- list()
-                for (i in 1:length(g)) {
+                for (i in seq_along(g)) {
                   PTMs_Reg_filters[[Ptm]]$"F-tests"$"By condition"[[g1[i]]] <- list(Columns = g[i],
                                                                                     Filter_up = sort(which(PTMs_F_test_data[[Ptm]][[g[i]]] %in% up)),
                                                                                     Filter_down = sort(which(PTMs_F_test_data[[Ptm]][[g[i]]] %in% down)),
@@ -835,7 +835,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
           # Gene-Set Enrichment Analysis (GSEA)
           if (runGSEA) {
             dataType <- "modPeptides"
-            GSEAmode <- "Standard"
+            GSEAmode <- "standard"
             Src <- paste0(libPath, "/extdata/R scripts/Sources/GSEA.R")
             #rstudioapi::documentOpen(Src)
             source(Src, local = FALSE)
@@ -1028,7 +1028,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
                     flt <- setNames(lapply(UF, function(x) { flt[[x]]$Filter }), UF)
                     ttr <- btr <- ""
                     if (length(By) > 1) { ttr <- btr <- paste0(tolower(bee), "_") }
-                    Pep.Ref.Filt <- tmpFilt <- setNames(lapply(names(flt), function(x) { 1:nrow(PTMs_GO_enrich.dat[[Ptm]][[tstbee]]) }), names(flt))
+                    Pep.Ref.Filt <- tmpFilt <- setNames(lapply(names(flt), function(x) { seq_len(nrow(PTMs_GO_enrich.dat[[Ptm]][[tstbee]])) }), names(flt))
                     if (tt == 1) {
                       if (GO.enrich.MultiRefs) {
                         Pep.Ref.Filt <- try(setNames(lapply(names(flt), function(x) { #x <- names(flt)[1]
@@ -1153,12 +1153,12 @@ if ("PTM.analysis" %in% colnames(Param)) {
                           addWorksheet(wb, ont)
                           writeData(wb, ont, temp[w,])
                           setRowHeights(wb, ont, 1, 60)
-                          setColWidths(wb, ont, 1:ncol(temp), 12)
+                          setColWidths(wb, ont, seq_len(ncol(temp)), 12)
                           setColWidths(wb, ont, which(colnames(temp) == "Term"), 45)
                           setColWidths(wb, ont, which(colnames(temp) %in% gn), 20)
                           setColWidths(wb, ont, which(colnames(temp) %in% pr), 20)
                           setColWidths(wb, ont, which(colnames(temp) %in% pp), 20)
-                          addStyle(wb, ont, HdrStl, 1, 1:ncol(temp))
+                          addStyle(wb, ont, HdrStl, 1, seq_len(ncol(temp)))
                           addStyle(wb, ont, createStyle(numFmt = "0"), 2:(length(w)+1),
                                    which(colnames(temp) %in% kn), gridExpand = TRUE)
                           addStyle(wb, ont, createStyle(numFmt = "0.000"), 2:(length(w)+1),
@@ -1212,7 +1212,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
                           temp2 <- temp[2:(N+1), 2:(N+1)]
                           colnames(temp2) <- temp[1, 2:(N+1)]
                           rownames(temp2) <-  temp[2:(N+1), 1]
-                          for (i in 1:nrow(temp2)) { temp2[[i]] <- as.numeric(temp2[[i]]) }
+                          for (i in seq_len(nrow(temp2))) { temp2[[i]] <- as.numeric(temp2[[i]]) }
                           if (max(is.all.good(unlist(temp2)))) {
                             temp2 <- as.matrix(temp2)
                             basic.heatmap(temp2, "N. of co-regulated GO terms", paste0(tstrt, "\n(", tolower(bee), ")"),

@@ -410,12 +410,12 @@ Example: \"GO:0031012;2\"
       MinMax <- c(min(test$value), max(test$value))
       nbinz <- ceiling((MinMax[2]-MinMax[1])/0.1)
       binz <- c(0:nbinz)/nbinz
-      binz <- binz*(MinMax[2]-MinMax[1])+MinMax[1]
-      binz[1] <- binz[1]-0.000001
-      testI <- data.frame(Intensity = (binz[2:(nbinz+1)]+binz[1:nbinz])/2)
+      binz <- binz*(MinMax[2] - MinMax[1]) + MinMax[1]
+      binz[1] <- binz[1] - 0.000001
+      testI <- data.frame(Intensity = (binz[2:(nbinz+1)]+binz[seq_len(nbinz)])/2)
       for (v in unique(test$variable)) {
         wv <- which(test$variable == v)
-        testI[[v]] <- vapply(1:nbinz, function(x) {
+        testI[[v]] <- vapply(seq_len(nbinz), function(x) {
           sum((test$value[wv] > binz[x])&(test$value[wv] <= binz[x+1]))
         }, 1)
       }
@@ -630,16 +630,23 @@ Example: \"GO:0031012;2\"
         if ("con" %in% filter_types) {
           Reg_filters$Localisation$"By condition" <- list()
           rat <- paste0("Mean ", SSD.Root, g1)
-          for (i in 1:length(g)) { #i <- 1
+          for (i in seq_along(g)) { #i <- 1
             Reg_filters$Localisation$"By condition"[[g1[i]]] <- list(Columns = g[i],
                                                                      Filter_up = sort(which(PG[[g[i]]] %in% up)),
                                                                      Filter_down = c(),
                                                                      Filter = sort(which(PG[[g[i]]] %in% up)),
                                                                      Ratios = PG[[rat[i]]],
-                                                                     Background_filter = 1:nrow(PG))
+                                                                     Background_filter = seq_len(nrow(PG)))
             # To do here: check that Ratios values above are correct
           }
         }
+        #
+        # Z-scored clustering heatmaps of re-localized proteins
+        clustMode <- "re-localisation"
+        Src <- paste0(libPath, "/extdata/R scripts/Sources/cluster_Heatmap_Main.R")
+        #rstudioapi::documentOpen(Src)
+        source(Src, local = FALSE)
+        #
       } else { warning("No localisation volcano plots created, investigate!") }
     } else {
       if (!length(wh0)) {

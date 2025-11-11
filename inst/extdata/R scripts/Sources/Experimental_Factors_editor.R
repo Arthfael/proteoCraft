@@ -78,20 +78,22 @@ ui <- fluidPage(
       actionBttn("addFactor", "Create Factor(s)", color = "primary", size = "xs", style = "pill"),
       actionBttn("rmvFactor", "Remove Factor(s)", color = "primary", size = "xs", style = "pill"),
       h5(em("Factor names must be:")),
-      h5(em("- at least 3 characters long")),
+      h5(em("- at least 3 characters long,")),
       h5(em("- start with a capital letter,")),
       h5(em("- followed by only lower case letters, numbers or dots.")),
       h5(em("- These Factor names and 3-letter Factor roots are reserved:")),
-      h5(em(HTML(paste0("&emsp;- ", strong("Exp"), "eriment = always present, group of samples to analyze together")))),
+      h5(em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Exp"))), "eriment = always present, group of samples to analyze together")))),
       # This one because it may conflict with other uses of Group elsewhere:
-      h5(em(HTML(paste0("&emsp;- ", strong("Gro"), "up = used internally, do not use")))),
-      h5(em(HTML(paste0("&emsp;- ", strong("Rep"), "licate = always present, strictly biological replicate")))),
+      h5(em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Gro"))), "up = used internally, do not use")))),
+      h5(em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Rep"))), "licate = always present, strictly biological replicate")))),
       h5(
-        em(HTML(paste0("&emsp;- ", strong("Tim"), "e.point = activates certain time-series specific functionalities")))
+        em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Tim"))), "e.point = activates certain time-series specific functionalities")))
       ),
-      h5(em(HTML(paste0("&emsp;- ", strong("Tar"), "get = for pull downs, the bait")))),
-      h5(em(HTML(paste0("&emsp;- ", strong("Iso"), "baric.set = for isobaric labelling only, set of labelled samples combined into a meta-sample")))),
-      h5(em(HTML(paste0("&emsp;- ", strong("Com"), "partment = for Re-localization analysis, main target compartment of the subcellular fraction")))),
+      h5(em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Tar"))), "get = for pull downs, the bait")))),
+      h5(em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Iso"))), "baric.set = for isobaric labelling only, set of labelled samples combined into a meta-sample")))),
+      h5(em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Com"))), "partment = for Re-localization analysis, main target compartment of the subcellular fraction")))),
+      h5(em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Tis"))), "sue and ",
+                        gsub("\n *", "", strong(tag("u", "Dev"))), "elopmental.stage may also trigger specific behaviour in the future")))),
       br(),
       br(),
     ),
@@ -175,7 +177,7 @@ server <- function(input, output, session) {
         if (Fact != "Target") { vals <- gsub("-", ".", vals) }
         tmp2 <- FACTLevels()
         if (Fact %in% intFact) {
-          tmp2[[Fact]] <- 1:as.integer(max(c(vals, dfltInt[match(Fact, intFact)])))
+          tmp2[[Fact]] <- 1:max(as.integer(c(vals, dfltInt[match(Fact, intFact)])))
         } else {
           if (Fact == "Time.point") {
             vals <- suppressWarnings(as.numeric(vals))
@@ -239,7 +241,7 @@ server <- function(input, output, session) {
               if (Fact != "Target") { vals <- gsub("-", ".", vals) }
               tmp2 <- FACTLevels()
               if (Fact %in% intFact) {
-                tmp2[[Fact]] <- 1:as.integer(max(c(vals, dfltInt[match(Fact, intFact)])))
+                tmp2[[Fact]] <- 1:max(as.integer(c(vals, dfltInt[match(Fact, intFact)])))
               } else {
                 if (Fact == "Time.point") {
                   vals <- suppressWarnings(as.numeric(vals))

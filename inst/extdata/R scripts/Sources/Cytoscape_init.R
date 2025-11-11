@@ -1,6 +1,13 @@
 ### Check that Cytoscape is installed and can run, then launch it.
 # This will be used to run a ClueGO analysis and to draw protein interaction networks 
-dlg_message("Check that no other RStudio session (or other process) is using Cytoscape before clicking \"ok\" to continue...", "ok")
+if ((!exists("CytoScape_check"))||(length(CytoScape_check) != 1)||(!is.logical(CytoScape_check))||(is.na(CytoScape_check))) {
+  CytoScape_check <- FALSE
+}
+CytoScape_check %<o% CytoScape_check
+if (!CytoScape_check) {
+  dlg_message("Check that no other RStudio session (or other process) is using Cytoscape before clicking \"ok\" to continue...", "ok")
+  CytoScape_check <- TRUE
+}
 invisible(suppressMessages({
   if (CytoScape) {
     tst <- try(RCy3::cytoscapePing(), silent = TRUE)

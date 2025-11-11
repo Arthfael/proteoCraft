@@ -27,7 +27,7 @@ if (Update_Prot_matches) {
     #
     Seq <- unique(ev$Sequence)
     DB <- db
-    mtchSrc <- paste0(libPath, "/extdata/R scripts/Sources/ProtMatch2.R")
+    mtchSrc <- paste0(libPath, "/extdata/R scripts/Sources/ProtMatch.R")
     #rstudioapi::documentOpen(mtchSrc)
     source(mtchSrc)
     Pep2Prot <- evmatch

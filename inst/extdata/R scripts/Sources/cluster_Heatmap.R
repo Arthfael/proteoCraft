@@ -1,52 +1,71 @@
 #### Heatmaps with clustering at samples and protein groups level, highlighting proteins of interest
-if (scrptType == "withReps") {
-  clustHtMp %<o% TRUE
-  if (LocAnalysis) { prtRfRoot %<o% Prot.Expr.Root2 } else { prtRfRoot %<o% Prot.Expr.Root }
-}
-if (scrptType == "noReps") {
-  clustHtMp %<o% (length(Exp) > 1)
-  prtRfRoot %<o% PG.int.col
-}
+
 if (clustHtMp) {
-  clustDir <- paste0(wd, "/Clustering")
+  if (clustMode == "standard") {
+    normTypes <- c("None", "Norm. by row")
+    clustDir <- paste0(wd, "/Clustering")
+  }
+  if (grepl("-tests?$", clustMode)) {
+    normTypes <- "Z-scored"
+    clustRegFilters <- Reg_filters[[clustMode]]$`By condition`
+    clustDir <- paste0(wd, "/Reg. analysis/", clustMode, "/Heatmaps")
+  }
   if (!dir.exists(clustDir)) { dir.create(clustDir, recursive = TRUE) }
   if (scrptType == "withReps") {
     dirlist <- unique(c(dirlist, dir))
-    expressKol <- paste0(prtRfRoot, Exp.map$Ref.Sample.Aggregate)
-    wSmpls <- which(expressKol %in% colnames(PG))
-    expressKol <- expressKol[wSmpls]
-    xMap <- Exp.map[wSmpls,]
-    mySmpls <- xMap$Samples <- cleanNms(xMap$Ref.Sample.Aggregate)
-    if (("GO.enrichment.Ref.Aggr" %in% colnames(Param))&&(Param$GO.enrichment.Ref.Aggr %in% Aggregate.map$Aggregate.Name)) {
-      ClustGrp <- Param$GO.enrichment.Ref.Aggr
-    } else {
-      ClustGrp <- Param$GO.enrichment.Ref.Aggr <- "Exp"
+    mySmpls <- clustMap$Samples <- cleanNms(clustMap$Ref.Sample.Aggregate)
+    #
+    I <- list(Global = mySmpls)
+    # Cluster groups based on Ratios-, GO enrichment- or Normalisation groups
+    # Basically any level where we have specified that we have a group smaller than the whole experiment containing sample groups which may be more
+    # closely related to each other than the whole experiment.
+    # It may make sense to detect automatically factors such as "Tissue", "Developmental.stage" or "Cell.type" here...
+    for (myAggr in c("Ratios.Groups", "GO.enrichment.Ref.Aggr", "Norm.Groups")) {
+      if (myAggr %in% colnames(Param)) {
+        if (gsub(";", "", Param[[myAggr]]) %in% Aggregate.map$Aggregate.Name) {
+          ClustGrp <- Param[[myAggr]]
+        } else {
+          ClustGrp <- "Exp"
+        }
+        if ((length(Exp) == 1)&&(nchar(ClustGrp) %% 3 > 0)) { ClustGrp <- Param_filter(ClustGrp, "Exp") }
+        val <- Aggregate.list[[ClustGrp]]
+        nms <- unlist(Aggregate.map$Characteristics[which(Aggregate.map$Aggregate.Name == gsub(";", "", ClustGrp))])
+        if (length(nms) == 1) { kol <- nms } else { kol <- ClustGrp }
+        ClustGrp <- list(aggregate = ClustGrp,
+                         values = val,
+                         names = nms,
+                         column = kol)
+        if (length(ClustGrp$values) > 1) {
+          for (i in ClustGrp$values) {
+            iNm <- paste0(ClustGrp$column, " = ", cleanNms(i))
+            I[[iNm]] <- mySmpls[which(clustMap[[ClustGrp$column]] == i)]
+          }
+        }
+      }
     }
-    if ((length(Exp) == 1)&&(nchar(ClustGrp) %% 3 > 0)) { ClustGrp <- Param_filter(ClustGrp, "Exp") }
-    val <- Aggregate.list[[ClustGrp]]
-    nms <- unlist(Aggregate.map$Characteristics[which(Aggregate.map$Aggregate.Name == ClustGrp)])
-    if (length(nms) == 1) { kol <- nms } else { kol <- ClustGrp }
-    ClustGrp <- list(aggregate = ClustGrp,
-                     values = val,
-                     names = nms,
-                     column = kol)
-    I <- list(Global = mySmpls[which(xMap[[ClustGrp$column]] %in% ClustGrp$values)])
-    if (length(ClustGrp$values) > 1) { for (i in ClustGrp$values) {
-      iNm <- cleanNms(i)
-      I[[iNm]] <- mySmpls[which(xMap[[ClustGrp$column]] %in% i)]
-    } }
+    Fct <- c("Tis", "Cel", "Dev")
+    w <- which(Fct %in% Aggregate.map$Aggregate.Name)
+    if (length(w)) {
+      Fct <- Fct[w]
+      for (fct in Fct) {
+        col <- Aggregate.map$Characteristics[[match(fct, Aggregate.map$Aggregate.Name)]]
+        val <- unique(clustMap[[col]])
+        if (length(val) > 1) {
+          for (i in val) {
+            iNm <- paste0(col, " = ", cleanNms(i))
+            I[[iNm]] <- mySmpls[which(clustMap[[col]] == i)]
+          }
+        }
+      }
+    }
     I <- I[which(vapply(I, length, 1) > 1)]
   }
   if (scrptType == "noReps") {
-    expressKol <- paste0(prtRfRoot, SamplesMap$Experiment)
-    wSmpls <- which(expressKol %in% colnames(PG))
-    expressKol <- expressKol[wSmpls]
-    xMap <- SamplesMap[wSmpls,]
-    mySmpls <- xMap$Samples <- cleanNms(xMap$Experiment)
-    I <- list(Global = xMap$Samples)
-    if ((MakeRatios)&&(length(unique(xMap$`Ratios group`)) > 1)) {
-      for (rtGrp in unique(xMap$`Ratios group`)) {
-        tmp <- xMap$Samples[which(xMap$`Ratios group` == rtGrp)]
+    mySmpls <- clustMap$Samples <- cleanNms(clustMap$Experiment)
+    I <- list(Global = clustMap$Samples)
+    if ((MakeRatios)&&(length(unique(clustMap$`Ratios group`)) > 1)) {
+      for (rtGrp in unique(clustMap$`Ratios group`)) {
+        tmp <- clustMap$Samples[which(clustMap$`Ratios group` == rtGrp)]
         if (length(tmp) > 1) {
           I[[as.character(rtGrp)]] <- tmp
         }
@@ -57,12 +76,9 @@ if (clustHtMp) {
   NHClust %<o% list()
   NVClust %<o% list()
   KlustKols %<o% c()
-  ImputeKlust %<o% TRUE # Currently always TRUE
   MaxHClust %<o% min(c(floor(nrow(PG)/2), 100)) # We want at most 20 clusters
-  normTypes <- c("None", "Norm. by row")
   if (scrptType == "withReps") {
     MaxVClust %<o% length(VPAL$values)
-    normTypes <- c(normTypes, "Z-scored")
   }
   if (scrptType == "noReps") {
     MaxVClust <- length(Exp)
@@ -80,33 +96,32 @@ if (clustHtMp) {
   VClustUse <- toupper(VClustUse)
   KlustRoot %<o% paste0("Cluster (", c("K-means", "hierarch.")[KlustMeth], ") - ")
   plotLeatMaps %<o% list()
-  myFilt <- which((apply(PG[, expressKol], 1, function(x) { sum(!is.na(x)) }) > 0)
-                  &((is.na(PG$`Potential contaminant`))|(PG$`Potential contaminant` != "+")))
-  tmpDat0 <- tmpDat <- set_rownames(set_colnames(PG[myFilt, expressKol], xMap$Samples),
-                                    PG$Label[myFilt])
-  #vapply(expressKol, function(x) { sum(is.na(PG[myFilt, x])) }, 1)
-  #vapply(xMap$Samples, function(x) { sum(is.na(tmpDat[[x]])) }, 1)
+ 
+  
+  
+  #vapply(clustXprsKol, function(x) { sum(is.na(PG[clustFilt, x])) }, 1)
+  #vapply(clustMap$Samples, function(x) { sum(is.na(clustDat[[x]])) }, 1)
   if (ImputeKlust) {
     if (scrptType == "withReps") {
-      Gr <- xMap[[VPAL$column]] # Here we have replicates and group at samples group level
+      Gr <- clustMap[[VPAL$column]] # Here we have replicates and group at samples group level
     }
     if (scrptType == "noReps") {
       # Here we do not have replicates and group at comparison group level
-      Gr <- xMap$`Ratios group`
+      Gr <- clustMap$`Ratios group`
     }
     Gr <- setNames(match(Gr, unique(Gr)), Gr)
-    tmpDat <- Data_Impute2(tmpDat, Gr)
-    tmpDatImp <- tmpDat$Positions_Imputed
-    tmpDat <- tmpDat$Imputed_data
-    rownames(tmpDatImp) <- rownames(tmpDat)
-    colnames(tmpDatImp) <- xMap$Samples
-    #vapply(xMap$Samples, function(x) { sum(is.na(tmpDat[[x]])) }, 1) # df
-    #vapply(xMap$Samples, function(x) { sum(tmpDatImp[, x]) }, 1) # matrix
+    clustDat <- Data_Impute2(clustDat, Gr)
+    clustDatImp <- clustDat$Positions_Imputed
+    clustDat <- clustDat$Imputed_data
+    rownames(clustDatImp) <- rownames(clustDat)
+    colnames(clustDatImp) <- clustMap$Samples
+    #vapply(clustMap$Samples, function(x) { sum(is.na(clustDat[[x]])) }, 1) # df
+    #vapply(clustMap$Samples, function(x) { sum(clustDatImp[, x]) }, 1) # matrix
   }
   for (i in names(I)) { #i <- names(I)[1] #i <- names(I)[2]
     smpls <- I[[i]]
     smplsMtch <- match(smpls, mySmpls)
-    xMp <- xMap[smplsMtch,]
+    xMp <- clustMap[smplsMtch,]
     xprsKol <- paste0(prtRfRoot, xMp$Samples[smplsMtch])
     lXprs <- length(xprsKol)
     msg <- paste0("Creating ", c("", paste0(i, " "))[(i == "Global")+1], "heatmap",
@@ -116,30 +131,25 @@ if (clustHtMp) {
       normTypeInsrt <- paste0(" (", normTypes, ")")
       normTypeInsrt[1] <- ""
       normTypeInsrt <- normTypeInsrt[match(normType, normTypes)]
-      temp <- tmpDat[, smpls, drop = FALSE]
+      temp <- clustDat[, smpls, drop = FALSE]
       #
-      temp <- tmpDat[, smpls, drop = FALSE]
+      temp <- clustDat[, smpls, drop = FALSE]
       if (normType == "Z-scored") {
         # In that case we plot only differentially expressed proteins.
         # Only used for withReps for the time being.
         # We will keep it simple, making one filter only and use any protein which is significant in any test.
-        nms1 <- names(Reg_filters)
-        myClustFilter <- PG$Label[sort(unique(unlist(lapply(names(Reg_filters), function(nm1) {
-          flt <- Reg_filters[[nm1]]$"By condition"
-          nms2 <- names(flt)
-          lapply(nms2, function(nm2) {
-            flt[[nm2]]$Filter
-          })
+        myClustFilter <- PG$Label[sort(unique(unlist(lapply(names(clustRegFilters), function(nm) {
+          clustRegFilters[[nm]]$Filter
         }))))]
         temp <- temp[which(rownames(temp) %in% myClustFilter),]
       }
       #tst <- apply(temp, 1, function(x) { length(is.all.good(x)) }) == lXprs
       # Filter to include only rows for which we have at least one valid value
-      wAG <- which(apply(tmpDat0[, smpls], 1, function(x) { length(is.all.good(x)) }) > 0)
-      wAG <- which(rownames(temp) %in% rownames(tmpDat0)[wAG])
+      wAG <- which(apply(clustDat0[, smpls], 1, function(x) { length(is.all.good(x)) }) > 0)
+      wAG <- which(rownames(temp) %in% rownames(clustDat0)[wAG])
       temp <- temp[wAG,]
       if (ImputeKlust) {
-        whImput <- tmpDatImp[wAG,]
+        whImput <- clustDatImp[wAG,]
       }
       #
       if (normType %in% c("Norm. by row", "Z-scored")) { rwMns <- rowMeans(temp) }
@@ -202,7 +212,7 @@ if (clustHtMp) {
         NVClust[[i]] <- NGr <- max(c(1, length(mySmpls)))
       }
       if (nrow(temp2) > 2) {
-        tst <- cluster::clusGap(temp2, stats::kmeans, min(c(nrow(temp2)-1, NGr-1)))
+        tst <- cluster::clusGap(temp2, stats::kmeans, max(c(2, min(c(nrow(temp2)-1, NGr-1)))))
         tst2 <- as.data.frame(tst$Tab)  
         yHigh <- max(tst2$gap)
         yLow <- min(tst2$gap)
@@ -365,6 +375,8 @@ if (clustHtMp) {
       ymx <- max(c(hSeg$y, hSeg$yend))
       hSeg$y <- Height + hnch + 1.5 + (hSeg$y - ymn)*Height*0.07/ymx
       hSeg$yend <- Height + hnch + 1.5 + (hSeg$yend - ymn)*Height*0.07/ymx
+      hSeg$x <- hSeg$x - 0.5
+      hSeg$xend <- hSeg$xend - 0.5
       # Order labels by order of appearance
       hlabs <- hlabs[order(hlabs$x, decreasing = FALSE),]
       vlabs <- vlabs[order(vlabs$y, decreasing = FALSE),]
@@ -613,7 +625,7 @@ if (clustHtMp) {
   saveFun(plotLeatMaps, file = paste0(clustDir, "/HeatMaps.RData"))
   #
   temp <- PG[, c("Leading protein IDs", "Protein names", "Genes", "Mol. weight [kDa]",
-                 expressKol, KlustKols)]
+                 clustXprsKol, KlustKols)]
   #
   flPath <- paste0(clustDir, "/Protein Groups and Clusters.csv")
   tst <- try(write.csv(temp, file = flPath, row.names = FALSE), silent = TRUE)

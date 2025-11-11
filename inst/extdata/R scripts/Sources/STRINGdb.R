@@ -234,8 +234,8 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
           response <- httr::POST(rqst, encode = "json")
           if (httr::http_status(response)$category != "Success") { Sys.sleep(2) }
           intNet <- httr::content(response, "parsed", show_col_types = FALSE)
-        })
-        if (!"try-error" %in% class(intNet)) { # This may fail if we have too many nodes! The current limit is 2000.
+        }, silent = TRUE)
+        if (exists("intNet")) { # This may fail if we have too many nodes! The current limit is 2000.
           # They suggest to use their "Cytoscape stringApp", this may be worth looking into.
           if ((!is.null(intNet))&&("data.frame" %in% class(intNet))&&(nrow(intNet))) {
             for (ab in c("A", "B")) {

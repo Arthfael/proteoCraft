@@ -246,14 +246,15 @@ if (length(tmp)) {
 CytoScExe <- CytoScExe[1]
 #
 # Some default parameters which nicely follow the same structure
-myPar <- c("Pepper", "GSEA", "ProfPlots", "RankAbundPlots")
+myPar <- c("Pepper", "GSEA", "ProfPlots", "RankAbundPlots", "ClueGO")
 for (parI in myPar) {
   parNm <- paste0("run", parI)
   # Lowest level default: defined by context
   par_dflt <- par_dflt2 <- c(FALSE,
                              (WorkFlow %in% c("Discovery", "Regulation", "Pull-down"))&Annotate,
                              moreThan1Exp,
-                             TRUE)[match(parI, myPar)]
+                             TRUE,
+                             FALSE)[match(parI, myPar)]
   # Middle level default: defined by existing value
   parOK <- (exists(parNm))
   if (parOK) {
@@ -451,7 +452,8 @@ server <- function(input, output, session) {
       lst <- list(
         list(h4("GO terms enrichment"),
              shiny::fluidRow(shiny::column(1,
-                                           shiny::checkboxInput("GOenrich", "GO enrichment", globalGO_dflt, "100%")),
+                                           shiny::checkboxInput("GOenrich", "GO enrichment", globalGO_dflt, "100%"),
+                                           shiny::checkboxInput("runClueGO", "run ClueGO enrichment (NB: this is rather slow)", runClueGO_dflt, "100%")),
                              shiny::column(2,
                                            shinyWidgets::pickerInput("GO.tabs", "GO terms of interest",
                                                                      allGO, GO_filter1, TRUE,
@@ -673,11 +675,19 @@ server <- function(input, output, session) {
   }, ignoreNULL = FALSE)
   # GO enrichment
   shiny::observeEvent(input$GOenrich, {
+    if (input$GOenrich) { shinyjs::enable("runClueGO") }
+    if (!input$GOenrich) { shinyjs::disable("runClueGO") }
     assign("globalGO", as.logical(input$GOenrich), envir = .GlobalEnv)
     assign("enrichGO", globalGO&MakeRatios, envir = .GlobalEnv)
     Par <- PARAM()
     Par$"GO terms enrichment analysis" <- globalGO
     PARAM(Par)
+  })
+  shiny::observeEvent(input$runClueGO, {
+    runClueGO <<- input$runClueGO&input$GOenrich
+    Par <- PARAM()
+    Par$runClueGO <- runClueGO
+    PARAM(Par) 
   })
   # GO terms of interest
   if (Annotate) {
@@ -769,6 +779,7 @@ if (prot.list.Cond) {
   prot.names %<o% names(IDs.list)
   db$"Potential contaminant"[which(db$`Protein ID` %in% prot.list)] <- ""
 }
+if (runClueGO&&!enrichGO) { runClueGO <- FALSE}
 #
 custPGs_file %<o% AnalysisParam$Custom.PGs
 custPGsTst <- (!is.na(custPGs_file))&(file.exists(custPGs_file))

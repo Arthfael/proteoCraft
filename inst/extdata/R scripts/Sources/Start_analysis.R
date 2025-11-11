@@ -640,6 +640,7 @@ if (nrow(allBckps)) {
     suppressWarnings(rm(list = unlist(unusedBckps$ObjNm)))
   }
   if (length(bckps2Reload)) {
+    cat(" -> Reloading backups...\n")
     reloadedBckps <- allBckps[match(bckps2Reload, allBckps$Value),]
     for (i in 1:nrow(reloadedBckps)) { #i <- 1
       ext <- tolower(gsub(".*\\.", "", reloadedBckps$File[i]))
@@ -677,6 +678,8 @@ if (nrow(allBckps)) {
       }
     }
     .obj <- unique(c(unlist(reloadedBckps$ObjNm), .obj))
+  } else {
+    cat(" -> No backups to reload\n")
   }
 }
 if ((!nrow(reloadedBckps))||(!"FASTA of proteins of special interest" %in% reloadedBckps$Role)) {

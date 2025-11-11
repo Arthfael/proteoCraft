@@ -1,4 +1,46 @@
 ### Analysis parameters
+#
+# PCA prior to shiny app
+Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_PCA.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+#
+# Protein headers for shiny
+Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+#
+# Proteins of interest
+Src <- paste0(libPath, "/extdata/R scripts/Sources/protList.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+#
+# Targets
+# Sometimes the user does not fill the Target factor with valid protein IDs... but this is what we would actually need.
+# Here, if necessary, we will remap those to valid IDs:
+Src <- paste0(libPath, "/extdata/R scripts/Sources/Targets.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+#
+# KnockOut, KnockIn or KnockDown
+tst <- tolower(gsub("[- _]", "", Factors))
+if (sum(c("knockout", "knockin", "knockdown") %in% tst)) {
+  w <- which(c("knockout", "knockin", "knockdown") %in% tst)
+  # There should be only one for now, because all three share the same 3-characters root = "Kno"
+  # This should evolve but will be difficult, knowing how complex this script is now.
+  prot.list %<o% unique(c(unique(Exp.map[[Factors["Kno"]]]), prot.list))
+  prot.list_pep %<o% unique(c(unique(Exp.map[[Factors["Kno"]]]), prot.list_pep))
+}
+#
+Src <- paste0(libPath, "/extdata/R scripts/Sources/protList2.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+#
+# Protein headers for shiny (update)
+Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+#
 # Defaults
 nSmpls <- nrow(Exp.map)
 RefRat_Mode %<o% "2" # Values: RefRat_Mode = "2" or "1" # For now not a user-modifiable parameter, however this may change
@@ -15,12 +57,21 @@ pvalue.col %<o% c(StudentRoot, WelchRoot, modRoot, permRoot, samRoot, odpRoot, l
 names(pvalue.col) <- vapply(pvalue.col, function(x) { unlist(strsplit(x, "\\.|\\'|\\ "))[1] }, "")
 ParamFls <- c(paste0(wd, "/Parameters.csv"),
               paste0(libPath, "/extData/Parameters_template.csv"))
-ParamPath %<o% ParamFls[1]
-ParamFl %<o% ParamFls[1]
+ParamPath %<o% ParamFls[1] # The parameters file we will save to!
+ParamFl %<o% ParamFls[1] # The parameters file we (re-)load!
 if (!file.exists(ParamFl)) { ParamFl <- ParamFls[2] }
-Param_Help <- read.csv(ParamFl, header = FALSE)
-Param_Help <- Param_Help$V3
 Param %<o% Param.load(ParamFl)
+tmp <- read.csv(ParamFl, header = FALSE)
+if (ncol(tmp) == 3) {
+  Param_Help <- tmp$V3
+  names(Param_Help) <- tmp$V1
+} else {
+  tmp <- read.csv(ParamFls[2], header = FALSE)
+  Param_Help <- vapply(colnames(Param), function(x) {
+    if (x %in% tmp$V1) { return(tmp$V3[match(x, tmp$V1)]) }
+    return("")
+  }, "")
+}
 Param$vCPUs <- N.clust
 Param$WD <- wd
 if (ParamFl == ParamFls[2]) {
@@ -62,10 +113,9 @@ if (ParamFl == ParamFls[2]) {
 }
 if ("Output" %in% colnames(Param)) { Param$Output <- NULL } # Deprecated
 tmp <- PSMsFls
-Param$Search.Engines <- 
-  
-  #if ((Param$Label == "LFQ")&&(isDIA)) { Param$Label <- "DIA" } # Nope! isDIA can be length > 1 now! 
-  Param$WD <- wd # Super important!
+Param$Search.dir <- paste(inDirs, collapse = ";")
+#if ((Param$Label == "LFQ")&&(isDIA)) { Param$Label <- "DIA" } # Nope! isDIA can be length > 1 now! 
+Param$WD <- wd # Super important!
 ptmDflt1 <- grep("^[Pp]hospho", Modifs$`Full name`, value = TRUE, invert = TRUE)
 if (!"PTM.analysis" %in% colnames(Param)) { Param$PTM.analysis <- paste(ptmDflt2, collapse = ";") }
 Mod4Quant %<o% Modifs$Mark[match(ptmDflt1, Modifs$`Full name`)]
@@ -504,15 +554,16 @@ dfltNormSeq2 <- normSeqProc12(normSequence)
 #
 # Some default parameters which nicely follow the same structure
 # (NB: Pepper isn't yet integrated in the workflows with replicates)
-myPar <- c("Pepper", "WGCNA", "GSEA", "ProfPlots", "RankAbundPlots")
+myPar <- c("Pepper", "GSEA", "ProfPlots", "RankAbundPlots", "ClueGO", "WGCNA")
 for (parI in myPar) {
   parNm <- paste0("run", parI)
   # Lowest level default: defined by context
   par_dflt <- par_dflt2 <- c(FALSE,
-                             TRUE,
                              TRUE, # Should be (Annotate)|(Org %in% ... ), cf. GSEA source: there are 20-ish organisms for which a specific annotations package is usable
                              TRUE,
-                             TRUE)[match(parI, myPar)]
+                             TRUE,
+                             FALSE,
+                             nrow(Exp.map >= 15))[match(parI, myPar)]
   # Middle level default: defined by existing value
   parOK <- (exists(parNm))
   if (parOK) {
@@ -577,7 +628,10 @@ for (w in wMp) { #w <- wMp[3]
   lbl <- gsub("\\.", " ", myFct)
   if (myFct %in% coreNms) {
     lbl <- unlist(strsplit(names(coreNms)[match(myFct, coreNms)], "___"))
-  } else { lbl <- c(gsub("\\.", " ", myFct), Param_Help[w]) }
+  } else {
+    lbl <- gsub("\\.", " ", myFct)
+    if (myFct %in% names(Param_Help)) { lbl <- c(lbl, Param_Help[myFct]) }
+  }
   names(Opt) <- NULL
   names(dflt) <- NULL
   dfltFct[[myFct]] <- dflt
@@ -832,7 +886,7 @@ ui1 <- fluidPage(
                                    "Re-normalize modified peptides ratios to those of parent Protein Group(s)?",
                                    TRUE, "100%")),
            column(2, radioButtons("NAsReplMethod",
-                                  "Some modified peptides do not have a quantified parent protein group to normalize to. Replaced missing values using:",
+                                  "Some modified peptides do not have a quantified parent protein group to re-normalize to. Replace missing values using:",
                                   NAsReplMethods,
                                   NAsReplMethods[NAsReplMeth],
                                   width = "100%"))
@@ -1213,20 +1267,24 @@ server1 <- function(input, output, session) {
     if (Annotate) {
       lst <- list(
         list(h4(strong("GO terms enrichment")),
-             fluidRow(column(1, checkboxInput("GOenrich", "GO enrichment", goDflt, "100%")),
-                      column(2, pickerInput("GO.tabs",
-                                            "GO terms of interest",
-                                            allGO,
-                                            dftlGO,
-                                            TRUE,
-                                            pickerOptions(title = "Search me",
-                                                          `live-search` = TRUE,
-                                                          actionsBox = TRUE,
-                                                          deselectAllText = "Clear search",
-                                                          showTick = TRUE))),
-                      column(1, checkboxInput("GO2Int", "Use GO terms to define list of proteins of interest?",
-                                              as.character(toupper(Param$GO.terms.for.proteins.of.interest)) == "TRUE", # Clumsy but possibly more backwards proof
-                                              "100%"))))
+             fluidRow(column(1,
+                             checkboxInput("GOenrich", "GO enrichment", goDflt, "100%"),
+                             checkboxInput("runClueGO", "run ClueGO enrichment (NB: this is rather slow)", runClueGO_dflt, "100%")),
+                      column(2,
+                             pickerInput("GO.tabs",
+                                         "GO terms of interest",
+                                         allGO,
+                                         dftlGO,
+                                         TRUE,
+                                         pickerOptions(title = "Search me",
+                                                       `live-search` = TRUE,
+                                                       actionsBox = TRUE,
+                                                       deselectAllText = "Clear search",
+                                                       showTick = TRUE))),
+                      column(1,
+                             checkboxInput("GO2Int", "Use GO terms to define list of proteins of interest?",
+                                           as.character(toupper(Param$GO.terms.for.proteins.of.interest)) == "TRUE", # Clumsy but possibly more backwards proof
+                                           "100%"))))
       )
     }
     return(lst)
@@ -1636,9 +1694,17 @@ server1 <- function(input, output, session) {
   # }, ignoreNULL = FALSE)
   # GO enrichment
   observeEvent(input$GOenrich, {
+    if (input$GOenrich) { shinyjs::enable("runClueGO") }
+    if (!input$GOenrich) { shinyjs::disable("runClueGO") }
     Par <- PARAM()
     Par$GO.enrichment <- paste(input$GOenrich, collapse = ";")
     PARAM(Par)
+  })
+  observeEvent(input$runClueGO, {
+    runClueGO <<- input$runClueGO&input$GOenrich
+    Par <- PARAM()
+    Par$runClueGO <- runClueGO
+    PARAM(Par) 
   })
   # GO terms of interest
   if (Annotate) {
@@ -1750,3 +1816,372 @@ for (w in g) { Param[[w]] <- as.logical(gsub("^TF_", "", Param[[w]])) }
 g <- grep("^((TRUE)|(FALSE))$", Param[1,])
 for (w in g) { Param[[w]] <- as.logical(Param[[w]]) }
 #}
+if (runClueGO&&!enrichGO) { runClueGO <- FALSE}
+#
+Param$FullQuant <- TRUE
+FullQuant %<o% Param$FullQuant
+protrul %<o% Param$ProtRul
+Update_Prot_matches <- Param$Update_Prot_matches
+Reuse_Prot_matches <- Param$Reuse_Prot_matches
+Pep4QuantOpt %<o% c("Unique peptide IDs", "Razor peptide IDs", "Peptide IDs")
+Pep4Quant %<o% Pep4QuantOpt[c(1, 2)[isEukaLike+1]]
+if ("Prot.Quant.Use" %in% colnames(Param)) {
+  Pep4Quant <- Pep4QuantOpt[which(c("UNIQUE", "RAZOR", "ALL") == toupper(Param$Prot.Quant.Use))]
+}
+ProtRulNuclL %<o% Param$ProtRulNuclL
+CytoScVrs %<o% Param$CytoScapePath
+CytoScape %<o% file.exists(CytoScVrs)
+Nested %<o% as.logical(Param$Ratios.Groups_Nested)
+if (!Nested) {
+  Param$Ratios.Ref.Groups <- Param_filter(Param$Ratios.Ref.Groups, "Rep")
+} else {
+  Param$Ratios.Ref.Groups <- paste(unique(c(unlist(strsplit(Param$Ratios.Ref.Groups, ";")), "Rep")),
+                                   collapse = ";")
+}
+#
+# Defaults in case we missed a parameter
+g <- grep("^TF_((TRUE)|(FALSE))$", Param[1,])
+if (length(g)) {
+  Param[1, g] <- gsub("^TF_", "",  Param[1, g])
+  Param[, g] <- as.logical(Param[, g])
+}
+w <- grep("^ *((TRUE)|(FALSE)) *$", Param[1,], ignore.case = TRUE)
+if (length(w)) {
+  Param[1, w] <- gsub(" ", "", toupper(Param[1, w]))
+  Param[, w] <- as.logical(Param[, w])
+}
+
+ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_fpar(Report, fpar(ftext(\" -> Parameters:\", prop = WrdFrmt$Body_text), fp_p = WrdFrmt$left))")
+for (i in 1:ncol(Param)) {
+  ReportCalls$Calls <- append(ReportCalls$Calls,
+                              paste0("body_add_fpar(Report, fpar(ftext(\"   - ", colnames(Param)[i], ": ",
+                                     Param[[i]], "\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$left))"))
+}
+ReportCalls <- AddSpace2Report()
+#
+# Create sub-directories vector:
+# (this should go...)
+dir <- c("Workflow control/MA plots", paste0("Workflow control/", evNm, "s", c("", "/Normalisation")),
+         "Workflow control/Peptides", "Workflow control/Peptides/PCA plot", "Workflow control/Peptides/Intensities",
+         "Workflow control/Peptides/Intensities/Normalisation - summary", "Workflow control/Peptides/Ratios",
+         "Workflow control/Protein groups", "Workflow control/Protein groups/Expression",
+         "Workflow control/Protein groups/Ratios", "Workflow control/Protein groups/P-values",
+         "Reg. analysis", "Reg. analysis/t-tests",
+         #"Reg. analysis/t-tests/pdf",
+         #"Reg. analysis/t-tests/jpeg",
+         #"Reg. analysis/t-tests/html",
+         "PCA plots", "t-SNE plots", "Heatmaps", "Tables")
+if (("Norma.Pep.Intens.Shape" %in% colnames(Param))&&(toupper(Param$Norma.Pep.Intens.Shape) %in% c("VSN", "LOESS"))) {
+  dir <- c(dir, paste0("Workflow control/Peptides/Intensities/", toupper(Param$Norma.Pep.Intens.Shape), " normalisation"))
+}
+if (("Norma.Pep.Intens.IRS" %in% colnames(Param))&&(Param$Norma.Pep.Intens.IRS == TRUE)) {
+  dir <- c(dir, "Workflow control/Peptides/Intensities/IRS normalisation")
+}
+# if (("Batch.correction" %in% colnames(Param))&&(!as.character(Param$Batch.correction) %in% c("", "F", "FALSE"))) {
+#   dir <- c(dir, "Workflow control/Peptides/Intensities/Batch correction")
+# }
+enrichGO %<o% (("GO.enrichment" %in% colnames(Param))&&(Param$GO.enrichment))
+globalGO %<o% (("GO.enrichment_Whole_dataset" %in% colnames(Param))&&(Param$GO.enrichment_Whole_dataset))
+if (enrichGO||globalGO) { dir <- c(dir, "Reg. analysis/GO enrich") }
+dirlist <- unique(c(dirlist, paste0(wd, "/", dir)))
+
+# Refresh list of interesting proteins:
+Src <- paste0(libPath, "/extdata/R scripts/Sources/protList.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+Src <- paste0(libPath, "/extdata/R scripts/Sources/protList2.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
+if ("Prot.list_separate.plots" %in% colnames(Param)) {
+  protsplit %<o% Param$Prot.list_separate.plots
+  if (protsplit == "") { protsplit <- FALSE }
+} else { protsplit %<o% FALSE }
+#
+if (Param$GO.terms.for.proteins.of.interest) {
+  tmpGO <- unlist(strsplit(Param$GO.tabs, ";"))
+  GO_prot.list <- list()
+  GO_prot.list$Offspring <- lapply(tmpGO, function(x) {
+    ont <- Ontology(x)
+    x <- c(x, get(paste0("GO", ont, "OFFSPRING"))[[x]])
+    x <- x[which(!is.na(x))]
+    return(x)
+  })
+  tmpGO2 <- listMelt(strsplit(db$`GO-ID`, ";"), db$`Protein ID`)
+  GO_prot.list$Proteins <- lapply(GO_prot.list$Offspring, function(x) {
+    unique(tmpGO2$L1[which(tmpGO2$value %in% unlist(x))])
+  })
+  prot.list <- unique(c(prot.list, unlist(GO_prot.list$Proteins)))
+}
+prot.list.Cond %<o% (length(prot.list) > 0)
+if (prot.list.Cond) {
+  writeFasta(db[match(prot.list, db$`Protein ID`),], intPrtFst)
+}
+
+# Similar list as above: proteins for which a heatmap of peptides and a coverage map will be drawn:
+if (!exists("prot.list_pep")) { prot.list_pep %<o% c() }
+if ("Prot.list_pep" %in% colnames(Param)) {
+  tmp <- as.character(Param$Prot.list_pep)
+  if ((!as.character(tmp) %in% c("", "NA"))&&(rev(unlist(strsplit(tmp, "\\.")))[1] == "csv")) {
+    if (tmp %in% list.files()) {
+      tmp <- read.csv(tmp)
+      if ("Protein.ID" %in% colnames(tmp)) { tmp <- tmp$Protein.ID } else {
+        warning("There is no \"Protein.ID\" column in the file you provided!")
+        tmp <- c()
+      }
+    } else {
+      warning("I could not find the protein list for peptides coverage/heatmaps!")
+      prot.list_pep <- c() }
+  } else {
+    if (is.na(tmp)||(tmp == "")) { tmp <- c() } else {
+      tmp <- unlist(strsplit(tmp, ";"))
+    }
+  }
+} else { tmp <- c() }
+if (exists("TargetProteins")) { tmp <- c(tmp, TargetProteins) }
+prot.list_pep %<o% unique(c(prot.list_pep, tmp))
+# Filter lists to only keep existing ones
+if (prot.list.Cond) {
+  prot.list <- gsub("^CON_+", "", prot.list)
+  prot.list <- prot.list[which(prot.list %in% db$"Protein ID")]
+}
+if (length(prot.list_pep)) {
+  prot.list_pep <- gsub("^CON_+", "", prot.list_pep)
+  prot.list_pep <- prot.list_pep[which(prot.list_pep %in% db$"Protein ID")]
+}
+
+# Custom protein groups
+custPGs %<o% NA
+if (("Custom.PGs" %in% colnames(Param))&&(!as.character(Param$Custom.PGs) %in% c("", "NA", "FALSE"))&&(file.exists(Param$Custom.PGs))) {
+  custPGs_fl %<o% Param$Custom.PGs
+  custPGs <- read.delim(custPGs_fl, check.names = FALSE)
+  if (colnames(custPGs)[1] != "Leading protein IDs") { custPGs <- read.delim(custPGs_fl, check.names = FALSE, sep = ",") }
+  if (colnames(custPGs)[1] != "Leading protein IDs") { custPGs <- read.csv(custPGs_fl, check.names = FALSE, sep = ",") }
+  if (colnames(custPGs)[1] != "Leading protein IDs") { custPGs <- read.csv(custPGs_fl, check.names = FALSE, sep = "\t") }
+  if (colnames(custPGs)[1] != "Leading protein IDs") {
+    warning("I could not make sense of the custom protein groups file provided, skipping!")
+    custPGs <- NA
+  } else {
+    prot.list <- unique(c(prot.list, unlist(strsplit(custPGs$"Leading protein IDs", ";"))))
+    prot.list_pep <- unique(c(prot.list_pep, unlist(strsplit(custPGs$"Leading protein IDs", ";"))))
+  }
+}
+
+# Database of user-defined contaminants (not the default ones from CCP or MaxQuant)
+## For cases where you searched with a second database of custom contaminants (e.g. E. coli for C. elegans samples)
+if (("Cont.DB" %in% colnames(Param))&&(!toupper(as.character(Param$Cont.DB)) %in% c("", " ", "NA", "F", "FALSE"))) {
+  temp <- unlist(strsplit(Param$Cont.DB, ";"))
+  tst <- file.exists(temp)
+  if (sum(!tst)) {
+    msg <- paste0("The following contaminant fasta", c("", "s")[(sum(!tst) > 1)+1], "could not be found:", paste0(" - ", temp[which(!tst)], "\n"))
+    stop(msg)
+    #ReportCalls <- AddMsg2Report(Space = FALSE)
+    #temp <- temp[which(tst)]
+  }
+  temp <- lapply(temp, Format.DB)
+  temp <- plyr::rbind.fill(temp)
+  w <- which(is.na(temp), arr.ind = TRUE)
+  temp[w] <- ""
+  temp$Organism_Full[which(temp$Organism_Full == "")] <- "Contaminant"
+  temp$Organism[which(temp$Organism == "")] <- "Contaminant"
+  temp$"Protein ID" <- paste0("CON__", gsub("^CON__", "",  temp$"Protein ID"))
+  temp$"Potential contaminant" <- "+"
+  # Remove all evidences which match one of these proteins:
+  #test <- strsplit(ev$Proteins, ";")
+  #test <- vapply(test, function(x) { sum(x %in% temp$"Protein ID") }, 1) > 0
+  #cont.ev %<o% ev[which(test),]
+  #ev <- ev[which(!test),]
+  if (exists("contDB")) { contDB <- plyr::rbind.fill(list(contDB, temp)) } else { contDB <- temp }
+  w <- which(is.na(contDB), arr.ind = TRUE)
+  contDB[w] <- ""
+  db <- plyr::rbind.fill(list(db, temp))
+  w <- which(is.na(db), arr.ind = TRUE)
+  db[w] <- ""
+}
+w <- which(is.na(db$"Protein ID"))
+stopifnot(length(w) == 0) # This would need immediate fixing => stop early!
+
+# Write search database as backup
+tmp <- rep("", nrow(db)*3)
+tmp[3*(1:nrow(db))-2] <- db$Header
+tmp[3*(1:nrow(db))-1] <- db$Sequence
+write(tmp, paste0(wd, "/Concatenated search database.fasta"))
+
+
+# Filters
+# _______
+#
+# 1) Optional True/False-Discovery Filter
+# Applied later at protein groups level.
+# Any protein not in the filter sees its quantitative values set to 0.
+#
+DiscFilt %<o% ((!is.na(Param$TrueDisc_filter))&(Param$TrueDisc_filter != "")&(file.exists(Param$TrueDisc_filter)))
+if (DiscFilt) {
+  DiscFiltFl %<o% Param$TrueDisc_filter
+  DiscFiltTbl %<o% read.csv(DiscFiltFl, check.names = FALSE)
+  tst2 <- sum(!c("Protein ID", RG$values) %in% colnames(DiscFiltTbl)) == 0
+  tst3 <- sum(!vapply(RG$values, function(x) { !"logical" %in% class(DiscFiltTbl[[x]]) }, TRUE))
+  if (tst2+tst3 == 2) {
+    DiscFiltMode %<o% Param$TrueDisc_filter_mode
+    if (!DiscFiltMode %in% DiscFiltModes) { DiscFiltMode <- DiscFiltModes[1] }
+    if (DiscFiltMode == "Filter column") {
+      ObjNm <- "DiscFiltCol"
+      if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
+        msg <- "How should we name the filter column?"
+        tmp <- dlg_input(msg, "Found in ...")$res
+        ObjNm %<c% tmp
+        AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
+        tmp <- AllAnsw[1,]
+        tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
+        tmp$Value <- list(get(ObjNm))
+        m <- match(ObjNm, AllAnsw$Parameter)
+        if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
+      }
+    }
+  } else {
+    if (!tst2) { warning("Invalid filter (missing columns), skipping...") }
+    if (!tst3) { warning("Invalid filter (except \"Protein ID\", all otherfilter columns should be logicals), skipping...") }
+    DiscFilt <- FALSE
+  }
+}
+#
+# 2) Optional "CRAPome" filter
+# For pull downs mostly.
+# Provides a vector of accessions. Any protein group with one protein in this filter will be marked as a contaminant.
+CRAPome %<o% ((!is.na(Param$CRAPome_file))&(Param$CRAPome_file != "")&(file.exists(Param$CRAPome_file)))
+if (CRAPome) {
+  CRAPomeFl %<o% Param$CRAPome_file
+  CRAPomeProteins %<o% read.csv(CRAPomeFl, check.names = FALSE)
+  stopifnot(sum(c("Protein ID", "Protein IDs") %in% colnames(CRAPomeProteins)) > 0)
+  CRAPomeProteins <- c(CRAPomeProteins$`Protein ID`, CRAPomeProteins$`Protein IDs`)
+  CRAPomeProteins <- unique(unlist(strsplit(CRAPomeProteins, ";")))
+  if (length(CRAPomeProteins)) {
+    w1 <- which(CRAPomeProteins %in% db$`Protein ID`)
+    w2 <- which(!CRAPomeProteins %in% db$`Protein ID`)
+    if (length(w2)) {
+      warning(paste0(w2, " proteins (", round(100*length(w2)/nrow(db), 2), "%) in the provided CRAPome are not in the search database!"))
+    }
+  } else {
+    warning("Empty CRAPome filter, skipping...")
+    CRAPome <- FALSE
+  }
+}
+
+# Pull-down specific parameters
+IsPullDown %<o% (gsub(" |_|-|\\.", "", toupper(Param$Type)) %in% c("IP", "IMMUNOPRECIPITATION", "BIOID", "PULLDOWN"))
+if (("Two.sided" %in% colnames(Param))&&(is.logical(Param$Two.sided))) {
+  TwoSided %<o% Param$Two.sided
+} else { TwoSided %<o% !IsPullDown }
+# Impute
+opt <- setNames(c(TRUE, FALSE), c("Yes", "No"))
+dflt <- c("No", "Yes")[IsPullDown+1]
+ObjNm <- "Impute"
+if ("Pep.Impute" %in% colnames(Param)) { Impute %<o% as.logical(Param$Pep.Impute) } else {
+  dflt <- "No"
+  if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
+    msg <- "Do you want to impute missing peptide values (recommended for pull-down experiments)?"
+    tmp <- paste(rep(" ", 180), collapse = "")
+    tmp <- opt[gsub(" +$", "", dlg_list(paste0(names(opt), tmp), paste0(dflt, tmp), title = msg)$res)]
+    if (is.na(tmp)) { tmp <- FALSE }
+    ObjNm %<c% tmp
+    AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
+    tmp <- AllAnsw[1,]
+    tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
+    tmp$Value <- list(get(ObjNm))
+    m <- match(ObjNm, AllAnsw$Parameter)
+    if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
+  }
+}
+# Save parameters
+tmp <- data.frame(Param = colnames(Param),
+                  Value = vapply(colnames(Param), function(x) {
+                    x <- as.character(Param[[x]])
+                    l <- length(x)
+                    if (l > 1) {
+                      #g <- grep("^[A-Z][a-z]{2}$", x)
+                      x <- paste(x, collapse = #c(
+                                   ";"#, "")[(length(g) == l) + 1]
+                                 )
+                    }
+                    return(x)
+                  }, ""))
+tmp$Help <- vapply(tmp$Param, function(x) {
+  if (x %in% names(Param_Help)) { return(Param_Help[x]) }
+  return("")
+}, "")
+colnames(tmp) <- NULL
+tst <- try(write.csv(tmp, file = ParamPath, row.names = FALSE), silent = TRUE)
+while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
+  dlg_message(paste0("File \"", ParamPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+  tst <- try(write.csv(tmp, file = ParamPath, row.names = FALSE), silent = TRUE)
+}
+
+# Important!
+# We often copy and paste factor levels -> they must be stored as characters
+# Otherwise, they may get pasted improperly, e.g. if there are numerics with different number of characters,
+# such as 1 and 10, then this gets pasted as "... 1" and "...10" which is SUPER annoying!!!
+w <- which(vapply(colnames(Exp.map), function(x) { sum(c("numeric", "integer") %in% class(Exp.map[[x]])) > 0 }, TRUE))
+for (i in w) {
+  Exp.map[[i]] <- gsub(" ", "", # Overkill, just in case!
+                       as.character(Exp.map[[i]]))
+}
+
+#### Code chunk - Create factor aggregates
+a <- Aggregates
+names(a) <- NULL
+Aggregate.map %<o% data.frame(Aggregate.Name = names(Aggregates), Characteristics = a)
+if (length(Aggregates) > 1) {
+  temp1 <- c()
+  temp2 <- list()
+  kount <- 0
+  for (i in 2:length(Aggregates)) {
+    I <- combn(names(Aggregates), i)
+    for (j in 1:ncol(I)) {
+      kount <- kount + 1
+      J <- I[,j]
+      names(J) <- Aggregates[match(J, names(Aggregates))]
+      Exp.map[paste(J, collapse = "")] <- apply(Exp.map[, names(J)], 1, function(x) {
+        gsub(" ", "", paste(x, collapse = "___"))
+      })
+      temp1 <- c(temp1, paste(J, collapse = ""))
+      temp2[[kount]] <- names(J)
+      paste(J, collapse = "") %<c% unique(Exp.map[[paste(J, collapse = "")]])
+    }
+  }
+  temp1 <- data.frame(Aggregate.Name = temp1)
+  temp1$Characteristics <- temp2
+  Aggregate.map <- rbind(Aggregate.map, temp1)
+}
+Aggregate.list %<o% setNames(lapply(Aggregate.map$Aggregate.Name, function(x) { get(x) }), Aggregate.map$Aggregate.Name)
+#This doesn't work for the master/detailed dual script approach (issue with environments!)
+#
+# Define reference sample aggregate, as well as ratio groups, ratio ref group and volcano plot aggregates:
+if ((!"Norm.Groups" %in% colnames(Param))&&(Param$Norm.Groups == "")) { Param$Norm.Groups <- "Exp" }
+Param.aggreg %<o% c()
+parse.Param.aggreg.2("Ratios.Groups.Ref.Aggregate.Level", parsed.param.nm = "Ref.Sample.Aggregate")
+for (i in c("Ratios.Groups", "Norm.Groups", "Ratios.Ref.Groups", "Volcano.plots.Aggregate.Level", "Ratios.Plot.split", "Ratios.Plot.wrap", "Ratios.Plot.colour")) {
+  parse.Param.aggreg.2(i)
+}
+# Shorter synonyms
+RSA %<o% Ref.Sample.Aggregate
+VPAL %<o% Volcano.plots.Aggregate.Level
+RRG %<o% Ratios.Ref.Groups
+RG %<o% Ratios.Groups
+#
+if (("Adv.Norma.Pep.Ratio" %in% colnames(Param))&&(Param$Adv.Norma.Pep.Ratio != FALSE)) {
+  parse.Param.aggreg.2("Adv.Norma.Pep.Ratio.Type.Group")
+}
+# if (("Batch.correction" %in% colnames(Param))&&(!as.character(Param$Batch.correction) %in% c("", "F", "FALSE"))) { # Deprecated!!!
+#   parse.Param.aggreg.2("Batch.correction")
+# }
+a <- RSA$names
+if (length(a) == 1) {
+  Exp.map$Ref.Sample.Aggregate <- Exp.map[[a]]
+} else { Exp.map$Ref.Sample.Aggregate <- do.call(paste, c(Exp.map[, a], sep = "___")) }
+Exp.map <- Exp.map[order(Exp.map[[VPAL$column]], Exp.map$Replicate),]
+if (!"list" %in% class(Exp.map$MQ.Exp)) { Exp.map$MQ.Exp <- strsplit(Exp.map$MQ.Exp, ";") }
+tstMQXp <- listMelt(Exp.map$MQ.Exp, 1:nrow(Exp.map), c("MQ.Exp", "Row"))
+tstMQXp <- aggregate(tstMQXp$Row, list(tstMQXp$MQ.Exp), list)
+tstMQXp <- setNames(tstMQXp$x, tstMQXp$Group.1) 
+MQ.Exp <- MQ.Exp[which(MQ.Exp %in% names(tstMQXp))]
+ev <- ev[which(ev$MQ.Exp %in% names(tstMQXp)),]
