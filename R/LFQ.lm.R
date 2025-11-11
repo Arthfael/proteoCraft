@@ -45,7 +45,9 @@ LFQ.lm <- function(ids,
                    Max.N = 50,
                    Is.log = TRUE,
                    reNorm = 1) {
-  Viz = FALSE
+  #proteoCraft::DefArg(LFQ.lm)
+  #InputTabl = tmpPep;IntensCol = Pep.Intens.Nms;Summary.method = Summary.method;Summary.weights = Summary.weights
+  Viz <- FALSE
   if ((missing(reNorm))||(!is.numeric(reNorm))||(length(reNorm) != 1)||(is.na(reNorm))||(!reNorm %in% 0:2)) {
     reNorm <- 1
   }
@@ -159,22 +161,25 @@ LFQ.lm <- function(ids,
           }
           return(y)
         })
+        temp3 <- as.numeric(temp3)
         # Apply best-flyer hypothesis logic for estimating absolute quant level
         if (reNorm %in% 0:1) {
-          m0 <- median(temp3[wNN])
+          m0 <- median(proteoCraft::is.all.good(temp3[wNN]))
+          #if (is.na(m0)) { stop(m0) }
           temp3 <- temp3 - m0
           if (reNorm == 1) {
-            m1 <- median(proteoCraft::is.all.good(apply(temp1, 1, function(x) { median(proteoCraft::is.all.good(x)) })))
-            temp3 <- temp3 + m1
+            m1 <- apply(temp1[, wNN], 1, function(x) { median(proteoCraft::is.all.good(x)) })
+            mx1 <- max(proteoCraft::is.all.good(m1))
+            #if ((!is.na(m0))&&((is.na(mx1))||(!length(mx1)))) { stop(m1) }
+            temp3 <- temp3 + mx1
           }
-          rs[wNN] <- temp3
         }
         if (reNorm == 2) {
           m <- max(proteoCraft::is.all.good(unlist(temp1[, wNN])))
           m <- as.data.frame(which(temp1[, wNN, drop = FALSE] == m, arr.ind = TRUE))
-          rs[wNN] <- as.numeric(temp3 + temp1[m$row[1], wNN[m$col[1]]] -  temp3[m$col[1]])
+          temp3 <- temp3 + temp1[m$row[1], wNN[m$col[1]]] -  temp3[m$col[1]]
         }
-       
+        rs[wNN] <- temp3
       } else {
         rs <- setNames(apply(temp1, 2, function(y) {
           y <- proteoCraft::is.all.good(y)

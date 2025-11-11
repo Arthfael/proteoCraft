@@ -664,12 +664,15 @@ Prot.Quant <- function(Prot,
                         Summary.method = Summary.method,
                         Summary.weights = Summary.weights,
                         Min.N = Min.N,
-                        Max.N = Max.N)
+                        Max.N = Max.N,
+                        reNorm = 2 #For now
+                        )
   }
   environment(f0) <- .GlobalEnv
   #if (TESTING) {
-    cat(" - running quant algorithm...\n")
+  cat(" - running quant algorithm...\n")
   #}
+  #res1 <- try(parallel::parSapply(cl, temp.ids, f0, USE.NAMES = TRUE), silent = TRUE)
   res2 <- try(parallel::parSapply(cl, temp.ids, f0, USE.NAMES = TRUE), silent = TRUE)
   if ("try-error" %in% class(res2)) {
     cat(" - re-running quant algorithm, the slow way...\nsomething clearly went wrong with the cluster\n")

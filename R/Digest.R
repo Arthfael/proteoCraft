@@ -237,28 +237,33 @@ Digest <- function(Seq,
     # Now deal with loose.avoid
     if (length(loose.avoid)) {
       if (TESTING) { print(paste0("Creating effect of patterns partially but not fully blocking digest...")) }
-      temp <- proteoCraft::listMelt(Rs)
+      temp <- proteoCraft::listMelt(Rs) # Take our current set of digested peptides, where we assumed up to now
+      # that loose.avoid were stricly blocking
+      # Filter by matches to loose.avoids
       gr <- grep(paste(gsub("_", "", loose.avoid), collapse = "|"), temp$value)
       temp <- temp[gr,]
       # Restore cuts
       for (C in Cut) { temp$value <- gsub("_$", "", gsub(gsub("_", "", C), C, temp$value)) }
       temp$value <- strsplit(temp$value, "_")
       tstL <- vapply(temp$value, length, 1)
-      wL <- which(tstL > 1)
+      wL <- which(tstL > 1) # Normally this should be all of them, since all are matches
       if (length(wL)) {
         temp$value[wL] <- vapply(wL, function(x) { #x <- wL[1]
           paste(unlist(sapply(seq_len(tstL[x]), function(p1) {
-            vapply(p1:tstL[x], function(p2) {
+            # For each potential proximal digest position p1 in the peptide,
+            # we generate all peptides ending at all potential distal positions p2
+            vapply(p1:tstL[x], function(p2) { # Move along
               paste(temp$value[[x]][p1:p2], collapse = "")
             }, "")
           })), collapse = ";")
           # Collapsing seems actually more efficient here - the vectors end up shorter
         }, "")
         temp <- data.table::as.data.table(temp)
-        temp <- temp[, list(x = paste(value, collapse = ";")), by = list(Group.1 = L1)]
+        temp <- temp[, list(x = paste(value, collapse = ";")),
+                     by = list(Group.1 = L1)]
         temp <- setNames(strsplit(temp$x, ";"), temp$Group.1)
         w <- which(names(Rs) %in% names(temp))
-        Rs[w] <- mapply(c, Rs[w], temp, SIMPLIFY = FALSE)
+        Rs[w] <- mapply(c, Rs[w], temp, SIMPLIFY = FALSE) # Contatenate
       }
     }
     if (RemoveNtermMet %in% c("loose", "predict")) {
