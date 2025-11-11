@@ -1,5 +1,4 @@
 ### Load and process annotations
-# This includes a QC step in case the database differs slightly from the one used by MQ, or if somehow some IDs have not been properly parsed.
 dfltLocsFl <- paste0(homePath, "/Default_locations.xlsx")
 dfltLocs <- openxlsx2::read_xlsx(dfltLocsFl)
 fastaLoc <- dfltLocs$Path[match("Fasta files", dfltLocs$Folder)]

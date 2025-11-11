@@ -188,9 +188,7 @@ if (ok2Deliver) {
   procDir %<o% paste0(outDir, "/3_Post_processing_", Sys.Date())
   g <- grep("^3(\\.[0-9]+)?_", list.dirs(outDir, FALSE, FALSE), value = TRUE)
   kount <- length(g)
-  if (kount) {
-    procDir <- paste0(outDir, "/3.", kount, "_Post_processing_", Sys.Date())
-  }
+  procDir <- paste0(outDir, "/3.", kount, "_Post_processing_", Sys.Date())
   #unloadNamespace("devtools")
   #unloadNamespace("usethis")
   #unloadNamespace("fs")
