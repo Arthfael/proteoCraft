@@ -14,16 +14,16 @@
 #' - between individual references in the paired setup
 #' - from individual references to the average reference in the unpaired setup
 #' 
-#' @param Prot The protein/protein groups file.
-#' @param Peptide.IDs The name of the Protein/Protein groups file's peptide IDs column. Default = "Peptide.IDs"
-#' @param Pep The peptides file.
-#' @param id The name of the Peptides file IDs column. Default = "id"
-#' @param Summary.method The summary method used for ratios (sum or weighted sum is used for intensities depending on whether weights are provided). One of "mean", "median", or "weighted.mean".
-#' @param Summary.weights If a "weighted.mean" summary method is chosen, then a vector of weights must be provided. This should be the name of a column of the peptides file.
+#' @param Prot Protein/Protein groups table. A data.frame.
+#' @param Peptide.IDs Name of the Protein/Protein groups table's peptide IDs column. Default = "Peptide IDs"
+#' @param Pep Peptides table. A data.frame.
+#' @param id The name of the Peptides table's IDs column. Default = "id"
+#' @param Summary.method The summary method used for ratios (the Levenberg-Marquardt algorithm is used for intensities). One of "mean", "median", or "weighted.mean".
+#' @param Summary.weights If a "weighted.mean" summary method is chosen, then a vector of weights must be provided. This should be the name of a column of the peptides table
 #' @param Priority One of "Ratios" or "Intensities" (default). Some flexibility in spelling is allowed. You want to prioritize ratios for SILAC because in this case MaxQuant measures peptides ratios more precisely than intensities. Otherwise, you want to prioritize Intensities and re-calculate ratios from them.
-#' @param Skip.ratios Default = FALSE. If TRUE, ratios will not be calculated. 
-#' @param experiments.map The experiments map.
-#' @param param The experiment's parameters file. If provided, the ref.groups argument is not required.
+#' @param Skip.ratios Logical, default = FALSE. If TRUE, ratios will not be calculated. 
+#' @param experiments.map Map of the experiment, default = Exp.map
+#' @param param The experiment's parameters object If provided, the ref.groups argument is not required.
 #' @param aggregate.map The aggregate map. Default = Aggregate.map
 #' @param aggregate.list The named list of aggregates. Default = Aggregate.list
 #' @param aggregates The aggregates themselves. Default = Aggregates
