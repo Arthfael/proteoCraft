@@ -12,7 +12,7 @@
 \item{dat}{Data frame of log-transformed, row-normalized quantitative profiles.}
 }
 \description{
-A function whose sole purpose is to be turned into another whose sum will be minimized by nls.lm within the LFQ function.
+A function whose sole purpose is to be turned into another whose sum will be minimized by minpack.lm::nls.lm() within the LFQ.lm() function.
 }
 \examples{
 temp3 <- ... # Data frame of log-transformed, row-normalized quantitative values

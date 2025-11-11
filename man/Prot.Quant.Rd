@@ -62,13 +62,13 @@ Prot.Quant(
 
 \item{Summary.weights}{If a "weighted.mean" summary method is chosen, then a vector of weights must be provided. This should be the name of a column of the peptides table}
 
-\item{Intensity.weights}{default = FALSE; if TRUE, will take into account individual peptide intensities when calculating average profile if "Summary.method" is either mean "mean" or "weighted.mean" (thus, it will actually be a weighted mean regardless).}
+\item{Intensity.weights}{Logical, default = FALSE; if TRUE, will take into account individual peptide intensities when calculating average profile if "Summary.method" is either mean "mean" or "weighted.mean" (thus, it will actually be a weighted mean regardless).}
 
 \item{Priority}{One of "Ratios" or "Intensities" (default). Some flexibility in spelling is allowed. You want to prioritize ratios for SILAC because in this case MaxQuant measures peptides ratios more precisely than intensities. Otherwise, you want to prioritize Intensities and re-calculate ratios from them.}
 
-\item{Skip.ratios}{Default = FALSE. If TRUE, ratios will not be calculated.}
+\item{Skip.ratios}{Logical, default = FALSE. If TRUE, ratios will not be calculated.}
 
-\item{experiments.map}{The experiments map.}
+\item{experiments.map}{Map of the experiment, default = Exp.map}
 
 \item{ref.groups}{Defines which samples are paired to which references. May alternatively (preferred solution) be provided indirectly through the param argument.}
 

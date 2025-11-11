@@ -13,8 +13,8 @@ LFQ.lm(
   Summary.weights,
   Min.N = 2,
   Max.N = 50,
-  Viz = FALSE,
-  Is.log = TRUE
+  Is.log = TRUE,
+  reNorm = 1
 )
 }
 \arguments{
@@ -34,17 +34,20 @@ LFQ.lm(
 
 \item{Max.N}{How many peptides can we use at most for the Levenberg-Marquardt procedure? Using too many peptides can be an issue, e.g. with huge proteins like Titin. Default = 50. The most intense peptides will be selected.}
 
-\item{Viz}{Should we plot the results? For testing only, default = FALSE.}
-
 \item{Is.log}{Are input intensities log-transformed? TRUE by default.}
+
+\item{reNorm}{Integer. If set to:\cr
+- 1 (default), will re-normalize the profile's median intensity to that of the highest median intensity peptide. 
+- 2 (former default), will re-normalize the profile to the highest original single intensity value. 
+- 0, will re-normalize the profile to its own median intensity.}
 
 \item{Intensity.weights}{default = FALSE; if TRUE, will take into account individual peptide intensities when calculating average profile if "Summary.method" is either mean "mean" or "weighted.mean" (thus, it will actually be a weighted mean regardless).}
 }
 \description{
 A function which summarizes individual peptide/fragment quantitative values into a single quantitative vector, using the Levenberg-Marquardt procedure.
 Used at two levels:
-- In the optional MS2corr2MS1.R source, to summarize a peptidoform's MS1 (precursor) and MS2 (fragment) measurements into a single quantitative vector.
-- In Prot.Quant, to summarize peptidoform-level information into a protein group-levels quantitative vector.
+- In Prot_Quant, to summarize peptidoform-level information into a protein group-levels quantitative vector.
+- In the rarely used MS2corr2MS1.R source, to summarize a peptidoform's MS1 (precursor) and MS2 (fragment) measurements into a single quantitative vector.
 The output is log10-transformed.
 }
 \examples{
