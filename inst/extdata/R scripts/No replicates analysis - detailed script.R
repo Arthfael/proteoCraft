@@ -196,7 +196,7 @@ wTest1 <- vapply(colnames(frMap), function(k) { #k <- colnames(frMap)[1]
 }, 1)
 wTest2 <- sum(wTest1) + 15 + ncol(frMap)*5
 wTest1 <- paste0(as.character(wTest1), "px")
-wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
+wTest1 <- aggregate((seq_along(wTest1))-1, list(wTest1), c)
 wTest1 <- apply(wTest1, 1, function(x) {
   x2 <- as.integer(x[[2]])
   list(width = x[[1]],
@@ -368,7 +368,7 @@ wTest1 <- vapply(colnames(smplMap2), function(k) { #k <- colnames(smplMap2)[1]
 }, 1)
 wTest2 <- max(c(sum(wTest1) + 15 + ncol(smplMap2)*5, 600))
 wTest1 <- paste0(as.character(wTest1), "px")
-wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
+wTest1 <- aggregate((seq_along(wTest1))-1, list(wTest1), c)
 wTest1 <- apply(wTest1, 1, function(x) {
   x2 <- as.integer(x[[2]])
   list(width = x[[1]],
@@ -576,9 +576,9 @@ source(Src, local = FALSE)
 AnalysisParam$Annotations <- Annotate
 
 #### Code chunk - Define analysis parameters
-Src <- paste0(libPath, "/extdata/R scripts/Sources/noRep_Parameters_editor_Main.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+paramSrc <- paste0(libPath, "/extdata/R scripts/Sources/noRep_Parameters_editor_Main.R")
+#rstudioapi::documentOpen(paramSrc)
+source(paramSrc, local = FALSE)
 
 ev$"Protein group IDs" <- NULL
 ev$"Peptide ID" <- NULL
@@ -752,7 +752,7 @@ if (runPepper) {
   g <- grep("^python3 ", trainParam)
   l <- length(trainParam)
   trainParam <- sapply(args, function(arg) {
-    sapply(1:length(g), function(x) {
+    sapply(seq_along(g), function(x) {
       h <- grep(paste0("--", arg), trainParam)
       h <- gsub(paste0(".*'--", arg, "' +"), "", trainParam[h[which(h %in% g[x]:c(g, l)[x+1])]])
       pat1 <- paste0("^", substr(h, 1, 1))
@@ -2205,7 +2205,7 @@ if (length(M)) {
 # Gene-Set Enrichment Analysis (GSEA)
 if (runGSEA) {
   dataType <- "PG"
-  GSEAmode <- "Standard"
+  GSEAmode <- "standard"
   Src <- paste0(libPath, "/extdata/R scripts/Sources/GSEA.R")
   #rstudioapi::documentOpen(Src)
   source(Src, local = FALSE)
@@ -2431,7 +2431,7 @@ if (MakeRatios) {
       ptmpep$Name[w] <- vapply(strsplit(gsub("[/,;].+$", "", ptmpep[w, paste0(Ptm, "-site(s)")]), " "), function(x) {
         paste0(x[[1]], " ", db$"Common Name"[match(x[[2]], db$"Protein ID")])
       }, "")
-      ptmpep$Name[which(ptmpep$Name == "")] <- paste0("Unknown ", ptm, "-modified peptide #", 1:length(which(ptmpep$Name == "")))
+      ptmpep$Name[which(ptmpep$Name == "")] <- paste0("Unknown ", ptm, "-modified peptide #", seq_along(which(ptmpep$Name == "")))
       #View(ptmpep[,c("Match(es)", "Modified sequence", "Code", paste0(Ptm, "-site(s)"))])
       if (grepl("^[P,p]hospho( \\([A-Z]+\\))?$", ptm)) {
         p_col <- paste0(gsub(" |\\(|\\)", ".", ptm), ".Probabilities")
@@ -2707,7 +2707,7 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/Cytoscape_init.R")
 source(Src, local = FALSE)
 
 # Initialize ClueGO
-if (enrichGO||globalGO) {
+if (runClueGO) {
   Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_init.R")
   #rstudioapi::documentOpen(Src)
   source(Src, local = FALSE)
@@ -2733,11 +2733,13 @@ if (globalGO) {
   #rstudioapi::documentOpen(Src)
   source(Src, local = FALSE)
   #
-  clueGO_outDir <- dir
-  clueGO_type <- "Enrichment/Depletion (Two-sided hypergeometric test)"
-  Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
-  #rstudioapi::documentOpen(Src)
-  source(Src, local = FALSE)
+  if (runClueGO) {
+    clueGO_outDir <- dir
+    clueGO_type <- "Enrichment/Depletion (Two-sided hypergeometric test)"
+    Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
+    #rstudioapi::documentOpen(Src)
+    source(Src, local = FALSE)
+  }
   #
   # Cleanup - do it now, not within sources!
   suppressWarnings(try(rm(list = allArgs), silent = TRUE))
@@ -2809,9 +2811,9 @@ if (globalGO) {
         wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1+which(colnames(temp) %in% c(gn, pr)), 20)
         dms <- openxlsx2::wb_dims(2, 1+1:ncol(temp))
         wb <- openxlsx2::wb_set_cell_style(wb, sheetNm, dms, wb$styles_mgr$get_xf_id("Header_style"))
-        dms <- openxlsx2::wb_dims(1+1:length(w), 1+which(colnames(temp) %in% kn))
+        dms <- openxlsx2::wb_dims(1+seq_along(w), 1+which(colnames(temp) %in% kn))
         wb <- openxlsx2::wb_add_numfmt(wb, sheetNm, dms, "0")
-        dms <- openxlsx2::wb_dims(1+1:length(w), 1+which(colnames(temp) %in% c(zs, lf, pv)))
+        dms <- openxlsx2::wb_dims(1+seq_along(w), 1+which(colnames(temp) %in% c(zs, lf, pv)))
         wb <- openxlsx2::wb_add_numfmt(wb, sheetNm, dms, "0.000")
       }
     }
@@ -2854,11 +2856,13 @@ if (globalGO) {
       #rstudioapi::documentOpen(Src)
       source(Src, local = FALSE)
       #
-      clueGO_outDir <- dir
-      clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
-      Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
-      #rstudioapi::documentOpen(Src)
-      source(Src, local = FALSE)
+      if (runClueGO) {
+        clueGO_outDir <- dir
+        clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
+        Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
+        #rstudioapi::documentOpen(Src)
+        source(Src, local = FALSE)
+      }
       #
       # Cleanup - do it now, not within sources!
       suppressWarnings(try(rm(list = allArgs), silent = TRUE))
@@ -2919,9 +2923,9 @@ if (globalGO) {
             wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1+which(colnames(temp) %in% c(gn, pr)), 20)
             dms <- openxlsx2::wb_dims(2, 1+1:ncol(temp))
             wb <- openxlsx2::wb_set_cell_style(wb, sheetNm, dms, wb$styles_mgr$get_xf_id("Header_style"))
-            dms <- openxlsx2::wb_dims(1+1:length(w), 1+which(colnames(temp) %in% kn))
+            dms <- openxlsx2::wb_dims(1+seq_along(w), 1+which(colnames(temp) %in% kn))
             wb <- openxlsx2::wb_add_numfmt(wb, sheetNm, dms, "0")
-            dms <- openxlsx2::wb_dims(1+1:length(w), 1+which(colnames(temp) %in% c(zs, lf, pv)))
+            dms <- openxlsx2::wb_dims(1+seq_along(w), 1+which(colnames(temp) %in% c(zs, lf, pv)))
             wb <- openxlsx2::wb_add_numfmt(wb, sheetNm, dms, "0.000")
           }
         }
@@ -2956,11 +2960,13 @@ if (globalGO) {
           #rstudioapi::documentOpen(Src)
           source(Src, local = FALSE)
           #
-          clueGO_outDir <- dir
-          clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
-          Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
-          #rstudioapi::documentOpen(Src)
-          source(Src, local = FALSE)
+          if (runClueGO) {
+            clueGO_outDir <- dir
+            clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
+            Src <- paste0(libPath, "/extdata/R scripts/Sources/ClueGO_enrich.R")
+            #rstudioapi::documentOpen(Src)
+            source(Src, local = FALSE)
+          }
           #
           # Cleanup - do it now, not within sources!
           suppressWarnings(try(rm(list = allArgs), silent = TRUE))
@@ -3023,9 +3029,9 @@ if (globalGO) {
                 wb <- openxlsx2::wb_set_col_widths(wb, sheetNm, 1+which(colnames(temp) %in% c(gn, pr)), 20)
                 dms <- openxlsx2::wb_dims(2, 1+1:ncol(temp))
                 wb <- openxlsx2::wb_set_cell_style(wb, sheetNm, dms, wb$styles_mgr$get_xf_id("Header_style"))
-                dms <- openxlsx2::wb_dims(1+1:length(w), 1+which(colnames(temp) %in% kn))
+                dms <- openxlsx2::wb_dims(1+seq_along(w), 1+which(colnames(temp) %in% kn))
                 wb <- openxlsx2::wb_add_numfmt(wb, sheetNm, dms, "0")
-                dms <- openxlsx2::wb_dims(1+1:length(w), 1+which(colnames(temp) %in% c(zs, lf, pv)))
+                dms <- openxlsx2::wb_dims(1+seq_along(w), 1+which(colnames(temp) %in% c(zs, lf, pv)))
                 wb <- openxlsx2::wb_add_numfmt(wb, sheetNm, dms, "0.000")
               }
             }
@@ -3257,7 +3263,7 @@ if (length(Exp) > 2) {
   scores <- as.data.frame(pc$x)
   pv <- round(100*(pc$sdev)^2 / sum(pc$sdev^2), 0)
   pv <- pv[which(pv > 0)]
-  pv <- paste0("Components: ", paste(vapply(1:length(pv), function(x) {
+  pv <- paste0("Components: ", paste(vapply(seq_along(pv), function(x) {
     paste0("PC", x, ": ", pv[x], "%")
   }, ""), collapse = ", "))
   scores$Sample <- rownames(scores)
@@ -3289,7 +3295,7 @@ if (length(Exp) > 2) {
     scores <- as.data.frame(pc$x)
     pv <- round(100*(pc$sdev)^2 / sum(pc$sdev^2), 0)
     pv <- pv[which(pv > 0)]
-    pv <- paste0("Components: ", paste(vapply(1:length(pv), function(x) {
+    pv <- paste0("Components: ", paste(vapply(seq_along(pv), function(x) {
       paste0("PC", x, ": ", pv[x], "%")
     }, ""), collapse = ", "))
     scores$"Leading protein IDs" <- rownames(scores)
@@ -3299,10 +3305,10 @@ if (length(Exp) > 2) {
     scores$Alpha <- (scores$PC1^2 + scores$PC2^2)
     scores$Direction <- apply(temp[w,], 1, function(x) {
       wh <- which(is.all.good(10^x, 2))
-      return(weighted.mean(c(1:length(colnames(temp)))[wh], 10^x[wh]))
+      return(weighted.mean(c(seq_along(colnames(temp)))[wh], 10^x[wh]))
     })
     scores$Class <- ""
-    breaks <- 1:length(Exp)
+    breaks <- seq_along(Exp)
     labels <- Exp
     if (prot.list.Cond) {
       g1 <- grsep2(prot.list, scores$"Protein IDs")
@@ -3354,7 +3360,7 @@ if (length(Exp) > 2) {
 } else { warning("No PCA plots drawn: samples are too similar!") }
 
 #### Code chunk - Heatmaps with clustering at samples and protein groups level, highlighting proteins of interest
-Src <- paste0(libPath, "/extdata/R scripts/Sources/cluster_Heatmap.R")
+Src <- paste0(libPath, "/extdata/R scripts/Sources/cluster_Heatmap_Main.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
@@ -3762,7 +3768,7 @@ styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[,1]
 #w <- which(vapply(Styles, function(x) { "Style" %in% class(x) }, TRUE))
 # styleNms %<o% names(Styles)[w]
 # writeData(wb, "tmp", styleNms)
-# for (i in 1:length(w)) { addStyle(wb, "tmp", Styles[[w[i]]], i, 1) }
+# for (i in seq_along(w)) { addStyle(wb, "tmp", Styles[[w[i]]], i, 1) }
 # saveWorkbook(wb, tmpFl)
 # openXL(tmpFl)
 # WorkBook %<o% wb_load(tmpFl)

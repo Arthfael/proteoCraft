@@ -266,52 +266,10 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/Fractions_Map_check.R")
 source(Src, local = FALSE)
 
 #### Code chunk - Define analysis parameters
-#
-# PCA prior to shiny app
-Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_PCA.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
-#
-# Protein headers for shiny
-Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
-#
-# Proteins of interest
-Src <- paste0(libPath, "/extdata/R scripts/Sources/protList.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
-#
-# Targets
-# Sometimes the user does not fill the Target factor with valid protein IDs... but this is what we would actually need.
-# Here, if necessary, we will remap those to valid IDs:
-Src <- paste0(libPath, "/extdata/R scripts/Sources/Targets.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
-#
-# KnockOut, KnockIn or KnockDown
-tst <- tolower(gsub("[- _]", "", Factors))
-if (sum(c("knockout", "knockin", "knockdown") %in% tst)) {
-  w <- which(c("knockout", "knockin", "knockdown") %in% tst)
-  # There should be only one for now, because all three share the same 3-characters root = "Kno"
-  # This should evolve but will be difficult, knowing how complex this script is now.
-  prot.list %<o% unique(c(unique(Exp.map[[Factors["Kno"]]]), prot.list))
-  prot.list_pep %<o% unique(c(unique(Exp.map[[Factors["Kno"]]]), prot.list_pep))
-}
-#
-Src <- paste0(libPath, "/extdata/R scripts/Sources/protList2.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
-#
-# Protein headers for shiny (update)
-Src <- paste0(libPath, "/extdata/R scripts/Sources/protHeaders_for_shiny.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
-#
 # Define analysis parameters
-Src <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_Main.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+paramSrc <- paste0(libPath, "/extdata/R scripts/Sources/rep_Parameters_editor_Main.R")
+#rstudioapi::documentOpen(paramSrc)
+source(paramSrc, local = FALSE)
 # Temporary solution to the cross-app contamination issue: unload-reload packages
 unloadNamespace("pRolocGUI")
 unloadNamespace("colourpicker")
@@ -549,22 +507,25 @@ if (!"Use" %in% colnames(Exp.map)) { Exp.map$Use <- TRUE } else {
   }
 }
 source(parSrc, local = FALSE)
-exports <- list("smpls", "Exp.map", "tmp", "pep.ref", "LabelType")
+exports <- list("smpls", "Exp.map", "pep.ref", "LabelType", "wd")
 if (LabelType == "Isobaric") {
   tmp <- ev[, c("MQ.Exp", "Modified sequence",
-                paste0(ev.ref[length(ev.ref)], as.character(sort(as.numeric(unique(Exp.map$Isobaric.label))))))]
+                paste0(ev.ref[length(ev.ref)], as.character(sort(as.numeric(unique(Exp.map$"Isobaric label"))))))]
   exports <- append(exports, "ev.ref")
 }
 if (LabelType == "LFQ") {
   tmp <- ev[, c("MQ.Exp", "Modified sequence", ev.col[length(ev.col)])]
   exports <- append(exports, "ev.col")
 }
+saveRDS(tmp, paste0(wd, "/tmp.RDS"))
 smpls <- unique(Exp.map$Ref.Sample.Aggregate[which(Exp.map$Use)])
 clusterExport(parClust, exports, envir = environment())
-invisible(clusterCall(parClust, function() {
+invisible(clusterCall(parClust, function(x) {
   library(data.table)
+  tmp <<- readRDS(paste0(wd, "/tmp.RDS"))
   return()
 }))
+unlink(paste0(wd, "/tmp.RDS"))
 tmp4 <- setNames(parLapply(parClust, smpls, function(smpl) { #smpl <- smpls[1]
   m <- match(smpl, Exp.map$Ref.Sample.Aggregate)
   mqe <- unlist(Exp.map$MQ.Exp[m])
@@ -592,7 +553,7 @@ tmp4 <- setNames(parLapply(parClust, smpls, function(smpl) { #smpl <- smpls[1]
   }
   return(tmp2)
 }), smpls)
-for (smpl in smpls) {
+for (smpl in smpls) { #smpl <- smpls[1]
   tmp <- tmp4[[smpl]]
   pep[[paste0(pep.ref["Original"], smpl)]] <- 0
   w3 <- which(pep$"Modified sequence" %in% tmp$mod)
@@ -616,7 +577,7 @@ if (length(pc1$rotation)) {
     rownames(scores1) <- NULL
     pv1 <- round(100*(pc1$sdev)^2 / sum(pc1$sdev^2), 0)
     pv1 <- pv1[which(pv1 > 0)]
-    pv1a <- paste0("Original: ", paste(vapply(1:length(pv1), function(x) {
+    pv1_ <- paste0("Original: ", paste(vapply(seq_along(pv1), function(x) {
       paste0("PC", x, ": ", pv1[x], "%")
     }, ""), collapse = ", "))
     w <- which(vapply(VPAL$names, function(x) { length(unique(scores1[[x]])) }, 1) > 1)
@@ -636,7 +597,7 @@ if (length(pc1$rotation)) {
       coord_fixed() + theme_bw() +
       xlab(xLab) + ylab(yLab) +
       geom_hline(yintercept = 0, colour = "black") + geom_vline(xintercept = 0, colour = "black") +
-      ggtitle(ttl#, subtitle = pv1a
+      ggtitle(ttl#, subtitle = pv1_
               ) +
       geom_text_repel(aes(label = Label), size = 2.5, show.legend = FALSE)
     #poplot(plot)
@@ -645,8 +606,9 @@ if (length(pc1$rotation)) {
       ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
     })
     ReportCalls <- AddPlot2Report()
-    Symb <- rep(c("circle", "diamond", "square", "cross", "x"), max(as.numeric(Rep)))[1:max(as.numeric(Rep))]             
-    Symb <- Symb[as.numeric(scores1$Replicate)]
+    nReps <- max(as.numeric(Rep))
+    Symb <- rep(c("circle", "diamond", "square", "cross", "x"), nReps)[seq_len(nReps)]             
+    Symb <- Symb[as.numeric(scores1[[outlierAnnot_shape]])]
     # Custom color scale
     scores1$"Samples group" <- factor(scores1$Samples_group)
     if ("PC3" %in% colnames(scores1)) {
@@ -1225,7 +1187,7 @@ if (Param$Norma.Pep.Ratio) {
     } else {
       stop("Not implemented yet, I need to update the current AdvNorm function as it takes too long or crashes.")
     }
-    for (i in 1:length(norm_temp)) {
+    for (i in seq_along(norm_temp)) {
       tmp <- norm_temp[[i]]
       pep[, colnames(tmp)] <- tmp
     }
@@ -1235,8 +1197,8 @@ if (Param$Norma.Pep.Ratio) {
     for (i in Ratios.Plot.split$values) { #i <- Ratios.Plot.split$values[1]
       j <- unlist(strsplit(i, "___"))
       names(j) <- unlist(Aggregate.map$Characteristics[which(Aggregate.map$Aggregate.Name == Ratios.Plot.split$aggregate)])
-      #k <- lapply(c(1:length(j)), function(x) { which((Exp.map[[names(j)[x]]] == j[x])&(!Exp.map$Reference)) })
-      k <- lapply(c(1:length(j)), function(x) { which(Exp.map[[names(j)[x]]] == j[x]) })
+      #k <- lapply(c(seq_along(j)), function(x) { which((Exp.map[[names(j)[x]]] == j[x])&(!Exp.map$Reference)) })
+      k <- lapply(c(seq_along(j)), function(x) { which(Exp.map[[names(j)[x]]] == j[x]) })
       l <- sort(unique(unlist(k)))
       test <- vapply(l, function(x) { sum(vapply(k, function(y) { x %in% y }, TRUE)) == length(k) }, 1)
       temp <- Exp.map$Ref.Sample.Aggregate[l[which(test)]]
@@ -1998,7 +1960,7 @@ save(AllAnsw, file = "All_decisions.RData")
 # Finalize reports
 #
 MatMetCalls$Texts$DatAnalysis <- c(MatMetCalls$Texts$DatAnalysis, DatAnalysisTxt)
-for (i in 1:length(MatMetCalls$Texts$DatAnalysis)) {
+for (i in seq_along(MatMetCalls$Texts$DatAnalysis)) {
   MatMetCalls$Calls <- append(MatMetCalls$Calls, paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$DatAnalysis[", i,"], prop = WrdFrmt$",
                                                         c("Body", "Template_text")[(MatMetCalls$Texts$DatAnalysis[i] == "TEMPLATE")+1], "_text), fp_p = WrdFrmt$just))"))
 }

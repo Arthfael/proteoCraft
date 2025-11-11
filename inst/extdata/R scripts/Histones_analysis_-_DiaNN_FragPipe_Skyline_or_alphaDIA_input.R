@@ -595,7 +595,7 @@ if (useExtTbl) {
       tst <- lapply(s, function(x) {
         paste0(tolower(m$Pos[[x]]), substr(m$newMark[[x]], 1, 1))
       })
-      tst <- lapply(1:length(tst), function(x) {
+      tst <- lapply(seq_along(tst), function(x) {
         rs <- tst[[x]]
         rs[which(!rs %in% mods2$newMark)]
       })
@@ -1287,7 +1287,7 @@ if (length(kol)) {
       #
       appNm <- paste0("Batch corr.: ", prev, " -> ", btch)
       msg <- "Keep results from ComBat batch correction? (untick to cancel correction)"
-      PCs <- data.frame("Component" = paste0("PC", as.character(1:length(PCsLst[[prev]]$sdev))),
+      PCs <- data.frame("Component" = paste0("PC", as.character(seq_along(PCsLst[[prev]]$sdev))),
                         "Before (%)" = round(100*(PCsLst[[prev]]$sdev)^2 / sum(PCsLst[[prev]]$sdev^2), 0),
                         "After (%)" = round(100*(PCsLst[[btch]]$sdev)^2 / sum(PCsLst[[btch]]$sdev^2), 0))
       if (exists("IHAVERUN")) { rm(IHAVERUN) }
@@ -1507,7 +1507,7 @@ if (length(Exp) > 1) {
         Norm <- Norm[match(pep$id, Norm$Group.1),]
         #
         # Finally we apply the normalization
-        for (i in 1:length(smpls)) {
+        for (i in seq_along(smpls)) {
           pep[[quntCol2[i]]] <- pep[[quntCol2[i]]]*Norm[[smpls[i]]]
         }
       }
@@ -2134,8 +2134,8 @@ if (length(Exp) > 1) {
       # Color and fill scales
       wV <- unique(ceiling(c(1:NVClust)*MaxVClust/NVClust))
       wH <- unique(ceiling(c(1:NHClust)*MaxHClust/NHClust))
-      vClScl <- setNames(VClustScl[wV], 1:length(wV))
-      hClScl <- setNames(HClustScl[wH], 1:length(wH))
+      vClScl <- setNames(VClustScl[wV], seq_along(wV))
+      hClScl <- setNames(HClustScl[wH], seq_along(wH))
       VcolScale <- scale_color_manual(name = "Samples cluster", values = vClScl)
       VfillScale <- scale_fill_manual(name = "Samples cluster", values = vClScl)
       HcolScale <- scale_color_manual(name = "Protein groups cluster", values = hClScl)

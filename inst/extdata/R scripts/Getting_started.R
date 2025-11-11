@@ -12,10 +12,11 @@ require(pak)
 #pak::cache_delete("proteoCraft")
 
 # To install the latest version
-try({
+tmp <- installed.packages()
+if ("proteoCraft" %in% tmp[, 1]) {
   unloadNamespace("proteoCraft")
   remove.packages("proteoCraft")
-}, silent = TRUE)
+}
 pak::pkg_install("Arthfael/proteoCraft", upgrade = TRUE, ask = FALSE)
 # Alternative way to install:
 #devtools::install_github("Arthfael/proteoCraft", upgrade = TRUE)

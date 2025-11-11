@@ -7,9 +7,11 @@
 # If this was not already a project folder, a project will be initiated and the R session will restart.
 # Browse to the lock file you want to reload and select it, the old renv will be reloaded.
 
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
-# This script will restart the R session, which will interrupt the sequence of commands. #
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 #                                       |        |                                       #
+#                                       |        |                                       #
+#                         This script will restart the R session,                        #
+#                     which will interrupt the sequence of commands.                     #
 #                                       |        |                                       #
 #                                       |        |                                       #
 #                                      \          /                                      #
@@ -19,7 +21,8 @@
 #                                          \  /                                          #
 #                                           \/                                           #
 #                                  Run it line by line!                                  #
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
+#                                                                                        #
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 
 require(renv)
 wd <- rstudioapi::selectDirectory("Select project directory")
