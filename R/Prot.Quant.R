@@ -21,10 +21,10 @@
 #' @param id The name of the Peptides table's IDs column. Default = "id"
 #' @param Summary.method The summary method used for ratios (the Levenberg-Marquardt algorithm is used for intensities). One of "mean", "median", or "weighted.mean".
 #' @param Summary.weights If a "weighted.mean" summary method is chosen, then a vector of weights must be provided. This should be the name of a column of the peptides table
-#' @param Intensity.weights default = FALSE; if TRUE, will take into account individual peptide intensities when calculating average profile if "Summary.method" is either mean "mean" or "weighted.mean" (thus, it will actually be a weighted mean regardless). 
+#' @param Intensity.weights Logical, default = FALSE; if TRUE, will take into account individual peptide intensities when calculating average profile if "Summary.method" is either mean "mean" or "weighted.mean" (thus, it will actually be a weighted mean regardless). 
 #' @param Priority One of "Ratios" or "Intensities" (default). Some flexibility in spelling is allowed. You want to prioritize ratios for SILAC because in this case MaxQuant measures peptides ratios more precisely than intensities. Otherwise, you want to prioritize Intensities and re-calculate ratios from them.
-#' @param Skip.ratios Default = FALSE. If TRUE, ratios will not be calculated. 
-#' @param experiments.map The experiments map.
+#' @param Skip.ratios Logical, default = FALSE. If TRUE, ratios will not be calculated. 
+#' @param experiments.map Map of the experiment, default = Exp.map
 #' @param param The experiment's parameters object. If provided, the ref.groups argument is not required.
 #' @param aggregate.map The aggregate map. Default = Aggregate.map
 #' @param aggregate.list The named list of aggregates. Default = Aggregate.list
@@ -152,7 +152,7 @@ Prot.Quant <- function(Prot,
   # Adapted from https://www.r-bloggers.com/2020/12/going-parallel-understanding-load-balancing-in-r/
   zigzag_ord <- function(x, n = length(cl)) {
     #x <- temp.ids
-    ord <- data.frame(Original = 1:length(x),
+    ord <- data.frame(Original = seq_along(x),
                       Length = sapply(x, length))
     ord <- ord[order(ord$Length, decreasing = TRUE),]
     ord$NewOrd <- rep(c(seq(1, n), seq(n, 1)), length = length(x))
@@ -430,7 +430,7 @@ Prot.Quant <- function(Prot,
         return(ti)
       }
       environment(f0) <- .GlobalEnv
-      temp.ids2 <- setNames(parallel::parLapply(cl, 1:length(tmp1), f0), names(tmp1)) # Already re-ordered
+      temp.ids2 <- setNames(parallel::parLapply(cl, seq_along(tmp1), f0), names(tmp1)) # Already re-ordered
       l1 <- length(unlist(temp.ids))
       l2 <- length(unlist(temp.ids2))
       if (l2 < l1) {
@@ -460,7 +460,7 @@ Prot.Quant <- function(Prot,
             return(ti[which(!ti %in% tmp2)])
           }
           environment(f0) <- .GlobalEnv
-          temp.ids3 <- setNames(parallel::parLapply(cl, 1:length(tmp1), f0), names(tmp1)) # Already re-ordered
+          temp.ids3 <- setNames(parallel::parLapply(cl, seq_along(tmp1), f0), names(tmp1)) # Already re-ordered
           l1 <- length(unlist(temp.ids))
           l3 <- length(unlist(temp.ids3))
           if (l3 < l1) {

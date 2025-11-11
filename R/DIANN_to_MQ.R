@@ -668,9 +668,9 @@ DIANN_to_MQ <- function(DIANN_fl,
   EV$"MS1 Area" <- as.numeric(DIANN$Ms1.Area)
   QuantUMS <- ("Precursor.Quantity" %in% colnames(DIANN))
   if (QuantUMS) {
-    cat("   QuantUMS output columns detected, using those as Intensity by default. For your convenience the Ms1.Area column is still present in the output.\n")
+    cat("   QuantUMS output columns detected, using those as Intensity instead of Ms1.Area.\n   (For your convenience the output Evidence (PSMs) table also contains a separate Ms1.Area column.)\n")
     # If the QuantUMS output is present, we use it by default: it should be higher quality than "Ms1.Area" (MS1-based quant only).
-    # We do not use the normalized version by default, in case normalization would actually be bad for this particular experiment
+    # We do not use the normalized version by default, in case normalization would actually be unsuitable for this particular experiment
     # ("normalization should never be on by default!")
     EV$Precursor.Quantity <- as.numeric(DIANN$Precursor.Quantity)
     EV$Intensity <- EV$Precursor.Quantity

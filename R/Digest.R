@@ -52,11 +52,9 @@ Digest <- function(Seq,
                    cl) {
   parThresh <- 500
   TESTING <- FALSE
-  #proteoCraft::DefArg(proteoCraft::Digest)
-  
-  #DB <- db; Seq = setNames(DB$Sequence, DB$`Protein ID`)
+  #proteoCraft::DefArg(proteoCraft::Digest);TESTING <- TRUE; DB <- db
+  #Seq = setNames(DB$Sequence, DB$`Protein ID`) #Seq = DB$Sequence
   #characters.test = TRUE; N.clust = 5
-  #TESTING <- TRUE
   #Cut = c("Y_", "W_", "F_")
   #Cut = c("E_")
   if (TESTING) {
@@ -70,6 +68,9 @@ Digest <- function(Seq,
             min(nchar(Cut)) == 2,
             max(nchar(Cut)) == 2)
   usePar <- FALSE
+  if (is.null(names(Seq))) {
+    names(Seq) <- paste0("Protein ", seq_along(Seq))
+  }
   if ((length(Seq) > parThresh)&&((missed > 0)||(length(loose.avoid)))) {
     usePar <- require(parallel)
     if (usePar) {
@@ -112,9 +113,8 @@ Digest <- function(Seq,
   }
   SEQ <- toupper(gsub("\\*.*", "", Seq)) # Remove stop codons (*)
   SEQ <- SEQ[which(nchar(SEQ) > 0)]
-  # The little alchemy below is to deal with cases where the sequences include duplicates of the same accession
+  # The little alchemy below is to deal with cases where input sequences include duplicates of the same accession
   lSEQ <- length(SEQ)
-  if (is.null(names(SEQ))) { names(SEQ) <- paste0("Protein ", 1:lSEQ) }
   SEQ <- data.table::data.table(SEQ = SEQ, Name = names(SEQ))
   SEQ <- SEQ[, list(x = list(SEQ)), by = list(Group.1 = Name)]
   SEQ <- as.data.frame(SEQ)
@@ -122,7 +122,9 @@ Digest <- function(Seq,
   stopifnot(max(vapply(SEQ$x, length, 1)) == 1) # This indicates that the same accession has been provided with different sequences,
   # which is not acceptable!
   # Create non-redundant protein names
-  SEQ <- setNames(unlist(SEQ$x), SEQ$Group.1)
+  SEQ <- listMelt(setNames(SEQ$x, SEQ$Group.1))
+  SEQ <- setNames(SEQ$value, SEQ$L1)
+  lSEQ <- length(SEQ)
   if (usePar) {
     ChnkSz <- lSEQ
     ChnkSz <- ceiling(ChnkSz/N.clust)
@@ -169,6 +171,7 @@ Digest <- function(Seq,
     cllps <- as.character(collapse)
   }
   F0 <- function(Sq) { #Sq <- SEQ #Sq <- Chnks[[1]]
+    nmsSq <- names(Sq)
     # N-terminal Methionine:
     if (RemoveNtermMet == "strict") { Sq <- gsub("^M", "", Sq) }
     if (RemoveNtermMet == "loose") { Sq <- gsub("^M", "@M", Sq) }
@@ -196,13 +199,19 @@ Digest <- function(Seq,
     for (C in Cut) { Sq <- gsub("_$", "", gsub(gsub("_", "", C), C, Sq)) }
     # Deal with patterns strictly blocking digest 
     if (length(strict.avoid)) { #strict.avoid <- loose.avoid # (for TESTING)
-      for (sa in strict.avoid) { Sq <- gsub(sa, gsub("_", "", sa), Sq) }
+      for (sa in strict.avoid) {
+        rpl <- gsub("_", "", sa)
+        Sq <- gsub(sa, rpl, Sq)
+      }
     }
     # It is too inefficient to deal with combinatorics of loose avoidance sites at this stage
     # I will first assume that they are strictly blocking, and allow the maximum of missed cleavage sites,
     # then I will select those which have at least one and apply combinatorics on them.
     if (length(loose.avoid)) {
-      for (la in loose.avoid) { Sq <- gsub(la, gsub("_", "", la), Sq) }
+      for (la in loose.avoid) {
+        rpl <- gsub("_", "", la)
+        Sq <- gsub(la, rpl, Sq)
+      }
     }
     #
     # Break Sequence into peptides
@@ -234,31 +243,35 @@ Digest <- function(Seq,
       # Restore cuts
       for (C in Cut) { temp$value <- gsub("_$", "", gsub(gsub("_", "", C), C, temp$value)) }
       temp$value <- strsplit(temp$value, "_")
-      L <- vapply(temp$value, length, 1)
-      if (length(L)) {
-        temp$value <- vapply(1:length(L), function(x) { #x <- 1
-          paste(unlist(sapply(1:L[x], function(p1) {
-            vapply(p1:L[x], function(p2) {
+      tstL <- vapply(temp$value, length, 1)
+      wL <- which(tstL > 1)
+      if (length(wL)) {
+        temp$value[wL] <- vapply(wL, function(x) { #x <- wL[1]
+          paste(unlist(sapply(seq_len(tstL[x]), function(p1) {
+            vapply(p1:tstL[x], function(p2) {
               paste(temp$value[[x]][p1:p2], collapse = "")
             }, "")
           })), collapse = ";")
           # Collapsing seems actually more efficient here - the vectors end up shorter
         }, "")
-        temp <- aggregate(temp$value, list(temp$L1), paste, collapse = ";") # Not accelerated by data.table!
+        temp <- data.table::as.data.table(temp)
+        temp <- temp[, list(x = paste(value, collapse = ";")), by = list(Group.1 = L1)]
         temp <- setNames(strsplit(temp$x, ";"), temp$Group.1)
         w <- which(names(Rs) %in% names(temp))
         Rs[w] <- mapply(c, Rs[w], temp, SIMPLIFY = FALSE)
       }
     }
     if (RemoveNtermMet %in% c("loose", "predict")) {
-      Rs[AT] <- lapply(Rs[AT], function(x) { unique(c(gsub("^@M", "M", x),
-                                                      gsub("^@M", "", x)))
+      Rs[AT] <- lapply(Rs[AT], function(x) {
+        unique(c(gsub("^@M", "M", x),
+                 gsub("^@M", "", x)))
       })
     }
     Rs <- lapply(Rs, function(x) { unique(x[which(nchar(x) >= min)]) }) # Filter for min and remove rare duplicates
     if (max) { Rs <- lapply(Rs, function(x) { x[which(nchar(x) <= max)] }) } # Optional: filter for max
     #tst <- unique(gsub("[A-Z]", "", unlist(Rs)))
     if (cllpsTst) { Rs <- vapply(Rs, paste, "", collapse = cllps) }
+    names(Rs) <- nmsSq
     return(Rs)
   }
   if (usePar) {
@@ -273,5 +286,16 @@ Digest <- function(Seq,
   } else {
     RES <- F0(SEQ)
   }
-  if (!TESTING) { return(RES) }
+  RES[[names(Seq)[1]]]
+  #
+  Res <- setNames(lapply(Seq, function(x) { }), names(Seq))
+  Res[names(RES)] <- RES
+  #
+  stopifnot(length(Res) == length(Seq), # Check length
+            sum(names(Res) != names(Seq)) == 0) # Check order
+  #
+  # Last check for unicity
+  Res <- setNames(lapply(Res, unique), names(Res))
+  #
+  if (!TESTING) { return(Res) }
 }

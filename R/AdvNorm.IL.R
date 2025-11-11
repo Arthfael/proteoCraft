@@ -69,8 +69,8 @@ AdvNorm.IL <- function(df,
   #
   n.exprs <- length(exprs.col) # Number of columns
   # Starting factors
-  h.fact <- setNames(lapply(1:n.exprs, function(x) { 1 }),
-                     paste0("exprs.", 1:n.exprs))
+  h.fact <- setNames(lapply(seq_len(n.exprs), function(x) { 1 }),
+                     paste0("exprs.", seq_len(n.exprs)))
   #
   # Create main optimization function:
   N <- length(exprs.col)
