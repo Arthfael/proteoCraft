@@ -648,10 +648,9 @@ Prot.Quant <- function(Prot,
   #if (TESTING) {
     cat(" - exporting to cluster...\n")
   #}
-  Viz <- FALSE
   tmpPep <- Pep[, c(id, Summary.weights, Pep.Intens.Nms)]
   exports <- list("temp.ids", "tmpPep", "id", "Pep.Intens.Nms", "Min.N", "Max.N",
-                  "Summary.method", "Summary.weights", "Viz")
+                  "Summary.method", "Summary.weights")
   parallel::clusterExport(cl, exports, envir = environment())
   #db$`Common Name`[match(prot.list, db$`Protein ID`)]
   #match(prot.list, db$`Protein ID`)
@@ -665,8 +664,7 @@ Prot.Quant <- function(Prot,
                         Summary.method = Summary.method,
                         Summary.weights = Summary.weights,
                         Min.N = Min.N,
-                        Max.N = Max.N,
-                        Viz = Viz)
+                        Max.N = Max.N)
   }
   environment(f0) <- .GlobalEnv
   #if (TESTING) {
