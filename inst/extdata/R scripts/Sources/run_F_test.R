@@ -490,7 +490,7 @@ source(parSrc)
 #
 # Save plotly plots
 dr <- ohDeer
-myPlotLys <- F_volc
+myPlotLys <- F_volc$`Plotly plots`
 Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Volcano_plotlys.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)

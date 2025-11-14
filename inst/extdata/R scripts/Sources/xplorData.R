@@ -68,9 +68,9 @@ server <- function(input, output, session) {
   #
   updtHtMp <- function(reactive = TRUE) {
     if (reactive) {
-      renderPlotly(plotLeatMaps[[HEATMAP()]][[NORMTYPE()]])
+      renderPlotly(plotLeatMaps[[HEATMAP()]][[NORMTYPE()]]$Plot)
     } else {
-      renderPlotly(plotLeatMaps[["Global"]][["Norm. by row"]])
+      renderPlotly(plotLeatMaps[["Global"]][["Norm. by row"]]$Plot)
     }
   }
   updtDimRed <- function(reactive = TRUE) {

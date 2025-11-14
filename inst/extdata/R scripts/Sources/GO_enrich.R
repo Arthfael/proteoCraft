@@ -554,7 +554,9 @@ kount <- 0
 scrange <- c(1, 30)
 grphs <- c()
 require(topGO)
-FishTst <- new("classicCount", testStatistic = GOFisherTest, name = "Fisher test")
+FishTst <- new("classicCount",
+               testStatistic = GOFisherTest,
+               name = "Fisher test")
 KKol1 <- paste0("Counts - parent ", c("dataset", "database")[match(Mode, c("regulated", "dataset"))])
 ProtKol1 <- paste0("Proteins - parent ", c("dataset", "database")[match(Mode, c("regulated", "dataset"))])
 PGKol1 <- paste0(c("PG", "Peptide")[Prot_is_Pep+1], " IDs - parent ", c("dataset", "database")[match(Mode, c("regulated", "dataset"))])

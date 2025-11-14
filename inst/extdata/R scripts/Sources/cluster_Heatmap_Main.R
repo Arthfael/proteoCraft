@@ -3,6 +3,10 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/cluster_Heatmap_Prep.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 drawPlotly <- TRUE
+if (!exists("plotLeatMaps")) { plotLeatMaps <- list() }
+plotLeatMaps %<o% plotLeatMaps
+heatMaps <- list() # Unlike plotLeatMaps, not persistent
+plotEval %<o% function(plot) { ggplotify::as.ggplot(ggplotify::as.grob(plot)) }
 #drawPlotly <- FALSE
 if (clustHtMp) {
   if (clustMode == "standard") {
@@ -99,7 +103,7 @@ if (clustHtMp) {
     ReportCalls <- AddMsg2Report(Space = FALSE)
     for (normType in normTypes) { #normType <- normTypes[1] #normType <- normTypes[2] #normType <- normTypes[3]
       if (length(normTypes) > 1) {
-        cat(" -", normType)
+        cat(" -", normType, "\n")
       }
       normTypeInsrt <- paste0(" (", normTypes, ")")
       normTypeInsrt[1] <- ""
@@ -541,11 +545,13 @@ if (clustHtMp) {
             geom_text(data = temp2c, aes(x = Xmin+0.5, label = label2),
                       y = -1, colour = "red", angle = -60, hjust = 0, cex = 2)
         }
-        #poplot(heatmap.plot, 12, 20)
-        suppressMessages({
-          ggsave(paste0(clustDir, "/", nm, normTypeInsrt, ".jpeg"), heatmap.plot, width = 18, height = 9, units = "in")
-          ggsave(paste0(clustDir, "/", nm, normTypeInsrt, ".pdf"), heatmap.plot)
-        })
+        heatMaps[[paste0(i, " - ", normType, ".jpeg")]] <- list(Plot = plotEval(heatmap.plot),
+                                                                Ttl = paste0(clustDir, "/", nm, normTypeInsrt, ".jpeg"),
+                                                                Width = 18,
+                                                                Height = 9,
+                                                                Units = "in")
+        heatMaps[[paste0(i, " - ", normType, ".pdf")]] <- list(Plot = plotEval(heatmap.plot),
+                                                                Ttl = paste0(clustDir, "/", nm, normTypeInsrt, ".pdf"))                                              
         #
         if (drawPlotly) {
           # Plotly version
@@ -695,7 +701,8 @@ if (clustHtMp) {
           setwd(wd)
           #system(paste0("open \"", clustDir, "/", nm, normTypeInsrt, ".html\""))
           if (clustMode == "standard") {
-            plotLeatMaps[[i]][[normType]] <- plotleatmap
+            plotLeatMaps[[i]][[normType]] <- list(Ttl = paste0(nm, normTypeInsrt),
+                                                  Plot = plotleatmap)
           }
         }
         #poplot(heatmap.plot, 12, 20)
@@ -704,7 +711,29 @@ if (clustHtMp) {
       }
     }
   }
-  saveFun(plotLeatMaps, file = paste0(clustDir, "/HeatMaps.RData"))
+  #
+  # Save ggplots
+  parLapply(parClust, heatMaps, function(x) {
+    if (grepl("\\.pdf$", x$Ttl)) {
+      ggplot2::ggsave(x$Ttl, x$Plot)
+    }
+    if (grepl("\\.jpeg$", x$Ttl)) {
+      ggplot2::ggsave(x$Ttl, x$Plot, width = x$Width, height = x$Height, units = x$Units)
+    }
+  })
+  #
+  if (clustMode == "standard") {
+    saveFun(plotLeatMaps, file = paste0(clustDir, "/HeatMaps.RData"))
+    # Save plotly plots
+    dr <- clustDir
+    myPlotLys <- list()
+    for (nm in names(plotLeatMaps)) {
+      myPlotLys[paste0(nm, " - ", names(plotLeatMaps[[nm]]))] <- plotLeatMaps[[nm]]
+    }
+    Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Plotlys.R")
+    #rstudioapi::documentOpen(Src)
+    source(Src, local = FALSE)
+  }
   #
   temp <- PG[, c("Leading protein IDs", "Protein names", "Genes", "Mol. weight [kDa]",
                  clustXprsKol, KlustKols)]

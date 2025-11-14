@@ -595,8 +595,8 @@ if ("PTM.analysis" %in% colnames(Param)) {
           #
           # Save plotly plots
           dr <- subDr
-          myPlotLys <- tempVPptm
-          Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Volcano_plotlys.R")
+          myPlotLys <- tempVPptm$`Plotly plots`
+          Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Plotlys.R")
           #rstudioapi::documentOpen(Src)
           source(Src, local = FALSE)
           #

@@ -106,7 +106,7 @@ if (runRankAbundPlots|runProfPlots) {
              "Sequence coverage [%] - ",
              "Spectral count - ")[match(QuantType, QuantTypes)]
     if (scrptType == "withReps") {
-      Agg <- get(c("VPAL",# "RSA",
+      Agg <- get(c("RSA", #"VPAL",
                    "RSA",
                    "RSA")[match(QuantType, QuantTypes)])
       mySamples <- Agg$values
@@ -319,8 +319,6 @@ if (runRankAbundPlots|runProfPlots) {
                             aes(`Protein Group`, y, colour = .data[[catnm]], label = `Protein Group`))
                 #poplot(plot, 12, 22)
                 evPlot <- plotEval(plot)
-                #ggsave(filename = paste0(pth, ".jpeg"), plot, dpi = 600, width = 30, height = 10, units = "in")
-                #ggsave(filename = paste0(pth, ".pdf"), plot, dpi = 600, width = 30, height = 10, units = "in")
                 setwd(wd)
               }
               if (i == 1) {
@@ -469,8 +467,6 @@ if (runRankAbundPlots|runProfPlots) {
               #system(paste0("open \"",pth, ".html"))
               setwd(wd)
               evPlot <- plotEval(plotxt)
-              #ggsave(paste0(pth, ".jpeg"), plotxt, dpi = 150)
-              #ggsave(paste0(pth, ".pdf"), plotxt, dpi = 150)
               ggProf[[QuantType]] <- list(title = ttl,
                                           path = pth,
                                           plot = evPlot,
@@ -497,16 +493,20 @@ if (runRankAbundPlots|runProfPlots) {
     tst <- parSapply(parClust, ggQuant[[QuantType]], function(x) { #x <- ggQuant[[QuantType]][[1]]
       dr <- dirname(x$path)
       if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
-      ggplot2::ggsave(paste0(x$path, ".pdf"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
-      ggplot2::ggsave(paste0(x$path, ".jpeg"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
+      suppressMessages({
+        ggplot2::ggsave(paste0(x$path, ".pdf"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
+        ggplot2::ggsave(paste0(x$path, ".jpeg"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
+      })
     })
   }
   if (runProfPlots) {
     tst <- parSapply(parClust, ggProf, function(x) {
       dr <- dirname(x$path)
       if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
-      ggplot2::ggsave(paste0(x$path, ".pdf"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
-      ggplot2::ggsave(paste0(x$path, ".jpeg"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
+      suppressMessages({
+        ggplot2::ggsave(paste0(x$path, ".pdf"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
+        ggplot2::ggsave(paste0(x$path, ".jpeg"), x$plot, dpi = x$dpi, width = x$width, height = x$height)
+      })
     })
     for (nm in names(ggProf)) {
       ReportCalls <- AddPlot2Report(Plot = ggProf[[nm]]$plot,
