@@ -2817,8 +2817,8 @@ if (!class(tempVP) %in% c("try-error", "character")) {
   #
   # Save plotly plots
   dr <- paste0(wd, "/", subDr)
-  myPlotLys <- tempVP
-  Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Volcano_plotlys.R")
+  myPlotLys <- tempVP$"Plotly plots"
+  Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Plotlys.R")
   #rstudioapi::documentOpen(Src)
   source(Src, local = FALSE)
   #
@@ -2889,8 +2889,6 @@ if (!class(tempVP) %in% c("try-error", "character")) {
     plot <- volcano.plots$Labelled[[ttl]]
     ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
   }
-  # Legacy code for web-hosted plotly plots:
-  if ((create_plotly)&&(!create_plotly_local)) { plot_ly$"t-tests" <- tempVP$"Plotly plots" }
 } else { stop("MAJOR ERROR: No volcano plots were created, investigate!") }
 # Also calculate Q-values - for now, the plot is created but not saved!
 if (("Q.values" %in% colnames(Param))&&(is.logical(Param$Q.values))&&(Param$Q.values)) {
@@ -2947,8 +2945,8 @@ if (("Q.values" %in% colnames(Param))&&(is.logical(Param$Q.values))&&(Param$Q.va
     #
     # Save plotly plots
     dr <- paste0(wd, "/", subDr)
-    myPlotLys <- tempVP2
-    Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Volcano_plotlys.R")
+    myPlotLys <- tempVP2$"Plotly plots"
+    Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Plotlys.R")
     #rstudioapi::documentOpen(Src)
     source(Src, local = FALSE)
     #
@@ -3193,9 +3191,7 @@ if (F.test) {
       plot <- volcano.plots$"F-tests_Labelled"[[ttl]]
       ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
     }
-    # Legacy code for web-hosted plotly plots:
-    if ((create_plotly)&&(!create_plotly_local)) { plot_ly$"F-tests" <- F_volc$"Plotly plots" }
-    # Also a posteriori F-test P- or Q- values histogram:
+    # Also a posteriori F-test P-values histogram:
     nbin <- 20
     bd <- (0:nbin)/nbin
     if (F_Root %in% colnames(PG)) {
