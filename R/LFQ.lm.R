@@ -164,6 +164,9 @@ LFQ.lm <- function(ids,
         temp3 <- as.numeric(temp3)
         # Apply best-flyer hypothesis logic for estimating absolute quant level
         if (reNorm %in% 0:1) {
+          
+          # Currently causes a loss of information compared with method 2 and I don't know why...
+          
           m0 <- median(proteoCraft::is.all.good(temp3[wNN]))
           #if (is.na(m0)) { stop(m0) }
           temp3 <- temp3 - m0
