@@ -21,7 +21,7 @@ AA_bias <- function(Ev,
     E <- unique(E)
   }
   E <- unlist(strsplit(E, ""))
-  AA <- data.table::data.table(E = E
+  AA <- data.table::data.table(E = E,
                                dumdum = as.integer(rep(1, length(E))))
   AA <- AA[, list(`Occurrences - dataset` = sum(dumdum)), keyby = list(AA = E)]
   AA <- as.data.frame(AA)
