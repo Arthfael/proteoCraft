@@ -113,11 +113,11 @@ ProtMatch2 <- function(Seq,
   if ((exists("wd"))&&(dir.exists(wd))) { myWD <- wd }
   parallel::clusterExport(cl, c("Nms", "g", "myWD", "fAggr0"), envir = environment())
   # - Use serialization to export efficiently large objects
-  saveRDS(Dig, paste0(myWD, "/tmpDig.RDS"))
-  saveRDS(frstPepNoMeth, paste0(myWD, "/1stPepNoMeth.RDS"))
+  readr::write_rds(Dig, paste0(myWD, "/tmpDig.RDS"))
+  readr::write_rds(frstPepNoMeth, paste0(myWD, "/1stPepNoMeth.RDS"))
   parallel::clusterCall(cl, function(x) {
-    Dig <<- readRDS(paste0(myWD, "/tmpDig.RDS")) # So it stays in cluster for next call!
-    frstPepNoMeth <<- readRDS(paste0(myWD, "/1stPepNoMeth.RDS")) # Same as above
+    Dig <<- readr::read_rds(paste0(myWD, "/tmpDig.RDS")) # So it stays in cluster for next call!
+    frstPepNoMeth <<- readr::read_rds(paste0(myWD, "/1stPepNoMeth.RDS")) # Same as above
     return()
   })
   #f0 <- function(x) { exists("Dig") & exists("frstPepNoMeth") }
@@ -171,9 +171,9 @@ ProtMatch2 <- function(Seq,
     Seq2flt <- Seq2[wM,]
     #
     f0Mtch <- function(j) { #j <- 10
-      Seq2flt_i <- readRDS(paste0(myWD, "/tmpA.RDS"))
-      Frag2Prot_i <- readRDS(paste0(myWD, "/tmpB.RDS"))
-      Dig2_i <- readRDS(paste0(myWD, "/tmpC.RDS"))
+      Seq2flt_i <- readr::read_rds(paste0(myWD, "/tmpA.RDS"))
+      Frag2Prot_i <- readr::read_rds(paste0(myWD, "/tmpB.RDS"))
+      Dig2_i <- readr::read_rds(paste0(myWD, "/tmpC.RDS"))
       rg_ij <- (c(0, rg)+1)[j]:rg[j]
       Seq2flt_ij <- Seq2flt_i[rg_ij,]
       n_ij <- nrow(Seq2flt_ij) # = how many ij-peptides there are (size of current range)
@@ -235,9 +235,9 @@ ProtMatch2 <- function(Seq,
       Dig2_i <- Dig2[which(Dig2$Seq %in% allFr_i),] # = all i-frag-2-prot with potential positions
       rg <- as.integer(round(as.numeric(1:N.clust)*n_i/N.clust)) # = ranges assigning i-peptides to cluster cores: we want to distribute our fragments over the cluster for efficient parallelisation
       # Export temporary objects which will be read
-      saveRDS(Seq2flt_i, paste0(myWD, "/tmpA.RDS"))
-      saveRDS(Frag2Prot_i, paste0(myWD, "/tmpB.RDS"))
-      saveRDS(Dig2_i, paste0(myWD, "/tmpC.RDS"))
+      readr::write_rds(Seq2flt_i, paste0(myWD, "/tmpA.RDS"))
+      readr::write_rds(Frag2Prot_i, paste0(myWD, "/tmpB.RDS"))
+      readr::write_rds(Dig2_i, paste0(myWD, "/tmpC.RDS"))
       parallel::clusterExport(cl, list("i", "rg", "myWD", "fragRg"), envir = environment())
       tmpResI <- parallel::parLapply(cl, 1:N.clust, f0Mtch)
       Res[[paste0(i, "-missed cleavages")]] <- do.call(rbind, tmpResI)

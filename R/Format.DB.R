@@ -305,7 +305,7 @@ Format.DB <- function(file,
   }
   if (parallel) {
     environment(F0) <- .GlobalEnv
-    parallel::clusterExport(cl, list("Roolz", "IDs_only", "mode", "Unique"), envir = environment())
+    parallel::clusterExport(cl, list("Roolz", "IDs_only", "mode", "Unique", "nms.list"), envir = environment())
     res <- parallel::parLapply(cl, batChes, F0)
   } else { res <- lapply(batChes, F0) }
   #

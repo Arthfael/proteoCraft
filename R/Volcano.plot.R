@@ -200,10 +200,6 @@ Volcano.plot <- function(Prot,
     saveData <- FALSE
   }
   #
-  if (return.plot) {
-    plotEval <- function(plot) { ggplotify::as.ggplot(ggplotify::as.grob(plot)) }
-  }
-  #
   # (Don't use as default the value in parameters$Plot.metrics: they are deprecated)
   if (misFun(X.root)) { stop("Argument \"X.root\" is missing, investigate!") }
   if (misFun(Y.root)) { stop("Argument \"Y.root\" is missing, investigate!") }

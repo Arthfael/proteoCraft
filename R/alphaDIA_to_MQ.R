@@ -254,9 +254,9 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   tmp1$mods <- strsplit(tmp1$mods, ";")
   tmp1$mod_sites <- strsplit(tmp1$mod_sites, ";")
   tmp1$mod_sites <- lapply(tmp1$mod_sites, as.integer)
-  saveRDS(tmp1, "tmp1.RDS")
+  readr::write_rds(tmp1, "tmp1.RDS")
   invisible(parallel::clusterCall(cl, function(x) {
-    tmp1 <<- readRDS("tmp1.RDS")
+    tmp1 <<- readr::read_rds("tmp1.RDS")
   }))
   unlink("tmp1.RDS")
   f0 <- function(x) {

@@ -249,12 +249,12 @@ PG_assemble <- function(Pep,
   #a1 <- Sys.time()
   tmp1 <- prot$.pep.ids
   tmp2 <- seq[, c("id", ".Prot.ids")]
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
   parallel::clusterExport(cl, "wd", envir = environment())
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+    tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -292,9 +292,9 @@ PG_assemble <- function(Pep,
   ## A protein is Leading (at this stage) if it cannot be subsumed into another:
   cat(" - Identifying, for each protein ID, whether its peptides are contained by a single other protein ID.\n")
   tmp1 <- prot[, c(".pep.ids", "pep_to_P", "Prot.id")]
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -316,9 +316,9 @@ PG_assemble <- function(Pep,
   cat(" - Identifying, for each protein ID, which other IDs are subsumable within it.\n")
   tmp1 <- prot[, "Prot.id", drop = FALSE]
   tmp1$temp <- protTemp
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -348,11 +348,11 @@ PG_assemble <- function(Pep,
   ## Container peptide IDs:
   tmp3 <- contained$.byWhom
   tmp4 <- prot[, c(".pep.ids", "Prot.id")]
-  saveRDS(tmp3, paste0(wd, "/tmp3.RDS"))
-  saveRDS(tmp4, paste0(wd, "/tmp4.RDS"))
+  readr::write_rds(tmp3, paste0(wd, "/tmp3.RDS"))
+  readr::write_rds(tmp4, paste0(wd, "/tmp4.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp3 <<- readRDS(paste0(wd, "/tmp3.RDS"))
-    tmp4 <<- readRDS(paste0(wd, "/tmp4.RDS"))
+    tmp3 <<- readr::read_rds(paste0(wd, "/tmp3.RDS"))
+    tmp4 <<- readr::read_rds(paste0(wd, "/tmp4.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp3.RDS"))
@@ -362,9 +362,9 @@ PG_assemble <- function(Pep,
   contained$Container.pep.ids <- parallel::parLapply(cl, tmp3, f0)
   ## Now these containers, are they "larger" (N of peptides)?
   tmp1 <- contained[, c(".pep.ids", "Container.pep.ids")]
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -380,9 +380,9 @@ PG_assemble <- function(Pep,
   contained$Container.is.larger <- parallel::parApply(cl, tmp1, 1, f0)
   #
   tmp1 <- contained$Container.is.larger
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -411,11 +411,11 @@ PG_assemble <- function(Pep,
   #temp <- prot[which(prot$Is.Leading),]
   tmp1 <- pg$.lead.protein.ids
   tmp2 <- prot[, c("Contains", "Prot.id")]
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+    tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -431,11 +431,11 @@ PG_assemble <- function(Pep,
   #
   tmp1 <- pg[,c(".lead.protein.ids", "Also contains")]
   tmp2 <- prot[, c("Protein", "Prot.id")]
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+    tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -470,11 +470,11 @@ PG_assemble <- function(Pep,
   cat(" - Identifying protein groups which can be subsumed into a combination of other protein groups.\n")
   tmp1 <- 1:nrow(pg)
   tmp2 <- pg$.pep.ids
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+    tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -508,11 +508,11 @@ PG_assemble <- function(Pep,
   #
   tmp1 <- pg$.Protein.IDs
   tmp2 <- prot[, c("PEP", "Protein")]
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+    tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -522,9 +522,9 @@ PG_assemble <- function(Pep,
   pg$.PEPs <- parallel::parSapply(cl, tmp1, f0)
   #
   tmp1 <- pg$.PEPs
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -736,11 +736,11 @@ PG_assemble <- function(Pep,
   # Assign final PG IDs to seq
   tmp1 <- seq$.temp.pg.ids
   tmp2 <- pg[, c("id", "temp.pg.id")]
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+    tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -748,9 +748,9 @@ PG_assemble <- function(Pep,
   f0 <- function(x) { tmp2$id[which(tmp2$temp.pg.id %in% unlist(x))] }
   #environment(f0) <- .GlobalEnv
   tmp1 <- seq$.PG.ids <- parallel::parSapply(cl, tmp1, f0)
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -784,13 +784,13 @@ PG_assemble <- function(Pep,
   kol <- kol[which(kol %in% colnames(pg))]
   tmp1 <- tmp$.PG_IDs
   tmp2 <- pg[, kol]
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-  saveRDS(CustPG, paste0(wd, "/CustPG.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
+  readr::write_rds(CustPG, paste0(wd, "/CustPG.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-    CustPG <<- readRDS(paste0(wd, "/CustPG.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+    tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
+    CustPG <<- readr::read_rds(paste0(wd, "/CustPG.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -827,15 +827,15 @@ PG_assemble <- function(Pep,
   tmp1 <- pg[, c("id", ".Leading.protein.IDs")]
   tmp2 <- prot[, c("PEP", "Protein")]
   tmp3 <- seq[, c2]
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-  saveRDS(tmp3, paste0(wd, "/tmp3.RDS"))
-  saveRDS(c2, paste0(wd, "/c2.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
+  readr::write_rds(tmp3, paste0(wd, "/tmp3.RDS"))
+  readr::write_rds(c2, paste0(wd, "/c2.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-    tmp3 <<- readRDS(paste0(wd, "/tmp3.RDS"))
-    c2 <<- readRDS(paste0(wd, "/c2.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+    tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
+    tmp3 <<- readr::read_rds(paste0(wd, "/tmp3.RDS"))
+    c2 <<- readr::read_rds(paste0(wd, "/c2.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -886,13 +886,13 @@ PG_assemble <- function(Pep,
   c2 <- c(".pep.ids", ".unique.pep.ids", ".razor.pep.ids", ".Protein.IDs")
   tmp1 <- pg[, c2]
   tmp2 <- prot[, c(".pep.ids", "Protein")]
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-  saveRDS(c2, paste0(wd, "/c2.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
+  readr::write_rds(c2, paste0(wd, "/c2.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-    c2 <<- readRDS(paste0(wd, "/c2.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+    tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
+    c2 <<- readr::read_rds(paste0(wd, "/c2.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -952,15 +952,15 @@ PG_assemble <- function(Pep,
   tmp1$`Protein ID` <- gsub("^CON__", "", tmp1$`Protein ID`)
   tmp2 <- pg[, c2]
   tmp3 <- seq[, c("id", "Sequence")]
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-  saveRDS(tmp3, paste0(wd, "/tmp3.RDS"))
-  saveRDS(c2, paste0(wd, "/c2.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
+  readr::write_rds(tmp3, paste0(wd, "/tmp3.RDS"))
+  readr::write_rds(c2, paste0(wd, "/c2.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-    tmp3 <<- readRDS(paste0(wd, "/tmp3.RDS"))
-    c2 <<- readRDS(paste0(wd, "/c2.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+    tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
+    tmp3 <<- readr::read_rds(paste0(wd, "/tmp3.RDS"))
+    c2 <<- readr::read_rds(paste0(wd, "/c2.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -1028,19 +1028,19 @@ PG_assemble <- function(Pep,
   temp2b <- gsub("^CON__", "", gsub(";CON__", ";", pg$"Protein IDs"))
   tmp2 <- strsplit(temp2b, ";")
   tmp1 <- temp[, c("Protein ID", c2)]
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-  saveRDS(c1, paste0(wd, "/c1.RDS"))
-  saveRDS(c2, paste0(wd, "/c2.RDS"))
-  saveRDS(ca, paste0(wd, "/ca.RDS"))
-  saveRDS(cb, paste0(wd, "/cb.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
+  readr::write_rds(c1, paste0(wd, "/c1.RDS"))
+  readr::write_rds(c2, paste0(wd, "/c2.RDS"))
+  readr::write_rds(ca, paste0(wd, "/ca.RDS"))
+  readr::write_rds(cb, paste0(wd, "/cb.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-    c1 <<- readRDS(paste0(wd, "/c1.RDS"))
-    c2 <<- readRDS(paste0(wd, "/c2.RDS"))
-    ca <<- readRDS(paste0(wd, "/ca.RDS"))
-    cb <<- readRDS(paste0(wd, "/cb.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+    tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
+    c1 <<- readr::read_rds(paste0(wd, "/c1.RDS"))
+    c2 <<- readr::read_rds(paste0(wd, "/c2.RDS"))
+    ca <<- readr::read_rds(paste0(wd, "/ca.RDS"))
+    cb <<- readr::read_rds(paste0(wd, "/cb.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -1078,11 +1078,11 @@ PG_assemble <- function(Pep,
   DB$"Sequence length" <- nchar(DB$Sequence)
   tmp1 <- DB[, c("Protein ID", "MW [kDa]", "Sequence length")]
   tmp2 <- vapply(strsplit(pg$"Leading protein IDs", ";"), function(x) { x[1] }, "")
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+    tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -1096,13 +1096,13 @@ PG_assemble <- function(Pep,
   tmp1 <- pg$.pep.ids
   tmp2 <- seq$id
   tmp3 <- nchar(gsub(paste(c(AA, "_"), collapse = "|"), "", seq$"Modified sequence"))
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
-  saveRDS(tmp3, paste0(wd, "/tmp3.RDS"))
+  readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+  readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
+  readr::write_rds(tmp3, paste0(wd, "/tmp3.RDS"))
   invisible(parallel::clusterCall(cl, function() {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
-    tmp3 <<- readRDS(paste0(wd, "/tmp3.RDS"))
+    tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+    tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
+    tmp3 <<- readr::read_rds(paste0(wd, "/tmp3.RDS"))
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
@@ -1127,11 +1127,11 @@ PG_assemble <- function(Pep,
     seq$.Evidence.IDs <- strsplit(seq$"Evidence IDs", ";")
     tmp1 <- pg$.pep.ids
     tmp2 <- seq[, c("id", ".Evidence.IDs")]
-    saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-    saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
+    readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+    readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
     invisible(parallel::clusterCall(cl, function() {
-      tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-      tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
+      tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+      tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
       return()
     }))
     unlink(paste0(wd, "/tmp1.RDS"))
@@ -1174,11 +1174,11 @@ PG_assemble <- function(Pep,
   if ("Common Name" %in% colnames(DB)) {
     tmp1 <- DB[, c("Protein ID", "Common Name")]
     tmp2 <- strsplit(pg$"Leading protein IDs", ";")
-    saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-    saveRDS(tmp2, paste0(wd, "/tmp2.RDS"))
+    readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
+    readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
     invisible(parallel::clusterCall(cl, function() {
-      tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-      tmp2 <<- readRDS(paste0(wd, "/tmp2.RDS"))
+      tmp1 <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+      tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
       return()
     }))
     unlink(paste0(wd, "/tmp1.RDS"))

@@ -130,12 +130,12 @@ Format.DB_txt <- function(txt,
   nBatches <- length(batChes)
   if (usePar) {
     invisible(lapply(1:nBatches, function(i) {
-      saveRDS(batChes[[i]], paste0("tmp", i, ".RDS"))
+      readr::write_rds(batChes[[i]], paste0("tmp", i, ".RDS"))
     }))
   }
   F0 <- function(i) { #i <- 1
     if (usePar) {
-      btch <- readRDS(paste0("tmp", i, ".RDS"))
+      btch <- readr::read_rds(paste0("tmp", i, ".RDS"))
     } else {
       btch <- batChes[[i]]
     }
