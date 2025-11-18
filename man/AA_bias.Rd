@@ -4,15 +4,17 @@
 \alias{AA_bias}
 \title{AA_bias}
 \usage{
-AA_bias(Ev, DB)
+AA_bias(Ev, DB, unique = FALSE)
 }
 \arguments{
-\item{Ev}{The evidence data frame ; must contain a "Sequence" column.}
+\item{Ev}{A data frame containing a "Sequence" column of unmodified peptide sequences.}
 
-\item{DB}{The search database, processed as a data.frame by Format.DB; must contain a "Sequence" column.}
+\item{DB}{The reference proteome, a data.frame containing a "Sequence" column of unmodified protein sequences.}
+
+\item{unique}{Logical, default = FALSE. If TRUE, we will look at unique sequences (not observations).}
 }
 \description{
-A little function to see if there is a bias against certain amino acids in the dataset, versus parent search database.
+A little function to see if there is a bias against certain amino acids in the current (observed) dataset, versus the parent proteome.
 }
 \examples{
 AA.bias <- AA_bias(Ev = ev, DB = db)
