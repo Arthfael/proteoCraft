@@ -7,4 +7,6 @@
 #'
 #' @export
 
-plotEval <- function(plot) { ggplotify::as.ggplot(ggplotify::as.grob(plot)) }
+plotEval <- function(plot) {
+  ggplotify::as.ggplot(ggplotify::as.grob(plot))
+}
