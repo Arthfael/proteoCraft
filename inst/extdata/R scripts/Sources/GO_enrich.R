@@ -257,7 +257,6 @@ if (Mode == "dataset") {
 #Prot = PG; Mode = "regulated"; filters = FC_filt; ref.filters = filt[names(FC_filt)]; Prot_FC_root = paste0(rat.col, " - "); FillGaps = TRUE; FillGaps_Smpls = FC_Smpls; FillGaps_Expr_root = PG.int.col; FillGaps_Expr_is_log = TRUE; save = c("jpeg", "pdf"); return = TRUE; GO_FDR = c(0.1, 0.2, 0.3); True_Zscore = TRUE; subfolderpertype = FALSE
 # Preliminary admin stuff...
 origWD <- getwd()
-if (!exists("plotEval")) { plotEval <- function(plot) { ggplotify::as.ggplot(ggplotify::as.grob(plot)) } }
 #
 if (!exists("title")) { title <- "" }
 if ((!is.logical(GlobalScales))||(!GlobalScales %in% c(TRUE, FALSE))) { GlobalScales <- TRUE }
@@ -1082,7 +1081,7 @@ if (length(wFltL)) {
       exports <- list("GlobalScales", "Xxtr", "Xbreadth", "Xmin", "Xmax", "Ymax", "GO_tbls2", "GO_plots", "title.root", "P_adjust", "plotly", "show", "grphs",
                       "save", "origWD", "subfolder", "subfolderpertype", "bars", "graph", "True_Zscore", "scrange", "textFun", "cex", "lineheight", "repel",
                       "plotly_subfolder", "MaxTerms", "MaxTerms_bar", "MaxChar",
-                      "Ont", "title", "title.root", "bars_title", "bars_title.root", "GO_FDR", "plotEval")
+                      "Ont", "title", "title.root", "bars_title", "bars_title.root", "GO_FDR")
       parallel::clusterExport(parClust, exports, envir = environment())
       plotsF0 <- function(n1) { #n1 <- names(GO_tbls2)[1] #n1 <- names(GO_tbls2)[2]
         GOplts <- list()
@@ -1147,7 +1146,7 @@ if (length(wFltL)) {
         }
         if (length(winf)) { plot <- plot + ggplot2::geom_hline(yintercept = Ymax, colour = "black", linetype = "dotted") }
         if (show) { proteoCraft::poplot(plot, 12, 20) }        
-        GOplts[[paste0("GO bubble plot - ", n1)]] <- plotEval(plot)
+        GOplts[[paste0("GO bubble plot - ", n1)]] <- proteoCraft::plotEval(plot)
         nm <- gsub("/|:|\\*|\\?|<|>|\\|", "-", dotTtl)
         if (nchar(nm) > 98) { nm <- substr(nm, 1, 98) }
         if (nm %in% grphs) {
@@ -1262,7 +1261,7 @@ if (length(wFltL)) {
               ggplot2::geom_text(data = thr, ggplot2::aes(label = Label, y = Y-Ymax*0.02, colour = Colour), x = -1, hjust = 0, cex = 2.5) +
               ggplot2::guides(colour = "none")
             if (show) { proteoCraft::poplot(barplot1, 12, 20) }
-            GOplts[[paste0("GO bar plot - ", n1)]] <- plotEval(barplot1)
+            GOplts[[paste0("GO bar plot - ", n1)]] <- proteoCraft::plotEval(barplot1)
             barnm <- gsub("/|:|\\*|\\?|<|>|\\|", "-", barTtl)
             if (nchar(barnm) > 98) { barnm <- substr(barnm, 1, 98) }
             if (barnm %in% grphs) {

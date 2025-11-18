@@ -113,14 +113,27 @@ if (saintExprs) {
   Parma <- Param
   Parma$Plot.labels <- "Common Name"
   Parma$Plot.threshold.metrics <- Parma$Plot.threshold.values <- Parma$Plot.threshold.tests <- Parma$Plot.threshold.colours <- ""
-  saveRDS(Interact, paste0(saintDir, "/Interact.RDS"))
-  saveRDS(Prey, paste0(saintDir, "/Prey.RDS"))
-  if (Annotate) { saveRDS(GO, paste0(saintDir, "/GO.RDS")) } 
+  readr::write_rds(Interact, paste0(saintDir, "/Interact.RDS"))
+  readr::write_rds(Prey, paste0(saintDir, "/Prey.RDS"))
+  if (Annotate) { readr::write_rds(GO, paste0(saintDir, "/GO.RDS")) } 
   kol1 <- c("AvgP", "MaxP", "TopoAvgP", "TopoMaxP", "SaintScore")
   kol2 <- c("OddsScore", "BFDR", "boosted_by")
   clusterExport(parClust,
                 list("Exp.map", "Exp", "VPAL", "RG", "Bait", "Annotate", "SaintEx", "saintDir", "wd", "fcRt", "kol1", "kol2"),
                 envir = environment())
+  invisible(clusterCall(parClust, function() {
+    Interact <<- readr::read_rds(paste0(saintDir, "/Interact.RDS"))
+    Prey <<- readr::read_rds(paste0(saintDir, "/Prey.RDS"))
+    if (Annotate) {
+      GO2 <<- readr::read_rds(paste0(saintDir, "/GO.RDS"))
+    } 
+    return()
+  }))
+  unlink(paste0(saintDir, "/Interact.RDS"))
+  unlink(paste0(saintDir, "/Prey.RDS"))
+  if (Annotate) {
+    unlink(paste0(saintDir, "/GO.RDS"))
+  }
   saintst <- setNames(parLapply(parClust, Grps, function(grp) { #grp <- Grps[1]
     grp2 <- proteoCraft::cleanNms(grp)
     dr <- paste0(saintDir, "/", grp2)
@@ -130,8 +143,8 @@ if (saintExprs) {
     m <- Exp.map[which(Exp.map[[RG$column]] == ratgrp),]
     m <- m[which((m[[VPAL$column]] == grp)|(m$Reference)),]
     Bait2 <- Bait[which(Bait$IP_name %in% gsub("\\.", "", proteoCraft::cleanNms(m$Ref.Sample.Aggregate, rep = ""))),]
-    Interact <- readRDS(paste0(saintDir, "/Interact.RDS"))
-    Prey <- readRDS(paste0(saintDir, "/Prey.RDS"))
+    Interact <- readr::read_rds(paste0(saintDir, "/Interact.RDS"))
+    Prey <- readr::read_rds(paste0(saintDir, "/Prey.RDS"))
     Interact2 <- Interact[which(Interact$IP_name %in% Bait2$IP_name),]
     Prey2 <- Prey[which(Prey$Protein %in% c(Bait2$Bait, Interact2$Protein)),]
     baitFl <- paste0(dr, "/tempBait.txt")
@@ -143,7 +156,6 @@ if (saintExprs) {
     data.table::fwrite(Interact2, interFl, quote = FALSE, col.names = FALSE, row.names = FALSE, eol = "\n", sep = "\t", na = "NA")
     if (Annotate) {
       goFl <- paste0(dr, "/tempGO.txt")
-      GO2 <- readRDS(paste0(saintDir, "/GO.RDS"))
       GO2 <- GO2[which(GO2$value %in% Prey$Protein),]
       GO2 <- aggregate(GO2$value, list(GO2$L1), function(x) { paste(unique(x), collapse = " ") })
       data.table::fwrite(GO2, goFl, quote = FALSE, col.names = FALSE, row.names = FALSE, eol = "\n", sep = "\t", na = "NA")

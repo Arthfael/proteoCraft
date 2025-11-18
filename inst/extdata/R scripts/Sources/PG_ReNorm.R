@@ -315,7 +315,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
       theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
     #print(intPlot1)
     nrmPlots[["PG_int"]] <- list(Path = paste0(dirPG, "/", ttlI1),
-                                 Plot = plotEval(intPlot1),
+                                 Plot = proteoCraft::plotEval(intPlot1),
                                  Ext = "jpeg")
     #suppressMessages({
     #  ggsave(paste0(dirPG, "/", ttlI1, ".jpeg"), intPlot1, dpi = 300)
@@ -349,7 +349,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
       theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
     #print(ratPlot1)
     nrmPlots[["PG_rat"]] <- list(Path = paste0(dirPG, "/", ttlR1),
-                                 Plot = plotEval(ratPlot1),
+                                 Plot = proteoCraft::plotEval(ratPlot1),
                                  Ext = "jpeg")
     #suppressMessages({
     #  ggsave(paste0(dirPG, "/", ttlR1, ".jpeg"), ratPlot1, dpi = 300)
@@ -385,7 +385,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
       theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
     #print(intPlot2)
     nrmPlots[["Pep_int"]] <- list(Path = paste0(dirPep, "/", ttlI2),
-                                  Plot = plotEval(intPlot2),
+                                  Plot = proteoCraft::plotEval(intPlot2),
                                   Ext = "jpeg")
     #suppressMessages({
     #  ggsave(paste0(dirPep, "/", ttlI2, ".jpeg"), intPlot2, dpi = 300)
@@ -419,7 +419,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
       theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
     #print(ratPlot2)
     nrmPlots[["Pep_rat"]] <- list(Path = paste0(dirPep, "/", ttlR2),
-                                  Plot = plotEval(ratPlot2),
+                                  Plot = proteoCraft::plotEval(ratPlot2),
                                   Ext = "jpeg")
     #suppressMessages({
     #  ggsave(paste0(dirPep, "/", ttlR2, ".jpeg"), ratPlot2, dpi = 300)

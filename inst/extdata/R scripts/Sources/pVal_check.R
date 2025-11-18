@@ -22,7 +22,7 @@ kol <- colnames(temp)
 kol <- kol[which(kol != "Group")]
 temp <- temp[which(rowSums(temp[, kol]) > 0), ]
 Comb <- gtools::combinations(length(kol), 2, kol)
-clusterExport(parClust, list("Comb", "temp", "pvalDir", "pvalue.col", "plotEval"), envir = environment())
+clusterExport(parClust, list("Comb", "temp", "pvalDir", "pvalue.col"), envir = environment())
 plotsList1 <- parLapply(parClust, 1:nrow(Comb), function(i) { #i <- 1
   X <- Comb[i, 1]
   Y <- Comb[i, 2]
@@ -62,7 +62,7 @@ plotsList1 <- parLapply(parClust, 1:nrow(Comb), function(i) { #i <- 1
   #w1 <- ((length(pvalue.col)-1)*length(unique(dat$Group))+1)*2
   w1 <- 5
   h1 <- w1*(length(unique(dat$Group)) + 0.5)/3
-  plot1 <- plotEval(plot1)
+  plot1 <- proteoCraft::plotEval(plot1)
   suppressMessages({
     ggplot2::ggsave(paste0(Img1, ".jpeg"), plot1, dpi = 150, width = w1,# height = h1,
                     units = "in")
@@ -143,7 +143,7 @@ plot2ly <- plotly::layout(plot2ly,
                           xaxis = list(range = list(0, 1)),
                           showlegend = FALSE)
 plot2 <- plot2 +  coord_fixed(ratio = 0.75) + scale_x_continuous(limits = c(0, 1), expand = c(0, 0))
-plot2 <- plotEval(plot2)
+plot2 <- proteoCraft::plotEval(plot2)
 plotsList2 <- list(list(Title = ttl2,
                         Plot = plot2,
                         Plotly = plot2ly))

@@ -27,12 +27,12 @@ if (LabelType == "LFQ") {
   tmp <- ev[, c("MQ.Exp", "Modified sequence", ev.col[length(ev.col)])]
   exports <- append(exports, "ev.col")
 }
-saveRDS(tmp, paste0(wd, "/tmp.RDS"))
+readr::write_rds(tmp, paste0(wd, "/tmp.RDS"))
 smpls <- unique(Exp.map$Ref.Sample.Aggregate[which(Exp.map$Use)])
 clusterExport(parClust, exports, envir = environment())
 invisible(clusterCall(parClust, function(x) {
   library(data.table)
-  tmp <<- readRDS(paste0(wd, "/tmp.RDS"))
+  tmp <<- readr::read_rds(paste0(wd, "/tmp.RDS"))
   return()
 }))
 unlink(paste0(wd, "/tmp.RDS"))

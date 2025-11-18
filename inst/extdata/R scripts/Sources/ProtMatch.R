@@ -102,11 +102,11 @@ myWD <- getwd()
 if ((exists("wd"))&&(dir.exists(wd))) { myWD <- wd }
 parallel::clusterExport(parClust, c("Nms", "g", "myWD", "fAggr0"), envir = environment())
 # - Use serialization to export efficiently large objects
-saveRDS(Dig, paste0(myWD, "/tmpDig.RDS"))
-saveRDS(frstPepNoMeth, paste0(myWD, "/1stPepNoMeth.RDS"))
+readr::write_rds(Dig, paste0(myWD, "/tmpDig.RDS"))
+readr::write_rds(frstPepNoMeth, paste0(myWD, "/1stPepNoMeth.RDS"))
 invisible(parallel::clusterCall(parClust, function(x) {
-  Dig <<- readRDS(paste0(myWD, "/tmpDig.RDS")) # So it stays in cluster for next call!
-  frstPepNoMeth <<- readRDS(paste0(myWD, "/1stPepNoMeth.RDS")) # Same as above
+  Dig <<- readr::read_rds(paste0(myWD, "/tmpDig.RDS")) # So it stays in cluster for next call!
+  frstPepNoMeth <<- readr::read_rds(paste0(myWD, "/1stPepNoMeth.RDS")) # Same as above
   return()
 }))
 #f0 <- function(x) { exists("Dig") & exists("frstPepNoMeth") }
@@ -163,9 +163,9 @@ if (length(wM)) { # Peptides with missed cleavages: the real fun begins...
     stopifnot(nFrag >= 1, nFrag == as.integer(nFrag))
     #
     fragRg <- 1:nFrag
-    Seq2flt_i <- readRDS(paste0(myWD, "/tmpA.RDS"))
-    Frag2Prot_i <- readRDS(paste0(myWD, "/tmpB.RDS"))
-    Dig2_i <- readRDS(paste0(myWD, "/tmpC.RDS"))
+    Seq2flt_i <- readr::read_rds(paste0(myWD, "/tmpA.RDS"))
+    Frag2Prot_i <- readr::read_rds(paste0(myWD, "/tmpB.RDS"))
+    Dig2_i <- readr::read_rds(paste0(myWD, "/tmpC.RDS"))
     a1 <- (c(0, pepRange)+1)[j]
     a2 <- pepRange[j]
     if (a2 >= a1) {
@@ -242,9 +242,9 @@ if (length(wM)) { # Peptides with missed cleavages: the real fun begins...
       myRng <- unique(myRng)
       myRng <- myRng[which(myRng > 0)]
       # Export temporary objects which will be read
-      saveRDS(Seq2flt_i, paste0(myWD, "/tmpA.RDS"))
-      saveRDS(Frag2Prot_i, paste0(myWD, "/tmpB.RDS"))
-      saveRDS(Dig2_i, paste0(myWD, "/tmpC.RDS"))
+      readr::write_rds(Seq2flt_i, paste0(myWD, "/tmpA.RDS"))
+      readr::write_rds(Frag2Prot_i, paste0(myWD, "/tmpB.RDS"))
+      readr::write_rds(Dig2_i, paste0(myWD, "/tmpC.RDS"))
       parallel::clusterExport(parClust, list("i", "myWD"), envir = environment())
       tmpResI <- parallel::parLapply(parClust, 1:length(myRng), f0Mtch, nFrag = i, pepRange = myRng)
       tmpResI <- do.call(rbind, tmpResI)

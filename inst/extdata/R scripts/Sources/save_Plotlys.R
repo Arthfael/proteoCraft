@@ -19,7 +19,7 @@ if (l) {
     b <- list(data = b$x$data,
               layout = b$x$layout)
     #format(object.size(b), "MB")
-    saveRDS(b, tmpFls[i])
+    readr::write_rds(b, tmpFls[i])
     return()
   }))
   plot_Ttls <- vapply(myPlotLys, function(x) { x$Ttl }, "")
@@ -34,7 +34,7 @@ if (l) {
   save_widget_from_def <- function(i) {
     curDir <- getwd() 
     setwd(dr)
-    def <- readRDS(tmpFls[i])
+    def <- readr::read_rds(tmpFls[i])
     w <- plotly::plot_ly()
     w$x$data   <- def$data
     w$x$layout <- def$layout

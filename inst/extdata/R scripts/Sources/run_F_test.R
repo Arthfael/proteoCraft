@@ -315,12 +315,13 @@ my_F_Data[, fdrKol] <- F_fdr$F_test$`Significance vector`
 # The decision as to whether to calculate FDR thresholds for each post hoc test indiviudally,
 # or globally for all, could be parameter controlled in the future.
 tmp <- my_F_Data[, F_PVal_postHoc, drop = FALSE]
-saveRDS(tmp, paste0(wd, "/tmp.RDS"))
+readr::write_rds(tmp, paste0(wd, "/tmp.RDS"))
 clusterExport(parClust, list("F_Root", "BH.FDR_F", "wd"))
 invisible(clusterCall(parClust, function() {
-  tmp <<- readRDS(paste0(wd, "/tmp.RDS"))
+  tmp <<- readr::read_rds(paste0(wd, "/tmp.RDS"))
   return()
 }))
+unlink(paste0(wd, "/tmp.RDS"))
 F_fdr[expContr_F$name] <- parLapply(parClust, expContr_F$name, function(i) { #i <- expContr_F$name[1]
   F_pv_i <- paste0(F_Root, " - ", i)
   return(proteoCraft::FDR(tmp,
@@ -491,7 +492,7 @@ source(parSrc)
 # Save plotly plots
 dr <- ohDeer
 myPlotLys <- F_volc$`Plotly plots`
-Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Volcano_plotlys.R")
+Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Plotlys.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 #

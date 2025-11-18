@@ -89,23 +89,33 @@ if (("ProtRulNuclL" %in% names(AnalysisParam))&&(!is.na(as.integer(AnalysisParam
 }
 AnalysisParam$ProtRulNuclL <- ProtRulNuclL
 #
+if ((!exists("Impute"))||(!is.logical(Impute))||(length(Impute) != 1)||(is.na(Impute))) {
+  if ((exists("ImputeMissData"))&&(is.logical(ImputeMissData))&&(length(ImputeMissData) == 1)&&(!is.na(ImputeMissData))) {
+    Impute <- ImputeMissData # Old name of the variable
+  }
+  if ("ImputeMissData" %in% names(AnalysisParam)) {
+    Impute <- as.logical(AnalysisParam$ImputeMissData)
+  } else {
+    if ("ImputeMissData" %in% names(AnalysisParam)) {
+      Impute <- as.logical(AnalysisParam$ImputeMissData)
+    }
+  }
+}
+if ((!exists("Impute"))||(!is.logical(Impute))||(length(Impute) != 1)||(is.na(Impute))||(!moreThan1Exp)) {
+  Impute <- FALSE
+}
+Impute %<o% Impute
+AnalysisParam$ImputeMissData <- Impute
+#
 Update_Prot_matches %<o% TRUE # See https://github.com/vdemichev/DiaNN/discussions/1631
 if ("Update_Prot_matches" %in% names(AnalysisParam)) {
   Update_Prot_matches <- as.logical(AnalysisParam$Update_Prot_matches)
-  if ((is.na(Update_Prot_matches))||(is.null(Update_Prot_matches))) { ImputeMissData <- TRUE }
+  if ((is.na(Update_Prot_matches))||(is.null(Update_Prot_matches))) { Update_Prot_matches <- TRUE }
+}
+if ((!is.logical(Update_Prot_matches))||(length(Update_Prot_matches) != 1)||(is.na(Update_Prot_matches))) {
+  Update_Prot_matches <- TRUE
 }
 AnalysisParam$Update_Prot_matches <- Update_Prot_matches
-#
-ImputeMissData %<o% FALSE
-if ("Pep.Impute" %in% names(AnalysisParam)) {
-  warning("Parameter \"Pep.Impute\" is currently not used, use \"ImputeMissData\" instead!")
-  AnalysisParam$Pep.Impute <- NULL
-}
-if ("ImputeMissData" %in% names(AnalysisParam)) {
-  ImputeMissData <- as.logical(AnalysisParam$ImputeMissData)
-  if ((is.na(ImputeMissData))||(is.null(ImputeMissData))||(!moreThan1Exp)) { ImputeMissData <- FALSE }
-}
-AnalysisParam$ImputeMissData <- ImputeMissData
 #
 PepFoundInAtLeast %<o% 1
 if ("PepFoundInAtLeast" %in% names(AnalysisParam)) {
@@ -565,9 +575,9 @@ server <- function(input, output, session) {
   })
   # Impute?
   shiny::observeEvent(input$Impute, {
-    ImputeMissData <<- input$Impute
+    Impute <<- input$Impute
     Par <- PARAM()
-    Par$ImputeMissData <- ImputeMissData
+    Par$ImputeMissData <- Impute
     PARAM(Par)
   })
   # Update PSM-to-Protein matches?

@@ -3,13 +3,18 @@ tmp <- as.character(ev$id)
 tmp2 <- data.table(id = tmp, mqxp = ev$MQ.Exp, mod = ev$"Modified sequence")
 tmp2 <- tmp2[order(ev$id, decreasing = FALSE),]
 source(parSrc, local = FALSE)
-clusterCall(parClust, function() library(data.table))
 clusterExport(parClust, list("wd", "id"), envir = environment())
-saveRDS(Exp.map, paste0(wd, "/tmp1"))
-saveRDS(tmp2, paste0(wd, "/tmp2"))
+readr::write_rds(Exp.map, paste0(wd, "/tmp1.RDS"))
+readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
+invisible(clusterCall(parClust, function() {
+  library(data.table)
+  em <<- readr::read_rds(paste0(wd, "/tmp1.RDS"))
+  tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
+  return()
+}))
+unlink(paste0(wd, "/tmp1.RDS"))
+unlink(paste0(wd, "/tmp2.RDS"))
 tmp4 <- setNames(parLapply(parClust, c("ALLMYSAMPLESTUDUDUDUMMMDADA", RSA$values), function(i) {
-  em <- readRDS(paste0(wd, "/tmp1"))
-  tmp2 <- readRDS(paste0(wd, "/tmp2"))
   tmp3 <- copy(tmp2) # Because of how data.tables work! No idea how that plays with clusters...
   if (i != "ALLMYSAMPLESTUDUDUDUMMMDADA") {
     mqe <- unlist(em$MQ.Exp[which(em$Ref.Sample.Aggregate == i)])

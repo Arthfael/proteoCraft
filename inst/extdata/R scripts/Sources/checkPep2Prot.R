@@ -129,12 +129,12 @@ if (l) {
     tmpDB$Sequence <- gsub("I", "L", tmpDB$Sequence)
   }
   source(parSrc) # Check cluster for corruption!
-  saveRDS(tmpEV, paste0(wd, "/tmpEV.RDS"))
-  saveRDS(tmpDB, paste0(wd, "/tmpDB.RDS"))
+  readr::write_rds(tmpEV, paste0(wd, "/tmpEV.RDS"))
+  readr::write_rds(tmpDB, paste0(wd, "/tmpDB.RDS"))
   clusterExport(parClust, "wd", envir = environment())
   invisible(clusterCall(parClust, function() {
-    tmpEV <<- readRDS(paste0(wd, "/tmpEV.RDS"))
-    tmpDB <<- readRDS(paste0(wd, "/tmpDB.RDS"))
+    tmpEV <<- readr::read_rds(paste0(wd, "/tmpEV.RDS"))
+    tmpDB <<- readr::read_rds(paste0(wd, "/tmpDB.RDS"))
     return()
   }))
   tmpEV$Proteins <- parSapply(parClust, 1:nrow(tmpEV), function(x) {

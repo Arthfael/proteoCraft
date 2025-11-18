@@ -6,7 +6,6 @@ drawPlotly <- TRUE
 if (!exists("plotLeatMaps")) { plotLeatMaps <- list() }
 plotLeatMaps %<o% plotLeatMaps
 heatMaps <- list() # Unlike plotLeatMaps, not persistent
-plotEval %<o% function(plot) { ggplotify::as.ggplot(ggplotify::as.grob(plot)) }
 #drawPlotly <- FALSE
 if (clustHtMp) {
   if (clustMode == "standard") {
@@ -459,7 +458,11 @@ if (clustHtMp) {
           smplsClust$Group <- as.factor(xMp[match(smplsClust$label, xMp$Samples), VPAL$column])
         }
         if (scrptType == "noReps") {
-          smplsClust$Group <- as.factor(xMp$`Ratios group`[match(smplsClust$label, xMp$Samples)])
+          if (MakeRatios) {
+            smplsClust$Group <- as.factor(xMp$`Ratios group`[match(smplsClust$label, xMp$Samples)])
+          } else {
+            smplsClust$Group <- factor(smplsClust$label, levels = smplsClust$label)
+          }
         }
         smplsClust$Cluster <- as.factor(paste0("Cluster", as.character(smplsClust$Cluster)))
         if (length(levels(smplsClust$Cluster)) > 1) {
@@ -545,12 +548,12 @@ if (clustHtMp) {
             geom_text(data = temp2c, aes(x = Xmin+0.5, label = label2),
                       y = -1, colour = "red", angle = -60, hjust = 0, cex = 2)
         }
-        heatMaps[[paste0(i, " - ", normType, ".jpeg")]] <- list(Plot = plotEval(heatmap.plot),
+        heatMaps[[paste0(i, " - ", normType, ".jpeg")]] <- list(Plot = proteoCraft::plotEval(heatmap.plot),
                                                                 Ttl = paste0(clustDir, "/", nm, normTypeInsrt, ".jpeg"),
                                                                 Width = 18,
                                                                 Height = 9,
                                                                 Units = "in")
-        heatMaps[[paste0(i, " - ", normType, ".pdf")]] <- list(Plot = plotEval(heatmap.plot),
+        heatMaps[[paste0(i, " - ", normType, ".pdf")]] <- list(Plot = proteoCraft::plotEval(heatmap.plot),
                                                                 Ttl = paste0(clustDir, "/", nm, normTypeInsrt, ".pdf"))                                              
         #
         if (drawPlotly) {

@@ -7,6 +7,11 @@ UniMod <- unimod::modifications
 searchOutputs %<o% list()
 l_inDirs <- length(inDirs)
 
+locDirsFl <- paste0(homePath, "/Default_locations.xlsx")
+if (!file.exists(locDirsFl)) { proteoCraft::Configure() }
+locDirs <- openxlsx2::read_xlsx(paste0(homePath, "/Default_locations.xlsx"))
+archDir <- locDirs$Path[match("Archive folder", locDirs$Folder)]
+dbDir <- locDirs$Path[match("Fasta files", locDirs$Folder)]
 # NB:
 # ===
 # The workflows later read MS methods from the raw files, so this checks whether they are present.
@@ -144,12 +149,11 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     if (length(wNtFnd)) {
       msg <- paste0(" - ", c("Some", "All")[(length(wNtFnd) == length(rawFiles_i))+1], " MS files are missing at the expected location.\n")
       tbl <- data.frame(path = rawFiles_i[wNtFnd], file = gsub(".*/", "", rawFiles_i[wNtFnd]), ext = rawFiles_i_ext[wNtFnd])
-      locs <- openxlsx::read.xlsx(paste0(homePath, "/Default_locations.xlsx"))
       dirs <- unique(unlist(lapply(unique(c(inDirs[dir_i], dirname(mqparFl_i))), function(dir) {
         dir <- c(dir, dirname(dir))
         return(c(dir,
-                 gsub(".*/", paste0(locs$Path[match("Archive folder", locs$Folder)], "/"), dir[1]),
-                 gsub(".*/", paste0(locs$Path[match("Archive folder", locs$Folder)], "/"), dir[2])))
+                 gsub(".*/", paste0(archDir, "/"), dir[1:2]),
+                 archDir))
       })))
       dirs <- dirs[which(dir.exists(dirs))]
       dirs <- dirs[which(dirs != ".")]
@@ -201,54 +205,56 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       cat(msg)
       if (tstN1 == 2) {
         msg2 <- paste0("Select the location of the missing file(s) (or cancel if files are unavailable):")
-        newDir <- selectDirectory(msg2, path = wd)
-        newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
-        newFlsTst <- gsub(".*/", "", newFls)
-        wNA <- which(is.na(tbl$nuLoc))
-        tst <- setNames(lapply(tbl$file[wNA], function(fl) { #fl <- tbl$file[wNA[1]]
-          x <- newFls[which(newFlsTst == fl)]
-          if (length(x) > 1) {
-            nc <- nchar(x)
-            x <- x[which(nc == min(nc))]
-          } else {
-            # Backup solution in case we replaced spaces with something else - e.g. when working on Linux
-            x <- newFls[which(gsub(" ", "-", newFlsTst) == gsub(" ", "-", fl)
-                              |gsub(" ", "_", newFlsTst) == gsub(" ", "_", fl)
-                              |gsub(" ", "", newFlsTst) == gsub(" ", "", fl))]
+        newDir <- rstudioapi::selectDirectory(msg2, path = archDir)
+        if (!is.null(newDir)) {
+          newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
+          newFlsTst <- gsub(".*/", "", newFls)
+          wNA <- which(is.na(tbl$nuLoc))
+          tst <- setNames(lapply(tbl$file[wNA], function(fl) { #fl <- tbl$file[wNA[1]]
+            x <- newFls[which(newFlsTst == fl)]
             if (length(x) > 1) {
               nc <- nchar(x)
               x <- x[which(nc == min(nc))]
-            }
-          }
-          return(x)
-        }), tbl$file[wNA])
-        tst <- tst[which(vapply(tst, length, 1) == 1)]
-        if (length(tst)) {
-          tst <- setNames(unlist(tst), names(tst))
-          wY2 <- which(is.na(tbl$nuLoc)&(tbl$file %in% names(tst)))
-          wN2 <- which(is.na(tbl$nuLoc)&(!tbl$file %in% names(tst)))
-          tstY2 <- (length(wY2) > 1)+1
-          tstN2 <- (length(wN2) > 1)+1
-          if (length(wY2)) {
-            m <- match(tbl$file[wY2], names(tst))
-            tbl$nuLoc[wY2] <- tst[m]
-            msg <- "   The user was able to locate "
-            if (length(wN2) == 0) {
-              msg <- paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
-                            " in directory ", newDir, "\n")
             } else {
-              msg <- paste0(msg, "the following missing file", c("", "s")[tstY2],
-                            " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
+              # Backup solution in case we replaced spaces with something else - e.g. when working on Linux
+              x <- newFls[which(gsub(" ", "-", newFlsTst) == gsub(" ", "-", fl)
+                                |gsub(" ", "_", newFlsTst) == gsub(" ", "_", fl)
+                                |gsub(" ", "", newFlsTst) == gsub(" ", "", fl))]
+              if (length(x) > 1) {
+                nc <- nchar(x)
+                x <- x[which(nc == min(nc))]
+              }
             }
-            cat(msg)
-          } else {
-            msg <- paste0("   The following file", c("", "s")[tstN2], " could not be located:\n",
-                          paste(paste0(" - ", tbl$path[wN], "\n\n"), collapse = ""))
+            return(x)
+          }), tbl$file[wNA])
+          tst <- tst[which(vapply(tst, length, 1) == 1)]
+          if (length(tst)) {
+            tst <- setNames(unlist(tst), names(tst))
+            wY2 <- which(is.na(tbl$nuLoc)&(tbl$file %in% names(tst)))
+            wN2 <- which(is.na(tbl$nuLoc)&(!tbl$file %in% names(tst)))
+            tstY2 <- (length(wY2) > 1)+1
+            tstN2 <- (length(wN2) > 1)+1
+            if (length(wY2)) {
+              m <- match(tbl$file[wY2], names(tst))
+              tbl$nuLoc[wY2] <- tst[m]
+              msg <- "   The user was able to locate "
+              if (length(wN2) == 0) {
+                msg <- paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
+                              " in directory ", newDir, "\n")
+              } else {
+                msg <- paste0(msg, "the following missing file", c("", "s")[tstY2],
+                              " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
+              }
+              cat(msg)
+            } else {
+              msg <- paste0("   The following file", c("", "s")[tstN2], " could not be located:\n",
+                            paste(paste0(" - ", tbl$path[wN], "\n\n"), collapse = ""))
+            }
+            rawFiles_i_nu <- rawFiles_i
+            w <- which(!is.na(tbl$nuLoc))
+            updtFls <- length(w) > 0
+            rawFiles_i_nu[w] <- tbl$nuLoc[w]
           }
-          rawFiles_i_nu <- rawFiles_i
-          w <- which(!is.na(tbl$nuLoc))
-          updtFls <- length(w) > 0
-          rawFiles_i_nu[w] <- tbl$nuLoc[w]
         }
       }
     }
@@ -517,12 +523,11 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     if (length(wNtFnd)) {
       msg <- paste0(" - ", c("Some", "All")[(length(wNtFnd) == length(rawFiles_i))+1], " MS files are missing at the expected location.\n")
       tbl <- data.frame(path = rawFiles_i[wNtFnd], file = gsub(".*/", "", rawFiles_i[wNtFnd]), ext = rawFiles_i_ext[wNtFnd])
-      locs <- openxlsx::read.xlsx(paste0(homePath, "/Default_locations.xlsx"))
       dirs <- unique(unlist(lapply(unique(c(inDirs[dir_i], diaNN_logFlDir_i)), function(dir) {
         dir <- c(dir, dirname(dir))
         return(c(dir,
-                 gsub(".*/", paste0(locs$Path[match("Archive folder", locs$Folder)], "/"), dir[1]),
-                 gsub(".*/", paste0(locs$Path[match("Archive folder", locs$Folder)], "/"), dir[2])))
+                 gsub(".*/", paste0(archDir, "/"), dir[1:2]),
+                 archDir))
       })))
       dirs <- dirs[which(dir.exists(dirs))]
       dirs <- dirs[which(dirs != ".")]
@@ -574,54 +579,56 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       cat(msg)
       if (tstN1 == 2) {
         msg2 <- paste0("Select the location of the missing file(s) (or cancel if files are unavailable):")
-        newDir <- selectDirectory(msg2, path = wd)
-        newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
-        newFlsTst <- gsub(".*/", "", newFls)
-        wNA <- which(is.na(tbl$nuLoc))
-        tst <- setNames(lapply(tbl$file[wNA], function(fl) { #fl <- tbl$file[wNA[1]]
-          x <- newFls[which(newFlsTst == fl)]
-          if (length(x) > 1) {
-            nc <- nchar(x)
-            x <- x[which(nc == min(nc))]
-          } else {
-            # Backup solution in case we replaced spaces with something else - e.g. when working on Linux
-            x <- newFls[which(gsub(" ", "-", newFlsTst) == gsub(" ", "-", fl)
-                              |gsub(" ", "_", newFlsTst) == gsub(" ", "_", fl)
-                              |gsub(" ", "", newFlsTst) == gsub(" ", "", fl))]
+        newDir <- rstudioapi::selectDirectory(msg2, path = archDir)
+        if (!is.null(newDir)) {
+          newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
+          newFlsTst <- gsub(".*/", "", newFls)
+          wNA <- which(is.na(tbl$nuLoc))
+          tst <- setNames(lapply(tbl$file[wNA], function(fl) { #fl <- tbl$file[wNA[1]]
+            x <- newFls[which(newFlsTst == fl)]
             if (length(x) > 1) {
               nc <- nchar(x)
               x <- x[which(nc == min(nc))]
-            }
-          }
-          return(x)
-        }), tbl$file[wNA])
-        tst <- tst[which(vapply(tst, length, 1) == 1)]
-        if (length(tst)) {
-          tst <- setNames(unlist(tst), names(tst))
-          wY2 <- which(is.na(tbl$nuLoc)&(tbl$file %in% names(tst)))
-          wN2 <- which(is.na(tbl$nuLoc)&(!tbl$file %in% names(tst)))
-          tstY2 <- (length(wY2) > 1)+1
-          tstN2 <- (length(wN2) > 1)+1
-          if (length(wY2)) {
-            m <- match(tbl$file[wY2], names(tst))
-            tbl$nuLoc[wY2] <- tst[m]
-            msg <- "   The user was able to locate "
-            if (length(wN2) == 0) {
-              msg <- paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
-                            " in directory ", newDir, "\n")
             } else {
-              msg <- paste0(msg, "the following missing file", c("", "s")[tstY2],
-                            " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
+              # Backup solution in case we replaced spaces with something else - e.g. when working on Linux
+              x <- newFls[which(gsub(" ", "-", newFlsTst) == gsub(" ", "-", fl)
+                                |gsub(" ", "_", newFlsTst) == gsub(" ", "_", fl)
+                                |gsub(" ", "", newFlsTst) == gsub(" ", "", fl))]
+              if (length(x) > 1) {
+                nc <- nchar(x)
+                x <- x[which(nc == min(nc))]
+              }
             }
-            cat(msg)
-          } else {
-            msg <- paste0("   The following file", c("", "s")[tstN2], " could not be located:\n",
-                          paste(paste0(" - ", tbl$path[wN], "\n\n"), collapse = ""))
+            return(x)
+          }), tbl$file[wNA])
+          tst <- tst[which(vapply(tst, length, 1) == 1)]
+          if (length(tst)) {
+            tst <- setNames(unlist(tst), names(tst))
+            wY2 <- which(is.na(tbl$nuLoc)&(tbl$file %in% names(tst)))
+            wN2 <- which(is.na(tbl$nuLoc)&(!tbl$file %in% names(tst)))
+            tstY2 <- (length(wY2) > 1)+1
+            tstN2 <- (length(wN2) > 1)+1
+            if (length(wY2)) {
+              m <- match(tbl$file[wY2], names(tst))
+              tbl$nuLoc[wY2] <- tst[m]
+              msg <- "   The user was able to locate "
+              if (length(wN2) == 0) {
+                msg <- paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
+                              " in directory ", newDir, "\n")
+              } else {
+                msg <- paste0(msg, "the following missing file", c("", "s")[tstY2],
+                              " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
+              }
+              cat(msg)
+            } else {
+              msg <- paste0("   The following file", c("", "s")[tstN2], " could not be located:\n",
+                            paste(paste0(" - ", tbl$path[wN], "\n\n"), collapse = ""))
+            }
+            rawFiles_i_nu <- rawFiles_i
+            w <- which(!is.na(tbl$nuLoc))
+            updtFls <- length(w) > 0
+            rawFiles_i_nu[w] <- tbl$nuLoc[w]
           }
-          rawFiles_i_nu <- rawFiles_i
-          w <- which(!is.na(tbl$nuLoc))
-          updtFls <- length(w) > 0
-          rawFiles_i_nu[w] <- tbl$nuLoc[w]
         }
       }
     }
@@ -839,12 +846,11 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     if (length(wNtFnd)) {
       msg <- paste0(" - ", c("Some", "All")[(length(wNtFnd) == length(rawFiles_i))+1], " MS files are missing at the expected location.\n")
       tbl <- data.frame(path = rawFiles_i[wNtFnd], file = gsub(".*/", "", rawFiles_i[wNtFnd]), ext = rawFiles_i_ext[wNtFnd])
-      locs <- openxlsx::read.xlsx(paste0(homePath, "/Default_locations.xlsx"))
       dirs <- unique(unlist(lapply(unique(c(inDirs[dir_i], fpManifest_i$Path)), function(dir) {
         dir <- c(dir, dirname(dir))
         return(c(dir,
-                 gsub(".*/", paste0(locs$Path[match("Archive folder", locs$Folder)], "/"), dir[1]),
-                 gsub(".*/", paste0(locs$Path[match("Archive folder", locs$Folder)], "/"), dir[2])))
+                 gsub(".*/", paste0(archDir, "/"), dir[1:2]),
+                 archDir))
       })))
       dirs <- dirs[which(dir.exists(dirs))]
       dirs <- dirs[which(dirs != ".")]
@@ -896,7 +902,7 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       cat(msg)
       if (tstN1 == 2) {
         msg2 <- paste0("Select the location of the missing file(s) (or cancel if files are unavailable):")
-        newDir <- rstudioapi::selectDirectory(msg2, path = wd)
+        newDir <- rstudioapi::selectDirectory(msg2, path = archDir)
         if (!is.null(newDir)) {
           newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
           newFlsTst <- gsub(".*/", "", newFls)
@@ -1252,8 +1258,7 @@ fastas_map %<o% list(Original = setNames(lapply(searchOutputs, function(x) { x$F
 orig_fastas <- fastas <- unique(unlist(fastas_map))
 w <- which(!file.exists(fastas))
 if (length(w)) {
-  dflt <- openxlsx2::read_xlsx(paste0(homePath, "/Default_locations.xlsx"))
-  dflt <- dflt$Path[match("Fasta files", dflt$Folder)]
+  dflt <- dbDir
   for (i in w) {
     cat(paste0(" - Fasta file ", fastas[i], " has been relocated since the search",
                c(" was", "es were")[(l_inDirs > 1)+1],

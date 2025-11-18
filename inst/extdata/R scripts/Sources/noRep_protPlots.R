@@ -14,6 +14,7 @@ if (prot.list.Cond) {
                 c("Protein ID", "Common Name", "Sequence")]
     runRat <- FALSE
     l <- length(Exp)
+    #if (MakeRatios) {
     if (l > 1) {
       comb <- as.data.frame(gtools::permutations(l, 2, Exp, repeats.allowed = TRUE))
       colnames(comb) <- c("A", "B")
@@ -25,13 +26,13 @@ if (prot.list.Cond) {
       comb <- comb[m,]
       myComb <- myComb[m]
       runRat <- nrow(comb) > 0
-    } 
-    if (runRat) {
-      pepR <- apply(comb, 1, function(x) {
-        paste0("R = ", round(cor(pep[[paste0(int.col, " - ", x[[1]])]],
-                                 pep[[paste0(int.col, " - ", x[[2]])]]), 3))
-      })
-      names(pepR) <- apply(comb, 1, function(x) { paste0(x[[1]], " (A) vs ", x[[2]], " (B)") })
+      if (runRat) {
+        pepR <- apply(comb, 1, function(x) {
+          paste0("R = ", round(cor(pep[[paste0(int.col, " - ", x[[1]])]],
+                                   pep[[paste0(int.col, " - ", x[[2]])]]), 3))
+        })
+        names(pepR) <- apply(comb, 1, function(x) { paste0(x[[1]], " (A) vs ", x[[2]], " (B)") })
+      }
     }
     tmpPep <- pep[, grep(topattern(int.col), colnames(pep), value = TRUE)]
     invisible(clusterCall(parClust, function() {
@@ -142,10 +143,10 @@ if (prot.list.Cond) {
           }), Exp)
           tempev <- tempev[which(vapply(tempev, function(x) { "data.frame" %in% class(x) }, TRUE))]
           if (length(tempev)) {
-            mxInt <- ceiling(max(is.all.good(as.numeric(sapply(names(tempev), function(exp) {
-              tempev[[exp]]$`log10(Intensity)`
+            mxInt <- ceiling(max(is.all.good(unlist(sapply(names(tempev), function(exp) { #exp <- names(tempev)[1]
+              tempev[[exp]]$"log10(Intensity)"
             })))))
-            mxPEP <- ceiling(max(is.all.good(as.numeric(sapply(names(tempev), function(exp) {
+            mxPEP <- ceiling(max(is.all.good(unlist(sapply(names(tempev), function(exp) {
               -log10(tempev[[exp]]$PEP)
             })))))
             for (exp in names(tempev)) { #exp <- names(tempev)[1]

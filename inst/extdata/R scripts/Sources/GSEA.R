@@ -169,21 +169,21 @@ if (isOK) {
     colnames(tmpDat) <- c(idCol, rankCol)
   }
   cpParam <- SerialParam()
-  saveRDS(tmpDat, paste0(wd, "/tmpDat.RDS"))
+  readr::write_rds(tmpDat, paste0(wd, "/tmpDat.RDS"))
   exports <- list("idCol", "rankCol", "keyType", "wd", "cpParam", "Annotate")
   if (Annotate) {
-    saveRDS(term2Prot, paste0(wd, "/term2Prot.RDS"))
-    saveRDS(term2name, paste0(wd, "/term2name.RDS"))
+    readr::write_rds(term2Prot, paste0(wd, "/term2Prot.RDS"))
+    readr::write_rds(term2name, paste0(wd, "/term2name.RDS"))
   } else {
     exports <- append(exports, "orgDBpkg")
   }
   clusterExport(parClust, exports, envir = environment())
   invisible(clusterCall(parClust, function(x) {
     require(clusterProfiler)
-    tmpDat <<- readRDS(paste0(wd, "/tmpDat.RDS"))
+    tmpDat <<- readr::read_rds(paste0(wd, "/tmpDat.RDS"))
     if (Annotate) {
-      term2Prot <<- readRDS(paste0(wd, "/term2Prot.RDS"))
-      term2name <<- readRDS(paste0(wd, "/term2name.RDS"))
+      term2Prot <<- readr::read_rds(paste0(wd, "/term2Prot.RDS"))
+      term2name <<- readr::read_rds(paste0(wd, "/term2name.RDS"))
     } else {
       require(orgDBpkg, character.only = TRUE)
     }

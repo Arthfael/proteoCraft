@@ -5,7 +5,7 @@ stopCluster(parClust)
 rm(list = ls()[which(!ls() %in% .obj)])
 #runRankAbundPlots %<o% TRUE
 #runProfPlots %<o% TRUE
-if (runRankAbundPlots|runProfPlots) {
+if (runRankAbundPlots||runProfPlots) {
   if (Annotate) {
     AllTerms %<o% unique(unlist(strsplit(db$`GO-ID`, ";")))
     AllTermNames %<o% unique(unlist(strsplit(db$GO, ";")))
@@ -203,9 +203,9 @@ if (runRankAbundPlots|runProfPlots) {
         clusterExport(parClust, exports, envir = environment())
         if (runRankAbundPlots) {
           cat("    - Drawing ranked abundance plots\n")
-          saveRDS(temp, paste0(wd, "/tmp.RDS"))
+          readr::write_rds(temp, paste0(wd, "/tmp.RDS"))
           invisible(clusterCall(parClust, function() {
-            temp <<- readRDS(paste0(wd, "/tmp.RDS"))
+            temp <<- readr::read_rds(paste0(wd, "/tmp.RDS"))
             return()
           }))
           if (testReg) {
@@ -213,9 +213,9 @@ if (runRankAbundPlots|runProfPlots) {
             myFilt <- which(rgKol %in% colnames(PG))
             rgKol <- rgKol[myFilt]
             tmpPG <- PG[, c("id", rgKol)]
-            saveRDS(tmpPG, paste0(wd, "/tmp2.RDS"))
+            readr::write_rds(tmpPG, paste0(wd, "/tmp2.RDS"))
             invisible(clusterCall(parClust, function() {
-              tmpPG <<- readRDS(paste0(wd, "/tmp2.RDS"))
+              tmpPG <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
               return()
             }))
           } else { myFilt <- 1:length(mySamples) }
@@ -318,7 +318,7 @@ if (runRankAbundPlots|runProfPlots) {
                   geom_text(data = temp3[filt,], angle = 45, hjust = 0, cex = 3.5,
                             aes(`Protein Group`, y, colour = .data[[catnm]], label = `Protein Group`))
                 #poplot(plot, 12, 22)
-                evPlot <- plotEval(plot)
+                evPlot <- proteoCraft::plotEval(plot)
                 setwd(wd)
               }
               if (i == 1) {
@@ -466,7 +466,7 @@ if (runRankAbundPlots|runProfPlots) {
               if ((i == 1)&&(!"try-error" %in% class(tst))) { system(paste0("open \"", pth, ".html")) }
               #system(paste0("open \"",pth, ".html"))
               setwd(wd)
-              evPlot <- plotEval(plotxt)
+              evPlot <- proteoCraft::plotEval(plotxt)
               ggProf[[QuantType]] <- list(title = ttl,
                                           path = pth,
                                           plot = evPlot,

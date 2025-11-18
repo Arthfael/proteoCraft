@@ -333,4 +333,5 @@ if (nchar(msg) > 1000) {
   cat(msg)
   msg2 <- paste0(substr(msg, 1, 996), "...")
 }
+#
 tstFrMp <- c(TRUE, FALSE)[match(dlg_message(msg2, "yesno", rstudio = TRUE)$res, c("yes", "no"))]

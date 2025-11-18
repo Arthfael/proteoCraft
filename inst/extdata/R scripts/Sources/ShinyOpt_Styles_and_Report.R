@@ -46,8 +46,8 @@ ReportCalls %<o% list(Calls = list("read_docx()",
                       Objects = list(),
                       Plots = list())
 AddPlot2Report %<o% function(RCName = "ReportCalls", Plot = plot, Title = ttl, Space = TRUE, Jpeg = TRUE, Dir = dir) {
-  reportCalls <- try(get(RCName, envir = .GlobalEnv), silent = TRUE)
-  if (!"try-error" %in% class(reportCalls)) {
+  try({
+    reportCalls <- get(RCName, envir = .GlobalEnv)
     if (Jpeg) {
       Path <- paste0(gsub("/+$", "", normalizePath(Dir, winslash = "/")), "/", Title, ".jp", c("", "e"), "g")
       w <- which(file.exists(Path))
@@ -62,7 +62,8 @@ AddPlot2Report %<o% function(RCName = "ReportCalls", Plot = plot, Title = ttl, S
       }
     }
     reportCalls$Calls <- append(reportCalls$Calls,
-                                paste0("body_add_fpar(Report, fpar(ftext(\"", gsub(":", "_", Title), "\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))"))
+                                paste0("body_add_fpar(Report, fpar(ftext(\"", gsub(":", "_", Title),
+                                       "\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))"))
     if (Jpeg) {
       reportCalls$Calls <- append(reportCalls$Calls, paste0("body_add_img(Report, \"", Path, "\", height = 6, width = 6)"))
     } else {
@@ -72,33 +73,27 @@ AddPlot2Report %<o% function(RCName = "ReportCalls", Plot = plot, Title = ttl, S
     }
     if (Space) { reportCalls$Calls <- append(reportCalls$Calls, "body_add_par(Report, \"\", style = \"Normal\")") }
     return(reportCalls)
-  }# else {
-  # Nothing: we can safely ignore this!
-  #}
+  }, silent = TRUE)
 }
 AddMsg2Report %<o% function(RCName = "ReportCalls", Msg = msg, Print = TRUE, Warning = FALSE, Space = TRUE, Offset = FALSE) {
-  reportCalls <- try(get(RCName, envir = .GlobalEnv), silent = TRUE)
-  if (!"try-error" %in% class(reportCalls)) {
+  try({
+    reportCalls <- get(RCName, envir = .GlobalEnv)
     if (Print+Warning) { if (Warning) { warning(Msg) } else { cat(paste0(Msg, "\n")) } }
     ReportCalls$Calls <- append(ReportCalls$Calls,
-                                paste0("body_add_fpar(Report, fpar(ftext(\"", c("", "     ")[Offset+1], Msg, "\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))"))
+                                paste0("body_add_fpar(Report, fpar(ftext(\"", c("", "     ")[Offset+1], Msg,
+                                       "\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))"))
     if (Space) { reportCalls$Calls <- append(reportCalls$Calls, "body_add_par(Report, \"\", style = \"Normal\")") }
     return(reportCalls)
-  }# else {
-  # Nothing: we can safely ignore this!
-  #}
+  }, silent = TRUE)
 }
 AddSpace2Report %<o% function(RCName = "ReportCalls") {
-  reportCalls <- try(get(RCName, envir = .GlobalEnv), silent = TRUE)
-  if (!"try-error" %in% class(reportCalls)) {
+  try({
+    reportCalls <- get(RCName, envir = .GlobalEnv)
     reportCalls <- get(RCName, envir = .GlobalEnv)
     reportCalls$Calls <- append(reportCalls$Calls, "body_add_par(Report, \"\", style = \"Normal\")")
     return(reportCalls)
-  }# else {
-  # Nothing: we can safely ignore this!
-  #}
+  }, silent = TRUE) 
 }
-plotEval %<o% function(plot) { ggplotify::as.ggplot(ggplotify::as.grob(plot)) }
 
 # Create Excel formatting styles (package used = openxlsx):
 # These styles are used later down when writing Excel tables
