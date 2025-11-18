@@ -120,7 +120,11 @@ if (inputType == "alphaDIA") {
   dflt <- inDir <- dirname(alphaDIA_fl)
   parDir <- dirname(inDir)
 }
-dstDir <- rstudioapi::selectDirectory("Select output directory", path = dflt)
+while ((!exists("dstDir"))||(!is.character(dstDir))||(length(dstDir) != 1)||(is.na(dstDir))||(!dir.exists(dstDir))) {
+  dstDir <- rstudioapi::selectDirectory("Select output directory", path = dflt)
+}
+setwd(dstDir)
+
 backupFl <- paste0(dstDir, "/Backup.RData")
 write(inDir, paste0(dstDir, "/Input search directory.txt")) # In case I reprocess and do not have the backup file
 #saveImgFun(backupFl)
@@ -395,13 +399,14 @@ db <- db[grep("^>rev_", db$Header, invert = TRUE),] # Remove reverse database en
 parsedAnnot_Fl <- paste0(dstDir, "/Parsed Annot.rds")
 reUseAnnotBckp <- file.exists(parsedAnnot_Fl)
 if (reUseAnnotBckp) {
-  reUseAnnotBckp <- c(TRUE, FALSE)[match(dlg_message("Parsed annotation backup found in folder. Re-use?", "yesno")$res, c("yes", "no"))]
+  reUseAnnotBckp <- c(TRUE, FALSE)[match(dlg_message("Parsed annotation backup found in folder. Re-use?", "yesno")$res,
+                                         c("yes", "no"))]
 }
 if (reUseAnnotBckp) {
-  annot <- readRDS(parsedAnnot_Fl)
+  annot <- readr::read_rds(parsedAnnot_Fl)
 } else {
   annot <- Format.DB_txt(annot_Fl, Features = TRUE, cl = parClust)
-  saveRDS(annot, parsedAnnot_Fl)
+  readr::write_rds(annot, parsedAnnot_Fl)
 }
 
 # Check peptide-to-protein assignment, and isolate histones peptides
@@ -1154,9 +1159,9 @@ saveImgFun(backupFl)
 # Batch correction:
 kol <- colnames(smplsMap)
 kol <- kol[which(!kol %in% c("Old", "New", "Group", "Comparison_group",  "Reference"))]
-kol <- kol[which(sapply(kol, function(k) {
+kol <- kol[which(vapply(kol, function(k) {
   length(unique(smplsMap[[k]])) > 1
-}))]
+}, TRUE))]
 if (length(kol)) {
   dflt <- kol
   if (!Nested) {
@@ -1165,7 +1170,8 @@ if (length(kol)) {
   if (exists("myBatches")) {
     dflt <- myBatches
   }
-  kol <- setNames(sapply(kol, function(k) { paste(c(k, rep(" ", max(c(200, nchar(k))))), collapse = "") }), kol)
+  kol <- setNames(vapply(kol, function(k) { paste(c(k, rep(" ", max(c(200, nchar(k))))), collapse = "") }, ""),
+                  kol)
   dflt <- setNames(kol[match(dflt, names(kol))], dflt)
   myBatches <- dlg_list(kol, dflt,
                         title = "Select any known batch variables to explore sequentially correcting against",
@@ -1175,22 +1181,25 @@ if (length(kol)) {
   if (combatNorm) {
     #
     # Check for synonymous batches
-    tmp <- smplsMap[, myBatches]
+    tmp <- smplsMap[, myBatches, drop = FALSE]
     for (btch in myBatches) {
       tmp[[btch]] <- as.numeric(as.factor(tmp[[btch]]))
     }
-    comb <- gtools::combinations(length(myBatches), 2, myBatches)
-    comb <- as.data.frame(comb)
-    tst <- apply(comb, 1, function(x) {
-      identical(tmp[[x[1]]], tmp[[x[2]]])
-    })
-    w <- which(tst)
-    if (length(w)) {
-      btchs2Remove <- unique(comb[w, 2])
-      warning(paste0("The following batches are synonymous: ",
-                     paste(do.call(paste, c(comb[w,], sep = " and ")), collapse = ", "),
-                     ".\nThe following batches will be removed: ", btchs2Remove))
-      myBatches <- myBatches[which(!myBatches %in% btchs2Remove)]
+    lBat <- length(myBatches)
+    if (lBat > 1) {
+      comb <- gtools::combinations(length(myBatches), 2, myBatches)
+      comb <- as.data.frame(comb)
+      tst <- apply(comb, 1, function(x) {
+        identical(tmp[[x[1]]], tmp[[x[2]]])
+      })
+      w <- which(tst)
+      if (length(w)) {
+        btchs2Remove <- unique(comb[w, 2])
+        warning(paste0("The following batches are synonymous: ",
+                       paste(do.call(paste, c(comb[w,], sep = " and ")), collapse = ", "),
+                       ".\nThe following batches will be removed: ", btchs2Remove))
+        myBatches <- myBatches[which(!myBatches %in% btchs2Remove)]
+      }
     }
     #
     btchDir <- paste0(dstDir, "/Batch correction")
@@ -1529,6 +1538,99 @@ write.csv(normTst, paste0(dstDir, "/Norm. summary.csv"), row.names = FALSE)
 #tmp <- paste0(do.call(paste, c(normTst, sep = " ->\t\t")), "\n")
 #writeClipboard(capture.output(cat(tmp)))
 
+### PCA dimensionality reduction plots
+dimRedPlotLy %<o% list()
+pep$"Av. log10 abundance" <- rowMeans(pep[, quntCol], na.rm = TRUE)
+Rep <- unique(smplsMap$Replicate)
+compGrps <- unique(grpsMap$Comparison_group)
+pca_types <- c("Global", compGrps)
+pca_types2 <- "Histones"
+tstHist <- pep$`Histone(s)` > "" # Sometimes we only have histone peptide options, typically when working with Skyline  /n
+if (sum(!tstHist)) {
+  pca_types2 <- c("Global", pca_types2)
+}
+for (pca_type in pca_types) {
+  for (pca_type2 in pca_types2) {
+    kol <- quntCol
+    if (pca_type != "Global") {
+      smpls <- smplsMap$New[which(smplsMap$Comparison_group == pca_type)] 
+      tst <- gsub(".* - ", "", kol)
+      kol <- kol[which(tst %in% smpls)]
+    }
+    if (length(kol) > 1) {
+      temp <- pep[, kol, drop = FALSE]
+      colnames(temp) <- gsub(topattern(intRoot[intType]), "", colnames(temp))
+      wOK <- which((apply(temp, 1, function(x) {length(proteoCraft::is.all.good(x))}) == ncol(temp))
+                   &((is.na(pep$"Potential contaminant"))|(pep$"Potential contaminant" != "+")))
+      temp <- temp[wOK,]
+      if (pca_type2 == "Histones") {
+        temp <- temp[which(tstHist[wOK]),]
+      }
+      temp <- sweep(temp, 1, pep$"Av. log10 abundance"[w], "-") # Minimal effect:
+      # (the idea is that the final result is not affected by peptide intensity but by peptide logFCs only)
+      temp <- temp + rnorm(length(unlist(temp)), 0, 10^-9) # To avoid constant/zero columns, add a small random error
+      
+      pc <- prcomp(t(temp), scale. = TRUE)
+      scores <- as.data.frame(pc$x)
+      pv <- round(100*(pc$sdev)^2 / sum(pc$sdev^2), 0)
+      pv <- pv[which(pv > 0)]
+      pv <- paste0("Components: ", paste(sapply(1:length(pv), function(x) {
+        paste0("PC", x, ": ", pv[x], "%")
+      }), collapse = ", "))
+      scores$Sample <- rownames(scores)
+      m <- match(scores$Sample, smplsMap$New)
+      scores$Group <- smplsMap$Group[m]
+      scores$Replicate <- smplsMap$Replicate[m]
+      #
+      scores$"comparison group" <- grpsMap$Comparison_group[match(scores$Group, grpsMap$Group)]
+      form <- "~`comparison group`"
+      ttl <- "Samples PCA plot"
+      if (pca_type2 == "Histones") {
+        ttl <- paste0(ttl, " (Hist. only)")
+      }
+      if (pca_type != "Global") {
+        ttl <- paste0(ttl, " - ", pca_type)
+      }
+      if ("PC2" %in% colnames(scores)) {
+        plot <- ggplot(scores, aes(x = PC1, y = PC2)) +
+          geom_point(aes(color = Group)) +
+          ggpubr::stat_conf_ellipse(aes(fill = Group, color = Group), alpha = 0.1, geom = "polygon") +
+          scale_color_viridis_d(begin = 0.25) +
+          coord_fixed() +
+          geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
+          geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
+          ggtitle(ttl, subtitle = pv) +
+          geom_text_repel(aes(label = Sample), size = 2.5, show.legend = FALSE) + 
+          theme_bw()
+        if (substr(form, 1, 1) == "~") { plot <- plot + facet_wrap(form) } else { plot <- plot + facet_grid(form) }
+        #
+        scores$Group <- factor(scores$Group)
+        if ("PC3" %in% colnames(scores)) {
+          Symb <- rep(c("circle", "diamond", "square", "cross", "x"), max(as.numeric(Rep)))[1:max(as.numeric(Rep))]             
+          Symb <- Symb[as.numeric(scores$Replicate)]
+          plot_lyPCAProt <- plot_ly(scores, x = ~PC1, y = ~PC2, z = ~PC3,
+                                    color = ~Group, colors = "viridis",
+                                    text = ~Sample, type = "scatter3d", mode = "markers",
+                                    symbol = I(Symb))
+          plot_lyPCAProt <- add_trace(plot_lyPCAProt, scores, x = ~PC1, y = ~PC2, z = ~PC3,
+                                      type = "scatter3d", mode = "text", showlegend = FALSE)
+          plot_lyPCAProt <- layout(plot_lyPCAProt, title = ttl)
+          setwd(dstDir)
+          saveWidget(plot_lyPCAProt, paste0(dstDir, "/", ttl, ".html"))
+          dimRedPlotLy[["Samples PCA"]] <- plot_lyPCAProt
+          #system(`paste0("open \"", dstDir, "/", ttl, ".html"))
+          # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
+        } else { poplot(plot, width = 18) }
+        suppressWarnings({
+          ggsave(paste0(dstDir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+          ggsave(paste0(dstDir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+        })
+      } else { warning(paste0(pca_type, " PCA failed, investigate!")) }
+    }
+  }
+}
+#openwd(dstDir)
+
 # Table of PTM sites
 kol <- c("Sequence", "Modified sequence_verbose", "Proteins")
 w <- which((kol %in% colnames(ev))&(!kol %in% colnames(evSum)))
@@ -1803,7 +1905,9 @@ if (statTsts) {
         scale_alpha_identity(guide = "none") + scale_size_identity(guide = "none") +
         scale_y_continuous(expand = c(0, 0))
       #poplot(plot)
-      ggsave(paste0(dstDir, "/", ttl, ".jpeg"), plot, dpi = 300)
+      suppressWarnings({
+        ggsave(paste0(dstDir, "/", ttl, ".jpeg"), plot, dpi = 300)
+      })
       plotLy <- ggplotly(plot, tooltip = c("x", "y", "text"))
       htmlwidgets::saveWidget(plotLy, paste0(dstDir, "/", ttl, ".html"), selfcontained = TRUE)
       system(paste0("open \"", dstDir, "/", ttl, ".html\""))
@@ -1988,8 +2092,10 @@ if (length(Exp) > 1) {
                   colour = "orange", angle = 90, hjust = 1) +
         theme_bw() + ggtitle(vnm)
       #poplot(vplot)
-      ggsave(paste0(dir, "/", vnm, normTypeInsrt, ".jpeg"), vplot, dpi = 150)
-      ggsave(paste0(dir, "/", vnm, normTypeInsrt, ".pdf"), vplot, dpi = 150)
+      suppressWarnings({
+        ggsave(paste0(dir, "/", vnm, normTypeInsrt, ".jpeg"), vplot, dpi = 150)
+        ggsave(paste0(dir, "/", vnm, normTypeInsrt, ".pdf"), vplot, dpi = 150)
+      })
       NVClust <- max(c(NGr, 2))
       # 2/ At protein groups level
       # As above, we always draw a dendrogram, but colours will be defined by the clustering approach.
@@ -2046,8 +2152,10 @@ if (length(Exp) > 1) {
         ggtitle(hnm) + scale_size_identity() + theme_bw() +
         theme(legend.position = "none") + ylab("Normalised total Within-clusters vs Total Sum of Squares")
       #poplot(hplot)
-      ggsave(paste0(dir, "/", hnm, normTypeInsrt, ".jpeg"), hplot, dpi = 150)
-      ggsave(paste0(dir, "/", hnm, normTypeInsrt, ".pdf"), hplot, dpi = 150)
+      suppressWarnings({
+        ggsave(paste0(dir, "/", hnm, normTypeInsrt, ".jpeg"), hplot, dpi = 150)
+        ggsave(paste0(dir, "/", hnm, normTypeInsrt, ".pdf"), hplot, dpi = 150)
+      })
       # Apply cutoffs
       if (KlustMeth == 1) {
         VClusters <- kmeans(t(temp3), NVClust, 100)$cluster
@@ -2270,8 +2378,10 @@ if (length(Exp) > 1) {
                     y = -1, colour = "red", angle = -60, hjust = 0, cex = 2)
       }
       #poplot(heatmap.plot, 12, 20)
-      ggsave(paste0(dir, "/", nm, ".jpeg"), heatmap.plot)
-      ggsave(paste0(dir, "/", nm, ".pdf"), heatmap.plot)
+      suppressWarnings({
+        ggsave(paste0(dir, "/", nm, ".jpeg"), heatmap.plot)
+        ggsave(paste0(dir, "/", nm, ".pdf"), heatmap.plot)
+      })
       #
       # Plotly version
       tempLy <- temp2a[w2a,]
