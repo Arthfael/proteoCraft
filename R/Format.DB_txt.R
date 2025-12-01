@@ -61,9 +61,9 @@ Format.DB_txt <- function(txt,
                           Feat_accRgx = "[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}") {
   TESTING <- FALSE
   #
-  #TESTING <- TRUE;proteoCraft::DefArg(proteoCraft::Format.DB_txt)
-  #txt = annot_Fl;Features = TRUE;cl = parClust
-  #txt = x; usePar = TRUE; cl = parClust 
+  #TESTING <- TRUE;proteoCraft::DefArg(proteoCraft::Format.DB_txt);usePar = TRUE;cl = parClust 
+  #txt = annot_Fl;Features = TRUE
+  #txt = x
   Feat_isoRgx <- paste0("(", Feat_accRgx, ")(-[0-9]+)?")
   #
   #txt <- readLines(AnnotFls)
@@ -128,14 +128,15 @@ Format.DB_txt <- function(txt,
     }), paste0("Batch", 1:length(RG)))
   } else { batChes <- list(Batch1 = txt) }
   nBatches <- length(batChes)
+  currWD <- getwd()
   if (usePar) {
     invisible(lapply(1:nBatches, function(i) {
-      readr::write_rds(batChes[[i]], paste0("tmp", i, ".RDS"))
+      readr::write_rds(batChes[[i]], paste0(currWD, "/tmp", i, ".RDS"))
     }))
   }
   F0 <- function(i) { #i <- 1
     if (usePar) {
-      btch <- readr::read_rds(paste0("tmp", i, ".RDS"))
+      btch <- readr::read_rds(paste0(currWD, "/tmp", i, ".RDS"))
     } else {
       btch <- batChes[[i]]
     }
@@ -440,14 +441,14 @@ Format.DB_txt <- function(txt,
   }
   if (usePar) {
     environment(F0) <- .GlobalEnv
-    exports <- list("GO", "Taxonomy", "InterPro", "Pfam", "PIRSF", "PROSITE", "EMBL", "Ensembl", "MW", "Sequence", "PTMs", "PDB", "TAIR", "WormBase",
-                    "FlyBase", "Features", "Feat_isoRgx", "usePar", "filter", "TESTING")
+    exports <- list("GO", "Taxonomy", "InterPro", "Pfam", "PIRSF", "PROSITE", "EMBL", "Ensembl", "MW", "Sequence", "PTMs",
+                    "PDB", "TAIR", "WormBase", "FlyBase", "Features", "Feat_isoRgx", "usePar", "filter", "TESTING", "currWD")
     parallel::clusterExport(cl, exports, envir = environment())
     rsTbl <- parallel::parLapply(cl, 1:nBatches, F0)
   } else { rsTbl <- lapply(1:nBatches, F0) }
   if (usePar) {
     invisible(lapply(1:nBatches, function(i) {
-      unlink(paste0("tmp", i, ".RDS"))
+      unlink(paste0(currWD, "/tmp", i, ".RDS"))
     }))
   }
   rsTbl <- plyr::rbind.fill(rsTbl)

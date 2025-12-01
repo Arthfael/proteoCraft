@@ -1028,7 +1028,7 @@ Volcano.plot <- function(Prot,
     if (length(unique(temp$Colour)) > 1) {
       aes$colour <- "Colour"
       pluses <- c(pluses, "colScale")
-    } else { non.aes$colour <- "\"black\"" }
+    } else { non.aes$colour <- "\"lightgrey\"" }
     if (!test[1]) {
       aes$size <- "Size"
       #aes$fill <- "Colour"

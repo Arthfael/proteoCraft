@@ -32,9 +32,14 @@ load_Bckp <- function(backup,
   #
   homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
   #
+  wd_test <- function() {
+    if (!exists("wd", .GlobalEnv)) { return(FALSE) }
+    wd <- get("wd", .GlobalEnv)
+    return((length(wd) == 1)&&(!is.na(wd))&&("character" %in% class(wd))&&(dir.exists(wd)))
+  }
   if (misFun(backup)) {
     if (misFun(startDir)) {
-      if ((exists("wd"))&&("character" %in% class(wd))&&(dir.exists(wd))) {
+      if (wd_test()) {
         defltdir <- wd
       } else {
         dlft <- openxlsx::read.xlsx(paste0(homePath, "/Default_locations.xlsx"))
@@ -56,6 +61,7 @@ load_Bckp <- function(backup,
     warning("The specifid \"backup\" file does not exist!")
     return()
   }
+  ((exists("wd"))&&(length(wd) == 1)&&(!is.na(wd))&&("character" %in% class(wd))&&(dir.exists(wd)))
   wdExisted <- exists("wd", .GlobalEnv)
   bckpDeerayktoray <- dirname(bckp)
   #
@@ -69,8 +75,10 @@ load_Bckp <- function(backup,
   if (("try-error" %in% class(tst))||(("character" %in% class(tst))&&(length(tst) == 1)&&(tst == "Didnae work, matey!"))) {
     stop("Backup re-loading failed!")
   }
+  backupFile <<- bckp
+  .obj <<- unique(c(.obj, "backupFile")) # Exception: this one we keep always at the far end!
   #
-  if ((exists("wd"))&&(!dir.exists(wd))) {
+  if ((!exists("wd"))||(!wd_test())) {
     if (!wdExisted) {
       warning("Invalid work directory loaded from backup file, using its parent directory instead!")
     } else {
@@ -110,7 +118,7 @@ load_Bckp <- function(backup,
   }
   # Re-create parallel cluster
   usePar <- FALSE
-  if ((exists(".obj"))&&(sum(c("parClust", "N.clust") %in% .obj) == 2)) {
+  if (sum(c("parClust", "N.clust") %in% .obj) == 2) {
     #
     # Check N.clust parameter validity
     N.clust <- try(as.integer(N.clust), silent = TRUE)
@@ -137,7 +145,7 @@ load_Bckp <- function(backup,
   }
   #
   cat(paste0("Backup \"", bckp, "\" loaded, work directory set and packages loaded.\n"))
-  if (exists(".obj")) {
+  if (sum(!.obj %in% c("backupFile", ".obj", "%<o%", "%<c%"))) {
     if (exists("ScriptPath")) {
       cat("Analysis script used ---> ", ScriptPath, "\n")
       if (file.exists(ScriptPath)) {
