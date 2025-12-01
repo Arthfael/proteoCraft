@@ -5,6 +5,8 @@
 ############################################
 #
 # Can deal with DiaNN, FragPipe, Skyline or alphaDIA input.
+ScriptPath <- normalizePath(gtools::script_file(), winslash = "/")
+scrptType <- scrptTypeFull <- "Histones"
 
 wd <- dirname(rstudioapi::getSourceEditorContext()$path)
 setwd(wd)
@@ -12,13 +14,21 @@ if (!require(pak)) {
   install.packages("pak")
   library(pak)
 }
-pkgs <- c("rstudioapi", "qs2", "plyr", "data.table", "openxlsx2", "svDialogs", "parallel", "limma", "plotly", "ggplot2", "viridis", "proteoCraft")
-tst <- sapply(pkgs, function(pkg) { require(pkg, character.only = TRUE) })
+pkgs <- c("rstudioapi", "qs2", "plyr", "data.table", "openxlsx2", "svDialogs", "parallel", "ggplot2", "viridis",
+          "limma", "plotly", "sva", "plotly", "shiny", "htmlwidgets", "shinyWidgets", "shinyjs",
+          "shinycssloaders", "DT", "ggrepel", "proteoCraft")
+tst <- vapply(pkgs, function(pkg) { require(pkg, character.only = TRUE) }, TRUE)
 if (sum(!tst)) {
-  pak::pkg_install(pkgs[which(!tst)])
-  for (pkg in pkgs[which(!tst)]) {
-    library(pkg, character.only = TRUE)
+  w <- pkgs[which(!tst)]
+  pkgs_to_inst <- pkgs[w]
+  wP <- which(pkgs_to_inst == "proteoCraft")
+  if (length(wP)) {
+    pkgs_to_inst[wP] <- "Arthfael/proteoCraft"
   }
+  pak::pkg_install(pkgs_to_inst)
+}
+for (pkg in pkgs) {
+  library(pkg, character.only = TRUE)
 }
 homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
 
@@ -120,10 +130,18 @@ if (inputType == "alphaDIA") {
   dflt <- inDir <- dirname(alphaDIA_fl)
   parDir <- dirname(inDir)
 }
-while ((!exists("dstDir"))||(!is.character(dstDir))||(length(dstDir) != 1)||(is.na(dstDir))||(!dir.exists(dstDir))) {
+kount <- 0
+while ((kount == 0)||
+       (!exists("dstDir"))||
+       (!is.character(dstDir))||
+       (length(dstDir) != 1)||
+       (is.na(dstDir))||
+       (!dir.exists(dstDir))) {
   dstDir <- rstudioapi::selectDirectory("Select output directory", path = dflt)
+  kount <- kount+1
 }
 setwd(dstDir)
+dtstNm <- gsub(topattern(paste0(dirname(parDir), "/")), "", parDir)
 
 backupFl <- paste0(dstDir, "/Backup.RData")
 write(inDir, paste0(dstDir, "/Input search directory.txt")) # In case I reprocess and do not have the backup file
@@ -379,13 +397,14 @@ if (length(w)) {
     dbFl[i] <- gsub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), tmp)
   }
 }
-if ((!exists("annot_Fl"))||(!file.exists(annot_Fl))||(gsub(".*\\.", "", annot_Fl) != "txt")) {
+annotFl_tst <- function() {
+  !((!exists("annot_Fl", envir = .GlobalEnv))||(length(annot_Fl) != 1)||(!file.exists(annot_Fl))||(gsub(".*\\.", "", annot_Fl) != "txt"))
+}
+if (!annotFl_tst()) {
   annot_Fl <- gsub("\\.fas.*$", ".txt", dbFl)
 }
-tst <- file.exists(annot_Fl)
-while (!tst) {
+while (!annotFl_tst()) {
   annot_Fl <- selectFile("Select UniProtKB annotation txt file...", path = dirname(dbFl))
-  tst <- file.exists(annot_Fl)
 }
 prsDB_Fl <- paste0(dstDir, "/Parsed DB.csv")
 if (!file.exists(prsDB_Fl)) {
@@ -419,7 +438,7 @@ if (Update_Prot_matches) {
   if (file.exists(fl)) { loadFun(fl) } else {
     Seq <- unique(ev$Sequence)
     DB <- db
-    Src <- paste0(libPath, "/extdata/R scripts/Sources/ProtMatch2.R")
+    Src <- paste0(libPath, "/extdata/R scripts/Sources/ProtMatch.R")
     #rstudioapi::documentOpen(Src)
     source(Src, local = FALSE)
     saveFun(evmatch, fl)
@@ -685,98 +704,43 @@ if (useExtTbl) {
 }
 
 # Edit samples map
-smplsMapFl <- paste0(dstDir, "/Samples_map.csv")
-ok <- FALSE
-kount <- 0
-while (!ok) {
-  reLoad <- FALSE
-  kol <- "Experiment"
-  if (file.exists(smplsMapFl)) {
-    tmp <- read.csv(smplsMapFl)
-    kol <- c(kol, "Old_Experiment")[("Old_Experiment" %in% colnames(ev))+1]
-    if ((sum(c("Old", "New", "Group", "Replicate") %in% colnames(tmp)) == 4)&&(sum(!unique(ev[[kol]]) %in% tmp$Old) == 0)) {
-      msg <- paste0("Valid samples map template detected at:\n", smplsMapFl, ". Re-load it?")
-      reLoad <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
-    }
-  }
-  if (!reLoad) {
-    tmp <- data.frame(Old = unique(ev[[kol]]),
-                      New = unique(ev[[kol]]),
-                      Group = "?",
-                      Replicate = "?")
-    tst <- try(write.csv(tmp, smplsMapFl, row.names = FALSE), silent = TRUE)
-    while ("try-error" %in% class(tst)) {
-      dlg_message(paste0("File \"", smplsMapFl, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-      tst <- try(write.csv(tmp, smplsMapFl, row.names = FALSE), silent = TRUE)
-    }
-  }
-  cmd <- paste0("open \"", smplsMapFl, "\"")
-  system(cmd)
-  msg <- c("Make your edits in the table then click ok...\nAlso add any metadata column which contains information relevant to batch correction!\n",
-           "The last version did not have the expected columns (\"Old\" and \"New\"),\nplease make your edits in the table then click ok...\n")[(kount > 0)+1]
-  dlg_message(msg, "ok")
-  smplsMap <- read.csv(smplsMapFl)
-  ok <- sum(!c("Old", "New", "Group") %in% colnames(smplsMap)) == 0
-  kount <- kount + 1
+Src <- paste0(libPath, "/extdata/R scripts/Sources/hist_Fractions_Map_editor.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
+if (!"Old_Experiment" %in% colnames(ev)) { ev$Old_Experiment <- ev$Experiment }
+w <- which(!ev$Old_Experiment %in% samplesMap$Sample)
+if (length(w)) { 
+  ev <- ev[which(ev$Old_Experiment %in% samplesMap$Sample),]
 }
-ev$Old_Experiment <- ev$Experiment
-m <- match(ev$Old_Experiment, smplsMap$Old)
-if (sum(is.na(m))) { stop() }
-ev$Experiment <- smplsMap$New[m]
-u <- unique(ev$Experiment)
-if ((length(u) == 1)&&(is.na(u))) {
-  # For when rerunning in bits!
-  ev$Experiment <- ev$Old_Experiment
-  ev$Old_Experiment <- smplsMap$Old[match(ev$Experiment, smplsMap$New)]
-}
+m <- match(ev$Old_Experiment, samplesMap$Sample)
+ev$Experiment <- samplesMap$"Sample name"[m]
+# u <- unique(ev$Experiment)
+# if ((length(u) == 1)&&(is.na(u))) {
+#   # For when rerunning in bits!
+#   ev$Experiment <- ev$Old_Experiment
+#   ev$Old_Experiment <- samplesMap$Sample[match(ev$Experiment, samplesMap$"Sample name")]
+# }
 Exp <- unique(ev$Experiment)
+Groups <- unique(samplesMap$Group)
 
 # Edit groups map
-statTsts <- FALSE
-grpsMapFl <- paste0(dstDir, "/Groups_map.csv")
-ok <- FALSE
-kount <- 0
-Groups <- unique(smplsMap$Group)
-while (!ok) {
-  reLoad <- FALSE
-  if (file.exists(grpsMapFl)) {
-    tmp <- read.csv(grpsMapFl)
-    if ((sum(c("Group", "Reference", "Comparison_group") %in% colnames(tmp)) == 3)&&(sum(!unique(smplsMap$Group) %in% tmp$Group) == 0)) {
-      msg <- paste0("Valid Groups map template detected at:\n", grpsMapFl, ". Re-load it?")
-      reLoad <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
-    }
-  }
-  if (!reLoad) {
-    tmp <- data.frame(Group = Groups,
-                      Reference = FALSE,
-                      Comparison_group = 1)
-    write.csv(tmp, grpsMapFl, row.names = FALSE)
-    cat(paste0("Groups map template created at:\n", grpsMapFl, "\n"))
-  }
-  cmd <- paste0("open \"", grpsMapFl, "\"")
-  system(cmd)
-  msg <- c("Make your edits in the Groups table then click ok",
-           "The last version did not have the expected columns (\"Old\" and \"New\"),\n
-             please make your edits in the table then click ok")[(kount > 0)+1]
-  dlg_message("Make your edits in the table then click ok", "ok")
-  grpsMap <- read.csv(grpsMapFl)
-  ok <- (sum(!c("Group", "Reference", "Comparison_group") %in% colnames(grpsMap)) == 0)
-  if (ok) {
-    grpsMap$Reference <- as.logical(grpsMap$Reference)
-    statTsts_tst <- aggregate(grpsMap$Reference, list(grpsMap$Comparison_group), function(x) {
-      sum(c(FALSE %in% x,
-            TRUE %in% x,
-            length(unique(x)) == 2))
-    })
-    statTsts <- (3 %in% statTsts_tst$x)
-    if (!statTsts) {
-      warning("No statistical tests will be performed!")
-    }
-  }
-  kount <- kount + 1
+Src <- paste0(libPath, "/extdata/R scripts/Sources/hist_Groups_Map_editor.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
+statTsts_tst <- aggregate(groupsMap$Reference, list(groupsMap$Comparison_group), function(x) {
+  sum(c(FALSE %in% x,
+        TRUE %in% x,
+        length(unique(x)) == 2))
+})
+statTsts <- (3 %in% statTsts_tst$x)
+if (!statTsts) {
+  warning("No statistical tests will be performed!")
 }
-smplsMap$Comparison_group <- grpsMap$Comparison_group[match(smplsMap$Group, grpsMap$Group)]
-smplsMap$Reference <- grpsMap$Reference[match(smplsMap$Group, grpsMap$Group)]
+samplesMap$Comparison_group <- groupsMap$Comparison_group[match(samplesMap$Group, groupsMap$Group)]
+samplesMap$Reference <- groupsMap$Reference[match(samplesMap$Group, groupsMap$Group)]
+compGrps <- unique(groupsMap$Comparison_group)
 
 isQuant <- ("Intensity" %in% colnames(ev))
 if (!isQuant) {
@@ -1011,15 +975,16 @@ tmp$Sites <- lapply(1:nrow(tmp), function(x) { #x <- 1
   tbl$Dist <- c(1, 1:nr, nr)
   tbl$Pos <- tbl$Dist + mtch - 1
   tbl <- tbl[which(tbl$Annotations != ""), , drop = FALSE]
+  tbl$Pos <- as.character(tbl$Pos)
   tbl$Site <- apply(tbl[, c("Sequence", "Pos", "Annotations")], 1, function(y) {
     paste0(pr, " ", y[[1]], y[[2]], "(", y[[3]], ")")
   })
   return(tbl$Site)
 })
-Sites <- unique(unlist(tmp$Sites))
-Sites <- data.frame(Site = Sites)
-Sites$Type <- gsub(".*\\(|\\)", "", Sites$Site)
-nSites <- aggregate(Sites$Type, list(Sites$Type), length)
+hist_Sites <- unique(unlist(tmp$Sites))
+hist_Sites <- data.frame(Site = hist_Sites)
+hist_Sites$Type <- gsub(".*\\(|\\)", "", hist_Sites$Site)
+nSites <- aggregate(hist_Sites$Type, list(hist_Sites$Type), length)
 nSites <- nSites[order(nSites$x, decreasing = TRUE),]
 colnames(nSites) <- c("PTM", "Nb. of sites")
 View(nSites)
@@ -1086,7 +1051,7 @@ for (e in Exp) { #e <- Exp[1]
   }
 }
 
-smpls <- unique(smplsMap$New)
+allSamples <- unique(samplesMap$"Sample name")
 
 #openwd(histDir)
 data.table::fwrite(histEv, paste0(histDir, "/Hist_peptidoforms.tsv"),
@@ -1110,10 +1075,10 @@ logIntRoot <- setNames("log10(int.) - ", intType)
 ratRoot <- "log2(Ratio) - "
 #
 tmp <- evSum[, c("Experiment", "Modified sequence", "Intensity")]
-exports <- list("smpls", "smplsMap", "tmp", "intRoot", "is.all.good")
+exports <- list("allSamples", "samplesMap", "tmp", "intRoot", "is.all.good")
 clusterExport(parClust, exports, envir = environment())
 clusterCall(parClust, function() library(data.table))
-tmp4 <- setNames(parLapply(parClust, smpls, function(smpl) { #smpl <- smpls[1] #smpl <- smpls[4]
+tmp4 <- setNames(parLapply(parClust, allSamples, function(smpl) { #smpl <- allSamples[1] #smpl <- allSamples[4]
   w <- which(tmp$Experiment == smpl)
   tmp2 <- data.frame(mod = NA, Intensity = NA)
   if (length(w)) {
@@ -1125,8 +1090,8 @@ tmp4 <- setNames(parLapply(parClust, smpls, function(smpl) { #smpl <- smpls[1] #
     tmp2 <- as.data.frame(tmp2)
   }
   return(tmp2)
-}), smpls)
-for (smpl in smpls) { #smpl <- smpls[1] #smpl <- smpls[4]
+}), allSamples)
+for (smpl in allSamples) { #smpl <- allSamples[1] #smpl <- allSamples[4]
   tmp <- tmp4[[smpl]]
   pep[[paste0(intRoot[intType], smpl)]] <- NA
   w <- which(pep$"Modified sequence" %in% tmp$mod)
@@ -1151,16 +1116,17 @@ pep$Label <- parApply(parClust, pep[, labCol, drop = FALSE], 1, function(x) {
 })
 pep$Sequence <- ev$Sequence[match(pep$`Modified sequence_verbose`, ev$`Modified sequence_verbose`)]
 intType <- "Original"
-normSummary <- data.frame(Sample = smpls, Original = sapply(smpls, function(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) }))
+normSummary <- data.frame(Sample = allSamples, Original = sapply(allSamples, function(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) }))
 
 #
 saveImgFun(backupFl)
+#loadFun(backupFl)
 
 # Batch correction:
-kol <- colnames(smplsMap)
-kol <- kol[which(!kol %in% c("Old", "New", "Group", "Comparison_group",  "Reference"))]
+kol <- colnames(samplesMap)
+kol <- kol[which(!kol %in% c("Sample", "Sample name", "Group", "Comparison_group",  "Reference"))]
 kol <- kol[which(vapply(kol, function(k) {
-  length(unique(smplsMap[[k]])) > 1
+  length(unique(samplesMap[[k]])) > 1
 }, TRUE))]
 if (length(kol)) {
   dflt <- kol
@@ -1181,7 +1147,7 @@ if (length(kol)) {
   if (combatNorm) {
     #
     # Check for synonymous batches
-    tmp <- smplsMap[, myBatches, drop = FALSE]
+    tmp <- samplesMap[, myBatches, drop = FALSE]
     for (btch in myBatches) {
       tmp[[btch]] <- as.numeric(as.factor(tmp[[btch]]))
     }
@@ -1204,15 +1170,7 @@ if (length(kol)) {
     #
     btchDir <- paste0(dstDir, "/Batch correction")
     if (!dir.exists(btchDir)) { dir.create(btchDir, recursive = TRUE) }
-    pkgs <- unique(c(pkgs, "sva", "plotly", "htmlwidgets", "shiny", "shinyjs", "shinycssloaders", "DT", "ggrepel"))
-    for (pkg in pkgs) {
-      if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
-        pak::pkg_install(pkg, ask = FALSE)
-      }
-    }
-    for (pkg in pkgs) {
-      library(pkg, character.only = TRUE)
-    }
+    #
     scoresLst <- PCAlyLst <- PCsLst <- list()
     orig <- "original"
     prevBatch <- sapply(myBatches, function(btch) {
@@ -1226,14 +1184,14 @@ if (length(kol)) {
     })
     #
     # Prepare data
-    intCols <- paste0(intRoot[intType], smpls)
+    intCols <- paste0(intRoot[intType], allSamples)
     logIntCols <- gsub(proteoCraft::topattern(intRoot[intType]), logIntRoot[intType], intCols)
     edata <- pep[, intCols]
     for (k in intCols) {
       edata[[k]] <- log10(edata[[k]])
     }
     colnames(edata) <- logIntCols
-    grps <- smplsMap$Group[match(smpls, smplsMap$New)]
+    grps <- samplesMap$Group[match(allSamples, samplesMap$"Sample name")]
     #
     # Impute missing values
     tempImp <- proteoCraft::Data_Impute2(edata, grps)
@@ -1248,18 +1206,18 @@ if (length(kol)) {
     tmp <- pcaBatchPlots(impEdata,
                          orig,
                          intRoot = logIntRoot[intType],
-                         map = smplsMap,
-                         SamplesCol = "New")
+                         map = samplesMap,
+                         SamplesCol = "Sample name")
     PCAlyLst[[orig]] <- tmp$PlotLy
     scoresLst[[orig]] <- tmp$Scores
     PCsLst[[orig]] <- tmp$PCs
     #
-    mod0 <- model.matrix(~1, data = smplsMap)
-    mod <- model.matrix(~as.factor(smplsMap$Group), data = smplsMap)
+    mod0 <- model.matrix(~1, data = samplesMap)
+    mod <- model.matrix(~as.factor(samplesMap$Group), data = samplesMap)
     n.sv <- sva::num.sv(impEdata, mod, method = "leek")
     KeepComBatResDflt <- (n.sv > 0)
     if (n.sv == 0) {
-      msg <- "We do not estimate that there are any surrogate variables hidden in the data -> no batch correction required. Correct nonetheless?"
+      msg <- "We do not estimate that there are any surrogate variables hidden in the data -> no batch correction required. Try correcting nonetheless?"
       opt <- c("No                                                                                                                                                                                                                                                                                                                ",
                "Yes                                                                                                                                                                                                                                                                                                               ")
       combatNorm <- c(FALSE, TRUE)[match(dlg_list(opt, opt[1], title = msg)$res, opt)]
@@ -1271,117 +1229,133 @@ if (length(kol)) {
     for (btch in myBatches) { #btch <- myBatches[1] #btch <- myBatches[2]
       keepCmBtRs <- KeepComBatResDflt
       combat_edata <- list()
-      for (grp in Groups) { #grp <- Groups[1]
+      for (cmpGrp in compGrps) { #cmpGrp <- compGrps[1]  #cmpGrp <- compGrps[2]
         last <- btch
         prev <- prevBatch[btch]
-        w <- which(smplsMap$Group == grp)
-        k <- paste0(logIntRoot[intType], smplsMap$New[w])
-        mod0a <- model.matrix(~1, data = smplsMap[w,])
-        combat_edata[[grp]] <- ComBat(dat = impEdata[, k],
-                                      batch = smplsMap[[btch]][w],
-                                      mod = mod0a,
-                                      par.prior = TRUE)
+        w <- which(samplesMap$Comparison_group == cmpGrp)
+        k <- paste0(logIntRoot[intType], samplesMap$"Sample name"[w])
+        map <- samplesMap[w,]
+        mod0a <- model.matrix(~1, data = map)
+        btchVect <- samplesMap[[btch]][w]
+        tst <- aggregate(btchVect, list(btchVect), length)
+        if (min(tst$x == 1)) {
+          warning(paste0("Could not correct for group ", cmpGrp, ": not enough values"))
+          combat_edata[[cmpGrp]] <- impEdata[, k]
+        } else {
+          combat_edata[[cmpGrp]] <- ComBat(dat = impEdata[, k],
+                                           batch = btchVect,
+                                           mod = mod0a,
+                                           par.prior = TRUE) 
+        }
       }
       combat_edata <- do.call(cbind, combat_edata)
       combat_edata <- as.data.frame(combat_edata)
+      colnames(combat_edata) <- paste0(logIntRoot[intType], gsub(".* - ", "", colnames(combat_edata)))
       # Plot
-      tmp <- pcaBatchPlots(combat_edata,
-                           btch,
-                           intRoot = logIntRoot[intType],
-                           map = smplsMap,
-                           SamplesCol = "New")
-      PCAlyLst[[btch]] <- tmp$PlotLy
-      scoresLst[[btch]] <- tmp$Scores
-      PCsLst[[btch]] <- tmp$PCs
-      #
-      appNm <- paste0("Batch corr.: ", prev, " -> ", btch)
-      msg <- "Keep results from ComBat batch correction? (untick to cancel correction)"
-      PCs <- data.frame("Component" = paste0("PC", as.character(seq_along(PCsLst[[prev]]$sdev))),
-                        "Before (%)" = round(100*(PCsLst[[prev]]$sdev)^2 / sum(PCsLst[[prev]]$sdev^2), 0),
-                        "After (%)" = round(100*(PCsLst[[btch]]$sdev)^2 / sum(PCsLst[[btch]]$sdev^2), 0))
-      if (exists("IHAVERUN")) { rm(IHAVERUN) }
-      ui <- fluidPage(
-        useShinyjs(),
-        setBackgroundColor( # Doesn't work
-          color = c(#"#F8F8FF",
-            "#EEFAE6"),
-          gradient = "linear",
-          direction = "bottom"
-        ),
-        extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
-        tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-        titlePanel(tag("u", appNm),
-                   appNm),
-        br(),
-        fluidRow(column(5,
-                        checkboxInput("KeepResults", msg, keepCmBtRs),
-                        actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-                        h4("Recommended criteria:"),
-                        h5(HTML("&nbsp;Does the original grouping follow known batches?")),
-                        h5(HTML("&nbsp;&nbsp;-> If no: only accept the correction if it improves the apparent grouping of expected sample groups.")),
-                        h5(HTML("&nbsp;&nbsp;-> If yes: accept the correction if...")),
-                        h5(HTML("&nbsp;&nbsp;&nbsp;- ... it removes the original grouping by batches...")),
-                        h5(HTML("&nbsp;&nbsp;&nbsp;- ... or it improves the apparent grouping of expected sample groups.")),
-                        withSpinner(DTOutput("PCs")),
-                        br(),
-                        br(),
-                        br()),
-                 column(7,
-                        withSpinner(plotlyOutput("Before", height = "550px")),
-                        withSpinner(plotlyOutput("After", height = "550px")))),
-        br(),
-        br()
-      )
-      server <- function(input, output, session) {
-        output$Before <- renderPlotly(PCAlyLst[[prev]][[btch]])
-        output$After <- renderPlotly(PCAlyLst[[btch]][[btch]])
-        output$PCs <- renderDT({ PCs },
-                               FALSE,
-                               escape = FALSE,
-                               class = "compact",
-                               selection = "none",
-                               editable = FALSE,
-                               rownames = FALSE,
-                               options = list(
-                                 dom = 't',
-                                 paging = FALSE,
-                                 ordering = FALSE
-                               ),
-                               callback = JS("table.rows().every(function(i, tab, row) {
+      tmp <- try(pcaBatchPlots(combat_edata,
+                               btch,
+                               intRoot = logIntRoot[intType],
+                               map = samplesMap,
+                               SamplesCol = "Sample name"), silent = TRUE)
+      if (!"try-error" %in% class(tmp)) {
+        PCAlyLst[[btch]] <- tmp$PlotLy
+        scoresLst[[btch]] <- tmp$Scores
+        PCsLst[[btch]] <- tmp$PCs
+        #
+        appNm <- paste0("Batch corr.: ", prev, " -> ", btch)
+        msg <- "Keep results from ComBat batch correction? (untick to cancel correction)"
+        PCs <- data.frame("Component" = paste0("PC", as.character(seq_along(PCsLst[[prev]]$sdev))),
+                          "Before (%)" = round(100*(PCsLst[[prev]]$sdev)^2 / sum(PCsLst[[prev]]$sdev^2), 0),
+                          "After (%)" = round(100*(PCsLst[[btch]]$sdev)^2 / sum(PCsLst[[btch]]$sdev^2), 0))
+        if (exists("IHAVERUN")) { rm(IHAVERUN) }
+        ui <- fluidPage(
+          useShinyjs(),
+          setBackgroundColor( # Doesn't work
+            color = c(#"#F8F8FF",
+              "#EEFAE6"),
+            gradient = "linear",
+            direction = "bottom"
+          ),
+          extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+          tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+          titlePanel(tag("u", appNm),
+                     appNm),
+          br(),
+          fluidRow(column(5,
+                          checkboxInput("KeepResults", msg, keepCmBtRs),
+                          actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+                          h4("Recommended criteria:"),
+                          h5(HTML("&nbsp;Does the original grouping follow known batches?")),
+                          h5(HTML("&nbsp;&nbsp;-> If no: only accept the correction if it improves the apparent grouping of expected sample groups.")),
+                          h5(HTML("&nbsp;&nbsp;-> If yes: accept the correction if...")),
+                          h5(HTML("&nbsp;&nbsp;&nbsp;- ... it removes the original grouping by batches...")),
+                          h5(HTML("&nbsp;&nbsp;&nbsp;- ... or it improves the apparent grouping of expected sample groups.")),
+                          withSpinner(DTOutput("PCs")),
+                          br(),
+                          br(),
+                          br()),
+                   column(7,
+                          withSpinner(plotlyOutput("Before", height = "550px")),
+                          withSpinner(plotlyOutput("After", height = "550px")))),
+          br(),
+          br()
+        )
+        server <- function(input, output, session) {
+          output$Before <- renderPlotly(PCAlyLst[[prev]][[btch]])
+          output$After <- renderPlotly(PCAlyLst[[btch]][[btch]])
+          output$PCs <- renderDT({ PCs },
+                                 FALSE,
+                                 escape = FALSE,
+                                 class = "compact",
+                                 selection = "none",
+                                 editable = FALSE,
+                                 rownames = FALSE,
+                                 options = list(
+                                   dom = 't',
+                                   paging = FALSE,
+                                   ordering = FALSE
+                                 ),
+                                 callback = JS("table.rows().every(function(i, tab, row) {
         var $this = $(this.node());
         $this.attr('id', this.data()[0]);
         $this.addClass('shiny-input-container');
       });
       Shiny.unbindAll(table.table().node());
       Shiny.bindAll(table.table().node());"))
-        observeEvent(input[["KeepResults"]], {
-          assign("keepCmBtRs", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
-        })
-        observeEvent(input$saveBtn, {
-          assign("keepCmBtRs", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
-          assign("IHAVERUN", TRUE, .GlobalEnv)
-          stopApp()
-        })
-        #observeEvent(input$cancel, { stopApp() })
-        session$onSessionEnded(function() { stopApp() })
-      }
-      runKount <- 0
-      while ((!runKount)||(!exists("IHAVERUN"))) {
-        eval(parse(text = runApp), envir = .GlobalEnv)
-        runKount <- runKount+1
-      }
-      #
-      msg <- paste0(" -> correction of ", btch, "-batch associated effect from ", prev, " ", c("rejec", "accep")[keepCmBtRs+1], "ted.\n")
-      if (!keepCmBtRs) {
-        last <- prev
-        m <- match(btch, myBatches)
-        if (m < length(myBatches)) {
-          prevBatch[m+1] <- prev
+          observeEvent(input[["KeepResults"]], {
+            assign("keepCmBtRs", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
+          })
+          observeEvent(input$saveBtn, {
+            assign("keepCmBtRs", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
+            assign("IHAVERUN", TRUE, .GlobalEnv)
+            stopApp()
+          })
+          #observeEvent(input$cancel, { stopApp() })
+          session$onSessionEnded(function() { stopApp() })
         }
+        runKount <- 0
+        while ((!runKount)||(!exists("IHAVERUN"))) {
+          eval(parse(text = runApp), envir = .GlobalEnv)
+          runKount <- runKount+1
+        }
+        #
+        msg <- paste0(" -> correction of ", btch, "-batch associated effect from ", prev, " ", c("rejec", "accep")[keepCmBtRs+1], "ted.\n")
+        if (!keepCmBtRs) {
+          last <- prev
+          m <- match(btch, myBatches)
+          if (m < length(myBatches)) {
+            prevBatch[m+1] <- prev
+          }
+        }
+        cat(msg)
+        ComBat_Data[[btch]] <- combat_edata
+        KeepComBatRes[btch] <- keepCmBtRs
+      } else {
+        msg <- paste0(" -> correction of ", btch, "-batch associated effect from ", prev, " failed!\n")
+        cat(msg)
+        ComBat_Data[[btch]] <- NA
+        KeepComBatRes[btch] <- keepCmBtRs
       }
-      cat(msg)
-      ComBat_Data[[btch]] <- combat_edata
-      KeepComBatRes[btch] <- keepCmBtRs
     }
     w <- which(KeepComBatRes)
     if (length(w)) {
@@ -1407,7 +1381,7 @@ if (length(kol)) {
       #
       comBatCols <- colnames(btchCorrData)
       pep[, comBatCols] <- btchCorrData[, comBatCols]
-      normSummary[[intType]] <- sapply(smpls, function(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) })
+      normSummary[[intType]] <- sapply(allSamples, function(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) })
     }
   }
 }
@@ -1428,7 +1402,7 @@ pep$isCore[w] <- apply(pep[w, c("Sequence", "tmp")], 1, function(x) { #x <- pep[
 pep$tmp <- NULL
 
 # Normalize
-quntCol <- paste0(intRoot[intType], smpls)
+quntCol <- paste0(intRoot[intType], allSamples)
 if (length(Exp) > 1) {
   normOpt <- c("Histone-fold region of all core histones",
                "Histone-fold region of all core histones, per histone (-> non-histone peptides excluded from analysis!)",
@@ -1439,8 +1413,8 @@ if (length(Exp) > 1) {
   normMeth <- names(opt2[match(normMeth, opt2)])
   if (normMeth %in% normOpt[1:3]) {
     intRoot["Normalized"] <- "norm. int. - "
-    logIntRoot["Normalized"] <- "norm.  log10(int.) - "
-    quntCol2 <- paste0(intRoot["Normalized"], smpls)
+    logIntRoot["Normalized"] <- "norm. log10(int.) - "
+    quntCol2 <- paste0(intRoot["Normalized"], allSamples)
     if (normMeth %in% normOpt[1:2]) {
       w <- which(pep$isCore)
       if (!length(w)) { stop("Not enough peptides to normalize") }
@@ -1483,8 +1457,8 @@ if (length(Exp) > 1) {
         # Calculate Core peptides-only re-normalization factor at protein level:
         #prt2pep$Norm <- lapply(1:nrow(prt2pep), function(x) { c() })
         tmp <- pep[, c("id", quntCol2)]
-        clusterExport(parClust, list("tmp", "quntCol2", "smpls"), envir = environment())
-        prt2pep[, smpls] <- as.data.frame(t(parSapply(parClust, prt2pep$Core, function(x) { #x <- prt2pep$Core[2]
+        clusterExport(parClust, list("tmp", "quntCol2", "allSamples"), envir = environment())
+        prt2pep[, allSamples] <- as.data.frame(t(parSapply(parClust, prt2pep$Core, function(x) { #x <- prt2pep$Core[2]
           tmp1 <- tmp[match(unlist(x), tmp$id),]
           M <- unlist(tmp1[, quntCol2])
           M <- M[which(M > 0)]
@@ -1497,15 +1471,15 @@ if (length(Exp) > 1) {
             x <- x[which(x > 0)]
             median(proteoCraft::is.all.good(as.numeric(x)))
           })
-          return(setNames(M/m, smpls)) 
+          return(setNames(M/m, allSamples)) 
         })))
         #
         # Turn it into peptide-level normalization factors, averaging as needed
         pep2prt <- listMelt(prt2pep$x, prt2pep$Group.1, c("pep", "prot"))
-        pep2prt[, smpls] <- prt2pep[match(pep2prt$prot, prt2pep$Group.1[wL]), smpls]
-        Norm <- aggregate(pep2prt[, smpls], list(pep2prt$pep), function(x) { exp(mean(log(x), na.rm = TRUE)) })
+        pep2prt[, allSamples] <- prt2pep[match(pep2prt$prot, prt2pep$Group.1[wL]), allSamples]
+        Norm <- aggregate(pep2prt[, allSamples], list(pep2prt$pep), function(x) { exp(mean(log(x), na.rm = TRUE)) })
         # If we cannot calculate a normalization factor, we need to remove the peptide
-        tst <- parApply(parClust, Norm[, smpls], 1, function(x) { length(proteoCraft::is.all.good(x)) })
+        tst <- parApply(parClust, Norm[, allSamples], 1, function(x) { length(proteoCraft::is.all.good(x)) })
         Norm <- Norm[which(tst > 0),]
         #
         # Now we need to remove peptides which cannot be normalized with this method
@@ -1516,8 +1490,8 @@ if (length(Exp) > 1) {
         Norm <- Norm[match(pep$id, Norm$Group.1),]
         #
         # Finally we apply the normalization
-        for (i in seq_along(smpls)) {
-          pep[[quntCol2[i]]] <- pep[[quntCol2[i]]]*Norm[[smpls[i]]]
+        for (i in seq_along(allSamples)) {
+          pep[[quntCol2[i]]] <- pep[[quntCol2[i]]]*Norm[[allSamples[i]]]
         }
       }
     }
@@ -1526,13 +1500,13 @@ if (length(Exp) > 1) {
       pep[, quntCol2] <- tmp[, paste0("AdvNorm.", quntCol)]
     }
     intType <- "Normalized"
-    normSummary[[intType]] <- sapply(smpls, function(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) })
-    quntCol <- paste0(intRoot[intType], smpls) # Update
+    normSummary[[intType]] <- sapply(allSamples, function(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) })
+    quntCol <- paste0(intRoot[intType], allSamples) # Update
   }
 }
 
 # Look at shift induced by normalization for all samples
-normTst <- data.frame(Sample = smpls, NormFact = round(normSummary[[intType]]/normSummary$Original, 3))
+normTst <- data.frame(Sample = allSamples, NormFact = round(normSummary[[intType]]/normSummary$Original, 3))
 max(normTst$NormFact)/min(normTst$NormFact)
 write.csv(normTst, paste0(dstDir, "/Norm. summary.csv"), row.names = FALSE)
 #tmp <- paste0(do.call(paste, c(normTst, sep = " ->\t\t")), "\n")
@@ -1541,8 +1515,8 @@ write.csv(normTst, paste0(dstDir, "/Norm. summary.csv"), row.names = FALSE)
 ### PCA dimensionality reduction plots
 dimRedPlotLy %<o% list()
 pep$"Av. log10 abundance" <- rowMeans(pep[, quntCol], na.rm = TRUE)
-Rep <- unique(smplsMap$Replicate)
-compGrps <- unique(grpsMap$Comparison_group)
+Rep <- unique(samplesMap$Replicate)
+compGrps <- unique(groupsMap$Comparison_group)
 pca_types <- c("Global", compGrps)
 pca_types2 <- "Histones"
 tstHist <- pep$`Histone(s)` > "" # Sometimes we only have histone peptide options, typically when working with Skyline  /n
@@ -1553,7 +1527,7 @@ for (pca_type in pca_types) {
   for (pca_type2 in pca_types2) {
     kol <- quntCol
     if (pca_type != "Global") {
-      smpls <- smplsMap$New[which(smplsMap$Comparison_group == pca_type)] 
+      smpls <- samplesMap$"Sample name"[which(samplesMap$Comparison_group == pca_type)] 
       tst <- gsub(".* - ", "", kol)
       kol <- kol[which(tst %in% smpls)]
     }
@@ -1578,11 +1552,11 @@ for (pca_type in pca_types) {
         paste0("PC", x, ": ", pv[x], "%")
       }), collapse = ", "))
       scores$Sample <- rownames(scores)
-      m <- match(scores$Sample, smplsMap$New)
-      scores$Group <- smplsMap$Group[m]
-      scores$Replicate <- smplsMap$Replicate[m]
+      m <- match(scores$Sample, samplesMap$"Sample name")
+      scores$Group <- samplesMap$Group[m]
+      scores$Replicate <- samplesMap$Replicate[m]
       #
-      scores$"comparison group" <- grpsMap$Comparison_group[match(scores$Group, grpsMap$Group)]
+      scores$"comparison group" <- groupsMap$Comparison_group[match(scores$Group, groupsMap$Group)]
       form <- "~`comparison group`"
       ttl <- "Samples PCA plot"
       if (pca_type2 == "Histones") {
@@ -1618,7 +1592,7 @@ for (pca_type in pca_types) {
           setwd(dstDir)
           saveWidget(plot_lyPCAProt, paste0(dstDir, "/", ttl, ".html"))
           dimRedPlotLy[["Samples PCA"]] <- plot_lyPCAProt
-          #system(`paste0("open \"", dstDir, "/", ttl, ".html"))
+          #system(paste0("open \"", dstDir, "/", ttl, ".html"))
           # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
         } else { poplot(plot, width = 18) }
         suppressWarnings({
@@ -1678,13 +1652,14 @@ tmp$Sites <- lapply(1:nrow(tmp), function(x) { #x <- 1
   tbl$Dist <- c(1, 1:nr, nr)
   tbl$Pos <- tbl$Dist + mtch - 1
   tbl <- tbl[which(tbl$Annotations != ""), , drop = FALSE]
+  tbl$Pos <- as.character(tbl$Pos)
   tbl$Site <- apply(tbl[, c("Sequence", "Pos", "Annotations")], 1, function(y) {
     paste0(pr, " ", y[[1]], y[[2]], "(", y[[3]], ")")
   })
   return(tbl$Site)
 })
 Sites <- listMelt(tmp$Sites, tmp$pepID, c("Site", "pepID"))
-quntCol <- paste0(intRoot[intType], smpls) # Update
+quntCol <- paste0(intRoot[intType], allSamples) # Update
 Sites[, quntCol] <- pep[match(Sites$pepID, pep$id), quntCol]
 Sites2 <- Sites
 Sites2$pepID <- NULL
@@ -1713,15 +1688,15 @@ if (statTsts) {
   clusterExport(parClust, list("Nested"), envir = environment())
   #reNorm <- FALSE
   #
-  # From smplsMap to design matrix
-  grpsMap2 <- grpsMap[which(grpsMap$Comparison_group %in% statTsts_tst$Group.1[which(statTsts_tst$x == 3)]),]
-  smplsMap2 <- smplsMap[which(smplsMap$Group %in% grpsMap2$Group),]
-  smplsMap2$Sample <- smplsMap2$New
-  compGrps <- unique(grpsMap2$Comparison_group)
+  # From samplesMap to design matrix
+  groupsMap2 <- groupsMap[which(groupsMap$Comparison_group %in% statTsts_tst$Group.1[which(statTsts_tst$x == 3)]),]
+  samplesMap2 <- samplesMap[which(samplesMap$Group %in% groupsMap2$Group),]
+  samplesMap2$Sample <- samplesMap2$"Sample name"
+  compGrps <- unique(groupsMap2$Comparison_group)
   Factors2 <- c("Group")
   Factors <- c("Sample", "Replicate", Factors2)
   for (fct in Factors) {
-    assign(paste0(fct, "_"), as.factor(smplsMap2[[fct]]))
+    assign(paste0(fct, "_"), as.factor(samplesMap2[[fct]]))
   }
   if (Nested) {
     designCall <- paste0("designMatr <- model.matrix(~0 + Replicate_ + ", paste0(Factors2, "_", collapse = " + "), ")")
@@ -1734,7 +1709,7 @@ if (statTsts) {
   # Define contrasts
   expContrasts <- list()
   for (ratGrp in compGrps) {
-    em <- smplsMap2[which(smplsMap2$Comparison_group == ratGrp),]
+    em <- samplesMap2[which(samplesMap2$Comparison_group == ratGrp),]
     grp1 <- unique(em$Group[which(!em$Reference)])
     grp0 <- unique(em$Group[which(em$Reference)])
     expContrasts[[ratGrp]] <- plyr::rbind.fill(lapply(grp0, function(g0) { data.frame(x1 = paste0("Group_", grp1), x0 = paste0("Group_", g0)) }))
@@ -1774,18 +1749,19 @@ if (statTsts) {
     if (nrow(w)) {
       myData[, intCols][w] <- NA
     }
-    myData[, gsub(intRoot[intType],
-                  logIntRoot[intType],
-                  intCols)] <- log10(myData[, intCols])
+    logIntCols <- gsub(topattern(intRoot[intType]),
+                       logIntRoot[intType],
+                       intCols)
+    myData[, logIntCols] <- log10(myData[, intCols])
     #
     # First calculate mean per group
     for (grp in Groups) { #grp <- Groups[1] #grp <- Groups[2]
       #cat(" - Mean intensities ", grp, "\n")
-      w <- which(smplsMap2$Group == grp)
-      e1 <- smplsMap2[w,]
-      stopifnot(length(unique(e1$New)) == length(e1$New))
-      smpls1 <- e1$New
-      col1 <- paste0(logIntRoot[intType], smpls1)
+      w <- which(samplesMap2$Group == grp)
+      e1 <- samplesMap2[w,]
+      stopifnot(length(unique(e1$"Sample name")) == length(e1$"Sample name"))
+      allSamples1 <- e1$"Sample name"
+      col1 <- paste0(logIntRoot[intType], allSamples1)
       w1 <- which(col1 %in% colnames(myData))
       if (length(w1)) { # Calculate average expression
         e1 <- e1[w1,]; col1 <- col1[w1]
@@ -1806,11 +1782,11 @@ if (statTsts) {
     if (Nested) {
       for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[1] #contr <- colnames(contrMatr)[2]
         tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
-        e <- smplsMap2[which(smplsMap2$Group %in% tmp),]
+        e <- samplesMap2[which(samplesMap2$Group %in% tmp),]
         uRps <- unique(e$Replicate)
         rps <- lapply(uRps, function(x) {
-          x0 <- e$New[which((e$Replicate == x)&(e$Reference))]
-          x1 <- e$New[which((e$Replicate == x)&(!e$Reference))]
+          x0 <- e$"Sample name"[which((e$Replicate == x)&(e$Reference))]
+          x1 <- e$"Sample name"[which((e$Replicate == x)&(!e$Reference))]
           if ((length(x0) == 1)&&(length(x1) == 1)) {
             rs <- data.frame(Rep = x,
                              Ref = x0,
@@ -1837,9 +1813,9 @@ if (statTsts) {
         (myData[[paste0("Mean ", logIntRoot[intType], x[1])]] - myData[[paste0("Mean ", logIntRoot[intType], x[2])]])/log10(2)
       }))
     }
-    #View(myData[, c(paste0(logIntRoot[intType], smplsMap2$Sample), paste0(ratRoot, gsub("Group_", "", colnames(contrMatr))))])
+    #View(myData[, c(paste0(logIntRoot[intType], samplesMap2$Sample), paste0(ratRoot, gsub("Group_", "", colnames(contrMatr))))])
     #
-    tempVal <- myData[, paste0(logIntRoot[intType], smplsMap2$Sample)]
+    tempVal <- myData[, paste0(logIntRoot[intType], samplesMap2$Sample)]
     fit <- lmFit(tempVal, designMatr) # It's a nested design
     fit <- contrasts.fit(fit, contrMatr)
     fit <- eBayes(fit) # Assumes 1% of genes change!!!
@@ -1895,16 +1871,21 @@ if (statTsts) {
       fc <- paste0(ratRoot, nm)
       pv <- paste0("Mod. P-value - ", nm)
       dc <- paste0("Decision - ", nm)
-      plot <- ggplot(myData) +
-        geom_point(aes(x = .data[[fc]], y = -log10(.data[[pv]]), colour = .data[[dc]],
+      kl <- c("is Histone", "Alpha", "Size", "Label")
+      myDat <- myData[, c(fc, pv, dc, kl)]
+      myDat[[pv]] <- -log10(myDat[[pv]])
+      colnames(myDat) <- c("log2 FC", "-log10 mod. P-value", "Decision", kl)
+      plot <- ggplot(myDat) +
+        geom_point(aes(x = `log2 FC`, y = `-log10 mod. P-value`, colour = `Decision`,
                        shape = `is Histone`, alpha = Alpha, size = Size, text = Label)) +
         theme_bw() + ggtitle(ttl) + colScale +
         geom_vline(xintercept = -l2FC, color = "red3", linetype = "dashed") +
         geom_vline(xintercept = l2FC, color = "limegreen", linetype = "dashed") +
         geom_hline(yintercept = -log10(thresh), color = "purple", linetype = "dashed") +
         scale_alpha_identity(guide = "none") + scale_size_identity(guide = "none") +
+        ylab("-log10(moderated P-value") +
         scale_y_continuous(expand = c(0, 0))
-      #poplot(plot)
+      #poplot(plot, 12, 22)
       suppressWarnings({
         ggsave(paste0(dstDir, "/", ttl, ".jpeg"), plot, dpi = 300)
       })
@@ -1914,7 +1895,9 @@ if (statTsts) {
     }
   })
   #
-  for (iii in 1:2) { #iii <- 1
+  for (iii in 1:2) {
+    #iii <- 1
+    #iii <- 2
     if (iii == 1) {
       myData <- pep
       namesCol <- "Label"
@@ -1931,16 +1914,16 @@ if (statTsts) {
 
 # Specific peptides/sites
 for (cmpGrp in compGrps) { #cmpGrp <- compGrps[1]
-  grps <- unique(grpsMap2$Group[which(grpsMap2$Comparison_group == cmpGrp)])
-  grps2smpls <- setNames(lapply(grps, function(grp) { unique(smplsMap2$New[which(smplsMap2$Group == grp)]) }), grps)
+  grps <- unique(groupsMap2$Group[which(groupsMap2$Comparison_group == cmpGrp)])
+  grps2smpls <- setNames(lapply(grps, function(grp) { unique(samplesMap2$"Sample name"[which(samplesMap2$Group == grp)]) }), grps)
   grps2kol <- setNames(lapply(grps2smpls, function(x) { paste0(intRoot[intType], x) }), grps)
   stopifnot(sum(!unlist(grps2kol) %in% colnames(pep)) == 0,
             sum(!unlist(grps2kol) %in% colnames(Sites)) == 0)
   for (grp1 in grps) { #grp1 <- grps[1]
     k1 <- grps2kol[[grp1]]
-    tst <- grpsMap2$Reference[match(grp1, grpsMap2$Group)]
+    tst <- groupsMap2$Reference[match(grp1, groupsMap2$Group)]
     # This will mean comparing to reference
-    grp0 <- grpsMap2$Group[which((grpsMap2$Comparison_group == cmpGrp)&(grpsMap2$Reference != tst))]
+    grp0 <- groupsMap2$Group[which((groupsMap2$Comparison_group == cmpGrp)&(groupsMap2$Reference != tst))]
     k0 <- unlist(grps2kol[grp0])
     pep[[paste0("Specific - ", grp1)]] <- vapply(1:nrow(pep), function(i) {
       x1 <- is.all.good(as.numeric(pep[i, k1]))
@@ -1959,12 +1942,12 @@ for (cmpGrp in compGrps) { #cmpGrp <- compGrps[1]
 
 # Write tables
 # - Peptides
-smplsMap3 <- smplsMap[order(smplsMap$Comparison_group,
-                            smplsMap$Group,
-                            smplsMap$Replicate),]
-smpls3 <- unique(smplsMap3$New)
-Groups3 <- unique(smplsMap3$Group)
-kol <- c(paste0(intRoot[intType], smpls3),
+samplesMap3 <- samplesMap[order(samplesMap$Comparison_group,
+                            samplesMap$Group,
+                            samplesMap$Replicate),]
+allSamples3 <- unique(samplesMap3$"Sample name")
+Groups3 <- unique(samplesMap3$Group)
+kol <- c(paste0(intRoot[intType], allSamples3),
          paste0("Specific - ", Groups3))
 kol <- kol[which(kol %in% colnames(pep))]
 tmp <- pep[which(pep$`Histone(s)` != ""),]
@@ -1997,11 +1980,11 @@ if (length(Exp) > 1) {
   }
   dir <- paste0(dstDir, "/Clustering")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  xMap <- smplsMap
+  xMap <- samplesMap
   #
   ImputeKlust <- TRUE
   MaxHClust <- min(c(floor(nrow(pep)/2), 100)) # We want at most 20 clusters
-  MaxVClust <- nrow(grpsMap2)
+  MaxVClust <- nrow(groupsMap2)
   VClustScl <- setNames(1:MaxVClust, paste0("Cluster", 1:MaxVClust))
   HClustScl <- setNames(1:MaxHClust, paste0("Cluster", 1:MaxHClust))
   VClustScl <- setNames(rainbow(MaxVClust), VClustScl)
@@ -2010,7 +1993,7 @@ if (length(Exp) > 1) {
   KlustMeth <- 2
   KlustRoot <- paste0("Cluster (", c("K-means", "hierarch.")[KlustMeth], ") - ")
   normTypes <- c("Norm. by row", "Z-scored")
-  kol <- paste0(intRoot[intType], smpls)
+  kol <- paste0(intRoot[intType], allSamples)
   plotLeatMaps <- list()
   prot.list.Cond <- TRUE
   prot.list <- histDB$`Protein ID`
@@ -2023,7 +2006,7 @@ if (length(Exp) > 1) {
     plotLeatMaps[[normType]] <- list()
     for (flt in names(Filter)) {
       fltInsrt <- c("", " Histones only")[match(flt, names(Filter))]
-      temp <- magrittr::set_rownames(magrittr::set_colnames(pep[Filter[[flt]], kol], smpls), pep$Label[Filter[[flt]]])
+      temp <- magrittr::set_rownames(magrittr::set_colnames(pep[Filter[[flt]], kol], allSamples), pep$Label[Filter[[flt]]])
       temp <- log10(temp)
       Gr <- xMap$Comparison_group
       Gr <- setNames(match(Gr, unique(Gr)), Gr)
@@ -2184,7 +2167,7 @@ if (length(Exp) > 1) {
       # Modify dendrograms
       # - Vertical
       vlabs <- ggdendro::label(vddata)
-      vlabs$Cluster <- as.factor(VClusters[match(vlabs$label, smpls)])
+      vlabs$Cluster <- as.factor(VClusters[match(vlabs$label, allSamples)])
       vSeg <- vddata$segments
       # - Horizontal
       hlabs <- ggdendro::label(hddata)
@@ -2280,7 +2263,7 @@ if (length(Exp) > 1) {
       temp2a <- rbind(temp2a, temp2b)
       # Samples-level: how well do clusters fit expectations
       SamplesClust <- vlabs[, c("label", "Cluster")]
-      SamplesClust$Group <- as.factor(smplsMap$Group[match(SamplesClust$label, smplsMap$New)])
+      SamplesClust$Group <- as.factor(samplesMap$Group[match(SamplesClust$label, samplesMap$"Sample name")])
       SamplesClust$Cluster <- as.factor(paste0("Cluster", as.character(SamplesClust$Cluster)))
       tstSmplClust <- table(SamplesClust$Group, SamplesClust$Cluster)
       ClustChiSqTst <- suppressWarnings(chisq.test(tstSmplClust))
@@ -2385,7 +2368,7 @@ if (length(Exp) > 1) {
       #
       # Plotly version
       tempLy <- temp2a[w2a,]
-      tempLy$Sample <- factor(temp2$Sample, levels = smpls)
+      tempLy$Sample <- factor(temp2$Sample, levels = allSamples)
       ##tempLy$Ymin <- tempLy$Ymin+0.5
       plotleatmap <- plot_ly(data = tempLy, x = ~Xmin, y = ~Ymin, z = ~value, type = "heatmap", hovertext = tempLy$Label)
       # I cannot find a way to remove tick marks!!!!!
@@ -2445,10 +2428,9 @@ for (k in colnames(tmp)) {
 }
 write.csv(tmp, paste0(dstDir, "/Mods table.csv"), row.names = FALSE)
 
-ScriptPath <- normalizePath(gtools::script_file(), winslash = "/")
 if (dirname(ScriptPath) != dstDir) { file.copy(ScriptPath, dstDir, overwrite = TRUE) }
 saveImgFun(backupFl)
-openwd(dstDir)
+#openwd(dstDir)
 
 ###################################################################################
 #                                 Et voilà, done!                                 #

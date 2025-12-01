@@ -3066,9 +3066,9 @@ if (length(Exp) > 2) {
 
 #### Code chunk - Heatmaps with clustering at samples and protein groups level, highlighting proteins of interest
 clustMode <- "standard"
-Src <- paste0(libPath, "/extdata/R scripts/Sources/cluster_Heatmap_Main.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+clstSrc <- paste0(libPath, "/extdata/R scripts/Sources/cluster_Heatmap_Main.R")
+#rstudioapi::documentOpen(clstSrc)
+source(clstSrc, local = FALSE)
 
 Script <- readLines(ScriptPath)
 gc()

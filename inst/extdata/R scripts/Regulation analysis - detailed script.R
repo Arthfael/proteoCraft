@@ -316,9 +316,9 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/autoMatMet.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-# Start of processing of evidences table
+# Start processing the PSMs table
 ReportCalls <- AddSpace2Report()
-ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_fpar(Report, fpar(ftext(\"Processing of the PSMs table\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))"))
+ReportCalls <- AddTxt2Report("Processing PSMs...")
 # Remove reverse database hits
 ev <- ev[which(ev$Reverse == ""),]
 
@@ -354,7 +354,7 @@ saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 source(parSrc, local = FALSE)
 
-# Filter to keep only evidences with valid quantitative values:
+# Filter to keep only PSMs with valid quantitative values:
 if (LabelType == "LFQ") {
   source(parSrc, local = FALSE)
   if ((Param$Label == "DIA")&&("MS2 intensities" %in% colnames(ev))) {
@@ -469,7 +469,7 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/MS2corr2MS1.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-#### Code chunk - Optional - Normalize evidence MS1 intensities, then, if applicable, MS2 reporter (Isobaric labelling) or fragment (DIA) intensities
+#### Code chunk - Optional - Normalize PSM MS1 intensities, then, if applicable, MS2 reporter (Isobaric labelling) or fragment (DIA) intensities
 Src <- paste0(libPath, "/extdata/R scripts/Sources/evNorm.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
@@ -910,7 +910,7 @@ source(parSrc, local = FALSE)
 
 #### Code chunk - Assemble protein groups
 ReportCalls <- AddSpace2Report()
-ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_fpar(Report, fpar(ftext(\"Starting protein groups assembly:\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))")
+ReportCalls <- AddTxt2Report("Starting protein groups assembly...")
 if ("Prot.Only.with.at.least" %in% colnames(Param)) {
   NPep <- as.integer(Param$Prot.Only.with.at.least)
   if ((is.na(NPep))||(NPep <= 0)) {
@@ -1150,7 +1150,7 @@ m <- match(vapply(strsplit(PG$"Leading protein IDs", ";"), function(x) { x[[1]] 
 PG$"Protein ID (1st accession)" <- db$`Protein ID`[m]
 PG$"Sequence (1st accession)" <- db$Sequence[m]
 
-# Number of spectra, evidences and peptides per sample:
+# Number of spectra, PSMs and peptides per sample:
 source(parSrc, local = FALSE)
 invisible(clusterCall(parClust, function() {
   library(proteoCraft)
@@ -1845,7 +1845,7 @@ if (QuantMethods_all) {
       ggsave(paste0(dir, "/", ttl1a, ".jpeg"), plot1, dpi = 300)
       ggsave(paste0(dir, "/", ttl1a, ".pdf"), plot1, dpi = 300)
     })
-    ReportCalls <- AddPlot2Report(Plot = plot1, Title = ttl1a)
+    ReportCalls <- AddPlot2Report(plot1, Title = ttl1a)
     ttl2 <- paste0("LFQ method comparison (renormalized): ", comb[i, 1], " VS ", comb[i, 2])
     plot2 <- ggplot(tmp1) +
       geom_scattermore(aes(x = X, y = Y, colour = `Razor + unique peptides`),
@@ -1858,7 +1858,7 @@ if (QuantMethods_all) {
       ggsave(paste0(dir, "/", ttl2a, ".jpeg"), plot2, dpi = 300)
       ggsave(paste0(dir, "/", ttl2a, ".pdf"), plot2, dpi = 300)
     })
-    ReportCalls <- AddPlot2Report(Plot = plot2, Title = ttl2a)
+    ReportCalls <- AddPlot2Report(plot2, Title = ttl2a)
   }
   for (meth in QuantMethods) {
     cat(paste0(meth, ": ", nrow(cv[[meth]]), " quantified protein groups, mean intra-sample-groups CV = ", round(CV[[meth]]*100, 2), "%\n"))
@@ -1881,8 +1881,7 @@ if (QuantMethods_all) {
   })
   ReportCalls <- AddPlot2Report(Title = ttla)
 }
-ReportCalls$Calls <- append(ReportCalls$Calls,
-                            paste0("body_add_fpar(Report, fpar(ftext(\"Protein groups quantitation done using method: ", Param$QuantMeth, "\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))"))
+ReportCalls <- AddTxt2Report(paste0("Protein groups quantitation done using method: ", Param$QuantMeth))
 if (!exists(QuantData[match(Param$QuantMeth, QuantMethods)])) { # (for when rerunning script without rerunning quant methods)
   load(paste0(QuantData[match(Param$QuantMeth, QuantMethods)], ".RData"))
 }
@@ -2296,8 +2295,7 @@ if (DiscFilt) {
       quant.data[w, kol] <- NA
     }
     DatAnalysisTxt <- paste0(DatAnalysisTxt, " Data was filtered to only include proteins identified in the provided true-discovery filter.")
-    ReportCalls$Calls <- append(ReportCalls$Calls,
-                                "body_add_fpar(Report, fpar(ftext(\"Removing proteins not identified in the provided true-discovery filter.\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))")
+    ReportCalls <- AddTxt2Report("Removing proteins not included in the TRUE-Discovery filter!")
   }
   if (DiscFiltMode == DiscFiltModes[3]) {
     if (length(unique(RG$values)) == 1) {
@@ -2363,85 +2361,9 @@ invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
 
 #### Code chunk - samples Pearson correlation heatmap
-if (LocAnalysis) { prtRfRoot %<o% Prot.Expr.Root2 } else { prtRfRoot %<o% Prot.Expr.Root }
-dir <- paste0(wd, "/Pearson correlation map")
-if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- unique(c(dirlist, dir))
-g <- paste0(prtRfRoot, RSA$values)
-w <- which(g %in% colnames(PG))
-g <- g[w]
-smpls <- cleanNms(RSA$values[w])
-corMap <- sapply(seq_along(g), function(x) {
-  vapply(seq_along(g), function(y) {
-    if (x > y) {
-      x <- PG[[g[x]]]
-      y <- PG[[g[y]]]
-      w <- which((is.all.good(x, 2))&(is.all.good(y, 2)))
-      return(cor(x[w], y[w], method = "pearson"))
-    } else { return(NA) }
-  }, 1)
-})
-rownames(corMap) <- colnames(corMap) <- smpls
-corMap <- reshape2::melt(corMap, measure.vars = smpls)
-colnames(corMap) <- c("Sample 2", "Sample 1", "Pearson corr.")
-corMap <- corMap[which(!is.na(corMap$"Pearson corr.")),]
-tmp <- PG[, g[2:length(g)]]
-colnames(tmp) <- smpls[2:length(g)]
-tmp <- reshape2::melt(tmp, measure.vars = smpls[2:length(g)])
-scattrMap <- data.frame("Sample 1" = smpls[1],
-                        "Sample 2" = tmp$variable,
-                        "X" = PG[[g[1]]],
-                        "Y" = tmp$value,
-                        check.names = FALSE)
-if (length(smpls) > 2) {
-  for (i in 2:(length(smpls)-1)) {
-    tmp <- tmp[(which(tmp$variable == smpls[i+1])[1]):nrow(tmp),]
-    tmp2 <- data.frame("Sample 1" = smpls[i],
-                       "Sample 2" = tmp$variable,
-                       "X" = PG[[g[i]]],
-                       "Y" = tmp$value,
-                       check.names = FALSE)
-    scattrMap <- rbind(scattrMap, tmp2)
-  }
-}
-scattrMap <- scattrMap[which(!is.na(scattrMap$X)),]
-scattrMap <- scattrMap[which(!is.na(scattrMap$Y)),]
-Mn <- min(scattrMap$X)
-scattrMap$X <- scattrMap$X - Mn
-scattrMap$Y <- scattrMap$Y - Mn
-Mx <- max(scattrMap$X)
-scattrMap$X <- scattrMap$X / Mx
-scattrMap$Y <- scattrMap$Y / Mx
-scattrMap$`Sample 1` <- factor(scattrMap$`Sample 1`, levels = smpls)
-scattrMap$`Sample 2` <- factor(scattrMap$`Sample 2`, levels = smpls)
-corMap$`Sample 1` <- factor(corMap$`Sample 1`, levels = smpls)
-corMap$`Sample 2` <- factor(corMap$`Sample 2`, levels = smpls)
-ttl <- "Samples Pearson correlation map"
-plot <- ggplot(scattrMap)
-if (nrow(PG) > 500) {
-  plot <- plot + geom_bin_2d(aes(x = X, y = Y), bins = max(c(20, round(nrow(PG)/100))))
-} else {
-  plot <- plot + geom_point(aes(x = X, y = Y))
-}
-plot <- plot +
-  scale_fill_viridis() +
-  new_scale("fill") +
-  geom_tile(data = corMap, aes(fill = `Pearson corr.`, x = 0.5, y = 0.5), width = 1, height = 1) +
-  scale_fill_viridis(option = "B") + coord_fixed() +
-  facet_grid(`Sample 2`~`Sample 1`) + ggtitle(ttl) +
-  theme_minimal() + theme(axis.text.x = element_blank(),
-                          axis.text.y = element_blank(),
-                          panel.grid.major = element_blank(), 
-                          panel.grid.minor = element_blank(),
-                          panel.background = element_blank(),
-                          axis.line = element_line(colour = "black"),
-                          strip.text.y.right = element_text(angle = 0, size = 5.5),
-                          strip.text.x.top = element_text(angle = 45, size = 5.5))
-print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-suppressMessages({
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 600)
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 600)
-})
+Src <- paste0(libPath, "/extdata/R scripts/Sources/pearsonCorrMap.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 rm(list = ls()[which(!ls() %in% .obj)])
 invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
@@ -2472,8 +2394,7 @@ limma.one.sided %<o% function(myFit, lower) {
   rs <- pt(myFit$t, df = df.total, lower.tail = lower)
   return(rs[, colnames(myFit$p.value), drop = FALSE])
 }
-ReportCalls$Calls <- append(ReportCalls$Calls,
-                            "body_add_fpar(Report, fpar(ftext(\"Calculate average intensities and ratios and performing statistical tests.\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))")
+ReportCalls <- AddTxt2Report("Calculating average intensities and ratios and performing statistical tests...")
 # Alternative hypothesis for tests:
 #AltHyp <- c("two.sided", "greater")[IsPullDown+1]
 AltHyp %<o% c(c("greater", "lower")[Mirror.Ratios+1], "two.sided")[TwoSided+1]
@@ -2601,6 +2522,11 @@ Script <- readLines(ScriptPath)
 #     However we are now - and I think with reason - only using annotations from the leading protein(s)!
 setwd(wd)
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Annotate_me.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
+# Get or generate subcellular localisation markers - for later use
+Src <- paste0(libPath, "/extdata/R scripts/Sources/SubCellMark.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
@@ -3075,9 +3001,9 @@ if (sum(c("dat", "dat2") %in% filter_types)) {
 #
 # Z-scored clustering heatmaps of regulated proteins
 clustMode <- "t-tests"
-Src <- paste0(libPath, "/extdata/R scripts/Sources/cluster_Heatmap_Main.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+clstSrc <- paste0(libPath, "/extdata/R scripts/Sources/cluster_Heatmap_Main.R")
+#rstudioapi::documentOpen(clstSrc)
+source(clstSrc, local = FALSE)
 #
 
 rm(list = ls()[which(!ls() %in% .obj)])
@@ -3496,12 +3422,12 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/cluster_Heatmap_Main.R")
 source(Src, local = FALSE)
 
 try({ stopCluster(parClust) }, silent = TRUE)
+source(parSrc, local = FALSE)
+rm(list = ls()[which(!ls() %in% .obj)])
+gc()
+Script <- readLines(ScriptPath)
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-source(parSrc, local = FALSE)
-
-rm(list = ls()[which(!ls() %in% .obj)])
-invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
 
 #### Code chunk - Dimensionality reduction plots

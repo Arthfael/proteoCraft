@@ -315,9 +315,9 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/autoMatMet.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-# Start of processing of evidences table
+# Start processing the PSMs table
 ReportCalls <- AddSpace2Report()
-ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_fpar(Report, fpar(ftext(\"Processing of the PSMs table\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))"))
+ReportCalls$Calls <- AddTxt2Report("Processing PSMs...")
 # Remove reverse database hits
 ev <- ev[which(ev$Reverse == ""),]
 
@@ -352,7 +352,7 @@ gc()
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
-# Filter to keep only evidences with valid quantitative values:
+# Filter to keep only PSMs with valid quantitative values:
 if (LabelType == "LFQ") {
   source(parSrc, local = FALSE)
   if ((Param$Label == "DIA")&&("MS2 intensities" %in% colnames(ev))) {
@@ -467,7 +467,7 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/MS2corr2MS1.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-#### Code chunk - Optional - Normalize evidence MS1 intensities, then, if applicable, MS2 reporter (Isobaric labelling) or fragment (DIA) intensities
+#### Code chunk - Optional - Normalize PSM MS1 intensities, then, if applicable, MS2 reporter (Isobaric labelling) or fragment (DIA) intensities
 Src <- paste0(libPath, "/extdata/R scripts/Sources/evNorm.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
