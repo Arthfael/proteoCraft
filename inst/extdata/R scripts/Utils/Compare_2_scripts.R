@@ -4,7 +4,6 @@ require(proteoCraft)
 require(rstudioapi)
 require(reshape2)
 require(magrittr)
-require(ggplot2)
 require(openxlsx)
 
 wrkDr <- dirname(rstudioapi::getActiveDocumentContext()$path)
@@ -29,11 +28,9 @@ pat <- "^ *$| *$"   # Remove all useless lines
 # If you want to remove comments:
 pat <- paste0(pat, "| *#.*")
 
-# Let's open both documents in this session
-rstudioapi::documentOpen(f1)
-rstudioapi::documentOpen(f2)
-
+isOpen1 <- isOpen2 <- FALSE
 checkPlotXprs <- expression({
+  require(ggplot2)
   g1 <- which(fl1 != ""); g2 <- which(fl2 != "")
   l1 <- length(g1); l2 <- length(g2)
   wa <- which(c(l1, l2) == max(c(l1, l2)))[1]
@@ -76,9 +73,20 @@ checkScriptXprs <- expression({
   w2 <- which(fl2 != "")
   w <- suppressWarnings(which(fl1[w1] != fl2[w2]))
   if (length(w) >= i) {
+    # Let's open both documents in this session
+    if (!isOpen1) {
+      rstudioapi::documentOpen(f1)
+      isOpen1 <- TRUE
+    }
+    if (!isOpen2) {
+      rstudioapi::documentOpen(f2)
+      isOpen2 <- TRUE
+    }
     cat(paste0("Discrepancy at line ", paste(unique(c(w1[w[i]], w2[w[i]])), collapse = "/"),
                ":\n\n - file 1: ", fl1[w1][w[i]], "\n\n - file 2: ", fl2[w2][w[i]], "\n"))
-  } else { print("Both scripts are identical!") }
+  } else {
+    print("Both scripts are identical!")
+  }
 })
 
 ## 
