@@ -161,7 +161,7 @@ if ((length(tmp) == 1)&&(tmp == "AUTOFACT")) {
   Param$Ratios.Groups.Ref.Aggregate.Level <- paste(substr(Factors, 1, 3), collapse = ";")
 }
 klustChoices %<o% c("K-means", "hierarchical")
-KlustMeth %<o% 2
+KlustMeth %<o% 1 # Changed from 2
 #
 saintExprs %<o% (WorkFlow %in% c("PULLDOWN", "BIOID"))
 if ("saintExprs" %in% colnames(Param)) {
@@ -1851,11 +1851,9 @@ if (length(w)) {
   Param[, w] <- as.logical(Param[, w])
 }
 
-ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_fpar(Report, fpar(ftext(\" -> Parameters:\", prop = WrdFrmt$Body_text), fp_p = WrdFrmt$left))")
+ReportCalls$Calls <- AddTxt2Report(" -> Parameters:")
 for (i in 1:ncol(Param)) {
-  ReportCalls$Calls <- append(ReportCalls$Calls,
-                              paste0("body_add_fpar(Report, fpar(ftext(\"   - ", colnames(Param)[i], ": ",
-                                     Param[[i]], "\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$left))"))
+  ReportCalls$Calls <- AddTxt2Report(paste0("   - ", colnames(Param)[i], ": ", Param[[i]]))
 }
 ReportCalls <- AddSpace2Report()
 #

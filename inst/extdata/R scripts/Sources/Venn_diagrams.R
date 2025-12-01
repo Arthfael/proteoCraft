@@ -130,7 +130,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2] #ii <- II[3]
       ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150)
     })
     #system(paste0("open \"", dir, "/", ttl, ".jpg", "\""))
-    ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_img(Report, \"", dir, "/", ttl, ".jpg\", height = 6, width = 6)"))
+    ReportCalls$Calls <- AddImg2Report(paste0(dir, "/", ttl, ".jpg"))
     #
     wb <- openxlsx2::wb_workbook()
     wb$styles_mgr$add(HdrStlVenn, "Header_style")
@@ -236,8 +236,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2] #ii <- II[3]
             ggsave(paste0(dir2, "/", ttl, ".pdf"), plot, dpi = 150)
           })
           #system(paste0("open \"", dir2, "/", ttl, ".jpg", "\""))
-          ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_img(Report, \"", dir2, "/", ttl,
-                                                                ".jpg\", height = 6, width = 6)"))
+          ReportCalls$Calls <- AddImg2Report(paste0(dir2, "/", ttl, ".jpg"))
           #
           wbKount <- wbKount+1
           SheetNm <- paste0("t-test", grpTxt1, levTxt1)
@@ -347,8 +346,9 @@ for (ii in II) { #ii <- II[1] #ii <- II[2] #ii <- II[3]
               ggsave(paste0(dir2, "/", ttl, ".pdf"), plot, dpi = 150)
             })
             #system(paste0("open \"", dir2, "/", ttl, ".jpg", "\""))
-            ReportCalls$Calls <- append(ReportCalls$Calls, paste0("body_add_img(Report, \"", dir2, "/",
-                                                                  ttl, ".jpg\", height = 6, width = 6)"))
+            #
+            ReportCalls$Calls <- AddImg2Report(paste0(dir2, "/", ttl, ".jpg"))
+            #
             wbKount <- wbKount+1
             SheetNm <- paste0("F-test", levTxt1)
             if (SheetNm %in% wb_get_sheet_names(wb)) { wb <- openxlsx2::wb_remove_worksheet(wb, SheetNm) }

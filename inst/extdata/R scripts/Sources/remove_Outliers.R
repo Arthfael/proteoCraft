@@ -10,14 +10,14 @@ Include <- Exp.map[, c(fctrs, "Use")]
 #fctrs <- gsub("\\.", "_", fctrs)
 Include$Use <- shinyCheckInput(Exp.map$Use)
 # Table width
-wTest0 <- setNames(sapply(colnames(Exp.map), function(k) { #k <- colnames(Exp.map)[1]
+wTest0 <- setNames(vapply(colnames(Exp.map), function(k) { #k <- colnames(Exp.map)[1]
   tmp <- Exp.map[[k]]
   if ("logical" %in% class(tmp)) { tmp <- as.integer(tmp) }
   tmp <- as.character(tmp)
   x <- max(nchar(c(k, tmp)) + 3, na.rm = TRUE)
   x <- x*10
   return(x)
-}), #gsub("\\.", "_",
+}, ""), #gsub("\\.", "_",
 colnames(Exp.map))#)
 wTest1 <- vapply(colnames(Include), function(k) { #k <- colnames(Include)[1]
   if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
@@ -127,7 +127,9 @@ server <- function(input, output, session) {
   #   })
   # })
   observeEvent(input$saveBtn, {
-    Exp.map$Use <- sapply(seq_len(nrow(Include)), function(x) { input[[paste0("check___", as.character(x))]] })
+    Exp.map$Use <- vapply(seq_len(nrow(Include)), function(x) {
+      as.logical(input[[paste0("check___", as.character(x))]])
+    }, TRUE)
     tstGrps <- aggregate(Exp.map$Use, list(Exp.map[[VPAL$column]]), sum)
     if (min(tstGrps$x) < 2) {
       #shinyjs::disable("saveBtn")
@@ -142,11 +144,11 @@ server <- function(input, output, session) {
       tmpTbl <- Exp.map
       tst <- lapply(colnames(tmpTbl), function(x) { typeof(tmpTbl[[x]]) })
       w <- which(tst == "list")
-      if (length(w)) { for (i in w) { tmpTbl[[i]] <- sapply(tmpTbl[[i]], paste, collapse = ";") }}
-      tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
+      if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
+      tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE, quote = TRUE), silent = TRUE)
       while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
         dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-        tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
+        tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE, quote = TRUE), silent = TRUE)
       }
       #
       assign("appRunTest", TRUE, envir = .GlobalEnv)

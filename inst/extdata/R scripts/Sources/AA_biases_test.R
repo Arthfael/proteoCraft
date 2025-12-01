@@ -19,7 +19,8 @@ suppressMessages({
   ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
   ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
 })
-ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_fpar(Report, fpar(ftext(\"Amino acids frequency biases:\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))")
-ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_table(Report, AA_biases)")
+ReportCalls$Calls <- AddTxt2Report("Amino acids frequency biases:")
+ReportCalls$Objects$AA_biases <- AA_biases
+ReportCalls$Calls <- AddTbl2Report("AA_biases")
 ReportCalls <- AddPlot2Report()
 ReportCalls <- AddSpace2Report()

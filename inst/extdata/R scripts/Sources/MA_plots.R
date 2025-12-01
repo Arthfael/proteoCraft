@@ -54,8 +54,7 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
   } else { Grpkol <- kols }
   grps <- sort(unique(data[[Grpkol]]))
   ReportCalls <- AddSpace2Report()
-  ReportCalls$Calls <- append(ReportCalls$Calls,
-                              paste0("body_add_fpar(Report, fpar(ftext(\"MA plot", c("", "s")[(length(grps) > 1)+1], ":\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))"))
+  ReportCalls$Calls <- AddTxt2Report(paste0("MA plot", c("", "s")[(length(grps) > 1)+1], ":"))
   ReportCalls$Objects$MA_groups <- c()
   ReportCalls$Plots$MA_plots <- list()
   ReportCalls$Calls <- append(ReportCalls$Calls, list())

@@ -535,9 +535,9 @@ dir <- paste0(wd, "/Workflow control")
 dirlist <- unique(c(dirlist, dir))
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 write.csv(temp, paste0(dir, "/Modifications.csv"), row.names = FALSE)
-ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_fpar(Report, fpar(ftext(\"PTMs table:\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))")
-ReportCalls$Calls <- append(ReportCalls$Calls, "body_add_table(Report, ReportCalls$Objects$AABiases)")
+ReportCalls$Calls <- AddTxt2Report("PTMs table:")
 ReportCalls$Objects$AABiases <- temp
+ReportCalls$Calls <- AddTbl2Report(ReportCalls$Calls, "AABiases")
 ReportCalls <- AddSpace2Report()
 
 #

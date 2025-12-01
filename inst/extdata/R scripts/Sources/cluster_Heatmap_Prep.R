@@ -2,12 +2,17 @@
 #
 # This script prepares some data which will be re-used when we run the cluster_Heatmap source
 if ((!exists("clustPrep"))||(!is.logical(clustPrep))||(length(clustPrep) != 1)||(is.na(clustPrep))) { clustPrep <- FALSE }
-clustPrep %<o% clustPrep
+myObj <- c("ImputeKlust", "clustHtMp", "prtRfRoot", "mySmpls", "clustXprsKol", "clustSmpls", "clustMap",
+           "clustFilt", "clustDat", "clustDat0", "clustDatImp", "KlustRoot", "plotLeatMaps", "Heatmaps",
+           "NHClust", "NVClust", "KlustKols", "MaxHClust", "MaxVClust", "VClusters", "HClusters")
+tst <- vapply(myObj, function(x) { exists(x) & (x %in% .obj) }, TRUE)
+clustPrep %<o% (clustPrep&(exists("MaxVClust"))&(sum(!tst) == 0))
+
 ImputeKlust %<o% TRUE # Currently MUST always be TRUE
 #
 if (!clustPrep) {
   if (scrptType == "withReps") {
-    clustHtMp %<o% TRUE
+    clustHtMp <- TRUE
     if (LocAnalysis) { prtRfRoot <- Prot.Expr.Root2 } else { prtRfRoot <- Prot.Expr.Root }
   }
   if (scrptType == "noReps") {
@@ -74,6 +79,7 @@ if (!clustPrep) {
   }
   MaxVClust %<o% MaxVClust
   VClusters %<o% list()
+  HClusters %<o% list()
   #
   clustPrep <- TRUE
 }

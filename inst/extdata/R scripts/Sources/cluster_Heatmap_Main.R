@@ -9,7 +9,8 @@ heatMaps <- list() # Unlike plotLeatMaps, not persistent
 #drawPlotly <- FALSE
 if (clustHtMp) {
   if (clustMode == "standard") {
-    normTypes <- c("None", "Norm. by row")
+    normTypes <- c("Norm. by row", "None")
+    # The order matters: the first is used to generate the PG-level cluster displayed on both heatmaps!
     clustDir <- paste0(wd, "/Clustering")
   }
   if ((grepl("-tests?$", clustMode))||(clustMode %in% c("re-localisation", "SAINTexpress"))) {
@@ -82,14 +83,20 @@ if (clustHtMp) {
   HClustScl <- setNames(1:MaxHClust, paste0("Cluster", 1:MaxHClust))
   VClustScl <- setNames(rainbow(MaxVClust), VClustScl)
   HClustScl <- setNames(rainbow(MaxHClust), HClustScl)
+  #
   # Different options for which proteins to use for vertical clustering (samples level)
   VClustUse <- "All" # Use all
   # VClustUse <- 500 # Max number of proteins to use (starting from ones with highest CV)
   # VClustUse <- 25% # Percentage of proteins to use (starting from ones with highest CV)
   # VClustUse <- "DEP" # Use only Differentially Expressed Proteins (from Reg_filters)
   VClustUse <- toupper(VClustUse)
+  if (("Compartment marker" %in% colnames(PG))&&(sum(PG$"Compartment marker" != ""))) {
+    uMark <- unique(SubCellMark)
+    markColors <- setNames(turbo(length(uMark)), uMark)
+  }
   #vapply(clustXprsKol, function(x) { sum(is.na(PG[clustFilt, x])) }, 1)
   #vapply(clustMap$Samples, function(x) { sum(is.na(clustDat[[x]])) }, 1)
+  h_clustLst <- v_clustLst <- list()
   for (i in names(I)) { #i <- names(I)[1] #i <- names(I)[2]
     nm <- paste0("Clust. heatmap - ", i)
     smpls <- I[[i]]
@@ -101,6 +108,7 @@ if (clustHtMp) {
                   c(paste0(" for ", i), "")[(i == "Global")+1], ".")
     ReportCalls <- AddMsg2Report(Space = FALSE)
     for (normType in normTypes) { #normType <- normTypes[1] #normType <- normTypes[2] #normType <- normTypes[3]
+      clustNm <- paste0(i, " - ", normType)
       if (length(normTypes) > 1) {
         cat(" -", normType, "\n")
       }
@@ -168,6 +176,7 @@ if (clustHtMp) {
           }
         }
         v_clust <- hclust(dist(temp2))
+        v_clustLst[[clustNm]] <- v_clust
         # Estimate ideal number of clusters... but ignore it!
         # In fact we know the number of sample groups, so would like to see 1 cluster per group.
         # How well groups and clusters overlap would tell us how well the clustering works, i.e. how different clusters are.
@@ -179,13 +188,13 @@ if (clustHtMp) {
         if (scrptType == "withReps") {
           Gr <- xMp[[VPAL$column]] # Here we have replicates and group at samples group level
           Gr <- setNames(match(Gr, unique(Gr)), Gr)
-          NVClust[[i]] <- NGr <- length(unique(Gr))
+          NVClust[[clustNm]] <- NGr <- length(unique(Gr))
         }
         if (scrptType == "noReps") {
           # Here we do not have replicates and group at comparison group level
           Gr <- xMp$`Ratios group`
           Gr <- setNames(match(Gr, unique(Gr)), Gr)
-          NVClust[[i]] <- NGr <- max(c(1, length(mySmpls)))
+          NVClust[[clustNm]] <- NGr <- max(c(1, length(mySmpls)))
         }
         if (nrow(temp2) > 2) {
           tst <- cluster::clusGap(temp2, stats::kmeans, max(c(2, min(c(nrow(temp2)-1, NGr-1)))))
@@ -196,7 +205,7 @@ if (clustHtMp) {
           tst2 <- sapply(1:NGr, function(x) { tst2$gap[x] >= tst2$gap[x+1] - tst2$SE.sim[x+1] })
           tst2 <- which(tst2)
           # I like to do one more, often these methods feel too conservative
-          #if (length(tst2)) { NVClust[[i]] <- tst2[1]+1 } # Not used for now: we use NGr instead
+          #if (length(tst2)) { NVClust[[clustNm]] <- tst2[1]+1 } # Not used for now: we use NGr instead
           if (verbose) {
             vplot <- factoextra::fviz_gap_stat(tst)
             tstLy <- capture.output(print(vplot$layers))
@@ -220,93 +229,109 @@ if (clustHtMp) {
               ggsave(paste0(clustDir, "/", vnm, normTypeInsrt, ".pdf"), vplot, dpi = 150)
             })
           }
-          NVClust[[i]] <- max(min(c(floor(ncol(temp2)/2), c(NGr, 2))))
+          NVClust[[clustNm]] <- max(min(c(floor(ncol(temp2)/2), c(NGr, 2))))
         }
         # 2/ At protein groups level
         # As above, we always draw a dendrogram, but colours will be defined by the clustering approach.
-        h_clust <- hclust(dist(temp3))
-        NHClust[[i]] <- MaxHClust
-        Straps <- 10
-        # Here we really want to optimize the number of clusters
-        # Apply the same method for optimization for any clustering method
-        # Number of cluster should not depend on method
-        source(parSrc, local = FALSE)
-        clusterExport(parClust, list("temp3", "Straps"), envir = environment())
-        HClust_rg <- 2:MaxHClust
-        tst <- setNames(parLapply(parClust, HClust_rg, function(kl) { #kl <- 2
-          try(kmeans(temp3, kl, nstart = Straps)$tot.withinss, silent = TRUE)
-        }), HClust_rg)
-        tst <- tst[which(vapply(tst, function(x) { !"try-error" %in% class(x) }, TRUE))]
-        tst <- setNames(as.numeric(tst)/kmeans(temp3, 1, nstart = 1)$tot.withinss, names(tst))
-        yScl2 <- max(tst)
-        tst2 <- data.frame("Number of clusters k" = as.integer(names(tst)),
-                           "[tot WSS (k)]/[tot WSS (1)]" = tst,
-                           check.names = FALSE)
-        tst <- parLapply(parClust, HClust_rg, function(kl) {
-          try(kmeans(temp3, kl, nstart = Straps)$tot.withinss, silent = TRUE)
-        })
-        w <- which(vapply(tst, function(x) { !"try-error" %in% class(x) }, TRUE))
-        tst <- vapply(tst[w], function(x) { x }, 1)
-        tst <- tst/kmeans(temp3, 1, nstart = 1)$tot.withinss
-        yScl2 <- max(tst)
-        tst2 <- data.frame("Number of clusters k" = HClust_rg[w],
-                           "[tot WSS (k)]/[tot WSS (1)]" = tst,
-                           check.names = FALSE)
-        # For the elbow detection method, we need to normalize to a 1x1 graph which we can rotate by 45 degrees
-        tst2$X1 <- tst2$`Number of clusters k`/MaxHClust # divide by max theoretical number of clusters 
-        tst2$Y1 <- tst2$"[tot WSS (k)]/[tot WSS (1)]" # Here no need to normalize, this is a ratio
-        Angle <- -pi/4
-        meanX <- mean(tst2$X1)
-        meanY <- mean(tst2$Y1)
-        tst2$X2 <- tst2$X1 - meanX
-        tst2$Y2 <- tst2$Y1 - meanY
-        tst2$X2 <- tst2$X2*cos(Angle)+tst2$Y2*sin(Angle)
-        tst2$Y2 <- -tst2$X2*sin(Angle)+tst2$Y2*cos(Angle)
-        tst2$X2 <- tst2$X2 - mean(tst2$X2) + meanX
-        tst2$Y2 <- tst2$Y2 - mean(tst2$Y2) + meanY
-        w <- rev(which(tst2$Y2 == min(tst2$Y2)))[1] # Again, prefer more rather than fewer clusters
-        NHClust[[i]] <- tst2$`Number of clusters k`[w]
-        tst2$Size <- 1
-        tst2$Size[w] <- 2
-        xMin <- min(c(tst2$X1, tst2$X2))
-        xMax <- max(c(tst2$X1, tst2$X2))
-        xScl <- xMax-xMin
-        yMin <- min(c(tst2$Y1, tst2$Y2))
-        yMax <- max(c(tst2$Y1, tst2$Y2))
-        yScl <- yMax-yMin
-        if (verbose) {
-          hplot <- ggplot(tst2) +
-            geom_segment(x = tst2$X2[w], y = tst2$Y2[w],
-                         xend = tst2$X1[w], yend = tst2$Y1[w], color = "grey", linetype = "dotted") +
-            geom_point(aes(x = X1, y = Y1, size = Size), color = "blue") +
-            geom_point(aes(x = X2, y = Y2, size = Size), color = "red") +
-            geom_text(x = xScl*0.98+xMin, y = yMin+yScl*0.98, color = "blue", label = "ratio of tot. WSS", hjust = 1) +
-            geom_text(x = xScl*0.98+xMin, y = yMin+yScl*0.962, color = "red", label = "ratio of tot. WSS, -pi/4 rotation", hjust = 1) +
-            geom_hline(yintercept = tst2$Y2[w], color = "red", linetype = "dashed") +
-            geom_vline(xintercept = tst2$X1[w], color = "deepskyblue", linetype = "dashed") +
-            geom_text(x = xMin+0.01*xScl, y = tst2$Y2[w]+0.02*yScl, color = "red", label = "Elbow", hjust = 0) +
-            geom_text(x = tst2$X1[w]-0.02*xScl, y = yScl*0.9, angle = 90, color = "deepskyblue",
-                      label = paste0("Optimal = ", tst2$`Number of clusters k`[w], " clusters"), hjust = 1) +
-            ggtitle(hnm) + scale_size_identity() + theme_bw() +
-            theme(legend.position = "none") + ylab("Normalised total Within-clusters vs Total Sum of Squares")
-          #poplot(hplot)
-          suppressMessages({
-            ggsave(paste0(clustDir, "/", hnm, normTypeInsrt, ".jpeg"), hplot, dpi = 150)
-            ggsave(paste0(clustDir, "/", hnm, normTypeInsrt, ".pdf"), hplot, dpi = 150)
+        h_clust <- hclust(dist(temp3)) # This is what we will draw, independent of normalisation type
+        h_clustLst[[clustNm]] <- h_clust
+        if (normType != "None") { #... but we will use cluster colors from "Norm. by row" for "None"
+          #NHClust[[clustNm]] <- MaxHClust
+          #NHClust[[i]] <- MaxHClust
+          Straps <- 10
+          # Here we really want to optimize the number of clusters
+          # Apply the same method for optimization for any clustering method
+          # Number of cluster should not depend on method
+          source(parSrc, local = FALSE)
+          clusterExport(parClust, list("temp3", "Straps"), envir = environment())
+          HClust_rg <- 2:MaxHClust
+          tst <- setNames(parLapply(parClust, HClust_rg, function(kl) { #kl <- 2
+            try(kmeans(temp3, kl, nstart = Straps)$tot.withinss, silent = TRUE)
+          }), HClust_rg)
+          tst <- tst[which(vapply(tst, function(x) { !"try-error" %in% class(x) }, TRUE))]
+          tst <- setNames(as.numeric(tst)/kmeans(temp3, 1, nstart = 1)$tot.withinss, names(tst))
+          yScl2 <- max(tst)
+          tst2 <- data.frame("Number of clusters k" = as.integer(names(tst)),
+                             "[tot WSS (k)]/[tot WSS (1)]" = tst,
+                             check.names = FALSE)
+          tst <- parLapply(parClust, HClust_rg, function(kl) {
+            try(kmeans(temp3, kl, nstart = Straps)$tot.withinss, silent = TRUE)
           })
+          w <- which(vapply(tst, function(x) { !"try-error" %in% class(x) }, TRUE))
+          tst <- vapply(tst[w], function(x) { x }, 1)
+          tst <- tst/kmeans(temp3, 1, nstart = 1)$tot.withinss
+          yScl2 <- max(tst)
+          tst2 <- data.frame("Number of clusters k" = HClust_rg[w],
+                             "[tot WSS (k)]/[tot WSS (1)]" = tst,
+                             check.names = FALSE)
+          # For the elbow detection method, we need to normalize to a 1x1 graph which we can rotate by 45 degrees
+          tst2$X1 <- tst2$`Number of clusters k`/MaxHClust # divide by max theoretical number of clusters 
+          tst2$Y1 <- tst2$"[tot WSS (k)]/[tot WSS (1)]" # Here no need to normalize, this is a ratio
+          Angle <- -pi/4
+          meanX <- mean(tst2$X1)
+          meanY <- mean(tst2$Y1)
+          tst2$X2 <- tst2$X1 - meanX
+          tst2$Y2 <- tst2$Y1 - meanY
+          tst2$X2 <- tst2$X2*cos(Angle)+tst2$Y2*sin(Angle)
+          tst2$Y2 <- -tst2$X2*sin(Angle)+tst2$Y2*cos(Angle)
+          tst2$X2 <- tst2$X2 - mean(tst2$X2) + meanX
+          tst2$Y2 <- tst2$Y2 - mean(tst2$Y2) + meanY
+          w <- rev(which(tst2$Y2 == min(tst2$Y2)))[1] # Again, prefer more rather than fewer clusters
+          #NHClust[[clustNm]] <- max(c(2, tst2$`Number of clusters k`[w] + 1), na.rm = TRUE)
+          NHClust[[i]] <- max(c(2, tst2$`Number of clusters k`[w] + 1), na.rm = TRUE)
+          tst2$Size <- 1
+          tst2$Size[w] <- 2
+          xMin <- min(c(tst2$X1, tst2$X2))
+          xMax <- max(c(tst2$X1, tst2$X2))
+          xScl <- xMax-xMin
+          yMin <- min(c(tst2$Y1, tst2$Y2))
+          yMax <- max(c(tst2$Y1, tst2$Y2))
+          yScl <- yMax-yMin
+          if (verbose) {
+            hplot <- ggplot(tst2) +
+              geom_segment(x = tst2$X2[w], y = tst2$Y2[w],
+                           xend = tst2$X1[w], yend = tst2$Y1[w], color = "grey", linetype = "dotted") +
+              geom_point(aes(x = X1, y = Y1, size = Size), color = "blue") +
+              geom_point(aes(x = X2, y = Y2, size = Size), color = "red") +
+              geom_text(x = xScl*0.98+xMin, y = yMin+yScl*0.98, color = "blue", label = "ratio of tot. WSS", hjust = 1) +
+              geom_text(x = xScl*0.98+xMin, y = yMin+yScl*0.962, color = "red", label = "ratio of tot. WSS, -pi/4 rotation", hjust = 1) +
+              geom_hline(yintercept = tst2$Y2[w], color = "red", linetype = "dashed") +
+              geom_vline(xintercept = tst2$X1[w], color = "deepskyblue", linetype = "dashed") +
+              geom_text(x = xMin+0.01*xScl, y = tst2$Y2[w]+0.02*yScl, color = "red", label = "Elbow", hjust = 0) +
+              geom_text(x = tst2$X1[w]-0.02*xScl, y = yScl*0.9, angle = 90, color = "deepskyblue",
+                        label = paste0("Optimal = ", tst2$`Number of clusters k`[w], " clusters"), hjust = 1) +
+              ggtitle(hnm) + scale_size_identity() + theme_bw() +
+              theme(legend.position = "none") + ylab("Normalised total Within-clusters vs Total Sum of Squares")
+            #poplot(hplot)
+            suppressMessages({
+              ggsave(paste0(clustDir, "/", hnm, normTypeInsrt, ".jpeg"), hplot, dpi = 150)
+              ggsave(paste0(clustDir, "/", hnm, normTypeInsrt, ".pdf"), hplot, dpi = 150)
+            })
+          }
         }
         # Apply cutoffs
         if (KlustMeth == 1) {
-          VClusters[[i]] <- kmeans(t(temp3), NVClust[[i]], 100)$cluster
-          tempClust <- kmeans(temp3, NHClust[[i]], 100)$cluster
+          #HClusters[[clustNm]] <- kmeans(temp3, NHClust[[clustNm]], 100)$cluster
+          if (normType != "None") { # If normType == "None", we inherit this from "Norm. by row"
+            HClusters[[i]] <- kmeans(temp3, NHClust[[i]], 100)$cluster
+          }
+          VClusters[[clustNm]] <- kmeans(t(temp3), NVClust[[clustNm]], 100)$cluster
         }
         if (KlustMeth == 2) {
-          VClusters[[i]] <- cutree(v_clust, NVClust[[i]])
-          tempClust <- cutree(h_clust, NHClust[[i]])
+          #HClusters[[clustNm]] <- cutree(h_clust, NHClust[[clustNm]])
+          if (normType != "None") { # If normType == "None", we inherit this from "Norm. by row"
+            HClusters[[i]] <- cutree(h_clust, NHClust[[i]])
+          }
+          VClusters[[clustNm]] <- cutree(v_clust, NVClust[[clustNm]])
         }
         KlKol <- paste0(KlustRoot, i)
-        KlustKols <- unique(c(KlustKols, KlKol))
-        PG[[KlKol]] <- tempClust[match(PG$Label, names(tempClust))]
+        if ((clustMode == "standard")&&(normType == "Norm. by row")) {
+          # We use clusters only from normalised by row,
+          # because we want to see the effect of relative expression
+          KlustKols <- unique(c(KlustKols, KlKol))
+          #PG[[KlKol]] <- HClusters[[clustNm]][match(PG$Label, names(HClusters[[clustNm]]))]
+          PG[[KlKol]] <- HClusters[[i]][match(PG$Label, names(HClusters[[i]]))]
+        }
         #
         Width <- nrow(temp)
         Height <- length(smpls)
@@ -323,11 +348,12 @@ if (clustHtMp) {
         # Modify dendrograms
         # - Vertical
         v_labs <- v_ddata$labels
-        v_labs$Cluster <- as.factor(VClusters[[i]][match(v_labs$label, smpls)])
+        v_labs$Cluster <- as.factor(VClusters[[clustNm]][match(v_labs$label, names(VClusters[[clustNm]]))])
         v_Seg <- v_ddata$segments
         # - Horizontal
         h_labs <- h_ddata$labels
-        h_labs$Cluster <- as.factor(tempClust[match(h_labs$label, names(tempClust))])
+        #h_labs$Cluster <- as.factor(HClusters[[clustNm]][match(h_labs$label, names(HClusters[[clustNm]]))])
+        h_labs$Cluster <- as.factor(HClusters[[i]][match(h_labs$label, names(HClusters[[i]]))])
         h_Seg <- h_ddata$segments
         # Rotate samples-level dendrogram: x -> y, y -> x
         v_labs$y <- v_labs$x
@@ -382,12 +408,13 @@ if (clustHtMp) {
         temp2$Xmax <- match(temp2$Label, h_labs$label) # Explicitly should be the case now!
         temp2$label2 <- h_labs$label2[temp2$Xmax]
         temp2$Xmin <- temp2$Xmax-1
-        temp2$Ymax <- v_labs$y[match(temp2$Sample, v_labs$label)]
+        temp2$Ymax <- v_labs$y[match(temp2$Sample, v_labs$label)] # Also explicit!
         temp2$Ymin <- temp2$Ymax-1
         w1 <- which(temp2$Colour == "green")
         w2 <- which((temp2$Ymin == max(temp2$Ymin))&(temp2$Colour == "green"))
         # Color and fill scales
-        wV <- round(c(1:NVClust[[i]])*MaxVClust/NVClust[[i]])
+        wV <- round(c(1:NVClust[[clustNm]])*MaxVClust/NVClust[[clustNm]])
+        #wH <- round(c(1:NHClust[[clustNm]])*MaxHClust/NHClust[[clustNm]])
         wH <- round(c(1:NHClust[[i]])*MaxHClust/NHClust[[i]])
         vClScl <- setNames(VClustScl[wV], seq_along(wV))
         hClScl <- setNames(HClustScl[wH], seq_along(wH))
@@ -548,13 +575,38 @@ if (clustHtMp) {
             geom_text(data = temp2c, aes(x = Xmin+0.5, label = label2),
                       y = -1, colour = "red", angle = -60, hjust = 0, cex = 2)
         }
-        heatMaps[[paste0(i, " - ", normType, ".jpeg")]] <- list(Plot = proteoCraft::plotEval(heatmap.plot),
+        # - Subcellular markers
+        addSCmarks <- FALSE
+        if (("Compartment marker" %in% colnames(PG))&&(sum(PG$"Compartment marker" != ""))) {
+          temp2m <- as.data.table(temp2[, c("Leading protein IDs", "Ymin", "Xmin")])
+          temp2m <- temp2m[, list(Xmin = min(Xmin, na.rm = TRUE),
+                                  Ymin = min(Ymin, na.rm = TRUE)), by = list(`Leading protein IDs` = `Leading protein IDs`)]
+          temp2m <- as.data.frame(temp2m)
+          m <- match(temp2m$`Leading protein IDs`, PG$`Leading protein IDs`)
+          temp2m$Label <- PG$Label[m]
+          temp2m$"Compartment marker" <- PG$"Compartment marker"[m]
+          temp2m <- temp2m[which(temp2m$`Compartment marker` != ""),]
+          addSCmarks <- nrow(temp2m)
+          if (addSCmarks) {
+            heatmap.plot <- heatmap.plot +
+              new_scale_fill() +
+              #scale_fill_viridis("turbo", discrete = TRUE) +
+              scale_color_manual(values = markColors) +
+              geom_rect(data = temp2m, aes(xmin = Xmin, xmax = Xmin+1, fill = `Compartment marker`),
+                         ymin = -1.7, ymax = -1.3)
+          }
+        }
+        #poplot(heatmap.plot, 12, 20)
+        #
+        # Export evaluated version for later parallel saving
+        evalPlot <- proteoCraft::plotEval(heatmap.plot)
+        heatMaps[[paste0(i, " - ", normType, ".jpeg")]] <- list(Plot = evalPlot,
                                                                 Ttl = paste0(clustDir, "/", nm, normTypeInsrt, ".jpeg"),
                                                                 Width = 18,
                                                                 Height = 9,
                                                                 Units = "in")
-        heatMaps[[paste0(i, " - ", normType, ".pdf")]] <- list(Plot = proteoCraft::plotEval(heatmap.plot),
-                                                                Ttl = paste0(clustDir, "/", nm, normTypeInsrt, ".pdf"))                                              
+        heatMaps[[paste0(i, " - ", normType, ".pdf")]] <- list(Plot = evalPlot,
+                                                               Ttl = paste0(clustDir, "/", nm, normTypeInsrt, ".pdf"))                                            
         #
         if (drawPlotly) {
           # Plotly version
@@ -679,12 +731,11 @@ if (clustHtMp) {
           #                            showlegend = FALSE, inherit = FALSE)
           # }
           plotleatmap <- add_trace(plotleatmap, data = clustDF, x = ~x-1,
-                                   y = -1, yend = -1, inherit = FALSE, showlegend = FALSE,
-                                   size = 8,
+                                   y = -1.5, inherit = FALSE, showlegend = FALSE,
                                    hovertext = ~Cluster, hoverinfo = "text",
                                    type = "scatter", mode = "text",
                                    color = clustDF$Cluster,
-                                   marker = list(size = 10, showscale = FALSE))
+                                   marker = list(size = 5, showscale = FALSE))
           # Layout
           plotleatmap <- layout(plotleatmap, title = nm,
                                 xaxis = list(title = "Protein groups",
@@ -694,18 +745,29 @@ if (clustHtMp) {
                                              tickmode = "array", tickvals = NULL, showticklabels = FALSE,
                                              showgrid = FALSE, zeroline = FALSE))
           if (prot.list.marks) {
-            temp2c$X <- (temp2c$Xmin+temp2c$Xmax)/2
-            plotleatmap <- add_trace(plotleatmap, data = temp2c, y = I(-0.501), x = ~X-0.5,
+            plotleatmap <- add_trace(plotleatmap, data = temp2c, x = ~Xmin, y = -1,
                                      text = ~Label, color = "red", inherit = FALSE,
-                                     type = "scatter", mode = "markers", showlegend = FALSE)
+                                     type = "scatter", mode = "markers", showlegend = FALSE,
+                                     marker = list(size = 5, showscale = FALSE))
           }
-          setwd(clustDir)
-          saveWidget(plotleatmap, paste0(clustDir, "/", nm, normTypeInsrt, ".html"))
-          setwd(wd)
+          if (addSCmarks) {
+            temp2m$.markCol <- markColors[temp2m$`Compartment marker`]
+            temp2m$.size <- 5
+            plotleatmap <- add_trace(plotleatmap, data = temp2m, x = ~Xmin, y = -2,
+                                     text = ~temp2m$`Compartment marker`,
+                                     inherit = FALSE,
+                                     type = "scatter", mode = "markers", showlegend = FALSE,
+                                     marker = list(color = temp2m$.markCol,
+                                                   size = temp2m$.size, showscale = FALSE, showlegend = FALSE))
+          }
+          # setwd(clustDir)
+          # saveWidget(plotleatmapa, paste0(clustDir, "/", nm, normTypeInsrt, ".html"))
+          # setwd(wd)
           #system(paste0("open \"", clustDir, "/", nm, normTypeInsrt, ".html\""))
           if (clustMode == "standard") {
             plotLeatMaps[[i]][[normType]] <- list(Ttl = paste0(nm, normTypeInsrt),
-                                                  Plot = plotleatmap)
+                                                  Plot = plotleatmap,
+                                                  Render = plotly::plotly_build(plotleatmap))
           }
         }
         #poplot(heatmap.plot, 12, 20)
@@ -716,14 +778,15 @@ if (clustHtMp) {
   }
   #
   # Save ggplots
-  parLapply(parClust, heatMaps, function(x) {
+  invisible(parLapply(parClust, heatMaps, function(x) {
     if (grepl("\\.pdf$", x$Ttl)) {
       ggplot2::ggsave(x$Ttl, x$Plot)
     }
     if (grepl("\\.jpeg$", x$Ttl)) {
       ggplot2::ggsave(x$Ttl, x$Plot, width = x$Width, height = x$Height, units = x$Units)
     }
-  })
+    return()
+  }))
   #
   if (clustMode == "standard") {
     saveFun(plotLeatMaps, file = paste0(clustDir, "/HeatMaps.RData"))
@@ -738,9 +801,9 @@ if (clustHtMp) {
     source(Src, local = FALSE)
   }
   #
-  temp <- PG[, c("Leading protein IDs", "Protein names", "Genes", "Mol. weight [kDa]",
-                 clustXprsKol, KlustKols)]
-  #
+  kol <- c("Leading protein IDs", "Protein names", "Genes", "Mol. weight [kDa]")
+  kol <- kol[which(kol %in% colnames(PG))]
+  temp <- PG[, c(kol, KlustKols)]
   flPath <- paste0(clustDir, "/Protein Groups and Clusters.csv")
   tst <- try(write.csv(temp, file = flPath, row.names = FALSE), silent = TRUE)
   while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {

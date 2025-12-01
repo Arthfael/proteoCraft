@@ -13,7 +13,9 @@ if (file.exists(SamplesMapPath)) {
   }
 }
 exp <- unique(FracMap$`Parent sample`) # Update
-if ((!file.exists(SamplesMapPath))||((exists("SamplesMap"))&&(nrow(SamplesMap) < length(unique(FracMap$`Parent sample`))))) {
+if ((!exists("SamplesMap"))||
+    (nrow(SamplesMap) < length(unique(FracMap$`Parent sample`)))||
+    (sum(!exp %in% SamplesMap$`Parent sample`))) {
   SamplesMap <- data.frame("Parent sample" = exp,
                            "Negative Filter" = FALSE,
                            check.names = FALSE)
@@ -79,7 +81,7 @@ smplMap2 <- smplMap <- SamplesMap[, which(!colnames(SamplesMap) %in% "New name")
 #colnames(smplMap2)[which(colnames(smplMap2) == "MQ.Exp")] <- "Parent sample"
 # Estimate table column widths
 wTest1 <- vapply(colnames(smplMap2), function(k) { #k <- colnames(smplMap2)[1]
-  if (k == "Parent sample") { k <- "MQ.Exp" }
+  #if (k == "Parent sample") { k <- "MQ.Exp" }
   if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
   return(x)
 }, 1)

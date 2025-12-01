@@ -113,6 +113,16 @@ k1 <- c("MQ.Exp", "Experiment", "Replicate")
 k2 <- colnames(ExpData)
 k2 <- k2[which(!k2 %in% c(k1, "Sample name", "Use"))]
 ExpData <- ExpData[which(vapply(ExpData$MQ.Exp, function(x) { sum(x %in% MQ.Exp) }, 1) > 0), ]
+# Test order
+tst <- suppressWarnings(as.integer(substr(ExpData$MQ.Exp, 1, 1)))
+if (!sum(is.na(tst))) {
+  nc1 <- nchar(ExpData$MQ.Exp)
+  nc2 <- nchar(gsub("^[0-9]+", "", ExpData$MQ.Exp))
+  ord <- as.integer(substr(ExpData$MQ.Exp, 1, nc1-nc2))
+  if (length(unique(ord)) == length(ord)) {
+    ExpData <- ExpData[order(ord, decreasing = FALSE),]
+  }
+}
 #
 if (LabelType == "Isobaric") {
   ExpData$"Parent sample" <- do.call(paste, c(ExpData[, c("MQ.Exp", "Isobaric label details")], sep = "_"))
@@ -199,7 +209,7 @@ wTest1 <- apply(wTest1, 1, function(x) {
 })
 #
 g <- grep("___((FD)|(INCR))$", colnames(ExpData2))
-colnames(ExpData2)[g] <- "" 
+colnames(ExpData2)[g] <- ""
 #
 facLevels2 <- lapply(FactorsLevels, function(x) {
   unique(c(x, NA))

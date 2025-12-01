@@ -37,62 +37,196 @@ WrdFrmt$Body_text_under <- officer::fp_text(underlined = TRUE, font.family = "Ca
 WrdFrmt$Template_text <- officer::fp_text(font.family = "Calibri", color = "red") # For empty template body text
 WrdFrmt$just <- officer::fp_par(text.align = "justify")
 WrdFrmt$left <- officer::fp_par(text.align = "left")
-ReportCalls %<o% list(Calls = list("read_docx()",
-                                   "body_add_par(Report, \"\", style = \"Normal\")",
-                                   "body_add_fpar(Report, fpar(ftext(paste0(\"Data analysis - \", start_date), prop = WrdFrmt$Main_title), fp_p = WrdFrmt$just))",
-                                   "body_add_par(Report, \"\", style = \"Normal\")",
-                                   "body_add_par(Report, \"\", style = \"Normal\")",
-                                   "body_add_fpar(Report, fpar(ftext(\"Inputs\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$left))"),
-                      Objects = list(),
-                      Plots = list())
-AddPlot2Report %<o% function(RCName = "ReportCalls", Plot = plot, Title = ttl, Space = TRUE, Jpeg = TRUE, Dir = dir) {
-  try({
-    reportCalls <- get(RCName, envir = .GlobalEnv)
-    if (Jpeg) {
-      Path <- paste0(gsub("/+$", "", normalizePath(Dir, winslash = "/")), "/", Title, ".jp", c("", "e"), "g")
-      w <- which(file.exists(Path))
-      stopifnot(length(w) > 0)
-      Path <- Path[w[1]]
-    } else {
-      Title2 <- Title
-      kount <- 0
-      while (Title2 %in% names(reportCalls$Plots)) {
-        kount <- kount + 1
-        Title2 <- paste0(Title, "_", kount)
-      }
-    }
-    reportCalls$Calls <- append(reportCalls$Calls,
-                                paste0("body_add_fpar(Report, fpar(ftext(\"", gsub(":", "_", Title),
-                                       "\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))"))
-    if (Jpeg) {
-      reportCalls$Calls <- append(reportCalls$Calls, paste0("body_add_img(Report, \"", Path, "\", height = 6, width = 6)"))
-    } else {
-      reportCalls$Calls <- append(reportCalls$Calls,
-                                  paste0("body_add_gg(Report, ", RCName, "$Plots[[\"", Title2, "\"]])"))
-      reportCalls$Plots[[Title2]] <- Plot
-    }
-    if (Space) { reportCalls$Calls <- append(reportCalls$Calls, "body_add_par(Report, \"\", style = \"Normal\")") }
-    return(reportCalls)
-  }, silent = TRUE)
+ReportCalls_dftl %<o% list(Calls = list("read_docx()",
+                                        "body_add_par(Report, \"\", style = \"Normal\")",
+                                        "body_add_fpar(Report, fpar(ftext(paste0(\"Data analysis - \", start_date), prop = WrdFrmt$Main_title), fp_p = WrdFrmt$just))",
+                                        "body_add_par(Report, \"\", style = \"Normal\")",
+                                        "body_add_par(Report, \"\", style = \"Normal\")",
+                                        "body_add_fpar(Report, fpar(ftext(\"Inputs\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$left))"),
+                           Objects = list(),
+                           Plots = list(),
+                           Count = 0)
+if ((!exists("ReportCalls"))||
+    (!"list" %in% class(ReportCalls))||
+    (sum(c("Calls", "Objects", "Plots") %in% names(ReportCalls)) != 3)) {
+  ReportCalls <- ReportCalls_dftl
 }
-AddMsg2Report %<o% function(RCName = "ReportCalls", Msg = msg, Print = TRUE, Warning = FALSE, Space = TRUE, Offset = FALSE) {
-  try({
-    reportCalls <- get(RCName, envir = .GlobalEnv)
-    if (Print+Warning) { if (Warning) { warning(Msg) } else { cat(paste0(Msg, "\n")) } }
-    ReportCalls$Calls <- append(ReportCalls$Calls,
-                                paste0("body_add_fpar(Report, fpar(ftext(\"", c("", "     ")[Offset+1], Msg,
-                                       "\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))"))
-    if (Space) { reportCalls$Calls <- append(reportCalls$Calls, "body_add_par(Report, \"\", style = \"Normal\")") }
+ReportCalls %<o% ReportCalls
+if (!"Count" %in% names(ReportCalls)) { ReportCalls$Count <- 0 }
+AddPlot2Report %<o% function(Plot = plot, Title = ttl, Space = TRUE, Jpeg = TRUE, Dir = dir, RCName = "ReportCalls") {
+  reportCalls <- try(get(RCName, envir = .GlobalEnv), silent = TRUE)
+  if ("try-error" %in% class(reportCalls)) {
+    warning("The report may have been corrupted, check... (ignore if you just started the workflow)")
+    reportCalls <- try(get("ReportCalls_dftl", envir = .GlobalEnv), silent = TRUE)
+  }
+  if (!"try-error" %in% class(reportCalls)) {
+    tst <- try({
+      reportCalls <- get(RCName, envir = .GlobalEnv)
+      if (Jpeg) {
+        Path <- paste0(gsub("/+$", "", normalizePath(Dir, winslash = "/")), "/", Title, ".jp", c("", "e"), "g")
+        w <- which(file.exists(Path))
+        stopifnot(length(w) > 0)
+        Path <- Path[w[1]]
+      } else {
+        Title2 <- Title
+        kount <- 0
+        while (Title2 %in% names(reportCalls$Plots)) {
+          kount <- kount + 1
+          Title2 <- paste0(Title, "_", kount)
+        }
+      }
+      reportCalls$Calls <- append(reportCalls$Calls,
+                                  paste0("body_add_fpar(Report, fpar(ftext(\"", gsub(":", "_", Title),
+                                         "\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))"))
+      if (Jpeg) {
+        reportCalls$Calls <- append(reportCalls$Calls, paste0("body_add_img(Report, \"", Path, "\", height = 6, width = 6)"))
+      } else {
+        reportCalls$Calls <- append(reportCalls$Calls,
+                                    paste0("body_add_gg(Report, ", RCName, "$Plots[[\"", Title2, "\"]])"))
+        reportCalls$Plots[[Title2]] <- Plot
+      }
+      if (Space) { reportCalls$Calls <- append(reportCalls$Calls, "body_add_par(Report, \"\", style = \"Normal\")") }
+      reportCalls$Count <- reportCalls$Count + 1
+    }, silent = TRUE)
+    if ("try-error" %in% class(tst)) {
+      warning(paste0("Corrupted report! ", tst[1]))
+    }
     return(reportCalls)
-  }, silent = TRUE)
+  } else {
+    return(list(Calls = list(),
+                Objects = list(),
+                Plots = list(),
+                Count = 0))
+  }
+}
+AddMsg2Report %<o% function(Msg = msg, Print = TRUE, Warning = FALSE, Space = TRUE, Offset = FALSE, RCName = "ReportCalls") {
+  reportCalls <- try(get(RCName, envir = .GlobalEnv), silent = TRUE)
+  if ("try-error" %in% class(reportCalls)) {
+    warning("The report may have been corrupted, check... (ignore if you just started the workflow)")
+    reportCalls <- try(get("ReportCalls_dftl", envir = .GlobalEnv), silent = TRUE)
+  }
+  if (!"try-error" %in% class(reportCalls)) {
+    tst <- try({
+      reportCalls <- get(RCName, envir = .GlobalEnv)
+      if (Print+Warning) { if (Warning) { warning(Msg) } else { cat(paste0(Msg, "\n")) } }
+      reportCalls$Calls <- append(reportCalls$Calls,
+                                  paste0("body_add_fpar(Report, fpar(ftext(\"", c("", "     ")[Offset+1], Msg,
+                                         "\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))"))
+      if (Space) { reportCalls$Calls <- append(reportCalls$Calls, "body_add_par(Report, \"\", style = \"Normal\")") }
+      reportCalls$Count <- reportCalls$Count + 1
+    }, silent = TRUE)
+    if ("try-error" %in% class(tst)) {
+      warning(paste0("Corrupted report! ", tst[1]))
+    }
+    return(reportCalls)
+  } else {
+    return(list(Calls = list(),
+                Objects = list(),
+                Plots = list(),
+                Count = 0))
+  }
 }
 AddSpace2Report %<o% function(RCName = "ReportCalls") {
-  try({
-    reportCalls <- get(RCName, envir = .GlobalEnv)
-    reportCalls <- get(RCName, envir = .GlobalEnv)
-    reportCalls$Calls <- append(reportCalls$Calls, "body_add_par(Report, \"\", style = \"Normal\")")
+  reportCalls <- try(get(RCName, envir = .GlobalEnv), silent = TRUE)
+  if ("try-error" %in% class(reportCalls)) {
+    warning("The report may have been corrupted, check... (ignore if you just started the workflow)")
+    reportCalls <- try(get("ReportCalls_dftl", envir = .GlobalEnv), silent = TRUE)
+  }
+  if (!"try-error" %in% class(reportCalls)) {
+    tst <- try({
+      reportCalls$Calls <- append(reportCalls$Calls, "body_add_par(Report, \"\", style = \"Normal\")")
+      reportCalls$Count <- reportCalls$Count + 1
+    }, silent = TRUE)
+    if ("try-error" %in% class(tst)) {
+      warning(paste0("Corrupted report! ", tst[1]))
+    }
     return(reportCalls)
-  }, silent = TRUE) 
+  } else {
+    warning("The report may have been corrupted, check...")
+    return(list(Calls = list(),
+                Objects = list(),
+                Plots = list(),
+                Count = 0))
+  }
+}
+AddImg2Report %<o% function(Path, Height = 6, Width = 6, Space = TRUE, RCName = "ReportCalls") {
+  reportCalls <- try(get(RCName, envir = .GlobalEnv), silent = TRUE)
+  if ("try-error" %in% class(reportCalls)) {
+    warning("The report may have been corrupted, check... (ignore if you just started the workflow)")
+    reportCalls <- try(get("ReportCalls_dftl", envir = .GlobalEnv), silent = TRUE)
+  }
+  if (!"try-error" %in% class(reportCalls)) {
+    tst <- try({
+      if (!file.exists(Path)) {
+        warning(paste0("The image at \"", Path, "\" does not seem to currently exist!"))
+      }
+      reportCalls$Calls <- append(reportCalls$Calls, paste0("body_add_img(Report, \"", Path,
+                                                            "\", height = ", Height, ", width = ", Width, ")"))
+      if (Space) { reportCalls$Calls <- append(reportCalls$Calls, "body_add_par(Report, \"\", style = \"Normal\")") }
+      reportCalls$Count <- reportCalls$Count + 1
+    }, silent = TRUE)
+    if ("try-error" %in% class(tst)) {
+      warning(paste0("Corrupted report! ", tst[1]))
+    }
+    return(reportCalls)
+  } else {
+    warning("The report may have been corrupted, check...")
+    return(list(Calls = list(),
+                Objects = list(),
+                Plots = list(),
+                Count = 0))
+  }
+}
+AddTxt2Report %<o% function(Text, Space = TRUE, RCName = "ReportCalls") {
+  reportCalls <- try(get(RCName, envir = .GlobalEnv), silent = TRUE)
+  if ("try-error" %in% class(reportCalls)) {
+    warning("The report may have been corrupted, check... (ignore if you just started the workflow)")
+    reportCalls <- try(get("ReportCalls_dftl", envir = .GlobalEnv), silent = TRUE)
+  }
+  if (!"try-error" %in% class(reportCalls)) {
+    tst <- try({
+      reportCalls$Calls <- append(reportCalls$Calls,
+             paste0("body_add_fpar(Report, fpar(ftext(\"", Text,
+                    "\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))"))
+      if (Space) { reportCalls$Calls <- append(reportCalls$Calls, "body_add_par(Report, \"\", style = \"Normal\")") }
+      reportCalls$Count <- reportCalls$Count + 1
+    }, silent = TRUE)
+    if ("try-error" %in% class(tst)) {
+      warning(paste0("Corrupted report! ", tst[1]))
+    }
+    return(reportCalls)
+  } else {
+    warning("The report may have been corrupted, check...")
+    return(list(Calls = list(),
+                Objects = list(),
+                Plots = list(),
+                Count = 0))
+  }
+}
+AddTbl2Report %<o% function(Table_name, Space = TRUE, RCName = "ReportCalls") {
+  reportCalls <- try(get(RCName, envir = .GlobalEnv), silent = TRUE)
+  if ("try-error" %in% class(reportCalls)) {
+    warning("The report may have been corrupted, check... (ignore if you just started the workflow)")
+    reportCalls <- try(get("ReportCalls_dftl", envir = .GlobalEnv), silent = TRUE)
+  }
+  if (!"try-error" %in% class(reportCalls)) {
+    tst <- try({
+      reportCalls$Calls <- append(reportCalls$Calls,
+                                  paste0("body_add_table(Report, ", RCName, "$Objects[[", Table_name, "]])"))
+      if (Space) { reportCalls$Calls <- append(reportCalls$Calls, "body_add_par(Report, \"\", style = \"Normal\")") }
+      reportCalls$Count <- reportCalls$Count + 1
+    }, silent = TRUE)
+    if ("try-error" %in% class(tst)) {
+      warning(paste0("Corrupted report! ", tst[1]))
+    }
+    return(reportCalls)
+  } else {
+    warning("The report may have been corrupted, check...")
+    return(list(Calls = list(),
+                Objects = list(),
+                Plots = list(),
+                Count = 0))
+  }
 }
 
 # Create Excel formatting styles (package used = openxlsx):

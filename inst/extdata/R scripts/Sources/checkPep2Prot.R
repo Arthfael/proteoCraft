@@ -6,8 +6,7 @@ I_eq_L %<o% TRUE # Could be made a global parameter
 setwd(wd)
 #ev$Proteins <- gsub(";CON_", ";", gsub("^CON_", "", gsub(";CON__", ";", gsub("^CON__", "", ev$Proteins))))
 if (Update_Prot_matches) {
-  ReportCalls$Calls <- append(ReportCalls$Calls,
-                              paste0("body_add_fpar(Report, fpar(ftext(\" - Checking peptide-to-protein assignments:\", prop = WrdFrmt$Body_text), fp_p = WrdFrmt$just))"))
+  ReportCalls$Calls <- AddTxt2Report(" - Checking peptide-to-protein assignments...")
   msg <- "ing peptide-to-protein matches...\n"
   if (exists("Reuse_Prot_matches")) {
     if ((!is.logical(Reuse_Prot_matches))||(is.na(Reuse_Prot_matches))) {

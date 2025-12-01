@@ -126,9 +126,8 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
                                                                          Norma.Prot.Ratio.classic))],
                   ")")
     DatAnalysisTxt <- gsub("\\.\\.\\.$", paste0(" and re-normalized to the median value of ", txTmp, "."), DatAnalysisTxt)
-    ReportCalls$Calls <- append(ReportCalls$Calls,
-                                paste0("body_add_fpar(Report, fpar(ftext(\"Re-normalizing Protein groups-level expression values  the median value of ",
-                                       txTmp, "\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))"))
+    ReportCalls$Calls <- AddTxt2Report(paste0("Re-normalizing Protein groups-level expression values  the median value of ",
+                                       txTmp))
   }
   if (Norma.Prot.Ratio.classic) {
     if (!"Adv.Norma.Prot.Intens" %in% colnames(Param)) {
@@ -146,8 +145,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
       }
     } else { Norma.Prot.Ratio.Adv <- Param$Adv.Norma.Prot.Intens }
     if (Norma.Prot.Ratio.Adv) {
-      ReportCalls$Calls <- append(ReportCalls$Calls,
-                                  "body_add_fpar(Report, fpar(ftext(\"Applying Levenberg-Marquardt normalisation at Protein groups-level...\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))")
+      ReportCalls$Calls <- AddTxt2Report("Applying Levenberg-Marquardt normalisation at Protein groups-level...")
       ids <- PG$id[nrmFlt]
       # Let's first normalize per ratio group...
       clusterExport(parClust, list("quant.data.norm", "Exp.map", "RG", "RRG", "nrmFlt", "is.all.good",
@@ -242,8 +240,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
       ttl <- "re-normalisation (Levenberg-Marquardt)"
       DatAnalysisTxt <- gsub(" and re-normalized to the median value of .+",
                              paste0(" and re-normalized using the Levenberg-Marquardt procedure."), DatAnalysisTxt)
-      ReportCalls$Calls <- append(ReportCalls$Calls,
-                                  "body_add_fpar(Report, fpar(ftext(\"Done!\", prop = WrdFrmt$Body_text_ital), fp_p = WrdFrmt$just))")
+      ReportCalls$Calls <- AddTxt2Report("Done!")
     }
   }
   if (Norma.Prot.Ratio.classic||Norma.Prot.Ratio.to.Biot||Norma.Prot.Ratio.to.proteins) {

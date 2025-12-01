@@ -33,8 +33,7 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
   }
   kols <- kols[which(!kols %in% c(X, Y))]
   ReportCalls <- AddSpace2Report()
-  ReportCalls$Calls <- append(ReportCalls$Calls,
-                              "body_add_fpar(Report, fpar(ftext(\"PSMs-level PCA plot:\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))")
+  ReportCalls$Calls <- AddTxt2Report("PSMs-level PCA plot:")
   ReportCalls$Calls <- append(ReportCalls$Calls, list())
   dir <- paste0(wd, "/Dimensionality red. plots/PCA")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
@@ -156,8 +155,10 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
                                   symbol = I(Symb))
       }
       plot_lyPSMsPCA %<o% layout(plot_lyPSMsPCA, title = ttl)
+      setwd(dir)
       saveWidget(plot_lyPSMsPCA, paste0(dir, "/", ttl, ".html"), selfcontained = TRUE)
       #system(paste0("open \"", dir, "/", ttl, ".html"))
+      setwd(wd)
     } else {
       msg <- "Not enough valid data to draw a PSM-level PCA plot!"
       ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
