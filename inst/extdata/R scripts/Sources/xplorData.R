@@ -4,10 +4,11 @@
 #
 # Opens a shiny app where clustering heatmaps, dimensionality reduction plots, protein profile plots or sorting plots may be visualized.
 #
-
 HEIGHT <- "500px"
+# Defaults
 allProt <- PG$Label
-dfltPrt <- PG$Label[grsep2(prot.list[1], PG$"Protein IDs")]
+dfltPrt <- PG$Label[grsep2(prot.list, PG$"Protein IDs")]
+if (!length(dfltPrt)) { dfltPrt <- PG$Label[1] }
 appNm <- paste0(dtstNm, " - Data exploration")
 if (!exists("plotLeatMaps")) { loadFun(paste0(wd, "/Clustering/HeatMaps.RData")) }
 if (!exists("dimRedPlotLy")) { loadFun(paste0(wd, "/Dimensionality red. plots/DimRedPlots.RData")) }
@@ -22,6 +23,7 @@ dfltDmRd <- c("PCA", nmsDmRds)
 dfltDmRd <- dfltDmRd[which(dfltDmRd %in% nmsDmRds)[1]]
 dfltQntTp <- c("Expression", names(QuantLy))
 dfltQntTp <- dfltQntTp[which(dfltQntTp %in% names(QuantLy))[1]]
+#
 ui <- fluidPage(
   useShinyjs(),
   setBackgroundColor( # Doesn't work
@@ -95,20 +97,22 @@ server <- function(input, output, session) {
       qunt <- dfltQntTp
       prt <- dfltPrt
     }
-    pltly <- ProfLy[[qunt]]$grey
     if (length(prt)) {
-      dat <- ProfLy[[qunt]]$data
-      dat <- dat[which(dat$`Protein Group` %in% prt),]
-      if (nrow(dat)) {
-        #if (reactive) { print(PROFPROT()) }
-        pltly <- add_trace(pltly, data = dat, x = ~Sample, y = ~Y,
-                           split = ~`Protein Group`,
-                           color = ~`Protein Group`, type = "scatter",
-                           mode = "lines+markers", text = ~`Protein Group`, connectgaps = FALSE,
-                           name = "")
+      ggCall <- gsub(", +alpha += +[^\\)]+\\)", ")", ProfLy[[qunt]]$ggCall)
+      plCall <- ProfLy[[qunt]]$plCall
+      profData <- ProfLy[[qunt]]$data
+      profData <- profData[which(profData$`Protein Group` %in% prt),]
+      if (nrow(profData)) {
+        ttl <- ProfLy[[qunt]]$Ttl
+        kolnm <- ProfLy[[qunt]]$data2$colName
+        myFacets <- ProfLy[[qunt]]$data2$facets
+        Ngl <- ProfLy[[qunt]]$data2$angle
+        # Now that the original objects have their proper values again, we can evaluate
+        eval(parse(text = ggCall))
+        eval(parse(text = plCall))
+        renderPlotly(plotlyProfiles)
       }
     }
-    renderPlotly(pltly)
   }
   # updtSortPlot <- function(reactive = TRUE) {
   #   if (reactive) {

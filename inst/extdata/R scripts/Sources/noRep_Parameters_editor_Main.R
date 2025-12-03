@@ -818,6 +818,7 @@ if (prot.list.Cond) {
 # GO terms of interest (for profile plots, LFQ plots and similar, GO-specific tabs...)
 GO_filt %<o% FALSE
 if (exists("GO_filter")) { GO_filt <- length(GO_filter) > 0 }
+GO_filter %<o% GO_filter
 if (GO_filt) {
   library(GO.db)
   AllTerms %<o% unique(unlist(strsplit(db$`GO-ID`, ";")))
