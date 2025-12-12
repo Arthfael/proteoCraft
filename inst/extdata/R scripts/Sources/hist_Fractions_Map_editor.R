@@ -5,6 +5,7 @@
 appNm <- paste0(dtstNm, " - Samples map")
 smplsMapFl <- paste0(dstDir, "/Samples_map.csv")
 reLoad <- file.exists(smplsMapFl)
+dfltKol <- c("Sample", "Group", "Replicate")
 if (reLoad) {
   smplsMap <- read.csv(smplsMapFl,
                          check.names = FALSE)
@@ -16,16 +17,36 @@ if (reLoad) {
     colnames(smplsMap)[which(colnames(smplsMap) == "New")] <- "Sample name"
   }
   #
-  reLoad <- sum(c("Sample", "Group", "Replicate") %in% colnames(smplsMap)) == 3
+  reLoad <- sum(dfltKol %in% colnames(smplsMap)) == 3
 }
 if (!reLoad) {
   smplsMap <- data.frame(Sample = unique(ev$`Raw file`),
-                           Group = "?",
-                           Replicate = "?",
-                           Use = TRUE)
+                         Group = "?",
+                         Replicate = "?",
+                         Use = TRUE)
 }
+dfltFact <- c()
+if ((exists("myFact"))&&(length(myFact))&&(is.character(myFact))) {
+  dfltFact <- unique(c(dfltFact, myFact))
+}
+kol <- colnames(smplsMap)
+kol <- kol[which(!kol %in% c(dfltKol, "Use", "Sample name"))]
+if (length(kol)) {
+  dfltFact <- unique(c(dfltFact, kol))
+}
+if (!length(dfltFact)) {
+  dfltFact <- c("Fact1", "Fact2")
+}
+dfltFact <- paste(dfltFact, collapse = " / ")
+myFact <- dlg_input("Enter name of columns you would like to add to the table (in addition to Sample, Replicate and Group; use \" / \" as separator)",
+                    dfltFact)$res
+myFact <- unlist(strsplit(myFact, " +/ +"))
+myFact <- unique(myFact)
+myFact <- myFact[which(myFact != "")]
+myFact <- myFact[which(!myFact %in% c(dfltKol, "Use", "Sample name"))]
+
 if (!"Sample name" %in% colnames(smplsMap)) {
-  smplsMap$"Sample name" <- "?"
+  smplsMap$"Sample name" <- smplsMap$Sample
 }
 if (!"Use" %in% colnames(smplsMap)) {
   smplsMap$Use <- TRUE
@@ -40,6 +61,17 @@ if (!exists("nRep")) { nRep <- nr }
 dflt_Rpl <- 1:(nr+nRep) %% nRep
 dflt_Rpl[which(dflt_Rpl == 0)] <- nRep
 #
+if (length(myFact)) {
+  w <- which(!myFact %in% colnames(smplsMap))
+  if (length(w)) {
+    smplsMap[, myFact[w]] <- ""
+  }
+  # for (fct in myFact) {
+  #   wNA <- which(is.na(smplsMap[[fct]]))
+  #   smplsMap[wNA, fct] <- ""
+  # }
+}
+#
 smplsMap2 <- smplsMap
 smplsMap2$`Sample name` <- shinyTextInput(smplsMap2$`Sample name`, "Sample name", width = "100%")
 smplsMap2$Group <- shinyTextInput(smplsMap2$Group, "Group", width = "100%")
@@ -49,11 +81,18 @@ smplsMap2$Replicate___FD <- shinyFDInput("Replicate", nr)
 smplsMap2$Replicate___INCR <- shinyPlusFD("Replicate", nr)
 smplsMap2$Use <- shinyCheckInput(smplsMap2$Use, "Use")
 smplsMap2$Use___FD <- shinyFDInput("Use", nr)
-smplsMap2 <- smplsMap2[, c("Sample", "Sample name",
-                               "Group", "Group___FD",
-                               "Replicate", "Replicate___FD", "Replicate___INCR",
-                               "Use", "Use___FD")]
-ALLIDS <- as.character(sapply(c("Group", "Replicate", "Use"), function(x) {
+kol <- c("Sample", "Sample name", "Group", "Group___FD")
+if (length(myFact)) {
+  for (fct in myFact) {
+    smplsMap2[[fct]] <- shinyTextInput(smplsMap2[[fct]], fct, width = "100%")
+    smplsMap2[[paste0(fct, "___FD")]] <- shinyFDInput(fct, nr)
+    
+    kol <- c(kol, fct, paste0(fct, "___FD"))
+  }
+}
+kol <- c(kol, "Replicate", "Replicate___FD", "Replicate___INCR", "Use", "Use___FD")
+smplsMap2 <- smplsMap2[, kol]
+ALLIDS <- as.character(sapply(c("Group", myFact, "Replicate", "Use"), function(x) {
   paste0(x, "___", as.character(rws))
 }))
 idsL <- length(ALLIDS)
@@ -143,7 +182,7 @@ server <- function(input, output, session) {
                      x <- input[[id1]]
                      for (k in (i+1):nr) {
                        idK <- paste0(fct, "___", as.character(k))
-                       if (fct == "Group") {
+                       if (fct %in% c("Group", myFact)) {
                          updateTextInput(session, idK, NULL, x)
                        }
                        if (fct == "Replicate") {

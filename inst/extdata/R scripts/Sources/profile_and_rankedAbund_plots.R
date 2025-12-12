@@ -91,7 +91,7 @@ if (runRankAbundPlots||runProfPlots) {
   if (scrptType == "withReps") {
     ref <- paste0("Mean ", prtRfRoot) #prtRfRoot
     GO_PG_col %<o% unique(unlist(strsplit(Param$GO.tabs, ";")))
-    GO_filt %<o% length(GO_PG_col) > 0
+    GO_filt %<o% (length(GO_PG_col) > 0)
     if (GO_filt) {
       if ((!exists("GO_terms"))&&(file.exists(paste0(wd, "/GO_terms.RData")))) { loadFun(paste0(wd, "/GO_terms.RData")) }
       GO_PG_col <- GO_PG_col[which(GO_PG_col %in% GO_terms$ID)]

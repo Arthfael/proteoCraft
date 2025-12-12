@@ -378,6 +378,10 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         } else {
           # One-hot encode if there are more than 2 levels
           for (i in u) {
+            if (is.na(i)) {
+              u[which(is.na(u))] <- i <- paste0(Fact, "_NA")
+              xpMap[[Fact]][which(is.na(xpMap[[Fact]]))] <- i
+            }
             stopifnot(!i %in% colnames(xpMap))
             xpMap[[i]] <- c(0, 1)[(xpMap[[Fact]] == i) + 1]
           }

@@ -258,7 +258,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
     kPpR <- paste0(pep.ratios.ref[length(pep.ratios.ref)], Exp.map$Ref.Sample.Aggregate)
     kPrE <- c(paste0(Prot.Expr.Root, Exp.map$Ref.Sample.Aggregate),
               paste0(Prot.Expr.Root, unique(Exp.map[[RRG$column]]), ".REF"))
-    kPrR <-  paste0(Prot.Rat.Root, Exp.map$Ref.Sample.Aggregate)
+    kPrR <- paste0(Prot.Rat.Root, Exp.map$Ref.Sample.Aggregate)
     kPpR <- kPpR[which(kPpR %in% colnames(pep))]
     kPrR <- kPrR[which(kPrR %in% colnames(quant.data))]
     pep.quant.data.norm <- pep[, c(kPpE, kPpR)]
@@ -268,8 +268,10 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
     diffR <- vapply(kPrR, function(x) {
       mean(is.all.good(unlist(quant.data.norm[x] - quant.data[x])))
     }, 1)
-    pep.quant.data.norm[, kPpE] <- sweep(pep.quant.data.norm[, kPpE], 2, diffE, "*")
-    pep.quant.data.norm[, kPpR] <- sweep(pep.quant.data.norm[, kPpR], 2, diffR, "+")
+    names(diffE) <- gsub(topattern(Prot.Expr.Root), pep.ref[length(pep.ref)], names(diffE))
+    names(diffR) <- gsub(topattern(Prot.Rat.Root), pep.ratios.ref[length(pep.ratios.ref)], names(diffR))
+    pep.quant.data.norm[, kPpE] <- sweep(pep.quant.data.norm[, kPpE], 2, diffE[kPpE], "*")
+    pep.quant.data.norm[, kPpR] <- sweep(pep.quant.data.norm[, kPpR], 2, diffR[kPpR], "+")
     # Also pep.ref.ratios
     if (Param$Ratios.Thresholds == "Absolute log2 FC threshold") {
       pep.Ref.Ratios.norm %<o% NULL

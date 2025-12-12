@@ -63,29 +63,36 @@ if ((length(filt) > 2)&&(length(kol) > 2)) {
       ) +
       geom_text_repel(aes(label = Sample), size = 2.5, show.legend = FALSE)
     if (substr(form, 1, 1) == "~") { plot <- plot + facet_wrap(form) } else { plot <- plot + facet_grid(form) }
+    suppressMessages({
+      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
+      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    })
     #
     scores$"Samples group" <- factor(scores$Group)
+    Symb <- rep(c("circle", "diamond", "square", "cross", "x"), max(as.numeric(Rep)))[1:max(as.numeric(Rep))]             
+    Symb <- Symb[as.numeric(scores$Replicate)]
     if ("PC3" %in% colnames(scores)) {
-      Symb <- rep(c("circle", "diamond", "square", "cross", "x"), max(as.numeric(Rep)))[1:max(as.numeric(Rep))]             
-      Symb <- Symb[as.numeric(scores$Replicate)]
       plot_lyPCAProt <- plot_ly(scores, x = ~PC1, y = ~PC2, z = ~PC3,
                                 color = ~`Samples group`, colors = "viridis",
                                 text = ~Sample, type = "scatter3d", mode = "markers",
                                 symbol = I(Symb))
       plot_lyPCAProt <- add_trace(plot_lyPCAProt, scores, x = ~PC1, y = ~PC2, z = ~PC3,
                                   type = "scatter3d", mode = "text", showlegend = FALSE)
-      plot_lyPCAProt <- layout(plot_lyPCAProt, title = ttl)
-      setwd(dir)
-      saveWidget(plot_lyPCAProt, paste0(dir, "/", ttl, ".html"))
-      setwd(wd)
-      dimRedPlotLy[["Samples PCA"]] <- plot_lyPCAProt
-      #system(paste0("open \"", dir, "/", ttl, ".html"))
-      # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
-    } else { poplot(plot, width = 18) }
-    suppressMessages({
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
-    })
+    } else {
+      plot_lyPCAProt <- plot_ly(scores, x = ~PC1, y = ~PC2,
+                                color = ~`Samples group`, colors = "viridis",
+                                text = ~Sample, type = "scatter", mode = "markers",
+                                symbol = I(Symb))
+      plot_lyPCAProt <- add_trace(plot_lyPCAProt, scores, x = ~PC1, y = ~PC2,
+                                  type = "scatter", mode = "text", showlegend = FALSE)
+    }
+    plot_lyPCAProt <- layout(plot_lyPCAProt, title = ttl)
+    setwd(dir)
+    saveWidget(plot_lyPCAProt, paste0(dir, "/", ttl, ".html"))
+    setwd(wd)
+    dimRedPlotLy[["Samples PCA"]] <- plot_lyPCAProt
+    system(paste0("open \"", dir, "/", ttl, ".html"))
+    # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
     ReportCalls <- AddPlot2Report()
   } else { warning("PCA failed, investigate!") }
   #
@@ -280,13 +287,13 @@ if ((length(filt) > 2)&&(length(kol) > 2)) {
                         symbol = PL_symbolScale[myCat])
     plot_lyPCAProt2 <- do.call(add_trace, c(list(plot_lyPCAProt2, data = subDat), args))
   }
-  # Dummy layer to avoid random rezooms
+  # Dummy layer to avoid random re-zooms
   xr <- range(scores$PC1)
   yr <- range(scores$PC2)
-  zr <- range(scores$PC3)
+  if (tst3D) { zr <- range(scores$PC3) } else { zr <- NULL }
   plot_lyPCAProt2 <- add_trace(plot_lyPCAProt2,
     x = xr, y = yr, z = zr,
-    type = "scatter3d",
+    type = base_args$type,
     mode = "markers",
     marker = list(size = 0.0001, color = "rgba(0,0,0,0)"),
     name = "_bbox_",
@@ -370,13 +377,13 @@ if ((length(filt) > 2)&&(length(kol) > 2)) {
                           symbol = PL_symbolScale[myCat])
       plot_lytSNE <- do.call(add_trace, c(list(plot_lytSNE, data = subDat), args))
     }
-    # Dummy layer to avoid random rezooms
+    # Dummy layer to avoid random re-zooms
     xr <- range(scores2$`t-SNE Y1`)
     yr <- range(scores2$`t-SNE Y2`)
-    zr <- range(scores2$`t-SNE Y3`)
+    if (tst3D) { zr <- range(scores2$`t-SNE Y3`) } else { zr <- NULL }
     plot_lytSNE <- add_trace(plot_lytSNE,
                              x = xr, y = yr, z = zr,
-                             type = "scatter3d",
+                             type = base_args2$type,
                              mode = "markers",
                              marker = list(size = 0.0001, color = "rgba(0,0,0,0)"),
                              name = "_bbox_",
@@ -459,13 +466,13 @@ if ((length(filt) > 2)&&(length(kol) > 2)) {
                           symbol = PL_symbolScale[myCat])
       plot_lyUMAP <- do.call(add_trace, c(list(plot_lyUMAP, data = subDat), args))
     }
-    # Dummy layer to avoid random rezooms
+    # Dummy layer to avoid random re-zooms
     xr <- range(UMAPlayout$X1)
     yr <- range(UMAPlayout$X2)
-    zr <- range(UMAPlayout$X3)
+    if (tst3D) { zr <- range(UMAPlayout$X3) } else { zr <- NULL }
     plot_lyUMAP <- add_trace(plot_lyUMAP,
                              x = xr, y = yr, z = zr,
-                             type = "scatter3d",
+                             type = base_args3$type,
                              mode = "markers",
                              marker = list(size = 0.0001, color = "rgba(0,0,0,0)"),
                              name = "_bbox_",

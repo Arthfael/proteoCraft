@@ -11,7 +11,9 @@ if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
     w <- which(g %in% colnames(PG))
     g <- g[w]
     allSamples <- cleanNms(RSA$values[w])
-    myData <- PG
+    kol <- paste0(prtRfRoot, RSA$values[w])
+    myData <- PG[, kol]
+    colnames(myData) <- paste0(prtRfRoot, allSamples)
     isLog <- TRUE
   }
   if (scrptTypeFull == "Histones") {

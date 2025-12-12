@@ -97,11 +97,11 @@ if ("PTM.analysis" %in% colnames(Param)) {
         if (length(g)) {
           source(parSrc, local = FALSE)
           ReportCalls <- AddMsg2Report(Msg = paste0(" - ", ptm), Space = FALSE)
-          dir <- c("", "/t-tests")
-          if (F.test) { dir <- c(dir, "/F-tests") }
-          dir <-  paste0(wd, "/Reg. analysis/", ptm, dir)
-          for (d in dir) { if (!dir.exists(d)) { dir.create(d, recursive = TRUE) }}
-          dirlist <- unique(c(dirlist, dir))
+          modDirs <- c("", "/t-tests")
+          if (F.test) { modDirs <- c(modDirs, "/F-tests") }
+          modDirs <-  paste0(wd, "/Reg. analysis/", ptm, modDirs)
+          for (dr in modDirs) { if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }}
+          dirlist <- unique(c(dirlist, modDirs))
           pep[[paste0(Ptm, " ID")]] <- ""
           ptmpep <- pep[g,]
           pep[g, paste0(Ptm, " ID")] <- ptmpep$ModPep_ID <- seq_len(nrow(ptmpep))
@@ -356,7 +356,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
             pepPlotFun(df1,
                        df2,
                        "Re-normalisation (ratios)",
-                       dir[1])
+                       modDirs[1])
             # The distributions should remain barely changed
             ptms.ref["ReNorm."] <- paste0("ReNorm. ", ptms.ref["Original"])
             ptms.ratios.ref["ReNorm."] <- paste0("ReNorm. ", ptms.ratios.ref["Original"])
@@ -432,7 +432,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
             pepPlotFun(df1,
                        df2,
                        "Re-normalisation (intensities)",
-                       dir[1])
+                       modDirs[1])
             #}
             #kol <- grep("ReNorm. log2", colnames(ptmpep), value = TRUE)
             #tst <- apply(ptmpep[, kol], 2, function(x) { summary(is.all.good(x)) })
@@ -441,14 +441,14 @@ if ("PTM.analysis" %in% colnames(Param)) {
               pepHtmp(prot.list_pep,
                       ptmpep,
                       ptms.ref["Original"],
-                      paste0(dir[1], "/Heatmaps"),
+                      paste0(modDirs[1], "/Heatmaps"),
                       paste0(ptm, "-mod. pept. log2 heatmap, original"),
                       is.log = TRUE,
                       cl = parClust)
               pepHtmp(prot.list_pep,
                       ptmpep,
                       ptms.ref["ReNorm."],
-                      paste0(dir[1], "/Heatmaps"),
+                      paste0(modDirs[1], "/Heatmaps"),
                       paste0(ptm, "-mod. pept. log2 heatmap, re-normalised"),
                       is.log = TRUE,
                       cl = parClust)
@@ -462,8 +462,8 @@ if ("PTM.analysis" %in% colnames(Param)) {
           #
           # Calculate average intensities and ratios, as well as Welch's t-test and moderated P-values;
           # For unpaired replicates a permutations t-test is also performed.
-          samDir <- paste0(dir[2], "/SAM")
-          ebamDir <- paste0(dir[2], "/EBAM")
+          samDir <- paste0(modDirs[2], "/SAM")
+          ebamDir <- paste0(modDirs[2], "/EBAM")
           dataType <- "modPeptides"
           #
           Src <- paste0(libPath, "/extdata/R scripts/Sources/Av_and_Stat_tests.R")
@@ -536,8 +536,8 @@ if ("PTM.analysis" %in% colnames(Param)) {
           ReportCalls <- AddMsg2Report(Msg = " - t-tests", Space = FALSE)
           #k1 <- grep(topattern(paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)])), colnames(ptmpep), value = TRUE)
           #df1 <- ptmpep[, k1]
-          #subDr <- gsub(topattern(wd), "", dir[2])
-          subDr <- dir[2]
+          #subDr <- gsub(topattern(wd), "", modDirs[2])
+          subDr <- modDirs[2]
           if (useSAM) {
             # In this case, we bypass the original decision and base it off SAM even though we plot Student's P-values
             for (i in names(PTMs_SAM_thresh[[Ptm]])) { #i <- names(PTMs_SAM_thresh[[Ptm]])[1]
@@ -589,7 +589,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
           )
           #k2 <- grep(topattern(paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)])), colnames(ptmpep), value = TRUE)
           #df2 <- ptmpep[, k2]
-          #pepPlotFun(df1, df2, "Before VS after volc. plot", dir[1], FALSE)
+          #pepPlotFun(df1, df2, "Before VS after volc. plot", modDirs[1], FALSE)
           stopCluster(parClust)
           source(parSrc)
           #
@@ -722,7 +722,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
               volcano.plots[[Ptm]]$"F-tests_Unlabelled" <- F_volc$Plots$"Unlabelled"
               volcano.plots[[Ptm]]$"F-tests_Labelled" <- F_volc$Plots$"Labelled"
               n2 <- names(volcano.plots[[Ptm]]$"F-tests_Labelled")
-              dir <- paste0(dir, "/Reg. analysis/F-tests")
+              dir <- modDirs[3]
               for (ttl in n2) {
                 plot <- volcano.plots[[Ptm]]$"F-tests_Labelled"[[ttl]]
                 ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
@@ -912,12 +912,12 @@ if ("PTM.analysis" %in% colnames(Param)) {
                               padding = 5)
           nm <- gsub("\n", " - ", nm)
           suppressMessages({
-            ggsave(paste0(dir[1], "/", nm, ".jpeg"), htmp, width = 20, height = 20, units = "in", dpi = 600)
-            ggsave(paste0(dir[1], "/", nm, ".pdf"), htmp, width = 20, height = 20, units = "in", dpi = 600)
+            ggsave(paste0(modDirs[1], "/", nm, ".jpeg"), htmp, width = 20, height = 20, units = "in", dpi = 600)
+            ggsave(paste0(modDirs[1], "/", nm, ".pdf"), htmp, width = 20, height = 20, units = "in", dpi = 600)
           })
-          ReportCalls <- AddPlot2Report(Title = nm, Dir = dir[1])
-          #system(paste0("open \"", dir[1], "/", nm, ".jpeg", "\""))
-          #system(paste0("open \"", dir[1], "/", nm, ".pdf", "\""))
+          ReportCalls <- AddPlot2Report(Title = nm, Dir = modDirs[1])
+          #system(paste0("open \"", modDirs[1], "/", nm, ".jpeg", "\""))
+          #system(paste0("open \"", modDirs[1], "/", nm, ".pdf", "\""))
           #
           # Gene Ontology terms enrichment analysis
           if (enrichGO) {
@@ -967,7 +967,8 @@ if ("PTM.analysis" %in% colnames(Param)) {
             for (tt in WhTsts) { #tt <- 1 #tt <- 2
               tstrt <- Tsts[tt]
               stopifnot(!is.na(tstrt))
-              dir <- paste0(wd, "/Reg. analysis/", ptm, "/GO enrich/", tstrt)
+              dir <- paste0(modDirs[1], "/GO enrich/", tstrt)
+              modDirs <- c(modDirs, dir)
               if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
               dirlist <- unique(c(dirlist, dir))
               filt <- PTMs_Reg_filters[[Ptm]][[tstrt]]

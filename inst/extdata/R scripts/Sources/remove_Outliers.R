@@ -17,7 +17,7 @@ wTest0 <- setNames(vapply(colnames(Exp.map), function(k) { #k <- colnames(Exp.ma
   x <- max(nchar(c(k, tmp)) + 3, na.rm = TRUE)
   x <- x*10
   return(x)
-}, ""), #gsub("\\.", "_",
+}, 1), #gsub("\\.", "_",
 colnames(Exp.map))#)
 wTest1 <- vapply(colnames(Include), function(k) { #k <- colnames(Include)[1]
   if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }

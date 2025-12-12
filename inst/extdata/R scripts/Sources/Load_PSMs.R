@@ -705,7 +705,7 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
           pos <- sort(unlist(x[[2]]))
           pos[which(pos == "*n")] <- "_" # Check, this may not be correct...
           # in fact, check whether this part of DIANN_to_MQ() should not be improved.
-          Modifs$`Full name`[which((Modifs$`Mass shift` == x[[1]])&(Modifs$AA %in% pos))]
+          mods_i$`Full name`[which((mods_i$`Mass shift` == x[[1]])&(mods_i$AA %in% pos))]
         })
       }
       VarMd$Text <- apply(VarMd[, c("Full name", "AA")], 1, function(x) {
@@ -716,7 +716,7 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         paste0(x[[1]], " (", paste(x[[2]], collapse = ""), ")")
       })
     }
-    # Note that it is possible that a modification was searched but not found (so is present in VarMd but not Modifs)
+    # Note that it is possible that a modification was searched but not found (so is present in VarMd but not mods_i)
     MBR <- grepl("--reanaly[s,z]e", diannCall_i)+1
     Libraries <- gsub("^lib +", "", grep("^lib", diannCall_i2, value = TRUE))
     nL <- length(Libraries)
@@ -1025,7 +1025,7 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       if (length(x2) > 1) { x2 <- paste(x[[3]], collapse = "") }
       return(paste0(x[[1]], " (", x2, ")"))
     })
-    # Note that it is possible that a modification was searched but not found (so is present in VarMd but not Modifs)
+    # Note that it is possible that a modification was searched but not found
     #
     # FragPipe is very versatile... which will not make this easy...
     # Unfortunately, the workflow file does not appear to store the type of Workflow which was preselected in the 2nd tab.
@@ -1186,7 +1186,7 @@ for (dir_i in 1:l_inDirs) { #dir_i <- 1 #dir_i <- 2
 #
 # Now combine the outputs of the different search directories
 #  - Modifications table
-Modifs <- lapply(searchOutputs, function(x) { x$Mods })
+Modifs %<o% lapply(searchOutputs, function(x) { x$Mods })
 modsTst1 <- modsTst2 <- do.call(rbind, lapply(Modifs, function(x) { x[, c("Mark", "Mass shift")] }))
 modsTst1 <- aggregate(round(modsTst1$`Mass shift`, 4), list(modsTst1$Mark), unique)
 colnames(modsTst1) <- c("Mark", "Mass shifts")
@@ -1236,7 +1236,7 @@ if ("Max occurences" %in% colnames(modsTst)) {
     max(x, na.rm = TRUE)
   })$x
 }
-Modifs %<o% modsTst_a
+Modifs <- modsTst_a
 #  - MatMet text templates
 MatMet_Search %<o% setNames(lapply(1:l_inDirs, function(x) {
   paste0(c("", paste0("Search #", x, " = '", gsub(".*/", "", inDirs[x]), "':\n"))[(l_inDirs > 1)+1],

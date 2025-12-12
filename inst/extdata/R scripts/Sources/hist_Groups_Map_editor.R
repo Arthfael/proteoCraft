@@ -6,13 +6,15 @@ appNm <- paste0(dtstNm, " - Groups map")
 grpsMapFl <- paste0(dstDir, "/Groups_map.csv")
 reLoad <- file.exists(grpsMapFl)
 if (reLoad) {
-  grpsMap <- read.csv(grpsMapFl,
-                      check.names = FALSE)
+  grpsMap_Disk <- read.csv(grpsMapFl,
+                           check.names = FALSE)
   #
-  reLoad <- (sum(c("Group", "Reference", "Comparison_group") %in% colnames(grpsMap)) == 3)&&
-    (sum(!Groups %in% grpsMap$Group) == 0)
+  reLoad <- (sum(c("Group", "Reference", "Comparison_group") %in% colnames(grpsMap_Disk)) == 3)&&
+    (sum(!Groups %in% grpsMap_Disk$Group) == 0)
 }
-if (!reLoad) {
+if (reLoad) {
+  grpsMap <- grpsMap_Disk[which(grpsMap_Disk$Group %in% samplesMap$Group),]
+} else {
   grpsMap <- data.frame(Group = Groups,
                         Reference = FALSE,
                         Comparison_group = 1)
@@ -73,7 +75,7 @@ ui <- fluidPage(useShinyjs(),
                 ),
                 extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
                 tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-                titlePanel(tag("u", "Samples map"),
+                titlePanel(tag("u", "Sample groups map"),
                            appNm),
                 br(),
                 h5("Edit the relationship between sample groups, defining comparison groups which must include exactly one reference group and any number of non-reference groups, then click \"Save\"."),
@@ -155,14 +157,25 @@ while ((!runKount)||(!exists("appRunTest"))) {
 }
 #
 #
-tmpTbl <- grpsMap3
-tst <- lapply(colnames(grpsMap3), function(x) { typeof(grpsMap3[[x]]) })
+if (reLoad) {
+  k1 <- colnames(grpsMap_Disk)
+  k2 <- colnames(grpsMap3)
+  w1 <- which(!k1 %in% k2)
+  w2 <- which(!k2 %in% k1)
+  if (length(w1)) { grpsMap3[, k1[w1]] <- "" }
+  if (length(w2)) { grpsMap_Disk[, k2[w2]] <- "" }
+  w <- which(grpsMap_Disk$Group %in% grpsMap3$Group)
+  grpsMap_Disk[w,] <- grpsMap3[match(grpsMap_Disk$Group[w], grpsMap3$Group),]
+} else {
+  grpsMap_Disk <- grpsMap3
+}
+tst <- lapply(colnames(grpsMap_Disk), function(x) { typeof(grpsMap_Disk[[x]]) })
 w <- which(tst == "list")
-if (length(w)) { for (i in w) { grpsMap3[[i]] <- vapply(grpsMap3[[i]], paste, "", collapse = ";") }}
-tst <- try(write.csv(tmpTbl, file = grpsMapFl, row.names = FALSE, quote = TRUE), silent = TRUE)
+if (length(w)) { for (i in w) { grpsMap_Disk[[i]] <- vapply(grpsMap_Disk[[i]], paste, "", collapse = ";") }}
+tst <- try(write.csv(grpsMap_Disk, file = grpsMapFl, row.names = FALSE, quote = TRUE), silent = TRUE)
 while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
   dlg_message(paste0("File \"", grpsMapFl, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-  tst <- try(write.csv(tmpTbl, file = grpsMapFl, row.names = FALSE, quote = TRUE), silent = TRUE)
+  tst <- try(write.csv(grpsMap_Disk, file = grpsMapFl, row.names = FALSE, quote = TRUE), silent = TRUE)
 }
 #
 groupsMap <- grpsMap

@@ -9,6 +9,11 @@
 # Check the specs of the SDRF format here:
 # https://github.com/bigbio/proteomics-sample-metadata/blob/master/sdrf-proteomics/README.adoc
 
+require(shiny)
+require(shinyWidgets)
+require(shinyjs)
+require(shinycssloaders)
+require(DT)
 require(proteoCraft)
 if (!exists("homePath")) {
   homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")

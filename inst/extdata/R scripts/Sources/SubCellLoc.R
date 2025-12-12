@@ -306,7 +306,9 @@ Example: \"GO:0031012;2\"
   SubCellFracAggr2 %<o% parse.Param.aggreg(Param_filter(Param$Volcano.plots.Aggregate.Level, "Com"))
   SSD.Root %<o% "log10(SSD) - "
   SSD.Pval.Root %<o% "Welch's t-test on SSDs -log10(Pvalue) - "
-  WhRef <- lapply(SubCellFracAggr2$values, function(x) { unique(Exp.map$Reference[which(Exp.map[[SubCellFracAggr2$column]] == x)]) })
+  WhRef <- lapply(SubCellFracAggr2$values, function(x) {
+    unique(Exp.map$Reference[which(Exp.map[[SubCellFracAggr2$column]] == x)])
+  })
   tst <- vapply(WhRef, length, 1)
   if (max(tst) == 1) {
     tempDat2 <- 10^tempDat

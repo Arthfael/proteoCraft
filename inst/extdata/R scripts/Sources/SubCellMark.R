@@ -17,9 +17,16 @@ if (Annotate) {
   tst2 <- data.frame(Species = tst2[c(1:(l2/2))*2-1],
                      IDsType = tst2[c(1:(l2/2))*2])
   tst2$SpTag <- gsub("^[^\\[]+\\[|(\\]|_).*:$", "", tst2$Species)
-  if (tstSp %in% tst2$SpTag) { # Use pRoloc markers if our species is available in pRoloc...
+  useProloc <- (tstSp %in% tst2$SpTag)
+  if (useProloc) { # Use pRoloc markers if our species is available in pRoloc...
     SubCellMark <- pRolocmarkers(tstSp)
-  } else { # ... or generate them automatically
+    tst <- data.frame(Comp = SubCellMark,
+                      Mark = names(SubCellMark) %in% db$`Protein ID`)
+    tst <- aggregate(tst$Mark, list(tst$Comp), sum)
+    tst <- tst[which(tst$x > 3),]
+    useProloc <- nrow(tst) >= 5
+  }
+  if (!useProloc) { # ... or generate them automatically
     tst <- setNames(lapply(CompGOTerms, function(x) {
       unique(unlist(strsplit(PG$`Leading protein IDs`[grsep(x, x = PG$"GO-ID")], ";")))
     }), names(CompGOTerms))

@@ -343,8 +343,8 @@ pepPlotFun %<o% function(df1,
   print(plot) # This type of QC plot does not need to pop up, the side panel is fine
   if (save) {
     suppressMessages({
-      ggsave(paste0(dir[1], "/", ttl, ".jpeg"), plot, dpi = 150)
-      ggsave(paste0(dir[1], "/", ttl, ".pdf"), plot, dpi = 150)
+      ggsave(paste0(dstDir, "/", ttl, ".jpeg"), plot, dpi = 150)
+      ggsave(paste0(dstDir, "/", ttl, ".pdf"), plot, dpi = 150)
     })
   }
 }
