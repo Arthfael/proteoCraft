@@ -574,11 +574,14 @@ pep.ratios.ref %<o% c(Ratios = paste0("log2(", pep.ratios.root, ") - "))
 # !!!!! When modifying it, either update that too, or create a function for both to ensure consistency!!!
 # !!!!! If choosing the second option, careful to remember what is/isn't log scale!!!
 # !!!!!
-# This code says: "Please rewrite me! I was written by a beginner (you) and I look very boorish!"
-kount <- 0
-for (i in RRG$values) { #i <- RRG$values[1]
+ratios.2.ref %<o% lapply(RRG$values, function(i) { #i <- RRG$values[1]
   j <- setNames(unlist(strsplit(i, "___")), RRG$names)
-  temp <- lapply(RRG$names, function(x) { which(Exp.map[[x]] == j[[x]]) })
+  temp <- lapply(RRG$names, function(x) {
+    if (j[[x]] == "NA") {
+      return(which((is.na(Exp.map[[x]]))|(Exp.map[[x]] == j[[x]])))
+    }
+    return(which(Exp.map[[x]] == j[[x]]))
+  })
   temp2 <- sort(unique(unlist(temp)))
   test <- vapply(temp2, function(x) { sum(vapply(temp, function(y) { x %in% unlist(y) }, TRUE)) }, 1)
   temp2 <- temp2[which(test == length(temp))]
@@ -594,14 +597,19 @@ for (i in RRG$values) { #i <- RRG$values[1]
       })
       b2 <- paste0(pep.ref[length(pep.ref)], i, ".REF")
       #print(b2)
-      pep[, b2] <- b1
-      kount <- kount + 1
-      if (kount == 1) {
-        ratios.2.ref %<o% data.frame(Name = b2, Source = paste(b, collapse = ";"))
-      } else { ratios.2.ref <- rbind(ratios.2.ref, c(b2, paste(b, collapse = ";"))) }
-    } else { warning(paste0("Empty group: ", i, ", skipping!")) }
-  } else { warning(paste0("There is no reference for level ", i)) }
-}
+      pep[, b2] <<- b1
+      return(data.frame(Name = b2,
+                        Source = paste(b, collapse = ";")))
+    } else {
+      #warning(paste0("Empty group: ", i, ", skipping!"))
+      return()
+    }
+  } else {
+    #warning(paste0("There is no reference for level ", i))
+    return()
+  }
+})
+ratios.2.ref <- plyr::rbind.fill(ratios.2.ref)
 ratios.2.ref$Source <- strsplit(ratios.2.ref$Source, ";")
 ratios.2.ref$Used_by <- list(NA)
 # Step 2: calculate individual ratios to relevant reference
@@ -609,7 +617,12 @@ ratios.2.ref$Used_by <- list(NA)
 # this will be useful further down the line.
 for (i in RRG$values) { #i <- RRG$values[1]
   j <- set_names(unlist(strsplit(i, "___")), RRG$names)
-  temp <- lapply(RRG$names, function(x) { which(Exp.map[[x]] == j[[x]]) })
+  temp <- lapply(RRG$names, function(x) {
+    if (j[[x]] == "NA") {
+      return(which((is.na(Exp.map[[x]]))|(Exp.map[[x]] == j[[x]])))
+    }
+    return(which(Exp.map[[x]] == j[[x]]))
+  })
   temp2 <- sort(unique(unlist(temp)))
   test <- vapply(temp2, function(x) { sum(vapply(temp, function(y) { x %in% unlist(y) }, TRUE)) }, 1)
   temp2 <- temp2[which(test == length(temp))]
@@ -761,10 +774,13 @@ if (Param$Norma.Pep.Ratio) {
           kol <- grep(paste0(topattern(pep.ratios.ref[1]), ".+_REF\\.to\\.REF_"), colnames(pep), value = TRUE)
         } else {
           x <- agg[i]
-          j <- unlist(strsplit(x, "___"))
-          names(j) <- Adv.Norma.Pep.Ratio.Type.Group$names
+          j <- setNames(unlist(strsplit(x, "___")),
+                        Adv.Norma.Pep.Ratio.Type.Group$names
           temp <- lapply(Adv.Norma.Pep.Ratio.Type.Group$names, function(x) {
-            which(Exp.map[[x]] == j[[x]])
+            if (j[[x]] == "NA") {
+              return(which((is.na(Exp.map[[x]]))|(Exp.map[[x]] == j[[x]])))
+            }
+            return(which(Exp.map[[x]] == j[[x]]))
           })
           temp2 <- sort(unique(unlist(temp)))
           test <- vapply(temp2, function(x) { sum(vapply(temp, function(y) { x %in% unlist(y) }, TRUE)) }, 1)
@@ -803,10 +819,14 @@ if (Param$Norma.Pep.Ratio) {
   }
   if (Param$Norma.Pep.Ratio.show) {
     for (i in Ratios.Plot.split$values) { #i <- Ratios.Plot.split$values[1]
-      j <- unlist(strsplit(i, "___"))
-      names(j) <- unlist(Aggregate.map$Characteristics[which(Aggregate.map$Aggregate.Name == Ratios.Plot.split$aggregate)])
-      #k <- lapply(c(seq_along(j)), function(x) { which((Exp.map[[names(j)[x]]] == j[x])&(!Exp.map$Reference)) })
-      k <- lapply(c(seq_along(j)), function(x) { which(Exp.map[[names(j)[x]]] == j[x]) })
+      j <- setNames(unlist(strsplit(i, "___")),
+                    unlist(Aggregate.map$Characteristics[which(Aggregate.map$Aggregate.Name == Ratios.Plot.split$aggregate)]))
+      k <- lapply(names(j), function(x) {
+        if (j[[x]] == "NA") {
+          return(which((is.na(Exp.map[[x]]))|(Exp.map[[x]] == j[[x]])))
+        }
+        return(which(Exp.map[[x]] == j[[x]]))
+      })
       l <- sort(unique(unlist(k)))
       test <- vapply(l, function(x) { sum(vapply(k, function(y) { x %in% y }, TRUE)) == length(k) }, 1)
       temp <- Exp.map$Ref.Sample.Aggregate[l[which(test)]]
@@ -3398,9 +3418,9 @@ dmrdSrc <- paste0(libPath, "/extdata/R scripts/Sources/dimRed_plots.R")
 source(dmrdSrc, local = FALSE)
 
 #### Code chunk - Protein group profile plots and ranked abundance plots
-Src <- paste0(libPath, "/extdata/R scripts/Sources/profile_and_rankedAbund_plots.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+PrfRASrc <- paste0(libPath, "/extdata/R scripts/Sources/profile_and_rankedAbund_plots.R")
+#rstudioapi::documentOpen(PrfRASrc)
+source(PrfRASrc, local = FALSE)
 
 # Visualize results
 if (!exists("xplorSrc")) {

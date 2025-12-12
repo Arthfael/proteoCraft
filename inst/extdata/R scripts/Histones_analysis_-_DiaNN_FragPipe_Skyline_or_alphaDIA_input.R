@@ -34,12 +34,20 @@ homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteo
 
 #proteoCraft::load_Bckp()
 
-# For now I always need that one,
-# but this could be easily modified
-dbFl <- "D:/Fasta_databases/Mus_musculus/Mus_musculus_(C57BL-6J)_UP_20230201_Iso_noDupl_cont.fasta"
-
+# Some questions to start...
 #updateMe <- c(TRUE, FALSE)[match(dlg_message("Update the proteoCraft package?", "yesno")$res, c("yes", "no"))]
 updateMe <- FALSE
+inputTypes <- c("DiaNN", "FragPipe", "Skyline", "alphaDIA")
+opt <- sapply(inputTypes, function(x) { paste(c(x, rep(" ", 250 - nchar(x))), collapse = "") })
+inputType <- gsub(" +$", "", dlg_list(opt, opt[1], title = "Select type of input (NB: if wanting to combine the output of multiple folders, first run the corresponding combination script)")$res)
+msg <- paste0("Do you want to load an external table of PTMs names to force use of specific names?")
+opt <- c("Yes                                                                                                                                                           ",
+         "No                                                                                                                                                            ")
+useExtTbl <- c(TRUE, FALSE)[match(dlg_list(opt, opt[2], title = msg)$res, opt)]
+dbFl <- "D:/Fasta_databases/Mus_musculus/Mus_musculus_(C57BL-6J)_UP_20230201_Iso_noDupl_cont.fasta"
+if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1, 1)) }
+N.clust <- as.integer(dlg_input("Select number of threads to use", N.clust)$res)
+
 if (updateMe) {
   try({
     unloadNamespace("proteoCraft")
@@ -76,13 +84,10 @@ source(Src, local = FALSE)
 
 # Create parallel processing cluster
 parSrc <- paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
-#rstudioapi::documentOpen(Src)
+#rstudioapi::documentOpen(parSrc)
 source(parSrc, local = FALSE)
 
 # Mode
-inputTypes <- c("DiaNN", "FragPipe", "Skyline", "alphaDIA")
-opt <- sapply(inputTypes, function(x) { paste(c(x, rep(" ", 250 - nchar(x))), collapse = "") })
-inputType <- gsub(" +$", "", dlg_list(opt, opt[1], title = "Select type of input (NB: if wanting to combine the output of multiple folders, first run the corresponding combination script)")$res)
 
 if ((exists("inDir"))&&(!is.null(inDir))&&(dir.exists(inDir))) { dfltDir <- inDir } else {
   if ((exists("parDir"))&&(!is.null(parDir))&&(dir.exists(parDir))) { dfltDir <- parDir } else {
@@ -142,6 +147,17 @@ while ((kount == 0)||
 }
 setwd(dstDir)
 dtstNm <- gsub(topattern(paste0(dirname(parDir), "/")), "", parDir)
+histDir <- paste0(dstDir, "/Histones_coverage_maps")
+if (!dir.exists(histDir)) { dir.create(histDir) } else {
+  ls <- list.files(histDir, full.names = TRUE)
+  if (length(ls)) {
+    msg <- "The coverage maps folder is not empty, clear it?"
+    clearDir <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
+    if (clearDir) {
+      for (fl in ls) { unlink(fl) }
+    }
+  }
+}
 
 backupFl <- paste0(dstDir, "/Backup.RData")
 write(inDir, paste0(dstDir, "/Input search directory.txt")) # In case I reprocess and do not have the backup file
@@ -382,6 +398,8 @@ if (inputType %in% c("alphaDIA", "Skyline")) {
                         "Use" = TRUE,
                         check.names = FALSE)
 }
+msg <- paste0("Update ", inputType, "'s original protein-to-peptides assignments?")
+Update_Prot_matches <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
 
 # Remove reverse database hits
 if ("Reverse" %in% colnames(ev)) {
@@ -430,8 +448,6 @@ if (reUseAnnotBckp) {
 
 # Check peptide-to-protein assignment, and isolate histones peptides
 ### NB: This doesn't take into consideration N-terminal methionines!!!
-msg <- paste0("Update ", inputType, "'s original protein-to-peptides assignments?")
-Update_Prot_matches <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
 if (Update_Prot_matches) {
   I_eq_L %<o% TRUE
   fl <- paste0(dstDir, "/evmatch.RData")
@@ -554,17 +570,12 @@ saveImgFun(backupFl)
 # and to convert to MQ-like format we got a name from UniMod which may be incorrect.
 # We also need to resolve ambiguous cases, where a single "mark" is assigned to 2 or more distinct PTMs.
 # Let's do all of this at once.
-msg <- paste0("Do you want to load an external table of PTMs names to force use of specific names?")
-opt <- c("Yes                                                                                                                                                           ",
-         "No                                                                                                                                                            ")
-useExtTbl <- c(TRUE, FALSE)[match(dlg_list(opt, opt[2], title = msg)$res, opt)]
 if (useExtTbl) {
   # This file is hard-coded in here: this is the table of mass-shift-to-PTM-name matches.
   # You can edit it but PLEASE stick to the current layout/logic or the script will BREAK!
   modTblFl <- rstudioapi::selectFile("histone_modification_masses.xlsx")
   stopifnot(file.exists(modTblFl))
   #
-  useExtTbl <- dlg_message() 
   modTbl <- openxlsx2::read_xlsx(modTblFl)
   #openxlsx2::xl_open(modTblFl)
   colnames(modTbl)[1] <- "Priority"
@@ -709,11 +720,11 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/hist_Fractions_Map_editor.R")
 source(Src, local = FALSE)
 
 if (!"Old_Experiment" %in% colnames(ev)) { ev$Old_Experiment <- ev$Experiment }
-w <- which(!ev$Old_Experiment %in% samplesMap$Sample)
-if (length(w)) { 
-  ev <- ev[which(ev$Old_Experiment %in% samplesMap$Sample),]
+w <- which(!ev$`Raw file` %in% samplesMap$Sample)
+if (length(w)) {
+  ev <- ev[which(ev$`Raw file` %in% samplesMap$Sample),]
 }
-m <- match(ev$Old_Experiment, samplesMap$Sample)
+m <- match(ev$`Raw file`, samplesMap$Sample)
 ev$Experiment <- samplesMap$"Sample name"[m]
 # u <- unique(ev$Experiment)
 # if ((length(u) == 1)&&(is.na(u))) {
@@ -758,18 +769,6 @@ if (statTsts) {
 Remove0Int <- FALSE
 #Remove0Int <- c(FALSE, TRUE)[match(dlg_message("Should we keep peptides with 0 intensity values?", "yesno")$res, c("yes", "no"))]
 if (Remove0Int) { ev <- ev[which(ev$Intensity > 0),] }
-
-histDir <- paste0(dstDir, "/Histones_coverage_maps")
-if (!dir.exists(histDir)) { dir.create(histDir) } else {
-  ls <- list.files(histDir, full.names = TRUE)
-  if (length(ls)) {
-    msg <- "The coverage maps folder is not empty, clear it?"
-    clearDir <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
-    if (clearDir) {
-      for (fl in ls) { unlink(fl) }
-    }
-  }
-}
 
 # Histone IDs
 Hist <- grep("histone", db$Header, ignore.case = TRUE, value = TRUE)
@@ -855,8 +854,6 @@ tmp$IDs <- parSapply(parClust, tmp$IDs, paste, collapse = ";")
 ev$"Histone(s)" <- ""
 ev$"Histone(s)"[tmp$row] <- tmp$IDs
 #View(ev[tmp$row, c("Proteins", "Histone(s)")])
-sum(ev$Proteins != ev$`Histone(s)`)
-sum(ev$Proteins == ev$`Histone(s)`)
 
 tmp <- ev[, c("Histone(s)", "Proteins")]
 tmp$"Proteins" <- strsplit(tmp$"Proteins", ";")
@@ -1123,8 +1120,9 @@ saveImgFun(backupFl)
 #loadFun(backupFl)
 
 # Batch correction:
-kol <- colnames(samplesMap)
-kol <- kol[which(!kol %in% c("Sample", "Sample name", "Group", "Comparison_group",  "Reference"))]
+#kol <- colnames(samplesMap)
+#kol <- kol[which(!kol %in% c("Sample", "Sample name", "Group", "Comparison_group",  "Reference", "Use"))]
+kol <- c("Replicate", myFact)
 kol <- kol[which(vapply(kol, function(k) {
   length(unique(samplesMap[[k]])) > 1
 }, TRUE))]
@@ -1236,9 +1234,9 @@ if (length(kol)) {
         k <- paste0(logIntRoot[intType], samplesMap$"Sample name"[w])
         map <- samplesMap[w,]
         mod0a <- model.matrix(~1, data = map)
-        btchVect <- samplesMap[[btch]][w]
+        btchVect <- map[[btch]]
         tst <- aggregate(btchVect, list(btchVect), length)
-        if (min(tst$x == 1)) {
+        if ((length(unique(btchVect)) == 1)||(min(tst$x == 1))) {
           warning(paste0("Could not correct for group ", cmpGrp, ": not enough values"))
           combat_edata[[cmpGrp]] <- impEdata[, k]
         } else {
@@ -1735,7 +1733,7 @@ if (statTsts) {
   #
   colMatch <- data.frame(x = c("up", "down", "n.s.", "n.t."),
                          y = c(1, -1, 0, NA))
-  myColors <- setNames(c("limegreen","red3", "black", "grey"),
+  myColors <- setNames(c("#32CD32","#cd0000", "#A9A9A9", "#000000"),
                        c("up", "down", "n.s.", "n.t."))
   colScale <- scale_colour_manual(name = "colour", values = myColors)
   #
@@ -1782,6 +1780,7 @@ if (statTsts) {
     if (Nested) {
       for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[1] #contr <- colnames(contrMatr)[2]
         tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
+        nm <- paste(tmp, collapse = " - ")
         e <- samplesMap2[which(samplesMap2$Group %in% tmp),]
         uRps <- unique(e$Replicate)
         rps <- lapply(uRps, function(x) {
@@ -1851,6 +1850,7 @@ if (statTsts) {
     colnames(decisions) <- nms
     myData[, kol2] <- decisions
     venn <- vennCounts(decisions)
+    attributes(venn)$class <- NULL
     print(venn)
     #
     for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[2]
@@ -1863,35 +1863,110 @@ if (statTsts) {
     myData$"is Histone"[which(is.na(myData$"is Histone"))] <- "-"
     myData$Alpha <- c(0.2, 1)[match(myData$"is Histone", c("-", "+"))]
     myData$Size <- c(0.1, 1.5)[match(myData$"is Histone", c("-", "+"))]
-    for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[2]
+    for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[1]
       tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
       nm <- paste(tmp, collapse = " - ")
       thresh <- FDR_thresh[[nm]]
       ttl <- paste0(namesRoot, " ", nm)
+      grp0 <- gsub("^Group_", "", expContrasts$x0[match(contr, expContrasts$Name)])
+      grp1 <- gsub("^Group_", "", expContrasts$x1[match(contr, expContrasts$Name)])
+      k0 <- paste0(intRoot[intType], samplesMap$`Sample name`[which(samplesMap$Group %in% grp0)])
+      k1 <- paste0(intRoot[intType], samplesMap$`Sample name`[which(samplesMap$Group %in% grp1)])
       fc <- paste0(ratRoot, nm)
       pv <- paste0("Mod. P-value - ", nm)
       dc <- paste0("Decision - ", nm)
       kl <- c("is Histone", "Alpha", "Size", "Label")
-      myDat <- myData[, c(fc, pv, dc, kl)]
+      #c(fc, pv, dc, kl, k0, k1) %in% colnames(myData)
+      myDat <- myData[, c(fc, pv, dc, kl, k0, k1)]
       myDat[[pv]] <- -log10(myDat[[pv]])
-      colnames(myDat) <- c("log2 FC", "-log10 mod. P-value", "Decision", kl)
-      plot <- ggplot(myDat) +
-        geom_point(aes(x = `log2 FC`, y = `-log10 mod. P-value`, colour = `Decision`,
-                       shape = `is Histone`, alpha = Alpha, size = Size, text = Label)) +
+      colnames(myDat) <- c("log2 FC", "-log10 mod. P-value", "Decision", kl, k0, k1)
+      wNA <- which(is.na(myDat$`log2 FC`)|is.na(myDat$`-log10 mod. P-value`))
+      wOK <- which(is.na(!myDat$`log2 FC`)&is.na(!myDat$`-log10 mod. P-value`))
+      wOKX <- which(is.all.good(myDat$`log2 FC`, 2))
+      wOKY <- which(is.all.good(myDat$`-log10 mod. P-value`, 2))
+      myDat$Label[wOKY] <- vapply(wOKY, function(x) {
+        paste0("-log10 mod. P-value: ", signif(myDat$`-log10 mod. P-value`[x], 5), "\n", myDat$Label[x])
+      }, "")
+      myDat$Label[wOKX] <- vapply(wOKX, function(x) {
+        paste0("log2 FC: ", signif(myDat$`log2 FC`[x]), "\n", myDat$Label[x])
+      }, "")
+      xRng <- range(myDat$`log2 FC`, na.rm = TRUE)
+      yRng <- range(myDat$`-log10 mod. P-value`, na.rm = TRUE)
+      xWdth <- xRng[2]-xRng[1]
+      yWdth <- yRng[2]-yRng[1]
+      lNA <- length(wNA) 
+      if (lNA) {
+        tstUp <- apply(myDat[, k1], 1, function(x) { length(is.all.good(log10(x))) })
+        tstDw <- apply(myDat[, k0], 1, function(x) { length(is.all.good(log10(x))) })
+        wNAUp <- wNA[which(vapply(wNA, function(x) { (tstUp[x] > 0)&(tstDw[x] == 0) }, TRUE))]
+        wNAUp <- sort(unique(c(wNAUp,
+                               wNA[which((!is.na(myDat$`log2 FC`[wNA]))&(myDat$`log2 FC`[wNA] > 0))])))
+        wNADw <- wNA[which(vapply(wNA, function(x) { (tstUp[x] == 0)&(tstDw[x] > 0) }, TRUE))]
+        wNADw <- sort(unique(c(wNADw,
+                               wNA[which((!is.na(myDat$`log2 FC`[wNA]))&(myDat$`log2 FC`[wNA] < 0))])))
+        lNAUp <- length(wNAUp)
+        lNADw <- length(wNADw)
+        if (lNAUp) {
+          myDat$`log2 FC`[wNAUp] <- xRng[2]+3*xWdth/80
+          myDat$`-log10 mod. P-value`[wNAUp] <- yRng[1] + yWdth*21*(1:lNAUp - 0.5)/(lNAUp*20)
+          myDat$Label[wNAUp] <- vapply(wNAUp, function(x) {
+            paste0("Obs. in ", grp1, ": ", tstUp[x], "\n", myDat$Label[x])
+          }, "")
+        }
+        if (lNADw) {
+          myDat$`log2 FC`[wNADw] <- xRng[1]-3*xWdth/80
+          myDat$`-log10 mod. P-value`[wNADw] <- yRng[1] + yWdth*21*(1:lNADw - 0.5)/(lNADw*20)
+          myDat$Label[wNADw] <- vapply(wNADw, function(x) {
+            paste0("Obs. in ", grp0, ": ", tstDw[x], "\n", myDat$Label[x])
+          }, "")
+        }
+      }
+      wAnyOk <- which((!is.na(myDat$`log2 FC`))&(!is.na(myDat$`-log10 mod. P-value`)))
+      plot <- ggplot(myDat[wAnyOk,],
+                     aes(x = `log2 FC`, y = `-log10 mod. P-value`, colour = `Decision`,
+                         shape = `is Histone`, alpha = Alpha, size = Size, text = Label))
+      if (length(wNA)) {
+        plot <- plot +
+          geom_rect(xmin = xRng[1]-xWdth/20, xmax = xRng[1]-xWdth/40, ymin = yRng[1], ymax = yRng[2]+yWdth/20,
+                    fill = "lightpink1", color = NA) +
+          geom_rect(xmin = xRng[2]+xWdth/40, xmax = xRng[2]+xWdth/20, ymin = yRng[1], ymax = yRng[2]+yWdth/20,
+                    fill = "lightgreen", color = NA)
+      }
+      plot <- plot + geom_point() +
         theme_bw() + ggtitle(ttl) + colScale +
         geom_vline(xintercept = -l2FC, color = "red3", linetype = "dashed") +
         geom_vline(xintercept = l2FC, color = "limegreen", linetype = "dashed") +
         geom_hline(yintercept = -log10(thresh), color = "purple", linetype = "dashed") +
         scale_alpha_identity(guide = "none") + scale_size_identity(guide = "none") +
-        ylab("-log10(moderated P-value") +
-        scale_y_continuous(expand = c(0, 0))
+        ylab("-log10(moderated P-value)") +
+        scale_x_continuous(expand = c(0, 0)) + scale_y_continuous(expand = c(0, 0))
       #poplot(plot, 12, 22)
+      ttl2 <- gsub("/", " VS ", ttl)
       suppressWarnings({
-        ggsave(paste0(dstDir, "/", ttl, ".jpeg"), plot, dpi = 300)
+        ggsave(paste0(dstDir, "/", ttl2, ".jpeg"), plot, dpi = 300)
       })
-      plotLy <- ggplotly(plot, tooltip = c("x", "y", "text"))
-      htmlwidgets::saveWidget(plotLy, paste0(dstDir, "/", ttl, ".html"), selfcontained = TRUE)
-      system(paste0("open \"", dstDir, "/", ttl, ".html\""))
+      plotLy <- ggplotly(plot, tooltip = "text")
+      # Fix legend
+      for (i in seq_along(plotLy$x$data)) {
+        plotLy$x$data[[i]]$showlegend <- FALSE
+      }
+      colTxt <- paste0("Decision\n", paste0("<span style='color:", myColors, "'>■</span> ", names(myColors), collapse = "\n"))
+      myShapes <- c("+" = "\u25CF", "-" = "\u25B2")  # ● ▲
+      shapeTxt <- paste0("Histone?\n", paste0(myShapes, "\t", names(myShapes), collapse = "\n"))
+      plotLy <- layout(plotLy, annotations = list(list(x = 1.1, y = 1,
+                                                       xref = "paper", yref = "paper",
+                                                       text = colTxt,
+                                                       showarrow = FALSE,
+                                                       align = "left"),
+                                                  list(x = 1.1, y = 0.75,
+                                                       xref = "paper", yref = "paper",
+                                                       text = shapeTxt,
+                                                       showarrow = FALSE,
+                                                       align = "left")),
+                       margin = list(r = 180))
+      #
+      htmlwidgets::saveWidget(plotLy, paste0(dstDir, "/", ttl2, ".html"), selfcontained = TRUE)
+      system(paste0("open \"", dstDir, "/", ttl2, ".html\""))
     }
   })
   #
@@ -1943,8 +2018,8 @@ for (cmpGrp in compGrps) { #cmpGrp <- compGrps[1]
 # Write tables
 # - Peptides
 samplesMap3 <- samplesMap[order(samplesMap$Comparison_group,
-                            samplesMap$Group,
-                            samplesMap$Replicate),]
+                                samplesMap$Group,
+                                samplesMap$Replicate),]
 allSamples3 <- unique(samplesMap3$"Sample name")
 Groups3 <- unique(samplesMap3$Group)
 kol <- c(paste0(intRoot[intType], allSamples3),
@@ -2369,6 +2444,9 @@ if (length(Exp) > 1) {
       # Plotly version
       tempLy <- temp2a[w2a,]
       tempLy$Sample <- factor(temp2$Sample, levels = allSamples)
+      tempLy$Label <- vapply(1:nrow(tempLy), function(x) {
+        paste0("Sample: ", tempLy$Sample[x], "\n", tempLy$Label[x])
+      }, "")
       ##tempLy$Ymin <- tempLy$Ymin+0.5
       plotleatmap <- plot_ly(data = tempLy, x = ~Xmin, y = ~Ymin, z = ~value, type = "heatmap", hovertext = tempLy$Label)
       # I cannot find a way to remove tick marks!!!!!

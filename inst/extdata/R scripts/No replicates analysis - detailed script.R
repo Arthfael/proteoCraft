@@ -3077,9 +3077,9 @@ saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
 #### Code chunk - Protein group profile plots and ranked abundance plots
-Src <- paste0(libPath, "/extdata/R scripts/Sources/profile_and_rankedAbund_plots.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+PrfRASrc <- paste0(libPath, "/extdata/R scripts/Sources/profile_and_rankedAbund_plots.R")
+#rstudioapi::documentOpen(PrfRASrc)
+source(PrfRASrc, local = FALSE)
 
 # Similar profiles but at peptides level
 # This chunk has been vastly improved, and the others should be improved on the same model!!! 
