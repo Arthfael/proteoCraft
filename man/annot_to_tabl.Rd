@@ -25,7 +25,7 @@ annot_to_tabl(
 
 \item{Cterm}{Is there a symbol for the C-terminus? Default = TRUE}
 
-\item{sep}{Sometimes (for numeric annotations), there can be several per row, for instance when a peptide has several evidences. The values will be summarized (mean), so we need to know how they are separated. Default = ";"}
+\item{sep}{Sometimes (for numeric annotations), there can be several per row, for instance when a peptide has several PSMs. The values will be summarized (mean), so we need to know how they are separated. Default = ";"}
 
 \item{numeric_data}{Is the data numeric? Default = FALSE}
 }
