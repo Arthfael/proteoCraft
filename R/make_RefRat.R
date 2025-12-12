@@ -20,7 +20,7 @@
 #' @export
 
 make_RefRat <- function(data = pep,
-                        experiment.map = Exp.map,
+                        experiment.map = experiments.map,
                         int.root = pep.ref[length(pep.ref)],
                         rat.root = pep.ratios.ref[1],
                         rat.con.grps = RatConGrps,
@@ -29,6 +29,7 @@ make_RefRat <- function(data = pep,
                         logInt = FALSE,
                         logRat = 2) {
   #proteoCraft::DefArg(proteoCraft::make_RefRat)
+  #data = res2;experiment.map = experiment.map;int.root = Expr.root.full;rat.root = Pep.Ratios.root;rat.con.grps = rat_cont_grps;mode = Refs_Mode;parameters = param;logInt = log.Pep.Intens;logRat = log.Pep.Ratios
   mode <- as.character(mode)
   stopifnot(mode %in% c("1", "2"))
   isLog <- TRUE
@@ -118,7 +119,7 @@ make_RefRat <- function(data = pep,
         } else { y <- list(Outcome = FALSE) }
         return(y)
       }), grps)
-      x <- x[which(sapply(x, function(y) { y$Outcome }))]
+      x <- x[which(vapply(x, function(y) { y$Outcome }, TRUE))]
       if (length(x)) {
         x <- lapply(x, function(y) { y$Res })
         x <- as.data.frame(x)
@@ -127,7 +128,7 @@ make_RefRat <- function(data = pep,
       } else { x <- list(Outcome = FALSE) }
       return(x)
     }), rGrp$values)
-    w <- which(sapply(RES, function(x) { x$Outcome }))
+    w <- which(vapply(RES, function(x) { x$Outcome }, TRUE))
     if (length(w)) {
       RES <- lapply(RES[w], function(x) { x$Res })
     }

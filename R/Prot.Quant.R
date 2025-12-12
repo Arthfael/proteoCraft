@@ -686,12 +686,16 @@ Prot.Quant <- function(Prot,
   if (Priority == "rat") { res2[, colnames(res)] <- res[match(rownames(res2), rownames(res)),] }
   if (!Skip.ratios) {
     # Calculate ratios references
-    kount <- 0
-    for (i in ref.groups$values) { #i <- ref.groups$values[1]
+    rat.2.ref <- lapply(ref.groups$values, function(i) { #i <- ref.groups$values[1]
       j <- setNames(unlist(strsplit(i, "___")), ref.groups$names)
-      temp <- sapply(ref.groups$names, function(x) { list(which(experiments.map[[x]] == j[[x]])) })
+      temp <- lapply(ref.groups$names, function(x) {
+        if (j[[x]] == "NA") {
+          return(which((is.na(experiments.map[[x]]))|(experiments.map[[x]] == j[[x]])))
+        }
+        return(which(experiments.map[[x]] == j[[x]]))
+      })
       temp2 <- sort(unique(unlist(temp)))
-      test <- sapply(temp2, function(x) { sum(sapply(temp, function(y) {x %in% unlist(y)})) })
+      test <- vapply(temp2, function(x) { sum(sapply(temp, function(y) { x %in% unlist(y) })) }, 1)
       temp2 <- temp2[which(test == length(temp))]
       temp3 <- experiments.map[temp2,]
       temp3 <- temp3[which(temp3$Reference),]
@@ -703,14 +707,19 @@ Prot.Quant <- function(Prot,
           b1 <- as.numeric(apply(res2[, kol[w], drop = FALSE], 1, proteoCraft::log_ratio_av)) # (Expression data is already log-transformed for Prot.Quant)
           b2 <- paste0(Expr.root.full, i, ".REF")
           #print(b2)
-          res2[[b2]] <- b1 # log-transformed
-          kount <- kount + 1
-          if (kount == 1) {
-            rat.2.ref <- data.frame(Name = b2, Source = paste(b, collapse = ";"))
-          } else { rat.2.ref <- rbind(rat.2.ref, c(b2, paste(b, collapse = ";"))) }
-        } else { warning(paste0("Empty group: ", i, ", skipping!")) }
-      } else { warning(paste0("There is no reference for level ", i)) }
-    }
+          res2[[b2]] <<- b1 # log-transformed
+          return(data.frame(Name = b2,
+                            Source = paste(b, collapse = ";")))
+        } else {
+          #warning(paste0("Empty group: ", i, ", skipping!"))
+          return()
+        }
+      } else {
+        #warning(paste0("There is no reference for level ", i))
+        return()
+      }
+    })
+    rat.2.ref <- plyr::rbind.fill(rat.2.ref)
     #View(res2[,grep("\\.REF$", colnames(res2))])
     rat.2.ref$Source <- strsplit(rat.2.ref$Source, ";")
     rat.2.ref$Used_by <- list(NA)
@@ -719,9 +728,14 @@ Prot.Quant <- function(Prot,
     # this will be useful further down the line.
     for (i in ref.groups$values) { #i <- ref.groups$values[1]
       j <- setNames(unlist(strsplit(i, "___")), ref.groups$names)
-      temp <- sapply(ref.groups$names, function(x) { list(which(experiments.map[[x]] == j[[x]])) })
+      temp <- lapply(ref.groups$names, function(x) {
+        if (j[[x]] == "NA") {
+          return(which((is.na(experiments.map[[x]]))|(experiments.map[[x]] == j[[x]])))
+        }
+        return(which(experiments.map[[x]] == j[[x]]))
+      })
       temp2 <- sort(unique(unlist(temp)))
-      test <- sapply(temp2, function(x) { sum(sapply(temp, function(y) {x %in% unlist(y)})) })
+      test <- vapply(temp2, function(x) { sum(vapply(temp, function(y) { x %in% unlist(y) }, TRUE)) }, 1)
       temp2 <- temp2[which(test == length(temp))]
       temp3 <- experiments.map[temp2,]
       # Get reference
@@ -775,14 +789,14 @@ Prot.Quant <- function(Prot,
       rat_cont_grps <- param$Ratios.Contaminant.Groups
     } else { rat_cont_grps <- "Ratio groups" } # Default
     res3 <- try(proteoCraft::make_RefRat(data = res2,
-                                   experiment.map = experiment.map,
-                                   int.root = Expr.root.full,
-                                   rat.root = Pep.Ratios.root,
-                                   rat.con.grps = rat_cont_grps,
-                                   mode = Refs_Mode,
-                                   parameters = param,
-                                   logInt = log.Pep.Intens,
-                                   logRat = log.Pep.Ratios), silent = TRUE)
+                                         experiment.map = experiments.map,
+                                         int.root = Expr.root.full,
+                                         rat.root = Pep.Ratios.root,
+                                         rat.con.grps = rat_cont_grps,
+                                         mode = Refs_Mode,
+                                         parameters = param,
+                                         logInt = log.Pep.Intens,
+                                         logRat = log.Pep.Ratios), silent = TRUE)
     if (!"try-error" %in% class(res3)) {
       res2[, colnames(res3)] <- res3
     } else { warning("No Ref to Ref columns were generated!") }

@@ -19,11 +19,12 @@ load_Bckp <- function(backup,
                       startDir,
                       clean = TRUE,
                       loadPack = TRUE) {
-  # Cleanup workspace here
-  if (clean) { suppressWarnings(rm(list = ls(), envir = .GlobalEnv)) }
-  #
   TESTING <- FALSE
+  # Cleanup workspace here
+  #proteoCraft::DefArg(proteoCraft::load_Bckp)
+  if (clean) { suppressWarnings(rm(list = ls(), envir = .GlobalEnv)) }
   #proteoCraft::DefArg(proteoCraft::load_Bckp); TESTING <- TRUE
+  #
   if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package
@@ -53,6 +54,7 @@ load_Bckp <- function(backup,
   } else {
     bckp <- backup
   }
+  if (grepl("^~", bckp)) { bckp <- gsub("^~", Sys.getenv("R_USER"), bckp) }
   if ((!nchar(bckp))||(length(bckp) != 1)||(!"character" %in% class(bckp))) {
     warning("\"backup\" must be a single length = 1 character path to a valid proteoCraft backup file!")
     return()
@@ -61,8 +63,7 @@ load_Bckp <- function(backup,
     warning("The specifid \"backup\" file does not exist!")
     return()
   }
-  ((exists("wd"))&&(length(wd) == 1)&&(!is.na(wd))&&("character" %in% class(wd))&&(dir.exists(wd)))
-  wdExisted <- exists("wd", .GlobalEnv)
+  wdExisted <- ((exists("wd", .GlobalEnv))&&("character" %in% class(wd))&&(length(wd) == 1)&&(!is.na(wd))&&(dir.exists(wd)))
   bckpDeerayktoray <- dirname(bckp)
   #
   #bckp <- "~/R/proteoCraft/AN_GNRGFL1_5637917142/Backup.RData"
@@ -76,6 +77,7 @@ load_Bckp <- function(backup,
     stop("Backup re-loading failed!")
   }
   backupFile <<- bckp
+  if (!exists(".obj")) { .obj %<o% ".obj"  }
   .obj <<- unique(c(.obj, "backupFile")) # Exception: this one we keep always at the far end!
   #
   if ((!exists("wd"))||(!wd_test())) {
