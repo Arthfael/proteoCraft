@@ -51,6 +51,7 @@ if (saintExprs) {
   # http://saint-apms.sourceforge.net/Main.html
   fl <- system.file("extdata", "SAINTexpress-manual.pdf", package = "proteoCraft")
   try(file.copy(fl, saintDir), silent = TRUE)
+  #file.exists(paste0(saintDir, "/", basename(fl)))
   #
   Indiq <- c("T", "C")
   if (Mirror.Ratios) { Indiq <- rev(Indiq) } # Deprecate me please!!!
@@ -142,9 +143,8 @@ if (saintExprs) {
     ratgrp <- unique(Exp.map[match(grp, Exp.map[[VPAL$column]]), RG$column])
     m <- Exp.map[which(Exp.map[[RG$column]] == ratgrp),]
     m <- m[which((m[[VPAL$column]] == grp)|(m$Reference)),]
-    Bait2 <- Bait[which(Bait$IP_name %in% gsub("\\.", "", proteoCraft::cleanNms(m$Ref.Sample.Aggregate, rep = ""))),]
-    Interact <- readr::read_rds(paste0(saintDir, "/Interact.RDS"))
-    Prey <- readr::read_rds(paste0(saintDir, "/Prey.RDS"))
+    Bait2 <- Bait[which(Bait$IP_name %in% gsub("\\.", "",
+                                               proteoCraft::cleanNms(m$Ref.Sample.Aggregate, rep = ""))),]
     Interact2 <- Interact[which(Interact$IP_name %in% Bait2$IP_name),]
     Prey2 <- Prey[which(Prey$Protein %in% c(Bait2$Bait, Interact2$Protein)),]
     baitFl <- paste0(dr, "/tempBait.txt")
@@ -154,8 +154,8 @@ if (saintExprs) {
     data.table::fwrite(Bait2, baitFl, quote = FALSE, col.names = FALSE, row.names = FALSE, eol = "\n", sep = "\t", na = "NA")
     data.table::fwrite(Prey2, preyFl, quote = FALSE, col.names = FALSE, row.names = FALSE, eol = "\n", sep = "\t", na = "NA")
     data.table::fwrite(Interact2, interFl, quote = FALSE, col.names = FALSE, row.names = FALSE, eol = "\n", sep = "\t", na = "NA")
+    goFl <- paste0(dr, "/tempGO.txt")
     if (Annotate) {
-      goFl <- paste0(dr, "/tempGO.txt")
       GO2 <- GO2[which(GO2$value %in% Prey$Protein),]
       GO2 <- aggregate(GO2$value, list(GO2$L1), function(x) { paste(unique(x), collapse = " ") })
       data.table::fwrite(GO2, goFl, quote = FALSE, col.names = FALSE, row.names = FALSE, eol = "\n", sep = "\t", na = "NA")
@@ -298,8 +298,8 @@ if (saintExprs) {
     #
     # Save plotly plots
     dr <- paste0(wd, "/", subDr)
-    myPlotLys <- tempVPip
-    Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Volcano_plotlys.R")
+    myPlotLys <- tempVPip$`Plotly plots`
+    Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Plotlys.R")
     #rstudioapi::documentOpen(Src)
     source(Src, local = FALSE)
     #
@@ -348,15 +348,21 @@ if (saintExprs) {
     }
     #
     # Z-scored clustering heatmaps of regulated proteins
-    clustMode <- "SAINTexpress"
-    Src <- paste0(libPath, "/extdata/R scripts/Sources/cluster_Heatmap_Main.R")
-    #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    clustersTest <- try({
+      clustMode <- "SAINTexpress"
+      clstSrc <- paste0(libPath, "/extdata/R scripts/Sources/cluster_Heatmap_Main.R")
+      #rstudioapi::documentOpen(clstSrc)
+      source(clstSrc, local = FALSE)
+    }, silent = TRUE) # Allowed to fail, but with a warning!
+    if ("try-error" %in% class(clustersTest)) {
+      warning("Could not draw heatmap for SAINTexpress results!")
+    }
     #
     # Mat-meth text
     DatAnalysisTxt <- paste0(DatAnalysisTxt, " Data was also tested with the SAINTexpress algorithm - which directly outputs FDR values - using GO annotations as boosting information.")
     #
   }
+  # "Master, don't forget the Athenians!"
   dlg_message("TO DO: add SAINTq for PSM-level analysis of DIA data!", "ok")
 }
 setwd(wd)

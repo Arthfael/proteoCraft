@@ -84,12 +84,14 @@ if (runRankAbundPlots||runProfPlots) {
   fillScale2 <- scale_fill_manual(name = "In list", values = myColors2)
   #
   if (scrptType == "withReps") {
-    allAgg <- setNames(rep("VPAL" #"RSA"
-                           , length(QuantTypes)), QuantTypes)
-  }
-  #
-  if (scrptType == "withReps") {
-    ref <- paste0("Mean ", prtRfRoot) #prtRfRoot
+    ref <- paste0("Mean ", prtRfRoot)
+    allAgg <- "VPAL"
+    if ((WorkFlow == "PULLDOWN")||(sum(Exp.map$Use) < 12)) {
+      ref <- prtRfRoot
+      allAgg <- "RSA"
+    }
+    allAgg <- setNames(rep(allAgg, length(QuantTypes)),
+                       QuantTypes)
     GO_PG_col %<o% unique(unlist(strsplit(Param$GO.tabs, ";")))
     GO_filt %<o% (length(GO_PG_col) > 0)
     if (GO_filt) {

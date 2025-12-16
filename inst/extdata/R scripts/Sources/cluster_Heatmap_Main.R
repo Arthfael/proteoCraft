@@ -313,14 +313,22 @@ if (clustHtMp) {
         if (KlustMeth == 1) {
           #HClusters[[clustNm]] <- kmeans(temp3, NHClust[[clustNm]], 100)$cluster
           if (normType != "None") { # If normType == "None", we inherit this from "Norm. by row"
-            HClusters[[i]] <- kmeans(temp3, NHClust[[i]], 100)$cluster
+            clsTst <- try({ HClusters[[i]] <- kmeans(temp3, NHClust[[i]], 100)$cluster }, silent = TRUE)
+            while (("try-error" %in% class(clsTst))&&(NHClust[[i]] > 2)) {
+              NHClust[[i]] <- NHClust[[i]] - 1
+              clsTst <- try({ HClusters[[i]] <- kmeans(temp3, NHClust[[i]], 100)$cluster }, silent = TRUE)
+            }
           }
           VClusters[[clustNm]] <- kmeans(t(temp3), NVClust[[clustNm]], 100)$cluster
         }
         if (KlustMeth == 2) {
           #HClusters[[clustNm]] <- cutree(h_clust, NHClust[[clustNm]])
           if (normType != "None") { # If normType == "None", we inherit this from "Norm. by row"
-            HClusters[[i]] <- cutree(h_clust, NHClust[[i]])
+            clsTst <- try({ HClusters[[i]] <- cutree(h_clust, NHClust[[i]]) }, silent = TRUE)
+            while (("try-error" %in% class(clsTst))&&(NHClust[[i]] > 2)) {
+              NHClust[[i]] <- NHClust[[i]] - 1
+              clsTst <- try({ HClusters[[i]] <- cutree(h_clust, NHClust[[i]]) }, silent = TRUE)
+            }
           }
           VClusters[[clustNm]] <- cutree(v_clust, NVClust[[clustNm]])
         }
@@ -473,7 +481,7 @@ if (clustHtMp) {
                                   -lftSpace*1.25,
                                   min(temp2b$Xmin),
                                   max(temp2b$Xmin)+sclWdth),
-                            y = c(h_SegMx + yPadUp + c(3.5, 3, 2.5)*Height/10,
+                            y = c(h_SegMx + yPadUp + c(4.5, 3.5, 2.5)*Height/10,
                                   Height*0.5,
                                   rep(temp2b$Ymin[1]-Height*0.05, 2)),
                             angle = c(0, 0, 0, 90, 0, 0),

@@ -401,31 +401,31 @@ if (annotRep) {
 }
 if (length(ROC_GOterms)) {
   ROC2_GOterms_dflt <- allGO[match(ROC_GOterms, allGO2)]
+  w <- c(which(allGO %in% ROC2_GOterms_dflt),
+         which(!allGO %in% ROC2_GOterms_dflt))
+  ROC2_allGO1 <- allGO[w]
+  ROC2_allGO2 <- allGO2[w]
 } else {
-  ROC2_GOterms_dflt <- c()
+  ROC2_allGO1 <- ROC2_allGO2 <- ROC2_GOterms_dflt <- c()
 }
-w <- c(which(allGO %in% ROC2_GOterms_dflt),
-       which(!allGO %in% ROC2_GOterms_dflt))
-ROC2_allGO1 <- allGO[w]
-ROC2_allGO2 <- allGO2[w]
 if (length(ROCfilt_GOterms_Pos)) {
   ROC1_GOterms_Pos_dflt <- allGO[match(ROCfilt_GOterms_Pos, allGO2)]
+  w <- c(which(allGO %in% ROC1_GOterms_Pos_dflt),
+         which(!allGO %in% ROC1_GOterms_Pos_dflt))
+  ROC1_allGOPos1 <- allGO[w]
+  ROC1_allGOPos2 <- allGO2[w]
 } else {
-  ROC1_GOterms_Pos_dflt <- c()
+  ROC1_allGOPos1 <- ROC1_allGOPos2 <- ROC1_GOterms_Pos_dflt <- c()
 }
-w <- c(which(allGO %in% ROC1_GOterms_Pos_dflt),
-       which(!allGO %in% ROC1_GOterms_Pos_dflt))
-ROC1_allGOPos1 <- allGO[w]
-ROC1_allGOPos2 <- allGO2[w]
 if (length(ROCfilt_GOterms_Neg)) {
   ROC1_GOterms_Neg_dflt <- allGO[match(ROCfilt_GOterms_Neg, allGO2)]
+  w <- c(which(allGO %in% ROC1_GOterms_Neg_dflt),
+         which(!allGO %in% ROC1_GOterms_Neg_dflt))
+  ROC1_allGONeg1 <- allGO[w]
+  ROC1_allGONeg2 <- allGO2[w]
 } else {
-  ROC1_GOterms_Neg_dflt <- c()
+  ROC1_allGONeg1 <- ROC1_allGONeg2 <- ROC1_GOterms_Neg_dflt <- c()
 }
-w <- c(which(allGO %in% ROC1_GOterms_Neg_dflt),
-       which(!allGO %in% ROC1_GOterms_Neg_dflt))
-ROC1_allGONeg1 <- allGO[w]
-ROC1_allGONeg2 <- allGO2[w]
 #
 if (!exists("normDat")) {
   normDat <- sum(Param$Norma.Ev.Intens,
@@ -668,6 +668,7 @@ if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
 #
 mtchCheckMsg1 <- "Checking assignments may result in removal of some identifications."
 mtchCheckMsg2 <- "We only recommend it now where the search software used did not use modern prediction tools for retention time or ion mobility predition in the identification process."
+F_test_override <- FALSE
 appNm <- paste0(dtstNm, " - Parameters")
 ui1 <- fluidPage(
   useShinyjs(),
@@ -1200,7 +1201,11 @@ server1 <- function(input, output, session) {
                             value = fTstDflt)
         if (l2 < 3) {
           shinyjs::disable("run_F_test")
-        } else { shinyjs::enable("run_F_test") }
+          F_test_override <<- TRUE
+        } else {
+          shinyjs::enable("run_F_test")
+          F_test_override <<- FALSE
+        }
       }
       Par <- PARAM()
       Par[colnames(Par)[w]] <- paste0(tmpVal, collapse = ";")
@@ -1799,6 +1804,9 @@ while ((!runKount)||(!exists("appRunTest"))) {
   runKount <- runKount+1
 }
 #
+if (F_test_override) {
+  Param$F.test <- FALSE
+}
 Param$Volcano.plots.Aggregate.Level <- Param_filter(Param$Ratios.Groups.Ref.Aggregate.Level, "Rep")
 Param$Ratios.Ref.Groups <- paste0(Param$Ratios.Groups, c("", ";Rep")[Param$Is])
 Param$Ratios.Plot.split <- "Exp"

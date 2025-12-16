@@ -138,5 +138,6 @@ while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1
   tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
 }
 #
+cat(" Check message in popup box before proceeding...\n")
 msg <- "Are you happy with the edits? (click no to try again)"
 tstFrMp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = TRUE)$res, c("yes", "no"))]

@@ -421,7 +421,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1] #sheetnm <- sheetnmsB[2]
                           scpdChar = c("&quot;", "&apos;", "&lt;", "&gt;", "&amp;"))
     for (i in wTxt) {
       rg <- lngRws+i
-      dat <- strsplit(myData[[i]], "")
+      dat <- strsplit(as.character(myData[[i]]), "")
       for (j in 1:5) { #j <- 1 #j <- 2 #j <- 3 #j <- 4 #j <- 5
         tst <- lapply(dat, function(x) { which(x == scpChar$origChar[j]) })
         w <- which(vapply(tst, length, 1) > 0)

@@ -334,4 +334,5 @@ if (nchar(msg) > 1000) {
   msg2 <- paste0(substr(msg, 1, 996), "...")
 }
 #
+cat(" Check message in popup box before proceeding...\n")
 tstFrMp <- c(TRUE, FALSE)[match(dlg_message(msg2, "yesno", rstudio = TRUE)$res, c("yes", "no"))]

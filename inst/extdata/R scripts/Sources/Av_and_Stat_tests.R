@@ -189,8 +189,10 @@ tmp <- lapply(1:nrow(expContr), function(x) { #x <- 1
   RES <- rep(NA, nrow(tmpVal))
   em <- expContr$Map[x][[1]]
   em <- em[order(em$Reference, em$Replicate),] # Redundant, but good safety check
-  k0 <- em$Expression_Column[which(em$Reference)]
-  k1 <- em$Expression_Column[which(!em$Reference)]
+  wRf <- which(em$Reference)
+  wnRf <- which(!em$Reference)
+  k0 <- em$Expression_Column[wRf]
+  k1 <- em$Expression_Column[wnRf]
   test0a <- parApply(parClust, tmpVal[, k0], 1, function(x) {
     length(unique(proteoCraft::is.all.good(x)))
   }) > 1
@@ -200,13 +202,18 @@ tmp <- lapply(1:nrow(expContr), function(x) { #x <- 1
   w <- which((test0a)&(test1a))
   if (length(w)) {
     map <- data.frame(Sample = em[[RSA$column]],
-                      Role_ = em[[VPAL$column]])
+                      Role_ = em[[VPAL$column]],
+                      Reference = em$Reference)
+    map$Sample <- factor(map$Sample, levels = c(unique(em[wRf, RSA$column]),
+                                                unique(em[wnRf, RSA$column])))
+    map$Role_ <- factor(map$Role_, levels = c(unique(em[wRf, VPAL$column]),
+                                              unique(em[wnRf, VPAL$column])))
     clusterExport(parClust, list("k1", "k0", "map", "AltHyp"), envir = environment())
     RES[w] <- parApply(parClust, tmpVal[w, c(k0, k1)], 1, function(x) {
       #x <- tmpVal[w[1], c(k0, k1)]
       x <- data.frame(value = as.numeric(x),
-                      Sample = as.factor(map$Sample),
-                      Group = as.factor(map$Role_))
+                      Sample = map$Sample,
+                      Group = map$Role_)
       x <- x[which(proteoCraft::is.all.good(x$value, 2)),]
       res <- -log10(coin::pvalue(coin::independence_test(value ~ Group,
                                                          data = x, alternative = AltHyp)))
@@ -248,7 +255,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1] #TEST <- TESTs[2]
   fit <- lmFit(tmpVal2, designMatr)
   fit$genes <- myData[[namesCol]]
   fit <- contrasts.fit(fit, contrMatr)
-  fit <- eBayes(fit) # Note: the default proportion of 1% in eBayes is the Bayesian prior, eBayes is robust to deviations from this value.
+  fit <- eBayes(fit) # Note: eBayes() performs empirical Bayes moderation of variances; the default settings are appropriate, and e.g. do not assume 1% of proteins are differentially expressed.
   if (AltHyp != "two.sided") {
     fit$p.value <- limma.one.sided(fit, c(FALSE, TRUE)[match(AltHyp, c("greater", "lower"))])
   }

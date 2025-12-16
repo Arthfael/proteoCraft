@@ -1,4 +1,5 @@
 # Annotate the protein groups table
+if (!Annotate) { globalGO <- FALSE}
 p <- strsplit(PG$"Leading protein IDs", ";") #Here taking just the minimum set of protein IDs to explain the observed dataset.
 db$Observed <- db$"Protein ID" %in% unique(unlist(p))
 if (globalGO) {

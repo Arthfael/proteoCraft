@@ -256,5 +256,6 @@ AnalysisParam$"Ratios analysis" <- MakeRatios
 # Experiment column, synonym of "Parent sample" (but keep both)
 SamplesMap$Experiment <- SamplesMap$"Parent sample"
 #
+cat(" Check message in popup box before proceeding...\n")
 msg <- "Are you happy with the edits? (click no to try again)"
 tstXpMp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = TRUE)$res, c("yes", "no"))]

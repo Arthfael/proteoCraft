@@ -24,9 +24,11 @@ if ((scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
   } else { Annotate %<o% TRUE }
 }
 if (Annotate) {
+  if (!exists("AnnotFls")) { AnnotFls <- c() }
+  AnnotFls %<o% AnnotFls
   if (!exists("Parsed_annotations")) {
     tmpFls <- gsub("\\.fa((s(ta(\\.fas)?)?)|a?)?$", ".txt", fastasTbl$Full)
-    AnnotFls <- vapply(tmpFls, function(x) { #x <- tmpFls[1]
+    autAnnotFls <- vapply(tmpFls, function(x) { #x <- tmpFls[1]
       x2 <- gsub(".+/", paste0(fastaLoc, "/"), x)
       if (!file.exists(x)) {
         if (file.exists(x2)) {
@@ -36,26 +38,34 @@ if (Annotate) {
       }
       return(as.character(x))
     }, "")
-    AnnotFls %<o% AnnotFls[which(!is.na(AnnotFls))]
+    AnnotFls <- unique(c(AnnotFls, autAnnotFls))
+    AnnotFls <- AnnotFls[which(!is.na(AnnotFls))]
     l <- length(AnnotFls)
-    if (!l) {
-      moar <- TRUE
-      while (moar) {
-        if (l == 0) {
-          msg <- "No functional annotation file detected. Select one?"
-        } else { msg <- "Select more?" }
-        moar <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
-        if (moar) {
-          msg <- "Select annotation file"
-          #filt <- matrix(c("Annotations txt file", "*.txt"), ncol = 2)
-          #AnnotFls <- c(AnnotFls, normalizePath(choose.files(paste0(fastaLoc, "/*.txt"), msg, TRUE, filt), winslah = "/"))
-          AnnotFls <- unique(c(AnnotFls,
-                               rstudioapi::selectFile(msg,
-                                                      path = paste0(fastaLoc, "/*.txt"),
-                                                      filter = "UniProtKB txt annotations file (*.txt)")))
-          AnnotFls <- AnnotFls[which(!is.na(AnnotFls))]
-          l <- length(AnnotFls)
+    moar <- TRUE
+    kount <- 0
+    while (moar) {
+      if (l) {
+        if (kount == 0) {
+          msg <- paste0("The following annotation files have been automatically detected or are already in memory:\n - ",
+                        paste(AnnotFls, collapse = "\n - "), "\nDo you want to load more?")
+        } else {
+          msg <- "Select more?"
         }
+      } else {
+        msg <- "No functional annotation file detected. Select one?"
+      }
+      kount <- kount+1
+      moar <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
+      if (moar) {
+        msg <- "Select annotation file"
+        #filt <- matrix(c("Annotations txt file", "*.txt"), ncol = 2)
+        #AnnotFls <- c(AnnotFls, normalizePath(choose.files(paste0(fastaLoc, "/*.txt"), msg, TRUE, filt), winslah = "/"))
+        AnnotFls <- unique(c(AnnotFls,
+                             rstudioapi::selectFile(msg,
+                                                    path = paste0(fastaLoc, "/*"),
+                                                    filter = "UniProtKB txt annotations file, GFF or GTF file (*.{txt,gtf,gff})")))
+        AnnotFls <- AnnotFls[which(!is.na(AnnotFls))]
+        l <- length(AnnotFls)
       }
     }
     if (!length(AnnotFls)) {
@@ -68,7 +78,13 @@ if (Annotate) {
         if (!file.exists(basename(x))) { fs::file_copy(x, wd) }
         # Parse it
         #tst <- Format.DB_txt(x, usePar = TRUE, cl = parClust)
-        return(Format.DB_txt(x, usePar = TRUE, cl = parClust))
+        if (grepl("\\.txt$", x, ignore.case = TRUE)) {
+          x <- Format.DB_txt(x, usePar = TRUE, cl = parClust)
+        }
+        if (grepl("\\.g[tf]f$", x, ignore.case = TRUE)) {
+          x <- annot_from_GTF(x)
+        }
+        return(x)
       })
       Parsed_annotations <- dplyr::bind_rows(Parsed_annotations_lst)
     }
@@ -147,7 +163,7 @@ if (Annotate) {
   #View(Parsed_annotations[, c("GO", "GO-ID")])
   #db <- db[, which(!colnames(db) %in% annot.col)]
   kol <- colnames(Parsed_annotations)
-  annot.col %<o% kol[which(!kol %in% c("Accession", "id", "ID", "Names", "Sequence", "MW (Da)"))]
+  annot.col %<o% kol[which(!kol %in% c("Accession", "id", "ID", "Names", "Sequence", "MW (Da)", "Common Name"))]
   annot.col2 %<o% annot.col[which(!annot.col %in% colnames(db))]
   annot.col3 %<o% annot.col[which(annot.col %in% colnames(db))]
   if (length(annot.col2)) { db[, annot.col2] <- NA }
@@ -155,6 +171,11 @@ if (Annotate) {
   mtch <- match(db$`Protein ID`[w], Parsed_annotations$Accession)
   db[, annot.col] <- ""
   db[w, annot.col] <- Parsed_annotations[mtch, annot.col]
+  if ("Common Name" %in% kol) {
+    w2 <- which(!nchar(db$"Common Name"))
+    mtch2 <- match(db$`Protein ID`[w2], Parsed_annotations$Accession)
+    db$"Common Name"[w] <- Parsed_annotations$"Common Name"[mtch2]
+  }
   tst1 <- unlist(strsplit(db$`GO-ID`, ";"))
   tst2 <- unlist(strsplit(db$GO, ";"))
   tst3 <- data.table(ID = tst1, Name = tst2)

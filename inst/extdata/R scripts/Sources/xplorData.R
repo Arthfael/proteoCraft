@@ -21,7 +21,7 @@ dfltNrmTp <- c("Norm. by row", names(plotLeatMaps[[dfltHtMp]]))
 dfltNrmTp <- dfltNrmTp[which(dfltNrmTp %in% names(plotLeatMaps[[dfltHtMp]]))[1]]
 dfltDmRd <- c("PCA", nmsDmRds)
 dfltDmRd <- dfltDmRd[which(dfltDmRd %in% nmsDmRds)[1]]
-dfltQntTp <- c("Expression", names(QuantLy))
+dfltQntTp <- c("Expression", "LFQ", names(QuantLy))
 dfltQntTp <- dfltQntTp[which(dfltQntTp %in% names(QuantLy))[1]]
 #
 ui <- fluidPage(
@@ -101,8 +101,9 @@ server <- function(input, output, session) {
       ggCall <- gsub(", +alpha += +[^\\)]+\\)", ")", ProfLy[[qunt]]$ggCall)
       plCall <- ProfLy[[qunt]]$plCall
       profData <- ProfLy[[qunt]]$data
-      profData <- profData[which(profData$`Protein Group` %in% prt),]
-      if (nrow(profData)) {
+      w <- which(profData$`Protein Group` %in% prt)
+      if (length(w)) {
+        profData <- profData[w,]
         ttl <- ProfLy[[qunt]]$Ttl
         kolnm <- ProfLy[[qunt]]$data2$colName
         myFacets <- ProfLy[[qunt]]$data2$facets

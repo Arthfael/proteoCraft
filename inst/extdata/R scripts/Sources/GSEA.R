@@ -72,61 +72,66 @@ if (isOK) {
       w <- which(db$`Potential contaminant` != "+")
       Org %<o% aggregate(w, list(db[w, kol]), length)
       colnames(Org) <- c("Organism", "Count")
-      Org <- Org[which(Org$Count == max(Org$Count)[1]),]
-      Org$Source <- aggregate(db$Source[which(db[[kol]] %in% Org$Organism)], list(db[which(db[[kol]] %in% Org$Organism), kol]), function(x) {
-        unique(x[which(!is.na(x))])
-      })$x
-      Org$Source[which(is.na(Org$Source))] <- ""
+      isOK <- max(Org$Count) >= nrow(db) * 0.3
+      if (isOK) {
+        Org <- Org[which(Org$Count == max(Org$Count)[1]),]
+        Org$Source <- aggregate(db$Source[which(db[[kol]] %in% Org$Organism)], list(db[which(db[[kol]] %in% Org$Organism), kol]), function(x) {
+          unique(x[which(!is.na(x))])
+        })$x
+        Org$Source[which(is.na(Org$Source))] <- ""
+      }
     }
-    # For now only the following 20 organisms are supported, because we need their annotations package:
-    orgDBs <- data.frame(Full = c("Homo sapiens",
-                                  "Pan troglodytes",
-                                  "Macaca mulatta",
-                                  "Mus musculus",
-                                  "Rattus norvegicus",
-                                  "Canis familiaris",
-                                  "Sus scrofa",
-                                  "Bos taurus",
-                                  "Gallus gallus",
-                                  "Xenopus laevis",
-                                  "Danio rerio",
-                                  "Caenorhabditis elegans",
-                                  "Drosophila melanogaster",
-                                  "Anopheles egypti",
-                                  "Arabidopsis thaliana",
-                                  "Saccharomyces cerevisiae",
-                                  "Plasmodium falciparum",
-                                  "Escherichia coli strain K12",
-                                  "Escherichia coli strain Sakai",
-                                  "Myxococcus xanthus"),
-                         db = c("org.Hs.eg.db",
-                                "org.Pt.eg.db",
-                                "org.Mmu.eg.db",
-                                "org.Mm.eg.db",
-                                "org.Rn.eg.db",
-                                "org.Cf.eg.db",
-                                "org.Ss.eg.db",
-                                "org.Bt.eg.db",
-                                "org.Gg.eg.db",
-                                "org.Xl.eg.db",
-                                "org.Dr.eg.db",
-                                "org.Ce.eg.db",
-                                "org.Dm.eg.db",
-                                "org.Ag.eg.db",
-                                "org.At.tair.db",
-                                "org.Sc.sgd.db",
-                                "org.Pf.plasmo.db",
-                                "org.EcK12.eg.db",
-                                "org.EcSakai.eg.db",
-                                "org.Mxanthus.db"))
-    # I will need to make this more universal.
-    # ...
-    if (Org$Organism %in% orgDBs$Full) { organism <- Org$Organism } else {
-      organism <- dlg_list(c(orgDBs$Full, "none of these"),
-                           orgDBs$Full[1], title = "Select organism")$res
+    if (isOK) {
+      # For now only the following 20 organisms are supported, because we need their annotations package:
+      orgDBs <- data.frame(Full = c("Homo sapiens",
+                                    "Pan troglodytes",
+                                    "Macaca mulatta",
+                                    "Mus musculus",
+                                    "Rattus norvegicus",
+                                    "Canis familiaris",
+                                    "Sus scrofa",
+                                    "Bos taurus",
+                                    "Gallus gallus",
+                                    "Xenopus laevis",
+                                    "Danio rerio",
+                                    "Caenorhabditis elegans",
+                                    "Drosophila melanogaster",
+                                    "Anopheles egypti",
+                                    "Arabidopsis thaliana",
+                                    "Saccharomyces cerevisiae",
+                                    "Plasmodium falciparum",
+                                    "Escherichia coli strain K12",
+                                    "Escherichia coli strain Sakai",
+                                    "Myxococcus xanthus"),
+                           db = c("org.Hs.eg.db",
+                                  "org.Pt.eg.db",
+                                  "org.Mmu.eg.db",
+                                  "org.Mm.eg.db",
+                                  "org.Rn.eg.db",
+                                  "org.Cf.eg.db",
+                                  "org.Ss.eg.db",
+                                  "org.Bt.eg.db",
+                                  "org.Gg.eg.db",
+                                  "org.Xl.eg.db",
+                                  "org.Dr.eg.db",
+                                  "org.Ce.eg.db",
+                                  "org.Dm.eg.db",
+                                  "org.Ag.eg.db",
+                                  "org.At.tair.db",
+                                  "org.Sc.sgd.db",
+                                  "org.Pf.plasmo.db",
+                                  "org.EcK12.eg.db",
+                                  "org.EcSakai.eg.db",
+                                  "org.Mxanthus.db"))
+      # I will need to make this more universal.
+      # ...
+      if (Org$Organism %in% orgDBs$Full) { organism <- Org$Organism } else {
+        organism <- dlg_list(c(orgDBs$Full, "none of these"),
+                             orgDBs$Full[1], title = "Select organism")$res
+      }
+      if (!length(organism)) { organism <- "none of these" }
+      isOK <- organism != "none of these" 
     }
-    if (!length(organism)) { organism <- "none of these" }
-    isOK <- organism != "none of these"
     # See https://guangchuangyu.github.io/2016/01/go-analysis-using-clusterprofiler/ for how to create annotations with the format clusterProfiler expects
     #BiocManager::install("AnnotationHub")
     #library(AnnotationHub)
