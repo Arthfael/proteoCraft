@@ -11,13 +11,14 @@
 #' @param in.env If TRUE, the function will attempt processing the character string in one of two ways: a) if it recognizes the character string as a Fasta file, it will directly process it; else, it will treat it as the name of a Fasta file already in the environment. If set to FALSE (default), it will attempt to load the file from the work directory.
 #' @param Full.ID.rule Regex rule used to parse the header and extract the full ID. Only used if operating in custom mode. Default is "^>([^ ]*)" (UniProt).
 #' @param Protein.ID.rule Regex rule used to parse the header and extract protein ID. Only used if operating in custom mode. Default is "^>[a-z]{2}\\|([^\\|]*)" (UniProt).
-#' @param Name.rule Regex rule used to parse the header and extract the protein name. Only used if operating in custom mode. Default is "^>[a-z]{2}\\|[^\\|]*\\|([^_]*)" (UniProt).
+#' @param Name.rule Regex rule used to parse the header and extract the protein name. Only used if operating in custom mode. Default is "^>[a-z]{2}\\|[^\\|]*\\|([^ ]*)" (UniProt).
 #' @param Unique If TRUE (default), will filter fasta to provide only one accession per sequence. (This may mean that only 1 gene will be retained where several encode the exact same protein, but reducing redundancy is good for FDR.)
 #' @param IDs_only Allows extracting just the IDs (default = FALSE). Used internally only.
 #' @param parallel Default = FALSE; if TRUE, uses parallel processing and the next few arguments.
 #' @param N.clust A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
+#' @param trimName Logical (TRUE by default). Remove anything after the last underscore from the name, e.g. "ACTIN_HUMAN" become ACTIN. A more complex but safer way was used previously (up to 3.1.4).
 #' 
 #' @examples
 #' db <- Format.DB(file = "Search database.FASTA", in.env = TRUE, species = "HUMAN")
@@ -31,13 +32,14 @@ Format.DB <- function(file,
                       in.env = FALSE,
                       Full.ID.rule = "^>([^ ]*)",
                       Protein.ID.rule = "^>[a-z]{2}\\|([^\\|]*)",
-                      Name.rule = "^>[a-z]{2}\\|[^\\|]*\\|([^_]*)",
+                      Name.rule = "^>[a-z]{2}\\|[^\\|]*\\|([^ ]*)",
                       Unique = TRUE,
                       IDs_only = FALSE,
                       parallel = FALSE,
                       N.clust,
                       N.reserved = 1,
-                      cl) {
+                      cl,
+                      trimName = TRUE) {
   TESTING <- FALSE
   #TESTING <- TRUE;proteoCraft::DefArg(proteoCraft::Format.DB)
   #file = unlist(fastasTbl$Data[[i]]); in.env = TRUE; mode = fastasTbl$Type[i]; parallel = TRUE; cl = parClust
@@ -51,6 +53,9 @@ Format.DB <- function(file,
     parallel <- TRUE
   }
   #
+  if ((is.logical(trimName))||(length(trimName) != 1)||(is.na(trimName))) {
+    trimName <- TRUE
+  }
   #
   mode2 <- gsub("-|_|\\.| ", "", toupper(mode))
   # Check mode
@@ -67,7 +72,9 @@ Format.DB <- function(file,
     if (length(file) > 1) { for (i in 2:length(file)) { DB <- c(DB, readLines(file[i])) } }
   }
   # Rules
-  Roolz <- list(`Full ID` = Full.ID.rule, `Protein ID` = Protein.ID.rule, Name = Name.rule)
+  Roolz <- list(`Full ID` = Full.ID.rule,
+                `Protein ID` = Protein.ID.rule,
+                Name = Name.rule)
   nms.list <- c("Name", "Protein ID", "Full ID")
   # Ensembl-specific behaviour
   if (mode == "ENSEMBL") {
@@ -181,6 +188,9 @@ Format.DB <- function(file,
         nms.list <- c("Common Name", "Gene", "Protein ID")
       }
     }
+    if (("Name" %in% colnames(temp1))&&(trimName)) {
+      temp1$Name <- gsub("_[^_]*$", "", temp1$Name)
+    }
     if (!IDs_only) {
       if (mode %in% c("REFSEQCDS", "NCBI", "UNIPROTKB")) {
         temp1$"No Isoforms" <- vapply(temp1$"Protein ID", function(x) { unlist(strsplit(x, "-"))[1] }, "")
@@ -192,13 +202,13 @@ Format.DB <- function(file,
       }
       # UniProtKB-specific behaviour
       if (mode == "UNIPROTKB") {
-        temp1$Organism <- vapply(temp1$"Full ID", function(x) { unlist(strsplit(x, "_"))[2] }, "")
+        temp1$Organism <- gsub(".*_", "", temp1$"Full ID")
         temp1$Organism_Full <- gsub(" [A-Z]{2}=.+$", "", gsub("^>.+OS=", "", temp1$Header))
         temp1$TaxID <- NA
         w <- grep("OX=", temp1$Header)
         temp1$TaxID[w] <- as.numeric(gsub(" .+", "", vapply(strsplit(temp1$Header[w], "OX="), function(x) { unlist(x)[2] }, "")))
-        temp1$"Full Name" <- apply(temp1[,c("Name", "Organism")], 1, FUN = function(x) {paste(x, collapse = "_")})
-        a <- strsplit(temp1$Header, " OS=| GN=| PE=| SV=")
+        temp1$"Full Name" <- apply(temp1[, c("Name", "Organism")], 1, FUN = function(x) {paste(x, collapse = "_")})
+        a <- strsplit(temp1$Header, " [^ ]+=")
         temp1$"Common Name" <- vapply(1:nrow(temp1), function(x) {
           x1 <- unlist(a[x])[1]
           x2 <- temp1$Organism[x]
@@ -305,7 +315,8 @@ Format.DB <- function(file,
   }
   if (parallel) {
     environment(F0) <- .GlobalEnv
-    parallel::clusterExport(cl, list("Roolz", "IDs_only", "mode", "Unique", "nms.list"), envir = environment())
+    parallel::clusterExport(cl, list("Roolz", "IDs_only", "mode", "Unique", "nms.list", "trimName"),
+                            envir = environment())
     res <- parallel::parLapply(cl, batChes, F0)
   } else { res <- lapply(batChes, F0) }
   #
