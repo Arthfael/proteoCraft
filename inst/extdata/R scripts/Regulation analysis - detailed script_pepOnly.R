@@ -1385,94 +1385,19 @@ if (globalGO) {
   source(Src, local = FALSE)
 }
 
-# Define design matrix and contrasts (limma) 
-#  From Exp.map to design matrix
-Coefficients %<o% Factors[which(!Factors %in% c("Experiment", "Replicate"))]
-w <- which(vapply(Coefficients, function(x) { length(unique(FactorsLevels[[x]])) < nrow(Exp.map) }, 1))
-Coefficients <- Coefficients[w]
-w <- which(vapply(Coefficients, function(x) { length(unique(Exp.map[[x]])) > 1 }, 1))
-Coefficients <- Coefficients[w]
-EM <- Exp.map
-EM <- EM[order(#EM[[RRG$column]], # Do not use RRG here
-  EM[[RG$column]], # Cf. below: safe because each RG contains at least one ref samples group
-  EM$Reference, # Very important: if any level is dropped from the design matrix, it must be a reference!
-  # (Otherwise every gets confusing and  my head starts hurting...)
-  EM[[VPAL$column]],
-  EM$Replicate),]
-Group_ <- do.call(paste, c(EM[, Coefficients, drop = FALSE], sep = "_"))
-Group_ <- as.factor(Group_)
-EM$Group_ <- Group_
-if (Nested) {
-  EM$Replicate_ <- Replicate_ <- as.factor(EM$Replicate)
-  designMatr %<o% model.matrix(~0 + Replicate_ + Group_)
-} else {
-  designMatr %<o% model.matrix(~0 + Group_)
-}
-rownames(designMatr) <- EM$Ref.Sample.Aggregate
+#### Code chunk - Calculate average intensities and ratios, and perform a few statistical tests
+Src <- paste0(libPath, "/extdata/R scripts/Sources/Av_and_Stat_prep.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 #
-# Define contrasts
-expContrasts %<o% list()
-for (ratGrp in RG$values) { #ratGrp <- RG$values[1]
-  em <- EM[which(EM[[RG$column]] == ratGrp),]
-  grp1 <- unique(em$Group_[which(!em$Reference)])
-  vpal1 <- em[match(grp1, em$Group_), VPAL$column]
-  grp0 <- unique(em$Group_[which(em$Reference)])
-  expContrasts[[ratGrp]] <- plyr::rbind.fill(lapply(grp0, function(g0) {
-    data.frame(x1 = paste0("Group_", grp1),
-               x0 = paste0("Group_", g0),
-               name = vpal1)
-  }))
-}
-expContrasts <- plyr::rbind.fill(expContrasts)
-expContrasts$All <- lapply(1:nrow(expContrasts), function(x) { gsub("^Group_", "", expContrasts[x, c("x1", "x0")]) })
-expContrasts$Contrasts <- apply(expContrasts[, c("x1", "x0")], 1, function(x) {
-  x <- x[which(x %in% colnames(designMatr))]
-  paste(x, collapse = " - ")
-})
-contrCall <- paste0("contrMatr %<o% makeContrasts(",
-                    paste(expContrasts$Contrasts, collapse = ", "),
-                    ", levels = designMatr)")
-#cat(contrCall, "\n")
-eval(parse(text = contrCall), envir = .GlobalEnv)
-# (NB: Contrasts could be renamed to something shorter, e.g. makeContrasts(Comp1 = A - B, Comp2 = A - C)
+dataType <- "modPeptides"
+Src <- paste0(libPath, "/extdata/R scripts/Sources/Av_and_Stat_tests.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
 #
-bhFDRs %<o% sort(BH.FDR, decreasing = FALSE)
-samRoots %<o% c(samRoot,
-                paste0("SAM regulated-FDR=", paste(100*bhFDRs, collapse = "/"), "% FDR - "))
-samSubDir %<o% "Reg. analysis/SAM"
-ebamSubDir %<o% "Reg. analysis/EBAM"
-ebamRoot %<o% paste0("EBAM regulated-FDR=", paste(100*bhFDRs, collapse = "/"), "% FDR - ")
-#
-if ("Mirror.Ratios" %in% colnames(Param)) { Mirror.Ratios <- Param$Mirror.Ratios <- as.logical(Param$Mirror.Ratios) }
-if (!is.logical(Mirror.Ratios)) {
-  warning("I could not make sense of the value of parameter \"Mirror.Ratios\", defaulting to FALSE!")
-  Mirror.Ratios <- FALSE
-}
-if (Mirror.Ratios) {
-  stop("The code has changed, this is now deprecated: if you want to re-use this then first check all normalisation steps where ratios are calculated after this stage!!!")
-}
-#
-samDir <- paste0(wd, "/", samSubDir)
-ebamDir <- paste0(wd, "/", ebamSubDir)
-pvalue.use %<o% (names(pvalue.col) == Param$P.values.type)
-AltHyp %<o% c(c("greater", "lower")[Mirror.Ratios+1], "two.sided")[TwoSided+1]
-Av_SE_fun %<o% function(vect) {
-  res <- proteoCraft::is.all.good(as.numeric(vect))
-  if (length(res)) { res <- c(mean(res), sd(res)/sqrt(length(res))) } else {
-    res <- unique(vect[which((!is.nan(vect))&(!is.na(vect)))])
-    if (length(res) == 1) { return(c(res, NA)) } else { return(c(NA, NA)) }
-    return(res)
-  }
-}
-limma.one.sided %<o% function(myFit, lower) {
-  se.coef <- sqrt(myFit$s2.post) * myFit$stdev.unscaled
-  df.total <- myFit$df.prior + myFit$df.residual
-  rs <- pt(myFit$t, df = df.total, lower.tail = lower)
-  return(rs[, colnames(myFit$p.value)])
-}
 create_plotly %<o% TRUE
 create_plotly_local %<o% TRUE # No need for a licence when I can save local htmls! Still, old legacy code kept below.
-
 # Arbitrary thresholds
 arbitrary.thr %<o% data.frame(yintercept = -log10(c(0.05, 0.01)),
                               slope = c(0, 0),
