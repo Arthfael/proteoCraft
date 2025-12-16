@@ -4,7 +4,7 @@
 #' A function to create reference ratios according to a variety of methods, for the purpose of a threshold for extreme fold changes.
 #' 
 #' @param data A data.frame containing expression values. Default = pep
-#' @param experiments.map The experiments map. Default = Exp.map
+#' @param experiment.map The experiments map. Default = Exp.map
 #' @param int.root Name root for expression columns. Default = pep.ref[length(pep.ref)]
 #' @param rat.root Name root for ratio columns. Default = pep.ratios.ref[1]
 #' @param rat.con.grps Which sample groups are we considering. Default = RatConGrps
@@ -140,3 +140,4 @@ make_RefRat <- function(data = pep,
   } else { stop("No Ref to Ref columns were generated, investigate!!!") }
   return(RES)
 }
+
