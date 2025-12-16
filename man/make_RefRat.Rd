@@ -6,7 +6,7 @@
 \usage{
 make_RefRat(
   data = pep,
-  experiment.map = experiments.map,
+  experiment.map = Exp.map,
   int.root = pep.ref[length(pep.ref)],
   rat.root = pep.ratios.ref[1],
   rat.con.grps = RatConGrps,

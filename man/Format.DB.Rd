@@ -10,13 +10,14 @@ Format.DB(
   in.env = FALSE,
   Full.ID.rule = "^>([^ ]*)",
   Protein.ID.rule = "^>[a-z]{2}\\\\|([^\\\\|]*)",
-  Name.rule = "^>[a-z]{2}\\\\|[^\\\\|]*\\\\|([^_]*)",
+  Name.rule = "^>[a-z]{2}\\\\|[^\\\\|]*\\\\|([^ ]*)",
   Unique = TRUE,
   IDs_only = FALSE,
   parallel = FALSE,
   N.clust,
   N.reserved = 1,
-  cl
+  cl,
+  trimName = TRUE
 )
 }
 \arguments{
@@ -30,7 +31,7 @@ Format.DB(
 
 \item{Protein.ID.rule}{Regex rule used to parse the header and extract protein ID. Only used if operating in custom mode. Default is "^>[a-z]{2}\\|([^\\|]*)" (UniProt).}
 
-\item{Name.rule}{Regex rule used to parse the header and extract the protein name. Only used if operating in custom mode. Default is "^>[a-z]{2}\\|[^\\|]*\\|([^_]*)" (UniProt).}
+\item{Name.rule}{Regex rule used to parse the header and extract the protein name. Only used if operating in custom mode. Default is "^>[a-z]{2}\\|[^\\|]*\\|([^ ]*)" (UniProt).}
 
 \item{Unique}{If TRUE (default), will filter fasta to provide only one accession per sequence. (This may mean that only 1 gene will be retained where several encode the exact same protein, but reducing redundancy is good for FDR.)}
 
@@ -43,6 +44,8 @@ Format.DB(
 \item{N.reserved}{Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.}
 
 \item{cl}{Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!}
+
+\item{trimName}{Logical (TRUE by default). Remove anything after the last underscore from the name, e.g. "ACTIN_HUMAN" become ACTIN. A more complex but safer way was used previously (up to 3.1.4).}
 }
 \description{
 A function to load Fasta databases from the work directory or the environment and format them into a data frame.
