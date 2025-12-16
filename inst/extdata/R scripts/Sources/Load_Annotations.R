@@ -173,8 +173,10 @@ if (Annotate) {
   db[w, annot.col] <- Parsed_annotations[mtch, annot.col]
   if ("Common Name" %in% kol) {
     w2 <- which(!nchar(db$"Common Name"))
-    mtch2 <- match(db$`Protein ID`[w2], Parsed_annotations$Accession)
-    db$"Common Name"[w] <- Parsed_annotations$"Common Name"[mtch2]
+    if (length(w2)) {
+      mtch2 <- match(db$`Protein ID`[w2], Parsed_annotations$Accession)
+      db$"Common Name"[w] <- Parsed_annotations$"Common Name"[mtch2]
+    }
   }
   tst1 <- unlist(strsplit(db$`GO-ID`, ";"))
   tst2 <- unlist(strsplit(db$GO, ";"))
