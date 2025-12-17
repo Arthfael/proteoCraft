@@ -6,11 +6,11 @@ myObj <- c("ImputeKlust", "clustHtMp", "prtRfRoot", "mySmpls", "clustXprsKol", "
            "clustFilt", "clustDat", "clustDat0", "clustDatImp", "KlustRoot", "plotLeatMaps", "Heatmaps",
            "NHClust", "NVClust", "KlustKols", "MaxHClust", "MaxVClust", "VClusters", "HClusters")
 tst <- vapply(myObj, function(x) { exists(x) & (x %in% .obj) }, TRUE)
-clustPrep %<o% (clustPrep&(exists("MaxVClust"))&(sum(!tst) == 0))
+#clustPrep %<o% (clustPrep&(exists("MaxVClust"))&(sum(!tst) == 0)) # clustPrep is dangerous, better rerun the code, it's quick!
 
 ImputeKlust %<o% TRUE # Currently MUST always be TRUE
 #
-if (!clustPrep) {
+#if (!clustPrep) {
   if (scrptType == "withReps") {
     clustHtMp <- TRUE
     if (LocAnalysis) { prtRfRoot <- Prot.Expr.Root2 } else { prtRfRoot <- Prot.Expr.Root }
@@ -81,5 +81,5 @@ if (!clustPrep) {
   VClusters %<o% list()
   HClusters %<o% list()
   #
-  clustPrep <- TRUE
-}
+  #clustPrep <- TRUE
+#}

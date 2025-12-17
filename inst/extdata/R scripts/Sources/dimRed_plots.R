@@ -12,7 +12,7 @@ kol <- cleanNms(RSA$values)
 kol <- kol[which(kol %in% colnames(clustDat))]
 mPG <- match(row.names(clustDat), PG$Label)
 filt <- which((apply(clustDat[, kol], 1, function(x) { length(proteoCraft::is.all.good(x)) }) == ncol(clustDat))
-              &(PG$`Potential contaminant`[mPG] != "+"))
+              &((is.na(PG$`Potential contaminant`[mPG]))|(PG$`Potential contaminant`[mPG] != "+")))
 if ((length(filt) > 2)&&(length(kol) > 2)) {
   dimRedDat <- clustDat[filt, kol]
   # Normalizing properly is crucial:
