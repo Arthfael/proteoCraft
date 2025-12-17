@@ -140,4 +140,3 @@ make_RefRat <- function(data = pep,
   } else { stop("No Ref to Ref columns were generated, investigate!!!") }
   return(RES)
 }
-
