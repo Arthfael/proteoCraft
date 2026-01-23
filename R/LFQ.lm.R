@@ -106,12 +106,12 @@ LFQ.lm <- function(ids,
         # Thus, do not apply wNN to them!
         temp2 <- sweep(temp1[, wNN, drop = FALSE], 1, av, "-") # Normalized profiles row-wise to the median
         f <- rep(0, nrow(temp2) - 1)
-        diff.log.v <- function(...) {
+        diffLog_v <- function(...) {
           p <- list(...)
-          return(proteoCraft::diff.log(p, dat = temp2))
+          return(proteoCraft::diffLog(p, dat = temp2))
         }
         LM <- minpack.lm::nls.lm(par = f,
-                                 fn = diff.log.v,
+                                 fn = diffLog_v,
                                  lower = unlist(f)-1,
                                  upper = unlist(f)+1) # Align
         temp3 <- sweep(temp2, 1, c(0, LM$par), "-") # Fine LM row-wise normalization

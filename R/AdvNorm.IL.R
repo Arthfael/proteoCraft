@@ -76,8 +76,8 @@ AdvNorm.IL <- function(df,
   # Create main optimization function:
   N <- length(exprs.col)
   comb <- gtools::combinations(N, 2, exprs.col)
-  diffLog <- function(p, nms, dat, append = TRUE) {
-    # There is also proteoCraft::diff.log! Can I replace one by the other?
+  diffLog2 <- function(p, nms, dat, append = TRUE) {
+    # There is also proteoCraft::diffLog! Can I replace one by the other?
     p <- c(1, unlist(p))
     #stopifnot(length(p) == length(nms))
     dat <- dat[, c(ids.col, nms)]
@@ -95,13 +95,13 @@ AdvNorm.IL <- function(df,
     dat3 <- dat3[which(is.finite(dat3))]
     return(dat3)
   }
-  diffLog.h <- function(...) {
+  diffLog2_h <- function(...) {
     p <- list(...)
     res <- diffLog(p, exprs.col, df2)
     return(res)
   }
   LM <- minpack.lm::nls.lm(par = h.fact[2:n.exprs],
-                           fn = diffLog.h,
+                           fn = diffLog2_h,
                            lower = unlist(h.fact[2:n.exprs])/K,
                            upper = unlist(h.fact[2:n.exprs])*K)
   h <- c(1, as.numeric(LM$par))

@@ -38,17 +38,17 @@
 #' @param expMap Map of the experiment map.
 #' @param expMap_Samples_col Names of the single samples column in the experiment's map. Default = "Sample"
 #' @param param This analysis' parameters. If provided, the refGroups argument is not required.
-#' @param aggregate.map The analysis' aggregate map. Default = Aggregate.map
-#' @param aggregate.list Named list of this analysis' factors aggregates. Default = Aggregate.list
-#' @param aggregates The factor aggregates themselves. Default = Aggregates
+#' @param aggrMap Only needed if ratios (logFCs) are also to be output, lternative way of defining groups when Param is missing. The analysis' aggregate map. Default = Aggregate.map
+#' @param aggrList Only needed if ratios (logFCs) are also to be output, lternative way of defining groups when Param is missing. Named list of this analysis' factors aggrNames. Default = Aggregate.list
+#' @param aggrNames Only needed if ratios (logFCs) are also to be output, lternative way of defining groups when Param is missing. The experiment's factor aggrNames. Default = Aggregates
 #' @param refGroups Only needed if ratios (logFCs) are also to be output. List defining which samples are paired to which references. May alternatively (preferred solution) be provided indirectly through the param argument.
 #' @param ratGroups Only needed if ratios (logFCs) are also to be output. List defining groups within which ratios are calculated. May alternatively (preferred solution) be provided indirectly through the param argument.
 #' @param pepInt_Root Root of the peptides intensity column(s) names
-#' @param pepRat_root Root of the peptides ratios column(s) names, used if Priority = "Ratios".
+#' @param pepRat_root Only needed if ratios (logFCs) are also to be output. Root of the peptides ratios column(s) names, used if Priority = "Ratios".
 #' @param pepInt_log Set to 0 or FALSE if input peptide intensities are linear scale. If the data is already log scale, set to the relevant scale's base. Default = FALSE
-#' @param pepRat_log Set to 0 or FALSE if input peptide ratios are linear scale. If the data is already log scale, set to the relevant scale's base. Default = 2
+#' @param pepRat_log Only needed if ratios (logFCs) are also to be output. Set to 0 or FALSE if input peptide ratios are linear scale. If the data is already log scale, set to the relevant scale's base. Default = 2
 #' @param protLFQ_toLog Should the output protein LFQ values be log-scale or not? Can ve set to the log base desired. If set to TRUE, this will be the same base as the input intensities log scale, or 10 by default.
-#' @param protRat_toLog Should the output protein ratios be log-scale or not? Can ve set to the log base desired. If set to TRUE, this will be the same base as the input ratios log scale, or its default, 2
+#' @param protRat_toLog Only needed if ratios (logFCs) are also to be output. Should the output protein ratios be log-scale or not? Can ve set to the log base desired. If set to TRUE, this will be the same base as the input ratios log scale, or its default, 2
 #  @param Mods Which modifications (2 lowercase letters PTM code) should be included? If set to FALSE, will not filter any modifications.
 #' @param Mods_to_Exclude Which modifications should be excluded? (use argument "Discard_unmod" to discard unmodified counterpart peptides.) A data.frame with columns "Mark" (2-lettern modification mark) and "Where" (a list, which amino acids are affected, use "Nterm", "Cterm", "protNterm" and "protCterm" for termini). Also see argument "Discard_unmod".
 #' @param modSeq Default = "Modified sequence". The name of the column containing the modified sequence in the peptides table. Can be set to a non-modified sequence if Mods_to_Exclude is empty.
@@ -137,9 +137,9 @@ protQuant <- function(Prot,
                       ratGroups,
                       #smplGroups,
                       param,
-                      aggregate.map = Aggregate.map,
-                      aggregate.list = Aggregate.list,
-                      aggregates = Aggregates,
+                      aggrMap,
+                      aggrList,
+                      aggrNames,
                       pepInt_Root,
                       pepRat_root,
                       pepInt_log = FALSE,
@@ -217,14 +217,10 @@ protQuant <- function(Prot,
   LFQ_ALGO <- toupper(LFQ_algo)
   stopifnot(nrow(Prot) > 0,
             nPep_0 > 0,
-            "character" %in% class(primSeq),
             "character" %in% class(PepIDs),
-            nchar(primSeq) > 0,
             nchar(PepIDs) > 0,
-            length(primSeq) == 1,
             length(PepIDs) == 1,
-            sum(c(primSeq, PepIDs) %in% colnames(Prot)) == 2,
-            "character" %in% class(Prot[[primSeq]]),
+            PepIDs %in% colnames(Prot),
             sum(c("character", "integer", "numeric") %in% class(Prot[[PepIDs]])) > 0,
             sum(c("numeric", "integer", "logical") %in% class(N_unique)) > 0,
             LFQ_ALGO %in% c("LM",
@@ -261,7 +257,7 @@ protQuant <- function(Prot,
   #    for when, eventually, a full MSstats workflow is finally added to the stats test available here.
   #
   if (LFQ_ALGO == "LM") {
-    LFQ_algo <- "in-house MaxLFQ-like method (with Levenberg-Marquardt based profiles alignment)"
+    # In-house MaxLFQ-like method (with Levenberg-Marquardt based profiles alignment)
     if ((length(LM_fun) != 1)||
         (!"character" %in% class(LM_fun))||
         (is.na(LM_fun))||
@@ -368,24 +364,27 @@ protQuant <- function(Prot,
     if ((!misFun(refGroups))&&(gsub(";", "", param$Ratios.Ref.Groups) != refGroups$aggregate)) {
       warning("The \"param\" and \"refGroups\" arguments are in disagreement; the former has priority over the latter, so I shall ignore \"refGroups\".")
     }
+    if ((misFun(aggrMap))&&(exists("Aggregate.map"))) { aggrMap <- Aggregate.map }
+    if ((misFun(aggrList))&&(exists("Aggregate.list"))) { aggrList <- Aggregate.list }
+    if ((misFun(aggrNames))&&(exists("Aggregates"))) { aggrNames <- Aggregates }
     refGroups <- proteoCraft::parse.Param.aggreg(param$Ratios.Ref.Groups,
-                                                 aggregates,
-                                                 aggregate.map,
-                                                 aggregate.list)
+                                                 aggrNames,
+                                                 aggrMap,
+                                                 aggrList)
     if ((!misFun(ratGroups))&&(gsub(";", "", param$Ratios.Groups) != ratGroups$aggregate)) {
       warning("The \"param\" and \"ratGroups\" arguments are in disagreement; the former has priority over the latter, so I shall ignore \"ratGroups\".")
     }
     ratGroups <- proteoCraft::parse.Param.aggreg(param$Ratios.Groups,
-                                                 aggregates,
-                                                 aggregate.map,
-                                                 aggregate.list)
+                                                 aggrNames,
+                                                 aggrMap,
+                                                 aggrList)
     # smplGroups <- proteoCraft::parse.Param.aggreg(param$Volcano.plots.Aggregate.Level,
-    #                                               aggregates,
-    #                                               aggregate.map,
-    #                                               aggregate.list)
+    #                                               aggrNames,
+    #                                               aggrMap,
+    #                                               aggrList)
   }
   #
-  mySmpls <- expMap$Ref.Sample.Aggregate
+  mySmpls <- expMap[[expMap_Samples_col]]
   Pep.Intens.Nms <- paste0(pepInt_Root, mySmpls)
   w <- which(Pep.Intens.Nms %in% colnames(Pep))
   stopifnot(length(w) > 0)
@@ -813,13 +812,6 @@ protQuant <- function(Prot,
     Weights <- "Weights"
     Pep[[Weights]] <- 1
   }
-  
-  
-  
-
-  
-  
-  
   #
   # Optional intensity weights - so a peptide's weight is a function of its (non log-transformed) intensity
   if ((misFun(useIntWeights))||(!is.logical(useIntWeights))||(length(useIntWeights) != 1)||(is.na(useIntWeights))) {
@@ -852,10 +844,10 @@ protQuant <- function(Prot,
     tmpPep <- Pep[, c(id, Weights, Pep.Ratios.Nms, Pep.Intens.Nms)]
     intSums <- rowSums(10^tmpPep[, Pep.Intens.Nms], na.rm = TRUE)
     ratGroups$samples <- lapply(ratGroups$values, function(x) {
-      expMap$Ref.Sample.Aggregate[which(expMap[[ratGroups$column]] == x)]
+      expMap[which(expMap[[ratGroups$column]] == x), expMap_Samples_col]
     })
     ratGroups$refSamples <- lapply(ratGroups$values, function(x) {
-      expMap$Ref.Sample.Aggregate[which((expMap[[ratGroups$column]] == x)&(expMap$Reference))]
+      expMap[which((expMap[[ratGroups$column]] == x)&(expMap$Reference)), expMap_Samples_col]
     })
     ratGroups$newInt <- lapply(1:length(ratGroups$values), function(x) { #x <- 1
       allIntCol <- paste0(pepInt_Root, ratGroups$samples[[x]])
@@ -884,7 +876,7 @@ protQuant <- function(Prot,
   }
   #
   # Re-order by intensity
-  tmpPep$AvgInt <- rowMeans(tmpPep[, Pep.Intens.Nms], na.rm = TRUE)
+  tmpPep$AvgInt <- rowMeans(tmpPep[, Pep.Intens.Nms, drop = FALSE], na.rm = TRUE)
   tmpPep <- tmpPep[order(tmpPep$AvgInt, decreasing = TRUE),]
   quant.pep.ids2 <- proteoCraft::listMelt(quant.pep.ids, ColNames = c("id", "PG"))
   quant.pep.ids2$mtch <- match(quant.pep.ids2$id, tmpPep[[id]])
@@ -1211,8 +1203,8 @@ protQuant <- function(Prot,
     #   tmp4$Fraction <- 1
     #   u <- as.character(unique(tmp4$Run))
     #   mu <- match(tmp4$Run, u)
-    #   grp <- expMap[match(u, expMap$Ref.Sample.Aggregate), smplGroups$column]
-    #   rep <- expMap$Replicate[match(u, expMap$Ref.Sample.Aggregate)]
+    #   grp <- expMap[match(u, expMap[[expMap_Samples_col]]), smplGroups$column]
+    #   rep <- expMap$Replicate[match(u, expMap[[expMap_Samples_col]])]
     #   tmp4$Condition <- grp[mu]
     #   tmp4$BioReplicate <- rep[mu]
     #   #
@@ -1325,14 +1317,14 @@ protQuant <- function(Prot,
   #       w1_ <- w1[which(em$Replicate[w1] == r)]
   #       w0_ <- w0[which(em$Replicate[w0] == r)]
   #       if ((length(w1_) != 1)||(length(w0_) != 1)) { return() }
-  #       smpl1_ <- em$Ref.Sample.Aggregate[w1_]
-  #       smpl0_ <- em$Ref.Sample.Aggregate[w0_]
+  #       smpl1_ <- em[w1_, expMap_Samples_col]
+  #       smpl0_ <- em[w0_, expMap_Samples_col]
   #       return(y[[paste0("log10(Expr.) - ", smpl1_)]] - y[[paste0("log10(Expr.) - ", smpl0_)]])
   #     })
   #     res <- do.call(cbind, res)
   #   } else {
-  #     smpls1 <- em$Ref.Sample.Aggregate[w1]
-  #     smpls0 <- em$Ref.Sample.Aggregate[w0]
+  #     smpls1 <- em[w1, expMap_Samples_col]
+  #     smpls0 <- em[w0, expMap_Samples_col]
   #     rf <- rowMeans(y[, paste0("log10(Expr.) - ", smpls0)], na.rm = TRUE)
   #     res <- sweep(y[, paste0("log10(Expr.) - ", smpls1)], 1, rf, "-")
   #   }

@@ -18,7 +18,7 @@
 #' This function can be used as a logFC-level filter for DEPs - after statistical analysis.
 #' Instead of using a fixed logFC threshold, this can instead be used to define thresholds based on internal data variability. 
 #'
-#' @value
+#' @returns
 #' Reference sample-to-sample log fold changes.
 #'
 #' @examples
