@@ -12,6 +12,11 @@
 #' @param sep Sometimes (for numeric annotations), there can be several per row, for instance when a peptide has several PSMs. The values will be summarized (mean), so we need to know how they are separated. Default = ";"
 #' @param numeric_data Is the data numeric? Default = FALSE
 #' 
+#' @returns
+#' A named list, with for each modified peptide a data.frame with 2 columns:
+#'  - "Sequence" = amino acid
+#'  - "Annotations" = PTM at this position
+#' 
 #' @export
 
 annot_to_tabl <- function(x,

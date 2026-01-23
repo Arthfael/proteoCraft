@@ -21,6 +21,11 @@
 #' @param shinyOpt One of "popup" (default), "pane", "dialog", or "browser".
 #' @param digPattern Default = "KR" for trypsin. Only used for the "Missed cleavages" column if that from Skyline is missing. Vector of amino acids after which the enzyme cleaves. 
 #' 
+#' @returns
+#' A list of two items:
+#'  - "Evidence": Skyline report formatted to be similar (not identical!) to MaxQuant evidence files
+#'  - "PTMs": modifications table
+#'  
 #' @examples
 #' temp <- Skyline_to_MQ(Skyline_fl = skyline_fl)
 #' ev <- temp$Evidences
@@ -599,7 +604,6 @@ Skyline_to_MQ <- function(Skyline_fl,
                          EV)
   Res <- list(Evidence = EV,
               PTMs = allPTMs)
-  
   #
   if (stopCl) { parallel::stopCluster(cl) }
   return(Res)

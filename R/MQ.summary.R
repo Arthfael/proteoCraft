@@ -37,10 +37,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                        cl,
                        MQtxt = inDirs[which(SearchSoft == "MAXQUANT")]) {
   TESTING <- FALSE
-  #proteoCraft::DefArg(proteoCraft::MQ.summary)
+  #proteoCraft::DefArg(proteoCraft::MQ.summary); TESTING <- TRUE
   #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = sc
   #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = max(c(20, round(length(rawFiles2)/length(Exp)))); save = c("jpeg", "pdf")
-  #TESTING <- TRUE
   if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
@@ -163,7 +162,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     temp <- Res[which(!Res$Sample %in% c("Whole dataset", "")), which(!grepl("%", colnames(Res)))]
     if (nrow(temp)) {
       temp$Proteins <- NULL; temp$"Protein groups" <- NULL
-      temp <- reshape::melt.data.frame(temp, id.vars = "Sample")
+      temp <- proteoCraft::dfMelt(temp, id.vars = "Sample")
       if (UseMods) {
         temp$Modification <- vapply(as.character(temp$variable), function(x) {
           x <- unlist(strsplit(x, " - "))
@@ -219,7 +218,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     # Plot - Protein coverage
     g <- grep("^Sequence coverage \\[%\\]( - )?", colnames(pg), value = TRUE)
     if (length(g)) {
-      temp <- reshape::melt.data.frame(pg[, g])
+      temp <- proteoCraft::dfMelt(pg[, g])
       temp$Sample <- gsub("^Sequence coverage \\[%\\]( - )?", "", temp$variable)
       temp$Sample[which(temp$Sample == "")] <- "Global"
       temp$Sample <- gsub("___", " ", temp$Sample)
@@ -274,7 +273,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         temp2 <- aggregate(w2, list(e$"Raw file"[w2]), length)
         temp[[as.character(n)]] <- temp2$x[match(as.character(temp$`Raw file`), temp2$Group.1)]
       }
-      temp <- reshape::melt.data.frame(temp, id.vars = "Raw file")
+      temp <- dfMelt(temp, id.vars = "Raw file")
       temp$`Raw file` <- factor(temp$`Raw file`, levels = rawFls)
       colnames(temp)[which(colnames(temp) == "variable")] <- "Missed cleavages"
       colnames(temp)[which(colnames(temp) == "value")] <- "Number of identifications"
@@ -313,7 +312,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           temp[[as.character(n)]] <- temp2$x[match(temp$"Raw file", temp2$Group.1)]
         } else { temp[[as.character(n)]] <- 0 }
       }
-      temp <- reshape::melt.data.frame(temp, id.vars = "Raw file")
+      temp <- proteoCraft::dfMelt(temp, id.vars = "Raw file")
       temp$`Raw file` <- factor(temp$`Raw file`, levels = rawFls)
       colnames(temp)[which(colnames(temp) == "variable")] <- "Length"
       colnames(temp)[which(colnames(temp) == "value")] <- "Number of peptides"
@@ -609,7 +608,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             temp[w2, paste0(r, "___Intensity_Identified")] <- temp2$x[match(temp$Retention.time[w2], temp2$Group.1)]
           }
         }
-        temp <- reshape::melt.data.frame(temp, id.vars = "Retention.time")
+        temp <- proteoCraft::dfMelt(temp, id.vars = "Retention.time")
         temp$"Raw file" <- factor(gsub("___Intensity_.+", "", temp$variable), levels = levels(rawFls))
         temp$variable <- gsub(".+___", "", temp$variable) 
         temp$Identified <- c("-", "+")[match(temp$variable, c("Intensity_Not.identified", "Intensity_Identified"))]

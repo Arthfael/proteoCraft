@@ -3,13 +3,13 @@
 #' @description 
 #' A function to quickly import MaxQuant's main output datatables into the above environment.
 #' 
-#' @param ev Default = TRUE. If set to FALSE, no evidence file will be created.
+#' @param ev Default = TRUE. If set to FALSE, the evidence file will not be processed.
 #' @param ev.name The name of the evidence object that should be created in the above environment, if "assign" = TRUE.
 #' @param ev.file.name The name of the evidence file that should be loaded.
-#' @param pep Default = TRUE. If set to FALSE, no peptide file will be created.
+#' @param pep Default = TRUE. If set to FALSE, the peptide file will not be processed.
 #' @param pep.name The name of the peptides object that should be created in the above environment, if "assign" = TRUE.
 #' @param pep.file.name The name of the peptides file that should be loaded.
-#' @param prot Default = TRUE. If set to FALSE, no protein groups file will be created.
+#' @param prot Default = TRUE. If set to FALSE, the protein groups file will not be processed.
 #' @param prot.name The name of the protein groups object that should be created in the above environment, if "assign" = TRUE.
 #' @param prot.file.name The name of the protein groups file that should be loaded.
 #' @param sub Are the files in a subfolder? Default = FALSE. If set to TRUE, will search in subfolders automatically, and will return an error if it finds more than one or no matches; can instead be set to any string specifying a subfolder.
@@ -17,6 +17,9 @@
 #' @param return Should we return the files (in case the function is used in the form "object <- MQ.load(...)"); default = FALSE.
 #' @param check.names logical (default = FALSE). If TRUE, then the names of the variables in the data frame are checked to ensure that they are syntactically valid variable names. If necessary they are adjusted (by make.names) so that they are, and also to ensure that there are no duplicates. 
 #'
+#' @returns
+#' Nothing is returned by default (the objects are assigned to the global environment). But if return = TRUE, then a list containing the "protein.groups", "peptides" and "evidences" data.frames (depending on whether they are to be processed or not) is returned.
+#' 
 #' @examples
 #' MQ.load()
 #' # Result: the environment should now contain ev, pep and prot objects.
@@ -97,7 +100,7 @@ MQ.load <- function(ev = TRUE, ev.name = "ev", ev.file.name = "evidence.txt",
                             integer64 = "numeric",
                             check.names = FALSE,
                             data.table = FALSE)
-    if (assign) { assign(ev.name, Ev, pos = parent.frame()) }
+    if (assign) { assign(ev.name, Ev, envir = .GlobalEnv) }
     res$evidences <- Ev
   }
   if (pep) {
@@ -106,7 +109,7 @@ MQ.load <- function(ev = TRUE, ev.name = "ev", ev.file.name = "evidence.txt",
                              integer64 = "numeric",
                              check.names = FALSE,
                              data.table = FALSE)
-    if (assign) { assign(pep.name, Pep, pos = parent.frame()) }
+    if (assign) { assign(pep.name, Pep, envir = .GlobalEnv) }
     res$peptides <- Pep
   }
   if (prot) {
@@ -115,10 +118,11 @@ MQ.load <- function(ev = TRUE, ev.name = "ev", ev.file.name = "evidence.txt",
                               integer64 = "numeric",
                               check.names = FALSE,
                               data.table = FALSE)
-    if (assign) { assign(prot.name, Prot, pos = parent.frame()) }
+    if (assign) { assign(prot.name, Prot, envir = .GlobalEnv) }
     res$protein.groups <- Prot
   }
-  if ((return)&&(sum(c(ev, pep, prot)) > 0)) {
+  if (return&&sum(c(ev, pep, prot))) {
     return(res)
   }
+  return()
 }

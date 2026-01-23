@@ -3,6 +3,7 @@
 #' @description 
 #' I did not actually create this function but nicked it from the R cookbook, so credit goes to them:
 #' http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)
+#' Currently unused, thus candidate for deletion.
 #' 
 #' @param plotlist The plots to plot. Duh!
 #' @param cols Number of columns. The number of rows will be inferred from this.
@@ -15,7 +16,7 @@
 multiplot <- function(..., plotlist = NULL, cols = 1, layout = NULL, save = FALSE, filename = NULL) {
   # Make a list from the ... arguments and plotlist
   plots <- c(list(...), plotlist)
-  numPlots = length(plots)
+  numPlots <- length(plots)
   rows <- ceiling(numPlots/cols)
   # If layout is NULL, then use 'cols' to determine layout
   if (is.null(layout)) {

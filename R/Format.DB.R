@@ -4,7 +4,6 @@
 #' A function to load Fasta databases from the work directory or the environment and format them into a data frame.
 #' Depending on the mode you select, specific regex rules are applied to the header to extract information.
 #' Additionally, three rules can be custom specified by the arguments.
-#' Now parallelized!!!
 #' 
 #' @param file Name (as character) of the Fasta file.
 #' @param mode One of "Uniprot", "Ensembl", "RefSeq-RNA", "RefSeq-Protein", "RefSeq-CDS", "NCBI", "TAIR" or "custom".
@@ -19,6 +18,9 @@
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
 #' @param trimName Logical (TRUE by default). Remove anything after the last underscore from the name, e.g. "ACTIN_HUMAN" become ACTIN. A more complex but safer way was used previously (up to 3.1.4).
+#' 
+#' @returns
+#' A data frame of parsed annotations.
 #' 
 #' @examples
 #' db <- Format.DB(file = "Search database.FASTA", in.env = TRUE, species = "HUMAN")

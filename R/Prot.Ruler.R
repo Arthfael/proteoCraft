@@ -15,6 +15,11 @@
 #' @param MaxOrg Sometimes, because of contaminants, there are a lot of organisms in an experiment. This is the maximum number (default = 3) of organisms that the function will try to calculate a value for. If there are more, it will prompt the user for which to include.
 #' @param getLatest If TRUE, will attempt to get genome sizes from the latest version of the online file at "ftp://ftp.ncbi.nlm.nih.gov/genomes/GENOME_REPORTS/overview.txt"; if FALSE (default), will use the version re-distributed with the package.
 #' 
+#' @returns
+#' A list of 2 items:
+#'  - "Protein.groups": Prot with added proteome ruler columns
+#'  - "Database": DB with potentially a new "Organism_Full" column.
+#' 
 #' @examples
 #' PG <- Prot.Ruler(PG, db)
 #' 
@@ -178,7 +183,8 @@ Prot.Ruler <- function(Prot,
       }
     }
     if (norm_filter) { for (k in Pr.Ruler.cols) { if (sum(is.na(Prot[[k]])) == nrow(Prot)) { Prot[[k]] <- NULL} } }
-    Res <- list(Protein.groups = Prot, Database = DB)
+    Res <- list(Protein.groups = Prot,
+                Database = DB)
   } else {
     warning("Not a single valid organisms, returning NA!")
     Res <- NA

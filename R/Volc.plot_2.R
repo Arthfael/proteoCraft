@@ -3,6 +3,7 @@
 #' @description 
 #' Another function for volcano plots, meant to be simpler than the main, awfully complex volcano.plot() function.
 #' This has not been used for a long time so may prove unreliable.
+#' Candidate for deletion.
 #' 
 #' @param data The dataframe that contains the values.
 #' @param ids The name of the column of ID values to display.

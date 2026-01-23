@@ -7,6 +7,9 @@
 #' @param CDS_only Logical: keep only CDS entries? This is a proteomics package so this is TRUE by default: this is usually all we care about.
 #' @param mode One of "GFF" or "GTF". If missing, we will attempt to detect it from the file extension.
 #' 
+#' @returns
+#' A data.frame with parsed annotations.
+#' 
 #' @examples
 #' data <- annot_from_GTF(file)
 #' 

@@ -5,12 +5,6 @@
 #' From them, detects and parses psm.tsv tables (one per Experiment) to a single MaxQuant evidence.txt-like table.
 #' As with the other functions of this type, the idea is not to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.
 #' 
-#' The output is a list of 4 items:
-#' - Evidence: an evidence table similar to the one MaxQuant creates
-#' - PTMs: a modifications table
-#' - FracMap: a map of the different MS spectrum files and their relationship to Experiments
-#' - WorkFlow: the FragPipe workflow
-#' 
 #' @param FP_Workflow Fragpipe workflow. Parsed to identify FragPipe's output directory, search parameters, incl. modifications.
 #' @param FP_Manifest FragPipe's samples manifest, required for mapping raw files to samples ("Experiments" in the MaxQuant sense).
 #' @param Min.Delta.Score From which minimum delta score should we report a PSM? Default = -Inf (we assume that those few peptides with low delta score are because randomly the decoy database will include real-like peptides)
@@ -20,6 +14,13 @@
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
 #' @param OpenSearch Is it an open search? If TRUE, will also ignore Open Search-type columns even if they are present. If TRUE, will try to detect and process them - but this is probably still a bit buggy.
+#' 
+#' @returns
+#' A list of (at least) 4 items:
+#' - "Evidence": a PSMs table similar (nor identical!) to the evidence table MaxQuant creates
+#' - "PTMs": a modifications table
+#' - "FracMap": a map of the different MS raw files and their relationship to Experiments
+#' - "WorkFlow": the FragPipe workflow
 #' 
 #' @examples
 #' FP.Wrkflw <- paste0(wd, "/fragpipe.workflow")
@@ -867,14 +868,12 @@ FP_to_MQ <- function(FP_Workflow,
                 FracMap = FP_Mnfst,
                 WorkFlow = FP_Wrkflw,
                 FP_Evidence = EV,
-                FP_PTMs = Modifs,
-                PTMs = diannRep)
+                FP_PTMs = Modifs)
   } else {
     Res <- list(Evidence = EV,
                 PTMs = Modifs,
                 FracMap = FP_Mnfst,
-                WorkFlow = FP_Wrkflw,
-                PTMs = FP_PSMs)
+                WorkFlow = FP_Wrkflw)
   }
   if (isTMT) { Res[["TMT_annotations"]] <- TMTtbl }
   #

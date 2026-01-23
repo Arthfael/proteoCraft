@@ -1,17 +1,18 @@
 #' cor_mod_seq
 #' 
 #' @description
-#' A function to change MaxQuant modified sequences to the old format (pre MaxQuant 1.6.7.0)
-#' 
-#' Returns a list of two objects:
-#' - Peptides: the peptides table with fixed modified sequence (if applicable)
-#' - PTMs: the modifications table
+#' A function to edit recent MaxQuant verbose modified sequences to the old, more succinct two-letters format (pre MaxQuant 1.6.7.0)
 #' 
 #' If MaxQuant is from an older version, the modified sequences will not be modified, but the list of two objects will be created nonetheless.
 #' 
 #' @param Pep A peptides table with a modified sequence column.
 #' @param modseqcol The name of the modified sequence column. Default = "Modified sequence"
 #' @param modcol The name of the modifications column. Only used if the file is actually in the old MaxQuant format. Default = "Modifications"
+#' 
+#' @returns
+#' A list of two objects:
+#' - Peptides: the peptides table with (where applicable) modified sequence in 2-letters format
+#' - PTMs: a modifications table
 #' 
 #' @examples
 #' temp <- cor_mod_seq(ev)

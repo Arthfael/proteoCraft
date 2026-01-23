@@ -2,10 +2,6 @@
 #'
 #' @description 
 #' A function which summarizes individual peptide/fragment quantitative values into a single quantitative vector, using the Levenberg-Marquardt procedure.
-#' Used at two levels:
-#' - In Prot_Quant, to summarize peptidoform-level information into a protein group-levels quantitative vector.
-#' - In the rarely used MS2corr2MS1.R source, to summarize a peptidoform's MS1 (precursor) and MS2 (fragment) measurements into a single quantitative vector.
-#' The output is log10-transformed.
 #' 
 #' @param ids Integer, a vector/list of ids in InputTabl to summarize.
 #' @param InputTabl Table containing individual entities (peptides or fragments) to summarize.
@@ -17,10 +13,19 @@
 #' @param Min.N How many peptides should at least be present? Should be at the very least 1 (default = 2).
 #' @param Max.N How many peptides can we use at most for the Levenberg-Marquardt procedure? Using too many peptides can be an issue, e.g. with huge proteins like Titin. Default = 50. The most intense peptides will be selected.
 #' @param Is.log Are input intensities log-transformed? TRUE by default.
-#' @param reNorm Integer. If set to:\cr
-#' - 1 (default), will re-normalize the profile's median intensity to that of the highest median intensity peptide. 
-#' - 2 (former default), will re-normalize the profile to the highest original single intensity value. 
-#' - 0, will re-normalize the profile to its own median intensity.
+#' @param reNorm Integer. What to re-normalize the profile to? If set to...\cr
+#' - 1 (default), to the median intensity of the highest median intensity peptide,
+#' - 2 (former default), to the highest original single intensity value,
+#' - 0, to the profile's own median intensity.
+#' 
+#' @details
+#' This function is used at two levels:
+#' - Within protQuant, to summarize peptidoform-level information into a protein group-levels quantitative vector.
+#' - In the rarely used MS2corr2MS1.R source, to summarize a peptidoform's MS1 (precursor) and MS2 (fragment) measurements into a single quantitative vector.
+#' The output is always log10-transformed.
+#' 
+#' @returns
+#' The summarized numeric quantitative vector.
 #' 
 #' @examples
 #' lfq <- LFQ.lm(ids,
@@ -46,7 +51,8 @@ LFQ.lm <- function(ids,
                    Is.log = TRUE,
                    reNorm = 1) {
   #proteoCraft::DefArg(LFQ.lm)
-  #InputTabl = tmpPep;IntensCol = Pep.Intens.Nms;Summary.method = Summary.method;Summary.weights = Summary.weights
+  #ids <- quant.pep.ids[[1]]
+  #InputTabl = tmpPep;IntensCol = Pep.Intens.Nms;Summary.method = Summary.method;Summary.weights = Weights
   Viz <- FALSE
   if ((missing(reNorm))||(!is.numeric(reNorm))||(length(reNorm) != 1)||(is.na(reNorm))||(!reNorm %in% 0:2)) {
     reNorm <- 1
@@ -96,12 +102,13 @@ LFQ.lm <- function(ids,
         av <- apply(temp1[, wNN, drop = FALSE], 1, function(y) {
           median(proteoCraft::is.all.good(y))
         })
+        # NB: temp2 and temp3 are already subsets through wNN
+        # Thus, do not apply wNN to them!
         temp2 <- sweep(temp1[, wNN, drop = FALSE], 1, av, "-") # Normalized profiles row-wise to the median
         f <- rep(0, nrow(temp2) - 1)
         diff.log.v <- function(...) {
           p <- list(...)
-          res <- proteoCraft::diff.log(p, dat = temp2)
-          return(res)
+          return(proteoCraft::diff.log(p, dat = temp2))
         }
         LM <- minpack.lm::nls.lm(par = f,
                                  fn = diff.log.v,
@@ -162,15 +169,13 @@ LFQ.lm <- function(ids,
           return(y)
         })
         temp3 <- as.numeric(temp3)
-        # Apply best-flyer hypothesis logic for estimating absolute quant level
+        # Re-scaling to estimate inter-proteins expression level
         if (reNorm %in% 0:1) {
-          
-          # Currently causes a loss of information compared with method 2 and I don't know why...
-          
-          m0 <- median(proteoCraft::is.all.good(temp3[wNN]))
+          m0 <- median(proteoCraft::is.all.good(temp3))
           #if (is.na(m0)) { stop(m0) }
           temp3 <- temp3 - m0
           if (reNorm == 1) {
+            # -> best-flyer hypothesis logic
             m1 <- apply(temp1[, wNN], 1, function(x) { median(proteoCraft::is.all.good(x)) })
             mx1 <- max(proteoCraft::is.all.good(m1))
             #if ((!is.na(m0))&&((is.na(mx1))||(!length(mx1)))) { stop(m1) }
@@ -180,7 +185,7 @@ LFQ.lm <- function(ids,
         if (reNorm == 2) {
           m <- max(proteoCraft::is.all.good(unlist(temp1[, wNN])))
           m <- as.data.frame(which(temp1[, wNN, drop = FALSE] == m, arr.ind = TRUE))
-          temp3 <- temp3 + temp1[m$row[1], wNN[m$col[1]]] -  temp3[m$col[1]]
+          temp3 <- temp3 + temp1[m$row[1], wNN[m$col[1]]] - temp3[m$col[1]]
         }
         rs[wNN] <- temp3
       } else {

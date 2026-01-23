@@ -1,13 +1,19 @@
 #' parse.Param.aggreg
 #'
 #' @description 
-#' A function to parse an aggregates-type parameter.
-#' Only use for assignments to temporary variables, otherwise use the newer parse.Param.aggreg.2
+#' Internal. Parse an aggregates-type parameter.
+#' Only use for assignments to temporary variables, otherwise use the newer parse.Param.aggreg.2 which is more deeply integrated in the workflows.
 #' 
 #' @param parameter The parameter to parse.
 #' @param aggregates The annotations (basic aggregate building blocks) as a named vector. Default: Aggregates
 #' @param map The reference aggregates map. All existing aggregates in this map must exist. Default: Aggregate.map
 #' @param aggr.list The list of aggregates. Default: Aggregate.list
+#' 
+#' @details
+#' This function parses a factors aggregate-type parameter in the parameters object and returns a list.
+#' 
+#' @returns
+#' A named list with the name of the factors aggregate, its possible values (levels), the name of the individual aggregated factors, and the name of the corresponding column in the experiment map.
 #' 
 #' @examples
 #' Ratios.Plot.split <- parse.Param.aggreg(parameter = Param$Ratios.Plot.split)

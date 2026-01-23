@@ -6,11 +6,6 @@
 #' For now this is still kept for older workflows.
 #' In cases of bugs check first for discrepancy between the more up-to-date source and the function.
 #' 
-#' This function takes a peptides and a data base data frames and returns a list with:
-#'  - a protein groups file,
-#'  - the peptides file with a few extra columns,
-#'  - the database file with a few extra columns.
-#'  
 #'  Note:
 #'  Pep expects a wide (peptides), rather than long (PSMs/evidences), table! Ev is only used for mapping PSMs, not to assemble protein groups.
 #'  We haven't explored the potential implications for the function's logic of supplying to Pep a long table.
@@ -30,6 +25,13 @@
 #' @param Npep Minimum number of razor or unique peptides to tag a protein group as a true discovery (others will still be reported). Default = 2
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
 #' 
+#' @returns
+#' A list with 3/4 slots:
+#'  - "Protein.groups": data.frame of inferred protein groups
+#'  - "Peptides": input peptides data.frame with a few extra columns
+#'  - "Database": input database data.frame with a few extra columns
+#'  - "Evidences" (only if Ev was provided): input PSMs data.frame with a few extra columns
+#'  
 #' @examples
 #' temp <- PG_assemble(Pep = pep, DB = db)
 #' 
@@ -1226,7 +1228,9 @@ PG_assemble <- function(Pep,
   colnames(seq)[match("Evidence IDs", colnames(seq))] <- Evidence.IDs
   colnames(seq)[match("Proteins", colnames(seq))] <- Proteins.col
   Pep[, colnames(seq)] <- seq[match(Pep$"Modified sequence", seq$"Modified sequence"),]
-  PG_assembly <- list(Protein.groups = pg, Peptides = Pep, Database = DB)
+  PG_assembly <- list(Protein.groups = pg,
+                      Peptides = Pep,
+                      Database = DB)
   if (!misFun(Ev)) { PG_assembly$Evidences <- Ev }
   invisible(parallel::clusterCall(cl, function(x) {
     try(rm(tmp1, tmp2, tmp3, tmp4, CustPG, c1, c2, ca, cb), silent = TRUE)
@@ -1237,6 +1241,6 @@ PG_assemble <- function(Pep,
     tm2 <<- Sys.time()
     print(tm2-tm1)
   } else {
-    return(res)
+    return(PG_assembly)
   }
 }

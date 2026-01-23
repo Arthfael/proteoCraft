@@ -71,6 +71,12 @@
 #' @param curved_Thresh Curved threshold parameters, only used if mode = "curved".\cr A named list, with one item for each (same names as the ones appended to X.root and Y.root in Prot column names).\cr Each item should be a named list of S0 (single value), Si (single value) and d (one value per FDR level) numerics.
 #' @param saveData Logical. If TRUE, a file containing the processed long-format data used to create each plot will be saved locally. Default = FALSE.
 #'
+#' @details
+#' This monster of a function can draw volcano plots, but can also be used for the decision on regulation.
+#' 
+#' @returns
+#' A list with at least one element ("Thresholds"). If return == TRUE, the Protein_groups_file - which may contain additional Regulated columns. If return.plot == TRUE, the evaluated ggplots. If plotly == TRUE, the plotly plots.
+#'
 #' @examples                 
 #' PG <- Volcano.plot(Prot = PG, mode = "custom", experiments.map = Exp.map,
 #'                    aggregate.map = Aggregate.map,

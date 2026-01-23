@@ -21,6 +21,9 @@
 #' @param hTree If TRUE (default), a horizontal (x) dendrogram will be plotted.
 #' @param vTree If TRUE (default), a vertical (y) dendrogram will be plotted.
 #' 
+#' @returns
+#' If return is TRUE, the evaluated ggplot is returned.
+#' 
 #' @export
 
 basic.heatmap <- function(matr,
@@ -30,7 +33,7 @@ basic.heatmap <- function(matr,
                           isLog = FALSE,
                           size = 2,
                           h.margin = c(5, 2),
-                          v.margin = 5,
+                          v.margin = 10,
                           colours = "D",
                           colours_invert = FALSE,
                           na.colour = "black",
@@ -192,8 +195,11 @@ basic.heatmap <- function(matr,
   if (print_values) {
     plot <- plot + ggplot2::geom_text(ggplot2::aes(label = value, x = X, y = Y), colour = "white", cex = 1.5)
   }
-  plot <- plot + ggplot2::coord_fixed(ratio = 1, xlim = c(0, Ncol + sum(h.Marg) + 0.5 + nChar/10), ylim = c(0, Vmax),
-                                      expand = FALSE)
+  plot <- plot +
+    ggplot2::coord_fixed(ratio = 1,
+                         xlim = c(-10, Ncol + sum(h.Marg) + 0.5 + nChar/5),
+                         ylim = c(0, Vmax),
+                         expand = FALSE)
   #proteoCraft::poplot(plot)
   # Dendrograms
   if (hTree) {
@@ -216,7 +222,6 @@ basic.heatmap <- function(matr,
     #proteoCraft::poplot(plot)
   }
   if (vTree) {
-    
     # - Vertical
     Vdendr <- Vddata$segments
     mtch <- match(c("x", "y", "xend", "yend"), colnames(Vdendr))
@@ -263,7 +268,7 @@ basic.heatmap <- function(matr,
   }
   # Return
   if (return) {
-    plot <- ggplotify::as.ggplot(ggplotify::as.grob(plot))
+    plot <- proteoCraft::plotEval(plot)
     return(plot)
   }
 }

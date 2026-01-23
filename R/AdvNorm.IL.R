@@ -1,22 +1,23 @@
 #' AdvNorm.IL
 #' 
 #' @description 
-#' A function that performs simplified advanced normalisation on the columns of a data.frame.
-#' The ".IL" suffix in the name is because at first it was written with a TMT or iTRAQ reporter intensities data frame in mind.
-#' However, this can work for any data frame of quantitative values.
-#' Input must contain a column of fractions names, IDs, and 2 or more expression columns.
+#' This function performs simplified "advanced normalization" on the columns of a data.frame.
 #' 
-#' This takes long but is better than median only.
-#' 
-#' 11/01/2024 - following major rewriting of what was a very poorly written function,
-#' and in parts thanks to the data.table package, processing has been sped up ~60 times!
-#' 
-#' 
-#' @param df The input data frame, containing unique peptide identifiers, fraction numbers, and expression data.
+#' @param df The input data frame, containing unique peptide identifiers and expression data.
 #' @param ids.col The name of the column in df containing peptide identifiers. Default is "Unique State", a column I usually create which contains modified sequence pasted to charge.
 #' @param exprs.col The name of the columns in df which contain expression values.
 #' @param exprs.log Default = FALSE, meaning the input data is not log-transformed. Set instead to the base of the log if input data is log-transformed. If set to TRUE, the data is assumed to be log10 base. The data returned will be transformed or not as per the input.
 #' @param K A fold factor defining the minimum (1/K) and maximum (*K) range of accepted values for correction factors.
+#' 
+#' @details
+#' This normalizes the data using the Levenberg Marquard procedure (aka. "advanced normalization") to minimize column-wise the sum square difference between different quantitative vectors.
+#' The ".IL" suffix in the name stands for "isobaric labeling", because at first this was written with a TMT or iTRAQ reporter intensities data frame in mind.
+#' However, this can be used for any data frame of quantitative values.
+#' The input data.frame df must contain a column of IDs and 2 or more expression columns.
+#' This is slower but is better than median only.
+#' 
+#' @returns
+#' Normalized data. New column names are recycled from the original ones (in exprs.col), with "AdvNorm. " added as a prefix. 
 #' 
 #' @examples
 #' adv.norm.data <- AdvNorm.IL(data, "Unique State", paste0("Reporter intensity ", c(0:9)), FALSE, K = 5)
@@ -75,7 +76,7 @@ AdvNorm.IL <- function(df,
   # Create main optimization function:
   N <- length(exprs.col)
   comb <- gtools::combinations(N, 2, exprs.col)
-  diff.log <- function(p, nms, dat, append = TRUE) {
+  diffLog <- function(p, nms, dat, append = TRUE) {
     # There is also proteoCraft::diff.log! Can I replace one by the other?
     p <- c(1, unlist(p))
     #stopifnot(length(p) == length(nms))
@@ -94,13 +95,13 @@ AdvNorm.IL <- function(df,
     dat3 <- dat3[which(is.finite(dat3))]
     return(dat3)
   }
-  diff.log.h <- function(...) {
+  diffLog.h <- function(...) {
     p <- list(...)
-    res <- diff.log(p, exprs.col, df2)
+    res <- diffLog(p, exprs.col, df2)
     return(res)
   }
   LM <- minpack.lm::nls.lm(par = h.fact[2:n.exprs],
-                           fn = diff.log.h,
+                           fn = diffLog.h,
                            lower = unlist(h.fact[2:n.exprs])/K,
                            upper = unlist(h.fact[2:n.exprs])*K)
   h <- c(1, as.numeric(LM$par))

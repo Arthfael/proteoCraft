@@ -788,7 +788,7 @@ Prot.Quant <- function(Prot,
     if (!misFun(param)) {
       rat_cont_grps <- param$Ratios.Contaminant.Groups
     } else { rat_cont_grps <- "Ratio groups" } # Default
-    res3 <- try(proteoCraft::make_RefRat(data = res2,
+    res3 <- try(proteoCraft::make_RefRat(res2,
                                          experiment.map = experiments.map,
                                          int.root = Expr.root.full,
                                          rat.root = Pep.Ratios.root,

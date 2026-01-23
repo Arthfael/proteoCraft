@@ -2,8 +2,8 @@
 #'
 #' @description
 #' A function to write the LC-MS part of Materials & Methods, pulling information from the methods file.
-#' For now only supports DIA methods from a Q-Exactive type instrument.
 #' 
+#' Note to self:
 #' !!! When editing function, always save with UTF-8 encoding!!!
 #' 
 #' @param RawFiles The raw files from which to attempt to extract the method.
@@ -14,9 +14,17 @@
 #' @param N.clust A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
-#'
+#' 
+#' @details
+#' Only tested on Bruker timsTOF HT with nanoElute 2 and Thermo Q-Exactive HT with Ultimate 3000 or Vanquish, so will probably fail on different machines from the same vendors, and obviously also on machines from other vendors.
+#' 
+#' @returns
+#' A list with two entries:
+#' - "Text": the text for each LCMS method
+#' - "Instruments": all LC and MS instrument models.
+#' 
 #' @examples
-#' MatMet_Text2 <- MatMet_LCMS()
+#' MatMet_Text_list <- MatMet_LCMS()
 #' 
 #' @export
 
@@ -716,12 +724,12 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         cat(msg)
       }
       meths <- lapply(tst$x, function(method) { methods[[method[[1]]]] })
-      thMeth <- lapply(seq(meths), function(Imeth) {
+      thMeth <- lapply(seq(meths), function(i_meth) {
         LC_txt <- MS_txt <- "TEMPLATE"
         MSok <- LCok <- FALSE
         TXT <- c()
         #View(data.frame(Method = meth[which(meth != "")]))
-        meth <- meths[[Imeth]]
+        meth <- meths[[i_meth]]
         if ((length(meth))&&(sum(nchar(meth)))) {
           g <- grep("Method 1 is ", meth)
           lcMeth <- meth[1:(g-1)]
@@ -764,7 +772,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
             Grad <- aggregate(Grad[, c("Flow.Nominal", "B.Value")], list(Grad$Time), unique)
             colnames(Grad)[1] <- "Time"
             FLOWVALUE <- unique(Grad$Flow.Nominal)
-            kol <- svDialogs::dlg_list(Kolumns, title = paste0(ThRoots[Imeth],
+            kol <- svDialogs::dlg_list(Kolumns, title = paste0(ThRoots[i_meth],
                                                                " - select column used:"))$res
             if (kol == "Add new...") {
               cat(colChar, "\n")
@@ -795,7 +803,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
             tstCol <- tolower(substring(COLUMN, 1, 1)) %in% c("a", "e", "i", "o", "u")
             if (COLUMN != "None (direct infusion)") {
               kol <- svDialogs::dlg_list(preKolumns, preKolumns[1],
-                                         title = paste0(ThRoots[Imeth],
+                                         title = paste0(ThRoots[i_meth],
                                                         " - select trap used:"))$res
               if (kol == "Add new...") {
                 cat(colChar, "\n")
@@ -819,10 +827,10 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
               }
               PRECOLUMN <- kol
               tstPreCol <- tolower(substring(PRECOLUMN, 1, 1)) %in% c("a", "e", "i", "o", "u")
-              SolvA <- svDialogs::dlg_input(paste0(ThRoots[Imeth],
+              SolvA <- svDialogs::dlg_input(paste0(ThRoots[i_meth],
                                                    " - confirm nanoLC solvent A composition:"),
                                             ADflt)$res
-              SolvB <- svDialogs::dlg_input(paste0(ThRoots[Imeth],
+              SolvB <- svDialogs::dlg_input(paste0(ThRoots[i_meth],
                                                    " - confirm nanoLC solvent B composition:"),
                                             BDflt)$res
               stopifnot(length(FLOWVALUE) == 1) # Unexpected situation, currently un-handled
@@ -841,7 +849,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
             tstNano <- tolower(substring(NANO, 1, 1)) %in% c("a", "e", "i", "o", "u")
             tstInstr <- tolower(substring(INSTR, 1, 1)) %in% c("a", "e", "i", "o", "u")
             Moult2 <- length(RawFiles) > 1
-            MSok <- TRUE
+            LCok <- TRUE
           } else {
             warning("This function can currently only process Thermo Dionex Ultimate 3000 RSLC_Nano or Waters nanoACQUITY methods!")
           }
@@ -985,7 +993,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
           } else {
             warning("This function currently can only process Q-Exactive type methods!")
           }
-          if (MSok) {
+          if (LCok) {
             LC_txt <- paste0(c("The s", "S")[Moult2+1], "ample", c(" was", "s were")[Moult2+1], " analyzed by LC-MS/MS on a",
                              c("", "n")[tstNano+1], " ", NANO, " nano-HPLC (",
                              NANOMAKER, ") coupled with a", c("", "n")[tstInstr+1], " ", INSTR, " (", INSTRMAKER, ")")
@@ -1001,7 +1009,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
           }
           if (MSok) {
             MS_txt <- paste0("Mass spectra were acquired in positive mode with a Data ", c("D", "Ind")[which(DIAtst)], "ependent Acquisition (D",
-                             c("D", "I")[which(DIAtst)], "A) method: ",
+                             c("D", "I")[which(DIAtst)], "A) method: chromatographic peak width = ",
                              "FWHM ", FWHM, " s, ",
                              "MS1 parameters: ")
             if (!is.na(SPECTTYPE["MS1"])) { MS_txt <- paste0(MS_txt, SPECTTYPE["MS1"], " mode, ") }
@@ -1046,7 +1054,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
           #writeClipboard(TXT)
         }
         return(list(Method = data.frame(LC_txt = LC_txt,
-                                        MS_txt = LC_txt),
+                                        MS_txt = MS_txt),
                     LC = NANO,
                     LC_vendor = NANOMAKER,
                     MS = INSTR,

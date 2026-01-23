@@ -1,7 +1,7 @@
 #' parse.Param.aggreg.2
 #'
 #' @description 
-#' A new function to parse an aggregates-type parameter. Extends the functionalities of the former version.
+#' Internal. Parse an aggregates-type parameter. Extends the functionalities of the former version.
 #' The old function is still valid for parsing to temporary variables.
 #' 
 #' @param param.nm The name of the parameter to parse.
@@ -13,8 +13,17 @@
 #' @param parsed.param.nm The name of the parsed parameter variable to create. If not specified, defaults to param.nm
 #' @param obj.list.nm The name of the list of objects to never purge from the global environment. Default = ".obj"
 #' 
+#' @details
+#' This function parses a factors aggregate-type parameter in the parameters object and assigns (without returning anything) the corresponding factors aggregate list to the global environment, also adding them to the list of persistent objects.
+#' 
+#' @returns
+#' Does not return anything. For a version returning something, use parse.Param.aggreg()
+#' 
 #' @examples
-#' parse.Param.aggreg.2("Ratios.Plot.split")
+#'  parse.Param.aggreg.2("Ratios.Plot.split")
+#' # This is equivalent to:
+#'  parse.Param.aggreg.2(Param$Ratios.Plot.split)
+#' #... but with more background maintenance.
 #' 
 #' @export
 
@@ -30,7 +39,11 @@ parse.Param.aggreg.2 <- function(param.nm, parameters = Param, aggregates = Aggr
   nms <- unlist(map$Characteristics[which(map$Aggregate.Name == aggr)])
   if (length(nms) == 1) { kol <- nms } else { kol = aggr}
   res <- list(aggregate = aggr, values = val, names = nms, column = kol)
-  assign(parsed.param.nm, res, parent.frame())
-  assign(param.list.nm, unique(c(get(param.list.nm), parsed.param.nm)), parent.frame())
-  assign(obj.list.nm, unique(c(get(obj.list.nm), parsed.param.nm)), parent.frame())
+  assign(parsed.param.nm, res, #parent.frame()
+         .GlobalEnv)
+  assign(param.list.nm, unique(c(get(param.list.nm), parsed.param.nm)), #parent.frame()
+         .GlobalEnv)
+  assign(obj.list.nm, unique(c(get(obj.list.nm), parsed.param.nm)), #parent.frame()
+         .GlobalEnv)
+  return()
 }

@@ -1,11 +1,14 @@
 #' AA_bias
 #' 
 #' @description
-#' A little function to see if there is a bias against certain amino acids in the current (observed) dataset, versus the parent proteome.
+#' A little function to test for biases against amino acids in the current (observed) dataset, versus the parent proteome.
 #' 
 #' @param Ev A data frame containing a "Sequence" column of unmodified peptide sequences.
 #' @param DB The reference proteome, a data.frame containing a "Sequence" column of unmodified protein sequences.
 #' @param unique Logical, default = FALSE. If TRUE, we will look at unique sequences (not observations).
+#' 
+#' @returns
+#' A table of amino acid representation statistics for the current dataset.
 #' 
 #' @examples
 #' AA.bias <- AA_bias(Ev = ev, DB = db)

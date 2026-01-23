@@ -11,6 +11,9 @@
 #' @param display Logical: should we open the plot? TRUE by default.
 #' @param asRatios Is the data fed to the intensities argument actually ratios data (default = FALSE)? If TRUE, this changes the default color scale from "viridis" to "plasma"
 #' @param I_eq_L Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631
+#'
+#' @returns
+#' This function does not return anything.
 #' 
 #' @examples
 #' cov3D(pdb, peptides)
@@ -235,4 +238,5 @@ cov3D <- function(pdb,
   } else {
     if (display) { print(my3dplotly) }
   }
+  return()
 }

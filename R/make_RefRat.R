@@ -1,10 +1,11 @@
 #' make_RefRat
 #'
 #' @description
-#' A function to create reference ratios according to a variety of methods, for the purpose of a threshold for extreme fold changes.
+#' A function to create reference ratios according to a variety of methods, for the purpose of a defining logFC thresholds.
 #' 
 #' @param data A data.frame containing expression values. Default = pep
-#' @param experiment.map The experiments map. Default = Exp.map
+#' @param experiment.map The experiment map. Default = Exp.map
+#' @param experiment.map_col Name of the sample column in the experiment map.
 #' @param int.root Name root for expression columns. Default = pep.ref[length(pep.ref)]
 #' @param rat.root Name root for ratio columns. Default = pep.ratios.ref[1]
 #' @param rat.con.grps Which sample groups are we considering. Default = RatConGrps
@@ -12,6 +13,13 @@
 #' @param parameters The experiment's parameters file. Default = Param
 #' @param logInt Set to 0 or FALSE if input peptide intensities are linear scale. If the data is already log scale, set to the relevant scale's base. Default = FALSE
 #' @param log.Ratios Set to 0 or FALSE if input peptide ratios are linear scale. If the data is already log scale, set to the relevant scale's base. Default = 2
+#'
+#' @details
+#' This function can be used as a logFC-level filter for DEPs - after statistical analysis.
+#' Instead of using a fixed logFC threshold, this can instead be used to define thresholds based on internal data variability. 
+#'
+#' @value
+#' Reference sample-to-sample log fold changes.
 #'
 #' @examples
 #' pep.Ref.Ratios %<o% make_RefRat()
@@ -21,6 +29,7 @@
 
 make_RefRat <- function(data = pep,
                         experiment.map = Exp.map,
+                        experiment.map_col = "Ref.Sample.Aggregate",
                         int.root = pep.ref[length(pep.ref)],
                         rat.root = pep.ratios.ref[1],
                         rat.con.grps = RatConGrps,
@@ -73,7 +82,8 @@ make_RefRat <- function(data = pep,
           tmp <- apply(perm, 1, function(y) { log(data[[y[[1]]]]/data[[y[[2]]]], logRat) })
         }
       } else {
-        x2 <- unique(experiment.map$Ref.Sample.Aggregate[which((experiment.map[[rGrp$column]] == x)&(experiment.map$Reference))])
+        x2 <- unique(experiment.map[which((experiment.map[[rGrp$column]] == x)&(experiment.map$Reference)),
+                                    experiment.map_col])
         xr2 <- paste0(int.root, x2)
         if (isLog) {
           tmp <- sapply(xr2, function(y) { (data[[y]]-data[[xr1]])/log(logRat, logInt) })
@@ -102,7 +112,8 @@ make_RefRat <- function(data = pep,
       }
       grps <- unique(em[[smplsGrp$column]])
       x <- setNames(lapply(grps, function(grp) {  #grp <- grps[1]
-        y <- unique(em$Ref.Sample.Aggregate[which(em[[smplsGrp$column]] == grp)])
+        y <- unique(em[which(em[[smplsGrp$column]] == grp),
+                       experiment.map_col])
         y <- paste0(int.root, y)
         y <- y[which(y %in% colnames(data))]
         if (length(y)) {
