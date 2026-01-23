@@ -64,6 +64,9 @@ Coverage(
 
 \item{I_eq_L}{Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631}
 }
+\value{
+If mode is "Coverage", the coverage of proteins by peptides. If mode is "XML", Excel-compatible xml-formatted sequence coverage strings.
+}
 \description{
 This function can be used in 5 different modes:
 - Coverage: calculates the proportion (from 1 to 0) of parent protein sequence(s) covered by the peptide sequence(s) provided.

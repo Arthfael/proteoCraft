@@ -56,6 +56,7 @@ Volc.plot_2(
 \description{
 Another function for volcano plots, meant to be simpler than the main, awfully complex volcano.plot() function.
 This has not been used for a long time so may prove unreliable.
+Candidate for deletion.
 }
 \examples{
 test <- Volc.plot_2(data = PG, ids = "Short ID", x = a1, y = a2,

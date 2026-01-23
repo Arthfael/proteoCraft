@@ -9,6 +9,9 @@ plotEval(plot)
 \arguments{
 \item{plot}{ggplot to evaluate.}
 }
+\value{
+Evaluated ggplot.
+}
 \description{
 A simple wrapup for evaluation a ggplot, allowing to save it in a parallel manner.
 }

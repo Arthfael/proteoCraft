@@ -32,6 +32,9 @@ cov3D(
 
 \item{I_eq_L}{Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631}
 }
+\value{
+This function does not return anything.
+}
 \description{
 This function can be used to create a 3d coverage map of identified pepides overlaid over a protein model in PDB format.
 }

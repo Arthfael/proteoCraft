@@ -29,6 +29,11 @@ annot_to_tabl(
 
 \item{numeric_data}{Is the data numeric? Default = FALSE}
 }
+\value{
+A named list, with for each modified peptide a data.frame with 2 columns:
+ - "Sequence" = amino acid
+ - "Annotations" = PTM at this position
+}
 \description{
 A function to convert annotated sequences (MaxQuant format) into a table.
 Useful for creating a table, of, e.g. sequence with amino-acid modifications, site probabilities, etc...

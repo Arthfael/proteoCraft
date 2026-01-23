@@ -195,8 +195,14 @@ Volcano.plot(
 
 \item{saveData}{Logical. If TRUE, a file containing the processed long-format data used to create each plot will be saved locally. Default = FALSE.}
 }
+\value{
+A list with at least one element ("Thresholds"). If return == TRUE, the Protein_groups_file - which may contain additional Regulated columns. If return.plot == TRUE, the evaluated ggplots. If plotly == TRUE, the plotly plots.
+}
 \description{
 A function to create volcano plots.
+}
+\details{
+This monster of a function can draw volcano plots, but can also be used for the decision on regulation.
 }
 \examples{
                 

@@ -29,6 +29,11 @@ Skyline_to_MQ(
 
 \item{digPattern}{Default = "KR" for trypsin. Only used for the "Missed cleavages" column if that from Skyline is missing. Vector of amino acids after which the enzyme cleaves.}
 }
+\value{
+A list of two items:
+ - "Evidence": Skyline report formatted to be similar (not identical!) to MaxQuant evidence files
+ - "PTMs": modifications table
+}
 \description{
 Converts a Skyline .tsv or .csv export table (PSMs or Transitions) to a table with MaxQuant evidence.txt-like formatting.
 As with the other functions of this type, the idea is not to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.

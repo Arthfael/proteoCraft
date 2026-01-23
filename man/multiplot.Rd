@@ -27,4 +27,5 @@ multiplot(
 \description{
 I did not actually create this function but nicked it from the R cookbook, so credit goes to them:
 http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)
+Currently unused, thus candidate for deletion.
 }

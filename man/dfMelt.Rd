@@ -4,18 +4,26 @@
 \alias{dfMelt}
 \title{dfMelt}
 \usage{
-dfMelt(df, ColNames = c("variable", "value"))
+dfMelt(df, ColNames = c("variable", "value"), id.vars)
 }
 \arguments{
 \item{df}{A data.frame (matrices get silently converted to data.frame).}
 
 \item{ColNames}{Column names of the output data frame. Default = c("variable", "value")}
+
+\item{id.vars}{Id variables - column name only (indices are not supported!) If missing, all columns are assumed to be measure variables.}
+}
+\value{
+A melted (molten?) data.frame.
 }
 \description{
 Wrapper function for utils::stack(), allowing much faster melting of simple - and only simple! - data.frames!
+}
+\details{
 This should only be used for what is essentially a "matrix in a data.frame"!
 It will assume that everything in the table is a value and that column names are variable names.
 In this case, it should be much faster than reshape::melt.data.frame()
+It cannot be thought of as a full substitute for the latter though. Never use it for complex data.frames, e.g. where columns are lists.
 }
 \examples{
 df <- as.data.frame(matrix(rnorm(1000), ncol = 10))

@@ -36,19 +36,24 @@ LFQ.lm(
 
 \item{Is.log}{Are input intensities log-transformed? TRUE by default.}
 
-\item{reNorm}{Integer. If set to:\cr
-- 1 (default), will re-normalize the profile's median intensity to that of the highest median intensity peptide. 
-- 2 (former default), will re-normalize the profile to the highest original single intensity value. 
-- 0, will re-normalize the profile to its own median intensity.}
+\item{reNorm}{Integer. What to re-normalize the profile to? If set to...\cr
+- 1 (default), to the median intensity of the highest median intensity peptide,
+- 2 (former default), to the highest original single intensity value,
+- 0, to the profile's own median intensity.}
 
 \item{Intensity.weights}{default = FALSE; if TRUE, will take into account individual peptide intensities when calculating average profile if "Summary.method" is either mean "mean" or "weighted.mean" (thus, it will actually be a weighted mean regardless).}
 }
+\value{
+The summarized numeric quantitative vector.
+}
 \description{
 A function which summarizes individual peptide/fragment quantitative values into a single quantitative vector, using the Levenberg-Marquardt procedure.
-Used at two levels:
-- In Prot_Quant, to summarize peptidoform-level information into a protein group-levels quantitative vector.
+}
+\details{
+This function is used at two levels:
+- Within protQuant, to summarize peptidoform-level information into a protein group-levels quantitative vector.
 - In the rarely used MS2corr2MS1.R source, to summarize a peptidoform's MS1 (precursor) and MS2 (fragment) measurements into a single quantitative vector.
-The output is log10-transformed.
+The output is always log10-transformed.
 }
 \examples{
 lfq <- LFQ.lm(ids,

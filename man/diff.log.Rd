@@ -7,12 +7,12 @@
 \method{diff}{log}(p, dat)
 }
 \arguments{
-\item{p}{Starting estimates.}
+\item{p}{Starting estimates, and N-1 length numeric vector.}
 
-\item{dat}{Data frame of log-transformed, row-normalized quantitative profiles.}
+\item{dat}{Data.frame of log-transformed, row-normalized quantitative profiles with N columns.}
 }
 \description{
-A function whose sole purpose is to be turned into another whose sum will be minimized by minpack.lm::nls.lm() within the LFQ.lm() function.
+Internal function whose sole purpose is to be fed to another whose sum will be minimized by minpack.lm::nls.lm() within the LFQ.lm() function.
 }
 \examples{
 temp3 <- ... # Data frame of log-transformed, row-normalized quantitative values

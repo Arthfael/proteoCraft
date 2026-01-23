@@ -38,6 +38,11 @@ Prot.Ruler(
 
 \item{getLatest}{If TRUE, will attempt to get genome sizes from the latest version of the online file at "ftp://ftp.ncbi.nlm.nih.gov/genomes/GENOME_REPORTS/overview.txt"; if FALSE (default), will use the version re-distributed with the package.}
 }
+\value{
+A list of 2 items:
+ - "Protein.groups": Prot with added proteome ruler columns
+ - "Database": DB with potentially a new "Organism_Full" column.
+}
 \description{
 In house implementation of the Proteomic ruler (https://www.mcponline.org/content/13/12/3497.long), with minor modifications.
 Values output are estimates of copy number per cell.

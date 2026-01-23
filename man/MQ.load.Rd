@@ -22,19 +22,19 @@ MQ.load(
 )
 }
 \arguments{
-\item{ev}{Default = TRUE. If set to FALSE, no evidence file will be created.}
+\item{ev}{Default = TRUE. If set to FALSE, the evidence file will not be processed.}
 
 \item{ev.name}{The name of the evidence object that should be created in the above environment, if "assign" = TRUE.}
 
 \item{ev.file.name}{The name of the evidence file that should be loaded.}
 
-\item{pep}{Default = TRUE. If set to FALSE, no peptide file will be created.}
+\item{pep}{Default = TRUE. If set to FALSE, the peptide file will not be processed.}
 
 \item{pep.name}{The name of the peptides object that should be created in the above environment, if "assign" = TRUE.}
 
 \item{pep.file.name}{The name of the peptides file that should be loaded.}
 
-\item{prot}{Default = TRUE. If set to FALSE, no protein groups file will be created.}
+\item{prot}{Default = TRUE. If set to FALSE, the protein groups file will not be processed.}
 
 \item{prot.name}{The name of the protein groups object that should be created in the above environment, if "assign" = TRUE.}
 
@@ -47,6 +47,9 @@ MQ.load(
 \item{return}{Should we return the files (in case the function is used in the form "object <- MQ.load(...)"); default = FALSE.}
 
 \item{check.names}{logical (default = FALSE). If TRUE, then the names of the variables in the data frame are checked to ensure that they are syntactically valid variable names. If necessary they are adjusted (by make.names) so that they are, and also to ensure that there are no duplicates.}
+}
+\value{
+Nothing is returned by default (the objects are assigned to the global environment). But if return = TRUE, then a list containing the "protein.groups", "peptides" and "evidences" data.frames (depending on whether they are to be processed or not) is returned.
 }
 \description{
 A function to quickly import MaxQuant's main output datatables into the above environment.

@@ -4,13 +4,18 @@
 \alias{DefArg}
 \title{DefArg}
 \usage{
-DefArg(FUN, remove_NULLs = TRUE)
+DefArg(FUN, remove_NULLs = TRUE, silent = TRUE)
 }
 \arguments{
 \item{FUN}{name of the function; can be entered as the function object or as its name (character).}
 
-\item{remove_NULLs}{Should arguments with default value "NULL" be excluded?\cr
+\item{remove_NULLs}{Should arguments with default value "NULL" be excluded?\cr}
+
+\item{silent}{Logical, default = TRUE. If FALSE, the values of the assigned arguments is printed.\cr
 TRUE by default, because the risk is that some valuable variable in the parent environment can be "erased" as a result.}
+}
+\value{
+By default the function returns nothing. If silent = FALSE, it returns a named list where each item corresponds to the default value of an argument.
 }
 \description{
 Call this function for any function you want to troubleshoot.
@@ -18,6 +23,10 @@ This will create default values of the function's parameters in the main environ
 
 I used to have an in-house solution for this, but it was slightly buggy.
 This is based on more standard R code and is more reliable.
+}
+\details{
+Call this function as the first step of testing/troubleshooting the code of any function.
+The default values of any argument of the function of interest will be assigned to the global environment, making debugging/testing easier.
 }
 \examples{
 temp <- DefArg(F_test)

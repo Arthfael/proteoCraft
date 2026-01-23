@@ -13,6 +13,9 @@ annot_from_GTF(file, CDS_only = TRUE, mode)
 
 \item{mode}{One of "GFF" or "GTF". If missing, we will attempt to detect it from the file extension.}
 }
+\value{
+A data.frame with parsed annotations.
+}
 \description{
 Function to parse a GTF (or GFF) file to get annotations (for now only GO-terms).
 }

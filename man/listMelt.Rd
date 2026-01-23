@@ -13,14 +13,15 @@ listMelt(List, Names = NULL, ColNames = c("value", "L1"))
 
 \item{ColNames}{Column names of the output data frame. Default = c("value", "L1"); note the reverse order compared with classic melt!}
 }
+\value{
+A data.frame with two columns. The default column names are "value" and "L1" as in classic melt(). The column order is inverted, i.e. "value" then "L1" - a stupid oversight, unfortunately changing this would be difficult now.
+}
 \description{
 Wrapper function for utils::stack(), allowing much faster and efficient melting of simple lists, i.e. lists where each element is a 1-dimension vector.
 This won't work on more complex lists!!!
-
-Allows the following:
- - Much faster melting than reshape::melt.list() for large lists
- - Avoids using equally slow reshape::melt(), which is apparently deprecated and causing issues with data.tables
- - Simplifies the syntax of the rewrites
+}
+\details{
+This function allows much faster melting than reshape::melt.list(). However, it may only be used on "simple" lists, that is, lists where each element is a vector.
 }
 \examples{
 temp <- listMelt(strsplit(PG$"Protein IDs", ";"), PG$id, c("Protein accession", "PG id"))

@@ -12,7 +12,7 @@ basic.heatmap(
   isLog = FALSE,
   size = 2,
   h.margin = c(5, 2),
-  v.margin = 5,
+  v.margin = 10,
   colours = "D",
   colours_invert = FALSE,
   na.colour = "black",
@@ -59,6 +59,9 @@ basic.heatmap(
 \item{hTree}{If TRUE (default), a horizontal (x) dendrogram will be plotted.}
 
 \item{vTree}{If TRUE (default), a vertical (y) dendrogram will be plotted.}
+}
+\value{
+If return is TRUE, the evaluated ggplot is returned.
 }
 \description{
 A function to create a simple heatmap of a data frame.

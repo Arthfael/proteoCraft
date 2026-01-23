@@ -44,16 +44,18 @@ PG_assemble(
 
 \item{cl}{Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!}
 }
+\value{
+A list with 3/4 slots:
+ - "Protein.groups": data.frame of inferred protein groups
+ - "Peptides": input peptides data.frame with a few extra columns
+ - "Database": input database data.frame with a few extra columns
+ - "Evidences" (only if Ev was provided): input PSMs data.frame with a few extra columns
+}
 \description{
 Schedule for slow retirement: the code for this function is now in a source because of parallelisation issues.
 For now this is still kept for older workflows.
 In cases of bugs check first for discrepancy between the more up-to-date source and the function.
 
-This function takes a peptides and a data base data frames and returns a list with:
- - a protein groups file,
- - the peptides file with a few extra columns,
- - the database file with a few extra columns.
- 
  Note:
  Pep expects a wide (peptides), rather than long (PSMs/evidences), table! Ev is only used for mapping PSMs, not to assemble protein groups.
  We haven't explored the potential implications for the function's logic of supplying to Pep a long table.

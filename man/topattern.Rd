@@ -15,8 +15,15 @@ topattern(x, start = TRUE, end = FALSE, collapse = "|")
 
 \item{collapse}{For vectors of length > 1, character to collapse the vector to in order to create a single pattern. Default = "|". Set to FALSE to turn it off.}
 }
+\value{
+A regex pattern.
+}
 \description{
-A function to convert character strings to regex patterns, not necessarily universal but based on my common usage for my script.
+A function to convert character strings to regex patterns
+}
+\details{
+Internal function to convert a chain of characters into a regex pattern usable by gsub() or grep().
+Note: this may not work for absolutely every string, but is a very useful shortcut for the controlled usage we make of it within this package.
 }
 \examples{
 topattern(pep.ref[length(pep.ref)])

@@ -47,11 +47,13 @@ Format.DB(
 
 \item{trimName}{Logical (TRUE by default). Remove anything after the last underscore from the name, e.g. "ACTIN_HUMAN" become ACTIN. A more complex but safer way was used previously (up to 3.1.4).}
 }
+\value{
+A data frame of parsed annotations.
+}
 \description{
 A function to load Fasta databases from the work directory or the environment and format them into a data frame.
 Depending on the mode you select, specific regex rules are applied to the header to extract information.
 Additionally, three rules can be custom specified by the arguments.
-Now parallelized!!!
 }
 \examples{
 db <- Format.DB(file = "Search database.FASTA", in.env = TRUE, species = "HUMAN")

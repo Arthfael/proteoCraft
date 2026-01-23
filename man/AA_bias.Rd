@@ -13,8 +13,11 @@ AA_bias(Ev, DB, unique = FALSE)
 
 \item{unique}{Logical, default = FALSE. If TRUE, we will look at unique sequences (not observations).}
 }
+\value{
+A table of amino acid representation statistics for the current dataset.
+}
 \description{
-A little function to see if there is a bias against certain amino acids in the current (observed) dataset, versus the parent proteome.
+A little function to test for biases against amino acids in the current (observed) dataset, versus the parent proteome.
 }
 \examples{
 AA.bias <- AA_bias(Ev = ev, DB = db)

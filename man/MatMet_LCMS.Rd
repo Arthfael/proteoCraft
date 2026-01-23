@@ -32,13 +32,21 @@ MatMet_LCMS(
 
 \item{cl}{Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!}
 }
+\value{
+A list with two entries:
+- "Text": the text for each LCMS method
+- "Instruments": all LC and MS instrument models.
+}
 \description{
 A function to write the LC-MS part of Materials & Methods, pulling information from the methods file.
-For now only supports DIA methods from a Q-Exactive type instrument.
 
+Note to self:
 !!! When editing function, always save with UTF-8 encoding!!!
 }
+\details{
+Only tested on Bruker timsTOF HT with nanoElute 2 and Thermo Q-Exactive HT with Ultimate 3000 or Vanquish, so will probably fail on different machines from the same vendors, and obviously also on machines from other vendors.
+}
 \examples{
-MatMet_Text2 <- MatMet_LCMS()
+MatMet_Text_list <- MatMet_LCMS()
 
 }

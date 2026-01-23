@@ -7,6 +7,7 @@
 make_RefRat(
   data = pep,
   experiment.map = Exp.map,
+  experiment.map_col = "Ref.Sample.Aggregate",
   int.root = pep.ref[length(pep.ref)],
   rat.root = pep.ratios.ref[1],
   rat.con.grps = RatConGrps,
@@ -18,6 +19,10 @@ make_RefRat(
 }
 \arguments{
 \item{data}{A data.frame containing expression values. Default = pep}
+
+\item{experiment.map}{The experiment map. Default = Exp.map}
+
+\item{experiment.map_col}{Name of the sample column in the experiment map.}
 
 \item{int.root}{Name root for expression columns. Default = pep.ref[length(pep.ref)]}
 
@@ -31,12 +36,14 @@ make_RefRat(
 
 \item{logInt}{Set to 0 or FALSE if input peptide intensities are linear scale. If the data is already log scale, set to the relevant scale's base. Default = FALSE}
 
-\item{experiments.map}{The experiments map. Default = Exp.map}
-
 \item{log.Ratios}{Set to 0 or FALSE if input peptide ratios are linear scale. If the data is already log scale, set to the relevant scale's base. Default = 2}
 }
 \description{
-A function to create reference ratios according to a variety of methods, for the purpose of a threshold for extreme fold changes.
+A function to create reference ratios according to a variety of methods, for the purpose of a defining logFC thresholds.
+}
+\details{
+This function can be used as a logFC-level filter for DEPs - after statistical analysis.
+Instead of using a fixed logFC threshold, this can instead be used to define thresholds based on internal data variability.
 }
 \examples{
 pep.Ref.Ratios \%<o\% make_RefRat()

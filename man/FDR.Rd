@@ -35,10 +35,15 @@ FDR(
 
 \item{SIMPLIFY}{Logical. Simplify the output from a list into a single object, if the output is a list of length 1? Default = TRUE although this will possibly move to FALSE in the future.}
 }
+\value{
+A list with 3 elements ("Significance vector", "Thresholds" and "Adj. P-values") or, if SIMPLIFY = TRUE and sum(returns) == 1, the single element of the list to return.
+}
 \description{
 A function to calculate FDR thresholds and assess P-value significance.
-Default is the Benjamini-Hochberg procedure.
-Can also do the Benjamini-Yekutieli procedure - when under positive dependence assumptions.
+}
+\details{
+The default method is the Benjamini-Hochberg procedure.
+Can also perform the Benjamini-Yekutieli procedure - when under positive dependence assumptions.
 }
 \examples{
 temp <- FDR(data = PG,

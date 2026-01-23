@@ -9,8 +9,20 @@ Configure(updateOntologies = FALSE)
 \arguments{
 \item{updateOntologies}{Should we update ontologies? This is a very slow process, so false by default.}
 }
+\value{
+This function does not return anything.
+}
 \description{
-Configuration function which will make sure some files from the package are moved to its subfolder in HOME upon first installation.
+Configuration function to run once at least after first installation, and once in a while after updating the package.
+}
+\details{
+This function:
+ - creates default LC column definitions
+ - creates a default sample solvents
+ - creates and edits with user input default folder locations\
+ - check for a Python installation and if one is found, pip installs sdrf-pipelines
+ - moves some files from the package to its subfolder in HOME
+ - downloads some ontologies used by some scripts (mainly the SDRF editor)
 }
 \examples{
 proteoCraft::Configure()
