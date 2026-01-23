@@ -193,6 +193,7 @@ protQuant <- function(Prot,
   N.clust <- length(cl)
   #
   # Check arguments
+  mySmpls <- expMap[[expMap_Samples_col]]
   nPep_0 <- nrow(Pep)
   minN <- max(c(1, suppressWarnings(abs(as.integer(minN)))))
   maxN <- max(c(1, minN, suppressWarnings(abs(as.numeric(maxN)))))
@@ -230,6 +231,12 @@ protQuant <- function(Prot,
                             #, "MSSTATS"
                             )
             )
+  if (length(mySmpls) == 1) {
+    if (LFQ_ALGO %in% c("LIMPA", "DPCQUANT",  "QFEATURES", "MSQROB", "MSQROB2")) {
+      warning("Only one sample, LFQ_algo can only be one of LM or iq, defaulting to LM...")
+    }
+    LFQ_algo <- LFQ_ALGO <- "LM"
+  }
   # Resolve synonyms / check names
   if (LFQ_ALGO == "IQ") {
     LFQ_algo <- "iq"
@@ -384,7 +391,6 @@ protQuant <- function(Prot,
     #                                               aggrList)
   }
   #
-  mySmpls <- expMap[[expMap_Samples_col]]
   Pep.Intens.Nms <- paste0(pepInt_Root, mySmpls)
   w <- which(Pep.Intens.Nms %in% colnames(Pep))
   stopifnot(length(w) > 0)
