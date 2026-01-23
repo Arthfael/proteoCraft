@@ -245,7 +245,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
   }
   if (Norma.Prot.Ratio.classic||Norma.Prot.Ratio.to.Biot||Norma.Prot.Ratio.to.proteins) {
     # Once this is done, update ref-to-ref ratios
-    res <- make_RefRat(data = quant.data.norm,
+    res <- make_RefRat(quant.data.norm,
                        int.root = Prot.Expr.Root,
                        rat.root = Prot.Rat.Root,
                        logInt = 10)

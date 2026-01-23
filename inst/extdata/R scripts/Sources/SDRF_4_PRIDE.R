@@ -19,10 +19,11 @@ if (!exists("homePath")) {
   homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
 }
 # For validations, make sure that python is installed and during Configure() make sure the parse_sdrf.exe script is added!!!
-locDirsFl <- paste0(homePath, "/Default_locations.xlsx")
-if (file.exists(locDirsFl)) {
-  locDirs <- openxlsx2::read_xlsx(locDirsFl)
-  if ("Python" %in% locDirs$Folder) {
+#locDirsFl <- paste0(homePath, "/Default_locations.xlsx")
+#pyTest <- FALSE
+#if (file.exists(locDirsFl)) {
+  #locDirs <- openxlsx2::read_xlsx(locDirsFl)
+  #if ("Python" %in% locDirs$Folder) {
     pyTest <- !as.logical(try({
       #pyPath0 <- locDirs$Path[match("Python", locDirs$Folder)]
       #cat(pyPath <- gsub("/", "\\\\", pyPath0))
@@ -33,8 +34,8 @@ if (file.exists(locDirsFl)) {
       cmd <- "pip install sdrf-pipelines"
       system(cmd, show.output.on.console = FALSE)
     }, silent = TRUE))
-  }
-}
+  #}
+#}
 #load_Bckp()
 
 setwd(wd)

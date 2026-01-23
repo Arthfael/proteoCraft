@@ -397,7 +397,7 @@ Example: \"GO:0031012;2\"
       w <- grep("^Mean ", colnames(test))
       colnames(test)[w] <- paste0(gsub("^Mean ", "", colnames(test)[w]), "___Mean")
       test <- test[which(apply(test, 1, function(x) { length(is.all.good(x)) }) > 0),]
-      test <- suppressMessages(melt.data.frame(test))
+      test <- suppressMessages(proteoCraft::dfMelt(test))
       test$variable <- as.character(test$variable)
       test[, SubCellFracAggr$names] <- ""
       w <- rep(FALSE, nrow(test))

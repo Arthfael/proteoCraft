@@ -36,9 +36,13 @@ if ((!exists("ExpMap"))||(!nrow(ExpMap))) {
   if (LabelType == "Isobaric") {
     ExpMap <- data.frame("Experiment" = "?",
                          "Replicate" = "?",
-                         "MQ.Exp" = as.character(unlist(sapply(MQ.Exp, function(x) { rep(x, length(get(IsobarLab))) }))),
+                         "MQ.Exp" = as.character(unlist(sapply(MQ.Exp, function(x) {
+                           rep(x, length(get(IsobarLab)))
+                         }))),
                          "Reference" = FALSE,
-                         "Sample name" = as.character(unlist(sapply(MQ.Exp, function(x) { paste0(x, "_", get(IsobarLab)) }))),
+                         "Sample name" = as.character(unlist(sapply(MQ.Exp, function(x) {
+                           paste0(x, "_", get(IsobarLab))
+                         }))),
                          "Isobaric label" = rep(get(IsobarLab), length(MQ.Exp)),
                          "Isobaric label details" = rep(IsobarLabDet, length(MQ.Exp)),
                          "Isobaric.set" = "?",
@@ -96,10 +100,11 @@ Others <- c("MQ.Exp", "Sample name")
 Others <- Others[which(Others %in% colnames(ExpData))]
 nr <- nrow(ExpData)
 rws <- seq_len(nr)
-OtherIDs <- setNames(lapply(Others, function(x) { paste0(x, "___", rws)} ), Others)
-Fact2IDs <- setNames(lapply(Fact2, function(x) { paste0(x, "___", rws)} ), Fact2)
+charRws <- as.character(rws)
+OtherIDs <- setNames(lapply(Others, function(x) { paste0(x, "___", charRws) } ), Others)
+Fact2IDs <- setNames(lapply(Fact2, function(x) { paste0(x, "___", charRws) } ), Fact2)
 AllIDs <- append(OtherIDs, Fact2IDs)
-AllIDs$Use <- paste0("Use___", rws)
+AllIDs$Use <- paste0("Use___", charRws)
 ALLIDS <- setNames(unlist(AllIDs), NULL)
 for (fct in Fact1) { #fct <- Fact1[1]
   # (Since the table can be manually edited too, we want to make sure to correct any typos in our single level factor columns)
@@ -183,7 +188,7 @@ if (LocAnalysis) {
   wTest0[fdNm] <- 15
   ExpData2[[fdNm]] <- shinyFDInput("Proportion", nr, TRUE, paste0(wTest0[fdNm], "px"))
   kol <- c(kol, "Proportion", fdNm)
-  ALLIDS <- c(ALLIDS, paste0("Proportion___", rws))
+  ALLIDS <- c(ALLIDS, paste0("Proportion___", charRws))
 }
 idsL <- length(ALLIDS)
 smplWdth <- paste0(as.character(max(nchar(ExpData2$"Parent sample"))*10), "px")
@@ -327,8 +332,9 @@ Shiny.bindAll(table.table().node());"))
   # Incremental fill-down for replicates
   sapply(rws, function(i) {
     if (i < nr) {
-      id1 <- paste0("Replicate___", i)
-      id2 <- paste0("Replicate___", i, "___INCR")
+      chI <- as.character(i)
+      id1 <- paste0("Replicate___", chI)
+      id2 <- paste0("Replicate___", chI, "___INCR")
       observeEvent(input[[id2]],
                    {
                      x <- input[[id1]]
@@ -364,7 +370,7 @@ Shiny.bindAll(table.table().node());"))
     if (LocAnalysis) { kls <- c(kls, "Proportion") }
     for (kl in kls) {
       ExpData3[[kl]] <- sapply(rws, function(i) {
-        input[[paste0(kl, "___", i)]]
+        input[[paste0(kl, "___", as.character(i))]]
       })
       if (kl == "Use") {
         ExpData3[[kl]] <- as.logical(ExpData3[[kl]])

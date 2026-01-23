@@ -946,7 +946,8 @@ if (length(wFltL)) {
             thresh[[ont]] <- f$Thresholds
           }
         }
-        thresh <- reshape::melt.data.frame(thresh, id.vars = "FDR")
+        #thresh <- reshape::melt.data.frame(thresh, id.vars = "FDR")
+        thresh <- proteoCraft::dfMelt(thresh, id.vars = "FDR")
         colnames(thresh) <- gsub("^value$", "Threshold", gsub("^variable$", "Ontology", colnames(thresh)))
         GO_FDR_thresholds[[n1]] <- thresh[,c("FDR", "Ontology", "Threshold")]
       }

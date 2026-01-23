@@ -38,6 +38,7 @@ FracMap$Use <- as.logical(toupper(FracMap$Use))
 FracMap$Use[which(is.na(FracMap$Use))] <- TRUE
 nr <- nrow(FracMap)
 rws <- seq_len(nr)
+chRws <- as.character(rws)
 #
 parKol <- c("Parent sample", "MQ.Exp")[labelMode]
 parKol2 <- c("Sample", "Experiment")[labelMode]
@@ -47,7 +48,7 @@ if (LabelType == "Isobaric") {
   kol1 <- c(kol1, "IsobaricSet")
   kol0 <- c(kol0, "Isobaric.set")
 }
-ALLIDS <- unlist(lapply(kol1, function(x) { paste0(x, "___", rws) }))
+ALLIDS <- unlist(lapply(kol1, function(x) { paste0(x, "___", chRws) }))
 allPTMs <- unique(c(Modifs$`Full name`, NA))
 #
 # Dummy for shiny app
@@ -118,7 +119,7 @@ for (k0 in kol0) { #k0 <- parKol #k0 <-  "Isobaric.set"
   k1 <- kol1[match(k0, kol0)]
   fdNm <- paste0(k1, "___FD")
   FracMap2[[fdNm]] <- shinyFDInput(k1, nr, TRUE)
-  ALLFDIDS <- c(ALLFDIDS, paste0(k1, "___", rws, "___FD"))
+  ALLFDIDS <- c(ALLFDIDS, paste0(k1, "___", chRws, "___FD"))
   kol <- c(kol, k1, fdNm)
 }
 kol <- grep("^MQ[ \\.]Exp", kol, value = TRUE, invert = TRUE)

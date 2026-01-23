@@ -25,6 +25,7 @@ grpsMap$Reference[w] <- TRUE
 #
 nr <- nrow(grpsMap)
 rws <- seq_len(nr)
+chRws <- as.character(rws)
 #
 grpsMap2 <- grpsMap
 grpsMap2$Comparison_group <- shinyTextInput(grpsMap2$Comparison_group, "Comparison_group", width = "100%")
@@ -34,7 +35,7 @@ grpsMap2$Reference___FD <- shinyFDInput("Reference", nr)
 grpsMap2 <- grpsMap2[, c("Group", "Comparison_group", "Comparison_group___FD",
                          "Reference", "Reference___FD")]
 ALLIDS <- as.character(sapply(c("Comparison_group", "Reference"), function(x) {
-  paste0(x, "___", as.character(rws))
+  paste0(x, "___", chRws)
 }))
 idsL <- length(ALLIDS)
 # Table width
@@ -136,7 +137,7 @@ server <- function(input, output, session) {
     kls <- c("Comparison_group", "Reference")
     for (kl in kls) {
       grpsMap3[[kl]] <- sapply(rws, function(i) {
-        input[[paste0(kl, "___", i)]]
+        input[[paste0(kl, "___", as.character(i))]]
       })
       if (kl == "Reference") {
         grpsMap3[[kl]] <- as.logical(grpsMap3[[kl]])

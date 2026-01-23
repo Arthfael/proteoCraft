@@ -30,6 +30,7 @@ if (MakeRatios) {
 SamplesMap %<o% SamplesMap
 nr <- nrow(SamplesMap)
 rws <- 1:nr
+chRws <- as.character(rws)
 # if ("Order" %in% colnames(SamplesMap)) {
 #   u <- unique(SamplesMap$Order)
 #   u <- u[which(!u %in% rws)]
@@ -53,7 +54,7 @@ if (MakeRatios) {
   smplMapKol <- c("Ratios group", smplMapKol)
 }
 allIDs <- as.character(sapply(smplMapKol, function(x) {
-  paste0(x, "___", rws)
+  paste0(x, "___", chRws)
 }))
 # Original table column widths
 wTest0 <- setNames(vapply(colnames(SamplesMap), function(k) { #k <- colnames(SamplesMap)[1]
@@ -97,17 +98,18 @@ wTest1 <- apply(wTest1, 1, function(x) {
 #
 IDs <- c()
 MSG <- reactiveVal("")
+chRws2 <- as.character(seq_len(nrow(smplMap2)))
 for (kol in c("Reference", "Negative Filter", "Use")) {
   if (kol %in% colnames(SamplesMap)) {
     smplMap2[[kol]] <- shinyCheckInput(SamplesMap[[kol]], kol)
-    IDs <- c(IDs, paste0(kol, "___", seq_len(nrow(smplMap2))))
+    IDs <- c(IDs, paste0(kol, "___", chRws2))
     stopifnot(length(IDs) == length(unique(IDs)))
   }
 }
 if (MakeRatios) {
   kol <- "Ratios group"
   smplMap2[[kol]] <- shinyNumInput(SamplesMap[[kol]], 1, Inf, 1, 1, root = kol)
-  IDs <- c(IDs, paste0(kol, "___", seq_len(nrow(smplMap2))))
+  IDs <- c(IDs, paste0(kol, "___", chRws2))
   stopifnot(length(IDs) == length(unique(IDs)))
 }
 
@@ -220,7 +222,7 @@ Shiny.bindAll(table.table().node());"))
   # })
   observeEvent(input$saveBtn, {
     for (k in smplMapKol) {
-      smplMap3[[k]] <- sapply(rws, function(x) { input[[paste0(k, "___", x)]] })
+      smplMap3[[k]] <- sapply(chRws, function(x) { input[[paste0(k, "___", x)]] })
     }
     assign("smplMap3", smplMap3, envir = .GlobalEnv)
     tmp <- input$expOrder

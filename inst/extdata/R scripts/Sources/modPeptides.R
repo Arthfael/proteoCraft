@@ -323,7 +323,7 @@ if ("PTM.analysis" %in% colnames(Param)) {
             #sum(is.na(unlist(tmpPGRat)))
             #sum(is.na(unlist(tmpPGXpr)))
             # Ref-to-Ref ratios:
-            temp <- make_RefRat(data = tmpPGXpr,
+            temp <- make_RefRat(tmpPGXpr,
                                 int.root = Prot.Expr.Root,
                                 rat.root = Prot.Rat.Root,
                                 logInt = 10)
@@ -877,7 +877,8 @@ if ("PTM.analysis" %in% colnames(Param)) {
                   plot.background = element_rect(fill = "transparent", colour = NA),
                   plot.margin = margin(0, 0, 0, 0, "cm"))
           # Data wrangling
-          temp2 <- set_colnames(reshape::melt.data.frame(temp), c("Sample", "value"))
+          #temp2 <- set_colnames(reshape::melt.data.frame(temp), c("Sample", "value"))
+          temp2 <- proteoCraft::dfMelt(temp, c("Sample", "value"))
           temp2$Label <- rownames(temp)
           temp2$Sample <- as.character(temp2$Sample)
           temp2$Colour <- "grey"

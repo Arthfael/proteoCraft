@@ -218,6 +218,7 @@ if ((!p %in% colnames(Param))||(!is.logical(Param[[p]]))||(is.na(Param[[p]]))) {
 if (!toupper(as.character(Param$Norma.Pep.Intens.Shape)) %in% c("FALSE", "VSN", "LOESS")) { Norma.Pep.Intens.Shape <- FALSE }
 pr <- c("Norma.Pep.Ratio", "Adv.Norma.Pep.Ratio", "Norma.Prot.Ratio.to.Biot")
 for (p in pr) { if ((!is.logical(Param[[p]]))||(is.na(Param[[p]]))) { Param[[p]] <- FALSE } }
+#
 QuantMethods %<o% setNames(c("Prot.Quant", "Prot.Quant + weights", "Prot.Quant.Unique", "Prot.Quant.Unique + weights",
                              "Prot.Quant2 + weights", "Prot.Quant2", "IQ_MaxLFQ", "Top3", "Top1"),
                            c(paste0("Profile_avg.", c("", ", weights = -log10(PEP)/CV", c(", unique peptides in priority", ", weights = -log10(PEP)/CV, unique peptides in priority"))),
@@ -229,11 +230,14 @@ if (("QuantMeth" %in% colnames(Param))&&(Param$QuantMeth %in% QuantMethods)) { Q
 if (!QMdef %in% QuantMethods[1:6]) { QMdef <- "Prot.Quant.Unique" }
 QMdefnm <- names(QuantMethods)[match(QMdef, QuantMethods)]
 dfltP4Q <- "Razor"
-if (("Prot.Quant.Use" %in% colnames(Param))&&(!gsub(" |_|-|\\.", "", toupper(Param$Prot.Quant.Use)) %in% c("UNIQUE", "RAZOR", "ALL"))) {
-  dfltP4Q <- Param$Prot.Quant.Use
-} else {
-  Param$Prot.Quant.Use <- dfltP4Q
+if ("Prot.Quant.Use" %in% colnames(Param)) {
+  tmp1 <- toupper(gsub(" |_|-|\\.", "", as.character(Param$Prot.Quant.Use)))
+  tmp2 <- setNames(c("Unique", "Razor", "All"),
+                   c("UNIQUE", "RAZOR", "ALL"))
+  if (tmp1 %in% names(tmp2)) { dfltP4Q <- tmp2[tmp1] }
 }
+Param$Prot.Quant.Use <- dfltP4Q
+#
 if (("Update_Prot_matches" %in% colnames(Param))&&(is.logical(Param$Update_Prot_matches))&&(!is.na(Param$Update_Prot_matches))) {
   Update_Prot_matches %<o% Param$Update_Prot_matches
 } else {

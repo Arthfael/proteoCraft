@@ -40,19 +40,16 @@
 
 if (!exists("I_eq_L")) { I_eq_L <- TRUE } # Sensible default
 I_eq_L %<o% I_eq_L
-if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1, 1)) }
-N.clust %<o% N.clust
-if (!exists("N.reserved")) { N.reserved <- 1 }
-N.reserved %<o% N.reserved
-Cut <- c("K_", "R_") # Should be in the future pulled from the search parameters
-cl <- parClust
+if (!exists("Cut")) { Cut <- c("K_", "R_") } # Provide default here,
+# but defining Cut before running this allows to override it.
+# Should be in the future pulled from the search parameters.
 misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
 #
 RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 libPath <- paste0(RPath, "/proteoCraft")
 parSrc <- paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
-#rstudioapi::documentOpen(Src)
+#rstudioapi::documentOpen(parSrc)
 source(parSrc, local = FALSE)
 #
 # Define final protein aggregate function

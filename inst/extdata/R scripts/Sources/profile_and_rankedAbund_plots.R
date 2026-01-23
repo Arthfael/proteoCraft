@@ -155,7 +155,9 @@ if (runRankAbundPlots||runProfPlots) {
           myData$"Label"[w[2:length(w)]] <- paste0(myData$"Label"[w[2:length(w)]], "_", 2:length(w))
         }
       }
-      myData <- set_colnames(reshape::melt.data.frame(myData, id.vars = varkol),
+      # myData <- set_colnames(reshape::melt.data.frame(myData, id.vars = varkol),
+      #                        c(varkol[1:4], "Protein Group", c(c(), "In list")[prot.list.Cond], "Sample", "Y"))
+      myData <- set_colnames(proteoCraft::dfMelt(myData, id.vars = varkol),
                              c(varkol[1:4], "Protein Group", c(c(), "In list")[prot.list.Cond], "Sample", "Y"))
       myData <- myData[which(is.all.good(myData$Y, 2)),]
       if (QuantType %in% c("Coverage", "Spectra")) { myData <- myData[which(myData$Y > 0),] }

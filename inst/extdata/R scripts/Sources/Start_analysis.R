@@ -138,12 +138,6 @@ if (!RunByMaster) {
     SearchSoft <- vapply(inDirs, updt_Type0, "")
   }
   nr0 <- length(inDirs)
-  inputTblDflt <- data.frame("Input search folder" = "",
-                             "Value" = gsub("/[^/]+$", "", inDirs[1]),
-                             "Search engine" = SearchSoftware[1],
-                             "Remove" = "",
-                             check.names = FALSE)
-  rownames(inputTblDflt) <- NULL
   inputTbl <- data.frame("Input search folder" = rep("", nr0),
                          "Value" = inDirs,
                          "Search engine" = SearchSoft,
@@ -151,18 +145,20 @@ if (!RunByMaster) {
                          check.names = FALSE)
   rownames(inputTbl) <- NULL
   nr0 <- nrow(inputTbl)
+  rng0 <- as.character(1:nr0)
   inputTbl2 <- inputTbl
-  inputTbl2$`Input search folder` <- vapply(paste0("selectDir___", 1:nr0), function(id) {
+  inputTbl2$`Input search folder` <- vapply(paste0("selectDir___", rng0), function(id) {
     as.character(shiny::actionButton(id, "Select input"))
   }, "")
   fSlct0 <- function(i, data = inputTbl, opt = srchSoftOpt) {
     srchSoftOpt2 <- paste0("<option value=\"", opt, "\"",
                            c("", " selected")[(opt == data$"Search engine"[i])+1],
                            ">", opt, "</option>", collapse = "")
-    return(paste0("<select id=\"searchSoft___", i, "\" style=\"width:200px;\">", srchSoftOpt2, "</select>"))
+    return(paste0("<select id=\"searchSoft___", as.character(i),
+                  "\" style=\"width:200px;\">", srchSoftOpt2, "</select>"))
   }
-  inputTbl2$"Search engine" <- vapply(1:nr0, fSlct0, "")
-  inputTbl2$Remove <- vapply(paste0("removeMe___", 1:nr0), function(id) {
+  inputTbl2$"Search engine" <- vapply(1:nr0, fSlct0, "") # not rng0 here!
+  inputTbl2$Remove <- vapply(paste0("removeMe___", rng0), function(id) {
     as.character(shiny::actionButton(id, "Remove dataset"))
   }, "")
   colnames(inputTbl2)[4] <- ""
@@ -256,7 +252,7 @@ if (!RunByMaster) {
   #eval(parse(text = runApp), envir = .GlobalEnv)
   srchSoftXprs <- expression({
     dat <- INPUTTBL()
-    dat$"Search engine"[i] <- ev$value
+    dat$"Search engine"[i] <- evnt$value
     INPUTTBL(dat)
     if ("" %in% colnames(dat)) { stop() }
     inputTbl <<- dat
@@ -279,12 +275,13 @@ if (!RunByMaster) {
       inputTbl <<- dat
       dat2 <- INPUTTBL2()[w,]
       nr2 <- nrow(dat)
+      rng2 <- as.character(1:nr2)
       # Re-generate table with IDs from updated row position
-      dat2$`Input search folder` <- vapply(paste0("selectDir___", 1:nr2), function(id) {
+      dat2$`Input search folder` <- vapply(paste0("selectDir___", rng2), function(id) {
         as.character(shiny::actionButton(id, "Select input"))
       }, "")
-      dat2$"Search engine" <- vapply(1:nr2, fSlct0, "", dat)
-      dat2[[4]] <- vapply(paste0("removeMe___", 1:nr2), function(id) {
+      dat2$"Search engine" <- vapply(1:nr2, fSlct0, "", dat) # not rng2 here!
+      dat2[[4]] <- vapply(paste0("removeMe___", rng2), function(id) {
         as.character(shiny::actionButton(id, "Remove dataset"))
       }, "")
       INPUTTBL2(dat2)
@@ -338,17 +335,17 @@ table.on('change', 'select', function() {
 ")))
     }
     observeEvent(input$dt_event, {
-      ev <- input$dt_event
-      id <- ev$id
+      evnt <- input$dt_event
+      id <- evnt$id
       i <- as.integer(gsub(".*___", "", id))
       root <- gsub("___.*", "", id)
-      if (ev$type == "button") {
+      if (evnt$type == "button") {
         # Directory selection
         if(root == "selectDir") { eval(slctDirXprs) }
         # Row removal?
         if(root == "removeMe") { eval(rmvDirXprs) }
       }
-      if (ev$type == "select") {
+      if (evnt$type == "select") {
         # Software selection
         if(root == "searchSoft") { eval(srchSoftXprs) }
       }
@@ -359,6 +356,7 @@ table.on('change', 'select', function() {
       drs <- dat$Value
       nr <- length(drs)
       i <- nr+1
+      iChr <- as.character(i)
       datDflt <- data.frame("Input search folder" = "",
                             "Value" = gsub("/[^/]+$", "", dat$Value[nr]),
                             "Search engine" = dat$"Search engine"[nr],
@@ -369,10 +367,11 @@ table.on('change', 'select', function() {
       INPUTTBL(dat)
       if ("" %in% colnames(dat)) { stop() }
       inputTbl <<- dat
+      datDflt$Value <- ""
       datDflt2 <- datDflt
-      datDflt2$"Input search folder" <- as.character(shiny::actionButton(paste0("selectDir___", i), "Select input"))
+      datDflt2$"Input search folder" <- as.character(shiny::actionButton(paste0("selectDir___", iChr), "Select input"))
       datDflt2$"Search engine" <- fSlct0(i, datDflt)
-      datDflt2$Remove <- as.character(shiny::actionButton(paste0("removeMe___", i), "Remove dataset"))
+      datDflt2$Remove <- as.character(shiny::actionButton(paste0("removeMe___", iChr), "Remove dataset"))
       colnames(datDflt2)[4] <- ""
       dat2 <- rbind(dat2, datDflt2)
       INPUTTBL2(dat2)
@@ -525,16 +524,18 @@ if ((!"proteoCraft" %in% inst$Package)||((exists("updt_proteoCraft"))&&(updt_pro
     if (goOn) {
       pckgs <- data.frame(Name = pckgs, check.names = FALSE)
       temp <- strsplit(gsub(".*/proteoCraft_|\\.tar\\.gz$", "", pckgs$Name), "\\.")
-      pckgs[, paste0("V", 1:4)] <- as.data.frame(t(sapply(temp, function(x) {
+      pckgs[, paste0("V", as.character(1:4))] <- as.data.frame(t(sapply(temp, function(x) {
         x <- as.numeric(unlist(x))
         if (length(x) < 4) { x <- c(x, rep(0, 4-length(x))) }
         return(x)
       })))
       k <- 1
-      pckgs <- pckgs[which(pckgs[[paste0("V", k)]] == max(pckgs[[paste0("V", k)]])), , drop = FALSE]
+      klK <- paste0("V", as.character(k))
+      pckgs <- pckgs[which(pckgs[[klK]] == max(pckgs[[klK]])), , drop = FALSE]
       while (nrow(pckgs) > 1) {
         k <- k+1  
-        pckgs <- pckgs[which(pckgs[[paste0("V", k)]] == max(pckgs[[paste0("V", k)]])), , drop = FALSE]
+        klK <- paste0("V", as.character(k))
+        pckgs <- pckgs[which(pckgs[[klK]] == max(pckgs[[klK]])), , drop = FALSE]
       }
       nuPack <- pckgs$Name
     } else {
@@ -599,13 +600,13 @@ if (scrptType == "noReps") {
                                ObjNm = "SamplesMap"))
 }
 tmpDF <- data.frame(File = c(basename(intPrtFst),
-                             "Parsed_annotations.RData",
+                             #"Parsed_annotations.RData",
                              "evmatch.RData"),
                     Role = c("FASTA of proteins of special interest",
-                             "Parsed functional annotations",
+                             #"Parsed functional annotations",
                              "Matches of peptide sequences to parent proteins"),
                     ObjNm = c("prot.list",
-                              "Parsed_annotations",
+                              #"Parsed_annotations",
                               "evmatch"))
 tmpDF$Full <- paste0(wd, "/", tmpDF$File)
 allBckps <- rbind(allBckps, tmpDF)

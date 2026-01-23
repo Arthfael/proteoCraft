@@ -57,6 +57,7 @@ smplsMap$Use[w] <- TRUE
 
 nr <- nrow(smplsMap)
 rws <- seq_len(nr)
+chRws <- as.character(rws)
 if (!exists("nRep")) { nRep <- nr }
 dflt_Rpl <- 1:(nr+nRep) %% nRep
 dflt_Rpl[which(dflt_Rpl == 0)] <- nRep
@@ -85,15 +86,15 @@ kol <- c("Sample", "Sample name", "Group", "Group___FD")
 if (length(myFact)) {
   for (fct in myFact) {
     smplsMap2[[fct]] <- shinyTextInput(smplsMap2[[fct]], fct, width = "100%")
-    smplsMap2[[paste0(fct, "___FD")]] <- shinyFDInput(fct, nr)
-    
-    kol <- c(kol, fct, paste0(fct, "___FD"))
+    fdKl <- paste0(fct, "___FD")
+    smplsMap2[[fdKl]] <- shinyFDInput(fct, nr)
+    kol <- c(kol, fct, fdKl)
   }
 }
 kol <- c(kol, "Replicate", "Replicate___FD", "Replicate___INCR", "Use", "Use___FD")
 smplsMap2 <- smplsMap2[, kol]
 ALLIDS <- as.character(sapply(c("Group", myFact, "Replicate", "Use"), function(x) {
-  paste0(x, "___", as.character(rws))
+  paste0(x, "___", chRws))
 }))
 idsL <- length(ALLIDS)
 # Table width
@@ -198,8 +199,9 @@ server <- function(input, output, session) {
   # Incremental fill-down for replicates
   sapply(rws, function(i) {
     if (i < nr) {
-      id1 <- paste0("Replicate___", i)
-      id2 <- paste0("Replicate___", i, "___INCR")
+      iChr <- as.character(i)
+      id1 <- paste0("Replicate___", iChr)
+      id2 <- paste0("Replicate___", iChr, "___INCR")
       observeEvent(input[[id2]],
                    {
                      x <- input[[id1]]
@@ -221,7 +223,7 @@ server <- function(input, output, session) {
     kls <- c("Sample name", "Group", "Replicate", "Use")
     for (kl in kls) {
       smplsMap3[[kl]] <- sapply(rws, function(i) {
-        input[[paste0(kl, "___", i)]]
+        input[[paste0(kl, "___", as.character(i))]]
       })
       if (kl == "Replicate") {
         smplsMap3[[kl]] <- as.integer(smplsMap3[[kl]])

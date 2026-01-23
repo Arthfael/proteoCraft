@@ -4,91 +4,91 @@ dfltLocs <- openxlsx2::read_xlsx(dfltLocsFl)
 fastaLoc <- dfltLocs$Path[match("Fasta files", dfltLocs$Folder)]
 #
 GO.col %<o% c("GO", "GO-ID")
-ObjNm <- "Annotate"
-if ((scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
-  ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]]
-} else {
-  tst <- "Parsed functional annotations" %in% reloadedBckps$Role
-  if (!tst) {
-    msg <- "Can you provide functional annotations? (required for GO analysis)"
-    tmp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
-    ObjNm %<c% tmp
-    if (scrptType == "withReps") {
-      AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
-      tmp <- AllAnsw[1,]
-      tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
-      tmp$Value <- list(get(ObjNm))
-      m <- match(ObjNm, AllAnsw$Parameter)
-      if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
-    }
-  } else { Annotate %<o% TRUE }
-}
 if (Annotate) {
-  if (!exists("AnnotFls")) { AnnotFls <- c() }
-  AnnotFls %<o% AnnotFls
-  if (!exists("Parsed_annotations")) {
-    tmpFls <- gsub("\\.fa((s(ta(\\.fas)?)?)|a?)?$", ".txt", fastasTbl$Full)
-    autAnnotFls <- vapply(tmpFls, function(x) { #x <- tmpFls[1]
-      x2 <- gsub(".+/", paste0(fastaLoc, "/"), x)
-      if (!file.exists(x)) {
-        if (file.exists(x2)) {
-          fs::file_copy(x2, wd)
-          x <- x2
-        } else { x <- NA }
-      }
-      return(as.character(x))
-    }, "")
-    AnnotFls <- unique(c(AnnotFls, autAnnotFls))
-    AnnotFls <- AnnotFls[which(!is.na(AnnotFls))]
-    l <- length(AnnotFls)
-    moar <- TRUE
-    kount <- 0
-    while (moar) {
-      if (l) {
-        if (kount == 0) {
-          msg <- paste0("The following annotation files have been automatically detected or are already in memory:\n - ",
-                        paste(AnnotFls, collapse = "\n - "), "\nDo you want to load more?")
-        } else {
-          msg <- "Select more?"
-        }
-      } else {
-        msg <- "No functional annotation file detected. Select one?"
-      }
-      kount <- kount+1
-      moar <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
-      if (moar) {
-        msg <- "Select annotation file"
-        #filt <- matrix(c("Annotations txt file", "*.txt"), ncol = 2)
-        #AnnotFls <- c(AnnotFls, normalizePath(choose.files(paste0(fastaLoc, "/*.txt"), msg, TRUE, filt), winslah = "/"))
-        AnnotFls <- unique(c(AnnotFls,
-                             rstudioapi::selectFile(msg,
-                                                    path = paste0(fastaLoc, "/*"),
-                                                    filter = "UniProtKB txt annotations file, GFF or GTF file (*.{txt,gtf,gff})")))
-        AnnotFls <- AnnotFls[which(!is.na(AnnotFls))]
-        l <- length(AnnotFls)
-      }
+  # if (!exists("AnnotFls")) { AnnotFls <- c() }
+  # AnnotFls %<o% AnnotFls
+  # if (!exists("Parsed_annotations")) {
+  #   tmpFls <- gsub("\\.fa((s(ta(\\.fas)?)?)|a?)?$", ".txt", fastasTbl$Full)
+  #   autAnnotFls <- vapply(tmpFls, function(x) { #x <- tmpFls[1]
+  #     x2 <- gsub(".+/", paste0(fastaLoc, "/"), x)
+  #     if (!file.exists(x)) {
+  #       if (file.exists(x2)) {
+  #         fs::file_copy(x2, wd)
+  #         x <- x2
+  #       } else { x <- NA }
+  #     }
+  #     return(as.character(x))
+  #   }, "")
+  #   AnnotFls <- unique(c(AnnotFls, autAnnotFls))
+  #   AnnotFls <- AnnotFls[which(!is.na(AnnotFls))]
+  #   l <- length(AnnotFls)
+  #   moar <- TRUE
+  #   kount <- 0
+  #   while (moar) {
+  #     if (l) {
+  #       if (kount == 0) {
+  #         msg <- paste0("The following annotation files have been automatically detected or are already in memory:\n - ",
+  #                       paste(AnnotFls, collapse = "\n - "), "\nDo you want to load more?")
+  #       } else {
+  #         msg <- "Select more?"
+  #       }
+  #     } else {
+  #       msg <- "No functional annotation file detected. Select one?"
+  #     }
+  #     kount <- kount+1
+  #     moar <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
+  #     if (moar) {
+  #       msg <- "Select annotation file"
+  #       #filt <- matrix(c("Annotations txt file", "*.txt"), ncol = 2)
+  #       #AnnotFls <- c(AnnotFls, normalizePath(choose.files(paste0(fastaLoc, "/*.txt"), msg, TRUE, filt), winslah = "/"))
+  #       AnnotFls <- unique(c(AnnotFls,
+  #                            rstudioapi::selectFile(msg,
+  #                                                   path = paste0(fastaLoc, "/*"),
+  #                                                   filter = "UniProtKB txt annotations file, GFF or GTF file (*.{txt,gtf,gff})")))
+  #       AnnotFls <- AnnotFls[which(!is.na(AnnotFls))]
+  #       l <- length(AnnotFls)
+  #     }
+  #   }
+  #   if (!length(AnnotFls)) {
+  #     warning("No annotations file(s) provided, skipping annotations!")
+  #     Annotate <- FALSE
+  #   } else {
+  #     source(parSrc, local = FALSE)
+  #     Parsed_annotations_lst <- lapply(AnnotFls, function(x) { #x <- AnnotFls[1]
+  #       # If the annotations is not present locally, make a local copy
+  #       if (!file.exists(basename(x))) { fs::file_copy(x, wd) }
+  #       # Parse it
+  #       #tst <- Format.DB_txt(x, usePar = TRUE, cl = parClust)
+  #       if (grepl("\\.txt$", x, ignore.case = TRUE)) {
+  #         x <- Format.DB_txt(x, usePar = TRUE, cl = parClust)
+  #       }
+  #       if (grepl("\\.g[tf]f$", x, ignore.case = TRUE)) {
+  #         x <- annot_from_GTF(x)
+  #       }
+  #       return(x)
+  #     })
+  #     Parsed_annotations <- dplyr::bind_rows(Parsed_annotations_lst)
+  #   }
+  # }
+  source(parSrc, local = FALSE)
+  Parsed_annotations_lst <- lapply(1:nrow(AnnotFlsTbl), function(i) { #i <- 1
+    fl <- AnnotFlsTbl$Path[i]
+    tp <- AnnotFlsTbl$Type[i]
+    # If the annotation file is not present locally, make a local copy
+    if (!file.exists(paste0(wd, "/", basename(fl)))) { fs::file_copy(fl, wd) }
+    # Now parse it
+    if (tp == "UniProtKB .txt") {
+      x <- Format.DB_txt(fl, usePar = TRUE, cl = parClust)
     }
-    if (!length(AnnotFls)) {
-      warning("No annotations file(s) provided, skipping annotations!")
-      Annotate <- FALSE
-    } else {
-      source(parSrc, local = FALSE)
-      Parsed_annotations_lst <- lapply(AnnotFls, function(x) { #x <- AnnotFls[1]
-        # If the annotations is not present locally, make a local copy
-        if (!file.exists(basename(x))) { fs::file_copy(x, wd) }
-        # Parse it
-        #tst <- Format.DB_txt(x, usePar = TRUE, cl = parClust)
-        if (grepl("\\.txt$", x, ignore.case = TRUE)) {
-          x <- Format.DB_txt(x, usePar = TRUE, cl = parClust)
-        }
-        if (grepl("\\.g[tf]f$", x, ignore.case = TRUE)) {
-          x <- annot_from_GTF(x)
-        }
-        return(x)
-      })
-      Parsed_annotations <- dplyr::bind_rows(Parsed_annotations_lst)
+    if (tp == "NCBI .gtf") {
+      x <- annot_from_GTF(fl, mode = "GTF")
     }
-  }
+    if (tp == "NCBI .gff") {
+      x <- annot_from_GTF(fl, mode = "GFF")
+    }
+    return(x)
+  })
+  Parsed_annotations <- dplyr::bind_rows(Parsed_annotations_lst)
 }
 Annotate <- ((exists("Parsed_annotations"))
              &&("data.frame" %in% class(Parsed_annotations))

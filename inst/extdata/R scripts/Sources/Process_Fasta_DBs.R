@@ -1,8 +1,36 @@
-#### Code chunk - Load and process search database(s) (or reload a pre-processed version if available)
+#### Load and process search database(s) (or reload a pre-processed version if available)
 SSH_on %<o% FALSE
 fastas <- unique(fastas)
 #fastas <- fastas$Full
 #
+# Function to only display the useful part of paths
+pathAbbr <- function(paths) {
+  #pathAbbr(c("C:/file.txt", "D:/file.txt"))
+  #pathAbbr(c("C:/file.txt", "C:/file.gff"))
+  #pathAbbr(c("C:/file.txt", "C:/file2.txt"))
+  #pathAbbr(c("C:/file.txt", "C:/User/file.txt"))
+  l1 <- length(paths)
+  res <- gsub(".*/", "", paths)
+  l2 <- length(unique(res))
+  if ((l1 == 1)||(l1 == l2)) { return(res) }
+  tst <- strsplit(gsub("/[^/]+$", "", paths), "/")
+  l <- vapply(tst, length, 1)
+  m <- min(l)
+  tst2 <- vapply(1:m, function(i) {
+    length(unique(vapply(tst, function(x) { x[[i]] }, ""))) == 1
+  }, TRUE)
+  wN <- suppressWarnings(min(which(!tst2)))
+  wY <- which(tst2)
+  if (length(wY)) { wY <- max(wY[which(wY < wN)]) }
+  if (length(wY)) {
+    rmv <- paste(tst[[1]][wY], collapse = "/")
+    nc <- nchar(rmv) + 1
+    res <- paste0("...", substring(paths, nc))
+  } else {
+    res <- paths
+  }
+  return(res)
+}
 fastasTbl %<o% data.frame(Full = fastas,
                           Name = basename(fastas),
                           Dir = dirname(fastas),
@@ -157,7 +185,7 @@ if (max(tst$L) > 1) {
     fastasTbl2 <- tst[, c("Group.1", "x")]
     colnames(fastasTbl2) <- c("Name", "Full_list")
     fastasTbl2$Full <- fastasTbl$Full[match(fastasTbl2$Name, fastasTbl$Name)]
-    fastasTbl2$Dir <- gsub("/[^/]+$", "", fastasTbl2$Full)
+    fastasTbl2$Dir <- pathAbbr(fastasTbl2$Full)
     kol <- c("Loc", "Exists", "ExistsHere", "TXT", "TXTHere", "TXTExists", "TXTExistsHere", "Contaminant")
     tmp <- Isapply(fastasTbl2$Full, function(x) {
       w <- which(fastasTbl$Full == x)
@@ -259,6 +287,65 @@ if (!"Reverse regex" %in% colnames(fastasTbl)) { fastasTbl$"Reverse regex" <- "^
 #   cat(x)
 #   return(x)
 # })
+# Annotation files
+locFl <- paste0(homePath, "/Default_locations.xlsx")
+dfltLocs <- openxlsx2::read_xlsx(locFl)
+annotDir <- fastasDir <- dfltLocs$Path[match("Fasta files", dfltLocs$Folder)]
+annotDflt <- paste0(fastasDir, "/.+\\.((txt)|(gtf)|(gff))$")
+annotOpt <- setNames(c("txt", "gtf", "gff"),
+                     c("UniProtKB .txt", "NCBI .gtf", "NCBI .gff"))
+if ((!exists("AnnotFls"))||(!"character" %in% class(AnnotFls))) { AnnotFls <- c() } else {
+  if (length(AnnotFls)) {
+    AnnotFls <- AnnotFls[which(file.exists(AnnotFls))]
+  }
+}
+if ((exists("AnnotFlsTbl"))&&("data.frame" %in% class(AnnotFlsTbl))&&(nrow(AnnotFlsTbl))) {
+  AnnotFls <- unique(c(AnnotFls, AnnotFlsTbl$Path))
+}
+AnnotFls <- AnnotFls[which(!is.na(AnnotFls))]
+AnnotFls %<o% AnnotFls
+nr0 <- length(AnnotFls)
+updt_Type1 <- function(file) {
+  if (!nchar(file)) { return(NA) }
+  x <- tolower(gsub(".*\\.", "", file))
+  if (!x %in% annotOpt) {
+    #warning("Unrecognized file extension!")
+    return(NA)
+  }
+  return(names(annotOpt)[match(x, annotOpt)])
+}
+if (nr0) {
+  annotTbl <- data.frame(Select = "",
+                         Path = AnnotFls,
+                         Type = updt_Type1(AnnotFls),
+                         Remove = "")
+} else {
+  annotTbl <- data.frame(Select = "",
+                             Path = "",
+                             Type = names(annotOpt)[1],
+                             Remove = "")
+}
+rownames(annotTbl) <- NULL
+nr0 <- nrow(annotTbl)
+rng0 <- as.character(1:nr0)
+annotTbl2 <- annotTbl
+annotTbl2$Path <- pathAbbr(annotTbl2$Path)
+annotTbl2$Select <- vapply(paste0("selectAnnotFl___", rng0), function(id) {
+  as.character(shiny::actionButton(id, "Select annotation file"))
+}, "")
+fSlct1 <- function(i, data = annotTbl2, opt = names(annotOpt)) {
+  opt2 <- paste0("<option value=\"", opt, "\"",
+                 c("", " selected")[(opt == data$Type[i])+1],
+                 ">", opt, "</option>", collapse = "")
+  return(paste0("<select id=\"type___", as.character(i),
+                "\" style=\"width:200px;\">", opt2, "</select>"))
+}
+annotTbl2$Type <- vapply(1:nr0, fSlct1, "") # not rng0 here!
+annotTbl2$Remove <- vapply(paste0("removeAnnotFl___", rng0), function(id) {
+  as.character(shiny::actionButton(id, "Remove annotation file"))
+}, "")
+colnames(annotTbl2)[4] <- ""
+#
 nr <- nrow(fastasTbl)
 rws <- seq_len(nr)
 appNm <- paste0(dtstNm, " - Fasta databases")
@@ -285,8 +372,19 @@ ui <- fluidPage(
   h5(em("Whilst you have the option to choose from several types of common fasta, we only ever use UniProtKB, so for now use the other types at your own risk:")),
   h5(em("they are likely to break the script at a later stage!")),
   br(),
+  h4(strong(em(tag("u", "Fasta databases")))),
+  DTOutput("Fastas"),
+  br(),
+  br(),
+  br(),
+  h4(strong(em(tag("u", "Functional annotation files")))),
+  DTOutput("annotFls"),
+  shiny::actionButton("addBtn", "+ add annotation file"),
+  br(),
+  br(),
+  br(),
   actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-  DTOutput("Fastas")
+  br()
 )
 # Dummy table for display in app
 fastasTbl2 <- data.frame("Name" = fastasTbl$Name,
@@ -317,8 +415,83 @@ tmp <- c(0:(ncol(fastasTbl2)-1))
 tmp <- tmp[which(!tmp %in% edith$enable$columns)]
 edith$disable <- list(columns = tmp)
 if (exists("fastasTbl3")) { rm(fastasTbl3) }
+if (exists("annotTbl3")) { rm(annotTbl3) }
+slctXprs <- expression({
+  dat <- ANNOTTBL()
+  nAnnot <- nrow(dat)
+  rg <- 1:nAnnot
+  rg0 <- rg[which(rg != i)]
+  fls <- dat$Path[rg0]
+  fl <- rstudioapi::selectFile(paste0("Select ", c("", "additional ")[(i>1)+1], " functional annotation file"),
+                               path = ANNOTDIR())
+  if ((length(fl) == 1)&&(!is.na(fl))&&(file.exists(fl))) {
+    if (fl %in% fls) {
+      warning("You already selected this file! Ignoring...")
+    } else {
+      dat2 <- ANNOTTBL2()
+      ANNOTDIR(dirname(fl))
+      annotDir <<- dirname(fl)
+      dat$Path[i] <- dat2$Path[i] <- fl
+      cat("")
+      tp <- updt_Type1(fl)
+      dat$Type[i] <- tp
+      ANNOTTBL(dat)
+      annotTbl <<- dat
+      dat2$Type[i] <- fSlct1(i, dat)
+      ANNOTTBL2(dat2)
+      dat2$Path <- pathAbbr(dat2$Path)
+      annotTbl2 <<- dat2
+      output$annotFls <- updt_AnnotFls()
+    }
+  }
+})
+#eval(parse(text = runApp), envir = .GlobalEnv)
+typeXprs <- expression({
+  dat <- ANNOTTBL()
+  dat$Type[i] <- evnt$value
+  ANNOTTBL(dat)
+  if ("" %in% colnames(dat)) { stop() }
+  annotTbl <<- dat
+  dat2 <- ANNOTTBL2()
+  tmp <<- fSlct1(i, dat)
+  dat2$Type[i] <- tmp
+  ANNOTTBL2(dat2)
+  dat2$Path <- pathAbbr(dat2$Path)
+  annotTbl2 <<- dat2
+  output$annotFls <- updt_AnnotFls()
+})
+#eval(parse(text = runApp), envir = .GlobalEnv)
+rmvXprs <- expression({
+  dat <- ANNOTTBL()
+  nAnnot <- nrow(dat)
+  w <- which(1:nAnnot != i)
+  if (length(w)) { # Can't remove all!!!
+    dat <- dat[w,]
+    ANNOTTBL(dat)
+    if ("" %in% colnames(dat)) { stop() }
+    annotTbl <<- dat
+    dat2 <- ANNOTTBL2()[w,]
+    nAnnot2 <- nrow(dat)
+    chRg2 <- as.character(1:nAnnot2)
+    # Re-generate table with IDs from updated row position
+    dat2$Select <- vapply(paste0("selectAnnotFl___", chRg2), function(id) {
+      as.character(shiny::actionButton(id, "Select annotation file"))
+    }, "")
+    dat2$Type <- vapply(1:nAnnot2, fSlct1, "", dat)
+    dat2[[4]] <- vapply(paste0("removeAnnotFl___", chRg2), function(id) {
+      as.character(shiny::actionButton(id, "Remove annotation file"))
+    }, "")
+    ANNOTTBL2(dat2)
+    dat2$Path <- pathAbbr(dat2$Path)
+    annotTbl2 <<- dat2
+    output$annotFls <- updt_AnnotFls()
+  }
+})
 server <- function(input, output, session) {
-  # Output
+  ANNOTTBL <- shiny::reactiveVal(annotTbl)
+  ANNOTTBL2 <- shiny::reactiveVal(annotTbl2)
+  ANNOTDIR <- shiny::reactiveVal(annotDir)
+  # Outputs
   fastasTbl3 <- fastasTbl
   output$Fastas <- renderDT({ fastasTbl2 },
                             FALSE,
@@ -342,17 +515,100 @@ server <- function(input, output, session) {
       });
       Shiny.unbindAll(table.table().node());
       Shiny.bindAll(table.table().node());"))
+  # Reactive functions
+  updt_AnnotFls <- function(reactive = TRUE) {
+    if (reactive) { dat2 <- ANNOTTBL2() } else { dat2 <- annotTbl2 }
+    return(DT::renderDT({ dat2 },
+                        FALSE,
+                        escape = FALSE,
+                        class = "compact",
+                        selection = "none",
+                        rownames = FALSE,
+                        editable = FALSE,
+                        options = list(dom = "t",
+                                       paging = FALSE,
+                                       ordering = FALSE,
+                                       autowidth = TRUE,
+                                       columnDefs = list(list(width = "150px", targets = 0),
+                                                         list(width = "300px", targets = 1),
+                                                         list(width = "200px", targets = 2),
+                                                         list(width = "100px", targets = 3)),
+                                       scrollX = FALSE),
+                        # the callback is essential to capture the inputs in each row
+                        callback = DT::JS("
+// Buttons
+table.on('click', 'button', function() {
+  var id = this.id;
+  Shiny.setInputValue('dt_event', {type: 'button', id: id}, {priority: 'event'});
+});
+// Dropdowns
+table.on('change', 'select', function() {
+  var id = this.id;
+  var val = this.value;
+  Shiny.setInputValue('dt_event', {type: 'select', id: id, value: val}, {priority: 'event'});
+});
+")))
+  }
+  output$annotFls <- updt_AnnotFls(FALSE)
+  # Observers
   observeEvent(input$Fastas_cell_edit, {
     kol <- colnames(fastasTbl2)[input$Fastas_cell_edit$col+1]
     if ((length(kol))&&(kol %in% colnames(fastasTbl3))) {
       fastasTbl3[input$Fastas_cell_edit$row, kol] <<- input$Fastas_cell_edit$value
     }
   }, ignoreNULL = FALSE)
+  observeEvent(input$dt_event, {
+    evnt <- input$dt_event
+    id <- evnt$id
+    i <- as.integer(gsub(".*___", "", id))
+    root <- gsub("___.*", "", id)
+    if (evnt$type == "button") {
+      # Directory selection
+      if (root == "selectAnnotFl") { eval(slctXprs) }
+      # Row removal?
+      if (root == "removeAnnotFl") { eval(rmvXprs) }
+    }
+    if (evnt$type == "select") {
+      # Software selection
+      if(root == "searchSoft") { eval(typeXprs) }
+    }
+  })
+  observeEvent(input$addBtn, {
+    dat <- ANNOTTBL()
+    dat2 <- ANNOTTBL2()
+    fls <- dat$Path
+    nri <- length(fls)
+    j <- nri+1
+    jChr <- as.character(j)
+    datDflt <- data.frame(Select = "",
+                          Path = dirname(dat$Path[nri]),
+                          Type = dat$Type[nri],
+                          Remove = "")
+    rownames(datDflt) <- NULL
+    dat <- rbind(dat, datDflt)
+    ANNOTTBL(dat)
+    if ("" %in% colnames(dat)) { stop() }
+    annotTbl <<- dat
+    datDflt$Path <- ""
+    datDflt2 <- datDflt
+    datDflt2$Select <- as.character(shiny::actionButton(paste0("selectAnnotFl___", jChr),
+                                                        "Select annotation file"))
+    datDflt2$Type <- fSlct1(i, datDflt)
+    datDflt2$Remove <- as.character(shiny::actionButton(paste0("removeAnnotFl___", jChr),
+                                                        "Remove annotation file"))
+    colnames(datDflt2)[4] <- ""
+    dat2 <- rbind(dat2, datDflt2)
+    ANNOTTBL2(dat2)
+    dat2$Path <- pathAbbr(dat2$Path)
+    annotTbl2 <<- dat2
+    output$annotFls <- updt_AnnotFls()
+  })
   observeEvent(input$saveBtn, {
     fastasTbl3$Contaminant <- vapply(rws, function(x) { input[[paste0("ContOnly___", as.character(x))]] }, TRUE)
     fastasTbl3$Type <- vapply(rws, function(x) { input[[paste0("Type___", as.character(x))]] }, "a")
     fastasTbl3$Species <- vapply(rws, function(x) { input[[paste0("Species___", as.character(x))]] }, "a")
     assign("fastasTbl3", fastasTbl3, envir = .GlobalEnv)
+    assign("annotTbl3", ANNOTTBL(), envir = .GlobalEnv)
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
@@ -363,8 +619,13 @@ while ((!runKount)||(!exists("fastasTbl3"))) {
   eval(parse(text = runApp), envir = .GlobalEnv)
   runKount <- runKount+1
 }
+annotTbl3 <- annotTbl3[which(file.exists(annotTbl3$Path)),]
+Annotate %<o% (nrow(annotTbl3) > 0)
+if (Annotate) {
+  AnnotFlsTbl %<o% annotTbl3
+  AnnotFls %<o% annotTbl3$Path
+}
 fastasTbl %<o% fastasTbl3
-#
 w <- which(fastasTbl$Species == "prompt user")
 if (length(w)) {
   for (i in w) {
@@ -538,8 +799,8 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
   # FragPipe can add the CCP's cRAPome.fasta to the search and we recommend to do so.
   # For MaxQuant, use the contaminants.fasta which is also copied with the package.
   contDBFls <- paste0(libPath, "/extData/", c("CCP_cRAPome.fasta",
-                                             "contaminants.fasta")[c(sum(c("DIANN", "FRAGPIPE") %in% SearchSoft),
-                                                                     "MAXQUANT" %in% SearchSoft)])
+                                              "contaminants.fasta")[c(sum(c("DIANN", "FRAGPIPE") %in% SearchSoft),
+                                                                      "MAXQUANT" %in% SearchSoft)])
   contDB <- lapply(contDBFls, function(contDBFl) {
     x <- readLines(contDBFl)
     x <- Format.DB(x, in.env = TRUE)
@@ -550,9 +811,7 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
     contCsv <- paste0(wd, "/contaminants.csv")
     if (file.exists(contCsv)) { contDB <- read.csv(contCsv, check.names = FALSE) } else {
       # This is a bastard Fasta...
-      fl <- paste0(homePath, "/Default_locations.xlsx")
-      dflts <- openxlsx2::read_xlsx(fl)
-      dr <- paste0(dflts$Path[which(dflts$Folder == "Fasta files")], "/Contaminants")
+      dr <- paste0(fastasDir, "/Contaminants")
       if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
       clusterExport(parClust, "dr", envir = environment())
       tst <- parLapply(parClust, contDB$`Full ID`, function(x) { #x <- contDB$`Full ID`[1]

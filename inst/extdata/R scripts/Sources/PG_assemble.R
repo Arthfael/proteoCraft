@@ -33,27 +33,24 @@
 #' @export
 
 cat("Protein groups inference step:\nAssembling peptides into the minimum number of protein groups required to explain the data...\n")
-Peptide.IDs <- "id"
-Proteins.col <- "Proteins"
-Evidence.IDs <- "Evidence IDs"
-N.reserved <- 1
-Custom_PGs <- NA
-ContCol <- "Potential contaminant"
-Npep <- 2
+source(parSrc)
 cl <- parClust
-Pep <- pep
-Ev <- ev
-DB <- db
-N.clust <- 55
-Custom_PGs <- custPGs
-Npep = NPep
-TESTING <- TRUE
+# Below: expected values of old arguments.
+# These can be superseded by providing a value before calling the source.
+if (!exists("Peptide.IDs")) { Peptide.IDs <- "id" }
+if (!exists("Proteins.col")) { Proteins.col <- "Proteins" }
+if (!exists("Evidence.IDs")) { Evidence.IDs <- "Evidence IDs" }
+if (exists("custPGs")) { Custom_PGs <- custPGs }
+if (!exists("Custom_PGs")) { Custom_PGs <- NA }
+if (!exists("ContCol")) { ContCol <- "Potential contaminant" }
+if (exists("NPep")) { Npep <- NPep }
+if (!exists("Npep")) { Npep <- 2 }
+if (!exists("DB")) { DB <- db }
+if (!exists("Pep")) { Pep <- pep }
+if (!exists("Ev")) { Ev <- ev }
+TESTING <- FALSE
 
-# An immense thank you goes to Steve Weston from
-# https://stackoverflow.com/questions/19467133/performance-of-clusterapply-deteriorates-when-called-inside-a-function?rq=4
-# for this thread explaining how to use parallel within a function!
-#
-#TESTING <- FALSE
+#TESTING <- TRUE
 #proteoCraft::DefArg(proteoCraft::PG_assemble)
 #Pep <- pep ;Ev <- ev ;DB <- db ;N.clust <- 55; Custom_PGs <- custPGs; Npep = NPep; TESTING <- TRUE
 #Pep <- pep[1:1000,] ;Ev <- ev ;DB <- db ;N.clust <- 55; Custom_PGs <- custPGs; Npep = NPep; TESTING <- TRUE
@@ -63,36 +60,12 @@ if (TESTING) {
 }
   # Note:
   # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-  misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
+misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
 #}# else { misFun <- missing }
 #
-dc <- parallel::detectCores()
-if (misFun(N.reserved)) { N.reserved <- 1 }
-if (misFun(N.clust)) {
-  N.clust <- max(c(dc-N.reserved, 1))
-} else {
-  if (N.clust > max(c(dc-N.reserved, 1))) {
-    warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
-    N.clust <- max(c(dc-N.reserved, 1))
-  }
-}
 # Create cluster (some steps are slow otherwise)
-cleanUp <- FALSE
-if (misFun(cl)) {
-  dc <- parallel::detectCores()
-  if (misFun(N.reserved)) { N.reserved <- 1 }
-  if (misFun(N.clust)) {
-    N.clust <- max(c(dc-N.reserved, 1))
-  } else {
-    if (N.clust > max(c(dc-N.reserved, 1))) {
-      warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
-      N.clust <- max(c(dc-N.reserved, 1))
-    }
-  }
-  cl <- parallel::makeCluster(N.clust, type = "SOCK")
-  cleanUp <- TRUE
-}
 #
+require(data.table)
 invisible(parallel::clusterCall(cl, function() {
   library(data.table)
   return()
@@ -1243,7 +1216,6 @@ invisible(parallel::clusterCall(cl, function(x) {
   try(rm(tmp1, tmp2, tmp3, tmp4, CustPG, c1, c2, ca, cb), silent = TRUE)
   return()
 }))
-if (cleanUp) { parallel::stopCluster(cl) }
 if (TESTING) {
   tm2 <<- Sys.time()
   print(tm2-tm1)

@@ -21,6 +21,7 @@ FracMap$Use <- as.logical(FracMap$Use)
 FracMap$Use[which(is.na(FracMap$Use))] <- TRUE
 nr <- nrow(FracMap)
 rws <- seq_len(nr)
+chRws <- as.character(rws)
 # Original table column widths
 wTest0 <- setNames(vapply(colnames(FracMap), function(k) { #k <- colnames(FracMap)[1]
   tmp <- FracMap[[k]]
@@ -117,7 +118,7 @@ Shiny.bindAll(table.table().node());"))
         tp <- ""
         if (k == "Parent sample") { root<- "Sample" }
       }
-      frMap2[[k]] <- vapply(rws, function(x) { input[[paste0(root, "___", as.character(x))]] }, tp)
+      frMap2[[k]] <- vapply(chRws, function(x) { input[[paste0(root, "___", x)]] }, tp)
     }
     assign("frMap2", frMap2, envir = .GlobalEnv)
     stopApp()
