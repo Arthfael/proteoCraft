@@ -38,6 +38,9 @@ make_RefRat(
 
 \item{log.Ratios}{Set to 0 or FALSE if input peptide ratios are linear scale. If the data is already log scale, set to the relevant scale's base. Default = 2}
 }
+\value{
+Reference sample-to-sample log fold changes.
+}
 \description{
 A function to create reference ratios according to a variety of methods, for the purpose of a defining logFC thresholds.
 }

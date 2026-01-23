@@ -26,9 +26,9 @@ protQuant(
   refGroups,
   ratGroups,
   param,
-  aggregate.map = Aggregate.map,
-  aggregate.list = Aggregate.list,
-  aggregates = Aggregates,
+  aggrMap,
+  aggrList,
+  aggrNames,
   pepInt_Root,
   pepRat_root,
   pepInt_log = FALSE,
@@ -102,23 +102,23 @@ Note that limpa and QFeatures do not "just produce quantitative values": both ou
 
 \item{param}{This analysis' parameters. If provided, the refGroups argument is not required.}
 
-\item{aggregate.map}{The analysis' aggregate map. Default = Aggregate.map}
+\item{aggrMap}{Only needed if ratios (logFCs) are also to be output, lternative way of defining groups when Param is missing. The analysis' aggregate map. Default = Aggregate.map}
 
-\item{aggregate.list}{Named list of this analysis' factors aggregates. Default = Aggregate.list}
+\item{aggrList}{Only needed if ratios (logFCs) are also to be output, lternative way of defining groups when Param is missing. Named list of this analysis' factors aggrNames. Default = Aggregate.list}
 
-\item{aggregates}{The factor aggregates themselves. Default = Aggregates}
+\item{aggrNames}{Only needed if ratios (logFCs) are also to be output, lternative way of defining groups when Param is missing. The experiment's factor aggrNames. Default = Aggregates}
 
 \item{pepInt_Root}{Root of the peptides intensity column(s) names}
 
-\item{pepRat_root}{Root of the peptides ratios column(s) names, used if Priority = "Ratios".}
+\item{pepRat_root}{Only needed if ratios (logFCs) are also to be output. Root of the peptides ratios column(s) names, used if Priority = "Ratios".}
 
 \item{pepInt_log}{Set to 0 or FALSE if input peptide intensities are linear scale. If the data is already log scale, set to the relevant scale's base. Default = FALSE}
 
-\item{pepRat_log}{Set to 0 or FALSE if input peptide ratios are linear scale. If the data is already log scale, set to the relevant scale's base. Default = 2}
+\item{pepRat_log}{Only needed if ratios (logFCs) are also to be output. Set to 0 or FALSE if input peptide ratios are linear scale. If the data is already log scale, set to the relevant scale's base. Default = 2}
 
 \item{protLFQ_toLog}{Should the output protein LFQ values be log-scale or not? Can ve set to the log base desired. If set to TRUE, this will be the same base as the input intensities log scale, or 10 by default.}
 
-\item{protRat_toLog}{Should the output protein ratios be log-scale or not? Can ve set to the log base desired. If set to TRUE, this will be the same base as the input ratios log scale, or its default, 2}
+\item{protRat_toLog}{Only needed if ratios (logFCs) are also to be output. Should the output protein ratios be log-scale or not? Can ve set to the log base desired. If set to TRUE, this will be the same base as the input ratios log scale, or its default, 2}
 
 \item{Mods_to_Exclude}{Which modifications should be excluded? (use argument "Discard_unmod" to discard unmodified counterpart peptides.) A data.frame with columns "Mark" (2-lettern modification mark) and "Where" (a list, which amino acids are affected, use "Nterm", "Cterm", "protNterm" and "protCterm" for termini). Also see argument "Discard_unmod".}
 
