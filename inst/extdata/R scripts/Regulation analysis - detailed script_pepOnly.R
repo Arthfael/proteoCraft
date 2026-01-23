@@ -895,88 +895,22 @@ rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)
 
 # Calculate peptide ratios
-# Step 1: calculate average references
 pep.ratios.root %<o% "Ratio"
 pep.ratios.ref %<o% c(Ratios = paste0("log2(", pep.ratios.root, ") - "))
-# !!!!!
-# !!!!! This code is mirrored in Prot.Quant!!!
-# !!!!! When modifying it, either update that too, or create a function for both to ensure consistency!!!
-# !!!!! If choosing the second option, careful to remember what is/isn't log scale!!!
-# !!!!!
-ratios.2.ref %<o% lapply(RRG$values, function(i) { #i <- RRG$values[1]
-  j <- setNames(unlist(strsplit(i, "___")), RRG$names)
-  temp <- lapply(RRG$names, function(x) {
-    if (j[[x]] == "NA") {
-      return(which((is.na(Exp.map[[x]]))|(Exp.map[[x]] == j[[x]])))
-    }
-    return(which(Exp.map[[x]] == j[[x]]))
-  })
-  temp2 <- sort(unique(unlist(temp)))
-  test <- vapply(temp2, function(x) { sum(vapply(temp, function(y) { x %in% unlist(y) }, TRUE)) }, 1)
-  temp2 <- temp2[which(test == length(temp))]
-  temp3 <- Exp.map[temp2,]
-  temp3 <- temp3[which(temp3$Reference),]
-  b <- temp3$Ref.Sample.Aggregate
-  if (length(b)) {
-    kol <- paste0(pep.ref[length(pep.ref)], b)
-    w <- which(kol %in% colnames(pep))
-    if (length(w)) {
-      b1 <- apply(pep[, kol[w], drop = FALSE], 1, function(x) {
-        2^log_ratio_av(log2(x))
-      })
-      b2 <- paste0(pep.ref[length(pep.ref)], i, ".REF")
-      #print(b2)
-      pep[, b2] <<- b1
-      return(data.frame(Name = b2,
-                        Source = paste(b, collapse = ";")))
-    } else {
-      #warning(paste0("Empty group: ", i, ", skipping!"))
-      return()
-    }
-  } else {
-    #warning(paste0("There is no reference for level ", i))
-    return()
-  }
-})
-ratios.2.ref <- plyr::rbind.fill(ratios.2.ref)
-ratios.2.ref$Source <- strsplit(ratios.2.ref$Source, ";")
-ratios.2.ref$Used_by <- list(NA)
-# Step 2: calculate individual ratios to relevant reference
-# If the reference is an average, we will also calculate individual ref ratios to it;
-# this will be useful further down the line.
-for (i in RRG$values) { #i <- RRG$values[1]
-  j <- set_names(unlist(strsplit(i, "___")), RRG$names)
-  temp <- lapply(RRG$names, function(x) {
-    if (j[[x]] == "NA") {
-      return(which((is.na(Exp.map[[x]]))|(Exp.map[[x]] == j[[x]])))
-    }
-    return(which(Exp.map[[x]] == j[[x]]))
-  })
-  temp2 <- sort(unique(unlist(temp)))
-  test <- vapply(temp2, function(x) { sum(vapply(temp, function(y) { x %in% unlist(y) }, TRUE)) }, 1)
-  temp2 <- temp2[which(test == length(temp))]
-  temp3 <- Exp.map[temp2,]
-  # Get reference
-  k <- j[which(names(j) %in% RRG$names)]
-  b <- paste0(pep.ref[length(pep.ref)], paste(k, collapse = "___"), ".REF")
-  b1 <- pep[[b]]
-  a <- temp3$Ref.Sample.Aggregate
-  if (length(which(temp3$Reference)) == 1) { # If there is only one ref in the group, remove it as there is no point calculating a ratio to itself
-    a <- temp3$Ref.Sample.Aggregate[which(!temp3$Reference)]
-  }
-  if ((length(a) == 0)||(!sum(paste0(pep.ref[length(pep.ref)], a) %in% colnames(pep)))) {
-    warning(paste0("There are no ratios to calculate for level ", i))
-  } else {
-    pep[, paste0(pep.ratios.root, " - ", a)] <- sweep(pep[, paste0(pep.ref[length(pep.ref)], a), drop = FALSE], 1, b1, "/")
-    pep[, paste0(pep.ratios.ref, a)] <- log2(pep[, paste0(pep.ratios.root, " - ", a)])
-    a2 <- cleanNms(a)
-    cat(paste0("Median log2 ratio: ", paste(paste0("\n - ", a2, " -> ", apply(pep[,paste0(pep.ratios.ref, a), drop = FALSE], 2, function(x) { signif(median(is.all.good(x)), 3) })), collapse = ""), "\n"))
-  }
-  ratios.2.ref[["Used_by"]][which(ratios.2.ref$Name == b)] <- list(a)
-}
+tmpRt <- make_Rat(pep,
+                  Priority = "int",
+                  FALSE,
+                  2,
+                  refGroups = RRG,
+                  experiments.map = Exp.map,
+                  int.root = pep.ref[length(pep.ref)],
+                  rat.root = pep.ratios.ref)
+ratios.2.ref %<o% tmpRt$Ratios_to_Refs
+kol <- colnames(tmpRt$Data)
+pep[, kol] <- tmpRt$Data[, kol]
 ratios.2.ref <- listMelt(ratios.2.ref$Used_by, ratios.2.ref$Name, c("Ratio", "Reference"))
 #View(ratios.2.ref)
-# View(pep[,grep(topattern("Ratio "), colnames(pep))])
+#View(pep[,grep(topattern("Ratio "), colnames(pep))])
 
 # Visualize:
 kol <- paste0(pep.ratios.ref[1], RSA$values)

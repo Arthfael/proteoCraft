@@ -815,46 +815,52 @@ saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
 #### Code chunk - Create modified peptides table
-pep %<o% data.table(id = ev$id, seq = ev$"Modified sequence")
-pep <- pep[, list(`Evidence IDs` = paste(id, collapse = ";")), by = list(`Modified sequence` = seq)]
-pep <- as.data.frame(pep)
-# Create matches between ev and pep
-ev_to_pep <- match(pep$"Modified sequence", ev$"Modified sequence") # Only to be used when all matches would return the same value, e.g. sequence
-pep_to_ev <- match(ev$"Modified sequence", pep$"Modified sequence") # In the reverse direction, works for all
-# Proteins and sequence columns
-if ("Modified sequence_verbose" %in% colnames(ev)) { pep$"Modified sequence_verbose" <- ev$"Modified sequence_verbose"[ev_to_pep] }
-pep[, c("Sequence", "Proteins")] <- ev[ev_to_pep,  c("Sequence", "Proteins")]
-# PEP: for a peptide, the lowest of the PEP of individual matching evidences
-temp <- aggregate(ev$PEP, list(ev$"Modified sequence"), function(x) {
-  x <- x[which(!is.na(x))]
-  if (length(x)) { return(min(x)) } else { return(NA) }
-})
-pep$PEP <-  temp$x[match(pep$"Modified sequence", temp$Group.1)]
-# IDs
-pep$id <- c(1:nrow(pep)) # Note: these are new IDs, so will not match the peptide IDs in unprocessed MaxQuant output tables
-ev$"Mod. peptide ID" <- NULL
-ev$"Peptide ID" <- pep$id[pep_to_ev]
-# Amino Acid counts
-sq <- pep$Sequence
-clusterExport(parClust, "sq", envir = environment())
-tmp <- parSapply(parClust, proteoCraft::AA, function(aa) {
-  nchar(sq) - nchar(gsub(aa, "", sq))
-})
-colnames(tmp) <- paste0(colnames(tmp), " Count")
-pep[, colnames(tmp)] <- tmp
-ev[, paste0(AA, " Count")] <- pep[pep_to_ev, paste0(AA, " Count")]
-for (aa in c("O", "U")) { # Only keep the selenocysteine and pyrrolysine amino acid columns if they are non-empty (NB: pyrrolysine should really only be in some bacteria)
-  if (sum(ev[[paste0(aa, " Count")]]) == 0) {
-    ev[[paste0(aa, " Count")]] <- NULL
-    pep[[paste0(aa, " Count")]] <- NULL
-  }
-}
-# Length
-pep$Length <- nchar(pep$Sequence)
-ev$Length <- pep$Length[pep_to_ev]
-# Intensity
-temp <- aggregate(ev$Intensity, list(ev$"Modified sequence"), sum, na.rm = TRUE)
-pep$Intensity <-  temp$x[match(pep$"Modified sequence", temp$Group.1)]
+Src <- paste0(libPath, "/extdata/R scripts/Sources/pepMake.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+# Old code
+# pep %<o% data.table(id = ev$id, seq = ev$"Modified sequence")
+# pep <- pep[, list(`Evidence IDs` = paste(id, collapse = ";")), by = list(`Modified sequence` = seq)]
+# pep <- as.data.frame(pep)
+# # Create matches between ev and pep
+# ev_to_pep <- match(pep$"Modified sequence", ev$"Modified sequence") # Only to be used when all matches would return the same value, e.g. sequence
+# pep_to_ev <- match(ev$"Modified sequence", pep$"Modified sequence") # In the reverse direction, works for all
+# # Proteins and sequence columns
+# if ("Modified sequence_verbose" %in% colnames(ev)) { pep$"Modified sequence_verbose" <- ev$"Modified sequence_verbose"[ev_to_pep] }
+# pep[, c("Sequence", "Proteins")] <- ev[ev_to_pep,  c("Sequence", "Proteins")]
+# # PEP: for a peptide, the lowest of the PEP of individual matching evidences
+# temp <- aggregate(ev$PEP, list(ev$"Modified sequence"), function(x) {
+#   x <- x[which(!is.na(x))]
+#   if (length(x)) { return(min(x)) } else { return(NA) }
+# })
+# pep$PEP <-  temp$x[match(pep$"Modified sequence", temp$Group.1)]
+# # IDs
+# pep$id <- c(1:nrow(pep)) # Note: these are new IDs, so will not match the peptide IDs in unprocessed MaxQuant output tables
+# ev$"Mod. peptide ID" <- NULL
+# ev$"Peptide ID" <- pep$id[pep_to_ev]
+# # Amino Acid counts
+# sq <- pep$Sequence
+# clusterExport(parClust, "sq", envir = environment())
+# tmp <- parSapply(parClust, proteoCraft::AA, function(aa) {
+#   nchar(sq) - nchar(gsub(aa, "", sq))
+# })
+# colnames(tmp) <- paste0(colnames(tmp), " Count")
+# pep[, colnames(tmp)] <- tmp
+# ev[, paste0(AA, " Count")] <- pep[pep_to_ev, paste0(AA, " Count")]
+# for (aa in c("O", "U")) { # Only keep the selenocysteine and pyrrolysine amino acid columns if they are non-empty (NB: pyrrolysine should really only be in some bacteria)
+#   if (!sum(ev[[paste0(aa, " Count")]])) {
+#     ev[[paste0(aa, " Count")]] <- NULL
+#     pep[[paste0(aa, " Count")]] <- NULL
+#   }
+# }
+# # Length
+# pep$Length <- nchar(pep$Sequence)
+# ev$Length <- pep$Length[pep_to_ev]
+# # Intensity
+# temp <- aggregate(ev$Intensity, list(ev$"Modified sequence"), sum, na.rm = TRUE)
+# pep$Intensity <-  temp$x[match(pep$"Modified sequence", temp$Group.1)]
+# The part covered by pepMake ends here
+#
 for (e in Exp) { #e <- Exp[1]
   temp <- ev[which(ev$Experiment == e),]
   temp <-  set_colnames(aggregate(temp[[int.col]], list(temp$"Modified sequence"), function(x) { sum(is.all.good(x)) }),
@@ -918,7 +924,7 @@ if (PTMriched) {
 }
 form <- as.formula(form)
 temp <- pep[, kol]
-temp <- reshape::melt.data.frame(temp, id.vars = kol2)
+temp <- proteoCraft::dfMelt(temp, id.vars = kol2)
 temp$Sample <- gsub(topattern(paste0(int.col, " - ")), "", temp$variable)
 temp$variable <- NULL
 temp$Sample <- factor(temp$Sample, levels = Exp)
@@ -1092,7 +1098,7 @@ if (MakeRatios) {
   dir <- paste0(wd, "/Workflow control")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   temp <- pep[, c("Modified sequence", grep(topattern(paste0(rat.col, " - ")), colnames(pep), value = TRUE))]
-  temp <- reshape::melt.data.frame(temp, id.vars = "Modified sequence")
+  temp <- proteoCraft::dfMelt(temp, id.vars = "Modified sequence")
   temp$Sample <- gsub(topattern(paste0(rat.col, " - ")) , "", temp$variable)
   temp$Sample <- factor(temp$Sample, levels = Exp)
   temp <- temp[which(is.all.good(temp$value, 2)),]
@@ -1767,11 +1773,11 @@ long.dat <- list()
 dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 temp <- PG[, c("Common Name (short)", as.character(sapply(PG.int.cols, function(x) { paste0(x, Exp) })))]
-temp <- reshape::melt.data.frame(temp, id.vars = "Common Name (short)")
+temp <- proteoCraft::dfMelt(temp, id.vars = "Common Name (short)")
 colnames(temp)[which(colnames(temp) == "value")] <- "log10(Intensity)"
 if (length(Exp) > 1) {
   temp2 <- PG[, c("Common Name (short)", paste0("Mean ", gsub(" - $", "", PG.int.cols)))]
-  temp2 <- reshape::melt.data.frame(temp2, id.vars = "Common Name (short)")
+  temp2 <- proteoCraft::dfMelt(temp2, id.vars = "Common Name (short)")
   temp$"Mean log10(Intensity)" <- temp2$value
 }
 temp$Experiment <- gsub(paste0(".*", topattern(PG.int.cols["Original"], start = FALSE)), "", temp$variable)
@@ -1843,7 +1849,7 @@ if (length(M)) {
   #
   temp2 <- temp[which(temp$Type == "log10(orig. LFQ)"),
                 c("log10(Intensity)", "Experiment", names(M))]
-  temp2 <- reshape::melt.data.frame(temp2, id.vars = c("log10(Intensity)", "Experiment"))
+  temp2 <- proteoCraft::dfMelt(temp2, id.vars = c("log10(Intensity)", "Experiment"))
   colnames(temp2) <- c("log10(Intensity)", "Experiment", "GO term", "+")
   temp2 <- temp2[which(temp2$"+" == 1),]
   if (globalGO) {
@@ -1956,7 +1962,7 @@ if (MakeRatios) {
   temp <- PG[, c("Common Name (short)", as.character(sapply(PG.rat.cols, function(x) {
     grep(topattern(x), colnames(PG), value = TRUE)
   })))]
-  temp <- reshape::melt.data.frame(temp, id.vars = "Common Name (short)")
+  temp <- proteoCraft::dfMelt(temp, id.vars = "Common Name (short)")
   colnames(temp)[which(colnames(temp) == "value")] <- "log2(Ratio)"
   temp$Experiment <- gsub(paste0(".*", topattern(PG.rat.cols["Original"], start = FALSE)), "", temp$variable)
   temp$Experiment <- factor(temp$Experiment, levels = SamplesMap$Experiment)
@@ -2267,7 +2273,7 @@ if (MakeRatios) {
       temp <- ptmpep[, c("Code", as.character(sapply(paste0(PTMs_ratRf, " - "), function(x) {
         grep(topattern(x), colnames(ptmpep), value = TRUE)
       })))]
-      temp <- reshape::melt.data.frame(temp, id.vars = "Code")
+      temp <- proteoCraft::dfMelt(temp, id.vars = "Code")
       colnames(temp)[which(colnames(temp) == "value")] <- "log2(Ratio)"
       temp$Experiment <- gsub(paste0(".*", topattern(paste0(PTMs_ratRf["Original"], " - "), start = FALSE)), "", temp$variable)
       temp$Experiment <- factor(temp$Experiment, levels = SamplesMap$Experiment)
@@ -4101,7 +4107,7 @@ if ((length(Exp) > 1)&&(!is.null(prot.list))&&(length(prot.list))) {
         temp <- temp[, c("Modified sequence", Exp)]
         tst <- apply(temp[, Exp, drop = FALSE], 1, function(x) { mean(x[which(x > 0)]) })
         temp[, Exp] <- sweep(temp[, Exp, drop = FALSE], 1, tst, "/")
-        temp2 <- set_colnames(reshape::melt.data.frame(temp, id.vars = "Modified sequence"),
+        temp2 <- set_colnames(proteoCraft::dfMelt(temp, id.vars = "Modified sequence"),
                               c("Modified sequence", "Sample", "value"))
         temp2$"Modified sequence" <- gsub("^_|_$", "", temp2$"Modified sequence")
         temp2$Sample <- as.character(temp2$Sample)

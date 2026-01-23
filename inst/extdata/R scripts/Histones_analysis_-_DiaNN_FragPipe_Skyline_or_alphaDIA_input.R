@@ -1694,7 +1694,9 @@ if (statTsts) {
   Factors2 <- c("Group")
   Factors <- c("Sample", "Replicate", Factors2)
   for (fct in Factors) {
-    assign(paste0(fct, "_"), as.factor(samplesMap2[[fct]]))
+    lvls0 <- sort(unique(samplesMap2[which(samplesMap2$Reference), fct]))
+    lvls1 <- sort(unique(samplesMap2[which(!samplesMap2$Reference), fct]))
+    assign(paste0(fct, "_"), factor(samplesMap2[[fct]], levels = unique(c(lvls0, lvls1))))
   }
   if (Nested) {
     designCall <- paste0("designMatr <- model.matrix(~0 + Replicate_ + ", paste0(Factors2, "_", collapse = " + "), ")")
