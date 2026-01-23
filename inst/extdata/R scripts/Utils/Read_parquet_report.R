@@ -8,6 +8,7 @@
 # Modify this if you do want to use pak as a package manager... (Though why would you? It's vastly superior to anything base R has to offer!)
 if (!require(pak)) { install.packages("pak") }
 if (!require(arrow)) { pak::pkg_install("arrow") }
+library(arrow)
 
 # 2/ Select target directory
 # (change path if necessary!)

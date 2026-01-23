@@ -713,9 +713,10 @@ while (!areWeGood) {
   Fact2 <- Factors[which(tst > 1)]
   nr <- nrow(ExpData)
   rws <- seq_len(nr)
-  AllIDs <- setNames(lapply(Fact2, function(x) { paste0(x, "___", rws)} ), Fact2)
+  chRws <- as.character(rws)
+  AllIDs <- setNames(lapply(Fact2, function(x) { paste0(x, "___", chRws)} ), Fact2)
   ALLIDS <- setNames(unlist(AllIDs), NULL)
-  Fact2IDs <- setNames(lapply(Fact2, function(x) { paste0(x, "___", rws)} ), Fact2)
+  Fact2IDs <- setNames(lapply(Fact2, function(x) { paste0(x, "___", chRws)} ), Fact2)
   facLevels2 <- lapply(FactorsLevels, function(x) {
     unique(c(x, NA))
   })
@@ -885,8 +886,9 @@ while (!areWeGood) {
     # Incremental fill-down for replicates
     sapply(rws, function(i) {
       if (i < nr) {
-        id1 <- paste0("Replicate___", i)
-        id2 <- paste0("Replicate___", i, "___INCR")
+        iChr <- as.character(i)
+        id1 <- paste0("Replicate___", iChr)
+        id2 <- paste0("Replicate___", iChr, "___INCR")
         observeEvent(input[[id2]],
                      {
                        x <- input[[id1]]
@@ -915,7 +917,7 @@ while (!areWeGood) {
            Fact2#, "Use")
       ) {
         ExpData3[[fct]] <- sapply(rws, function(i) {
-          input[[paste0(fct, "___", i)]]
+          input[[paste0(fct, "___", as.character(i))]]
         })
         #if (fct == "Use") {
         #  ExpData3[[fct]] <- as.logical(ExpData3[[fct]])
@@ -989,7 +991,7 @@ for (grp in Analysis_group) { #grp <- Analysis_group[1]
         y <- (1:rgL)+(i-1)*rgL
         y <- y[which(y <= l1)]
         y <- y[which(!w1[y] %in% ctrlRanges[[grp]])]
-        flRanges[[paste0(grp, " ", prot, " ", i)]] <- w1[y]
+        flRanges[[paste0(grp, " ", prot, " ", as.character(i))]] <- w1[y]
       }
     }
   }
@@ -1011,15 +1013,16 @@ if (length(w)) {
                     slctFls[i], "\" -b=\"", gsub(".*/", paste0(wd, "/"), mzMLs[i]), "\" -f=2 -a",
                     c(" -z", "")[zlib+1], c(" -p", "")[PeakPicking+1])
       cmd <- c("C:", paste0("cd \"", deer$ParsDir, "\""), cmd)
-      write(cmd, paste0(wd, "/tmp", i, ".bat"))
+      iChr <- as.character(i)
+      write(cmd, paste0(wd, "/tmp", iChr, ".bat"))
       #cat(cmd)
       #system(cmd)
-      cmd2 <- paste0("\"", wd, "/tmp", i, ".bat\"") # I have to go through an intermediate batch file to run cmd,
+      cmd2 <- paste0("\"", wd, "/tmp", iChr, ".bat\"") # I have to go through an intermediate batch file to run cmd,
       # because it is one of those which works in Windows command line but not when passed to system() or shell() in R.
       #cat(cmd2)
       #writeClipboard(cmd)
       shell(cmd2)
-      unlink(paste0(wd, "/tmp", i, ".bat"))
+      unlink(paste0(wd, "/tmp", iChr, ".bat"))
     })
   }
   if (tolower(Convert_mode) == "msconvert") { # Mode 2: using msconvert
