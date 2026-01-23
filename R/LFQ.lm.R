@@ -176,14 +176,14 @@ LFQ.lm <- function(ids,
           temp3 <- temp3 - m0
           if (reNorm == 1) {
             # -> best-flyer hypothesis logic
-            m1 <- apply(temp1[, wNN], 1, function(x) { median(proteoCraft::is.all.good(x)) })
+            m1 <- apply(temp1[, wNN, drop = FALSE], 1, function(x) { median(proteoCraft::is.all.good(x)) })
             mx1 <- max(proteoCraft::is.all.good(m1))
             #if ((!is.na(m0))&&((is.na(mx1))||(!length(mx1)))) { stop(m1) }
             temp3 <- temp3 + mx1
           }
         }
         if (reNorm == 2) {
-          m <- max(proteoCraft::is.all.good(unlist(temp1[, wNN])))
+          m <- max(proteoCraft::is.all.good(unlist(temp1[, wNN, drop = FALSE])))
           m <- as.data.frame(which(temp1[, wNN, drop = FALSE] == m, arr.ind = TRUE))
           temp3 <- temp3 + temp1[m$row[1], wNN[m$col[1]]] - temp3[m$col[1]]
         }
