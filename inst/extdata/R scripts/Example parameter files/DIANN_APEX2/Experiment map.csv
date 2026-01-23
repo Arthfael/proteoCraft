@@ -1,5 +1,0 @@
-Aggr_Experiment,Aggr_Replicate,Aggr_Condition,Aggr_Target,Reference,MQ.Exp,Fractions,Use,Ratio.name
-LH2,1,Ctrl,,TRUE,...My_Dataset/File-ctr1.raw,1,TRUE,NA
-LH2,2,Ctrl,,TRUE,...My_Dataset/File-ctrl2.raw,1,TRUE,NA
-LH2,1,Bait,H0WFA5,FALSE,...My_Dataset/File-1_20221214144423.raw,1,TRUE,NA
-LH2,2,Bait,H0WFA5,FALSE,...My_Dataset/File-2.raw,1,TRUE,NA
