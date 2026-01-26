@@ -168,30 +168,6 @@ protQuant <- function(Prot,
   if (!as.numeric(refsMode) %in% 1:2) { refsMode <- 2 }
   refsMode <- as.character(refsMode)
   #
-  # Create cluster
-  tstCl <- stopCl <- misFun(cl)
-  if (!misFun(cl)) {
-    tstCl <- suppressWarnings(try({
-      a <- 1
-      parallel::clusterExport(cl, "a", envir = environment())
-    }, silent = TRUE))
-    tstCl <- !"try-error" %in% class(tstCl)
-  }
-  if ((misFun(cl))||(!tstCl)) {
-    dc <- parallel::detectCores()
-    if (misFun(N.reserved)) { N.reserved <- 1 }
-    if (misFun(N.clust)) {
-      N.clust <- max(c(dc-N.reserved, 1))
-    } else {
-      if (N.clust > max(c(dc-N.reserved, 1))) {
-        warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
-        N.clust <- max(c(dc-N.reserved, 1))
-      }
-    }
-    cl <- parallel::makeCluster(N.clust, type = "SOCK")
-  }
-  N.clust <- length(cl)
-  #
   # Check arguments
   mySmpls <- expMap[[expMap_Samples_col]]
   nPep_0 <- nrow(Pep)
@@ -694,17 +670,12 @@ protQuant <- function(Prot,
   # Now get peptides average intensity
   # When we throw away extra peptides (when we have more than maxN, we want to use in priority the high intensity ones),
   # we will use this to decide which to keep.
-  tmp1 <- Pep[, Pep.Intens.Nms, drop = FALSE]
-  saveRDS(tmp1, paste0(wd, "/tmp1.RDS"))
-  parallel::clusterExport(cl, "wd", envir = environment())
-  invisible(clusterCall(cl, function(x) {
-    tmp1 <<- readRDS(paste0(wd, "/tmp1.RDS"))
-    return()
-  }))
-  f0 <- function(x) { mean(proteoCraft::is.all.good(x)) }
-  environment(f0) <- .GlobalEnv
-  Pep$avgPepInt <- parallel::parApply(cl, tmp1, 1, f0) # Used for sorting peptides by intensity and then for optional reScaling
-  unlink(paste0(wd, "/tmp1.RDS"))
+  tmp1 <- as.data.table(Pep[, c(id, Pep.Intens.Nms), drop = FALSE])
+  tmp1 <- melt(tmp1, id.vars = id)
+  colnames(tmp1)[1] <- "pepID"
+  tmp1 <- tmp1[which(is.all.good(tmp1$value, 2)),]
+  tmp1 <- tmp1[, .(value = mean(value)), by = .(pepID = pepID)]
+  Pep$avgPepInt <- tmp1$value[match(Pep[[id]], tmp1$pepID)]
   #
   # In PreferUnique mode: update list of peptides to use for quantitation
   if (N_unique) {
@@ -824,15 +795,13 @@ protQuant <- function(Prot,
     useIntWeights <- FALSE
   }
   if ((useIntWeights)&&(sum(c(reScaling, LM_fun) %in% c("mean", "weighted.mean")))) {
-    tmp <- pepInt_log^Pep[, Pep.Intens.Nms, drop = FALSE]
-    parallel::clusterExport(cl, "tmp", envir = environment())
-    f0 <- function(x) {
-      x <- proteoCraft::is.all.good(x)
-      x <- x[which(x > 0)]
-      return(mean(x))
-    }
-    environment(f0) <- .GlobalEnv
-    Pep$useIntWeights <- parallel::parApply(cl, tmp, 1, f0)
+    tmp <- data.table(pepInt_log^Pep[, Pep.Intens.Nms, drop = FALSE])
+    tmp$pepID <- Pep[[id]]
+    tmp <- melt(tmp, id.vars = "pepID")
+    tmp <- tmp[which(is.all.good(tmp$value, 2)),]
+    tmp <- tmp[which(tmp$value > 0),]
+    tmp <- tmp[, .(value = mean(value)), by = .(pepID)]
+    Pep$useIntWeights <- tmp$value[match(Pep[[id]], tmp$pepID)]
     Pep[[Weights]] <- Pep[[Weights]]*Pep$useIntWeights # Update weights and method
     if (LM_fun == "mean") { LM_fun <- "weighted.mean" }
     if (reScaling == "mean") {
@@ -902,42 +871,91 @@ protQuant <- function(Prot,
   tmpPep2[, Pep.Intens.Nms] <- tmpPep[match(tmpPep2$id, tmpPep[[id]]), Pep.Intens.Nms]
   #
   allQuants <- list()
-  if (sum(c(LFQ_ALGO, RESCALING) == "LM")) {
-    # Export/serialize to cluster
-    exports <- list("LFQ_algo", "LFQ_ALGO", "wd", "id", "Pep.Intens.Nms", "minN", "maxN", "LM_fun",
+  cat("   method =", LFQ_algo, "\n")
+  stopCl <- FALSE
+  if (sum(c("INHOUSE_MAXLFQ", "LM") %in% c(LFQ_ALGO, RESCALING))) {
+    # Create cluster
+    tstCl <- stopCl <- misFun(cl)
+    if (!misFun(cl)) {
+      tstCl <- suppressWarnings(try({
+        a <- 1
+        parallel::clusterExport(cl, "a", envir = environment())
+      }, silent = TRUE))
+      tstCl <- !"try-error" %in% class(tstCl)
+    }
+    if ((misFun(cl))||(!tstCl)) {
+      dc <- parallel::detectCores()
+      if (misFun(N.reserved)) { N.reserved <- 1 }
+      if (misFun(N.clust)) {
+        N.clust <- max(c(dc-N.reserved, 1))
+      } else {
+        if (N.clust > max(c(dc-N.reserved, 1))) {
+          warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
+          N.clust <- max(c(dc-N.reserved, 1))
+        }
+      }
+      cl <- parallel::makeCluster(N.clust, type = "SOCK")
+    }
+    N.clust <- length(cl)
+  }
+  if ("LM" %in% c(LFQ_ALGO, RESCALING)) {
+    tmpFl1 <- tempfile()
+    tmpFl2 <- tempfile()
+    exports <- list("LFQ_algo", "LFQ_ALGO", "tmpFl1", "tmpFl2", "id", "Pep.Intens.Nms", "minN", "maxN", "LM_fun",
                     "Weights" #, "LFQ_stab"
     )
     parallel::clusterExport(cl, exports, envir = environment())
-    saveRDS(quant.pep.ids, paste0(wd, "/tempIDs.RDS"))
-    saveRDS(tmpPep, paste0(wd, "/tempPep.RDS"))
-    invisible(clusterCall(parClust, function() {
-      quant.pep.ids <<- readRDS(paste0(wd, "/tempIDs.RDS"))
-      tmpPep <<- readRDS(paste0(wd, "/tempPep.RDS"))
+    readr::write_rds(quant.pep.ids, tmpFl1)
+    readr::write_rds(tmpPep, tmpFl2)
+    parallel::clusterCall(cl, function() {
+      quant.pep.ids <<- readr::read_rds(tmpFl1)
+      tmpPep <<- readr::read_rds(tmpFl2)
       return()
-    }))
+    })
+    unlink(tmpFl1)
+    unlink(tmpFl2)
     #NB: we should add the option to stabilize large ratios (MaxLFQ-like) to LFQ.lm!!!
-    makeProf <- function(ids) { #ids <- quant.pep.ids[[1]]
+    makeProf <- function(ids,
+                         fun,
+                         pep,
+                         intCol,
+                         weights,
+                         min,
+                         max) { #ids <- quant.pep.ids[[1]]
       proteoCraft::LFQ.lm(ids,
-                          InputTabl = tmpPep,
+                          InputTabl = pep,
                           id = id,
-                          IntensCol = Pep.Intens.Nms,
-                          Summary.method = LM_fun,
-                          Summary.weights = Weights,
-                          Min.N = minN,
-                          Max.N = maxN,
+                          IntensCol = intCol,
+                          Summary.method = fun,
+                          Summary.weights = weights,
+                          Min.N = min,
+                          Max.N = max,
                           reNorm = 1)
     }
     environment(makeProf) <- .GlobalEnv
-    res2a <- try(parallel::parLapply(cl, quant.pep.ids, makeProf), silent = TRUE)
-    #
-    cat("   method =", , "\n")
-    if ("try-error" %in% class(res2a)) {
+    res2a <- try(parallel::parLapply(cl, quant.pep.ids, function(x) {
+      makeProf(ids = x,
+               fun = LM_fun,
+               pep = tmpPep,
+               intCol = Pep.Intens.Nms,
+               weights = Weights,
+               min = minN,
+               max = maxN)
+    }), silent = TRUE)
+    Done <- !("try-error" %in% class(res2a))
+    if (!Done) {
       cat(" - re-running quant algorithm, the slow way...\nsomething clearly went wrong with the cluster\n")
       # This function has occasionally and non-reproducibly failed on weak PCs, this is a back up
-      res2a <- lapply(quant.pep.ids, makeProf)
+      res2a <- lapply(quant.pep.ids, function(x) {
+        makeProf(ids = x,
+                 fun = LM_fun,
+                 pep = tmpPep,
+                 intCol = Pep.Intens.Nms,
+                 weights = Weights,
+                 min = minN,
+                 max = maxN)
+      })
     }
-    unlink(paste0(wd, "/tempIDs.RDS"))
-    unlink(paste0(wd, "/tempPep.RDS"))
     res2a <- as.data.frame(do.call(rbind, res2a))
     allQuants$LM <- res2a
     if (LFQ_ALGO == "LM") {
@@ -947,14 +965,14 @@ protQuant <- function(Prot,
   # Unfinished in-house implementation of maxLFQ - still has some issues:
   # in particular does not deal with cases where the ratios tree is disconnected into several independent sub-trees
   # (because of missing values).
-  if (sum(c(LFQ_ALGO, RESCALING) == "INHOUSE_MAXLFQ")) {
+  if ("INHOUSE_MAXLFQ" %in% c(LFQ_ALGO, RESCALING)) {
     # Export/serialize to cluster
     # exports <- list("LFQ_algo", "LFQ_ALGO", "wd", "id", "Pep.Intens.Nms", "minN", "maxN", "LM_fun",
     #                 "Weights", "mySmpls", "LFQ_stab")
     # parallel::clusterExport(cl, exports, envir = environment())
     # saveRDS(quant.pep.ids, paste0(wd, "/tempIDs.RDS"))
     # saveRDS(tmpPep, paste0(wd, "/tempPep.RDS"))
-    # invisible(clusterCall(parClust, function() {
+    # invisible(clusterCall(cl, function() {
     #   quant.pep.ids <<- readRDS(paste0(wd, "/tempIDs.RDS"))
     #   tmpPep <<- readRDS(paste0(wd, "/tempPep.RDS"))
     #   if (LFQ_ALGO == "INHOUSE_MAXLFQ") {
@@ -1114,7 +1132,6 @@ protQuant <- function(Prot,
     environment(makeProf) <- .GlobalEnv
     res2f <- try(parallel::parLapply(cl, quant.pep.ids, makeProf), silent = TRUE)
     #
-    cat("   method =", , "\n")
     if ("try-error" %in% class(res2f)) {
       cat(" - re-running quant algorithm, the slow way...\nsomething clearly went wrong with the cluster\n")
       # This function has occasionally and non-reproducibly failed on weak PCs, this is a back up
@@ -1276,6 +1293,7 @@ protQuant <- function(Prot,
     # }
   }
   colnames(res2) <- quntNms
+  rownames(res2) <- names(quant.pep.ids)
   #
   #########################################
   # Code to compare the different methods #
