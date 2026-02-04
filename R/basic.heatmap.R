@@ -6,7 +6,7 @@
 #' @param matr The data frame or matrix to plot. If it has rownames or colnames, these will be displayed.
 #' @param title The title of the graph.
 #' @param size The character size. Default = 2.5, you may want to reduce it for large proteins.
-#' @param h.margin Optional: size of the left hand side margin. Default = 3
+#' @param h.margins Optional: size of the horizontal margins. Default = c(5, 10)
 #' @param v.margin Optional: size of the upper margin. Default = 3
 #' @param colours Since October 2024, this should be a viridis scale name. The previous approach did not work.
 #' @param colours_invert Default = FALSE. If TRUE, the viridis scale of choice is reverted.
@@ -32,7 +32,7 @@ basic.heatmap <- function(matr,
                           normRows = FALSE,
                           isLog = FALSE,
                           size = 2,
-                          h.margin = c(5, 2),
+                          h.margins = c(5, 10),
                           v.margin = 10,
                           colours = "D",
                           colours_invert = FALSE,
@@ -44,7 +44,7 @@ basic.heatmap <- function(matr,
                           print_values = FALSE,
                           hTree = TRUE,
                           vTree = TRUE) {
-  #proteoCraft::DefArg(proteoCraft::basic.heatmap); h.margin <- v.margin <- 2.5
+  #proteoCraft::DefArg(proteoCraft::basic.heatmap); h.margins <- v.margin <- 2.5
   #matr <- temp2; subtitle <- paste0(tstrt, "\n(", tolower(bee), ")"); colours = c(darkblue = 0, red = 1)
   #matr <- pepSLA1[, exprsCol]; title = "Normalization - before"; save = TRUE
   # lC <- length(colours)
@@ -67,7 +67,7 @@ basic.heatmap <- function(matr,
   # })
   if (!colours %in% c("A", "B", "C", "D", "E", "F", "G", "H")) { warning("Invalid colour scale name provided, defaulting to \"D\" ( = viridis)!") }
   if (missing(folder)) { folder <- getwd() }
-  if (length(h.margin) == 1) { h.margin <- c(h.margin, 2) }
+  if (length(h.margins) == 1) { h.margins <- c(h.margins, 2) }
   if (normRows) {
     if (isLog) {
       normVect <- log10(rowMeans(10^matr, na.rm = TRUE))
@@ -80,7 +80,7 @@ basic.heatmap <- function(matr,
   Nrow <- nrow(matr)
   Ncol <- ncol(matr)
   matr2 <- as.matrix(matr)
-  h.Marg <- h.margin
+  h.Marg <- h.margins
   v.Marg <- v.margin
   #h.Padd <- max(nchar(unlist(strsplit(rownames(matr2), "\n"))))/25
   h.Padd <- 0

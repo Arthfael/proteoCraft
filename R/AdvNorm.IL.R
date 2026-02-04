@@ -97,7 +97,7 @@ AdvNorm.IL <- function(df,
   }
   diffLog2_h <- function(...) {
     p <- list(...)
-    res <- diffLog(p, exprs.col, df2)
+    res <- diffLog2(p, exprs.col, df2)
     return(res)
   }
   LM <- minpack.lm::nls.lm(par = h.fact[2:n.exprs],

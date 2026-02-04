@@ -22,7 +22,7 @@
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
 #' @param Custom_PGs Data frame of protein groups known a priori (default = NA). One column required, called "Leading protein IDs" with semicolon-separated IDs; optional 2nd column: a numeric/integer called "Priority level". Any peptide mapping to these groups will be assigned to them to the exclusion of other protein groups. Use the priority column to resolve ambiguities (1 = highest priority). NB: Use with caution, only for known, priority proteins (e.g. artificial constructs).
 #' @param ContCol Name of column in the database specifying whether a protein is a contaminant ("+", otherwise ""). Default = "Potential contaminant"
-#' @param Npep Minimum number of razor or unique peptides to tag a protein group as a true discovery (others will still be reported). Default = 2
+#' @param Npep Minimum number of razor or unique peptides to tag a protein group as a true discovery (others will still be reported). Default = N_Pep if it exists, otherwise 2.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
 #' 
 #' @returns
@@ -48,7 +48,7 @@ PG_assemble <- function(Pep,
                         N.reserved = 1,
                         Custom_PGs = NA,
                         ContCol = "Potential contaminant",
-                        Npep = 2,
+                        Npep,
                         cl) {
   # An immense thank you goes to Steve Weston from
   # https://stackoverflow.com/questions/19467133/performance-of-clusterapply-deteriorates-when-called-inside-a-function?rq=4
@@ -56,8 +56,8 @@ PG_assemble <- function(Pep,
   #
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::PG_assemble)
-  #Pep <- pep ;Ev <- ev ;DB <- db ;N.clust <- 55; Custom_PGs <- custPGs; Npep = NPep; TESTING <- TRUE
-  #Pep <- pep[1:1000,] ;Ev <- ev ;DB <- db ;N.clust <- 55; Custom_PGs <- custPGs; Npep = NPep; TESTING <- TRUE
+  #Pep <- pep ;Ev <- ev ;DB <- db ;N.clust <- 55; Custom_PGs <- custPGs; Npep = N_Pep; TESTING <- TRUE
+  #Pep <- pep[1:1000,] ;Ev <- ev ;DB <- db ;N.clust <- 55; Custom_PGs <- custPGs; Npep = N_Pep; TESTING <- TRUE
   #
   if (TESTING) {
     tm1 <<- Sys.time()
@@ -731,8 +731,10 @@ PG_assemble <- function(Pep,
   }
   pg$id <- 1:nrow(pg)
   # Peptide IDs
-  if (grepl("peptide", Peptide.IDs, ignore.case = TRUE)) { pepcolnm <- gsub("ss$", "s", paste0(Peptide.IDs, "s")) } else {
-    pepcolnm <- "Peptide IDs"
+  pepcolnm <- {
+    if (grepl("peptide", Peptide.IDs, ignore.case = TRUE)) {
+      gsub("ss$", "s", paste0(Peptide.IDs, "s"))
+    } else { "Peptide IDs" }
   }
   pg[[pepcolnm]] <- vapply(pg$.pep.ids, paste, "", collapse = ";")
   # Assign final PG IDs to seq
@@ -940,6 +942,10 @@ PG_assemble <- function(Pep,
   }
   # Mark protein groups which the user should want to keep if they want to be stringent
   # (at least Npep unique + razor peptides)
+  if (misFun(Npep)) {
+    Npep <- { if (exists("N_Pep")) { N_Pep } else { 2 } }
+  }
+  #
   if (Npep > 1) {
     pg[[paste0("Quality filter: min ", Npep, " razor&unique pep.")]] <- c("", "Keep")[
       vapply(strsplit(pg$`Peptide counts (razor+unique)`, ";"), function(x) {
@@ -1119,12 +1125,10 @@ PG_assemble <- function(Pep,
   #environment(f0) <- .GlobalEnv
   temp <- parallel::parSapply(cl, tmp1, f0)
   u <- unique(temp)
-  if (length(u) > 1) {
-    pg$"Only identified by site" <- temp
-  } else {
-    if (u == "+") { warning("Do we really expect all of our peptides to be modified?") }
-    pg$"Only identified by site" <- temp
+  if ((length(u) == 1)&&(u == "+")) {
+    warning("Do we really expect all of our peptides to be modified?")
   }
+  pg$"Only identified by site" <- temp
   if (!misFun(Ev)) {
     seq$.Evidence.IDs <- strsplit(seq$"Evidence IDs", ";")
     tmp1 <- pg$.pep.ids
@@ -1207,7 +1211,7 @@ PG_assemble <- function(Pep,
     if ((length(id.col))&&(length(w) > 0)) {
       pg$"Common Name (short)"[w] <- apply(pg[w, id.col], 1, function(x) {
         ww <- which(!x %in% c("", " ", "NA", NA))
-        if (length(ww) > 0) { x <- x[ww[1]] } else { x <- "" }
+        x <- { if (length(ww) > 0) { x[ww[1]] } else { "" } }
         return(x)
       })
     }
@@ -1215,7 +1219,7 @@ PG_assemble <- function(Pep,
   # PG label column
   pg$temp <- gsub(";.+", ";...", pg$"Leading protein IDs")
   pg$Label <- apply(pg[, c("temp", "Common Name (short)")], 1, function(x) {
-    if (is.na(x[[2]])) { x <- x[[1]] } else { x <- paste0(x[[1]], " - ", x[[2]]) }
+    x <- { if ((is.na(x[[2]]))||(x[[2]] == "NA")) { x[[1]] } else { paste0(x[[1]], " - ", x[[2]]) } }
     return(x)
   })
   pg$temp <- NULL

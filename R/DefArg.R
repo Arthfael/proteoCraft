@@ -54,5 +54,5 @@ DefArg <- function(FUN,
   }
   setNames(lapply(names(args), function(x) {
     try(assign(x, args[[x]], envir = .GlobalEnv), silent = TRUE)
-  }, names(args)))
+  }), names(args))
 }

@@ -31,6 +31,8 @@ make_Rat <- function(myData = pep,
                      int.root,
                      rat.root,
                      verbose = TRUE) {
+  #proteoCraft::DefArg(make_Rat)
+  #proteoCraft::DefArg(make_Rat, silent = FALSE)
   if (is.logical(int.log)) {
     if (!is.na(int.log)&&int.log) {
       logTrans <- TRUE
@@ -63,7 +65,7 @@ make_Rat <- function(myData = pep,
     temp2 <- temp2[which(test == length(temp))]
     temp3 <- experiment.map[temp2,]
     temp3 <- temp3[which(temp3$Reference),]
-    smpls <- temp[[experiment.map_col]]
+    smpls <- temp3[[experiment.map_col]]
     if (!length(smpls)) { return() }
     kol <- paste0(int.root, smpls)
     w <- which(kol %in% colnames(myData))
@@ -134,62 +136,62 @@ make_Rat <- function(myData = pep,
     if (!length(a)) {
       warning(paste0(paste0("There are no ", c("ratios", "expression values")[match(Priority, c("int", "rat"))],
                             " to calculate for level ", i)))
-    } else {
-      intKl <- paste0(int.root, a)
-      ratKl <- paste0(rat.root, a)
-      if (Priority == "int") { # Here we calculate log ratios so they precisely reflect log expression
-        nuDat <- myData[, intKl, drop = FALSE]
-        # Adjust log base
-        if (logTrans) {
-          nuDat <- nuDat/log_Int2Rat
-        } else {
-          nuDat <- log(nuDat, rat.log)
-        }
-        #
-        nuDat <- as.data.frame(sweep(nuDat, 1, rfVct, "-"))
-        colnames(nuDat) <- ratKl
-        #myData[, ratKl] <- nuDat
-      }
-      if (Priority == "rat") { # Here we re-calculate log expression to reflect log ratios
-        nuDat <- vals[, ratKl, drop = FALSE] # Base RATIOS
-        nuDat <- sweep(nuDat, 1, rfVct, "+")
-        # Adjust log base
-        if (logTrans) {
-          nuDat <- nuDat*log_Int2Rat
-        } else {
-          nuDat <- rat.log^(nuDat)
-        }
-        #
-        nuDat <- as.data.frame(nuDat)
-        colnames(nuDat) <- intKl
-        #myData[, intKl] <- nuDat
-      }
-      msgs <- c()
-      for (a1 in A) { #a1 <- A[1]
-        tmp <- proteoCraft::is.all.good(myData[[paste0(int.root, a1)]])
-        if (!int.log) { tmp <- tmp[which(tmp > 0)] }
-        emd <- signif(median(tmp), 3)
-        esd <- signif(sd(tmp), 3)
-        if (logTrans) {
-          msg <- paste0("-> Sample ", proteoCraft::cleanNms(a1), ":\n",
-                        paste0("   - log", int.log, "(expr.): median = ", emd, ", SD = ", esd, "\n"))
-        } else {
-          msg <- paste0("-> Sample ", proteoCraft::cleanNms(a1), ":\n",
-                        paste0("   - expr.: median = ", emd, ", SD = ", esd, "\n"))
-        }
-        if (paste0(rat.root, a1) %in% colnames(myData)) {
-          tmp <- proteoCraft::is.all.good(myData[[paste0(rat.root, a1)]])
-          rmd <- signif(median(tmp), 3)
-          rsd <- signif(sd(tmp), 3)
-          msg <- paste0(msg, paste0("   - log", rat.log, "(ratio): median = ", rmd, ", SD = ", rsd, "\n"))
-        } # else { msg <- paste0(msg, "     (no ratios calculated)\n") }
-        msgs <- c(msgs, msg)
-      }
-      myRes <- list(Data = nuDat,
-                    Ref = b,
-                    Samples = a,
-                    Message = msgs)
+      return()
     }
+    intKl <- paste0(int.root, a)
+    ratKl <- paste0(rat.root, a)
+    if (Priority == "int") { # Here we calculate log ratios so they precisely reflect log expression
+      nuDat <- myData[, intKl, drop = FALSE]
+      # Adjust log base
+      if (logTrans) {
+        nuDat <- nuDat/log_Int2Rat
+      } else {
+        nuDat <- log(nuDat, rat.log)
+      }
+      #
+      nuDat <- as.data.frame(sweep(nuDat, 1, rfVct, "-"))
+      colnames(nuDat) <- ratKl
+      #myData[, ratKl] <- nuDat
+    }
+    if (Priority == "rat") { # Here we re-calculate log expression to reflect log ratios
+      nuDat <- vals[, ratKl, drop = FALSE] # Base RATIOS
+      nuDat <- sweep(nuDat, 1, rfVct, "+")
+      # Adjust log base
+      if (logTrans) {
+        nuDat <- nuDat*log_Int2Rat
+      } else {
+        nuDat <- rat.log^(nuDat)
+      }
+      #
+      nuDat <- as.data.frame(nuDat)
+      colnames(nuDat) <- intKl
+      #myData[, intKl] <- nuDat
+    }
+    msgs <- c()
+    for (a1 in A) { #a1 <- A[1]
+      tmp <- proteoCraft::is.all.good(myData[[paste0(int.root, a1)]])
+      if (!int.log) { tmp <- tmp[which(tmp > 0)] }
+      emd <- signif(median(tmp), 3)
+      esd <- signif(sd(tmp), 3)
+      if (logTrans) {
+        msg <- paste0("-> Sample ", proteoCraft::cleanNms(a1), ":\n",
+                      paste0("   - log", int.log, "(expr.): median = ", emd, ", SD = ", esd, "\n"))
+      } else {
+        msg <- paste0("-> Sample ", proteoCraft::cleanNms(a1), ":\n",
+                      paste0("   - expr.: median = ", emd, ", SD = ", esd, "\n"))
+      }
+      if (paste0(rat.root, a1) %in% colnames(myData)) {
+        tmp <- proteoCraft::is.all.good(myData[[paste0(rat.root, a1)]])
+        rmd <- signif(median(tmp), 3)
+        rsd <- signif(sd(tmp), 3)
+        msg <- paste0(msg, paste0("   - log", rat.log, "(ratio): median = ", rmd, ", SD = ", rsd, "\n"))
+      } # else { msg <- paste0(msg, "     (no ratios calculated)\n") }
+      msgs <- c(msgs, msg)
+    }
+    myRes <- list(Data = nuDat,
+                  Ref = b,
+                  Samples = a,
+                  Message = msgs)
     return(myRes)
   })
   #

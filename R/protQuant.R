@@ -1,15 +1,15 @@
 #' protQuant
 #'
-#' @description 
+#' @description
 #' A function to calculate estimated protein group Expression (inter-protein group quantitation vectors) and Ratios (optional, intra-protein group fold changes) from individual peptide values.
 #' The input is assumed to already be normalized!\cr
 #' 
 #' @param Prot Protein/Protein groups table. A data.frame, which must contain at least peptides IDs and primary sequence of the first accession in each group.
-#' @param PepIDs Name of the Protein/Protein groups table's peptide IDs column. Default = "Peptide IDs"
-#' @param PepIDs_unique Used only if mode = "PreferUnique". Name of the Protein/Protein groups table's unique peptide IDs column. Default = "Unique peptide IDs"
-#' @param Pep Peptides table. A data.frame. If it contains unmodified sequences then these are expected to be in column name "Sequence". Argument modSeq controls the name of the column used for modified sequence.
-#' @param id The name of the Peptides table's IDs column. Default = "id"
-#' @param N_unique Logical or numeric. If FALSE or 0, the function just uses the "PepIDs" argument. If non null (default), a second column name of unique peptide IDs should be provided using the "PepIDs_unique" argument. If at least N_unique unique peptides are present, then only those will be used for quantitation, otherwise as many razor/shared peptides as necessary will be added (sorted by decreasing average intensities).
+#' @param Pep Peptides table. A data.frame. If it contains unmodified sequences then these are expected to be in column name "Sequence". Argument mod_Seq controls the name of the column used for modified sequence.
+#' @param pg_PepIDs Name of the Protein/Protein groups table's peptide IDs column. Default = "Peptide IDs"
+#' @param pg_PepIDs_unique Used only if mode = "PreferUnique". Name of the Protein/Protein groups table's unique peptide IDs column. Default = "Unique peptide IDs"
+#' @param pep_IDs The name of the Peptides table's IDs column. Default = "id"
+#' @param N_unique Logical or numeric. If FALSE or 0, the function just uses the "pg_PepIDs" argument. If non null (default), a second column name of unique peptide IDs should be provided using the "pg_PepIDs_unique" argument. If at least N_unique unique peptides are present, then only those will be used for quantitation, otherwise as many razor/shared peptides as necessary will be added (sorted by decreasing average intensities).
 #' @param LFQ_algo Algorithm used to compute average profiles. One of:\cr
 #'  - "LM": Levenberg-Marquardt method (backend = minpack.lm::nls.lm()); very similar to MaxLFQ. Normalized peptide relative profiles are aligned using Levenberg-Marquardt then summarized.\cr
 #'  - "iq": iq's fast implementation of MaxLFQ, backend = iq::fast_MaxLFQ()\cr
@@ -17,7 +17,6 @@
 #'  - "QFeatures": backend = QFeatures::aggregateFeatures()\cr
 #' Note that limpa and QFeatures do not "just produce quantitative values": both output specific objects with additional information which can be used for downstream analysis (respectively with limma or msqrob2).\cr
 # @param LFQ_stab Logical. Stabilize ratios? Default = TRUE
-#' @param LM_fun How should normalized profiles be averaged? One of "median" (default), "mean", or "weighted.mean" (the latter which uses the Weights and useIntWeights arguments).
 #' @param reScaling Optional summary method for re-scaling. May be one of:\cr
 #'  - "median",\cr
 #'  - "mean",\cr
@@ -31,6 +30,7 @@
 #' @param topN_correct Logical, default = TRUE. In the case where we are using more than one peptide for the re-scaling step, should we correct for systematic peptide intensity biases between peptides of rank 1, 2, 3 and so on and so forth?
 #' @param minN Integer, default = 1. How many peptides should at least be present for quantitation? Values lower than 1 are increased to 1. May not be higher than N_unique!
 #' @param maxN Integer or Inf, default = 50. Up to how many peptides should we use for the Levenberg-Marquardt procedure (used only for LFQs)? Using too many peptides can be an issue, e.g. with huge proteins like Titin. Default = 50. The most intense peptides will be selected. May not be lower than N_unique!
+#' @param LM_fun How should normalized profiles be averaged? One of "median" (default), "mean", or "weighted.mean" (the latter which uses the Weights and useIntWeights arguments).
 #' @param Weights Length 1 character, a valid column name of Pep containing user-defined individual peptide weights. Used if LM_fun or reScaling are set to "weighted.mean" (for the former only if LFQ_algo = "LM").
 #' @param useIntWeights Logical, default = FALSE. Ignored unless LM_fun or reScaling are set to "mean" or "weighted.mean". If TRUE, will take into account individual peptide intensities when calculating average profile for that step (thus, it will actually be a weighted mean regardless). DOES NOT replace the optional, user-provided Weights, but instead multiplies the former by new intensity-based factors.
 #' @param Priority One of "Intensities" (default) or "Ratios" (some flexibility in spelling is allowed). In some rare cases, such as a SILAC dataset processed with MaxQuant, we will want to correct intensities - prior to running the main algorithm - so their ratios reflect the more accurate ratios directly measured by the search engine.
@@ -50,11 +50,11 @@
 #' @param protLFQ_toLog Should the output protein LFQ values be log-scale or not? Can ve set to the log base desired. If set to TRUE, this will be the same base as the input intensities log scale, or 10 by default.
 #' @param protRat_toLog Only needed if ratios (logFCs) are also to be output. Should the output protein ratios be log-scale or not? Can ve set to the log base desired. If set to TRUE, this will be the same base as the input ratios log scale, or its default, 2
 #  @param Mods Which modifications (2 lowercase letters PTM code) should be included? If set to FALSE, will not filter any modifications.
-#' @param Mods_to_Exclude Which modifications should be excluded? (use argument "Discard_unmod" to discard unmodified counterpart peptides.) A data.frame with columns "Mark" (2-lettern modification mark) and "Where" (a list, which amino acids are affected, use "Nterm", "Cterm", "protNterm" and "protCterm" for termini). Also see argument "Discard_unmod".
-#' @param modSeq Default = "Modified sequence". The name of the column containing the modified sequence in the peptides table. Can be set to a non-modified sequence if Mods_to_Exclude is empty.
-#' @param Discard_unmod Logical or integer in 0:2. Default = TRUE. Should we discard those unmodified peptides whose primary sequence is the same as that of some modified peptides we will not use? If set to 2, will use the "Where" column in "Mods_to_Exclude" to identify (and exclude) peptides which could be modified even if the modified form was not identified. Requires knowledge of protein sequence ("primSeq" argument)! Be careful! This will likely massively reduce the number of peptides available for quantitation!
-#' @param primSeq Default = "Sequence (1st accession)", used if "Discard_unmod" is set to 2.
-#' @param refsMode How are reference ratios calculated?\cr
+#' @param mods_to_Exclude Which modifications should be excluded? (use argument "discard_unmod" to discard unmodified counterpart peptides.) A data.frame with columns "Mark" (2-lettern modification mark) and "Where" (a list, which amino acids are affected, use "Nterm", "Cterm", "protNterm" and "protCterm" for termini). Also see argument "discard_unmod".
+#' @param mod_Seq Default = "Modified sequence". The name of the column containing the modified sequence in the peptides table. Can be set to a non-modified sequence if mods_to_Exclude is empty.
+#' @param discard_unmod Logical or integer in 0:2. Default = TRUE. Should we discard those unmodified peptides whose primary sequence is the same as that of some modified peptides we will not use? If set to 2, will use the "Where" column in "mods_to_Exclude" to identify (and exclude) peptides which could be modified even if the modified form was not identified. Requires knowledge of protein sequence ("prim_Seq" argument)! Be careful! This will likely massively reduce the number of peptides available for quantitation!
+#' @param prim_Seq Default = "Sequence (1st accession)", used if "discard_unmod" is set to 2.
+#' @param ref_Mode How are reference ratios calculated?\cr
 #'  - If set to "1", only references are considered (i.e. it compares individual references either to each other, or if available to the average reference for the group).\cr
 #'  - If set to "2" (default), for each ratios group, reference ratios are based on comparing every possible pair of samples within the group.\cr
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
@@ -88,8 +88,8 @@
 #'\cr
 #'\cr
 #' (Note on refGroups and ratGroups:\cr
-#'   These parameters are the method we used for calculating logFCs and together define whether replicates are paired or not.\cr
-#' For an experiment with several Replicates of 2 or more Conditions (incl. one control, aka reference):\cr
+#'  These parameters are the method we used for calculating logFCs and together define whether replicates are paired or not.\cr
+#'  For an experiment with several Replicates of 2 or more Conditions (incl. one control, aka reference):\cr
 #'  - In a paired (= "nested") setup, you would set refGroups to "ExpRep" and ratGroups to "Exp"\cr
 #'  - In an unpaired setup, you would set both refGroups and ratGroups to "Exp"\cr
 #'  Essentially, refGroups are the groups within which ratios are calculated to all available references in the group,\cr
@@ -103,30 +103,30 @@
 #'  - "QFeatures_obj": QFeatures object, only present if LFQ_algo or reScaling  = "QFeatures"
 #' 
 #' @examples
-#' temp <- protQuant(Prot = PG, PepIDs = Pep4Quant, Pep = pep, id = "New Peptide ID",
+#' temp <- protQuant(Prot = PG, pg_PepIDs = Pep4Quant, Pep = pep, pep_IDs = "New Peptide ID",
 #'                   expMap = Exp.map,
 #'                   refGroups = Ratios.Ref.Groups,
 #'                   pepInt_Root = pep.ref, pepRat_root = pep.ratios.ref,
 #'                   pepInt_log = FALSE, pepRat_log = 2,
 #'                   protLFQ_toLog = TRUE, protRat_toLog = TRUE,
-#'                   Mods_to_Exclude = Mod2Xclud, modSeq = "Modified sequence",
+#'                   mods_to_Exclude = Mod2Xclud, mod_Seq = "Modified sequence",
 #'                   minN = 2)
 #' 
 #' @export
 
 protQuant <- function(Prot,
-                      PepIDs = "Peptide IDs",
-                      PepIDs_unique = "Unique peptide IDs",
                       Pep,
-                      id = "id",
+                      pg_PepIDs = "Peptide IDs",
+                      pg_PepIDs_unique = "Unique peptide IDs",
+                      pep_IDs = "id",
                       N_unique,
                       LFQ_algo = "limpa",
                       #LFQ_stab = TRUE,
-                      LM_fun = "median",
                       reScaling,
                       topN_correct = TRUE,
                       minN = 1,
                       maxN = 50,
+                      LM_fun = "median",
                       Weights,
                       useIntWeights = FALSE,
                       Priority = "Intensities",
@@ -147,26 +147,26 @@ protQuant <- function(Prot,
                       protLFQ_toLog = TRUE,
                       protRat_toLog = TRUE,
                       #Mods,
-                      Mods_to_Exclude,
-                      modSeq = "Modified sequence",
-                      Discard_unmod = TRUE,
-                      primSeq = "Sequence (1st accession)",
-                      refsMode = "2",
+                      mods_to_Exclude,
+                      mod_Seq = "Modified sequence",
+                      discard_unmod = TRUE,
+                      prim_Seq = "Sequence (1st accession)",
+                      ref_Mode = "2",
                       cl,
                       N.clust,
                       N.reserved = 1) {
   TESTING <- FALSE
   #proteoCraft::DefArg(proteoCraft::protQuant);cl <- parClust;TESTING <- TRUE
-  #Prot = PG; PepIDs = "Razor peptide IDs"; PepIDs_unique = "Unique peptide IDs";Pep = pep; id = "id";useIntWeights = FALSE;expMap = Exp.map; param = Param;pepInt_Root = pep.ref[length(pep.ref)];pepRat_root = pep.ratios.ref[length(pep.ratios.ref)];pepInt_log = FALSE; pepRat_log = 2;protLFQ_toLog = TRUE; protRat_toLog = TRUE;Mods_to_Exclude = Mod2Xclud; Discard_unmod = Discard_unmod;minN = 1; N.clust = N.clust;Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1]
-  #Prot = PG; PepIDs = Pep4Quant; Pep = pep; useIntWeights = FALSE; skipRatios = !MakeRatios; expMap = Exp.map; refGroups = RefGrp; ratGroups = RatGrp; pepInt_Root = paste0(int.col, " - "); pepRat_root = paste0(rat.cols["Original"], " - "); pepInt_log = FALSE; pepRat_log = 2; protLFQ_toLog = TRUE; protRat_toLog = TRUE; Mods_to_Exclude = Mod2Xclud; minN = 1; N.clust = N.clust; Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1]
+  #Prot = PG; pg_PepIDs = "Razor peptide IDs"; pg_PepIDs_unique = "Unique peptide IDs";Pep = pep; pep_IDs = "id";useIntWeights = FALSE;expMap = Exp.map; param = Param;pepInt_Root = pep.ref[length(pep.ref)];pepRat_root = pep.ratios.ref[length(pep.ratios.ref)];pepInt_log = FALSE; pepRat_log = 2;protLFQ_toLog = TRUE; protRat_toLog = TRUE;mods_to_Exclude = Mod2Xclud; discard_unmod = discard_unmod;minN = 1; N.clust = N.clust;Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1]
+  #Prot = PG; pg_PepIDs = Pep4Quant; Pep = pep; useIntWeights = FALSE; skipRatios = !MakeRatios; expMap = Exp.map; refGroups = RefGrp; ratGroups = RatGrp; pepInt_Root = paste0(int.col, " - "); pepRat_root = paste0(rat.cols["Original"], " - "); pepInt_log = FALSE; pepRat_log = 2; protLFQ_toLog = TRUE; protRat_toLog = TRUE; mods_to_Exclude = Mod2Xclud; minN = 1; N.clust = N.clust; Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1]
   if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
     misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
-  if (misFun(refsMode)) { refsMode <- 2 }
-  if (!as.numeric(refsMode) %in% 1:2) { refsMode <- 2 }
-  refsMode <- as.character(refsMode)
+  if (misFun(ref_Mode)) { ref_Mode <- 2 }
+  if (!as.numeric(ref_Mode) %in% 1:2) { ref_Mode <- 2 }
+  ref_Mode <- as.character(ref_Mode)
   #
   # Check arguments
   mySmpls <- expMap[[expMap_Samples_col]]
@@ -182,8 +182,8 @@ protQuant <- function(Prot,
             sum(!is.na(c(N_unique, minN, maxN))) == 3)
   cat("Using at least", minN, "and up to", maxN, "peptides...\n")
   if (N_unique) {
-    stopifnot(PepIDs_unique %in% colnames(Prot))
-    if (PepIDs == PepIDs_unique) {
+    stopifnot(pg_PepIDs_unique %in% colnames(Prot))
+    if (pg_PepIDs == pg_PepIDs_unique) {
       N_unique <- 0
     }
   }
@@ -194,11 +194,11 @@ protQuant <- function(Prot,
   LFQ_ALGO <- toupper(LFQ_algo)
   stopifnot(nrow(Prot) > 0,
             nPep_0 > 0,
-            "character" %in% class(PepIDs),
-            nchar(PepIDs) > 0,
-            length(PepIDs) == 1,
-            PepIDs %in% colnames(Prot),
-            sum(c("character", "integer", "numeric") %in% class(Prot[[PepIDs]])) > 0,
+            "character" %in% class(pg_PepIDs),
+            nchar(pg_PepIDs) > 0,
+            length(pg_PepIDs) == 1,
+            pg_PepIDs %in% colnames(Prot),
+            sum(c("character", "integer", "numeric") %in% class(Prot[[pg_PepIDs]])) > 0,
             sum(c("numeric", "integer", "logical") %in% class(N_unique)) > 0,
             LFQ_ALGO %in% c("LM",
                             "IQ", #"MAXLFQ",
@@ -304,17 +304,17 @@ protQuant <- function(Prot,
   }
   #
   if (N_unique) {
-    # Check that all peptide IDs in Prot[[PepIDs_unique]] are also in Prot[[PepIDs]]
-    tmp <- Prot[, c(PepIDs, PepIDs_unique)]
-    tmp[[PepIDs]] <- strsplit(tmp[[PepIDs]], ";")
-    tmp[[PepIDs_unique]] <- strsplit(tmp[[PepIDs_unique]], ";")
-    Prot[[PepIDs]] <- apply(tmp, 1 , function(x) { paste(unique(unlist(x)), collapse = ";") })
+    # Check that all peptide IDs in Prot[[pg_PepIDs_unique]] are also in Prot[[pg_PepIDs]]
+    tmp <- Prot[, c(pg_PepIDs, pg_PepIDs_unique)]
+    tmp[[pg_PepIDs]] <- strsplit(tmp[[pg_PepIDs]], ";")
+    tmp[[pg_PepIDs_unique]] <- strsplit(tmp[[pg_PepIDs_unique]], ";")
+    Prot[[pg_PepIDs]] <- apply(tmp, 1 , function(x) { paste(unique(unlist(x)), collapse = ";") })
   }
   #
-  Discard_unmod.strict <- FALSE
-  if (Discard_unmod == 2) {
-    Discard_unmod.strict <- TRUE
-    Discard_unmod <- TRUE
+  discard_unmod.strict <- FALSE
+  if (discard_unmod == 2) {
+    discard_unmod.strict <- TRUE
+    discard_unmod <- TRUE
   }
   if ("Reference" %in% colnames(expMap)) {
     expMap$Reference <- as.logical(toupper(expMap$Reference))
@@ -347,9 +347,11 @@ protQuant <- function(Prot,
     if ((!misFun(refGroups))&&(gsub(";", "", param$Ratios.Ref.Groups) != refGroups$aggregate)) {
       warning("The \"param\" and \"refGroups\" arguments are in disagreement; the former has priority over the latter, so I shall ignore \"refGroups\".")
     }
-    if ((misFun(aggrMap))&&(exists("Aggregate.map"))) { aggrMap <- Aggregate.map }
-    if ((misFun(aggrList))&&(exists("Aggregate.list"))) { aggrList <- Aggregate.list }
-    if ((misFun(aggrNames))&&(exists("Aggregates"))) { aggrNames <- Aggregates }
+    # "Soft default" values
+    if ((misFun(aggrMap))&&(exists("Aggregate.map", envir = .GlobalEnv))) { aggrMap <- Aggregate.map }
+    if ((misFun(aggrList))&&(exists("Aggregate.list", envir = .GlobalEnv))) { aggrList <- Aggregate.list }
+    if ((misFun(aggrNames))&&(exists("Aggregates", envir = .GlobalEnv))) { aggrNames <- Aggregates }
+    #
     refGroups <- proteoCraft::parse.Param.aggreg(param$Ratios.Ref.Groups,
                                                  aggrNames,
                                                  aggrMap,
@@ -379,9 +381,9 @@ protQuant <- function(Prot,
   }
   #
   if ("Sequence" %in% colnames(Pep)) {
-    Pep$UnmodSeq <- Pep$Sequence
+    Pep$Unmod_Seq <- Pep$Sequence
   } else {
-    Pep$UnmodSeq <- gsub("^_|_$|\\([^\\)]+\\)", "", Pep[[modSeq]])
+    Pep$Unmod_Seq <- gsub("^_|_$|\\([^\\)]+\\)", "", Pep[[mod_Seq]])
   }
   #
   #
@@ -396,15 +398,15 @@ protQuant <- function(Prot,
   }
   Prot$temp_IDs <- IDs_vect
   # - Full peptides list
-  quant.pep.ids <- all.pep.ids <- setNames(strsplit(Prot[[PepIDs]], ";"),
+  quant_pep_IDss <- all_pep_IDss <- setNames(strsplit(Prot[[pg_PepIDs]], ";"),
                                            Prot$temp_IDs)
   #
   if ((!skip_reScaling)&&(RESCALING == "MAXLFQ")) {
     # Equivalent to MaxLFQ
     # Here, we need to know the sum of peptide intensities for each protein group BEFORE any filtering!
-    tmp <- proteoCraft::listMelt(quant.pep.ids, ColNames = c("ID", "PG")) 
-    tmp$Int <- Pep$Intensity[match(tmp$ID, Pep[[id]])]
-    tmp <- data.table(tmp)
+    tmp <- proteoCraft::listMelt(quant_pep_IDss, ColNames = c("ID", "PG")) 
+    tmp$Int <- Pep$Intensity[match(tmp$ID, Pep[[pep_IDs]])]
+    tmp <- data.table::data.table(tmp)
     tmp <- tmp[, .(Int = reSc_fun(Int, na.rm = TRUE)), by = .(PG = PG)]
     Prot$"Summed Intensities" <- tmp$Int[match(Prot$temp_IDs,
                                                tmp$PG)]
@@ -413,21 +415,21 @@ protQuant <- function(Prot,
   # Start filtering peptides
   cat(" - filtering peptides\n")
   #
-  # Use argument Mods_to_Exclude to negatively filter peptides:
+  # Use argument mods_to_Exclude to negatively filter peptides:
   #  NB:
   #   The step controlled by former argument Mods has been commented as redundant.
-  #   Should this be reverted, the current filtering step, controlled by argument Mods_to_Exclude, should remain before the one controlled by argument Mods!
-  #   Otherwise, the Discard_unmod argument may not be used properly.
+  #   Should this be reverted, the current filtering step, controlled by argument mods_to_Exclude, should remain before the one controlled by argument Mods!
+  #   Otherwise, the discard_unmod argument may not be used properly.
   #   For instance, imagine we first filter peptides to keep only unmodified ones + ones only modified with e.g. "ac" but not "ph"
   #   After this, how can we remove unmodified counterparts of observed phospho-peptides, if we do not have the latter's sequences anymore?
   #   If changing the order, we must delay the filtering! (as we previously did)
   #
   modTst <- rep(TRUE, nrow(Pep))
-  if ((!misFun(Mods_to_Exclude))&&(nrow(Mods_to_Exclude))) {
+  if ((!misFun(mods_to_Exclude))&&(nrow(mods_to_Exclude))) {
     if (TESTING) { cat("Identifying peptides with modifications to exclude...\n") }
-    Mods_to_Exclude$Pattern <- apply(Mods_to_Exclude[, c("Mark", "Where")], 1, function(x) {
-      #x <- Mods_to_Exclude[1, c("Mark", "Where")]
-      #x <- Mods_to_Exclude[2, c("Mark", "Where")]
+    mods_to_Exclude$Pattern <- apply(mods_to_Exclude[, c("Mark", "Where")], 1, function(x) {
+      #x <- mods_to_Exclude[1, c("Mark", "Where")]
+      #x <- mods_to_Exclude[2, c("Mark", "Where")]
       mrk <- x[[1]]
       wh <- unlist(x[[2]])
       wh <- grep("^prot[NC]term", wh, invert = TRUE, value = TRUE)
@@ -440,7 +442,7 @@ protQuant <- function(Prot,
       wh_C_trm <- grep("^Cterm$", wh, value = TRUE) # C-terminus, any
       wh_C_trm_sp <- grep("^Cterm_", wh, value = TRUE) # C-terminus, specific
       res <- c()
-      if (Discard_unmod.strict) {
+      if (discard_unmod.strict) {
         # Optionally, also exclude peptides which could be modified even if they were not found to be...
         # Careful, you will lose A LOT of peptides!
         mrkInsrt <- ""
@@ -466,7 +468,7 @@ protQuant <- function(Prot,
         wh_C_trm_sp <- gsub("^Cterm_", "", wh_C_trm_sp)
         res <- c(res, paste0("[", paste0(wh_C_trm_sp, collapse = ""), "]", mrkInsrt, "_$"))
       }
-      if (Discard_unmod.strict) {
+      if (discard_unmod.strict) {
         # Optionally, also exclude peptides which could be modified even if they were not found to be...
         # Careful, you will lose A LOT of peptides!
         res <- gsub("\\$_", "$", gsub("\\^_", "^", res))
@@ -474,24 +476,24 @@ protQuant <- function(Prot,
       res <- unique(res)
       return(paste(res, collapse = "|"))
     })
-    Mods_to_Exclude$"Exclude protein specific" <- vapply(Mods_to_Exclude$Where, function(x) {
+    mods_to_Exclude$"Exclude protein specific" <- vapply(mods_to_Exclude$Where, function(x) {
       sum(grepl("prot[NC]term", unlist(x)))
     }, 1) > 0
-    fltKol <- modSeq
-    if (Discard_unmod.strict) {
-      fltKol <- "UnmodSeq"
+    fltKol <- mod_Seq
+    if (discard_unmod.strict) {
+      fltKol <- "Unmod_Seq"
     }
-    tst <- nchar(Mods_to_Exclude$Pattern)
-    Mods_to_Exclude$Pattern[which(tst == 0)] <- NA
-    pat <- paste0(Mods_to_Exclude$Pattern[which(tst > 0)], collapse = "|")
+    tst <- nchar(mods_to_Exclude$Pattern)
+    mods_to_Exclude$Pattern[which(tst == 0)] <- NA
+    pat <- paste0(mods_to_Exclude$Pattern[which(tst > 0)], collapse = "|")
     if (nchar(pat)) {
       g <- grep(pat, Pep[[fltKol]])
       modTst[g] <- FALSE
       l <- length(g)
       if (l) {
-        if (Discard_unmod) {
+        if (discard_unmod) {
           # Remove counterpart peptides
-          w <- which(Pep$UnmodSeq %in% unique(Pep$UnmodSeq[g]))
+          w <- which(Pep$Unmod_Seq %in% unique(Pep$Unmod_Seq[g]))
           l <- length(w)
           if (l) {
             modTst[w] <- FALSE
@@ -502,18 +504,18 @@ protQuant <- function(Prot,
   }
   #
   # # Use argument Mods to positively filter peptides:
-  # # Commented: essentially redundant with Mods_to_Exclude - the latter which makes more sense
+  # # Commented: essentially redundant with mods_to_Exclude - the latter which makes more sense
   # #
   # if ((!is.logical(Mods))&&(length(Mods))) {
   #   w <- which(modTst)
   #   if (TESTING) { cat("Filtering out peptidoforms not eligible for quantitation...\n") }
-  #   tst <- gsub("\\)\\(", ",", gsub("^\\(|\\)$", "", gsub(paste(c("^_", "_$", AA), collapse = "|"), "", Pep[w, modSeq])))
+  #   tst <- gsub("\\)\\(", ",", gsub("^\\(|\\)$", "", gsub(paste(c("^_", "_$", AA), collapse = "|"), "", Pep[w, mod_Seq])))
   #   tst <- vapply(strsplit(tst, ","), function(x) {
   #     x <- unlist(x)
   #     return(length(x[which(!x %in% Mods)]))
   #   }, 1) == 0
   #   #sum(!tst)
-  #   #Pep[w, modSeq][which(!tst)]
+  #   #Pep[w, mod_Seq][which(!tst)]
   #   l <- sum(!tst)
   #   if (l) {
   #     warning(paste0("Excluding ", l, " (", round(100*l/nPep_0),
@@ -525,13 +527,13 @@ protQuant <- function(Prot,
   Pep <- Pep[which(modTst),]
   #
   # Filter temp.list based on filtered peptides
-  quant.pep.idsA <- proteoCraft::listMelt(quant.pep.ids, ColNames = c("pep", "PG"))
-  quant.pep.idsA <- quant.pep.idsA[which(quant.pep.idsA$pep %in% Pep[[id]]),]
-  #length(unique(quant.pep.idsA$pep)) == nrow(Pep)
+  quant_pep_IDssA <- proteoCraft::listMelt(quant_pep_IDss, ColNames = c("pep", "PG"))
+  quant_pep_IDssA <- quant_pep_IDssA[which(quant_pep_IDssA$pep %in% Pep[[pep_IDs]]),]
+  #length(unique(quant_pep_IDssA$pep)) == nrow(Pep)
   #
   # Now deal with filtering protein-N-terminal mods:
-  if ((!misFun(Mods_to_Exclude))&&(nrow(Mods_to_Exclude))) {
-    Mods2XclTerm <- Mods_to_Exclude[which(Mods_to_Exclude$"Exclude protein specific"),]
+  if ((!misFun(mods_to_Exclude))&&(nrow(mods_to_Exclude))) {
+    Mods2XclTerm <- mods_to_Exclude[which(mods_to_Exclude$"Exclude protein specific"),]
     nrTrm <- nrow(Mods2XclTerm)
     if (nrTrm) {
       Mods2XclTerm$Pattern <- apply(Mods2XclTerm[, c("Mark", "Where")], 1, function(x) { #x <- Mods2XclTerm[1, c("Mark", "Where")]
@@ -545,7 +547,7 @@ protQuant <- function(Prot,
           "protCterm_", wh, value = TRUE) # protein C-terminus, specific
         res <- c()
         #
-        # !!! Here the effects of Discard_unmod.strict can only affect AA-specific cases,
+        # !!! Here the effects of discard_unmod.strict can only affect AA-specific cases,
         # at the risk of systematically throwing away every peptide!!!
         mrkInsrt <- paste0("\\(([^A-Z]{2},)*", mrk, "(,[^A-Z]{2})*\\)")
         if (length(wh_prt_N_trm)) {
@@ -555,14 +557,14 @@ protQuant <- function(Prot,
         if (length(wh_prt_N_trm_sp)) {
           wh_prt_N_trm_sp <- gsub("^protNterm_", "", wh_prt_N_trm_sp)
           res <- c(res, paste0("^_",
-                               c(mrkInsrt, "")[Discard_unmod.strict+1],
+                               c(mrkInsrt, "")[discard_unmod.strict+1],
                                "[", paste0(wh_prt_N_trm_sp, collapse = ""), "]"))
         }
         if (length(wh_prt_C_trm)) { res <- c(res, paste0(mrkInsrt, "_$")) }
         if (length(wh_prt_C_trm_sp)) {
           wh_prt_C_trm_sp <- gsub("^protCterm_", "", wh_prt_C_trm_sp)
           res <- c(res, paste0("[", paste0(wh_prt_C_trm_sp, collapse = ""), "]",
-                               c(mrkInsrt, "")[Discard_unmod.strict+1],
+                               c(mrkInsrt, "")[discard_unmod.strict+1],
                                "_$"))
         }
         res <- unique(res)
@@ -572,44 +574,44 @@ protQuant <- function(Prot,
       nrTrm <- nrow(Mods2XclTerm)
     }
     if (nrTrm) {
-      modTst2 <- rep(TRUE, nrow(quant.pep.idsA))
-      m1 <- match(quant.pep.idsA$pep, Pep[[id]])
-      quant.pep.idsA$Seq <- Pep$Sequence[m1]
-      quant.pep.idsA$L <- nchar(quant.pep.idsA$Seq)
-      quant.pep.idsA$PG_seq <- Prot[match(quant.pep.idsA$PG, Prot$temp_IDs), primSeq] # We only filter by first accession!!!
-      quant.pep.idsA$PG_L <- nchar(quant.pep.idsA$PG_seq)
+      modTst2 <- rep(TRUE, nrow(quant_pep_IDssA))
+      m1 <- match(quant_pep_IDssA$pep, Pep[[pep_IDs]])
+      quant_pep_IDssA$Seq <- Pep$Sequence[m1]
+      quant_pep_IDssA$L <- nchar(quant_pep_IDssA$Seq)
+      quant_pep_IDssA$PG_seq <- Prot[match(quant_pep_IDssA$PG, Prot$temp_IDs), prim_Seq] # We only filter by first accession!!!
+      quant_pep_IDssA$PG_L <- nchar(quant_pep_IDssA$PG_seq)
       # Here I think it makes more sense to deal with each pattern separately
       # It will just be easier, because we need to treat matches to protein N- or C-termini differently
       for (i in 1:nrTrm) { #i <- 1
         pat <- paste(Mods2XclTerm$Pattern[i], collapse = "|")
-        gy <- grep(pat, Pep[[modSeq]])
+        gy <- grep(pat, Pep[[mod_Seq]])
         if (length(gy)) {
-          quant.pep.idsB <- quant.pep.idsA[which(quant.pep.idsA$pep %in% Pep[gy, id]),]
+          quant_pep_IDssB <- quant_pep_IDssA[which(quant_pep_IDssA$pep %in% Pep[gy, pep_IDs]),]
           if (grepl("protNterm", Mods2XclTerm$Where[i])) {
-            quant.pep.idsB$Pep_1b <- quant.pep.idsB$Pep_1a <- substr(quant.pep.idsB$PG_seq, 1, quant.pep.idsB$L)
-            w1M <- grep("^M", quant.pep.idsB$PG_seq) # Allow for N-term methionine loss!
-            quant.pep.idsB$Pep_1b[w1M] <- substr(quant.pep.idsB$PG_seq[w1M], 2, quant.pep.idsB$L[w1M]+1)
-            quant.pep.idsB$OK <- (quant.pep.idsB$Seq != quant.pep.idsB$Pep_1a)&(quant.pep.idsB$Seq != quant.pep.idsB$Pep_1b)
+            quant_pep_IDssB$Pep_1b <- quant_pep_IDssB$Pep_1a <- substr(quant_pep_IDssB$PG_seq, 1, quant_pep_IDssB$L)
+            w1M <- grep("^M", quant_pep_IDssB$PG_seq) # Allow for N-term methionine loss!
+            quant_pep_IDssB$Pep_1b[w1M] <- substr(quant_pep_IDssB$PG_seq[w1M], 2, quant_pep_IDssB$L[w1M]+1)
+            quant_pep_IDssB$OK <- (quant_pep_IDssB$Seq != quant_pep_IDssB$Pep_1a)&(quant_pep_IDssB$Seq != quant_pep_IDssB$Pep_1b)
           }
           if (grepl("protCterm", Mods2XclTerm$Where[i])) {
-            quant.pep.idsB$Pep_2 <- substr(quant.pep.idsB$PG_seq, quant.pep.idsB$PG_L-quant.pep.idsB$L+1, quant.pep.idsB$PG_L)
-            quant.pep.idsB$OK <- quant.pep.idsB$Seq != quant.pep.idsB$Pep_2
+            quant_pep_IDssB$Pep_2 <- substr(quant_pep_IDssB$PG_seq, quant_pep_IDssB$PG_L-quant_pep_IDssB$L+1, quant_pep_IDssB$PG_L)
+            quant_pep_IDssB$OK <- quant_pep_IDssB$Seq != quant_pep_IDssB$Pep_2
           }
-          modTst2[which(quant.pep.idsA$pep %in% quant.pep.idsB$pep[which(!quant.pep.idsB$OK)])] <- FALSE
+          modTst2[which(quant_pep_IDssA$pep %in% quant_pep_IDssB$pep[which(!quant_pep_IDssB$OK)])] <- FALSE
         }
       }
       g <- which(!modTst2)
       l2 <- length(g)
       if (l2) {
-        w <- which(Pep[[id]] %in% quant.pep.idsA$pep[g])
-        if (Discard_unmod) {
+        w <- which(Pep[[pep_IDs]] %in% quant_pep_IDssA$pep[g])
+        if (discard_unmod) {
           # Remove counterpart peptides
-          w <- which(Pep$UnmodSeq %in% quant.pep.idsA$Seq[g])
-          g <- which(quant.pep.idsA$pep %in% Pep[w, id])
+          w <- which(Pep$Unmod_Seq %in% quant_pep_IDssA$Seq[g])
+          g <- which(quant_pep_IDssA$pep %in% Pep[w, pep_IDs])
           modTst2[g] <- FALSE
         }
-        quant.pep.idsA <- quant.pep.idsA[which(modTst2),]
-        Pep <- Pep[which(Pep[[id]] %in% quant.pep.idsA$pep),]
+        quant_pep_IDssA <- quant_pep_IDssA[which(modTst2),]
+        Pep <- Pep[which(Pep[[pep_IDs]] %in% quant_pep_IDssA$pep),]
       }
     }
   }
@@ -623,12 +625,12 @@ protQuant <- function(Prot,
     # Convert peptide intensities to log
     pepInt_log <- 10
     if (TESTING) { cat(paste0("Converting input (peptide) intensities to default log", pepInt_log, "...\n")) }
-    #origInt <- Pep[, c(id, Pep.Intens.Nms)]
+    #origInt <- Pep[, c(pep_IDs, Pep.Intens.Nms)]
     Pep[, Pep.Intens.Nms] <- suppressWarnings(log(Pep[, Pep.Intens.Nms],
                                                   pepInt_log))
   }# else {
   #   if (LFQ_ALGO == "MSSTATS") {
-  #     origInt <- Pep[, c(id, Pep.Intens.Nms)]
+  #     origInt <- Pep[, c(pep_IDs, Pep.Intens.Nms)]
   #     origInt[, Pep.Intens.Nms] <- pepInt_log^origInt[, Pep.Intens.Nms]
   #   }
   # }
@@ -670,90 +672,90 @@ protQuant <- function(Prot,
   # Now get peptides average intensity
   # When we throw away extra peptides (when we have more than maxN, we want to use in priority the high intensity ones),
   # we will use this to decide which to keep.
-  tmp1 <- as.data.table(Pep[, c(id, Pep.Intens.Nms), drop = FALSE])
-  tmp1 <- melt(tmp1, id.vars = id)
+  tmp1 <- data.table::as.data.table(Pep[, c(pep_IDs, Pep.Intens.Nms), drop = FALSE])
+  tmp1 <- data.table::melt(tmp1, id.vars = pep_IDs)
   colnames(tmp1)[1] <- "pepID"
   tmp1 <- tmp1[which(is.all.good(tmp1$value, 2)),]
   tmp1 <- tmp1[, .(value = mean(value)), by = .(pepID = pepID)]
-  Pep$avgPepInt <- tmp1$value[match(Pep[[id]], tmp1$pepID)]
+  Pep$avgPepInt <- tmp1$value[match(Pep[[pep_IDs]], tmp1$pepID)]
   #
   # In PreferUnique mode: update list of peptides to use for quantitation
   if (N_unique) {
-    quant.pep.idsU <- proteoCraft::listMelt(strsplit(Prot[[PepIDs_unique]], ";"), Prot$temp_IDs, c("pep", "PG"))
-    quant.pep.idsU <- quant.pep.idsU[which(quant.pep.idsU$pep %in% quant.pep.idsA$pep),]
-    quant.pep.idsA <- quant.pep.idsA[which(!quant.pep.idsA$pep %in% quant.pep.idsU$pep),]
+    quant_pep_IDssU <- proteoCraft::listMelt(strsplit(Prot[[pg_PepIDs_unique]], ";"), Prot$temp_IDs, c("pep", "PG"))
+    quant_pep_IDssU <- quant_pep_IDssU[which(quant_pep_IDssU$pep %in% quant_pep_IDssA$pep),]
+    quant_pep_IDssA <- quant_pep_IDssA[which(!quant_pep_IDssA$pep %in% quant_pep_IDssU$pep),]
   }
-  quant.pep.idsA <- as.data.table(quant.pep.idsA[, c("pep", "PG")])
+  quant_pep_IDssA <- data.table::as.data.table(quant_pep_IDssA[, c("pep", "PG")])
   nms <- Prot$temp_IDs
   if (N_unique) {
     #
-    quant.pep.idsU <- as.data.table(quant.pep.idsU[, c("pep", "PG")])
+    quant_pep_IDssU <- data.table::as.data.table(quant_pep_IDssU[, c("pep", "PG")])
     #
     # Sort by decreasing intensities and convert to list
     # - Uniques
-    quant.pep.idsU$int <- Pep$avgPepInt[match(quant.pep.idsU$pep, Pep[[id]])]
-    quant.pep.idsU <- quant.pep.idsU[order(quant.pep.idsU$int, decreasing = TRUE),]
-    quant.pep.idsU <- quant.pep.idsU[, list(pep = list(pep)), by = list(PG = PG)]
-    quant.pep.idsU <- setNames(quant.pep.idsU$pep, quant.pep.idsU$PG)
+    quant_pep_IDssU$int <- Pep$avgPepInt[match(quant_pep_IDssU$pep, Pep[[pep_IDs]])]
+    quant_pep_IDssU <- quant_pep_IDssU[order(quant_pep_IDssU$int, decreasing = TRUE),]
+    quant_pep_IDssU <- quant_pep_IDssU[, list(pep = list(pep)), by = list(PG = PG)]
+    quant_pep_IDssU <- setNames(quant_pep_IDssU$pep, quant_pep_IDssU$PG)
     # - Rest
-    quant.pep.idsA$int <- Pep$avgPepInt[match(quant.pep.idsA$pep, Pep[[id]])]
-    quant.pep.idsA <- quant.pep.idsA[order(quant.pep.idsA$int, decreasing = TRUE),]
+    quant_pep_IDssA$int <- Pep$avgPepInt[match(quant_pep_IDssA$pep, Pep[[pep_IDs]])]
+    quant_pep_IDssA <- quant_pep_IDssA[order(quant_pep_IDssA$int, decreasing = TRUE),]
   }
-  quant.pep.idsA <- quant.pep.idsA[, list(pep = list(pep)), by = list(PG = PG)]
-  quant.pep.idsA <- setNames(quant.pep.idsA$pep, quant.pep.idsA$PG)
+  quant_pep_IDssA <- quant_pep_IDssA[, list(pep = list(pep)), by = list(PG = PG)]
+  quant_pep_IDssA <- setNames(quant_pep_IDssA$pep, quant_pep_IDssA$PG)
   if (N_unique) {
     # Re-add missing PGs and re-order
     # - Uniques
-    w <- which(!nms %in% names(quant.pep.idsU))
-    quant.pep.idsU[nms[w]] <- lapply(nms[w], function(x) {})
-    quant.pep.idsU <- quant.pep.idsU[nms]
+    w <- which(!nms %in% names(quant_pep_IDssU))
+    quant_pep_IDssU[nms[w]] <- lapply(nms[w], function(x) {})
+    quant_pep_IDssU <- quant_pep_IDssU[nms]
     # - Rest
-    w <- which(!nms %in% names(quant.pep.idsA))
-    quant.pep.idsA[nms[w]] <- lapply(nms[w], function(x) {})
-    quant.pep.idsA <- quant.pep.idsA[nms]
+    w <- which(!nms %in% names(quant_pep_IDssA))
+    quant_pep_IDssA[nms[w]] <- lapply(nms[w], function(x) {})
+    quant_pep_IDssA <- quant_pep_IDssA[nms]
     #
     # Test for length
-    tstU <- vapply(quant.pep.idsU, length, 1)
-    tstA <- vapply(quant.pep.idsA, length, 1)
+    tstU <- vapply(quant_pep_IDssU, length, 1)
+    tstA <- vapply(quant_pep_IDssA, length, 1)
     w1 <- which((tstU < N_unique)&(tstA > 0))
     if (length(w1)) {
-      quant.pep.idsU[w1] <- lapply(w1, function(x) { c(quant.pep.idsU[[x]], quant.pep.idsA[[x]]) })
+      quant_pep_IDssU[w1] <- lapply(w1, function(x) { c(quant_pep_IDssU[[x]], quant_pep_IDssA[[x]]) })
     }
-    quant.pep.ids <- quant.pep.idsU
+    quant_pep_IDss <- quant_pep_IDssU
   } else {
-    quant.pep.ids <- quant.pep.idsA
+    quant_pep_IDss <- quant_pep_IDssA
   }
   # Filter by minN and maxN
-  tst <- vapply(quant.pep.ids, length, 1)
+  tst <- vapply(quant_pep_IDss, length, 1)
   w1 <- which(tst < minN)
   w2 <- which(tst > maxN)
   if (length(w1)) {
-    quant.pep.ids[w1] <- lapply(w1, function(x) { })
+    quant_pep_IDss[w1] <- lapply(w1, function(x) { })
   }
   if (length(w2)) {
-    quant.pep.ids[w2] <- lapply(w2, function(x) {
-      quant.pep.ids[[x]][1:maxN]
+    quant_pep_IDss[w2] <- lapply(w2, function(x) {
+      quant_pep_IDss[[x]][1:maxN]
     })
   }
   #  
-  #tst1 <- vapply(quant.pep.ids, length, 1)
-  #tst2 <- vapply(quant.pep.ids, function(x) { length(unique(x)) }, 1)
+  #tst1 <- vapply(quant_pep_IDss, length, 1)
+  #tst2 <- vapply(quant_pep_IDss, function(x) { length(unique(x)) }, 1)
   #sum(tst2 != tst1)
   #
-  #sum(!Prot$temp_IDs %in% names(quant.pep.ids))
+  #sum(!Prot$temp_IDs %in% names(quant_pep_IDss))
   #
   nPep_1 <- nrow(Pep)
-  nPep_2 <- length(unique(unlist(quant.pep.ids)))
+  nPep_2 <- length(unique(unlist(quant_pep_IDss)))
   nRemoved1 <- nPep_0-nPep_1
   nRemoved2 <- nPep_1-nPep_2
   msg <- ""
   if (nRemoved1) {
     msg <- paste0("Excluding ", nRemoved1, " (", round(100*nRemoved1/nPep_0), "%) ")
-    if (Discard_unmod.strict) {
+    if (discard_unmod.strict) {
       msg <- paste0(msg, "whose stoichiometry could be affected by PTMs excluded from quantitation!")
     } else {
       msg <- paste0(msg, "bearing PTMs excluded from quantitation",
-                    c("!", ", as well as the latter's unmodified counterpart peptides!")[Discard_unmod+1])
+                    c("!", ", as well as the latter's unmodified counterpart peptides!")[discard_unmod+1])
     }
   }
   if (nRemoved2) {
@@ -764,7 +766,7 @@ protQuant <- function(Prot,
   # Zig-zag order
   # Function adapted from https://www.r-bloggers.com/2020/12/going-parallel-understanding-load-balancing-in-r/
   zigzag_ord <- function(x, n = length(cl)) {
-    #x <- quant.pep.ids
+    #x <- quant_pep_IDss
     ord <- data.frame(Original = seq_along(x),
                       Length = vapply(x, length, 1))
     ord <- ord[order(ord$Length, decreasing = TRUE),]
@@ -774,12 +776,12 @@ protQuant <- function(Prot,
     ord <- ord[order(ord$Original),]
     return(ord)
   }
-  ord <- zigzag_ord(quant.pep.ids)
-  ord$ID <- names(quant.pep.ids)
+  ord <- zigzag_ord(quant_pep_IDss)
+  ord$ID <- names(quant_pep_IDss)
   nuOrd <- order(ord$NewOrd)
-  quant.pep.ids <- quant.pep.ids[nuOrd]
+  quant_pep_IDss <- quant_pep_IDss[nuOrd]
   #
-  Pep <- Pep[which(Pep$id %in% unlist(quant.pep.ids)),] # Update Pep (is this necessary?)
+  Pep <- Pep[which(Pep[[pep_IDs]] %in% unlist(quant_pep_IDss)),] # Update Pep (is this necessary?)
   #
   # Get summary method:
   if (misFun("Weights")) {
@@ -795,13 +797,13 @@ protQuant <- function(Prot,
     useIntWeights <- FALSE
   }
   if ((useIntWeights)&&(sum(c(reScaling, LM_fun) %in% c("mean", "weighted.mean")))) {
-    tmp <- data.table(pepInt_log^Pep[, Pep.Intens.Nms, drop = FALSE])
-    tmp$pepID <- Pep[[id]]
-    tmp <- melt(tmp, id.vars = "pepID")
+    tmp <- data.table::data.table(pepInt_log^Pep[, Pep.Intens.Nms, drop = FALSE])
+    tmp$pepID <- Pep[[pep_IDs]]
+    tmp <- data.table::melt(tmp, id.vars = "pepID")
     tmp <- tmp[which(is.all.good(tmp$value, 2)),]
     tmp <- tmp[which(tmp$value > 0),]
     tmp <- tmp[, .(value = mean(value)), by = .(pepID)]
-    Pep$useIntWeights <- tmp$value[match(Pep[[id]], tmp$pepID)]
+    Pep$useIntWeights <- tmp$value[match(Pep[[pep_IDs]], tmp$pepID)]
     Pep[[Weights]] <- Pep[[Weights]]*Pep$useIntWeights # Update weights and method
     if (LM_fun == "mean") { LM_fun <- "weighted.mean" }
     if (reScaling == "mean") {
@@ -816,7 +818,7 @@ protQuant <- function(Prot,
   # This may be used for cases such as SILAC in MaxQuant, where SILAC ratios are more accurate for relative quant
   # than the ratio of peak intensities.
   if (Priority == "rat") {
-    tmpPep <- Pep[, c(id, Weights, Pep.Ratios.Nms, Pep.Intens.Nms)]
+    tmpPep <- Pep[, c(pep_IDs, Weights, Pep.Ratios.Nms, Pep.Intens.Nms)]
     intSums <- rowSums(10^tmpPep[, Pep.Intens.Nms], na.rm = TRUE)
     ratGroups$samples <- lapply(ratGroups$values, function(x) {
       expMap[which(expMap[[ratGroups$column]] == x), expMap_Samples_col]
@@ -847,28 +849,28 @@ protQuant <- function(Prot,
     tmpPep[, colnames(newInt)] <- newInt
     tmpPep <- tmpPep[, which(!colnames(tmpPep) %in% Pep.Ratios.Nms)]
   } else {
-    tmpPep <- Pep[, c(id, Weights, Pep.Intens.Nms)]
+    tmpPep <- Pep[, c(pep_IDs, Weights, Pep.Intens.Nms)]
   }
   #
   # Re-order by intensity
   tmpPep$AvgInt <- rowMeans(tmpPep[, Pep.Intens.Nms, drop = FALSE], na.rm = TRUE)
   tmpPep <- tmpPep[order(tmpPep$AvgInt, decreasing = TRUE),]
-  quant.pep.ids2 <- proteoCraft::listMelt(quant.pep.ids, ColNames = c("id", "PG"))
-  quant.pep.ids2$mtch <- match(quant.pep.ids2$id, tmpPep[[id]])
-  quant.pep.ids2 <- quant.pep.ids2[order(quant.pep.ids2$mtch, decreasing = FALSE),]
-  quant.pep.ids2 <- data.table::as.data.table(quant.pep.ids2)
-  quant.pep.ids2 <- quant.pep.ids2[, list(IDs = list(id)), by = list(PG = PG)]
-  quant.pep.ids2 <- setNames(quant.pep.ids2$IDs, quant.pep.ids2$PG)
-  quant.pep.ids[names(quant.pep.ids2)] <- quant.pep.ids2[names(quant.pep.ids2)] # There are some empty entries in quant.pep.ids: proteins with no peptides eligible for quant
-  rm(quant.pep.ids2)
+  quant_pep_IDss2 <- proteoCraft::listMelt(quant_pep_IDss, ColNames = c("id", "PG"))
+  quant_pep_IDss2$mtch <- match(quant_pep_IDss2$id, tmpPep[[pep_IDs]])
+  quant_pep_IDss2 <- quant_pep_IDss2[order(quant_pep_IDss2$mtch, decreasing = FALSE),]
+  quant_pep_IDss2 <- data.table::as.data.table(quant_pep_IDss2)
+  quant_pep_IDss2 <- quant_pep_IDss2[, list(IDs = list(id)), by = list(PG = PG)]
+  quant_pep_IDss2 <- setNames(quant_pep_IDss2$IDs, quant_pep_IDss2$PG)
+  quant_pep_IDss[names(quant_pep_IDss2)] <- quant_pep_IDss2[names(quant_pep_IDss2)] # There are some empty entries in quant_pep_IDss: proteins with no peptides eligible for quant
+  rm(quant_pep_IDss2)
   #
   # Quantitation:
   #  - Quantitation step
   cat(" - Calculating profile...\n")
   quntNms <- gsub(proteoCraft::topattern(pepInt_Root), Expr.root.full, Pep.Intens.Nms)
   # Below: object used by most methods and by reScaling
-  tmpPep2 <- listMelt(quant.pep.ids, ColNames = c("id", "PG"))
-  tmpPep2[, Pep.Intens.Nms] <- tmpPep[match(tmpPep2$id, tmpPep[[id]]), Pep.Intens.Nms]
+  tmpPep2 <- listMelt(quant_pep_IDss, ColNames = c("pepID", "PG"))
+  tmpPep2[, Pep.Intens.Nms] <- tmpPep[match(tmpPep2$pepID, tmpPep[[pep_IDs]]), Pep.Intens.Nms]
   #
   allQuants <- list()
   cat("   method =", LFQ_algo, "\n")
@@ -901,14 +903,14 @@ protQuant <- function(Prot,
   if ("LM" %in% c(LFQ_ALGO, RESCALING)) {
     tmpFl1 <- tempfile()
     tmpFl2 <- tempfile()
-    exports <- list("LFQ_algo", "LFQ_ALGO", "tmpFl1", "tmpFl2", "id", "Pep.Intens.Nms", "minN", "maxN", "LM_fun",
+    exports <- list("LFQ_algo", "LFQ_ALGO", "tmpFl1", "tmpFl2", "pep_IDs", "Pep.Intens.Nms", "minN", "maxN", "LM_fun",
                     "Weights" #, "LFQ_stab"
     )
     parallel::clusterExport(cl, exports, envir = environment())
-    readr::write_rds(quant.pep.ids, tmpFl1)
+    readr::write_rds(quant_pep_IDss, tmpFl1)
     readr::write_rds(tmpPep, tmpFl2)
     parallel::clusterCall(cl, function() {
-      quant.pep.ids <<- readr::read_rds(tmpFl1)
+      quant_pep_IDss <<- readr::read_rds(tmpFl1)
       tmpPep <<- readr::read_rds(tmpFl2)
       return()
     })
@@ -921,10 +923,10 @@ protQuant <- function(Prot,
                          intCol,
                          weights,
                          min,
-                         max) { #ids <- quant.pep.ids[[1]]
+                         max) { #ids <- quant_pep_IDss[[1]]
       proteoCraft::LFQ.lm(ids,
                           InputTabl = pep,
-                          id = id,
+                          id = pep_IDs,
                           IntensCol = intCol,
                           Summary.method = fun,
                           Summary.weights = weights,
@@ -933,7 +935,7 @@ protQuant <- function(Prot,
                           reNorm = 1)
     }
     environment(makeProf) <- .GlobalEnv
-    res2a <- try(parallel::parLapply(cl, quant.pep.ids, function(x) {
+    res2a <- try(parallel::parLapply(cl, quant_pep_IDss, function(x) {
       makeProf(ids = x,
                fun = LM_fun,
                pep = tmpPep,
@@ -946,7 +948,7 @@ protQuant <- function(Prot,
     if (!Done) {
       cat(" - re-running quant algorithm, the slow way...\nsomething clearly went wrong with the cluster\n")
       # This function has occasionally and non-reproducibly failed on weak PCs, this is a back up
-      res2a <- lapply(quant.pep.ids, function(x) {
+      res2a <- lapply(quant_pep_IDss, function(x) {
         makeProf(ids = x,
                  fun = LM_fun,
                  pep = tmpPep,
@@ -967,14 +969,14 @@ protQuant <- function(Prot,
   # (because of missing values).
   if ("INHOUSE_MAXLFQ" %in% c(LFQ_ALGO, RESCALING)) {
     # Export/serialize to cluster
-    # exports <- list("LFQ_algo", "LFQ_ALGO", "wd", "id", "Pep.Intens.Nms", "minN", "maxN", "LM_fun",
+    # exports <- list("LFQ_algo", "LFQ_ALGO", "wd", "pep_IDs", "Pep.Intens.Nms", "minN", "maxN", "LM_fun",
     #                 "Weights", "mySmpls", "LFQ_stab")
     # parallel::clusterExport(cl, exports, envir = environment())
-    # saveRDS(quant.pep.ids, paste0(wd, "/tempIDs.RDS"))
-    # saveRDS(tmpPep, paste0(wd, "/tempPep.RDS"))
+    # readr::write_rds(quant_pep_IDss, paste0(wd, "/tempIDs.RDS"))
+    # readr::write_rds(tmpPep, paste0(wd, "/tempPep.RDS"))
     # invisible(clusterCall(cl, function() {
-    #   quant.pep.ids <<- readRDS(paste0(wd, "/tempIDs.RDS"))
-    #   tmpPep <<- readRDS(paste0(wd, "/tempPep.RDS"))
+    #   quant_pep_IDss <<- readr::read_rds(paste0(wd, "/tempIDs.RDS"))
+    #   tmpPep <<- readr::read_rds(paste0(wd, "/tempPep.RDS"))
     #   if (LFQ_ALGO == "INHOUSE_MAXLFQ") {
     #     L <<- length(Pep.Intens.Nms)
     #     if (L > 1) {
@@ -994,13 +996,13 @@ protQuant <- function(Prot,
     # }))
     # if (LFQ_ALGO == "INHOUSE_MAXLFQ") {
     #   makeProf <- function(ids, stabilize = LFQ_stab) {
-    #     #ids <- quant.pep.ids[[1]]
-    #     #ids <- quant.pep.ids[[2]]
-    #     #ids <- quant.pep.ids[[3]]
+    #     #ids <- quant_pep_IDss[[1]]
+    #     #ids <- quant_pep_IDss[[2]]
+    #     #ids <- quant_pep_IDss[[3]]
     #     nIDs <- length(ids)
     #     if (!nIDs) { return(rep(NA, L)) }
     #     if (L == 1) { return(0) } #!!! We must remain able to output a profile when there is but one sample!!!
-    #     m <- match(ids, tmpPep[[id]])
+    #     m <- match(ids, tmpPep[[pep_IDs]])
     #     qnt <- tmpPep[m, Pep.Intens.Nms]
     #     wghts <- tmpPep[m, Weights]
     #     if (stabilize) {
@@ -1095,7 +1097,7 @@ protQuant <- function(Prot,
     #
     #     # Here we still need a way to deal with the each independent subtree,
     #     # where missing pairwise ratios result in more than one disconnected subtrees.
-    #     # Or we could just skip those - since even outputing a value here is already making an asumption.
+    #     # Or we could just skip those - since even outputting a value here is already making an assumption.
     #
     #     igraph::components(g)$no
     #     igraph::is_connected(g)
@@ -1130,12 +1132,12 @@ protQuant <- function(Prot,
     #   }
     # }
     environment(makeProf) <- .GlobalEnv
-    res2f <- try(parallel::parLapply(cl, quant.pep.ids, makeProf), silent = TRUE)
+    res2f <- try(parallel::parLapply(cl, quant_pep_IDss, makeProf), silent = TRUE)
     #
     if ("try-error" %in% class(res2f)) {
       cat(" - re-running quant algorithm, the slow way...\nsomething clearly went wrong with the cluster\n")
       # This function has occasionally and non-reproducibly failed on weak PCs, this is a back up
-      res2f <- lapply(quant.pep.ids, makeProf)
+      res2f <- lapply(quant_pep_IDss, makeProf)
     }
     unlink(paste0(wd, "/tempIDs.RDS"))
     unlink(paste0(wd, "/tempPep.RDS"))
@@ -1153,15 +1155,15 @@ protQuant <- function(Prot,
     if ("IQ" %in% c(LFQ_ALGO, RESCALING)) {
       tmp4 <- tmpPep2
       colnames(tmp4) <- proteoCraft::cleanNms(gsub(".* - ", "", colnames(tmp4)))
-      tmp4 <- melt(tmp4, id.vars = c("id", "PG"))
+      tmp4 <- melt(tmp4, id.vars = c("pepID", "PG"))
       tmp4 <- tmp4[which(!is.na(tmp4$value)),]
       tmp4 <- list(protein_list = tmp4$PG,
                    sample_list = tmp4$variable,
-                   id = tmp4$id,
+                   pepID = tmp4$pepID,
                    quant = tmp4$value)
       res2b <- iq::fast_MaxLFQ(tmp4)
       res2b <- as.data.frame(res2b$estimate)
-      res2b <- res2b[match(names(quant.pep.ids), row.names(res2b)),]
+      res2b <- res2b[match(names(quant_pep_IDss), row.names(res2b)),]
       res2 <- res2b
       allQuants$IQ <- res2b
       if (LFQ_ALGO == "IQ") {
@@ -1187,7 +1189,7 @@ protQuant <- function(Prot,
       #
       res2c <- as.data.frame(res2c)
       colnames(res2c) <- mySmpls
-      res2c <- res2c[match(names(quant.pep.ids), row.names(res2c)),]
+      res2c <- res2c[match(names(quant_pep_IDss), row.names(res2c)),]
       allQuants$LIMPA <- res2c
       if (LFQ_ALGO == "LIMPA") {
         res2 <- res2c
@@ -1195,9 +1197,9 @@ protQuant <- function(Prot,
     }
     if ("QFEATURES" %in% c(LFQ_ALGO, RESCALING)) {
       tmp4 <- tmpPep2
-      tmp4$id <- 1:nrow(tmp4) # Otherwise aggregateFeatures throws an error
+      tmp4$pepID <- 1:nrow(tmp4) # Otherwise aggregateFeatures throws an error
       QFeat_obj <- QFeatures::readQFeatures(assayData = tmp4,
-                                            fnames = "id",
+                                            fnames = "pepID",
                                             quantCols = Pep.Intens.Nms,
                                             name = "peptides")
       QFeat_obj <- QFeatures::aggregateFeatures(QFeat_obj,
@@ -1206,19 +1208,19 @@ protQuant <- function(Prot,
                                                 na.rm = TRUE,
                                                 name = "PG")
       res2d <- as.data.frame(SummarizedExperiment::assay(QFeat_obj[["PG"]]))
-      res2d <- res2d[match(names(quant.pep.ids), row.names(res2d)),]
+      res2d <- res2d[match(names(quant_pep_IDss), row.names(res2d)),]
       allQuants$QFEATURES <- res2d
       if (LFQ_ALGO == "QFEATURES") {
         res2 <- res2d
       }
     }
     # if ("MSSTATS" %in% c(LFQ_ALGO, RESCALING)) {
-    #   tmp4 <- tmpPep2[, c("id", "PG")]
-    #   tmp4[, gsub(".* - ", "", Pep.Intens.Nms)] <- origInt[match(tmp4$id, origInt[[id]]), Pep.Intens.Nms]
+    #   tmp4 <- tmpPep2[, c("pepID", "PG")]
+    #   tmp4[, gsub(".* - ", "", Pep.Intens.Nms)] <- origInt[match(tmp4$pepID, origInt[[pep_IDs]]), Pep.Intens.Nms]
     #   #
-    #   tmp4 <- melt(tmp4, id.vars = c("id", "PG"))
+    #   tmp4 <- melt(tmp4, id.vars = c("pepID", "PG"))
     #   colnames(tmp4)[2:4] <- c("ProteinName", "Run", "Intensity")
-    #   tmp4[, c("PeptideModifiedSequence", "PeptideSequence")] <- Pep[match(tmp4$id, Pep[[id]]),
+    #   tmp4[, c("PeptideModifiedSequence", "PeptideSequence")] <- Pep[match(tmp4$pepID, Pep[[pep_IDs]]),
     #                                                                  c("Modified sequence", "Sequence")]
     #   tmp4$PeptideModifiedSequence <- gsub("^_|_$", "", tmp4$PeptideModifiedSequence)
     #   tmp4$IsotopeLabelType <- "light"
@@ -1289,11 +1291,11 @@ protQuant <- function(Prot,
     #   colnames(res3e)[rg] <- expMap[match(colnames(res3e)[rg],
     #                                                proteoCraft::cleanNms(expMap[[smplGroups$column]], rep = "_")),
     #                                          smplGroups$column]
-    #   res3e <- res3e[match(names(quant.pep.ids), res3e$Protein), rg, drop = FALSE]
+    #   res3e <- res3e[match(names(quant_pep_IDss), res3e$Protein), rg, drop = FALSE]
     # }
   }
   colnames(res2) <- quntNms
-  rownames(res2) <- names(quant.pep.ids)
+  rownames(res2) <- names(quant_pep_IDss)
   #
   #########################################
   # Code to compare the different methods #
@@ -1405,8 +1407,8 @@ protQuant <- function(Prot,
                               Value = rowMeans(allQuants[[RESCALING]][, quntNms, drop = FALSE], na.rm = TRUE))
       }
     } else {
-      rescVal <- tmpPep2[, c("id", "PG")]
-      m <- match(rescVal$id, Pep[[id]])
+      rescVal <- tmpPep2[, c("pepID", "PG")]
+      m <- match(rescVal$pepID, Pep[[pep_IDs]])
       rescVal$avgPepInt <- Pep$avgPepInt[m]
       if (reScaling == "weighted.mean") {
         rescVal$Weights <- Pep$Weights[m]
@@ -1417,7 +1419,7 @@ protQuant <- function(Prot,
       if (is.finite(reSc_topN)) {
         rescVal <- rescVal[which(rescVal$Rank <= reSc_topN),]
       }
-      rescVal <- as.data.table(rescVal)
+      rescVal <- data.table::as.data.table(rescVal)
       if (reSc_is_topN&&topN_correct) {
         # Not sure about this...
         Md <- median(rescVal$avgPepInt, na.rm = TRUE)
@@ -1463,7 +1465,7 @@ protQuant <- function(Prot,
                                          int.root = Expr.root.full,
                                          rat.root = pepRat_root,
                                          rat.con.grps = rat_cont_grps,
-                                         mode = refsMode,
+                                         mode = ref_Mode,
                                          parameters = param,
                                          logInt = pepInt_log,
                                          logRat = pepRat_log), silent = TRUE)
@@ -1504,7 +1506,7 @@ protQuant <- function(Prot,
       #res2[[i]] <- as.numeric(res2[[i]])
     }
   }
-  res2$"Peptides IDs used for quantitation" <- vapply(quant.pep.ids, paste, "", collapse = ";")
+  res2$"Peptides IDs used for quantitation" <- vapply(quant_pep_IDss, paste, "", collapse = ";")
   ord2 <- ord[nuOrd,]
   res2 <- res2[order(ord2$Original),]
   rownames(res2) <- rownames(Prot)

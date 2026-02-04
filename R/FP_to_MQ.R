@@ -45,6 +45,7 @@ FP_to_MQ <- function(FP_Workflow,
   #proteoCraft::DefArg(proteoCraft::FP_to_MQ); cl = parClust;TESTING <- TRUE
   #FP_Workflow <- fpWorkflowFl_i; FP_Manifest <- fpManifestFl_i
   #FP_Workflow <- FP_WorkflowFl; FP_Manifest <- FP_ManifestFl
+  #FP_Workflow <- wrkfl; FP_Manifest <- mnfst
   #FP_Workflow <- paste0(wd, "/fragpipe.workflow"); FP_Manifest <- paste0(wd, "/fragpipe-files.fp-manifest")
   #
   if (TESTING) {
@@ -220,35 +221,40 @@ FP_to_MQ <- function(FP_Workflow,
   # Process PTMs
   # - Load and post-process UniMod object
   UniMod <- unimod::modifications
-  # Unfortunately, as of early 2023 this package did not have the whole of Unimod,
+  # As of early 2023 this package did not have the whole of Unimod,
   # in particular TMT16plex was missing.
-  # This should be fixed now but just in case.
-  sites <- c("K", "N-term", "N-term", "H", "S", "T")
-  sites2 <- c("K", "N-term", "P-N-term", "H", "S", "T")
-  where <- c("Anywhere", "Any N-term", "Protein N-term", "Anywhere", "Anywhere", "Anywhere")
-  tmtp <- data.frame(Id = paste0("TMTpro:", sites2),
-                     UnimodId = 2016,
-                     Name = "TMTpro",
-                     Description = "TMTpro 16plex Tandem Mass Tag®",
-                     Composition = "H(25) C(8) 13C(7) N 15N(2) O(3)",
-                     AvgMass = 304.3127,
-                     MonoMass = 304.207146,
-                     Site = sites2,
-                     Position = where,
-                     Classification = "Isotopic label",
-                     SpecGroup = 1,
-                     NeutralLoss = FALSE,
-                     LastModified = "2021-07-22 21:42:31",
-                     Approved = FALSE,
-                     Hidden = FALSE)
-  UniMod <- rbind(UniMod, tmtp)
+  # This is fixed now, so code is commented.
+  # sites <- c("K", "N-term", "N-term", "H", "S", "T")
+  # sites2 <- c("K", "N-term", "P-N-term", "H", "S", "T")
+  # where <- c("Anywhere", "Any N-term", "Protein N-term", "Anywhere", "Anywhere", "Anywhere")
+  # tmtp <- data.frame(Id = paste0("TMTpro:", sites2),
+  #                    UnimodId = 2016,
+  #                    Name = "TMTpro",
+  #                    Description = "TMTpro 16plex Tandem Mass Tag®",
+  #                    Composition = "H(25) C(8) 13C(7) N 15N(2) O(3)",
+  #                    AvgMass = 304.3127,
+  #                    MonoMass = 304.207146,
+  #                    Site = sites2,
+  #                    Position = where,
+  #                    Classification = "Isotopic label",
+  #                    SpecGroup = 1,
+  #                    NeutralLoss = FALSE,
+  #                    LastModified = "2021-07-22 21:42:31",
+  #                    Approved = FALSE,
+  #                    Hidden = FALSE)
+  # View(rbind(UniMod[grep("TMT", UniMod$Description),], tmtp))
+  # UniMod <- rbind(UniMod, tmtp)
   # Remove:
   # - substitutions
-  UniMod <- UniMod[grep("^[A-Z][a-z]{2}->[A-Z][a-z]{2} substitution$", UniMod$Description, invert = TRUE),]
+  gS <- grepl("^[A-Z][a-z]{2}->[A-Z][a-z]{2} substitution$", UniMod$Description)
+  UniMod_S <- UniMod[which(gS),]
+  UniMod <- UniMod[which(!gS),]
   # - deltas
-  g <- grepl("^Delta:", UniMod$Name)
-  UniMod_D <- UniMod[which(g),]
-  UniMod <- UniMod[which(!g),]
+  gD <- grepl("^Delta:", UniMod$Name)
+  UniMod_D <- UniMod[which(gD),]
+  UniMod <- UniMod[which(!gD),]
+  # For now these are removed as they are normally not expected.
+  # However, we can keep them aside in case there is no match to main UniMod (not implemented currently).
   #
   parseMods <- function(mods, fixed = FALSE) { #mods <- varMods
     x1 <- sapply(mods, function(x) { as.numeric(x[[1]]) })
@@ -353,6 +359,11 @@ FP_to_MQ <- function(FP_Workflow,
     w <- which((abs(round(UniMod$MonoMass, prec) - round(as.numeric(dMass), prec)) <= 10^(1-prec))
                &(UniMod$Site %in% sites)
                &(UniMod$Position == pos))
+    # if (!length(w)) {
+    #   w <- which((abs(round(UniMod$MonoMass+1.007276, prec) - round(as.numeric(dMass), prec)) <= 10^(1-prec))
+    #              &(UniMod$Site %in% sites)
+    #              &(UniMod$Position == pos))
+    # }
     if (length(w)) {
       #if (length(unique(UniMod$Description[w])) != 1) {
       #  print(x)
@@ -393,14 +404,10 @@ FP_to_MQ <- function(FP_Workflow,
                                   tmp2$`Mass delta`[w])
     
   }
-  kol <- colnames(tmp2)[which(!colnames(tmp2) %in% c("ID", "tmpRow", "Row", "Full name"))]
-  tmp2 <- aggregate(tmp2[, kol], list(tmp2$ID, tmp2$"Full name"), list)
-  colnames(tmp2)[2] <- "Full name"
-  tmp2$Group.1 <- NULL
-  tmp2$"Mass delta" <- sapply(tmp2$"Mass delta", unique)
-  stopifnot(!"list" %in% class(tmp2$"Mass delta"))
-  tmp2$"Max occurences" <- sapply(tmp2$"Max occurences", unique)
-  stopifnot(!"list" %in% class(tmp2$"Max occurences"))
+  kol <- colnames(tmp2)[which(!colnames(tmp2) %in% c("tmpRow", "Row", "Mass delta", "Full name"))]
+  tmp2 <- aggregate(tmp2[, kol], list(tmp2$"Mass delta", tmp2$"Full name"), list)
+  colnames(tmp2)[1:2] <- c("Mass delta", "Full name")
+  tmp2$"Max occurences" <- vapply(tmp2$"Max occurences", max, 1)
   tmp2$Type <- sapply(tmp2$Type, unique)
   stopifnot(!"list" %in% class(tmp2$Type))
   tmp2$UniMod <- sapply(tmp2$UniMod, unique)
@@ -420,58 +427,66 @@ FP_to_MQ <- function(FP_Workflow,
       #i <- W[1]
       w <- which(Modifs$Mark == test$Group.1[i])
       m <- Modifs[w,]
-      m$AA[which(sapply(m$AA, length) == 0)] <- "X"
-      if ("Acetyl" %in% m$"Full name") { r <- which(m$"Full name" == "Acetyl") } else { r <- 1 } # r is the one we will keep without changing it
-      s <- 1:nrow(m); s <- s[which(s != r)]
-      tst <- lapply(s, function(x) {
-        paste0(tolower(m$AA[[x]]), substr(m$Mark[[x]], 1, 1))
-      })
-      tst <- lapply(1:length(tst), function(x) {
-        rs <- tst[[x]]
-        rs[which(!rs %in% Modifs$Mark)]
-      })
-      l <- length(tst)
-      if (l > 1) {
-        for (i in 2:l) {
-          tst[[i]] <- tst[[i]][which(!tst[[i]] %in% unlist(tst[1:(i-1)]))]
+      # Simple case: multiple instances of a same isotopic label (e.g. 1, 2, 3 or 4 times 15N)
+      labelTst <- tolower(gsub("^Label:[0-9]+|\\(|\\)", "", m$"Full name"))
+      if (length(unique(labelTst)) == length(labelTst)) {
+        Modifs$Mark[w] <- labelTst
+      } else {
+        m$AA[which(sapply(m$AA, length) == 0)] <- "X"
+        r <- { if ("Acetyl" %in% m$"Full name") { which(m$"Full name" == "Acetyl") } else { 1 } } # r is the one we will keep without changing it
+        s <- setdiff(1:nrow(m), r)
+        tst <- lapply(s, function(x) {
+          paste0(tolower(m$AA[[x]]), substr(m$Mark[[x]], 1, 1))
+        })
+        tst <- lapply(1:length(tst), function(x) {
+          rs <- tst[[x]]
+          rs[which(!rs %in% Modifs$Mark)]
+        })
+        l <- length(tst)
+        if (l > 1) {
+          for (i in 2:l) {
+            tst[[i]] <- tst[[i]][which(!tst[[i]] %in% unlist(tst[1:(i-1)]))]
+          }
         }
-      }
-      tst <- sapply(tst, function(x) {
-        x <- unlist(x)
-        if (length(x)) { x <- x[1] } else { x <- "That didnae work, did it?" }
-        return(x)
-      })
-      tst2 <- ((tst %in% Modifs$Mark)|(tst == "That didnae work, did it?"))
-      w2 <- which(!tst2)
-      m$Mark[s][w2] <- tst[w2]
-      w1 <- which(tst2)
-      if (length(w1)) {
-        # not tested
-        s1 <- s[w1]
-        rs <- c()
-        kount <- 1
-        char <- c(0:9, letters)
-        taken <- unique(c(Modifs$Mark, m$Mark))
-        for (j in s1) {
-          tst <- paste0(tolower(m$AA[s1]), char[kount])
-          while (((tst) %in% taken)&&(kount < length(char))) {
-            kount <- kount+1
+        tst <- sapply(tst, function(x) {
+          x <- unlist(x)
+          x <- { if (length(x)) { x[1] } else { "That didnae work, did it?" } }
+          return(x)
+        })
+        tst2 <- ((tst %in% Modifs$Mark)|(tst == "That didnae work, did it?"))
+        w2 <- which(!tst2)
+        m$Mark[s][w2] <- tst[w2]
+        w1 <- which(tst2)
+        if (length(w1)) {
+          # not tested
+          s1 <- s[w1]
+          rs <- c()
+          kount <- 1
+          char <- c(0:9, letters)
+          taken <- unique(c(Modifs$Mark, m$Mark))
+          for (j in s1) {
             tst <- paste0(tolower(m$AA[s1]), char[kount])
+            while (((tst) %in% taken)&&(kount < length(char))) {
+              kount <- kount+1
+              tst <- paste0(tolower(m$AA[s1]), char[kount])
+            }
+            if (kount == length(char)) {
+              stop("I am really out of options here, never thought this would go this far! Check the code just in case, this should never happen.")
+            } else {
+              rs <- c(rs, tst)
+            }
           }
-          if (kount == length(char)) {
-            stop("I am really out of options here, never thought this would go this far! Check the code just in case, this should never happen.")
-          } else {
-            rs <- c(rs, tst)
-          }
+          m$Mark[[s1]] <- rs
         }
-        m$Mark[[s1]] <- rs
+        Modifs[w,] <- m
       }
-      Modifs[w,] <- m
     }
   }
   #
   Modifs$"Mass shift" <- UniMod$MonoMass[match(Modifs$UniMod, UniMod$UnimodId)]
   if ("Mass delta" %in% colnames(Modifs)) {
+    w <- which(is.na(Modifs$"Mass shift"))
+    Modifs$"Mass shift"[w] <- Modifs$"Mass delta"[w]
     # "Mass delta" is the one which was entered in the search - it may be slightly inaccurate
     # "Mass shift" is the monoisotopic which we pulled from UniMod and should be better
     w <- which(!is.na(Modifs$"Mass shift"))
@@ -482,7 +497,21 @@ FP_to_MQ <- function(FP_Workflow,
   }
   test <- aggregate(Modifs$"Full name", list(Modifs$Mark), function(x) { length(unique(x)) })
   if (max(test$x) > 1) {
-    warning("The algorithm was not able to assign unique re-character old-MaxQuant style short marks to each modification, so some modified sequences may be ambiguous.")
+    warning("The algorithm was not able to assign unique 2-character old-MaxQuant style short marks to each modification, so some modified sequences may be ambiguous.")
+  }
+  # Remove parentheses in names: parentheses are also used to wrap around names in the full sequence,
+  # nested parentheses are ugly and break the code further down.
+  g <- grep("\\([0-9]+\\)$", Modifs$"Full name")
+  if (length(g)) {
+    Modifs$"Full name"[g] <- vapply(g, function(i) {
+      paste0(gsub("\\([0-9]+\\)$", "", Modifs$"Full name"[i]),
+             "*",
+             gsub(".*\\(|\\)$", "", Modifs$"Full name"[i]))
+    }, "")
+  }
+  g <- grep("\\(.+\\)$", Modifs$"Full name")
+  if (length(g)) {
+    Modifs$"Full name"[g] <- gsub("\\(", "{", gsub("\\)", "}", Modifs$"Full name"[g]))
   }
   #
   # Load PSM files
@@ -494,8 +523,9 @@ FP_to_MQ <- function(FP_Workflow,
         res$Sample <- Samples[x]
         res$PSMs_file <- FP_PSMs[x]
         return(res)
-      } else { return(NA) }
-    })  
+      }
+      return(NA)
+    })
     w <- which(sapply(PSMs, function(x) { "data.frame" %in% class(x) }))
     PSMs <- plyr::rbind.fill(PSMs[w])
   } else {
@@ -568,7 +598,7 @@ FP_to_MQ <- function(FP_Workflow,
     tmp4$Type <- "Delta mass"
     tmp4$"Type of search" <- "Open"
     tmp4$Mark <- "!m" # We will mark all open-search delta masses as "!m" and add a column for delta masses 
-    tmp4$`Full name` <- gsub(" ", "_", gsub(",", ".", gsub("\\(", "{", gsub("\\)", "}", tmp4$`Full name`))))
+    tmp4$"Full name" <- gsub(" ", "_", gsub(",", ".", gsub("\\(", "{", gsub("\\)", "}", tmp4$"Full name"))))
     Modifs <- plyr::rbind.fill(Modifs, tmp4)
   }
   # Filter peptides with ambiguous/non-classic amino acids 
@@ -580,7 +610,7 @@ FP_to_MQ <- function(FP_Workflow,
     warning("Removing peptides with unknown amino acids!s")
     PSMs <- PSMs[w,]
   }
-  # Create MQ-like file
+  # Create MQ-like data.frame
   kol <- c("Spectrum File", "Peptide", "Modified Peptide", "Charge", "Hyperscore",
            "Spectrum", "Intensity", "Retention", "Protein")
   #print(kol[which(!kol %in% colnames(PSMs))])
@@ -672,7 +702,7 @@ FP_to_MQ <- function(FP_Workflow,
       a3 <- gsub(" \\([^\\)]+\\)$", "", gsub(" \\([^\\)]+\\), ", ", ", a3)) 
       a3 <- gsub(" ", "_", gsub(",", ".", gsub("\\(", "{", gsub("\\)", "}", a3))))
       a3 <- strsplit(a3, ";")
-      stopifnot(sum(!unique(unlist(a3)) %in% Modifs$`Full name`) == 0)
+      stopifnot(sum(!unique(unlist(a3)) %in% Modifs$"Full name") == 0)
       tmp <- cbind(tmp, a3)
     }
     f0 <- function(x) {
@@ -715,40 +745,47 @@ FP_to_MQ <- function(FP_Workflow,
     }
     environment(f0) <- .GlobalEnv
     EV$"Modified sequence_verbose"[wMdSq2] <- parallel::parApply(cl, tmp, 1, f0)
+    # Note: it seems that currently if several mods (different ones, or multiples of the same) occur twice
+    # on the same location, MaxQuant writes it as:
+    #   PEPTID(ModName1)(ModName2)R
+    # We are not doing it like that right now.
+    # Since we are not looking for perfect compatibility I guess this is ok?
     #
     #tst <- unique(unlist(strsplit(gsub("(_|\\))[A-Z]+(_|\\()", "_", EV$"Modified sequence_verbose"), "\\)_$|_|,")))
     #tst <- grep("^[A-Z]+$", tst, value = TRUE, invert = TRUE)
     #tst <- gsub("^[0-9]+ ", "", tst[which(tst != "")])
-    #sum(!tst %in% Modifs$Full)
-  }
-  f0 <- function(x) {
-    x <- unlist(x)
-    l <- length(x)
-    wmds <- (1:((l - 1)/2)) * 2
-    mds <- strsplit(x[wmds], ",")
-    w1 <- grep("^[0-9]+ ", mds, invert = TRUE)
-    w2 <- grep("^[0-9]+ ", mds)
-    mds2 <- list()
-    if (length(w1)) { mds2[w1] <- mds[w1] }
-    if (length(w2)) {
-      mds2[w2] <- lapply(mds[w2], function(y) {
-        y <- unlist(strsplit(y, " "))
-        rep(y[2], as.integer(y[1]))
-      })
+    #sum(!tst %in% Modifs$"Full name")
+    f0 <- function(x) {
+      #x <- strsplit(EV$"Modified sequence_verbose"[wMdSq2[1]], "\\(|\\)")
+      x <- unlist(x)
+      l <- length(x)
+      wmds <- (1:((l - 1)/2)) * 2
+      mds <- strsplit(x[wmds], ",")
+      w1 <- grep("^[0-9]+ ", mds, invert = TRUE)
+      w2 <- grep("^[0-9]+ ", mds)
+      mds2 <- list()
+      if (length(w1)) { mds2[w1] <- mds[w1] }
+      if (length(w2)) {
+        mds2[w2] <- lapply(mds[w2], function(y) {
+          y <- unlist(strsplit(y, " "))
+          rep(y[2], as.integer(y[1]))
+        })
+      }
+      mds <- paste0("(", sapply(mds2, function(y) {
+        y <- Modifs$Mark[match(y, Modifs$"Full name")]
+        w <- which(y == "!m")
+        if (length(w) > 1) { y <- y[c(which(y != "!m"), w[1])] }
+        return(paste(y, collapse = ","))
+      }), ")")
+      x[wmds] <- mds
+      return(paste(x, collapse = ""))
     }
-    mds <- paste0("(", sapply(mds2, function(y) {
-      y <- Modifs$Mark[match(y, Modifs$`Full name`)]
-      w <- which(y == "!m")
-      if (length(w) > 1) { y <- y[c(which(y != "!m"), w[1])] }
-      return(paste(y, collapse = ","))
-    }), ")")
-    x[wmds] <- mds
-    return(paste(x, collapse = ""))
+    environment(f0) <- .GlobalEnv
+    EV$"Modified sequence"[wMdSq2] <- parallel::parSapply(cl,
+                                                          strsplit(EV$"Modified sequence_verbose"[wMdSq2], "\\(|\\)"),
+                                                          f0)
+    
   }
-  environment(f0) <- .GlobalEnv
-  EV$"Modified sequence"[wMdSq2] <- parallel::parSapply(cl,
-                                                        strsplit(EV$"Modified sequence_verbose"[wMdSq2], "\\(|\\)"),
-                                                        f0)
   EV$"Modified sequence" <- unlist(EV$"Modified sequence") # Because in some cases this has become a list and I don't know yet why
   # For now a corrective rather than a fix until I can identify the issue. Should trigger an error if the vector has the wrong length.
   EV$Modifications <- "Unmodified"
@@ -765,11 +802,11 @@ FP_to_MQ <- function(FP_Workflow,
       x1 <- x1[which(x1 != "!m")]
       if (length(x1)) {
         mds <- aggregate(x1, list(x1), length)
-        mds$Group.1 <- Modifs$`Full name`[match(mds$Group.1, Modifs$Mark)]
+        mds$Group.1 <- Modifs$"Full name"[match(mds$Group.1, Modifs$Mark)]
       }
       if (length(x2)) {
         x2 <- aggregate(x2, list(x2), length)
-        if (length(x1)) { mds <- rbind(mds, x2) } else { mds <- x2 }
+        mds <- { if (length(x1)) { rbind(mds, x2) } else { x2 } }
       }
       mds <- mds[order(mds$Group.1, decreasing = FALSE),]
       paste(apply(mds, 1, function(y) { gsub("^1 ", "", paste(rev(y), collapse = " ")) }), collapse = ",")
@@ -782,14 +819,14 @@ FP_to_MQ <- function(FP_Workflow,
       x <- unlist(x)
       x <- aggregate(x, list(x), length)
       x <- x[order(x$Group.1, decreasing = FALSE),]
-      x$Group.1 <- Modifs$`Full name`[match(x$Group.1, Modifs$Mark)]
+      x$Group.1 <- Modifs$"Full name"[match(x$Group.1, Modifs$Mark)]
       paste(apply(x, 1, function(y) { gsub("^1 ", "", paste(rev(y), collapse = " ")) }), collapse = ",")
     }
     environment(f0) <- .GlobalEnv
     EV$Modifications[wMdSq2] <- parallel::parSapply(cl, tmp, f0)
   }
   #tst <- unique(gsub("^[0-9]+ ", "", unlist(strsplit(EV$Modifications[wMdSq2], ","))))
-  #sum(!tst %in% Modifs$`Full name`)
+  #sum(!tst %in% Modifs$"Full name")
   # Mass and mass error columns
   EV$"m/z" <- PSMs$"Calibrated Observed M/Z"
   EV$"Theoretical m/z" <- PSMs$"Calculated M/Z"
