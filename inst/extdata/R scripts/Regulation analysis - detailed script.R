@@ -865,14 +865,14 @@ source(parSrc, local = FALSE)
 #### Code chunk - Assemble protein groups
 ReportCalls <- AddSpace2Report()
 ReportCalls <- AddTxt2Report("Starting protein groups assembly...")
-if ("Prot.Only.with.at.least" %in% colnames(Param)) {
-  NPep <- as.integer(Param$Prot.Only.with.at.least)
-  if ((is.na(NPep))||(NPep <= 0)) {
-    warning("Invalid `\"Prot.Only.with.at.least\" parameter, defaulting to 1!")
-    NPep <- 1
+if ("N. of peptidoforms for quantitation" %in% colnames(Param)) {
+  N_Pep <- as.integer(Param$"N. of peptidoforms for quantitation")
+  if ((is.na(N_Pep))||(N_Pep <= 0)) {
+    warning("Invalid `\"N. of peptidoforms for quantitation\" parameter, defaulting to 1!")
+    N_Pep <- 1
   }
-} else { NPep <- 1 }
-.obj <- unique(c("NPep", .obj))
+} else { N_Pep <- 1 }
+.obj <- unique(c("N_Pep", .obj))
 #
 tm1 <- Sys.time()
 source(parSrc, local = FALSE)
@@ -1315,7 +1315,7 @@ if ("PepFoundInAtLeast" %in% colnames(Param)) {
     PepFoundInAtLeast <- 1
   }
 }
-tst <- apply(pep[, unlist(kol)], 1, function(x) { sum(proteoCraft::is.all.good(x) > 0) })
+tst <- parApply(parClust, pep[, unlist(kol)], 1, function(x) { sum(proteoCraft::is.all.good(x) > 0) })
 Pep2Use %<o% which(tst >= PepFoundInAtLeast)
 maxAllowed <- max(c(2, length(Rep)-1))
 if (!exists("PepFoundInAtLeastGrp")) { PepFoundInAtLeastGrp %<o% maxAllowed }
@@ -1780,18 +1780,6 @@ if (Param$Prot.Only.with.Quant) {
 if (!"Peptides count" %in% colnames(PG)) {
   PG$"Peptides count" <- vapply(strsplit(PG$"Peptide IDs", ";"), length, 1)
 }
-#if ("Prot.Only.with.at.least" %in% colnames(Param)) {
-#  n <- as.numeric(Param$Prot.Only.with.at.least)
-#  if ((is.na(n))||(n != round(n, 0))) {
-#    warning("Protein groups could not be filtered by number of peptides because the value entered could not be recognized as a number.")
-#  } else {
-#    w <- which(PG$"Peptides count" >= n)
-#    quant.data <- quant.data[w,]
-#    PG <- PG[w,]
-#  }
-#}
-#pep_bckp %<o% pep
-#pep <- pep[which(pep$id %in% unique(unlist(strsplit(PG$"Peptide IDs", ";")))),]
 
 if (!Param$Plot.labels %in% colnames(PG)) {
   tmp <- gsub("\\.", " ", Param$Plot.labels)

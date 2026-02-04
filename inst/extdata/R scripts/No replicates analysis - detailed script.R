@@ -1557,7 +1557,7 @@ quant.data %<o% Prot.Quant(PG, Pep4Quant, "PreferUnique", pep,
                            log.Pep.Intens = FALSE, log.Pep.Ratios = 2,
                            Prot.LFQ.to.log = TRUE, Prot.Ratios.to.log = TRUE,
                            Mods = Mod4Quant, Mods.to.Exclude = Mod2Xclud,
-                           Min.N = NPep, N.clust = N.clust,
+                           Min.N = N_Pep, N.clust = N.clust,
                            Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1],
                            cl = parClust)
 quant.data <- quant.data[, which(!grepl("\\.REF$", colnames(quant.data))), drop = FALSE]
@@ -1571,7 +1571,7 @@ saveFun(quant.data, file = "quant.data.RData")
 #             Pep.Intens.Nms = grep(topattern(paste0(int.col, " - ")), colnames(pep), value = TRUE),
 #             log.Pep.Intens = FALSE,
 #             Mods = Mod4Quant,
-#             Min.Pep.Nb = NPep, corr = "global", Out.Norm = FALSE)
+#             Min.Pep.Nb = N_Pep, corr = "global", Out.Norm = FALSE)
 #PG.int.col <- paste0("log10(", int.col, ") - ")
 #colnames(quant.data) <- gsub(paste0("^log10 - ", int.col, " - "), PG.int.col, colnames(temp))
 #loadFun("quant.data.RData")
@@ -1591,7 +1591,7 @@ if (Impute) {
                               log.Pep.Intens = FALSE, log.Pep.Ratios = 2,
                               Prot.LFQ.to.log = TRUE, Prot.Ratios.to.log = TRUE,
                               Mods = Mod4Quant,
-                              Min.N = NPep, N.clust = N.clust,
+                              Min.N = N_Pep, N.clust = N.clust,
                               Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1],
                               cl = parClust)
   #colnames(quant.data2)
