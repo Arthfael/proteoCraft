@@ -312,7 +312,7 @@ my_F_Data[, fdrKol] <- F_fdr$F_test$`Significance vector`
 # b) Significance columns for each post-hoc test
 # ..............................................
 # Note that this could also be done globally. But usually here people consider each test individually.
-# The decision as to whether to calculate FDR thresholds for each post hoc test indiviudally,
+# The decision as to whether to calculate FDR thresholds for each post-hoc test indiviually,
 # or globally for all, could be parameter controlled in the future.
 tmp <- my_F_Data[, F_PVal_postHoc, drop = FALSE]
 readr::write_rds(tmp, paste0(wd, "/tmp.RDS"))

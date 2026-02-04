@@ -2,6 +2,7 @@ intPrtFst %<o% paste0(wd, "/Proteins of interest.fasta")
 if (!exists("prot.list")) { prot.list %<o% c() }
 if (!exists("prot.list_pep")) { prot.list_pep %<o% c() }
 if ((exists("db"))&&("Protein of interest" %in% colnames(db))) {
+  db$`Protein of interest` <- as.logical(db$`Protein of interest`)
   prot.list <- unique(c(prot.list, db$`Protein ID`[which(db$`Protein of interest`)]))
 }
 if ((exists("Param"))&&("Prot.list" %in% colnames(Param))) {

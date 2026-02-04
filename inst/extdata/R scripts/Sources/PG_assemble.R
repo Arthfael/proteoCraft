@@ -23,7 +23,7 @@
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
 #' @param Custom_PGs Data frame of protein groups known a priori (default = NA). One column required, called "Leading protein IDs" with semicolon-separated IDs; optional 2nd column: a numeric/integer called "Priority level". Any peptide mapping to these groups will be assigned to them to the exclusion of other protein groups. Use the priority column to resolve ambiguities (1 = highest priority). NB: Use with caution, only for known, priority proteins (e.g. artificial constructs).
 #' @param ContCol Name of column in the database specifying whether a protein is a contaminant ("+", otherwise ""). Default = "Potential contaminant"
-#' @param Npep Minimum number of razor or unique peptides to tag a protein group as a true discovery (others will still be reported). Default = 2
+#' @param Npep Minimum number of razor or unique peptides to tag a protein group as a true discovery (others will still be reported). Default = N_Pep if it exists, otherwise 2.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
 #' 
 #' @examples
@@ -43,7 +43,7 @@ if (!exists("Evidence.IDs")) { Evidence.IDs <- "Evidence IDs" }
 if (exists("custPGs")) { Custom_PGs <- custPGs }
 if (!exists("Custom_PGs")) { Custom_PGs <- NA }
 if (!exists("ContCol")) { ContCol <- "Potential contaminant" }
-if (exists("NPep")) { Npep <- NPep }
+Npep <- { if (exists("N_Pep")) { N_Pep } else { 2 }
 if (!exists("Npep")) { Npep <- 2 }
 if (!exists("DB")) { DB <- db }
 if (!exists("Pep")) { Pep <- pep }
@@ -52,8 +52,8 @@ TESTING <- FALSE
 
 #TESTING <- TRUE
 #proteoCraft::DefArg(proteoCraft::PG_assemble)
-#Pep <- pep ;Ev <- ev ;DB <- db ;N.clust <- 55; Custom_PGs <- custPGs; Npep = NPep; TESTING <- TRUE
-#Pep <- pep[1:1000,] ;Ev <- ev ;DB <- db ;N.clust <- 55; Custom_PGs <- custPGs; Npep = NPep; TESTING <- TRUE
+#Pep <- pep ;Ev <- ev ;DB <- db ;N.clust <- 55; Custom_PGs <- custPGs; Npep = N_Pep; TESTING <- TRUE
+#Pep <- pep[1:1000,] ;Ev <- ev ;DB <- db ;N.clust <- 55; Custom_PGs <- custPGs; Npep = N_Pep; TESTING <- TRUE
 #
 if (TESTING) {
   tm1 <<- Sys.time()
@@ -709,8 +709,10 @@ if (doCont) {
 }
 pg$id <- 1:nrow(pg)
 # Peptide IDs
-if (grepl("peptide", Peptide.IDs, ignore.case = TRUE)) { pepcolnm <- gsub("ss$", "s", paste0(Peptide.IDs, "s")) } else {
-  pepcolnm <- "Peptide IDs"
+pepcolnm <- {
+  if (grepl("peptide", Peptide.IDs, ignore.case = TRUE)) {
+    gsub("ss$", "s", paste0(Peptide.IDs, "s"))
+  } else { "Peptide IDs" }
 }
 pg[[pepcolnm]] <- vapply(pg$.pep.ids, paste, "", collapse = ";")
 # Assign final PG IDs to seq
@@ -1187,7 +1189,7 @@ if ("Common Name" %in% colnames(DB)) {
   if ((length(id.col))&&(length(w) > 0)) {
     pg$"Common Name (short)"[w] <- apply(pg[w, id.col], 1, function(x) {
       ww <- which(!x %in% c("", " ", "NA", NA))
-      if (length(ww) > 0) { x <- x[ww[1]] } else { x <- "" }
+      x <- { if (length(ww) > 0) { x[ww[1]] } else { "" } }
       return(x)
     })
   }
@@ -1195,7 +1197,7 @@ if ("Common Name" %in% colnames(DB)) {
 # PG label column
 pg$temp <- gsub(";.+", ";...", pg$"Leading protein IDs")
 pg$Label <- apply(pg[, c("temp", "Common Name (short)")], 1, function(x) {
-  if ((is.na(x[[2]]))||(x[[2]] == "NA")) { x <- x[[1]] } else { x <- paste0(x[[1]], " - ", x[[2]]) }
+  x <- { if ((is.na(x[[2]]))||(x[[2]] == "NA")) { x[[1]] } else { paste0(x[[1]], " - ", x[[2]]) } }
   return(x)
 })
 pg$temp <- NULL
