@@ -61,6 +61,7 @@ Norma.Prot.Ratio,TF_TRUE,"Should we re-normalise protein ratios (basic, quick)?"
 Norma.Prot.Ratio.to.Biot,TF_FALSE,"Alternative protein group ratio normalisation: for BioID experiments only (otherwise ignored), if set to true then the data will be normalised only to proteins with at least one Biotin peptide."
 Norma.Prot.Ratio.to.proteins,TF_FALSE,Alternative protein group ratio normalisation: use this parameter to specify selected protein groups; protein group ratios will not be normalised to the median of all protein groups but just ones containing the specified accessions.
 Min.Pep.Size,7,Sometimes you want to exclude all peptides shorter than a specific size. This is where you would do it.
+Quant_algorithm,limpa,Protein groups quantification algorithm.
 Prot.Only.with.Quant,TF_FALSE,Only keep proteins with valid quantitative data?
 Prot.Only.with.at.least,1,"Use 1 for a workflow where sensitive is key, 2 or higher for ratios where precision is key. "
 Annotate,TF_TRUE,"Should we annotate proteins with GO terms? It takes a looong time currently, so the preferred method is to use the Annotate_txt parameter below."
