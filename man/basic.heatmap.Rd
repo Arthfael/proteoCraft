@@ -11,7 +11,7 @@ basic.heatmap(
   normRows = FALSE,
   isLog = FALSE,
   size = 2,
-  h.margin = c(5, 2),
+  h.margins = c(5, 10),
   v.margin = 10,
   colours = "D",
   colours_invert = FALSE,
@@ -36,7 +36,7 @@ basic.heatmap(
 
 \item{size}{The character size. Default = 2.5, you may want to reduce it for large proteins.}
 
-\item{h.margin}{Optional: size of the left hand side margin. Default = 3}
+\item{h.margins}{Optional: size of the horizontal margins. Default = c(5, 10)}
 
 \item{v.margin}{Optional: size of the upper margin. Default = 3}
 

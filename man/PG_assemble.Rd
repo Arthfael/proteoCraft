@@ -15,7 +15,7 @@ PG_assemble(
   N.reserved = 1,
   Custom_PGs = NA,
   ContCol = "Potential contaminant",
-  Npep = 2,
+  Npep,
   cl
 )
 }
@@ -40,7 +40,7 @@ PG_assemble(
 
 \item{ContCol}{Name of column in the database specifying whether a protein is a contaminant ("+", otherwise ""). Default = "Potential contaminant"}
 
-\item{Npep}{Minimum number of razor or unique peptides to tag a protein group as a true discovery (others will still be reported). Default = 2}
+\item{Npep}{Minimum number of razor or unique peptides to tag a protein group as a true discovery (others will still be reported). Default = N_Pep if it exists, otherwise 2.}
 
 \item{cl}{Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!}
 }

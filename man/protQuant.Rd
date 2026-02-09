@@ -6,17 +6,17 @@
 \usage{
 protQuant(
   Prot,
-  PepIDs = "Peptide IDs",
-  PepIDs_unique = "Unique peptide IDs",
   Pep,
-  id = "id",
+  pg_PepIDs = "Peptide IDs",
+  pg_PepIDs_unique = "Unique peptide IDs",
+  pep_IDs = "id",
   N_unique,
   LFQ_algo = "limpa",
-  LM_fun = "median",
   reScaling,
   topN_correct = TRUE,
   minN = 1,
   maxN = 50,
+  LM_fun = "median",
   Weights,
   useIntWeights = FALSE,
   Priority = "Intensities",
@@ -35,11 +35,11 @@ protQuant(
   pepRat_log = 2,
   protLFQ_toLog = TRUE,
   protRat_toLog = TRUE,
-  Mods_to_Exclude,
-  modSeq = "Modified sequence",
-  Discard_unmod = TRUE,
-  primSeq = "Sequence (1st accession)",
-  refsMode = "2",
+  mods_to_Exclude,
+  mod_Seq = "Modified sequence",
+  discard_unmod = TRUE,
+  prim_Seq = "Sequence (1st accession)",
+  ref_Mode = "2",
   cl,
   N.clust,
   N.reserved = 1
@@ -48,15 +48,15 @@ protQuant(
 \arguments{
 \item{Prot}{Protein/Protein groups table. A data.frame, which must contain at least peptides IDs and primary sequence of the first accession in each group.}
 
-\item{PepIDs}{Name of the Protein/Protein groups table's peptide IDs column. Default = "Peptide IDs"}
+\item{Pep}{Peptides table. A data.frame. If it contains unmodified sequences then these are expected to be in column name "Sequence". Argument mod_Seq controls the name of the column used for modified sequence.}
 
-\item{PepIDs_unique}{Used only if mode = "PreferUnique". Name of the Protein/Protein groups table's unique peptide IDs column. Default = "Unique peptide IDs"}
+\item{pg_PepIDs}{Name of the Protein/Protein groups table's peptide IDs column. Default = "Peptide IDs"}
 
-\item{Pep}{Peptides table. A data.frame. If it contains unmodified sequences then these are expected to be in column name "Sequence". Argument modSeq controls the name of the column used for modified sequence.}
+\item{pg_PepIDs_unique}{Used only if mode = "PreferUnique". Name of the Protein/Protein groups table's unique peptide IDs column. Default = "Unique peptide IDs"}
 
-\item{id}{The name of the Peptides table's IDs column. Default = "id"}
+\item{pep_IDs}{The name of the Peptides table's IDs column. Default = "id"}
 
-\item{N_unique}{Logical or numeric. If FALSE or 0, the function just uses the "PepIDs" argument. If non null (default), a second column name of unique peptide IDs should be provided using the "PepIDs_unique" argument. If at least N_unique unique peptides are present, then only those will be used for quantitation, otherwise as many razor/shared peptides as necessary will be added (sorted by decreasing average intensities).}
+\item{N_unique}{Logical or numeric. If FALSE or 0, the function just uses the "pg_PepIDs" argument. If non null (default), a second column name of unique peptide IDs should be provided using the "pg_PepIDs_unique" argument. If at least N_unique unique peptides are present, then only those will be used for quantitation, otherwise as many razor/shared peptides as necessary will be added (sorted by decreasing average intensities).}
 
 \item{LFQ_algo}{Algorithm used to compute average profiles. One of:\cr
  - "LM": Levenberg-Marquardt method (backend = minpack.lm::nls.lm()); very similar to MaxLFQ. Normalized peptide relative profiles are aligned using Levenberg-Marquardt then summarized.\cr
@@ -64,8 +64,6 @@ protQuant(
  - "limpa" or "DPC": backend = limpa::dpcQuant(); current default\cr
  - "QFeatures": backend = QFeatures::aggregateFeatures()\cr
 Note that limpa and QFeatures do not "just produce quantitative values": both output specific objects with additional information which can be used for downstream analysis (respectively with limma or msqrob2).\cr}
-
-\item{LM_fun}{How should normalized profiles be averaged? One of "median" (default), "mean", or "weighted.mean" (the latter which uses the Weights and useIntWeights arguments).}
 
 \item{reScaling}{Optional summary method for re-scaling. May be one of:\cr
 - "median",\cr
@@ -83,6 +81,8 @@ Note that limpa and QFeatures do not "just produce quantitative values": both ou
 \item{minN}{Integer, default = 1. How many peptides should at least be present for quantitation? Values lower than 1 are increased to 1. May not be higher than N_unique!}
 
 \item{maxN}{Integer or Inf, default = 50. Up to how many peptides should we use for the Levenberg-Marquardt procedure (used only for LFQs)? Using too many peptides can be an issue, e.g. with huge proteins like Titin. Default = 50. The most intense peptides will be selected. May not be lower than N_unique!}
+
+\item{LM_fun}{How should normalized profiles be averaged? One of "median" (default), "mean", or "weighted.mean" (the latter which uses the Weights and useIntWeights arguments).}
 
 \item{Weights}{Length 1 character, a valid column name of Pep containing user-defined individual peptide weights. Used if LM_fun or reScaling are set to "weighted.mean" (for the former only if LFQ_algo = "LM").}
 
@@ -120,15 +120,15 @@ Note that limpa and QFeatures do not "just produce quantitative values": both ou
 
 \item{protRat_toLog}{Only needed if ratios (logFCs) are also to be output. Should the output protein ratios be log-scale or not? Can ve set to the log base desired. If set to TRUE, this will be the same base as the input ratios log scale, or its default, 2}
 
-\item{Mods_to_Exclude}{Which modifications should be excluded? (use argument "Discard_unmod" to discard unmodified counterpart peptides.) A data.frame with columns "Mark" (2-lettern modification mark) and "Where" (a list, which amino acids are affected, use "Nterm", "Cterm", "protNterm" and "protCterm" for termini). Also see argument "Discard_unmod".}
+\item{mods_to_Exclude}{Which modifications should be excluded? (use argument "discard_unmod" to discard unmodified counterpart peptides.) A data.frame with columns "Mark" (2-lettern modification mark) and "Where" (a list, which amino acids are affected, use "Nterm", "Cterm", "protNterm" and "protCterm" for termini). Also see argument "discard_unmod".}
 
-\item{modSeq}{Default = "Modified sequence". The name of the column containing the modified sequence in the peptides table. Can be set to a non-modified sequence if Mods_to_Exclude is empty.}
+\item{mod_Seq}{Default = "Modified sequence". The name of the column containing the modified sequence in the peptides table. Can be set to a non-modified sequence if mods_to_Exclude is empty.}
 
-\item{Discard_unmod}{Logical or integer in 0:2. Default = TRUE. Should we discard those unmodified peptides whose primary sequence is the same as that of some modified peptides we will not use? If set to 2, will use the "Where" column in "Mods_to_Exclude" to identify (and exclude) peptides which could be modified even if the modified form was not identified. Requires knowledge of protein sequence ("primSeq" argument)! Be careful! This will likely massively reduce the number of peptides available for quantitation!}
+\item{discard_unmod}{Logical or integer in 0:2. Default = TRUE. Should we discard those unmodified peptides whose primary sequence is the same as that of some modified peptides we will not use? If set to 2, will use the "Where" column in "mods_to_Exclude" to identify (and exclude) peptides which could be modified even if the modified form was not identified. Requires knowledge of protein sequence ("prim_Seq" argument)! Be careful! This will likely massively reduce the number of peptides available for quantitation!}
 
-\item{primSeq}{Default = "Sequence (1st accession)", used if "Discard_unmod" is set to 2.}
+\item{prim_Seq}{Default = "Sequence (1st accession)", used if "discard_unmod" is set to 2.}
 
-\item{refsMode}{How are reference ratios calculated?\cr
+\item{ref_Mode}{How are reference ratios calculated?\cr
 - If set to "1", only references are considered (i.e. it compares individual references either to each other, or if available to the average reference for the group).\cr
 - If set to "2" (default), for each ratios group, reference ratios are based on comparing every possible pair of samples within the group.\cr}
 
@@ -165,8 +165,8 @@ NB on re-scaling:
 \cr
 \cr
 (Note on refGroups and ratGroups:\cr
-  These parameters are the method we used for calculating logFCs and together define whether replicates are paired or not.\cr
-For an experiment with several Replicates of 2 or more Conditions (incl. one control, aka reference):\cr
+ These parameters are the method we used for calculating logFCs and together define whether replicates are paired or not.\cr
+ For an experiment with several Replicates of 2 or more Conditions (incl. one control, aka reference):\cr
  - In a paired (= "nested") setup, you would set refGroups to "ExpRep" and ratGroups to "Exp"\cr
  - In an unpaired setup, you would set both refGroups and ratGroups to "Exp"\cr
  Essentially, refGroups are the groups within which ratios are calculated to all available references in the group,\cr
@@ -184,13 +184,13 @@ A function to calculate estimated protein group Expression (inter-protein group 
 The input is assumed to already be normalized!\cr
 }
 \examples{
-temp <- protQuant(Prot = PG, PepIDs = Pep4Quant, Pep = pep, id = "New Peptide ID",
+temp <- protQuant(Prot = PG, pg_PepIDs = Pep4Quant, Pep = pep, pep_IDs = "New Peptide ID",
                   expMap = Exp.map,
                   refGroups = Ratios.Ref.Groups,
                   pepInt_Root = pep.ref, pepRat_root = pep.ratios.ref,
                   pepInt_log = FALSE, pepRat_log = 2,
                   protLFQ_toLog = TRUE, protRat_toLog = TRUE,
-                  Mods_to_Exclude = Mod2Xclud, modSeq = "Modified sequence",
+                  mods_to_Exclude = Mod2Xclud, mod_Seq = "Modified sequence",
                   minN = 2)
 
 }
