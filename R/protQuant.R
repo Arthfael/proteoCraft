@@ -279,7 +279,7 @@ protQuant <- function(Prot,
   # Parameters from optional re-scaling
   if (!skip_reScaling) {
     stopifnot(reSc_is_topN||
-                (RESCALING %IN% c("LM", "IQ", "LIMPA", "QFEATURES"))||
+                (RESCALING %in% c("LM", "IQ", "LIMPA", "QFEATURES"))||
                 ((!"try-error" %in% class(try(get(reScaling), silent = TRUE)))&&
                    (sum(c("standardGeneric", "function") %in% class(get(reScaling))) > 0)))
     useIntWeights <- FALSE
@@ -1513,7 +1513,7 @@ protQuant <- function(Prot,
   #
   if (stopCl) { parallel::stopCluster(cl) }
   RES <- list(Data = res2)
-  if ("LIMPA" %in% c(LFQ_algo, reScaling)) {
+  if ("LIMPA" %in% c(LFQ_ALGO, RESCALING)) {
     RES$EList_obj <- dpcRes
   }
   if ("QFEATURES" %in% c(LFQ_ALGO, RESCALING)) {

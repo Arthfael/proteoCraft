@@ -49,5 +49,5 @@
   if (!exists(".obj", envir = .GlobalEnv)) {
     assign(".obj", c(".obj", "%<o%", "%<c%"), envir = .GlobalEnv)
   }
-  assign(".obj", c(nm, .obj), envir = .GlobalEnv)
+  assign(".obj", unique(c(nm, .obj)), envir = .GlobalEnv)
 }
