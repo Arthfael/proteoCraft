@@ -7,6 +7,7 @@ require(shinyBS)
 require(htmlwidgets)
 #
 Exp %<o% unique(SamplesMap$Experiment)
+nSmpls <- length(Exp)
 moreThan1Sample %<o% (length(Exp) > 1)
 #
 # Boolean functions to check parameter values
@@ -255,18 +256,6 @@ if (!validIntegPar("PepFoundInAtLeast", 0)) {
 PepFoundInAtLeast %<o% PepFoundInAtLeast
 AnalysisParam$PepFoundInAtLeast <- PepFoundInAtLeast
 #
-Exp.map$Replicate <- as.integer(Exp.map$Replicate)
-mxRp <- max(as.integer(Exp.map$Replicate), na.rm = TRUE)
-mxN <- max(c(2, mxRp-1))
-if ((!validIntegPar("PepFoundInAtLeastGrp", 1))&&("PepFoundInAtLeastGrp" %in% names(AnalysisParam))) {
-  tmp1 <- AnalysisParam$PepFoundInAtLeastGrp
-  if (validIntegPar("tmp1", 0)) { PepFoundInAtLeastGrp <- as.integer(tmp1) }
-}
-if (!validIntegPar("PepFoundInAtLeastGrp", 0)) {
-  PepFoundInAtLeastGrp <- mxN # ... which means if we have 3 unique peptides we will not use any non-unique ones
-}
-PepFoundInAtLeastGrp %<o% PepFoundInAtLeastGrp
-AnalysisParam$PepFoundInAtLeastGrp <- PepFoundInAtLeastGrp
 # Cytoscape
 CytoScExe %<o% c()
 cytoTst <- grep("cytoscape", list.dirs("C:/PROGRA~1", recursive = FALSE), value = TRUE, ignore.case = TRUE)
@@ -442,15 +431,13 @@ for (parI in myPar) {
   parNm <- paste0("run", parI)
   # Lowest level default: defined by context
   par_dflt <- par_dflt2 <- c(FALSE,
-                             TRUE, # Should be (Annotate)|(Org %in% ... ), cf. GSEA source: there are 20-ish organisms for which a specific annotations package is usable
+                             WorkFlow %in% c("Discovery", "Regulation", "Pull-down"),
+                             moreThan1Exp,
                              TRUE,
-                             TRUE,
-                             FALSE,
-                             nrow(Exp.map >= 15))[match(parI, myPar)]
-  
-  # Level 1 default: defined by Param
-  if (parNm %in% colnames(Param)) {
-    par_dflt <- as.logical(Param[[parNm]])
+                             FALSE)[match(parI, myPar)]
+  # Level 1 default: defined by AnalysisParam
+  if (parNm %in% names(AnalysisParam)) {
+    par_dflt <- as.logical(AnalysisParam[[parNm]])
   }
   # Level 2 default: defined by existing value
   parOK <- (exists(parNm))
@@ -555,14 +542,7 @@ make_ui <- function() {
                                  N_unique_Pep, 1, Inf, 1, "100%"),
                     strong(em("Use only peptidoforms found in at least how many samples in...")),
                     numericInput("PepFoundInAtLeast",
-                                 " -> the whole dataset?", PepFoundInAtLeast, 1, nSmpls, 1, "100%"),
-                    numericInput("PepFoundInAtLeastGrp",
-                                 " -> one sample group at least? (overrides parameter above)",
-                                 PepFoundInAtLeastGrp,
-                                 1,
-                                 mxRp,
-                                 1,
-                                 "100%")),
+                                 " -> the whole dataset?", PepFoundInAtLeast, 1, nSmpls, 1, "100%")),
              column(3,
                     h4("Main LFQ algorithm"),
                     selectInput("Quant_algorithm",

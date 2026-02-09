@@ -51,6 +51,7 @@ if (!dir.exists(ohDeer)) { dir.create(ohDeer, recursive = TRUE) }
 if (exists("dirlist")) { dirlist <- unique(c(dirlist, ohDeer)) }
 if (isOK) {
   if (Annotate) {
+    # Either we can use the annotations we already have
     if (!exists("GO_mappings")) { try(loadFun("GO_mappings.RData"), silent = TRUE) }
     if (!exists("GO_terms")) { try(loadFun("GO_terms.RData"), silent = TRUE) }
     if (sum(!c(exists("GO_mappings"), exists("GO_terms")))) {
@@ -64,6 +65,7 @@ if (isOK) {
     term2name <- data.frame(term = GO_terms$ID,
                             name = GO_terms$Term)
   } else {
+    # Or we will have to get an annotations package (currently 20 organisms are supported)
     if ((!exists("Org"))||(!"data.frame" %in% class(Org))||(nrow(Org) != 1)) {
       kol <- c("Organism_Full", "Organism")
       kol <- kol[which(kol %in% colnames(db))]
@@ -82,7 +84,6 @@ if (isOK) {
       }
     }
     if (isOK) {
-      # For now only the following 20 organisms are supported, because we need their annotations package:
       orgDBs <- data.frame(Full = c("Homo sapiens",
                                     "Pan troglodytes",
                                     "Macaca mulatta",
@@ -123,8 +124,6 @@ if (isOK) {
                                   "org.EcK12.eg.db",
                                   "org.EcSakai.eg.db",
                                   "org.Mxanthus.db"))
-      # I will need to make this more universal.
-      # ...
       if (Org$Organism %in% orgDBs$Full) { organism <- Org$Organism } else {
         organism <- dlg_list(c(orgDBs$Full, "none of these"),
                              orgDBs$Full[1], title = "Select organism")$res
@@ -138,8 +137,6 @@ if (isOK) {
     #hub <- AnnotationHub()
     #query(hub, organism)
     #myOrgAnnot <- hub[db$`Protein ID`]
-    # ...
-    # test this: can I use this and skip altogether the db package installation step?
     if (isOK) {
       orgDBpkg <- orgDBs$db[match(organism, orgDBs$Full)]
       packs <- c("GO.db", "clusterProfiler", "BiocParallel", "pathview", "enrichplot", "DOSE", orgDBpkg)

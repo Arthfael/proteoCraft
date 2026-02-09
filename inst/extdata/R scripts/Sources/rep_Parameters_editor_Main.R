@@ -733,7 +733,7 @@ for (parI in myPar) {
   parNm <- paste0("run", parI)
   # Lowest level default: defined by context
   par_dflt <- par_dflt2 <- c(FALSE,
-                             TRUE, # Should be (Annotate)|(Org %in% ... ), cf. GSEA source: there are 20-ish organisms for which a specific annotations package is usable
+                             TRUE,
                              TRUE,
                              TRUE,
                              FALSE,

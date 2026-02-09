@@ -176,7 +176,7 @@ if (scrptType == "withReps") {
     pep$"Normalisation group" <- do.call(paste, c(pep[, c(nms, "Normalisation group")], sep = "_"))
   }
 }
-if ("Quantity Quality" %in% colnames(ev)) { # Dia-NN specific:
+if ("Quantity Quality" %in% colnames(ev)) { # DiaNN specific:
   tmp <- data.table(Qual = ev$"Quantity Quality", ModSeq = ev$"Modified sequence")
   tmp <- tmp[, list(Qual= mean(Qual)), by = list(ModSeq)]
   tmp <- as.data.frame(tmp)
