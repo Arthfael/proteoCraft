@@ -1,7 +1,7 @@
 Package: proteoCraft
 Title: Functions and scripts for Proteomics Data Analysis
-Version: 3.1.5
-Date: 2026-01-23
+Version: 3.1.6
+Date: 2026-02-09
 Authors@R: 
     person("Armel", "Developer", , "armel.nicolas@ista.ac.at", role = c("aut", "cre"))
 Author: Armel Nicolas [aut, cre]
