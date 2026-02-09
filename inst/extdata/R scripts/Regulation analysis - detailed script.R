@@ -1302,45 +1302,9 @@ saveImgFun(BckUpFl)
 source(parSrc, local = FALSE)
 
 #### Code chunk - Calculate protein group-level quantitative values
-# You may want to exclude peptides based on how many samples they are found in:
-kol <- lapply(VPAL$values, function(x) {
-  x <- paste0(pep.ref["Original"], Exp.map$Ref.Sample.Aggregate[which(Exp.map[[VPAL$column]] == x)])
-  return(x[which(x %in% colnames(pep))])
-})
-if (!exists("PepFoundInAtLeast")) { PepFoundInAtLeast %<o% 1 }
-if ("PepFoundInAtLeast" %in% colnames(Param)) {
-  PepFoundInAtLeast %<o% suppressWarnings(as.integer(Param$PepFoundInAtLeast))
-  if ((is.na(PepFoundInAtLeast))||(PepFoundInAtLeast < 1)) {
-    warning("Invalid \"PepFoundInAtLeast\" parameter, defaulting to 1")
-    PepFoundInAtLeast <- 1
-  }
-}
-tst <- parApply(parClust, pep[, unlist(kol)], 1, function(x) { sum(proteoCraft::is.all.good(x) > 0) })
-Pep2Use %<o% which(tst >= PepFoundInAtLeast)
-maxAllowed <- max(c(2, length(Rep)-1))
-if (!exists("PepFoundInAtLeastGrp")) { PepFoundInAtLeastGrp %<o% maxAllowed }
-if ("PepFoundInAtLeastGrp" %in% colnames(Param)) {
-  PepFoundInAtLeastGrp %<o% suppressWarnings(as.integer(Param$PepFoundInAtLeastGrp))
-  if ((is.na(PepFoundInAtLeastGrp))||(PepFoundInAtLeastGrp < 1)||(PepFoundInAtLeastGrp > length(Rep)-1)) {
-    warning(paste0("Invalid \"PepFoundInAtLeastGrp\" parameter, defaulting to ", maxAllowed))
-    PepFoundInAtLeastGrp <- maxAllowed
-  }
-}
-tst <- pep[, unlist(kol)]
-clusterExport(parClust, list("tst", "kol", "PepFoundInAtLeastGrp"), envir = environment())
-tst <- parSapply(parClust, 1:nrow(pep), function(x) {
-  x <- max(vapply(kol, function(kl) { sum(proteoCraft::is.all.good(unlist(tst[x, kl])) > 0) }, 1) >= PepFoundInAtLeastGrp)
-  return(x)
-}) > 0
-invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
-Pep2Use %<o% which(tst)
-#length(Pep2Use)/nrow(pep)
-#
-# Run quantification
-quntSrc <- paste0(libPath, "/extdata/R scripts/Sources/rep_PG_Quant_old.R")
+quntSrc <- paste0(libPath, "/extdata/R scripts/Sources/rep_PG_Quant.R")
 #rstudioapi::documentOpen(quntSrc)
 source(quntSrc, local = FALSE)
-
 
 ### Code chunk
 # Sometimes, you want to compare, e.g., two control groups C1 and C2 to one treated sample S.
@@ -3645,8 +3609,8 @@ if (length(protlspep)) { # XICs
         #View(XICs[1:100,])
         #
         m <- match(XICs$"Mod. seq.", ev$"Mod. seq. (DiaNN format)")
-        XICs[, c("Proteins", "Sequence", "ModSeq", "PEP", "Quantity Quality")] <- ev[m,
-                                                                                     c("Proteins", "Sequence", "Modified sequence", "PEP", "Quantity Quality")]
+        myKol <- c("Proteins", "Sequence", "Modified sequence", "PEP", "Quantity Quality")
+        XICs[, myKol] <- ev[m, myKol]
         ev$tmp <- ">>>"
         Boundaries <- do.call(paste0, c(ev[, c("Mod. seq. (DiaNN format)", "Charge", "tmp", "Raw file")]))
         ev$tmp <- NULL
@@ -3665,11 +3629,11 @@ if (length(protlspep)) { # XICs
           if (length(g)) {
             XIC <- XICs[g,]
             pkBnds <- Boundaries[which(Boundaries$Seq_Run %in% XIC$Seq_Run),]
-            u <- unique(XIC$ModSeq)
+            u <- unique(XIC$"Modified sequence")
             clusterExport(parClust, list("XIC", "pkBnds", "xicDir2", "pr"), envir = environment())
             invisible(parLapply(parClust, u, function(sq) { #sq <- u[1] #sq <- u[2]
               sq2 <- gsub("^_|_$", "", sq)
-              ppXIC <- XIC[which(XIC$ModSeq == sq),]
+              ppXIC <- XIC[which(XIC$"Modified sequence" == sq),]
               yMax <- aggregate(ppXIC$value, list(ppXIC$File), max)
               xMin <- min(ppXIC$rt)
               bnds <- pkBnds[which(pkBnds$Seq_Run %in% ppXIC$Seq_Run),]

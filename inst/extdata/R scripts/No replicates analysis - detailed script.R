@@ -885,7 +885,7 @@ if ((length(Exp) > 1)&&(Impute)) {
     w2 <- which(!(is.na(temp) | is.infinite(temp)), arr.ind = TRUE)
     Min <- min(unlist(temp[w2]))
     SD <- sd(unlist(temp[w2]))
-    temp[w1] <- rnorm(nrow(w1), Min, SD/5) # Subsetting with arrays is sooo cool!
+    temp[w1] <- rnorm(nrow(w1), Min, SD/5)
     kol2 <- gsub(topattern(int.col), paste0("Imput. ", int.cols["Original"]), g)
     colnames(temp) <- kol2
     temp <- 10^temp
@@ -1468,18 +1468,6 @@ invisible(clusterCall(parClust, function(x) { rm(list = ls());gc() }))
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 
-#### Code chunk - Calculate protein group-level quantitative values
-PG.int.cols %<o% c()
-PG.int.col %<o% "log10(Expr.) - "
-PG.int.cols["Original"] <- PG.int.col
-PG.rat.cols %<o% c()
-PG.rat.col %<o% "log2(Ratio) - " #We need those defaults actually even if !MakeRatios
-PG.rat.cols["Original"] <- PG.rat.col
-if (Impute) {
-  PG.int.cols["Imputed"] <- PG.int.col <- paste0("Imput. ", PG.int.cols["Original"])
-  PG.rat.cols["Imputed"] <- PG.rat.col <- paste0("Imput. ", PG.rat.cols["Original"])
-}
-
 # Coverage columns
 PG$"1st accession" <- vapply(strsplit(PG$`Leading protein IDs`, ";"), function(x) { unlist(x)[1] }, "")
 PG$"Sequence (1st accession)" <- db$Sequence[match(PG$`1st accession`, db$`Protein ID`)]
@@ -1521,100 +1509,19 @@ for (exp in Exp) {
 }
 
 
-Rgs <- list()
-for (exp in Exp) {
-  rg <- seq_len(nRws[exp])
-  m <- match(exp, Exp)
-  if (m > 1) {
-    rg <- rg + sum(nRws[1:(m-1)])
-  }
-  Rgs[[exp]] <- rg
-}
-
-# LFQ quant and ratios:
-Exp.map <- SamplesMap
-Exp.map$Ref.Sample.Aggregate <- SamplesMap$Experiment
-Exp.map$Ratios_group <- paste0("Group", Exp.map$`Ratios group`)
-RatGrp <- RefGrp <- list(aggregate = "Rat",
-                         values = unique(Exp.map$Ratios_group),
-                         names = "Ratios_group",
-                         column = "Ratios_group")
-SmplGrp <- list(aggregate = "Exp",
-                values = Exp,
-                names = "Experiment",
-                column = "Experiment")
-Aggregate.map <- list(Aggregate.name = c("Exp", "Rat"), Characteristics = c("Experiment", "Ratios_group"))
-Aggregate.list <- list(Rat = unique(Exp.map$Ratios_group),
-                       Exp = unique(Exp.map$Experiment))
-Aggregates <- setNames(c("Ratios_group", "Experiment"), c("Rat", "Exp"))
-ref.aggr.col <- RefGrp$names
-quant.data %<o% Prot.Quant(PG, Pep4Quant, "PreferUnique", pep,
-                           Summary.method = "mean", #Summary.weights = "Weights",
-                           Intensity.weights = FALSE, Skip.ratios = !MakeRatios,
-                           experiments.map = Exp.map, ref.groups = RefGrp, ratio.groups = RatGrp,
-                           sample.groups = SmplGrp,
-                           Pep.Intens.root = paste0(int.col, " - "), Pep.Ratios.root = paste0(rat.cols["Original"], " - "),
-                           log.Pep.Intens = FALSE, log.Pep.Ratios = 2,
-                           Prot.LFQ.to.log = TRUE, Prot.Ratios.to.log = TRUE,
-                           Mods = Mod4Quant, Mods.to.Exclude = Mod2Xclud,
-                           Min.N = N_Pep, N.clust = N.clust,
-                           Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1],
-                           cl = parClust)
-quant.data <- quant.data[, which(!grepl("\\.REF$", colnames(quant.data))), drop = FALSE]
-colnames(quant.data) <- gsub("^log10\\(Expr\\.\\) - ", PG.int.col, colnames(quant.data))
-colnames(quant.data) <- gsub("^log2\\(Ratio\\) - ", PG.rat.col, colnames(quant.data))
-colnames(quant.data)[which(colnames(quant.data) == "Peptides IDs used for quantitation")] <- paste0("Peptide IDs used for quantitation - ",
-                                                                                                    names(PG.int.cols)[match(PG.int.col, PG.int.cols)])
-saveFun(quant.data, file = "quant.data.RData")
-#loadFun("quant.data.RData")
-#quant.data <- TopN(3, PG, Pep4Quant, pep, "id",
-#             Pep.Intens.Nms = grep(topattern(paste0(int.col, " - ")), colnames(pep), value = TRUE),
-#             log.Pep.Intens = FALSE,
-#             Mods = Mod4Quant,
-#             Min.Pep.Nb = N_Pep, corr = "global", Out.Norm = FALSE)
-#PG.int.col <- paste0("log10(", int.col, ") - ")
-#colnames(quant.data) <- gsub(paste0("^log10 - ", int.col, " - "), PG.int.col, colnames(temp))
-#loadFun("quant.data.RData")
-
-if (Impute) {
-  # In that case we need to calculate expression values a second time, unfortunately... It doesn't take so long.
-  refI <- int.cols[grep("^Imput\\.", int.cols)-1]
-  refR <- rat.cols[grep("^Imput\\.", int.cols)-1] # This is correct!
-  PGrefI <- PG.int.cols[grep("^Imput\\.", PG.int.cols)-1]
-  PGrefR <- PG.rat.cols[grep("^Imput\\.", PG.int.cols)-1] # Again, intentional.
-  quant.data2 %<o% Prot.Quant(PG, Pep4Quant, "PreferUnique", pep,
-                              Summary.method = "mean", #Summary.weights = "Weights",
-                              Intensity.weights = FALSE, Skip.ratios = !MakeRatios,
-                              experiments.map = Exp.map, ref.groups = RefGrp, ratio.groups = RatGrp,
-                              sample.groups = SmplGrp,
-                              Pep.Intens.root = paste0(refI, " - "), Pep.Ratios.root = paste0(refR, " - "),
-                              log.Pep.Intens = FALSE, log.Pep.Ratios = 2,
-                              Prot.LFQ.to.log = TRUE, Prot.Ratios.to.log = TRUE,
-                              Mods = Mod4Quant,
-                              Min.N = N_Pep, N.clust = N.clust,
-                              Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1],
-                              cl = parClust)
-  #colnames(quant.data2)
-  quant.data2 <- quant.data2[, which(!grepl("\\.REF$", colnames(quant.data2))), drop = FALSE]
-  colnames(quant.data2) <- gsub("^log10\\(Expr\\.\\) - ", PGrefI, colnames(quant.data2))
-  colnames(quant.data2) <- gsub("^log2\\(Ratio\\) - ", PGrefR, colnames(quant.data2))
-  colnames(quant.data2)[which(colnames(quant.data2) == "Peptides IDs used for quantitation")] <- paste0("Peptide IDs used for quantitation - ",
-                                                                                                        names(PG.int.cols)[match(PGrefI, PG.int.cols)])
-  save(quant.data2, file = "quant.data2.RData")
-  PG[, colnames(quant.data2)] <- quant.data2
-}
-PG[, colnames(quant.data)] <- quant.data
-
-rm(Exp.map)
+#### Code chunk - Calculate protein group-level quantitative values
+quntSrc <- paste0(libPath, "/extdata/R scripts/Sources/noRep_PG_Quant.R")
+#rstudioapi::documentOpen(quntSrc)
+source(quntSrc, local = FALSE)
 
 #### Code chunk - Re-normalize protein group expression values
 # Normalize (Levenberg-Marquardt)
 if ((length(Exp) > 1)&&(NormalizePG)) {
   g <- grep(topattern(PG.int.col), colnames(PG), value = TRUE)
   temp <- PG[, c("id", g)]
-  m <- apply(temp[,g], 2, function(x) { median(is.all.good(x)) })
+  m <- apply(temp[, g], 2, function(x) { median(is.all.good(x)) })
   M <- median(is.all.good(unlist(temp[,g])))
-  temp[,g] <- sweep(temp[,g], 2, m, "-") + M
+  temp[, g] <- sweep(temp[, g], 2, m, "-") + M
   temp <- AdvNorm.IL(temp[, c("id", g)], "id", exprs.col = g, exprs.log = TRUE)
   PG[, gsub(topattern(PG.int.col), paste0("Norm. ", PG.int.cols["Original"]), g)] <- temp[, paste0("AdvNorm.", g)]
   PG.int.cols["Normalized"] <- PG.int.col <- paste0("Norm. ", PG.int.cols["Original"])
@@ -1637,7 +1544,6 @@ if (length(Exp) > 1) {
                                                         1, mean, na.rm = TRUE)
   }
 }
-
 
 #### Code chunk - Prepare Annotations and (if applicable) GO terms
 # NB: I used to get functional annotations for all proteins in the protein group.
@@ -1675,7 +1581,6 @@ dir <- paste0(wd, "/Workflow control")
 if (length(Exp) > 1) {
   comb <- as.data.frame(gtools::combinations(length(Exp), 2, Exp))
   kount <- 0
-  temp <- list()
   for (klnm in names(PG.int.cols)) { #klnm <- names(PG.int.cols)[1]
     kol <- PG.int.cols[klnm]
     kolZ <- grep(topattern(kol), colnames(PG), value = TRUE)
@@ -1683,7 +1588,13 @@ if (length(Exp) > 1) {
       kount <- kount + 1
       temp2 <- PG[, kolZ] 
       source(parSrc, local = FALSE)
-      clusterExport(parClust, list("kol", "temp2", "klnm"), envir = environment())
+      clusterExport(parClust, list("kol", "klnm", "wd"), envir = environment())
+      readr::write_rds(temp2, paste0(wd, "/temp2.RDS"))
+      clusterCall(parClust, function(x) {
+        temp2 <<- readr::read_rds(paste0(wd, "/temp2.RDS"))
+        return()
+      })
+      unlink(paste0(wd, "/temp2.RDS"))
       temp2 <- parApply(parClust, comb, 1, function(x) {
         temp3 <- temp2[, paste0(kol, unlist(x))]
         temp3$X <- x[[1]]
@@ -1700,7 +1611,7 @@ if (length(Exp) > 1) {
     }
   }
   temp <- plyr::rbind.fill(temp)
-  test <- parApply(parClust, temp[,c("log10(X LFQ)", "log10(Y LFQ)")], 1, function(x) {
+  test <- parApply(parClust, temp[, c("log10(X LFQ)", "log10(Y LFQ)")], 1, function(x) {
     length(proteoCraft::is.all.good(x))
   }) == 2
   temp <- temp[which(test),]
@@ -1725,12 +1636,19 @@ if (length(Exp) > 1) {
   y_min <- min(temp$`log10(Y LFQ)`)
   y_max <- max(temp$`log10(Y LFQ)`)
   tmp <- temp[, c("log10(X LFQ)", "log10(Y LFQ)", "Comparison", "Common Name (short)")]
-  clusterExport(parClust, list("get_density", "tmp"), envir = environment())
+  clusterExport(parClust, list("get_density", "wd"), envir = environment())
+  readr::write_rds(tmp, paste0(wd, "/tmp.RDS"))
+  clusterCall(parClust, function(x) {
+    tmp <<- readr::read_rds(paste0(wd, "/tmp.RDS"))
+    return()
+  })
+  unlink(paste0(wd, "/tmp.RDS"))
   comps <- unique(temp$Comparison)
   tmpD <- setNames(parLapply(parClust, comps, function(cmp) { #cmp <- comps[1]
     w <- which(tmp$Comparison == cmp)
     x <- get_density(tmp$`log10(X LFQ)`[w], tmp$`log10(Y LFQ)`[w], n = 500)
-    x <- data.frame(Density = x, Nm = tmp$"Common Name (short)"[w])
+    x <- data.frame(Density = x,
+                    Nm = tmp$"Common Name (short)"[w])
     return(x)
   }), comps)
   temp$Intensity <- 0
@@ -1906,7 +1824,7 @@ if (length(M)) {
   })
   #poplot(plot3)
 } else {
-  poplot(plot)
+  poplot(plot, 12, 22)
   suppressMessages({
     ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
     ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
