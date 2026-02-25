@@ -1,0 +1,106 @@
+WD,,Leave empty if saving the R script in the same folder as all of the other files; the workflow has not been tested for other values for a long time so I would advise not to change this.
+Project,AHH1,
+Output,MaxQuant,Currently only MaxQuant and ProteomeDiscoverer are supported.
+Minus.1.to.MQ.Isobaric.labels,T,"It is critical to get this right! From MaxQuant 1.6.?.?, isobaric channels are labelled from 1 to N, not from 0 to N-1!!! Apply the correction wherever required. I doubt this can be automatically detected."
+Type,Total proteome,"Type of experiment; setting it to ""IP"", ""IMMUNOPRECIPITATION"", ""BIOID"" or ""PULLDOWN"" will allow specific graphs to be drawn."
+Label,TMT6to11plex,"Accepted values are ""TMT"" or ""iTRAQ"" for a MQ evidence table; for a PD PSM table, we require more precision: ""TMT0plex"", ""TMT2plex"", ""TMT6to11plex"", ""iodoTMT0plex"", ""iodoTMT6plex"", ""aminoxyTMT0plex"", ""aminoxyTMT6plex"", ""iTRAQ4plex"" or ""iTRAQ8plex"" are accepted values; I will eventually want to add SILAC too!"
+LFQ.Ev.col,Intensity,Only used if Label is set to Label-free.
+Label.Multiplicity,10,How many channels were used? For isobarically-labelled datasets only (or eventually for SILAC - not available for now).
+Label.Purities.file,Label_purities_lot_UL291039.csv,Are the label purities available for reporter intensity purity correction?
+Label.Purities.file.loc,,"If so, where are they stored?"
+Prot.list,P61809,"List of protein IDs of interest to be highlighted in Volcano plots even if non significant. Either a semicolon separated list, or a .csv file, in which case the UniProt Accessions should be in the ""Protein.ID"" column."
+Prot.list_pep,,List of protein IDs of interest for which a peptides coverage map and heatmap are to be drawn.
+MQ.Experiments,TMT1;TMT2,Tab-separated list of Experiments in the MaxQuant experiment design
+MQ.Experiments.to.discard,,Did you search the data with some experiments you actually do not want to include in this analysis? Tab-separated list.
+Search.DB,Mus_musculus_-_uniprot-proteome%3AUP000000589.fasta,"Name of the fasta database used to search the data. If several were included, you may separate hem with a semicolon."
+Search.DB.loc,WD,"I usually save a copy of the fasta database in the folder so I am sure to never lose it. If the database is elsewhere, specify it here."
+Search.DB.type,UniProt,"Type of search data base(s), semicolon separated. Supported values are UniProtKB, NCBI and custom."
+Search.DB.species,Mus musculus,"Individual species of entries in each search data base, semicolon separated. If the search databases are hybrid, either leave this unfilled (if species can be detected in the fasta header) or create individual fasta files for each species."
+STRINGdb_Species,Mus musculus,Used for the purpose of creating STRINGdb interaction networks.
+STRINGdb_LocServer,//istsmb3.ist.local/anicolas/public_html,The local address of the folder where STRINGdb payload files will be saved
+STRINGdb_Server,https://pub.ist.ac.at/~anicolas/,The external address of the server where STRINGdb payload files will be saved
+Cont.DB,,Name of the contaminants database; entries from that database will be removed from the results.
+Cont.DB.loc,,"I usually save a copy of the fasta database(s) in the folder so I am sure to never lose them.  If the location is somewhere else, specify it here."
+Frac.map,Fractions map.csv,"The fractions map is used in a few cases. Note that because I am stupid, in that file the MaxQuant experiments are named ""Experiments"", so keep the name of that column from MQ unchanged."
+Frac.map.loc,WD,Normally this should be the work directory.
+Plot.labels,Common.Name.short,"Which labels to display on Volcano plots. Default is usually good but you can also name a specific column name, e.g. Protein.IDs"
+Batch.correction,Lit,"Aggregate for batch correction. Must be mapped to a valid aggregate to be properly interpreted, or it will be ignored."
+Ratios.Groups,Exp,"When calculating ratios, sometimes you want to have several groups with their own references; for instance, several IPs, tissue types, etc... with  different targets; these would be mapped to Experiments (Exp, a different concept than MQ.Exp); Protein quantitation is done per group. If references are Replicate specific, then do not include Rep here but do it Ratios.Ref.Groups."
+Ratios.Ref.Groups,Exp;Lit,"Usually includes the same aggregates as Ratios.Groups, meaning there will be a single reference group per ratio group. If references are Replicate specific, then include Rep here but not in Ratios.Groups."
+Ratios.Groups.Ref.Aggregate.Level,Exp;Gen;Rep,This is the type of aggregate for each value of which we will calculate an individual ratio; e.g.: Exp;Con;Rep means a single ratio/expression column will be created for each valid Experiment/Condition/Replicate combination
+Ratios.Plot.split,Exp,Usually the same as Ratios.Groups
+Ratios.Plot.wrap,Gen,"The next level going downwards from Experiments in the hierarchy, usually Con or Gen"
+Ratios.Plot.colour,Rep,Usually Rep: a single colour for each replicate
+Adv.Norma.Pep.Ratio.Type.Group,Exp,"If normalising peptide ratios using the Levenberg Marquardt algorithm, you often want to do this within groups."
+Volcano.plots.Aggregate.Level,Exp;Gen,"Usually, this would be Ratios.Groups.Ref.Aggregate.Level without the Rep (replicate) component"
+Norma.Ev.Intens,T,"Should we normalise evidence intensities (basic, quick)?"
+Adv.Norma.Ev.Intens,T,"If normalising evidence intensities, should we use the Levenberg Marquardt algorithm (slow)?"
+Adv.Norma.Ev.Intens.Type,C,"If normalising evidence intensities with the Levenberg Marquardt algorithm (slow), should we do it per column? Currently only this is available."
+Norma.Ev.Intens.show,T,Display results of evidence intensities normalisation?
+Norma.Pep.Intens,T,"Should we normalise peptide intensities (basic, quick)?"
+Norma.Pep.Intens.Shape,vsn,"Set to ""loess"" for LOESS normalisation, or ""vsn"" for Variance Stabilisation Normalisation."
+Norma.Pep.Intens.IRS,T,Set to TRUE for Internal Reference Scaling normalisation. Note that this requires a specific setup: each isobaric set containing all samples for one or several replicate(s) of the experiment.
+Norma.Pep.Intens.IRS_Ref_channels,9;9,"Either leave empty (or set to NA), in which case the reference channel will be computed as the average of the TMT sample; or set to a specific label (as in the Isobaric.label column of Experiment.map); 1 value required per isobaric set, semicolon separated."
+Adv.Norma.Pep.Intens,T,"Set to ""True"" to use the Levenberg Marquardt algorithm (slow). This argument used to also specify ""loess"" or ""vsn"" normalisation, now use the ""Norma.Pep.Intens.Shape"" argument instead."
+Adv.Norma.Pep.Intens.Type,C,"If normalising peptide intensities with the Levenberg Marquardt algorithm (slow), should we do it per column? Currently only this is available."
+Norma.Pep.Intens.show,T,Display results of peptide intensities normalisation?
+Norma.Pep.Ratio,F,"Should we normalise peptide ratios (basic, quick)?"
+Adv.Norma.Pep.Ratio,F,"If normalising peptide ratios, should we use the Levenberg Marquardt algorithm (slow)?"
+Adv.Norma.Pep.Ratio.Type,C,"If normalising peptide ratios with the Levenberg Marquardt algorithm (slow), should we do it per column? Currently only this is available."
+Norma.Pep.Ratio.show,T,Display results of peptide ratios normalisation?
+P.values.type,moderated,"Which type of P values will be used for the volcano plots and significance analysis? One of ""t-test"", ""moderated"" or ""permutations"". "
+BH.FDR.values,0.1;0.2;0.3,FDR values for Volcano plots and significance thresholds.
+Ratios.Contamination.Rates,0.05,"In order to determine empirically a fold change threshold, we model the distributions of condition and control ratios to average control, then set a threshold such that the contamination of control ratios to condition ratios beyond thresholds is equal to that value."
+Prot.Quant.Use,Razor,"I usually use Razor peptides and not Unique, thus sacrificing some precision for sensitivity."
+Prot.Quant.Mod,ac;ox;de;gl,"Use the 2-character name of the modification as used by MaxQuant in the Modified.sequence column, or equivalent."
+Norma.Prot.Ratio,F,"Should we normalise protein ratios (basic, quick)?"
+Norma.Prot.Intens,F,Currently not used
+Min.Pep.Size,7,Sometimes you want to exclude all peptides shorter than a specific size. This is where you would do it.
+Prot.Only.with.Quant,F,Only keep proteins with valid quantitative data?
+Prot.Only.with.at.least,1,"Use 1 for a workflow where sensitive is key, 2 or higher for ratios where precision is key. "
+Annotate,T,"Should we annotate proteins with GO terms? It takes a looong time currently, so the preferred method is to use the Annotate_txt parameter below."
+Annotate_txt,Mus_musculus_-_uniprot-proteome%3AUP000000589.txt,"Did you provide external sources of annotations? These should be UniProt proteomes or protein lists, downloaded as text."
+Annotate_txt.loc,WD,"If yes to the above, where are the files?"
+Filters.type,conditions;references;dataset;dataset2,"Values accepted: ""conditions"", ""references"" and ""dataset"" or ""dataset2"" (several are acceptable). Defines how filters for heatmaps of regulated proteins, GO terms enrichment and STRINGdb networks are created: either for each condition (""conditions""), for each set of references (""conditions"") or for the entire dataset (""dataset"" for one filter per F-test analysis, or ""dataset2"" for one global filter for all analyses)."
+GO.enrichment,T,Should we perform GO enrichment analysis for the different conditions versus the whole dataset?
+GO.enrichment_Whole_dataset,T,Should we perform GO enrichment analysis for the whole dataset versus the parent search database?
+GO.enrichment.Ratio.threshold,2,
+Plotly_user_name,,
+Plotly_API_key,,
+PTM.analysis,Phospho (STY),
+F.test,T,Should we perform an F.test analysis (similar to a moderated ANOVA)
+F.test_within,,What are the F.test groups within which we should work?
+F.test_factors,Gen_;_Exp_;_Rep,"Within each group, what are the factor groups to perform the F.test for? The formalism is a bit complex. We will talk of analyses. For reach analysis, there is one first group of main factors, a second optional of secondary ones, and a third optional of blocking factors. Analyses should be separated by ""_|_"", and for each groups (up to three) separated by ""_;_"".Thus, an analysis specified as ""fact1___fact2_;_fact3___fact4_;_fact5"" would first make the contrasts for all combinations of fact1-fact2, then secondary contrasts for all combinations of fact3-fact4, and use fact5 as blocking factor. As another example, ""fact1_;_fact2___fact3_|_fact2_;_fact1___fact3"" would mean that two analyses are made: one with main = fact1 and secondaries = fact 2 and fact 3, and one with main = fact3 and secondaries = fact 1 and fact 3 (no blocking factor)."
+F.test_factors_ref,WT_;_Mosaic,"Same structure as above, except there will be no reference for the 3rd group of each analysis as it is a blocking factor."
+Experiments.map,Experiment map.csv,Default usually fine
+Experiments.map.loc,WD,Default usually fine
+Evidence,evidence.txt,Default usually fine for MaxQuant output files. Can be a .txt or .csv file.
+Ev.loc,WD,Default usually fine
+Plot.metrics,X:Ratio_Mean.log2;Y:Ratio_Minus.log10.Pvalue,Default usually fine
+Plot.threshold.metrics,down:X;up:X;strict:Y;loose:Y,Default usually fine
+Plot.threshold.values,down:-log2(2);up:log2(2);strict:-log10(0.01);loose:-log10(0.05),Default usually fine
+Plot.threshold.tests,down:<=;up:>=;strict:>=;loose:>=,Default usually fine
+Plot.threshold.colours,down:red;up:red;strict:orange;loose:gold,Default usually fine
+Plot.areas.colours,down_strict:green;down_loose:blue;up_strict:red;up_loose:orange,Default usually fine
+Species,"Deprecated! If the workflow is asking for this, you've got an old one.",
+GO.enrichment.groups,"Deprecated! If the workflow is asking for this, you've got an old one.",
+GO.enrichment.metrics,"Deprecated! If the workflow is asking for this, you've got an old one.",
+GO.enrichment.sides,"Deprecated! If the workflow is asking for this, you've got an old one.",
+GO.enrichment.thresholds,"Deprecated! If the workflow is asking for this, you've got an old one.",
+GO.enrichment.tests,"Deprecated! If the workflow is asking for this, you've got an old one.",
+Annotations.DB,"Deprecated! If the workflow is asking for this, you've got an old one.",
+Annotations.DB.loc,"Deprecated! If the workflow is asking for this, you've got an old one.",
+Species.Type,"Deprecated! If the workflow is asking for this, you've got an old one.",
+Species.Full.name,"Deprecated! If the workflow is asking for this, you've got an old one.",
+Conditions,"Deprecated! If the workflow is asking for this, you've got an old one.",
+Isobaric.map,"Deprecated! If the workflow is asking for this, you've got an old one.",
+Isobaric.map.loc,"Deprecated! If the workflow is asking for this, you've got an old one.",
+Re.Norm.Prot.Ratios.to,"Deprecated! If the workflow is asking for this, you've got an old one.",
+Ref2.Re.Norm.Prot.Ratios.to,"Deprecated! If the workflow is asking for this, you've got an old one.",
+Condition.Pairs.to.Compare,"Deprecated! If the workflow is asking for this, you've got an old one.",
+Scatter,"Deprecated! If the workflow is asking for this, you've got an old one.",
+Phospho.analysis,"Deprecated! If the workflow is asking for this, you've got an old one.",
+Annotate_seq_match,"Deprecated! If the workflow is asking for this, you've got an old one.",
+proteinGroups,"Deprecated! If the workflow is asking for this, you've got an old one.",
+PG.loc,"Deprecated! If the workflow is asking for this, you've got an old one.",
+GO.enrichment_groupings,"Deprecated! If the workflow is asking for this, you've got an old one.",
