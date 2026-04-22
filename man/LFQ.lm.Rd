@@ -11,10 +11,10 @@ LFQ.lm(
   IntensCol,
   Summary.method = "median",
   Summary.weights,
-  Min.N = 2,
-  Max.N = 50,
+  Min.N = 2L,
+  Max.N = 50L,
   Is.log = TRUE,
-  reNorm = 1
+  reNorm = 1L
 )
 }
 \arguments{
@@ -26,7 +26,7 @@ LFQ.lm(
 
 \item{IntensCol}{Names of the quantitative columns in InputTabl}
 
-\item{Summary.method}{The summary method used for ratios (the Levenberg-Marquardt algorithm is used for intensities). One of "mean", "median", or "weighted.mean".}
+\item{Summary.method}{The summary method used for ratios (the Levenberg-Marquardt algorithm is used for intensities). One of "mean", "median", or "weighted.mean". May be passed as function or function name, but be careful: if passed as a function, and it is a "renamed" weighted.mean function, then the weights will be ignored (we test by name).}
 
 \item{Summary.weights}{If a "weighted.mean" summary method is chosen, then a vector of weights must be provided. This should be the name of a column of the peptides table}
 

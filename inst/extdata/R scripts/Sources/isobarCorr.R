@@ -8,17 +8,19 @@ if ((LabelType == "Isobaric")&&
   Iso.purity <- read.csv(Param$Label.Purities.file)
   msg <- paste0("Correcting ", evNm, " reporter intensities for labels purity.")
   ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
-  DatAnalysisTxt <- paste0(DatAnalysisTxt, " Reporter intensities were corrected for ", IsobarLab, " label purity factors.")
-  if (colnames(Iso.purity)[1] == "New.format") {
+  l <- length(DatAnalysisTxt)
+  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
+                              " Reporter intensities were corrected for ", IsobarLab, " label purity factors.")
+  if (colnames(Iso.purity)[1L] == "New.format") {
     Iso.purity <- read.csv(Param$Label.Purities.file, check.names = FALSE)
-    Iso.purity <- Iso.purity[, 2:ncol(Iso.purity)]
+    Iso.purity <- Iso.purity[, 2L:ncol(Iso.purity)]
     Iso.purity$Isobaric.set <- lapply(strsplit(as.character(Iso.purity$Isobaric.set), ";"), as.integer)
     test <- sort(unique(unlist(Iso.purity$Isobaric.set)))
     if (exists("Iso")) {
       if (!sum(!Iso %in% test)) {
         test <- data.frame(Isobaric.set = test, check.names = FALSE)
-        test$"Purity table" <- lapply(test$Isobaric.set, function(x) {
-          Iso.purity[which(vapply(Iso.purity$Isobaric.set, function(y) { x %in% y }, TRUE)),
+        test$"Purity table" <- lapply(test$Isobaric.set, \(x) {
+          Iso.purity[which(vapply(Iso.purity$Isobaric.set, \(y) { x %in% y }, TRUE)),
                      which(colnames(Iso.purity) != Isobaric.set)]
         })
         kol <- paste0("corr. ", ev.ref["Original"], get(IsobarLab))
@@ -38,31 +40,34 @@ if ((LabelType == "Isobaric")&&
           w <- match(lb2, pt$"Isobaric label details")
           pt <- pt[w,]
           w <- which(colnames(pt) != "Isobaric label details")
-          A <- matrix(rep(0, length(lb)*(length(lb)+length(w)-1)), ncol = length(lb))
-          for (j in 1:length(lb2)) {
+          A <- matrix(rep(0L, length(lb)*(length(lb)+length(w)-1)), ncol = length(lb))
+          for (j in 1L:length(lb2)) {
             tmp <- as.numeric(pt[j, w])
             tmp[which(is.na(tmp))] <- 0
-            A[j:(j+length(w)-1), j] <- tmp
+            A[j:(j+length(w)-1L), j] <- tmp
           }
-          w <- which(vapply(1:length(w), function(x) {
-            sum(vapply(1:length(lb), function(y) { A[y+x-1, y] == 100 }, TRUE))
-          }, 1) == length(lb))
-          A <- A[(1:length(lb))+w-1,]
+          w <- which(vapply(1L:length(w), \(x) {
+            sum(vapply(1L:length(lb), \(y) { A[y+x-1L, y] == 100L }, TRUE))
+          }, 1L) == length(lb))
+          A <- A[(1L:length(lb))+w-1L,]
           source(parSrc, local = FALSE)
           exports <- list("A", "e", "kol")
           clusterExport(parClust, exports, envir = environment())
-          clusterCall(parClust, function() library(matlib))
-          clusterCall(parClust, function() library(proteoCraft))
-          temp <- as.data.frame(t(parApply(parClust, e[,kol], 1, function(x) {
+          invisible(clusterCall(parClust, \() {
+            library(matlib)
+            library(proteoCraft)
+            return()
+          }))
+          temp <- as.data.frame(t(parApply(parClust, e[,kol], 1L, \(x) {
             b <- as.numeric(x)
-            b[which(!is.all.good(b, 2))] <- 0
+            b[which(!is.all.good(b, 2L))] <- 0
             sb <- sum(b)
             if (sb > 0) {
               #showEqn(round(A, 3), b)
               #res <- as.numeric(gsub(".+= +", "", Solve(A, b))) # I stopped using this since it seems to return approximations sometimes
               res <- solve(A, b)
               # There are cases where we will get negative values which we will have to truncate:
-              res[which(res < 0)] <- 0
+              res[which(res < 0L)] <- 0
               res <- #round(
                 res*sb/sum(res)
               #, 0)# I used to round here, but do not think it's necessary
@@ -85,8 +90,8 @@ if ((LabelType == "Isobaric")&&
       if (!sum(!Iso %in% test)) {
         test <- test[which(test %in% Iso)]
         test <- data.frame(Isobaric_set = test)
-        test$Purity.table <- lapply(test$Isobaric_set, function(x) {
-          Iso.purity[which(vapply(lapply(strsplit(Iso.purity$Isobaric.set, ";"), as.integer), function(y) { x %in% unlist(y) }, TRUE)),
+        test$Purity.table <- lapply(test$Isobaric_set, \(x) {
+          Iso.purity[which(vapply(lapply(strsplit(Iso.purity$Isobaric.set, ";"), as.integer), \(y) { x %in% unlist(y) }, TRUE)),
                      which(colnames(Iso.purity) != "Isobaric.set")]
         })
         kol <- paste0("corr. ", ev.ref["Original"], get(IsobarLab))
@@ -106,18 +111,18 @@ if ((LabelType == "Isobaric")&&
           pt <- pt[which(pt$Isobaric.label.details %in% lb2),]
           kol2 <- c("MI_minus.2", "MI_minus.1", "Monoisotopic", "MI_plus.1", "MI_plus.2")
           kol3 <- c("Who_minus.2", "Who_minus.1", "Who_plus.1", "Who_plus.2")
-          pt[, kol2] <- sweep(pt[, kol2], 1, rowSums(pt[, kol2]), "/")
-          A <- as.data.frame(matrix(rep(0, length(lb)*(length(lb)+4)), nrow = length(lb)))
+          pt[, kol2] <- sweep(pt[, kol2], 1L, rowSums(pt[, kol2]), "/")
+          A <- as.data.frame(matrix(rep(0, length(lb)*(length(lb)+4L)), nrow = length(lb)))
           colnames(A) <- c("-2", "-1", lb2, "+1", "+2")
           kount <- 0
           for (l in lb2) { #l <- lb2[2]
-            kount <- kount+1
+            kount <- kount+1L
             tmp <- unlist(pt[which(pt$Isobaric.label.details == l), kol3])
             wc <- wc2 <- which(tmp != "")
-            wc2[which(wc2 > 2)] <- wc2[which(wc2 > 2)]+1
+            wc2[which(wc2 > 2L)] <- wc2[which(wc2 > 2L)]+1L
             fact <- pt[which(pt$Isobaric.label.details == l), kol2, drop = FALSE]
-            fact <- fact[, sort(c(3, wc2))]
-            colnames(fact) <- c(l, tmp[wc])[order(c(3, wc2))]
+            fact <- fact[, sort(c(3L, wc2))]
+            colnames(fact) <- c(l, tmp[wc])[order(c(3L, wc2))]
             fact <- fact[, which(colnames(fact) %in% colnames(A))]
             if (length(fact)) {
               A[kount, colnames(fact)] <- fact
@@ -126,11 +131,11 @@ if ((LabelType == "Isobaric")&&
           A <- as.matrix(A[,3:(length(lb)+2)])
           exports <- list("A", "e", "kol")
           clusterExport(parClust, exports, envir = environment())
-          clusterCall(parClust, function() library(matlib))
-          clusterCall(parClust, function() library(proteoCraft))
-          temp <- as.data.frame(t(parApply(parClust, e[, kol], 1, function(x) {
+          clusterCall(parClust, \() library(matlib))
+          clusterCall(parClust, \() library(proteoCraft))
+          temp <- as.data.frame(t(parApply(parClust, e[, kol], 1L, \(x) {
             b <- as.numeric(x)
-            b[which(!is.all.good(b, 2))] <- 0
+            b[which(!is.all.good(b, 2L))] <- 0
             sb <- sum(b)
             if (sb > 0) {
               #showEqn(round(A, 3), b)

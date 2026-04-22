@@ -3,6 +3,7 @@
 ################
 if (saintExprs) { saintExprs <- "Target" %in% colnames(Exp.map) }
 if (saintExprs) {
+  stop("This needs to be rewritten to deal with contrasts!")
   SaintRoot <- "C:/SAINTexpress"
   SaintDir <- paste0(SaintRoot, "/SAINTexpress_v3.6.3__2018-03-09")
   if (!dir.exists(SaintDir)) { dir.create(SaintDir, recursive = TRUE) }
@@ -16,12 +17,12 @@ if (saintExprs) {
     }
     cran_req <- unique(c(cran_req, packs))
     destFl <- paste0(SaintRoot, "/SAINTexpress_v3.6.3__2018-03-09.tar.gz")
-    kount <- 0
-    while ((!kount)||((kount < 5)&&("try-error" %in% class(tst)))) {
+    kount <- 0L
+    while ((!kount)||((kount < 5L)&&(inherits(tst, "try-error")))) {
       tst <- try(download.file(url, destFl), silent = TRUE)
-      kount <- kount+1
+      kount <- kount+1L
     }
-    if ("try-error" %in% class(tst)) { saintExprs <- FALSE } else {
+    if (inherits(tst, "try-error")) { saintExprs <- FALSE } else {
       gunzip(destFl)
       utils::untar(gsub("\\.gz$", "", destFl), exdir = SaintRoot)
       unlink(destFl)
@@ -46,7 +47,7 @@ if (saintExprs) {
   #url <- "https://raw.githubusercontent.com/bornea/APOSTL/master/wk_images/SAINTexpress-manual.pdf"
   #destfile <- paste0(saintDir, "/SAINT express manual.pdf")
   #tst <- try(download.file(url, destfile, "curl"), silent = TRUE)
-  #if ("try-error" %in% class(tst)) { try(download.file(url, destfile, "wget"), silent = TRUE) }
+  #if (inherits(tst, "try-error")) { try(download.file(url, destfile, "wget"), silent = TRUE) }
   # Description:
   # http://saint-apms.sourceforge.net/Main.html
   fl <- system.file("extdata", "SAINTexpress-manual.pdf", package = "proteoCraft")
@@ -58,7 +59,8 @@ if (saintExprs) {
   mtch <- listMelt(strsplit(PG$"Protein IDs", ";"), PG$id, c("Protein", "PG id"))
   mtch <- set_colnames(aggregate(mtch$`PG id`, list(mtch$Protein), unique), c("Protein", "PG ids"))
   Interact <- Prey <- data.frame(Protein = mtch$Protein)
-  Prey[, c("Sequence", "Gene")] <- db[match(gsub("^CON__", "", Prey$Protein), gsub("^CON__", "", db$`Protein ID`)), c("Sequence", "Gene")]
+  Prey[, c("Sequence", "Gene")] <- db[match(gsub("^CON__", "", Prey$Protein), gsub("^CON__", "", db$`Protein ID`)),
+                                      c("Sequence", "Gene")]
   Prey$Length <- nchar(Prey$Sequence)
   w <- which(is.na(Prey$Length))
   if (length(w)) {
@@ -74,9 +76,11 @@ if (saintExprs) {
     GO$Proteins <- PG$`Protein IDs`[match(GO$L1, PG$id)]
     GO <- listMelt(strsplit(GO$Proteins, ";"), GO$value)
   }
+  whSimple <- which(myContrasts$Secondary == "")
+  
   Bait <- data.frame(IP_name = gsub("\\.", "", cleanNms(Exp.map$Ref.Sample.Aggregate, rep = "")),
                      Bait = Exp.map$Target,
-                     Indicator = Indiq[Exp.map$Reference+1])
+                     Indicator = Indiq[Exp.map$Reference+1L])
   #Bait <- Bait[which((!is.na(Bait$Bait))&(Bait$Bait %in% Prey$Protein)),]
   Bait$Bait[which((is.na(Bait$Bait))|(!Bait$Bait %in% Prey$Protein))] <- "CONTROL"
   # if (("CONTROL" %in% Bait$Bait)&&(!"CONTROL" %in% Prey$Protein)) {
@@ -89,19 +93,19 @@ if (saintExprs) {
   kol <- paste0(Prot.Expr.Root, Exp.map$Ref.Sample.Aggregate)
   klnms <- gsub("\\.", "", cleanNms(Exp.map$Ref.Sample.Aggregate, rep = ""))
   tmp <- PG[, c("id", kol)]
-  clusterExport(parClust, list("tmp", "kol"), envir = environment())
-  Interact[, klnms] <- as.data.frame(t(parSapply(parClust, mtch$`PG ids`, function(x) {
+  clusterExport(parClust, list("tmp", "kol", "is.all.good"), envir = environment())
+  Interact[, klnms] <- as.data.frame(t(parSapply(parClust, mtch$`PG ids`, \(x) {
     m <- match(unlist(x), tmp$id)
     if (!length(m)) { stop(x) }
     x <- tmp[m, kol, drop = FALSE]
-    x <- as.numeric(apply(x, 2, function(x) { mean(proteoCraft::is.all.good(x)) }))
+    x <- as.numeric(apply(x, 2L, \(x) { mean(is.all.good(x)) }))
     return(x)
   })))
   Interact <- reshape::melt(Interact, id.vars = "Protein")
   colnames(Interact) <- c("Protein", "IP_name", "Intensity")
   Interact$IP_name <- as.character(Interact$IP_name)
-  Interact$Intensity <- 10^Interact$Intensity
-  Interact <- Interact[which(is.all.good(Interact$Intensity, 2)),]
+  Interact$Intensity <- 10L^Interact$Intensity
+  Interact <- Interact[which(is.all.good(Interact$Intensity, 2L)),]
   Interact <- Interact[which(Interact$Intensity > 0),]
   #Interact <- Interact[which(Interact$IP_name %in% Bait$IP_name),]
   Interact$Bait <- Bait$Bait[match(Interact$IP_name, Bait$IP_name)]
@@ -119,14 +123,14 @@ if (saintExprs) {
   kol1 <- c("AvgP", "MaxP", "TopoAvgP", "TopoMaxP", "SaintScore")
   kol2 <- c("OddsScore", "BFDR", "boosted_by")
   clusterExport(parClust,
-                list("Exp.map", "Exp", "VPAL", "RG", "Bait", "Annotate", "SaintEx", "saintDir", "wd", "fcRt", "kol1", "kol2"),
+                list("Exp.map", "Exp", "VPAL", "RG", "Bait", "Annotate", "SaintEx", "saintDir", "wd", "fcRt", "kol1", "kol2", "cleanNms"),
                 envir = environment())
-  invisible(clusterCall(parClust, function() {
-    Interact <<- readr::read_rds(paste0(saintDir, "/Interact.RDS"))
-    Prey <<- readr::read_rds(paste0(saintDir, "/Prey.RDS"))
+  invisible(clusterCall(parClust, \() {
+    assign("Interact", readr::read_rds(paste0(saintDir, "/Interact.RDS")), envir = .Global.Env)
+    assign("Prey", readr::read_rds(paste0(saintDir, "/Prey.RDS")), envir = .Global.Env)
     if (Annotate) {
-      GO2 <<- readr::read_rds(paste0(saintDir, "/GO.RDS"))
-    } 
+      assign("GO2", readr::read_rds(paste0(saintDir, "/GO.RDS")), envir = .Global.Env)
+    }
     return()
   }))
   unlink(paste0(saintDir, "/Interact.RDS"))
@@ -134,8 +138,8 @@ if (saintExprs) {
   if (Annotate) {
     unlink(paste0(saintDir, "/GO.RDS"))
   }
-  saintst <- setNames(parLapply(parClust, Grps, function(grp) { #grp <- Grps[1]
-    grp2 <- proteoCraft::cleanNms(grp)
+  saintst <- setNames(parLapply(parClust, Grps, \(grp) { #grp <- Grps[1L]
+    grp2 <- cleanNms(grp)
     dr <- paste0(saintDir, "/", grp2)
     if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
     setwd(dr)
@@ -143,7 +147,7 @@ if (saintExprs) {
     m <- Exp.map[which(Exp.map[[RG$column]] == ratgrp),]
     m <- m[which((m[[VPAL$column]] == grp)|(m$Reference)),]
     Bait2 <- Bait[which(Bait$IP_name %in% gsub("\\.", "",
-                                               proteoCraft::cleanNms(m$Ref.Sample.Aggregate, rep = ""))),]
+                                               cleanNms(m$Ref.Sample.Aggregate, rep = ""))),]
     Interact2 <- Interact[which(Interact$IP_name %in% Bait2$IP_name),]
     Prey2 <- Prey[which(Prey$Protein %in% c(Bait2$Bait, Interact2$Protein)),]
     baitFl <- paste0(dr, "/tempBait.txt")
@@ -156,21 +160,21 @@ if (saintExprs) {
     goFl <- paste0(dr, "/tempGO.txt")
     if (Annotate) {
       GO2 <- GO2[which(GO2$value %in% Prey$Protein),]
-      GO2 <- aggregate(GO2$value, list(GO2$L1), function(x) { paste(unique(x), collapse = " ") })
+      GO2 <- aggregate(GO2$value, list(GO2$L1), \(x) { paste(unique(x), collapse = " ") })
       data.table::fwrite(GO2, goFl, quote = FALSE, col.names = FALSE, row.names = FALSE, eol = "\n", sep = "\t", na = "NA")
     }
-    fls <- c(SaintEx, c(interFl, preyFl, baitFl, goFl)[seq_len(3+Annotate)])
+    fls <- c(SaintEx, c(interFl, preyFl, baitFl, goFl)[seq_len(3L+Annotate)])
     w <- which(!file.exists(fls))
-    stopifnot(length(w) == 0)
+    stopifnot(length(w) == 0L)
     #fls[w]
     fls2 <- paste0("\"", fls, "\"")
-    # cmd <- paste0(c(fls2[1],
+    # cmd <- paste0(c(fls2[1L],
     #                 paste0("-L", sum(Exp.map$Reference)),
-    #                 fls2[2:length(fls2)]), collapse = " ")
+    #                 fls2[2L:length(fls2)]), collapse = " ")
     if (file.exists(lstFl)) { unlink(lstFl) }
-    cmd <- paste0(c(fls2[1],
+    cmd <- paste0(c(fls2[1L],
                     paste0("-L", sum(m$Reference)),
-                    fls2[2:length(fls2)]), collapse = " ")
+                    fls2[2L:length(fls2)]), collapse = " ")
     #cat(cmd)
     #writeClipboard(cmd)
     #cat("   ", grp2, "\n")
@@ -199,14 +203,14 @@ if (saintExprs) {
     return(rs)
   }), Grps)
   setwd(wd)
-  saintst <- saintst[which(vapply(saintst, function(x) { x$Outcome }, TRUE))]
+  saintst <- saintst[which(vapply(saintst, \(x) { x$Outcome }, TRUE))]
   l <- length(saintst)
   if (l) {
     nms <- names(saintst)
-    saintst <- setNames(lapply(saintst, function(x) { x$Table }), nms)
+    saintst <- setNames(lapply(saintst, \(x) { x$Table }), nms)
     msg <- "   -> Reading results\n"
     ReportCalls <- AddMsg2Report(Space = FALSE)
-    allSAINTs %<o% data.frame(Protein = unique(unlist(lapply(saintst, function(x) { x$Prey }))))
+    allSAINTs %<o% data.frame(Protein = unique(unlist(lapply(saintst, \(x) { x$Prey }))))
     for (i in seq_len(l)) {
       kol <- paste0(c("log2(FC)", kol1, kol2), " - ", nms[i])
       tmp <- saintst[[nms[i]]][, c("Prey", kol)]
@@ -269,31 +273,20 @@ if (saintExprs) {
                        row.names = FALSE, sep = "\t", na = "NA")
     #
     # Volcano plot
-    labKol <- setNames(c("Common Name", "Protein", "Gene"),
-                       c("Protein name", "Protein ID", "Gene"))
-    tempVPip <- Volcano.plot(Prot = allSAINTs, Proteins.col = "Protein",
-                             mode = "custom",
-                             experiments.map = Exp.map,
-                             X.root = fcRt,
-                             Y.root = fdrRt,
-                             aggregate.map = Aggregate.map,
-                             aggregate.name = VPAL$aggregate,
-                             aggregate.list = Aggregate.list, parameters = Parma,
-                             save = c("jpeg", "pdf"), labels = "thresholds",
-                             Ref.Ratio.values = Ref.Ratios,
-                             Ref.Ratio.method = paste0("obs", RefRat_Mode),
-                             ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates),
-                             arbitrary.lines = ArbThr,
-                             proteins = prot.list, proteins_split = protsplit,
-                             return = TRUE, return.plot = TRUE,
-                             title = "SAINTexpress volcano plot ",
-                             subfolder = subDr,
-                             subfolderpertype = FALSE, Symmetrical = TwoSided,
-                             Alpha = "Rel. log10(Peptides count)",
-                             Size = "Rel. av. log10 abundance", Size.max = 2,
-                             plotly = create_plotly, plotly_local = create_plotly_local,
-                             plotly_labels = labKol,
-                             cl = parClust)
+    volcPlot_args2 <- volcPlot_args
+    volcPlot_args2$Prot <- allSAINTs
+    volcPlot_args2$Proteins.col <- "Protein"
+    volcPlot_args2$X.root <- fcRt
+    volcPlot_args2$Y.root <- fdrRt
+    volcPlot_args2$parameters <- Parma
+    volcPlot_args2$title <- "SAINTexpress volcano plot "
+    volcPlot_args2$subfolder <- subDr
+    volcPlot_args2$plotly_labels <- setNames(c("Common Name", "Protein", "Gene"),
+                                             c("Protein name", "Protein ID", "Gene"))
+    volcPlot_args2$arbitrary.lines <- ArbThr
+    volcPlot_args2$arbitrary.lines <- "thresholds"
+    volcPlot_args2$cl <- parClust
+    tempVPip <- do.call(Volcano.plot, volcPlot_args2)
     #
     # Save plotly plots
     dr <- paste0(wd, "/", subDr)
@@ -321,10 +314,10 @@ if (saintExprs) {
       Reg_filters$"SAINTexpress"$"By condition" <- list()
     }
     allSAINTs[, regkol] <- ""
-    for (nm in nms) { #nm <- nms[1]
+    for (nm in nms) { #nm <- nms[1L]
       thresh <- tempVPip$Thresholds$Absolute[[nm]]
       up <- thresh$Value[match("up", thresh$Levels)]
-      if (TwoSided) { down <- thresh$Value[match("down", thresh$Levels)] }
+      down <- thresh$Value[match("down", thresh$Levels)]
       k1 <- paste0("BFDR - ", nm)
       k2 <- paste0("log2(FC) - ", nm)
       k3 <- paste0("Regulated - ", nm)
@@ -353,12 +346,14 @@ if (saintExprs) {
       #rstudioapi::documentOpen(clstSrc)
       source(clstSrc, local = FALSE)
     }, silent = TRUE) # Allowed to fail, but with a warning!
-    if ("try-error" %in% class(clustersTest)) {
+    if (inherits(clustersTest, "try-error")) {
       warning("Could not draw heatmap for SAINTexpress results!")
     }
     #
     # Mat-meth text
-    DatAnalysisTxt <- paste0(DatAnalysisTxt, " Data was also tested with the SAINTexpress algorithm - which directly outputs FDR values - using GO annotations as boosting information.")
+    l <- length(DatAnalysisTxt)
+    DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
+                                " Data was also tested with the SAINTexpress algorithm - which directly outputs FDR values - using GO annotations as boosting information.")
     #
   }
   # "Master, don't forget the Athenians!"

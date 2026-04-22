@@ -10,9 +10,9 @@ basic.heatmap(
   subtitle = "",
   normRows = FALSE,
   isLog = FALSE,
-  size = 2,
-  h.margins = c(5, 10),
-  v.margin = 10,
+  size = 2L,
+  h.margins = c(5L, 10L),
+  v.margin = 10L,
   colours = "D",
   colours_invert = FALSE,
   na.colour = "black",
@@ -22,7 +22,8 @@ basic.heatmap(
   return = FALSE,
   print_values = FALSE,
   hTree = TRUE,
-  vTree = TRUE
+  vTree = TRUE,
+  split = FALSE
 )
 }
 \arguments{
@@ -59,6 +60,8 @@ basic.heatmap(
 \item{hTree}{If TRUE (default), a horizontal (x) dendrogram will be plotted.}
 
 \item{vTree}{If TRUE (default), a vertical (y) dendrogram will be plotted.}
+
+\item{split}{Logical (default = FALSE), allows splitting labels over several lines.}
 }
 \value{
 If return is TRUE, the evaluated ggplot is returned.

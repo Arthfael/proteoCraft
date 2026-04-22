@@ -1,6 +1,6 @@
 # Let's check this cluster without doing anything with it
 require(parallel)
-if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1, 1)) }
+if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }
 N.clust %<o% N.clust
 a <- 1
 tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)

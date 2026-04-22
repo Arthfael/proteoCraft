@@ -21,15 +21,16 @@ if ((!exists("SamplesMap"))||
                            check.names = FALSE)
 }
 if (MakeRatios) {
-  if (!"Ratios group" %in% colnames(SamplesMap)) { SamplesMap$"Ratios group" <- 1 }
+  if (!"Ratios group" %in% colnames(SamplesMap)) { SamplesMap$"Ratios group" <- 1L }
   if (!"Reference" %in% colnames(SamplesMap)) { SamplesMap$Reference <- FALSE }
 } else {
   SamplesMap$"Ratios group" <- NULL
   SamplesMap$Reference <- NULL
 }
 SamplesMap %<o% SamplesMap
+SamplesMap <- SamplesMap[which(SamplesMap$`Parent sample` %in% FracMap$`Parent sample`),]
 nr <- nrow(SamplesMap)
-rws <- 1:nr
+rws <- 1L:nr
 chRws <- as.character(rws)
 # if ("Order" %in% colnames(SamplesMap)) {
 #   u <- unique(SamplesMap$Order)
@@ -43,7 +44,7 @@ if (MakeRatios) {
 for (kol in smplMapKol1) {
   if (kol %in% colnames(SamplesMap)) {
     SamplesMap[[kol]] <- as.logical(toupper(SamplesMap[[kol]]))
-    SamplesMap[which(is.na(SamplesMap[[kol]])), kol] <- c(FALSE, TRUE)[(kol == "Use")+1]
+    SamplesMap[which(is.na(SamplesMap[[kol]])), kol] <- c(FALSE, TRUE)[(kol == "Use") + 1L]
   }
 }
 if (!"Use" %in% colnames(SamplesMap)) { SamplesMap$Use <- TRUE }
@@ -53,21 +54,21 @@ smplMapKol <- smplMapKol1
 if (MakeRatios) {
   smplMapKol <- c("Ratios group", smplMapKol)
 }
-allIDs <- as.character(sapply(smplMapKol, function(x) {
+allIDs <- as.character(sapply(smplMapKol, \(x) {
   paste0(x, "___", chRws)
 }))
 # Original table column widths
-wTest0 <- setNames(vapply(colnames(SamplesMap), function(k) { #k <- colnames(SamplesMap)[1]
+wTest0 <- setNames(vapply(colnames(SamplesMap), \(k) { #k <- colnames(SamplesMap)[1L]
   l <- k
   if (k == "MQ.Exp") { l <- "Parent sample"}
   tmp <- SamplesMap[[k]]
-  if ("logical" %in% class(tmp)) { tmp <- as.integer(tmp) }
+  if (is.logical(tmp)) { tmp <- as.integer(tmp) }
   tmp <- as.character(tmp)
-  x <- max(nchar(c(k, tmp)) + 3, na.rm = TRUE)
-  x <- x*10
-  if (is.na(x)) { x <- 30 } else { x <- max(c(ceiling(x/10)*10, 30)) }
+  x <- max(nchar(c(k, tmp)) + 3L, na.rm = TRUE)
+  x <- x*10L
+  if (is.na(x)) { x <- 30L } else { x <- max(c(as.integer(ceiling(x/10))*10L, 30L)) }
   return(x)
-}, 1), colnames(SamplesMap))
+}, 1L), colnames(SamplesMap))
 #
 if (exists("expOrder")) {
   tst <- sum(!exp %in% expOrder)
@@ -79,37 +80,43 @@ if (!exists("expOrder")) {
 SamplesMap <- SamplesMap[match(expOrder, SamplesMap$"Parent sample"),]
 #
 smplMap2 <- smplMap <- SamplesMap[, which(!colnames(SamplesMap) %in% "New name")] # This column is deprecated and ignored
+if (nrow(smplMap2) == 1L) {
+  smplMap2 <- smplMap2[, which(colnames(smplMap2) != "Negative Filter")]
+}
 #colnames(smplMap2)[which(colnames(smplMap2) == "MQ.Exp")] <- "Parent sample"
 # Estimate table column widths
-wTest1 <- vapply(colnames(smplMap2), function(k) { #k <- colnames(smplMap2)[1]
+wTest1 <- vapply(colnames(smplMap2), \(k) { #k <- colnames(smplMap2)[1L]
   #if (k == "Parent sample") { k <- "MQ.Exp" }
-  if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
+  if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30L }
   return(x)
-}, 1)
-wTest2 <- max(c(sum(wTest1) + 15 + ncol(smplMap2)*5, 600))
+}, 1L)
+wTest2 <- max(c(sum(wTest1) + 15L + ncol(smplMap2)*5L, 600L))
 wTest1 <- paste0(as.character(wTest1), "px")
-wTest1 <- aggregate((seq_along(wTest1))-1, list(wTest1), c)
-wTest1 <- apply(wTest1, 1, function(x) {
-  x2 <- as.integer(x[[2]])
-  list(width = x[[1]],
+wTest1 <- aggregate((seq_along(wTest1))-1L, list(wTest1), c)
+wTest1 <- apply(wTest1, 1L, \(x) {
+  x2 <- as.integer(x[[2L]])
+  list(width = x[[1L]],
        targets = x2,
-       names = colnames(smplMap2)[x2+1])
+       names = colnames(smplMap2)[x2+1L])
 })
 #
 IDs <- c()
 MSG <- reactiveVal("")
-chRws2 <- as.character(seq_len(nrow(smplMap2)))
+#chRws2 <- as.character(seq_len(nrow(smplMap2)))
 for (kol in c("Reference", "Negative Filter", "Use")) {
-  if (kol %in% colnames(SamplesMap)) {
+  if (sum(c(kol %in% colnames(smplMap2),
+            kol %in% colnames(SamplesMap))) == 2L) {
     smplMap2[[kol]] <- shinyCheckInput(SamplesMap[[kol]], kol)
-    IDs <- c(IDs, paste0(kol, "___", chRws2))
+    IDs <- c(IDs, paste0(kol, "___", chRws#2
+                         ))
     stopifnot(length(IDs) == length(unique(IDs)))
   }
 }
 if (MakeRatios) {
   kol <- "Ratios group"
-  smplMap2[[kol]] <- shinyNumInput(SamplesMap[[kol]], 1, Inf, 1, 1, root = kol)
-  IDs <- c(IDs, paste0(kol, "___", chRws2))
+  smplMap2[[kol]] <- shinyNumInput(SamplesMap[[kol]], 1L, Inf, 1L, 1L, root = kol)
+  IDs <- c(IDs, paste0(kol, "___", chRws#2
+                       ))
   stopifnot(length(IDs) == length(unique(IDs)))
 }
 
@@ -163,66 +170,18 @@ Shiny.unbindAll(table.table().node());
 Shiny.bindAll(table.table().node());"))
   #
   # Observe events
-  # if (length(IDs)) {
-  #   sapply(IDs, function(id) {
-  #     x <- gsub(".+_", "", id)
-  #     kol <- substr(id, 1, nchar(id)-nchar(x)-1)
-  #     x <- as.integer(x)
-  #     observeEvent(input[[id]], {
-  #       cat(input[[id]], "\n")
-  #       val <- input[[id]]
-  #       if (kol %in% c("Reference", "Negative Filter", "Use")) {
-  #         val <<- as.logical(val)
-  #       }
-  #       SamplesMap[x, kol] <<- val
-  #       if (kol == "Use") {
-  #         tst <- sum(SamplesMap[kol])
-  #         if (!tst) {
-  #           msg <- "Include at least one sample!"
-  #           shinyjs::disable("saveBtn")
-  #         }
-  #         if (tst) {
-  #           msg <- " "
-  #           shinyjs::enable("saveBtn")
-  #         }
-  #       }
-  #       if ((MakeRatios)&&(kol == "Reference")) {
-  #         l <- length(unique(SamplesMap[[kol]]))
-  #         if (l != 2) {
-  #           msg <- "This workflow compares different samples, select one sample as reference!"
-  #           shinyjs::disable("saveBtn")
-  #         }
-  #         if (l == 2) {
-  #           msg <- " "
-  #           shinyjs::enable("saveBtn")
-  #         }
-  #       }
-  #       output$Message <- renderUI({ em(msg) })
-  #     })
-  #   })
-  # }
   observeEvent(input$mySampleMap_cell_edit, {
     smplMap3[input$mySampleMap_cell_edit$row,
-             input$mySampleMap_cell_edit$col+1] <- input$mySampleMap_cell_edit$value
+             input$mySampleMap_cell_edit$col+1L] <- input$mySampleMap_cell_edit$value
   })
   observeEvent(input$expOrder, {
     tmp <- input$expOrder
     tmp <- c(tmp, exp[which(!exp %in% tmp)])
     assign("expOrder", tmp, envir = .GlobalEnv)
   })
-  # sapply(allIDs, function(id) {
-  #   tmp <- unlist(strsplit(id, "___"))
-  #   kol <- tmp[1]
-  #   i <- tmp[2]
-  #   observeEvent(input[[id]], {
-  #     #cat("Event", id, "\n")
-  #     #cat(input[[id]], "\n")
-  #     smplMap3[i, kol] <<- as.logical(input[[id]])
-  #   })
-  # })
   observeEvent(input$saveBtn, {
     for (k in smplMapKol) {
-      smplMap3[[k]] <- sapply(chRws, function(x) { input[[paste0(k, "___", x)]] })
+      smplMap3[[k]] <- sapply(chRws, \(x) { input[[paste0(k, "___", x)]] })
     }
     assign("smplMap3", smplMap3, envir = .GlobalEnv)
     tmp <- input$expOrder
@@ -233,21 +192,21 @@ Shiny.bindAll(table.table().node());"))
   #observeEvent(input$cancel, { stopApp() })
   session$onSessionEnded(function() { stopApp() })
 }
-runKount <- 0
+runKount <- 0L
 while ((!runKount)||(!exists("smplMap3"))) {
   eval(parse(text = runApp), envir = .GlobalEnv)
   shinyCleanup()
-  runKount <- runKount+1
+  runKount <- runKount+1L
 }
 SamplesMap %<o% smplMap3
 exp <- expOrder
 SamplesMap <- SamplesMap[match(expOrder, SamplesMap$"Parent sample"),]
 #
 tmp <- SamplesMap
-w <- which(vapply(colnames(tmp), function(x) { "list" %in% class(tmp[[x]]) }, TRUE))
+w <- which(vapply(colnames(tmp), \(x) { is.list(tmp[[x]]) }, TRUE))
 if (length(w)) { for (i in w) { tmp[[i]] <- vapply(tmp[[i]], paste, "", collapse = ";") } }
 tst <- try(write.csv(tmp, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
-while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) { # We only want this to happen if the file is locked for editing
+while (inherits(tst, "try-error")&&(grepl("cannot open the connection", tst[1L]))) { # We only want this to happen if the file is locked for editing
   dlg_message(paste0("File \"", SamplesMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmp, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
 }

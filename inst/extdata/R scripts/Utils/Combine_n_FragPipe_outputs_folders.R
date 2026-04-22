@@ -6,7 +6,7 @@
 #
 # Obviously, this is not meant to be used for just any FragPipe searches. This will handle specific limited cases only where it makes sense.
 # It will break in some unauthorized, un-recommended or unsupported cases (e.g. different fixed modifications).
-
+require(proteoCraft)
 require(rstudioapi)
 require(data.table)
 try(setDTthreads(threads = parallel::detectCores()-1), silent = TRUE)
@@ -105,7 +105,7 @@ if (length(varMods) > 1) {
   varMods <- paste0("msfragger.table.var-mods=", paste(tmp, collapse = "; "))
 }
 # Was DiaNN run?
-pat <- proteoCraft::topattern("diann.run-dia-nn=")
+pat <- topattern("diann.run-dia-nn=")
 isActuallyDIANN <- unique(sapply(Workflows, function(x) { as.logical(toupper(gsub(pat, "", grep(pat, x, value = TRUE)))) }))
 if (length(isActuallyDIANN) > 1) {
   isActuallyDIANN <- "diann.run-dia-nn=true"
@@ -113,12 +113,12 @@ if (length(isActuallyDIANN) > 1) {
   isActuallyDIANN <- paste0("diann.run-dia-nn=", tolower(as.character(isActuallyDIANN)))
 }
 # Is TMT
-pat <- proteoCraft::topattern("tmtintegrator.run-tmtintegrator=")
+pat <- topattern("tmtintegrator.run-tmtintegrator=")
 isTMT <- unique(sapply(Workflows, function(x) { as.logical(toupper(gsub(pat, "", grep(pat, x, value = TRUE)))) }))
 if (length(isTMT) > 1) { stop("This is not supported!") } else {
   TMT <- paste0("tmtintegrator.run-tmtintegrator=", tolower(as.character(isTMT)))
   if (isTMT) {
-    pat <- proteoCraft::topattern("tmtintegrator.channel_num=")
+    pat <- topattern("tmtintegrator.channel_num=")
     TMTvers <- unique(sapply(Workflows, function(x) { grep(pat, x, value = TRUE) }))
     if (length(TMTvers) > 1) { stop("This is not supported!") }
   }
@@ -174,7 +174,7 @@ if ("try-error" %in% class(tst)) {
 }
 FP_Workflow <- nuWorkflow_fl
 FP_Manifest <- nuManifest_fl
-tst <- try(proteoCraft::FP_to_MQ(nuWorkflow_fl, nuManifest_fl, cl = parClust), silent = TRUE)
+tst <- try(FP_to_MQ(nuWorkflow_fl, nuManifest_fl, cl = parClust), silent = TRUE)
 if (!"try-error" %in% class(tst)) {
   msg <- paste0("Done!\nNow you can treat folder:\n\t", normalizePath(dstDir), "\nas a (minimal) FragPipe pseudo-output folder for the purpose of running this package's data analysis scripts,\nand ONLY FOR THAT PURPOSE!\n")
   cat(msg)

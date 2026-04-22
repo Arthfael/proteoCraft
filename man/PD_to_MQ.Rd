@@ -6,13 +6,14 @@
 \usage{
 PD_to_MQ(
   PD,
-  Fixed.mods = c(paste0("TMT", c("", paste0(0:11, "plex"), paste0("pro", 0:16, "plex"))),
-    paste0("iTRAQ", c("", paste0(0:8, "plex"))), "Carbamidomethyl", "N-Ethylmaleimide"),
+  Fixed.mods = c(paste0("TMT", c("", paste0(as.character(0L:11L), "plex"), paste0("pro",
+    as.character(0L:16L), "plex"))), paste0("iTRAQ", c("", paste0(as.character(0L:8L),
+    "plex"))), "Carbamidomethyl", "N-Ethylmaleimide"),
   Abs.quant.col = "Area",
   Isobaric = FALSE,
   Label,
   filter = FALSE,
-  MaxRank = 1
+  MaxRank = 1L
 )
 }
 \arguments{

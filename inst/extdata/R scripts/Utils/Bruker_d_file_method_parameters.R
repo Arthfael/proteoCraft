@@ -195,11 +195,11 @@ if (length(FILES)) {
                         IM = as.numeric(MobRng))
       #require(ggplot2)
       #plot1 <- ggplot(FrmDat) + geom_point(aes(x = IsolationMz, y = IsolationWidth, colour = Frame)) + theme_bw()
-      #proteoCraft::poplot(plot1) # -> Isolation width is strictly a function of m/z and based on the table in the timsControl GUI...
+      #poplot(plot1) # -> Isolation width is strictly a function of m/z and based on the table in the timsControl GUI...
       #plot2 <- ggplot(FrmDat) + geom_point(aes(x = IsolationMz, y = CollisionEnergy, colour = Frame)) + theme_bw()
-      #proteoCraft::poplot(plot2) # ... but Collision Energy isn't.
+      #poplot(plot2) # ... but Collision Energy isn't.
       #plot2a <- ggplot(FrmDat) + geom_point(aes(x = IsolationMz, y = CollisionEnergy, colour = ScanNumBegin)) + theme_bw()
-      #proteoCraft::poplot(plot2a) # ... but Collision Energy isn't.
+      #poplot(plot2a) # ... but Collision Energy isn't.
     } else { isoWdths <- CEs <- NA }
     #
     props <- c("FocusPreTOF_Lens1_TransferTime_Set", "FocusPreTOF_Lens1_PrePulseStorageTime_Set",
@@ -299,7 +299,7 @@ if (length(FILES)) {
       #plot <- ggplot(DIADat1, aes(xmin = IsolationMz-IsolationWidth/2, xmax = IsolationMz+IsolationWidth/2,
       #                            ymin = ScanNumBegin, ymax = ScanNumEnd, colour = WindowGroup)) + theme_bw() +
       #  geom_rect(alpha = 0.1) + scale_y_reverse() + xlab("M/Z") + ylab("Scan number")
-      #proteoCraft::poplot(plot)
+      #poplot(plot)
       tmp1 <- paste0("scan ranges: ", paste(apply(DIADat1[, c("ScanNumBegin", "ScanNumEnd")], 1, paste, collapse = "-"), collapse = "/"))
       tmp2 <- paste0("isolation M/Z: ", paste(round(DIADat1$IsolationMz, 3), collapse = "/")) # That is already wayyyyyy more precise than we need!!!
       tmp3 <- paste0("collision energy: ", paste(DIADat1$CollisionEnergy, collapse = "/"))

@@ -131,6 +131,8 @@ Prot.Quant(
 \item{cl}{Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!}
 }
 \description{
+!!! This function is slow-deprecated. Use protQuant() instead!!!
+
 A function to calculate estimated protein group Expression (Absolute Quant) and Ratios (optional) from individual peptide values.
 The input is assumed to be normalized.
 

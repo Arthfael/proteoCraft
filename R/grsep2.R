@@ -18,20 +18,25 @@
 #' 
 #' @export
 
-grsep2 <- function(IDs, x, sep = ";", ignore.case = FALSE, value = FALSE, invert = FALSE) {
+grsep2 <- function(IDs,
+                   x,
+                   sep = ";",
+                   ignore.case = FALSE,
+                   value = FALSE,
+                   invert = FALSE) {
   #DefArg(grsep2)
-  stopifnot(length(x) > 0, is.null(dim(as.character(x))))
-  Wh <- 1:length(x)
+  stopifnot(length(x) > 0L, is.null(dim(as.character(x))))
+  Wh <- 1L:length(x)
   x <- as.character(x)
   g1 <- grep(sep, x)
   g2 <- grep(sep, x, invert = TRUE)
   if (length(g1)) {
-    w <- which(sapply(x[g1], length) > 0)
+    w <- which(lengths(x[g1]) > 0L)
     temp <- listMelt(strsplit(x[g1[w]], sep), g1[w])
   }
   if (length(g2)) {
     temp2 <- data.frame(value = x[g2], L1 = g2)
-    if (length(g1)) { temp <- rbind(temp, temp2) } else { temp <- temp2 }
+    temp <- if (length(g1)) { rbind(temp, temp2) } else { temp2 }
   }
   if (ignore.case) {
     IDs <- tolower(IDs)

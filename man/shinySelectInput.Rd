@@ -7,7 +7,7 @@
 shinySelectInput(startVal, root, levels, width = "600px", NAs = TRUE)
 }
 \arguments{
-\item{startVal}{Starting values of each text input.}
+\item{startVal}{Starting values of each select input.}
 
 \item{root}{Root of the created input names. Names generated will be of the form "root___i", where i is the 1:n row number.}
 

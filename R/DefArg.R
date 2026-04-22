@@ -10,7 +10,6 @@
 #' @param FUN name of the function; can be entered as the function object or as its name (character). 
 #' @param remove_NULLs Should arguments with default value "NULL" be excluded?\cr
 #' @param silent Logical, default = TRUE. If FALSE, the values of the assigned arguments is printed.\cr
-#' TRUE by default, because the risk is that some valuable variable in the parent environment can be "erased" as a result.
 #' 
 #' @details
 #' Call this function as the first step of testing/troubleshooting the code of any function.
@@ -26,33 +25,34 @@
 
 DefArg <- function(FUN,
                    remove_NULLs = TRUE,
-                   silent = TRUE) {
+                   silent = TRUE,
+                   noError = TRUE) {
   #DefArg(DefArg)
   #DefArg(annot_to_tabl)
   #DefArg(PG_assemble)
   #FUN <- annot_to_tabl
   #FUN <- PG_assemble
   #FUN <- Volcano.plot
-  if (class(FUN) == "character") { FUN <- eval(parse(text = FUN)) }
+  if (is.character(FUN)) { FUN <- eval(parse(text = FUN)) }
   args <- formals(FUN)
   if (remove_NULLs) {
     args <- args[which(!vapply(args, is.null, TRUE))]
   }
-  args <- args[which(!vapply(args, function(x) {
-    ("name" %in% class(x))&&(length(x) == 1)&&(as.character(x) == "")
+  args <- args[which(!vapply(args, \(x) {
+    (inherits(x, "name"))&&(length(x) == 1L)&&(as.character(x) == "")
   }, TRUE))]
-  args <- lapply(args, eval)
+  args <- lapply(args, \(x) { try(eval(x), silent = TRUE) })
   invisible({
-    silent <- as.logical(silent)[1]
+    silent <- as.logical(silent)[1L]
     if (is.na(silent)) { silent <- TRUE }
   })
   if (silent) {
-    invisible(setNames(lapply(names(args), function(x) {
+    invisible(setNames(lapply(names(args), \(x) {
       try(assign(x, args[[x]], envir = .GlobalEnv), silent = TRUE)
     }), names(args)))
     return()
   }
-  setNames(lapply(names(args), function(x) {
+  setNames(lapply(names(args), \(x) {
     try(assign(x, args[[x]], envir = .GlobalEnv), silent = TRUE)
   }), names(args))
 }

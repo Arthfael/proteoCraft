@@ -11,7 +11,7 @@ DIANN_to_MQ(
   Detect.Lib = TRUE,
   Min.Delta.Score = -Inf,
   N.clust,
-  N.reserved = 1,
+  N.reserved = 1L,
   cl,
   shinyOpt = "popup",
   digPattern = "KR"

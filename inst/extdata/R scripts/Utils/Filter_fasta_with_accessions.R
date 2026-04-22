@@ -1,7 +1,8 @@
 # Create fasta from protein accession list
+require(proteoCraft)
 fastaFl <- selectFile("Select parent fasta database", path = "D:/Fasta_databases")
 fastaFl <- gsub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), fastaFl)
-db <- proteoCraft::Format.DB(fastaFl)
+db <- Format.DB(fastaFl)
 svDialogs::dlg_message("Now copy to the clipboard the accessions you want to write a fasta for, then click ok", "ok")
 intPrt <- readClipboard()
 intPrt <- unlist(strsplit(intPrt, " *[,;] *"))

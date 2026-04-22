@@ -2,7 +2,7 @@
 
 file_path <- ".../alphaDIA/library/speclib.mbr.hdf"
 
-if (!require(rhdf5)) { pak::pkg_install("rhdf5") }
+if (!require(rhdf5)) { pak::pak("rhdf5") }
 library(rhdf5)
 myLib <- h5read(file_path, "library", bit64conversion = "double")
 names(myLib)

@@ -81,7 +81,6 @@ cluster_call <- function(cl,
       NULL
     })
   }
-  
   ## optional exports
   if (!is.null(export)) {
     parallel::clusterExport(cl, export, envir = parent.frame())

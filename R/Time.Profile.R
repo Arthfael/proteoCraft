@@ -31,33 +31,35 @@
 
 Time.Profile <- function(df,
                          prot = "",
-						 prot.col = "Protein IDs",
-						 exprs.root = "Ratio_Mean log2_",
+                         prot.col = "Protein IDs",
+                         exprs.root = "Ratio_Mean log2_",
                          exprs.name = "Ratio",
-						 error.root = FALSE,
-						 conds,
-						 tp,
-						 save = FALSE,
+                         error.root = FALSE,
+                         conds,
+                         tp,
+                         save = FALSE,
                          title = "",
-						 labels = FALSE) {
-  a1 <- as.character(sapply(conds, function(x) {
-    vapply(names(tp), function(y) { paste0(exprs.root, x, ".", y) }, "")
+                         labels = FALSE) {
+  a1 <- as.character(sapply(conds, \(x) {
+    vapply(names(tp), \(y) { paste0(exprs.root, x, ".", y) }, "")
   }))
-  if (error.root != FALSE) {
-    a2 <- as.character(sapply(conds, function(x) {
-      vapply(names(tp), function(y) { paste0(error.root, x, ".", y) }, "")
+  if (!is.character(error.root)) { error.root <- as.character(error.root) }
+  plotRibbon <- FALSE
+  if (error.root != "FALSE") {
+    a2 <- as.character(sapply(conds, \(x) {
+      vapply(names(tp), \(y) { paste0(error.root, x, ".", y) }, "")
     }))
-    t.error <- a2 %in% colnames(df)
-    if (!t.error) {
+    plotRibbon <- a2 %in% colnames(df)
+    if (!plotRibbon) {
       warning("The \"error.root\" parameter provided cannot be mapped to any columns! Errors margins will not be plotted.")
     }
   }
   if (prot != "") {
     test <- grep(prot, PG[[prot.col]])
     for (i in test) {
-      temp <- data.frame(Expression = as.numeric(df[i,a1]))
-      temp$Condition <- as.character(sapply(conds, function(x) { rep(x, length(tp)) }))
-      temp$Time.point <- as.numeric(sapply(1:length(conds), function(x) { tp }))
+      temp <- data.frame(Expression = as.numeric(df[i, a1]))
+      temp$Condition <- as.character(sapply(conds, \(x) { rep(x, length(tp)) }))
+      temp$Time.point <- as.numeric(sapply(1L:length(conds), \(x) { tp }))
       plot <- ggplot2::ggplot(temp) +
         ggplot2::geom_line(data = temp,
                            ggplot2::aes(x = Time.point, y = Expression, group = Condition,
@@ -65,7 +67,7 @@ Time.Profile <- function(df,
         ggplot2::ggtitle(paste0("Temporal profile: ", prot)) + ggplot2::theme_bw() +
         ggplot2::labs(y = exprs.name) + ggplot2::ggtitle(title)
       ggplot2::labs(y = exprs.name)
-      if ((error.root != FALSE)&&(t.error)) {
+      if (plotRibbon) {
         temp$Error <- as.data.frame(as.numeric(df[i,a2]))
         temp$min <- temp$Expression - temp$Error
         temp$max <- temp$Expression + temp$Error
@@ -82,7 +84,7 @@ Time.Profile <- function(df,
         }
         if (save %in% c("jpeg", "tiff", "png", "bmp")) {
           ggplot2::ggsave(paste0("Time profile_", df[i, prot.col], ".", save), plot,
-                          dpi = 300, width = 10, height = 10, units = "in")
+                          dpi = 300L, width = 10L, height = 10L, units = "in")
         }
       }
     }
@@ -90,19 +92,19 @@ Time.Profile <- function(df,
     if (labels != FALSE) {
       temp <- reshape2::melt(df[, c(prot.col, labels, a1)])
       colnames(temp) <- c("IDs", "Tag", "variable", "Expression")
-      temp$Tag <- vapply(strsplit(temp$Tag, split = ";"), function(x) {
+      temp$Tag <- vapply(strsplit(temp$Tag, split = ";"), \(x) {
         x <- unlist(x)
-        if (length(x) == 1) { return(x) }
-        return(paste0(x[1], "..."))
+        if (length(x) == 1L) { return(x) }
+        return(paste0(x[1L], "..."))
       }, "")
     } else {
       temp <- reshape2::melt(df[, c(prot.col, a1)])
       colnames(temp) <- c("IDs", "variable", "Expression")
     }
-    temp$IDs <- vapply(strsplit(temp$IDs, split = ";"), function(x) {
+    temp$IDs <- vapply(strsplit(temp$IDs, split = ";"), \(x) {
       x <- unlist(x)
-      if (length(x) == 1) { return(x) }
-      return(paste0(x[1], "..."))
+      if (length(x) == 1L) { return(x) }
+      return(paste0(x[1L], "..."))
     }, "")
     c1 <- gsub(topattern(exprs.root), "", temp$variable)
     temp$Time.point <- gsub(paste(paste0("^", gsub("\\.", "\\\\.", conds), "\\."), collapse = "|"), "", c1)
@@ -115,7 +117,7 @@ Time.Profile <- function(df,
       ggplot2::ggtitle(paste0("Global temporal profile", prot)) +
       ggplot2::facet_wrap(~Condition) + ggplot2::theme_bw() +
       ggplot2::labs(y = exprs.name) + ggplot2::ggtitle(title)
-    if ((error.root != FALSE)&&(t.error)) {
+    if (plotRibbon) {
       temp2 <- reshape2::melt(df[, c(prot.col, a2)])
       temp$Error <- temp2$value
       temp$min <- temp$Expression - temp$Error
@@ -135,11 +137,11 @@ Time.Profile <- function(df,
                            ggplot2::aes(label = Tag, x = Time.point, y = Expression,
                                         group = IDs, color = IDs), hjust = 0)
     }
-    if ((error.root != FALSE)&&(t.error)) {
-      plot <- plot +
+    plot <- if (plotRibbon) {
+      plot +
         ggplot2::guides(group = FALSE, color = FALSE, fill = FALSE)
     } else {
-      plot <- plot +
+      plot +
         ggplot2::guides(group = FALSE, color = FALSE)
     }
     poplot(plot)
@@ -150,7 +152,7 @@ Time.Profile <- function(df,
       }
       if (save %in% c("jpeg", "tiff", "png", "bmp")) {
         ggplot2::ggsave(paste0("Global time profile.", save), plot,
-                        dpi = 300, width = 10, height = 10, units = "in")
+                        dpi = 300L, width = 10L, height = 10L, units = "in")
       }
     }
   }

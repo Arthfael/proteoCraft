@@ -11,7 +11,7 @@ MatMet_LCMS(
   RawFiles = rawFiles,
   Columns = "default",
   N.clust,
-  N.reserved = 1,
+  N.reserved = 1L,
   cl
 )
 }

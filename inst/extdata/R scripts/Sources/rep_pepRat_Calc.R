@@ -8,46 +8,35 @@ if (makePepRat) {
                      myContrasts,
                      RRG,
                      FALSE,
-                     2,
+                     2L,
                      Exp.map,
                      int.root = pep.ref[length(pep.ref)],
                      rat.root = pep.ratios.ref)
-  pep[ colnames(tmpRt)] <- tmpRt
+  kol <- colnames(tmpRt)
+  pep[, kol] <- tmpRt
   #
   # Visualize:
-  kol <- paste0(pep.ratios.ref[1], RSA$values)
-  kol <- intersect(kol, colnames(pep))
   temp <- pep[, kol]
-  colnames(temp) <- sub(topattern(pep.ratios.ref[1]), "", colnames(temp))
+  colnames(temp) <- sub(topattern(pep.ratios.ref[1L]), "", colnames(temp))
   temp <- reshape::melt(temp, measure.vars = colnames(temp))
-  temp <- temp[which(is.all.good(temp$value, 2)),]
-  temp[, RSA$names] <- Isapply(strsplit(as.character(temp$variable), "___"), unlist)
-  temp$variable <- as.factor(cleanNms(as.character(temp$variable)))
-  aggr <- RSA$names
-  tst <- vapply(aggr, function(a) { length(get(substr(a, 1, 3))) }, 1)
-  aggr <- aggr[which(tst > 1)]
-  facets <- (length(aggr) > 0)
-  if (facets) {
-    if (length(aggr) > 1) { form <- paste0(aggr[1], "~", paste(aggr[2:length(aggr)], collapse = "+")) } else {
-      form <- paste0(".~", aggr[1])
-    }
-    form <- as.formula(form)
-  }
+  colnames(temp) <- c("contrast", "ratio")
+  temp$contrast <- factor(sub("\\) - \\(", ")\n- (", temp$contrast),
+                          levels = sub("\\) - \\(", ")\n- (", myContrasts$Contrast))
+  temp <- temp[which(is.all.good(temp$ratio, 2L)),]
   dir <- paste0(wd, "/Workflow control/Peptides/Ratios")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   dirlist <- unique(c(dirlist, dir))
   ttl <- "Peptide ratios distribution"
   plot <- ggplot(temp) +
-    geom_histogram(aes(x = value, fill = variable), bins = ceiling((max(temp$value)-min(temp$value))/0.05)) +
-    scale_y_continuous(expand = c(0, 0)) +
+    geom_histogram(aes(x = ratio, fill = contrast), bins = ceiling((max(temp$ratio)-min(temp$ratio))/0.05)) +
+    scale_y_continuous(expand = c(0L, 0L)) +
     scale_fill_viridis_d(begin = 0.25) +
-    ggtitle(ttl) + theme_bw() + theme(legend.position = "none")
-  if (facets) { plot <- plot + facet_grid(form) }
-  #poplot(plot, 12, 22)
+    ggtitle(ttl) + theme_bw() + theme(legend.position = "none") + facet_wrap(~contrast)
+  #poplot(plot, 12L, 22L)
   print(plot)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
   })
   ReportCalls <- AddPlot2Report()
   #

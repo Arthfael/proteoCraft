@@ -2,6 +2,8 @@ if (!require("BiocManager", quietly = TRUE)) { install.packages("BiocManager") }
 if (!require("mzID", quietly = TRUE)) { BiocManager::install("mzID") }
 require(mzID)
 require(rstudioapi)
+require(proteoCraft)
+
 
 wd <- selectDirectory(path = "...Search_Folder")
 setwd(wd)
@@ -48,22 +50,22 @@ ttl <- "-log10(E-value)"
 plot <- ggplot(MeltPSMs) +
   geom_density(stat = "density", aes(-log10(`ms-gf:evalue`), colour = isdecoy)) +
   facet_wrap(~File+passthreshold) + theme_bw() + ggtitle(ttl)
-proteoCraft::poplot(plot)
+poplot(plot)
 ttl <- "PSM-level P-value"
 plot <- ggplot(MeltPSMs) +
   geom_density(stat = "density", aes(`ms-gf:qvalue`, colour = isdecoy)) +
   facet_wrap(~File+passthreshold) + theme_bw() + ggtitle(ttl)
-proteoCraft::poplot(plot)
+poplot(plot)
 ttl <- "Peptide-level P-value"
 plot <- ggplot(MeltPSMs) +
   geom_density(stat = "density", aes(`ms-gf:pepqvalue`, colour = isdecoy)) +
   facet_wrap(~File+passthreshold) + theme_bw() + ggtitle(ttl)
-proteoCraft::poplot(plot)
+poplot(plot)
 ttl <- "Score"
 plot <- ggplot(MeltPSMs) +
   geom_density(stat = "density", aes(`ms-gf:rawscore`, colour = isdecoy)) +
   facet_wrap(~File+passthreshold) + theme_bw() + ggtitle(ttl)
-proteoCraft::poplot(plot)
+poplot(plot)
 # Conclusion: I need to filter, cannot take at face value the results!!!
 Thr <- 0.05
 FiltMeltPSMs <- MeltPSMs[which(MeltPSMs$`ms-gf:pepqvalue` <= Thr),]

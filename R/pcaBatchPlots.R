@@ -4,7 +4,7 @@
 #' A function to make PCA (ggplot and plotly) plots for the purpose of monitoring the effects of batch corrections. 
 #' 
 #' @param dat Input data matrix, expected to be log-transformed!
-#' @param root Just a name to stick to the 
+#' @param root Root to include in the title.
 #' @param batches Relevant batches, default = myBatches; should be valid column names of map!
 #' @param map Map connecting samples to batches. Note that this may produce incorrect results if dat has repeated column names!
 #' @param SamplesCol Name of the sample colum in the map, default = "Ref.Sample.Aggregate"
@@ -51,21 +51,25 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
     if (is.na(make_Avg)) { make_Avg <- FALSE }
   })
   if (missing(map)) { stop() }
+  kol <- map[[SamplesCol]]
   if (nchar(intRoot)) {
-    pat <- topattern(intRoot)
-    dat <- dat[, grep(topattern(intRoot), colnames(dat), value = TRUE)]
-    colnames(dat) <- gsub(pat, "", colnames(dat))
+    kol <- paste0(intRoot, kol)
+  }
+  kol <- intersect(kol, colnames(dat))
+  dat <- dat[, kol]
+  if (nchar(intRoot)) {
+    colnames(dat) <- gsub(topattern(intRoot), "", colnames(dat))
   }
   stopifnot(batches %in% colnames(map),
-            ncol(dat) > 1,
-            nrow(dat) > 0)
+            ncol(dat) > 1L,
+            nrow(dat) > 0L)
   map$Sample_name <- map[[SamplesCol]]
   colnames(dat) <- cleanNms(colnames(dat))
   map$Sample_name <- cleanNms(map[[SamplesCol]])
   m <- match(colnames(dat), map$Sample_name)
-  stopifnot(sum(is.na(m)) == 0)
+  stopifnot(sum(is.na(m)) == 0L)
   map <- map[m,]
-  if (length(batches) > 1) {
+  if (length(batches) > 1L) {
     whichBatch <- map$myBatch <- do.call(paste, c(map[, batches], sep = " "))
   } else {
     whichBatch <- map$myBatch <- map[, batches]
@@ -78,11 +82,11 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
   scores0[, batches] <- map[, batches]
   scores0$Batch <- whichBatch
   #
-  pv0 <- round(100*(pc0$sdev)^2 / sum(pc0$sdev^2), 0)
+  pv0 <- round(100*(pc0$sdev)^2L / sum(pc0$sdev^2L), 0L)
   pv0 <- pv0[which(pv0 > 0)]
-  pv0_ <- paste0(root, ": ", paste(sapply(1:length(pv0), function(x) {
+  pv0_ <- paste0(root, ": ", paste(vapply(1L:length(pv0), \(x) {
     paste0("PC", x, ": ", pv0[x], "%")
-  }), collapse = ", "))
+  }, ""), collapse = ", "))
   #print(pv0_)
   scores0$Corrected <- root
   scores0$Type <- "Individual sample"
@@ -93,19 +97,19 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
     refType <- "Internal reference"
     wR <- which(isRef)
     if (length(wR)) {
-      grps <- aggregate(colnames(dat)[wR], list(whichBatch[wR]), function(x) { list(unique(x)) })
-      l <- vapply(grps$x, length, 1)
+      grps <- aggregate(colnames(dat)[wR], list(whichBatch[wR]), \(x) { list(unique(x)) })
+      l <- lengths(grps$x)
     }
   }
   if (make_Avg) {
-    if ((missing(isRef))||(!length(wR))||(min(l) < 1)) {
+    if ((missing(isRef))||(!length(wR))||(min(l) < 1L)) {
       refRoot <- "Avg."
       refType <- "Batch average"
-      grps <- aggregate(colnames(dat), list(whichBatch), function(x) { list(unique(x)) })
+      grps <- aggregate(colnames(dat), list(whichBatch), \(x) { list(unique(x)) })
     }
-    datAv0 <- setNames(lapply(grps$x, function(x) {
+    datAv0 <- setNames(lapply(grps$x, \(x) {
       apply(scores0[match(x, scores0$Sample), kol, drop = FALSE],
-            2, function(y) {
+            2L, \(y) {
               mean(is.all.good(y))
             })
     }), grps$Group.1)
@@ -122,13 +126,13 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
   }
   plotlyPCA <- list()
   if ("PC2" %in% colnames(scores0)) {
-    for (btch in batches) { #btch <- batches[1]
+    for (btch in batches) { #btch <- batches[1L]
       nm1 <- paste0(ttl, " (", root, ", color = ", btch, ")")
       scores1 <- scores0
       scores1$Batch <- scores1[[btch]]
       scores1$Batch <- factor(scores1$Batch)
-      xLab <- paste0("PC1 = ", pv0[1], "%")
-      yLab <- paste0("PC2 = ", pv0[2], "%")
+      xLab <- paste0("PC1 = ", pv0[1L], "%")
+      yLab <- paste0("PC2 = ", pv0[2L], "%")
       plot <- ggplot2::ggplot(scores1, aes(x = PC1, y = PC2, color = Batch)) +
         ggplot2::geom_point(ggplot2::aes(shape = Type)) +
         ggpubr::stat_conf_ellipse(aes(fill = Batch),
@@ -144,8 +148,8 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
                                  size = 2.5, show.legend = FALSE)
       #poplot(plot)
       if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-      ggplot2::ggsave(paste0(dir, "/", nm1, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-      ggplot2::ggsave(paste0(dir, "/", nm1, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+      ggplot2::ggsave(paste0(dir, "/", nm1, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggplot2::ggsave(paste0(dir, "/", nm1, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
       #
       if ("PC3" %in% colnames(scores1)) {
         if (make_Avg) {

@@ -4,7 +4,7 @@
 #' This function can be used in 5 different modes:
 #' - Coverage: calculates the proportion (from 1 to 0) of parent protein sequence(s) covered by the peptide sequence(s) provided.
 #' - Align: plot the protein(s), highlighting amino acids covered by the peptides sequence(s) provided.
-#' - Align2: as "Align", but peptides are displayed individually as bars; accepts PTM-modified sequences and will display PTM positions on the map; in addition, peptide colour can be mapped to the "intensities" argument.
+#' - Align2L: as "Align", but peptides are displayed individually as bars; accepts PTM-modified sequences and will display PTM positions on the map; in addition, peptide colour can be mapped to the "intensities" argument.
 #' - Heat: Amino acid color reflects the sum of intensities for all peptides observed covering said position. There is in addition one row for each PTM - also with color mapped to intensity.
 #' - XML: formats covered sequence as XML to display coverage in Excel
 #' 
@@ -21,7 +21,7 @@
 #' @param scale Only used if Mode = "Align", "Align2" or "Heat". Number of amino acids to display per row of the plots (default = 60).
 #' @param title Only used if Mode = "Align", "Align2" or "Heat". Default = "Coverage": title of the plot Can be either a single character string (all proteins will be plotted and saved as one graph) or a vector of the same length as "proteins" (each protein will have its graph)
 #' @param colour Ignored if Mode = "Coverage". The colour in which covered regions of protein sequences should be shown. Default = "red".
-#' @param colscale Only used if Mode = "Align2". Which colour scale do you want to use for peptide intensities? Default = 1 ("darkblue"->"orange"). Other values are 2: "darkblue"->"red", 3: "darkblue"->"green", 4: "black"->"blue", 5: "black"->"orange", 6: "black"->"red", 7: "black"->"green" and 8: "red"->"green"
+#' @param colscale Only used if Mode = "Align2". Which colour scale do you want to use for peptide intensities? Default = 1 ("darkblue"->"orange"). Other values are 2L: "darkblue"->"red", 3: "darkblue"->"green", 4: "black"->"blue", 5: "black"->"orange", 6: "black"->"red", 7: "black"->"green" and 8: "red"->"green"
 #' @param size Only used if Mode = "Align", "Align2" or "Heat". The character size. Default = 2.5, you may want to reduce it for large proteins.
 #' @param save Only used if Mode = "Align", "Align2" or "Heat". Preferred alternative to "save.path", though less flexible: vector of ggsave compatible file extensions to add to the "title" argument to save the graph to. Allows saving as multiple formats through a single function call. Default = "jpeg"; set to FALSE to not save it.
 #' @param save.path Only used if Mode = "Align", "Align2" or "Heat". Prefer the "save" argument. If set, must be a character vector with the name of the file(s) in which to save each plot, so must have the same length as \"title\". The name must end in a ggsave-compatible extension. Default = FALSE
@@ -59,10 +59,10 @@ Coverage <- function(proteins,
                      Mode = "Coverage",
                      new.window = TRUE, 
                      display = TRUE,
-                     scale = 60,
+                     scale = 60L,
                      title = "Coverage",
                      colour = "red",
-                     colscale = 1,
+                     colscale = 1L,
                      size = 2.5,
                      save = "jpeg",
                      save.path,
@@ -74,22 +74,22 @@ Coverage <- function(proteins,
   TESTING <- FALSE
   #DefArg(Coverage);TESTING = TRUE
   #proteins = P; peptides = tmp$"Modified sequence"; Mode = "Align2"; title = ttl; save = c("jpeg", "pdf"); intensities = tmp$`log10(Intensity)`
-  #proteins = x[[1]]; peptides = x[[2]]; Mode = "XML"; colour = "green"
+  #proteins = x[[1L]]; peptides = x[[2L]]; Mode = "XML"; colour = "green"
   #proteins = sq; peptides = tmpSq$"Modified sequence_verbose"; intensities = tmpSq$Intensity; Mode = "Align2"; save = FALSE
   #proteins = sq; peptides = tmpSq$"Modified sequence_verbose"; intensities = tmpSq$Intensity; Mode = "Heat"; save = FALSE
   #proteins = seq; peptides = p1$Sequence; Mode = "Align2"; title = paste0("Coverage map - ", nm); save = c("jpeg", "pdf"); intensities = p1$Intensity; display = FALSE
   #proteins = P; peptides = tmp$"Modified sequence"; Mode = "Heat"; display = FALSE;title = ttl1b; save = c("jpeg", "pdf"); intensities = tmp$`log10(Intensity)`;maxInt = mxInt; na = "cyan"
-  if (TESTING) {
+  misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-    misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
-  } else { misFun <- missing }
+    function(x) { return(!exists(deparse(substitute(x)))) }
+  } else { missing }
   #
   if ((misFun(I_eq_L))||(!is.logical(I_eq_L))||(is.na(I_eq_L))) {
     #if ((exists("isDIA"))&&(is.logical(isDIA))&&(!is.na(isDIA))) {
     #  I_eq_L <- !isDIA # NO! Cf. Vadim's reply that at the moment models do not allow discriminating between I and L.
     #} else {
-      I_eq_L <- TRUE
+    I_eq_L <- TRUE
     #}
   }
   if (!Mode %in% c("Coverage", "Align", "Align2", "XML", "Heat")) {
@@ -99,62 +99,7 @@ Coverage <- function(proteins,
     warning("Any R-compatible colour but \"black\" is allowed - though I would advise something shiny...\nDefaulting to \"red\".\nYou're welcome!")
     colour <- "red"
   }
-  # if (Mode == "Heat") {
-  #   # Good idea in principle, but doesn't work for saving
-  #   if (!require(statebins)) { install.packages("statebins") }
-  #   require(statebins)
-  #   # Thanks to https://stackoverflow.com/questions/64355877/round-corners-in-ggplots-geom-tile-possible("statebins") !!!
-  #   `%||%` <- function(a, b) { if (is.null(a)) { b } else { a } }
-  #   GeomRtile <- ggplot2::ggproto("GeomRtile", 
-  #                        statebins:::GeomRrect, # 1) only change compared to ggplot2:::GeomTile
-  #                        extra_params = c("na.rm"),
-  #                        setup_data = function(data, params) {
-  #                          data$width <- data$width %||% params$width %||% ggplot2::resolution(data$x, FALSE)
-  #                          data$height <- data$height %||% params$height %||% ggplot2::resolution(data$y, FALSE)
-  #                          
-  #                          transform(data,
-  #                                    xmin = x - width / 2,  xmax = x + width / 2,  width = NULL,
-  #                                    ymin = y - height / 2, ymax = y + height / 2, height = NULL
-  #                          )
-  #                        },
-  #                        default_aes = ggplot2::aes(
-  #                          fill = "grey20", colour = NA, size = 0.1, linetype = 1,
-  #                          alpha = NA, width = NA, height = NA
-  #                        ),
-  #                        required_aes = c("x", "y"),
-  #                        
-  #                        # These aes columns are created by setup_data(). They need to be listed here so
-  #                        # that GeomRect$handle_na() properly removes any bars that fall outside the defined
-  #                        # limits, not just those for which x and y are outside the limits
-  #                        non_missing_aes = c("xmin", "xmax", "ymin", "ymax"),
-  #                        draw_key = ggplot2::draw_key_polygon
-  #   )
-  #   geom_rtile <- function(mapping = NULL,
-  #                          data = NULL,
-  #                          stat = "identity",
-  #                          position = "identity",
-  #                          radius = grid::unit(6, "pt"), # 2) add radius argument
-  #                          ...,
-  #                          na.rm = FALSE,
-  #                          show.legend = NA,
-  #                          inherit.aes = TRUE) {
-  #     ggplot2::layer(
-  #       data = data,
-  #       mapping = mapping,
-  #       stat = stat,
-  #       geom = GeomRtile, # 3) use ggproto object here
-  #       position = position,
-  #       show.legend = show.legend,
-  #       inherit.aes = inherit.aes,
-  #       params = rlang::list2(
-  #         radius = radius,
-  #         na.rm = na.rm,
-  #         ...
-  #       )
-  #     )
-  #   }
-  # }
-  if (is.null(names(proteins))) { names(proteins) <- 1:length(proteins) }
+  if (is.null(names(proteins))) { names(proteins) <- 1L:length(proteins) }
   namez <- names(proteins)
   if (!length(peptides)) {
     if (Mode == "Coverage") {
@@ -171,9 +116,9 @@ Coverage <- function(proteins,
   }
   if (Mode != "Coverage") {
     Table <- data.frame(Title = title)
-    if (length(title) == 1) { Table$"Protein(s)" <- list(namez) } else {
+    if (length(title) == 1L) { Table$"Protein(s)" <- list(namez) } else {
       if (length(title) != length(proteins)) {
-        if (length(title) == 1) { title <- paste0(title, " - ", namez) } else {
+        if (length(title) == 1L) { title <- paste0(title, " - ", namez) } else {
           warning("\"title\"'s length must be either one of the same length as the protein vector, creating a default title!")
           title <- paste0("Coverage - ", namez)
           Table <- data.frame(Title = gsub(":|\\*|\\?|<|>|\\||/", "-", title))
@@ -181,13 +126,13 @@ Coverage <- function(proteins,
       }
       Table$"Protein(s)" <- as.list(namez)
     }
-    if ((length(save) > 1)||(as.character(save) != "FALSE")) {
+    if ((length(save) > 1L)||(as.character(save) != "FALSE")) {
       if ((misFun(save.path))||(length(save.path) != length(title))) {
         if ((!misFun(save.path))&&(length(save.path) != length(title))) {
           warning("Argument \"save.path\" will be ignored as its length is not compatible with that of the \"title\" argument!")
         }
         if (as.character("save") == "FALSE") { save.grph <- FALSE } else {
-          Table$Path <- lapply(Table$Title, function(x) { paste0(x, ".", save) })
+          Table$Path <- lapply(Table$Title, \(x) { paste0(x, ".", save) })
           save.grph <- TRUE
         }
       } else {
@@ -196,7 +141,7 @@ Coverage <- function(proteins,
           save.grph <- TRUE
         } else {
           #warning("Both the \"save.path\" and \"save\" arguments were provided. I will use \"save.path\" for the file name but \"save\" for the extension(s).")
-          Table$Path <- lapply(gsub("\\.[^A-Z,a-z,0-9]+$", "", save.path), function(x) { paste0(x, ".", save) })
+          Table$Path <- lapply(gsub("\\.[^A-Z,a-z,0-9]+$", "", save.path), \(x) { paste0(x, ".", save) })
           save.grph <- TRUE
         }
       }
@@ -207,7 +152,7 @@ Coverage <- function(proteins,
     if (length(intensities) != length(peptides)) {
       stop("The \"intensities\" vector should be the same length as the \"peptides\" vector!")
     }
-    w2 <- which(!is.all.good(intensities, 2))
+    w2 <- which(!is.all.good(intensities, 2L))
     intensities[w2] <- NA
   }
   peptides <- gsub("^_|_$", "", unlist(peptides))
@@ -220,13 +165,13 @@ Coverage <- function(proteins,
   }
   #
   if (Mode == "Align2") {
-    if (misFun(maxInt)) { maxInt <- NA } else { maxInt <- suppressWarnings(as.numeric(maxInt)) }
+    maxInt <- if (misFun(maxInt)) { NA } else { suppressWarnings(as.numeric(maxInt)) }
     maxInt <- max(c(maxInt, intensities), na.rm = TRUE)
     maxInt <- ceiling(maxInt)
     l <- nchar(as.character(maxInt))
-    maxInt2 <- round(maxInt, 1-l)
-    while (maxInt2 < maxInt) { maxInt2 <- maxInt2 + 10^(l-1) }
-    brks <- sort(unique(c(c(0:4)*(maxInt2/4), maxInt)))
+    maxInt2 <- round(maxInt, 1L-l)
+    while (maxInt2 < maxInt) { maxInt2 <- maxInt2 + 10L^(l-1L) }
+    brks <- sort(unique(c(c(0L:4L)*(maxInt2/4), maxInt)))
     #brks <- brks[which(brks <= maxInt)]
     brkstxt <- as.character(brks)
     w <- which(brkstxt == as.character(maxInt))
@@ -235,7 +180,7 @@ Coverage <- function(proteins,
   peptides <- data.frame(Original.seq = peptidesOrig,
                          Match.seq = peptides,
                          Sequence = gsub("\\([^\\)]+\\)", "", peptides),
-                         id = 1:length(peptides),
+                         id = 1L:length(peptides),
                          stripped.Original.seq = gsub("\\([^\\)]+\\)", "", peptidesOrig))
   if (!is.null(intensities)) { peptides$Intensity <- intensities }
   peptides$Length <- nchar(peptides$Sequence)
@@ -243,28 +188,28 @@ Coverage <- function(proteins,
   myCover <- c()
   pos <- list()
   pos2 <- data.frame(Seq = seq)
-  for (P in namez) { #P <- namez[1]
+  for (P in namez) { #P <- namez[1L]
     protein <- paste0("_", proteins[P], "_")
     proteinOrig <- paste0("_", proteinsOrig[P], "_")
-    pos2[[P]] <- lapply(seq, function(sq) { #sq <- seq[1]
+    pos2[[P]] <- lapply(seq, \(sq) { #sq <- seq[1L]
       temp <- unlist(strsplit(protein, sq))
       l <- length(temp)
-      if (l > 1) { res <- cumsum(nchar(temp[1:l-1])) + cumsum(c(0, rep(nchar(sq), l-2))) } else { res <- NA }
+      res <- if (l > 1L) { cumsum(nchar(temp[1L:l-1L])) + cumsum(c(0L, rep(nchar(sq), l-2L))) } else { NA }
       return(res)
     })
-    temp <- setNames(lapply(1:length(seq), function(x) {
+    temp <- setNames(lapply(1L:length(seq), \(x) {
       sq <- seq[x]
       x <- data.frame(start = pos2[[match(sq, pos2$Seq), P]])
       w <- which(!is.na(x$start))
       x <- x[w, , drop = FALSE]
-      x$end <- x$start + nchar(sq) - 1
-      x$spread <- apply(x[,c("start", "end")], 1, function(x) { list(x[[1]]:x[[2]])})
+      x$end <- x$start + nchar(sq) - 1L
+      x$spread <- apply(x[, c("start", "end")], 1L, \(x) { list(x[[1L]]:x[[2L]])})
       return(x)
     }), seq)
-    spread <- unique(unlist(sapply(seq, function(sq) { temp[[sq]]$spread })))
-    res2 <- rep(0, nchar(protein)-2)
-    res2[spread] <- 1
-    #setNames(res2, unlist(strsplit(substr(protein, 2, nchar(protein)-1), "")))
+    spread <- unique(unlist(sapply(seq, \(sq) { temp[[sq]]$spread })))
+    res2 <- rep(0L, nchar(protein)-2L)
+    res2[spread] <- 1L
+    #setNames(res2, unlist(strsplit(substr(protein, 2L, nchar(protein)-1L), "")))
     pos[[P]] <- res2
     myCover[P] <- mean(pos[[P]])
   }
@@ -278,13 +223,13 @@ Coverage <- function(proteins,
                          c("black", "red"),
                          c("black", "green"),
                          c("red", "green"))
-      if (!suppressWarnings(as.numeric(colscale[1])) %in% 1:nrow(colscales)) {
+      if (!suppressWarnings(as.numeric(colscale[1L])) %in% 1L:nrow(colscales)) {
         warning(paste0("Argument \"colscale\" must be a (single) number between 1 and ", nrow(colscales), ", defaulting to 1!"))
-        colscale <- 1
+        colscale <- 1L
       }
       colscale <- colscales[colscale,]
     }
-    for (Ttl in unique(title)) { #Ttl <- unique(title)[1]
+    for (Ttl in unique(title)) { #Ttl <- unique(title)[1L]
       plotCreated <- FALSE
       tbl <- Table[which(Table$Title == Ttl),]
       nmz <- unlist(tbl$Protein)
@@ -293,21 +238,23 @@ Coverage <- function(proteins,
       poZ2 <- pos2[,c("Seq", nmz)]
       align.temp <- list()
       YlabZ <- list()
-      for (P in nmz) { #P <- nmz[1]
+      for (P in nmz) { #P <- nmz[1L]
         protein <- prots[P]
         proteinOrig <- protsOrig[P]
         tmpAlgn <- data.frame(AA = unlist(strsplit(protein, "")))
-        tmpAlgn$N <- 1:nrow(tmpAlgn)
+        tmpAlgn$N <- 1L:nrow(tmpAlgn)
         tmpAlgn$Amino_acid <- unlist(strsplit(proteinOrig, ""))
         tmpAlgn$Protein <- P
-        tmpAlgn$Legend <- c("not found", "found")[pos[[P]] + 1]#poZ[[P]] + 1]
-        tmpAlgn$X <- ((1:length(pos[[P]])) - 1) %% scale + 1#poZ[[P]])) - 1) %% scale + 1
-        tmpAlgn$Y <- -sapply(1:length(pos[[P]]) - 1, function(x) {x - (x %% scale)})/scale#Z[[P]]) - 1, function(x) {x - (x %% scale)})/scale
-        tmpAlgn$Y <- -min(tmpAlgn$Y) + 1 + tmpAlgn$Y
-        tmpAlgn$Face <- sapply(pos[[P]], function(x) {c("plain", "bold")[x+1]})#poZ[[P]], function(x) {c("plain", "bold")[x+1]})
+        tmpAlgn$Legend <- c("not found", "found")[pos[[P]] + 1L]#poZ[[P]] + 1L]
+        tmpAlgn$X <- ((1L:length(pos[[P]])) - 1L) %% scale + 1L#poZ[[P]])) - 1L) %% scale + 1L
+        tmpAlgn$Y <- - vapply(1L:length(pos[[P]]) - 1L, \(x) {
+          x - (x %% scale)
+        }, 1)/scale#Z[[P]]) - 1L, \(x) {x - (x %% scale)})/scale
+        tmpAlgn$Y <- -min(tmpAlgn$Y) + 1L + tmpAlgn$Y
+        tmpAlgn$Face <- vapply(pos[[P]], \(x) { c("plain", "bold")[x+1L] }, "")#poZ[[P]], \(x) {c("plain", "bold")[x+1L]})
         tmpAlgn$Hjust <- 0.5
-        YlabZ[[P]] <- c(rev(c(c(0:(max(tmpAlgn$Y, na.rm = TRUE) - 1)) * scale + 1)), "")
-        covStr <- paste0("Coverage: ", round(100*myCover[P], 1), "%")
+        YlabZ[[P]] <- c(rev(c(c(0L:(max(tmpAlgn$Y, na.rm = TRUE) - 1L)) * scale + 1L)), "")
+        covStr <- paste0("Coverage: ", round(100*myCover[P], 1L), "%")
         align.temp[[P]] <- rbind(tmpAlgn,
                                  data.frame(AA = paste0("Protein name: ",  P),
                                             N = NA,
@@ -328,28 +275,28 @@ Coverage <- function(proteins,
                                             Face = "italic",
                                             Hjust = 0.5))
       }
-      if (length(prots) > 1) {
-        offset <- sapply(prots[2:length(prots)], function(x) { (nchar(x)/scale) }) + 2
-        if (length(offset) > 1) {
-          offset <- sapply(c(1:length(offset)), function(x) { sum(offset[x:length(offset)]) })
+      if (length(prots) > 1L) {
+        offset <- vapply(prots[2L:length(prots)], \(x) { (nchar(x)/scale) }, 1) + 2L
+        if (length(offset) > 1L) {
+          offset <- vapply(c(1L:length(offset)), \(x) { sum(offset[x:length(offset)]) }, 1)
         }
-        for (i in 1:length(offset)) { align.temp[[i]]$Y <- align.temp[[i]]$Y + offset[i] }
-        for (i in 1:length(offset)) {
-          align.temp[[1]] <- rbind(align.temp[[1]], align.temp[[i + 1]])
-          YlabZ[[length(offset) + 1]] <- c(YlabZ[[length(offset) + 1]], "", YlabZ[[length(offset) + 1 - i]])
+        for (i in 1L:length(offset)) { align.temp[[i]]$Y <- align.temp[[i]]$Y + offset[i] }
+        for (i in 1L:length(offset)) {
+          align.temp[[1L]] <- rbind(align.temp[[1L]], align.temp[[i + 1L]])
+          YlabZ[[length(offset) + 1L]] <- c(YlabZ[[length(offset) + 1L]], "", YlabZ[[length(offset) + 1L - i]])
         }
-        YlabZ <- c(YlabZ[[length(offset) + 1]], "")
-      } else { YlabZ <- c(YlabZ[[1]], "") }
-      align.temp <- align.temp[[1]]
+        YlabZ <- c(YlabZ[[length(offset) + 1L]], "")
+      } else { YlabZ <- c(YlabZ[[1L]], "") }
+      align.temp <- align.temp[[1L]]
       align.temp <- align.temp[order(align.temp$Y, decreasing = TRUE),]
       if (Mode == "Align") {
         myColors <- setNames(c("black", colour), c("not found", "found"))
         colScale <- ggplot2::scale_colour_manual(name = "colour", values = myColors)
-        Xleft <- -3
-        Xright <- ceiling(max(align.temp$X, na.rm = TRUE)) + 4
-        Ytop <- max(align.temp$Y, na.rm = TRUE) + 3
-        Ybottom <- min(align.temp$Y, na.rm = TRUE) - 3
-        yxRat <- yxRat2 <- 2
+        Xleft <- -3L
+        Xright <- ceiling(max(align.temp$X, na.rm = TRUE)) + 4L
+        Ytop <- max(align.temp$Y, na.rm = TRUE) + 3L
+        Ybottom <- min(align.temp$Y, na.rm = TRUE) - 3L
+        yxRat <- yxRat2 <- 2L
         covplot <- ggplot2::ggplot(align.temp) + ggplot2::coord_fixed(yxRat) +
           ggplot2::geom_text(ggplot2::aes(label = AA,  x = X, y = Y, colour = Legend, fontface = Face,
                                           hjust = Hjust), cex = size) +
@@ -369,13 +316,13 @@ Coverage <- function(proteins,
         plotCreated <- TRUE
       }
       if (Mode %in% c("Align2", "Heat")) {
-        matches <- lapply(nmz, function(n) { #n <- nmz[1]
+        matches <- lapply(nmz, \(n) { #n <- nmz[1L]
           mtchs <- list(Outcome = FALSE)
-          peptides[[paste0("Matches_", n)]] <<- lapply(peptides$Sequence, function(x) { #x <- peptides$Sequence[1]
+          peptides[[paste0("Matches_", n)]] <<- lapply(peptides$Sequence, \(x) { #x <- peptides$Sequence[1L]
             x <- poZ2[[match(x, poZ2$Seq), n]]
             return(x[which(!is.na(x))])
           })
-          tst <- which(sapply(peptides[[paste0("Matches_", n)]], length) > 0)
+          tst <- which(lengths(peptides[[paste0("Matches_", n)]]) > 0L)
           if (length(tst)) {
             mtchs <- peptides[tst, c(paste0("Matches_", n), "Match.seq", "Sequence", "id", "stripped.Original.seq")]
             colnames(mtchs) <- c("Match", "Match.seq", "Sequence", "pepid", "stripOrig")
@@ -384,63 +331,63 @@ Coverage <- function(proteins,
           }
           return(mtchs)
         })
-        matches <- matches[which(sapply(matches, function(x) { x$Outcome }))]
+        matches <- matches[which(vapply(matches, \(x) { x$Outcome }, TRUE))]
         if (length(matches)) {
-          matches <- lapply(matches, function(x) { x$Matches })
+          matches <- lapply(matches, \(x) { x$Matches })
           matches <- plyr::rbind.fill(matches)
           matches$temp <- do.call(paste, c(matches[, c( "Match.seq", "Sequence", "pepid", "Protein", "stripOrig")],
                                            sep = "_____"))
           matches <- listMelt(matches$Match, matches$temp)
-          colnames(matches)[1] <- "Match"
+          colnames(matches)[1L] <- "Match"
           matches[, c( "Match.seq", "Sequence", "pepid", "Protein", "stripOrig")] <- Isapply(strsplit(matches$L1, "_____"), unlist)
           matches$L1 <- NULL
           matches$Length <- nchar(matches$Sequence)
           matches$pepid <- as.numeric(matches$pepid)
-          matches[, c("X1", "Y1")] <- as.data.frame(t(apply(matches[,c("Protein", "Match")], 1, function(x) {
-            unlist(align.temp[which(align.temp$Protein == as.character(x[[1]]))[as.numeric(x[[2]])], c("X", "Y")])
+          matches[, c("X1", "Y1")] <- as.data.frame(t(apply(matches[,c("Protein", "Match")], 1L, \(x) {
+            unlist(align.temp[which(align.temp$Protein == as.character(x[[1L]]))[as.numeric(x[[2L]])], c("X", "Y")])
           })))
-          matches[, c("X2", "Y2")] <- as.data.frame(t(apply(matches[,c("Length", "X1", "Y1")], 1, function(x) {
-            x2 <- x[[2]]+x[[1]]-1
-            y2 <- x[[3]] - floor(x2/scale)+1*(x2 %% scale == 0)
-            x2 <- (x2 %% scale) + scale*(x2 %% scale == 0)
+          matches[, c("X2", "Y2")] <- as.data.frame(t(apply(matches[,c("Length", "X1", "Y1")], 1L, \(x) {
+            x2 <- x[[2L]]+x[[1L]]-1L
+            y2 <- x[[3L]] - floor(x2/scale)+(x2 %% scale == 0L)
+            x2 <- (x2 %% scale) + scale*(x2 %% scale == 0L)
             return(c(x2, y2))
           })))
           if (!is.null(intensities)) { matches$Intensity <- peptides$Intensity[match(matches$pepid, peptides$id)] } else {
             matches$Intensity <- 1
           }
           # Deal with peptides spanning several rows
-          matches$Start <- 1 # Not the match in the protein sequence! Used only for peptides spanning several rows!
+          matches$Start <- 1L # Not the match in the protein sequence! Used only for peptides spanning several rows!
           matches$End <- matches$Length # As above
           matches$Is_start <- TRUE
           matches$Is_end <- TRUE
           w <- which(matches$Y1 != matches$Y2) # Peptides spanning several rows
           if (length(w)) {
-            for (i in w) { #i <- w[5]
+            for (i in w) { #i <- w[5L]
               n <- matches$Y1[i]-matches$Y2[i] #(we almost never expect this to be more than 1: this would mean a super long peptide!!!)
-              nr <- n+1
+              nr <- n+1L
               temp <- matches[rep(i, nr),]
-              temp$Y1 <- temp$Y2 <- max(temp$Y1)-(0:n)
-              temp$X1[2:nr] <- 1
-              temp$X2[1:(nr-1)] <- scale
-              temp$Length <- temp$X2 - temp$X1 + 1
+              temp$Y1 <- temp$Y2 <- max(temp$Y1)-(0L:n)
+              temp$X1[2L:nr] <- 1L
+              temp$X2[1L:(nr-1L)] <- scale
+              temp$Length <- temp$X2 - temp$X1 + 1L
               temp2 <- as.data.frame(annot_to_tabl(unique(temp$Match.seq),
                                                    Nterm = FALSE,
                                                    Cterm = FALSE))
               colnames(temp2) <- c("A", "B")
               temp2$B[which(temp2$B != "")] <- paste0("(", temp2$B[which(temp2$B != "")], ")")
               temp2$A[which(temp2$A == "_")] <- ""
-              rrange <- cumsum(temp$Length)+1
-              temp$Match.seq <- sapply(1:nr, function(x) {
-                paste(apply(temp2[c(1, rrange+1)[x]:rrange[x], , drop = FALSE], 1, paste, collapse = ""), collapse = "")
-              })
+              rrange <- cumsum(temp$Length)+1L
+              temp$Match.seq <- vapply(1L:nr, \(x) {
+                paste(apply(temp2[c(1L, rrange+1L)[x]:rrange[x], , drop = FALSE], 1L, paste, collapse = ""), collapse = "")
+              }, "")
               temp$Sequence <- gsub("\\([^\\)]+\\)", "", temp$Match.seq)
               temp$End <- cumsum(temp$Length)
-              temp$Start <- c(0, temp$End[1:(nr-1)]) + 1
+              temp$Start <- c(0L, temp$End[1L:(nr-1L)]) + 1L
               temp$stripOrig <- substr(temp$stripOrig, temp$Start, temp$End)
-              temp$Is_start[2:nr] <- FALSE
-              temp$Is_end[1:(nr-1)] <- FALSE
-              matches[i,] <- temp[1,]
-              matches <- rbind(matches, temp[2:(n+1),])
+              temp$Is_start[2L:nr] <- FALSE
+              temp$Is_end[1L:(nr-1L)] <- FALSE
+              matches[i,] <- temp[1L,]
+              matches <- rbind(matches, temp[2L:(n+1L),])
             }
           }
           matches <- matches[order(matches$Protein, matches$Match, decreasing = FALSE),]
@@ -452,42 +399,42 @@ Coverage <- function(proteins,
           #olr <- 0
           olr <- 0.5
           # Let's calculate vertical offsets for overlapping peptides
-          uniq <- setNames(lapply(1:nrow(matches), function(x) { #x <- 1
+          uniq <- setNames(lapply(1L:nrow(matches), \(x) { #x <- 1
             x <- matches[x, c("X1", "X2", "Y")]
-            paste0(as.character((x[[1]]-olr):(x[[2]]+olr)), "_", as.character(x[[3]]))
+            paste0(as.character((x[[1L]]-olr):(x[[2L]]+olr)), "_", as.character(x[[3L]]))
           }), matches$ID)
           uniq <- listMelt(uniq)
           uniq <- aggregate(uniq$L1, list(uniq$value), list)
-          uniq$Length <- sapply(uniq$x, length)
+          uniq$Length <- lengths(uniq$x)
           offset0 <- 1.2
           matches$offset <- 0
           extents <- c()
-          for (n in nmz) { #n <- nmz[1]#
+          for (n in nmz) { #n <- nmz[1L]#
             mt <- unique(matches$ID[which(matches$Protein == n)])
-            for (i in mt) { #i <- mt[1] #i <- mt[2] #i <- mt[3]
+            for (i in mt) { #i <- mt[1L] #i <- mt[2L] #i <- mt[3L]
               #w <- which((matches$ID == i)&(matches$Protein == n))
               w <- which(matches$ID == i)
               m <- matches[w, , drop = FALSE]
-              rrange <- unique(unlist(apply(m[,c("X1", "X2", "Y")], 1, function(x) { paste0((x[[1]]-olr):(x[[2]]+olr), "_", x[[3]]) })))
+              rrange <- unique(unlist(apply(m[,c("X1", "X2", "Y")], 1L, \(x) { paste0((x[[1L]]-olr):(x[[2L]]+olr), "_", x[[3L]]) })))
               ol <- unique(unlist(uniq$x[which(uniq$Group.1 %in% rrange)]))
               ol <- ol[which(match(ol, mt) < match(i, mt))]
               l <- length(ol)
               if (l) {
                 #w2 <- which((matches$ID %in% ol)&(matches$Protein == n))
                 w2 <- which(matches$ID %in% ol)
-                exts <- lapply(0:max(matches$offset[w2]), function(x) {
-                  unlist(apply(m[, c("X1", "X2", "Y"), drop = FALSE], 1, function(y) {
-                    paste0((y[[1]]-olr):(y[[2]]+olr), "_", y[[3]], "_", x)
+                exts <- lapply(0L:max(matches$offset[w2]), \(x) {
+                  unlist(apply(m[, c("X1", "X2", "Y"), drop = FALSE], 1L, \(y) {
+                    paste0((y[[1L]]-olr):(y[[2L]]+olr), "_", y[[3L]], "_", x)
                   }))
                 })
-                tstext <- sapply(exts, function(x) { sum(x %in% extents) })
-                w3 <- which(tstext == 0)
-                if (length(w3)) { l <- w3[1]-1 }
+                tstext <- vapply(exts, \(x) { sum(x %in% extents) }, 1L)
+                w3 <- which(tstext == 0L)
+                if (length(w3)) { l <- w3[1L]-1L }
               }
               matches$offset[w] <- l
               extents <- unique(c(extents,
-                                  unlist(apply(matches[w, c("X1", "X2", "Y", "offset"), drop = FALSE], 1, function(x) { 
-                                    paste0((x[[1]]-olr):(x[[2]]+olr), "_", x[[3]], "_", x[[4]])
+                                  unlist(apply(matches[w, c("X1", "X2", "Y", "offset"), drop = FALSE], 1L, \(x) { 
+                                    paste0((x[[1L]]-olr):(x[[2L]]+olr), "_", x[[3L]], "_", x[[4L]])
                                   }))))
             }
           }
@@ -513,8 +460,8 @@ Coverage <- function(proteins,
                                  colour = "white", cex = size, vjust = 0) + 
               ggplot2::geom_rect(data = matches,
                                  ggplot2::aes(xmin = X1, xmax = X2, ymin = Y2, ymax = Y1, fill = Intensity),
-                                 show.legend = (length(unique(matches$Intensity)) > 1)) +
-              ggplot2::scale_fill_gradient(low = colscale[1], high = colscale[2], na.value = na,
+                                 show.legend = (length(unique(matches$Intensity)) > 1L)) +
+              ggplot2::scale_fill_gradient(low = colscale[1L], high = colscale[2L], na.value = na,
                                            breaks = brks, labels = brkstxt, limits = c(0, maxInt)) +
               ggplot2::scale_x_discrete(breaks = NULL) + 
               ggplot2::scale_y_discrete(breaks = NULL#, labels = YlabZ
@@ -532,7 +479,7 @@ Coverage <- function(proteins,
                              legend.background = ggplot2::element_rect(fill = bgcol),
                              legend.text = ggplot2::element_text(colour = "white"),
                              title = ggplot2::element_text(colour = "white"),
-                             plot.margin = ggplot2::margin(1, 4, 1, 1, "cm"))
+                             plot.margin = ggplot2::margin(1L, 4L, 1L, 1L, "cm"))
             plotCreated <- TRUE
             #poplot(covplot, new.window = new.window)
           }
@@ -541,18 +488,20 @@ Coverage <- function(proteins,
             matches$mods <- as.list(rep(NA, nrow(matches)))
             tmp <- data.frame(seq = paste0("_", matches$Match.seq[wMods], "_"),
                               X = matches$X1[wMods]+Xextension)
-            matches$mods[wMods] <- lapply(1:nrow(tmp), function(x) {#x <- 1
+            matches$mods[wMods] <- lapply(1L:nrow(tmp), \(x) {#x <- 1L
               x <- tmp[x,]
-              loc <- x[[2]]
-              x <- annot_to_tabl(x[[1]])[[1]]
-              l <- nrow(x)-2
+              loc <- x[[2L]]
+              x <- annot_to_tabl(x[[1L]])[[1L]]
+              l <- nrow(x)-2L
               wh <- which(x$Annotations != "")
               if (length(wh)) {
                 x <- x[wh, , drop = FALSE]
-                x$Which <- wh-1
-                x$Type <- sapply(wh-1, function(y) { c("Nterm", "Internal", "Cterm")[unlist(which(c(y == 0, (y > 0)&(y < l+1), y == l+1)))] })
+                x$Which <- wh-1L
+                x$Type <- vapply(x$Which, \(y) { c("Nterm", "Internal", "Cterm")[unlist(which(c(y == 0L,
+                                                                                                (y > 0L)&(y < l+1L),
+                                                                                                y == l+1L)))] }, "")
                 x$Which <- as.character(x$Which)
-                x <- apply(x[,c("Annotations", "Which", "Type")], 1, paste, collapse = "___")
+                x <- apply(x[,c("Annotations", "Which", "Type")], 1L, paste, collapse = "___")
                 x <- paste0(x, "___", loc)
               } else { x <- NA }
               return(x)
@@ -561,19 +510,19 @@ Coverage <- function(proteins,
             mods$Y <- matches$Y[mods$Match]
             mods$Intensity <- matches$Intensity[mods$Match]
             mods[, c("Modification", "Xb", "Type", "Xa")] <- Isapply(strsplit(mods$value, "___"), unlist)
-            mods$X <- as.numeric(mods$Xa) + as.numeric(mods$Xb) - 1
+            mods$X <- as.numeric(mods$Xa) + as.numeric(mods$Xb) - 1L
             mods$X <- mods$X + c(0.5, 0, -0.5)[match(mods$Type, c("Nterm", "Internal", "Cterm"))]
             mods$Y <- as.numeric(mods$Y) + scale2*0.2
-            mods$Modification <- gsub(" \\(Internal\\)$", "", apply(mods[,c("Modification", "Type")], 1, function(x) {
-              paste0(x[[1]], " (", x[[2]], ")")
+            mods$Modification <- gsub(" \\(Internal\\)$", "", apply(mods[,c("Modification", "Type")], 1L, \(x) {
+              paste0(x[[1L]], " (", x[[2L]], ")")
             }))
             #tmpshp <- unique(mods$Modification)
-            #myShapes <- setNames(substr(tmpshp, 1, 1), tmpshp)
+            #myShapes <- setNames(substr(tmpshp, 1L, 1L), tmpshp)
             #tstshp <- aggregate(myShapes, list(myShapes), length)
-            #w <- which(tstshp$x > 1)
+            #w <- which(tstshp$x > 1L)
             #if (length(w)) {
             #  w <- which(myShapes %in% tstshp$Group.1[w])
-            #  myShapes[w] <- 1:length(w)
+            #  myShapes[w] <- 1L:length(w)
             #}
             if (Mode == "Align2") {
               covplot <- covplot +
@@ -588,7 +537,7 @@ Coverage <- function(proteins,
               #poplot(covplot, new.window = new.window)
             }
           }
-          temp <- setNames(lapply(nmz, function(n)  {
+          temp <- setNames(lapply(nmz, \(n)  {
             wm <- which(matches$Protein == n)
             if (length(wm)) {
               x <- aggregate(matches$ID[wm], list(matches$ID[wm]), length)
@@ -598,16 +547,16 @@ Coverage <- function(proteins,
           whinna <- which(!is.na(temp))
           if (length(whinna)) {
             dotstest <- plyr::rbind.fill(temp[whinna])
-            dw <- which(dotstest$x > 1)
+            dw <- which(dotstest$x > 1L)
             if (length(dw)) {
               dotstest <- dotstest[dw, , drop = FALSE]
-              dotstest[, c("X", "Y")] <- Isapply(dotstest$Group.1, function(x) {
+              dotstest[, c("X", "Y")] <- Isapply(dotstest$Group.1, \(x) {
                 matches[which(matches$ID == x), c("X1", "Y")]
               })
-              dotstest[, c("Left", "Right")] <- as.data.frame(t(apply(dotstest[, c("X", "Y")], 1, function(x) { # x <- dotstest[1, c("X", "Y")]
-                w <- which(unlist(x[[1]]) == 1-Xextension)
-                w <- w[which(w >= 2)]
-                return(c(unlist(x[[2]])[w], unlist(x[[2]])[w-1]))
+              dotstest[, c("Left", "Right")] <- as.data.frame(t(apply(dotstest[, c("X", "Y")], 1L, \(x) { # x <- dotstest[1L, c("X", "Y")]
+                w <- which(unlist(x[[1L]]) == 1L-Xextension)
+                w <- w[which(w >= 2L)]
+                return(c(unlist(x[[2L]])[w], unlist(x[[2L]])[w-1L]))
               })))
               Left <- unlist(dotstest$Left); ll <- length(Left)
               Right <- unlist(dotstest$Right); lr <- length(Right)
@@ -630,9 +579,9 @@ Coverage <- function(proteins,
           }
           if (Mode == "Align2") {
             Xleft <- -3
-            Xright <- ceiling(max(align.temp$X, na.rm = TRUE))+4
-            Ytop <- max(align.temp$Y, na.rm = TRUE) + 3
-            Ybottom <- min(align.temp$Y, na.rm = TRUE) - 3
+            Xright <- ceiling(max(align.temp$X, na.rm = TRUE)) + 4L
+            Ytop <- max(align.temp$Y, na.rm = TRUE) + 3L
+            Ybottom <- min(align.temp$Y, na.rm = TRUE) - 3L
             covplot <- covplot + ggplot2::xlim(Xleft, Xright) + ggplot2::ylim(Ybottom, Ytop)
           }
           if (Mode == "Heat") {
@@ -643,8 +592,8 @@ Coverage <- function(proteins,
             matches2$Length <- as.integer(matches2$Length)
             w <- which(!is.na(matches2$Intensity))
             if (length(w)) {
-              for (i in w) { #i <- 1
-                rg <- matches2$Match[i]-1+(matches2$Start[i]:matches2$End[i])
+              for (i in w) { #i <- 1L
+                rg <- matches2$Match[i]-1L+(matches2$Start[i]:matches2$End[i])
                 rg <- which((align.temp2$N %in% rg)&(align.temp2$Protein == matches2$Protein[i]))
                 stopifnot(length(rg) == matches2$Length[i])
                 #stopifnot(paste(align.temp2$AA[rg], collapse = "") == matches2$stripOrig[i])
@@ -666,15 +615,15 @@ Coverage <- function(proteins,
             maxInt <- ceiling(maxInt)
             l <- nchar(as.character(maxInt))
             n <- min(c(2, l))
-            maxInt2 <- ceiling(as.numeric(substr(as.character(maxInt), 1, n))/(10^(n-1)))*(10^(l-1))
-            brks <- sort(unique(c(c(0:4)*(maxInt2/4), maxInt)))
+            maxInt2 <- ceiling(as.numeric(substr(as.character(maxInt), 1L, n))/(10L^(n-1L)))*(10L^(l-1L))
+            brks <- sort(unique(c(c(0L:4L)*(maxInt2/4), maxInt)))
             #brks <- brks[which(brks <= maxInt)]
             brkstxt <- as.character(brks)
             w <- which(brkstxt == as.character(maxInt))
             brkstxt[w] <- paste0(" ---> max. int.: ", brkstxt[w])
             #
-            offset2 <- 3
-            Xleft <- -1
+            offset2 <- 3L
+            Xleft <- -1L
             if (length(wMods)) {
               mods2 <- mods
               uMods <- unique(mods2$Modification)
@@ -699,13 +648,13 @@ Coverage <- function(proteins,
               #            width = 0.9, height = 0.9,
               #            radius = ggplot2::unit(3, "pt"))
               ggplot2::geom_tile(data = align.temp2[wFnd,],
-                                 ggplot2::aes(x = X, y = Y-1, fill = Intensity),
+                                 ggplot2::aes(x = X, y = Y-1L, fill = Intensity),
                                  width = 0.9, height = 0.9)
             #poplot(covplot, 12, 20, new.window)
             if (length(wMods)) {
               mods2$Y <- ceiling(mods2$Y)*(offset2) - match(mods2$Modification, uMods)
-              uModsDf <- plyr::rbind.fill(lapply(unique(align.temp2$Y[wAA]), function(y) {
-                data.frame(Mod = uMods, Y = y-1-1:nMods, X = -1)
+              uModsDf <- plyr::rbind.fill(lapply(unique(align.temp2$Y[wAA]), \(y) {
+                data.frame(Mod = uMods, Y = y-1L-1L:nMods, X = -1L)
               }))
               covplot <- covplot +
                 ggplot2::geom_text(data = uModsDf,
@@ -717,23 +666,23 @@ Coverage <- function(proteins,
                 #            width = 0.9, height = 0.9,
                 #            radius = ggplot2::unit(3, "pt"))
                 ggplot2::geom_tile(data = mods2,
-                                   ggplot2::aes(x = X, y = Y-1, fill = Intensity, colour = Modification),
+                                   ggplot2::aes(x = X, y = Y-1L, fill = Intensity, colour = Modification),
                                    width = 0.9, height = 0.9#, cex = 0.5
                 )
               #poplot(covplot, 12, 20, new.window)
-              Xright <- ceiling(max(c(align.temp2$X, mods2$X, uModsDf$X), na.rm = TRUE))+2
-              Ybottom <- floor(min(c(align.temp2$Y, mods2$Y, uModsDf$Y, 0), na.rm = TRUE)) - 3
-              Ytop <- ceiling(max(c(align.temp2$Y, mods2$Y, uModsDf$Y), na.rm = TRUE)) + 1
+              Xright <- ceiling(max(c(align.temp2$X, mods2$X, uModsDf$X), na.rm = TRUE)) + 2L
+              Ybottom <- floor(min(c(align.temp2$Y, mods2$Y, uModsDf$Y, 0L), na.rm = TRUE)) - 3L
+              Ytop <- ceiling(max(c(align.temp2$Y, mods2$Y, uModsDf$Y), na.rm = TRUE)) + 1L
             } else {
-              Xright <- ceiling(max(align.temp2$X, na.rm = TRUE))+2
-              Ybottom <- floor(min(c(0, align.temp2$Y), na.rm = TRUE)) - 1
-              Ytop <- ceiling(max(align.temp2$Y, na.rm = TRUE)) + 1
+              Xright <- ceiling(max(align.temp2$X, na.rm = TRUE)) + 2L
+              Ybottom <- floor(min(c(0L, align.temp2$Y), na.rm = TRUE)) - 1L
+              Ytop <- ceiling(max(align.temp2$Y, na.rm = TRUE)) + 1L
             }
-            Ytop <- max(align.temp2$Y, na.rm = TRUE) + 1
+            Ytop <- max(align.temp2$Y, na.rm = TRUE) + 1L
             covplot <- covplot +
-              ggplot2::scale_fill_gradient(low = colscale[1], high = colscale[2], na.value = na,
+              ggplot2::scale_fill_gradient(low = colscale[1L], high = colscale[2L], na.value = na,
                                            breaks = brks, labels = brkstxt,
-                                           limits = c(0, max(as.numeric(brks)))) +
+                                           limits = c(0L, max(as.numeric(brks)))) +
               ggplot2::scale_x_continuous(limits = c(Xleft, Xright),
                                           breaks = NULL) +
               ggplot2::scale_y_continuous(limits = c(Ybottom, Ytop), breaks = NULL#, labels = YlabZ
@@ -750,7 +699,7 @@ Coverage <- function(proteins,
                              legend.background = ggplot2::element_rect(fill = bgcol),
                              legend.text = ggplot2::element_text(colour = "white"),
                              title = ggplot2::element_text(colour = "white"),
-                             plot.margin = ggplot2::margin(1, 4, 1, 1, "cm"))
+                             plot.margin = ggplot2::margin(1L, 4L, 1L, 1L, "cm"))
             plotCreated <- TRUE
             #poplot(covplot, 12, 20, new.window)
           }
@@ -769,7 +718,7 @@ Coverage <- function(proteins,
         }
         if (save.grph) {
           for (svpth in unlist(tbl$Path)) {
-            #ext <- rev(unlist(strsplit(svpth, "\\.")))[1]
+            #ext <- rev(unlist(strsplit(svpth, "\\.")))[1L]
             # if (ext == "pdf") {
             #   suppressMessages(ggplot2::ggsave(svpth, covplot))
             # } else {
@@ -786,37 +735,33 @@ Coverage <- function(proteins,
       }
       if (Mode == "XML") {
         tst <- grep("^Protein name: ", align.temp$AA)
-        XML_Cov <- lapply(1:length(tst), function(x) {
+        XML_Cov <- lapply(1L:length(tst), \(x) {
           #x <- 1
-          x <- align.temp[(tst[x]+2):(c(tst, nrow(align.temp)+1)[x+1]-1),
+          x <- align.temp[(tst[x]+2L):(c(tst, nrow(align.temp)+1L)[x+1L]-1L),
                           c("Amino_acid", "Legend")]
           x <- x[which(x$Amino_acid != ""),]
           u <- unique(x$Legend)
-          w <- c(0, which(sapply(1:(nrow(x)-1), function(y) {
-            x$Legend[y] != x$Legend[y+1] # These are the ends of each stretch
-          })), length(x$Legend))
-          rs <- as.data.frame(t(sapply(1:(length(w)-1), function(y) {
-            rg <- (w[y]+1):w[y+1]
-            c(paste0(x$Amino_acid[rg], collapse = ""), x$Legend[rg[1]])
+          w <- c(0L, which(vapply(1L:(nrow(x)-1L), \(y) {
+            x$Legend[y] != x$Legend[y+1L] # These are the ends of each stretch
+          }, TRUE)), length(x$Legend))
+          rs <- as.data.frame(t(sapply(1L:(length(w)-1L), \(y) {
+            rg <- (w[y]+1L):w[y+1L]
+            c(paste0(x$Amino_acid[rg], collapse = ""), x$Legend[rg[1L]])
           })))
-          rs$V2 <- c(1, 2)[match(rs$V2, c("not found", "found"))]
-          rs <- apply(rs[, c("V1", "V2")], 1, function(y) {
+          rs$V2 <- c(1L, 2L)[match(rs$V2, c("not found", "found"))]
+          rs <- apply(rs[, c("V1", "V2")], 1L, \(y) {
             #y <- rs[1, c("V1", "V2")]
-            z <- as.numeric(y[[2]])
-            list(openxlsx2::fmt_txt(y[[1]], bold = as.logical(z-1),
+            z <- as.numeric(y[[2L]])
+            list(openxlsx2::fmt_txt(y[[1L]], bold = as.logical(z-1L),
                                     color = openxlsx2::wb_color(hex = c("grey", colour)[as.numeric(z)])))
           })
-          txt <- paste0("rs <- ", paste(sapply(1:length(rs), function(x) {
-            paste0("rs[[", x, "]][[1]]")
-          }), collapse = " + "))
+          txt <- paste0("rs <- ", paste0("rs[[", as.character(1L:length(rs)), "]][[1L]]", collapse = " + "))
           eval(parse(text = txt))
           return(rs)
         })
-        if (length(XML_Cov) > 1) {
+        if (length(XML_Cov) > 1L) {
           rs2 <- openxlsx2::fmt_txt(";")
-          txt <- paste0("XML_Cov <- ", paste(sapply(1:length(XML_Cov), function(x) {
-            paste0("XML_Cov[[", x, "]][[1]]")
-          }), collapse = " + rs2 + "))
+          txt <- paste0("XML_Cov <- ", paste0("XML_Cov[[", as.character(1L:length(XML_Cov)), "]][[1L]]", collapse = " + rs2 + "))
           eval(parse(text = txt))
         }
         return(XML_Cov)

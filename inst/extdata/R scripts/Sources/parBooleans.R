@@ -7,7 +7,7 @@ validLogicPar %<o% function(x,
   val <- get(x, .GlobalEnv)
   if (!"logical" %in% class(val)) { return(FALSE) }
   l <- length(val)
-  if ((length_1)&&(l > 1)) { return(FALSE) }
+  if ((length_1)&&(l > 1L)) { return(FALSE) }
   if (noNAs) {
     tst <- sum(is.na(val))
     if (tst) { return(FALSE) }
@@ -15,21 +15,46 @@ validLogicPar %<o% function(x,
   return(TRUE)
 }
 validIntegPar %<o% function(x,
-                            min = 1,
+                            min = 1L,
                             length_1 = TRUE,
                             noNAs = TRUE) {
   stopifnot(is.character(x))
   if (!exists(x, .GlobalEnv)) { return(FALSE) }
   val <- get(x, .GlobalEnv)
-  if (sum(c("integer", "numeric") %in% class(val)) == 0) { return(FALSE) }
+  if (sum(c("integer", "numeric") %in% class(val)) == 0L) { return(FALSE) }
   l <- length(val)
-  if ((length_1)&&(l > 1)) { return(FALSE) }
+  if ((length_1)&&(l > 1L)) { return(FALSE) }
   if (noNAs) {
     tst <- sum(is.na(val))
     if (tst) { return(FALSE) }
   }
-  if (max(val) > 10^18) {
+  if (max(val) > 10L^18L) {
     stop("Nope, not having it. Go read on integers and floating point arithmetic then come back here!")
+  }
+  return(sum((is.na(val))|(val >= min)) == l)
+}
+validNumPar %<o% function(x,
+                          filtExpr = "",
+                          length_1 = TRUE,
+                          noNAs = TRUE) {
+  stopifnot(is.character(x))
+  if (!exists(x, .GlobalEnv)) { return(FALSE) }
+  val <- get(x, .GlobalEnv)
+  if (!is.numeric(val)) { return(FALSE) }
+  l <- length(val)
+  if ((length_1)&&(l > 1L)) { return(FALSE) }
+  if (noNAs) {
+    tst <- sum(is.na(val))
+    if (tst) { return(FALSE) }
+  }
+  if (filtExpr != "") {
+    tst <- lapply(val, function(x) {
+      y <- try(eval(parse(text = paste0(x, " ", filtExpr))), silent = TRUE)
+      if (inherits(y, "try-error")) { y <- FALSE }
+      return(y)
+    })
+    tst <- sum(!tst)
+    if (!tst) { return(FALSE) }
   }
   return(sum((is.na(val))|(val >= min)) == l)
 }
@@ -43,10 +68,11 @@ validCharPar %<o% function(x,
   val <- get(x, .GlobalEnv)
   if (!"character" %in% class(val)) { return(FALSE) }
   l <- length(val)
-  if ((length_1)&&(l > 1)) { return(FALSE) }
+  if ((length_1)&&(l > 1L)) { return(FALSE) }
   if (noNAs) {
     tst <- sum(is.na(val))
     if (tst) { return(FALSE) }
   }
-  return(sum(!val %in% filt) == 0)
+  if (!missing(filt)) { return(sum(!val %in% filt) == 0L) }
+  return(TRUE)
 }

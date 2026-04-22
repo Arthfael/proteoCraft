@@ -25,18 +25,18 @@ load_Bckp <- function(backup,
   if (clean) { suppressWarnings(rm(list = ls(), envir = .GlobalEnv)) }
   #DefArg(load_Bckp); TESTING <- TRUE
   #
-  if (TESTING) {
+  misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package
-    misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
-  } else { misFun <- missing }
+    \(x) { return(!exists(deparse(substitute(x)))) }
+  } else { missing }
   #
   homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
   #
-  wd_test <- function() {
+  wd_test <- \() {
     if (!exists("wd", .GlobalEnv)) { return(FALSE) }
     wd <- get("wd", .GlobalEnv)
-    return((length(wd) == 1)&&(!is.na(wd))&&("character" %in% class(wd))&&(dir.exists(wd)))
+    return((length(wd) == 1L)&&(!is.na(wd))&&(is.character(wd))&&(dir.exists(wd)))
   }
   if (misFun(backup)) {
     if (misFun(startDir)) {
@@ -55,30 +55,29 @@ load_Bckp <- function(backup,
     bckp <- backup
   }
   if (grepl("^~", bckp)) { bckp <- gsub("^~", Sys.getenv("R_USER"), bckp) }
-  if ((!nchar(bckp))||(length(bckp) != 1)||(!"character" %in% class(bckp))) {
-    warning("\"backup\" must be a single length = 1 character path to a valid proteoCraft backup file!")
+  if ((!nchar(bckp))||(length(bckp) != 1L)||(!is.character(bckp))) {
+    warning("\"backup\" must be a single length 1 character path to a valid proteoCraft backup file!")
     return()
   }
   if ((!file.exists(bckp))) {
     warning("The specifid \"backup\" file does not exist!")
     return()
   }
-  wdExisted <- ((exists("wd", .GlobalEnv))&&("character" %in% class(wd))&&(length(wd) == 1)&&(!is.na(wd))&&(dir.exists(wd)))
+  wdExisted <- ((exists("wd", .GlobalEnv))&&(is.character(wd))&&(length(wd) == 1L)&&(!is.na(wd))&&(dir.exists(wd)))
   bckpDeerayktoray <- dirname(bckp)
   #
-  #bckp <- "~/R/proteoCraft/AN_GNRGFL1_5637917142/Backup.RData"
   # Now, I have recently switched to a different, faster way of saving backups using parallelization.
   # The bit below is meant to allow some form of backwards compatibility with older backups.
   tst <- "Didnae work, matey!"
   inst <- as.data.frame(installed.packages())
   cat("Reloading backup file\n   ", bckp, "\n...\nplease hold...\n")
   tst <- try(loadFun(bckp), silent = TRUE)
-  if (("try-error" %in% class(tst))||(("character" %in% class(tst))&&(length(tst) == 1)&&(tst == "Didnae work, matey!"))) {
+  if ((inherits(tst, "try-error"))||((is.character(tst))&&(length(tst) == 1L)&&(tst == "Didnae work, matey!"))) {
     stop("Backup re-loading failed!")
   }
-  backupFile <<- bckp
+  assign("backupFile", bckp, envir = .GlobalEnv)
   if (!exists(".obj")) { .obj %<o% ".obj"  }
-  .obj <<- unique(c(.obj, "backupFile")) # Exception: this one we keep always at the far end!
+  assign(".obj", union(.obj, "backupFile"), envir = .GlobalEnv) # Exception: this one we keep always at the far end!
   #
   if ((!exists("wd"))||(!wd_test())) {
     if (!wdExisted) {
@@ -107,31 +106,37 @@ load_Bckp <- function(backup,
     try(invisible(lapply(tmp, detach, character.only = TRUE, unload = TRUE)), silent = TRUE)
   }
   allCores <- parallel::detectCores()
-  maxCores <- max(c(round(allCores*0.95)-1, 1)) # New slightly more conservative default
+  maxCores <- max(c(round(allCores*0.95)-1L, 1L)) # New slightly more conservative default
   if (loadPack) {
     if (exists("cran_req")) {
-      for (pack in cran_req) { library(pack, character.only = TRUE) }
+      for (pack in cran_req) {
+        loadTst <- try({ library(pack, character.only = TRUE) }, silent = TRUE)
+        if (inherits(loadTst, "try-error")) { warning(loadTst) }
+      }
       if ("data.table" %in% cran_req) { setDTthreads(threads = maxCores) }
     }
     if (exists("bioc_req")) {
-      for (pack in bioc_req) { library(pack, character.only = TRUE) }
+      for (pack in bioc_req) {
+        loadTst <- try({ library(pack, character.only = TRUE) }, silent = TRUE)
+        if (inherits(loadTst, "try-error")) { warning(loadTst) }
+      }
     }
     library("proteoCraft", character.only = TRUE)
   }
   # Re-create parallel cluster
   usePar <- FALSE
-  if (sum(c("parClust", "N.clust") %in% .obj) == 2) {
+  if (sum(c("parClust", "N.clust") %in% .obj) == 2L) {
     #
     # Check N.clust parameter validity
     N.clust <- try(as.integer(N.clust), silent = TRUE)
-    if ((!exists("N.clust"))||(!is.numeric(N.clust))||(is.na(N.clust))||(N.clust < 1)||(N.clust > maxCores)) {
+    if ((!exists("N.clust"))||(!is.numeric(N.clust))||(is.na(N.clust))||(N.clust < 1L)||(N.clust > maxCores)) {
       N.clust <- maxCores
     }
-    N.clust <<- N.clust # Export
+    assign("N.clust", N.clust, envir = .GlobalEnv) # Export
     if ((exists("cran_req"))&&("data.table" %in% cran_req)) { data.table::setDTthreads(threads = N.clust) }
     #
     # Do we already have a compatible cluster running?
-    if ((exists("parClust"))&&(exists("N.clust"))&&("cluster" %in% class(parClust))) {
+    if ((exists("parClust"))&&(exists("N.clust"))&&(inherits(parClust, "cluster"))) {
       currNodes <- gsub(" .*", "", gsub("socket cluster with ", "", capture.output(parClust)))
       currNodes <- as.integer(currNodes)
       if (currNodes != N.clust) { parallel::stopCluster(parClust) }
@@ -139,7 +144,7 @@ load_Bckp <- function(backup,
     # If not, create it:
     a <- 1
     tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-    if ("try-error" %in% class(tst)) {
+    if (inherits(tst, "try-error")) {
       if (exists("parClust")) { try(parallel::stopCluster(parClust), silent = TRUE) }
       parClust <- parallel::makeCluster(N.clust, type = "SOCK")
     }
@@ -153,22 +158,22 @@ load_Bckp <- function(backup,
       if (file.exists(ScriptPath)) {
         scrpt <- readLines(ScriptPath)
         scrpt <- data.frame(call = scrpt)
-        scrpt$row <- 1:nrow(scrpt)
+        scrpt$row <- 1L:nrow(scrpt)
         scrpt$listCall <- as.list(scrpt$call)
         g1 <- grep("^ *Src <- ", scrpt$call)
         g2 <- grep("^ *source\\(Src\\)", scrpt$call)
         l <- length(g1)
         while (l) {
           if ((l == length(g2))
-              &&(sum(g1 > g2) == 0)
-              &&(sum(g2[1:(l-1)] > g1[2:l]) == 0)) {
-            srcFls <- sapply(gsub("^ *Src <- ", "", scrpt$call[g1]), function(x) {
+              &&(sum(g1 > g2) == 0L)
+              &&(sum(g2[1L:(l-1L)] > g1[2L:l]) == 0L)) {
+            srcFls <- sapply(gsub("^ *Src <- ", "", scrpt$call[g1]), \(x) {
               x <- eval(parse(text = x))
               if (is.null(x)) { x <- "" }
               return(x)
             })
-            wY <- which((nchar(srcFls) > 0)&(file.exists(srcFls)))
-            wN <- which((nchar(srcFls) == 0)|(!file.exists(srcFls)))
+            wY <- which((nchar(srcFls) > 0L)&(file.exists(srcFls)))
+            wN <- which((nchar(srcFls) == 0L)|(!file.exists(srcFls)))
             srcs <- suppressWarnings(lapply(srcFls[wY], readLines))
             scrpt$listCall[g1] <- ""
             scrpt$listCall[g2[wY]] <- srcs
@@ -178,18 +183,18 @@ load_Bckp <- function(backup,
             g1 <- grep("^ *Src <- ", scrpt$call)
             g2 <- grep("^ *source\\(Src\\)", scrpt$call)
             l <- length(g1)
-          } else { l <- 0 }
+          } else { l <- 0L }
         }
         g0 <- grep("^ *saveImgFun\\(((\"Backup\\.RData\")|(BckUpFl))\\)", scrpt$call)
         if (length(g0)) {
           ghash <- grep("^ *#", scrpt$call, invert = TRUE)
-          f0 <- function(x) { #x <- .obj[4]
+          f0 <- \(x) { #x <- .obj[4L]
             rs <- NA
             y <- c(grep(paste0("^ *", x, " *%<(o|c)%"), scrpt$call),
                    grep(paste0("^ *\\.obj *<- *unique\\(c\\(", x, "\\)\\)"), scrpt$call))
             if (length(y)) {
               y <- scrpt$row[min(y)]
-              rs <- scrpt$row[g0][which(scrpt$row[g0] > y)][1]
+              rs <- scrpt$row[g0][which(scrpt$row[g0] > y)][1L]
             }
             return(rs)
           }
@@ -206,20 +211,20 @@ load_Bckp <- function(backup,
             #    - Using all names in .obj, we can figure out how far we have gone at any run of the script from these inputs assuming the backup wasn't discarded.
             #    - Using just the first name in .obj for which we have a non NA value, we can figure out what was the last run chunk.
             #
-            ok <- !("try-error" %in% class(tst))
+            ok <- !inherits(tst, "try-error")
           } else {
             tst <- try(setNames(sapply(.obj, f0), .obj), silent = TRUE)
           }
           if (!ok) { tst <- setNames(vapply(.obj, f0, as.integer(1)), .obj) }
           tst <- tst[which((vapply(names(tst), exists, TRUE))&(!is.na(tst)))]
           if (length(tst)) {
-            m1 <- tst[1]
-            o1 <- names(tst)[1]
+            m1 <- tst[1L]
+            o1 <- names(tst)[1L]
             tst <- tst[order(tst, decreasing = TRUE)]
-            m2 <- tst[1]
-            o2 <- names(tst)[1]
-            rs1 <- scrpt$row[ghash][which(scrpt$row[ghash] > m1)][1]
-            rs2 <- scrpt$row[ghash][which(scrpt$row[ghash] > m2)][1]
+            m2 <- tst[1L]
+            o2 <- names(tst)[1L]
+            rs1 <- scrpt$row[ghash][which(scrpt$row[ghash] > m1)][1L]
+            rs2 <- scrpt$row[ghash][which(scrpt$row[ghash] > m2)][1L]
             # rs1 should always be smaller or equal to rs2
             msg <- paste0("\n   FYI, the last remanent object which was added chronologically to .obj was \"", o1, "\"")
             if (o1 != o2) {
@@ -238,7 +243,7 @@ load_Bckp <- function(backup,
             } else {
               if (rs1 < rs2) {
                 cat(paste0("\n   -> We thus suggest starting execution from either row ", rs1, " or ", rs2, "...\n"))
-                cat(paste0("   (opening script at the line ", rs1, ")\n"))
+                cat(paste0("   (opening script at line ", rs1, ")\n"))
               } else {
                 cat(paste0("\n   -> We thus suggest starting execution from row ", rs1, "...\n"))
                 cat("   (opening script at the corresponding line...)\n")
@@ -252,10 +257,10 @@ load_Bckp <- function(backup,
         cat(" ... but it appears the file doesn't exist anymore...\n")
       }
     } else {
-      cat(paste0("   FYI, the last object listed in .obj is \"", rev(.obj)[1], "\".\n"))
+      cat(paste0("   FYI, the last object listed in .obj is \"", rev(.obj)[1L], "\".\n"))
     }
   }
   if (exists("mySeed")) { set.seed(mySeed) }
-  if (usePar) { parClust <<- parClust } # Export cluster
+  if (usePar) { assign("parClust", parClust, envir = .GlobalEnv) } # Export cluster
   cat("\nYou're good to go!\n")
 }

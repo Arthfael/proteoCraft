@@ -30,22 +30,30 @@ parse.Param.aggreg <- function(parameter,
                                aggr.list = Aggregate.list,
                                checkExp = FALSE,
                                experiment = Exp) {
-  if ((is.na(parameter))||(parameter == "")) { stop("Invalid parameter value!") }
+  if (parameter == "") {
+    return()
+  }
+  if (is.na(parameter)){
+    warning("Invalid parameter value!")
+    return()
+  }
   paramValue <- unlist(strsplit(parameter, ";"))
-  if ((checkExp)&&(length(experiment) == 1)) { paramValue <- setdiff(myPar, "Exp") }
+  if ((checkExp)&&(length(experiment) == 1L)) { paramValue <- setdiff(myPar, "Exp") }
   m <- match(paramValue, names(aggregates))
   if ((!length(m))||(sum(is.na(m)))) { stop("Invalid parameter value!") }
   aggr <- aggregates[m]
-  a <- which((vapply(map$Characteristics, length, 1) == length(aggr))&(vapply(map$Characteristics, function(x) {
+  a <- which((lengths(map$Characteristics) == length(aggr))&(vapply(map$Characteristics, function(x) {
     sum(!x %in% aggr)
-  }, 1) == 0))
+  }, 1L) == 0L))
   aggr <- map$Aggregate.Name[a]
   val <- aggr.list[[aggr]]
-  nms <- unlist(map$Characteristics[which(map$Aggregate.Name == aggr)])
-  if (length(nms) == 1) { kol <- nms } else { kol = aggr}
+  nms2 <- nms <- unlist(map$Characteristics[which(map$Aggregate.Name == aggr)])
+  kol <- if (length(nms) == 1L) { nms } else { aggr }
+  if (length(experiment) == 1L) { nms2 <- setdiff(nms2, "Experiment") }
   res <- list(aggregate = aggr,
               values = val,
               names = nms,
-              column = kol)
+              column = kol,
+              limmaCol = paste0(paste(nms2, collapse = "_"), "_._"))
   return(res)
 }

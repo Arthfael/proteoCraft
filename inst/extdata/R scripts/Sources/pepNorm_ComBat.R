@@ -8,7 +8,7 @@ txt2 <- ""
 #
 pack <- "sva"
 bioc_req <- unique(c(bioc_req, pack))
-if (!require(pack, character.only = TRUE, quietly = TRUE)) { pak::pkg_install(p) }
+if (!require(pack, character.only = TRUE, quietly = TRUE)) { pak::pak(p) }
 require(pack, character.only = TRUE)
 #
 btchDir <- paste0(nrmDr, "/Step ", nrmStp, " - Batch corr.")
@@ -23,18 +23,18 @@ ImpGrps <- Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),
 tmpDat2 <- tmpDat1[, currSamples]*NA
 #
 myBatch3 <- myBatch2 <- myBatch <- normSequence[[nrmStp]]$Batch #myBatch <- "Lit"
-if (length(myBatch) > 1) {
-  myBatch2 <- paste(substr(myBatch, 1, 3), collapse = "")
+if (length(myBatch) > 1L) {
+  myBatch2 <- paste(substr(myBatch, 1L, 3L), collapse = "")
   myBatch3 <- paste(myBatch, collapse = "/")
 }
 mod0a <- model.matrix(~1, data = Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),])
 #
 # Impute
-tmp <- proteoCraft::Data_Impute2(tmpDat1[, currSamples], ImpGrps)
+tmp <- Data_Impute2(tmpDat1[, currSamples], ImpGrps)
 tmpDat2Imp <- tmpDat1Imp <- tmp$Imputed_data
 Pos <- tmp$Positions_Imputed
 #
-for (lGrp in NormGrps$Group) { #lGrp <- NormGrps$Group[1] # Longitudinal group (peptide class)
+for (lGrp in NormGrps$Group) { #lGrp <- NormGrps$Group[1L] # Longitudinal group (peptide class)
   grpMtch <- match(NormGrps$IDs[[match(lGrp, NormGrps$Group)]],
                    tmpDat1$id[wAG1])
   grpMtch <- grpMtch[which(!is.na(grpMtch))]
@@ -86,8 +86,8 @@ KeepComBatRes <- corrTst$p.value < 0.01 # Default: keep results only if data is 
 l <- min(c(length(PCsLst$original$sdev), length(PCsLst[[myBatch2]]$sdev)))
 l2 <- min(c(5, l))
 PCs <- data.frame("Component" = paste0("PC", as.character(1:l2)),
-                  "Before (%)" = round(100*(PCsLst[["original"]]$sdev[1:l2])^2 / sum(PCsLst[["original"]]$sdev^2), 0),
-                  "After (%)" = round(100*(PCsLst[[myBatch2]]$sdev[1:l2])^2 / sum(PCsLst[[myBatch2]]$sdev^2), 0),
+                  "Before (%)" = round(100*(PCsLst[["original"]]$sdev[1:l2])^2L / sum(PCsLst[["original"]]$sdev^2L), 0L),
+                  "After (%)" = round(100*(PCsLst[[myBatch2]]$sdev[1:l2])^2L / sum(PCsLst[[myBatch2]]$sdev^2L), 0L),
                   check.names = FALSE)
 if (l2 < l) {
   PCs <- rbind(PCs, data.frame(Component = "...",
@@ -159,11 +159,11 @@ server <- function(input, output, session) {
   #observeEvent(input$cancel, { stopApp() })
   session$onSessionEnded(function() { stopApp() })
 }
-runKount <- 0
+runKount <- 0L
 while ((!runKount)||(!exists("IHAVERUN"))) {
   eval(parse(text = runApp), envir = .GlobalEnv)
   shinyCleanup()
-  runKount <- runKount+1
+  runKount <- runKount+1L
 }
 msg <- paste0(" -> correction of ", myBatch3, "-associated batch effect ", c("rejec", "accep")[KeepComBatRes+1], "ted.\n")
 if (KeepComBatRes) {

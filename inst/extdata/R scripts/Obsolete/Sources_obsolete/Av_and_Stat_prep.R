@@ -2,11 +2,27 @@
 # At least, Welch's t-test and moderated t-test; for unpaired replicates a permutations t-test is also performed.
 # By default in the "t.test" function var.equal is set to FALSE, which performs a Welch's t.test.
 # This is as well, since Welch's t.test apparently never performs worse than Student's.
-
+Av_SE_fun %<o% function(vect) {
+  res <- proteoCraft::is.all.good(as.numeric(vect))
+  if (length(res)) { res <- c(mean(res), sd(res)/sqrt(length(res))) } else {
+    res <- unique(vect[which((!is.nan(vect))&(!is.na(vect)))])
+    if (length(res) == 1) { return(c(res, NA)) } else { return(c(NA, NA)) }
+    return(res)
+  }
+}
+# 
+# Internal function nicked from https://github.com/cran/miRtest/blob/master/R/miRtest.R
+# Barely modified
+limma.one.sided %<o% function(myFit, lower) {
+  #se.coef <- sqrt(myFit$s2.post) * myFit$stdev.unscaled
+  df.total <- myFit$df.prior + myFit$df.residual
+  rs <- pt(myFit$t, df = df.total, lower.tail = lower)
+  return(rs[, colnames(myFit$p.value), drop = FALSE])
+}
 ReportCalls <- AddTxt2Report("Calculating average intensities and ratios and performing statistical tests...")
 # Alternative hypothesis for tests:
 #AltHyp <- c("two.sided", "greater")[IsPullDown+1]
-AltHyp %<o% c("greater", "two.sided")[TwoSided+1]
+AltHyp %<o% c(c("greater", "lower")[Mirror.Ratios+1], "two.sided")[TwoSided+1]
 # Why use two-sided in most cases?
 # For pull-downs, we can still learn something on the left, e.g.:
 # - what is enriched specifically in ctrl?

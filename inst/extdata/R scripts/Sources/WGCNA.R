@@ -11,14 +11,14 @@ if (!require(WGCNA)) { pak::pak("WGCNA") }
 library(WGCNA)
 #
 L <- length(RSA$values)
-if (L <= 15) { warning("WGCNA is not recommended below 15 samples!") } else {
-  if (L <= 30) { warning("Low number of samples, WGCNA modules reliability may be poor !") }
+if (L <= 15L) { warning("WGCNA is not recommended below 15 samples!") } else {
+  if (L <= 30L) { warning("Low number of samples, WGCNA modules reliability may be poor !") }
 }
 #
 # Global parameters
 hubThresh <- 0.8
 sftThresh <- 0.8
-repThresh <- 3
+repThresh <- 3L
 repProp <- 0.75
 corThresh <- 0.5
 pvalThresh <- 0.05
@@ -42,15 +42,15 @@ exprData <- as.data.frame(t(PG[, col]))
 colnames(exprData) <- PG$Label
 rownames(exprData) <- RSA$values
 tmp <- Exp.map[match(rownames(exprData), Exp.map$Ref.Sample.Aggregate), VPAL$column]
-m <- setNames(lapply(VPAL$value, function(x) { which(tmp == x) }), VPAL$value)
+m <- setNames(lapply(VPAL$value, \(x) { which(tmp == x) }), VPAL$value)
 tmp2 <- !is.na(exprData)
-tst <- setNames(lapply(m, function(x) {
+tst <- setNames(lapply(m, \(x) {
   colSums(tmp2[x,])
 }), VPAL$value)
 tst <- do.call(cbind, tst)
 tst <- as.data.frame(tst)
 rownames(exprData) <- cleanNms(rownames(exprData))
-whWGCNA <- which(apply(tst, 1, min) >= minReps)
+whWGCNA <- which(apply(tst, 1L, min) >= minReps)
 exprData <- exprData[, whWGCNA]
 exprMean <- rowMeans(PG[whWGCNA, col], na.rm = TRUE)
 #
@@ -59,10 +59,10 @@ sampleTree <- hclust(dist(exprData), method = "average") #Clustering samples bas
 #Plotting the cluster dendrogram
 # Original code using base functions:
 # par(cex = 0.6)
-# par(mar = c(0,4,2,0))
+# par(mar = c(0L, 4L, 2L, 0L))
 # plot(sampleTree, main = "Sample clustering to detect outliers",
 #      sub = "", xlab = "", cex.lab = 1.5,
-#      cex.axis = 1.5, cex.main = 2)
+#      cex.axis = 1.5, cex.main = 2L)
 # #draw on line to show cutoff height
 # abline(h = max(sampleTree$height)*0.95, col = "red")
 # dev.off()
@@ -107,10 +107,10 @@ ggPlot <- ggplot(dend_data$segments) + theme_bw() +
         axis.ticks.x = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank())
-poplot(ggPlot, 6, 11)
+poplot(ggPlot, 6L, 11L)
 suppressMessages({
-  ggsave(paste0(wgcnaDirs[1], "/", ttl, ".jpeg"), ggPlot, dpi = 300)
-  ggsave(paste0(wgcnaDirs[1], "/", ttl, ".pdf"), ggPlot, dpi = 300)
+  ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), ggPlot, dpi = 300L)
+  ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"), ggPlot, dpi = 300L)
 })
 #
 # Unlike in the tutorial, we will NOT remove outliers:
@@ -132,7 +132,7 @@ if ("try-error" %in% class(tst)) {
 # Soft threshold
 # Rather slow, although internally parallelized...
 spt <- pickSoftThreshold(exprData,
-                         powerVector = 1:20 # This bit to make our life easier selecting a power level in the Shiny app
+                         powerVector = 1L:20L # This bit to make our life easier selecting a power level in the Shiny app
                          )
 # Scale independence vs Mean connectivity
 scaleFact <- max(spt$fitIndices$SFT.R.sq)/max(spt$fitIndices$mean.k.)
@@ -158,8 +158,8 @@ ggPlot <- ggplot(spt$fitIndices) +
                      axis.title.y.right = element_text(color = "purple"))
 #poplot(ggPlot, 6, 11)
 suppressMessages({
-  ggsave(paste0(wgcnaDirs[1], "/", ttl, ".jpeg"), ggPlot, dpi = 300)
-  ggsave(paste0(wgcnaDirs[1], "/", ttl, ".pdf"), ggPlot, dpi = 300)
+  ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), ggPlot, dpi = 300L)
+  ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"), ggPlot, dpi = 300L)
 })
 pwrEst <- spt$powerEstimate
 if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
@@ -193,7 +193,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     br(),
     actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
     br(),
-    sliderInput("Power", "Power", 1, max(spt$fitIndices$Power), pwrEst, 1, TRUE, width = "400px"),
+    sliderInput("Power", "Power", 1L, max(spt$fitIndices$Power), pwrEst, 1L, TRUE, width = "400px"),
     br(),
     plotOutput("IndepConnect", height = paste0(screenRes$width*0.4, "px")),
     br(),
@@ -222,8 +222,10 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
       }
       m <- match(pwr, spt$fitIndices$Power)
       return(renderUI({ list(list(em("Current values:"), br(),
-                                  em(paste0("- R^2 = ", signif(spt$fitIndices$SFT.R.sq[m], 3))), br(),
-                                  em(paste0("- Mean connectivity = ", signif(spt$fitIndices$mean.k.[m], 3))), br())) }))
+                                  em(paste0("- R^2 = ", signif(spt$fitIndices$SFT.R.sq[m], 3L))), br(),
+                                  em(paste0("- Mean connectivity = ", signif(spt$fitIndices$mean.k.[m], 3L))),
+                                  br()))
+        }))
     }
     output$IndepConnect <- updtPlot(FALSE)
     output$Current <- updtVal(FALSE)
@@ -235,8 +237,8 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     observeEvent(input$saveBtn, {
       pwrEst <<- input$Power
       suppressWarnings({
-        ggsave(paste0(wgcnaDirs[1], "/", ttl, ".jpeg"), ggPlot2, dpi = 300)
-        ggsave(paste0(wgcnaDirs[1], "/", ttl, ".pdf"), ggPlot2, dpi = 300)
+        ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), ggPlot2, dpi = 300L)
+        ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"), ggPlot2, dpi = 300L)
       })
       appRunTest <<- TRUE
       stopApp()
@@ -244,11 +246,11 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     #observeEvent(input$cancel, { stopApp() })
     session$onSessionEnded(function() { stopApp() })
   }
-  runKount <- 0
+  runKount <- 0L
   while ((!runKount)||(!exists("appRunTest"))) {
     eval(parse(text = runApp), envir = .GlobalEnv)
     shinyCleanup()
-    runKount <- runKount+1
+    runKount <- runKount+1L
   }
   #
   goOn <- FALSE
@@ -275,13 +277,13 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
                              distM = TOMdissimil,
                              deepSplit = 2,
                              pamRespectsDendro = FALSE,
-                             minClusterSize = 30)
+                             minClusterSize = 30L)
     names(Modules) <- PGsTree$labels
     #table(Modules)
     modColors <- labels2colors(Modules) #assigns each module number a color
     uCol <- unique(modColors)
     nCol <- length(uCol)
-    goOn <- nCol >= 3
+    goOn <- nCol >= 3L
     roundWeGo <- !goOn
     if (roundWeGo) {
       warning("The chosen power level results in too simple a tree, reducing by 1...")
@@ -300,10 +302,10 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     p <- recordPlot()
     dev.off()
     # Replay plot to devices
-    pdf(paste0(wgcnaDirs[1], "/", ttl, ".pdf"))
+    pdf(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"))
     replayPlot(p)
     dev.off()
-    jpeg(paste0(wgcnaDirs[1], "/", ttl, ".jpeg"), quality = 100, width = 1600, height = 1200)
+    jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
     replayPlot(p)
     dev.off()
     #
@@ -315,9 +317,9 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     MEdissimil <- 1-cor(MElist$eigengenes, use = "complete")
     METree <- hclust(as.dist(MEdissimil), method = "average") # Clustering Eigengenes 
     ttl <- "Cluster dendrogram"
-    par(mar = c(0, 4, 2, 0),
-        cex = 1)
-    METree$labels <- substring(METree$labels, 3)
+    par(mar = c(0L, 4L, 2L, 0L),
+        cex = 1L)
+    METree$labels <- substring(METree$labels, 3L)
     goOn <- !"try-error" %in% class(try({ plot(METree) }, silent = TRUE))
   } else {
     # Quick plot for when this fails - to check that the reason is the underlying structure of the data
@@ -334,10 +336,10 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     p <- recordPlot()
     dev.off()
     # Replay plot to devices
-    pdf(paste0(wgcnaDirs[1], "/", ttl, ".pdf"))
+    pdf(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"))
     replayPlot(p)
     dev.off()
-    jpeg(paste0(wgcnaDirs[1], "/", ttl, ".jpeg"), quality = 100, width = 1600, height = 1200)
+    jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
     replayPlot(p)
     dev.off()
     #
@@ -360,21 +362,21 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     p <- recordPlot()
     dev.off()
     # Replay plot to devices
-    pdf(paste0(wgcnaDirs[1], "/", ttl, ".pdf"))
+    pdf(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"))
     replayPlot(p)
     dev.off()
-    jpeg(paste0(wgcnaDirs[1], "/", ttl, ".jpeg"), quality = 100, width = 1600, height = 1200)
+    jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
     replayPlot(p)
     dev.off()
     #
     # Relate samples to experimental factors
-    w <- which(vapply(Factors, function(Fact) { length(FactorsLevels[[Fact]]) }, 1) > 1)
+    w <- which(vapply(Factors, \(Fact) { length(FactorsLevels[[Fact]]) }, 1L) > 1L)
     myFact <- Factors[w]
     xpMap <- Exp.map[, c("Ref.Sample.Aggregate", myFact)]
     for (Fact in myFact) { # Values must be numeric but may be arbitrary (not quantitative)
       if (!is.numeric(xpMap[[Fact]])) {
         u <- unique(xpMap[[Fact]])
-        if (length(u) == 2) {
+        if (length(u) == 2L) {
           xpMap[[Fact]] <- as.integer(as.factor(xpMap[[Fact]]))
         } else {
           # One-hot encode if there are more than 2 levels
@@ -384,7 +386,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
               xpMap[[Fact]][which(is.na(xpMap[[Fact]]))] <- i
             }
             stopifnot(!i %in% colnames(xpMap))
-            xpMap[[i]] <- c(0, 1)[(xpMap[[Fact]] == i) + 1]
+            xpMap[[i]] <- c(0L, 1L)[(xpMap[[Fact]] == i) + 1L]
           }
           xpMap[[Fact]] <- NULL
           myFact <- c(myFact[which(myFact != Fact)],
@@ -404,67 +406,67 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     moduleTraitCor <- cor(mergedMEs, xpMap, use = "p") #p for pearson correlation coefficient 
     moduleTraitPVal <- corPvalueStudent(moduleTraitCor, nSamples) #calculate the p-value associated with the correlation
     # Identify for each trait the best modules
-    traitModules <- setNames(lapply(myFact, function(Fact) {
-      tst <- vapply(1:nrow(moduleTraitCor), function(x) {
+    traitModules <- setNames(lapply(myFact, \(Fact) {
+      tst <- vapply(1L:nrow(moduleTraitCor), \(x) {
         (abs(moduleTraitCor[x, Fact]) >= corThresh) & (moduleTraitPVal[x, Fact] <= pvalThresh)
       }, TRUE)
-      substring(rownames(moduleTraitCor)[which(tst)], 3)
+      substring(rownames(moduleTraitCor)[which(tst)], 3L)
     }), myFact)
-    traitModules <- traitModules[which(vapply(traitModules, length, 1) > 0)]
+    traitModules <- traitModules[which(lengths(traitModules) > 0L)]
     #
     # Display correlations and their p-values
-    textMatrix <- paste(signif(moduleTraitCor, 2), "\n(",
-                        signif(moduleTraitPVal, 1), ")", sep = "");
+    textMatrix <- paste(signif(moduleTraitCor, 2L), "\n(",
+                        signif(moduleTraitPVal, 1L), ")", sep = "");
     dim(textMatrix) <- dim(moduleTraitCor)
     # Display the correlation values within a heatmap plot
     ttl <- "Module-exp. factor relationships"
-    par(mar = c(12, 12, 4, 1))
+    par(mar = c(12L, 12L, 4L, 1L))
     labeledHeatmap(Matrix = moduleTraitCor,
                    xLabels = names(xpMap),
-                   yLabels = substring(names(mergedMEs), 3),
+                   yLabels = substring(names(mergedMEs), 3L),
                    ySymbols = names(mergedMEs),
                    colorLabels = FALSE,
-                   colors = blueWhiteRed(50),
+                   colors = blueWhiteRed(50L),
                    textMatrix = textMatrix,
                    setStdMargins = FALSE,
                    cex.main = 1.6, cex.lab = 1.4, cex.text = 1.2,
-                   zlim = c(-1,1),
+                   zlim = c(-1L, 1L),
                    main = ttl)
     p <- recordPlot()
     dev.off()
     # Replay plot to devices
-    pdf(paste0(wgcnaDirs[1], "/", ttl, ".pdf"))
+    pdf(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"))
     replayPlot(p)
     dev.off()
-    jpeg(paste0(wgcnaDirs[1], "/", ttl, ".jpeg"), quality = 100, width = 1600, height = 1200)
+    jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
     replayPlot(p)
     dev.off()
     #
     # Let's check the relationship between our modules and our Traits
     MET <- MEs
-    colnames(MET) <- substring(colnames(MET), 3)
+    colnames(MET) <- substring(colnames(MET), 3L)
     tmpXp <- xpMap[, myFact]
     colnames(tmpXp) <- paste0("[ ", colnames(tmpXp), " ]")
     MET <- orderMEs(cbind(MET, tmpXp))
     # Plot the relationships among the eigengenes and all traits
     ttl <- "Eigengenes vs exp. Factors"
-    par(cex = 1.4, mar = c(1, 1, 1, 1))
-    plotEigengeneNetworks(MET, "", marDendro = c(2, 6, 1, 2), marHeatmap = c(6, 6, 0, 2),
+    par(cex = 1.4, mar = c(1L, 1L, 1L, 1L))
+    plotEigengeneNetworks(MET, "", marDendro = c(2L, 6L, 1L, 2L), marHeatmap = c(6L, 6L, 0L, 2L),
                           cex.lab = 0.8, xLabelsAngle = 90)
     p <- recordPlot()
     dev.off()
     # Replay plot to devices
-    pdf(paste0(wgcnaDirs[1], "/", ttl, ".pdf"))
+    pdf(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"))
     replayPlot(p)
     dev.off()
-    jpeg(paste0(wgcnaDirs[1], "/", ttl, ".jpeg"), quality = 100, width = 1600, height = 1200)
+    jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
     replayPlot(p)
     dev.off()
     #
-    shScale <- scale_shape_manual(values = c(`FALSE` = 21, `TRUE` = 24))
+    shScale <- scale_shape_manual(values = c(`FALSE` = 21L, `TRUE` = 24L))
     if (length(traitModules)) {
       # Calculate modules membership and connectivity - sometimes called kME
-      modNames <- substring(names(mergedMEs), 3)
+      modNames <- substring(names(mergedMEs), 3L)
       PGmodMembership <- signedKME(exprData, mergedMEs, outputColumnName = "")
       # Below, alternative, roughly equivalent way to create PGmodMembership:
       #PGmodMembership <- as.data.frame(cor(exprData, mergedMEs, use = "p"))
@@ -478,8 +480,8 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
       names(PGmodMembership) <- modNames
       names(modMembPval) <- paste0("Pval ", modNames)
       GSPvalues <- list()
-      for (Fact in names(traitModules)) { #Fact <- names(traitModules)[2]
-        dr <- paste0(wgcnaDirs[2], "/", Fact)
+      for (Fact in names(traitModules)) { #Fact <- names(traitModules)[2L]
+        dr <- paste0(wgcnaDirs[2L], "/", Fact)
         if (scrptType == "withReps") { dirlist <- unique(c(dirlist, dr)) }
         if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
         # Isolate current factor from the others
@@ -494,7 +496,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         GSPvalues[[Fact]] <- GSPvalue
         #head(GSPvalue)
         #
-        for (mod in traitModules[[Fact]]) { #mod <- traitModules[[Fact]][[1]]
+        for (mod in traitModules[[Fact]]) { #mod <- traitModules[[Fact]][[1L]]
           kl <- match(mod, modNames)
           modulePGs <- which(merge$colors == mod)
           # pick hubs
@@ -502,7 +504,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
           mergedModHubs[match(hubs, names(mergedModHubs))] <- TRUE
           # Here we want to see a positive correlation (cor > 0.5) between module membership and significance
           tmp <- data.frame("X" = abs(PGmodMembership[modulePGs, kl]),
-                            "Y" = abs(PGtraitSignificance[modulePGs, 1]),
+                            "Y" = abs(PGtraitSignificance[modulePGs, 1L]),
                             "mean log10 expression" = exprMean[modulePGs],
                             "is a Hub?" = colnames(exprData)[modulePGs] %in% hubs,
                             check.names = FALSE)
@@ -510,17 +512,17 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
           corXY <- WGCNA::cor(tmp$X, tmp$Y, use = "all.obs")
           displayAsZero = 1e-05
           if ((is.finite(corXY)) &&(abs(corXY) < displayAsZero)) { corXY = 0 }
-          pvalXY <- signif(WGCNA::corPvalueStudent(corXY, sum(is.finite(tmp$X)&is.finite(tmp$Y))), 2)
-          subttl <- paste0("cor. = ", signif(corXY, 2),
+          pvalXY <- signif(WGCNA::corPvalueStudent(corXY, sum(is.finite(tmp$X)&is.finite(tmp$Y))), 2L)
+          subttl <- paste0("cor. = ", signif(corXY, 2L),
                            if (is.finite(corXY)) {
                              paste0(", p-val. = ", signif(pvalXY, 2))
                            } else {
                              ""
                            })
-          tst <- sqrt(sum(hex2RGB(gplots::col2hex(mod))@coords^2)) < 0.2
+          tst <- sqrt(sum(hex2RGB(gplots::col2hex(mod))@coords^2L)) < 0.2
           ggPlot <- ggplot(tmp) +
             geom_point(aes(x = X, y = Y, shape = `is a Hub?`, size = `mean log10 expression`),
-                       color = c("black", "red")[tst + 1], fill = mod) +
+                       color = c("black", "red")[tst + 1L], fill = mod) +
             theme_bw() + ggtitle(ttl, subtitle = subttl) + shScale +
             xlab(paste("Module Membership in", mod, "module")) +
             ylab(paste0("Significance for factor \"", Fact, "\"")) +
@@ -528,8 +530,8 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
                   panel.grid.minor = element_blank())
           #poplot(ggPlot)
           suppressMessages({
-            ggsave(paste0(dr, "/", ttl, ".jpeg"), ggPlot, dpi = 300)
-            ggsave(paste0(dr, "/", ttl, ".pdf"), ggPlot, dpi = 300)          
+            ggsave(paste0(dr, "/", ttl, ".jpeg"), ggPlot, dpi = 300L)
+            ggsave(paste0(dr, "/", ttl, ".pdf"), ggPlot, dpi = 300L)          
           })
           #
           # save as list and do Preranked GSEA
@@ -544,7 +546,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         # Plot the relationships among the eigengenes and the trait to identify meta-modules:
         ttl <- paste0(Fact, " vs Eigengenes")
         par(cex = 0.9)
-        plotEigengeneNetworks(MET, "", marDendro = c(0, 4, 1, 2), marHeatmap = c(5, 4, 1, 2),
+        plotEigengeneNetworks(MET, "", marDendro = c(0L, 4L, 1L, 2L), marHeatmap = c(5L, 4L, 1L, 2L),
                               cex.lab = 0.8, xLabelsAngle = 90)
         p <- recordPlot()
         dev.off()
@@ -552,7 +554,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         pdf(paste0(dr, "/", ttl, ".pdf"))
         replayPlot(p)
         dev.off()
-        jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100, width = 1600, height = 1200)
+        jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
         replayPlot(p)
         dev.off()
         #
@@ -560,8 +562,8 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         # = groups of modules with mutual correlations stronger than their correlation with the specified trait
         #
         ttl <- paste0(Fact, " - Eigengene dendrogram")
-        par(cex = 1.0)
-        plotEigengeneNetworks(MET, ttl, marDendro = c(0, 4, 2, 0),
+        par(cex = 1L)
+        plotEigengeneNetworks(MET, ttl, marDendro = c(0L, 4L, 2L, 0L),
                               plotHeatmaps = FALSE)
         p <- recordPlot()
         dev.off()
@@ -569,14 +571,14 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         pdf(paste0(dr, "/", ttl, ".pdf"))
         replayPlot(p)
         dev.off()
-        jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100, width = 1600, height = 1200)
+        jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
         replayPlot(p)
         dev.off()
         #
         # Plot the heatmap matrix
         ttl <- paste0(Fact, " - Eigengene adjacency heatmap")
-        par(cex = 1.0, mar = c(1, 1, 1, 1))
-        plotEigengeneNetworks(MET, "Eigengene adjacency heatmap", marHeatmap = c(5, 5, 2, 2),
+        par(cex = 1L, mar = c(1L, 1L, 1L, 1L))
+        plotEigengeneNetworks(MET, "Eigengene adjacency heatmap", marHeatmap = c(5L, 5L, 2L, 2L),
                               plotDendrograms = FALSE, xLabelsAngle = 90)
         p <- recordPlot()
         dev.off()
@@ -584,15 +586,16 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         pdf(paste0(dr, "/", ttl, ".pdf"))
         replayPlot(p)
         dev.off()
-        jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100, width = 1600, height = 1200)
+        jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
         replayPlot(p)
         dev.off()
       }
       #
       if (exists("DatAnalysisTxt")) {
         if (GSEAmode == "standard") {
-          DatAnalysisTxt <- paste0(DatAnalysisTxt,
-                                   " Weighted Genes Correlation Networks Analysis was run using using package WGCNA.")
+          l <- length(DatAnalysisTxt)
+          DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
+                                      " Weighted Genes Correlation Networks Analysis was run using using package WGCNA.")
         }
       }
       # Perform GSEA analysis on each module of interest

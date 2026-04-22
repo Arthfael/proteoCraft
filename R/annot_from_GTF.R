@@ -15,33 +15,41 @@
 #' 
 #' @export
 
-annot_from_GTF <- function(file,
-                           CDS_only = TRUE,
-                           mode) {
+annot_from_GTF <- \(file,
+                    CDS_only = TRUE,
+                    mode) {
   TESTING <- FALSE
   #
-  #TESTING <- TRUE;DefArg(Format.DB_GTF) 
+  #TESTING <- TRUE;DefArg(annot_from_GTF) 
   #file <- paste0(annotDir, "/genomic.gtf")
   #file <- paste0(annotDir, "/genomic.gff")
+  #file <- grep("\\.g[tf]f$", AnnotFls, value = TRUE)[1L]
+  misFun <- if (TESTING) {
+    # Note:
+    # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
+    \(x) { return(!exists(deparse(substitute(x)))) }
+  } else { missing }
+  #
   allModes <- c("GTF", "GFF")
-  if (!missing("mode")) { mode <- toupper(mode) }
-  if ((missing("mode"))||(mode %in% allModes)) {
+  noMode <- ((misFun(mode))||(!is.character(mode))||(!toupper(mode) %in% allModes))
+  if (!noMode) { mode <- toupper(mode) }
+  if (noMode) {
     tst <- setNames(c(grepl("\\.gtf$", file), grepl("\\.gff$", file)),
                     allModes)
-    stopifnot(sum(tst) == 1)
+    stopifnot(sum(tst) == 1L)
     mode <- names(tst)[which(tst)]
   }
   txt <- readLines(file)
   txt <- grep("^#", txt, invert = TRUE, value = TRUE)
   dat <- as.data.frame(t(as.data.frame(strsplit(txt, "\t"))))
   colnames(dat) <- c("seqname", "source", "feature", "start", "end", "score", "strand", "frame", "attribute")
-  rownames(dat) <- NULL 
+  rownames(dat) <- NULL
   if (CDS_only) {
     dat <- dat[which(dat$feature == "CDS"),]
   }
   if (mode == "GTF") {
     tmp <- strsplit(gsub("\"$", "", dat$attribute), "\"; *")
-    tmp <- lapply(tmp, function(x) { #x <- tmp[[1]]
+    tmp <- lapply(tmp, \(x) { #x <- tmp[[1L]]
       x1 <- gsub(" *\".*", "", x)
       x2 <- gsub("^[^ ]+ *\"", "", x)
       x2 <- data.frame(t(x2))
@@ -51,7 +59,7 @@ annot_from_GTF <- function(file,
   }
   if (mode == "GFF") {
     tmp <- strsplit(dat$attribute, ";")
-    tmp <- lapply(tmp, function(x) { #x <- tmp[[1]]
+    tmp <- lapply(tmp, \(x) { #x <- tmp[[1L]]
       x1 <- gsub("=.*", "", x)
       x2 <- gsub(".*=", "", x)
       x2 <- data.frame(t(x2))
@@ -74,16 +82,16 @@ annot_from_GTF <- function(file,
   tmp <- tmp[, c("Accession", kol)]
   if (!length(goKol1)) { return() }
   for (k in goKol1) {
-    stopifnot(sum(grepl(";", tmp[[k]])) == 0) # Would indicate that our assumption that there is only one entry per row in incorrect
+    stopifnot(sum(grepl(";", tmp[[k]])) == 0L) # Would indicate that our assumption that there is only one entry per row in incorrect
     tmp[[k]] <- gsub("\\|", " [GO:", gsub("\\|\\|.*", "]", tmp[[k]]))
   }
   tmp2 <- reshape::melt(tmp[, c("Accession", goKol1)], id.vars = "Accession")
   tmp2 <- tmp2[which(!is.na(tmp2$value)),]
   tmp2$"GO-ID" <- gsub(".* \\[", "", gsub("\\]$", "", tmp2$value))
   tst <- unique(gsub("^GO:[0-9]{7}$", "", tmp2$"GO-ID"))
-  stopifnot(length(tst) == 1,
+  stopifnot(length(tst) == 1L,
             tst == "") # Again, would indicate false parsing assumptions
-  tmp2 <- aggregate(tmp2[, c("value", "GO-ID")], list(tmp2$Accession), function(x) {
+  tmp2 <- aggregate(tmp2[, c("value", "GO-ID")], list(tmp2$Accession), \(x) {
     paste(unique(x), collapse = ";")
   })
   colnames(tmp2) <- c("Accession", "GO", "GO-ID")

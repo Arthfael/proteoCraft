@@ -131,18 +131,18 @@ GO_FDR <- c(0.1, 0.2, 0.3)
 True_Zscore <- FALSE
 repel <- "upper"
 cex <- 2.5
-lineheight <- 1
+lineheight <- 1L
 plotly <- create_plotly
 plotly_subfolder <- NULL
-MinCount <- 10
-MinTerms <- 15
-MaxTerms <- 30
-MaxTerms_bar <- 100
-MaxChar <- 25
+MinCount <- 10L
+MinTerms <- 15L
+MaxTerms <- 30L
+MaxTerms_bar <- 100L
+MaxChar <- 25L
 graph <- TRUE
 OffspringCounts <- TRUE
 GlobalScales <- TRUE
-N.reserved <- 1
+N.reserved <- 1L
 GO.mappings <- GO_mappings
 GO.terms <- GO_terms
 save <- c("jpeg", "pdf")
@@ -220,17 +220,17 @@ if (Mode == "dataset") {
       subfolderpertype <- FALSE
       # Filters
       # - Observed protein groups - quantified or not
-      filters <- list("Observed dataset" = 1:nrow(Prot))
+      filters <- list("Observed dataset" = 1L:nrow(Prot))
       # - Quantified protein groups
       kol <- paste0(Prot.Expr.Root, RSA$values)
       kol <- kol[which(kol %in% colnames(Prot))]
-      filters[["Quant. - dataset"]] <- which(apply(Prot[, kol], 1, function(x) { length(is.all.good(x)) }) > 0)
+      filters[["Quant. - dataset"]] <- which(apply(Prot[, kol], 1L, \(x) { length(is.all.good(x)) }) > 0L)
       # Quantified protein groups per sample group
       if (!Impute) { # No point having sample-specific filters if all samples have the same amount of stuff!
-        filters[paste0("Quant. - ", VPAL$values)] <- lapply(VPAL$values, function(x) { #x <- VPAL$values[1]
+        filters[paste0("Quant. - ", VPAL$values)] <- lapply(VPAL$values, \(x) { #x <- VPAL$values[1L]
           kol <- paste0(Prot.Expr.Root, Exp.map$Ref.Sample.Aggregate[which(Exp.map[[VPAL$column]] == x)])
           kol <- kol[which(kol %in% colnames(Prot))]
-          which(apply(Prot[, kol], 1, function(x) { length(is.all.good(as.numeric(x))) }) > 0)
+          which(apply(Prot[, kol], 1L, \(x) { length(is.all.good(as.numeric(x))) }) > 0L)
         })
       }
     }
@@ -243,7 +243,7 @@ if (Mode == "dataset") {
     # Placeholder
   }
 }
-#vapply(filters, length, 1)
+#lengths(filters)
 
 #Prot = GO_enrich.dat[[tstbee]]; Mode = "regulated"; filters = flt; ref.filters = Ref.Filt; Prot_FC_root = GO_enrich.FCRt[[tstbee]]; show = (bee == "By condition"); title.root = paste0("Bubble_plot_", tolower(bee)); bars_title.root = paste0("Bar_plot_", tolower(bee)); save = c("jpeg", "pdf"); return = TRUE; True_Zscore = TRUE; subfolder = dir; subfolderpertype = FALSE
 # OR (dataset)
@@ -263,30 +263,34 @@ if ((!is.logical(GlobalScales))||(!GlobalScales %in% c(TRUE, FALSE))) { GlobalSc
 if ((!is.logical(Prot_is_Pep))||(!Prot_is_Pep %in% c(TRUE, FALSE))) { Prot_is_Pep <- FALSE }
 ID_col2_found <- ID_col2 %in% colnames(Prot)
 if ((bars)&&(!exists("bars_title"))) { bars_title <- "" }
-if (MaxChar < 20) { MaxChar <- 20 } # I mean, come on! A GO term is 10 characters and we also want to see its name.
-stopifnot(db_ID_col %in% colnames(DB), nrow(Prot) > 0, ncol(Prot) > 0, is.character(subfolder), is.logical(subfolderpertype))
+if (MaxChar < 20L) { MaxChar <- 20L } # I mean, come on! A GO term is 10 characters and we also want to see its name.
+stopifnot(db_ID_col %in% colnames(DB),
+          nrow(Prot) > 0L,
+          ncol(Prot) > 0L,
+          is.character(subfolder),
+          is.logical(subfolderpertype))
 subfolder <- gsub("^/+|/+$", "", subfolder)
 if ((!exists("subfolder"))||(is.null(subfolder))||(!nchar(subfolder))) {
   subfolder <- origWD
 } else {
   subfolder <- paste0(origWD, "/", # Check for full path - step 2
-                      gsub(proteoCraft::topattern(paste0(origWD, "/")), "", # Check for full path - step 1
+                      gsub(topattern(paste0(origWD, "/")), "", # Check for full path - step 1
                            gsub("\\*|\\?|<|>|\\|", "-", # Remove unallowed characters
                                 gsub("^/+|/+$", "", # Check for outward slashes
                                      gsub("\\\\", "/", # Convert to forward slashes
                                           subfolder)))))
   if (!dir.exists(subfolder)) {
     tst <- try(dir.create(subfolder, recursive = TRUE), silent = TRUE)
-    if (class(tst) == "try-error") {
+    if (inherits(tst, "try-error")) {
       warning("Invalid subfolder, ignoring!")
       subfolder <- origWD
     }
   }
 }
-if ((length(save) > 1)||(save != FALSE)) {
+if ((length(save) > 1L)||(save != FALSE)) {
   save <- unique(gsub("^jpg$", "jpeg", gsub("^\\.", "", tolower(save))))
   for (ss in save) {
-    if (subfolderpertype) { sfpt <- paste0(subfolder, "/", ss) } else { sfpt <- subfolder }
+    sfpt <- if (subfolderpertype) { paste0(subfolder, "/", ss) } else { subfolder }
     if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
   }
 }
@@ -294,13 +298,14 @@ if (nchar(title)) {
   title <- paste0(gsub("[- _\\.\\,;]+$", "", title), " - ")
   if (title == " - ") { title <- "" }
 }
+if (!validCharPar("title.root")) { title.root <- "" }
 if (nchar(title.root)) {
   title.root <- paste0(gsub("[- _\\.\\,;]+$", "", title.root), " - ")
   if (title.root == " - ") { title.root <- "" }
 }
-if ((title.root == "")&&(title != "")) {
-  title.root <- title
-} else { if (title != "") { title.root <- paste0(title.root, title) } }
+title.root <- if ((title.root == "")&&(title != "")) {
+  title
+} else { if (title != "") { paste0(title.root, title) } }
 if (bars) {
   if (nchar(bars_title)) {
     bars_title <- paste0(gsub("[- _\\.\\,;]+$", "", bars_title), " - ")
@@ -310,10 +315,9 @@ if (bars) {
     bars_title.root <- paste0(gsub("[- _\\.\\,;]+$", "", bars_title.root), " - ")
     if (bars_title.root == " - ") { bars_title.root <- "" }
   }
-  if ((bars_title.root == "")&&(bars_title != "")) {
-    bars_title.root <- bars_title
-  } else { if (bars_title != "") { bars_title.root <- paste0(bars_title.root, bars_title) } }
-  
+  bars_title.root <- if ((bars_title.root == "")&&(bars_title != "")) {
+    bars_title
+  } else { if (bars_title != "") { paste0(bars_title.root, bars_title) } }
 }
 stopifnot(ID_col %in% colnames(Prot), Mode %in% c("dataset", "regulated"),
           is.numeric(as.numeric(cex)), is.numeric(as.numeric(lineheight)), is.logical(plotly),
@@ -323,13 +327,13 @@ cex <- as.numeric(cex)
 lineheight <- as.numeric(lineheight)
 MinTerms <- as.integer(MinTerms)
 MaxTerms <- as.integer(MaxTerms)
-if (MinTerms < 0) {
+if (MinTerms < 0L) {
   warning("Parameter \"MinTerms\" cannot be negative, defaulting to 0!")
-  MinTerms <- 0
+  MinTerms <- 0L
 }
-if (MaxTerms < 0) {
+if (MaxTerms < 0L) {
   warning("Parameter \"MaxTerms\" cannot be negative, defaulting to 1!")
-  MaxTerms <- 0
+  MaxTerms <- 0L
 }
 if (MaxTerms < MinTerms) {
   warning("Parameter \"MaxTerms\" cannot be smaller to \"MinTerms\", setting it to \"MinTerms\"!")
@@ -338,9 +342,9 @@ if (MaxTerms < MinTerms) {
 if (bars) {
   stopifnot(is.integer(as.integer(MaxTerms_bar)))
   MaxTerms_bar <- as.integer(MaxTerms_bar)
-  if (MaxTerms_bar < 0) {
+  if (MaxTerms_bar < 0L) {
     warning("Parameter \"MaxTerms_bar\" cannot be negative, defaulting to 1!")
-    MaxTerms_bar <- 0
+    MaxTerms_bar <- 0L
   }
 }
 repel <- tolower(repel)
@@ -349,7 +353,7 @@ if (!repel %in% c("none", "upper", "lower", "both")) {
   repel <- "upper"
 }
 #
-w <- (repel %in% c("lower", "both"))+1
+w <- (repel %in% c("lower", "both"))+1L
 textFun <- ggplot2::geom_text
 if (repel %in% c("lower", "both")) { textFun <- ggrepel::geom_text_repel }
 if (plotly) {
@@ -357,7 +361,7 @@ if (plotly) {
     plotly_subfolder <- subfolder
   } else {
     plotly_subfolder <- paste0(origWD, "/", # Check for full path - step 2
-                               gsub(proteoCraft::topattern(paste0(origWD, "/")), "", # Check for full path - step 1
+                               gsub(topattern(paste0(origWD, "/")), "", # Check for full path - step 1
                                     gsub("\\*|\\?|<|>|\\|", "-", # Remove unallowed characters
                                          gsub("^/+|/+$", "", # Check for outward slashes
                                               gsub("\\\\", "/", # Convert to forward slashes
@@ -397,7 +401,7 @@ NoOffspr <- (!"Offspring" %in% colnames(GO.terms))&(OffspringCounts)
 if (NoOnt) { GO.terms$Ontology <- NA }
 if (NoOffspr) { GO.terms$Offspring <- list(NA) }
 if (NoOnt + NoOffspr) {
-  for (ont in Ont) { #ont <- Ont[1]
+  for (ont in Ont) { #ont <- Ont[1L]
     #print(ont)
     if (NoOnt) {
       w <- which(annotate::filterGOByOntology(GO.terms$ID, ont))
@@ -416,7 +420,7 @@ if (NoOnt + NoOffspr) {
     }
   }
   if (NoOffspr) {
-    GO.terms$Offspring <- apply(GO.terms[, c("ID", "Offspring")], 1, function(x) {
+    GO.terms$Offspring <- apply(GO.terms[, c("ID", "Offspring")], 1L, \(x) {
       x <- unique(unlist(x))
       return(x[which(!is.na(x))])
     })
@@ -426,15 +430,16 @@ if (NoOnt + NoOffspr) {
 GO.terms <- GO.terms[which(!is.na(GO.terms$Ontology)),]
 # Match terms to rows in the proteins table
 GO.terms$"Protein table row(s)" <- NA
-if (OffspringCounts) {
-  tmp1 <- proteoCraft::listMelt(apply(GO.terms[, c("ID", "Offspring")], 1, function(x) { unlist(x) }), 1:nrow(GO.terms))
+tmp1 <- if (OffspringCounts) {
+  listMelt(apply(GO.terms[, c("ID", "Offspring")], 1L, \(x) { unlist(x) }),
+           1L:nrow(GO.terms))
 } else {
-  tmp1 <- data.frame(value = GO.terms$ID, L1 = 1:nrow(GO.terms))
+  data.frame(value = GO.terms$ID, L1 = 1L:nrow(GO.terms))
 }
 #tmp1 <- aggregate(tmp1$L1, list(tmp1$value), c)
-w <- which(nchar(Prot$`GO-ID`) > 0)
-tmp2 <- proteoCraft::listMelt(strsplit(Prot$`GO-ID`[w], ";"), w)
-tmp2 <- aggregate(tmp2$L1, list(tmp2$value), function(x) { as.numeric(x) })
+w <- which(nchar(Prot$`GO-ID`) > 0L)
+tmp2 <- listMelt(strsplit(Prot$`GO-ID`[w], ";"), w)
+tmp2 <- aggregate(tmp2$L1, list(tmp2$value), \(x) { as.numeric(x) })
 tmp1$Rows <- tmp2$x[match(tmp1$value, tmp2$Group.1)]
 GO.terms$"Protein table row(s)" <- tmp1$Rows[match(GO.terms$ID, tmp1$value)] # Includes Offspring if OffspringCounts == TRUE
 # Important:
@@ -449,7 +454,7 @@ GO.terms$"Protein table row(s)" <- tmp1$Rows[match(GO.terms$ID, tmp1$value)] # I
 # (This is used for Protein/Gene columns)
 if (!exists("GO.mappings")) {
   cat(" - Creating GO.mappings object...\n")
-  temp <- proteoCraft::GO_map(DB, db_ID_col, db_Gene_col, GO.terms)
+  temp <- GO_map(DB, db_ID_col, db_Gene_col, GO.terms)
   GO.mappings <- temp$Mappings
   GO.terms <- temp$GO.terms
 }
@@ -476,8 +481,8 @@ if (Mode == "dataset") {
   }
   parentData <- DB[, myCol, drop = FALSE]
 }
-w <- which(nchar(GO.mappings$Protein$Protein) > 0)
-Mappings2 <- proteoCraft::listMelt(strsplit(GO.mappings$Protein$Protein[w], ";"), GO.mappings$Protein$GO[w])
+w <- which(nchar(GO.mappings$Protein$Protein) > 0L)
+Mappings2 <- listMelt(strsplit(GO.mappings$Protein$Protein[w], ";"), GO.mappings$Protein$GO[w])
 Mappings2 <- Mappings2[which(Mappings2$value %in% unlist(strsplit(parentData[[parentCol]], ";"))),]
 Mappings2 <- data.table::data.table(L1 = Mappings2$L1, value = Mappings2$value)
 Mappings2 <- Mappings2[, list(GO = list(unique(L1))), by = list(Protein = value)]
@@ -494,21 +499,21 @@ Mappings <- setNames(Mappings2$GO, Mappings2$Protein)
 #    - obligatory in "regulated" Mode
 defltFilt <- FALSE
 if ((Mode == "regulated")||((Mode == "dataset")&&(exists("filters")))) {
-  stopifnot(class(filters) == "list", length(filters) > 0)
-  if (is.null(names(filters))) { names(filters) <- paste0("Filter ", 1:length(filters)) }
+  stopifnot(class(filters) == "list", length(filters) > 0L)
+  if (is.null(names(filters))) { names(filters) <- paste0("Filter ", 1L:length(filters)) }
 } else {
   # Provide default for "dataset" Mode
   defltFilt <- TRUE
-  filters <- list("Observed dataset" = 1:nrow(Prot))
+  filters <- list("Observed dataset" = 1L:nrow(Prot))
 }
 # Reference filters (optional in both Modes)
 # Those apply to rows of parentData, the parent table: Prot in "regulated" Mode, DB in "dataset" Mode!!!
 # Defaults also change how we deal with parent counts:
-MultRef <- (length(ref.filters) > 1)||(!is.na(ref.filters))
+MultRef <- (length(ref.filters) > 1L)||(!is.na(ref.filters))
 if (MultRef) {
   # Process/check if provided...
   stopifnot("list" %in% class(ref.filters),
-            length(ref.filters) > 0,
+            length(ref.filters) > 0L,
             length(ref.filters) == length(filters))
   if (is.null(names(ref.filters))) {
     names(ref.filters) <- names(filters)
@@ -518,39 +523,39 @@ if (MultRef) {
   ref.filters <- ref.filters[names(filters)] # Check order (since we may call them by index, not name!)
 } else {
   # ... otherwise provide defaults
-  ref.filters <- setNames(lapply(names(filters), function(x) {
-    1:nrow(parentData)
+  ref.filters <- setNames(lapply(names(filters), \(x) {
+    1L:nrow(parentData)
   }), names(filters))
 }
 # Exclude contaminants
 if ("Potential contaminant" %in% colnames(parentData)) {
   wCnt <- which((!is.na(parentData$"Potential contaminant"))&(parentData$"Potential contaminant" == "+"))
   if (length(wCnt)) {
-    filters <- setNames(lapply(filters, function(x) {
+    filters <- setNames(lapply(filters, \(x) {
       x[which(!x %in% wCnt)]
     }), names(filters))
-    ref.filters <- setNames(lapply(ref.filters, function(x) {
+    ref.filters <- setNames(lapply(ref.filters, \(x) {
       x[which(!x %in% wCnt)]
     }), names(ref.filters))
   }
 }
 # Create new filters applicable to Mappings (list of GO IDs per protein) from user-provided filters
-mapFilters <- setNames(lapply(filters, function(x) {
+mapFilters <- setNames(lapply(filters, \(x) {
   # At some point a bug was introduced here applying these filters to parentData, not Prot
   # This is corrected here:
   names(Mappings)[which(names(Mappings) %in% unique(unlist(strsplit(Prot[unlist(x), ID_col], ";"))))]
 }), names(filters))
-#vapply(filters, length, 1)
-#vapply(mapFilters, length, 1)
-ref.mapFilters <- setNames(lapply(ref.filters, function(x) {
+#lengths(filters)
+#lengths(mapFilters)
+ref.mapFilters <- setNames(lapply(ref.filters, \(x) {
   names(Mappings)[which(names(Mappings) %in% unique(unlist(strsplit(parentData[unlist(x), parentCol], ";"))))]
 }), names(ref.filters))
-#vapply(ref.filters, length, 1)
-#vapply(ref.mapFilters, length, 1)
+#lengths(ref.filters)
+#lengths(ref.mapFilters)
 #
 GO_plots <- GO_FDR_thresholds <- GO_plot_ly <- list()
-kount <- 0
-scrange <- c(1, 30)
+kount <- 0L
+scrange <- c(1L, 30L)
 grphs <- c()
 require(topGO)
 FishTst <- new("classicCount",
@@ -558,15 +563,15 @@ FishTst <- new("classicCount",
                name = "Fisher test")
 KKol1 <- paste0("Counts - parent ", c("dataset", "database")[match(Mode, c("regulated", "dataset"))])
 ProtKol1 <- paste0("Proteins - parent ", c("dataset", "database")[match(Mode, c("regulated", "dataset"))])
-PGKol1 <- paste0(c("PG", "Peptide")[Prot_is_Pep+1], " IDs - parent ", c("dataset", "database")[match(Mode, c("regulated", "dataset"))])
+PGKol1 <- paste0(c("PG", "Peptide")[Prot_is_Pep+1L], " IDs - parent ", c("dataset", "database")[match(Mode, c("regulated", "dataset"))])
 if (!MultRef) {
   GenKol1 <- paste0("Genes - parent ", c("dataset", "database")[match(Mode, c("regulated", "dataset"))])
 }
 # Process and test filters to generate plots input data
-fltL <- vapply(filters, length, 1)
-flfltL <- vapply(ref.mapFilters, length, 1)
-stopifnot(max(flfltL - fltL) > 0)
-wFltL <- which(fltL > 0)
+fltL <- lengths(filters)
+flfltL <- lengths(ref.mapFilters)
+stopifnot(max(flfltL - fltL) > 0L)
+wFltL <- which(fltL > 0L)
 if (length(wFltL)) {
   mapFilters <- mapFilters[wFltL]
   ref.mapFilters <- ref.mapFilters[wFltL]
@@ -576,15 +581,15 @@ if (length(wFltL)) {
   if (!MultRef) { exports <- append(exports, "GenKol1") }
   parallel::clusterExport(parClust, exports, envir = environment())
   #parallel::clusterExport(parClust, "FishTst", envir = environment())
-  Fisher0 <- function(n1) { #n1 <- names(mapFilters)[1]
+  Fisher0 <- \(n1) { #n1 <- names(mapFilters)[1L]
     n2 <- gsub("___", " ", n1)
-    #if (length(mapFilters) > 1) { cat(paste0("Filter ", n2, "\n")) }
+    #if (length(mapFilters) > 1L) { cat(paste0("Filter ", n2, "\n")) }
     # Column names
     kkol1 <- KKol1
     if (MultRef) { kkol1 <- paste0("Counts - ", n1 , " (parent)") }
     kkol2 <- paste0("Counts - ", n1)
     protkol2 <- paste0("Proteins - ", n1)
-    pgkol2 <- paste0(c("PG", "Peptide")[Prot_is_Pep+1], " IDs - ", n1)
+    pgkol2 <- paste0(c("PG", "Peptide")[Prot_is_Pep+1L], " IDs - ", n1)
     if (MultRef) {
       protkol1 <- paste0(protkol2, " (parent)")
       pgkol1 <- paste0(pgkol2, " (parent)")
@@ -594,36 +599,36 @@ if (length(wFltL)) {
     }
     if (GenTst) {
       genkol2 <- paste0("Genes - ", n1)
-      if (MultRef) { genkol1 <- paste0(genkol2, " (parent)") } else { genkol1 <- GenKol1 }
+      genkol1 <- if (MultRef) { paste0(genkol2, " (parent)") } else { GenKol1 }
     }
     # Reference proteins list (from reference filter)
-    allProt <- setNames(1:length(Mappings), names(Mappings))
+    allProt <- setNames(1L:length(Mappings), names(Mappings))
     allProt <- allProt[ref.mapFilters[[n1]]]
     # topGO
-    GOdata <- setNames(lapply(Ont, function(ont) { #ont <- Ont[1]
+    GOdata <- setNames(lapply(Ont, \(ont) { #ont <- Ont[1L]
       cat(paste0(" - ", ont, " terms\n"))
       new("topGOdata",
           description = paste0(n2, " - ", ont),
           ontology = ont,
           allGenes = allProt,
-          geneSel = function(x) { x %in% allProt[mapFilters[[n1]]] }, # Apply filter
+          geneSel = \(x) { x %in% allProt[mapFilters[[n1]]] }, # Apply filter
           nodeSize = MinCount,
           annot = topGO::annFUN.gene2GO,
           gene2GO = Mappings)
     }), Ont)
     cat("Performing Fisher exact test:\n")
-    resultFisher <- setNames(lapply(Ont, function(ont) { #ont <- Ont[1]
+    resultFisher <- setNames(lapply(Ont, \(ont) { #ont <- Ont[1L]
       cat(paste0(" - ", ont, " terms\n"))
       try(topGO::getSigGroups(GOdata[[ont]], FishTst), silent = TRUE)
     }), Ont)
-    Wh1 <- suppressWarnings(which(vapply(resultFisher, function(x) { !"try-error" %in% class(x) }, TRUE)))
+    Wh1 <- suppressWarnings(which(vapply(resultFisher, \(x) { !inherits(x, "try-error") }, TRUE)))
     if (!length(Wh1)) {
       msg <- "Analysis failed, investigate!"
       if (Mode == "regulated") { paste0("Filter ", n2, ": ", msg) }
       warning(msg)
       return(list(Outcome = FALSE, Message = msg))
     } else {
-      Wh2 <- which(vapply(Ont[Wh1], function(ont) {
+      Wh2 <- which(vapply(Ont[Wh1], \(ont) {
         resultFisher[[ont]]@geneData[["Significant"]] > 0
       }, TRUE))
       Wh1 <- Wh1[Wh2]
@@ -637,14 +642,14 @@ if (length(wFltL)) {
         #cat(" -> Success...\n")
         if (length(Wh1) < length(Ont)) {
           msg <- Ont[-Wh1]
-          if (length(msg) == 1) { msg <- paste0("Term ", msg) } else {
-            msg <- paste0("Terms ", paste(msg[1:(length(msg)-1)], collapse = ", "), " and ", msg[length(msg)])
+          msg <- if (length(msg) == 1L) { paste0("Term ", msg) } else {
+            paste0("Terms ", paste(msg[1L:(length(msg)-1)], collapse = ", "), " and ", msg[length(msg)])
           }
           msg <- paste0("Analysis failed for ", msg)
           if (Mode == "regulated") { msg <- paste0("Filter ", n2, ": ", msg) }
           warning(msg)
         }
-        GO_tbl <- lapply(Ont[Wh1], function(ont) {
+        GO_tbl <- lapply(Ont[Wh1], \(ont) {
           data.frame(Ontology = ont,
                      ID = names(resultFisher[[ont]]@score),
                      Pvalue = resultFisher[[ont]]@score)
@@ -675,30 +680,30 @@ if (length(wFltL)) {
   }
   #environment(Fisher0) <- .GlobalEnv # Only needed if code run as function!
   cat("     Running Fisher tests...\n")
-  invisible(parallel::clusterCall(parClust, function() { library(topGO); return() }))
+  invisible(parallel::clusterCall(parClust, \() { library(topGO); return() }))
   tst <- try({
     GO_tbls <- setNames(parallel::parLapply(parClust, names(mapFilters), Fisher0), names(mapFilters))
   })
   if ("try-error" %in% class(tst)) {
     GO_tbls <- setNames(lapply(names(mapFilters), Fisher0), names(mapFilters))
   }
-  #vapply(GO_tbls, function(x) { x$Outcome }, TRUE)
-  GO_tbls <- GO_tbls[which(vapply(GO_tbls, function(x) { x$Outcome }, TRUE))]
+  #vapply(GO_tbls, \(x) { x$Outcome }, TRUE)
+  GO_tbls <- GO_tbls[which(vapply(GO_tbls, \(x) { x$Outcome }, TRUE))]
   if (length(GO_tbls)) {
     # Define filter functions
-    f0 <- function(x, filt) {
-      if (length(x)) { x <- sum(x %in% filt) } else { x <- 0 }
+    f0 <- \(x, filt) {
+      x <- if (length(x)) { sum(x %in% filt) } else { 0L }
       return(as.numeric(x))
     }
     #environment(f0) <- .GlobalEnv # Only needed if code run as function!
-    f1 <- function(x, filt, ids) {
+    f1 <- \(x, filt, ids) {
       x <- x[which(x %in% filt)]
-      if (length(x)) { x <- paste(sort(unique(unlist(ids[x]))), collapse = ";") } else { x <- "" }
+      x <- if (length(x)) { paste(sort(unique(unlist(ids[x]))), collapse = ";") } else { "" }
       return(x)
     }
     #environment(f1) <- .GlobalEnv # Only needed if code run as function!
     #
-    tmpGO.terms <- lapply(GO_tbls, function(x) { #x <- GO_tbls[[1]]
+    tmpGO.terms <- lapply(GO_tbls, \(x) { #x <- GO_tbls[[1L]]
       GO_tbl <- x$Output
       GO_tbl[which(is.na(GO_tbl$Term)),]
     })
@@ -717,7 +722,7 @@ if (length(wFltL)) {
       tmpGO.terms$Mapping <- "topGO"
       tmpGO.terms$Term <- NA
       tmpGO.terms$Offspring <- list(NA)
-      for (ont in Ont) { #ont <- Ont[1]
+      for (ont in Ont) { #ont <- Ont[1L]
         wo <- which(annotate::filterGOByOntology(tmpGO.terms$ID, ont))
         if (length(wo)) {
           Offspr <- get(paste0("GO", ont, "OFFSPRING"))
@@ -730,28 +735,28 @@ if (length(wFltL)) {
           tmpGO.terms$Term[wo] <- annotate::getGOTerm(tmpGO.terms$ID[wo])[[ont]]
         }
       }
-      tmpGO.terms <- tmpGO.terms[which(vapply(tmpGO.terms$Offspring, length, 1) > 0),]
-      tmpGO.terms$Term <- apply(tmpGO.terms[, c("Term","ID")], 1, function(x) { paste0(unlist(x[[1]]), " [", x[[2]], "]") })
+      tmpGO.terms <- tmpGO.terms[which(lengths(tmpGO.terms$Offspring) > 0L),]
+      tmpGO.terms$Term <- apply(tmpGO.terms[, c("Term","ID")], 1L, \(x) { paste0(unlist(x[[1L]]), " [", x[[2L]], "]") })
       tmpGO.terms$"Protein table row(s)" <- NA
       #sum(!tmpGO.terms$ID %in% unlist(GO.terms$Offspring)) # Those new terms are all OffSpring terms of existing ones!
-      #w <- which(vapply(GO.terms$Offspring, length, 1) > 0)
-      tmp1 <- proteoCraft::listMelt(GO.terms$Offspring, 1:nrow(GO.terms), c("ID", "Row")) # Here I can use only Offspring, the IDs in tmpGO.terms are not in GO.terms
+      #w <- which(lengths(GO.terms$Offspring) > 0L)
+      tmp1 <- listMelt(GO.terms$Offspring, 1L:nrow(GO.terms), c("ID", "Row")) # Here I can use only Offspring, the IDs in tmpGO.terms are not in GO.terms
       tmp1 <- tmp1[which(tmp1$ID %in% tmpGO.terms$ID),]
       tmp1$"Protein table row(s)" <- GO.terms$"Protein table row(s)"[tmp1$Row]
       tmpGO.terms$"Protein table row(s)" <- tmp1$`Protein table row(s)`[match(tmpGO.terms$ID, tmp1$ID)]
       #
-      for (kl in 1:(1+GenTst)) {
+      for (kl in 1L:(1L+GenTst)) {
         nm <- c("Protein", "Gene")[kl]
-        wh <- which(vapply(tmpGO.terms$"Protein table row(s)", length, 1) > 0)
+        wh <- which(lengths(tmpGO.terms$"Protein table row(s)") > 0L)
         if (length(wh)) {
-          tmp1 <- proteoCraft::listMelt(tmpGO.terms$"Protein table row(s)"[wh], wh)
-          tmp1$value2 <- Prot[match(tmp1$value, 1:nrow(Prot)), ID_col]
-          tmp1 <- proteoCraft::listMelt(strsplit(tmp1$value2, ";"), tmp1$L1)
-          if (kl == 2) {
+          tmp1 <- listMelt(tmpGO.terms$"Protein table row(s)"[wh], wh)
+          tmp1$value2 <- Prot[match(tmp1$value, 1L:nrow(Prot)), ID_col]
+          tmp1 <- listMelt(strsplit(tmp1$value2, ";"), tmp1$L1)
+          if (kl == 2L) {
             tmp1$value <- DB[match(tmp1$value, DB[[db_ID_col]]), db_Gene_col]
           }
-          tmp1 <- aggregate(tmp1$value, list(tmp1$L1), function(x) { paste(sort(unique(x)), collapse = ";") })
-          tmpGO.terms[[paste0(nm, "s")]] <- tmp1$x[match(1:nrow(tmpGO.terms), tmp1$Group.1)] 
+          tmp1 <- aggregate(tmp1$value, list(tmp1$L1), \(x) { paste(sort(unique(x)), collapse = ";") })
+          tmpGO.terms[[paste0(nm, "s")]] <- tmp1$x[match(1L:nrow(tmpGO.terms), tmp1$Group.1)] 
         }
       }
       k <- colnames(GO.terms)[which(!colnames(GO.terms) %in% colnames(tmpGO.terms))]
@@ -763,9 +768,9 @@ if (length(wFltL)) {
     # (It is more efficient to use many threads occasionally in the vertical (GO terms) direction than systematically in the horizontal (individual filters) direction,
     # with there being only a few filters in most experiments).
     GO_tbls2 <- list()
-    for (n1 in names(GO_tbls)) { #n1 <- names(GO_tbls)[1] #n1 <- names(GO_tbls)[2]
-      cat(paste0("      - Filter = ", proteoCraft::cleanNms(n1), "\n"))
-      kount <- kount + 1
+    for (n1 in names(GO_tbls)) { #n1 <- names(GO_tbls)[1L] #n1 <- names(GO_tbls)[2L]
+      cat(paste0("      - Filter = ", cleanNms(n1), "\n"))
+      kount <- kount + 1L
       GO_tbl <- GO_tbls[[n1]]$Output
       kkol1 <- GO_tbls[[n1]]$kkol1
       kkol2 <- GO_tbls[[n1]]$kkol2
@@ -785,7 +790,7 @@ if (length(wFltL)) {
       # Counts, Proteins and Genes
       #cat("Getting counts of proteins, protein groups, genes...\n")
       ## Counts
-      GO_tbl[[kkol1]] <- GO_tbl$Count <- 0
+      GO_tbl[[kkol1]] <- GO_tbl$Count <- 0L
       # No need to distinguish between OffspringCounts TRUE or FALSE here, or below,
       # since the Mappings themselves reflect it:
       fcflt <- filters[[n1]]
@@ -798,7 +803,7 @@ if (length(wFltL)) {
         source(parSrc)
         a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f0, filt = rfflt)
       }
-      if (!length(a) == nrow(GO.terms)) { stop() }
+      if (length(a) != nrow(GO.terms)) { stop() }
       GO.terms[[kkol1]] <- a
       rm(a)
       #
@@ -813,7 +818,7 @@ if (length(wFltL)) {
       rm(a)
       #
       GO_tbl[, c(kkol1, "Count")] <- GO.terms[match(GO_tbl$ID, GO.terms$ID), c(kkol1, kkol2)]
-      stopifnot(max(GO_tbl[[kkol1]] - GO_tbl$Count) >= 0)
+      stopifnot(max(GO_tbl[[kkol1]] - GO_tbl$Count) >= 0L)
       ## Proteins
       tmpProt <- strsplit(Prot[[ID_col]], ";")
       #parallel::clusterExport(parClust, "tmpProt", envir = environment())
@@ -821,14 +826,14 @@ if (length(wFltL)) {
         tmpProtID <- Prot[[ID_col2]]
         #parallel::clusterExport(parClust, "tmpProtID", envir = environment())
       }
-      if ((MultRef)||(kount == 1)) {
+      if ((MultRef)||(kount == 1L)) {
         a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpProt)
         if (!length(a) == nrow(GO.terms)) {
           stopCluster(parClust)
           source(parSrc)
           a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpProt)
         }
-        if (!length(a) == nrow(GO.terms)) { stop() }
+        if (length(a) != nrow(GO.terms)) { stop() }
         GO.terms[[protkol1]] <- a
         rm(a)
         #
@@ -859,8 +864,8 @@ if (length(wFltL)) {
       tst <- GO.terms[, c(protkol1, protkol2)]
       tst[[protkol1]] <- strsplit(tst[[protkol1]], ";")
       tst[[protkol2]] <- strsplit(tst[[protkol2]], ";")
-      tst2 <- apply(tst, 1, function(x) { sum(!x[[2]] %in% x[[1]]) })
-      stopifnot(max(tst2) == 0)
+      tst2 <- apply(tst, 1L, \(x) { sum(!x[[2L]] %in% x[[1L]]) })
+      stopifnot(max(tst2) == 0L)
       ## Protein groups
       if (ID_col2_found) {
         a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpProtID)
@@ -869,23 +874,23 @@ if (length(wFltL)) {
           source(parSrc)
           a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpProtID)
         }
-        if (!length(a) == nrow(GO.terms)) { stop() }
+        if (length(a) != nrow(GO.terms)) { stop() }
         GO.terms[[pgkol2]] <- a
         rm(a)
         #    
         tst <- GO.terms[, c(pgkol1, pgkol2)]
         tst[[pgkol1]] <- strsplit(tst[[pgkol1]], ";")
         tst[[pgkol2]] <- strsplit(tst[[pgkol2]], ";")
-        stopifnot(max(apply(tst, 1, function(x) { sum(!x[[2]] %in% x[[1]]) })) == 0)
+        stopifnot(max(apply(tst, 1L, \(x) { sum(!x[[2L]] %in% x[[1L]]) })) == 0L)
       }
       ## Genes
       if (GenTst) {
-        tmp2 <- proteoCraft::listMelt(tmpProt, 1:length(tmpProt))
+        tmp2 <- listMelt(tmpProt, 1L:length(tmpProt))
         tmp2$Gene <- DB[match(tmp2$value, DB[[db_ID_col]]), db_Gene_col]
-        tmp2 <- tmp2[which(vapply(tmp2$Gene, nchar, 1) > 0),]
-        tmp2 <- proteoCraft::listMelt(strsplit(tmp2$Gene, ";"), tmp2$L1)
+        tmp2 <- tmp2[which(vapply(tmp2$Gene, nchar, 1L) > 0L),]
+        tmp2 <- listMelt(strsplit(tmp2$Gene, ";"), tmp2$L1)
         tmp2 <- aggregate(tmp2$value, list(as.numeric(tmp2$L1)), list)
-        tmpGn <- data.frame(row = 1:nrow(Prot))
+        tmpGn <- data.frame(row = 1L:nrow(Prot))
         tmpGn <- tmp2$x[match(tmpGn$row, tmp2$Group.1)]
         #parallel::clusterExport(parClust, "tmpGn", envir = environment())
         if ((MultRef)||(kount == 1)) {
@@ -913,7 +918,7 @@ if (length(wFltL)) {
         tst <- GO.terms[, c(genkol1, genkol2)]
         tst[[genkol1]] <- strsplit(tst[[genkol1]], ";")
         tst[[genkol2]] <- strsplit(tst[[genkol2]], ";")
-        stopifnot(max(apply(tst, 1, function(x) { sum(!x[[2]] %in% x[[1]]) })) == 0)
+        stopifnot(max(apply(tst, 1L, \(x) { sum(!x[[2L]] %in% x[[1L]]) })) == 0L)
       }
       #
       #cat("     Preparing plots...\n")
@@ -922,10 +927,10 @@ if (length(wFltL)) {
       GO_tbl$Label <- do.call(paste, c(tmp, sep = "\n"))
       GO_tbl$Label2 <- GO_tbl$Label
       w <- which(nchar(GO_tbl$Label) > MaxChar)
-      GO_tbl$Label2[w] <- paste0(substr(GO_tbl$Label2[w], 1, MaxChar-3), "...")
+      GO_tbl$Label2[w] <- paste0(substr(GO_tbl$Label2[w], 1L, MaxChar-3L), "...")
       GO_tbl$Label3 <- GO_tbl$Term
       w <- which(nchar(GO_tbl$Term) > MaxChar)
-      GO_tbl$Label3[w] <- paste0(substr(GO_tbl$Label3[w], 1, MaxChar-3), "...")
+      GO_tbl$Label3[w] <- paste0(substr(GO_tbl$Label3[w], 1L, MaxChar-3L), "...")
       GO.terms[[paste0("Pvalue - ", n1)]] <- GO_tbl$Pvalue[match(GO.terms$ID, GO_tbl$ID)]
       wh <- match(GO_tbl$ID, GO.terms$ID)
       if (P_adjust) {
@@ -935,37 +940,36 @@ if (length(wFltL)) {
         thresh <- data.frame(Threshold = GO_FDR)
       } else {
         GO.terms[, paste0("Significance - ", n1, " ", GO_FDR*100, "%")] <- NA
-        thresh <- as.data.frame(sapply(Ont[Wh1], function(x) { GO_FDR*NA }))
+        thresh <- as.data.frame(sapply(Ont[Wh1], \(x) { GO_FDR*NA }))
         thresh$FDR <- GO_FDR
-        for (ont in Ont[Wh1]) { #ont <- Ont[Wh1][1]
+        for (ont in Ont[Wh1]) { #ont <- Ont[Wh1][1L]
           w <- which(GO.terms$Ontology[wh] == ont)
           if (length(w)) {
-            f <- proteoCraft::FDR(data = GO.terms[wh[w],], pvalue_col = paste0("Pvalue - ", n1),
+            f <- FDR(data = GO.terms[wh[w],], pvalue_col = paste0("Pvalue - ", n1),
                                   returns = c(TRUE, TRUE), fdr = GO_FDR)
             GO.terms[wh[w], paste0("Significance - ", n1, " ", GO_FDR*100, "%")] <- f$`Significance vector`
             thresh[[ont]] <- f$Thresholds
           }
         }
-        #thresh <- reshape::melt.data.frame(thresh, id.vars = "FDR")
-        thresh <- proteoCraft::dfMelt(thresh, id.vars = "FDR")
+        thresh <- reshape::melt.data.frame(thresh, id.vars = "FDR")
         colnames(thresh) <- gsub("^value$", "Threshold", gsub("^variable$", "Ontology", colnames(thresh)))
         GO_FDR_thresholds[[n1]] <- thresh[,c("FDR", "Ontology", "Threshold")]
       }
-      GO_tbl$Y <- -log10(GO_tbl[[c("Pvalue", "adj. Pvalue")[P_adjust+1]]]) # I am choosing to call it Y because I am artificially editing some values (+Inf -> Ymax + 1) below
+      GO_tbl$Y <- -log10(GO_tbl[[c("Pvalue", "adj. Pvalue")[P_adjust+1L]]]) # I am choosing to call it Y because I am artificially editing some values (+Inf -> Ymax + 1) below
       GO.terms[wh, paste0("Pvalue - ", n1)] <- GO_tbl$Pvalue
       if (P_adjust) { GO.terms[wh, paste0("adj. Pvalue - ", n1)] <- GO_tbl$"adj. Pvalue" }
       thresh$Colour <- colorRampPalette(c("red", "gold"))(length(GO_FDR))
       thresh$"-log10(Threshold)" <- -log10(thresh$Threshold)
       thresh$Label <- paste0(thresh$FDR*100, "% FDR threshold")
-      Ymax <- suppressWarnings(max(c(proteoCraft::is.all.good(c(GO_tbl$Y, thresh$`-log10(Threshold)`, 3)))))
+      Ymax <- suppressWarnings(max(c(is.all.good(c(GO_tbl$Y, thresh$`-log10(Threshold)`, 3)))))
       winf <- which(is.infinite(GO_tbl$Y)&(GO_tbl$Y > 0))
       if (length(winf)) { GO_tbl$Y[winf] <- Ymax + 1 }
       # Calculate logFC
       if ((Mode == "regulated")||((Mode == "dataset")&&(!defltFilt))) {
         Prot_FC_root <- paste0(gsub(" (- )?$", "", Prot_FC_root), " - ")
         FCkol <- paste0(Prot_FC_root, n1)
-        if (!FCkol %in% colnames(Prot)) {
-          if (Mode == "dataset") { FCkol <- gsub(" (- )?$", "", Prot_FC_root) }
+        if ((!FCkol %in% colnames(Prot))&&(Mode == "dataset")) {
+          FCkol <- gsub(" (- )?$", "", Prot_FC_root)
         }
       } else {
         FCkol <- Prot_FC_root
@@ -973,7 +977,7 @@ if (length(wFltL)) {
       FCkol <- FCkol[which(FCkol %in% colnames(Prot))]
       if (!length(FCkol)) {
         warning(paste0("No fold change column found for this filter (expected name: \"", FCkol, "\"), replacing it with a dummy column!"))
-        if (Prot_FC_is_log) { Prot[[FCkol]] <- 0 } else { Prot[[FCkol]] <- 1 }
+        Prot[[FCkol]] <- if (Prot_FC_is_log) { 0 } else { 1 }
       }
       w <- which(is.na(Prot[[FCkol]]))
       if ((Mode == "regulated")&&(FillGaps)&&(exists("FillGaps_Expr_root"))&&(!is.null(FillGaps_Expr_root))&&(length(w))) {
@@ -984,72 +988,71 @@ if (length(wFltL)) {
           tmp0 <- Prot[w, Intkol0, drop = FALSE]
           tmp1 <- Prot[w, Intkol1, drop = FALSE]
           if (FillGaps_Expr_is_log) {
-            tmp0 <- 10^tmp0
-            tmp1 <- 10^tmp1
+            tmp0 <- 10L^tmp0
+            tmp1 <- 10L^tmp1
           }
-          tmp0 <- apply(tmp0, 1, function(x) { sum(proteoCraft::is.all.good(x, 2)) }) > 0
-          tmp1 <- apply(tmp1, 1, function(x) { sum(proteoCraft::is.all.good(x, 2)) }) > 0
+          tmp0 <- apply(tmp0, 1L, \(x) { sum(is.all.good(x, 2L)) }) > 0
+          tmp1 <- apply(tmp1, 1L, \(x) { sum(is.all.good(x, 2L)) }) > 0
           w0 <- which(tmp0&!tmp1)
           w1 <- which(!tmp0&tmp1)
           wB <- which(tmp0&tmp1) # This should always be empty!
           if (length(wB)) { warning("Invalid ratio, yet both sample groups seem to have valid values? Investigate!") }
-          Mn <- min(proteoCraft::is.all.good(Prot[[FCkol]]))
-          Mx <- max(proteoCraft::is.all.good(Prot[[FCkol]]))
+          Mn <- min(is.all.good(Prot[[FCkol]]))
+          Mx <- max(is.all.good(Prot[[FCkol]]))
           Prot[[FCkol]][w[w0]] <- Mn
           Prot[[FCkol]][w[w1]] <- Mx
         }
       }
       if (!Prot_FC_is_log) { Prot[[FCkol]] <- log2(Prot[[FCkol]]) }
-      GO_tbl$logFC <- vapply(GO_tbl$Rows, function(x) {
-        proteoCraft::log_ratio_av(Prot[x, FCkol])
+      GO_tbl$logFC <- vapply(GO_tbl$Rows, \(x) {
+        log_ratio_av(Prot[x, FCkol])
       }, 1)
       GO.terms[[paste0("logFC - ", n1)]] <- NA
       GO.terms[wh, paste0("logFC - ", n1)] <- as.numeric(GO_tbl$logFC)
       # Calculate Z score
       if (True_Zscore) {
-        sd <- sd(proteoCraft::is.all.good(GO_tbl$logFC))
-        m <- mean(proteoCraft::is.all.good(GO_tbl$logFC))
+        sd <- sd(is.all.good(GO_tbl$logFC))
+        m <- mean(is.all.good(GO_tbl$logFC))
         GO_tbl$"Z-score" <- (GO_tbl$logFC - m)/sd
         GO.terms[[paste0("Z-score - ", n1)]] <- NA
         GO.terms[wh, paste0("Z-score - ", n1)] <- GO_tbl$"Z-score"
       } else {
         # "Z score" analog as used in package GOplot (see https://cran.r-project.org/web/packages/GOplot/vignettes/GOplot_vignette.html)
-        m <- mean(proteoCraft::is.all.good(Prot[[FCkol]]))
-        GO_tbl$"Z-score" <- vapply(GO_tbl$Rows, function(x) {
-          x <- proteoCraft::is.all.good(Prot[x, FCkol])
+        m <- mean(is.all.good(Prot[[FCkol]]))
+        GO_tbl$"Z-score" <- vapply(GO_tbl$Rows, \(x) {
+          x <- is.all.good(Prot[x, FCkol])
           l <- length(x)
-          if (l) {
-            x <- proteoCraft::is.all.good(x)-m
-            x <- x[which(x != 0)]
-            x <- ifelse(x > 0, 1, -1)
-            x <- sum(x)/sqrt(l)
-          } else { x <- NA }
+          if (!l) { return(NA) }
+          x <- is.all.good(x)-m
+          x <- x[which(x != 0)]
+          x <- ifelse(x > 0, 1L, -1L)
+          x <- sum(x)/sqrt(l)
           return(x)
         }, 1)
         GO.terms[[paste0("(N_Up - N_Down)/sqrt(Tot.) - ", n1)]] <- NA
         GO.terms[wh, paste0("(N_Up - N_Down)/sqrt(Tot.) - ", n1)] <- GO_tbl$"Z-score"
       }
-      Xmin <- suppressWarnings(min(proteoCraft::is.all.good(c(GO_tbl$"Z-score", -1))))
-      Xmax <- suppressWarnings(max(proteoCraft::is.all.good(c(GO_tbl$"Z-score", 1))))
+      Xmin <- suppressWarnings(min(is.all.good(c(GO_tbl$"Z-score", -1L))))
+      Xmax <- suppressWarnings(max(is.all.good(c(GO_tbl$"Z-score", 1L))))
       Xbreadth <- Xmax-Xmin
       Xmin <- Xmin-Xbreadth*0.05
       Xmax <- Xmax+Xbreadth*0.05
       GO_tbl$test <- FALSE
-      for (ont in Ont[Wh1]) { #ont <- Ont[Wh1][1]
+      for (ont in Ont[Wh1]) { #ont <- Ont[Wh1][1L]
         w <- which(GO_tbl$Ontology == ont)
-        if (P_adjust) { m <- -log10(max(GO_FDR)) } else {
-          m <- thresh$"-log10(Threshold)"[which((thresh$Ontology == ont)&(thresh$FDR == max(GO_FDR)))]
+        m <- if (P_adjust) { -log10(max(GO_FDR)) } else {
+          thresh$"-log10(Threshold)"[which((thresh$Ontology == ont)&(thresh$FDR == max(GO_FDR)))]
         }
         GO_tbl$test[w] <- GO_tbl$Y[w] >= m
         tmp <- GO_tbl[w,]
-        ord <- c(1:nrow(tmp))[order(tmp$Y, decreasing = TRUE)]
-        if (MinTerms) { tmp$test[which(1:nrow(tmp) %in% ord[1:MinTerms])] <- TRUE }
-        if (MaxTerms) { tmp$test[which(1:nrow(tmp) %in% ord[(MaxTerms+1):length(ord)])] <- FALSE }
+        ord <- c(1L:nrow(tmp))[order(tmp$Y, decreasing = TRUE)]
+        if (MinTerms) { tmp$test[which(1L:nrow(tmp) %in% ord[1L:MinTerms])] <- TRUE }
+        if (MaxTerms) { tmp$test[which(1L:nrow(tmp) %in% ord[(MaxTerms+1L):length(ord)])] <- FALSE }
         GO_tbl[w,] <- tmp
         # aggregate(test, list(test), length)
       }
-      w <- which(proteoCraft::is.all.good(GO_tbl$"Z-score", 2)&(proteoCraft::is.all.good(GO_tbl$Y, 2))&(GO_tbl$Count >= MinCount))
-      #wN <- which(!proteoCraft::is.all.good(GO_tbl$"Z-score", 2)|(!proteoCraft::is.all.good(GO_tbl$Y, 2))|(GO_tbl$Count < MinCount))
+      w <- which(is.all.good(GO_tbl$"Z-score", 2)&(is.all.good(GO_tbl$Y, 2))&(GO_tbl$Count >= MinCount))
+      #wN <- which(!is.all.good(GO_tbl$"Z-score", 2)|(!is.all.good(GO_tbl$Y, 2))|(GO_tbl$Count < MinCount))
       if (length(w)) {
         GO_tbls2[[n1]] <- list(Success = TRUE,
                                Data = GO_tbl[w,],
@@ -1067,24 +1070,24 @@ if (length(wFltL)) {
     }
     if (length(GO_tbls2)) {
       if (GlobalScales) {
-        Xxtr <- max(c(vapply(names(GO_tbls), function(nm) {
-          suppressWarnings(max(abs(proteoCraft::is.all.good(GO_tbls[[nm]]$Data$"Z-score"*1.05))))
+        Xxtr <- max(c(vapply(names(GO_tbls), \(nm) {
+          suppressWarnings(max(abs(is.all.good(GO_tbls[[nm]]$Data$"Z-score"*1.05))))
         }, 1), 1))
         Xbreadth <- 2*Xxtr
         Xmin <- -Xxtr
         Xmax <- Xxtr
-        Ymax <- max(c(vapply(names(GO_tbls), function(nm) {
-          suppressWarnings(max(proteoCraft::is.all.good(c(GO_tbls[[nm]]$Data$Y, GO_tbls[[nm]]$Thresholds$"-log10(Threshold)"))))
+        Ymax <- max(c(vapply(names(GO_tbls), \(nm) {
+          suppressWarnings(max(is.all.good(c(GO_tbls[[nm]]$Data$Y, GO_tbls[[nm]]$Thresholds$"-log10(Threshold)"))))
         }, 1), 3))
       } else {
         Xxtr <- Xbreadth <- Xmin <- Xmax <- Ymax <- ""
       }
       exports <- list("GlobalScales", "Xxtr", "Xbreadth", "Xmin", "Xmax", "Ymax", "GO_tbls2", "GO_plots", "title.root", "P_adjust", "plotly", "show", "grphs",
                       "save", "origWD", "subfolder", "subfolderpertype", "bars", "graph", "True_Zscore", "scrange", "textFun", "cex", "lineheight", "repel",
-                      "plotly_subfolder", "MaxTerms", "MaxTerms_bar", "MaxChar",
+                      "plotly_subfolder", "MaxTerms", "MaxTerms_bar", "MaxChar", "poplot", "plotEval",
                       "Ont", "title", "title.root", "bars_title", "bars_title.root", "GO_FDR")
       parallel::clusterExport(parClust, exports, envir = environment())
-      plotsF0 <- function(n1) { #n1 <- names(GO_tbls2)[1] #n1 <- names(GO_tbls2)[2]
+      plotsF0 <- \(n1) { #n1 <- names(GO_tbls2)[1L] #n1 <- names(GO_tbls2)[2L]
         GOplts <- list()
         n2 <- gsub("___", " ", n1)
         GO_tbl <- GO_tbls2[[n1]]$Data
@@ -1111,15 +1114,15 @@ if (length(wFltL)) {
           aes2$text3 <- "Y"
           aes2$text4 <- "Mapping"
         }
-        pluses <- c(paste0("ggplot2::ylab(\"-log10(", c("", "adj. ")[P_adjust+1], "Pvalue)\")"),
+        pluses <- c(paste0("ggplot2::ylab(\"-log10(", c("", "adj. ")[P_adjust+1L], "Pvalue)\")"),
                     "ggplot2::scale_radius(range = scrange, guide = \"none\")",
                     "ggplot2::ggtitle(dotTtl)", "ggplot2::facet_wrap(~Ontology)", "ggplot2::theme_bw()",
                     c(paste0("ggplot2::xlab(\"", c("(N(Up) - N(Down))/sqrt(Total)",
-                                                   "Z-score")[True_Zscore+1], "\")")),
+                                                   "Z-score")[True_Zscore+1L], "\")")),
                     paste0("ggplot2::xlim(", Xmin, ", ", Xmax, ")"),
                     paste0("ggplot2::ylim(0, ", Ymax, ")"))
-        aes <- paste(sapply(1:ncol(aes), function(x) { paste(colnames(aes)[x], aes[x], sep = " = ") }), collapse = ", ")
-        #non.aes <- paste(sapply(1:ncol(non.aes), function(x) { paste(colnames(non.aes)[x], non.aes[x], sep = " = ") }), collapse = ", ")
+        aes <- paste(sapply(1L:ncol(aes), \(x) { paste(colnames(aes)[x], aes[x], sep = " = ") }), collapse = ", ")
+        #non.aes <- paste(sapply(1L:ncol(non.aes), \(x) { paste(colnames(non.aes)[x], non.aes[x], sep = " = ") }), collapse = ", ")
         #non.aes <- gsub("^dummy = NA, ", "", non.aes)
         pluses <- paste(pluses, collapse = " + ")
         plot.txt <- paste0("plot <- ggplot2::ggplot(GO_tbl) + ggplot2::geom_point(shape = 16, ggplot2::aes(", aes, "))")
@@ -1146,28 +1149,28 @@ if (length(wFltL)) {
                                  cex = cex, lineheight = lineheight)
         }
         if (length(winf)) { plot <- plot + ggplot2::geom_hline(yintercept = Ymax, colour = "black", linetype = "dotted") }
-        if (show) { proteoCraft::poplot(plot, 12, 20) }        
-        GOplts[[paste0("GO bubble plot - ", n1)]] <- proteoCraft::plotEval(plot)
+        if (show) { poplot(plot, 12L, 22L) }        
+        GOplts[[paste0("GO bubble plot - ", n1)]] <- plotEval(plot)
         nm <- gsub("/|:|\\*|\\?|<|>|\\|", "-", dotTtl)
-        if (nchar(nm) > 98) { nm <- substr(nm, 1, 98) }
+        if (nchar(nm) > 98L) { nm <- substr(nm, 1L, 98L) }
         if (nm %in% grphs) {
-          fixkount <- 0
+          fixkount <- 0L
           while (nm %in% grphs) {
-            fixkount <- fixkount + 1
-            if (fixkount == 100) {
+            fixkount <- fixkount + 1L
+            if (fixkount == 100L) {
               stop("Really? Really?!?! You really have 100 similarly named conditions with very long names?!?! If you tried to break this function then you succeeded with (bad) style!")
             }
-            nm <- paste0(substr(nm, 1, 93), "...", c("0", "")[(nchar(fixkount) > 1)+1], fixkount)
+            nm <- paste0(substr(nm, 1L, 93L), "...", c("0", "")[(nchar(fixkount) > 1L)+1L], fixkount)
           }
         }
         grphs <- c(grphs, nm)
-        if ((length(save) > 1)||(save != FALSE)) {
+        if ((length(save) > 1L)||(save != FALSE)) {
           for (sv in save) {
-            if (subfolderpertype) { sfpt <- paste0(subfolder, "/", sv) } else { sfpt <- subfolder }
+            sfpt <- if (subfolderpertype) { paste0(subfolder, "/", sv) } else { subfolder }
             if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
             suppressMessages({
               if (sv %in% c("jpeg", "tiff", "png", "bmp")) { #Note: tiff does not seem to work currently!
-                ggplot2::ggsave(paste0(sfpt, "/", nm, ".", sv), plot, dpi = 300, width = 10, height = 10, units = "in")
+                ggplot2::ggsave(paste0(sfpt, "/", nm, ".", sv), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
               } else {
                 ggplot2::ggsave(paste0(sfpt, "/",nm, ".", sv), plot)
               }
@@ -1175,7 +1178,7 @@ if (length(wFltL)) {
           }
         }
         if (plotly) {
-          aes2 <- paste(sapply(1:ncol(aes2), function(x) { paste(colnames(aes2)[x], aes2[x], sep = " = ") }), collapse = ", ")
+          aes2 <- paste(sapply(1L:ncol(aes2), \(x) { paste(colnames(aes2)[x], aes2[x], sep = " = ") }), collapse = ", ")
           plot.txt2 <- paste0("plot2 <- ggplot2::ggplot(GO_tbl) + ggplot2::geom_point(ggplot2::aes(", aes2, "), ", # non.aes, 
                               ") + ggplot2::guides(colour = \"none\") + ",
                               pluses)
@@ -1194,24 +1197,21 @@ if (length(wFltL)) {
           GO_tbl2 <- GO_tbl
           GO_tbl2$X <- NULL
           GO_tbl3 <- data.frame()
-          wK <- which(GO_tbl2$Count > 0)
+          wK <- which(GO_tbl2$Count > 0L)
           if (length(wK)) {
             wOnt <- unique(GO_tbl2$Ontology[wK])
-            GO_tbl3 <- lapply(wOnt, function(ont) { #ont <- wOnt[1]
+            GO_tbl3 <- lapply(wOnt, \(ont) { #ont <- wOnt[1L]
               tmp <- GO_tbl2[wK,][which(GO_tbl2$Ontology[wK] == ont),]
-              if (nrow(tmp)) {
-                tmp <- tmp[order(tmp[[paste0(c("", "adj. ")[P_adjust+1], "Pvalue")]], decreasing = FALSE),]
-                tmp <- tmp[1:min(c(nrow(tmp), MaxTerms_bar)),]
-                tmp <- tmp[order(tmp$`Z-score`, decreasing = FALSE),]
-                tmp$"Z-score*" <- tmp$`Z-score`
-                tmp$"Z-score*"[which(tmp$"Z-score*" > col_lim)] <- col_lim
-                tmp$"Z-score*"[which(tmp$"Z-score*" < -col_lim)] <- -col_lim
-                tmp$X <- 1:nrow(tmp)
-                tmp[, c("Label", "Label2", "Label3")] <- GO_tbl[match(tmp$ID, GO_tbl$ID), c("Label", "Label2", "Label3")]
-                return(tmp)
-              } else {
-                return()
-              }
+              if (!nrow(tmp)) { return() }
+              tmp <- tmp[order(tmp[[paste0(c("", "adj. ")[P_adjust+1L], "Pvalue")]], decreasing = FALSE),]
+              tmp <- tmp[1L:min(c(nrow(tmp), MaxTerms_bar)),]
+              tmp <- tmp[order(tmp$`Z-score`, decreasing = FALSE),]
+              tmp$"Z-score*" <- tmp$`Z-score`
+              tmp$"Z-score*"[which(tmp$"Z-score*" > col_lim)] <- col_lim
+              tmp$"Z-score*"[which(tmp$"Z-score*" < -col_lim)] <- -col_lim
+              tmp$X <- 1L:nrow(tmp)
+              tmp[, c("Label", "Label2", "Label3")] <- GO_tbl[match(tmp$ID, GO_tbl$ID), c("Label", "Label2", "Label3")]
+              return(tmp)
             })
             GO_tbl3 <- plyr::rbind.fill(GO_tbl3)
           }
@@ -1219,12 +1219,12 @@ if (length(wFltL)) {
             GO_tbl3$Ontology <- factor(GO_tbl3$Ontology, levels = Ont)
             barTtl <- paste0(bars_title.root, n2)
             if (P_adjust) {
-              thr <- lapply(unique(GO_tbl3$Ontology), function(x) {
+              thr <- lapply(unique(GO_tbl3$Ontology), \(x) {
                 data.frame(Y = -log10(GO_FDR),
                            Colour = colorRampPalette(c("red", "gold"))(length(GO_FDR)),
                            Label = paste0(GO_FDR*100, "%"))
               })
-              thr <- proteoCraft::listMelt(thr, unique(GO_tbl3$Ontology))
+              thr <- listMelt(thr, unique(GO_tbl3$Ontology))
               colnames(thr)[which(colnames(thr) == "L1")] <- "Ontology"
               colnames(thr)[which(colnames(thr) == "value")] <- "Y"
               thr$variable <- NULL
@@ -1233,17 +1233,17 @@ if (length(wFltL)) {
               colnames(thr)[which(colnames(thr) == "-log10(Threshold)")] <- "Y"
             }
             xmx <- suppressWarnings(max(GO_tbl3$X))+1
-            zMsg <- c("", paste0("\n(truncated at ", col_lim, ")"))[(max(abs(GO_tbl3$`Z-score`)) > col_lim) + 1]
+            zMsg <- c("", paste0("\n(truncated at ", col_lim, ")"))[(max(abs(GO_tbl3$`Z-score`)) > col_lim) + 1L]
             barplot_txt <- paste0("PLOT <- ggplot2::ggplot(GO_tbl3) +
                   ggplot2::geom_bar(stat = \"identity\", ggplot2::aes(x = X, y = Y, fill = `Z-score*`INSERT1)) +
                   ggplot2::facet_grid(Ontology~., switch = \"y\") +
                   ggplot2::xlim(-1, ", xmx, ") +
                   ggplot2::ylim(0, ", Ymax, ") +
                   ggplot2::labs(fill = \"", c("(N(Up) - N(Down))/sqrt(Total)",
-                                              "Z-score")[True_Zscore+1], zMsg, "\") +
+                                              "Z-score")[True_Zscore+1L], zMsg, "\") +
                   ggplot2::scale_fill_gradient2(low = \"green\", mid = \"grey\", high = \"red\", midpoint = 0, limits = c(-col_lim, col_lim)) +
                   ggplot2::scale_y_continuous(expand = c(0,0)) +
-                  ggplot2::ylab(\"-log10(", c("", "adj. ")[P_adjust+1], "Pvalue)\") + ggplot2::ggtitle(barTtl) + ggplot2::theme_bw() +
+                  ggplot2::ylab(\"-log10(", c("", "adj. ")[P_adjust+1L], "Pvalue)\") + ggplot2::ggtitle(barTtl) + ggplot2::theme_bw() +
                   ggplot2::theme(panel.grid.major.x = ggplot2::element_blank(),
                         axis.text.x = ggplot2::element_blank(),
                         axis.ticks = ggplot2::element_blank(),
@@ -1255,35 +1255,35 @@ if (length(wFltL)) {
             suppressWarnings(eval(parse(text = text_tmp)))
             barplot1 <- barplot1 +
               ggplot2::geom_text(ggplot2::aes(label = Label3, x = X), y = -Ymax/20, hjust = 1, angle = 60, cex = 3) +
-              ggplot2::theme(panel.spacing = ggplot2::unit(9, "lines"),
-                             plot.margin = ggplot2::unit(c(1, 1, 10, 1), "lines"))
+              ggplot2::theme(panel.spacing = ggplot2::unit(9L, "lines"),
+                             plot.margin = ggplot2::unit(c(1L, 1L, 10L, 1L), "lines"))
             barplot1 <- barplot1 +
               ggplot2::geom_hline(data = thr, ggplot2::aes(yintercept = Y, colour = Colour), linetype = "dashed") +
               ggplot2::geom_text(data = thr, ggplot2::aes(label = Label, y = Y-Ymax*0.02, colour = Colour), x = -1, hjust = 0, cex = 2.5) +
               ggplot2::guides(colour = "none")
-            if (show) { proteoCraft::poplot(barplot1, 12, 20) }
-            GOplts[[paste0("GO bar plot - ", n1)]] <- proteoCraft::plotEval(barplot1)
+            if (show) { poplot(barplot1, 12L, 22L) }
+            GOplts[[paste0("GO bar plot - ", n1)]] <- plotEval(barplot1)
             barnm <- gsub("/|:|\\*|\\?|<|>|\\|", "-", barTtl)
-            if (nchar(barnm) > 98) { barnm <- substr(barnm, 1, 98) }
+            if (nchar(barnm) > 98L) { barnm <- substr(barnm, 1L, 98L) }
             if (barnm %in% grphs) {
-              fixkount <- 0
+              fixkount <- 0L
               while (barnm %in% grphs) {
-                fixkount <- fixkount + 1
-                if (fixkount == 100) {
+                fixkount <- fixkount + 1L
+                if (fixkount == 100L) {
                   stop("Really? Really?!?! You really have 100 similarly named conditions with very long names?!?! If you tried to break this function then you succeeded with (bad) style!")
                 }
-                barnm <- paste0(substr(barnm, 1, 93), "...", c("0", "")[(nchar(fixkount) > 1)+1], fixkount)
+                barnm <- paste0(substr(barnm, 1L, 93L), "...", c("0", "")[(nchar(fixkount) > 1L)+1L], fixkount)
               }
             }
             grphs <- c(grphs, barnm)    
-            if ((length(save) > 1)||(save != FALSE)) {
+            if ((length(save) > 1L)||(save != FALSE)) {
               for (sv in save) {
-                if (subfolderpertype) { sfpt <- paste0(subfolder, "/", sv) } else { sfpt <- subfolder }
+                sfpt <- if (subfolderpertype) { paste0(subfolder, "/", sv) } else { subfolder }
                 if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
                 setwd(sfpt)
                 suppressMessages({
                   if (sv %in% c("jpeg", "tiff", "png", "bmp")) { #Note: tiff does not seem to work currently!
-                    ggplot2::ggsave(paste0(sfpt, "/",barnm, ".", sv), barplot1, dpi = 300, width = 10, height = 10, units = "in")
+                    ggplot2::ggsave(paste0(sfpt, "/",barnm, ".", sv), barplot1, dpi = 300L, width = 10L, height = 10L, units = "in")
                   } else {
                     ggplot2::ggsave(paste0(sfpt, "/",barnm, ".", sv), barplot1)
                   }
@@ -1306,7 +1306,7 @@ if (length(wFltL)) {
         if (graph) {
           setwd(subfolder)
           for (ont in Ont[Wh1]) {
-            tst <- try(topGO::printGraph(GOdata[[ont]], resultFisher[[ont]], firstSigNodes = 5, useInfo = 'all',
+            tst <- try(topGO::printGraph(GOdata[[ont]], resultFisher[[ont]], firstSigNodes = 5L, useInfo = 'all',
                                          fn.prefix = paste0(n2, "_-_", ont, "_-"), pdfSW = TRUE), silent = TRUE)
             fl <- paste0(n2, "_-_", ont, "_-_classic_5_all.pdf")
             #system(paste0("open \"", fl, "\""))
@@ -1328,7 +1328,7 @@ if (length(wFltL)) {
         tstPlots <- setNames(lapply(names(GO_tbls2), plotsF0),
                              names(GO_tbls2))
       }
-      lapply(names(GO_tbls2), function(flt) { #flt <- names(GO_tbls2)[1]
+      lapply(names(GO_tbls2), \(flt) { #flt <- names(GO_tbls2)[1L]
         nms <- names(tstPlots[[flt]]$GO_plots)
         GO_plots[nms] <<- tstPlots[[flt]]$GO_plots[nms]
       })
@@ -1339,7 +1339,7 @@ cat("     Done!\n")
 setwd(origWD)
 if (kount) {
   KK <- grep("^Counts - ", colnames(GO.terms), value = TRUE)
-  wK <- which(rowSums(GO.terms[, KK, drop = FALSE]) > 0)
+  wK <- which(rowSums(GO.terms[, KK, drop = FALSE]) > 0L)
   goRES <- list(GO_terms = GO.terms[wK,],
                 All_GO_terms = GO.terms,
                 GO_plots = GO_plots)

@@ -7,8 +7,8 @@
 make_Rat(
   myData = pep,
   Priority = "int",
-  int.log = 10,
-  rat.log = 2,
+  int.log = 10L,
+  rat.log = 2L,
   refGroups,
   experiment.map,
   experiment.map_col = "Ref.Sample.Aggregate",

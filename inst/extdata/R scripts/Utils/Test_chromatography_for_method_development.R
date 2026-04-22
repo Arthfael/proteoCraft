@@ -30,4 +30,3 @@ colnames(test) <- c("MS.MS.scan", "Evidence IDs")
 
 max(msms$Scan.number)
 max(msmsScans$MS.MS.IDs)
-max(msmsScans$)

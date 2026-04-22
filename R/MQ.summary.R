@@ -31,15 +31,17 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                                        c("Oxidation (M)", "Acetyl (Protein N-term)", "Deamidation (NQ)", "Gln->pyro-Glu", "Phospho (STY)")),
                        raw.files,
                        subfolder = "Summary plots",
-                       plot = TRUE, save = "pdf", sc = 60,
+                       plot = TRUE,
+                       save = "pdf",
+                       sc = 60L,
                        N.clust,
-                       N.reserved = 1,
+                       N.reserved = 1L,
                        cl,
                        MQtxt = inDirs[which(SearchSoft == "MAXQUANT")]) {
   TESTING <- FALSE
   #DefArg(MQ.summary); TESTING <- TRUE
   #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = sc
-  #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = max(c(20, round(length(rawFiles2)/length(Exp)))); save = c("jpeg", "pdf")
+  #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = max(c(20L, round(length(rawFiles2)/length(Exp)))); save = c("jpeg", "pdf")
   if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
@@ -52,14 +54,14 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     if (!length(MQtxt)) { MQtxt <- getwd() }
   } else { MQtxt <- getwd() }
   wd0 <- getwd()
-  if (misFun(wd)) { WD <- wd0 } else { WD <- wd }
+  WD <- if (misFun(wd)) { wd0 } else { wd }
   WD <- gsub("/+$", "", normalizePath(WD, "/"))
   if (!is.null(subfolder)) {
     subfolder <- gsub("^/+|/+$", "", gsub("\\\\", "/", subfolder)) # Here do not use normalizePath... try, you will see why ^^
     WD <- paste0(WD, "/", subfolder, "/")
   }
   if (!dir.exists(WD)) { dir.create(WD) }
-  sv <- (length(save) > 1)||((length(save) == 1)&(!toupper(as.character(save)) %in% c("FALSE", "NaN", "NA")))
+  sv <- (length(save) > 1L)||((length(save) == 1L)&(!toupper(as.character(save)) %in% c("FALSE", "NaN", "NA")))
   if (sv) { save <- unique(gsub("^jpg$", "jpeg", gsub("^\\.", "", tolower(save)))) }
   if (misFun(ev)) {
     ev <- MQ.load(return = TRUE, assign = FALSE, pep = FALSE, prot = FALSE)$evidences
@@ -72,7 +74,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     W <- colnames(ev)[which(toupper(colnames(ev)) %in% c("CONTAMINANT", "POTENTIAL.CONTAMINANT"))]
     for (w in W) { ev <- ev[which((ev[[w]] != "+")|(is.na(ev[[w]]))),] }
     ev <- ev[which((ev$Reverse != "+")|(is.na(ev$Reverse))),]
-    ev <- ev[which((is.all.good(ev$Intensity, 2))&(ev$Intensity > 0)),]
+    ev <- ev[which((is.all.good(ev$Intensity, 2L))&(ev$Intensity > 0)),]
     W <- colnames(pg)[which(toupper(colnames(pg)) %in% c("CONTAMINANT", "POTENTIAL CONTAMINANT"))]
     for (w in W) { pg <- pg[which((pg[[w]] != "+")|(is.na(pg[[w]]))),] }
     pg <- pg[which(pg$id %in% unique(unlist(strsplit(ev$"Protein group IDs", ";")))),]
@@ -86,21 +88,21 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
   UseMods <- ((!is.null(mods))&&(length(mods)))
   if (UseMods) {
     if (is.null(names(mods))) { names(mods) <- mods }
-    for (i in 1:length(mods)) {
+    for (i in 1L:length(mods)) {
       pat <- paste0("\\(", mods[i], "\\)")
       temp <- grep(pat, ev$"Modified sequence", value = TRUE)
       l <- length(temp); lu <- length(unique(temp))
       Res[[paste0(names(mods)[i], " - evidences")]] <- l
       Res[[paste0(names(mods)[i], " - peptides")]] <- lu
-      Res[[paste0(names(mods)[i], " - % ev.")]] <- round(100*l/Res$Evidences[1], 2)
-      Res[[paste0(names(mods)[i], " - % pep.")]] <- round(100*lu/Res$Peptides[1], 2)
+      Res[[paste0(names(mods)[i], " - % ev.")]] <- round(100*l/Res$Evidences[1L], 2L)
+      Res[[paste0(names(mods)[i], " - % pep.")]] <- round(100*lu/Res$Peptides[1L], 2L)
     }
   }
   if ("Raw file" %in% colnames(ev)) {
     Raw <- data.frame("Raw file" = gsub("\\.((raw)|(mzX?ML)|(d)|(dia))$", "", basename(raw.files)),
                       "Directory" = dirname(raw.files),
                       "Path" = raw.files,
-                      "Extension" = vapply(strsplit(raw.files, "\\."), function(x) { rev(unlist(x))[1] }, ""),
+                      "Extension" = vapply(strsplit(raw.files, "\\."), \(x) { rev(unlist(x))[1L] }, ""),
                       "Exists" = file.exists(raw.files),
                       check.names = FALSE)
     if (length(which(!Raw$Exists))) {
@@ -109,29 +111,29 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       #Raw$Path <- NULL
     }
     # Use of file name, with or without extension, or full path, is inconsistent. remediate this:
-    tstPth <- vapply(1:3, function(x) {
+    tstPth <- vapply(1L:3L, \(x) {
       kol <- c("Raw file", "Path", "Path")[x]
       raws <- Raw[[kol]]
-      if (x == 3) { raws <- paste0(raws, ".", Raw$Extension) }
+      if (x == 3L) { raws <- paste0(raws, ".", Raw$Extension) }
       return(sum(raws %in% ev$`Raw file`))
     }, 1)
     L <- length(unique(ev$`Raw file`))
     if (!L %in% tstPth) { warning("Couldn't find raw paths in evidences file.") }
-    w <- which(tstPth == L)[1]
+    w <- which(tstPth == L)[1L]
     if (!is.na(w)) {
       rawFls <- Raw[[c("Raw file", "Path", "Path")[w]]]
-      if (w == 3) { rawFls <- paste0(rawFls, ".", Raw$Extension) }
+      if (w == 3L) { rawFls <- paste0(rawFls, ".", Raw$Extension) }
     } else {
       raw <- unique(ev$"Raw file")
       Raw <- data.frame("Raw file" = gsub("\\.((raw)|(mzX?ML)|(d)|(dia))$", "", basename(raw)),
                         "Directory" = dirname(raw),
                         "Path" = raw,
-                        "Extension" = vapply(strsplit(raw, "\\."), function(x) { rev(unlist(x))[1] }, ""),
+                        "Extension" = vapply(strsplit(raw, "\\."), \(x) { rev(unlist(x))[1L] }, ""),
                         "Exists" = file.exists(raw),
                         check.names = FALSE)
     }
     rawFls <- factor(rawFls, levels = unique(rawFls))
-    for (r in as.character(rawFls)) {# r <- as.character(rawFls)[1]
+    for (r in as.character(rawFls)) {# r <- as.character(rawFls)[1L]
       Res <- rbind(Res, rep(NA, ncol(Res)))
       e <- ev[which(ev$"Raw file" == r),]
       p <- pg[which(pg$id %in% unlist(strsplit(e$"Protein group IDs", ";"))),]
@@ -144,14 +146,14 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       }
       Res$"Protein groups"[n] <- nrow(p)
       if (UseMods) {
-        for (i in 1:length(mods)) {
+        for (i in 1L:length(mods)) {
           pat <- paste0("\\(", mods[i], "\\)")
           temp <- grep(pat, e$"Modified sequence", value = TRUE)
           l <- length(temp); lu <- length(unique(temp))
           Res[n, paste0(names(mods)[i], " - evidences")] <- l
           Res[n, paste0(names(mods)[i], " - peptides")] <- lu
-          Res[n, paste0(names(mods)[i], " - % ev.")] <- round(100*l/Res$Evidences[n], 2)
-          Res[n, paste0(names(mods)[i], " - % pep.")] <- round(100*lu/Res$Peptides[n], 2)
+          Res[n, paste0(names(mods)[i], " - % ev.")] <- round(100*l/Res$Evidences[n], 2L)
+          Res[n, paste0(names(mods)[i], " - % pep.")] <- round(100*lu/Res$Peptides[n], 2L)
         }
       }
     }
@@ -164,51 +166,51 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       temp$Proteins <- NULL; temp$"Protein groups" <- NULL
       temp <- dfMelt(temp, id.vars = "Sample")
       if (UseMods) {
-        temp$Modification <- vapply(as.character(temp$variable), function(x) {
+        temp$Modification <- vapply(as.character(temp$variable), \(x) {
           x <- unlist(strsplit(x, " - "))
-          if (length(x) == 1) { x <- "All" } else { x <- x[1] }
+          x <- if (length(x) == 1L) { "All" } else { x[1L] }
           return(x)
         }, "")
         temp$Modification <- factor(temp$Modification, levels = c("All", names(mods)))
       }
       temp$variable <- apply(cbind(grepl("evidences", temp$variable, ignore.case = TRUE),
                                    grepl("peptides", temp$variable, ignore.case = TRUE)),
-                             1, function(x) {c("Evidences", "Peptides")[which(unlist(x))]})
+                             1L, \(x) {c("Evidences", "Peptides")[which(unlist(x))]})
       temp$Sample <- factor(temp$Sample, levels = levels(rawFls))
     }
     if (length(levels(rawFls)) > sc) {
-      Raw$iter <- ceiling((1:nrow(Raw))/sc)
+      Raw$iter <- ceiling((1L:nrow(Raw))/sc)
       if (nrow(temp)) { temp$iter <- Raw$iter[match(temp$Sample, Raw$"Raw file")] }
     } else {
-      Raw$iter <- 1
-      if (nrow(temp)) { temp$iter <- 1 }
+      Raw$iter <- 1L
+      if (nrow(temp)) { temp$iter <- 1L }
     }
     iters <- unique(temp$iter)
-    for (i in iters) { #i <- 1
-      if (length(iters) == 1) { ttl <- "Peptides composition" } else { ttl <- paste0("Peptides composition - ", i) }
+    for (i in iters) { #i <- 1L
+      ttl <- if (length(iters) == 1L) { "Peptides composition" } else { paste0("Peptides composition - ", i) }
       tmp <- temp[which(temp$iter == i),]
-      if (UseMods) {
-        plot <- ggplot2::ggplot(tmp) +
+      plot <- if (UseMods) {
+        ggplot2::ggplot(tmp) +
           ggplot2::geom_col(ggplot2::aes(x = Sample, y = value, fill = Modification),
                             colour = NA) +
           ggplot2::facet_grid(variable~Modification)
       } else {
-        plot <- ggplot2::ggplot(tmp) +
+        ggplot2::ggplot(tmp) +
           ggplot2::geom_col(ggplot2::aes(x = Sample, y = value, fill = variable),
                             colour = NA) +
           ggplot2::facet_grid(variable~.)
       }
       plot <- plot + ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
-        ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 66, hjust = 1, size = 7))
+        ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 66, hjust = 1, size = 7L))
       if (tstVir) {
         plot <- plot + viridis::scale_fill_viridis(begin = 0.2, discrete = TRUE, option = "D")
       }
-      poplot(plot, 12, 22)
+      poplot(plot, 12L, 22L)
       if (sv) { for (s in save) {
         setwd(WD)
         if (s %in% c("jpeg", "tiff", "png", "bmp")) {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                          dpi = 300, width = 10, height = 10, units = "in")
+                          dpi = 300L, width = 10L, height = 10L, units = "in")
         } else {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
         }
@@ -228,7 +230,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       temp <- temp[which(temp$"Sequence coverage [%]" > 0),]
       meds <- aggregate(temp$"Sequence coverage [%]", list(temp$Sample), median)
       colnames(meds) <- c("Sample", "Median")
-      meds$Label <- paste0("Median = ", signif(meds$Median, 3), "%")
+      meds$Label <- paste0("Median = ", signif(meds$Median, 3L), "%")
       ttl <- "Sequence coverage"
       sttl <- "(1st protein in group)"
       lev <- unique(temp$Sample)
@@ -248,12 +250,12 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       if (tstVir) {
         plot <- plot + viridis::scale_fill_viridis(begin = 0.2, discrete = FALSE, option = "B")
       }
-      poplot(plot, 12, 22)
+      poplot(plot, 12L, 22L)
       if (sv) { for (s in save) {
         setwd(WD)
         if (s %in% c("jpeg", "tiff", "png", "bmp")) {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                          dpi = 300, width = 10, height = 10, units = "in")
+                          dpi = 300L, width = 10L, height = 10L, units = "in")
         } else {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
         }
@@ -261,14 +263,14 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       } }
     }
     # Plot - Missed cleavages
-    if (length(levels(rawFls)) > sc) { ev$iter <- Raw$iter[match(ev$"Raw file", Raw$"Raw file")] } else { ev$iter <- 1 }
-    for (i in iters) { #i <- 1
+    ev$iter <- if (length(levels(rawFls)) > sc) { Raw$iter[match(ev$"Raw file", Raw$"Raw file")] } else { 1L }
+    for (i in iters) { #i <- 1L
       basettl <- ttl <- "Missed cleavages"
-      if (length(iters) > 1) { ttl <- paste0(basettl, " - ", i) }
+      if (length(iters) > 1L) { ttl <- paste0(basettl, " - ", i) }
       w <- which(ev$iter == i)
       e <- ev[w,]
       temp <- data.frame(`Raw file` = rawFls, check.names = FALSE)
-      for (n in 0:max(e$"Missed cleavages")) {
+      for (n in 0L:max(e$"Missed cleavages")) {
         w2 <- which(e$"Missed cleavages" == n)
         temp2 <- aggregate(w2, list(e$"Raw file"[w2]), length)
         temp[[as.character(n)]] <- temp2$x[match(as.character(temp$`Raw file`), temp2$Group.1)]
@@ -286,12 +288,12 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       if (tstVir) {
         plot <- plot + viridis::scale_fill_viridis(begin = 0.2, discrete = TRUE, option = "E")
       }
-      poplot(plot, 12, 22)
+      poplot(plot, 12L, 22L)
       if (sv) { for (s in save) {
         setwd(WD)
         if (s %in% c("jpeg", "tiff", "png", "bmp")) {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                          dpi = 300, width = 10, height = 10, units = "in")
+                          dpi = 300L, width = 10L, height = 10L, units = "in")
         } else {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
         }
@@ -299,9 +301,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       } }
     }
     # Plot - Peptide length
-    for (i in iters) { #i <- 1
+    for (i in iters) { #i <- 1L
       basettl <- ttl <- "Peptide length"
-      if (length(iters) > 1) { ttl <- paste0(basettl, " - ", i) }
+      if (length(iters) > 1L) { ttl <- paste0(basettl, " - ", i) }
       w <- which(ev$iter == i)
       e <- ev[w,]
       temp <- data.frame("Raw file" = as.character(rawFls[which(rawFls %in% e$`Raw file`)]), check.names = FALSE)
@@ -310,7 +312,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         if (length(w2)) {
           temp2 <- aggregate(w2, list(e$"Raw file"[w2]), length)
           temp[[as.character(n)]] <- temp2$x[match(temp$"Raw file", temp2$Group.1)]
-        } else { temp[[as.character(n)]] <- 0 }
+        } else { temp[[as.character(n)]] <- 0L }
       }
       temp <- dfMelt(temp, id.vars = "Raw file")
       temp$`Raw file` <- factor(temp$`Raw file`, levels = rawFls)
@@ -322,16 +324,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                           ggplot2::aes(x = Length, y = `Number of peptides`, fill = Length,
                                        group = Length)) +
         ggplot2::facet_wrap(~`Raw file`) + ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
-        ggplot2::theme(axis.text.x = ggplot2::element_text(hjust = 1, size = 5))
+        ggplot2::theme(axis.text.x = ggplot2::element_text(hjust = 1, size = 5L))
       if (tstVir) {
         plot <- plot + viridis::scale_fill_viridis(begin = 0.2, discrete = TRUE, option = "D")
       }
-      poplot(plot, 12, 22)
+      poplot(plot, 12L, 22L)
       if (sv) { for (s in save) {
         setwd(WD)
         if (s %in% c("jpeg", "tiff", "png", "bmp")) {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                          dpi = 300, width = 10, height = 10, units = "in")
+                          dpi = 300L, width = 10L, height = 10L, units = "in")
         } else {
           ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
         }
@@ -344,25 +346,20 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       if (length(we)) {
         #
         # Create cluster
-        if (!misFun(cl)) {
-          tstCl <- suppressWarnings(try({
-            a <- 1
-            parallel::clusterExport(cl, "a", envir = environment())
-          }, silent = TRUE))
-          tstCl <- !"try-error" %in% class(tstCl)
-        }
-        if ((misFun(cl))||(!tstCl)) {
+        stopCl <- FALSE
+        if ((is.null(cl))||(!inherits(cl, "cluster"))) {
           dc <- parallel::detectCores()
-          if (misFun(N.reserved)) { N.reserved <- 1 }
-          if (misFun(N.clust)) {
-            N.clust <- max(c(dc-N.reserved, 1))
-          } else {
-            if (N.clust > max(c(dc-N.reserved, 1))) {
+          if (misFun(N.reserved)) { N.reserved <- 1L }
+          nMax <- max(c(dc - N.reserved, 1L))
+          if (misFun(N.clust)) { N.clust <- nMax } else {
+            if (N.clust > nMax) {
               warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
-              N.clust <- max(c(dc-N.reserved, 1))
+              N.clust <- nMax
             }
           }
+          cat("     Making fresh cluster...\n")
           cl <- parallel::makeCluster(N.clust, type = "SOCK")
+          stopCl <- TRUE
         }
         N.clust <- length(cl)
         #
@@ -372,65 +369,60 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           #rawrr::installRawFileReaderDLLs(sourceUrl = rawrr::.thermofisherlsmsUrl()) # Deprecated
           rawrr::installRawrrExe()
         }
-        chromtypes <- setNames(c("tic", "bpc"), c("TIC", "Base peak"))
-        exports <- list("Raw", "rawFls", "we")
+        chromtypes <- setNames(c("tic", "bpc"),
+                               c("TIC", "Base peak"))
         parallel::clusterExport(cl, exports, envir = environment())
-        #invisible(parallel::clusterCall(cl, function() { library(rawrr); return() }))
-        f0 <- function(x) {
-          x2 <- rawrr::readChromatogram(Raw$Path[x], type = "tic")
-          return(data.frame("Raw file" = Raw$`Raw file`[x],
-                            "Raw file path" = rawFls[x],
-                            "Retention time" = as.numeric(x2$times),
-                            "Intensity" = as.numeric(x2$intensities),
-                            check.names = FALSE))
-        }
-        f1 <- function(x) {
-          x2 <- rawrr::readChromatogram(Raw$Path[x], type = "bpc")
-          return(data.frame("Raw file" = Raw$`Raw file`[x],
-                            "Raw file path" = rawFls[x],
-                            "Retention time" = as.numeric(x2$times),
-                            "Intensity" = as.numeric(x2$intensities),
-                            check.names = FALSE))
-        }
-        environment(f0) <- .GlobalEnv
-        environment(f1) <- .GlobalEnv
-        tic <- try(parallel::parLapply(cl, we, f0), silent = TRUE)
-        bpc <- try(parallel::parLapply(cl, we, f1), silent = TRUE)
-        if (!"try-error" %in% c(class(tic), class(bpc))) {
-          for (chrmtp in names(chromtypes)) { #chrmtp <- names(chromtypes)[1]
+        #invisible(parallel::clusterCall(cl, \() { library(rawrr); return() }))
+        f0 <- .bind_worker(.summaryWrkr1,
+                           list(we = we,
+                                Raw = Raw,
+                                type = "tic"))
+        f1 <- .bind_worker(.summaryWrkr1,
+                           list(we = we,
+                                Raw = Raw,
+                                type = "bpc"))
+        tic <- try(parallel::parLapply(cl,
+                                       we,
+                                       f0,
+                                       raw = Raw,
+                                       type = "tic"), silent = TRUE)
+        bpc <- try(parallel::parLapply(cl,
+                                       we,
+                                       f1,
+                                       raw = Raw,
+                                       type = "bpc"), silent = TRUE)
+        if (!sum(c(inherits(tic, "try-error"),
+                   inherits(bpc, "try-error")))) {
+          for (chrmtp in names(chromtypes)) { #chrmtp <- names(chromtypes)[1L]
             temp <- get(chromtypes[chrmtp])
             temp <- plyr::rbind.fill(temp)
             temp$"Raw file path" <- factor(temp$"Raw file path", levels = levels(rawFls))
-            temp$Label <- signif(temp$"Retention time", 3)
+            temp$Label <- signif(temp$"Retention time", 3L)
             winsz <- 0.25
             temp$tst <- FALSE
             temp2 <- temp[, c("Raw file path", "Retention time", "Intensity")]
-            clusterExport(cl, list("temp2", "winsz"), envir = environment())
-            f2 <- function(x) { #x <- rawFls[1]
-              w <- data.frame(Wh = which(temp2$"Raw file path" == x))
-              w$tst <- vapply(1:length(w$Wh), function(x) {
-                m <- max(temp2$"Retention time"[w$Wh])
-                rng <- c(max(c(0, temp2$"Retention time"[w$Wh[x]]-winsz/2)),
-                         min(c(temp2$"Retention time"[w$Wh[x]]+winsz/2, m)))
-                w2 <- which((temp2$"Retention time"[w$Wh] >= rng[1])&(temp2$"Retention time"[w$Wh] <= rng[2]))
-                return(temp2$Intensity[w$Wh[x]] == max(temp2$Intensity[w$Wh][w2]))
-              }, TRUE)
-              return(w)
-            }
-            tmp <- parallel::parLapply(cl, rawFls, f2)
+            f2 <- .bind_worker(.summaryWrkr2,
+                               list(rawFls = rawFls,
+                                    temp2 = temp2,
+                                    winsz = winsz))
+            tmp <- parallel::parLapply(cl,
+                                       rawFls,
+                                       f2,
+                                       tempDat = temp2,
+                                       size = winsz)
             tmp <- do.call(rbind, tmp)
-            temp$tst <- tmp$tst[match(1:nrow(temp), tmp$Wh)]
+            temp$tst <- tmp$tst[match(1L:nrow(temp), tmp$Wh)]
             temp$tst <- (temp$tst)&(temp$Intensity > max(temp$Intensity)/10)
             yscl <- max(temp$Intensity)
             if (length(levels(rawFls)) > sc) {
               temp$iter <- Raw$iter[match(temp$"Raw file path", Raw$Path)]
               w <- which(is.na(temp$iter))
               temp$iter[w] <- Raw$iter[match(temp$"Raw file path"[w], Raw$"Raw file")]
-            } else { temp$iter <- 1 }
+            } else { temp$iter <- 1L }
             #aggregate(temp$iter, list(temp$"Raw file"), unique)
-            for (i in iters) { #i <- 1
+            for (i in iters) { #i <- 1L
               basettl <- ttl <- chrmtp
-              if (length(iters) > 1) { ttl <- paste0(basettl, " - ", i) }
+              if (length(iters) > 1L) { ttl <- paste0(basettl, " - ", i) }
               w <- which(temp$iter == i)
               w2 <- which(temp$tst[w])
               #length(unique(temp$"Raw file"[w]))
@@ -450,13 +442,13 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                                          direction = "y", ylim = c(1, yscl), min.segment.length = 0) +
                 ggplot2::facet_wrap(~`Raw file path`) + ggplot2::ggtitle(ttl) +
                 ggplot2::ylab("Intensity") + ggplot2::coord_fixed(Rat) + ggplot2::theme_bw() # +
-              #ggplot2::scale_x_discrete(breaks = 1:floor(max(temp$"Retention time"))) # NB: Here use the global values for consistency between iterations
-              poplot(plot, 12, 22)
+              #ggplot2::scale_x_discrete(breaks = 1L:floor(max(temp$"Retention time"))) # NB: Here use the global values for consistency between iterations
+              poplot(plot, 12L, 22L)
               if (sv) { for (s in save) {
                 setwd(WD)
                 if (s %in% c("jpeg", "tiff", "png", "bmp")) {
                   ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                                  dpi = 300, width = 10, height = 10, units = "in")
+                                  dpi = 300L, width = 10L, height = 10L, units = "in")
                 } else {
                   ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
                 }
@@ -468,21 +460,22 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       }
     }
     # Number of Retention time bins
-    nb <- 200
+    nb <- 200L
     # MSMS file
     msmsOK <- FALSE
-    wMQ <- which(vapply(MQtxt, function(dir) { "msms.txt" %in% list.files(dir) }, TRUE))
+    wMQ <- which(vapply(MQtxt, \(dir) { "msms.txt" %in% list.files(dir) }, TRUE))
     if (length(wMQ)) {
-      msms <- lapply(MQtxt[wMQ], function(dir) {
+      msms <- lapply(MQtxt[wMQ], \(dir) {
         tst <- try({
           rs <- data.table::fread(paste0(dir, "/msms.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
           rs$Search_output_dir <- dir
           return(rs)
         }, silent = TRUE)
-        if (class(tst) != "try-error") { return(rs) } else { return() }
+        if (inherits(tst, "try-error")) { return() }
+        return(rs)
       })
       msms <- plyr::rbind.fill(msms)
-      if (("data.frame" %in% class(msms))&&(nrow(msms))) {
+      if ((is.data.frame(msms))&&(nrow(msms))) {
         msmsOK <- TRUE
         msms$"Raw file" <- factor(msms$"Raw file", levels = levels(rawFls))
         msms <- msms[which(!is.na(msms$"Raw file")),]
@@ -496,11 +489,11 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           if ((length(w))&&("Raw file path" %in% names(msms))) {
             msms$iter[w] <- Raw$iter[match(msms$"Raw file path"[w], Raw$"Raw file")]
           }
-        } else { msms$iter <- 1 }
+        } else { msms$iter <- 1L }
         # Plot - Mass error distribution
-        for (i in iters) { #i <- 1
+        for (i in iters) { #i <- 1L
           basettl <- ttl <- "Mass error distribution (Da)"
-          if (length(iters) > 1) { ttl <- paste0(basettl, " - ", i) }
+          if (length(iters) > 1L) { ttl <- paste0(basettl, " - ", i) }
           wi <- which(msms$iter == i)
           w1 <- which(!is.na(msms$"Mass error [Da]"[wi]))
           plot <- ggplot2::ggplot(msms[wi[w1],]) +
@@ -508,19 +501,19 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                                   fill = "orange", outlier.size = 0.1) +
             ggplot2::facet_wrap(~`Raw file`) + ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
             ggplot2::xlab("Retention time") +
-            ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, size = 5))
-          if (nb > 20) {
+            ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, size = 5L))
+          if (nb > 20L) {
             lev <- levels(msms$"Retention time bin")
             l <- length(lev)
-            lev <- lev[which(((1:l) %% 5) == 0)]
+            lev <- lev[which(((1L:l) %% 5L) == 0L)]
             plot <- plot + ggplot2::scale_x_discrete(breaks = lev)
           }
-          poplot(plot, 12, 22)
+          poplot(plot, 12L, 22L)
           if (sv) { for (s in save) {
             setwd(WD)
             if (s %in% c("jpeg", "tiff", "png", "bmp")) {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                              dpi = 300, width = 10, height = 10, units = "in")
+                              dpi = 300L, width = 10L, height = 10L, units = "in")
             } else {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
             }
@@ -531,18 +524,19 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     } else { message("NB: \"msms.txt\" could not be found.") }
     #
     # MSMS scans file
-    wMQ <- which(vapply(MQtxt, function(dir) { "msmsScans.txt" %in% list.files(dir) }, TRUE))
+    wMQ <- which(vapply(MQtxt, \(dir) { "msmsScans.txt" %in% list.files(dir) }, TRUE))
     if (length(wMQ)) {
-      msmsScans <- lapply(MQtxt[wMQ], function(dir) {
+      msmsScans <- lapply(MQtxt[wMQ], \(dir) {
         tst <- try({
           rs <- data.table::fread(paste0(dir, "/msmsScans.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
           rs$Search_output_dir <- dir
           return(rs)
         }, silent = TRUE)
-        if (class(tst) != "try-error") { return(rs) } else { return() }
+        if (inherits(tst, "try-error")) { return() }
+        return(rs)
       })
       msmsScans <- plyr::rbind.fill(msmsScans)
-      if (("data.frame" %in% class(msmsScans))&&(nrow(msmsScans))) {
+      if ((is.data.frame(msmsScans))&&(nrow(msmsScans))) {
         msmsScans <- msmsScans[order(msmsScans$"Retention time", decreasing = FALSE),]
         msmsScans <- msmsScans[order(msmsScans$"Raw file"),]
         msmsScans$Unique_scan <- gsub("___ +", "___", do.call(paste, c(msmsScans[, c("Raw file", "Scan number")], sep = "___")))
@@ -560,11 +554,11 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           if ((length(w))&&("Raw file path" %in% names(msmsScans))) {
             msmsScans$iter[w] <- Raw$iter[match(msmsScans$"Raw file path"[w], Raw$"Raw file")]
           }
-        } else { msmsScans$iter <- 1 }
+        } else { msmsScans$iter <- 1L }
         # Plot - MSMS identification success
-        for (i in iters) { #i <- 1
+        for (i in iters) { #i <- 1L
           basettl <- ttl <- "MSMS identification success"
-          if (length(iters) > 1) { ttl <- paste0(basettl, " - ", i) }
+          if (length(iters) > 1L) { ttl <- paste0(basettl, " - ", i) }
           myColors <- setNames(c("grey", "red"), c("-", "+"))
           fillScale <- ggplot2::scale_fill_manual(name = "Identified", values = myColors)
           plot <- ggplot2::ggplot(msmsScans[which(msmsScans$iter == i),]) +
@@ -572,12 +566,12 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                                     binwidth = bw) +
             ggplot2::facet_wrap(~`Raw file`) + ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
             fillScale
-          poplot(plot, 12, 22)
+          poplot(plot, 12L, 22L)
           if (sv) { for (s in save) {
             setwd(WD)
             if (s %in% c("jpeg", "tiff", "png", "bmp")) {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                              dpi = 300, width = 10, height = 10, units = "in")
+                              dpi = 300L, width = 10L, height = 10L, units = "in")
             } else {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
             }
@@ -585,23 +579,23 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           } }
         }
         # Plot - Precursor apex intensities
-        temp <- data.frame(Retention.time = c(min(msmsScans$"Retention time")+bw*c(1:(nb-1)), max(msmsScans$"Retention time")))
+        temp <- data.frame(Retention.time = c(min(msmsScans$"Retention time")+bw*c(1L:(nb-1L)), max(msmsScans$"Retention time")))
         # (NB on above: I have to do it that way to avoid an issue with rounding numbers.)
-        for (r in sort(unique(msmsScans$"Raw file"))) { #r <- sort(unique(msmsScans$"Raw file"))[1]
+        for (r in sort(unique(msmsScans$"Raw file"))) { #r <- sort(unique(msmsScans$"Raw file"))[1L]
           m <- msmsScans[which(msmsScans$"Raw file" == r),]
           w1 <- which(m$Identified == "-")
           w2 <- which(m$Identified == "+")
           temp[[paste0(r, "___Intensity_Not.identified")]] <- NA
           temp[[paste0(r, "___Intensity_Identified")]] <- NA
           if (length(w1)) {
-            tst1 <- vapply(m$"Retention time"[w1], function(x) { temp$Retention.time[which(temp$Retention.time >= x)[1]] }, 1)
+            tst1 <- vapply(m$"Retention time"[w1], \(x) { temp$Retention.time[which(temp$Retention.time >= x)[1L]] }, 1)
             temp1 <- aggregate(m$"Precursor intensity"[w1]/m$"Precursor apex fraction"[w1], list(tst1),
                                function(x) { sum(is.all.good(x)) })
             w1 <- which(temp$Retention.time %in% temp1$Group.1)
             temp[w1, paste0(r, "___Intensity_Not.identified")] <- temp1$x[match(temp$Retention.time[w1], temp1$Group.1)]
           }
           if (length(w2)) {
-            tst2 <- vapply(m$"Retention time"[w2], function(x) { temp$Retention.time[which(temp$Retention.time >= x)[1]] }, 1)
+            tst2 <- vapply(m$"Retention time"[w2], \(x) { temp$Retention.time[which(temp$Retention.time >= x)[1L]] }, 1)
             temp2 <- aggregate(m$"Precursor intensity"[w2]/m$"Precursor apex fraction"[w2], list(tst2),
                                function(x) { sum(is.all.good(x)) })
             w2 <- which(temp$Retention.time %in% temp2$Group.1)
@@ -619,10 +613,10 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           temp$iter <- Raw$iter[match(temp$"Raw file", Raw$"Raw file")]
           w <- which(is.na(temp$iter))
           temp$iter[w] <- Raw$iter[match(temp$"Raw file path"[w], Raw$"Raw file")]
-        } else { temp$iter <- 1 }
-        for (i in iters) { #i <- 1
+        } else { temp$iter <- 1L }
+        for (i in iters) { #i <- 1L
           basettl <- ttl <- "Summed Precursor apex intensities"
-          if (length(iters) > 1) { ttl <- paste0(basettl, " - ", i) }
+          if (length(iters) > 1L) { ttl <- paste0(basettl, " - ", i) }
           wi <- which(temp$iter == i)
           w1 <- which(!is.na(temp$Intensity[wi]))
           plot <- ggplot2::ggplot(temp[wi[w1],]) +
@@ -632,12 +626,12 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                                                                   fill = Identified))) +
             ggplot2::facet_wrap(~`Raw file`) + ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
             fillScale
-          poplot(plot, 12, 22)
+          poplot(plot, 12L, 22L)
           if (sv) { for (s in save) {
             setwd(WD)
             if (s %in% c("jpeg", "tiff", "png", "bmp")) {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                              dpi = 300, width = 10, height = 10, units = "in")
+                              dpi = 300L, width = 10L, height = 10L, units = "in")
             } else {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
             }
@@ -645,12 +639,12 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           } }
         }
         # Plot - Number of MSMS per duty cycle
-        tst <- as.numeric(msmsScans$"Scan event number") > c(as.numeric(msmsScans$"Scan event number"[2:nrow(msmsScans)]), 1)
+        tst <- as.numeric(msmsScans$"Scan event number") > c(as.numeric(msmsScans$"Scan event number"[2L:nrow(msmsScans)]), 1)
         msmsScans$"Scan event number" <- factor(msmsScans$"Scan event number", levels = sort(unique(msmsScans$"Scan event number")))
         msmsScans$`Raw file` <- factor(msmsScans$`Raw file`, levels = rawFls)
-        for (i in iters) { #i <- 1
+        for (i in iters) { #i <- 1L
           basettl <- ttl <- "Number of MSMS per duty cycle"
-          if (length(iters) > 1) { ttl <- paste0(basettl, " - ", i) }
+          if (length(iters) > 1L) { ttl <- paste0(basettl, " - ", i) }
           plot <- ggplot2::ggplot(msmsScans[which((msmsScans$iter == i)&(tst)),]) +
             ggplot2::geom_bar(ggplot2::aes(x = `Scan event number`,
                                            fill = `Scan event number`)) +
@@ -658,12 +652,12 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           if (tstVir) {
             plot <- plot + viridis::scale_fill_viridis(begin = 0.2, discrete = TRUE, option = "D")
           }
-          poplot(plot, 12, 22)
+          poplot(plot, 12L, 22L)
           if (sv) { for (s in save) {
             setwd(WD)
             if (s %in% c("jpeg", "tiff", "png", "bmp")) {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                              dpi = 300, width = 10, height = 10, units = "in")
+                              dpi = 300L, width = 10L, height = 10L, units = "in")
             } else {
               ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
             }
@@ -674,7 +668,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         if ("AGC Fill" %in% colnames(msmsScans)) {
           w <- which(!is.na(msmsScans$`AGC Fill`))
           if (length(w)) {
-            for (i in iters) { #i <- 1
+            for (i in iters) { #i <- 1L
               basettl <- ttl <- "AGC fill"
               if (length(iters) > 1) { ttl <- paste0(basettl, " - ", i) }
               plot <- ggplot2::ggplot(msmsScans[which(msmsScans$iter == i),]) +
@@ -684,20 +678,20 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                 ggplot2::ggtitle(ttl) + ggplot2::theme_bw() + ggplot2::xlab("Retention time") +
                 ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45,
                                                                    hjust = 1,
-                                                                   size = 5)) +
+                                                                   size = 5L)) +
                 ggplot2::guides(color = "none")
-              if (nb > 20) {
+              if (nb > 20L) {
                 lev <- levels(msmsScans$"Retention time bin")
                 l <- length(lev)
-                lev <- lev[which(((1:l) %% 5) == 0)]
+                lev <- lev[which(((1L:l) %% 5L) == 0L)]
                 plot <- plot + ggplot2::scale_x_discrete(breaks = lev)
               }
-              poplot(plot, 12, 22)
+              poplot(plot, 12L, 22L)
               if (sv) { for (s in save) {
                 setwd(WD)
                 if (s %in% c("jpeg", "tiff", "png", "bmp")) {
                   ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                                  dpi = 300, width = 10, height = 10, units = "in")
+                                  dpi = 300L, width = 10L, height = 10L, units = "in")
                 } else {
                   ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
                 }
@@ -709,18 +703,19 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       } else { warning("NB: \"msmsScans.txt\" could not be loaded and may be corrupted...") }
     } else { message("NB: \"msmsScans.txt\" could not be found.") }
     # Plot - original evidences contamination level
-    wMQ <- which(vapply(MQtxt, function(dir) { "evidence.txt" %in% list.files(dir) }, TRUE))
+    wMQ <- which(vapply(MQtxt, \(dir) { "evidence.txt" %in% list.files(dir) }, TRUE))
     if (length(wMQ)) {
-      ev2 <- lapply(MQtxt[wMQ], function(dir) {
+      ev2 <- lapply(MQtxt[wMQ], \(dir) {
         tst <- try({
           rs <- data.table::fread(paste0(dir, "/evidence.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
           rs$Search_output_dir <- dir
           return(rs)
         }, silent = TRUE)
-        if (class(tst) != "try-error") { return(rs) } else { return() }
+        if (inherits(tst, "try-error")) { return() }
+        return(rs)
       })
       ev2 <- plyr::rbind.fill(ev2)
-      if (("data.frame" %in% class(ev2))&&(nrow(ev2))) {
+      if ((is.data.frame(ev2))&&(nrow(ev2))) {
         ev2$"Raw file" <- factor(ev2$"Raw file", levels = levels(rawFls))
         ev2$Class <- "Sample"
         w1 <- which(ev2$Reverse == "+")
@@ -729,23 +724,23 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         ev2$Class[w2] <- "Potential\ncontaminant"
         # (I assume that if an evidence is both reverse and contaminant, the latter takes priority.)
         ev2$Class <- factor(ev2$Class, levels = c("Sample", "Reverse", "Potential\ncontaminant"))
-        temp <- aggregate(1:nrow(ev2), list(ev2$`Raw file`, ev2$Class), length)
+        temp <- aggregate(1L:nrow(ev2), list(ev2$`Raw file`, ev2$Class), length)
         colnames(temp) <- c("Raw file", "Class", "Count")
         ttl <- "Evidences QC"
         plot <- ggplot2::ggplot(temp) +
           ggplot2::geom_bar(stat = "identity",
                             ggplot2::aes(x = Class, y = Count, fill = Class)) +
           ggplot2::ggtitle(ttl) + ggplot2::facet_wrap(~ `Raw file`) + ggplot2::theme_bw() +
-          ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 66, hjust = 1, size = 7))
+          ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 66, hjust = 1, size = 7L))
         if (tstVir) {
           plot <- plot + viridis::scale_fill_viridis(begin = 0.2, discrete = TRUE, option = "D")
         }
-        poplot(plot, 12, 22)
+        poplot(plot, 12L, 22L)
         if (sv) { for (s in save) {
           setwd(WD)
           if (s %in% c("jpeg", "tiff", "png", "bmp")) {
             ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                            dpi = 300, width = 10, height = 10, units = "in")
+                            dpi = 300L, width = 10L, height = 10L, units = "in")
           } else {
             ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
           }

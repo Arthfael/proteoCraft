@@ -1,6 +1,9 @@
 #' Prot.Quant
 #'
 #' @description 
+#' 
+#' !!! This function is slow-deprecated. Use protQuant() instead!!!
+#' 
 #' A function to calculate estimated protein group Expression (Absolute Quant) and Ratios (optional) from individual peptide values.
 #' The input is assumed to be normalized.
 #' 

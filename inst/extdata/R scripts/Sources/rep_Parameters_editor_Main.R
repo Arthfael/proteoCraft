@@ -6,7 +6,7 @@ require(shinyjs)
 require(shinyBS)
 require(htmlwidgets)
 #
-moreThan1Sample %<o% TRUE
+moreThan1Exp %<o% TRUE
 #
 # Boolean functions to check parameter values
 Src <- paste0(libPath, "/extdata/R scripts/Sources/parBooleans.R")
@@ -61,33 +61,34 @@ StudentRoot %<o% "Student's t-test -log10(Pvalue) - "
 WelchRoot %<o% "Welch's t-test -log10(Pvalue) - "
 modRoot %<o% "Moderated t-test -log10(Pvalue) - "
 deqmsRoot %<o% "DEqMS mod. t-test -log10(Pvalue) - "
-permRoot %<o% "Permutations t-test -log10(Pvalue) - "
+permRoot %<o% "Permutations test -log10(Pvalue) - "
 samRoot %<o% "SAM -log10(Pvalue) - "
 odpRoot %<o% "ODP -log10(Pvalue) - "
 lrtRoot %<o% "LRT -log10(Pvalue) - "
 #
-pvalue.col %<o% c(StudentRoot, WelchRoot, modRoot, permRoot, samRoot, odpRoot, lrtRoot)
-names(pvalue.col) <- vapply(pvalue.col, function(x) { unlist(strsplit(x, "\\.|\\'|\\ "))[1] }, "")
+pvalue.col %<o% c(StudentRoot, WelchRoot, modRoot, deqmsRoot, permRoot, samRoot#, odpRoot, lrtRoot
+                  )
+names(pvalue.col) <- vapply(pvalue.col, \(x) { unlist(strsplit(x, "\\.|\\'|\\ "))[1L] }, "")
 ParamFls <- c(paste0(wd, "/Parameters.csv"),
               paste0(libPath, "/extData/Parameters_template.csv"))
-ParamPath %<o% ParamFls[1] # The parameters file we will save to!
-ParamFl %<o% ParamFls[1] # The parameters file we (re-)load!
-if (!file.exists(ParamFl)) { ParamFl <- ParamFls[2] }
+ParamPath %<o% ParamFls[1L] # The parameters file we will save to!
+ParamFl %<o% ParamFls[1L] # The parameters file we (re-)load!
+if (!file.exists(ParamFl)) { ParamFl <- ParamFls[2L] }
 Param %<o% Param.load(ParamFl)
 tmp <- read.csv(ParamFl, header = FALSE)
-if (ncol(tmp) == 3) {
+if (ncol(tmp) == 3L) {
   Param_Help <- tmp$V3
   names(Param_Help) <- tmp$V1
 } else {
-  tmp <- read.csv(ParamFls[2], header = FALSE)
-  Param_Help <- vapply(colnames(Param), function(x) {
+  tmp <- read.csv(ParamFls[2L], header = FALSE)
+  Param_Help <- vapply(colnames(Param), \(x) {
     if (x %in% tmp$V1) { return(tmp$V3[match(x, tmp$V1)]) }
     return("")
   }, "")
 }
 Param$vCPUs <- N.clust
 Param$WD <- wd
-if (ParamFl == ParamFls[2]) {
+if (ParamFl == ParamFls[2L]) {
   Param$WD <- wd
   Param$Project <- dtstNm
   Param$Fix.MQ.Isobaric.labels <- FALSE
@@ -128,12 +129,12 @@ if (!validLogicPar("tmp")) { Param$PTM.analysis_Norm <- TRUE }
 SpeciesTst %<o% "Unspecified"
 if ("Taxonomy" %in% colnames(db)) {
   SpeciesTst <- unique(db$Taxonomy[which(gsub(" *(\\(|\\[).*", "", db[[dbOrgKol]]) == mainOrg)])
-  SpeciesTst <- SpeciesTst[which(as.character(SpeciesTst) != "NA")][1]
+  SpeciesTst <- SpeciesTst[which(as.character(SpeciesTst) != "NA")][1L]
 }
 if ("Kingdom" %in% colnames(db)) {
   KingdomTst <- aggregate(db$Kingdom, list(db$Kingdom), length)
   KingdomTst <- KingdomTst[order(KingdomTst$x, decreasing = TRUE),]
-  KingdomTst <- KingdomTst$Group.1[1]
+  KingdomTst <- KingdomTst$Group.1[1L]
 } else {
   KingdomTst <- "unknown" # Could be user prompted
 }
@@ -152,22 +153,22 @@ if ((!is.logical(goDflt))||(is.na(goDflt))) { goDflt <- TRUE }
 #
 fTstDflt <- { if (exists("F.test")) { F.test } else { Param$F.test } }
 if (!length(fTstDflt)) { fTstDflt <- TRUE }
-fTstDflt <- suppressWarnings(as.logical(fTstDflt[1]))
+fTstDflt <- suppressWarnings(as.logical(fTstDflt[1L]))
 if (is.na(fTstDflt)) { fTstDflt <- TRUE }
 #
 #Param$Volcano.plots.Aggregate.Level <- "AUTOFACT"
 #Param$Volcano.plots.Aggregate.Level <- "Exp;Con"
 tmp <- unlist(strsplit(Param$Volcano.plots.Aggregate.Level, ";"))
-tst <- (length(tmp) > 1)||(!tmp %in% c("AUTOFACT", "MAP2FACTS"))
+tst <- (length(tmp) > 1L)||(!tmp %in% c("AUTOFACT", "MAP2FACTS"))
 if (tst) {
-  tst <- sum(!tmp %in% substr(Factors, 1, 3)) == 0
+  tst <- sum(!tmp %in% substr(Factors, 1L, 3L)) == 0L
   if (!tst) { tmp <- "MAP2FACTS" }
 }
-if ((length(tmp) == 1)&&(tmp == "AUTOFACT")) {
-  Param$Volcano.plots.Aggregate.Level <- paste(substr(Factors[which(Factors != "Replicate")], 1, 3), collapse = ";")
+if ((length(tmp) == 1L)&&(tmp == "AUTOFACT")) {
+  Param$Volcano.plots.Aggregate.Level <- paste(substr(Factors[which(Factors != "Replicate")], 1L, 3L), collapse = ";")
 }
 klustChoices %<o% c("K-means", "hierarchical")
-KlustMeth %<o% 1 # Changed from 2
+KlustMeth %<o% 1L # Changed from 2
 #
 if ((!validLogicPar("saintExprs"))&&("saintExprs" %in% colnames(Param))) {
   tmp1 <- as.logical(Param$saintExprs)
@@ -179,7 +180,7 @@ Param$saintExprs <- saintExprs
 #
 if (Annotate) {
   allGO <- unique(unlist(strsplit(db$GO[which(!is.na(db$GO))], ";")))
-  allGO2 <- paste0("GO:", sub(".* \\[GO:|\\]$", "", allGO))
+  allGO2 <- paste0("GO:", gsub(".* \\[GO:|\\]$", "", allGO))
   dftlGO2 <- unique(unlist(strsplit(Param$GO.tabs, ";")))
   dftlGO2 <- dftlGO2[which(dftlGO2 %in% allGO2)]
   dftlGO <- allGO[match(dftlGO2, allGO2)]
@@ -189,7 +190,7 @@ if (Annotate) {
   # allGO = Names
   # allGO2 = IDs
   if (("Norma.Prot.Ratio.to.GO" %in% colnames(Param))&&
-      ("character" %in% class(Param$Norma.Prot.Ratio.to.GO))&&
+      (is.character(Param$Norma.Prot.Ratio.to.GO))&&
       (nchar(Param$Norma.Prot.Ratio.to.GO))) {
     tmp <- unlist(strsplit(Param$Norma.Prot.Ratio.to.GO, ";"))
     tmp <- tmp[which(tmp %in% allGO2)]
@@ -211,7 +212,7 @@ DiscFiltModes %<o% c("Positive filter", "Negative filter", "Filter column")
 DiscFiltModesHlp <- c(" - Positive filter: TRUE means values should not be set to NA for PGs matching this protein - values are set to NA for PGs without match or with match to FALSE)",
                       " - Negative filter: TRUE means values should be set to NA for PGs matching this protein - values are left unchanged for PGs without match or with match to FALSE)",
                       " - Filter column: Values are unaffected, but a new column is created marking with \"+\" proteins found in the provided filter.")
-if (!"TrueDisc_filter_mode" %in% colnames(Param)) { Param$TrueDisc_filter_mode <- DiscFiltModes[1] }
+if (!"TrueDisc_filter_mode" %in% colnames(Param)) { Param$TrueDisc_filter_mode <- DiscFiltModes[1L] }
 if (!"CRAPome_file" %in% colnames(Param)) { Param$CRAPome_file <- "" }
 #
 pr <- c("Norma.Ev.Intens", "Norma.Pep.Intens", "Adv.Norma.Pep.Intens", "Norma.Prot.Ratio",
@@ -219,11 +220,11 @@ pr <- c("Norma.Ev.Intens", "Norma.Pep.Intens", "Adv.Norma.Pep.Intens", "Norma.Pr
         #"Norma.Pep.Ratio", "Adv.Norma.Pep.Ratio",
         "Norma.Prot.Ratio.to.Biot")
 prDflt <- setNames(rep(TRUE, length(pr)), pr)
-prDflt["Adv.Norma.Ev.Intens"] <- (length(unique(FracMap$Fraction)) > 1)|
-  (length(unique(FracMap$`PTM-enriched`)) > 1)
+prDflt["Adv.Norma.Ev.Intens"] <- (length(unique(FracMap$Fraction)) > 1L)|
+  (length(unique(FracMap$`PTM-enriched`)) > 1L)
 prDflt[c(#"Norma.Pep.Ratio", "Adv.Norma.Pep.Ratio",
          "Norma.Prot.Ratio.to.Biot")] <- FALSE
-for (p in pr) { #p <- pr[1]
+for (p in pr) { #p <- pr[1L]
   dflt <- prDflt[p]
   if (!p %in% colnames(Param)) { Param[[p]] <- dflt } else {
     tmp <- Param[[p]]
@@ -244,7 +245,7 @@ if ((!validCharPar("Pep4Quant", Pep4QuantOpt))&&("Prot.Quant.Use" %in% colnames(
   }
 }
 if (!validCharPar("Pep4Quant", Pep4QuantOpt)) {
-  Pep4Quant <- Pep4QuantOpt[c("Unique", "Razor")[isEukaLike+1]]
+  Pep4Quant <- Pep4QuantOpt[c("Unique", "Razor")[isEukaLike + 1L]]
 }
 Pep4Quant %<o% Pep4Quant
 Param$Prot.Quant.Use <- names(Pep4Quant)
@@ -257,19 +258,19 @@ if ((!validIntegPar("N_Pep"))&&("N. of peptidoforms for quantitation" %in% colna
 if (!validIntegPar("N_Pep")) {
   # The default is to use ALL of the information, even if we only have a single peptide
   # We will flag proteins flagged with 1 peptide as dodgy
-  N_Pep <- 1
+  N_Pep <- 1L
 }
 N_Pep %<o% N_Pep
 Param$"N. of peptidoforms for quantitation" <- N_Pep
 #
 # How many unique peptides (if available) to use to the exclusivity of any others
 # If set to 0, we will use peptides regardless of whether unique or not
-if ((!validIntegPar("N_unique_Pep", 0))&&("Use.N.unique" %in% colnames(Param))) {
+if ((!validIntegPar("N_unique_Pep", 0L))&&("Use.N.unique" %in% colnames(Param))) {
   tmp1 <- Param$Use.N.unique
-  if (validIntegPar("tmp1", 0)) { N_unique_Pep <- as.integer(tmp1) }
+  if (validIntegPar("tmp1", 0L)) { N_unique_Pep <- as.integer(tmp1) }
 }
-if (!validIntegPar("N_unique_Pep", 0)) {
-  N_unique_Pep <- 3 # ... which means if we have 3 unique peptides we will not use any non-unique ones
+if (!validIntegPar("N_unique_Pep", 0L)) {
+  N_unique_Pep <- 3L # ... which means if we have 3 unique peptides we will not use any non-unique ones
 }
 N_unique_Pep %<o% N_unique_Pep
 Param$Use.N.unique <- N_unique_Pep
@@ -279,7 +280,7 @@ if ((!validIntegPar("N_Pep"))&&("Min.N.pep" %in% colnames(Param))) {
   if (validIntegPar("tmp1")) { N_Pep <- as.integer(tmp1) }
 }
 if (!validIntegPar("N_Pep")) {
-  N_Pep <- 1 # The default is to use ALL of the information, even if we only have a single peptide
+  N_Pep <- 1L # The default is to use ALL of the information, even if we only have a single peptide
 }
 N_Pep %<o% N_Pep
 Param$Min.N.pep <- N_Pep
@@ -321,7 +322,7 @@ if (!validCharPar("quantAlgo", quantAlgoOpt)) {
 }
 quantAlgo %<o% quantAlgo
 Param$Quant_algorithm <- quantAlgo
-quantMsg <- function(Quant) { allQuantAlgos$Details[match(Quant, allQuantAlgos$Algorithm)] }
+quantMsg <- \(Quant) { allQuantAlgos$Details[match(Quant, allQuantAlgos$Algorithm)] }
 # Re-scaling
 allReScAlgoOpt %<o% data.frame(Algorithm = c("limpa",
                                              "QFeatures",
@@ -341,19 +342,20 @@ allReScAlgoOpt %<o% data.frame(Algorithm = c("limpa",
                                            "Use MaxLFQ's scale"))
 reScAlgoOpt %<o% allReScAlgoOpt$Algorithm
 if (scrptType == "noReps") { # limpa needs at least 2 samples
-  reScAlgoOpt <- reScAlgoOpt[which(!reScAlgoOpt == "limpa")]
+  reScAlgoOpt <- reScAlgoOpt[which(reScAlgoOpt != "limpa")]
 }
 if ((!validCharPar("reScAlgo", reScAlgoOpt))&&("ReScaling_algorithm" %in% colnames(Param))) {
   tmp1 <- Param$ReScaling_algorithm
   if (validCharPar("tmp1", reScAlgoOpt)) { reScAlgo <- tmp1 }
 }
 if (!validCharPar("reScAlgo", reScAlgoOpt)) {
-  if (quantAlgo %in% reScAlgoOpt) { reScAlgo <- quantAlgo }
-  if (quantAlgo == "LM") { reScAlgo <- "max" }
+  reScAlgo <- "topN"
+  #if (quantAlgo %in% reScAlgoOpt) { reScAlgo <- quantAlgo }
+  #if (quantAlgo == "LM") { reScAlgo <- "topN" }
 }
 reScAlgo %<o% reScAlgo
 Param$ReScaling_algorithm <- reScAlgo
-reScMsg <- function(Rescale, Quant) {
+reScMsg <- \(Rescale, Quant) {
   if (Rescale == Quant) {
     return("Use scale from quantitation algorithm")
   }
@@ -370,7 +372,7 @@ if ((!validIntegPar("topN"))&&("topN" %in% colnames(Param))) {
   tmp1 <- Param$topN
   if (validIntegPar("tmp1")) { topN <- as.integer(tmp1) }
 }
-if (!validIntegPar("topN")) { topN <- 3 } # Usually top3 
+if (!validIntegPar("topN")) { topN <- 3L } # Usually top3 
 topN %<o% topN
 Param$topN <- topN
 #
@@ -408,24 +410,24 @@ if (!validLogicPar("Impute")) { Impute <- FALSE }
 Impute %<o% Impute
 Param$Pep.Impute <- Impute
 #
-if ((!validIntegPar("PepFoundInAtLeast", 1))&&("PepFoundInAtLeast" %in% colnames(Param))) {
+if ((!validIntegPar("PepFoundInAtLeast", 1L))&&("PepFoundInAtLeast" %in% colnames(Param))) {
   tmp1 <- Param$PepFoundInAtLeast
-  if (validIntegPar("tmp1", 0)) { PepFoundInAtLeast <- as.integer(tmp1) }
+  if (validIntegPar("tmp1", 0L)) { PepFoundInAtLeast <- as.integer(tmp1) }
 }
-if (!validIntegPar("PepFoundInAtLeast", 0)) {
-  PepFoundInAtLeast <- 1 # ... which means if we have 3 unique peptides we will not use any non-unique ones
+if (!validIntegPar("PepFoundInAtLeast", 0L)) {
+  PepFoundInAtLeast <- 1L # ... which means if we have 3 unique peptides we will not use any non-unique ones
 }
 PepFoundInAtLeast %<o% PepFoundInAtLeast
 Param$PepFoundInAtLeast <- PepFoundInAtLeast
 #
 Exp.map$Replicate <- as.integer(Exp.map$Replicate)
 mxRp <- max(as.integer(Exp.map$Replicate), na.rm = TRUE)
-mxN <- max(c(2, mxRp-1))
-if ((!validIntegPar("PepFoundInAtLeastGrp", 1))&&("PepFoundInAtLeastGrp" %in% colnames(Param))) {
+mxN <- max(c(2L, mxRp-1L))
+if ((!validIntegPar("PepFoundInAtLeastGrp", 1L))&&("PepFoundInAtLeastGrp" %in% colnames(Param))) {
   tmp1 <- Param$PepFoundInAtLeastGrp
-  if (validIntegPar("tmp1", 0)) { PepFoundInAtLeastGrp <- as.integer(tmp1) }
+  if (validIntegPar("tmp1", 0L)) { PepFoundInAtLeastGrp <- as.integer(tmp1) }
 }
-if (!validIntegPar("PepFoundInAtLeastGrp", 0)) {
+if (!validIntegPar("PepFoundInAtLeastGrp", 0L)) {
   PepFoundInAtLeastGrp <- mxN # ... which means if we have 3 unique peptides we will not use any non-unique ones
 }
 PepFoundInAtLeastGrp %<o% PepFoundInAtLeastGrp
@@ -434,24 +436,36 @@ Param$PepFoundInAtLeastGrp <- PepFoundInAtLeastGrp
 # Cytoscape
 CytoScExe %<o% c()
 cytoTst <- grep("cytoscape", list.dirs("C:/PROGRA~1", recursive = FALSE), value = TRUE, ignore.case = TRUE)
-CytoScape %<o% (length(cytoTst) > 0)
+CytoScape %<o% (length(cytoTst) > 0L)
 if (CytoScape) {
-  CytoScExe <- unlist(lapply(cytoTst, function(x) {
+  CytoScExe <- unlist(lapply(cytoTst, \(x) {
     grep("/Cytoscape\\.exe$", list.files(x, recursive = TRUE, full.names = TRUE), value = TRUE)
   }))
 }
-CytoScape %<o% (length(CytoScExe) > 0)
-if (length(CytoScExe) > 1) {
-  tst <- vapply(CytoScExe, function(x) { file.info(x)$mtime }, 1)
+CytoScape %<o% (length(CytoScExe) > 0L)
+if (length(CytoScExe) > 1L) {
+  tst <- vapply(CytoScExe, \(x) { file.info(x)$mtime }, 1)
   CytoScExe <- CytoScExe[order(tst, decreasing = TRUE)]
+}
+if (CytoScape) {
+  CytoScExe <- normalizePath(path.expand(CytoScExe), winslash = "/")
 }
 if ("CytoScapePath" %in% colnames(Param)) {
   Param$CytoscapePath <- Param$CytoScapePath
   Param$CytoScapePath <- NULL
 }
 if ("CytoscapePath" %in% colnames(Param)) {
-  tmp <- normalizePath(Param$CytoscapePath, winslash = "/")
-  if ((length(CytoScExe))&&(tmp %in% CytoScExe)) { CytoScExe <- tmp }
+  tmp <- normalizePath(path.expand(Param$CytoscapePath), winslash = "/")
+  tmp <- tmp[which(file.exists(tmp))]
+  if (length(CytoScExe)) {
+    if ((length(tmp))&&(tmp %in% CytoScExe)) { CytoScExe <- tmp } else {
+      Param$CytoscapePath <- CytoScExe[1L]
+    }
+  }
+} else {
+  if (length(CytoScExe)) {
+    Param$CytoscapePath <- CytoScExe[1L]
+  }
 }
 if (CytoScape&&("Cytoscape" %in% colnames(Param))) {
   tmp1 <- as.logical(Param$Cytoscape)
@@ -471,41 +485,41 @@ if (!validLogicPar("protrul")) {
   # Proteome ruler re-scaling makes no sense if we are dealing with a pull down
   protrul %<o% (!WorkFlow %in% c("PULLDOWN", "BIOID"))
   # Archaea and Eukaryotes have introns and histones, Bacteria do not
-  protrul <- c(protrul, FALSE)[(!isEukaLike)+1]
+  protrul <- c(protrul, FALSE)[(!isEukaLike)+1L]
 }
 protrul %<o% protrul
 Param$ProtRul <- protrul
-if ((!validIntegPar("ProtRulNuclL", 1))&&("ProtRulNuclL" %in% colnames(Param))) {
+if ((!validIntegPar("ProtRulNuclL", 1L))&&("ProtRulNuclL" %in% colnames(Param))) {
   tmp1 <- Param$ProtRulNuclL
   if (validIntegPar("tmp1")) { ProtRulNuclL <- as.integer(tmp1) }
 }
-if (!validIntegPar("ProtRulNuclL")) { ProtRulNuclL <- 196 } # Usually top3 
+if (!validIntegPar("ProtRulNuclL")) { ProtRulNuclL <- 196L } # Usually top3 
 ProtRulNuclL %<o% ProtRulNuclL
 Param$ProtRulNuclL <- ProtRulNuclL
 #
 threshMsg %<o% paste0("% of ", c("control-to-control", "intra-sample group")[match(RefRat_Mode, c("1", "2"))], " ratios")
 threshOpt %<o% c(threshMsg, "Absolute log2 FC threshold")
-threshDflt <- threshOpt[1]
-if (!"Ratios.Thresholds" %in% colnames(Param)) {
-  Param$Ratios.Thresholds <- "% of intra-sample group ratios"
-}
-if (!Param$Ratios.Thresholds %in% threshOpt) {
-  Param$Ratios.Thresholds <- "% of intra-sample group ratios"
-}
-if (Param$Ratios.Thresholds ==  "Absolute threshold") {
+threshDflt <- threshOpt[2L]
+# if (!"Ratios.Thresholds" %in% colnames(Param)) {
+#   Param$Ratios.Thresholds <- "% of intra-sample group ratios"
+# }
+# if (!Param$Ratios.Thresholds %in% threshOpt) {
+#   Param$Ratios.Thresholds <- "% of intra-sample group ratios"
+# }
+# if (Param$Ratios.Thresholds ==  "Absolute threshold") {
   Param$Ratios.Thresholds <- "Absolute log2 FC threshold"
-}
-threshDflt <- Param$Ratios.Thresholds
+# }
+# threshDflt <- Param$Ratios.Thresholds
 Mitch <- match(threshDflt, threshOpt)
 if ("Ratios.Contamination.Rates" %in% colnames(Param)) {
   KontRt <- Param$Ratios.Contamination.Rates
   if ((!is.numeric(KontRt))||(KontRt < 0)) { KontRt <- c(0.05, 1)[Mitch] }
 } else { KontRt <- c(0.05, 1)[Mitch] }
 KontRt <- KontRt*c(100, 1)[Mitch]
-KontGrps <- c("Ratio groups", "Experiments", "Whole dataset")
-if ((!"Ratios.Contaminant.Groups" %in% colnames(Param))||(!Param$Ratios.Contaminant.Groups %in% KontGrps)) {
-  Param$Ratios.Contaminant.Groups <- KontGrps[1]
-}
+#KontGrps <- c("Ratio groups", "Experiments", "Whole dataset")
+# if ((!"Ratios.Contaminant.Groups" %in% colnames(Param))||(!Param$Ratios.Contaminant.Groups %in% KontGrps)) {
+#   Param$Ratios.Contaminant.Groups <- KontGrps[1L]
+# }
 #
 if (!exists("minInt")) { minInt <- 0 }
 if ("Min.Intensity" %in% colnames(Param)) {
@@ -521,10 +535,10 @@ BH.FDR %<o% {
 }
 # For PTMs normalisation to the parent PG, when no quantitation is available for the parent,
 # how are we replacing NAs? 
-NAsReplMeth %<o% 2
+NAsReplMeth %<o% 2L
 if ("PTM.analysis_NAsReplaceMethod" %in% colnames(Param)) {
   NAsReplMeth %<o% as.integer(Param$PTM.analysis_NAsReplaceMethod)
-  if (!NAsReplMeth %in% 1:2) { NAsReplMeth <- 2 }
+  if (!NAsReplMeth %in% 1L:2L) { NAsReplMeth <- 2L }
 }
 NAsReplMethods <- c("Impute", # Currently not recommended, until I can work out a much less random Imputation method
                     "Median" # Recommended method
@@ -588,7 +602,7 @@ if (length(ROCfilt_GOterms_Neg)) {
 if (!exists("normDat")) {
   normDat <- sum(Param$Norma.Ev.Intens,
                  Param$Norma.Pep.Intens,
-                 Param$Norma.Prot.Ratio) > 0
+                 Param$Norma.Prot.Ratio) > 0L
 }
 normDat %<o% normDat
 # - Peptide normalisation methods
@@ -640,8 +654,8 @@ pepNormMethods %<o% list(list(Method = "median",
                               Batch = NA
                          ))
 L <- length(pepNormMethods)
-pepNormMethodsDF <- data.frame(Method = vapply(1:L, function(i) { pepNormMethods[[i]]$Method }, ""),
-                               Source = vapply(1:L, function(i) { pepNormMethods[[i]]$Source }, ""))
+pepNormMethodsDF <- data.frame(Method = vapply(1L:L, \(i) { pepNormMethods[[i]]$Method }, ""),
+                               Source = vapply(1L:L, \(i) { pepNormMethods[[i]]$Source }, ""))
 # General normalisation methods
 genPepNormMeth <- pepNormMethodsDF$Method[which(pepNormMethodsDF$Source == "pepNorm_General.R")]
 # genPepNormMeth <- genPepNormMeth[which(!genPepNormMeth %in% c("proteins", "GO terms"))] # These have their own box // NO THEY DON'T, NOT AS STEPS!
@@ -659,12 +673,12 @@ dfltNormSeq <- list(list(Method = "median"),
                          Batch = "Isobaric.set"),
                     list(Method = "Levenberg-Marquardt"))
 if (LabelType == "Isobaric") {
-  if (length(Iso) == 1) {
-    dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, function(x) { !((x$Method == "ComBat")&(x$Batch = "Isobaric.set")) }, TRUE))]
+  if (length(Iso) == 1L) {
+    dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, \(x) { !((x$Method == "ComBat")&(x$Batch = "Isobaric.set")) }, TRUE))]
   }
 } else {
-  dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, function(x) { x$Method }, "") != "IRS")]
-  dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, function(x) {
+  dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, \(x) { x$Method }, "") != "IRS")]
+  dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, \(x) {
     if ("Batch" %in% names(x)) { return(x$Batch) }
     return("")
   }, "") != "Isobaric.set")]
@@ -672,10 +686,10 @@ if (LabelType == "Isobaric") {
 if (exists("pepNormSeq")) { dfltNormSeq <- pepNormSeq }
 #
 # 2 functions to convert between different normalisation sequence formats:
-normSeqProc12 <- function(seq) { #seq <- dfltNormSeq
+normSeqProc12 <- \(seq) { #seq <- dfltNormSeq
   l <- length(seq)
-  stopifnot(l > 0)
-  vapply(1:l, function(i) {
+  stopifnot(l > 0L)
+  vapply(1L:l, \(i) {
     x <- seq[[i]]$Method
     if ("Batch" %in% names(seq[[i]])) {
       x <- paste0(x, ": ", paste(seq[[i]]$Batch, collapse = ";"))
@@ -683,22 +697,22 @@ normSeqProc12 <- function(seq) { #seq <- dfltNormSeq
     return(paste0(i, " - ", x))
   }, "")
 }
-normSeqProc21 <- function(seq2) { #seq2 <- dfltNormSeq2
+normSeqProc21 <- \(seq2) { #seq2 <- dfltNormSeq2
   l <- length(seq2)
-  stopifnot(l > 0)
+  stopifnot(l > 0L)
   seq2 <- gsub("^[0-9]+ - ", "", seq2)
-  dict <- vapply(pepNormMethods, function(i) { i$Method }, "")
-  lapply(1:l, function(i) {
+  dict <- vapply(pepNormMethods, \(i) { i$Method }, "")
+  lapply(1L:l, \(i) {
     x <- unlist(strsplit(seq2[[i]], ": "))
-    rs <- list(Method = x[[1]])
-    m <- match(x[[1]], dict)
+    rs <- list(Method = x[[1L]])
+    m <- match(x[[1L]], dict)
     nms <- names(pepNormMethods[[m]])
     nms <- nms[which(nms != "Method")]
     if (length(nms)) {
       rs[nms] <- pepNormMethods[[m]][nms]
     }
-    if (length(x) == 2) {
-      rs$Batch <- unlist(strsplit(x[[2]], ";"))
+    if (length(x) == 2L) {
+      rs$Batch <- unlist(strsplit(x[[2L]], ";"))
     }
     return(rs)
   })
@@ -718,7 +732,7 @@ for (parI in myPar) {
                              TRUE,
                              TRUE,
                              FALSE,
-                             nrow(Exp.map >= 15))[match(parI, myPar)]
+                             nrow(Exp.map) >= 15L)[match(parI, myPar)]
   
   # Level 1 default: defined by Param
   if (parNm %in% colnames(Param)) {
@@ -728,7 +742,7 @@ for (parI in myPar) {
   parOK <- (exists(parNm))
   if (parOK) {
     tmpPar <- get(parNm)
-    parOK <- (length(tmpPar) == 1)&&(is.logical(tmpPar))&&(!is.na(tmpPar))
+    parOK <- (length(tmpPar) == 1L)&&(is.logical(tmpPar))&&(!is.na(tmpPar))
   }
   if (parOK) { par_dflt <- tmpPar }
   # Backup value
@@ -754,28 +768,28 @@ coreNms <- setNames(c("Volcano.plots.Aggregate.Level",
                     c(paste0("Sample groups___Combination of Factors defining sample groups./nMust include ",
                              mnFct2, "."),
                       "Normalisation groups___Factor(s) defining groups of samples to normalize to each-other. Note that which, if any, normalisations apply will be defined further down",
-                      "Ratio groups___Factor(s) defining comparison groups, i.e. groups of samples, including at least some References (i.e. Controls), to compare to each others./nMust include Experiment, cannot include Replicate.",
+                      "Ratio groups___Factor(s) defining comparison groups, i.e. groups of at least two sample groups, to compare to each others./nMust include Experiment, cannot include Replicate.",
                       "GO enrichment___Optional: Only protein groups with at least one valid value in corresponding samples will be used as references for GO-terms enrichment tests.",
-                      "Batch___Optional: factor(s) defining batches (systematic technical shifts) which will be encoded in the limma model formula; may also be ComBat-batch corrected (see normalisations below; not recommended for limma!)",
+                      "Batch___Optional: factor(s) defining batches (systematic technical shifts) which will be encoded in the limma model formula; may also be ComBat-batch corrected (see normalisations below0, but this is not recommended for limma!",
                       "Block___Optional: factor defining correlated biological sample groupings; in a paired-replicates (aka \"nested\") experiment, this would be \"Replicate\"."
                     ))
 for (nm in coreNms) {
   if (!nm %in% colnames(Param)) {
-    Param[[nm]] <- c("Exp", "")[(nm == "Batch.effect") + 1]
+    Param[[nm]] <- c("Exp", "")[(nm == "Batch.effect") + 1L]
   }
 }
-wMp <- c(which(colnames(Param) == coreNms[1]),
-         which(colnames(Param) == coreNms[2]),
-         which(colnames(Param) == coreNms[3]),
-         which(colnames(Param) == coreNms[4]),
-         which(colnames(Param) == coreNms[5]),
-         which(colnames(Param) == coreNms[6]),
-         which((Param[1,] == "MAP2FACTS")&(!colnames(Param) %in% c(coreNms, "Batch.correction" # (for backwards compatibility; different from "Batch.effect")
+wMp <- c(which(colnames(Param) == coreNms[1L]),
+         which(colnames(Param) == coreNms[2L]),
+         which(colnames(Param) == coreNms[3L]),
+         which(colnames(Param) == coreNms[4L]),
+         which(colnames(Param) == coreNms[5L]),
+         which(colnames(Param) == coreNms[6L]),
+         which((Param[1L,] == "MAP2FACTS")&(!colnames(Param) %in% c(coreNms, "Batch.correction" # (for backwards compatibility; different from "Batch.effect")
                                                                    ))))
 lstFct <- list()
 dfltFct <- list()
 factOpt2 <- Factors[which(Factors != "Replicate")]
-for (w in wMp) { #w <- wMp[3]
+for (w in wMp) { #w <- wMp[3L] #w <- wMp[5L] #w <- wMp[6L]
   myFct <- colnames(Param)[w]
   lbl <- gsub("\\.", " ", myFct)
   if (myFct %in% coreNms) {
@@ -785,34 +799,35 @@ for (w in wMp) { #w <- wMp[3]
     if (myFct %in% names(Param_Help)) { lbl <- c(lbl, Param_Help[myFct]) }
   }
   Opt <- factOpt2
-  if (!Param[1, w] %in% c("AUTOFACT", "MAP2FACTS")) {
-    dflt <- Factors[match(unlist(strsplit(Param[1, w], ";")), names(Factors))]
-    if ((length(dflt) == 1)&&(is.na(dflt))) {
-      dflt <- c("Experiment", "")[(myFct %in% c("Batch.effect", "Blocking.factors")) + 1]
+  if (!Param[1L, w] %in% c("AUTOFACT", "MAP2FACTS")) {
+    dflt <- Factors[match(unlist(strsplit(Param[1L, w], ";")), names(Factors))]
+    ldflt <- length(dflt)
+    if ((!ldflt)||((ldflt == 1L)&&(is.na(dflt)))) {
+      dflt <- c("Experiment", "")[(myFct %in% c("Batch.effect", "Blocking.factors")) + 1L]
     }
   } else {
     dflt <- Factors[unlist(strsplit(Param[[myFct]], ";"))]
   }
   if (myFct %in% c("Volcano.plots.Aggregate.Level", "Ratios.Groups", "GO.enrichment.Ref.Aggr")) {
     Opt <- factOpt2
-    if (myFct == "Volcano.plots.Aggregate.Level") {
+    if (myFct %in% c("Volcano.plots.Aggregate.Level", "Ratios.Groups")) {
       dflt <- union(mnFct, dflt)
     }
   }
   if (myFct == "Batch.effect") {
     Opt <- Factors[which(Factors != "Experiment")]
-    dflt <- intersect("Batch", Factors)
+    dflt <- intersect(c(dflt, "Batch"), Factors)
   }
   if (myFct == "Blocking.factors") {
     Opt <- Factors[which(Factors != "Experiment")]
-    dflt <- intersect("Block", Factors)
+    dflt <- intersect(c(dflt, "Block"), Factors)
   }
   w <- which(!dflt %in% Opt)
   l <- length(w)
   if (l) {
     rmvOptTxt <- paste0("\"", dflt[w], "\"")
-    if (l > 1) {
-      rmvOptTxt <- paste0(paste(rmvOptTxt[1:(l-1)], collapse = ", "), " and ", rmvtxt[l])
+    if (l > 1L) {
+      rmvOptTxt <- paste0(paste(rmvOptTxt[1L:(l-1L)], collapse = ", "), " and ", rmvtxt[l])
     }
     warning(paste0("Factors ", rmvOptTxt, " have special meaning and cannot be used to define ", myFct))
     dflt <- dflt[which(dflt %in% Opt)]
@@ -824,7 +839,7 @@ for (w in wMp) { #w <- wMp[3]
                tags$table(
                  tags$tr(width = "80%",
                          tags$td(width = "25%",
-                                 div(strong(lbl[1]))),
+                                 div(strong(lbl[1L]))),
                          tags$td(width = "55%",
                                  selectInput(myFct,
                                              "",
@@ -835,26 +850,26 @@ for (w in wMp) { #w <- wMp[3]
                          #addTooltip(session, myFct, Param_Help[w], "bottom", "hover", list(container = "body"))
                  )
                ))
-  lbl2 <- unlist(strsplit(lbl[2], "/n"))
+  lbl2 <- unlist(strsplit(lbl[2L], "/n"))
   for (lbl2a in lbl2) { blck <- append(blck, list(span(em(lbl2a)), br())) }
   lstFct <- append(lstFct, blck)
 }
 tmp1 <- Factors[unlist(strsplit(Param$Volcano.plots.Aggregate.Level, ";"))]
-if (length(Exp) == 1) { tmp1 <- setdiff(tmp1, "Experiment") }
+if (length(Exp) == 1L) { tmp1 <- setdiff(tmp1, "Experiment") }
 tmp2 <- Factors[unlist(strsplit(Param$Batch.effect, ";"))]
-limmaForm %<o% c("~0", paste(tmp1, collapse = "_"))
+limmaForm %<o% c("~ 0 ", paste(tmp1, collapse = "_"))
 if (length(tmp2)) { limmaForm <- c(limmaForm, paste(tmp2, collapse = "_")) }
-limmaForm <- paste(limmaForm, collapse = "+")
+limmaForm <- paste(limmaForm, collapse = " + ")
 #
 useSAM_thresh %<o% FALSE
-tstAdvOpt <- try(sum(file.exists(Param$Custom.PGs, Param$TrueDisc_filter, Param$CRAPome_file)) > 0)
-if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
+tstAdvOpt <- try(sum(file.exists(Param$Custom.PGs, Param$TrueDisc_filter, Param$CRAPome_file)) > 0L)
+if (inherits(tstAdvOpt, "try-error")) { tstAdvOpt <- FALSE }
 #
 mtchCheckMsg1 <- "Not all search software will map peptides to protein IDs in the search database the same way. Using this function ensures consistent results regardless of search engine."
 mtchCheckMsg2 <- "!Checking assignments may result in removal of some identifications!"
 F_test_override <- FALSE
 appNm <- paste0(dtstNm, " - Parameters")
-make_ui1 <- function() {
+make_ui1 <- \() {
   fluidPage(
     useShinyjs(),
     setBackgroundColor( # Doesn't work
@@ -872,13 +887,14 @@ make_ui1 <- function() {
     br(),
     h4(strong("Factors")),
     span("Here we map specific actions to experimental Factors:"),
-    fluidRow(column(4,
+    fluidRow(column(4L,
                     uiOutput("RSA_msg"),
                     withSpinner(uiOutput("FactMappings")),
                     br(),
-                    h5(em("Equivalent limma model formula:")),
+                    em("-> limma model formula: "),
                     uiOutput("FORMULA")),
-             column(8, withSpinner(plotlyOutput("PSMsPCA", height = "600px")))),
+             column(8L,
+                    withSpinner(plotlyOutput("PSMsPCA", height = "600px")))),
     br(),
     tags$hr(style = "border-color: black;"),
     h4(strong("Proteins of interest")),
@@ -897,7 +913,7 @@ make_ui1 <- function() {
     tags$hr(style = "border-color: black;"),
     h4(strong("Data processing")),
     fluidRow(
-      column(3,
+      column(3L,
              numericInput("minInt",
                           "Exclude PSMs with intensity lower than...",
                           minInt,
@@ -905,13 +921,13 @@ make_ui1 <- function() {
                           .Machine$double.xmax,
                           width = "100%")),
       # Imputation: add a new parameter here to define the counts limit between MCAR and MNAR 
-      column(3,
+      column(3L,
              checkboxInput("Impute", "Impute missing peptides-level values?", Impute, "100%"),
              em("Imputation is done at peptides (not PSMs or protein groups) level, after removing any outliers, before re-normalization."),
              em("This is independent of any temporary imputations done by default to run specific procedures without data loss."),
              em(HTML("&nsbp;- MAR/MCAR data is imputed with a KNN method.")),
              em(HTML("&nsbp;- MNAR data is imputed with the QRILC method."))),
-      column(3,
+      column(3L,
              checkboxInput("Update_Prot_matches", paste0("Update peptide-to-protein assignments?"), Update_Prot_matches, "100%"),
              bsTooltip("Update_Prot_matches",
                        paste0(mtchCheckMsg1, "\n", mtchCheckMsg2),
@@ -922,8 +938,8 @@ make_ui1 <- function() {
     ),
     br(),
     if (annotRep) {
-      fluidRow(column(6,
-                      checkboxInput("ROC1on", "PSMs-level ROC filter", length(ROC_GOterms) > 0, "100%"),
+      fluidRow(column(6L,
+                      checkboxInput("ROC1on", "PSMs-level ROC filter", length(ROC_GOterms) > 0L, "100%"),
                       withSpinner(uiOutput("ROC1"))))
     },
     tags$hr(style = "border-color: black;"),
@@ -935,7 +951,7 @@ make_ui1 <- function() {
     ## Choice of algorithm + Proteomics ruler
     tags$hr(style = "border-color: black;"),
     h4(strong("Protein Groups quantitation")),
-    fluidRow(column(2,
+    fluidRow(column(2L,
                     h4("Peptides eligible for quantitation:"),
                     selectInput("Prot.Quant.Use",
                                 "Peptide classes",
@@ -954,21 +970,21 @@ make_ui1 <- function() {
                                               deselectAllText = "Clear search",
                                               showTick = TRUE)),
                     numericInput("N_Pep",
-                                 "Minimum number of peptides for quantitation", N_Pep, 1, Inf, 1, "100%"),
+                                 "Minimum number of peptides for quantitation", N_Pep, 1L, Inf, 1L, "100%"),
                     numericInput("N_unique_Pep",
                                  "Number of unique peptides which - if available - will be used to the exclusivity of non-unique ones",
-                                 N_unique_Pep, 1, Inf, 1, "100%"),
+                                 N_unique_Pep, 1L, Inf, 1L, "100%"),
                     strong(em("Use only peptidoforms found in at least how many samples in...")),
                     numericInput("PepFoundInAtLeast",
-                                 " -> the whole dataset?", PepFoundInAtLeast, 1, nSmpls, 1, "100%"),
+                                 " -> the whole dataset?", PepFoundInAtLeast, 1L, nSmpls, 1L, "100%"),
                     numericInput("PepFoundInAtLeastGrp",
                                  " -> one sample group at least? (overrides parameter above)",
                                  PepFoundInAtLeastGrp,
-                                 1,
+                                 1L,
                                  mxRp,
-                                 1,
+                                 1L,
                                  "100%")),
-             column(3,
+             column(3L,
                     h4("Main LFQ algorithm"),
                     selectInput("Quant_algorithm",
                                 "Quantitation algorithm",
@@ -983,17 +999,17 @@ make_ui1 <- function() {
                                 reScAlgoOpt,
                                 reScAlgo,
                                 width = "100%"),
-                    em("Re-scaling has no effect on individual intra-protein (row-wise) fold changes but defines inter-protein (column-wise) relative abundance estimates."),
+                    em("Re-scaling has no effect on individual intra-protein (row-wise, inter-samples) fold changes but defines inter-protein (column-wise, intra-sample) relative abundance estimates."),
                     br(),
                     br(),
                     strong(em("TopN parameters")),
                     fillRow(em(HTML("&nbsp;&nbsp;&nbsp;-> N = ")),
-                            numericInput("topN", NULL, topN, 1, Inf, 1, "100%"),
+                            numericInput("topN", NULL, topN, 1L, Inf, 1L, "100%"),
                             height = "40px"),
                     fillRow(em(HTML("&nbsp;&nbsp;&nbsp;-> Correct systematic intensity shift between ranks?")),
                             checkboxInput("topN_correct", NULL, topN_correct, "100%"),
                             height = "40px")),
-             column(2,
+             column(2L,
                     h4("Proteomic Ruler"),
                     checkboxInput("ProtRul",
                                   "Estimate copy numbers per cell using signal from all histones as reference?",
@@ -1002,31 +1018,33 @@ make_ui1 <- function() {
                     numericInput("ProtRulNuclL",
                                  "Use inter-nucleosome length = ? (kb)",
                                  ProtRulNuclL,
-                                 1,
+                                 1L,
                                  Inf,
-                                 1,
+                                 1L,
                                  "100%"))
     ),
     br(),
     tags$hr(style = "border-color: black;"),
-    fluidRow(column(2, radioButtons("Clustering",
-                                    "Heatmaps: clustering method",
-                                    klustChoices,
-                                    klustChoices[1], TRUE, "100%"))),
+    fluidRow(column(2L,
+                    radioButtons("Clustering",
+                                 "Heatmaps: clustering method",
+                                 klustChoices,
+                                 klustChoices[1L], TRUE, "100%"))),
     br(),
     tags$hr(style = "border-color: black;"),
     h4(strong("Statistical tests")),
     h5(strong(" -> t-test(s)")),
     fluidRow(
-      column(4,
+      column(4L,
              strong("Volcano plot: select default variant"),
              radioButtons("TtstPval", "", names(pvalue.col), "Moderated", TRUE, "100%"),
+             h6(em(" - Moderated t-test (limma): the gold-standard, re-samples individual row variances using global dataset variance to provide a more robust estimate.")),
+             h6(em(" - DEqMS: modified limma test leveraging additional information to improve variance estimates.")),
              h6(em(" - Welch's t-test is a modified form of Student's original version which is more robust to variance inequality.")),
-             h6(em(" - Moderated t-test (limma): re-samples individual row variances using global dataset variance to provide a more robust estimate.")),
-             h6(em(" - Permutation t-test (coin): based on permutations of the samples from each group.")),
-             h6(em(" - SAM's modified t-test (siggenes): corrects for poor variance estimates for low replicate number data by optimizing a small constant s0 added to the denominator of the test statistic.")),
-             h6(em(" - LRT (Likelihood Ratio Test //edge): tests for the ratio of the likelihoods of observed data under two models (explanatory variable has an effect /vs/ no effect)")),
-             h6(em(" - ODP (Optimal Discovery Procedure, Storey et al., 2007 //edge): uses all relevant information from all genes in order to test each one for differential expression; has been demonstrated to have optimal power.")),
+             h6(em(" - Permutation test (coin): based on permutations of the samples from each group.")),
+             #h6(em(" - SAM's modified t-test (siggenes): corrects for poor variance estimates for low replicate number data by optimizing a small constant s0 added to the denominator of the test statistic.")),
+             #h6(em(" - LRT (Likelihood Ratio Test //edge): tests for the ratio of the likelihoods of observed data under two models (explanatory variable has an effect /vs/ no effect)")),
+             #h6(em(" - ODP (Optimal Discovery Procedure, Storey et al., 2007 //edge): uses all relevant information from all genes in order to test each one for differential expression; has been demonstrated to have optimal power.")),
              if (scrptTypeFull == "withReps_PG_and_PTMs") {
                # Not available for now for the peptides-only workflow,
                # but this could be done by turning the code for this into an app which is called individually for each PTM class.
@@ -1035,30 +1053,34 @@ make_ui1 <- function() {
                h6(em("(you can change which one will be used for Volcano plots later, after we compare each test's power)"))
              },
              checkboxInput("useSAM_thresh", "For Student's t-test, plot SAM-based curved significance thresholds?", useSAM_thresh, "100%")),
-      column(2,
+      column(2L,
              h5("Benjamini-Hochberg FDR thresholds"),
              withSpinner(uiOutput("FDR")),
              numericInput("FDR", "", 0.01, 0, 1),
              actionBttn("AddFDR", "Add threshold", color = "primary", size = "xs", style = "pill"),
              actionBttn("RemvFDR", "Remove threshold", color = "primary", size = "xs", style = "pill")),
-      column(2,
-             radioButtons("typeOfThresh", "Ratios thresholds: use...", threshOpt, threshDflt, FALSE, "100%"),
-             numericInput("RatCont", "Threshold value = ", KontRt, 0, 100, 0.001, width = "100%"),
-             selectInput("RatContGrp",
-                         "Control ratios are grouped by:",
-                         KontGrps,
-                         Param$Ratios.Contaminant.Groups,
-                         width = "100%"))),
+      column(2L,
+             # radioButtons("typeOfThresh", "Ratios thresholds: use...", threshOpt, threshDflt, FALSE, "100%"),
+             # numericInput("RatCont", "Threshold value = ", KontRt, 0, 100, 0.001, width = "100%"),
+             # selectInput("RatContGrp",
+             #             "Control ratios are grouped by:",
+             #             KontGrps,
+             #             Param$Ratios.Contaminant.Groups,
+             #             width = "100%")
+             numericInput("RatCont", "Abs. log2(FC) threshold value = ", KontRt, 0, Inf, 0.001, width = "100%")
+             )
+      ),
     br(),
-    fluidRow(column(2,
+    fluidRow(column(2L,
                     h5(strong(" -> ANOVA (moderated F-test //limma)")),
                     checkboxInput("run_F_test", "Run?", fTstDflt, "100%"),
                     em("(only makes sense if N(sample groups) > 2)")),
-             column(2,
+             column(2L,
                     uiOutput("sntXprs")),
              if (annotRep) {
-               column(3,
-                      checkboxInput("ROC2on", "ROC analysis of P-values (experimental)", length(ROC_GOterms) > 0, "100%"),
+               column(3L,
+                      checkboxInput("ROC2on", "ROC analysis of P-values (experimental)",
+                                    length(ROC_GOterms) > 0L, "100%"),
                       withSpinner(uiOutput("ROC2")))
              }
     ),
@@ -1068,12 +1090,12 @@ make_ui1 <- function() {
       list(
         tags$hr(style = "border-color: black;"),
         h4(strong("Optional analyses")),
-        fluidRow(column(2,
+        fluidRow(column(2L,
                         checkboxInput("runProfPlots", "Draw protein profile plots?",
                                       runProfPlots, "100%"),
                         checkboxInput("runRankAbundPlots", "Draw protein ranked abundance plots?",
                                       runRankAbundPlots, "100%")),
-                 column(2,
+                 column(2L,
                         checkboxInput("runWGCNA", "Run Weighted Gene Correlation Network Analysis (WGCNA)?",
                                       runWGCNA, "100%"),
                         checkboxInput("runGSEA", "Run Gene Set Enrichment Analysis (GSEA)?",
@@ -1082,29 +1104,35 @@ make_ui1 <- function() {
     },
     tags$hr(style = "border-color: black;"),
     withSpinner(uiOutput("CytoScape")),
-    tags$hr(style = "border-color: black;"),
     h4(strong("Post-translational modifications (PTMs)")),
-    fluidRow(column(2, pickerInput("PTMsStats",
-                                   "Select PTM(s) (if any) for which statistical tests will be performed and subtables written:",
-                                   Modifs$`Full name`[which(Modifs$Type == "Variable")],
-                                   unlist(strsplit(ptmDflt2, ";")),
-                                   TRUE,
-                                   pickerOptions(title = "Search me",
-                                                 `live-search` = TRUE,
-                                                 actionsBox = TRUE,
-                                                 deselectAllText = "Clear search",
-                                                 showTick = TRUE))),
-             column(2, checkboxInput("PTMsReNorm",
-                                     "Re-normalize modified peptides ratios to those of parent Protein Group(s)?",
-                                     Param$PTM.analysis_Norm, "100%")),
-             column(2, radioButtons("NAsReplMethod",
-                                    "Some modified peptides do not have a quantified parent protein group to re-normalize to. Replace missing values using:",
-                                    NAsReplMethods,
-                                    NAsReplMethods[NAsReplMeth],
-                                    width = "100%"))
+    fluidRow(column(2L,
+                    pickerInput("PTMsStats",
+                                "Select PTM(s) (if any) for which statistical tests will be performed and subtables written:",
+                                Modifs$`Full name`[which(Modifs$Type == "Variable")],
+                                unlist(strsplit(ptmDflt2, ";")),
+                                TRUE,
+                                pickerOptions(title = "Search me",
+                                              `live-search` = TRUE,
+                                              actionsBox = TRUE,
+                                              deselectAllText = "Clear search",
+                                              showTick = TRUE))),
+             column(2L,
+                    checkboxInput("PTMsReNorm",
+                                  "Re-normalize modified peptides ratios to those of parent Protein Group(s)?",
+                                  Param$PTM.analysis_Norm, "100%")),
+             column(2L,
+                    radioButtons("NAsReplMethod",
+                                 "Some modified peptides do not have a quantified parent protein group to re-normalize to. Replace missing values using:",
+                                 NAsReplMethods,
+                                 NAsReplMethods[NAsReplMeth],
+                                 width = "100%"))
     ),
     h4(strong("Output tables")),
-    fluidRow(column(3, checkboxInput("Amica", "Write tables compatible with https://bioapps.maxperutzlabs.ac.at/app/amica", Param$Amica, "100%"))),
+    fluidRow(column(3L,
+                    checkboxInput("Amica",
+                                  "Write tables compatible with https://bioapps.maxperutzlabs.ac.at/app/amica",
+                                  Param$Amica,
+                                  "100%"))),
     br(),
     tags$hr(style = "border-color: black;"),
     checkboxInput("AdvOptOn", "Advanced options", tstAdvOpt),
@@ -1121,7 +1149,7 @@ make_ui1 <- function() {
     # )
   )
 }
-server1 <- function(input, output, session) {
+server1 <- \(input, output, session) {
   NORMALIZE <- reactiveVal(normDat)
   NORMSEQ <- reactiveVal(dfltNormSeq2)
   PURFL <- reactiveVal(Param$Label.Purities.file)
@@ -1130,7 +1158,7 @@ server1 <- function(input, output, session) {
   #
   # Server sub-functions
   # (unfortunately, it does not look like these can be pre-created outside the server - the reactive objects do not work if they are)
-  updtNorm <- function(reactive = TRUE) {
+  updtNorm <- \(reactive = TRUE) {
     if (reactive) {
       nrmSq2 <- NORMSEQ()
       nrm <- NORMALIZE()
@@ -1144,7 +1172,7 @@ server1 <- function(input, output, session) {
         #
         # Parameters shared by multiple normalisations
         h5("Re-normalize to ..."),
-        fluidRow(column(3,
+        fluidRow(column(3L,
                         pickerInput("Norma.Prot.Ratio.to.proteins",
                                     " -> select proteins",
                                     protHeads,
@@ -1156,7 +1184,7 @@ server1 <- function(input, output, session) {
                                                   deselectAllText = "Clear search",
                                                   showTick = TRUE))),
                  if (Annotate) {
-                   column(3,
+                   column(3L,
                           pickerInput("Norma.Prot.Ratio.to.GO",
                                       " -> select GO terms",
                                       nrm2GOall,
@@ -1169,7 +1197,7 @@ server1 <- function(input, output, session) {
                                                     showTick = TRUE)))
                  },
                  if (WorkFlow == "BIOID") {
-                   column(3,
+                   column(3L,
                           checkboxInput("Norma.Prot.Ratio.to.Biot", " -> all biotinylated proteins: ",
                                         Param$Norma.Prot.Ratio.to.Biot, "100%"))
                  },
@@ -1177,15 +1205,15 @@ server1 <- function(input, output, session) {
         br(),
         #
         # PSMs normalisations
-        fluidRow(column(1,
+        fluidRow(column(1L,
                         strong(" -> PSMs-level:")),
-                 column(2,
+                 column(2L,
                         checkboxInput("evLM", "Levenberg-Marquardt",
                                       Param$Adv.Norma.Ev.Intens, "100%"))),
         br(),
         #
         # Peptidoforms
-        fluidRow(column(6,
+        fluidRow(column(6L,
                         selectInput("PepNormSeq",
                                     " -> Peptidoforms-level:",
                                     nrmSq2,
@@ -1194,30 +1222,30 @@ server1 <- function(input, output, session) {
                                     TRUE,
                                     width = "90%"))),
         #h5(strong(em(paste(nrmSq2, collapse = " -> ")))),
-        fluidRow(column(2,
+        fluidRow(column(2L,
                         actionBttn("addClassicNorm", "Add classic normalisation", color = "primary", size = "xs", style = "pill"),
                         pickerInput("ClassicNormMeth",
                                     "methods:",
                                     genPepNormMeth,
-                                    genPepNormMeth[1],
+                                    genPepNormMeth[1L],
                                     width = "80%")),
-                 column(2,
+                 column(2L,
                         actionBttn("addVarCorr", "Add variance intensity-bias correction", color = "primary", size = "xs", style = "pill"),
                         pickerInput("VarCorrMeth",
                                     "methods:",
                                     shapePepNormMeth,
-                                    shapePepNormMeth[1],
+                                    shapePepNormMeth[1L],
                                     width = "80%")),
-                 column(2,
+                 column(2L,
                         actionBttn("addComBat", "Add ComBat batch correction", color = "primary", size = "xs", style = "pill"),
                         pickerInput("ComBatBatch",
                                     "batches (select one or more):",
                                     Factors,
-                                    c("Replicate", "Batch")[("Batch" %in% Factors)+1],
+                                    c("Replicate", "Batch")[("Batch" %in% Factors)+1L],
                                     TRUE,
                                     width = "80%")),
                  if (LabelType == "Isobaric") {
-                   column(2,
+                   column(2L,
                           actionBttn("addIRS", "Add IRS batch correction", color = "primary", size = "xs", style = "pill"),
                           h5(em("IRS = Internal Reference Scaling")))
                  },
@@ -1228,9 +1256,9 @@ server1 <- function(input, output, session) {
       #
       # Protein groups
       if (scrptTypeFull == "withReps_PG_and_PTMs") {
-        lst <- append(lst, list(fluidRow(column(2,
+        lst <- append(lst, list(fluidRow(column(2L,
                                                 h5(strong(" -> Protein Groups-level:"))),
-                                         column(2,
+                                         column(2L,
                                                 checkboxInput("prtLM", "Levenberg-Marquardt",
                                                               Param$Adv.Norma.Prot.Intens, "100%")))
         ))
@@ -1241,14 +1269,15 @@ server1 <- function(input, output, session) {
     }
     renderUI(lst)
   }
-  updtOptOn <- function(reactive = TRUE) {
+  updtOptOn <- \(reactive = TRUE) {
     tst <- { if (reactive) { ADVOPT() } else { tstAdvOpt } }
     if (tst) {
       rgKol <- { if (reactive) { input[["Ratios.Groups"]] } else { dfltFct[["Ratios.Groups"]] } }
-      RatGrps <- paste(unique(apply(ExpMap[, rgKol, drop = FALSE], 1, paste, collapse = " ")), collapse = " / ")
-      lst <- vector("list", 1)
-      lst[[1]] <- list(
-        fluidRow(column(12, em("->"), 
+      RatGrps <- paste(unique(apply(ExpMap[, rgKol, drop = FALSE], 1L, paste, collapse = " ")), collapse = " / ")
+      lst <- vector("list", 1L)
+      lst[[1L]] <- list(
+        fluidRow(column(12L,
+                        em("->"), 
                         shinyFilesButton("CustPG", em("Custom Protein Groups"), "", FALSE), br(),
                         em("Allows \"cheating\" with the naive Protein Groups assembly algorithm."), br(),
                         em("Useful when for instance genetically-motified/transduced samples synthesize a custom protein (e.g. fusion construct) to which matching peptides should be assigned in priority over the canonical form."), br(),
@@ -1257,20 +1286,22 @@ server1 <- function(input, output, session) {
                         br(),
                         br()
         )),
-        fluidRow(column(12, em("->"), 
+        fluidRow(column(12L,
+                        em("->"), 
                         shinyFilesButton("TrueDisc", em("TRUE/FALSE protein discovery filter"), "", FALSE), br(),
                         em("Select TRUE/FALSE protein discovery filter .csv file (useful when you know from another experiment which proteins are contaminants)."), br(),
                         em("Should contain a \"Protein ID\" column and one TRUE/FALSE column per \"Ratio group\" value."),
                         em("Current values: "), em(RatGrps), br(),
                         br(),
-                        em(DiscFiltModesHlp[1]), br(),
-                        em(DiscFiltModesHlp[2]), br(),
-                        em(DiscFiltModesHlp[3]), br(),
+                        em(DiscFiltModesHlp[1L]), br(),
+                        em(DiscFiltModesHlp[2L]), br(),
+                        em(DiscFiltModesHlp[3L]), br(),
                         strong("Current selection = "), span(Param$TrueDisc_filter, style = "color:blue", .noWS = "outside"),
                         br(),
                         br()
         )),
-        fluidRow(column(12, em("->"),
+        fluidRow(column(12L,
+                        em("->"),
                         shinyFilesButton("CRAPome", em("CRAPome filter"), "", FALSE), br(),
                         em("CRAPome-like filter: 1 column table of protein accessions to mark as contaminants."), br(),
                         em("Column name = \"Protein ID\" or \"Protein IDs\", use \";\" if including more than one ID per row)."), br(),
@@ -1283,11 +1314,11 @@ server1 <- function(input, output, session) {
     renderUI(lst)
   }
   if (annotRep) { # Not implemented yet for script without Reps
-    updtROC1 <- function(reactive = TRUE) {
-      tst <- { if (reactive) { ROC1ON() } else { length(c(ROCfilt_GOterms_Pos, ROCfilt_GOterms_Neg)) > 0 } }
+    updtROC1 <- \(reactive = TRUE) {
+      tst <- { if (reactive) { ROC1ON() } else { length(c(ROCfilt_GOterms_Pos, ROCfilt_GOterms_Neg)) > 0L } }
       if (tst) {
         lst <- list(
-          fluidRow(column(4,
+          fluidRow(column(4L,
                           pickerInput("ROC1_pos",
                                       "Positive GO term(s)",
                                       ROC1_allGOPos1,
@@ -1298,7 +1329,7 @@ server1 <- function(input, output, session) {
                                                     actionsBox = TRUE,
                                                     deselectAllText = "Clear search",
                                                     showTick = TRUE))),
-                   column(4,
+                   column(4L,
                           pickerInput("ROC1_neg",
                                       "Negative GO term(s)",
                                       ROC1_allGONeg1,
@@ -1313,11 +1344,11 @@ server1 <- function(input, output, session) {
       } else { lst <- list(list(em(""))) }
       renderUI(lst)
     }
-    updtROC2 <- function(reactive = TRUE) {
-      tst <- { if (reactive) { ROC2ON() } else { length(ROC_GOterms) > 0 } }
+    updtROC2 <- \(reactive = TRUE) {
+      tst <- { if (reactive) { ROC2ON() } else { length(ROC_GOterms) > 0L } }
       if (tst) {
         lst <- list(
-          fluidRow(column(4,
+          fluidRow(column(4L,
                           em("GO terms to evaluate acceptable P-value significance thresholds, e.g. if you know that all proteins with a given term should be significant. Currently this is only used for personal interpretation of the plots and not fed back into the automated significance analysis."),
                           pickerInput("ROC2_terms",
                                       "",
@@ -1333,18 +1364,18 @@ server1 <- function(input, output, session) {
       renderUI(lst)
     }
   }
-  updtRSAmsg <- function(reactive = TRUE) {
+  updtRSAmsg <- \(reactive = TRUE) {
     myMsg <- { if (reactive) { RSA_msg() } else { "" } }
     renderUI(h5(strong(em(myMsg,
-                          style = paste0("color:", c("black", "red")[(nchar(myMsg) > 0)+1]),
+                          style = paste0("color:", c("black", "red")[(nchar(myMsg) > 0L)+1L]),
                           .noWS = "outside"))))
   }
-  updtFORM <- function(reactive = TRUE) {
+  updtFORM <- \(reactive = TRUE) {
     myMsg <- { if (reactive) { FORMULA() } else { limmaForm } }
     renderUI(strong(em(myMsg,
                        .noWS = "outside")))
   }
-  updtQuantMsg <- function(reactive = TRUE) {
+  updtQuantMsg <- \(reactive = TRUE) {
     myQuant <- { if (reactive) { input$Quant_algorithm } else { quantAlgo } }
     quantMsg <- allQuantAlgos$Help[match(myQuant, allQuantAlgos$Algorithm)]
     renderUI(em(quantMsg))
@@ -1357,8 +1388,8 @@ server1 <- function(input, output, session) {
   ADVOPT <- reactiveVal(tstAdvOpt)
   if (annotRep) {
     ROC1ON <- reactiveVal(length(c(ROCfilt_GOterms_Pos,
-                                   ROCfilt_GOterms_Neg)) > 0)
-    ROC2ON <- reactiveVal(length(ROC_GOterms) > 0)
+                                   ROCfilt_GOterms_Neg)) > 0L)
+    ROC2ON <- reactiveVal(length(ROC_GOterms) > 0L)
   }
   #
   # Dynamic UI
@@ -1373,7 +1404,7 @@ server1 <- function(input, output, session) {
   #            collapse = " / "))
   # })
   # Factors
-  sapply(wMp, function(w) {
+  sapply(wMp, \(w) {
     myFct <- colnames(Param)[w]
     observeEvent(input[[myFct]], {
       #tmpVal <- VPAL$names
@@ -1385,22 +1416,22 @@ server1 <- function(input, output, session) {
         # we have to do some extra homework:
         l <- length(tmpVal_ind)
         tst2 <- tst3 <- tst4 <- FALSE
-        l2 <- 2
+        l2 <- 2L
         tst2 <- !"Experiment" %in% tmpVal # Check that Experiment is included
         tmpRSA <- do.call(paste, c(Exp.map[, tmpVal_ind, drop = FALSE], sep = "___"))
         UtmpRSA <- unique(tmpRSA)
         tst3 <- length(UtmpRSA) < nSmpls # Check that the chosen factor combination defines - once supplemented with Replicate - unique samples
         if (length(tmpVal)) {
-          xpRws <- 1:nSmpls
+          xpRws <- 1L:nSmpls
           tmpVPAL <- do.call(paste, c(Exp.map[, tmpVal, drop = FALSE], sep = "___"))
           tst4 <- aggregate(xpRws, list(tmpVPAL, Exp.map$Replicate), length)
-          tst4 <- max(tst4$x) > 1 # Test for number of occurrences of each replicate number within sample groups
+          tst4 <- max(tst4$x) > 1L # Test for number of occurrences of each replicate number within sample groups
           l2 <- length(unique(tmpVPAL))
         }
         msg <- ""
-        if ((l < 3)||(tst2)||(tst3)||(tst4)) {
+        if ((l < 3L)||(tst2)||(tst3)||(tst4)) {
           msg <- c()
-          if ((l < 3)||(tst2)) { msg <- c(msg, "You MUST always include Experiment here, as well as at least one other contrasted factor!") }
+          if ((l < 3L)||(tst2)) { msg <- c(msg, "You MUST always include Experiment here, as well as at least one other contrasted factor!") }
           if (tst3) { msg <- c(msg, "The chosen experimental Factors do not discriminate fully between some samples (rows in the experiment map), add more!") }
           if (tst4) { msg <- c(msg, "It is not allowed for several samples to have the same replicate number within a sample group!") }
           msg <- paste(msg, collapse = " / ")
@@ -1411,7 +1442,7 @@ server1 <- function(input, output, session) {
         RSA_msg(msg)
         output$RSA_msg <- updtRSAmsg()
         #
-        if (l2 >= 2) {
+        if (l2 >= 2L) {
           shinyjs::enable("run_F_test")
           assign("F_test_override", FALSE, envir = .GlobalEnv)
         } else {
@@ -1421,10 +1452,10 @@ server1 <- function(input, output, session) {
       }
       if (myFct %in% c("Volcano.plots.Aggregate.Level", "Batch.effect")) {
         tmpVal2 <- input$Volcano.plots.Aggregate.Level
-        if (length(Exp) == 1) { tmpVal2 <- setdiff(tmpVal2, "Experiment") }
-        limmaForm <- paste0("~0+", paste(tmpVal2, collapse = "_"))
+        if (length(Exp) == 1L) { tmpVal2 <- setdiff(tmpVal2, "Experiment") }
+        limmaForm <- paste0("~ 0 + ", paste(tmpVal2, collapse = "_"))
         if (length(input$Batch.effect)) {
-          limmaForm <- paste0(limmaForm, "+", paste(input$Batch.effect, collapse = "_"))
+          limmaForm <- paste0(limmaForm, " + ", paste(input$Batch.effect, collapse = "_"))
         }
         FORMULA(limmaForm)
         assign("limmaForm", limmaForm, envir = .GlobalEnv)
@@ -1448,30 +1479,35 @@ server1 <- function(input, output, session) {
   # CytoScape
   output$CytoScape <- renderUI({
     if (!length(CytoScExe)) {
-      lst <- list(list(column(2, shinyFilesButton("CytoScVers2",
-                                                  em("No Cytoscape.exe detected, select one (optional)"),
-                                                  "", FALSE))))
+      lst <- shinyFilesButton("CytoScVers2",
+                              "No Cytoscape.exe detected, select one (optional)",
+                              "", FALSE)
     }
-    if (length(CytoScExe) == 1) {
-      lst <- list(list(column(2, em(paste0("Version detected: ", CytoScExe)))))
+    if (length(CytoScExe) == 1L) {
+      lst <- em(paste0("Cytoscape version detected: ", CytoScExe))
     }
-    if (length(CytoScExe) > 1) {
-      lst <- list(list(fluidRow(column(2, pickerInput("CytoScVers1",
-                                                      "Choose Cytoscape version:",
-                                                      CytoScExe,
-                                                      CytoScExe[1],
-                                                      FALSE)))))
+    if (length(CytoScExe) > 1L) {
+      lst <- pickerInput("CytoScVers1",
+                         "Choose Cytoscape version:",
+                         CytoScExe,
+                         CytoScExe[1L],
+                         FALSE)
     }
+    lst <- list(list(fluidRow(column(12L,
+                                     lst)),
+                     tags$hr(style = "border-color: black;")))
+    
     return(lst)
   })
   #
   # Labels purity correction - only for isobarically labelled samples
-  updtIsoPur <- function(reactive = TRUE, lblType = LabelType) {
+  updtIsoPur <- \(reactive = TRUE, lblType = LabelType) {
     if (lblType == "Isobaric") {
       fl <- { if (reactive) { PURFL() } else { Param$Label.Purities.file } }
-      lst <- list(list(fluidRow(column(1,
+      lst <- list(list(fluidRow(column(1L,
                                        shinyFilesButton("PurityFl", "Browse", paste0(IsobarLab, " purity table"), "", FALSE)),
-                                column(3, em(fl))),
+                                column(3L,
+                                       em(fl))),
                        br()))
       
     } else {
@@ -1490,10 +1526,10 @@ server1 <- function(input, output, session) {
     if (Annotate) {
       lst <- list(
         list(h4(strong("GO terms enrichment")),
-             fluidRow(column(1,
+             fluidRow(column(1L,
                              checkboxInput("GOenrich", "GO enrichment", goDflt, "100%"),
                              checkboxInput("runClueGO", "run ClueGO enrichment (NB: this is rather slow)", runClueGO, "100%")),
-                      column(2,
+                      column(2L,
                              pickerInput("GO.tabs",
                                          "GO terms of interest",
                                          allGO,
@@ -1504,7 +1540,7 @@ server1 <- function(input, output, session) {
                                                        actionsBox = TRUE,
                                                        deselectAllText = "Clear search",
                                                        showTick = TRUE))),
-                      column(1,
+                      column(1L,
                              checkboxInput("GO2Int", "Use GO terms to define list of proteins of interest?",
                                            as.character(toupper(Param$GO.terms.for.proteins.of.interest)) == "TRUE", # Clumsy but possibly more backwards proof
                                            "100%"))))
@@ -1823,7 +1859,7 @@ server1 <- function(input, output, session) {
   }
   observeEvent(input$addClassicNorm, {
     tmp <- NORMSEQ()
-    tmp <- c(tmp, paste0(length(tmp)+1, " - ", input$ClassicNormMeth))
+    tmp <- c(tmp, paste0(length(tmp)+1L, " - ", input$ClassicNormMeth))
     NORMSEQ(tmp)
     updateSelectInput(inputId = "PepNormSeq",
                       choices = tmp,
@@ -1833,7 +1869,7 @@ server1 <- function(input, output, session) {
   }, ignoreInit = TRUE)
   observeEvent(input$addVarCorr, {
     tmp <- NORMSEQ()
-    tmp <- c(tmp, paste0(length(tmp)+1, " - ", input$VarCorrMeth))
+    tmp <- c(tmp, paste0(length(tmp)+1L, " - ", input$VarCorrMeth))
     NORMSEQ(tmp)
     updateSelectInput(inputId = "PepNormSeq",
                       choices = tmp,
@@ -1843,7 +1879,7 @@ server1 <- function(input, output, session) {
   }, ignoreInit = TRUE)
   observeEvent(input$addComBat, {
     tmp <- NORMSEQ()
-    tmp <- c(tmp, paste0(length(tmp)+1, " - ", paste0("ComBat: ", paste(input$ComBatBatch, collapse = ";"))))
+    tmp <- c(tmp, paste0(length(tmp)+1L, " - ", paste0("ComBat: ", paste(input$ComBatBatch, collapse = ";"))))
     NORMSEQ(tmp)
     updateSelectInput(inputId = "PepNormSeq",
                       choices = tmp,
@@ -1854,7 +1890,7 @@ server1 <- function(input, output, session) {
   if (LabelType == "Isobaric") {
     observeEvent(input$addIRS, {
       tmp <- NORMSEQ()
-      tmp <- c(tmp, paste0(length(tmp)+1, " - IRS"))
+      tmp <- c(tmp, paste0(length(tmp)+1L, " - IRS"))
       NORMSEQ(tmp)
       updateSelectInput(inputId = "PepNormSeq",
                         choices = tmp,
@@ -1865,7 +1901,7 @@ server1 <- function(input, output, session) {
   }
   observeEvent(input$PepNormSeq, {
     tmp <- input$PepNormSeq
-    tmp <- paste0(1:length(tmp), gsub("^[0-9]+ - ", " - ", input$PepNormSeq))
+    tmp <- paste0(1L:length(tmp), gsub("^[0-9]+ - ", " - ", input$PepNormSeq))
     NORMSEQ(tmp)
     updateSelectInput(inputId = "PepNormSeq",
                       choices = tmp,
@@ -1932,13 +1968,13 @@ server1 <- function(input, output, session) {
     PARAM(Par)
   })
   # Ratio-level thresholds
-  observeEvent(input$typeOfThresh, {
-    ratiosThresh <- input$typeOfThresh
-    assign("ratiosThresh", ratiosThresh, envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$Ratios.Thresholds <- ratiosThresh
-    PARAM(Par)
-  })
+  # observeEvent(input$typeOfThresh, {
+  #   ratiosThresh <- input$typeOfThresh
+  #   assign("ratiosThresh", ratiosThresh, envir = .GlobalEnv)
+  #   Par <- PARAM()
+  #   Par$Ratios.Thresholds <- ratiosThresh
+  #   PARAM(Par)
+  # })
   observeEvent(input$RatCont, {
     KontRt <- as.numeric(input$RatCont)
     assign("KontRt", KontRt, envir = .GlobalEnv)
@@ -1946,11 +1982,11 @@ server1 <- function(input, output, session) {
     Par$Ratios.Contamination.Rates <- KontRt
     PARAM(Par)
   })
-  observeEvent(input$RatContGrp, {
-    Par <- PARAM()
-    Par$Ratios.Contaminant.Groups <- input$RatContGrp
-    PARAM(Par)
-  })
+  # observeEvent(input$RatContGrp, {
+  #   Par <- PARAM()
+  #   Par$Ratios.Contaminant.Groups <- input$RatContGrp
+  #   PARAM(Par)
+  # })
   # Proteins of interest
   observeEvent(input$IntProt, {
     prot.list <- db$`Protein ID`[dbOrd][match(input$IntProt, protHeads)]
@@ -1975,7 +2011,7 @@ server1 <- function(input, output, session) {
   })
   # observeEvent(input$F.test_within, {
   #   Par <- PARAM()
-  #   Par$F.test_within <- paste(substr(input$F.test_within, 1 , 3), collapse = ";")
+  #   Par$F.test_within <- paste(substr(input$F.test_within, 1L, 3L), collapse = ";")
   #   PARAM(Par)
   # }, ignoreNULL = FALSE)
   # GO enrichment
@@ -2031,7 +2067,7 @@ server1 <- function(input, output, session) {
       PARAM(Par)
     })
   }
-  if (length(CytoScExe) > 1) {
+  if (length(CytoScExe) > 1L) {
     observe({ shinyFileChoose(input, "CytoScVers2", roots = getVolumes(), filetypes = "exe")
       {
         tmp <- input$CytoScVers2
@@ -2071,7 +2107,7 @@ server1 <- function(input, output, session) {
   observeEvent(input$saveBtn, {
     Par <- PARAM()
     for (w in wMp) {
-      if (nchar(Par[[w]])) { Par[[w]] <- paste(substr(unlist(strsplit(Par[[w]], ";")), 1, 3), collapse = ";") }
+      if (nchar(Par[[w]])) { Par[[w]] <- paste(substr(unlist(strsplit(Par[[w]], ";")), 1L, 3L), collapse = ";") }
     }
     assign("Param", Par, envir = .GlobalEnv)
     assign("Mod4Quant", m4Quant(), envir = .GlobalEnv)
@@ -2080,16 +2116,16 @@ server1 <- function(input, output, session) {
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+  session$onSessionEnded(\() { stopApp() })
 }
 if (exists("appRunTest")) { rm(appRunTest) }
 appTxt1 <- sub("myApp", "myApp1", sub("\\(ui", "(ui1", sub(", server", ", server1", runApp)))
-runKount <- 0
+runKount <- 0L
 while ((!runKount)||(!exists("appRunTest"))) {
   ui1 <- make_ui1() # Update ui with current values
   eval(parse(text = appTxt1), envir = .GlobalEnv)
   shinyCleanup()
-  runKount <- runKount+1
+  runKount <- runKount+1L
 }
 rm(list = ls(pattern = "^\\.shiny"))
 shiny::stopApp()
@@ -2106,15 +2142,15 @@ Param$Ratios.Groups.Ref.Aggregate.Level <- paste0(Param$Volcano.plots.Aggregate.
 Param$Ratios.Plot.split <- "Exp"
 tmp <- unlist(strsplit(Param$Ratios.Groups.Ref.Aggregate.Level, ";"))
 tmp <- c(tmp[which(!tmp %in% c("Exp", "Rep"))], "Rep")
-Param$Ratios.Plot.wrap <- tmp[1]
+Param$Ratios.Plot.wrap <- tmp[1L]
 Param$Ratios.Plot.colour <- tmp[min(c(2, length(tmp)))]
-if (Param$Ratios.Thresholds == "% of intra-sample group ratios") {
-  Param$Ratios.Contamination.Rates <- Param$Ratios.Contamination.Rates/100
-}
+# if (Param$Ratios.Thresholds == "% of intra-sample group ratios") {
+#   Param$Ratios.Contamination.Rates <- Param$Ratios.Contamination.Rates/100
+# }
 # Apply defaults to non-UI parameters
-g <- grep("^TF_((TRUE)|(FALSE))$", Param[1,])
+g <- grep("^TF_((TRUE)|(FALSE))$", Param[1L,])
 for (w in g) { Param[[w]] <- as.logical(sub("^TF_", "", Param[[w]])) }
-g <- grep("^((TRUE)|(FALSE))$", Param[1,])
+g <- grep("^((TRUE)|(FALSE))$", Param[1L,])
 for (w in g) { Param[[w]] <- as.logical(Param[[w]]) }
 #}
 if (runClueGO&&!enrichGO) { runClueGO <- FALSE}
@@ -2126,7 +2162,7 @@ Update_Prot_matches <- Param$Update_Prot_matches
 ProtRulNuclL %<o% Param$ProtRulNuclL
 CytoScVrs %<o% Param$CytoscapePath
 CytoScape %<o% file.exists(CytoScVrs)
-Param$Ratios.Groups_Nested <- nchar(Param$Blocking.factors) > 0
+Param$Ratios.Groups_Nested <- nchar(Param$Blocking.factors) > 0L
 Nested %<o% Param$Ratios.Groups_Nested
 Param$Ratios.Ref.Groups <- if (Nested) {
   paste0(union(unlist(strsplit(Param$Ratios.Groups, ";")),
@@ -2134,19 +2170,19 @@ Param$Ratios.Ref.Groups <- if (Nested) {
 } else { Param$Ratios.Groups }
 #
 # Defaults in case we missed a parameter
-g <- grep("^TF_((TRUE)|(FALSE))$", Param[1,])
+g <- grep("^TF_((TRUE)|(FALSE))$", Param[1L,])
 if (length(g)) {
-  Param[1, g] <- sub("^TF_", "",  Param[1, g])
+  Param[1L, g] <- sub("^TF_", "",  Param[1L, g])
   Param[, g] <- as.logical(Param[, g])
 }
-w <- grep("^ *((TRUE)|(FALSE)) *$", Param[1,], ignore.case = TRUE)
+w <- grep("^ *((TRUE)|(FALSE)) *$", Param[1L,], ignore.case = TRUE)
 if (length(w)) {
-  Param[1, w] <- gsub(" ", "", toupper(Param[1, w]))
+  Param[1L, w] <- gsub(" ", "", toupper(Param[1L, w]))
   Param[, w] <- as.logical(Param[, w])
 }
 
 ReportCalls$Calls <- AddTxt2Report(" -> Parameters:")
-for (i in 1:ncol(Param)) {
+for (i in 1L:ncol(Param)) {
   ReportCalls$Calls <- AddTxt2Report(paste0("   - ", colnames(Param)[i], ": ", Param[[i]]))
 }
 ReportCalls <- AddSpace2Report()
@@ -2181,19 +2217,19 @@ if ("Prot.list_separate.plots" %in% colnames(Param)) {
 if (Param$GO.terms.for.proteins.of.interest) {
   tmpGO <- unlist(strsplit(Param$GO.tabs, ";"))
   GO_prot.list <- list()
-  GO_prot.list$Offspring <- lapply(tmpGO, function(x) {
+  GO_prot.list$Offspring <- lapply(tmpGO, \(x) {
     ont <- Ontology(x)
     x <- c(x, get(paste0("GO", ont, "OFFSPRING"))[[x]])
     x <- x[which(!is.na(x))]
     return(x)
   })
   tmpGO2 <- listMelt(strsplit(db$`GO-ID`, ";"), db$`Protein ID`)
-  GO_prot.list$Proteins <- lapply(GO_prot.list$Offspring, function(x) {
+  GO_prot.list$Proteins <- lapply(GO_prot.list$Offspring, \(x) {
     unique(tmpGO2$L1[which(tmpGO2$value %in% unlist(x))])
   })
   prot.list <- union(prot.list, unlist(GO_prot.list$Proteins))
 }
-prot.list.Cond %<o% (length(prot.list) > 0)
+prot.list.Cond %<o% (length(prot.list) > 0L)
 if (prot.list.Cond) {
   writeFasta(db[match(prot.list, db$`Protein ID`),], intPrtFst)
 }
@@ -2202,7 +2238,7 @@ if (prot.list.Cond) {
 if (!exists("prot.list_pep")) { prot.list_pep %<o% c() }
 if ("Prot.list_pep" %in% colnames(Param)) {
   tmp <- as.character(Param$Prot.list_pep)
-  if ((!as.character(tmp) %in% c("", "NA"))&&(rev(unlist(strsplit(tmp, "\\.")))[1] == "csv")) {
+  if ((!as.character(tmp) %in% c("", "NA"))&&(rev(unlist(strsplit(tmp, "\\.")))[1L] == "csv")) {
     if (tmp %in% list.files()) {
       tmp <- read.csv(tmp)
       if ("Protein.ID" %in% colnames(tmp)) { tmp <- tmp$Protein.ID } else {
@@ -2233,10 +2269,10 @@ custPGs %<o% NA
 if (("Custom.PGs" %in% colnames(Param))&&(!as.character(Param$Custom.PGs) %in% c("", "NA", "FALSE"))&&(file.exists(Param$Custom.PGs))) {
   custPGs_fl %<o% Param$Custom.PGs
   custPGs <- read.delim(custPGs_fl, check.names = FALSE)
-  if (colnames(custPGs)[1] != "Leading protein IDs") { custPGs <- read.delim(custPGs_fl, check.names = FALSE, sep = ",") }
-  if (colnames(custPGs)[1] != "Leading protein IDs") { custPGs <- read.csv(custPGs_fl, check.names = FALSE, sep = ",") }
-  if (colnames(custPGs)[1] != "Leading protein IDs") { custPGs <- read.csv(custPGs_fl, check.names = FALSE, sep = "\t") }
-  if (colnames(custPGs)[1] != "Leading protein IDs") {
+  if (colnames(custPGs)[1L] != "Leading protein IDs") { custPGs <- read.delim(custPGs_fl, check.names = FALSE, sep = ",") }
+  if (colnames(custPGs)[1L] != "Leading protein IDs") { custPGs <- read.csv(custPGs_fl, check.names = FALSE, sep = ",") }
+  if (colnames(custPGs)[1L] != "Leading protein IDs") { custPGs <- read.csv(custPGs_fl, check.names = FALSE, sep = "\t") }
+  if (colnames(custPGs)[1L] != "Leading protein IDs") {
     warning("I could not make sense of the custom protein groups file provided, skipping!")
     custPGs <- NA
   } else {
@@ -2251,7 +2287,7 @@ if (("Cont.DB" %in% colnames(Param))&&(!toupper(as.character(Param$Cont.DB)) %in
   temp <- unlist(strsplit(Param$Cont.DB, ";"))
   tst <- file.exists(temp)
   if (sum(!tst)) {
-    msg <- paste0("The following contaminant fasta", c("", "s")[(sum(!tst) > 1)+1], "could not be found:", paste0(" - ", temp[which(!tst)], "\n"))
+    msg <- paste0("The following contaminant fasta", c("", "s")[(sum(!tst) > 1L)+1L], "could not be found:", paste0(" - ", temp[which(!tst)], "\n"))
     stop(msg)
     #ReportCalls <- AddMsg2Report(Space = FALSE)
     #temp <- temp[which(tst)]
@@ -2266,7 +2302,7 @@ if (("Cont.DB" %in% colnames(Param))&&(!toupper(as.character(Param$Cont.DB)) %in
   temp$"Potential contaminant" <- "+"
   # Remove all evidences which match one of these proteins:
   #test <- strsplit(ev$Proteins, ";")
-  #test <- vapply(test, function(x) { sum(x %in% temp$"Protein ID") }, 1) > 0
+  #test <- vapply(test, \(x) { sum(x %in% temp$"Protein ID") }, 1L) > 0L
   #cont.ev %<o% ev[which(test),]
   #ev <- ev[which(!test),]
   contDB <- { if (exists("contDB")) { plyr::rbind.fill(list(contDB, temp)) } else { temp } }
@@ -2277,12 +2313,12 @@ if (("Cont.DB" %in% colnames(Param))&&(!toupper(as.character(Param$Cont.DB)) %in
   db[w] <- ""
 }
 w <- which(is.na(db$"Protein ID"))
-stopifnot(length(w) == 0) # This would need immediate fixing => stop early!
+stopifnot(length(w) == 0L) # This would need immediate fixing => stop early!
 
 # Write search database as backup
-tmp <- rep("", nrow(db)*3)
-tmp[3*(1:nrow(db))-2] <- db$Header
-tmp[3*(1:nrow(db))-1] <- db$Sequence
+tmp <- rep("", nrow(db)*3L)
+tmp[3L*(1L:nrow(db))-2L] <- db$Header
+tmp[3L*(1L:nrow(db))-1L] <- db$Sequence
 write(tmp, paste0(wd, "/Concatenated search database.fasta"))
 
 
@@ -2297,11 +2333,11 @@ DiscFilt %<o% ((!is.na(Param$TrueDisc_filter))&(Param$TrueDisc_filter != "")&(fi
 if (DiscFilt) {
   DiscFiltFl %<o% Param$TrueDisc_filter
   DiscFiltTbl %<o% read.csv(DiscFiltFl, check.names = FALSE)
-  tst2 <- sum(!c("Protein ID", RG$values) %in% colnames(DiscFiltTbl)) == 0
-  tst3 <- sum(!vapply(RG$values, function(x) { !"logical" %in% class(DiscFiltTbl[[x]]) }, TRUE))
-  if (tst2+tst3 == 2) {
+  tst2 <- sum(!c("Protein ID", RG$values) %in% colnames(DiscFiltTbl)) == 0L
+  tst3 <- sum(!vapply(RG$values, \(x) { !is.logical(DiscFiltTbl[[x]]) }, TRUE))
+  if (tst2+tst3 == 2L) {
     DiscFiltMode %<o% Param$TrueDisc_filter_mode
-    if (!DiscFiltMode %in% DiscFiltModes) { DiscFiltMode <- DiscFiltModes[1] }
+    if (!DiscFiltMode %in% DiscFiltModes) { DiscFiltMode <- DiscFiltModes[1L] }
     if (DiscFiltMode == "Filter column") {
       ObjNm <- "DiscFiltCol"
       if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
@@ -2309,7 +2345,7 @@ if (DiscFilt) {
         tmp <- dlg_input(msg, "Found in ...")$res
         ObjNm %<c% tmp
         AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
-        tmp <- AllAnsw[1,]
+        tmp <- AllAnsw[1L,]
         tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
         tmp$Value <- list(get(ObjNm))
         m <- match(ObjNm, AllAnsw$Parameter)
@@ -2330,14 +2366,14 @@ CRAPome %<o% ((!is.na(Param$CRAPome_file))&(Param$CRAPome_file != "")&(file.exis
 if (CRAPome) {
   CRAPomeFl %<o% Param$CRAPome_file
   CRAPomeProteins %<o% read.csv(CRAPomeFl, check.names = FALSE)
-  stopifnot(sum(c("Protein ID", "Protein IDs") %in% colnames(CRAPomeProteins)) > 0)
+  stopifnot(sum(c("Protein ID", "Protein IDs") %in% colnames(CRAPomeProteins)) > 0L)
   CRAPomeProteins <- c(CRAPomeProteins$`Protein ID`, CRAPomeProteins$`Protein IDs`)
   CRAPomeProteins <- unique(unlist(strsplit(CRAPomeProteins, ";")))
   if (length(CRAPomeProteins)) {
     w1 <- which(CRAPomeProteins %in% db$`Protein ID`)
     w2 <- which(!CRAPomeProteins %in% db$`Protein ID`)
     if (length(w2)) {
-      warning(paste0(w2, " proteins (", round(100*length(w2)/nrow(db), 2), "%) in the provided CRAPome are not in the search database!"))
+      warning(paste0(w2, " proteins (", round(100*length(w2)/nrow(db), 2L), "%) in the provided CRAPome are not in the search database!"))
     }
   } else {
     warning("Empty CRAPome filter, skipping...")
@@ -2349,18 +2385,20 @@ if (CRAPome) {
 IsPullDown %<o% (gsub(" |_|-|\\.", "", toupper(Param$Type)) %in% c("IP", "IMMUNOPRECIPITATION", "BIOID", "PULLDOWN"))
 # Impute
 opt <- setNames(c(TRUE, FALSE), c("Yes", "No"))
-dflt <- c("No", "Yes")[IsPullDown+1]
+dflt <- c("No", "Yes")[IsPullDown+1L]
 ObjNm <- "Impute"
 if ("Pep.Impute" %in% colnames(Param)) { Impute %<o% as.logical(Param$Pep.Impute) } else {
   dflt <- "No"
-  if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
+  if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
+    ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]]
+  } else {
     msg <- "Do you want to impute missing peptide values (recommended for pull-down experiments)?"
-    tmp <- paste(rep(" ", 180), collapse = "")
+    tmp <- paste(rep(" ", 180L), collapse = "")
     tmp <- opt[sub(" +$", "", dlg_list(paste0(names(opt), tmp), paste0(dflt, tmp), title = msg)$res)]
     if (is.na(tmp)) { tmp <- FALSE }
     ObjNm %<c% tmp
     AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
-    tmp <- AllAnsw[1,]
+    tmp <- AllAnsw[1L,]
     tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
     tmp$Value <- list(get(ObjNm))
     m <- match(ObjNm, AllAnsw$Parameter)
@@ -2369,24 +2407,24 @@ if ("Pep.Impute" %in% colnames(Param)) { Impute %<o% as.logical(Param$Pep.Impute
 }
 # Save parameters
 tmp <- data.frame(Param = colnames(Param),
-                  Value = vapply(colnames(Param), function(x) {
+                  Value = vapply(colnames(Param), \(x) {
                     x <- as.character(Param[[x]])
                     l <- length(x)
-                    if (l > 1) {
+                    if (l > 1L) {
                       #g <- grep("^[A-Z][a-z]{2}$", x)
                       x <- paste(x, collapse = #c(
-                                   ";"#, "")[(length(g) == l) + 1]
+                                   ";"#, "")[(length(g) == l) + 1L]
                                  )
                     }
                     return(x)
                   }, ""))
-tmp$Help <- vapply(tmp$Param, function(x) {
+tmp$Help <- vapply(tmp$Param, \(x) {
   if (x %in% names(Param_Help)) { return(Param_Help[x]) }
   return("")
 }, "")
 colnames(tmp) <- NULL
 tst <- try(write.csv(tmp, file = ParamPath, row.names = FALSE), silent = TRUE)
-while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
+while ((inherits(tst, "try-error")&&(grepl("cannot open the connection", tst[1L])))) {
   dlg_message(paste0("File \"", ParamPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmp, file = ParamPath, row.names = FALSE), silent = TRUE)
 }
@@ -2395,7 +2433,9 @@ while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1
 # We often copy and paste factor levels -> they must be stored as characters
 # Otherwise, they may get pasted improperly, e.g. if there are numerics with different number of characters,
 # such as 1 and 10, then this gets pasted as "... 1" and "...10" which is SUPER annoying!!!
-w <- which(vapply(colnames(Exp.map), function(x) { sum(c("numeric", "integer") %in% class(Exp.map[[x]])) > 0 }, TRUE))
+w <- which(vapply(colnames(Exp.map), \(x) {
+  sum(c("numeric", "integer") %in% class(Exp.map[[x]])) > 0L
+}, TRUE))
 for (i in w) {
   Exp.map[[i]] <- gsub(" ", "", # Overkill, just in case!
                        as.character(Exp.map[[i]]))
@@ -2405,17 +2445,17 @@ for (i in w) {
 a <- Aggregates
 names(a) <- NULL
 Aggregate.map %<o% data.frame(Aggregate.Name = names(Aggregates), Characteristics = a)
-if (length(Aggregates) > 1) {
+if (length(Aggregates) > 1L) {
   temp1 <- c()
   temp2 <- list()
-  kount <- 0
-  for (i in 2:length(Aggregates)) {
+  kount <- 0L
+  for (i in 2L:length(Aggregates)) {
     I <- combn(names(Aggregates), i)
-    for (j in 1:ncol(I)) {
-      kount <- kount + 1
-      J <- I[,j]
+    for (j in 1L:ncol(I)) {
+      kount <- kount + 1L
+      J <- I[, j]
       names(J) <- Aggregates[match(J, names(Aggregates))]
-      Exp.map[paste(J, collapse = "")] <- apply(Exp.map[, names(J)], 1, function(x) {
+      Exp.map[paste(J, collapse = "")] <- apply(Exp.map[, names(J)], 1L, \(x) {
         gsub(" ", "", paste(x, collapse = "___"))
       })
       temp1 <- c(temp1, paste(J, collapse = ""))
@@ -2427,7 +2467,7 @@ if (length(Aggregates) > 1) {
   temp1$Characteristics <- temp2
   Aggregate.map <- rbind(Aggregate.map, temp1)
 }
-Aggregate.list %<o% setNames(lapply(Aggregate.map$Aggregate.Name, function(x) { get(x) }), Aggregate.map$Aggregate.Name)
+Aggregate.list %<o% setNames(lapply(Aggregate.map$Aggregate.Name, \(x) { get(x) }), Aggregate.map$Aggregate.Name)
 #This doesn't work for the master/detailed dual script approach (issue with environments!)
 #
 # Define reference sample aggregate, as well as ratio groups, ratio ref group and volcano plot aggregates:
@@ -2447,12 +2487,12 @@ if ("Batch.effect" %in% colnames(Param)) {
   parse.Param.aggreg.2("Batch.effect")
 }
 a <- RSA$names
-Exp.map$Ref.Sample.Aggregate <- { 
-  if (length(a) == 1) { Exp.map[[a]] } else { do.call(paste, c(Exp.map[, a], sep = "___")) }
+Exp.map$Ref.Sample.Aggregate <- if (length(a) == 1L) { Exp.map[[a]] } else { 
+  do.call(paste, c(Exp.map[, a], sep = "___"))
 }
 Exp.map <- Exp.map[order(Exp.map[[VPAL$column]], Exp.map$Replicate),]
-if (!"list" %in% class(Exp.map$MQ.Exp)) { Exp.map$MQ.Exp <- strsplit(Exp.map$MQ.Exp, ";") }
-tstMQXp <- listMelt(Exp.map$MQ.Exp, 1:nrow(Exp.map), c("MQ.Exp", "Row"))
+if (!is.list(Exp.map$MQ.Exp)) { Exp.map$MQ.Exp <- strsplit(Exp.map$MQ.Exp, ";") }
+tstMQXp <- listMelt(Exp.map$MQ.Exp, 1L:nrow(Exp.map), c("MQ.Exp", "Row"))
 tstMQXp <- aggregate(tstMQXp$Row, list(tstMQXp$MQ.Exp), list)
 tstMQXp <- setNames(tstMQXp$x, tstMQXp$Group.1) 
 MQ.Exp <- MQ.Exp[which(MQ.Exp %in% names(tstMQXp))]

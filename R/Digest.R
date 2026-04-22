@@ -39,18 +39,18 @@ Digest <- function(Seq,
                    Cut = c("K_", "R_"),
                    strict.avoid = "",
                    loose.avoid = c("K_P", "R_P"),
-                   missed = 2,
-                   min = 7,
+                   missed = 2L,
+                   min = 7L,
                    max = FALSE,
                    characters.test = TRUE,
                    AA = AA,
                    RemoveNtermMet = "loose",
                    N.clust,
-                   N.reserved = 1,
+                   N.reserved = 1L,
                    collapse,
                    ChnkSz = Inf,
                    cl) {
-  parThresh <- 500
+  parThresh <- 500L
   TESTING <- FALSE
   #DefArg(Digest);TESTING <- TRUE; DB <- db
   #Seq = setNames(DB$Sequence, DB$`Protein ID`) #Seq = DB$Sequence
@@ -64,14 +64,14 @@ Digest <- function(Seq,
   } else { misFun <- missing }
   Cut <- toupper(Cut)
   stopifnot(class(missed) %in% c("numeric", "integer", "integer64") & missed == round(missed),
-            missed >= 0,
-            min(nchar(Cut)) == 2,
-            max(nchar(Cut)) == 2)
+            missed >= 0L,
+            min(nchar(Cut)) == 2L,
+            max(nchar(Cut)) == 2L)
   usePar <- FALSE
   if (is.null(names(Seq))) {
     names(Seq) <- paste0("Protein ", seq_along(Seq))
   }
-  if ((length(Seq) > parThresh)&&((missed > 0)||(length(loose.avoid)))) {
+  if ((length(Seq) > parThresh)&&((missed)||(length(loose.avoid)))) {
     usePar <- require(parallel)
     if (usePar) {
       #
@@ -86,13 +86,13 @@ Digest <- function(Seq,
       }
       if ((misFun(cl))||(!tstCl)) {
         dc <- parallel::detectCores()
-        if (misFun(N.reserved)) { N.reserved <- 1 }
+        if (misFun(N.reserved)) { N.reserved <- 1L }
         if (misFun(N.clust)) {
-          N.clust <- max(c(dc-N.reserved, 1))
+          N.clust <- max(c(dc-N.reserved, 1L))
         } else {
-          if (N.clust > max(c(dc-N.reserved, 1))) {
+          if (N.clust > max(c(dc-N.reserved, 1L))) {
             warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
-            N.clust <- max(c(dc-N.reserved, 1))
+            N.clust <- max(c(dc-N.reserved, 1L))
           }
         }
         cl <- parallel::makeCluster(N.clust, type = "SOCK")
@@ -112,37 +112,39 @@ Digest <- function(Seq,
     strict.avoid <- strict.avoid[which(!strict.avoid %in% loose.avoid)]
   }
   SEQ <- toupper(gsub("\\*.*", "", Seq)) # Remove stop codons (*)
-  SEQ <- SEQ[which(nchar(SEQ) > 0)]
+  SEQ <- SEQ[which(nchar(SEQ) > 0L)]
   # The little alchemy below is to deal with cases where input sequences include duplicates of the same accession
   lSEQ <- length(SEQ)
   SEQ <- data.table::data.table(SEQ = SEQ, Name = names(SEQ))
   SEQ <- SEQ[, list(x = list(SEQ)), by = list(Group.1 = Name)]
   SEQ <- as.data.frame(SEQ)
-  stopifnot(min(vapply(SEQ$x, length, 1)) == 1)
-  stopifnot(max(vapply(SEQ$x, length, 1)) == 1) # This indicates that the same accession has been provided with different sequences,
-  # which is not acceptable!
-  # Create non-redundant protein names
+  lsSq <- lengths(SEQ$x)
+  stopifnot(min(lsSq) == 1L,
+            max(lsSq) == 1L) # This indicates that the same accession has been provided with different sequences, which is not acceptable!
+ # Create non-redundant protein names
   SEQ <- listMelt(setNames(SEQ$x, SEQ$Group.1))
   SEQ <- setNames(SEQ$value, SEQ$L1)
   lSEQ <- length(SEQ)
   if (usePar) {
     ChnkSz <- lSEQ
     ChnkSz <- ceiling(ChnkSz/N.clust)
-    Chnks <- data.frame(Start = 1, End = lSEQ)
+    Chnks <- data.frame(Start = 1L,
+                        End = lSEQ)
     n <- ceiling(lSEQ/ChnkSz)
-    Chnks <- round((1:(n-1))*lSEQ/n)
+    Chnks <- round((1L:(n-1L))*lSEQ/n)
     Chnks <- c(Chnks, lSEQ)
-    Chnks <- data.frame(Start = c(1, Chnks[1:(n-1)]+1),
+    Chnks <- data.frame(Start = c(1L, Chnks[1L:(n-1L)]+1L),
                         End = Chnks)
-    stopifnot(Chnks$Start[1] == 1,
-              rev(Chnks$End)[1] == lSEQ,
-              sum(vapply(1:(nrow(Chnks)-1), function(x) {
-                Chnks$Start[x+1]-Chnks$End[x]-1
-              }, 1)) == 0)
-    Chnks <- apply(Chnks, 1, function(x) { SEQ[x[[1]]:x[[2]]] })
+    stopifnot(Chnks$Start[1L] == 1L,
+              rev(Chnks$End)[1L] == lSEQ,
+              sum(vapply(1L:(nrow(Chnks)-1L), function(x) {
+                Chnks$Start[x+1L]-Chnks$End[x]-1L
+              }, 1L)) == 0L)
+    Chnks <- apply(Chnks, 1L, function(x) { SEQ[x[[1L]]:x[[1L]]] })
   }
   # Optional characters test
   if (characters.test) {
+    AA <- proteoCraft::AA
     if (usePar) {
       test <- unlist(parallel::parLapply(cl, Chnks, function(x) {
         nchar(gsub(paste(AA, collapse = "|"), "", x))
@@ -152,14 +154,14 @@ Digest <- function(Seq,
     }
     if (max(test)) {
       if (lSEQ > 1) {
-        w <- which(test > 0)
+        w <- which(test > 0L)
         l <- length(w)
-        if (l > 1) {
-          if (l > 100) { w <- paste0(paste(w[1:100], collapse = ", "), "...") } else {
-            w <- paste0(paste(w[1:(l-1)], collapse = ", "), " and ", w[l])
+        if (l > 1L) {
+          if (l > 100L) { w <- paste0(paste(w[1L:100L], collapse = ", "), "...") } else {
+            w <- paste0(paste(w[1L:(l-1L)], collapse = ", "), " and ", w[l])
           }
         }
-        msg <- paste0("There are illegal characters in input Sequence", c("", "s")[(l > 1)+1], " number ", w, "!")
+        msg <- paste0("There are illegal characters in input Sequence", c("", "s")[(l > 1L)+1L], " number ", w, "!")
       } else { msg <- "There are illegal characters in the input Sequence!" }
       warning(msg)
     }
@@ -170,7 +172,7 @@ Digest <- function(Seq,
     cllpsTst <- TRUE
     cllps <- as.character(collapse)
   }
-  F0 <- function(Sq) { #Sq <- SEQ #Sq <- Chnks[[1]]
+  F0 <- function(Sq) { #Sq <- SEQ #Sq <- Chnks[[1L]]
     nmsSq <- names(Sq)
     # N-terminal Methionine:
     if (RemoveNtermMet == "strict") { Sq <- gsub("^M", "", Sq) }
@@ -220,15 +222,15 @@ Digest <- function(Seq,
     # Apply missed cleavages
     Rs <- Sq
     if (missed) {
-      L <- vapply(Sq, length, 1)
+      L <- lengths(Sq)
       # Seeing the size of the input, a good old "for" loop here is actually probably a good idea
       # so as not to overly tax memory...
-      for (ms in 1:missed) { #ms <- 1
+      for (ms in 1L:missed) { #ms <- 1L
         if (TESTING) { print(paste0("Creating peptides with ", ms, "-missed cleavages...")) }
-        w <- which(L >= ms+1)
+        w <- which(L >= ms+1L)
         if (length(w)) {
-          temp <- setNames(lapply(w, function(x) { #x <- 1
-            vapply(1:(L[x]-ms), function(p) { paste(Sq[[x]][p:(p+ms)], collapse = "") }, "")
+          temp <- setNames(lapply(w, function(x) { #x <- 1L
+            vapply(1L:(L[x]-ms), function(p) { paste(Sq[[x]][p:(p+ms)], collapse = "") }, "")
           }), names(Sq)[w])
           Rs[w] <- mapply(c, Rs[w], temp, SIMPLIFY = FALSE)
         }
@@ -245,10 +247,10 @@ Digest <- function(Seq,
       # Restore cuts
       for (C in Cut) { temp$value <- gsub("_$", "", gsub(gsub("_", "", C), C, temp$value)) }
       temp$value <- strsplit(temp$value, "_")
-      tstL <- vapply(temp$value, length, 1)
-      wL <- which(tstL > 1) # Normally this should be all of them, since all are matches
+      tstL <- lengths(temp$value)
+      wL <- which(tstL > 1L) # Normally this should be all of them, since all are matches
       if (length(wL)) {
-        temp$value[wL] <- vapply(wL, function(x) { #x <- wL[1]
+        temp$value[wL] <- vapply(wL, function(x) { #x <- wL[1L]
           paste(unlist(sapply(seq_len(tstL[x]), function(p1) {
             # For each potential proximal digest position p1 in the peptide,
             # we generate all peptides ending at all potential distal positions p2
@@ -291,13 +293,13 @@ Digest <- function(Seq,
   } else {
     RES <- F0(SEQ)
   }
-  RES[[names(Seq)[1]]]
+  RES[[names(Seq)[1L]]]
   #
   Res <- setNames(lapply(Seq, function(x) { }), names(Seq))
   Res[names(RES)] <- RES
   #
   stopifnot(length(Res) == length(Seq), # Check length
-            sum(names(Res) != names(Seq)) == 0) # Check order
+            sum(names(Res) != names(Seq)) == 0L) # Check order
   #
   # Last check for unicity
   Res <- setNames(lapply(Res, unique), names(Res))

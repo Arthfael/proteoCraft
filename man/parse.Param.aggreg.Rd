@@ -8,7 +8,9 @@ parse.Param.aggreg(
   parameter,
   aggregates = Aggregates,
   map = Aggregate.map,
-  aggr.list = Aggregate.list
+  aggr.list = Aggregate.list,
+  checkExp = FALSE,
+  experiment = Exp
 )
 }
 \arguments{
@@ -19,13 +21,19 @@ parse.Param.aggreg(
 \item{map}{The reference aggregates map. All existing aggregates in this map must exist. Default: Aggregate.map}
 
 \item{aggr.list}{The list of aggregates. Default: Aggregate.list}
+
+\item{checkExp}{Logical, default = FALSE. Should we check the Experiment object, dropping it if it has only 1 level?}
+
+\item{experiment}{Experiment factor object. Allows for dropping Exp if its length is one. Default = "Exp"}
 }
 \value{
 A named list with the name of the factors aggregate, its possible values (levels), the name of the individual aggregated factors, and the name of the corresponding column in the experiment map.
 }
 \description{
-Internal. Parse an aggregates-type parameter.
-Only use for assignments to temporary variables, otherwise use the newer parse.Param.aggreg.2 which is more deeply integrated in the workflows.
+Internal. Parse an aggregates-type parameter value.
+Use for assignments to temporary variables, inside functions, or where the value isn't stored in a parameters object.
+This one is slightly more flexible than the newer parse.Param.aggreg.2(), which takes a parameter name, not its value.
+However, parse.Param.aggreg.2 is more deeply integrated in the workflows.
 }
 \details{
 This function parses a factors aggregate-type parameter in the parameters object and returns a list.

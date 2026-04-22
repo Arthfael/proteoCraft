@@ -4,8 +4,8 @@ wAG2 <- wAG1
 Outcome <- TRUE
 txt2 <- ""
 #
-if (length(Iso) <= 1) {
-  if (length(Iso) == 1) {
+if (length(Iso) <= 1L) {
+  if (length(Iso) == 1L) {
     warning("Skipping IRS normalisation: there is only 1 Isobarically labelled sample (aka \"Isobaric Set\")")
   } else { stop("\"LabelType\" is set to \"Isobaric\" but \"Iso\" has invalid length, investigate!") }
 } else {
@@ -18,13 +18,13 @@ if (length(Iso) <= 1) {
   design <- data.frame(Sample = currSamples,
                        Iso = Exp.map$Isobaric.set[m],
                        Samples_group = Exp.map[m, VPAL$column])
-  design$Original.order <- 1:nrow(design)
+  design$Original.order <- 1L:nrow(design)
   design <- design[order(design$Samples_group),]
   design <- design[order(design$Iso),]
-  design$New.order <- 1:nrow(design)
+  design$New.order <- 1L:nrow(design)
   #
   # Define reference channels
-  #Exp.map$Isobaric.set <- c(1, 1, 2, 1, 1, 2)
+  #Exp.map$Isobaric.set <- c(1L, 1L, 2L, 1L, 1L, 2L)
   IsoMapNm %<o% "Isobaric sets map"
   IsoMapPath %<o% paste0(wd, "/", IsoMapNm, ".csv")
   if (file.exists("IsoMap")) {
@@ -43,18 +43,18 @@ if (length(Iso) <= 1) {
       }
       # Column "All channels" MUST be present and valid
       tst2 <- sum((!"All channels" %in% colnames(IsoMap))&&
-                    (sum(sapply(IsoMap$"All channels", function(x) {
+                    (sum(vapply(IsoMap$"All channels", \(x) {
                       !x %in% unique(unlist(Exp.map$"Isobaric label details"))
-                    }))))
+                    }, TRUE))))
       # IF column "Reference channel(s)" is present, it MUST be valid
       tst3 <- FALSE
       if ("Reference channel(s)" %in% colnames(IsoMap)) {
         tst3 <- aggregate(Exp.map$"Isobaric label details", list(Exp.map$Isobaric.set), list)
-        tst3 <- sum(vapply(IsoMap$Set, function(i) {
+        tst3 <- sum(vapply(IsoMap$Set, \(i) {
           x <- IsoMap$"Reference channel(s)"[[i]]
           x <- x[which(x != "")]
           sum(!x %in% tst3$x[[i]])
-        }, 1) > 0)
+        }, 1L) > 0L)
       }
       if (sum(tst1, tst2, tst3)) {
         warning("Invalid Isobaric sets map reloaded, ignoring...")
@@ -65,33 +65,33 @@ if (length(Iso) <= 1) {
   if (!exists("IsoMap")) {
     IsoMap <- aggregate(Exp.map$"Isobaric label details", list(Exp.map$Isobaric.set), list)
     colnames(IsoMap) <- c("Set", "All channels")
-    IsoMap$"Reference channel(s)" <- lapply(1:nrow(IsoMap), function(x) { })
+    IsoMap$"Reference channel(s)" <- lapply(1L:nrow(IsoMap), \(x) { })
   }
-  rws <- 1:nrow(IsoMap)
+  rws <- 1L:nrow(IsoMap)
   IsoMap2 <- IsoMap[, c("Set", "Reference channel(s)")]
-  IsoMap2$"Reference channel(s)" <- vapply(rws, function(i) {
+  IsoMap2$"Reference channel(s)" <- vapply(rws, \(i) {
     as.character(shiny::selectInput(paste0("ID___", as.character(i)),
                                     "",
                                     unlist(IsoMap$`All channels`[i]),
-                                    unlist(IsoMap$`Reference channel(s)`[i])[1],
+                                    unlist(IsoMap$`Reference channel(s)`[i])[1L],
                                     TRUE,
                                     FALSE,
                                     width = "300px"))
   }, "a")
-  wTest1 <- setNames(vapply(colnames(IsoMap2), function(k) { #k <- colnames(IsoMap2)[1]
+  wTest1 <- setNames(vapply(colnames(IsoMap2), \(k) { #k <- colnames(IsoMap2)[1L]
     x <- max(c(nchar(k),
-               nchar(as.character(IsoMap[[k]])) + 6), na.rm = TRUE)*10
-    if (is.na(x)) { x <- 15 } else { x <- max(c(ceiling(x/10)*10, 30)) }
+               nchar(as.character(IsoMap[[k]])) + 6L), na.rm = TRUE)*10L
+    x <- if (is.na(x)) { 15L } else { max(c(ceiling(x/10)*10L, 30L)) }
     return(x)
-  }, 1), colnames(IsoMap2))
+  }, 1L), colnames(IsoMap2))
   wTest2 <- sum(wTest1)
   wTest1 <- paste0(as.character(wTest1), "px")
-  wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
-  wTest1 <- apply(wTest1, 1, function(x) {
-    x2 <- as.integer(x[[2]])
-    list(width = x[[1]],
+  wTest1 <- aggregate((1L:length(wTest1))-1L, list(wTest1), c)
+  wTest1 <- apply(wTest1, 1L, \(x) {
+    x2 <- as.integer(x[[2L]])
+    list(width = x[[1L]],
          targets = x2,
-         names = colnames(IsoMap2)[x2+1])
+         names = colnames(IsoMap2)[x2+1L])
   })
   appNm <- "IRS reference channels"
   if (exists("IHAVERUN")) { rm(IHAVERUN) }
@@ -108,7 +108,7 @@ if (length(Iso) <= 1) {
     titlePanel(tag("u", appNm),
                appNm),
     br(),
-    fluidRow(column(5,
+    fluidRow(column(5L,
                     actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
                     h5(HTML("Select 1 reference channel per Isobaric set for Internal Reference Scaling normalisation")),
                     h5(HTML("We define an \"Isobaric set\" as a combined sample made up of pooled samples individually labelled isobarically.")),
@@ -146,7 +146,7 @@ Shiny.bindAll(table.table().node());"))
     #
     # Save
     observeEvent(input$saveBtn, {
-      IsoMap3$"Reference channel(s)" <- sapply(rws, function(i) {
+      IsoMap3$"Reference channel(s)" <- sapply(rws, \(i) {
         id <- paste0("ID___", as.character(i))
         return(input[[id]])
       })
@@ -157,19 +157,19 @@ Shiny.bindAll(table.table().node());"))
     #observeEvent(input$cancel, { stopApp() })
     session$onSessionEnded(function() { stopApp() })
   }
-  runKount <- 0
+  runKount <- 0L
   while ((!runKount)||(!exists("IHAVERUN"))) {
     eval(parse(text = runApp), envir = .GlobalEnv)
     shinyCleanup()
-    runKount <- runKount+1
+    runKount <- runKount+1L
   }
   IsoMap %<o% IsoMap3
   tmpTbl <- IsoMap
-  tst <- lapply(colnames(tmpTbl), function(x) { typeof(tmpTbl[[x]]) })
+  tst <- lapply(colnames(tmpTbl), \(x) { typeof(tmpTbl[[x]]) })
   w <- which(tst == "list")
-  if (length(w)) { for (i in w) { tmpTbl[[i]] <- sapply(tmpTbl[[i]], paste, collapse = ";") }}
+  if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
   tst <- try(write.csv(tmpTbl, file = IsoMapPath, row.names = FALSE), silent = TRUE)
-  while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
+  while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {
     dlg_message(paste0("File \"", IsoMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
     tst <- try(write.csv(tmpTbl, file = IsoMapPath, row.names = FALSE), silent = TRUE)
   }
@@ -177,7 +177,7 @@ Shiny.bindAll(table.table().node());"))
   # Temporarily impute (unavoidable here if we want to show PCAs)
   ImpGrps <- Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),
                      VPAL$column]
-  tmp <- proteoCraft::Data_Impute2(tmpDat1[, currSamples], ImpGrps)
+  tmp <- Data_Impute2(tmpDat1[, currSamples], ImpGrps)
   tmpDat1Imp <- tmp$Imputed_data
   Pos <- tmp$Positions_Imputed
   #
@@ -187,38 +187,39 @@ Shiny.bindAll(table.table().node());"))
   # Here the code is also adapted for log scale
   setNms <- paste0("Set", as.character(IsoMap$Set))
   # All samples per set
-  mixed <- unique(unlist(lapply(Factors, function(x) { which(Exp.map[[x]] == "Mixed_IRS") })))
+  mixed <- unique(unlist(lapply(Factors, \(x) { which(Exp.map[[x]] == "Mixed_IRS") })))
   mixedSets <- paste0("Set", as.character(unique(Exp.map$Isobaric.set[mixed])))
-  irsSamples <- setNames(lapply(1:nrow(IsoMap), function(i) {
-    Exp.map$Ref.Sample.Aggregate[which((! 1:nrow(Exp.map) %in% mixed)&(Exp.map$Isobaric.set == IsoMap$Set[i]))]
+  irsSamples <- setNames(lapply(1L:nrow(IsoMap), \(i) {
+    Exp.map$Ref.Sample.Aggregate[which((!1L:nrow(Exp.map) %in% mixed)&(Exp.map$Isobaric.set == IsoMap$Set[i]))]
   }), setNms)
   # Either intensity from IRS channel, or failing that log10 row means for the group
-  irsRowMeans <- setNames(lapply(setNms, function(nm) {
-    if (nm %in% mixedSets) {
-      x <- tmpDat1Imp[, Exp.map$Ref.Sample.Aggregate[mixed[which(mixedSets == nm)]], drop = FALSE]
+  clusterExport(parClust, "is.all.good", envir = environment())
+  irsRowMeans <- setNames(lapply(setNms, \(nm) {
+    x <-  if (nm %in% mixedSets) {
+      tmpDat1Imp[, Exp.map$Ref.Sample.Aggregate[mixed[which(mixedSets == nm)]], drop = FALSE]
     } else {
-      x <- tmpDat1Imp[, irsSamples[[nm]]]
+      tmpDat1Imp[, irsSamples[[nm]]]
     }
-    #log10(parApply(parClust, tmpDat1Imp[, x], 1, function(y) { sum(10^proteoCraft::is.all.good(y)) }))
-    #parApply(parClust, tmpDat1Imp[, x], 1, function(y) { sum(proteoCraft::is.all.good(y)) })
-    x <- parApply(parClust, x, 1, function(y) { mean(proteoCraft::is.all.good(y)) })
+    #log10(parApply(parClust, tmpDat1Imp[, x], 1L, \(y) { sum(10^is.all.good(y)) }))
+    #parApply(parClust, tmpDat1Imp[, x], 1L, \(y) { sum(is.all.good(y)) })
+    x <- parApply(parClust, x, 1L, \(y) { mean(is.all.good(y)) })
     return(x)
   }), setNms)
   #View(do.call(cbind, irsRowMeans))
   # log10 geometric mean
-  allMeans <- parApply(parClust, tmpDat1Imp[, currSamples], 1, function(x) {
-    #log10(mean(10^proteoCraft::is.all.good(x)))
-    mean(proteoCraft::is.all.good(x))
+  allMeans <- parApply(parClust, tmpDat1Imp[, currSamples], 1L, \(x) {
+    #log10(mean(10^is.all.good(x)))
+    mean(is.all.good(x))
   })
   #View(data.frame(meanOfAll = allMeans))
   # log10 scaling factors:
-  irsFact <- setNames(lapply(setNms, function(x) {
+  irsFact <- setNames(lapply(setNms, \(x) {
     allMeans - irsRowMeans[[x]]
   }), setNms)
   #View(do.call(cbind, irsFact))
   # log10 new data
-  tmpDat2Imp <- lapply(setNms, function(x) { #x <- setNms[1]
-    sweep(tmpDat1Imp[, irsSamples[[x]]], 1, irsFact[[x]], "+")
+  tmpDat2Imp <- lapply(setNms, \(x) { #x <- setNms[1L]
+    sweep(tmpDat1Imp[, irsSamples[[x]]], 1L, irsFact[[x]], "+")
   })
   tmpDat2Imp <- do.call(cbind, c(tmpDat2Imp))
   #View(tmpDat2Imp)
@@ -231,7 +232,7 @@ Shiny.bindAll(table.table().node());"))
   tmpDat2 <- tmpDat2[, colnames(tmpDat2Imp)]
   #
   wAG2 <- wAG1
-  #wAGstrict <- which(parApply(parClust, tmpDat2, 1, function(x) { length(proteoCraft::is.all.good(x)) }) == length(currSamples))
+  #wAGstrict <- which(parApply(parClust, tmpDat2, 1L, \(x) { length(is.all.good(x)) }) == length(currSamples))
   # Plot
   map <- Exp.map[, c("Ref.Sample.Aggregate", "Isobaric.set")]
   w1 <- which(colnames(tmpDat1Imp) %in% map$Ref.Sample.Aggregate) # Should be all
@@ -275,9 +276,10 @@ Shiny.bindAll(table.table().node());"))
   KeepIRSRes <- corrTst$p.value < 0.01 # Default: keep results only if data is very significantly different
   l <- min(c(length(PCsLst[[prev]]$sdev), length(PCsLst[[curr]]$sdev)))
   l2 <- min(c(5, l))
-  PCs <- data.frame("Component" = paste0("PC", as.character(1:l2)),
-                    "Before (%)" = round(100*(PCsLst[[prev]]$sdev[1:l2])^2 / sum(PCsLst[[prev]]$sdev^2), 0),
-                    "After (%)" = round(100*(PCsLst[[curr]]$sdev[1:l2])^2 / sum(PCsLst[[curr]]$sdev^2), 0),
+  rg2 <- 1L:l2
+  PCs <- data.frame("Component" = paste0("PC", as.character(rg2)),
+                    "Before (%)" = round(100*(PCsLst[[prev]]$sdev[rg2])^2 / sum(PCsLst[[prev]]$sdev^2), 0L),
+                    "After (%)" = round(100*(PCsLst[[curr]]$sdev[rg2])^2 / sum(PCsLst[[curr]]$sdev^2), 0L),
                     check.names = FALSE)
   if (l2 < l) {
     PCs <- rbind(PCs, data.frame(Component = "...",
@@ -299,7 +301,7 @@ Shiny.bindAll(table.table().node());"))
     titlePanel(tag("u", appNm),
                appNm),
     br(),
-    fluidRow(column(12,
+    fluidRow(column(12L,
                     checkboxInput("KeepIRSRes", msg, KeepIRSRes),
                     actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
                     h4("Recommended criteria:"),
@@ -309,8 +311,8 @@ Shiny.bindAll(table.table().node());"))
                                    IsobarLab, " set-related batch effect."))),
                     withSpinner(DTOutput("PCs"))),
              br(),
-             fluidRow(column(5, withSpinner(plotlyOutput("Before", height = "600px"))),
-                      column(5, withSpinner(plotlyOutput("After", height = "600px"))))),
+             fluidRow(column(5L, withSpinner(plotlyOutput("Before", height = "600px"))),
+                      column(5L, withSpinner(plotlyOutput("After", height = "600px"))))),
     br(),
     br()
   )
@@ -348,10 +350,10 @@ Shiny.bindAll(table.table().node());"))
     #observeEvent(input$cancel, { stopApp() })
     session$onSessionEnded(function() { stopApp() })
   }
-  runKount <- 0
+  runKount <- 0L
   while ((!runKount)||(!exists("IHAVERUN"))) {
     eval(parse(text = runApp), envir = .GlobalEnv)
-    runKount <- runKount+1
+    runKount <- runKount+1L
   }
   msg <- paste0(" -> Internal Reference Scaling-based correction of ", IsobarLab, "-associated batch effect ", c("rejec", "accep")[KeepIRSRes+1], "ted.\n")
   if (KeepIRSRes) {

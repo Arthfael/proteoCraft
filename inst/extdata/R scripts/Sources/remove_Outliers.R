@@ -10,35 +10,35 @@ Include <- Exp.map[, c(fctrs, "Use")]
 #fctrs <- gsub("\\.", "_", fctrs)
 Include$Use <- shinyCheckInput(Exp.map$Use)
 # Table width
-wTest0 <- setNames(vapply(colnames(Exp.map), function(k) { #k <- colnames(Exp.map)[1]
+wTest0 <- setNames(vapply(colnames(Exp.map), \(k) { #k <- colnames(Exp.map)[1L]
   tmp <- Exp.map[[k]]
-  if ("logical" %in% class(tmp)) { tmp <- as.integer(tmp) }
+  if (is.logical(tmp)) { tmp <- as.integer(tmp) }
   tmp <- as.character(tmp)
-  x <- max(nchar(c(k, tmp)) + 3, na.rm = TRUE)
-  x <- x*10
+  x <- max(nchar(c(k, tmp)) + 3L, na.rm = TRUE)
+  x <- x*10L
   return(x)
-}, 1), #gsub("\\.", "_",
+}, 1L), #gsub("\\.", "_",
 colnames(Exp.map))#)
-wTest1 <- vapply(colnames(Include), function(k) { #k <- colnames(Include)[1]
-  if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
+wTest1 <- vapply(colnames(Include), \(k) { #k <- colnames(Include)[1]
+  x <- if (k %in% names(wTest0)) { wTest0[k] } else { 30L }
   return(x)
-}, 1)
+}, 1L)
 wTest1 <- round(wTest1*screenRes$width*0.45/sum(wTest1))
 #sum(wTest1)
 wTest1 <- paste0(as.character(wTest1), "px")
-wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
-wTest1 <- apply(wTest1, 1, function(x) {
-  x1 <- x[[1]]
-  x2 <- as.integer(x[[2]])
+wTest1 <- aggregate((1L:length(wTest1))-1L, list(wTest1), c)
+wTest1 <- apply(wTest1, 1L, \(x) {
+  x1 <- x[[1L]]
+  x2 <- as.integer(x[[2L]])
   list(width = x1,
        targets = x2,
-       names = colnames(Include)[x2+1])
+       names = colnames(Include)[x2+1L])
 })
 #
 if (exists("appRunTest")) { rm(appRunTest) }
 dotLab <- RSA$names
 colLab <- VPAL$names
-if (length(Exp) == 1) {
+if (length(Exp) == 1L) {
   dotLab <- dotLab[which(dotLab != "Experiment")]
   colLab <- colLab[which(colLab != "Experiment")]
 }
@@ -69,7 +69,7 @@ ui <- fluidPage(
       br(),
       DTOutput("Include"),
       br(),
-      width = 6
+      width = 6L
     ),
     mainPanel(
       h4(em("Plot mappings:")),
@@ -79,13 +79,13 @@ ui <- fluidPage(
       h5(em(paste0("Shape = ", outlierAnnot_shape))),
       plotlyOutput("PCA", height = paste0(screenRes$width*0.4, "px")),
       br(),
-      width = 6
+      width = 6L
     )
   ))
-server <- function(input, output, session) {
+server <- \(input, output, session) {
   tstGrps <- aggregate(Exp.map$Use, list(Exp.map[[VPAL$column]]), sum)
-  if (min(tstGrps$x) < 2) { shinyjs::disable("saveBtn") }
-  if (min(tstGrps$x) >= 2) { shinyjs::enable("saveBtn") }
+  if (min(tstGrps$x) < 2L) { shinyjs::disable("saveBtn") }
+  if (min(tstGrps$x) >= 2L) { shinyjs::enable("saveBtn") }
   output$Include <- renderDT({ Include },
                              FALSE,
                              escape = FALSE,
@@ -110,43 +110,42 @@ server <- function(input, output, session) {
       Shiny.bindAll(table.table().node());"))
   output$Msg <- renderUI({ em(" ") })
   output$PCA <- renderPlotly(plot_lyPCA)
-  # sapply(seq_len(nrow(Include)), function(x) {
+  # sapply(seq_len(nrow(Include)), \(x) {
   #   id <- paste0("check___", as.character(x))
   #   observeEvent(input[[id]], {
   #     Exp.map$Use[x] <- as.logical(input[[id]])
   #     assign("Exp.map", Exp.map, envir = .GlobalEnv)
   #     tstGrps <- aggregate(Exp.map$Use, list(Exp.map[[VPAL$column]]), sum)
-  #     if (min(tstGrps$x) < 2) {
+  #     if (min(tstGrps$x) < 2L) {
   #       shinyjs::disable("saveBtn")
   #       output$Msg <- renderUI({ em("Remember: this script requires at least 2 replicates per sample group!!!") })
   #     }
-  #     if (min(tstGrps$x) >= 2) {
+  #     if (min(tstGrps$x) >= 2L) {
   #       shinyjs::enable("saveBtn")
   #       output$Msg <- renderUI({ em(" ") })
   #     }
   #   })
   # })
   observeEvent(input$saveBtn, {
-    Exp.map$Use <- vapply(seq_len(nrow(Include)), function(x) {
+    Exp.map$Use <- vapply(seq_len(nrow(Include)), \(x) {
       as.logical(input[[paste0("check___", as.character(x))]])
     }, TRUE)
     tstGrps <- aggregate(Exp.map$Use, list(Exp.map[[VPAL$column]]), sum)
-    if (min(tstGrps$x) < 2) {
+    if (min(tstGrps$x) < 2L) {
       #shinyjs::disable("saveBtn")
       output$Msg <- renderUI({ em("Remember: this script requires at least 2 replicates per sample group!!!") })
     }
-    if (min(tstGrps$x) >= 2) {
+    if (min(tstGrps$x) >= 2L) {
       #shinyjs::enable("saveBtn")
       output$Msg <- renderUI({ em(" ") })
       #
       assign("Exp.map", Exp.map, envir = .GlobalEnv)
       #
       tmpTbl <- Exp.map
-      tst <- lapply(colnames(tmpTbl), function(x) { typeof(tmpTbl[[x]]) })
-      w <- which(tst == "list")
+      w <- which(vapply(colnames(tmpTbl), \(x) { is.list(tmpTbl[[x]]) }, TRUE))
       if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
       tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE, quote = TRUE), silent = TRUE)
-      while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
+      while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {
         dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
         tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE, quote = TRUE), silent = TRUE)
       }
@@ -156,33 +155,52 @@ server <- function(input, output, session) {
     }
   })
   #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+  session$onSessionEnded(\() { stopApp() })
 }
-runKount <- 0
+runKount <- 0L
 while ((!runKount)||(!exists("appRunTest"))) {
   eval(parse(text = runApp), envir = .GlobalEnv)
   shinyCleanup()
-  runKount <- runKount+1
+  runKount <- runKount+1L
 }
 #
 #tmp <- read.csv(Param$Experiments.map)
 #tmp$Use <- Exp.map$Use
 #write.csv(tmp, file = paste0("backup_", Param$Experiments.map), row.names = FALSE)
 Exp.map <- Exp.map[which(Exp.map$Use),]
+expMap <- expMap[match(Exp.map$Ref.Sample.Aggregate, rownames(expMap)),]
+designMatr <- designMatr[which(rownames(designMatr) %in% gsub("___", "_", as.character(expMap[[RSA$limmaCol]]))),]
+for (lit in c("A", "B", "C", "D")) {
+  kl <- paste0(lit, "_samples")
+  if (kl %in% colnames(myContrasts)) {
+    myContrasts[[kl]] <- lapply(myContrasts[[kl]], \(x) { intersect(x, Exp.map$Ref.Sample.Aggregate) })
+    myContrasts[[kl]] <- lapply(myContrasts[[kl]], \(x) { intersect(x, Exp.map$Ref.Sample.Aggregate) })
+  }
+}
+test <- vapply(1L:nrow(myContrasts), \(i) {
+  tst <- (length(myContrasts$A_samples[[i]]) > 0L)&(length(myContrasts$B_samples[[i]]) > 0L)
+  if (nchar(myContrasts$Secondary[[i]])) {
+    tst <- tst&(length(myContrasts$C_samples[[i]]) > 0L)&(length(myContrasts$D_samples[[i]]) > 0L)
+  }
+  return(tst)
+}, TRUE)
+myContrasts <- myContrasts[which(test),]
+contrMatr <- contrMatr[, which(colnames(contrMatr) %in% myContrasts$Contrast)]
 if (LabelType == "Isobaric") { Iso <- sort(unique(Exp.map$Isobaric.set)) }
-for (i in 1:nrow(Aggregate.map)) { #i <- 1
+for (i in 1L:nrow(Aggregate.map)) { #i <- 1L
   n <- Aggregate.map$Aggregate.Name[i]
-  if (nchar(n) == 3) { assign(n, unique(Exp.map[[unlist(Aggregate.map$Characteristics[i])]])) } else {
+  if (nchar(n) == 3L) { assign(n, unique(Exp.map[[unlist(Aggregate.map$Characteristics[i])]])) } else {
     assign(n, unique(Exp.map[[n]]))
   }
 }
 for (i in Param.aggreg) { #i <- Param.aggreg[1]
   a <- get(i)
-  if (nchar(a$aggregate) == 3) { a$values <- sort(unique(Exp.map[[a$names]])) } else {
-    a$values <- sort(unique(Exp.map[[a$aggregate]]))
+  a$values <- if (nchar(a$aggregate) == 3L) { sort(unique(Exp.map[[a$names]])) } else {
+    sort(unique(Exp.map[[a$aggregate]]))
   }
   assign(i, a)
 }
+MQ.Exp <- unique(unlist(Exp.map$MQ.Exp))
 # Update aliases
 RSA <- Ref.Sample.Aggregate
 RG <- Ratios.Groups

@@ -14,7 +14,7 @@
 #' @export
 
 is.all.good <- function(x, mode = "values") {
-  mode <- c(0, 0, 1, 1)[match(mode, c("1", "values", "2", "logical"))]
+  mode <- c(0L, 0L, 1L, 1L)[match(mode, c("1", "values", "2", "logical"))]
   stopifnot(!is.na(mode))
   klass <- class(x)
   if (!sum(c("integer", "integer64", "numeric", "matrix") %in% klass)) {

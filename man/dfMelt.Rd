@@ -26,7 +26,7 @@ In this case, it should be much faster than reshape::melt.data.frame()
 It cannot be thought of as a full substitute for the latter though. Never use it for complex data.frames, e.g. where columns are lists.
 }
 \examples{
-df <- as.data.frame(matrix(rnorm(1000), ncol = 10))
+df <- as.data.frame(matrix(rnorm(1000), ncol = 10L))
 df2 <- dfMelt(df)
 
 }

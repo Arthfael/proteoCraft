@@ -17,7 +17,7 @@ if (!require(pak)) {
 pkgs <- c("rstudioapi", "qs2", "plyr", "data.table", "openxlsx2", "svDialogs", "parallel", "ggplot2", "viridis",
           "limma", "plotly", "sva", "plotly", "shiny", "htmlwidgets", "shinyWidgets", "shinyjs",
           "shinycssloaders", "DT", "ggrepel", "proteoCraft")
-tst <- vapply(pkgs, function(pkg) { require(pkg, character.only = TRUE) }, TRUE)
+tst <- vapply(pkgs, \(pkg) { require(pkg, character.only = TRUE) }, TRUE)
 if (sum(!tst)) {
   w <- pkgs[which(!tst)]
   pkgs_to_inst <- pkgs[w]
@@ -25,27 +25,72 @@ if (sum(!tst)) {
   if (length(wP)) {
     pkgs_to_inst[wP] <- "Arthfael/proteoCraft"
   }
-  pak::pkg_install(pkgs_to_inst)
+  pak::pak(pkgs_to_inst)
 }
 for (pkg in pkgs) {
   library(pkg, character.only = TRUE)
 }
-homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
 
-#proteoCraft::load_Bckp()
+RPath %<o% as.data.frame(library()$results)
+RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
+libPath %<o% paste0(RPath, "/proteoCraft")
+homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+parSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
+fls <- paste0(homePath, "/", c(#"Regulation analysis - master script.R",
+  "Regulation analysis - detailed script.R",
+  "Regulation analysis - detailed script_pepOnly.R",
+  "No replicates analysis - detailed script.R",
+  "Reload_renv_from_lock_file.R",
+  "Default_locations.xlsx",
+  "LC_columns.xlsx"))
+tst <- sum(!file.exists(fls))
+if (tst) { Configure() }
+xplorSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/xplorData.R")
+
+locDirs_fl %<o% grep("/Default_locations\\.xlsx$", fls, value = TRUE)
+locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
+locScriptsDir <- gsub("/[^/]+$", "/proteoCraft_localScripts", locDirs$Path[match("Temporary folder", locDirs$Folder)])
+
+# Run local startup scripts
+if ((length(locScriptsDir) == 1L)&&(dir.exists(locScriptsDir))) {
+  # Load local startup scripts
+  strtScripts <- list.files(locScriptsDir, ".R$", full.names = TRUE)
+  # Also handle links
+  strtScriptsLnks <- list.files(locScriptsDir, ".R\\.lnk$", full.names = TRUE)
+  if (length(strtScriptsLnks)) {
+    if (!require(RDCOMClient)) { pak::pak("omegahat/RDCOMClient") }
+    library(RDCOMClient)
+    get_shortcut_target <- \(lnk_path) { # Thanks istaGPT...
+      #lnk_path <- strtScriptsLnks[1L]
+      shell <- RDCOMClient::COMCreate("WScript.Shell")
+      shortcut <- shell$CreateShortcut(normalizePath(lnk_path, mustWork = TRUE))
+      shortcut$TargetPath()
+    }
+    strtScriptsLnks <- vapply(strtScriptsLnks, get_shortcut_target, "")
+    strtScripts <- union(strtScripts, strtScriptsLnks)
+  }
+  # Source all startup scripts
+  if (length(strtScripts)) {
+    strtScripts <- strtScripts[order(strtScripts)]
+    for (fl in strtScripts) { source(fl) }
+  }
+}
+
+
+#load_Bckp()
 
 # Some questions to start...
 #updateMe <- c(TRUE, FALSE)[match(dlg_message("Update the proteoCraft package?", "yesno")$res, c("yes", "no"))]
 updateMe <- FALSE
 inputTypes <- c("DiaNN", "FragPipe", "Skyline", "alphaDIA")
-opt <- sapply(inputTypes, function(x) { paste(c(x, rep(" ", 250 - nchar(x))), collapse = "") })
-inputType <- gsub(" +$", "", dlg_list(opt, opt[1], title = "Select type of input (NB: if wanting to combine the output of multiple folders, first run the corresponding combination script)")$res)
+opt <- vapply(inputTypes, \(x) { paste(c(x, rep(" ", 250L - nchar(x))), collapse = "") }, "")
+inputType <- gsub(" +$", "", dlg_list(opt, opt[1L], title = "Select type of input (NB: if wanting to combine the output of multiple folders, first run the corresponding combination script)")$res)
 msg <- paste0("Do you want to load an external table of PTMs names to force use of specific names?")
 opt <- c("Yes                                                                                                                                                           ",
          "No                                                                                                                                                            ")
-useExtTbl <- c(TRUE, FALSE)[match(dlg_list(opt, opt[2], title = msg)$res, opt)]
+useExtTbl <- c(TRUE, FALSE)[match(dlg_list(opt, opt[2L], title = msg)$res, opt)]
 dbFl <- "D:/Fasta_databases/Mus_musculus/Mus_musculus_(C57BL-6J)_UP_20230201_Iso_noDupl_cont.fasta"
-if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1, 1)) }
+if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }
 N.clust <- as.integer(dlg_input("Select number of threads to use", N.clust)$res)
 
 if (updateMe) {
@@ -53,25 +98,9 @@ if (updateMe) {
     unloadNamespace("proteoCraft")
     remove.packages("proteoCraft")
   }, silent = TRUE)
-  pak::pkg_install("Arthfael/proteoCraft")
+  pak::pak("Arthfael/proteoCraft")
 }
 
-# saveFun2 <- function(x, file) {
-#   tmp <- paste0("qs::qsavem(", deparse(substitute(x)),
-#                 ", file = '", file, "', nthreads = max(c(parallel::detectCores()-1, 1)))")
-#   #cat(tmp)
-#   eval(parse(text = tmp))
-# }
-# saveImgFun <- function(file) { # More elegant rewriting - I think
-#   args2 <- list(file = file)
-#   obj <- objects(.GlobalEnv)
-#   obj <- setNames(lapply(obj, get, envir = .GlobalEnv), obj)
-#   args2$x <- obj
-#   do.call(qs::qsave, args2)
-# }
-# loadFun <- function(file) {
-#   qs::qload(file, env = globalenv(), nthreads = max(c(parallel::detectCores()-1, 1)))
-# }
 RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 libPath <- paste0(RPath, "/proteoCraft")
@@ -135,15 +164,15 @@ if (inputType == "alphaDIA") {
   dflt <- inDir <- dirname(alphaDIA_fl)
   parDir <- dirname(inDir)
 }
-kount <- 0
-while ((kount == 0)||
+kount <- 0L
+while ((!kount)||
        (!exists("dstDir"))||
        (!is.character(dstDir))||
-       (length(dstDir) != 1)||
+       (length(dstDir) != 1L)||
        (is.na(dstDir))||
        (!dir.exists(dstDir))) {
   dstDir <- rstudioapi::selectDirectory("Select output directory", path = dflt)
-  kount <- kount+1
+  kount <- kount+1L
 }
 setwd(dstDir)
 dtstNm <- gsub(topattern(paste0(dirname(parDir), "/")), "", parDir)
@@ -167,18 +196,18 @@ if (inputType == "FragPipe") {
   fls <- list.files(inDir, full.names = TRUE, recursive = FALSE)
   FP_WorkflowFl <- grep("/fragpipe\\.workflow$", fls, value = TRUE)
   FP_ManifestFl <- grep("/fragpipe-files\\.fp-manifest$", fls, value = TRUE)
-  stopifnot(length(FP_WorkflowFl) > 0, length(FP_ManifestFl) > 0)
-  if (length(FP_WorkflowFl) > 1) {
+  stopifnot(length(FP_WorkflowFl) > 0L, length(FP_ManifestFl) > 0L)
+  if (length(FP_WorkflowFl) > 1L) {
     msg <- "Select FragPipe workflow files in the folder"
-    opt <- setNames(sapply(FP_WorkflowFl, function(x) { paste(c(x, rep(" ", 250 - nchar(x))), collapse = "") }),
+    opt <- setNames(vapply(FP_WorkflowFl, \(x) { paste(c(x, rep(" ", 250L - nchar(x))), collapse = "") }, ""),
                     FP_WorkflowFl)
-    FP_WorkflowFl <- gsub(" +$", "", dlg_list(opt, opt[1], title = msg)$res)
+    FP_WorkflowFl <- gsub(" +$", "", dlg_list(opt, opt[1L], title = msg)$res)
   }
-  if (length(FP_ManifestFl) > 1) {
+  if (length(FP_ManifestFl) > 1L) {
     msg <- "Select FragPipe manifest files in the folder"
-    opt <- setNames(sapply(FP_ManifestFl, function(x) { paste(c(x, rep(" ", 250 - nchar(x))), collapse = "") }),
+    opt <- setNames(vapply(FP_ManifestFl, \(x) { paste(c(x, rep(" ", 250L - nchar(x))), collapse = "") }, ""),
                     FP_ManifestFl)
-    FP_ManifestFl <- gsub(" +$", "", dlg_list(opt, opt[1], title = msg)$res)
+    FP_ManifestFl <- gsub(" +$", "", dlg_list(opt, opt[1L], title = msg)$res)
   }
   FP2MQ <- FP_to_MQ(FP_WorkflowFl, FP_ManifestFl, FailIfNoQuant = TRUE, cl = parClust)
   ev <- FP2MQ$Evidence
@@ -190,7 +219,7 @@ if (inputType == "FragPipe") {
   #
   ev$Bruker_runID <- as.integer(gsub(".*_|\\.d$", "", ev$`Raw file name`))
   ev$Scan_ID <- do.call(paste, c(ev[, c("Bruker_runID", "MS/MS scan number")], sep = "___"))
-  ev$tmp <- round(ev$"m/z", 3)
+  ev$tmp <- round(ev$"m/z", 3L)
   ev$Scan_ID_MZ <- do.call(paste, c(ev[, c("Scan_ID", "tmp")], sep = "___"))
   ev$tmp <- NULL
   Exp <- unique(ev$Experiment)
@@ -199,9 +228,9 @@ if (inputType == "FragPipe") {
 }
 if (inputType == "DiaNN") {
   diaNN_log <- readLines(diaNN_log_fl)
-  diaNN_Call <- grep("diann.exe ", diaNN_log, ignore.case = TRUE, value = TRUE)[1]
+  diaNN_Call <- grep("diann.exe ", diaNN_log, ignore.case = TRUE, value = TRUE)[1L]
   if (is.na(diaNN_Call)) {
-    diaNN_Call <- diaNN_log[grep("^Logical CPU cores:", diaNN_log)+1]
+    diaNN_Call <- diaNN_log[grep("^Logical CPU cores:", diaNN_log)+1L]
   }
   tmpCall <- unlist(strsplit(diaNN_Call, " +--"))
   PSMsFl <- gsub("\\\\", "/", gsub("^out +", "", grep("^out ", tmpCall, value = TRUE)))
@@ -262,35 +291,35 @@ if (inputType == "DiaNN") {
   wNtFnd <- which(!file.exists(rawFiles))
   updtFls <- FALSE
   if (length(wNtFnd)) {
-    msg <- paste0(c("Some", "All")[(length(wNtFnd) == length(rawFiles))+1], " MS files are missing at the expected location.\n")
+    msg <- paste0(c("Some", "All")[(length(wNtFnd) == length(rawFiles))+1L], " MS files are missing at the expected location.\n")
     tbl <- data.frame(path = rawFiles[wNtFnd], file = gsub(".*/", "", rawFiles[wNtFnd]), ext = rawFilesExt[wNtFnd])
     locs <- openxlsx::read.xlsx(paste0(homePath, "/Default_locations.xlsx"))
-    dirs <- unique(unlist(lapply(unique(c(inDir, dirname(diaNN_log_fl))), function(dir) {
+    dirs <- unique(unlist(lapply(unique(c(inDir, dirname(diaNN_log_fl))), \(dir) {
       dir <- c(dir, dirname(dir))
       return(c(dir,
-               gsub(".*/", paste0(locs$Path[match("Archive folder", locs$Folder)], "/"), dir[1]),
-               gsub(".*/", paste0(locs$Path[match("Archive folder", locs$Folder)], "/"), dir[2])))
+               gsub(".*/", paste0(locs$Path[match("Archive folder", locs$Folder)], "/"), dir[1L]),
+               gsub(".*/", paste0(locs$Path[match("Archive folder", locs$Folder)], "/"), dir[2L])))
     })))
     dirs <- dirs[which(dir.exists(dirs))]
     dirs <- dirs[which(dirs != ".")]
-    dirFls <- setNames(lapply(dirs, function(dir) { list.files(dir, recursive = TRUE, full.names = TRUE) }), dirs)
-    dirDFls <- setNames(lapply(dirs, function(dir) { grep("\\.d$", list.dirs(dir, recursive = TRUE, full.names = TRUE), value = TRUE) }), dirs)
-    dirFls2 <- setNames(lapply(names(dirFls), function(nm) { basename(dirFls[[nm]]) }), dirs)
-    dirDFls2 <- setNames(lapply(names(dirDFls), function(nm) { gsub(".*/", "", dirDFls[[nm]]) }), dirs)
+    dirFls <- setNames(lapply(dirs, \(dir) { list.files(dir, recursive = TRUE, full.names = TRUE) }), dirs)
+    dirDFls <- setNames(lapply(dirs, \(dir) { grep("\\.d$", list.dirs(dir, recursive = TRUE, full.names = TRUE), value = TRUE) }), dirs)
+    dirFls2 <- setNames(lapply(names(dirFls), \(nm) { basename(dirFls[[nm]]) }), dirs)
+    dirDFls2 <- setNames(lapply(names(dirDFls), \(nm) { gsub(".*/", "", dirDFls[[nm]]) }), dirs)
     for (dir in dirs) {
-      tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1, function(x) { #x <- tbl[1, c("file", "ext")]
+      tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1L, \(x) { #x <- tbl[1L, c("file", "ext")]
         rs <- NA
-        if (x[[2]] == "d") {
-          m <- match(x[[1]], dirDFls2[[dir]])
+        if (x[[2L]] == "d") {
+          m <- match(x[[1L]], dirDFls2[[dir]])
           if (!is.na(m)) { rs <- dirDFls[[dir]][m] }
         } else {
-          m <- match(x[[1]], dirFls2[[dir]])
+          m <- match(x[[1L]], dirFls2[[dir]])
           if (!is.na(m)) { rs <- dirFls[[dir]][m] }
         }
         return(rs)
       })
     }
-    tbl$nuLoc <- apply(tbl[, dirs, drop = FALSE], 1, function(x) {
+    tbl$nuLoc <- apply(tbl[, dirs, drop = FALSE], 1L, \(x) {
       x <- x[which(!is.na(x))]
       if (!length(x)) { x <- NA }
       return(x)
@@ -299,11 +328,11 @@ if (inputType == "DiaNN") {
     wN <- which(is.na(tbl$nuLoc))
     lY <- length(wY)
     lN <- length(wN)
-    tstY1 <- (lY > 0)+1 # Did we manage to locate some files automatically?
-    tstY2 <- (lY > 1)+1 # ... more than 1?
-    tstN1 <- (lN > 0)+1 # Did we fail to for some?
-    tstN2 <- (lN > 1)+1 # ... more than 1?
-    if (tstY1 == 2) {
+    tstY1 <- (lY > 0L)+1L # Did we manage to locate some files automatically?
+    tstY2 <- (lY > 1L)+1L # ... more than 1?
+    tstN1 <- (lN > 0L)+1L # Did we fail to for some?
+    tstN2 <- (lN > 1L)+1L # ... more than 1?
+    if (tstY1 == 2L) {
       updtFls <- TRUE
       msg <- paste0(msg, "However, the script automatically detected ",
                     c(c("the", "all")[tstY2], "the following")[tstN1], " file", c("", "s")[tstY2],
@@ -314,32 +343,32 @@ if (inputType == "DiaNN") {
       cat(msg)
     }
     cat(msg)
-    if (tstN1 == 2) {
+    if (tstN1 == 2L) {
       msg2 <- paste0("Select the location of the missing file(s) (or cancel if files are unavailable):")
       newDir <- selectDirectory(msg2, path = wd)
       if (!is.null(newDir)) {
         newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
         newFlsTst <- gsub(".*/", "", newFls)
         wNA <- which(is.na(tbl$nuLoc))
-        tst <- sapply(tbl$file[wNA], function(x) {
+        tst <- sapply(tbl$file[wNA], \(x) {
           x <- newFls[which(newFlsTst == x)]
-          if (length(x) > 1) {
+          if (length(x) > 1L) {
             nc <- nchar(x)
             x <- x[which(nc == min(nc))]
           }
           x
         })
-        tst <- tst[which(sapply(tst, length) == 1)]
+        tst <- tst[which(lengths(tst) == 1L)]
         tst <- setNames(unlist(tst), names(tst))
         wY2 <- which(is.na(tbl$nuLoc)&(tbl$file %in% names(tst)))
         wN2 <- which(is.na(tbl$nuLoc)&(!tbl$file %in% names(tst)))
-        tstY2 <- (length(wY2) > 1)+1
-        tstN2 <- (length(wN2) > 1)+1
+        tstY2 <- (length(wY2) > 1L)+1L
+        tstN2 <- (length(wN2) > 1L)+1L
         if (length(wY2)) {
           m <- match(tbl$file[wY2], names(tst))
           tbl$nuLoc[wY2] <- tst[m]
           msg <- "The user was able to locate the "
-          if (length(wN2) == 0) {
+          if (!length(wN2)) {
             msg <- paste0(msg, "missing file", c("", "s")[tstY2],
                           " in directory ", newDir, "\n\n")
           } else {
@@ -353,7 +382,7 @@ if (inputType == "DiaNN") {
         }
         nuRawFiles <- rawFiles
         w <- which(!is.na(tbl$nuLoc))
-        updtFls <- length(w) > 0
+        updtFls <- length(w) > 0L
         nuRawFiles[w] <- tbl$nuLoc[w]
       }
     }
@@ -362,22 +391,20 @@ if (inputType == "DiaNN") {
   FracMap <- data.frame("Raw file" = rawFiles,
                         "Raw files name" = rawFiles2,
                         "Parent sample" = rawFiles2,
-                        "Fraction" = 1,
+                        "Fraction" = 1L,
                         "Use" = TRUE,
                         check.names = FALSE)
 }
 if (inputType %in% c("alphaDIA", "Skyline")) {
   if (inputType == "alphaDIA") {
     #evTmp <- data.table::fread(alphaDIA_fl, integer64 = "numeric", check.names = FALSE, data.table = FALSE)
-    alpha2MQ <- proteoCraft::alphaDIA_to_MQ(alphaDIA_fl, cl = parClust)
-    #alpha2MQ <- alphaDIA_to_MQ(alphaDIA_fl, cl = parClust)
+    alpha2MQ <- alphaDIA_to_MQ(alphaDIA_fl, cl = parClust)
     ev <- alpha2MQ$Evidence
     Modifs <- alpha2MQ$PTMs
   }
   if (inputType == "Skyline") {
     #evTmp <- data.table::fread(skyline_fl, integer64 = "numeric", check.names = FALSE, data.table = FALSE)
-    Sky2MQ <- proteoCraft::Skyline_to_MQ(skyline_fl, cl = parClust)
-    #Sky2MQ <- Skyline_to_MQ(skyline_fl, cl = parClust)
+    Sky2MQ <- Skyline_to_MQ(skyline_fl, cl = parClust)
     ev <- Sky2MQ$Evidence
     Modifs <- Sky2MQ$PTMs
   }
@@ -410,12 +437,12 @@ if ("Reverse" %in% colnames(ev)) {
 w <- which(!file.exists(dbFl))
 if (length(w)) {
   # Locate files!!!
-  for (i in w) { #i <- w[1]
+  for (i in w) { #i <- w[1L]
     tmp <- selectFile(paste0("Select missing fasta ", dbFl[i]), path = inDir)
     dbFl[i] <- gsub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), tmp)
   }
 }
-annotFl_tst <- function() {
+annotFl_tst <- \() {
   !((!exists("annot_Fl", envir = .GlobalEnv))||(length(annot_Fl) != 1)||(!file.exists(annot_Fl))||(gsub(".*\\.", "", annot_Fl) != "txt"))
 }
 if (!annotFl_tst()) {
@@ -426,7 +453,7 @@ while (!annotFl_tst()) {
 }
 prsDB_Fl <- paste0(dstDir, "/Parsed DB.csv")
 if (!file.exists(prsDB_Fl)) {
-  dbs <- lapply(dbFl, function(x) { Format.DB(x, cl = parClust) })
+  dbs <- lapply(dbFl, \(x) { Format.DB(x, cl = parClust) })
   db <- plyr::rbind.fill(dbs)
   data.table::fwrite(db, prsDB_Fl, sep = ",", row.names = FALSE, na = "NA")
 } else {
@@ -491,17 +518,17 @@ if (lw) {
 # tmp <- as.data.table(ev[, c("Scan_ID_MZ", "Modified sequence_verbose")])
 # tmp <- tmp[, list(ModSeq = list(`Modified sequence_verbose`)), by = list(Scan_ID_MZ = Scan_ID_MZ)]
 # tmp <- as.data.frame(tmp)
-# tmp$L <- sapply(tmp$ModSeq, length)
+# tmp$L <- lengths(tmp$ModSeq)
 # mx <- max(tmp$L)
-# if (mx > 1) {
+# if (mx > 1L) {
 #   tstAmbig <- aggregate(tmp$L, list(tmp$L), length)
 #   colnames(tstAmbig) <- c("Matches reported per m/z", "Scans")
 #   View(tstAmbig)
-#   Ambig <- tmp[which(tmp$L > 1),]
+#   Ambig <- tmp[which(tmp$L > 1L),]
 #   wAmbig <- which(ev$Scan_ID_MZ %in% Ambig$Scan_ID_MZ)
 #   wClear <- which(!ev$Scan_ID_MZ %in% Ambig$Scan_ID_MZ)
 #   kol <- c("Scan_ID", "Modified sequence_verbose", "Theoretical m/z", "m/z", "Score", "PEP")
-#   stopifnot(sum(!kol %in% colnames(ev)) == 0)
+#   stopifnot(sum(!kol %in% colnames(ev)) == 0L)
 #   tmp2 <- as.data.table(ev[wAmbig, kol])
 #   tmp2 <- tmp2[, list(Score = list(Score),
 #                       PEP = list(PEP),
@@ -509,23 +536,24 @@ if (lw) {
 #                       `theor m/z` = list(`Theoretical m/z`),
 #                       ModSeq = list(`Modified sequence_verbose`)), by = list(Scan_ID = Scan_ID)]
 #   tmp2 <- as.data.frame(tmp2)
-#   tmp2$BestModSeq <- sapply(1:nrow(tmp2), function(x) {
+#   tmp2$BestModSeq <- sapply(1L:nrow(tmp2), \(x) {
 #     Sc <- unlist(tmp2$Score[x])
 #     mdSq <- unlist(tmp2$ModSeq[x])
 #     PEP <- unlist(tmp2$PEP[x])
 #     delta <- unlist(tmp2$`m/z`[x])-unlist(tmp2$`theor m/z`[x])
 #     w <- which(Sc == max(Sc))
-#     if (length(w) > 1) {
+#     if (length(w) > 1L) {
 #       w <- w[which(delta[w] == min(delta[w]))]
-#       if (length(w) > 1) {
+#       if (length(w) > 1L) {
 #         w <- w[which(PEP[w] == min(PEP[w]))]
 #       }
 #     }
 #     mdSq[w]
 #   })
 #   #class(tmp2$BestModSeq)
-#   wU <- which(sapply(tmp2$BestModSeq, length) == 1)
-#   wNU <- which(sapply(tmp2$BestModSeq, length) > 1)
+#   msL <- lengths(tmp2$BestModSeq)
+#   wU <- which(msL == 1L)
+#   wNU <- which(msL > 1L)
 #   if (length(wU)) {
 #     tmpA <- do.call(paste, c(ev[wAmbig, c("Scan_ID", "Modified sequence_verbose")], sep = "___"))
 #     tmpB <- do.call(paste, c(tmp2[wU, c("Scan_ID", "BestModSeq")], sep = "___"))
@@ -557,7 +585,7 @@ mods <- mods[order(mods$Delta, decreasing = FALSE),]
 kol <- colnames(mods)
 kol <- kol[which(kol != "Old mark")]
 modsTst <- do.call(paste, c(mods[, kol], sep = ""))
-modsTst <- aggregate(1:nrow(mods), list(modsTst), min)
+modsTst <- aggregate(1L:nrow(mods), list(modsTst), min)
 mods <- mods[modsTst$x,]
 mods <- mods[c(which(is.na(mods$`Old mark`)), which(!is.na(mods$`Old mark`))),]
 mods <- mods[order(mods$Delta, decreasing = FALSE),]
@@ -578,15 +606,15 @@ if (useExtTbl) {
   #
   modTbl <- openxlsx2::read_xlsx(modTblFl)
   #openxlsx2::xl_open(modTblFl)
-  colnames(modTbl)[1] <- "Priority"
+  colnames(modTbl)[1L] <- "Priority"
   modTbl <- modTbl[which(!is.na(modTbl$"molecular weight")),]
   modTbl$`molecular weight` <- as.numeric(modTbl$`molecular weight`)
   modTbl$Priority[which(is.na(modTbl$Priority))] <- ""
   modTbl <- modTbl[which(modTbl$Priority != "Not analysed"),]
-  tmp <- listMelt(strsplit(modTbl$`modified residues`, ","), 1:nrow(modTbl), c("Pos", "row"))
+  tmp <- listMelt(strsplit(modTbl$`modified residues`, ","), 1L:nrow(modTbl), c("Pos", "row"))
   tmp[, c("MW", "Name")] <- modTbl[tmp$row, c("molecular weight", "Modification")]
-  tst <- aggregate(tmp$Name, list(tmp$Pos, tmp$MW), function(x) { length(unique(x)) })
-  stopifnot(max(tst$x) == 1) # We assume that there is only one mod name for each combination of position and mass shift
+  tst <- aggregate(tmp$Name, list(tmp$Pos, tmp$MW), \(x) { length(unique(x)) })
+  stopifnot(max(tst$x) == 1L) # We assume that there is only one mod name for each combination of position and mass shift
   if (inputType %in% c("DiaNN", "Skyline")) {
     if ("Pos" %in% colnames(mods)) {
       mods$Site <- mods$Pos
@@ -597,7 +625,7 @@ if (useExtTbl) {
     }
     mods$"Mass delta" <- mods$Delta
   }
-  mods2 <- listMelt(mods$Site, 1:nrow(mods), c("Pos", "row"))
+  mods2 <- listMelt(mods$Site, 1L:nrow(mods), c("Pos", "row"))
   mods2[, c("MW", "Name", "Mark")] <- mods[mods2$row, c("Mass delta", "Full name", "Mark")]
   kol <- c("Pos", "MW")
   tmp$aggr <- do.call(paste, c(tmp[, kol], sep = "___"))
@@ -609,42 +637,42 @@ if (useExtTbl) {
   g1 <- grep("-", mods2$newName[w])
   g2 <- grep("-", mods2$newName[w], invert = TRUE)
   if (length(g1)) {
-    mods2$newMark[w[g1]] <- sapply(strsplit(tolower(mods2$newName[w[g1]]), "-"), function(x) {
-      paste0(substr(x[[1]], 1, 1), substr(x[[2]], 1, 1))
-    })
+    mods2$newMark[w[g1]] <- vapply(strsplit(tolower(mods2$newName[w[g1]]), "-"), \(x) {
+      paste0(substr(x[[1L]], 1L, 1L), substr(x[[2L]], 1L, 1L))
+    }, "")
   }
   if (length(g2)) {
-    mods2$newMark[w[g2]] <- substr(tolower(mods2$newName[w[g2]]), 1, 2)
+    mods2$newMark[w[g2]] <- substr(tolower(mods2$newName[w[g2]]), 1L, 2L)
   }
   tst <- aggregate(mods2$MW, list(mods2$newMark), unique)
-  wMult <- which(sapply(tst$x, length) > 1)
+  wMult <- which(lengths(tst$x) > 1L)
   if (length(wMult)) {
     mods2$newMark_tmp <- mods2$newMark
     for (i in wMult) {
-      #i <- wMult[1]
+      #i <- wMult[1L]
       w <- which(mods2$newMark_tmp == tst$Group.1[i])
       m <- mods2[w,]
-      m$Pos[which(sapply(m$Pos, length) == 0)] <- "X"
-      r <- 1
-      s <- 1:nrow(m); s <- s[which(s != r)]
-      tst <- lapply(s, function(x) {
-        paste0(tolower(m$Pos[[x]]), substr(m$newMark[[x]], 1, 1))
+      m$Pos[which(lengths(m$Pos) == 0L)] <- "X"
+      r <- 1L
+      s <- 1L:nrow(m); s <- s[which(s != r)]
+      tst <- lapply(s, \(x) {
+        paste0(tolower(m$Pos[[x]]), substr(m$newMark[[x]], 1L, 1L))
       })
-      tst <- lapply(seq_along(tst), function(x) {
+      tst <- lapply(seq_along(tst), \(x) {
         rs <- tst[[x]]
         rs[which(!rs %in% mods2$newMark)]
       })
       l <- length(tst)
-      if (l > 1) {
-        for (i in 2:l) {
-          tst[[i]] <- tst[[i]][which(!tst[[i]] %in% unlist(tst[1:(i-1)]))]
+      if (l > 1L) {
+        for (i in 2L:l) {
+          tst[[i]] <- tst[[i]][which(!tst[[i]] %in% unlist(tst[1L:(i-1L)]))]
         }
       }
-      tst <- sapply(tst, function(x) {
+      tst <- vapply(tst, \(x) {
         x <- unlist(x)
-        if (length(x)) { x <- x[1] } else { x <- "That didnae work, did it?" }
+        if (length(x)) { x <- as.character(x[1L]) } else { x <- "That didnae work, did it?" }
         return(x)
-      })
+      }, "")
       tst2 <- ((tst %in% mods2$newMark)|(tst == "That didnae work, did it?"))
       w2 <- which(!tst2)
       m$newMark[s][w2] <- tst[w2]
@@ -653,13 +681,13 @@ if (useExtTbl) {
         # not tested
         s1 <- s[w1]
         rs <- c()
-        kount <- 1
-        char <- c(0:9, letters)
+        kount <- 1L
+        char <- c(0L:9L, letters)
         taken <- unique(c(mods2$newMark, m$newMark))
         for (j in s1) {
           tst <- paste0(tolower(m$Pos[s1]), char[kount])
           while (((tst) %in% taken)&&(kount < length(char))) {
-            kount <- kount+1
+            kount <- kount+1L
             tst <- paste0(tolower(m$Pos[s1]), char[kount])
           }
           if (kount == length(char)) {
@@ -688,10 +716,10 @@ if (useExtTbl) {
   mods2 <- mods
   mods2$newMark <- paste0("(", mods2$newMark, ")")
   mods2$newName <- paste0("(", mods2$newName, ")")
-  clusterExport(parClust, list("mods2", "nmKol"), envir = environment())
-  unq2 <- as.data.frame(t(parSapply(parClust, unq, function(x) {
-    #x <- unq[1]
-    x <- y <- proteoCraft::annot_to_tabl(x)[[1]]
+  clusterExport(parClust, list("mods2", "nmKol", "annot_to_tabl"), envir = environment())
+  unq2 <- as.data.frame(t(parSapply(parClust, unq, \(x) {
+    #x <- unq[1L]
+    x <- y <- annot_to_tabl(x)[[1L]]
     w <- which(x$Annotations != "")
     m <- match(x$Annotations[w], mods2[[nmKol]])
     x$Annotations[w] <- mods2$newMark[m]
@@ -700,16 +728,16 @@ if (useExtTbl) {
     y <- do.call(paste, c(y, sep = "", collapse = ""))
     return(c(x, y))
   })))
-  tst1 <- gsub("\\)[A-Z]*\\(", "___", gsub("_[A-Z]+_|_[A-Z]*\\(|\\)[A-Z]*_", "", unq2[[1]]))
-  tst2 <- gsub("\\)[A-Z]*\\(", "___", gsub("_[A-Z]+_|_[A-Z]*\\(|\\)[A-Z]*_", "", unq2[[2]]))
+  tst1 <- gsub("\\)[A-Z]*\\(", "___", gsub("_[A-Z]+_|_[A-Z]*\\(|\\)[A-Z]*_", "", unq2[[1L]]))
+  tst2 <- gsub("\\)[A-Z]*\\(", "___", gsub("_[A-Z]+_|_[A-Z]*\\(|\\)[A-Z]*_", "", unq2[[2L]]))
   tst1 <- unique(unlist(strsplit(tst1, "___")))
   tst2 <- unique(unlist(strsplit(tst2, "___")))
-  stopifnot(sum(!tst1 %in% mods$newMark) == 0,
-            sum(!tst2 %in% mods$newName) == 0)
+  stopifnot(sum(!tst1 %in% mods$newMark) == 0L,
+            sum(!tst2 %in% mods$newName) == 0L)
   w <- which(ev$`Modified sequence_verbose` %in% unq)
   m <- match(ev$`Modified sequence_verbose`[w], unq)
-  ev$`Modified sequence`[w] <- unq2[m, 1]
-  ev$`Modified sequence_verbose`[w] <- unq2[m, 2]
+  ev$`Modified sequence`[w] <- unq2[m, 1L]
+  ev$`Modified sequence_verbose`[w] <- unq2[m, 2L]
   # Done!!!
   # Pfeewwwww...
 }
@@ -727,7 +755,7 @@ if (length(w)) {
 m <- match(ev$`Raw file`, samplesMap$Sample)
 ev$Experiment <- samplesMap$"Sample name"[m]
 # u <- unique(ev$Experiment)
-# if ((length(u) == 1)&&(is.na(u))) {
+# if ((length(u) == 1L)&&(is.na(u))) {
 #   # For when rerunning in bits!
 #   ev$Experiment <- ev$Old_Experiment
 #   ev$Old_Experiment <- samplesMap$Sample[match(ev$Experiment, samplesMap$"Sample name")]
@@ -740,10 +768,10 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/hist_Groups_Map_editor.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-statTsts_tst <- aggregate(groupsMap$Reference, list(groupsMap$Comparison_group), function(x) {
+statTsts_tst <- aggregate(groupsMap$Reference, list(groupsMap$Comparison_group), \(x) {
   sum(c(FALSE %in% x,
         TRUE %in% x,
-        length(unique(x)) == 2))
+        length(unique(x)) == 2L))
 })
 statTsts <- (3 %in% statTsts_tst$x)
 if (!statTsts) {
@@ -763,7 +791,7 @@ if (statTsts) {
   # Nested (paired) replicates?
   opt <- c("Yes                                                                                                                                                               ",
            "No                                                                                                                                                                ")
-  Nested <- c(TRUE, FALSE)[match(dlg_list(opt, opt[2], title = "Are the replicates paired?")$res, opt)]
+  Nested <- c(TRUE, FALSE)[match(dlg_list(opt, opt[2L], title = "Are the replicates paired?")$res, opt)]
 }
 
 Remove0Int <- FALSE
@@ -786,7 +814,7 @@ histDB <- db[match(HistIDs, db$`Protein ID`),]
 #unique(db$`Common Name`[match(Hist, db$Header)])
 # Default organism may not be correct:
 writeFasta(histDB, paste0(dstDir, "/M_musculus_all_histones.fasta"))
-histDB$ID_Nm <- apply(histDB[, c("Protein ID", "Common Name")], 1, paste, collapse = " - ")
+histDB$ID_Nm <- apply(histDB[, c("Protein ID", "Common Name")], 1L, paste, collapse = " - ")
 histDB$ID_Nm <- gsub("/", "_", histDB$ID_Nm)
 clusterExport(parClust, "histDB", envir = environment())
 
@@ -800,23 +828,23 @@ clusterExport(parClust, "histDB", envir = environment())
 # or we will remove them and their counterpart peptide when identified. TO BE DECIDED!!!
 # The annotation tables from UniProtKB identify part of histone sequences as "Disordered": this is the tail, and will be how we identify them.
 #
-coreHistAnnot <- setNames(lapply(coreHistIDs, function(x) { annot[grsep(x, x = annot$Accession),] }), coreHistIDs)
-coreHistAnnot <- coreHistAnnot[which(sapply(coreHistAnnot, nrow) > 0)]
+coreHistAnnot <- setNames(lapply(coreHistIDs, \(x) { annot[grsep(x, x = annot$Accession),] }), coreHistIDs)
+coreHistAnnot <- coreHistAnnot[which(vapply(coreHistAnnot, nrow, 1L) > 0L)]
 #
-#View(coreHistAnnot$Features[[1]])
-Features <- lapply(names(coreHistAnnot), function(hist) { #hist <- names(coreHistAnnot)[1] #hist <- "G3UX40"
-  x <- coreHistAnnot[[hist]]$Features[[1]]
+#View(coreHistAnnot$Features[[1L]])
+Features <- lapply(names(coreHistAnnot), \(hist) { #hist <- names(coreHistAnnot)[1L] #hist <- "G3UX40"
+  x <- coreHistAnnot[[hist]]$Features[[1L]]
   #View(x)
   rs <- list(Histone = hist,
              Sequence = histDB$Sequence[match(hist, histDB$`Protein ID`)])
   rs$Ordered <- list(rs$Sequence)
   if ("Note" %in% colnames(x)) {
-    w <- which(sapply(x$Note, function(y) { "Disordered" %in% y }))
+    w <- which(vapply(x$Note, \(y) { "Disordered" %in% y }, TRUE))
     lW <- length(w)
     if (lW) {
       sq <- unlist(strsplit(rs$Sequence, ""))
       rmv <- x[w, c("Start", "End"), drop = FALSE]
-      rmv <- apply(rmv, 1, function(x) { x[[1]]:x[[2]] })
+      rmv <- apply(rmv, 1L, \(x) { x[[1L]]:x[[2L]] })
       rmv <- as.numeric(unlist(rmv))
       sq[rmv] <- "_"
       sq <- unlist(strsplit(gsub("^_+|_+$", "", paste(sq, collapse = "")), "_+"))
@@ -828,9 +856,9 @@ Features <- lapply(names(coreHistAnnot), function(hist) { #hist <- names(coreHis
 Ordered <- data.frame(Accession = names(coreHistAnnot),
                       Name = histDB$`Common Name`[match(names(coreHistAnnot), histDB$`Protein ID`)],
                       Sequence = histDB$Sequence[match(names(coreHistAnnot), histDB$`Protein ID`)])
-Ordered$Ordered <- lapply(Features, function(x) { x$Ordered })
+Ordered$Ordered <- lapply(Features, \(x) { x$Ordered })
 Ordered2 <- Ordered
-Ordered2$Ordered <- sapply(Ordered2$Ordered, paste, collapse = " / ")
+Ordered2$Ordered <- vapply(Ordered2$Ordered, paste, "", collapse = " / ")
 write.csv(Ordered2, file = paste0(dstDir, "/Ordered_histone_domains.csv"), row.names = FALSE)
 
 if (useExtTbl) {
@@ -841,11 +869,11 @@ if (useExtTbl) {
   tst <- aggregate(tst, list(tst), length)
   nrow(tst) # Number of identified PTMs
   length(unique(mods$newName)) # Number of searched PTMs
-  stopifnot(sum(!tst$Group.1 %in% mods$newName) == 0) # Checking that the names match
+  stopifnot(sum(!tst$Group.1 %in% mods$newName) == 0L) # Checking that the names match
 }
 
 tmp <- strsplit(ev$Proteins, ";")
-tmp <- proteoCraft::listMelt(tmp, 1:nrow(ev), c("ID", "row"))
+tmp <- listMelt(tmp, 1L:nrow(ev), c("ID", "row"))
 tmp <- tmp[which(tmp$ID %in% histDB$`Protein ID`),]
 tmp <- data.table::as.data.table(tmp)
 tmp <- tmp[, list(IDs = list(ID)), by = list(row = row)]
@@ -858,14 +886,14 @@ ev$"Histone(s)"[tmp$row] <- tmp$IDs
 tmp <- ev[, c("Histone(s)", "Proteins")]
 tmp$"Proteins" <- strsplit(tmp$"Proteins", ";")
 tmp$"Histone(s)" <- strsplit(tmp$"Histone(s)", ";")
-tst <- apply(tmp[, c("Histone(s)", "Proteins")], 1, function(x) {
-  sum(!x[[1]] %in% x[[2]])
+tst <- apply(tmp[, c("Histone(s)", "Proteins")], 1L, \(x) {
+  sum(!x[[1L]] %in% x[[2L]])
 })
-w <- which(tst > 0)
+w <- which(tst > 0L)
 #View(ev[w, c("Modified sequence_verbose", "Histone(s)", "Proteins")])
 #View(ev[grep("phospho", ev$`Modified sequence_verbose`, ignore.case = TRUE), c("Modified sequence_verbose", "Histone(s)", "Proteins")])
 
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(parLapply(parClust, 1L:N.clust, \(x) { rm(list = ls());gc() }))
 saveImgFun(backupFl)
 #loadFun(backupFl)
 
@@ -912,10 +940,10 @@ PSMs_per_Histone <- PSMs_per_Histone[order(PSMs_per_Histone$Peptides, decreasing
 View(PSMs_per_Histone)
 write.csv(PSMs_per_Histone, file = paste0(dstDir, "/PSMs per Histone.csv"), row.names = FALSE)
 
-w <- which(parSapply(parClust, strsplit(evSum$`Histone(s)`, ";"), function(x) {
+w <- which(parSapply(parClust, strsplit(evSum$`Histone(s)`, ";"), \(x) {
   x <- unlist(x)
   x <- x[which(x != "")]
-  (length(x) > 1)||(!is.na(x))
+  (length(x) > 1L)||(!is.na(x))
 }))
 histEv <- evSum[w,]
 tst <- gsub("^_[A-Z]+_$|^_[A-Z]*\\(|\\)[A-Z]*_$", "", gsub("\\)[A-Z]+\\(", "___",
@@ -923,7 +951,7 @@ tst <- gsub("^_[A-Z]+_$|^_[A-Z]*\\(|\\)[A-Z]*_$", "", gsub("\\)[A-Z]+\\(", "___"
 tst <- unlist(strsplit(tst, "___"))
 tst <- aggregate(tst, list(tst), length)
 nrow(tst) # Number of identified PTMs
-stopifnot(sum(!unique(unlist(strsplit(histEv$`Histone(s)`, ";"))) %in% histDB$`Protein ID`) == 0)
+stopifnot(sum(!unique(unlist(strsplit(histEv$`Histone(s)`, ";"))) %in% histDB$`Protein ID`) == 0L)
 histEv$Sequence <- ev$Sequence[match(histEv$`Modified sequence`, ev$`Modified sequence`)]
 
 # Check PTMs
@@ -948,9 +976,9 @@ tmp2 <- unlist(strsplit(tmp$Proteins, ";"))
 tmp2 <- aggregate(tmp2, list(tmp2), length)
 tmp2 <- tmp2[order(tmp2$x, decreasing = TRUE),]
 clusterExport(parClust, "tmp2", envir = environment())
-tmp$Proteins_by_pep <- parSapply(parClust, strsplit(tmp$Proteins, ";"), function(x) { #x <- strsplit(tmp$Proteins[5], ";")
+tmp$Proteins_by_pep <- parSapply(parClust, strsplit(tmp$Proteins, ";"), \(x) { #x <- strsplit(tmp$Proteins[5L], ";")
   x <- unlist(x)
-  if (length(x) > 1) {
+  if (length(x) > 1L) {
     o <- tmp2$x[match(x, tmp2$Group.1)]
     x <- x[order(o, decreasing = TRUE)]
     x <- paste(sort(unlist(x)), collapse = ";")
@@ -959,22 +987,22 @@ tmp$Proteins_by_pep <- parSapply(parClust, strsplit(tmp$Proteins, ";"), function
 })
 tmp$First_Protein <- gsub(";.*", "", tmp$Proteins_by_pep)
 tmpSq <- paste0("_", db$Sequence[match(tmp$First_Protein, db$`Protein ID`)])
-tmp$Match <- sapply(1:nrow(tmp), function(x) {
-  nchar(unlist(strsplit(tmpSq[x], tmp$Sequence[x]))[1])
-})
-tmp$Tbl <- lapply(tmp$`Modified sequence_verbose`, proteoCraft::annot_to_tabl)
-tmp$Sites <- lapply(1:nrow(tmp), function(x) { #x <- 1
+tmp$Match <- vapply(1L:nrow(tmp), \(x) {
+  nchar(unlist(strsplit(tmpSq[x], tmp$Sequence[x]))[1L])
+}, 1L)
+tmp$Tbl <- lapply(tmp$`Modified sequence_verbose`, annot_to_tabl)
+tmp$Sites <- lapply(1L:nrow(tmp), \(x) { #x <- 1L
   mtch <- tmp$Match[x]
   pr <- tmp$First_Protein[x]
   tbl <- tmp$Tbl[[x]]
-  tbl <- tbl[[1]]
-  nr <- nrow(tbl)-2
-  tbl$Dist <- c(1, 1:nr, nr)
-  tbl$Pos <- tbl$Dist + mtch - 1
+  tbl <- tbl[[1L]]
+  nr <- nrow(tbl)-2L
+  tbl$Dist <- c(1L, 1L:nr, nr)
+  tbl$Pos <- tbl$Dist + mtch - 1L
   tbl <- tbl[which(tbl$Annotations != ""), , drop = FALSE]
   tbl$Pos <- as.character(tbl$Pos)
-  tbl$Site <- apply(tbl[, c("Sequence", "Pos", "Annotations")], 1, function(y) {
-    paste0(pr, " ", y[[1]], y[[2]], "(", y[[3]], ")")
+  tbl$Site <- apply(tbl[, c("Sequence", "Pos", "Annotations")], 1L, \(y) {
+    paste0(pr, " ", y[[1L]], y[[2L]], "(", y[[3L]], ")")
   })
   return(tbl$Site)
 })
@@ -998,7 +1026,7 @@ kol %in% colnames(histEv)
 tmpEv <- histEv[, kol]
 clusterExport(parClust, list("tmpEv", "histDir", "Hist", "Coverage", "histDB"), envir = environment())
 #clusterExport(parClust, "Coverage", envir = environment())
-for (e in Exp) { #e <- Exp[1]
+for (e in Exp) { #e <- Exp[1L]
   w <- which(tmpEv$Experiment == e)
   #w <- which(tmpEv$Experiment %in% Exp)
   if (length(w)) {
@@ -1008,22 +1036,22 @@ for (e in Exp) { #e <- Exp[1]
                     sum, na.rm = TRUE)
     colnames(pp) <- c("Modified sequence", "Modified sequence_verbose", "Intensity")
     pp$"Histone(s)" <- tmpEv$"Histone(s)"[match(pp$`Modified sequence`, tmpEv$`Modified sequence`)]
-    tmpPP <- listMelt(strsplit(pp$"Histone(s)", ";"), 1:nrow(pp), c("Histone", "row"))
+    tmpPP <- listMelt(strsplit(pp$"Histone(s)", ";"), 1L:nrow(pp), c("Histone", "row"))
     tmpPP <- aggregate(tmpPP$row, list(tmpPP$"Histone"), c)
-    tmpPP <- setNames(lapply(tmpPP$x, function(x) {
+    tmpPP <- setNames(lapply(tmpPP$x, \(x) {
       pp[x, c("Modified sequence_verbose", "Intensity")]
     }), tmpPP$Group.1)
     e <- gsub("[\\\\/:\\*\\?\"<>\\|]", "_", e)
     clusterExport(parClust, list("e", "tmpPP"), envir = environment())
-    # tst <- sapply(names(tmpPP), function(x) {
+    # tst <- sapply(names(tmpPP), \(x) {
     #   g <- grep("nyl", tmpPP[[x]]$`Modified sequence_verbose`, value = TRUE)
     #   if (length(g)) { stop(cat(x, "\n", paste(g, collapse = "\n"), "\n")) }
     # })
     # View(tmpPP[["A0A2R8Y619"]])
     w <- which(histDB$`Protein ID`[match(Hist, histDB$Header)] %in% names(tmpPP))
     if (length(w)) {
-      a <- parSapply(parClust, Hist[w], function(hist) {
-        #hist <- Hist[w][1]
+      a <- parSapply(parClust, Hist[w], \(hist) {
+        #hist <- Hist[w][1L]
         #hist <- grep("G3UX40", Hist[w], value = TRUE)
         #hist <- grep("G3UWL7", Hist[w], value = TRUE)
         #hist <- grep("A0A0N4SV66", Hist[w], value = TRUE)
@@ -1062,7 +1090,7 @@ kol2 <- c("id", "Raw file", "Raw file2", "Raw file path", "Retention time (start
           "Retention time (predicted)", "iRT", "iRT (predicted)", "Intensity", "PEP", "Theoretical m/z", "m/z", "Mass", "Delta score")
 kol1 <- kol[which(!kol %in% kol2)]
 tmp <- do.call(paste, c(evSum[, kol1], sep = "_<>_"))
-tmp <- aggregate(1:nrow(evSum), list(tmp), min)
+tmp <- aggregate(1L:nrow(evSum), list(tmp), min)
 pep <- evSum[tmp$x, kol1]
 #
 # Quantitative values
@@ -1074,8 +1102,8 @@ ratRoot <- "log2(Ratio) - "
 tmp <- evSum[, c("Experiment", "Modified sequence", "Intensity")]
 exports <- list("allSamples", "samplesMap", "tmp", "intRoot", "is.all.good")
 clusterExport(parClust, exports, envir = environment())
-clusterCall(parClust, function() library(data.table))
-tmp4 <- setNames(parLapply(parClust, allSamples, function(smpl) { #smpl <- allSamples[1] #smpl <- allSamples[4]
+clusterCall(parClust, \() library(data.table))
+tmp4 <- setNames(parLapply(parClust, allSamples, \(smpl) { #smpl <- allSamples[1L] #smpl <- allSamples[4L]
   w <- which(tmp$Experiment == smpl)
   tmp2 <- data.frame(mod = NA, Intensity = NA)
   if (length(w)) {
@@ -1088,14 +1116,14 @@ tmp4 <- setNames(parLapply(parClust, allSamples, function(smpl) { #smpl <- allSa
   }
   return(tmp2)
 }), allSamples)
-for (smpl in allSamples) { #smpl <- allSamples[1] #smpl <- allSamples[4]
+for (smpl in allSamples) { #smpl <- allSamples[1L] #smpl <- allSamples[4L]
   tmp <- tmp4[[smpl]]
   pep[[paste0(intRoot[intType], smpl)]] <- NA
   w <- which(pep$"Modified sequence" %in% tmp$mod)
   m <- match(pep$"Modified sequence"[w], tmp$mod)
   pep[w, paste0(intRoot[intType], smpl)] <- tmp$Intensity[m]
 }
-pep$id <- 1:nrow(pep)
+pep$id <- 1L:nrow(pep)
 #
 labCol <- c("ModSeq", "Proteins", "Name", "Gene names")
 w <- which((labCol %in% colnames(ev))&(!labCol %in% colnames(evSum)))
@@ -1108,12 +1136,13 @@ w <- which(is.na(pep$Name))
 pep$Name[w] <- "No match!"
 labCol <- labCol[which(labCol %in% colnames(pep))]
 clusterExport(parClust, "labCol", envir = environment())
-pep$Label <- parApply(parClust, pep[, labCol, drop = FALSE], 1, function(x) {
+pep$Label <- parApply(parClust, pep[, labCol, drop = FALSE], 1L, \(x) {
   paste0(labCol, ": ", x, collapse = "\n")
 })
 pep$Sequence <- ev$Sequence[match(pep$`Modified sequence_verbose`, ev$`Modified sequence_verbose`)]
 intType <- "Original"
-normSummary <- data.frame(Sample = allSamples, Original = sapply(allSamples, function(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) }))
+normSummary <- data.frame(Sample = allSamples,
+                          Original = vapply(allSamples, \(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) }, 1))
 
 #
 saveImgFun(backupFl)
@@ -1123,8 +1152,8 @@ saveImgFun(backupFl)
 #kol <- colnames(samplesMap)
 #kol <- kol[which(!kol %in% c("Sample", "Sample name", "Group", "Comparison_group",  "Reference", "Use"))]
 kol <- c("Replicate", myFact)
-kol <- kol[which(vapply(kol, function(k) {
-  length(unique(samplesMap[[k]])) > 1
+kol <- kol[which(vapply(kol, \(k) {
+  length(unique(samplesMap[[k]])) > 1L
 }, TRUE))]
 if (length(kol)) {
   dflt <- kol
@@ -1134,7 +1163,7 @@ if (length(kol)) {
   if (exists("myBatches")) {
     dflt <- myBatches
   }
-  kol <- setNames(vapply(kol, function(k) { paste(c(k, rep(" ", max(c(200, nchar(k))))), collapse = "") }, ""),
+  kol <- setNames(vapply(kol, \(k) { paste(c(k, rep(" ", max(c(200, nchar(k))))), collapse = "") }, ""),
                   kol)
   dflt <- setNames(kol[match(dflt, names(kol))], dflt)
   myBatches <- dlg_list(kol, dflt,
@@ -1150,15 +1179,15 @@ if (length(kol)) {
       tmp[[btch]] <- as.numeric(as.factor(tmp[[btch]]))
     }
     lBat <- length(myBatches)
-    if (lBat > 1) {
-      comb <- gtools::combinations(length(myBatches), 2, myBatches)
+    if (lBat > 1L) {
+      comb <- gtools::combinations(length(myBatches), 1L, myBatches)
       comb <- as.data.frame(comb)
-      tst <- apply(comb, 1, function(x) {
-        identical(tmp[[x[1]]], tmp[[x[2]]])
+      tst <- apply(comb, 1L, \(x) {
+        identical(tmp[[x[1L]]], tmp[[x[2L]]])
       })
       w <- which(tst)
       if (length(w)) {
-        btchs2Remove <- unique(comb[w, 2])
+        btchs2Remove <- unique(comb[w, 2L])
         warning(paste0("The following batches are synonymous: ",
                        paste(do.call(paste, c(comb[w,], sep = " and ")), collapse = ", "),
                        ".\nThe following batches will be removed: ", btchs2Remove))
@@ -1171,19 +1200,19 @@ if (length(kol)) {
     #
     scoresLst <- PCAlyLst <- PCsLst <- list()
     orig <- "original"
-    prevBatch <- sapply(myBatches, function(btch) {
+    prevBatch <- vapply(myBatches, \(btch) {
       m <- match(btch, myBatches)
-      if (m == 1) {
+      if (m == 1L) {
         rs <- orig
       } else {
-        rs <- myBatches[m - 1]
+        rs <- myBatches[m - 1L]
       }
       return(rs)
-    })
+    }, "")
     #
     # Prepare data
     intCols <- paste0(intRoot[intType], allSamples)
-    logIntCols <- gsub(proteoCraft::topattern(intRoot[intType]), logIntRoot[intType], intCols)
+    logIntCols <- gsub(topattern(intRoot[intType]), logIntRoot[intType], intCols)
     edata <- pep[, intCols]
     for (k in intCols) {
       edata[[k]] <- log10(edata[[k]])
@@ -1192,7 +1221,7 @@ if (length(kol)) {
     grps <- samplesMap$Group[match(allSamples, samplesMap$"Sample name")]
     #
     # Impute missing values
-    tempImp <- proteoCraft::Data_Impute2(edata, grps)
+    tempImp <- Data_Impute2(edata, grps)
     impEdata <- tempImp$Imputed_data
     impVal <- tempImp$Positions_Imputed
     #
@@ -1218,16 +1247,16 @@ if (length(kol)) {
       msg <- "We do not estimate that there are any surrogate variables hidden in the data -> no batch correction required. Try correcting nonetheless?"
       opt <- c("No                                                                                                                                                                                                                                                                                                                ",
                "Yes                                                                                                                                                                                                                                                                                                               ")
-      combatNorm <- c(FALSE, TRUE)[match(dlg_list(opt, opt[1], title = msg)$res, opt)]
+      combatNorm <- c(FALSE, TRUE)[match(dlg_list(opt, opt[1L], title = msg)$res, opt)]
     }
   }
   if (combatNorm) {
     ComBat_Data <- list()
     KeepComBatRes <- c()
-    for (btch in myBatches) { #btch <- myBatches[1] #btch <- myBatches[2]
+    for (btch in myBatches) { #btch <- myBatches[1L] #btch <- myBatches[2L]
       keepCmBtRs <- KeepComBatResDflt
       combat_edata <- list()
-      for (cmpGrp in compGrps) { #cmpGrp <- compGrps[1]  #cmpGrp <- compGrps[2]
+      for (cmpGrp in compGrps) { #cmpGrp <- compGrps[1L]  #cmpGrp <- compGrps[2L]
         last <- btch
         prev <- prevBatch[btch]
         w <- which(samplesMap$Comparison_group == cmpGrp)
@@ -1236,7 +1265,7 @@ if (length(kol)) {
         mod0a <- model.matrix(~1, data = map)
         btchVect <- map[[btch]]
         tst <- aggregate(btchVect, list(btchVect), length)
-        if ((length(unique(btchVect)) == 1)||(min(tst$x == 1))) {
+        if ((length(unique(btchVect)) == 1L)||(min(tst$x) == 1L)) {
           warning(paste0("Could not correct for group ", cmpGrp, ": not enough values"))
           combat_edata[[cmpGrp]] <- impEdata[, k]
         } else {
@@ -1298,7 +1327,7 @@ if (length(kol)) {
           br(),
           br()
         )
-        server <- function(input, output, session) {
+        server <- \(input, output, session) {
           output$Before <- renderPlotly(PCAlyLst[[prev]][[btch]])
           output$After <- renderPlotly(PCAlyLst[[btch]][[btch]])
           output$PCs <- renderDT({ PCs },
@@ -1329,21 +1358,21 @@ if (length(kol)) {
             stopApp()
           })
           #observeEvent(input$cancel, { stopApp() })
-          session$onSessionEnded(function() { stopApp() })
+          session$onSessionEnded(\() { stopApp() })
         }
-        runKount <- 0
+        runKount <- 0L
         while ((!runKount)||(!exists("IHAVERUN"))) {
           eval(parse(text = runApp), envir = .GlobalEnv)
           shinyCleanup()
-          runKount <- runKount+1
+          runKount <- runKount+1L
         }
         #
-        msg <- paste0(" -> correction of ", btch, "-batch associated effect from ", prev, " ", c("rejec", "accep")[keepCmBtRs+1], "ted.\n")
+        msg <- paste0(" -> correction of ", btch, "-batch associated effect from ", prev, " ", c("rejec", "accep")[keepCmBtRs+1L], "ted.\n")
         if (!keepCmBtRs) {
           last <- prev
           m <- match(btch, myBatches)
           if (m < length(myBatches)) {
-            prevBatch[m+1] <- prev
+            prevBatch[m+1L] <- prev
           }
         }
         cat(msg)
@@ -1370,7 +1399,7 @@ if (length(kol)) {
       for (k in logIntCols) {
         btchCorrData[[k]] <- 10^(btchCorrData[[k]])
       }
-      colnames(btchCorrData) <- gsub(proteoCraft::topattern(logIntRoot["Original"]),
+      colnames(btchCorrData) <- gsub(topattern(logIntRoot["Original"]),
                                      intRoot["ComBat"],
                                      colnames(btchCorrData))
       # Re-introduce missing values
@@ -1380,41 +1409,41 @@ if (length(kol)) {
       #
       comBatCols <- colnames(btchCorrData)
       pep[, comBatCols] <- btchCorrData[, comBatCols]
-      normSummary[[intType]] <- sapply(allSamples, function(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) })
+      normSummary[[intType]] <- vapply(allSamples, \(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) }, 1)
     }
   }
 }
 
 # Define Core peptides as peptides matching the non-tail ordered region of histones 
 pep$isCore <- FALSE
-w <- which(nchar(pep$`Histone(s)`) > 0)
+w <- which(nchar(pep$`Histone(s)`) > 0L)
 tmp <- listMelt(Ordered$Ordered, Ordered$Accession, c("Ordered", "Accession"))
 tmp$Ordered <- paste0("_", unlist(tmp$Ordered), "_")
 # We will define a peptide as Core if, for each core histone it matches, it's match falls entirely within the ordered region
 pep$tmp <- strsplit(pep$`Histone(s)`, ";")
-pep$isCore[w] <- apply(pep[w, c("Sequence", "tmp")], 1, function(x) { #x <- pep[w[1], c("Sequence", "tmp")]
-  sq <- tmp$Ordered[match(unlist(x[[2]]), tmp$Accession)]
-  sq <- strsplit(sq, unlist(x[[1]]))
-  tst <- sapply(sq, length)
-  return(min(tst) > 1)
+pep$isCore[w] <- apply(pep[w, c("Sequence", "tmp")], 1L, \(x) { #x <- pep[w[1L], c("Sequence", "tmp")]
+  sq <- tmp$Ordered[match(unlist(x[[2L]]), tmp$Accession)]
+  sq <- strsplit(sq, unlist(x[[1L]]))
+  tst <- lengths(sq)
+  return(min(tst) > 1L)
 })
 pep$tmp <- NULL
 
 # Normalize
 quntCol <- paste0(intRoot[intType], allSamples)
-if (length(Exp) > 1) {
+if (length(Exp) > 1L) {
   normOpt <- c("Histone-fold region of all core histones",
                "Histone-fold region of all core histones, per histone (-> non-histone peptides excluded from analysis!)",
                "All proteins",
                "Do not normalize")
-  opt2 <- setNames(sapply(normOpt, function(x) { paste(c(x, rep(" ", 150 - nchar(x))), collapse = "") }), normOpt)
-  normMeth <- dlg_list(opt2, opt2[1], title = "Select which normalization method you wish to use")$res
+  opt2 <- setNames(vapply(normOpt, \(x) { paste(c(x, rep(" ", 150L - nchar(x))), collapse = "") }, ""), normOpt)
+  normMeth <- dlg_list(opt2, opt2[1L], title = "Select which normalization method you wish to use")$res
   normMeth <- names(opt2[match(normMeth, opt2)])
-  if (normMeth %in% normOpt[1:3]) {
+  if (normMeth %in% normOpt[1L:3L]) {
     intRoot["Normalized"] <- "norm. int. - "
     logIntRoot["Normalized"] <- "norm. log10(int.) - "
     quntCol2 <- paste0(intRoot["Normalized"], allSamples)
-    if (normMeth %in% normOpt[1:2]) {
+    if (normMeth %in% normOpt[1L:2L]) {
       w <- which(pep$isCore)
       if (!length(w)) { stop("Not enough peptides to normalize") }
       pep$isModified <- gsub("^_|_$", "", pep$`Modified sequence`) != pep$Sequence
@@ -1428,58 +1457,58 @@ if (length(Exp) > 1) {
       }
       # Global normalisation to histones
       #View(pep[w, c("id", quntCol)])
-      tmp <- proteoCraft::AdvNorm.IL(pep[w, c("id", quntCol)], "id", quntCol)
+      tmp <- AdvNorm.IL(pep[w, c("id", quntCol)], "id", quntCol)
       #View(tmp)
-      #tst <- sapply(paste0("AdvNorm.", quntCol), function(x) { summary(tmp[[x]]) });View(tst)
+      #tst <- sapply(paste0("AdvNorm.", quntCol), \(x) { summary(tmp[[x]]) });View(tst)
       x <- unlist(pep[w, quntCol])
       x <- x[which(x > 0)]
       M <- median(x, na.rm = TRUE)
-      m <- sapply(paste0("AdvNorm.", quntCol), function(x) {
+      m <- vapply(paste0("AdvNorm.", quntCol), \(x) {
         x <- unlist(tmp[[x]])
         x <- x[which(x > 0)]
         median(is.all.good(as.numeric(x)))
-      })
-      pep[, quntCol2] <- sweep(pep[, quntCol], 2, m, "/")*M
-      if (normMeth == normOpt[2]) {
+      }, 1)
+      pep[, quntCol2] <- sweep(pep[, quntCol], 1L, m, "/")*M
+      if (normMeth == normOpt[2L]) {
         # Here we want to normalize each peptide to the parent protein(s)
         # I guess we can calculate normalization factors for each unique protein,
         # then average those if a peptide matches several proteins?
         w <- which(pep$`Histone(s)` != "")
-        prt2pep <- proteoCraft::listMelt(strsplit(pep$Proteins[w], ";"), w, c("Protein", "pepRow"))
+        prt2pep <- listMelt(strsplit(pep$Proteins[w], ";"), w, c("Protein", "pepRow"))
         prt2pep <- aggregate(prt2pep$pepRow, list(prt2pep$Protein), list)
-        prt2pep$id <- sapply(prt2pep$x, function(x) { pep$id[unlist(x)] })
-        prt2pep$Core <- sapply(prt2pep$id, function(x) {
+        prt2pep$id <- sapply(prt2pep$x, \(x) { pep$id[unlist(x)] })
+        prt2pep$Core <- sapply(prt2pep$id, \(x) {
           x[which(pep$isCore[match(x, pep$id)])]
         })
-        wL <- which(sapply(prt2pep$Core, length) > 0)
+        wL <- which(lengths(prt2pep$Core) > 0L)
         prt2pep <- prt2pep[wL,]
         # Calculate Core peptides-only re-normalization factor at protein level:
-        #prt2pep$Norm <- lapply(1:nrow(prt2pep), function(x) { c() })
+        #prt2pep$Norm <- lapply(1L:nrow(prt2pep), \(x) { c() })
         tmp <- pep[, c("id", quntCol2)]
-        clusterExport(parClust, list("tmp", "quntCol2", "allSamples"), envir = environment())
-        prt2pep[, allSamples] <- as.data.frame(t(parSapply(parClust, prt2pep$Core, function(x) { #x <- prt2pep$Core[2]
+        clusterExport(parClust, list("tmp", "quntCol2", "allSamples", "AdvNorm.IL", "is.all.good"), envir = environment())
+        prt2pep[, allSamples] <- as.data.frame(t(parSapply(parClust, prt2pep$Core, \(x) { #x <- prt2pep$Core[2L]
           tmp1 <- tmp[match(unlist(x), tmp$id),]
           M <- unlist(tmp1[, quntCol2])
           M <- M[which(M > 0)]
           M <- median(M, na.rm = TRUE)
-          tmp1 <- proteoCraft::AdvNorm.IL(tmp1, "id", quntCol2)
+          tmp1 <- AdvNorm.IL(tmp1, "id", quntCol2)
           #View(tmp)
-          #tst <- sapply(paste0("AdvNorm.", quntCol2), function(x) { summary(tmp[[x]]) });View(tst)
-          m <- sapply(paste0("AdvNorm.", quntCol2), function(x) {
+          #tst <- sapply(paste0("AdvNorm.", quntCol2), \(x) { summary(tmp[[x]]) });View(tst)
+          m <- vapply(paste0("AdvNorm.", quntCol2), \(x) {
             x <- unlist(tmp1[[x]])
             x <- x[which(x > 0)]
-            median(proteoCraft::is.all.good(as.numeric(x)))
-          })
+            median(is.all.good(as.numeric(x)))
+          }, 1)
           return(setNames(M/m, allSamples)) 
         })))
         #
         # Turn it into peptide-level normalization factors, averaging as needed
         pep2prt <- listMelt(prt2pep$x, prt2pep$Group.1, c("pep", "prot"))
         pep2prt[, allSamples] <- prt2pep[match(pep2prt$prot, prt2pep$Group.1[wL]), allSamples]
-        Norm <- aggregate(pep2prt[, allSamples], list(pep2prt$pep), function(x) { exp(mean(log(x), na.rm = TRUE)) })
+        Norm <- aggregate(pep2prt[, allSamples], list(pep2prt$pep), \(x) { exp(mean(log(x), na.rm = TRUE)) })
         # If we cannot calculate a normalization factor, we need to remove the peptide
-        tst <- parApply(parClust, Norm[, allSamples], 1, function(x) { length(proteoCraft::is.all.good(x)) })
-        Norm <- Norm[which(tst > 0),]
+        tst <- parApply(parClust, Norm[, allSamples], 1L, \(x) { length(is.all.good(x)) })
+        Norm <- Norm[which(tst > 0L),]
         #
         # Now we need to remove peptides which cannot be normalized with this method
         wN <- which(!pep$id %in% Norm$Group.1)
@@ -1494,12 +1523,12 @@ if (length(Exp) > 1) {
         }
       }
     }
-    if (normMeth == normOpt[3]) {
-      tmp <- proteoCraft::AdvNorm.IL(pep[, c("id", quntCol)], "id", quntCol)
+    if (normMeth == normOpt[3L]) {
+      tmp <- AdvNorm.IL(pep[, c("id", quntCol)], "id", quntCol)
       pep[, quntCol2] <- tmp[, paste0("AdvNorm.", quntCol)]
     }
     intType <- "Normalized"
-    normSummary[[intType]] <- sapply(allSamples, function(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) })
+    normSummary[[intType]] <- vapply(allSamples, \(x) { median(pep[[paste0(intRoot[intType], x)]], na.rm = TRUE) }, 1)
     quntCol <- paste0(intRoot[intType], allSamples) # Update
   }
 }
@@ -1530,26 +1559,26 @@ for (pca_type in pca_types) {
       tst <- gsub(".* - ", "", kol)
       kol <- kol[which(tst %in% smpls)]
     }
-    if (length(kol) > 1) {
+    if (length(kol) > 1L) {
       temp <- pep[, kol, drop = FALSE]
       colnames(temp) <- gsub(topattern(intRoot[intType]), "", colnames(temp))
-      wOK <- which((apply(temp, 1, function(x) {length(proteoCraft::is.all.good(x))}) == ncol(temp))
+      wOK <- which((apply(temp, 1L, \(x) { length(is.all.good(x)) }) == ncol(temp))
                    &((is.na(pep$"Potential contaminant"))|(pep$"Potential contaminant" != "+")))
       temp <- temp[wOK,]
       if (pca_type2 == "Histones") {
         temp <- temp[which(tstHist[wOK]),]
       }
-      temp <- sweep(temp, 1, pep$"Av. log10 abundance"[w], "-") # Minimal effect:
+      temp <- sweep(temp, 1L, pep$"Av. log10 abundance"[w], "-") # Minimal effect:
       # (the idea is that the final result is not affected by peptide intensity but by peptide logFCs only)
       temp <- temp + rnorm(length(unlist(temp)), 0, 10^-9) # To avoid constant/zero columns, add a small random error
       
       pc <- prcomp(t(temp), scale. = TRUE)
       scores <- as.data.frame(pc$x)
-      pv <- round(100*(pc$sdev)^2 / sum(pc$sdev^2), 0)
+      pv <- round(100*(pc$sdev)^2 / sum(pc$sdev^2), 0L)
       pv <- pv[which(pv > 0)]
-      pv <- paste0("Components: ", paste(sapply(1:length(pv), function(x) {
+      pv <- paste0("Components: ", paste(vapply(1L:length(pv), \(x) {
         paste0("PC", x, ": ", pv[x], "%")
-      }), collapse = ", "))
+      }, ""), collapse = ", "))
       scores$Sample <- rownames(scores)
       m <- match(scores$Sample, samplesMap$"Sample name")
       scores$Group <- samplesMap$Group[m]
@@ -1575,11 +1604,11 @@ for (pca_type in pca_types) {
           ggtitle(ttl, subtitle = pv) +
           geom_text_repel(aes(label = Sample), size = 2.5, show.legend = FALSE) + 
           theme_bw()
-        if (substr(form, 1, 1) == "~") { plot <- plot + facet_wrap(form) } else { plot <- plot + facet_grid(form) }
+        plot <- if (substr(form, 1L, 1L) == "~") { plot + facet_wrap(form) } else { plot + facet_grid(form) }
         #
         scores$Group <- factor(scores$Group)
         if ("PC3" %in% colnames(scores)) {
-          Symb <- rep(c("circle", "diamond", "square", "cross", "x"), max(as.numeric(Rep)))[1:max(as.numeric(Rep))]             
+          Symb <- rep(c("circle", "diamond", "square", "cross", "x"), max(as.numeric(Rep)))[1L:max(as.numeric(Rep))]             
           Symb <- Symb[as.numeric(scores$Replicate)]
           plot_lyPCAProt <- plot_ly(scores, x = ~PC1, y = ~PC2, z = ~PC3,
                                     color = ~Group, colors = "viridis",
@@ -1593,10 +1622,10 @@ for (pca_type in pca_types) {
           dimRedPlotLy[["Samples PCA"]] <- plot_lyPCAProt
           #system(paste0("open \"", dstDir, "/", ttl, ".html"))
           # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
-        } else { poplot(plot, width = 18) }
+        } else { poplot(plot, width = 18L) }
         suppressWarnings({
-          ggsave(paste0(dstDir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 10, height = 10, units = "in")
-          ggsave(paste0(dstDir, "/", ttl, ".pdf"), plot, dpi = 300, width = 10, height = 10, units = "in")
+          ggsave(paste0(dstDir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+          ggsave(paste0(dstDir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         })
       } else { warning(paste0(pca_type, " PCA failed, investigate!")) }
     }
@@ -1623,9 +1652,9 @@ tmp2 <- unlist(strsplit(tmp$Proteins, ";"))
 tmp2 <- aggregate(tmp2, list(tmp2), length)
 tmp2 <- tmp2[order(tmp2$x, decreasing = TRUE),]
 clusterExport(parClust, "tmp2", envir = environment())
-tmp$Proteins_by_pep <- parSapply(parClust, strsplit(tmp$Proteins, ";"), function(x) { #x <- strsplit(tmp$Proteins[5], ";")
+tmp$Proteins_by_pep <- parSapply(parClust, strsplit(tmp$Proteins, ";"), \(x) { #x <- strsplit(tmp$Proteins[5L], ";")
   x <- unlist(x)
-  if (length(x) > 1) {
+  if (length(x) > 1L) {
     o <- tmp2$x[match(x, tmp2$Group.1)]
     x <- x[order(o, decreasing = TRUE)]
     x <- paste(sort(unlist(x)), collapse = ";")
@@ -1637,23 +1666,24 @@ m <- match(tmp$First_Protein, db$`Protein ID`)
 w <- which(!is.na(m))
 tmp <- tmp[w,]; m <- m[w]
 tmpSq <- paste0("_", db$Sequence[m])
-tmp$Match <- sapply(1:nrow(tmp), function(x) {
-  nchar(unlist(strsplit(tmpSq[x], tmp$Sequence[x]))[1])
-})
-tmp$Tbl <- parLapply(parClust, paste0("_", tmp$`Modified sequence_verbose`, "_"), proteoCraft::annot_to_tabl)
-tmp$Sites <- lapply(1:nrow(tmp), function(x) { #x <- 1
+tmp$Match <- vapply(1L:nrow(tmp), \(x) {
+  nchar(unlist(strsplit(tmpSq[x], tmp$Sequence[x]))[1L])
+}, 1L)
+clusterExport(parClust, "annot_to_tabl", envir = environment())
+tmp$Tbl <- parLapply(parClust, paste0("_", tmp$`Modified sequence_verbose`, "_"), annot_to_tabl)
+tmp$Sites <- lapply(1L:nrow(tmp), \(x) { #x <- 1L
   # Do not parallelize me: it's slower!
   mtch <- tmp$Match[x]
   pr <- tmp$First_Protein[x]
   tbl <- tmp$Tbl[[x]]
-  tbl <- tbl[[1]]
-  nr <- nrow(tbl)-2
-  tbl$Dist <- c(1, 1:nr, nr)
-  tbl$Pos <- tbl$Dist + mtch - 1
+  tbl <- tbl[[1L]]
+  nr <- nrow(tbl)-2L
+  tbl$Dist <- c(1L, 1L:nr, nr)
+  tbl$Pos <- tbl$Dist + mtch - 1L
   tbl <- tbl[which(tbl$Annotations != ""), , drop = FALSE]
   tbl$Pos <- as.character(tbl$Pos)
-  tbl$Site <- apply(tbl[, c("Sequence", "Pos", "Annotations")], 1, function(y) {
-    paste0(pr, " ", y[[1]], y[[2]], "(", y[[3]], ")")
+  tbl$Site <- apply(tbl[, c("Sequence", "Pos", "Annotations")], 1L, \(y) {
+    paste0(pr, " ", y[[1L]], y[[2L]], "(", y[[3L]], ")")
   })
   return(tbl$Site)
 })
@@ -1676,7 +1706,7 @@ Sites2$`Histone(s)` <- Sites$`Histone(s)`[match(Sites2$Site, Sites$Site)]
 Sites2$Protein_name <- db$`Common Name`[match(Sites2$Protein, db$`Protein ID`)]
 Sites <- Sites2; rm(Sites2)
 labCol <- c("Site", "Protein_name")
-Sites$Label <- apply(Sites[, labCol], 1, function(x) {
+Sites$Label <- apply(Sites[, labCol], 1L, \(x) {
   paste0(labCol, ": ", x, collapse = "\n")
 })
 
@@ -1713,7 +1743,7 @@ if (statTsts) {
     em <- samplesMap2[which(samplesMap2$Comparison_group == ratGrp),]
     grp1 <- unique(em$Group[which(!em$Reference)])
     grp0 <- unique(em$Group[which(em$Reference)])
-    expContrasts[[ratGrp]] <- plyr::rbind.fill(lapply(grp0, function(g0) { data.frame(x1 = paste0("Group_", grp1), x0 = paste0("Group_", g0)) }))
+    expContrasts[[ratGrp]] <- plyr::rbind.fill(lapply(grp0, \(g0) { data.frame(x1 = paste0("Group_", grp1), x0 = paste0("Group_", g0)) }))
   }
   expContrasts <- plyr::rbind.fill(expContrasts)
   tmp <- expContrasts
@@ -1721,9 +1751,9 @@ if (statTsts) {
   if (length(w)) { tmp$x1[w] <- "" }
   w <- which(!tmp$x2 %in% colnames(designMatr))
   if (length(w)) { tmp$x2[w] <- "" }
-  tmp <- apply(tmp, 1, function(x) {
+  tmp <- apply(tmp, 1L, \(x) {
     #x <- x[which(x != "")]
-    if (length(x) == 2) { x <- paste(x, collapse = " - ") }
+    if (length(x) == 2L) { x <- paste(x, collapse = " - ") }
     return(x)
   })
   contrCall <- paste0("contrMatr <- makeContrasts(",
@@ -1735,7 +1765,7 @@ if (statTsts) {
   expContrasts$Name <- colnames(contrMatr)
   #
   colMatch <- data.frame(x = c("up", "down", "n.s.", "n.t."),
-                         y = c(1, -1, 0, NA))
+                         y = c(1L, -1L, 0L, NA))
   myColors <- setNames(c("#32CD32","#cd0000", "#A9A9A9", "#000000"),
                        c("up", "down", "n.s.", "n.t."))
   colScale <- scale_colour_manual(name = "colour", values = myColors)
@@ -1756,7 +1786,7 @@ if (statTsts) {
     myData[, logIntCols] <- log10(myData[, intCols])
     #
     # First calculate mean per group
-    for (grp in Groups) { #grp <- Groups[1] #grp <- Groups[2]
+    for (grp in Groups) { #grp <- Groups[1L] #grp <- Groups[2L]
       #cat(" - Mean intensities ", grp, "\n")
       w <- which(samplesMap2$Group == grp)
       e1 <- samplesMap2[w,]
@@ -1769,11 +1799,11 @@ if (statTsts) {
         ke1 <- paste0("Mean ", logIntRoot[intType], grp)
         tempVal <- myData[, col1, drop = FALSE]
         row.names(tempVal) <- myData[[namesCol]]
-        if (length(w1) == 1) {
+        if (length(w1) == 1L) {
           cat(paste0("Warning: Only 1 replicate for ", grp, "!\n"))
-          myData[[ke1]] <- tempVal[[1]]
+          myData[[ke1]] <- tempVal[[1L]]
         } else {
-          myData[[ke1]] <- parApply(parClust, tempVal, 1, mean, na.rm = TRUE)
+          myData[[ke1]] <- parApply(parClust, tempVal, 1L, mean, na.rm = TRUE)
         }
       }
     }
@@ -1781,15 +1811,15 @@ if (statTsts) {
     #
     # Average lfc
     if (Nested) {
-      for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[1] #contr <- colnames(contrMatr)[2]
+      for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[1L] #contr <- colnames(contrMatr)[2L]
         tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
         nm <- paste(tmp, collapse = " - ")
         e <- samplesMap2[which(samplesMap2$Group %in% tmp),]
         uRps <- unique(e$Replicate)
-        rps <- lapply(uRps, function(x) {
+        rps <- lapply(uRps, \(x) {
           x0 <- e$"Sample name"[which((e$Replicate == x)&(e$Reference))]
           x1 <- e$"Sample name"[which((e$Replicate == x)&(!e$Reference))]
-          if ((length(x0) == 1)&&(length(x1) == 1)) {
+          if ((length(x0) == 1L)&&(length(x1) == 1L)) {
             rs <- data.frame(Rep = x,
                              Ref = x0,
                              Sample = x1)
@@ -1803,16 +1833,16 @@ if (statTsts) {
         rps <- plyr::rbind.fill(rps)
         rps <- rps[which(!is.na(rps$Ref)),]
         rps <- rps[which(!is.na(rps$Sample)),]
-        myData[, paste0(ratRoot, nm, " ", uRps)] <- cbind(lapply(uRps, function(x) { #x <- uRps[1]
+        myData[, paste0(ratRoot, nm, " ", uRps)] <- cbind(lapply(uRps, \(x) { #x <- uRps[1L]
           m <- match(x, rps$Rep)
           (myData[[paste0(logIntRoot[intType], rps$Sample[m])]] - myData[[paste0(logIntRoot[intType], rps$Ref[m])]])/log10(2)
         }))
-        myData[[paste0(ratRoot, nm)]] <- apply(myData[, paste0(ratRoot, nm, " ", uRps)], 1, mean, na.rm = TRUE)
+        myData[[paste0(ratRoot, nm)]] <- apply(myData[, paste0(ratRoot, nm, " ", uRps)], 1L, mean, na.rm = TRUE)
       }
     } else {
-      myData[, paste0(ratRoot, gsub("Group_", "", colnames(contrMatr)))] <- cbind(lapply(1:nrow(expContrasts), function(x) { #x <- 1
+      myData[, paste0(ratRoot, gsub("Group_", "", colnames(contrMatr)))] <- cbind(lapply(1L:nrow(expContrasts), \(x) { #x <- 1L
         x <- gsub("^Group_", "", expContrasts[x,])
-        (myData[[paste0("Mean ", logIntRoot[intType], x[1])]] - myData[[paste0("Mean ", logIntRoot[intType], x[2])]])/log10(2)
+        (myData[[paste0("Mean ", logIntRoot[intType], x[1L])]] - myData[[paste0("Mean ", logIntRoot[intType], x[2L])]])/log10(2L)
       }))
     }
     #View(myData[, c(paste0(logIntRoot[intType], samplesMap2$Sample), paste0(ratRoot, gsub("Group_", "", colnames(contrMatr))))])
@@ -1823,32 +1853,32 @@ if (statTsts) {
     fit <- eBayes(fit) # Assumes 1% of genes change!!!
     #View(fit$p.value)
     pVal <- fit$p.value
-    kol2 <- sapply(colnames(pVal), function(contr) { #contr <- colnames(pVal)[2]
+    kol2 <- vapply(colnames(pVal), \(contr) { #contr <- colnames(pVal)[2L]
       tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
       nm <- paste(tmp, collapse = " - ")
       return(paste0("Mod. P-value - ", nm))
-    })
+    }, "")
     myData[, kol2] <- pVal
     FDR_thresh <- list()
-    for (i in 1:ncol(pVal)) {
+    for (i in 1L:ncol(pVal)) {
       contr <- colnames(contrMatr)[i]
       tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
       nm <- paste(tmp, collapse = " - ")
-      sig <- proteoCraft::FDR(as.data.frame(pVal),
-                              pvalue_col = colnames(pVal)[i],
-                              fdr = 30,
-                              returns = c(TRUE, TRUE))
+      sig <- FDR(as.data.frame(pVal),
+                 pvalue_col = colnames(pVal)[i],
+                 fdr = 30,
+                 returns = c(TRUE, TRUE))
       #View(sig$`Significance vector`)
       myData[[paste0("Signif. - ", nm)]] <- sig$`Significance vector`
       FDR_thresh[[nm]] <- sig$Thresholds
     }
     decisions <- decideTests(fit, adjust.method = "BH", p.value = FDR, lfc = l10FC) # Remember! The log base of the lfc threshold must be the same as that of the input data!!!
     decisions <- as.data.frame(decisions@.Data)
-    nms <- sapply(colnames(decisions), function(contr) { #contr <- colnames(decisions)[2]
+    nms <- vapply(colnames(decisions), \(contr) { #contr <- colnames(decisions)[2L]
       tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
       nm <- paste(tmp, collapse = " - ")
       return(nm)
-    })
+    }, "")
     kol2 <- paste0("Decision - ", nms)
     colnames(decisions) <- nms
     myData[, kol2] <- decisions
@@ -1856,17 +1886,17 @@ if (statTsts) {
     attributes(venn)$class <- NULL
     print(venn)
     #
-    for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[2]
+    for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[2L]
       tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
       nm <- paste(tmp, collapse = " - ")
       dc <- paste0("Decision - ", nm)
       myData[[dc]] <- colMatch$x[match(myData[[dc]], colMatch$y)]
     }
-    myData$"is Histone" <- c("-", "+")[(myData$`Histone(s)` != "") + 1]
+    myData$"is Histone" <- c("-", "+")[(myData$`Histone(s)` != "") + 1L]
     myData$"is Histone"[which(is.na(myData$"is Histone"))] <- "-"
     myData$Alpha <- c(0.2, 1)[match(myData$"is Histone", c("-", "+"))]
     myData$Size <- c(0.1, 1.5)[match(myData$"is Histone", c("-", "+"))]
-    for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[1]
+    for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[1L]
       tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
       nm <- paste(tmp, collapse = " - ")
       thresh <- FDR_thresh[[nm]]
@@ -1887,39 +1917,39 @@ if (statTsts) {
       wOK <- which(is.na(!myDat$`log2 FC`)&is.na(!myDat$`-log10 mod. P-value`))
       wOKX <- which(is.all.good(myDat$`log2 FC`, 2))
       wOKY <- which(is.all.good(myDat$`-log10 mod. P-value`, 2))
-      myDat$Label[wOKY] <- vapply(wOKY, function(x) {
+      myDat$Label[wOKY] <- vapply(wOKY, \(x) {
         paste0("-log10 mod. P-value: ", signif(myDat$`-log10 mod. P-value`[x], 5), "\n", myDat$Label[x])
       }, "")
-      myDat$Label[wOKX] <- vapply(wOKX, function(x) {
+      myDat$Label[wOKX] <- vapply(wOKX, \(x) {
         paste0("log2 FC: ", signif(myDat$`log2 FC`[x]), "\n", myDat$Label[x])
       }, "")
       xRng <- range(myDat$`log2 FC`, na.rm = TRUE)
       yRng <- range(myDat$`-log10 mod. P-value`, na.rm = TRUE)
-      xWdth <- xRng[2]-xRng[1]
-      yWdth <- yRng[2]-yRng[1]
+      xWdth <- xRng[2L]-xRng[1L]
+      yWdth <- yRng[2L]-yRng[1L]
       lNA <- length(wNA) 
       if (lNA) {
-        tstUp <- apply(myDat[, k1], 1, function(x) { length(is.all.good(log10(x))) })
-        tstDw <- apply(myDat[, k0], 1, function(x) { length(is.all.good(log10(x))) })
-        wNAUp <- wNA[which(vapply(wNA, function(x) { (tstUp[x] > 0)&(tstDw[x] == 0) }, TRUE))]
+        tstUp <- apply(myDat[, k1], 1L, \(x) { length(is.all.good(log10(x))) })
+        tstDw <- apply(myDat[, k0], 1L, \(x) { length(is.all.good(log10(x))) })
+        wNAUp <- wNA[which(vapply(wNA, \(x) { (tstUp[x] > 0)&(tstDw[x] == 0) }, TRUE))]
         wNAUp <- sort(unique(c(wNAUp,
                                wNA[which((!is.na(myDat$`log2 FC`[wNA]))&(myDat$`log2 FC`[wNA] > 0))])))
-        wNADw <- wNA[which(vapply(wNA, function(x) { (tstUp[x] == 0)&(tstDw[x] > 0) }, TRUE))]
+        wNADw <- wNA[which(vapply(wNA, \(x) { (tstUp[x] == 0)&(tstDw[x] > 0) }, TRUE))]
         wNADw <- sort(unique(c(wNADw,
                                wNA[which((!is.na(myDat$`log2 FC`[wNA]))&(myDat$`log2 FC`[wNA] < 0))])))
         lNAUp <- length(wNAUp)
         lNADw <- length(wNADw)
         if (lNAUp) {
-          myDat$`log2 FC`[wNAUp] <- xRng[2]+3*xWdth/80
-          myDat$`-log10 mod. P-value`[wNAUp] <- yRng[1] + yWdth*21*(1:lNAUp - 0.5)/(lNAUp*20)
-          myDat$Label[wNAUp] <- vapply(wNAUp, function(x) {
+          myDat$`log2 FC`[wNAUp] <- xRng[2L]+3*xWdth/80
+          myDat$`-log10 mod. P-value`[wNAUp] <- yRng[1L] + yWdth*21*(1L:lNAUp - 0.5)/(lNAUp*20)
+          myDat$Label[wNAUp] <- vapply(wNAUp, \(x) {
             paste0("Obs. in ", grp1, ": ", tstUp[x], "\n", myDat$Label[x])
           }, "")
         }
         if (lNADw) {
-          myDat$`log2 FC`[wNADw] <- xRng[1]-3*xWdth/80
-          myDat$`-log10 mod. P-value`[wNADw] <- yRng[1] + yWdth*21*(1:lNADw - 0.5)/(lNADw*20)
-          myDat$Label[wNADw] <- vapply(wNADw, function(x) {
+          myDat$`log2 FC`[wNADw] <- xRng[1L]-3*xWdth/80
+          myDat$`-log10 mod. P-value`[wNADw] <- yRng[1L] + yWdth*21*(1L:lNADw - 0.5)/(lNADw*20)
+          myDat$Label[wNADw] <- vapply(wNADw, \(x) {
             paste0("Obs. in ", grp0, ": ", tstDw[x], "\n", myDat$Label[x])
           }, "")
         }
@@ -1930,9 +1960,9 @@ if (statTsts) {
                          shape = `is Histone`, alpha = Alpha, size = Size, text = Label))
       if (length(wNA)) {
         plot <- plot +
-          geom_rect(xmin = xRng[1]-xWdth/20, xmax = xRng[1]-xWdth/40, ymin = yRng[1], ymax = yRng[2]+yWdth/20,
+          geom_rect(xmin = xRng[1L]-xWdth/20, xmax = xRng[1L]-xWdth/40, ymin = yRng[1L], ymax = yRng[2L]+yWdth/20,
                     fill = "lightpink1", color = NA) +
-          geom_rect(xmin = xRng[2]+xWdth/40, xmax = xRng[2]+xWdth/20, ymin = yRng[1], ymax = yRng[2]+yWdth/20,
+          geom_rect(xmin = xRng[2L]+xWdth/40, xmax = xRng[2L]+xWdth/20, ymin = yRng[1L], ymax = yRng[2L]+yWdth/20,
                     fill = "lightgreen", color = NA)
       }
       plot <- plot + geom_point() +
@@ -1973,15 +2003,15 @@ if (statTsts) {
     }
   })
   #
-  for (iii in 1:2) {
+  for (iii in 1L:2L) {
     #iii <- 1
     #iii <- 2
-    if (iii == 1) {
+    if (iii == 1L) {
       myData <- pep
       namesCol <- "Label"
       namesRoot <- "Peptides"
     }
-    if (iii == 2) {
+    if (iii == 2L) {
       myData <- Sites
       namesCol <- "Site"
       namesRoot <- "Sites"
@@ -1991,28 +2021,28 @@ if (statTsts) {
 }
 
 # Specific peptides/sites
-for (cmpGrp in compGrps) { #cmpGrp <- compGrps[1]
+for (cmpGrp in compGrps) { #cmpGrp <- compGrps[1L]
   grps <- unique(groupsMap2$Group[which(groupsMap2$Comparison_group == cmpGrp)])
-  grps2smpls <- setNames(lapply(grps, function(grp) { unique(samplesMap2$"Sample name"[which(samplesMap2$Group == grp)]) }), grps)
-  grps2kol <- setNames(lapply(grps2smpls, function(x) { paste0(intRoot[intType], x) }), grps)
-  stopifnot(sum(!unlist(grps2kol) %in% colnames(pep)) == 0,
-            sum(!unlist(grps2kol) %in% colnames(Sites)) == 0)
-  for (grp1 in grps) { #grp1 <- grps[1]
+  grps2smpls <- setNames(lapply(grps, \(grp) { unique(samplesMap2$"Sample name"[which(samplesMap2$Group == grp)]) }), grps)
+  grps2kol <- setNames(lapply(grps2smpls, \(x) { paste0(intRoot[intType], x) }), grps)
+  stopifnot(sum(!unlist(grps2kol) %in% colnames(pep)) == 0L,
+            sum(!unlist(grps2kol) %in% colnames(Sites)) == 0L)
+  for (grp1 in grps) { #grp1 <- grps[1L]
     k1 <- grps2kol[[grp1]]
     tst <- groupsMap2$Reference[match(grp1, groupsMap2$Group)]
     # This will mean comparing to reference
     grp0 <- groupsMap2$Group[which((groupsMap2$Comparison_group == cmpGrp)&(groupsMap2$Reference != tst))]
     k0 <- unlist(grps2kol[grp0])
-    pep[[paste0("Specific - ", grp1)]] <- vapply(1:nrow(pep), function(i) {
+    pep[[paste0("Specific - ", grp1)]] <- vapply(1L:nrow(pep), \(i) {
       x1 <- is.all.good(as.numeric(pep[i, k1]))
       x0 <- is.all.good(as.numeric(pep[i, k0]))
-      res <- c("", "+")[(((!length(x0))&(length(x1) >= 3))|((length(x0) == 1)&(length(x1) >= 4))) + 1]
+      res <- c("", "+")[(((!length(x0))&(length(x1) >= 3L))|((length(x0) == 1L)&(length(x1) >= 4L))) + 1L]
       return(res)
     }, "a")
-    Sites[[paste0("Specific - ", grp1)]] <- vapply(1:nrow(Sites), function(i) {
+    Sites[[paste0("Specific - ", grp1)]] <- vapply(1L:nrow(Sites), \(i) {
       x1 <- is.all.good(as.numeric(Sites[i, k1]))
       x0 <- is.all.good(as.numeric(Sites[i, k0]))
-      res <- c("", "+")[(((!length(x0))&(length(x1) >= 3))|((length(x0) == 1)&(length(x1) >= 4))) + 1]
+      res <- c("", "+")[(((!length(x0))&(length(x1) >= 3L))|((length(x0) == 1L)&(length(x1) >= 4L))) + 1L]
       return(res)
     }, "a")
   }
@@ -2046,11 +2076,11 @@ data.table::fwrite(tmp, fl, quote = FALSE, sep = ",", na = "NA")
 saveImgFun(backupFl)
 
 #### Heatmaps with clustering
-if (length(Exp) > 1) {
+if (length(Exp) > 1L) {
   pkgs <- unique(c(pkgs, "ggdendro", "gridExtra", "ggpubr", "colorspace", "ggnewscale", "factoextra", "NbClust"))
   for (pkg in pkgs) {
     if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
-      pak::pkg_install(pkg, ask = FALSE)
+      pak::pak(pkg, ask = FALSE)
     }
   }
   for (pkg in pkgs) {
@@ -2061,14 +2091,14 @@ if (length(Exp) > 1) {
   xMap <- samplesMap
   #
   ImputeKlust <- TRUE
-  MaxHClust <- min(c(floor(nrow(pep)/2), 100)) # We want at most 20 clusters
+  MaxHClust <- min(c(floor(nrow(pep)/2), 100L)) # We want at most 20 clusters
   MaxVClust <- nrow(groupsMap2)
-  VClustScl <- setNames(1:MaxVClust, paste0("Cluster", 1:MaxVClust))
-  HClustScl <- setNames(1:MaxHClust, paste0("Cluster", 1:MaxHClust))
+  VClustScl <- setNames(1L:MaxVClust, paste0("Cluster", 1L:MaxVClust))
+  HClustScl <- setNames(1L:MaxHClust, paste0("Cluster", 1L:MaxHClust))
   VClustScl <- setNames(rainbow(MaxVClust), VClustScl)
   HClustScl <- setNames(rainbow(MaxHClust), HClustScl)
   # Different options for which proteins to use for vertical clustering (samples level)
-  KlustMeth <- 2
+  KlustMeth <- 2L
   KlustRoot <- paste0("Cluster (", c("K-means", "hierarch.")[KlustMeth], ") - ")
   normTypes <- c("Norm. by row", "Z-scored")
   kol <- paste0(intRoot[intType], allSamples)
@@ -2077,9 +2107,9 @@ if (length(Exp) > 1) {
   prot.list <- histDB$`Protein ID`
   KlustKols <- c()
   #
-  Filter <- list("Global" = 1:nrow(pep),
+  Filter <- list("Global" = 1L:nrow(pep),
                  "Histones only" = which(pep$`Histone(s)` != ""))
-  for (normType in normTypes) { #normType <- normTypes[1]
+  for (normType in normTypes) { #normType <- normTypes[1L]
     normTypeInsrt <- c("", paste0(" (", normType, ")"))[match(normType, normTypes)]
     plotLeatMaps[[normType]] <- list()
     for (flt in names(Filter)) {
@@ -2088,9 +2118,9 @@ if (length(Exp) > 1) {
       temp <- log10(temp)
       Gr <- xMap$Comparison_group
       Gr <- setNames(match(Gr, unique(Gr)), Gr)
-      tst <- apply(temp, 1, function(x) { length(is.all.good(x)) })
+      tst <- apply(temp, 1L, \(x) { length(is.all.good(x)) })
       filt <- rep(FALSE, nrow(temp))
-      temp <- temp[which(tst > 0),]
+      temp <- temp[which(tst > 0L),]
       if (ImputeKlust) {
         temp2 <- Data_Impute2(temp, Gr)
         imputed <- temp2$Positions_Imputed
@@ -2098,17 +2128,17 @@ if (length(Exp) > 1) {
         rownames(imputed) <- rownames(temp)
         colnames(imputed) <- colnames(temp)
       }
-      w <- which(apply(temp, 1, function(x) { length(is.all.good(x)) }) == length(kol))
-      filt[which(tst > 0)[w]] <- TRUE
+      w <- which(apply(temp, 1L, \(x) { length(is.all.good(x)) }) == length(kol))
+      filt[which(tst > 0L)[w]] <- TRUE
       temp <- temp[w,]
       imputed <- imputed[w,]
       rwMns <- rowMeans(temp)
       if (normType == "Norm. by row") {
-        temp <- sweep(temp, 1, rwMns, "-")
+        temp <- sweep(temp, 1L, rwMns, "-")
       }
       if (normType == "Z-scored") {
-        SDs <- apply(temp, 1, function(x) { sd(is.all.good(x)) })
-        temp <- sweep(sweep(temp, 1, rwMns, "-"), 1, SDs, "/")
+        SDs <- apply(temp, 1L, \(x) { sd(is.all.good(x)) })
+        temp <- sweep(sweep(temp, 1L, rwMns, "-"), 1L, SDs, "/")
       }
       temp2 <- temp3 <- as.matrix(temp) + runif(length(temp), min = 0, max = 1e-10) # Small error added to avoid duplicate rows where this breaks
       # Data is now normalized and either imputed or filtered, so ready for clustering
@@ -2116,7 +2146,7 @@ if (length(Exp) > 1) {
       # We perform hierarchical clustering in all cases, because we want to see the dendrogram.
       # But the clusters displayed using colours may be generated using either k-means or hierarchical clustering (default).
       temp2 <- t(temp2)
-      tst2 <- apply(temp2, 2, function(x) {
+      tst2 <- apply(temp2, 1L, \(x) {
         #x <- is.all.good(x) # it's been imputed, there are no missing values
         sd(x)/mean(x)
       })
@@ -2131,13 +2161,13 @@ if (length(Exp) > 1) {
       #cat("Estimating optimal number of samples-level clusters...\n")
       vnm <- paste0("Samples-level clusters number analysis", fltInsrt)
       NVClust <- NGr <- length(unique(Gr))
-      tst <- cluster::clusGap(temp2, kmeans, min(c(nrow(temp2), NGr+1)))
+      tst <- cluster::clusGap(temp2, kmeans, min(c(nrow(temp2), NGr+1L)))
       tst2 <- as.data.frame(tst$Tab)
       yScl <- max(tst2$gap)
-      tst2 <- sapply(1:NGr, function(x) { tst2$gap[x] >= tst2$gap[x+1] - tst2$SE.sim[x+1] })
+      tst2 <- vapply(1L:NGr, \(x) { tst2$gap[x] >= tst2$gap[x+1L] - tst2$SE.sim[x+1L] }, TRUE)
       tst2 <- which(tst2)
       # I like to do one more, often these methods feel too conservative
-      #if (length(tst2)) { NVClust <- tst2[1]+1 } # Not used for now: we use NGr instead
+      #if (length(tst2)) { NVClust <- tst2[1L]+1L } # Not used for now: we use NGr instead
       vplot <- fviz_gap_stat(tst)
       tstLy <- capture.output(print(vplot$layers))
       g1 <- grep("geom_vline", tstLy)
@@ -2145,17 +2175,17 @@ if (length(Exp) > 1) {
       g2 <- as.numeric(gsub("\\[|\\]", "", tstLy[max(g2[which(g2 < g1)])]))
       vplot$layers[[g2]] <- NULL
       vplot <- vplot +
-        geom_vline(xintercept = tst2[1]+1, colour = "red", linetype = "dashed") +
+        geom_vline(xintercept = tst2[1L]+1L, colour = "red", linetype = "dashed") +
         geom_vline(xintercept = NGr, colour = "orange", linetype = "dashed") +
-        geom_text(label = "Optimal number of sample clusters", x = tst2[1]+1-0.2, y = yScl*0.9,
+        geom_text(label = "Optimal number of sample clusters", x = tst2[1L]+1-0.2, y = yScl*0.9,
                   colour = "red", angle = 90, hjust = 1) +
         geom_text(label = "Number of sample groups", x = NGr+0.2, y = yScl*0.9,
                   colour = "orange", angle = 90, hjust = 1) +
         theme_bw() + ggtitle(vnm)
       #poplot(vplot)
       suppressWarnings({
-        ggsave(paste0(dir, "/", vnm, normTypeInsrt, ".jpeg"), vplot, dpi = 150)
-        ggsave(paste0(dir, "/", vnm, normTypeInsrt, ".pdf"), vplot, dpi = 150)
+        ggsave(paste0(dir, "/", vnm, normTypeInsrt, ".jpeg"), vplot, dpi = 150L)
+        ggsave(paste0(dir, "/", vnm, normTypeInsrt, ".pdf"), vplot, dpi = 150L)
       })
       NVClust <- max(c(NGr, 2))
       # 2/ At protein groups level
@@ -2164,16 +2194,16 @@ if (length(Exp) > 1) {
       hdendro <- as.dendrogram(hcluster)
       hnm <- paste0("Protein groups-level clusters number analysis", fltInsrt)
       NHClust <- MaxHClust
-      Straps <- 10
+      Straps <- 10L
       # Here we really want to optimize the number of clusters
       # Apply the same method for optimization for any clustering method
       # Number of cluster should not depend on method
       clusterExport(parClust, list("temp3", "Straps"), envir = environment())
-      tst <- parSapply(parClust, 2:MaxHClust, function(kl) {
+      tst <- parSapply(parClust, 2L:MaxHClust, \(kl) {
         kmeans(temp3, kl, nstart = Straps)$tot.withinss
-      })/kmeans(temp3, 1, nstart = 1)$tot.withinss
+      })/kmeans(temp3, 1L, nstart = 1L)$tot.withinss
       yScl2 <- max(tst)
-      tst2 <- data.frame("Number of clusters k" = 2:MaxHClust,
+      tst2 <- data.frame("Number of clusters k" = 2L:MaxHClust,
                          "[tot WSS (k)]/[tot WSS (1)]" = tst,
                          check.names = FALSE)
       # For the elbow detection method, we need to normalize to a 1x1 graph which we can rotate by 45 degrees
@@ -2188,10 +2218,10 @@ if (length(Exp) > 1) {
       tst2$Y2 <- -tst2$X2*sin(Angle)+tst2$Y2*cos(Angle)
       tst2$X2 <- tst2$X2 - mean(tst2$X2) + meanX
       tst2$Y2 <- tst2$Y2 - mean(tst2$Y2) + meanY
-      w <- rev(which(tst2$Y2 == min(tst2$Y2)))[1] # Again, prefer more rather than fewer clusters
+      w <- rev(which(tst2$Y2 == min(tst2$Y2)))[1L] # Again, prefer more rather than fewer clusters
       NHClust <- tst2$`Number of clusters k`[w]
-      tst2$Size <- 1
-      tst2$Size[w] <- 2
+      tst2$Size <- 1L
+      tst2$Size[w] <- 2L
       xMin <- min(c(tst2$X1, tst2$X2))
       xMax <- max(c(tst2$X1, tst2$X2))
       xScl <- xMax-xMin
@@ -2214,15 +2244,15 @@ if (length(Exp) > 1) {
         theme(legend.position = "none") + ylab("Normalised total Within-clusters vs Total Sum of Squares")
       #poplot(hplot)
       suppressWarnings({
-        ggsave(paste0(dir, "/", hnm, normTypeInsrt, ".jpeg"), hplot, dpi = 150)
-        ggsave(paste0(dir, "/", hnm, normTypeInsrt, ".pdf"), hplot, dpi = 150)
+        ggsave(paste0(dir, "/", hnm, normTypeInsrt, ".jpeg"), hplot, dpi = 150L)
+        ggsave(paste0(dir, "/", hnm, normTypeInsrt, ".pdf"), hplot, dpi = 150L)
       })
       # Apply cutoffs
-      if (KlustMeth == 1) {
-        VClusters <- kmeans(t(temp3), NVClust, 100)$cluster
-        tempClust <- kmeans(temp3, NHClust, 100)$cluster
+      if (KlustMeth == 1L) {
+        VClusters <- kmeans(t(temp3), NVClust, 100L)$cluster
+        tempClust <- kmeans(temp3, NHClust, 100L)$cluster
       }
-      if (KlustMeth == 2) {
+      if (KlustMeth == 2L) {
         VClusters <- cutree(vcluster, NVClust)
         tempClust <- cutree(hcluster, NHClust)
       }
@@ -2284,10 +2314,10 @@ if (length(Exp) > 1) {
       imputed <- imputed[, match(vlabs$label, colnames(imputed))]
       imputed <- imputed[match(hlabs$label, rownames(imputed)),]
       # Re-introduce missing values
-      MaxChar <- 13
+      MaxChar <- 13L
       hlabs$label2 <- hlabs$label
       w <- which(nchar(hlabs$label2) > MaxChar)
-      hlabs$label2[w] <- paste0(substr(hlabs$label2[w], 1, MaxChar-3), "...")
+      hlabs$label2[w] <- paste0(substr(hlabs$label2[w], 1L, MaxChar-3L), "...")
       # Create heatmap
       temp$Rowname <- row.names(temp)
       temp2 <- magrittr::set_colnames(reshape2::melt(temp, id.vars = "Rowname"), c("Label", "Sample", "value"))
@@ -2301,8 +2331,8 @@ if (length(Exp) > 1) {
       w1 <- which(temp2$Colour == "green")
       w2 <- which((temp2$Ymin == max(temp2$Ymin))&(temp2$Colour == "green"))
       # Color and fill scales
-      wV <- unique(ceiling(c(1:NVClust)*MaxVClust/NVClust))
-      wH <- unique(ceiling(c(1:NHClust)*MaxHClust/NHClust))
+      wV <- unique(ceiling(c(1L:NVClust)*MaxVClust/NVClust))
+      wH <- unique(ceiling(c(1L:NHClust)*MaxHClust/NHClust))
       vClScl <- setNames(VClustScl[wV], seq_along(wV))
       hClScl <- setNames(HClustScl[wH], seq_along(wH))
       VcolScale <- scale_color_manual(name = "Samples cluster", values = vClScl)
@@ -2318,26 +2348,26 @@ if (length(Exp) > 1) {
         w0 <- which(temp2$Ymin == 0)
         temp2$`Histone(s)` <- pep$`Histone(s)`[match(temp2$Label, pep$Label)]
         g <- which(temp2$`Histone(s)` != "")
-        #tst <- unlist(strsplit(temp2$"Leading protein IDs"[w0], ";"))[1]
+        #tst <- unlist(strsplit(temp2$"Leading protein IDs"[w0], ";"))[1L]
         #g <- grsep(tst, x = temp2$"Leading protein IDs"[w0])
         if (length(g)) {
           prot.list.marks <- TRUE
-          Ylim[1] <- -20
+          Ylim[1L] <- -20
           temp2c <- temp2[w0[g], , drop = FALSE]
         }
       }
       # Main data
       temp2a <- temp2[, c("Xmin", "Ymin", "value", "Label", "Sample")]
       # Colour scale
-      temp2b <- data.frame(Xmin = 0:round(Width*0.1),
-                           Ymin = Ylim[2]*0.8)
+      temp2b <- data.frame(Xmin = 0L:round(Width*0.1),
+                           Ymin = Ylim[2L]*0.8)
       Mn <- min(temp2a$value, na.rm = TRUE)
       Mx <- max(temp2a$value, na.rm = TRUE)
       temp2b$value <- Mn + temp2b$Xmin*(Mx-Mn)/max(temp2b$Xmin)
       temp2b$Xmin <- temp2b$Xmin-Width*0.15
       temp2b$Label <- temp2b$Sample <- NA
-      w2a <- 1:nrow(temp2a)
-      w2b <- 1:nrow(temp2b) + max(w2a)
+      w2a <- 1L:nrow(temp2a)
+      w2b <- 1L:nrow(temp2b) + max(w2a)
       temp2a <- rbind(temp2a, temp2b)
       # Samples-level: how well do clusters fit expectations
       SamplesClust <- vlabs[, c("label", "Cluster")]
@@ -2365,18 +2395,18 @@ if (length(Exp) > 1) {
                                 Height*0.5,
                                 Height*0.5,
                                 max(c(hSeg$y, hSeg$yend)) + yScale*0.1,
-                                temp2b$Ymin[1]-1,
-                                temp2b$Ymin[1]-1),
+                                temp2b$Ymin[1L]-1,
+                                temp2b$Ymin[1L]-1),
                           angle = c(0, 90, 90, 0, 0, 0),
                           size = c(5, 4, 3, 4, 3, 3),
                           fontface = c("bold", "plain", "italic", "plain", "plain", "plain"))
-      Xlim[1] <- min(c(vSeg$x, vSeg$xend))-Width*0.15
-      Ylim[1] <- min(c(Ylim[1], min(temp2a$Ymin)))
-      Xlim[2] <- max(c(Xlim[2], max(temp2a$Xmin)+1))
-      Ylim[2] <- max(c(Ylim[2], max(temp2a$Ymin)+1))
+      Xlim[1L] <- min(c(vSeg$x, vSeg$xend))-Width*0.15
+      Ylim[1L] <- min(c(Ylim[1L], min(temp2a$Ymin)))
+      Xlim[2L] <- max(c(Xlim[2L], max(temp2a$Xmin)+1))
+      Ylim[2L] <- max(c(Ylim[2L], max(temp2a$Ymin)+1))
       xCntr <- mean(Xlim)
       yCntr <- mean(Ylim)
-      yScale <- Ylim[2]-Ylim[1]
+      yScale <- Ylim[2L]-Ylim[1L]
       #
       # Create graph
       heatmap.plot <- ggplot(temp2a[w2a,]) +
@@ -2385,11 +2415,11 @@ if (length(Exp) > 1) {
         theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
               axis.text.y = element_blank(), axis.ticks.y = element_blank(), 
               panel.background = element_rect(fill = "transparent", color = NA),
-              plot.margin = margin(0, 0, 0, 0, "cm")) +
+              plot.margin = margin(0L, 0L, 0L, 0L, "cm")) +
         #scale_fill_gradient2(low = "darkblue", mid = "lightgrey", high = "darkred") +
         scale_fill_viridis(option = "D") +
         xlab(NULL) + ylab(NULL) + theme(legend.position = "none") +
-        xlim(Xlim[1], Xlim[2]) + ylim(Ylim[1], Ylim[2])
+        xlim(Xlim[1L], Xlim[2L]) + ylim(Ylim[1L], Ylim[2L])
       #poplot(heatmap.plot, 12, 20)
       # heatmap.plot <- heatmap.plot + 
       #   geom_text(data = temp2a[which(temp2a$Xmin == min(temp2$Xmin)),],
@@ -2405,9 +2435,9 @@ if (length(Exp) > 1) {
       #poplot(heatmap.plot, 12, 20)
       # - Cluster boxes
       heatmap.plot <- heatmap.plot + new_scale_color() + HcolScale
-      if (KlustMeth == 2) {
-        Clutst <- aggregate(hlabs$x, list(hlabs$Cluster), function(x) { min(x)-1 })
-        colnames(Clutst)[1] <- "Cluster"
+      if (KlustMeth == 2L) {
+        Clutst <- aggregate(hlabs$x, list(hlabs$Cluster), \(x) { min(x)-1L })
+        colnames(Clutst)[1L] <- "Cluster"
         Clutst$xend <- aggregate(hlabs$x, list(hlabs$Cluster), max)$x
         Clutst$mid <- (Clutst$xend+Clutst$x)/2
         heatmap.plot <- heatmap.plot +
@@ -2447,7 +2477,7 @@ if (length(Exp) > 1) {
       # Plotly version
       tempLy <- temp2a[w2a,]
       tempLy$Sample <- factor(temp2$Sample, levels = allSamples)
-      tempLy$Label <- vapply(1:nrow(tempLy), function(x) {
+      tempLy$Label <- vapply(1L:nrow(tempLy), \(x) {
         paste0("Sample: ", tempLy$Sample[x], "\n", tempLy$Label[x])
       }, "")
       ##tempLy$Ymin <- tempLy$Ymin+0.5
@@ -2469,7 +2499,7 @@ if (length(Exp) > 1) {
       plotleatmap <- add_segments(plotleatmap, x = ~x, xend = ~xend, y = ~y, yend = ~yend,
                                   data = plLyH, inherit = FALSE, color = I("black"),
                                   showlegend = FALSE)
-      if (KlustMeth == 2) { # Cluster shapes do not appear to work
+      if (KlustMeth == 2L) { # Cluster shapes do not appear to work
         plotleatmap <- add_segments(plotleatmap, x = ~ x, xend = ~ xend,
                                     y = I(-0.2*as.numeric(Clutst$Cluster))-1,
                                     yend = I(-0.2*as.numeric(Clutst$Cluster))-1, data = Clutst,
@@ -2498,7 +2528,7 @@ if (length(Exp) > 1) {
     }
   }
 }
-invisible(parLapply(parClust, 1:N.clust, function(x) { rm(list = ls());gc() }))
+invisible(parLapply(parClust, 1L:N.clust, \(x) { rm(list = ls());gc() }))
 # Save modifications table
 tmp <- Modifs
 tmp$Site_long <- NULL

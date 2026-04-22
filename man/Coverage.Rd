@@ -10,10 +10,10 @@ Coverage(
   Mode = "Coverage",
   new.window = TRUE,
   display = TRUE,
-  scale = 60,
+  scale = 60L,
   title = "Coverage",
   colour = "red",
-  colscale = 1,
+  colscale = 1L,
   size = 2.5,
   save = "jpeg",
   save.path,
@@ -46,7 +46,7 @@ Coverage(
 
 \item{colour}{Ignored if Mode = "Coverage". The colour in which covered regions of protein sequences should be shown. Default = "red".}
 
-\item{colscale}{Only used if Mode = "Align2". Which colour scale do you want to use for peptide intensities? Default = 1 ("darkblue"->"orange"). Other values are 2: "darkblue"->"red", 3: "darkblue"->"green", 4: "black"->"blue", 5: "black"->"orange", 6: "black"->"red", 7: "black"->"green" and 8: "red"->"green"}
+\item{colscale}{Only used if Mode = "Align2". Which colour scale do you want to use for peptide intensities? Default = 1 ("darkblue"->"orange"). Other values are 2L: "darkblue"->"red", 3: "darkblue"->"green", 4: "black"->"blue", 5: "black"->"orange", 6: "black"->"red", 7: "black"->"green" and 8: "red"->"green"}
 
 \item{size}{Only used if Mode = "Align", "Align2" or "Heat". The character size. Default = 2.5, you may want to reduce it for large proteins.}
 
@@ -71,7 +71,7 @@ If mode is "Coverage", the coverage of proteins by peptides. If mode is "XML", E
 This function can be used in 5 different modes:
 - Coverage: calculates the proportion (from 1 to 0) of parent protein sequence(s) covered by the peptide sequence(s) provided.
 - Align: plot the protein(s), highlighting amino acids covered by the peptides sequence(s) provided.
-- Align2: as "Align", but peptides are displayed individually as bars; accepts PTM-modified sequences and will display PTM positions on the map; in addition, peptide colour can be mapped to the "intensities" argument.
+- Align2L: as "Align", but peptides are displayed individually as bars; accepts PTM-modified sequences and will display PTM positions on the map; in addition, peptide colour can be mapped to the "intensities" argument.
 - Heat: Amino acid color reflects the sum of intensities for all peptides observed covering said position. There is in addition one row for each PTM - also with color mapped to intensity.
 - XML: formats covered sequence as XML to display coverage in Excel
 }

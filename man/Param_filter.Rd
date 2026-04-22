@@ -9,10 +9,10 @@ Param_filter(param, filter)
 \arguments{
 \item{param}{The parameter to filter.}
 
-\item{filter}{Which covariate(s) to filter.}
+\item{filter}{Which factor(s) to remove.}
 }
 \description{
-A simple function to remove some covariates from semicolon-separated covariate aggregate parameters.
+A simple function to remove some factors from semicolon-separated factor aggregate parameters.
 }
 \examples{
 Param$Ratios.Groups.Ref.Aggregate.Level

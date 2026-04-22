@@ -20,35 +20,38 @@
 #' @export
 
 listMelt <- function(List,
-                     Names = NULL,
+                     Names,
                      ColNames = c("value", "L1")) {
   #List <- prjcts
+  toInt <- FALSE
   stopifnot(is.atomic(List)|is.list(List),
-            length(ColNames) == 2)
+            length(ColNames) == 2L)
   lL <- length(List)
-  w <- which(vapply(List, length, integer(1)) > 0) # Filter necessary not only to avoid warning for empty elements ("In stack.default(List) : non-vector elements will be ignored")
+  w <- lengths(vapply(List) > 0L) # Filter necessary not only to avoid warning for empty elements ("In stack.default(List) : non-vector elements will be ignored")
   # But also a bug which would cause improper names assignment if the list contains empty elements!!!
-  if (!is.null(Names)) {
+  if (!missing(Names)) {
     stopifnot(length(Names) == lL)
     # Important to catch improper use!!!
   } else {
-    if (length(names(List)) == lL) {
+    if (!is.null(names(List))) {
       Names <- names(List)
     } else {
-      Names <- 1:lL
+      Names <- as.character(1L:lL)
+      toInt <- TRUE
     }
   }
-  List <- setNames(List[w], w)
-  List <- utils::stack(List)
-  #if (!is.null(Names)) { # Now with this rewrite names are never NULL at this stage
-    Names <- Names[w] # Do NOT forget that filter!
-    colnames(List) <- c(ColNames[1], "ind")
-    List$ind <- as.integer(List$ind)
-    List[[ColNames[2]]] <- Names[List$ind]
-    List$ind <- NULL
-  # } else {
-  #   colnames(List) <- ColNames
-  #   List[[ColNames[2]]] <- as.integer(List[[ColNames[2]]])
+  # if (length(Names) != lL) {
+  #   Names <- as.character(1L:lL)
+  #   toInt <- TRUE
   # }
+  List <- setNames(List[w], as.character(w))
+  List <- setNames(lapply(List, unlist), names(List)) # Very unsafe!
+  List <- utils::stack(List)
+  Names <- Names[w] # Do NOT forget that filter!
+  colnames(List) <- c(ColNames[1L], "ind")
+  List$ind <- as.integer(List$ind)
+  List[[ColNames[2]]] <- Names[List$ind]
+  if (toInt) { List[[ColNames[2]]] <- as.integer(List[[ColNames[2]]]) }
+  List$ind <- NULL
   return(List)
 }

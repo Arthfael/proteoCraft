@@ -5,7 +5,7 @@ library(shinyjs)
 library(DT)
 #
 expKl <- c("MQ.Exp", "Parent sample")
-expKl <- expKl[which(expKl %in% colnames(FracMap))[1]]
+expKl <- expKl[which(expKl %in% colnames(FracMap))[1L]]
 
 Factors2 %<o% Factors[which(!Factors %in% c("Experiment",
                                             "Replicate",
@@ -14,13 +14,13 @@ Factors2 %<o% Factors[which(!Factors %in% c("Experiment",
 #
 labelMode <- match(LabelType, c("LFQ", "Isobaric"))
 if ((exists("Exp.map"))&&(nrow(Exp.map))) {
-  tst <- (sum(!c("MQ.Exp", "Sample name") %in% colnames(Exp.map)) == 0)&&
-    (sum(!FracMap[[expKl]] %in% Exp.map$MQ.Exp) == 0)
+  tst <- (sum(!c("MQ.Exp", "Sample name") %in% colnames(Exp.map)) == 0L)&&
+    (sum(!FracMap[[expKl]] %in% Exp.map$MQ.Exp) == 0L)
   if (tst) { ExpMap <- Exp.map }
 }
 if ((exists("ExpMap"))&&(nrow(ExpMap))) {
-  tst <- (sum(!c("MQ.Exp", "Sample name") %in% colnames(ExpMap)) == 0)&&
-    (sum(!FracMap[[expKl]] %in% ExpMap$MQ.Exp) == 0)
+  tst <- (sum(!c("MQ.Exp", "Sample name") %in% colnames(ExpMap)) == 0L)&&
+    (sum(!FracMap[[expKl]] %in% ExpMap$MQ.Exp) == 0L)
   if (!tst) { rm(ExpMap) }
 }
 if ((!exists("ExpMap"))||(!nrow(ExpMap))) {
@@ -35,10 +35,10 @@ if ((!exists("ExpMap"))||(!nrow(ExpMap))) {
   if (LabelType == "Isobaric") {
     ExpMap <- data.frame("Experiment" = "?",
                          "Replicate" = "?",
-                         "MQ.Exp" = as.character(unlist(sapply(MQ.Exp, function(x) {
+                         "MQ.Exp" = as.character(unlist(sapply(MQ.Exp, \(x) {
                            rep(x, length(get(IsobarLab)))
                          }))),
-                         "Sample name" = as.character(unlist(sapply(MQ.Exp, function(x) {
+                         "Sample name" = as.character(unlist(sapply(MQ.Exp, \(x) {
                            paste0(x, "_", get(IsobarLab))
                          }))),
                          "Isobaric label" = rep(get(IsobarLab), length(MQ.Exp)),
@@ -51,36 +51,36 @@ if ((!exists("ExpMap"))||(!nrow(ExpMap))) {
 # From v3.2.0 onwards we do not use a Reference column!
 ExpMap$Reference <- NULL
 #
-if (!"list" %in% class(ExpMap$MQ.Exp)) {
+if (!is.list(ExpMap$MQ.Exp)) {
   ExpMap$MQ.Exp <- strsplit(ExpMap$MQ.Exp, ";")
 }
 if ((LocAnalysis)&&(!"Proportion" %in% colnames(ExpMap))) { ExpMap$Proportion <- 1 }
 for (Fact in Factors2) { if (!Fact %in% colnames(ExpMap)) { ExpMap[[Fact]] <- "?" } }
-tmp <- aggregate(FracMap$Fraction, list(FracMap[[expKl]]), function(x) { paste(sort(unique(x)), collapse = ";") })
-tmp2 <- listMelt(ExpMap$MQ.Exp, 1:nrow(ExpMap))
+tmp <- aggregate(FracMap$Fraction, list(FracMap[[expKl]]), \(x) { paste(sort(unique(x)), collapse = ";") })
+tmp2 <- listMelt(ExpMap$MQ.Exp, 1L:nrow(ExpMap))
 tmp2$Fractions <- tmp$x[match(tmp2$value, tmp$Group.1)]
-tmp2 <- aggregate(tmp2$Fractions, list(tmp2$L1), function(x) { paste(as.character(sort(unique(as.integer(x)))), collapse = ";") })
-ExpMap$Fractions <- tmp2$x[match(1:nrow(ExpMap), tmp2$Group.1)]
+tmp2 <- aggregate(tmp2$Fractions, list(tmp2$L1), \(x) { paste(as.character(sort(unique(as.integer(x)))), collapse = ";") })
+ExpMap$Fractions <- tmp2$x[match(1L:nrow(ExpMap), tmp2$Group.1)]
 if (LabelType == "LFQ") {
-  ExpMap$Use <- as.logical(vapply(ExpMap$MQ.Exp, function(x) { max(FracMap$Use[match(x, FracMap[[expKl]])]) }, 1))
+  ExpMap$Use <- as.logical(vapply(ExpMap$MQ.Exp, \(x) { max(FracMap$Use[match(x, FracMap[[expKl]])]) }, 1L))
 }
 tmpTbl <- ExpMap
-tst <- lapply(colnames(tmpTbl), function(x) { typeof(tmpTbl[[x]]) })
+tst <- lapply(colnames(tmpTbl), \(x) { typeof(tmpTbl[[x]]) })
 w <- which(tst == "list")
 if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
-while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
+while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {
   dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
 }
-ExpMap <- ExpMap[which(vapply(ExpMap$MQ.Exp, function(x) { sum(x %in% FracMap[[expKl]]) > 0 }, TRUE)),]
+ExpMap <- ExpMap[which(vapply(ExpMap$MQ.Exp, \(x) { sum(x %in% FracMap[[expKl]]) > 0L }, TRUE)),]
 #
 # Edit map
 ExpData <- read.csv(ExpMapPath, check.names = FALSE)
-ExpData <- ExpData[which(vapply(ExpData$MQ.Exp, function(x) { sum(x %in% FracMap[[expKl]]) }, 1) > 0),]
+ExpData <- ExpData[which(vapply(ExpData$MQ.Exp, \(x) { sum(x %in% FracMap[[expKl]]) }, 1L) > 0L),]
 for (Fact in Factors[which(!Factors %in% colnames(ExpData))]) { ExpData[[Fact]] <- "?" }
 if (LabelType == "LFQ") {
-  ExpData$Use <- as.logical(vapply(ExpData$MQ.Exp, function(x) { max(FracMap$Use[match(x, FracMap[[expKl]])]) }, 1))
+  ExpData$Use <- as.logical(vapply(ExpData$MQ.Exp, \(x) { max(FracMap$Use[match(x, FracMap[[expKl]])]) }, 1L))
 }
 if (LocAnalysis) {
   if (!"Proportion" %in% colnames(ExpData)) {
@@ -94,66 +94,66 @@ if (LocAnalysis) {
     }
   }
 }
-tst <- vapply(FactorsLevels, length, 1)
-Fact1 <- Factors[which(tst == 1)]
-Fact2 <- Factors[which(tst > 1)]
+tst <- lengths(FactorsLevels)
+Fact1 <- Factors[which(tst == 1L)]
+Fact2 <- Factors[which(tst > 1L)]
 Others <- c("MQ.Exp", "Sample name")
 Others <- Others[which(Others %in% colnames(ExpData))]
 nr <- nrow(ExpData)
 rws <- seq_len(nr)
 charRws <- as.character(rws)
-OtherIDs <- setNames(lapply(Others, function(x) { paste0(x, "___", charRws) } ), Others)
-Fact2IDs <- setNames(lapply(Fact2, function(x) { paste0(x, "___", charRws) } ), Fact2)
+OtherIDs <- setNames(lapply(Others, \(x) { paste0(x, "___", charRws) } ), Others)
+Fact2IDs <- setNames(lapply(Fact2, \(x) { paste0(x, "___", charRws) } ), Fact2)
 AllIDs <- append(OtherIDs, Fact2IDs)
 AllIDs$Use <- paste0("Use___", charRws)
 ALLIDS <- setNames(unlist(AllIDs), NULL)
-for (fct in Fact1) { #fct <- Fact1[1]
+for (fct in Fact1) { #fct <- Fact1[1L]
   # (Since the table can be manually edited too, we want to make sure to correct any typos in our single level factor columns)
   ExpData[[fct]] <- rep(FactorsLevels[[fct]], nr)
 }
 L <- length(FactorsLevels[["Replicate"]])
-dflt_Rpl <- 1:(nr+L) %% L
-dflt_Rpl[which(dflt_Rpl == 0)] <- L
+dflt_Rpl <- 1L:(nr+L) %% L
+dflt_Rpl[which(dflt_Rpl == 0L)] <- L
 dflt_Rpl <- FactorsLevels[["Replicate"]][dflt_Rpl] # Easy template
 k1 <- c("MQ.Exp", "Experiment", "Replicate")
 k2 <- colnames(ExpData)
 k2 <- k2[which(!k2 %in% c(k1, "Sample name", "Use"))]
-ExpData <- ExpData[which(vapply(ExpData$MQ.Exp, function(x) { sum(x %in% MQ.Exp) }, 1) > 0), ]
+ExpData <- ExpData[which(vapply(ExpData$MQ.Exp, \(x) { sum(x %in% MQ.Exp) }, 1L) > 0L), ]
 # Test order
-tst <- suppressWarnings(as.integer(substr(ExpData$MQ.Exp, 1, 1)))
+tst <- suppressWarnings(as.integer(substr(ExpData$MQ.Exp, 1L, 1L)))
 if (!sum(is.na(tst))) {
   nc1 <- nchar(ExpData$MQ.Exp)
   nc2 <- nchar(gsub("^[0-9]+", "", ExpData$MQ.Exp))
-  ord <- as.integer(substr(ExpData$MQ.Exp, 1, nc1-nc2))
+  ord <- as.integer(substr(ExpData$MQ.Exp, 1L, nc1-nc2))
   if (length(unique(ord)) == length(ord)) {
     ExpData <- ExpData[order(ord, decreasing = FALSE),]
   }
 }
 #
-if (LabelType == "Isobaric") {
-  ExpData$"Parent sample" <- do.call(paste, c(ExpData[, c("MQ.Exp", "Isobaric label details")], sep = "_"))
+ExpData$"Parent sample" <- if (LabelType == "Isobaric") {
+  do.call(paste, c(ExpData[, c("MQ.Exp", "Isobaric label details")], sep = "_"))
 } else {
-  ExpData[["Parent sample"]] <- ExpData$MQ.Exp
+  ExpData$MQ.Exp
 }
 # Original table column widths
-wTest0 <- setNames(vapply(colnames(ExpData), function(k) { #k <- colnames(ExpData)[1]
+wTest0 <- setNames(vapply(colnames(ExpData), \(k) { #k <- colnames(ExpData)[1L]
   tmp <- ExpData[[k]]
-  if ("logical" %in% class(tmp)) { tmp <- as.integer(tmp) }
+  if (is.logical(tmp)) { tmp <- as.integer(tmp) }
   tmp <- as.character(tmp)
   tst <- k %in% Fact2
-  x <- max(nchar(c(k, tmp)) + 3 + 3*tst, na.rm = TRUE)
+  x <- max(nchar(c(k, tmp)) + 3L + 3L*tst, na.rm = TRUE)
   if (tst) {
-    x <- max(c(x, nchar(FactorsLevels[[k]]) + 6), na.rm = TRUE)
+    x <- max(c(x, nchar(FactorsLevels[[k]]) + 6L), na.rm = TRUE)
   }
-  x <- x*10
-  if (is.na(x)) { x <- 15 } else { x <- max(c(ceiling(x/10)*10, 30)) }
-  return(x)
-}, 1), colnames(ExpData))
+  x <- x*10L
+  x <- if (is.na(x)) { 15L } else { ceiling(max(c(ceiling(x/10)*10, 30))) }
+  return(as.integer(x))
+}, 1L), colnames(ExpData))
 #
 # Dummy table for app
-tst <- vapply(FactorsLevels, length, 1)
-Fact1 <- Factors[which(tst == 1)]
-Fact2 <- Factors[which(tst > 1)]
+tst <- lengths(FactorsLevels)
+Fact1 <- Factors[which(tst == 1L)]
+Fact2 <- Factors[which(tst > 1L)]
 #Fact2 <- "Developmental.stage"
 myKol <- c(Others, "Sample name")
 if (LabelType == "Isobaric") {
@@ -163,7 +163,7 @@ myKol <- unique(c(myKol, Factors, "Sample name"))
 myKol2 <- c("Parent sample", myKol[which(myKol != "Parent sample")])
 ExpData2 <- ExpData[, myKol2]
 kol <- c()
-for (fct in Fact2) { #fct <- Fact2[1]
+for (fct in Fact2) { #fct <- Fact2[1L]
   IDs <- Fact2IDs[[fct]]
   lvls <- FactorsLevels[[fct]]
   lvls2 <- lvls[which(!is.na(lvls))]
@@ -186,30 +186,30 @@ for (fct in Fact2) { #fct <- Fact2[1]
 if (LocAnalysis) {
   ExpData2$Proportion <- shinyPropInput(ExpData$Proportion)
   fdNm <- "Proportion___FD"
-  wTest0[fdNm] <- 15
+  wTest0[fdNm] <- 15L
   ExpData2[[fdNm]] <- shinyFDInput("Proportion", nr, TRUE, paste0(wTest0[fdNm], "px"))
   kol <- c(kol, "Proportion", fdNm)
   ALLIDS <- c(ALLIDS, paste0("Proportion___", charRws))
 }
 idsL <- length(ALLIDS)
-smplWdth <- paste0(as.character(max(nchar(ExpData2$"Parent sample"))*10), "px")
+smplWdth <- paste0(as.character(max(nchar(ExpData2$"Parent sample"))*10L), "px")
 kol2 <- colnames(ExpData2)[which(!colnames(ExpData2) %in% c(kol, "Use", "Sample name"))]
 ExpData2$Use <- shinyCheckInput(ExpData$Use,
                                 "Use")
 ExpData2$Use___FD <- shinyFDInput("Use", nr, TRUE)
 ExpData2 <- ExpData2[, c(kol2, kol, "Use", "Use___FD", "Sample name")]
 # Estimate table column widths
-wTest1 <- vapply(colnames(ExpData2), function(k) { #k <- colnames(ExpData2)[1]
+wTest1 <- vapply(colnames(ExpData2), \(k) { #k <- colnames(ExpData2)[1L]
   if (k == "Parent sample") { k <- "MQ.Exp" }
-  if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
+  x <- if (k %in% names(wTest0)) { wTest0[k] } else { 30L }
   return(x)
-}, 1)
-wTest2 <- sum(wTest1) + 15 + ncol(ExpData2)*5
+}, 1L)
+wTest2 <- sum(wTest1) + 15L + ncol(ExpData2)*5L
 wTest1 <- paste0(as.character(wTest1), "px")
-wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
-wTest1 <- apply(wTest1, 1, function(x) {
-  x2 <- as.integer(x[[2]])
-  list(width = x[[1]],
+wTest1 <- aggregate((1L:length(wTest1))-1L, list(wTest1), c)
+wTest1 <- apply(wTest1, 1L, \(x) {
+  x2 <- as.integer(x[[2L]])
+  list(width = x[[1L]],
        targets = x2,
        names = colnames(ExpData2)[x2+1])
 })
@@ -217,14 +217,14 @@ wTest1 <- apply(wTest1, 1, function(x) {
 g <- grep("___((FD)|(INCR))$", colnames(ExpData2))
 colnames(ExpData2)[g] <- ""
 #
-facLevels2 <- lapply(FactorsLevels, function(x) {
+facLevels2 <- lapply(FactorsLevels, \(x) {
   unique(c(x, NA))
 })
 facLevels2$Use <- c(TRUE, FALSE)
 #
 edith <- list(target = "column",
-              disable = list(columns = c(0, match(Fact1, colnames(ExpData2))-1)))
-tmp <- c(0:(ncol(ExpData2)-1))
+              disable = list(columns = c(0L, match(Fact1, colnames(ExpData2))-1)))
+tmp <- c(0L:(ncol(ExpData2)-1L))
 tmp <- tmp[which(!tmp %in% edith$disable$columns)]
 edith$enable <- list(columns = tmp)
 isoMsg <- ""
@@ -273,7 +273,7 @@ ui <- fluidPage(
   withSpinner(DT::DTOutput("ExpTbl", width = wTest2))
 )
 if (exists("ExpData3")) { rm(ExpData3) }
-server <- function(input, output, session) {
+server <- \(input, output, session) {
   # Initialize output table
   ExpData3 <- ExpData # Output table
   #
@@ -301,12 +301,12 @@ Shiny.unbindAll(table.table().node());
 Shiny.bindAll(table.table().node());"))
   #
   # Fill down
-  sapply(1:idsL, function(x) {
+  sapply(1L:idsL, \(x) {
     id1 <- ALLIDS[x]
     id2 <- paste0(ALLIDS[x], "___FD")
     tmp <- unlist(strsplit(id1, "___"))
-    fct <- tmp[[1]]
-    i <- as.integer(tmp[[2]])
+    fct <- tmp[[1L]]
+    i <- as.integer(tmp[[2L]])
     if (i < nr) {
       observeEvent(input[[id2]],
                    {
@@ -315,7 +315,7 @@ Shiny.bindAll(table.table().node());"))
                      #   tp <- typeof(facLevels2[[fct]])
                      #   if (typeof(x) != tp) { x <- get(paste0("as.", tp))(x) }
                      # }
-                     for (k in (i+1):nr) {
+                     for (k in (i+1L):nr) {
                        idK <- paste0(fct, "___", as.character(k))
                        if (fct == "Use") {
                          updateCheckboxInput(session, idK, NULL, x)
@@ -331,7 +331,7 @@ Shiny.bindAll(table.table().node());"))
     }
   })
   # Incremental fill-down for replicates
-  sapply(rws, function(i) {
+  sapply(rws, \(i) {
     if (i < nr) {
       chI <- as.character(i)
       id1 <- paste0("Replicate___", chI)
@@ -343,8 +343,8 @@ Shiny.bindAll(table.table().node());"))
                      #if (typeof(x) != tp) { x <- get(paste0("as.", tp))(x) }
                      rplRg <- (i+1):nr
                      l <- length(rplRg)
-                     m <- match(x, dflt_Rpl)+1
-                     rplVal <- dflt_Rpl[m:(m+l-1)]
+                     m <- match(x, dflt_Rpl)+1L
+                     rplVal <- dflt_Rpl[m:(m+l-1L)]
                      for (k in rplRg) {
                        y <- rplVal[k-i]
                        idK <- paste0("Replicate___", as.character(k))
@@ -370,7 +370,7 @@ Shiny.bindAll(table.table().node());"))
     kls <- c(Fact2, "Use")
     if (LocAnalysis) { kls <- c(kls, "Proportion") }
     for (kl in kls) {
-      ExpData3[[kl]] <- sapply(rws, function(i) {
+      ExpData3[[kl]] <- sapply(rws, \(i) {
         input[[paste0(kl, "___", as.character(i))]]
       })
       if (kl == "Use") {
@@ -391,13 +391,13 @@ Shiny.bindAll(table.table().node());"))
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+  session$onSessionEnded(\() { stopApp() })
 }
-runKount <- 0
+runKount <- 0L
 while ((!runKount)||(!exists("ExpData3"))) {
   eval(parse(text = runApp), envir = .GlobalEnv)
   shinyCleanup()
-  runKount <- runKount+1
+  runKount <- runKount+1L
 }
 #
 Exp.map %<o% ExpData3
@@ -413,11 +413,11 @@ Exp.map$Use[which(is.na(Exp.map$Use))] <- FALSE
 #sum(!Exp.map$Use)
 #sum(Exp.map$Use)
 tmpTbl <- Exp.map
-tst <- lapply(colnames(tmpTbl), function(x) { typeof(tmpTbl[[x]]) })
-w <- which(tst == "list")
+tst <- lapply(colnames(tmpTbl), \(x) { typeof(tmpTbl[[x]]) })
+w <- which(vapply(colnames(tmpTbl), \(x) { is.list(tmpTbl[[x]]) }, TRUE))
 if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
-while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
+while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {
   dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
 }
@@ -433,12 +433,12 @@ if (LabelType == "Isobaric") {
 kol2 <- c("Fractions", "Proportion", Factors)
 kol2 <- kol2[which(kol2 %in% colnames(Exp.map))]
 Exp.map2 <- aggregate(Exp.map[, kol1],
-                     lapply(kol2, function(k) {
-                       x <- Exp.map[[k]]
-                       w <- which(is.na(x))
-                       if (length(w)) { x[w] <- "NA" }
-                       return(x)
-                     }), function(x) { paste(unique(x), collapse = ";") })
+                      lapply(kol2, \(k) {
+                        x <- Exp.map[[k]]
+                        w <- which(is.na(x))
+                        if (length(w)) { x[w] <- "NA" }
+                        return(x)
+                      }), \(x) { paste(unique(x), collapse = ";") })
 colnames(Exp.map2) <- c(kol2, kol1)
 Exp.map2 <- Exp.map2[, c(kol1, kol2)]
 for (k in kol2) {
@@ -446,7 +446,7 @@ for (k in kol2) {
   w <- which(x == "NA")
   if (length(w)) { Exp.map2[w, k] <- NA }
 }
-if (!"list" %in% class(Exp.map2$MQ.Exp)) { Exp.map2$MQ.Exp <- strsplit(Exp.map2$MQ.Exp, ";") }
+if (!is.list(Exp.map2$MQ.Exp)) { Exp.map2$MQ.Exp <- strsplit(Exp.map2$MQ.Exp, ";") }
 Exp.map2$tempName <- Exp.map2$`Sample name`
 call <- paste0("Exp.map2 <- arrange(Exp.map2, ", paste(c("tempName", Factors), collapse = ", "), ")")
 #cat(call)
@@ -454,45 +454,45 @@ eval(parse(text = call))
 Exp.map2$tempName <- NULL
 Exp.map <- Exp.map2
 kl <- c("Level", "Count")
-tst <- setNames(lapply(Factors, function(Fact) {
+tst <- setNames(lapply(Factors, \(Fact) {
   magrittr::set_colnames(aggregate(Exp.map[[Fact]], list(Exp.map[[Fact]]), length), kl)
 }), Factors)
-tst <- lapply(Factors, function(x) { #x <- 1 #x <- 2
+tst <- lapply(Factors, \(x) { #x <- 1 #x <- 2
   dat <- tst[[x]]
-  rg <- (1:nrow(dat))+1
-  NC <- setNames(lapply(kl, function(k) {
+  rg <- (1L:nrow(dat))+1L
+  NC <- setNames(lapply(kl, \(k) {
     nchar(c(k, dat[[k]]))
   }), kl)
-  maxNC <- setNames(vapply(NC, max, 1), kl)
-  dat <- as.data.frame(do.call(cbind, lapply(kl, function(k) { #k <- kl[1]
+  maxNC <- setNames(vapply(NC, max, 1L), kl)
+  dat <- as.data.frame(do.call(cbind, lapply(kl, \(k) { #k <- kl[1L]
     dt <- as.character(dat[[k]])
     nc <- NC[[k]][rg]
     w <- which(nc < maxNC[k])
     if (length(w)) {
-      dt[w] <- vapply(w, function(z) { paste(c(dt[z], rep(" ", maxNC[k] - nc[z])), collapse = "") }, "")
+      dt[w] <- vapply(w, \(z) { paste(c(dt[z], rep(" ", maxNC[k] - nc[z])), collapse = "") }, "")
     }
     return(dt)
   })))
-  colnames(dat) <- vapply(kl, function(k) {
-    if (NC[[k]][1] < maxNC[k]) { k <- paste(c(k, rep(" ", maxNC[k] - NC[[k]][1])), collapse = "") }
+  colnames(dat) <- vapply(kl, \(k) {
+    if (NC[[k]][1L] < maxNC[k]) { k <- paste(c(k, rep(" ", maxNC[k] - NC[[k]][1L])), collapse = "") }
     return(k)
   }, "")
-  for (i in 1:ncol(dat)) {
+  for (i in 1L:ncol(dat)) {
     dat[[colnames(dat)[i]]] <- format(dat[[colnames(dat)[i]]], width = ceiling(maxNC[[kl[i]]]*1.5), justify = "left")
   }
   return(dat)
 })
 
-msg2 <- msg <- paste(c("Check the number of samples per factor level below. Is everything ok? If not, click \"no\" to get back to editing the table.\n\n   -----\n", unlist(lapply(names(tst), function(nm) {
+msg2 <- msg <- paste(c("Check the number of samples per factor level below. Is everything ok? If not, click \"no\" to get back to editing the table.\n\n   -----\n", unlist(lapply(names(tst), \(nm) {
   c(paste0("-> ", nm),
     paste0("     ",
            c(paste(colnames(tst[[nm]]), collapse = "          "),
-                   apply(tst[[nm]], 1, paste, collapse = "          "))),
+             apply(tst[[nm]], 1L, paste, collapse = "          "))),
     c("\n   -----\n"))
 })), "\n"), collapse = "\n")
-if (nchar(msg) > 1000) {
+if (nchar(msg) >= 1000L) {
   cat(msg)
-  msg2 <- paste0(substr(msg, 1, 996), "...")
+  msg2 <- paste0(substr(msg, 1L, 996L), "...")
 }
 cat(" Check message in popup box before proceeding...\n")
 tstXpMp <- c(TRUE, FALSE)[match(dlg_message(msg2, "yesno", rstudio = TRUE)$res, c("yes", "no"))]

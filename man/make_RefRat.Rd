@@ -9,12 +9,12 @@ make_RefRat(
   experiment.map = Exp.map,
   experiment.map_col = "Ref.Sample.Aggregate",
   int.root = pep.ref[length(pep.ref)],
-  rat.root = pep.ratios.ref[1],
+  rat.root = pep.ratios.ref[1L],
   rat.con.grps = RatConGrps,
   mode = RefRat_Mode,
   parameters = Param,
   logInt = FALSE,
-  logRat = 2
+  logRat = 2L
 )
 }
 \arguments{

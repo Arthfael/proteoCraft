@@ -20,6 +20,7 @@
 #' @param isLog Default = FALSE. Is the data log-transformed?
 #' @param hTree If TRUE (default), a horizontal (x) dendrogram will be plotted.
 #' @param vTree If TRUE (default), a vertical (y) dendrogram will be plotted.
+#' @param split Logical (default = FALSE), allows splitting labels over several lines.
 #' 
 #' @returns
 #' If return is TRUE, the evaluated ggplot is returned.
@@ -31,9 +32,9 @@ basic.heatmap <- function(matr,
                           subtitle = "",
                           normRows = FALSE,
                           isLog = FALSE,
-                          size = 2,
-                          h.margins = c(5, 10),
-                          v.margin = 10,
+                          size = 2L,
+                          h.margins = c(5L, 10L),
+                          v.margin = 10L,
                           colours = "D",
                           colours_invert = FALSE,
                           na.colour = "black",
@@ -43,38 +44,39 @@ basic.heatmap <- function(matr,
                           return = FALSE,
                           print_values = FALSE,
                           hTree = TRUE,
-                          vTree = TRUE) {
+                          vTree = TRUE,
+                          split = FALSE) {
   #DefArg(basic.heatmap); h.margins <- v.margin <- 2.5
   #matr <- temp2; subtitle <- paste0(tstrt, "\n(", tolower(bee), ")"); colours = c(darkblue = 0, red = 1)
   #matr <- pepSLA1[, exprsCol]; title = "Normalization - before"; save = TRUE
   # lC <- length(colours)
-  # if (!lC %in% 2:3) { stop("Invalid colour names provided!") }
-  # test <- sapply(c(names(colours), na.colour), function(x) {
+  # if (!lC %in% 2L:3L) { stop("Invalid colour names provided!") }
+  # test <- sapply(c(names(colours), na.colour), \(x) {
   #   try(grDevices::col2rgb(x), silent = TRUE)
   # })
   # if (!"matrix" %in% class(test)) { stop("Invalid colour names provided!") }
-  # colDF <- as.data.frame(t(test[, 1:lC]))
+  # colDF <- as.data.frame(t(test[, 1L:lC]))
   # colnames(colDF) <- c("red", "green", "blue")
   # colDF$RangeVal <- colours
-  # if (lC == 3) { colDF$Range <- c("low", "mid", "high") } else {
+  # if (lC == 3L) { colDF$Range <- c("low", "mid", "high") } else {
   #   colDF <- rbind(colDF, colMeans(colDF))
   #   colDF$Range <- c("low", "high", "mid")
   #   colDF <- colDF[match(c("low", "mid", "high"), colDF$Range),]
   # }
-  # colDF$hex <- apply(colDF[, c("red", "green", "blue")], 1, function(x) {
+  # colDF$hex <- apply(colDF[, c("red", "green", "blue")], 1, \(x) {
   #   x <- x/255
-  #   grDevices::rgb(x[[1]], x[[2]], x[[3]])
+  #   grDevices::rgb(x[[1L]], x[[2L]], x[[3L]])
   # })
   if (!colours %in% c("A", "B", "C", "D", "E", "F", "G", "H")) { warning("Invalid colour scale name provided, defaulting to \"D\" ( = viridis)!") }
   if (missing(folder)) { folder <- getwd() }
-  if (length(h.margins) == 1) { h.margins <- c(h.margins, 2) }
+  if (length(h.margins) == 1L) { h.margins <- c(h.margins, 2L) }
   if (normRows) {
     if (isLog) {
-      normVect <- log10(rowMeans(10^matr, na.rm = TRUE))
-      matr <- sweep(matr, 1, normVect, "-")
+      normVect <- log10(rowMeans(10L^matr, na.rm = TRUE))
+      matr <- sweep(matr, 1L, normVect, "-")
     } else {
       normVect <- rowMeans(matr, na.rm = TRUE)
-      matr <- sweep(matr, 1, normVect, "/")
+      matr <- sweep(matr, 1L, normVect, "/")
     }
   }
   Nrow <- nrow(matr)
@@ -83,10 +85,14 @@ basic.heatmap <- function(matr,
   h.Marg <- h.margins
   v.Marg <- v.margin
   #h.Padd <- max(nchar(unlist(strsplit(rownames(matr2), "\n"))))/25
-  h.Padd <- 0
-  v.Padd <- max(nchar(unlist(strsplit(colnames(matr2), "\n"))))/10
-  h.Marg[1] <- h.Marg[1]+h.Padd
-  v.Marg[1] <- v.Marg[1]+v.Padd
+  h.Padd <- 0L
+  clnms <- colnames(matr2)
+  if (split) {
+    clnms <- unlist(strsplit(colnames(matr2), "\n"))
+  }
+  v.Padd <- max(nchar(clnms))/10
+  h.Marg[1L] <- h.Marg[1L]+h.Padd
+  v.Marg[1L] <- v.Marg[1L]+v.Padd
   # Dendrograms
   if (hTree+vTree) {
     matr3 <- as.matrix(Data_Impute2(matr)$Imputed_data)
@@ -97,7 +103,7 @@ basic.heatmap <- function(matr,
       Hlabs <- ggdendro::label(Hddata)
       # Re-order our matrix based on extracted dendrogram labels
       matr2 <- matr2[, match(Hlabs$label, colnames(matr2))]
-      if (is.null(rownames(matr2))) { rownames(matr2) <- paste0("Sample", as.character(1:Nrow)) }
+      if (is.null(rownames(matr2))) { rownames(matr2) <- paste0("Sample", as.character(1L:Nrow)) }
     }
     if (vTree) {
       Vclust <- hclust(dist(matr3))
@@ -106,25 +112,27 @@ basic.heatmap <- function(matr,
       Vlabs <- ggdendro::label(Vddata)
       # Re-order our matrix based on extracted dendrogram labels
       matr2 <- matr2[match(Vlabs$label, rownames(matr2)),]
-      if (is.null(colnames(matr2))) { colnames(matr2) <- paste0("Sample", as.character(1:Ncol)) }
+      if (is.null(colnames(matr2))) { colnames(matr2) <- paste0("Sample", as.character(1L:Ncol)) }
     }
     
   }
   #
-  row_nms <- rownames(matr2)
-  col_nms <- colnames(matr2)
-  rownames(matr2) <- gsub(" - ", "\n", row_nms)
-  colnames(matr2) <- gsub(" - ", "\n", col_nms)
-  rownames(matr2) <- gsub(" VS ", "\nVS ", gsub(" vs ", "\nvs ", rownames(matr2)))
-  colnames(matr2) <- gsub(" VS ", "\nVS ", gsub(" vs ", "\nvs ", colnames(matr2)))
+  if (split) {
+    row_nms <- gsub(" - ", "\n", rownames(matr2))
+    col_nms <- gsub(" - ", "\n", colnames(matr2))
+    row_nms <- gsub(" vs ", "\nvs ", row_nms)
+    col_nms <- gsub(" vs ", "\nvs ", col_nms)
+    rownames(matr2) <- gsub(" VS ", "\nVS ", row_nms)
+    colnames(matr2) <- gsub(" VS ", "\nVS ", col_nms)
+  }
   RowNms <- data.frame(Name = rownames(matr2),
-                       X = h.Marg[1]+Ncol+1,
+                       X = h.Marg[1L]+Ncol+1,
                        Y = Nrow:1)
   nChar <- max(nchar(RowNms$Name))
   ColNms <- data.frame(Name = colnames(matr2),
-                       X = 1:Ncol + h.Marg[1],
+                       X = 1L:Ncol + h.Marg[1L],
                        Y = Nrow + 0.75)
-  Vmax <- Nrow + 2 + v.Marg
+  Vmax <- Nrow + 2L + v.Marg
   matr3 <- cbind(expand.grid(dimnames(matr2)),
                  value = as.vector(matr2)) # Complicated, but works nicely and avoids warnings
   colnames(matr3) <- c("Row", "Column", "value")
@@ -132,28 +140,28 @@ basic.heatmap <- function(matr,
   matr3$value[which((!is.finite(matr3$value))&(matr3$value < 0))] <- -lim
   matr3$value[which((!is.finite(matr3$value))&(matr3$value > 0))] <- lim
   matr3$value[which(!is.all.good(matr3$value, mode = "logical"))] <- NA
-  matr3$Y <- Nrow:1
-  matr3$X <- as.numeric(sapply(1:Ncol, function(x) { rep(x, Nrow) })) + h.Marg[1]
-  ttlX <- (h.Marg[1] + 1)/2
+  matr3$Y <- Nrow:1L
+  matr3$X <- as.numeric(sapply(1L:Ncol, \(x) { rep(x, Nrow) })) + h.Marg[1L]
+  ttlX <- (h.Marg[1L] + 1L)/2
   Title <- data.frame(Title = unlist(strsplit(as.character(title), "\n")))
   Title$X <- ttlX
-  Title$Y <- Vmax*0.9 - (1:nrow(Title))*0.25
+  Title$Y <- Vmax*0.9 - (0L:(nrow(Title)-1L))*0.6
   # Fill scale
   fillScale <- viridis::scale_fill_viridis(option = colours, discrete = FALSE,
-                                           direction = c(1, -1)[(colours_invert)+1])
-  # fillScale <- ggplot2::scale_fill_gradient2(low = colDF$hex[1], mid = colDF$hex[2], high = colDF$hex[3],
+                                           direction = c(1L, -1L)[(colours_invert)+1L])
+  # fillScale <- ggplot2::scale_fill_gradient2(low = colDF$hex[1L], mid = colDF$hex[2L], high = colDF$hex[3L],
   #                                           limits = c(min(colDF$RangeVal), max(colDF$RangeVal)),
   #                                           na.value = na.colour)
   #
   if (normRows) { colnames(matr3)[which(colnames(matr3) == "value")] <- "normValue" }
   plot <- ggplot2::ggplot(matr3)
   # Cells
-  if (normRows) {
-    plot <- plot +
+  plot <- if (normRows) {
+    plot +
       ggplot2::geom_rect(ggplot2::aes(xmin = X-0.5, xmax = X+0.5, ymin = Y-0.5, ymax = Y+0.5,
                                       fill = normValue))
   } else {
-    plot <- plot +
+    plot +
       ggplot2::geom_rect(ggplot2::aes(xmin = X-0.5, xmax = X+0.5, ymin = Y-0.5, ymax = Y+0.5,
                                       fill = value))
   }
@@ -187,7 +195,7 @@ basic.heatmap <- function(matr,
     if (!length(tmp)) { tmp <- "" }
     subTitle <- data.frame(Title = tmp)
     subTitle$X <- ttlX
-    subTitle$Y <- Vmax*0.9 - nrow(Title)*0.25 - (1:nrow(subTitle))*0.25
+    subTitle$Y <- Vmax*0.9 - nrow(Title)*0.6 - (0L:(nrow(subTitle)-1L))*0.6
     plot <- plot +
       ggplot2::geom_text(data = subTitle, ggplot2::aes(label = Title, x = X, y = Y),
                          hjust = 0.5, cex = size*1.3)
@@ -196,16 +204,16 @@ basic.heatmap <- function(matr,
     plot <- plot + ggplot2::geom_text(ggplot2::aes(label = value, x = X, y = Y), colour = "white", cex = 1.5)
   }
   plot <- plot +
-    ggplot2::coord_fixed(ratio = 1,
-                         xlim = c(-10, Ncol + sum(h.Marg) + 0.5 + nChar/5),
-                         ylim = c(0, Vmax),
+    ggplot2::coord_fixed(ratio = 1L,
+                         xlim = c(-10L, Ncol + sum(h.Marg) + 0.5 + nChar/5),
+                         ylim = c(0L, Vmax),
                          expand = FALSE)
   #poplot(plot)
   # Dendrograms
   if (hTree) {
     # - Horizontal
     Hdendr <- Hddata$segments
-    Hdendr$Type <- c("horizontal", "vertical")[(Hdendr$x == Hdendr$xend)+1]
+    Hdendr$Type <- c("horizontal", "vertical")[(Hdendr$x == Hdendr$xend)+1L]
     xScl <- summary(c(Hdendr$x, Hdendr$xend))
     yScl <- summary(c(Hdendr$y, Hdendr$yend))
     XScl <- summary(ColNms$X)
@@ -236,11 +244,11 @@ basic.heatmap <- function(matr,
     Vdendr$Y <- Vdendr$Y*(YScl["Max."]-YScl["Min."])+YScl["Min."]
     Vdendr$Yend <- (Vdendr$yend-yScl["Min."])/(yScl["Max."]-yScl["Min."])
     Vdendr$Yend <- Vdendr$Yend*(YScl["Max."]-YScl["Min."])+YScl["Min."]
-    Vdendr$X <- h.Marg[1] - 0.5 - h.Padd - (Vdendr$x-xScl["Min."])/(xScl["Max."]-xScl["Min."])
-    Vdendr$Xend <- h.Marg[1] - 0.5 - h.Padd - (Vdendr$xend-xScl["Min."])/(xScl["Max."]-xScl["Min."])
+    Vdendr$X <- h.Marg[1L] - 0.5 - h.Padd - (Vdendr$x-xScl["Min."])/(xScl["Max."]-xScl["Min."])
+    Vdendr$Xend <- h.Marg[1L] - 0.5 - h.Padd - (Vdendr$xend-xScl["Min."])/(xScl["Max."]-xScl["Min."])
     # Symmetrize
-    Vdendr$Y <- YScl["Max."]+1-Vdendr$Y
-    Vdendr$Yend <- YScl["Max."]+1-Vdendr$Yend
+    Vdendr$Y <- YScl["Max."]+1L-Vdendr$Y
+    Vdendr$Yend <- YScl["Max."]+1L-Vdendr$Yend
     plot <- plot +
       ggplot2::geom_segment(data = Vdendr, linewidth = 0.5,
                             ggplot2::aes(x = X, y = Y, xend = Xend, yend = Yend))
@@ -263,7 +271,7 @@ basic.heatmap <- function(matr,
       ttlSv <- paste0(ttl, ".", sv)
       fl <- paste0(folder, "/", ttlSv)
       #cat(fl, "\n")
-      ggplot2::ggsave(fl, plot, dpi = 300, width = 10, height = 10, units = "in")
+      ggplot2::ggsave(fl, plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     }
   }
   # Return

@@ -5,7 +5,7 @@ wd <- paste0("B:/group/mspecgrp/Prices/", thisYear)
 if (!dir.exists(wd)) { dir.create(wd, recursive = TRUE) }
 setwd(wd)
 
-topattern <- function (x, start = TRUE, end = FALSE, collapse = "|") {
+topattern <- \(x, start = TRUE, end = FALSE, collapse = "|") {
   x <- gsub("\\\\", "\\\\\\\\", as.character(x))
   x <- gsub("\\.", "\\\\.", x)
   x <- gsub("\\*", "\\\\*", x)
@@ -37,7 +37,7 @@ topattern <- function (x, start = TRUE, end = FALSE, collapse = "|") {
 # - any local files not yet transferred to the archive
 require(parallel)
 require(XML)
-parClust <- makeCluster(detectCores()-1)
+parClust <- makeCluster(detectCores()-1L)
 
 targDirs <- c("B:/archive/mspecgrp/MS/Acquired_data",
               "B:/group/lsfgrp/Mass_Spec/Acquired_data_v2",
@@ -45,8 +45,8 @@ targDirs <- c("B:/archive/mspecgrp/MS/Acquired_data",
               "D:/Data/Projects"
               )
 xsTst <- dir.exists(targDirs)
-stopifnot(sum(!xsTst) == 0)
-dDrsTblsLst  <- setNames(parLapply(parClust, targDirs, function(dr) {
+stopifnot(sum(!xsTst) == 0L)
+dDrsTblsLst  <- setNames(parLapply(parClust, targDirs, \(dr) {
   #if (dir.exists(dr)) {
   tmp <- list.dirs(dr, TRUE, TRUE)
   Ds <- grep("[0-9]+\\.d$", tmp, value = TRUE)
@@ -54,15 +54,15 @@ dDrsTblsLst  <- setNames(parLapply(parClust, targDirs, function(dr) {
                     Source = dr,
                     check.names = FALSE))
 }), targDirs)
-vapply(targDirs, function(x) {
+vapply(targDirs, \(x) {
   length(dDrsTblsLst[[x]]$Raw.file)
-}, 1)
+}, 1L)
 dDrsTbl <- plyr::rbind.fill(dDrsTblsLst )
 dDrsTbl$Run_ID <- as.integer(gsub(".*_|\\.d$", "", dDrsTbl$Raw.file))
 w <- which(is.na(dDrsTbl$Run_ID))
 if (length(w)) {
   print(dDrsTbl$Raw.file[w])
-  dDrsTbl$Run_ID[w] <- max(dDrsTbl$Run_ID, na.rm = TRUE)*100 + 1:length(w)
+  dDrsTbl$Run_ID[w] <- max(dDrsTbl$Run_ID, na.rm = TRUE)*100 + 1L:length(w)
 }
 dDrsTbl <- dDrsTbl[order(dDrsTbl$Run_ID),] # May also make the parLapply below more efficient
 dDrsTbl$FlInfo <- paste0(dDrsTbl$Raw.file, "/SampleInfo.xml")
@@ -71,13 +71,13 @@ wNoInfo <- which(!dDrsTbl$FlInfo.exists)
 if (length(wNoInfo)) {
   warning("Some .d folders do not seem to contain a \"SampleInfo.xm;\" file... (probably failed injections)")
   View(dDrsTbl[wNoInfo,])
-  #proteoCraft::openwd(dDrsTbl$Raw.file[wNoInfo[1]])
+  #proteoCraft::openwd(dDrsTbl$Raw.file[wNoInfo[1L]])
 }
 dDrsTbl <- dDrsTbl[which(dDrsTbl$FlInfo.exists),]
-dDrsTbl$LC_method_fl <- parLapply(parClust, dDrsTbl$FlInfo, function(fl) {
+dDrsTbl$LC_method_fl <- parLapply(parClust, dDrsTbl$FlInfo, \(fl) {
   res <- ""
   try({
-    #fl <- dDrsTbl$FlInfo[w][1]
+    #fl <- dDrsTbl$FlInfo[w][1L]
     x <- XML::xmlToList(fl)
     if (".attrs" %in% names(x$Sample)) { res <- x$Sample$.attrs["Method"] } else {
       res <- x$Sample["Method"]
@@ -93,16 +93,16 @@ wN <- which(!dDrsTbl$LC_method.exists)
 if (length(wN)) {
   warning("Some .d folders do not seem to contain an LC method! Investigate")
   View(dDrsTbl[wN,])
-  #proteoCraft::openwd(dDrsTbl$Raw.file[wN[1]])
+  #proteoCraft::openwd(dDrsTbl$Raw.file[wN[1L]])
 }
 dDrsTbl <- dDrsTbl[which(dDrsTbl$LC_method.exists),]
 #
 uDrs <- aggregate(dDrsTbl$Source, list(dDrsTbl$Run_ID), length)
-w <- which(uDrs$x == 2)
-w <- which((!dDrsTbl$Run_ID %in% uDrs$Group.1[w])|((dDrsTbl$Run_ID %in% uDrs$Group.1[w])&(dDrsTbl$Source == targDirs[1])))
+w <- which(uDrs$x == 2L)
+w <- which((!dDrsTbl$Run_ID %in% uDrs$Group.1[w])|((dDrsTbl$Run_ID %in% uDrs$Group.1[w])&(dDrsTbl$Source == targDirs[1L])))
 dDrsTbl <- dDrsTbl[w,]
 #
-dDrsTbl$LC_meth <- parLapply(parClust, dDrsTbl$LC_method, function(fl) { #fl <- LC_method[1]
+dDrsTbl$LC_meth <- parLapply(parClust, dDrsTbl$LC_method, \(fl) { #fl <- LC_method[1L]
   tst <- FALSE
   lc <- NA
   x <- try(XML::xmlToList(fl), silent = TRUE)
@@ -115,12 +115,12 @@ dDrsTbl$LC_meth <- parLapply(parClust, dDrsTbl$LC_method, function(fl) { #fl <- 
   }
   return(list(Success = tst, Method = lc))
 })
-dDrsTbl <- dDrsTbl[which(sapply(dDrsTbl$LC_meth, function(x) { x$Success })),]
-dDrsTbl$LC_meth <- lapply(dDrsTbl$LC_meth, function(x) { #x <- dDrsTbl$LC_meth[[1]]
+dDrsTbl <- dDrsTbl[which(sapply(dDrsTbl$LC_meth, \(x) { x$Success })),]
+dDrsTbl$LC_meth <- lapply(dDrsTbl$LC_meth, \(x) { #x <- dDrsTbl$LC_meth[[1L]]
   x$Method
 })
-dDrsTbl$LC_method_length <- vapply(dDrsTbl$LC_meth, function(x) {
-  #x <- dDrsTbl$LC_meth[[1]]
+dDrsTbl$LC_method_length <- vapply(dDrsTbl$LC_meth, \(x) {
+  #x <- dDrsTbl$LC_meth[[1L]]
   x <- try(x$HyStarMethodData$NoStandardMethodData, silent = TRUE)
   if (!"try-error" %in% class(x)) {
     if (length(x) > 1) {
@@ -128,12 +128,12 @@ dDrsTbl$LC_method_length <- vapply(dDrsTbl$LC_meth, function(x) {
     }
     return(as.numeric(x))
   } else { return(NA) }
-}, 1)
-tst <- vapply(dDrsTbl$LC_method_length, length, 1)
-dDrsTbl$LC_method_length[which(tst == 3)[1]]
+}, 1L)
+tst <- lengths(dDrsTbl$LC_method_length)
+dDrsTbl$LC_method_length[which(tst == 3L)[1L]]
 
 dDrsTbl <- dDrsTbl[which(!is.na(dDrsTbl$LC_method_length)),]
-tmp <- parLapply(parClust, dDrsTbl$Raw.file, function(dFl) { #dFl <- dDrsTbl$Raw.file[1] #dFl <- rev(dDrsTbl$Raw.file)[1]
+tmp <- parLapply(parClust, dDrsTbl$Raw.file, \(dFl) { #dFl <- dDrsTbl$Raw.file[1L] #dFl <- rev(dDrsTbl$Raw.file)[1L]
   tst <- try({
     sbdr <- grep("\\.m$", list.dirs(dFl), invert = TRUE, value = TRUE)
     sbdr <- sbdr[which(sbdr != dFl)]
@@ -142,18 +142,18 @@ tmp <- parLapply(parClust, dDrsTbl$Raw.file, function(dFl) { #dFl <- dDrsTbl$Raw
     lg <- readLines(lgFl)
     #system(paste0("open \"", lgFl, "\""))
     strt <- grep("STARTED", lg, value = TRUE)
-    strt <- unlist(strsplit(gsub("\t.*", "", strt), " - "))[1]
+    strt <- unlist(strsplit(gsub("\t.*", "", strt), " - "))[1L]
     stp <- grep("COMPLETED", lg, value = TRUE)
     if (!length(stp)) { stp <- grep("ABORTED", lg, value = TRUE) }
     if (!length(stp)) { stop(dFl) }
-    end <- unlist(strsplit(gsub("\t.*", "", stp), " - "))[1]
-    stp <- unlist(strsplit(gsub("\t.*", "", stp), " - "))[2]
+    end <- unlist(strsplit(gsub("\t.*", "", stp), " - "))[1L]
+    stp <- unlist(strsplit(gsub("\t.*", "", stp), " - "))[2L]
     if (!grep("^000\\.", stp)) { stop("This doesn't (yet) support methods this long!") }
     tm <- unlist(strsplit(gsub("^000\\.", "", stp), ":"))
     strt <- gsub("/", "-", strt)
     strt_day <- unlist(strsplit(gsub(" .*", "", strt), "-"))
-    w <- which(nchar(strt_day) == 4)
-    if (w == 1) {
+    w <- which(nchar(strt_day) == 4L)
+    if (w == 1L) {
       end <- gsub("/", "-", end)
       end_day <- unlist(strsplit(gsub(" .*", "", end), "-"))
       strt_day <- paste(rev(strt_day), collapse = "-")
@@ -167,32 +167,33 @@ tmp <- parLapply(parClust, dDrsTbl$Raw.file, function(dFl) { #dFl <- dDrsTbl$Raw
   } else { res <- list(Success = FALSE) }
   return(res)
 })
-w <- which(vapply(tmp, function(x) { x$Success }, TRUE))
+w <- which(vapply(tmp, \(x) { x$Success }, TRUE))
 dDrsTbl <- dDrsTbl[w,]
 tmp <- tmp[w]
-dDrsTbl$Date <- sapply(tmp, function(x) { x$Date })
-dDrsTbl$End <- sapply(tmp, function(x) { x$End })
+dDrsTbl$Date <- sapply(tmp, \(x) { x$Date })
+dDrsTbl$End <- sapply(tmp, \(x) { x$End })
 # Unfortunately, Month and Days are mixed up:
 # Some %$%^U$$$^$  - possibly me - changed from the horrible US date format to a rational one at some point.
-dDrsTbl[, c("Month", "Day", "Year")] <- as.data.frame(t(sapply(strsplit(gsub(" .*", "", dDrsTbl$Date), "-"),
-                                                               function(x) { as.integer(unlist(x))[1:3] })))
-tst <- aggregate(dDrsTbl$Raw.file, list(dDrsTbl$Source, dDrsTbl$Year), function(x) {
+dDrsTbl[, c("Month", "Day", "Year")] <- as.data.frame(t(sapply(strsplit(gsub(" .*", "", dDrsTbl$Date), "-"), \(x) {
+  as.integer(unlist(x))[1L:3L]
+})))
+tst <- aggregate(dDrsTbl$Raw.file, list(dDrsTbl$Source, dDrsTbl$Year), \(x) {
   length(unique(x))
 })
 tst <- reshape::cast(tst, Group.1~Group.2, value = "x")
-colnames(tst)[1] <- "Location"
+colnames(tst)[1L] <- "Location"
 tst
 Months <- c("January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December")
 dDrsTbl$Month <- Months[as.integer(dDrsTbl$Month)]
 dDrsTbl$byMonth <- do.call(paste, c(dDrsTbl[, c("Month", "Year")], sep = "-"))
-lev <- as.character(sapply(sort(unique(dDrsTbl$Year)), function(x) {
+lev <- as.character(sapply(sort(unique(dDrsTbl$Year)), \(x) {
   paste0(Months, "-", x)
 }))
 dDrsTbl$byMonth <- factor(dDrsTbl$byMonth, levels = lev)
 dDrsTbl$Folder <- gsub("/[^/]+$", "", dDrsTbl$Raw.file)
 dDrsTbl$Dataset <- gsub("^.*/", "", dDrsTbl$Folder)
-dDrsTbl$"Run length (h)" <- sapply(tmp, function(x) { x$Length })
+dDrsTbl$"Run length (h)" <- sapply(tmp, \(x) { x$Length })
 dDrsTbl$"Run length (min)" <- dDrsTbl$"Run length (h)"*60
 scale <- summary(c(dDrsTbl$LC_method_length, dDrsTbl$"Run length (min)"))
 scale <- scale[c("Min.", "Max.")]
@@ -228,7 +229,7 @@ if (length(w)) {
 
 # Filter by whether these were runs for clients or not
 dDrsTbl$File_name <- gsub(".*/", "", dDrsTbl$Raw.file)
-dDrsTbl$blank <- c("", "+")[grepl("blank|zig|zag|blnk", dDrsTbl$Raw.file)+1]
+dDrsTbl$blank <- c("", "+")[grepl("blank|zig|zag|blnk", dDrsTbl$Raw.file)+1L]
 pat1 <- paste0("^(", paste(paste0("(", vapply(targDirs,
                                               topattern, "", start = FALSE), ")"), collapse = "|"), ")/")
 pat2 <- paste0(pat1, "(([^/]+ ?gr(ou)?p)|(ext_)|(Solgate)|(Valanx)|(LTuriak)|(PCF)|(Vicoso))")
@@ -237,11 +238,11 @@ dDrsTbl$ForClient <- grepl(pat2, dDrsTbl$Raw.file)
 
 Years <- sort(unique(dDrsTbl$Year))
 Years <- Years[which(!is.na(Years))]
-dflt <- c(thisYear-1, max(Years))
-dflt <- dflt[which(dflt %in% Years)][1]
+dflt <- c(thisYear-1L, max(Years))
+dflt <- dflt[which(dflt %in% Years)][1L]
 Year <- as.integer(dlg_list(Years, dflt, title = "Year to extract")$res)
 aggregate(dDrsTbl$Date_POSIXct, list(dDrsTbl$Source), max, na.rm = TRUE)
-dDrsTbl2 <- dDrsTbl[which(dDrsTbl$Year == thisYear-1),]
+dDrsTbl2 <- dDrsTbl[which(dDrsTbl$Year == thisYear-1L),]
 unique(dDrsTbl2$Year)
 ClientProjects <- sort(unique(gsub("/[^/]+\\.d$", "",
                                    gsub(pat1, "", dDrsTbl2$Raw.file[which(dDrsTbl2$ForClient)]))))
@@ -268,7 +269,7 @@ Days <- recEnd - recStart
 print(paste0("Time covered by the record: ", round(Days, 2), " days"))
 Days <- as.numeric(Days)
 ttl <- paste0("timsTOF HT instrument time use report - ", Sys.Date())
-if ((length(Year) == 1)&&(!is.na(Year))) {
+if ((length(Year) == 1L)&&(!is.na(Year))) {
   ttl <- paste0(Year, " ", ttl)
 }
 FracRunTime <- (sum(dDrsTbl2$`Run length (min)`)/(24*60))/Days
@@ -279,13 +280,13 @@ Report <- c(ttl,
             "",
             paste0("Tot. number of client samples (including blanks): ", AllClientSamples),
             paste0("Tot. number of client samples (not including blanks): ", ClientSamples),
-            paste0("Ratio client samples/blanks: ", round(ClientSamples/ClientBlanks, 2)),
-            paste0("Av. client run time: ", round(AvClienRunTime/60, 2), " h"),
+            paste0("Ratio client samples/blanks: ", round(ClientSamples/ClientBlanks, 2L)),
+            paste0("Av. client run time: ", round(AvClienRunTime/60, 2L), " h"),
             paste0("Batches in ", Year, ": ", length(ClientProjects)),
-            paste0("Av. batch (project) size: ", round(BatchSize, 0), " samples"),
-            paste0("Time spent running samples: ", as.character(round(sum(dDrsTbl2$`Run length (min)`)/60)), " h = ", round(100*FracRunTime, 1), "% of record scope"),
-            paste0("Time spent running samples for clients: ", as.character(round(sum(dDrsTbl2$`Run length (min)`*dDrsTbl2$ForClient)/60)), " h = ", round(100*FracClients2TotTime, 1), "% of record scope"),
-            paste0(round(100*FracClients2RunTime, 1), "% of actual run time was spent running samples for clients"))
+            paste0("Av. batch (project) size: ", round(BatchSize, 0L), " samples"),
+            paste0("Time spent running samples: ", as.character(round(sum(dDrsTbl2$`Run length (min)`)/60)), " h = ", round(100*FracRunTime, 1L), "% of record scope"),
+            paste0("Time spent running samples for clients: ", as.character(round(sum(dDrsTbl2$`Run length (min)`*dDrsTbl2$ForClient)/60)), " h = ", round(100*FracClients2TotTime, 1L), "% of record scope"),
+            paste0(round(100*FracClients2RunTime, 1L), "% of actual run time was spent running samples for clients"))
 Report
 Report <- c(Report, "", "Projects:", ClientProjects, "")
 cat(paste0(Report, "\n"))

@@ -42,10 +42,10 @@ FDR <- function(data,
   #
   # Check arguments
   # - returns
-  stopifnot(length(returns) <= 3,
+  stopifnot(length(returns) <= 3L,
             "logical" %in% class(returns))
-  if (length(returns) == 2) { returns <- c(returns, FALSE) }
-  if (length(returns) == 1) { returns <- c(returns, FALSE, FALSE) }
+  if (length(returns) == 2L) { returns <- c(returns, FALSE) }
+  if (length(returns) == 1L) { returns <- c(returns, FALSE, FALSE) }
   w <- which(is.na(returns))
   if (length(w)) {
     returns[w] <- c(TRUE, FALSE, FALSE)[w]
@@ -55,41 +55,41 @@ FDR <- function(data,
   method <- gsub(" |-|_|\\.", "", toupper(method))
   stopifnot(method %in% c("BH", "BY"))
   # - fdr
-  reqFDR <- sum(returns[1:2])
+  reqFDR <- sum(returns[1L:2L])
   if (reqFDR) {
     suppressWarnings(fdr <- as.numeric(fdr) )
     fdr <- fdr[which(!is.na(fdr))]
     lFDR <- length(fdr)
     stopifnot(lFDR > 0)
-    stopifnot(sum(fdr <= 0) == 0)
+    stopifnot(sum(fdr <= 0) == 0L)
     if (sum(fdr > 1)) { fdr <- fdr/100 }
-    stopifnot(sum(fdr <= 0) == 0,
-              sum(fdr > 1) == 0)
+    stopifnot(sum(fdr <= 0) == 0L,
+              sum(fdr > 1) == 0L)
   }
   # - pvalue_col
   if (missing(pvalue_col)) {
     pvalue_col <- paste0(pvalue_root, aggregate)
   }
   # - SIMPLIFY
-  if ((missing(SIMPLIFY))||(length(SIMPLIFY) != 1)||(!is.logical(SIMPLIFY))||(is.na(SIMPLIFY))) {
+  if ((missing(SIMPLIFY))||(length(SIMPLIFY) != 1L)||(!is.logical(SIMPLIFY))||(is.na(SIMPLIFY))) {
     SIMPLIFY <- TRUE
   }
   #
   P <- data.frame(Pvalues = data[[pvalue_col]])
   if (grepl("log10", pvalue_col)) { # If P-values are logged (auto-detect), then...
-    P$Pvalues <- 10^(-P$Pvalues) #... de-log them.
+    P$Pvalues <- 10L^(-P$Pvalues) #... de-log them.
   }
-  P$Order <- 1:nrow(P)
+  P$Order <- 1L:nrow(P)
   P$Rank <- NA
-  P$All.Good <- is.all.good(P$Pvalues, 2)
+  P$All.Good <- is.all.good(P$Pvalues, 2L)
   w1 <- which(P$All.Good)
   N <- length(w1)
   if (N) {
     P$Rank[w1] <- rank(P$Pvalues[w1])
     P <- P[order(P$Rank, decreasing = FALSE),]
     w2 <- which(P$All.Good)
-    rg2 <- 1:N
-    if (method == "BH") { CN <- 1 }
+    rg2 <- 1L:N
+    if (method == "BH") { CN <- 1L }
     if (method == "BY") { CN <- sum(1/rg2) }
     BH.rank <- c() # Vector of FDR rank
     if (reqFDR) {
@@ -98,12 +98,12 @@ FDR <- function(data,
     adjKol <- paste0("Adj. P-values")
     P[[adjKol]] <- NA
     P[w2, adjKol] <- P$Pvalues[w2]*N*CN/P$Rank[w2] # Basic calculation
-    P[w2, adjKol] <- vapply(w2, function(x) { # (ensure monotonicity)
+    P[w2, adjKol] <- vapply(w2, \(x) { # (ensure monotonicity)
       min(c(1, P[w2[x:N], adjKol]))
     }, 1)
     #P$pAdjTst <- p.adjust(P$Pvalues, "BH") # You can verify that we get the same value using p.adjust()
     if (reqFDR) {
-      for (j in 1:lFDR) { #j <- 3
+      for (j in 1:lFDR) { #j <- 3L
         crtKols[j] <- crtKol <- paste0("Critical_", fdr[j])
         P[[crtKol]] <- NA
         P[w2, crtKol] <- P$Rank[w2]*fdr[j]/(N*CN)
@@ -115,7 +115,7 @@ FDR <- function(data,
           BH.rank[[fdrKol]] <- P$Rank[max(tt)]
         } else {
           thresh[j] <- 0
-          BH.rank[[fdrKol]] <- 0
+          BH.rank[[fdrKol]] <- 0L
         }
         end <- "%"
         if (!missing(aggregate)) { end <- paste0(end, " - ", aggregate) }
@@ -127,10 +127,10 @@ FDR <- function(data,
     }
     P <- P[order(P$Order, decreasing = FALSE),]
     res <- list()
-    if (returns[1]) { res$"Significance vector" <- P[, signifKols, drop = FALSE] }
-    if (returns[2]) { res$"Thresholds" <- thresh }
-    if (returns[3]) { res$"Adj. P-values" <- P[, adjKol, drop = FALSE] }
-    if ((SIMPLIFY)&&(length(res) == 1)) { res <- res[[1]] } # Simplify - probably a bad idea...
+    if (returns[1L]) { res$"Significance vector" <- P[, signifKols, drop = FALSE] }
+    if (returns[2L]) { res$"Thresholds" <- thresh }
+    if (returns[3L]) { res$"Adj. P-values" <- P[, adjKol, drop = FALSE] }
+    if ((SIMPLIFY)&&(length(res) == 1)) { res <- res[[1L]] } # Simplify - probably a bad idea...
     return(res)
   } else {
     warning("This column contained no valid P-values to process!")

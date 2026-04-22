@@ -12,7 +12,7 @@ stopifnot(GSEAmode %in% c("standard", "WGCNA"))
 if (GSEAmode == "standard") {
   if (dataType == "modPeptides") {
     myData <- ptmpep
-    if (scrptType == "withReps") { ratRef <- paste0("Mean ", pepRatRf) }
+    if (scrptType == "withReps") { ratRef <- ptms.ratios.ref }
     if (scrptType == "noReps") { ratRef <- PTMs_ratRf[length(PTMs_ratRf)] }
     idCol <- "Protein"
     myData$Protein <- gsub(";.*", "", myData$Proteins)
@@ -20,19 +20,19 @@ if (GSEAmode == "standard") {
   }
   if (dataType == "PG") {
     myData <- PG
-    if (scrptType == "withReps") { ratRef <- paste0("Mean ", Prot.Rat.Root) }
+    if (scrptType == "withReps") { ratRef <- Prot.Rat.Root }
     if (scrptType == "noReps") { ratRef <- PG.rat.cols }
     idCol <- "Leading protein IDs"
     ohDeer <- paste0(wd, "/Reg. analysis/GSEA")
   }
   if (scrptType == "withReps") {
-    rankCol <- paste0(ratRef, VPAL$values)
+    rankCol <- paste0(ratRef, myContrasts$Contrast)
   }
   if (scrptType == "noReps") {
     rankCol <- paste0(ratRef, Exp)
   }
   rankCol <- rankCol[which(rankCol %in% colnames(myData))]
-  isOK <- length(rankCol) > 0
+  isOK <- length(rankCol) > 0L
 }
 if (GSEAmode == "WGCNA") {
   if (dataType == "modPeptides") {
@@ -42,7 +42,7 @@ if (GSEAmode == "WGCNA") {
     myData <- PGmodMembership
     myData$id <- colnames(exprData)
     idCol <- "id"
-    ohDeer <- wgcnaDirs[3]
+    ohDeer <- wgcnaDirs[3L]
     rankCol <- modNames
   }
   isOK <- TRUE
@@ -66,18 +66,18 @@ if (isOK) {
                             name = GO_terms$Term)
   } else {
     # Or we will have to get an annotations package (currently 20 organisms are supported)
-    if ((!exists("Org"))||(!"data.frame" %in% class(Org))||(nrow(Org) != 1)) {
+    if ((!exists("Org"))||(!"data.frame" %in% class(Org))||(nrow(Org) != 1L)) {
       kol <- c("Organism_Full", "Organism")
       kol <- kol[which(kol %in% colnames(db))]
-      tst <- sapply(kol, function(x) { length(unique(db[which(!as.character(db[[x]]) %in% c("", "NA")), x])) })
-      kol <- kol[order(tst, decreasing = TRUE)][1]
+      tst <- sapply(kol, \(x) { length(unique(db[which(!as.character(db[[x]]) %in% c("", "NA")), x])) })
+      kol <- kol[order(tst, decreasing = TRUE)][1L]
       w <- which(db$`Potential contaminant` != "+")
       Org %<o% aggregate(w, list(db[w, kol]), length)
       colnames(Org) <- c("Organism", "Count")
       isOK <- max(Org$Count) >= nrow(db) * 0.3
       if (isOK) {
-        Org <- Org[which(Org$Count == max(Org$Count)[1]),]
-        Org$Source <- aggregate(db$Source[which(db[[kol]] %in% Org$Organism)], list(db[which(db[[kol]] %in% Org$Organism), kol]), function(x) {
+        Org <- Org[which(Org$Count == max(Org$Count)[1L]),]
+        Org$Source <- aggregate(db$Source[which(db[[kol]] %in% Org$Organism)], list(db[which(db[[kol]] %in% Org$Organism), kol]), \(x) {
           unique(x[which(!is.na(x))])
         })$x
         Org$Source[which(is.na(Org$Source))] <- ""
@@ -124,9 +124,8 @@ if (isOK) {
                                   "org.EcK12.eg.db",
                                   "org.EcSakai.eg.db",
                                   "org.Mxanthus.db"))
-      if (Org$Organism %in% orgDBs$Full) { organism <- Org$Organism } else {
-        organism <- dlg_list(c(orgDBs$Full, "none of these"),
-                             orgDBs$Full[1], title = "Organism")$res
+      organism <- if (Org$Organism %in% orgDBs$Full) { Org$Organism } else {
+        dlg_list(c(orgDBs$Full, "none of these"), orgDBs$Full[1L], title = "Organism")$res
       }
       if (!length(organism)) { organism <- "none of these" }
       isOK <- organism != "none of these" 
@@ -139,17 +138,17 @@ if (isOK) {
     #myOrgAnnot <- hub[db$`Protein ID`]
     if (isOK) {
       orgDBpkg <- orgDBs$db[match(organism, orgDBs$Full)]
-      packs <- c("GO.db", "clusterProfiler", "BiocParallel", "pathview", "enrichplot", "DOSE", orgDBpkg)
+      packs <- c("AnnotationDbi", orgDBpkg)
       for (pck in packs) {
         if (!require(pck, character.only = TRUE)) {
-          pak::pkg_install(pck, upgrade = FALSE, ask = FALSE)
+          pak::pak(pck, upgrade = FALSE, ask = FALSE)
         }
       }
       for (pck in packs) {
         library(pck, character.only = TRUE)
       }
       clusterExport(parClust, "packs", envir = environment())
-      invisible(clusterCall(parClust, function() {
+      invisible(clusterCall(parClust, \() {
         for (pck in packs) { library(pck, character.only = TRUE) }
         return()
       }))
@@ -164,7 +163,21 @@ if (isOK) {
   }
 }
 if (isOK) {
-  tmpDat <- myData[which((nchar(myData[[idCol]]) > 0)&(!is.na(myData[[idCol]]))),
+  packs <- c("GO.db", "clusterProfiler", "BiocParallel", "pathview", "enrichplot", "DOSE")
+  for (pck in packs) {
+    if (!require(pck, character.only = TRUE)) {
+      pak::pak(pck, upgrade = FALSE, ask = FALSE)
+    }
+  }
+  for (pck in packs) {
+    library(pck, character.only = TRUE)
+  }
+  clusterExport(parClust, "packs", envir = environment())
+  invisible(clusterCall(parClust, \() {
+    for (pck in packs) { library(pck, character.only = TRUE) }
+    return()
+  }))
+  tmpDat <- myData[which((nchar(myData[[idCol]]) > 0L)&(!is.na(myData[[idCol]]))),
                    c(idCol, rankCol)]
   if (length(unique(tmpDat[[idCol]])) < nrow(tmpDat)) {
     tmpDat <- aggregate(tmpDat[, rankCol], list(tmpDat[[idCol]]), mean, na.rm = TRUE)
@@ -180,50 +193,50 @@ if (isOK) {
     exports <- append(exports, "orgDBpkg")
   }
   clusterExport(parClust, exports, envir = environment())
-  invisible(clusterCall(parClust, function(x) {
+  invisible(clusterCall(parClust, \(x) {
     require(clusterProfiler)
-    tmpDat <<- readr::read_rds(paste0(wd, "/tmpDat.RDS"))
+    assign("tmpDat", readr::read_rds(paste0(wd, "/tmpDat.RDS")), envir = .GlobalEnv)
     if (Annotate) {
-      term2Prot <<- readr::read_rds(paste0(wd, "/term2Prot.RDS"))
-      term2name <<- readr::read_rds(paste0(wd, "/term2name.RDS"))
+      assign("term2Prot", readr::read_rds(paste0(wd, "/term2Prot.RDS")), envir = .GlobalEnv)
+      assign("term2name", readr::read_rds(paste0(wd, "/term2name.RDS")), envir = .GlobalEnv)
     } else {
       require(orgDBpkg, character.only = TRUE)
     }
     return()
   }))
   #
-  f0 <- function(kol, userAnnot = Annotate) { #kol <- rankCol[1]
+  f0 <- \(kol, userAnnot = Annotate) { #kol <- rankCol[1L]
     tmp <- setNames(tmpDat[[kol]],
                     gsub(";.*| - .*", "", tmpDat[[idCol]]))
     tmp <- tmp[which(!is.na(tmp))]
     tmp <- na.omit(tmp)
     tmp <- sort(tmp, decreasing = TRUE)
-    tmp <- tmp[which(nchar(names(tmp)) > 0)]
+    tmp <- tmp[which(nchar(names(tmp)) > 0L)]
     #View(tmp)
-    suppressMessages({
+    gse <- suppressMessages({
       if (userAnnot) {
-        gse <- GSEA(geneList = tmp,
-                    TERM2GENE = term2Prot,
-                    TERM2NAME = term2name,
-                    nPerm = 10000,
-                    minGSSize = 3,
-                    maxGSSize = 800,
-                    pvalueCutoff = 0.05,
-                    pAdjustMethod = "none",
-                    verbose = TRUE,
-                    BPPARAM = cpParam)
+        GSEA(geneList = tmp,
+             TERM2GENE = term2Prot,
+             TERM2NAME = term2name,
+             nPerm = 10000L,
+             minGSSize = 3L,
+             maxGSSize = 800L,
+             pvalueCutoff = 0.05,
+             pAdjustMethod = "none",
+             verbose = TRUE,
+             BPPARAM = cpParam)
       } else {
-        gse <- gseGO(tmp,
-                     ont = "ALL", 
-                     keyType = keyType, 
-                     nPerm = 10000, 
-                     minGSSize = 3, 
-                     maxGSSize = 800, 
-                     pvalueCutoff = 0.05, 
-                     verbose = TRUE, 
-                     OrgDb = orgDBpkg, 
-                     pAdjustMethod = "none",
-                     BPPARAM = cpParam)
+        gseGO(tmp,
+              ont = "ALL", 
+              keyType = keyType, 
+              nPerm = 10000L, 
+              minGSSize = 3L, 
+              maxGSSize = 800L, 
+              pvalueCutoff = 0.05, 
+              verbose = TRUE, 
+              OrgDb = orgDBpkg, 
+              pAdjustMethod = "none",
+              BPPARAM = cpParam)
       }
     })
     return(list(GSE = gse,
@@ -235,7 +248,7 @@ if (isOK) {
   # Rename
   names(gses) <- rankCol
   if (GSEAmode == "standard") {
-    names(gses) <- proteoCraft::cleanNms(gsub(proteoCraft::topattern(ratRef), "", names(gses)))
+    names(gses) <- cleanNms(gsub(topattern(ratRef), "", names(gses)))
   }
   #
   unlink(paste0(wd, "/tmpDat.RDS"))
@@ -245,43 +258,43 @@ if (isOK) {
   }
   #
   #d <- GOSemSim::godata(annoDb = orgDBpkg, ont = "BP") # It seems to make sense to use BP here since we are interested in which biological processes are reacting to the perturbation
-  nCat <- 50
+  nCat <- 50L
   #
   # GSEA dot plots
   nmRoot <- "GSEA dotplot"
-  invisible(lapply(names(gses), function(grp) { #grp <- names(gses)[1]
+  invisible(lapply(names(gses), \(grp) { #grp <- names(gses)[1L]
     gse <- gses[[grp]]$GSE
     try({
-      plot <- clusterProfiler::dotplot(gse, showCategory = nCat, split = ".sign", font.size = 4,
-                      label_format = 500 # don't you dare wrap my labels!!!
+      plot <- clusterProfiler::dotplot(gse, showCategory = nCat, split = ".sign", font.size = 4L,
+                      label_format = 500L # don't you dare wrap my labels!!!
       ) + ggplot2::facet_grid(.~.sign) +
         ggplot2::coord_fixed(0.025)
       suppressMessages({
         plot <- plot + viridis::scale_fill_viridis()
         #plot <- dotplot(gse, showCategory = nCat, color = "pvalue", split = ".sign") + facet_grid(.~.sign)
         #poplot(plot)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300L)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300L)
       })
     }, silent = TRUE)
   }))
   #
   # GSEA enrichment map plots
   nmRoot <- "GSEA enrichment map"
-  invisible(lapply(names(gses), function(grp) { #grp <- names(gses)[1]
+  invisible(lapply(names(gses), \(grp) { #grp <- names(gses)[1L]
     gse <- gses[[grp]]$GSE
     try({
-      gse2 <- pairwise_termsim(gse, method = "Wang", semData = d)
+      gse2 <- pairwise_termsim(gse, method = "JC", semData = NULL)
       plot <- clusterProfiler::emapplot(gse2, showCategory = nCat)
       suppressMessages({
-        plot <- plot + viridis::scale_color_viridis(option = "cividis", direction = -1)
+        plot <- plot + viridis::scale_color_viridis(option = "cividis", direction = -1L)
         l <- length(plot$layers)
-        w <- which(sapply(1:l, function(x) { "GeomTextRepel" %in% class(plot$layers[[x]]$geom) }))
-        plot$layers[[w]]$aes_params$size <- 2
+        w <- which(sapply(1L:l, \(x) { "GeomTextRepel" %in% class(plot$layers[[x]]$geom) }))
+        plot$layers[[w]]$aes_params$size <- 4L
         #getMethod("emapplot", "gseaResult")
         #poplot(plot)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300L)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300L)
       })
     }, silent = TRUE)
   }))
@@ -296,19 +309,19 @@ if (isOK) {
   # - Update labels to ones more informative
   # - Plot as interactive plotly
   #  (see commented discussion below about how to achieve this)
-  invisible(lapply(names(gses), function(grp) { #grp <- names(gses)[1]
+  invisible(lapply(names(gses), \(grp) { #grp <- names(gses)[1L]
     gse <- gses[[grp]]$GSE
     try({
       lFC <- gses[[grp]]$lFC
-      plot <- clusterProfiler::cnetplot(gse, categorySize = "pvalue", foldChange = lFC, showCategory = 10,
-                                        colorEdge = TRUE,
+      plot <- clusterProfiler::cnetplot(gse, foldChange = lFC, showCategory = 10L,
+                                        color_edge = "grey",
                                         #cex_label_category = 1.2, cex_label_gene = 0.8 # Those parameters do not work for me...
       )
       suppressMessages({
         plot <- plot + viridis::scale_color_viridis()
         # ... so I used a hacky solution:
         l <- length(plot$layers)
-        w <- which(sapply(1:l, function(x) { "GeomTextRepel" %in% class(plot$layers[[x]]$geom) }))
+        w <- which(sapply(1L:l, \(x) { "GeomTextRepel" %in% class(plot$layers[[x]]$geom) }))
         plot$layers[[w]]$aes_params$size <- 1.6 # Downside: applies to both categories and proteins!
         # Edit labels
         plot$data$label <- plot$data$label
@@ -316,8 +329,8 @@ if (isOK) {
         plot$data$label[w] <- db$Label[match(plot$data$label[w], db$`Protein ID`)]
         #
         #poplot(plot)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300L)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300L)
         #
         # plot2 <- plotly::ggplotly(plot, tooltip = "label")
         # htmlwidgets::saveWidget(plot2, paste0(ohDeer, "/", grp, " ", nmRoot, ".html"),
@@ -334,26 +347,27 @@ if (isOK) {
   #
   # GSEA ridge plots
   nmRoot <- "GSEA ridge plot"
-  invisible(lapply(names(gses), function(grp) { #grp <- names(gses)[1]
+  invisible(lapply(names(gses), \(grp) { #grp <- names(gses)[1L]
     gse <- gses[[grp]]$GSE
     try({
-      plot <- clusterProfiler::ridgeplot(gse, 100,
-                                         label_format = 500 # don't you dare wrap my labels!!!
+      lFC <- gses[[grp]]$lFC
+      plot <- enrichplot::ridgeplot(gse, fill = "pvalue", label_format = 500L # don't you dare wrap my labels!!!
       ) + ggplot2::labs(x = "enrichment distribution") +
-        ggplot2::theme(axis.text.x = ggplot2::element_text(size = 4.5),
-                       axis.text.y = ggplot2::element_text(size = 4.5))
+        ggplot2::theme(axis.text.x = ggplot2::element_text(size = 5L),
+                       axis.text.y = ggplot2::element_text(size = 5L))
       suppressMessages({
         plot <- plot + viridis::scale_fill_viridis()
         #poplot(plot)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300L)
+        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300L)
       })
     }, silent = TRUE)
   }))
   #
   if ((exists("DatAnalysisTxt"))&&(GSEAmode == "standard")) {
-    DatAnalysisTxt <- paste0(DatAnalysisTxt,
-                             " Gene Set Enrichment Analysis was run using clusterProfiler.")
+    l <- length(DatAnalysisTxt)
+    DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
+                                " Gene Set Enrichment Analysis was run using clusterProfiler.")
   }
   # See https://learn.gencore.bio.nyu.edu/rna-seq-analysis/gene-set-enrichment-analysis/ for more
 }

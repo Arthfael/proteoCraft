@@ -18,9 +18,9 @@ openwd <- function(dir) {
   if (!dir.exists(dir)) {
     cat(paste0("Directory does not exist:\n", dir, "\n"))
   } else {
-    options(warn = -1)
-    if (syst == "windows") { cmd <- paste0("explorer \"", dir, "\"") } else {
-      cmd <- paste0("xdg-open ", dir) # Not tested
+    options(warn = -1L)
+    cmd <- if (syst == "windows") { paste0("explorer \"", dir, "\"") } else {
+      paste0("xdg-open ", dir) # Not tested
     }
     tst <- try(shell(cmd, intern = TRUE), silent = TRUE)
     if (length(tst)) {
@@ -31,6 +31,6 @@ openwd <- function(dir) {
         # (There used to be a poor joke about the "Steve Jobs cult" here, but... well he's been dead for years now, so I think I can let this go.)
       }
     }
-    options(warn = 0)
+    options(warn = 0L)
   }
 }

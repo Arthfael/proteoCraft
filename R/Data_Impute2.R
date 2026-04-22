@@ -29,21 +29,21 @@ Data_Impute2 <- function(quant_data,
                          groups,
                          is.log = TRUE,
                          seed,
-                         min_misses = 1) {
+                         min_misses = 1L) {
   TESTING <- FALSE
   #DefArg(Data_Impute2);TESTING <- TRUE
   #quant_data <- temp; groups = grps
   #quant_data <- tmpDat; groups = Gr
-  if (TESTING) {
+  misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-    misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
-  } else { misFun <- missing }
-  if (misFun(seed)) { if (exists("mySeed")) { seed <- mySeed } else { seed <- 1234567 } }
+    \(x) { return(!exists(deparse(substitute(x)))) }
+  } else { missing }
+  if (misFun(seed)) { seed <- if (exists("mySeed")) { mySeed } else { 1234567L } }
   set.seed(seed)
   norm::rngseed(seed)
   #
-  if ((!is.numeric(min_misses))||(is.na(min_misses))||(min_misses < 1)) { min_misses <- 1 }
+  if ((!is.numeric(min_misses))||(is.na(min_misses))||(min_misses < 1L)) { min_misses <- 1L }
   min_misses <- round(min_misses)
   #
   kol <- colnames(quant_data)
@@ -55,7 +55,7 @@ Data_Impute2 <- function(quant_data,
   imputed_data <- quant_data
   # If necessary log-transform
   if (!is.log) { imputed_data <- log10(imputed_data) }
-  for (kk in kol) { imputed_data[which(!is.all.good(imputed_data[,kk], 2)), kk] <- NA }
+  for (kk in kol) { imputed_data[which(!is.all.good(imputed_data[,kk], 2L)), kk] <- NA }
   wNA <- which(is.na(imputed_data), arr.ind = TRUE)
   if (!is.log) {
     wOK <- which(!is.na(imputed_data), arr.ind = TRUE)
@@ -80,10 +80,10 @@ Data_Impute2 <- function(quant_data,
         a <- capture.output({ # Using capture.output to suppress the messages of impute.MAR which are really painful!
           tst <- try(imputeLCMD::impute.MAR(imputed_data[w, m, drop = FALSE], ms, "KNN"), silent = TRUE)
         })
-        if (!"try-error" %in% class(tst)) {
+        if (!inherits(tst, "try-error")) {
           imputed_data[w, m] <- tst 
         } else {
-          warning(tst[1])
+          warning(tst[1L])
         }
       }
     }
@@ -91,13 +91,13 @@ Data_Impute2 <- function(quant_data,
     w <- which(is.na(imputed_data), arr.ind = TRUE)
     if (nrow(w)) {
       tst <- capture.output({
-        imputed_data <- imputeLCMD::impute.QRILC(imputed_data)[[1]]
+        imputed_data <- imputeLCMD::impute.QRILC(imputed_data)[[1L]]
       })
     }
   }
   # De-log if necessary
   if (!is.log) {
-    imputed_data <- 10^(imputed_data)
+    imputed_data <- 10L^(imputed_data)
     # In case the log/delog cycle would have introduced small changes:
     imputed_data[wOK] <- quant_data[wOK]
   }

@@ -1,6 +1,6 @@
 #
 options(stringsAsFactors = FALSE)
-options(buildtools.check = function(action) TRUE )
+options(buildtools.check = \(action) TRUE )
 rm(list = ls()[!ls() %in% c("fls")])
 
 # Packages
@@ -30,14 +30,14 @@ cran_req <- c("pak",
               "curl",
               "gtools",
               "ggh4x")
-tst <- vapply(cran_req, function(pck) { require(pck, character.only = TRUE, quietly = TRUE) }, TRUE)
+tst <- vapply(cran_req, \(pck) { require(pck, character.only = TRUE, quietly = TRUE) }, TRUE)
 w <- which(!tst)
 if (length(w)) { pak::pak(cran_req[w]) }
 for (pck in cran_req) { library(pck, character.only = TRUE) }
 # - proteoCraft: check version installed
 if (!require("proteoCraft")) { pak::pak("arthfael/proteoCraft") }
 packVers <- unlist(strsplit(as.character(packageVersion("proteoCraft")), "\\."))
-packVersTst <- (packVers[[1]] >= 2)&(((packVers[[2]] == 2)&(packVers[[3]] >= 1))|((packVers[[2]] > 2)))
+packVersTst <- (packVers[[1L]] >= 2L)&(((packVers[[2L]] == 2L)&(packVers[[3L]] >= 1L))|((packVers[[2L]] > 2L)))
 if (!packVersTst) {
   msg <- paste0("This version of the script requires proteoCraft v2.2.1 or higher, but v", paste(packVers, collapse = "."))
   # To upgrade:
@@ -46,7 +46,7 @@ if (!packVersTst) {
     remove.packages("proteoCraft")
     pak::pak("arthfael/proteoCraft")
   }, silent = TRUE)
-  if ("try-error" %in% class(tst)) {
+  if (inherits(tst, "try-error")) {
     stop(paste0(msg, " is installed.\nWe could not update the package automatically, please do it manually before going further."))
   } else {
     warning(paste0(msg, " was installed.\nWe did manage to update it automatically though, all good."))
@@ -60,7 +60,7 @@ getInt <- FALSE
 WIP <- FALSE
 #WIP <- TRUE
 # From https://stackoverflow.com/questions/2643719/find-contiguous-stretches-of-equal-data-in-a-vector
-contigEq <- function(data, value, position) {
+contigEq <- \(data, value, position) {
   id <- cumsum(c(1, as.numeric(diff(data) != 0)))
   id == id[position]
 }
@@ -68,11 +68,11 @@ contigEq <- function(data, value, position) {
 RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 libPath <- paste0(RPath, "/proteoCraft")
-homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/aRmel")
+homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
 # Set Shiny options, load functions for creating a Word report, create Excel styles
 Src <- paste0(libPath, "/extdata/R scripts/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
-#rstudioapi::documentOpen(paste0("H:/aRmel_package/aRmel/inst/extdata/R scripts/Sources/", basename(Src)))
+#rstudioapi::documentOpen(paste0("H:/aRmel_package/proteoCraft/inst/extdata/R scripts/Sources/", basename(Src)))
 source(Src)
 
 # Create cluster
@@ -81,7 +81,7 @@ parSrc <- paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
 source(parSrc)
 
 # Some useful functions
-cleanRawNm <- function(rawFileNm) { gsub("\\.raw$", "", rawFileNm, ignore.case = TRUE) }
+cleanRawNm <- \(rawFileNm) { gsub("\\.raw$", "", rawFileNm, ignore.case = TRUE) }
 environment(cleanRawNm) <- .GlobalEnv
 clusterExport(parClust, "cleanRawNm", envir = environment())
 
@@ -89,48 +89,48 @@ clusterExport(parClust, "cleanRawNm", envir = environment())
 rawrrSrc <- paste0(libPath, "/extdata/R scripts/Sources/install_rawrr.R")
 #rstudioapi::documentOpen(rawrrSrc)
 source(rawrrSrc)
-getInt <- !("try-error" %in% class(rawrr_tst))
+getInt <- !inherits(rawrr_tst, "try-error")
 #
 if (getInt) {
-  ticFun <- function(fl) { #fl <- fls[1]
+  ticFun <- \(fl) { #fl <- fls[1L]
     x <- try(readChromatogram(fl, type = "tic"), silent = TRUE)
-    if (!"try-error" %in% class(x)) {
-      res <- list(Outcome = TRUE,
-                  Output = data.frame("Raw file" = fl,
-                                      "Raw file name" = cleanRawNm(basename(fl)),
-                                      "Retention time" = as.numeric(x$times),
-                                      "Intensity" = as.numeric(x$intensities),
-                                      check.names = FALSE))
-    } else { res <- list(Outcome = FALSE,
-                         Error = x) }
+    res <- if (!inherits(x, "try-error")) {
+      list(Outcome = TRUE,
+           Output = data.frame("Raw file" = fl,
+                               "Raw file name" = cleanRawNm(basename(fl)),
+                               "Retention time" = as.numeric(x$times),
+                               "Intensity" = as.numeric(x$intensities),
+                               check.names = FALSE))
+    } else { list(Outcome = FALSE,
+                  Error = x) }
     return(res)
   }
-  bpcFun <- function(fl) { #fl <- fls[1]
+  bpcFun <- \(fl) { #fl <- fls[1L]
     x <- try(readChromatogram(fl, type = "bpc"), silent = TRUE)
-    if (!"try-error" %in% class(x)) {
-      res <- list(Outcome = TRUE,
-                  Output = data.frame("Raw file" = fl,
-                                      "Raw file name" = cleanRawNm(basename(fl)),
-                                      "Retention time" = as.numeric(x$times),
-                                      "Intensity" = as.numeric(x$intensities),
-                                      check.names = FALSE))
-    } else { res <- list(Outcome = FALSE,
-                         Error = x) }
+    res <- if (!inherits(x, "try-error")) {
+      list(Outcome = TRUE,
+           Output = data.frame("Raw file" = fl,
+                               "Raw file name" = cleanRawNm(basename(fl)),
+                               "Retention time" = as.numeric(x$times),
+                               "Intensity" = as.numeric(x$intensities),
+                               check.names = FALSE))
+    } else { list(Outcome = FALSE,
+                  Error = x) }
     return(res)
   }
-  xicFun <- function(fl, mass, tol, filter) { #fl <- fls[1]
+  xicFun <- \(fl, mass, tol, filter) { #fl <- fls[1L]
     x <- try(readChromatogram(fl, type = "xic", mass, tol, filter), silent = TRUE)
-    if (!"try-error" %in% class(x)) {
-      res <- list(Outcome = TRUE,
-                  Output = data.frame("Raw file" = fl,
-                                      "Raw file name" = cleanRawNm(basename(fl)),
-                                      "M/Z" = mass,
-                                      "Tolerance" = tol,
-                                      "Retention time" = as.numeric(x[[1]]$times),
-                                      "Intensity" = as.numeric(x[[1]]$intensities),
-                                      check.names = FALSE))
-    } else { res <- list(Outcome = FALSE,
-                         Error = x) }
+    res <- if (!inherits(x, "try-error")) {
+      list(Outcome = TRUE,
+           Output = data.frame("Raw file" = fl,
+                               "Raw file name" = cleanRawNm(basename(fl)),
+                               "M/Z" = mass,
+                               "Tolerance" = tol,
+                               "Retention time" = as.numeric(x[[1L]]$times),
+                               "Intensity" = as.numeric(x[[1L]]$intensities),
+                               check.names = FALSE))
+    } else { list(Outcome = FALSE,
+                  Error = x) }
     return(res)
   }
   environment(ticFun) <- .GlobalEnv
@@ -150,9 +150,9 @@ ParsDirs <- grep("/ThermoRawFileParser",
                    list.dirs("C:/Program Files", full.names = TRUE, recursive = FALSE),
                    list.dirs(paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads"), full.names = TRUE, recursive = FALSE)),
                  value = TRUE)
-# tst <- vapply(ParsDirs, function(x) { sum(c("ThermoRawFileParser.exe", "ThermoFisher.CommonCore.RawFileReader.dll") %in% list.files(x)) == 2 }, TRUE)
+# tst <- vapply(ParsDirs, \(x) { sum(c("ThermoRawFileParser.exe", "ThermoFisher.CommonCore.RawFileReader.dll") %in% list.files(x)) == 2 }, TRUE)
 # ParsDirs <- ParsDirs[which(tst)]
-tst <- vapply(ParsDirs, function(x) { "ThermoRawFileParser" %in% list.files(x) }, TRUE)
+tst <- vapply(ParsDirs, \(x) { "ThermoRawFileParser" %in% list.files(x) }, TRUE)
 ParsDirs <- ParsDirs[which(tst)]
 if (!length(ParsDirs)) {
   url <- "https://github.com/compomics/ThermoRawFileParser/archive/refs/heads/master.zip"
@@ -163,9 +163,9 @@ if (!length(ParsDirs)) {
   if (!dir.exists(ParsDirs)) { dir.create(ParsDirs, recursive = TRUE) }
   unzip(dstfl, exdir = ParsDirs)
 }
-if (length(ParsDirs) > 1) {
-  tst <- vapply(ParsDirs, function(x) { file.info(x)$ctime }, 1)
-  ParsDirs <- ParsDirs[which(tst == max(tst))[1]]
+if (length(ParsDirs) > 1L) {
+  tst <- vapply(ParsDirs, \(x) { file.info(x)$ctime }, 1)
+  ParsDirs <- ParsDirs[which(tst == max(tst))[1L]]
 }
 deer$ParsDir <- ParsDirs
 MSConvertInst <- ("C:/Program Files/ProteoWizard"%in% list.dirs("C:/Program Files", recursive = FALSE))
@@ -173,7 +173,7 @@ if (!MSConvertInst) {
   tst <- grep("ProteoWizard ", list.dirs("C:/Users/Thermo/AppData/Local/Apps", full.names = FALSE), value = TRUE)
   if (length(tst)) {
     MSConvertInst <- TRUE
-    MSConvertDir <- paste0("C:/Users/Thermo/AppData/Local/Apps/", tst[1])
+    MSConvertDir <- paste0("C:/Users/Thermo/AppData/Local/Apps/", tst[1L])
     deer$MSConvertDir <- MSConvertDir
   }
 } else {
@@ -200,27 +200,25 @@ runStep1 <- runStep2 <- TRUE
 while (!areWeGood) {
   # Raw files
   if (runStep1) {
-    if (exists("fls")) {
-      fls <- fls[which(file.exists(fls))]
-    } else { fls <- c() }
+    fls <- if (exists("fls")) { fls[which(file.exists(fls))] } else { c() }
     l <- length(fls)
     if (l) {
       msg <- paste0("There are ", l, " input Raw files already present in environment from a previous run:")
       opt <- c("Remove them                                                                                                             ",
                "Reprocess them all                                                                                                      ",
                "Change the selection                                                                                                    ")
-      myChoice <- dlg_list(opt, opt[1], title = msg)$res
-      if (myChoice == opt[1]) { fls <- c() }
+      myChoice <- dlg_list(opt, opt[1L], title = msg)$res
+      if (myChoice == opt[1L]) { fls <- c() }
     }
     l <- length(fls)
-    if ((!l)||(myChoice == opt[3])) {
+    if ((!l)||(myChoice == opt[3L])) {
       wd <- rstudioapi::selectDirectory(path = dflt)
       #wd <- unique(dirname(fls))
       #filt <- matrix(data = c("Thermo raw file", "*.raw;*.RAW"), ncol = 2, dimnames = list("raw file"))
       #fls <- "B:/archive/lsfgrp/MS/Acquired data/frimlgrp/LCMS_JiFrATeplova1_m"
       allRawFls <- list.files(wd, "*\\.raw$", FALSE, TRUE, TRUE, TRUE)
       allRawFls <- setNames(allRawFls, gsub(topattern(paste0(wd, "/")), "", allRawFls))
-      age <- setNames(vapply(allRawFls, function(x) { file.info(x)$mtime }, 1), allRawFls)
+      age <- setNames(vapply(allRawFls, \(x) { file.info(x)$mtime }, 1), allRawFls)
       allRawFls <- allRawFls[order(age, decreasing = TRUE)]
       blnks <- grep("blank", allRawFls, invert = TRUE)
       fls <- dlg_list(names(allRawFls), names(allRawFls)[blnks], TRUE, "Select raw files to analyse")$res
@@ -230,10 +228,10 @@ while (!areWeGood) {
       #fls <- fls[order(file.info(fls)$mtime, decreasing = FALSE)]
       if (getInt) {
         # Here we try to obtain more realistic file modified times than from Windows, using the header
-        tst <- parSapply(parClust, fls, function(fl) { #fl <- fls[1] #fl <- B:/group/lsfgrp/Mass_Spec/Acquired_data_v2/frimlgrp/LCMS_JiFrHAi3_m/saturation_20250410102029.raw
+        tst <- parSapply(parClust, fls, \(fl) { #fl <- fls[1L] #fl <- B:/group/lsfgrp/Mass_Spec/Acquired_data_v2/frimlgrp/LCMS_JiFrHAi3_m/saturation_20250410102029.raw
           require(rawrr)
           rs <- try({ rawrr::readFileHeader(fl)$`Creation date` }, silent = TRUE)
-          if ("try-error" %in% class(rs)) {
+          if (inherits(rs, "try-error")) {
             #rs <- NA
             rs <- format(file.info(fl)$mtime, "%d/%m/%Y %H:%M:%S", tz = Sys.timezone())
           }
@@ -245,11 +243,11 @@ while (!areWeGood) {
     }
     #a <- rawrr::readFileHeader(rawfile = fl)
     # Work directory
-    #wd <- unique(dirname(fls))[1]
+    #wd <- unique(dirname(fls))[1L]
     wd <- unique(dirname(fls)) # Update wd
     dtstNm <- gsub(".*/", "", wd)
     tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
-    while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
+    while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {
       wd <- rstudioapi::selectDirectory("Choose a work directory where we have write permission!", path = "D:/")
       tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
     }
@@ -277,8 +275,8 @@ while (!areWeGood) {
                                       c("2'3'cAMP", "RNA"),
                                       c("2'3'cGMP", "RNA"))
     msg <- "What type(s) of analysis are we running?"
-    opt <- vapply(analysisTypes$Type, function(x) { paste(c(x, rep(" ", max(c(100, 250-nchar(x))))), collapse = "") }, "")
-    analysisType <- analysisTypes$Type[match(dlg_list(opt, opt[1], title = msg, multiple = TRUE)$res, opt)]
+    opt <- vapply(analysisTypes$Type, \(x) { paste(c(x, rep(" ", max(c(100, 250-nchar(x))))), collapse = "") }, "")
+    analysisType <- analysisTypes$Type[match(dlg_list(opt, opt[1L], title = msg, multiple = TRUE)$res, opt)]
   }
   # Edit Experimental Factors
   if (runStep2) {
@@ -292,20 +290,20 @@ while (!areWeGood) {
                             minFact)
     if (file.exists("Factors.RData")) {
       load("Factors.RData")
-      Factors <- setNames(tmp$Factors, substr(tmp$Factors, 1, 3))
+      Factors <- setNames(tmp$Factors, substr(tmp$Factors, 1L, 3L))
       Factors <- Factors[which(!is.na(Factors))]
       if (length(Factors)) {
         FactorsLevels <- tmp$Levels[Factors]
-        FactorsLevels <- lapply(FactorsLevels, function(x) { grep(" ", x, invert = TRUE, value = TRUE) }) # No spaces allowed in factor levels!!!
+        FactorsLevels <- lapply(FactorsLevels, \(x) { grep(" ", x, invert = TRUE, value = TRUE) }) # No spaces allowed in factor levels!!!
         # This is strict because we use spaces in the shiny app to separate multiple levels when entered together
       } else { rm(Factors) }
     }
     if (!exists("Factors")) {
       Factors <- minFact
-      FactorsLevels <- setNames(lapply(Factors, function(x) { c("") }), Factors)
+      FactorsLevels <- setNames(lapply(Factors, \(x) { c("") }), Factors)
     } else { Factors <- unique(c(Factors, minFact)) }
     if (!exists("FactorsLevels")) {
-      FactorsLevels <- setNames(lapply(Factors, function(x) { c("") }), Factors)
+      FactorsLevels <- setNames(lapply(Factors, \(x) { c("") }), Factors)
     }
     w <- which(!Factors %in% names(FactorsLevels))
     if (length(w)) {
@@ -317,8 +315,8 @@ while (!areWeGood) {
     tmp <- FactorsLevels$Replicate
     tmp <- suppressWarnings(as.integer(tmp))
     tmp <- tmp[which(!is.na(tmp))]
-    if (!length(tmp)) { tmp <- 1 }
-    FactorsLevels$Replicate <- 1:max(tmp)
+    if (!length(tmp)) { tmp <- 1L }
+    FactorsLevels$Replicate <- 1L:max(tmp)
     FactorsLevels$Role <- unique(c("Blank", "Buffer_control", "Tag_control", "Standard", "Sample", FactorsLevels$Role))
     FactorsLevels$Nucleotide <- unique(c(unlist(analysisTypes$Nucleotides[which(analysisTypes$Type %in% analysisType)]),
                                          "none", FactorsLevels$Nucleotide))
@@ -326,7 +324,7 @@ while (!areWeGood) {
     FactorsLevels$Samples_group <- unique(c(paste0("Standard_", tmp), FactorsLevels$Samples_group))
     #rm(Factors, FactorsLevels)
     intFact <- c("Replicate", "Isobaric.set")
-    dfltInt <- c(1, 1)
+    dfltInt <- c(1L, 1L)
     if (!exists("blnksPat")) { blnksPat <<- "^blank(_[0-9]+)?$" }
     appNm <- paste0(dtstNm, " - Experimental Factors")
     ui <- fluidPage(
@@ -390,7 +388,7 @@ while (!areWeGood) {
     grpOK <- FALSE
     if (nchar(blnksPat)) {
       tst <- try(grep(blnksPat, fls0, value = TRUE), silent = TRUE)
-      grpOK <- (!"try-error" %in% class(tst))
+      grpOK <- (!inherits(tst, "try-error"))
     }
     if (grpOK) {
       blnkFls0 <- tst
@@ -400,7 +398,7 @@ while (!areWeGood) {
     } else {
       blnkFls0 <- c()
     }
-    server <- function(input, output, session) {
+    server <- \(input, output, session) {
       # Initialize reactive variables
       blanksPAT <- reactiveVal(blnksPat) # Regex pattern
       smplFILES <- reactiveVal(flsOrd0) # Files defined as sample files based on the regex
@@ -416,7 +414,7 @@ while (!areWeGood) {
                                            TRUE,
                                            TRUE,
                                            width = "1200px"))
-      updtOpt <- function(reactive = TRUE) {
+      updtOpt <- \(reactive = TRUE) {
         if (reactive) {
           blnksPat <<- blanksPAT()
           fls0_a <- flsORD()
@@ -428,7 +426,7 @@ while (!areWeGood) {
         grpOK <- FALSE
         if (nchar(blnksPat)) {
           tst <- try(grep(blnksPat, fls0_a, value = TRUE), silent = TRUE)
-          grpOK <- (!"try-error" %in% class(tst))
+          grpOK <- !inherits(tst, "try-error")
         }
         if (grpOK) {
           blnk0_b <- tst
@@ -448,7 +446,7 @@ while (!areWeGood) {
                           selected = slct)
       }
       # Create function to update output$Factors for UI
-      updtFactUI <- function(reactive = TRUE) {
+      updtFactUI <- \(reactive = TRUE) {
         if (reactive) {
           FAKT <- FACT()
           FAKTLevels <- FACTLevels()
@@ -459,9 +457,9 @@ while (!areWeGood) {
         L <- length(FAKT)
         # Update UI
         return(renderUI({
-          lst <- vector("list", L*3)
-          for (i in 1:L) {
-            j <- i*3-2
+          lst <- vector("list", L*3L)
+          for (i in 1L:L) {
+            j <- i*3L-2L
             Fact <- FAKT[i]
             if (Fact %in% intFact) {
               miN <- dfltInt[match(Fact, intFact)]
@@ -469,7 +467,7 @@ while (!areWeGood) {
               txt <- as.character(dflt)
               if (!length(txt)) { txt <- "" }
               lst[[j]] <- list(numericInput(paste0(Fact, "_lev"),
-                                            paste0("N. of ", gsub("\\.", " ", Fact), "s = ", txt), dflt, miN, step = 1))
+                                            paste0("N. of ", gsub("\\.", " ", Fact), "s = ", txt), dflt, miN, step = 1L))
             }
             if (Fact == "Time.point") {
               lst[[j]] <- list(textInput(paste0(Fact, "_lev"),
@@ -479,8 +477,8 @@ while (!areWeGood) {
               lst[[j]] <- list(textInput(paste0(Fact, "_lev"),
                                          paste0(Fact, ", levels = ", paste(FAKTLevels[[Fact]], collapse = " / ")), ""))
             }
-            lst[[j+1]] <- list(actionButton(paste0(Fact, "_levAdd"), "Add level(s)"))
-            lst[[j+2]] <- list(actionButton(paste0(Fact, "_levRmv"), "Remove level(s)"))
+            lst[[j+1L]] <- list(actionButton(paste0(Fact, "_levAdd"), "Add level(s)"))
+            lst[[j+2L]] <- list(actionButton(paste0(Fact, "_levRmv"), "Remove level(s)"))
           }
           return(lst)
         }))
@@ -496,10 +494,10 @@ while (!areWeGood) {
         flsORD(input$Order)
         flsOrd0_dflt <<- flsOrd0 <<- input$Order
         n <- length(fls0) - length(flsOrd0) - length(blnkFls0)
-        if (n) {
-          output$ordrMsg <- renderUI({ em(paste0("Files currectly not selected: ", n)) })
+        output$ordrMsg <- if (n) {
+          renderUI({ em(paste0("Files currectly not selected: ", n)) })
         } else {
-          output$ordrMsg <- renderUI({ em(" ") })
+          renderUI({ em(" ") })
         }
       })
       observeEvent(input$negStrng, {
@@ -509,7 +507,7 @@ while (!areWeGood) {
       #
       # Observers for already extent factors
       #  - Add new Factor level
-      sapply(Factors, function(Fact) {
+      sapply(Factors, \(Fact) {
         observeEvent({ input[[paste0(Fact, "_levAdd")]] }, {
           vals <- input[[paste0(Fact, "_lev")]]
           vals <- vals[which(!is.na(vals))]
@@ -521,7 +519,7 @@ while (!areWeGood) {
             }
             tmp2 <- FACTLevels()
             if (Fact %in% intFact) {
-              tmp2[[Fact]] <- 1:as.integer(max(c(vals, dfltInt[match(Fact, intFact)])))
+              tmp2[[Fact]] <- 1L:as.integer(max(c(vals, dfltInt[match(Fact, intFact)])))
             } else {
               if (Fact == "Time.point") {
                 vals <- suppressWarnings(as.numeric(vals))
@@ -537,7 +535,7 @@ while (!areWeGood) {
         })
       })
       #  - Remove Factor level
-      sapply(Factors, function(Fact) {
+      sapply(Factors, \(Fact) {
         observeEvent({ input[[paste0(Fact, "_levRmv")]] }, {
           vals <- input[[paste0(Fact, "_lev")]]
           vals <- vals[which(!is.na(vals))]
@@ -545,7 +543,7 @@ while (!areWeGood) {
             if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
             tmp2 <- FACTLevels()
             if (Fact %in% intFact) {
-              tmp2[[Fact]] <- 1:(max(c(as.integer(vals)-1, dfltInt[match(Fact, intFact)])))
+              tmp2[[Fact]] <- 1L:(max(c(as.integer(vals)-1L, dfltInt[match(Fact, intFact)])))
             } else {
               if (Fact == "Time.point") {
                 vals <- suppressWarnings(as.numeric(vals))
@@ -563,11 +561,11 @@ while (!areWeGood) {
       observeEvent(input$addFactor, {
         msg <- " "
         Facts <- gsub("[^A-Z,a-z,0-9]", "\\.", unlist(strsplit(input$nuFact, " +")))
-        sapply(Facts, function(Fact) {
-          #if ((nchar(Fact) < 3)||(grepl("^[0-9]", Fact))||(substr(Fact, 1, 3) %in% substr(FACT(), 1, 3))) {
+        sapply(Facts, \(Fact) {
+          #if ((nchar(Fact) < 3)||(grepl("^[0-9]", Fact))||(substr(Fact, 1L, 3L) %in% substr(FACT(), 1L, 3L))) {
           #  msg <- "Invalid Factor name! Must be at least 3 characters long and start with a capital letter! The first 3 characters must be unique to this Factor!"
           #} else {
-          #Fact <- paste0(toupper(substr(Fact, 1, 1)), tolower(substr(Fact, 2, nchar(Fact))))
+          #Fact <- paste0(toupper(substr(Fact, 1L, 1L)), tolower(substr(Fact, 2L, nchar(Fact))))
           if (!Fact %in% FACT()) {
             FACT(c(FACT(), Fact))
             tmp <- FACTLevels()
@@ -581,7 +579,7 @@ while (!areWeGood) {
                 if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
                 tmp2 <- FACTLevels()
                 if (Fact %in% intFact) {
-                  tmp2[[Fact]] <- 1:as.integer(max(c(vals, dfltInt[match(Fact, intFact)])))
+                  tmp2[[Fact]] <- 1L:as.integer(max(c(vals, dfltInt[match(Fact, intFact)])))
                 } else {
                   if (Fact == "Time.point") {
                     vals <- suppressWarnings(as.numeric(vals))
@@ -602,7 +600,7 @@ while (!areWeGood) {
                 if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
                 tmp2 <- FACTLevels()
                 if (Fact %in% intFact) {
-                  tmp2[[Fact]] <- 1:(max(c(as.integer(vals)-1, dfltInt[match(Fact, intFact)])))
+                  tmp2[[Fact]] <- 1L:(max(c(as.integer(vals)-1L, dfltInt[match(Fact, intFact)])))
                 } else {
                   if (Fact == "Time.point") {
                     vals <- suppressWarnings(as.numeric(vals))
@@ -625,10 +623,10 @@ while (!areWeGood) {
       observeEvent(input$rmvFactor, {
         msg <- " "
         tmp <- gsub("[^A-Z,a-z,0-9]", "\\.", input$nuFact)
-        if ((nchar(tmp) < 3)||(grepl("^[0-9]", tmp))) {
+        if ((nchar(tmp) < 3L)||(grepl("^[0-9]", tmp))) {
           msg <- "Invalid Factor name! Must be at least 3 characters long and start with a capital letter!"
         } else {
-          #tmp <- paste0(toupper(substr(tmp, 1, 1)), tolower(substr(tmp, 2, nchar(tmp))))
+          #tmp <- paste0(toupper(substr(tmp, 1L, 1L)), tolower(substr(tmp, 2L, nchar(tmp))))
           if (!tmp %in% FACT()) {
             msg <- "Cannot remove a non-existent Factor!"
           } else {
@@ -654,7 +652,7 @@ while (!areWeGood) {
         grpOK <- FALSE
         if (nchar(blnksPat)) {
           tst <- try(grep(blnksPat, fls0, value = TRUE), silent = TRUE)
-          grpOK <- (!"try-error" %in% class(tst))
+          grpOK <- !inherits(tst, "try-error")
         }
         if (grpOK) { blnkFls0 <<- tst } else {
           stop("No blank files selected!!!")
@@ -662,16 +660,16 @@ while (!areWeGood) {
         stopApp()
       })
       #observeEvent(input$cancel, { stopApp() })
-      session$onSessionEnded(function() { stopApp() })
+      session$onSessionEnded(\() { stopApp() })
     }
     eval(parse(text = runApp))
     shinyCleanup()
-    FactorsLevels <- setNames(lapply(Factors, function(fct) {
+    FactorsLevels <- setNames(lapply(Factors, \(fct) {
       x <- FactorsLevels[[fct]]
       x[which(!is.na(x))]
     }), Factors)
-    Factors <- Factors[which(vapply(FactorsLevels[Factors], length, 1) > 0)]
-    stopifnot(sum(!minFact %in% Factors) == 0)
+    Factors <- Factors[which(lengths(FactorsLevels[Factors]) > 0L)]
+    stopifnot(sum(!minFact %in% Factors) == 0L)
     Factors <- c(Factors[which(Factors != "Replicate")], "Replicate")
     FactorsLevels <- FactorsLevels[Factors]
     FactorsLevels$Protein <- unique(c(NA, FactorsLevels$Protein))
@@ -690,7 +688,7 @@ while (!areWeGood) {
   if (file.exists(ExpMapPath)) {
     ExpMap2 <- read.csv(ExpMapPath, check.names = FALSE)
     colnames(ExpMap2)[which(colnames(ExpMap2) == "Sample.name")] <- "Sample name" # Backwards compatibility
-    reLoad <- sum(!slctFls %in% ExpMap2$`MS raw file`) == 0
+    reLoad <- sum(!slctFls %in% ExpMap2$`MS raw file`) == 0L
     if ((reLoad)&&(exists("ExpMap"))) {
       reLoad <- c(TRUE, FALSE)[match(dlg_message("Reload Experiment map from disk?\n(you will still be able to edit it)", "yesno")$res, c("yes", "no"))]
     }
@@ -709,21 +707,21 @@ while (!areWeGood) {
   # Edit map
   ExpData <- ExpMap#read.csv(ExpMapPath, check.names = FALSE)
   for (Fact in Factors[which(!Factors %in% colnames(ExpData))]) { ExpData[[Fact]] <- "?" }
-  tst <- vapply(FactorsLevels, length, 1)
-  Fact1 <- Factors[which(tst == 1)]
-  Fact2 <- Factors[which(tst > 1)]
+  tst <- lengths(FactorsLevels)
+  Fact1 <- Factors[which(tst == 1L)]
+  Fact2 <- Factors[which(tst > 1L)]
   nr <- nrow(ExpData)
   rws <- seq_len(nr)
   chRws <- as.character(rws)
-  AllIDs <- setNames(lapply(Fact2, function(x) { paste0(x, "___", chRws)} ), Fact2)
+  AllIDs <- setNames(lapply(Fact2, \(x) { paste0(x, "___", chRws)} ), Fact2)
   ALLIDS <- setNames(unlist(AllIDs), NULL)
-  Fact2IDs <- setNames(lapply(Fact2, function(x) { paste0(x, "___", chRws)} ), Fact2)
-  facLevels2 <- lapply(FactorsLevels, function(x) {
+  Fact2IDs <- setNames(lapply(Fact2, \(x) { paste0(x, "___", chRws)} ), Fact2)
+  facLevels2 <- lapply(FactorsLevels, \(x) {
     unique(c(x, NA))
   })
   facLevels2$Use <- c(TRUE, FALSE) # Not used, but just in case
   appNm <- paste0(dtstNm, " - Experiment map")
-  if (length(Fact1)) { for (fct in Fact1) { #fct <- Fact1[1]
+  if (length(Fact1)) { for (fct in Fact1) { #fct <- Fact1[1L]
     ExpData[[fct]] <- FactorsLevels[[fct]]
   } }
   # Pre-processing for server:
@@ -732,50 +730,50 @@ while (!areWeGood) {
   nc <- nchar(xpDat$"MS raw file")
   nr <- nrow(xpDat)
   m <- min(nc) # Should always be larger or equal to 2 (much larger)
-  tst <- vapply(2:m, function(x) {
-    length(unique(substr(xpDat$"MS raw file", 1, x)))
-  }, 1) == 1
+  tst <- vapply(2L:m, \(x) {
+    length(unique(substr(xpDat$"MS raw file", 1L, x)))
+  }, 1L) == 1L
   if (sum(!tst)) {
-    w <- which(!tst)[1]+1
+    w <- which(!tst)[1L]+1L
     xpDat$"MS raw file" <- substr(xpDat$"MS raw file", w, nc)
   }
   # - Original table column widths
-  wTest0 <- setNames(vapply(colnames(ExpData), function(k) { #k <- colnames(ExpData)[1]
+  wTest0 <- setNames(vapply(colnames(ExpData), \(k) { #k <- colnames(ExpData)[1L]
     tst <- k %in% Fact2
-    if (k == "MS raw file") {
-      x <- max(c(nchar(k),
-                 nchar(as.character(xpDat[[k]])) + 5 + 3*tst), na.rm = TRUE)
+    x <- if (k == "MS raw file") {
+      max(c(nchar(k),
+            nchar(as.character(xpDat[[k]])) + 5L + 3L*tst), na.rm = TRUE)
     } else {
-      x <- max(c(nchar(k),
-                 nchar(as.character(ExpData[[k]])) + 5 + 3*tst), na.rm = TRUE)
+      max(c(nchar(k),
+            nchar(as.character(ExpData[[k]])) + 5L + 3L*tst), na.rm = TRUE)
     }
     if (tst) {
-      x <- max(c(x, nchar(FactorsLevels[[k]]) + 6), na.rm = TRUE)
+      x <- max(c(x, nchar(FactorsLevels[[k]]) + 6L), na.rm = TRUE)
     }
-    x <- x*7
-    if (is.na(x)) { x <- 15 } else { x <- max(c(ceiling(x/10)*10, 30)) }
-    return(x)
-  }, 1), colnames(ExpData))
+    x <- x*7L
+    x <- if (is.na(x)) { 15L } else { max(c(ceiling(x/10)*10, 30L)) }
+    return(as.integer(x))
+  }, 1L), colnames(ExpData))
   #xpDat$Reference <- shinyCheckInput(ExpData$Reference, "Reference")
   # - Edit table
   kol <- c()
-  for (fct in Fact2) { #fct <- Fact2[1]
+  for (fct in Fact2) { #fct <- Fact2[1L]
     IDs <- Fact2IDs[[fct]]
     lvls <- FactorsLevels[[fct]]
     lvls2 <- lvls[which(!is.na(lvls))]
     xpDat[[fct]] <- shinySelectInput(ExpData[[fct]],
                                      fct,
                                      lvls,
-                                     paste0(30*max(c(nchar(c(as.character(lvls2), fct)), 2)), "px")#,
-                                     #c(TRUE, FALSE)[(fct %in% c("Analysis_group", "Role", "Replicate", "Protein"))+1]
+                                     paste0(30L*max(c(nchar(c(as.character(lvls2), fct)), 2L)), "px")#,
+                                     #c(TRUE, FALSE)[(fct %in% c("Analysis_group", "Role", "Replicate", "Protein"))+1L]
     )
     fdNm <- paste0(fct, "___FD")
-    wTest0[fdNm] <- 15
+    wTest0[fdNm] <- 15L
     xpDat[[fdNm]] <- shinyFDInput(fct, nr, TRUE, paste0(wTest0[fdNm], "px"))
     kol <- c(kol, fct, fdNm)
     if (fct == "Replicate") {
       incrNm <- paste0(fct, "___INCR")
-      wTest0[incrNm] <- 15
+      wTest0[incrNm] <- 15L
       xpDat[[incrNm]] <- shinyPlusFD(fct, nr, width = paste0(wTest0[incrNm], "px"))
       kol <- c(kol, incrNm)
     }
@@ -783,30 +781,30 @@ while (!areWeGood) {
   kol2 <- colnames(xpDat)[which(!colnames(xpDat) %in% c(kol))]
   xpDat <- xpDat[, c(kol2, kol)]
   # - Estimate table column widths
-  wTest1 <- vapply(colnames(xpDat), function(k) { #k <- colnames(xpDat)[1]
+  wTest1 <- vapply(colnames(xpDat), \(k) { #k <- colnames(xpDat)[1L]
     if (k == "Parent sample") { k <- "MQ.Exp" }
-    if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
+    x <- if (k %in% names(wTest0)) { wTest0[k] } else { 30L }
     return(x)
-  }, 1)
+  }, 1L)
   wTest2 <- sum(wTest1)
   wTest1 <- paste0(as.character(wTest1), "px")
-  wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
-  wTest1 <- apply(wTest1, 1, function(x) {
-    list(width = x[[1]],
-         targets = x[[2]],
-         names = colnames(xpDat)[x[[2]]+1])
+  wTest1 <- aggregate((1L:length(wTest1))-1L, list(wTest1), c)
+  wTest1 <- apply(wTest1, 1L, \(x) {
+    list(width = x[[1L]],
+         targets = x[[2L]],
+         names = colnames(xpDat)[x[[2L]]+1L])
   })
   oTHerz <- which(colnames(xpDat) != "Parent sample")
   g <- grep("___((FD)|(INCR))$", colnames(xpDat))
   colnames(xpDat)[g] <- "" 
   edith <- list(target = "column",
-                disable = list(columns = c(0, match(Fact1, colnames(xpDat))-1)))
-  tmp <- c(0:(ncol(xpDat)-1))
+                disable = list(columns = c(0L, match(Fact1, colnames(xpDat))-1)))
+  tmp <- c(0L:(ncol(xpDat)-1L))
   tmp <- tmp[which(!tmp %in% edith$disable$columns)]
   edith$enable <- list(columns = tmp)
   L <- length(FactorsLevels[["Replicate"]])
-  dflt_Rpl <- 1:(nr+L) %% L
-  dflt_Rpl[which(dflt_Rpl == 0)] <- L
+  dflt_Rpl <- 1L:(nr+L) %% L
+  dflt_Rpl[which(dflt_Rpl == 0L)] <- L
   dflt_Rpl <- FactorsLevels[["Replicate"]][dflt_Rpl] # Easy template
   if (exists("ExpData3")) { rm(ExpData3) }
   ui <- fluidPage(
@@ -836,7 +834,7 @@ while (!areWeGood) {
     actionButton("saveBtn", "Save"),
     withSpinner(DT::DTOutput("ExpTbl", width = wTest2))
   )
-  server <- function(input, output, session) {
+  server <- \(input, output, session) {
     ExpData3 <- ExpData # Output table
     output$ExpTbl <- renderDT({ xpDat },
                               FALSE,
@@ -860,12 +858,12 @@ while (!areWeGood) {
       Shiny.bindAll(table.table().node());"))
     #
     # Fill down
-    sapply(1:length(ALLIDS), function(x) {
+    sapply(1L:length(ALLIDS), \(x) {
       id1 <- ALLIDS[x]
       id2 <- paste0(ALLIDS[x], "___FD")
       tmp <- unlist(strsplit(id1, "___"))
-      fct <- tmp[[1]]
-      i <- as.integer(tmp[[2]])
+      fct <- tmp[[1L]]
+      i <- as.integer(tmp[[2L]])
       # observeEvent(input[[id1]],
       if (i < nr) {
         observeEvent(input[[id2]],
@@ -873,7 +871,7 @@ while (!areWeGood) {
                        x <- input[[id1]]
                        tp <- typeof(facLevels2[[fct]])
                        if (typeof(x) == tp) { x <- get(paste0("as.", tp))(x) }
-                       for (k in (i+1):nr) {
+                       for (k in (i+1L):nr) {
                          idK <- paste0(fct, "___", as.character(k))
                          # if (fct == "Use") {
                          #   updateCheckboxInput(session, idK, NULL, x)
@@ -885,7 +883,7 @@ while (!areWeGood) {
       }
     })
     # Incremental fill-down for replicates
-    sapply(rws, function(i) {
+    sapply(rws, \(i) {
       if (i < nr) {
         iChr <- as.character(i)
         id1 <- paste0("Replicate___", iChr)
@@ -895,10 +893,10 @@ while (!areWeGood) {
                        x <- input[[id1]]
                        tp <- typeof(facLevels2[[fct]])
                        if (typeof(x) == tp) { x <- get(paste0("as.", tp))(x) }
-                       rplRg <- (i+1):nr
+                       rplRg <- (i+1L):nr
                        l <- length(rplRg)
-                       m <- match(x, dflt_Rpl)+1
-                       rplVal <- dflt_Rpl[m:(m+l-1)]
+                       m <- match(x, dflt_Rpl)+1L
+                       rplVal <- dflt_Rpl[m:(m+l-1L)]
                        for (k in rplRg) {
                          y <- rplVal[k-i]
                          idK <- paste0("Replicate___", as.character(k))
@@ -910,14 +908,14 @@ while (!areWeGood) {
     # Manual cell edit (sample names)
     observeEvent(input$ExpTbl_cell_edit, {
       ExpData3[input$ExpTbl_cell_edit$row,
-               input$ExpTbl_cell_edit$col+1] <- input$ExpTbl_cell_edit$value
+               input$ExpTbl_cell_edit$col+1L] <- input$ExpTbl_cell_edit$value
     })
     # Save
     observeEvent(input$saveBtn, {
       for (fct in #c(
            Fact2#, "Use")
       ) {
-        ExpData3[[fct]] <- sapply(rws, function(i) {
+        ExpData3[[fct]] <- sapply(rws, \(i) {
           input[[paste0(fct, "___", as.character(i))]]
         })
         #if (fct == "Use") {
@@ -932,21 +930,21 @@ while (!areWeGood) {
       stopApp()
     })
     #observeEvent(input$cancel, { stopApp() })
-    session$onSessionEnded(function() { stopApp() })
+    session$onSessionEnded(\() { stopApp() })
   }
-  runKount <- 0
+  runKount <- 0L
   while ((!runKount)||(!exists("ExpData3"))) {
     eval(parse(text = runApp))
     shinyCleanup()
-    runKount <- runKount+1
+    runKount <- runKount+1L
   }
-  runKount <- 0
+  runKount <- 0L
   tmpTbl <- ExpMap <- ExpData3
-  tst <- lapply(colnames(tmpTbl), function(x) { typeof(tmpTbl[[x]]) })
+  tst <- lapply(colnames(tmpTbl), \(x) { typeof(tmpTbl[[x]]) })
   w <- which(tst == "list")
   if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
   tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
-  while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) { # We only want this to happen if the file is locked for editing
+  while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) { # We only want this to happen if the file is locked for editing
     dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
     write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE)
   }
@@ -955,10 +953,10 @@ while (!areWeGood) {
            "No, go back to raw files selection.",
            "No, go back to factors editor.",
            "No, just rerun the table (experiment map) editor.")
-  what2do <- dlg_list(opt, opt[1], title = "Are you happy with your parameters?")$res
-  areWeGood <- what2do == opt[1]
-  runStep1 <- (!areWeGood)&&(match(what2do, opt) <= 2)
-  runStep2 <- (!areWeGood)&&(match(what2do, opt) <= 3)
+  what2do <- dlg_list(opt, opt[1L], title = "Are you happy with your parameters?")$res
+  areWeGood <- what2do == opt[1L]
+  runStep1 <- (!areWeGood)&&(match(what2do, opt) <= 2L)
+  runStep2 <- (!areWeGood)&&(match(what2do, opt) <= 3L)
 }
 
 #
@@ -975,22 +973,22 @@ ExpMap$Protein <- paste0(ExpMap$Protein, "")
 Protein <- paste0(Protein, "")
 
 # Files ranges
-rgL <- 24
+rgL <- 24L
 ctrlRanges <- flRanges <- list()
-for (grp in Analysis_group) { #grp <- Analysis_group[1]
+for (grp in Analysis_group) { #grp <- Analysis_group[1L]
   w0 <- which((ExpMap$"Analysis_group" == grp)
               &(!ExpMap$Role %in% c("Blank", "Sample")))
   l0 <- length(w0)
   if (l0) { ctrlRanges[[grp]] <- w0 }
-  for (prot in Protein) { #prot <- Protein[1]
+  for (prot in Protein) { #prot <- Protein[1L]
     w1 <- which((ExpMap$"Analysis_group" == grp)
                 &(!ExpMap$Role %in% c("Buffer_control", "Tag_control"))
                 &(ExpMap$Protein == prot))
     l1 <- length(w1)
     if (l1) {
       N <- ceiling(l1/rgL)
-      for (i in 1:N) {
-        y <- (1:rgL)+(i-1)*rgL
+      for (i in 1L:N) {
+        y <- (1L:rgL)+(i-1)*rgL
         y <- y[which(y <= l1)]
         y <- y[which(!w1[y] %in% ctrlRanges[[grp]])]
         flRanges[[paste0(grp, " ", prot, " ", as.character(i))]] <- w1[y]
@@ -1005,15 +1003,15 @@ stopifnot(identical(setNames(sort(c(unlist(flRanges), unlist(ctrlRanges))), NULL
 mzMLs <- gsub("\\.raw$", ".mzML", slctFls, ignore.case = TRUE)
 pressFls <- gsub("\\.mzML$", ".csv", mzMLs)
 clusterExport(parClust, list("slctFls", "mzMLs", "pressFls"), envir = environment())
-#w <- 1:length(mzMLs)
+#w <- 1L:length(mzMLs)
 w <- which((!file.exists(mzMLs))|(file.size(mzMLs) <= 2000))
 if (length(w)) {
   if (tolower(Convert_mode) == "thermorawfileparser") { # Mode 1: using ThermoRawFileParser
     clusterExport(parClust, list("wd", "deer", "zlib", "PeakPicking"), envir = environment())
-    tst <- parSapply(parClust, w, function(i) { #i <- w[1]
+    tst <- parSapply(parClust, w, \(i) { #i <- w[1L]
       cmd <- paste0("ThermoRawFileParser -i=\"",
                     slctFls[i], "\" -b=\"", gsub(".*/", paste0(wd, "/"), mzMLs[i]), "\" -f=2 -a",
-                    c(" -z", "")[zlib+1], c(" -p", "")[PeakPicking+1])
+                    c(" -z", "")[zlib+1L], c(" -p", "")[PeakPicking+1L])
       cmd <- c("C:", paste0("cd \"", deer$ParsDir, "\""), cmd)
       iChr <- as.character(i)
       write(cmd, paste0(wd, "/tmp", iChr, ".bat"))
@@ -1040,7 +1038,7 @@ if (length(w)) {
 
 # Getting the pressure profile is unfortunately not doable using rawrr
 # This must be done from mzMLs
-#tst <- grabMzmlData(mzMLs[1], "everything")
+#tst <- grabMzmlData(mzMLs[1L], "everything")
 #View(tst$metadata)
 pressScript <- paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads/mzML_pressure_to_csv.py")
 if (!file.exists(pressScript)) {
@@ -1056,7 +1054,7 @@ pressScript2 <- paste0(wd, "/pressScript.py")
 write(tmp, pressScript2)
 w <- which(file.exists(mzMLs))
 clusterExport(parClust, list("pressScript2", "mzMLs"), envir = environment())
-tst <- parSapply(parClust, w, function(i) { #i <- w[1]
+tst <- parSapply(parClust, w, \(i) { #i <- w[1L]
   cmd <- paste0("python \"", pressScript2, "\" ", paste0("\"", mzMLs[i], "\"", collapse = " "))
   #cat(cmd)
   system(cmd)
@@ -1066,7 +1064,7 @@ cmd <- paste0("open \"", wd, "\"")
 #cat(cmd)
 #system(cmd)
 tstPress <- file.exists(pressFls)
-#stopifnot(length(w) == 0)
+#stopifnot(length(w) == 0L)
 if (sum(!tstPress)) {
   warning(paste0("Couldn't get pressure profile from the following file(s):",
           paste0("\n - ", slctFls0[which(!tstPress)], collapse = ""), "\n"))
@@ -1078,7 +1076,7 @@ stopCluster(parClust)
 source(parSrc)
 clusterExport(parClust, c("pressFls", "slctFls", "cleanRawNm"), envir = environment())
 wPress <- which(tstPress)
-press <- parLapply(parClust, wPress, function(i) { #i <- 1
+press <- parLapply(parClust, wPress, \(i) { #i <- 1L
   x <- data.table::fread(pressFls[i], integer64 = "numeric", check.names = FALSE, data.table = FALSE)
   fl <- slctFls[i]
   colnames(x) <- c("Retention time", "Pressure")
@@ -1096,63 +1094,63 @@ allFls <- c(blnkFls, slctFls)
 if (getInt) {
   tol <- 20 # In ppm!
   #tol <- as.numeric(dlg_input("Enter mass tolerance (ppm)", tol)$res)
-  invisible(clusterCall(parClust, function() library(rawrr)))
-  MS2s <- parLapply(parClust, allFls, function(fl) { #fl <- slctFls[1]
+  invisible(clusterCall(parClust, \() library(rawrr)))
+  MS2s <- parLapply(parClust, allFls, \(fl) { #fl <- slctFls[1L]
     x <- rawrr::readIndex(fl)
     x <- x[which(x$MSOrder == "Ms2"),]
     return(unique(gsub("@.*", "", unique(x$scanType))))
   })
   ms2s <- unique(unlist(MS2s))
-  if (length(ms2s) == 1) {
+  if (length(ms2s) == 1L) {
     cat(paste0("Single MS2 filter detected: \"", ms2s, "\"\n"))
   } else {
-    tmp <- vapply(ms2s, function(x) { paste(c(x, rep(" ", 200-nchar(x))), collapse = "") }, "")
-    tmp <- dlg_list(tmp, tmp[1], TRUE, "Select filter(s) for which you want to get an XIC")$res
+    tmp <- vapply(ms2s, \(x) { paste(c(x, rep(" ", 200L-nchar(x))), collapse = "") }, "")
+    tmp <- dlg_list(tmp, tmp[1L], TRUE, "Select filter(s) for which you want to get an XIC")$res
     ms2s <- gsub(" *$", "", tmp)
   }
   dflts <- c("134.0472", "150.0421", NA)
-  masses <- setNames(lapply(ms2s, function(ms2) { #ms2 <- ms2s[1]
+  masses <- setNames(lapply(ms2s, \(ms2) { #ms2 <- ms2s[1L]
     msg <- paste0(ms2, " XIC: enter M/Z to extract (if multiple M/Zs, separate them with \" \")")
     m <- match(ms2, c("FTMS - p ESI Full ms2 328.0452",
                       "FTMS - p ESI Full ms2 344.0402"))
-    if (is.na(m)) { m <- 3 }
+    if (is.na(m)) { m <- 3L }
     dflt <- dflts[m]
     mass <- as.numeric(unlist(strsplit(dlg_input(msg, dflt)$res, " ")))
     return(mass[which(!is.na(mass))])
   }), ms2s)
   # TIC
   tic <- setNames(parLapply(parClust, allFls, ticFun), slctFls)
-  w <- vapply(tic, function(x) { x$Outcome }, TRUE)
-  tic <- lapply(tic[w], function(x) { x$Output })
+  w <- vapply(tic, \(x) { x$Outcome }, TRUE)
+  tic <- lapply(tic[w], \(x) { x$Output })
   if (length(tic)) { allChroms$TIC <- tic }
   # BPC
   bpc <- setNames(parLapply(parClust, allFls, bpcFun), allFls)
-  w <- vapply(bpc, function(x) { x$Outcome }, TRUE)
-  bpc <- lapply(bpc[w], function(x) { x$Output })
+  w <- vapply(bpc, \(x) { x$Outcome }, TRUE)
+  bpc <- lapply(bpc[w], \(x) { x$Output })
   if (length(bpc)) { allChroms$BPC <- bpc }
   # XICs
   clusterExport(parClust, list("ms2s", "tol", "masses", "xicFun"), envir = environment())
   fltms2 <- listMelt(masses, names(masses), c("Mass", "Filter"))
   clusterExport(parClust, list("tol", "xicFun"), envir = environment())
   xicNms <- do.call(paste, c(fltms2[, c("Mass", "Filter")], sep = " for "))
-  xic <- setNames(apply(fltms2[, c("Mass", "Filter")], 1, function(x) {
-    mass <- x[[1]]
-    ms2 <- x[[2]]
+  xic <- setNames(apply(fltms2[, c("Mass", "Filter")], 1L, \(x) {
+    mass <- x[[1L]]
+    ms2 <- x[[2L]]
     clusterExport(parClust, list("ms2", "mass"), envir = environment())
-    setNames(parLapply(parClust, allFls, function(fl) { xicFun(fl, mass, tol, ms2) }), allFls)
+    setNames(parLapply(parClust, allFls, \(fl) { xicFun(fl, mass, tol, ms2) }), allFls)
   }), xicNms)
-  w <- setNames(lapply(xicNms, function(x) { #x <- names(xic)[1]
-    which(vapply(xic[[x]], function(y) { y$Outcome }, TRUE))
+  w <- setNames(lapply(xicNms, \(x) { #x <- names(xic)[1L]
+    which(vapply(xic[[x]], \(y) { y$Outcome }, TRUE))
   }), xicNms)
-  xic <- setNames(lapply(xicNms, function(x) { #x <- names(xic)[1]
-    setNames(lapply(allFls[w[[x]]], function(fl) { xic[[x]][[fl]]$Output }), allFls[w[[x]]])
+  xic <- setNames(lapply(xicNms, \(x) { #x <- names(xic)[1L]
+    setNames(lapply(allFls[w[[x]]], \(fl) { xic[[x]][[fl]]$Output }), allFls[w[[x]]])
   }), xicNms)
   w <- which(setNames(lapply(xicNms, length), xicNms) > 0)
   xic <- xic[w]
   for (nm in names(xic)) { allChroms[[nm]] <- xic[[nm]] }
 }
 #
-for (nm in names(allChroms)) { #nm <- names(allChroms)[1]
+for (nm in names(allChroms)) { #nm <- names(allChroms)[1L]
   allChroms[[nm]] <- plyr::rbind.fill(allChroms[[nm]])
   if (nm == "Pressure") { #nm <- "Pressure"
     tmp <- as.data.table(allChroms[[nm]])
@@ -1167,72 +1165,72 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1]
 #
 
 # Define retention time ranges
-fullRTRange <- unlist(lapply(allChroms, function(x) { x$`Retention time` }))
+fullRTRange <- unlist(lapply(allChroms, \(x) { x$`Retention time` }))
 fullRTRange <- c(min(fullRTRange), max(fullRTRange))
 getRTRange <- TRUE; kount <- 1
-dfltRanges <- data.frame(Start = c(fullRTRange[1], 0, 2, 4.5, 0, 3, 5),
-                         End = c(fullRTRange[2], 1, 3.5, 6, 1, 4.5, 6),
+dfltRanges <- data.frame(Start = c(fullRTRange[1L], 0, 2, 4.5, 0, 3, 5),
+                         End = c(fullRTRange[2L], 1, 3.5, 6, 1, 4.5, 6),
                          Type = c("Full", rep("Sub-range", 6)),
                          Nucleotide = c(NA,
                                         "ATP", "2'3'cAMP", "3'5'cAMP",
                                         "GTP", "2'3'cGMP", "3'5'cGMP"))
 dfltRanges <- dfltRanges[c(1, which(dfltRanges$Nucleotide %in% Nucleotide)),]
-dfltRanges$"Analysis_group" <- lapply(dfltRanges$Nucleotide, function(x) {
-  rs <- Analysis_group[which(Analysis_group %in% analysisTypes$Type[which(vapply(analysisTypes$Nucleotides, function(y) { x %in% y }, TRUE))])]
+dfltRanges$"Analysis_group" <- lapply(dfltRanges$Nucleotide, \(x) {
+  rs <- Analysis_group[which(Analysis_group %in% analysisTypes$Type[which(vapply(analysisTypes$Nucleotides, \(y) { x %in% y }, TRUE))])]
   if (!length(rs)) { rs <- Analysis_group }
   return(rs)
 })
-kount <- 0
-msg <- paste0("Extract ", c("", "another ")[(kount > 0)+1], "custom RT sub-range?")
+kount <- 0L
+msg <- paste0("Extract ", c("", "another ")[(kount > 0L)+1L], "custom RT sub-range?")
 opt <- c("No                                                                           ",
          "Yes                                                                          ")
-getRTRange <- c(FALSE, TRUE)[match(dlg_list(opt, opt[1], title = msg)$res, opt)]
+getRTRange <- c(FALSE, TRUE)[match(dlg_list(opt, opt[1L], title = msg)$res, opt)]
 if (!length(getRTRange)) { getRTRange <- FALSE }
 while (getRTRange) {
-  if (length(Analysis_group) > 1) {
+  if (length(Analysis_group) > 1L) {
     dflt <- c(Analysis_group, "All")
-    dflt <- setNames(vapply(dflt, function(x) {
-      paste0(c(x, rep(" ", 250-nchar(x))), collapse = "")
+    dflt <- setNames(vapply(dflt, \(x) {
+      paste0(c(x, rep(" ", 250L-nchar(x))), collapse = "")
     }, ""), dflt)
-    wh <- dlg_list(dflt, dflt[1], title = "To which group(s) will this range apply?")$res
+    wh <- dlg_list(dflt, dflt[1L], title = "To which group(s) will this range apply?")$res
     wh <- names(dflt)[match(wh, dflt)]
     if (wh == "All") { wh <- Analysis_group }
   } else { wh <- Analysis_group }
   dflt <- fullRTRange
-  if ((exists("RTRng"))&&(!is.null(RTRng))&&(is.numeric(RTRng))&&(length(RTRng) == 2)) { dflt <- RTRng } else { dflt <- fullRTRange }
+  dflt <- if ((exists("RTRng"))&&(!is.null(RTRng))&&(is.numeric(RTRng))&&(length(RTRng) == 2L)) { RTRng } else { fullRTRange }
   RTRng <- as.numeric(unlist(strsplit(dlg_input("Enter min. and max. RT separated by \"-\"",
                                                 paste(dflt, collapse = "-"))$res, " *- *")))
   RTRng <- RTRng[which(!is.na(RTRng))]
-  if (length(RTRng) != 2) {
+  if (length(RTRng) != 2L) {
     warning("Invalid RT range! Cancelling...")
   } else {
     RTRng <- sort(RTRng)
-    if (RTRng[1] < fullRTRange[1]) {
+    if (RTRng[1L] < fullRTRange[1L]) {
       warning("Too low RT range!")
-      RTRng[1] <- fullRTRange[1]
+      RTRng[1L] <- fullRTRange[1L]
     }
-    if (RTRng[2] > fullRTRange[2]) {
+    if (RTRng[2L] > fullRTRange[2L]) {
       warning("Too high RT range!")
-      RTRng[2] <- fullRTRange[2]
+      RTRng[2L] <- fullRTRange[2L]
     }
-    RTRng <- data.frame(Start = RTRng[1],
-                        End = RTRng[2],
+    RTRng <- data.frame(Start = RTRng[1L],
+                        End = RTRng[2L],
                         Type = "Sub-range")
-    if ((RTRng$Start == fullRTRange[1])&&(RTRng$End == fullRTRange[2])) { RTRng$Type <- "Full" }
+    if ((RTRng$Start == fullRTRange[1L])&&(RTRng$End == fullRTRange[2L])) { RTRng$Type <- "Full" }
     RTRng$"Analysis_group" <- list(wh)
     msg <- paste0("Which nucleotide is relevant for this range? (RT = ", RTRng$Start, "-", RTRng$End, ")")
-    opt <- vapply(Nucleotide, function(x) { paste(c(x, rep(" ", max(c(100, 250-nchar(x))))), collapse = "") }, "")
-    RTRng$Nucleotide <- Nucleotide[match(dlg_list(opt, opt[1], title = msg)$res, opt)]
+    opt <- vapply(Nucleotide, \(x) { paste(c(x, rep(" ", max(c(100L, 250L-nchar(x))))), collapse = "") }, "")
+    RTRng$Nucleotide <- Nucleotide[match(dlg_list(opt, opt[1L], title = msg)$res, opt)]
     dfltRanges <- rbind(dfltRanges, RTRng)
-    kount <- kount+1
-    msg <- paste0("Extract ", c("", "another ")[(kount > 0)+1], "custom RT sub-range?")
+    kount <- kount+1L
+    msg <- paste0("Extract ", c("", "another ")[(kount > 0L)+1L], "custom RT sub-range?")
     getRTRange <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
   }
 }
 rtRanges <- dfltRanges
 dfltRanges$"Analysis_group" <- vapply(dfltRanges$"Analysis_group", paste, "", collapse = ",")
 tst <- do.call(paste, c(dfltRanges, sep = "_"))
-tst <- aggregate(1:length(tst), list(tst), min)
+tst <- aggregate(1L:length(tst), list(tst), min)
 tst <- tst$x[order(tst$x)]
 rtRanges <- rtRanges[tst,]
 #
@@ -1259,10 +1257,10 @@ for (k in colnames(ExpMap2)) {
   }
 }
 fact <- Factors[which(!Factors %in% c("Replicate", "Samples_group", "Samples_group2"))]
-fact <- fact[which(vapply(fact, function(x) {
+fact <- fact[which(vapply(fact, \(x) {
   length(unique(ExpMap2[[x]]))
-}, 1) > 1)]
-if (length(fact) > 1) {
+}, 1L) > 1L)]
+if (length(fact) > 1L) {
   # Check for synonymous factors
   tmp <- ExpMap2[, fact]
   for (fct in fact) {
@@ -1270,12 +1268,12 @@ if (length(fact) > 1) {
   }
   comb <- gtools::combinations(length(fact), 2, fact)
   comb <- as.data.frame(comb)
-  tst <- apply(comb, 1, function(x) {
-    identical(tmp[[x[1]]], tmp[[x[2]]])
+  tst <- apply(comb, 1L, \(x) {
+    identical(tmp[[x[1L]]], tmp[[x[2L]]])
   })
   w <- which(tst)
   if (length(w)) {
-    fct2Remov <- unique(comb[w, 2])
+    fct2Remov <- unique(comb[w, 2L])
     fact <- fact[which(!fact %in% fct2Remov)]
   }
 }
@@ -1283,13 +1281,13 @@ if (!length(fact)) {
   fact <- "Protein"
 }
 fact <- unique(c(fact, "Role"))
-f0 <- function(x) {
+f0 <- \(x) {
   x <- x[which(x != "_")]
   paste(unique(x), collapse = " ")
 }
-ExpMap2$Samples_group2 <- apply(ExpMap2[, fact, drop = FALSE], 1, f0)
-tst <- aggregate(ExpMap2$Samples_group, list(ExpMap2$Samples_group2), function(x) { length(unique(x)) })
-if (max(tst$x) > 1) {
+ExpMap2$Samples_group2 <- apply(ExpMap2[, fact, drop = FALSE], 1L, f0)
+tst <- aggregate(ExpMap2$Samples_group, list(ExpMap2$Samples_group2), \(x) { length(unique(x)) })
+if (max(tst$x) > 1L) {
   fact <- unique(c(fact, "Samples_group"))
   ExpMap2$Samples_group2 <- do.call(paste, c(ExpMap2[, fact, drop = FALSE], sep = " "))
 }
@@ -1299,24 +1297,24 @@ Factors <- unique(c("Samples_group2", Factors))
 ExpMap2$Samples_group2 <- factor(ExpMap2$Samples_group2, levels = FactorsLevels[["Samples_group2"]])
 
 # Peak extract
-propFlt <- function(x,
-                    p = 0.1, # Proportion of values to average
-                    upper = TRUE, # If TRUE, the proportion applies to the upper tail of the data, if not to the lower tail.
-                    average = TRUE # If TRUE, returns mean of filtered data, if FALSE returns data
-                    ) {
+propFlt <- \(x,
+             p = 0.1, # Proportion of values to average
+             upper = TRUE, # If TRUE, the proportion applies to the upper tail of the data, if not to the lower tail.
+             average = TRUE # If TRUE, returns mean of filtered data, if FALSE returns data
+) {
   x <- is.all.good(x) 
   l <- length(x)
   x <- sort(x, decreasing = upper)
-  x <- x[1:round(l*p)]
+  x <- x[1L:round(l*p)]
   if (average) { x <- mean(x) }
   return(x)
 }
-peakXtract <- function(fileName, # File name
-                       data = chr,
-                       WIP = FALSE, # Work-in-Progress? If so we will be plotting stuff to check behaviour
-                       binSz = 10, # Default RT bin size (s)
-                       targRg,
-                       bgMode = "loess") { #fileName <- f[1] #fileName <- f[2] #fileName <- f[3] #fileName <- f[4] #fileName <- f[5] #fileName <- f[6]
+peakXtract <- \(fileName, # File name
+                data = chr,
+                WIP = FALSE, # Work-in-Progress? If so we will be plotting stuff to check behaviour
+                binSz = 10, # Default RT bin size (s)
+                targRg,
+                bgMode = "loess") { #fileName <- f[1L] #fileName <- f[2L] #fileName <- f[3L] #fileName <- f[4L] #fileName <- f[5L] #fileName <- f[6L]
   rtPrec <- 0.01/60 # 10 ms
   #fileName <- "B:/group/lsfgrp/Mass_Spec/Acquired_data_v2/frimlgrp/LCMS_JiFrATeplova13_m/blank.raw"
   #WIP <- FALSE
@@ -1325,7 +1323,7 @@ peakXtract <- function(fileName, # File name
   flNm2 <- ExpMap$`MS raw file name`[match(fileName, ExpMap$`MS raw file`)]
   # Default outputs
   qnt <- 0
-  peakXtrFine <- setNames(rep(NA, 3),
+  peakXtrFine <- setNames(rep(NA, 3L),
                           c("Start", "Apex", "End"))
   #
   w <- which(RTchrm01$`Raw file` == fileName)
@@ -1350,35 +1348,35 @@ peakXtract <- function(fileName, # File name
                                    (chr$`Retention time` <= targRg["rWidth"]+wdth))])
     }
     wMx <- which(chr[[kol]] == mx)
-    if (length(wMx) > 1) { # Tie breaker, for unexpected non-unicity: these are real measurements
-      wMx <- wMx[which(chr$RTdist[wMx] == min(chr$RTdist[wMx]))[1]]
+    if (length(wMx) > 1L) { # Tie breaker, for unexpected non-unicity: these are real measurements
+      wMx <- wMx[which(chr$RTdist[wMx] == min(chr$RTdist[wMx]))[1L]]
     }
     peakXtrFine["Apex"] <- chr$`Retention time`[wMx]
-    if (mx > 0) {
+    if (mx) {
       try({
         # First, find background
         # Below: idea which did not work: it assumes a flat baseline
         #chr2 <- chr
         #chr2 <- chr2[order(chr2$Intensity, decreasing = FALSE),]
-        #chr2 <- chr2[1:round(nrow(chr2)/10),]
+        #chr2 <- chr2[1L:round(nrow(chr2)/10),]
         chrRg <- c(min(chr$`Retention time`),
                    max(chr$`Retention time`))
-        chrWdth <- chrRg[2]-chrRg[1]
-        nBgBinz <- 5
-        bgBins <- data.frame(Bin = 1:nBgBinz)
-        bgBins$Start <- chrRg[1] + (bgBins$Bin-1)*chrWdth/nBgBinz
-        bgBins$End <- chrRg[1] + bgBins$Bin*chrWdth/nBgBinz
-        bgBins$"lowest 10th percentile" <- lapply(1:nBgBinz, function(y) {
+        chrWdth <- chrRg[2L]-chrRg[1L]
+        nBgBinz <- 5L
+        bgBins <- data.frame(Bin = 1L:nBgBinz)
+        bgBins$Start <- chrRg[1L] + (bgBins$Bin-1L)*chrWdth/nBgBinz
+        bgBins$End <- chrRg[1L] + bgBins$Bin*chrWdth/nBgBinz
+        bgBins$"lowest 10th percentile" <- lapply(1L:nBgBinz, \(y) {
           w <- which((chr$`Retention time` > bgBins$Start[y])&
                        (chr$`Retention time` <= bgBins$End[y]))
           y <- setNames(chr$Intensity[w], chr$`Retention time`[w])
           propFlt(y, upper = FALSE, average = FALSE)
         })
-        myBg <- plyr::rbind.fill(lapply(bgBins$"lowest 10th percentile", function(y) {
+        myBg <- plyr::rbind.fill(lapply(bgBins$"lowest 10th percentile", \(y) {
           data.frame(Int = y,
                      RT = as.character(names(y)))
         }))
-        myBg <- rbind(data.frame(RT = chr$`Retention time`[1], Int = chr$Intensity[1]),
+        myBg <- rbind(data.frame(RT = chr$`Retention time`[1L], Int = chr$Intensity[1L]),
                       myBg,
                       data.frame(RT = chr$`Retention time`[nrow(chr)], Int = chr$Intensity[nrow(chr)]))
         # Two background identification methods are implemented
@@ -1420,45 +1418,45 @@ peakXtract <- function(fileName, # File name
         }
         #
         n <- nrow(chrSmooth)
-        chrSmooth$Larger_than_prev <- chrSmooth[[kol]] - c(0, chrSmooth[[kol]][1:(n-1)])*1.01
-        chrSmooth$Larger_than_next <- chrSmooth[[kol]] - c(chrSmooth[[kol]][2:n], 0)*1.01
-        lftExt <- c(wMxBin:1)[which(chrSmooth$Larger_than_prev[wMxBin:1] > 0)]
-        rgtExt <- c(wMxBin:n)[which(chrSmooth$Larger_than_next[wMxBin:n] > 0)]
-        lftExtTst <- lftExt-c(lftExt[2:length(lftExt)], 0)
-        rgtExtTst <- rgtExt-c(rgtExt[2:length(rgtExt)], 0)
-        lftExtTst <- contigEq(lftExtTst, 1, 1)
-        rgtExtTst <- contigEq(rgtExtTst, -1, 1)
+        chrSmooth$Larger_than_prev <- chrSmooth[[kol]] - c(0L, chrSmooth[[kol]][1L:(n-1L)])*1.01
+        chrSmooth$Larger_than_next <- chrSmooth[[kol]] - c(chrSmooth[[kol]][2L:n], 0L)*1.01
+        lftExt <- c(wMxBin:1L)[which(chrSmooth$Larger_than_prev[wMxBin:1] > 0L)]
+        rgtExt <- c(wMxBin:n)[which(chrSmooth$Larger_than_next[wMxBin:n] > 0L)]
+        lftExtTst <- lftExt-c(lftExt[2L:length(lftExt)], 0L)
+        rgtExtTst <- rgtExt-c(rgtExt[2L:length(rgtExt)], 0L)
+        lftExtTst <- contigEq(lftExtTst, 1L, 1L)
+        rgtExtTst <- contigEq(rgtExtTst, -1L, 1L)
         lftExtTst <- max(which(lftExtTst))
         rgtExtTst <- max(which(rgtExtTst))
         peakXtrI <- c(wMxBin-lftExtTst,
                       wMxBin+rgtExtTst)
         peakXtr <- chrSmooth$`Retention time`[peakXtrI]
-        if (length(peakXtr) == 2) {
+        if (length(peakXtr) == 2L) {
           if (WIP) {
             plot2 <- plot2 + geom_vline(xintercept = peakXtr, linetype = "dashed")
             poplot(plot2)
           }
           # Then take the local minimum in that bin as refined peak extremity
-          tmp <- vapply(peakXtr, function(y) {
+          tmp <- vapply(peakXtr, \(y) {
             w <- which(chr$"Retention time bin" == y)
-            if (y == peakXtr[1]) { w <- rev(w) }
+            if (y == peakXtr[1L]) { w <- rev(w) }
             int <- chr$Intensity[w]
             rt <- chr$`Retention time`[w]
             return(mean(rt[which(int == min(int))]))
           }, 1)
-          peakXtrFine["Start"] <- tmp[1]
-          peakXtrFine["End"] <- tmp[2]
+          peakXtrFine["Start"] <- tmp[1L]
+          peakXtrFine["End"] <- tmp[2L]
           if (WIP) {
             plot <- plot + geom_vline(xintercept = peakXtrFine, linetype = "dotted")
             #poplot(plot)
           }
           # - Now we want to refine the peaks using a spline model
           wdth <- peakXtrFine["End"]-peakXtrFine["Start"]
-          mlt <- 1
+          mlt <- 1L
           doGoOn <- TRUE
-          kount <- 0
-          while ((doGoOn)&&(kount < 5)) {
-            kount <- kount + 1
+          kount <- 0L
+          while ((doGoOn)&&(kount < 5L)) {
+            kount <- kount + 1L
             tstFindPeak <- try({
               chr2 <- chr[which((chr$`Retention time` >= peakXtrFine["Start"]-wdth*mlt)&
                                   (chr$`Retention time` <= peakXtrFine["End"]+wdth*mlt)),
@@ -1479,8 +1477,8 @@ peakXtract <- function(fileName, # File name
               pkDerivLin <- nls(dy_dlogx ~ a*`Retention time` + b,
                                 data = pkModPred[w,],
                                 start = list(a = 0,
-                                             b = mean(c(pkModPred$dy_dlogx[w][1],
-                                                        rev(pkModPred$dy_dlogx[w])[1])))) # Fit a line
+                                             b = mean(c(pkModPred$dy_dlogx[w][1L],
+                                                        rev(pkModPred$dy_dlogx[w])[1L])))) # Fit a line
               if (WIP) {
                 plot3 <- ggplot(pkModPred) +
                   geom_line(aes(x = `Retention time`, y = dy_dlogx)) +
@@ -1489,12 +1487,12 @@ peakXtract <- function(fileName, # File name
                 #poplot(plot3)
               }
               xtrm2 <- c(min(pkModPred$`Retention time`), max(pkModPred$`Retention time`))
-              wdth2 <- xtrm2[2]-xtrm2[1]
+              wdth2 <- xtrm2[2L]-xtrm2[1L]
               n <- round(wdth2/rtPrec)
-              tstDF <- data.frame(step = 1:n,
-                                  RT = xtrm2[1] + ((1:n)-1)*rtPrec)
+              tstDF <- data.frame(step = 1L:n,
+                                  RT = xtrm2[1L] + ((1L:n)-1L)*rtPrec)
               tstDF$line <- pkDerivLin$m$getPars()["a"]*tstDF$RT + pkDerivLin$m$getPars()["b"]
-              tstDF$spline <- vapply(tstDF$RT, function(y) {
+              tstDF$spline <- vapply(tstDF$RT, \(y) {
                 z <- which(pkModPred$`Retention time` == y)
                 if (length(z)) {
                   v <- pkModPred$dy_dlogx[z]
@@ -1511,16 +1509,16 @@ peakXtract <- function(fileName, # File name
               }, 1)
               tstDF$Test <- tstDF$spline-tstDF$line
               tstDF$cross <- NA
-              tstDF$cross[2:n] <- (tstDF$Test[1:(n-1)] >= 0)&(tstDF$Test[2:n] <= 0)
-              wMxx <- which(tstDF$cross[2:n])
-              if (length(wMxx) > 1) {
+              tstDF$cross[2L:n] <- (tstDF$Test[1L:(n-1L)] >= 0)&(tstDF$Test[2L:n] <= 0)
+              wMxx <- which(tstDF$cross[2L:n])
+              if (length(wMxx) > 1L) {
                 tstDF$dist <- abs(tstDF$RT - peakXtrFine["Apex"])
                 wMxx <- round(mean(wMxx[which(tstDF$dist[wMxx] == min(tstDF$dist[wMxx]))]))
               }
               peakXtrFine["Apex"] <- tstDF$RT[wMxx] # Refined peak apex (may not be worth doing)
               xtrm3a <- c(min(tstDF$RT), max(tstDF$RT))
               xtrm3b <- c(min(tstDF$Test), max(tstDF$Test))
-              #tstDF$Test2 <- tstDF$Test - (xtrm3b[2] - xtrm3b[1])*(tstDF$RT - xtrm3a[1])/(xtrm3a[2] - xtrm3a[1])
+              #tstDF$Test2 <- tstDF$Test - (xtrm3b[2L] - xtrm3b[1L])*(tstDF$RT - xtrm3a[1L])/(xtrm3a[2L] - xtrm3a[1L])
               #tstDF$Test2 <- tstDF$Test2 - tstDF$Test2[wMxx]
               if (WIP) {
                 plot3 <- plot3 +
@@ -1530,22 +1528,22 @@ peakXtract <- function(fileName, # File name
               }
               # Detect peak boundaries
               tstDF$high <- NA
-              #tstDF$Test3[2:n] <- tstDF$Test2[2:n] > tstDF$Test2[1:(n-1)]
-              tstDF$Test3[2:n] <- tstDF$Test[2:n] > tstDF$Test[1:(n-1)]
-              wOK <- which((((tstDF$Test > 0)&(tstDF$RT < peakXtrFine["Apex"]))|#Only consider parts going up...
-                              ((tstDF$Test < 0)&(tstDF$RT > peakXtrFine["Apex"])))& # ... and down on either sides, and
+              #tstDF$Test3[2L:n] <- tstDF$Test2[2L:n] > tstDF$Test2[1L:(n-1L)]
+              tstDF$Test3[2L:n] <- tstDF$Test[2L:n] > tstDF$Test[1L:(n-1L)]
+              wOK <- which((((tstDF$Test > 0L)&(tstDF$RT < peakXtrFine["Apex"]))|#Only consider parts going up...
+                              ((tstDF$Test < 0L)&(tstDF$RT > peakXtrFine["Apex"])))& # ... and down on either sides, and
                              (abs(tstDF$Test/max(xtrm3b)) < 0.01)) # smallest local slope allowed for cutoff (gotta be within range of the plain)
-              flt1 <- c(min(which(!c(1:n) %in% wOK)),
-                        max(which(!c(1:n) %in% wOK)))
-              wOK <- wOK[which(!wOK %in% 1:flt1[1])]
-              wOK <- wOK[which(!wOK %in% flt1[2]:n)]
+              flt1 <- c(min(which(!c(1L:n) %in% wOK)),
+                        max(which(!c(1L:n) %in% wOK)))
+              wOK <- wOK[which(!wOK %in% 1L:flt1[1L])]
+              wOK <- wOK[which(!wOK %in% flt1[2L]:n)]
               minOK <- min(wOK)
               maxOK <- max(wOK)
-              tst <- vapply(c(-1, 1), function(y) {
+              tst <- vapply(c(-1L, 1L), \(y) {
                 suppressWarnings({
                   #tstDF$RT[w1]
                   #tstDF$RT[w2]
-                  if (y == -1) { # move along
+                  if (y == -1L) { # move along
                     w1 <- max(c(minOK:wMxx)[which(tstDF$Test3[minOK:wMxx])], na.rm = TRUE)
                     w2 <- max(c(minOK:w1)[which(!tstDF$Test3[minOK:w1])], na.rm = TRUE)
                     goOn <- tstDF$Test[w2] > 0
@@ -1560,7 +1558,7 @@ peakXtract <- function(fileName, # File name
                       } else { goOn <- FALSE }
                     }
                   }
-                  if (y == 1) {
+                  if (y == 1L) {
                     w1 <- suppressWarnings(min(c(wMxx:maxOK)[which(tstDF$Test3[wMxx:maxOK])], na.rm = TRUE))
                     w2 <- min(c(w1:maxOK)[which(!tstDF$Test3[w1:maxOK])], na.rm = TRUE)
                     goOn <- tstDF$Test[w2] < 0
@@ -1569,7 +1567,6 @@ peakXtract <- function(fileName, # File name
                       if (is.finite(w1)) {
                         r <- min(c(w1:maxOK)[which(!tstDF$Test3[w1:maxOK])], na.rm = TRUE)
                       }
-                      
                       if (is.finite(r)) {
                         w2 <- r
                         goOn <- tstDF$Test[w2] < 0
@@ -1580,8 +1577,8 @@ peakXtract <- function(fileName, # File name
                 return(w2)
               }, 1)
               #tstDF$RT[tst]
-              peakXtrFine["Start"] <- tstDF$RT[tst[1]]
-              peakXtrFine["End"] <- tstDF$RT[tst[2]]
+              peakXtrFine["Start"] <- tstDF$RT[tst[1L]]
+              peakXtrFine["End"] <- tstDF$RT[tst[2L]]
               if (WIP) {
                 plot3 <- plot3 +
                   geom_vline(xintercept = peakXtrFine, color = "magenta", linetype = "dashed")
@@ -1591,44 +1588,44 @@ peakXtract <- function(fileName, # File name
                 poplot(plot)
               }
             }, silent = TRUE)
-            doGoOn <- "try-error" %in% class(tstFindPeak)
+            doGoOn <- inherits(tstFindPeak, "try-error")
             if (doGoOn) {
               mlt <- mlt*1.2
             }
           }
-          peakXtrFine <- vapply(peakXtrFine, function(x) {
+          peakXtrFine <- vapply(peakXtrFine, \(x) {
             tmp <- abs(chr$`Retention time` - x)
-            chr$`Retention time`[which(tmp == min(tmp))[1]]
+            chr$`Retention time`[which(tmp == min(tmp))[1L]]
           }, 1)
           #
           m <- match(peakXtrFine[c("Start", "End")], chr$`Retention time`)
-          pkRg <- sort(m[1]:(m[2]-1)) # Shouldn't ever need sorting, but jic
-          qnt <- sum(vapply(pkRg, function(i) {
-            mean(chr$Intensity[i+0:1]-chr$bgPred[i+0:1])*(chr$`Retention time`[i+1]-chr$`Retention time`[i])
+          pkRg <- sort(m[1L]:(m[2L]-1L)) # Shouldn't ever need sorting, but jic
+          qnt <- sum(vapply(pkRg, \(i) {
+            mean(chr$Intensity[i+0L:1L]-chr$bgPred[i+0L:1L])*(chr$`Retention time`[i+1L]-chr$`Retention time`[i])
           }, 1))
         }
       }, silent = TRUE)
     }
   }
-  if ((length(qnt) != 1)||(is.null(qnt))) {
+  if ((length(qnt) != 1L)||(is.null(qnt))) {
     warning(paste0(x, ": something unexpected happened, investigate!"))
     qnt <- NA
   } # Should never happen
   return(list(Quant = qnt,
               PeakRT = peakXtrFine))
 }
-for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms)[2] #nm <- names(allChroms)[4]
+for (nm in names(allChroms)) { #nm <- names(allChroms)[1L] #nm <- names(allChroms)[2L] #nm <- names(allChroms)[4L]
   chrm <- allChroms[[nm]]
-  chrm <- chrm[which((chrm$`Retention time` >= fullRTRange[1])&(chrm$`Retention time` <= fullRTRange[2])),]
-  Ykol <- c("Intensity", "Pressure")[(nm == "Pressure")+1]
-  if ("data.frame" %in% class(chrm)) {
+  chrm <- chrm[which((chrm$`Retention time` >= fullRTRange[1L])&(chrm$`Retention time` <= fullRTRange[2L])),]
+  Ykol <- c("Intensity", "Pressure")[(nm == "Pressure")+1L]
+  if (is.data.frame(chrm)) {
     if (nm == "Pressure") { # We only plot the first minute to check for bubbles
       chrm <- chrm[which(chrm$`Retention time` <= 1),]
     }
     if (!nm %in% c("TIC", "BPC", "Pressure")) {
       tmp <- unlist(strsplit(nm, " for "))
-      mass <- as.numeric(tmp[1])
-      ms2 <- tmp[2]
+      mass <- as.numeric(tmp[1L])
+      ms2 <- tmp[2L]
       ms2Trg <- as.numeric(gsub(".* ", "", ms2))
     }
     chrm <- chrm[which(chrm$`Raw file name` %in% ExpMap$`MS raw file name`),]
@@ -1645,52 +1642,52 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
     chrm$Linetype[which(chrm$Role == "Standard")] <- "dashed"
     #offset <- max(chrm$Int)/3
     #nc <- nchar(floor(offset))
-    #offset <- ceiling(offset/10^(nc-1))*10^(nc-1)
-    #if (!is.finite(offset)) { offset <- 0 }
+    #offset <- ceiling(offset/10^(nc-1L))*10^(nc-1L)
+    #if (!is.finite(offset)) { offset <- 0L }
     #chrm$Int <- chrm[[Ykol]] + offset*(match(chrm$`Raw file`, slctFls)-1)
     #unique(chrm$`Raw file`)
     #
     wRef <- which(chrm$Role == "Buffer_control")
-    quantThisOne <- (Ykol != "Pressure")&(Quant)&(length(wRef) > 0)#&(!nm %in% c("Pressure", "TIC", "BPC"))
+    quantThisOne <- (Ykol != "Pressure")&(Quant)&(length(wRef) > 0L)#&(!nm %in% c("Pressure", "TIC", "BPC"))
     #
     availGrps <- unique(chrm$"Analysis_group")
     availGrps <- availGrps[which(!is.na(availGrps))]
-    for (grp in availGrps) { #grp <- availGrps[1]
-      availRTRgs <- 1
-      if (!nm %in% names(allChroms)[1:3]) {
-        availRTRgs <- 1:nrow(rtRanges)
+    for (grp in availGrps) { #grp <- availGrps[1L]
+      availRTRgs <- 1L
+      if (!nm %in% names(allChroms)[1L:3L]) {
+        availRTRgs <- 1L:nrow(rtRanges)
       }
-      availRTRgs <- availRTRgs[which(vapply(rtRanges$"Analysis_group"[availRTRgs], function(x) {
+      availRTRgs <- availRTRgs[which(vapply(rtRanges$"Analysis_group"[availRTRgs], \(x) {
         grp %in% x
       }, TRUE))] # Available RT ranges to plot for this analysis group
       #
       if (length(availRTRgs)) {
         # Look at the different RT ranges
-        for (I in availRTRgs) { #I <- availRTRgs[1] #I <- availRTRgs[3] #I <- availRTRgs[4]
+        for (I in availRTRgs) { #I <- availRTRgs[1L] #I <- availRTRgs[3L] #I <- availRTRgs[4L]
           rg0 <- ctrlRanges[[grp]] # Controls file range
           RTlim <- rtRanges[I, c("Start", "End")] # Retention range range
           RTchrm <- chrm[which((chrm$`Retention time` >= RTlim$Start)&(chrm$`Retention time` <= RTlim$End)),]
           Targ <- rtRanges$Nucleotide[I]
           w0 <- which(RTchrm$`Raw file` %in% ExpMap2$`MS raw file`[rg0])
-          for (prot in Protein[which(Protein != "NA")]) { #prot <- Protein[1] #prot <- Protein[2] #prot <- Protein[3] # Let's plot each protein separately
+          for (prot in Protein[which(Protein != "NA")]) { #prot <- Protein[1L] #prot <- Protein[2L] #prot <- Protein[3L] # Let's plot each protein separately
             pat <- paste0("^", grp, " ", prot, " ")
             flRgs <- grep(paste0(pat, "[0-9]+$"), names(flRanges), value = TRUE) # Here these are file ranges, not RT ranges
             if (length(flRgs)) {
               flRgs <- gsub(pat, "", flRgs)
               #
               # Create formula for facet_grid:
-              if (is.na(prot)) {
-                em01 <- ExpMap2[which((is.na(ExpMap2$Protein))|(ExpMap2$Role %in% c("Standard", "Buffer_control", "Tag_control"))),]
+              em01 <- if (is.na(prot)) {
+                ExpMap2[which((is.na(ExpMap2$Protein))|(ExpMap2$Role %in% c("Standard", "Buffer_control", "Tag_control"))),]
               } else {
-                em01 <- ExpMap2[which((ExpMap2$Protein == prot)|(ExpMap2$Role %in% c("Standard", "Buffer_control", "Tag_control"))),]
+                ExpMap2[which((ExpMap2$Protein == prot)|(ExpMap2$Role %in% c("Standard", "Buffer_control", "Tag_control"))),]
               }
               em1 <- em01[which(!em01$Role %in% c("Standard", "Buffer_control")),]
               Factors3 <- Factors[which(!Factors %in% c("Replicate", "Samples_group"))] # Not using Samples_group because we replace it with Samples_group2!!!
-              tst <- vapply(Factors3, function(fct) {
-                (fct %in% colnames(em1))&&(length(unique(em1[[fct]])) > 1)
+              tst <- vapply(Factors3, \(fct) {
+                (fct %in% colnames(em1))&&(length(unique(em1[[fct]])) > 1L)
               }, TRUE)
               Factors3 <- Factors3[which(tst)]
-              if (length(Factors3) > 1) {
+              if (length(Factors3) > 1L) {
                 # Check for synonymous factors
                 tmp <- em01[, Factors3]
                 for (fct in Factors3) {
@@ -1698,12 +1695,12 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                 }
                 comb <- gtools::combinations(length(Factors3), 2, Factors3)
                 comb <- as.data.frame(comb)
-                tst <- apply(comb, 1, function(x) {
-                  identical(tmp[[x[1]]], tmp[[x[2]]])
+                tst <- apply(comb, 1L, \(x) {
+                  identical(tmp[[x[1L]]], tmp[[x[2L]]])
                 })
                 w <- which(tst)
                 if (length(w)) {
-                  fct2Remov <- unique(comb[w, 2])
+                  fct2Remov <- unique(comb[w, 2L])
                   Factors3 <- Factors3[which(!Factors3 %in% fct2Remov)]
                 }
               }
@@ -1713,27 +1710,27 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
               Factors3 <- unique(c(Factors3, "Role", "Samples_group2")) # Role and Samples_group must ALWAYS be present!
               #if (length(Factors3)) {
               Form0 <- as.formula(paste0("`MS raw file name` ~ ", paste(c("Replicate", Factors3), collapse = " + "))) # This formula is used to check that the factors used to create the fact grid formula (Form, below) allow for unique samples per facet
-              tst <- aggregate(Form0, data = em01, function(x) { length(unique(x)) })
+              tst <- aggregate(Form0, data = em01, \(x) { length(unique(x)) })
               tst <- max(tst$`MS raw file name`)
-              if (tst > 1) {
+              if (tst > 1L) {
                 Factors4 <- Factors[which(!Factors %in% c("Replicate", Factors3))] # Should always be at least length 1
                 l <- length(Factors4)
-                stopifnot(l > 1) # This means something unexpected happened: several raw files have been given the same factors and will be indistinguishable,
+                stopifnot(l > 1L) # This means something unexpected happened: several raw files have been given the same factors and will be indistinguishable,
                 # which should never happen
                 # If this becomes a problem we will have to build in a check into the experiment map app
                 goOn <- TRUE
-                i <- 1
+                i <- 1L
                 while ((goOn)&&(i <= l)) {
                   comb <- gtools::combinations(length(Factors4), i, Factors4)
-                  tst <- lapply(1:nrow(comb), function(x) { c(Factors3, comb[x, ]) })
-                  Form0 <- sapply(tst, function(x) { as.formula(paste0("`MS raw file name` ~ ", paste(c("Replicate", x), collapse = " + "))) })
-                  tst <- sapply(Form0, function(x) { max(aggregate(x, data = em01, function(y) { length(unique(y)) })$`MS raw file name`) })
-                  if (1 %in% tst) {
+                  tst <- lapply(1L:nrow(comb), \(x) { c(Factors3, comb[x, ]) })
+                  Form0 <- sapply(tst, \(x) { as.formula(paste0("`MS raw file name` ~ ", paste(c("Replicate", x), collapse = " + "))) })
+                  tst <- sapply(Form0, \(x) { max(aggregate(x, data = em01, \(y) { length(unique(y)) })$`MS raw file name`) })
+                  if (1L %in% tst) {
                     goOn <- FALSE
-                    w <- which(tst == 1)[1]
+                    w <- which(tst == 1L)[1L]
                     Factors3 <- c(Factors3, comb[w,])
                   } else {
-                    i <- i+1
+                    i <- i+1L
                   }
                 }
               }
@@ -1747,24 +1744,24 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
               em01$Color_class[which((em01$Color_class == "NA")&(em01$Role == "Standard"))] <- "Standard"
               em01$Color_class[which((em01$Color_class == "NA")&(em01$Role == "Buffer_control"))] <- "Buffer_control"
               #
-              for (rgI in flRgs) { #rgI <- flRgs[1]
+              for (rgI in flRgs) { #rgI <- flRgs[1L]
                 rg1 <- flRanges[[paste0(grp, " ", prot, " ", rgI)]] # Samples file range
                 w1 <- which(as.character(RTchrm$`Raw file`) %in% ExpMap2$`MS raw file`[rg1]) # not em01!
                 RTchrm01 <- RTchrm[c(w0, w1),]
-                if (nm %in% c("TIC", "BPC", "Pressure")) {
-                  ttl <- paste0(dtstNm, " - ", nm)
+                ttl <- if (nm %in% c("TIC", "BPC", "Pressure")) {
+                  paste0(dtstNm, " - ", nm)
                 } else {
-                  ttl <- paste0(dtstNm, " - XIC, transition ", ms2Trg, " to ", mass)
+                  paste0(dtstNm, " - XIC, transition ", ms2Trg, " to ", mass)
                 }
-                if (length(Analysis_group) > 1) { ttl <- paste0(ttl, " ", grp) }
-                if (length(Protein) > 1) { ttl <- paste0(ttl, " ", prot) }
-                if (I > 1) {
+                if (length(Analysis_group) > 1L) { ttl <- paste0(ttl, " ", grp) }
+                if (length(Protein) > 1L) { ttl <- paste0(ttl, " ", prot) }
+                if (I > 1L) {
                   ttl <- paste0(ttl, ", RT ", rtRanges$Start[I], "-", rtRanges$End[I], " min")
                 }
-                if (length(flRgs) > 1) {
+                if (length(flRgs) > 1L) {
                   ttl <- paste0(ttl, "_", rgI)
                 }
-                quantThisOne2 <- quantThisOne&(I > 1)&(!is.na(Targ))
+                quantThisOne2 <- quantThisOne&(I > 1L)&(!is.na(Targ))
                 if (quantThisOne2) {
                   f <- as.character(unique(RTchrm01$`Raw file`))
                   m <- match(f, em01$`MS raw file`)
@@ -1777,7 +1774,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                   f2 <- f[which(!f %in% stdF)]
                   # Find peak of standards
                   quantLst <- setNames(lapply(stdF, peakXtract), stdF)
-                  RTchar <- as.data.frame(t(sapply(stdF, function(x) { quantLst[[x]]$PeakRT })))
+                  RTchar <- as.data.frame(t(sapply(stdF, \(x) { quantLst[[x]]$PeakRT })))
                   RTchar <- c(Mean = mean(RTchar$Apex, na.rm = TRUE),
                               SD = sd(RTchar$Apex, na.rm = TRUE),
                               lWidth = min(RTchar$Start, na.rm = TRUE),
@@ -1786,11 +1783,11 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                   quantLst <- append(quantLst, lapply(f2, peakXtract, targRg = RTchar))
                   names(quantLst) <- c(stdF, f2)
                   #
-                  quant <- sapply(quantLst, function(x) { x$Quant })
+                  quant <- sapply(quantLst, \(x) { x$Quant })
                   quant <- data.frame("Raw file" = names(quantLst),
                                       "Peak intensity" = quant,
                                       check.names = FALSE)
-                  quant[, c("Peak start", "Peak apex", "Peak end")] <- as.data.frame(t(sapply(quantLst, function(x) { x$PeakRT })))
+                  quant[, c("Peak start", "Peak apex", "Peak end")] <- as.data.frame(t(sapply(quantLst, \(x) { x$PeakRT })))
                   quant <- quant[which((!is.na(quant$`Peak intensity`))&(quant$`Peak intensity` > 0)),]
                   quant[, c(Factors, "Raw file name")] <- ExpMap2[match(quant$"Raw file", ExpMap2$`MS raw file`), c(Factors, "MS raw file name")]
                   quant$"Peak intensity (rounded)" <- round(quant$"Peak intensity")
@@ -1799,7 +1796,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                   for (fct in Factors) {
                     u1 <- unique(quant[[fct]])
                     u2 <- unique(ExpMap2[[fct]])
-                    stopifnot(sum(!u1 %in% u2) == 0)
+                    stopifnot(sum(!u1 %in% u2) == 0L)
                     quant[[fct]] <- factor(quant[[fct]], unique(ExpMap2[[fct]]))
                   }
                 }
@@ -1807,7 +1804,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                 for (fct in Factors) {
                   u1 <- unique(RTchrm01[[fct]])
                   u2 <- unique(ExpMap2[[fct]])
-                  stopifnot(sum(!u1 %in% u2) == 0)
+                  stopifnot(sum(!u1 %in% u2) == 0L)
                   RTchrm01[[fct]] <- factor(RTchrm01[[fct]], unique(ExpMap2[[fct]]))
                 }
                 RTchrm01$Color_class <- ExpMap2$Color_class[match(RTchrm01$Samples_group2, ExpMap2$Samples_group2)]
@@ -1818,9 +1815,9 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                 yMax <- max(RTchrm01[[Ykol]])
                 xLim <- c(min(RTchrm01$`Retention time`),
                           max(RTchrm01$`Retention time`))
-                xRange <- xLim[2]-xLim[1]
+                xRange <- xLim[2L]-xLim[1L]
                 Form1 <- Form
-                w <- which(vapply(Form1$Left, function(x) { length(unique(RTchrm01[[x]])) }, 1) > 1)
+                w <- which(vapply(Form1$Left, \(x) { length(unique(RTchrm01[[x]])) }, 1L) > 1L)
                 Form1$Left <- Form1$Left[w]
                 #Form1 <- as.formula(paste0(" ~ ", paste(Form1$Left, collapse = " + ")))
                 Form1 <- as.formula(paste0(paste(Form1$Left, collapse = " + "), " ~ ", Form1$Right))
@@ -1828,8 +1825,8 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                                aes(x = `Retention time`, y = .data[[Ykol]], #linetype = Role,
                                    group = `Raw file name`, color = Color_class)) +
                   geom_line() +
-                  ggh4x::facet_nested(Form1, nest_line = element_line(linetype = 2)) +
-                  ggtitle(ttl, subtitle = c("", Targ)[(!is.na(Targ))+1]) +
+                  ggh4x::facet_nested(Form1, nest_line = element_line(linetype = 2L)) +
+                  ggtitle(ttl, subtitle = c("", Targ)[(!is.na(Targ))+1L]) +
                   coord_fixed(xRange/(yMax*3)) +
                   #facet_grid(Form1) +
                   #scale_linetype_manual(values = lnTypes, guide = "legend") +
@@ -1839,7 +1836,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                         #ggh4x.facet.nestline = element_line(colour = "blue"),
                         legend.position = "bottom") +
                   ylim(0, yMax)
-                poplot(plot, 12, 22)
+                poplot(plot, 12L, 22L)
                 #
                 if (quantThisOne2) {
                   plot <- plot +
@@ -1849,11 +1846,11 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
                     geom_text(data = quant, aes(label = `Peak intensity (rounded)`,
                                                 x = min(RTchrm01$`Retention time`) + xRange*0.05),
                               y = yMax*0.8, hjust = 0, size = 2.5, show.legend = FALSE)
-                  poplot(plot, 12, 22)
+                  poplot(plot, 12L, 22L)
                 }
-                wdth <- (max(Replicate)+2)*4
-                ggsave(paste0(wd, "/", ttl, ".jpeg"), plot, dpi = 300, width = wdth, units = "in")
-                ggsave(paste0(wd, "/", ttl, ".pdf"), plot, dpi = 300, width = wdth, units = "in")
+                wdth <- (max(Replicate)+2L)*4L
+                ggsave(paste0(wd, "/", ttl, ".jpeg"), plot, dpi = 300L, width = wdth, units = "in")
+                ggsave(paste0(wd, "/", ttl, ".pdf"), plot, dpi = 300L, width = wdth, units = "in")
                 system(paste0("open \"", wd, "/", ttl, ".jpeg\""))
               }
             }
@@ -1872,7 +1869,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms
 }
 #nms <- names(allChroms)[which(names(allChroms) != "Pressure")] # No need to write pressure, we have it already
 nms <- names(allChroms) # Actually let's write it, it's spread over different files
-invisible(lapply(nms, function(nm) { #nm <- "BPC"
+invisible(lapply(nms, \(nm) { #nm <- "BPC"
   nm2 <- paste0(nm, ".csv")
   if (!nm %in% c("TIC", "BPC", "Pressure")) { nm2 <- paste0("XIC ", nm2) }
   x <- allChroms[[nm]]

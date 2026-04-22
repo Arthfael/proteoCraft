@@ -14,7 +14,7 @@ Function to save all objects in the environment quickly.
 The backend used is qs2::qs_savem under Windows and fastSave::save.lbzip2 under Linux.
 }
 \examples{
-proteoCraft::saveImgFun("Backup.qs2")
-proteoCraft::loadFun("Backup.qs2")
+saveImgFun("Backup.qs2")
+loadFun("Backup.qs2")
 
 }

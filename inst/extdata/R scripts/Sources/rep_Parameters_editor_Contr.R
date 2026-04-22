@@ -1,6 +1,6 @@
 # Define Contrasts of interest
 
-# expMap: limma-compatible version of apap
+# expMap: limma-compatible version of Exp.map
 hasBlocks %<o% FALSE
 origCoeff <- union(RSA$names, RRG$names)
 if ((!is.na(Param$Blocking.factors))&&(Param$Blocking.factors != "")) {
@@ -14,6 +14,7 @@ if ((!is.na(Param$Batch.effect))&&(Param$Batch.effect != "")) {
 }
 Coefficients %<o% origCoeff
 expMap %<o% Exp.map[, origCoeff]
+row.names(expMap) <- Exp.map$Ref.Sample.Aggregate
 #
 #
 # Replace hyphens by dots and prepend root to numeric factor levels to avoid issues with evaluating contrasts
@@ -48,23 +49,28 @@ for (Coeff in origCoeff) { #Coeff <- "Replicate"
 }
 #
 for (aggrNm in c("RSA", "VPAL", "RG", "RRG", "Blocking.factors", "Batch.effect")) { # Update in case we had to do some fixing
+  #aggrNm <- "RSA"
   if (exists(aggrNm)) {
     aggr <- get(aggrNm)
     tmp <- aggr$names
     tmp <- Coefficients[match(tmp, origCoeff)]
-    nm <- paste0(paste(tmp, collapse = "_"), "_._")
+    nm <- paste(tmp, collapse = "_")
+    if (!grepl("_\\._$", nm)) { nm <- paste0(nm, "_._") }
     aggr$limmaCol <- nm
     expMap[[nm]] <- do.call(paste, c(expMap[, tmp, drop = FALSE], sep = "___"))
     expMap[[nm]] <- factor(expMap[[nm]], levels = unique(expMap[[nm]]))
     nm %<c% as.factor(expMap[[nm]])
-    if (length(Exp) == 1) {
+    if (length(Exp) == 1L) {
       tmp <- setdiff(tmp, "Experiment")
-      nm <- paste0(paste(tmp, collapse = "_"), "_._")
-      aggr$limmaCol <- nm
-      if (!nm %in% colnames(expMap)) {
-        expMap[[nm]] <- do.call(paste, c(expMap[, tmp, drop = FALSE], sep = "___"))
-        expMap[[nm]] <- factor(expMap[[nm]], levels = unique(expMap[[nm]]))
-        nm %<c% factor(expMap[[nm]])
+      if (length(tmp)) {
+        nm <- paste(tmp, collapse = "_")
+        if (!grepl("_\\._$", nm)) { nm <- paste0(nm, "_._") }
+        aggr$limmaCol <- nm
+        if (!nm %in% colnames(expMap)) {
+          expMap[[nm]] <- do.call(paste, c(expMap[, tmp, drop = FALSE], sep = "___"))
+          expMap[[nm]] <- factor(expMap[[nm]], levels = unique(expMap[[nm]]))
+          nm %<c% factor(expMap[[nm]])
+        }
       }
     }
     assign(aggrNm, aggr)
@@ -81,7 +87,7 @@ expMap <- expMap[order(#expMap[[RRG$limmaCol]], # Do not use RRG here
 
 # Make contrasts
 ratGrps <- unique(expMap[[RG$limmaCol]])
-contrBlocks <- setNames(lapply(ratGrps, function(grp) {
+contrBlocks <- setNames(lapply(ratGrps, \(grp) {
   x <- as.character(unique(expMap[which(expMap[[RG$limmaCol]] == grp), VPAL$limmaCol]))
   setNames(x, cleanNms(x, rep = " "))
 }), ratGrps)
@@ -92,19 +98,18 @@ rownames(contrBlocks2) <- NULL
 tmp1 <- cleanNms(VPAL$values, rep = " ")
 tmp2 <- cleanNms(VPAL$values, rep = "_")
 contrBlocks2$Name_ <- tmp2[match(contrBlocks2$Name, tmp1)]
-dfltContr_Opt <- setNames(lapply(ratGrps, function(grp) { #grp <- ratGrps[1]
-  x <- as.data.frame(gtools::#combinations
-                       permutations(2, length(contrBlocks[[grp]]), names(contrBlocks[[grp]])))
+dfltContr_Opt <- setNames(lapply(ratGrps, \(grp) { #grp <- ratGrps[1L]
+  x <- as.data.frame(gtools::permutations(length(contrBlocks[[grp]]), 2L, names(contrBlocks[[grp]])))
   colnames(x) <- c("A", "B")
   do.call(paste, c(x[, c("A", "B")], sep = " - "))
 }), ratGrps)
-alsoDouble <- length(ratGrps > 1)||(length(dfltContr_Opt[[1]]) > 3) # We need 4 different things for an interaction double contrast
+alsoDouble <- (length(ratGrps) > 1L)||(length(dfltContr_Opt[[1L]]) > 3L) # We need 4 different things for an interaction double contrast
 dfltContr_Opt <- stack(dfltContr_Opt)
 colnames(dfltContr_Opt) <- c("Contrast", "Comparison group")
 dfltContr_Opt[, c("A", "B")] <- do.call(rbind, strsplit(dfltContr_Opt$Contrast, " - "))
 #
-fullContrFun <- function(prim, sec) {
-  if ((missing(sec))||(is.na(sec))||(length(sec) != 1)||(sec == "")) { return(prim) }
+fullContrFun <- \(prim, sec) {
+  if ((missing(sec))||(is.na(sec))||(length(sec) != 1L)||(sec == "")) { return(prim) }
   return(paste0("(", prim, ") - (", sec, ")"))
 }
 contrastsFl %<o% paste0(wd, "/Contrasts.rds")
@@ -136,12 +141,12 @@ myContrasts %<o% myContrasts
 myContrasts2 <- myContrasts[, c("Contrast", "Up-only")]
 nr2 <- nrow(myContrasts2)
 myContrasts2$Remove <- if (nr2) {
-  vapply(1:nr2, function(i) {
+  vapply(1L:nr2, \(i) {
     iChr <- as.character(i)
     as.character(actionButton(paste0("rmvBtn_", iChr), "remove contrast"))
   }, "")
 } else { character() }
-AB <- dfltContr_Opt[match(dfltContr_Opt$Contrast[1], dfltContr_Opt$Contrast), c("A","B")]
+AB <- dfltContr_Opt[match(dfltContr_Opt$Contrast[1L], dfltContr_Opt$Contrast), c("A","B")]
 tmp <- c("", dfltContr_Opt$Contrast[(!dfltContr_Opt$A %in% AB)&(!dfltContr_Opt$B %in% AB)])
 makeContr <- data.frame("Contrast" = as.character(selectInput("Primary", "", dfltContr_Opt$Contrast)),
                         "(opt. secondary contrast)" = as.character(selectInput("Secondary", "", tmp)),
@@ -149,15 +154,15 @@ makeContr <- data.frame("Contrast" = as.character(selectInput("Primary", "", dfl
                         "add contrast" = as.character(actionButton("addContr", "add contrast")),
                         check.names = FALSE)
 if (!alsoDouble) { makeContr$"(opt. secondary contrast)" <- NULL }
-colDefs1 <- list(list(width = "250px", targets = 0),
-                 if (alsoDouble) { list(width = "250px", targets = 1) },
-                 list(width = "100px", targets = 2),
-                 list(width = "50px", targets = 3))
-colDefs2 <- list(list(width = "500px", targets = 0),
-                if (alsoDouble) { list(width = "100px", targets = 1) },
-                list(width = "100px", targets = 2))
+colDefs1 <- list(list(width = "250px", targets = 0L),
+                 if (alsoDouble) { list(width = "250px", targets = 1L) },
+                 list(width = "100px", targets = 2L),
+                 list(width = "50px", targets = 3L))
+colDefs2 <- list(list(width = "500px", targets = 0L),
+                if (alsoDouble) { list(width = "100px", targets = 1L) },
+                list(width = "100px", targets = 2L))
 appNm <- "Define contrasts"
-make_ui0 <- function() {
+make_ui0 <- \() {
   shinyUI(
     fluidPage(
       shinyjs::useShinyjs(),
@@ -219,10 +224,10 @@ Shiny.addCustomMessageHandler('updateSecondary', function(data) {
         br()
       )))
 }
-server0 <- shinyServer(function(input, output, session) {
+server0 <- shinyServer(\(input, output, session) {
   CONTRASTSTBL <- reactiveVal(myContrasts2)
   MSG <- reactiveVal("")
-  formVALS <- reactiveValues(Primary = dfltContr_Opt$Contrast[1],
+  formVALS <- reactiveValues(Primary = dfltContr_Opt$Contrast[1L],
                              Secondary = "",
                              upOnly = FALSE)
   output$makeContrasts <- DT::renderDT({ makeContr },
@@ -258,8 +263,8 @@ table.on('change', 'select', function() {
 });
 "))
   # Reactive functions to update UI\
-  updt_ContrTbl <- function(reactive = TRUE) {
-    if (reactive) { dat <- CONTRASTSTBL() } else { dat <- myContrasts2 }
+  updt_ContrTbl <- \(reactive = TRUE) {
+    dat <- if (reactive) { CONTRASTSTBL() } else { myContrasts2 }
     return(DT::renderDT({ dat },
                         FALSE,
                         escape = FALSE,
@@ -281,8 +286,8 @@ table.on('click', 'button', function() {
 });
 ")))
   }
-  updt_Msg <- function(reactive = TRUE) {
-    if (reactive) { msg <- MSG() } else { msg <- "" }
+  updt_Msg <- \(reactive = TRUE) {
+    msg <- if (reactive) { MSG() } else { "" }
     renderUI(h5(strong(em(msg,
                           style = "color:red",
                           .noWS = "outside"))))
@@ -309,7 +314,7 @@ table.on('click', 'button', function() {
     }
   })
   observeEvent(input$Primary, {
-    #AB <- dfltContr_Opt[match(dfltContr_Opt$Contrast[1], dfltContr_Opt$Contrast), c("A", "B")]
+    #AB <- dfltContr_Opt[match(dfltContr_Opt$Contrast[1L], dfltContr_Opt$Contrast), c("A", "B")]
     AB <- dfltContr_Opt[match(input$Primary, dfltContr_Opt$Contrast), c("A", "B")]
     tmp <- c("", dfltContr_Opt$Contrast[which((!dfltContr_Opt$A %in% AB)&(!dfltContr_Opt$B %in% AB))])
     updateSelectInput(inputId = "Secondary",
@@ -338,11 +343,11 @@ table.on('click', 'button', function() {
         wTst <- c()
         if (nr) {
           indiv <- unlist(strsplit(gsub("^\\(|\\)$", "", gsub("\\) - \\(", " - ", contr)), " - "))
-          indiv2 <- lapply(dat$Contrast, function(x) {
+          indiv2 <- lapply(dat$Contrast, \(x) {
             unlist(strsplit(gsub("^\\(|\\)$", "", gsub("\\) - \\(", " - ", x)), " - "))
           })
-          wTst <- which(vapply(indiv2, function(x) {
-            (length(x) == length(indiv))&(sum(!indiv %in% x) == 0)
+          wTst <- which(vapply(indiv2, \(x) {
+            (length(x) == length(indiv))&(sum(!indiv %in% x) == 0L)
           }, TRUE))
         }
         if (length(wTst)) {
@@ -351,7 +356,7 @@ table.on('click', 'button', function() {
           MSG("")
         }
         output$msg <- updt_Msg()
-        i <- nr + 1
+        i <- nr + 1L
         iChr <- as.character(i)
         tmpDF <- data.frame("Contrast" = contr,
                             "Up-only" = formVALS$upOnly,
@@ -373,7 +378,7 @@ table.on('click', 'button', function() {
         dat <- dat[-i, , drop = FALSE]
         if (nrow(dat)) {
           shinyjs::enable("saveBtn")
-          dat$Remove <- vapply(seq_len(nrow(dat)), function(j) {
+          dat$Remove <- vapply(seq_len(nrow(dat)), \(j) {
             as.character(actionButton(paste0("rmvBtn_", j), "remove contrast"))
           }, "")
         } else {
@@ -392,17 +397,17 @@ table.on('click', 'button', function() {
     stopApp()
   })
   observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+  session$onSessionEnded(\() { stopApp() })
 })
 if (exists("appRunTest")) { rm(appRunTest) }
 appTxt0 <- sub("myApp", "myApp0", sub("\\(ui", "(ui0", sub(", server", ", server0", runApp)))
-runKount <- 0
+runKount <- 0L
 while ((!runKount)||(!exists("appRunTest"))) {
   ui0 <- make_ui0() # Update ui with current values
   eval(parse(text = appTxt0), envir = .GlobalEnv)
   myContrasts <- readr::read_rds(contrastsFl)
   shinyCleanup()
-  runKount <- runKount+1
+  runKount <- runKount+1L
 }
 # Some post-processing
 # We used spaces in our app for visibility, but limma doesn't like spaces, so...
@@ -416,7 +421,7 @@ if (alsoDouble) {
   }
 }
 tmp1 <- strsplit(myContrasts$Primary, " - ")
-tmp1 <- lapply(tmp1, function(x) {
+tmp1 <- lapply(tmp1, \(x) {
   contrBlocks2$Name_[match(x, contrBlocks2$Name)]
 })
 myContrasts$Contrast <- myContrasts$Primary <- vapply(tmp1, paste, "", collapse = " - ")
@@ -425,7 +430,7 @@ myContrasts$B <- contrBlocks2$`Samples group`[match(sub(".* - ", "", myContrasts
 if (alsoDouble) {
   myContrasts$C <- myContrasts$D <- ""
   tmp2 <- strsplit(myContrasts$Secondary[g], " - ")
-  tmp2 <- lapply(tmp2, function(x) {
+  tmp2 <- lapply(tmp2, \(x) {
     contrBlocks2$Name_[match(x, contrBlocks2$Name)]
   })
   myContrasts$Secondary[g] <- vapply(tmp2, paste, "", collapse = " - ")
@@ -434,37 +439,37 @@ if (alsoDouble) {
   myContrasts$D[g] <- contrBlocks2$`Samples group`[match(sub(".* - ", "", myContrasts$Secondary[g]), contrBlocks2$Name_)]
 }
 kol <- VPAL$column
-if (length(Exp) == 1) { kol <- sub("Exp", "", kol) }
-if (nchar(kol) == 3) { kol <- Factors[kol] }
+if (length(Exp) == 1L) { kol <- sub("Exp", "", kol) }
+if (nchar(kol) == 3L) { kol <- Factors[kol] }
 kol2 <- c("A", "B", "C", "D")
 kol2 <- intersect(kol2, colnames(myContrasts))
 for (i in kol2) {
-  myContrasts[[paste0(i, "_samples")]] <- lapply(myContrasts[[i]], function(x) {
+  myContrasts[[paste0(i, "_samples")]] <- lapply(myContrasts[[i]], \(x) {
     Exp.map$Ref.Sample.Aggregate[which(Exp.map[[kol]] == x)]
   })
 }
-
+myContrasts$isDouble <- myContrasts$Secondary != "" # For convenience
 
 # Make limma type designMatr and contrMatr
 #
 # Design matrix
-tmpForm <- unlist(strsplit(limmaForm, "\\+"))
-tmpForm <- tmpForm[2:length(tmpForm)]
+tmpForm <- unlist(strsplit(limmaForm, " \\+ "))
+tmpForm <- tmpForm[2L:length(tmpForm)]
 tmpForm <- paste0(tmpForm, "_._")
-tmpForm2 <- paste0("~0+", paste(tmpForm, collapse = "+"))
+tmpForm2 <- paste0("~ 0 + ", paste(tmpForm, collapse = " + "))
 designMatr %<o% model.matrix(as.formula(tmpForm2))
 # Test before we edit column names
-tst <- lapply(tmpForm, function(x) {
+tst <- lapply(tmpForm, \(x) {
   grep(topattern(x), colnames(designMatr))
 })
 l <- length(tmpForm)
-if (l > 1) {
-  for (i in 2:l) {
-    stopifnot(sum(tst[[i]] %in% unlist(tst[[1:(i-1)]])) == 0)
+if (l > 1L) {
+  for (i in 2L:l) {
+    stopifnot(sum(tst[[i]] %in% unlist(tst[[1L:(i-1L)]])) == 0L)
   }
 }
 # Edit
-for (i in 1:l) {
+for (i in 1L:l) {
   colnames(designMatr)[tst[[i]]] <- sub(topattern(tmpForm[i]), "", colnames(designMatr)[tst[[i]]])
 }
 colnames(designMatr) <- gsub("___", "_", colnames(designMatr))

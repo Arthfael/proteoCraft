@@ -4,7 +4,7 @@
 \alias{Data_Impute2}
 \title{Data_Impute2}
 \usage{
-Data_Impute2(quant_data, groups, is.log = TRUE, seed, min_misses = 1)
+Data_Impute2(quant_data, groups, is.log = TRUE, seed, min_misses = 1L)
 }
 \arguments{
 \item{quant_data}{A matrix or data.frame with more than 1 column, containing missing or invalid (e.g. infinite).}

@@ -2,3 +2,5 @@
 ^dev$
 ^R - unfinished functions$
 ^R - obsolete functions$
+^.*\.Rproj$
+^\.Rproj\.user$

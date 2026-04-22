@@ -15,7 +15,7 @@ Av_SE_fun <- function(vect) {
   l <- length(res)
   if (l) { res <- c(mean(res), sd(res)/sqrt(l)) } else {
     res <- unique(vect[which(!is.na(vect))])
-    if (l == 1) { res <- c(res, NA) } else { res <- c(NA, NA) }
+    res <- if (l == 1L) { c(res, NA) } else { c(NA, NA) }
   }
   return(res)
 }

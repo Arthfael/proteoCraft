@@ -40,7 +40,7 @@ DIANN_to_MQ <- function(DIANN_fl,
                         Detect.Lib = TRUE,
                         Min.Delta.Score = -Inf,
                         N.clust,
-                        N.reserved = 1,
+                        N.reserved = 1L,
                         cl,
                         shinyOpt = "popup",
                         digPattern = "KR") {
@@ -58,37 +58,31 @@ DIANN_to_MQ <- function(DIANN_fl,
   # to simplify environment-related debugging.
   # Do not change that!
   # Here, use allPTMs, elsewhere Modifs (or anything else).
-  if (TESTING) {
+  misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-    misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
-  } else { misFun <- missing }
+    \(x) { return(!exists(deparse(substitute(x)))) }
+  } else { missing }
   #
   # Create cluster
-  tstCl <- stopCl <- misFun(cl)
-  if (!misFun(cl)) {
-    tstCl <- suppressWarnings(try({
-      a <- 1
-      parallel::clusterExport(cl, "a", envir = environment())
-    }, silent = TRUE))
-    tstCl <- !"try-error" %in% class(tstCl)
-  }
-  if ((misFun(cl))||(!tstCl)) {
+  stopCl <- FALSE
+  if ((is.null(cl))||(!inherits(cl, "cluster"))) {
     dc <- parallel::detectCores()
-    if (misFun(N.reserved)) { N.reserved <- 1 }
-    if (misFun(N.clust)) {
-      N.clust <- max(c(dc-N.reserved, 1))
-    } else {
-      if (N.clust > max(c(dc-N.reserved, 1))) {
+    if (misFun(N.reserved)) { N.reserved <- 1L }
+    nMax <- max(c(dc - N.reserved, 1L))
+    if (misFun(N.clust)) { N.clust <- nMax } else {
+      if (N.clust > nMax) {
         warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
-        N.clust <- max(c(dc-N.reserved, 1))
+        N.clust <- nMax
       }
     }
     cl <- parallel::makeCluster(N.clust, type = "SOCK")
+    stopCl <- TRUE
   }
   N.clust <- length(cl)
   #
-  UniMod <- unimod::modifications
+  data(modifications, package = "PTMods")
+  UniMod <- modifications
   # Remove:
   # - substitutions
   UniMod <- UniMod[grep("^[A-Z][a-z]{2}->[A-Z][a-z]{2} substitution$", UniMod$Description, invert = TRUE),]
@@ -102,9 +96,9 @@ DIANN_to_MQ <- function(DIANN_fl,
   wPrqt <- grep("\\.parquet$", DIANN_fl)
   lTsv <- length(wTsv)
   lPrqt <- length(wPrqt)
-  stopifnot(lTsv <= 1,
-            lPrqt <= 1,
-            sum(lTsv, lPrqt) > 0)
+  stopifnot(lTsv <= 1L,
+            lPrqt <= 1L,
+            sum(lTsv, lPrqt) > 0L)
   if (lTsv) {
     DIANN <- data.table::fread(DIANN_fl[wTsv], integer64 = "numeric", check.names = FALSE, data.table = FALSE)
   }
@@ -129,16 +123,16 @@ DIANN_to_MQ <- function(DIANN_fl,
   if (lX) {
     u <- unique(unlist(strsplit(DIANN$Stripped.Sequence, "")))
     u <- paste(u[which(!u %in% AA)], collapse = "-")
-    warning(paste0("Removing ", lX, " peptide", c("", "s")[(lX > 1)+1], " with unknown amino acids ", u, "!"))
+    warning(paste0("Removing ", lX, " peptide", c("", "s")[(lX > 1L)+1L], " with unknown amino acids ", u, "!"))
     DIANN <- DIANN[w,]
   }
   #
   log_Fl <- unique(gsub("\\.((tsv)|(parquet))$", ".log.txt", DIANN_fl))
   if (file.exists(log_Fl)) { 
     log <- readLines(log_Fl)
-    diannCall <- grep(" --[a-zA-Z]", log, value = TRUE)[1]
+    diannCall <- grep(" --[a-zA-Z]", log, value = TRUE)[1L]
     diannCall <- unlist(strsplit(diannCall, " +--"))
-    diannCall <- diannCall[2:length(diannCall)]
+    diannCall <- diannCall[2L:length(diannCall)]
   }
   #
   libTst <- try({
@@ -147,7 +141,7 @@ DIANN_to_MQ <- function(DIANN_fl,
       if (file.exists(log_Fl)) {
         DIANNLib_fl <- gsub(".+\\] Saving the library to |\\.speclib$", "", grep("\\] Saving the library to ", log, value = TRUE))
         x <- gsub("^lib ", "", grep("^lib ", diannCall, value = TRUE))
-        x <- x[which(nchar(x) > 0)]
+        x <- x[which(nchar(x) > 0L)]
         if (length(x)) { diannCall <- c(diannCall, x) }
         DIANNLib_fl <- gsub("\\\\", "/", DIANNLib_fl)
         DIANNLib_fl <- unique(DIANNLib_fl[which(DIANNLib_fl != "")])
@@ -156,18 +150,18 @@ DIANN_to_MQ <- function(DIANN_fl,
           if (sum(dirname(DIANNLib_fl) != dirname(DIANN_fl))) {
             DIANNLib_fl <- c(DIANNLib_fl, paste0(dirname(DIANN_fl), "/", basename(DIANNLib_fl)))
           }
-          DIANNLib_fl <- as.character(sapply(DIANNLib_fl, function(x) { paste0(x, c(".tsv", ".parquet", "")) }))
+          DIANNLib_fl <- as.character(sapply(DIANNLib_fl, \(x) { paste0(x, c(".tsv", ".parquet", "")) }))
           DIANNLib_fl <- DIANNLib_fl[which(file.exists(DIANNLib_fl))]
           if (length(DIANNLib_fl)) {
-            DIANNLib_fl <- DIANNLib_fl[1]
+            DIANNLib_fl <- DIANNLib_fl[1L]
             if (grepl("\\parquet$", DIANNLib_fl)) {
               tst <- try({ DIANNLib <- arrow::read_parquet(DIANNLib_fl) }, silent = TRUE)
-              if ("try-error" %in% class(tst)) { # Should never happen...
+              if (!inherits(libTst, "try-error")) { # Should never happen...
                 tst <- try({ DIANNLib <- data.table::fread(DIANNLib_fl, integer64 = "numeric", check.names = FALSE, data.table = FALSE) }, silent = TRUE)
               }
             } else {
               tst <- try({ DIANNLib <- data.table::fread(DIANNLib_fl, integer64 = "numeric", check.names = FALSE, data.table = FALSE) }, silent = TRUE)
-              if ("try-error" %in% class(tst)) {
+              if (inherits(tst, "try-error")) {
                 tst <- try({ DIANNLib <- arrow::read_parquet(DIANNLib_fl) }, silent = TRUE)
               }
             }
@@ -183,10 +177,9 @@ DIANN_to_MQ <- function(DIANN_fl,
             DIANN$"m/z" <- DIANNLib$PrecursorMz[m]
             # Also library index + rt
             DIANN$"Library index" <- DIANNLib$transition_group_id[m]
-            DIANN$"Library rt" <- NA
-            if ("RetentionTime" %in% colnames(DIANNLib)) { DIANN$"Library rt" <- DIANNLib$RetentionTime[m] } else {
-              if ("AverageExperimentalRetentionTime" %in% colnames(DIANNLib)) { DIANN$"Library rt" <- DIANNLib$AverageExperimentalRetentionTime[m] } else {
-                if ("NormalizedRetentionTime" %in% colnames(DIANNLib)) { DIANN$"Library rt" <- DIANNLib$NormalizedRetentionTime[m] }
+            DIANN$"Library rt" <- if ("RetentionTime" %in% colnames(DIANNLib)) { DIANNLib$RetentionTime[m] } else {
+              if ("AverageExperimentalRetentionTime" %in% colnames(DIANNLib)) { DIANNLib$AverageExperimentalRetentionTime[m] } else {
+                if ("NormalizedRetentionTime" %in% colnames(DIANNLib)) { DIANNLib$NormalizedRetentionTime[m] } else { NA }
               }
             }
             libKol <- c("m/z", "Library index", "Library rt")
@@ -203,15 +196,15 @@ DIANN_to_MQ <- function(DIANN_fl,
     tst <- aggregate(DIANN$Run, list(DIANN$Run.Index), unique)
     fls <- gsub("(\\\\)+", "/", gsub("^f ", "", grep("^f ", diannCall, value = TRUE)))
     flNms <- gsub(".*/|\\.[^\\.]+$", "", fls)
-    tst$x2 <- flNms[tst$Group.1+1]
-    stopifnot(sum(tst$x != tst$x2) == 0)
-    tst$File <- fls[tst$Group.1+1]
+    tst$x2 <- flNms[tst$Group.1 + 1L]
+    stopifnot(sum(tst$x != tst$x2) == 0L)
+    tst$File <- fls[tst$Group.1 + 1L]
     DIANN$File.Name <- tst$File[match(DIANN$Run.Index, tst$Group.1)]
   }
   kol <- c("Run", "File.Name", "Protein.Ids", "Protein.Names", "Proteotypic", "Genes",
            "Stripped.Sequence", "Modified.Sequence", "Precursor.Charge", "PEP")
   #print(kol[which(!kol %in% colnames(DIANN))])
-  stopifnot(sum(!kol %in% colnames(DIANN)) == 0)
+  stopifnot(sum(!kol %in% colnames(DIANN)) == 0L)
   EV <- data.frame("Raw file" = DIANN$Run,
                    "Raw file path" = DIANN$File.Name,
                    "Proteins" = DIANN$Protein.Ids, # Good idea to check how reliable this is using ProtMatch
@@ -226,7 +219,7 @@ DIANN_to_MQ <- function(DIANN_fl,
                    "PEP" = DIANN$PEP,
                    check.names = FALSE)
   #
-  if (!"try-error" %in% class(libTst)) {
+  if (!inherits(libTst, "try-error")) {
     if (length(libKol)) { EV[, libKol] <- DIANN[, libKol] }
   }
   if ("First.Protein.Description" %in% colnames(DIANN)) {
@@ -240,9 +233,9 @@ DIANN_to_MQ <- function(DIANN_fl,
   tmp <- data.frame(Seq = EV$Sequence[mWMod],
                     ModSeq = EV$`Modified sequence`[mWMod],
                     Z = EV$Charge[mWMod])
-  f0 <- function(x) { Peptides::mz(x[[1]], as.integer(x[[2]]), cysteins = 0) }
+  f0 <- \(x) { Peptides::mz(x[[1L]], as.integer(x[[2L]]), cysteins = 0) }
   environment(f0) <- .GlobalEnv
-  tmp$Theoretical <- parallel::parApply(cl, tmp[, c("Seq", "Z")], 1, f0)
+  tmp$Theoretical <- parallel::parApply(cl, tmp[, c("Seq", "Z")], 1L, f0)
   tmp$Comp <- gsub("\\)[A-Z]*\\(", "___",
                    gsub("^_[A-Z]*\\(|\\)[A-Z]*_$|^_[A-Z]+_$", "",
                         gsub("\\[", "(",
@@ -288,26 +281,26 @@ DIANN_to_MQ <- function(DIANN_fl,
       #eval(parse(text = runApp1))
       #shinyCleanup()
       #tstMap <- c(FALSE, TRUE)[match(tstMap, c("no", "yes"))]
-      msg <- paste0("Non-classical PTMs marks detected (e.g. \"", sort(comps)[1], "\")...")
+      msg <- paste0("Non-classical PTMs marks detected (e.g. \"", sort(comps)[1L], "\")...")
       opt <- c("Keep them as they are                                                                                                                 ",
                "Manually map each to a more convenient mark                                                                                           ")
-      tstMap <- c(FALSE, TRUE)[match(dlg_list(opt, opt[1], title = msg)$res, opt)]
+      tstMap <- c(FALSE, TRUE)[match(dlg_list(opt, opt[1L], title = msg)$res, opt)]
     }
     if (tstMap) {
       # Here we will want to make sense of those mods
       # First, get the precise mass shift for each, so we can narrow down options
-      f0 <- function(x) {
-        #x <- tmp$ModSeq[1]
-        x <- annot_to_tabl(x)[[1]]
+      f0 <- \(x) {
+        #x <- tmp$ModSeq[1L]
+        x <- annot_to_tabl(x)[[1L]]
         w <- which(x$Annotations != "")
-        x$Sequence[2] <- paste0("_", x$Sequence[2])
+        x$Sequence[2L] <- paste0("_", x$Sequence[2L])
         do.call(paste, c(x[w, , drop = FALSE], sep = "mod_"))
       }
       environment(f0) <- .GlobalEnv
       tmp$Mods <- parallel::parLapply(cl, tmp$ModSeq, f0)
       Mods <- sort(unique(unlist(tmp$Mods)))
       parallel::clusterExport(cl, "Mods", envir = environment())
-      f0 <- function(x) {
+      f0 <- \(x) {
         x <- aggregate(x, list(x), length)
         res <- setNames(rep(0, length(Mods)), Mods)
         w <- which(Mods %in% x$Group.1)
@@ -323,12 +316,12 @@ DIANN_to_MQ <- function(DIANN_fl,
       Mods$LibDM <- suppressWarnings(as.numeric(gsub(".*mod_", "", Mods$Name)))
       Mods$AA <- gsub("mod_.*", "", Mods$Name)
       precVal <- 0.02
-      Mods$Options <- apply(Mods[, c("DM", "AA")], 1, function(x) {
-        dm <- as.numeric(x[[1]])
-        if (substr(x[[2]], 1, 1) == "_") {
-          w <- which((abs(UniMod$MonoMass - dm) <= precVal)&(UniMod$Site %in% c(substr(x[[2]], 2, 2), "N-term")))
+      Mods$Options <- apply(Mods[, c("DM", "AA")], 1L, \(x) {
+        dm <- as.numeric(x[[1L]])
+        w <- if (substr(x[[2L]], 1L, 1L) == "_") {
+          which((abs(UniMod$MonoMass - dm) <= precVal)&(UniMod$Site %in% c(substr(x[[2L]], 2L, 2L), "N-term")))
         } else {
-          w <- which((abs(UniMod$MonoMass - dm) <= precVal)&(UniMod$Site == x[[2]]))
+          which((abs(UniMod$MonoMass - dm) <= precVal)&(UniMod$Site == x[[2L]]))
         }
         if (length(w)) {
           Ddm <- dm - UniMod$MonoMass[w]
@@ -337,8 +330,8 @@ DIANN_to_MQ <- function(DIANN_fl,
         return(w)
       })
       Mods$tag <- do.call(paste, c(data.frame(AA = gsub("^_", "", Mods$AA),
-                                              Name = paste0("+", as.character(round(Mods$DM), 4)),
-                                              NTerm = c("", "(N-term)")[grepl("^_", Mods$AA)+1]),
+                                              Name = paste0("+", as.character(round(Mods$DM), 4L)),
+                                              NTerm = c("", "(N-term)")[grepl("^_", Mods$AA)+1L]),
                                    sep = " "))
       opt <- sort(unique(unlist(Mods$Options)))
       UniMod2 <- UniMod[opt,]
@@ -361,19 +354,19 @@ DIANN_to_MQ <- function(DIANN_fl,
                       "Dimethyl:R",
                       "Trimethyl:R",
                       "GG:K")
-      Mods$Options2 <- lapply(1:nrow(Mods), function(i) {
+      Mods$Options2 <- lapply(1L:nrow(Mods), \(i) {
         m <- match(Mods$Options[[i]], UniMod2$Option)
         Ddm <- Mods$DM[i] - UniMod$MonoMass[m]
         opt <- UniMod2$Id[m]
         return(opt[order(Ddm, decreasing = FALSE)])
       })
-      Mods$Match <- sapply(1:nrow(Mods), function(i) {
+      Mods$Match <- sapply(1L:nrow(Mods), \(i) {
         opt <- Mods$Options2[[i]]
-        if (length(opt) >= 1) {
-          dflt <- opt[1]
+        if (length(opt) >= 1L) {
+          dflt <- opt[1L]
           m <- match(commonPTMs, opt)
           m <- m[which(!is.na(m))]
-          if (length(m)) { dflt <- opt[m[1]] }
+          if (length(m)) { dflt <- opt[m[1L]] }
         } else { dflt <- Mods$tag[i] }
         return(dflt)
       })
@@ -391,9 +384,9 @@ DIANN_to_MQ <- function(DIANN_fl,
       suppressWarnings(suppressMessages(try(close(con), silent = TRUE))) # Only necessary in function mode
       unlink(fl)
       #
-      allPTMs <- aggregate(Mods$DM, list(Mods$Match), function(x) {
+      allPTMs <- aggregate(Mods$DM, list(Mods$Match), \(x) {
         rg <- c(min(x), max(x))
-        stopifnot(rg[2]-rg[1] < 0.010)
+        stopifnot(rg[2L]-rg[1L] < 0.010)
         return(mean(x))
       })
       colnames(allPTMs) <- c("Full name", "Mass delta")
@@ -417,42 +410,42 @@ DIANN_to_MQ <- function(DIANN_fl,
   }
   allPTMs$Type <- "Variable"
   allPTMs$Type[which(allPTMs$"Full name" %in% Fixed.mods)] <- "Fixed"
-  allPTMs$Mark <- tolower(substr(allPTMs$"Full name", 1, 2))  
+  allPTMs$Mark <- tolower(substr(allPTMs$"Full name", 1L, 2L))  
   ## Identify affected Amino Acids
   if (modsType == "UniMod") {
     allPTMs$AA <- list(NA)
     uMdSq <- unique(EV$`Modified sequence`)
-    for (i in 1:nrow(allPTMs)) { #i <- 1
+    for (i in 1L:nrow(allPTMs)) { #i <- 1L
       uMdSq <- unique(EV$`Modified sequence`)
       temp <- gsub(topattern(paste0("(", allPTMs$UniMod[i], ")"), start = FALSE),
                    ">>>.___", uMdSq)
       temp2 <- grep(">>>$", unlist(strsplit(temp, "\\.___")), value = TRUE)
       nc <- nchar(temp2)
-      allPTMs$AA[[i]] <- unique(substr(temp2, nc-3, nc-3))
+      allPTMs$AA[[i]] <- unique(substr(temp2, nc-3L, nc-3L))
     }
   }
   if (modsType == "StrangerThings") {
     allPTMs$AA <- list(NA)
-    for (i in 1:nrow(allPTMs)) { #i <- 1
+    for (i in 1L:nrow(allPTMs)) { #i <- 1L
       temp <- gsub(topattern(paste0("(", allPTMs$`Full name`[i], ")"), start = FALSE),
                    ">>>.___", EV$`Modified sequence`)
       temp2 <- grep(">>>$", unlist(strsplit(temp, "\\.___")), value = TRUE)
       nc <- nchar(temp2)
-      allPTMs$AA[[i]] <- unique(substr(temp2, nc-3, nc-3))
+      allPTMs$AA[[i]] <- unique(substr(temp2, nc-3L, nc-3L))
     }
   }
   if (modsType == "No idea") {
-    tmp <- aggregate(gsub("^_", "", Mods$AA), list(Mods$Match), function(x) { sort(unique(x)) })
+    tmp <- aggregate(gsub("^_", "", Mods$AA), list(Mods$Match), \(x) { sort(unique(x)) })
     allPTMs$Site <- allPTMs$AA <- tmp$x[match(allPTMs$`Full name`, tmp$Group.1)]
     w <- which(allPTMs$Position == "Any N-term")
-    if (length(w)) { allPTMs$Site[w] <- lapply(allPTMs$Site[w], function(x) { paste0("n", x) }) }
+    if (length(w)) { allPTMs$Site[w] <- lapply(allPTMs$Site[w], \(x) { paste0("n", x) }) }
     w <- which(allPTMs$Position == "Any C-term")
-    if (length(w)) { allPTMs$Site[w] <- lapply(allPTMs$Site[w], function(x) { paste0("c", x) }) }
+    if (length(w)) { allPTMs$Site[w] <- lapply(allPTMs$Site[w], \(x) { paste0("c", x) }) }
     w <- which(allPTMs$Position == "Protein N-term")
     if (length(w)) { allPTMs$Site[w] <- "[^" }
     w <- which(allPTMs$Position == "Protein C-term")
     if (length(w)) { allPTMs$Site[w] <- "^]" }
-    allPTMs$Site_long <- lapply(strsplit(gsub("\\^", "", lapply(allPTMs$Site, paste, collapse = "")), ""), function(x) {
+    allPTMs$Site_long <- lapply(strsplit(gsub("\\^", "", lapply(allPTMs$Site, paste, collapse = "")), ""), \(x) {
       x[which(x %in% c("[", "n"))] <- "N-term"
       x[which(x %in% c("]", "c"))] <- "C-term"
       return(x)
@@ -461,34 +454,34 @@ DIANN_to_MQ <- function(DIANN_fl,
   ## Sometimes, some marks are duplicates, e.g. if you searched for "Acetyl (Protein N-term)" and "Acetyl (K)" together!
   ## We want to fix this so that each modification has a unique mark:
   tstMark <- aggregate(allPTMs$Mark, list(allPTMs$Mark), length)
-  W <- which(tstMark$x > 1)
+  W <- which(tstMark$x > 1L)
   #allPTMs$Mark <- allPTMs$"Old mark"
   if (length(W)) {
     allPTMs$"Old mark" <- allPTMs$Mark
     for (i in W) {
-      #i <- W[1]
+      #i <- W[1L]
       w <- which(allPTMs$Mark == tstMark$Group.1[i])
       m <- allPTMs[w,]
-      m$AA[which(sapply(m$AA, length) == 0)] <- "X"
-      if ("Acetyl" %in% m$"Full name") { r <- which(m$"Full name" == "Acetyl") } else { r <- 1 }
-      s <- c(1:nrow(m)); s <- s[which(s != r)]
-      test <- apply(m[s, c("AA", "Mark")], 1, function(x) { paste0(tolower(x[[1]]), substr(x[[2]], 1, 1))[1] })
+      m$AA[which(lengths(m$AA) == 0L)] <- "X"
+      r <- if ("Acetyl" %in% m$"Full name") { which(m$"Full name" == "Acetyl") } else { 1L }
+      s <- c(1L:nrow(m)); s <- s[which(s != r)]
+      test <- apply(m[s, c("AA", "Mark")], 1L, \(x) { paste0(tolower(x[[1L]]), substr(x[[2L]], 1L, 1L))[1L] })
       w0 <- which(!test %in% allPTMs$Mark)
       if (length(w0)) {
-        m$Mark[s][w0] <- test[w0[1]]
+        m$Mark[s][w0] <- test[w0[1L]]
       }
       w1 <- which(test %in% allPTMs$Mark)
       if (length(w1)) {
         # not tested
         s <- s[w1]
         test <- sapply(s, list)
-        kount <- 1
-        char <- c(0:9, letters)
+        kount <- 1L
+        char <- c(as.character(0L:9L), letters)
         taken <- unique(c(allPTMs$Mark, m$Mark))
         for (j in s) {
           tst <- paste0(tolower(m$AA[s]), char[kount])
           while (((tst) %in% taken)&&(kount < length(char))) {
-            kount <- kount+1
+            kount <- kount+1L
             tst <- paste0(tolower(m$AA[s]), char[kount])
           }
           if (kount == length(char)) {
@@ -503,7 +496,7 @@ DIANN_to_MQ <- function(DIANN_fl,
     }
   }
   if (modsType == "No idea") {
-    tmp <- aggregate(gsub(".*mod_", "", Mods$Name), list(Mods$Match), function(x) { sort(unique(x)) })
+    tmp <- aggregate(gsub(".*mod_", "", Mods$Name), list(Mods$Match), \(x) { sort(unique(x)) })
     allPTMs$"Old mark" <- tmp$x[match(allPTMs$`Full name`, tmp$Group.1)] # Could be a list!!!
   }
   if (!"UniMod" %in% colnames(allPTMs)) {
@@ -519,7 +512,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   }
   #
   if (modsType == "UniMod") {
-    tmpMds <- listMelt(allPTMs$AA, 1:nrow(allPTMs), c("AA", "Row"))
+    tmpMds <- listMelt(allPTMs$AA, 1L:nrow(allPTMs), c("AA", "Row"))
     kol <- c("UniMod", "Full name", "Mark")
     #kol %in% colnames(allPTMs)
     tmpMds[, c("UniMod", "Name", "Mark")] <- allPTMs[tmpMds$Row, kol]
@@ -529,7 +522,7 @@ DIANN_to_MQ <- function(DIANN_fl,
     }
   }
   if (modsType == "StrangerThings") {
-    tmpMds <- listMelt(allPTMs$AA, 1:nrow(allPTMs), c("AA", "Row"))
+    tmpMds <- listMelt(allPTMs$AA, 1L:nrow(allPTMs), c("AA", "Row"))
     kol <- c("Full name", "Mark")
     #kol %in% colnames(allPTMs)
     tmpMds[, c("Name", "Mark")] <- allPTMs[tmpMds$Row, kol]
@@ -541,14 +534,14 @@ DIANN_to_MQ <- function(DIANN_fl,
   parallel::clusterExport(cl, list("tmpMds", "modsType"), envir = environment())
   uMdSq <- unique(EV$`Modified sequence`[wMod])
   temp1 <- strsplit(uMdSq, "\\(|\\)")
-  f0 <- function(x) {
-    #x <- temp1[[1]]
+  f0 <- \(x) {
+    #x <- temp1[[1L]]
     x1 <- x2 <- unlist(x)
     l <- length(x1)
-    rg <- c(1:((l-1)/2))*2
-    nc <- nchar(x1[rg-1])
-    aa <- substr(x1[rg-1], nc, nc)
-    if (nc[1] == 1) { aa[1] <- substr(x1[3], 1, 1) }
+    rg <- c(1L:((l-1L)/2L))*2L
+    nc <- nchar(x1[rg-1L])
+    aa <- substr(x1[rg-1L], nc, nc)
+    if (nc[1L] == 1L) { aa[1L] <- substr(x1[3L], 1L, 1L) }
     if (modsType == "UniMod") {
       m <- match(x1[rg], tmpMds$UniMod)
     }
@@ -568,30 +561,30 @@ DIANN_to_MQ <- function(DIANN_fl,
   temp2 <- as.data.frame(t(parallel::parSapply(cl, temp1, f0)))
   temp2 <- temp2[match(EV$`Modified sequence`[wMod], uMdSq),]
   EV$`Modified sequence_verbose` <- paste0("_", EV$Sequence, "_")
-  EV$`Modified sequence`[wMod] <- temp2[, 1]
-  EV$`Modified sequence_verbose`[wMod] <- temp2[, 2]
+  EV$`Modified sequence`[wMod] <- temp2[, 1L]
+  EV$`Modified sequence_verbose`[wMod] <- temp2[, 2L]
   #
   EV$Modifications <- "Unmodified"
   uMdSq <- unique(EV$`Modified sequence`[wMod])
   tempMod1 <- gsub("[_|\\)][A-Z]*[_|\\(]", ",", uMdSq)
   tempMod2 <- strsplit(tempMod1, ",")
   parallel::clusterExport(cl, "Fixed.mods", envir = environment())
-  f0 <- function(x) { x[which(!x %in% c("", Fixed.mods))] }
+  f0 <- \(x) { x[which(!x %in% c("", Fixed.mods))] }
   environment(f0) <- .GlobalEnv
   tempMod2 <- parallel::parLapply(cl, tempMod2, f0)
   if (modsType == "No idea") {
-    f0 <- function(x) {
+    f0 <- \(x) {
       tmpMds$Name[match(x, tmpMds$Mark)]
     } 
     environment(f0) <- .GlobalEnv
     tempMod2 <- parallel::parLapply(cl, tempMod2, f0)
   }
-  f0 <- function(x) {
+  f0 <- \(x) {
     if (!length(x)) { x <- "Unmodified" } else {
       x <- aggregate(x, list(x), length)
-      x <- x[order(x$Group.1, decreasing = FALSE), 2:1]
+      x <- x[order(x$Group.1, decreasing = FALSE), 2L:1L]
       x$x <- gsub("1 ", "", paste0(as.character(x$x), " "))
-      x <- paste0(apply(x, 1, paste, collapse = ""), collapse = ",") 
+      x <- paste0(apply(x, 1L, paste, collapse = ""), collapse = ",") 
     }
     return(x)
   }
@@ -601,7 +594,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   # M/Z
   #cat("   Calculating theoretical m/z values...\n")
   parallel::clusterExport(cl, "allPTMs", envir = environment())
-  f0 <- function(x) {
+  f0 <- \(x) {
     x <- x[which(x != "")]
     # x <- x[which(x != "UniMod:4")] # Don't filter out carbamidomethyl! Yes, by default Peptides::mz() can deal with it,
     # but what if we use another? Since we are writing all PTM, including variable, in DiaNN, best to just calculate all from there!
@@ -612,9 +605,9 @@ DIANN_to_MQ <- function(DIANN_fl,
   tmp1 <- do.call(paste, c(EV[, c("Sequence", "Charge")], sep = "___"))
   tmp2 <- unique(tmp1)
   tmp3 <- EV[match(tmp2, tmp1), c("Sequence", "Charge")]                              
-  f0 <- function(x) { Peptides::mz(x[[1]], as.integer(x[[2]], cysteins = 0)) }
+  f0 <- \(x) { Peptides::mz(x[[1L]], as.integer(x[[2L]], cysteins = 0)) }
   environment(f0) <- .GlobalEnv
-  tmp3 <- parallel::parApply(cl, tmp3, 1, f0) # Peptides::mz doesn't like vectorization clearly
+  tmp3 <- parallel::parApply(cl, tmp3, 1L, f0) # Peptides::mz doesn't like vectorization clearly
   EV$"Theoretical m/z" <- tmp3[match(tmp1, tmp2)] 
   EV$"Theoretical m/z"[wMod] <- EV$"Theoretical m/z"[wMod] + tempMod4[match(EV$`Modified sequence`[wMod], uMdSq)]/EV$Charge[wMod]
   if (!"m/z" %in% colnames(EV)) { EV$"m/z" <- EV$"Theoretical m/z" }
@@ -631,11 +624,9 @@ DIANN_to_MQ <- function(DIANN_fl,
   EV$"Retention time (end)" <- as.numeric(DIANN$RT.Stop)
   EV$"Retention length" <- EV$"Retention time (end)" - EV$"Retention time (start)"
   # 
-  if ("Decoy" %in% colnames(DIANN)) {
-    EV$Reverse <- c("", "+")[as.logical(DIANN$Decoy)+1]
-  } else {
-    EV$Reverse <- ""
-  }
+  EV$Reverse <- if ("Decoy" %in% colnames(DIANN)) {
+    c("", "+")[as.logical(DIANN$Decoy)+1L]
+  } else { "" }
   if ("Score" %in% colnames(DIANN)) {
     EV$Score <- as.numeric(DIANN$CScore)
   }
@@ -682,7 +673,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   IntColz <- c("Fragment.Quant.Corrected", "Fragment.Quant.Raw")
   IntColz <- IntColz[which(IntColz %in% colnames(DIANN))]
   if (length(IntColz)) {
-    EV$"MS2 intensities" <- DIANN[[IntColz[1]]]
+    EV$"MS2 intensities" <- DIANN[[IntColz[1L]]]
   }
   # Fragment annotations are not provided by default,
   # but each PSM for a given peptidoform*Charge combination always has the same number of values.
@@ -691,11 +682,11 @@ DIANN_to_MQ <- function(DIANN_fl,
   # Careful: this does not work where 2 different DiaNN files are combined, because the number of fragments will be different in different runs (best on which are found).
   #
   # Below commented code if you want to check
-  #tst <- aggregate(EV$`MS2 intensities`, list(EV$`Modified sequence`, EV$Charge), function(x) {
+  #tst <- aggregate(EV$`MS2 intensities`, list(EV$`Modified sequence`, EV$Charge), \(x) {
   #  nchar(x) - nchar(gsub(";", "", x))
   #})
-  #tst2 <- sapply(tst$x, function(x) { length(unique(x)) })
-  #stopifnot(max(tst2) == 1)
+  #tst2 <- sapply(tst$x, \(x) { length(unique(x)) })
+  #stopifnot(max(tst2) == 1L)
   if ("MS2.Scan" %in% colnames(DIANN)) {
     EV$"MS/MS scan number" <- as.integer(DIANN$MS2.Scan)
   }
@@ -712,10 +703,10 @@ DIANN_to_MQ <- function(DIANN_fl,
   tmp <- gsub(paste0(digPat, "$"), "", EV$Sequence)
   EV$"Missed cleavages" <- nchar(tmp) - nchar(gsub(digPat, "", tmp))
   EV$"Potential contaminant" <- ""
-  if ("Search_ID" %in% colnames(DIANN)) {
-    EV$Search_ID <- DIANN$PSMs_file # In cases where the input is a hybrid report created by the merging script in .../Utils
+  EV$Search_ID <- if ("Search_ID" %in% colnames(DIANN)) {
+    DIANN$PSMs_file # In cases where the input is a hybrid report created by the merging script in .../Utils
   } else {
-    EV$Search_ID <- sort(DIANN_fl, decreasing = TRUE)[1] # Provide default: there can be one or 2 files, the .tsv or .parquet, we want just one (ideally the .tsv)
+    sort(DIANN_fl, decreasing = TRUE)[1L] # Provide default: there can be one or 2 files, the .tsv or .parquet, we want just one (ideally the .tsv)
   }
   # Optional: filter by delta score
   if (("Delta score" %in% colnames(EV))&&(!is.na(Min.Delta.Score))) {
@@ -723,7 +714,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   }
   #
   EV$id <- NULL
-  EV <- cbind(data.frame(id = 1:nrow(EV)),
+  EV <- cbind(data.frame(id = 1L:nrow(EV)),
                          EV)
   Res <- list(Evidence = EV,
               PTMs = allPTMs,

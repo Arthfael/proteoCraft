@@ -47,7 +47,7 @@ P.values.type,SELECT_moderated,"Which type of P values will be used for the volc
 Adjust.P.values,FALSE,Do you want to calculate adjusted P values?
 Q.values,FALSE,Should Q values be computed?
 BH.FDR.values,0.01;0.05;0.1;0.2,FDR values for Volcano plots and significance thresholds.
-Ratios.Contamination.Rates,0.05,"In order to determine empirically a fold change threshold, we model the distributions of condition and control ratios to average control, then set a threshold such that the contamination of control ratios to condition ratios beyond thresholds is equal to that value."
+Ratios.Contamination.Rates,1,Should be renamed to log2FC_threshold or sumthin'
 Prot.Quant.Use,Razor,"I usually use Razor peptides and not Unique, thus sacrificing some precision for sensitivity."
 Prot.Quant.Mod,SELECT,"Use the 2-character name of the modification as used by MaxQuant in the ""Modified sequence"" column, or equivalent."
 Prot.Quant.Mod.Excl,ph,"Modifications to exclude for quantification, semicolon-separated. Use the 2-character name of the modification as used by MaxQuant in the ""Modified sequence"" column, followed by a parenthesis and localisation. Exemples: e.g. ""ph(S,T,Y);ac(protNterm);gl(Nterm_Q)"". The localisation information is required when the Discard.unmod parameter of Prot.Quant is set to 2 (strict): in this case, any peptide which could have this modification will be excluded, even if the modified form was not identified."

@@ -6,17 +6,24 @@
 \usage{
 parse.Param.aggreg.2(
   param.nm,
+  dest,
+  filt = NULL,
   parameters = Param,
   aggregates = Aggregates,
   map = Aggregate.map,
   aggr.list = Aggregate.list,
   param.list.nm = "Param.aggreg",
-  parsed.param.nm,
-  obj.list.nm = ".obj"
+  obj.list.nm = ".obj",
+  checkExp = FALSE,
+  experiment = Exp
 )
 }
 \arguments{
 \item{param.nm}{The name of the parameter to parse.}
+
+\item{dest}{The name of the vector of parsed parameters. Default = "Param.aggreg"}
+
+\item{filt}{If provided, calls Param_filter() to remove these factors before parsing.}
 
 \item{parameters}{The parameters file. Default = Param}
 
@@ -26,18 +33,23 @@ parse.Param.aggreg.2(
 
 \item{aggr.list}{The list of aggregates. Default: Aggregate.list}
 
-\item{param.list.nm}{The name of the vector of parsed parameters. Default = "Param.aggreg"}
+\item{obj.list.nm}{The name of the list of objects to never purge from the global environment. Default = ".obj"}
+
+\item{checkExp}{Logical, default = FALSE. Should we check the Experiment object, dropping it if it has only 1 level?}
+
+\item{experiment}{Experiment factor object. Allows for dropping Exp if its length is one. Default = "Exp"}
 
 \item{parsed.param.nm}{The name of the parsed parameter variable to create. If not specified, defaults to param.nm}
-
-\item{obj.list.nm}{The name of the list of objects to never purge from the global environment. Default = ".obj"}
 }
 \value{
 Does not return anything. For a version returning something, use parse.Param.aggreg()
 }
 \description{
-Internal. Parse an aggregates-type parameter. Extends the functionalities of the former version.
-The old function is still valid for parsing to temporary variables.
+Internal. Parse an aggregates-type parameter. Extends the functionalities of the former version, but is also in a way more restrictive:
+ - Unlike the former, it takes a parameter's name, not value, thus argument parameters is essential.
+ - It assigns its output to the global environment, which the other doesn't.
+ - The resulting object is remanent.
+The old function is still valid. Which one to use depends on exact context (input, aims).
 }
 \details{
 This function parses a factors aggregate-type parameter in the parameters object and assigns (without returning anything) the corresponding factors aggregate list to the global environment, also adding them to the list of persistent objects.

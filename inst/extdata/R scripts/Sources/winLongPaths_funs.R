@@ -6,6 +6,8 @@
 # These are designed to be more resilient against Windows long path issues,
 # when copying data to a server resource which does not have long paths enabled.
 #
+require(proteoCraft)
+
 lp <- function(p) {
   p <- normalizePath(p, winslash = "\\", mustWork = FALSE)
   paste0("\\\\?\\", p)
@@ -44,7 +46,7 @@ safe_file_size <- function(files) {
 is_system_or_hidden <- function(file) {
   out <- suppressWarnings(system2("attrib", shQuote(file), stdout = TRUE, stderr = TRUE))
   if (!length(out)) { return(FALSE) }
-  out <- gsub(proteoCraft::topattern(file, start = FALSE), "", gsub("\\\\", "/", out))
+  out <- gsub(topattern(file, start = FALSE), "", gsub("\\\\", "/", out))
   return(grepl("[SH]", out))
 }
 safe_file_copy <- function(from, to, copy.date = TRUE, overwrite = TRUE) {

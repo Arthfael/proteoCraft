@@ -17,7 +17,7 @@
 #' A melted (molten?) data.frame.
 #' 
 #' @examples
-#' df <- as.data.frame(matrix(rnorm(1000), ncol = 10))
+#' df <- as.data.frame(matrix(rnorm(1000), ncol = 10L))
 #' df2 <- dfMelt(df)
 #' 
 #' @export
@@ -25,21 +25,32 @@
 dfMelt <- function(df,
                    ColNames = c("variable", "value"),
                    id.vars) {
-  #df <- as.data.frame(matrix(rnorm(1000), ncol = 10))
-  if ("matrix" %in% class(df)) { df <- as.data.frame(df) } # Stack needs a data.frame
-  stopifnot("data.frame" %in% class(df),
-            length(ColNames) == 2)
-  if (!missing(id.vars)) {
-    stopifnot(sum(!id.vars %in% colnames(df)) == 0)
-    ids <- df[, id.vars]
-    df <- df[, which(!colnames(df) %in% id.vars)]
+  #df <- as.data.frame(matrix(rnorm(1000), ncol = 10L))
+  #df <- temp; ColNames <- c("Label", "Sample", "value"); id.vars <- "Rowname"
+  if (is.matrix(df)) { df <- as.data.frame(df) } # Stack needs a data.frame
+  stopifnot(is.data.frame(df),
+            nrow(df) > 0L)
+  id.vars_tst <- (!missing(id.vars))&&(!is.null(id.vars))
+  if (id.vars_tst) {
+    l_IDvars <- length(id.vars)
+    stopifnot(sum(!id.vars %in% colnames(df)) == 0L)
+    ids <- df[, id.vars, drop = FALSE]
+    df <- df[, setdiff(colnames(df), id.vars), drop = FALSE]
+    if (missing(ColNames)) {
+      ColNames <- c(id.vars, ColNames)
+    } else { stopifnot(length(ColNames) == 2L + l_IDvars) }
+  } else {
+    stopifnot(length(ColNames) == 2L)
+    id.vars <- c()
+    l_IDvars <- 0L
   }
   df <- utils::stack(df)
-  df <- df[, 2:1]
-  colnames(df) <- ColNames
-  if (!missing(id.vars)) {
-    df[, id.vars] <- ids
-    df <- df[, c(id.vars, ColNames)]
+  df <- df[, 2L:1L]
+  colnames(df) <- ColNames[(1L + l_IDvars):length(ColNames)]
+  if (l_IDvars) {
+    colnames(ids) <- ColNames[1L:l_IDvars]
+    rownames(ids) <- NULL
+    df <- cbind(ids, df) # recycling ids which now has fewer rows
   }
   return(df)
 }

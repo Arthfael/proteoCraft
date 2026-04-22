@@ -13,7 +13,12 @@
   # otherwise the plot is saved without the ggrepel labels!
   require(ggrepel)
   suppressMessages({
-    ggplot2::ggsave(paste0(x$Path, "/", x$Ttl, ".", x$Ext), x$Plot,
-                    dpi = 300, width = 10, height = 10, units = "in")
+    ggplot2::ggsave(paste0(x$Path, "/", x$Ttl, ".", x$Ext),
+                    x$Plot,
+                    dpi = 300L,
+                    width = 10L,
+                    height = 10L,
+                    
+                    units = "in")
   })
 }

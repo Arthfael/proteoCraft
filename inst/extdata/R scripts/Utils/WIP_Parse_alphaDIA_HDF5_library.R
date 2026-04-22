@@ -4,7 +4,7 @@ alphaDIA <- data.table::fread(alphaDIA_fl, integer64 = "numeric", check.names = 
 # the output speclib.mbr.hdf contains all fragment-level identifications...
 alphaDIA_LibFl <- gsub("/[^/]+$", "/speclib.mbr.hdf", alphaDIA_fl)
 
-if (!require(rhdf5)) { pak::pkg_install("rhdf5") }
+if (!require(rhdf5)) { pak::pak("rhdf5") }
 library(rhdf5)
 readHDF5lib <- function(file) {
   #suppressWarnings(myLib1 <- rhdf5::h5read(file, "library", bit64conversion = "double", read.attributes = TRUE))
@@ -76,9 +76,9 @@ file.exists(DIANN_LibFl)
 DIANN_Lib <- data.table::fread(DIANN_LibFl, integer64 = "numeric", check.names = FALSE, data.table = FALSE)
 
 View(DIANN)
-tst <- vapply(strsplit(DIANN$Fragment.Quant.Raw, ";"), length, 1)
+tst <- lengths(strsplit(DIANN$Fragment.Quant.Raw, ";"))
 summary(tst)
-#tst <- vapply(strsplit(DIANN$Fragment.Quant.Corrected, ";"), length, 1) # Does not always exist!!!
+#tst <- lengths(strsplit(DIANN$Fragment.Quant.Corrected, ";")) # Does not always exist!!!
 #summary(tst)
 
 DIANN$Fragment.Correlations

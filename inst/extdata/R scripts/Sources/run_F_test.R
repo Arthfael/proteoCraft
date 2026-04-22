@@ -6,11 +6,12 @@
 
 if (!require(limma)) { pak::pak("limma") }
 library(limma)
+# Run local scripts
+locScrptSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/runLocScrpts.R")
+source(locScrptSrc)
 
 # Check our parent cluster
 source(parSrc, local = FALSE)
-parallel::clusterExport(parClust, list("AltHyp", "Nested"), envir = environment())
-invisible(parallel::clusterCall(parClust, function() { library(siggenes); return() }))
 
 # Argument names
 allArgs <- c("myData",
@@ -31,256 +32,106 @@ if (length(w)) {
   warning(paste0("Source-specific objects ", paste(allArgs[w], collapse = "/"),
                  " overlap with reserved object names in this workflow and should be renamed!"))
 }
-
+limpaMode <- FALSE
+labCol <- c("Label", "Labels")
 if (dataType == "modPeptides") {
-  myData <- ptmpep
-  intRef <- pepRf
-  ratRef <- pepRatRf
+  intRef <- ptms.ref[length(ptms.ref)]
+  ratRef <- ptms.ratios.ref
   namesCol <- "Name"
   namesRoot <- "Pep"
   runLoc <- LocAnalysis
-  ohDeer <- paste0(wd, "/Reg. analysis/", ptm, "/F-tests")
+  ohDeer <- paste0(wd, "/Reg. analysis/", ptm, "/ANOVA")
   idCol <- "Name"
   protCol <- "Proteins"
   mtchCol <- "Modified sequence"
   plotlyLab = c(PepLabKol, paste0(Ptm, "-site"))
-  myData$"-log10(PEP)" <- -log10(myData$PEP)
   Size <- "Rel. av. log10 abundance"
   Alpha <- "-log10(PEP)"
-  refRat <- ref.rat
+  labCol <- intersect(labCol, colnames(ptmpep))
+  allKol <- unique(c("id", idCol, namesCol, "Genes", Size, Alpha, plotlyLab,
+                     "Potential contaminant", labCol, mtchCol))
+  allKol <- intersect(allKol, colnames(ptmpep))
+  g <- grep(topattern(intRef), colnames(ptmpep), value = TRUE)
+  myData <- ptmpep[, c(allKol, g)]
+  ptmpep[, g] <- log2(ptmpep[, g]) # Because limma expects log2 expression data and for peptide input data isn't log-transformed!
+  myData$"-log10(PEP)" <- -log10(myData$PEP)
 }
 if (dataType == "PG") {
-  myData <- PG
   intRef <- Prot.Expr.Root
   ratRef <- Prot.Rat.Root
-  namesCol <- mtchCol <- "Leading protein IDs"
-  namesRoot <- "PG"
-  runLoc <- FALSE
-  ohDeer <- paste0(wd, "/Reg. analysis/F-tests")
   idCol <- protCol <- "Protein IDs"
+  namesCol <- "Leading protein IDs"
+  mtchCol <- "Protein IDs"
   plotlyLab <- PrLabKol
   Size <- "Rel. av. log10 abundance"
   Alpha <- "Rel. log10(Peptides count)"
-  refRat <- Ref.Ratios
+  labCol <- intersect(labCol, colnames(PG))
+  allKol <- unique(c("id", idCol, namesCol, "Genes", Size, Alpha, plotlyLab,
+                     "Potential contaminant", labCol, mtchCol))
+  allKol <- intersect(allKol, colnames(PG))
+  if (quantAlgo == "limpa") {
+    limpaMode <- TRUE
+    myData <- quantData_list$EList_obj
+    w <- which(rownames(myData$genes) %in% PG[[mtchCol]])
+    m <- match(rownames(myData$genes)[w], PG[[mtchCol]])
+    myData$genes[, allKol] <- NA
+    myData$genes[w, allKol] <- PG[m, allKol]
+    colnames(myData) <- sub(".* - ", intRef, colnames(myData))
+  } else {
+    g <- grep(topattern(intRef), colnames(PG), value = TRUE)
+    myData <- PG[, c(allKol, g)]
+    myData[, g] <- myData[, g]/log10(2L) # Because limma expects log2 expression data
+  }
+  namesRoot <- "PG"
+  runLoc <- FALSE
+  ohDeer <- paste0(wd, "/Reg. analysis/F-tests")
 }
+refRat <- NULL
 BH.FDR_F <- sort(BH.FDR, decreasing = TRUE)
 #
-labKol <- c("Label", "Labels")
-labKol <- labKol[which(labKol %in% colnames(myData))]
-if ((length(labKol))&&(!Param$Plot.labels %in% colnames(myData))) {
-  myData[[Param$Plot.labels]] <- myData[[labKol[1]]]
-}
 if (!dir.exists(ohDeer)) { dir.create(ohDeer, recursive = TRUE) }
-#
-# First check that we have means per group
-expMap_F <- Exp.map[match(rownames(designMatr), Exp.map$Ref.Sample.Aggregate),]
-# Replace hyphens by dots to avoid issues with evaluating contrasts
-for (nuCoeff in Coefficients) {
-  Coeff <- gsub("___$", "", nuCoeff)
-  stopifnot(Coeff %in% colnames(Exp.map))
-  l <- length(grep("-", Exp.map[[Coeff]])) # Not expMap_F in case we are re-running a small chunk
-  if (l) {
-    stopifnot(!nuCoeff %in% colnames(Exp.map)) # Not expMap_F in case we are re-running a small chunk
-    expMap_F[[nuCoeff]] <- gsub("-", ".", expMap_F[[Coeff]])
-  }
-}
-Group_ <- do.call(paste, c(expMap_F[, Coefficients, drop = FALSE], sep = "_"))
-Group_ <- as.factor(Group_)
-expMap_F$Group_ <- Group_
-#
-expContr_F <- expContrasts_F
-expContr_F$Map <- lapply(expContr_F$All, function(x) { #x <- expContr_F$All[[1]]
-  em <- expMap_F[which(expMap_F$Group_ %in% unlist(x)),]
-  em$Expression_Column <- paste0(intRef, em$Ref.Sample.Aggregate)
-  em$Ratios_Column <- paste0(ratRef, em$Ref.Sample.Aggregate)
-  em[which(em$Expression_Column %in% colnames(myData)),]
-  em <- em[c(which(em$Reference),
-             which(!em$Reference)),]
-  return(em)
-})
-contrCall_F <- paste0("contrMatr_F %<o% makeContrasts(",
-                      paste(expContr_F$Contrasts, collapse = ", "),
-                      ", levels = designMatr)")
-#cat(contrCall_F, "\n")
-eval(parse(text = contrCall_F), envir = .GlobalEnv)
 
-# Average LFCs
-# (Calculate average ratios)
-whSimple <- which(expContr_F$Type == "Simple") # One way contrasts
-tmp <- lapply(whSimple, function(x) { #x <- whSimple[1]
-  em <- expContr_F$Map[x][[1]]
-  nm <- expContr_F$name[x]
-  w0 <- which(em$Reference)
-  w1 <- which(!em$Reference)
-  w1r <- which((!em$Reference)&(em$Ratios_Column %in% colnames(myData)))
-  kr1 <- paste0("Mean ", ratRef, nm) # Eventually we can rename those, either to contrast name or to full contrast (X-Y)
-  RES <- data.frame(V1 = rep(NA, nrow(myData)))
-  colnames(RES) <- kr1
-  if (!length(w1r)) {
-    warning("This contrast does not have ratio values at this stage. This calls for a rewrite of how ratios are defined!")
-  }
-  if (!length(w0)) {
-    stop("Invalid contrast! Investigate!")
-  }
-  #
-  # Ratios have two different origins/roles in proteomics data analyses:
-  #  - Some software (MaxQuant) can in some cases (SILAC) measure ratios more precisely than intensities.
-  #    Thus sometimes software-provided ratios are quantitatively more informative than intensities!
-  #    In these cases, this intensity-based workflow should as early as feasible propagate ratios-level information onto quantities:
-  #          - if the software provides Ia, Ib and R(a/b), then the new intensities (J) will be defined by Ja+Jb = Ia+Ib and Ja/Jb = R(a/b)
-  #          - after that, ratios can be ignored again.
-  #    For historical reasons (this evolved from a SILAC workflow), this workflow also calculates ratios at different stages.
-  #    This should be removed! Only provide average LFC at the end!
-  #    Note though that we will still have to measure ref-to-ref or intra-group ratios... unless we also rewrite all of the statistics.
-  #  - We also plot a log2 average ratio/fold change (LFCs) in volcano plots. This is the only thing we need.
-  #
-  # Yet one should never forget that ratios should not be the main focus of analysis. Certainly they are not normal so should not be tested statistically! 
-  #
-  # As part of rewriting this to focus on intensity data, we will calculate ratios here directly from expression values.
-  # We will then be able to progressively remove the redundant ratios from the earlier parts of the workflow.
-  #
-  if (Nested) {
-    rps <- unique(em$Replicate)
-    rats <- sapply(rps, function(r) {
-      k0 <- em$Expression_Column[which((em$Replicate == r)&(em$Reference))]
-      k1 <- em$Expression_Column[which((em$Replicate == r)&(!em$Reference))]
-      stopifnot(length(k0) == 1, length(k1) == 1)
-      return((myData[[k1]]-myData[[k0]])/log10(2))
-    })
-    if (length(rps) == 1) {
-      RES[[kr1]] <- rats
-    } else {
-      rats <- cbind(rats)
-      rs <- as.data.frame(t(parallel::parApply(parClust, rats, 1, Av_SE_fun)))
-      RES[[kr1]] <- rs[, 1]
-    }
-  } else {
-    k1 <- em$Expression_Column[w1]
-    k0m <- paste0("Mean ", intRef, unique(em[w0, VPAL$column]))
-    rats <- sweep(myData[, k1], 1, myData[[k0m]], "-")/log10(2)
-    if (length(w1) == 1) {
-      RES[[kr1]] <- rats
-    } else {
-      rs <- as.data.frame(t(parallel::parApply(parClust, rats, 1, Av_SE_fun)))
-      RES[[kr1]] <- rs[, 1]
-    }
-  }
-  return(RES)
-})
-tmp <- do.call(cbind, tmp)
-xCol <- colnames(tmp)
-w <- which(!xCol %in% colnames(myData))
-if (length(w)) {
-  warning("Strange...")
-  myData[, xCol[w]] <- tmp[, w]
-}
-whDouble <- which(expContr_F$Type == "Double") # Two way contrasts
-if (length(whDouble)) {
-  tmp2 <- lapply(whDouble, function(x) { #x <- whDouble[1]
-    contr <- unlist(strsplit(gsub("^\\(|\\)$", "", expContr_F$Contrasts[x]), "\\) - \\("))
-    m <- match(contr, expContr_F$Contrasts[whSimple])
-    res <- tmp[[m[1]]] - tmp[[m[2]]]
-  })
-  tmp2 <- do.call(cbind, tmp2)
-  colnames(tmp2) <- paste0("Mean ", ratRef, expContr_F$name[whDouble])
-  myData[, colnames(tmp2)] <- tmp2
-  xCol <- c(xCol, colnames(tmp2))
-}
-# Ref ratios
 Param$Ratios.Contamination.Rates <- abs(as.numeric(Param$Ratios.Contamination.Rates))
 if (Param$Ratios.Thresholds == "Absolute log2 FC threshold") {
-  refRat_F <- NULL
   lfcThr <- Param$Ratios.Contamination.Rates
 }
 if (Param$Ratios.Thresholds == threshMsg) {
-  refRat_F <- setNames(lapply(1:nrow(expContr_F), function(x) { #x <- 1 #x <- 4
-    x <- unique(c(unlist(strsplit(expContr_F$x1[x], " - ")),
-                  unlist(strsplit(expContr_F$x0[x], " - "))))
-    x <- gsub("^Group_", "", x)
-    x <- unique(expMap_F[which(expMap_F$Group_ %in% x), VPAL$column])
-    x <- is.all.good(as.numeric(unlist(refRat[x])))
-    return(x)
-  }), expContr_F$name)
-  d <- abs(unlist(refRat_F))
-  d <- sort(d, decreasing = TRUE)
-  if (Param$Ratios.Contamination.Rates > 0) {
-    d <- d[floor(length(d)*Param$Ratios.Contamination.Rates)]
-  } else {
-    d <- max(d)+0.000001
-  }
-  lfcThr <- unname(d)
+  stop("This option is deprecated!")
 }
-if (lfcThr != 0) {
+if (lfcThr != 0L) {
   warning("Please note that limma allows applying a non-null lfc threshold, but does not recommend to do it (see ?decideTests for a discussion).")
 }
 
-#
-kol <- paste0(intRef, rownames(designMatr))
-wY <- which(kol %in% colnames(myData))
-kol <- kol[wY]
-tmpVal <- myData[, kol]
-colnames(tmpVal) <- rownames(designMatr)[wY]
-parallel::clusterExport(parClust, list("tmpVal", "Nested", "AltHyp"), envir = environment())
-
-# - Moderated F-test (limma):
-# Do NOT use duplicateCorrelation(), it is for duplicate rows!!!
-## Test for heteroskedasticity - commented because we always use voomaLmFit() to make us robust against it!
-# varMatr <- apply(tmpVal, 1, var, na.rm = TRUE)
-# meanMatr <- rowMeans(tmpVal, na.rm = TRUE)
-# varMeanMatr <- data.frame("variance" = varMatr,
-#                           "mean" = meanMatr,
-#                           row.names = names(varMatr))
-# lmMod <- lm(variance ~ mean, data = varMeanMatr)
-# heteroSkedTst <- lmtest::bptest(lmMod)
-## Filter
-NA_Filt <- as.data.frame(sapply(1:ncol(designMatr), function(x) { #x <- 1
-  kols <- row.names(designMatr)[which(designMatr[, x] == 1)]
-  apply(tmpVal[, kols, drop = FALSE], 1, function(y) { length(proteoCraft::is.all.good(y)) }) >= 2
-}))
-NA_Filt <- which(rowSums(NA_Filt) == ncol(NA_Filt)) # We will apply this result to decideTests
-## Fit model
-#
-#
-stop("Add support for blocking factors here!")
-# Fit with heteroskedasticity correction
-voomFit <- voomaLmFit(tmpVal[NA_Filt,], designMatr, keep.EList = TRUE)
-voomFit$genes <- myData[NA_Filt, namesCol] # For convenience
-# Compare voomaLmFit and lmFit:
-# basicFit <- lmFit(tmpVal[NA_Filt,], designMatr)
-# basicFit$genes <- myData[NA_Filt, namesCol]
-# basicFit <- contrasts.fit(basicFit, contrMatr_F)
-# basicFit <- eBayes(basicFit)
-# tstSD <- data.frame(Voom_resSD = voomFit$sigma, # Rescaling would be needed here to account for the weights
-#                     lm_resSD = basicFit$sigma)
-# a <- melt(basicFit$p.value)
-# b <- melt(voomFit$p.value)
-# tstPV <- a
-# colnames(tstPV)[which(colnames(tstPV) == "value")] <- "lmFit"
-# colnames(tstPV)[which(colnames(tstPV) == "Contrasts")] <- "Contrast"
-# tstPV$voomaLmFit <- b$value
-# plot1 <- ggplot(tstSD) +
-#   geom_point(aes(x = lm_resSD, y = Voom_resSD)) + theme_bw() +
-#   ggtitle("Residual SDs") + xlab("lmFit") + ylab("voomaLmFit") #+ coord_fixed()
-# poplot(plot1)
-# plot2 <- ggplot(tstPV) +
-#   geom_point(aes(x = lmFit, y = voomaLmFit, color = Contrast), show.legend = FALSE) +
-#   theme_bw() + scale_color_viridis_d() +
-#   ggtitle("P-values") + coord_fixed() + facet_wrap(~Contrast)
-# poplot(plot2)
-# Similar, strongly correlated p-values indicate that it is ok to use voomaLmFit() here,
-# i.e. it captures essentially the same information as lmFit() would
-# but with the additional robustness to heteroskedasticity.
-#
-#
-# Decisions from ANOVA
-# ====================
-#
 # Step 1 - run F-test
 # -------------------
-fit_F <- eBayes(voomFit) # Run F-test
-my_F_Data <- myData[, c(namesCol, idCol, protCol, mtchCol, paste0("Mean ", ratRef, expContr_F$name))]
-my_F_Data[[F_Root]] <- NA
-my_F_Data[NA_Filt, F_Root] <- -log10(fit_F$F.p.value)
+# voomaLmFit() isn't compatible with duplicateCorrelation()
+# For an ANOVA, I think controlling for variance is more important than blocks, so I will go for voomaLmFit() instead of lmFit() with optional duplicateCorrelation()
+if (limpaMode) {
+  voomFit <- voomaLmFit(myData, designMatr, keep.EList = TRUE)
+  NA_Filt <- 1L:nrow(myData)
+} else {
+  kol <- paste0(intRef, rownames(expMap))
+  kol <- intersect(kol, colnames(myData))
+  tmpVal <- myData[, kol]
+  colnames(tmpVal) <- rownames(designMatr)[match(rownames(designMatr), gsub("___", "_", expMap[[RSA$limmaCol]]))]
+  NA_Filt <- as.data.frame(sapply(1L:ncol(designMatr), \(x) { #x <- 1L
+    kols <- row.names(designMatr)[which(designMatr[, x] == 1L)]
+    apply(tmpVal[, kols, drop = FALSE], 1L, \(y) { length(is.all.good(y)) }) >= 2L
+  }))
+  NA_Filt <- which(rowSums(NA_Filt) == ncol(NA_Filt)) # We will apply this result to decideTests
+  voomFit <- voomaLmFit(tmpVal[NA_Filt, ], designMatr, keep.EList = TRUE)
+  voomFit$genes <- myData[NA_Filt, namesCol] # For convenience
+}
+voomFit <- eBayes(voomFit) # Run F-test
+fit_postHoc <- contrasts.fit(voomFit, contrMatr)
+fit_postHoc <- eBayes(fit_postHoc)
+if (limpaMode) {
+  my_F_Data <- myData$genes
+} else {
+  my_F_Data <- myData[, unique(c(namesCol, idCol, protCol, mtchCol))]
+  my_F_Data[[F_Root]] <- NA
+}
+my_F_Data[NA_Filt, F_Root] <- -log10(voomFit$F.p.value)
 # Do NOT:
 #  - use contrasts.fit() before eBayes() for the F-test!
 #  - make limma tests artificially one-sided; instead:
@@ -289,9 +140,7 @@ my_F_Data[NA_Filt, F_Root] <- -log10(fit_F$F.p.value)
 #
 # Step 2 - run post-hoc tests (global moderated t-tests with contrasts)
 # ---------------------------------------------------------------------
-fit_postHoc <- contrasts.fit(voomFit, contrMatr_F)
-fit_postHoc <- eBayes(fit_postHoc)
-F_PVal_postHoc <- paste0(F_Root, " - ", expContr_F$name)
+F_PVal_postHoc <- paste0(F_Root, " - ", myContrasts$Contrast)
 my_F_Data[, F_PVal_postHoc] <- NA
 my_F_Data[NA_Filt, F_PVal_postHoc] <- -log10(fit_postHoc$p.value)
 
@@ -307,10 +156,10 @@ my_F_Data[NA_Filt, F_PVal_postHoc] <- -log10(fit_postHoc$p.value)
 fdrKol <- setNames(paste0("mod. F-test Significant-FDR=", BH.FDR_F*100, "%"),
                    BH.FDR_F*100)
 F_fdr <- list()
-F_fdr$F_test <- proteoCraft::FDR(my_F_Data,
-                                 pvalue_col = F_Root,
-                                 fdr = BH.FDR_F,
-                                 returns = c(TRUE, TRUE, FALSE))
+F_fdr$F_test <- FDR(my_F_Data,
+                    pvalue_col = F_Root,
+                    fdr = BH.FDR_F,
+                    returns = c(TRUE, TRUE, FALSE))
 my_F_Data[, fdrKol] <- F_fdr$F_test$`Significance vector`
 #
 # b) Significance columns for each post-hoc test
@@ -319,22 +168,24 @@ my_F_Data[, fdrKol] <- F_fdr$F_test$`Significance vector`
 # The decision as to whether to calculate FDR thresholds for each post-hoc test indiviually,
 # or globally for all, could be parameter controlled in the future.
 tmp <- my_F_Data[, F_PVal_postHoc, drop = FALSE]
-readr::write_rds(tmp, paste0(wd, "/tmp.RDS"))
-clusterExport(parClust, list("F_Root", "BH.FDR_F", "wd"))
-invisible(clusterCall(parClust, function() {
-  tmp <<- readr::read_rds(paste0(wd, "/tmp.RDS"))
+tmpFl <- tempfile(fileext = ".rds")
+readr::write_rds(tmp, tmpFl)
+clusterExport(parClust, list("F_Root", "BH.FDR_F", "tmpFl", "FDR", "is.all.good"))
+invisible(clusterCall(parClust, \() {
+  tmp <- readr::read_rds(tmpFl)
+  assign("tmp", tmp, .GlobalEnv)
   return()
 }))
-unlink(paste0(wd, "/tmp.RDS"))
-F_fdr[expContr_F$name] <- parLapply(parClust, expContr_F$name, function(i) { #i <- expContr_F$name[1]
+unlink(tmpFl)
+F_fdr[myContrasts$Contrast] <- parLapply(parClust, myContrasts$Contrast, \(i) { #i <- myContrasts$Contrast[1L]
   F_pv_i <- paste0(F_Root, " - ", i)
-  return(proteoCraft::FDR(tmp,
-                          pvalue_col = F_pv_i,
-                          fdr = BH.FDR_F,
-                          returns =c(TRUE, TRUE, FALSE)))
+  return(FDR(tmp,
+             pvalue_col = F_pv_i,
+             fdr = BH.FDR_F,
+             returns =c(TRUE, TRUE, FALSE)))
 })
 fdrKol_contr <- c()
-for (i in expContr_F$name) {
+for (i in myContrasts$Contrast) {
   fdrKol_i <- paste0(fdrKol, " - ", i)
   fdrKol_contr <- c(fdrKol_contr, fdrKol_i)
   my_F_Data[, fdrKol_i] <- F_fdr[[i]]$`Significance vector`
@@ -342,155 +193,56 @@ for (i in expContr_F$name) {
 #
 # c) Final decision, based on the prior Significance columns + logFC
 # We define a single logFC threshold for the whole test
-stop("Implement one/two-sided here!")
+# First get log2FC columns
+xCol <- paste0(ratRef, myContrasts$Contrast)
+my_F_Data[NA_Filt, xCol] <- fit_postHoc$coefficients[, myContrasts$Contrast]
 regRoot_F <- "mod. F-test Regulated - "
-regKol <- paste0(regRoot_F, expContr_F$name)
+regKol <- paste0(regRoot_F, myContrasts$Contrast)
 my_F_Data[, regKol] <- "non significant"
-for (fdr in BH.FDR_F) { #fdr <- BH.FDR_F[1]
+for (fdr in BH.FDR_F) { #fdr <- BH.FDR_F[1L]
   fdrkl1 <- fdrKol[as.character(fdr*100)]
   tst1 <- my_F_Data[[fdrkl1]] == "+"
-  for (i in expContr_F$name) { #i <- expContr_F$name[2]
-    rgkl <- paste0(regRoot_F, i)
-    fdrkl2 <- paste0(fdrKol[as.character(fdr*100)], " - ", i)
+  for (i in 1L:nrow(myContrasts)) { #i <- 1L
+    contr <- myContrasts$Contrast[[i]]
+    upOnly <- myContrasts$`Up-only`[[i]]
+    rgkl <- paste0(regRoot_F, contr)
+    fdrkl2 <- paste0(fdrKol[as.character(fdr*100)], " - ", contr)
     tst2 <- my_F_Data[[fdrkl2]] == "+"
-    fckl <- paste0("Mean ", ratRef, i)
+    fckl <- paste0(ratRef, contr)
     tst3 <- my_F_Data[[fckl]] >= 0
     tst4 <- abs(my_F_Data[[fckl]]) < lfcThr
     wUp <- which(tst1&tst2&tst3)
-    wDown <- which(tst1&tst2&!tst3)
-    wNS <- which(tst1&tst2&tst4)
     my_F_Data[wUp, rgkl] <- paste0("up, FDR = ", fdr*100, "%")
-    my_F_Data[wDown, rgkl] <- paste0("down, FDR = ", fdr*100, "%")
+    if (!upOnly) {
+      wDown <- which(tst1&tst2&!tst3)
+      my_F_Data[wDown, rgkl] <- paste0("down, FDR = ", fdr*100, "%")
+    }
+    wNS <- which(tst1&tst2&tst4)
     my_F_Data[wNS, rgkl] <- "too small FC"
   }
 }
 #View(my_F_Data)
-
-# DRAFT - UNFINISHED (CAN IT EVER BE COMPLETED AT ALL?)
-# Mulcom - essentially a "moderated" Dunnett's test
-# Was a good idea... but it is reproducibly causing R to crash...
-# I will give it up for now...
-if ((!exists("Mulcom"))||(length(Mulcom) != 1)||(!is.logical(Mulcom))||(is.na(Mulcom))) { Mulcom <- FALSE }
-Mulcom %<o% Mulcom
-if (Mulcom) {
-  if(!require(Biobase)) { pak::pak("Biobase") }
-  library(Biobase)
-  if(!require(Mulcom)) { pak::pak("Mulcom") }
-  library(Mulcom)
-  # See https://bioconductor.statistik.tu-dortmund.de/packages/3.1/bioc/vignettes/Mulcom/inst/doc/MulcomVignette.pdf
-  m <- match(colnames(tmpVal), rownames(designMatr))
-  grps <- apply(designMatr[m,], 1, function(x) { colnames(designMatr)[which(x == 1)] })
-  grps <- gsub("^Group_", "", grps)
-  grps2 <- match(grps, unique(grps))-1
-  tmpVal2 <- proteoCraft::Data_Impute2(tmpVal, grps)
-  tmpVal2 <- as.matrix(tmpVal2$Imputed_data)
-  # rownames(tmpVal2) <- myData[[idCol]]
-  # colnames(tmpVal2) <- gsub("___", "_", colnames(tmpVal2))
-  # phDat <- data.frame(Sample = colnames(tmpVal2),
-  #                     Group = grps2)
-  # rownames(phDat) <- colnames(tmpVal2)
-  # phDat <- Biobase::AnnotatedDataFrame(data = phDat)
-  # ftDat <- myData[, unique(c(idCol, protCol)), drop = FALSE]
-  # rownames(ftDat) <- rownames(tmpVal2)
-  # ftDat <- Biobase::AnnotatedDataFrame(data = ftDat)
-  # tmpVal2 <- Biobase::ExpressionSet(assayData = tmpVal2,
-  #                                   phenoData = phDat,
-  #                                   featureData = ftDat)
-  # mulcom_scores <- mulScores(tmpVal2, grps2)
-  #data(benchVign)
-  #eset <- exprs(Affy); index = Affy$Groups
-  #mulcom_scores <- mulScores(Affy, Affy$Groups)
-  #
-  # A slightly rewritten function because the original crashes the R session during the C call... though the reason why is not obvious...
-  # It is also rewritten more concisely for clarity.
-  # Unfortunately... it still crashes!
-  mulScores2 <- function(eset, index) {
-    #eset <- tmpVal2; index = grps2
-    data(benchVign)
-    eset <- exprs(Affy); index = Affy$Groups
-    
-    if ((!is.vector(index))||(sum(c("ExpressionSet", "matrix", "data.frame") %in% class(eset)) == 0)) {
-      stop("error in input files", call. = FALSE)
-    }
-    mulcom <- new("MULCOM")
-    if ("ExpressionSet" %in% class(eset)) {
-      data <- as.vector(as.matrix(exprs(eset)))
-      rwNms <- featureNames(eset)
-    } else {
-      if ("data.frame" %in% class(eset)) { eset <- as.matrix(eset) }
-      data <- as.vector(eset)
-      rwNms <- rownames(eset)
-    } 
-    Grps <- index
-    nGrps <- length(levels(factor(Grps)))
-    nGrps_1 <- nGrps - 1
-    nRws <- nrow(eset)
-    nCol <- ncol(eset)
-    reference <- c(0)
-    means <- mse <- c(seq(0, 0, length = nRws*nGrps_1))
-    SS <- c(seq(0, 0, length = nRws*nGrps))
-    harmonic_means <- c(seq(0, 0, length = nGrps_1))
-    sss2 <- c(seq(0, 0, length = nRws))
-    out <- .Call("Single_SimulationC", as.double(data), 
-                 as.double(means), as.double(harmonic_means), 
-                 as.double(SS), as.double(sss2), as.double(mse), 
-                 as.integer(nRws), as.integer(nCol), as.integer(Grps), 
-                 as.integer(nGrps), as.integer(reference),
-                 PACKAGE = "Mulcom")
-    mulcom@FC <- t(data.frame(matrix(out[[2]],
-                                     ncol = nGrps_1,
-                                     byrow = TRUE),
-                              row.names = rwNms))
-    mulcom@HM <- matrix(out[[3]],
-                        ncol = nGrps_1,
-                        byrow = TRUE)
-    mse <- data.frame(matrix(out[[6]],
-                             ncol = nGrps_1,
-                             byrow = TRUE),
-                      row.names = rwNms)
-    mulcom@MSE_Corrected <- t(mse)
-    return(mulcom)
-  }
-  mulcomScore <- mulScores2(tmpVal2, grps2)
-}
-
-# Volcano plots
-kol <- unique(c(idCol, protCol, plotlyLab, "Potential contaminant", Param$Plot.labels,
-                xCol, Alpha, fdrKol, fdrKol_contr, regKol))
-kol <- kol[which(!kol %in% colnames(my_F_Data))]
-my_F_Data[, kol] <- myData[, kol]
-my_F_Data[["Rel. av. log10 abundance"]] <- myData[[Size]]
-contr <- data.frame(Contrast = expContr_F$name)
-if ("Target" %in% colnames(Exp.map)) {
-  tmp <- gsub("^\\(|\\) - \\(.*", "", contr$Contrast)
-  contr$Target <- Exp.map$Target[match(tmp, Exp.map[[VPAL$column]])]
-}
-aggr_dummy <- data.frame(Aggregate.Name = "Contrast", Characteristics = "Contrast")
-aggr_list_dummy <- list(Contrast = unlist(contr))
+kol <- setdiff(allKol, colnames(my_F_Data))
+if (length(kol)) { my_F_Data[, kol] <- myData[, kol] }
 #
-F_volc <- Volcano.plot(Prot = my_F_Data, mode = "custom", experiments.map = contr,
-                       X.root = paste0("Mean ", ratRef),
-                       Y.root = paste0(F_Root, " - "),
-                       aggregate.map = aggr_dummy, aggregate.list = aggr_list_dummy,
-                       aggregate.name = "Contrast",
-                       parameters = Param,
-                       save = c("jpeg", "pdf"),
-                       FDR.root = "mod. F-test Significant-FDR=",
-                       Ref.Ratio.values = refRat_F,
-                       ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates),
-                       arbitrary.lines = arbitrary.thr,
-                       proteins = prot.list, proteins_split = protsplit, IDs.col = idCol,
-                       Proteins.col = protCol,
-                       return = FALSE, return.plot = TRUE, title = "F-test volcano plot ",
-                       subfolder = ohDeer, subfolderpertype = FALSE,
-                       Symmetrical = TRUE,
-                       Alpha = Alpha, Size = "Rel. av. log10 abundance", Size.max = 2,
-                       plotly = create_plotly, plotly_local = create_plotly_local,
-                       plotly_labels = plotlyLab,
-                       Ref.Ratio.method = paste0("obs", RefRat_Mode),
-                       cl = parClust,
-                       reg.root = regRoot_F#, saveData = TRUE
-                       )
+# Volcano plots
+my_F_Data[[Param$Plot.labels]] <- my_F_Data[[labCol[1L]]]
+volcPlot_args2 <- volcPlot_args
+volcPlot_args2$Prot <- my_F_Data
+volcPlot_args2$X.root <- ratRef
+volcPlot_args2$Y.root <- paste0(F_Root, " - ")
+volcPlot_args2$FDR.root <- "mod. F-test Significant-FDR="
+volcPlot_args2$IDs.col <- idCol
+volcPlot_args2$Proteins.col <- protCol
+volcPlot_args2$subfolder <- ohDeer
+volcPlot_args2$reg.root <- regRoot_F
+volcPlot_args2$title <- "F_test volcano plot "
+volcPlot_args2$cl <- parClust
+# For testing:
+#DefArg(Volcano.plot)
+#invisible(lapply(names(volcPlot_args2), \(x) { assign(x, volcPlot_args2[[x]], envir = .GlobalEnv); return() }))
+#TESTING <- TRUE
+F_volc <- do.call(Volcano.plot, volcPlot_args2)
 stopCluster(parClust)
 source(parSrc)
 #
@@ -501,24 +253,8 @@ Src <- paste0(libPath, "/extdata/R scripts/Sources/save_Plotlys.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 #
-tmp_Fdat <- F_volc$Protein_groups_file
-if (!is.null(tmp_Fdat)) { # Legacy code: since 6.3.1.7, we do not get the Regulated columns from the Volcano.plot function anymore!
-  stop("Uh... why was the condition TRUE?!?!")
-  tmp_Fdat[[F_Root]] <- myData[[F_Root]]
-  tmp_Fdat[[mtchCol]] <- myData[[mtchCol]]
-  kol <- colnames(tmp_Fdat)
-  g <- grep("^Regulated - ", kol)
-  colnames(tmp_Fdat)[g] <- paste0("mod. F-test ", colnames(tmp_Fdat)[g])
-  kol <- colnames(tmp_Fdat)
-  kol <- kol[which(!kol %in% dummyPVCol)]
-  tmp_Fdat <- tmp_Fdat[, kol]
-  w <- which(!kol %in% colnames(myData))
-  #kol[w]
-  myData[, kol[w]] <- tmp_Fdat[, kol[w]]
-}
-#
 F_thresh <- F_volc$Thresholds
-thresh <- lapply(names(F_thresh$Absolute), function(x) {
+thresh <- lapply(names(F_thresh$Absolute), \(x) {
   y <- F_thresh$Absolute[[x]]
   x <- data.frame(Group = rep(cleanNms(x), nrow(y)))
   return(cbind(x, y))
@@ -542,45 +278,78 @@ fl <- paste0(ohDeer, "/Thresholds.xlsx")
 wb <- wb_workbook()
 wb <- wb_set_creators(wb, "Me")
 wb <- wb_add_worksheet(wb, "Thresholds")
-dms <- wb_dims(2, 1)
+dms <- wb_dims(2L, 1L)
 wb <- wb_add_data(wb, "Thresholds", "Absolute thresholds", dms)
 wb <- wb_add_font(wb, "Thresholds", dms, "Calibri", wb_color(hex = "FF000000"), bold = "true",
                   italic = "true", underline = "single")
-dms <- wb_dims(3, 2)
+dms <- wb_dims(3L, 2L)
 wb <- wb_add_data_table(wb, "Thresholds", thresh, dms,
                         col_names = TRUE, table_style = "TableStyleMedium2",
                         banded_rows = TRUE, banded_cols = FALSE)
-dms <- wb_dims(3+nrow(thresh)+3, 1)
+dms <- wb_dims(nrow(thresh)+6L, 1L)
 wb <- wb_add_data(wb, "Thresholds", "FDR thresholds", dms)
 wb <- wb_add_font(wb, "Thresholds", dms, "Calibri", wb_color(hex = "FF000000"), bold = "true",
                   italic = "true", underline = "single")
-dms <- wb_dims(3+nrow(thresh)+4, 2)
+dms <- wb_dims(nrow(thresh)+7L, 2L)
 if (!is.null(fdrThresh)) {
   wb <- wb_add_data_table(wb, "Thresholds", fdrThresh, dms,
                           col_names = TRUE, table_style = "TableStyleMedium2",
                           banded_rows = TRUE, banded_cols = FALSE)
-  wb <- wb_set_col_widths(wb, "Thresholds", 1, 3)
+  wb <- wb_set_col_widths(wb, "Thresholds", 1L, 3L)
   tmp1 <- rbind(colnames(thresh), thresh)
-  colnames(tmp1) <- paste0("V", 1:ncol(tmp1))
+  colnames(tmp1) <- paste0("V", 1L:ncol(tmp1))
   tmp2 <- rbind(colnames(fdrThresh), fdrThresh)
-  colnames(tmp2) <- paste0("V", 1:ncol(tmp2))
+  colnames(tmp2) <- paste0("V", 1L:ncol(tmp2))
   tst <- plyr::rbind.fill(tmp1, tmp2)
-  tst <- setNames(apply(tst, 2, function(x) { max(nchar(x), na.rm = TRUE) }), NULL)
-  wb <- wb_set_col_widths(wb, "Thresholds", 1:(length(tst)+1), c(3, tst))
+  tst <- setNames(apply(tst, 2L, \(x) { max(nchar(x), na.rm = TRUE) }), NULL)
+  wb <- wb_set_col_widths(wb, "Thresholds", 1L:(length(tst)+1L), c(3L, tst))
 }
 wb_save(wb, fl)
 #xl_open(fl)
 #
+# Final data to be exported to PG or pep
+if (limpaMode) {
+  myData <- myData$genes
+}
+myData[, colnames(my_F_Data)] <- my_F_Data
+# Remove log2-transformed data from myData to avoid overwriting quant data in PG or pep
+kol <- grep(topattern(intRef), colnames(myData), value = TRUE, invert = TRUE)
+#
+F_kols <- c(grep(topattern(F_Root), colnames(myData), value = TRUE),
+            grep(topattern(regRoot_F), colnames(myData), value = TRUE))
 if (dataType == "modPeptides") {
-  ptmpep <- myData
-  #PTMs_F_test_data[[Ptm]] <- tmp_Fdat
+  w <- which(ptmpep[[mtchCol]] %in% myData[[mtchCol]])
+  #which(!ptmpep[[mtchCol]] %in% myData[[mtchCol]])
+  m <- match(ptmpep[w, mtchCol], myData[[mtchCol]])
+  ptmpep[, F_kols] <- NA
+  ptmpep[w, F_kols] <- myData[m, F_kols]
   PTMs_F_test_data[[Ptm]] <- my_F_Data
 }
 if (dataType == "PG") {
-  PG <- myData
-  #F_test_data %<o% tmp_Fdat
+  w <- which(PG[[mtchCol]] %in% myData[[mtchCol]])
+  #which(!PG[[mtchCol]] %in% myData[[mtchCol]])
+  m <- match(PG[w, mtchCol], myData[[mtchCol]])
+  PG[, F_kols] <- NA
+  PG[w, F_kols] <- myData[m, F_kols]
   F_test_data %<o% my_F_Data
 }
 #
+# Also a posteriori F-test P-values histogram:
+nbin <- ceiling(max(c(20L, 10L*round(nrow(myData)/1000L))))
+bd <- (0L:nbin)/nbin
+if (F_Root %in% colnames(myData)) {
+  temp <- data.frame(value = is.all.good(10L^(-myData[[F_Root]])))
+  ttl <- "Histogram: F-test moderated Pvalue"
+  plot <- ggplot(temp, aes(x = value)) +
+    geom_histogram(bins = nbin, colour = "black", alpha = 0.25, fill = "green") +
+    guides(fill = "none") + theme_bw() + ggtitle(ttl)
+  #poplot(plot)
+  ttla <- gsub(": ?", " - ", ttl)
+  suppressMessages({
+    ggsave(paste0(ohDeer, "/", ttla, ".jpeg"), plot, dpi = 300L)
+    ggsave(paste0(ohDeer, "/", ttla, ".pdf"), plot, dpi = 300L)
+  })
+  ReportCalls <- AddPlot2Report(Title = ttla)
+}
 # Cleanup
 for (i in allArgs) { try(rm(i), silent = TRUE) }

@@ -41,12 +41,12 @@ cleanNms3 <- function(names,
   # However, we know that if it is present once, then we have a double contrast!
   g2c <- grep("\\) - \\(", names[g])
   if (length(g2c)) {
-    names[g][g2c] <- vapply(strsplit(names[g][g2c], "\\) - \\("), function(x) { #x <- strsplit(names[g][g2c], "\\) - \\(")[1]
+    names[g][g2c] <- vapply(strsplit(names[g][g2c], "\\) - \\("), \(x) { #x <- strsplit(names[g][g2c], "\\) - \\(")[1L]
       x <- unlist(x)
       l <- length(x)
-      rg <- (l-1):l
-      x[l-1] <- paste(x[rg], collapse = "<-VERSUS->")
-      x <- x[1:(l-1)]
+      rg <- (l-1L):l
+      x[l-1L] <- paste(x[rg], collapse = "<-VERSUS->")
+      x <- x[1L:(l-1L)]
       return(paste(x, collapse = ") - (")) 
     }, "")
   }
@@ -69,17 +69,17 @@ cleanNms3 <- function(names,
   #
   kol <- grep("^([A-Z][a-z]{2})+$", colnames(experiments.map), value = TRUE)
   Aggr <- unique(unlist(aggregate.map$Characteristics))
-  w1 <- which(vapply(Aggr, function(x) {
+  w1 <- which(vapply(Aggr, \(x) {
     length(unique(experiments.map[[x]]))
-  }, 1) == 1)
+  }, 1L) == 1L)
   if (!length(w1)) {
     names2Fix2new <- gsub("___", rep, names2Fix2)
   } else {
-    names2Fix2new <- vapply(names2Fix2, function(x) { #x <- names2Fix2[1] #x <- rev(names2Fix2)[1]
-      tst <- setNames(lapply(kol, function(y) { which(experiments.map[[y]] == x) }),
+    names2Fix2new <- vapply(names2Fix2, \(x) { #x <- names2Fix2[1L] #x <- rev(names2Fix2)[1L]
+      tst <- setNames(lapply(kol, \(y) { which(experiments.map[[y]] == x) }),
                       kol)
-      tst <- tst[which(vapply(tst, length, 1) > 0)[1]]
-      w <- tst[[1]]
+      tst <- tst[which(lengths(tst) > 0L)[1L]]
+      w <- tst[[1L]]
       k <- names(tst)
       k <- aggregate.map$Characteristics[[match(k, aggregate.map$Aggregate.Name)]]
       k <- k[which(!k %in% Aggr[w1])]
@@ -88,9 +88,9 @@ cleanNms3 <- function(names,
     }, "")
   }
   names2Fix_map$New <- names2Fix2new[match(names2Fix_map$value, names2Fix2)]
-  names2Fix_map <- aggregate(names2Fix_map$New, list(names2Fix_map$L1), function(x) {
+  names2Fix_map <- aggregate(names2Fix_map$New, list(names2Fix_map$L1), \(x) {
     x <- unlist(x)
-    if (length(x) == 2) { x <- paste0("(", x[1], ") - (", x[2], ")") }
+    if (length(x) == 2L) { x <- paste0("(", x[1L], ") - (", x[2L], ")") }
     return(x)
   })
   names2Fix_map <- names2Fix_map[order(names2Fix_map$Group.1),]
@@ -104,8 +104,8 @@ cleanNms3 <- function(names,
   names[g] <- names2Fix
   names[g][gSp] <- paste0(rts, " ", names[g][gSp])
   # Check for unicity
-  tstB <- aggregate(1:length(names), list(names), c)
-  tstB$Orig <- nmsBckp[vapply(tstB$x, function(x) { x[[1]] }, 1)]
+  tstB <- aggregate(1L:length(names), list(names), c)
+  tstB$Orig <- nmsBckp[vapply(tstB$x, \(x) { x[[1L]] }, 1L)]
   tstB <- tstB[match(tstA$Group.1, tstB$Orig),]
   if (!identical(tstA$x, tstB$x)) {
     stop("Values corruption! Simplification is creating identity where there was none in original input!")

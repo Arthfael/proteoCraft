@@ -6,163 +6,177 @@
 #
 HEIGHT <- "500px"
 # Defaults
-allProt <- PG$Label
-dfltPrt <- PG$Label[grsep2(prot.list, PG$"Protein IDs")]
-if (!length(dfltPrt)) { dfltPrt <- PG$Label[1] }
 appNm <- paste0(dtstNm, " - Data exploration")
-if (!exists("plotLeatMaps")) { loadFun(paste0(wd, "/Clustering/HeatMaps.RData")) }
-if (!exists("dimRedPlotLy")) { loadFun(paste0(wd, "/Dimensionality red. plots/DimRedPlots.RData")) }
-if (!exists("QuantLy")) { loadFun(paste0(wd, "/Sorting plots/QuantPlots.RData")) }
-if (!exists("ProfLy")) { loadFun(paste0(wd, "/Profile plots/ProfilePlots.RData")) }
-nmsDmRds <- names(dimRedPlotLy)[which(names(dimRedPlotLy) != "Samples PCA")]
-dfltHtMp <- c("Global", names(plotLeatMaps))
-dfltHtMp <- dfltHtMp[which(dfltHtMp %in% names(plotLeatMaps))[1]]
-dfltNrmTp <- c("Norm. by row", names(plotLeatMaps[[dfltHtMp]]))
-dfltNrmTp <- dfltNrmTp[which(dfltNrmTp %in% names(plotLeatMaps[[dfltHtMp]]))[1]]
-dfltDmRd <- c("PCA", nmsDmRds)
-dfltDmRd <- dfltDmRd[which(dfltDmRd %in% nmsDmRds)[1]]
-dfltQntTp <- c("Expression", "LFQ", names(QuantLy))
-dfltQntTp <- dfltQntTp[which(dfltQntTp %in% names(QuantLy))[1]]
-#
-ui <- fluidPage(
-  useShinyjs(),
-  setBackgroundColor( # Doesn't work
-    color = c(#"#F8F8FF",
-      "#F1F5DF"),
-    gradient = "linear",
-    direction = "bottom"
-  ),
-  extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
-  tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-  titlePanel(tag("u", "Data exploration"),
-             appNm),
-  br(),
-  em("Here you can explore you data."), br(),
-  em("Click "), actionButton("exitBtn", "exit"), em(" to continue along the workflow."), br(),
-  br(),
-  #
-  h4("Clustering heatmap"),
-  selectInput("HeatMap", "Select heatmap", names(plotLeatMaps), dfltHtMp),
-  radioButtons("NormType", "Normalisation method:", c("Norm. by row", "None"), "None"),
-  fluidRow(withSpinner(plotlyOutput("MYplotLeatMap", height = HEIGHT))),
-  #
-  h4("Dimensionality reduction plots"),
-  selectInput("DimRedPlot", "Select method", nmsDmRds, dfltDmRd),
-  fluidRow(
-    column(8, withSpinner(plotlyOutput("PGDimRed", height = HEIGHT))),
-    column(4, withSpinner(plotlyOutput("SmplsDimRed", height = HEIGHT)))
-  ),
-  #
-  h4("Sorted Quantification plots"),
-  fluidRow(column(2, selectInput("QuantType", "Select Quant method", QuantTypes, dfltQntTp)),
-           column(4, pickerInput("ProfPlotProt", "Select protein(s) to display", allProt, dfltPrt, TRUE,
-                                 pickerOptions(title = "Search me",
-                                               `live-search` = TRUE,
-                                               actionsBox = TRUE,
-                                               deselectAllText = "Clear search",
-                                               showTick = TRUE)))),
-  withSpinner(plotlyOutput("ProfPlot", height = HEIGHT)),
-  # fluidRow(withSpinner(uiOutput("SortedPGPlot", height = HEIGHT))),
-  br(),
-  br()
-)
-server <- function(input, output, session) {
-  #
-  HEATMAP <- reactiveVal(dfltHtMp)
-  NORMTYPE <- reactiveVal(dfltNrmTp)
-  DIMRED <- reactiveVal(dfltDmRd)
-  QUANTTYPE <- reactiveVal(dfltQntTp)
-  PROFPROT <- reactiveVal(prot.list[1])
-  # SORTDSMPL <- reactiveVal(names(QuantLy[[dfltQntTp]])[1])
-  #
-  updtHtMp <- function(reactive = TRUE) {
-    if (reactive) {
-      renderPlotly(plotLeatMaps[[HEATMAP()]][[NORMTYPE()]]$Plot)
-    } else {
-      renderPlotly(plotLeatMaps[[dfltHtMp]][[dfltNrmTp]]$Plot)
-    }
+loadFun(paste0(wd, "/Clustering/HeatMaps.RData"))
+loadFun(paste0(wd, "/Dimensionality red. plots/DimRedPlots.RData"))
+loadFun(paste0(wd, "/Sorting plots/quantPlots.RData"))
+loadFun(paste0(wd, "/Profile plots/profilePlots.RData"))
+heatMaps_ON <- exists("plotLeatMaps")
+dimRed_ON <- exists("dimRedPlotLy")
+quant_ON <- exists("ggQuantLy")
+profile_ON <- exists("ggProfLy")
+if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
+  if (dimRed_ON) {
+    nmsDmRds <- names(dimRedPlotLy)[which(names(dimRedPlotLy) != "Samples PCA")]
+    dfltDmRd <- c("PCA", nmsDmRds)
+    dfltDmRd <- dfltDmRd[which(dfltDmRd %in% nmsDmRds)[1L]]
   }
-  updtDimRed <- function(reactive = TRUE) {
-    if (reactive) {
-      renderPlotly(suppressMessages(dimRedPlotLy[[DIMRED()]]))
-    } else {
-      renderPlotly(suppressMessages(dimRedPlotLy[[dfltDmRd]]))
-    }
+  if (heatMaps_ON) {
+    dfltHtMp <- c("Global", names(plotLeatMaps))
+    dfltHtMp <- dfltHtMp[which(dfltHtMp %in% names(plotLeatMaps))[1L]]
+    dfltNrmTp <- c("Norm. by row", names(plotLeatMaps[[dfltHtMp]]))
+    dfltNrmTp <- dfltNrmTp[which(dfltNrmTp %in% names(plotLeatMaps[[dfltHtMp]]))[1L]]
   }
-  updtProfPlot <- function(reactive = TRUE) {
-    if (reactive) {
-      qunt <- QUANTTYPE()
-      prt <- PROFPROT()
-    } else {
-      qunt <- dfltQntTp
-      prt <- dfltPrt
-    }
-    if (length(prt)) {
-      ggCall <- gsub(", +alpha += +[^\\)]+\\)", ")", ProfLy[[qunt]]$ggCall)
-      plCall <- ProfLy[[qunt]]$plCall
-      profData <- ProfLy[[qunt]]$data
-      w <- which(profData$`Protein Group` %in% prt)
-      if (length(w)) {
-        profData <- profData[w,]
-        ttl <- ProfLy[[qunt]]$Ttl
-        kolnm <- ProfLy[[qunt]]$data2$colName
-        myFacets <- ProfLy[[qunt]]$data2$facets
-        Ngl <- ProfLy[[qunt]]$data2$angle
-        # Now that the original objects have their proper values again, we can evaluate
-        eval(parse(text = ggCall))
-        eval(parse(text = plCall))
-        renderPlotly(plotlyProfiles)
+  if (quant_ON||profile_ON) {
+    dfltQuant <- c("Expression", "LFQ")
+    if (profile_ON) {
+      allProt <- PG$Label
+      if (prot.list.Cond) {
+        g <- grsep(prot.list, x = PG$"Protein IDs")
+        allProt <- allProt[c(g,
+                             which(!1L:nrow(PG) %in% g))]
       }
+      dfltProt <- allProt[1L]
+      dfltQuant <- union(dfltQuant, names(ggProfLy))
+      dfltQuant <- dfltQuant[which(dfltQuant %in% names(ggProfLy))[1L]]
+    }
+    if (quant_ON) {
+      dfltQuant <- union(dfltQuant, names(ggQuantLy))
+      dfltQuant <- dfltQuant[which(dfltQuant %in% names(ggQuantLy))[1L]]
+      allSamples <- unique(unlist(lapply(names(ggQuantLy), \(x) { names(ggQuantLy[[x]]) })))
     }
   }
-  # updtSortPlot <- function(reactive = TRUE) {
-  #   if (reactive) {
-  #     ls <- list(list(
-  #       selectInput("SortedSample", "Select sample", names(QuantLy[[QUANTTYPE()]]), SORTDSMPL()),
-  #       fluidRow(withSpinner(plotlyOutput(renderPlotly(QuantLy[[QUANTTYPE()]][[SORTDSMPL()]]), height = HEIGHT)))
-  #     ))
-  #   } else {
-  #     s <- list(list(
-  #       selectInput("QuantPlot", "Select sample", names(QuantLy[[dfltQntTp]]), names(QuantLy[[dfltQntTp]])[1]),
-  #       fluidRow(withSpinner(plotlyOutput(renderPlotly(QuantLy[[dfltQntTp]][[1]]), height = HEIGHT)))
-  #     ))
-  #   }
-  #   return(renderUI(ls))
-  # }
-  output$MYplotLeatMap <- updtHtMp(FALSE)
-  output$PGDimRed <- updtDimRed(FALSE)
-  output$SmplsDimRed <- renderPlotly(suppressMessages(dimRedPlotLy[["Samples PCA"]]))
-  output$ProfPlot <- updtProfPlot(FALSE)
-  # output$SortedPGPlot <- updtSortPlot(FALSE)
-  observeEvent(input$HeatMap, {
-    HEATMAP(input$HeatMap)
-    output$MYplotLeatMap <- updtHtMp()
-  })
-  observeEvent(input$NormType, {
-    NORMTYPE(input$NormType)
-    output$MYplotLeatMap <- updtHtMp()
-  })
-  observeEvent(input$DimRedPlot, {
-    DIMRED(input$DimRedPlot)
-    output$PGDimRed <- updtDimRed()
-  })
-  observeEvent(input$QuantType, {
-    QUANTTYPE(input$QuantType)
-    output$ProfPlot <- updtProfPlot()
-  })
-  observeEvent(input$ProfPlotProt, {
-    PROFPROT(input$ProfPlotProt)
-    output$ProfPlot <- updtProfPlot()
-  })
-  # observeEvent(input$SortedSample, {
-  #   SORTDSMPL(input$SortedSample)
-  #   output$SortedPGPlot <- updtSortPlot()
-  # })
-  # Save
-  observeEvent(input$exitBtn, { stopApp() })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+  #
+  ui <- fluidPage(
+    useShinyjs(),
+    setBackgroundColor(color = c("#F8F8FF", "#F1F5DF"),
+                       gradient = "linear", direction = "bottom"),
+    titlePanel(tagList(tags$u("Data exploration"), appNm)),
+    br(),
+    em("Here you can explore your data."), br(),
+    em("Click "), actionButton("exitBtn", "exit"), em(" to continue."), br(), br(),
+    #
+    if (heatMaps_ON) {
+      fluidRow(column(12,
+                      h4("Clustering heatmap"),
+                      selectInput("HeatMap", "Select heatmap", names(plotLeatMaps), dfltHtMp),
+                      radioButtons("NormType", "Normalisation method:", c("Norm. by row", "None"), "None")))
+    },
+    withSpinner(plotlyOutput("myHeatmap_plot")),
+    #
+    if (dimRed_ON) {
+      fluidRow(column(8L,
+                      h4("Dimensionality reduction plots"),
+                      selectInput("DimRedPlot", "Select method", nmsDmRds, dfltDmRd),
+                      withSpinner(plotlyOutput("myPGDimRed_plot", height = HEIGHT))),
+               column(4L,
+                      br(),
+                      br(),
+                      withSpinner(plotlyOutput("mySmplsDimRed_plot", height = HEIGHT))))
+    },
+    #
+    fluidRow(if (quant_ON||profile_ON) {
+               column(3L,
+                      h4("Protein plots"),
+                      selectInput("QuantType", "Select Quant method", QuantTypes, dfltQuant))
+             },
+             if (profile_ON) {
+               column(3L,
+                      pickerInput("ProfPlotProt", "Select protein(s) to display", allProt, dfltProt, TRUE,
+                                  pickerOptions(title = "Search me",
+                                                `live-search` = TRUE,
+                                                actionsBox = TRUE,
+                                                deselectAllText = "Clear search",
+                                                showTick = TRUE)))
+             },
+             if (quant_ON) {
+               column(3L,
+                      selectInput("Sample", "Select Sample to plot", allSamples, allSamples[1L]))
+             },
+    ),
+    fluidRow(column(12L/(quant_ON+profile_ON),
+                    withSpinner(plotlyOutput("myProfilePlot", height = HEIGHT))),
+             column(12L/(quant_ON+profile_ON),
+                    withSpinner(plotlyOutput("SortedPGPlot", height = HEIGHT)))),
+    #
+    br(), br()
+  )
+  server <- \(input, output, session) {
+    HEATMAP <- reactiveVal()
+    NORMTYPE <- reactiveVal()
+    DIMRED <- reactiveVal()
+    QUANTTYPE <- reactiveVal()
+    PROFPROT <- reactiveVal()
+    SAMPLE <- reactiveVal()
+    #
+    if (heatMaps_ON) {
+      HEATMAP <- reactiveVal(dfltHtMp)
+      NORMTYPE <- reactiveVal(dfltNrmTp)
+    }
+    if (dimRed_ON) { DIMRED <- reactiveVal(dfltDmRd) }
+    if (quant_ON||profile_ON) { QUANTTYPE <- reactiveVal(dfltQuant) }
+    if (profile_ON) { PROFPROT <- reactiveVal(dfltProt) }
+    if (quant_ON) { SAMPLE <- reactiveVal(allSamples[1L]) }
+    #
+    observeEvent(input$HeatMap, HEATMAP(input$HeatMap))
+    observeEvent(input$NormType, NORMTYPE(input$NormType))
+    observeEvent(input$DimRedPlot, DIMRED(input$DimRedPlot))
+    observeEvent(input$QuantType, QUANTTYPE(input$QuantType))
+    observeEvent(input$ProfPlotProt, PROFPROT(input$ProfPlotProt))
+    observeEvent(input$Sample, SAMPLE(input$Sample))
+    #
+    output$myHeatmap_plot <- renderPlotly(suppressMessages({
+      req(heatMaps_ON)
+      req(plotLeatMaps[[HEATMAP()]][[NORMTYPE()]]$Plot)
+      return(plotLeatMaps[[HEATMAP()]][[NORMTYPE()]]$Plot)
+    }))
+    #
+    output$mySmplsDimRed_plot <- renderPlotly(suppressMessages({
+      req(dimRed_ON)
+      req(dimRedPlotLy[["Samples PCA"]])
+      dimRedPlotLy[["Samples PCA"]]
+    }))
+    output$myPGDimRed_plot <- renderPlotly(suppressMessages({
+      req(dimRed_ON)
+      req(dimRedPlotLy[[DIMRED()]])
+      return(dimRedPlotLy[[DIMRED()]])
+    }))
+    #
+    output$myProfilePlot <- renderPlotly(suppressMessages({
+      req(profile_ON)
+      req(ggProfLy[[QUANTTYPE()]])
+      req(PROFPROT())
+      myProfPlot <- ggProfLy[[QUANTTYPE()]]
+      ggCall <- gsub(", +alpha += +[^\\)]+\\)", ")", myProfPlot$ggCall)
+      plCall <- myProfPlot$plCall
+      profData <- myProfPlot$data
+      srchCol <- c("Protein IDs", "Proteins")[grepl("^peptides ", QUANTTYPE())+1L]
+      #if (grepl("^peptides ", QUANTTYPE())) { } else { }
+      toolTip <- paste0("text", as.character(1L:4L))
+      yKol <- myProfPlot$data2$yCol
+      colKol <- myProfPlot$data2$color
+      txt4Kol <- myProfPlot$data2$labCol
+      w <- grsep(gsub(" - .*", "", PROFPROT()), x = profData[[srchCol]])
+      req(w)
+      profData <- profData[w,]
+      ttl <- myProfPlot$Ttl
+      kolnm <- myProfPlot$data2$colName
+      myFacets <- myProfPlot$data2$facets
+      Ngl <- myProfPlot$data2$angle
+      # Now that the original objects have their proper values again, we can evaluate
+      eval(parse(text = ggCall))
+      eval(parse(text = plCall))
+      return(plotlyProfiles)
+    }))
+    output$SortedPGPlot <- renderPlotly(suppressMessages({
+      req(quant_ON)
+      req(ggQuantLy[[QUANTTYPE()]][[SAMPLE()]]$plotly)
+      return(ggQuantLy[[QUANTTYPE()]][[SAMPLE()]]$plotly)
+    }))
+    #
+    observeEvent(input$exitBtn, stopApp())
+    session$onSessionEnded(\() stopApp())
+  }
+  eval(parse(text = runApp), envir = .GlobalEnv)
+  shinyCleanup()
 }
-eval(parse(text = runApp), envir = .GlobalEnv)
-shinyCleanup()
-#

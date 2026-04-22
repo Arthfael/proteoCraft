@@ -9,11 +9,13 @@
 
 packs <- c("svDialogs", "ssh")
 for (pack in packs) {
-  if (!require(pack, character.only = TRUE)) { install.packages(pack) }
+  if (!require(pack, character.only = TRUE)) { pak::pak(pack) }
   require(pack, character.only = TRUE)
 }
-if (!require(unimod)) { suppressMessages(devtools::install_github("rformassspectrometry/unimod")) }
-require(unimod)
+if (!require("PTMods", quietly = TRUE)) { pak::pak("rformassspectrometry/PTMods") }
+require(PTMods)
+data(modifications, package = "PTMods")
+UniMod <- modifications
 
 # A version of topattern is given here (so installing the proteoCraft package is not necessary):
 if (!require(proteoCraft)) {
@@ -158,7 +160,6 @@ while (sum(is.na(suppressWarnings(as.numeric(MS2Acc))))) { MS2Acc <- as.characte
 # Missed cleavages
 while (sum(is.na(suppressWarnings(as.integer(MISSES))))) { MISSES <- dlg_input("Enter max. missed cleavages:", 1)$res }
 # PTMs
-UniMod <- unimod::modifications
 CommonMods <- data.frame(Name = c("Acetylation (protein N-term)", "M oxidation", "deamidation NQ", "Gln->pyroGlu", "Phospho (STY)", "GlyGly"),
                          Site = c("*n", "M", "NQ", "Q", "STY", "K"),
                          UniMod = paste0("UniMod:", c(1, 35, 7, 28, 21, 121)))

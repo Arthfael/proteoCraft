@@ -1,3 +1,4 @@
+require(proteoCraft)
 require(parallel)
 require(XML)
 dSrcs <- c("...MS_File_Archive",
@@ -34,7 +35,7 @@ dFls2$startPress <- NA
 dFls2$startPress[w] <- parSapply(parClust, dFls2$execLog[w], function(lgFl) { #lgFl <- dFls2$execLog[w[1]]
   lg <- readLines(unlist(lgFl))
   writeClipboard(lg)
-  ... now I need to figure out which pressure to extract
+  #... now I need to figure out which pressure to extract
   
   
 })
@@ -98,4 +99,4 @@ press$Press <- press$Pressure + offset*(match(press$`Raw file`, fls)-1)
 plot <- ggplot(press, aes(x = `Retention time`, y = Press, colour = `Raw file name`)) +
   geom_line(aes(group = `Raw file name`)) +
   theme_bw() #+ facet_grid(`Raw file name`~.)
-proteoCraft::poplot(plot, 12, 22)
+poplot(plot, 12, 22)

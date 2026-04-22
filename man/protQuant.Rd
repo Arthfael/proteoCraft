@@ -14,13 +14,13 @@ protQuant(
   LFQ_algo = "limpa",
   reScaling,
   topN_correct = TRUE,
-  minN = 1,
-  maxN = 50,
+  minN = 1L,
+  maxN = 50L,
   LM_fun = "median",
   Weights,
   useIntWeights = FALSE,
   Priority = "Intensities",
-  skipRatios = FALSE,
+  skipRatios = TRUE,
   expMap,
   expMap_Samples_col = "Sample",
   refGroups,
@@ -32,7 +32,7 @@ protQuant(
   pepInt_Root,
   pepRat_root,
   pepInt_log = FALSE,
-  pepRat_log = 2,
+  pepRat_log = 2L,
   protLFQ_toLog = TRUE,
   protRat_toLog = TRUE,
   mods_to_Exclude,
@@ -42,7 +42,8 @@ protQuant(
   ref_Mode = "2",
   cl,
   N.clust,
-  N.reserved = 1
+  N.reserved = 1L,
+  contrasts
 )
 }
 \arguments{
@@ -59,10 +60,10 @@ protQuant(
 \item{N_unique}{Logical or numeric. If FALSE or 0, the function just uses the "pg_PepIDs" argument. If non null (default), a second column name of unique peptide IDs should be provided using the "pg_PepIDs_unique" argument. If at least N_unique unique peptides are present, then only those will be used for quantitation, otherwise as many razor/shared peptides as necessary will be added (sorted by decreasing average intensities).}
 
 \item{LFQ_algo}{Algorithm used to compute average profiles. One of:\cr
- - "LM": Levenberg-Marquardt method (backend = minpack.lm::nls.lm()); very similar to MaxLFQ. Normalized peptide relative profiles are aligned using Levenberg-Marquardt then summarized.\cr
- - "iq": iq's fast implementation of MaxLFQ, backend = iq::fast_MaxLFQ()\cr
- - "limpa" or "DPC": backend = limpa::dpcQuant(); current default\cr
- - "QFeatures": backend = QFeatures::aggregateFeatures()\cr
+ - "LM": Levenberg-Marquardt method, backend = [minpack.lm::nls.lm()]; very similar to MaxLFQ. Normalized peptide relative profiles are aligned using Levenberg-Marquardt then summarized.\cr
+ - "iq": iq's fast implementation of MaxLFQ, backend = [iq::fast_MaxLFQ()]\cr
+ - "limpa" or "DPC": backend = [limpa::dpcQuant()]; current default\cr
+ - "QFeatures": backend = [QFeatures::aggregateFeatures()]\cr
 Note that limpa and QFeatures do not "just produce quantitative values": both output specific objects with additional information which can be used for downstream analysis (respectively with limma or msqrob2).\cr}
 
 \item{reScaling}{Optional summary method for re-scaling. May be one of:\cr
@@ -72,8 +73,8 @@ Note that limpa and QFeatures do not "just produce quantitative values": both ou
 - "max",\cr
 - "sum" (not recommended),\cr
 - "MaxLFQ": like sum, but the value used is the value before any peptides are filtered out (not recommended),\cr
-- "topN", where N should be the maximum number of peptides to average (e.g. "top3" - do not use "topN" as there is no default value for N!)
-- the name of any valid value of LFQ_algo, which allows re-scaling any LFQ algorithm using the scaling provided by another.
+- "topN", where N should be the maximum number of peptides to average (e.g. "top3" - do not use "topN" as there is no default value for N!)\cr
+- the name of any valid value of LFQ_algo, which allows re-scaling any LFQ algorithm using the scaling provided by another.\cr
 - (you could also use the name of any other available averaging function, this should work in principle assuming similar syntax)}
 
 \item{topN_correct}{Logical, default = TRUE. In the case where we are using more than one peptide for the re-scaling step, should we correct for systematic peptide intensity biases between peptides of rank 1, 2, 3 and so on and so forth?}
@@ -136,7 +137,9 @@ Note that limpa and QFeatures do not "just produce quantitative values": both ou
 
 \item{N.clust}{A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.}
 
-\item{N.reserved}{Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
+\item{N.reserved}{Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.}
+
+\item{contrasts}{Optional contrasts data.frame for which to calculate ratios. It should contain columns of the form "[A-D]_samples" mapping samples to contrasts.
 
 #' @details
 This function is meant to work from normalised peptide intensities and:\cr
@@ -146,15 +149,15 @@ Specifically, it can be broken down into 3 sub-steps:\cr
   a) filtering peptides eligible for quantitation\cr
   b) calculating a relative protein profile across samples:\cr
    - LM: this uses Levenberg-Marquardt to align peptide profiles, then summarizes them, and is broadly similar to MaxLFQ.\cr
-   - iq: the iq package's implementation of MaxLFQ, specifically the iq::fast_MaxLFQ() function.\cr
-   - limpa: uses the recently introduced limpa package's dpcQuant() function.
-   - QFeatures: uses the QFeatures::aggregateFeatures() function.
+   - iq: the iq package's implementation of MaxLFQ, specifically the [iq::fast_MaxLFQ()] function.\cr
+   - limpa: uses [limpa::dpcQuant()].\cr
+   - QFeatures: uses [QFeatures::aggregateFeatures()].\cr
   c) Optional re-scaling, i.e. "anchoring" the resulting relative profile to a scale value, such that different proteins are ranked relatively in a manner which - whilst imperfect because of widely different individual peptide detectabilities - would still be correct if the latter could be corrected for, or would otherwise operate under assumptions at least minimizing the expected error. See the reScaling argument.\cr
-   You may also rescale any quantitation (as specified in LFQ_algo) with the scale provided by another (using the reScaling argument), thus allowing for using the relative quantitation and scaling of any two methods.
-   To re-scale the same way as MaxLFQ, use "sum" - but see N.B. below!
-   iBAQ - which would be the equivalent of using "sum" then dividing by the number of observable peptides, but the additional step could easily be added outside this function.
+   You may also rescale any quantitation (as specified in LFQ_algo) with the scale provided by another (using the reScaling argument), thus allowing for using the relative quantitation and scaling of any two methods.\cr
+   To re-scale the same way as MaxLFQ, use "sum" - but see N.B. below!\cr
+   iBAQ - which would be the equivalent of using "sum" then dividing by the number of observable peptides, but the additional step could easily be added outside this function.\cr
 \cr
-NB on re-scaling:
+NB on re-scaling:\cr
   The early - and still occasional - practice of summing peptide intensities to estimate protein abundance (as used in MaxLFQ) is conceptually unsound.\cr
   The intensity of a unique peptide with perfect detectability is a function of the peptide's copy number, itself originally (before losses) equal to that of the parent protein.\cr
   If detectability could be corrected for, the intensity values of all unique peptides unaffected by PTMs would be a direct unbiased estimator of parent protein copy number.\cr
@@ -180,7 +183,8 @@ A list:
  - "QFeatures_obj": QFeatures object, only present if LFQ_algo or reScaling  = "QFeatures"
 }
 \description{
-A function to calculate estimated protein group Expression (inter-protein group quantitation vectors) and Ratios (optional, intra-protein group fold changes) from individual peptide values.
+A function to calculate estimated protein group Expression (inter-protein group quantitation vectors) from individual peptide values.
+For legacy reasons, the function can also output Ratios.
 The input is assumed to already be normalized!\cr
 }
 \examples{

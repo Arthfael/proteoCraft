@@ -38,8 +38,8 @@ grsep <- function (pattern,
   if (mode == "grep") {
     res <- grep(pattern, x, ignore.case = ignore.case, perl = perl, value = value, fixed = fixed, useBytes = useBytes,
                 invert = invert)
-    if ((nchar(sep) > 0) && (value == TRUE)) {
-      res <- substr(res, start = nchar(sep) + 1, stop = nchar(res) - nchar(sep))
+    if ((nchar(sep) > 0L) && (value == TRUE)) {
+      res <- substr(res, start = nchar(sep) + 1L, stop = nchar(res) - nchar(sep))
     }
   }
   if (mode == "grepl") {

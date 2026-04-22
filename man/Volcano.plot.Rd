@@ -17,7 +17,7 @@ Volcano.plot(
   parameters,
   save = FALSE,
   labels = "both",
-  MaxLabels = 50,
+  MaxLabels = 50L,
   MaxLabels_priority = "X",
   Ref.Ratio.values = NULL,
   Ref.Ratio.method = "obs2",
@@ -38,16 +38,16 @@ Volcano.plot(
   subfolder = "Reg. analysis/t-tests",
   subfolderpertype = TRUE,
   Symmetrical,
-  Alpha = 1,
+  Alpha = 1L,
   Alpha.identity = FALSE,
   Alpha.labels = FALSE,
-  Alpha.max = 1,
+  Alpha.max = 1L,
   Alpha.min = 0.01,
-  Size = 1,
-  Size.max = 3,
+  Size = 1L,
+  Size.max = 3L,
   Size.min = 0.01,
-  cex = 2,
-  lineheight = 1,
+  cex = 2L,
+  lineheight = 1L,
   Xlim = Inf,
   Ylim = Inf,
   plotly = FALSE,
@@ -59,12 +59,13 @@ Volcano.plot(
   plotly_labels,
   Contaminants = FALSE,
   N.clust,
-  N.reserved = 1,
+  N.reserved = 1L,
   cl,
   reg.root,
   SAM = FALSE,
   curved_Thresh,
-  saveData = FALSE
+  saveData = FALSE,
+  contrasts
 )
 }
 \arguments{
@@ -78,7 +79,7 @@ Volcano.plot(
 
 \item{X.normalized}{Logical. Is X normalized? Assumed to be TRUE by default.}
 
-\item{experiments.map}{The experiments map.}
+\item{experiments.map}{The data.frame defining the structure of the dataset.}
 
 \item{aggregate.map}{The aggregate map.}
 
@@ -92,7 +93,7 @@ Volcano.plot(
 
 \item{labels}{How to decide which point labels will be printed. Values are:\cr
 - "proteins", in which case parameters MaxLabels and MaxLabels_priority will also be used;\cr
-- "thresholds", in which case proteins above thresholds will be labelled;
+- "thresholds", in which case proteins above thresholds will be labelled;\cr
 - "FDR", in which case only points that pass Benjamini-Hochberg FDR (or are in the list of proteins of interest) will be displayed.\cr
 - The default, "both" (default), which means "proteins + thresholds".}
 
@@ -139,7 +140,7 @@ Volcano.plot(
 
 \item{subfolderpertype}{Logical. If TRUE (default), will save each type of graph in a dedicated sub-folder.}
 
-\item{Symmetrical}{Are we also interested in the left half (down-regulated) or only the right one (up-regulated)? If missing and a value for "parameters" is provided, the function will attempt to infer it from parameters' "Type", otherwise it will default to TRUE.}
+\item{Symmetrical}{Are we also interested in the left half (down-regulated) or only the right one (up-regulated)? May be used to override the symmetry provided by contrasts. If it and contrasts are missing, and "parameters" is provided, the function will attempt to infer it from parameter "Type".}
 
 \item{Alpha}{Either a single numeric value, or a length 1 character: the name of a numeric column in Prot mapping each dot's alpha level to a column. Default = 1 (no alpha variations)}
 
@@ -194,6 +195,8 @@ Volcano.plot(
 \item{curved_Thresh}{Curved threshold parameters, only used if mode = "curved".\cr A named list, with one item for each (same names as the ones appended to X.root and Y.root in Prot column names).\cr Each item should be a named list of S0 (single value), Si (single value) and d (one value per FDR level) numerics.}
 
 \item{saveData}{Logical. If TRUE, a file containing the processed long-format data used to create each plot will be saved locally. Default = FALSE.}
+
+\item{contrasts}{If provided, supersedes experiments.map for the purpose of detecting samples (through the "Contrast" column), and if containing the "Up-only" column also defines whether plots are two-sided or not.}
 }
 \value{
 A list with at least one element ("Thresholds"). If return == TRUE, the Protein_groups_file - which may contain additional Regulated columns. If return.plot == TRUE, the evaluated ggplots. If plotly == TRUE, the plotly plots.

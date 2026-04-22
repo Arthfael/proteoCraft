@@ -19,15 +19,15 @@ if (globalGO) {
   # - ... each ID has a single name, and that names are unique
   tst3a <- tst3[, list(Name = list(unique(Name))), by = list(ID = ID)]
   tst3a <- as.data.frame(tst3a)
-  tst3a$N_names <- vapply(tst3a$Name, length, 1)
+  tst3a$N_names <- lengths(tst3a$Name)
   # - ... each name is unique to one ID
   tst3b <- tst3[, list(ID = list(unique(ID))), by = list(Name = Name)]
   tst3b <- as.data.frame(tst3b)
-  tst3b$N_IDs <- vapply(tst3b$ID, length, 1)
-  stopifnot(max(tst3b$N_IDs) == 1)
+  tst3b$N_IDs <- lengths(tst3b$ID)
+  stopifnot(max(tst3b$N_IDs) == 1L)
   #
   for (i in kol2) { temp[[i]] <- strsplit(as.character(temp[[i]]), ";") }
-  f0 <- function(x) { list(unique(unlist(x))) }
+  f0 <- \(x) { list(unique(unlist(x))) }
   temp <- aggregate(temp[, kol2], list(temp$id), f0)
   #
   # Below commented data.table aggregation code... which is slower so not used.
@@ -37,15 +37,15 @@ if (globalGO) {
   # temp2 <- as.data.frame(temp2)
   #
   for (i in kol2) {
-    temp[[i]] <- parSapply(parClust, temp[[i]], function(x) { paste(unique(unlist(x)), collapse = ";") }) # Do not use sort here or it will break the matching between "GO" and "GO-ID"
+    temp[[i]] <- parSapply(parClust, temp[[i]], \(x) { paste(unique(unlist(x)), collapse = ";") }) # Do not use sort here or it will break the matching between "GO" and "GO-ID"
   }
   tst1 <- unlist(strsplit(temp$`GO-ID`, ";"))
   tst2 <- unlist(strsplit(temp$GO, ";"))
   tst3 <- data.table(ID = tst1, Name = tst2)
   tst3 <- tst3[, list(Name = list(unique(Name))), by = list(ID = ID)]
   tst3 <- as.data.frame(tst3)
-  tst3b$N_IDs <- vapply(tst3b$ID, length, 1)
-  stopifnot(max(tst3b$N_IDs) == 1)
+  tst3b$N_IDs <- lengths(tst3b$ID)
+  stopifnot(max(tst3b$N_IDs) == 1L)
   #
   PG[, kol2] <- ""
   w <- which(PG$id %in% temp$Group.1)

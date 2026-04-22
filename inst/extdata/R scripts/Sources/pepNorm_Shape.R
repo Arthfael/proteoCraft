@@ -23,34 +23,35 @@ if (!dir.exists(shpDr)) { dir.create(shpDr, recursive = TRUE) }
 dirlist <- unique(c(dirlist, shpDr))
 #
 currSamples <- allSamples[which(allSamples %in% colnames(tmpDat1))]
-A <- parApply(parClust, tmpDat1[wAG1, currSamples], 1, function(x) { mean(proteoCraft::is.all.good(x)) })
+clusterExport(parClust, "is.all.good", envir = environment())
+A <- parApply(parClust, tmpDat1[wAG1, currSamples], 1L, \(x) { mean(is.all.good(x)) })
 #
 # Impute
 ImpGrps <- Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),
                    VPAL$column]
-tmp <- proteoCraft::Data_Impute2(tmpDat1[, currSamples], ImpGrps)
+tmp <- Data_Impute2(tmpDat1[, currSamples], ImpGrps)
 tmpDat1a <- tmp$Imputed_data
 wPos <- which(tmp$Positions_Imputed, arr.ind = TRUE)
 tmpDat1a[, c("id", "Group")] <- tmpDat1[, c("id", "Group")] 
 
 # Visualize - before
 temp_plotA <- tmpDat1a[wAG1, c("id", "Group", currSamples)]
-colnames(temp_plotA) <- proteoCraft::cleanNms(colnames(temp_plotA))
+colnames(temp_plotA) <- cleanNms(colnames(temp_plotA))
 temp_plotA <- reshape::melt(temp_plotA, id.vars = c("id", "Group"))
 temp_plotA$A <- rep(A, length(currSamples))
-temp_plotA <- temp_plotA[which(proteoCraft::is.all.good(temp_plotA$value, 2)),]
+temp_plotA <- temp_plotA[which(is.all.good(temp_plotA$value, 2)),]
 temp_plotA$M <- temp_plotA$value - temp_plotA$A
 annot <- data.frame(variable = unique(temp_plotA$variable))
-annot$Median <- sapply(annot$variable, function(x) {
-  paste0("Median: ", round(median(proteoCraft::is.all.good(temp_plotA$M[which(temp_plotA$variable == x)])), 3))
-})
-annot$IQR <- sapply(annot$variable, function(x) {
-  paste0("IQR: ", round(IQR(proteoCraft::is.all.good(temp_plotA$M[which(temp_plotA$variable == x)])), 3))
-})
-annot$Amax <- max(proteoCraft::is.all.good(temp_plotA$A))*1.1
-annot$Amin <- min(proteoCraft::is.all.good(temp_plotA$A))*1.1
-annot$Mmax <- max(proteoCraft::is.all.good(temp_plotA$M))*1.1
-annot$Mmin <- min(proteoCraft::is.all.good(temp_plotA$M))*1.1
+annot$Median <- vapply(annot$variable, \(x) {
+  paste0("Median: ", round(median(is.all.good(temp_plotA$M[which(temp_plotA$variable == x)])), 3L))
+}, "")
+annot$IQR <- vapply(annot$variable, \(x) {
+  paste0("IQR: ", round(IQR(is.all.good(temp_plotA$M[which(temp_plotA$variable == x)])), 3L))
+}, "")
+annot$Amax <- max(is.all.good(temp_plotA$A))*1.1
+annot$Amin <- min(is.all.good(temp_plotA$A))*1.1
+annot$Mmax <- max(is.all.good(temp_plotA$M))*1.1
+annot$Mmin <- min(is.all.good(temp_plotA$M))*1.1
 annot1 <- annot[, c("variable", "Amax", "Mmin", "Mmax")] 
 annot1 <- rbind(annot1, annot1)
 annot1$Label <- c(annot$Median, annot$IQR)
@@ -62,17 +63,17 @@ w <- grep("^IQR: ", annot1$Label)
 annot1$Y[w] <- -ylim*0.9
 l1 <- length(unique(temp_plotA$variable))
 l2 <- length(unique(temp_plotA$Group))
-nkol <- max(c(1, round(sqrt(l1*l2))))
-if ((l2 > 1)&&((nkol %% l2) != 0)) { nkol <- ceiling(nkol/l2)*l2 }
-while (nkol > l1*l2) { nkol <- nkol-1 }
+nkol <- max(c(1L, round(sqrt(l1*l2))))
+if ((l2 > 1L)&&((nkol %% l2) != 0)) { nkol <- ceiling(nkol/l2)*l2 }
+while (nkol > l1*l2) { nkol <- nkol-1L }
 MAplotA <- ggplot(temp_plotA) +
-  geom_scattermore(aes(x = A, y = M, colour = Group), size = 1, alpha = 1) +
+  geom_scattermore(aes(x = A, y = M, colour = Group), size = 1L, alpha = 1) +
   geom_hline(yintercept = 0, colour = "grey") + geom_smooth(aes(x = A, y = M), color = "red", linewidth = 0.8, linetype = "dashed") +
-  geom_text(data = annot1, aes(x = Amax, y = Y, label = Label), hjust = 1, cex = 2) +
+  geom_text(data = annot1, aes(x = Amax, y = Y, label = Label), hjust = 1, cex = 2L) +
   scale_color_viridis_d(begin = 0.25) +
-  facet_wrap(~variable+Group, ncol = nkol) + coord_fixed(log10(2)) + theme_bw() + ggtitle(MAttlA) +
+  facet_wrap(~variable+Group, ncol = nkol) + coord_fixed(log10(2L)) + theme_bw() + ggtitle(MAttlA) +
   theme(legend.position = "bottom")
-#poplot(MAplotA, 12, 22)
+#poplot(MAplotA, 12L, 22L)
 #
 tmpDat2 <- tmpDat1[, currSamples]*NA
 #
@@ -88,21 +89,21 @@ for (lGrp in NormGrps$Group) { #lGrp <- NormGrps$Group[1]
   # and the sd will be based on a LOESS regression estimate (nearest neighbours if missing):
   # Normalisation proper:
   if (normMeth == "LOESS") { tmpDat1b <- limma::normalizeCyclicLoess(as.matrix(tmpDat1a[grpMtch, currSamples])) }
-  if (normMeth == "VSN") { tmpDat1b <- vsn::justvsn(as.matrix(10^tmpDat1a[grpMtch, currSamples]))/log2(10) }
+  if (normMeth == "VSN") { tmpDat1b <- vsn::justvsn(as.matrix(10L^tmpDat1a[grpMtch, currSamples]))/log2(10L) }
   tmpDat2[grpMtch, currSamples] <- tmpDat1b[, currSamples]
   sd1 <- meanSdPlot(as.matrix(tmpDat1a[grpMtch, currSamples]), plot = FALSE)$gg
   sd2 <- meanSdPlot(as.matrix(tmpDat1b), plot = FALSE)$gg
   SDttl <- "mean SD plot"
-  if (length(NormGrps$Group) > 1) { SDttl <- paste0(SDttl, " - ", lGrp) }
+  if (length(NormGrps$Group) > 1L) { SDttl <- paste0(SDttl, " - ", lGrp) }
   SDttlB <- SDttlA <- SDttl
   SDttlA <- paste0(SDttlA, "_before")
   SDttlB <- paste0(SDttlB, "_after")
   SDplotA <- sd1 + theme_bw() + ggtitle(SDttl, subtitle = "Before")
   SDplotB <- sd2 + theme_bw() + ggtitle("", subtitle = "After")
-  SDplot <- ggarrange(SDplotA, SDplotB, ncol = 2, nrow = 1)
-  #poplot(SDplot, 6, 12)
-  ggsave(paste0(shpDr, "/", SDttl, ".jpeg"), SDplot, dpi = 150, width = 12, height = 6, units = "in")
-  ggsave(paste0(shpDr, "/", SDttl, ".pdf"), SDplot, dpi = 150, width = 12, height = 6, units = "in")
+  SDplot <- ggarrange(SDplotA, SDplotB, ncol = 2L, nrow = 1L)
+  #poplot(SDplot, 6L, 12L)
+  ggsave(paste0(shpDr, "/", SDttl, ".jpeg"), SDplot, dpi = 150L, width = 12L, height = 6L, units = "in")
+  ggsave(paste0(shpDr, "/", SDttl, ".pdf"), SDplot, dpi = 150L, width = 12L, height = 6L, units = "in")
   ReportCalls <- AddPlot2Report(Plot = SDplot, Title = SDttl, Space = FALSE, Dir = shpDr)
 }
 #
@@ -111,23 +112,23 @@ wAG2 <- wAG1
 if (nrow(wPos)) { tmpDat2[wPos] <- tmpDat1[, currSamples][wPos] }
 # Visualize - after
 temp_plotB <- tmpDat2[wAG2, currSamples]
-colnames(temp_plotB) <- proteoCraft::cleanNms(colnames(temp_plotB))
+colnames(temp_plotB) <- cleanNms(colnames(temp_plotB))
 temp_plotB[, c("id", "Group")] <- tmpDat1[, c("id", "Group")]
 temp_plotB <- reshape::melt(temp_plotB, id.vars = c("id", "Group"))
 temp_plotB$A <- rep(A, length(currSamples))
-temp_plotB <- temp_plotB[which(proteoCraft::is.all.good(temp_plotB$value, 2)),]
+temp_plotB <- temp_plotB[which(is.all.good(temp_plotB$value, 2L)),]
 temp_plotB$M <- temp_plotB$value - temp_plotB$A
 annot <- data.frame(variable = unique(temp_plotB$variable))
-annot$Median <- sapply(annot$variable, function(x) {
-  paste0("Median: ", round(median(proteoCraft::is.all.good(temp_plotB$M[which(temp_plotB$variable == x)])), 3))
-})
-annot$IQR <- sapply(annot$variable, function(x) {
-  paste0("IQR: ", round(IQR(proteoCraft::is.all.good(temp_plotB$M[which(temp_plotB$variable == x)])), 3))
-})
-annot$Amax <- max(proteoCraft::is.all.good(temp_plotB$A))*1.1
-annot$Amin <- min(proteoCraft::is.all.good(temp_plotB$A))*1.1
-annot$Mmax <- max(proteoCraft::is.all.good(temp_plotB$M))*1.1
-annot$Mmin <- min(proteoCraft::is.all.good(temp_plotB$M))*1.1
+annot$Median <- vapply(annot$variable, \(x) {
+  paste0("Median: ", round(median(is.all.good(temp_plotB$M[which(temp_plotB$variable == x)])), 3L))
+}, "")
+annot$IQR <- vapply(annot$variable, \(x) {
+  paste0("IQR: ", round(IQR(is.all.good(temp_plotB$M[which(temp_plotB$variable == x)])), 3L))
+}, "")
+annot$Amax <- max(is.all.good(temp_plotB$A))*1.1
+annot$Amin <- min(is.all.good(temp_plotB$A))*1.1
+annot$Mmax <- max(is.all.good(temp_plotB$M))*1.1
+annot$Mmin <- min(is.all.good(temp_plotB$M))*1.1
 annot2 <- annot[, c("variable", "Amax", "Mmin", "Mmax")] 
 annot2 <- rbind(annot2, annot2)
 annot2$Label <- c(annot$Median, annot$IQR)
@@ -139,33 +140,33 @@ annot2$Y[w] <- -ylim*0.9
 l1 <- length(unique(temp_plotB$variable))
 l2 <- length(unique(temp_plotB$Group))
 nkol <- max(c(1, round(sqrt(l1*l2))))
-if ((l2 > 1)&&((nkol %% l2) != 0)) { nkol <- ceiling(nkol/l2)*l2 }
-while (nkol > l1*l2) { nkol <- nkol-1 }
+if ((l2 > 1L)&&((nkol %% l2) != 0L)) { nkol <- ceiling(nkol/l2)*l2 }
+while (nkol > l1*l2) { nkol <- nkol-1L }
 MAplotB <- ggplot(temp_plotB) +
-  geom_scattermore(aes(x = A, y = M, colour = Group), size = 1, alpha = 1) +
+  geom_scattermore(aes(x = A, y = M, colour = Group), size = 1L, alpha = 1) +
   geom_hline(yintercept = 0, colour = "grey") + geom_smooth(aes(x = A, y = M), color = "red", linewidth = 0.8, linetype = "dashed") +
-  geom_text(data = annot2, aes(x = Amax, y = Y, label = Label), hjust = 1, cex = 2) +
+  geom_text(data = annot2, aes(x = Amax, y = Y, label = Label), hjust = 1, cex = 2L) +
   scale_color_viridis_d(begin = 0.25) +
-  facet_wrap(~variable+Group, ncol = nkol) + coord_fixed(log10(2)) + theme_bw() + ggtitle(MAttlB) +
+  facet_wrap(~variable+Group, ncol = nkol) + coord_fixed(log10(2L)) + theme_bw() + ggtitle(MAttlB) +
   theme(legend.position = "bottom")
-tmp <- proteoCraft::is.all.good(c(temp_plotA$M, temp_plotB$M))
+tmp <- is.all.good(c(temp_plotA$M, temp_plotB$M))
 MAplotA <- MAplotA + ylim(min(tmp), max(tmp))
 MAplotB <- MAplotB + ylim(min(tmp), max(tmp))
-MAplot <- ggarrange(MAplotA, MAplotB, ncol = 2, nrow = 1)
-#poplot(MAplot, 12, 22)
-ggsave(paste0(shpDr, "/", MAttl, ".jpeg"), MAplot, dpi = 150, width = 24, units = "in")
-ggsave(paste0(shpDr, "/", MAttl, ".pdf"), MAplot, dpi = 150, width = 24, units = "in")
+MAplot <- ggarrange(MAplotA, MAplotB, ncol = 2L, nrow = 1L)
+#poplot(MAplot, 12L, 22L)
+ggsave(paste0(shpDr, "/", MAttl, ".jpeg"), MAplot, dpi = 150L, width = 24L, units = "in")
+ggsave(paste0(shpDr, "/", MAttl, ".pdf"), MAplot, dpi = 150L, width = 24L, units = "in")
 ReportCalls <- AddPlot2Report(Plot = MAplot, Title = MAttl, Dir = shpDr)
 #
 appNm <- paste0(normMeth, " normalisation")
 msg <- paste0("Keep results from ", normMeth, " normalisation? (untick to cancel correction)")
-if ((!exists("KeepShapeCorrRes"))||(length(KeepShapeCorrRes) != 1)||(!is.logical(KeepShapeCorrRes))||(is.na(KeepShapeCorrRes))) {
+if ((!exists("KeepShapeCorrRes"))||(length(KeepShapeCorrRes) != 1L)||(!is.logical(KeepShapeCorrRes))||(is.na(KeepShapeCorrRes))) {
   KeepShapeCorrRes <- TRUE
 }
 IMGs <- paste0(shpDr, "/", c(MAttl, SDttl), ".jpeg")
-IMGsDims <- as.data.frame(t(parSapply(parClust, IMGs, function(x) { #x <- IMGs[1]
+IMGsDims <- as.data.frame(t(parSapply(parClust, IMGs, \(x) { #x <- IMGs[1]
   a <- jpeg::readJPEG(x)
-  setNames(dim(a)[1:2], c("height", "width"))
+  setNames(dim(a)[1L:2L], c("height", "width"))
 })))
 IMGsDims$height <- screenRes$width*0.35*IMGsDims$height/max(IMGsDims$height)
 IMGsDims$width <- screenRes$width*0.35*IMGsDims$width/max(IMGsDims$width)
@@ -183,7 +184,7 @@ ui <- fluidPage(
   titlePanel(tag("u", appNm),
              appNm),
   br(),
-  fluidRow(column(5,
+  fluidRow(column(5L,
                   checkboxInput("KeepResults", msg, KeepShapeCorrRes),
                   actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
                   h4("Recommended criteria:"),
@@ -218,7 +219,7 @@ while (!exists("IHAVERUN")) {
   eval(parse(text = runApp), envir = .GlobalEnv)
   shinyCleanup()
 }
-msg <- paste0(" -> ", normMeth, " correction for intensity range variance biases ", c("rejec", "accep")[KeepShapeCorrRes+1], "ted.\n")
+msg <- paste0(" -> ", normMeth, " correction for intensity range variance biases ", c("rejec", "accep")[KeepShapeCorrRes+1L], "ted.\n")
 if (KeepShapeCorrRes) {
   txt2 <- paste0("corrected for intensity range variance biases using ", c(paste0(normMeth, " regression"), "VSN")[match(normMeth, c("LOESS", "VSN"))])
 }

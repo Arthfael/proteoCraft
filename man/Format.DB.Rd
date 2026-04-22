@@ -9,21 +9,24 @@ Format.DB(
   mode = "UniProt",
   in.env = FALSE,
   Full.ID.rule = "^>([^ ]*)",
-  Protein.ID.rule = "^>[a-z]{2}\\\\|([^\\\\|]*)",
-  Name.rule = "^>[a-z]{2}\\\\|[^\\\\|]*\\\\|([^ ]*)",
+  Protein.ID.rule = "^>(?:[a-z]{2}\\\\|)?([^\\\\| ]+)",
+  Name.rule = "^>(?:[a-z]{2}\\\\|[^\\\\|]+\\\\|)?([^ ]*)",
   Unique = TRUE,
   IDs_only = FALSE,
   parallel = FALSE,
   N.clust,
-  N.reserved = 1,
+  N.reserved = 1L,
   cl,
-  trimName = TRUE
+  trimName = TRUE,
+  revString = "rev_",
+  revDrop = TRUE,
+  verbose = FALSE
 )
 }
 \arguments{
 \item{file}{Name (as character) of the Fasta file.}
 
-\item{mode}{One of "Uniprot", "Ensembl", "RefSeq-RNA", "RefSeq-Protein", "RefSeq-CDS", "NCBI", "TAIR" or "custom".}
+\item{mode}{One of "Uniprot", "Ensembl", "RefSeq-RNA", "RefSeq-Protein", "RefSeq-CDS", "NCBI", "TAIR" or "custom" (synonym: "unknown").}
 
 \item{in.env}{If TRUE, the function will attempt processing the character string in one of two ways: a) if it recognizes the character string as a Fasta file, it will directly process it; else, it will treat it as the name of a Fasta file already in the environment. If set to FALSE (default), it will attempt to load the file from the work directory.}
 
@@ -35,7 +38,7 @@ Format.DB(
 
 \item{Unique}{If TRUE (default), will filter fasta to provide only one accession per sequence. (This may mean that only 1 gene will be retained where several encode the exact same protein, but reducing redundancy is good for FDR.)}
 
-\item{IDs_only}{Allows extracting just the IDs (default = FALSE). Used internally only.}
+\item{IDs_only}{Allows extracting just the IDs (default = FALSE). Used internally only. Ignores Unique!}
 
 \item{parallel}{Default = FALSE; if TRUE, uses parallel processing and the next few arguments.}
 
@@ -46,6 +49,12 @@ Format.DB(
 \item{cl}{Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!}
 
 \item{trimName}{Logical (TRUE by default). Remove anything after the last underscore from the name, e.g. "ACTIN_HUMAN" become ACTIN. A more complex but safer way was used previously (up to 3.1.4).}
+
+\item{revString}{Character, default = "rev_". If provided, entries with the prefix will be removed by default.}
+
+\item{revDrop}{Logical, default = TRUE. Assuming that revString is provided, should we remove matching entries? Default = TRUE.}
+
+\item{verbose}{Logical (FALSE by default).}
 }
 \value{
 A data frame of parsed annotations.

@@ -307,11 +307,11 @@ if (length(proteoCraft_Vers)) {
   proteoCraft::Configure()
 }
 # ... or its older ancestor, aRmel
-if (length(aRmel_Vers)) {
-  install.packages(paste0("H:/aRmel_package/", aRmel_Vers, ".tar.gz"))
-  library(aRmel)
-  aRmel::Configure()
-}
+# if (length(aRmel_Vers)) {
+#   install.packages(paste0("H:/aRmel_package/", aRmel_Vers, ".tar.gz"))
+#   library(aRmel)
+#   aRmel::Configure()
+# }
 
 # Also setwd to expected work directory
 wd <- gsub("/Workflow control/?$", "", dirname(sessInfFl))

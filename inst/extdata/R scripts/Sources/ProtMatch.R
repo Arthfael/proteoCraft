@@ -43,7 +43,7 @@ I_eq_L %<o% I_eq_L
 if (!exists("Cut")) { Cut <- c("K_", "R_") } # Provide default here,
 # but defining Cut before running this allows to override it.
 # Should be in the future pulled from the search parameters.
-misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
+misFun <- \(x) { return(!exists(deparse(substitute(x)))) }
 #
 RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
@@ -53,7 +53,7 @@ parSrc <- paste0(libPath, "/extdata/R scripts/Sources/make_check_Cluster.R")
 source(parSrc, local = FALSE)
 #
 # Define final protein aggregate function
-fAggr0 <- function(x) { paste(sort(unique(x)), collapse = ";") }
+fAggr0 <- \(x) { paste(sort(unique(x)), collapse = ";") }
 #
 # Pre-process observed sequences
 Seq2 <- data.frame(Sequence = unique(Seq)) # Unique observed peptide sequences
@@ -70,8 +70,8 @@ if (I_eq_L) { # Convert Ile to Leu:
   Seq2$DigSeq <- gsub("I", "L", Seq2$DigSeq)
 }
 Seq2$myDigest <- strsplit(Seq2$DigSeq, "_") # -> digest
-Seq2$L <- vapply(Seq2$myDigest, length, 1)
-Seq2$Parent_ID <- paste0("lP", 1:nrow(Seq2)) # -> here "lP" stands for "long peptide" (may have missed cleavages)
+Seq2$L <- lengths(Seq2$myDigest)
+Seq2$Parent_ID <- paste0("lP", 1L:nrow(Seq2)) # -> here "lP" stands for "long peptide" (may have missed cleavages)
 #
 # Fully digest database and match to predicted peptides:
 Nms <- DB$`Protein ID`
@@ -92,7 +92,7 @@ Dig <- setNames(strsplit(DBSeq, "_"), Nms) # -> our full digest
 #
 # Allow for N-term methionine loss
 g <- grep("^M", DB$Sequence)
-frstPep <- setNames(vapply(Dig[g], function(x) { x[[1]] }, ""), Nms[g])
+frstPep <- setNames(vapply(Dig[g], \(x) { x[[1L]] }, ""), Nms[g])
 frstPepNoMeth <- gsub("^M", "", frstPep)
 # - Cluster export small objects
 myWD <- getwd()
@@ -101,27 +101,27 @@ parallel::clusterExport(parClust, c("Nms", "g", "myWD", "fAggr0"), envir = envir
 # - Use serialization to export efficiently large objects
 readr::write_rds(Dig, paste0(myWD, "/tmpDig.RDS"))
 readr::write_rds(frstPepNoMeth, paste0(myWD, "/1stPepNoMeth.RDS"))
-invisible(parallel::clusterCall(parClust, function(x) {
+invisible(parallel::clusterCall(parClust, \(x) {
   Dig <<- readr::read_rds(paste0(myWD, "/tmpDig.RDS")) # So it stays in cluster for next call!
   frstPepNoMeth <<- readr::read_rds(paste0(myWD, "/1stPepNoMeth.RDS")) # Same as above
   return()
 }))
-#f0 <- function(x) { exists("Dig") & exists("frstPepNoMeth") }
+#f0 <- \(x) { exists("Dig") & exists("frstPepNoMeth") }
 #tst <- parallel::clusterCall(parClust, f0)
-f0 <- function(x) {
+f0 <- \(x) {
   seq <- Dig[[Nms[x]]]
-  pos <- 1:length(seq)
+  pos <- 1L:length(seq)
   if (x %in% g) { # Deal with N-term Meth
     m <- match(x, g)
     seq <- c(seq, frstPepNoMeth[m])
-    pos <- c(pos, 1)
+    pos <- c(pos, 1L)
   }
   #rm(Dig)
   return(data.frame(Pos = pos,
                     Seq = seq,
                     Prot = Nms[x]))
 }
-Dig <- setNames(parallel::parLapply(parClust, 1:length(Dig), f0), Nms)
+Dig <- setNames(parallel::parLapply(parClust, 1L:length(Dig), f0), Nms)
 # - Cleanup
 unlink(paste0(myWD, "/tmpDig.RDS"))
 unlink(paste0(myWD, "/1stPepNoMeth.RDS"))
@@ -140,10 +140,10 @@ Frag2Prot <- as.data.frame(Frag2Prot[, list(Prot = list(unique(Prot))), by = lis
 #
 Res <- list()
 #
-w1 <- which(Seq2$L == 1)
-wM <- which(!(1:nrow(Seq2) %in% w1))
-stopifnot(sum(!Seq %in% Seq2$Sequence) == 0)
-stopifnot(sum(!unique(c(w1, wM) %in% 1:nrow(Seq2))) == 0)
+w1 <- which(Seq2$L == 1L)
+wM <- which(!(1L:nrow(Seq2) %in% w1))
+stopifnot(sum(!Seq %in% Seq2$Sequence) == 0L)
+stopifnot(sum(!unique(c(w1, wM) %in% 1L:nrow(Seq2))) == 0L)
 if (length(w1)) { # Full-digest peptides: easy peasy...
   m1 <- match(Seq2$DigSeq[w1], Frag2Prot$Seq) # Ok to use match here because unicity
   Res$Full <- data.frame(Sequence = Seq2$Sequence[w1],
@@ -154,16 +154,16 @@ if (length(wM)) { # Peptides with missed cleavages: the real fun begins...
   #
   Seq2flt <- Seq2[wM,]
   #
-  f0Mtch <- function(j, nFrag = 2, pepRange = myRng) { #j <- 1 #j <- j+1 #j <- j-1
+  f0Mtch <- \(j, nFrag = 2L, pepRange = myRng) { #j <- 1L #j <- j+1L #j <- j-1L
     #
     res <- c()
-    stopifnot(nFrag >= 1, nFrag == as.integer(nFrag))
+    stopifnot(nFrag >= 1L, nFrag == as.integer(nFrag))
     #
-    fragRg <- 1:nFrag
+    fragRg <- 1L:nFrag
     Seq2flt_i <- readr::read_rds(paste0(myWD, "/tmpA.RDS"))
     Frag2Prot_i <- readr::read_rds(paste0(myWD, "/tmpB.RDS"))
     Dig2_i <- readr::read_rds(paste0(myWD, "/tmpC.RDS"))
-    a1 <- (c(0, pepRange)+1)[j]
+    a1 <- (c(0L, pepRange)+1L)[j]
     a2 <- pepRange[j]
     if (a2 >= a1) {
       rg_ij <- a1:a2
@@ -174,7 +174,7 @@ if (length(wM)) { # Peptides with missed cleavages: the real fun begins...
       w_ij <- which(Frag2Prot_i$Seq %in% allFr_ij) # = ij-filter for our frag-2-prot table
       if (length(w_ij)) {
         Frag2Prot_ij <- Frag2Prot_i[w_ij,] # = corresponding extract of the frag-2-prot table
-        Frag2Prot_ij <- proteoCraft::listMelt(Frag2Prot_ij$Prot, Frag2Prot_ij$Seq, c("Protein", "Fragment"))
+        Frag2Prot_ij <- listMelt(Frag2Prot_ij$Prot, Frag2Prot_ij$Seq, c("Protein", "Fragment"))
         wSinA <- which(Dig2_i$Seq %in% allFr_ij)
         if (length(wSinA)) {
           Dig2_ij <- Dig2_i[wSinA,] # = all frag-2-prot with potential positions
@@ -185,32 +185,32 @@ if (length(wM)) { # Peptides with missed cleavages: the real fun begins...
           fr_ij_L <- do.call(rbind, lapply(Seq2flt_ij_Dig, nchar))
           # Identify the longest peptide fragment:
           # (We use the longest, most-specific peptide, so as to get a shorter list of candidate parent proteins!!!)
-          wLongest <- apply(fr_ij_L, 1, function(x) {
-            which(x == max(x))[1]
+          wLongest <- apply(fr_ij_L, 1L, \(x) {
+            which(x == max(x))[1L]
           })
-          Longest <- vapply(1:n_ij, function(x) { fr_ij[x, wLongest[x]]}, "")
+          Longest <- vapply(1L:n_ij, \(x) { fr_ij[x, wLongest[x]]}, "")
           # Other fragments
-          wOthers <- do.call(rbind, lapply(wLongest, function(x) { fragRg[which(!fragRg %in% x)] }))
-          Others <- do.call(rbind, lapply(1:n_ij, function(x) { fr_ij[x, wOthers[x,]] }))
+          wOthers <- do.call(rbind, lapply(wLongest, \(x) { fragRg[which(!fragRg %in% x)] }))
+          Others <- do.call(rbind, lapply(1L:n_ij, \(x) { fr_ij[x, wOthers[x,]] }))
           # Offset to apply to the position of those vs the longest peptide's own position, when searchging for matches
-          posOffsets <- sweep(wOthers, 1, wLongest, "-")
+          posOffsets <- sweep(wOthers, 1L, wLongest, "-")
           # All candidate proteins for each longest peptide
-          candidates <- lapply(Longest, function(x) { which(Dig2_ij$Seq == x) })
-          wLnon0 <- which(vapply(candidates, length, 1) > 0)
+          candidates <- lapply(Longest, \(x) { which(Dig2_ij$Seq == x) })
+          wLnon0 <- which(lengths(candidates) > 0L)
           if (length(wLnon0)) {
-            candidates <- proteoCraft::listMelt(candidates[wLnon0], wLnon0, c("Row", "missedPeptide"))
+            candidates <- listMelt(candidates[wLnon0], wLnon0, c("Row", "missedPeptide"))
             Dig2_ij <- as.data.frame(Dig2_ij) # Important for next step!!! At this stage, it's a data.table and does not respond well to the next call, somehow.
             candidates[, colnames(Dig2_ij)] <- Dig2_ij[candidates$Row, colnames(Dig2_ij)]
-            candidates$Others <- lapply(candidates$missedPeptide, function(x) { Others[x,] })
-            candidates$posOffsets <- lapply(candidates$missedPeptide, function(x) { posOffsets[x,] })
-            candidates$Others_expect <- apply(candidates[, c("Prot", "Others", "Pos", "posOffsets")], 1, function(x) {
-              list(paste(x[[1]], x[[2]], as.character(x[[3]]+x[[4]]), sep = "_"))
+            candidates$Others <- lapply(candidates$missedPeptide, \(x) { Others[x,] })
+            candidates$posOffsets <- lapply(candidates$missedPeptide, \(x) { posOffsets[x,] })
+            candidates$Others_expect <- apply(candidates[, c("Prot", "Others", "Pos", "posOffsets")], 1L, \(x) {
+              list(paste(x[[1L]], x[[2L]], as.character(x[[3L]]+x[[4L]]), sep = "_"))
             }, simplify = FALSE)
             Others_expect <- as.data.frame(t(as.data.frame(candidates$Others_expect)))
-            Others_notFound <- do.call(cbind, lapply(1:(i-1), function(x) {
+            Others_notFound <- do.call(cbind, lapply(1L:(i-1L), \(x) {
               !Others_expect[[x]] %in% Dig2_ij$ID
             }))
-            wAllFound <- which(rowSums(Others_notFound) == 0)
+            wAllFound <- which(rowSums(Others_notFound) == 0L)
             if (length(wAllFound)) {
               candidates <- candidates[wAllFound,]
               candidates$missedPeptide <- Seq2flt_ij$Sequence[candidates$missedPeptide]
@@ -226,24 +226,24 @@ if (length(wM)) { # Peptides with missed cleavages: the real fun begins...
   #
   # For each number of missed cleavages (missed = i-1)
   m <- max(Seq2flt$L)
-  for (i in 2:m) { #i <- 2 #i <- 3
+  for (i in 2L:m) { #i <- 2L #i <- 3L
     Seq2flt_i <- Seq2flt[which(Seq2flt$L == i),] # = peptides with i-1 missed cleavages
     n_i <- nrow(Seq2flt_i) # = how many we have
-    cat(paste0(" -> Processing ", n_i, " peptides with ", i-1, " missed cleavage", c("", "s")[((i-1) > 1)+1], "...\n"))
+    cat(paste0(" -> Processing ", n_i, " peptides with ", i-1L, " missed cleavage", c("", "s")[((i-1L) > 1L)+1L], "...\n"))
     allFr_i <- unique(unlist(Seq2flt_i$myDigest)) # = all their fragments
     w_i <- which(Frag2Prot$Seq %in% allFr_i) # = i-filter for our frag-2-prot table
     if (length(w_i)) { # This check is necessary because of the rare - but not impossible - case where we find no peptide with N misses but some with N+1!
       Frag2Prot_i <- Frag2Prot[w_i,]
       Dig2_i <- Dig2[which(Dig2$Seq %in% allFr_i),] # = all i-frag-2-prot with potential positions
-      myRng <- as.integer(round(as.numeric(1:N.clust)*n_i/N.clust)) # = ranges assigning i-peptides to cluster cores: we want to distribute our fragments over the cluster for efficient parallelisation
+      myRng <- as.integer(round(as.numeric(1L:N.clust)*n_i/N.clust)) # = ranges assigning i-peptides to cluster cores: we want to distribute our fragments over the cluster for efficient parallelisation
       myRng <- unique(myRng)
-      myRng <- myRng[which(myRng > 0)]
+      myRng <- myRng[which(myRng > 0L)]
       # Export temporary objects which will be read
       readr::write_rds(Seq2flt_i, paste0(myWD, "/tmpA.RDS"))
       readr::write_rds(Frag2Prot_i, paste0(myWD, "/tmpB.RDS"))
       readr::write_rds(Dig2_i, paste0(myWD, "/tmpC.RDS"))
-      parallel::clusterExport(parClust, list("i", "myWD"), envir = environment())
-      tmpResI <- parallel::parLapply(parClust, 1:length(myRng), f0Mtch, nFrag = i, pepRange = myRng)
+      parallel::clusterExport(parClust, list("i", "myWD", "listMelt"), envir = environment())
+      tmpResI <- parallel::parLapply(parClust, 1L:length(myRng), f0Mtch, nFrag = i, pepRange = myRng)
       tmpResI <- do.call(rbind, tmpResI)
       Res[[paste0(i, "-missed cleavages")]] <- tmpResI
       unlink(paste0(myWD, "/tmpA.RDS"))
@@ -253,15 +253,15 @@ if (length(wM)) { # Peptides with missed cleavages: the real fun begins...
   }
 }
 Res <- as.data.frame(data.table::rbindlist(Res))[, c("Sequence", "Proteins")]
-#stopifnot(sum(!Seq %in% Res$Sequence) == 0)
+#stopifnot(sum(!Seq %in% Res$Sequence) == 0L)
 w <- which(!Seq %in% Res$Sequence)
 if (length(w)) {
   tmp <- data.frame(Sequence = Seq[w], Proteins = "")
   Res <- rbind(Res, tmp)
 }
-row.names(Res) <- 1:nrow(Res)
+row.names(Res) <- 1L:nrow(Res)
 #
-invisible(parallel::clusterCall(parClust, function(x) {
+invisible(parallel::clusterCall(parClust, \(x) {
   try(rm(Dig, frstPepNoMeth, Seq2flt_i, Frag2Prot_i, Dig2_i), silent = TRUE)
   return()
 }))

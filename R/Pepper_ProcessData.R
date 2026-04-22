@@ -48,46 +48,47 @@ Pepper_ProcessData <- function(Ev,
   #
   if (!"Mass shift" %in% colnames(Modifs)) {
     if ("UniMod" %in% colnames(Modifs)) {
-      UniMod <- unimod::modifications
+      data(modifications, package = "PTMods")
+      UniMod <- modifications
       Modifs$"Mass shift" <- UniMod$MonoMass[match(Modifs$UniMod, UniMod$UnimodId)]
     } else {
       if (SearchSoft == "MAXQUANT") {
         modFls <- paste0(MQFold, "/bin/conf/modifications", c("", ".local"), ".xml")
         modFls <- modFls[which(file.exists(modFls))]
-        modFls <- lapply(modFls, function(modFl) { #modFl <- modFls[1]
+        modFls <- lapply(modFls, \(modFl) { #modFl <- modFls[1L]
           xml_lst <- as_list(xml2::read_xml(modFl))
-          xml_lst <- xml_lst[[1]]
-          xml_lst <- as.data.frame(t(sapply(xml_lst, function(x) {
-            #x <- xml_lst[[1]]
+          xml_lst <- xml_lst[[1L]]
+          xml_lst <- as.data.frame(t(sapply(xml_lst, \(x) {
+            #x <- xml_lst[[1L]]
             return(c(attr(x, "title"), attr(x, "composition")))
           })))
         })
         modFls <- plyr::rbind.fill(modFls)
         colnames(modFls) <- c("Name", "Composition")
         Modifs$Composition <- modFls$Composition[match(Modifs$`Full name`, modFls$Name)]
-        Modifs$"Mass shift" <- sapply(strsplit(Modifs$Composition, " "), function(x) {
-          #x <- strsplit(modifs$Formula, " ")[1]
+        Modifs$"Mass shift" <- sapply(strsplit(Modifs$Composition, " "), \(x) {
+          #x <- strsplit(modifs$Formula, " ")[1L]
           x <- unlist(x)
-          x <- as.data.frame(t(sapply(strsplit(gsub("\\)$", "", x), "\\("), function(y) {
-            if (length(y) == 1) { y <- c(y, 1) }
+          x <- as.data.frame(t(sapply(strsplit(gsub("\\)$", "", x), "\\("), \(y) {
+            if (length(y) == 1L) { y <- c(y, 1L) }
             return(y)
           })))
-          m <- match(x[[1]], IsotopeProbs$Atom)
-          stopifnot(sum(is.na(m)) == 0)
+          m <- match(x[[1L]], IsotopeProbs$Atom)
+          stopifnot(sum(is.na(m)) == 0L)
           # For now the code above throws an error if an elements is missing from the table
           # If it ever does, I should expand the table to add isotopic probabilities for more elements!!!
-          x <- sum(as.numeric(gsub("_.+", "", IsotopeProbs$Monoisotopic[m]))*as.integer(x[[2]]))
+          x <- sum(as.numeric(gsub("_.+", "", IsotopeProbs$Monoisotopic[m]))*as.integer(x[[2L]]))
           return(x)
         })
       } else { stop() }
     }
   }
   # Provide dummy "Gene names" if the columns is missing
-  if (!"Gene names" %in% colnames(Ev)) { Ev$"Gene names" <- paste0("Gene", 1:nrow(Ev)) }
+  if (!"Gene names" %in% colnames(Ev)) { Ev$"Gene names" <- paste0("Gene", 1L:nrow(Ev)) }
   # Filters
   # 1 - We only want unique peptides!
   kol <- c("Modified sequence", "Charge")
-  if (filter) { w1 <- grep(";", Ev$Proteins, invert = TRUE) } else { w1 <- 1:nrow(ev) }
+  w1 <- if (filter) { grep(";", Ev$Proteins, invert = TRUE) } else { 1L:nrow(ev) }
   tempEv <- Ev[w1,]
   rownames(tempEv) <- paste0("id_", tempEv$id)
   tempEv$UniqID <- tmpPpId <- do.call(paste, c(tempEv[, kol], sep = "_;_"))
@@ -97,7 +98,7 @@ Pepper_ProcessData <- function(Ev,
     tst2 <- data.table::data.table(tmpPpId = tmpPpId, Seq = tempEv$Sequence)
     tst2 <- tst2[, list(x = length(unique(tmpPpId))), by = list(Group.1 = Seq)]
     tst2 <- as.data.frame(tst2)
-    w2 <- which(tempEv$Sequence %in% tst2$Group.1[which(tst2$x == 1)])
+    w2 <- which(tempEv$Sequence %in% tst2$Group.1[which(tst2$x == 1L)])
     tempEv <- tempEv[w2,]
   }
   # 3 - We do not want any missed cleavages
@@ -111,8 +112,8 @@ Pepper_ProcessData <- function(Ev,
     tempEv <- tempEv[w3,]
   }
   unq <- unique(tempEv$UniqID)
-  tempEv2 <- data.frame("DUMMY" = 1:length(unq), "ID" = unq, check.names = FALSE)
-  colnames(tempEv2)[1] <- ""
+  tempEv2 <- data.frame("DUMMY" = 1L:length(unq), "ID" = unq, check.names = FALSE)
+  colnames(tempEv2)[1L] <- ""
   kolz <- setNames(c("ModSeq", "Peptide", "Protein", "Gene", "QueryCharge"),
                    c("Modified sequence", "Sequence", "Proteins", "Gene names", "Charge"))
   m <- match(tempEv2$ID, tempEv$UniqID)
@@ -120,8 +121,8 @@ Pepper_ProcessData <- function(Ev,
   rownames(tempEv2) <- rownames(tempEv)[m]
   # 4 - We want to exclude peptides with no siblings
   if (filter) {
-    tst <- aggregate(tempEv2$ID, list(tempEv2$Protein), function(x) { length(unique(x)) })
-    tempEv2 <- tempEv2[which(tempEv2$Protein %in% tst$Group.1[which(tst$x > 1)]),]
+    tst <- aggregate(tempEv2$ID, list(tempEv2$Protein), \(x) { length(unique(x)) })
+    tempEv2 <- tempEv2[which(tempEv2$Protein %in% tst$Group.1[which(tst$x > 1L)]),]
   }
   #
   #grep(";", tempEv2$Gene)
@@ -143,17 +144,17 @@ Pepper_ProcessData <- function(Ev,
   for (aa in AA) { tmpMdSq <- gsub(aa, paste0("_", aa, "_"), tmpMdSq) }
   tmpMdSq <- gsub("\\(|\\)", "", gsub("_+", "_", tmpMdSq))
   tmpMdSq <- strsplit(paste0(tmpMdSq, "_"), "_")
-  tmpMdSq <- sapply(tmpMdSq, function(x) {
+  tmpMdSq <- sapply(tmpMdSq, \(x) {
     x <- unlist(x)
     w1 <- which(x %in% c(AA, ""))
     w2 <- which(!x %in% c(AA, ""))
     ms <- Modifs$`Mass shift`[match(x[w2], Modifs$Mark)]
     res <- data.frame(AA = x, mod = "")
-    w3 <- sapply(w2, function(y) { max(w1[which(w1 < y)]) })
+    w3 <- sapply(w2, \(y) { max(w1[which(w1 < y)]) })
     tst <- aggregate(ms, list(w3), sum)
-    tst <- tst[which(tst$x > 0),]
-    w4 <- which(tst$x > 0)
-    tst$x <- as.character(round(tst$x, 3))
+    tst <- tst[which(tst$x > 0L),]
+    w4 <- which(tst$x > 0L)
+    tst$x <- as.character(round(tst$x, 3L))
     tst$x[w4] <- paste0("+", tst$x[w4])
     res$mod[tst$Group.1] <- tst$x
     res <- res[which(!res$AA %in% Modifs$Mark),]
@@ -162,10 +163,10 @@ Pepper_ProcessData <- function(Ev,
     return(res)
   })
   tempEv2$PeptideSequenceModifications[g] <- tmpMdSq
-  tempEv2[, paste0("Charge ", as.character(1:6))] <- 0
-  w <- which(tempEv2[, paste0("Charge ", as.character(1:6))] == 0, arr.ind = TRUE)
-  w <- as.matrix(data.frame(row = 1:nrow(tempEv2), col = tempEv2$QueryCharge))
-  tempEv2[, paste0("Charge ", as.character(1:6))][w] <- 1
+  tempEv2[, paste0("Charge ", as.character(1L:6L))] <- 0L
+  w <- which(tempEv2[, paste0("Charge ", as.character(1L:6L))] == 0L, arr.ind = TRUE)
+  w <- as.matrix(data.frame(row = 1L:nrow(tempEv2), col = tempEv2$QueryCharge))
+  tempEv2[, paste0("Charge ", as.character(1L:6L))][w] <- 1L
   tempEv2 <- tempEv2[, c("Peptide", "PeptideSequenceModifications", "Protein", "Gene", "QueryCharge",
                        "Charge 1", "Charge 2", "Charge 3", "Charge 4", "Charge 5", "Charge 6",
                        Samples)]
@@ -173,7 +174,7 @@ Pepper_ProcessData <- function(Ev,
   if (nchar(path)) {
     kol <- colnames(tempEv2)
     tempEv <- as.matrix(tempEv2)
-    tempEv <- cbind(1:nrow(tempEv), tempEv)
+    tempEv <- cbind(1L:nrow(tempEv), tempEv)
     colnames(tempEv) <- c("", kol)
     try(write.table(tempEv, path, na = "", quote = FALSE, sep = "\t"), silent = TRUE)
   }

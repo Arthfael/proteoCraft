@@ -234,52 +234,38 @@ myData[, colnames(tmp)] <- tmp
 TESTs <- c("limma", "DEqMS")
 for (TEST in TESTs) { #TEST <- TESTs[1] #TEST <- TESTs[2]
   cat(paste0("   - ", TEST, " moderated t-test\n"))
+  tmpVal2 <- tmpVal
   if (TEST == "limma") {
     pRoot <- modRoot
     insrt <- "limma mod. t-test"
   }
   if (TEST == "DEqMS") {
-    pRoot <- deqmsRoot
+    grpTst <- aggregate(1:nrow(expMap), list(expMap$Group_), list)
+    clusterExport(parClust, list("grpTst", "tmpVal2"), envir = environment())
+    tst <- t(parSapply(parClust, 1:nrow(tmpVal2), function(x) {
+      sapply(grpTst$x, function(y) { length(proteoCraft::is.all.good(tmpVal2[x, unlist(y)])) })
+    }))
+    tst <- apply(tst, 1, min)
+    wOK <- which(tst >= 2)
+    tmpVal2 <- tmpVal2[wOK,]
+    nmRoot <- deqmsRoot
     insrt <- "DEqMS mod. t-test"
   }
-  if (quantAlgo == "limpa") {
-    
-    
-    
-    
-  } else {
-    tmpVal2 <- tmpVal
-    if (TEST == "DEqMS") {
-      grpTst <- aggregate(1:nrow(expMap), list(expMap$Group_), list)
-      clusterExport(parClust, list("grpTst", "tmpVal2"), envir = environment())
-      tst <- t(parSapply(parClust, 1:nrow(tmpVal2), function(x) {
-        sapply(grpTst$x, function(y) { length(proteoCraft::is.all.good(tmpVal2[x, unlist(y)])) })
-      }))
-      tst <- apply(tst, 1, min)
-      wOK <- which(tst >= 2)
-      tmpVal2 <- tmpVal2[wOK,]
-    }
-  }
-  
-  corfit <- duplicateCorrelation(assay(se),
-                                 design,
-                                 block = Litter,
-                                 weights = assay(se, "weights"))
-  
-  
-  
   #fit <- lmFit(tmpVal2, designMatr, trend = TRUE, robust = TRUE)
-  fit <- voomaLmFit(tmpVal2, designMatr)
+  fit <- lmFit(tmpVal2, designMatr)
   fit$genes <- myData[[namesCol]]
   fit <- contrasts.fit(fit, contrMatr)
-  fit <- eBayes(fit)
+  fit <- eBayes(fit) # Note: eBayes() performs empirical Bayes moderation of variances; the default settings are appropriate, and e.g. do not assume 1% of proteins are differentially expressed.
+  if (AltHyp != "two.sided") {
+    fit$p.value <- limma.one.sided(fit, c(FALSE, TRUE)[match(AltHyp, c("greater", "lower"))])
+  }
   # Do not use topTable!
   # - It adjusts P values (with "BH") by default...
   #   If using it (e.g. rewriting to include systematic P-value adjustment), set adjust.method = "none"!!!
   # - The way it tests a hypothesis seems better suited to F.tests than t-tests!
   # Here you could use decideTests() if wanting to switch to directly using decisions from limma
   if (TEST == "limma") {
-    myData[, paste0(pRoot, expContr$name)] <- -log10(fit$p.value)
+    myData[, paste0(modRoot, expContr$name)] <- -log10(fit$p.value)
   }
   # Plot moderated t-test results
   for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[1]

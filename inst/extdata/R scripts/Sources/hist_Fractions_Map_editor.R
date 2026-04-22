@@ -8,7 +8,7 @@ reLoad <- file.exists(smplsMapFl)
 dfltKol <- c("Sample", "Group", "Replicate")
 if (reLoad) {
   smplsMap <- read.csv(smplsMapFl,
-                         check.names = FALSE)
+                       check.names = FALSE)
   # Backwards compatibility
   if (("Old" %in% colnames(smplsMap))&&(!"Sample" %in% colnames(smplsMap))) {
     colnames(smplsMap)[which(colnames(smplsMap) == "Old")] <- "Sample"
@@ -17,7 +17,7 @@ if (reLoad) {
     colnames(smplsMap)[which(colnames(smplsMap) == "New")] <- "Sample name"
   }
   #
-  reLoad <- sum(dfltKol %in% colnames(smplsMap)) == 3
+  reLoad <- sum(dfltKol %in% colnames(smplsMap)) == 3L
 }
 if (!reLoad) {
   smplsMap <- data.frame(Sample = unique(ev$`Raw file`),
@@ -59,8 +59,8 @@ nr <- nrow(smplsMap)
 rws <- seq_len(nr)
 chRws <- as.character(rws)
 if (!exists("nRep")) { nRep <- nr }
-dflt_Rpl <- 1:(nr+nRep) %% nRep
-dflt_Rpl[which(dflt_Rpl == 0)] <- nRep
+dflt_Rpl <- 1L:(nr+nRep) %% nRep
+dflt_Rpl[which(dflt_Rpl == 0L)] <- nRep
 #
 if (length(myFact)) {
   w <- which(!myFact %in% colnames(smplsMap))
@@ -77,7 +77,7 @@ smplsMap2 <- smplsMap
 smplsMap2$`Sample name` <- shinyTextInput(smplsMap2$`Sample name`, "Sample name", width = "100%")
 smplsMap2$Group <- shinyTextInput(smplsMap2$Group, "Group", width = "100%")
 smplsMap2$Group___FD <- shinyFDInput("Group", nr)
-smplsMap2$Replicate <- shinyNumInput(smplsMap2$Replicate, 1, Inf, 1, root = "Replicate", width = "100%")
+smplsMap2$Replicate <- shinyNumInput(smplsMap2$Replicate, 1L, Inf, 1L, root = "Replicate", width = "100%")
 smplsMap2$Replicate___FD <- shinyFDInput("Replicate", nr)
 smplsMap2$Replicate___INCR <- shinyPlusFD("Replicate", nr)
 smplsMap2$Use <- shinyCheckInput(smplsMap2$Use, "Use")
@@ -93,33 +93,33 @@ if (length(myFact)) {
 }
 kol <- c(kol, "Replicate", "Replicate___FD", "Replicate___INCR", "Use", "Use___FD")
 smplsMap2 <- smplsMap2[, kol]
-ALLIDS <- as.character(sapply(c("Group", myFact, "Replicate", "Use"), function(x) {
-  paste0(x, "___", chRws))
+ALLIDS <- as.character(sapply(c("Group", myFact, "Replicate", "Use"), \(x) {
+  paste0(x, "___", chRws)
 }))
 idsL <- length(ALLIDS)
 # Table width
-wTest0 <- setNames(vapply(colnames(smplsMap), function(k) { #k <- colnames(smplsMap2)[1]
+wTest0 <- setNames(vapply(colnames(smplsMap), \(k) { #k <- colnames(smplsMap2)[1L]
   tmp <- smplsMap[[k]]
-  if ("logical" %in% class(tmp)) { tmp <- as.integer(tmp) }
+  if (is.logical(tmp)) { tmp <- as.integer(tmp) }
   tmp <- as.character(tmp)
-  x <- max(nchar(c(k, tmp)) + 3, na.rm = TRUE)
-  x <- x*10
+  x <- max(nchar(c(k, tmp)) + 3L, na.rm = TRUE)
+  x <- x*10L
   return(x)
-}, 1), colnames(smplsMap))
-wTest1 <- vapply(colnames(smplsMap2), function(k) { #k <- colnames(smplsMap2)[1]
-  if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
+}, 1L), colnames(smplsMap))
+wTest1 <- vapply(colnames(smplsMap2), \(k) { #k <- colnames(smplsMap2)[1L]
+  x <- if (k %in% names(wTest0)) { wTest0[k] } else { 30L }
   return(x)
-}, 1)
+}, 1L)
 wTest1 <- round(wTest1*screenRes$width*0.45/sum(wTest1))
 #sum(wTest1)
 wTest1 <- paste0(as.character(wTest1), "px")
-wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
-wTest1 <- apply(wTest1, 1, function(x) {
-  x1 <- x[[1]]
-  x2 <- as.integer(x[[2]])
+wTest1 <- aggregate((1L:length(wTest1))-1L, list(wTest1), c)
+wTest1 <- apply(wTest1, 1L, \(x) {
+  x1 <- x[[1L]]
+  x2 <- as.integer(x[[2L]])
   list(width = x1,
        targets = x2,
-       names = colnames(smplsMap2)[x2+1])
+       names = colnames(smplsMap2)[x2+1L])
 })
 #
 g <- grep("___((FD)|(INCR))$", colnames(smplsMap2))
@@ -146,7 +146,7 @@ ui <- fluidPage(useShinyjs(),
                 br(),
                 #plotlyOutput("PCA", height = paste0(screenRes$width*0.4, "px")),
                 br())
-server <- function(input, output, session) {
+server <- \(input, output, session) {
   smplsMap3 <- smplsMap
   output$smplsMap2 <- renderDT({ smplsMap2 },
                              FALSE,
@@ -171,23 +171,23 @@ server <- function(input, output, session) {
       Shiny.unbindAll(table.table().node());
       Shiny.bindAll(table.table().node());"))
   # Fill down
-  sapply(1:idsL, function(x) {
+  sapply(1L:idsL, \(x) {
     id1 <- ALLIDS[x]
     id2 <- paste0(ALLIDS[x], "___FD")
     tmp <- unlist(strsplit(id1, "___"))
-    fct <- tmp[[1]]
-    i <- as.integer(tmp[[2]])
+    fct <- tmp[[1L]]
+    i <- as.integer(tmp[[2L]])
     if (i < nr) {
       observeEvent(input[[id2]],
                    {
                      x <- input[[id1]]
-                     for (k in (i+1):nr) {
+                     for (k in (i+1L):nr) {
                        idK <- paste0(fct, "___", as.character(k))
                        if (fct %in% c("Group", myFact)) {
                          updateTextInput(session, idK, NULL, x)
                        }
                        if (fct == "Replicate") {
-                         updateNumericInput(session, idK, NULL, x, 1, Inf, 1)
+                         updateNumericInput(session, idK, NULL, x, 1L, Inf, 1L)
                        }
                        if (fct == "Use") {
                          updateCheckboxInput(session, idK, NULL, as.logical(x))
@@ -197,7 +197,7 @@ server <- function(input, output, session) {
     }
   })
   # Incremental fill-down for replicates
-  sapply(rws, function(i) {
+  sapply(rws, \(i) {
     if (i < nr) {
       iChr <- as.character(i)
       id1 <- paste0("Replicate___", iChr)
@@ -205,14 +205,14 @@ server <- function(input, output, session) {
       observeEvent(input[[id2]],
                    {
                      x <- input[[id1]]
-                     rplRg <- (i+1):nr
+                     rplRg <- (i+1L):nr
                      l <- length(rplRg)
-                     m <- match(x, dflt_Rpl)+1
+                     m <- match(x, dflt_Rpl)+1L
                      rplVal <- dflt_Rpl[m:(m+l-1)]
                      for (k in rplRg) {
                        y <- rplVal[k-i]
                        idK <- paste0("Replicate___", as.character(k))
-                       updateSelectInput(session, idK, NULL, 1:nRep, y)
+                       updateSelectInput(session, idK, NULL, 1L:nRep, y)
                      }
                    }
       )
@@ -222,7 +222,7 @@ server <- function(input, output, session) {
   observeEvent(input$saveBtn, {
     kls <- c("Sample name", "Group", "Replicate", "Use")
     for (kl in kls) {
-      smplsMap3[[kl]] <- sapply(rws, function(i) {
+      smplsMap3[[kl]] <- sapply(rws, \(i) {
         input[[paste0(kl, "___", as.character(i))]]
       })
       if (kl == "Replicate") {
@@ -238,13 +238,13 @@ server <- function(input, output, session) {
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+  session$onSessionEnded(\() { stopApp() })
 }
-runKount <- 0
+runKount <- 0L
 while ((!runKount)||(!exists("appRunTest"))) {
   eval(parse(text = runApp), envir = .GlobalEnv)
   shinyCleanup()
-  runKount <- runKount+1
+  runKount <- runKount+1L
 }
 #
 samplesMap <- smplsMap
@@ -252,11 +252,11 @@ samplesMap[, colnames(smplsMap3)] <- smplsMap3
 samplesMap <- samplesMap[which(samplesMap$Use),]
 #
 tmpTbl <- smplsMap3
-tst <- lapply(colnames(smplsMap3), function(x) { typeof(smplsMap3[[x]]) })
+tst <- lapply(colnames(smplsMap3), \(x) { typeof(smplsMap3[[x]]) })
 w <- which(tst == "list")
 if (length(w)) { for (i in w) { smplsMap3[[i]] <- vapply(smplsMap3[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(tmpTbl, file = smplsMapFl, row.names = FALSE, quote = TRUE), silent = TRUE)
-while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
+while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {
   dlg_message(paste0("File \"", smplsMapFl, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmpTbl, file = smplsMapFl, row.names = FALSE, quote = TRUE), silent = TRUE)
 }

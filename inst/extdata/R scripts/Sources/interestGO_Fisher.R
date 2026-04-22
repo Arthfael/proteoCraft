@@ -122,10 +122,8 @@ if (length(GO.tabs)) {
   }), Ontologies)
   myGOdata2 <- do.call(rbind, myGOdata2)
   #
-  write.csv(fishrTsts, paste0(wd, "/Reg. analysis/GO enrich/Dataset/GO_terms_of_interest.csv"))
-  write.csv(myGOdata2, paste0(wd, "/Reg. analysis/GO enrich/Dataset/GO_terms_of_interest_(topGO).csv"))
+  dir <- paste0(wd, "/Reg. analysis/GO enrich/Dataset")
+  if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+  write.csv(fishrTsts, paste0(dir, "/GO_terms_of_interest.csv"))
+  write.csv(myGOdata2, paste0(dir, "/GO_terms_of_interest_(topGO).csv"))
 }
-
-
-
-

@@ -1,7 +1,8 @@
 # Impute missing peptide intensities
 if (Impute) {
-  DatAnalysisTxt <- paste0(DatAnalysisTxt,
-                           " Missing values were imputed using two different strategies: i) the KNN (K-Nearest Neighbours) method for Missing-(Completely)-At-Random values within sample groups, and ii) the QRILC (Quantile Regression Imputation of Left-Censored data) method for Missing-Not-At-Random values.")
+  l <- length(DatAnalysisTxt)
+  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
+                              " Missing values were imputed using two different strategies: i) the KNN (K-Nearest Neighbours) method for Missing-(Completely)-At-Random values within sample groups, and ii) the QRILC (Quantile Regression Imputation of Left-Censored data) method for Missing-Not-At-Random values.")
   msg <- "Imputing missing values..."
   ReportCalls <- AddMsg2Report(Space = FALSE)
   #
@@ -11,7 +12,7 @@ if (Impute) {
   #
   ref <- pep.ref[length(pep.ref)]
   pat <- topattern(ref)
-  if ("Imputation" %in% names(pep.ref)) { ref <- pep.ref[match("Imputation", names(pep.ref))-1] }
+  if ("Imputation" %in% names(pep.ref)) { ref <- pep.ref[match("Imputation", names(pep.ref))-1L] }
   kol <- grep(pat, colnames(pep), value = TRUE)
   groups <- Exp.map[match(gsub(pat, "", kol), Exp.map$Ref.Sample.Aggregate), VPAL$column]
   temp <- Data_Impute2(pep[, kol], groups, is.log = FALSE)
@@ -32,13 +33,13 @@ if (Impute) {
   plot <- ggplot(plotTmp) + geom_scattermore(aes(x = Original, y = Imputed, color = Sample), pointsize = 2.5) +
     facet_wrap(~Sample) + theme_bw() + ggtitle(ttl, subtitle = "(non-transformed values)") + coord_fixed() +
     geom_vline(xintercept = mnX + 0.5, color = "darkred", linetype = "dashed") +
-    geom_text(x = mnX + 0.525, y = mnX + 0.5, label = "<- imputed", size = 3, color = "darkred", hjust = 0)
+    geom_text(x = mnX + 0.525, y = mnX + 0.5, label = "<- imputed", size = 3L, color = "darkred", hjust = 0)
   # TO DO:
   # Add a way to look at number of missed values across sample group, so we can distinguish MNAR from MAR on the plots!
-  poplot(plot, 12, 22)
+  poplot(plot, 12L, 22L)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150)
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150)
+    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150L)
+    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L)
   })
   #
   colnames(temp2) <- gsub(pat, paste0("imput. ", pep.ref["Original"]), colnames(temp2))

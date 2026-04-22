@@ -4,7 +4,7 @@
 \alias{listMelt}
 \title{listMelt}
 \usage{
-listMelt(List, Names = NULL, ColNames = c("value", "L1"))
+listMelt(List, Names, ColNames = c("value", "L1"))
 }
 \arguments{
 \item{List}{A list.}

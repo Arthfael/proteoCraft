@@ -31,12 +31,12 @@ make_RefRat <- function(data = pep,
                         experiment.map = Exp.map,
                         experiment.map_col = "Ref.Sample.Aggregate",
                         int.root = pep.ref[length(pep.ref)],
-                        rat.root = pep.ratios.ref[1],
+                        rat.root = pep.ratios.ref[1L],
                         rat.con.grps = RatConGrps,
                         mode = RefRat_Mode,
                         parameters = Param,
                         logInt = FALSE,
-                        logRat = 2) {
+                        logRat = 2L) {
   #DefArg(make_RefRat)
   #data = res2;experiment.map = experiment.map;int.root = Expr.root.full;rat.root = Pep.Ratios.root;rat.con.grps = rat_cont_grps;mode = Refs_Mode;parameters = param;logInt = log.Pep.Intens;logRat = log.Pep.Ratios
   mode <- as.character(mode)
@@ -47,16 +47,16 @@ make_RefRat <- function(data = pep,
   }
   if ((!is.numeric(logRat))||(logRat <= 0)) {
     warning("Invalid \"logRat\" argument, must be valid log base!")
-    logRat <- 2
+    logRat <- 2L
   }
-  if (exists("Ratios.Groups", .GlobalEnv)) { rGrp <- Ratios.Groups } else {
-    rGrp <- parse.Param.aggreg(parameters$Ratios.Groups)
+  rGrp <- if (exists("Ratios.Groups", .GlobalEnv)) { Ratios.Groups } else {
+    parse.Param.aggreg(parameters$Ratios.Groups)
   }
-  if (exists("Ratios.Ref.Groups", .GlobalEnv)) { rrGrp <- Ratios.Ref.Groups } else {
-    rrGrp <- parse.Param.aggreg(parameters$Ratios.Ref.Groups)
+  rrGrp <- if (exists("Ratios.Ref.Groups", .GlobalEnv)) { Ratios.Ref.Groups } else {
+    parse.Param.aggreg(parameters$Ratios.Ref.Groups)
   }
-  if (exists("Volcano.plots.Aggregate.Level", .GlobalEnv)) { smplsGrp <- Volcano.plots.Aggregate.Level } else {
-    smplsGrp <- parse.Param.aggreg(parameters$Ratios.Ref.Groups)
+  smplsGrp <- if (exists("Volcano.plots.Aggregate.Level", .GlobalEnv)) { Volcano.plots.Aggregate.Level } else {
+    parse.Param.aggreg(parameters$Ratios.Ref.Groups)
   }
   #
   if (mode == "1") {
@@ -74,32 +74,32 @@ make_RefRat <- function(data = pep,
       }
       xr1 <- paste0(int.root, x1, ".REF")
       xr1 <- xr1[which(xr1 %in% colnames(data))]
-      if (length(xr1) > 1) {
-        perm <- gtools::permutations(length(xr1), 2, xr1)
-        if (isLog) {
-          tmp <- apply(perm, 1, function(y) { (data[[y[[1]]]]-data[[y[[2]]]])/log(logRat, logInt) })
+      if (length(xr1) > 1L) {
+        perm <- gtools::permutations(length(xr1), 2L, xr1)
+        tmp <- if (isLog) {
+          apply(perm, 1L, function(y) { (data[[y[[1L]]]]-data[[y[[2L]]]])/log(logRat, logInt) })
         } else {
-          tmp <- apply(perm, 1, function(y) { log(data[[y[[1]]]]/data[[y[[2]]]], logRat) })
+          apply(perm, 1L, function(y) { log(data[[y[[1L]]]]/data[[y[[2L]]]], logRat) })
         }
       } else {
         x2 <- unique(experiment.map[which((experiment.map[[rGrp$column]] == x)&(experiment.map$Reference)),
                                     experiment.map_col])
         xr2 <- paste0(int.root, x2)
-        if (isLog) {
-          tmp <- sapply(xr2, function(y) { (data[[y]]-data[[xr1]])/log(logRat, logInt) })
+        tmp <- if (isLog) {
+          sapply(xr2, function(y) { (data[[y]]-data[[xr1]])/log(logRat, logInt) })
         } else {
-          tmp <- sapply(xr2, function(y) { log(data[[y]]/data[[xr1]], logRat) })
+          sapply(xr2, function(y) { log(data[[y]]/data[[xr1]], logRat) })
         }
       }
       tmp <- as.data.frame(tmp)
-      colnames(tmp) <- paste0(rat.root, x, "_REF.to.REF_", 1:ncol(tmp))
+      colnames(tmp) <- paste0(rat.root, x, "_REF.to.REF_", 1L:ncol(tmp))
       return(tmp)
     }), rGrp$values)
   }
   if (mode == "2") {
     # Here we are measuring intrinsic variability by comparing intra-sample group variation (replicate to replicate of the same stuff) for all sample groups,
     # not just control/reference sample group(s)!
-    RES <- setNames(lapply(rGrp$values, function(rtGrp) { #rtGrp <- rGrp$values[1]
+    RES <- setNames(lapply(rGrp$values, function(rtGrp) { #rtGrp <- rGrp$values[1L]
       if (rat.con.grps == "Ratio groups") {
         em <- experiment.map[which(experiment.map[[rGrp$column]] == rtGrp),]
       }
@@ -117,12 +117,12 @@ make_RefRat <- function(data = pep,
         y <- paste0(int.root, y)
         y <- y[which(y %in% colnames(data))]
         if (length(y)) {
-          y <- gtools::permutations(length(y), 2, y) # Important to use permutations and not combinations since we want symmetry!
-          y <- apply(y, 1, function(z) {
+          y <- gtools::permutations(length(y), 2L, y) # Important to use permutations and not combinations since we want symmetry!
+          y <- apply(y, 1L, function(z) {
             if (isLog) {
-              z <- (data[[z[[1]]]]-data[[z[[2]]]])/log(logRat, logInt)
+              z <- (data[[z[[1L]]]]-data[[z[[2L]]]])/log(logRat, logInt)
             } else {
-              z <- suppressWarnings(log(data[[z[[1]]]]/data[[z[[2]]]], logRat))
+              z <- suppressWarnings(log(data[[z[[1L]]]]/data[[z[[2L]]]], logRat))
             }
             return(z)
           })

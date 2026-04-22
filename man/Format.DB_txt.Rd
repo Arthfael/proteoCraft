@@ -25,7 +25,7 @@ Format.DB_txt(
   Features = FALSE,
   usePar = TRUE,
   N.clust,
-  N.reserved = 1,
+  N.reserved = 1L,
   cl,
   Feat_accRgx = "[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}"
 )

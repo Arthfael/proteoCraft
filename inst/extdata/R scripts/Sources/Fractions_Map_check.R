@@ -1,5 +1,5 @@
 # Check and process Fractions map
-#ev %<o% do.call(plyr::rbind.fill, lapply(searchOutputs, function(x) { x$ev })); ev$id <- 1:nrow(ev)
+#ev %<o% do.call(plyr::rbind.fill, lapply(searchOutputs, \(x) { x$ev })); ev$id <- 1L:nrow(ev)
 Exp.map$Use <- as.logical(Exp.map$Use)
 #MQ.Exp %<o% sort(unique(FracMap$MQ.Exp))
 MQ.Exp <- MQ.Exp[which(MQ.Exp %in% unique(unlist(Exp.map$MQ.Exp[which(Exp.map$Use)])))]
@@ -10,7 +10,7 @@ if (file.exists(FracMapPath)) {
   }
   Frac.map <- Frac.map[which(Frac.map$Use),]
   MQ.Exp <- MQ.Exp[which(MQ.Exp %in% unique(unlist(Frac.map$MQ.Exp[which(Frac.map$Use)])))]
-  Exp.map <- Exp.map[which(vapply(Exp.map$MQ.Exp, function(x) { sum(x %in% MQ.Exp) }, 1) > 0),]
+  Exp.map <- Exp.map[which(vapply(Exp.map$MQ.Exp, \(x) { sum(x %in% MQ.Exp) }, 1L) > 0L),]
   Frac.map <- Frac.map[which(Frac.map$MQ.Exp %in% MQ.Exp),]
   m <- match(ev$`Raw file`, rawFiles2)
   if (!sum(!is.na(m))) {
@@ -23,16 +23,16 @@ if (file.exists(FracMapPath)) {
   test <- sort(unique(Frac.map$MQ.Exp))
   if (sum(test != sort(MQ.Exp))) { stop("Column \"Experiment\" not defined properly in Fractions map!") }
   Frac.map <- Frac.map[which(Frac.map$MQ.Exp %in% MQ.Exp),]
-  Frac.map$Experiment <- vapply(Frac.map$MQ.Exp, function(x) { #x <- Frac.map$MQ.Exp[1]
-    x1 <- unlist(unique(Exp.map$Experiment[which(vapply(Exp.map$MQ.Exp, function(y) { x %in% unlist(y) }, TRUE))]))
-    if (length(x1) == 1) { return(x1) } else {
-      if (length(x1) > 1) { stop(paste0(x, " - each raw file must be mapped to exactly one Experiment!")) } else {
+  Frac.map$Experiment <- vapply(Frac.map$MQ.Exp, \(x) { #x <- Frac.map$MQ.Exp[1L]
+    x1 <- unlist(unique(Exp.map$Experiment[which(vapply(Exp.map$MQ.Exp, \(y) { x %in% unlist(y) }, TRUE))]))
+    if (length(x1) == 1L) { return(x1) } else {
+      if (length(x1) > 1L) { stop(paste0(x, " - each raw file must be mapped to exactly one Experiment!")) } else {
         return(NA)
       }
     }
   }, "")
   Frac.map <- Frac.map[which(!is.na(Frac.map$Experiment)),]
-  if (("Replicate" %in% colnames(Frac.map))&&(sum(sort(unique(Frac.map$Replicate)) != sort(Rep)) != 0)) {
+  if (("Replicate" %in% colnames(Frac.map))&&(sum(sort(unique(Frac.map$Replicate)) != sort(Rep)) != 0L)) {
     stop("Replicates from Fractions map and Experiment map do not match!")
   }
   stopifnot("Raw file" %in% colnames(Frac.map),
@@ -46,7 +46,7 @@ if (file.exists(FracMapPath)) {
       if (length(w2)) {
         m <- match(Frac.map[w2, k], ev$"Raw file")
         tst2 <- gsub(".*/|\\.[^\\.]+$", "", Frac.map$"Raw file"[w2]) == gsub(".*/|\\.[^\\.]+$", "", ev$"Raw file path"[m])
-        stopifnot(sum(is.na(tst2)) == 0, sum(!tst2) == 0)
+        stopifnot(sum(is.na(tst2)) == 0L, sum(!tst2) == 0L)
         Frac.map$"Raw file"[w2] <- ev$"Raw file path"[m]
         ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file")
       }
@@ -65,7 +65,7 @@ if (file.exists(FracMapPath)) {
     if (LabelType == "Isobaric") { Iso <- sort(unique(Exp.map$Isobaric.set)) }
   }
   if ("Replicate" %in% colnames(Frac.map)) {
-    Frac.map$Unique.Frac.ID <- apply(Frac.map[, c("Replicate", "MQ.Exp", "Fraction")], 1, function(x) {
+    Frac.map$Unique.Frac.ID <- apply(Frac.map[, c("Replicate", "MQ.Exp", "Fraction")], 1L, \(x) {
       paste0("Rep", paste(x, collapse = "_"))
     })
     ev$Replicate <- Frac.map$Replicate[ev2fr]
@@ -73,14 +73,14 @@ if (file.exists(FracMapPath)) {
   if (LabelType == "Isobaric") {
     if (!"Isobaric.set" %in% colnames(Frac.map)) {
       if (test.iso.set) { stop("The fractions map does not include an isobaric set column!") } else {
-        Frac.map$Isobaric.set <- 1
-        ev$Isobaric.set <- 1
+        Frac.map$Isobaric.set <- 1L
+        ev$Isobaric.set <- 1L
       }
     } else { ev$Isobaric.set <- Frac.map$Isobaric.set[ev2fr] }
   }
   # Filter for ones to keep
   MQ.Exp <- MQ.Exp[which(MQ.Exp %in% Frac.map$MQ.Exp)]
-  Exp.map <- Exp.map[which(vapply(Exp.map$MQ.Exp, function(x) { sum(x %in% MQ.Exp) }, 1) > 0),]
+  Exp.map <- Exp.map[which(vapply(Exp.map$MQ.Exp, \(x) { sum(x %in% MQ.Exp) }, 1L) > 0L),]
   Frac.map$Fraction <- as.numeric(gsub("^ | $", "", Frac.map$Fraction))
   ev <- ev[which(ev$MQ.Exp %in% MQ.Exp),]
   ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file")
@@ -89,7 +89,7 @@ if (file.exists(FracMapPath)) {
                      Fraction.map = sort(unique(Frac.map$MQ.Exp)),
                      Exp.map = sort(unique(unlist(Exp.map$MQ.Exp))),
                      MQ.Exp = sort(MQ.Exp))
-  if (max(apply(test, 1, function(x) { length(unique(x)) })) > 1) {
+  if (max(apply(test, 1L, \(x) { length(unique(x)) })) > 1L) {
     stop(paste0("The MQ.Exp object, the Fractions and Experiment map, and the ", evNm, " file do not match!!!"))
     #apply(test, 1, unique)
   }
@@ -97,18 +97,18 @@ if (file.exists(FracMapPath)) {
     warning("Column \"Norma.groups\" in the Fractions Map is deprecated, use \"PTM-enriched\" instead!")
   }
   Unique.Frac %<o% data.frame(Unique.Frac.ID = unique(Frac.map$Unique.Frac.ID))
-  Unique.Frac$Raw.files <- lapply(Unique.Frac$Unique.Frac.ID, function(x) {
+  Unique.Frac$Raw.files <- lapply(Unique.Frac$Unique.Frac.ID, \(x) {
     Frac.map$"Raw file"[which(Frac.map$Unique.Frac.ID == x)]
   })
   ev$"Unique Frac" <- Frac.map$Unique.Frac.ID[ev2fr]
 } else {
   kol <- "MQ.Exp"
-  if (length(Exp) == 1) {
+  if (length(Exp) == 1L) {
     ev$Experiment <- Exp
     kol <- c(kol, "Experiment")
   } else { stop("There are several Experiments in Exp.map, yet Fractions map is missing!") }
   if (LabelType == "Isobaric") {
-    if (length(Iso) == 1) {
+    if (length(Iso) == 1L) {
       ev$Isobaric.set <- Iso
       kol <- c(kol, Isobaric.set)
     } else { stop("There are several Isobaric sets in Exp.map, yet Fractions map is missing!") }
@@ -120,10 +120,10 @@ Exp.map$Use <- as.logical(Exp.map$Use)
 Frac.map$Use <- as.logical(Frac.map$Use)
 Exp.map <- Exp.map[which(Exp.map$Use),]
 Frac.map <- Frac.map[which(Frac.map$Use),]
-stopifnot(sum(sort(unique(Exp.map$Experiment)) != sort(unique(Frac.map$Experiment))) == 0)
-stopifnot(sum(sort(unique(unlist(Exp.map$MQ.Exp))) != sort(unique(unlist(Frac.map$MQ.Exp)))) == 0)
+stopifnot(sum(sort(unique(Exp.map$Experiment)) != sort(unique(Frac.map$Experiment))) == 0L)
+stopifnot(sum(sort(unique(unlist(Exp.map$MQ.Exp))) != sort(unique(unlist(Frac.map$MQ.Exp)))) == 0L)
 ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file") # Update it
-tst <- listMelt(lapply(1:nrow(Exp.map), function(x) { Exp.map$MQ.Exp[x] }), 1:nrow(Exp.map))
+tst <- listMelt(lapply(1L:nrow(Exp.map), \(x) { Exp.map$MQ.Exp[x] }), 1L:nrow(Exp.map))
 tst$L1 <- as.integer(tst$L1)
 tst <- tst[order(tst$L1, tst$value),]
 MQ.Exp <- sort(unique(tst$value))
@@ -155,10 +155,10 @@ if (LabelType == "Isobaric") {
 }
 
 # Update Factors
-FactorsLevels <- setNames(lapply(Factors, function(Fact) {
+FactorsLevels <- setNames(lapply(Factors, \(Fact) {
   unique(Exp.map[[Fact]])
 }), Factors)
-w <- which(vapply(FactorsLevels, length, 1) > 0)
+w <- which(lengths(FactorsLevels) > 0L)
 Factors <- Factors[w]
 FactorsLevels <- FactorsLevels[Factors]
 #rm(ev) # Nope, we keep it for now

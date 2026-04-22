@@ -1,37 +1,37 @@
 ### PCA plot for parameters app
 # Create first PCA to check on sample relationships
-if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
+if ((length(MQ.Exp) > 1L)||(LabelType == "Isobaric")) { # Should be always TRUE
   source(parSrc, local = FALSE)
   data <- ev
   colnames(data)[which(colnames(data) == "MQ.Exp")] <- "Parent sample"
   data <- data[which(data$Reverse != "+"),]
   data <- data[which((is.na(data$"Potential contaminant"))|(data$"Potential contaminant" != "+")),]
-  if (LabelType == "Isobaric") {
-    kol <- grep(paste0(topattern(ev.ref["Original"]), "[0-9]+$"), colnames(data), value = TRUE)
-  } else { kol <- ev.col["Original"] }
+  kol <- if (LabelType == "Isobaric") {
+    grep(paste0(topattern(ev.ref["Original"]), "[0-9]+$"), colnames(data), value = TRUE)
+  } else { ev.col["Original"] }
   w <- which(rowSums(data[, kol, drop = FALSE], na.rm = TRUE) > 0)
   data <- data[w,]
-  if (!"Fraction" %in% colnames(data)) { data$Fraction <- 1 }
+  if (!"Fraction" %in% colnames(data)) { data$Fraction <- 1L }
   Fraction <- sort(unique(data$Fraction), decreasing = FALSE)
   Experiment <- Exp
   kols <- c("Parent sample", "Fraction", "Experiment")
   if (LabelType == "Isobaric") {
     X <- "Label"
     kols <- c("Fraction", "Parent sample", "Experiment") # The order matters!
-    tst <- vapply(kols, function(x) { length(unique(data[[x]])) }, 1)
-    w1 <- which(tst > 1)
-    w2 <- which(tst >= 1) 
-    if (length(w1)) { Y <- kols[w1[1]] } else { Y <- kols[w2[1]] }
+    tst <- vapply(kols, \(x) { length(unique(data[[x]])) }, 1L)
+    w1 <- which(tst > 1L)
+    w2 <- which(tst >= 1L) 
+    Y <- if (length(w1)) { kols[w1[1L]] } else { kols[w2[1L]] }
   }
   if (LabelType == "LFQ") {
     kols <- c("Parent sample", "Fraction", "Experiment") # The order matters!
-    tst <- vapply(kols, function(x) { length(unique(data[[x]])) }, 1)
-    w1 <- which(tst > 1)
-    w2 <- which(tst >= 1) 
-    X <- kols[w1[1]]
-    if (length(w1) > 1) { Y <- kols[w1[2]] } else { Y <- kols[w2[2]] }
+    tst <- vapply(kols, \(x) { length(unique(data[[x]])) }, 1L)
+    w1 <- which(tst > 1L)
+    w2 <- which(tst >= 1L) 
+    X <- kols[w1[1L]]
+    Y <- if (length(w1) > 1L) { kols[w1[2]] } else { kols[w2[2]] }
   }
-  kols <- kols[which(!kols %in% c(X, Y))]
+  kols <- setdiff(kols, c(X, Y))
   ReportCalls <- AddSpace2Report()
   ReportCalls$Calls <- AddTxt2Report("PSMs-level PCA plot:")
   ReportCalls$Calls <- append(ReportCalls$Calls, list())
@@ -41,7 +41,7 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
   LRepCalls <- length(ReportCalls$Calls)
   lsKl <- c("Modified sequence", Y)
   if (LabelType == "LFQ") { lsKl <- c(lsKl, X) }
-  ls <- lapply(lsKl, function(kl) { data[[kl]] })
+  ls <- lapply(lsKl, \(kl) { data[[kl]] })
   tmp <- do.call(paste, c(data[, lsKl], sep = "---"))
   if (LabelType == "Isobaric") {
     kol2 <- gsub(topattern(ev.ref["Original"]), "", kol)
@@ -55,7 +55,7 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
     data2 <- as.data.frame(data2)
     data2 <- melt(data2, id.vars = c("Group", "MQ.Exp"))
     data2$value <- log10(data2$value)
-    data2 <- data2[which(is.all.good(data2$value, 2)),]
+    data2 <- data2[which(is.all.good(data2$value, 2L)),]
     data2$IsoBarLab <- Exp.map$`Isobaric label details`[match(as.integer(data2$variable), Exp.map$`Isobaric label`)]
     data2$Parent_sample <- do.call(paste, c(data2[, c("MQ.Exp", "IsoBarLab")], sep = "_"))
     data2 <- data2[which(data2$Parent_sample %in% Exp.map$`Parent sample`),]
@@ -68,20 +68,20 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
     data <- data2
     kol2 <- colnames(data)
     kol2 <- kol2[which(kol2 != "Group")]
-    impGrps <- rep(1, length(kol2))
+    impGrps <- rep(1L, length(kol2))
   }
   if (LabelType == "LFQ") {
-    if (X == "Parent sample") { kol2 <- get("MQ.Exp") } else { kol2 <- get(X) }
+    kol2 <- if (X == "Parent sample") { get("MQ.Exp") } else { get(X) }
     data2 <- data.table(Intensity = data[[ev.col["Original"]]],
                         Group = tmp)
-    data2 <- data2[, list(`log10(Intensity)` = sum(Intensity, na.rm = TRUE)),
-                   keyby = Group]
+    data2 <- data2[, .(`log10(Intensity)` = sum(Intensity, na.rm = TRUE)),
+                   keyby = .(Group)]
     data2$`log10(Intensity)` <- log10(data2$`log10(Intensity)`)
     data2 <- as.data.frame(data2)
     data2[, lsKl] <- data[match(data2$Group, tmp), lsKl]
     data2$Group <- NULL
     data <- spread(data2, X, "log10(Intensity)")
-    impGrps <- rep(1, length(MQ.Exp))
+    impGrps <- rep(1L, length(MQ.Exp))
   }
   data <- data[, kol2]
   w <- which(is.na(data), arr.ind = TRUE)
@@ -95,16 +95,16 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
     if ("PC2" %in% colnames(scoresA)) {
       scoresA$Sample <- rownames(scoresA)
       rownames(scoresA) <- NULL
-      pvA <- round(100*(pcA$sdev)^2 / sum(pcA$sdev^2), 0)
+      pvA <- round(100*(pcA$sdev)^2 / sum(pcA$sdev^2), 0L)
       pvA <- pvA[which(pvA > 0)]
-      pvA2 <- paste0("Original: ", paste(vapply(1:length(pvA), function(x) {
+      pvA2 <- paste0("Original: ", paste(vapply(1L:length(pvA), \(x) {
         paste0("PC", x, ": ", pvA[x], "%")
       }, ""), collapse = ", "))
       scoresA$Label <- scoresA$Sample
-      if (LabelType == "Isobaric") {
-        m <- match(scoresA$Sample, Exp.map$`Parent sample`)
+      m <- if (LabelType == "Isobaric") {
+        match(scoresA$Sample, Exp.map$`Parent sample`)
       } else {
-        m <- match(scoresA$Sample, Exp.map$MQ.Exp)
+        match(scoresA$Sample, Exp.map$MQ.Exp)
       }
       if (sum(is.na(m))) {
         warning("Mapping samples through MQ.Exp to sample groups failed, check code!\nMapping colors to samples instead of sample groups...")
@@ -112,7 +112,7 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
         colKol <- "colKol"
       } else {
         tmp <- Exp.map[m, Factors[which(Factors != "Replicate")]]
-        tmp <- tmp[, which(vapply(colnames(tmp), function(x) { length(unique(tmp[[x]])) > 1 }, TRUE)), drop = FALSE]
+        tmp <- tmp[, which(vapply(colnames(tmp), \(x) { length(unique(tmp[[x]])) > 1L }, TRUE)), drop = FALSE]
         scoresA$"Sample group" <- do.call(paste, c(tmp, sep = " "))
         colKol <- "Sample group"
         # tmp <- do.call(cbind, c(list(Exp.map[, "MQ.Exp", drop = FALSE],
@@ -120,8 +120,8 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
         # scoresA$"Sample group" <- do.call(paste, c(tmp, sep = " "))
       }
       ttl <- "PCA plot - Samples (PSMs-level)"
-      xLab <- paste0("PC1 = ", pvA[1], "%")
-      yLab <- paste0("PC2 = ", pvA[2], "%")
+      xLab <- paste0("PC1 = ", pvA[1L], "%")
+      yLab <- paste0("PC2 = ", pvA[2L], "%")
       plot <- ggplot(scoresA, aes(x = PC1, y = PC2, colour = .data[[colKol]])) +
         geom_point() +
         ggpubr::stat_conf_ellipse(aes(fill = .data[[colKol]]),
@@ -136,8 +136,8 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
                         size = 2.5, show.legend = FALSE)
       #poplot(plot)
       suppressMessages({
-        ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300, width = 20, height = 20, units = "in")
-        ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300, width = 20, height = 20, units = "in")
+        ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 20L, height = 20L, units = "in")
+        ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 20L, height = 20L, units = "in")
       })
       ReportCalls <- AddPlot2Report(Space = FALSE)
       Symb <- "circle"

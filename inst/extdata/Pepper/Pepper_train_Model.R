@@ -1,13 +1,11 @@
 #
 if (!require(svDialogs)) { install.packages("svDialogs") }
 library(svDialogs)
-if (!require(qs)) { install.packages("qs") }
-library(qs)
 if (!require(data.table)) { install.packages("data.table") }
 library(data.table)
 if (!require(parallel)) { install.packages("parallel") }
 library(parallel)
-nClst <- detectCores()-1
+nClst <- detectCores()-1L
 
 # Create parallel processing cluster
 a <- 1
@@ -35,12 +33,12 @@ args <- c("peptide_file", "n_runs", "seq_length", "output_file", "filter_size", 
           "dropout", "learning_rate", "batch", "random_run")
 g <- grep("^python3 ", trainParam)
 l <- length(trainParam)
-trainParam <- sapply(args, function(arg) {
-  sapply(1:length(g), function(x) {
+trainParam <- sapply(args, \(arg) {
+  sapply(1L:length(g), \(x) {
     h <- grep(paste0("--", arg), trainParam)
-    h <- gsub(paste0(".*'--", arg, "' +"), "", trainParam[h[which(h %in% g[x]:c(g, l)[x+1])]])
-    pat1 <- paste0("^", substr(h, 1, 1))
-    pat2 <- paste0(substr(h, 1, 1), ".*$")
+    h <- gsub(paste0(".*'--", arg, "' +"), "", trainParam[h[which(h %in% g[x]:c(g, l)[x+1L])]])
+    pat1 <- paste0("^", substr(h, 1L, 1L))
+    pat2 <- paste0(substr(h, 1L, 1L), ".*$")
     h <- gsub(pat2, "", gsub(pat1, "", h))
     return(h)
   })
@@ -81,14 +79,14 @@ if ("Ref.Sample.Aggregate" %in% colnames(smplsMap)) {
 } else {
   smplKol2 <- dlg_list(colnames(smplsMap), title = "Select parent samples column")$res
   cat(paste0("Samples:\n - ", paste0(unique(smplsMap[[smplKol2]]), collapse = "\n - "), "\n"))
-  w <- which(ev[1,] %in% smplsMap[[smplKol2]])
-  stopifnot(length(w) > 0)
+  w <- which(ev[1L,] %in% smplsMap[[smplKol2]])
+  stopifnot(length(w) > 0L)
   smplKol <- smplKol2
-  if (length(w) > 1) {
-    if (smplKol2 %in% colnames(ev)[w]) {
-      smplKol <- smplKol2
+  if (length(w) > 1L) {
+    smplKol <- if (smplKol2 %in% colnames(ev)[w]) {
+      smplKol2
     } else {
-      smplKol <- dlg_list(colnames(ev)[w], title = "I'm not sure which column to use for samples in the evidence file, could you clarify for me?")$res
+      dlg_list(colnames(ev)[w], title = "I'm not sure which column to use for samples in the evidence file, could you clarify for me?")$res
     }
   }
 }
@@ -104,7 +102,7 @@ tempEv <- tempEv$Data
 #
 # Edit and run python script for One-Hot-Encoding
 #################################################
-Grps <- colnames(tempEv)[(max(grep("^Charge [0-9]+$", colnames(tempEv)))+1):length(colnames(tempEv))]
+Grps <- colnames(tempEv)[(max(grep("^Charge [0-9]+$", colnames(tempEv)))+1L):length(colnames(tempEv))]
 lGrps <- length(Grps)
 tmp <- data.frame(Peptides = nrow(tempEv), Proteins = length(unique(tempEv$Protein)), Samples = lGrps)
 write.table(tmp, paste0(pepDir, "/Dataset dimensions.tsv"), sep = "\t", row.names = FALSE)
@@ -133,13 +131,13 @@ GrdSrchFls <- list.files(tuneDir, "Gridsearch_Results_", full.names = TRUE)
 if (length(GrdSrchFls)) {
   opt <- setNames(c(FALSE, TRUE), c("No                                                                                                                                              ",
                                     "Yes                                                                                                                                             "))
-  CleanUp <- opt[dlg_list(names(opt), names(opt)[1],
+  CleanUp <- opt[dlg_list(names(opt), names(opt)[1L],
                           title = paste0(dtstnm, ": shall we start from scratch hyperparameter tuning?"))$res]
   names(CleanUp) <- NULL
 }
 # NB: This code is written in a way that it will always sample Step1Tries + Step2Tries parameter combinations.
 # 1 - randomly
-Step <- 1
+Step <- 1L
 paramKol <- c("n_conv_layers", "n_filters", "filter_size", "n_layers", "n_nodes", "dropout", "batch", "learning_rate")
 if (CleanUp) { for (fl in GrdSrchFls) { unlink(fl) } } # Cleanup for fresh tuning
 HypTunFl <- paste0(PepScrptsDir, "/gridseach_parameters_neural_network.py")
@@ -148,76 +146,76 @@ HypTunSrc <- paste0(PepScrptsDir, "/HyperTun.R")
 source(HypTunSrc)
 L <- length(GrdSrchFls)
 N <- Step1Tries - L
-kount <- 0
-while ((N > 0)&&(kount < N+1)) {
+kount <- 0L
+while ((N > 0L)&&(kount < N+1L)) {
   clusterExport(parClust, "cmd", envir = environment())
   # Below, we are never running less tests than the number of cores, so we do not waste a round on a few tests.
-  tst <- parSapply(parClust, 1:max(c(nClst, N)), function(x) {
+  tst <- parSapply(parClust, 1L:max(c(nClst, N)), \(x) {
     try(system(cmd), silent = TRUE)
   })
   GrdSrchFls <- list.files(tuneDir, "Gridsearch_Results_", full.names = TRUE)
   L <- length(GrdSrchFls)
   N <- Step1Tries - L
-  kount <- kount + 1
+  kount <- kount + 1L
 }
 Step1Tries <- L # Update it if we got any bonus tests
-GrdSrch <- as.data.frame(t(sapply(strsplit(gsub("\\.tsv$", "", GrdSrchFls), "_"), function(x) {
+GrdSrch <- as.data.frame(t(sapply(strsplit(gsub("\\.tsv$", "", GrdSrchFls), "_"), \(x) {
   x <- unlist(x)
   x <- suppressWarnings(as.numeric(x))
   x <- x[which(!is.na(x))]
   return(x)
 })))
 colnames(GrdSrch) <- paramKol
-tst <- apply(GrdSrch, 2, function(x) { length(unique(x)) })
-GrdSrch <- GrdSrch[, which(tst > 1), drop = FALSE]
-paramKol2 <- paramKol[which(tst > 1)]
+tst <- apply(GrdSrch, 2L, \(x) { length(unique(x)) })
+GrdSrch <- GrdSrch[, which(tst > 1L), drop = FALSE]
+paramKol2 <- paramKol[which(tst > 1L)]
 rs <- plyr::rbind.fill(lapply(GrdSrchFls, read.delim))
 rs$X <- NULL
 GrdSrch[, gsub("\\.", "_", colnames(rs))] <- rs
 GrdSrch <- GrdSrch[order(GrdSrch$Val_percent_improvement, decreasing = TRUE),]
 bstImprov <- max(GrdSrch$Val_percent_improvement)
 # 2 - explore immediate neighborhood of best 10 results
-Step <- 2
-currParam <- GrdSrch[1:10, c(paramKol2, "No_of_epochs")]
+Step <- 2L
+currParam <- GrdSrch[1L:10L, c(paramKol2, "No_of_epochs")]
 source(HypTunSrc)
 L <- length(GrdSrchFls)
 N <- Step1Tries + Step2Tries - L
-kount <- 0
-while ((N > 0)&&(kount < N+1)) {
+kount <- 0L
+while ((N > 0L)&&(kount < N+1L)) {
   clusterExport(parClust, "cmd", envir = environment())
   # Below, we are never running less tests than the number of cores, so we do not waste a round on a few tests.
-  tst <- parSapply(parClust, 1:max(c(nClst, N)), function(x) {
+  tst <- parSapply(parClust, 1L:max(c(nClst, N)), \(x) {
     try(system(cmd), silent = TRUE)
   })
   GrdSrchFls <- list.files(tuneDir, "Gridsearch_Results_", full.names = TRUE)
   L <- length(GrdSrchFls)
   N <- Step1Tries + Step2Tries - L
-  kount <- kount + 1
+  kount <- kount + 1L
 }
-GrdSrch <- as.data.frame(t(sapply(strsplit(gsub("\\.tsv$", "", GrdSrchFls), "_"), function(x) {
+GrdSrch <- as.data.frame(t(sapply(strsplit(gsub("\\.tsv$", "", GrdSrchFls), "_"), \(x) {
   x <- unlist(x)
   x <- suppressWarnings(as.numeric(x))
   x <- x[which(!is.na(x))]
   return(x)
 })))
 colnames(GrdSrch) <- paramKol
-tst <- apply(GrdSrch, 2, function(x) { length(unique(x)) })
-GrdSrch <- GrdSrch[, which(tst > 1), drop = FALSE]
-paramKol2 <- paramKol[which(tst > 1)]
+tst <- apply(GrdSrch, 2L, \(x) { length(unique(x)) })
+GrdSrch <- GrdSrch[, which(tst > 1L), drop = FALSE]
+paramKol2 <- paramKol[which(tst > 1L)]
 rs <- plyr::rbind.fill(lapply(GrdSrchFls, read.delim))
 rs$X <- NULL
 GrdSrch[, gsub("\\.", "_", colnames(rs))] <- rs
 GrdSrch <- GrdSrch[order(GrdSrch$Val_percent_improvement, decreasing = TRUE),]
 bstImprov2 <- max(GrdSrch$Val_percent_improvement)
 print("")
-print(paste0(" - Step 1: best improvement = ", round(bstImprov, 2), "%"))
+print(paste0(" - Step 1: best improvement = ", round(bstImprov, 2L), "%"))
 print("")
-print(paste0(" - Step 2: best improvement = ", round(bstImprov2, 2), "%"))
+print(paste0(" - Step 2: best improvement = ", round(bstImprov2, 2L), "%"))
 print("")
 #View(GrdSrch)
 #
 # Get final, best parameters
-bstParam <- GrdSrch[1, c(paramKol2, "No_of_epochs")]
+bstParam <- GrdSrch[1L, c(paramKol2, "No_of_epochs")]
 print(bstParam)
 bstParam$peptide_file <- OHfl
 bstParam$n_runs <- as.character(length(Grps))
@@ -231,34 +229,34 @@ TrCoeff <- readLines(paste0(PepScrptsDir, "/peptide_coefficient_predictor.py"))
 w <- which(TrCoeff %in% c("parser = argparse.ArgumentParser()", "args = parser.parse_args()", "print(args)"))
 TrCoeff[w] <- ""
 basePat <- paste0("^ *", topattern("parser.add_argument(", start = FALSE), " *")
-for (arg in colnames(trainParam)) { #arg <- colnames(trainParam)[1]
+for (arg in colnames(trainParam)) { #arg <- colnames(trainParam)[1L]
   pat <- paste0(basePat, "\'--", arg)
   g <- grep(pat, TrCoeff)
-  stopifnot(length(g) == 1)
+  stopifnot(length(g) == 1L)
   val <- bstParam[[arg]]
   tst1 <- suppressWarnings(!is.na(as.numeric(val)))
   tst2 <- suppressWarnings(!is.na(as.integer(val)))
-  if (tst1) {
-    if (tst2) { TrCoeff[g] <- paste0(arg, " = float(", val, ")") } else {
-      TrCoeff[g] <- paste0(arg, " = int(", val, ")")
+  TrCoeff[g] <- if (tst1) {
+    if (tst2) { paste0(arg, " = float(", val, ")") } else {
+      paste0(arg, " = int(", val, ")")
     }
-  } else { TrCoeff[g] <- paste0(arg, " = '", val, "'") }
+  } else { paste0(arg, " = '", val, "'") }
 }
 # Default parameters
 G <- grep(basePat, TrCoeff)
 if (length(G)) {
-  for (g in G) { #g <- G[1]
+  for (g in G) { #g <- G[1L]
     tmp <- TrCoeff[g]
     arg <- gsub("\'.*", "", gsub(paste0(basePat, "\'--"), "", tmp))
-    stopifnot(nchar(arg) > 0)
+    stopifnot(nchar(arg) > 0L)
     val <- unlist(strsplit(tmp, "[,\\(] *default *= *"))
-    if (!length(val) == 2) { stop(paste0("No default for argument ", arg, "! Give me a hand here, human!")) }
-    val <- gsub(" *[,\\)].*", "", val[2])
-    if (tst1) {
-      if (tst2) { TrCoeff[g] <- paste0(arg, " = float(", val, ")") } else {
-        TrCoeff[g] <- paste0(arg, " = int(", val, ")")
+    if (!length(val) == 2L) { stop(paste0("No default for argument ", arg, "! Give me a hand here, human!")) }
+    val <- gsub(" *[,\\)].*", "", val[2L])
+    TrCoeff[g] <- if (tst1) {
+      if (tst2) { paste0(arg, " = float(", val, ")") } else {
+        paste0(arg, " = int(", val, ")")
       }
-    } else { TrCoeff[g] <- paste0(arg, " = '", val, "'") }
+    } else { paste0(arg, " = '", val, "'") }
   }
 }
 TrCoeff <- gsub(" args\\.", " ", TrCoeff)
@@ -273,7 +271,7 @@ w <- which(TrCoeff == "init = tf.compat.v1.initialize_all_variables()")
 TrCoeff[w] <- "init = tf.compat.v1.global_variables_initializer()"
 # Bug fix
 w <- which(TrCoeff == "test_runs = np.array([[2*i, 2*i+1] for i in test_runs]).astype(int).ravel()")
-TrCoeff <- c(TrCoeff[1:w],
+TrCoeff <- c(TrCoeff[1L:w],
              "#################################################################################################",
              "### Insertion to remove cases where the above lines generate run indices outside of the range ###",
              "#################################################################################################",
@@ -282,10 +280,10 @@ TrCoeff <- c(TrCoeff[1:w],
              "#################################################################################################",
              "### Insertion ends                                                                            ###",
              "#################################################################################################",
-             TrCoeff[(w+1):length(TrCoeff)])
+             TrCoeff[(w+1L):length(TrCoeff)])
 # Add code to save final layer dimensions
 w <- which(TrCoeff == "print(\"Saved model to disk\")")
-TrCoeff <- c(TrCoeff[1:w],
+TrCoeff <- c(TrCoeff[1L:w],
              "#################################################################################################",
              "### Insertion: this code saves the dimensions of the last weights layer to a small local file ###",
              "#################################################################################################",
@@ -297,7 +295,7 @@ TrCoeff <- c(TrCoeff[1:w],
              "#################################################################################################",
              "### Insertion ends                                                                            ###",
              "#################################################################################################",
-             TrCoeff[(w+1):length(TrCoeff)])
+             TrCoeff[(w+1L):length(TrCoeff)])
 write(TrCoeff, paste0(pepDir, "/TrainCoeff.py"))
 
 py_clear_last_error()
@@ -305,10 +303,10 @@ cat(" - Running coefficients training script...\n")
 cmd <- paste0("python \"", pepDir, "/TrainCoeff.py\"")
 #cat(cmd)
 tst <- try(system(cmd), silent = TRUE)
-stopifnot(tst == 0)
+stopifnot(tst == 0L)
 #
 modlFl <- paste0(pepDir, "/", dtstnm, "_Coefficient_Predictor_Model.h5")
-if (tst == 0) { Outcome <- file.exists(modlFl) }
+if (tst == 0L) { Outcome <- file.exists(modlFl) }
 if (Outcome) { cat("Success!!!\n") } else { cat("Failure!!!!!\n") }
 py_clear_last_error()
 

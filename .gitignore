@@ -1,0 +1,11 @@
+/R - obsolete functions/
+/R - unfinished functions/
+
+# RStudio files
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# (optionally protect other local caches)
+*.Rapp.history

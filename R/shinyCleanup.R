@@ -11,18 +11,19 @@
 #' 
 #' @export
 
-shinyCleanup <- function(max_iter = 100) {
+shinyCleanup <- function(max_iter = 100L) {
   # Ensure any running app exits
-  try(shiny::stopApp(), silent = TRUE)
+  #try(shiny::stopApp(), silent = TRUE) # Nope, this may be breaking the flow of code execution...
   # Drain async/reactive event loop
-  idle_rounds <- 0
-  while ((idle_rounds < 5)&&(max_iter)) {
-    ran <- later::run_now(0)
-    idle_rounds <- if (!ran) { idle_rounds + 1 } else { 0 }
-    Sys.sleep(0.01)
-    max_iter <- max_iter - 1
-  }
+  # idle_rounds <- 0L
+  # while ((idle_rounds < 5L)&&(max_iter)) {
+  #   ran <- later::run_now(0L) # ... or this could be what's breaking the flow...
+  #   idle_rounds <- if (!ran) { idle_rounds + 1L } else { 0L }
+  #   Sys.sleep(0.01)
+  #   max_iter <- max_iter - 1L
+  # }
   # final GC to drop observer closures
+  Sys.sleep(0.05)
   gc(full = TRUE)
   invisible(NULL)
 }

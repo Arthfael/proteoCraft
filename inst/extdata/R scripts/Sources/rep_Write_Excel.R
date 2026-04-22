@@ -11,61 +11,62 @@
 #   I have saved a dummy tab with my old openxlsx styles,
 #   which I will load in openxlsx2 to get and copy the styles from.
 MakeRatios <- TRUE # (Used by the sourced, core sub-script)
-intNms <- function(nms, topLvl = FALSE, type = "PG") {
+intNms <- \(nms, topLvl = FALSE, type = "PG") {
   m <- match(type, c("pep", "PG"))
   root <- c("Intensity", "Expression")[m]
-  mode <- topLvl+1
-  sapply(nms, function(nm) {
+  mode <- topLvl+1L
+  sapply(nms, \(nm) {
     if (nm %in% c("Original", "Intensity", "Expression", "Original int.", "Intensity int.", "Expression int.")) {
       nm <- c(c("int.", "expr.")[m], root)[mode]
     } else {
-      if (nm %in% c("ReNorm.", "ReNorm. int.")) { nm <- "re-norm" } else { nm <- substr(nm, 1, min(c(3, nchar(nm)))) }
+      nm <- if (nm %in% c("ReNorm.", "ReNorm. int.")) { "re-norm" } else { substr(nm, 1L, min(c(3L, nchar(nm)))) }
       nm <- paste0(nm, ". ", c(c("int.", "expr.")[m], root)[mode])
     }
     paste0("log10(", nm, ")")
   })
 }
-ratNms <- function(nms, topLvl = FALSE) {
-  mode <- topLvl+1
-  sapply(nms, function(nm) {
+ratNms <- \(nms, topLvl = FALSE) {
+  mode <- topLvl+1L
+  sapply(nms, \(nm) {
     if (nm %in% c("Original", "Ratios", "Original rat.", "Ratios rat.")) {
       nm <- c("rat.", "Ratio")[mode]
     } else {
-      if (nm %in% c("ReNorm.", "ReNorm. rat.")) { nm <- "Re-norm" } else { nm <- substr(nm, 1, min(c(3, nchar(nm)))) }
+      nm <- if (nm %in% c("ReNorm.", "ReNorm. rat.")) { "Re-norm" } else { substr(nm, 1L, min(c(3L, nchar(nm)))) }
       nm <- paste0(nm, ". ", c("rat.", "ratios")[mode])
     }
     paste0("log2(", nm, ")")
   })
 }
-for (nm in names(pep.ref)) { #nm <- names(pep.ref[1])
+for (nm in names(pep.ref)) { #nm <- names(pep.ref[1L])
   rpl <- intNms(nm, type = "pep")
   Styles[[paste0(rpl, ", avg.")]] <- "Summary Expr"
   Styles[[paste0(rpl, ", indiv.")]] <- "Individual Expr"
 }
-for (nm in names(Prot.Expr.Root)) { #nm <- names(pep.ref[1])
+for (nm in names(Prot.Expr.Root)) { #nm <- names(pep.ref[1L])
   rpl <- intNms(nm)
   Styles[[paste0(rpl, ", avg.")]] <- "Summary Expr"
   Styles[[paste0(rpl, ", indiv.")]] <- "Individual Expr"
 }
-for (nm in unique(c(names(pep.ratios.ref), names(Prot.Rat.Root)))) { #nm <- names(pep.ratios.ref[1])
+for (nm in unique(c(#names(pep.ratios.ref),
+  names(Prot.Rat.Root)))) { #nm <- names(pep.ratios.ref[1L])
   rpl <- ratNms(nm)
   Styles[[paste0(rpl, ", avg.")]] <- "Summary Ratios"
-  Styles[[paste0(rpl, ", indiv.")]] <- "Individual Ratios"
+  #Styles[[paste0(rpl, ", indiv.")]] <- "Individual Ratios"
 }
 fl <- system.file("extdata", "Report - column names - with replicates.xlsx", package = "proteoCraft")
-styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[,1]
+styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[, 1L]
 WorkBook %<o% wb_load(fl)
 repFl <- paste0(wd, "/Tables/Report_", dtstNm, ".xlsx")
-WorkBook <- wb_add_data(WorkBook, "Description", dtstNm, wb_dims(2, 5))
-WorkBook <- wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"), wb_dims(3, 5))
-WorkBook <- wb_add_data(WorkBook, "Description", WhoAmI, wb_dims(4, 5))
+WorkBook <- wb_add_data(WorkBook, "Description", dtstNm, wb_dims(2L, 5L))
+WorkBook <- wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"), wb_dims(3L, 5L))
+WorkBook <- wb_add_data(WorkBook, "Description", WhoAmI, wb_dims(4L, 5L))
 tmp <- loadedPackages(TRUE)
-WorkBook <- wb_add_data(WorkBook, "Description", tmp$Version[grep("proteoCraft", tmp$Name)], wb_dims(5, 5))
-WorkBook <- wb_set_base_font(WorkBook, 11, font_name = "Calibri")
+WorkBook <- wb_add_data(WorkBook, "Description", tmp$Version[grep("proteoCraft", tmp$Name)], wb_dims(5L, 5L))
+WorkBook <- wb_set_base_font(WorkBook, 11L, font_name = "Calibri")
 cat(" - Writing Excel report...\n")
 #
 # Function for editing our header
-KolEdit <- function(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
+KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   #KolNames <- xlTabs[[sheetnm]]
   klnms <- KolNames
   KolNames <- gsub("Peptides?", "Pep.", KolNames)
@@ -76,7 +77,7 @@ KolEdit <- function(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   KolNames <- gsub("MS/MS", "MS2", KolNames)
   # This would be the place to edit PER sample evidence and MS/MS columns,
   # currently not needed because those do not exist yet
-  for (nm in names(intTbl)) { #nm <- names(intTbl)[1] #nm <- names(intTbl)[2]
+  for (nm in names(intTbl)) { #nm <- names(intTbl)[1L] #nm <- names(intTbl)[2L]
     m <- match(intTbl[[nm]]$Log, KolNames)
     w <- which(!is.na(m))
     if (length(w)) {
@@ -84,7 +85,7 @@ KolEdit <- function(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
       KolNames[m[w]] <- paste0(rpl, " ", intTbl[[nm]]$Sample[w])
     }
   }
-  if (!missing("ratTbl")) { # Actually, should never be missing in this workflow!
+  if ((!missing("ratTbl"))&&(!is.null(ratTbl))) {
     for (nm in names(ratTbl)) {
       m <- match(ratTbl[[nm]]$Log, KolNames)
       w <- which(!is.na(m))
@@ -116,16 +117,16 @@ KolEdit <- function(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   if (length(g)) {
     KolNames[g] <- paste0("F-test ", KolNames[g])
     g <- grep("F-test .*F(-| |\\.|_)?test", KolNames)
-    stopifnot(length(g) == 0)
+    stopifnot(length(g) == 0L)
   }
   #
   # Those names must be unique if the data is to be written as a table!
   # Which is annoying, because this limits how much fat we can cut
   tst <- aggregate(KolNames, list(KolNames), c)
-  tst$L <- vapply(tst$x, length, 1)
+  tst$L <- lengths(tst$x)
   tst <- tst[which(tst$Group.1 != ""),]
-  stopifnot(max(tst$L) == 1)
-  #tst$x[which(tst$L > 1)]
+  stopifnot(max(tst$L) == 1L)
+  #tst$x[which(tst$L > 1L)]
   #
   KolNames <- as.data.frame(t(KolNames))
   colnames(KolNames) <- klnms
@@ -136,62 +137,64 @@ if ((prot.list.Cond)&&(!"In list" %in% colnames(ev))) {
   g <- grsep2(prot.list, ev$Proteins)
   w <- rep(FALSE, nrow(ev))
   w[g] <- TRUE
-  ev$"In list" <- c("", "+")[w+1]
+  ev$"In list" <- c("", "+")[w+1L]
 }
 QualFilt %<o% c("In list", "Potential contaminant", "Only identified by site",
                 grep("^Quality filter: ", colnames(PG), value = TRUE),
                 grep("^Quantity Quality$", colnames(pep), value = TRUE))
-if ((DiscFilt)&&(DiscFiltMode == DiscFiltModes[3])) { QualFilt <- c(QualFilt, DiscFiltCols) }
-II <- setNames(1, "All peptidoforms")
+if ((DiscFilt)&&(DiscFiltMode == DiscFiltModes[3L])) { QualFilt <- c(QualFilt, DiscFiltCols) }
+II <- setNames(1L, "All peptidoforms")
 if ((exists("PTMs_pep"))&&(length(PTMs_pep))) {
   Mod2Write <- names(PTMs_pep)
-  II[paste0(Mod2Write, "-mod. pept.")] <- 1+(seq_along(length(Mod2Write)))
+  II[paste0(Mod2Write, "-mod. pept.")] <- 1L+(seq_along(length(Mod2Write)))
 }
-for (ii in II) { #ii <- II[1] #ii <- II[2]
+for (ii in II) { #ii <- II[1L] #ii <- II[2L]
   tblMode <- tblMode2 <- "pep"
   TbNm <- names(II)[ii]
   tempData <- get(tblMode)
   intRf <- pep.ref
-  ratRf <- pep.ratios.ref
-  if (ii > 1) {
-    Ptm <- Mod2Write[[ii-1]]
+  #ratRf <- pep.ratios.ref
+  ratRf <- NULL
+  if (ii > 1L) {
+    Ptm <- Mod2Write[[ii-1L]]
     ptm <- Modifs$Mark[match(Ptm, Modifs$`Full name`)]
     tempData <- PTMs_pep[[Ptm]]
     tempData$Name <- gsub("\n", " ", tempData$Name)
     intRf <- PTMs_int.ref[[Ptm]]
-    ratRf <- PTMs_rat.ref[[Ptm]]
+    ratRf <- #PTMs_rat.ref[[Ptm]]
+      ptms.ratios.ref
     tblMode2 <- paste0(Ptm, "-modified pep")
   }
   names(intRf) <- paste0(names(intRf), " int.")
-  names(ratRf) <- paste0(names(ratRf), " rat.")
+  if (!is.null(ratRf)) { names(ratRf) <- paste0(names(ratRf), " rat.") }
   if (nrow(tempData)) {
     CoreCol %<o% c("id", "Modified sequence")
     if ("Modified sequence_verbose" %in% colnames(tempData)) { CoreCol <- c(CoreCol, "Modified sequence_verbose") }
     CoreCol <- c(CoreCol, "Sequence", "Proteins")
-    if (ii > 1) { CoreCol <- c(CoreCol, "Name", paste0(Ptm, "-site(s)")) }
+    if (ii > 1L) { CoreCol <- c(CoreCol, "Name", paste0(Ptm, "-site(s)")) }
     CoreCol2 %<o% c("Leading proteins", "Leading razor proteins",
                     "Protein names", "Gene names", "Protein group IDs", "Razor protein group ID",
                     grep(" (Probabilities|Score Diffs)$", colnames(tempData), value = TRUE),
                     "Normalisation group")
     evcol <- "Evidence IDs"
     spcol <- "MS/MS count"
-    gel <- setNames(lapply(intRf, function(rf) {
+    gel <- setNames(lapply(intRf, \(rf) {
       x <- c(paste0(rf, RSA$values),
              paste0("Mean ", rf, VPAL$values))
       return(x[which(x %in% colnames(tempData))])
     }), intRf)
-    if (ii == 1) {
+    if (ii == 1L) {
       # Log transform for normal tables - not necessary for PTM-modified tables as we already transformed
-      gel2 <- setNames(lapply(intRf, function(rf) {
+      gel2 <- setNames(lapply(intRf, \(rf) {
         x <- c(paste0(rf, RSA$values),
                paste0("Mean ", rf, VPAL$values))
         w <- which(x %in% colnames(tempData))
-        rf2 <- gsub("Evidence intensities - ", "log10(Int.) - ", rf)
+        rf2 <- sub("Int\\. - ", "log10(Int.) - ", rf)
         x <- c(paste0(rf2, RSA$values),
                paste0("Mean ", rf, VPAL$values))
         return(x[w])
       }), intRf)
-      for (rf in intRf) { #rf <- intRf[1]
+      for (rf in intRf) { #rf <- intRf[1L]
         kol1 <- gel[[rf]]
         kol2 <- gel2[[rf]]
         if (length(kol1)) {
@@ -202,16 +205,14 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
           }
         }
       }
-      intRf <- sapply(intRf, function(rf) {
-        gsub("Evidence intensities - ", "log10(Int.) - ", rf)
+      intRf <- sapply(intRf, \(rf) {
+        sub("Int\\. - ", "log10(Int.) - ", rf)
       })
       gel <- unlist(gel2)
     }
     #
-    smpls <- c(VPAL$values, RSA$values)
-    if (length(Exp) == 1) { smpls <- gsub(topattern(paste0(Exp, "___")), "", smpls) }
-    smpls <- gsub("___", " ", smpls)
-    intColsTbl <- setNames(lapply(names(intRf), function(nm) { #nm <- names(intRf)[1]
+    smpls <- cleanNms(c(VPAL$values, RSA$values))
+    intColsTbl <- setNames(lapply(names(intRf), \(nm) { #nm <- names(intRf)[1L]
       res <- data.frame(Log = c(paste0("Mean ", intRf[nm], VPAL$values),
                                 paste0(intRf[nm], RSA$values)),
                         Type = c(rep("Average", length(VPAL$values)),
@@ -220,34 +221,38 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
       w <- which(res$Log %in% colnames(tempData))
       return(res[w,])
     }), names(intRf))
-    w <- which(vapply(intColsTbl, nrow, 1) > 0)
+    w <- which(vapply(intColsTbl, nrow, 1L) > 0L)
     intColsTbl <- intColsTbl[w]; intRf <- intRf[w]
-    quantCols <- intCols <- lapply(intColsTbl, function(x) { x$Log })
-    ratColsTbl <- setNames(lapply(names(ratRf), function(nm) {
-      res <- data.frame(Log = c(paste0("Mean ", ratRf[nm], VPAL$values),
-                                paste0(ratRf[nm], RSA$values)),
-                        Type = c(rep("Average", length(VPAL$values)),
-                                 rep("Individual", length(RSA$values))),
-                        Sample = smpls)
-      w <- which(res$Log %in% colnames(tempData))
-      return(res[w,])
-    }), names(ratRf))
-    w <- which(vapply(ratColsTbl, nrow, 1) > 0)
-    ratColsTbl <- ratColsTbl[w]; ratRf <- ratRf[w]
-    ratCols <- lapply(ratColsTbl, function(x) { x$Log })
-    grl <- unlist(ratCols)
-    for (gr in grl) {
-      w <- which(is.infinite(tempData[[gr]]))
-      tempData[w, gr] <- NA
+    quantCols <- intCols <- lapply(intColsTbl, \(x) { x$Log })
+    ratColsTbl <- NULL
+    if (!is.null(ratRf)) {
+      ratColsTbl <- setNames(lapply(names(ratRf), \(nm) {
+        res <- data.frame(Log = paste0(ratRf[nm], VPAL$values),
+                          Type = rep("Average", length(VPAL$values)),
+                          Sample = cleanNms(VPAL$values))
+        w <- which(res$Log %in% colnames(tempData))
+        return(res[w,])
+      }), names(ratRf))
+      w <- which(vapply(ratColsTbl, nrow, 1L) > 0L)
+      ratColsTbl <- ratColsTbl[w]; ratRf <- ratRf[w]
+      ratCols <- lapply(ratColsTbl, \(x) { x$Log })
+      grl <- unlist(ratCols)
+      for (gr in grl) {
+        w <- which(is.infinite(tempData[[gr]]))
+        tempData[w, gr] <- NA
+      }
+      quantCols[names(ratRf)] <- ratCols
     }
-    quantCols[names(ratRf)] <- ratCols
     regcol <- grep("^((Enriched)|(Regulated)) - ", colnames(tempData), value = TRUE)
     signcol <- grep("^Significant-FDR=[1-9][0-9]*\\.*[0-9]*% - ", colnames(tempData), value = TRUE)
     signcol <- grep(" - Analysis_[0-9]+", signcol, invert = TRUE, value = TRUE)
     quantcol <- unlist(quantCols)
-    PepColList %<o% c("gel", "grl", "quantcol", "signcol", "regcol") # These are any column for which we want to gsub "___" to " "
+    PepColList %<o% c("gel", "quantcol", "signcol", "regcol") # These are any column for which we want to gsub "___" to " "
+    if (!is.null(ratRf)) {
+      PepColList <- union(PepColList, grl)
+    }
     .obj <- unique(c(PepColList, .obj)) # Here easier than using a custom operator
-    if (ii > 1) {
+    if (ii > 1L) {
       gpl <- grep(topattern(pvalue.col[which(pvalue.use)]), colnames(tempData), value = TRUE)
       quantcol <- c(quantcol, gpl)
       PepColList <- c(PepColList, "gpl")
@@ -259,7 +264,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
       tempData[, qualFlt[w]] <- ev[match(tempData$"Modified sequence", ev$"Modified sequence"), qualFlt[w]]
     }
     kol <- c(CoreCol, "In list", CoreCol2, evcol, spcol, "PEP", quantcol, signcol, regcol, qualFlt[which(qualFlt != "In list")], aacol)
-    if (ii > 1) { kol <- c(kol, "Code") }
+    if (ii > 1L) { kol <- c(kol, "Code") }
     if (Annotate) {
       PepAnnotCol %<o% annot.col[which(annot.col %in% colnames(tempData))]
       kol <- c(kol, PepAnnotCol)
@@ -272,16 +277,18 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     # If there is only one experiment, remove it from the names here...
     colnames(tempData) <- cleanNms(colnames(tempData), start = FALSE)
     for (i in PepColList) { assign(i, cleanNms(get(i), start = FALSE)) }
-    intColsTbl <- lapply(intColsTbl, function(x) {
-      x$Log <- cleanNms(x$Log, start = FALSE)
-      x
-    })
-    ratColsTbl <- lapply(ratColsTbl, function(x) {
+    intColsTbl <- lapply(intColsTbl, \(x) {
       x$Log <- cleanNms(x$Log, start = FALSE)
       x
     })
     intCols <- lapply(intCols, cleanNms, start = FALSE)
-    ratCols <- lapply(ratCols, cleanNms, start = FALSE)
+    if (!is.null(ratRf)) {
+      ratColsTbl <- lapply(ratColsTbl, \(x) {
+        x$Log <- cleanNms(x$Log, start = FALSE)
+        x
+      })
+      ratCols <- lapply(ratCols, cleanNms, start = FALSE)
+    }
     quantCols <- lapply(quantCols, cleanNms, start = FALSE)
     colnames(tempData) <- gsub("_names$", " names", colnames(tempData))
     if (Annotate) { PepAnnotCol <- gsub("_names$", " names", PepAnnotCol) }
@@ -289,7 +296,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
       tempData[which(tempData[[k]] == "non significant"), k] <- "n.s."
       tempData[which(tempData[[k]] == ""), k] <- "n.t."
     }
-    if ((ii > 1)&&(F.test)) {
+    if ((ii > 1L)&&(F.test)) {
       tempPepF <- PTMs_F_test_data[[Ptm]]
       tempPepF <- tempPepF[, which(!colnames(tempPepF) %in% c(Param$Plot.labels, "Rel. log10(Peptides count)", "Av. log10 abundance"))]
       colnames(tempPepF) <- cleanNms(colnames(tempPepF), start = FALSE)
@@ -297,7 +304,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
       #m <- match(mnratcolF, colnames(tempPepF))
       #colnames(tempPepF)[m] <- paste0("mod. F-test ", mnratcolF)
       #mnratcolF <- paste0("mod. F-test ", mnratcolF)
-      pvalcolF %<o% F_Root
+      pvalcolF %<o% c(F_Root, paste0(F_Root, " - ", myContrasts$Contrast))
       signcolF %<o% grep("^mod\\. F-test Significant", colnames(tempPepF), value = TRUE)
       regcolF %<o% grep("^mod\\. F-test Regulated", colnames(tempPepF), value = TRUE)
       Fkol %<o% c(regcolF, #mnratcolF,
@@ -306,7 +313,8 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
         tempPepF[which(tempPepF[[k]] == "non significant"), k] <- "n.s."
         tempPepF[which(tempPepF[[k]] == ""), k] <- "n.t."
       }
-      tempData[, Fkol] <- tempPepF[match(tempData$"Modified sequence", tempPepF$"Modified sequence"), Fkol]
+      tempData[, Fkol] <- tempPepF[match(tempData$"Modified sequence", tempPepF$"Modified sequence"),
+                                   Fkol]
     }
     dir <- paste0(wd, "/Tables")
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
@@ -328,11 +336,15 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     ColumnsTbl[["Individual Expr"]] <- grep("^Mean ", unlist(intCols), value = TRUE, invert = TRUE)
     # - Summary Expr
     ColumnsTbl[["Summary Expr"]] <- grep("^Mean ", unlist(intCols), value = TRUE)
-    # - Individual Ratios
-    ColumnsTbl[["Individual Ratios"]] <- grep("^Mean ", unlist(ratCols), value = TRUE, invert = TRUE)
-    # - Summary Ratios
-    ColumnsTbl[["Summary Ratios"]] <- grep("^Mean ", unlist(ratCols), value = TRUE)
-    if (ii > 1) {
+    if (!is.null(ratRf)) {
+      # # - Individual Ratios
+      # ColumnsTbl[["Individual Ratios"]] <- grep("^Mean ", unlist(ratCols), value = TRUE, invert = TRUE)
+      # # - Summary Ratios
+      # ColumnsTbl[["Summary Ratios"]] <- grep("^Mean ", unlist(ratCols), value = TRUE)
+      # - Contrast log2 FCs
+      ColumnsTbl[["Summary Ratios"]] <- ratCols
+    }
+    if (ii > 1L) {
       # - Summary Ratios: P-values and significance
       ColumnsTbl[["P-values"]] <- gpl
       # - Significant
@@ -340,7 +352,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
       # - Regulated
       ColumnsTbl[["Regulated"]] <- regcol
       # F-test
-      if ((ii > 1)&&(F.test)) {
+      if ((ii > 1L)&&(F.test)) {
         #ColumnsTbl[["F-test summary Ratios"]] <- mnratcolF
         ColumnsTbl[["F-test P-values"]] <- pvalcolF
         ColumnsTbl[["F-test significant"]] <- signcolF
@@ -352,14 +364,14 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
       AnnotTbl$Columns <- list(c("GO", "GO-ID"), c("Taxonomy", "TaxID"), NA, NA, NA, NA, "EMBL", NA)
       for (i in annot) { AnnotTbl$Columns[match(i, AnnotTbl$Name)] <- list(c(i, paste0(i, " names"))) }
       AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(annot.col2[which(!annot.col2 %in% unlist(AnnotTbl$Columns))])
-      for (i in 1:nrow(AnnotTbl)) { ColumnsTbl[[paste0(AnnotTbl$Name[i], " annotations")]] <- AnnotTbl$Columns[[i]] }
+      for (i in 1L:nrow(AnnotTbl)) { ColumnsTbl[[paste0(AnnotTbl$Name[i], " annotations")]] <- AnnotTbl$Columns[[i]] }
     }
     # - PEP
     ColumnsTbl[["PEP"]] <- "PEP"
     # - Filters
     ColumnsTbl[["Filters"]] <- qualFlt
     # Melt
-    ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, function(x) { length(x[which(!is.na(x))]) }, 1) > 0)]
+    ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, \(x) { sum(!is.na(x)) }, 1L) > 0L)]
     ColumnsTbl <- set_colnames(reshape::melt.list(ColumnsTbl), c("Col", "Grp"))
     #tst <- aggregate(ColumnsTbl$Grp, list(ColumnsTbl$Col), length); View(tst)
     #aggregate(ColumnsTbl$Grp, list(ColumnsTbl$Col), unique)
@@ -368,31 +380,33 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
     ColumnsTbl$Class[which(ColumnsTbl$Grp == "IDs")] <- "General Peptides information"
     ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(evcol))] <- "Evidence IDs"
     ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(spcol))] <- "Spectral count"
-    for (nm in names(intRf)) { #nm <- names(intRf)[1]
+    for (nm in names(intRf)) { #nm <- names(intRf)[1L]
       rpl <- intNms(nm, TRUE, type = "pep")
       ColumnsTbl$Class[grep(topattern(intRf[nm]), ColumnsTbl$Col)] <- rpl
       ColumnsTbl$Class[grep(topattern(paste0("Mean ", intRf[nm])), ColumnsTbl$Col)] <- rpl
     }
-    for (nm in names(ratRf)) { #nm <- names(ratRf)[1]
-      rpl <- ratNms(nm, TRUE)
-      ColumnsTbl$Class[grep(topattern(ratRf[nm]), ColumnsTbl$Col)] <- rpl
-      ColumnsTbl$Class[grep(topattern(paste0("Mean ", ratRf[nm])), ColumnsTbl$Col)] <- rpl
+    if (!is.null(ratRf)) {
+      for (nm in names(ratRf)) { #nm <- names(ratRf)[1L]
+        rpl <- ratNms(nm, TRUE)
+        ColumnsTbl$Class[grep(topattern(ratRf[nm]), ColumnsTbl$Col)] <- rpl
+        #ColumnsTbl$Class[grep(topattern(paste0("Mean ", ratRf[nm])), ColumnsTbl$Col)] <- rpl
+      }
     }
     ColumnsTbl$Class[which(ColumnsTbl$Grp == "P-values")] <- gsub(" - $", "", pvalue.col[which(pvalue.use)])
     ColumnsTbl$Class[which(ColumnsTbl$Col %in% regcol)] <- "Regulated"
     ColumnsTbl$Class[which(ColumnsTbl$Col %in% signcol)] <- "Significant"
-    if ((ii > 1)&&(F.test)) {
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test summary Ratios")] <- "F-test"
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test P-values")] <- "F-test"
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test significant")] <- "F-test"
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test regulated")] <- "F-test"
+    if ((ii > 1L)&&(F.test)) {
+      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test summary Ratios")] <- "ANOVA"
+      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test P-values")] <- "ANOVA"
+      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test significant")] <- "ANOVA"
+      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test regulated")] <- "ANOVA"
     }
     ColumnsTbl$Class[grep("[Aa]nnotations", ColumnsTbl$Grp)] <- "Annotations"
     ColumnsTbl$Class[which(ColumnsTbl$Grp %in% c("PEP", "Filters"))] <- "QC filters"
     ColumnsTbl$Class[which(ColumnsTbl$Col %in% aacol)] <- "Amino Acid counts"
     ColumnsTbl$Hide <- ColumnsTbl$Class %in% c("Spectral count", "Spectrum IDs", "Amino Acid counts", "Annotations", "Cluster (hierarch.)")
     #
-    if (MakeRatios) { a <- KolEdit(ColumnsTbl$Col, intColsTbl, ratColsTbl) } else { a <- KolEdit(ColumnsTbl$Col, intColsTbl) }
+    a <- if (MakeRatios) { KolEdit(ColumnsTbl$Col, intColsTbl, ratColsTbl) } else { KolEdit(ColumnsTbl$Col, intColsTbl) }
     ColumnsTbl$edit_Col <- unlist(a)
     #
     Src <- paste0(libPath, "/extdata/R scripts/Sources/fstWrite_Excel_core_script.R")
@@ -406,7 +420,7 @@ for (ii in II) { #ii <- II[1] #ii <- II[2]
 TbNm <- "Protein groups"
 tblMode <- tblMode2 <- "PG"
 # Function for editing the header
-KolEdit <- function(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl, locTbl = SubCellLocTbl) {
+KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl, locTbl = SubCellLocTbl) {
   #KolNames <- xlTabs[[sheetnm]]
   klnms <- KolNames
   KolNames <- gsub("Peptides?", "Pep.", KolNames)
@@ -415,7 +429,7 @@ KolEdit <- function(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl, locTbl =
   KolNames <- gsub("Razor", "Raz.", KolNames)
   KolNames <- gsub("Unique", "Uniq.", KolNames)
   KolNames <- gsub("MS/MS", "MS2", KolNames)
-  for (nm in names(intTbl)) { #nm <- names(intTbl)[1] #nm <- names(intTbl)[2]
+  for (nm in names(intTbl)) { #nm <- names(intTbl)[1L] #nm <- names(intTbl)[2L]
     m <- match(intTbl[[nm]]$Log, KolNames)
     w <- which(!is.na(m))
     if (length(w)) {
@@ -423,7 +437,7 @@ KolEdit <- function(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl, locTbl =
       KolNames[m[w]] <- paste0(rpl, " ", intTbl[[nm]]$Sample[w])
     }
   }
-  if (!missing("ratTbl")) { # Actually, should never be missing in this workflow!
+  if ((!missing("ratTbl"))&&(!is.null(ratTbl))) {
     for (nm in names(ratTbl)) {
       m <- match(ratTbl[[nm]]$Log, KolNames)
       w <- which(!is.na(m))
@@ -468,16 +482,16 @@ KolEdit <- function(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl, locTbl =
   if (length(g)) {
     KolNames[g] <- paste0("F-test ", KolNames[g])
     g <- grep("F-test .*F(-| |\\.|_)?test", KolNames)
-    stopifnot(length(g) == 0)
+    stopifnot(length(g) == 0L)
   }
   #
   # Those names must be unique if the data is to be written as a table!
   # Which is annoying, because this limits how much fat we can cut
   tst <- aggregate(KolNames, list(KolNames), c)
-  tst$L <- vapply(tst$x, length, 1)
+  tst$L <- lengths(tst$x)
   tst <- tst[which(tst$Group.1 != ""),]
-  stopifnot(max(tst$L) == 1)
-  #tst$x[which(tst$L > 1)]
+  stopifnot(max(tst$L) == 1L)
+  #tst$x[which(tst$L > 1L)]
   #
   KolNames <- as.data.frame(t(KolNames))
   colnames(KolNames) <- klnms
@@ -533,7 +547,8 @@ pepevspeccolb <- grep("((([Ss]pectral|[Pp]eptides|[Ee]vidences) count)|(([Ss]pec
 kol <- c(CoreCol, "In list", CoreCol2, pepevspeccol)
 intRf <- Prot.Expr.Root
 names(intRf) <- paste0(names(intRf), " int.")
-intColsTbl <- setNames(lapply(names(intRf), function(nm) { #nm <- names(intRf)[1]
+smpls <- cleanNms(c(VPAL$values, RSA$values))
+intColsTbl <- setNames(lapply(names(intRf), \(nm) { #nm <- names(intRf)[1L]
   res <- data.frame(Log = c(paste0("Mean ", intRf[nm], VPAL$values),
                             paste0(intRf[nm], RSA$values)),
                     Type = c(rep("Average", length(VPAL$values)),
@@ -542,9 +557,9 @@ intColsTbl <- setNames(lapply(names(intRf), function(nm) { #nm <- names(intRf)[1
   w <- which(res$Log %in% colnames(tempData))
   return(res[w,])
 }), names(intRf))
-w <- which(vapply(intColsTbl, nrow, 1) > 0)
+w <- which(vapply(intColsTbl, nrow, 1L) > 0L)
 intColsTbl <- intColsTbl[w]; intRf <- intRf[w]
-quantCols <- intCols <- lapply(intColsTbl, function(x) { x$Log })
+quantCols <- intCols <- lapply(intColsTbl, \(x) { x$Log })
 gel <- unlist(intCols)
 for (gl in gel) {
   w <- which(is.infinite(tempData[[gl]]))
@@ -553,24 +568,30 @@ for (gl in gel) {
 quantcol <- gel
 ratRf <- Prot.Rat.Root
 names(ratRf) <- paste0(names(ratRf), " rat.")
-ratColsTbl <- setNames(lapply(names(ratRf), function(nm) {
-  res <- data.frame(Log = c(paste0("Mean ", ratRf[nm], VPAL$values),
-                            paste0(ratRf[nm], RSA$values)),
-                    Type = c(rep("Average", length(VPAL$values)),
-                             rep("Individual", length(RSA$values))),
-                    Sample = smpls)
+ratColsTbl <- setNames(lapply(names(ratRf), \(nm) {
+  res <- data.frame(Log = c(#paste0("Mean ", ratRf[nm], VPAL$values),
+                            paste0(ratRf[nm], #RSA$values
+                                   myContrasts$Contrast
+                                   )),
+                    Type = c(rep("Average", length(#VPAL$values
+                      myContrasts$Contrast
+                      ))#,
+                             #rep("Individual", length(RSA$values))
+                             ),
+                    Sample = myContrasts$Contrast
+                    )
   w <- which(res$Log %in% colnames(tempData))
   return(res[w,])
 }), names(ratRf))
-w <- which(vapply(ratColsTbl, nrow, 1) > 0)
+w <- which(vapply(ratColsTbl, nrow, 1L) > 0L)
 ratColsTbl <- ratColsTbl[w]; ratRf <- ratRf[w]
-ratCols <- lapply(ratColsTbl, function(x) { x$Log })
+ratCols <- lapply(ratColsTbl, \(x) { x$Log })
 grl <- unlist(ratCols)
 for (gr in grl) {
   w <- which(is.infinite(tempData[[gr]]))
   tempData[w, gr] <- NA
 }
-quantcol <- c(quantcol, grl)
+quantcol <- union(quantcol, grl)
 quantCols[names(ratRf)] <- ratCols
 if (protrul) {
   tmp <- grep(topattern("log10(est. copies/cell) - ", start = FALSE), colnames(tempData), value = TRUE)
@@ -584,7 +605,7 @@ signcol <- grep(" - Analysis_[0-9]+", signcol, invert = TRUE, value = TRUE)
 covcol <- c(xmlCovCol,
             c("Sequence coverage [%]",
               "Unique + razor sequence coverage [%]",
-              "Unique sequence coverage [%]")[1:c(1, 3)[isEukaLike+1]],
+              "Unique sequence coverage [%]")[1L:c(1L, 3L)[isEukaLike+1L]],
             grep(topattern("Sequence coverage [%] - "), colnames(tempData), value = TRUE)) # The complicated way, but ensures the order is correct
 kol <- c(kol, "Mol. weight [kDa]", covcol, "PEP", covcol, quantcol, pvalcol, regcol, signcol)
 if ((exists("KlustKols"))&&(length(KlustKols))) { kol <- c(kol, KlustKols) }
@@ -637,7 +658,7 @@ if (F.test) {
   #m <- match(mnratcolF, colnames(tmpPGf))
   #colnames(tmpPGf)[m] <- paste0("mod. F-test ", mnratcolF)
   #mnratcolF <- paste0("mod. F-test ", mnratcolF)
-  pvalcolF %<o% F_Root
+  pvalcolF %<o% c(F_Root, paste0(F_Root, " - ", myContrasts$Contrast))
   signcolF %<o% grep("^mod\\. F-test Significant", colnames(tmpPGf), value = TRUE)
   regcolF %<o% grep("^mod\\. F-test Regulated", colnames(tmpPGf), value = TRUE)
   for (k in regcolF) {
@@ -651,10 +672,10 @@ if (F.test) {
 if (Annotate&&LocAnalysis) {
   if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) { loadFun("GO_terms.RData") }
   GOCC <- GO_terms$ID[which(GO_terms$Ontology == "CC")]
-  tempData$"GO-ID (CC)" <- lapply(strsplit(tempData$`GO-ID`, ";"), function(x) { x[which(x %in% GOCC)] })
-  w <- which(vapply(tempData$"GO-ID (CC)", length, 1) > 0)
+  tempData$"GO-ID (CC)" <- lapply(strsplit(tempData$`GO-ID`, ";"), \(x) { x[which(x %in% GOCC)] })
+  w <- which(lengths(tempData$"GO-ID (CC)") > 0L)
   tempData$"GO (CC)" <- ""
-  tempData$"GO (CC)"[w] <- vapply(tempData$"GO-ID (CC)"[w], function(x) {
+  tempData$"GO (CC)"[w] <- vapply(tempData$"GO-ID (CC)"[w], \(x) {
     paste(GO_terms$Term[match(x, GO_terms$ID)], collapse = ";")
   }, "")
   if (LocAnalysis2) {
@@ -696,16 +717,16 @@ if (IsBioID2) {
 }
 # Quantitation
 # - Expression values
-for (nm in names(intRf)) { #nm <- names(intRf[1])
+for (nm in names(intRf)) { #nm <- names(intRf[1L])
   rpl <- intNms(nm)
   ColumnsTbl[[paste0(rpl, ", avg.")]] <- intColsTbl[[nm]]$Log[which(intColsTbl[[nm]]$Type == "Average")]
   ColumnsTbl[[paste0(rpl, ", indiv.")]] <- intColsTbl[[nm]]$Log[which(intColsTbl[[nm]]$Type == "Individual")]
 }
 # - Ratios
-for (nm in names(ratRf)) { #nm <- names(ratRf[1])
+for (nm in names(ratRf)) { #nm <- names(ratRf[1L])
   rpl <- ratNms(nm)
   ColumnsTbl[[paste0(rpl, ", avg.")]] <- ratColsTbl[[nm]]$Log[which(ratColsTbl[[nm]]$Type == "Average")]
-  ColumnsTbl[[paste0(rpl, ", indiv.")]] <- ratColsTbl[[nm]]$Log[which(ratColsTbl[[nm]]$Type == "Individual")]
+  #ColumnsTbl[[paste0(rpl, ", indiv.")]] <- ratColsTbl[[nm]]$Log[which(ratColsTbl[[nm]]$Type == "Individual")]
 }
 # - P-values
 ColumnsTbl[["P-values"]] <- pvalcol
@@ -732,7 +753,7 @@ if (Annotate) {
   annot <- c("InterPro", "Pfam", "PIRSF", "PROSITE")
   for (i in annot) { AnnotTbl$Columns[match(i, AnnotTbl$Name)] <- list(c(i, paste0(i, " names"))) }
   AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(annot.col2[which(!annot.col2 %in% unlist(AnnotTbl$Columns))])
-  for (i in 1:nrow(AnnotTbl)) { ColumnsTbl[[paste0(AnnotTbl$Name[i], " annotations")]] <- AnnotTbl$Columns[[i]] }
+  for (i in 1L:nrow(AnnotTbl)) { ColumnsTbl[[paste0(AnnotTbl$Name[i], " annotations")]] <- AnnotTbl$Columns[[i]] }
   if (LocAnalysis) {
     ColumnsTbl[["GO annotations"]] <- c(ColumnsTbl[["GO"]], "GO (CC)")
     ColumnsTbl[["GO-ID annotations"]] <- c(ColumnsTbl[["GO-ID"]], "GO-ID (CC)")
@@ -756,11 +777,11 @@ if ((exists("KlustKols"))&&(length(KlustKols))) { ColumnsTbl[["Cluster"]] <- Klu
 # - Coverage
 ColumnsTbl[["Coverage"]] <- covcol
 # Melt
-ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, function(x) { length(x[which(!is.na(x))]) }, 1) > 0)]
+ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, \(x) { sum(!is.na(x)) }, 1L) > 0L)]
 ColumnsTbl <- listMelt(ColumnsTbl, names(ColumnsTbl), c("Col", "Grp"))
 stopifnot(nrow(ColumnsTbl) == length(unique(ColumnsTbl$Col)))
 #tst <- aggregate(ColumnsTbl$Col, list(ColumnsTbl$Col), length)
-#tst[which(tst$x > 1),]
+#tst[which(tst$x > 1L),]
 ColumnsTbl$Class <- ""
 ColumnsTbl$Class[which(ColumnsTbl$Grp == "IDs")] <- "General Protein Group information"
 ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(pepcountcol1, pepcountcol2))] <- "Peptides count"
@@ -775,16 +796,17 @@ if (IsBioID2) {
   ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(biotevcountcol1, biotevcountcol2))] <- "Biotin evidences count"
   ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(biotevidcol1, biotevidcol2))] <- "Biotin evidence IDs"
 }
-for (nm in names(intRf)) { #nm <- names(intRf)[1]
+for (nm in names(intRf)) { #nm <- names(intRf)[1L]
   rpl <- intNms(nm, TRUE)
   kl <- c(paste0("Mean ", intRf[[nm]], VPAL$values), paste0(intRf[[nm]], RSA$values))
   kl <- kl[which(kl %in% ColumnsTbl$Col)]
   ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
 }
 ColumnsTbl$Class[grep("Ruler", ColumnsTbl$Grp)] <- "log10(est. copies/cell)"
-for (nm in names(ratRf)) { #nm <- names(ratRf)[1]
+for (nm in names(ratRf)) { #nm <- names(ratRf)[1L]
   rpl <- ratNms(nm, TRUE)
-  kl <- c(paste0("Mean ", ratRf[[nm]], VPAL$values), paste0(ratRf[[nm]], RSA$values))
+  #kl <- c(paste0("Mean ", ratRf[[nm]], VPAL$values), paste0(ratRf[[nm]], RSA$values))
+  kl <- paste0(ratRf[[nm]], myContrasts$Contrast)
   kl <- kl[which(kl %in% ColumnsTbl$Col)]
   ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
 }
@@ -793,10 +815,10 @@ ColumnsTbl$Class[which(ColumnsTbl$Col %in% pvalcol)] <- "P-value"
 ColumnsTbl$Class[which(ColumnsTbl$Col %in% signcol)] <- "Significant"
 ColumnsTbl$Class[which(ColumnsTbl$Col %in% regcol)] <- "Regulated"
 if (F.test) {
-  #ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test summary Ratios")] <- "F-test"
-  ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test P-values")] <- "F-test"
-  ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test significant")] <- "F-test"
-  ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test regulated")] <- "F-test"
+  #ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test summary Ratios")] <- "ANOVA"
+  ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test P-values")] <- "ANOVA"
+  ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test significant")] <- "ANOVA"
+  ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test regulated")] <- "ANOVA"
 }
 if (Annotate) {
   ColumnsTbl$Class[grep("[Aa]nnotations", ColumnsTbl$Grp)] <- "Annotations"
@@ -815,26 +837,22 @@ if ((exists("KlustKols"))&&(length(KlustKols))) {
   ColumnsTbl$Class[which(ColumnsTbl$Grp == "Cluster")] <- paste0("Cluster (", c("K-means", "hierarch.")[KlustMeth], ")")
 }
 ColumnsTbl$Class[which(ColumnsTbl$Grp %in% c("PEP", "Filters", "Negative filter"))] <- "QC filters"
-stopifnot(min(nchar(ColumnsTbl$Class)) > 0)
-#View(ColumnsTbl[which(nchar(ColumnsTbl$Class) == 0),])
+stopifnot(min(nchar(ColumnsTbl$Class)) > 0L)
+#View(ColumnsTbl[which(nchar(ColumnsTbl$Class) == 0L),])
 w <- c(which(ColumnsTbl$Class == "General Protein Group information"),
-       as.integer(unlist(lapply(names(intCols), function(nm) {
+       as.integer(unlist(lapply(names(intCols), \(nm) {
          rpl <- intNms(nm, TRUE)
          which(ColumnsTbl$Class == rpl)
        }))),
        which(ColumnsTbl$Class == "log10(est. copies/cell)"),
-       as.integer(unlist(lapply(names(ratCols), function(nm) {
+       as.integer(unlist(lapply(names(ratCols), \(nm) {
          rpl <- ratNms(nm, TRUE)
          which(ColumnsTbl$Class == rpl)
        }))),
        which(ColumnsTbl$Class == "P-value"),
        which(ColumnsTbl$Class == "Significant"),
        which(ColumnsTbl$Class == "Regulated"),
-       #which(ColumnsTbl$Class == "F-test: Mean log2(Ratio)"),
-       #which(ColumnsTbl$Class == "F-test: -log10(P-values)"),
-       #which(ColumnsTbl$Class == "F-test: Significant"),
-       #which(ColumnsTbl$Class == "F-test: Regulated"),
-       which(ColumnsTbl$Class == "F-test"))
+       which(ColumnsTbl$Class == "ANOVA"))
 if (Annotate&&LocAnalysis) {
   w <- c(w,
          which(ColumnsTbl$Class == gsub(" - $", "", SSD.Pval.Root)),
@@ -858,27 +876,25 @@ w <- c(w,
        which(ColumnsTbl$Class == "Biotin evidence IDs"),
        which(ColumnsTbl$Class == "Annotations"))
 stopifnot(length(w) == nrow(ColumnsTbl))
-#View(ColumnsTbl[which(!1:nrow(ColumnsTbl) %in% w),])
+#View(ColumnsTbl[which(!1L:nrow(ColumnsTbl) %in% w),])
 ColumnsTbl <- ColumnsTbl[w,]
 ColumnsTbl$Hide <- ColumnsTbl$Class %in% c("Peptide IDs", "Peptides count", "Evidence IDs", "Evidences count", "Spectral count", "Spectrum IDs",
                                            "Biotin peptides count", "Biotin peptide IDs", "Biotin evidences count", "Biotin evidence IDs",
-                                           "Annotations",
-                                           unique(grep("^F-test: ", ColumnsTbl$Class, value = TRUE)) # Let's not show too much stuff
-)
-if (length(intCols) > 1) {
-  for (nm in names(intCols)[1:(length(intCols) - 1)]) {
+                                           "Annotations") # Let's not show too much stuff
+if (length(intCols) > 1L) {
+  for (nm in names(intCols)[1L:(length(intCols) - 1L)]) {
     rpl <- intNms(nm)
     ColumnsTbl$Hide[which(ColumnsTbl$Class == rpl)] <- TRUE
   }
 }
-if (length(ratCols) > 1) {
-  for (nm in names(ratCols)[1:(length(ratCols) - 1)]) {
+if (length(ratCols) > 1L) {
+  for (nm in names(ratCols)[1L:(length(ratCols) - 1L)]) {
     rpl <- ratNms(nm)
     ColumnsTbl$Hide[which(ColumnsTbl$Class == rpl)] <- TRUE
   }
 }
 #
-if (MakeRatios) { a <- KolEdit(ColumnsTbl$Col, intColsTbl, ratColsTbl) } else { a <- KolEdit(ColumnsTbl$Col, intColsTbl) }
+a <- if (MakeRatios) { KolEdit(ColumnsTbl$Col, intColsTbl, ratColsTbl) } else { KolEdit(ColumnsTbl$Col, intColsTbl) }
 ColumnsTbl$edit_Col <- unlist(a)
 #wb_save(WorkBook, paste0(wd, "/tst.xlsx"));xl_open(paste0(wd, "/tst.xlsx"))
 #
@@ -891,7 +907,7 @@ source(Src, local = FALSE)
 if (saintExprs) {
   tblMode <- tblMode2 <- TbNm <- "SAINTexpress"
   # Function for editing the header
-  KolEdit <- function(KolNames, #intTbl = intColsTbl,
+  KolEdit <- \(KolNames, #intTbl = intColsTbl,
                       ratTbl = ratColsTbl) {
     #KolNames <- xlTabs[[sheetnm]]
     klnms <- KolNames
@@ -909,10 +925,10 @@ if (saintExprs) {
     # Those names must be unique if the data is to be written as a table!
     # Which is annoying, because this limits how much fat we can cut
     tst <- aggregate(KolNames, list(KolNames), c)
-    tst$L <- vapply(tst$x, length, 1)
+    tst$L <- lengths(tst$x)
     tst <- tst[which(tst$Group.1 != ""),]
-    stopifnot(max(tst$L) == 1)
-    #tst$x[which(tst$L > 1)]
+    stopifnot(max(tst$L) == 1L)
+    #tst$x[which(tst$L > 1L)]
     #
     KolNames <- as.data.frame(t(KolNames))
     colnames(KolNames) <- klnms
@@ -923,16 +939,16 @@ if (saintExprs) {
   CoreCol <- c("Protein", "Gene", "Common Name")
   quantCols <- quantcol <- "Av. log10 abundance"
   ratRf <- setNames("log2(FC) - ", "log2(rat.), avg.")
-  ratColsTbl <- setNames(lapply(names(ratRf), function(nm) {
+  ratColsTbl <- setNames(lapply(names(ratRf), \(nm) {
     res <- data.frame(Log = paste0(ratRf[nm], VPAL$values),
                       Type = "Average",
-                      Sample = VPAL$values)
+                      Sample = cleanNms(VPAL$values))
     w <- which(res$Log %in% colnames(tempData))
     return(res[w,])
   }), names(ratRf))
-  w <- which(vapply(ratColsTbl, nrow, 1) > 0)
+  w <- which(vapply(ratColsTbl, nrow, 1L) > 0L)
   ratColsTbl <- ratColsTbl[w]; ratRf <- ratRf[w]
-  ratCols <- lapply(ratColsTbl, function(x) { x$Log })
+  ratCols <- lapply(ratColsTbl, \(x) { x$Log })
   grl <- unlist(ratCols)
   for (gr in grl) {
     w <- which(is.infinite(tempData[[gr]]))
@@ -970,7 +986,7 @@ if (saintExprs) {
   ColumnsTbl <- list(IDs = CoreCol)
   # Quantitation
   # - Ratios
-  for (nm in names(ratRf)) { #nm <- names(ratRf[1])
+  for (nm in names(ratRf)) { #nm <- names(ratRf[1L])
     ColumnsTbl[[names(ratRf)]] <- ratColsTbl[[nm]]$Log[which(ratColsTbl[[nm]]$Type == "Average")]
   }
   # SAINTexpress stats
@@ -985,14 +1001,14 @@ if (saintExprs) {
   # - Filters
   ColumnsTbl$Filters <- qualFlt
   # Melt
-  ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, function(x) { length(x[which(!is.na(x))]) }, 1) > 0)]
+  ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, \(x) { sum(!is.na(x)) }, 1L) > 0L)]
   ColumnsTbl <- listMelt(ColumnsTbl, names(ColumnsTbl), c("Col", "Grp"))
   stopifnot(nrow(ColumnsTbl) == length(unique(ColumnsTbl$Col)))
   #tst <- aggregate(ColumnsTbl$Col, list(ColumnsTbl$Col), length)
-  #tst[which(tst$x > 1),]
+  #tst[which(tst$x > 1L),]
   ColumnsTbl$Class <- ""
   ColumnsTbl$Class[which(ColumnsTbl$Grp == "IDs")] <- "General Protein Group information"
-  for (nm in names(ratRf)) { #nm <- names(ratRf)[1]
+  for (nm in names(ratRf)) { #nm <- names(ratRf)[1L]
     rpl <- "log2(rat.), avg."
     kl <- paste0(ratRf[[nm]], VPAL$values)
     kl <- kl[which(kl %in% ColumnsTbl$Col)]
@@ -1004,10 +1020,10 @@ if (saintExprs) {
   ColumnsTbl$Class[which(ColumnsTbl$Col %in% oddscol)] <- "SAINTexpress odds score"
   ColumnsTbl$Class[which(ColumnsTbl$Col %in% boostcol)] <- "SAINTexpress boost"
   ColumnsTbl$Class[which(ColumnsTbl$Grp %in% c("PEP", "Filters", "Negative filter"))] <- "QC filters"
-  stopifnot(min(nchar(ColumnsTbl$Class)) > 0)
-  #View(ColumnsTbl[which(nchar(ColumnsTbl$Class) == 0),])
+  stopifnot(min(nchar(ColumnsTbl$Class)) > 0L)
+  #View(ColumnsTbl[which(nchar(ColumnsTbl$Class) == 0L),])
   w <- c(which(ColumnsTbl$Class == "General Protein Group information"),
-         as.integer(unlist(lapply(names(ratCols), function(nm) {
+         as.integer(unlist(lapply(names(ratCols), \(nm) {
            which(ColumnsTbl$Class == "log2(rat.), avg.")
          }))),
          which(ColumnsTbl$Grp == "P-values"),
@@ -1020,7 +1036,7 @@ if (saintExprs) {
          which(ColumnsTbl$Grp == "boosted_by"),
          which(ColumnsTbl$Class == "QC filters"))
   stopifnot(length(w) == nrow(ColumnsTbl))
-  #View(ColumnsTbl[which(!1:nrow(ColumnsTbl) %in% w),])
+  #View(ColumnsTbl[which(!1L:nrow(ColumnsTbl) %in% w),])
   ColumnsTbl <- ColumnsTbl[w,]
   ColumnsTbl$Hide <- ColumnsTbl$Class %in% "SAINTexpress P" # Let's not show too much stuff
   #
@@ -1033,6 +1049,8 @@ if (saintExprs) {
   #wb_save(WorkBook, paste0(wd, "/tst.xlsx")); xl_open(paste0(wd, "/tst.xlsx"))
   #loadFun("WorkBook_bckp.RData")
 }
+#tmpFl <- tempfile(fileext = ".rds")
+#readr::write_rds(WorkBook, tmpFl)
 #
 Src <- paste0(libPath, "/extdata/R scripts/Sources/Write_Excel_end_script.R")
 #rstudioapi::documentOpen(Src)

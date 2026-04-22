@@ -73,7 +73,8 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   }
   N.clust <- length(cl)
   #
-  UniMod <- unimod::modifications
+  data(modifications, package = "PTMods")
+  UniMod <- modifications
   # Remove:
   # - substitutions
   UniMod <- UniMod[grep("^[A-Z][a-z]{2}->[A-Z][a-z]{2} substitution$", UniMod$Description, invert = TRUE),]

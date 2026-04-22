@@ -17,9 +17,9 @@ The backend used is qs2::qs_savem.
 }
 \examples{
 a <- "Hello world!"
-proteoCraft::saveFun(a, "test.qs2")
+saveFun(a, "test.qs2")
 rm(a)
-proteoCraft::loadFun("test.qs2")
+loadFun("test.qs2")
 print(a)
 
 }

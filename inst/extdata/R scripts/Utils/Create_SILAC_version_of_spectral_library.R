@@ -46,8 +46,9 @@ for (i in c("R", "K")) {
 }  
 
 # Define SILAC parameters:
-require(unimod)
-UniMods <- unimod::modifications
+require(PTMods)
+data(modifications, package = "PTMods")
+UniMod <- modifications
 SILAC <- list("Medium" = setNames(c(6.020129, 4.025107), c("R", "K")),
               "Heavy" = setNames(c(10.008269, 8.014199), c("R", "K")))
 SILAC2 <- lapply(SILAC, function(silac) { #silac <- SILAC[[1]]

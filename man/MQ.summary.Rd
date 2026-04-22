@@ -15,9 +15,9 @@ MQ.summary(
   subfolder = "Summary plots",
   plot = TRUE,
   save = "pdf",
-  sc = 60,
+  sc = 60L,
   N.clust,
-  N.reserved = 1,
+  N.reserved = 1L,
   cl,
   MQtxt = inDirs[which(SearchSoft == "MAXQUANT")]
 )

@@ -21,7 +21,7 @@ pcaBatchPlots(
 \arguments{
 \item{dat}{Input data matrix, expected to be log-transformed!}
 
-\item{root}{Just a name to stick to the}
+\item{root}{Root to include in the title.}
 
 \item{batches}{Relevant batches, default = myBatches; should be valid column names of map!}
 

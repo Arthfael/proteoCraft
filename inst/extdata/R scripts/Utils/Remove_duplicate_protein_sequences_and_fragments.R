@@ -28,7 +28,7 @@ dbFl <- rstudioapi::selectFile("Select fasta file",
                                path = paste0(fastaDir, "/*"),
                                filter = "fasta file (*.fasta|*.fas|*.fa|*.faa|*.fasta.fas|*.txt)")
 ext <- rev(unlist(strsplit(dbFl, "\\.")))[1] # In case the extension is different, e.g. .txt or .fa
-db <- proteoCraft::Format.DB(dbFl, cl = parClust) # loads database as table and removes duplicate entries by default
+db <- Format.DB(dbFl, cl = parClust) # loads database as table and removes duplicate entries by default
 tst <- nchar(gsub(paste(AA, collapse = "|"), "", db$Sequence))
 wY <- which(tst == 0)
 wN <- which(tst != 0)
@@ -38,8 +38,8 @@ db <- db[wY,]
 g <- grepl(" \\([Ff]ragment\\) OS=", db$Header)
 if (sum(g)) { warning(paste0("Removing ", sum(g), " fragmentary entries.")) }
 db <- db[which(!g),]
-db2 <- proteoCraft::Format.DB(paste0(fastaDir, "/CCP_cRAPome.fasta")) # loads contaminants
+db2 <- Format.DB(paste0(fastaDir, "/CCP_cRAPome.fasta")) # loads contaminants
 #db <- plyr::rbind.fill(db, db2)
 db <- rbind(db, db2)
-proteoCraft::writeFasta(db, gsub(paste0("\\.", ext, "$"), paste0("_noDupl_cont.", ext), dbFl)) # Write fixed database with original extension
-proteoCraft::openwd(dirname(dbFl))
+writeFasta(db, gsub(paste0("\\.", ext, "$"), paste0("_noDupl_cont.", ext), dbFl)) # Write fixed database with original extension
+openwd(dirname(dbFl))

@@ -7,19 +7,19 @@ if ("Target" %in% colnames(Exp.map)) {
     protHeads3 <- c(protHeads2[prot.list[which(prot.list %in% names(protHeads2))]], "Other")
     names(protHeads3) <- NULL
     appNm <- paste0(dtstNm, " - Baits")
-    dfltProt <- setNames(lapply(w, function(x) {
+    dfltProt <- setNames(lapply(w, \(x) {
       x <- targProt[x]
       if (is.na(x)) { x <- NULL } else { x <- protHeads3[x] }
       return(x)
     }), TargetProteins[w])
-    dfltProt2 <- setNames(lapply(w, function(x) {
+    dfltProt2 <- setNames(lapply(w, \(x) {
       x <- targProt[x]
       if (is.na(x)) { x <- NULL }
       return(x)
     }), TargetProteins[w])
-    tmpList <- list(lapply(TargetProteins[w], function(id) {
+    tmpList <- list(lapply(TargetProteins[w], \(id) {
       list(list(br()),
-           fluidRow(column(5, pickerInput(id,
+           fluidRow(column(5L, pickerInput(id,
                                           id,
                                           protHeads3,
                                           dfltProt[[id]],
@@ -30,8 +30,8 @@ if ("Target" %in% colnames(Exp.map)) {
                                                                   actionsBox = TRUE,
                                                                   deselectAllText = "Clear search",
                                                                   showTick = TRUE))),
-                    column(1, " or... "),
-                    column(6, textInput(paste0(id, "_free"),
+                    column(1L, " or... "),
+                    column(6L, textInput(paste0(id, "_free"),
                                         "",
                                         dfltProt2[[id]],
                                         placeholder = "... enter UniProt accession"))),
@@ -50,10 +50,10 @@ if ("Target" %in% colnames(Exp.map)) {
       br(),
       br()
     )
-    server <- function(input, output, session) {
+    server <- \(input, output, session) {
       TARGPROT <- reactiveVal(targProt)
       output$Baits <- renderUI({ tmpList })
-      sapply(TargetProteins[w], function(id) {
+      sapply(TargetProteins[w], \(id) {
         id2 <- paste0(id, "_free")
         observeEvent(input[[id]],
                      {
@@ -69,27 +69,27 @@ if ("Target" %in% colnames(Exp.map)) {
                      })
       })
       observeEvent(input$saveBtn, {
-        sapply(TargetProteins[w], function(id) {
+        sapply(TargetProteins[w], \(id) {
           targProt <<- TARGPROT()
         })
         stopApp()
       })
       #observeEvent(input$cancel, { stopApp() })
-      session$onSessionEnded(function() { stopApp() })
+      session$onSessionEnded(\() { stopApp() })
     }
     # Modify App so that any remaining NAs turn off saving/closing the App!
     eval(parse(text = runApp), envir = .GlobalEnv)
     shinyCleanup()
-    w1 <- which((nchar(targProt) > 0)&(!targProt %in% protHeads3))
+    w1 <- which((nchar(targProt) > 0L)&(!targProt %in% protHeads3))
     w2 <- which(targProt %in% protHeads3)
     if (length(w1)) {
-      tmp <- lapply(paste0("https://rest.uniprot.org/uniprotkb/", targProt[w1], ".fasta"), function(x) {
-        x <- try(proteoCraft::Format.DB(readLines(file(x)), in.env = TRUE), silent = TRUE)
+      tmp <- lapply(paste0("https://rest.uniprot.org/uniprotkb/", targProt[w1], ".fasta"), \(x) {
+        x <- try(Format.DB(readLines(file(x)), in.env = TRUE), silent = TRUE)
         res <- list(Outcome = (!"try-error" %in% class(x)))
         if (res$Outcome) { res$Output <- x }
         return(res)
       })
-      tmp <- tmp[which(sapply(tmp, function(x) { x$Outcome }))]
+      tmp <- tmp[which(vapply(tmp, \(x) { x$Outcome }, TRUE))]
       if (length(tmp)) {
         tmp <- plyr::rbind.fill(tmp)
         db <- plyr::rbind.fill(db, tmp)

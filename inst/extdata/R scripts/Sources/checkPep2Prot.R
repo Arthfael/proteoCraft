@@ -55,21 +55,21 @@ if (Update_Prot_matches) {
       #View(tst)
       tst$Corr <- strsplit(tst$Corr, ";")
       f0 <- function(x, y) { x[which(!x %in% y)] }
-      tst$In_Orig_only <- lapply(1:nrow(tst), function(x) { f0(unlist(tst$Orig[[x]]),
+      tst$In_Orig_only <- lapply(1L:nrow(tst), \(x) { f0(unlist(tst$Orig[[x]]),
                                                                unlist(tst$Corr[[x]])) })
-      tst$In_Corr_only <- lapply(1:nrow(tst), function(x) { f0(unlist(tst$Corr[[x]]),
+      tst$In_Corr_only <- lapply(1L:nrow(tst), \(x) { f0(unlist(tst$Corr[[x]]),
                                                                unlist(tst$Orig[[x]])) })
-      tst$In_Orig_only_in_db <- vapply(tst$In_Orig_only, function(x) { sum(x %in% db$`Protein ID`) }, 1)
+      tst$In_Orig_only_in_db <- vapply(tst$In_Orig_only, \(x) { sum(x %in% db$`Protein ID`) }, 1L)
       sum(unlist(tst$In_Orig_only_in_db))
       sum(!unlist(tst$In_Orig_only_in_db))
-      w <- which(tst$In_Orig_only_in_db > 0)
+      w <- which(tst$In_Orig_only_in_db > 0L)
       View(tst[w,])
-      # lapply(1:nrow(tst), function(x) { f0(unlist(tst$Orig[[x]]),
+      # lapply(1L:nrow(tst), \(x) { f0(unlist(tst$Orig[[x]]),
       #                                      unlist(tst$Corr[[x]])) })
     }
     tst <- sum(tst1 != tst2)
     if (tst) {
-      msg <- paste0("Corrected ", tst, " out of ", length(tst1), " assignments (~", round(100*tst/length(tst1), 2), "%)!
+      msg <- paste0("Corrected ", tst, " out of ", length(tst1), " assignments (~", round(100*tst/length(tst1), 2L), "%)!
 Note that we do not take into account retention time or ion mobility!
 Discrepancies with the original search engine matches can have several causes:
  1) Protein present in original column but not corrected results:
@@ -93,7 +93,7 @@ Discrepancies with the original search engine matches can have several causes:
   kol <- kol[which(kol %in% colnames(ev))]
   tmp <- ev[, kol, drop = FALSE]
   for (k in kol) { tmp[[k]] <- strsplit(tmp[[k]], ";") }
-  ev$Proteins <- parApply(parClust, tmp, 1, function(x) {
+  ev$Proteins <- parApply(parClust, tmp, 1L, \(x) {
     paste(unique(unlist(x)), collapse = ";")
   })
 }
@@ -105,7 +105,7 @@ if ("NA" %in% tst) { stop("\"NA\" is not an accepted protein accession!") }
 #  a <- paste0(";", ev$Proteins, ";")
 #  b <- prot.list
 #  a1 <- paste0(";", b, ";")
-#  test <- unique(unlist(lapply(a1, function(x) { ev$id[grep(x, a)] })))
+#  test <- unique(unlist(lapply(a1, \(x) { ev$id[grep(x, a)] })))
 #}
 #kol <- which(toupper(colnames(ev)) %in% c("CONTAMINANT", "POTENTIAL CONTAMINANT"))
 #ev <- ev[which((is.na(ev[[kol]]))|(ev[[kol]] == "")|(ev$id %in% test)),]
@@ -114,10 +114,8 @@ ev$"Tryptic peptide?" <- TRUE
 w <- which(ev$Proteins == "")
 l <- length(w)
 if (l) {
-  tst <- (l>1)+1
-  msg <- paste0("There ", c("is", "are")[tst], " ", length(w), " PSM", c("", "s")[tst],
-                " (", round(100*l/nrow(ev)), "%) without any matching protein from the database, probably from ",
-                c("a ", "")[tst], "non-tryptic peptide", c("", "s")[tst], ".")
+  tst <- (l>1L)+1L
+  msg <- paste0(length(w), " sequence", c("", "s")[tst], " (", round(100*l/nrow(ev)), "%) do not match a tryptic peptide from the database.\nThese will be matched to database proteins assuming non-tryptic cleavage!")
   ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
   ev$"Tryptic peptide?"[w] <- FALSE
   tmpEV <- data.frame(Seq = unique(ev$Sequence[w]))
@@ -131,15 +129,15 @@ if (l) {
   readr::write_rds(tmpEV, paste0(wd, "/tmpEV.RDS"))
   readr::write_rds(tmpDB, paste0(wd, "/tmpDB.RDS"))
   clusterExport(parClust, "wd", envir = environment())
-  invisible(clusterCall(parClust, function() {
+  invisible(clusterCall(parClust, \() {
     tmpEV <<- readr::read_rds(paste0(wd, "/tmpEV.RDS"))
     tmpDB <<- readr::read_rds(paste0(wd, "/tmpDB.RDS"))
     return()
   }))
-  tmpEV$Proteins <- parSapply(parClust, 1:nrow(tmpEV), function(x) {
+  tmpEV$Proteins <- parSapply(parClust, 1L:nrow(tmpEV), \(x) {
     paste(tmpDB$"Protein ID"[grep(tmpEV$Seq2[x], tmpDB$Sequence)], collapse = ";")
   })
-  invisible(clusterCall(parClust, function() {
+  invisible(clusterCall(parClust, \() {
     rm(tmpEV)
     rm(tmpDB)
     return()

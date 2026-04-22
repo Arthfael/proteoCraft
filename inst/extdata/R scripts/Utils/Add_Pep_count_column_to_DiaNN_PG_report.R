@@ -17,11 +17,11 @@ pgsrep <- read.delim(pgsrepFl)
 
 # Annotate with peptide numbers
 tmp <- aggregate(report$Protein.Group, list(report$Modified.Sequence), unique)
-test <- sapply(tmp$x, length) # Should always be 1, but isn't for now; simple fix:
-#View(tmp[which(test > 1),])
-if (max(test) > 1) {
-  tmp2 <- tmp[which(test>1),]
-  tmp <- tmp[which(test==1),]
+test <- lengths(tmp$x) # Should always be 1, but isn't for now; simple fix:
+#View(tmp[which(test > 1L),])
+if (max(test) > 1L) {
+  tmp2 <- tmp[which(test > 1L),]
+  tmp <- tmp[which(test == 1L),]
   tmp2 <- melt(setNames(tmp2$x, tmp2$Group.1))
   colnames(tmp2) <- c("x", "Group.1")
   tmp <- rbind(tmp2, tmp)
@@ -32,12 +32,12 @@ tmp$Group.1 <- unlist(tmp$Group.1)
 #
 tmp <- aggregate(tmp$Group.1, list(tmp$x), length)
 pgsrep$"Number of peptides" <- tmp$x[match(pgsrep$Protein.Group, tmp$Group.1)]
-sum(pgsrep$`Number of peptides` > 1)
+sum(pgsrep$`Number of peptides` > 1L)
 summary(pgsrep$`Number of peptides`)
 pgsrep$Protein.Names[which(pgsrep$`Number of peptides` == max(pgsrep$`Number of peptides`))]
 write.table(pgsrep, gsub("\\.tsv$", "_PepNb.tsv", pgsrepFl), sep = "\t", quote = FALSE, row.names = FALSE)
 
 #
-plot <- ggplot(pgsrep) + geom_histogram(aes(x = `Number of peptides`, fill = `Number of peptides`, group = `Number of peptides`), binwidth = 1) + theme_bw() +
+plot <- ggplot(pgsrep) + geom_histogram(aes(x = `Number of peptides`, fill = `Number of peptides`, group = `Number of peptides`), binwidth = 1L) + theme_bw() +
   scale_fill_viridis_c()
-proteoCraft::poplot(plot)
+poplot(plot)

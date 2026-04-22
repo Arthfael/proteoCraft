@@ -18,13 +18,13 @@ require(digest)
 # Start with clean slate
 rm(list = ls())
 
-if (!require(proteoCraft)) {
-  openwd <- function(Dir) {
+openwd <- if (!require(proteoCraft)) {
+ function(Dir) {
     cmd <- paste0("explorer \"", normalizePath(Dir), "\"")
     #cat(cmd)
     suppressMessages(suppressWarnings(shell(cmd, intern = TRUE)))
   }
-} else { openwd <- proteoCraft::openwd() }
+} else { proteoCraft::openwd() }
 
 nrmPath4PS <- function(Path) {
   Path <- gsub("\\)", "`)", gsub("\\(", "`(", Path))
@@ -41,7 +41,7 @@ nrmPath4PS <- function(Path) {
 # The script will identify all raw files in the directory and transfer/back them up to mirrored folders on msmonster01 and the LSF archive
 dflt <- "D:/Data/"
 TargDir <- rstudioapi::selectDirectory("Select a completed project folder", path = dflt)
-if ((!is.na(TargDir))&&(dir.exists(TargDir)) {
+if ((!is.na(TargDir))&&(dir.exists(TargDir))) {
   if (grepl(dflt, TargDir)) {
     msg <- "Please confirm: has data acquisition in this folder completed?
 (This script will fail if raw files are stil being recorded!)"

@@ -8,7 +8,7 @@ Skyline_to_MQ(
   Skyline_fl,
   Fixed.mods = c("Carbamidomethyl"),
   N.clust,
-  N.reserved = 1,
+  N.reserved = 1L,
   cl,
   shinyOpt = "popup",
   digPattern = "KR"

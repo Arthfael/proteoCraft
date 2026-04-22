@@ -1,4 +1,4 @@
-require(aRmel)
+require(proteoCraft)
 require(svDialogs)
 #require(openxlsx)
 PrcsDir <- "B:/group/mspecgrp/Prices"
