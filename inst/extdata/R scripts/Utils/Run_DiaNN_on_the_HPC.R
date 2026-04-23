@@ -19,7 +19,7 @@ UniMod <- modifications
 
 # A version of topattern is given here (so installing the proteoCraft package is not necessary):
 if (!require(proteoCraft)) {
-  topattern <- function(x, start = TRUE, end = FALSE, collapse = "|") {
+  topattern <- \(x, start = TRUE, end = FALSE, collapse = "|") {
     x <- gsub("\\\\", "\\\\\\\\", as.character(x))
     x <- gsub("\\.", "\\\\.", x)
     x <- gsub("\\*", "\\\\*", x)
@@ -36,18 +36,18 @@ if (!require(proteoCraft)) {
     x <- gsub("\\|", "\\\\|", x)
     if (start) { x <- paste0("^", x) }
     if (end) { x <- paste0(x, "$") }
-    if ((length(x) > 1)&&(collapse != FALSE)) { x <- paste(x, collapse = collapse) }
+    if ((length(x) > 1L)&&(collapse != FALSE)) { x <- paste(x, collapse = collapse) }
     return(x)
   }
 }
 
 # Initiate ssh session and check existing jobs:
-if ((!exists("sshsess"))||(class(sshsess) != "ssh_session")||(!exists("usrNm"))) {
+if ((!exists("sshsess"))||(!inherits(sshsess, "ssh_session"))||(!exists("usrNm"))) {
   hstNm <- dlg_input("Enter host name")$res
   usrNm <- dlg_input("Enter user name")$res
   sshsess <- try(ssh_connect(paste0(usrNm, "@", hstNm)), silent = TRUE)
-  stopifnot(class(sshsess) == "ssh_session")
-  user <- gsub("^connected: |@.+", "", as.character(capture.output(sshsess))[2])
+  stopifnot(inherits(sshsess, "ssh_session"))
+  user <- gsub("^connected: |@.+", "", as.character(capture.output(sshsess))[2L])
   stopifnot(user == usrNm)
   print(sshsess)
   ssh_exec_wait(sshsess, "source /etc/profile.d/modules.sh")
@@ -60,7 +60,7 @@ queuecmd <- paste0(shell, "squeue --user=", user, " -o \"%.7i %.8u %.8j %.9a %.9
 #cat(queuecmd)
 ssh_exec_wait(sshsess, queuecmd)
 # Function to disconnect the session
-sshDisc <- function(session = sshsess) {
+sshDisc <- \(session = sshsess) {
   try(ssh_disconnect(sshsess), silent = TRUE)
   if (exists("sshsess", .GlobalEnv)) { rm(sshsess, .GlobalEnv) }
 }
@@ -68,52 +68,52 @@ rm(list = ls()[which(!ls() %in% c("sshsess", "shell", "queuecmd", "sshDisc", "BA
 
 EMAIL <- dlg_input("Enter email to which SLURM will be sending messages", paste0(user, "@"))$res
 # Function from https://www.r-bloggers.com/2012/07/validating-email-adresses-in-r/
-isValidEmail <- function(x) { grepl("\\<[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\>", as.character(x), ignore.case = TRUE) }
+isValidEmail <- \(x) { grepl("\\<[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\>", as.character(x), ignore.case = TRUE) }
 while(!isValidEmail(EMAIL)) { EMAIL <- dlg_input("Invalid email address, try again!", paste0(user, "@"))$res }
 
 # Choose the name of the batch folder
-if (exists("BATCH")) { def <- BATCH } else { def <- "My_batch" }
+def <- if (exists("BATCH")) { BATCH } else { "My_batch" }
 BATCH <- gsub(" ", "_", dlg_input("Enter the name of your batch folder", def)$res)
 # Job name (currently the same as that of the batch folder)
 JOBNAME <- BATCH #gsub(" ", "_", dlg_input("Enter the name of your job", BATCH)$res)
 # Get the location where the script will be saved:
-LINLOC <- capture.output(ssh_exec_wait(sshsess, "pwd"))[1]
+LINLOC <- capture.output(ssh_exec_wait(sshsess, "pwd"))[1L]
 LINLOC <- gsub("/+$", "", gsub("/+", "/", paste0("/", LINLOC)))
 BATCHDIR <- paste0(LINLOC, "/", BATCH)
 
 #ssh_exec_wait(sshsess, paste0("env > ", BATCHDIR, "/e0.txt"))
 ssh_exec_wait(sshsess, paste0("cd \"", LINLOC, "\""))
 out <- capture.output(ssh_exec_wait(sshsess, "ls -l | grep '^d'"))
-if (length(grep(paste0(" ", BATCH, "$"), out)) == 0) { ssh_exec_wait(sshsess, paste0("mkdir -p ", BATCH)) }
+if (length(grep(paste0(" ", BATCH, "$"), out)) == 0L) { ssh_exec_wait(sshsess, paste0("mkdir -p ", BATCH)) }
 #
 Modes <- setNames(c("Bruker d files (folders)                                   ",
                     "Any other type of MS file                                  ",
                     "None (library building)                                    "),
                   c("Bruker", "MS files", "Library"))
-Mode <- dlg_list(Modes, Modes[1], FALSE, "Which file types do you want to analyse?")$res
+Mode <- dlg_list(Modes, Modes[1L], FALSE, "Which file types do you want to analyse?")$res
 Mode <- names(Modes)[match(Mode, Modes)]
-if (Mode == names(Modes)[1]) {
+if (Mode == names(Modes)[1L]) {
   FILES <- c()
   Moar <- TRUE
   dflt <- getwd()
   while (Moar) {
     msg <- c("Select input Bruker .d folder.", "Select another Bruker .d folder, or escape to stop adding more.")[length(FILES > 0)+1]
     fl <- rstudioapi::selectDirectory(msg, path = dflt)
-    Moar <- length(fl) > 0
+    Moar <- length(fl) > 0L
     if (Moar) {
       dflt <- gsub("/[^/]+$", "", fl)
       FILES <- unique(c(FILES, fl))
     }
   }
 }
-if (Mode == names(Modes)[2]) {
+if (Mode == names(Modes)[2L]) {
   FILES <- choose.files("", "Select input MS files (or escape for library-building only mode - no file search)")
 }
 NTHREADS <- NA
-while (is.na(suppressWarnings(as.integer(NTHREADS)))) { NTHREADS <- dlg_input("How many threads would you like to request?", max(c(12, length(FILES))))$res }
+while (is.na(suppressWarnings(as.integer(NTHREADS)))) { NTHREADS <- dlg_input("How many threads would you like to request?", max(c(12L, length(FILES))))$res }
 #
 filt <- matrix(c("fasta file", "fas file", "fa file", "faa file", "fasta.fas file", "txt (fasta) file", ".fasta", ".fas", ".fa", ".faa", "fasta.fas", ".txt"),
-               ncol = 2)
+               ncol = 2L)
 Moar <- TRUE
 FASTAS <- c()
 dflt2 <- gsub("/[^/]+$", "/*.fasta", dflt)
@@ -127,26 +127,26 @@ while (Moar) {
     dflt2 <- gsub("/[^/]+$", "/*.fasta", fl)
   }
 }
-reAnnot <- length(FASTAS) > 0
+reAnnot <- length(FASTAS) > 0L
 if (reAnnot) { FASTAS <- normalizePath(FASTAS, winslash = "/") }
 #
-filt <- matrix(c("speclib library file", "tsv library file", "*.speclib", "*.tsv"), ncol = 2)
+filt <- matrix(c("speclib library file", "tsv library file", "*.speclib", "*.tsv"), ncol = 2L)
 LIBRARIES <- choose.files(gsub("/[^/]+$", "/*.tsv", dflt), "Select .speclib or .tsv library files (or escape for library-free mode)", filters = filt)
-LibFree <- length(LIBRARIES) == 0
+LibFree <- length(LIBRARIES) == 0L
 if (!LibFree) { LIBRARIES <- normalizePath(LIBRARIES, winslash = "/") }
 FDR <- NA
 while (is.na(suppressWarnings(as.numeric(FDR)))) { FDR <- dlg_input("FDR threshold?", 0.01)$res }
 
 # Outputs - will be saved in the same folder
 hpcFls <- capture.output(ssh_exec_wait(sshsess, paste0("ls ", BATCHDIR)))
-i <- 0
-while ((i == 0)||(RPRTNM %in% hpcFls)) {
-  i <- i +1
+i <- 0L
+while ((!i)||(RPRTNM %in% hpcFls)) {
+  i <- i +1L
   RPRTNM <- paste0(dlg_input("Enter DiaNN output report name", paste0("report", i))$res)
 }
-i <- 0; RPRTLIBNM <- NA
-while ((i == 0)||((length(RPRTLIBNM) > 0)&&(RPRTLIBNM %in% hpcFls))) {
-  i <- i +1
+i <- 0L; RPRTLIBNM <- NA
+while ((!i)||((length(RPRTLIBNM) > 0L)&&(RPRTLIBNM %in% hpcFls))) {
+  i <- i +1L
   RPRTLIBNM <- paste0(dlg_input("Enter DiaNN output library name", paste0(RPRTNM, "-lib"))$res)
 }
 # Ranges and mass accuracies
@@ -158,13 +158,13 @@ while (sum(is.na(suppressWarnings(as.integer(PEPL))))) { PEPL <- as.character(as
 while (sum(is.na(suppressWarnings(as.numeric(MS1Acc))))) { MS1Acc <- as.character(as.numeric(dlg_input("Enter MS1 mass accuracy:", "20")$res)) }
 while (sum(is.na(suppressWarnings(as.numeric(MS2Acc))))) { MS2Acc <- as.character(as.numeric(dlg_input("Enter MS2 mass accuracy:", MS1Acc)$res)) }
 # Missed cleavages
-while (sum(is.na(suppressWarnings(as.integer(MISSES))))) { MISSES <- dlg_input("Enter max. missed cleavages:", 1)$res }
+while (sum(is.na(suppressWarnings(as.integer(MISSES))))) { MISSES <- dlg_input("Enter max. missed cleavages:", 1L)$res }
 # PTMs
 CommonMods <- data.frame(Name = c("Acetylation (protein N-term)", "M oxidation", "deamidation NQ", "Gln->pyroGlu", "Phospho (STY)", "GlyGly"),
                          Site = c("*n", "M", "NQ", "Q", "STY", "K"),
-                         UniMod = paste0("UniMod:", c(1, 35, 7, 28, 21, 121)))
-opts <- c(apply(CommonMods, 1, paste, collapse = " / "), "... add other(s) not in this list")
-VARMODS <- dlg_list(opts, opts[1:4], TRUE, "Select variable modifications to include:")$res
+                         UniMod = paste0("UniMod:", c(1L, 35L, 7L, 28L, 21L, 121L)))
+opts <- c(apply(CommonMods, 1L, paste, collapse = " / "), "... add other(s) not in this list")
+VARMODS <- dlg_list(opts, opts[1L:4L], TRUE, "Select variable modifications to include:")$res
 Moar <- ("... add other(s) not in this list" %in% VARMODS)
 VARMODS <- VARMODS[which(VARMODS != "... add other(s) not in this list")]
 if (length(VARMODS)) {
@@ -176,22 +176,22 @@ if (Moar) {
   VARMODS2 <- data.frame(UniMod = paste0("UniMod:", gsub(" .*", "", VARMODS2)),
                          Site = gsub("[^ ]+ +", "", VARMODS2))
   VARMODS2$Name <- UniMod$Name[match(gsub("^UniMod:", "", VARMODS2$UniMod), UniMod$UnimodId)]
-  if (class(VARMODS) == "data.frame") { VARMODS <- rbind(VARMODS, VARMODS2) } else { VARMODS <- VARMODS2 }
+  VARMODS <- if (is.data.frame(VARMODS)) { rbind(VARMODS, VARMODS2) } else { VARMODS2 }
 }
-inclVarMods <- class(VARMODS) == "data.frame"
+inclVarMods <- is.data.frame(VARMODS)
 if (inclVarMods) {
-  VARMODS$MassShift <- as.character(apply(VARMODS[, c("UniMod", "Site")], 1, function(x) { #x <- VARMODS[1, c("UniMod", "Site")]
-    x[[1]] <- gsub("^UniMod:", "", x[[1]])
-    if (x[[2]] %in% c("n", "*n")) {
-      if (x[[2]] == "n") { x[[2]] <- "N-term"; pos <- "Any N-term" }
-      if (x[[2]] == "*n") {x[[2]] <- "N-term";  pos <- "Protein N-term" }
-      m <- which((UniMod$UnimodId == x[[1]])&(UniMod$Site == x[[2]])&(UniMod$Position == pos))
+  VARMODS$MassShift <- as.character(apply(VARMODS[, c("UniMod", "Site")], 1L, \(x) { #x <- VARMODS[1L, c("UniMod", "Site")]
+    x[[1L]] <- gsub("^UniMod:", "", x[[1L]])
+    if (x[[2L]] %in% c("n", "*n")) {
+      if (x[[2L]] == "n") { x[[2L]] <- "N-term"; pos <- "Any N-term" }
+      if (x[[2L]] == "*n") {x[[2L]] <- "N-term";  pos <- "Protein N-term" }
+      m <- which((UniMod$UnimodId == x[[1L]])&(UniMod$Site == x[[2L]])&(UniMod$Position == pos))
     } else {
       # If there are several amino acids and they are grouped, there is only one mass shift
-      x[[2]] <- substr(x[[2]], 1, 1)
-      m <- which((UniMod$UnimodId == x[[1]])&(UniMod$Site == x[[2]]))
+      x[[2L]] <- substr(x[[2L]], 1, 1)
+      m <- which((UniMod$UnimodId == x[[1L]])&(UniMod$Site == x[[2L]]))
     }
-    return(UniMod$MonoMass[m[1]])
+    return(UniMod$MonoMass[m[1L]])
   }))
   VARMODS <- apply(VARMODS[, c("UniMod", "MassShift", "Site")], 1, paste, collapse = ",")
   NVARMODS <- dlg_input("Max. variable modifications per peptide:", 3)$res
@@ -209,33 +209,33 @@ DIANNcall <- paste0(DIANNcall, " --threads $SLURM_CPUS_PER_TASK --verbose 1 --ou
 if (length(RPRTLIBNM)) { DIANNcall <- paste0(DIANNcall, "--out-lib \"${running_dir}/", RPRTLIBNM, ".tsv\"") }
 DIANNcall <- paste0(DIANNcall, " --gen-spec-lib --predictor")
 if (reAnnot) { DIANNcall <- paste0(DIANNcall, paste0(" --fasta \"${running_dir}/", basename(FASTAS), "\"", collapse = ""), " --fasta-search") }
-DIANNcall <- paste0(DIANNcall, " --min-fr-mz ", MZ2[1], " --max-fr-mz ", MZ2[2], " --met-excision --cut K*,R* --missed-cleavages ", MISSES,
-                    " --min-pep-len ", PEPL[1], " --max-pep-len ", PEPL[2], " --min-pr-mz ", MZ1[1], " --max-pr-mz ", MZ1[2],
-                    " --min-pr-charge ", Z[1], " --max-pr-charge ", Z[2])
+DIANNcall <- paste0(DIANNcall, " --min-fr-mz ", MZ2[1L], " --max-fr-mz ", MZ2[2L], " --met-excision --cut K*,R* --missed-cleavages ", MISSES,
+                    " --min-pep-len ", PEPL[1L], " --max-pep-len ", PEPL[2L], " --min-pr-mz ", MZ1[1L], " --max-pr-mz ", MZ1[2L],
+                    " --min-pr-charge ", Z[1L], " --max-pr-charge ", Z[2L])
 tstV1 <- length(VARMODS)
-tstV2 <- grepl("UniMod:7,", VARMODS)+1
+tstV2 <- grepl("UniMod:7,", VARMODS)+1L
 if (tstV1) {
   DIANNcall <- paste0(DIANNcall, " --var-mods ", NVARMODS,
                       paste0(" --var-mod ", VARMODS, c(paste0(" --monitor-mod ", gsub(",.*", "", VARMODS)), "")[tstV2], collapse = ""))
 }
-DIANNcall <- paste0(DIANNcall, " --reanalyse --relaxed-prot-inf --smart-profiling --peak-center --no-ifs-removal --min-fr-mz ", MZ2[1], " --threads ", NTHREADS)
+DIANNcall <- paste0(DIANNcall, " --reanalyse --relaxed-prot-inf --smart-profiling --peak-center --no-ifs-removal --min-fr-mz ", MZ2[1L], " --threads ", NTHREADS)
 if (length(MS1Acc)) { DIANNcall <- paste0(DIANNcall, " --mass-acc-ms1 ", MS1Acc) }
 if (length(MS2Acc)) { DIANNcall <- paste0(DIANNcall, " --mass-acc ", MS2Acc) }
 
 # Upload MS files + libraries
-if (Mode %in% names(Modes)[1:2]) {
+if (Mode %in% names(Modes)[1L:2L]) {
   flsSizes <- list()
-  if (Mode == names(Modes)[1]) {
+  if (Mode == names(Modes)[1L]) {
     require(RCurl)
     fls <- FILES[which(dir.exists(FILES))]
-    tst <- sapply(fls, function(fl) { #fl <- FILES[1]
+    tst <- sapply(fls, \(fl) { #fl <- FILES[1L]
       res <- gsub(".*/", "", fl) %in% hpcFls
       if (res) {
         hpcFls2 <- capture.output(ssh_exec_wait(sshsess, paste0("ls ", gsub(topattern(dirname(fl)), BATCHDIR, fl), " -R")))
         w <- which(hpcFls2 %in% c("", "[1] 0"))
-        l <- length(w); stopifnot(l > 0)
-        hpcFls2 <- sapply(1:length(w), function(x) {
-          paste0(gsub(":$", "/", hpcFls2[c(1, w[1:(l-1)]+1)][x]), hpcFls2[c(2, w[1:(l-1)]+2)[x]:(w[x]-1)])
+        l <- length(w); stopifnot(l > 0L)
+        hpcFls2 <- sapply(1L:length(w), \(x) {
+          paste0(gsub(":$", "/", hpcFls2[c(1L, w[1L:(l-1L)]+1L)][x]), hpcFls2[c(2L, w[1L:(l-1L)]+2L)[x]:(w[x]-1L)])
         })
         hpcFls2 <- unlist(hpcFls2)
         fls1 <- data.frame(File = list.files(fl, full.names = TRUE, recursive = TRUE))
@@ -245,7 +245,7 @@ if (Mode %in% names(Modes)[1:2]) {
         fls1$HPCxst <- fls1$HPC %in% hpcFls2
         res <- !sum(!fls1$HPCxst)
         if (res) {
-          fls1$HPCsz <- sapply(fls1$HPC, function(fl) { as.numeric(capture.output(ssh_exec_wait(sshsess, paste0("ls -lrt ", fl, " | nawk '{print $5}'")))[1]) })
+          fls1$HPCsz <- sapply(fls1$HPC, \(fl) { as.numeric(capture.output(ssh_exec_wait(sshsess, paste0("ls -lrt ", fl, " | nawk '{print $5}'")))[1L]) })
           res <- !sum(fls1$Size != fls1$HPCsz)
         }
       }
@@ -253,13 +253,13 @@ if (Mode %in% names(Modes)[1:2]) {
     })
     fls <- fls[which(!tst)]
   }
-  if (Mode == names(Modes)[2]) {
+  if (Mode == names(Modes)[2L]) {
     fls <- FILES[which(file.exists(FILES))]
     hpcFls2 <- capture.output(ssh_exec_wait(sshsess, paste0("ls ", BATCHDIR)))
-    tst <- sapply(fls, function(fl) { #fl <- fls[1]
+    tst <- sapply(fls, \(fl) { #fl <- fls[1L]
       res <- basename(fl) %in% hpcFls2
       if (res) {
-        HPCsz <- as.numeric(capture.output(ssh_exec_wait(sshsess, paste0("ls -lrt ", gsub(topattern(dirname(fl)), BATCHDIR, fl), " | nawk '{print $5}'")))[1])
+        HPCsz <- as.numeric(capture.output(ssh_exec_wait(sshsess, paste0("ls -lrt ", gsub(topattern(dirname(fl)), BATCHDIR, fl), " | nawk '{print $5}'")))[1L])
         flsSizes[[fl]] <<- file.size(fl)
         res <- flsSizes[[fl]] == HPCsz
       }
@@ -270,13 +270,13 @@ if (Mode %in% names(Modes)[1:2]) {
   flsSizes <- flsSizes[fls]
   fls <- c(fls, LIBRARIES) # Those we can overwrite for now
   if (length(fls)) {
-    for (fl in fls) { #fl <- fls[1]
+    for (fl in fls) { #fl <- fls[1L]
       if (!fl %in% names(flsSizes)) { flsSizes[[fl]] <- file.size(fl) }
-      if (Mode == names(Modes)[1]) {
+      if (Mode == names(Modes)[1L]) {
         allFls <- list.files(fl, recursive = TRUE, full.names = TRUE, include.dirs = FALSE)
         lrgFls <- grep("\\.tdf_bin$|/linespectra$", allFls, value = TRUE)
         allFls <- allFls[which(!allFls %in% lrgFls)]
-        for (aFl in allFls) { #aFl <- allFls[1]
+        for (aFl in allFls) { #aFl <- allFls[1L]
           btchDr <- gsub(topattern(dirname(fl)), BATCHDIR, dirname(aFl))
           if (!dir.exists(btchDr)) { dir.create(btchDr, recursive = TRUE) }
           tst <- try(scp_upload(sshsess, aFl, btchDr, verbose = TRUE), silent = TRUE)
@@ -291,7 +291,7 @@ if (Mode %in% names(Modes)[1:2]) {
         }
       }
     }
-    if (Mode == names(Modes)[2]) {
+    if (Mode == names(Modes)[2L]) {
       # Upload in one batch
       scp_upload(sshsess, fls, BATCHDIR, verbose = TRUE)
     }
@@ -303,7 +303,7 @@ if (Mode %in% names(Modes)[1:2]) {
 # For these we should make sure they have Unix line returns
 fls2 <- FASTAS
 if (length(fls2)) {
-  for (fl in fls2) { #fl <- fls2[1]
+  for (fl in fls2) { #fl <- fls2[1L]
     if (!fl %in% names(flsSizes)) { flsSizes[[fl]] <- file.size(fl) }
     flnm <- basename(fl)
     FILE <- file(flnm, "wb")
@@ -321,10 +321,10 @@ if (length(fls2)) {
 # - lines with one starting # are SLURM commands
 # - lines starting with 2 or more starting # are ignored by SLURM (commented), but kept for future reference.
 hpcFls2 <- capture.output(ssh_exec_wait(sshsess, paste0("ls ", BATCHDIR)))
-ITER <- 0
+ITER <- 0L
 SLURMnm <- NA
 while ((is.na(SLURMnm))||(SLURMnm %in% hpcFls2)) {
-  ITER <- ITER+1
+  ITER <- ITER+1L
   SLURMnm <- paste0("SLURM_script", as.character(ITER), ".sh")
 }
 flsSizes <- sum(unlist(flsSizes), na.rm = TRUE)

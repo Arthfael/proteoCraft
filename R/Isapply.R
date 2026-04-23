@@ -12,9 +12,15 @@
 #' 
 #' @export
 
-Isapply <- function(x, FUN, ..., simplify = TRUE, USE.NAMES = TRUE, col.names, convert.to = "df") {
+Isapply <- function(x,
+                    FUN,
+                    ...,
+                    simplify = TRUE,
+                    USE.NAMES = TRUE,
+                    col.names,
+                    convert.to = "df") {
   res <- sapply(x, FUN = FUN, ..., simplify = simplify, USE.NAMES = USE.NAMES)
-  if (sum(c("data.frame", "matrix") %in% class(res)) > 0) {
+  if (inherits(res, c("data.frame", "matrix"))) {
     convert.to <- tolower(as.character(convert.to))
     if (!convert.to %in%  c("df", "dataframe", "data.frame", "1", "matrix", "m", "2")) {
       warning("Argument \"convert.to\" unrecognized, defaulting to converting 2D output to a data.frame!")
@@ -34,7 +40,7 @@ Isapply <- function(x, FUN, ..., simplify = TRUE, USE.NAMES = TRUE, col.names, c
     }
   }
   if (!missing("col.names")) {
-    if  (sum(c("data.frame", "matrix") %in% class(res)) > 0) {
+    if  (inherits(res, c("data.frame", "matrix"))) {
       colnames(res) <- col.names
     } else {
       warning("Argument \"col.names\" will be ignored as the result is a vector, not tabular data!")

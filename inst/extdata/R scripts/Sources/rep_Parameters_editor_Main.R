@@ -928,7 +928,7 @@ make_ui1 <- \() {
              em(HTML("&nsbp;- MAR/MCAR data is imputed with a KNN method.")),
              em(HTML("&nsbp;- MNAR data is imputed with the QRILC method."))),
       column(3L,
-             checkboxInput("Update_Prot_matches", paste0("Update peptide-to-protein assignments?"), Update_Prot_matches, "100%"),
+             checkboxInput("Update_Prot_matches", "Update peptide-to-protein assignments?", Update_Prot_matches, "100%"),
              bsTooltip("Update_Prot_matches",
                        paste0(mtchCheckMsg1, "\n", mtchCheckMsg2),
                        placement = "right", trigger = "hover", options = list(container = "body")),
@@ -2434,7 +2434,7 @@ while ((inherits(tst, "try-error")&&(grepl("cannot open the connection", tst[1L]
 # Otherwise, they may get pasted improperly, e.g. if there are numerics with different number of characters,
 # such as 1 and 10, then this gets pasted as "... 1" and "...10" which is SUPER annoying!!!
 w <- which(vapply(colnames(Exp.map), \(x) {
-  sum(c("numeric", "integer") %in% class(Exp.map[[x]])) > 0L
+  inherits(Exp.map[[x]], c("numeric", "integer"))
 }, TRUE))
 for (i in w) {
   Exp.map[[i]] <- gsub(" ", "", # Overkill, just in case!

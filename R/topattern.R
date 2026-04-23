@@ -20,13 +20,16 @@
 #' 
 #' @export
 
-topattern <- function(x, start = TRUE, end = FALSE, collapse = "|") {
+topattern <- function(x,
+                      start = TRUE,
+                      end = FALSE,
+                      collapse = "|") {
   #
   # Check arguments
-  stopifnot(length(start) == 1,
-            length(end) == 1,
-            sum(c("character", "logical") %in% class(collapse)) > 0,
-            length(collapse) == 1,
+  stopifnot(length(start) == 1L,
+            length(end) == 1L,
+            inherits(collapse, c("character", "logical")),
+            length(collapse) == 1L,
             is.logical(start),
             is.logical(end))
   if (is.na(start)) { start <- TRUE }
@@ -49,6 +52,6 @@ topattern <- function(x, start = TRUE, end = FALSE, collapse = "|") {
   x <- gsub("\\|", "\\\\|", x)
   if (start) { x <- paste0("^", x) }
   if (end) { x <- paste0(x, "$") }
-  if ((length(x) > 1)&&(is.character(collapse))) { x <- paste(x, collapse = collapse) }
+  if ((length(x) > 1L)&&(is.character(collapse))) { x <- paste(x, collapse = collapse) }
   return(x)
 }

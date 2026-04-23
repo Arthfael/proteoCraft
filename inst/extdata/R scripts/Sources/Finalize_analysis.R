@@ -1,4 +1,4 @@
-# Write Materials and Method to text file
+# Write Materials and Method to text size
 setwd(wd)
 tmp <- paste0("MatMet <- ", unlist(MatMetCalls$Calls))
 tmpSrc <- paste0(wd, "/tmp.R")
@@ -99,7 +99,7 @@ if (ok2Deliver) {
   if (!dir.exists(topSrchDir)) { dir.create(topSrchDir, recursive = TRUE) }
   Tsts$"Search folder" <- list()
   if (writeSearch) {
-    cat(" - Copying search results to raw files to\n\t\t", topSrchDir, "\n\n")
+    cat(" - Copying search results to\n\t\t", topSrchDir, "\n\n")
     lapply(1L:length(inDirs), \(dir_i) { #dir_i <- 1L #dir_i <- 2L
       rs <- FALSE
       indir <- inDirs[dir_i]
@@ -111,7 +111,7 @@ if (ok2Deliver) {
       } else {
         flsTbl1 <- data.frame(File = fls1,
                               Name = basename(fls1),
-                              Size = file.size(fls1))
+                              Size = base::file.size(fls1))
         fls1 <- flsTbl1$Name
         kount <- 0L
         destDirOK <- FALSE
@@ -122,12 +122,12 @@ if (ok2Deliver) {
             if (length(fls2)) { # Yes? Then...
               flsTbl2 <- data.frame(File = fls2,
                                     Name = basename(fls1),
-                                    Size = file.size(fls2))
+                                    Size = base::file.size(fls2))
               fls2 <- flsTbl2$Name
               destDirOK <- sum(!fls1 %in% fls2) == 0L # All the files should be here...
               if (destDirOK) {
                 m12 <- match(fls1, fls2)
-                destDirOK <- sum(file.size(flsTbl1$File) != file.size(flsTbl2$File[m12]),
+                destDirOK <- sum(base::file.size(flsTbl1$File) != base::file.size(flsTbl2$File[m12]),
                                  na.rm = TRUE) == 0L # ... and they should have the same size
               }
               if (!destDirOK) { kount <- kount+1L }
@@ -141,7 +141,6 @@ if (ok2Deliver) {
           flsTbl1$NewExists <- file.exists(flsTbl1$New)
           w <- which(!flsTbl1$NewExists)
           if (length(w)) {
-            cat(" - Copying input data from\n\t\t", indir, "\n   to\n\t\t", destDir, "\n\n")
             tmpDir <- paste0(outDir, "/tmp_", dir_i)
             if (!dir.exists(tmpDir)) { dir.create(tmpDir, recursive = TRUE) }
             tst <- try(fs::dir_copy(indir, tmpDir), silent = TRUE)

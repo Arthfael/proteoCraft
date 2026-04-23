@@ -127,22 +127,19 @@ Coverage <- function(proteins,
       Table$"Protein(s)" <- as.list(namez)
     }
     if ((length(save) > 1L)||(as.character(save) != "FALSE")) {
-      if ((misFun(save.path))||(length(save.path) != length(title))) {
+      save.grph <- ((misFun(save.path))||(length(save.path) != length(title)))
+      if (save.grph) {
         if ((!misFun(save.path))&&(length(save.path) != length(title))) {
           warning("Argument \"save.path\" will be ignored as its length is not compatible with that of the \"title\" argument!")
         }
-        if (as.character("save") == "FALSE") { save.grph <- FALSE } else {
-          Table$Path <- lapply(Table$Title, \(x) { paste0(x, ".", save) })
-          save.grph <- TRUE
-        }
+        save.grph <- as.character("save") != "FALSE"
+        if (save.grph) { Table$Path <- lapply(Table$Title, \(x) { paste0(x, ".", save) }) }
       } else {
-        if (as.character("save") == "FALSE") {
-          Table$Path <- save.path
-          save.grph <- TRUE
+        Table$Path <- if (as.character("save") == "FALSE") {
+          save.path
         } else {
           #warning("Both the \"save.path\" and \"save\" arguments were provided. I will use \"save.path\" for the file name but \"save\" for the extension(s).")
-          Table$Path <- lapply(gsub("\\.[^A-Z,a-z,0-9]+$", "", save.path), \(x) { paste0(x, ".", save) })
-          save.grph <- TRUE
+          lapply(gsub("\\.[^A-Z,a-z,0-9]+$", "", save.path), \(x) { paste0(x, ".", save) })
         }
       }
     } else { save.grph <- FALSE }
@@ -318,7 +315,7 @@ Coverage <- function(proteins,
       if (Mode %in% c("Align2", "Heat")) {
         matches <- lapply(nmz, \(n) { #n <- nmz[1L]
           mtchs <- list(Outcome = FALSE)
-          peptides[[paste0("Matches_", n)]] <<- lapply(peptides$Sequence, \(x) { #x <- peptides$Sequence[1L]
+          peptides[[paste0("Matches_", n)]] <- lapply(peptides$Sequence, \(x) { #x <- peptides$Sequence[1L]
             x <- poZ2[[match(x, poZ2$Seq), n]]
             return(x[which(!is.na(x))])
           })
@@ -327,7 +324,8 @@ Coverage <- function(proteins,
             mtchs <- peptides[tst, c(paste0("Matches_", n), "Match.seq", "Sequence", "id", "stripped.Original.seq")]
             colnames(mtchs) <- c("Match", "Match.seq", "Sequence", "pepid", "stripOrig")
             mtchs$Protein <- n
-            mtchs <- list(Outcome = TRUE, Matches = mtchs)
+            mtchs <- list(Outcome = TRUE,
+                          Matches = mtchs)
           }
           return(mtchs)
         })
@@ -352,9 +350,7 @@ Coverage <- function(proteins,
             x2 <- (x2 %% scale) + scale*(x2 %% scale == 0L)
             return(c(x2, y2))
           })))
-          if (!is.null(intensities)) { matches$Intensity <- peptides$Intensity[match(matches$pepid, peptides$id)] } else {
-            matches$Intensity <- 1
-          }
+          matches$Intensity <- if (!is.null(intensities)) { peptides$Intensity[match(matches$pepid, peptides$id)] } else { 1 }
           # Deal with peptides spanning several rows
           matches$Start <- 1L # Not the match in the protein sequence! Used only for peptides spanning several rows!
           matches$End <- matches$Length # As above
@@ -399,7 +395,7 @@ Coverage <- function(proteins,
           #olr <- 0
           olr <- 0.5
           # Let's calculate vertical offsets for overlapping peptides
-          uniq <- setNames(lapply(1L:nrow(matches), \(x) { #x <- 1
+          uniq <- setNames(lapply(1L:nrow(matches), \(x) { #x <- 1L
             x <- matches[x, c("X1", "X2", "Y")]
             paste0(as.character((x[[1L]]-olr):(x[[2L]]+olr)), "_", as.character(x[[3L]]))
           }), matches$ID)
@@ -501,7 +497,7 @@ Coverage <- function(proteins,
                                                                                                 (y > 0L)&(y < l+1L),
                                                                                                 y == l+1L)))] }, "")
                 x$Which <- as.character(x$Which)
-                x <- apply(x[,c("Annotations", "Which", "Type")], 1L, paste, collapse = "___")
+                x <- apply(x[, c("Annotations", "Which", "Type")], 1L, paste, collapse = "___")
                 x <- paste0(x, "___", loc)
               } else { x <- NA }
               return(x)
@@ -513,7 +509,7 @@ Coverage <- function(proteins,
             mods$X <- as.numeric(mods$Xa) + as.numeric(mods$Xb) - 1L
             mods$X <- mods$X + c(0.5, 0, -0.5)[match(mods$Type, c("Nterm", "Internal", "Cterm"))]
             mods$Y <- as.numeric(mods$Y) + scale2*0.2
-            mods$Modification <- gsub(" \\(Internal\\)$", "", apply(mods[,c("Modification", "Type")], 1L, \(x) {
+            mods$Modification <- gsub(" \\(Internal\\)$", "", apply(mods[, c("Modification", "Type")], 1L, \(x) {
               paste0(x[[1L]], " (", x[[2L]], ")")
             }))
             #tmpshp <- unique(mods$Modification)
@@ -539,9 +535,7 @@ Coverage <- function(proteins,
           }
           temp <- setNames(lapply(nmz, \(n)  {
             wm <- which(matches$Protein == n)
-            if (length(wm)) {
-              x <- aggregate(matches$ID[wm], list(matches$ID[wm]), length)
-            } else { x <- NA }
+            x <- if (length(wm)) { aggregate(matches$ID[wm], list(matches$ID[wm]), length) } else { NA }
             return(x)
           }), nmz)
           whinna <- which(!is.na(temp))
@@ -610,7 +604,7 @@ Coverage <- function(proteins,
               }
             }
             # We need to calculate maxInt here for this type of plot!
-            if (misFun(maxInt)) { maxInt <- NA } else { maxInt <- suppressWarnings(as.numeric(maxInt)) }
+            maxInt <- if (misFun(maxInt)) { NA } else { suppressWarnings(as.numeric(maxInt)) }
             maxInt <- max(c(maxInt, align.temp2$Intensity), na.rm = TRUE)
             maxInt <- ceiling(maxInt)
             l <- nchar(as.character(maxInt))

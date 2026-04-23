@@ -514,10 +514,7 @@ make_ui <- function() {
                              Impute, "100%"))
       },
       column(2L,
-             checkboxInput("Update_Prot_matches",
-                           paste0("Update ", names(SearchSoft),
-                                  "'s original protein-to-peptides assignments?"),
-                           Update_Prot_matches, "100%"),
+             checkboxInput("Update_Prot_matches", "Update peptide-to-protein assignments?", Update_Prot_matches, "100%"),
              bsTooltip("Update_Prot_matches",
                        "Checking assignments may result in removal of some identifications. It is nonetheless recommended because we have observed occasional inconsistent peptides-to-protein assignments with some search software.",
                        placement = "right", trigger = "hover",
@@ -1151,12 +1148,14 @@ if (AnalysisParam$GO.terms.for.proteins.of.interest) {
 prot.list.Cond %<o% (length(prot.list) > 0L)
 if (prot.list.Cond) {
   m <- match(prot.list, db$`Protein ID`)
-  x <- aggregate(db$`Protein ID`[m], list(db$`Common Name`[m]), c)
+  x <- aggregate(db$`Protein ID`[m], list(db$`Common Name`[m]), list)
   IDs.list %<o% setNames(as.list(x$x), x$Group.1)
   w <- which(nchar(names(IDs.list)) == 0L)
   if (length(w)) {
-    names(IDs.list)[w] <- unlist(IDs.list[w])
-    db$`Common Name`[match(IDs.list[w], db$`Protein ID`)] <- unlist(IDs.list[w])
+    for (i in w) {
+      names(IDs.list)[i] <- paste0(unlist(IDs.list[i]), collapse = ";")
+      db$`Common Name`[match(IDs.list[[i]], db$`Protein ID`)] <- names(IDs.list)[i]
+    }
   }
   prot.names %<o% names(IDs.list)
   db$"Potential contaminant"[which(db$`Protein ID` %in% prot.list)] <- ""

@@ -690,7 +690,7 @@ if (nrow(allBckps)) {
 }
 
 # Clean-up WD to remove all output folders/files/plots/tables before we start?
-drs <- list.dirs(wd, recursive = FALSE)
+drs <- list.dirs(wd, TRUE, FALSE)
 if (length(drs)) {
   cleanUpWD <- c(TRUE, FALSE)[match(dlg_message("The work directory isn't empty. Should we remove all output data (parameters will remain, but plots and output tables will be deleted)?",
                                                 "yesno")$res,

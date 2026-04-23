@@ -19,7 +19,9 @@ intNms <- \(nms, topLvl = FALSE, type = "PG") {
     if (nm %in% c("Original", "Intensity", "Expression", "Original int.", "Intensity int.", "Expression int.")) {
       nm <- c(c("int.", "expr.")[m], root)[mode]
     } else {
-      nm <- if (nm %in% c("ReNorm.", "ReNorm. int.")) { "re-norm" } else { substr(nm, 1L, min(c(3L, nchar(nm)))) }
+      nm <- if (tolower(gsub("-", "", nm)) %in% c("renorm.", "renorm. int.", "renormalized", "renormalized int.")) {
+        "re-norm" 
+      } else { substr(nm, 1L, min(c(3L, nchar(nm)))) }
       nm <- paste0(nm, ". ", c(c("int.", "expr.")[m], root)[mode])
     }
     paste0("log10(", nm, ")")
@@ -31,7 +33,9 @@ ratNms <- \(nms, topLvl = FALSE) {
     if (nm %in% c("Original", "Ratios", "Original rat.", "Ratios rat.")) {
       nm <- c("rat.", "Ratio")[mode]
     } else {
-      nm <- if (nm %in% c("ReNorm.", "ReNorm. rat.")) { "Re-norm" } else { substr(nm, 1L, min(c(3L, nchar(nm)))) }
+      nm <- if (tolower(gsub("-", "", nm)) %in% c("renorm.", "renorm. rat.", "renormalized", "renormalized rat.")) {
+        "re-norm"
+      } else { substr(nm, 1L, min(c(3L, nchar(nm)))) }
       nm <- paste0(nm, ". ", c("rat.", "ratios")[mode])
     }
     paste0("log2(", nm, ")")
@@ -602,11 +606,11 @@ pvalcol <- grep(topattern(pvalue.col[pvalue.use]), colnames(tempData), value = T
 regcol <- grep("^((Enriched)|(Regulated)) - ", colnames(tempData), value = TRUE)
 signcol <- grep("^Significant-FDR=[1-9][0-9]*\\.*[0-9]*% - ", colnames(tempData), value = TRUE)
 signcol <- grep(" - Analysis_[0-9]+", signcol, invert = TRUE, value = TRUE)
-covcol <- c(xmlCovCol,
+covcol <- c(#xmlCovCol,
             c("Sequence coverage [%]",
               "Unique + razor sequence coverage [%]",
               "Unique sequence coverage [%]")[1L:c(1L, 3L)[isEukaLike+1L]],
-            grep(topattern("Sequence coverage [%] - "), colnames(tempData), value = TRUE)) # The complicated way, but ensures the order is correct
+            grep(topattern("Sequence coverage [%] - "), colnames(tempData), value = TRUE))
 kol <- c(kol, "Mol. weight [kDa]", covcol, "PEP", covcol, quantcol, pvalcol, regcol, signcol)
 if ((exists("KlustKols"))&&(length(KlustKols))) { kol <- c(kol, KlustKols) }
 qualFlt <- QualFilt

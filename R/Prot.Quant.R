@@ -135,7 +135,7 @@ Prot.Quant <- function(Prot,
       a <- 1
       parallel::clusterExport(cl, "a", envir = environment())
     }, silent = TRUE))
-    tstCl <- !"try-error" %in% class(tstCl)
+    tstCl <- !inherits(tstCl, "try-error")
   }
   if ((misFun(cl))||(!tstCl)) {
     dc <- parallel::detectCores()
@@ -614,7 +614,7 @@ Prot.Quant <- function(Prot,
               if (Ratios.Pvalue) { # (legacy code, currently ignored)
                 if (length(unique(y1)) > 1) {
                   tt <- try(-log10(t.test(x = y1, y = NULL, alternative = "two.sided")$p.value), silent = TRUE)
-                  rs <- c(rs, c(tt, NA)[(class(tt) == "try-error")+1])
+                  rs <- c(rs, c(tt, NA)[inherits(tt, "try-error")+1])
                 } else { rs <- c(rs, NA) }
               }
               return(rs)
@@ -677,7 +677,7 @@ Prot.Quant <- function(Prot,
   #}
   #res1 <- try(parallel::parSapply(cl, temp.ids, f0, USE.NAMES = TRUE), silent = TRUE)
   res2 <- try(parallel::parSapply(cl, temp.ids, f0, USE.NAMES = TRUE), silent = TRUE)
-  if ("try-error" %in% class(res2)) {
+  if (inherits(res2, "try-error")) {
     cat(" - re-running quant algorithm, the slow way...\nsomething clearly went wrong with the cluster\n")
     # This function has occasionally and non-reproducibly failed on weak PCs, this is a back up
     res2 <- sapply(temp.ids, f0, USE.NAMES = TRUE)
@@ -800,7 +800,7 @@ Prot.Quant <- function(Prot,
                                          parameters = param,
                                          logInt = log.Pep.Intens,
                                          logRat = log.Pep.Ratios), silent = TRUE)
-    if (!"try-error" %in% class(res3)) {
+    if (!inherits(res3, "try-error")) {
       res2[, colnames(res3)] <- res3
     } else { warning("No Ref to Ref columns were generated!") }
   }
@@ -827,7 +827,7 @@ Prot.Quant <- function(Prot,
     }
   }
   for (i in 1:ncol(res2)) {
-    if (!"numeric" %in% class(res2[[i]])) {
+    if (!is.numeric(res2[[i]])) {
       stop(paste0("I would expect the class of column ", i, " to be numeric! Investigate!"))
       #res2[[i]] <- as.numeric(res2[[i]])
     }

@@ -41,10 +41,10 @@ if (runRankAbundPlots||runProfPlots) {
   for (dr in c(MainDir, MainDir2)) {
     if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
   }
-  if (scrptType == "withReps") { dirlist <- unique(c(dirlist, MainDir, MainDir2)) }
+  if (scrptType == "withReps") { dirlist <- union(dirlist, c(MainDir, MainDir2)) }
   for (quantType in QuantTypes) { #quantType <- QuantTypes[1L] #quantType <- "LFQ" #QuantType <- "Coverage"
     subDir <- paste0(MainDir, "/", quantType)
-    if (scrptType == "withReps") { dirlist <- unique(c(dirlist, subDir)) }
+    if (scrptType == "withReps") { dirlist <- union(dirlist, subDir) }
     if (!dir.exists(subDir)) { dir.create(subDir, recursive = TRUE) }
   }
   #
@@ -68,7 +68,7 @@ if (runRankAbundPlots||runProfPlots) {
   if (tstOrg) {
     tmp1 <- as.data.table(listMelt(setNames(strsplit(PG$`Protein IDs`, ";"), 1L:nrow(PG))))
     tmp2 <- as.data.table(listMelt(setNames(strsplit(pep$Proteins, ";"), 1L:nrow(pep))))
-    tmp <- unique(c(tmp1$value, tmp2$value))
+    tmp <- union(tmp1$value, tmp2$value)
     tmp <- data.frame(ID = tmp,
                       Org = db[match(tmp, db$`Protein ID`),
                                dbOrgKol])
@@ -320,7 +320,8 @@ if (runRankAbundPlots||runProfPlots) {
   })
   samplesDF1 <- do.call(rbind, samplesDF1)
   #
-  samplesDF_Lst <- list()
+  samplesDF_Lst <- list(ranked = data.frame(),
+                        profiles = data.frame())
   if (runRankAbundPlots) {
     samplesDF_Lst$ranked <- samplesDF1
   }
@@ -382,27 +383,30 @@ if (runRankAbundPlots||runProfPlots) {
   unlink(tmpFl1)
   unlink(tmpFl2)
   # Ranked - something - plots
-  tstL <- lengths(samplesDF$values)
   if (runRankAbundPlots) {
+    whAb <- 1L:nrow(samplesDF1)
     for (quantType in QuantTypes) { #quantType <- QuantTypes[1L]
-      w1 <- which((samplesDF$type == "PG")&(samplesDF$QuantType == quantType)&(samplesDF$subtype == "All")&(tstL == 1L))
+      w1 <- whAb[which((samplesDF$type[whAb] == "PG")&(samplesDF$QuantType[whAb] == quantType)&(samplesDF$subtype[whAb] == "All"))]
       ggQuantLy[[quantType]] <- setNames(tmPlots[w1], samplesDF$values[w1])
     }
     for (quantType in pepQuantTypes) { #quantType <- pepQuantTypes[1L]
-      w2 <- which((samplesDF$type == "pep")&(samplesDF$QuantType == quantType)&(samplesDF$subtype == "All")&(tstL == 1L))
+      w2 <- whAb[which((samplesDF$type[whAb] == "pep")&(samplesDF$QuantType[whAb] == quantType)&(samplesDF$subtype[whAb] == "All"))]
       ggQuantLy[[paste0("peptides ", quantType)]] <- setNames(tmPlots[w2], samplesDF$values[w2])
     }
     saveFun(ggQuantLy, file = paste0(MainDir, "/quantPlots.RData"))
   }
   if (runProfPlots) {
+    whPr <- 1L:nrow(samplesDF2)
     # Profile plots
-    for (quantType in QuantTypes) {
-      w1 <- which((samplesDF2$type == "PG")&(samplesDF2$QuantType == quantType)&(samplesDF2$subtype == "All")&(tstL > 1L))
+    for (quantType in QuantTypes) { #quantType <- QuantTypes[1L]
+      w1 <- whPr[which((samplesDF2$type[whPr] == "PG")&(samplesDF2$QuantType[whPr] == quantType)&(samplesDF2$subtype[whPr] == "All"))]
+      w1 <- w1 + nrow(samplesDF_Lst$ranked)
       stopifnot(length(w1) == 1L)
       ggProfLy[[quantType]] <- tmPlots[[w1]]
     }
-    for (quantType in pepQuantTypes) {
-      w2 <- which((samplesDF2$type == "pep")&(samplesDF2$QuantType == quantType)&(samplesDF2$subtype == "All")&(tstL > 1L))
+    for (quantType in pepQuantTypes) { #quantType <- pepQuantTypes[1L]
+      w2 <- whPr[which((samplesDF2$type[whPr] == "pep")&(samplesDF2$QuantType[whPr] == quantType)&(samplesDF2$subtype[whPr] == "All"))]
+      w2 <- w2 + nrow(samplesDF_Lst$ranked)
       lw2 <- length(w2)
       stopifnot(lw2 <= 1L)
       if (lw2) {

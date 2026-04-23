@@ -4,6 +4,7 @@ options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
 options(svDialogs.rstudio = TRUE)
 #rm(list = ls()[which(!ls() %in% c("dtstNm", "wd", "inDirs", "outDir"))])
+closeAllConnections()
 
 ## Load proteoCraft
 if (exists(".obj")) { rm(".obj") }
@@ -38,10 +39,6 @@ if (tst) { Configure() }
 xplorSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/xplorData.R")
 locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
 locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
-
-# Run local scripts at startup
-locScrptSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/runLocScrpts.R")
-source(locScrptSrc)
 
 # Parameters used by the start analysis script:
 ###-|-### Workflows: setNames(c("Differential Protein Expression analysis", "Pull-Down (e.g. co-IP)", "Biotin-based Pull-Down (BioID, TurboID, APEX...)", "Time Course", "SubCellular Localisation analysis"), c("REGULATION", "PULLDOWN", "BIOID", "TIMECOURSE", "LOCALISATION"))
@@ -126,6 +123,10 @@ if (load_a_Bckp) {
     load_Bckp(startDir = locDirs$Path[match("Temporary folder", locDirs$Folder)])
   }, silent = TRUE)
 }
+
+# Run local scripts at startup - keep this after loading the backup!
+locScrptSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/runLocScrpts.R")
+source(locScrptSrc)
 
 # Set Shiny options, load functions for creating a Word report, create Excel styles
 Src <- paste0(libPath, "/extdata/R scripts/Sources/ShinyOpt_Styles_and_Report.R")
@@ -2222,7 +2223,7 @@ if (protrul) {
     }
   }
   temp <- try(Prot.Ruler(tempPG, db, exprsRt, NuclL = ProtRulNuclL), silent = TRUE)
-  if (class(temp) == "list") {
+  if (is.list(temp)) {
     db <- temp$Database
     temp <- temp$Protein.groups
     kol <- c(grep(topattern(exprsRt), colnames(temp), value = TRUE), grep(topattern(ProtRulRoot), colnames(temp), value = TRUE))
@@ -2378,6 +2379,7 @@ data.table::fwrite(ev, paste0(dir, "/evidence.tsv"), sep = "\t", row.names = FAL
 xlSrc <- paste0(libPath, "/extdata/R scripts/Sources/rep_Write_Excel.R")
 #rstudioapi::documentOpen(xlSrc)
 source(xlSrc, local = FALSE)
+#xl_open(repFl)
 
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)

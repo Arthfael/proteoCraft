@@ -475,7 +475,7 @@ if (!is.null(targDir)) {
           FilesDF$NewExists <- file.exists(FilesDF$New)
           if (sum(FilesDF$NewExists)) {
             wExst <- which(FilesDF$NewExists)
-            FilesDF$NewSize[wExst] <- file.size(FilesDF$New[wExst])
+            FilesDF$NewSize[wExst] <- base::file.size(FilesDF$New[wExst])
             # Calculate hash for overlapping files
             cat("Some matching files found in the target directory,\nchecking hashes for overlapping files:
 (hang in there, this will take a while...)\n")
@@ -584,7 +584,7 @@ if (!is.null(targDir)) {
               # - its size is correct
               # - its hash is correct
               wExst <- wC[which(FilesDF$NewExists[wC])] # Normally wExst should be identical to wC
-              FilesDF$NewSize[wExst] <- file.size(FilesDF$New[wExst])
+              FilesDF$NewSize[wExst] <- base::file.size(FilesDF$New[wExst])
               cat(" - Calculating cloned file hashes...\n")
               FilesDF$NewHash[wExst] <- parSapply(parClust, FilesDF$New[wExst], HashFun)
               BdHsh <- (is.na(FilesDF$NewHash[wExst]))|(FilesDF$Hash[wExst] != FilesDF$NewHash[wExst])
@@ -593,7 +593,7 @@ if (!is.null(targDir)) {
               if (tstBdHsh == 2L) {
                 cat("   checking discrepancies...\n")
                 wBdHsh <- wExst[which(BdHsh)]
-                FilesDF$size[wBdHsh] <- file.size(FilesDF$Files[wBdHsh])
+                FilesDF$size[wBdHsh] <- base::file.size(FilesDF$Files[wBdHsh])
                 FilesDF$Hash[wBdHsh] <- parSapply(parClust, FilesDF$Files[wBdHsh], HashFun)
                 BdHsh <- (is.na(FilesDF$NewHash[wExst]))|(FilesDF$Hash[wExst] != FilesDF$NewHash[wExst])
                 BdHsh[which(is.na(BdHsh))] <- TRUE

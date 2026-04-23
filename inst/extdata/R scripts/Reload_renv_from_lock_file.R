@@ -39,7 +39,7 @@ if (grepl("^~", lockFl)) { lockFl <- gsub("^~", docsPath, lockFl) }
 #
 # Check that the R version you are running is the same as that in the lock file!
 tmp1 <- readLines(lockFl)
-tmp1 <- tmp1[grep("\"R\": *\\{", tmp1)+1]
+tmp1 <- tmp1[grep("\"R\": *\\{", tmp1)+1L]
 tmp1 <- gsub(" *\"Version\": *\"|\" *,.*", "", tmp1)
 tmp2 <- version
 tmp2 <- paste0(tmp2$major, ".", tmp2$minor)
@@ -56,12 +56,12 @@ pakOpt <- getOption("renv.config.pak.enabled")
 excl <- c()
 if (pakOpt) { excl <- union("pak", excl) }
 library(evaluate)
-kount <- 0
+kount <- 0L
 renvXprs <- "kount <- kount + 1; cat(\" - Attempt #\", kount, \"\n\"); renv::restore(lockfile = lockFl, prompt = FALSE, exclude = excl)"
 #eval(parse(text = renvXprs))
 myEval <- evaluate::evaluate(renvXprs, stop_on_error = 0L)
-tstEval <- function(x = myEval) { sum(vapply(x, function(y) { sum(c("error", "simpleError") %in% class(y)) > 0 }, TRUE)) }
-whError <- function(x = myEval) { which(vapply(x, function(y) { sum(c("error", "simpleError") %in% class(y)) > 0 }, TRUE)) }
+tstEval <- function(x = myEval) { sum(vapply(x, \(y) { inherits(y, c("error", "simpleError")) }, TRUE)) }
+whError <- function(x = myEval) { which(vapply(x, \(y) { inherits(y, c("error", "simpleError")) }, TRUE)) }
 if ((tstEval())&&(pakOpt)) {
   options(renv.config.pak.enabled = FALSE)
   excl <- setdiff(excl, "pak")
@@ -69,7 +69,7 @@ if ((tstEval())&&(pakOpt)) {
 }
 # Below not tested
 if (tstEval()) {
-  tmp <- unlist(strsplit(as.character(myEval[[whError()]]), "\'"))[[2]] # Not tested
+  tmp <- unlist(strsplit(as.character(myEval[[whError()]]), "\'"))[[2L]] # Not tested
   if (tmp == "rawrr 1.11.14") {
     url <- "https://bioconductor.org/packages/3.19/bioc/src/contrib/Archive/rawrr/rawrr_1.11.14.tar.gz"
     require(curl)

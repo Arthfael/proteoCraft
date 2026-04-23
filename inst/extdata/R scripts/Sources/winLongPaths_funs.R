@@ -36,10 +36,10 @@ safe_dir_exists <- function(dirs) { # Not tested!
   return(res)
 }
 safe_file_size <- function(files) {
-  res <- file.size(files)
+  res <- base::file.size(files)
   w <- which(is.na(res))
   if (length(w)) {
-    res[w] <- file.size(lp(files[w]))
+    res[w] <- base::file.size(lp(files[w]))
   }
   return(res)
 }

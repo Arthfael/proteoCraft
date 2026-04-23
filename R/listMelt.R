@@ -27,7 +27,7 @@ listMelt <- function(List,
   stopifnot(is.atomic(List)|is.list(List),
             length(ColNames) == 2L)
   lL <- length(List)
-  w <- lengths(vapply(List) > 0L) # Filter necessary not only to avoid warning for empty elements ("In stack.default(List) : non-vector elements will be ignored")
+  w <- which(lengths(List) > 0L) # Filter necessary not only to avoid warning for empty elements ("In stack.default(List) : non-vector elements will be ignored")
   # But also a bug which would cause improper names assignment if the list contains empty elements!!!
   if (!missing(Names)) {
     stopifnot(length(Names) == lL)

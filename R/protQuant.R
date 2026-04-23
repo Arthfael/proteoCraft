@@ -166,7 +166,7 @@ protQuant <- function(Prot,
   misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-    function(x) { return(!exists(deparse(substitute(x)))) }
+    \(x) { return(!exists(deparse(substitute(x)))) }
   } else { missing }
   if (misFun(ref_Mode)) { ref_Mode <- 2L }
   if (!as.numeric(ref_Mode) %in% 1L:2L) { ref_Mode <- 2L }
@@ -175,9 +175,9 @@ protQuant <- function(Prot,
   # Check arguments
   mySmpls <- expMap[[expMap_Samples_col]]
   nPep_0 <- nrow(Pep)
-  minN <- max(c(1, suppressWarnings(abs(as.integer(minN)))))
-  maxN <- max(c(1, minN, suppressWarnings(abs(as.numeric(maxN)))))
-  N_unique <- max(c(0, suppressWarnings(abs(as.numeric(N_unique)))))
+  minN <- max(c(1L, suppressWarnings(abs(as.integer(minN)))))
+  maxN <- max(c(1L, minN, suppressWarnings(abs(as.numeric(maxN)))))
+  N_unique <- max(c(0L, suppressWarnings(abs(as.numeric(N_unique)))))
   if (is.finite(maxN)) { maxN <- suppressWarnings(as.integer(maxN)) }
   if (is.finite(N_unique)) { N_unique <- suppressWarnings(as.integer(N_unique)) }
   stopifnot(length(N_unique) == 1L,
@@ -198,12 +198,12 @@ protQuant <- function(Prot,
   LFQ_ALGO <- toupper(LFQ_algo)
   stopifnot(nrow(Prot) > 0L,
             nPep_0 > 0L,
-            "character" %in% class(pg_PepIDs),
+            is.character(pg_PepIDs),
             nchar(pg_PepIDs) > 0L,
             length(pg_PepIDs) == 1,
             pg_PepIDs %in% colnames(Prot),
-            sum(c("character", "integer", "numeric") %in% class(Prot[[pg_PepIDs]])) > 0L,
-            sum(c("numeric", "integer", "logical") %in% class(N_unique)) > 0L,
+            inherits(Prot[[pg_PepIDs]], c("character", "integer", "numeric")),
+            inherits(N_unique, c("numeric", "integer", "logical")),
             LFQ_ALGO %in% c("LM",
                             "IQ", #"MAXLFQ",
                             "LIMPA", "DPCQUANT",
@@ -244,7 +244,7 @@ protQuant <- function(Prot,
   if (LFQ_ALGO == "LM") {
     # In-house MaxLFQ-like method (with Levenberg-Marquardt based profiles alignment)
     if ((length(LM_fun) != 1L)||
-        (!"character" %in% class(LM_fun))||
+        (!is.character(LM_fun))||
         (is.na(LM_fun))||
         (!LM_fun %in% c("median", "mean", "weighted.mean"))) {
       warning("Incorrect LM_fun argument, defaulting to \"median\"...")
@@ -282,15 +282,15 @@ protQuant <- function(Prot,
   if (!skip_reScaling) {
     stopifnot(reSc_is_topN||
                 (RESCALING %in% c("LM", "IQ", "LIMPA", "QFEATURES"))||
-                ((!"try-error" %in% class(try(get(reScaling), silent = TRUE)))&&
-                   (sum(c("standardGeneric", "function") %in% class(get(reScaling))) > 0L)))
+                ((!inherits(try(get(reScaling), silent = TRUE), "try-error"))&&
+                   (inherits(get(reScaling), c("standardGeneric", "function")))))
     useIntWeights <- FALSE
     reSc_topN <- Inf
     if (reSc_is_topN) {
       reScaling <- "mean"
       reSc_fun <- mean
       reSc_topN <- as.integer(sub("^TOP", "", RESCALING))
-      if ((misFun(topN_correct))||(length(topN_correct) != 1)||(!is.logical(topN_correct))||(is.na(topN_correct))) {
+      if ((misFun(topN_correct))||(length(topN_correct) != 1L)||(!is.logical(topN_correct))||(is.na(topN_correct))) {
         warning("Invalid topN_correct argument, defaulting to TRUE")
         topN_correct <- TRUE
       }
@@ -299,8 +299,8 @@ protQuant <- function(Prot,
       reScaling <- "sum"
     }
     useIntWeights <- reScaling == "weighted.mean"
-    if ((!"try-error" %in% class(try(get(reScaling), silent = TRUE)))&&
-        (sum(c("standardGeneric", "function") %in% class(get(reScaling))) > 0L)) {
+    if ((!inherits(try(get(reScaling), silent = TRUE), "try-error"))&&
+        (inherits(get(reScaling), c("standardGeneric", "function")))) {
       reSc_fun <- get(reScaling)
     }
   }
@@ -766,7 +766,9 @@ protQuant <- function(Prot,
   #
   # Zig-zag order
   # Function adapted from https://www.r-bloggers.com/2020/12/going-parallel-understanding-load-balancing-in-r/
-  zigzag_ord <- function(x, n = length(cl)) {
+  nZZ <- 1L
+  if (!misFun(cl)) { nZZ <- max(c(2L, length(cl))) }
+  zigzag_ord <- \(x, n = nZZ) {
     #x <- quant_pep_IDs
     ord <- data.frame(Original = seq_along(x),
                       Length = lengths(x))
@@ -902,7 +904,9 @@ protQuant <- function(Prot,
                             LM_fun = LM_fun,
                             Weights = Weights,
                             minN = minN,
-                            maxN = maxN))
+                            maxN = maxN,
+                            is.all.good = is.all.good,
+                            diffLog = diffLog))
     res2a <- parallel::parLapply(cl,
                                  quant_pep_IDs,
                                  f0,
@@ -1039,7 +1043,7 @@ protQuant <- function(Prot,
   # em <- expMap
   # em$Replicate <- as.integer(em$Replicate)
   # em <- em[order(em$Replicate),]
-  # f0 <- function(i, y) { #i <- 1L
+  # f0 <- \(i, y) { #i <- 1L
   #   w1 <- which(contr[i,] == 1L)
   #   w0 <- which(contr[i,] == -1L)
   #   w1 <- which(em[[smplGroups$column]] == colnames(contr)[w1])
@@ -1121,7 +1125,7 @@ protQuant <- function(Prot,
         rescVal$Weights <- Pep$Weights[m]
       }
       if ((reSc_is_topN)||(is.finite(reSc_topN))) {
-        rescVal$Rank <- stats::ave(rescVal$PG, rescVal$PG, FUN = seq_along) # (thanks chatGPT...)
+        rescVal$Rank <- as.integer(stats::ave(rescVal$PG, rescVal$PG, FUN = seq_along)) # (thanks chatGPT...)
       }
       if (is.finite(reSc_topN)) {
         rescVal <- rescVal[which(rescVal$Rank <= reSc_topN),]
@@ -1131,6 +1135,7 @@ protQuant <- function(Prot,
         # Not sure about this...
         Md <- median(rescVal$avgPepInt, na.rm = TRUE)
         tst <- as.data.frame(rescVal[, .(Median = median(avgPepInt, na.rm = TRUE)), by = .(Rank = Rank)])
+        tst$Rank <- as.integer(tst$Rank)
         for (i in tst$Rank) {
           wi <- which(rescVal$Rank == i)
           rescVal$avgPepInt[wi] <- rescVal$avgPepInt[wi]-tst$Median[match(i, tst$Rank)]
@@ -1146,8 +1151,13 @@ protQuant <- function(Prot,
     }
     rescVal <- rescVal[match(row.names(res2), rescVal$PG),]
     # Re-scale
-    currVal <- rowMeans(res2[, quntNms, drop = FALSE], na.rm = TRUE)
-    res2[, quntNms] <- sweep(res2[, quntNms, drop = FALSE], 1L, rescVal$Value-currVal, "+")
+    wN <- which(!row.names(res2) %in% rescVal$PG)
+    wY <- which(row.names(res2) %in% rescVal$PG)
+    stopifnot(length(wY) > 0L)
+    mY <- match(row.names(res2)[wY], rescVal$PG)
+    res2[wN, quntNms] <- NA
+    currValY <- rowMeans(res2[wY, quntNms, drop = FALSE], na.rm = TRUE)
+    res2[wY, quntNms] <- sweep(res2[wY, quntNms, drop = FALSE], 1L, rescVal$Value[mY]-currValY, "+")
   }
   # Calculate ratios
   if (!skipRatios) {
@@ -1204,7 +1214,7 @@ protQuant <- function(Prot,
     }
   }
   for (i in 1L:ncol(res2)) {
-    if (!"numeric" %in% class(res2[[i]])) {
+    if (!is.numeric(res2[[i]])) {
       stop(paste0("I would expect the class of column ", i, " to be numeric! Investigate!"))
       #res2[[i]] <- as.numeric(res2[[i]])
     }
@@ -1212,9 +1222,16 @@ protQuant <- function(Prot,
   res2$"Peptides IDs used for quantitation" <- vapply(quant_pep_IDs, paste, "", collapse = ";")
   ord2 <- ord[nuOrd,]
   res2 <- res2[order(ord2$Original),]
-  rownames(res2) <- rownames(Prot)
   #
-  RES <- list(Data = res2)
+  nC <- dim(res2)[2L]
+  res3 <- as.data.frame(matrix(rep(NA, nrow(Prot)*nC), ncol = nC)) 
+  rownames(res3) <- Prot$temp_IDs
+  colnames(res3) <- colnames(res2)
+  wY <- which(rownames(res3) %in% rownames(res2))
+  mY <- match(rownames(res3)[wY], rownames(res2))
+  res3[wY,] <- res2[mY,]
+  #
+  RES <- list(Data = res3)
   if ("LIMPA" %in% c(LFQ_ALGO, RESCALING)) {
     RES$EList_obj <- dpcRes
   }

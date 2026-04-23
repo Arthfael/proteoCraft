@@ -368,7 +368,7 @@ if (plotly) {
                                                    plotly_subfolder)))))
     if (!dir.exists(plotly_subfolder)) {
       tst <- try(dir.create(plotly_subfolder, recursive = TRUE), silent = TRUE)
-      if (class(tst) == "try-error") {
+      if (inherits(tst, "try-error")) {
         warning("Invalid plotly_subfolder, ignoring!")
         plotly_subfolder <- subfolder
       }
@@ -499,7 +499,8 @@ Mappings <- setNames(Mappings2$GO, Mappings2$Protein)
 #    - obligatory in "regulated" Mode
 defltFilt <- FALSE
 if ((Mode == "regulated")||((Mode == "dataset")&&(exists("filters")))) {
-  stopifnot(class(filters) == "list", length(filters) > 0L)
+  stopifnot(is.list(filters),
+            length(filters) > 0L)
   if (is.null(names(filters))) { names(filters) <- paste0("Filter ", 1L:length(filters)) }
 } else {
   # Provide default for "dataset" Mode
@@ -512,7 +513,7 @@ if ((Mode == "regulated")||((Mode == "dataset")&&(exists("filters")))) {
 MultRef <- (length(ref.filters) > 1L)||(!is.na(ref.filters))
 if (MultRef) {
   # Process/check if provided...
-  stopifnot("list" %in% class(ref.filters),
+  stopifnot(is.list(ref.filters),
             length(ref.filters) > 0L,
             length(ref.filters) == length(filters))
   if (is.null(names(ref.filters))) {

@@ -5,7 +5,7 @@ validLogicPar %<o% function(x,
   stopifnot(is.character(x))
   if (!exists(x, .GlobalEnv)) { return(FALSE) }
   val <- get(x, .GlobalEnv)
-  if (!"logical" %in% class(val)) { return(FALSE) }
+  if (!is.logical(val)) { return(FALSE) }
   l <- length(val)
   if ((length_1)&&(l > 1L)) { return(FALSE) }
   if (noNAs) {
@@ -21,7 +21,7 @@ validIntegPar %<o% function(x,
   stopifnot(is.character(x))
   if (!exists(x, .GlobalEnv)) { return(FALSE) }
   val <- get(x, .GlobalEnv)
-  if (sum(c("integer", "numeric") %in% class(val)) == 0L) { return(FALSE) }
+  if (!inherits(val, c("integer", "numeric"))) { return(FALSE) }
   l <- length(val)
   if ((length_1)&&(l > 1L)) { return(FALSE) }
   if (noNAs) {
@@ -66,7 +66,7 @@ validCharPar %<o% function(x,
   x <- gsub("^ +| +$", "", x)
   if (!exists(x, .GlobalEnv)) { return(FALSE) }
   val <- get(x, .GlobalEnv)
-  if (!"character" %in% class(val)) { return(FALSE) }
+  if (!is.character(val)) { return(FALSE) }
   l <- length(val)
   if ((length_1)&&(l > 1L)) { return(FALSE) }
   if (noNAs) {

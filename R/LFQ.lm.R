@@ -55,13 +55,13 @@ LFQ.lm <- function(ids,
   #ids <- quant.pep.ids[[1]]
   #InputTabl = tmpPep;IntensCol = Pep.Intens.Nms;Summary.method = Summary.method;Summary.weights = Weights
   Viz <- FALSE
-  if ((missing(reNorm))||(!is.numeric(reNorm))||(length(reNorm) != 1)||(is.na(reNorm))||(!reNorm %in% 0:2)) {
-    reNorm <- 1
+  if ((missing(reNorm))||(!is.numeric(reNorm))||(length(reNorm) != 1L)||(is.na(reNorm))||(!reNorm %in% 0L:2L)) {
+    reNorm <- 1L
   }
   #DefArg(LFQ.lm)
-  #ids = IDsInputTabl = MSAll;IntensCol = Samples;Summary.method = "median";Min.N = 2;Max.N = 50;Is.log = FALSE
-  #ids <- temp.ids;InputTabl = tmpPep;IntensCol = paste0(Pep.Intens.root, Samples);Summary.method = "median";Min.N = 2;Max.N = 50;Is.log = TRUE
-  #ids <- temp.ids[prot.list[1]]; Viz <- TRUE
+  #ids = IDsInputTabl = MSAll;IntensCol = Samples;Summary.method = "median";Min.N = 2L;Max.N = 50L;Is.log = FALSE
+  #ids <- temp.ids;InputTabl = tmpPep;IntensCol = paste0(Pep.Intens.root, Samples);Summary.method = "median";Min.N = 2L;Max.N = 50L;Is.log = TRUE
+  #ids <- temp.ids[prot.list[1L]]; Viz <- TRUE
   fun_expr <- substitute(Summary.method)
   summaryFun <- match.fun(Summary.method)
   Summary.method <- if (is.symbol(fun_expr)) { as.character(fun_expr) } else { "anonymous" }
@@ -81,14 +81,14 @@ LFQ.lm <- function(ids,
     wights <- InputTabl[mtch, Summary.weights]
     w1 <- which(apply(temp1[, IntensCol, drop = FALSE], 1L, \(y) {
       length(is.all.good(y))
-    }) > 0)
+    }) > 0L)
     if (length(w1)) { # Are there enough valid values?
       # Remove peptides with only non-valid or missing values
       temp1 <- temp1[w1, , drop = FALSE]; wights <- wights[w1]
       tst2 <- vapply(IntensCol, \(y) {
         length(is.all.good(temp1[[y]]))
-      }, 1)
-      if (max(tst2) > 1) { # Are there columns with at least 2 valid values?
+      }, 1L)
+      if (max(tst2) > 1L) { # Are there columns with at least 2 valid values?
         if (length(w1) > Max.N) { # (No need to re-calculate tst1)
           # Remove excess peptides, for cases where we have much more than we need and including all would slow down the calculations
           # (I'm looking at you, Titin!!!)
@@ -102,14 +102,14 @@ LFQ.lm <- function(ids,
         # Columns with at least 1 valid value
         wNN <- which(vapply(IntensCol, \(y) {
           length(is.all.good(temp1[[y]]))
-        }, 1) > 0)
+        }, 1L) > 0L)
         av <- apply(temp1[, wNN, drop = FALSE], 1L, \(y) {
           stats::median(is.all.good(y))
         })
         # NB: temp2 and temp3 are already subsets through wNN
         # Thus, do not apply wNN to them!
         temp2 <- sweep(temp1[, wNN, drop = FALSE], 1L, av, "-") # Normalized profiles row-wise to the median
-        f <- rep(0, nrow(temp2) - 1)
+        f <- rep(0, nrow(temp2) - 1L)
         diffLog_v <- function(...) {
           p <- list(...)
           return(diffLog(p, dat = temp2))
@@ -126,7 +126,7 @@ LFQ.lm <- function(ids,
           tmp2[which(!is.finite(tmp2), arr.ind = TRUE)] <- NA
           tmp3m <- as.matrix(temp3)
           tmp3m[which(!is.finite(tmp3m), arr.ind = TRUE)] <- NA
-          grDevices::windows(width = 10, height = 10L)
+          grDevices::windows(width = 10L, height = 10L)
           graphics::par(cex.main = 0.3)
           gplots::heatmap.2(tmp1, Colv = NULL, Rowv = NULL,
                             main = "Original", xlab = NULL, ylab = NULL,
@@ -136,7 +136,7 @@ LFQ.lm <- function(ids,
                             sepcolor = "blue", dendrogram = "none",
                             cexRow = 0.7,
                             cexCol = 0.7)
-          grDevices::windows(width = 10, height = 10L)
+          grDevices::windows(width = 10L, height = 10L)
           graphics::par(cex.main = 0.3)
           gplots::heatmap.2(tmp2, Colv = NULL, Rowv = NULL,
                             main = "Row normalized", xlab = NULL, ylab = NULL,
@@ -146,7 +146,7 @@ LFQ.lm <- function(ids,
                             sepcolor = "blue", dendrogram = "none",
                             cexRow = 0.7,
                             cexCol = 0.7)
-          grDevices::windows(width = 10, height = 10L)
+          grDevices::windows(width = 10L, height = 10L)
           graphics::par(cex.main = 0.3)
           gplots::heatmap.2(tmp3m, Colv = NULL, Rowv = NULL,
                             main = "Aligned", xlab = NULL, ylab = NULL,
@@ -177,11 +177,11 @@ LFQ.lm <- function(ids,
         })
         temp3 <- as.numeric(temp3)
         # Re-scaling to estimate inter-proteins expression level
-        if (reNorm %in% 0:1) {
+        if (reNorm %in% 0L:1L) {
           m0 <- stats::median(is.all.good(temp3))
           #if (is.na(m0)) { stop(m0) }
           temp3 <- temp3 - m0
-          if (reNorm == 1) {
+          if (reNorm == 1L) {
             # -> best-flyer hypothesis logic
             m1 <- apply(temp1[, wNN, drop = FALSE], 1L, \(x) { stats::median(is.all.good(x)) })
             mx1 <- max(is.all.good(m1))
@@ -189,7 +189,7 @@ LFQ.lm <- function(ids,
             temp3 <- temp3 + mx1
           }
         }
-        if (reNorm == 2) {
+        if (reNorm == 2L) {
           m <- max(is.all.good(unlist(temp1[, wNN, drop = FALSE])))
           m <- as.data.frame(which(temp1[, wNN, drop = FALSE] == m, arr.ind = TRUE))
           temp3 <- temp3 + temp1[m$row[1L], wNN[m$col[1L]]] - temp3[m$col[1L]]

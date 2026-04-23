@@ -31,6 +31,9 @@ load_Bckp <- function(backup,
     \(x) { return(!exists(deparse(substitute(x)))) }
   } else { missing }
   #
+  RPath <- as.data.frame(library()$results)
+  RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
+  libPath <- paste0(RPath, "/proteoCraft")
   homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
   #
   wd_test <- \() {
@@ -152,113 +155,156 @@ load_Bckp <- function(backup,
   }
   #
   cat(paste0("Backup \"", bckp, "\" loaded, work directory set and packages loaded.\n"))
-  if (sum(!.obj %in% c("backupFile", ".obj", "%<o%", "%<c%"))) {
-    if (exists("ScriptPath")) {
-      cat("Analysis script used ---> ", ScriptPath, "\n")
-      if (file.exists(ScriptPath)) {
-        scrpt <- readLines(ScriptPath)
-        scrpt <- data.frame(call = scrpt)
-        scrpt$row <- 1L:nrow(scrpt)
-        scrpt$listCall <- as.list(scrpt$call)
-        g1 <- grep("^ *Src <- ", scrpt$call)
-        g2 <- grep("^ *source\\(Src\\)", scrpt$call)
-        l <- length(g1)
-        while (l) {
-          if ((l == length(g2))
-              &&(sum(g1 > g2) == 0L)
-              &&(sum(g2[1L:(l-1L)] > g1[2L:l]) == 0L)) {
-            srcFls <- sapply(gsub("^ *Src <- ", "", scrpt$call[g1]), \(x) {
-              x <- eval(parse(text = x))
-              if (is.null(x)) { x <- "" }
-              return(x)
-            })
-            wY <- which((nchar(srcFls) > 0L)&(file.exists(srcFls)))
-            wN <- which((nchar(srcFls) == 0L)|(!file.exists(srcFls)))
-            srcs <- suppressWarnings(lapply(srcFls[wY], readLines))
-            scrpt$listCall[g1] <- ""
-            scrpt$listCall[g2[wY]] <- srcs
-            scrpt$listCall[g2[wN]] <- ""
-            scrpt <- listMelt(scrpt$listCall, scrpt$row, c("call", "row"))
-            scrpt$listCall <- as.list(scrpt$call)
-            g1 <- grep("^ *Src <- ", scrpt$call)
-            g2 <- grep("^ *source\\(Src\\)", scrpt$call)
-            l <- length(g1)
-          } else { l <- 0L }
-        }
-        g0 <- grep("^ *saveImgFun\\(((\"Backup\\.RData\")|(BckUpFl))\\)", scrpt$call)
-        if (length(g0)) {
-          ghash <- grep("^ *#", scrpt$call, invert = TRUE)
-          f0 <- \(x) { #x <- .obj[4L]
-            rs <- NA
-            y <- c(grep(paste0("^ *", x, " *%<(o|c)%"), scrpt$call),
-                   grep(paste0("^ *\\.obj *<- *unique\\(c\\(", x, "\\)\\)"), scrpt$call))
-            if (length(y)) {
-              y <- scrpt$row[min(y)]
-              rs <- scrpt$row[g0][which(scrpt$row[g0] > y)][1L]
-            }
-            return(rs)
-          }
-          #environment(f0) <- .GlobalEnv
-          ok <- FALSE
-          if (usePar) {
-            parallel::clusterExport(parClust, list("g0", "scrpt"), envir = environment())
-            tst <- try(setNames(parSapply(parClust, .obj, f0), .obj), silent = TRUE)
-            #
-            # NB:
-            #   Recent change, now object names are added to .obj left, not right:
-            #   > .obj <- unique(c(objNm, .obj)))
-            #   thus we now have two ways to detect how far the script progressed:
-            #    - Using all names in .obj, we can figure out how far we have gone at any run of the script from these inputs assuming the backup wasn't discarded.
-            #    - Using just the first name in .obj for which we have a non NA value, we can figure out what was the last run chunk.
-            #
-            ok <- !inherits(tst, "try-error")
-          } else {
-            tst <- try(setNames(sapply(.obj, f0), .obj), silent = TRUE)
-          }
-          if (!ok) { tst <- setNames(vapply(.obj, f0, as.integer(1)), .obj) }
-          tst <- tst[which((vapply(names(tst), exists, TRUE))&(!is.na(tst)))]
-          if (length(tst)) {
-            m1 <- tst[1L]
-            o1 <- names(tst)[1L]
-            tst <- tst[order(tst, decreasing = TRUE)]
-            m2 <- tst[1L]
-            o2 <- names(tst)[1L]
-            rs1 <- scrpt$row[ghash][which(scrpt$row[ghash] > m1)][1L]
-            rs2 <- scrpt$row[ghash][which(scrpt$row[ghash] > m2)][1L]
-            # rs1 should always be smaller or equal to rs2
-            msg <- paste0("\n   FYI, the last remanent object which was added chronologically to .obj was \"", o1, "\"")
-            if (o1 != o2) {
-              msg <- paste0(msg,
-                            ",\n   but it seems that at some point the script had also been run with this data beyond this point\n   (up to the creation of remanent object ",
-                            o2, ")\n")
-            } else {
-              msg <- paste0(msg, ",\n   which seems to also be how far the script has been run with this data at any point.\n")
-            }
-            cat(msg)
-            #system(paste0("open \"", ScriptPath, "\""))
-            if (rs1 >= max(scrpt$row[g0])) {
-              cat("\n   Backup analysis suggests that this backup had reached the end of the analysis, so there should be nothing more to run...\nBut maybe you want to re-run some parts without starting from scratch?\n")
-              cat("   (opening script...)\n")
-              suppressWarnings(rstudioapi::documentOpen(ScriptPath))
-            } else {
-              if (rs1 < rs2) {
-                cat(paste0("\n   -> We thus suggest starting execution from either row ", rs1, " or ", rs2, "...\n"))
-                cat(paste0("   (opening script at line ", rs1, ")\n"))
-              } else {
-                cat(paste0("\n   -> We thus suggest starting execution from row ", rs1, "...\n"))
-                cat("   (opening script at the corresponding line...)\n")
-              }
-              suppressWarnings(rstudioapi::documentOpen(ScriptPath, line = rs1))
-            }
-            #system(paste0("open \"", ScriptPath, "\""))
-          }
-        }
-      } else {
-        cat(" ... but it appears the file doesn't exist anymore...\n")
-      }
-    } else {
-      cat(paste0("   FYI, the last object listed in .obj is \"", rev(.obj)[1L], "\".\n"))
-    }
+  if ((exists(".obj"))&&(sum(!.obj %in% c("backupFile", ".obj", "%<o%", "%<c%")))) {
+    warning("Please, me-dude: update the script analysis code... it was awesome!")
+    # if (exists("ScriptPath")) {
+    #   cat("Analysis script used ---> ", ScriptPath, "\n")
+    #   if (file.exists(ScriptPath)) {
+    #     scrpt <- readLines(ScriptPath)
+    #     scrpt <- data.frame(call = scrpt)
+    #     scrpt$row <- 1L:nrow(scrpt)
+    #     scrpt$listCall <- as.list(scrpt$call)
+    #     allSources <- list.files(paste0(libPath, "/inst/extdata/R scripts/Sources"), full.names = TRUE)
+    #     allSources <- data.frame(Path = allSources,
+    #                              Name = basename(allSources),
+    #                              Code = lapply(allSources, readLines))
+    #     g1 <- grep("^ *[a-zA-Z]*Src *<- *", scrpt$call)
+    #     g2 <- grep("^ *source\\([a-zA-Z]*Src(, *local *= *FALSE)?\\)", scrpt$call)
+    #     l1 <- length(g1)
+    #     l2 <- length(g2)
+    #     while (l1&&l2) {
+    #       g1_Src <- gsub("^ *| *<- *.*", "", scrpt$call[g1])
+    #       g1 <- aggregate(gsub(" +", " ", scrpt$call[g1]), list(g1_Src), unique)
+    #       g1$L <- lengths(g1$x)
+    #       w1 <- which(g1$L == 1L)
+    #       if (length(w1)) {
+    #         
+    #       }
+    #       g2_Src <- gsub("^ *source\\(|(, *local *= *FALSE)?\\).*", "", scrpt$call[g2])
+    #       g2_ <- g2[1L]
+    #       src <- gsub("^ *source\\(|(, *local *= *FALSE)?\\).*", "", scrpt$call[g2])
+    #       
+    #       
+    #       g1_2a <- g1[which(g1 %in% (g2-1L))]
+    #       g1_2b <- g1[which(g1 %in% (g2-2L))]
+    #       g1_2b <- g1_2b[which(grepl("^ *#", scrpt$call[g1_2b+1]))]
+    #       g1_2 <- union(g1_2a, g1_2b)
+    #       g1_2[1]
+    #       
+    #       
+    #       mySources <- data.frame(scriptRow = g1)
+    #       mySources[, c("Object", "Source")] <- do.call(rbind, strsplit(scrpt$call[g1], " *<- *"))
+    #       mySources$Source <- gsub(".*/Sources/|\"\\).*", "", mySources$Source)
+    #       mySource$eval1 <- vapply(1:nrow(mySources), \(i) {
+    #         g2_ <- g2[which(g2 > mySources$scriptRow[i])]
+    #         g2[grep(paste0("[^]source("))
+    #         
+    #       }, 1)
+    #       
+    #       
+    #       
+    #       l2 <- length(g2)
+    #     }
+    #     
+    #     
+    #     g2 <- grep("^ *source\\([a-zA-Z]*Src\\)", scrpt$call)
+    #     l <- length(g1)
+    #     while (l) {
+    #       if ((l == length(g2))
+    #           &&(sum(g1 > g2) == 0L)
+    #           &&(sum(g2[1L:(l-1L)] > g1[2L:l]) == 0L)) {
+    #         srcFls <- sapply(gsub("^ *[a-zA-Z]*Src <- ", "", scrpt$call[g1]), \(x) {
+    #           x <- eval(parse(text = x))
+    #           if (is.null(x)) { x <- "" }
+    #           return(x)
+    #         })
+    #         wY <- which((nchar(srcFls) > 0L)&(file.exists(srcFls)))
+    #         wN <- which((nchar(srcFls) == 0L)|(!file.exists(srcFls)))
+    #         srcs <- suppressWarnings(lapply(srcFls[wY], readLines))
+    #         scrpt$listCall[g1] <- ""
+    #         scrpt$listCall[g2[wY]] <- srcs
+    #         scrpt$listCall[g2[wN]] <- ""
+    #         scrpt <- listMelt(scrpt$listCall, scrpt$row, c("call", "row"))
+    #         scrpt$listCall <- as.list(scrpt$call)
+    #         g1 <- grep("^ *[a-zA-Z]*Src <- ", scrpt$call)
+    #         g2 <- grep("^ *source\\([a-zA-Z]*Src\\)", scrpt$call)
+    #         l <- length(g1)
+    #       } else { l <- 0L }
+    #     }
+    #     g0 <- grep("^ *saveImgFun\\(((\"Backup\\.RData\")|(BckUpFl))\\)", scrpt$call)
+    #     if (length(g0)) {
+    #       ghash <- grep("^ *#", scrpt$call, invert = TRUE)
+    #       f0 <- \(x) { #x <- .obj[4L]
+    #         rs <- NA
+    #         y <- c(grep(paste0("^ *", x, " *%<(o|c)%"), scrpt$call),
+    #                grep(paste0("^ *\\.obj *<- *unique\\(c\\(", x, "\\)\\)"), scrpt$call))
+    #         if (length(y)) {
+    #           y <- scrpt$row[min(y)]
+    #           rs <- scrpt$row[g0][which(scrpt$row[g0] > y)][1L]
+    #         }
+    #         return(rs)
+    #       }
+    #       #environment(f0) <- .GlobalEnv
+    #       ok <- FALSE
+    #       if (usePar) {
+    #         parallel::clusterExport(parClust, list("g0", "scrpt"), envir = environment())
+    #         tst <- try(setNames(parSapply(parClust, .obj, f0), .obj), silent = TRUE)
+    #         #
+    #         # NB:
+    #         #   Recent change, now object names are added to .obj left, not right:
+    #         #   > .obj <- unique(c(objNm, .obj)))
+    #         #   thus we now have two ways to detect how far the script progressed:
+    #         #    - Using all names in .obj, we can figure out how far we have gone at any run of the script from these inputs assuming the backup wasn't discarded.
+    #         #    - Using just the first name in .obj for which we have a non NA value, we can figure out what was the last run chunk.
+    #         #
+    #         ok <- !inherits(tst, "try-error")
+    #       } else {
+    #         tst <- try(setNames(sapply(.obj, f0), .obj), silent = TRUE)
+    #       }
+    #       if (!ok) { tst <- setNames(vapply(.obj, f0, as.integer(1)), .obj) }
+    #       tst <- tst[which((vapply(names(tst), exists, TRUE))&(!is.na(tst)))]
+    #       if (length(tst)) {
+    #         m1 <- tst[1L]
+    #         o1 <- names(tst)[1L]
+    #         tst <- tst[order(tst, decreasing = TRUE)]
+    #         m2 <- tst[1L]
+    #         o2 <- names(tst)[1L]
+    #         rs1 <- scrpt$row[ghash][which(scrpt$row[ghash] > m1)][1L]
+    #         rs2 <- scrpt$row[ghash][which(scrpt$row[ghash] > m2)][1L]
+    #         # rs1 should always be smaller or equal to rs2
+    #         msg <- paste0("\n   FYI, the last remanent object which was added chronologically to .obj was \"", o1, "\"")
+    #         msg <- if (o1 != o2) {
+    #           paste0(msg,
+    #                  ",\n   but it seems that at some point the script had also been run with this data beyond this point\n   (up to the creation of remanent object ",
+    #                  o2, ")\n")
+    #         } else {
+    #           paste0(msg, ",\n   which seems to also be how far the script has been run with this data at any point.\n")
+    #         }
+    #         cat(msg)
+    #         #system(paste0("open \"", ScriptPath, "\""))
+    #         if (rs1 >= max(scrpt$row[g0])) {
+    #           cat("\n   Backup analysis suggests that this backup had reached the end of the analysis, so there should be nothing more to run...\nBut maybe you want to re-run some parts without starting from scratch?\n")
+    #           cat("   (opening script...)\n")
+    #           suppressWarnings(rstudioapi::documentOpen(ScriptPath))
+    #         } else {
+    #           if (rs1 < rs2) {
+    #             cat(paste0("\n   -> We thus suggest starting execution from either row ", rs1, " or ", rs2, "...\n"))
+    #             cat(paste0("   (opening script at line ", rs1, ")\n"))
+    #           } else {
+    #             cat(paste0("\n   -> We thus suggest starting execution from row ", rs1, "...\n"))
+    #             cat("   (opening script at the corresponding line...)\n")
+    #           }
+    #           suppressWarnings(rstudioapi::documentOpen(ScriptPath, line = rs1))
+    #         }
+    #         #system(paste0("open \"", ScriptPath, "\""))
+    #       }
+    #     }
+    #   } else {
+    #     cat(" ... but it appears the file doesn't exist anymore...\n")
+    #   }
+    # } else {
+    #   cat(paste0("   FYI, the last object listed in .obj is \"", rev(.obj)[1L], "\".\n"))
+    # }
   }
   if (exists("mySeed")) { set.seed(mySeed) }
   if (usePar) { assign("parClust", parClust, envir = .GlobalEnv) } # Export cluster

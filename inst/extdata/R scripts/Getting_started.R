@@ -13,11 +13,13 @@ require(pak)
 
 # To install the latest version
 tmp <- installed.packages()
-if ("proteoCraft" %in% tmp[, 1]) {
+if ("proteoCraft" %in% tmp[, 1L]) {
   unloadNamespace("proteoCraft")
   remove.packages("proteoCraft")
 }
-pak::pkg_install("Arthfael/proteoCraft", upgrade = TRUE, ask = FALSE)
+pak::pak("git::https://git.ista.ac.at/anicolas/proteocraft.git",
+         upgrade = TRUE,
+         ask = FALSE)
 # May fail when updating too many packages - in that case, restart session and rerun
 # Alternative way to install:
 #devtools::install_github("Arthfael/proteoCraft", upgrade = TRUE)
@@ -46,7 +48,7 @@ WrkFlwsTbl <- data.frame(Name = c("Protein Groups - with replicates",
                                     "No replicates analysis - detailed script",
                                     "Regulation analysis - detailed script_pepOnly",
                                     "Histones_analysis_-_DiaNN_FragPipe_Skyline_or_alphaDIA_input"))
-myWrkFlw %<o% dlg_list(WrkFlwsTbl$Name, WrkFlwsTbl$Name[1], title = "Choose analysis workflow")$res
+myWrkFlw %<o% dlg_list(WrkFlwsTbl$Name, WrkFlwsTbl$Name[1L], title = "Choose analysis workflow")$res
 wrkflwSrc %<o% paste0(homePath, "/", WrkFlwsTbl$Script[match(myWrkFlw, WrkFlwsTbl$Name)], ".R")
 #rstudioapi::documentOpen(wrkflwSrc) # Inspect current workflow script
 #rstudioapi::documentOpen(Src) # In case a specific sub-source throws an error

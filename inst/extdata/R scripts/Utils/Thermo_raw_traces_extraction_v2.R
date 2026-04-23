@@ -1004,7 +1004,7 @@ mzMLs <- gsub("\\.raw$", ".mzML", slctFls, ignore.case = TRUE)
 pressFls <- gsub("\\.mzML$", ".csv", mzMLs)
 clusterExport(parClust, list("slctFls", "mzMLs", "pressFls"), envir = environment())
 #w <- 1L:length(mzMLs)
-w <- which((!file.exists(mzMLs))|(file.size(mzMLs) <= 2000))
+w <- which((!file.exists(mzMLs))|(base::file.size(mzMLs) <= 2000))
 if (length(w)) {
   if (tolower(Convert_mode) == "thermorawfileparser") { # Mode 1: using ThermoRawFileParser
     clusterExport(parClust, list("wd", "deer", "zlib", "PeakPicking"), envir = environment())

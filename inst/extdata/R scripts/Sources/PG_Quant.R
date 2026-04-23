@@ -210,7 +210,7 @@ quantArgs <- list(Prot = PG,
                   Weights = "Weights",
                   useIntWeights = FALSE,
                   Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1L],
-                  skipRatios = !MakeRatios,#scrptType != "withReps")&&(!MakeRatios), # For reps, t
+                  skipRatios = !MakeRatios,
                   expMap = smplsMap,
                   expMap_Samples_col = smplsKol,
                   pepInt_Root = pepInt_col,
@@ -228,18 +228,22 @@ quantArgs <- list(Prot = PG,
                   ratGroups = NULL)
 if (scrptType == "withReps") { quantArgs$param <- tmpPar }
 if ((scrptType == "noReps")&&(MakeRatios)) {
-  quantArgs$refGroup <- list(values = unique(smplsMap$Ratios_group),
-                                 names = "Ratios_group",
-                                 column = "Ratios_group")
+  quantArgs$refGroups <- list(values = unique(smplsMap$Ratios_group),
+                              names = "Ratios_group",
+                              column = "Ratios_group")
   quantArgs$ratGroups <- list(values = unique(smplsMap$Ratios_group),
                               names = "Ratios_group",
                               column = "Ratios_group")
 }
 # For testing:
-#DefArg(protQuant)
+#DefArg(protQuant);TESTING <- TRUE
 #invisible(lapply(names(quantArgs), \(x) { assign(x, quantArgs[[x]], envir = .GlobalEnv); return() }))
-#TESTING <- TRUE
+msg <- if (post_ReNorm_reRun) {  " -> Starting protein groups quantitation...\n" } else {
+  " -> Protein groups re-quantitation from back-normalized peptides...\n"
+}
+cat(msg)
 quantData_list %<o% do.call(protQuant, quantArgs) # In case this is run after PG reNorm (from back-reNormalized peptides),
+cat("    done!\n\n")
 quantData_list$reNormalized <- post_ReNorm_reRun
 # this replaces the original quantData_list object.
 # This is fine, it ensures for limpa we use the latest version.
@@ -300,7 +304,7 @@ DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l], " Estimated expression values wer
 quantData <- quantData_list$Data
 if (scrptType == "withReps") {
   stopifnot(length(grep(topattern(Prot.Expr.Root), colnames(quantData))) > 0L)
-            #length(grep(topattern(Prot.Rat.Root), colnames(quantData))) > 0L)
+  #length(grep(topattern(Prot.Rat.Root), colnames(quantData))) > 0L)
   # For script with reps, the data is added later to PG
   g <- grep(topattern(Prot.Rat.Root), colnames(quantData))
   if (!length(g)) {
@@ -316,7 +320,7 @@ if (scrptType == "noReps") {
   }
   m1 <- match("Peptides IDs used for quantitation", colnames(quantData))
   colnames(quantData)[m1] <- paste0("Peptide IDs used for quantitation - ",
-                                     names(PG.int.cols)[match(PG.int.col, PG.int.cols)])
+                                    names(PG.int.cols)[match(PG.int.col, PG.int.cols)])
   PG[, colnames(quantData)] <- quantData
 }
 if ((scrptType == "noReps")&&(Impute)) {
@@ -329,7 +333,9 @@ if ((scrptType == "noReps")&&(Impute)) {
   quantArgs_Imp <- quantArgs
   quantArgs_Imp$pepInt_Root <- pepImpInt_col
   quantArgs_Imp$pepRat_root <- pepImpRat_col
+  cat(" -> 2nd Protein groups quantitation (this time from imputed peptides)...\n")
   quantData_list_Imput %<o% do.call(protQuant, quantArgs_Imp)
+  cat("    done!\n\n")
   myQuantBckpFl2 <- paste0(wd, "/", bckpNm, "2.RData")
   saveFun(quantData_list_Imput, file = myQuantBckpFl2)
   #loadFun(myQuantBckpFl2)
@@ -342,4 +348,6 @@ if ((scrptType == "noReps")&&(Impute)) {
   m2 <- match("Peptides IDs used for quantitation", colnames(quantData2))
   colnames(quantData2)[m2] <- "Peptide IDs used for quantitation - Imputed"
   PG[, colnames(quantData2)] <- quantData2
+  l <- length(DatAnalysisTxt)
+  DatAnalysisTxt[l] <- sub("\\.\\.\\.$", "", DatAnalysisTxt[l])
 }

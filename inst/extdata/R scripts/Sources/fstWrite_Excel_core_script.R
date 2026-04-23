@@ -145,7 +145,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   dims <- openxlsx2::wb_dims(rows = hdRg[2L], cols = 1L)
   # We will not write the first row of the data, but a nicely behaved dummy row without any NAs, NaNs or Inf...
   dummyData <- myData[1L, , drop = FALSE]
-  tst <- vapply(colnames(myData), \(x) { sum(c("numeric", "integer") %in% class(myData[[x]])) }, 1L) > 0L
+  tst <- vapply(colnames(myData), \(x) { inherits(myData[[x]], c("numeric", "integer")) }, TRUE)
   wNum <- setNames(which(tst), NULL)
   wTxt <- setNames(which(!tst), NULL)
   dummyData[wNum] <- 0L
@@ -265,20 +265,22 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
     WorkBook <- openxlsx2::wb_set_row_heights(WorkBook,
                                               sheetnm,
                                               hdRg,
-                                              c(max(c(30L, min(c(ceiling(max(nchar(tstKol$Group))/20)*10, 45L)))),
-                                                max(c(60L, min(c(ceiling(max(nchar(tmpKol2))/10)*20, 180L))))))
+                                              c(max(c(30L, min(c(ceiling(max(nchar(tstKol$Group))/20)*10L, 45L)))),
+                                                max(c(60L, min(c(ceiling(max(nchar(tmpKol2))/10)*20L, 180L))))))
   }
   # Freeze panes
   m <- match(CoreCol, xlTabs[[sheetnm]])
-  WorkBook <- openxlsx2::wb_freeze_pane(WorkBook, sheetnm, first_active_row = c(1L, 3L)[wrtHeader+1L],
+  WorkBook <- openxlsx2::wb_freeze_pane(WorkBook,
+                                        sheetnm,
+                                        first_active_row = c(1L, 3L)[wrtHeader+1L],
                                         firstActiveCol = max(m, na.rm = TRUE)+1L)
   #
   #openxlsx2::wb_save(WorkBook, repFl);xl_open(repFl)
   #
   # Conditional formatting
-  w1 <- which(!is.na(sapply(xlTabs[[sheetnm]], \(x) { #x <- xlTabs[[sheetnm]][1L]
-    x <- match(ColumnsTbl$Grp[match(x, ColumnsTbl$Col)], styleNms)
-  })))
+  w1 <- which(!is.na(vapply(xlTabs[[sheetnm]], \(x) { #x <- xlTabs[[sheetnm]][1L]
+    match(ColumnsTbl$Grp[match(x, ColumnsTbl$Col)], styleNms)
+  }, 1L)))
   w2 <- colRg
   w2 <- w2[which(!w2 %in% w1)]
   if (length(w1)) {
@@ -290,7 +292,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
       res$Style <- openxlsx2::wb_get_cell_style(WorkBook, "tmp", res$tmpCell)
       return(res)
     }), xlTabs[[sheetnm]][w1])
-    CS1tst <- aggregate(1L:length(CS1), list(sapply(CS1, paste, collapse = "-")), \(x) {
+    CS1tst <- aggregate(1L:length(CS1), list(vapply(CS1, paste, "", collapse = "-")), \(x) {
       c(min(x), max(x))
     })
     CS1tst[, c("Min", "Max")] <- as.data.frame(CS1tst$x)
@@ -307,14 +309,14 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
     }
   }
   if (length(w2)) {
-    CS2 <- setNames(lapply(xlTabs[[sheetnm]][w2], \(x) { #x <- xlTabs[[sheetnm]][w2][1L]
+    CS2 <- setNames(lapply(xlTabs[[sheetnm]][w2], \(x) { #x <- xlTabs[[sheetnm]][w2][1L] #x <- xlTabs[[sheetnm]][w2][5L]
       m <- match(x, ColumnsTbl$Col)
       res <- list(Group = ColumnsTbl$Grp[m],
                   Class = ColumnsTbl$Class[m])
       res$Style <- Styles[[res$Group]]
       return(res)
     }), xlTabs[[sheetnm]][w2])
-    CS2tst <- aggregate(1L:length(CS2), list(sapply(CS2, paste, collapse = "-")), \(x) {
+    CS2tst <- aggregate(1L:length(CS2), list(vapply(CS2, paste, "", collapse = "-")), \(x) {
       c(min(x), max(x))
     })
     CS2tst[, c("Min", "Max")] <- as.data.frame(CS2tst$x)
@@ -438,7 +440,9 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
     cc_Rest$c_t[w] <- "e"
   }
   w <- which((cc_Rest$is %in% c("<is><t>-Inf</t></is>", "<is><t>Inf</t></is>",
-                                "<is><t>-Inf</t xml:space=\"preserve\"></is>", "<is><t xml:space=\"preserve\">Inf</t></is>"))|(is.infinite(cc_Rest$is)))
+                                "<is><t>-Inf</t xml:space=\"preserve\"></is>",
+                                "<is><t xml:space=\"preserve\">Inf</t></is>"))
+             |(is.infinite(cc_Rest$is)))
   if (length(w)) {
     cc_Rest$v[w] <- "#NUM!" 
     cc_Rest$c_t[w] <- "e"
@@ -449,7 +453,9 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
     cc_Rest$v[w] <- "#VALUE!" 
     cc_Rest$c_t[w] <- "e"
   }
-  w <- which((cc_Rest$is %in% c("<is><t>NaN</t></is>", "<is><t xml:space=\"preserve\">NaN</t></is>"))|(is.nan(cc_Rest$is)))
+  w <- which((cc_Rest$is %in% c("<is><t>NaN</t></is>",
+                                "<is><t xml:space=\"preserve\">NaN</t></is>"))
+             |(is.nan(cc_Rest$is)))
   if (length(w)) {
     cc_Rest$v[w] <- "#VALUE!" 
     cc_Rest$c_t[w] <- "e"
@@ -461,7 +467,9 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
     cc_Rest$v[w] <- "#N/A"
     cc_Rest$c_t[w] <- "e"
   }
-  w <- which((cc_Rest$is %in% c("<is><t>NA</t></is>", "<is><t xml:space=\"preserve\">NA</t></is>"))|(is.na(cc_Rest$is)))
+  w <- which((cc_Rest$is %in% c("<is><t>NA</t></is>",
+                                "<is><t xml:space=\"preserve\">NA</t></is>"))
+             |(is.na(cc_Rest$is)))
   if (length(w)) {
     cc_Rest$v[w] <- "#N/A"
     cc_Rest$c_t[w] <- "e"
@@ -532,7 +540,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   #
   # - Groupings
   tst <- aggregate(ColumnsTbl$Hide, list(ColumnsTbl$Class), unique)
-  stopifnot("logical" %in% class(tst$x))
+  stopifnot(is.logical(tst$x))
   colnames(tst) <- c("Group", "Hide")
   tst$Col <- lapply(tst$Group, \(x) {
     m <- which(ColumnsTbl$Class == x)

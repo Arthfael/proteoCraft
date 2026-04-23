@@ -6,9 +6,6 @@
 
 if (!require(limma)) { pak::pak("limma") }
 library(limma)
-# Run local scripts
-locScrptSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/runLocScrpts.R")
-source(locScrptSrc)
 
 # Check our parent cluster
 source(parSrc, local = FALSE)

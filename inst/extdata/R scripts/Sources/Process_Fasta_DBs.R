@@ -35,6 +35,10 @@ fastasTbl %<o% data.frame(Full = fastas,
                           Name = basename(fastas),
                           Dir = dirname(fastas),
                           Contaminant = FALSE)
+if (exists("isContaminant")) { 
+  fastasTbl$Contaminant <- as.logical(isContaminant[fastasTbl$Full])
+}
+fastasTbl$Contaminant[which(is.na(fastasTbl$Contaminant))] <- FALSE
 fastasTbl$Loc <- c("Local", "Cluster")[grepl("^/+nfs/", fastasTbl$Dir)+1L]
 fastasTbl$Exists <- file.exists(fastasTbl$Full)
 fastasTbl$ExistsHere <- file.exists(paste0(wd, "/", fastasTbl$Name))
@@ -620,6 +624,7 @@ while ((!runKount)||(!exists("fastasTbl3"))) {
   runKount <- runKount+1L
 }
 annotTbl3 <- annotTbl3[which(file.exists(annotTbl3$Path)),]
+isContaminant <- setNames(fastasTbl3$Contaminant, fastasTbl3$Full)
 Annotate %<o% (nrow(annotTbl3) > 0L)
 if (Annotate) {
   AnnotFlsTbl %<o% annotTbl3
@@ -697,11 +702,12 @@ dbs <- setNames(lapply(whFnd, \(i) { #i <- whFnd[1L] #i <- whFnd[2L]
 }), fastasTbl$Full[whFnd])
 #
 kol <- c("Organism_Full", "Organism")
-dbs_Org %<o% setNames(lapply(dbs, \(db) { #db <- dbs[[1L]]
+dbs_Org %<o% setNames(lapply(dbs, \(db) { #db <- dbs[[1L]] #db <- dbs[[2L]] #db <- dbs[[3L]] #db <- dbs[[4L]]
   kol <- kol[which(kol %in% colnames(db))]
   tst <- vapply(kol, \(x) { length(unique(db[which(!as.character(db[[x]]) %in% c("", "NA")), x])) }, 1L)
   kol <- kol[order(tst, decreasing = TRUE)][1L]
   w <- which(db$`Potential contaminant` != "+")
+  if (!length(w)) { return() }
   org %<o% aggregate(w, list(db[w, kol]), length)
   colnames(org) <- c("Organism", "Count")
   org <- org[which(org$Count == max(org$Count)[1L]),]
@@ -833,7 +839,7 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
         if (!grepl(":", x)) {
           tmp <- paste0("https://rest.uniprot.org/uniprotkb/", x, ".fasta")
           dest <- paste0(dr, "/", x, ".fasta")
-          if ((!file.exists(dest))||(file.size(dest) == 0)) {
+          if ((!file.exists(dest))||(base::file.size(dest) == 0)) {
             try(utils::download.file(tmp, dest), silent = TRUE)
             
           }

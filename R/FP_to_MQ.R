@@ -38,7 +38,7 @@ FP_to_MQ <- function(FP_Workflow,
                      UniProtIDs = TRUE,
                      FailIfNoQuant = FALSE,
                      N.clust,
-                     N.reserved = 1,
+                     N.reserved = 1L,
                      cl,
                      OpenSearch = FALSE) {
   TESTING <- FALSE
@@ -48,11 +48,11 @@ FP_to_MQ <- function(FP_Workflow,
   #FP_Workflow <- wrkfl; FP_Manifest <- mnfst
   #FP_Workflow <- paste0(wd, "/fragpipe.workflow"); FP_Manifest <- paste0(wd, "/fragpipe-files.fp-manifest")
   #
-  if (TESTING) {
+  misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-    misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
-  } else { misFun <- missing }
+    \(x) { return(!exists(deparse(substitute(x)))) }
+  } else { missing }
   #
   # Create cluster
   stopCl <- FALSE
@@ -124,7 +124,7 @@ FP_to_MQ <- function(FP_Workflow,
     }
     TMTtbl <- read.delim(TMTtblFl, check.names = FALSE)
     TMTtbl$plex[which(is.na(TMTtbl$plex))] <- TMTplex
-    Channels <- c(126L, unlist(lapply(127L:134L, function(x) { paste0(as.character(x), c("N", "C")) })), "135N")
+    Channels <- c(126L, unlist(lapply(127L:134L, \(x) { paste0(as.character(x), c("N", "C")) })), "135N")
     TMTtbl$channel_code <- match(TMTtbl$channel, Channels) - 1L
     tmtKols <- as.character(TMTtbl$sample)
   }
@@ -149,12 +149,12 @@ FP_to_MQ <- function(FP_Workflow,
   if (length(Rep[which(!is.na(Rep))])) {
     Samples <- data.frame(Exp = Exp, Rep = Rep)
     # Rep seems to be duplicated somehow, but only sometimes... Why oh why!!!
-    Samples1 <- apply(Samples, 1L, function(x) {
+    Samples1 <- apply(Samples, 1L, \(x) {
       x <- c(x[[1L]], x[[2L]])
       x <- x[which(!is.na(x))]
       return(paste(x, collapse = "_"))
     })
-    Samples2 <- apply(Samples, 1L, function(x) {
+    Samples2 <- apply(Samples, 1L, \(x) {
       x <- c(x[[1L]], x[[2L]], x[[2L]])
       x <- x[which(!is.na(x))]
       return(paste(x, collapse = "_"))
@@ -254,12 +254,12 @@ FP_to_MQ <- function(FP_Workflow,
   # For now these are removed as they are normally not expected.
   # However, we can keep them aside in case there is no match to main UniMod (not implemented currently).
   #
-  parseMods <- function(mods, fixed = FALSE) { #mods <- varMods
+  parseMods <- \(mods, fixed = FALSE) { #mods <- varMods
     fixInd <- fixed + 1L
-    x1 <- sapply(mods, function(x) { as.numeric(x[[1L]]) })
-    x2 <- sapply(mods, function(x) { paste(x[2L:(length(x) - 2L)], collapse = "") })
-    x3 <- sapply(mods, function(x) { as.logical(toupper(x[[length(x) - 1L]])) })
-    x4 <- sapply(mods, function(x) { as.integer(x[[length(x)]]) })
+    x1 <- vapply(mods, \(x) { as.numeric(x[[1L]]) }, 1)
+    x2 <- vapply(mods, \(x) { paste(x[2L:(length(x) - 2L)], collapse = "") }, "")
+    x3 <- vapply(mods, \(x) { as.logical(toupper(x[[length(x) - 1L]])) }, TRUE)
+    x4 <- vapply(mods, \(x) { as.integer(x[[length(x)]]) }, 1L)
     mods <- data.frame("Mass delta" = x1,
                        "Site" = x2,
                        "Enabled" = x3,
@@ -271,7 +271,7 @@ FP_to_MQ <- function(FP_Workflow,
     mods$Enabled <- NULL
     mods$Site <- gsub(" ?\\([^\\)]+\\)", "", mods$Site) # Why do I need this again?
     mods$ID <- paste0(c("var", "fix")[fixInd], 1L:nrow(mods))
-    tmp <- lapply(strsplit(mods$Site, ""), function(x) { #x <- strsplit(mods$Site, "")[4L]
+    tmp <- lapply(strsplit(mods$Site, ""), \(x) { #x <- strsplit(mods$Site, "")[4L]
       x <- unlist(x)
       w <- which(x == "n")
       if (length(w)) {
@@ -321,7 +321,7 @@ FP_to_MQ <- function(FP_Workflow,
   Modifs[["Variable"]] <- parseMods(varMods, FALSE)
   # - Combine
   Modifs <- plyr::rbind.fill(Modifs)
-  tst <- vapply(strsplit(Modifs$Site, ""), function(x) {
+  tst <- vapply(strsplit(Modifs$Site, ""), \(x) {
     x <- x[which(x != " ")]
     sum(!x %in% c("[", "n", "^", "c", "]", AA)) == 0L
   }, TRUE)
@@ -345,7 +345,7 @@ FP_to_MQ <- function(FP_Workflow,
   Modifs$Site_long[w] <- Modifs$AA[w] # Restore AA specificity
   Modifs$"Mass precision" <- nchar(gsub(".*\\.|0+$", "", Modifs$"Mass delta"))
   Modifs <- Modifs[order(Modifs$`Mass delta`, decreasing = FALSE),]
-  tmp <- lapply(1L:nrow(Modifs), function(i) { #i <- 1L #i <- 2L  #i <- 3L #i <- 4L
+  tmp <- lapply(1L:nrow(Modifs), \(i) { #i <- 1L #i <- 2L  #i <- 3L #i <- 4L
     prec <- Modifs$`Mass precision`[i]
     dMass <- Modifs$`Mass delta`[i]
     sites <- Modifs$Site_long[i]
@@ -418,7 +418,7 @@ FP_to_MQ <- function(FP_Workflow,
   ## Sometimes, some marks are duplicates, e.g. if you searched for "Acetyl (Protein N-term)" and "Acetyl (K)" together!
   ## We want to fix this so that each modification has a unique mark:
   #test <- aggregate(Modifs$Mark, list(Modifs$Mark), length)
-  test <- aggregate(Modifs$UniMod, list(Modifs$Mark), function(x) { length(unique(x)) })
+  test <- aggregate(Modifs$UniMod, list(Modifs$Mark), \(x) { length(unique(x)) })
   W <- which(test$x > 1L)
   #Modifs$Mark <- Modifs$"Old mark"
   if (length(W)) {
@@ -435,10 +435,10 @@ FP_to_MQ <- function(FP_Workflow,
         m$AA[which(lengths(m$AA) == 0L)] <- "X"
         r <- { if ("Acetyl" %in% m$"Full name") { which(m$"Full name" == "Acetyl") } else { 1L } } # r is the one we will keep without changing it
         s <- setdiff(1L:nrow(m), r)
-        tst <- lapply(s, function(x) {
+        tst <- lapply(s, \(x) {
           paste0(tolower(m$AA[[x]]), substr(m$Mark[[x]], 1L, 1L))
         })
-        tst <- lapply(1L:length(tst), function(x) {
+        tst <- lapply(1L:length(tst), \(x) {
           rs <- tst[[x]]
           rs[which(!rs %in% Modifs$Mark)]
         })
@@ -448,7 +448,7 @@ FP_to_MQ <- function(FP_Workflow,
             tst[[i]] <- tst[[i]][which(!tst[[i]] %in% unlist(tst[1L:(i - 1L)]))]
           }
         }
-        tst <- vapply(tst, function(x) {
+        tst <- vapply(tst, \(x) {
           x <- unlist(x)
           x <- { if (length(x)) { x[1L] } else { "That didnae work, did it?" } }
           return(x)
@@ -493,7 +493,7 @@ FP_to_MQ <- function(FP_Workflow,
       warning("Discrepancies detected between the masses entered in the FragPipe search and the mapped UniMod PTMs.")
     } # Could probably be more precise
   }
-  test <- aggregate(Modifs$"Full name", list(Modifs$Mark), function(x) { length(unique(x)) })
+  test <- aggregate(Modifs$"Full name", list(Modifs$Mark), \(x) { length(unique(x)) })
   if (max(test$x) > 1L) {
     warning("The algorithm was not able to assign unique 2-character old-MaxQuant style short marks to each modification, so some modified sequences may be ambiguous.")
   }
@@ -501,7 +501,7 @@ FP_to_MQ <- function(FP_Workflow,
   # nested parentheses are ugly and break the code further down.
   g <- grep("\\([0-9]+\\)$", Modifs$"Full name")
   if (length(g)) {
-    Modifs$"Full name"[g] <- vapply(g, function(i) {
+    Modifs$"Full name"[g] <- vapply(g, \(i) {
       paste0(gsub("\\([0-9]+\\)$", "", Modifs$"Full name"[i]),
              "*",
              gsub(".*\\(|\\)$", "", Modifs$"Full name"[i]))
@@ -514,7 +514,7 @@ FP_to_MQ <- function(FP_Workflow,
   #
   # Load PSM files
   if (isWellBehaved) {
-    PSMs <- lapply(1L:length(Samples), function(x) { #x <- 1L
+    PSMs <- lapply(1L:length(Samples), \(x) { #x <- 1L
       res <- data.table::fread(FP_PSMs[x], integer64 = "numeric", check.names = FALSE,
                                data.table = FALSE, fill = TRUE, sep = "\t")
       if (nrow(res)) {
@@ -597,7 +597,7 @@ FP_to_MQ <- function(FP_Workflow,
     tmp4$Full <- NULL
     #tmp4$Enabled <- NA
     #mp4$"Max occurences" <- NA
-    tmp4$AA <- lapply(1L:nrow(tmp4), function(x) { c() })
+    tmp4$AA <- lapply(1L:nrow(tmp4), \(x) { c() })
     tmp4$Type <- "Delta mass"
     tmp4$"Type of search" <- "Open"
     tmp4$Mark <- "!m" # We will mark all open-search delta masses as "!m" and add a column for delta masses 
@@ -637,7 +637,7 @@ FP_to_MQ <- function(FP_Workflow,
                         gsub("\\|[^\\|]+;[a-z]{2}\\|", ";", gsub(", ", ";", a2))), ";")
   }
   tmp <- cbind(a1, a2)
-  f0 <- function(x) { paste(sort(unique(unlist(x))), collapse = ";") }
+  f0 <- \(x) { paste(sort(unique(unlist(x))), collapse = ";") }
   f0 <- .bind_worker(f0,
                      list(tmp = tmp))
   tmp <- parallel::parApply(cl,
@@ -653,7 +653,7 @@ FP_to_MQ <- function(FP_Workflow,
                                        gsub_Rep("(\\.mod)?\\.pep\\.xml$", ".d", PSMs$`Spectrum File`)))
     EV$"Raw file" <- gsub_Rep(".+/|\\.((raw)|(mz(X?ML|BIN))|(mgf)|(d))$", "", EV$"Raw file")
     u <- unique(EV$"Raw file")
-    w <- lapply(FP_Mnfst$`File name`, function(x) { which(u == x) })
+    w <- lapply(FP_Mnfst$`File name`, \(x) { which(u == x) })
     l <- lengths(w)
     stopifnot(max(l) == 1L) # Would indicate that we have non unique file names, which this cannot deal with!
     EV$"Raw file path" <- FP_Mnfst$Path[match(EV$"Raw file", FP_Mnfst$`File name`)]
@@ -721,7 +721,7 @@ FP_to_MQ <- function(FP_Workflow,
   # For now a corrective rather than a fix until I can identify the issue. Should trigger an error if the vector has the wrong length.
   EV$Modifications <- "Unmodified"
   a1 <- strsplit(gsub(paste0("_|\\)|", aaPat), "", EV$"Modified sequence"[wMdSq2]), "\\(")
-  f0 <- function(x) { x[which(x != "")] }
+  f0 <- \(x) { x[which(x != "")] }
   f0 <- .bind_worker(f0,
                      list(a1 = a1))
   tmp <- a1 <- parallel::parLapply(cl,

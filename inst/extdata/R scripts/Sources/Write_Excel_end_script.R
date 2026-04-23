@@ -108,8 +108,8 @@ WorkBook <- wb_set_order(WorkBook, tmp)
 dflt <- c("Protein groups", mdpptbs, "All peptidoforms")
 dflt <- dflt[which(dflt %in% nms)][1L]
 nms <- wb_get_sheet_names(WorkBook)
-WorkBook <- wb_set_selected(WorkBook, match(dflt, nms))
-WorkBook <- wb_set_active_sheet(WorkBook, match(dflt, nms))
+WorkBook <- wb_set_selected(WorkBook, dflt)
+WorkBook <- wb_set_active_sheet(WorkBook, dflt)
 WorkBook <- wb_set_base_font(WorkBook, 11L, font_name = "Calibri")
 #
 if ("tmp" %in% wb_get_sheet_names(WorkBook)) { WorkBook <- wb_remove_worksheet(WorkBook, "tmp") }

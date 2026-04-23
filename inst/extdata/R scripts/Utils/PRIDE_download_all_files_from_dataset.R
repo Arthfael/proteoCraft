@@ -22,19 +22,19 @@ dataset <- dlg_input("Enter the PRIDE accession of the target dataset", "PXD####
 
 # Choose file types of interest
 FileTypes <- c("all", "raw", "d", "mzML", "mzXML", "txt", "tsv", "csv", "zip", "rar")
-filetypes <- dlg_list(FileTypes, 1, TRUE, "Select file type(s) of interest:")$res
+filetypes <- dlg_list(FileTypes, 1L, TRUE, "Select file type(s) of interest:")$res
 if ("all" %in% filetypes) { filetypes <- "all" }
 if ("d" %in% filetypes) { filetypes <- c(filetypes, "d.zip", "d.rar") }
 if (exists("dataset")) {
   tst <- suppressWarnings(try(prideR::get.ProjectSummary(dataset), silent = TRUE))
-  if (class(tst) == "try-error") {
+  if (inherits(tst, "try-error")) {
     cat("Sounds like the EBI's own function still cannot access their own website...
 Sigh...
 There, lemme fix that for you...
 ")
     tst <- try(get.ProjectSummary2(dataset), silent = TRUE)
   }
-  if (class(tst) != "try-error") {
+  if (!inherits(tst, "try-error")) {
     dir <- paste0("...Destination/", dataset)
     if (!dir.exists(dir)){ dir.create(dir, recursive = TRUE) }
     setwd(dir)
@@ -42,8 +42,8 @@ There, lemme fix that for you...
     tst2 <- readLines(url(ftp))
     files <- grep("<tr><td valign=\"top\"><img src=\"/icons/[^\"]+\\.gif\" alt=\"\\[.+\\]\"></td><td><a href=\"", tst2, value = TRUE)
     files <- gsub("<.+", "", gsub(".+<a href[^>]+>", "", files))
-    if ((length(filetypes) > 1)||(filetypes != "all")) {
-      files <- unlist(sapply(filetypes, function(filetype) { grep(paste0(gsub("\\.", "\\.", paste0(".", filetype)), "$"), files, value = TRUE) }))
+    if ((length(filetypes) > 1L)||(filetypes != "all")) {
+      files <- unlist(sapply(filetypes, \(filetype) { grep(paste0(gsub("\\.", "\\.", paste0(".", filetype)), "$"), files, value = TRUE) }))
     }
     # TO DO: also parse tst2 for combined file sizes, and compare vs available disc space
     FlsPths <- paste0(ftp, "/", files)

@@ -4,6 +4,7 @@ options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
 options(svDialogs.rstudio = TRUE)
 #rm(list = ls()[which(!ls() %in% c("dtstNm", "wd", "inDirs", "outDir"))])
+closeAllConnections()
 
 ## The proteoCraft package can be re-installed at any time in the workflow (there is a specific script for this in the package's library folder),
 ## or just load it here:
@@ -41,10 +42,6 @@ if (tst) { proteoCraft::Configure() }
 xplorSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/xplorData.R")
 locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
 locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
-
-# Run local scripts at startup
-locScrptSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/runLocScrpts.R")
-source(locScrptSrc)
 
 # Parameters used by the start analysis script:
 ###-|-### Workflows: setNames(c("Differential Protein Expression analysis", "Pull-Down (e.g. co-IP)", "Biotin-based Pull-Down (BioID, TurboID, APEX...)", "Time Course","SubCellular Localisation analysis"), c("REGULATION", "PULLDOWN", "BIOID", "TIMECOURSE", "LOCALISATION"))
@@ -127,6 +124,10 @@ if (load_a_Bckp) {
     load_Bckp(startDir = locDirs$Path[match("Temporary folder", locDirs$Folder)])
   }, silent = TRUE)
 }
+
+# Run local scripts at startup - keep this after loading the backup!
+locScrptSrc %<o% paste0(libPath, "/extdata/R scripts/Sources/runLocScrpts.R")
+source(locScrptSrc)
 
 # Set Shiny options, load functions for creating a Word report, create Excel styles
 Src <- paste0(libPath, "/extdata/R scripts/Sources/ShinyOpt_Styles_and_Report.R")

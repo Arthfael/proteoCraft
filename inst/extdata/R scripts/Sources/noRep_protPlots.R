@@ -44,7 +44,7 @@ if (prot.list.Cond) {
       return()
     }))
     exports <- list("prot.names", "IDs.list", "TEST0", "tmpDB", "Exp", "TMP0", "nCharLim", "wd", "int.col",
-                    "WorkFlow", "runRat", "Coverage")
+                    "WorkFlow", "runRat", "Coverage", "is.all.good", "listMelt", "poplot", "annot_to_tabl")
     if (runRat) { exports <- append(exports, list("comb", "myComb", "pepR")) }
     clusterExport(parClust, exports, envir = environment())
     #for (prnm in 1L:length(prot.names)) { #prnm <- 1L
@@ -179,7 +179,7 @@ if (prot.list.Cond) {
           temp1 <- reshape::melt(tempev)
           temp1$Match <- sapply(strsplit(temp1$Matches, ";"), as.integer)
           temp1$Matches <- NULL
-          if (class(temp1$Match) == "list") { # Deal with cases with multiple peptide matches in the protein
+          if (is.list(temp1$Match)) { # Deal with cases with multiple peptide matches in the protein
             temp2 <- listMelt(temp1$Match, 1L:nrow(temp1), c("Match", "row"))
             temp2 <- as.data.frame(t(as.data.frame(strsplit(unique(apply(temp2, 1L, paste, collapse = "___")), "___"))))
             colnames(temp2) <- c("Match", "row")

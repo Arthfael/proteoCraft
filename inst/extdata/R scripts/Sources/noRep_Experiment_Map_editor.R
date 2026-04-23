@@ -77,6 +77,7 @@ if (exists("expOrder")) {
 if (!exists("expOrder")) {
   expOrder <- exp
 }
+expOrder %<o% expOrder
 SamplesMap <- SamplesMap[match(expOrder, SamplesMap$"Parent sample"),]
 #
 smplMap2 <- smplMap <- SamplesMap[, which(!colnames(SamplesMap) %in% "New name")] # This column is deprecated and ignored
