@@ -2,5 +2,9 @@
 ^dev$
 ^R - unfinished functions$
 ^R - obsolete functions$
+^inst\extdata\Nikla's_Excel_macros_(retired)
+^inst\extdata\Nikla's_Excel_macros_(retired)
+^inst\extdata\R scripts\Utils_private
+^inst\extdata\R scripts\Obsolete
 ^.*\.Rproj$
 ^\.Rproj\.user$
