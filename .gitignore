@@ -1,7 +1,7 @@
 R - obsolete functions/
 R - unfinished functions/
-inst/extdata/R scripts/Obsolete/
-inst/extdata/R scripts/Utils_private/
+inst/extdata/Obsolete/
+inst/extdata/Utils_private/
 
 # RStudio files
 .Rproj.user/

@@ -164,7 +164,7 @@ load_Bckp <- function(backup,
     #     scrpt <- data.frame(call = scrpt)
     #     scrpt$row <- 1L:nrow(scrpt)
     #     scrpt$listCall <- as.list(scrpt$call)
-    #     allSources <- list.files(paste0(libPath, "/inst/extdata/R scripts/Sources"), full.names = TRUE)
+    #     allSources <- list.files(paste0(libPath, "/inst/extdata/Sources"), full.names = TRUE)
     #     allSources <- data.frame(Path = allSources,
     #                              Name = basename(allSources),
     #                              Code = lapply(allSources, readLines))
