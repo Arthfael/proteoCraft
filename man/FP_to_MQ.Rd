@@ -11,7 +11,7 @@ FP_to_MQ(
   UniProtIDs = TRUE,
   FailIfNoQuant = FALSE,
   N.clust,
-  N.reserved = 1,
+  N.reserved = 1L,
   cl,
   OpenSearch = FALSE
 )

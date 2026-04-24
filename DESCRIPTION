@@ -110,7 +110,6 @@ Depends:
     ggsignif,
     ggtext,
     gh,
-    git,
     gitcreds,
     glue,
     gmm,
@@ -365,7 +364,7 @@ Depends:
 Remotes:
     JanMarvin/openxlsx2@v1.14,
 	rformassspectrometry/PTMods,
-	CambridgeCentreForProteomics/camprotR@HEAD,
+	CambridgeCentreForProteomics/camprotR,
 	PRIDE-R/prideR,
 	omegahat/RDCOMClient
 Encoding: UTF-8
