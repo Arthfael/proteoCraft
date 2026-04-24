@@ -12,18 +12,18 @@
 #' @export
 
 poplot <- function(plot,
-                   height = 10,
-                   width = 10,
+                   height = 10L,
+                   width = 10L,
                    new.window = TRUE,
-                   max.gr.dev = 62) {
-  if (max.gr.dev < 2) {
+                   max.gr.dev = 62L) {
+  if (max.gr.dev < 2L) {
     warning("Ignoring \"max.gr.dev\" as the value isn't valid!")
-    max.gr.dev <- 62
+    max.gr.dev <- 62L
   }
   if (new.window) {
     dl <- dev.list()
-    if (length(dl) > max.gr.dev-2) {
-      warning(paste0("Closing ", max(c(2, max.gr.dev))-1, " graphical windows to avoid exceeding the maximum allowed number!"))
+    if (length(dl) > max.gr.dev-2L) {
+      warning(paste0("Closing ", max(c(2L, max.gr.dev))-1L, " graphical windows to avoid exceeding the maximum allowed number!"))
       graphics.off()
     }
     if (.Platform$OS.type == "windows") {

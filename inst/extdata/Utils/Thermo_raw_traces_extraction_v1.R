@@ -469,7 +469,7 @@ while (getRTRange) {
             theme(strip.text.y = element_text(angle = 0)) +
             xlim(xLim[1], xLim[2]) + ylim(yLim[1], yLim[2])
           # Only pop up pressure and XIC plots
-          if (!nm %in% c("TIC", "BPC")) { windows(22, 12); print(plot) }
+          if (!nm %in% c("TIC", "BPC")) { grDevices::windows(22L, 12L); print(plot) }
           ggsave(paste0(wd, "/", ttl, ".jpeg"), plot, dpi = 100)
         }
       }

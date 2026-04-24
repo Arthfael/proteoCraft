@@ -20,13 +20,13 @@
 #' Normalized data. New column names are recycled from the original ones (in exprs.col), with "AdvNorm. " added as a prefix. 
 #' 
 #' @examples
-#' adv.norm.data <- AdvNorm.IL(data, "Unique State", paste0("Reporter intensity ", c(0:9)), FALSE, K = 5)
+#' adv.norm.data <- AdvNorm.IL(data, "Unique State", paste0("Reporter intensity ", as.character(0L:9L)), FALSE, K = 5L)
 #' require(ggplot2)
 #' require(reshape2)
 #' test <- melt(adv.norm.data)
 #' test$value <- log10(test$value)
 #' plot <- ggplot(test) + geom_density(stat = "density", aes(x = value, colour = variable))
-#' grDevices::windows(width = 10, height = 10)
+#' grDevices::windows(width = 10L, height = 10L)
 #' print(plot)
 #' 
 #' @import data.table
@@ -36,7 +36,7 @@ AdvNorm.IL <- function(df,
                        ids.col = "Unique State",
                        exprs.col,
                        exprs.log = FALSE,
-                       K = 5) {
+                       K = 5L) {
   # NB:
   # The function does not lend itself well to parallelization. It is much easier to parallelize different calls to the function.
   TESTING <- FALSE
@@ -46,9 +46,9 @@ AdvNorm.IL <- function(df,
   if (TESTING) {
     tm1 <<- Sys.time()
   }
-  if (length(exprs.col) == 1) { stop("There must be at least 2 columns to normalise the data! Check the \"exprs.col\" argument.") }
+  if (length(exprs.col) == 1L) { stop("There must be at least 2 columns to normalise the data! Check the \"exprs.col\" argument.") }
   if ((!is.logical(exprs.log))||(exprs.log != FALSE)) {
-    if (is.logical(exprs.log)) { exprs.log.base <- 10 } else {
+    if (is.logical(exprs.log)) { exprs.log.base <- 10L } else {
       exprs.log.base <- exprs.log
       exprs.log <- TRUE
     }
@@ -61,27 +61,27 @@ AdvNorm.IL <- function(df,
   M1 <- is.all.good(unlist(df[, exprs.col]))
   M1 <- median(M1[which(M1 > 0)])
   # Per column
-  m1 <- apply(df[, exprs.col], 2, function(x) {
+  m1 <- apply(df[, exprs.col], 2L, \(x) {
     x <- is.all.good(unlist(x))
     return(median(x[which(x > 0)]))
   })
   df2 <- df
-  df2[, exprs.col] <- sweep(df2[, exprs.col], 2, m1, "/")
+  df2[, exprs.col] <- sweep(df2[, exprs.col], 2L, m1, "/")
   #
   n.exprs <- length(exprs.col) # Number of columns
   # Starting factors
-  h.fact <- setNames(lapply(seq_len(n.exprs), function(x) { 1 }),
+  h.fact <- setNames(lapply(seq_len(n.exprs), \(x) { 1 }),
                      paste0("exprs.", seq_len(n.exprs)))
   #
   # Create main optimization function:
   N <- length(exprs.col)
-  comb <- gtools::combinations(N, 2, exprs.col)
-  diffLog2 <- function(p, nms, dat, append = TRUE) {
+  comb <- gtools::combinations(N, 2L, exprs.col)
+  diffLog2 <- \(p, nms, dat, append = TRUE) {
     # There is also diffLog! Can I replace one by the other?
     p <- c(1, unlist(p))
     #stopifnot(length(p) == length(nms))
     dat <- dat[, c(ids.col, nms)]
-    dat[, nms] <- sweep(dat[, nms], 2, p, "/")
+    dat[, nms] <- sweep(dat[, nms], 2L, p, "/")
     dat2 <- data.table::as.data.table(dat)
     colnames(dat2)[which(colnames(dat2) == ids.col)] <- "Group.1"
     # Aggregate (if necessary) by ID, using sum:
@@ -89,24 +89,24 @@ AdvNorm.IL <- function(df,
     #dat2 <- as.data.frame(dat2); dat3 <- as.matrix(dat2[, nms])
     dat3 <- as.matrix(dat2[, ..nms]) # As matrix...
     dat3 <- log10(dat3)
-    dat3 <- dat3[, comb[,1]] - dat3[, comb[,2]]
+    dat3 <- dat3[, comb[, 1L]] - dat3[, comb[, 2L]]
     dat3 <- unlist(dat3)
     dat3 <- dat3[which(!is.na(dat3))]
     dat3 <- dat3[which(is.finite(dat3))]
     return(dat3)
   }
-  diffLog2_h <- function(...) {
+  diffLog2_h <- \(...) {
     p <- list(...)
     res <- diffLog2(p, exprs.col, df2)
     return(res)
   }
-  LM <- minpack.lm::nls.lm(par = h.fact[2:n.exprs],
+  LM <- minpack.lm::nls.lm(par = h.fact[2L:n.exprs],
                            fn = diffLog2_h,
-                           lower = unlist(h.fact[2:n.exprs])/K,
-                           upper = unlist(h.fact[2:n.exprs])*K)
+                           lower = unlist(h.fact[2L:n.exprs])/K,
+                           upper = unlist(h.fact[2L:n.exprs])*K)
   h <- c(1, as.numeric(LM$par))
   h <- h/(prod(h)^(1/n.exprs)) # Re-centre, since the 1st value was kept at 1
-  df2[, exprs.col] <- sweep(df2[, exprs.col], 2, h, "/")
+  df2[, exprs.col] <- sweep(df2[, exprs.col], 2L, h, "/")
   # Median after
   M2 <- is.all.good(unlist(df2[, exprs.col]))
   M2 <- median(M2[which(M2 > 0)])
