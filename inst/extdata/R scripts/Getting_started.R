@@ -21,8 +21,10 @@ pak::pak("git::https://git.ista.ac.at/anicolas/proteocraft.git",
          upgrade = TRUE,
          ask = FALSE)
 # May fail when updating too many packages - in that case, restart session and rerun
-# Alternative way to install:
-#devtools::install_github("Arthfael/proteoCraft", upgrade = TRUE)
+# Alternative way to install if this fails:
+devtools::install_git("https://git.ista.ac.at/anicolas/proteocraft.git",
+                      branch = "main",
+                      force = TRUE)
 
 # Load the package
 library(proteoCraft)
