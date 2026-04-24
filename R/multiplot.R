@@ -13,7 +13,12 @@
 #' 
 #' @export
 
-multiplot <- function(..., plotlist = NULL, cols = 1, layout = NULL, save = FALSE, filename = NULL) {
+multiplot <- function(...,
+                      plotlist = NULL,
+                      cols = 1L,
+                      layout = NULL,
+                      save = FALSE,
+                      filename = NULL) {
   # Make a list from the ... arguments and plotlist
   plots <- c(list(...), plotlist)
   numPlots <- length(plots)
@@ -23,13 +28,13 @@ multiplot <- function(..., plotlist = NULL, cols = 1, layout = NULL, save = FALS
     # Make the panel
     # ncol: Number of columns of plots
     # nrow: Number of rows needed, calculated from # of cols
-    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)), ncol = cols, nrow = rows)
+    layout <- matrix(seq(1L, cols * ceiling(numPlots/cols)), ncol = cols, nrow = rows)
   }
-  if (numPlots == 1) {
-    if (.Platform$OS.type == "windows") { windows(width = width, height = height) }
-    if (.Platform$OS.type == "unix") { x11(width = width, height = height) }
-    print(plots[[1]])
-    if ((length(save) > 1)||(save != FALSE)) {
+  if (numPlots == 1L) {
+    if (.Platform$OS.type == "windows") { grDevices::windows(width = width, height = height) }
+    if (.Platform$OS.type == "unix") { grDevices::x11(width = width, height = height) }
+    print(plots[[1L]])
+    if ((length(save) > 1L)||(save != FALSE)) {
       filename <- gsub("/|:|\\*|\\?|<|>|\\|", "-", filename)
       save <- gsub("^\\.", "", save)
       save <- unique(gsub("jpg", "jpeg", gsub("^\\.", "", tolower(save))))
@@ -37,32 +42,32 @@ multiplot <- function(..., plotlist = NULL, cols = 1, layout = NULL, save = FALS
         f <- paste(filename, ".", s, sep = "")
         dev <- get(s)
         if (s %in% c("tiff", "png", "bmp")) {
-          dev(filename = f, units = "in", width = cols*10, height = rows*10, res = 300)
+          dev(filename = f, units = "in", width = cols*10L, height = rows*10L, res = 300L)
         } else {
           if (s == "jpeg") {
-            dev(filename = f, units = "in", width = cols*10, height = rows*10, res = 300, compression = "none")
+            dev(filename = f, units = "in", width = cols*10L, height = rows*10L, res = 300L, compression = "none")
           } else { dev(filename = f) }
         }
         grid::grid.newpage()
-        print(plots[[1]])
+        print(plots[[1L]])
         dev.off()
       }
     }
   } else {
     # Set up the page
-    if (.Platform$OS.type == "windows") { windows(width = width, height = height) }
-    if (.Platform$OS.type == "unix") { x11(width = width, height = height) }
+    if (.Platform$OS.type == "windows") { grDevices::windows(width = width, height = height) }
+    if (.Platform$OS.type == "unix") { grDevices::x11(width = width, height = height) }
     grid::grid.newpage()
     grid::pushViewport(grid::viewport(layout = grid::grid.layout(nrow(layout),
                                                                  ncol(layout))))
     # Make each plot, in the correct location
-    for (i in 1:numPlots) {
+    for (i in 1L:numPlots) {
       # Get the i,j matrix positions of the regions that contain this subplot
       matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
       print(plots[[i]], vp = grid::viewport(layout.pos.row = matchidx$row,
                                             layout.pos.col = matchidx$col))
     }
-    if ((length(save) > 1)||(save != FALSE)) {
+    if ((length(save) > 1L)||(save != FALSE)) {
       filename <- gsub(":|\\*|\\?|<|>|\\||/", "-", filename)
       save <- gsub("^\\.", "", save)
       save <- unique(gsub("jpg", "jpeg", gsub("^\\.", "", tolower(save))))
@@ -70,17 +75,17 @@ multiplot <- function(..., plotlist = NULL, cols = 1, layout = NULL, save = FALS
         f <- paste(filename, ".", s, sep = "")
         dev <- get(s)
         if (s %in% c("tiff", "png", "bmp")) {
-          dev(filename = f, units = "in", width = cols*10, height = rows*10, res = 300)
+          dev(filename = f, units = "in", width = cols*10L, height = rows*10L, res = 300L)
         } else {
           if (s == "jpeg") {
-            dev(filename = f, units = "in", width = cols*10, height = rows*10, res = 300, quality = 100)
+            dev(filename = f, units = "in", width = cols*10L, height = rows*10L, res = 300L, quality = 100L)
           } else { dev(filename = f) }
         }
         grid::grid.newpage()
         grid::pushViewport(grid::viewport(layout = grid::grid.layout(nrow(layout),
                                                                      ncol(layout))))
         # Make each plot, in the correct location
-        for (i in 1:numPlots) {
+        for (i in 1L:numPlots) {
           # Get the i,j matrix positions of the regions that contain this subplot
           matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
           print(plots[[i]],
