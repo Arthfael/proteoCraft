@@ -50,18 +50,18 @@ for (nm in names(PG.int.cols)) { #nm <- names(PG.int.cols)[1L]
   Styles[[paste0(rpl, ", avg.")]] <- "Summary Expr"
   Styles[[paste0(rpl, ", indiv.")]] <- "Individual Expr"
 }
+if (exists("PTMs_intRf")) {
+  for (nm in names(PTMs_intRf)) { #nm <- names(PTMs_intRf)[1L]
+    rpl <- intNms(nm, type = "pep")
+    Styles[[paste0(rpl, ", avg.")]] <- "Summary Expr"
+    Styles[[paste0(rpl, ", indiv.")]] <- "Individual Expr"
+  }
+}
 if (MakeRatios) {
   for (nm in unique(c(names(rat.cols), names(PG.rat.cols)))) { #nm <- unique(c(names(rat.cols), names(PG.rat.cols)))[1L]
     rpl <- ratNms(nm)
     Styles[[paste0(rpl, ", avg.")]] <- "Summary Ratios"
     Styles[[paste0(rpl, ", indiv.")]] <- "Individual Ratios"
-  }
-  if (exists("PTMs_intRf")) {
-    for (nm in names(PTMs_intRf)) { #nm <- names(PTMs_intRf)[1L]
-      rpl <- intNms(nm, type = "pep")
-      Styles[[paste0(rpl, ", avg.")]] <- "Summary Expr"
-      Styles[[paste0(rpl, ", indiv.")]] <- "Individual Expr"
-    }
   }
   if (exists("PTMs_ratRf")) {
     for (nm in names(PTMs_ratRf)) { #nm <- names(PTMs_ratRf)[1L]

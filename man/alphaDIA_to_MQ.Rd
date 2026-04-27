@@ -8,7 +8,7 @@ alphaDIA_to_MQ(
   alphaDIA_fl,
   Fixed.mods = c("Carbamidomethyl"),
   N.clust,
-  N.reserved = 1,
+  N.reserved = 1L,
   cl,
   digPattern = "KR"
 )

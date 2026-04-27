@@ -632,8 +632,8 @@ protQuant <- function(Prot,
     pepInt_log <- 10L
     if (TESTING) { cat(paste0("Converting input (peptide) intensities to default log", pepInt_log, "...\n")) }
     #origInt <- Pep[, c(pep_IDs, Pep.Intens.Nms)]
-    Pep[, Pep.Intens.Nms] <- suppressWarnings(log(Pep[, Pep.Intens.Nms],
-                                                  pepInt_log))
+    Pep[, Pep.Intens.Nms] <- suppressWarnings(base::log(Pep[, Pep.Intens.Nms],
+                                                        pepInt_log))
   }
   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
   # Peptide intensities are assumed to be log from now on!!! #
@@ -651,8 +651,8 @@ protQuant <- function(Prot,
       # If we are going to use peptide ratios, and they are not log-transformed, do it now
       pepRat_log <- 2L
       if (TESTING) { cat(paste0("Converting input (peptide) ratios to default log", pepRat_log, "...\n")) }
-      Pep[, Pep.Ratios.Nms] <- suppressWarnings(log(Pep[, Pep.Ratios.Nms],
-                                                    pepRat_log))
+      Pep[, Pep.Ratios.Nms] <- suppressWarnings(base::log(Pep[, Pep.Ratios.Nms],
+                                                          pepRat_log))
     }
     # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
     # Peptide ratios are assumed to be log from now on!!! #
@@ -839,7 +839,7 @@ protQuant <- function(Prot,
       refInt <- rowMeans(tmpPep[, refCol, drop = FALSE], na.rm = TRUE)
       allInt <- tmpPep[, allIntCol]
       i1 <- rowMeans(allInt, na.rm = TRUE)
-      newInt <- tmpPep[, myRatCol]/log(pepInt_log, pepRat_log) + refInt
+      newInt <- tmpPep[, myRatCol]/base::log(pepInt_log, pepRat_log) + refInt
       colnames(newInt) <- myIntCol
       #View(newInt)
       #View(allInt[, myIntCol])
@@ -954,7 +954,7 @@ protQuant <- function(Prot,
       #
       # LIMPA and LIMMA need LOG2!!!...
       if (pepInt_log != 2L) {
-        tmp4 <- tmp4/log(pepInt_log, 2L)
+        tmp4 <- tmp4/base::log(pepInt_log, 2L)
       }
       #
       dpcfit <- limpa::dpcCN(tmp4)
@@ -1066,7 +1066,7 @@ protQuant <- function(Prot,
   #     res <- sweep(y[, paste0("log10(Expr.) - ", smpls1)], 1L, rf, "-")
   #   }
   #   res <- rowMeans(res, na.rm = TRUE)
-  #   #res <- res/log(pepRat_log, pepInt_log) # res3e is still pepInt_log base
+  #   #res <- res/base::log(pepRat_log, pepInt_log) # res3e is still pepInt_log base
   #   return(res)
   # }
   # res3a <- as.data.frame(do.call(cbind, setNames(lapply(1L:nrow(contr), \(i) { f0(i, y = res2a) }), colnames(res3e))))
@@ -1112,7 +1112,7 @@ protQuant <- function(Prot,
     if (RESCALING %in% c("MAXLFQ", "IQ", "LIMPA", "QFEATURES", "LM")) {
       rescVal <- if (RESCALING == "MAXLFQ") {
         data.frame(PG = Prot$temp_IDs,
-                   Value = log(Prot$"Summed Intensities", pepInt_log))
+                   Value = base::log(Prot$"Summed Intensities", pepInt_log))
       } else {
         data.frame(PG = rownames(allQuants[[RESCALING]]),
                    Value = rowMeans(allQuants[[RESCALING]][, quntNms, drop = FALSE], na.rm = TRUE))
@@ -1206,7 +1206,7 @@ protQuant <- function(Prot,
     } else {
       # If changing log base from peptides to proteins:
       if (protRat_toLog != pepRat_log) {
-        res2[, g] <- res2[, g]/log(protRat_toLog, pepRat_log)
+        res2[, g] <- res2[, g]/base::log(protRat_toLog, pepRat_log)
         colnames(res2)[w] <- sub(topattern(pepRat_root),
                                  paste0("log", protRat_toLog, "(Ratio) - "),
                                  colnames(res2)[w])

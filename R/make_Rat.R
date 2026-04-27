@@ -50,7 +50,7 @@ make_Rat <- function(myData = pep,
   stopifnot(is.numeric(rat.log),
             rat.log > 0)
   if (logTrans) {
-    log_Int2Rat <- log(rat.log, int.log)
+    log_Int2Rat <- base::log(rat.log, int.log)
   }
   rat.2.ref <- lapply(refGroups$values, \(i) { #i <- refGroups$values[1L]
     j <- setNames(unlist(strsplit(i, "___")), refGroups$names)
@@ -75,7 +75,7 @@ make_Rat <- function(myData = pep,
       if (logTrans) {
         log_ratio_av(x) # To avoid double calculations, we keep its original base here (from INTENSITIES!)
       } else {
-        log_ratio_av(log(x, rat.log)) # Log with base from RATIOS!
+        log_ratio_av(base::log(x, rat.log)) # Log with base from RATIOS!
       }
     }))
     nm <- paste0(int.root, i, ".REF")
@@ -146,7 +146,7 @@ make_Rat <- function(myData = pep,
       if (logTrans) {
         nuDat <- nuDat/log_Int2Rat
       } else {
-        nuDat <- log(nuDat, rat.log)
+        nuDat <- base::log(nuDat, rat.log)
       }
       #
       nuDat <- as.data.frame(sweep(nuDat, 1L, rfVct, "-"))

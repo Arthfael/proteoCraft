@@ -664,26 +664,6 @@ if (!IsBioID) {
 }
 # "Shape" (variance stabilisation) normalisation methods
 shapePepNormMeth <- pepNormMethodsDF$Method[which(pepNormMethodsDF$Source == "pepNorm_Shape.R")]
-# Default normalisation sequence
-dfltNormSeq <- list(list(Method = "median"),
-                    list(Method = "IRS"),
-                    list(Method = "ComBat",
-                         Batch = "Replicate"),
-                    list(Method = "ComBat",
-                         Batch = "Isobaric.set"),
-                    list(Method = "Levenberg-Marquardt"))
-if (LabelType == "Isobaric") {
-  if (length(Iso) == 1L) {
-    dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, \(x) { !((x$Method == "ComBat")&(x$Batch = "Isobaric.set")) }, TRUE))]
-  }
-} else {
-  dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, \(x) { x$Method }, "") != "IRS")]
-  dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, \(x) {
-    if ("Batch" %in% names(x)) { return(x$Batch) }
-    return("")
-  }, "") != "Isobaric.set")]
-}
-if (exists("pepNormSeq")) { dfltNormSeq <- pepNormSeq }
 #
 # 2 functions to convert between different normalisation sequence formats:
 normSeqProc12 <- \(seq) { #seq <- dfltNormSeq
@@ -717,8 +697,28 @@ normSeqProc21 <- \(seq2) { #seq2 <- dfltNormSeq2
     return(rs)
   })
 }
-if (!exists("normSequence")) { normSequence <- dfltNormSeq }
-normSequence %<o% normSequence
+if (exists("normSequence")) { dfltNormSeq <- normSequence } else {
+  # Default normalisation sequence
+  dfltNormSeq <- list(list(Method = "median"),
+                      list(Method = "IRS"),
+                      list(Method = "ComBat",
+                           Batch = "Replicate"),
+                      list(Method = "ComBat",
+                           Batch = "Isobaric.set"),
+                      list(Method = "Levenberg-Marquardt"))
+  if (LabelType == "Isobaric") {
+    if (length(Iso) == 1L) {
+      dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, \(x) { !((x$Method == "ComBat")&(x$Batch = "Isobaric.set")) }, TRUE))]
+    }
+  } else {
+    dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, \(x) { x$Method }, "") != "IRS")]
+    dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, \(x) {
+      if ("Batch" %in% names(x)) { return(x$Batch) }
+      return("")
+    }, "") != "Isobaric.set")]
+  }
+}
+normSequence %<o% dfltNormSeq
 dfltNormSeq2 <- normSeqProc12(normSequence)
 #
 # Some default parameters which nicely follow the same structure

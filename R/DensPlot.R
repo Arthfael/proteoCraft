@@ -36,11 +36,11 @@ DensPlot <- function(data,
                      save = FALSE,
                      return = FALSE) {
   if (is.logical(log)&&log) {
-    log <- 10
+    log <- 10L
   }
   if (!is.logical(log)) {
     X1 <- paste0("log", log, X)
-    data[[X1]] <- log(data[[X]], log)
+    data[[X1]] <- base::log(data[[X]], log)
   } else {
     X1 <- X
   }
@@ -63,13 +63,13 @@ DensPlot <- function(data,
   plot <- plot + ggplot2::ggtitle(title)
   if (!missing(FUN)) { plot <- plot + ggplot2::stat_function(fun = FUN, colour = FUN.color) }
   if (print) { poplot(plot) }
-  if ((length(save) > 1)||(save != FALSE)) {
+  if ((length(save) > 1L)||(save != FALSE)) {
     t <- gsub("/|:|\\*|\\?|<|>|\\|", "-", title)
     save <- unique(gsub("^jpg$", "jpeg", gsub("^\\.", "", tolower(save))))
     for (s in save) {
       if (s %in% c("jpeg", "tiff", "png", "bmp")) {
         ggplot2::ggsave(filename = paste0(t, ".", s),
-                        plot = plot, dpi = 300, width = 10, height = 10, units = "in")
+                        plot = plot, dpi = 300L, width = 10L, height = 10L, units = "in")
       } else {
         ggplot2::ggsave(filename = paste0(t, ".", s), plot = plot)
       }

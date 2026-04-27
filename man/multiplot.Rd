@@ -7,7 +7,7 @@
 multiplot(
   ...,
   plotlist = NULL,
-  cols = 1,
+  cols = 1L,
   layout = NULL,
   save = FALSE,
   filename = NULL

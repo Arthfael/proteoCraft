@@ -77,18 +77,18 @@ make_RefRat <- function(data = pep,
       if (length(xr1) > 1L) {
         perm <- gtools::permutations(length(xr1), 2L, xr1)
         tmp <- if (isLog) {
-          apply(perm, 1L, function(y) { (data[[y[[1L]]]]-data[[y[[2L]]]])/log(logRat, logInt) })
+          apply(perm, 1L, function(y) { (data[[y[[1L]]]]-data[[y[[2L]]]])/base::log(logRat, logInt) })
         } else {
-          apply(perm, 1L, function(y) { log(data[[y[[1L]]]]/data[[y[[2L]]]], logRat) })
+          apply(perm, 1L, function(y) { base::log(data[[y[[1L]]]]/data[[y[[2L]]]], logRat) })
         }
       } else {
         x2 <- unique(experiment.map[which((experiment.map[[rGrp$column]] == x)&(experiment.map$Reference)),
                                     experiment.map_col])
         xr2 <- paste0(int.root, x2)
         tmp <- if (isLog) {
-          sapply(xr2, function(y) { (data[[y]]-data[[xr1]])/log(logRat, logInt) })
+          sapply(xr2, function(y) { (data[[y]]-data[[xr1]])/base::log(logRat, logInt) })
         } else {
-          sapply(xr2, function(y) { log(data[[y]]/data[[xr1]], logRat) })
+          sapply(xr2, function(y) { base::log(data[[y]]/data[[xr1]], logRat) })
         }
       }
       tmp <- as.data.frame(tmp)
@@ -120,9 +120,9 @@ make_RefRat <- function(data = pep,
           y <- gtools::permutations(length(y), 2L, y) # Important to use permutations and not combinations since we want symmetry!
           y <- apply(y, 1L, function(z) {
             if (isLog) {
-              z <- (data[[z[[1L]]]]-data[[z[[2L]]]])/log(logRat, logInt)
+              z <- (data[[z[[1L]]]]-data[[z[[2L]]]])/base::log(logRat, logInt)
             } else {
-              z <- suppressWarnings(log(data[[z[[1L]]]]/data[[z[[2L]]]], logRat))
+              z <- suppressWarnings(base::log(data[[z[[1L]]]]/data[[z[[2L]]]], logRat))
             }
             return(z)
           })

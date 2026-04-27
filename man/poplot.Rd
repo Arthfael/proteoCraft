@@ -4,7 +4,7 @@
 \alias{poplot}
 \title{poplot}
 \usage{
-poplot(plot, height = 10, width = 10, new.window = TRUE, max.gr.dev = 62)
+poplot(plot, height = 10L, width = 10L, new.window = TRUE, max.gr.dev = 62L)
 }
 \arguments{
 \item{plot}{ggplot to print.}

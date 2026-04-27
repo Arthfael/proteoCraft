@@ -1467,7 +1467,7 @@ peakXtract <- \(fileName, # File name
                                       Intensity = predict(pkMod, chr2$RT)$y,
                                       check.names = FALSE)
               # Try to use derivatives (NB: after smoothing is better)
-              pkModPred$logx <- log(pkModPred$"Retention time")
+              pkModPred$logx <- base::log(pkModPred$"Retention time")
               pkModPred$dlogx <- c(0, diff(pkModPred$logx))
               pkModPred$dy <- c(0, diff(pkModPred$Intensity))
               pkModPred$dy_dlogx <- pkModPred$dy / pkModPred$dlogx

@@ -134,11 +134,11 @@ if (scrptType == "withReps") {
   })
   pep$CV <- rowMeans(CV, na.rm = TRUE)
   pep$Weights <- -log10(pep$PEP*pep$CV)
-  weightsInsrt <- "-log(PEP * CV)"
+  weightsInsrt <- "-log10(PEP * CV)"
 }
 if (scrptType == "noReps") {
   pep$Weights <- -log10(pep$PEP)
-  weightsInsrt <- "-log(PEP)"
+  weightsInsrt <- "-log10(PEP)"
 }
 if ((length(inDirs) == 1L)&&(QuantUMS)&&("Quantity Quality" %in% colnames(ev))) {  # DiaNN specific:
   if (!"Quantity Quality" %in% colnames(pep)) {

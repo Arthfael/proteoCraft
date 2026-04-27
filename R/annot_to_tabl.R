@@ -32,7 +32,7 @@ annot_to_tabl <- function(x,
   stopifnot(nc > 0L)
   x1 <- substr(mySeq, 1L, 1L)
   xN <- substr(mySeq, nc, nc)
-  if (x1 %in% AA) {
+  if (!sum(!x1 %in% AA)) {
     if (Nterm) {
       warning("No N-term symbol detected but Nterm is TRUE => setting it to FALSE")
       Nterm <- FALSE
@@ -43,7 +43,7 @@ annot_to_tabl <- function(x,
       Nterm <- TRUE
     }
   }
-  if (xN %in% AA) {
+  if (!sum(!xN %in% AA)) {
     if (Cterm) {
       warning("No C-term symbol detected but Cterm is TRUE => setting it to FALSE")
       Cterm <- FALSE

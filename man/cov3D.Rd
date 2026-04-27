@@ -12,7 +12,8 @@ cov3D(
   intensities = NULL,
   display = TRUE,
   asRatios = FALSE,
-  I_eq_L = TRUE
+  I_eq_L = TRUE,
+  ttl = NULL
 )
 }
 \arguments{
@@ -22,7 +23,7 @@ cov3D(
 
 \item{colscale}{Name of a color scale acceptable by plotly. The default is "viridis" if asRatios = FALSE and "plasma" if asRatios = TRUE}
 
-\item{path}{Where to save our httml file.}
+\item{path}{Where to save our html file.}
 
 \item{intensities}{Values to map to the "colscale" argument so that peptides can be printed with different colors, e.g. mapped to abundance.}
 
@@ -31,6 +32,8 @@ cov3D(
 \item{asRatios}{Is the data fed to the intensities argument actually ratios data (default = FALSE)? If TRUE, this changes the default color scale from "viridis" to "plasma"}
 
 \item{I_eq_L}{Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631}
+
+\item{ttl}{Title of the plot.}
 }
 \value{
 This function does not return anything.

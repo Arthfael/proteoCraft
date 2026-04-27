@@ -129,26 +129,20 @@ Prot.Quant <- function(Prot,
   Refs_Mode <- as.character(Refs_Mode)
   #
   # Create cluster
-  tstCl <- stopCl <- misFun(cl)
-  if (!misFun(cl)) {
-    tstCl <- suppressWarnings(try({
-      a <- 1
-      parallel::clusterExport(cl, "a", envir = environment())
-    }, silent = TRUE))
-    tstCl <- !inherits(tstCl, "try-error")
-  }
-  if ((misFun(cl))||(!tstCl)) {
+  stopCl <- FALSE
+  if ((is.null(cl))||(!inherits(cl, "cluster"))) {
     dc <- parallel::detectCores()
-    if (misFun(N.reserved)) { N.reserved <- 1 }
-    if (misFun(N.clust)) {
-      N.clust <- max(c(dc-N.reserved, 1))
-    } else {
-      if (N.clust > max(c(dc-N.reserved, 1))) {
+    if (misFun(N.reserved)) { N.reserved <- 1L }
+    nMax <- max(c(dc - N.reserved, 1L))
+    if (misFun(N.clust)) { N.clust <- nMax } else {
+      if (N.clust > nMax) {
         warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
-        N.clust <- max(c(dc-N.reserved, 1))
+        N.clust <- nMax
       }
     }
+    cat("     Making fresh cluster...\n")
     cl <- parallel::makeCluster(N.clust, type = "SOCK")
+    stopCl <- TRUE
   }
   N.clust <- length(cl)
   #
@@ -480,31 +474,31 @@ Prot.Quant <- function(Prot,
   # 0 = non-log transformed, 1 = default base (10 for intensities/expression, 2 for ratios))
   # Input (peptides-level) intensities
   log.Pep.Intens <- as.numeric(log.Pep.Intens)
-  if (log.Pep.Intens == 1) { log.Pep.Intens <- 10}
+  if (log.Pep.Intens == 1L) { log.Pep.Intens <- 10L }
   if (!log.Pep.Intens) {
     # Convert peptide intensities to log - they are assumed to be log from now on
-    log.Pep.Intens <- 10
+    log.Pep.Intens <- 10L
     if (TESTING) { cat(paste0("Converting input (peptide) intensities to default log", log.Pep.Intens, "...\n")) }
-    Pep[, Pep.Intens.Nms] <- suppressWarnings(log(Pep[, Pep.Intens.Nms],
-                                                  log.Pep.Intens))
+    Pep[, Pep.Intens.Nms] <- suppressWarnings(base::log(Pep[, Pep.Intens.Nms],
+                                                        log.Pep.Intens))
   }
   # Output (PG-level) expression values
   Prot.LFQ.to.log <- as.numeric(Prot.LFQ.to.log)
-  if (Prot.LFQ.to.log == 1) { Prot.LFQ.to.log <- 10 }
+  if (Prot.LFQ.to.log == 1L) { Prot.LFQ.to.log <- 10L }
   #
   # Input (peptides-level) ratios
   log.Pep.Ratios <- as.numeric(log.Pep.Ratios)
-  if (log.Pep.Ratios == 1) { log.Pep.Ratios <- 2 }
+  if (log.Pep.Ratios == 1L) { log.Pep.Ratios <- 2L }
   if (!log.Pep.Ratios) {
     # Convert peptide ratios to log - they are assumed to be log from now on
-    log.Pep.Ratios <- 2
+    log.Pep.Ratios <- 2L
     if (TESTING) { cat(paste0("Converting input (peptide) ratios to default log", log.Pep.Ratios, "...\n")) }
-    Pep[, Pep.Ratios.Nms] <- suppressWarnings(log(Pep[, Pep.Ratios.Nms],
-                                                  log.Pep.Ratios))
+    Pep[, Pep.Ratios.Nms] <- suppressWarnings(base::log(Pep[, Pep.Ratios.Nms],
+                                                        log.Pep.Ratios))
   }
   # Output (PG-level) ratios
   Prot.Ratios.to.log <- as.numeric(Prot.Ratios.to.log)
-  if (Prot.Ratios.to.log == 1) { Prot.Ratios.to.log <- 2 }
+  if (Prot.Ratios.to.log == 1L) { Prot.Ratios.to.log <- 2L }
   #
   #log.Pep.Intens;Prot.LFQ.to.log;log.Pep.Ratios;Prot.Ratios.to.log
   #

@@ -31,7 +31,7 @@
 alphaDIA_to_MQ <- function(alphaDIA_fl,
                            Fixed.mods = c("Carbamidomethyl"),
                            N.clust,
-                           N.reserved = 1,
+                           N.reserved = 1L,
                            cl,
                            digPattern = "KR") {
   TESTING <- FALSE
@@ -46,30 +46,24 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-    misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
+    misFun <- \(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
   #
   # Create cluster
-  tstCl <- stopCl <- misFun(cl)
-  if (!misFun(cl)) {
-    tstCl <- suppressWarnings(try({
-      a <- 1
-      parallel::clusterExport(cl, "a", envir = environment())
-    }, silent = TRUE))
-    tstCl <- !"try-error" %in% class(tstCl)
-  }
-  if ((misFun(cl))||(!tstCl)) {
+  stopCl <- FALSE
+  if ((is.null(cl))||(!inherits(cl, "cluster"))) {
     dc <- parallel::detectCores()
-    if (misFun(N.reserved)) { N.reserved <- 1 }
-    if (misFun(N.clust)) {
-      N.clust <- max(c(dc-N.reserved, 1))
-    } else {
-      if (N.clust > max(c(dc-N.reserved, 1))) {
+    if (misFun(N.reserved)) { N.reserved <- 1L }
+    nMax <- max(c(dc - N.reserved, 1L))
+    if (misFun(N.clust)) { N.clust <- nMax } else {
+      if (N.clust > nMax) {
         warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
-        N.clust <- max(c(dc-N.reserved, 1))
+        N.clust <- nMax
       }
     }
+    cat("     Making fresh cluster...\n")
     cl <- parallel::makeCluster(N.clust, type = "SOCK")
+    stopCl <- TRUE
   }
   N.clust <- length(cl)
   #
@@ -100,7 +94,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   if (lX) {
     u <- unique(unlist(strsplit(alphaDIA$sequence, "")))
     u <- paste(u[which(!u %in% AA)], collapse = "-")
-    warning(paste0("Removing ", lX, " peptide", c("", "s")[(lX > 1)+1], " with unknown amino acids ", u, "!"))
+    warning(paste0("Removing ", lX, " peptide", c("", "s")[(lX > 1L)+1L], " with unknown amino acids ", u, "!"))
     alphaDIA <- alphaDIA[w,]
   }
   #
@@ -110,8 +104,8 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
     log <- readLines(log_Fl)
     gP <- grep("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: +├──", log) # All parameter groups
     gA <- grep("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: +├──raw_paths:", log)
-    gB <- vapply(gA, function(x) { min(gP[which(gP > x)]) }, 1)
-    g0 <- unlist(lapply(1:length(gA), function(x) { (gA[x]+1):(gB[x]-1) }))
+    gB <- vapply(gA, \(x) { min(gP[which(gP > x)]) }, 1L)
+    g0 <- unlist(lapply(1L:length(gA), \(x) { (gA[x]+1L):(gB[x]-1L) }))
     rwFlPths <- gsub("\\\\", "/", unique(gsub(" +\\[.*", "", gsub("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: │   \033\\[[^ ]+ +", "", log[g0]))))
     rwFls <- gsub(".*/|\\.[^\\.]+$", "", rwFlPths)
   } else {
@@ -134,7 +128,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   # High log(score) means high -log10(PEP)
   # Thus, for now we will treat it as such... until a guide is released or we are proven wrong.
   # require(ggplot2)
-  # plot <- ggplot(alphaDIA) + geom_point(aes(x = log(score), y = -log10(proba))) + theme_bw() +
+  # plot <- ggplot(alphaDIA) + geom_point(aes(x = base::log(score), y = -log10(proba))) + theme_bw() +
   #   facet_wrap(~run)
   # poplot(plot)
   #
@@ -147,7 +141,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   #length(w)
   kol <- c("run", "pg", "sequence", "charge", "proba")
   #print(kol[which(!kol %in% colnames(alphaDIA))])
-  stopifnot(sum(!kol %in% colnames(alphaDIA)) == 0)
+  stopifnot(sum(!kol %in% colnames(alphaDIA)) == 0L)
   EV <- data.frame("Raw file" = alphaDIA$run,
                    "Raw file path" = rwFlPths[match(alphaDIA$run, rwFls)],
                    "Proteins" = alphaDIA$pg, # Good idea to check how reliable this is using ProtMatch
@@ -190,41 +184,41 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
     Mods$Position[w] <- "Protein C-term"
   }
   allPTMs <- aggregate(Mods[, c("Position", "AA", "Site", "Old mark")], list(Mods$"Full name"), list)
-  colnames(allPTMs)[1] <- "Full name"
-  allPTMs$Type <- c("Variable", "Fixed")[(allPTMs$`Full name` %in% Fixed.mods)+1]
+  colnames(allPTMs)[1L] <- "Full name"
+  allPTMs$Type <- c("Variable", "Fixed")[(allPTMs$`Full name` %in% Fixed.mods)+1L]
   allPTMs$UniMod <- paste0("UniMod:", UniMod$UnimodId[match(allPTMs$`Full name`, UniMod$Name)])
-  allPTMs$Mark <- tolower(substr(allPTMs$"Full name", 1, 2))
+  allPTMs$Mark <- tolower(substr(allPTMs$"Full name", 1L, 2L))
   # Sometimes, some marks are duplicates, e.g. if you searched for "Acetyl (Protein N-term)" and "Acetyl (K)" together!
   # We want to fix this so that each modification has a unique mark:
   tstMark <- aggregate(allPTMs$Mark, list(allPTMs$Mark), length)
-  W <- which(tstMark$x > 1)
+  W <- which(tstMark$x > 1L)
   #allPTMs$Mark <- allPTMs$"tmp mark"
   if (length(W)) {
     allPTMs$"tmp mark" <- allPTMs$Mark
     for (i in W) {
-      #i <- W[1]
+      #i <- W[1L]
       w <- which(allPTMs$Mark == tstMark$Group.1[i])
       m <- allPTMs[w,]
-      m$AA[which(sapply(m$AA, length) == 0)] <- "X"
-      if ("Acetyl" %in% m$"Full name") { r <- which(m$"Full name" == "Acetyl") } else { r <- 1 }
-      s <- c(1:nrow(m)); s <- s[which(s != r)]
-      test <- apply(m[s, c("AA", "Mark")], 1, function(x) { paste0(tolower(x[[1]]), substr(x[[2]], 1, 1))[1] })
+      m$AA[which(lengths(m$AA) == 0L)] <- "X"
+      r <- if ("Acetyl" %in% m$"Full name") { which(m$"Full name" == "Acetyl") } else { 1L }
+      s <- c(1L:nrow(m)); s <- s[which(s != r)]
+      test <- apply(m[s, c("AA", "Mark")], 1L, \(x) { paste0(tolower(x[[1L]]), substr(x[[2L]], 1L, 1L))[1L] })
       w0 <- which(!test %in% allPTMs$Mark)
       if (length(w0)) {
-        m$Mark[s][w0] <- test[w0[1]]
+        m$Mark[s][w0] <- test[w0[1L]]
       }
       w1 <- which(test %in% allPTMs$Mark)
       if (length(w1)) {
         # not tested
         s <- s[w1]
         test <- sapply(s, list)
-        kount <- 1
-        char <- c(0:9, letters)
+        kount <- 1L
+        char <- c(as.character(0L:9L), letters)
         taken <- unique(c(allPTMs$Mark, m$Mark))
         for (j in s) {
           tst <- paste0(tolower(m$AA[s]), char[kount])
           while (((tst) %in% taken)&&(kount < length(char))) {
-            kount <- kount+1
+            kount <- kount+1L
             tst <- paste0(tolower(m$AA[s]), char[kount])
           }
           if (kount == length(char)) {
@@ -256,15 +250,15 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   tmp1$mod_sites <- strsplit(tmp1$mod_sites, ";")
   tmp1$mod_sites <- lapply(tmp1$mod_sites, as.integer)
   readr::write_rds(tmp1, "tmp1.RDS")
-  invisible(parallel::clusterCall(cl, function(x) {
+  invisible(parallel::clusterCall(cl, \(x) {
     tmp1 <<- readr::read_rds("tmp1.RDS")
   }))
   unlink("tmp1.RDS")
-  f0 <- function(x) {
-    #x <- tmp1[1,]
-    sq1 <- sq2 <- unlist(x[[1]])
-    mds <- unlist(x[[2]])
-    pos <- unlist(x[[3]])
+  f0 <- \(x) {
+    #x <- tmp1[1L,]
+    sq1 <- sq2 <- unlist(x[[1L]])
+    mds <- unlist(x[[2L]])
+    pos <- unlist(x[[3L]])
     m <- match(mds, tmpMds$value)
     mds1 <- tmpMds$L1[m]
     mds2 <- tmpMds$Name[m]
@@ -276,10 +270,10 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   }
   environment(f0) <- .GlobalEnv
   EV$"Modified sequence_verbose" <- EV$"Modified sequence" <- EV$Sequence
-  tmp2 <- as.data.frame(t(parallel::parApply(cl, tmp1, 1, f0)))
+  tmp2 <- as.data.frame(t(parallel::parApply(cl, tmp1, 1L, f0)))
   #View(cbind(tmp1, tmp2))
-  EV$"Modified sequence"[wMod] <- tmp2[, 1]
-  EV$"Modified sequence_verbose"[wMod] <- tmp2[, 2]
+  EV$"Modified sequence"[wMod] <- tmp2[, 1L]
+  EV$"Modified sequence_verbose"[wMod] <- tmp2[, 2L]
   EV$"Modified sequence" <- paste0("_", EV$"Modified sequence", "_")
   EV$"Modified sequence_verbose" <- paste0("_", EV$"Modified sequence_verbose", "_")
   #
@@ -293,16 +287,16 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   EV$"m/z (library)" <- alphaDIA$mz_library
   parallel::clusterExport(cl, "allPTMs", envir = environment())
   tmp0 <- strsplit(unique(EV$Modifications[wMod]), ";")
-  mdShft0 <- vapply(tmp0, function(x) {
+  mdShft0 <- vapply(tmp0, \(x) {
     sum(allPTMs$`Mass shift`[match(Mods$`Full name`[match(x, Mods$`Old mark`)], allPTMs$`Full name`)]) # No na.rm = TRUE: if we fail to calculate, I want to see it
   }, 1)
   mdShft <- mdShft0[match(EV$Modifications[wMod], tmp0)]
   tmp1 <- do.call(paste, c(EV[, c("Sequence", "Charge")], sep = "___"))
   tmp2 <- unique(tmp1)
   tmp3 <- EV[match(tmp2, tmp1), c("Sequence", "Charge")]                              
-  f0 <- function(x) { Peptides::mz(x[[1]], as.integer(x[[2]], cysteins = 0)) }
+  f0 <- \(x) { Peptides::mz(x[[1L]], as.integer(x[[2L]], cysteins = 0)) }
   environment(f0) <- .GlobalEnv
-  tmp3 <- parallel::parApply(cl, tmp3, 1, f0) # Peptides::mz doesn't like vectorization clearly
+  tmp3 <- parallel::parApply(cl, tmp3, 1L, f0) # Peptides::mz doesn't like vectorization clearly
   EV$"Theoretical m/z" <- tmp3[match(tmp1, tmp2)] 
   EV$"Theoretical m/z"[wMod] <- EV$"Theoretical m/z"[wMod] + mdShft
   #
@@ -321,11 +315,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   EV$"IM (library)" <- as.numeric(alphaDIA$mobility_library)
   #
   # Decoys
-  if ("decoy" %in% colnames(alphaDIA)) {
-    EV$Reverse <- c("", "+")[alphaDIA$decoy+1]
-  } else {
-    EV$Reverse <- ""
-  }
+  EV$Reverse <- if ("decoy" %in% colnames(alphaDIA)) { c("", "+")[alphaDIA$decoy+1L] } else { "" }
   #
   # Score
   EV$Score <- as.numeric(alphaDIA$score)
@@ -344,19 +334,19 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   EV$"Missed cleavages" <- nchar(tmp) - nchar(gsub(digPat, "", tmp))
   EV$"Potential contaminant" <- ""
   #
-  if ("Search_ID" %in% colnames(alphaDIA)) { # Keeping this for now eventhough we do not have such a script for alphaDIA yet 
-    EV$Search_ID <- alphaDIA$PSMs_file # In cases where the input is a hybrid report created by the merging script in .../Utils
+  EV$Search_ID <- if ("Search_ID" %in% colnames(alphaDIA)) { # Keeping this for now eventhough we do not have such a script for alphaDIA yet 
+    alphaDIA$PSMs_file # In cases where the input is a hybrid report created by the merging script in .../Utils
   } else {
-    EV$Search_ID <- sort(alphaDIA_fl, decreasing = TRUE)[1] # Provide default: there can be one or 2 files, the .tsv or .parquet, we want just one (ideally the .tsv)
+    sort(alphaDIA_fl, decreasing = TRUE)[1L] # Provide default: there can be one or 2 files, the .tsv or .parquet, we want just one (ideally the .tsv)
   }
   #
   EV$id <- NULL
-  EV <- cbind(data.frame(id = 1:nrow(EV)),
+  EV <- cbind(data.frame(id = 1L:nrow(EV)),
               EV)
   Res <- list(Evidence = EV,
               PTMs = allPTMs)
   #
-  invisible(parallel::clusterCall(cl, function(x) {
+  invisible(parallel::clusterCall(cl, \(x) {
     try(rm(tmp1), silent = TRUE)
     return()
   }))

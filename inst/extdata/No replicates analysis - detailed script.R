@@ -514,13 +514,14 @@ if (length(Exp) > 1L) {
   comb <- as.data.frame(gtools::combinations(length(Exp), 2L, Exp))
   temp2 <- temp[, grep(topattern("log10(Intensity) - "), colnames(temp), value = TRUE)]
   source(parSrc, local = FALSE)
-  clusterExport(parClust, "wd", envir = environment())
-  readr::write_rds(temp2, paste0(wd, "/temp2.RDS"))
+  tmpFl <- tempfile(fileext = ".rds")
+  clusterExport(parClust, "tmpFl", envir = environment())
+  readr::write_rds(temp2, tmpFl)
   invisible(clusterCall(parClust, \(x) {
-    temp2 <<- readr::read_rds(paste0(wd, "/temp2.RDS"))
+    assign("temp2", readr::read_rds(tmpFl), envir = .GlobalEnv)
     return()
   }))
-  unlink(paste0(wd, "/temp2.RDS"))
+  unlink(tmpFl)
   temp2 <- parApply(parClust, comb, 1L, \(x) {
     temp3 <- temp2[, paste0("log10(Intensity) - ", unlist(x))]
     temp3$X <- x[[1L]]
@@ -564,13 +565,14 @@ if (length(Exp) > 1L) {
     return(dens$z[ii])
   }
   tmp2 <- temp2[, c("log10(X intensity)", "log10(Y intensity)", "Comparison", "Modified sequence")]
-  clusterExport(parClust, "get_density", envir = environment())
-  readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
+  tmpFl <- tempfile(fileext = ".rds")
+  clusterExport(parClust, list("tmpFl", "get_density"), envir = environment())
+  readr::write_rds(tmp2, tmpFl)
   invisible(clusterCall(parClust, \(x) {
-    tmp2 <<- readr::read_rds(paste0(wd, "/tmp2.RDS"))
+    assign("tmp2", readr::read_rds(tmpFl), envir = .GlobalEnv)
     return()
   }))
-  unlink(paste0(wd, "/tmp2.RDS"))
+  unlink(tmpFl)
   comps <- unique(temp2$Comparison)
   tmp2D <- setNames(parLapply(parClust, comps, \(cmp) { #cmp <- comps[1L]
     w <- which(tmp2$Comparison == cmp)
@@ -885,22 +887,25 @@ temp_ev <- ev[, c("id", "Experiment", "Protein group IDs", "Peptide ID")]
 if (CreateMSMSKol) { temp_ev$"MS/MS IDs" <- ev$"MS/MS IDs" }
 temp_pep <- pep[, c("id", "Sequence")]
 source(parSrc)
-exports <- list("wd", "IsBioID2", "Exp", "Modifs", "CreateMSMSKol")
+tmpFl1 <- tempfile(fileext = ".rds")
+tmpFl2 <- tempfile(fileext = ".rds")
+tmpFl3 <- tempfile(fileext = ".rds")
+exports <- list("wd", "IsBioID2", "Exp", "Modifs", "CreateMSMSKol", "tmpFl1", "tmpFl2", "tmpFl3")
 if (IsBioID2) { exports <- append(exports, "wbiot") }
 clusterExport(parClust, exports, envir = environment())
-readr::write_rds(temp_ev, paste0(wd, "/temp_ev.RDS"))
-readr::write_rds(temp_pep, paste0(wd, "/temp_pep.RDS"))
-readr::write_rds(temp_PG, paste0(wd, "/temp_PG.RDS"))
+readr::write_rds(temp_ev, tmpFl1)
+readr::write_rds(temp_pep, tmpFl2)
+readr::write_rds(temp_PG, tmpFl3)
 invisible(clusterCall(parClust, \(x) {
   library(data.table)
-  temp_ev <<- readr::read_rds(paste0(wd, "/temp_ev.RDS"))
-  temp_pep <<- readr::read_rds(paste0(wd, "/temp_pep.RDS"))
-  temp_PG <<- readr::read_rds(paste0(wd, "/temp_PG.RDS"))
+  assign("temp_ev", readr::read_rds(tmpFl1), envir = .GlobalEnv)
+  assign("temp_pep", readr::read_rds(tmpFl2), envir = .GlobalEnv)
+  assign("temp_PG", readr::read_rds(tmpFl3), envir = .GlobalEnv)
   return()
 }))
-unlink(paste0(wd, "/temp_ev.RDS"))
-unlink(paste0(wd, "/temp_pep.RDS"))
-unlink(paste0(wd, "/temp_PG.RDS"))
+unlink(tmpFl1)
+unlink(tmpFl2)
+unlink(tmpFl3)
 clusterExport(parClust, list("listMelt", "Coverage", "topattern"), envir = environment())
 temp <- parLapply(parClust, Exp, \(exp) { #exp <- Exp[1L]
   res <- temp_PG[, "id", drop = FALSE]
@@ -1032,13 +1037,14 @@ for (exp in Exp) { #exp <- Exp[1L]
   tmpLst[[exp]] <- temp[, c("Sequence (1st accession)", "Peptides")]
 }
 tmp <- do.call(rbind, tmpLst)
-clusterExport(parClust, "wd", envir = environment())
-readr::write_rds(tmp, paste0(wd, "/tmp.RDS"))
+tmpFl <- tempfile(fileext = ".rds")
+clusterExport(parClust, "tmpFl", envir = environment())
+readr::write_rds(tmp, tmpFl)
 invisible(clusterCall(parClust, \(x) {
-  tmp <<- readr::read_rds(paste0(wd, "/tmp.RDS"))
+  assign("tmp", readr::read_rds(tmpFl), envir = .GlobalEnv)
   return()
 }))
-unlink(paste0(wd, "/tmp.RDS"))
+unlink(tmpFl)
 clusterExport(parClust, "Coverage", envir = environment())
 tmp$Coverage <- parSapply(parClust, seq_len(nrow(tmp)), \(x) {
   round(100*Coverage(tmp$"Sequence (1st accession)"[x], tmp$"Peptides"[[x]]), 1L)
@@ -1076,7 +1082,7 @@ if ((length(Exp) > 1L)&&(NormalizePG)) {
       m <- SamplesMap[which(SamplesMap$`Ratios group` == gr),]
       rf <- m$Experiment[which(m$Reference)]
       for (i in m$Experiment[which(!m$Reference)]) { #i <- m$Experiment[which(!m$Reference)][1L]
-        PG[[paste0("Norm. ", rat.cols["Original"], " - ", i)]] <- (PG[[paste0(PG.int.col, i)]] - PG[[paste0(PG.int.col, rf)]])/log10(2)
+        PG[[paste0("Norm. ", rat.cols["Original"], " - ", i)]] <- (PG[[paste0(PG.int.col, i)]] - PG[[paste0(PG.int.col, rf)]])/log10(2L)
       }
     }
     PG.rat.cols["Normalized"] <- PG.rat.col <- paste0("Norm. ", PG.rat.cols["Original"])
@@ -1132,13 +1138,14 @@ if (length(Exp) > 1L) {
     if (!length(kolZ)) { return() }
     temp2 <- PG[, kolZ] 
     source(parSrc, local = FALSE)
-    clusterExport(parClust, list("kol", "klnm", "wd"), envir = environment())
-    readr::write_rds(temp2, paste0(wd, "/temp2.RDS"))
+    tmpFl <- tempfile(fileext = ".rds")
+    clusterExport(parClust, list("kol", "klnm", "tmpFl"), envir = environment())
+    readr::write_rds(temp2, tmpFl)
     clusterCall(parClust, \(x) {
-      temp2 <<- readr::read_rds(paste0(wd, "/temp2.RDS"))
+      assign("temp2", readr::read_rds(tmpFl), envir = .GlobalEnv)
       return()
     })
-    unlink(paste0(wd, "/temp2.RDS"))
+    unlink(tmpFl)
     temp2 <- parApply(parClust, comb, 1L, \(x) {
       temp3 <- temp2[, paste0(kol, unlist(x))]
       temp3$X <- x[[1L]]
@@ -1161,7 +1168,7 @@ if (length(Exp) > 1L) {
   temp <- temp[which(test),]
   w <- aggregate(1L:nrow(temp), list(temp$Type), list)
   temp2 <- data.frame(Comparison = rep(unique(temp$Comparison), length(PG.int.cols)))
-  temp2$Type <- as.character(sapply(names(PG.int.cols), \(x) { rep(x, length(unique(temp$Comparison)))}))
+  temp2$Type <- as.character(sapply(names(PG.int.cols), \(x) { rep(x, length(unique(temp$Comparison))) }))
   temp2[, c("Median", "SD", "R")] <- as.data.frame(t(apply(temp2[, c("Type", "Comparison")], 1L, \(x) {
     #x <- temp2[1L, c("Type", "Comparison")]
     x1 <- temp[which((temp$Type == x[[1L]])&(temp$Comparison == x[[2L]])), c("log10(X LFQ)", "log10(Y LFQ)")]
@@ -1181,13 +1188,14 @@ if (length(Exp) > 1L) {
   y_min <- min(temp$`log10(Y LFQ)`)
   y_max <- max(temp$`log10(Y LFQ)`)
   tmp <- temp[, c("log10(X LFQ)", "log10(Y LFQ)", "Comparison", "Common Name (short)")]
-  clusterExport(parClust, list("get_density", "wd"), envir = environment())
-  readr::write_rds(tmp, paste0(wd, "/tmp.RDS"))
+  tmpFl <- tempfile(fileext = ".rds")
+  clusterExport(parClust, list("get_density", "tmpFl"), envir = environment())
+  readr::write_rds(tmp, tmpFl)
   clusterCall(parClust, \(x) {
-    tmp <<- readr::read_rds(paste0(wd, "/tmp.RDS"))
+    assign("tmp", readr::read_rds(tmpFl), envir = .GlobalEnv)
     return()
   })
-  unlink(paste0(wd, "/tmp.RDS"))
+  unlink(tmpFl)
   comps <- unique(temp$Comparison)
   tmpD <- setNames(parLapply(parClust, comps, \(cmp) { #cmp <- comps[1L]
     w <- which(tmp$Comparison == cmp)
@@ -1581,7 +1589,7 @@ if (MakeRatios) {
             colnames(matches) <- c("Match", "Proteins")
             w <- which(m$Test)
             matches$Sites <- sapply(matches$Match, \(y) {
-              y <- paste(sapply(w, \(z) {paste0(m$Mod.seq[z], y+m$Offset[z])}), collapse = "-")
+              y <- paste(sapply(w, \(z) { paste0(m$Mod.seq[z], y+m$Offset[z]) }), collapse = "-")
             })
             matches$Match <- apply(matches[, c("Match", "Proteins")], 1L, paste, collapse = " ")
             matches$Sites <- apply(matches[, c("Sites", "Proteins")], 1L, paste, collapse = " ")
@@ -2408,142 +2416,10 @@ if ((length(Exp) > 1L)&&(!is.null(prot.list))&&(length(prot.list))) {
   setwd(wd)
 }
 
-#### Code chunk - peptide tables for visualizing the coverage of proteins of interest in 3D using SCV
-kPBD <- kAlpha <- 0L
-if ((!is.null(prot.list))&&(length(prot.list))) {
-  # From https://stackoverflow.com/questions/52911812/check-if-url-exists-in-r
-  valid_url <- function(url_in, t = 2){
-    con <- url(url_in)
-    check <- suppressWarnings(try(open.connection(con, open = "rt", timeout = t), silent = TRUE)[1L])
-    suppressWarnings(try(close.connection(con), silent = TRUE))
-    ifelse(is.null(check), TRUE, FALSE)
-  }
-  # Mods and their mass shifts
-  SCV_PTMs <- TRUE
-  if (!"Mass shift" %in% colnames(Modifs)) {
-    if ("UniMod" %in% colnames(Modifs)) {
-      if (!require("PTMods", quietly = TRUE)) { devtools::install_github("rformassspectrometry/PTMods") }
-      require(PTMods)
-      data(modifications, package = "PTMods")
-      UniMod <- modifications
-      Modifs$"Mass shift" <- UniMod$MonoMass[match(Modifs$UniMod, UniMod$UnimodId)]
-    } else {
-      if (SearchSoft == "MAXQUANT") {
-        modFls <- paste0(MQFold, "/bin/conf/modifications", c("", ".local"), ".xml")
-        modFls <- modFls[which(file.exists(modFls))]
-        cran_req <- unique(c(cran_req, "xml2"))
-        if (!require("xml2", quietly = TRUE)) { install.packages(xml2) }
-        require(xml2)
-        modFls <- lapply(modFls, \(modFl) { #modFl <- modFls[1L]
-          xml_lst <- as_list(read_xml(modFl))
-          xml_lst <- xml_lst[[1L]]
-          xml_lst <- as.data.frame(t(sapply(xml_lst, \(x) {
-            #x <- xml_lst[[1L]]
-            return(c(attr(x, "title"), attr(x, "composition")))
-          })))
-        })
-        modFls <- plyr::rbind.fill(modFls)
-        colnames(modFls) <- c("Name", "Composition")
-        Modifs$Composition <- modFls$Composition[match(Modifs$`Full name`, modFls$Name)]
-        Modifs$"Mass shift" <- sapply(strsplit(Modifs$Composition, " "), \(x) {
-          #x <- strsplit(modifs$Formula, " ")[1L]
-          x <- unlist(x)
-          x <- as.data.frame(t(sapply(strsplit(gsub("\\)$", "", x), "\\("), \(y) {
-            if (length(y) == 1L) { y <- c(y, 1) }
-            return(y)
-          })))
-          m <- match(x[[1L]], IsotopeProbs$Atom)
-          stopifnot(sum(is.na(m)) == 0L)
-          # For now the code above throws an error if an elements is missing from the table
-          # If it ever does, I should expand the table to add isotopic probabilities for more elements!!!
-          x <- sum(as.numeric(gsub("_.+", "", IsotopeProbs$Monoisotopic[m]))*as.integer(x[[2L]]))
-          return(x)
-        })
-      } else {
-        warning("Could not map PTMs to mass shifts, these will be ignored from the SCV visualisations.")
-        SCV_PTMs <- FALSE
-      }
-    }
-  }
-  kount <- 0L
-  for (plp in prot.list) { #plp <- prot.list[1L]
-    grs <- grsep2(plp, pep$Proteins)
-    if (length(grs)) {
-      dir <- paste0(wd, "/Coverage/", plp)
-      if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-      # For each protein we want to download:
-      # - all models for all fragments.
-      # - latest version only!
-      # PDB: we get PDB IDs from parsing the txt file
-      if ("PDB" %in% colnames(db)) {
-        tmp <- unlist(unlist(strsplit(db$PDB[match(plp, db$`Protein ID`)], ";")))
-        tmp <- tmp[which(tmp != "")]
-        kPBD <- length(tmp)
-        if (kPBD) {
-          for (i in tmp) {
-            url <- paste0("https://files.rcsb.org/download/", i, ".pdb")
-            try(download.file(url, paste0(dir, "/PDB-", i, ".pdb")), silent = TRUE)
-          }
-        }
-      }
-      # Then AlphaFold
-      kAlpha <- 0L
-      tstF <- TRUE # Continue looking for the next fragment?
-      while (tstF) {
-        kAlpha <- kAlpha+1L
-        kV <- 0L
-        while ((!kV)||(tstV)) {
-          kV <- kV + 1L
-          mdlNm <- paste0("AF-", plp,"-F", kAlpha, "-model_v", kV, ".pdb")
-          url <- paste0("https://alphafold.ebi.ac.uk/files/", mdlNm)
-          tstV <- valid_url(url) # We want to find out which is the latest v version of a model for that protein
-        }
-        kV <- kV - 1L # The last is always a failure
-        if (kV) { # Did we find a valid url?
-          mdlNm <- paste0("AF-", plp,"-F", kAlpha, "-model_v", kV, ".pdb")
-          url <- paste0("https://alphafold.ebi.ac.uk/files/", mdlNm)
-          download.file(url, paste0(dir, "/", mdlNm))
-        }
-        tstF <- kV > 0L
-      }
-      kAlpha <- kAlpha-1L # The last is always a failure
-      if (kPBD||kAlpha) {
-        kPBD <- kAlpha <- 0L # Re-initialize
-        # We have found at least one model which can be used to visualize coverage
-        # Let's write peptidoforms
-        tmp <- pep$`Modified sequence`[grs]
-        if (SCV_PTMs) {
-          tmp <- gsub("_", "", tmp)
-          tmp <- gsub("\\)", "]_",gsub("\\(", "_[", tmp))
-          tmp <- strsplit(tmp, "_")
-          tmp <- vapply(tmp, \(x) { #x <- tmp[1L]
-            x <- unlist(x)
-            w <- grep("\\[.+\\]", x)
-            x[w] <- paste0("[", round(Modifs$`Mass shift`[match(x[w], paste0("[", Modifs$Mark, "]"))], 0L), "]")
-            return(paste(x, collapse = ""))
-          }, "")
-        } else { tmp <- gsub("[^A-Z]", "", tmp) }
-        write(tmp, paste0(dir, "/SCV - observed peptides.txt"))
-        kount <- kount+1L
-      }
-    }
-  }
-  # If this worked, we write a guide in the Coverage folder
-  if (kount) {
-    Guide <- c("Visualing protein coverage in 3D using SCV",
-               "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
-               "",
-               "If, for protein accession of interest \"PROTEIN\", a 3D model is available, then the following files are created in its subfolder:",
-               " - \"peptidoforms.txt\": sequences of identified peptides",
-               " - For each fragment number i for which a structure is available (ranging from 1 to n), \"AF-PROTEIN-F1-model_v#.pdb\", where \"#\" is the latest valid version.",
-               "",
-               "To visualise the peptides onto the folded protein structure, navigate to https://scv.lab.gy and:",
-               " - paste the peptides into the \"PSM/peptide list\" field",
-               " - load the pdb ",
-               "")
-    write(Guide, paste0(wd, "/Coverage/SCV - how to visualise protein coverage in 3D.txt"))
-  }
-}
+#### Code chunk - peptide tables for visualizing the coverage of proteins of interest in 3D
+Src <- paste0(libPath, "/extdata/Sources/3d_Cov.R")
+#rstudioapi::documentOpen(xlSrc)
+source(Src)
 
 # Save parameters
 temp <- data.frame(Parameter = names(AnalysisParam),

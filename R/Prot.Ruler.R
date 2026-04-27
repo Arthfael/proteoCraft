@@ -29,11 +29,11 @@ Prot.Ruler <- function(Prot,
                        DB,
                        Expr.roots = c("Top3 log10(Intensity) ", "Mean Top3 log10(Intensity) "),
                        Proteins.col = "Protein IDs",
-                       NuclL = 196,
-                       log.Expr = 10,
+                       NuclL = 196L,
+                       log.Expr = 10L,
                        norm = TRUE,
                        norm_filter = TRUE,
-                       MaxOrg = 3,
+                       MaxOrg = 3L,
                        getLatest = FALSE) {
   #DefArg(Prot.Ruler)
   #Prot <- PG; DB <- db; Expr.roots = c(Prot.Expr.Root, paste0("Mean ", Prot.Expr.Root))
@@ -42,18 +42,18 @@ Prot.Ruler <- function(Prot,
   PrRulerRoot <- "log10(est. copies/cell) - "
   if (is.logical(log.Expr)) {
     if (!log.Exp) { PrRulerRoot <- "est. copies/cell - " }
-    log.Expr.base <- 10
+    log.Expr.base <- 10L
   } else { log.Expr.base <- log.Expr }
-  for (i in 1:length(Expr.roots)) { #i <- 1
+  for (i in 1L:length(Expr.roots)) { #i <- 1L
     kol <- grep(topattern(Expr.roots[i]), colnames(Prot), value = TRUE)
     kol <- kol[which(!grepl("\\.REF$", kol))]
     # Log-transform now if data wasn't, we will de-log later
-    if ((is.logical(log.Expr))&&(!log.Exp)) { Prot[, kol]  <- log(Prot[, kol], log.Expr.base) }
+    if ((is.logical(log.Expr))&&(!log.Exp)) { Prot[, kol]  <- base::log(Prot[, kol], log.Expr.base) }
     PRcol <- gsub(topattern(Expr.roots[i]), PrRulerRoot, kol)
     Samples <- gsub(topattern(Expr.roots[i]), "", kol)
     Prot[, PRcol] <- NA
     temp <- data.frame(Root = rep(Expr.roots[i], length(kol)), Expr.cols = kol, Pr.Ruler.cols = PRcol, Sample = Samples)
-    if (i == 1) { Expr.cols <- temp } else { Expr.cols <- rbind(Expr.cols, temp) }
+    Expr.cols <- if (i == 1L) { temp } else { rbind(Expr.cols, temp) }
   }
   if (getLatest) {
     url <- "ftp://ftp.ncbi.nlm.nih.gov/genomes/GENOME_REPORTS/overview.txt"
@@ -83,26 +83,26 @@ Prot.Ruler <- function(Prot,
     Orgs <- aggregate(Orgs, list(Orgs), length)
     Orgs <- data.frame(Organism = Orgs$Group.1[order(Orgs$x, decreasing = TRUE)])
     if ("TaxID" %in% colnames(DB)) {
-      Orgs$TaxID <- sapply(Orgs$Organism, function(o) { unique(DB$TaxID[match(o, DB$Organism_Full)]) })
+      Orgs$TaxID <- sapply(Orgs$Organism, \(o) { unique(DB$TaxID[match(o, DB$Organism_Full)]) })
     }
     Orgs[, c("Kingdom", "Genome size")] <- orgmap[match(Orgs$Organism, orgmap$Linnean_name),
                                                   c("Kingdom", "Size..Mb.")]
-    Orgs$"Genome size" <- as.numeric(Orgs$"Genome size")*10^6
+    Orgs$"Genome size" <- as.numeric(Orgs$"Genome size")*10L^6L
     Orgs <- Orgs[which(!is.na(Orgs$"Genome size")),]
     w <- which(Orgs$Kingdom != "Eukaryota")
     if (length(w)) {
-      if (length(w) == 1) {
-        msg <- paste0("Skipping non-eukaryotic organism \"", Orgs$Organism[w], "\"!")
+      msg <- if (length(w) == 1L) {
+        paste0("Skipping non-eukaryotic organism \"", Orgs$Organism[w], "\"!")
       } else {
-        msg <- paste0("Skipping non-eukaryotic organisms ", paste(paste0("\"", Orgs$Organism[w[1:(length(w)-1)]], "\""), collapse = ", "),
-                      " and \"", Orgs$Organism[w[length(w)]], "\"!")
+        paste0("Skipping non-eukaryotic organisms ", paste(paste0("\"", Orgs$Organism[w[1L:(length(w)-1L)]], "\""), collapse = ", "),
+               " and \"", Orgs$Organism[w[length(w)]], "\"!")
       }
       warning(msg)
       Orgs <- Orgs[which(Orgs$Kingdom == "Eukaryota"),]
     }
     if (nrow(Orgs) > MaxOrg) {
-      opt <- vapply(Orgs$Organism, function(x) { paste(c(x, rep(" ", max(c(1, 250-nchar(x))))), collapse = "") }, "")
-      orgChc <- svDialogs::dlg_list(opt, opt[1], TRUE, "Choose organism(s) for which you want to calculate a Proteomic Ruler value")$res
+      opt <- vapply(Orgs$Organism, \(x) { paste(c(x, rep(" ", max(c(1L, 250L-nchar(x))))), collapse = "") }, "")
+      orgChc <- svDialogs::dlg_list(opt, opt[1L], TRUE, "Choose organism(s) for which you want to calculate a Proteomic Ruler value")$res
       orgChc <- Orgs$Organism[match(orgChc, opt)]
       Orgs <- Orgs[which(Orgs$Organism %in% orgChc),]
     }
@@ -116,62 +116,62 @@ Prot.Ruler <- function(Prot,
       Kngdm <- orgmap$Kingdom[m]
     }
     Orgs <- data.frame(Organism = Orgs, Kingdom = Kngdm)
-    Orgs$TaxID <- sapply(Orgs$Organism, function(o) { unique(DB$TaxID[grep(o, DB$Header)]) })
-    test <- sapply(Orgs$TaxID, length) != 1
+    Orgs$TaxID <- sapply(Orgs$Organism, \(o) { unique(DB$TaxID[grep(o, DB$Header)]) })
+    test <- lengths(Orgs$TaxID) != 1L
     if (sum(test)) {
       warning("Some of the provided Linnaean names could not be found in the database or have duplicate TaxIDs!")
       Orgs <- Orgs[which(!test), , drop = FALSE]
     }
     DB$Organism_Full <- Orgs$Organism[match(DB$TaxID, Orgs$TaxID)]
-    Orgs$"Genome size" <- as.numeric(orgmap$Size..Mb.[m])*10^6
+    Orgs$"Genome size" <- as.numeric(orgmap$Size..Mb.[m])*10L^6L
     Orgs <- Orgs[which(!is.na(Orgs$"Genome size")),]
   }
   if (nrow(Orgs)) {
-    for (i in 1:nrow(Orgs)) { #i <- 1
+    for (i in 1L:nrow(Orgs)) { #i <- 1L
       GSize <- Orgs$"Genome size"[i]
-      NNucl <- round(GSize/NuclL, 0)
+      NNucl <- round(GSize/NuclL, 0L)
       # Identify affected protein groups (usually, all):
       temp <- listMelt(strsplit(Prot[[Proteins.col]], ";"), Prot$id)
       temp$Organism <- DB$Organism_Full[match(temp$value, DB$"Protein ID")]
       Pr.Ruler.cols <- Expr.cols$Pr.Ruler.cols
-      if (nrow(Orgs) > 1) { Pr.Ruler.cols <- paste0(Orgs$Organism[i], ": ", Pr.Ruler.cols) }
+      if (nrow(Orgs) > 1L) { Pr.Ruler.cols <- paste0(Orgs$Organism[i], ": ", Pr.Ruler.cols) }
       wpg <- which(Prot$id %in% unique(temp$L1[which(temp$Organism == Orgs$Organism[i])]))
       if (length(wpg)) {
         # Histone IDs:
         # NB: We will not include H1, as its presence on nucleosomes is optional!
         histones <- data.frame(Type = paste0("H", c("2A", "2B", "3", "4")))
-        histones$IDs <- lapply(histones$Type, function(x) {
+        histones$IDs <- lapply(histones$Type, \(x) {
           DB$"Protein ID"[grep(paste0("^Histone ", x, "\\.?[0-9]*$"), DB$"Common Name")]
         })
         temp <- listMelt(strsplit(PG[[Proteins.col]], ";"), PG$id)
-        histones$"Protein Group IDs" <- lapply(histones$IDs, function(x) {
+        histones$"Protein Group IDs" <- lapply(histones$IDs, \(x) {
           unique(temp$L1[which(temp$value %in% x)])
         })
         ltest <- sapply(histones$"Protein Group IDs", length)
         if (sum(ltest)) {
-          histones <- histones[which(ltest > 0),]
+          histones <- histones[which(ltest > 0L),]
           exprsdata <- Prot[, Expr.cols$Expr.cols, drop = FALSE]
-          R <- sapply(Expr.cols$Expr.cols, function(r) { #r <- Expr.cols$Expr.cols[1]
-            sapply(histones$"Protein Group IDs", function(h) { mean(is.all.good(as.numeric(exprsdata[match(h, Prot$id), r]))) })
+          R <- sapply(Expr.cols$Expr.cols, \(r) { #r <- Expr.cols$Expr.cols[1]
+            sapply(histones$"Protein Group IDs", \(h) { mean(is.all.good(as.numeric(exprsdata[match(h, Prot$id), r]))) })
           })
           if (norm) {
             if (norm_filter) {
-              wR <- which(apply(R, 2, function(x) { length(is.all.good(x)) }) > 0)
+              wR <- which(apply(R, 2L, \(x) { length(is.all.good(x)) }) > 0L)
               exprsdata <- exprsdata[, wR, drop = FALSE]
-            } else { wR <- 1:length(Pr.Ruler.cols) }
+            } else { wR <- 1L:length(Pr.Ruler.cols) }
             R <- mean(is.all.good(as.numeric(unlist(R))))
           } else {
-            R <- apply(R, 2, function(x) { mean(is.all.good(x)) })
-            wR <- which(is.all.good(R, 2))
+            R <- apply(R, 2L, \(x) { mean(is.all.good(x)) })
+            wR <- which(is.all.good(R, 2L))
           }
           Pr.Ruler.cols <- Pr.Ruler.cols[wR]
           Prot[, Pr.Ruler.cols] <- NA
           if (length(wR)) {
-            if (norm) {
-              Prot[wpg, Pr.Ruler.cols] <- exprsdata[wpg, Expr.cols$Expr.cols[wR], drop = FALSE] + log(NNucl, log.Expr.base)-R+1
+            Prot[wpg, Pr.Ruler.cols] <- if (norm) {
+              exprsdata[wpg, Expr.cols$Expr.cols[wR], drop = FALSE] + base::log(NNucl, log.Expr.base)-R+1L
             } else {
-              Prot[wpg, Pr.Ruler.cols] <- sweep(exprsdata[wpg, Expr.cols$Expr.cols[wR], drop = FALSE], 2,
-                                                log(NNucl, log.Expr.base)-R+1, "+")
+              sweep(exprsdata[wpg, Expr.cols$Expr.cols[wR], drop = FALSE], 2L,
+                    base::log(NNucl, log.Expr.base)-R+1L, "+")
             }
             if ((is.logical(log.Expr))&&(!log.Expr)) {
               for (k in Pr.Ruler.cols) { Prot[wpg, k] <- log.Expr.base^Prot[wpg, k] }

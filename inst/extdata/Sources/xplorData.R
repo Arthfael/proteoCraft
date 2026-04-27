@@ -4,18 +4,19 @@
 #
 # Opens a shiny app where clustering heatmaps, dimensionality reduction plots, protein profile plots or sorting plots may be visualized.
 #
-HEIGHT <- "500px"
+Height <- 500L
+HEIGHT <- paste0(as.character(Height, "px"))
 # Defaults
-appNm <- paste0(dtstNm, " - Data exploration")
 loadFun(paste0(wd, "/Clustering/HeatMaps.RData"))
 loadFun(paste0(wd, "/Dimensionality red. plots/DimRedPlots.RData"))
 loadFun(paste0(wd, "/Sorting plots/quantPlots.RData"))
 loadFun(paste0(wd, "/Profile plots/profilePlots.RData"))
-heatMaps_ON <- exists("plotLeatMaps")
-dimRed_ON <- exists("dimRedPlotLy")
-quant_ON <- exists("ggQuantLy")
-profile_ON <- exists("ggProfLy")
+heatMaps_ON <- exists("plotLeatMaps")&&(length(plotLeatMaps) > 0L)
+dimRed_ON <- exists("dimRedPlotLy")&&(length(dimRedPlotLy) > 0L)
+quant_ON <- exists("ggQuantLy")&&(length(ggQuantLy) > 0L)
+profile_ON <- exists("ggProfLy")&&(length(ggProfLy) > 0L)
 if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
+  HEIGHT2 <- paste0(as.character(Height*2L/(quant_ON+profile_ON)), "px")
   if (dimRed_ON) {
     nmsDmRds <- names(dimRedPlotLy)[which(names(dimRedPlotLy) != "Samples PCA")]
     dfltDmRd <- c("PCA", nmsDmRds)
@@ -51,18 +52,18 @@ if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
     useShinyjs(),
     setBackgroundColor(color = c("#F8F8FF", "#F1F5DF"),
                        gradient = "linear", direction = "bottom"),
-    titlePanel(tagList(tags$u("Data exploration"), appNm)),
+    titlePanel(tagList(tags$u("Data exploration"), dtstNm)),
     br(),
-    em("Here you can explore your data."), br(),
+    em("Here you can explore the structure of the dataset."), br(),
     em("Click "), actionButton("exitBtn", "exit"), em(" to continue."), br(), br(),
     #
     if (heatMaps_ON) {
-      fluidRow(column(12,
+      fluidRow(column(12L,
                       h4("Clustering heatmap"),
                       selectInput("HeatMap", "Select heatmap", names(plotLeatMaps), dfltHtMp),
-                      radioButtons("NormType", "Normalisation method:", c("Norm. by row", "None"), "None")))
+                      radioButtons("NormType", "Normalisation method:", c("Norm. by row", "None"), "None"),
+                      withSpinner(plotlyOutput("myHeatmap_plot"))))
     },
-    withSpinner(plotlyOutput("myHeatmap_plot")),
     #
     if (dimRed_ON) {
       fluidRow(column(8L,
@@ -75,29 +76,40 @@ if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
                       withSpinner(plotlyOutput("mySmplsDimRed_plot", height = HEIGHT))))
     },
     #
-    fluidRow(if (quant_ON||profile_ON) {
-               column(3L,
-                      h4("Protein plots"),
-                      selectInput("QuantType", "Select Quant method", QuantTypes, dfltQuant))
-             },
-             if (profile_ON) {
-               column(3L,
-                      pickerInput("ProfPlotProt", "Select protein(s) to display", allProt, dfltProt, TRUE,
-                                  pickerOptions(title = "Search me",
-                                                `live-search` = TRUE,
-                                                actionsBox = TRUE,
-                                                deselectAllText = "Clear search",
-                                                showTick = TRUE)))
-             },
-             if (quant_ON) {
-               column(3L,
-                      selectInput("Sample", "Select Sample to plot", allSamples, allSamples[1L]))
-             },
-    ),
-    fluidRow(column(12L/(quant_ON+profile_ON),
-                    withSpinner(plotlyOutput("myProfilePlot", height = HEIGHT))),
-             column(12L/(quant_ON+profile_ON),
-                    withSpinner(plotlyOutput("SortedPGPlot", height = HEIGHT)))),
+    if (quant_ON||profile_ON) {
+      h4("Protein plots")
+    },
+    if (quant_ON||profile_ON) {
+      fluidRow(
+        column(3L,
+               selectInput("QuantType", "Select Quant method", QuantTypes, dfltQuant)),
+        if (profile_ON) {
+          column(3L,
+                 pickerInput("ProfPlotProt", "Select protein(s) to display", allProt, dfltProt, TRUE,
+                             pickerOptions(title = "Search me",
+                                           `live-search` = TRUE,
+                                           actionsBox = TRUE,
+                                           deselectAllText = "Clear search",
+                                           showTick = TRUE)))
+        },
+        if (quant_ON) {
+          column(3L,
+                 selectInput("Sample", "Select Sample to plot", allSamples, allSamples[1L]))
+        },
+      )
+    },
+    if (quant_ON||profile_ON) {
+      fluidRow(
+        if (profile_ON) {
+          column(12L/(quant_ON+profile_ON),
+                 withSpinner(plotlyOutput("myProfilePlot", height = HEIGHT2)))
+        },
+        if (quant_ON) {
+          column(12L/(quant_ON+profile_ON),
+                 withSpinner(plotlyOutput("SortedPGPlot", height = HEIGHT2)))
+        },
+      )
+    },
     #
     br(), br()
   )

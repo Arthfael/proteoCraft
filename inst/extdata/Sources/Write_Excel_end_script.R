@@ -114,6 +114,6 @@ WorkBook <- wb_set_base_font(WorkBook, 11L, font_name = "Calibri")
 #
 if ("tmp" %in% wb_get_sheet_names(WorkBook)) { WorkBook <- wb_remove_worksheet(WorkBook, "tmp") }
 #
-cat("Writing table...\n")
+cat("   Writing table...\n")
 wb_save(WorkBook, repFl)
 xl_open(repFl)

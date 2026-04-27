@@ -9,11 +9,11 @@ Prot.Ruler(
   DB,
   Expr.roots = c("Top3 log10(Intensity) ", "Mean Top3 log10(Intensity) "),
   Proteins.col = "Protein IDs",
-  NuclL = 196,
-  log.Expr = 10,
+  NuclL = 196L,
+  log.Expr = 10L,
   norm = TRUE,
   norm_filter = TRUE,
-  MaxOrg = 3,
+  MaxOrg = 3L,
   getLatest = FALSE
 )
 }

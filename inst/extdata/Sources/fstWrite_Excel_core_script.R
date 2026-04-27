@@ -482,21 +482,21 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   #
   # Fix range of conditional formatting
   cf <- WorkBook$worksheets[[sheetMtch]]$conditionalFormatting
+  # - method 1: works in some versions of openxlsx2
   if ((is.data.frame(cf))&&(nrow(cf))) {
     g <- grep("[A-Z]+3$", cf$sqref)
     cf$sqref[g] <- gsub("3$", as.character(nRws+2L), cf$sqref[g])
+    WorkBook$worksheets[[sheetMtch]]$conditionalFormatting <- cf
   }
-  WorkBook$worksheets[[sheetMtch]]$conditionalFormatting <- cf
-  # Old code, stopped working probably because the object's format was changed
-  # cf <- names(WorkBook$worksheets[[sheetMtch]]$conditionalFormatting)
-  # if (length(cf)) {
-  #   cfNms0 <- cfNms <- cf
-  #   w <- which(gsub("[A-Z]", "", cfNms) == "3:3")
-  #   if (length(w)) {
-  #     cfNms <- gsub("3$", nRws+2L, cfNms[w])
-  #     names(WorkBook$worksheets[[sheetMtch]]$conditionalFormatting)[w] <- cfNms
-  #   }
-  # }
+  # - method 2: works in some others
+  if ((is.character(cf))&&(length(cf))) {
+    cfNms <- names(WorkBook$worksheets[[sheetMtch]]$conditionalFormatting)
+    w <- which(gsub("[A-Z]", "", cfNms) == "3:3")
+    if (length(w)) {
+      cfNms[w] <- gsub("3$", nRws+2L, cfNms[w])
+      names(WorkBook$worksheets[[sheetMtch]]$conditionalFormatting)[w] <- cfNms
+    }
+  }
   #
   WorkBook$worksheets[[sheetMtch]]$sheet_data$cc <- cc
   #

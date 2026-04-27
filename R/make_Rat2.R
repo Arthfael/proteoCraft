@@ -63,7 +63,7 @@ make_Rat2 <- function(myData = pep,
     } else {
       cat(paste0("make_Ratios2: input data is log-transformed and its base (", int.log, 
                  ") is different from that of the desired ratios (", rat.log, ")\n"))
-      log_Int2Rat <- log(rat.log, int.log)
+      log_Int2Rat <- base::log(rat.log, int.log)
     }
   } else {
     cat("make_Ratios2: input data is not log-transformed.\n")
@@ -75,7 +75,7 @@ make_Rat2 <- function(myData = pep,
   myData <- myData[, paste0(int.root, unique(unlist(contrasts[, c(ABkol, CDkol)])))]
   #
   # If input was not log, we log-transform to ratios's log base, otherwise we adjust base.
-  myData <- if (!logTrans) { log(myData, rat.log) } else { myData/log_Int2Rat }
+  myData <- if (!logTrans) { base::log(myData, rat.log) } else { myData/log_Int2Rat }
   # -> myData's base is that of rat.log
   myRats <- lapply(1L:nrow(contrasts), \(i) { #i <- 1L #i <- 3L #i <- 5L
     rat <- setNames(lapply(refGroups$values, \(grp) { #grp <- refGroups$values[1L]

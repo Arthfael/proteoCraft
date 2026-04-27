@@ -1505,7 +1505,7 @@ if (length(Exp) > 1L) {
         # Turn it into peptide-level normalization factors, averaging as needed
         pep2prt <- listMelt(prt2pep$x, prt2pep$Group.1, c("pep", "prot"))
         pep2prt[, allSamples] <- prt2pep[match(pep2prt$prot, prt2pep$Group.1[wL]), allSamples]
-        Norm <- aggregate(pep2prt[, allSamples], list(pep2prt$pep), \(x) { exp(mean(log(x), na.rm = TRUE)) })
+        Norm <- aggregate(pep2prt[, allSamples], list(pep2prt$pep), \(x) { exp(mean(base::log(x), na.rm = TRUE)) })
         # If we cannot calculate a normalization factor, we need to remove the peptide
         tst <- parApply(parClust, Norm[, allSamples], 1L, \(x) { length(is.all.good(x)) })
         Norm <- Norm[which(tst > 0L),]

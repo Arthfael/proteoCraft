@@ -113,7 +113,7 @@ AdvNorm.IL <- function(df,
   # Re-apply original values scaling:
   df2[, exprs.col] <- df2[, exprs.col]*M1/M2
   # Apply to expression data
-  if (exprs.log) { for (i in exprs.col) { df2[[i]] <- log(df2[[i]], exprs.log.base) } }
+  if (exprs.log) { for (i in exprs.col) { df2[[i]] <- base::log(df2[[i]], exprs.log.base) } }
   w <- which(colnames(df2) %in% exprs.col)
   colnames(df2)[w] <- paste0("AdvNorm.", colnames(df2)[w])
   if (TESTING) {

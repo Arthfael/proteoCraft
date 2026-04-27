@@ -4,7 +4,7 @@
 \alias{AdvNorm.IL}
 \title{AdvNorm.IL}
 \usage{
-AdvNorm.IL(df, ids.col = "Unique State", exprs.col, exprs.log = FALSE, K = 5)
+AdvNorm.IL(df, ids.col = "Unique State", exprs.col, exprs.log = FALSE, K = 5L)
 }
 \arguments{
 \item{df}{The input data frame, containing unique peptide identifiers and expression data.}
@@ -31,13 +31,13 @@ The input data.frame df must contain a column of IDs and 2 or more expression co
 This is slower but is better than median only.
 }
 \examples{
-adv.norm.data <- AdvNorm.IL(data, "Unique State", paste0("Reporter intensity ", c(0:9)), FALSE, K = 5)
+adv.norm.data <- AdvNorm.IL(data, "Unique State", paste0("Reporter intensity ", as.character(0L:9L)), FALSE, K = 5L)
 require(ggplot2)
 require(reshape2)
 test <- melt(adv.norm.data)
 test$value <- log10(test$value)
 plot <- ggplot(test) + geom_density(stat = "density", aes(x = value, colour = variable))
-grDevices::windows(width = 10, height = 10)
+grDevices::windows(width = 10L, height = 10L)
 print(plot)
 
 }
