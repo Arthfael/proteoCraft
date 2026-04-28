@@ -2308,7 +2308,7 @@ if (WorkFlow == "Band ID") {
 ## PSMs
 dir <- paste0(wd, "/Tables")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-w <- which(vapply(colnames(ev), \(x) { is.list(ev[[x]]) }, TRUE))
+w <- which(vapply(colnames(ev), \(x) { inherits(ev[[x]], "list") }, TRUE))
 if (length(w)) { for (i in w) { ev[[i]] <- parSapply(parClust, ev[[i]], paste, collapse = ";") } }
 data.table::fwrite(ev, paste0(dir, "/evidence.tsv"), sep = "\t", row.names = FALSE, na = "NA")
 #
@@ -2454,7 +2454,7 @@ source(bckpSrc, local = FALSE)
 
 # Write PTMs table
 temp <- Modifs
-w <- which(vapply(colnames(Modifs), \(x) { is.list(Modifs[[x]]) }, TRUE))
+w <- which(vapply(colnames(Modifs), \(x) { inherits(Modifs[[x]], "list") }, TRUE))
 for (i in w) { temp[[i]] <- vapply(temp[[i]],  paste, "", collapse = ", ") }
 dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }

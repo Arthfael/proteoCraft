@@ -168,7 +168,7 @@ if (Annotate) {
             is.character(tst3$x))
   db$Ontology <- NULL # Temporary fix for now, this column is broken
   #
-  w <- which(vapply(colnames(db), \(x) { is.list(db[[x]]) }, TRUE))
+  w <- which(vapply(colnames(db), \(x) { inherits(db[[x]], "list") }, TRUE))
   if (length(w)) {
     for (i in w) {
       db[[i]] <- parSapply(parClust, db[[i]], paste, collapse = ";")

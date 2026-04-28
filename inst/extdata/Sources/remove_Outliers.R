@@ -142,7 +142,7 @@ server <- \(input, output, session) {
       assign("Exp.map", Exp.map, envir = .GlobalEnv)
       #
       tmpTbl <- Exp.map
-      w <- which(vapply(colnames(tmpTbl), \(x) { is.list(tmpTbl[[x]]) }, TRUE))
+      w <- which(vapply(colnames(tmpTbl), \(x) { inherits(tmpTbl[[x]], "list") }, TRUE))
       if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
       tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE, quote = TRUE), silent = TRUE)
       while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {

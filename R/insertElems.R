@@ -58,6 +58,6 @@ insertElems <- function(vect, pos, elems, warn = FALSE) {
   }
   if (pos0) { res <- c(elem0, res) }
   if (konvert) { res <- f(res) }
-  if (("list" %in% klasses)&&(!is.list(res))) { res <- as.list(res) }
+  if (("list" %in% klasses)&&(!inherits(res, "list"))) { res <- as.list(res) }
   return(res)
 }

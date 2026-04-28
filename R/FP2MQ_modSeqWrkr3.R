@@ -4,6 +4,8 @@
 #'
 #' @param x Temp data, see FP_to_MQ code...
 #' @param mods Modifications table.
+#' 
+#' @export
 
 .FP2MQ_modSeqWrkr3 <- function(x,
                                mods) {

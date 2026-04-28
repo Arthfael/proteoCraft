@@ -4,6 +4,8 @@
 #'
 #' @param x Character label split at spaces
 #' @param colchar How many characters wide a column of text may be. Default = 25
+#' 
+#' @export
 
 .labelEdit_worker <- function(x,
                               colchar = 25) {

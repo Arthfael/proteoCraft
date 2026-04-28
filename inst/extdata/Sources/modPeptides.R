@@ -146,6 +146,7 @@ if (length(PTMs)) {
     p <- Modifs$Mark[w]
     ppat <- paste0("\\(", p, "\\)|\\(", p, ",|,", p, "\\)|,", p, ",") # Pattern to catch all instances of the mod
     ptmsh <- substr(p, 1L, 1L)
+    ptmpep <- pep[ptmsTst[[ptm]], ]
     #pep[[paste0(Ptm, " ID")]] <- ""
     #ptmpep <- pep[g,]
     #pep[g, paste0(Ptm, " ID")] <- ptmpep$ModPep_ID <- seq_len(nrow(ptmpep))

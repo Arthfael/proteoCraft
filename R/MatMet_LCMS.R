@@ -618,7 +618,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       if (tst["LC_txt"]) {
         tmp <- aggregate(tmp$MS_txt, list(tmp$LC_txt), unique)
         colnames(tmp) <- c("LC_txt", "MS_txt")
-        if (is.list(tmp$MS_txt)) {
+        if (inherits(tmp$MS_txt, "list")) {
           l <- lengths(tmp$MS_txt)
           w <- which(l > 1L)
           tmp$MS_txt[w] <- vapply(tmp$MS_txt[w], paste, "", collapse = "\n")
@@ -628,7 +628,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       if (tst["MS_txt"]) {
         tmp <- aggregate(tmp$LC_txt, list(tmp$MS_txt), unique)[, 2L:1L]
         colnames(tmp) <- c("LC_txt", "MS_txt")
-        if (is.list(tmp$LC_txt)) {
+        if (inherits(tmp$LC_txt, "list")) {
           l <- lengths(tmp$LC_txt)
           w <- which(l > 1L)
           tmp$LC_txt[w] <- vapply(tmp$LC_txt[w], paste, "", collapse = "\n")
@@ -1087,7 +1087,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         if (tst["LC_txt"]) {
           tmp <- aggregate(tmp$MS_txt, list(tmp$LC_txt), unique)
           colnames(tmp) <- c("LC_txt", "MS_txt")
-          if (is.list(tmp$MS_txt)) {
+          if (inherits(tmp$MS_txt, "list")) {
             l <- lengths(tmp$MS_txt)
             w <- which(l > 1L)
             tmp$MS_txt[w] <- vapply(tmp$MS_txt[w], paste, "", collapse = "\n")
@@ -1097,7 +1097,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         if (tst["MS_txt"]) {
           tmp <- aggregate(tmp$LC_txt, list(tmp$MS_txt), unique)[, 2L:1L]
           colnames(tmp) <- c("LC_txt", "MS_txt")
-          if (is.list(tmp$LC_txt)) {
+          if (inherits(tmp$LC_txt, "list")) {
             l <- lengths(tmp$LC_txt)
             w <- which(l > 1L)
             tmp$LC_txt[w] <- vapply(tmp$LC_txt[w], paste, "", collapse = "\n")

@@ -4,6 +4,8 @@
 #'
 #' @param x Temporary modified sequence
 #' @param tempMods Temporary modifications table
+#' 
+#' @export
 
 .SK2MQ_modSeqWrkr1 <- function(x,
                                tempMods) {

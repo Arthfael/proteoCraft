@@ -184,7 +184,7 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
       if ((!file.exists(fl))||(updateOntologies)) {
         my_terms <- get_all_terms(ontoDF$Term[i], size = 1000L)
         my_terms <- my_terms[, c("label", "description", "synonyms", "iri", "short_form")]
-        w <- which(vapply(colnames(my_terms), function(x) { is.list(my_terms[[x]]) }, TRUE))
+        w <- which(vapply(colnames(my_terms), function(x) { inherits(my_terms[[x]], "list") }, TRUE))
         if (length(w)) { for (i in w) { my_terms[[i]] <- vapply(my_terms[[i]], function(x) { c(unlist(x), "")[1L] }, "") } }
         data.table::fwrite(my_terms, fl, row.names = FALSE)
         rm(fl)

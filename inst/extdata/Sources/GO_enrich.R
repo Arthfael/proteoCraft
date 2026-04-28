@@ -499,7 +499,7 @@ Mappings <- setNames(Mappings2$GO, Mappings2$Protein)
 #    - obligatory in "regulated" Mode
 defltFilt <- FALSE
 if ((Mode == "regulated")||((Mode == "dataset")&&(exists("filters")))) {
-  stopifnot(is.list(filters),
+  stopifnot(inherits(filters, "list"),
             length(filters) > 0L)
   if (is.null(names(filters))) { names(filters) <- paste0("Filter ", 1L:length(filters)) }
 } else {
@@ -513,13 +513,13 @@ if ((Mode == "regulated")||((Mode == "dataset")&&(exists("filters")))) {
 MultRef <- (length(ref.filters) > 1L)||(!is.na(ref.filters))
 if (MultRef) {
   # Process/check if provided...
-  stopifnot(is.list(ref.filters),
+  stopifnot(inherits(ref.filters, "list"),
             length(ref.filters) > 0L,
             length(ref.filters) == length(filters))
   if (is.null(names(ref.filters))) {
     names(ref.filters) <- names(filters)
   } else {
-    stopifnot(sum(sort(names(ref.filters)) != sort(names(filters))) == 0) # Both filter types must have the same names!
+    stopifnot(sum(sort(names(ref.filters)) != sort(names(filters))) == 0L) # Both filter types must have the same names!
   }
   ref.filters <- ref.filters[names(filters)] # Check order (since we may call them by index, not name!)
 } else {

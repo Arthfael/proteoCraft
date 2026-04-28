@@ -5,6 +5,8 @@
 #' @param x Raw file
 #' @param tempDat Temp data.
 #' @param size Type of chromatogram to export.
+#' 
+#' @export
 
 .summaryWrkr2 <- function(x,
                           tempDat,

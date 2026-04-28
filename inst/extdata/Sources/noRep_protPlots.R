@@ -179,7 +179,7 @@ if (prot.list.Cond) {
           temp1 <- reshape::melt(tempev)
           temp1$Match <- sapply(strsplit(temp1$Matches, ";"), as.integer)
           temp1$Matches <- NULL
-          if (is.list(temp1$Match)) { # Deal with cases with multiple peptide matches in the protein
+          if (inherits(temp1$Match, "list")) { # Deal with cases with multiple peptide matches in the protein
             temp2 <- listMelt(temp1$Match, 1L:nrow(temp1), c("Match", "row"))
             temp2 <- as.data.frame(t(as.data.frame(strsplit(unique(apply(temp2, 1L, paste, collapse = "___")), "___"))))
             colnames(temp2) <- c("Match", "row")

@@ -24,7 +24,7 @@ listMelt <- function(List,
                      ColNames = c("value", "L1")) {
   #List <- prjcts
   toInt <- FALSE
-  stopifnot(is.atomic(List)|is.list(List),
+  stopifnot(is.atomic(List)|inherits(List, "list"),
             length(ColNames) == 2L)
   lL <- length(List)
   w <- which(lengths(List) > 0L) # Filter necessary not only to avoid warning for empty elements ("In stack.default(List) : non-vector elements will be ignored")

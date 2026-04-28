@@ -122,9 +122,8 @@ if (clustHtMp) {
       normTypeInsrt <- paste0(" (", normTypes, ")")
       normTypeInsrt[1L] <- ""
       normTypeInsrt <- normTypeInsrt[match(normType, normTypes)]
-      temp <- myClustData[, smpls, drop = FALSE]
+      temp <- as.data.frame(myClustData[, smpls, drop = FALSE])
       #
-      temp <- myClustData[, smpls, drop = FALSE]
       if (normType == "Z-scored") {
         # In that case we plot only differentially expressed proteins.
         # Only used for withReps for the time being.
@@ -609,7 +608,7 @@ if (clustHtMp) {
               #scale_fill_viridis("turbo", discrete = TRUE) +
               scale_color_manual(values = markColors) +
               geom_rect(data = temp2m, aes(xmin = Xmin, xmax = Xmin+1, fill = `Compartment marker`),
-                         ymin = -1.7, ymax = -1.3)
+                        ymin = -1.7, ymax = -1.3)
           }
         }
         #poplot(heatmap.plot, 12, 20)

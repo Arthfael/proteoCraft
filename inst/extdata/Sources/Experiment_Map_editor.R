@@ -51,7 +51,7 @@ if ((!exists("ExpMap"))||(!nrow(ExpMap))) {
 # From v3.2.0 onwards we do not use a Reference column!
 ExpMap$Reference <- NULL
 #
-if (!is.list(ExpMap$MQ.Exp)) {
+if (!inherits(ExpMap$MQ.Exp, "list")) {
   ExpMap$MQ.Exp <- strsplit(ExpMap$MQ.Exp, ";")
 }
 if ((LocAnalysis)&&(!"Proportion" %in% colnames(ExpMap))) { ExpMap$Proportion <- 1 }
@@ -414,7 +414,7 @@ Exp.map$Use[which(is.na(Exp.map$Use))] <- FALSE
 #sum(Exp.map$Use)
 tmpTbl <- Exp.map
 tst <- lapply(colnames(tmpTbl), \(x) { typeof(tmpTbl[[x]]) })
-w <- which(vapply(colnames(tmpTbl), \(x) { is.list(tmpTbl[[x]]) }, TRUE))
+w <- which(vapply(colnames(tmpTbl), \(x) { inherits(tmpTbl[[x]], "list") }, TRUE))
 if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
 while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {
@@ -446,7 +446,7 @@ for (k in kol2) {
   w <- which(x == "NA")
   if (length(w)) { Exp.map2[w, k] <- NA }
 }
-if (!is.list(Exp.map2$MQ.Exp)) { Exp.map2$MQ.Exp <- strsplit(Exp.map2$MQ.Exp, ";") }
+if (!inherits(Exp.map2$MQ.Exp, "list")) { Exp.map2$MQ.Exp <- strsplit(Exp.map2$MQ.Exp, ";") }
 Exp.map2$tempName <- Exp.map2$`Sample name`
 call <- paste0("Exp.map2 <- arrange(Exp.map2, ", paste(c("tempName", Factors), collapse = ", "), ")")
 #cat(call)

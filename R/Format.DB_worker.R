@@ -7,6 +7,8 @@
 #' @param mode Mode string
 #' @param IDs_only Logical, return only IDs?
 #' @param trimName Logical, whether to trim names (anything after the last underscore will be trimmed)
+#' 
+#' @export
 
 .Format.DB_worker <- function(btch,
                               Roolz,

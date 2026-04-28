@@ -5,6 +5,8 @@
 #' @param x File.
 #' @param raw Table of MS raw files.
 #' @param type Type of chromatogram to export.
+#' 
+#' @export
 
 .summaryWrkr1 <- function(x,
                           raw,

@@ -278,7 +278,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
     }), GraphTypes)
     intNets %<o% setNames(lapply(GraphTypes, \(grphType) {
       w <- which(filtersDF$GraphType == grphType)
-      w <- w[which(vapply(w, \(x) { is.list(tstSTRINGs[[x]]$Data) }, TRUE))]
+      w <- w[which(vapply(w, \(x) { inherits(tstSTRINGs[[x]]$Data, "list") }, TRUE))]
       setNames(lapply(w, \(x) { tstSTRINGs[[x]]$Data }),
                vapply(w, \(x) { tstSTRINGs[[x]]$Name }, ""))
     }), GraphTypes)

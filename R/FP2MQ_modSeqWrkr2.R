@@ -4,6 +4,8 @@
 #'
 #' @param x Temp data, see FP_to_MQ code...
 #' @param openSearch Is this an open search?
+#' 
+#' @export
 
 .FP2MQ_modSeqWrkr2 <- function(x,
                                openSearch = OpenSearch) {

@@ -3,8 +3,8 @@
 library(venn)
 library(ggplot2)
 library(openxlsx2)
-cleanNms2 %<o% \(names, groups = VPAL, sep = "\n/vs/\n", simplify) {
-  isList <- is.list(names)
+cleanNms2 %<o% function(names, groups = VPAL, sep = "\n/vs/\n", simplify) {
+  isList <- inherits(names, "list")
   if (missing(simplify)) { simplify <- !isList }
   if (!isList) {
     names <- sapply(strsplit(gsub("^\\(|\\)$", "", names), "\\) - \\("), unlist)

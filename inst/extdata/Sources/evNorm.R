@@ -371,7 +371,7 @@ if (Param$Norma.Ev.Intens) {
       # Here it is easier to sum per row (otherwise this makes for very slow processing, creates a very huge table and plot, with little added value)
       kolz <- colnames(tst)[which(!colnames(tst) %in% c("id", "MQ.Exp"))]
       for (kl in kolz) {
-        tst[[kl]] <- if (!is.list(tst[[kl]])) { vapply(strsplit(tst[[kl]], ";"), as.numeric, 1) }
+        tst[[kl]] <- if (!inherits(tst[[kl]], "list")) { vapply(strsplit(tst[[kl]], ";"), as.numeric, 1) }
         parSapply(parClust, tst[[kl]], sum)
       }
       tst <- reshape2::melt(tst, id.vars = c("id", "MQ.Exp"))

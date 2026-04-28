@@ -2231,7 +2231,7 @@ if (protrul) {
     }
   }
   temp <- try(Prot.Ruler(tempPG, db, exprsRt, NuclL = ProtRulNuclL), silent = TRUE)
-  if (is.list(temp)) {
+  if (inherits(temp, "list")) {
     db <- temp$Database
     temp <- temp$Protein.groups
     kol <- c(grep(topattern(exprsRt), colnames(temp), value = TRUE), grep(topattern(ProtRulRoot), colnames(temp), value = TRUE))
@@ -2379,7 +2379,7 @@ if (GO_filt) {
 dir <- paste0(wd, "/Tables")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 dirlist <- unique(c(dirlist, dir))
-w <- which(vapply(colnames(ev), \(x) { is.list(ev[[x]]) }, TRUE))
+w <- which(vapply(colnames(ev), \(x) { inherits(ev[[x]], "list") }, TRUE))
 if (length(w)) { for (i in w) { ev[[i]] <- parSapply(parClust, ev[[i]], paste, collapse = ";") } }
 data.table::fwrite(ev, paste0(dir, "/evidence.tsv"), sep = "\t", row.names = FALSE, na = "NA")
 #

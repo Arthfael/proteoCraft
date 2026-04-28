@@ -30,7 +30,7 @@ if (globalGO) {
   temp <- goRES
   #
   setwd(wd)
-  if ((is.list(goRES))&&("GO_terms" %in% names(goRES))) {
+  if ((inherits(goRES, "list"))&&("GO_terms" %in% names(goRES))) {
     temp <- goRES$GO_terms
     temp$"Protein group IDs" <- vapply(temp$`Protein table row(s)`, \(x) {
       paste(PG$id[as.numeric(x)], collapse = ";")
@@ -150,7 +150,7 @@ if (globalGO) {
       suppressWarnings(try(rm(list = allArgs), silent = TRUE))
       #
       setwd(wd)
-      if ((is.list(goRES))&&("GO_terms" %in% names(goRES))) {
+      if ((inherits(goRES, "list"))&&("GO_terms" %in% names(goRES))) {
         temp <- goRES$GO_terms
         temp$"Protein group IDs" <- vapply(temp$`Protein table row(s)`, \(x) {
           paste(PG$id[as.numeric(x)], collapse = ";")
@@ -251,7 +251,7 @@ if (globalGO) {
           suppressWarnings(try(rm(list = allArgs), silent = TRUE))
           #
           setwd(wd)
-          if ((is.list(goRES))&&("GO_terms" %in% names(goRES))) {
+          if ((inherits(goRES, "list"))&&("GO_terms" %in% names(goRES))) {
             temp <- goRES$GO_terms
             temp$"Protein group IDs" <- vapply(temp$`Protein table row(s)`, \(x) {
               paste(PG$id[as.numeric(x)], collapse = ";")

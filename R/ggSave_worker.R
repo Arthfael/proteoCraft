@@ -7,6 +7,8 @@
 #' - Path: the directory in which to save the plot\cr
 #' - Ttl: name of the destination file (without extension)\cr
 #' - Ext: extension of the destination file
+#' 
+#' @export
 
 .ggSave_worker <- function(x) {
   # Even though the plot is evaluated, we must load ggrepel explicitly on the cluster,

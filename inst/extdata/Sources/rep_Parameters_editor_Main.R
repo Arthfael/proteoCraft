@@ -1749,7 +1749,7 @@ server1 <- \(input, output, session) {
   observe({ shinyFileChoose(input, "CustPG", roots = getVolumes(), filetypes = "csv")
     {
       tmp <- input$CustPG
-      if ((!is.null(tmp))&&(is.list(tmp))) {
+      if ((!is.null(tmp))&&(inherits(tmp, "list"))) {
         tmp <- parseFilePaths(getVolumes(), tmp)$datapath
         Par <- PARAM()
         Par$Custom.PGs <- normalizePath(tmp, winslash = "/")
@@ -1760,7 +1760,7 @@ server1 <- \(input, output, session) {
   observe({ shinyFileChoose(input, "TrueDisc", roots = getVolumes(), filetypes = "csv")
     {
       tmp <- input$TrueDisc
-      if ((!is.null(tmp))&&(is.list(tmp))) {
+      if ((!is.null(tmp))&&(inherits(tmp, "list"))) {
         tmp <- parseFilePaths(getVolumes(), tmp)$datapath
         Par <- PARAM()
         Par$TrueDisc_filter <- normalizePath(tmp, winslash = "/")
@@ -1777,7 +1777,7 @@ server1 <- \(input, output, session) {
   observe({ shinyFileChoose(input, "CRAPome", roots = getVolumes(), filetypes = "csv" )
     {
       tmp <- input$CRAPome
-      if ((!is.null(tmp))&&(is.list(tmp))) {
+      if ((!is.null(tmp))&&(inherits(tmp, "list"))) {
         tmp <- parseFilePaths(getVolumes(), tmp)$datapath
         Par <- PARAM()
         Par$CRAPome_file <- normalizePath(tmp, winslash = "/")
@@ -1929,7 +1929,7 @@ server1 <- \(input, output, session) {
     observe({ shinyFileChoose(input, "PurityFl", roots = getVolumes(), filetypes = "csv")
       {
         tmp <- input$PurityFl
-        if ((!is.null(tmp))&&(is.list(tmp))) {
+        if ((!is.null(tmp))&&(inherits(tmp, "list"))) {
           tmp <- parseFilePaths(getVolumes(), tmp)$datapath
           tmp <- normalizePath(tmp, winslash = "/")
           PURFL(tmp)
@@ -2071,7 +2071,7 @@ server1 <- \(input, output, session) {
     observe({ shinyFileChoose(input, "CytoScVers2", roots = getVolumes(), filetypes = "exe")
       {
         tmp <- input$CytoScVers2
-        if ((!is.null(tmp))&&(is.list(tmp))) {
+        if ((!is.null(tmp))&&(inherits(tmp, "list"))) {
           CytoScExe <- input$CytoScVers2
           assign("CytoScExe", CytoScExe, envir = .GlobalEnv)
           tmp <- parseFilePaths(getVolumes(), tmp)$datapath
@@ -2491,7 +2491,7 @@ Exp.map$Ref.Sample.Aggregate <- if (length(a) == 1L) { Exp.map[[a]] } else {
   do.call(paste, c(Exp.map[, a], sep = "___"))
 }
 Exp.map <- Exp.map[order(Exp.map[[VPAL$column]], Exp.map$Replicate),]
-if (!is.list(Exp.map$MQ.Exp)) { Exp.map$MQ.Exp <- strsplit(Exp.map$MQ.Exp, ";") }
+if (!inherits(Exp.map$MQ.Exp, "list")) { Exp.map$MQ.Exp <- strsplit(Exp.map$MQ.Exp, ";") }
 tstMQXp <- listMelt(Exp.map$MQ.Exp, 1L:nrow(Exp.map), c("MQ.Exp", "Row"))
 tstMQXp <- aggregate(tstMQXp$Row, list(tstMQXp$MQ.Exp), list)
 tstMQXp <- setNames(tstMQXp$x, tstMQXp$Group.1) 

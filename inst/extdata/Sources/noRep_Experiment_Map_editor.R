@@ -204,7 +204,7 @@ exp <- expOrder
 SamplesMap <- SamplesMap[match(expOrder, SamplesMap$"Parent sample"),]
 #
 tmp <- SamplesMap
-w <- which(vapply(colnames(tmp), \(x) { is.list(tmp[[x]]) }, TRUE))
+w <- which(vapply(colnames(tmp), \(x) { inherits(tmp[[x]], "list") }, TRUE))
 if (length(w)) { for (i in w) { tmp[[i]] <- vapply(tmp[[i]], paste, "", collapse = ";") } }
 tst <- try(write.csv(tmp, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
 while (inherits(tst, "try-error")&&(grepl("cannot open the connection", tst[1L]))) { # We only want this to happen if the file is locked for editing

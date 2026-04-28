@@ -74,7 +74,7 @@ if (length(tstEnrich)) {
 
 # Write PTMs table
 temp <- Modifs
-w <- which(vapply(colnames(Modifs), \(x) { is.list(Modifs[[x]]) }, TRUE))
+w <- which(vapply(colnames(Modifs), \(x) { inherits(Modifs[[x]], "list") }, TRUE))
 for (i in w) { temp[[i]] <- vapply(temp[[i]], paste, "", collapse = ", ") }
 dir <- paste0(wd, "/Workflow control")
 dirlist <- unique(c(dirlist, dir))

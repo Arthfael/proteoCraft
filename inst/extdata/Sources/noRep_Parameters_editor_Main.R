@@ -781,7 +781,7 @@ server1 <- function(input, output, session) {
   observe({ shinyFileChoose(input, "CustPG", roots = getVolumes(), filetypes = "csv")
     {
       tmp <- input$CustPG
-      if ((!is.null(tmp))&&(is.list(tmp))) {
+      if ((!is.null(tmp))&&(inherits(tmp, "list"))) {
         tmp <- parseFilePaths(getVolumes(), tmp)$datapath
         Par <- PARAM()
         Par$Custom.PGs <- normalizePath(tmp, winslash = "/")
@@ -792,7 +792,7 @@ server1 <- function(input, output, session) {
   observe({ shinyFileChoose(input, "CRAPome", roots = getVolumes(), filetypes = "csv" )
     {
       tmp <- input$CRAPome
-      if ((!is.null(tmp))&&(is.list(tmp))) {
+      if ((!is.null(tmp))&&(inherits(tmp, "list"))) {
         tmp <- parseFilePaths(getVolumes(), tmp)$datapath
         Par <- PARAM()
         Par$CRAPome_file <- normalizePath(tmp, winslash = "/")
@@ -1097,7 +1097,7 @@ server1 <- function(input, output, session) {
     observe({ shinyFileChoose(input, "CytoScVers2", roots = getVolumes(), filetypes = "exe")
       {
         tmp <- input$CytoScVers2
-        if ((!is.null(tmp))&&(is.list(tmp))) {
+        if ((!is.null(tmp))&&(inherits(tmp, "list"))) {
           assign("CytoScExe", input$CytoScVers2, envir = .GlobalEnv)
           tmp <- parseFilePaths(getVolumes(), tmp)$datapath
           Par <- PARAM()
