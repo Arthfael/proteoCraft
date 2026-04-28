@@ -10,22 +10,11 @@ closeAllConnections()
 if (exists(".obj")) { rm(".obj") }
 library(proteoCraft)
 dirlist %<o% c() # This should go!!!
-ReUseAnsw %<o% FALSE
-scrptType %<o% "withReps"
-scrptTypeFull %<o% "withReps_PG_and_PTMs"
-ExcelMax %<o% 32767L
-MakeRatios %<o% TRUE
 
 RPath %<o% as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 libPath %<o% paste0(RPath, "/proteoCraft")
 homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
-parSrc %<o% paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
-bckpSrc %<o% paste0(libPath, "/extdata/Sources/updateBackup.R")
-# Boolean functions to check parameter values
-Src <- paste0(libPath, "/extdata/Sources/parBooleans.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
 
 fls <- paste0(homePath, "/", c(#"Regulation analysis - master script.R",
   "Regulation analysis - detailed script.R",
@@ -35,10 +24,36 @@ fls <- paste0(homePath, "/", c(#"Regulation analysis - master script.R",
   "Default_locations.xlsx",
   "LC_columns.xlsx"))
 tst <- sum(!file.exists(fls))
-if (tst) { Configure() }
+if (tst) { proteoCraft::Configure() }
 xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
 locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
 locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
+
+# Load backup?
+load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Do you want to load a backup?", "yesno")$res, c("yes", "no"))]
+if (load_a_Bckp) {
+  tst <- try({
+    locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
+    load_Bckp(startDir = locDirs$Path[match("Temporary folder", locDirs$Folder)])
+  }, silent = TRUE)
+  # Update values!
+  xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
+  locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
+  locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
+}
+
+if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }
+parSrc %<o% paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
+bckpSrc %<o% paste0(libPath, "/extdata/Sources/updateBackup.R")
+# Boolean functions to check parameter values
+Src <- paste0(libPath, "/extdata/Sources/parBooleans.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+ReUseAnsw %<o% FALSE
+scrptType %<o% "withReps"
+scrptTypeFull %<o% "withReps_PG_and_PTMs"
+ExcelMax %<o% 32767L
+MakeRatios %<o% TRUE
 
 # Parameters used by the start analysis script:
 ###-|-### Workflows: setNames(c("Differential Protein Expression analysis", "Pull-Down (e.g. co-IP)", "Biotin-based Pull-Down (BioID, TurboID, APEX...)", "Time Course", "SubCellular Localisation analysis"), c("REGULATION", "PULLDOWN", "BIOID", "TIMECOURSE", "LOCALISATION"))
@@ -60,7 +75,7 @@ cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.ta
                      "tidyr", "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "lmtest", "ssh", "taxize", "arrow", "PTMods",
                      "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "plogr", "iq", "Rtsne"))
 bioc_req <- unique(c(bioc_req, "biomaRt", "GO.db", "UniProt.ws", "limma", "sva", "qvalue", "MSnbase", "DEP",
-                     "Rgraphviz", "RCy3", "siggenes", "DEqMS", "pRoloc", "pRolocGUI", "rbioapi", "png", "Rhdf5lib", "limpa", "QFeatures"))
+                     "Rgraphviz", "RCy3", "siggenes", "DEqMS", "limpa", "QFeatures", "pRoloc", "pRolocGUI", "rbioapi", "png", "Rhdf5lib"))
 inst <- as.data.frame(installed.packages())
 for (pack in cran_req) {
   if (!pack %in% inst$Package) {
@@ -114,15 +129,6 @@ biocInstall %<o% function(pack, load = TRUE) {
   if (load) { library(pack, character.only = TRUE) }
 }
 for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
-
-# Load backup?
-load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Do you want to load a backup?", "yesno")$res, c("yes", "no"))]
-if (load_a_Bckp) {
-  tst <- try({
-    locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
-    load_Bckp(startDir = locDirs$Path[match("Temporary folder", locDirs$Folder)])
-  }, silent = TRUE)
-}
 
 # Run local scripts at startup - keep this after loading the backup!
 locScrptSrc %<o% paste0(libPath, "/extdata/Sources/runLocScrpts.R")

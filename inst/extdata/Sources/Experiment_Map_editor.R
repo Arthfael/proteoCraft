@@ -202,7 +202,7 @@ ExpData2 <- ExpData2[, c(kol2, kol, "Use", "Use___FD", "Sample name")]
 wTest1 <- vapply(colnames(ExpData2), \(k) { #k <- colnames(ExpData2)[1L]
   if (k == "Parent sample") { k <- "MQ.Exp" }
   x <- if (k %in% names(wTest0)) { wTest0[k] } else { 30L }
-  return(x)
+  return(as.integer(x))
 }, 1L)
 wTest2 <- sum(wTest1) + 15L + ncol(ExpData2)*5L
 wTest1 <- paste0(as.character(wTest1), "px")

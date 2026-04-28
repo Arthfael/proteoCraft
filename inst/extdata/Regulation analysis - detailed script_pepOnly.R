@@ -6,22 +6,42 @@ options(svDialogs.rstudio = TRUE)
 #rm(list = ls()[which(!ls() %in% c("dtstNm", "wd", "inDirs", "outDir"))])
 closeAllConnections()
 
-## The proteoCraft package can be re-installed at any time in the workflow (there is a specific script for this in the package's library folder),
-## or just load it here:
+## Load proteoCraft
 if (exists(".obj")) { rm(".obj") }
-#myPackNm %<o% "proteoCraft" # Bad idea
 library(proteoCraft)
 dirlist %<o% c() # This should go!!!
-ReUseAnsw %<o% FALSE
-scrptType %<o% "withReps"
-scrptTypeFull %<o% "withReps_PTMs_only"
-ExcelMax %<o% 32767L
-MakeRatios %<o% TRUE # (Used by the sourced, core sub-script)
 
 RPath %<o% as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 libPath %<o% paste0(RPath, "/proteoCraft")
 homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+
+fls <- paste0(homePath, "/", c(#"Regulation analysis - master script.R",
+  "Regulation analysis - detailed script.R",
+  "Regulation analysis - detailed script_pepOnly.R",
+  "No replicates analysis - detailed script.R",
+  "Reload_renv_from_lock_file.R",
+  "Default_locations.xlsx",
+  "LC_columns.xlsx"))
+tst <- sum(!file.exists(fls))
+if (tst) { proteoCraft::Configure() }
+xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
+locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
+locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
+
+# Load backup?
+load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Do you want to load a backup?", "yesno")$res, c("yes", "no"))]
+if (load_a_Bckp) {
+  tst <- try({
+    locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
+    load_Bckp(startDir = locDirs$Path[match("Temporary folder", locDirs$Folder)])
+  }, silent = TRUE)
+  # Update values!
+  xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
+  locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
+  locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
+}
+
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }
 parSrc %<o% paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
 bckpSrc %<o% paste0(libPath, "/extdata/Sources/updateBackup.R")
@@ -29,19 +49,11 @@ bckpSrc %<o% paste0(libPath, "/extdata/Sources/updateBackup.R")
 Src <- paste0(libPath, "/extdata/Sources/parBooleans.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
-
-fls <- paste0(homePath, "/", c(#"Regulation analysis - master script.R",
-                               "Regulation analysis - detailed script.R",
-                               "Regulation analysis - detailed script_pepOnly.R",
-                               "No replicates analysis - detailed script.R",
-                               "Reload_renv_from_lock_file.R",
-                               "Default_locations.xlsx",
-                               "LC_columns.xlsx"))
-tst <- sum(!file.exists(fls))
-if (tst) { proteoCraft::Configure() }
-xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
-locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
-locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
+ReUseAnsw %<o% FALSE
+scrptType %<o% "withReps"
+scrptTypeFull %<o% "withReps_PTMs_only"
+ExcelMax %<o% 32767L
+MakeRatios %<o% TRUE
 
 # Parameters used by the start analysis script:
 ###-|-### Workflows: setNames(c("Differential Protein Expression analysis", "Pull-Down (e.g. co-IP)", "Biotin-based Pull-Down (BioID, TurboID, APEX...)", "Time Course","SubCellular Localisation analysis"), c("REGULATION", "PULLDOWN", "BIOID", "TIMECOURSE", "LOCALISATION"))
@@ -51,8 +63,10 @@ locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
 ### Packages
 ## For convenience all (or most) of the packages used are loaded or installed here:
 ## CRAN packages:
-if(!exists("cran_req")) { cran_req %<o% "pak" } else { cran_req %<o% cran_req }
-if(!exists("bioc_req")) { bioc_req %<o% c() } else { bioc_req %<o% bioc_req }
+if(!exists("cran_req")) { cran_req <- "pak" }
+cran_req %<o% cran_req
+if(!exists("bioc_req")) { bioc_req <- c() } 
+bioc_req %<o% bioc_req
 cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT", "shinyBS", "stringr",
                      "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "rgl", "ggrepel", "rstudioapi", "modeest",
                      "minpack.lm", "snow", "viridis", "pcaMethods", "impute", "imputeLCMD", "parallel", "coin", "openxlsx", "openxlsx2", "plotly",
@@ -115,15 +129,6 @@ biocInstall %<o% function(pack, load = TRUE) {
   if (load) { library(pack, character.only = TRUE) }
 }
 for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
-
-# Load backup?
-load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Do you want to load a backup?", "yesno")$res, c("yes", "no"))]
-if (load_a_Bckp) {
-  tst <- try({
-    locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
-    load_Bckp(startDir = locDirs$Path[match("Temporary folder", locDirs$Folder)])
-  }, silent = TRUE)
-}
 
 # Run local scripts at startup - keep this after loading the backup!
 locScrptSrc %<o% paste0(libPath, "/extdata/Sources/runLocScrpts.R")
