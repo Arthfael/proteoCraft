@@ -10,12 +10,13 @@ Exp.map$RSA_cleaned <- cleanNms(Exp.map$Ref.Sample.Aggregate)
 # ------------
 # Note on missing values: currently we do not impute but filter by number of valid values.
 # This may change.
+dataType2 <- if (dataType == "modPeptides") { "peptides" } else { dataType }
 nm <- intersect(c("ComBat", "Original"),
-                names(clustDat[[dataType]]))[1L]
-dimRedDat <- clustDat[[dataType]][[nm]]
+                names(clustDat[[dataType2]]))[1L]
+dimRedDat <- clustDat[[dataType2]][[nm]]
 kol <- colnames(dimRedDat)
 if (nm == "ComBat") {
-  w <- which(clustDat[[dataType]]$Positions_imputed, arr.ind = TRUE)
+  w <- which(clustDat[[dataType2]]$Positions_imputed, arr.ind = TRUE)
   dimRedDat[w] <- NA
 }
 if (dataType == "PG") {
