@@ -342,6 +342,7 @@ if (saintExprs) {
     # Z-scored clustering heatmaps of regulated proteins
     clustersTest <- try({
       clustMode <- "SAINTexpress"
+      dataType <- "PG"
       clstSrc <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Main.R")
       #rstudioapi::documentOpen(clstSrc)
       source(clstSrc, local = FALSE)

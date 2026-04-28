@@ -7,9 +7,10 @@
 # This seemed to be a problem of lazy evaluation of formulas.
 # To avoid the issue, do not use the "~column" formula notation but instead the "data$column" notation when mapping variables to columns in the data of each trace.
 #
-Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Prep.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+nm <- intersect(c("ComBat", "Original"),
+                names(clustDat[[dataType]]))[1L]
+myClustData <- clustDat[[dataType]][[nm]]
+myClustDataImp <- clustDat[[dataType]]$Positions_imputed
 drawPlotly <- TRUE
 if (!exists("plotLeatMaps")) { plotLeatMaps <- list() }
 plotLeatMaps %<o% plotLeatMaps
@@ -101,7 +102,7 @@ if (clustHtMp) {
     uMark <- unique(SubCellMark)
     markColors <- setNames(turbo(length(uMark)), uMark)
   }
-  #vapply(clustMap$Samples, \(x) { sum(is.na(clustDat[[x]])) }, 1L)
+  #vapply(clustMap$Samples, \(x) { sum(is.na(myClustData[[x]])) }, 1L)
   h_clustLst <- v_clustLst <- list()
   for (i in names(I)) { #i <- names(I)[1L] #i <- names(I)[2L]
     nm <- paste0("Clust. heatmap - ", i)
@@ -121,9 +122,9 @@ if (clustHtMp) {
       normTypeInsrt <- paste0(" (", normTypes, ")")
       normTypeInsrt[1L] <- ""
       normTypeInsrt <- normTypeInsrt[match(normType, normTypes)]
-      temp <- clustDat[, smpls, drop = FALSE]
+      temp <- myClustData[, smpls, drop = FALSE]
       #
-      temp <- clustDat[, smpls, drop = FALSE]
+      temp <- myClustData[, smpls, drop = FALSE]
       if (normType == "Z-scored") {
         # In that case we plot only differentially expressed proteins.
         # Only used for withReps for the time being.
@@ -139,7 +140,7 @@ if (clustHtMp) {
       if (length(wAG) > 3L) {
         temp <- temp[wAG,]
         if (ImputeKlust) {
-          whImput <- clustDatImp[wAG,]
+          whImput <- myClustDataImp[wAG,]
         }
         #
         if (normType %in% c("Norm. by row", "Z-scored")) { rwMns <- rowMeans(temp) }

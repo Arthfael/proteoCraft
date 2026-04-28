@@ -2,17 +2,17 @@
 #
 ImputeKlust %<o% TRUE # Currently MUST always be TRUE
 #
-if ((!exists("clustDat"))||(!is.list(clustDat))) { clustDat <- list() }
-if ((!exists("clustFilt"))||(!is.list(clustFilt))) { clustFilt <- list() }
-if ((!exists("plotLeatMaps"))||(!is.list(plotLeatMaps))) { plotLeatMaps <- list() }
-if ((!exists("Heatmaps"))||(!is.list(Heatmaps))) { Heatmaps <- list() }
+if ((!exists("clustDat"))||(!inherits(clustDat, "list"))) { clustDat <- list() }
+if ((!exists("clustFilt"))||(!inherits(clustFilt, "list"))) { clustFilt <- list() }
+if ((!exists("plotLeatMaps"))||(!inherits(plotLeatMaps, "list"))) { plotLeatMaps <- list() }
+if ((!exists("Heatmaps"))||(!inherits(Heatmaps, "list"))) { Heatmaps <- list() }
 clustDat %<o% clustDat
 clustFilt %<o% clustFilt
 plotLeatMaps %<o% plotLeatMaps
 Heatmaps %<o% Heatmaps
 #
 if (scrptType == "withReps") { clustHtMp <- TRUE }
-if (scrptType == "noReps") { clustHtMp <- (length(Exp) > 1L) }
+if (scrptType == "noReps") { clustHtMp <- length(Exp) > 1L }
 clustHtMp %<o% clustHtMp
 if (dataType == "PG") {
   if (scrptType == "withReps") {
@@ -28,16 +28,16 @@ if (dataType == "PG") {
   myData <- PG
   rownames(myData) <- myData$Label
 }
-if (dataType == "modPeptides") { # Currently only used to prepare data for dim-red plots, not clustering heatmaps!
+if (dataType == "peptides") { # Currently only used to prepare data for dim-red plots, not clustering heatmaps!
   # ... but this will likely change
   if (scrptType == "withReps") {
-    rfRoot <- pepRf
+    rfRoot <- pep.ref[length(pep.ref)]
   }
   if (scrptType == "noReps") {
     stop("Not written yet!")
   }
-  myData <- ptmpep
-  rownames(myData) <- ptmpep$Name
+  myData <- pep
+  rownames(myData) <- pep$id
 }
 #
 if (scrptType == "withReps") {
@@ -57,19 +57,16 @@ if (scrptType == "noReps") {
 if (dataType == "PG") {
   MaxVClust %<o% MaxVClust
   clustMap %<o% map
-} # (otherwise - for modPeptides - we re-use those from PG)
+} # (otherwise - for peptides - we re-use those from PG)
 
 
 # Original data
 # -------------
 w <- which((apply(myData[, clustXprsKol, drop = FALSE], 1L, \(x) { sum(!is.na(x)) }) > 0L)
            &((is.na(myData$`Potential contaminant`))|(myData$`Potential contaminant` != "+")))
-if (dataType == "modPeptides") {
-  myData_IDs <- myData$id[w] # for ComBat
-}
 myData <- set_colnames(myData[w, clustXprsKol, drop = FALSE], map$Samples)
 
-filt <- rownames(clustDat)[which(apply(myData[, map$Samples], 1L, \(x) { length(is.all.good(x)) }) > 0L)]
+filt <- rownames(myData)[which(apply(myData[, map$Samples], 1L, \(x) { length(is.all.good(x)) }) > 0L)]
 clustFilt[[dataType]] <- filt
 clustDat[[dataType]] <- list()
 clustDat[[dataType]]$Original <- myData
@@ -78,7 +75,7 @@ clustDat[[dataType]]$Original <- myData
 # The idea is that, yes, we may impute for clustering, but we filter based on pre-imputed data!
 
 
-# Imputated data
+# Imputed data
 # --------------
 # We will always impute here, whether we decide to use imputed data or not: we are preparing data
 if (scrptType == "withReps") { # Here we have replicates and group at samples group level
@@ -124,9 +121,9 @@ if ((scrptType == "withReps")&&(Param$Batch.effect != "")) { # Here we have repl
                     mod = mdlMtr,
                     par.prior = TRUE)
     }
-    if (dataType == "modPeptides") {
+    if (dataType == "peptides") {
       tmp <- lapply(NormGrps$Group, \(lGrp) { #lGrp <- NormGrps$Group[1L] #lGrp <- NormGrps$Group[2L]
-        w <- which(myData_IDs %in% NormGrps$IDs[[match(lGrp, NormGrps$Group)]])
+        w <- which(rownames(myData) %in% NormGrps$IDs[[match(lGrp, NormGrps$Group)]])
         if (!length(w)) { return() }
         #
         # For ComBat we only use the longitudinal groups (peptide normalisation group),
@@ -136,11 +133,11 @@ if ((scrptType == "withReps")&&(Param$Batch.effect != "")) { # Here we have repl
                      batch = btchs,
                      mod = mdlMtr,
                      par.prior = TRUE)
-        rownames(rs) <- myData_IDs[w]
+        rownames(rs) <- rownames(myData)[w]
         return(rs)
       })
       tmp <- do.call(rbind, tmp)
-      tmp <- as.data.frame(tmp[match(myData_IDs, rownames(tmp)),])
+      tmp <- as.data.frame(tmp[match(rownames(myData), rownames(tmp)),])
     }
     rownames(tmp) <- rownames(myData)
     myDataCorr <- tmp

@@ -2229,8 +2229,17 @@ if (length(Exp) > 2L) {
   })
 } else { warning("No PCA plots drawn: samples are too similar!") }
 
+# Prepare data for clustering and dimensionality reduction plots
+Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Prep.R")
+#rstudioapi::documentOpen(Src)
+dataType <- "PG"
+source(Src, local = FALSE)
+dataType <- "peptides"
+source(Src, local = FALSE)
+
 #### Code chunk - Heatmaps with clustering at samples and protein groups level, highlighting proteins of interest
 clustMode <- "standard"
+dataType <- "PG"
 clstSrc <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Main.R")
 #rstudioapi::documentOpen(clstSrc)
 source(clstSrc, local = FALSE)

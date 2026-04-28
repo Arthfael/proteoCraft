@@ -636,6 +636,7 @@ Example: \"GO:0031012;2\"
         #
         # Z-scored clustering heatmaps of re-localized proteins
         clustMode <- "re-localisation"
+        dataType <- "PG"
         Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Main.R")
         #rstudioapi::documentOpen(Src)
         source(Src, local = FALSE)

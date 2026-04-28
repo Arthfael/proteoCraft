@@ -1029,13 +1029,6 @@ Src <- paste0(libPath, "/extdata/Sources/PG_ReNorm.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-# Optional "mock" back correction
-# -------------------------------
-# In cases where we do have a batch, but did not correct for it,
-# we would still do a batch correction here so we would be able to draw PCA plots without the batch effect.
-# The idea is that we can see a good approximation of the data's structure if the batch is removed.
-
-
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc, local = FALSE)
@@ -1344,8 +1337,17 @@ source(Src, local = FALSE)
 source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
+# Prepare data for clustering and dimensionality reduction plots
+Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Prep.R")
+#rstudioapi::documentOpen(Src)
+dataType <- "PG"
+source(Src, local = FALSE)
+dataType <- "peptides"
+source(Src, local = FALSE)
+
 #### Code chunk - Heatmaps with clustering at samples and protein groups level, highlighting proteins of interest
 clustMode <- "standard"
+dataType <- "PG"
 Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Main.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)

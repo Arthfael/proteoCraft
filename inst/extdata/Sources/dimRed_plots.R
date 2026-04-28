@@ -27,7 +27,8 @@ if (dataType == "PG") {
   avgVal <- PG$"Av. log10 abundance"
 }
 if (dataType == "modPeptides") {
-  nameCol <- ptmpep$Name
+  dimRedDat <- dimRedDat[match(ptmpep$id, rownames(dimRedDat)),]
+  rownames(dimRedDat) <- nameCol <- ptmpep$Name
   contCol <- ptmpep$`Potential contaminant`
   avgVal <- rowMeans(dimRedDat, na.rm = TRUE)
 }
