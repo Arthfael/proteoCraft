@@ -67,7 +67,7 @@ odpRoot %<o% "ODP -log10(Pvalue) - "
 lrtRoot %<o% "LRT -log10(Pvalue) - "
 #
 pvalue.col %<o% c(StudentRoot, WelchRoot, modRoot, deqmsRoot, permRoot, samRoot#, odpRoot, lrtRoot
-                  )
+)
 names(pvalue.col) <- vapply(pvalue.col, \(x) { unlist(strsplit(x, "\\.|\\'|\\ "))[1L] }, "")
 ParamFls <- c(paste0(wd, "/Parameters.csv"),
               paste0(libPath, "/extData/Parameters_template.csv"))
@@ -223,7 +223,7 @@ prDflt <- setNames(rep(TRUE, length(pr)), pr)
 prDflt["Adv.Norma.Ev.Intens"] <- (length(unique(FracMap$Fraction)) > 1L)|
   (length(unique(FracMap$`PTM-enriched`)) > 1L)
 prDflt[c(#"Norma.Pep.Ratio", "Adv.Norma.Pep.Ratio",
-         "Norma.Prot.Ratio.to.Biot")] <- FALSE
+  "Norma.Prot.Ratio.to.Biot")] <- FALSE
 for (p in pr) { #p <- pr[1L]
   dflt <- prDflt[p]
   if (!p %in% colnames(Param)) { Param[[p]] <- dflt } else {
@@ -507,7 +507,7 @@ threshDflt <- threshOpt[2L]
 #   Param$Ratios.Thresholds <- "% of intra-sample group ratios"
 # }
 # if (Param$Ratios.Thresholds ==  "Absolute threshold") {
-  Param$Ratios.Thresholds <- "Absolute log2 FC threshold"
+Param$Ratios.Thresholds <- "Absolute log2 FC threshold"
 # }
 # threshDflt <- Param$Ratios.Thresholds
 Mitch <- match(threshDflt, threshOpt)
@@ -785,7 +785,7 @@ wMp <- c(which(colnames(Param) == coreNms[1L]),
          which(colnames(Param) == coreNms[5L]),
          which(colnames(Param) == coreNms[6L]),
          which((Param[1L,] == "MAP2FACTS")&(!colnames(Param) %in% c(coreNms, "Batch.correction" # (for backwards compatibility; different from "Batch.effect")
-                                                                   ))))
+         ))))
 lstFct <- list()
 dfltFct <- list()
 factOpt2 <- Factors[which(Factors != "Replicate")]
@@ -1068,8 +1068,8 @@ make_ui1 <- \() {
              #             Param$Ratios.Contaminant.Groups,
              #             width = "100%")
              numericInput("RatCont", "Abs. log2(FC) threshold value = ", KontRt, 0, Inf, 0.001, width = "100%")
-             )
-      ),
+      )
+    ),
     br(),
     fluidRow(column(2L,
                     h5(strong(" -> ANOVA (moderated F-test //limma)")),
@@ -2414,7 +2414,7 @@ tmp <- data.frame(Param = colnames(Param),
                       #g <- grep("^[A-Z][a-z]{2}$", x)
                       x <- paste(x, collapse = #c(
                                    ";"#, "")[(length(g) == l) + 1L]
-                                 )
+                      )
                     }
                     return(x)
                   }, ""))

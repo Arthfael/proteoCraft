@@ -273,7 +273,12 @@ Shiny.bindAll(table.table().node());"))
   corrTst <- t.test(unlist(tmpDat2Imp[wAG1, currSamples[wHere]]),
                     unlist(tmpDat1Imp[wAG1, currSamples[wHere]]),
                     paired = TRUE)
-  KeepIRSRes <- corrTst$p.value < 0.01 # Default: keep results only if data is very significantly different
+  if ("Decision" %in% (normSequence[[nrmStp]])) {
+    KeepIRSRes <- normSequence[[nrmStp]]$Decision
+  }
+  if (!validLogicPar("KeepIRSRes")) {
+    KeepIRSRes <- corrTst$p.value < 0.01 # Default: keep results only if data is very significantly different
+  }
   l <- min(c(length(PCsLst[[prev]]$sdev), length(PCsLst[[curr]]$sdev)))
   l2 <- min(c(5, l))
   rg2 <- 1L:l2
@@ -359,6 +364,6 @@ Shiny.bindAll(table.table().node());"))
   if (KeepIRSRes) {
     txt2 <- paste0("corrected against the ", IsobarLab, "-associated batch effect using the Internal Reference Scaling method (P. Wilmarth)")
   }
-  Outcome <- KeepComBatRes
+  normSequence[[nrmStp]]$Decision <- Outcome <- KeepIRSRes
   cat(msg)
 }

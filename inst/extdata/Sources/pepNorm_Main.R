@@ -51,10 +51,15 @@ if (lNorm) {
   for (nrmStp in 1L:lNorm) { #nrmStp <- 1L #nrmStp <- nrmStp+1L
     rg <- 1L:nrmStp # (and not 1L:(nrmStp-1): the first in the list is pre-norm data -> there is an offset)
     prevStp <- max(which(vapply(rg, \(i) { pepNorm[[i]]$Pass }, TRUE)))
-    cat("\n +++ Step", nrmStp, normSequence[[nrmStp]]$Method, "\n    input = step", prevStp-1L, "\n")
-    tmpDat1 <- pepNorm[[prevStp]]$Data # The first in the list is pre-norm data -> offset
+    mth <- normSequence[[nrmStp]]$Method
+    if (mth == "ComBat") {
+      cat("\n +++ Step", nrmStp, mth, "vs", normSequence[[nrmStp]]$Batch, "\n    input = step", prevStp-1L, "\n") 
+    } else {
+      cat("\n +++ Step", nrmStp, mth, "\n    input = step", prevStp-1L, "\n") 
+    }
+    xtmpDat1 <- pepNorm[[prevStp]]$Data # The first in the list is pre-norm data -> offset
     #View(tmpDat1)
-    #normSequence[[nrmStp]]$Method
+    #mth
     w <- which(!addKol %in% colnames(tmpDat1))
     if (length(w)) { tmpDat1[, addKol[w]] <- pep[, names(addKol)[w]] }
     wAG1 <- pepNorm[[prevStp]]$Filter

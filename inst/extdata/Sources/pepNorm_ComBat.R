@@ -18,7 +18,8 @@ dirlist <- unique(c(dirlist, btchDir))
 # Let's do some imputation:
 # (remember to remove those afterwards!)
 currSamples <- allSamples[which(allSamples %in% colnames(tmpDat1))]
-ImpGrps <- Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),
+smplsMtch <- match(currSamples, Exp.map$Ref.Sample.Aggregate)
+ImpGrps <- Exp.map[smplsMtch,
                    VPAL$column]
 tmpDat2 <- tmpDat1[, currSamples]*NA
 #
@@ -27,7 +28,10 @@ if (length(myBatch) > 1L) {
   myBatch2 <- paste(substr(myBatch, 1L, 3L), collapse = "")
   myBatch3 <- paste(myBatch, collapse = "/")
 }
-mod0a <- model.matrix(~1, data = Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),])
+m <- match(gsub("___", "_", as.character(expMap[smplsMtch, RSA$limmaCol])), row.names(designMatr))
+mdlMtr <- designMatr_noBatch[m,] # Note: it is important for good batch correction to also make ComBat aware of other covariates so it doesn't remove them too!
+# Hence why the "~1" model should be avoided. We now pre-make the ComBat model matrix in advance. Important: it cannot be based on a formula with ~ 0  intercept, otherwise ComBat will fail!
+#mdlMtr <- model.matrix(~1, data = Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),]) # Old code for reference, do NOT use!
 #
 # Impute
 tmp <- Data_Impute2(tmpDat1[, currSamples], ImpGrps)
@@ -35,18 +39,18 @@ tmpDat2Imp <- tmpDat1Imp <- tmp$Imputed_data
 Pos <- tmp$Positions_Imputed
 #
 for (lGrp in NormGrps$Group) { #lGrp <- NormGrps$Group[1L] # Longitudinal group (peptide class)
-  grpMtch <- match(NormGrps$IDs[[match(lGrp, NormGrps$Group)]],
-                   tmpDat1$id[wAG1])
-  grpMtch <- grpMtch[which(!is.na(grpMtch))]
-  #
-  # For ComBat we only use the longitudinal groups (peptide normalisation group),
-  # not the transversal groups (comparison/ratio groups).
-  # Indeed, batches will often intersect with the latter
-  btchs <- Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate), myBatch2]
-  tmpDat2Imp[grpMtch, currSamples] <- ComBat(dat = tmpDat1Imp[grpMtch,],
-                                            batch = btchs,
-                                            mod = mod0a,
-                                            par.prior = TRUE)
+  w <- which(tmpDat1$id[wAG1] %in% NormGrps$IDs[[match(lGrp, NormGrps$Group)]])
+  if (length(w)) {
+    # For ComBat we only use longitudinal groups (peptide normalisation group),
+    # not transversal groups (comparison/ratio groups).
+    # Indeed, batches will often intersect with the latter
+    btchs <- Exp.map[smplsMtch, myBatch2]
+    tmpDat2Imp[w, currSamples] <- ComBat(tmpDat1Imp[w,],
+                                         btchs,
+                                         mdlMtr,
+                                         par.prior = TRUE)
+  }
+  
 }
 tmpDat2 <- tmpDat2Imp[, currSamples]
 #
@@ -87,9 +91,9 @@ if (!validLogicPar("KeepComBatRes")) {
 }
 l <- min(c(length(PCsLst$original$sdev), length(PCsLst[[myBatch2]]$sdev)))
 l2 <- min(c(5L, l))
-PCs <- data.frame("Component" = paste0("PC", as.character(1:l2)),
-                  "Before (%)" = round(100*(PCsLst[["original"]]$sdev[1:l2])^2L / sum(PCsLst[["original"]]$sdev^2L), 0L),
-                  "After (%)" = round(100*(PCsLst[[myBatch2]]$sdev[1:l2])^2L / sum(PCsLst[[myBatch2]]$sdev^2L), 0L),
+PCs <- data.frame("Component" = paste0("PC", as.character(1L:l2)),
+                  "Before (%)" = round(100*(PCsLst[["original"]]$sdev[1L:l2])^2L / sum(PCsLst[["original"]]$sdev^2L), 0L),
+                  "After (%)" = round(100*(PCsLst[[myBatch2]]$sdev[1L:l2])^2L / sum(PCsLst[[myBatch2]]$sdev^2L), 0L),
                   check.names = FALSE)
 if (l2 < l) {
   PCs <- rbind(PCs, data.frame(Component = "...",

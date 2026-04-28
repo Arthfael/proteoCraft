@@ -1,4 +1,6 @@
 #### Dimensionality reduction plots
+# Currently only used by the replicate scripts!
+#
 if (!exists("dimRedPlotLy")) { dimRedPlotLy <- list() }
 dimRedPlotLy %<o% dimRedPlotLy
 #
@@ -8,43 +10,39 @@ Exp.map$RSA_cleaned <- cleanNms(Exp.map$Ref.Sample.Aggregate)
 # ------------
 # Note on missing values: currently we do not impute but filter by number of valid values.
 # This may change.
+Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Prep.R") # Run this to generate imputed data which we use for the PCAs
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+nm <- intersect(c("ComBat", "Original"),
+                names(clustDat[[dataType]]))[1L]
+dimRedDat <- clustDat[[dataType]][[nm]]
+kol <- colnames(dimRedDat)
+if (nm == "ComBat") {
+  w <- which(clustDat[[dataType]]$Positions_imputed, arr.ind = TRUE)
+  dimRedDat[w] <- NA
+}
 if (dataType == "PG") {
-  # clustPrep <- sum(c(exists("clustDat"),
-  #                    exists("clustDatImp"))) == 2L
-  Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Prep.R") # Run this to generate imputed data which we use for the PCAs
-  #rstudioapi::documentOpen(Src)
-  source(Src, local = FALSE)
-  kol <- cleanNms(RSA$values)
-  kol <- intersect(kol, colnames(clustDat))
-  datMatch <- match(row.names(clustDat), PG$Label)
-  dimRedDat <- clustDat
-  filt <- which((apply(dimRedDat[, kol], 1L, \(x) { length(is.all.good(x)) }) == ncol(dimRedDat))
-                &((is.na(PG$`Potential contaminant`[datMatch]))|(PG$`Potential contaminant`[datMatch] != "+")))
+  nameCol <- PG$Label
+  contCol <- PG$`Potential contaminant`
+  avgVal <- PG$"Av. log10 abundance"
 }
 if (dataType == "modPeptides") {
-  kol <- paste0(ptms.ref[length(ptms.ref)], RSA$values)
-  dimRedDat <- ptmpep[, kol]
-  colnames(dimRedDat) <- kol <- cleanNms(RSA$values)
-  rownames(dimRedDat) <- ptmpep$Name
-  datMatch <- match(row.names(dimRedDat), ptmpep$Name) 
-  filt <- which((apply(dimRedDat[, kol], 1L, \(x) { length(is.all.good(x)) }) == ncol(dimRedDat))
-                &((is.na(ptmpep$`Potential contaminant`[datMatch]))|(ptmpep$`Potential contaminant`[datMatch] != "+")))
+  nameCol <- ptmpep$Name
+  contCol <- ptmpep$`Potential contaminant`
+  avgVal <- rowMeans(dimRedDat, na.rm = TRUE)
 }
+datMatch <- match(row.names(dimRedDat), nameCol)
+filt <- which((apply(dimRedDat[, kol], 1L, \(x) { length(is.all.good(x)) }) == ncol(dimRedDat))
+              &((is.na(contCol[datMatch]))|(contCol[datMatch] != "+")))
 #
 # Plots
 # -----
 if ((length(filt) > 2L)&&(length(kol) > 2L)) {
   dimRedDat <- dimRedDat[filt, kol]
   # Normalizing properly is crucial:
-  datMatch <- match(row.names(dimRedDat), PG$Label)
+  datMatch <- match(row.names(dimRedDat), nameCol)
   # We are now (line below) normalizing by average abundance, just in case, however the effect seems minimal:
-  if (dataType == "PG") {
-    avgVal <- PG$"Av. log10 abundance"[datMatch]
-  }
-  if (dataType == "modPeptides") {
-    avgVal <- rowMeans(dimRedDat, na.rm = TRUE)
-  }
-  dimRedDat <- sweep(dimRedDat, 1L, avgVal, "-")
+  dimRedDat <- sweep(dimRedDat, 1L, avgVal[datMatch], "-")
   dimRedDat <- dimRedDat + rnorm(length(unlist(dimRedDat)), 0, 10L^-9L) # To avoid constant/zero columns, add a small random error
   #
   # PCA plots, by sample
@@ -144,16 +142,16 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
     pv <- paste0("Components: ", paste(vapply(seq_along(pv), \(x) {
       paste0("PC", x, ": ", pv[x], "%")
     }, ""), collapse = ", "))
-    datMatch <- match(rownames(scores), PG$Label)
+    datMatch <- match(rownames(scores), nameCol)
     scores[, c("Protein group", "Av. log10 abundance")] <- PG[datMatch, c(Param$Plot.labels, "Av. log10 abundance")]
     scores$Range <- PG$"Rel. av. log10 abundance"[datMatch] # Useful to check if distribution correlates with expression.
     #
-    # We will always plot subcellular localisation markers if we have annotations... and overlay regulation on top of that
+    # We will always plot sub-cellular localisation markers if we have annotations... and overlay regulation on top of that
     nullVal <- " "
     scores$Classifier <- nullVal
     ClassNm <- nullVal
     if (Annotate) {
-      datMatch <- match(row.names(dimRedDat), PG$Label)
+      datMatch <- match(row.names(dimRedDat), nameCol)
       #
       if (!exists("SubCellMark")) {
         # Get or generate subcellular localisation markers - for later use
@@ -166,13 +164,13 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
       SubCellMark2 <- listMelt(strsplit(PG$`Leading protein IDs`[datMatch], ";"), datMatch, c("ID", "row"))
       SubCellMark2 <- SubCellMark2[which(SubCellMark2$ID %in% names(SubCellMark)),]
       SubCellMark2$Comp <- SubCellMark[match(SubCellMark2$ID, names(SubCellMark))]
-      SubCellMark2$Label <- PG$Label[SubCellMark2$row]
+      SubCellMark2$Label <- nameCol[SubCellMark2$row]
       tst <- aggregate(SubCellMark2$row, list(SubCellMark2$Comp), list)
       colnames(tst) <- c("Comp", "row")
       ClassNm <- paste(tst$Comp, collapse = " / ")
       tst <- setNames(tst$row, tst$Comp)
       for (comp in names(tst)) {
-        w1 <- which(rownames(scores) %in% PG$Label[unlist(tst[[comp]])])
+        w1 <- which(rownames(scores) %in% nameCol[unlist(tst[[comp]])])
         scores$Classifier[w1] <- comp
       }
       SubCellMark2 <- aggregate(SubCellMark2$Comp, list(SubCellMark2$Label), unique)
@@ -189,7 +187,7 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
       allVal[1L] <- nullVal <- paste(rep("", length(g)), collapse = " / ")
       w <- which(scores$Classifier == " ")
       scores$Classifier[w] <- nullVal
-      datMatch <- match(row.names(dimRedDat), PG$Label)
+      datMatch <- match(row.names(dimRedDat), nameCol)
       if (length(g) <= 6L) {
         ClassNm <- cleanNms(gsub("^Regulated - ", "", g))
         tmp <- do.call(cbind, (lapply(g, \(x) {

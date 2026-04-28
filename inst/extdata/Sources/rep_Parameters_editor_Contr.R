@@ -455,25 +455,48 @@ myContrasts$isDouble <- myContrasts$Secondary != "" # For convenience
 # Design matrix
 tmpForm <- unlist(strsplit(limmaForm, " \\+ "))
 tmpForm <- tmpForm[2L:length(tmpForm)]
+if ((!is.na(Param$Batch.effect))&&(Param$Batch.effect != "")) {
+  # Let's also make now a design matrix without batch effect for use by ComBat
+  stopifnot(Batch.effect$names %in% tmpForm) # this would indicate that I made a mistake in how limmaForm encodes batch effect
+  tmpFormB <- setdiff(tmpForm, Batch.effect$names)
+  tmpFormB <- paste0(tmpFormB, "_._")
+  tmpFormB_ <- paste0("~ ", paste(tmpFormB, collapse = " + ")) # very important: no 0 intercept here (unlike design matrix), otherwise ComBat will fail with "At least one covariate is confounded with batch! Please remove confounded covariates and rerun ComBat
+  designMatr_noBatch %<o% model.matrix(as.formula(tmpFormB_))
+}
 tmpForm <- paste0(tmpForm, "_._")
-tmpForm2 <- paste0("~ 0 + ", paste(tmpForm, collapse = " + "))
-designMatr %<o% model.matrix(as.formula(tmpForm2))
+tmpForm_ <- paste0("~ 0 + ", paste(tmpForm, collapse = " + "))
+designMatr %<o% model.matrix(as.formula(tmpForm_))
 # Test before we edit column names
-tst <- lapply(tmpForm, \(x) {
-  grep(topattern(x), colnames(designMatr))
-})
+tst <- lapply(tmpForm, \(x) { grep(topattern(x), colnames(designMatr)) })
 l <- length(tmpForm)
 if (l > 1L) {
   for (i in 2L:l) {
     stopifnot(sum(tst[[i]] %in% unlist(tst[[1L:(i-1L)]])) == 0L)
   }
 }
-# Edit
+# Edit - using dimnames here to avoid stripping other attributes
 for (i in 1L:l) {
-  colnames(designMatr)[tst[[i]]] <- sub(topattern(tmpForm[i]), "", colnames(designMatr)[tst[[i]]])
+  dimnames(designMatr)[[2L]][tst[[i]]] <- sub(topattern(tmpForm[i]), "", dimnames(designMatr)[[2L]][tst[[i]]])
 }
-colnames(designMatr) <- gsub("___", "_", colnames(designMatr))
-rownames(designMatr) <- gsub("___", "_", as.character(expMap[[RSA$limmaCol]]))
+dimnames(designMatr)[[2L]] <- gsub("___", "_", dimnames(designMatr)[[2L]])
+dimnames(designMatr)[[1L]] <- gsub("___", "_", as.character(expMap[[RSA$limmaCol]]))
+if ((!is.na(Param$Batch.effect))&&(Param$Batch.effect != "")) {
+  # As above for designMatr_noBatch
+  # Test before we edit column names
+  tst <- lapply(tmpFormB, \(x) { grep(topattern(x), colnames(designMatr_noBatch)) })
+  l <- length(tmpFormB)
+  if (l > 1L) {
+    for (i in 2L:l) {
+      stopifnot(sum(tst[[i]] %in% unlist(tst[[1L:(i-1L)]])) == 0L)
+    }
+  }
+  # Edit - using dimnames here to avoid stripping other attributes
+  for (i in 1L:l) {
+    dimnames(designMatr_noBatch)[[2L]][tst[[i]]] <- sub(topattern(tmpFormB[i]), "", dimnames(designMatr_noBatch)[[2L]][tst[[i]]])
+  }
+  dimnames(designMatr_noBatch)[[2L]] <- gsub("___", "_", dimnames(designMatr_noBatch)[[2L]])
+  dimnames(designMatr_noBatch)[[1L]] <- gsub("___", "_", as.character(expMap[[RSA$limmaCol]]))
+}
 #
 # Contrasts matrix
 contrMatr %<o% makeContrasts(contrasts = myContrasts$Contrast, levels = designMatr)

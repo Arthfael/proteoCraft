@@ -1,85 +1,159 @@
 # Prepare data for clustering heatmaps script
 #
-# This script prepares some data which will be re-used when we run the cluster_Heatmap source
-#if ((!exists("clustPrep"))||(!is.logical(clustPrep))||(length(clustPrep) != 1L)||(is.na(clustPrep))) { clustPrep <- FALSE }
-myObj <- c("ImputeKlust", "clustHtMp", "prtRfRoot", "mySmpls", "clustXprsKol", "clustSmpls", "clustMap",
-           "clustFilt", "clustDat", "clustDat0", "clustDatImp", "KlustRoot", "plotLeatMaps", "Heatmaps",
-           "NHClust", "NVClust", "KlustKols", "MaxHClust", "MaxVClust", "VClusters", "HClusters")
-tst <- vapply(myObj, \(x) { exists(x) & (x %in% .obj) }, TRUE)
-#clustPrep %<o% (clustPrep&(exists("MaxVClust"))&(!sum(!tst))) # clustPrep is dangerous, better rerun the code, it's quick!
-
 ImputeKlust %<o% TRUE # Currently MUST always be TRUE
 #
-#if (!clustPrep) {
+if ((!exists("clustDat"))||(!is.list(clustDat))) { clustDat <- list() }
+if ((!exists("clustFilt"))||(!is.list(clustFilt))) { clustFilt <- list() }
+if ((!exists("plotLeatMaps"))||(!is.list(plotLeatMaps))) { plotLeatMaps <- list() }
+if ((!exists("Heatmaps"))||(!is.list(Heatmaps))) { Heatmaps <- list() }
+clustDat %<o% clustDat
+clustFilt %<o% clustFilt
+plotLeatMaps %<o% plotLeatMaps
+Heatmaps %<o% Heatmaps
+#
+if (scrptType == "withReps") { clustHtMp <- TRUE }
+if (scrptType == "noReps") { clustHtMp <- (length(Exp) > 1L) }
+clustHtMp %<o% clustHtMp
+if (dataType == "PG") {
   if (scrptType == "withReps") {
-    clustHtMp <- TRUE
     prtRfRoot <- if (LocAnalysis) { Prot.Expr.Root2 } else { Prot.Expr.Root }
-  }
-  if (scrptType == "noReps") {
-    clustHtMp <- (length(Exp) > 1L)
-    prtRfRoot <- PG.int.col
-  }
-  clustHtMp %<o% clustHtMp
-  prtRfRoot %<o% prtRfRoot
-  #
-  if (scrptType == "withReps") {
-    clustXprsKol <- paste0(prtRfRoot, Exp.map$Ref.Sample.Aggregate)
-    clustSmpls <- which(clustXprsKol %in% colnames(PG))
-    clustXprsKol <- clustXprsKol[clustSmpls]
-    clustMap <- Exp.map[clustSmpls,]
-    clustMap$Samples <- cleanNms(clustMap$Ref.Sample.Aggregate)
-  }
-  if (scrptType == "noReps") {
-    clustXprsKol <- paste0(prtRfRoot, SamplesMap$Experiment)
-    clustSmpls <- which(clustXprsKol %in% colnames(PG))
-    clustXprsKol <- clustXprsKol[clustSmpls]
-    clustMap <- SamplesMap[clustSmpls,]
-    clustMap$Samples <- cleanNms(clustMap$Experiment)
-  }
-  mySmpls %<o% clustMap$Samples
-  clustXprsKol %<o% clustXprsKol
-  clustSmpls %<o% clustSmpls
-  clustMap %<o% clustMap
-  #
-  clustFilt %<o% which((apply(PG[, clustXprsKol, drop = FALSE], 1L, \(x) { sum(!is.na(x)) }) > 0L)
-                       &((is.na(PG$`Potential contaminant`))|(PG$`Potential contaminant` != "+")))
-  clustDat %<o% set_rownames(set_colnames(PG[clustFilt, clustXprsKol, drop = FALSE], clustMap$Samples),
-                             PG$Label[clustFilt])
-  clustDat0 %<o% clustDat
-  if (ImputeKlust) {
-    if (scrptType == "withReps") {
-      Gr <- clustMap[[VPAL$column]] # Here we have replicates and group at samples group level
-    }
-    if (scrptType == "noReps") {
-      # Here we do not have replicates and group at comparison group level
-      Gr <- clustMap$`Ratios group`
-    }
-    Gr <- setNames(match(Gr, unique(Gr)), Gr)
-    clustDat <- Data_Impute2(clustDat, Gr)
-    clustDatImp %<o%  clustDat$Positions_Imputed
-    clustDat <- clustDat$Imputed_data
-    rownames(clustDatImp) <- rownames(clustDat)
-    colnames(clustDatImp) <- clustMap$Samples
-    #vapply(clustMap$Samples, \(x) { sum(is.na(clustDat[[x]])) }, 1L) # df
-    #vapply(clustMap$Samples, \(x) { sum(clustDatImp[, x]) }, 1L) # matrix
-  }
-  #
-  KlustRoot %<o% paste0("Cluster (", c("K-means", "hierarch.")[KlustMeth], ") - ")
-  plotLeatMaps %<o% list()
-  Heatmaps %<o% list()
-  NHClust %<o% list()
-  NVClust %<o% list()
-  KlustKols %<o% c()
-  MaxHClust %<o% min(c(floor(nrow(PG)/2), 100L)) # We want at most 20 clusters
-  if (scrptType == "withReps") {
     MaxVClust <- length(VPAL$values)
   }
   if (scrptType == "noReps") {
+    prtRfRoot <- PG.int.col
     MaxVClust <- length(Exp)
   }
+  prtRfRoot %<o% prtRfRoot
+  rfRoot <- prtRfRoot
+  myData <- PG
+  rownames(myData) <- myData$Label
+}
+if (dataType == "modPeptides") { # Currently only used to prepare data for dim-red plots, not clustering heatmaps!
+  # ... but this will likely change
+  if (scrptType == "withReps") {
+    rfRoot <- pepRf
+  }
+  if (scrptType == "noReps") {
+    stop("Not written yet!")
+  }
+  myData <- ptmpep
+  rownames(myData) <- ptmpep$Name
+}
+#
+if (scrptType == "withReps") {
+  clustXprsKol <- paste0(rfRoot, Exp.map$Ref.Sample.Aggregate)
+  clustSmpls <- which(clustXprsKol %in% colnames(myData))
+  clustXprsKol <- clustXprsKol[clustSmpls]
+  map <- Exp.map[clustSmpls,]
+  map$Samples <- cleanNms(map$Ref.Sample.Aggregate)
+}
+if (scrptType == "noReps") {
+  clustXprsKol <- paste0(rfRoot, SamplesMap$Experiment)
+  clustSmpls <- which(clustXprsKol %in% colnames(myData))
+  clustXprsKol <- clustXprsKol[clustSmpls]
+  map <- SamplesMap[clustSmpls,]
+  map$Samples <- map$Experiment
+}
+if (dataType == "PG") {
   MaxVClust %<o% MaxVClust
+  clustMap %<o% map
+} # (otherwise - for modPeptides - we re-use those from PG)
+
+
+# Original data
+# -------------
+w <- which((apply(myData[, clustXprsKol, drop = FALSE], 1L, \(x) { sum(!is.na(x)) }) > 0L)
+           &((is.na(myData$`Potential contaminant`))|(myData$`Potential contaminant` != "+")))
+if (dataType == "modPeptides") {
+  myData_IDs <- myData$id[w] # for ComBat
+}
+myData <- set_colnames(myData[w, clustXprsKol, drop = FALSE], map$Samples)
+
+filt <- rownames(clustDat)[which(apply(myData[, map$Samples], 1L, \(x) { length(is.all.good(x)) }) > 0L)]
+clustFilt[[dataType]] <- filt
+clustDat[[dataType]] <- list()
+clustDat[[dataType]]$Original <- myData
+#clustDat[[dataType]]$Original -> myData
+# Do not update clustFilt within the ImputeKlust loop below!
+# The idea is that, yes, we may impute for clustering, but we filter based on pre-imputed data!
+
+
+# Imputated data
+# --------------
+# We will always impute here, whether we decide to use imputed data or not: we are preparing data
+if (scrptType == "withReps") { # Here we have replicates and group at samples group level
+  Grps <- map[[VPAL$column]]
+}
+if (scrptType == "noReps") { # Here we do not have replicates and group at comparison group level
+  Grps <- map$`Ratios group`
+}
+Grps <- setNames(match(Grps, unique(Grps)), Grps)
+tmp <- Data_Impute2(myData, Grps)
+clustDat[[dataType]]$Imputed <- myData <- tmp$Imputed_data
+myDataImp <- tmp$Positions_Imputed
+rownames(myDataImp) <- rownames(myData)
+colnames(myDataImp) <- colnames(myData)
+clustDat[[dataType]]$Positions_imputed <- myDataImp
+
+# Batch-correct
+# -------------
+# Sometimes we have identified a batch, but decided no to correct for it in the data we use for statistical tests
+# (e.g. since limma can encode it in its design matrix).
+# In that case, we may optionally still remove it from the PCA.
+if ((scrptType == "withReps")&&(Param$Batch.effect != "")) { # Here we have replicates and group at samples group level
+  nms <- Batch.effect$names
+  w <- which(vapply(normSequence, \(x) { x$Method }, "") == "ComBat")
+  if (length(w)) {
+    btchs <- lapply(normSequence[w], \(x) { x$Batch })
+    w <- w[which(vapply(btchs, \(x) { sum(nms %in% x) }, 1L) == length(nms))]
+  }
+  if (length(w)) {
+    dcs <- vapply(normSequence[w], \(x) { x$Decision }, TRUE)
+    runComBatNow <- sum(!dcs) > 0L
+  } else {
+    runComBatNow <- TRUE
+  }
+  if (runComBatNow) {
+    m <- match(colnames(myData), map$Samples)
+    btchs <- factor(map[m, Batch.effect$column])
+    mdlMtr <- designMatr_noBatch[match(gsub("___", "_", as.character(expMap[m, RSA$limmaCol])), row.names(designMatr_noBatch)),]
+    #mdlMtr <- model.matrix(~1, data = Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),])
+    if (dataType == "PG") {
+      tmp <- ComBat(dat = myData,
+                    batch = btchs,
+                    mod = mdlMtr,
+                    par.prior = TRUE)
+    }
+    if (dataType == "modPeptides") {
+      tmp <- lapply(NormGrps$Group, \(lGrp) { #lGrp <- NormGrps$Group[1L] #lGrp <- NormGrps$Group[2L]
+        w <- which(myData_IDs %in% NormGrps$IDs[[match(lGrp, NormGrps$Group)]])
+        if (!length(w)) { return() }
+        #
+        # For ComBat we only use the longitudinal groups (peptide normalisation group),
+        # not the transversal groups (comparison/ratio groups).
+        # Indeed, batches will often intersect with the latter
+        rs <- ComBat(dat = myData[w,],
+                     batch = btchs,
+                     mod = mdlMtr,
+                     par.prior = TRUE)
+        rownames(rs) <- myData_IDs[w]
+        return(rs)
+      })
+      tmp <- do.call(rbind, tmp)
+      tmp <- as.data.frame(tmp[match(myData_IDs, rownames(tmp)),])
+    }
+    rownames(tmp) <- rownames(myData)
+    myDataCorr <- tmp
+    clustDat[[dataType]]$ComBat <- myDataCorr
+  }
+}
+#
+if (dataType == "PG") {
+  KlustRoot %<o% paste0("Cluster (", c("K-means", "hierarch.")[KlustMeth], ") - ")
+  NHClust %<o% list()
+  NVClust %<o% list()
+  KlustKols %<o% c()
+  MaxHClust %<o% min(c(as.integer(floor(nrow(PG)/2)), 100L)) # We want at most 20 clusters
   VClusters %<o% list()
   HClusters %<o% list()
-  #
-  #clustPrep <- TRUE
-#}
+}

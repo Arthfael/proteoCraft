@@ -26,6 +26,7 @@ if (clustHtMp) {
     clustRegFilters <- Reg_filters[[clustMode]]$`By condition`
     clustDir <- paste0(wd, "/Reg. analysis/", clustMode, "/Heatmaps")
   }
+  mySmpls <- clustMap$Samples
   verbose <- FALSE
   if (!dir.exists(clustDir)) { dir.create(clustDir, recursive = TRUE) }
   if (scrptType == "withReps") {
@@ -100,7 +101,6 @@ if (clustHtMp) {
     uMark <- unique(SubCellMark)
     markColors <- setNames(turbo(length(uMark)), uMark)
   }
-  #vapply(clustXprsKol, \(x) { sum(is.na(PG[clustFilt, x])) }, 1L)
   #vapply(clustMap$Samples, \(x) { sum(is.na(clustDat[[x]])) }, 1L)
   h_clustLst <- v_clustLst <- list()
   for (i in names(I)) { #i <- names(I)[1L] #i <- names(I)[2L]
@@ -113,7 +113,7 @@ if (clustHtMp) {
     msg <- paste0("Creating ", c("", paste0(i, " "))[(i == "Global")+1L], "heatmap",
                   c(paste0(" for ", i), "")[(i == "Global")+1L], ".")
     ReportCalls <- AddMsg2Report(Space = FALSE)
-    for (normType in normTypes) { #normType <- normTypes[1L] #normType <- normTypes[2L] #normType <- normTypes[3]
+    for (normType in normTypes) { #normType <- normTypes[1L] #normType <- normTypes[2L] #normType <- normTypes[3L]
       clustNm <- paste0(i, " - ", normType)
       if (length(normTypes) > 1L) {
         cat(" -", normType, "\n")
@@ -128,15 +128,14 @@ if (clustHtMp) {
         # In that case we plot only differentially expressed proteins.
         # Only used for withReps for the time being.
         # We will keep it simple, making one filter only and use any protein which is significant in any test.
-        myClustFilter <- PG$Label[sort(unique(unlist(lapply(names(clustRegFilters), \(nm) {
+        preFilt <- PG$Label[sort(unique(unlist(lapply(names(clustRegFilters), \(nm) {
           clustRegFilters[[nm]]$Filter
         }))))]
-        temp <- temp[which(rownames(temp) %in% myClustFilter),]
+        temp <- temp[which(rownames(temp) %in% preFilt),]
       }
       #tst <- apply(temp, 1L, \(x) { length(is.all.good(x)) }) == lXprs
       # Filter to include only rows for which we have at least one valid value
-      wAG <- which(apply(clustDat0[, smpls], 1L, \(x) { length(is.all.good(x)) }) > 0L)
-      wAG <- which(rownames(temp) %in% rownames(clustDat0)[wAG])
+      wAG <- which(rownames(temp) %in% clustFilt[[dataType]])
       if (length(wAG) > 3L) {
         temp <- temp[wAG,]
         if (ImputeKlust) {

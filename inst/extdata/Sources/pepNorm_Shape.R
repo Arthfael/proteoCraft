@@ -160,11 +160,14 @@ ReportCalls <- AddPlot2Report(Plot = MAplot, Title = MAttl, Dir = shpDr)
 #
 appNm <- paste0(normMeth, " normalisation")
 msg <- paste0("Keep results from ", normMeth, " normalisation? (untick to cancel correction)")
-if ((!exists("KeepShapeCorrRes"))||(length(KeepShapeCorrRes) != 1L)||(!is.logical(KeepShapeCorrRes))||(is.na(KeepShapeCorrRes))) {
-  KeepShapeCorrRes <- TRUE
+if ("Decision" %in% (normSequence[[nrmStp]])) {
+  KeepShapeCorrRes <- normSequence[[nrmStp]]$Decision
+}
+if (!validLogicPar("KeepShapeCorrRes")) {
+  KeepShapeCorrRes <- TRUE # Default: keep results only if data is very significantly different
 }
 IMGs <- paste0(shpDr, "/", c(MAttl, SDttl), ".jpeg")
-IMGsDims <- as.data.frame(t(parSapply(parClust, IMGs, \(x) { #x <- IMGs[1]
+IMGsDims <- as.data.frame(t(parSapply(parClust, IMGs, \(x) { #x <- IMGs[1L]
   a <- jpeg::readJPEG(x)
   setNames(dim(a)[1L:2L], c("height", "width"))
 })))
@@ -223,5 +226,5 @@ msg <- paste0(" -> ", normMeth, " correction for intensity range variance biases
 if (KeepShapeCorrRes) {
   txt2 <- paste0("corrected for intensity range variance biases using ", c(paste0(normMeth, " regression"), "VSN")[match(normMeth, c("LOESS", "VSN"))])
 }
-Outcome <- KeepShapeCorrRes
+normSequence[[nrmStp]]$Decision <- Outcome <- KeepShapeCorrRes
 cat(msg)
