@@ -2196,9 +2196,6 @@ source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
 #### Code chunk - Modified peptides analysis
-Src <- paste0(libPath, "/extdata/Sources/Cytoscape_init.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
 modPepSrc <- paste0(libPath, "/extdata/Sources/modPeptides.R")
 #rstudioapi::documentOpen(modPepSrc)
 source(modPepSrc, local = FALSE)

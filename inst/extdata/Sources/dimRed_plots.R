@@ -10,9 +10,6 @@ Exp.map$RSA_cleaned <- cleanNms(Exp.map$Ref.Sample.Aggregate)
 # ------------
 # Note on missing values: currently we do not impute but filter by number of valid values.
 # This may change.
-Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Prep.R") # Run this to generate imputed data which we use for the PCAs
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
 nm <- intersect(c("ComBat", "Original"),
                 names(clustDat[[dataType]]))[1L]
 dimRedDat <- clustDat[[dataType]][[nm]]

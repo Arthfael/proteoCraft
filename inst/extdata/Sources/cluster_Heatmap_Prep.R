@@ -16,15 +16,13 @@ if (scrptType == "noReps") { clustHtMp <- length(Exp) > 1L }
 clustHtMp %<o% clustHtMp
 if (dataType == "PG") {
   if (scrptType == "withReps") {
-    prtRfRoot <- if (LocAnalysis) { Prot.Expr.Root2 } else { Prot.Expr.Root }
+    rfRoot <- if (LocAnalysis) { Prot.Expr.Root2 } else { Prot.Expr.Root }
     MaxVClust <- length(VPAL$values)
   }
   if (scrptType == "noReps") {
-    prtRfRoot <- PG.int.col
+    rfRoot <- PG.int.col
     MaxVClust <- length(Exp)
   }
-  prtRfRoot %<o% prtRfRoot
-  rfRoot <- prtRfRoot
   myData <- PG
   rownames(myData) <- myData$Label
 }
@@ -39,6 +37,7 @@ if (dataType == "peptides") { # Currently only used to prepare data for dim-red 
   myData <- pep
   rownames(myData) <- pep$id
 }
+rfRoot %<o% rfRoot
 #
 if (scrptType == "withReps") {
   clustXprsKol <- paste0(rfRoot, Exp.map$Ref.Sample.Aggregate)
