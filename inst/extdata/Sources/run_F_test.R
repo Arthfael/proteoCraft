@@ -165,9 +165,8 @@ my_F_Data[, fdrKol] <- F_fdr$F_test$`Significance vector`
 # The decision as to whether to calculate FDR thresholds for each post-hoc test indiviually,
 # or globally for all, could be parameter controlled in the future.
 tmp <- my_F_Data[, F_PVal_postHoc, drop = FALSE]
-globalFDR <- FALSE
+globalFDR <- TRUE
 if (globalFDR) {
-  stop("Check that bit first!")
   tmp2 <- melt(tmp)
   tmp3 <- FDR(tmp2,
               pvalue_col = "value",
