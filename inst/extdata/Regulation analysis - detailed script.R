@@ -1288,7 +1288,7 @@ A <- A[which(test)]
 PG <- PG[, grep("^Significant-FDR=", colnames(PG), invert = TRUE)]
 for (a in A) { #a <- A[1L]
   temp <- FDR(data = PG,
-              aggregate = a,
+              aggr = a,
               pvalue_root = pvalue.col[which(pvalue.use)],
               fdr = BH.FDR,
               returns = rep(TRUE, 3L),

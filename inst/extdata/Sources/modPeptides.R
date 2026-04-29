@@ -421,7 +421,7 @@ if (length(PTMs)) {
     stopifnot(length(A) > 0L)
     for (a in A) { #a <- A[1L]
       temp <- FDR(data = ptmpep,
-                  aggregate = a,
+                  aggr = a,
                   pvalue_root = ptms.PVal,
                   fdr = BH.FDR,
                   returns = c(TRUE, TRUE, FALSE),
