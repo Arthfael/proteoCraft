@@ -165,22 +165,40 @@ my_F_Data[, fdrKol] <- F_fdr$F_test$`Significance vector`
 # The decision as to whether to calculate FDR thresholds for each post-hoc test indiviually,
 # or globally for all, could be parameter controlled in the future.
 tmp <- my_F_Data[, F_PVal_postHoc, drop = FALSE]
-tmpFl <- tempfile(fileext = ".rds")
-readr::write_rds(tmp, tmpFl)
-clusterExport(parClust, list("F_Root", "BH.FDR_F", "tmpFl", "FDR", "is.all.good"))
-invisible(clusterCall(parClust, \() {
-  tmp <- readr::read_rds(tmpFl)
-  assign("tmp", tmp, .GlobalEnv)
-  return()
-}))
-unlink(tmpFl)
-F_fdr[myContrasts$Contrast] <- parLapply(parClust, myContrasts$Contrast, \(i) { #i <- myContrasts$Contrast[1L]
-  F_pv_i <- paste0(F_Root, " - ", i)
-  return(FDR(tmp,
-             pvalue_col = F_pv_i,
-             fdr = BH.FDR_F,
-             returns =c(TRUE, TRUE, FALSE)))
-})
+globalFDR <- FALSE
+if (globalFDR) {
+  stop("Check that bit first!")
+  tmp2 <- melt(tmp)
+  tmp3 <- FDR(tmp2,
+              pvalue_col = "value",
+              fdr = BH.FDR_F,
+              returns = c(TRUE, TRUE, FALSE))
+  tmp3$`Significance vector`[1:10,]
+  n <- length(F_PVal_postHoc)
+  m <- nrow(tmp3$`Significance vector`)/n
+  F_fdr[myContrasts$Contrast] <- lapply(1L:n, \(i) {
+    x <- tmp3
+    x$`Significance vector` <- x$`Significance vector`[(1L:m) + (i-1L)*m,]
+    return(x)
+  })
+} else {
+  tmpFl <- tempfile(fileext = ".rds")
+  readr::write_rds(tmp, tmpFl)
+  clusterExport(parClust, list("F_Root", "BH.FDR_F", "tmpFl", "FDR", "is.all.good"))
+  invisible(clusterCall(parClust, \() {
+    tmp <- readr::read_rds(tmpFl)
+    assign("tmp", tmp, .GlobalEnv)
+    return()
+  }))
+  unlink(tmpFl)
+  F_fdr[myContrasts$Contrast] <- parLapply(parClust, myContrasts$Contrast, \(i) { #i <- myContrasts$Contrast[1L]
+    F_pv_i <- paste0(F_Root, " - ", i)
+    return(FDR(tmp,
+               pvalue_col = F_pv_i,
+               fdr = BH.FDR_F,
+               returns = c(TRUE, TRUE, FALSE)))
+  })
+}
 fdrKol_contr <- c()
 for (i in myContrasts$Contrast) {
   fdrKol_i <- paste0(fdrKol, " - ", i)

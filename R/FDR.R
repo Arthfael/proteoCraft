@@ -103,7 +103,7 @@ FDR <- function(data,
     }, 1)
     #P$pAdjTst <- p.adjust(P$Pvalues, "BH") # You can verify that we get the same value using p.adjust()
     if (reqFDR) {
-      for (j in 1:lFDR) { #j <- 3L
+      for (j in 1L:lFDR) { #j <- 3L
         crtKols[j] <- crtKol <- paste0("Critical_", fdr[j])
         P[[crtKol]] <- NA
         P[w2, crtKol] <- P$Rank[w2]*fdr[j]/(N*CN)
