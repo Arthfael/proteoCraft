@@ -4,7 +4,7 @@
 #' A function to calculate FDR thresholds and assess P-value significance.
 #' 
 #' @param data The dataframe that contains the values.
-#' @param aggregate The aggregate of experimental factor levels (e.g. "Exp1___KO___Treated") to be pasted to the root of P-value column names to create the column name.
+#' @param aggr The experimental factor levels aggregate, typically a samples group (e.g. "Exp1___KO___Treated"), to be pasted to the root of P-value column names to create the column name.
 #' @param pvalue_root The root of the name of the P-values column. If the tag "-log10" is found in that name, P-values will assume to be -log10 transformed and will be reverse transformed accordingly.
 #' @param pvalue_col Alternatively to the method of constructing a P-values column name used above, you may simply provide its name with this argument.
 #' @param fdr Vector of acceptable False Discovery Rate values. Should be in the 0-1 range - but if any value is larger than 1 the function will automatically divide values by 100 (and throw an error if values are not now in the 0-1 range). Only required if returning a vector of significance or threshold values, see returns argument.
@@ -14,6 +14,8 @@
 #'  - Set the third to TRUE to get the adjusted p-values.\cr
 #' @param method Which method to use. Default = "BH" for Benjamini-Hochberg. Alternatively use "BY" for Benjamini-Yekutieli. 
 #' @param SIMPLIFY Logical. Simplify the output from a list into a single object, if the output is a list of length 1? Default = TRUE although this will possibly move to FALSE in the future.
+#' @param inputType One of "raw", "log" (default) or "auto" (detects from name of the column and the scale covered by p-values; careful! this is dangerous!)
+#' @param FDRs_as_is Logical, FALSE by default. If TRUE, turns off automated check for FDR scale (percentage vs 0-1 range).
 #'
 #' @details
 #' The default method is the Benjamini-Hochberg procedure.
@@ -24,26 +26,29 @@
 #' 
 #' @examples
 #' temp <- FDR(data = PG,
-#'             aggregate,
+#'             aggr,
 #'             pvalue_root = "-log10 Pvalue.",
-#'             fdr = BH.FDR)
+#'             fdr = BH.FDR,
+#'             inputType = "log")
 #'
 #' @export
 
 FDR <- function(data,
-                aggregate,
+                aggr,
                 pvalue_root,
                 pvalue_col,
                 fdr,
                 returns = c(TRUE, FALSE, FALSE),
                 method = "BH",
-                SIMPLIFY = TRUE) {
+                SIMPLIFY = TRUE,
+                inputType = "raw",
+                FDRs_as_is = FALSE) {
   #DefArg(FDR)
   #
   # Check arguments
   # - returns
   stopifnot(length(returns) <= 3L,
-            "logical" %in% class(returns))
+            is.logical(returns))
   if (length(returns) == 2L) { returns <- c(returns, FALSE) }
   if (length(returns) == 1L) { returns <- c(returns, FALSE, FALSE) }
   w <- which(is.na(returns))
@@ -60,23 +65,34 @@ FDR <- function(data,
     suppressWarnings(fdr <- as.numeric(fdr) )
     fdr <- fdr[which(!is.na(fdr))]
     lFDR <- length(fdr)
-    stopifnot(lFDR > 0)
+    stopifnot(lFDR > 0L)
     stopifnot(sum(fdr <= 0) == 0L)
-    if (sum(fdr > 1)) { fdr <- fdr/100 }
-    stopifnot(sum(fdr <= 0) == 0L,
-              sum(fdr > 1) == 0L)
+    if ((!FDRs_as_is)&&(sum(fdr > 1))) {
+      warning("Detecting percentage-type FDR! Dividing by 100 to provide 0-1 scale FDRs.")
+      fdr <- fdr/100
+    }
+    stopifnot(sum(fdr > 1) == 0L)
   }
   # - pvalue_col
   if (missing(pvalue_col)) {
-    pvalue_col <- paste0(pvalue_root, aggregate)
+    if ((!missing(pvalue_root))&&(!missing(aggr))) {
+      pvalue_col <- paste0(pvalue_root, aggr)
+    } else { stop("You must specify either \"pvalue_col\" or both \"pvalue_root\" and \"aggr\"!") }
   }
   # - SIMPLIFY
-  if ((missing(SIMPLIFY))||(length(SIMPLIFY) != 1L)||(!is.logical(SIMPLIFY))||(is.na(SIMPLIFY))) {
+  if (missing(SIMPLIFY) || (length(SIMPLIFY) != 1L) || (!is.logical(SIMPLIFY)) || is.na(SIMPLIFY)) {
     SIMPLIFY <- TRUE
   }
   #
   P <- data.frame(Pvalues = data[[pvalue_col]])
-  if (grepl("log10", pvalue_col)) { # If P-values are logged (auto-detect), then...
+  # If P-values are logged (auto-detect), then...
+  if (inputType == "auto") {
+    if (grepl("log10", pvalue_col) || (max(P$Pvalues, na.rm = TRUE) > 1)) {
+      inputType <- "log"
+      warning("-log10-transformed input detected, P-values will be de-logged prior to FDR estimation.")
+    } else { inputType <- "raw" }
+  }
+  if (inputType == "log") {
     P$Pvalues <- 10L^(-P$Pvalues) #... de-log them.
   }
   P$Order <- 1L:nrow(P)
@@ -97,10 +113,12 @@ FDR <- function(data,
     }
     adjKol <- paste0("Adj. P-values")
     P[[adjKol]] <- NA
-    P[w2, adjKol] <- P$Pvalues[w2]*N*CN/P$Rank[w2] # Basic calculation
-    P[w2, adjKol] <- vapply(w2, \(x) { # (ensure monotonicity)
-      min(c(1, P[w2[x:N], adjKol]))
-    }, 1)
+    P[w2, adjKol] <- P$Pvalues[w2]*N*CN/P$Rank[w2] # Basic BH/BY adjusted p-value formula
+    # Enforce monotonicity (BH definition)
+    # P[w2, adjKol] <- vapply(w2, \(x) { # old buggy code
+    #   min(c(1, P[w2[x:N], adjKol]))
+    # }, 1)
+    P[w2, adjKol] <- pmin(cummin(rev(P[w2, adjKol]))[N:1L], 1)
     #P$pAdjTst <- p.adjust(P$Pvalues, "BH") # You can verify that we get the same value using p.adjust()
     if (reqFDR) {
       for (j in 1L:lFDR) { #j <- 3L
@@ -118,7 +136,7 @@ FDR <- function(data,
           BH.rank[[fdrKol]] <- 0L
         }
         end <- "%"
-        if (!missing(aggregate)) { end <- paste0(end, " - ", aggregate) }
+        if (!missing(aggr)) { end <- paste0(end, " - ", aggr) }
         names(thresh)[j] <- paste0("Threshold-FDR=", fdr[j]*100, end)
         signifKols[j] <- signifKol <- paste0("Significant-FDR=", fdr[j]*100, end)
         P[[signifKol]] <- ""

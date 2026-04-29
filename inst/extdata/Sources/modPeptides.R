@@ -423,7 +423,9 @@ if (length(PTMs)) {
       temp <- FDR(data = ptmpep,
                   aggregate = a,
                   pvalue_root = ptms.PVal,
-                  fdr = BH.FDR, returns = c(TRUE, TRUE), method = "BH")
+                  fdr = BH.FDR,
+                  returns = c(TRUE, TRUE, FALSE),
+                  inputType = "log")
       ptmpep[, colnames(temp$`Significance vector`)] <- temp$`Significance vector`
       temp_thrsh <- c(temp_thrsh, temp$Thresholds)
       PTMs_FDR.thresholds[[Ptm]] <- temp_thrsh

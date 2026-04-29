@@ -1867,7 +1867,8 @@ if (statTsts) {
       sig <- FDR(as.data.frame(pVal),
                  pvalue_col = colnames(pVal)[i],
                  fdr = 30,
-                 returns = c(TRUE, TRUE))
+                 returns = c(TRUE, TRUE, FALSE),
+                 inputType = "log")
       #View(sig$`Significance vector`)
       myData[[paste0("Signif. - ", nm)]] <- sig$`Significance vector`
       FDR_thresh[[nm]] <- sig$Thresholds

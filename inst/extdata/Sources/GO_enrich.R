@@ -946,8 +946,11 @@ if (length(wFltL)) {
         for (ont in Ont[Wh1]) { #ont <- Ont[Wh1][1L]
           w <- which(GO.terms$Ontology[wh] == ont)
           if (length(w)) {
-            f <- FDR(data = GO.terms[wh[w],], pvalue_col = paste0("Pvalue - ", n1),
-                                  returns = c(TRUE, TRUE), fdr = GO_FDR)
+            f <- FDR(GO.terms[wh[w],],
+                     pvalue_col = paste0("Pvalue - ", n1),
+                     returns = c(TRUE, TRUE, FALSE),
+                     fdr = GO_FDR,
+                     inputType = "log")
             GO.terms[wh[w], paste0("Significance - ", n1, " ", GO_FDR*100, "%")] <- f$`Significance vector`
             thresh[[ont]] <- f$Thresholds
           }

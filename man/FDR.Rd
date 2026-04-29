@@ -6,19 +6,21 @@
 \usage{
 FDR(
   data,
-  aggregate,
+  aggr,
   pvalue_root,
   pvalue_col,
   fdr,
   returns = c(TRUE, FALSE, FALSE),
   method = "BH",
-  SIMPLIFY = TRUE
+  SIMPLIFY = TRUE,
+  inputType = "raw",
+  FDRs_as_is = FALSE
 )
 }
 \arguments{
 \item{data}{The dataframe that contains the values.}
 
-\item{aggregate}{The aggregate of experimental factor levels (e.g. "Exp1___KO___Treated") to be pasted to the root of P-value column names to create the column name.}
+\item{aggr}{The experimental factor levels aggregate, typically a samples group (e.g. "Exp1___KO___Treated"), to be pasted to the root of P-value column names to create the column name.}
 
 \item{pvalue_root}{The root of the name of the P-values column. If the tag "-log10" is found in that name, P-values will assume to be -log10 transformed and will be reverse transformed accordingly.}
 
@@ -34,6 +36,10 @@ FDR(
 \item{method}{Which method to use. Default = "BH" for Benjamini-Hochberg. Alternatively use "BY" for Benjamini-Yekutieli.}
 
 \item{SIMPLIFY}{Logical. Simplify the output from a list into a single object, if the output is a list of length 1? Default = TRUE although this will possibly move to FALSE in the future.}
+
+\item{inputType}{One of "raw", "log" (default) or "auto" (detects from name of the column and the scale covered by p-values; careful! this is dangerous!)}
+
+\item{FDRs_as_is}{Logical, FALSE by default. If TRUE, turns off automated check for FDR scale (percentage vs 0-1 range).}
 }
 \value{
 A list with 3 elements ("Significance vector", "Thresholds" and "Adj. P-values") or, if SIMPLIFY = TRUE and sum(returns) == 1, the single element of the list to return.
@@ -47,8 +53,9 @@ Can also perform the Benjamini-Yekutieli procedure - when under positive depende
 }
 \examples{
 temp <- FDR(data = PG,
-            aggregate,
+            aggr,
             pvalue_root = "-log10 Pvalue.",
-            fdr = BH.FDR)
+            fdr = BH.FDR,
+            inputType = "log")
 
 }

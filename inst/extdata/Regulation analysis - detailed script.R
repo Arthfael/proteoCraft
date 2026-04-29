@@ -1290,7 +1290,9 @@ for (a in A) { #a <- A[1L]
   temp <- FDR(data = PG,
               aggregate = a,
               pvalue_root = pvalue.col[which(pvalue.use)],
-              fdr = BH.FDR, returns = rep(TRUE, 3L), method = "BH")
+              fdr = BH.FDR,
+              returns = rep(TRUE, 3L),
+              inputType = "log")
   PG[, colnames(temp$`Significance vector`)] <- temp$`Significance vector`
   FDR.thresholds <- c(FDR.thresholds, temp$Thresholds)
 }

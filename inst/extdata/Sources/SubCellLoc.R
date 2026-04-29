@@ -454,7 +454,13 @@ Example: \"GO:0031012;2\"
         SSDs[[grp]][[paste0(SSD.Pval.Root, grp)]] <- apply(SSDs[[grp]][, SSDkols], 1L, \(x) {
           -log10(t.test(x, alternative = "greater", mu = M)$p.value)
         })
-        temp <- FDR(SSDs[[grp]], grp, SSD.Pval.Root, fdr = BH.FDR, returns = c(TRUE, TRUE), method = "BH")
+        temp <- FDR(SSDs[[grp]],
+                    grp,
+                    SSD.Pval.Root,
+                    fdr = BH.FDR,
+                    returns = c(TRUE, TRUE, FALSE),
+                    method = "BH",
+                    inputType = "log")
         SSDs[[grp]][, gsub("^Significant-", "Signif. SSDs-", colnames(temp$`Significance vector`))] <- temp$`Significance vector`
         SSD.FDR.thresh <- c(SSD.FDR.thresh, temp$Thresholds)
         PG[, colnames(SSDs[[grp]])] <- NA

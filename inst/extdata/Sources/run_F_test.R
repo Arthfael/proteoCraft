@@ -10,6 +10,8 @@ library(limma)
 # Check our parent cluster
 source(parSrc, local = FALSE)
 
+cat("\n -> Starting ANOVA\n")
+
 # Argument names
 allArgs <- c("myData",
              "intRef",
@@ -156,7 +158,8 @@ F_fdr <- list()
 F_fdr$F_test <- FDR(my_F_Data,
                     pvalue_col = F_Root,
                     fdr = BH.FDR_F,
-                    returns = c(TRUE, TRUE, FALSE))
+                    returns = c(TRUE, TRUE, FALSE),
+                    inputType = "log")
 my_F_Data[, fdrKol] <- F_fdr$F_test$`Significance vector`
 #
 # b) Significance columns for each post-hoc test
@@ -171,7 +174,8 @@ if (globalFDR) {
   tmp3 <- FDR(tmp2,
               pvalue_col = "value",
               fdr = BH.FDR_F,
-              returns = c(TRUE, TRUE, FALSE))
+              returns = c(TRUE, TRUE, FALSE),
+              inputType = "log")
   tmp3$`Significance vector`[1:10,]
   n <- length(F_PVal_postHoc)
   m <- nrow(tmp3$`Significance vector`)/n
@@ -195,7 +199,8 @@ if (globalFDR) {
     return(FDR(tmp,
                pvalue_col = F_pv_i,
                fdr = BH.FDR_F,
-               returns = c(TRUE, TRUE, FALSE)))
+               returns = c(TRUE, TRUE, FALSE),
+               inputType = "log"))
   })
 }
 fdrKol_contr <- c()
