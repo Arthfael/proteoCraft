@@ -35,7 +35,8 @@ cov3D <- function(pdb,
   #pdb = pdbFl; peptides = tmpDat$Group.1; path = paste0(Par_dir, "/FLAG_KCC2_coverage (", pdbNm, ").html"); intensities = tmpDat$x
   #pdb = pdbFl; peptides = tmpDat$Group.1; path = paste0(Par_dir, "/FLAG_KCC2_coverage - ", nm, " (", pdbNm, ").html"); intensities = tmpDat$x
   #pdb = pdbFl; peptides = tmpDat$Group.1; path = paste0(Par_dir, "/FLAG_KCC2_coverage - ", nm, " (", pdbNm, ").html"); intensities = tmpDat$x
-  #pdb = fl; peptides = seq1; path = pth; ttl <- nm; intensities = int1[[x]]; display = FALSE
+  #pdb = fl; peptides = seq1; path = pth; ttl = nm; intensities = int1[[x]]; display = FALSE
+  #pdb = fl; peptides = seq1; path = pth; ttl = nm; intensities = intVect[[x]][grs]; display = FALSE
   misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 

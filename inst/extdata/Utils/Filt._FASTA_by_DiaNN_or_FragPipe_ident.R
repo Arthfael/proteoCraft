@@ -51,7 +51,7 @@ if (Input == Inputs[1]) {
     DIANNargs <- grep("^--", unlist(strsplit(gsub(" --", " Arg--", DIANNcall), " Arg")), value = TRUE)
     rprtFl <- gsub("\\\\", "/", gsub("^--out ", "", grep("^--out ", DIANNargs, value = TRUE)))
     rprt <- try(read.delim(rprtFl), silent = TRUE)
-    if ("try-error" %in% class(rprt)) {
+    if (inherits(rprt, "try-error")) {
       cat("DiaNN file not found at the expected location, trying relative file path\n")
       rprtFl <- paste0(dirname(DIANNlogFl), "/", basename(rprtFl))
       if (file.exists(rprtFl)) {

@@ -14,7 +14,7 @@ if (ProcessedByUs) {
     if (LabelType == "LFQ") { WetLabMeth <- try(MatMet_WetLab(), silent = TRUE) }
     if (LabelType == "Isobaric") { WetLabMeth <- try(MatMet_WetLab(Label = IsobarLab), silent = TRUE) }
   }
-  if ("try-error" %in% class(WetLabMeth)) { WetLabMeth <- "TEMPLATE" }
+  if (inherits(WetLabMeth, "try-error")) { WetLabMeth <- "TEMPLATE" }
 } else { WetLabMeth <- "TEMPLATE" }
 MatMetCalls$Texts$WetLab <- WetLabMeth
 for (i in 1L:length(WetLabMeth)) {
@@ -25,7 +25,7 @@ for (i in 1L:length(WetLabMeth)) {
 MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style = \"Normal\")")
 #
 # 2) LCMS
-if ((!exists("LCMS_instr"))||(!"list" %in% class(LCMS_instr))||(sum(c("LC", "MS") %in% names(LCMS_instr)) != 2L)) {
+if ((!exists("LCMS_instr")) || (!is.list(LCMS_instr)) || (sum(c("LC", "MS") %in% names(LCMS_instr)) != 2L)) {
   LCMS_instr <- list(LC = c(),
                      MS = c())
 }
@@ -34,10 +34,10 @@ MatMetCalls$Calls <- append(MatMetCalls$Calls,
 LCMS_meth_lst <- try(MatMet_LCMS(cl = parClust), silent = TRUE)
 mzMLtst <- ("mzML" %in% gsub(".*\\.", "", rawFiles))
 if (mzMLtst) { # Fix for when we searched mzML-converted files
-  if (("try-error" %in% class(LCMS_meth_lst))||(is.null(LCMS_meth_lst))) {
+  if (inherits(LCMS_meth_lst, "try-error") || is.null(LCMS_meth_lst)) {
     tmp <- gsub("\\.mzML", ".raw", rawFiles)
     LCMS_meth_lst <- try(MatMet_LCMS(RawFiles = tmp, cl = parClust), silent = TRUE)
-    if (("try-error" %in% class(LCMS_meth_lst))||(is.null(LCMS_meth_lst))) {
+    if (inherits(LCMS_meth_lst, "try-error") || is.null(LCMS_meth_lst)) {
       tmp <- gsub("\\.mzML", ".d", rawFiles)
       LCMS_meth_lst <- try(MatMet_LCMS(RawFiles = tmp, cl = parClust), silent = TRUE)
     }

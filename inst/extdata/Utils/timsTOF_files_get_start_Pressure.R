@@ -11,7 +11,7 @@ dSrcs <- dSrcs[which(dir.exists(dSrcs))]
 N.clust <- detectCores()-1
 a <- 1
 tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-if ("try-error" %in% class(tst)) {
+if (inherits(tst, "try-error")) {
   try(stopCluster(parClust), silent = TRUE)
   parClust <- makeCluster(N.clust, type = "SOCK")
 }

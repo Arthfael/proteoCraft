@@ -58,9 +58,9 @@ Prot.Ruler <- function(Prot,
   if (getLatest) {
     url <- "ftp://ftp.ncbi.nlm.nih.gov/genomes/GENOME_REPORTS/overview.txt"
     orgmap <- try(read.delim(url), silent = TRUE)
-    if ("try-error" %in% class(orgmap)) {
+    if (inherits(orgmap, "try-error")) {
       orgmap <- try(curl::curl_download(url, "tmpOrg.txt"), silent = TRUE)
-      if ("try-error" %in% class(orgmap)) {
+      if (inherits(orgmap, "try-error")) {
         warning("Failed to get the latest version of Genome Reports from NCBI, defaulting to re-distributed version...")
         getLatest <- FALSE
       } else {

@@ -1,6 +1,8 @@
 #' .pyConfig
 #' 
 #' A function to automatically check our python configuration, upgrade pip, install sdrf-pipelines and check that python scripts is in path.
+#' 
+#' @export
 
 .pyConfig <- function() {
   # Update pip

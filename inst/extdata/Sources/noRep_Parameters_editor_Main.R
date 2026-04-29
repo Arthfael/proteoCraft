@@ -367,7 +367,7 @@ protHeads <- gsub("^>", "", db$Header[dbOrd])
 if (length(tmp)) { protDflt <- protHeads[1L:length(m)] }
 #
 tstAdvOpt <- try(sum(file.exists(AnalysisParam$Custom.PGs, AnalysisParam$CRAPome_file)) > 0L)
-if ("try-error" %in% class(tstAdvOpt)) { tstAdvOpt <- FALSE }
+if (inherits(tstAdvOpt, "try-error")) { tstAdvOpt <- FALSE }
 if (MakeRatios) {
   RatiosThresh %<o% 1
   if ("Ratios analysis - threshold" %in% names(AnalysisParam)) {
@@ -1229,7 +1229,7 @@ if (tst) {
                            "Use" = TRUE,
                            check.names = FALSE)
   tst <- try(write.csv(SamplesMap, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
-  while ("try-error" %in% class(tst)) {
+  while (inherits(tst, "try-error")) {
     dlg_message(paste0("File \"", SamplesMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
     tst <- try(write.csv(SamplesMap, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
   }

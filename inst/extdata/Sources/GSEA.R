@@ -66,7 +66,7 @@ if (isOK) {
                             name = GO_terms$Term)
   } else {
     # Or we will have to get an annotations package (currently 20 organisms are supported)
-    if ((!exists("Org"))||(!"data.frame" %in% class(Org))||(nrow(Org) != 1L)) {
+    if ((!exists("Org"))||(!is.data.frame(Org))||(nrow(Org) != 1L)) {
       kol <- c("Organism_Full", "Organism")
       kol <- kol[which(kol %in% colnames(db))]
       tst <- sapply(kol, \(x) { length(unique(db[which(!as.character(db[[x]]) %in% c("", "NA")), x])) })
@@ -289,7 +289,7 @@ if (isOK) {
       suppressMessages({
         plot <- plot + viridis::scale_color_viridis(option = "cividis", direction = -1L)
         l <- length(plot$layers)
-        w <- which(sapply(1L:l, \(x) { "GeomTextRepel" %in% class(plot$layers[[x]]$geom) }))
+        w <- which(sapply(1L:l, \(x) { inherits(plot$layers[[x]]$geom, "GeomTextRepel") }))
         plot$layers[[w]]$aes_params$size <- 4L
         #getMethod("emapplot", "gseaResult")
         #poplot(plot)
@@ -321,7 +321,7 @@ if (isOK) {
         plot <- plot + viridis::scale_color_viridis()
         # ... so I used a hacky solution:
         l <- length(plot$layers)
-        w <- which(sapply(1L:l, \(x) { "GeomTextRepel" %in% class(plot$layers[[x]]$geom) }))
+        w <- which(sapply(1L:l, \(x) { inherits(plot$layers[[x]]$geom, "GeomTextRepel") }))
         plot$layers[[w]]$aes_params$size <- 1.6 # Downside: applies to both categories and proteins!
         # Edit labels
         plot$data$label <- plot$data$label

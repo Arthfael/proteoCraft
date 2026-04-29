@@ -10,7 +10,7 @@ nClst <- detectCores()-1L
 # Create parallel processing cluster
 a <- 1
 tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-if ("try-error" %in% class(tst)) {
+if (inherits(tst, "try-error")) {
   try(stopCluster(parClust), silent = TRUE)
   parClust <- makeCluster(nClst, type = "SOCK")
 }

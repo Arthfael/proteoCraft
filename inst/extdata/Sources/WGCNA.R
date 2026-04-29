@@ -119,12 +119,12 @@ suppressMessages({
 require(parallel)
 try(stopCluster(parClust), silent = TRUE) # Free-up connections if necessary...
 tst <- try(enableWGCNAThreads(N.clust), silent = TRUE) # Seems to be working based on plotting in tasks manager
-if ("try-error" %in% class(tst)) {
+if (inherits(tst, "try-error")) {
   open_conns <- showConnections()
   sock_conns <- as.integer(rownames(open_conns[grep("sockconn", open_conns[,"class"]), , drop = FALSE]))
   for (i in sock_conns) try(close(getConnection(i)), silent = TRUE)
   tst <- try(enableWGCNAThreads(N.clust), silent = TRUE)
-  if ("try-error" %in% class(tst)) {
+  if (inherits(tst, "try-error")) {
     closeAllConnections()
     tst <- try(enableWGCNAThreads(N.clust), silent = TRUE)
   }
@@ -198,9 +198,9 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     plotOutput("IndepConnect", height = paste0(screenRes$width*0.4, "px")),
     br(),
   )
-  server <- function(input, output, session) {
+  server <- \(input, output, session) {
     POWER <- reactiveVal(pwrEst)
-    updtPlot <- function(reactive = TRUE) {
+    updtPlot <- \(reactive = TRUE) {
       if (reactive) {
         pwr <- input$Power
         updtPlot <- POWER() != pwr
@@ -210,16 +210,12 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
       }
       if (updtPlot) {
         POWER(pwr)
-        ggPlot2 <<- ggPlot + geom_vline(xintercept = pwr, color = "red")
+        assign("ggPlot2", ggPlot + geom_vline(xintercept = pwr, color = "red"), envir = .GlobalEnv)
       }
       return(renderPlot({ ggPlot2 }))
     }
-    updtVal <- function(reactive = TRUE) {
-      if (reactive) {
-        pwr <- input$Power
-      } else {
-        pwr <- pwrEst
-      }
+    updtVal <- \(reactive = TRUE) {
+      pwr <- if (reactive) { input$Power } else { pwrEst }
       m <- match(pwr, spt$fitIndices$Power)
       return(renderUI({ list(list(em("Current values:"), br(),
                                   em(paste0("- R^2 = ", signif(spt$fitIndices$SFT.R.sq[m], 3L))), br(),
@@ -235,16 +231,16 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
       output$Current <- updtVal()
     })
     observeEvent(input$saveBtn, {
-      pwrEst <<- input$Power
+      assign("pwrEst", input$Power, envir = .GlobalEnv)
       suppressWarnings({
         ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), ggPlot2, dpi = 300L)
         ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"), ggPlot2, dpi = 300L)
       })
-      appRunTest <<- TRUE
+      assign("appRunTest", TRUE, envir = .GlobalEnv)
       stopApp()
     })
     #observeEvent(input$cancel, { stopApp() })
-    session$onSessionEnded(function() { stopApp() })
+    session$onSessionEnded(\() { stopApp() })
   }
   runKount <- 0L
   while ((!runKount)||(!exists("appRunTest"))) {
@@ -320,7 +316,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     par(mar = c(0L, 4L, 2L, 0L),
         cex = 1L)
     METree$labels <- substring(METree$labels, 3L)
-    goOn <- !"try-error" %in% class(try({ plot(METree) }, silent = TRUE))
+    goOn <- !inherits(try({ plot(METree) }, silent = TRUE), "try-error")
   } else {
     # Quick plot for when this fails - to check that the reason is the underlying structure of the data
     MEs <- moduleEigengenes(exprData, modColors)$eigengenes

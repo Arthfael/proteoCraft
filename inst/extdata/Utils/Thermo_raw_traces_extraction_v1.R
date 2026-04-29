@@ -24,7 +24,7 @@ if (exists("parClust")) { try(stopCluster(parClust), silent = TRUE) } # A fresh 
 N.clust <- detectCores()-1
 a <- 1
 tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-if ("try-error" %in% class(tst)) {
+if (inherits(tst, "try-error")) {
   try(stopCluster(parClust), silent = TRUE)
   parClust <- makeCluster(N.clust, type = "SOCK")
 }
@@ -127,12 +127,12 @@ tst <- try({
   }
   require(rawrr)
 }, silent = TRUE)
-getInt <- !("try-error" %in% class(tst))
+getInt <- !inherits(tst, "try-error")
 #
 if (getInt) {
   ticFun <- function(fl) { #fl <- fls[1]
     x <- try(readChromatogram(fl, type = "tic"), silent = TRUE)
-    if (!"try-error" %in% class(x)) {
+    if (!inherits(x, "try-error")) {
       res <- list(Outcome = TRUE,
                   Output = data.frame("Raw file" = fl,
                                       "Raw file name" = cleanRawNm(basename(fl)),
@@ -145,7 +145,7 @@ if (getInt) {
   }
   bpcFun <- function(fl) { #fl <- fls[1]
     x <- try(readChromatogram(fl, type = "bpc"), silent = TRUE)
-    if (!"try-error" %in% class(x)) {
+    if (!inherits(x, "try-error")) {
       res <- list(Outcome = TRUE,
                   Output = data.frame("Raw file" = fl,
                                       "Raw file name" = cleanRawNm(basename(fl)),
@@ -158,7 +158,7 @@ if (getInt) {
   }
   xicFun <- function(fl, mass, tol, filter) { #fl <- fls[1]
     x <- try(readChromatogram(fl, type = "xic", mass, tol, filter), silent = TRUE)
-    if (!"try-error" %in% class(x)) {
+    if (!inherits(x, "try-error")) {
       res <- list(Outcome = TRUE,
                   Output = data.frame("Raw file" = fl,
                                       "Raw file name" = cleanRawNm(basename(fl)),
@@ -214,7 +214,7 @@ if (!l) {
 wd <- unique(dirname(fls))[1]
 dtst <- gsub(".*/", "", wd)
 tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
-while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
+while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
   wd <- rstudioapi::selectDirectory("Choose a work directory where we have write permission!", path = "D:/")
   tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
 }
@@ -436,7 +436,7 @@ while (getRTRange) {
     Ykol <- c("Intensity", "Pressure")[(nm == "Pressure")+1]
     yLim <- c(min(x[[Ykol]], na.rm = TRUE), max(c(x[[Ykol]], 100), na.rm = TRUE)) # Hard-coded minimum 100 max Y to avoid issues when values are very low!
     rgY <- yLim[2]-yLim[1]
-    if ("data.frame" %in% class(x)) {
+    if (is.data.frame(x)) {
       if (!nm %in% c("TIC", "BPC", "Pressure")) {
         tmp <- unlist(strsplit(nm, " for "))
         mass <- as.numeric(tmp[1])

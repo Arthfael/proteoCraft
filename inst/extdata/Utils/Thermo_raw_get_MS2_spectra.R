@@ -10,7 +10,7 @@
 if (!require(pak)) { install.packages("pak") }
 if (!require(proteoCraft)) {
   tst <- try(pak::pak("Arthfael/proteoCraft"), silent = TRUE)
-  if ("try-error" %in% class(tst)) {
+  if (inherits(tst, "try-error")) {
     if (!require(devtools)) { install.packages("devtools") }
     devtools::install_github("Arthfael/proteoCraft")
   }
@@ -49,7 +49,7 @@ clusterExport(parClust, "cleanRawNm", envir = environment())
 rawrrSrc <- paste0(libPath, "/extdata/Sources/install_rawrr.R")
 #rstudioapi::documentOpen(rawrrSrc)
 source(rawrrSrc)
-getInt <- !("try-error" %in% class(rawrr_tst))
+getInt <- !inherits(rawrr_tst, "try-error")
 #
 if (!getInt) { stop("Check your rawrr installation!") }
 # Function to get an XIC
@@ -57,7 +57,7 @@ xicFun <- function(fl, mass, tol, filter) { #fl <- fls[1]
   #mass <- 134.0472
   #filter <- "FTMS - p ESI Full ms2 328.0452"
   x <- try(rawrr::readChromatogram(fl, type = "xic", mass, tol, filter), silent = TRUE)
-  if (!"try-error" %in% class(x)) {
+  if (!inherits(x, "try-error")) {
     res <- list(Outcome = TRUE,
                 Output = data.frame("Raw file" = fl,
                                     "Raw file name" = cleanRawNm(basename(fl)),
@@ -108,7 +108,7 @@ if (!l) {
     tst <- parSapply(parClust, fls, function(fl) { #fl <- fls[1] #fl <- B:/group/lsfgrp/Mass_Spec/Acquired_data_v2/frimlgrp/LCMS_JiFrHAi3_m/saturation_20250410102029.raw
       require(rawrr)
       rs <- try({ rawrr::readFileHeader(fl)$`Creation date` }, silent = TRUE)
-      if ("try-error" %in% class(rs)) {
+      if (inherits(rs, "try-error")) {
         #rs <- NA
         rs <- format(file.info(fl)$mtime, "%d/%m/%Y %H:%M:%S", tz = Sys.timezone())
       }

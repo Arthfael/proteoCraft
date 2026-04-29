@@ -54,7 +54,7 @@ basic.heatmap <- function(matr,
   # test <- sapply(c(names(colours), na.colour), \(x) {
   #   try(grDevices::col2rgb(x), silent = TRUE)
   # })
-  # if (!"matrix" %in% class(test)) { stop("Invalid colour names provided!") }
+  # if (!is.matrix(test)) { stop("Invalid colour names provided!") }
   # colDF <- as.data.frame(t(test[, 1L:lC]))
   # colnames(colDF) <- c("red", "green", "blue")
   # colDF$RangeVal <- colours
@@ -63,7 +63,7 @@ basic.heatmap <- function(matr,
   #   colDF$Range <- c("low", "high", "mid")
   #   colDF <- colDF[match(c("low", "mid", "high"), colDF$Range),]
   # }
-  # colDF$hex <- apply(colDF[, c("red", "green", "blue")], 1, \(x) {
+  # colDF$hex <- apply(colDF[, c("red", "green", "blue")], 1L, \(x) {
   #   x <- x/255
   #   grDevices::rgb(x[[1L]], x[[2L]], x[[3L]])
   # })

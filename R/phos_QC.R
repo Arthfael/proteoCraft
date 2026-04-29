@@ -38,9 +38,9 @@ phos_QC <- function(PhPep,
     m <- M[[x]]
     p <- P[[x]]
     scd <- ScD[[x]]
-    if ("data.frame" %in% class(m)) {
-      stopifnot("data.frame" %in% class(p),
-	            "data.frame" %in% class(scd))
+    if (is.data.frame(m)) {
+      stopifnot(is.data.frame(p),
+                is.data.frame(scd))
       m$P <- as.numeric(p$Annotations)
       m$ScD <- as.numeric(scd$Annotations)
       m <- m[2:(nrow(m)-1),]

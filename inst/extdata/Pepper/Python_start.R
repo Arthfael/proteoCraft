@@ -62,7 +62,7 @@ if ("Python" %in% locDirs$Folder) {
     #pyPaths <- install_python(vers, force = TRUE)
     #pyFound <- TRUE
   } else {
-    if (nrow(pyPaths) > 1) {
+    if (nrow(pyPaths) > 1L) {
       w <- c(which(pyPaths$type == "PythonCore"),
              which(pyPaths$type == "Anaconda"),
              which(!pyPaths$type %in% c("PythonCore", "Anaconda")))
@@ -76,14 +76,14 @@ if ("Python" %in% locDirs$Folder) {
       })))
       pyPaths[, c("V1", "V2", "V3")] <- tst
       # Currently, tensorflow is not supported for Python > 3.10 
-      w <- which((pyPaths$V1 < 3)|((pyPaths$V1 == 3)&(pyPaths$V2 <= 10)))
+      w <- which((pyPaths$V1 < 3L)|((pyPaths$V1 == 3L)&(pyPaths$V2 <= 10L)))
       pyPaths <- pyPaths[w,]
       if (length(w)) { pyPaths <- pyPaths[order(pyPaths$V1, pyPaths$V2, pyPaths$V3, decreasing = TRUE),] }
     }
     if (nrow(pyPaths)) {
-      k <- 0
-      while ((k == 0)||("try-error" %in% class(tst))) {
-        k <- k+1
+      k <- 0L
+      while ((!k) || inherits(tst, "try-error")) {
+        k <- k+1L
         pyPath <- pyPaths$executable_path[k]
         tst <- try(use_python(pyPath), silent = TRUE) # Wrapped in try
       }

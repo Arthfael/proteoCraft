@@ -45,11 +45,11 @@ if (!SSH_on) {
   msg <- "SSH session required\nEnter host name!"
   sshost <- svDialogs::dlg_input(msg)$res
   sshsess <- c()
-  kount <- 1
-  while ((kount < 5)&&(!SSH_on)) {
+  kount <- 1L
+  while ((kount < 5L)&&(!SSH_on)) {
     sshsess <- try(ssh::ssh_connect(sshost), silent = TRUE)
-    SSH_on <- "ssh_session" %in% class(sshsess)
-    kount <- kount + 1
+    SSH_on <- inherits(sshsess, "ssh_session")
+    kount <- kount + 1L
   }
   #print(sshsess)
 }

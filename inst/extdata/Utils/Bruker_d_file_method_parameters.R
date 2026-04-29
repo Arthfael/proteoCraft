@@ -20,7 +20,7 @@ if (length(FILES)) {
     LC_method <- paste0(FILES, gsub("\\.d$", ".m/hystar.method", gsub(".+_", "/", FILES)))
     LC_method.exists <- file.exists(LC_method)
     w <- which(LC_method.exists)
-    LC_meth <- lapply(LC_method, function(fl) { #fl <- LC_method[1]
+    LC_meth <- lapply(LC_method, \(fl) { #fl <- LC_method[1]
       x <- xmlToList(fl)
       lc <- x$LCMethodData$ModuleMethods$ModuleMethodData$text
       lc <- xmlToList(lc)
@@ -28,36 +28,39 @@ if (length(FILES)) {
       return(lc)
     })
     LC <- data.frame(Files = FILES)
-    LC$NANO <- gsub(" +", " ", gsub("Bruker *", "", gsub("\t.*", "", sapply(LC_meth, function(x) { x$HyStarMethodData$ModuleName })), ignore.case = TRUE))
+    LC$NANO <- gsub(" +", " ",
+                    gsub("Bruker *", "",
+                         gsub("\t.*", "",
+                              vapply(LC_meth, \(x) { x$HyStarMethodData$ModuleName }, "")), ignore.case = TRUE))
     w <- which(LC$NANO == "nanoElute")
-    LC$Column <- sapply(LC_meth, function(x) { x$ModuleMethodData$Method$SeparatorName })
-    LC$Trap <- sapply(LC_meth, function(x) { x$ModuleMethodData$Method$TrapName })
-    LC$usesTrap <- as.logical(toupper(sapply(LC_meth, function(x) { x$ModuleMethodData$Method$UsesTrapColumn })))
-    LC$OvenT <- sapply(LC_meth, function(x) {
+    LC$Column <- sapply(LC_meth, \(x) { x$ModuleMethodData$Method$SeparatorName })
+    LC$Trap <- sapply(LC_meth, \(x) { x$ModuleMethodData$Method$TrapName })
+    LC$usesTrap <- as.logical(toupper(sapply(LC_meth, \(x) { x$ModuleMethodData$Method$UsesTrapColumn })))
+    LC$OvenT <- sapply(LC_meth, \(x) {
       c(NA, x$ModuleMethodData$Method$OvenTemperature)[as.logical(toupper(x$ModuleMethodData$Method$IsSetTemperature))+1]
     })
-    LC$Gradient <- lapply(LC_meth, function(x) {
+    LC$Gradient <- lapply(LC_meth, \(x) {
       nm <- names(x$ModuleMethodData$Method$Gradient)
-      grd <- sapply(1:length(nm), function(y) { x$ModuleMethodData$Method$Gradient[[y]] })
+      grd <- sapply(1:length(nm), \(y) { x$ModuleMethodData$Method$Gradient[[y]] })
       grd <- t(as.data.frame(grd))
       rownames(grd) <- NULL
       return(grd)
     })
-    LC$Flow <- sapply(LC_meth, function(x) { x$HyStarMethodData$MainFlow })
-    LC$RunTime <- sapply(LC_meth, function(x) { x$HyStarMethodData$NoStandardMethodData })
+    LC$Flow <- sapply(LC_meth, \(x) { x$HyStarMethodData$MainFlow })
+    LC$RunTime <- sapply(LC_meth, \(x) { x$HyStarMethodData$NoStandardMethodData })
     kolFl <- paste0(path, "/proteoCraft/LC_columns.xlsx")
     if (!file.exists(kolFl)) { proteoCraft::Configure() }
     allKolumns <- openxlsx::read.xlsx(kolFl, check.names = FALSE)
     if (!"Description" %in% colnames(allKolumns)) { allKolumns$Description <- "" }
-    kolDescr <- function(Colonnes) {
-      apply(Colonnes[, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N"), drop = FALSE], 1, function(x) {
+    kolDescr <- \(Colonnes) {
+      apply(Colonnes[, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N"), drop = FALSE], 1L, \(x) {
         #x <- Colonnes[1, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N")]
         x <- gsub("^ +| +$", "", as.character(unlist(x)))
-        dimz <- c(x[3], x[4])
+        dimz <- c(x[3L], x[4L])
         w <- which(!is.na(dimz))
-        dimzTst <- length(w) > 0
-        if (dimzTst) { dimz <- paste(paste0(gsub("\\.0+$", "", dimz), c(" cm", " µm ID"))[w], collapse = " * ") } else { dimz <- NA }
-        pn <- c(x[6], x[7])
+        dimzTst <- length(w) > 0L
+        dimz <- if (dimzTst) { paste(paste0(gsub("\\.0+$", "", dimz), c(" cm", " µm ID"))[w], collapse = " * ") } else { NA }
+        pn <- c(x[6L], x[7L])
         w <- which(!is.na(pn))
         pnTst <- length(w) > 0
         if (pnTst) { pn <- paste(paste0(c("", "P/N "), pn)[w], collapse = " ") } else { pn <- NA }
@@ -77,16 +80,16 @@ if (length(FILES)) {
     allKolumns$Description[w] <- kolDescr(allKolumns[w,])
     Kolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Analytical")], "None (direct infusion)", "Add new..."))
     preKolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Trap")],  "None (direct injection)", "Add new..."))
-    LC$Par <- lapply(LC_meth, function(x) {
+    LC$Par <- lapply(LC_meth, \(x) {
       nm <- names(x$ModuleMethodData$Metho$AdvancedSettings$Parameters)
-      pr <- sapply(1:length(nm), function(y) { x$ModuleMethodData$Metho$AdvancedSettings$Parameters[[y]] })
+      pr <- sapply(1:length(nm), \(y) { x$ModuleMethodData$Metho$AdvancedSettings$Parameters[[y]] })
       colnames(pr) <- pr[1,]
       pr <- pr[2:nrow(pr),]
       return(as.data.frame(pr))
     })
     kol <- c("Files", "NANO", "Column", "Trap", "usesTrap", "OvenT", "Gradient", "Flow", "RunTime")
     #kol %in% colnames(uBrMeth)
-    LC_txt  <- setNames(apply(LC[, kol], 1, function(x) {
+    LC_txt  <- setNames(apply(LC[, kol], 1L, \(x) {
       #x <- uBrMeth[1, c("Samples", "NANO", "Column", "Trap", "usesTrap", "OvenT", "Gradient", "Flow", "RunTime")]
       NANO <- x[[2]]
       Moult <- length(x[[1]]) > 1
@@ -115,7 +118,7 @@ if (length(FILES)) {
       GradEnd <- c(tmp0, tmp1)[(tmp1 - tmp0 > 1)+1]
       GRADLENGTH <- GradEnd-GradStrt
       Grad <- Grad[which(Grad$Time == GradStrt)[1]:which(Grad$Time == GradEnd),]
-      Grad <- paste(apply(Grad[, c("Time", "Mix")], 1, function(x) { paste0(x[[1]], " min, ", x[[2]], "%") }), collapse = "; ")
+      Grad <- paste(apply(Grad[, c("Time", "Mix")], 1, \(x) { paste0(x[[1]], " min, ", x[[2]], "%") }), collapse = "; ")
       Grad <- paste0(Grad, ", followed immediately by a ", Grad.PlateauL, " min plateau at ", Grad.Plateau, "%")
       LCtxt <- paste0(c("The s", "S")[Moult+1], "ample", c(" was", "s were")[Moult+1], " analysed by LC-MS/MS on a",
                       c("", "n")[tstNano+1], " ", NANO, " nano-HPLC (",
@@ -132,7 +135,7 @@ if (length(FILES)) {
       return(LCtxt)
     }), FILES)
   }, silent = TRUE)
-  if (!"try-error" %in% class(tstLC)) { print(LC_txt) } else {
+  if (!inherits(tstLC, "try-error")) { print(LC_txt) } else {
     warning(tstLC)
   }
   
@@ -140,26 +143,26 @@ if (length(FILES)) {
   MS_method <- paste0(FILES, "/analysis.tdf")
   MS_method.exists <- file.exists(MS_method)
   w <- which(MS_method.exists)
-  MS_meth <- setNames(lapply(MS_method[w], function(fl) { #fl <- MS_method[w[1]]
+  MS_meth <- setNames(lapply(MS_method[w], \(fl) { #fl <- MS_method[w[1]]
     #x <- readLines(fl)
     #x[1:100]
     SQltTDF <- dbConnect(drv = RSQLite::SQLite(), dbname = fl)
-    #Obj <- setNames(lapply(nms, function(nm) { suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", nm, "'"))) }), nms)
+    #Obj <- setNames(lapply(nms, \(nm) { suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", nm, "'"))) }), nms)
     #for (nm in nms) { if (nrow(Obj[[nm]])) { Obj[[nm]] <- cbind(rep(nm, nrow(Obj[[nm]])), Obj[[nm]]); colnames(Obj[[nm]])[1] <- "Table_name" } }
     #for (nm in nms) { if (nrow(Obj[[nm]])) { View(Obj[[nm]]) } }
     GlobMetDat <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "GlobalMetadata", "'")))
     PropsDat <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "Properties", "'")))
     PropsDefDat <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "PropertyDefinitions", "'")))
     FrmDat <- try(suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "PasefFrameMsMsInfo", "'"))), silent = TRUE)
-    if ("try-error" %in% class(FrmDat)) { FrmDat <- NA }
+    if (inherits(FrmDat, "try-error")) { FrmDat <- NA }
     DIADat1 <- try(suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "DiaFrameMsMsWindows", "'"))), silent = TRUE)
-    if ("try-error" %in% class(DIADat1)) { DIADat1 <- NA } else {
-      DIADat1$CollisionEnergy <- signif(DIADat1$CollisionEnergy, 2) # Do we really need more precision?!?!
+    if (inherits(DIADat1, "try-error")) { DIADat1 <- NA } else {
+      DIADat1$CollisionEnergy <- signif(DIADat1$CollisionEnergy, 2L) # Do we really need more precision?!?!
     }
     #DIADat2 <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "DiaFrameMsMsInfo", "'")))
     #DIADat3 <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "DiaFrameMsMsWindowGroups", "'")))
     PRMDat <- try(suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "PrmFrameMsMsInfo", "'"))), silent = TRUE)
-    if ("try-error" %in% class(PRMDat)) { PRMDat <- NA }
+    if (inherits(PRMDat, "try-error")) { PRMDat <- NA }
     dbDisconnect(SQltTDF)
     return(list(Method = list(Global = GlobMetDat,
                               Properties = PropsDat,
@@ -169,7 +172,7 @@ if (length(FILES)) {
                               PRM = PRMDat),
                 Name = GlobMetDat$Value[which(GlobMetDat$Key == "MethodName")]))
   }), FILES[w])
-  MS_method_parsed <- setNames(lapply(MS_meth, function(x) { #x <- MS_meth[[1]]
+  MS_method_parsed <- setNames(lapply(MS_meth, \(x) { #x <- MS_meth[[1]]
     fl <- paste0(path, "/proteoCraft/", x$Name)
     GlobMetDat <- x$Method$Global
     PropsDat <- x$Method$Properties
@@ -187,7 +190,7 @@ if (length(FILES)) {
     #View(FrmDat)
     MssRng <- gsub("\\.$", "", gsub("0+$", "", GlobMetDat$Value[match(c("MzAcqRangeLower", "MzAcqRangeUpper"), GlobMetDat$Key)]))
     MobRng <- gsub("\\.$", "", gsub("0+$", "", GlobMetDat$Value[match(c("OneOverK0AcqRangeLower", "OneOverK0AcqRangeUpper"), GlobMetDat$Key)]))
-    if (!"logical" %in% class(FrmDat)) {
+    if (!is.logical(FrmDat)) {
       isoWdths <- data.frame(Width = c(min(FrmDat$IsolationWidth), max(FrmDat$IsolationWidth)))
       isoWdths$MZ <- round(c(max(FrmDat$IsolationMz[which(FrmDat$IsolationWidth == isoWdths$Width[1])]),
                              min(FrmDat$IsolationMz[which(FrmDat$IsolationWidth == isoWdths$Width[2])])))
@@ -214,26 +217,26 @@ if (length(FILES)) {
                "MSMS_Pasef_ExclusionWindowMassWidth", "MSMS_Pasef_ExclusionWindow1PerK0Width")
     PropsDF <- PropsDat[which(PropsDat$Property %in% props),]
     PropsDF$Frame <- as.integer(PropsDF$Frame)
-    PropsDF <- aggregate(PropsDF$Frame, list(PropsDF$Property, PropsDF$Value), function(x) { paste0(min(x), "-", max(x)) })
+    PropsDF <- aggregate(PropsDF$Frame, list(PropsDF$Property, PropsDF$Value), \(x) { paste0(min(x), "-", max(x)) })
     colnames(PropsDF) <- c("Property", "Value", "Frames")
     PropsDF <- PropsDF[match(props, PropsDF$Property),]
     PropsDF[, c("Unit", "Name", "Group", "Explanation")] <- PropsDefDat[match(PropsDF$Property, PropsDefDat$PermanentName), c("DisplayDimension", "DisplayName", "DisplayGroupName", "DisplayValueText")]
     w <- which(PropsDF$Explanation != "")
     PropsDF$Explanation <- strsplit(PropsDF$Explanation, ";")
-    PropsDF$Explanation[w] <- lapply(PropsDF$Explanation[w], function(x) { #x <- PropsDF$Explanation[w[1]]
+    PropsDF$Explanation[w] <- lapply(PropsDF$Explanation[w], \(x) { #x <- PropsDF$Explanation[w[1]]
       x <- unlist(x)
       x <- t(as.data.frame(strsplit(x, ":")))
       return(x)
     })
     PropsDF$Value <- as.character(PropsDF$Value)
-    PropsDF$Value[w] <- apply(PropsDF[w, c("Value", "Explanation")], 1, function(x) { x[[2]][match(x[[1]], x[[2]][,1]) ,2] })
-    g <- lapply(c("Minimum", "Maximum"), function(x) { gsub(paste0(" ", x, "$"), "", grep(paste0(" ", x, "$"), PropsDF$Name, value = TRUE)) })
+    PropsDF$Value[w] <- apply(PropsDF[w, c("Value", "Explanation")], 1, \(x) { x[[2]][match(x[[1]], x[[2]][,1]) ,2] })
+    g <- lapply(c("Minimum", "Maximum"), \(x) { gsub(paste0(" ", x, "$"), "", grep(paste0(" ", x, "$"), PropsDF$Name, value = TRUE)) })
     u <- unique(unlist(g))
-    u <- u[which(sapply(u, function(x) { x %in% g[[1]] & x %in% g[[2]] }))]
+    u <- u[which(sapply(u, \(x) { x %in% g[[1]] & x %in% g[[2]] }))]
     if (length(u)) {
       tmp <- PropsDF[which(PropsDF$Name == paste0(u, " Minimum")),]
       tmp$Name <- gsub(" Minimum$", "", tmp$Name)
-      tmp$Value <- apply(tmp[, c("Value", "Name", "Frames")], 1, function(x) {
+      tmp$Value <- apply(tmp[, c("Value", "Name", "Frames")], 1, \(x) {
         paste0(x[[1]], "-", PropsDF$Value[which((PropsDF$Name == paste0(x[[2]], " Maximum"))&(PropsDF$Frames == x[[3]]))])
       })
       tmp$Property <- gsub(".Minimum", "", tmp$Property)
@@ -249,9 +252,9 @@ if (length(FILES)) {
     PropsDF2[, c("Group", "Unit", "Property")] <- PropsDF[match(PropsDF2$Name, PropsDF$Name), c("Group", "Unit", "Property")]
     PropsDF2 <- PropsDF2[match(PropsDF$Property, PropsDF2$Property),]
     AuF <- unique(PropsDF$Frames)
-    PropsDF2$Frame_group <- lapply(PropsDF2$Frames, function(x) { match(x, AuF) })
+    PropsDF2$Frame_group <- lapply(PropsDF2$Frames, \(x) { match(x, AuF) })
     PropsDF2$Text <- ""
-    PropsDF2$Text <- apply(PropsDF2[, c("Name", "Value", "Unit", "Frame_group")], 1, function(x) {
+    PropsDF2$Text <- apply(PropsDF2[, c("Name", "Value", "Unit", "Frame_group")], 1, \(x) {
       l <- length(x[[2]])
       res <- NA
       if (l > 1) {
@@ -275,19 +278,20 @@ if (length(FILES)) {
     PropsDF2$Text <- gsub("= Off$", "= off", gsub("= On$", "= on", PropsDF2$Text))
     Types <- "TIMS"
     if (grepl("PASEF", PropsDF2$Text[which(PropsDF2$Name == "Scan Mode")], ignore.case = TRUE)) { Types <- c(Types, "PASEF") }
-    Txt <- paste(sapply(Types, function(x) {
+    Txt <- paste(sapply(Types, \(x) {
       paste0(x, " parameters: ", paste0(PropsDF2$Text[which(PropsDF2$Group == x)], collapse = ", "))
     }), collapse = "; ")
     Txt <- paste0(paste(PropsDF2$Text[which(!PropsDF2$Group %in% Types)], collapse = ", "), "; ", Txt)
-    if (length(AuF) > 1) {
-      AuF <- apply(data.frame(N = 1:length(AuF), Fr = AuF), 1, paste, collapse = " = ")
+    if (length(AuF) > 1L) {
+      AuF <- apply(data.frame(N = 1L:length(AuF), Fr = AuF), 1L, paste, collapse = " = ")
       Txt <- paste0("Frame ranges: ", AuF, "; ", Txt)
     }
     DIAtst <- grepl("dia", PropsDF2$Text[which(PropsDF2$Name == "Scan Mode")], ignore.case = TRUE)
     PRMtst <- grepl("prm", PropsDF2$Text[which(PropsDF2$Name == "Scan Mode")], ignore.case = TRUE)
-    if ((DIAtst == 0)&&("logical" %in% class(FrmDat))&&(is.na(FrmDat))) {
-      Txt <- paste0("Isolation: ", isoWdths$Width[1], " Th for target precursors up to ",  isoWdths$MZ[1], " Th, then linear increase up to a maximum of ",
-                    isoWdths$Width[2], " Th at ",  isoWdths$MZ[2], " Th; ",
+    if ((DIAtst == 0L)&&(is.logical(FrmDat))&&(is.na(FrmDat))) {
+      Txt <- paste0("Isolation: ", isoWdths$Width[1L], " Th for target precursors up to ",  isoWdths$MZ[1L],
+                    " Th, then linear increase up to a maximum of ",
+                    isoWdths$Width[2L], " Th at ",  isoWdths$MZ[2L], " Th; ",
                     Txt)
     }
     Txt <- paste0("MS method: M/Z range = ", paste(MssRng, collapse = "-"), " Th, ion mobility range = ", paste(MobRng, collapse = "-"), " 1/K0; ", Txt, ".")
@@ -323,10 +327,10 @@ if (length(FILES)) {
                 "PRM?" = PRMtst, "PRM inclusion list" = PRMDat, "PRM list path" = PRMfl)
     return(res)
   }), FILES[w])
-  print(sapply(names(MS_method_parsed), function(fl) { MS_method_parsed[[fl]]$`M/Z range` }))
-  print(sapply(names(MS_method_parsed), function(fl) { MS_method_parsed[[fl]]$`IM range` }))
-  print(sapply(names(MS_method_parsed), function(fl) { MS_method_parsed[[fl]]$Text }))
-  writeClipboard(sapply(names(MS_method_parsed), function(fl) { MS_method_parsed[[fl]]$Text }))
+  print(sapply(names(MS_method_parsed), \(fl) { MS_method_parsed[[fl]]$`M/Z range` }))
+  print(sapply(names(MS_method_parsed), \(fl) { MS_method_parsed[[fl]]$`IM range` }))
+  print(sapply(names(MS_method_parsed), \(fl) { MS_method_parsed[[fl]]$Text }))
+  writeClipboard(sapply(names(MS_method_parsed), \(fl) { MS_method_parsed[[fl]]$Text }))
   #a <- MS_meth[[1]]$Method$Properties
   #b <- MS_meth[[1]]$Method$Definitions
   #a$PermanentName <- b$PermanentName[match(a$Property, b$Id)]

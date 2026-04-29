@@ -25,7 +25,7 @@ parXprs <- expression({
   N.clust <- parallel::detectCores()-1
   a <- 1
   tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-  if ("try-error" %in% class(tst)) {
+  if (inherits(tst, try-error)) {
     try(parallel::stopCluster(parClust), silent = TRUE)
     parClust <- parallel::makeCluster(N.clust, type = "SOCK")
   }
@@ -130,13 +130,13 @@ tst <- try({
   }
   require(rawrr)
 }, silent = TRUE)
-getInt <- !("try-error" %in% class(tst))
+getInt <- !inherits(tst, "try-error")
 #
 if (getInt) {
   ticFun <- function(fl) { #fl <- fls[1]
     cleanRawNm <- function(rawFileNm) { gsub("\\.raw$", "", rawFileNm, ignore.case = TRUE) }
     x <- try(readChromatogram(fl, type = "tic"), silent = TRUE)
-    if (!"try-error" %in% class(x)) {
+    if (!inherits(x, "try-error")) {
       res <- list(Outcome = TRUE,
                   Output = data.frame("Raw file" = fl,
                                       "Raw file name" = cleanRawNm(basename(fl)),
@@ -150,7 +150,7 @@ if (getInt) {
   bpcFun <- function(fl) { #fl <- fls[1]
     cleanRawNm <- function(rawFileNm) { gsub("\\.raw$", "", rawFileNm, ignore.case = TRUE) }
     x <- try(readChromatogram(fl, type = "bpc"), silent = TRUE)
-    if (!"try-error" %in% class(x)) {
+    if (!inherits(x, "try-error")) {
       res <- list(Outcome = TRUE,
                   Output = data.frame("Raw file" = fl,
                                       "Raw file name" = cleanRawNm(basename(fl)),
@@ -164,7 +164,7 @@ if (getInt) {
   xicFun <- function(fl, mass, tol, filter) { #fl <- fls[1]
     cleanRawNm <- function(rawFileNm) { gsub("\\.raw$", "", rawFileNm, ignore.case = TRUE) }
     x <- try(readChromatogram(fl, type = "xic", mass, tol, filter), silent = TRUE)
-    if (!"try-error" %in% class(x)) {
+    if (!inherits(x, "try-error")) {
       res <- list(Outcome = TRUE,
                   Output = data.frame("Raw file" = fl,
                                       "Raw file name" = cleanRawNm(basename(fl)),
@@ -217,10 +217,10 @@ if (!l) {
 #a <- rawrr::readFileHeader(rawfile = fl)
 
 # Work directory
-wd <- unique(dirname(fls))[1]
+wd <- unique(dirname(fls))[1L]
 dtst <- gsub(".*/", "", wd)
 tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
-while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
+while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
   wd <- rstudioapi::selectDirectory("Choose a work directory where we have write permission!", path = "D:/")
   tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
 }
@@ -430,16 +430,16 @@ if (getInt) {
   clusterExport(parClust, list("tol", "xicFun"), envir = environment())
   fltms2$xic <- parApply(parClust, fltms2[, c("Mass", "Filter", "File")], 1, function(x) { #x <- fltms2[1,]
     tst <- try({ xicFun(x[[3]], x[[1]], tol, x[[2]]) }, silent = TRUE)
-    if ("try-error" %in% class(tst)) { return() }
+    if (inherits(tst, "try-error")) { return() }
     return(tst)
   })
   uNms <- unique(fltms2$Nms)
   xic <- setNames(lapply(uNms, function(nm) { #nm <- uNms[1]
     w <- which((fltms2$Nms %in% nm)&(vapply(fltms2$xic, function(x) { #x <- fltms2$xic[[1]]
-      ("list" %in% class(x))&&
+      (is.list(x))&&
         (sum(c("Outcome", "Output") %in% names(x)) == 2)&&
         (x$Outcome)&&
-        ("data.frame" %in% class(x$Output))&&
+        (is.data.frame(x$Output))&&
         (nrow(x$Output))
     }, TRUE)))
     setNames(lapply(w, function(x) { fltms2$xic[[x]]$Output }), fltms2$File[w])
@@ -474,7 +474,7 @@ while (getRTRange) {
     Ykol <- c("Intensity", "Pressure")[(nm == "Pressure")+1]
     yLim <- c(min(x[[Ykol]], na.rm = TRUE), max(c(x[[Ykol]], 100), na.rm = TRUE)) # Hard-coded minimum 100 max Y to avoid issues when values are very low!
     rgY <- yLim[2]-yLim[1]
-    if ("data.frame" %in% class(x)) {
+    if (is.data.frame(x)) {
       if (!nm %in% c("TIC", "BPC", "Pressure")) {
         tmp <- unlist(strsplit(nm, " for "))
         mass <- as.numeric(tmp[1])

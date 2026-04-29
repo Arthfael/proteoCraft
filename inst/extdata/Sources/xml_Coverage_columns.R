@@ -12,7 +12,7 @@ if (scrptType == "noReps") { Grps <- c("", Exp) }
 for (grp in Grps) { #grp <- VPAL$values[1L]
   if (scrptType == "withReps") { pepidkol <- paste0(kolRt, " - ", grp) }
   if (scrptType == "noReps") {
-    if (grp == "") { pepidkol <- kolRt } else { pepidkol <- paste0(kolRt, " - ", grp) }
+    pepidkol <- if (grp == "") { kolRt } else { paste0(kolRt, " - ", grp) }
   }
   temp1 <- data.frame(Accession = frstProt,
                       `Peptide IDs` = PG[[pepidkol]],
@@ -56,7 +56,7 @@ for (grp in Grps) { #grp <- VPAL$values[1L]
 # This chunk is because of Titin. You know who you are, you bad Excel-breaking protein! 
 tst <- setNames(lapply(xmlCovCol, \(x) {
   w <- setNames(which(parSapply(parClust, substr(PG[[x]], 1L, ExcelMax), \(y) {
-    "try-error" %in% class(try(openxlsx2::as_xml(y), silent = TRUE))
+    inherits(try(openxlsx2::as_xml(y), silent = TRUE), "try-error")
   })), NULL)
 }), cleanNms(xmlCovCol, start = FALSE))
 sapply(tst, length)

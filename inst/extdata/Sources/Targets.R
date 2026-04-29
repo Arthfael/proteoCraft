@@ -85,7 +85,7 @@ if ("Target" %in% colnames(Exp.map)) {
     if (length(w1)) {
       tmp <- lapply(paste0("https://rest.uniprot.org/uniprotkb/", targProt[w1], ".fasta"), \(x) {
         x <- try(Format.DB(readLines(file(x)), in.env = TRUE), silent = TRUE)
-        res <- list(Outcome = (!"try-error" %in% class(x)))
+        res <- list(Outcome = !inherits(x, "try-error"))
         if (res$Outcome) { res$Output <- x }
         return(res)
       })

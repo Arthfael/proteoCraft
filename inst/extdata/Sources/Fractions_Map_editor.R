@@ -48,7 +48,7 @@ if (LabelType == "Isobaric") {
   kol1 <- c(kol1, "IsobaricSet")
   kol0 <- c(kol0, "Isobaric.set")
 }
-ALLIDS <- unlist(lapply(kol1, function(x) { paste0(x, "___", chRws) }))
+ALLIDS <- unlist(lapply(kol1, \(x) { paste0(x, "___", chRws) }))
 allPTMs <- unique(c(Modifs$`Full name`, NA))
 #
 # Dummy for shiny app
@@ -67,23 +67,23 @@ if (lu == nr) {
   tst <- gsub("/[^/]+$", "", FracMap2a$"Raw file")
   nc <- nchar(tst)
   mnc <- min(nc)
-  if (mnc >= 5) {
-    w <- max(which(sapply(1:mnc, function(x) { length(unique(substr(tst, 1, x))) }) == 1))
-    FracMap2a$"Raw file" <- paste0("...", substr(FracMap2a$"Raw file", w+1, nchar(FracMap2a$"Raw file")))
+  if (mnc >= 5L) {
+    w <- max(which(sapply(1L:mnc, \(x) { length(unique(substr(tst, 1L, x))) }) == 1L))
+    FracMap2a$"Raw file" <- paste0("...", substr(FracMap2a$"Raw file", w+1L, nchar(FracMap2a$"Raw file")))
   }
   FracMap2a$"Raw files name" <- NULL
 }
 # Original table width
-wTest0 <- setNames(sapply(colnames(FracMap2a), function(k) { #k <- colnames(FracMap2a)[1]
+wTest0 <- setNames(vapply(colnames(FracMap2a), \(k) { #k <- colnames(FracMap2a)[1L]
   tmp <- FracMap2a[[k]]
-  if ("logical" %in% class(tmp)) { tmp <- as.integer(tmp) }
+  if (is.logical(tmp)) { tmp <- as.integer(tmp) }
   tmp <- as.character(tmp)
-  x <- max(nchar(c(k, tmp)) + 3, na.rm = TRUE)
-  if (k == "PTMenriched") { x <- max(c(x, nchar(allPTMs) + 3), na.rm = TRUE) }
-  x <- x*10
-  if (is.na(x)) { x <- 15 } else { x <- max(c(ceiling(x/10)*10, 30)) }
-  return(x)
-}), colnames(FracMap2a))
+  x <- max(nchar(c(k, tmp)) + 3L, na.rm = TRUE)
+  if (k == "PTMenriched") { x <- max(c(x, nchar(allPTMs) + 3L), na.rm = TRUE) }
+  x <- x*10L
+  x <- if (is.na(x)) { 15L } else { max(c(ceiling(x/10)*10, 30)) }
+  return(as.integer(x))
+}, 1L), colnames(FracMap2a))
 FracMap2 <- FracMap2a[, which(colnames(FracMap2a) != "Exp_Backup")]
 FracMap2$Use <- shinyCheckInput(FracMap2a$Use,
                                 "Use")
@@ -124,35 +124,33 @@ for (k0 in kol0) { #k0 <- parKol #k0 <-  "Isobaric.set"
 }
 kol <- grep("^MQ[ \\.]Exp", kol, value = TRUE, invert = TRUE)
 FracMap2 <- FracMap2[, kol]
-wTest1 <- sapply(colnames(FracMap2), function(k1) { #k1 <- colnames(FracMap2)[1] #k1 <- "IsobaricSet"
+wTest1 <- sapply(colnames(FracMap2), \(k1) { #k1 <- colnames(FracMap2)[1L] #k1 <- "IsobaricSet"
   if (k1 %in% names(wTest0)) {
     x <- wTest0[k1]
   } else {
     k0 <- kol0[match(k1, kol1)]
-    if ((!is.na(k0))&&(k0 %in% names(wTest0))) { # Should not happen, currently we use kol1 names for wTest1
-      x <- wTest0[k0]
-    } else {
-      x <- 30
-    }
+    x <- if ((!is.na(k0))&&(k0 %in% names(wTest0))) { # Should not happen, currently we use kol1 names for wTest1
+      wTest0[k0]
+    } else { 30L }
   }
-  if (is.na(x)) { x <- 30 }
-  return(x)
+  if (is.na(x)) { x <- 30L }
+  return(as.integer(x))
 })
 wTest2 <- sum(wTest1)
 wTest1 <- paste0(as.character(wTest1), "px")
-wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
-wTest1 <- apply(wTest1, 1, function(x) {
-  list(width = x[[1]],
-       targets = x[[2]],
-       names = colnames(FracMap2)[x[[2]]+1])
+wTest1 <- aggregate((1L:length(wTest1))-1L, list(wTest1), c)
+wTest1 <- apply(wTest1, 1L, \(x) {
+  list(width = x[[1L]],
+       targets = x[[2L]],
+       names = colnames(FracMap2)[x[[2L]]+1L])
 })
 #
 g <- grep("___((FD)|(INCR))$", colnames(FracMap2))
 colnames(FracMap2)[g] <- ""
 #
 kN <- c("Raw files name", "Parameter group", "PTMs")
-wN <- which(colnames(FracMap2) %in% kN) - 1
-wY <- which(!colnames(FracMap2) %in% kN) - 1
+wN <- which(colnames(FracMap2) %in% kN) - 1L
+wY <- which(!colnames(FracMap2) %in% kN) - 1L
 edith <- list(target = "column",
               disable = list(columns = wN),
               enable = list(columns = wY))
@@ -199,9 +197,9 @@ ui <- fluidPage(
     actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
     DT::DTOutput("FracTbl", width = paste0(wTest2, "px")),
     br(),
-    width = 12
+    width = 12L
   ))
-server <- function(input, output, session) {
+server <- \(input, output, session) {
   # Initialize output table
   FracMap3 <- FracMap
   #
@@ -229,13 +227,13 @@ server <- function(input, output, session) {
       Shiny.bindAll(table.table().node());")
   )
   # Fill down
-  sapply(ALLFDIDS, function(id2) {
+  sapply(ALLFDIDS, \(id2) {
     id1 <- gsub("___FD$", "", id2)
     #cat(id2, "\n")
     tmp <- unlist(strsplit(id1, "___"))
-    k1 <- tmp[[1]]
+    k1 <- tmp[[1L]]
     #k0 <- kol0[match(k1, kol1)]
-    i <- as.integer(tmp[[2]])
+    i <- as.integer(tmp[[2L]])
     if (i < nr) {
       observeEvent(input[[id2]],
                    {
@@ -244,10 +242,10 @@ server <- function(input, output, session) {
                      if (k1 %in% c("Fraction", "IsobaricSet")) { x <- as.integer(x) }
                      if (k1 == "Use") { x <- as.logical(x) }
                      if (k1 == "ISo") { x <- as.integer(x) }
-                     for (k in (i+1):nr) {
+                     for (k in (i+1L):nr) {
                        idK <- paste0(k1, "___", as.character(k))
                        if (k1 == "PTMenriched") { updateSelectInput(session, idK, NULL, allPTMs, x) }
-                       if (k1 %in% c("Fraction", "IsobaricSet")) { updateNumericInput(session, idK, NULL, x, 1, Inf, 1) }
+                       if (k1 %in% c("Fraction", "IsobaricSet")) { updateNumericInput(session, idK, NULL, x, 1L, Inf, 1L) }
                        if (k1 == "Use") { updateCheckboxInput(session, idK, NULL, x) }
                        if (k1 == "Sample") { updateTextInput(session, idK, NULL, x) }
                      }
@@ -264,19 +262,19 @@ server <- function(input, output, session) {
   observeEvent(input$saveBtn, {
     for (k1 in kol1) {
       k0 <- kol0[match(k1, kol1)]
-      FracMap3[[k0]] <- sapply(rws, function(i) { input[[paste0(k1, "___", as.character(i))]] })
+      FracMap3[[k0]] <- sapply(rws, \(i) { input[[paste0(k1, "___", as.character(i))]] })
     }
     assign("FracMap3", FracMap3, envir = .GlobalEnv)
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+  session$onSessionEnded(\() { stopApp() })
 }
-runKount <- 0
+runKount <- 0L
 while ((!runKount)||(!exists("FracMap3"))) {
   eval(parse(text = runApp), envir = .GlobalEnv)
   shinyCleanup()
-  runKount <- runKount+1
+  runKount <- runKount+1L
 }
 #
 FracMap <- FracMap3
@@ -296,7 +294,7 @@ if (LabelType == "LFQ") {
   colnames(FracMap)[which(colnames(FracMap) == "Parent sample")] <- "MQ.Exp"
 }
 tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
-while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
+while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
   dlg_message(paste0("File \"", FracMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
 }
@@ -308,32 +306,32 @@ if (LabelType == "Isobaric") {
   kol["Isobaric.set"] <- "Isobaric.set"
 }
 kol <- kol[which(kol %in% colnames(FracMap))]
-stopifnot(length(kol) > 0)
-tst <- aggregate(FracMap[, kol], list(FracMap$MQ.Exp), function(x) { length(unique(x)) })
-colnames(tst)[1] <- "Biological sample"
-kount <- 0
-strt <- unique(substr(tst$"Biological sample", 1, 1))
-while (length(strt) == 1) {
-  kount <- kount + 1
-  tst$"Biological sample" <- substr(tst$"Biological sample", 2, nchar(tst$"Biological sample"))
-  strt <- unique(substr(tst$"Biological sample", 1, 1))
+stopifnot(length(kol) > 0L)
+tst <- aggregate(FracMap[, kol], list(FracMap$MQ.Exp), \(x) { length(unique(x)) })
+colnames(tst)[1L] <- "Biological sample"
+kount <- 0L
+strt <- unique(substr(tst$"Biological sample", 1L, 1L))
+while (length(strt) == 1L) {
+  kount <- kount + 1L
+  tst$"Biological sample" <- substr(tst$"Biological sample", 2L, nchar(tst$"Biological sample"))
+  strt <- unique(substr(tst$"Biological sample", 1L, 1L))
 }
-nc <- nchar(c("Biological sample", tst[[1]]))
+nc <- nchar(c("Biological sample", tst[[1L]]))
 mx <- max(nc)
-w <- which(nc < mx)-1
+w <- which(nc < mx)-1L
 if (length(w)) {
-  if (0 %in% w) { colnames(tst)[1] <- paste0(c(colnames(tst)[1], rep("  ", mx-nc[1])), collapse = "") }
-  w <- w[which(w > 0)]
-  tst[w, 1] <- sapply(w, function(x) { paste0(c(tst[x, 1], rep("  ", mx-nc[x+1])), collapse = "") })
+  if (0L %in% w) { colnames(tst)[1L] <- paste0(c(colnames(tst)[1L], rep("  ", mx-nc[1L])), collapse = "") }
+  w <- w[which(w > 0L)]
+  tst[w, 1L] <- sapply(w, \(x) { paste0(c(tst[x, 1L], rep("  ", mx-nc[x+1L])), collapse = "") })
 }
 msg <- c(paste(colnames(tst), collapse = "          "), do.call(paste, c(tst, sep = "          ")))
 msg2 <- msg <- paste(c(paste0("Check the number of:\n - MS files\n - fractions\n - enriched sample types",
                               c("", "\n - isobaric sets")[labelMode],
                               "\nper parent biological sample below. Is everything ok? If not, click \"no\" to get back to editing the table.\n\n   -----\n"),
                        msg, "\n   -----\n"), collapse = "\n")
-if (nchar(msg) > 1000) {
+if (nchar(msg) > 1000L) {
   cat(msg)
-  msg2 <- paste0(substr(msg, 1, 996), "...")
+  msg2 <- paste0(substr(msg, 1L, 996L), "...")
 }
 #
 cat(" Check message in popup box before proceeding...\n")

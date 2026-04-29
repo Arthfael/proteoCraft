@@ -16,7 +16,7 @@ require(parallel)
 N.clust <- parallel::detectCores()
 a <- 1
 tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-if ("try-error" %in% class(tst)) {
+if (inherits(tst, "try-error")) {
   try(parallel::stopCluster(parClust), silent = TRUE)
   parClust <- parallel::makeCluster(N.clust, type = "SOCK")
 }

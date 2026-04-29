@@ -25,6 +25,7 @@ if (!exists("homePath")) {
 #locDirs <- openxlsx2::read_xlsx(locDirsFl)
 #if ("Python" %in% locDirs$Folder) {
 pyTest <- try(.pyConfig(), silent = TRUE)
+if (inherits(pyTest, "try-error")) { pyTest <- FALSE }
 #}
 #}
 #load_Bckp()
@@ -169,8 +170,8 @@ if (isFnd["MS_models"]) {
   MSInstrTxt <- " the Mass Spectrometer model(s) on which the data was acquired"
   if ((!exists("myVendor"))||(!is.character(myVendor))||(sum(!myVendor %in% Vendors2Instr$Vendor))) { myVendor <- "All vendors" }
   myMSInstr <- c()
-  if ((!exists("myMSInstr"))||(!is.character(myMSInstr))||(sum(!myMSInstr %in% availInstr))) {
-    if ((exists("LCMS_instr"))&&("list" %in% class(LCMS_instr))&&("MS" %in% names(LCMS_instr))) {
+  if ((!exists("myMSInstr")) || (!is.character(myMSInstr)) || sum(!myMSInstr %in% availInstr)) {
+    if (exists("LCMS_instr") && is.list(LCMS_instr) && ("MS" %in% names(LCMS_instr))) {
       myMSInstr <- availInstr[which(availInstr %in% LCMS_instr$MS)]
     }
   }

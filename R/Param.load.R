@@ -20,32 +20,32 @@ Param.load <- function(file = "Parameters.csv", filter.deprecated = TRUE, WD_det
     if (ext == "txt") { Param <- read.delim(file, header = FALSE) } else { stop("I only accept txt or csv files") }
   }
   # The commented lines are from older code, which now causes more harm than good
-  #if ((ncol(Param) > 2)&&(nrow(Param) > 2)) {
-  #  if ((ncol(Param) == 3)&&(nrow(Param) > 3)) {
-  #    Param <- Param[,1:2]
+  #if ((ncol(Param) > 2L) && (nrow(Param) > 2L)) {
+  #  if ((ncol(Param) == 3L) && (nrow(Param) > 3L)) {
+  #    Param <- Param[, 1L:L2]
   #  } else {
-  #    if ((nrow(Param) == 3)&&(ncol(Param) > 3)) {
-  #      Param <- Param[1:2,]
+  #    if ((nrow(Param) == 3L) && (ncol(Param) > 3L)) {
+  #      Param <- Param[1L:2L,]
   #    } else {
   #      stop("There was a mistake processing this parameters file!")
   #    }
   #  }
   #}
-  #if (ncol(Param) == 2) {
-  #  a <- Param[,1]
+  #if (ncol(Param) == 2L) {
+  #  a <- Param[, 1L]
   #  Param <- as.data.frame(t(Param[,2]))
   #  colnames(Param) <- a
   #}
-  #if (nrow(Param) == 2) {
-  #  a <- Param[1,]
+  #if (nrow(Param) == 2L) {
+  #  a <- Param[1L,]
   #  Param <- as.data.frame(Param[2,])
   #  colnames(Param) <- a
   #}
-  prm <- as.data.frame(matrix(Param[[2]], nrow = 1))
-  Param <- magrittr::set_colnames(prm, Param[[1]])
-  if (filter.deprecated) { Param <- Param[,which(!grepl("^deprecated", Param[1,], ignore.case = TRUE)), drop = FALSE] }
-  Param[,which(Param[1,] == "T")] <- TRUE
-  Param[,which(Param[1,] == "F")] <- FALSE
+  prm <- as.data.frame(matrix(Param[[2L]], nrow = 1L))
+  Param <- magrittr::set_colnames(prm, Param[[1L]])
+  if (filter.deprecated) { Param <- Param[,which(!grepl("^deprecated", Param[1L,], ignore.case = TRUE)), drop = FALSE] }
+  Param[, which(Param[1L,] == "T")] <- TRUE
+  Param[, which(Param[1L,] == "F")] <- FALSE
   if (!is.null(Param$WD)) {
     Param$WD <- gsub("\\\\","/",Param$WD)
     Param$WD <- gsub("^ | $","",Param$WD)
@@ -63,39 +63,40 @@ Param.load <- function(file = "Parameters.csv", filter.deprecated = TRUE, WD_det
   #  Param.Scatter <- read.csv("Param.Scatter.csv")
   #}
   if ("MQ.Experiments.to.discard" %in% colnames(Param)) { Param$MQ.Experiments.to.discard <- gsub("-| ", ".", Param$MQ.Experiments.to.discard) }
-  Param[,which(is.na(Param[1,]))] <- ""
+  Param[,which(is.na(Param[1L,]))] <- ""
   if ("Type" %in% colnames(Param)) { Param$Type <- toupper(gsub(" ", "", Param$Type)) }
   # Convert characters with numeric values to numerics:
-  w <- which(!Param[1,] %in% c(NA, "NA", NaN, "NaN"))
+  w <- which(!Param[1L,] %in% c(NA, "NA", NaN, "NaN"))
   if (length(w)) {
-    w2 <- which(sapply(Param[1, w], function(x) { "character" %in%  class(x) }))
+    w2 <- which(vapply(Param[1L, w], is.character, TRUE))
     test1 <- suppressWarnings(as.numeric(Param[1,w[w2]]))
     w3 <- which(!is.na(test1))
     if (length(w3)) {
-      w4 <- which(suppressWarnings(as.character(as.numeric(Param[1,w[w2[w3]]]))) == Param[1,w[w2[w3]]])
-      if (length(w4)) { Param[,w[w2[w3[w4]]]] <- as.numeric(Param[,w[w2[w3[w4]]]]) }
+      w4 <- which(suppressWarnings(as.character(as.numeric(Param[1L, w[w2[w3]]]))) == Param[1L, w[w2[w3]]])
+      if (length(w4)) { Param[, w[w2[w3[w4]]]] <- as.numeric(Param[, w[w2[w3[w4]]]]) }
     }
   }
   # Convert characters to logicals where relevant:
-  w <- which(sapply(colnames(Param), function(x) { "character" %in% class(x) })&(toupper(Param[1,]) %in% c("FALSE", "TRUE")))
+  w <- which(vapply(colnames(Param), is.character, TRUE)&(toupper(Param[1L,]) %in% c("FALSE", "TRUE")))
   if (length(w)) { Param[, w] <- as.logical(Param[, w]) }
   # Test and normalize paths if necessary
-  w <- which(sapply(colnames(Param), function(x) { "character" %in% class(Param[[x]]) }))
+  w <- which(vapply(colnames(Param), \(x) { is.character(Param[[x]]) }, TRUE))
   w <- w[which(!w %in% match("MQ.Experiments", colnames(Param)))]
-  g <- grep("\\\\", Param[1, w])
+  g <- grep("\\\\", Param[1L, w])
   if (length(g)) {
-    test <- lapply(strsplit(as.character(Param[1, w[g]]), ";"), function(x) {
+    test <- lapply(strsplit(as.character(Param[1L, w[g]]), ";"), \(x) {
       #x <- strsplit(as.character(Param[1, w[g]])[1], ";")
       x <- unlist(x)
-      tst <- sum(sapply(x, function(y) {
-        suppressWarnings(!"try-error" %in% class(try(normalizePath(y, winslash = "/"), silent = TRUE)))
+      tst <- sum(sapply(x, \(y) {
+        tt <- try(normalizePath(y, winslash = "/"), silent = TRUE)
+        suppressWarnings(!inherits(tt, "try-error"))
       }))
       if (tst == length(x)) {
         x <- suppressWarnings(normalizePath(x, winslash = "/"))
       }
       return(paste(x, collapse = ";"))
     })
-    Param[,w[g]] <- test
+    Param[, w[g]] <- test
   }
   #
   return(Param)

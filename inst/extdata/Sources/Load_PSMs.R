@@ -238,12 +238,12 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
               m <- match(tbl$file[wY2], names(tst))
               tbl$nuLoc[wY2] <- tst[m]
               msg <- "   The user was able to locate "
-              if (length(wN2) == 0L) {
-                msg <- paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
-                              " in directory ", newDir, "\n")
+              msg <- if (length(wN2) == 0L) {
+                paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
+                       " in directory ", newDir, "\n")
               } else {
-                msg <- paste0(msg, "the following missing file", c("", "s")[tstY2],
-                              " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
+                paste0(msg, "the following missing file", c("", "s")[tstY2],
+                       " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
               }
               cat(msg)
             } else {
@@ -383,12 +383,12 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     y <- which(tsts); ly <- length(y)
     n <- which(!tsts); ln <- length(n)
     if (ly) {
-      if (ly == 1L) { txt <- paste0(names(tsts)[y], " was set to active") } else {
-        txt <- paste0(paste(names(tsts)[y[1L:(ly-1L)]], collapse = ", "), " and ", names(tsts)[y[ly]], " were set to active")
+      txt <- if (ly == 1L) { paste0(names(tsts)[y], " was set to active") } else {
+        paste0(paste(names(tsts)[y[1L:(ly-1L)]], collapse = ", "), " and ", names(tsts)[y[ly]], " were set to active")
       }
       if (ln) {
-        if (ln == 1L) { txt <- paste0(txt, ", while ", names(tsts)[n], " was turned off.") } else {
-          txt <- paste0(txt, ", while ", paste(names(tsts)[n[1L:(ln-1L)]], collapse = ", "), " and ", names(tsts)[n[ln]], " were turned off.")
+        txt <- if (ln == 1L) { paste0(txt, ", while ", names(tsts)[n], " was turned off.") } else {
+          paste0(txt, ", while ", paste(names(tsts)[n[1L:(ln-1L)]], collapse = ", "), " and ", names(tsts)[n[ln]], " were turned off.")
         }
       } else { txt <- paste0(txt, ".") }
     } else {
@@ -398,9 +398,9 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     tst <- unique(FDRs)
     lf <- length(FDRs)
     nms <- gsub("Fdr$", "s", names(FDRs))
-    if (length(tst) == 1L) { txt <- paste0("All FDRs were set to ", tst*100, "%.") } else {
-      txt <- paste0("FDRs were set to: ", paste(paste0(FDRs[1L:(lf-1L)]*100, "% (", nms[1L:(lf-1L)], ")"), collapse = ", "),
-                    " and ", paste0(FDRs[lf]*100, "% (", nms[lf], ")"), ".")
+    txt <- if (length(tst) == 1L) { paste0("All FDRs were set to ", tst*100, "%.") } else {
+      paste0("FDRs were set to: ", paste(paste0(FDRs[1L:(lf-1L)]*100, "% (", nms[1L:(lf-1L)], ")"), collapse = ", "),
+             " and ", paste0(FDRs[lf]*100, "% (", nms[lf], ")"), ".")
     }
     searchTxt_i <- paste0(searchTxt_i, " ", txt)
     #
@@ -613,12 +613,12 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
               m <- match(tbl$file[wY2], names(tst))
               tbl$nuLoc[wY2] <- tst[m]
               msg <- "   The user was able to locate "
-              if (length(wN2) == 0L) {
-                msg <- paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
-                              " in directory ", newDir, "\n")
+              msg <- if (length(wN2) == 0L) {
+                paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
+                       " in directory ", newDir, "\n")
               } else {
-                msg <- paste0(msg, "the following missing file", c("", "s")[tstY2],
-                              " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
+                paste0(msg, "the following missing file", c("", "s")[tstY2],
+                       " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
               }
               cat(msg)
             } else {
@@ -678,12 +678,12 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                             "Use" = TRUE,
                             check.names = FALSE)
     temp <- unlist(strsplit(diannCall_i, " --min-pep-len "))
-    if (length(temp) == 2L) { minPepSz_i <- as.integer(gsub(" --.+", "", unlist(strsplit(diannCall_i, " --min-pep-len "))[2L])) } else {
-      minPepSz_i <- min(nchar(ev_i$Sequence))
+    minPepSz_i <- if (length(temp) == 2L) { as.integer(gsub(" --.+", "", unlist(strsplit(diannCall_i, " --min-pep-len "))[2L])) } else {
+      min(nchar(ev_i$Sequence))
     }
     temp <- unlist(strsplit(diannCall_i, " --missed-cleavages "))
-    if (length(temp) == 2L) { missed_i <- as.integer(gsub(" --.+", "", unlist(strsplit(diannCall_i, " --missed-cleavages "))[2L])) } else {
-      missed_i <- (max(lengths(strsplit(ev_i$Sequence, "R|K")))-1L)
+    missed_i <- if (length(temp) == 2L) { as.integer(gsub(" --.+", "", unlist(strsplit(diannCall_i, " --missed-cleavages "))[2L])) } else {
+      max(lengths(strsplit(ev_i$Sequence, "R|K")))-1L
     }
     diannVers_i <- gsub("^DIA-NN | .+$", "", grep("^DIA-NN [0-9]+\\.?[0-9]*", diannLog_i, value = TRUE))
     #
@@ -737,26 +737,26 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                           "TEMPLATELIBTEXT")
     searchTxt_i <- paste0(searchTxt_i, " Match-Between-Runs was turned ", c("off", "on")[MBR], ".")
     if (length(FxMdC)) {
-      if (length(FxMdC) == 1L) {
-        txt <- paste0("Fixed cysteine modification was set to ", FxMdC, ".")
+      txt <- if (length(FxMdC) == 1L) {
+        paste0("Fixed cysteine modification was set to ", FxMdC, ".")
       } else {
-        txt <- paste0(paste(FxMdC[1L:(length(FxMdC)-1L)], collapse = ", "), " and ", rev(FxMdC)[1L], " were included as fixed cysteine modifications.")
+        paste0(paste(FxMdC[1L:(length(FxMdC)-1L)], collapse = ", "), " and ", rev(FxMdC)[1L], " were included as fixed cysteine modifications.")
       }
       searchTxt_i <- paste0(searchTxt_i, " ", txt)
     }
     if (length(FxMd)) {
-      if (length(FxMd) == 1L) {
-        txt <- paste0("An additional fixed modifications, ", FxMd, ", was also included.")
+      txt <- if (length(FxMd) == 1L) {
+        paste0("An additional fixed modifications, ", FxMd, ", was also included.")
       } else {
-        txt <- paste0("In addition, ", paste(FxMd[1L:(length(FxMd)-1L)], collapse = ", "), " and ", rev(FxMd)[1L], " were included as fixed modifications.")
+        paste0("In addition, ", paste(FxMd[1L:(length(FxMd)-1L)], collapse = ", "), " and ", rev(FxMd)[1L], " were included as fixed modifications.")
       }
       searchTxt_i <- paste0(searchTxt_i, " ", txt)
     }
-    if (("data.frame" %in% class(VarMd))&&(nrow(VarMd))) {
-      if (nrow(VarMd) == 1L) {
-        txt <- paste0(VarMd$Text, " was set as variable modification.")
+    if (is.data.frame(VarMd)&&nrow(VarMd)) {
+      txt <- if (nrow(VarMd) == 1L) {
+        paste0(VarMd$Text, " was set as variable modification.")
       } else {
-        txt <- paste0("Variable modifications were set to ", paste(VarMd$Text[1L:(nrow(VarMd)-1L)], collapse = ", "), " and ", rev(VarMd$Text)[1L], ".")
+        paste0("Variable modifications were set to ", paste(VarMd$Text[1L:(nrow(VarMd)-1L)], collapse = ", "), " and ", rev(VarMd$Text)[1L], ".")
       }
       searchTxt_i <- paste0(searchTxt_i, " ", txt)
     }
@@ -934,12 +934,12 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
               m <- match(tbl$file[wY2], names(tst))
               tbl$nuLoc[wY2] <- tst[m]
               msg <- "   The user was able to locate "
-              if (!length(wN2)) {
-                msg <- paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
-                              " in directory ", newDir, "\n")
+              msg <- if (!length(wN2)) {
+                paste0(msg, c("", "all ")[tstY2], "the missing file", c("", "s")[tstY2],
+                       " in directory ", newDir, "\n")
               } else {
-                msg <- paste0(msg, "the following missing file", c("", "s")[tstY2],
-                              " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
+                paste0(msg, "the following missing file", c("", "s")[tstY2],
+                       " in directory ", newDir, ":\n", paste0(" - ", tbl$file[wY2], collapse = "\n"), "\n")
               }
               cat(msg)
             } else {
@@ -977,7 +977,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                             "Use" = TRUE,
                             check.names = FALSE)
     if (labelType_i == "Isobaric") {
-      fracMap_i$Isobaric.set <- c(as.character(1), "?")[(nrow(fracMap_i) > 1L)+1L]
+      fracMap_i$Isobaric.set <- c(as.character(1L), "?")[(nrow(fracMap_i) > 1L)+1L]
     } else {
       fracMap_i$"Parent sample" <- fracMap_i$MQ.Exp
     }
@@ -1239,7 +1239,7 @@ if ("Mass delta" %in% colnames(modsTst)) {
       rs <- unique(unlist(modsTst$`Mass shift`[x]))
       rs <- rs[which(!is.na(rs))]
     }
-    if (length(rs)) { rs <- mean(rs) } else { rs <- NA}
+    rs <- if (length(rs)) { mean(rs) } else { NA }
     return(rs)
   })$x
 }
@@ -1329,7 +1329,7 @@ isDIA %<o% setNames(vapply(searchOutputs, \(x) { x$isDIA }, TRUE),
                     inDirs)
 # - QuantUMS:
 QuantUMS %<o% setNames(vapply(searchOutputs, \(x) {
-  if ("QuantUMS" %in% names(x$Software_param)) { x <- x$Software_param$QuantUMS } else { x <- FALSE }
+  x <- if ("QuantUMS" %in% names(x$Software_param)) { x$Software_param$QuantUMS } else { FALSE }
   return(x)
 }, TRUE), inDirs)
 #  - PSMs: 

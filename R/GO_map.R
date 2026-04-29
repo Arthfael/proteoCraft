@@ -33,37 +33,30 @@ GO_map <- function(DB,
                    method = "topGO",
                    cl,
                    N.clust,
-                   N.reserved = 1) {
+                   N.reserved = 1L) {
   TESTING <- FALSE
   #DefArg(GO_map);DB <- db; TESTING <- TRUE
-  if (TESTING) {
+  misFun <- if (TESTING) {
     tm1 <<- Sys.time()
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-    misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
-  } else { misFun <- missing }
+    \(x) { return(!exists(deparse(substitute(x)))) }
+  } else { missing }
   #
   # Create cluster
-  tstCl <- stopCl <- misFun(cl)
-  if (!misFun(cl)) {
-    tstCl <- suppressWarnings(try({
-      a <- 1
-      parallel::clusterExport(cl, "a", envir = environment())
-    }, silent = TRUE))
-    tstCl <- !"try-error" %in% class(tstCl)
-  }
-  if ((misFun(cl))||(!tstCl)) {
+  stopCl <- FALSE
+  if ((is.null(cl))||(!inherits(cl, "cluster"))) {
     dc <- parallel::detectCores()
-    if (misFun(N.reserved)) { N.reserved <- 1 }
-    if (misFun(N.clust)) {
-      N.clust <- max(c(dc-N.reserved, 1))
-    } else {
-      if (N.clust > max(c(dc-N.reserved, 1))) {
+    if (misFun(N.reserved)) { N.reserved <- 1L }
+    nMax <- max(c(dc - N.reserved, 1L))
+    if (misFun(N.clust)) { N.clust <- nMax } else {
+      if (N.clust > nMax) {
         warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
-        N.clust <- max(c(dc-N.reserved, 1))
+        N.clust <- nMax
       }
     }
     cl <- parallel::makeCluster(N.clust, type = "SOCK")
+    stopCl <- TRUE
   }
   N.clust <- length(cl)
   #
@@ -93,18 +86,18 @@ GO_map <- function(DB,
     # (Alternate way to do it, but results will be identical)
     #GO2Pr <- aggregate(temp$value, list(temp$L1), c)
     #GO2Pr <- setNames(GO2Pr$x, GO2Pr$Group.1)
-    #GO2Pr <- GO2Pr[which(sapply(GO2Pr, length) > 0)]
+    #GO2Pr <- GO2Pr[which(sapply(GO2Pr, length) > 0L)]
     #GO2Prs <- list(BP = topGO::annFUN.GO2genes("BP", names(Pr2GO), GO2Pr),
     #               CC = topGO::annFUN.GO2genes("CC", names(Pr2GO), GO2Pr),
     #               MF = topGO::annFUN.GO2genes("MF", names(Pr2GO), GO2Pr))
-    nms <- unique(unlist(sapply(Ont, function(x) {
+    nms <- unique(unlist(sapply(Ont, \(x) {
       #unique(c(
       names(Prs2GO[[x]])#, names(GO2Prs[[x]])))
     })))
-    Prs2GO2 <- setNames(lapply(nms, function(x) {
+    Prs2GO2 <- setNames(lapply(nms, \(x) {
       sort(unique(c(Prs2GO$BP[[x]], Prs2GO$CC[[x]], Prs2GO$MF[[x]])))
     }), nms) # I am faster if not parallelized!
-    #GO2Prs2 <- setNames(lapply(nms, function(x) { sort(unique(c(GO2Prs$BP[[x]], GO2Prs$CC[[x]], GO2Prs$MF[[x]]))) }), nms)
+    #GO2Prs2 <- setNames(lapply(nms, \(x) { sort(unique(c(GO2Prs$BP[[x]], GO2Prs$CC[[x]], GO2Prs$MF[[x]]))) }), nms)
     #tst1 <- sapply(Prs2GO2, paste, collapse = ";")
     #tst2 <- sapply(GO2Prs2, paste, collapse = ";")
     #stopifnot(sum(tst1 != tst2) == 0) # Check that they are identical
@@ -120,7 +113,7 @@ GO_map <- function(DB,
     tst2N <- tst2[which(!tst2 %in% tst1)]
     w <- which(temp$L1 %in% tst2N)
     if (length(w)) {
-      temp2 <- aggregate(temp$value[w], list(temp$L1[w]), function(x) { list(unique(x)) })
+      temp2 <- aggregate(temp$value[w], list(temp$L1[w]), \(x) { list(unique(x)) })
       temp2 <- setNames(temp2$x, temp2$Group.1)
       Prs2GO2[names(temp2)] <- temp2  
     }
@@ -145,7 +138,7 @@ GO_map <- function(DB,
       #cl <- parClust
       tmp <- DB[, c(db_ID_col, db_Gene_col)]
       parallel::clusterExport(cl, list("tmp", "db_ID_col", "db_Gene_col"), envir = environment())
-      f0 <- function(x) { unique(tmp[match(x, tmp[[db_ID_col]]), db_Gene_col]) }
+      f0 <- \(x) { unique(tmp[match(x, tmp[[db_ID_col]]), db_Gene_col]) }
       environment(f0) <- .GlobalEnv
       Gns2GO2a <- parallel::parLapply(cl, Prs2GO2, f0)
       names(Gns2GO2a) <- names(Prs2GO2)
@@ -162,21 +155,21 @@ GO_map <- function(DB,
   }
   if (method == "DIY") {
     #a1 <- Sys.time()
-    for (kl in 1:(1+GenTst)) {
+    for (kl in 1L:(1L+GenTst)) {
       # 1. Proteins and Genes directly annotated with term in DB
       kol <- get(c("db_ID_col", "db_Gene_col")[kl])
       nm <- c("Protein", "Gene")[kl]
-      w <- which(nchar(DB[[kol]]) > 0)
+      w <- which(nchar(DB[[kol]]) > 0L)
       temp <- magrittr::set_colnames(listMelt(strsplit(DB[w, kol], ";"), DB$"GO-ID"[w]), c(nm, "GO"))
       temp <- temp[which(!is.na(temp$GO)),]
-      temp <- temp[which(nchar(temp$GO) > 0),]
+      temp <- temp[which(nchar(temp$GO) > 0L),]
       temp <- listMelt(strsplit(temp$GO, ";"), temp[[nm]])
-      temp <- magrittr::set_colnames(aggregate(temp$L1, list(temp$value), function(x) {
+      temp <- magrittr::set_colnames(aggregate(temp$L1, list(temp$value), \(x) {
         paste(sort(unique(unlist(x))), collapse = ";")
       }), c("GO", nm))
       #2. Optional: also proteins annotated with an offspring term in DB
       if (OffspringCounts) {
-        w <- which(sapply(GO.terms$Offspring, length) > 0)
+        w <- which(sapply(GO.terms$Offspring, length) > 0L)
         temp2 <- listMelt(GO.terms$Offspring[w], GO.terms$ID[w])
         # Include not just offspring but also term itself:
         temp2 <- rbind(temp2,
@@ -185,7 +178,7 @@ GO_map <- function(DB,
         temp2 <- temp2[which(!is.na(temp2[[nm]])),]
         temp2[[nm]] <- strsplit(temp2[[nm]], ";")
         temp2 <- magrittr::set_colnames(listMelt(temp2[[nm]], temp2$L1), c(nm, "GO"))
-        temp2 <- magrittr::set_colnames(aggregate(temp2[[nm]], list(temp2$GO), function(x) {
+        temp2 <- magrittr::set_colnames(aggregate(temp2[[nm]], list(temp2$GO), \(x) {
           paste(sort(unique(unlist(x))), collapse = ";")
         }), c("GO", nm))
         temp <- temp2; rm(temp2)

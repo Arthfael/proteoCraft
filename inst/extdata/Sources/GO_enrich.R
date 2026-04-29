@@ -685,7 +685,7 @@ if (length(wFltL)) {
   tst <- try({
     GO_tbls <- setNames(parallel::parLapply(parClust, names(mapFilters), Fisher0), names(mapFilters))
   })
-  if ("try-error" %in% class(tst)) {
+  if (inherits(tst, "try-error")) {
     GO_tbls <- setNames(lapply(names(mapFilters), Fisher0), names(mapFilters))
   }
   #vapply(GO_tbls, \(x) { x$Outcome }, TRUE)
@@ -1314,7 +1314,7 @@ if (length(wFltL)) {
                                          fn.prefix = paste0(n2, "_-_", ont, "_-"), pdfSW = TRUE), silent = TRUE)
             fl <- paste0(n2, "_-_", ont, "_-_classic_5_all.pdf")
             #system(paste0("open \"", fl, "\""))
-            if (!"try-error" %in% class(tst)) {
+            if (!inherits(tst, "try-error")) {
               file.copy(fl, paste0("GO_", ont,"_network - ", n2, ".pdf"), overwrite = TRUE)
             }
             if (file.exists(fl)) { unlink(fl, force = TRUE) }
@@ -1328,7 +1328,7 @@ if (length(wFltL)) {
       cat("     Drawing plots...\n")
       tst <- try({ tstPlots <- setNames(parallel::parLapply(parClust, names(GO_tbls2), plotsF0),
                                         names(GO_tbls2)) }, silent = TRUE)
-      if ("try-error" %in% class(tst)) {
+      if (inherits(tst, "try-error")) {
         tstPlots <- setNames(lapply(names(GO_tbls2), plotsF0),
                              names(GO_tbls2))
       }

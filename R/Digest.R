@@ -57,11 +57,11 @@ Digest <- function(Seq,
   #characters.test = TRUE; N.clust = 5
   #Cut = c("Y_", "W_", "F_")
   #Cut = c("E_")
-  if (TESTING) {
+  misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-    misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
-  } else { misFun <- missing }
+    function(x) { return(!exists(deparse(substitute(x)))) }
+  } else { missing }
   Cut <- toupper(Cut)
   stopifnot(class(missed) %in% c("numeric", "integer", "integer64") & missed == round(missed),
             missed >= 0L,
@@ -76,26 +76,19 @@ Digest <- function(Seq,
     if (usePar) {
       #
       # Create cluster
-      tstCl <- stopCl <- misFun(cl)
-      if (!misFun(cl)) {
-        tstCl <- suppressWarnings(try({
-          a <- 1
-          parallel::clusterExport(cl, "a", envir = environment())
-        }, silent = TRUE))
-        tstCl <- !"try-error" %in% class(tstCl)
-      }
-      if ((misFun(cl))||(!tstCl)) {
+      stopCl <- FALSE
+      if ((is.null(cl))||(!inherits(cl, "cluster"))) {
         dc <- parallel::detectCores()
         if (misFun(N.reserved)) { N.reserved <- 1L }
-        if (misFun(N.clust)) {
-          N.clust <- max(c(dc-N.reserved, 1L))
-        } else {
-          if (N.clust > max(c(dc-N.reserved, 1L))) {
+        nMax <- max(c(dc - N.reserved, 1L))
+        if (misFun(N.clust)) { N.clust <- nMax } else {
+          if (N.clust > nMax) {
             warning("More cores specified than allowed, I will ignore the specified number! You should always leave at least one free for other processes, see the \"N.reserved\" argument.")
-            N.clust <- max(c(dc-N.reserved, 1L))
+            N.clust <- nMax
           }
         }
         cl <- parallel::makeCluster(N.clust, type = "SOCK")
+        stopCl <- TRUE
       }
       N.clust <- length(cl)
       #
@@ -145,20 +138,20 @@ Digest <- function(Seq,
   # Optional characters test
   if (characters.test) {
     AA <- proteoCraft::AA
-    if (usePar) {
-      test <- unlist(parallel::parLapply(cl, Chnks, function(x) {
+    test <- if (usePar) {
+      unlist(parallel::parLapply(cl, Chnks, function(x) {
         nchar(gsub(paste(AA, collapse = "|"), "", x))
       }))
     } else {
-      test <- nchar(gsub(paste(AA, collapse = "|"), "", SEQ))
+      nchar(gsub(paste(AA, collapse = "|"), "", SEQ))
     }
     if (max(test)) {
-      if (lSEQ > 1) {
+      if (lSEQ > 1L) {
         w <- which(test > 0L)
         l <- length(w)
         if (l > 1L) {
-          if (l > 100L) { w <- paste0(paste(w[1L:100L], collapse = ", "), "...") } else {
-            w <- paste0(paste(w[1L:(l-1L)], collapse = ", "), " and ", w[l])
+          w <- if (l > 100L) { paste0(paste(w[1L:100L], collapse = ", "), "...") } else {
+            paste0(paste(w[1L:(l-1L)], collapse = ", "), " and ", w[l])
           }
         }
         msg <- paste0("There are illegal characters in input Sequence", c("", "s")[(l > 1L)+1L], " number ", w, "!")
@@ -172,7 +165,7 @@ Digest <- function(Seq,
     cllpsTst <- TRUE
     cllps <- as.character(collapse)
   }
-  F0 <- function(Sq) { #Sq <- SEQ #Sq <- Chnks[[1L]]
+  F0 <- \(Sq) { #Sq <- SEQ #Sq <- Chnks[[1L]]
     nmsSq <- names(Sq)
     # N-terminal Methionine:
     if (RemoveNtermMet == "strict") { Sq <- gsub("^M", "", Sq) }
@@ -229,8 +222,8 @@ Digest <- function(Seq,
         if (TESTING) { print(paste0("Creating peptides with ", ms, "-missed cleavages...")) }
         w <- which(L >= ms+1L)
         if (length(w)) {
-          temp <- setNames(lapply(w, function(x) { #x <- 1L
-            vapply(1L:(L[x]-ms), function(p) { paste(Sq[[x]][p:(p+ms)], collapse = "") }, "")
+          temp <- setNames(lapply(w, \(x) { #x <- 1L
+            vapply(1L:(L[x]-ms), \(p) { paste(Sq[[x]][p:(p+ms)], collapse = "") }, "")
           }), names(Sq)[w])
           Rs[w] <- mapply(c, Rs[w], temp, SIMPLIFY = FALSE)
         }
@@ -250,11 +243,11 @@ Digest <- function(Seq,
       tstL <- lengths(temp$value)
       wL <- which(tstL > 1L) # Normally this should be all of them, since all are matches
       if (length(wL)) {
-        temp$value[wL] <- vapply(wL, function(x) { #x <- wL[1L]
-          paste(unlist(sapply(seq_len(tstL[x]), function(p1) {
+        temp$value[wL] <- vapply(wL, \(x) { #x <- wL[1L]
+          paste(unlist(sapply(seq_len(tstL[x]), \(p1) {
             # For each potential proximal digest position p1 in the peptide,
             # we generate all peptides ending at all potential distal positions p2
-            vapply(p1:tstL[x], function(p2) { # Move along
+            vapply(p1:tstL[x], \(p2) { # Move along
               paste(temp$value[[x]][p1:p2], collapse = "")
             }, "")
           })), collapse = ";")
@@ -269,13 +262,13 @@ Digest <- function(Seq,
       }
     }
     if (RemoveNtermMet %in% c("loose", "predict")) {
-      Rs[AT] <- lapply(Rs[AT], function(x) {
+      Rs[AT] <- lapply(Rs[AT], \(x) {
         unique(c(gsub("^@M", "M", x),
                  gsub("^@M", "", x)))
       })
     }
-    Rs <- lapply(Rs, function(x) { unique(x[which(nchar(x) >= min)]) }) # Filter for min and remove rare duplicates
-    if (max) { Rs <- lapply(Rs, function(x) { x[which(nchar(x) <= max)] }) } # Optional: filter for max
+    Rs <- lapply(Rs, \(x) { unique(x[which(nchar(x) >= min)]) }) # Filter for min and remove rare duplicates
+    if (max) { Rs <- lapply(Rs, \(x) { x[which(nchar(x) <= max)] }) } # Optional: filter for max
     #tst <- unique(gsub("[A-Z]", "", unlist(Rs)))
     if (cllpsTst) { Rs <- vapply(Rs, paste, "", collapse = cllps) }
     names(Rs) <- nmsSq
@@ -295,7 +288,7 @@ Digest <- function(Seq,
   }
   RES[[names(Seq)[1L]]]
   #
-  Res <- setNames(lapply(Seq, function(x) { }), names(Seq))
+  Res <- setNames(lapply(Seq, \(x) { }), names(Seq))
   Res[names(RES)] <- RES
   #
   stopifnot(length(Res) == length(Seq), # Check length

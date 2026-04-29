@@ -106,10 +106,10 @@ if (length(w)) {
   }
   
   # Make/check cluster
-  N.clust <- parallel::detectCores()-1
-  a <- 1
+  N.clust <- parallel::detectCores()-1L
+  a <- 1L
   tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-  if ("try-error" %in% class(tst)) {
+  if (inherits(tst, "try-error")) {
     try(parallel::stopCluster(parClust), silent = TRUE)
     parClust <- parallel::makeCluster(N.clust, type = "SOCK")
   }
@@ -118,27 +118,27 @@ if (length(w)) {
   parallel::clusterExport(parClust, list("pckDF", "inst"), envir = environment())
   w <- which(pckDF$Package %in% inst$Package)
   if (length(w)) {
-    kount <- 0
-    while ((kount < 5)&&(length(w))) {
+    kount <- 0L
+    while ((kount < 5L)&&(length(w))) {
       for (pck in pckDF$Package[w]) {
-        parallel::parLapply(parClust, w, function(i) { #i <- w[1]
+        parallel::parLapply(parClust, w, function(i) { #i <- w[1L]
           tst <- try(unloadNamespace(pck), silent = TRUE)
         })
       }
-      parallel::parLapply(parClust, w, function(i) { #i <- w[1]
+      parallel::parLapply(parClust, w, function(i) { #i <- w[1L]
         pck <- pckDF$Package[i]
         if (pck %in% inst$Package) {
           tst <- try({
             a <- try({ remove.packages(pck) })
-            if ("try-error" %in% class(a)) { pkg_remove(pkg) }
+            if (inherits(a, "try-error")) { pkg_remove(pkg) }
           }, silent = TRUE)
-          return(!"try-error" %in% class(tst))
+          return(!inherits(tst, "try-error"))
         } else { return(TRUE) }
       })
       inst <- as.data.frame(installed.packages())
       clusterExport(parClust, list("inst"), envir = environment())
       w <- which(pckDF$Package %in% inst$Package)
-      kount <- kount + 1
+      kount <- kount + 1L
     }
   }
   
@@ -146,17 +146,17 @@ if (length(w)) {
   inst <- as.data.frame(installed.packages())
   Tsts <- setNames(pckDF$Package %in% inst$Package, pckDF$Package)
   w <- which(Tsts)
-  tst2 <- sapply(w, function(i) { #i <- w[1]
+  tst2 <- sapply(w, function(i) { #i <- w[1L]
     pck <- pckDF$Package[i]
     a <- try(library(pck, character.only = TRUE), silent = TRUE)
-    a <- !"try-error" %in% class(a)
+    a <- !inherits(a, "try-error")
     if (a) {
       try({
         unloadNamespace(pck) # Can stay here as long as it is within sapply
         # If you ever turn this sapply into parSapply then you will need to move unloadNamespace to a separate sapply(... parLapply...) (see above)
         # so it applies to the whole cluster before we even 
         b <- try({ remove.packages(pck) }, silent = TRUE)
-        if ("try-error" %in% class(b)) { pak::pkg_remove(pck) }
+        if (inherits(b, "try-error")) { pak::pkg_remove(pck) }
       }, silent = TRUE)
     }
     return(a)
@@ -195,17 +195,17 @@ if (length(w)) {
                                dep <- dep[which(!is.na(dep))]
                                dep <- dep[which(dep %in% pckDF$Package)]
                                inst <- as.data.frame(installed.packages())
-                               ok <- sum(!dep %in% inst$Package) == 0
+                               ok <- sum(!dep %in% inst$Package) == 0L
                                if (ok) {
                                  retry <- !((orig == "CRAN")&(!is.na(vers)))
                                  if (!retry) {
                                    url <- paste0("https://cran.r-project.org/src/contrib/Archive/", pck, "/", pck, "_", vers, ".tar.gz")
                                    a <- try(install.packages(url, repos = NULL, type = "source"), silent = TRUE)
-                                   if ("try-error" %in% class(a)) {
+                                   if (inherits(a, "try-error")) {
                                      tst <- unlist(strsplit(vers, "\\."))
                                      l <- length(tst)
-                                     if (l > 1) {
-                                       vers <- paste(tst[1:(l-1)], collapse = ".")
+                                     if (l > 1L) {
+                                       vers <- paste(tst[1L:(l-1L)], collapse = ".")
                                        url <- paste0("https://cran.r-project.org/src/contrib/Archive/", pck, "/", pck, "_", vers, ".tar.gz")
                                        a <- try(install.packages(url, repos = NULL, type = "source"), silent = TRUE)
                                      } 
@@ -222,8 +222,8 @@ if (length(w)) {
                                  #     a <- try(pak::pkg_install(pck), silent = TRUE)
                                  #   } else {
                                  #     a <- try(devtools::install_version(pck, vers, force = TRUE, upgrade = "never"), silent = TRUE)
-                                 #     if ("try-error" %in% class(a)) { a <- try(utils::install.packages(pck, repos = "https://cran.wu.ac.at"), silent = TRUE) }
-                                 #     if (("try-error" %in% class(a))&&(retry)) { orig <- "Bioc" }
+                                 #     if (inherits(a, "try-error")) { a <- try(utils::install.packages(pck, repos = "https://cran.wu.ac.at"), silent = TRUE) }
+                                 #     if (inherits(a, "try-error"))&&(retry)) { orig <- "Bioc" }
                                  #     inst <- as.data.frame(installed.packages())
                                  #     if (!pck %in% inst$Package) {
                                  #       # In case we wrongly predicted where we can find a package
@@ -274,7 +274,7 @@ if (length(w)) {
     url <- paste0("https://cran.r-project.org/src/contrib/Archive/uchardet/uchardet_", vers, ".tar.gz")
     destfile <- paste0("uchardet_", vers, ".tar.gz")
     tst <- try(download.file(url, destfile, "curl"), silent = TRUE)
-    if ("try-error" %in% class(tst)) { try(download.file(url, destfile, "wget"), silent = TRUE) }
+    if (inherits(tst, "try-error")) { try(download.file(url, destfile, "wget"), silent = TRUE) }
     install.packages(destfile)
     unlink(destfile)
   }

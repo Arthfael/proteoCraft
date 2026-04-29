@@ -139,12 +139,12 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
     MatMetTxt <- officer::docx_summary(MatMetTxt)
     MatMetTxt <- MatMetTxt$text
     MatMetTxt <- MatMetTxt[grep("^Samples? preparation", MatMetTxt) + 1L]
-    reuseMatMeth <- ("character" %in% class(MatMetTxt))&&(!is.na(reuseMatMeth))&&(MatMetTxt != "TEMPLATE")
+    reuseMatMeth <- is.character(MatMetTxt) && (!is.na(reuseMatMeth)) && (MatMetTxt != "TEMPLATE")
   }
   if (!reuseMatMeth) {
-    SPMethods <- c(paste0("iST", rep(c("", "-NHS"), 3), " kit", c(rep("", 2L),
-                                                                  paste0(" adapted for ", c(rep("on-paramagnetic beads digest", 2),
-                                                                                            rep("tissue samples", 2))))),
+    SPMethods <- c(paste0("iST", rep(c("", "-NHS"), 3L), " kit", c(rep("", 2L),
+                                                                   paste0(" adapted for ", c(rep("on-paramagnetic beads digest", 2),
+                                                                                             rep("tissue samples", 2))))),
                    "FASP", paste0(c("on-beads", paste0("in-", c("gel", "solution"))), " digest"), "none of those")
     SPMeth <- svDialogs::dlg_list(SPMethods,
                                   title = "Select the sample processing method used:")$res

@@ -20,7 +20,7 @@ if (exists("parClust")) { try(stopCluster(parClust), silent = TRUE) } # A fresh 
 N.clust <- detectCores()-1
 a <- 1
 tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-if ("try-error" %in% class(tst)) {
+if (inherits(tst, "try-error")) {
   try(stopCluster(parClust), silent = TRUE)
   parClust <- makeCluster(N.clust, type = "SOCK")
 }
@@ -123,12 +123,12 @@ tst <- try({
   }
   require(rawrr)
 }, silent = TRUE)
-getInt <- !("try-error" %in% class(tst))
+getInt <- !inherits(tst, "try-error")
 #
 if (getInt) {
   ticFun <- function(fl) { #fl <- fls[1]
     x <- try(readChromatogram(fl, type = "tic"), silent = TRUE)
-    if (!"try-error" %in% class(x)) {
+    if (!inherits(x, "try-error")) {
       res <- list(Outcome = TRUE,
                   Output = data.frame("Raw file" = fl,
                                       "Raw file name" = cleanRawNm(basename(fl)),
@@ -141,7 +141,7 @@ if (getInt) {
   }
   bpcFun <- function(fl) { #fl <- fls[1]
     x <- try(readChromatogram(fl, type = "bpc"), silent = TRUE)
-    if (!"try-error" %in% class(x)) {
+    if (!inherits(x, "try-error")) {
       res <- list(Outcome = TRUE,
                   Output = data.frame("Raw file" = fl,
                                       "Raw file name" = cleanRawNm(basename(fl)),
@@ -152,16 +152,16 @@ if (getInt) {
                          Error = x) }
     return(res)
   }
-  xicFun <- function(fl, mass, tol, filter) { #fl <- fls[1]
+  xicFun <- function(fl, mass, tol, filter) { #fl <- fls[1L]
     x <- try(readChromatogram(fl, type = "xic", mass, tol, filter), silent = TRUE)
-    if (!"try-error" %in% class(x)) {
+    if (!inherits(x, "try-error")) {
       res <- list(Outcome = TRUE,
                   Output = data.frame("Raw file" = fl,
                                       "Raw file name" = cleanRawNm(basename(fl)),
                                       "M/Z" = mass,
                                       "Tolerance" = tol,
-                                      "Retention time" = as.numeric(x[[1]]$times),
-                                      "Intensity" = as.numeric(x[[1]]$intensities),
+                                      "Retention time" = as.numeric(x[[1L]]$times),
+                                      "Intensity" = as.numeric(x[[1L]]$intensities),
                                       check.names = FALSE))
     } else { res <- list(Outcome = FALSE,
                          Error = x) }
@@ -207,10 +207,10 @@ if (!l) {
 #a <- rawrr::readFileHeader(rawfile = fl)
 
 # Work directory
-wd <- unique(dirname(fls))[1]
+wd <- unique(dirname(fls))[1L]
 dtst <- gsub(".*/", "", wd)
 tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
-while ("try-error" %in% class(tst)) {
+while (inherits(tst, "try-error")) {
   wd <- rstudioapi::selectDirectory("Choose a work directory where we have write permission!", path = "D:/")
   tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
 }
@@ -526,31 +526,31 @@ fullRTRange <- unlist(lapply(names(allChroms), function(nm) {
   return(allChroms[[nm]]$`Retention time`)
 }))
 fullRTRange <- c(min(fullRTRange), max(fullRTRange))
-getRTRange <- TRUE; kount <- 1
+getRTRange <- TRUE; kount <- 1L
 while (getRTRange) {
   for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms)[2]
-    if ("data.frame" %in% class(allChroms[[nm]])) {
+    if (is.data.frame(allChroms[[nm]])) {
       tmpDat <- list()
       tmpDat[[nm]] <- allChroms[[nm]]
     }
-    if ("list" %in% class(allChroms[[nm]])) {
+    if (is.list(allChroms[[nm]])) {
       tmpDat <- allChroms[[nm]]
     }
     for (nm2 in names(tmpDat)) { #nm2 <- names(tmpDat)[1]
       x <- tmpDat[[nm2]]
-      if (kount > 1) {
-        x <- x[which((x$`Retention time` >= RTRange[1])&(x$`Retention time` <= RTRange[2])),]
+      if (kount > 1L) {
+        x <- x[which((x$`Retention time` >= RTRange[1L])&(x$`Retention time` <= RTRange[2L])),]
       }
       xLim <- c(min(x$`Retention time`, na.rm = TRUE), max(x$`Retention time`, na.rm = TRUE))
-      rgX <- xLim[2]-xLim[1]
-      Ykol <- c("Intensity", "Pressure")[(nm == "Pressure")+1]
-      yLim <- c(min(x[[Ykol]], na.rm = TRUE), max(c(x[[Ykol]], 100), na.rm = TRUE)) # Hard-coded minimum 100 max Y to avoid issues when values are very low!
-      rgY <- yLim[2]-yLim[1]
-      if ("data.frame" %in% class(x)) {
+      rgX <- xLim[2L]-xLim[1L]
+      Ykol <- c("Intensity", "Pressure")[(nm == "Pressure")+1L]
+      yLim <- c(min(x[[Ykol]], na.rm = TRUE), max(c(x[[Ykol]], 100L), na.rm = TRUE)) # Hard-coded minimum 100 max Y to avoid issues when values are very low!
+      rgY <- yLim[2L]-yLim[1L]
+      if (is.data.frame(x)) {
         if (!nm %in% c("TIC", "BPC", "Pressure")) {
           tmp <- unlist(strsplit(nm2, " for "))
-          mass <- as.numeric(tmp[1])
-          ms2 <- tmp[2]
+          mass <- as.numeric(tmp[1L])
+          ms2 <- tmp[2L]
           ms2Trg <- as.numeric(gsub(".* ", "", ms2))
         }
         x$`Raw file` <- factor(x$`Raw file`, levels = fls)
@@ -562,26 +562,26 @@ while (getRTRange) {
         #x$Int <- x[[Ykol]] + offset*(match(x$`Raw file`, fls)-1)
         #unique(x$`Raw file`)
         #
-        for (i in 1:length(Ranges)) { #i <- 1
+        for (i in 1L:length(Ranges)) { #i <- 1L
           rg <- Ranges[[i]]
           w <- which(x$`Raw file` %in% fls[rg])
           if (length(w)) {
-            if (nm %in% c("TIC", "BPC", "Pressure")) { ttl <- paste0(dtst, " - ", nm2) } else {
-              ttl <- paste0(dtst, "- XIC, transition ", ms2Trg, " to ", mass)
+            ttl <- if (nm %in% c("TIC", "BPC", "Pressure")) { paste0(dtst, " - ", nm2) } else {
+              paste0(dtst, "- XIC, transition ", ms2Trg, " to ", mass)
             }
-            if (kount > 1) { ttl <- paste0(ttl, ", RT ", RTRange[1], "-", RTRange[2], " min") }
-            if (length(Ranges) > 1) { ttl <- paste0(ttl, ", files ", min(rg), "-", max(rg)) }
-            plot <- ggplot(x[w,], aes(x = `Retention time`, y = .data[[Ykol]], colour = `Raw file name`)) + ggtitle(ttl) +
-              coord_fixed(rgX/(rgY*3)) +
+            if (kount > 1L) { ttl <- paste0(ttl, ", RT ", RTRange[1L], "-", RTRange[L2], " min") }
+            if (length(Ranges) > 1L) { ttl <- paste0(ttl, ", files ", min(rg), "-", max(rg)) }
+            plot <- ggplot(x[w,], aes(x = `Retention time`, y = .data[[Ykol]], colour = `Raw file name`)) +
+              ggtitle(ttl) + coord_fixed(rgX/(rgY*3)) +
               facet_wrap(~`Raw file name`) +
               #geom_point() +
               geom_line(aes(group = `Raw file name`)) +
               theme_bw()  +
               theme(strip.text.y = element_text(angle = 0)) +
-              xlim(xLim[1], xLim[2]) + ylim(yLim[1], yLim[2])
+              xlim(xLim[1L], xLim[2L]) + ylim(yLim[1L], yLim[2L])
             # Only pop up pressure and XIC plots
             if (!nm %in% c("TIC", "BPC")) { grDevices::windows(12L, 22L); print(plot) }
-            ggsave(paste0(wd, "/", ttl, ".jpeg"), plot, dpi = 100)
+            ggsave(paste0(wd, "/", ttl, ".jpeg"), plot, dpi = 100L)
           }
         }
       } else {
@@ -593,20 +593,20 @@ while (getRTRange) {
       }
     }
   }
-  kount <- kount + 1
-  msg <- paste0("Extract a", c("", "nother")[(kount > 2)+1], " RT sub-range?")
+  kount <- kount + 1L
+  msg <- paste0("Extract a", c("", "nother")[(kount > 2L)+1L], " RT sub-range?")
   getRTRange <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
   if (getRTRange) {
     if (exists("RTRange")) { dflt <- RTRange } else { dflt <- fullRTRange }
     RTRange <- as.numeric(unlist(strsplit(dlg_input("Enter min. and max. RT divided by \"-\"",
                                                     paste(dflt, collapse = "-"))$res, " *- *")))
     RTRange <- RTRange[which(!is.na(RTRange))]
-    if (length(RTRange) != 2) {
+    if (length(RTRange) != 2L) {
       warning("Invalid RT range! Cancelling...")
       getRTRange <- FALSE
     } else {
       RTRange <- sort(RTRange)
-      if (RTRange[1] < fullRTRange[1]) {
+      if (RTRange[1L] < fullRTRange[1L]) {
         warning("Too low RT range!")
         RTRange[1] <- fullRTRange[1]
       }

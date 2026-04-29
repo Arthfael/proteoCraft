@@ -96,7 +96,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
     }, TRUE))
     filtDF <- filtDF[w,]
     nr <- nrow(filtDF)
-    if (nr) {
+    if ((!is.null(nr)) && (nr)) {
       filtDF$W <- lapply(1L:nr, \(x) { #x <- 1L
         w <- filtDF$Filter[[x]]$Filter
         typ <- filtDF$Type[x]
@@ -169,7 +169,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
   filtersDF <- plyr::rbind.fill(filtersDF)
   filtersDF <- filtersDF[which(paste0("TaxID_", filtersDF$TaxID) %in% names(allProteins_mapped)),]
   nr <- nrow(filtersDF)
-  if (nr) {
+  if ((!is.null(nr)) && (nr)) {
     filtersDF <- rbind(filtersDF, filtersDF)
     filtersDF$GraphType <- GraphTypes[2L]
     filtersDF$GraphType[1L:nr] <- GraphTypes[1L]

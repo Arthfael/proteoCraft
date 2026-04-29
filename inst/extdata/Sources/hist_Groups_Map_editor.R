@@ -9,15 +9,15 @@ if (reLoad) {
   grpsMap_Disk <- read.csv(grpsMapFl,
                            check.names = FALSE)
   #
-  reLoad <- (sum(c("Group", "Reference", "Comparison_group") %in% colnames(grpsMap_Disk)) == 3)&&
-    (sum(!Groups %in% grpsMap_Disk$Group) == 0)
+  reLoad <- (sum(c("Group", "Reference", "Comparison_group") %in% colnames(grpsMap_Disk)) == 3L)&&
+    (sum(!Groups %in% grpsMap_Disk$Group) == 0L)
 }
-if (reLoad) {
-  grpsMap <- grpsMap_Disk[which(grpsMap_Disk$Group %in% samplesMap$Group),]
+grpsMap <- if (reLoad) {
+  grpsMap_Disk[which(grpsMap_Disk$Group %in% samplesMap$Group),]
 } else {
-  grpsMap <- data.frame(Group = Groups,
-                        Reference = FALSE,
-                        Comparison_group = 1)
+  data.frame(Group = Groups,
+             Reference = FALSE,
+                        Comparison_group = 1L)
 }
 grpsMap$Reference <- as.logical(grpsMap$Reference)
 w <- which(is.na(grpsMap$Reference))
@@ -34,33 +34,33 @@ grpsMap2$Reference <- shinyCheckInput(grpsMap2$Reference, "Reference")
 grpsMap2$Reference___FD <- shinyFDInput("Reference", nr)
 grpsMap2 <- grpsMap2[, c("Group", "Comparison_group", "Comparison_group___FD",
                          "Reference", "Reference___FD")]
-ALLIDS <- as.character(sapply(c("Comparison_group", "Reference"), function(x) {
+ALLIDS <- as.character(sapply(c("Comparison_group", "Reference"), \(x) {
   paste0(x, "___", chRws)
 }))
 idsL <- length(ALLIDS)
 # Table width
-wTest0 <- setNames(vapply(colnames(grpsMap), function(k) { #k <- colnames(grpsMap2)[1]
+wTest0 <- setNames(vapply(colnames(grpsMap), \(k) { #k <- colnames(grpsMap2)[1L]
   tmp <- grpsMap[[k]]
-  if ("logical" %in% class(tmp)) { tmp <- as.integer(tmp) }
+  if (is.logical(tmp)) { tmp <- as.integer(tmp) }
   tmp <- as.character(tmp)
-  x <- max(nchar(c(k, tmp)) + 3, na.rm = TRUE)
-  x <- x*10
+  x <- max(nchar(c(k, tmp)) + 3L, na.rm = TRUE)
+  x <- x*10L
+  return(as.integer(x))
+}, 1L), colnames(grpsMap))
+wTest1 <- vapply(colnames(grpsMap2), \(k) { #k <- colnames(grpsMap2)[1L]
+  x <- if (k %in% names(wTest0)) { wTest0[k] } else { 30L }
   return(x)
-}, 1), colnames(grpsMap))
-wTest1 <- vapply(colnames(grpsMap2), function(k) { #k <- colnames(grpsMap2)[1]
-  if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
-  return(x)
-}, 1)
+}, 1L)
 wTest1 <- round(wTest1*screenRes$width*0.45/sum(wTest1))
 #sum(wTest1)
 wTest1 <- paste0(as.character(wTest1), "px")
-wTest1 <- aggregate((1:length(wTest1))-1, list(wTest1), c)
-wTest1 <- apply(wTest1, 1, function(x) {
-  x1 <- x[[1]]
-  x2 <- as.integer(x[[2]])
+wTest1 <- aggregate((1L:length(wTest1))-1L, list(wTest1), c)
+wTest1 <- apply(wTest1, 1L, \(x) {
+  x1 <- x[[1L]]
+  x2 <- as.integer(x[[2L]])
   list(width = x1,
        targets = x2,
-       names = colnames(grpsMap2)[x2+1])
+       names = colnames(grpsMap2)[x2+1L])
 })
 #
 g <- grep("___((FD)|(INCR))$", colnames(grpsMap2))
@@ -86,7 +86,7 @@ ui <- fluidPage(useShinyjs(),
                 DTOutput("grpsMap2"),
                 br(),
                 br())
-server <- function(input, output, session) {
+server <- \(input, output, session) {
   grpsMap3 <- grpsMap
   output$grpsMap2 <- renderDT({ grpsMap2 },
                               FALSE,
@@ -111,17 +111,17 @@ server <- function(input, output, session) {
       Shiny.unbindAll(table.table().node());
       Shiny.bindAll(table.table().node());"))
   # Fill down
-  sapply(1:idsL, function(x) {
+  sapply(1L:idsL, \(x) {
     id1 <- ALLIDS[x]
     id2 <- paste0(ALLIDS[x], "___FD")
     tmp <- unlist(strsplit(id1, "___"))
-    fct <- tmp[[1]]
-    i <- as.integer(tmp[[2]])
+    fct <- tmp[[1L]]
+    i <- as.integer(tmp[[2L]])
     if (i < nr) {
       observeEvent(input[[id2]],
                    {
                      x <- input[[id1]]
-                     for (k in (i+1):nr) {
+                     for (k in (i+1L):nr) {
                        idK <- paste0(fct, "___", as.character(k))
                        if (fct == "Comparison_group") {
                          updateTextInput(session, idK, NULL, x)
@@ -136,7 +136,7 @@ server <- function(input, output, session) {
   observeEvent(input$saveBtn, {
     kls <- c("Comparison_group", "Reference")
     for (kl in kls) {
-      grpsMap3[[kl]] <- sapply(rws, function(i) {
+      grpsMap3[[kl]] <- sapply(rws, \(i) {
         input[[paste0(kl, "___", as.character(i))]]
       })
       if (kl == "Reference") {
@@ -149,13 +149,13 @@ server <- function(input, output, session) {
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+  session$onSessionEnded(\() { stopApp() })
 }
-runKount <- 0
+runKount <- 0L
 while ((!runKount)||(!exists("appRunTest"))) {
   eval(parse(text = runApp), envir = .GlobalEnv)
   shinyCleanup()
-  runKount <- runKount+1
+  runKount <- runKount+1L
 }
 #
 #
@@ -171,11 +171,11 @@ if (reLoad) {
 } else {
   grpsMap_Disk <- grpsMap3
 }
-tst <- lapply(colnames(grpsMap_Disk), function(x) { typeof(grpsMap_Disk[[x]]) })
+tst <- lapply(colnames(grpsMap_Disk), \(x) { typeof(grpsMap_Disk[[x]]) })
 w <- which(tst == "list")
 if (length(w)) { for (i in w) { grpsMap_Disk[[i]] <- vapply(grpsMap_Disk[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(grpsMap_Disk, file = grpsMapFl, row.names = FALSE, quote = TRUE), silent = TRUE)
-while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) {
+while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
   dlg_message(paste0("File \"", grpsMapFl, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(grpsMap_Disk, file = grpsMapFl, row.names = FALSE, quote = TRUE), silent = TRUE)
 }

@@ -10,8 +10,8 @@ rawrr_tst <- try({
   #
   rawrrVers_inst <- packageVersion("rawrr")
   if ((rawrrVers_inst != "1.11.14")||(!require(rawrr, quietly = TRUE))) {
-    # if (length(rawrrVers) > 1) {
-    #   rawrrVers <- dlg_list(rawrrVersions, rawrrVersions[3], title = "Select which rawrr version should be installed")$res
+    # if (length(rawrrVers) > 1L) {
+    #   rawrrVers <- dlg_list(rawrrVersions, rawrrVersions[3L], title = "Select which rawrr version should be installed")$res
     # }
     # if (rawrrVers == "github") {
     #   pak::pak("cpanse/rawrr")
@@ -68,10 +68,10 @@ rawrr_tst <- try({
     #
     stopifnot(yesRawFileReaderLicenseIsAccepted())
     .rawfileReaderDLLs <- getAnywhere(.rawfileReaderDLLs)
-    .rawfileReaderDLLs <- .rawfileReaderDLLs$objs[[1]]
-    rv <- vapply(.rawfileReaderDLLs(), function(dll) { #dll <- .rawfileReaderDLLs()[1]
+    .rawfileReaderDLLs <- .rawfileReaderDLLs$objs[[1L]]
+    rv <- vapply(.rawfileReaderDLLs(), function(dll) { #dll <- .rawfileReaderDLLs()[1L]
       destfile <- file.path(rawfileReaderDLLsPath, dll)
-      download.file(file.path(paste0(sourceUrl, c("", "Assemblies/")[(rawrrVersions == "github")+1],
+      download.file(file.path(paste0(sourceUrl, c("", "Assemblies/")[(rawrrVersions == "github")+1L],
                                      dll)), destfile = destfile, 
                     mode = "wb")
     }, 0)
@@ -83,6 +83,6 @@ rawrr_tst <- try({
   rawrr::installRawrrExe()
   library(rawrr)
 }, silent = TRUE)
-if ("try-error" %in% class(rawrr_tst)) {
+if (inherits(rawrr_tst, "try-error")) {
   warning("Could not install rawrr 1.11.14!")
 }

@@ -146,11 +146,11 @@ Format.DB_txt <- function(txt,
     tbl$Accession <- gsub("<->AC +|;\n$", "", gsub(";\n<->AC +", ";", tbl$Accession))
     tbl$Accession <- gsub("; +", ";", tbl$Accession)
     # The whole function takes long, sometimes we can take a shortcut:
-    if ((!is.null(filter))&&(!"function" %in% class(filter))) {
+    if ((!is.null(filter))&&(!is.function(filter))) {
       w <- which(vapply(strsplit(tbl$Accession, ";"), \(x) { sum(x %in% filter) > 0L }, TRUE))
       tbl <- tbl[w,]
       btch <- unlist(tbl$Text)
-      g1 <- c(grep("^ID ", btch), length(btch)+1)
+      g1 <- c(grep("^ID ", btch), length(btch)+1L)
     }
     # Names
     if (!usePar) { cat("   Names...\n") }
@@ -179,7 +179,7 @@ Format.DB_txt <- function(txt,
       tst3 <- unlist(strsplit(tbl$Ontology, ";"))
       if (sum(c(length(tst1), length(tst2), length(tst3)))) {
         tst4 <- try(aggregate(cbind(tst2, tst3), list(tst1), unique), silent = TRUE)
-        if (("try-error" %in% class(tst4))||(length(tst4[[2L]]) != length(unique(tst4[[2L]])))||(!is.character(tst4[[2L]]))||(!is.character(tst4[[3L]]))) {
+        if (inherits(tst4, "try-error") || (length(tst4[[2L]]) != length(unique(tst4[[2L]]))) || (!is.character(tst4[[2L]])) || (!is.character(tst4[[3L]]))) {
           msg <- "Gene Ontology data was not properly formatted in the input txt file!"
           tbl$GO <- gsub("^;|;$", "", gsub(";+", "", tbl$GO))
           tbl$`GO-ID` <- gsub("^;|;$", "", gsub(";+", "", tbl$`GO-ID`))
@@ -188,7 +188,7 @@ Format.DB_txt <- function(txt,
           tst2 <- unlist(strsplit(tbl$GO, ";"))
           tst3 <- unlist(strsplit(tbl$Ontology, ";"))
           tst4 <- try(aggregate(cbind(tst2, tst3), list(tst1), unique), silent = TRUE)
-          if (("try-error" %in% class(tst4))||(length(tst4[[2L]]) != length(unique(tst4[[2L]])))||(!is.character(tst4[[2L]]))||(!is.character(tst4[[3L]]))) {
+          if (inherits(tst4, "try-error") || (length(tst4[[2L]]) != length(unique(tst4[[2L]]))) || (!is.character(tst4[[2L]])) || (!is.character(tst4[[3L]]))) {
             #stop(i)
             stop(msg)
           } else { warning(gsub("\\!$", ", but we managed to make sense of it.", msg)) }

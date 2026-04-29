@@ -582,7 +582,7 @@ if (globalGO) {
   tst3 <- tst3[, list(x = unique(A2)), by = list(Group.1 = A1)]
   tst3 <- as.data.frame(tst3)
   stopifnot(length(tst3$x) == length(unique(tst3$x)),
-            "character" %in% class(tst3$x),
+            is.character(tst3$x),
             length(which(temp$value != temp$Accession)) == 0L)
   for (i in kol2) { temp[[i]] <- strsplit(as.character(temp[[i]]), ";") }
   f0 <- function(x) { list(unique(unlist(x))) }
@@ -602,7 +602,8 @@ if (globalGO) {
   tst3 <- data.table(A1 = tst1, A2 = tst2)
   tst3 <- tst3[, list(x = unique(A2)), by = list(Group.1 = A1)]
   tst3 <- as.data.frame(tst3)
-  stopifnot(length(tst3$x) == length(unique(tst3$x)), "character" %in% class(tst3$x))
+  stopifnot(length(tst3$x) == length(unique(tst3$x)),
+            is.character(tst3$x))
   #
   PG[, kol2] <- temp[match(PG$id, temp$Group.1), kol2]
   #
@@ -720,7 +721,7 @@ source(bckpSrc, local = FALSE)
 dir <- paste0(wd, "/Tables")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 dirlist <- unique(c(dirlist, dir))
-w <- which(vapply(colnames(ev), \(x) { "list" %in% class(ev[[x]]) }, TRUE))
+w <- which(vapply(colnames(ev), \(x) { is.list(ev[[x]]) }, TRUE))
 if (length(w)) { for (i in w) { ev[[i]] <- parSapply(parClust, ev[[i]], paste, collapse = ";") } }
 data.table::fwrite(ev, paste0(dir, "/evidence.tsv"), sep = "\t", row.names = FALSE, na = "NA")
 #

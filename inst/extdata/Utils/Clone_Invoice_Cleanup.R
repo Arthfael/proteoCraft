@@ -15,7 +15,7 @@ require(parallel)
 N.clust <- detectCores()-1L
 a <- 1
 tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-if ("try-error" %in% class(tst)) {
+if (inherits(tst, "try-error")) {
   cat("Creating parallel cluster for faster operations...\n")
   parClust <- makeCluster(N.clust, type = "SOCK")
 }
@@ -564,7 +564,7 @@ if (!is.null(targDir)) {
                 TRYFIX <- TRUE
                 while ((length(wN))&&(TRYFIX)) {
                   tst <- try(file.copy(Fls_wC[wN[1L]], nuFls_wC[wN[1L]], overwrite = TRUE, recursive = TRUE), silent = TRUE)
-                  if (!"try-error" %in% class(tst)) {
+                  if (!inherits(tst, "try-error")) {
                     FilesDF$NewExists[wC[wN[1L]]] <- file.exists(FilesDF$New[wC[wN[1L]]])
                     wN <- wN[which(wN != wN[1L])]
                     if (length(wN)) {
@@ -710,7 +710,7 @@ if (!is.null(targDir)) {
                   if (isThermo) {
                     for (fl in rawFls2Rmv) { #fl <- rawFls2Rmv[1L]
                       tst <- try(unlink(fl, recursive = TRUE), silent = TRUE)
-                      RmvTsts[fl] <- (!"try-error" %in% class(tst))
+                      RmvTsts[fl] <- !inherits(tst, "try-error")
                     }
                   }
                   if (isBruker) {

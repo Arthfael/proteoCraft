@@ -23,15 +23,15 @@ nr <- nrow(FracMap)
 rws <- seq_len(nr)
 chRws <- as.character(rws)
 # Original table column widths
-wTest0 <- setNames(vapply(colnames(FracMap), function(k) { #k <- colnames(FracMap)[1]
+wTest0 <- setNames(vapply(colnames(FracMap), \(k) { #k <- colnames(FracMap)[1]
   tmp <- FracMap[[k]]
-  if ("logical" %in% class(tmp)) { tmp <- as.integer(tmp) }
+  if (is.logical(tmp)) { tmp <- as.integer(tmp) }
   tmp <- as.character(tmp)
-  x <- max(nchar(c(k, tmp)) + 3, na.rm = TRUE)
-  x <- x*10
-  if (is.na(x)) { x <- 15 } else { x <- max(c(ceiling(x/10)*10, 30)) }
-  return(x)
-}, 1), colnames(FracMap))
+  x <- max(nchar(c(k, tmp)) + 3L, na.rm = TRUE)
+  x <- x*10L
+  x <- if (is.na(x)) { 15L } else { max(c(ceiling(x/10)*10L, 30L)) }
+  return(as.integer(x))
+}, 1L), colnames(FracMap))
 # Dummy table
 frMap <- FracMap
 frMap$"Raw files name" <- NULL
@@ -47,19 +47,19 @@ k <- c("Raw file", "Parent sample", "Fraction", "PTM-enriched", "Bruker_run_ID",
 k <- k[which(k %in% colnames(frMap))]
 frMap <- frMap[, k]
 # Estimate dummy table column widths
-wTest1 <- vapply(colnames(frMap), function(k) { #k <- colnames(frMap)[1]
+wTest1 <- vapply(colnames(frMap), \(k) { #k <- colnames(frMap)[1L]
   if ((k == "Parent sample")&&(!k %in% names(wTest0))) { k <- "MQ.Exp" }
-  if (k %in% names(wTest0)) { x <- wTest0[k] } else { x <- 30 }
-  return(x)
-}, 1)
-wTest2 <- sum(wTest1) + 15 + ncol(frMap)*5
+  x <- if (k %in% names(wTest0)) { wTest0[k] } else { 30L }
+  return(as.integer(x))
+}, 1L)
+wTest2 <- sum(wTest1) + 15L + ncol(frMap)*5L
 wTest1 <- paste0(as.character(wTest1), "px")
-wTest1 <- aggregate((seq_along(wTest1))-1, list(wTest1), c)
-wTest1 <- apply(wTest1, 1, function(x) {
-  x2 <- as.integer(x[[2]])
-  list(width = x[[1]],
+wTest1 <- aggregate((seq_along(wTest1))-1L, list(wTest1), c)
+wTest1 <- apply(wTest1, 1L, \(x) {
+  x2 <- as.integer(x[[2L]])
+  list(width = x[[1L]],
        targets = x2,
-       names = colnames(frMap)[x2+1])
+       names = colnames(frMap)[x2+1L])
 })
 #
 appNm <- paste0(dtstNm, " - ", FracMapNm)
@@ -79,7 +79,7 @@ ui <- shinyUI(fluidPage(titlePanel(tag("u", FracMapNm),
                           br(),
                           actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
                         )))
-server <- function(input, output, session) {
+server <- \(input, output, session) {
   frMap2 <- FracMap
   output$myFracMap <- DT::renderDT({ frMap },
                                    FALSE,
@@ -103,7 +103,7 @@ server <- function(input, output, session) {
 Shiny.unbindAll(table.table().node());
 Shiny.bindAll(table.table().node());"))
   observeEvent(input$myFracMap_cell_edit, { # This is not goddamn working!!!
-    kl <- colnames(frMap)[input$myFracMap_cell_edit$col+1]
+    kl <- colnames(frMap)[input$myFracMap_cell_edit$col+1L]
     if (kl %in% colnames(frMap2)) {
       frMap2[input$myFracMap_cell_edit$row, kl] <<- input$myFracMap_cell_edit$value
     } else {
@@ -118,24 +118,24 @@ Shiny.bindAll(table.table().node());"))
         tp <- ""
         if (k == "Parent sample") { root<- "Sample" }
       }
-      frMap2[[k]] <- vapply(chRws, function(x) { input[[paste0(root, "___", x)]] }, tp)
+      frMap2[[k]] <- vapply(chRws, \(x) { input[[paste0(root, "___", x)]] }, tp)
     }
     assign("frMap2", frMap2, envir = .GlobalEnv)
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+  session$onSessionEnded(\() { stopApp() })
 }
-runKount <- 0
+runKount <- 0L
 while ((!runKount)||(!exists("frMap2"))) {
   eval(parse(text = runApp), envir = .GlobalEnv)
   shinyCleanup()
-  runKount <- runKount+1
+  runKount <- runKount+1L
 }
 FracMap %<o% frMap2
 #
 tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
-while (("try-error" %in% class(tst))&&(grepl("cannot open the connection", tst[1]))) { # We only want this to happen if the file is locked for editing
+while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) { # We only want this to happen if the file is locked for editing
   dlg_message(paste0("File \"", FracMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
 }

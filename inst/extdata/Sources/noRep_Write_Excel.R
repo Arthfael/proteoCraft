@@ -76,7 +76,7 @@ styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[, 1L]
 # wb <- loadWorkbook(fl)
 # addWorksheet(wb, "tmp")
 # tmpFl <- temp_xlsx()
-#w <- which(vapply(Styles, \(x) { "Style" %in% class(x) }, TRUE))
+#w <- which(vapply(Styles, \(x) { inherits(x, "Style") }, TRUE))
 # styleNms %<o% names(Styles)[w]
 # writeData(wb, "tmp", styleNms)
 # for (i in seq_along(w)) { addStyle(wb, "tmp", Styles[[w[i]]], i, 1L) }

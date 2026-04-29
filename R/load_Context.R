@@ -16,22 +16,21 @@
 load_Context <- function(record,
                          startDir,
                          clean = FALSE) {
-  
   if (clean) { rm(list = ls(), envir = .GlobalEnv) }
   library(proteoCraft)
   TESTING <- FALSE
   #DefArg(load_Bckp)
   #TESTING <- TRUE
-  if (TESTING) {
+  misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-    misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
+    \(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
   # Cleanup workspace here
   #
   if (misFun(record)) {
     if (misFun(startDir)) {
-      if ((exists("wd"))&&("character" %in% class(wd))&&(dir.exists(wd))) {
+      if (exists("wd") && is.character(wd) && dir.exists(wd)) {
         defltdir <- wd
       } else {
         homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
@@ -45,12 +44,12 @@ load_Context <- function(record,
                                      filter = "Text file (*.txt)")
   }
   record <- readLines(record)
-  dtstNm <<- gsub("^ *-> *", "", record[grep("^Dataset name:", record)+1])
-  inDirs <<- gsub("^ *-> *", "", record[grep("^Input directory:", record)+1])
-  outdir <<- gsub("^ *-> *", "", record[grep("^Final output directory:", record)+1])
-  wd <<- gsub("^ *-> *", "", record[grep("^Temporary work directory:", record)+1])
+  dtstNm <<- gsub("^ *-> *", "", record[grep("^Dataset name:", record)+1L])
+  inDirs <<- gsub("^ *-> *", "", record[grep("^Input directory:", record)+1L])
+  outdir <<- gsub("^ *-> *", "", record[grep("^Final output directory:", record)+1L])
+  wd <<- gsub("^ *-> *", "", record[grep("^Temporary work directory:", record)+1L])
   if (!dir.exists(wd)) { dir.create(wd, recursive = TRUE) }
-  lapply(inDirs, function(indir) {
+  lapply(inDirs, \(indir) {
     if (!dir.exists(indir)) { stop(paste0("Input directory \"", indir, "\" does not exist!")) }
   })
   setwd(wd)

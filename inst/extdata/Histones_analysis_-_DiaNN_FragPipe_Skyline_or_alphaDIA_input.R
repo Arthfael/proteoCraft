@@ -253,7 +253,7 @@ if (inputType == "DiaNN") {
   PSMsFl <- normalizePath(PSMsFl, winslash = "/")
   #
   DiaNN2MQ <- try(DIANN_to_MQ(PSMsFl, cl = parClust), silent = TRUE)
-  if ("try-error" %in% class(DiaNN2MQ)) { stop("Something went wrong!") }
+  if (inherits(DiaNN2MQ, "try-error")) { stop("Something went wrong!") }
   #
   Exp <- unique(DiaNN2MQ$Evidence$Experiment)
   if (!length(Exp)) {
@@ -1227,7 +1227,7 @@ if (length(kol)) {
     #
     # First let's look at the pre-batch correction data with PCA plots:
     tst <- try(pcaBatchPlots, silent = TRUE)
-    if ("try-error" %in% class(tst)) {
+    if (inherits(tst, "try-error")) {
       source("H:/aRmel_package/proteoCraft/R/pcaBatchPlots.R")
     }
     tmp <- pcaBatchPlots(impEdata,
@@ -1284,7 +1284,7 @@ if (length(kol)) {
                                intRoot = logIntRoot[intType],
                                map = samplesMap,
                                SamplesCol = "Sample name"), silent = TRUE)
-      if (!"try-error" %in% class(tmp)) {
+      if (!inherits(tmp, "try-error")) {
         PCAlyLst[[btch]] <- tmp$PlotLy
         scoresLst[[btch]] <- tmp$Scores
         PCsLst[[btch]] <- tmp$PCs

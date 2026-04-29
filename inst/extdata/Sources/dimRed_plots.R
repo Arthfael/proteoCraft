@@ -346,7 +346,7 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
     dir <- paste0(wd, "/Dimensionality red. plots/t-SNE")
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
     dirlist <- union(dirlist, dir)
-    if (!"try-error" %in% class(tsne)) {
+    if (!inherits(tsne, "try-error")) {
       scores2 <- as.data.frame(tsne$Y)[, 1L:3L]
       rownames(scores2) <- rownames(dimRedDat)
       colnames(scores2) <- c("t-SNE Y1", "t-SNE Y2", "t-SNE Y3")
@@ -436,7 +436,7 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
     dir <- paste0(wd, "/Dimensionality red. plots/UMAP")
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
     dirlist <- union(dirlist, dir)
-    if (!"try-error" %in% class(UMAP)) {
+    if (!inherits(UMAP, "try-error")) {
       UMAPlayout <- data.frame(UMAP$layout)
       rownames(UMAPlayout) <- rownames(dimRedDat)
       kol3 <- c("Protein group", "Av. log10 abundance", "Classifier", "Size")

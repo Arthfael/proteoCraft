@@ -165,17 +165,17 @@ if (length(Exp)) {
 
 #
 # Test
-N.clust <- parallel::detectCores()-1
+N.clust <- parallel::detectCores()-1L
 a <- 1
 tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-if ("try-error" %in% class(tst)) {
+if (inherits(tst, "try-error")) {
   try(parallel::stopCluster(parClust), silent = TRUE)
   parClust <- parallel::makeCluster(N.clust, type = "SOCK")
 }
 FP_Workflow <- nuWorkflow_fl
 FP_Manifest <- nuManifest_fl
 tst <- try(FP_to_MQ(nuWorkflow_fl, nuManifest_fl, cl = parClust), silent = TRUE)
-if (!"try-error" %in% class(tst)) {
+if (!inherits(tst, "try-error")) {
   msg <- paste0("Done!\nNow you can treat folder:\n\t", normalizePath(dstDir), "\nas a (minimal) FragPipe pseudo-output folder for the purpose of running this package's data analysis scripts,\nand ONLY FOR THAT PURPOSE!\n")
   cat(msg)
 } else {

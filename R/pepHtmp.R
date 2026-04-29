@@ -47,7 +47,7 @@ pepHtmp <- function(intProt = prot.list_pep,
             length(intProt) > 0L,
             !is.null(Pep),
             length(Pep) > 0L)
-  if ((is.null(ttlRoot))||(!"character" %in% class(ttlRoot))||(!nchar(ttlRoot))) {
+  if (is.null(ttlRoot) || (!is.character(ttlRoot)) || (!nchar(ttlRoot))) {
     warning("Argument \"ttlRoot\" cannot be NULL!")
     ttlRoot <- "Peptides log2 heatmap"
   }
