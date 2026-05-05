@@ -174,37 +174,37 @@ Volcano.plot <- function(Prot,
     \(x) { return(!exists(deparse(substitute(x)))) }
   } else { missing }
   # Check logicals
-  if ((!is.logical(proteins_split))||(length(proteins_split) != 1L)||(is.na(proteins_split))) {
+  if ((!is.logical(proteins_split)) || (length(proteins_split) != 1L) || is.na(proteins_split)) {
     proteins_split <- FALSE
   }
-  if ((!is.logical(return))||(length(return) != 1L)||(is.na(return))) {
+  if ((!is.logical(return)) || (length(return) != 1L) || is.na(return)) {
     return <- FALSE
   }
-  if ((!is.logical(return.plot))||(length(return.plot) != 1L)||(is.na(return.plot))) {
+  if ((!is.logical(return.plot)) || (length(return.plot) != 1L) || is.na(return.plot)) {
     return.plot <- FALSE
   }
-  if ((!is.logical(subfolderpertype))||(length(subfolderpertype) != 1L)||(is.na(subfolderpertype))) {
+  if ((!is.logical(subfolderpertype)) || (length(subfolderpertype) != 1L) || is.na(subfolderpertype)) {
     subfolderpertype <- TRUE
   }
-  if ((!is.logical(Alpha.identity))||(length(Alpha.identity) != 1L)||(is.na(Alpha.identity))) {
+  if ((!is.logical(Alpha.identity)) || (length(Alpha.identity) != 1L) || is.na(Alpha.identity)) {
     Alpha.identity <- FALSE
   }
-  if ((!is.logical(Alpha.labels))||(length(Alpha.labels) != 1L)||(is.na(Alpha.labels))) {
+  if ((!is.logical(Alpha.labels)) || (length(Alpha.labels) != 1L) || is.na(Alpha.labels)) {
     Alpha.labels <- FALSE
   }
-  if ((!is.logical(plotly))||(length(plotly) != 1L)||(is.na(plotly))) {
+  if ((!is.logical(plotly)) || (length(plotly) != 1L) || is.na(plotly)) {
     plotly <- TRUE
   }
-  if ((!is.logical(plotly_local))||(length(plotly_local) != 1L)||(is.na(plotly_local))) {
+  if ((!is.logical(plotly_local)) || (length(plotly_local) != 1L) || is.na(plotly_local)) {
     plotly_local <- FALSE
   }
-  if ((!is.logical(Contaminants))||(length(Contaminants) != 1L)||(is.na(Contaminants))) {
+  if ((!is.logical(Contaminants)) || (length(Contaminants) != 1L) || is.na(Contaminants)) {
     Contaminants <- FALSE
   }
-  if ((!is.logical(SAM))||(length(SAM) != 1L)||(is.na(SAM))) {
+  if ((!is.logical(SAM)) || (length(SAM) != 1L) || is.na(SAM)) {
     SAM <- FALSE
   }
-  if ((!is.logical(saveData))||(length(saveData) != 1L)||(is.na(saveData))) {
+  if ((!is.logical(saveData)) || (length(saveData) != 1L) || is.na(saveData)) {
     saveData <- FALSE
   }
   #
@@ -214,7 +214,7 @@ Volcano.plot <- function(Prot,
   #
   # Create cluster
   stopCl <- FALSE
-  if ((is.null(cl))||(!inherits(cl, "cluster"))) {
+  if (is.null(cl) || (!inherits(cl, "cluster"))) {
     dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1L }
     nMax <- max(c(dc - N.reserved, 1L))
@@ -244,20 +244,20 @@ Volcano.plot <- function(Prot,
     if (inherits(tst, "try-error")) { subfolder <- getwd() } 
   }
   #
-  if ((length(save) > 1L)||((!is.logical(save))||(save == TRUE))) {
-    if ((length(save) == 1L)&&(is.logical(save))&&(save == TRUE)) {
+  if ((length(save) > 1L) || ((!is.logical(save)) || (save == TRUE))) {
+    if ((length(save) == 1L) && is.logical(save) && (save == TRUE)) {
       saveExt <- "jpeg" # default
     }
     saveExt <- unique(gsub("^jpg$", "jpeg", gsub("^\\.", "", tolower(save))))
     save <- TRUE
   } else { save <- FALSE}
   #
-  if ((!is.integer(MaxLabels))||(MaxLabels < 0L)) { MaxLabels <- 100L }
+  if ((!is.integer(MaxLabels)) || (MaxLabels < 0L)) { MaxLabels <- 100L }
   if (!MaxLabels_priority %in% c("X", "Y")) { MaxLabels_priority <- "X" }
   #
   upColRg <- c("blue", "green")
   downColRg <- c("red", "orange")
-  regProvided <- ((!misFun(reg.root))&&(!is.null(reg.root)))
+  regProvided <- ((!misFun(reg.root)) && (!is.null(reg.root)))
   if (SAM) {
     mode <- "curved"
     reg.root <- "Regulated - "
@@ -269,7 +269,7 @@ Volcano.plot <- function(Prot,
                 "FDR")
   }
   useFDRtbl <- FALSE
-  if (("FDR" %in% labels)||(mode == "curved")) {
+  if (("FDR" %in% labels) || (mode == "curved")) {
     if (regProvided) {
       xKols <- grep(topattern(X.root), colnames(Prot), value = TRUE)
       yKols <- grep(topattern(Y.root), colnames(Prot), value = TRUE)
@@ -286,16 +286,13 @@ Volcano.plot <- function(Prot,
       FDR_table <- lapply(1L:nrow(tstDF), \(x) { #x <- 1L
         fdr_table <- Prot[grep("^((up)|(down)), FDR = ", Prot[[tstDF$Reg[[x]]]]),
                           c(tstDF$X[[x]], tstDF$Y[[x]], tstDF$Reg[[x]])]
-        if (nrow(fdr_table)) {
-          fdr_table$FDRs <- as.numeric(gsub("^((up)|(down)), FDR = |%$", "", fdr_table[[tstDF$Reg[[x]]]]))
-          fdr_table <- aggregate(fdr_table[[tstDF$Y[[x]]]], list(fdr_table$FDRs), min)
-          colnames(fdr_table) <- c("FDR", "Thresholds")
-          fdr_table$Thresholds <- 10^-fdr_table$Thresholds # Because of how they are stored
-          fdr_table$Sample <- tstDF$Group[[x]]
-          return(fdr_table)
-        } else {
-          return()
-        }
+        if (!nrow(fdr_table)) { return() }
+        fdr_table$FDRs <- as.numeric(gsub("^((up)|(down)), FDR = |%$", "", fdr_table[[tstDF$Reg[[x]]]]))
+        fdr_table <- aggregate(fdr_table[[tstDF$Y[[x]]]], list(fdr_table$FDRs), min)
+        colnames(fdr_table) <- c("FDR", "Thresholds")
+        fdr_table$Thresholds <- 10L^-fdr_table$Thresholds # Because of how they are stored
+        fdr_table$Sample <- tstDF$Group[[x]]
+        return(fdr_table)
       })
       FDR_table <- do.call(rbind, FDR_table)
     } else {
@@ -304,11 +301,11 @@ Volcano.plot <- function(Prot,
       tst <- unique(grepl(" - ", names(FDR.thresh)))
       FDR_table <- data.frame(FDR = g,
                               Thresholds = FDR.thresh)
-      if ((length(tst) == 1L)&&(tst)) {
+      if ((length(tst) == 1L) && tst) {
         FDR_table$Sample <-  gsub("^Threshold-FDR=[1-9][0-9]*\\.*[0-9]*% - ", "", names(FDR.thresh))
       }
     }
-    useFDRtbl <- (!is.null(FDR_table))&&(is.data.frame(FDR_table))&&(nrow(FDR_table) > 0L)
+    useFDRtbl <- (!is.null(FDR_table)) && is.data.frame(FDR_table) && (nrow(FDR_table) > 0L)
   }
   if (useFDRtbl) {
     rownames(FDR_table) <- paste0("Threshold-FDR=", FDR_table$FDR, "% - ", FDR_table$Sample)
@@ -340,8 +337,8 @@ Volcano.plot <- function(Prot,
       ArgTst1 <- !misFun(parameters)
       ArgTst2 <- !misFun(plotly_username)
       ArgTst3 <- !misFun(plotly_API_key)
-      if ((ArgTst1)&&(!ArgTst2)) { plotly_username <- Param$Plotly_user_name }
-      if ((ArgTst1)&&(!ArgTst3)) { plotly_API_key <- Param$Plotly_API_key }
+      if (ArgTst1 && (!ArgTst2)) { plotly_username <- Param$Plotly_user_name }
+      if (ArgTst1 && (!ArgTst3)) { plotly_API_key <- Param$Plotly_API_key }
       if (!plotly_sharing %in% c("public", "private", "secret")) {
         warning("\"plotly_sharing\" should be one of \"public\", \"private\" or \"secret\", defaulting to \"secret\"!")
         plotly_sharing <- "secret"
@@ -369,7 +366,7 @@ Volcano.plot <- function(Prot,
   }
   plotNms <- c()
   if (show.labels == "") {
-    if (mode == "standard") { show.labels <- FALSE }
+    #if (mode == "standard") { show.labels <- FALSE }
     if (mode %in%  c("standard", "custom", "curved")) { show.labels <- TRUE }
   }
   dfltPM <- TRUE
@@ -397,7 +394,7 @@ Volcano.plot <- function(Prot,
       a5 <- as.data.frame(strsplit(a5, "[_:] *"))
       Plot.colours <- as.data.frame(sapply(Plot.metrics$Levels[which(Plot.metrics$Axis == "X")], \(x) {
         sapply(Plot.metrics$Levels[which(Plot.metrics$Axis == "Y")], \(y) {
-          a5[3, which((a5[1L,] == x)&(a5[2L,] == y))]
+          a5[3L, which((a5[1L,] == x)&(a5[2L,] == y))]
         })
       }))
     }
@@ -413,20 +410,20 @@ Volcano.plot <- function(Prot,
     Plot.metrics$Value <- vapply(Plot.metrics$Text.value, \(x) { eval(parse(text = x)) }, 1)
     # NB: These defaults may be overwritten by the "Ref.Ratio.values" argument for each plot.
     # Horizontal (P-value) thresholds
-    if ((mode == "standard")&&(!misFun(arbitrary.thresh))) {
-      tmpmetr <- data.frame(Levels = arbitrary.thresh$label,
-                            Axis = "Y",
-                            Name = "Significance",
-                            Value = arbitrary.thresh$yintercept,
-                            Test = ">=",
-                            Colour = arbitrary.thresh$colour)
+    tmpmetr <- if ((mode == "standard") && (!misFun(arbitrary.thresh))) {
+      data.frame(Levels = arbitrary.thresh$label,
+                 Axis = "Y",
+                 Name = "Significance",
+                 Value = arbitrary.thresh$yintercept,
+                 Test = ">=",
+                 Colour = arbitrary.thresh$colour)
     } else {
-      tmpmetr <- data.frame(Levels = c("strict", "loose"),
-                            Axis = "Y",
-                            Name = setNames(Y.root, NULL), # (names to NULL to suppress a useless warning)
-                            Value = c(-log10(0.01), -log10(0.05)),
-                            Test = ">=",
-                            Colour = c("orange", "gold"))
+      data.frame(Levels = c("strict", "loose"),
+                 Axis = "Y",
+                 Name = setNames(Y.root, NULL), # (names to NULL to suppress a useless warning)
+                 Value = c(-log10(0.01), -log10(0.05)),
+                 Test = ">=",
+                 Colour = c("orange", "gold"))
     }
     tmpmetr$Text.value <- as.character(tmpmetr$Value)
     Plot.metrics <- rbind(Plot.metrics, tmpmetr)
@@ -442,7 +439,7 @@ Volcano.plot <- function(Prot,
   A <- aggregate.list[[B]]
   if (nchar(B) == 3L) { B <- aggregate.map$Characteristics[[which(aggregate.map$Aggregate.Name == B)]] }
   #
-  useContrasts <- !misFun(contrasts)
+  useContrasts <- !misFun(contrasts) && is.data.frame(contrasts) && !is.null(contrasts)
   #
   A <- if (useContrasts) {
     contrasts$Contrast
@@ -458,16 +455,16 @@ Volcano.plot <- function(Prot,
       Symmetrical <- rep(Symmetrical, lA)
     }
   } else {
-    if ((useContrasts)&&("Up-only" %in% colnames(contrasts))) {
+    if (useContrasts && ("Up-only" %in% colnames(contrasts))) {
       Symmetrical <- !contrasts$"Up-only"
     } else {
       # Provide defaults
-      if ((!misFun(parameters))&&("Two.sided" %in% colnames(parameters))&&(is.logical(parameters$Two.sided))) {
-        Symmetrical <- parameters$Two.sided
+      Symmetrical <- if ((!misFun(parameters)) && ("Two.sided" %in% colnames(parameters)) && is.logical(parameters$Two.sided)) {
+        parameters$Two.sided
       } else {
-        if ((!misFun(parameters))&&("Type" %in% colnames(parameters))) {
-          Symmetrical <- !gsub(" |_|-|\\.", "", toupper(parameters$Type)) %in% c("IP", "IMMUNOPRECIPITATION", "BIOID", "PULLDOWN")
-        } else { Symmetrical <- TRUE }
+        if ((!misFun(parameters)) && ("Type" %in% colnames(parameters))) {
+          !gsub(" |_|-|\\.", "", toupper(parameters$Type)) %in% c("IP", "IMMUNOPRECIPITATION", "BIOID", "PULLDOWN")
+        } else { TRUE }
       }
       Symmetrical <- rep(Symmetrical, lA)
     }
@@ -478,7 +475,7 @@ Volcano.plot <- function(Prot,
   yKols <- setNames(paste0(Y.root, A), A)
   PorQ <- rev(unlist(strsplit(toupper(gsub("-value.*", "", Y.root, ignore.case = TRUE)), "")))[1L]
   if (!PorQ %in% c("P", "Q")) { PorQ <- "P" }
-  if ((length(labels) == 1L)&&(labels == "proteins")&&(proteins_split)) {
+  if ((length(labels) == 1L) && (labels == "proteins") && proteins_split) {
     warning("Argument \"proteins_split\" will be ignored since argument \"labels\" is set to \"proteins\".")
     proteins_split <- FALSE
   } # No splitting if we are already only labeling proteins in list.
@@ -488,7 +485,7 @@ Volcano.plot <- function(Prot,
     plotly_labels <- plotly_labels[which(plotly_labels %in% colnames(Prot))]
   } else {
     wlabkol <- which(plotly_labels %in% colnames(Prot))
-    if ((plotly)&&(length(wlabkol) < length(plotly_labels))) {
+    if (plotly && (length(wlabkol) < length(plotly_labels))) {
       warning("Some plotly_labels columns are missing, we won't be able to display them in the tooltip!")
       plotly_labels <- plotly_labels[wlabkol]
     }
@@ -503,7 +500,7 @@ Volcano.plot <- function(Prot,
   useProtList <- (!misFun(proteins))&(!is.null(proteins))&(length(proteins) > 0L)
   if (misFun(proteins_split)) { proteins_split <- FALSE}
   if (useProtList) {
-    if ((misFun(Proteins.col))||(!Proteins.col %in% colnames(Prot))) { Proteins.col <- IDs.col }
+    if (misFun(Proteins.col) || (!Proteins.col %in% colnames(Prot))) { Proteins.col <- IDs.col }
     proteins <- gsub("^CON_+", "", proteins)
     Prot[[Proteins.col]] <- gsub(";CON_+", ";", gsub("^CON_+", "", Prot[[Proteins.col]]))
     proteins <- proteins[which(proteins %in% unique(unlist(strsplit(Prot[[Proteins.col]], ";"))))]
@@ -555,10 +552,10 @@ Volcano.plot <- function(Prot,
     downSp <- grep("^Anti-specific", tmp, value = TRUE)
     if (length(up_Nms)) {
       up_Nms <- data.frame(Up = up_Nms)
-      if (sum(c("FDR", "regulated") %in% labels)) {
-        up_Nms$Val <- as.numeric(gsub(".* FDR = |%$", "", up_Nms$Up))
+      up_Nms$Val <- if (sum(c("FDR", "regulated") %in% labels)) {
+        as.numeric(gsub(".* FDR = |%$", "", up_Nms$Up))
       } else {
-        up_Nms$Val <- as.numeric(gsub("^[^0-9]+|[^0-9]+$", "", up_Nms$Up))
+        as.numeric(gsub("^[^0-9]+|[^0-9]+$", "", up_Nms$Up))
       }
       if (is.numeric(up_Nms$Val)) { up_Nms <- up_Nms$Up[order(up_Nms$Val, decreasing = TRUE)] }
       if (length(upSp)) {
@@ -572,10 +569,10 @@ Volcano.plot <- function(Prot,
     }
     if (length(dwn_Nms)) {
       dwn_Nms <- data.frame(Down = dwn_Nms)
-      if (sum(c("FDR", "regulated") %in% labels)) {
-        dwn_Nms$Val <- as.numeric(gsub(".* FDR = |%$", "", dwn_Nms$Down))
+      dwn_Nms$Val <- if (sum(c("FDR", "regulated") %in% labels)) {
+        as.numeric(gsub(".* FDR = |%$", "", dwn_Nms$Down))
       } else {
-        dwn_Nms$Val <- as.numeric(gsub("^[^0-9]+|[^0-9]+$", "", dwn_Nms$Down))
+        as.numeric(gsub("^[^0-9]+|[^0-9]+$", "", dwn_Nms$Down))
       }
       if (is.numeric(dwn_Nms$Val)) { dwn_Nms <- dwn_Nms$Down[order(dwn_Nms$Val, decreasing = TRUE)] }
       if (length(downSp)) {
@@ -643,12 +640,12 @@ Volcano.plot <- function(Prot,
   id.col <- id.col[which(id.col %in% colnames(Prot))]
   if (length(weech)) {
     kount <- 0L
-    while ((length(weech))&&(kount < length(id.col))) {
+    while (length(weech) && (kount < length(id.col))) {
       kount <- kount+1L
       Prot$Labels[weech] <- vapply(Prot[weech, id.col[kount]], \(x) {
         if (x == "") { res <- "" } else {
           x <- unlist(strsplit(x, ";"))
-          if (length(x) == 1L) { res <- x } else { res <- paste0(x[1L], ";...") }
+          res <- if (length(x) == 1L) { x } else { paste0(x[1L], ";...") }
         }
         return(res)
       }, "")
@@ -682,7 +679,7 @@ Volcano.plot <- function(Prot,
                 aggregate.map = aggregate.map,
                 aggregate.list = aggregate.list)
     }
-    cat(" -", i2, "\n")
+    cat(" ->", i2, "\n")
     symm <- Symmetrical[i]
     xKol <- paste0(X.root, i)
     yKol <- paste0(Y.root, i)
@@ -744,15 +741,15 @@ Volcano.plot <- function(Prot,
         temp$Alpha <- Prot[Wych[[i]], Alpha]
         if (!Alpha.identity) {
           Alpha2 <- paste0("Alpha mapped to: ", Alpha)
-          if ((!is.numeric(Alpha.min))||(Alpha.min < 0L)) { Alpha.min <- 0L }
-          if ((!is.numeric(Alpha.max))||(Alpha.max > 1L)) { Alpha.max <- 1L }
+          if ((!is.numeric(Alpha.min)) || (Alpha.min < 0L)) { Alpha.min <- 0L }
+          if ((!is.numeric(Alpha.max)) || (Alpha.max > 1L)) { Alpha.max <- 1L }
           temp$Alpha[which((temp$Alpha > 0L)&(is.infinite(temp$Alpha)))] <- max(is.all.good(temp$Alpha))
           temp$Alpha[which(!is.all.good(temp$Alpha, 2L))] <- min(is.all.good(temp$Alpha))
           temp$Alpha <- Alpha.min+(temp$Alpha-min(temp$Alpha))*(Alpha.max-Alpha.min)/(max(temp$Alpha)-min(temp$Alpha))
         }
       }
     } else {
-      if ((Alpha > 1L)||(Alpha < 0L)) {
+      if ((Alpha > 1L) || (Alpha < 0L)) {
         warning("The Alpha parameter is not between 0 and 1 and will be ignored!")
         Alpha <- 1L
       }
@@ -767,7 +764,7 @@ Volcano.plot <- function(Prot,
         temp$Size <- Prot[Wych[[i]], Size]
         if (!is.numeric(Size.min)) { Size.min <- 0.01 }
         if (!is.numeric(Size.max)) { Size.max <- 3L }
-        #if (!is.numeric(Size.min)) { Size.min <- 0 }
+        #if (!is.numeric(Size.min)) { Size.min <- 0L }
         #if (!is.numeric(Size.max)) { Size.max <- ceiling(max(is.all.good(temp$Size))) }
         temp$Size[which((temp$Size > 0L)&(is.infinite(temp$Size)))] <- max(is.all.good(temp$Size))
         temp$Size[which(!is.all.good(temp$Size, 2L))] <- min(is.all.good(temp$Size))
@@ -777,7 +774,7 @@ Volcano.plot <- function(Prot,
     use_target <- FALSE
     if ("Target" %in% colnames(experiments.map)) { # i-specific!!!
       w <- if (useContrasts) {
-        which(experiments.map$Ref.Sample.Aggregate %in% contrasts$A_samples[which(contrasts$Contrast == i)])
+        which(experiments.map$Ref.Sample.Aggregate %in% contrasts$A_samples[[which(contrasts$Contrast == i)]])
       } else {
         which(experiments.map[[aggregate.name]] == i)
       }
@@ -797,14 +794,10 @@ Volcano.plot <- function(Prot,
     }
     w.u <- which(plot.metrics$Levels == "up")
     if (symm) { w.d <- which(plot.metrics$Levels == "down") }
-    if ((!misFun(Ref.Ratio.values))&&(!is.null(Ref.Ratio.values))) {
+    if ((!misFun(Ref.Ratio.values)) && (!is.null(Ref.Ratio.values))) {
       x <- data.frame(value = sort(unlist(Ref.Ratio.values[[i]])))
       if (!symm) { x <- x[which(x$value > 0L), , drop = FALSE] }
-      if (X.normalized) {
-        mx <- 0
-      } else {
-        mx <- median(x$value)  
-      }
+      mx <- if (X.normalized) { 0 } else { median(x$value) }
       R.thresh <- c("Upper" = NA)
       if (Ref.Ratio.method == "SD") {
         offset <- c(median(is.all.good(temp$X)), 0)[X.normalized + 1L]
@@ -821,10 +814,10 @@ Volcano.plot <- function(Prot,
         # (I think this makes perfect sense).
         d <- abs(x$value-mx)
         d <- sort(d, decreasing = TRUE)
-        if (ratios.FDR > 0) {
-          d <- d[floor(length(d)*ratios.FDR)]
+        d <- if (ratios.FDR > 0) {
+          d[floor(length(d)*ratios.FDR)]
         } else {
-          d <- max(d)+0.000001
+          max(d)+0.000001
         }
         R.thresh[["Upper"]] <- d+mx
         if (symm) { R.thresh[["Lower"]] <- -(d+mx) }
@@ -901,7 +894,7 @@ Volcano.plot <- function(Prot,
                                  plot.metrics$Test[w.d],
                                  signif(plot.metrics$Value[w.d], 3L))
           }
-          if ((mode == "standard")&&(!misFun(arbitrary.thresh))) {
+          if ((mode == "standard") && (!misFun(arbitrary.thresh))) {
             fdr <- as.numeric(gsub("% FDR$", "", plot.metrics$Levels[which(plot.metrics$Axis == "Y")]))/100
             fdr <- sort(fdr)
             up_Nms <- setNames(vapply(fdr, \(x) {
@@ -965,7 +958,7 @@ Volcano.plot <- function(Prot,
     #
     temp$Colour <- factor(temp$Colour, levels = names(myColors))
     colScale <- ggplot2::scale_colour_manual(name = "colour", values = myColors)
-    #if ((!is.numeric(Alpha))&&(!is.numeric(Size))) {
+    #if ((!is.numeric(Alpha)) && (!is.numeric(Size))) {
     #if (!is.numeric(Size)) {
     #  fillScale <- ggplot2::scale_fill_manual(name = "fill", values = myColors, guide = FALSE)
     #}
@@ -990,7 +983,7 @@ Volcano.plot <- function(Prot,
     # Target
     if (use_target) { # Will overwrite "protein in list" tag with "target" tag where relevant
       if (!useProtList) {
-        if ((misFun(Proteins.col))||(!Proteins.col %in% colnames(Prot))) { Proteins.col <- IDs.col }
+        if (misFun(Proteins.col) || (!Proteins.col %in% colnames(Prot))) { Proteins.col <- IDs.col }
         Prot[[Proteins.col]] <- gsub(";CON_+", ";", gsub("^CON_+", "", Prot[[Proteins.col]]))
       }
       w <- grsep2(target, temp[[Proteins.col]])
@@ -1009,13 +1002,13 @@ Volcano.plot <- function(Prot,
       noLbl <- noLbl[which(!noLbl %in% w)]
     }
     temp$Labels[noLbl] <- ""
-    if ((useFDRtbl)||(mode == "curved")) {
-      w1 <- which(temp$Colour %in% c(paste0("up, FDR = ", fdr.values, "%"), paste0("down, FDR = ", fdr.values, "%")))
+    w1 <- if (useFDRtbl || (mode == "curved")) {
+      which(temp$Colour %in% c(paste0("up, FDR = ", fdr.values, "%"), paste0("down, FDR = ", fdr.values, "%")))
     } else {
-      if (symm) { w1 <- which(temp$Colour %in% c(up_Nms, dwn_Nms)) } else { w1 <- which(temp$Colour %in% up_Nms) }
+      if (symm) { which(temp$Colour %in% c(up_Nms, dwn_Nms)) } else { which(temp$Colour %in% up_Nms) }
     }
     w0 <- which(temp$Colour %in% c("non significant", "too small FC"))
-    if ((prot_split)&&("Colour2" %in% colnames(temp))) {
+    if (prot_split && ("Colour2" %in% colnames(temp))) {
       w2 <- which((temp$Colour2 == "protein in list"))
       w1 <- w1[which(!w1 %in% w2)] # Here it could be that we have overlap of w1 and w2 => we don't want that!
     } else { w2 <- which((temp$Colour == "protein in list")) }
@@ -1056,7 +1049,7 @@ Volcano.plot <- function(Prot,
     if (!test[1L]) {
       aes$size <- "Size"
       #aes$fill <- "Colour"
-      #non.aes$shape <- 21
+      #non.aes$shape <- 21L
       #aes$colour <- NULL
       #non.aes$colour <- NULL
       #fillScale <- ggplot2::scale_fill_manual(name = "colour", values = myColors)
@@ -1066,8 +1059,8 @@ Volcano.plot <- function(Prot,
     pluses <- c(pluses, "ggplot2::scale_y_continuous(expand = c(0, 0))")
     if (!test[2L]) {
       aes$alpha <- "Alpha"
-      if (Alpha.identity) { pluses <- c(pluses, "ggplot2::scale_alpha_identity(Alpha)") } else {
-        pluses <- gsub("^ggplot2::guides\\(", "ggplot2::guides(alpha = guide_legend(title = Alpha), ", pluses) 
+      pluses <- if (Alpha.identity) { c(pluses, "ggplot2::scale_alpha_identity(Alpha)") } else {
+        gsub("^ggplot2::guides\\(", "ggplot2::guides(alpha = guide_legend(title = Alpha), ", pluses) 
       }
     } else { non.aes$alpha <- "Alpha" }
     pluses <- gsub(", ___\\)", ")", pluses)
@@ -1109,7 +1102,7 @@ Volcano.plot <- function(Prot,
       #poplot(plot_prot)
     }
     # Significance thresholds
-    if ((mode == "curved")&&(i %in% names(curved_Thresh))) {
+    if ((mode == "curved") && (i %in% names(curved_Thresh))) {
       # Option 1: curved SAM thresholds
       #
       # See "Uses and Misuses of the Fudge Factor in Quantitative Discovery Proteomics", Gianetto et al., Proteomics 2016
@@ -1174,7 +1167,7 @@ Volcano.plot <- function(Prot,
       # Option 2: straight horizontal/vertical thresholds
       for (l in 1L:nrow(plot.metrics)) {
         if (plot.metrics$Axis[l] == "X") {
-          if ((plot.metrics$Levels[l] == "up")||(symm)) {
+          if ((plot.metrics$Levels[l] == "up") || symm) {
             offset <- xspan/50*c(-1,1)[which(c("down", "up") == plot.metrics$Levels[l])]
             plot <- plot +
               ggplot2::geom_vline(xintercept = plot.metrics$Value[l],
@@ -1194,7 +1187,7 @@ Volcano.plot <- function(Prot,
             }
           }
         }
-        if (("FDR" %in% labels)&&(plot.metrics$Axis[l] == "Y")) {
+        if (("FDR" %in% labels) && (plot.metrics$Axis[l] == "Y")) {
           plot <- plot +
             ggplot2::geom_hline(yintercept = plot.metrics$Value[l],
                                 color = plot.metrics$Colour[l])
@@ -1206,7 +1199,7 @@ Volcano.plot <- function(Prot,
         }
       }
     }
-    if ((useFDRtbl)&&(nrow(fdr_table))) {
+    if (useFDRtbl && nrow(fdr_table)) {
       plot <- plot +
         ggplot2::geom_hline(data = fdr_table,
                             ggplot2::aes(yintercept = -log10(Thresholds),
@@ -1291,7 +1284,7 @@ Volcano.plot <- function(Prot,
         }
       }
     }
-    if ((!misFun(arbitrary.thresh))&&(!is.null(arbitrary.thresh))) {
+    if ((!misFun(arbitrary.thresh)) && (!is.null(arbitrary.thresh))) {
       if (labels != "FDR") {
         for (j in 1L:nrow(arbitrary.thresh)) {
           if (!is.na(arbitrary.thresh$xintercept[j])) {
@@ -1344,15 +1337,15 @@ Volcano.plot <- function(Prot,
           lab2 <- lab2[Ord[1L:MaxLabels],]
           lab <- rbind(lab2, lab[W3,])
         }
-        if ((!is.numeric(Alpha))&&(Alpha.labels)) {
-          plot2 <- plot2 +
+        plot2 <- if ((!is.numeric(Alpha)) && Alpha.labels) {
+          plot2 +
             ggrepel::geom_text_repel(data = lab,
                                      ggplot2::aes(label = Labels, x = X, y = Y,
                                                   colour = Colour, alpha = Alpha),
                                      force = 4L, cex = cex, lineheight = lineheight,
                                      show.legend = FALSE)
         } else {
-          plot2 <- plot2 +
+          plot2 +
             ggrepel::geom_text_repel(data = lab,
                                      ggplot2::aes(label = Labels, x = X, y = Y,
                                                   colour = Colour), alpha = 1L,
@@ -1374,15 +1367,15 @@ Volcano.plot <- function(Prot,
         W2 <- which(temp$Labels2 != "")
         if (length(W2)) {
           lab2 <- temp[W2,]
-          if ((!is.numeric(Alpha))&&(Alpha.labels)) {
-            plot_prot2 <- plot_prot2 +
+          plot_prot2 <- if ((!is.numeric(Alpha)) && Alpha.labels) {
+            plot_prot2 +
               ggrepel::geom_text_repel(data = lab2,
                                        ggplot2::aes(label = Labels2, x = X, y = Y,
                                                     colour = Colour2, alpha = Alpha),
                                        force = 4L, cex = cex, lineheight = lineheight, max.overlaps = 250L,
                                        show.legend = FALSE)
           } else {
-            plot_prot2 <- plot_prot2 +
+            plot_prot2 +
               ggrepel::geom_text_repel(data = lab2,
                                        ggplot2::aes(label = Labels2, x = X, y = Y,
                                                     colour = Colour2), alpha = 1L,
@@ -1462,9 +1455,9 @@ Volcano.plot <- function(Prot,
     }
   }
   if (save) {
-    cat(" -> Saving ggplots...\n")
+    cat(" ---> Saving ggplots...\n")
     # Move me out of the function!!!
-    if (subfolderpertype) { sfpt <- paste0(subfolder, "/", saveExt[1L]) } else { sfpt <- subfolder }
+    sfpt <- if (subfolderpertype) { paste0(subfolder, "/", saveExt[1L]) } else { subfolder }
     if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
     lst0 <- setNames(lapply(names(Plots$Simple), \(nm) {
       list(Path = sfpt,
@@ -1479,7 +1472,7 @@ Volcano.plot <- function(Prot,
            Ext = saveExt[1L])
     }), paste0(names(Plots$Unlabelled), "_noLabel"))
     plotsLst <- c(lst0, lst1)
-    if ((show.labels)&&(length(Plots$Labelled))) {
+    if (show.labels && length(Plots$Labelled)) {
       lst2 <- setNames(lapply(names(Plots$Labelled), \(nm) {
         list(Path = sfpt,
              Ttl = paste0(nm, "_tags"),
@@ -1488,7 +1481,7 @@ Volcano.plot <- function(Prot,
       }), paste0(names(Plots$Labelled), "_Label"))
       plotsLst <- c(plotsLst, lst2)
     }
-    if ((prot_split)&&(length(Plots$"Proteins in list - unlabelled"))) {
+    if (prot_split && length(Plots$"Proteins in list - unlabelled")) {
       lst3 <- setNames(lapply(names(Plots$"Proteins in list - unlabelled"), \(nm) {
         list(Path = sfpt,
              Ttl = paste0(nm, "_list"),
@@ -1496,7 +1489,7 @@ Volcano.plot <- function(Prot,
              Ext = saveExt[1L])
       }), paste0(names(Plots$"Proteins in list - unlabelled"), "_list_noLabel"))
       plotsLst <- c(plotsLst, lst3)
-      if ((show.labels)&&(length(Plots$"Proteins in list - labelled"))) {
+      if (show.labels && length(Plots$"Proteins in list - labelled")) {
         lst4 <- setNames(lapply(names(Plots$"Proteins in list - labelled"), \(nm) {
           list(Path = sfpt,
                Ttl = paste0(nm, "_list_tags"),
@@ -1507,14 +1500,14 @@ Volcano.plot <- function(Prot,
       }
     }
     l <- length(saveExt)
-    if (l > 1) {
+    if (l > 1L) {
       lst0 <- plotsLst
-      for (i in 2:l) {
-        if (subfolderpertype) { sfpt <- paste0(subfolder, "/", saveExt[i]) } else { sfpt <- subfolder }
+      for (j in 2L:l) {
+        sfpt <- if (subfolderpertype) { paste0(subfolder, "/", saveExt[j]) } else { subfolder }
         if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
         lst <- lapply(lst0, \(x) {
           x$Path <- sfpt
-          x$Ext <- saveExt[i]
+          x$Ext <- saveExt[j]
           return(x)
         })
         plotsLst <- c(plotsLst, lst)
@@ -1534,9 +1527,7 @@ Volcano.plot <- function(Prot,
   if (return) { RES$Protein_groups_file <- Prot }
   if (return.plot) { RES$Plots <- Plots }
   if (plotly) {
-    if (plotly_local) { RES$"Plotly plots" <- volcPlotly } else {
-      RES$"Plotly plots" <- volcPlotly2
-    }
+    RES$"Plotly plots" <- if (plotly_local) { volcPlotly } else { volcPlotly2 }
   }
   #
   setwd(origWD)

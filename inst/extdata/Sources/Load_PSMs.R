@@ -204,7 +204,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       }
       cat(msg)
       if (tstN1 == 2L) {
-        msg2 <- paste0("Select the location of the missing file(s) (or cancel if files are unavailable):")
+        msg2 <- paste0("Select the location of the missing MS file(s) (or cancel if files are unavailable):")
         newDir <- rstudioapi::selectDirectory(msg2, path = archDir)
         if (!is.null(newDir)) {
           newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
@@ -579,7 +579,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       }
       cat(msg)
       if (tstN1 == 2L) {
-        msg2 <- paste0("Select the location of the missing file(s) (or cancel if files are unavailable):")
+        msg2 <- paste0("Select the location of the missing MS file(s) (or cancel if files are unavailable):")
         newDir <- rstudioapi::selectDirectory(msg2, path = archDir)
         if (!is.null(newDir)) {
           newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
@@ -900,7 +900,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       }
       cat(msg)
       if (tstN1 == 2L) {
-        msg2 <- paste0("Select the location of the missing file(s) (or cancel if files are unavailable):")
+        msg2 <- paste0("Select the location of the missing MS file(s) (or cancel if files are unavailable):")
         newDir <- rstudioapi::selectDirectory(msg2, path = archDir)
         if (!is.null(newDir)) {
           newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)

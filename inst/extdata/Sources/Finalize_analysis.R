@@ -333,3 +333,4 @@ if ((exists("renv"))&&(renv)) { try(renv::deactivate(), silent = TRUE) }
 setwd(wd)
 
 # Done!
+setwd("..")

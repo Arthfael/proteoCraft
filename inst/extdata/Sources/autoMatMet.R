@@ -25,7 +25,7 @@ for (i in 1L:length(WetLabMeth)) {
 MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style = \"Normal\")")
 #
 # 2) LCMS
-if ((!exists("LCMS_instr")) || (!is.list(LCMS_instr)) || (sum(c("LC", "MS") %in% names(LCMS_instr)) != 2L)) {
+if ((!exists("LCMS_instr")) || (!inherits(LCMS_instr, "list")) || (sum(c("LC", "MS") %in% names(LCMS_instr)) != 2L)) {
   LCMS_instr <- list(LC = c(),
                      MS = c())
 }
@@ -65,13 +65,14 @@ MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style
 MatMetCalls$Texts$DatAnalysis <- MatMet_Search
 #
 # 4) Post-processing
-DatAnalysisTxt %<o% "TEMPLATE"
-if (length(SearchSoft) == 1L) {
-  DatAnalysisTxt <- paste0(names(SearchSoft), "'s output was re-processed using in-house R scripts, starting from the ",
-                           c("evidence.txt", "main report", "psm.tsv")[match(SearchSoft, SearchSoftware)],
-                           " table", c("", "s")[(length(PSMsFls)>1L)+1L], ".")
-} else {
-  DatAnalysisTxt <- "The output PSMs tables from the individual engines were converted to similar formats and combined, then re-processed using in-house R scripts."
+DatAnalysisTxt %<o% {
+  if (length(SearchSoft) == 1L) {
+    paste0(names(SearchSoft), "'s output was re-processed using in-house R scripts, starting from the ",
+           c("evidence.txt", "main report", "psm.tsv")[match(SearchSoft, SearchSoftware)],
+           " table", c("", "s")[(length(PSMsFls)>1L)+1L], ".")
+  } else {
+    "The output PSMs tables from individual search engines were converted to similar formats and combined, then re-processed using in-house R scripts."
+  }
 }
 MatMetCalls$Calls <- append(MatMetCalls$Calls,
                             "body_add_fpar(MatMet, fpar(ftext(\"Data analysis\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))")

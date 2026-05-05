@@ -864,7 +864,7 @@ if (length(PTMs)) {
               reg$ParentFC <- gsub(".*Regulated - ", PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]], reg$Name)
               reg$FCname <- paste0(PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]], reg$For)
               tmpdat[, Kol] <- ptmpep[, Kol]
-              #tmpdat <- get(c("ptmpep", "PTMs_F_test_data[[Ptm]]", "ptmpep", "PTMs_allSAINTs")[tt]) # PTMs_allSAINTs doesn't exist
+              #tmpdat <- get(c("ptmpep", "PTMs_F_test_data[[Ptm]]", "ptmpep", "PTMs_allSAINTs")[tt]) # PTMs_allSAINTs doesn't exist... yet
               UF <- unique(reg$For)
               temPTM <- as.data.frame(do.call(cbind, lapply(UF, \(x) { #x <- UF[1L]
                 x <- reg$ParentFC[which(reg$For == x)]

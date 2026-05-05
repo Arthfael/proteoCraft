@@ -170,6 +170,7 @@ while ((!runKount)||(!exists("appRunTest"))) {
 Exp.map <- Exp.map[which(Exp.map$Use),]
 expMap <- expMap[match(Exp.map$Ref.Sample.Aggregate, rownames(expMap)),]
 designMatr <- designMatr[which(rownames(designMatr) %in% gsub("___", "_", as.character(expMap[[RSA$limmaCol]]))),]
+# NOTE: filtering designMatr removes its attributes... but they are not necessary for the use we make of the matrix
 for (lit in c("A", "B", "C", "D")) {
   kl <- paste0(lit, "_samples")
   if (kl %in% colnames(myContrasts)) {
@@ -185,7 +186,7 @@ test <- vapply(1L:nrow(myContrasts), \(i) {
   return(tst)
 }, TRUE)
 myContrasts <- myContrasts[which(test),]
-contrMatr <- contrMatr[, which(colnames(contrMatr) %in% myContrasts$Contrast)]
+contrMatr <- contrMatr[, which(colnames(contrMatr) %in% myContrasts$Contrast), drop = FALSE]
 if (LabelType == "Isobaric") { Iso <- sort(unique(Exp.map$Isobaric.set)) }
 for (i in 1L:nrow(Aggregate.map)) { #i <- 1L
   n <- Aggregate.map$Aggregate.Name[i]
@@ -193,7 +194,7 @@ for (i in 1L:nrow(Aggregate.map)) { #i <- 1L
     assign(n, unique(Exp.map[[n]]))
   }
 }
-for (i in Param.aggreg) { #i <- Param.aggreg[1]
+for (i in Param.aggreg) { #i <- Param.aggreg[1L]
   a <- get(i)
   a$values <- if (nchar(a$aggregate) == 3L) { sort(unique(Exp.map[[a$names]])) } else {
     sort(unique(Exp.map[[a$aggregate]]))

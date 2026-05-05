@@ -424,7 +424,13 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   }
   options(scipen = opt)
   # Deal with text
-  a <- if (MakeRatios) { KolEdit(xmlCovCol, intColsTbl, ratColsTbl) } else { KolEdit(xmlCovCol, intColsTbl) }
+  a <- if (MakeRatios) {
+    if (tblMode2 == "SAINTexpress") {
+      KolEdit(xmlCovCol, ratColsTbl)
+    } else {
+      KolEdit(xmlCovCol, intColsTbl, ratColsTbl)
+    }
+  } else { KolEdit(xmlCovCol, intColsTbl) }
   wTxt2 <- wTxt[which(!colnames(myData[wTxt]) %in% a)]
   if (length(wTxt2)) {
     rg <- unlist(lapply(wTxt2, \(i) { lngRws+i }))

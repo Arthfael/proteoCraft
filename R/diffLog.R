@@ -17,16 +17,16 @@
 #' @export
 
 diffLog <- function(p, 
-                     dat) {
+                    dat) {
   p <- c(0, unlist(p))
-  dat <- sweep(dat, 1, p, "-")
+  dat <- sweep(dat, 1L, p, "-")
   dat <- as.matrix(dat)
   nr <- nrow(dat)
-  res <- apply(dat, 2, function(z) {
+  res <- apply(dat, 2L, \(z) {
     z <- as.numeric(z)
     return(
-      lapply(1:(nr-1), function(n) { # creates all pairwise differences - the order does not matter since the sum square of the vector will then be calculated (and minimized)
-        z[n]-z[(n+1):nr]
+      lapply(1L:(nr-1L), \(n) { # creates all pairwise differences - the order does not matter since the sum square of the vector will then be calculated (and minimized)
+        z[n]-z[(n+1L):nr]
       })
     )
   })

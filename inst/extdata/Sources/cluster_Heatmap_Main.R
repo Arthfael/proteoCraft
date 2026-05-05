@@ -17,14 +17,17 @@ plotLeatMaps %<o% plotLeatMaps
 heatMaps <- list() # Unlike plotLeatMaps, not persistent
 #drawPlotly <- FALSE
 if (clustHtMp) {
+  normTypes <- c("Norm. by row", "None")
   if (clustMode == "standard") {
-    normTypes <- c("Norm. by row", "None")
     # The order matters: the first is used to generate the PG-level cluster displayed on both heatmaps!
     clustDir <- paste0(wd, "/Clustering")
   }
-  if ((grepl("-tests?$", clustMode))||(clustMode %in% c("re-localisation", "SAINTexpress"))) {
-    normTypes <- "Z-scored"
+  useFilt <- ((grepl("-tests?$", clustMode))||(clustMode %in% c("re-localisation", "SAINTexpress")))
+  if (useFilt) {
+    stopifnot(dataType == "PG")
+    normTypes <- c(normTypes, "Z-scored")
     clustRegFilters <- Reg_filters[[clustMode]]$`By condition`
+    #
     clustDir <- paste0(wd, "/Reg. analysis/", clustMode, "/Heatmaps")
   }
   mySmpls <- clustMap$Samples
@@ -43,7 +46,7 @@ if (clustHtMp) {
         ClustGrp <- if (gsub(";", "", Param[[myAggr]]) %in% Aggregate.map$Aggregate.Name) {
           Param[[myAggr]]
         } else { "Exp" }
-        if ((length(Exp) == 1L)&&(nchar(ClustGrp) %% 3L > 0L)) { ClustGrp <- Param_filter(ClustGrp, "Exp") }
+        if ((length(Exp) == 1L) && (nchar(ClustGrp) %% 3L > 0L)) { ClustGrp <- Param_filter(ClustGrp, "Exp") }
         val <- Aggregate.list[[ClustGrp]]
         nms <- unlist(Aggregate.map$Characteristics[which(Aggregate.map$Aggregate.Name == gsub(";", "", ClustGrp))])
         kol <- if (length(nms) == 1L) { nms } else { ClustGrp }
@@ -78,7 +81,7 @@ if (clustHtMp) {
   }
   if (scrptType == "noReps") {
     I <- list(Global = clustMap$Samples)
-    if ((MakeRatios)&&(length(unique(clustMap$`Ratios group`)) > 1L)) {
+    if (MakeRatios && (length(unique(clustMap$`Ratios group`)) > 1L)) {
       for (rtGrp in unique(clustMap$`Ratios group`)) {
         tmp <- clustMap$Samples[which(clustMap$`Ratios group` == rtGrp)]
         if (length(tmp) > 1L) {
@@ -98,7 +101,7 @@ if (clustHtMp) {
   # VClustUse <- 25% # Percentage of proteins to use (starting from ones with highest CV)
   # VClustUse <- "DEP" # Use only Differentially Expressed Proteins (from Reg_filters)
   VClustUse <- toupper(VClustUse)
-  if (("Compartment marker" %in% colnames(PG))&&(sum(PG$"Compartment marker" != ""))) {
+  if (("Compartment marker" %in% colnames(PG)) && sum(PG$"Compartment marker" != "")) {
     uMark <- unique(SubCellMark)
     markColors <- setNames(turbo(length(uMark)), uMark)
   }
@@ -124,12 +127,12 @@ if (clustHtMp) {
       normTypeInsrt <- normTypeInsrt[match(normType, normTypes)]
       temp <- as.data.frame(myClustData[, smpls, drop = FALSE])
       #
-      if (normType == "Z-scored") {
+      if (useFilt) {
         # In that case we plot only differentially expressed proteins.
         # Only used for withReps for the time being.
         # We will keep it simple, making one filter only and use any protein which is significant in any test.
         preFilt <- PG$Label[sort(unique(unlist(lapply(names(clustRegFilters), \(nm) {
-          clustRegFilters[[nm]]$Filter
+          clustRegFilters[[nm]]$PG_Filter
         }))))]
         temp <- temp[which(rownames(temp) %in% preFilt),]
       }
@@ -320,7 +323,7 @@ if (clustHtMp) {
           #HClusters[[clustNm]] <- kmeans(temp3, NHClust[[clustNm]], 100)$cluster
           if (normType != "None") { # If normType == "None", we inherit this from "Norm. by row"
             clsTst <- try({ HClusters[[i]] <- kmeans(temp3, NHClust[[i]], 100L)$cluster }, silent = TRUE)
-            while ((inherits(clsTst, "try-error"))&&(NHClust[[i]] > 2L)) {
+            while (inherits(clsTst, "try-error") && (NHClust[[i]] > 2L)) {
               NHClust[[i]] <- NHClust[[i]] - 1L
               clsTst <- try({ HClusters[[i]] <- kmeans(temp3, NHClust[[i]], 100L)$cluster }, silent = TRUE)
             }
@@ -331,7 +334,7 @@ if (clustHtMp) {
           #HClusters[[clustNm]] <- cutree(h_clust, NHClust[[clustNm]])
           if (normType != "None") { # If normType == "None", we inherit this from "Norm. by row"
             clsTst <- try({ HClusters[[i]] <- cutree(h_clust, NHClust[[i]]) }, silent = TRUE)
-            while ((inherits(clsTst, "try-error"))&&(NHClust[[i]] > 2L)) {
+            while (inherits(clsTst, "try-error") && (NHClust[[i]] > 2L)) {
               NHClust[[i]] <- NHClust[[i]] - 1L
               clsTst <- try({ HClusters[[i]] <- cutree(h_clust, NHClust[[i]]) }, silent = TRUE)
             }
@@ -339,7 +342,7 @@ if (clustHtMp) {
           VClusters[[clustNm]] <- cutree(v_clust, NVClust[[clustNm]])
         }
         KlKol <- paste0(KlustRoot, i)
-        if ((clustMode == "standard")&&(normType == "Norm. by row")) {
+        if ((clustMode == "standard") && (normType == "Norm. by row")) {
           # We use clusters only from normalised by row,
           # because we want to see the effect of relative expression
           KlustKols <- unique(c(KlustKols, KlKol))
@@ -569,7 +572,7 @@ if (clustHtMp) {
           geom_segment(data = h_Seg, linewidth = 0.25,
                        aes(x = x, y = y+yPadUp, xend = xend, yend = yend+yPadUp)) +
           geom_text(data = h_labs, aes(x = x-0.5, label = label2, colour = Cluster),
-                    y = Height+0.05, angle = 90, cex = sqrt(yPadUp), hjust = 0, vjust = 0)
+                    y = Height+0.05, angle = 90, cex = sqrt(yPadUp)*1.5, hjust = 0, vjust = 0)
         if (nrow(h_labs) < 250L) {
           h_labs$label3 <- gsub(" - .*", "", h_labs$label)
           heatmap.plot <- heatmap.plot +
@@ -592,10 +595,12 @@ if (clustHtMp) {
         }
         # - Subcellular markers
         addSCmarks <- FALSE
-        if (("Compartment marker" %in% colnames(PG))&&(sum(PG$"Compartment marker" != ""))) {
+        if (("Compartment marker" %in% colnames(PG)) && (sum(PG$"Compartment marker" != ""))) {
           temp2m <- as.data.table(temp2[, c("Leading protein IDs", "Ymin", "Xmin")])
-          temp2m <- temp2m[, list(Xmin = min(Xmin, na.rm = TRUE),
-                                  Ymin = min(Ymin, na.rm = TRUE)), by = list(`Leading protein IDs` = `Leading protein IDs`)]
+          temp2m <- temp2m[,
+                           .(Xmin = min(Xmin, na.rm = TRUE),
+                             Ymin = min(Ymin, na.rm = TRUE)),
+                           by = .(`Leading protein IDs` = `Leading protein IDs`)]
           temp2m <- as.data.frame(temp2m)
           m <- match(temp2m$`Leading protein IDs`, PG$`Leading protein IDs`)
           temp2m$Label <- PG$Label[m]
@@ -832,7 +837,7 @@ if (clustHtMp) {
   temp <- PG[, c(kol, KlustKols)]
   flPath <- paste0(clustDir, "/Protein Groups and Clusters.csv")
   tst <- try(write.csv(temp, file = flPath, row.names = FALSE), silent = TRUE)
-  while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {
+  while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
     dlg_message(paste0("File \"", flPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
     tst <- try(write.csv(temp, file = flPath, row.names = FALSE), silent = TRUE)
   }

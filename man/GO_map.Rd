@@ -12,7 +12,7 @@ GO_map(
   method = "topGO",
   cl,
   N.clust,
-  N.reserved = 1
+  N.reserved = 1L
 )
 }
 \arguments{

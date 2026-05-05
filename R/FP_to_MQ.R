@@ -409,9 +409,9 @@ FP_to_MQ <- function(FP_Workflow,
   colnames(tmp2)[1L:2L] <- c("Mass delta", "Full name")
   tmp2$"Max occurences" <- vapply(tmp2$"Max occurences", max, 1L)
   tmp2$Type <- sapply(tmp2$Type, unique)
-  stopifnot(!is.list(tmp2$Type))
+  stopifnot(!inherits(tmp2$Type, "list"))
   tmp2$UniMod <- sapply(tmp2$UniMod, unique)
-  stopifnot(!is.list(tmp2$UniMod))
+  stopifnot(!inherits(tmp2$UniMod, "list"))
   Modifs <- tmp2 
   # - Marks
   Modifs$Mark <- tolower(substr(Modifs$"Full name", 1L, 2L))

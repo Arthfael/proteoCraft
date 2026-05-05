@@ -896,6 +896,10 @@ protQuant <- function(Prot,
     }
     N.clust <- length(cl)
     #
+    invisible(clusterCall(cl, \() {
+      library(minpack.lm) # because LFQ.lm() uses minpack.lm::nls.lm(), which uses C code -> the package must be loaded
+      return()
+    }))
     f0 <- .bind_worker(LFQ.lm,
                        list(tmpPep = tmpPep,
                             quant_pep_IDs = quant_pep_IDs,

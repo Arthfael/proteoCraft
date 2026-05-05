@@ -10,6 +10,11 @@ closeAllConnections()
 if (exists(".obj")) { rm(".obj") }
 library(proteoCraft)
 dirlist %<o% c() # This should go!!!
+# Get local work directory:
+ScriptPath %<o% normalizePath(gtools::script_file(), winslash = "/")
+RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
+if (RunByMaster) { ScriptPath <- BehindTheScenes$ScriptFile }
+Script %<o% readLines(ScriptPath)
 
 RPath %<o% as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
@@ -140,12 +145,6 @@ Src <- paste0(libPath, "/extdata/Sources/ShinyOpt_Styles_and_Report.R")
 source(Src, local = FALSE)
 
 #### Code chunk - Select input/output folders and define experimental structure
-# Get local work directory:
-ScriptPath %<o% normalizePath(gtools::script_file(), winslash = "/")
-RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
-if (RunByMaster) { ScriptPath <- BehindTheScenes$ScriptFile }
-Script %<o% readLines(ScriptPath)
-
 # Reuse answers?
 # The script sometimes pauses to ask the user a question in a popup. These answers are stored.
 # When re-running the script, it can be useful to just answer whether one would like to re-use the answers to all of these?
@@ -721,7 +720,7 @@ source(bckpSrc, local = FALSE)
 dir <- paste0(wd, "/Tables")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 dirlist <- unique(c(dirlist, dir))
-w <- which(vapply(colnames(ev), \(x) { is.list(ev[[x]]) }, TRUE))
+w <- which(vapply(colnames(ev), \(x) { inherits(ev[[x]], "list") }, TRUE))
 if (length(w)) { for (i in w) { ev[[i]] <- parSapply(parClust, ev[[i]], paste, collapse = ";") } }
 data.table::fwrite(ev, paste0(dir, "/evidence.tsv"), sep = "\t", row.names = FALSE, na = "NA")
 #

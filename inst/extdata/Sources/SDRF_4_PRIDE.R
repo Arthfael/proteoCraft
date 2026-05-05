@@ -168,10 +168,10 @@ if (isFnd["MS_models"]) {
   tmp2$Instruments <- list(sort(unique(unlist(Vendors2Instr$Instruments))))
   Vendors2Instr <- rbind(Vendors2Instr, tmp2)
   MSInstrTxt <- " the Mass Spectrometer model(s) on which the data was acquired"
-  if ((!exists("myVendor"))||(!is.character(myVendor))||(sum(!myVendor %in% Vendors2Instr$Vendor))) { myVendor <- "All vendors" }
+  if ((!exists("myVendor")) || (!is.character(myVendor)) || sum(!myVendor %in% Vendors2Instr$Vendor)) { myVendor <- "All vendors" }
   myMSInstr <- c()
   if ((!exists("myMSInstr")) || (!is.character(myMSInstr)) || sum(!myMSInstr %in% availInstr)) {
-    if (exists("LCMS_instr") && is.list(LCMS_instr) && ("MS" %in% names(LCMS_instr))) {
+    if (exists("LCMS_instr") && inherits(LCMS_instr, "list") && ("MS" %in% names(LCMS_instr))) {
       myMSInstr <- availInstr[which(availInstr %in% LCMS_instr$MS)]
     }
   }
@@ -446,7 +446,7 @@ serverA <- \(input, output, session) {
     )
   }
   updtDevStgs <- \(reactive = TRUE) {
-    if (reactive) { myOrg <- ORGA() } else { myOrg <- mainOrg }
+    myOrg <- if (reactive) { ORGA() } else { mainOrg }
     devOnt <- devOntVal <- NA
     if (grepl("^D((\\.)|(anio))[ _\\-\\.]?rerio", myOrg)) { devOnt <- "Zebrafish" }
     if (grepl("^D((\\.)|(rosophila))[ _\\-\\.]?melanogaster", myOrg)) { devOnt <- "Fly" }
@@ -534,10 +534,10 @@ serverA <- \(input, output, session) {
   if (isFnd["MS_models"]) {
     observeEvent(input$Vendor, {
       vnd <- unique(input$Vendor)
-      if ("All vendors" %in% vnd) {
-        tmp <- vnd <- availMSVend
+      tmp <- if ("All vendors" %in% vnd) {
+        vnd <- availMSVend
       } else {
-        tmp <- c(vnd, availMSVend[which(!availMSVend %in% vnd)])
+        c(vnd, availMSVend[which(!availMSVend %in% vnd)])
       }
       VENDOR(vnd)
       if (isFnd["MS_models"]) {
@@ -745,11 +745,9 @@ if (!"comment[technical replicate]" %in% colnames(SDRF)) {
 }
 if (!"comment[fraction identifier]" %in% colnames(SDRF)) { SDRF$"comment[fraction identifier]" <- Frac.map2$Fraction }
 if (!"characteristics[biological replicate]" %in% colnames(SDRF)) {
-  if ("Replicate" %in% colnames(Frac.map2)) {
-    SDRF$"characteristics[biological replicate]" <- Frac.map2$Replicate
-  } else {
-    SDRF$"characteristics[biological replicate]" <- 1L
-  }
+  SDRF$"characteristics[biological replicate]" <- if ("Replicate" %in% colnames(Frac.map2)) {
+    Frac.map2$Replicate
+  } else { 1L }
 }
 # if (!"comment[label]" %in% colnames(SDRF)) {
 #   SDRF$"comment[label]" <- "label free" # Change this if doing TMT/SILAC!!!
@@ -771,7 +769,7 @@ rws <- seq_len(nr)
 wTest0 <- setNames(vapply(1L:nrow(myOntDF), \(i) { #i <- 1L
   x <- max(nchar(c(myOntDF$myOntology[i],
                    get(paste0(myOntDF$myOntology[i], 2))))) + 6L
-  if (is.na(x)) { x <- 15L } else { x <- max(c(as.integer(ceiling(x/10))*100L, 30L)) }
+  x <- if (is.na(x)) { 15L } else { max(c(as.integer(ceiling(x/10))*100L, 30L)) }
   return(x)
 }, 1L), myOntDF$Name)
 #
@@ -844,10 +842,10 @@ if (idsL) {
         if (k == "MS raw file") { k1 <- "comment[data file]" }
         if (k == "Fraction") { k1 <- "comment[fraction identifier]" }
         if (k1 %in% colnames(SDRF)) {
-          if (k == "MS raw file") {
-            x <- max(nchar(c(k, gsub(".*/", "", SDRF[[k1]]))))*8L + 6L
+          x <- if (k == "MS raw file") {
+            max(nchar(c(k, gsub(".*/", "", SDRF[[k1]]))))*8L + 6L
           } else {
-            x <- max(nchar(c(k, SDRF[[k1]])))*8L + 6L
+            max(nchar(c(k, SDRF[[k1]])))*8L + 6L
           }
         } else {
           x <- 30L

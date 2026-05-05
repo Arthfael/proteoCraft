@@ -73,12 +73,12 @@ cat(" - Writing Excel report...\n")
 KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   #KolNames <- xlTabs[[sheetnm]]
   klnms <- KolNames
-  KolNames <- gsub("Peptides?", "Pep.", KolNames)
-  KolNames <- gsub("Evidences?", "PSMs", KolNames)
-  KolNames <- gsub("Spectr((al)|(um))", "Spec.", KolNames)
-  KolNames <- gsub("Razor", "Raz.", KolNames)
-  KolNames <- gsub("Unique", "Uniq.", KolNames)
-  KolNames <- gsub("MS/MS", "MS2", KolNames)
+  KolNames <- sub("Peptides?", "Pep.", KolNames)
+  KolNames <- sub("Evidences?", "PSMs", KolNames)
+  KolNames <- sub("Spectr((al)|(um))", "Spec.", KolNames)
+  KolNames <- sub("Razor", "Raz.", KolNames)
+  KolNames <- sub("Unique", "Uniq.", KolNames)
+  KolNames <- sub("MS/MS", "MS2", KolNames)
   # This would be the place to edit PER sample evidence and MS/MS columns,
   # currently not needed because those do not exist yet
   for (nm in names(intTbl)) { #nm <- names(intTbl)[1L] #nm <- names(intTbl)[2L]
@@ -102,17 +102,18 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   wNF <- grep("^mod\\. F-test ", KolNames, invert = TRUE)
   if (F.test) {
     wF <- grep("^mod\\. F-test ", KolNames)
-    KolNames[wF] <- gsub("^mod\\. F-test +", "F-test ", KolNames[wF]) # Shorter F-test tag
-    KolNames[wF] <- gsub(" +-log10\\(Pvalue\\)( - )?", " -log10 pval. ", KolNames[wF])
-    KolNames[wF] <- gsub(" +Regulated - ", " reg. ", KolNames[wF])
-    KolNames[wF] <- gsub(" +Significant-", " signif. ", KolNames[wF])
+    KolNames[wF] <- sub("^mod\\. F-test +", "F-test ", KolNames[wF]) # Shorter F-test tag
+    KolNames[wF] <- sub(" +-log10\\(Pvalue\\)( - )?", " -log10 pval. ", KolNames[wF])
+    KolNames[wF] <- sub(" +Regulated - ", " reg. ", KolNames[wF])
+    KolNames[wF] <- sub(" +Significant-", " signif. ", KolNames[wF])
   }
-  KolNames[wNF] <- gsub(".*-log10\\(Pvalue\\)( - )?", "-log10 pval. ", KolNames[wNF])
-  KolNames[wNF] <- gsub(".*Significant-", "signif. ", KolNames[wNF])
-  KolNames[wNF] <- gsub(".*Regulated - ", "reg. ", KolNames[wNF])
-  KolNames[wNF] <- gsub(".*Significant-", "signif. ", KolNames[wNF])
+  KolNames[wNF] <- sub(".*-log10\\(Pvalue\\)( - )?", "-log10 pval. ", KolNames[wNF])
+  KolNames[wNF] <- sub(".*Significant-", "signif. ", KolNames[wNF])
+  KolNames[wNF] <- sub(".*Regulated - ", "reg. ", KolNames[wNF])
+  KolNames[wNF] <- sub(".*Significant-", "signif. ", KolNames[wNF])
   KntKol <- paste0(AA, " Count")
-  KolNames[which(KolNames %in% KntKol)] <- gsub(" Count$", "", KolNames[which(KolNames %in% KntKol)])
+  wI <- which(KolNames %in% KntKol)
+  KolNames[wI] <- sub(" Count$", "", KolNames[wI])
   #
   KolNames <- gsub("( - )|(___)", " ", KolNames)
   #
@@ -185,7 +186,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     gel <- setNames(lapply(intRf, \(rf) {
       x <- c(paste0(rf, RSA$values),
              paste0("Mean ", rf, VPAL$values))
-      return(x[which(x %in% colnames(tempData))])
+      return(intersect(x, colnames(tempData)))
     }), intRf)
     if (ii == 1L) {
       # Log transform for normal tables - not necessary for PTM-modified tables as we already transformed
@@ -262,7 +263,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
       PepColList <- c(PepColList, "gpl")
     }
     aacol <- paste0(AA, " Count")
-    qualFlt <- QualFilt[which(QualFilt %in% colnames(ev))]
+    qualFlt <- intersect(QualFilt, colnames(ev))
     w <- which(!qualFlt %in% colnames(tempData))
     if (length(w)) {
       tempData[, qualFlt[w]] <- ev[match(tempData$"Modified sequence", ev$"Modified sequence"), qualFlt[w]]
@@ -270,13 +271,13 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     kol <- c(CoreCol, "In list", CoreCol2, evcol, spcol, "PEP", quantcol, signcol, regcol, qualFlt[which(qualFlt != "In list")], aacol)
     if (ii > 1L) { kol <- c(kol, "Code") }
     if (Annotate) {
-      PepAnnotCol %<o% annot.col[which(annot.col %in% colnames(tempData))]
+      PepAnnotCol %<o% intersect(annot.col, colnames(tempData))
       kol <- c(kol, PepAnnotCol)
     }
     #tst <- data.frame(Names = names(kol), Column = setNames(kol, NULL), Found = kol %in% colnames(tempData));View(tst)
-    kol <- kol[which(kol %in% colnames(tempData))]
-    #kol[which(!kol %in% colnames(tempData))]
-    #colnames(tempData)[which(!colnames(tempData) %in% kol)]
+    #setdiff(kol, colnames(tempData))
+    kol <- intersect(kol, colnames(tempData))
+    #setdiff(colnames(tempData), kol)
     tempData <- tempData[, kol]
     # If there is only one experiment, remove it from the names here...
     colnames(tempData) <- cleanNms(colnames(tempData), start = FALSE)
@@ -294,8 +295,8 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
       ratCols <- lapply(ratCols, cleanNms, start = FALSE)
     }
     quantCols <- lapply(quantCols, cleanNms, start = FALSE)
-    colnames(tempData) <- gsub("_names$", " names", colnames(tempData))
-    if (Annotate) { PepAnnotCol <- gsub("_names$", " names", PepAnnotCol) }
+    colnames(tempData) <- sub("_names$", " names", colnames(tempData))
+    if (Annotate) { PepAnnotCol <- sub("_names$", " names", PepAnnotCol) }
     for (k in regcol) {
       tempData[which(tempData[[k]] == "non significant"), k] <- "n.s."
       tempData[which(tempData[[k]] == ""), k] <- "n.t."
@@ -367,7 +368,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     if (Annotate) {
       AnnotTbl$Columns <- list(c("GO", "GO-ID"), c("Taxonomy", "TaxID"), NA, NA, NA, NA, "EMBL", NA)
       for (i in annot) { AnnotTbl$Columns[match(i, AnnotTbl$Name)] <- list(c(i, paste0(i, " names"))) }
-      AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(annot.col2[which(!annot.col2 %in% unlist(AnnotTbl$Columns))])
+      AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(setdiff(annot.col2, unlist(AnnotTbl$Columns)))
       for (i in 1L:nrow(AnnotTbl)) { ColumnsTbl[[paste0(AnnotTbl$Name[i], " annotations")]] <- AnnotTbl$Columns[[i]] }
     }
     # - PEP
@@ -396,7 +397,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
         #ColumnsTbl$Class[grep(topattern(paste0("Mean ", ratRf[nm])), ColumnsTbl$Col)] <- rpl
       }
     }
-    ColumnsTbl$Class[which(ColumnsTbl$Grp == "P-values")] <- gsub(" - $", "", pvalue.col[which(pvalue.use)])
+    ColumnsTbl$Class[which(ColumnsTbl$Grp == "P-values")] <- sub(" - $", "", pvalue.col[which(pvalue.use)])
     ColumnsTbl$Class[which(ColumnsTbl$Col %in% regcol)] <- "Regulated"
     ColumnsTbl$Class[which(ColumnsTbl$Col %in% signcol)] <- "Significant"
     if ((ii > 1L)&&(F.test)) {
@@ -427,12 +428,12 @@ tblMode <- tblMode2 <- "PG"
 KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl, locTbl = SubCellLocTbl) {
   #KolNames <- xlTabs[[sheetnm]]
   klnms <- KolNames
-  KolNames <- gsub("Peptides?", "Pep.", KolNames)
-  KolNames <- gsub("Evidences?", "PSMs", KolNames)
-  KolNames <- gsub("Spectr((al)|(um))", "Spec.", KolNames)
-  KolNames <- gsub("Razor", "Raz.", KolNames)
-  KolNames <- gsub("Unique", "Uniq.", KolNames)
-  KolNames <- gsub("MS/MS", "MS2", KolNames)
+  KolNames <- sub("Peptides?", "Pep.", KolNames)
+  KolNames <- sub("Evidences?", "PSMs", KolNames)
+  KolNames <- sub("Spectr((al)|(um))", "Spec.", KolNames)
+  KolNames <- sub("Razor", "Raz.", KolNames)
+  KolNames <- sub("Unique", "Uniq.", KolNames)
+  KolNames <- sub("MS/MS", "MS2", KolNames)
   for (nm in names(intTbl)) { #nm <- names(intTbl)[1L] #nm <- names(intTbl)[2L]
     m <- match(intTbl[[nm]]$Log, KolNames)
     w <- which(!is.na(m))
@@ -463,21 +464,21 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl, locTbl = SubCel
   wNF <- grep("^mod\\. F-test ", KolNames, invert = TRUE)
   if (F.test) {
     wF <- grep("^mod\\. F-test ", KolNames)
-    KolNames[wF] <- gsub("^mod\\. F-test +", "F-test ", KolNames[wF]) # Shorter F-test tag
-    KolNames[wF] <- gsub(" +-log10\\(Pvalue\\)( - )?", " -log10 pval. ", KolNames[wF])
-    KolNames[wF] <- gsub(" +Regulated - ", " reg. ", KolNames[wF])
-    KolNames[wF] <- gsub(" +Significant-", " signif. ", KolNames[wF])
+    KolNames[wF] <- sub("^mod\\. F-test +", "F-test ", KolNames[wF]) # Shorter F-test tag
+    KolNames[wF] <- sub(" +-log10\\(Pvalue\\)( - )?", " -log10 pval. ", KolNames[wF])
+    KolNames[wF] <- sub(" +Regulated - ", " reg. ", KolNames[wF])
+    KolNames[wF] <- sub(" +Significant-", " signif. ", KolNames[wF])
   }
-  KolNames <- gsub(".*Pvalue\\)( - )?", "-log10 pval. ", KolNames)
-  KolNames <- gsub(".*Significant-", "signif. ", KolNames)
-  KolNames <- gsub(".*Regulated - ", "reg. ", KolNames)
-  KolNames <- gsub("log10\\(est\\. copies/cell\\) (- )?", "ProtRul. ", KolNames)
-  KolNames <- gsub(paste0(topattern("Sequence coverage [%] ", start = FALSE), "(- )?"), "Cov. ", KolNames)
+  KolNames <- sub(".*Pvalue\\)( - )?", "-log10 pval. ", KolNames)
+  KolNames <- sub(".*Significant-", "signif. ", KolNames)
+  KolNames <- sub(".*Regulated - ", "reg. ", KolNames)
+  KolNames <- sub("log10\\(est\\. copies/cell\\) (- )?", "ProtRul. ", KolNames)
+  KolNames <- sub(paste0(topattern("Sequence coverage [%] ", start = FALSE), "(- )?"), "Cov. ", KolNames)
   KolNames[which(KolNames == "Max. theoretical sequence coverage [%]")] <- "Theoretical max."
   KolNames[which(KolNames == "Sequence coverage [%]")] <- "All peptides"
   KolNames[which(KolNames == "Uniq. + razor sequence coverage [%]")] <- "Unique + razor"
   KolNames[which(KolNames == "Uniq. sequence coverage [%]")] <- "Unique"
-  KolNames <- gsub("^Cluster \\([^\\)]+\\) - ", "Clust. ", KolNames)
+  KolNames <- sub("^Cluster \\([^\\)]+\\) - ", "Clust. ", KolNames)
   #
   KolNames <- gsub("( - )|(___)", " ", KolNames)
   #
@@ -530,7 +531,7 @@ pepevspeccol <- c("Peptides count",
                   grep("^Biot\\. spectral count - ", colnames(tempData), value = TRUE),
                   "Biot. spectrum IDs",
                   grep("^Biot\\. spectrum IDs - ", colnames(tempData), value = TRUE))
-pepevspeccol <- pepevspeccol[which(pepevspeccol %in% colnames(tempData))]
+pepevspeccol <- intersect(pepevspeccol, colnames(tempData))
 pepcountcol1 <- grep("[Pp]eptides count$", pepevspeccol, value = TRUE)
 pepcountcol2 <- grep("[Pp]eptides count - ", pepevspeccol, value = TRUE)
 pepidcol1 <- grep("[Pp]eptide IDs$", pepevspeccol, value = TRUE)
@@ -634,24 +635,24 @@ if (Annotate&&LocAnalysis) {
     rt3 <- paste0("Mean ", SSD.Root)
     lokol3 <- grep(topattern(rt3), colnames(PG), value = TRUE)
     SubCellLocTbl$SSDs <- list(Columns = c(lokol3, lokol2),
-                               Sample = c(gsub(topattern(rt3), "", lokol3),
-                                          gsub(topattern(rt2), "", lokol2)))
+                               Sample = c(sub(topattern(rt3), "", lokol3),
+                                          sub(topattern(rt2), "", lokol2)))
     rt <- SSD.Pval.Root
     lokol4 <- grep(topattern(rt), colnames(PG), value = TRUE)
     SubCellLocTbl$"SSD P-vals." <- list(Columns = lokol4,
-                                        Sample = gsub(topattern(rt), "", lokol4))
+                                        Sample = sub(topattern(rt), "", lokol4))
     rt <- "Signif. SSDs-FDR="
     lokol5 <- grep(topattern(rt), colnames(PG), value = TRUE)
     SubCellLocTbl$"Signif. SSDs" <- list(Columns = lokol5,
-                                         Sample = gsub(topattern(rt), "", lokol5))
+                                         Sample = sub(topattern(rt), "", lokol5))
     rt <- "Re-localized"
     lokol6 <- grep(topattern(rt), colnames(PG), value = TRUE)
     SubCellLocTbl$"Re-Loc." <- list(Columns = lokol6,
-                                    Sample = gsub(topattern(rt), "", lokol6))
+                                    Sample = sub(topattern(rt), "", lokol6))
     kol <- c(kol, lokol6, lokol2, lokol3, lokol4, lokol5)
   }
 } else { SubCellLocTbl <- NULL}
-kol <- unique(kol[which(kol %in% colnames(tempData))])
+kol <- unique(intersect(kol, colnames(tempData)))
 tempData <- tempData[, kol]
 #
 if (F.test) {
@@ -676,7 +677,7 @@ if (F.test) {
 if (Annotate&&LocAnalysis) {
   if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) { loadFun("GO_terms.RData") }
   GOCC <- GO_terms$ID[which(GO_terms$Ontology == "CC")]
-  tempData$"GO-ID (CC)" <- lapply(strsplit(tempData$`GO-ID`, ";"), \(x) { x[which(x %in% GOCC)] })
+  tempData$"GO-ID (CC)" <- lapply(strsplit(tempData$`GO-ID`, ";"), \(x) { intersect(x, GOCC) })
   w <- which(lengths(tempData$"GO-ID (CC)") > 0L)
   tempData$"GO (CC)" <- ""
   tempData$"GO (CC)"[w] <- vapply(tempData$"GO-ID (CC)"[w], \(x) {
@@ -686,7 +687,7 @@ if (Annotate&&LocAnalysis) {
     for (k in lokol6) {
       tempData[which(tempData[[k]] == "non significant"), k] <- "n.s."
       tempData[which(tempData[[k]] == ""), k] <- "n.t."
-      tempData[[k]] <- gsub("^up, FDR = ", "re-loc., FDR = ", tempData[[k]])
+      tempData[[k]] <- sub("^up, FDR = ", "re-loc., FDR = ", tempData[[k]])
     }
   }
 }
@@ -752,11 +753,11 @@ if (F.test) {
 }
 # - Annotations
 if (Annotate) {
-  annot.col2 <- gsub("_names$", " names", annot.col)
+  annot.col2 <- sub("_names$", " names", annot.col)
   AnnotTbl$Columns <- list(c("GO", "GO-ID"), c("Taxonomy", "TaxID"), NA, NA, NA, NA, "EMBL", NA)
   annot <- c("InterPro", "Pfam", "PIRSF", "PROSITE")
   for (i in annot) { AnnotTbl$Columns[match(i, AnnotTbl$Name)] <- list(c(i, paste0(i, " names"))) }
-  AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(annot.col2[which(!annot.col2 %in% unlist(AnnotTbl$Columns))])
+  AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(setdiff(annot.col2, unlist(AnnotTbl$Columns)))
   for (i in 1L:nrow(AnnotTbl)) { ColumnsTbl[[paste0(AnnotTbl$Name[i], " annotations")]] <- AnnotTbl$Columns[[i]] }
   if (LocAnalysis) {
     ColumnsTbl[["GO annotations"]] <- c(ColumnsTbl[["GO"]], "GO (CC)")
@@ -803,7 +804,7 @@ if (IsBioID2) {
 for (nm in names(intRf)) { #nm <- names(intRf)[1L]
   rpl <- intNms(nm, TRUE)
   kl <- c(paste0("Mean ", intRf[[nm]], VPAL$values), paste0(intRf[[nm]], RSA$values))
-  kl <- kl[which(kl %in% ColumnsTbl$Col)]
+  kl <- intersect(kl, ColumnsTbl$Col)
   ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
 }
 ColumnsTbl$Class[grep("Ruler", ColumnsTbl$Grp)] <- "log10(est. copies/cell)"
@@ -811,7 +812,7 @@ for (nm in names(ratRf)) { #nm <- names(ratRf)[1L]
   rpl <- ratNms(nm, TRUE)
   #kl <- c(paste0("Mean ", ratRf[[nm]], VPAL$values), paste0(ratRf[[nm]], RSA$values))
   kl <- paste0(ratRf[[nm]], myContrasts$Contrast)
-  kl <- kl[which(kl %in% ColumnsTbl$Col)]
+  kl <- intersect(kl, ColumnsTbl$Col)
   ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
 }
 ColumnsTbl$Class[which(ColumnsTbl$Grp == "Proteome Ruler")] <- "log10(est. copies/cell)"
@@ -829,8 +830,8 @@ if (Annotate) {
   if (LocAnalysis) {
     ColumnsTbl$Class[which(ColumnsTbl$Grp == "Localisation")] <- "Localisation"
     if (LocAnalysis2) {
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "SSDs P-values")] <- gsub(" - $", "", SSD.Pval.Root)
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "SSDs significant")] <- paste0(gsub(" - $", "", SSD.Pval.Root))
+      ColumnsTbl$Class[which(ColumnsTbl$Grp == "SSDs P-values")] <- sub(" - $", "", SSD.Pval.Root)
+      ColumnsTbl$Class[which(ColumnsTbl$Grp == "SSDs significant")] <- paste0(sub(" - $", "", SSD.Pval.Root))
       ColumnsTbl$Class[which(ColumnsTbl$Grp == "Re-localized")] <- "Re-localized"
     }
   }
@@ -859,8 +860,8 @@ w <- c(which(ColumnsTbl$Class == "General Protein Group information"),
        which(ColumnsTbl$Class == "ANOVA"))
 if (Annotate&&LocAnalysis) {
   w <- c(w,
-         which(ColumnsTbl$Class == gsub(" - $", "", SSD.Pval.Root)),
-         which(ColumnsTbl$Class == paste0(gsub(" - $", "", SSD.Pval.Root))),
+         which(ColumnsTbl$Class == sub(" - $", "", SSD.Pval.Root)),
+         which(ColumnsTbl$Class == paste0(sub(" - $", "", SSD.Pval.Root))),
          which(ColumnsTbl$Class == "Re-localized"))
 }
 w <- c(w,
@@ -915,15 +916,15 @@ if (saintExprs) {
                       ratTbl = ratColsTbl) {
     #KolNames <- xlTabs[[sheetnm]]
     klnms <- KolNames
-    KolNames <- gsub("^log2\\(FC\\) - ", "log2(FC) ", KolNames)
-    KolNames <- gsub("^AvgP - ", "AvgP ", KolNames)
-    KolNames <- gsub("^MaxP - ", "MaxP ", KolNames)
-    KolNames <- gsub("^TopoAvgP - ", "TopoAvgP ", KolNames)
-    KolNames <- gsub("^TopoMaxP - ", "TopoMaxP ", KolNames)
-    KolNames <- gsub("^SaintScore - ", "SaintScore ", KolNames)
-    KolNames <- gsub("^OddsScore - ", "OddsScore ", KolNames)
-    KolNames <- gsub("^boosted_by - ", "Boosted by... ", KolNames)
-    KolNames <- gsub("^BFDR - ", "BFDR ", KolNames)
+    KolNames <- sub("^log2\\(FC\\) - ", "log2(FC) ", KolNames)
+    KolNames <- sub("^AvgP - ", "AvgP ", KolNames)
+    KolNames <- sub("^MaxP - ", "MaxP ", KolNames)
+    KolNames <- sub("^TopoAvgP - ", "TopoAvgP ", KolNames)
+    KolNames <- sub("^TopoMaxP - ", "TopoMaxP ", KolNames)
+    KolNames <- sub("^SaintScore - ", "SaintScore ", KolNames)
+    KolNames <- sub("^OddsScore - ", "OddsScore ", KolNames)
+    KolNames <- sub("^boosted_by - ", "Boosted by... ", KolNames)
+    KolNames <- sub("^BFDR - ", "BFDR ", KolNames)
     KolNames <- cleanNms(KolNames, start = FALSE)
     #
     # Those names must be unique if the data is to be written as a table!
@@ -944,9 +945,9 @@ if (saintExprs) {
   quantCols <- quantcol <- "Av. log10 abundance"
   ratRf <- setNames("log2(FC) - ", "log2(rat.), avg.")
   ratColsTbl <- setNames(lapply(names(ratRf), \(nm) {
-    res <- data.frame(Log = paste0(ratRf[nm], VPAL$values),
+    res <- data.frame(Log = paste0(ratRf[nm], myContrasts$Contrast),
                       Type = "Average",
-                      Sample = cleanNms(VPAL$values))
+                      Sample = myContrasts$Contrast)
     w <- which(res$Log %in% colnames(tempData))
     return(res[w,])
   }), names(ratRf))
@@ -973,7 +974,7 @@ if (saintExprs) {
            #saintcol, oddscol, # Those 2 columns look a bit useless... 
            boostcol, qualFlt[which(qualFlt != "In list")])
   kol <- unique(kol)
-  kol <- kol[which(kol %in% colnames(tempData))]
+  kol <- intersect(kol, colnames(tempData))
   tempData <- tempData[, kol]
   #
   # Re-order
@@ -1014,8 +1015,8 @@ if (saintExprs) {
   ColumnsTbl$Class[which(ColumnsTbl$Grp == "IDs")] <- "General Protein Group information"
   for (nm in names(ratRf)) { #nm <- names(ratRf)[1L]
     rpl <- "log2(rat.), avg."
-    kl <- paste0(ratRf[[nm]], VPAL$values)
-    kl <- kl[which(kl %in% ColumnsTbl$Col)]
+    kl <- paste0(ratRf[[nm]], myContrasts$Contrast)
+    kl <- intersect(kl, ColumnsTbl$Col)
     ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
   }
   ColumnsTbl$Class[which(ColumnsTbl$Col %in% fdrcol)] <- "P-values"

@@ -9,7 +9,12 @@ closeAllConnections()
 ## Load proteoCraft
 if (exists(".obj")) { rm(".obj") }
 library(proteoCraft)
-
+#
+# Get local work directory:
+ScriptPath %<o% normalizePath(gtools::script_file(), winslash = "/")
+RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
+if (RunByMaster) { ScriptPath <- BehindTheScenes$ScriptFile }
+Script %<o% readLines(ScriptPath)
 
 RPath %<o% as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
@@ -132,15 +137,6 @@ source(locScrptSrc)
 Src <- paste0(libPath, "/extdata/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
-
-# shiny used to cause issues with View() for data.frames, possibly by importing jsonlite,
-# which I know also caused the same problem (and is also imported by DT)
-# The problem seems fixed, but if it re-appears, do not load the full packages,
-# instead call functions using packageName::function()
-ScriptPath %<o% normalizePath(gtools::script_file(), winslash = "/")
-RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
-if (RunByMaster) { ScriptPath <- BehindTheScenes$ScriptFile }
-Script %<o% readLines(ScriptPath)
 
 # Update the proteoCraft package?
 # msg <- "Should we update the proteoCraft package?"

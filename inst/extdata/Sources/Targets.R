@@ -60,17 +60,27 @@ if ("Target" %in% colnames(Exp.map)) {
                        tmp <- TARGPROT()
                        tmp[id] <- input[[id]]
                        TARGPROT(tmp)
+                       if (sum(is.na(tmp))) {
+                         shinyjs::disable("saveBtn")
+                       } else {
+                         shinyjs::enable("saveBtn")
+                       }
                      })
         observeEvent(input[[id2]],
                      {
                        tmp <- TARGPROT()
                        tmp[id] <- input[[id2]]
                        TARGPROT(tmp)
+                       if (sum(is.na(tmp))) {
+                         shinyjs::disable("saveBtn")
+                       } else {
+                         shinyjs::enable("saveBtn")
+                       }
                      })
       })
       observeEvent(input$saveBtn, {
         sapply(TargetProteins[w], \(id) {
-          targProt <<- TARGPROT()
+          assign("targProt", TARGPROT(), envir = .GlobalEnv)
         })
         stopApp()
       })
@@ -114,5 +124,4 @@ if ("Target" %in% colnames(Exp.map)) {
   FactorsLevels$Target <- Tar
   tmp <- list(Factors = Factors, Levels = FactorsLevels)
   save(tmp, file = "Factors.RData")
-  # Modify app so that any remaining NAs turn off saving!
 }

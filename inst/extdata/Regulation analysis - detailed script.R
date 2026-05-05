@@ -10,6 +10,11 @@ closeAllConnections()
 if (exists(".obj")) { rm(".obj") }
 library(proteoCraft)
 dirlist %<o% c() # This should go!!!
+# Get local work directory:
+ScriptPath %<o% normalizePath(gtools::script_file(), winslash = "/")
+RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
+if (RunByMaster) { ScriptPath <- BehindTheScenes$ScriptFile }
+Script %<o% readLines(ScriptPath)
 
 RPath %<o% as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
@@ -140,12 +145,6 @@ Src <- paste0(libPath, "/extdata/Sources/ShinyOpt_Styles_and_Report.R")
 source(Src, local = FALSE)
 
 #### Code chunk - Select input/output folders and define experimental structure
-# Get local work directory:
-ScriptPath %<o% normalizePath(gtools::script_file(), winslash = "/")
-RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
-if (RunByMaster) { ScriptPath <- BehindTheScenes$ScriptFile }
-Script %<o% readLines(ScriptPath)
-
 # Reuse answers?
 # The script sometimes pauses to ask the user a question in a popup. These answers are stored.
 # When re-running the script, it can be useful to just answer whether one would like to re-use the answers to all of these?
@@ -1095,9 +1094,9 @@ ReportCalls <- AddPlot2Report()
 g <- grep(topattern(Prot.Rat.Root), colnames(quantData), value = TRUE)
 g <- grep(": SD$", g, value = TRUE, invert = TRUE)
 g <- grep("REF\\.to\\.REF", g, value = TRUE, invert = TRUE)
-test <- quantData[, g]
+test <- quantData[, g, drop = FALSE]
 colnames(test) <- gsub(topattern(Prot.Rat.Root), "", colnames(test))
-test <- test[which(apply(test, 1L, \(x) { length(is.all.good(x)) }) > 0L),]
+test <- test[which(apply(test, 1L, \(x) { length(is.all.good(x)) }) > 0L), , drop = FALSE]
 test <- suppressMessages(dfMelt(test))
 test$Contrast <- gsub_Rep(" - ", " -\n", as.character(test$variable))
 allContr <- unique(test$Contrast)
@@ -1426,6 +1425,9 @@ volcPlot_args %<o% list(mode = "custom",
 volcPlot_args2 <- volcPlot_args
 volcPlot_args2$Prot <- PG
 volcPlot_args2$cl <- parClust
+# For testing:
+#DefArg(Volcano.plot);TESTING <- TRUE
+#invisible(lapply(names(volcPlot_args2), \(x) { assign(x, volcPlot_args2[[x]], envir = .GlobalEnv); return() }))
 tempVP <- try(do.call(Volcano.plot, volcPlot_args2), silent = TRUE)
 if ((inherits(tempVP, "try-error"))||(is.character(tempVP))) {
   stop("MAJOR ERROR: No volcano plots were created, investigate!")
@@ -1836,118 +1838,9 @@ DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
                                                                       threshOpt)], ".")
 
 #### Code chunk - SAINTexpress
-Src <- paste0(libPath, "/extdata/Sources/SAINTexpress.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
-
-# Now let's create a table of regulated protein groups per test made:
-g <- grep("^Regulated - ", colnames(PG), value = TRUE)
-regPG_TTest <- data.frame(Test = gsub("^Regulated - ", "", g))
-dir <- c("up", "down")
-kolstms <- c("count", "PG IDs", "Leading Protein IDs", "Genes")
-DF <- data.frame(dir = rep(dir, length(BH.FDR)),
-                 FDR = unlist(lapply(BH.FDR, function(f) { rep(f, length(dir)) })))
-regPG_TTest <- lapply(1L:nrow(DF), \(ii) { #ii <- 1L
-  d <- DF$dir[[ii]]
-  i <- match(DF$FDR[[ii]], BH.FDR)
-  tmp <- paste0(d, ", FDR = ", BH.FDR[1L:i]*100, "%")
-  kolnms <- paste0(tmp[i], " - ", kolstms)
-  tmp2 <- set_colnames(Isapply(g, \(x) {
-    w <- which(PG[[x]] %in% tmp)
-    x1 <- length(w)
-    x2 <- paste0(PG$id[w], collapse = ", ")
-    x3 <- paste0(PG$"Leading protein IDs"[w], collapse = ", ")
-    x4 <- paste0(PG$Genes[w], collapse = ", ")
-    return(c(x1, x2, x3, x4))
-  }), kolnms)
-  tmp2[[kolnms[1L]]] <- as.numeric(tmp2[[kolnms[1L]]])
-  tst <- unique(tmp2[[kolnms[1L]]])
-  tst <- tst[which(tst > 0L)]
-  if (!length(tst)) { regPG_TTest[, kolnms] <- tmp2 }
-  return(tmp2)
-})
-regPG_TTest <- cbind(gsub("^Regulated - ", "", g), do.call(cbind, regPG_TTest))
-colnames(regPG_TTest)[1L] <- "Contrast"
-if (IsPullDown) {
-  tmp <- grep("^Specific: ", unique(unlist(PG[, g])), value = TRUE)
-  if (length(tmp)) {
-    kolnms <- paste0("Specific - ", kolstms)
-    tmp2 <- set_colnames(Isapply(g, \(x) {
-      w <- which(PG[[x]] %in% tmp)
-      x1 <- length(w)
-      x2 <- paste0(PG$id[w], collapse = ", ")
-      x3 <- paste0(PG$"Leading protein IDs"[w], collapse = ", ")
-      x4 <- paste0(PG$Genes[w], collapse = ", ")
-      return(c(x1, x2, x3, x4))
-    }), kolnms)
-    tmp2[[kolnms[1L]]] <- as.numeric(tmp2[[kolnms[1L]]])
-    tst <- unique(tmp2[[kolnms[1L]]])
-    tst <- tst[which(tst > 0)]
-    if (length(tst)) { regPG_TTest[, kolnms] <- tmp2 }
-  }
-}
-if (ncol(regPG_TTest) > 1L) {
-  dir <- paste0(wd, "/Tables")
-  if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dir))
-  regPG_TTest <- regPG_TTest[, c("Contrast", as.character(sapply(kolstms, \(x) {
-    grep(paste0(" - ", x, "$"), colnames(regPG_TTest), value = TRUE)
-  })))]
-  write.csv(regPG_TTest, file = paste0(dir, "/Reg. PGs - t-test.csv"), row.names = FALSE)
-} else { warning("The t-test(s) did not identify any regulated protein groups!") }
-if (F.test) {
-  g <- grep("^mod\\. F-test Regulated - ", colnames(F_test_data), value = TRUE)
-  # For the F-test we always want to include both directions because there can be up and down for a pull-down if doing a secondary comparison
-  regPG_FTest <- lapply(1L:nrow(DF), \(ii) { #ii <- 1L
-    d <- DF$dir[[ii]]
-    i <- match(DF$FDR[[ii]], BH.FDR)
-    tmp <- paste0(d, ", FDR = ", BH.FDR[1L:i]*100, "%")
-    kolnms <- paste0(tmp[i], " - ", kolstms)
-    tmp2 <- set_colnames(Isapply(g, \(x) {
-      w <- which(F_test_data[[x]] %in% tmp)
-      x1 <- length(w)
-      x2 <- paste0(PG$id[w], collapse = ", ")
-      x3 <- paste0(PG$"Leading protein IDs"[w], collapse = ", ")
-      x4 <- paste0(PG$Genes[w], collapse = ", ")
-      return(c(x1, x2, x3, x4))
-    }), kolnms)
-    tmp2[[kolnms[1L]]] <- as.numeric(tmp2[[kolnms[1L]]])
-    tst <- unique(tmp2[[kolnms[1L]]])
-    tst <- tst[which(tst > 0L)]
-    if (!length(tst)) { regPG_TTest[, kolnms] <- tmp2 }
-    return(tmp2)
-  })
-  regPG_FTest <- cbind(gsub("^mod\\. F-test Regulated - ", "", g), do.call(cbind, regPG_FTest))
-  colnames(regPG_FTest)[1L] <- "Contrast"
-  if (IsPullDown) {
-    tmp <- grep("^Specific: ", unique(unlist(F_test_data[, g])), value = TRUE)
-    if (length(tmp)) {
-      kolnms <- paste0("Specific - ", kolstms)
-      tmp2 <- set_colnames(Isapply(g, \(x) {
-        w <- which(F_test_data[[x]] %in% tmp)
-        x1 <- length(w)
-        x2 <- paste0(PG$id[w], collapse = ", ")
-        x3 <- paste0(PG$"Leading protein IDs"[w], collapse = ", ")
-        x4 <- paste0(PG$Genes[w], collapse = ", ")
-        return(c(x1, x2, x3, x4))
-      }), kolnms)
-      tmp2[[kolnms[1L]]] <- as.numeric(tmp2[[kolnms[1L]]])
-      tst <- unique(tmp2[[kolnms[1L]]])
-      tst <- tst[which(tst > 0L)]
-      if (length(tst)) { regPG_FTest[, kolnms] <- tmp2 }
-    }
-  }
-  if (ncol(regPG_FTest) > 1L) {
-    dir <- paste0(wd, "/Tables")
-    if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    dirlist <- unique(c(dirlist, dir))
-    regPG_FTest <- regPG_FTest[, c("Contrast", as.character(sapply(kolstms, \(x) {
-      grep(paste0(" - ", x, "$"), colnames(regPG_FTest), value = TRUE)
-    })))]
-    write.csv(regPG_FTest, file = paste0(dir, "/Reg. PGs - F-test.csv"), row.names = FALSE)
-  } else { warning("The F-test did not identify any regulated protein groups!") }
-}
-# To do: SAINTexpress!
+saintSrc %<o% paste0(libPath, "/extdata/Sources/SAINTexpress.R")
+#rstudioapi::documentOpen(saintSrc)
+source(saintSrc, local = FALSE)
 
 # Summary table and heatmap of number of regulated protein groups
 Tsts <- c("t-tests", "F-tests")
@@ -2209,42 +2102,9 @@ source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
 #### Code chunk - Proteomic ruler
-if (protrul) {
-  ProtRulRoot %<o% "log10(est. copies/cell) - "
-  tempPG <- PG
-  exprsRt <- paste0("Mean ", prtRfRoot)
-  if (LocAnalysis) {
-    tempPG <- tempPG[, grep(topattern(exprsRt), colnames(tempPG), invert = TRUE)]
-    for (grp2 in SubCellFracAggr2$values) { #grp2 <- SubCellFracAggr2$values[1L]
-      em2 <- Exp.map[which(Exp.map[[SubCellFracAggr2$column]] == grp2),]
-      for (grp in unique(em2[[SubCellFracAggr$column]])) { #grp <- unique(em2[[SubCellFracAggr$column]])[1L]
-        em <- em2[which(em2[[SubCellFracAggr$column]] == grp),]
-        kol <- paste0(prtRfRoot, em$Ref.Sample.Aggregate)
-        tempPG[[paste0(prtRfRoot, grp)]] <- apply(10^tempPG[, kol], 1L, \(x) {
-          log10(sum(is.all.good(x)))
-        })
-      }
-      tempPG[[paste0(exprsRt, grp2)]] <- apply(tempPG[, paste0(prtRfRoot, unique(em2[[SubCellFracAggr$column]]))], 1L, \(x) {
-        mean(is.all.good(x))
-      })
-    }
-  }
-  temp <- try(Prot.Ruler(tempPG, db, exprsRt, NuclL = ProtRulNuclL), silent = TRUE)
-  if (inherits(temp, "list")) {
-    db <- temp$Database
-    temp <- temp$Protein.groups
-    kol <- c(grep(topattern(exprsRt), colnames(temp), value = TRUE), grep(topattern(ProtRulRoot), colnames(temp), value = TRUE))
-    PG[, kol] <- temp[, kol]
-    protrul <- TRUE
-    l <- length(DatAnalysisTxt)
-    DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                                " Protein group copy numbers per cell were estimated using a variant of the proteome ruler logic, normalizing to scaled values of all identified histones.")
-  } else {
-    warning("Failed to run Prot.Ruler function; is the remote NCBI server available?")
-    protrul <- FALSE
-  }
-  rm(temp)
-}
+Src <- paste0(libPath, "/extdata/Sources/proteome_Ruler.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 #### Code chunk - Summary table and QC plots
 if ((create_plotly)&&(!create_plotly_local)) { # This code is so old it's auld!

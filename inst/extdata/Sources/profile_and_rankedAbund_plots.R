@@ -125,10 +125,6 @@ if (runRankAbundPlots||runProfPlots) {
     PG_ref <- paste0("Mean ", prtRfRoot)
     pep_ref <- paste0("Mean ", pep.ref[length(pep.ref)])
     Agg <- VPAL
-    if ((WorkFlow == "PULLDOWN")||(sum(Exp.map$Use) < 12L)) {
-      PG_ref <- prtRfRoot
-      Agg <- RSA
-    }
     mySamples <- Agg$values
     GO_PG_col %<o% unique(unlist(strsplit(Param$GO.tabs, ";")))
     GO_filt %<o% (length(GO_PG_col) > 0L)

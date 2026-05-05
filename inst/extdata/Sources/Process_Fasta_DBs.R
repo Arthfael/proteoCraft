@@ -5,15 +5,22 @@ fastas <- unique(fastas)
 #
 # Function to only display the useful part of paths
 pathAbbr <- \(paths) {
-  #pathAbbr(c("C:/file.txt", "D:/file.txt"))
-  #pathAbbr(c("C:/file.txt", "C:/file.gff"))
+  #pathAbbr(c("C:/Users/Default/Documents/A.txt", "C:/Users/Default/Documents/B.txt"))
+  #pathAbbr(c("C:/Users/Default/Documents/B.txt", "C:/Users/Default/Documents/B.gff"))
   #pathAbbr(c("C:/file.txt", "C:/file2.txt"))
-  #pathAbbr(c("C:/file.txt", "C:/User/file.txt"))
-  l1 <- length(paths)
-  res <- gsub(".*/", "", paths)
-  l2 <- length(unique(res))
-  if ((l1 == 1L)||(l1 == l2)) { return(res) }
-  tst <- strsplit(gsub("/[^/]+$", "", paths), "/")
+  #pathAbbr(c("C:/Users/Default/Documents/A.txt", "C:/Users/A.txt"))
+  if (missing(paths)) { return("") }
+  l <- length(paths)
+  if (!l) { return("") }
+  wOK <- which((nchar(paths) > 0L) & file.exists(paths))
+  wNope <- which((nchar(paths) == 0L) | !file.exists(paths))
+  l1 <- length(wOK)
+  res <- rep("", l)
+  if (!l1) { return(res) }
+  res[wOK] <- gsub(".*/", "", paths[wOK])
+  l2 <- length(unique(res[wOK]))
+  if ((l1 == 1L) || (l1 == l2)) { return(res) }
+  tst <- strsplit(gsub("/[^/]+$", "", paths[wOK]), "/")
   l <- lengths(tst)
   m <- min(l)
   tst2 <- vapply(1L:m, \(i) {
@@ -25,9 +32,9 @@ pathAbbr <- \(paths) {
   if (length(wY)) {
     rmv <- paste(tst[[1L]][wY], collapse = "/")
     nc <- nchar(rmv) + 1L
-    res <- paste0("...", substring(paths, nc))
+    res[wOK] <- paste0("...", substring(paths[wOK], nc))
   } else {
-    res <- paths
+    res[wOK] <- paths[wOK]
   }
   return(res)
 }
@@ -92,15 +99,17 @@ if (length(w2)) {
   }
 }
 if (length(w2)) {
-  w2i <- w2[which(file.exists(paste0(indir, "/", fastasTbl$Name[w2])))] # ... or the input folder...
+  fls <- unlist(lapply(inDirs, list.files, full.names = TRUE))
+  flNms <- basename(fls)
+  w2i <- w2[which(fastasTbl$Name[w2] %in% flNms)] # ... or the input folder...
   if (length(w2i)) {
     tst <- (length(w2i) == 1L)+1L
     msg <- paste0(c("Several", "One")[tst], " Fasta file", c("s", "")[tst], " used to search the data w", c("ere", "as")[tst],
                   " not found at the original location, but ", c("are", "is")[tst], " present in the input folder:\n",
                   paste(paste0(" - \"", fastasTbl$Full[w2i], "\""), collapse = "\n"))
     warning(msg)
-    fastasTbl$Dir[w2i] <- indir
-    fastasTbl$Full[w2i] <- paste0(indir, "/", fastasTbl$Name[w2i])
+    fastasTbl$Full[w2i] <- vapply(fastasTbl$Name[w2], \(x) { fls[match(x, flNms)] }, "")
+    fastasTbl$Dir[w2i] <- dirnames(fastasTbl$Full[w2i])
     fastasTbl$Exists[w2i] <- fastasTbl$ExistsHere[w2i] <- TRUE
     w2 <- which((!fastasTbl$Exists)&(fastasTbl$Loc == "Local"))
   }
@@ -335,7 +344,7 @@ rng0 <- as.character(1L:nr0)
 annotTbl2 <- annotTbl
 annotTbl2$Path <- pathAbbr(annotTbl2$Path)
 annotTbl2$Select <- vapply(paste0("selectAnnotFl___", rng0), \(id) {
-  as.character(shiny::actionButton(id, "Select annotation file"))
+  as.character(shiny::actionButton(id, "Select file"))
 }, "")
 fSlct1 <- \(i, data = annotTbl2, opt = names(annotOpt)) {
   opt2 <- paste0("<option value=\"", opt, "\"",
@@ -346,7 +355,7 @@ fSlct1 <- \(i, data = annotTbl2, opt = names(annotOpt)) {
 }
 annotTbl2$Type <- vapply(1L:nr0, fSlct1, "") # not rng0 here!
 annotTbl2$Remove <- vapply(paste0("removeAnnotFl___", rng0), \(id) {
-  as.character(shiny::actionButton(id, "Remove annotation file"))
+  as.character(shiny::actionButton(id, "Remove file"))
 }, "")
 colnames(annotTbl2)[4L] <- ""
 #
@@ -383,7 +392,7 @@ ui <- fluidPage(
   br(),
   h4(strong(em(tag("u", "Functional annotation files")))),
   DTOutput("annotFls"),
-  shiny::actionButton("addBtn", "+ add annotation file"),
+  shiny::actionButton("addBtn", "+ add one more annotation file"),
   br(),
   br(),
   br(),
@@ -442,8 +451,8 @@ slctXprs <- expression({
       ANNOTTBL(dat)
       assign("annotTbl", dat, envir = .GlobalEnv)
       dat2$Type[i] <- fSlct1(i, dat)
-      ANNOTTBL2(dat2)
       dat2$Path <- pathAbbr(dat2$Path)
+      ANNOTTBL2(dat2)
       assign("annotTbl2", dat2, envir = .GlobalEnv)
       output$annotFls <- updt_AnnotFls()
     }
@@ -468,28 +477,31 @@ typeXprs <- expression({
 rmvXprs <- expression({
   dat <- ANNOTTBL()
   nAnnot <- nrow(dat)
-  w <- which(1L:nAnnot != i)
-  if (length(w)) { # Can't remove all!!!
-    dat <- dat[w,]
-    ANNOTTBL(dat)
-    if ("" %in% colnames(dat)) { stop() }
-    assign("annotTbl", dat, envir = .GlobalEnv)
+  w <- setdiff(1L:nAnnot, i)
+  if (nAnnot > 1L) {
+    dat <- dat[-i, , drop = FALSE]
     dat2 <- ANNOTTBL2()[w,]
-    nAnnot2 <- nrow(dat)
-    chRg2 <- as.character(1L:nAnnot2)
-    # Re-generate table with IDs from updated row position
-    dat2$Select <- vapply(paste0("selectAnnotFl___", chRg2), \(id) {
-      as.character(shiny::actionButton(id, "Select annotation file"))
-    }, "")
-    dat2$Type <- vapply(1L:nAnnot2, fSlct1, "", dat)
-    dat2[[4L]] <- vapply(paste0("removeAnnotFl___", chRg2), \(id) {
-      as.character(shiny::actionButton(id, "Remove annotation file"))
-    }, "")
-    ANNOTTBL2(dat2)
-    dat2$Path <- pathAbbr(dat2$Path)
-    assign("annotTbl2", dat2, envir = .GlobalEnv)
-    output$annotFls <- updt_AnnotFls()
+  } else {
+    dat <- annotTbl
+    dat$Path <- ""
+    dat2 <- annotTbl2
   }
+  ANNOTTBL(dat)
+  assign("annotTbl", dat, envir = .GlobalEnv)
+  nAnnot2 <- nrow(dat2)
+  chRg2 <- as.character(1L:nAnnot2)
+  # Re-generate table with IDs from updated row position
+  dat2$Select <- vapply(paste0("selectAnnotFl___", chRg2), \(id) {
+    as.character(shiny::actionButton(id, "Select file"))
+  }, "")
+  dat2$Type <- vapply(1L:nAnnot2, fSlct1, "", dat)
+  dat2[[4L]] <- vapply(paste0("removeAnnotFl___", chRg2), \(id) {
+    as.character(shiny::actionButton(id, "Remove file"))
+  }, "")
+  dat2$Path <- pathAbbr(dat2$Path)
+  ANNOTTBL2(dat2)
+  assign("annotTbl2", dat2, envir = .GlobalEnv)
+  output$annotFls <- updt_AnnotFls()
 })
 server <- \(input, output, session) {
   ANNOTTBL <- shiny::reactiveVal(annotTbl)
@@ -595,10 +607,10 @@ table.on('change', 'select', function() {
     datDflt$Path <- ""
     datDflt2 <- datDflt
     datDflt2$Select <- as.character(shiny::actionButton(paste0("selectAnnotFl___", jChr),
-                                                        "Select annotation file"))
+                                                        "Select file"))
     datDflt2$Type <- fSlct1(i, datDflt)
     datDflt2$Remove <- as.character(shiny::actionButton(paste0("removeAnnotFl___", jChr),
-                                                        "Remove annotation file"))
+                                                        "Remove file"))
     colnames(datDflt2)[4L] <- ""
     dat2 <- rbind(dat2, datDflt2)
     ANNOTTBL2(dat2)

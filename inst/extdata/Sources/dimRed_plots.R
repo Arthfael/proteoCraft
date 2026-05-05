@@ -42,6 +42,7 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
   datMatch <- match(row.names(dimRedDat), nameCol)
   # We are now (line below) normalizing by average abundance, just in case, however the effect seems minimal:
   dimRedDat <- sweep(dimRedDat, 1L, avgVal[datMatch], "-")
+  set.seed(mySeed)
   dimRedDat <- dimRedDat + rnorm(length(unlist(dimRedDat)), 0, 10L^-9L) # To avoid constant/zero columns, add a small random error
   #
   # PCA plots, by sample

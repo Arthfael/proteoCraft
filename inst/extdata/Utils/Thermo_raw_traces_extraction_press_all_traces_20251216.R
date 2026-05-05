@@ -533,7 +533,7 @@ while (getRTRange) {
       tmpDat <- list()
       tmpDat[[nm]] <- allChroms[[nm]]
     }
-    if (is.list(allChroms[[nm]])) {
+    if (inherits(allChroms[[nm]], "list")) {
       tmpDat <- allChroms[[nm]]
     }
     for (nm2 in names(tmpDat)) { #nm2 <- names(tmpDat)[1]

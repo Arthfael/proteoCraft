@@ -6,7 +6,7 @@ library(proteoCraft)
 library(modeest)
 library(MASS)
 library(truncdist)
-require(minpack.lm)
+library(minpack.lm)
 
 # Note:
 # This appears to be useless on a QE-HF, as variable window size is not supported.

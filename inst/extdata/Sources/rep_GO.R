@@ -1,4 +1,5 @@
 #### Code chunk - Gene Ontology terms enrichment analysis
+warning("Please re-write me, this is getting ugly...")
 if ((Annotate)&&(enrichGO||globalGO)) {
   msg <- "Gene Ontology terms enrichment analysis"
   ReportCalls <- AddMsg2Report(Space = FALSE)
@@ -26,7 +27,7 @@ if ((Annotate)&&(enrichGO||globalGO)) {
     Tsts <- c("t-tests", "F-tests", "Localisation", "SAINTexpress")
     WhTsts <- which(Tsts %in% names(Reg_filters))
     if (!exists("SSD.Root")) { SSD.Root <- "" }
-    for (tt in WhTsts) { #tt <- WhTsts[1L] #tt <- WhTsts[2L] #tt <- WhTsts[3L] #tt <- WhTsts[4L]
+    for (tt in WhTsts) { #tt <- 1L #tt <- 2L #tt <- 3L #tt <- 4L
       tstrt <- Tsts[tt]
       stopifnot(!is.na(tstrt))
       ReportCalls <- AddMsg2Report(Msg = paste0("\n - ", tstrt), Space = FALSE)
@@ -43,7 +44,7 @@ if ((Annotate)&&(enrichGO||globalGO)) {
           if (bee == "Whole dataset") { flt <- list("Whole dataset" = flt) }
           tstbee <- paste0(tstrt, "_", tolower(bee))
           if (length(flt)) {
-            flt <- if (tt %in% 1L:2L) {
+            flt <- if (tt %in% c(1L:2L, 4L)) {
               flt[myContrasts$Contrast[which(myContrasts$Secondary == "")]]
             } else {
               flt[order(names(flt))]
@@ -51,7 +52,7 @@ if ((Annotate)&&(enrichGO||globalGO)) {
             reg <- setNames(lapply(flt, \(x) { list(x$Columns) }), names(flt))
             reg <- set_colnames(reshape::melt(reg), c("Name", "Bleh", "For"))
             reg$Bleh <- NULL
-            fcr <- c(Prot.Rat.Root, Prot.Rat.Root, paste0("Mean ", SSD.Root, "log2(FC) - "))[tt]
+            fcr <- c(Prot.Rat.Root, Prot.Rat.Root, paste0("Mean ", SSD.Root, "log2(FC) - "), "log2(FC) - ")[tt]
             reg$ParentFC <- gsub(paste0(".*Re", c(rep("gulated", 2L), "-localized", "gulated")[tt], " - "), fcr, reg$Name)
             reg$FCname <- paste0(fcr, reg$For)
             tmpdat <- get(c("PG", "F_test_data", "PG", "allSAINTs")[tt])
@@ -64,6 +65,7 @@ if ((Annotate)&&(enrichGO||globalGO)) {
             colnames(temp) <- paste0(fcr, UF)
             for (i in 1L:nrow(reg)) {
               Reg_filters[[tstrt]][[bee]][[reg$For[i]]]$Ratios <- temp[[paste0(fcr, reg$For[i])]]
+              flt[[reg$For[i]]]$Ratios <- temp[[paste0(fcr, reg$For[i])]]
             }
             if (tt %in% 1L:3L) {
               Kol2Add <- c("Leading protein IDs", "Protein IDs", "id", "Protein names", "No Isoforms", "Names", "Genes",
@@ -80,6 +82,7 @@ if ((Annotate)&&(enrichGO||globalGO)) {
               temp$Protein <- allSAINTs$Protein
               temp$PG_id <- allSAINTs$PG_id
               temp[, Kol2Add] <- db[match(allSAINTs$Protein, db$`Protein ID`), Kol2Add]
+              #
             }
             GO_enrich.dat[[tstbee]] <- temp
             GO_enrich.FCRt[[tstbee]] <- fcr
@@ -121,7 +124,11 @@ if ((Annotate)&&(enrichGO||globalGO)) {
             # Also save the reference filters 
             nms <- names(Reg_filters[[tstrt]][[bee]])
             for (nm in nms) {
-              Reg_filters[[tstrt]][[bee]][[nm]]$Background_filter <- Ref.Filt[[nm]]
+              if (tt == 4L) {
+                Reg_filters[[tstrt]][[bee]][[nm]]$SAINTexpress_Background_filter <- Ref.Filt[[nm]]
+              } else {
+                Reg_filters[[tstrt]][[bee]][[nm]]$Background_filter <- Ref.Filt[[nm]]
+              }
             }
             #
             Mode <- "regulated"

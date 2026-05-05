@@ -3,12 +3,12 @@
 # expMap: limma-compatible version of Exp.map
 hasBlocks %<o% FALSE
 origCoeff <- union(RSA$names, RRG$names)
-if ((!is.na(Param$Blocking.factors))&&(Param$Blocking.factors != "")) {
+if ((!is.na(Param$Blocking.factors)) && (Param$Blocking.factors != "")) {
   parse.Param.aggreg.2("Blocking.factors")
   origCoeff <- union(origCoeff, Blocking.factors$names)
   hasBlocks <- TRUE
 }
-if ((!is.na(Param$Batch.effect))&&(Param$Batch.effect != "")) {
+if ((!is.na(Param$Batch.effect)) && (Param$Batch.effect != "")) {
   parse.Param.aggreg.2("Batch.effect")
   origCoeff <- union(origCoeff, Batch.effect$names)
 }
@@ -103,20 +103,20 @@ dfltContr_Opt <- setNames(lapply(ratGrps, \(grp) { #grp <- ratGrps[1L]
   colnames(x) <- c("A", "B")
   do.call(paste, c(x[, c("A", "B")], sep = " - "))
 }), ratGrps)
-alsoDouble <- (length(ratGrps) > 1L)||(length(dfltContr_Opt[[1L]]) > 3L) # We need 4 different things for an interaction double contrast
+alsoDouble <- (length(ratGrps) > 1L) || (length(dfltContr_Opt[[1L]]) > 3L) # We need 4 different things for an interaction double contrast
 dfltContr_Opt <- stack(dfltContr_Opt)
 colnames(dfltContr_Opt) <- c("Contrast", "Comparison group")
 dfltContr_Opt[, c("A", "B")] <- do.call(rbind, strsplit(dfltContr_Opt$Contrast, " - "))
 #
 fullContrFun <- \(prim, sec) {
-  if ((missing(sec))||(is.na(sec))||(length(sec) != 1L)||(sec == "")) { return(prim) }
+  if (missing(sec) || is.na(sec) || (length(sec) != 1L) || (sec == "")) { return(prim) }
   return(paste0("(", prim, ") - (", sec, ")"))
 }
 contrastsFl %<o% paste0(wd, "/Contrasts.rds")
 if (file.exists(contrastsFl)) {
   myContrasts <- readr::read_rds(contrastsFl)
   g <- grep("\\) - \\(", myContrasts$Contrast)
-  if ((length(g))&&(!alsoDouble)) {
+  if (length(g) && (!alsoDouble)) {
     warning("Invalid contrasts reloaded!")
     myContrasts <- myContrasts[-g,]
   }
@@ -153,14 +153,18 @@ makeContr <- data.frame("Contrast" = as.character(selectInput("Primary", "", dfl
                         "Up-regulated only?" = as.character(checkboxInput("upOnly", "", FALSE)),
                         "add contrast" = as.character(actionButton("addContr", "add contrast")),
                         check.names = FALSE)
-if (!alsoDouble) { makeContr$"(opt. secondary contrast)" <- NULL }
 colDefs1 <- list(list(width = "250px", targets = 0L),
-                 if (alsoDouble) { list(width = "250px", targets = 1L) },
-                 list(width = "100px", targets = 2L),
-                 list(width = "50px", targets = 3L))
+                 list(width = "100px", targets = 1L+alsoDouble),
+                 list(width = "50px", targets = 2L+alsoDouble))
 colDefs2 <- list(list(width = "500px", targets = 0L),
-                if (alsoDouble) { list(width = "100px", targets = 1L) },
-                list(width = "100px", targets = 2L))
+                 list(width = "100px", targets = 1L+alsoDouble))
+if (alsoDouble) {
+  makeContr$"(opt. secondary contrast)" <- NULL
+  colDefs1 <- append(colDefs1,
+                     list(width = "250px", targets = 1L))
+  colDefs2 <- append(colDefs2,
+                     list(width = "100px", targets = 1L))
+}
 appNm <- "Define contrasts"
 make_ui0 <- \() {
   shinyUI(
@@ -323,11 +327,12 @@ table.on('click', 'button', function() {
   })
   observeEvent(input$dt1_event, {
     info <- input$dt1_event
-    if ((info$type == "button")&&(info$id == "addContr")) {
+    if ((info$type == "button") && (info$id == "addContr")) {
       dat <- CONTRASTSTBL()
       nr <- nrow(dat)
       contr <- if (alsoDouble) { fullContrFun(formVALS$Primary, formVALS$Secondary) } else { formVALS$Primary }
       m <- match(contr, dat$Contrast)
+      shinyjs::enable("saveBtn")
       if (!is.na(m)) {
         if (formVALS$upOnly != dat$"Up-only"[m]) {
           MSG("")
@@ -370,19 +375,23 @@ table.on('click', 'button', function() {
   })
   observeEvent(input$dt2_event, {
     info <- input$dt2_event
-    if ((info$type == "button")&&(grepl("^rmvBtn_", info$id))) {
+    if ((info$type == "button") && (grepl("^rmvBtn_", info$id))) {
       i <- as.integer(sub("rmvBtn_", "", info$id))
       dat <- CONTRASTSTBL()
       nr <- nrow(dat)
-      if (nr &&(i <= nr)) {
-        dat <- dat[-i, , drop = FALSE]
-        if (nrow(dat)) {
-          shinyjs::enable("saveBtn")
-          dat$Remove <- vapply(seq_len(nrow(dat)), \(j) {
-            as.character(actionButton(paste0("rmvBtn_", j), "remove contrast"))
-          }, "")
+      if (nr) {
+        if (i <= nr) {
+          dat <- dat[-i, , drop = FALSE]
+          if (nrow(dat)) {
+            shinyjs::enable("saveBtn")
+            dat$Remove <- vapply(seq_len(nrow(dat)), \(j) {
+              as.character(actionButton(paste0("rmvBtn_", j), "remove contrast"))
+            }, "")
+          } else {
+            shinyjs::disable("saveBtn")
+          }
         } else {
-          shinyjs::disable("saveBtn")
+          shinyjs::enable("saveBtn")
         }
         CONTRASTSTBL(dat)
         output$myContrasts <- updt_ContrTbl()
@@ -402,7 +411,7 @@ table.on('click', 'button', function() {
 if (exists("appRunTest")) { rm(appRunTest) }
 appTxt0 <- sub("myApp", "myApp0", sub("\\(ui", "(ui0", sub(", server", ", server0", runApp)))
 runKount <- 0L
-while ((!runKount)||(!exists("appRunTest"))) {
+while ((!runKount) || (!exists("appRunTest"))) {
   ui0 <- make_ui0() # Update ui with current values
   eval(parse(text = appTxt0), envir = .GlobalEnv)
   myContrasts <- readr::read_rds(contrastsFl)
@@ -448,14 +457,18 @@ for (i in kol2) {
     Exp.map$Ref.Sample.Aggregate[which(Exp.map[[kol]] == x)]
   })
 }
+if ("Secondary" %notin% colnames(myContrasts)) {
+  myContrasts$Secondary <- ""
+}
 myContrasts$isDouble <- myContrasts$Secondary != "" # For convenience
 
 # Make limma type designMatr and contrMatr
 #
 # Design matrix
+# -------------
 tmpForm <- unlist(strsplit(limmaForm, " \\+ "))
 tmpForm <- tmpForm[2L:length(tmpForm)]
-if ((!is.na(Param$Batch.effect))&&(Param$Batch.effect != "")) {
+if ((!is.na(Param$Batch.effect)) && (Param$Batch.effect != "")) {
   # Let's also make now a design matrix without batch effect for use by ComBat
   stopifnot(Batch.effect$names %in% tmpForm) # this would indicate that I made a mistake in how limmaForm encodes batch effect
   tmpFormB <- setdiff(tmpForm, Batch.effect$names)
@@ -480,7 +493,7 @@ for (i in 1L:l) {
 }
 dimnames(designMatr)[[2L]] <- gsub("___", "_", dimnames(designMatr)[[2L]])
 dimnames(designMatr)[[1L]] <- gsub("___", "_", as.character(expMap[[RSA$limmaCol]]))
-if ((!is.na(Param$Batch.effect))&&(Param$Batch.effect != "")) {
+if ((!is.na(Param$Batch.effect)) && (Param$Batch.effect != "")) {
   # As above for designMatr_noBatch
   # Test before we edit column names
   tst <- lapply(tmpFormB, \(x) { grep(topattern(x), colnames(designMatr_noBatch)) })
@@ -499,4 +512,57 @@ if ((!is.na(Param$Batch.effect))&&(Param$Batch.effect != "")) {
 }
 #
 # Contrasts matrix
-contrMatr %<o% makeContrasts(contrasts = myContrasts$Contrast, levels = designMatr)
+# ----------------
+contrMatr %<o% makeContrasts(contrasts = myContrasts$Contrast,
+                             levels = designMatr)
+
+# Reference column
+# ----------------
+#
+# Although we have gotten rid of the Reference-centered approach to stats (to shift to contrasts),
+# there are still cases where we need one:
+#  - for SAINTexpress (pull-downs)... but this is addressed there, and better done there than here
+#  - for Amica
+# What we will do then is detect References from the contrasts table.
+# If we have several references per comparison group, we will:
+#  - aim for one with NA/control Target (bait) protein
+#  - failing that, pick the first
+# If this doesn't work, consider asking here/later for user input.
+if ((!"Reference" %in% colnames(Exp.map)) || (!is.logical(Exp.map$Reference)) || (length(unique(Exp.map$Reference[which(!is.na(Exp.map$Reference))])) != 2L)) {
+  allRefs <- union(myContrasts$B, myContrasts$D)
+  allRefs <- allRefs[which(nchar(allRefs) > 0L)]
+  w <- rownames(expMap)[which(expMap[[VPAL$limmaCol]] %in% allRefs)]
+  kol <- c(VPAL$column, RRG$column)
+  if (WorkFlow %in% c("PULLDOWN", "BIOID")) {
+    kol <- c(kol, "Target")
+  }
+  em <- Exp.map[match(w, Exp.map[[RSA$column]]), kol]
+  nc <- ncol(em)
+  nr <- nrow(em)
+  colnames(em) <- c("samplesGroup", "referenceGroup", "Bait")[1L:nc]
+  kol2 <- c("samplesGroup", "Bait")[1L:(nc-1L)]
+  tst <- aggregate(1L:nr, list(em$referenceGroup), \(x) {
+    m <- match(unique(em$samplesGroup[x]), em$samplesGroup)
+    return(em[m, kol2])
+  })
+  tst[, kol2] <- do.call(cbind, tst$x)
+  tst$x <- NULL
+  # - Step 1: give priority to NA baits
+  tst$L <- lengths(tst$samplesGroup)
+  w <- which(tst$L > 1L)
+  if (length(w)) {
+    tst$samplesGroup[w] <- lapply(w, \(x) {
+      w <- which(is.na(tst$Bait[[x]]))
+      x <- tst$samplesGroup[[x]]
+      if (length(w)) { x <- x[w] }
+      return(x)
+    })
+  }
+  # - Step 2: if that fails, take the first value (also turn from list to character)
+  tst$samplesGroup <- vapply(tst$samplesGroup, \(x) { x[[1L]] }, "")
+  Exp.map$Reference <- FALSE
+  for (i in 1L:nrow(tst)) {
+    w <- which((Exp.map[[RRG$column]] == tst$Group.1[i])&(Exp.map[[VPAL$column]] == tst$samplesGroup[i]))
+    Exp.map$Reference[w] <- TRUE
+  }
+}

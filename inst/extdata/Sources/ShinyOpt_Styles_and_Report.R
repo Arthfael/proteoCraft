@@ -47,7 +47,7 @@ ReportCalls_dftl %<o% list(Calls = list("read_docx()",
                            Plots = list(),
                            Count = 0L)
 if ((!exists("ReportCalls"))||
-    (!is.list(ReportCalls))||
+    (!inherits(ReportCalls, "list"))||
     (sum(c("Calls", "Objects", "Plots") %in% names(ReportCalls)) != 3L)) {
   ReportCalls <- ReportCalls_dftl
 }

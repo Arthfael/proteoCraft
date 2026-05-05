@@ -258,9 +258,8 @@ volcPlot_args2$reg.root <- regRoot_F
 volcPlot_args2$title <- "F_test volcano plot "
 volcPlot_args2$cl <- parClust
 # For testing:
-#DefArg(Volcano.plot)
+#DefArg(Volcano.plot);TESTING <- TRUE
 #invisible(lapply(names(volcPlot_args2), \(x) { assign(x, volcPlot_args2[[x]], envir = .GlobalEnv); return() }))
-#TESTING <- TRUE
 F_volc <- do.call(Volcano.plot, volcPlot_args2)
 stopCluster(parClust)
 source(parSrc)

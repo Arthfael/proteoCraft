@@ -49,6 +49,12 @@ require(shinyjs)
 require(shinyFiles)
 require(TeachingDemos)
 
+scrptPaths <- setNames(ScriptPath,
+                       c("Replicates",
+                         "No replicates")[match(scrptType, c("withReps", "noReps"))])
+WorkFlows %<o% eval(parse(text = gsub("^###-\\|-### *Workflows: *", "", grep("^###-\\|-### *Workflows: *", readLines(scrptPaths), value = TRUE))),
+                    envir = .GlobalEnv)
+stopifnot(length(WorkFlows) > 0L) # This would mean that when ScriptPath was captured we had the wrong script open in the RStudio window!
 if (!RunByMaster) {
   fl <- paste0(homePath, "/Default_locations.xlsx")
   flTst <- file.exists(fl)
@@ -89,11 +95,6 @@ if (!RunByMaster) {
   # outRoot <- inRoot2[c(grep("^Results delivery folder ", names(inRoot2)),
   #                      grep("^Archive folder ", names(inRoot2)),
   #                      grep("^Results delivery folder |^Archive folder ", names(inRoot2), invert = TRUE))]
-  scrptPaths <- setNames(ScriptPath,
-                         c("Replicates",
-                           "No replicates")[match(scrptType, c("withReps", "noReps"))])
-  WorkFlows %<o% eval(parse(text = gsub("^###-\\|-### *Workflows: *", "", grep("^###-\\|-### *Workflows: *", readLines(scrptPaths), value = TRUE))),
-                      envir = .GlobalEnv)
   if ((!exists("WorkFlow"))||(is.null(WorkFlow))||(length(WorkFlow) != 1L)||(!WorkFlow %in% c(WorkFlows, names(WorkFlows)))) {
     WorkFlow <- WorkFlows[1L]
   } else {
@@ -696,7 +697,20 @@ if (length(drs)) {
                                                 "yesno")$res,
                                     c("yes", "no"))]
   if (cleanUpWD) {
-    for (dr in drs) { unlink(dr) }
+    for (dr in drs) { #dr<- drs[1L]
+      tst <- try(unlink(dr, force = TRUE), silent = TRUE)
+      if (inherits(tst, " try-error") || tst != 0L) {
+        shell(paste0("RMDIR /S /Q \"", dr, "\""), mustWork = FALSE)
+      }
+      if (inherits(tst, " try-error") || tst != 0L) {
+        fls <- list.files(dr, full.names = TRUE, recursive = TRUE)
+        if (length(fls)) { invisible(lapply(fls, unlink, force = TRUE)) }
+        tst <- try(unlink(dr, force = TRUE), silent = TRUE)
+        if (inherits(tst, " try-error") || tst != 0L) {
+          shell(paste0("RMDIR /S /Q \"", dr, "\""), mustWork = FALSE)
+        }
+      }
+    }
   }
 }
 
