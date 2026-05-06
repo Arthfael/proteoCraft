@@ -91,7 +91,7 @@ WorkBook <- wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"),
 WorkBook <- wb_add_data(WorkBook, "Description", WhoAmI, wb_dims(4L, 5L))
 tmp <- loadedPackages(TRUE)
 WorkBook <- wb_add_data(WorkBook, "Description", tmp$Version[grep("proteoCraft", tmp$Name)], wb_dims(5L, 5L))
-cat(" - Writing Excel report...\n")
+cat(" -> Writing Excel report...\n")
 # Function for editing the header
 KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   #KolNames <- xlTabs[[sheetnm]]

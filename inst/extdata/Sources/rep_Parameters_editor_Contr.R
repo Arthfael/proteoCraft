@@ -197,6 +197,7 @@ Shiny.addCustomMessageHandler('updateSecondary', function(data) {
                         appNm),
       mainPanel(
         em("Select each \"A - B\" contrast of interest, then click \"Add\" to add it to the analysis."),
+        em("(NB: \"A - B\" means \"A versus B\", i.e. FC = A/B and logFC = A-B)"),
         br(),
         em("Tick \"one-sided\" for \"up-regulated\" (for \"down-regulated\", just select the reverse contrast first)."),
         br(),

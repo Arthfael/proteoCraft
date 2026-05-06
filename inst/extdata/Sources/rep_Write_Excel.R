@@ -67,7 +67,7 @@ WorkBook <- wb_add_data(WorkBook, "Description", WhoAmI, wb_dims(4L, 5L))
 tmp <- loadedPackages(TRUE)
 WorkBook <- wb_add_data(WorkBook, "Description", tmp$Version[grep("proteoCraft", tmp$Name)], wb_dims(5L, 5L))
 WorkBook <- wb_set_base_font(WorkBook, 11L, font_name = "Calibri")
-cat(" - Writing Excel report...\n")
+cat(" -> Writing Excel report...\n")
 #
 # Function for editing our header
 KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
@@ -925,7 +925,8 @@ if (saintExprs) {
     KolNames <- sub("^OddsScore - ", "OddsScore ", KolNames)
     KolNames <- sub("^boosted_by - ", "Boosted by... ", KolNames)
     KolNames <- sub("^BFDR - ", "BFDR ", KolNames)
-    KolNames <- cleanNms(KolNames, start = FALSE)
+    KolNames <- sub("^Regulated - ", "Reg. ", KolNames)
+    #KolNames <- cleanNms(KolNames, start = FALSE)
     #
     # Those names must be unique if the data is to be written as a table!
     # Which is annoying, because this limits how much fat we can cut
@@ -969,10 +970,11 @@ if (saintExprs) {
   saintcol <- grep("^SaintScore - ", colnames(tempData), value = TRUE)
   oddscol <- grep("^OddsScore - ", colnames(tempData), value = TRUE)
   boostcol <- grep("^boosted_by - ", colnames(tempData), value = TRUE)
+  regcol <- grep("^Regulated - ", colnames(tempData), value = TRUE)
   qualFlt <- "Potential contaminant"
-  kol <- c(CoreCol, "In list", quantcol, fdrcol, avgPcol, maxPcol, topoAvgPcol, topoMaxPcol,
+  kol <- c(CoreCol, "In list", regcol, quantcol, fdrcol, avgPcol, maxPcol, topoAvgPcol, topoMaxPcol,
            #saintcol, oddscol, # Those 2 columns look a bit useless... 
-           boostcol, qualFlt[which(qualFlt != "In list")])
+           boostcol, setdiff(qualFlt, "In list"))
   kol <- unique(kol)
   kol <- intersect(kol, colnames(tempData))
   tempData <- tempData[, kol]
@@ -1003,6 +1005,7 @@ if (saintExprs) {
   ColumnsTbl$SaintScore <- saintcol
   ColumnsTbl$OddsScore <- oddscol
   ColumnsTbl$boosted_by <- boostcol
+  ColumnsTbl$Regulated <- regcol
   # - Filters
   ColumnsTbl$Filters <- qualFlt
   # Melt
@@ -1019,11 +1022,12 @@ if (saintExprs) {
     kl <- intersect(kl, ColumnsTbl$Col)
     ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
   }
-  ColumnsTbl$Class[which(ColumnsTbl$Col %in% fdrcol)] <- "P-values"
+  ColumnsTbl$Class[which(ColumnsTbl$Col %in% fdrcol)] <- "FDR"
   ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(avgPcol, maxPcol, topoAvgPcol, topoMaxPcol))] <- "SAINTexpress P"
   ColumnsTbl$Class[which(ColumnsTbl$Col %in% saintcol)] <- "SAINTexpress score"
   ColumnsTbl$Class[which(ColumnsTbl$Col %in% oddscol)] <- "SAINTexpress odds score"
   ColumnsTbl$Class[which(ColumnsTbl$Col %in% boostcol)] <- "SAINTexpress boost"
+  ColumnsTbl$Class[which(ColumnsTbl$Col %in% regcol)] <- "Regulated"
   ColumnsTbl$Class[which(ColumnsTbl$Grp %in% c("PEP", "Filters", "Negative filter"))] <- "QC filters"
   stopifnot(min(nchar(ColumnsTbl$Class)) > 0L)
   #View(ColumnsTbl[which(nchar(ColumnsTbl$Class) == 0L),])
@@ -1031,6 +1035,7 @@ if (saintExprs) {
          as.integer(unlist(lapply(names(ratCols), \(nm) {
            which(ColumnsTbl$Class == "log2(rat.), avg.")
          }))),
+         which(ColumnsTbl$Class == "Regulated"),
          which(ColumnsTbl$Grp == "P-values"),
          which(ColumnsTbl$Grp == "AvgP"),
          which(ColumnsTbl$Grp == "MaxP"),

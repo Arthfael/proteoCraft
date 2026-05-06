@@ -30,7 +30,7 @@ if (tblMode == "PG") {
 for (l in LS) { if (!exists(l)) { assign(l, list()) } }
 sheetnmsA <- names(xlTabs)
 sheetnmsB <- sheetnmsA[which(!sheetnmsA %in% c("Description", "Quality control"))]
-cat(paste0("   Building ", tblMode2, " tabs...\n"))
+cat(paste0("   - Building ", tblMode2, " tabs...\n"))
 if (tblMode == "pep") {
   datCol <- ColumnsTbl$Col[unique(which(ColumnsTbl$Class %in% c(intNms(names(intRf), TRUE, "pep"),
                                                                 ratNms(names(ratRf), TRUE))))]
