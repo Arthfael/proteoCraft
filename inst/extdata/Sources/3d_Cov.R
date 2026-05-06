@@ -15,7 +15,7 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
       require(PTMods)
       data(modifications, package = "PTMods")
       UniMod <- modifications
-      Modifs$"Mass shift" <- UniMod$MonoMass[match(as.integer(gsub("^UniMod:", "", Modifs$UniMod)), UniMod$UnimodId)]
+      Modifs$"Mass shift" <- UniMod$MonoMass[match(as.integer(sub("^UniMod:", "", Modifs$UniMod)), UniMod$UnimodId)]
     } else {
       kols <- c("Mass delta", "Delta mass")
       w <- which(vapply(kols, \(k) { (k %in% colnames(Modifs))&&(is.numeric(Modifs[[k]])) }, TRUE))
@@ -112,9 +112,9 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
     } else { seq2 <- gsub("[^A-Z]", "", seq2) }
     write(seq2, paste0(dir, "/SCV - observed peptides.txt"))
     lapply(pdbFls, \(fl) { #fl <- pdbFls[1L]
-      lapply(names(intVect), \(x) { #x <- names(intVect)[1L]
+      lapply(names(intVect), \(x) { #i <- 1L; x <- names(intVect)[i] #i <- i+1L; x <- names(intVect)[i]
         nm <- gsub(".*/|\\.pdb$", "", fl)
-        pth <- gsub("\\.pdb$", ".html", fl)
+        pth <- sub("\\.pdb$", paste0("_", cleanNms(x), ".html"), fl)
         cov3D(fl, seq1, path = pth, ttl = nm, intensities = intVect[[x]][grs], display = FALSE)
       })
     })

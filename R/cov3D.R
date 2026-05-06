@@ -45,15 +45,15 @@ cov3D <- function(pdb,
   #
   wdBckp <- getwd()
   #
-  if ((misFun(I_eq_L))||(!is.logical(I_eq_L))||(is.na(I_eq_L))) {
-    I_eq_L <- if ((exists("isDIA"))&&(is.logical(isDIA))&&(!is.na(isDIA))) {
+  if (misFun(I_eq_L) || (!is.logical(I_eq_L)) || is.na(I_eq_L)) {
+    I_eq_L <- if (exists("isDIA") && is.logical(isDIA) && (!is.na(isDIA))) {
       !isDIA
     } else { TRUE }
   }
-  if ((misFun(asRatios))||(!is.logical(asRatios))||(is.na(asRatios))) {
+  if (misFun(asRatios) || (!is.logical(asRatios)) || is.na(asRatios)) {
     asRatios <- FALSE
   }
-  if ((misFun(colscale))||(!is.character(colscale))) {
+  if (misFun(colscale) || (!is.character(colscale))) {
     colscale <- c("viridis", "plasma")[asRatios+1L]
   }
   #
@@ -61,7 +61,7 @@ cov3D <- function(pdb,
             !misFun(peptides))
   #
   #pdb <- readLines(pdb)
-  if ((length(pdb) == 1L)&&(file.exists(pdb))) { pdb <- readLines(pdb) }
+  if ((length(pdb) == 1L) && file.exists(pdb)) { pdb <- readLines(pdb) }
   model <- pdb[grep("^ATOM ", pdb)[1L]:length(pdb)]
   #nm <- gsub("^TITLE +| +$", "", grep("^TITLE +", pdb, value = TRUE)[1L])
   no <- grep("^ATOM ", model, invert = TRUE)
@@ -109,7 +109,7 @@ cov3D <- function(pdb,
   if (I_eq_L) {
     dat2$I2L <- gsub("I", "L", dat2$AA)
   }
-  if ((misFun(intensities))||(is.null(intensities))||(length(intensities) != length(peptides))) {
+  if (misFun(intensities) || is.null(intensities) || (length(intensities) != length(peptides))) {
     intensities <- rep(1, length(peptides))
   }
   pepTbl <- data.frame(seq = peptides,
@@ -167,15 +167,15 @@ cov3D <- function(pdb,
     x <- x$Annotations
     return(which(x != ""))
   })
-  w <- which((lengths(modsTst) > 0L)&(lengths(pepTbl$matches) > 0L))
-  if (length(w)) {
-    modsTst <- setNames(lapply(w, \(x) {
+  wMds <- which((lengths(modsTst) > 0L)&(lengths(pepTbl$matches) > 0L))
+  if (length(wMds)) {
+    modsTst <- setNames(lapply(wMds, \(x) {
       y <- list(Tbl = pepTbl$I2Lpep[[x]],
                 Match = pepTbl$matches[[x]])
       y$Tbl$Pos <- 1L:nrow(y$Tbl)
       y$Tbl <- y$Tbl[modsTst[[x]], , drop = FALSE]
       return(y)
-    }), peptides[w])
+    }), peptides[wMds])
     modsTst <- setNames(lapply(modsTst, \(x) { #x <- modsTst[[1L]]
       y <- lapply(x$Match, \(y) {
         z <- x$Tbl
@@ -198,19 +198,11 @@ cov3D <- function(pdb,
     modsTst[, c("Residue", "AA", "X", "Y", "Z")] <- dat2[modsTst$Pos, c("Residue", "AA", "X", "Y", "Z")]
     modsTst$PTM <- do.call(paste, c(modsTst[, c("AA", "x")], sep = " "))
     modsTst$Type <- "mod. AA"
-    wN <- which(!1L:L %in% modsTst$Pos)
+    wN <- which(1L:L %notin% modsTst$Pos)
     dat2 <- dat2[wN,] # We will only plot normal amino acids here if they do not figure already in the modified amino acid object (which is plotted differently)
   }
   #
   symb <- setNames(c("circle", "diamond"), c("AA", "mod. AA"))
-  #
-  lst2 <- list(size = 6L,
-               sizemode = "area",
-               colorbar = list(xanchor = "left",
-                               title = "Intensity"), 
-               showscale = FALSE)
-  lst3 <- list(width = 6L,
-               showscale = FALSE)
   #
   w0 <- which((is.na(dat2$Intensity))|(dat2$Intensity == 0))
   dat2$Intensity[w0] <- NA
@@ -218,16 +210,39 @@ cov3D <- function(pdb,
   w0 <- which((is.na(dat3$Intensity))|(dat3$Intensity == 0))
   dat3$Intensity[w0] <- NA
   my3dplotly <- plotly::plot_ly(symbols = symb)
-  my3dplotly <- plotly::add_trace(my3dplotly, data = dat3, x = ~X, y = ~Y, z = ~Z, type = "scatter3d", mode = "lines",
-                                  color = ~Intensity, colors = colscale, line = lst3 <- list(width = 6L, showscale = FALSE),
-                                  opacity = 1L, hoverinfo = "none", inherit = FALSE)
+  argsLst <- list(p = my3dplotly,
+                  data = dat3,
+                  x = ~X,
+                  y = ~Y,
+                  z = ~Z,
+                  type = "scatter3d",
+                  mode = "lines",
+                  colors = colscale,
+                  line = lst3 <- list(width = 6L,
+                                      showscale = FALSE),
+                  opacity = 1L,
+                  hoverinfo = "none",
+                  inherit = FALSE)
+  if (sum(!is.na(dat3$Intensity))) {
+    argsLst$color <- ~Intensity
+  }
+  my3dplotly <- do.call(plotly::add_trace, argsLst)
   #my3dplotly
-  my3dplotly <- plotly::add_trace(my3dplotly, data = dat2, x = ~X, y = ~Y, z = ~Z, type = "scatter3d", mode = "markers",
-                                  color = ~Intensity, colors = colscale,
-                                  text = ~AA, opacity = 1L, hoverinfo = "text", marker = lst2,
-                                  symbol = ~Type, inherit = FALSE, showlegend = FALSE)
+  argsLst2 <- argsLst
+  argsLst2$data <- dat2
+  argsLst2$mode <- "markers"
+  argsLst2$text <- ~AA
+  argsLst2$hoverinfo <- "text"
+  argsLst2$marker <- list(size = 6L,
+                          sizemode = "area",
+                          colorbar = list(xanchor = "left",
+                                          title = "Intensity"), 
+                          showscale = FALSE)
+  argsLst2$symbol <- ~Type
+  argsLst2$showlegend <- FALSE
+  my3dplotly <- do.call(plotly::add_trace, argsLst2)
   #my3dplotly
-  if (length(w)) {
+  if (length(wMds)) {
     lst4 <- list(width = 8L,
                  reverscale = FALSE,
                  size = 8L,
@@ -244,7 +259,7 @@ cov3D <- function(pdb,
                                     marker = lst4, symbol = ~Type, inherit = FALSE, showlegend = FALSE)
     #my3dplotly
   }
-  if ((!misFun(ttl))&&(is.character(ttl))&&(nchar(ttl))) {
+  if ((!misFun(ttl)) && is.character(ttl) && nchar(ttl)) {
     my3dplotly <- plotly::layout(my3dplotly,
                                  title = list(text = ttl, x = 0.5, y = 0.95, xanchor = "center", yanchor = "bottom"))
   }

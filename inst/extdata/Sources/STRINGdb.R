@@ -39,7 +39,7 @@ tmpPG <- tmpPG[which(tmpPG$value %in% IDs),]
 source(parSrc, local = FALSE)
 allProteins_mapped <- try(setNames(lapply(allTaxIDs, \(txid) { #txid <- allTaxIDs[1L]
   kol <- c("Protein ID", "Common Name", "TAIR")
-  kol <- kol[which(kol %in% colnames(db))]
+  kol <- intersect(kol, colnames(db))
   tmpDB <- db[which((db$`Protein ID` %in% IDs)&(db$TaxID == txid)), kol]
   x <- gsub("^cRAP[0-9]{3}", "", gsub("^CON__", "", tmpDB$`Protein ID`))
   y <- split(x, ceiling(seq_along(x)/20))
@@ -153,7 +153,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
         tmp <- filtDF
         nms <- lapply(tmp$Reg, names)
         tmp$Reg <- lapply(1L:length(tmp$Reg), \(y) {
-          if (!tx %in% names(tmp$Reg[[y]])) { return() }
+          if (tx %notin% names(tmp$Reg[[y]])) { return() }
           return(tmp$Reg[[y]][[tx]])
         })
         tmp$TaxID <- gsub("^TaxID_", "", tx)
@@ -169,14 +169,16 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
   filtersDF <- plyr::rbind.fill(filtersDF)
   filtersDF <- filtersDF[which(paste0("TaxID_", filtersDF$TaxID) %in% names(allProteins_mapped)),]
   nr <- nrow(filtersDF)
-  if ((!is.null(nr)) && (nr)) {
+  if ((!is.null(nr)) && nr) {
     filtersDF <- rbind(filtersDF, filtersDF)
     filtersDF$GraphType <- GraphTypes[2L]
     filtersDF$GraphType[1L:nr] <- GraphTypes[1L]
     nr <- nr*2L
     txidsTst <- (length(unique(filtersDF$TaxID)) > 1L)+1L
     source(parSrc, local = FALSE)
-    clusterExport(parClust, c("wd", "filtersDF", "allProteins_mapped", "tmpPG", "GraphTypes", "Exp", "txidsTst", "cleanNms"), envir = environment())
+    clusterExport(parClust,
+                  c("wd", "filtersDF", "allProteins_mapped", "tmpPG", "GraphTypes", "Exp", "txidsTst", "cleanNms", "topattern"),
+                  envir = environment())
     tstSTRINGs <- parLapply(parClust, 1L:nr, \(i) { #i <- 1L #i <- 4L #i <- 10L #i <- 11L
       fltNm <- cleanNms(filtersDF$Name[i], rep = "_")
       regTbl <- filtersDF$Reg[[i]]
@@ -377,7 +379,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
             #   }, "") 
             #   mappings$PG <- allSAINTs$PG_id[match(mappings$queryItem, allSAINTs$Protein)]
             # }
-            mappings$"Av. log10 expression" <- PG$"Av. log10 abundance"[match(mappings$PG, PG$id)]
+            mappings$"Av. log10 expression" <- PG$"Av. log10 abundance"[match(mappings$"PG id", PG$id)]
             #if (!grepl("^SAINTexpress_", Nm)) {
             # intNet$Linkage <- do.call(paste, c(intNet[, paste0("PG_", c("A", "B"))], sep = "_"))
             # intNet <- Isapply(strsplit(unique(intNet$Linkage), "_"), unlist)
