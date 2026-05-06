@@ -414,8 +414,8 @@ runKount <- 0L
 while ((!runKount) || (!exists("appRunTest"))) {
   ui0 <- make_ui0() # Update ui with current values
   eval(parse(text = appTxt0), envir = .GlobalEnv)
-  myContrasts <- readr::read_rds(contrastsFl)
   shinyCleanup()
+  if (file.exists(contrastsFl)) { myContrasts <- readr::read_rds(contrastsFl) }
   runKount <- runKount+1L
 }
 # Some post-processing
@@ -457,7 +457,7 @@ for (i in kol2) {
     Exp.map$Ref.Sample.Aggregate[which(Exp.map[[kol]] == x)]
   })
 }
-if ("Secondary" %notin% colnames(myContrasts)) {
+if (!"Secondary" %in% colnames(myContrasts)) {
   myContrasts$Secondary <- ""
 }
 myContrasts$isDouble <- myContrasts$Secondary != "" # For convenience

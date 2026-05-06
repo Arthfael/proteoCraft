@@ -95,7 +95,7 @@ if (scrptType == "noReps") {
   }
 }
 if (scrptType == "withReps") {
-  smplsMap <- ExpMap
+  smplsMap <- Exp.map
   smplsKol <- "Ref.Sample.Aggregate"
   if (post_ReNorm_reRun) { bckpNm <- paste0(bckpNm, "_reNorm") }
   refNm <- if (post_ReNorm_reRun) { "Back-norm" } else {

@@ -153,7 +153,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
         tmp <- filtDF
         nms <- lapply(tmp$Reg, names)
         tmp$Reg <- lapply(1L:length(tmp$Reg), \(y) {
-          if (tx %notin% names(tmp$Reg[[y]])) { return() }
+          if (!tx %in% names(tmp$Reg[[y]])) { return() }
           return(tmp$Reg[[y]][[tx]])
         })
         tmp$TaxID <- gsub("^TaxID_", "", tx)

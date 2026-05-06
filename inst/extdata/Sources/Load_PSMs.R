@@ -96,7 +96,7 @@ safe_listFls %<o% \(path,
 # Now to loading us some PSMs!
 # Process sequentially all input directories
 for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
-  cat(paste0("Processing input folder",
+  cat(paste0("\n -> Processing input folder",
              c("", paste0(" #", dir_i))[(l_inDirs > 1L)+1L],
              ":\n\t", inDirs[dir_i], "\n"))
   # Better to run this with a for loop:

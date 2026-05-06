@@ -494,6 +494,9 @@ if (length(inDirs) > 1L) {
   DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
                               " The long format PSMs table ")
 }
+DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
+                            "was transformed into a wide format peptidoforms table, summing up quantitative values where necessary.")
+
 g <- grep(topattern(pep.ref["Original"]), colnames(pep), value = TRUE)
 # View(pep[, g])
 test <- rowSums(pep[, g])
@@ -505,8 +508,6 @@ if (l) {
   w <- which(ev$id %in% unique(as.integer(unlist(strsplit(pep$"Evidence IDs", ";")))))
   ev <- ev[w,]
 }
-DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                            "was transformed into a wide format peptidoforms table, summing up quantitative values where necessary.")
 
 LocAnalysis2 %<o% FALSE
 

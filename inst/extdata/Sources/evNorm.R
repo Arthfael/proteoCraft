@@ -365,37 +365,36 @@ if (Param$Norma.Ev.Intens) {
       clusterExport(parClust, "mRt", envir = environment())
       ev[[kol]][w] <- parLapply(parClust, ev[[kol]][w], \(x) { x*mRt })
     }
-    if (Param$Norma.Ev.Intens&&Param$Norma.Ev.Intens.show) {
-      kol2 <- unique(c("id", "MQ.Exp", "MS2_intensities", kol))
-      tst <- ev[, kol2]
-      # Here it is easier to sum per row (otherwise this makes for very slow processing, creates a very huge table and plot, with little added value)
-      kolz <- colnames(tst)[which(!colnames(tst) %in% c("id", "MQ.Exp"))]
-      for (kl in kolz) {
-        tst[[kl]] <- if (!inherits(tst[[kl]], "list")) { vapply(strsplit(tst[[kl]], ";"), as.numeric, 1) }
-        parSapply(parClust, tst[[kl]], sum)
-      }
-      tst <- reshape2::melt(tst, id.vars = c("id", "MQ.Exp"))
-      tst$value <- log10(tst$value)
-      tst$variable <- as.character(tst$variable)
-      tst$Norm <- "Original"
-      tst$Norm[which(tst$variable == kol)] <- "Normalised"
-      tst$Norm <- factor(tst$Norm, levels = c("Original", "Normalised"))
-      ttl <- paste0(evNm, "s intensity normalisation")
-      dir <- paste0(wd, "/Workflow control/", evNm, "s/Normalisation")
-      if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-      dirlist <- unique(c(dirlist, dir))
-      plot <- ggplot(tst) +
-        geom_violin(aes(x = MQ.Exp, y = value, color = Norm, fill = Norm), alpha = 0.25) +
-        geom_boxplot(aes(x = MQ.Exp, y = value, color = Norm, fill = Norm), alpha = 0.5) +
-        scale_color_viridis_d(begin = 0.25) +
-        scale_fill_viridis_d(begin = 0.25) +
-        facet_wrap(~Norm, scales = "free") + theme_bw() + ggtitle(ttl) +
-        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-      print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-      ReportCalls <- AddPlot2Report()
+    #
+    kol2 <- unique(c("id", "MQ.Exp", "MS2_intensities", kol))
+    tst <- ev[, kol2]
+    # Here it is easier to sum per row (otherwise this makes for very slow processing, creates a very huge table and plot, with little added value)
+    kolz <- colnames(tst)[which(!colnames(tst) %in% c("id", "MQ.Exp"))]
+    for (kl in kolz) {
+      tst[[kl]] <- if (!inherits(tst[[kl]], "list")) { vapply(strsplit(tst[[kl]], ";"), as.numeric, 1) }
+      parSapply(parClust, tst[[kl]], sum)
     }
+    tst <- reshape2::melt(tst, id.vars = c("id", "MQ.Exp"))
+    tst$value <- log10(tst$value)
+    tst$variable <- as.character(tst$variable)
+    tst$Norm <- "Original"
+    tst$Norm[which(tst$variable == kol)] <- "Normalised"
+    tst$Norm <- factor(tst$Norm, levels = c("Original", "Normalised"))
+    ttl <- paste0(evNm, "s intensity normalisation")
+    dir <- paste0(wd, "/Workflow control/", evNm, "s/Normalisation")
+    if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+    dirlist <- unique(c(dirlist, dir))
+    plot <- ggplot(tst) +
+      geom_violin(aes(x = MQ.Exp, y = value, color = Norm, fill = Norm), alpha = 0.25) +
+      geom_boxplot(aes(x = MQ.Exp, y = value, color = Norm, fill = Norm), alpha = 0.5) +
+      scale_color_viridis_d(begin = 0.25) +
+      scale_fill_viridis_d(begin = 0.25) +
+      facet_wrap(~Norm, scales = "free") + theme_bw() + ggtitle(ttl) +
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+    print(plot) # This type of QC plot does not need to pop up, the side panel is fine
+    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ReportCalls <- AddPlot2Report()
   }
 }
 # If isobaric, re-scale reporter intensities to total evidence intensities:
@@ -410,39 +409,39 @@ if (LabelType == "Isobaric") {
   k1 <- paste0(ev.ref["Adjusted"], get(IsobarLab))
   temp <- rowSums(ev[, k0], na.rm = TRUE)
   ev[, k1] <- sweep(ev[, k0], 1L, ev[, ev.col[length(ev.col)]]/temp, "*")
-  if (Param$Norma.Ev.Intens&&Param$Norma.Ev.Intens.show) {
-    er0 <- ev.ref[match("Normalisation", names(ev.ref))-1L]
-    er1 <- ev.ref["Adjusted"]
-    a0 <- paste0(er0, get(IsobarLab))
-    a1 <- paste0(er1, get(IsobarLab))
-    test <- as.data.table(ev[, c("MQ.Exp", a0, a1)])
-    test <- data.table::melt(test, id.vars = "MQ.Exp")
-    test <- as.data.frame(test)
-    test$Norm <- NA
-    test$Norm[which(test$variable %in% a0)] <- "Original"
-    test$Norm[which(test$variable %in% a1)] <- "Normalised"
-    test$Norm <- factor(test$Norm, levels = c("Original", "Normalised"))
-    test$value <- log10(test$value)
-    #aggregate(temp, list(ev$MQ.Exp), \(x) { sum(!is.na(x)) })
-    #aggregate(test$value, list(test$MQ.Exp, test$Norm), \(x) { sum(!is.na(x)) })
-    ttl <- paste0(evNm, "s reporter intensity re-scaling")
-    dir <- paste0(wd, "/Workflow control/", evNm, "s/Normalisation")
-    if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    dirlist <- unique(c(dirlist, dir))
-    test$Channel <- as.numeric(gsub(topattern(c(er0, er1)), "", as.character(test$variable)))
-    test$Channel <- factor(test$Channel, levels = sort(unique(test$Channel)))
-    plot <- ggplot(test) +
-      geom_violin(aes(x = Channel, y = value, color = Channel, fill= Channel), alpha = 0.25) +
-      geom_boxplot(aes(x = Channel, y = value, color = Channel, fill = Channel), alpha = 0.5) +
-      scale_color_viridis_d(begin = 0.25) +
-      scale_fill_viridis_d(begin = 0.25) +
-      facet_grid(MQ.Exp ~ Norm, scales = "free", space = "free") + theme_bw() + ggtitle(ttl) +
-      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-    print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-    ReportCalls <- AddPlot2Report()
-  }
+  #
+  er0 <- ev.ref[match("Normalisation", names(ev.ref))-1L]
+  er1 <- ev.ref["Adjusted"]
+  a0 <- paste0(er0, get(IsobarLab))
+  a1 <- paste0(er1, get(IsobarLab))
+  test <- as.data.table(ev[, c("MQ.Exp", a0, a1)])
+  test <- data.table::melt(test, id.vars = "MQ.Exp")
+  test <- as.data.frame(test)
+  test$Norm <- NA
+  test$Norm[which(test$variable %in% a0)] <- "Original"
+  test$Norm[which(test$variable %in% a1)] <- "Normalised"
+  test$Norm <- factor(test$Norm, levels = c("Original", "Normalised"))
+  test$value <- log10(test$value)
+  #aggregate(temp, list(ev$MQ.Exp), \(x) { sum(!is.na(x)) })
+  #aggregate(test$value, list(test$MQ.Exp, test$Norm), \(x) { sum(!is.na(x)) })
+  ttl <- paste0(evNm, "s reporter intensity re-scaling")
+  dir <- paste0(wd, "/Workflow control/", evNm, "s/Normalisation")
+  if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+  dirlist <- unique(c(dirlist, dir))
+  test$Channel <- as.numeric(gsub(topattern(c(er0, er1)), "", as.character(test$variable)))
+  test$Channel <- factor(test$Channel, levels = sort(unique(test$Channel)))
+  plot <- ggplot(test) +
+    geom_violin(aes(x = Channel, y = value, color = Channel, fill= Channel), alpha = 0.25) +
+    geom_boxplot(aes(x = Channel, y = value, color = Channel, fill = Channel), alpha = 0.5) +
+    scale_color_viridis_d(begin = 0.25) +
+    scale_fill_viridis_d(begin = 0.25) +
+    facet_grid(MQ.Exp ~ Norm, scales = "free", space = "free") + theme_bw() + ggtitle(ttl) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+  print(plot) # This type of QC plot does not need to pop up, the side panel is fine
+  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+  ReportCalls <- AddPlot2Report()
+  #
   #Isobaric data: valid values
   kol <- grep(topattern(ev.ref["Original"]), colnames(ev), value = TRUE)
   kol <- grep(" count ", kol, value = TRUE, invert = TRUE)

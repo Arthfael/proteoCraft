@@ -31,7 +31,7 @@ Pep.Impute,TF_FALSE,Should we impute missing values for peptides?
 Norma.Ev.Intens,TF_TRUE,"Should we normalise evidence intensities (basic, quick)?"
 Adv.Norma.Ev.Intens,,"If normalising evidence intensities, should we use the Levenberg Marquardt algorithm (slow)?"
 Adv.Norma.Ev.Intens.Type,C,"If normalising evidence intensities with the Levenberg Marquardt algorithm (slow), should we do it per column? Currently only this is available."
-Norma.Ev.Intens.show,TRUE,Display results of evidence intensities normalisation?
+,,
 Norma.Pep.Intens,TF_TRUE,"Should we normalise peptide intensities (basic, quick)?"
 Norma.Pep.Intens.Shape,TF_FALSE,"Set to ""loess"" for LOESS normalisation, or ""vsn"" for Variance Stabilisation Normalisation."
 Norma.Pep.Intens.IRS,FALSE,Set to True for Internal Reference Scaling normalisation. Note that this requires a specific setup (each isobaric set containing all samples for one specific replicate of the experiment).
@@ -87,3 +87,4 @@ Plot.threshold.tests,down:<=;up:>=;strict:>=;loose:>=,Default usually fine
 Plot.threshold.colours,down:red;up:red;strict:orange;loose:gold,Default usually fine
 Plot.areas.colours,down_strict:green;down_loose:blue;up_strict:red;up_loose:orange,Default usually fine
 Adv.Norma.Pep.Intens.Type,C,Deprecated
+Norma.Ev.Intens.show,TRUE,Deprecated

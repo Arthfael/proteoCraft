@@ -198,7 +198,7 @@ cov3D <- function(pdb,
     modsTst[, c("Residue", "AA", "X", "Y", "Z")] <- dat2[modsTst$Pos, c("Residue", "AA", "X", "Y", "Z")]
     modsTst$PTM <- do.call(paste, c(modsTst[, c("AA", "x")], sep = " "))
     modsTst$Type <- "mod. AA"
-    wN <- which(1L:L %notin% modsTst$Pos)
+    wN <- which(!1L:L %in% modsTst$Pos)
     dat2 <- dat2[wN,] # We will only plot normal amino acids here if they do not figure already in the modified amino acid object (which is plotted differently)
   }
   #

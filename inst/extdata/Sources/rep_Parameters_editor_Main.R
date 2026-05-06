@@ -88,6 +88,9 @@ if (ncol(tmp) == 3L) {
 }
 Param$vCPUs <- N.clust
 Param$WD <- wd
+if (exists("prot.list") && length(prot.list)) {
+  Param$Prot.list <- paste(prot.list, collapse = ";")
+}
 if (ParamFl == ParamFls[2L]) {
   Param$WD <- wd
   Param$Project <- dtstNm
@@ -151,10 +154,13 @@ Param$WD <- wd
 goDflt <- suppressWarnings(as.logical(Param$GO.enrichment))
 if ((!is.logical(goDflt))||(is.na(goDflt))) { goDflt <- TRUE }
 #
-fTstDflt <- { if (exists("F.test")) { F.test } else { Param$F.test } }
-if (!length(fTstDflt)) { fTstDflt <- TRUE }
+fTstDfltDflt <- if (exists("VPAL") && inherits(VPAL, " list")) {
+  length(VPAL$values) > 2L
+} else { TRUE }
+fTstDflt <- if (exists("F.test")) { F.test } else { Param$F.test }
+if (!length(fTstDflt)) { fTstDflt <- fTstDfltDflt }
 fTstDflt <- suppressWarnings(as.logical(fTstDflt[1L]))
-if (is.na(fTstDflt)) { fTstDflt <- TRUE }
+if (is.na(fTstDflt)) { fTstDflt <- fTstDfltDflt }
 #
 #Param$Volcano.plots.Aggregate.Level <- "AUTOFACT"
 #Param$Volcano.plots.Aggregate.Level <- "Exp;Con"
@@ -1442,7 +1448,7 @@ server1 <- \(input, output, session) {
         RSA_msg(msg)
         output$RSA_msg <- updtRSAmsg()
         #
-        if (l2 >= 2L) {
+        if (l2 > 2L) {
           shinyjs::enable("run_F_test")
           assign("F_test_override", FALSE, envir = .GlobalEnv)
         } else {

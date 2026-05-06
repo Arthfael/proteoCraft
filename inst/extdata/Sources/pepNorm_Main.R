@@ -168,9 +168,6 @@ if (lNorm) {
       if (length(g)) { TxtSteps[g] <- gsub(pat, "", TxtSteps[g]) }
     }
     TxtSteps <- paste0(paste(TxtSteps[1L:(l-1L)], collapse = ", "), ", then ", TxtSteps[l])
-    l <- length(DatAnalysisTxt)
-    DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l], " Peptide intensities were ", TxtSteps,
-                                ". Peptidoform-level ratios were then calculated.")
     #
   }
 }
