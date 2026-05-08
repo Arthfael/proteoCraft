@@ -121,11 +121,11 @@ LFQ.lm <- function(ids,
         temp3 <- sweep(temp2, 1L, c(0, LM$par), "-") # Fine LM row-wise normalization
         if (Viz) {
           tmp1 <- as.matrix(temp1)
-          tmp1[which(!is.finite(tmp1), arr.ind = TRUE)] <- NA
+          tmp1[which(!is.finite(tmp1), arr.ind = TRUE)] <- NA_real_
           tmp2 <- as.matrix(temp2)
-          tmp2[which(!is.finite(tmp2), arr.ind = TRUE)] <- NA
+          tmp2[which(!is.finite(tmp2), arr.ind = TRUE)] <- NA_real_
           tmp3m <- as.matrix(temp3)
-          tmp3m[which(!is.finite(tmp3m), arr.ind = TRUE)] <- NA
+          tmp3m[which(!is.finite(tmp3m), arr.ind = TRUE)] <- NA_real_
           grDevices::windows(width = 10L, height = 10L)
           graphics::par(cex.main = 0.3)
           gplots::heatmap.2(tmp1, Colv = NULL, Rowv = NULL,
@@ -169,7 +169,7 @@ LFQ.lm <- function(ids,
               y <- summaryFun(y)
             }
           } else {
-            y <- NA # In previous versions was 0 here
+            y <- NA_real_ # In previous versions was 0 here
             # However this cannot be justified:
             # If there is no valid observation then there is no reason to have "no change" when in reality what we have is "nothing"
           }
@@ -198,7 +198,7 @@ LFQ.lm <- function(ids,
       } else {
         rs <- stats::setNames(apply(temp1, 2L, \(y) {
           y <- is.all.good(y)
-          if (!length(y)) { y <- NA }
+          if (!length(y)) { y <- NA_real_ }
           return(y)
         }), IntensCol)
       }

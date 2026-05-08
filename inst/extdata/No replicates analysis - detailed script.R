@@ -636,7 +636,7 @@ if (MakeRatios) {
       ref <- apply(pep[, paste0(int.col, " - ", m$Experiment[which(m$Reference)]), drop = FALSE], 1L, \(x) {
         x <- is.all.good(x)
         l <- length(x)
-        if (!l) { x <- NA } else { x <- prod(x)^(1/l) }
+        x <- if (!l) { NA_real_ } else { prod(x)^(1/l) }
         return(x)
       })
       w <- which(!m$Reference)
@@ -721,37 +721,10 @@ if (tstOrg) {
   PG[[pgOrgKol]] <- test$x[match(PG$id, test$Group.1)]
 }
 
-# Some stats on protein groups
-tmp <- aggregate(PG$id, list(PG$`Peptides count`), length) # Faster than data.table here
-colnames(tmp) <- c("Peptides count", "Protein groups")
-tmp$"log10(Protein groups count)" <- log10(tmp$"Protein groups")
-pal <- colorRampPalette(c("brown", "yellow"))(max(tmp$"Peptides count")-1L)
-tmp$Colour <- c("blue", pal)[tmp$`Peptides count`]
-tmp2 <- summary(PG$`Peptides count`)
-tmp2 <- data.frame(Variable = c(names(tmp2), "", "Protein groups", "Protein groups with 2+ peptidoforms"),
-                   Value = c(as.character(signif(as.numeric(tmp2), 3L)),
-                             "",
-                             as.character(c(nrow(PG), sum(PG$"Peptides count" >= 2L)))))
-tmp2$Txt <- apply(tmp2[, c("Variable", "Value")], 1L, \(x) {
-  x <- x[which(x != "")]
-  if (length(x)) { x <- paste(x, collapse = ": ") } else { x <- "" }
-  return(x)
-})
-tmp2$X <- max(as.numeric(tmp2$Value[match("Max.", tmp2$Variable)]))*0.98
-tmp2$Y <- max(tmp$"log10(Protein groups count)")*(0.98-(0L:(nrow(tmp2)-1L))*0.02)
-ttl <- "Peptidoforms per PG"
-plot <- ggplot(tmp) + geom_col(aes(x = `Peptides count`, y = `log10(Protein groups count)`, fill = Colour),
-                               colour = NA) +
-  geom_text(data = tmp2, aes(x = X, y = Y, label = Txt), hjust = 1, size = 3L) +
-  scale_fill_identity() + theme_bw() + ggtitle(ttl)
-poplot(plot)
-dir <- paste0(wd, "/Summary plots")
-#dirlist<- unique(c(dirlist, dir))
-if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-suppressMessages({
-  ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 300L)
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L)
-})
+# Peptidoforms per Protein Group
+Src <- paste0(libPath, "/extdata/Sources/pep_per_PG.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 # Some more columns
 tmp <- strsplit(PG$"Leading protein IDs", ";")
@@ -968,7 +941,7 @@ temp <- parLapply(parClust, Exp, \(exp) { #exp <- Exp[1L]
     w <- which(res$id %in% temp1$Group.1)
     m <- match(res$id[w], temp1$Group.1)
     res[w, kolp] <- temp1[m, c("x.Count", "Pasted")]
-    temp_PG$Pep <- NA
+    temp_PG$Pep <- NA_real_
     temp_PG$Pep[w] <- temp1$Pepseq[m]
     res[w, paste0("Sequence coverage [%] - ", exp)] <- round(100*apply(temp_PG[w, c("Seq", "Pep")], 1L, \(x) {
       Coverage(x[[1L]], x[[2L]])
@@ -2325,7 +2298,7 @@ if ((length(Exp) > 1L)&&(prot.list.Cond)) {
     for (kol in kols) {
       kol2 <- gsub(" log10\\(", " ", gsub("\\) - ", " - ", kol))
       temp[[kol2]] <- suppressWarnings(10L^temp[[kol]])
-      temp[which(!is.all.good(temp[[kol2]], 2L)), kol] <- NA
+      temp[which(!is.all.good(temp[[kol2]], 2L)), kol] <- NA_real_
       temp[[kol]] <- NULL
     }
     data.table::fwrite(temp, paste0(dir, "/Protein of interest profiles.tsv"),
@@ -2369,7 +2342,7 @@ if ((length(Exp) > 1L)&&(!is.null(prot.list))&&(length(prot.list))) {
         temp2$Sample <- as.character(temp2$Sample)
         temp2$value <- suppressWarnings(log2(temp2$value))+StdWdth/2
         w <- which(!is.all.good(temp2$value, 2L))
-        temp2$value[w] <- NA
+        temp2$value[w] <- NA_real_
         temp2$value[which(temp2$value < -StdWdth/2)] <- -StdWdth/2
         temp2$Xmin <- match(temp2$Sample, colnames(temp))-1L
         temp2$Xmax <- temp2$Xmin+1L

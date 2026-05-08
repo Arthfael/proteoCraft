@@ -205,10 +205,10 @@ cov3D <- function(pdb,
   symb <- setNames(c("circle", "diamond"), c("AA", "mod. AA"))
   #
   w0 <- which((is.na(dat2$Intensity))|(dat2$Intensity == 0))
-  dat2$Intensity[w0] <- NA
+  dat2$Intensity[w0] <- NA_real_
   dat2$AA <- do.call(paste, c(dat2[, c("AA", "Residue sequence number")], sep = " "))
   w0 <- which((is.na(dat3$Intensity))|(dat3$Intensity == 0))
-  dat3$Intensity[w0] <- NA
+  dat3$Intensity[w0] <- NA_real_
   my3dplotly <- plotly::plot_ly(symbols = symb)
   argsLst <- list(p = my3dplotly,
                   data = dat3,

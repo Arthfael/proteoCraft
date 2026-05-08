@@ -473,7 +473,7 @@ temp <- listMelt(strsplit(seq$Proteins, ";"), seq$PEP)
 temp <- data.table::data.table(value = temp$value, L1 = temp$L1)
 temp <- temp[, list(x = prod(L1)), by = list(Group.1 = value)] 
 temp <- as.data.frame(temp)
-prot$PEP <- NA
+prot$PEP <- NA_real_
 w <- which(prot$Protein %in% temp$Group.1)
 prot$PEP[w] <- temp$x[match(prot$Protein[w], temp$Group.1)]
 if (CustPG) {

@@ -62,9 +62,9 @@
       temp1$Organism <- gsub(" +\\(.+", "", temp1$Organism)
       w <- which((nchar(temp1$Organism_Full) == 0L)&(nchar(temp1$Organism) > 0L))
       temp1$Organism_Full[w] <- temp1$Organism[w]
-      temp1$TaxID <- NA
+      temp1$TaxID <- NA_integer_
       w <- grep("OX=", temp1$Header)
-      temp1$TaxID[w] <- as.numeric(gsub(" .+", "", vapply(strsplit(temp1$Header[w], "OX="), \(x) {
+      temp1$TaxID[w] <- as.integer(gsub(" .+", "", vapply(strsplit(temp1$Header[w], "OX="), \(x) {
         unlist(x)[2L]
       }, "")))
       temp1$"Full Name" <- do.call(paste, c(temp1[, c("Name", "Organism")], sep = "_"))

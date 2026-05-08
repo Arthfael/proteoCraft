@@ -168,7 +168,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         dirDFls2 <- setNames(lapply(names(dirDFls), \(nm) { gsub(".*/", "", dirDFls[[nm]]) }), dirs)
         for (dir in dirs) {
           tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1L, \(x) { #x <- tbl[1, c("file", "ext")]
-            rs <- NA
+            rs <- NA_character_
             if (x[[2L]] == "d") {
               m <- match(x[[1L]], dirDFls2[[dir]])
               if (!is.na(m)) { rs <- dirDFls[[dir]][m] }
@@ -181,10 +181,10 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         }
         tbl$nuLoc <- apply(tbl[, dirs, drop = FALSE], 1L, \(x) {
           x <- x[which(!is.na(x))]
-          if (!length(x)) { x <- NA }
+          if (!length(x)) { x <- NA_character_ }
           return(x)
         })
-      } else { tbl$nuLoc <- NA }
+      } else { tbl$nuLoc <- NA_character_ }
       wY <- which(!is.na(tbl$nuLoc))
       wN <- which(is.na(tbl$nuLoc))
       lY <- length(wY)
@@ -543,7 +543,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         dirDFls2 <- setNames(lapply(names(dirDFls), \(nm) { gsub(".*/", "", dirDFls[[nm]]) }), dirs)
         for (dir in dirs) {
           tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1L, \(x) { #x <- tbl[1, c("file", "ext")]
-            rs <- NA
+            rs <- NA_character_
             if (x[[2L]] == "d") {
               m <- match(x[[1L]], dirDFls2[[dir]])
               if (!is.na(m)) { rs <- dirDFls[[dir]][m] }
@@ -556,10 +556,10 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         }
         tbl$nuLoc <- apply(tbl[, dirs, drop = FALSE], 1L, \(x) {
           x <- x[which(!is.na(x))]
-          if (!length(x)) { x <- NA }
+          if (!length(x)) { x <- NA_character_ }
           return(x)
         })
-      } else { tbl$nuLoc <- NA }
+      } else { tbl$nuLoc <- NA_character_ }
       wY <- which(!is.na(tbl$nuLoc))
       wN <- which(is.na(tbl$nuLoc))
       lY <- length(wY)
@@ -864,7 +864,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         dirDFls2 <- setNames(lapply(names(dirDFls), \(nm) { gsub(".*/", "", dirDFls[[nm]]) }), dirs)
         for (dir in dirs) {
           tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1L, \(x) { #x <- tbl[1, c("file", "ext")]
-            rs <- NA
+            rs <- NA_character_
             if (x[[2L]] == "d") {
               m <- match(x[[1L]], dirDFls2[[dir]])
               if (!is.na(m)) { rs <- dirDFls[[dir]][m] }
@@ -877,10 +877,10 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         }
         tbl$nuLoc <- apply(tbl[, dirs, drop = FALSE], 1L, \(x) {
           x <- x[which(!is.na(x))]
-          if (!length(x)) { x <- NA }
+          if (!length(x)) { x <- NA_character_ }
           return(x)
         })
-      } else { tbl$nuLoc <- NA }
+      } else { tbl$nuLoc <- NA_character_ }
       wY <- which(!is.na(tbl$nuLoc))
       wN <- which(is.na(tbl$nuLoc))
       lY <- length(wY)

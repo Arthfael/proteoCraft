@@ -197,7 +197,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     BrMeth <- MethodsTbl[which(tolower(MethodsTbl$Ext) == "d"),]
     BrMeth$FlInfo <- paste0(BrMeth$Raw.file, "/SampleInfo.xml")
     w <- which(file.exists(BrMeth$FlInfo))
-    BrMeth[, c("LC_method_fl", "MS_method_fl")] <- NA
+    BrMeth[, c("LC_method_fl", "MS_method_fl")] <- NA_character_
     BrMeth[w, c("LC_method_fl", "MS_method_fl")] <- as.data.frame(t(as.data.frame(sapply(BrMeth$FlInfo[w], \(fl) {
       #fl <- BrMeth$FlInfo[w][1L]
       x <- xmlToList(fl)
@@ -216,7 +216,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     # not the method as embedded in the file.
     #
     #
-    BrMeth$LCMS_method_fls <- NA
+    BrMeth$LCMS_method_fls <- NA_character_
     BrMeth$LCMS_method_fls[w] <- apply(BrMeth[w, c("LC_method_fl", "MS_method_fl")], 1L, \(x) {
       list(LC = x[[1L]],
            MS = x[[2L]])
@@ -465,7 +465,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       PropsDF2$Text <- ""
       PropsDF2$Text <- apply(PropsDF2[, c("Name", "Value", "Unit", "Frame_group")], 1L, \(x) {
         l <- length(x[[2L]])
-        res <- NA
+        res <- NA_character_
         if (l > 1L) {
           x[[2L]] <- paste0(paste(x[[2L]][1L:(l-1L)], collapse = ", "), " and ", x[[2L]][l])
           x[[4L]] <- paste0("(frame groups ",  paste(x[[4L]][1L:(l-1L)], collapse = ", "), " and ",
@@ -788,8 +788,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
               colnames(tmp) <- c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N")
               tmp$Function <- "Analytical"
               tmp$Description <- kolDescr(tmp)
-              k <- colnames(allKolumns)
-              k <- k[which(!k %in% colnames(tmp))]
+              k <- setdiff(colnames(allKolumns), colnames(tmp))
               tmp[, k] <- NA
               tmp[1L, which(tmp[1L,] == "NA")] <- NA
               allKolumns <- rbind(allKolumns, tmp)
@@ -815,9 +814,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                 tmp <- as.data.frame(t(as.data.frame(unlist(strsplit(kol, " *\\| *")))))
                 colnames(tmp) <- c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N")
                 tmp$Function <- "Trap"
-                k <- colnames(allKolumns)
-                k <- k[which(!k %in% colnames(tmp))]
-                tmp[,k] <- NA
+                k <- setdiff(colnames(allKolumns), colnames(tmp))
+                tmp[, k] <- NA
                 tmp$Description <- kolDescr(tmp)
                 allKolumns <- rbind(allKolumns, tmp)
                 rownames(allKolumns) <- NULL

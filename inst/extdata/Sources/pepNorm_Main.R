@@ -22,7 +22,7 @@ if (lNorm) {
   tmpDat1 <- do.call(cbind, lapply(kol, \(k) {
     val <- log10(pep[[k]])
     w <- which(!is.all.good(val, 2L))
-    val[w] <- NA # We shouldn't have to deal with other types of invalid values! They break the rest.
+    val[w] <- NA_real_ # We shouldn't have to deal with other types of invalid values! They break the rest.
     return(val)
   }))
   tmpDat1 <- as.data.frame(tmpDat1)

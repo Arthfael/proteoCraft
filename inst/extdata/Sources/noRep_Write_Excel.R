@@ -187,7 +187,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     tempData[, gel0] <- NULL
     for (gl in gel) {
       w <- which(is.infinite(tempData[[gl]]))
-      tempData[w, gl] <- NA
+      tempData[w, gl] <- NA_real_
     }
     quantcol <- gel
     for (nm in names(intRf)) { 
@@ -209,7 +209,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
       grl <- unlist(ratCols)
       for (gr in grl) {
         w <- which(is.infinite(tempData[[gr]]))
-        tempData[w, gr] <- NA
+        tempData[w, gr] <- NA_real_
       }
       quantcol <- c(quantcol, grl)
       quantCols[names(ratRf)] <- ratCols
@@ -438,10 +438,42 @@ intColsTbl <- setNames(lapply(names(intRf), \(nm) { #nm <- names(intRf)[1L]
   return(res[w,])
 }), names(intRf))
 quantCols <- intCols <- lapply(intColsTbl, \(x) { x$Log })
+#
+# Fix for limpa!
+if (quantAlgo == "limpa") {
+  # Only write values which are based on observations!
+  g <- grep("[Ii]mput", names(quantCols), value = TRUE, invert = TRUE)
+  if (length(g)) {
+    for (i in g) { #i <- g[1L]
+      #colIg <- grep("^Mean ", quantCols[[i]], value = TRUE)
+      colIi <- grep("^Mean ", quantCols[[i]], value = TRUE, invert = TRUE)
+      Si <- gsub(".* - ", "", colIi)
+      #uSg <- gsub(".* - ", "", colIg) # not an error
+      #Sg <- Exp.map[match(Si, Exp.map$Ref.Sample.Aggregate), VPAL$column]
+      colIi <- setNames(colIi, Si)
+      #colIg <- setNames(colIg, uSg)
+      colCi <- gsub(".* - ", "Evidences count - ", colIi)
+      tmpIi <- tempData[, colIi]
+      tmpCi <- as.matrix(tempData[, colCi])
+      Wi <- which(tmpCi == 0L, arr.ind = TRUE)
+      tmpIi[Wi] <- NA_real_
+      tempData[, colIi] <- tmpIi[, colIi]
+      # tmpIg <- setNames(lapply(uSg, \(x) {
+      #   x <- rowMeans(tmpIi[, colIi[Si[which(Sg == x)]]], na.rm = TRUE)
+      #   w <- which(is.na(x))
+      #   x[w] <- NA_real_
+      #   return(x)
+      # }), colIg[uSg])
+      # tmpIg <- do.call(cbind, tmpIg)
+      # tempData[, colIg] <- tmpIg[, colIg]
+    }
+  }
+}
+#
 gel <- unlist(intCols)
 for (gl in gel) {
   w <- which(is.infinite(tempData[[gl]]))
-  tempData[w, gl] <- NA
+  tempData[w, gl] <- NA_real_
 }
 quantcol <- gel
 if (MakeRatios) {
@@ -460,7 +492,7 @@ if (MakeRatios) {
   grl <- unlist(ratCols)
   for (gr in grl) {
     w <- which(is.infinite(tempData[[gr]]))
-    tempData[w, gr] <- NA
+    tempData[w, gr] <- NA_real_
   }
   quantcol <- c(quantcol, grl)
   quantCols[names(ratRf)] <- ratCols

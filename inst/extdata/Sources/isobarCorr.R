@@ -25,8 +25,8 @@ if ((LabelType == "Isobaric")&&
         })
         kol <- paste0("corr. ", ev.ref["Original"], get(IsobarLab))
         kol <- kol[which(paste0(ev.ref["Original"], get(IsobarLab)) %in% colnames(ev))]
-        ev[, kol] <- NA
-        for (i in Iso) { #i <- Iso[1]
+        ev[, kol] <- NA_real_
+        for (i in Iso) { #i <- Iso[1L]
           wI <- which(ev$"Raw file path" %in% Frac.map$"Raw file"[which(Frac.map$Isobaric.set == i)])
           e <- ev[wI,]
           pt <- test$"Purity table"[[which(test$Isobaric.set == i)]]
@@ -96,7 +96,7 @@ if ((LabelType == "Isobaric")&&
         })
         kol <- paste0("corr. ", ev.ref["Original"], get(IsobarLab))
         kol <- kol[which(paste0(ev.ref["Original"], get(IsobarLab)) %in% colnames(ev))]
-        ev[, kol] <- NA
+        ev[, kol] <- NA_real_
         for (i in Iso) { #i <- Iso[1]
           wI <- which(ev$"Raw file path" %in% Frac.map$"Raw file"[which(Frac.map$Isobaric.set == i)])
           e <- ev[wI,]

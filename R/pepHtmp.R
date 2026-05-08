@@ -131,7 +131,7 @@ pepHtmp <- function(intProt = prot.list_pep,
             temp[, g1] <- suppressWarnings(log2(temp[, g1]))  
           }
           w <- which(!is.finite(as.matrix(temp[, g1])), arr.ind = TRUE)
-          temp[, g1][w] <- NA
+          temp[, g1][w] <- NA_real_
           M <- rowMeans(temp[, g1], na.rm = TRUE)
           if (meth == "ZSc") { SD <- apply(temp[, g1], 1L, sd, na.rm = TRUE) }
           temp[, g1] <- sweep(temp[, g1], 1L, M, "-")

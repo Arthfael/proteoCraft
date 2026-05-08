@@ -909,7 +909,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2]
           tempData[, kol2] <- suppressWarnings(log10(tempData[, kol1]))
           for (kl in kol2) {
             w <- which(is.infinite(tempData[[kl]]))
-            tempData[w, kl] <- NA
+            tempData[w, kl] <- NA_real_
           }
         }
       }
@@ -949,7 +949,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2]
     grl <- unlist(ratCols)
     for (gr in grl) {
       w <- which(is.infinite(tempData[[gr]]))
-      tempData[w, gr] <- NA
+      tempData[w, gr] <- NA_real_
     }
     quantCols[names(ratRf)] <- ratCols
     regcol <- grep("^((Enriched)|(Regulated)) - ", colnames(tempData), value = TRUE)

@@ -28,10 +28,19 @@ if (length(myBatch) > 1L) {
   myBatch2 <- paste(substr(myBatch, 1L, 3L), collapse = "")
   myBatch3 <- paste(myBatch, collapse = "/")
 }
-m <- match(gsub("___", "_", as.character(expMap[smplsMtch, RSA$limmaCol])), row.names(designMatr))
-mdlMtr <- designMatr_noBatch[m,] # Note: it is important for good batch correction to also make ComBat aware of other covariates so it doesn't remove them too!
+
+
+# Note: it is important for good batch correction to also make ComBat aware of other covariates so it doesn't remove them too!
 # Hence why the "~1" model should be avoided. We now pre-make the ComBat model matrix in advance. Important: it cannot be based on a formula with ~ 0  intercept, otherwise ComBat will fail!
 #mdlMtr <- model.matrix(~1, data = Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),]) # Old code for reference, do NOT use!
+tmpForm <- unlist(strsplit(limmaForm, " \\+ "))
+tmpForm <- tmpForm[2L:length(tmpForm)]
+tmpForm <- setdiff(tmpForm, myBatch3)
+tmpForm <- paste0(tmpForm, "_._")
+tmpForm <- paste0("~ ", paste(tmpForm, collapse = " + ")) # very important: no 0 intercept here (unlike design matrix), otherwise ComBat will fail with "At least one covariate is confounded with batch! Please remove confounded covariates and rerun ComBat
+batchCorr_designMatr <- model.matrix(as.formula(tmpForm))
+m <- match(gsub("___", "_", as.character(expMap[smplsMtch, RSA$limmaCol])), row.names(designMatr)) # same rows as batchCorr_designMatr
+mdlMtr <- batchCorr_designMatr[m,]
 #
 # Impute
 tmp <- Data_Impute2(tmpDat1[, currSamples], ImpGrps)

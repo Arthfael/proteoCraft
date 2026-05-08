@@ -438,7 +438,7 @@ table.on('change', 'select', function() {
     })
     shiny::observeEvent(input$saveBtn, {
       WhoAmI <- WHO()
-      if (WhoAmI == "Your name here") { WhoAmI <- NA }
+      if (WhoAmI == "Your name here") { WhoAmI <- NA_character_ }
       WhoAmI <<- WhoAmI
       dtstNm <<- DATASETNAME()
       WorkFlow <<- input$Workflow

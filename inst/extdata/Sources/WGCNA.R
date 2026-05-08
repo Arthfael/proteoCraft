@@ -79,7 +79,7 @@ sampleTree2 <- as.dendrogram(sampleTree)
 dend_data <- ggdendro::dendro_data(sampleTree2, type = "rectangle")
 w <- which(dend_data$segments$yend == 0)
 dend_data$segments$yend[w] <- dend_data$segments$y[w] - L
-dend_data$segments$label <- NA
+dend_data$segments$label <- NA_character_
 dend_data$segments$label[w] <- dend_data$labels$label[match(dend_data$segments$x[w],
                                                             dend_data$labels$x)]
 xMx <- max(dend_data$segments$x)
@@ -187,7 +187,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
                appNm),
     br(),
     h5(tags$div(
-      "Select the lowest power for which R^2 is above 0.8 - or stars to plateau, keeping mean connnectivity in a reasonable range (10-100),", tags$br(),
+      "Select the lowest power for which R^2 is above 0.8 - or starts to plateau, keeping mean connnectivity in a reasonable range (10-100),", tags$br(),
       "then click \"Save\".")),
     uiOutput("Current"),
     br(),
@@ -385,8 +385,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
             xpMap[[i]] <- c(0L, 1L)[(xpMap[[Fact]] == i) + 1L]
           }
           xpMap[[Fact]] <- NULL
-          myFact <- c(myFact[which(myFact != Fact)],
-                      u)
+          myFact <- c(setdiff(myFact, Fact), u)
         }
       }
     }
@@ -512,9 +511,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
           subttl <- paste0("cor. = ", signif(corXY, 2L),
                            if (is.finite(corXY)) {
                              paste0(", p-val. = ", signif(pvalXY, 2))
-                           } else {
-                             ""
-                           })
+                           } else { "" })
           tst <- sqrt(sum(hex2RGB(gplots::col2hex(mod))@coords^2L)) < 0.2
           ggPlot <- ggplot(tmp) +
             geom_point(aes(x = X, y = Y, shape = `is a Hub?`, size = `mean log10 expression`),

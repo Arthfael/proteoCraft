@@ -159,11 +159,12 @@ colDefs1 <- list(list(width = "250px", targets = 0L),
 colDefs2 <- list(list(width = "500px", targets = 0L),
                  list(width = "100px", targets = 1L+alsoDouble))
 if (alsoDouble) {
-  makeContr$"(opt. secondary contrast)" <- NULL
   colDefs1 <- append(colDefs1,
-                     list(width = "250px", targets = 1L))
+                     list(list(width = "250px", targets = 1L)))
   colDefs2 <- append(colDefs2,
-                     list(width = "100px", targets = 1L))
+                     list(list(width = "100px", targets = 1L)))
+} else {
+  makeContr$"(opt. secondary contrast)" <- NULL
 }
 appNm <- "Define contrasts"
 make_ui0 <- \() {
@@ -197,22 +198,24 @@ Shiny.addCustomMessageHandler('updateSecondary', function(data) {
                         appNm),
       mainPanel(
         em("Select each \"A - B\" contrast of interest, then click \"Add\" to add it to the analysis."),
+        br(),
         em("(NB: \"A - B\" means \"A versus B\", i.e. FC = A/B and logFC = A-B)"),
+        br(),
         br(),
         em("Tick \"one-sided\" for \"up-regulated\" (for \"down-regulated\", just select the reverse contrast first)."),
         br(),
         if (alsoDouble) {
-          em("You may also add double contrasts (interaction contrasts) of the form \"(A - B) - (C - D)\" (where all 4 are distinct).")
+          em(HTML("<br>You may also add double contrasts (interaction contrasts) of the form \"(A - B) - (C - D)\" (where all 4 are distinct)."))
         },
         if (alsoDouble) {
-          em("(for now we are restricting users to \"sensible contrasts\" - this may change)")
+          em(HTML("<br><br>For now we are restricting users to \"sensible contrasts\" - this may change!"))
         },
         if (alsoDouble) {
           br()
         },
-        em(HTML("Once you are finished, click&nbsp")),
+        em(HTML("<br><br>Once you are finished, click&nbsp;")),
         shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-        em(HTML("&nbspto continue.")),
+        em(HTML("&nbsp;to continue.")),
         br(),
         em("Saving is only possible once at least one contrast has been entered"),
         em("(otherwise why even run this workflow?)"),
@@ -546,7 +549,9 @@ if ((!"Reference" %in% colnames(Exp.map)) || (!is.logical(Exp.map$Reference)) ||
     m <- match(unique(em$samplesGroup[x]), em$samplesGroup)
     return(em[m, kol2])
   })
-  tst[, kol2] <- do.call(cbind, tst$x)
+  tmp <- tst$x
+  if (inherits(tmp, "list")) { tmp <- do.call(cbind, tmp) }
+  tst[, kol2] <- tmp
   tst$x <- NULL
   # - Step 1: give priority to NA baits
   tst$L <- lengths(tst$samplesGroup)

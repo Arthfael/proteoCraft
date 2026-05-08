@@ -1,11 +1,9 @@
 # Prepare data for clustering heatmaps script
 #
-ImputeKlust %<o% TRUE # Currently MUST always be TRUE
-#
-if ((!exists("clustDat"))||(!inherits(clustDat, "list"))) { clustDat <- list() }
-if ((!exists("clustFilt"))||(!inherits(clustFilt, "list"))) { clustFilt <- list() }
-if ((!exists("plotLeatMaps"))||(!inherits(plotLeatMaps, "list"))) { plotLeatMaps <- list() }
-if ((!exists("Heatmaps"))||(!inherits(Heatmaps, "list"))) { Heatmaps <- list() }
+if ((!exists("clustDat")) || (!inherits(clustDat, "list"))) { clustDat <- list() }
+if ((!exists("clustFilt")) || (!inherits(clustFilt, "list"))) { clustFilt <- list() }
+if ((!exists("plotLeatMaps")) || (!inherits(plotLeatMaps, "list"))) { plotLeatMaps <- list() }
+if ((!exists("Heatmaps")) || (!inherits(Heatmaps, "list"))) { Heatmaps <- list() }
 clustDat %<o% clustDat
 clustFilt %<o% clustFilt
 plotLeatMaps %<o% plotLeatMaps
@@ -70,9 +68,19 @@ clustFilt[[dataType]] <- filt
 clustDat[[dataType]] <- list()
 clustDat[[dataType]]$Original <- myData
 #clustDat[[dataType]]$Original -> myData
-# Do not update clustFilt within the ImputeKlust loop below!
-# The idea is that, yes, we may impute for clustering, but we filter based on pre-imputed data!
-
+#
+# Now, if we are using limpa to quantify, and dataType is "PG", we may want to filter out some values which are essentially worst estimates
+# (it's not imputation, but... it's not detection either!)
+if ((dataType == "PG")&&(quantAlgo == "limpa")) {
+  psmsCol <- gsub(topattern(rfRoot), "Evidences count - ", clustXprsKol)
+  psmsFlt <- as.matrix(PG[match(rownames(myData), PG$Label), psmsCol])
+  w <- which(psmsFlt == 0L, arr.ind = TRUE)
+  tmp <- myData
+  tmp2 <- as.matrix(tmp[, map$Samples])
+  tmp2[w] <- NA_real_
+  tmp[, map$Samples] <- tmp2
+  clustDat[[dataType]]$Filtered <- tmp
+}
 
 # Imputed data
 # --------------
@@ -88,7 +96,12 @@ tmp <- Data_Impute2(myData, Grps)
 clustDat[[dataType]]$Imputed <- myData <- tmp$Imputed_data
 myDataImp <- tmp$Positions_Imputed
 rownames(myDataImp) <- rownames(myData)
-colnames(myDataImp) <- colnames(myData)
+colnames(myDataImp) <- map$Samples
+if ("Filtered" %in% names(clustDat[[dataType]])) {
+  # In that case (see above) we also want the NAs from filtered to be considered as "imputed"
+  w <- which(is.na(as.matrix(clustDat[[dataType]]$Filtered[, map$Samples])), arr.ind = TRUE)
+  myDataImp[, map$Samples][w] <- NA_real_ # not TRUE!
+}
 clustDat[[dataType]]$Positions_imputed <- myDataImp
 
 # Batch-correct
@@ -96,7 +109,7 @@ clustDat[[dataType]]$Positions_imputed <- myDataImp
 # Sometimes we have identified a batch, but decided no to correct for it in the data we use for statistical tests
 # (e.g. since limma can encode it in its design matrix).
 # In that case, we may optionally still remove it from the PCA.
-if ((scrptType == "withReps")&&(Param$Batch.effect != "")) { # Here we have replicates and group at samples group level
+if ((scrptType == "withReps") && (Param$Batch.effect != "")) { # Here we have replicates and group at samples group level
   nms <- Batch.effect$names
   w <- which(vapply(normSequence, \(x) { x$Method }, "") == "ComBat")
   if (length(w)) {

@@ -447,7 +447,7 @@ serverA <- \(input, output, session) {
   }
   updtDevStgs <- \(reactive = TRUE) {
     myOrg <- if (reactive) { ORGA() } else { mainOrg }
-    devOnt <- devOntVal <- NA
+    devOnt <- devOntVal <- NA_character_
     if (grepl("^D((\\.)|(anio))[ _\\-\\.]?rerio", myOrg)) { devOnt <- "Zebrafish" }
     if (grepl("^D((\\.)|(rosophila))[ _\\-\\.]?melanogaster", myOrg)) { devOnt <- "Fly" }
     if (grepl("^M((\\.)|(us))[ _\\-\\.]?musculus", myOrg)) { devOnt <- "Mouse" }

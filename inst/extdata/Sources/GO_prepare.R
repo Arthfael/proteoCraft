@@ -10,8 +10,8 @@ if (Annotate) {
                            Term = unique(unlist(strsplit(db$GO, ";"))))
     GO_terms <- GO_terms[which(!is.na(GO_terms$ID)),]
     GO_terms <- GO_terms[grep("^GO:[0-9]{7}$", GO_terms$ID),]
-    GO_terms$Ontology <- NA
-    GO_terms$Offspring <- list(NA)
+    GO_terms$Ontology <- NA_character_
+    GO_terms$Offspring <- list(NA_character_)
     for (ont in Ontologies) { #ont <- Ontologies[1]
       wo <- which(filterGOByOntology(GO_terms$ID, ont))
       if (length(wo)) {

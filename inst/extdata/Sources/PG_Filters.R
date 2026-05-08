@@ -36,7 +36,7 @@ if (DiscFilt) {
                paste0(Prot.Rat.Root, em$Ref.Sample.Aggregate),
                grep(topattern(paste0(Prot.Rat.Root, grp, "_REF.to.REF_")), colnames(quantData), value = TRUE))
       kol <- kol[which(kol %in% colnames(quantData))]
-      quantData[w, kol] <- NA
+      quantData[w, kol] <- NA_real_
     }
     l <- length(DatAnalysisTxt)
     DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],

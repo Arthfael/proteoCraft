@@ -51,7 +51,7 @@ Prot.Ruler <- function(Prot,
     if ((is.logical(log.Expr))&&(!log.Exp)) { Prot[, kol]  <- base::log(Prot[, kol], log.Expr.base) }
     PRcol <- gsub(topattern(Expr.roots[i]), PrRulerRoot, kol)
     Samples <- gsub(topattern(Expr.roots[i]), "", kol)
-    Prot[, PRcol] <- NA
+    Prot[, PRcol] <- NA_real_
     temp <- data.frame(Root = rep(Expr.roots[i], length(kol)), Expr.cols = kol, Pr.Ruler.cols = PRcol, Sample = Samples)
     Expr.cols <- if (i == 1L) { temp } else { rbind(Expr.cols, temp) }
   }
@@ -165,7 +165,7 @@ Prot.Ruler <- function(Prot,
             wR <- which(is.all.good(R, 2L))
           }
           Pr.Ruler.cols <- Pr.Ruler.cols[wR]
-          Prot[, Pr.Ruler.cols] <- NA
+          Prot[, Pr.Ruler.cols] <- NA_real_
           if (length(wR)) {
             Prot[wpg, Pr.Ruler.cols] <- if (norm) {
               exprsdata[wpg, Expr.cols$Expr.cols[wR], drop = FALSE] + base::log(NNucl, log.Expr.base)-R+1L

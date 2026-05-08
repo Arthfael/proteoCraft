@@ -83,7 +83,7 @@ for (aa in c("O", "U")) { # Only keep the selenocysteine and pyrrolysine amino a
 pep$Length <- nchar(pep$Sequence)
 ev$Length <- pep$Length[mtch]
 tmp <- data.table(mod = ev$"Modified sequence", Intensity = ev$Intensity)
-tmp$Intensity[which(!is.all.good(tmp$Intensity, 2L))] <- NA
+tmp$Intensity[which(!is.all.good(tmp$Intensity, 2L))] <- NA_real_
 w2 <- which(ev$MQ.Exp %in% unique(unlist(tmp_EM$MQ.Exp[which(tmp_EM$Use)])))
 tmp2 <- copy(tmp)
 tmp2 <- tmp2[w2, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]

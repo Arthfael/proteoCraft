@@ -128,7 +128,7 @@ if (limpaMode) {
   my_F_Data <- myData$genes
 } else {
   my_F_Data <- myData[, unique(c(namesCol, idCol, protCol, mtchCol))]
-  my_F_Data[[F_Root]] <- NA
+  my_F_Data[[F_Root]] <- NA_real_
 }
 my_F_Data[NA_Filt, F_Root] <- -log10(voomFit$F.p.value)
 # Do NOT:
@@ -140,7 +140,7 @@ my_F_Data[NA_Filt, F_Root] <- -log10(voomFit$F.p.value)
 # Step 2 - run post-hoc tests (global moderated t-tests with contrasts)
 # ---------------------------------------------------------------------
 F_PVal_postHoc <- paste0(F_Root, " - ", myContrasts$Contrast)
-my_F_Data[, F_PVal_postHoc] <- NA
+my_F_Data[, F_PVal_postHoc] <- NA_real_
 my_F_Data[NA_Filt, F_PVal_postHoc] <- -log10(fit_postHoc$p.value)
 
 # Step 3 - make decision for each FDR value
@@ -339,7 +339,7 @@ if (dataType == "modPeptides") {
   w <- which(ptmpep[[mtchCol]] %in% myData[[mtchCol]])
   #which(!ptmpep[[mtchCol]] %in% myData[[mtchCol]])
   m <- match(ptmpep[w, mtchCol], myData[[mtchCol]])
-  ptmpep[, F_kols] <- NA
+  ptmpep[, F_kols] <- NA_real_
   ptmpep[w, F_kols] <- myData[m, F_kols]
   PTMs_F_test_data[[Ptm]] <- my_F_Data
 }
@@ -347,7 +347,7 @@ if (dataType == "PG") {
   w <- which(PG[[mtchCol]] %in% myData[[mtchCol]])
   #which(!PG[[mtchCol]] %in% myData[[mtchCol]])
   m <- match(PG[w, mtchCol], myData[[mtchCol]])
-  PG[, F_kols] <- NA
+  PG[, F_kols] <- NA_real_
   PG[w, F_kols] <- myData[m, F_kols]
   F_test_data %<o% my_F_Data
 }

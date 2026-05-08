@@ -31,7 +31,7 @@ if (GSEAmode == "standard") {
   if (scrptType == "noReps") {
     rankCol <- paste0(ratRef, Exp)
   }
-  rankCol <- rankCol[which(rankCol %in% colnames(myData))]
+  rankCol <- intersect(rankCol, colnames(myData))
   isOK <- length(rankCol) > 0L
 }
 if (GSEAmode == "WGCNA") {
@@ -67,8 +67,7 @@ if (isOK) {
   } else {
     # Or we will have to get an annotations package (currently 20 organisms are supported)
     if ((!exists("Org"))||(!is.data.frame(Org))||(nrow(Org) != 1L)) {
-      kol <- c("Organism_Full", "Organism")
-      kol <- kol[which(kol %in% colnames(db))]
+      kol <- intersect(c("Organism_Full", "Organism"), colnames(db))
       tst <- sapply(kol, \(x) { length(unique(db[which(!as.character(db[[x]]) %in% c("", "NA")), x])) })
       kol <- kol[order(tst, decreasing = TRUE)][1L]
       w <- which(db$`Potential contaminant` != "+")

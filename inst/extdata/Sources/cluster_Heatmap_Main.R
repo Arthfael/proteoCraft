@@ -7,16 +7,30 @@
 # This seemed to be a problem of lazy evaluation of formulas.
 # To avoid the issue, do not use the "~column" formula notation but instead the "data$column" notation when mapping variables to columns in the data of each trace.
 #
-nm <- intersect(c("ComBat", "Original"),
-                names(clustDat[[dataType]]))[1L]
-myClustData <- clustDat[[dataType]][[nm]]
-myClustDataImp <- clustDat[[dataType]]$Positions_imputed
 drawPlotly <- TRUE
 if (!exists("plotLeatMaps")) { plotLeatMaps <- list() }
 plotLeatMaps %<o% plotLeatMaps
 heatMaps <- list() # Unlike plotLeatMaps, not persistent
 #drawPlotly <- FALSE
 if (clustHtMp) {
+  if (dataType == "PG") {
+    datNm <- intersect(c("Filtered", "Original"),
+                    names(clustDat[[dataType]]))[1L]
+  }
+  if (dataType == "peptides") {
+    datNm <- intersect(c("ComBat", "Original"),
+                    names(clustDat[[dataType]]))[1L]
+  }
+  myClustData <- clustDat[[dataType]][[datNm]]
+  myClustDataImp <- clustDat[[dataType]]$Positions_imputed
+  w1 <- which(myClustDataImp, arr.ind = TRUE)
+  w2 <- which(is.na(myClustDataImp), arr.ind = TRUE)
+  if (nrow(w1)) { # Imputed values
+    myClustData[w1] <- clustDat[[dataType]]$Imputed[w1]
+  }
+  if (nrow(w2)) { # Values from limpa which are not based on any observations
+    myClustData[w2] <- clustDat[[dataType]]$Original[w2]
+  }
   normTypes <- c("Norm. by row", "None")
   if (clustMode == "standard") {
     # The order matters: the first is used to generate the PG-level cluster displayed on both heatmaps!
@@ -108,6 +122,7 @@ if (clustHtMp) {
   #vapply(clustMap$Samples, \(x) { sum(is.na(myClustData[[x]])) }, 1L)
   h_clustLst <- v_clustLst <- list()
   for (i in names(I)) { #i <- names(I)[1L] #i <- names(I)[2L]
+    topData <- myClustData
     nm <- paste0("Clust. heatmap - ", i)
     smpls <- I[[i]]
     smplsMtch <- match(smpls, mySmpls)
@@ -125,7 +140,7 @@ if (clustHtMp) {
       normTypeInsrt <- paste0(" (", normTypes, ")")
       normTypeInsrt[1L] <- ""
       normTypeInsrt <- normTypeInsrt[match(normType, normTypes)]
-      temp <- as.data.frame(myClustData[, smpls, drop = FALSE])
+      tempDat <- as.data.frame(topData[, smpls, drop = FALSE])
       #
       if (useFilt) {
         # In that case we plot only differentially expressed proteins.
@@ -134,27 +149,29 @@ if (clustHtMp) {
         preFilt <- PG$Label[sort(unique(unlist(lapply(names(clustRegFilters), \(nm) {
           clustRegFilters[[nm]]$PG_Filter
         }))))]
-        temp <- temp[which(rownames(temp) %in% preFilt),]
+        w <- which(rownames(tempDat) %in% preFilt)
+        tempDat <- tempDat[w, , drop = FALSE]
       }
-      #tst <- apply(temp, 1L, \(x) { length(is.all.good(x)) }) == lXprs
+      #tst <- apply(myClustData, 1L, \(x) { length(is.all.good(x)) }) == lXprs
       # Filter to include only rows for which we have at least one valid value
-      wAG <- which(rownames(temp) %in% clustFilt[[dataType]])
+      wAG <- which(rownames(tempDat) %in% clustFilt[[dataType]])
       if (length(wAG) > 3L) {
-        temp <- temp[wAG,]
-        if (ImputeKlust) {
-          whImput <- myClustDataImp[wAG,]
-        }
         #
-        if (normType %in% c("Norm. by row", "Z-scored")) { rwMns <- rowMeans(temp) }
+        #
+        tempDat <- tempDat[wAG,]
+        #
+        #
+        if (normType %in% c("Norm. by row", "Z-scored")) { rwMns <- rowMeans(tempDat, na.rm = TRUE) }
         if (normType == "Norm. by row") {
-          temp <- sweep(temp, 1L, rwMns, "-")
+          tempDat <- sweep(tempDat, 1L, rwMns, "-")
         }
         if (normType == "Z-scored") {
-          SDs <- apply(temp, 1L, \(x) { sd(is.all.good(x)) })
-          temp <- sweep(sweep(temp, 1L, rwMns, "-"), 1L, SDs, "/")
+          SDs <- apply(tempDat, 1L, \(x) { sd(is.all.good(x)) })
+          tempDat <- sweep(sweep(tempDat, 1L, rwMns, "-"), 1L, SDs, "/")
         }
-        temp <- temp[which(apply(temp, 1L, \(x) { length(is.all.good(x)) }) > 0L),] # ... as an extra safety...
-        temp2 <- as.matrix(temp)
+        w <- which(apply(tempDat, 1L, \(x) { length(is.all.good(x)) }) > 0L)
+        tempDat <- tempDat[w,] # ... as an extra safety...
+        temp2 <- as.matrix(tempDat)
         temp3 <- temp2 <- temp2 + runif(length(temp2), min = 0, max = 1e-10) # Small error added to avoid duplicate rows where this breaks
         # Data is now normalized and either imputed or filtered, so ready for clustering
         # 1/ At samples level
@@ -350,15 +367,22 @@ if (clustHtMp) {
           PG[[KlKol]] <- HClusters[[i]][match(PG$Label, names(HClusters[[i]]))]
         }
         #
-        Width <- nrow(temp)
-        Height <- length(smpls)
         #
-        if (ImputeKlust) {
-          whImps <- which(whImput[match(rownames(temp), rownames(whImput)),
-                                  colnames(temp)], arr.ind = TRUE)
-          temp[whImps] <- NA
+        # Re-introduce missing values
+        whImput <- myClustDataImp[match(rownames(tempDat), rownames(myClustDataImp)),
+                                  colnames(tempDat)]
+        whImput1 <- which(whImput, arr.ind = TRUE)
+        whImput2 <- which(is.na(whImput), arr.ind = TRUE)
+        if (nrow(whImput1)) {
+          tempDat[whImput1] <- NA_real_
+        }
+        if (nrow(whImput2)) {
+          tempDat[whImput2] <- NA_real_
         }
         #
+        #
+        Width <- nrow(tempDat)
+        Height <- length(smpls)
         # Get dendrograms
         # Modify dendrograms
         # since we already checkes for number of rows.
@@ -405,21 +429,16 @@ if (clustHtMp) {
         h_labs <- h_labs[order(h_labs$x, decreasing = FALSE),]
         v_labs <- v_labs[order(v_labs$y, decreasing = FALSE),]
         # Re-order our matrix based on extracted dendrogram labels
-        temp <- temp[, match(v_labs$label, colnames(temp))]
-        temp <- temp[match(h_labs$label, rownames(temp)),]
-        if (ImputeKlust) {
-          # Just in case: actually we do not use these downstream currently
-          whImput <- whImput[, match(v_labs$label, colnames(whImput))]
-          whImput <- whImput[match(h_labs$label, rownames(whImput)),]
-        }
-        # Re-introduce missing values
+        tempDat <- tempDat[, match(v_labs$label, colnames(tempDat))]
+        tempDat <- tempDat[match(h_labs$label, rownames(tempDat)),]
+        #
         MaxChar <- 13L
         h_labs$label2 <- gsub("^[^ ]+ - ", "", h_labs$label)
         w <- which(nchar(h_labs$label2) > MaxChar)
         h_labs$label2[w] <- paste0(substr(h_labs$label2[w], 1L, MaxChar-3L), "...")
         # Create heatmap
-        temp$Rowname <- row.names(temp)
-        temp2 <- dfMelt(temp, c("Label", "Sample", "value"), "Rowname")
+        tempDat$Rowname <- row.names(tempDat)
+        temp2 <- dfMelt(tempDat, c("Label", "Sample", "value"), "Rowname")
         temp2$Label <- as.character(temp2$Label)
         temp2$Sample <- as.character(temp2$Sample)
         temp2$"Leading protein IDs" <- PG$"Leading protein IDs"[match(temp2$Label, PG$Label)]
@@ -466,7 +485,7 @@ if (clustHtMp) {
         Mn <- min(temp2a$value, na.rm = TRUE)
         Mx <- max(temp2a$value, na.rm = TRUE)
         temp2b$value <- Mn + temp2b$i*(Mx-Mn)/max(temp2b$i)
-        temp2b$Label <- temp2b$Sample <- NA
+        temp2b$Label <- temp2b$Sample <- NA_character_
         w2a <- 1L:nrow(temp2a)
         w2b <- 1L:nrow(temp2b) + max(w2a)
         temp2b$i <- NULL
@@ -774,17 +793,17 @@ if (clustHtMp) {
           if (prot.list.marks) {
             plotleatmap <- add_trace(plotleatmap,
                                      data = data.frame(temp2c), # trick to force inclusion of the data
-                                     x = temp2c$Xmin, y = -1,
+                                     x = temp2c$Xmin, y = -1L,
                                      text = temp2c$Label, color = "red", inherit = FALSE,
                                      type = "scatter", mode = "markers", showlegend = FALSE,
-                                     marker = list(size = 5, showscale = FALSE))
+                                     marker = list(size = 5L, showscale = FALSE))
           }
           if (addSCmarks) {
             temp2m$.markCol <- markColors[temp2m$`Compartment marker`]
             temp2m$.size <- 5L
             plotleatmap <- add_trace(plotleatmap,
                                      data = data.frame(temp2m), # trick to force inclusion of the data
-                                     x = temp2m$Xmin, y = -2,
+                                     x = temp2m$Xmin, y = -2L,
                                      text = temp2m$`Compartment marker`,
                                      inherit = FALSE,
                                      type = "scatter", mode = "markers", showlegend = FALSE,

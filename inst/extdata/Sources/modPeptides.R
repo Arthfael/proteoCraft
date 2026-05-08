@@ -718,7 +718,7 @@ if (length(PTMs)) {
     kol <- cleanNms(kol)
     colnames(temp) <- cleanNms(colnames(temp))
     w <- which(!is.finite(as.matrix(temp)), arr.ind = TRUE)
-    temp[w] <- NA
+    temp[w] <- NA_real_
     rwMns <- rowMeans(temp[, kol], na.rm = TRUE)
     w <- which(!is.na(rwMns))
     temp <- temp[w,]

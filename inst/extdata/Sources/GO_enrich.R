@@ -398,8 +398,8 @@ if (!exists("GO.terms")) {
 #GO.terms <- GO.terms[which(!is.na(GO.terms$ID)),]
 NoOnt <- !"Ontology" %in% colnames(GO.terms)
 NoOffspr <- (!"Offspring" %in% colnames(GO.terms))&(OffspringCounts)
-if (NoOnt) { GO.terms$Ontology <- NA }
-if (NoOffspr) { GO.terms$Offspring <- list(NA) }
+if (NoOnt) { GO.terms$Ontology <- NA_character_ }
+if (NoOffspr) { GO.terms$Offspring <- list(NA_character_) }
 if (NoOnt + NoOffspr) {
   for (ont in Ont) { #ont <- Ont[1L]
     #print(ont)
@@ -429,7 +429,7 @@ if (NoOnt + NoOffspr) {
 # Remove deprecated GO.terms (i.e. those which do not have an ontology):
 GO.terms <- GO.terms[which(!is.na(GO.terms$Ontology)),]
 # Match terms to rows in the proteins table
-GO.terms$"Protein table row(s)" <- NA
+GO.terms$"Protein table row(s)" <- NA_integer_
 tmp1 <- if (OffspringCounts) {
   listMelt(apply(GO.terms[, c("ID", "Offspring")], 1L, \(x) { unlist(x) }),
            1L:nrow(GO.terms))
@@ -721,8 +721,8 @@ if (length(wFltL)) {
       tmpGO.terms <- as.data.frame(t(sapply(strsplit(tmpGO.terms, "___BLEH___"), unlist)))
       colnames(tmpGO.terms) <- k
       tmpGO.terms$Mapping <- "topGO"
-      tmpGO.terms$Term <- NA
-      tmpGO.terms$Offspring <- list(NA)
+      tmpGO.terms$Term <- NA_character_
+      tmpGO.terms$Offspring <- list(NA_character_)
       for (ont in Ont) { #ont <- Ont[1L]
         wo <- which(annotate::filterGOByOntology(tmpGO.terms$ID, ont))
         if (length(wo)) {
@@ -738,7 +738,7 @@ if (length(wFltL)) {
       }
       tmpGO.terms <- tmpGO.terms[which(lengths(tmpGO.terms$Offspring) > 0L),]
       tmpGO.terms$Term <- apply(tmpGO.terms[, c("Term","ID")], 1L, \(x) { paste0(unlist(x[[1L]]), " [", x[[2L]], "]") })
-      tmpGO.terms$"Protein table row(s)" <- NA
+      tmpGO.terms$"Protein table row(s)" <- NA_integer_
       #sum(!tmpGO.terms$ID %in% unlist(GO.terms$Offspring)) # Those new terms are all OffSpring terms of existing ones!
       #w <- which(lengths(GO.terms$Offspring) > 0L)
       tmp1 <- listMelt(GO.terms$Offspring, 1L:nrow(GO.terms), c("ID", "Row")) # Here I can use only Offspring, the IDs in tmpGO.terms are not in GO.terms
@@ -760,7 +760,7 @@ if (length(wFltL)) {
           tmpGO.terms[[paste0(nm, "s")]] <- tmp1$x[match(1L:nrow(tmpGO.terms), tmp1$Group.1)] 
         }
       }
-      k <- colnames(GO.terms)[which(!colnames(GO.terms) %in% colnames(tmpGO.terms))]
+      k <- setdiff(colnames(GO.terms), colnames(tmpGO.terms))
       if (length(k)) { tmpGO.terms[, k] <- NA }
       GO.terms <- rbind(GO.terms, tmpGO.terms)
       #cat("ok...\n")
@@ -936,11 +936,11 @@ if (length(wFltL)) {
       wh <- match(GO_tbl$ID, GO.terms$ID)
       if (P_adjust) {
         GO_tbl$"adj. Pvalue" <- p.adjust(GO_tbl$"Pvalue", "BH")
-        GO.terms[[paste0("adj. Pvalue - ", n1)]] <- NA
+        GO.terms[[paste0("adj. Pvalue - ", n1)]] <- NA_real_
         GO.terms[wh, paste0("adj. Pvalue - ", n1)] <- GO_tbl$"adj. Pvalue"
         thresh <- data.frame(Threshold = GO_FDR)
       } else {
-        GO.terms[, paste0("Significance - ", n1, " ", GO_FDR*100, "%")] <- NA
+        GO.terms[, paste0("Significance - ", n1, " ", GO_FDR*100, "%")] <- NA_character_
         thresh <- as.data.frame(sapply(Ont[Wh1], \(x) { GO_FDR*NA }))
         thresh$FDR <- GO_FDR
         for (ont in Ont[Wh1]) { #ont <- Ont[Wh1][1L]
@@ -1011,14 +1011,14 @@ if (length(wFltL)) {
       GO_tbl$logFC <- vapply(GO_tbl$Rows, \(x) {
         log_ratio_av(Prot[x, FCkol])
       }, 1)
-      GO.terms[[paste0("logFC - ", n1)]] <- NA
+      GO.terms[[paste0("logFC - ", n1)]] <- NA_real_
       GO.terms[wh, paste0("logFC - ", n1)] <- as.numeric(GO_tbl$logFC)
       # Calculate Z score
       if (True_Zscore) {
         sd <- sd(is.all.good(GO_tbl$logFC))
         m <- mean(is.all.good(GO_tbl$logFC))
         GO_tbl$"Z-score" <- (GO_tbl$logFC - m)/sd
-        GO.terms[[paste0("Z-score - ", n1)]] <- NA
+        GO.terms[[paste0("Z-score - ", n1)]] <- NA_real_
         GO.terms[wh, paste0("Z-score - ", n1)] <- GO_tbl$"Z-score"
       } else {
         # "Z score" analog as used in package GOplot (see https://cran.r-project.org/web/packages/GOplot/vignettes/GOplot_vignette.html)
@@ -1026,14 +1026,14 @@ if (length(wFltL)) {
         GO_tbl$"Z-score" <- vapply(GO_tbl$Rows, \(x) {
           x <- is.all.good(Prot[x, FCkol])
           l <- length(x)
-          if (!l) { return(NA) }
+          if (!l) { return(NA_real_) }
           x <- is.all.good(x)-m
           x <- x[which(x != 0)]
           x <- ifelse(x > 0, 1L, -1L)
           x <- sum(x)/sqrt(l)
           return(x)
         }, 1)
-        GO.terms[[paste0("(N_Up - N_Down)/sqrt(Tot.) - ", n1)]] <- NA
+        GO.terms[[paste0("(N_Up - N_Down)/sqrt(Tot.) - ", n1)]] <- NA_real_
         GO.terms[wh, paste0("(N_Up - N_Down)/sqrt(Tot.) - ", n1)] <- GO_tbl$"Z-score"
       }
       Xmin <- suppressWarnings(min(is.all.good(c(GO_tbl$"Z-score", -1L))))

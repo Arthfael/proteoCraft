@@ -154,7 +154,7 @@ Volcano.plot <- function(Prot,
                          saveData = FALSE,
                          contrasts) {
   TESTING <- FALSE
-  #DefArg(Volcano.plot); Symmetrical <- TRUE; TESTING <- TRUE; cl <- parClust;if (!exists("isSAM")) { isSAM <- FALSE };if (!exists("SAM_thresh")) { SAM_thresh <- NA }
+  #DefArg(Volcano.plot); Symmetrical <- TRUE; TESTING <- TRUE; cl <- parClust;if (!exists("isSAM")) { isSAM <- FALSE };if (!exists("SAM_thresh")) { SAM_thresh <- NA_real_ }
   #
   #Prot = PG; mode = "custom"; experiments.map = Exp.map; X.root = paste0("Mean ", Prot.Rat.Root); Y.root = pvalue.col[which(pvalue.use)]; aggregate.map = Aggregate.map; aggregate.name = Volcano.plots.Aggregate.Level$aggregate; aggregate.list = Aggregate.list;parameters = Param; save = c("jpeg", "pdf"); labels = c("FDR", "both")[isSAM+1]; Ref.Ratio.values = Ref.Ratios; ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates); FDR.thresh = FDR.thresholds; arbitrary.lines = arbitrary.thr; proteins = prot.list;  proteins_split = protsplit; return = TRUE;  return.plot = TRUE; title.root = "FDR-type ";subfolder = "Reg. analysis/t-tests"; subfolderpertype = FALSE; Alpha = "Rel. log10(Peptides count)"; Size = "Av. log10 abundance";  Size.max = 2; plotly = create_plotly; plotly_local = create_plotly_local; FDR.thresh = FDR.thresholds; SAM = isSAM; curved_Thresh = SAM_thresh
   # OR (F-test, proteins)
@@ -265,7 +265,7 @@ Volcano.plot <- function(Prot,
   }
   if (regProvided) {
     labels <- c("regulated",
-                labels[which(labels == c("proteins"))],
+                labels[which(labels == "proteins")],
                 "FDR")
   }
   useFDRtbl <- FALSE
@@ -321,8 +321,8 @@ Volcano.plot <- function(Prot,
     FDR_table$fdr.col.line <- fdr.col.line[m]
   }
   if (!Contaminants) {
-    kontkol <- c("Contaminant", "Potential contaminant")
-    kontkol <- kontkol[which(kontkol %in% colnames(Prot))]
+    kontkol <- intersect(c("Contaminant", "Potential contaminant"),
+                         colnames(Prot))
     if (length(kontkol) != 1L) {
       warning("I could not identify the contaminants column, did you already filter out contaminants?")
       Contaminants <- TRUE
@@ -444,7 +444,7 @@ Volcano.plot <- function(Prot,
   A <- if (useContrasts) {
     contrasts$Contrast
   } else {
-    A[which(A %in% experiments.map[[B]])]
+    intersect(A, experiments.map[[B]])
   }
   lA <- length(A)
   #
@@ -482,7 +482,7 @@ Volcano.plot <- function(Prot,
   if (misFun(plotly_labels)) { # Create those even if plotly off!
     plotly_labels <- setNames(c("Labels", IDs.col, "Genes"),
                               c("Name(s)", "Accession(s)", "Gene(s)")) # (column "Labels" gets created later, before we use those columns: should not break!)
-    plotly_labels <- plotly_labels[which(plotly_labels %in% colnames(Prot))]
+    plotly_labels <- intersect(plotly_labels, colnames(Prot))
   } else {
     wlabkol <- which(plotly_labels %in% colnames(Prot))
     if (plotly && (length(wlabkol) < length(plotly_labels))) {
@@ -503,8 +503,8 @@ Volcano.plot <- function(Prot,
     if (misFun(Proteins.col) || (!Proteins.col %in% colnames(Prot))) { Proteins.col <- IDs.col }
     proteins <- gsub("^CON_+", "", proteins)
     Prot[[Proteins.col]] <- gsub(";CON_+", ";", gsub("^CON_+", "", Prot[[Proteins.col]]))
-    proteins <- proteins[which(proteins %in% unique(unlist(strsplit(Prot[[Proteins.col]], ";"))))]
-    useProtList <- length(proteins) > 0
+    proteins <- intersect(proteins, unique(unlist(strsplit(Prot[[Proteins.col]], ";"))))
+    useProtList <- length(proteins) > 0L
     if (useProtList) {
       Prot$Found_in_List <- FALSE
       wLst <- grsep2(proteins, Prot[[Proteins.col]])
@@ -637,7 +637,7 @@ Volcano.plot <- function(Prot,
   weech <- which(Prot$Labels == "")
   id.col <- unique(c(IDs.col, "Common Names", "Common Name (short)", "Names", "Name", "Genes", "Gene", "Code"))
   id.col <- c(id.col, tolower(id.col), toupper(id.col))
-  id.col <- id.col[which(id.col %in% colnames(Prot))]
+  id.col <- intersect(id.col, colnames(Prot))
   if (length(weech)) {
     kount <- 0L
     while (length(weech) && (kount < length(id.col))) {
@@ -686,8 +686,8 @@ Volcano.plot <- function(Prot,
     e <- c(xKol, yKol)
     #
     # Below: should never occur, we already checked and filtered -> candidate code for deletion:
-    #e <- e[which(e %in% colnames(Prot))]
-    #stopifnot(length(e) == 2)
+    #e <- intersect(e, colnames(Prot))
+    #stopifnot(length(e) == 2L)
     #
     plot.metrics <- Plot.metrics
     plot.metrics$Name <- ""
@@ -720,7 +720,7 @@ Volcano.plot <- function(Prot,
         if ("Sample" %in% colnames(fdr_table)) {
           f1 <- paste0(f1, " - ", i)
         }
-        f1 <- f1[which(f1 %in% colnames(Prot))]
+        f1 <- intersect(f1, colnames(Prot))
         f2 <- paste0("FDR=", sort(fdr.values, decreasing = TRUE), "%")
         temp[, f2] <- Prot[Wych[[i]], f1]
         test <- apply(temp[, rev(f2), drop = FALSE], 1L, \(x) {
@@ -779,7 +779,7 @@ Volcano.plot <- function(Prot,
         which(experiments.map[[aggregate.name]] == i)
       }
       target <- unique(unlist(strsplit(experiments.map$Target[w], ";")))
-      target <- target[which(!target %in% c("", "NA", NA))]
+      target <- setdiff(target, c("", "NA", NA))
       target <- unique(gsub("^CON_+", "", target))
       use_target <- length(target) > 0L
     }
@@ -879,7 +879,7 @@ Volcano.plot <- function(Prot,
               wU <- wA[which(temp$X[wA] > samMd)]
               temp$Colour[wU] <- FDR_table$fdr.col.up[w]
               if (symm) {
-                #wA[which(!wA %in% c(wU, wD))]
+                #setdiff(wA, c(wU, wD))
                 wD <- wA[which(temp$X[wA] < samMd)]
                 temp$Colour[wU] <- FDR_table$fdr.col.down[w]
               }
@@ -999,7 +999,7 @@ Volcano.plot <- function(Prot,
     }
     if ("proteins" %in% labels) {
       w <- which(temp$Colour %in% c("protein in list", "target"))
-      noLbl <- noLbl[which(!noLbl %in% w)]
+      noLbl <- setdiff(noLbl, w)
     }
     temp$Labels[noLbl] <- ""
     w1 <- if (useFDRtbl || (mode == "curved")) {
@@ -1010,7 +1010,7 @@ Volcano.plot <- function(Prot,
     w0 <- which(temp$Colour %in% c("non significant", "too small FC"))
     if (prot_split && ("Colour2" %in% colnames(temp))) {
       w2 <- which((temp$Colour2 == "protein in list"))
-      w1 <- w1[which(!w1 %in% w2)] # Here it could be that we have overlap of w1 and w2 => we don't want that!
+      w1 <- setdiff(w1, w2) # Here it could be that we have overlap of w1 and w2 => we don't want that!
     } else { w2 <- which((temp$Colour == "protein in list")) }
     w3 <- which(temp$Colour == "target")
     temp <- rbind(temp[w0,], temp[w1,], temp[w2,], temp[w3,])
@@ -1056,7 +1056,7 @@ Volcano.plot <- function(Prot,
       pluses <- c(pluses, "ggplot2::scale_size_identity(Size, guide = \"legend\")"#, "fillScale")
       )
     } else { non.aes$size <- "Size" }
-    pluses <- c(pluses, "ggplot2::scale_y_continuous(expand = c(0, 0))")
+    pluses <- c(pluses, "ggplot2::scale_y_continuous(expand = c(0L, 0L))")
     if (!test[2L]) {
       aes$alpha <- "Alpha"
       pluses <- if (Alpha.identity) { c(pluses, "ggplot2::scale_alpha_identity(Alpha)") } else {
@@ -1064,7 +1064,7 @@ Volcano.plot <- function(Prot,
       }
     } else { non.aes$alpha <- "Alpha" }
     pluses <- gsub(", ___\\)", ")", pluses)
-    pluses <- pluses[which(pluses != "ggplot2::guides(___)")]
+    pluses <- setdiff(pluses, "ggplot2::guides(___)")
     test1 <- sapply(aes[1L,], \(x) { which(colnames(temp) == x) })
     test2 <- vapply(test1, \(x) { is.numeric(temp[[x]]) }, TRUE)
     test1 <- test1[which(test2)]
@@ -1289,11 +1289,11 @@ Volcano.plot <- function(Prot,
         for (j in 1L:nrow(arbitrary.thresh)) {
           if (!is.na(arbitrary.thresh$xintercept[j])) {
             warning("Significance thresholds are horizontal, \"xintercept\" will be ignored!")
-            arbitrary.thresh$xintercept[j] <- NA
+            arbitrary.thresh$xintercept[j] <- NA_real_
           }
           if (!arbitrary.thresh$slope[j] %in% c(NA, 0)) {
             warning("Significance thresholds are horizontal, \"slope\" will be ignored!")
-            arbitrary.thresh$xintercept[j] <- 0L
+            arbitrary.thresh$xintercept[j] <- 0
           }
           plot <- plot +
             ggplot2::geom_hline(yintercept = arbitrary.thresh$yintercept[j],

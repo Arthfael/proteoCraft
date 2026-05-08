@@ -1,6 +1,6 @@
-# Sourced script to
-# - Calculate average values
-# - Run statistical tests (except F-test, which is done somewhere else)
+# Perform statistical tests
+# (except ANOVA and SAINTexpress, which have their own sources)
+
 bhFDRs %<o% sort(BH.FDR, decreasing = FALSE)
 samRoots %<o% c(samRoot,
                 paste0("SAM regulated-FDR=", paste(100*bhFDRs, collapse = "/"), "% FDR - "))
@@ -107,7 +107,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
   # Here you could use decideTests() if wanting to switch to directly using decisions from limma
   if (TEST == "limma") {
     kols <- paste0(pRoot, colnames(contrMatr))
-    myData[, kols] <- NA
+    myData[, kols] <- NA_real_
     w <- which(myData[[namesCol]] %in% fit2$genes)
     m <- match(myData[w, namesCol], fit2$genes)
     myData[w, kols] <- -log10(fit2$p.value[m,])
@@ -169,7 +169,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
         contrNm <- colnames(contrMatr)[i]
         DEqMS.results <- outputResult(fit3, coef_col = i)
         kol <- paste0(deqmsRoot, contrNm)
-        myData[[kol]] <- NA
+        myData[[kol]] <- NA_real_
         w <- which(myData[[namesCol]] %in% row.names(DEqMS.results))
         m <- match(myData[[namesCol]][w], row.names(DEqMS.results))
         myData[w, kol] <- -log10(DEqMS.results$sca.P.Value[m])
@@ -283,9 +283,9 @@ if (length(whSingle)) {
       tst1 <- try(t.test(x = vB, y = vA, paired = Nested, alternative = altHyp, var.equal = TRUE)$p.value, silent = TRUE)
       tst2 <- try(t.test(x = vB, y = vA, paired = Nested, alternative = altHyp, var.equal = FALSE)$p.value, silent = TRUE)
       tst3 <- try(pairwise_coin_test(dt, altHyp), silent = TRUE)
-      if (inherits(tst1, "try-error")) { tst1 <- NA }
-      if (inherits(tst2, "try-error")) { tst2 <- NA }
-      if (inherits(tst3, "try-error")) { tst3 <- NA }
+      if (inherits(tst1, "try-error")) { tst1 <- NA_real_ }
+      if (inherits(tst2, "try-error")) { tst2 <- NA_real_ }
+      if (inherits(tst3, "try-error")) { tst3 <- NA_real_ }
       res <- c(tst1,
                tst2,
                tst3)
@@ -332,8 +332,8 @@ if (length(whSingle)) {
   # but the SAM procedure itself can be used to identify regulated genes.
   #
   tmpData2 <- as.matrix(tmpData)
-  tmpData2[which(!is.finite(tmpData2), arr.ind = TRUE)] <- NA
-  tmpData2[which(is.nan(tmpData2), arr.ind = TRUE)] <- NA
+  tmpData2[which(!is.finite(tmpData2), arr.ind = TRUE)] <- NA_real_
+  tmpData2[which(is.nan(tmpData2), arr.ind = TRUE)] <- NA_real_
   tmpData2 <- as.data.frame(tmpData2)
   # Careful: siggenes truncates names at 50 characters!!!
   # So we will just create artificial short names

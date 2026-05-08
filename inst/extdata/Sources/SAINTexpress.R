@@ -116,7 +116,7 @@ if (saintExprs) {
     em <- Exp.map[c(w0, w1), c("Ref.Sample.Aggregate", VPAL$column, RG$column, "Target")]
     em$Reference <- c(rep(TRUE, length(w0)),
                       rep(FALSE, length(w1)))
-    em$Contrast <- NA
+    em$Contrast <- NA_character_
     w0 <- which(em$Reference)
     w1 <- which(!em$Reference)
     em$Contrast[w1] <- allContr$Contr[[ii]][match(em[w1, VPAL$column], allContr$Treat[[ii]])]
@@ -155,16 +155,16 @@ if (saintExprs) {
       #x <- mtch$`PG ids`[[grep(prot.list[1L], mtch$Protein)]]
       m <- match(unlist(x), tmp$id)
       if (!length(m)) { stop(x) }
-      x1 <- x2 <- round(as.matrix(tmp[m, kol, drop = FALSE]), 6)
+      x1 <- x2 <- round(as.matrix(tmp[m, kol, drop = FALSE]), 6L)
       # - remove values based on no PSMs
       y <- as.matrix(tmp[m, kolk, drop = FALSE])
       w <- which(y == 0L, arr.ind = TRUE)
-      x2[w] <- NA
+      x2[w] <- NA_real_
       # - also remove (in case we used limpa) values from the same row and with the same value as removed values
       x2 <- lapply(1L:nrow(x1), \(i) {
         rmv <- x1[i, which(is.na(x2[i,]) & !is.na(x1[i,]))]
         keep <- x2[i,]
-        keep[which(keep %in% rmv)] <- NA
+        keep[which(keep %in% rmv)] <- NA_real_
         return(keep)
       })
       x2 <- do.call(rbind, x2)
@@ -296,7 +296,7 @@ if (saintExprs) {
   if (SUCCESS) {
     ArbThr <- data.frame(yintercept = -log10(BH.FDR),
                          slope = 0,
-                         xintercept = NA,
+                         xintercept = NA_real_,
                          colour = colorRampPalette(c("orange", "red"))(length(BH.FDR)),
                          label = paste0(BH.FDR*100, "% FDR"))
     k1 <- grep("^BFDR - ", colnames(allSAINTs), value = TRUE)

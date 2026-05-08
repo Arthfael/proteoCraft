@@ -14,7 +14,7 @@ log_ratio_av <- function(x) {
   x1 <- is.all.good(as.numeric(unlist(x)))
   if (length(x1)) { x1 <- mean(x1) } else {
     x1 <- unique(x[which(!is.na(x))])
-    if (length(x1) != 1) { x1 <- NA }
+    if (length(x1) != 1L) { x1 <- NA_real_ }
   }
   return(x1)
 }

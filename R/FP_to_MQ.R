@@ -577,8 +577,8 @@ FP_to_MQ <- function(FP_Workflow,
     tmp3 <- unique(unlist(strsplit(tmp2, ", _;_")))
     tmp3 <- gsub("^Mod[0-9]+: ", "", grep("^Mod[0-9]+: ", tmp3, value = TRUE))
     tmp4 <- data.frame(Full = tmp3,
-                       `Mass delta` = NA,
-                       PeakApex = NA,
+                       `Mass delta` = NA_real_,
+                       PeakApex = NA_real_,
                        check.names = FALSE)
     #tmp4 <- tmp4[grep("^Unannotated mass-shift |^Unidentified modification of ", tmp4$Full, invert = TRUE),]
     #tmp4 <- tmp4[grep("^((First)|(Second)|(Third)) isotopic peak|^Isotopic peak error$", tmp4$Full, invert = TRUE),]
@@ -596,7 +596,7 @@ FP_to_MQ <- function(FP_Workflow,
     tmp4$PeakApex <- NULL
     tmp4$Full <- NULL
     #tmp4$Enabled <- NA
-    #mp4$"Max occurences" <- NA
+    #mp4$"Max occurences" <- NA_real_
     tmp4$AA <- lapply(1L:nrow(tmp4), \(x) { c() })
     tmp4$Type <- "Delta mass"
     tmp4$"Type of search" <- "Open"

@@ -144,8 +144,8 @@ allQuantAlgos %<o% data.frame(Algorithm = c("limpa",
                                        "The fast version of MaxLFQ as implemented in package iq.",
                                        "QFeatures aggregateFeatures() uses a robust summarization procedure and is meant to be used upstream of msqrob2 statistics."))
 quantAlgoOpt %<o% allQuantAlgos$Algorithm
-if (scrptType == "noReps") { # limpa needs at least 2 samples
-  quantAlgoOpt <- quantAlgoOpt[which(!quantAlgoOpt == "limpa")]
+if ((scrptType == "noReps") && (length(Exp) == 1L)) { # limpa needs at least 2 samples
+  quantAlgoOpt <- setdiff(quantAlgoOpt, "limpa")
 }
 if (("QuantMeth" %in% names(AnalysisParam))&&(!"Quant_algorithm" %in% names(AnalysisParam))) { # Old AnalysisParameter name
   AnalysisParam$Quant_algorithm <- AnalysisParam$QuantMeth
@@ -155,7 +155,7 @@ if ((!validCharPar("quantAlgo", quantAlgoOpt))&&("Quant_algorithm" %in% names(An
   if (validCharPar("tmp1", quantAlgoOpt)) { quantAlgo <- tmp1 }
 }
 if (!validCharPar("quantAlgo", quantAlgoOpt)) {
-  quantAlgo <- c("LM", "limpa")[match(scrptType, c("noReps", "withReps"))]
+  quantAlgo <- c("LM", "LM")[match(scrptType, c("noReps", "withReps"))] # limpa is now demoted
 }
 quantAlgo %<o% quantAlgo
 AnalysisParam$Quant_algorithm <- quantAlgo
@@ -176,8 +176,8 @@ allReScAlgoOpt %<o% data.frame(Algorithm = c("limpa",
                                            "Re-scale to the sum of all quantitative peptide intensities (makes no sense, but you can do it anyway)",
                                            "Use MaxLFQ's scale"))
 reScAlgoOpt %<o% allReScAlgoOpt$Algorithm
-if (scrptType == "noReps") { # limpa needs at least 2 samples
-  reScAlgoOpt <- reScAlgoOpt[which(!reScAlgoOpt == "limpa")]
+if ((scrptType == "noReps") && (length(Exp) == 1L)) { # limpa needs at least 2 samples
+  reScAlgoOpt <- setdiff(reScAlgoOpt, "limpa")
 }
 if ((!validCharPar("reScAlgo", reScAlgoOpt))&&("ReScaling_algorithm" %in% names(AnalysisParam))) {
   tmp1 <- AnalysisParam$ReScaling_algorithm

@@ -32,21 +32,21 @@ shinySelectInput <- function(startVal,
                              width = "600px",
                              NAs = TRUE) {
   l <- length(startVal)
-  stopifnot(l > 0)
+  stopifnot(l > 0L)
   levels <- unique(levels)
-  stopifnot(length(levels) > 0)
+  stopifnot(length(levels) > 0L)
   if (NAs) {
     startVal[which(!startVal %in% levels)] <- NA
     levels <- unique(c(levels, NA))
   } else {
     levels <- levels[which(!is.na(levels))]
-    stopifnot(length(levels) > 0)
-    startVal[which(!startVal %in% levels)] <- levels[1]
+    stopifnot(length(levels) > 0L)
+    startVal[which(!startVal %in% levels)] <- levels[1L]
   }
   rg <- seq_len(l)
   ids <- paste0(root, "___", as.character(rg))
-  if ((length(width) != 1)||(is.na(width))||(is.null(width))) {
-    width <- paste0(600, "px")
+  if ((length(width) != 1L)||(is.na(width))||(is.null(width))) {
+    width <- paste0(600L, "px")
   }
   inputs <- vapply(rg, function(i) {
     as.character(shiny::selectInput(ids[i],

@@ -96,7 +96,7 @@ FDR <- function(data,
     P$Pvalues <- 10L^(-P$Pvalues) #... de-log them.
   }
   P$Order <- 1L:nrow(P)
-  P$Rank <- NA
+  P$Rank <- NA_real_
   P$All.Good <- is.all.good(P$Pvalues, 2L)
   w1 <- which(P$All.Good)
   N <- length(w1)
@@ -112,7 +112,7 @@ FDR <- function(data,
       thresh <- signifKols <- crtKols <- fdrKols <- c()
     }
     adjKol <- paste0("Adj. P-values")
-    P[[adjKol]] <- NA
+    P[[adjKol]] <- NA_real_
     P[w2, adjKol] <- P$Pvalues[w2]*N*CN/P$Rank[w2] # Basic BH/BY adjusted p-value formula
     # Enforce monotonicity (BH definition)
     # P[w2, adjKol] <- vapply(w2, \(x) { # old buggy code
@@ -123,7 +123,7 @@ FDR <- function(data,
     if (reqFDR) {
       for (j in 1L:lFDR) { #j <- 3L
         crtKols[j] <- crtKol <- paste0("Critical_", fdr[j])
-        P[[crtKol]] <- NA
+        P[[crtKol]] <- NA_real_
         P[w2, crtKol] <- P$Rank[w2]*fdr[j]/(N*CN)
         tt <- which(P$Pvalues[w2] <= P[w2, crtKol])
         fdrKols[j] <- fdrKol <- as.character(fdr[j])

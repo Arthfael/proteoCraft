@@ -40,14 +40,14 @@ tmp4 <- setNames(parLapply(parClust, smpls, \(smpl) { #smpl <- smpls[1L]
   m <- match(smpl, Exp.map$Ref.Sample.Aggregate)
   mqe <- unlist(Exp.map$MQ.Exp[m])
   w2 <- which(tmp$MQ.Exp %in% mqe)
-  tmp2 <- data.frame(mod = NA, Intensity = NA)
+  tmp2 <- data.frame(mod = NA, Intensity = NA_real_)
   if (length(w2)) {
     if (LabelType == "Isobaric") {
       j <- as.character(sort(as.numeric(Exp.map$"Isobaric label"[m])))
       tmp3 <- tmp[w2, paste0(ev.ref[length(ev.ref)], j), drop = FALSE]
       for (k in j) {
         kk <- paste0(ev.ref[length(ev.ref)], j)
-        tmp3[which(!is.all.good(tmp3[[kk]], 2L)), kk] <- NA
+        tmp3[which(!is.all.good(tmp3[[kk]], 2L)), kk] <- NA_real_
       }
       if (length(j) > 1) { tmp3 <- apply(tmp3, 1L, sum, na.rm = TRUE) } # Ultra-rare cases where the same parent sample is in different isobaric channels in different fractions
       tmp2 <- data.table(mod = tmp$"Modified sequence"[w2],
@@ -56,7 +56,7 @@ tmp4 <- setNames(parLapply(parClust, smpls, \(smpl) { #smpl <- smpls[1L]
     if (LabelType == "LFQ") {
       tmp2 <- data.table(mod = tmp$"Modified sequence"[w2],
                          Intensity = tmp[w2, ev.col[length(ev.col)]])
-      tmp2$Intensity[which(!is.all.good(tmp2$Intensity, 2L))] <- NA
+      tmp2$Intensity[which(!is.all.good(tmp2$Intensity, 2L))] <- NA_real_
     }
     tmp2 <- tmp2[, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
     tmp2 <- as.data.frame(tmp2)

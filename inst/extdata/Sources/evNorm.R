@@ -110,7 +110,7 @@ if (Param$Norma.Ev.Intens) {
   tmp <- data.frame(Grp = as.character(sapply(mrmgrps, \(x) { rep(x, length(fr)) })),
                     Frac = as.character(rep(fr, length(mrmgrps))))
   tmp$Nm <- do.call(paste, c(tmp, sep = "_"))
-  ev$"Normalisation group + Fraction" <- NA
+  ev$"Normalisation group + Fraction" <- NA_character_
   for (i in 1L:nrow(tmp)) {
     w <- which((ev$"Normalisation group" == tmp$Grp[i])&(ev$Fraction == tmp$Frac[i]))
     ev$"Normalisation group + Fraction"[w] <- tmp$Nm[i]
@@ -131,7 +131,7 @@ if (Param$Norma.Ev.Intens) {
     # (Per fractions X PTM enrichment group)
     # Step 1a:
     ev.col["Normalisation"] <- paste0("norm. ", ev.col["Original"])
-    ev[[ev.col["Normalisation"]]] <- NA
+    ev[[ev.col["Normalisation"]]] <- NA_real_
     Norm.Ev %<o% data.frame(Group = unique(Norma.Ev.Intens.Groups$Groups))
     Grps2 <- MQ.Exp
     Grps2Kol <- "MQ.Exp"
@@ -164,7 +164,7 @@ if (Param$Norma.Ev.Intens) {
       cat(paste0(msg, "\n", collapse = "\n"))
       txtAdv <- "Evidence MS1 intensities"
       ev.col["Advanced normalisation"] <- paste0("AdvNorm. ", ev.col["Original"])
-      ev[[ev.col["Advanced normalisation"]]] <- NA
+      ev[[ev.col["Advanced normalisation"]]] <- NA_real_
       AdvNorm.Ev %<o% data.frame(Group = unique(Norma.Ev.Intens.Groups$Groups))
       for (grp2 in Grps2) { AdvNorm.Ev[[paste0("Grp", grp2)]] <- 1L }
       for (grp in Norm.Ev$Group) { #grp <- Norm.Ev$Group[1L]
@@ -203,17 +203,17 @@ if (Param$Norma.Ev.Intens) {
     ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
     # Per combined sample
     er1 <- ev.ref["Normalisation"] <- paste0("Norm. ", ev.ref["Original"])
-    er0 <- ev.ref[match("Normalisation", names(ev.ref))-1]
+    er0 <- ev.ref[match("Normalisation", names(ev.ref))-1L]
     k0 <- paste0(er0, get(IsobarLab))
     k1 <- paste0(er1, get(IsobarLab))
-    ev[, k1] <- NA
+    ev[, k1] <- NA_real_
     Norm.Ev.RepIntens %<o% data.frame(Group = Iso)
     for (ch in get(IsobarLab)) { Norm.Ev.RepIntens[[paste0("Channel_", ch)]] <- 1L }
     for (i in Iso) { #i <- Iso[1L]
       wg <- which(ev$Isobaric.set == i)
       M3 <- 10^median(is.all.good(log10(unlist(ev[wg, k0])))) # For preserving original scale
       #M <- 10^mlv(is.all.good(log10(unlist(w[wg, ev.col["Original"]]))), method = "Parzen")[1L]
-      m3 <- vapply(get(IsobarLab), \(ch) { 10^median(is.all.good(log10(ev[wg, paste0(er0, ch)]))) }, 1)
+      m3 <- vapply(get(IsobarLab), \(ch) { 10L^median(is.all.good(log10(ev[wg, paste0(er0, ch)]))) }, 1)
       ev[wg, k1] <- sweep(ev[wg, k0], 2L, M3/m3, "*")
       Norm.Ev.RepIntens[match(i, Norm.Ev.RepIntens$Group), paste0("Channel_", get(IsobarLab))] <- m3/M3
     }
@@ -230,7 +230,7 @@ if (Param$Norma.Ev.Intens) {
         er0 <- ev.ref["Normalisation"]
         k0 <- paste0(er0, get(IsobarLab))
         k1 <- paste0(er1, get(IsobarLab))
-        ev[, k1] <- NA
+        ev[, k1] <- NA_real_
         AdvNorm.Ev.RepIntens %<o% data.frame(Group = Iso)
         tmpEv <- ev[, c("Isobaric.set", "Unique State", k0)]
         tmpEv$Fraction <- if ("Fraction" %in% colnames(ev)) { ev$Fraction } else { 1L }
@@ -417,7 +417,7 @@ if (LabelType == "Isobaric") {
   test <- as.data.table(ev[, c("MQ.Exp", a0, a1)])
   test <- data.table::melt(test, id.vars = "MQ.Exp")
   test <- as.data.frame(test)
-  test$Norm <- NA
+  test$Norm <- NA_character_
   test$Norm[which(test$variable %in% a0)] <- "Original"
   test$Norm[which(test$variable %in% a1)] <- "Normalised"
   test$Norm <- factor(test$Norm, levels = c("Original", "Normalised"))

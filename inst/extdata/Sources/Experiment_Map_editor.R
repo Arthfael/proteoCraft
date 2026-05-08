@@ -430,8 +430,8 @@ kol1 <- c("MQ.Exp", "Parent sample", "Sample name", "Use")
 if (LabelType == "Isobaric") {
   kol1 <- unique(c(kol1, "Isobaric label", "Isobaric label details"))
 }
-kol2 <- c("Fractions", "Proportion", Factors)
-kol2 <- kol2[which(kol2 %in% colnames(Exp.map))]
+kol2 <- intersect(c("Fractions", "Proportion", Factors),
+                  colnames(Exp.map))
 Exp.map2 <- aggregate(Exp.map[, kol1],
                       lapply(kol2, \(k) {
                         x <- Exp.map[[k]]

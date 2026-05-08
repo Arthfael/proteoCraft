@@ -11,7 +11,7 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 # Norm.log2.Pep.Ratios <- c()
 # NormGrps <- unique(pep$`Normalisation group`)
 # g <- grep(topattern(pep.ratios.ref[1L]), colnames(pep), value = TRUE)
-# pep[, paste0("norm. ", g)] <- NA
+# pep[, paste0("norm. ", g)] <- NA_real_
 # for (nrmgrp in NormGrps) {
 #   w <- which(pep$`Normalisation group` == nrmgrp)
 #   for (k in g) {

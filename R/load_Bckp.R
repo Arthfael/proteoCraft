@@ -235,7 +235,7 @@ load_Bckp <- function(backup,
     #     if (length(g0)) {
     #       ghash <- grep("^ *#", scrpt$call, invert = TRUE)
     #       f0 <- \(x) { #x <- .obj[4L]
-    #         rs <- NA
+    #         rs <- NA_integer_
     #         y <- c(grep(paste0("^ *", x, " *%<(o|c)%"), scrpt$call),
     #                grep(paste0("^ *\\.obj *<- *unique\\(c\\(", x, "\\)\\)"), scrpt$call))
     #         if (length(y)) {

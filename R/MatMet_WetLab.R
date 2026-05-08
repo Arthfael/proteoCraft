@@ -101,7 +101,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
       dimz <- c(x[3L], x[4L])
       w <- which(!is.na(dimz))
       dimzTst <- length(w) > 0L
-      if (dimzTst) { dimz <- paste(paste0(gsub("\\.0+$", "", dimz), c(" cm", " µm ID"))[w], collapse = " * ") } else { dimz <- NA }
+      dimz <- if (dimzTst) { paste(paste0(gsub("\\.0+$", "", dimz), c(" cm", " µm ID"))[w], collapse = " * ") } else { NA_character_ }
       pn <- c(x[6L], x[7L])
       w <- which(!is.na(pn))
       pnTst <- length(w) > 0L
@@ -113,7 +113,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
       prtclsTst <- length(w) > 0L
       prtcls <- if (prtclsTst) {
         paste(paste0(prtcls, c(" µm", "-coated particles"))[w], collapse = " ")
-      } else { prtcls <- NA }
+      } else { NA_character_ }
       res <- paste0(x[1L], " column (", paste(c(prtcls, dimz, pn)[which(c(prtclsTst, dimzTst, pnTst))], collapse = ", "), ")")
       res <- gsub("column column", "column", res, ignore.case = TRUE)
       return(res)

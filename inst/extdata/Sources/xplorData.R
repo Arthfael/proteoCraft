@@ -94,7 +94,9 @@ if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
         },
         if (quant_ON) {
           column(3L,
-                 selectInput("Sample", "Select Sample to plot", allSamples, allSamples[1L]))
+                 selectInput("Sample",
+                             paste0("Select Sample ", c("", "Group ")[(scrptType == "withReps")+1L], "to plot"),
+                             allSamples, allSamples[1L]))
         },
       )
     },

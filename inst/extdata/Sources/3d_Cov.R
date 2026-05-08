@@ -46,7 +46,7 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
   dbPID <- db$"Protein ID"[g2]
   source(parSrc)
   clusterExport(parClust,
-                list("grsep", "grsep2", "listMelt", "cov3D", "annot_to_tabl",
+                list("grsep", "grsep2", "listMelt", "cov3D", "annot_to_tabl", "topattern", "cleanNms", "Exp",
                      "prVect", "intVect", "wd", "PDB_in_DB", "SCV_PTMs", "dbPDB", "dbPID", "Modifs", "valid_url", "modSq",
                      "AA_table", "AA"),
                 envir = environment())

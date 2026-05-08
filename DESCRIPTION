@@ -1,6 +1,6 @@
 Package: proteoCraft
 Title: Functions and scripts for Proteomics Data Analysis
-Version: 4.0.3
+Version: 4.0.4
 Date: 2026-04-22
 Authors@R: 
     person("Armel", "Developer", , "armel.nicolas@ista.ac.at", role = c("aut", "cre"))
@@ -18,7 +18,6 @@ Remotes:
 	omegahat/RDCOMClient
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.3
 Config/testthat/edition: 3
 Imports: 
     abind,
@@ -370,3 +369,4 @@ Imports:
     yulab.utils,
     zip,
     zoo
+Config/roxygen2/version: 8.0.0

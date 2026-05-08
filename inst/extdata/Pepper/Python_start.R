@@ -40,12 +40,12 @@ if ("Python" %in% locDirs$Folder) {
                      install_path = gsub("\\\\python\\.exe$", "\\\\", tmp),
                      executable_path = gsub("\\\\python\\.exe$", "\\\\\\\\python.exe", tmp),
                      arch = "x64")
-  tmp2$version <- sapply(paste0(tmp2$install_path, "NEWS.txt"), function(x) { #x <- paste0(tmp2$install_path, "NEWS.txt")[1]
+  tmp2$version <- sapply(paste0(tmp2$install_path, "NEWS.txt"), \(x) { #x <- paste0(tmp2$install_path, "NEWS.txt")[1L]
     if (file.exists(x)) {
       x <- readLines(x)
-      x <- grep("What's New in Python ", x, value = TRUE)[1]
+      x <- grep("What's New in Python ", x, value = TRUE)[1L]
       x <- gsub(" .+", "", gsub("What's New in Python ", "", x))
-    } else { x <- NA }
+    } else { x <- NA_character_ }
     return(x)
   })
   pyPaths <- py_versions_windows()
@@ -69,7 +69,7 @@ if ("Python" %in% locDirs$Folder) {
       pyPaths <- pyPaths[w,]
       tst <- strsplit(pyPaths$version, "\\.")
       mx <- max(sapply(tst, length))
-      tst <- as.data.frame(t(sapply(tst, function(x) {
+      tst <- as.data.frame(t(sapply(tst, \(x) {
         l <- length(x)
         if (l < mx) { x <- c(x, rep(NA, mx-l)) }
         return(as.integer(x))

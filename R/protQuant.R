@@ -200,7 +200,7 @@ protQuant <- function(Prot,
             nPep_0 > 0L,
             is.character(pg_PepIDs),
             nchar(pg_PepIDs) > 0L,
-            length(pg_PepIDs) == 1,
+            length(pg_PepIDs) == 1L,
             pg_PepIDs %in% colnames(Prot),
             inherits(Prot[[pg_PepIDs]], c("character", "integer", "numeric")),
             inherits(N_unique, c("numeric", "integer", "logical")),
@@ -401,13 +401,19 @@ protQuant <- function(Prot,
   stopifnot(length(w) > 0L)
   mySmpls <- mySmpls[w]
   Pep.Intens.Nms <- Pep.Intens.Nms[w]
+  #
+  w <- which(apply(Pep[, Pep.Intens.Nms, drop = FALSE], 1L, \(x) {
+    length(is.all.good(x))
+  }) > 0L)
+  Pep <- Pep[w,]
+  #
   if (!skipRatios) {
     if (useContrasts) {
       Pep.Ratios.Nms <- paste0(pepRat_root, contrasts$Contrast)
     } else {
       Pep.Ratios.Nms <- paste0(pepRat_root, mySmpls)
     }
-    Pep.Ratios.Nms <- Pep.Ratios.Nms[which(Pep.Ratios.Nms %in% colnames(Pep))]
+    Pep.Ratios.Nms <- intersect(Pep.Ratios.Nms, colnames(Pep))
     if (Priority == "rat") { stopifnot(length(Pep.Ratios.Nms) > 0L) }
   }
   #
@@ -511,7 +517,7 @@ protQuant <- function(Prot,
       fltKol <- "Unmod_Seq"
     }
     tst <- nchar(mods_to_Exclude$Pattern)
-    mods_to_Exclude$Pattern[which(tst == 0L)] <- NA
+    mods_to_Exclude$Pattern[which(tst == 0L)] <- NA_character_
     pat <- paste0(mods_to_Exclude$Pattern[which(tst > 0L)], collapse = "|")
     if (nchar(pat)) {
       g <- grep(pat, Pep[[fltKol]])
@@ -973,8 +979,8 @@ protQuant <- function(Prot,
       }
       #
       # Code to replace every value based on 0 observations with NA:
-      # w <- which(dpcRes$other$n.observations == 0)
-      # res2c[w] <- NA
+      # w <- which(dpcRes$other$n.observations == 0L)
+      # res2c[w] <- NA_real_
       # However, Gordon Smyth does not recommend doing it.
       # For a discussion about the proper usage of limpa, why there are no missing values in its output quant matrix,
       # or why it may output repeated values in a row,
@@ -999,7 +1005,7 @@ protQuant <- function(Prot,
       QFeat_obj <- QFeatures::aggregateFeatures(QFeat_obj,
                                                 i = "peptides",
                                                 fcol = "PG",
-                                                na.rm = TRUE,
+                                                na.rm = FALSE,
                                                 name = "PG")
       res2d <- as.data.frame(SummarizedExperiment::assay(QFeat_obj[["PG"]]))
       res2d <- res2d[match(names(quant_pep_IDs), row.names(res2d)),]
@@ -1159,7 +1165,7 @@ protQuant <- function(Prot,
     wY <- which(row.names(res2) %in% rescVal$PG)
     stopifnot(length(wY) > 0L)
     mY <- match(row.names(res2)[wY], rescVal$PG)
-    res2[wN, quntNms] <- NA
+    res2[wN, quntNms] <- NA_real_
     currValY <- rowMeans(res2[wY, quntNms, drop = FALSE], na.rm = TRUE)
     res2[wY, quntNms] <- sweep(res2[wY, quntNms, drop = FALSE], 1L, rescVal$Value[mY]-currValY, "+")
   }

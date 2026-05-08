@@ -7,7 +7,7 @@
 .SK2MQ_tmpModsWrkr(x)
 }
 \arguments{
-\item{x}{}
+\item{x}{Modified sequence.}
 }
 \description{
 Worker function used by Skyline_to_MQ().

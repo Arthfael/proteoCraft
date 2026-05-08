@@ -21,10 +21,11 @@ AdvNorm.IL(df, ids.col = "Unique State", exprs.col, exprs.log = FALSE, K = 5L)
 Normalized data. New column names are recycled from the original ones (in exprs.col), with "AdvNorm. " added as a prefix.
 }
 \description{
-This function performs simplified "advanced normalization" on the columns of a data.frame.
+This function performs simplified "advanced normalization" on the columns of a data.frame using the Levenberg Marquard procedure.
+This is overkill though, so an alternative is in the works and this will ultimately be phased out.
 }
 \details{
-This normalizes the data using the Levenberg Marquard procedure (aka. "advanced normalization") to minimize column-wise the sum square difference between different quantitative vectors.
+This normalizes the data using the Levenberg Marquard procedure to minimize column-wise the sum square difference between different quantitative vectors.
 The ".IL" suffix in the name stands for "isobaric labeling", because at first this was written with a TMT or iTRAQ reporter intensities data frame in mind.
 However, this can be used for any data frame of quantitative values.
 The input data.frame df must contain a column of IDs and 2 or more expression columns.

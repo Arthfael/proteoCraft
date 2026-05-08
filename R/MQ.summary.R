@@ -585,8 +585,8 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           m <- msmsScans[which(msmsScans$"Raw file" == r),]
           w1 <- which(m$Identified == "-")
           w2 <- which(m$Identified == "+")
-          temp[[paste0(r, "___Intensity_Not.identified")]] <- NA
-          temp[[paste0(r, "___Intensity_Identified")]] <- NA
+          temp[[paste0(r, "___Intensity_Not.identified")]] <- NA_real_
+          temp[[paste0(r, "___Intensity_Identified")]] <- NA_real_
           if (length(w1)) {
             tst1 <- vapply(m$"Retention time"[w1], \(x) { temp$Retention.time[which(temp$Retention.time >= x)[1L]] }, 1)
             temp1 <- aggregate(m$"Precursor intensity"[w1]/m$"Precursor apex fraction"[w1], list(tst1),

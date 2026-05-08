@@ -238,7 +238,7 @@ if ((scrptType == "noReps")&&(MakeRatios)) {
 # For testing:
 #DefArg(protQuant);TESTING <- TRUE
 #invisible(lapply(names(quantArgs), \(x) { assign(x, quantArgs[[x]], envir = .GlobalEnv); return() }))
-msg <- if (post_ReNorm_reRun) {  " -> Starting protein groups quantitation...\n" } else {
+msg <- if (post_ReNorm_reRun) { " -> Starting protein groups quantitation...\n" } else {
   " -> Protein groups re-quantitation from back-normalized peptides...\n"
 }
 cat(msg)

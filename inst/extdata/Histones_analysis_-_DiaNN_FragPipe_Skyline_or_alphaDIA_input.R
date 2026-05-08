@@ -1109,8 +1109,8 @@ tmp4 <- setNames(parLapply(parClust, allSamples, \(smpl) { #smpl <- allSamples[1
   if (length(w)) {
     tmp2 <- data.table(mod = tmp[w, "Modified sequence"],
                        Intensity = tmp[w, "Intensity"])
-    tmp2$Intensity[which(!is.all.good(tmp2$Intensity, 2))] <- NA
-    tmp2$Intensity[which(tmp2$Intensity <= 0)] <- NA
+    tmp2$Intensity[which(!is.all.good(tmp2$Intensity, 2L))] <- NA_real_
+    tmp2$Intensity[which(tmp2$Intensity <= 0)] <- NA_real_
     tmp2 <- tmp2[, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
     tmp2 <- as.data.frame(tmp2)
   }
@@ -1118,7 +1118,7 @@ tmp4 <- setNames(parLapply(parClust, allSamples, \(smpl) { #smpl <- allSamples[1
 }), allSamples)
 for (smpl in allSamples) { #smpl <- allSamples[1L] #smpl <- allSamples[4L]
   tmp <- tmp4[[smpl]]
-  pep[[paste0(intRoot[intType], smpl)]] <- NA
+  pep[[paste0(intRoot[intType], smpl)]] <- NA_real_
   w <- which(pep$"Modified sequence" %in% tmp$mod)
   m <- match(pep$"Modified sequence"[w], tmp$mod)
   pep[w, paste0(intRoot[intType], smpl)] <- tmp$Intensity[m]
@@ -1381,7 +1381,7 @@ if (length(kol)) {
       } else {
         msg <- paste0(" -> correction of ", btch, "-batch associated effect from ", prev, " failed!\n")
         cat(msg)
-        ComBat_Data[[btch]] <- NA
+        ComBat_Data[[btch]] <- NA_real_
         KeepComBatRes[btch] <- keepCmBtRs
       }
     }
@@ -1698,7 +1698,7 @@ Sites2 <- as.data.table(Sites2)
 Sites2 <- Sites2[, lapply(.SD, sum, na.rm = TRUE), keyby = Site] # NB: converts all NAs to 0... equivalent but we had NAs, I will re-introduce them
 Sites2 <- as.data.frame(Sites2)
 w <- which(as.matrix(Sites2[, quntCol]) == 0, arr.ind = TRUE)
-Sites2[, quntCol][w] <- NA
+Sites2[, quntCol][w] <- NA_real_
 Sites2$Type <- gsub(".*\\(|\\)", "", Sites2$Site)
 Sites2$Protein <- gsub(" .*", "", Sites2$Site)
 Sites$`Histone(s)` <- pep$`Histone(s)`[match(Sites$pepID, pep$id)]
@@ -1778,7 +1778,7 @@ if (statTsts) {
     intCols <- grep(intRoot[intType], colnames(myData), value = TRUE)
     w <- which(myData[, intCols] == 0, arr.ind = TRUE)
     if (nrow(w)) {
-      myData[, intCols][w] <- NA
+      myData[, intCols][w] <- NA_real_
     }
     logIntCols <- gsub(topattern(intRoot[intType]),
                        logIntRoot[intType],
@@ -2265,7 +2265,7 @@ if (length(Exp) > 1L) {
       Height <- ncol(temp)
       #
       whImps <- which(imputed, arr.ind = TRUE)
-      temp[whImps] <- NA
+      temp[whImps] <- NA_real_
       #
       # Get dendrograms
       vddata <- dendro_data(vdendro)
@@ -2366,7 +2366,7 @@ if (length(Exp) > 1L) {
       Mx <- max(temp2a$value, na.rm = TRUE)
       temp2b$value <- Mn + temp2b$Xmin*(Mx-Mn)/max(temp2b$Xmin)
       temp2b$Xmin <- temp2b$Xmin-Width*0.15
-      temp2b$Label <- temp2b$Sample <- NA
+      temp2b$Label <- temp2b$Sample <- NA_character_
       w2a <- 1L:nrow(temp2a)
       w2b <- 1L:nrow(temp2b) + max(w2a)
       temp2a <- rbind(temp2a, temp2b)

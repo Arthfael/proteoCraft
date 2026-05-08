@@ -126,8 +126,8 @@ basic.heatmap <- function(matr,
     colnames(matr2) <- gsub(" VS ", "\nVS ", col_nms)
   }
   RowNms <- data.frame(Name = rownames(matr2),
-                       X = h.Marg[1L]+Ncol+1,
-                       Y = Nrow:1)
+                       X = h.Marg[1L]+Ncol+1L,
+                       Y = Nrow:1L)
   nChar <- max(nchar(RowNms$Name))
   ColNms <- data.frame(Name = colnames(matr2),
                        X = 1L:Ncol + h.Marg[1L],
@@ -139,7 +139,7 @@ basic.heatmap <- function(matr,
   lim <- ceiling(max(abs(is.all.good(as.numeric(matr3$value)))))
   matr3$value[which((!is.finite(matr3$value))&(matr3$value < 0))] <- -lim
   matr3$value[which((!is.finite(matr3$value))&(matr3$value > 0))] <- lim
-  matr3$value[which(!is.all.good(matr3$value, mode = "logical"))] <- NA
+  matr3$value[which(!is.all.good(matr3$value, mode = "logical"))] <- NA_real_
   matr3$Y <- Nrow:1L
   matr3$X <- as.numeric(sapply(1L:Ncol, \(x) { rep(x, Nrow) })) + h.Marg[1L]
   ttlX <- (h.Marg[1L] + 1L)/2

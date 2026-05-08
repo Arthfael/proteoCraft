@@ -150,7 +150,7 @@ Coverage <- function(proteins,
       stop("The \"intensities\" vector should be the same length as the \"peptides\" vector!")
     }
     w2 <- which(!is.all.good(intensities, 2L))
-    intensities[w2] <- NA
+    intensities[w2] <- NA_real_
   }
   peptides <- gsub("^_|_$", "", unlist(peptides))
   # Account for the fact that Leucine and Isoleucine are indistinguishable by MS
@@ -162,7 +162,7 @@ Coverage <- function(proteins,
   }
   #
   if (Mode == "Align2") {
-    maxInt <- if (misFun(maxInt)) { NA } else { suppressWarnings(as.numeric(maxInt)) }
+    maxInt <- if (misFun(maxInt)) { NA_real_ } else { suppressWarnings(as.numeric(maxInt)) }
     maxInt <- max(c(maxInt, intensities), na.rm = TRUE)
     maxInt <- ceiling(maxInt)
     l <- nchar(as.character(maxInt))
@@ -499,7 +499,7 @@ Coverage <- function(proteins,
                 x$Which <- as.character(x$Which)
                 x <- apply(x[, c("Annotations", "Which", "Type")], 1L, paste, collapse = "___")
                 x <- paste0(x, "___", loc)
-              } else { x <- NA }
+              } else { x <- NA_real_ }
               return(x)
             })
             mods <- listMelt(matches$mods[wMods], wMods, c("value", "Match"))
@@ -580,7 +580,7 @@ Coverage <- function(proteins,
           }
           if (Mode == "Heat") {
             align.temp2 <- align.temp
-            align.temp2$Intensity <- NA
+            align.temp2$Intensity <- NA_real_
             matches2 <- matches
             matches2$Match <- as.integer(matches2$Match)
             matches2$Length <- as.integer(matches2$Length)

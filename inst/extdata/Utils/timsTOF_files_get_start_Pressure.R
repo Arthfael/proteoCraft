@@ -8,7 +8,7 @@ dSrcs <- c("...MS_File_Archive",
 dSrcs <- dSrcs[which(dir.exists(dSrcs))]
 
 # Create parallel processing cluster
-N.clust <- detectCores()-1
+N.clust <- detectCores()-1L
 a <- 1
 tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
 if (inherits(tst, "try-error")) {
@@ -29,9 +29,9 @@ dFls2$execLog <- parLapply(parClust, dFls2$File, function(dFl) { #dFl <- dDrs[1]
   sbdr <- sbdr[which(sbdr != dFl)]
   grep("execution-log", list.files(sbdr, full.names = TRUE), value = TRUE)
 })
-dFls2$execLog_ok <- sapply(dFls2$execLog, length) == 1
+dFls2$execLog_ok <- lengths(dFls2$execLog) == 1L
 w <- which(dFls2$execLog_ok)
-dFls2$startPress <- NA
+dFls2$startPress <- NA_real_
 dFls2$startPress[w] <- parSapply(parClust, dFls2$execLog[w], function(lgFl) { #lgFl <- dFls2$execLog[w[1]]
   lg <- readLines(unlist(lgFl))
   writeClipboard(lg)

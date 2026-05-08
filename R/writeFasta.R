@@ -26,21 +26,25 @@
 #' 
 #' @export
 
-writeFasta <- function(DB, destFl, filter, return = FALSE, newFl = FALSE) {
+writeFasta <- function(DB,
+                       destFl,
+                       filter,
+                       return = FALSE,
+                       newFl = FALSE) {
   #DefArg(writeFasta)
   nr <- nrow(DB)
-  stopifnot(nrow(DB) > 0,
+  stopifnot(nrow(DB) > 0L,
             length(unique(DB$"Protein ID")) == nrow(DB))
   if ((!missing("filter"))&&("Protein. ID" %in% colnames(DB))) {
     DB <- DB[which(DB$"Protein ID" %in% filter),]
     nr <- nrow(DB)
-    stopifnot(nrow(DB) > 0)
+    stopifnot(nrow(DB) > 0L)
   }
-  tmp <- rep("", nr*3)
-  tmp[(1:nr)*3-2] <- DB$Header
-  tmp[(1:nr)*3-1] <- DB$Sequence
+  tmp <- rep("", nr*3L)
+  tmp[(1L:nr)*3L-2L] <- DB$Header
+  tmp[(1L:nr)*3L-1L] <- DB$Sequence
   if (newFl) { # Ignores existing value of destFl
-    filt <- matrix(data = c("fasta", "*.fasta;*.fas;*.fa;*.fasta.fas"), ncol = 2,
+    filt <- matrix(data = c("fasta", "*.fasta;*.fas;*.fa;*.fasta.fas"), ncol = 2L,
                    dimnames = list("Fasta"))
     destFl <- svDialogs::dlg_save("proteins of interest.fasta", "Select destination file", filters = filt)$res
   }

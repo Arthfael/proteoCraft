@@ -616,37 +616,10 @@ l <- length(DatAnalysisTxt)
 DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
                             " Protein groups were inferred from observed peptides.")
 
-# Some stats on protein groups
-tmp <- aggregate(PG$id, list(PG$`Peptides count`), length)
-colnames(tmp) <- c("Peptides count", "Protein groups")
-tmp$"log10(Protein groups count)" <- log10(tmp$"Protein groups")
-pal <- colorRampPalette(c("brown", "yellow"))(max(tmp$"Peptides count")-1L)
-tmp$Colour <- c("blue", pal)[tmp$`Peptides count`]
-tmp2 <- summary(PG$`Peptides count`)
-tmp2 <- data.frame(Variable = c(names(tmp2), "", "Protein groups", "Protein groups with 2+ peptidoforms"),
-                   Value = c(as.character(signif(as.numeric(tmp2), 3L)),
-                             "",
-                             as.character(c(nrow(PG), sum(PG$"Peptides count" >= 2)))))
-tmp2$Txt <- apply(tmp2[, c("Variable", "Value")], 1L, \(x) {
-  x <- x[which(x != "")]
-  x <- if (length(x)) { paste(x, collapse = ": ") } else { "" }
-  return(x)
-})
-tmp2$X <- max(as.numeric(tmp2$Value[match("Max.", tmp2$Variable)]))*0.98
-tmp2$Y <- max(tmp$"log10(Protein groups count)")*(0.98-(0L:(nrow(tmp2) - 1L))*0.02)
-ttl <- "Peptidoforms per PG"
-plot <- ggplot(tmp) + geom_col(aes(x = `Peptides count`, y = `log10(Protein groups count)`, fill = Colour),
-                               colour = NA) +
-  geom_text(data = tmp2, aes(x = X, y = Y, label = Txt), hjust = 1L, size = 3L) +
-  scale_fill_identity() + theme_bw() + ggtitle(ttl)
-print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-dir <- paste0(wd, "/Summary plots")
-dirlist<- unique(c(dirlist, dir))
-if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-suppressMessages({
-  ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 300L)
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L)
-})
+# Peptidoforms per Protein Group
+Src <- paste0(libPath, "/extdata/Sources/pep_per_PG.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 source(parSrc, local = FALSE)
 tmp1 <- strsplit(pep$Proteins, ";")
@@ -939,7 +912,7 @@ temp <- parApply(parClust, Samplez, 1L, \(Smpl) { #Smpl <- unlist(Samplez[1,])
     w <- which(res$id %in% temp1$Group.1)
     m <- match(res$id[w], temp1$Group.1)
     res[w, kolp] <- temp1[m, c("x.Count", "Pasted")]
-    temp_PG$Pep <- NA
+    temp_PG$Pep <- NA_real_
     temp_PG$Pep[w] <- temp1$Pepseq[m]
     res[w, paste0("Sequence coverage [%] - ", smpl)] <- round(100*apply(temp_PG[w, c("Seq", "Pep")], 1L, \(x) {
       Coverage(x[[1L]], x[[2L]])
@@ -1278,7 +1251,7 @@ Param$Plot.metrics <- paste(vapply(a, paste, "", collapse = ":"), collapse = ";"
 FDR.thresholds %<o% c()
 
 A <- myContrasts$Contrast
-test <- vapply(A, \(x) { #x <- A[6]
+test <- vapply(A, \(x) { #x <- A[6L]
   x <- paste0(pvalue.col[which(pvalue.use)], x)
   r <- x %in% colnames(PG)
   if (r) { r <- length(is.all.good(as.numeric(PG[[x]]))) > 0L }
@@ -1529,15 +1502,15 @@ if (("Q.values" %in% colnames(Param))&&(is.logical(Param$Q.values))&&(Param$Q.va
         }
       }
       if (!inherits(temp, "try-error")) {
-        PG[[gsub(topattern(pvalue.col[which(pvalue.use)]), "-log10(Qvalue) - ", pk)]] <- NA
-        PG[[gsub(topattern(pvalue.col[which(pvalue.use)]), "local FDR ", pk)]] <- NA
+        PG[[gsub(topattern(pvalue.col[which(pvalue.use)]), "-log10(Qvalue) - ", pk)]] <- NA_real_
+        PG[[gsub(topattern(pvalue.col[which(pvalue.use)]), "local FDR ", pk)]] <- NA_real_
         PG[wag, gsub(topattern(pvalue.col[which(pvalue.use)]), "-log10(Qvalue) - ", pk)] <- -log10(temp$qvalues)
         PG[wag, gsub(topattern(pvalue.col[which(pvalue.use)]), "local FDR ", pk)] <- temp$lfdr
       }
     }
     qval.thresh %<o% data.frame(yintercept = -log10(BH.FDR),
                                 slope = rep(0, length(BH.FDR)),
-                                xintercept = rep(NA, length(BH.FDR)),
+                                xintercept = rep(NA_real_, length(BH.FDR)),
                                 colour = colorRampPalette(c("orange", "red"))(length(BH.FDR)),
                                 label = paste0(BH.FDR*100, "% FDR"))
     # Probably deprecated... check arguments before running
@@ -1781,8 +1754,8 @@ if (F.test) {
           }
         }
         if (!inherits(temp, "try-error")) {
-          F_test_data[["-log10(Qvalue)"]] <- NA
-          F_test_data[["local FDR"]] <- NA
+          F_test_data[["-log10(Qvalue)"]] <- NA_real_
+          F_test_data[["local FDR"]] <- NA_real_
           F_test_data[wag, "-log10(Qvalue)"] <- -log10(temp$qvalues)
           F_test_data[wag, "local FDR"] <- temp$lfdr
         } else { warning(paste0("F-test: Q-values calculation failed for ", F_Root, "! No q-values column will be created.")) }
@@ -2344,7 +2317,7 @@ vennTst <- try({
   source(Src, local = FALSE)
 }, silent = TRUE)
 if (inherits(vennTst, "try-error")) {
-  warning("Fix the Reference logic to allow creating Venn diagrams again!")
+  warning("Venn diagrams failed ---> investigate!")
 }
 
 #### Code chunk - Coverage maps, XICs and heatmaps for proteins of interest

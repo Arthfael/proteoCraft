@@ -127,7 +127,7 @@ temp <- lapply(pvalueCol, \(type) { #type <- pvalueCol[1L]
   res <- aggregate(temp$Bin, list(temp$variable, temp$Bin), length)
   colnames(res) <- c("Contrast", "Bin", "Count")
   grps <- unique(res$Contrast)
-  res$Frequency <- NA
+  res$Frequency <- NA_real_
   for (grp in grps) {
     w <- which(res$Contrast == grp)
     res$Frequency[w] <- res$Count[w]/sum(res$Count[w])

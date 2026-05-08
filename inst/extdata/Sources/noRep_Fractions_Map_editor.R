@@ -10,7 +10,7 @@ if ("PTM-enriched" %in% colnames(FracMap)) {
 # Try sorting automatically
 tst <- grepl("_[0-9]+\\.d$", FracMap$`Raw file`)
 if (sum(tst)) {
-  FracMap$Bruker_run_ID <- NA
+  FracMap$Bruker_run_ID <- NA_integer_
   FracMap$Bruker_run_ID[which(tst)] <- as.integer(gsub(".*_|\\.d$", "", FracMap$`Raw file`[which(tst)]))
   w1 <- which(!is.na(FracMap$Bruker_run_ID))
   w2 <- which(is.na(FracMap$Bruker_run_ID))

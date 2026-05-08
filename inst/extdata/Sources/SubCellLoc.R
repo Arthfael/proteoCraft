@@ -387,7 +387,7 @@ Example: \"GO:0031012;2\"
           }))
         }
         SSDs[[grp]][[paste0("Mean ", SSD.Root, grp)]] <- apply(SSDs[[grp]][, SSDkols, drop = FALSE], 1L, \(x) { log10(mean(10L^x)) })
-        PG[, colnames(SSDs[[grp]])] <- NA
+        PG[, colnames(SSDs[[grp]])] <- NA_real_
         PG[wNC, colnames(SSDs[[grp]])] <- SSDs[[grp]]
       }
       # Check distribution
@@ -463,7 +463,7 @@ Example: \"GO:0031012;2\"
                     inputType = "log")
         SSDs[[grp]][, gsub("^Significant-", "Signif. SSDs-", colnames(temp$`Significance vector`))] <- temp$`Significance vector`
         SSD.FDR.thresh <- c(SSD.FDR.thresh, temp$Thresholds)
-        PG[, colnames(SSDs[[grp]])] <- NA
+        PG[, colnames(SSDs[[grp]])] <- NA_real_
         PG[wNC, colnames(SSDs[[grp]])] <- SSDs[[grp]]
       }
       temp <- PG[, grep("^Regulated - ", colnames(PG), value = TRUE, invert = TRUE)]

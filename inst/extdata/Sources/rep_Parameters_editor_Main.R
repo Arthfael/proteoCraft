@@ -313,8 +313,8 @@ allQuantAlgos %<o% data.frame(Algorithm = c("limpa",
                                        "The fast version of MaxLFQ as implemented in package iq.",
                                        "QFeatures aggregateFeatures() uses a robust summarization procedure and is meant to be used upstream of msqrob2 statistics."))
 quantAlgoOpt %<o% allQuantAlgos$Algorithm
-if (scrptType == "noReps") { # limpa needs at least 2 samples
-  quantAlgoOpt <- quantAlgoOpt[which(!quantAlgoOpt == "limpa")]
+if ((scrptType == "noReps") && (length(Exp) == 1L)) { # limpa needs at least 2 samples
+  quantAlgoOpt <- setdiff(quantAlgoOpt, "limpa")
 }
 if (("QuantMeth" %in% colnames(Param))&&(!"Quant_algorithm" %in% colnames(Param))) { # Old parameter name
   Param$Quant_algorithm <- Param$QuantMeth
@@ -324,7 +324,7 @@ if ((!validCharPar("quantAlgo", quantAlgoOpt))&&("Quant_algorithm" %in% colnames
   if (validCharPar("tmp1", quantAlgoOpt)) { quantAlgo <- tmp1 }
 }
 if (!validCharPar("quantAlgo", quantAlgoOpt)) {
-  quantAlgo <- c("LM", "limpa")[match(scrptType, c("noReps", "withReps"))]
+  quantAlgo <- c("LM", "LM")[match(scrptType, c("noReps", "withReps"))] # limpa is now demoted
 }
 quantAlgo %<o% quantAlgo
 Param$Quant_algorithm <- quantAlgo
@@ -347,8 +347,8 @@ allReScAlgoOpt %<o% data.frame(Algorithm = c("limpa",
                                            "Re-scale to the sum of all quantitative peptide intensities (makes no sense, but you can do it anyway)",
                                            "Use MaxLFQ's scale"))
 reScAlgoOpt %<o% allReScAlgoOpt$Algorithm
-if (scrptType == "noReps") { # limpa needs at least 2 samples
-  reScAlgoOpt <- reScAlgoOpt[which(reScAlgoOpt != "limpa")]
+if ((scrptType == "noReps") && (length(Exp) == 1L)) { # limpa needs at least 2 samples
+  reScAlgoOpt <- setdiff(reScAlgoOpt, "limpa")
 }
 if ((!validCharPar("reScAlgo", reScAlgoOpt))&&("ReScaling_algorithm" %in% colnames(Param))) {
   tmp1 <- Param$ReScaling_algorithm
@@ -1078,8 +1078,7 @@ make_ui1 <- \() {
     ),
     br(),
     fluidRow(column(2L,
-                    h5(strong(" -> ANOVA (moderated F-test //limma)")),
-                    checkboxInput("run_F_test", "Run?", fTstDflt, "100%"),
+                    checkboxInput("run_F_test", " Perform an ANOVA (moderated F-test //limma)", fTstDflt, "100%"),
                     em("(only makes sense if N(sample groups) > 2)")),
              column(2L,
                     uiOutput("sntXprs")),
@@ -1102,10 +1101,10 @@ make_ui1 <- \() {
                         checkboxInput("runRankAbundPlots", "Draw protein ranked abundance plots?",
                                       runRankAbundPlots, "100%")),
                  column(2L,
-                        checkboxInput("runWGCNA", "Run Weighted Gene Correlation Network Analysis (WGCNA)?",
-                                      runWGCNA, "100%"),
                         checkboxInput("runGSEA", "Run Gene Set Enrichment Analysis (GSEA)?",
-                                      runGSEA, "100%")))
+                                      runGSEA, "100%"),
+                        checkboxInput("runWGCNA", "Run Weighted Gene Correlation Network Analysis (WGCNA)?",
+                                      runWGCNA, "100%")))
       )
     },
     tags$hr(style = "border-color: black;"),
@@ -2159,6 +2158,7 @@ for (w in g) { Param[[w]] <- as.logical(sub("^TF_", "", Param[[w]])) }
 g <- grep("^((TRUE)|(FALSE))$", Param[1L,])
 for (w in g) { Param[[w]] <- as.logical(Param[[w]]) }
 #}
+enrichGO %<o% (("GO.enrichment" %in% colnames(Param))&&(Param$GO.enrichment))
 if (runClueGO&&!enrichGO) { runClueGO <- FALSE}
 #
 Param$FullQuant <- TRUE
@@ -2202,7 +2202,7 @@ dir <- c("Workflow control/MA plots", paste0("Workflow control/", evNm, "s", c("
          "Workflow control/Protein groups/Ratios", "Workflow control/Protein groups/P-values",
          "Reg. analysis", "Reg. analysis/t-tests",
          "PCA plots", "t-SNE plots", "Heatmaps", "Tables")
-enrichGO %<o% (("GO.enrichment" %in% colnames(Param))&&(Param$GO.enrichment))
+enrichGO <- (("GO.enrichment" %in% colnames(Param))&&(Param$GO.enrichment))
 globalGO %<o% (("GO.enrichment_Whole_dataset" %in% colnames(Param))&&(Param$GO.enrichment_Whole_dataset))
 if (enrichGO||globalGO) { dir <- c(dir, "Reg. analysis/GO enrich") }
 dirlist <- union(dirlist, paste0(wd, "/", dir))
@@ -2412,18 +2412,9 @@ if ("Pep.Impute" %in% colnames(Param)) { Impute %<o% as.logical(Param$Pep.Impute
   }
 }
 # Save parameters
-tmp <- data.frame(Param = colnames(Param),
-                  Value = vapply(colnames(Param), \(x) {
-                    x <- as.character(Param[[x]])
-                    l <- length(x)
-                    if (l > 1L) {
-                      #g <- grep("^[A-Z][a-z]{2}$", x)
-                      x <- paste(x, collapse = #c(
-                                   ";"#, "")[(length(g) == l) + 1L]
-                      )
-                    }
-                    return(x)
-                  }, ""))
+tmp <- data.frame(Param = colnames(Param))
+tmp$Value <- t(Param[1,])
+tmp$Value <- vapply(tmp$Value, paste, "", collapse = ";")
 tmp$Help <- vapply(tmp$Param, \(x) {
   if (x %in% names(Param_Help)) { return(Param_Help[x]) }
   return("")

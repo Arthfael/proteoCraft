@@ -390,7 +390,7 @@ Format.DB_txt <- function(txt,
         }
         rgs$Name <- gsub(" +.*", "", x[Nms])
         rgs$Start <- suppressWarnings(as.integer(gsub(paste0("^[A-Z_]+ +(", Feat_isoRgx, ":)?[\\?<>]?|\\.\\.[\\?<>]?[0-9]*$"), "", x[Nms])))
-        rgs$End <- NA
+        rgs$End <- NA_integer_
         g <- grep("\\.\\.\\?$|\\.\\.[\\?<>]?[0-9]+$", x[Nms], invert = TRUE)
         rgs$End[g] <- rgs$Start[g]
         g <- grep("\\.\\.[\\?<>]?[0-9]+$", x[Nms])

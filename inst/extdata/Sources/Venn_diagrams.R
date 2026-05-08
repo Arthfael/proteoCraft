@@ -1,20 +1,24 @@
 #### Venn diagrams
-# cleanNms2 function specifically designed to clean names for Venn diagrams
 library(venn)
 library(ggplot2)
 library(openxlsx2)
-cleanNms2 %<o% function(names, groups = VPAL, sep = "\n/vs/\n", simplify) {
+# cleanNms2 function specifically designed to clean names for Venn diagrams
+cleanNms2 %<o% function(names,
+                        groups = VPAL, # Must match the type of aggregate of names
+                        sep = "\n/vs/\n",
+                        simplify) {
   isList <- inherits(names, "list")
   if (missing(simplify)) { simplify <- !isList }
   if (!isList) {
     names <- sapply(strsplit(gsub("^\\(|\\)$", "", names), "\\) - \\("), unlist)
   }
   uNms <- unique(unlist(names))
+  stopifnot(length(setdiff(names, groups$values)) == 0L)
   nuNms <- as.data.frame(t(as.data.frame(strsplit(uNms, "___"))))
   colnames(nuNms) <- groups$names
   nuNms$Full <- uNms
   w <- which(vapply(groups$names, \(x) { length(unique(nuNms[[x]])) }, 1L) > 1L)
-  nuNms$New <- do.call(paste, c(nuNms[, groups$names[w], drop = FALSE], sep = ""))
+  nuNms$New <- do.call(paste, c(nuNms[, groups$names[w], drop = FALSE], sep = " "))
   nuNames <- lapply(names, \(x) { nuNms$New[match(x, nuNms$Full) ]})
   if (simplify) { nuNames <- vapply(nuNames, paste, "", collapse = sep) }
   return(nuNames)
@@ -56,6 +60,32 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
     vennRoot <- ""
     myData <- PG
     myRef <- paste0("Mean ", prtRfRoot)
+    #
+    # limpa fix:
+    if (quantAlgo == "limpa") {
+      Si <- RSA$values
+      uSg <- VPAL$values
+      colIi <- paste0(prtRfRoot, Si)
+      colIg <- paste0(myRef, uSg)
+      Sg <- Exp.map[match(Si, Exp.map$Ref.Sample.Aggregate), VPAL$column]
+      colIi <- setNames(colIi, Si)
+      colIg <- setNames(colIg, uSg)
+      colCi <- gsub(".* - ", "Evidences count - ", colIi)
+      tmpIi <- myData[, colIi]
+      tmpCi <- as.matrix(myData[, colCi])
+      Wi <- which(tmpCi == 0L, arr.ind = TRUE)
+      tmpIi[Wi] <- NA_real_
+      myData[, colIi] <- tmpIi[, colIi]
+      tmpIg <- setNames(lapply(uSg, \(x) {
+        x <- rowMeans(tmpIi[, colIi[Si[which(Sg == x)]]], na.rm = TRUE)
+        w <- which(is.na(x))
+        x[w] <- NA_real_
+        return(x)
+      }), colIg[uSg])
+      tmpIg <- do.call(cbind, tmpIg)
+      myData[, colIg] <- tmpIg[, colIg]
+    }
+    #
     infoKol <- "Genes"
     idKol <- "Leading protein IDs"
     # Draft alt. code for pep
@@ -182,7 +212,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
       ReportCalls <- AddMsg2Report(Msg = paste0("   -> ", levTxt0), Offset = TRUE, Space = FALSE)
       for (grp in VennGrp2$values) { #grp <- VennGrp2$values[1L]
         n <- (length(VennGrp2$values) > 1L)+1L
-        grpTxt <- cleanNms(grp)
+        grpTxt <- cleanNms(grp, rep = " ")
         grpTxt0 <- c("", grpTxt)[m]
         grpTxt1 <- c("", paste0(" ", grpTxt))[n]
         grpTxt2 <- c("", paste0(", ", grpTxt))[n]
@@ -190,10 +220,10 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
           ReportCalls <- AddMsg2Report(Msg = paste0("     + ", grpTxt), Offset = TRUE, Space = FALSE)
         }
         em <- Exp.map[which(Exp.map[[VennGrp2$column]] == grp),]
-        nmz <- flt_nmz[which(flt_nmz %in% em[[VPAL$column]])]
-        comp_list <- setNames(lapply(nmz, \(x) {
+        nmz <- intersect(flt_nmz, myContrasts$Contrast)
+        comp_list <- setNames(lapply(nmz, \(x) { #x <- nmz[1L]
           ttest_Filt[[x]][[paste0("Filter_", r)]]
-        }), cleanNms2(nmz))
+        }), nmz)
         w <- which(lengths(comp_list) > 0L)
         VennExp <- names(comp_list)[w]
         lV <- length(VennExp)
@@ -218,6 +248,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
         }
         if (OK) {
           comp_list <- comp_list[VennExp]
+          names(comp_list) <- gsub("\\) - \\(", ") -\n(", names(comp_list))
           kr <- paste0("Regulated - ", nmz)
           tmp <- myData[unique(unlist(comp_list)), c(idKol, infoKol, "id", kr)]
           if (r == "up") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
@@ -238,7 +269,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
           #system(paste0("open \"", dir2, "/", ttl, ".jpg", "\""))
           ReportCalls$Calls <- AddImg2Report(paste0(dir2, "/", ttl, ".jpg"))
           #
-          wbKount <- wbKount+1
+          wbKount <- wbKount+1L
           SheetNm <- paste0("t-test", grpTxt1, levTxt1)
           if (SheetNm %in% wb_get_sheet_names(wb)) { wb <- openxlsx2::wb_remove_worksheet(wb, SheetNm) }
           wb <- openxlsx2::wb_add_worksheet(wb, SheetNm)
@@ -282,7 +313,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
     wbKount <- 0L
     #
     nmz <- names(Ftest_Filt)
-    nmz <- nmz[which(!grepl(" VS ", nmz))]
+    #nmz <- nmz[which(!grepl(" VS ", nmz))]
     OK <- length(nmz) > 1L
     if (length(nmz) > VennMx) {
       msg <- paste0("Too many groups, select at least 2 and up to ", VennMx,
@@ -310,7 +341,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
         levTxt2 <- c("", paste0(", ", r))[m]
         ReportCalls <- AddMsg2Report(Msg = paste0("   -> ", levTxt0), Offset = TRUE, Space = FALSE)
         ttl <- paste0(vennRoot, "Venn diagram - F-test, global -", levTxt1)
-        nmz2 <- cleanNms2(nmz)
+        nmz2 <- gsub("\\) - \\(", ") -\n(", nmz)
         comp_list <- setNames(lapply(nmz, \(x) {
           Ftest_Filt[[x]][[paste0("Filter_", r)]]
         }), nmz2)
@@ -333,7 +364,6 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
             tst <- apply(tmp[, kr], 1L, \(x) { length(w[which(x %in% good)]) })
             tmp <- tmp[order(tst, decreasing = TRUE),]
             write.csv(tmp, paste0(dir2, "/", ttl, " - table.csv"), row.names = FALSE)
-            names(comp_list) <- cleanNms(names(comp_list))
             plot <- venn(comp_list, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)
             plot <- plot +
               ggtitle(topTitle, subtitle = paste0(vennRoot, "F-test", levTxt2)) +

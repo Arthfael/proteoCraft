@@ -112,7 +112,7 @@ if (Annotate) {
   annot.col %<o% kol[which(!kol %in% c("Accession", "id", "ID", "Names", "Sequence", "MW (Da)", "Common Name"))]
   annot.col2 %<o% annot.col[which(!annot.col %in% colnames(db))]
   annot.col3 %<o% annot.col[which(annot.col %in% colnames(db))]
-  if (length(annot.col2)) { db[, annot.col2] <- NA }
+  if (length(annot.col2)) { db[, annot.col2] <- NA_character_ }
   w <- which(db$`Protein ID` %in% Parsed_annotations$Accession)
   if (mType == "Sequence") {
     mtch <- match(db$Sequence[w], Parsed_annotations$Sequence)

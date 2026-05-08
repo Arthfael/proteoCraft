@@ -676,7 +676,7 @@ taxTst %<o% !inherits(tst, "try-error")
 if (taxTst) {
   Taxonomies <- tst
   w <- which(!is.na(fastasTbl$Species))
-  fastasTbl$Kingdom <- fastasTbl$Taxonomy <- NA
+  fastasTbl$Kingdom <- fastasTbl$Taxonomy <- NA_character_
   fastasTbl$Taxonomy[w] <- vapply(Taxonomies, \(x) { #x <- Taxonomies[[1L]]
     paste(x$name, collapse = "; ")
   }, "")
@@ -924,7 +924,7 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
   #db <- db[which(db$"Potential contaminant" != "+"),]
   w <- which(db$Sequence %in% contDB$Sequence)
   db$"Potential contaminant"[w] <- "+"
-  for (kol in c("Organism", "Organism_Full")) { if (!kol %in% colnames(db)) { db[[kol]] <- NA } }
+  for (kol in c("Organism", "Organism_Full")) { if (!kol %in% colnames(db)) { db[[kol]] <- NA_character_ } }
   db[w, c("Organism", "Organism_Full")] <- "Contaminant"
   db$"Protein ID"[w] <- paste0("CON__", gsub("^CON__", "", db$"Protein ID"[w]))
   contDB %<o% contDB[which(!contDB$Sequence %in% db$Sequence),]

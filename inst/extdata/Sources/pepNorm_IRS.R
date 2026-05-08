@@ -226,7 +226,7 @@ Shiny.bindAll(table.table().node());"))
   # Remove imputed values
   tmpDat2 <- tmpDat2Imp
   w <- which(!currSamples %in% colnames(tmpDat2))
-  tmpDat2[, currSamples[w]] <- NA
+  tmpDat2[, currSamples[w]] <- NA_real_
   wImp <- which(Pos, arr.ind = TRUE)
   if (nrow(wImp)) { tmpDat2[, currSamples][wImp] <- tmpDat1[, currSamples][wImp] }
   tmpDat2 <- tmpDat2[, colnames(tmpDat2Imp)]

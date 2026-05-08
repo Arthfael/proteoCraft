@@ -17,7 +17,7 @@ dimRedDat <- clustDat[[dataType2]][[nm]]
 kol <- colnames(dimRedDat)
 if (nm == "ComBat") {
   w <- which(clustDat[[dataType2]]$Positions_imputed, arr.ind = TRUE)
-  dimRedDat[w] <- NA
+  dimRedDat[w] <- NA_real_
 }
 if (dataType == "PG") {
   nameCol <- PG$Label

@@ -55,7 +55,7 @@ Data_Impute2 <- function(quant_data,
   imputed_data <- quant_data
   # If necessary log-transform
   if (!is.log) { imputed_data <- log10(imputed_data) }
-  for (kk in kol) { imputed_data[which(!is.all.good(imputed_data[,kk], 2L)), kk] <- NA }
+  for (kk in kol) { imputed_data[which(!is.all.good(imputed_data[,kk], 2L)), kk] <- NA_real_ }
   wNA <- which(is.na(imputed_data), arr.ind = TRUE)
   if (!is.log) {
     wOK <- which(!is.na(imputed_data), arr.ind = TRUE)
