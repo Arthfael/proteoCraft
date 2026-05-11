@@ -68,8 +68,8 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       invisible(clusterCall(parClust, \() {
         assign("tmp", readr::read_rds(tmpFl), envir = .GlobalEnv)
       }))
-      tst <- t(parSapply(parClust, 1L:nrow(myData), function(x) {
-        vapply(grpTst$x, function(y) { length(is.all.good(tmp[x, unlist(y)])) }, 1L)
+      tst <- t(parSapply(parClust, 1L:nrow(myData), \(x) {
+        vapply(grpTst$x, \(y) { length(is.all.good(tmp[x, unlist(y)])) }, 1L)
       }))
       tst <- apply(tst, 1L, min)
       wOK <- which(tst >= 2L)
@@ -87,7 +87,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       duplicateCorrelation(tmpData,
                            designMatr,
                            block = Block),
-      warning = function(w) {
+      warning = \(w) {
         message(w$message)
         return(list(consensus = 0))
       }
@@ -179,10 +179,10 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
 }
 
 # Others
-pairwise_coin_test <- function(data,
-                               alternative = "two.sided",
-                               skipBlocks = TRUE # Otherwise in most cases we cannot run the test, because blocks = replicates and N = 1 -> no permutations!
-                               ) {
+pairwise_coin_test <- \(data,
+                        alternative = "two.sided",
+                        skipBlocks = TRUE # Otherwise in most cases we cannot run the test, because blocks = replicates and N = 1 -> no permutations!
+                        ) {
   #data <- dt; alternative <- altHyp
   formTxt <- "values ~ group"
   data$group <- as.factor(data$group)

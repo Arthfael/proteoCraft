@@ -339,5 +339,5 @@ if ((Annotate)&&(enrichGO||globalGO)) {
   l <- length(DatAnalysisTxt)
   DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
                               " GO terms enrichment analysis was performed, comparing for each test regulated against observed protein groups, using topGO",
-                              c("", "and ClueGO")[runClueGO+1L], ".")
+                              c("", " and ClueGO")[runClueGO+1L], ".")
 }
