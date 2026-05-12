@@ -202,7 +202,7 @@ quantArgs <- list(Prot = PG,
                   pg_PepIDs_unique = "Unique peptide IDs",
                   pep_IDs = "id",
                   N_unique = N_unique_Pep,
-                  LFQ_algo = quantAlgo,
+                  LFQ_algo = c(quantAlgo, "iq")[(quantAlgo == "MaxLFQ (iq)")+1L],
                   reScaling = reScalingAlgo,
                   topN_correct = topN_correct,
                   minN = N_Pep,
@@ -238,9 +238,8 @@ if ((scrptType == "noReps")&&(MakeRatios)) {
 # For testing:
 #DefArg(protQuant);TESTING <- TRUE
 #invisible(lapply(names(quantArgs), \(x) { assign(x, quantArgs[[x]], envir = .GlobalEnv); return() }))
-msg <- if (post_ReNorm_reRun) { " -> Starting protein groups quantitation...\n" } else {
-  " -> Protein groups re-quantitation from back-normalized peptides...\n"
-}
+msg <- if (post_ReNorm_reRun) {  " -> Protein groups re-quantitation from back-normalized peptides...\n"
+} else { " -> Starting protein groups quantitation...\n" }
 cat(msg)
 quantData_list %<o% do.call(protQuant, quantArgs) # In case this is run after PG reNorm (from back-reNormalized peptides),
 cat("    done!\n\n")

@@ -54,6 +54,6 @@ parse.Param.aggreg <- function(parameter,
               values = val,
               names = nms,
               column = kol,
-              limmaCol = paste0(paste(nms2, collapse = "_"), "_._"))
+              limmaCol = paste(paste0(nms2, "_._"), collapse = "_"))
   return(res)
 }

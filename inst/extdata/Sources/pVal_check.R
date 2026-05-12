@@ -138,7 +138,8 @@ temp <- lapply(pvalueCol, \(type) { #type <- pvalueCol[1L]
 })
 temp <- plyr::rbind.fill(temp)
 temp$"P-value type" <- gsub_Rep(" -log10\\(Pvalue\\) - $", "", temp$"P-value type")
-dfltLvls <- c("Moderated t-test", "DEqMS mod. t-test", "Student's t-test", "Welch's t-test")
+dfltLvls <- c("Moderated t-test", "DEqMS mod. t-test", "MSqRob", "Student's t-test", "Welch's t-test",
+              "Permutations test", "SAM", "EBAM")
 u <- unique(temp$"P-value type")
 temp$"P-value type" <- factor(temp$"P-value type",
                               levels = c(dfltLvls, setdiff(u, dfltLvls)))

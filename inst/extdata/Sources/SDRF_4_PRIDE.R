@@ -120,7 +120,7 @@ if (isFnd["Cell_types"]) {
   } else {
     myCellType2 <- myCellType
   }
-  availCellTypes <- c(myCellType, availCellTypes[which(!availCellTypes %in% myCellType)])
+  availCellTypes <- c(myCellType, setdiff(availCellTypes, myCellType))
 }
 if (isFnd["Tissues"]) {
   tmp <- data.table::fread(ontoFls$File[match("Tissues", ontoFls$Name)])
@@ -132,7 +132,7 @@ if (isFnd["Tissues"]) {
   } else {
     myTissue2 <- myTissue
   }
-  availTissues <- c(myTissue, availTissues[which(!availTissues %in% myTissue)])
+  availTissues <- c(myTissue, setdiff(availTissues, myTissue))
 }
 if (isFnd["Modifications"]) {
   tmp <- data.table::fread(ontoFls$File[match("Modifications", ontoFls$Name)])
@@ -144,7 +144,7 @@ if (isFnd["Modifications"]) {
   } else {
     myPTMs2 <- myPTMs
   }
-  availMods <- c(myPTMs, availMods[which(!availMods %in% myPTMs)])
+  availMods <- c(myPTMs, setdiff(availMods, myPTMs))
 }
 if (isFnd["Diseases"]) {
   tmp <- data.table::fread(ontoFls$File[match("Diseases", ontoFls$Name)])
@@ -156,7 +156,7 @@ if (isFnd["Diseases"]) {
   } else {
     myDisease2 <- myDisease
   }
-  availDiseases <- c(myDisease, availDiseases[which(!availDiseases %in% myDisease)])
+  availDiseases <- c(myDisease, setdiff(availDiseases, myDisease))
 }
 if (isFnd["MS_models"]) {
   availInstrDF <- data.table::fread(ontoFls$File[match("MS_models", ontoFls$Name)])
@@ -169,15 +169,14 @@ if (isFnd["MS_models"]) {
   Vendors2Instr <- rbind(Vendors2Instr, tmp2)
   MSInstrTxt <- " the Mass Spectrometer model(s) on which the data was acquired"
   if ((!exists("myVendor")) || (!is.character(myVendor)) || sum(!myVendor %in% Vendors2Instr$Vendor)) { myVendor <- "All vendors" }
-  myMSInstr <- c()
   if ((!exists("myMSInstr")) || (!is.character(myMSInstr)) || sum(!myMSInstr %in% availInstr)) {
     if (exists("LCMS_instr") && inherits(LCMS_instr, "list") && ("MS" %in% names(LCMS_instr))) {
-      myMSInstr <- availInstr[which(availInstr %in% LCMS_instr$MS)]
+      myMSInstr <- intersect(availInstr, LCMS_instr$MS)
     }
   }
   myMSInstr2 <- myMSInstr
   if (!length(myMSInstr2)) { myMSInstr2 <- "not available" }
-  availInstr <- c(myMSInstr, availInstr[which(!availInstr %in% myMSInstr)])
+  availInstr <- c(myMSInstr, setdiff(availInstr, myMSInstr))
 }
 if (isFnd["MS_acq_meth"]) {
   tmp <- data.table::fread(ontoFls$File[match("MS_acq_meth", ontoFls$Name)])
@@ -189,7 +188,7 @@ if (isFnd["MS_acq_meth"]) {
   } else {
     myAcqMeth2 <- myAcqMeth
   }
-  availAcqMeth <- c(myAcqMeth, availAcqMeth[which(!availAcqMeth %in% myAcqMeth)])
+  availAcqMeth <- c(myAcqMeth, setdiff(availAcqMeth, myAcqMeth))
 }
 if (isFnd["MS_quant_meth"]) {
   tmp <- data.table::fread(ontoFls$File[match("MS_quant_meth", ontoFls$Name)])
@@ -201,7 +200,7 @@ if (isFnd["MS_quant_meth"]) {
   } else {
     myQuantMeth2 <- myQuantMeth
   }
-  availQuantMeth <- c(myQuantMeth, availQuantMeth[which(!availQuantMeth %in% myQuantMeth)])
+  availQuantMeth <- c(myQuantMeth, setdiff(availQuantMeth, myQuantMeth))
 }
 if (isFnd["MS_label_meth"]) {
   tmp <- data.table::fread(ontoFls$File[match("MS_label_meth", ontoFls$Name)])
@@ -213,7 +212,7 @@ if (isFnd["MS_label_meth"]) {
   } else {
     myLabelMeth2 <- myLabelMeth
   }
-  availLabelMeth <- c(myLabelMeth, availLabelMeth[which(!availLabelMeth %in% myLabelMeth)])
+  availLabelMeth <- c(myLabelMeth, setdiff(availLabelMeth, myLabelMeth))
 }
 myDS1 <- NULL
 myDS2 <- ""
@@ -425,7 +424,7 @@ serverA <- \(input, output, session) {
       myInstr <- myMSInstr
     }
     availMS <- unlist(Vendors2Instr$Instruments[match(myVend, Vendors2Instr$Vendor)])
-    myInstr <- myInstr[which(myInstr %in% availMS)]
+    myInstr <- intersect(myInstr, availMS)
     renderUI(
       if (isFnd["MS_models"]) {
         shinyWidgets::pickerInput("MS_instr",
@@ -458,8 +457,8 @@ serverA <- \(input, output, session) {
       opt <- dvStgDF$Name
       if (exists("myDevStages")) {
         myDevStages <- unique(myDevStages)
-        myDS1 <- myDevStages[which(myDevStages %in% opt)]
-        myDS2 <- paste(myDevStages[which(!myDevStages %in% opt)], collapse = "|")
+        myDS1 <- intersect(myDevStages, opt)
+        myDS2 <- paste(setdiff(myDevStages, opt), collapse = "|")
       }
     }
     renderUI(list(list(fluidRow(
@@ -490,7 +489,7 @@ serverA <- \(input, output, session) {
   if (isFnd["Cell_types"]) {
     observeEvent(input$Cell_type, {
       cltp <- unique(input$Cell_type)
-      tmp <- c(cltp, availCellTypes[which(!availCellTypes %in% cltp)])
+      tmp <- c(cltp, setdiff(availCellTypes, cltp))
       shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
                                       "Cell_type",
                                       paste0("Select", cellTypeTxt),
@@ -501,7 +500,7 @@ serverA <- \(input, output, session) {
   if (isFnd["Tissues"]) {
     observeEvent(input$Tissue_type, {
       tstp <- unique(input$Tissue_type)
-      tmp <- c(tstp, availTissues[which(!availTissues %in% tstp)])
+      tmp <- c(tstp, setdiff(availTissues, tstp))
       shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
                                       "Tissue_type",
                                       paste0("Select", tissueTxt),
@@ -512,7 +511,7 @@ serverA <- \(input, output, session) {
   if (isFnd["Modifications"]) {
     observeEvent(input$Modifications, {
       mds <- unique(input$Modifications)
-      tmp <- c(mds, availMods[which(!availMods %in% mds)])
+      tmp <- c(mds, setdiff(availMods, mds))
       shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
                                       "Modifications",
                                       paste0("Select", modsTxt),
@@ -523,7 +522,7 @@ serverA <- \(input, output, session) {
   if (isFnd["Diseases"]) {
     observeEvent(input$Diseases, {
       dis <- unique(input$Diseases)
-      tmp <- c(dis, availDiseases[which(!availDiseases %in% dis)])
+      tmp <- c(dis, setdiff(availDiseases, dis))
       shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
                                       "Diseases",
                                       paste0("Select", diseasesTxt),
@@ -537,7 +536,7 @@ serverA <- \(input, output, session) {
       tmp <- if ("All vendors" %in% vnd) {
         vnd <- availMSVend
       } else {
-        c(vnd, availMSVend[which(!availMSVend %in% vnd)])
+        c(vnd, setdiff(availMSVend, vnd))
       }
       VENDOR(vnd)
       if (isFnd["MS_models"]) {
@@ -555,7 +554,7 @@ serverA <- \(input, output, session) {
     instr <- unique(input$MS_instr)
     MSINSTR(instr)
     if (isFnd["MS_models"]) {
-      tmp <- c(instr, availInstr[which(!availInstr %in% instr)])
+      tmp <- c(instr, setdiff(availInstr, instr))
       shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
                                       "MS_instr",
                                       paste0("Select", MSInstrTxt),
@@ -566,7 +565,7 @@ serverA <- \(input, output, session) {
   if (isFnd["MS_acq_meth"]) {
     observeEvent(input$MS_acq_meth, {
       acqmtd <- unique(input$MS_acq_meth)
-      tmp <- c(acqmtd, availAcqMeth[which(!availAcqMeth %in% acqmtd)])
+      tmp <- c(acqmtd, setdiff(availAcqMeth, acqmtd))
       shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
                                       "MS_acq_meth",
                                       paste0("Select", acqMethTxt),
@@ -577,7 +576,7 @@ serverA <- \(input, output, session) {
   if (isFnd["MS_quant_meth"]) {
     observeEvent(input$MS_quant_meth, {
       qtmtd <- unique(input$MS_quant_meth)
-      tmp <- c(qtmtd, availQuantMeth[which(!availQuantMeth %in% qtmtd)])
+      tmp <- c(qtmtd, setdiff(availQuantMeth, qtmtd))
       shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
                                       "MS_quant_meth",
                                       paste0("Select", quantMethTxt),
@@ -588,7 +587,7 @@ serverA <- \(input, output, session) {
   if (isFnd["MS_label_meth"]) {
     observeEvent(input$MS_label_meth, {
       lblmtd <- unique(input$MS_label_meth)
-      tmp <- c(lblmtd, availLabelMeth[which(!availLabelMeth %in% lblmtd)])
+      tmp <- c(lblmtd, setdiff(availLabelMeth, lblmtd))
       shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
                                       "MS_label_meth",
                                       paste0("Select", labelMethTxt),
@@ -634,7 +633,7 @@ while ((!runKount)||(!exists("appRunTest"))) {
   runKount <- runKount+1L
 }
 # Update myVendor
-tmpVnd <- availMSVend[which(availMSVend != "All vendors")]
+tmpVnd <- setdiff(availMSVend, "All vendors")
 myVendor <- tmpVnd[which(vapply(tmpVnd, \(x) {
   w <- which(availInstrDF$Vendor == x)
   sum(myMSInstr %in% availInstrDF$Instrument[w])
@@ -681,9 +680,9 @@ if (reload_SDRF) {
 nr <- nrow(Frac.map2)
 if (scrptType == "withReps") {
   if (LabelType == "LFQ") {
-    myKol <- colnames(Exp.map)[which(!colnames(Exp.map) %in% names(Aggregate.list))]
+    myKol <- setdiff(colnames(Exp.map), names(Aggregate.list))
     myKol <- setdiff(myKol, c("Fractions", "Reference", "MQ.Exp", "Sample.name", "Use", "Ref.Sample.Aggregate"))
-    if (length(unique(Exp.map$Experiment)) == 1L) { myKol <- myKol[which(myKol != "Experiment")] }
+    if (length(unique(Exp.map$Experiment)) == 1L) { myKol <- setdiff(myKol, "Experiment") }
     tmp <- listMelt(Exp.map$MQ.Exp, 1L:nrow(Exp.map))
     tmp[, myKol] <- Exp.map[tmp$L1, myKol]
     Frac.map2[, myKol] <- tmp[match(Frac.map2$MQ.Exp, tmp$value), myKol]
@@ -697,11 +696,11 @@ if (scrptType == "withReps") {
     tmp$FracRow <- 1L:nrow(tmp)
     tmp <- listMelt(tmp$ExpRow, tmp$FracRow, c("ExpRow", "FracRow"))
     k <- colnames(Frac.map2)
-    k <- k[which(!k %in% c("Unique.Frac.ID", "Use", "MQ.Exp"))]
+    k <- setdiff(k, c("Unique.Frac.ID", "Use", "MQ.Exp"))
     tmp[, k] <- Frac.map2[tmp$FracRow, k]
     k <- colnames(Exp.map)
     k <- grep("^([A-Z][a-z]{2}){2,}$", k, value = TRUE, invert = TRUE)
-    k <- k[which(!k %in% c("Fractions", "Ref.Sample.Aggregate", "Use", "MQ.Exp"))]
+    k <- setdiff(k, c("Fractions", "Ref.Sample.Aggregate", "Use", "MQ.Exp"))
     tmp[, k] <- Exp.map[tmp$ExpRow, k]
     tmp$FracRow <- NULL
     tmp$ExpRow <- NULL
@@ -792,7 +791,7 @@ myOntDF$Candidate_col <- lapply(1L:nrow(myOntDF), \(i) { #i <- 8L
                          gsub(" ", "_", candKols),
                          gsub(" ", "-", candKols)))
     candKols <- c(candKols, toupper(candKols), tolower(candKols))
-    candKols <- candKols[which(candKols %in% colnames(Frac.map2))]
+    candKols <- intersect(candKols, colnames(Frac.map2))
   }
   if (length(candKols)) {
     candKols <- candKols[which(vapply(candKols, \(k) { #k <- candKols[1L]
@@ -819,7 +818,7 @@ for (i in wNotNA) { #i <- wNotNA[1L]
         strtVal <- Frac.map2[[myOntDF$Candidate_col[[i]]]]
       }
     }
-    strtVal <- strtVal[which(strtVal %in% myOntVal)]
+    strtVal <- intersect(strtVal, myOntVal)
     if (length(strtVal) != nr) { strtVal <- rep(myOntVal[1L], nr) }
     SDRF2[[nm]] <- shinySelectInput(strtVal,
                                     nm,

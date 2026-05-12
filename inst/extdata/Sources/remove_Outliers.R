@@ -171,11 +171,12 @@ Exp.map <- Exp.map[which(Exp.map$Use),]
 expMap <- expMap[match(Exp.map$Ref.Sample.Aggregate, rownames(expMap)),]
 designMatr <- designMatr[which(rownames(designMatr) %in% gsub("___", "_", as.character(expMap[[RSA$limmaCol]]))),]
 # NOTE: filtering designMatr removes its attributes... but they are not necessary for the use we make of the matrix
-for (lit in c("A", "B", "C", "D")) {
+for (lit in c("A", "B", "C", "D")) { #lit <- "A"
   kl <- paste0(lit, "_samples")
   if (kl %in% colnames(myContrasts)) {
-    myContrasts[[kl]] <- lapply(myContrasts[[kl]], \(x) { intersect(x, Exp.map$Ref.Sample.Aggregate) })
-    myContrasts[[kl]] <- lapply(myContrasts[[kl]], \(x) { intersect(x, Exp.map$Ref.Sample.Aggregate) })
+    myContrasts[[kl]] <- lapply(1:nrow(myContrasts), \(i) {
+      rownames(expMap)[which(expMap[[VPAL$limmaCol]] == myContrasts[i, lit])]
+    })
   }
 }
 test <- vapply(1L:nrow(myContrasts), \(i) {

@@ -109,8 +109,8 @@ for (pack in cran_req) {
       }
       if (inherits(tst, "try-error")) {
         warning(paste0("Package ", pack, " wasn't installed properly, skipping..."))
-        cran_req <- cran_req[which(cran_req != pack)]
-        bioc_req <- bioc_req[which(bioc_req != pack)]
+        cran_req <- setdiff(cran_req, pack)
+        bioc_req <- setdiff(bioc_req, pack)
       }
     }
     inst <- as.data.frame(installed.packages())
@@ -593,7 +593,7 @@ warning("(TO DO: add 'split-by-taxonomy?' here!)")
 # Check those rare proteins IDs which are not in the search DB (should be contaminants)
 tst <- unlist(strsplit(pep$Proteins, ";"))
 if (length(tst)) {
-  msg <- paste0("These protein accessions in peptides are not in the database: ", paste(tst[which(!tst %in% db$`Protein ID`)], collapse = " - "))
+  msg <- paste0("These protein accessions in peptides are not in the database: ", paste(setdiff(tst, db$`Protein ID`), collapse = " - "))
   ReportCalls <- AddMsg2Report(Space = FALSE, Print = FALSE)
 }
 
@@ -686,7 +686,7 @@ for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
       x[which(x %in% c("", " ", "NA", NA))] <- ""
       if (!length(x)) { x <- "" }
       if (i == "Genes") { x <- unique(x) }
-      x <- x[which(x != "")]
+      x <- setdiff(x, "")
       x <- paste(x, collapse = ";")
       return(x)
     })
@@ -788,14 +788,13 @@ tmp <- as.data.table(tmp)
 tmp <- tmp[, .(Seq = list(Seq)), by = .(PG = PG)]
 temp_PG$Pep <- tmp$Seq[match(PG$id, tmp$PG)]
 temp_PG$Seq <- db$Sequence[match(temp_PG$Accession1, db$"Protein ID")]
-exports <-
-  if (!"Sequence coverage [%]" %in% colnames(PG)) {
-    exports <- list("Coverage")
-    clusterExport(parClust, exports, envir = environment())
-    PG$"Sequence coverage [%]" <- round(100*parApply(parClust, temp_PG[, c("Seq", "Pep")], 1L, \(x) {
-      Coverage(x[[1L]], x[[2L]])
-    }), 1L)
-  }
+exports <- if (!"Sequence coverage [%]" %in% colnames(PG)) {
+  exports <- list("Coverage")
+  clusterExport(parClust, exports, envir = environment())
+  PG$"Sequence coverage [%]" <- round(100*parApply(parClust, temp_PG[, c("Seq", "Pep")], 1L, \(x) {
+    Coverage(x[[1L]], x[[2L]])
+  }), 1L)
+}
 CreateMSMSKol %<o% (("MS/MS IDs" %in% colnames(ev))&&(class(ev$"MS/MS IDs") %in% c("integer", "character")))
 if (CreateMSMSKol) {
   # There appear to be no MSMS IDs for DIA in MaxQuant.
@@ -926,7 +925,7 @@ temp <- parApply(parClust, Samplez, 1L, \(Smpl) { #Smpl <- unlist(Samplez[1,])
       kolBp <- grep("^Biot\\. peptide", kolB, value = TRUE)
       if (CreateMSMSKol) {
         kolBs <- grep("^Biot\\. spectr", kolB, value = TRUE)
-        kolB <- kolB[which(!kolB %in% kolBs)]; rm(kolBs) #I don't think we need those columns now... too many is too many
+        kolB <- setdiff(kolB, kolBs); rm(kolBs) #I don't think we need those columns now... too many is too many
       }
       kolBk <- grep(" count - ", kolB, value = TRUE)
       kolBi <- grep(" IDs - ", kolB, value = TRUE)
@@ -1206,7 +1205,7 @@ if (useSAM) {
     stopifnot(FCkol %in% names(PG))
     regKol <- paste0("Regulated - ", i)
     PG[[regKol]] <- "non significant"
-    fdrs <- as.numeric(gsub("FDR$", "", colnames(dec)[which(colnames(dec) != mKol)]))
+    fdrs <- as.numeric(gsub("FDR$", "", setdiff(colnames(dec), mKol)))
     fdrs <- sort(fdrs, decreasing = TRUE)
     for (f in fdrs) { #f <- fdrs[1L]
       w <- which(PG[[mKol]] %in% dec[which(dec[[paste0(f, "FDR")]] == "+"), mKol])
@@ -1588,11 +1587,11 @@ filter_types <- unique(c("con", filter_types))
 if ("ref" %in% filter_types) {
   if (Nested) {
     warning("Grouping filter by reference is not feasible if replicates are paired!")
-    filter_types <- filter_types[which(filter_types != "ref")]
+    filter_types <- setdiff(filter_types, "ref")
   } else {
     if (sum(vapply(RG$names, \(x) { !x %in% RSA$names }, TRUE))) {
       warning("Grouping filter by reference is not feasible if the factors used for \"RG\" are not included in those used for \"RRG\"!")
-      filter_types <- filter_types[which(filter_types != "ref")]
+      filter_types <- setdiff(filter_types, "ref")
     }
   }
 }
@@ -1827,7 +1826,7 @@ for (tt in WhTsts) { #tt <- WhTsts[1L]
   dirlist <- unique(c(dirlist, dir))
   filt <- Reg_filters[[tstrt]]
   By <- c("By condition", "By reference", "By analysis")
-  By <- By[which(By %in% names(filt))]
+  By <- intersect(By, names(filt))
   if (length(By)) {
     for (bee in By) { #bee <- By[1L]
       flt <- filt[[bee]]
@@ -1936,8 +1935,8 @@ if (exists("Tim")) {
   o1 <- VPAL$names
   A1 <- get(a1)
   ylim <- paste0(r, A1)
-  ylim <- ylim[which(ylim %in% colnames(PG))]
-  ylim <- max(is.all.good(unlist(PG[,ylim])))*1.05
+  ylim <- intersect(ylim, colnames(PG))
+  ylim <- max(is.all.good(unlist(PG[, ylim])))*1.05
   temp <- list()
   for (i in A) { #i <- A[1L]
     i1 <- unlist(strsplit(i, "___"))
@@ -1961,7 +1960,7 @@ if (exists("Tim")) {
       } else {
         test <- apply(PG[,c(t1, t2)], 1L, \(x) { length(is.all.good(x)) == length(tp)*2L })
         col <- c("Protein IDs", "Names", "ID")
-        col <- col[which(col %in% colnames(PG))]
+        col <- intersect(col, colnames(PG))
         temp1 <- PG[which(test), c(col, Param$Plot.labels, t1)]
         temp1$IDs <- as.character(1L:nrow(temp1))
         temp2 <- PG[which(test), c(col, Param$Plot.labels, t2)]
@@ -1993,7 +1992,7 @@ if (exists("Tim")) {
     tmp$Aggregate <- cleanNms(tmp$Aggregate)
     tp2 <- cleanNms(tp)
     tmp$Label <- tmp[[Param$Plot.labels]]
-    tmp$"Time point" <- as.numeric(tmp[[Aggregates[which(names(Aggregates) == "Tim")]]])
+    tmp$"Time point" <- as.numeric(tmp[[Aggregates[match("Tim", names(Aggregates))]]])
     tmp$"Time point" <- factor(tmp$"Time point", levels = as.character(sort(as.numeric(unique(tmp$"Time point")))))
     levels(tmp$`Time point`) <- sort(as.numeric(levels(tmp$`Time point`)))
     ttl <- paste0("Global time profile - ", tp2)
@@ -2164,7 +2163,7 @@ GO_PG_col %<o% unique(unlist(strsplit(Param$GO.tabs, ";")))
 GO_filt %<o% length(GO_PG_col) > 0L
 if (GO_filt) {
   if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) { loadFun("GO_terms.RData") }
-  GO_PG_col <- GO_PG_col[which(GO_PG_col %in% GO_terms$ID)]
+  GO_PG_col <- intersect(GO_PG_col, GO_terms$ID)
   GO_filt <- length(GO_PG_col) > 0L
 }
 if (GO_filt) {
@@ -2185,7 +2184,7 @@ if (GO_filt) {
                                                  collapse = ""),
                               "\n\n")
     cat(msg)
-    GO_PG_col <- GO_PG_col[which(GO_PG_col %in% tmp$Term)]
+    GO_PG_col <- intersect(GO_PG_col, tmp$Term)
   }
   if (length(GO_PG_col)) {
     GO_PG_col2 %<o% setNames(GO_terms$Term[match(GO_PG_col, GO_terms$ID)],
@@ -2544,7 +2543,7 @@ source(strngSrc, local = FALSE)
 #   test <- apply(PG[, g, drop = FALSE], 1L, \(x) {
 #     length(which(!x %in% c("", NA, "NA", "non significant", "too small FC")))
 #   })
-#   prot <- unique(c(prot.list, unlist(strsplit(PG$"Leading protein IDs"[which(test > 0)], ";"))))
+#   prot <- unique(c(prot.list, unlist(strsplit(PG$"Leading protein IDs"[which(test > 0L)], ";"))))
 #   if ((!is.null(prot.list_pep))&&(length(prot.list_pep))) { prot <- unique(c(prot, prot.list_pep)) }
 #   if (length(prot)) {
 #     dir <- paste0(wd, "/Evidences type tables")
@@ -2568,7 +2567,7 @@ dirlist <- dirlist[order(nchar(dirlist), decreasing = TRUE)]
 for (dir in dirlist) { #d <- dirlist[1L]
   if (!length(list.files(dir))) {
     unlink(dir, recursive = TRUE)
-    dirlist <- dirlist[which(dirlist != dir)]
+    dirlist <- setdiff(dirlist, dir)
   }
 }
 # Save decisions - should this go?

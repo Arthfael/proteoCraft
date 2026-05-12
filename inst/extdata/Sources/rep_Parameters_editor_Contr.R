@@ -14,7 +14,7 @@ if ((!is.na(Param$Batch.effect)) && (Param$Batch.effect != "")) {
 }
 Coefficients %<o% origCoeff
 expMap %<o% Exp.map[, origCoeff]
-row.names(expMap) <- Exp.map$Ref.Sample.Aggregate
+rownames(expMap) <- Exp.map$Ref.Sample.Aggregate
 #
 #
 # Replace hyphens by dots and prepend root to numeric factor levels to avoid issues with evaluating contrasts
@@ -25,27 +25,25 @@ row.names(expMap) <- Exp.map$Ref.Sample.Aggregate
 # Other exceptions may come up...
 # This is also an additional reason to keep Exp.map and expMap as two separate representations of the same experimental structure.
 # This also creates a factor for each coefficient.
-for (Coeff in origCoeff) { #Coeff <- "Replicate"
+for (Coeff in origCoeff) { #Coeff <- "Replicate" #Coeff <- origCoeff[2L]
   assign(Coeff, factor(expMap[[Coeff]], FactorsLevels[[Coeff]]))
+  nuCoeff <- paste0(Coeff, "_._")
+  stopifnot(!nuCoeff %in% colnames(Exp.map)) # Not expMap in case we are re-running a small chunk
+  expMap[[nuCoeff]] <- expMap[[Coeff]]
   l <- length(grep("-", Exp.map[[Coeff]])) # Not expMap in case we are re-running a small chunk
   if (l) {
-    nuCoeff <- paste0(Coeff, "_._")
-    stopifnot(!nuCoeff %in% colnames(Exp.map)) # Not expMap in case we are re-running a small chunk
-    Coefficients[match(Coeff, origCoeff)] <- nuCoeff
     expMap[[nuCoeff]] <- gsub("-", ".", expMap[[Coeff]])
-    expMap[[Coeff]] <- NULL
     assign(nuCoeff, factor(expMap[[nuCoeff]], gsub("-", ".", FactorsLevels[[Coeff]])))
   }
   w <- which(suppressWarnings(as.character(as.numeric(as.character(Exp.map[[Coeff]]))) == as.character(Exp.map[[Coeff]])))
   if (length(w)) {
-    nuCoeff <- paste0(Coeff, "_._")
-    stopifnot(!nuCoeff %in% colnames(Exp.map)) # Not expMap in case we are re-running a small chunk
-    Coefficients[match(Coeff, origCoeff)] <- nuCoeff
-    expMap[[nuCoeff]] <- expMap[[Coeff]]
     expMap[w, nuCoeff] <- paste0(Coeff, "_", as.character(expMap[w, Coeff]))
-    expMap[[Coeff]] <- NULL
     assign(nuCoeff, factor(expMap[[nuCoeff]], paste0(Coeff, "_", as.character(FactorsLevels[[Coeff]]))))
   }
+  Coefficients[match(Coeff, origCoeff)] <- nuCoeff
+  assign(nuCoeff, expMap[[nuCoeff]])
+  nuCoeff %<o% nuCoeff
+  expMap[[Coeff]] <- NULL
 }
 #
 for (aggrNm in c("RSA", "VPAL", "RG", "RRG", "Blocking.factors", "Batch.effect")) { # Update in case we had to do some fixing
@@ -60,17 +58,15 @@ for (aggrNm in c("RSA", "VPAL", "RG", "RRG", "Blocking.factors", "Batch.effect")
     expMap[[nm]] <- do.call(paste, c(expMap[, tmp, drop = FALSE], sep = "___"))
     expMap[[nm]] <- factor(expMap[[nm]], levels = unique(expMap[[nm]]))
     nm %<c% as.factor(expMap[[nm]])
-    if (length(Exp) == 1L) {
-      tmp <- setdiff(tmp, "Experiment")
-      if (length(tmp)) {
-        nm <- paste(tmp, collapse = "_")
-        if (!grepl("_\\._$", nm)) { nm <- paste0(nm, "_._") }
-        aggr$limmaCol <- nm
-        if (!nm %in% colnames(expMap)) {
-          expMap[[nm]] <- do.call(paste, c(expMap[, tmp, drop = FALSE], sep = "___"))
-          expMap[[nm]] <- factor(expMap[[nm]], levels = unique(expMap[[nm]]))
-          nm %<c% factor(expMap[[nm]])
-        }
+    if (length(Exp) == 1L) { tmp <- setdiff(tmp, "Experiment_._") }
+    if (length(tmp)) {
+      nm <- paste(tmp, collapse = "_")
+      if (!grepl("_\\._$", nm)) { nm <- paste0(nm, "_._") }
+      aggr$limmaCol <- nm
+      if (!nm %in% colnames(expMap)) {
+        expMap[[nm]] <- do.call(paste, c(expMap[, tmp, drop = FALSE], sep = "___"))
+        expMap[[nm]] <- factor(expMap[[nm]], levels = unique(expMap[[nm]]))
+        nm %<c% factor(expMap[[nm]])
       }
     }
     assign(aggrNm, aggr)
@@ -451,14 +447,11 @@ if (alsoDouble) {
   myContrasts$C[g] <- contrBlocks2$`Samples group`[match(sub(" - .*", "", myContrasts$Secondary[g]), contrBlocks2$Name_)]
   myContrasts$D[g] <- contrBlocks2$`Samples group`[match(sub(".* - ", "", myContrasts$Secondary[g]), contrBlocks2$Name_)]
 }
-kol <- VPAL$column
-if (length(Exp) == 1L) { kol <- sub("Exp", "", kol) }
-if (nchar(kol) == 3L) { kol <- Factors[kol] }
-kol2 <- c("A", "B", "C", "D")
-kol2 <- intersect(kol2, colnames(myContrasts))
-for (i in kol2) {
+kol <- c("A", "B", "C", "D")
+kol <- intersect(kol, colnames(myContrasts))
+for (i in kol) {
   myContrasts[[paste0(i, "_samples")]] <- lapply(myContrasts[[i]], \(x) {
-    Exp.map$Ref.Sample.Aggregate[which(Exp.map[[kol]] == x)]
+    rownames(expMap)[which(expMap[[VPAL$limmaCol]] == x)]
   })
 }
 if (!"Secondary" %in% colnames(myContrasts)) {
@@ -551,7 +544,7 @@ if ((!"Reference" %in% colnames(Exp.map)) || (!is.logical(Exp.map$Reference)) ||
   })
   tmp <- tst$x
   if (inherits(tmp, "list")) { tmp <- do.call(cbind, tmp) }
-  tst[, kol2] <- tmp
+  tst[, kol2] <- as.data.frame(tmp)
   tst$x <- NULL
   # - Step 1: give priority to NA baits
   tst$L <- lengths(tst$samplesGroup)

@@ -30,7 +30,6 @@ if (dataType == "PG") {
   ohDeer <- paste0(wd, "/Reg. analysis/t-tests")
 }
 quantCol <- paste0(intRef, RSA$values)
-# expContr <- expContrasts
 if (!dir.exists(ohDeer)) { dir.create(ohDeer, recursive = TRUE) }
 
 # Statistical tests:
@@ -81,6 +80,9 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
     tmpData <- quantData_list$EList_obj
   }
   if (Nested) {
+    if (!RSA$limmaCol %in% colnames(expMap)) {
+      expMap[[RSA$limmaCol]] <- do.call(paste, c(expMap[, paste0(RSA$names, "_._"), drop = FALSE], sep = "___"))
+    }
     Block <- expMap[match(rownames(designMatr), gsub("___", "_", as.character(expMap[[RSA$limmaCol]]))),
                     Blocking.factors$limmaCol]
     corfit <- tryCatch(
@@ -92,9 +94,17 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
         return(list(consensus = 0))
       }
     )
-    fit <- lmFit(tmpData, designMatr, block = Block, correlation = corfit$consensus)
+    fit <- if ((dataType == "modPeptides")||(quantAlgo != "limpa")) {
+      lmFit(tmpData, designMatr, block = Block, correlation = corfit$consensus)
+    } else {
+      limpa::dpcDE(tmpData, designMatr, block = Block)
+    }
   } else {
-    fit <- lmFit(tmpData, designMatr)
+    fit <- if ((dataType == "modPeptides")||(quantAlgo != "limpa")) {
+      lmFit(tmpData, designMatr)
+    } else {
+      limpa::dpcDE(tmpData, designMatr)
+    }
   }
   fit$genes <- rownames(tmpData)
   fit <- contrasts.fit(fit, contrMatr)
@@ -176,6 +186,81 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       }
     }
   }
+}
+
+# msqrob2
+if ((dataType == "PG") && (quantAlgo == "QFeatures")) {
+  if (!require(msqrob2)) { pak::pak("msqrob2") }
+  library(msqrob2)
+  if (!require(ExploreModelMatrix)) { pak::pak("ExploreModelMatrix") }
+  library(ExploreModelMatrix)
+  cat("   - MSqRob t-test\n")
+  #
+  # Supplement experiment structure in the object
+  limmaForm2 <- as.formula(limmaForm)
+  inDat <- quantData_list$QFeatures_obj
+  colDat <- inDat@colData
+  colDat$Sample <- sub(".* - ", "", rownames(inDat@colData))
+  colDat[, Factors] <- Exp.map[match(colDat$Sample, Exp.map$Ref.Sample.Aggregate), Factors]
+  for (fct in Factors) { colDat[[fct]] <- factor(colDat[[fct]], levels = FactorsLevels[[fct]]) }
+  inDat@colData <- colDat
+  # Model
+  qf <- msqrob(inDat,
+               i = "PG",
+               formula = limmaForm2,
+               robust = TRUE)
+  #
+  models <- rowData(qf[["PG"]])[["msqrobModels"]]
+  #models[[1L]]@params
+  # vd <- ExploreModelMatrix::VisualizeDesign(sampleData = colData(qf),
+  #                                           designFormula = limmaForm2,
+  #                                           textSizeFitted = 4)
+  # vd$plotlist
+  #
+  designMsqrob <- model.matrix(limmaForm2, colData(qf))
+  whSingle <- which(myContrasts$Secondary == "")
+  whDouble <- which(myContrasts$Secondary != "")
+  Lit <- c("A", "B", "C", "D")
+  w <- which(Lit %in% colnames(myContrasts))
+  tmp <- myContrasts[, Lit[w]]
+  fct <- gsub(" *\\+ *", "", gsub(".*~ *0 *\\+ *", "", limmaForm))
+  for (lit in Lit[w]) {
+    tmp[[lit]] <- paste0(fct, tmp[[lit]])
+  }
+  myContrasts$msqrob2 <- ""
+  myContrasts$msqrob2[whSingle] <- do.call(paste, c(tmp[whSingle, c("A", "B")], sep = " - "))
+  if (length(whDouble)) {
+    tmp1 <- do.call(paste, c(tmp[whDouble, c("A", "B")], sep = " - "))
+    tmp2 <- do.call(paste, c(tmp[whDouble, c("C", "D")], sep = " - "))
+    myContrasts$msqrob2[whDouble] <- paste0("(", tmp1, ") - (", tmp2, ")")
+  }
+  contrMsqrob <- limma::makeContrasts(contrasts = myContrasts$msqrob2,
+                                      levels = designMsqrob)
+  qf <- hypothesisTest(qf,
+                       i = "PG",
+                       contrast = contrMsqrob)
+  infer <- lapply(colnames(contrMsqrob), \(k) {
+    x <- rowData(qf[["PG"]])[[k]]
+    colnames(x) <- paste0(colnames(x), " - ", k)
+    return(x)
+  })
+  infer <- do.call(cbind, infer)
+  kol1 <- colnames(infer) <- paste0("MSqRob ", colnames(infer))
+  tmp <- sub(" - .*", "", kol1)
+  kol2 <- vapply(strsplit(kol1, " - "), \(x) {
+    paste(x[2L:length(x)], collapse = " - ")
+  }, "")
+  kol2 <- myContrasts$Contrast[match(kol2, myContrasts$msqrob2)]
+  kol2 <- paste0(tmp, " - ", kol2)
+  #View(infer)
+  w <- which(myData[[namesCol]] %in% rownames(infer))
+  m <- match(myData[w, namesCol], rownames(infer))
+  myData[, kol2] <- NA
+  myData[w, kol2] <- infer[m, kol1]
+  msqrobRoot %<o% "MSqRob -log10(Pvalue) - "
+  pval <- paste0("MSqRob pval - ", myContrasts$Contrast)
+  myData[, sub(topattern("MSqRob pval - "), msqrobRoot, pval)] <- -log10(myData[, pval])
+  pvalue.col["MSqRob"] <- msqrobRoot
 }
 
 # Others
@@ -481,7 +566,7 @@ if (length(whSingle)) {
       myData[, colnames(tmp)] <- tmp
       if (taest == "SAM") {
         samThresh <- setNames(lapply(tstTst, \(x) { x[c("siggenesOut", "decision", "S0", #"Si",
-                                                        "d", "degFr")] }), expContr$name)
+                                                        "d", "degFr")] }), myContrasts$Contrast)
       }
     }
   }

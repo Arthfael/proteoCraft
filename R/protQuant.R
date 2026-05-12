@@ -950,13 +950,33 @@ protQuant <- function(Prot,
                    sample_list = tmp4$variable,
                    pepID = tmp4$pepID,
                    quant = tmp4$value)
-      res2b <- iq::fast_MaxLFQ(tmp4)
-      res2b <- as.data.frame(res2b$estimate)
-      res2b <- res2b[match(names(quant_pep_IDs), row.names(res2b)),]
-      res2 <- res2b
-      allQuants$IQ <- res2b
-      if (LFQ_ALGO == "IQ") {
-        res2 <- res2b
+      warning("This is a temporary fix! my_R (below) must become an argument ")
+      my_R <- "C:/Program Files/R/R-4.4.2/bin/Rscript.exe"
+      library(callr)
+      safe_fastLFQ <- \(dat, Rbin) {
+        tryCatch({callr::r(\(x) {
+          if (!require(pak)) { install.packages("pak") }
+          if (!require(Rcpp)) { pak::pak("Rcpp") }
+          if (!require(RcppArmadillo)) { pak::pak("RcppArmadillo") }
+          if (!require(iq)) { pak::pak("tvpham/iq") }
+          library(iq)
+          fast_MaxLFQ(x)
+        },
+        args = list(dat),
+        cmd  = Rbin,
+        user_profile = FALSE)
+        }, callr_error = \(e) {
+          message("Child R crashed or failed: ", conditionMessage(e))
+          return(NULL)
+        })
+      }
+      res2b <- safe_fastLFQ(tmp4, my_R)
+      if (is.null(res2b)) {
+        stop("MaxLFQ iq failed!")
+      } else {
+        if (LFQ_ALGO == "IQ") {
+          res2 <- res2b
+        }
       }
     }
     if ("LIMPA" %in% c(LFQ_ALGO, RESCALING)) {

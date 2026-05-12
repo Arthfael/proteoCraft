@@ -23,7 +23,7 @@ if (clustHtMp) {
   }
   myClustData <- clustDat[[dataType]][[datNm]]
   myClustDataImp <- clustDat[[dataType]]$Positions_imputed
-  w1 <- which(myClustDataImp, arr.ind = TRUE)
+  w1 <- which(myClustDataImp == 1L, arr.ind = TRUE)
   w2 <- which(is.na(myClustDataImp), arr.ind = TRUE)
   if (nrow(w1)) { # Imputed values
     myClustData[w1] <- clustDat[[dataType]]$Imputed[w1]
@@ -371,7 +371,7 @@ if (clustHtMp) {
         # Re-introduce missing values
         whImput <- myClustDataImp[match(rownames(tempDat), rownames(myClustDataImp)),
                                   colnames(tempDat)]
-        whImput1 <- which(whImput, arr.ind = TRUE)
+        whImput1 <- which(whImput == 1L, arr.ind = TRUE)
         whImput2 <- which(is.na(whImput), arr.ind = TRUE)
         if (nrow(whImput1)) {
           tempDat[whImput1] <- NA_real_

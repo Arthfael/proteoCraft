@@ -482,7 +482,7 @@ if (normPGs) {
     #   pep.Ref.Ratios <- pep.Ref.Ratios.norm
     #   pep[, colnames(pep.Ref.Ratios)] <- pep.Ref.Ratios
     # }
-    if (quantAlgo == "limpa") {
+    if (quantAlgo %in% c("limpa", "QFeatures")) {
       # For limpa, re-normalisation requires re-running the quant from back-normalized peptides,
       # so the object is properly normalized "in-depth"!
       cat("Quant algorithm = limpa -> re-running quantitation from back-normalized peptides!\n")

@@ -78,7 +78,7 @@ parse.Param.aggreg.2 <- function(param.nm,
               values = val,
               names = nms,
               column = kol,
-              limmaCol = paste0(paste(nms2, collapse = "_"), "_._"))
+              limmaCol = paste(paste0(nms2, "_._"), collapse = "_"))
   assign(dest, res, .GlobalEnv)
   assign(param.list.nm, union(get(param.list.nm, .GlobalEnv), dest), .GlobalEnv)
   assign(obj.list.nm, union(dest, get(obj.list.nm, .GlobalEnv)), .GlobalEnv)

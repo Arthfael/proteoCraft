@@ -31,6 +31,7 @@ make_Rat2 <- function(myData = pep,
   #DefArg(make_Rat2)
   #DefArg(make_Rat2, silent = FALSE)
   #myData = pep; contrasts = myContrasts; refGroups = RRG; int.log = FALSE; rat.log = 2L; experiment.map = Exp.map; int.root = pep.ref[length(pep.ref)]; rat.root = pep.ratios.ref
+  #myData = res2; contrasts = contrasts; refGroups = refGroups; int.log = pepInt_log; rat.log = pepRat_log; experiment.map = expMap; int.root = Expr.root.full; rat.root = pepRat_root
   #
   # Process int.log argument:
   #  - Input intensity data may be log-transformed or not
