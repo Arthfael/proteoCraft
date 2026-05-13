@@ -121,7 +121,7 @@ if (ok2Deliver) {
             fls2 <- list.files(destDir, recursive = TRUE, full.names = TRUE) # Does it already contain stuff?
             if (length(fls2)) { # Yes? Then...
               flsTbl2 <- data.frame(File = fls2,
-                                    Name = basename(fls1),
+                                    Name = basename(fls2),
                                     Size = base::file.size(fls2))
               fls2 <- flsTbl2$Name
               destDirOK <- sum(!fls1 %in% fls2) == 0L # All the files should be here...

@@ -11,13 +11,13 @@ if (!dir.exists(dr)) {
 #  - Pre-extract compact JSON specs
 l <- length(myPlotLys)
 if (l) {
-  tmpFls <- paste0(dr, "/tmp", 1:l, ".RDS")
-  invisible(lapply(1:l, function(i) { #i <- 1
+  tmpFls <- paste0(dr, "/tmp", 1L:l, ".RDS")
+  invisible(lapply(1L:l, \(i) { #i <- 1L
     x <- myPlotLys[[i]]
-    if ("Render" %in% names(x)) { # Solution for when a plotly is buggy: pre-render it before exporting
-      pl <- x$Render
+    pl <- if ("Render" %in% names(x)) { # Solution for when a plotly is buggy: pre-render it before exporting
+      x$Render
     } else {
-      pl <- plotly::plotly_build(x$Plot)
+      plotly::plotly_build(x$Plot)
     }
     # keep as plain JSON string (compact, cheap to ship)
     pl <- list(data = pl$x$data,
@@ -26,16 +26,16 @@ if (l) {
     readr::write_rds(pl, tmpFls[i])
     return()
   }))
-  plot_Ttls <- vapply(myPlotLys, function(x) { x$Ttl }, "")
-  plot_Paths <- paste0(gsub("[^A-Za-z0-9\\. ]", "_", plot_Ttls), ".html")
+  plot_Ttls <- vapply(myPlotLys, \(x) { x$Ttl }, "")
+  plot_Paths <- paste0(gsub("[<>:\"/\\\\|?*]", "_", plot_Ttls), ".html")
   #
-  invisible(parallel::clusterCall(parClust, function() {
+  invisible(parallel::clusterCall(parClust, \() {
     library(plotly)
     library(htmlwidgets)
     library(jsonlite)
   }))
   parallel::clusterExport(parClust, list("dr", "plot_Paths", "tmpFls"), envir = environment())
-  save_widget_from_def <- function(i) {
+  save_widget_from_def <- \(i) {
     curDir <- getwd() 
     setwd(dr)
     def <- readr::read_rds(tmpFls[i])
@@ -47,7 +47,7 @@ if (l) {
     setwd(curDir)
     return(pth)
   }
-  tst <- parallel::parLapply(parClust, 1:l, save_widget_from_def)
+  tst <- parallel::parLapply(parClust, 1L:l, save_widget_from_def)
   unlink(tmpFls)
   setwd(wd)
   # - Done!

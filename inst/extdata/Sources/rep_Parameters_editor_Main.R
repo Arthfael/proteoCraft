@@ -61,14 +61,15 @@ StudentRoot %<o% "Student's t-test -log10(Pvalue) - "
 WelchRoot %<o% "Welch's t-test -log10(Pvalue) - "
 modRoot %<o% "Moderated t-test -log10(Pvalue) - "
 deqmsRoot %<o% "DEqMS mod. t-test -log10(Pvalue) - "
+msqrobRoot %<o% "MSqRob -log10(Pvalue) - "
 permRoot %<o% "Permutations test -log10(Pvalue) - "
 samRoot %<o% "SAM -log10(Pvalue) - "
 odpRoot %<o% "ODP -log10(Pvalue) - "
 lrtRoot %<o% "LRT -log10(Pvalue) - "
 #
-pvalue.col %<o% c(StudentRoot, WelchRoot, modRoot, deqmsRoot, permRoot, samRoot#, odpRoot, lrtRoot
+pvalue.col %<o% c(StudentRoot, WelchRoot, modRoot, deqmsRoot, msqrobRoot, permRoot, samRoot#, odpRoot, lrtRoot
 )
-names(pvalue.col) <- vapply(pvalue.col, \(x) { unlist(strsplit(x, "\\.|\\'|\\ "))[1L] }, "")
+names(pvalue.col) <- vapply(pvalue.col, \(x) { unlist(strsplit(x, "\\.|\\'| "))[1L] }, "")
 ParamFls <- c(paste0(wd, "/Parameters.csv"),
               paste0(libPath, "/extData/Parameters_template.csv"))
 ParamPath %<o% ParamFls[1L] # The parameters file we will save to!
@@ -929,10 +930,10 @@ make_ui1 <- \() {
       # Imputation: add a new parameter here to define the counts limit between MCAR and MNAR 
       column(3L,
              checkboxInput("Impute", "Impute missing peptides-level values?", Impute, "100%"),
-             em("Imputation is done at peptides (not PSMs or protein groups) level, after removing any outliers, before re-normalization."),
-             em("This is independent of any temporary imputations done by default to run specific procedures without data loss."),
-             em(HTML("&nsbp;- MAR/MCAR data is imputed with a KNN method.")),
-             em(HTML("&nsbp;- MNAR data is imputed with the QRILC method."))),
+             em("Imputation is done at peptides (not PSMs or protein groups) level, after removing any outlier samples."), br(),
+             em("This is independent of any temporary imputations done by default to run specific procedures without data loss."), br(),
+             em("- MAR/MCAR data is imputed with a KNN method."), br(),
+             em("- MNAR data is imputed with the QRILC method."), br()),
       column(3L,
              checkboxInput("Update_Prot_matches", "Update peptide-to-protein assignments?", Update_Prot_matches, "100%"),
              bsTooltip("Update_Prot_matches",
@@ -1044,13 +1045,14 @@ make_ui1 <- \() {
       column(4L,
              strong("Volcano plot: select default variant"),
              radioButtons("TtstPval", "", names(pvalue.col), "Moderated", TRUE, "100%"),
-             h6(em(" - Moderated t-test (limma): the gold-standard, re-samples individual row variances using global dataset variance to provide a more robust estimate.")),
-             h6(em(" - DEqMS: modified limma test leveraging additional information to improve variance estimates.")),
-             h6(em(" - Welch's t-test is a modified form of Student's original version which is more robust to variance inequality.")),
-             h6(em(" - Permutation test (coin): based on permutations of the samples from each group.")),
-             #h6(em(" - SAM's modified t-test (siggenes): corrects for poor variance estimates for low replicate number data by optimizing a small constant s0 added to the denominator of the test statistic.")),
-             #h6(em(" - LRT (Likelihood Ratio Test //edge): tests for the ratio of the likelihoods of observed data under two models (explanatory variable has an effect /vs/ no effect)")),
-             #h6(em(" - ODP (Optimal Discovery Procedure, Storey et al., 2007 //edge): uses all relevant information from all genes in order to test each one for differential expression; has been demonstrated to have optimal power.")),
+             h6(em(" - Moderated t-test (limma): gold-standard linear modeling approach; fits protein group-wise linear models and applies empirical Bayes shrinkage of variances toward a pooled prior estimate, yielding more stable inference than classical t-tests")),
+             h6(em(" - DEqMS: extends limma by modeling the dependence of variance on (as implemented here) number of observations, improving empirical Bayes variance estimation")),
+             h6(em(" - MSqRob: a robust regression framework for proteomics differential analysis that reduces sensitivity to outliers and can better accommodate missingness patterns compared to limma")),
+             h6(em(" - Welch's t-test: modification of Student’s t-test that relaxes the equal-variance assumption and is more robust to heteroscedasticity")),
+             h6(em(" - Permutation test (coin): based on the permutation distribution of a test statistic under the null hypothesis of exchangeability between groups")),
+             #h6(em(" - SAM's modified t-test (siggenes): modified t-statistic that adds a data-driven offset s₀ to the denominator to stabilize variance estimates and reduce false positives in low-replicate settings")),
+             #h6(em(" - LRT (Likelihood Ratio Test //edge): compares a full and reduced linear model by testing whether inclusion of the explanatory variable significantly increases the likelihood of the observed data")),
+             #h6(em(" - ODP (Optimal Discovery Procedure, Storey et al., 2007 //edge): a multiple-testing framework designed to maximize the expected number of true discoveries by borrowing information across hypotheses to improve ranking of signals")),
              if (scrptTypeFull == "withReps_PG_and_PTMs") {
                # Not available for now for the peptides-only workflow,
                # but this could be done by turning the code for this into an app which is called individually for each PTM class.

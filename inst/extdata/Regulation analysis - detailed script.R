@@ -1190,12 +1190,12 @@ Src <- paste0(libPath, "/extdata/Sources/Stat_tests.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-### Visualize and check P-values
+#### Visualize and check P-values
 Src <- paste0(libPath, "/extdata/Sources/pVal_check.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-useSAM %<o% ((names(pvalue.col)[which(pvalue.use)] == "Student")&&(useSAM_thresh))
+useSAM %<o% ((names(pvalue.col)[which(pvalue.use)] == "Student") && useSAM_thresh)
 if (useSAM) {
   # In this case, we bypass the original decision and base it off SAM even though we plot Student's P-values
   for (i in names(SAM_thresh)) { #i <- names(SAM_thresh)[1L]
@@ -1340,7 +1340,7 @@ PG$"Rel. log10(Peptides count)" <- PG$"log10(Peptides count)"/max(is.all.good(PG
 create_plotly %<o% TRUE
 create_plotly_local %<o% TRUE # No need for a licence when I can save local htmls! Still, old legacy code kept below.
 # create_plotly <- !((as.character(Param$Plotly_user_name) %in% c("", "NA", " "))&(as.character(Param$Plotly_API_key) %in% c("", "NA", " ")))
-# if ((create_plotly)&&(!create_plotly_local)) {
+# if (create_plotly && (!create_plotly_local)) {
 #   plotly_subfolder %<o% gsub(":|\\*|\\?|<|>|\\|", "-", Param$Project)
 #   plotly_subfolder <- paste0(gsub("/+$", "", plotly_subfolder), "/")
 #   Sys.setenv("plotly_username" = Param$Plotly_user_name)
@@ -1402,7 +1402,7 @@ volcPlot_args2$cl <- parClust
 #DefArg(Volcano.plot);TESTING <- TRUE
 #invisible(lapply(names(volcPlot_args2), \(x) { assign(x, volcPlot_args2[[x]], envir = .GlobalEnv); return() }))
 tempVP <- try(do.call(Volcano.plot, volcPlot_args2), silent = TRUE)
-if ((inherits(tempVP, "try-error"))||(is.character(tempVP))) {
+if (inherits(tempVP, "try-error") || is.character(tempVP)) {
   stop("MAJOR ERROR: No volcano plots were created, investigate!")
 }
 #
@@ -1482,7 +1482,7 @@ for (ttl in n2) {
 }
 
 # Also calculate Q-values - for now, the plot is created but not saved!
-if (("Q.values" %in% colnames(Param))&&(is.logical(Param$Q.values))&&(Param$Q.values)) {
+if (("Q.values" %in% colnames(Param)) && is.logical(Param$Q.values) && Param$Q.values) {
   require(qvalue)
   pkol <- grep(topattern(pvalue.col[which(pvalue.use)]), colnames(PG), value = TRUE)
   if (length(pkol)) {
@@ -1495,7 +1495,7 @@ if (("Q.values" %in% colnames(Param))&&(is.logical(Param$Q.values))&&(Param$Q.va
       temp <- try(qvalue::qvalue(temp[wag]), silent = TRUE) # For now we do not explicitly set pi0
       if (inherits(temp, "try-error")) {
         temp <- try(qvalue::qvalue(temp[wag], pi0 = pi0), silent = TRUE)
-        while ((inherits(temp, "try-error"))&&(pi0 <= 1)) {
+        while (inherits(temp, "try-error") && (pi0 <= 1)) {
           pi0 <- pi0 + 0.05
           temp <- try(qvalue::qvalue(temp[wag], pi0 = pi0), silent = TRUE)
         }
@@ -1666,7 +1666,7 @@ source(bckpSrc, local = FALSE)
 #### Code chunk - F-test
 #Param <- Param.load()
 F.test %<o% FALSE
-if (("F.test" %in% colnames(Param))&&(is.logical(Param$F.test))&&(length(Param$F.test) == 1L)&&(!is.na(Param$F.test))&&(Param$F.test)) {
+if (("F.test" %in% colnames(Param)) && is.logical(Param$F.test) && (length(Param$F.test) == 1L) && (!is.na(Param$F.test)) && Param$F.test) {
   F.test <- !((length(VPAL$values) == 2L)&&(pvalue.col[pvalue.use] == "Moderated t-test -log10(Pvalue) - "))
 }
 if (F.test) {
@@ -1918,6 +1918,8 @@ if (!exists("xplorSrc")) {
 xplorSrc %<o% xplorSrc
 #rstudioapi::documentOpen(xplorSrc)
 source(xplorSrc, local = FALSE)
+
+Sys.sleep(1L)
 
 #### Code chunk - Optional: if there are time points, plot the curve of the ratios of one or all protein(s) over time
 if (exists("Tim")) {

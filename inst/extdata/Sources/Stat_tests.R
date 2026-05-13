@@ -12,6 +12,12 @@ samDir <- paste0(wd, "/", samSubDir)
 ebamDir <- paste0(wd, "/", ebamSubDir)
 if (!dir.exists(samDir)) { dir.create(samDir, recursive = TRUE) }
 if (!dir.exists(ebamDir)) { dir.create(ebamDir, recursive = TRUE) }
+if (!exists("limmaFits")) { limmaFits <- list() }
+limmaFits %<o% limmaFits
+if ((!dataType %in% names(limmaFits)) || (!inherits(limmaFits[[dataType]], "list"))) {
+  limmaFits[[dataType]] <- list()
+}
+#
 source(parSrc, local = FALSE)
 if (dataType == "modPeptides") {
   myData <- ptmpep
@@ -23,7 +29,8 @@ if (dataType == "modPeptides") {
 }
 if (dataType == "PG") {
   myData <- PG
-  intRef <- Prot.Expr.Root
+  intRef <- #if (exists("prExpr_roots")) { prExpr_roots["Quantitation"] } else {
+    Prot.Expr.Root #}
   namesCol <- "Leading protein IDs"
   namesRoot <- "PG"
   runLoc <- FALSE
@@ -47,6 +54,9 @@ if (!require(matrixStats, quietly = TRUE)) { pak::pak("matrixStats") }
 library(matrixStats)
 TESTs <- c("limma", "DEqMS")[1L:((dataType == "PG") + 1L)]
 for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
+  if ((!TEST %in% names(limmaFits[[dataType]])) || (!inherits(limmaFits[[dataType]][[TEST]], "list"))) {
+    limmaFits[[dataType]][[TEST]] <- list()
+  }
   cat(paste0("   - ", TEST, " moderated t-test\n"))
   if (TEST == "limma") {
     pRoot <- modRoot
@@ -107,6 +117,8 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
     }
   }
   fit$genes <- rownames(tmpData)
+  fitted_values <- fitted(fit)
+  limmaFits[[dataType]][[TEST]]$fitted_values <- fitted_values
   fit <- contrasts.fit(fit, contrMatr)
   fit2 <- eBayes(fit) # Note: eBayes() performs empirical Bayes moderation of variances; the default settings are appropriate, and e.g. do not assume 1% of proteins are differentially expressed.
   fit2$genes <- fit$genes
@@ -116,6 +128,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
   # - The way it tests a hypothesis seems better suited to F.tests than t-tests!
   # Here you could use decideTests() if wanting to switch to directly using decisions from limma
   if (TEST == "limma") {
+    limmaFits[[dataType]][[TEST]]$fit <- fit2
     kols <- paste0(pRoot, colnames(contrMatr))
     myData[, kols] <- NA_real_
     w <- which(myData[[namesCol]] %in% fit2$genes)
@@ -175,6 +188,8 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
         dev.off()
       }, silent = TRUE)
       #
+      limmaFits[[dataType]][[TEST]]$fit <- fit3
+      #
       for (i in 1L:ncol(contrMatr)) { #i <- 1L
         contrNm <- colnames(contrMatr)[i]
         DEqMS.results <- outputResult(fit3, coef_col = i)
@@ -194,7 +209,7 @@ if ((dataType == "PG") && (quantAlgo == "QFeatures")) {
   library(msqrob2)
   if (!require(ExploreModelMatrix)) { pak::pak("ExploreModelMatrix") }
   library(ExploreModelMatrix)
-  cat("   - MSqRob t-test\n")
+  cat("   - MSqRob test\n")
   #
   # Supplement experiment structure in the object
   limmaForm2 <- as.formula(limmaForm)
@@ -239,25 +254,26 @@ if ((dataType == "PG") && (quantAlgo == "QFeatures")) {
   qf <- hypothesisTest(qf,
                        i = "PG",
                        contrast = contrMsqrob)
-  infer <- lapply(colnames(contrMsqrob), \(k) {
+  
+  MSqRob_infer %<o% lapply(colnames(contrMsqrob), \(k) {
     x <- rowData(qf[["PG"]])[[k]]
     colnames(x) <- paste0(colnames(x), " - ", k)
     return(x)
   })
-  infer <- do.call(cbind, infer)
-  kol1 <- colnames(infer) <- paste0("MSqRob ", colnames(infer))
+  MSqRob_infer <- do.call(cbind, MSqRob_infer)
+  kol1 <- colnames(MSqRob_infer) <- paste0("MSqRob ", colnames(MSqRob_infer))
   tmp <- sub(" - .*", "", kol1)
   kol2 <- vapply(strsplit(kol1, " - "), \(x) {
     paste(x[2L:length(x)], collapse = " - ")
   }, "")
   kol2 <- myContrasts$Contrast[match(kol2, myContrasts$msqrob2)]
   kol2 <- paste0(tmp, " - ", kol2)
-  #View(infer)
-  w <- which(myData[[namesCol]] %in% rownames(infer))
-  m <- match(myData[w, namesCol], rownames(infer))
+  colnames(MSqRob_infer) <- kol2
+  #View(MSqRob_infer)
+  w <- which(myData[[namesCol]] %in% rownames(MSqRob_infer))
+  m <- match(myData[w, namesCol], rownames(MSqRob_infer))
   myData[, kol2] <- NA
-  myData[w, kol2] <- infer[m, kol1]
-  msqrobRoot %<o% "MSqRob -log10(Pvalue) - "
+  myData[w, kol2] <- MSqRob_infer[m, kol2]
   pval <- paste0("MSqRob pval - ", myContrasts$Contrast)
   myData[, sub(topattern("MSqRob pval - "), msqrobRoot, pval)] <- -log10(myData[, pval])
   pvalue.col["MSqRob"] <- msqrobRoot
@@ -412,9 +428,9 @@ if (length(whSingle)) {
   #
   #
   # SAM and EBAM
-  # For SAM we get a P-value, which can be plotted - although this is not the main objective. It should not be too different
-  # from the ones we get from t- or F-tests (although calculation details may vary, and siggenes does not appear to support one-tail tests),
-  # but the SAM procedure itself can be used to identify regulated genes.
+  # For SAM we get a P-value, which can be plotted.
+  # It should not be too different from the ones we get from t- or F-tests
+  # (although calculation details may vary, and siggenes does not appear to support one-tail tests).
   #
   tmpData2 <- as.matrix(tmpData)
   tmpData2[which(!is.finite(tmpData2), arr.ind = TRUE)] <- NA_real_

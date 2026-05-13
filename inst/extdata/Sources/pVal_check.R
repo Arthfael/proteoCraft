@@ -291,4 +291,62 @@ server <- \(input, output, session) {
 }
 eval(parse(text = runApp), envir = .GlobalEnv)
 shinyCleanup()
+#
 Param$P.values.type <- names(pvalue.col)[which(pvalue.use)]
+#
+# Update fold changes
+# if (!exists("prExpr_roots")) {
+#   prExpr_roots <- setNames(Prot.Expr.Root, "Quantitation")
+# } else {
+#   Prot.Expr.Root <- prExpr_roots["Quantitation"]
+# }
+# prExpr_roots %<o% prExpr_roots
+if (Param$P.values.type %in% c("Moderated", "DEqMS", "MSqRob")) {
+  nm <- c("limma", "DEqMS", "QFeatures")[match(Param$P.values.type, c("Moderated", "DEqMS", "MSqRob"))]
+  cat(paste0(" -> Updating protein log2 FC with the output from ", nm, "!\n"))
+  #cat(paste0(" -> Updating protein log10 expression and log2 FC with the output from ", nm, "!\n"))
+  #
+  nm <- c("limma", "DEqMS", "QFeatures")[match(Param$P.values.type, c("Moderated", "DEqMS", "MSqRob"))]
+  ratKol <- paste0(Prot.Rat.Root, myContrasts$Contrast)
+  if (nm %in% c("limma", "DEqMS")) { #nm <- "limma"
+    repRat <- limmaFits$PG[[nm]]$fit$coefficients[, myContrasts$Contrast, drop = FALSE]
+  }
+  if (nm == "QFeatures") {
+    repRat <- MSqRob_infer[, grep(topattern("MSqRob logFC - "), colnames(MSqRob_infer), value = TRUE), drop = FALSE]
+    # We produced log10 values for QFeatures, and we tested them as log10, so we need to change base here since we want log2FC!
+    repRat <- sweep(repRat, 1L, rep(log10(2L), nrow(repRat)), "/")
+    colnames(repRat) <- sub("^MSqRob logFC - ", "", colnames(repRat))
+  }
+  m <- match(PG$`Leading protein IDs`, row.names(repRat))
+  #sum(is.na(m))
+  PG[, ratKol] <- repRat[m, myContrasts$Contrast]
+  #
+  # Below: cool idea... but not feasible: neither limma not MSqRob currently output corrected values per sample!
+  # Update expression estimates
+  # These are for use as:
+  #  - input to algorithms without their inner advanced modeling mechanism
+  #  - data matrix for scientists
+  # nm <- c("limma", "DEqMS", "QFeatures")[match(Param$P.values.type, c("Moderated", "DEqMS", "MSqRob"))]
+  # prExpr_roots[nm] <- paste0(nm, " ", prExpr_roots["Quantitation"])
+  # intKol1 <- paste0(prExpr_roots["Quantitation"], Exp.map$Ref.Sample.Aggregate)
+  # intKol2 <- paste0(prExpr_roots[nm], Exp.map$Ref.Sample.Aggregate)
+  # if (nm %in% c("limma", "DEqMS")) {
+  #   #nm <- "limma"
+  #   repInt <- limmaFits$PG[[nm]]$fitted_values
+  #   # We fed limma log2 values so we need to adjust for log10
+  #   repInt <- sweep(repInt, 1L, rep(log2(10L), nrow(repInt)), "/")
+  #   colnames(repInt) <- rownames(expMap)[match(colnames(repInt), gsub("___", "_", as.character(expMap[[RSA$limmaCol]])))]
+  # }
+  # if (nm == "QFeatures") {
+  #   # Here unfortunately we do not have a post msqrob data matrix per sample!
+  #   repInt <- as.data.frame(SummarizedExperiment::assay(quantData_list$QFeatures_obj[["PG"]]))
+  #   colnames(repInt) <- sub(topattern(pep.ref[length(pep.ref)]), "", colnames(repInt))
+  # }
+  # PG[, intKol2] <- PG[, intKol1] * NA_real_
+  # w <- which(PG$`Leading protein IDs` %in% row.names(repInt))
+  # m <- match(PG$`Leading protein IDs`[w], row.names(repInt))
+  # #sum(is.na(m))
+  # PG[w, intKol2] <- repInt[m, Exp.map$Ref.Sample.Aggregate]
+  # Prot.Expr.Root <- prExpr_roots[nm]
+}
+#

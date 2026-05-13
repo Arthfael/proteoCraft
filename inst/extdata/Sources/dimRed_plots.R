@@ -36,7 +36,7 @@ filt <- which((apply(dimRedDat[, kol], 1L, \(x) { length(is.all.good(x)) }) == n
 #
 # Plots
 # -----
-if ((length(filt) > 2L)&&(length(kol) > 2L)) {
+if ((length(filt) > 2L) && (length(kol) > 2L)) {
   dimRedDat <- dimRedDat[filt, kol]
   # Normalizing properly is crucial:
   datMatch <- match(row.names(dimRedDat), nameCol)
@@ -86,7 +86,7 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
       ggpubr::stat_conf_ellipse(aes(fill = Group),
                                 alpha = 0.2, geom = "polygon", show.legend = FALSE) +
       scale_color_viridis_d(begin = 0.25) +
-      coord_fixed() + theme_bw() +
+      theme_bw() +
       xlab(xLab) + ylab(yLab) +
       geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
       geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
@@ -179,22 +179,26 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
       SubCellMark2 <- setNames(SubCellMark2$x, SubCellMark2$Group.1)
     }
     compVal <- unique(scores$Classifier)
-    compVal <- sort(compVal[which(compVal != nullVal)])
+    compVal <- sort(setdiff(compVal, nullVal))
     allVal <- c(nullVal, compVal)
     #aggregate(scores$Classifier, list(scores$Classifier), length)
     if (!LocAnalysis) { # -> Class based on regulation, supplemented with compartments
       g <- grep("^Regulated - ", colnames(PG), value = TRUE)
-      allVal[1L] <- nullVal <- paste(rep("", length(g)), collapse = " / ")
+      allVal[1L] <- nullVal <- paste(rep(" ", length(g)), collapse = "/")
       w <- which(scores$Classifier == " ")
       scores$Classifier[w] <- nullVal
       datMatch <- match(row.names(dimRedDat), nameCol)
       if (length(g) <= 6L) {
-        ClassNm <- cleanNms(gsub("^Regulated - ", "", g))
-        tmp <- do.call(cbind, (lapply(g, \(x) {
-          gsub_Rep("^Anti-specific: .*", "down",
+        ClassNm <- cleanNms(sub("^Regulated - ", "", g))
+        tmp <- lapply(g, \(x) {
+          y <- gsub_Rep("^Anti-specific: .*", "down",
                    gsub_Rep("^Specific: .*", "up",
-                            gsub_Rep(", FDR = .+|^(non significant)|(too small FC)$", "", PG[datMatch, x])))
-        })))
+                            gsub_Rep("^((non significant)|(too small FC))$", " ",
+                                     gsub_Rep(", FDR = .+", "", PG[datMatch, x]))))
+          y[which(y == "")] <- " "
+          return(y)
+        })
+        tmp <- do.call(cbind, tmp)
         tmp <- set_colnames(as.data.frame(tmp), ClassNm)
         ClassNm <- paste(ClassNm, collapse = " / ")
         tmp <- do.call(paste, c(tmp, sep = " / "))
@@ -203,11 +207,15 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
         scores$Classifier[gcl] <- tmp[gcl]
       } else {
         ClassNm <- "Regulated"
-        tmp <- do.call(cbind, (lapply(g, \(x) {
-          gsub_Rep("^Anti-specific: .*", "down",
-                   gsub_Rep("^Specific: .*", "up",
-                            gsub_Rep(", FDR = .+|^(non significant)|(too small FC)$", "", PG[datMatch, x])))
-        })))
+        tmp <- lapply(g, \(x) {
+          y <- gsub_Rep("^Anti-specific: .*", "down",
+                        gsub_Rep("^Specific: .*", "up",
+                                 gsub_Rep("^((non significant)|(too small FC))$", " ",
+                                          gsub_Rep(", FDR = .+", "", PG[datMatch, x]))))
+          y[which(y == "")] <- " "
+          return(y)
+        })
+        tmp <- do.call(cbind, tmp)
         tmp <- apply(tmp, 1L, \(x) {
           x <- x[which(x != "")]
           x <- if (length(x)) { "regulated" } else { "" }
@@ -216,7 +224,7 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
         scores$Classifier[gcl] <- tmp[gcl]
       }
       regVal <- unique(tmp[gcl])
-      regVal <- regVal[which(regVal != nullVal)]
+      regVal <- setdiff(regVal, nullVal)
       allVal <- c(allVal, regVal)
     }
     #aggregate(scores$Classifier, list(scores$Classifier), length)
@@ -242,13 +250,13 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
       plot <- plot + geom_point(data = scores[wReg,], shape = 15L) +
         geom_text_repel(data = scores[wReg,], aes(label = `Protein group`), show.legend = FALSE)
     }
-    plot <- plot + coord_fixed() + colScale +
+    plot <- plot + colScale +
       geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
       geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
       scale_alpha_identity() + scale_size_identity() +
       ggtitle(ttl, subtitle = pv) + theme_bw() +
       guides(alpha = "none", size = "none", colour = guide_legend(title = gsub("/", "/\n", ClassNm)))
-    #poplot(plot, 12, 22)
+    #poplot(plot, 12L, 22L)
     ReportCalls <- AddPlot2Report()
     suppressMessages({
       ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
@@ -295,8 +303,12 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
                       type = "scatter",
                       showlegend = TRUE,
                       text = ~paste0("<b>Protein group:</b> ", `Protein group`,
-                                     "\n<b>", c("Class", "Compartment")[LocAnalysis+1],
-                                     ":</b> ", Classifier))
+                                     "\n<b>", c("Class", "Compartment")[LocAnalysis+1L],
+                                     ":</b> ", Classifier)#,
+                      # marker = list(size = 1L,
+                      #               sizemode = "area",
+                      #               showscale = FALSE)
+                      )
     if (tst3D) {
       base_args$type <- "scatter3d"
       base_args$z <- ~PC3
@@ -304,6 +316,7 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
     plot_lyPCAProt2 <- plot_ly()
     for (val in allVal) { #val <- allVal[1L]
       myCat <- val2Cat[val]
+      if (is.na(myCat)) { myCat <- 1 } # To be on the safe side!
       sz <- catsEyes[myCat]*1.5
       if (val == nullVal) { subDat <- scores } else {
         subDat <- scores[which(scores$Classifier == val),]
@@ -335,7 +348,7 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
     setwd(dir)
     saveWidget(plot_lyPCAProt2, paste0(dir, "/", ttl, ".html"))
     setwd(wd)
-    #system(paste0("open \"", dir, "/", ttl, ".html"))
+    system(paste0("open \"", dir, "/", ttl, ".html"))
     # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
     #
     msg <- "t-SNE plots, by protein group"
@@ -367,7 +380,7 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
         plot <- plot + geom_point(data = scores2[wReg2,], shape = 15L) +
           geom_text_repel(data = scores2[wReg2,], aes(label = `Protein group`))
       }
-      plot <- plot +  coord_fixed() + colScale +
+      plot <- plot +  colScale +
         geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
         geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
         scale_alpha_identity() + scale_size_identity() +
@@ -456,7 +469,7 @@ if ((length(filt) > 2L)&&(length(kol) > 2L)) {
         plot <- plot + geom_point(data = UMAPlayout[wReg3,], shape = 15L) +
           geom_text_repel(data = UMAPlayout[wReg3,], aes(label = `Protein group`))
       }
-      plot <- plot +  coord_fixed() + colScale +
+      plot <- plot +  colScale +
         geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
         geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
         scale_alpha_identity() + scale_size_identity() +
