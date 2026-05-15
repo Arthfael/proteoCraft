@@ -153,7 +153,7 @@ Param$Search.dir <- paste(inDirs, collapse = ";")
 Param$WD <- wd
 #
 goDflt <- suppressWarnings(as.logical(Param$GO.enrichment))
-if ((!is.logical(goDflt))||(is.na(goDflt))) { goDflt <- TRUE }
+if ((!is.logical(goDflt)) || is.na(goDflt)) { goDflt <- TRUE }
 #
 fTstDfltDflt <- if (exists("VPAL") && inherits(VPAL, " list")) {
   length(VPAL$values) > 2L
@@ -166,7 +166,7 @@ if (is.na(fTstDflt)) { fTstDflt <- fTstDfltDflt }
 #Param$Volcano.plots.Aggregate.Level <- "AUTOFACT"
 #Param$Volcano.plots.Aggregate.Level <- "Exp;Con"
 tmp <- unlist(strsplit(Param$Volcano.plots.Aggregate.Level, ";"))
-tst <- (length(tmp) > 1L)||(!tmp %in% c("AUTOFACT", "MAP2FACTS"))
+tst <- (length(tmp) > 1L) || (!tmp %in% c("AUTOFACT", "MAP2FACTS"))
 if (tst) {
   tst <- sum(!tmp %in% substr(Factors, 1L, 3L)) == 0L
   if (!tst) { tmp <- "MAP2FACTS" }
@@ -520,11 +520,11 @@ Param$Ratios.Thresholds <- "Absolute log2 FC threshold"
 Mitch <- match(threshDflt, threshOpt)
 if ("Ratios.Contamination.Rates" %in% colnames(Param)) {
   KontRt <- Param$Ratios.Contamination.Rates
-  if ((!is.numeric(KontRt))||(KontRt < 0)) { KontRt <- c(0.05, 1)[Mitch] }
+  if ((!is.numeric(KontRt)) || (KontRt < 0)) { KontRt <- c(0.05, 1)[Mitch] }
 } else { KontRt <- c(0.05, 1)[Mitch] }
 KontRt <- KontRt*c(100, 1)[Mitch]
 #KontGrps <- c("Ratio groups", "Experiments", "Whole dataset")
-# if ((!"Ratios.Contaminant.Groups" %in% colnames(Param))||(!Param$Ratios.Contaminant.Groups %in% KontGrps)) {
+# if ((!"Ratios.Contaminant.Groups" %in% colnames(Param)) || (!Param$Ratios.Contaminant.Groups %in% KontGrps)) {
 #   Param$Ratios.Contaminant.Groups <- KontGrps[1L]
 # }
 #
@@ -809,7 +809,7 @@ for (w in wMp) { #w <- wMp[3L] #w <- wMp[5L] #w <- wMp[6L]
   if (!Param[1L, w] %in% c("AUTOFACT", "MAP2FACTS")) {
     dflt <- Factors[match(unlist(strsplit(Param[1L, w], ";")), names(Factors))]
     ldflt <- length(dflt)
-    if ((!ldflt)||((ldflt == 1L)&&(is.na(dflt)))) {
+    if ((!ldflt) || ((ldflt == 1L) && is.na(dflt))) {
       dflt <- c("Experiment", "")[(myFct %in% c("Batch.effect", "Blocking.factors")) + 1L]
     }
   } else {
@@ -1436,9 +1436,9 @@ server1 <- \(input, output, session) {
           l2 <- length(unique(tmpVPAL))
         }
         msg <- ""
-        if ((l < 3L)||(tst2)||(tst3)||(tst4)) {
+        if ((l < 3L) || tst2 || tst3 || tst4) {
           msg <- c()
-          if ((l < 3L)||(tst2)) { msg <- c(msg, "You MUST always include Experiment here, as well as at least one other contrasted factor!") }
+          if ((l < 3L) || tst2) { msg <- c(msg, "You MUST always include Experiment here, as well as at least one other contrasted factor!") }
           if (tst3) { msg <- c(msg, "The chosen experimental Factors do not discriminate fully between some samples (rows in the experiment map), add more!") }
           if (tst4) { msg <- c(msg, "It is not allowed for several samples to have the same replicate number within a sample group!") }
           msg <- paste(msg, collapse = " / ")
@@ -2128,7 +2128,7 @@ server1 <- \(input, output, session) {
 if (exists("appRunTest")) { rm(appRunTest) }
 appTxt1 <- sub("myApp", "myApp1", sub("\\(ui", "(ui1", sub(", server", ", server1", runApp)))
 runKount <- 0L
-while ((!runKount)||(!exists("appRunTest"))) {
+while ((!runKount) || (!exists("appRunTest"))) {
   ui1 <- make_ui1() # Update ui with current values
   eval(parse(text = appTxt1), envir = .GlobalEnv)
   shinyCleanup()
@@ -2160,8 +2160,8 @@ for (w in g) { Param[[w]] <- as.logical(sub("^TF_", "", Param[[w]])) }
 g <- grep("^((TRUE)|(FALSE))$", Param[1L,])
 for (w in g) { Param[[w]] <- as.logical(Param[[w]]) }
 #}
-enrichGO %<o% (("GO.enrichment" %in% colnames(Param))&&(Param$GO.enrichment))
-if (runClueGO&&!enrichGO) { runClueGO <- FALSE}
+enrichGO %<o% (("GO.enrichment" %in% colnames(Param)) && is.logical(Param$GO.enrichment) && Param$GO.enrichment)
+if (runClueGO && !enrichGO) { runClueGO <- FALSE}
 #
 Param$FullQuant <- TRUE
 FullQuant %<o% Param$FullQuant
@@ -2204,9 +2204,9 @@ dir <- c("Workflow control/MA plots", paste0("Workflow control/", evNm, "s", c("
          "Workflow control/Protein groups/Ratios", "Workflow control/Protein groups/P-values",
          "Reg. analysis", "Reg. analysis/t-tests",
          "PCA plots", "t-SNE plots", "Heatmaps", "Tables")
-enrichGO <- (("GO.enrichment" %in% colnames(Param))&&(Param$GO.enrichment))
-globalGO %<o% (("GO.enrichment_Whole_dataset" %in% colnames(Param))&&(Param$GO.enrichment_Whole_dataset))
-if (enrichGO||globalGO) { dir <- c(dir, "Reg. analysis/GO enrich") }
+enrichGO <- ("GO.enrichment" %in% colnames(Param)) && is.logical(Param$GO.enrichment) && Param$GO.enrichment
+globalGO %<o% (("GO.enrichment_Whole_dataset" %in% colnames(Param)) && is.logical(Param$GO.enrichment_Whole_dataset) && Param$GO.enrichment_Whole_dataset)
+if (enrichGO || globalGO) { dir <- c(dir, "Reg. analysis/GO enrich") }
 dirlist <- union(dirlist, paste0(wd, "/", dir))
 
 # Refresh list of interesting proteins:
@@ -2246,7 +2246,7 @@ if (prot.list.Cond) {
 if (!exists("prot.list_pep")) { prot.list_pep %<o% c() }
 if ("Prot.list_pep" %in% colnames(Param)) {
   tmp <- as.character(Param$Prot.list_pep)
-  if ((!as.character(tmp) %in% c("", "NA"))&&(rev(unlist(strsplit(tmp, "\\.")))[1L] == "csv")) {
+  if ((!as.character(tmp) %in% c("", "NA")) && (rev(unlist(strsplit(tmp, "\\.")))[1L] == "csv")) {
     if (tmp %in% list.files()) {
       tmp <- read.csv(tmp)
       if ("Protein.ID" %in% colnames(tmp)) { tmp <- tmp$Protein.ID } else {
@@ -2257,7 +2257,7 @@ if ("Prot.list_pep" %in% colnames(Param)) {
       warning("I could not find the protein list for peptides coverage/heatmaps!")
       prot.list_pep <- c() }
   } else {
-    tmp <- { if (is.na(tmp)||(tmp == "")) { c() } else { unlist(strsplit(tmp, ";")) } }
+    tmp <- { if (is.na(tmp) || (tmp == "")) { c() } else { unlist(strsplit(tmp, ";")) } }
   }
 } else { tmp <- c() }
 if (exists("TargetProteins")) { tmp <- c(tmp, TargetProteins) }
@@ -2274,7 +2274,7 @@ if (length(prot.list_pep)) {
 
 # Custom protein groups
 custPGs %<o% NA
-if (("Custom.PGs" %in% colnames(Param))&&(!as.character(Param$Custom.PGs) %in% c("", "NA", "FALSE"))&&(file.exists(Param$Custom.PGs))) {
+if (("Custom.PGs" %in% colnames(Param)) && (!as.character(Param$Custom.PGs) %in% c("", "NA", "FALSE")) && file.exists(Param$Custom.PGs)) {
   custPGs_fl %<o% Param$Custom.PGs
   custPGs <- read.delim(custPGs_fl, check.names = FALSE)
   if (colnames(custPGs)[1L] != "Leading protein IDs") { custPGs <- read.delim(custPGs_fl, check.names = FALSE, sep = ",") }
@@ -2291,7 +2291,7 @@ if (("Custom.PGs" %in% colnames(Param))&&(!as.character(Param$Custom.PGs) %in% c
 
 # Database of user-defined contaminants (not the default ones from CCP or MaxQuant)
 ## For cases where you searched with a second database of custom contaminants (e.g. E. coli for C. elegans samples)
-if (("Cont.DB" %in% colnames(Param))&&(!toupper(as.character(Param$Cont.DB)) %in% c("", " ", "NA", "F", "FALSE"))) {
+if (("Cont.DB" %in% colnames(Param)) && (!toupper(as.character(Param$Cont.DB)) %in% c("", " ", "NA", "F", "FALSE"))) {
   temp <- unlist(strsplit(Param$Cont.DB, ";"))
   tst <- file.exists(temp)
   if (sum(!tst)) {
@@ -2348,7 +2348,7 @@ if (DiscFilt) {
     if (!DiscFiltMode %in% DiscFiltModes) { DiscFiltMode <- DiscFiltModes[1L] }
     if (DiscFiltMode == "Filter column") {
       ObjNm <- "DiscFiltCol"
-      if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
+      if (ReUseAnsw && (ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
         msg <- "How should we name the filter column?"
         tmp <- dlg_input(msg, "Found in ...")$res
         ObjNm %<c% tmp
@@ -2397,7 +2397,7 @@ dflt <- c("No", "Yes")[IsPullDown+1L]
 ObjNm <- "Impute"
 if ("Pep.Impute" %in% colnames(Param)) { Impute %<o% as.logical(Param$Pep.Impute) } else {
   dflt <- "No"
-  if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
+  if (ReUseAnsw && (ObjNm %in% AllAnsw$Parameter)) {
     ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]]
   } else {
     msg <- "Do you want to impute missing peptide values (recommended for pull-down experiments)?"
@@ -2423,7 +2423,7 @@ tmp$Help <- vapply(tmp$Param, \(x) {
 }, "")
 colnames(tmp) <- NULL
 tst <- try(write.csv(tmp, file = ParamPath, row.names = FALSE), silent = TRUE)
-while ((inherits(tst, "try-error")&&(grepl("cannot open the connection", tst[1L])))) {
+while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
   dlg_message(paste0("File \"", ParamPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmp, file = ParamPath, row.names = FALSE), silent = TRUE)
 }
@@ -2470,7 +2470,7 @@ Aggregate.list %<o% setNames(lapply(Aggregate.map$Aggregate.Name, \(x) { get(x) 
 #This doesn't work for the master/detailed dual script approach (issue with environments!)
 #
 # Define reference sample aggregate, as well as ratio groups, ratio ref group and volcano plot aggregates:
-if ((!"Norm.Groups" %in% colnames(Param))&&(Param$Norm.Groups == "")) { Param$Norm.Groups <- "Exp" }
+if ((!"Norm.Groups" %in% colnames(Param)) && (Param$Norm.Groups == "")) { Param$Norm.Groups <- "Exp" }
 Param.aggreg %<o% c()
 parse.Param.aggreg.2("Ratios.Groups.Ref.Aggregate.Level", "Ref.Sample.Aggregate")
 for (i in c("Ratios.Groups", "Norm.Groups", "Ratios.Ref.Groups", "Volcano.plots.Aggregate.Level", "Ratios.Plot.split", "Ratios.Plot.wrap", "Ratios.Plot.colour")) {
