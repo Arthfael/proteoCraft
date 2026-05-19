@@ -423,7 +423,7 @@ NmWdth <- paste0(as.character(min(c(80L, max(nchar(fastasTbl2$Name))))*8L), "px"
 wTest <- list(list(width = NmWdth, targets = 0L),
               list(width = "100px", targets = 1L:6L))
 edith <- list(target = "column",
-              enable = list(columns = grep(" regex$", colnames(fastasTbl2))-1))
+              enable = list(columns = grep(" regex$", colnames(fastasTbl2))-1L))
 tmp <- c(0L:(ncol(fastasTbl2)-1L))
 tmp <- tmp[which(!tmp %in% edith$enable$columns)]
 edith$disable <- list(columns = tmp)
@@ -451,7 +451,7 @@ slctXprs <- expression({
       ANNOTTBL(dat)
       assign("annotTbl", dat, envir = .GlobalEnv)
       dat2$Type[i] <- fSlct1(i, dat)
-      dat2$Path <- pathAbbr(dat2$Path)
+      dat2$Path <- pathAbbr(dat$Path)
       ANNOTTBL2(dat2)
       assign("annotTbl2", dat2, envir = .GlobalEnv)
       output$annotFls <- updt_AnnotFls()
@@ -469,7 +469,7 @@ typeXprs <- expression({
   assign("tmp", fSlct1(i, dat), envir = .GlobalEnv)
   dat2$Type[i] <- tmp
   ANNOTTBL2(dat2)
-  dat2$Path <- pathAbbr(dat2$Path)
+  dat2$Path <- pathAbbr(dat$Path)
   assign("annotTbl2", dat2, envir = .GlobalEnv)
   output$annotFls <- updt_AnnotFls()
 })
@@ -498,7 +498,7 @@ rmvXprs <- expression({
   dat2[[4L]] <- vapply(paste0("removeAnnotFl___", chRg2), \(id) {
     as.character(shiny::actionButton(id, "Remove file"))
   }, "")
-  dat2$Path <- pathAbbr(dat2$Path)
+  dat2$Path <- pathAbbr(dat$Path)
   ANNOTTBL2(dat2)
   assign("annotTbl2", dat2, envir = .GlobalEnv)
   output$annotFls <- updt_AnnotFls()
@@ -614,7 +614,7 @@ table.on('change', 'select', function() {
     colnames(datDflt2)[4L] <- ""
     dat2 <- rbind(dat2, datDflt2)
     ANNOTTBL2(dat2)
-    dat2$Path <- pathAbbr(dat2$Path)
+    dat2$Path <- pathAbbr(dat$Path)
     assign("annotTbl2", dat2, envir = .GlobalEnv)
     output$annotFls <- updt_AnnotFls()
   })

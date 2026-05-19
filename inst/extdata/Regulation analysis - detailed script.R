@@ -564,7 +564,7 @@ ReportCalls <- AddSpace2Report()
 ReportCalls <- AddTxt2Report("Starting protein groups assembly...")
 if ("N. of peptidoforms for quantitation" %in% colnames(Param)) {
   N_Pep <- as.integer(Param$"N. of peptidoforms for quantitation")
-  if ((is.na(N_Pep))||(N_Pep <= 0L)) {
+  if (is.na(N_Pep) || (N_Pep <= 0L)) {
     warning("Invalid `\"N. of peptidoforms for quantitation\" parameter, defaulting to 1!")
     N_Pep <- 1L
   }
@@ -704,7 +704,7 @@ if (length(w) == 2L) {
 invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 #
 # If Arabidopsis:
-if (("ARATH" %in% db$Organism)||(3702L %in% db$TaxID)) {
+if (("ARATH" %in% db$Organism) || (3702L %in% db$TaxID)) {
   fl <- system.file("extdata", "Uniprot2AGI.txt", package = "proteoCraft")
   tmp <- read.delim(fl, header = FALSE)
   colnames(tmp) <- c("UniProt", "TAIR")
@@ -1164,7 +1164,7 @@ source(Src, local = FALSE)
 source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
-# Average expression columns
+# Average expression columns per group
 clusterExport(parClust, "is.all.good", envir = environment())
 for (grp in VPAL$values) { #grp <- VPAL$values[1L] #grp <- VPAL$values[3L]
   em <- Exp.map[which(Exp.map[[VPAL$column]] == grp),]

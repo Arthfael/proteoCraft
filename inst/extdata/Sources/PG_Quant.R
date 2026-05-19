@@ -3,6 +3,7 @@
 #
 # This script calculates protein group-level quantitative values based on those of individual peptides.
 # Exact quantitation parameters (e.g. summarization method) are defined earlier in the workflow.
+cat("\n\nProtein group quantitation step\n")
 
 # Default parameter for reps, to be over-written when re-running post-re-normalisation
 if (!validLogicPar("post_ReNorm_reRun")) {
@@ -196,36 +197,34 @@ if (Discard.unmod == 1L) { Discard.unmod <- as.logical(Discard.unmod) }
 source(parSrc, local = FALSE)
 reScalingAlgo <- reScAlgo
 if (reScAlgo == "topN") { reScalingAlgo <- paste0("top", topN) }
-quantArgs <- list(Prot = PG,
-                  Pep = pep[Pep2Use,],
-                  pg_PepIDs = Pep4Quant,
-                  pg_PepIDs_unique = "Unique peptide IDs",
-                  pep_IDs = "id",
-                  N_unique = N_unique_Pep,
-                  LFQ_algo = c(quantAlgo, "iq")[(quantAlgo == "MaxLFQ (iq)")+1L],
-                  reScaling = reScalingAlgo,
-                  topN_correct = topN_correct,
-                  minN = N_Pep,
-                  maxN = Inf,
-                  Weights = "Weights",
-                  useIntWeights = FALSE,
-                  Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1L],
-                  skipRatios = !MakeRatios,
-                  expMap = smplsMap,
-                  expMap_Samples_col = smplsKol,
-                  pepInt_Root = pepInt_col,
-                  pepRat_root = NULL,
-                  pepInt_log = FALSE,
-                  pepRat_log = 2L,
-                  mods_to_Exclude = Mod2Xclud,
-                  mod_Seq = "Modified sequence",
-                  discard_unmod = Discard.unmod,
-                  prim_Seq = "Sequence (1st accession)",
-                  cl = parClust,
-                  N.clust = N.clust,
-                  N.reserved = 1L,
-                  refGroups = NULL,
-                  ratGroups = NULL)
+quantArgs %<o% list(pg_PepIDs = Pep4Quant,
+                    pg_PepIDs_unique = "Unique peptide IDs",
+                    pep_IDs = "id",
+                    N_unique = N_unique_Pep,
+                    LFQ_algo = c(quantAlgo, "iq")[(quantAlgo == "MaxLFQ (iq)")+1L],
+                    reScaling = reScalingAlgo,
+                    topN_correct = topN_correct,
+                    minN = N_Pep,
+                    maxN = Inf,
+                    Weights = "Weights",
+                    useIntWeights = FALSE,
+                    Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1L],
+                    skipRatios = !MakeRatios,
+                    expMap = smplsMap,
+                    expMap_Samples_col = smplsKol,
+                    pepInt_Root = pepInt_col,
+                    pepRat_root = NULL,
+                    pepInt_log = FALSE,
+                    pepRat_log = 2L,
+                    mods_to_Exclude = Mod2Xclud,
+                    mod_Seq = "Modified sequence",
+                    discard_unmod = Discard.unmod,
+                    prim_Seq = "Sequence (1st accession)",
+                    N.clust = N.clust,
+                    N.reserved = 1L,
+                    refGroups = NULL,
+                    ratGroups = NULL,
+                    alsoRun = c("LM", "limpa", "QFeatures", "IQ"))
 if (scrptType == "withReps") { quantArgs$param <- tmpPar }
 if ((scrptType == "noReps")&&(MakeRatios)) {
   quantArgs$refGroups <- list(values = unique(smplsMap$Ratios_group),
@@ -235,13 +234,19 @@ if ((scrptType == "noReps")&&(MakeRatios)) {
                               names = "Ratios_group",
                               column = "Ratios_group")
 }
-# For testing:
-#DefArg(protQuant);TESTING <- TRUE
-#invisible(lapply(names(quantArgs), \(x) { assign(x, quantArgs[[x]], envir = .GlobalEnv); return() }))
 msg <- if (post_ReNorm_reRun) {  " -> Protein groups re-quantitation from back-normalized peptides...\n"
 } else { " -> Starting protein groups quantitation...\n" }
 cat(msg)
-quantData_list %<o% do.call(protQuant, quantArgs) # In case this is run after PG reNorm (from back-reNormalized peptides),
+#loadpack <- TRUE #loadpack <- FALSE
+source(parSrc)
+quantArgs2 <- quantArgs
+quantArgs2$cl <- parClust
+quantArgs2$Prot <- PG
+quantArgs2$Pep <- pep[Pep2Use,]
+# For testing:
+#DefArg(protQuant);TESTING <- TRUE
+#invisible(lapply(names(quantArgs2), \(x) { assign(x, quantArgs2[[x]], envir = .GlobalEnv); return() }))
+quantData_list %<o% do.call(protQuant, quantArgs2) # In case this is run after PG reNorm (from back-reNormalized peptides),
 cat("    done!\n\n")
 quantData_list$reNormalized <- post_ReNorm_reRun
 # this replaces the original quantData_list object.

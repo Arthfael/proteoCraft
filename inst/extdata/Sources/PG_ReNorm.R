@@ -482,10 +482,10 @@ if (normPGs) {
     #   pep.Ref.Ratios <- pep.Ref.Ratios.norm
     #   pep[, colnames(pep.Ref.Ratios)] <- pep.Ref.Ratios
     # }
-    if (quantAlgo %in% c("limpa", "QFeatures")) {
-      # For limpa, re-normalisation requires re-running the quant from back-normalized peptides,
-      # so the object is properly normalized "in-depth"!
-      cat("Quant algorithm = limpa -> re-running quantitation from back-normalized peptides!\n")
+    if (sum(c(quantAlgo, reScAlgo, quantArgs$alsoRun) %in% c("limpa", "QFeatures"))) {
+      # In cases involving limpa and QFeatures, re-normalisation requires re-running the quant from back-normalized peptides,
+      # so the objects are properly normalized "in-depth"!
+      cat("   Re-running quantitation from back-normalized peptides!\n")
       post_ReNorm_reRun <- TRUE
       #rstudioapi::documentOpen(quntSrc)
       source(quntSrc, local = FALSE)

@@ -684,6 +684,7 @@ if (nrow(allBckps)) {
         if (areUok) { assign(reloadedBckps$ObjNm[[i]], tmp) }
       }
     }
+    cat("    Done!\n")
     .obj <- unique(c(unlist(reloadedBckps$ObjNm), .obj))
   } else {
     cat(" -> No backups to reload\n")

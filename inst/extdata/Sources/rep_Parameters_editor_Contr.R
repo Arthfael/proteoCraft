@@ -463,19 +463,32 @@ myContrasts$isDouble <- myContrasts$Secondary != "" # For convenience
 #
 # Design matrix
 # -------------
-tmpForm <- unlist(strsplit(limmaForm, " \\+ "))
-tmpForm <- tmpForm[2L:length(tmpForm)]
+# We need to update limmaForm because we use different names for factors in expMap!
+limmaForm <- paste0("~ 0 + ", VPAL$limmaCol)
+tmpForm <- VPAL$limmaCol
 if ((!is.na(Param$Batch.effect)) && (Param$Batch.effect != "")) {
-  # Let's also make now a design matrix without batch effect for use by ComBat
-  stopifnot(Batch.effect$names %in% tmpForm) # this would indicate that I made a mistake in how limmaForm encodes batch effect
-  tmpFormB <- setdiff(tmpForm, Batch.effect$names)
-  tmpFormB <- paste0(tmpFormB, "_._")
-  tmpFormB_ <- paste0("~ ", paste(tmpFormB, collapse = " + ")) # very important: no 0 intercept here (unlike design matrix), otherwise ComBat will fail with "At least one covariate is confounded with batch! Please remove confounded covariates and rerun ComBat
-  designMatr_noBatch %<o% model.matrix(as.formula(tmpFormB_))
+  # Let's first make a design matrix without batch effect for use by ComBat
+  designMatr_noBatch %<o% model.matrix(as.formula(limmaForm))
+  # Test before we edit column names
+  tst <- lapply(tmpForm, \(x) { grep(topattern(x), colnames(designMatr_noBatch)) })
+  l <- length(tmpForm)
+  if (l > 1L) {
+    for (i in 2L:l) {
+      stopifnot(sum(tst[[i]] %in% unlist(tst[[1L:(i-1L)]])) == 0L)
+    }
+  }
+  # Edit - using dimnames here to avoid stripping other attributes
+  for (i in 1L:l) {
+    dimnames(designMatr_noBatch)[[2L]][tst[[i]]] <- sub(topattern(tmpForm[i]), "", dimnames(designMatr_noBatch)[[2L]][tst[[i]]])
+  }
+  dimnames(designMatr_noBatch)[[2L]] <- gsub("___", "_", dimnames(designMatr_noBatch)[[2L]])
+  dimnames(designMatr_noBatch)[[1L]] <- gsub("___", "_", as.character(expMap[[RSA$limmaCol]]))
+  #
+  # Now we add the batch effect
+  limmaForm <- paste0(limmaForm, " + ", Batch.effect$limmaCol)
+  tmpForm <- c(tmpForm, Batch.effect$limmaCol)
 }
-tmpForm <- paste0(tmpForm, "_._")
-tmpForm_ <- paste0("~ 0 + ", paste(tmpForm, collapse = " + "))
-designMatr %<o% model.matrix(as.formula(tmpForm_))
+designMatr %<o% model.matrix(as.formula(limmaForm))
 # Test before we edit column names
 tst <- lapply(tmpForm, \(x) { grep(topattern(x), colnames(designMatr)) })
 l <- length(tmpForm)
@@ -490,23 +503,7 @@ for (i in 1L:l) {
 }
 dimnames(designMatr)[[2L]] <- gsub("___", "_", dimnames(designMatr)[[2L]])
 dimnames(designMatr)[[1L]] <- gsub("___", "_", as.character(expMap[[RSA$limmaCol]]))
-if ((!is.na(Param$Batch.effect)) && (Param$Batch.effect != "")) {
-  # As above for designMatr_noBatch
-  # Test before we edit column names
-  tst <- lapply(tmpFormB, \(x) { grep(topattern(x), colnames(designMatr_noBatch)) })
-  l <- length(tmpFormB)
-  if (l > 1L) {
-    for (i in 2L:l) {
-      stopifnot(sum(tst[[i]] %in% unlist(tst[[1L:(i-1L)]])) == 0L)
-    }
-  }
-  # Edit - using dimnames here to avoid stripping other attributes
-  for (i in 1L:l) {
-    dimnames(designMatr_noBatch)[[2L]][tst[[i]]] <- sub(topattern(tmpFormB[i]), "", dimnames(designMatr_noBatch)[[2L]][tst[[i]]])
-  }
-  dimnames(designMatr_noBatch)[[2L]] <- gsub("___", "_", dimnames(designMatr_noBatch)[[2L]])
-  dimnames(designMatr_noBatch)[[1L]] <- gsub("___", "_", as.character(expMap[[RSA$limmaCol]]))
-}
+expMap$designMatr_rowNames <- dimnames(designMatr)[[1L]]
 #
 # Contrasts matrix
 # ----------------
@@ -528,40 +525,49 @@ contrMatr %<o% makeContrasts(contrasts = myContrasts$Contrast,
 if ((!"Reference" %in% colnames(Exp.map)) || (!is.logical(Exp.map$Reference)) || (length(unique(Exp.map$Reference[which(!is.na(Exp.map$Reference))])) != 2L)) {
   allRefs <- union(myContrasts$B, myContrasts$D)
   allRefs <- allRefs[which(nchar(allRefs) > 0L)]
-  w <- rownames(expMap)[which(expMap[[VPAL$limmaCol]] %in% allRefs)]
-  kol <- c(VPAL$column, RRG$column)
-  if (WorkFlow %in% c("PULLDOWN", "BIOID")) {
+  Rfs <- rownames(expMap)[which(expMap[[VPAL$limmaCol]] %in% allRefs)]
+  kol <- c(VPAL$column, RG$column, RRG$column)
+  pullDwnTst <- WorkFlow %in% c("PULLDOWN", "BIOID")
+  if (pullDwnTst) {
     kol <- c(kol, "Target")
   }
-  em <- Exp.map[match(w, Exp.map[[RSA$column]]), kol]
+  em <- Exp.map[match(Rfs, Exp.map[[RSA$column]]), kol]
   nc <- ncol(em)
   nr <- nrow(em)
-  colnames(em) <- c("samplesGroup", "referenceGroup", "Bait")[1L:nc]
-  kol2 <- c("samplesGroup", "Bait")[1L:(nc-1L)]
-  tst <- aggregate(1L:nr, list(em$referenceGroup), \(x) {
+  colnames(em) <- c("samplesGroup", "compGroup", "referenceGroup", "Bait")[1L:nc]
+  kol2 <- c("samplesGroup", "Bait")[1L:(pullDwnTst+1L)]
+  tst <- aggregate(1L:nr, list(em$compGroup, em$referenceGroup), \(x) {
     m <- match(unique(em$samplesGroup[x]), em$samplesGroup)
-    return(em[m, kol2])
+    return(set_colnames(em[m, kol2, drop = FALSE], kol2))
   })
-  tmp <- tst$x
-  if (inherits(tmp, "list")) { tmp <- do.call(cbind, tmp) }
-  tst[, kol2] <- as.data.frame(tmp)
+  tst$samplesGroup <- lapply(1L:nrow(tst), \(i) { tst$x[i]$samplesGroup })
+  if (pullDwnTst) {
+    tst$Bait <- lapply(1L:nrow(tst), \(i) { tst$x[i]$Bait })
+  }
   tst$x <- NULL
   # - Step 1: give priority to NA baits
-  tst$L <- lengths(tst$samplesGroup)
-  w <- which(tst$L > 1L)
-  if (length(w)) {
-    tst$samplesGroup[w] <- lapply(w, \(x) {
-      w <- which(is.na(tst$Bait[[x]]))
-      x <- tst$samplesGroup[[x]]
-      if (length(w)) { x <- x[w] }
-      return(x)
-    })
+  if (pullDwnTst) {
+    tst$L <- lengths(tst$samplesGroup)
+    w <- which(tst$L > 1L)
+    if (length(w)) {
+      tst$samplesGroup[w] <- lapply(w, \(x) {
+        w <- which(is.na(tst$Bait[[x]]))
+        x <- tst$samplesGroup[[x]]
+        if (length(w)) { x <- x[w] }
+        return(x)
+      })
+    }
   }
-  # - Step 2: if that fails, take the first value (also turn from list to character)
-  tst$samplesGroup <- vapply(tst$samplesGroup, \(x) { x[[1L]] }, "")
+  # - Step 2: if that fails, take all
+  #tst$samplesGroup <- vapply(tst$samplesGroup, \(x) { x[[1L]] }, "")
   Exp.map$Reference <- FALSE
   for (i in 1L:nrow(tst)) {
-    w <- which((Exp.map[[RRG$column]] == tst$Group.1[i])&(Exp.map[[VPAL$column]] == tst$samplesGroup[i]))
-    Exp.map$Reference[w] <- TRUE
+    w1 <- which((Exp.map[[RG$column]] == tst$Group.1[i])&
+                  (Exp.map[[RRG$column]] == tst$Group.2[i]))
+    w2 <- which((Exp.map[[RG$column]] == tst$Group.1[i])&
+                  (Exp.map[[RRG$column]] == tst$Group.2[i])&
+                  (Exp.map[[VPAL$column]] %in% tst$samplesGroup[[i]]))
+    stopifnot(length(w2) < length(w1)) # When this arrives, we will need to add a prompt to ask users to select reference levels for SAINTexpress, Amica...
+    Exp.map$Reference[w2] <- TRUE
   }
 }

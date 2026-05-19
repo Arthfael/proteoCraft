@@ -1,8 +1,12 @@
-############################
-#                          #
-# Run an F-test with limma #
-#                          #
-############################
+###########################
+#                         #
+# Run an ANOVA with limma #
+#                         #
+###########################
+
+# Note: I could also implement two variants:
+# - Use ODP instead of limma F-test
+# - Use DEqMS for both F-test and t-test here, if it has already been selected as the test for t-tests
 
 if (!require(limma)) { pak::pak("limma") }
 library(limma)
@@ -103,10 +107,9 @@ if (lfcThr != 0L) {
 
 # Step 1 - run F-test
 # -------------------
-# voomaLmFit() isn't compatible with duplicateCorrelation()
-# For an ANOVA, I think controlling for variance is more important than blocks, so I will go for voomaLmFit() instead of lmFit() with optional duplicateCorrelation()
+# NB: voomaLmFit() already includes a duplicateCorrelation() step
 if (limpaMode) {
-  voomFit <- voomaLmFit(myData, designMatr, keep.EList = TRUE)
+  voomFit <- limpa::dpcDE(myData, designMatr, keep.EList = TRUE)
   NA_Filt <- 1L:nrow(myData)
 } else {
   kol <- paste0(intRef, rownames(expMap))

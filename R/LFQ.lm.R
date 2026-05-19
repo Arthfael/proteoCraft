@@ -51,6 +51,7 @@ LFQ.lm <- function(ids,
                    Is.log = TRUE,
                    reNorm = 1L) {
   require(stats) # Precaution to help with interpreting Summary.method 
+  require(minpack.lm) # Because it runs C code 
   #DefArg(LFQ.lm)
   #ids <- quant.pep.ids[[1]]
   #InputTabl = tmpPep;IntensCol = Pep.Intens.Nms;Summary.method = Summary.method;Summary.weights = Weights

@@ -43,7 +43,8 @@ protQuant(
   cl,
   N.clust,
   N.reserved = 1L,
-  contrasts
+  contrasts,
+  alsoRun
 )
 }
 \arguments{
@@ -64,7 +65,7 @@ protQuant(
  - "iq": iq's fast implementation of MaxLFQ, backend = [iq::fast_MaxLFQ()]\cr
  - "limpa" or "DPC": backend = [limpa::dpcQuant()]; current default\cr
  - "QFeatures": backend = [QFeatures::aggregateFeatures()]\cr
-Note that limpa and QFeatures do not "just produce quantitative values": both output specific objects with additional information which can be used for downstream analysis (respectively with limma or msqrob2).\cr}
+Note that limpa and QFeatures do not "just produce quantitative values": both output specific objects with complex modelling of each protein, which can be used for downstream analysis (respectively with limma or MSqRob).\cr}
 
 \item{reScaling}{Optional summary method for re-scaling. May be one of:\cr
 - "median",\cr
@@ -139,7 +140,9 @@ Note that limpa and QFeatures do not "just produce quantitative values": both ou
 
 \item{N.reserved}{Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.}
 
-\item{contrasts}{Optional contrasts data.frame for which to calculate ratios. It should contain columns of the form "[A-D]_samples" mapping samples to contrasts.
+\item{contrasts}{Optional contrasts data.frame for which to calculate ratios. It should contain columns of the form "[A-D]_samples" mapping samples to contrasts.}
+
+\item{alsoRun}{Any valid option for LFQ_algo which was not run as LFQ_algo or reScaling can also be run here, e.g. for comparison between algorithms. The output object(s) will be added to the output list, but will not be returned as main quantitation in the Data slot.
 
 #' @details
 This function is meant to work from normalised peptide intensities and:\cr
