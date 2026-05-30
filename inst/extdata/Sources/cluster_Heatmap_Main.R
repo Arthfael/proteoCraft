@@ -127,8 +127,6 @@ if (clustHtMp) {
     smpls <- I[[i]]
     smplsMtch <- match(smpls, mySmpls)
     xMp <- clustMap[smplsMtch,]
-    xprsKol <- paste0(prtRfRoot, xMp$Samples[smplsMtch])
-    lXprs <- length(xprsKol)
     msg <- paste0("Creating ", c("", paste0(i, " "))[(i == "Global")+1L], "heatmap",
                   c(paste0(" for ", i), "")[(i == "Global")+1L], ".")
     ReportCalls <- AddMsg2Report(Space = FALSE)
@@ -152,7 +150,6 @@ if (clustHtMp) {
         w <- which(rownames(tempDat) %in% preFilt)
         tempDat <- tempDat[w, , drop = FALSE]
       }
-      #tst <- apply(myClustData, 1L, \(x) { length(is.all.good(x)) }) == lXprs
       # Filter to include only rows for which we have at least one valid value
       wAG <- which(rownames(tempDat) %in% clustFilt[[dataType]])
       if (length(wAG) > 3L) {

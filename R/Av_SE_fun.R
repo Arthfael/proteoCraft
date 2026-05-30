@@ -11,7 +11,8 @@
 #' @export
 
 Av_SE_fun <- function(vect) {
-  res <- is.all.good(as.numeric(vect))
+  res <- as.numeric(vect)
+  res <- res[which(is.finite(res))]
   l <- length(res)
   if (l) { res <- c(mean(res), sd(res)/sqrt(l)) } else {
     res <- unique(vect[which(!is.na(vect))])

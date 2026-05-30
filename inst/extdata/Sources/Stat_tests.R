@@ -19,13 +19,28 @@ if ((!dataType %in% names(limmaFits)) || (!inherits(limmaFits[[dataType]], "list
 }
 #
 source(parSrc, local = FALSE)
+#dataType <- "modPeptides" #dataType <- "PG"
 if (dataType == "modPeptides") {
   myData <- ptmpep
   intRef <- pepRf
   namesCol <- "Name"
   namesRoot <- "Pep"
-  runLoc <- LocAnalysis
   ohDeer <- paste0(wd, "/Reg. analysis/", ptm, "/t-tests")
+}
+if (dataType == "peptides") {
+  myData <- pep
+  intRef <- pep.ref[length(pep.ref)]
+  namesCol <- "Modified sequence"
+  namesRoot <- "Pep"
+  ohDeer <- paste0(wd, "/Reg. analysis/t-tests")
+  # pep is not log-transformed at this stage, we need to log(10)-transform it (same as modPeptides and PG)!
+  # We must then make sure that this modified quant does not get pushed back to the original table.
+  # (Note: for limma the log base is adjusted to 2)
+  kol1 <- intersect(paste0(intRef, RSA$values), colnames(myData))
+  intRef <- paste0("log10 ", intRef) 
+  kol2 <- paste0(intRef, RSA$values)
+  myData[, kol2] <- log10(myData[, kol1])
+  myData <- myData[, which(!colnames(myData) %in% kol1)]
 }
 if (dataType == "PG") {
   myData <- PG
@@ -33,7 +48,6 @@ if (dataType == "PG") {
     Prot.Expr.Root #}
   namesCol <- "Leading protein IDs"
   namesRoot <- "PG"
-  runLoc <- FALSE
   ohDeer <- paste0(wd, "/Reg. analysis/t-tests")
 }
 quantCol <- paste0(intRef, RSA$values)
@@ -204,7 +218,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
 }
 
 # msqrob2
-if ((dataType == "PG") && (quantAlgo == "QFeatures")) {
+if ((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) {
   if (!require(msqrob2)) { pak::pak("msqrob2") }
   library(msqrob2)
   if (!require(ExploreModelMatrix)) { pak::pak("ExploreModelMatrix") }
@@ -218,6 +232,11 @@ if ((dataType == "PG") && (quantAlgo == "QFeatures")) {
   colDat$Sample <- sub(".* - ", "", rownames(inDat@colData))
   colDat[, Factors] <- Exp.map[match(colDat$Sample, Exp.map$Ref.Sample.Aggregate), Factors]
   for (fct in Factors) { colDat[[fct]] <- factor(colDat[[fct]], levels = FactorsLevels[[fct]]) }
+  colDat[[RSA$limmaCol]] <- expMap[match(colDat$Sample, rownames(expMap)), RSA$limmaCol]
+  colDat[[VPAL$limmaCol]] <- expMap[match(colDat$Sample, rownames(expMap)), VPAL$limmaCol]
+  if (exists("Batch.effect") && length(Batch.effect$values)) {
+    colDat[[Batch.effect$limmaCol]] <- expMap[match(colDat$Sample, rownames(expMap)), Batch.effect$limmaCol]
+  }
   inDat@colData <- colDat
   # Model
   qf <- msqrob(inDat,
@@ -238,7 +257,9 @@ if ((dataType == "PG") && (quantAlgo == "QFeatures")) {
   Lit <- c("A", "B", "C", "D")
   w <- which(Lit %in% colnames(myContrasts))
   tmp <- myContrasts[, Lit[w]]
-  fct <- gsub(" *\\+ *", "", gsub(".*~ *0 *\\+ *", "", limmaForm))
+  nms <- VPAL$names
+  if (length(Exp) == 1L) { nms <- setdiff(nms, "Experiment") }
+  fct <- paste(paste0(nms, "_._"), collapse = "_")
   for (lit in Lit[w]) {
     tmp[[lit]] <- paste0(fct, tmp[[lit]])
   }
@@ -254,7 +275,7 @@ if ((dataType == "PG") && (quantAlgo == "QFeatures")) {
   qf <- hypothesisTest(qf,
                        i = "PG",
                        contrast = contrMsqrob)
-  
+  #
   MSqRob_infer %<o% lapply(colnames(contrMsqrob), \(k) {
     x <- rowData(qf[["PG"]])[[k]]
     colnames(x) <- paste0(colnames(x), " - ", k)
@@ -279,12 +300,12 @@ if ((dataType == "PG") && (quantAlgo == "QFeatures")) {
   pvalue.col["MSqRob"] <- msqrobRoot
 }
 
-# Others
+# Others (classic Student's and Welch's t-test, permutations test) and ROTC
+# In general any test which is not compatible with complex experiment designs (deals only with 2 groups) should be run here
 pairwise_coin_test <- \(data,
                         alternative = "two.sided",
                         skipBlocks = TRUE # Otherwise in most cases we cannot run the test, because blocks = replicates and N = 1 -> no permutations!
                         ) {
-  #data <- dt; alternative <- altHyp
   formTxt <- "values ~ group"
   data$group <- as.factor(data$group)
   tst <- c("batch", "block") %in% colnames(data)
@@ -338,7 +359,7 @@ if (length(whSingle)) {
     em <- expMap[which(expMap[[VPAL$limmaCol]] %in% c(A, B)),]
     # Check that columns are in input data
     em <- em[which(paste0(intRef, rownames(em)) %in% colnames(tmpData)),]
-    if (!nrow(em)) { return(rep(NA, 3L)) }
+    if (!nrow(em)) { return(matrix(rep(NA_real_, 3L*nrow(tmpData)), ncol = 3L)) }
     if (Nested) {
       uBlck <- unique(em[[blockCol]])
       tmp <- lapply(uBlck, \(x) {
@@ -418,13 +439,43 @@ if (length(whSingle)) {
     tmp <- dfMelt(tmpTsts1)
     tmp[, c("test", "contrast")] <- do.call(rbind, strsplit(as.character(tmp$variable), " -log10\\(Pvalue\\) - "))
     plot <- ggplot(tmp) + geom_density(stat = "density", aes(x = value, color = test)) +
-      facet_grid(test~contrast) + theme_bw()
+      facet_grid(test~contrast) + theme_bw() + ggtitle("Classic tests: dist. of -log10(P-values)")
     poplot(plot)
   }
   myData[, colnames(tmpTsts1)] <- tmpTsts1
   #View(tmpTsts1)
   #summary(tmpTsts1)
   #
+  # - Reproducibility-Optimized Test Statistic (ROTS)
+  cat("   - ROTS tests\n")
+  bioc_req <- union(bioc_req, "ROTS")
+  if (!require(ROTS)) { pak::pak("ROTS") }
+  library(ROTS)
+  ROTS_res %<o% setNames(lapply(whSingle, \(i) { #i <- 1L #i <- 2L #i <- 3L
+    # Get two groups from the contrast
+    A_ <- myContrasts$A_samples[[i]]
+    B_ <- myContrasts$B_samples[[i]]
+    groups <- c(rep(0L, length(A_)), rep(1L, length(B_)))
+    A_k <- paste0(intRef, A_)
+    B_k <- paste0(intRef, B_)
+    tst <- as.data.frame(sapply(list(A = A_k,
+                                     B = B_k), \(kol) {
+                                       apply(tmpData[, kol], 1L, \(x) { length(is.all.good(x)) }) >= 2L
+                                     }))
+    w <- which(rowSums(tst) == 2)
+    return(ROTS::ROTS(data = tmpData[w, c(A_k, B_k)]/log10(2L),
+                      groups = groups,
+                      B = 100,
+                      K = 500,
+                      seed = mySeed))
+  }), myContrasts$Contrast[whSingle])
+  #View(ROTS_res[[myContrasts$Contrast[whSingle[1L]]]])
+  myData[, paste0(rotsRoot, myContrasts$Contrast[whSingle])] <- NA_real_
+  for (contr in myContrasts$Contrast[whSingle]) { #contr <- myContrasts$Contrast[whSingle[1L]]
+    w <- which(myData[[namesCol]] %in% rownames(ROTS_res[[contr]]$data))
+    myData[w, paste0(rotsRoot, contr)] <- -log10(ROTS_res[[contr]]$pvalue[match(myData[w, namesCol],
+                                                                                rownames(ROTS_res[[contr]]$data))])
+  }
   #
   #
   # SAM and EBAM
@@ -589,25 +640,26 @@ if (length(whSingle)) {
 }
 
 # Make sure that the data is numeric and not a matrix!!!
-welchCol <- paste0("Welch's t-test -log10(Pvalue) - ", VPAL$values)
-permCol <- paste0("Permutations t-test -log10(Pvalue) - ", VPAL$values)
-modCol <- paste0("Moderated t-test -log10(Pvalue) - ", VPAL$values)
-samCol <- paste0("SAM -log10(Pvalue) - ", VPAL$values)
-welchCol <- welchCol[which(welchCol %in% colnames(myData))]
-permCol <- permCol[which(permCol %in% colnames(myData))]
-modCol <- modCol[which(modCol %in% colnames(myData))]
-samCol <- samCol[which(samCol %in% colnames(myData))]
-for (k in c(welchCol, permCol, modCol, samCol)) { myData[[k]] <- as.numeric( myData[[k]]) }
+kol <- grep("-log10\\(Pvalue\\) - ", colnames(myData), value = TRUE)
+for (k in kol) { myData[[k]] <- as.numeric( myData[[k]]) }
 #
 # Assign results
 if (!exists("samThresh")) { samThresh <- list() }
+#
+# 
+myData <- myData[, grep(topattern(intRef), colnames(myData), value = TRUE, invert = TRUE)] # because in some cases we have changed this data!
+#
 if (dataType == "modPeptides") {
-  ptmpep <- myData
+  ptmpep[, colnames(myData)] <- myData
   if (!exists("PTMs_SAM_thresh")) { PTMs_SAM_thresh <- list() }
   PTMs_SAM_thresh %<o% PTMs_SAM_thresh
   PTMs_SAM_thresh[[Ptm]] <- samThresh
 }
+if (dataType == "peptides") {
+  pep[, colnames(myData)] <- myData
+  SAM_thresh %<o% samThresh
+}
 if (dataType == "PG") {
-  PG <- myData
+  PG[, colnames(myData)] <- myData
   SAM_thresh %<o% samThresh
 }

@@ -4,7 +4,7 @@ require(parallel)
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }
 N.clust %<o% N.clust
 a <- 1
-tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)
+tst <- try(withTimeout(parallel::clusterExport(parClust, "a", envir = environment()), timeout = 5L), silent = TRUE)
 if (inherits(tst, "try-error")) {
   if (exists("parClust")) { try(parallel::stopCluster(parClust), silent = TRUE) }
   parClust %<o% parallel::makeCluster(N.clust, type = "SOCK")

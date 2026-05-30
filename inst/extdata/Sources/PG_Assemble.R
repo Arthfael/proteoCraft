@@ -1,8 +1,8 @@
 #' PG_assemble
 #'
 #' @description 
-#' This former function is now a source. And faster.
-#' It takes a peptides and a data base data frames and returns a list with:
+#' This former function is now a source. And faster for it!
+#' It takes a peptides and a data base data.frames as input and returns a list with:
 #'  - a data.frame of parsimoniously-inferred protein groups,
 #'  - the peptides file with a few extra columns,
 #'  - the database file with a few extra columns; this is also cleaned up to remove any NAs which can make for poor protein names/annotations.
@@ -25,6 +25,7 @@
 #' @param ContCol Name of column in the database specifying whether a protein is a contaminant ("+", otherwise ""). Default = "Potential contaminant"
 #' @param Npep Minimum number of razor or unique peptides to tag a protein group as a true discovery (others will still be reported). Default = N_Pep if it exists, otherwise 2.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
+#' @param dbOrgCol Default = "Organism_Full". Name of the column in DB corresponding to the organism annotation.
 #' 
 #' @examples
 #' temp <- PG_assemble(Pep = pep, DB = db)
@@ -32,7 +33,6 @@
 #' @import data.table
 #' @export
 
-cat("Protein groups inference step:\nAssembling peptides into the minimum number of protein groups required to explain the data...\n")
 source(parSrc)
 cl <- parClust
 # Below: expected values of old arguments.
@@ -48,12 +48,26 @@ if (!exists("Npep")) { Npep <- 2L }
 if (!exists("DB")) { DB <- db }
 if (!exists("Pep")) { Pep <- pep }
 if (!exists("Ev")) { Ev <- ev }
-TESTING <- FALSE
+if ((!exists("dbOrgCol")) || (!is.character(dbOrgCol)) || (length(dbOrgCol) != 1L) || (!nchar(dbOrgCol)) || (dbOrgCol %in% colnames(DB))) {
+  dbOrgCol <- "Organism_Full"
+}
+if (!dbOrgCol %in% colnames(DB)) { dbOrgCol <- "Organism" }
+if (!dbOrgCol %in% colnames(DB)) { dbOrgCol <- NA }
+if ((!exists("splitByOrg")) || (!is.logical(splitByOrg)) || (length(splitByOrg) != 1L) || is.na(splitByOrg)) {
+  splitByOrg <- FALSE
+}
+if (splitByOrg && (!exists("n_of_PGs"))) { n_of_PGs <- 0L }
 
-#TESTING <- TRUE
-#DefArg(PG_assemble)
-#Pep <- pep ;Ev <- ev ;DB <- db ;N.clust <- 55L; Custom_PGs <- custPGs; Npep = N_Pep; TESTING <- TRUE
-#Pep <- pep[1L:1000L,] ;Ev <- ev ;DB <- db ;N.clust <- 55L; Custom_PGs <- custPGs; Npep = N_Pep; TESTING <- TRUE
+if ((!splitByOrg) || (currOrg == uOrgs[1L])) {
+  cat("Protein groups inference step:\nAssembling peptides into the minimum number of protein groups required to explain the data...\n")
+}
+if (splitByOrg) {
+  cat(currOrg, "...\n")
+}
+
+#DefArg(PG_assemble); Npep = N_Pep; N.clust <- 55L; Custom_PGs <- custPGs; Ev <- ev; DB <- db
+#Pep <- pep
+#Pep <- pep[1L:1000L,]
 #
 tm1 <- Sys.time()
 # Note:
@@ -706,7 +720,11 @@ pg <- pg[order(pg$"Peptides count", decreasing = TRUE),]
 if (doCont) {
   pg <- pg[order(pg$"Potential contaminant", decreasing = FALSE),]
 }
+#
 pg$id <- 1L:nrow(pg)
+if (splitByOrg) {
+  pg$id <- pg$id + n_of_PGs
+}
 # Peptide IDs
 pepcolnm <- if (grepl("peptide", Peptide.IDs, ignore.case = TRUE)) {
   gsub("ss$", "s", paste0(Peptide.IDs, "s"))
@@ -844,7 +862,7 @@ if (CustPG) { # Priority-based razor peptides decision for custom protein groups
 }
 # Update columns
 seq$"Razor protein group ID" <- vapply(seq$.Razor.protein.group.ID, paste, "", collapse = ";")
-seq$"Protein group ID" <- vapply(seq$.Protein.group.IDs, paste, "", collapse = ";")
+seq$"Protein group IDs" <- vapply(seq$.Protein.group.IDs, paste, "", collapse = ";")
 #
 seq$"Leading razor proteins" <- vapply(strsplit(seq$"Leading razor proteins", ";"), \(x) { unlist(x)[1L] }, "")
 if (length(pg$.lead.protein.ids) != length(unique(pg$.lead.protein.ids))) {
@@ -1122,16 +1140,16 @@ if (!misFun(Ev)) {
   }
   #environment(f0) <- .GlobalEnv
   pg$"Evidence IDs" <- parallel::parSapply(cl, tmp1, f0)
+  Ev$"Protein group IDs" <- seq$"Protein group IDs"[match(Ev$"Modified sequence", seq$"Modified sequence")]
   if ("MS/MS count" %in% colnames(Ev)) {
     temp <- aggregate(Ev$"MS/MS count", list(Ev$"Modified sequence"), sum)
     seq$"MS/MS count" <- temp$x[match(seq$"Modified sequence", temp$Group.1)]
-    temp <- listMelt(seq$.Protein.group.IDs, seq$"MS/MS count", c("Protein group ID", "MS/MS count"))
+    temp <- listMelt(seq$.Protein.group.IDs, seq$"MS/MS count", c("Protein group IDs", "MS/MS count"))
     temp <- magrittr::set_colnames(aggregate(as.integer(temp$"MS/MS count"),
-                                             list(temp$"Protein group ID"),
+                                             list(temp$"Protein group IDs"),
                                              sum),
-                                   c("Protein group ID", "MS/MS count"))
-    pg$"MS/MS count" <- temp$"MS/MS count"[match(pg$id, temp$"Protein group ID")]
-    Ev$"Protein group IDs" <- seq$"Protein group IDs"[match(Ev$"Modified sequence", seq$"Modified sequence")]
+                                   c("Protein group IDs", "MS/MS count"))
+    pg$"MS/MS count" <- temp$"MS/MS count"[match(pg$id, temp$"Protein group IDs")]
   }
   # Note:
   # I don't understand how MaxQuant determines identification type.
@@ -1191,6 +1209,16 @@ if ("Common Name" %in% colnames(DB)) {
     })
   }
 }
+# Taxonomy
+if (!is.na(dbOrgCol)) {
+  tmp <- listMelt(strsplit(pg$`Protein IDs`, ";"), ColNames = c("ID", "Row"))
+  tmp$Org <- DB[match(tmp$ID, DB$`Protein ID`), dbOrgCol]
+  tmp <- as.data.table(tmp)
+  tmp <- tmp[, .(Org = paste(sort(unique(Org)), collapse = ";")), by = .(Row = Row)]
+  tmp <- as.data.frame(tmp)
+  pgOrgCol %<o% c("Organism", "Organism(s)")[(sum(grepl(";", tmp$Org)) > 0L)+1L]
+  pg[[pgOrgCol]] <- tmp$Org[match(1L:nrow(pg), tmp$Row)]
+}
 # PG label column
 pg$temp <- gsub(";.+", ";...", pg$"Leading protein IDs")
 tmp <- pg[, c("temp", "Common Name (short)")]
@@ -1209,6 +1237,7 @@ colnames(seq)[match("id", colnames(seq))] <- Peptide.IDs
 colnames(seq)[match("Evidence IDs", colnames(seq))] <- Evidence.IDs
 colnames(seq)[match("Proteins", colnames(seq))] <- Proteins.col
 Pep[, colnames(seq)] <- seq[match(Pep$"Modified sequence", seq$"Modified sequence"),]
+#
 PG_assembly <- list(Protein.groups = pg,
                     Peptides = Pep,
                     Database = DB)
@@ -1219,8 +1248,15 @@ invisible(parallel::clusterCall(cl, \(x) {
 }))
 tm2 <- Sys.time()
 try({
-  msg <- paste0(nrow(PG), " protein groups assembled in ", gsub("^Time difference of ", "", capture.output(tm2-tm1)))
+  msg <- paste0(nrow(pg), " protein groups assembled in ", gsub("^Time difference of ", "", capture.output(tm2-tm1)))
   ReportCalls <- AddMsg2Report(Space = FALSE, Print = TRUE)
 }, silent = TRUE)
 #
-saveFun(PG_assembly, file = "PG_assembly.RData")
+fl <- "PG_assembly"
+if (splitByOrg) {
+  fl <- paste0(fl, "_", uOrgsNorm[currOrg])
+  n_of_PGs <- n_of_PGs + nrow(pg)
+}
+fl <- paste0(wd, "/", fl, ".RData")
+saveFun(PG_assembly, file = fl)
+cat("\nDone!\n\n")

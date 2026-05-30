@@ -1,4 +1,6 @@
 #' protQuant
+#' We are shifting to running this code as a source now because the parallelisation within function as often was erratic.
+#' However, this should be kept even once fully "retired" in scripts as the source currently still uses this function's default arguments!
 #'
 #' @description
 #' A function to calculate estimated protein group Expression (inter-protein group quantitation vectors) from individual peptide values.
@@ -9,7 +11,7 @@
 #' @param Prot Protein/Protein groups table. A data.frame, which must contain at least peptides IDs and primary sequence of the first accession in each group.
 #' @param Pep Peptides table. A data.frame. If it contains unmodified sequences then these are expected to be in column name "Sequence". Argument mod_Seq controls the name of the column used for modified sequence.
 #' @param pg_PepIDs Name of the Protein/Protein groups table's peptide IDs column. Default = "Peptide IDs"
-#' @param pg_PepIDs_unique Used only if mode = "PreferUnique". Name of the Protein/Protein groups table's unique peptide IDs column. Default = "Unique peptide IDs"
+#' @param pg_PepIDs_unique Used only if N_unique is larger than 0. Name of the Protein/Protein groups table's unique peptide IDs column. Default = "Unique peptide IDs"
 #' @param pep_IDs The name of the Peptides table's IDs column. Default = "id"
 #' @param N_unique Logical or numeric. If FALSE or 0, the function just uses the "pg_PepIDs" argument. If non null (default), a second column name of unique peptide IDs should be provided using the "pg_PepIDs_unique" argument. If at least N_unique unique peptides are present, then only those will be used for quantitation, otherwise as many razor/shared peptides as necessary will be added (sorted by decreasing average intensities).
 #' @param LFQ_algo Algorithm used to compute average profiles. One of:\cr
@@ -269,9 +271,9 @@ protQuant <- function(Prot,
   #
   if ("LM" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
     # In-house MaxLFQ-like method (with Levenberg-Marquardt based profiles alignment)
-    if ((length(LM_fun) != 1L)||
-        (!is.character(LM_fun))||
-        (is.na(LM_fun))||
+    if ((length(LM_fun) != 1L) ||
+        (!is.character(LM_fun)) ||
+        is.na(LM_fun) ||
         (!LM_fun %in% c("median", "mean", "weighted.mean"))) {
       warning("Incorrect LM_fun argument, defaulting to \"median\"...")
       LM_fun <- "median"
@@ -280,17 +282,20 @@ protQuant <- function(Prot,
   #
   # Parameters from optional re-scaling
   if (!skip_reScaling) {
-    stopifnot(reSc_is_topN||
-                (RESCALING %in% c("LM", "IQ", "LIMPA", "QFEATURES"))||
-                ((!inherits(try(get(reScaling), silent = TRUE), "try-error"))&&
-                   (inherits(get(reScaling), c("standardGeneric", "function")))))
+    stopifnot(reSc_is_topN ||
+                (RESCALING %in% c("LM", "IQ", "LIMPA", "QFEATURES")) ||
+                ((!inherits(try(get(reScaling), silent = TRUE), "try-error")) &&
+                   inherits(get(reScaling), c("standardGeneric", "function"))))
     useIntWeights <- FALSE
     reSc_topN <- Inf
     if (reSc_is_topN) {
       reScaling <- "mean"
       reSc_fun <- mean
       reSc_topN <- as.integer(sub("^TOP", "", RESCALING))
-      if ((misFun(topN_correct))||(length(topN_correct) != 1L)||(!is.logical(topN_correct))||(is.na(topN_correct))) {
+      if (misFun(topN_correct) ||
+          (length(topN_correct) != 1L) ||
+          (!is.logical(topN_correct)) ||
+          is.na(topN_correct)) {
         warning("Invalid topN_correct argument, defaulting to TRUE")
         topN_correct <- TRUE
       }
@@ -299,8 +304,8 @@ protQuant <- function(Prot,
       reScaling <- "sum"
     }
     useIntWeights <- reScaling == "weighted.mean"
-    if ((!inherits(try(get(reScaling), silent = TRUE), "try-error"))&&
-        (inherits(get(reScaling), c("standardGeneric", "function")))) {
+    if ((!inherits(try(get(reScaling), silent = TRUE), "try-error")) &&
+        inherits(get(reScaling), c("standardGeneric", "function"))) {
       reSc_fun <- get(reScaling)
     }
   }
@@ -319,7 +324,7 @@ protQuant <- function(Prot,
     discard_unmod <- TRUE
   }
   if (!skipRatios) {
-    useContrasts <- (!misFun(contrasts))&&(!is.function(contrasts))
+    useContrasts <- (!misFun(contrasts)) && (!is.function(contrasts))
     if (!useContrasts) {
       if (exists("myContrasts", envir = .GlobalEnv)) {
         contrasts <- myContrasts
@@ -330,14 +335,14 @@ protQuant <- function(Prot,
   if ("Reference" %in% colnames(expMap)) {
     expMap$Reference <- as.logical(toupper(expMap$Reference))
   } else {
-    if ((!skipRatios)&&(!useContrasts)) {
+    if ((!skipRatios) && (!useContrasts)) {
       warning("No reference column was provided, skipping ratios calculation!")
       skipRatios <- TRUE
     }
   }
   #
-  noParams <- (misFun(param))||(!is.data.frame(param))
-  # if ((noParams)&&(misFun(smplGroups))) {
+  noParams <- misFun(param) || (!is.data.frame(param))
+  # if (noParams && misFun(smplGroups)) {
   #   stop("At least one of arguments \"param\" and \"smplGroups\" must be provided!")
   # }
   if (!skipRatios) {
@@ -362,10 +367,10 @@ protQuant <- function(Prot,
       }
     }
     if (!noParams) {
-      if ((misFun(refGroups))&&(gsub(";", "", param$Ratios.Ref.Groups) != refGroups$aggregate)) {
+      if (misFun(refGroups) && (gsub(";", "", param$Ratios.Ref.Groups) != refGroups$aggregate)) {
         warning("The \"param\" and \"refGroups\" arguments are in disagreement; the former has priority over the latter, so I shall ignore \"refGroups\".")
       }
-      if ((misFun(ratGroups))&&(gsub(";", "", param$Ratios.Groups) != ratGroups$aggregate)) {
+      if (misFun(ratGroups) && (gsub(";", "", param$Ratios.Groups) != ratGroups$aggregate)) {
         warning("The \"param\" and \"ratGroups\" arguments are in disagreement; the former has priority over the latter, so I shall ignore \"ratGroups\".")
       }
       refGroups <- parse.Param.aggreg(param$Ratios.Ref.Groups,
@@ -391,7 +396,7 @@ protQuant <- function(Prot,
     warning("I could not make sense of the value of argument \"Priority\", defaulting to \"Intensities\"")
     Priority <- "int"
   }
-  if ((skipRatios)&&(Priority == "rat")) {
+  if (skipRatios && (Priority == "rat")) {
     warning("So, let me get this clear: you want me NOT to calculate ratios BUT to also give ratios priority? Make up your mind! Defaulting to Priority = \"Intensities\"")
     Priority <- "int"
   }
@@ -434,7 +439,7 @@ protQuant <- function(Prot,
   quant_pep_IDs <- all_pep_IDss <- setNames(strsplit(Prot[[pg_PepIDs]], ";"),
                                             Prot$temp_IDs)
   #
-  if ((!skip_reScaling)&&(RESCALING == "MAXLFQ")) {
+  if ((!skip_reScaling) && (RESCALING == "MAXLFQ")) {
     # Equivalent to MaxLFQ
     # Here, we need to know the sum of peptide intensities for each protein group BEFORE any filtering!
     tmp <- listMelt(quant_pep_IDs, ColNames = c("ID", "PG")) 
@@ -458,7 +463,7 @@ protQuant <- function(Prot,
   #   If changing the order, we must delay the filtering! (as we previously did)
   #
   modTst <- rep(TRUE, nrow(Pep))
-  if ((!misFun(mods_to_Exclude))&&(nrow(mods_to_Exclude))) {
+  if ((!misFun(mods_to_Exclude)) && nrow(mods_to_Exclude)) {
     if (TESTING) { cat("Identifying peptides with modifications to exclude...\n") }
     mods_to_Exclude$Pattern <- apply(mods_to_Exclude[, c("Mark", "Where")], 1L, \(x) {
       #x <- mods_to_Exclude[1L, c("Mark", "Where")]
@@ -544,7 +549,7 @@ protQuant <- function(Prot,
   #length(unique(quant_pep_IDsA$pep)) == nrow(Pep)
   #
   # Now deal with filtering protein-N-terminal mods:
-  if ((!misFun(mods_to_Exclude))&&(nrow(mods_to_Exclude))) {
+  if ((!misFun(mods_to_Exclude)) && nrow(mods_to_Exclude)) {
     Mods2XclTerm <- mods_to_Exclude[which(mods_to_Exclude$"Exclude protein specific"),]
     nrTrm <- nrow(Mods2XclTerm)
     if (nrTrm) {
@@ -650,10 +655,10 @@ protQuant <- function(Prot,
   if (protLFQ_toLog == 1L) { protLFQ_toLog <- 10L }
   #
   # Input (peptides-level) ratios
-  if ((!skipRatios)||(Priority == "rat")) {
+  if ((!skipRatios) || (Priority == "rat")) {
     pepRat_log <- as.numeric(pepRat_log)
     if (pepRat_log == 1L) { pepRat_log <- 2L }
-    if ((Priority == "rat")&&(!pepRat_log)) {
+    if ((Priority == "rat") && (!pepRat_log)) {
       # If we are going to use peptide ratios, and they are not log-transformed, do it now
       pepRat_log <- 2L
       if (TESTING) { cat(paste0("Converting input (peptide) ratios to default log", pepRat_log, "...\n")) }
@@ -686,7 +691,7 @@ protQuant <- function(Prot,
   tmp1 <- tmp1[, .(value = mean(value)), by = .(pepID = pepID)]
   Pep$avgPepInt <- tmp1$value[match(Pep[[pep_IDs]], tmp1$pepID)]
   #
-  # In PreferUnique mode: update list of peptides to use for quantitation
+  # If N_unique > 0: update list of peptides to use for quantitation
   if (N_unique) {
     quant_pep_IDsU <- listMelt(strsplit(Prot[[pg_PepIDs_unique]], ";"), Prot$temp_IDs, c("pep", "PG"))
     quant_pep_IDsU <- quant_pep_IDsU[which(quant_pep_IDsU$pep %in% quant_pep_IDsA$pep),]
@@ -793,19 +798,23 @@ protQuant <- function(Prot,
   Pep <- Pep[which(Pep[[pep_IDs]] %in% unlist(quant_pep_IDs)),] # Update Pep (is this necessary?)
   #
   # Get summary method:
-  if (misFun("Weights")) {
+  if (misFun(Weights)) {
     if ("weighted.mean" %in% c(LM_fun, reScaling)) {
-      warning("A summary method is \"weighted mean\", but no weights were provided...?\nSetting all weights to 1...")
+      warning("The summary method is \"weighted mean\", but no weights were provided...?\nSetting all weights to 1...")
     }
     Weights <- "Weights"
     Pep[[Weights]] <- 1L
   }
   #
   # Optional intensity weights - so a peptide's weight is a function of its (non log-transformed) intensity
-  if ((misFun(useIntWeights))||(!is.logical(useIntWeights))||(length(useIntWeights) != 1L)||(is.na(useIntWeights))) {
+  if (misFun(useIntWeights) ||
+      (!is.logical(useIntWeights)) ||
+      (length(useIntWeights) != 1L) ||
+      is.na(useIntWeights)) {
     useIntWeights <- FALSE
   }
-  if ((useIntWeights)&&(sum(c(reScaling, LM_fun) %in% c("mean", "weighted.mean")))) {
+  if (useIntWeights &&
+      (sum(c(reScaling, LM_fun) %in% c("mean", "weighted.mean")))) {
     tmp <- data.table::data.table(pepInt_log^Pep[, Pep.Intens.Nms, drop = FALSE])
     tmp$pepID <- Pep[[pep_IDs]]
     tmp <- data.table::melt(tmp, id.vars = "pepID")
@@ -885,13 +894,13 @@ protQuant <- function(Prot,
   cat("   method =", LFQ_algo, "\n")
   l <- length(ALSORUN)
   if (l) {
-    cat(paste0("   (also running alternative method", c("", "s")[(l > 1L)+1L], " ", paste(ALSORUN, collapse = " / "), " ...)\n"))
+    cat(paste0("   (also running alternative method", c("", "s")[(l > 1L)+1L], " ", paste(ALSORUN, collapse = " / "), ")\n"))
   }
   if ("LM" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
     cat("    ----- running LM method -----\n")
     # Create cluster
     stopCl <- FALSE
-    if ((is.null(cl))||(!inherits(cl, "cluster"))) {
+    if (is.null(cl) || (!inherits(cl, "cluster"))) {
       dc <- parallel::detectCores()
       if (misFun(N.reserved)) { N.reserved <- 1L }
       nMax <- max(c(dc - N.reserved, 1L))
@@ -906,6 +915,7 @@ protQuant <- function(Prot,
       stopCl <- TRUE
     }
     N.clust <- length(cl)
+    #
     parallel::clusterExport(cl, list("is.all.good", "diffLog", "LFQ.lm"), envir = environment())
     f0 <- .bind_worker(LFQ.lm,
                        list(tmpPep = tmpPep,
@@ -918,6 +928,7 @@ protQuant <- function(Prot,
                             maxN = maxN,
                             is.all.good = is.all.good,
                             diffLog = diffLog))
+    cat("            Starting calculations...\n")
     lmDat <- parallel::parLapply(cl,
                                  quant_pep_IDs,
                                  f0,
@@ -936,7 +947,7 @@ protQuant <- function(Prot,
     colnames(lmDat) <- sub(topattern(pepInt_Root), "", colnames(lmDat))
     lmDat <- lmDat[match(names(quant_pep_IDs), row.names(lmDat)),
                    mySmpls]
-    cat("Done!\n")
+    cat("            Done!\n")
     #
     allQuants$LM <- lmDat
     if (LFQ_ALGO == "LM") {
@@ -1092,7 +1103,7 @@ protQuant <- function(Prot,
   #     res <- lapply(rep, \(r) { #r <- 1L
   #       w1_ <- w1[which(em$Replicate[w1] == r)]
   #       w0_ <- w0[which(em$Replicate[w0] == r)]
-  #       if ((length(w1_) != 1L)||(length(w0_) != 1L)) { return() }
+  #       if ((length(w1_) != 1L) || (length(w0_) != 1L)) { return() }
   #       smpl1_ <- em[w1_, expMap_Samples_col]
   #       smpl0_ <- em[w0_, expMap_Samples_col]
   #       return(y[[paste0("log10(Expr.) - ", smpl1_)]] - y[[paste0("log10(Expr.) - ", smpl0_)]])
@@ -1163,14 +1174,14 @@ protQuant <- function(Prot,
       if (reScaling == "weighted.mean") {
         rescVal$Weights <- Pep$Weights[m]
       }
-      if ((reSc_is_topN)||(is.finite(reSc_topN))) {
+      if (reSc_is_topN || is.finite(reSc_topN)) {
         rescVal$Rank <- as.integer(stats::ave(rescVal$PG, rescVal$PG, FUN = seq_along)) # (thanks chatGPT...)
       }
       if (is.finite(reSc_topN)) {
         rescVal <- rescVal[which(rescVal$Rank <= reSc_topN),]
       }
       rescVal <- data.table::as.data.table(rescVal)
-      if (reSc_is_topN&&topN_correct) {
+      if (reSc_is_topN && topN_correct) {
         # Not sure about this...
         Md <- median(rescVal$avgPepInt, na.rm = TRUE)
         tst <- as.data.frame(rescVal[, .(Median = median(avgPepInt, na.rm = TRUE)), by = .(Rank = Rank)])
@@ -1247,7 +1258,7 @@ protQuant <- function(Prot,
       if (protRat_toLog != pepRat_log) {
         res2[, g] <- res2[, g]/base::log(protRat_toLog, pepRat_log)
         colnames(res2)[w] <- sub(topattern(pepRat_root),
-                                 paste0("log", protRat_toLog, "(Ratio) - "),
+                                 paste0("log", protRat_toLog, "FC - "),
                                  colnames(res2)[w])
       }
     }

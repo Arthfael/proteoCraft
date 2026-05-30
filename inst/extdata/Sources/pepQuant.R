@@ -49,7 +49,7 @@ tmp4 <- setNames(parLapply(parClust, smpls, \(smpl) { #smpl <- smpls[1L]
         kk <- paste0(ev.ref[length(ev.ref)], j)
         tmp3[which(!is.all.good(tmp3[[kk]], 2L)), kk] <- NA_real_
       }
-      if (length(j) > 1) { tmp3 <- apply(tmp3, 1L, sum, na.rm = TRUE) } # Ultra-rare cases where the same parent sample is in different isobaric channels in different fractions
+      if (length(j) > 1L) { tmp3 <- apply(tmp3, 1L, sum, na.rm = TRUE) } # Ultra-rare cases where the same parent sample is in different isobaric channels in different fractions
       tmp2 <- data.table(mod = tmp$"Modified sequence"[w2],
                          Intensity = unlist(tmp3))
     }

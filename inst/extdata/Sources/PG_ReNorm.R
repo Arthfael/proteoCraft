@@ -8,17 +8,20 @@
 #   - just the median or, ...
 #   - ... if Norma.Prot.Ratio.Adv is TRUE, Levenberg-Marquardt.
 # c) Add a small random error to singular rows (e.g. for when our filter only includes a single protein).
-# d) Re-establish the original scale (check that the median of all values is unchanged after normalization).
+# d) Re-establish the original scale (check that the mean of all values is unchanged after normalization).
 # e) Re-calculate log ratios.
 #
+#rm(list = ls()[which(!ls() %in% .obj)])
 normPGs <- 0L
 Norma.Prot.Ratio.classic %<o% FALSE
 Norma.Prot.Ratio.to.Biot %<o% FALSE
 Norma.Prot.Ratio.to.proteins %<o% FALSE
 Norma.Prot.Ratio.Adv %<o% FALSE
-if ((!exists("accept_PG_reNorm"))||(!is.logical(accept_PG_reNorm))||(length(accept_PG_reNorm) != 1L)) { accept_PG_reNorm <- TRUE }
+if ((!exists("accept_PG_reNorm")) || (!is.logical(accept_PG_reNorm)) || (length(accept_PG_reNorm) != 1L)) {
+  accept_PG_reNorm <- TRUE
+}
 accept_PG_reNorm %<o% accept_PG_reNorm
-if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
+if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
   dirPG <- paste0(wd, "/Workflow control/Protein groups/Renorm")
   if (!dir.exists(dirPG)) { dir.create(dirPG, recursive = TRUE) }
   dirlist <- unique(c(dirlist, dirPG))
@@ -28,12 +31,13 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
   #
   quantData <- quantData_list$Data
   quantData_norm <- quantData
+  stopifnot(sum(rownames(quantData) != PG$`Protein IDs`) == 0L)
   mySamples <- Exp.map$Ref.Sample.Aggregate
   ExpKol <- paste0(Prot.Expr.Root, mySamples)
   #
   if (!"Adv.Norma.Prot.Intens" %in% colnames(Param)) {
     ObjNm <- "Norma.Prot.Ratio.Adv"
-    if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
+    if (ReUseAnsw && (ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
       msg <- "Do you want to apply Levenberg-Marquardt (slow) re-normalisation at protein groups level?"
       tmp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
       if (is.na(tmp)) { tmp <- FALSE }
@@ -48,10 +52,10 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
   #
   # a) Define normalization filters
   Norma.Prot.Ratio.classic <- TRUE # The default
-  if ((IsBioID2)&&("Norma.Prot.Ratio.to.Biot" %in% colnames(Param))&&
-      (is.logical(Param$Norma.Prot.Ratio.to.Biot))&&
-      (length(Param$Norma.Prot.Ratio.to.Biot) == 1)&&
-      (Param$Norma.Prot.Ratio.to.Biot)) {
+  if (IsBioID && ("Norma.Prot.Ratio.to.Biot" %in% colnames(Param)) &&
+      is.logical(Param$Norma.Prot.Ratio.to.Biot) &&
+      (length(Param$Norma.Prot.Ratio.to.Biot) == 1L) &&
+      Param$Norma.Prot.Ratio.to.Biot) {
     nrmFlt <- which(PG$"Biot. peptides count" > 0L)
     if (length(w)) {
       Norma.Prot.Ratio.classic <- Norma.Prot.Ratio.to.proteins <- FALSE
@@ -59,9 +63,9 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
       txTmp <- "biotinylated protein groups"
     }
   }
-  if (("Norma.Prot.Ratio.to.proteins" %in% colnames(Param))&&
-      (is.character(Param$Norma.Prot.Ratio.to.proteins))&&
-      (!Param$Norma.Prot.Ratio.to.proteins %in% c("", "NA"))&&
+  if (("Norma.Prot.Ratio.to.proteins" %in% colnames(Param)) &&
+      is.character(Param$Norma.Prot.Ratio.to.proteins) &&
+      (!Param$Norma.Prot.Ratio.to.proteins %in% c("", "NA")) &&
       (!Norma.Prot.Ratio.to.Biot)) {
     Prot.Ratio.ref.Acc %<o% unique(unlist(strsplit(Param$Norma.Prot.Ratio.to.proteins, ";")))
     Prot.Ratio.ref.Acc <- Prot.Ratio.ref.Acc[which(Prot.Ratio.ref.Acc %in% db$"Protein ID")]
@@ -100,30 +104,19 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
   if (normPGs) {
     stopifnot(normPGs == 1L) # Only one method may run - otherwise it makes no sense!
     #
-    # b) Normalize within groups
-    grpKols <- setNames(lapply(RG$values, \(grp) { #grp <- RG$values[[1L]]
-      em <- Exp.map[which(Exp.map[[RG$column]] == grp),]
+    grpKols <- setNames(lapply(Norm.Groups$values, \(grp) { #grp <- Norm.Groups$values[[1L]]
+      em <- Exp.map[which(Exp.map[[Norm.Groups$column]] == grp),]
       smpls <- em$Ref.Sample.Aggregate
       xpKol <- paste0(Prot.Expr.Root, smpls)
       w <- which(xpKol %in% colnames(quantData_norm))
       setNames(xpKol[w], smpls[w])
-    }), RG$values)
-    grpNorm_med <- setNames(lapply(RG$values, \(grp) {
-      kol <- grpKols[[grp]]
-      nms <- names(kol)
-      dat <- quantData_norm[nrmFlt, kol]
-      xpMed1 <- apply(dat[, kol], 2L, median, na.rm = TRUE)
-      xpMed1 <- mean(xpMed1)-xpMed1
-      return(setNames(xpMed1, nms))
-    }), RG$values)
-    mean_med <- mean(unlist(grpNorm_med))
-    grpNorm_med <- setNames(lapply(RG$values, \(grp) { grpNorm_med[[grp]] - mean_med }), RG$values)
+    }), Norm.Groups$values)
     if (Norma.Prot.Ratio.Adv) {
       tmpFl <- tempfile(fileext = ".rds")
       readr::write_rds(quantData_norm, tmpFl)
       ids <- PG$id[nrmFlt]
-      exports <- list("tmpFl", "Exp.map", "RG", #"RRG",
-                      "nrmFlt", "is.all.good", "Prot.Expr.Root", #"Prot.Rat.Root",
+      exports <- list("tmpFl", "Exp.map", "Norm.Groups",
+                      "nrmFlt", "is.all.good", "Prot.Expr.Root",
                       "ids", "AdvNorm.IL", "grpKols")
       clusterExport(parClust, exports, envir = environment())
       invisible(clusterCall(parClust, \() {
@@ -132,84 +125,95 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
         return()
       }))
       unlink(tmpFl)
-      grpNorm_LM <- setNames(parLapply(parClust, RG$values, \(grp) {
-        kol <- grpKols[[grp]]
-        nms <- names(kol)
-        dat <- quantData_norm[nrmFlt, kol]
+    }
+    #
+    normDf <- data.frame(Sample = Exp.map$Ref.Sample.Aggregate,
+                         Group = Exp.map[[Norm.Groups$column]])
+    # Original global scale
+    m1 <- mean(unlist(quantData_norm[nrmFlt, ExpKol]), na.rm = TRUE)
+    normDf$prior_Global <- m1
+    normDf$prior_Group <- NA
+    normDf$shift_median <- NA
+    if (Norma.Prot.Ratio.Adv) { normDf$shift_LM <- NA }
+    normDf$posterior_Group <- NA
+    # Per group
+    for (grp in Norm.Groups$values) {
+      kol <- grpKols[[grp]]
+      nms <- names(kol)
+      dat <- quantData_norm[nrmFlt, kol]
+      # Original group scale
+      m2 <- mean(unlist(dat), na.rm = TRUE)
+      normDf$prior_Group[which(normDf$Group == grp)] <- m2
+      # Calculate shift
+      m <- match(nms, normDf$Sample)
+      normDf$shift_median[m] <- shift <- -apply(dat, 2L, median, na.rm = TRUE)
+      if (Norma.Prot.Ratio.Adv) {
+        xpMed0 <- apply(dat, 2L, median, na.rm = TRUE)
         dat$id <- ids
-        xpMed0 <- apply(dat[, kol], 2L, median, na.rm = TRUE)
         nrmDat <- AdvNorm.IL(dat, "id", kol, TRUE, 5L)
         nrmKol <- paste0("AdvNorm.", kol)
-        xpMed2 <- apply(nrmDat[, nrmKol], 2L, median, na.rm = TRUE)
-        xpMed2 <- xpMed2-xpMed0
-        xpMed2 <- mean(xpMed2)-xpMed2
-        return(setNames(xpMed2, nms))
-      }), RG$values)
-      mean_LM <- mean(unlist(grpNorm_LM))
-      grpNorm_LM <- setNames(lapply(RG$values, \(grp) { grpNorm_LM[[grp]] - mean_LM }), RG$values)
-      grpNorm <- grpNorm_LM
-    } else {
-      grpNorm <- grpNorm_med
+        nrmDat <- nrmDat[, nrmKol]
+        xpMed2 <- apply(nrmDat, 2L, median, na.rm = TRUE)
+        normDf$shift_LM[m] <- shift <- xpMed2 - xpMed0
+      }
+      quantData_norm[, kol] <- sweep(quantData_norm[, kol], 2L, shift, "+")
+      # Posterior group scale
+      m3 <- mean(unlist(quantData_norm[nrmFlt, kol]), na.rm = TRUE)
+      normDf$posterior_Group[which(normDf$Group == grp)] <- m3
+      quantData_norm[, kol] <- quantData_norm[, kol] + (m3 - m2)
     }
-    # To check the correlation between both methods, and the effect of experimental factors on the discrepancy
+    # Posterior global scale
+    m4 <- mean(unlist(quantData_norm[nrmFlt, ExpKol]), na.rm = TRUE)
+    normDf$posterior_Global <- m4
+    quantData_norm[, ExpKol] <- quantData_norm[, ExpKol] + (m4 - m1)
+    #
+    # If you are re-normalizing to a single protein, you get randomly singular values in one row.
+    # This breaks stats so we need to fix that so we can at least see it on a volcano plot (though in the center as it will have terrible stats!)
+    if (length(nrmFlt) == 1L) {
+      quantData_norm[nrmFlt, ExpKol] <- quantData_norm[nrmFlt, ExpKol] + runif(length(w)*length(ExpKol), min = 0, max = 1e-10)
+    }
+    #
+    # To check the effect of both methods, and the effect of experimental factors on the discrepancy
     # (this can reveal insights into unexpected effects/trends in the data)
-    #compareNorms <- FALSE
-    #if (compareNorms) {
-      tmp1 <- do.call(c, setNames(grpNorm_LM, NULL))
-      tmp2 <- do.call(c, setNames(grpNorm_med, NULL))
-      tst <- data.frame(sample = names(tmp1),
-                        LM = setNames(tmp1, NULL))
-      tst$median <- tmp2[tst$sample]
-      tst[, RSA$names] <- Exp.map[match(tst$sample, Exp.map$Ref.Sample.Aggregate), RSA$names]
-      nms <- VPAL$names
-      if (length(Exp) == 1L) { nms <- nms[which(nms != "Experiment")] }
-      tst$Samples_group <- do.call(paste, c(tst[, nms, drop = FALSE], sep = " "))
-      l <- length(nms)
-      if (l > 2L) {
+    tst <- normDf
+    tst[, RSA$names] <- Exp.map[match(tst$Sample, Exp.map$Ref.Sample.Aggregate), RSA$names]
+    nms <- VPAL$names
+    if (length(Exp) == 1L) { nms <- nms[which(nms != "Experiment")] }
+    tst$Samples_group <- do.call(paste, c(tst[, nms, drop = FALSE], sep = " "))
+    l <- length(nms)
+    if (l > 2L) {
+      nms2 <- nms[3L:l]
+      tst$Label <- do.call(paste, c(tst[, c(nms2, "Replicate")], sep = " "))
+    }
+    plot <- ggplot(tst)
+    if (l == 1L) {
+      plot <- plot + geom_point(aes(x = shift_median, y = shift_LM, shape = .data[[nms[1]]], color = Replicate))
+    } else {
+      plot <- plot + geom_point(aes(x = shift_median, y = shift_LM, shape = .data[[nms[1]]], color = .data[[nms[2]]]))
+      plot <- if (l > 2L) {
         nms2 <- nms[3L:l]
         tst$Label <- do.call(paste, c(tst[, c(nms2, "Replicate")], sep = " "))
-      }
-      plot <- ggplot(tst)
-      if (l == 1L) {
-        plot <- plot + geom_point(aes(x = median, y = LM, shape = .data[[nms[1]]], color = Replicate))
+        plot + geom_text_repel(aes(x = shift_median, y = shift_LM, label = Label))
       } else {
-        plot <- plot + geom_point(aes(x = median, y = LM, shape = .data[[nms[1]]], color = .data[[nms[2]]]))
-        plot <- if (l > 2L) {
-          nms2 <- nms[3L:l]
-          tst$Label <- do.call(paste, c(tst[, c(nms2, "Replicate")], sep = " "))
-          plot + geom_text_repel(aes(x = median, y = LM, label = Label))
-        } else {
-          plot + geom_text_repel(aes(x = median, y = LM, label = Replicate))
-        }
+        plot + geom_text_repel(aes(x = shift_median, y = shift_LM, label = Replicate))
       }
-      plot <- plot + ggtitle("Median normalisation (x) vs Levenberg-Marquardt (y)") +
-        geom_abline(intercept = 0, slope = 1) + coord_fixed() +
-        theme_bw()
-      #poplot(plot)
-      ggsave(paste0(dirPG, "/Effect of LM normalisation.jpeg"), plot, dpi = 100L)
-      ggsave(paste0(dirPG, "/Effect of LM normalisation.pdf"), plot, dpi = 100L)
-      #}
-    #
-    smplsNorm <- do.call(c, setNames(grpNorm, NULL))
-    quantData_norm[, ExpKol] <- sweep(quantData_norm[, ExpKol],
-                                      2L,
-                                      smplsNorm[mySamples],
-                                      "+")
-    # If you are re-normalizing to a single protein, you get randomly singular values in one row.
-    # This breaks stats so we need to fix that.
-    #  - Expression:
-    tst <- apply(quantData_norm[, ExpKol], 1L, \(x) {
-      x <- x[which(!is.na(x))]
-      length(unique(x))
-    })
-    if (1L %in% tst) {
-      #aggregate(tst, list(tst), length)
-      # Add a small value
-      w <- which(tst > 0L)
-      quantData_norm[w, ExpKol] <- quantData_norm[w, ExpKol] + runif(length(w)*length(ExpKol), min = 0, max = 1e-10)
     }
+    plot <- plot + ggtitle("Median normalisation (x) vs Levenberg-Marquardt (y)") +
+      #coord_fixed() +
+      theme_bw()
+    # Note: this plot isn't scaled the same way for x and y, but we should see a correlation
+    #poplot(plot)
+    ggsave(paste0(dirPG, "/Effect of LM normalisation.jpeg"), plot, dpi = 100L)
+    ggsave(paste0(dirPG, "/Effect of LM normalisation.pdf"), plot, dpi = 100L)
     #
-    # Propagate effects to peptides
+    # Now propagate effects to peptides
+    smplsNorm <- if (Norma.Prot.Ratio.Adv) {
+      normDf$shift_LM
+    } else {
+      normDf$shift_median
+    }
+    smplsNorm <- smplsNorm - normDf$prior_Group - normDf$prior_Global + normDf$posterior_Group + normDf$posterior_Global
+    names(smplsNorm) <- normDf$Sample
     pep.ref["Back-norm"] <- paste0("back-norm. ", pep.ref["Original"])
     prevRef <- match("Back-norm", names(pep.ref)) - 1L
     pepQuantData_norm <- sweep(pep[, paste0(pep.ref[prevRef], mySamples)],
@@ -225,12 +229,14 @@ if (("Norma.Prot.Ratio" %in% colnames(Param))&&(Param$Norma.Prot.Ratio)) {
                                 Norma.Prot.Ratio.to.proteins,
                                 Norma.Prot.Ratio.classic))])
     l <- length(DatAnalysisTxt)
-    insrt <- if (Norma.Prot.Ratio.Adv) { "using the Levenberg-marquart procedure to minimize the difference between " } else { "to the median of " }
+    insrt <- if (Norma.Prot.Ratio.Adv) {
+      "using the Levenberg-marquart procedure to minimize the difference between "
+    } else { "to the median of " }
     DatAnalysisTxt[l] <- gsub("\\.\\.\\.$",
                               paste0(" and re-normalized ", insrt, txTmp, "."),
                               DatAnalysisTxt[l])
-    ReportCalls$Calls <- AddTxt2Report(paste0("Re-normalizing Protein groups-level expression values to the median value of ",
-                                              txTmp))
+    ReportCalls <- AddTxt2Report(paste0("Re-normalizing Protein groups-level expression values to the median value of ",
+                                        txTmp))
   }
 }
 # Calculate protein ratios (now calculated here, not earlier as in earlier version)
@@ -412,6 +418,7 @@ if (normPGs) {
   #
   msg <- "Accept re-normalisation results?"
   appNm <- paste0(dtstNm, " - PG re-normalisation")
+  if (exists("appRunTest")) { rm(appRunTest) }
   ui <- fluidPage(
     useShinyjs(),
     setBackgroundColor( # Doesn't work
@@ -470,10 +477,17 @@ if (normPGs) {
     observeEvent(input$accept_PG_reNorm, { assign("accept_PG_reNorm", as.logical(input[["accept_PG_reNorm"]]), envir = .GlobalEnv) })
     observeEvent(input$saveBtn, { stopApp() })
     #observeEvent(input$cancel, { stopApp() })
-    session$onSessionEnded(\() { stopApp() })
+    session$onSessionEnded(\() {
+      assign("appRunTest", TRUE, envir = .GlobalEnv)
+      stopApp()
+    })
   }
-  eval(parse(text = runApp), envir = .GlobalEnv)
-  shinyCleanup()
+  runKount <- 0L
+  while ((!runKount) || (!exists("appRunTest")) || (!appRunTest)) {
+    eval(parse(text = runApp), envir = .GlobalEnv)
+    shinyCleanup()
+    runKount <- runKount+1L
+  }
   #
   if (accept_PG_reNorm) {
     pep[, colnames(pepQuantData_norm)] <- pepQuantData_norm
@@ -482,7 +496,7 @@ if (normPGs) {
     #   pep.Ref.Ratios <- pep.Ref.Ratios.norm
     #   pep[, colnames(pep.Ref.Ratios)] <- pep.Ref.Ratios
     # }
-    if (sum(c(quantAlgo, reScAlgo, quantArgs$alsoRun) %in% c("limpa", "QFeatures"))) {
+    if (sum(c("limpa", "QFeatures") %in% c(quantAlgo, reScAlgo, quantArgs$alsoRun))) {
       # In cases involving limpa and QFeatures, re-normalisation requires re-running the quant from back-normalized peptides,
       # so the objects are properly normalized "in-depth"!
       cat("   Re-running quantitation from back-normalized peptides!\n")

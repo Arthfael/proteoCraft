@@ -17,7 +17,7 @@ dirlist <- unique(c(dirlist, btchDir))
 #
 # Let's do some imputation:
 # (remember to remove those afterwards!)
-currSamples <- allSamples[which(allSamples %in% colnames(tmpDat1))]
+currSamples <- intersect(allSamples, colnames(tmpDat1))
 smplsMtch <- match(currSamples, Exp.map$Ref.Sample.Aggregate)
 ImpGrps <- Exp.map[smplsMtch,
                    VPAL$column]
@@ -33,12 +33,8 @@ if (length(myBatch) > 1L) {
 # Note: it is important for good batch correction to also make ComBat aware of other covariates so it doesn't remove them too!
 # Hence why the "~1" model should be avoided. We now pre-make the ComBat model matrix in advance. Important: it cannot be based on a formula with ~ 0  intercept, otherwise ComBat will fail!
 #mdlMtr <- model.matrix(~1, data = Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),]) # Old code for reference, do NOT use!
-tmpForm <- unlist(strsplit(limmaForm, " \\+ "))
-tmpForm <- tmpForm[2L:length(tmpForm)]
-tmpForm <- setdiff(tmpForm, myBatch3)
-tmpForm <- paste0(tmpForm, "_._")
-tmpForm <- paste0("~ ", paste(tmpForm, collapse = " + ")) # very important: no 0 intercept here (unlike design matrix), otherwise ComBat will fail with "At least one covariate is confounded with batch! Please remove confounded covariates and rerun ComBat
-batchCorr_designMatr <- model.matrix(as.formula(tmpForm))
+tmpForm <- paste0("~ ", VPAL$limmaCol)
+batchCorr_designMatr <- model.matrix(as.formula(tmpForm), data = expMap)
 m <- match(gsub("___", "_", as.character(expMap[smplsMtch, RSA$limmaCol])), row.names(designMatr)) # same rows as batchCorr_designMatr
 mdlMtr <- batchCorr_designMatr[m,]
 #
@@ -88,7 +84,11 @@ scoresLst[[myBatch2]] <- tmp$Scores
 PCsLst[[myBatch2]] <- tmp$PCs
 #
 appNm <- paste0("Batch corr.: original -> ", myBatch3)
-msg <- "Keep results from ComBat batch correction? (untick to cancel correction)"
+msg <- if (myBatch3 == "Batch") {
+  paste0("Accept ComBat batch correction? (untick to cancel correction)")
+} else {
+  paste0("Accept ComBat correction of ", myBatch3, "-associated batch effect? (untick to cancel correction)")
+}
 corrTst <- t.test(unlist(tmpDat2Imp[wAG1, currSamples]),
                   unlist(tmpDat1Imp[wAG1, currSamples]),
                   paired = TRUE)

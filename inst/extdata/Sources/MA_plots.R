@@ -11,7 +11,7 @@
 # Update:
 ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file") # Update again
 #
-if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
+if ((length(MQ.Exp) > 1L)||(LabelType == "Isobaric")) { # Should be always TRUE
   source(parSrc, local = FALSE)
   data <- ev
   colnames(data)[which(colnames(data) == "MQ.Exp")] <- "Parent sample"
@@ -21,40 +21,40 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
   }
   data <- data[which(data$Reverse != "+"),]
   data <- data[which((is.na(data$"Potential contaminant"))|(data$"Potential contaminant" != "+")),]
-  if (LabelType == "Isobaric") {
-    quntKol <- grep(paste0(topattern(ev.ref["Original"]), "[0-9]+$"), colnames(data), value = TRUE)
-  } else { quntKol <- ev.col["Original"] }
+  quntKol <- if (LabelType == "Isobaric") {
+    grep(paste0(topattern(ev.ref["Original"]), "[0-9]+$"), colnames(data), value = TRUE)
+  } else { ev.col["Original"] }
   w <- which(rowSums(data[, quntKol, drop = FALSE], na.rm = TRUE) > 0)
   data <- data[w,]
-  if (!"Fraction" %in% colnames(data)) { data$Fraction <- 1 }
+  if (!"Fraction" %in% colnames(data)) { data$Fraction <- 1L }
   Fraction <- sort(unique(data$Fraction), decreasing = FALSE)
   Experiment <- Exp
   kols <- c("Parent sample", "Fraction", "Experiment")
   if (LabelType == "Isobaric") {
     X <- "Label"
     kols <- c("Fraction", "Parent sample", "Experiment") # The order matters!
-    tst <- vapply(kols, function(x) { length(unique(data[[x]])) }, 1)
-    w1 <- which(tst > 1)
-    w2 <- which(tst >= 1) 
-    if (length(w1)) { Y <- kols[w1[1]] } else { Y <- kols[w2[1]] }
+    tst <- vapply(kols, \(x) { length(unique(data[[x]])) }, 1L)
+    w1 <- which(tst > 1L)
+    w2 <- which(tst >= 1L) 
+    Y <- if (length(w1)) { kols[w1[1L]] } else { kols[w2[1L]] }
   }
   if (LabelType == "LFQ") {
     kols <- c("Parent sample", "Fraction", "Experiment") # The order matters!
-    tst <- vapply(kols, function(x) { length(unique(data[[x]])) }, 1)
-    w1 <- which(tst > 1)
-    w2 <- which(tst >= 1) 
-    X <- kols[w1[1]]
-    if (length(w1) > 1) { Y <- kols[w1[2]] } else { Y <- kols[w2[2]] }
+    tst <- vapply(kols, \(x) { length(unique(data[[x]])) }, 1L)
+    w1 <- which(tst > 1L)
+    w2 <- which(tst >= 1L) 
+    X <- kols[w1[1L]]
+    Y <- if (length(w1) > 1L) { kols[w1[2L]] } else { kols[w2[2L]] }
   }
   # X and Y each have length 1!
-  kols <- kols[which(!kols %in% c(X, Y))]
-  if (length(kols) > 1) {
+  kols <- setdiff(kols, c(X, Y))
+  if (length(kols) > 1L) {
     data$Group <- do.call(paste, c(data[, kols], sep = " "))
     Grpkol <- "Group"
   } else { Grpkol <- kols }
   grps <- sort(unique(data[[Grpkol]]))
   ReportCalls <- AddSpace2Report()
-  ReportCalls$Calls <- AddTxt2Report(paste0("MA plot", c("", "s")[(length(grps) > 1)+1], ":"))
+  ReportCalls <- AddTxt2Report(paste0("MA plot", c("", "s")[(length(grps) > 1L)+1L], ":"))
   ReportCalls$Objects$MA_groups <- c()
   ReportCalls$Plots$MA_plots <- list()
   ReportCalls$Calls <- append(ReportCalls$Calls, list())
@@ -63,12 +63,12 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   dirlist <- unique(c(dirlist, dir))
   #
-  for (grp in grps) { #grp <- grps[1]
+  for (grp in grps) { #grp <- grps[1L]
     data2 <- data[which(data[[Grpkol]] == grp),]
     lsKl <- c("Modified sequence", Y)
     if (LabelType == "LFQ") { lsKl <- c(lsKl, X) }
     if ("PTM-enrich." %in% colnames(data2)) { lsKl <- c(lsKl, "PTM-enrich.") }
-    ls <- lapply(lsKl, function(kl) { data2[[kl]] })
+    ls <- lapply(lsKl, \(kl) { data2[[kl]] })
     tmp <- do.call(paste, c(data2[, lsKl], sep = "---"))
     if (LabelType == "Isobaric") {
       quntKol2 <- gsub(topattern(ev.ref["Original"]), "", quntKol)
@@ -86,7 +86,7 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
       smplKl <- "Label"
     }
     if (LabelType == "LFQ") {
-      if (X == "Parent sample") { quntKol2 <- get("MQ.Exp") } else { quntKol2 <- get(X) }
+      quntKol2 <- if (X == "Parent sample") { get("MQ.Exp") } else { get(X) }
       data2a <- data.table(Intensity = data2[[ev.col["Original"]]], Group = tmp)
       data2a <- data2a[, list(`log10(Intensity)` = sum(Intensity, na.rm = TRUE)),
                        keyby = Group]
@@ -99,7 +99,7 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
     }
     tmp <- data2[, quntKol2]
     avkol <- rowMeans(data2[, quntKol2], na.rm = TRUE)
-    data2[, quntKol2] <- sweep(data2[, quntKol2], 1, avkol, "-")/log10(2)
+    data2[, quntKol2] <- sweep(data2[, quntKol2], 1L, avkol, "-")/log10(2L)
     kol_ <- c("Modified sequence", Y)
     if ("PTM-enrich." %in% colnames(data2)) { kol_ <- c(kol_, "PTM-enrich.") }
     #data2 <- as.data.table(data2)
@@ -107,12 +107,12 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
                           c(kol_, X, "log2(Ratio)"))
     data2 <- as.data.frame(data2)
     data2$"Mean log10(Intensity)" <- avkol
-    w1 <- is.all.good(data2$"Mean log10(Intensity)", 2)
-    w2 <- is.all.good(data2$"log2(Ratio)", 2)
+    w1 <- is.finite(data2$"Mean log10(Intensity)")
+    w2 <- is.finite(data2$"log2(Ratio)")
     w <- which(w1 & w2)
     if (length(w)) {
       data2 <- data2[w,]
-      tst <- vapply(c(Y, X), function(x) { length(unique(data2[[x]])) }, 1)
+      tst <- vapply(c(Y, X), \(x) { length(unique(data2[[x]])) }, 1L)
       wrpKl <- c(Y, X)
       wrpKl2 <- paste0("`", wrpKl, "`")
       if (1 %in% tst) {
@@ -121,30 +121,31 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
         wrpKl2 <- wrpKl2[w]
         #if ((length(wrpKl) == 1)&&(grepl(" ", wrpKl))) { wrpKl <- paste0("`", wrpKl, "`") }
       } else {
-        if ((tst[1] >= tst[2]*3)||(tst[1] <= tst[2]/3)) {
+        if ((tst[1L] >= tst[2L]*3) || (tst[1L] <= tst[2L]/3)) {
           wrpKl2 <- paste0("`", paste(wrpKl, collapse = " | "), "`")
           wrpKl <- paste(wrpKl, collapse = " | ")
           data2[[wrpKl]] <- as.factor(do.call(paste, c(data2[, c(X, Y)], sep = " | ")))
         }
       }
-      lst <- lapply(wrpKl, function(k) { data2[[k]] })
-      annot <- aggregate(data2$"log2(Ratio)", lst, function(x) {
-        x <- is.all.good(x)
-        c(paste0("Median: ", signif(median(x), 3)), paste0("IQR: ", signif(IQR(x), 3)))
+      lst <- lapply(wrpKl, \(k) { data2[[k]] })
+      annot <- aggregate(data2$"log2(Ratio)", lst, \(x) {
+        x <- x[which(is.finite(x))]
+        c(paste0("Median: ", signif(median(x), 3L)), paste0("IQR: ", signif(IQR(x), 3)))
       })
       annot[, c("Median", "IQR")] <- do.call(as.data.frame, annot)
       annot$x <- NULL
-      colnames(annot)[1:length(wrpKl)] <- wrpKl
-      annot$Amax <- max(is.all.good(data2$"Mean log10(Intensity)"))*1.1
-      annot$Amin <- min(is.all.good(data2$"Mean log10(Intensity)"))*1.1
-      annot$Mmax <- max(is.all.good(data2$"log2(Ratio)"))*1.1
-      annot$Mmin <- min(is.all.good(data2$"log2(Ratio)"))*1.1
+      colnames(annot)[1L:length(wrpKl)] <- wrpKl
+      filtFun <- \(x) { x[which(is.finite(x))] }
+      annot$Amax <- max(filtFun(data2$"Mean log10(Intensity)"))*1.1
+      annot$Amin <- min(filtFun(data2$"Mean log10(Intensity)"))*1.1
+      annot$Mmax <- max(filtFun(data2$"log2(Ratio)"))*1.1
+      annot$Mmin <- min(filtFun(data2$"log2(Ratio)"))*1.1
       annot2 <- annot[, c(wrpKl, "Amax", "Mmin", "Mmax")] 
       annot2 <- rbind(annot2, annot2)
       annot2$Tag <- c(annot$Median, annot$IQR)
       data2[[Y]] <- factor(data2[[Y]], levels = get(Y))
       ttl <- "MA plot - PSMs"
-      if (length(grps) > 1) { ttl <- paste0(ttl, " - ", grp) }
+      if (length(grps) > 1L) { ttl <- paste0(ttl, " - ", grp) }
       ylim <- max(c(abs(c(annot$Mmax, annot$Mmin, (annot$Amax-annot$Amin)/4))))
       annot2$Y <- ylim*0.9
       w <- grep("^IQR: ", annot2$Tag)
@@ -156,12 +157,12 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
         myColors <- setNames(c("darkblue", "red"), c("Not-enriched/Flow-through", "Enriched"))
         plot <- ggplot(data2) +
           geom_scattermore(aes(x = `Mean log10(Intensity)`, y = `log2(Ratio)`, colour = `PTM-enrich.`#, alpha = Alpha
-          ), shape = 16, size = 1#, alpha = 0.1
+          ), shape = 16L, size = 1L#, alpha = 0.1
           )
-        if (length(unique(data$`PTM-enrich.`)) == 1) { plot <- plot + guides(colour = "none") }
+        if (length(unique(data$`PTM-enrich.`)) == 1L) { plot <- plot + guides(colour = "none") }
       } else {
         plot <- ggplot(data2) + geom_scattermore(aes(x = `Mean log10(Intensity)`, y = `log2(Ratio)`,
-                                                     colour = .data[[smplKl]]), size = 1#, alpha = 0.1
+                                                     colour = .data[[smplKl]]), size = 1L#, alpha = 0.1
         )
       }
       plot <- plot + scale_color_viridis(begin = 0.25, discrete = TRUE, option = "D") +
@@ -169,26 +170,26 @@ if ((length(MQ.Exp) > 1)||(LabelType == "Isobaric")) { # Should be always TRUE
         xlab("A = mean log10(Intensity)") + ylab("M = log2(Ratio)") +
         geom_smooth(aes(x = `Mean log10(Intensity)`, y = `log2(Ratio)`), color = "purple", formula = "y ~ s(x, bs = 'cs')", # Note that this fails sometimes, may be a package version issue
                     linewidth = 0.1, linetype = "dashed", method = 'gam') +
-        geom_text(data = annot2, aes(x = Amax, y = Y, label = Tag), hjust = 1, cex = 2) +
+        geom_text(data = annot2, aes(x = Amax, y = Y, label = Tag), hjust = 1, cex = 2L) +
         coord_fixed(log10(2)/log2(10)) + theme_bw() + ggtitle(ttl) + ylim(-ylim, ylim) +
         theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-              axis.line = element_line(colour = "black"), axis.text = element_text(size = 3),
+              axis.line = element_line(colour = "black"), axis.text = element_text(size = 3L),
               strip.text.x = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 7),
               strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 7))
-      if (length(wrpKl) == 1) {
-        plot <- plot + facet_wrap(as.formula(paste0(" ~ ", wrpKl2)), drop = TRUE)
+      plot <- if (length(wrpKl) == 1L) {
+        plot + facet_wrap(as.formula(paste0(" ~ ", wrpKl2)), drop = TRUE)
       } else {
         # X and Y each have length 1!
-        plot <- plot + facet_grid(as.formula(paste0("`", Y, "` ~ `", X, "`")), drop = TRUE)
+        plot + facet_grid(as.formula(paste0("`", Y, "` ~ `", X, "`")), drop = TRUE)
       }
-      #poplot(plot, 12, 22)
+      #poplot(plot, 12L, 22L)
       suppressMessages({
-        ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, width = 10, height = 10, units = "in")
-        ggsave(paste0(dir, "/", ttl, ".pdf"), plot, width = 10, height = 10, units = "in")
+        ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, width = 10L, height = 10L, units = "in")
+        ggsave(paste0(dir, "/", ttl, ".pdf"), plot, width = 10L, height = 10L, units = "in")
       })
       ReportCalls <- AddPlot2Report(Space = FALSE)
     } else {
-      msg <- paste0("Not enough valid data", c("", paste0(" for group ", grp))[(length(grps) > 1) + 1], " to draw an MA plot!")
+      msg <- paste0("Not enough valid data", c("", paste0(" for group ", grp))[(length(grps) > 1L) + 1L], " to draw an MA plot!")
       ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
     }
   }

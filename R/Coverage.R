@@ -45,13 +45,6 @@
 #' Coverage(proteins, peptides, "Align", TRUE, c(TRUE,TRUE,TRUE), 60)
 #' Coverage(proteins, peptides, "Align2", TRUE, c(TRUE,TRUE,TRUE), 60)
 #' 
-#' # Notes:
-#' # * Never use Mode "Align" with sapply at it will create a graph for each protein!
-#' #   Instead, this function works with a vector of several proteins sequences as input.
-#' #   For the Align Mode, the display argument (ignored in Coverage Mode) should be a logical determining which proteins should be displayed.
-#' # * In general, since at present the Align Mode makes some assumptions about the length of the protein sequence(s) submitted, I would avoid applying it to:
-#' #   - too many or too large proteins;
-#' #   - too many peptides.
 #' @export
 
 Coverage <- function(proteins,
@@ -85,8 +78,8 @@ Coverage <- function(proteins,
     function(x) { return(!exists(deparse(substitute(x)))) }
   } else { missing }
   #
-  if ((misFun(I_eq_L))||(!is.logical(I_eq_L))||(is.na(I_eq_L))) {
-    #if ((exists("isDIA"))&&(is.logical(isDIA))&&(!is.na(isDIA))) {
+  if (misFun(I_eq_L) || (!is.logical(I_eq_L)) || is.na(I_eq_L)) {
+    #if (exists("isDIA") && is.logical(isDIA) && (!is.na(isDIA))) {
     #  I_eq_L <- !isDIA # NO! Cf. Vadim's reply that at the moment models do not allow discriminating between I and L.
     #} else {
     I_eq_L <- TRUE
@@ -95,7 +88,7 @@ Coverage <- function(proteins,
   if (!Mode %in% c("Coverage", "Align", "Align2", "XML", "Heat")) {
     stop("Accepted value for \"Mode\" argument:\n - \"Coverage\": only return percentage of sequence coverage\n - \"Align\": create simple peptide coverage map\n - \"Align2\": create peptide coverage map with individual peptide intensities\n - \"XML\": writes xml formated coverage text for writing into Excel tables.")
   }
-  if ((Mode == "Align")&&(colour == "black")) {
+  if ((Mode == "Align") && (colour == "black")) {
     warning("Any R-compatible colour but \"black\" is allowed - though I would advise something shiny...\nDefaulting to \"red\".\nYou're welcome!")
     colour <- "red"
   }
@@ -126,10 +119,10 @@ Coverage <- function(proteins,
       }
       Table$"Protein(s)" <- as.list(namez)
     }
-    if ((length(save) > 1L)||(as.character(save) != "FALSE")) {
-      save.grph <- ((misFun(save.path))||(length(save.path) != length(title)))
+    if ((length(save) > 1L) || (as.character(save) != "FALSE")) {
+      save.grph <- misFun(save.path) || (length(save.path) != length(title))
       if (save.grph) {
-        if ((!misFun(save.path))&&(length(save.path) != length(title))) {
+        if ((!misFun(save.path)) && (length(save.path) != length(title))) {
           warning("Argument \"save.path\" will be ignored as its length is not compatible with that of the \"title\" argument!")
         }
         save.grph <- as.character("save") != "FALSE"
@@ -144,12 +137,12 @@ Coverage <- function(proteins,
       }
     } else { save.grph <- FALSE }
   }
-  if ((misFun(intensities))||(is.null(intensities))) { intensities <- rep(1, length(peptides)) } else {
+  if (misFun(intensities) || is.null(intensities)) { intensities <- rep(1, length(peptides)) } else {
     intensities <- as.numeric(unlist(intensities))
     if (length(intensities) != length(peptides)) {
       stop("The \"intensities\" vector should be the same length as the \"peptides\" vector!")
     }
-    w2 <- which(!is.all.good(intensities, 2L))
+    w2 <- which(!is.finite(intensities))
     intensities[w2] <- NA_real_
   }
   peptides <- gsub("^_|_$", "", unlist(peptides))
@@ -562,7 +555,7 @@ Coverage <- function(proteins,
                                                 X = scale+Xextension+0.5,
                                                 Label = "...") }
               dots <- plyr::rbind.fill(dots)
-              if ((ll+lr)&&(Mode == "Align2")) {
+              if ((ll+lr) && (Mode == "Align2")) {
                 covplot <- covplot +
                   ggplot2::geom_text(data = dots,
                                      ggplot2::aes(x = X, y = Y, label = Label),

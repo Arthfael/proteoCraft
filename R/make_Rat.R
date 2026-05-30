@@ -12,7 +12,7 @@
 #' @param experiment.map_col Name of the sample column in the experiment map.
 #' @param int.root Root of intensity column names.
 #' @param rat.root Root of ratios column names.
-#' @param verbose Logical, default = TRUE
+#' @param verbose Logical, default = FALSE
 #' 
 #' @returns
 #' A list of two objects:
@@ -30,7 +30,7 @@ make_Rat <- function(myData = pep,
                      experiment.map_col = "Ref.Sample.Aggregate",
                      int.root,
                      rat.root,
-                     verbose = TRUE) {
+                     verbose = FALSE) {
   #DefArg(make_Rat)
   #DefArg(make_Rat, silent = FALSE)
   if (is.logical(int.log)) {
@@ -173,18 +173,18 @@ make_Rat <- function(myData = pep,
       if (!int.log) { tmp <- tmp[which(tmp > 0)] }
       emd <- signif(median(tmp), 3L)
       esd <- signif(sd(tmp), 3L)
-      if (logTrans) {
-        msg <- paste0("-> Sample ", cleanNms(a1), ":\n",
-                      paste0("   - log", int.log, "(expr.): median = ", emd, ", SD = ", esd, "\n"))
+      msg <- if (logTrans) {
+        paste0("     -> Sample ", cleanNms(a1), ":\n",
+                      paste0("      - log", int.log, "(expr.): median = ", emd, ", SD = ", esd, "\n"))
       } else {
-        msg <- paste0("-> Sample ", cleanNms(a1), ":\n",
-                      paste0("   - expr.: median = ", emd, ", SD = ", esd, "\n"))
+        paste0("     -> Sample ", cleanNms(a1), ":\n",
+                      paste0("      - expr.: median = ", emd, ", SD = ", esd, "\n"))
       }
       if (paste0(rat.root, a1) %in% colnames(myData)) {
         tmp <- is.all.good(myData[[paste0(rat.root, a1)]])
         rmd <- signif(median(tmp), 3L)
         rsd <- signif(sd(tmp), 3L)
-        msg <- paste0(msg, paste0("   - log", rat.log, "(ratio): median = ", rmd, ", SD = ", rsd, "\n"))
+        msg <- paste0(msg, paste0("      - log", rat.log, "(ratio): median = ", rmd, ", SD = ", rsd, "\n"))
       } # else { msg <- paste0(msg, "     (no ratios calculated)\n") }
       msgs <- c(msgs, msg)
     }
@@ -202,8 +202,7 @@ make_Rat <- function(myData = pep,
   rat.2.ref$Used_by <- lapply(rat.2.ref$Name, \(x) { tmp[[x]] })
   #
   if (verbose) {
-    tmp <- paste(unlist(lapply(tmpRes, \(x) { x$Message })), collapse = "")
-    cat(tmp, "\n")
+    cat(paste(unlist(lapply(tmpRes, \(x) { x$Message })), collapse = ""), "\n")
   }
   return(list(Data = nuData,
               Ratios_to_Refs = rat.2.ref))

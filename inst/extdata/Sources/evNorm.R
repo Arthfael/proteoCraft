@@ -479,9 +479,9 @@ if (LabelType == "Isobaric") {
   colnames(tst) <- NULL
   data.table::fwrite(tst, paste0(wd, "/Workflow control/Valid values test.csv"), quote = FALSE, sep = ",", col.names = FALSE, na = "NA")
   #system(paste0("open \"", wd, "/Workflow control/Valid values test.csv\""))
-  ReportCalls$Calls <- AddTxt2Report("Number of valid values per sample and channel:")
+  ReportCalls <- AddTxt2Report("Number of valid values per sample and channel:")
   ReportCalls$Objects$Valid_values <- as.data.frame(tst)
-  ReportCalls$Calls <- AddTbl2Report("Valid_values")
+  ReportCalls <- AddTbl2Report("Valid_values")
   ReportCalls <- AddSpace2Report()
   ## To do here:
   ## - Format table

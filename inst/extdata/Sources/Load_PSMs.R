@@ -118,7 +118,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                                           filter = "XML file (*.xml)")
     }
     #
-    ReportCalls$Calls <- AddTxt2Report(paste0(" -> mqpar.xml file: ", mqparFl_i))
+    ReportCalls <- AddTxt2Report(paste0(" -> mqpar.xml file: ", mqparFl_i))
     mqpar_i <- readLines(mqparFl_i)
     fastas_i <- gsub(" *</?fastaFilePath> *", "", grep("<fastaFilePath>", mqpar_i, value = TRUE))
     fastas_i <- unlist(strsplit(gsub("\\\\", "/", gsub("^Fasta file\t", "", fastas_i)), ";"))
@@ -126,7 +126,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     mqFold_i <- paste0("C:/MaxQuant/MaxQuant_", c("", "v"), mqVers_i)
     mqFold_i <- mqFold_i[which(dir.exists(mqFold_i))]
     dr <- gsub("\\\\", "/", gsub(" *</?fixed((Combined)|(Search))Folder> *", "", grep("<fixed((Combined)|(Search))Folder>", mqpar_i, value = TRUE)))
-    if ((!length(dr))||(dr == "")) { dr <- inDirs[dir_i] }
+    if ((length(dr) != 1L) || (dr == "")) { dr <- inDirs[dir_i] }
     psmFls_i <- paste0(dr, c("", "/txt", "/combined/txt"), "/evidence.txt")
     psmFls_i <- psmFls_i[which(file.exists(psmFls_i))]
     if (length(psmFls_i) > 1L) {
@@ -146,13 +146,13 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     rawFiles_i_ext <- gsub(".*\\.", "", rawFiles_i)
     wNtFnd <- which(!file.exists(rawFiles_i))
     updtFls <- FALSE
-    if (length(wNtFnd)) {
+    if (ProcessedByUs && length(wNtFnd)) {
       msg <- paste0(" - ", c("Some", "All")[(length(wNtFnd) == length(rawFiles_i))+1L], " MS files are missing at the expected location.\n")
       tbl <- data.frame(path = rawFiles_i[wNtFnd], file = gsub(".*/", "", rawFiles_i[wNtFnd]), ext = rawFiles_i_ext[wNtFnd])
       dirs <- unique(unlist(lapply(unique(c(inDirs[dir_i], dirname(mqparFl_i))), \(dir) {
         dir <- c(dir, dirname(dir))
         return(c(dir,
-                 gsub(".*/", paste0(archDir, "/"), dir[1L:2]),
+                 gsub(".*/", paste0(archDir, "/"), dir[1L:2L]),
                  archDir))
       })))
       dirs <- dirs[which(dir.exists(dirs))]
@@ -309,7 +309,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     m <- match(tmp,
                c("STANDARD", "REPORTERMS2", "REPORTERMS3", "REPORTERIONMS2", "REPORTERIONMS3", "BOXCAR", "TIMSDDA", "TIMSMAXDIA", "BOXCARMAXDIA"))
     labelType_i <- c("LFQ", "Isobaric", "Isobaric", "Isobaric", "Isobaric", "LFQ", "LFQ", "LFQ", "LFQ")[m]
-    if ((scrptType == "noReps")&&(labelType_i != "LFQ")) { stop("Currently, this workflow only supports LFQ experiments!") }
+    if ((scrptType == "noReps") && (labelType_i != "LFQ")) { stop("Currently, this workflow only supports LFQ experiments!") }
     if (labelType_i == "Isobaric") { # Currently used only with Reps
       fracMap_i$Isobaric.set <- c(as.character(1), "?")[(nrow(fracMap_i) > 1L)+1L]
       lab <- gsub(" *</?((inter)|(termi))nalLabel> *", "", grep("<((inter)|(termi))nalLabel>", mqpar_i, value = TRUE))
@@ -339,7 +339,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     FxMd <- FxMd[which(!FxMd %in% FxMdC)]
     VarMd <- gsub(" *</?string> *", "", mqpar_i[gVar])
     searchTxt_i <- paste0(c("The r", "R")[moult], "aw file", c(" was", "s were")[moult], " searched in MaxQuant")
-    if ((length(mqVers_i))&&(nchar(mqVers_i))) {
+    if (length(mqVers_i) && nchar(mqVers_i)) {
       searchTxt_i <- paste0(searchTxt_i, " version ", mqVers_i)
     }
     searchTxt_i <- paste0(searchTxt_i, " against TEMPLATELIBTEXT")
@@ -440,7 +440,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                                               path = paste0(inDirs[dir_i], "/*.log.txt"),
                                               filter = "DiaNN .log.txt file (*.log.txt)")
     }
-    ReportCalls$Calls <- AddTxt2Report(paste0(" -> DiaNN log file: ", diaNN_logFl_i))
+    ReportCalls <- AddTxt2Report(paste0(" -> DiaNN log file: ", diaNN_logFl_i))
     diaNN_logFlDir_i <- dirname(diaNN_logFl_i)
     diannLog_i <- readLines(diaNN_logFl_i)
     diannCall_i <- grep("^diann.exe ", diannLog_i, ignore.case = TRUE, value = TRUE)[1L]
@@ -521,7 +521,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     rawFiles_i_ext <- gsub(".*\\.", "", rawFiles_i)
     wNtFnd <- which(!file.exists(rawFiles_i))
     updtFls <- FALSE
-    if (length(wNtFnd)) {
+    if (ProcessedByUs && length(wNtFnd)) {
       msg <- paste0(" - ", c("Some", "All")[(length(wNtFnd) == length(rawFiles_i))+1L], " MS files are missing at the expected location.\n")
       tbl <- data.frame(path = rawFiles_i[wNtFnd], file = gsub(".*/", "", rawFiles_i[wNtFnd]), ext = rawFiles_i_ext[wNtFnd])
       dirs <- unique(unlist(lapply(unique(c(inDirs[dir_i], diaNN_logFlDir_i)), \(dir) {
@@ -635,7 +635,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     }
     if (exists("ev_DIANN2MQ")) { rm(ev_DIANN2MQ) }
     psmsBckpFl_i <- paste0("diaNN PSMs converted to MQ-like format_", dir_i, ".RData")
-    if ((psmsBckpFl_i %in% reloadedBckps$File)&&(file.exists(psmsBckpFl_i))) {
+    if ((psmsBckpFl_i %in% reloadedBckps$File) && file.exists(psmsBckpFl_i)) {
       loadFun(psmsBckpFl_i)
     }
     if (!exists("ev_DIANN2MQ")) {
@@ -729,7 +729,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     nL <- length(Libraries)
     LibFree <- (nL == 0L)+1L
     searchTxt_i <- paste0(c("The r", "R")[moult], "aw file", c(" was", "s were")[moult], " searched in DiaNN")
-    if ((length(diannVers_i))&&(nchar(diannVers_i))) { searchTxt_i <- paste0(searchTxt_i, " version ", diannVers_i) }
+    if (length(diannVers_i) && nchar(diannVers_i)) { searchTxt_i <- paste0(searchTxt_i, " version ", diannVers_i) }
     searchTxt_i <- paste0(searchTxt_i,
                           c(paste0(" against the following spectral librar", c("y", "ies")[(nL > 1L)+1L], ": ",
                                    paste(Libraries, collapse = "/"), " (see supplementary material), using "),
@@ -752,7 +752,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       }
       searchTxt_i <- paste0(searchTxt_i, " ", txt)
     }
-    if (is.data.frame(VarMd)&&nrow(VarMd)) {
+    if (is.data.frame(VarMd) && nrow(VarMd)) {
       txt <- if (nrow(VarMd) == 1L) {
         paste0(VarMd$Text, " was set as variable modification.")
       } else {
@@ -763,7 +763,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     tstFDR <- grep("^Output will be filtered at .+ FDR$", diannLog_i, value = TRUE)
     FDR <- gsub("^Output will be filtered at | FDR$", "", tstFDR)
     if (!grepl(" ?%$", FDR)) { FDR <- as.numeric(FDR)*100 }
-    if ((FDR >= 0)&&(FDR <= 1)) { searchTxt_i <- paste0(searchTxt_i, " Data was filtered at ", FDR, "% FDR.") }
+    if ((FDR >= 0) && (FDR <= 1)) { searchTxt_i <- paste0(searchTxt_i, " Data was filtered at ", FDR, "% FDR.") }
     #
     searchOutputs[[dir_i]] <- list(ev = ev_i,
                                    Software_param = list(Software = SearchSoft[dir_i],
@@ -801,11 +801,11 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                                                path = paste0(inDirs[dir_i], "/*.fp-manifest"),
                                                filter = "FragPipe manifest file (*.fp-manifest)")
     }
-    ReportCalls$Calls <- AddTxt2Report(paste0(" -> FragPipe workflow file: ", fpWorkflowFl_i))
-    ReportCalls$Calls <- AddTxt2Report(paste0(" -> FragPipe manifest file: ", fpManifestFl_i))
+    ReportCalls <- AddTxt2Report(paste0(" -> FragPipe workflow file: ", fpWorkflowFl_i))
+    ReportCalls <- AddTxt2Report(paste0(" -> FragPipe manifest file: ", fpManifestFl_i))
     if (exists("ev_FP2MQ")) { rm(ev_FP2MQ) }
     psmsBckpFl_i <- paste0("FragPipe PSMs converted to MQ-like format_", dir_i, ".RData")
-    if ((psmsBckpFl_i %in% reloadedBckps$File)&&(file.exists(psmsBckpFl_i))) {
+    if ((psmsBckpFl_i %in% reloadedBckps$File) && file.exists(psmsBckpFl_i)) {
       loadFun(psmsBckpFl_i)
     }
     if (!exists("ev_FP2MQ")) {
@@ -820,7 +820,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       cat(" -> Done!\n")
     }
     ev_i <- ev_FP2MQ$Evidence
-    if ((!"Intensity" %in% colnames(ev_i))||(!sum(!is.na(ev_i$Intensity)))||(!sum(ev_i$Intensity, na.rm = TRUE))) {
+    if ((!"Intensity" %in% colnames(ev_i)) || (!sum(!is.na(ev_i$Intensity))) || (!sum(ev_i$Intensity, na.rm = TRUE))) {
       stop(paste0("You do not appear to have ticked any compatible quantitation method in the Fragpipe search in folder \"",
                   inDirs[dir_i], "\"!\nIf you know that the search did include quantitation, then function FP_to_MQ() needs an update.\nOtherwise, rerun the search with quantitation turned on and try again."))
     }
@@ -842,13 +842,13 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     rawFiles_i_ext <- gsub(".*\\.", "", rawFiles_i)
     wNtFnd <- which(!file.exists(rawFiles_i))
     updtFls <- FALSE
-    if (length(wNtFnd)) {
+    if (ProcessedByUs && length(wNtFnd)) {
       msg <- paste0(" - ", c("Some", "All")[(length(wNtFnd) == length(rawFiles_i))+1L], " MS files are missing at the expected location.\n")
       tbl <- data.frame(path = rawFiles_i[wNtFnd], file = gsub(".*/", "", rawFiles_i[wNtFnd]), ext = rawFiles_i_ext[wNtFnd])
       dirs <- unique(unlist(lapply(unique(c(inDirs[dir_i], fpManifest_i$Path)), \(dir) {
         dir <- c(dir, dirname(dir))
         return(c(dir,
-                 gsub(".*/", paste0(archDir, "/"), dir[1L:2]),
+                 gsub(".*/", paste0(archDir, "/"), dir[1L:2L]),
                  archDir))
       })))
       dirs <- dirs[which(dir.exists(dirs))]
@@ -1058,7 +1058,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     # (I know, this is really bad, but I was tired, ok!)
     #
     searchTxt_i <- paste0(c("The r", "R")[moult], "aw file", c(" was", "s were")[moult], " searched in FragPipe")
-    if ((length(fpVers_i))&&(nchar(fpVers_i))) {
+    if (length(fpVers_i) && nchar(fpVers_i)) {
       searchTxt_i <- paste0(searchTxt_i, " version ", fpVers_i)
     }
     searchTxt_i <- paste0(searchTxt_i, " against TEMPLATELIBTEXT")
@@ -1199,56 +1199,64 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
 # Now combine the outputs of the different search directories
 #  - Modifications table
 Modifs %<o% lapply(searchOutputs, \(x) { x$Mods })
-modsTst1 <- modsTst2 <- do.call(rbind, lapply(Modifs, \(x) { x[, c("Mark", "Mass shift")] }))
-modsTst1 <- aggregate(round(modsTst1$`Mass shift`, 4L), list(modsTst1$Mark), unique)
-colnames(modsTst1) <- c("Mark", "Mass shifts")
-modsTst1$N <- lengths(modsTst1$"Mass shifts")
-w <- which(modsTst1$N > 1L)
-if (length(w)) {
-  stop("We need to add code to deal with ambiguous cases where the same mark is used in different searches for different PTMs!!!")
-}
-modsTst2 <- aggregate(modsTst2$Mark, list(round(modsTst2$`Mass shift`, 4L)), unique)
-colnames(modsTst2) <- c("Mass shifts", "Mark")
-modsTst2$N <- lengths(modsTst2$Mark)
-w <- which(modsTst2$N > 1L)
-if (length(w)) {
-  stop("We need to add code deal with these ambiguous cases where different marks are assigned to the same PTM by different searches!!!")
-}
-modsTst <- do.call(plyr::rbind.fill, Modifs)
-modsTst_a <- aggregate(modsTst$"Full name", list(modsTst$Mark, round(modsTst$"Mass shift", 4L)), \(x) { x[[1L]] })
-colnames(modsTst_a) <- c("Mark", "Mass shifts", "Full name")
-k <- c("Site", "Site_long", "AA", "UniMod", "Position")
-w <- which(k %in% colnames(modsTst))
-modsTst_b <- aggregate(modsTst[, k[w]], list(modsTst$Mark, round(modsTst$"Mass shift", 4L)), \(x) { unique(unlist(x)) })
-colnames(modsTst_b) <- c("Mark", "Mass shifts", k[w])
-modsTst_a[, k[w]] <- modsTst_b[, k[w]]
-modsTst_a$Type <- aggregate(modsTst$Type, list(modsTst$Mark, round(modsTst$"Mass shift", 4L)), \(x) {
-  x <- unique(x)
-  x <- x[which(!is.na(x))]
-  x <- x[which(x != "NA")]
-  if ((length(x) > 1L)&&("Variable" %in% x)) {
-    x <- "Variable"
+tst <- plyr::rbind.fill(Modifs)
+kol1 <- c("Mark", "Mass shift")
+kol2 <- c("Mark", "Mass shifts")
+if (!sum(!kol1 %in% colnames(tst))) {
+  modsTst1 <- modsTst2 <- do.call(rbind, lapply(Modifs, \(x) { x[, kol1] }))
+  modsTst1 <- aggregate(round(modsTst1$`Mass shift`, 4L), list(modsTst1$Mark), unique)
+  colnames(modsTst1) <- kol2
+  modsTst1$N <- lengths(modsTst1$"Mass shifts")
+  w <- which(modsTst1$N > 1L)
+  if (length(w)) {
+    stop("We need to add code to deal with ambiguous cases where the same mark is used in different searches for different PTMs!!!")
   }
-  return(x)
-})$x
-if ("Mass delta" %in% colnames(modsTst)) {
-  modsTst_a$"Mass delta" <- aggregate(1L:nrow(modsTst), list(modsTst$Mark, round(modsTst$"Mass shift", 4L)), \(x) {
-    rs <- unique(unlist(modsTst$`Mass delta`[x]))
-    rs <- rs[which(!is.na(rs))]
-    if (!length(rs)) {
-      rs <- unique(unlist(modsTst$`Mass shift`[x]))
-      rs <- rs[which(!is.na(rs))]
+  modsTst2 <- aggregate(modsTst2$Mark, list(round(modsTst2$`Mass shift`, 4L)), unique)
+  colnames(modsTst2) <- rev(kol2)
+  modsTst2$N <- lengths(modsTst2$Mark)
+  w <- which(modsTst2$N > 1L)
+  if (length(w)) {
+    stop("We need to add code deal with these ambiguous cases where different marks are assigned to the same PTM by different searches!!!")
+  }
+  modsTst <- do.call(plyr::rbind.fill, Modifs)
+  modsTst_a <- aggregate(modsTst$"Full name", list(modsTst$Mark, round(modsTst$"Mass shift", 4L)), \(x) { x[[1L]] })
+  colnames(modsTst_a) <- c(kol2, "Full name")
+  k <- c("Site", "Site_long", "AA", "UniMod", "Position")
+  w <- which(k %in% colnames(modsTst))
+  modsTst_b <- aggregate(modsTst[, k[w]], list(modsTst$Mark, round(modsTst$"Mass shift", 4L)), \(x) { unique(unlist(x)) })
+  colnames(modsTst_b) <- c(kol2, k[w])
+  modsTst_a[, k[w]] <- modsTst_b[, k[w]]
+  modsTst_a$Type <- aggregate(modsTst$Type, list(modsTst$Mark, round(modsTst$"Mass shift", 4L)), \(x) {
+    x <- unique(x)
+    x <- x[which(!is.na(x))]
+    x <- x[which(x != "NA")]
+    if ((length(x) > 1L) && ("Variable" %in% x)) {
+      x <- "Variable"
     }
-    rs <- if (length(rs)) { mean(rs) } else { NA }
-    return(rs)
+    return(x)
   })$x
+  if ("Mass delta" %in% colnames(modsTst)) {
+    modsTst_a$"Mass delta" <- aggregate(1L:nrow(modsTst), list(modsTst$Mark, round(modsTst$"Mass shift", 4L)), \(x) {
+      rs <- unique(unlist(modsTst$`Mass delta`[x]))
+      rs <- rs[which(!is.na(rs))]
+      if (!length(rs)) {
+        rs <- unique(unlist(modsTst$`Mass shift`[x]))
+        rs <- rs[which(!is.na(rs))]
+      }
+      rs <- if (length(rs)) { mean(rs) } else { NA }
+      return(rs)
+    })$x
+  }
+  if ("Max occurences" %in% colnames(modsTst)) {
+    modsTst_a$"Max occurences" <- aggregate(modsTst$"Max occurences", list(modsTst$Mark, round(modsTst$"Mass shift", 4L)), \(x) {
+      max(x, na.rm = TRUE)
+    })$x
+  }
+  Modifs <- modsTst_a
+} else {
+  Modifs <- plyr::rbind.fill(Modifs)
 }
-if ("Max occurences" %in% colnames(modsTst)) {
-  modsTst_a$"Max occurences" <- aggregate(modsTst$"Max occurences", list(modsTst$Mark, round(modsTst$"Mass shift", 4L)), \(x) {
-    max(x, na.rm = TRUE)
-  })$x
-}
-Modifs <- modsTst_a
+
 #  - MatMet text templates
 MatMet_Search %<o% setNames(lapply(1L:l_inDirs, \(x) {
   paste0(c("", paste0("Search #", x, " = '", gsub(".*/", "", inDirs[x]), "':\n"))[(l_inDirs > 1L)+1L],
@@ -1280,9 +1288,13 @@ fastas_map$Actual <- setNames(lapply(names(fastas_map$Original), \(nm) {
   fastas[match(fastas_map$Original[[nm]], orig_fastas)]
 }), names(fastas_map$Original))
 fastas %<o% unique(fastas)
-if ((loadInt)&&(exists("intPrtFst"))&&(file.exists(intPrtFst))) {
-  fastas <- unique(c(fastas, intPrtFst))
+if (loadInt && exists("intPrtFst") && file.exists(intPrtFst)) { # Load from input popup at start
+  fastas <- union(fastas, intPrtFst)
 }
+if (exists("fastas_reloaded") && file.exists(fastas_reloaded)) { # Re-load from detected local backup
+  fastas <- union(fastas, fastas_reloaded)
+}
+
 #  - FracMap
 FracMap %<o% lapply(searchOutputs, \(x) { x$FracMap })
 FracMap <- do.call(plyr::rbind.fill, c(FracMap))
@@ -1415,6 +1427,3 @@ if (exists("FracMap_reloaded")) {
 #if (!file.exists(FracMapPath)) {
 write.csv(FracMap, file = FracMapPath, row.names = FALSE)
 #}
-if (exists("fastas_reloaded")) {
-  fastas <- unique(c(fastas, fastas_reloaded))
-}

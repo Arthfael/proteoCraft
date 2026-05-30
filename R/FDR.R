@@ -52,9 +52,7 @@ FDR <- function(data,
   if (length(returns) == 2L) { returns <- c(returns, FALSE) }
   if (length(returns) == 1L) { returns <- c(returns, FALSE, FALSE) }
   w <- which(is.na(returns))
-  if (length(w)) {
-    returns[w] <- c(TRUE, FALSE, FALSE)[w]
-  }
+  if (length(w)) { returns[w] <- c(TRUE, FALSE, FALSE)[w] }
   if (!sum(returns)) { warning("You haven't selected any type of output so nothing will be returned!") }
   # - method
   method <- gsub(" |-|_|\\.", "", toupper(method))
@@ -65,8 +63,8 @@ FDR <- function(data,
     suppressWarnings(fdr <- as.numeric(fdr) )
     fdr <- fdr[which(!is.na(fdr))]
     lFDR <- length(fdr)
-    stopifnot(lFDR > 0L)
-    stopifnot(sum(fdr <= 0) == 0L)
+    stopifnot(lFDR > 0L,
+              sum(fdr <= 0) == 0L)
     if ((!FDRs_as_is)&&(sum(fdr > 1))) {
       warning("Detecting percentage-type FDR! Dividing by 100 to provide 0-1 scale FDRs.")
       fdr <- fdr/100
@@ -77,7 +75,9 @@ FDR <- function(data,
   if (missing(pvalue_col)) {
     if ((!missing(pvalue_root))&&(!missing(aggr))) {
       pvalue_col <- paste0(pvalue_root, aggr)
-    } else { stop("You must specify either \"pvalue_col\" or both \"pvalue_root\" and \"aggr\"!") }
+    } else {
+      stop("You must specify either \"pvalue_col\" or both \"pvalue_root\" and \"aggr\"!")
+    }
   }
   # - SIMPLIFY
   if (missing(SIMPLIFY) || (length(SIMPLIFY) != 1L) || (!is.logical(SIMPLIFY)) || is.na(SIMPLIFY)) {
@@ -88,8 +88,8 @@ FDR <- function(data,
   # If P-values are logged (auto-detect), then...
   if (inputType == "auto") {
     if (grepl("log10", pvalue_col) || (max(P$Pvalues, na.rm = TRUE) > 1)) {
-      inputType <- "log"
       warning("-log10-transformed input detected, P-values will be de-logged prior to FDR estimation.")
+      inputType <- "log"
     } else { inputType <- "raw" }
   }
   if (inputType == "log") {
@@ -97,31 +97,37 @@ FDR <- function(data,
   }
   P$Order <- 1L:nrow(P)
   P$Rank <- NA_real_
-  P$All.Good <- is.all.good(P$Pvalues, 2L)
+  P$All.Good <- is.finite(P$Pvalues)
   w1 <- which(P$All.Good)
   N <- length(w1)
   if (N) {
-    P$Rank[w1] <- rank(P$Pvalues[w1])
+    P$Rank[w1] <- rank(P$Pvalues[w1], ties.method = "first")
     P <- P[order(P$Rank, decreasing = FALSE),]
     w2 <- which(P$All.Good)
     rg2 <- 1L:N
     if (method == "BH") { CN <- 1L }
     if (method == "BY") { CN <- sum(1/rg2) }
-    BH.rank <- c() # Vector of FDR rank
+    BH.rank <- c()
+    # Vector of FDR rank
     if (reqFDR) {
       thresh <- signifKols <- crtKols <- fdrKols <- c()
     }
     adjKol <- paste0("Adj. P-values")
     P[[adjKol]] <- NA_real_
-    P[w2, adjKol] <- P$Pvalues[w2]*N*CN/P$Rank[w2] # Basic BH/BY adjusted p-value formula
+    P[w2, adjKol] <- P$Pvalues[w2]*N*CN/P$Rank[w2]
+    # Basic BH/BY adjusted p-value formula
     # Enforce monotonicity (BH definition)
-    # P[w2, adjKol] <- vapply(w2, \(x) { # old buggy code
-    #   min(c(1, P[w2[x:N], adjKol]))
+    #
+    #P[w2, adjKol] <- vapply(w2, \(x) {
+    # old buggy code # min(c(1, P[w2[x:N], adjKol]))
     # }, 1)
     P[w2, adjKol] <- pmin(cummin(rev(P[w2, adjKol]))[N:1L], 1)
-    #P$pAdjTst <- p.adjust(P$Pvalues, "BH") # You can verify that we get the same value using p.adjust()
+    #
+    #P$pAdjTst <- p.adjust(P$Pvalues, "BH")
+    # You can verify that we get the same value using p.adjust()
     if (reqFDR) {
-      for (j in 1L:lFDR) { #j <- 3L
+      for (j in 1L:lFDR) {
+        #j <- 3L
         crtKols[j] <- crtKol <- paste0("Critical_", fdr[j])
         P[[crtKol]] <- NA_real_
         P[w2, crtKol] <- P$Rank[w2]*fdr[j]/(N*CN)
@@ -129,26 +135,39 @@ FDR <- function(data,
         fdrKols[j] <- fdrKol <- as.character(fdr[j])
         if (length(tt)) {
           M <- max(tt)
-          thresh[j] <- P$Pvalues[w2][M]
-          BH.rank[[fdrKol]] <- P$Rank[max(tt)]
+          #thresh[j] <- P$Pvalues[w2][M]
+          thresh[j] <- P$Rank[w2][M] * fdr[j] / (N * CN) # critical value
+          BH.rank[[fdrKol]] <- P$Rank[w2][M]
         } else {
           thresh[j] <- 0
           BH.rank[[fdrKol]] <- 0L
         }
         end <- "%"
-        if (!missing(aggr)) { end <- paste0(end, " - ", aggr) }
+        if (!missing(aggr)) {
+          end <- paste0(end, " - ", aggr)
+        }
         names(thresh)[j] <- paste0("Threshold-FDR=", fdr[j]*100, end)
         signifKols[j] <- signifKol <- paste0("Significant-FDR=", fdr[j]*100, end)
         P[[signifKol]] <- ""
-        P[which(P$Rank <= BH.rank[[fdrKol]]), signifKol] <- "+"
+        P[which(P$Rank <= BH.rank[[fdrKol]]),
+          signifKol] <- "+"
       }
     }
     P <- P[order(P$Order, decreasing = FALSE),]
     res <- list()
-    if (returns[1L]) { res$"Significance vector" <- P[, signifKols, drop = FALSE] }
-    if (returns[2L]) { res$"Thresholds" <- thresh }
-    if (returns[3L]) { res$"Adj. P-values" <- P[, adjKol, drop = FALSE] }
-    if ((SIMPLIFY)&&(length(res) == 1)) { res <- res[[1L]] } # Simplify - probably a bad idea...
+    if (returns[1L]) {
+      res$"Significance vector" <- P[, signifKols, drop = FALSE]
+    }
+    if (returns[2L]) {
+      res$"Thresholds" <- thresh
+    }
+    if (returns[3L]) {
+      res$"Adj. P-values" <- P[, adjKol, drop = FALSE]
+    }
+    if ((SIMPLIFY)&&(length(res) == 1)) {
+      res <- res[[1L]]
+    }
+    # Simplify - probably a bad idea...
     return(res)
   } else {
     warning("This column contained no valid P-values to process!")

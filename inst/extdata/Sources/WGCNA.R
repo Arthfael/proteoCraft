@@ -38,18 +38,36 @@ for (dr in wgcnaDirs) {
 # NB: really important to filter out all low quality data, otherwise the 
 col <- paste0(Prot.Expr.Root, RSA$values)
 minReps <- max(c(repThresh, round(length(Rep)*repProp))) # Let's be stringent and ask for 3 replicates
-exprData <- as.data.frame(t(PG[, col]))
-colnames(exprData) <- PG$Label
-rownames(exprData) <- RSA$values
-tmp <- Exp.map[match(rownames(exprData), Exp.map$Ref.Sample.Aggregate), VPAL$column]
+#
+# We now get for WGCNA the data prepared for downstream analyses by cluster_Heatmap_Prep.R
+dataType <- "PG"
+if (dataType == "PG") {
+  datNm <- intersect(c("Filtered", "Original"),
+                     names(clustDat[[dataType]]))[1L]
+}
+# if (dataType == "peptides") {
+#   datNm <- intersect(c("ComBat", "Original"),
+#                      names(clustDat[[dataType]]))[1L]
+# }
+myClustData <- clustDat[[dataType]][[datNm]]
+myClustDataImp <- clustDat[[dataType]]$Positions_imputed
+w1 <- which(myClustDataImp == 1L, arr.ind = TRUE)
+w2 <- which(is.na(myClustDataImp), arr.ind = TRUE)
+if (nrow(w1)) { # Imputed values
+  myClustData[w1] <- clustDat[[dataType]]$Imputed[w1]
+}
+if (nrow(w2)) { # Values from limpa which are not based on any observations
+  myClustData[w2] <- clustDat[[dataType]]$Original[w2]
+}
+#
+exprData <- as.data.frame(t(myClustData))
+if (!"RSA_cleaned" %in% colnames(Exp.map)) { Exp.map$RSA_cleaned <- cleanNms(Exp.map$Ref.Sample.Aggregate) }
+tmp <- Exp.map[match(rownames(exprData), Exp.map$RSA_cleaned), VPAL$column]
 m <- setNames(lapply(VPAL$value, \(x) { which(tmp == x) }), VPAL$value)
 tmp2 <- !is.na(exprData)
-tst <- setNames(lapply(m, \(x) {
-  colSums(tmp2[x,])
-}), VPAL$value)
+tst <- setNames(lapply(m, \(x) { colSums(tmp2[x,]) }), VPAL$value)
 tst <- do.call(cbind, tst)
 tst <- as.data.frame(tst)
-rownames(exprData) <- cleanNms(rownames(exprData))
 whWGCNA <- which(apply(tst, 1L, min) >= minReps)
 exprData <- exprData[, whWGCNA]
 exprMean <- rowMeans(PG[whWGCNA, col], na.rm = TRUE)
@@ -366,26 +384,24 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     dev.off()
     #
     # Relate samples to experimental factors
-    w <- which(vapply(Factors, \(Fact) { length(FactorsLevels[[Fact]]) }, 1L) > 1L)
-    myFact <- Factors[w]
+    myFact <- Factors[which(vapply(Factors, \(Fact) { length(FactorsLevels[[Fact]]) }, 1L) > 1L)]
     xpMap <- Exp.map[, c("Ref.Sample.Aggregate", myFact)]
-    for (Fact in myFact) { # Values must be numeric but may be arbitrary (not quantitative)
+    for (Fact in myFact) { #Fact <- myFact[1L] #Fact <- myFact[2L]
+      # Values must be numeric but may be arbitrary (not quantitative)
       if (!is.numeric(xpMap[[Fact]])) {
         u <- unique(xpMap[[Fact]])
         if (length(u) == 2L) {
           xpMap[[Fact]] <- as.integer(as.factor(xpMap[[Fact]]))
         } else {
           # One-hot encode if there are more than 2 levels
-          for (i in u) {
-            if (is.na(i)) {
-              u[which(is.na(u))] <- i <- paste0(Fact, "_NA")
-              xpMap[[Fact]][which(is.na(xpMap[[Fact]]))] <- i
-            }
-            stopifnot(!i %in% colnames(xpMap))
-            xpMap[[i]] <- c(0L, 1L)[(xpMap[[Fact]] == i) + 1L]
+          u <- setNames(u, paste0(Fact, "_", u))
+          for (i in 1L:length(u)) { #i <- 1L
+            nm <- names(u)[i]
+            stopifnot(!nm %in% colnames(xpMap))
+            xpMap[[nm]] <- as.integer(xpMap[[Fact]] == u[i])
           }
           xpMap[[Fact]] <- NULL
-          myFact <- c(setdiff(myFact, Fact), u)
+          myFact <- c(setdiff(myFact, Fact), names(u))
         }
       }
     }

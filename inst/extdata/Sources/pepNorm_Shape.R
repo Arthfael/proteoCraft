@@ -22,9 +22,8 @@ shpDr <- paste0(nrmDr, "/Step ", nrmStp, " - ", normMeth)
 if (!dir.exists(shpDr)) { dir.create(shpDr, recursive = TRUE) }
 dirlist <- unique(c(dirlist, shpDr))
 #
-currSamples <- allSamples[which(allSamples %in% colnames(tmpDat1))]
-clusterExport(parClust, "is.all.good", envir = environment())
-A <- parApply(parClust, tmpDat1[wAG1, currSamples], 1L, \(x) { mean(is.all.good(x)) })
+currSamples <- intersect(allSamples, colnames(tmpDat1))
+A <- parApply(parClust, tmpDat1[wAG1, currSamples], 1L, \(x) { mean(x[which(is.finite(x))]) })
 #
 # Impute
 ImpGrps <- Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),
@@ -35,23 +34,32 @@ wPos <- which(tmp$Positions_Imputed, arr.ind = TRUE)
 tmpDat1a[, c("id", "Group")] <- tmpDat1[, c("id", "Group")] 
 
 # Visualize - before
-temp_plotA <- tmpDat1a[wAG1, c("id", "Group", currSamples)]
-colnames(temp_plotA) <- cleanNms(colnames(temp_plotA))
-temp_plotA <- reshape::melt(temp_plotA, id.vars = c("id", "Group"))
+if (!"Cleaned" %in% colnames(Exp.map)) {
+  Exp.map$Cleaned <- cleanNms(Exp.map$Ref.Sample.Aggregate)
+}
+temp_plotA <- tmpDat1[wAG1, c("id", "Group", currSamples)]
+colnames(temp_plotA)[c(1L:length(currSamples)) + 2L] <- cleanNms(colnames(temp_plotA))[c(1L:length(currSamples)) + 2L]
+temp_plotA <- dfMelt(temp_plotA, id.vars = c("id", "Group"))
+temp_plotA[, c("Sample_group", "Replicate")] <- Exp.map[match(temp_plotA$variable, Exp.map$Cleaned),
+                                                        c(VPAL$column, "Replicate")]
 temp_plotA$A <- rep(A, length(currSamples))
-temp_plotA <- temp_plotA[which(is.all.good(temp_plotA$value, 2)),]
+temp_plotA <- temp_plotA[which(is.finite(temp_plotA$value)),]
 temp_plotA$M <- temp_plotA$value - temp_plotA$A
+temp_plotA$state <- "before"
 annot <- data.frame(variable = unique(temp_plotA$variable))
+filtFun <- \(x) { x[which(is.finite(x))] }
 annot$Median <- vapply(annot$variable, \(x) {
-  paste0("Median: ", round(median(is.all.good(temp_plotA$M[which(temp_plotA$variable == x)])), 3L))
+  x <- filtFun(temp_plotA$M[which(temp_plotA$variable == x)])
+  return(paste0("Median: ", round(median(x), 3L)))
 }, "")
 annot$IQR <- vapply(annot$variable, \(x) {
-  paste0("IQR: ", round(IQR(is.all.good(temp_plotA$M[which(temp_plotA$variable == x)])), 3L))
+  x <- filtFun(temp_plotA$M[which(temp_plotA$variable == x)])
+  paste0("IQR: ", round(IQR(x), 3L))
 }, "")
-annot$Amax <- max(is.all.good(temp_plotA$A))*1.1
-annot$Amin <- min(is.all.good(temp_plotA$A))*1.1
-annot$Mmax <- max(is.all.good(temp_plotA$M))*1.1
-annot$Mmin <- min(is.all.good(temp_plotA$M))*1.1
+annot$Amax <- max(filtFun(temp_plotA$A))*1.1
+annot$Amin <- min(filtFun(temp_plotA$A))*1.1
+annot$Mmax <- max(filtFun(temp_plotA$M))*1.1
+annot$Mmin <- min(filtFun(temp_plotA$M))*1.1
 annot1 <- annot[, c("variable", "Amax", "Mmin", "Mmax")] 
 annot1 <- rbind(annot1, annot1)
 annot1$Label <- c(annot$Median, annot$IQR)
@@ -61,19 +69,23 @@ ylim <- max(c(abs(c(annot$Mmax, annot$Mmin, (annot$Amax-annot$Amin)/4))))
 annot1$Y <- ylim*0.9
 w <- grep("^IQR: ", annot1$Label)
 annot1$Y[w] <- -ylim*0.9
-l1 <- length(unique(temp_plotA$variable))
-l2 <- length(unique(temp_plotA$Group))
-nkol <- max(c(1L, round(sqrt(l1*l2))))
-if ((l2 > 1L)&&((nkol %% l2) != 0)) { nkol <- ceiling(nkol/l2)*l2 }
-while (nkol > l1*l2) { nkol <- nkol-1L }
-MAplotA <- ggplot(temp_plotA) +
-  geom_scattermore(aes(x = A, y = M, colour = Group), size = 1L, alpha = 1) +
-  geom_hline(yintercept = 0, colour = "grey") + geom_smooth(aes(x = A, y = M), color = "red", linewidth = 0.8, linetype = "dashed") +
-  geom_text(data = annot1, aes(x = Amax, y = Y, label = Label), hjust = 1, cex = 2L) +
-  scale_color_viridis_d(begin = 0.25) +
-  facet_wrap(~variable+Group, ncol = nkol) + coord_fixed(log10(2L)) + theme_bw() + ggtitle(MAttlA) +
-  theme(legend.position = "bottom")
-#poplot(MAplotA, 12L, 22L)
+# l1 <- length(unique(temp_plotA$variable))
+# l2 <- length(unique(temp_plotA$Group))
+# nkol <- max(c(1L, round(sqrt(l1*l2))))
+# if ((l2 > 1L) && ((nkol %% l2) != 0)) { nkol <- ceiling(nkol/l2)*l2 }
+# while (nkol > l1*l2) { nkol <- nkol-1L }
+annot1[, c("Sample_group", "Replicate")] <- Exp.map[match(annot1$variable, Exp.map$Cleaned),
+                                                    c(VPAL$column, "Replicate")]
+annot1$state <- "before"
+# MAplotA <- ggplot(temp_plotA) +
+#   geom_scattermore(aes(x = A, y = M, colour = Group), size = 1L, alpha = 1) +
+#   geom_hline(yintercept = 0, colour = "grey") +
+#   geom_smooth(aes(x = A, y = M), color = "red", linewidth = 0.8, linetype = "dashed") +
+#   geom_text(data = annot1, aes(x = Amax, y = Y, label = Label), hjust = 1, cex = 2L) +
+#   scale_color_viridis_d(begin = 0.25) +
+#   facet_grid(Replicate ~ Sample_group) + coord_fixed(log10(2L)) + theme_bw() + ggtitle(MAttlA) +
+#   theme(legend.position = "bottom")
+# poplot(MAplotA, 12L, 22L)
 #
 tmpDat2 <- tmpDat1[, currSamples]*NA
 #
@@ -88,8 +100,9 @@ for (lGrp in NormGrps$Group) { #lGrp <- NormGrps$Group[1]
   # For each row, the mean of the distribution will be the mean of the row;
   # and the sd will be based on a LOESS regression estimate (nearest neighbours if missing):
   # Normalisation proper:
-  if (normMeth == "LOESS") { tmpDat1b <- limma::normalizeCyclicLoess(as.matrix(tmpDat1a[grpMtch, currSamples])) }
-  if (normMeth == "VSN") { tmpDat1b <- vsn::justvsn(as.matrix(10L^tmpDat1a[grpMtch, currSamples]))/log2(10L) }
+  dat <- as.matrix(tmpDat1a[grpMtch, currSamples])
+  if (normMeth == "LOESS") { tmpDat1b <- limma::normalizeCyclicLoess(dat) }
+  if (normMeth == "VSN") { tmpDat1b <- vsn::justvsn(10L^dat)/log2(10L) }
   tmpDat2[grpMtch, currSamples] <- tmpDat1b[, currSamples]
   sd1 <- meanSdPlot(as.matrix(tmpDat1a[grpMtch, currSamples]), plot = FALSE)$gg
   sd2 <- meanSdPlot(as.matrix(tmpDat1b), plot = FALSE)$gg
@@ -100,10 +113,10 @@ for (lGrp in NormGrps$Group) { #lGrp <- NormGrps$Group[1]
   SDttlB <- paste0(SDttlB, "_after")
   SDplotA <- sd1 + theme_bw() + ggtitle(SDttl, subtitle = "Before")
   SDplotB <- sd2 + theme_bw() + ggtitle("", subtitle = "After")
-  SDplot <- ggarrange(SDplotA, SDplotB, ncol = 2L, nrow = 1L)
+  SDplot <- ggpubr::ggarrange(SDplotA, SDplotB, ncol = 2L, nrow = 1L)
   #poplot(SDplot, 6L, 12L)
-  ggsave(paste0(shpDr, "/", SDttl, ".jpeg"), SDplot, dpi = 150L, width = 12L, height = 6L, units = "in")
-  ggsave(paste0(shpDr, "/", SDttl, ".pdf"), SDplot, dpi = 150L, width = 12L, height = 6L, units = "in")
+  ggsave(paste0(shpDr, "/", SDttl, ".jpeg"), SDplot, dpi = 75L, width = 12L, height = 6L, units = "in")
+  ggsave(paste0(shpDr, "/", SDttl, ".pdf"), SDplot, dpi = 75L, width = 12L, height = 6L, units = "in")
   ReportCalls <- AddPlot2Report(Plot = SDplot, Title = SDttl, Space = FALSE, Dir = shpDr)
 }
 #
@@ -114,21 +127,24 @@ if (nrow(wPos)) { tmpDat2[wPos] <- tmpDat1[, currSamples][wPos] }
 temp_plotB <- tmpDat2[wAG2, currSamples]
 colnames(temp_plotB) <- cleanNms(colnames(temp_plotB))
 temp_plotB[, c("id", "Group")] <- tmpDat1[, c("id", "Group")]
-temp_plotB <- reshape::melt(temp_plotB, id.vars = c("id", "Group"))
+temp_plotB <- dfMelt(temp_plotB, id.vars = c("id", "Group"))
+temp_plotB[, c("Sample_group", "Replicate")] <- Exp.map[match(temp_plotB$variable, Exp.map$Cleaned),
+                                                        c(VPAL$column, "Replicate")]
 temp_plotB$A <- rep(A, length(currSamples))
-temp_plotB <- temp_plotB[which(is.all.good(temp_plotB$value, 2L)),]
+temp_plotB <- temp_plotB[which(is.finite(temp_plotB$value)),]
 temp_plotB$M <- temp_plotB$value - temp_plotB$A
+temp_plotB$state <- "corrected"
 annot <- data.frame(variable = unique(temp_plotB$variable))
 annot$Median <- vapply(annot$variable, \(x) {
-  paste0("Median: ", round(median(is.all.good(temp_plotB$M[which(temp_plotB$variable == x)])), 3L))
+  paste0("Median: ", round(median(filtFun(temp_plotB$M[which(temp_plotB$variable == x)])), 3L))
 }, "")
 annot$IQR <- vapply(annot$variable, \(x) {
-  paste0("IQR: ", round(IQR(is.all.good(temp_plotB$M[which(temp_plotB$variable == x)])), 3L))
+  paste0("IQR: ", round(IQR(filtFun(temp_plotB$M[which(temp_plotB$variable == x)])), 3L))
 }, "")
-annot$Amax <- max(is.all.good(temp_plotB$A))*1.1
-annot$Amin <- min(is.all.good(temp_plotB$A))*1.1
-annot$Mmax <- max(is.all.good(temp_plotB$M))*1.1
-annot$Mmin <- min(is.all.good(temp_plotB$M))*1.1
+annot$Amax <- max(filtFun(temp_plotB$A))*1.1
+annot$Amin <- min(filtFun(temp_plotB$A))*1.1
+annot$Mmax <- max(filtFun(temp_plotB$M))*1.1
+annot$Mmin <- min(filtFun(temp_plotB$M))*1.1
 annot2 <- annot[, c("variable", "Amax", "Mmin", "Mmax")] 
 annot2 <- rbind(annot2, annot2)
 annot2$Label <- c(annot$Median, annot$IQR)
@@ -137,29 +153,59 @@ ylim <- max(c(abs(c(annot$Mmax, annot$Mmin, (annot$Amax-annot$Amin)/4))))
 annot2$Y <- ylim*0.9
 w <- grep("^IQR: ", annot2$Label)
 annot2$Y[w] <- -ylim*0.9
-l1 <- length(unique(temp_plotB$variable))
-l2 <- length(unique(temp_plotB$Group))
-nkol <- max(c(1, round(sqrt(l1*l2))))
-if ((l2 > 1L)&&((nkol %% l2) != 0L)) { nkol <- ceiling(nkol/l2)*l2 }
-while (nkol > l1*l2) { nkol <- nkol-1L }
-MAplotB <- ggplot(temp_plotB) +
-  geom_scattermore(aes(x = A, y = M, colour = Group), size = 1L, alpha = 1) +
-  geom_hline(yintercept = 0, colour = "grey") + geom_smooth(aes(x = A, y = M), color = "red", linewidth = 0.8, linetype = "dashed") +
-  geom_text(data = annot2, aes(x = Amax, y = Y, label = Label), hjust = 1, cex = 2L) +
-  scale_color_viridis_d(begin = 0.25) +
-  facet_wrap(~variable+Group, ncol = nkol) + coord_fixed(log10(2L)) + theme_bw() + ggtitle(MAttlB) +
+# l1 <- length(unique(temp_plotB$variable))
+# l2 <- length(unique(temp_plotB$Group))
+# nkol <- max(c(1, round(sqrt(l1*l2))))
+# if ((l2 > 1L)&&((nkol %% l2) != 0L)) { nkol <- ceiling(nkol/l2)*l2 }
+# while (nkol > l1*l2) { nkol <- nkol-1L }
+annot2[, c("Sample_group", "Replicate")] <- Exp.map[match(annot2$variable, Exp.map$Cleaned),
+                                                    c(VPAL$column, "Replicate")]
+annot2$state <- "corrected"
+# MAplotB <- ggplot(temp_plotB) +
+#   geom_scattermore(aes(x = A, y = M, colour = Group), size = 1L, alpha = 1) +
+#   geom_hline(yintercept = 0, colour = "grey") +
+#   geom_smooth(aes(x = A, y = M), color = "red", linewidth = 0.8, linetype = "dashed") +
+#   geom_text(data = annot2, aes(x = Amax, y = Y, label = Label), hjust = 1, cex = 2L) +
+#   scale_color_viridis_d(begin = 0.25) +
+#   facet_grid(Replicate ~ Sample_group) + coord_fixed(log10(2L)) + theme_bw() + ggtitle(MAttlB) +
+#   theme(legend.position = "bottom")
+# poplot(MAplotB)
+#tmp <- filtFun(c(temp_plotA$M, temp_plotB$M))
+#MAplotA <- MAplotA + ylim(min(tmp), max(tmp))
+#MAplotB <- MAplotB + ylim(min(tmp), max(tmp))
+annotAB <- rbind(annot1, annot2)
+#MAplot <- ggpubr::ggarrange(MAplotA, MAplotB, ncol = 2L, nrow = 1L)
+# filt <- data.table(row = 1L:nrow(temp_plotA),
+#                    group = temp_plotA$Sample_group,
+#                    rep = temp_plotA$Replicate)
+# filt <- filt[,
+#              .(nRows = length(row),
+#                rows = list(row)),
+#              by = .(group = group, rep = rep)]
+# w <- which(filt$nRows > 10000L) # Should be enough points per facet to get an idea
+# if (length(w)) {
+#   filt$rows[w] <- lapply(w, \(i) {
+#     base::sample(filt$rows[[i]], 10000L)
+#   })
+# }
+# filt <- unlist(filt$rows)
+# temp_plotAB <- rbind(temp_plotA[filt,], temp_plotB[filt,])
+temp_plotAB <- rbind(temp_plotA, temp_plotB)
+MAplot <- ggplot(temp_plotAB) +
+  facet_grid(Replicate ~ state + Sample_group) + coord_fixed(log10(2L)) + theme_bw() +
+  geom_hex(aes(x = A, y = M, fill = state), size = 1L, alpha = 1, bins = 100L) +
+  geom_hline(yintercept = 0, colour = "grey") +
+  geom_smooth(aes(x = A, y = M), color = "red", linewidth = 0.8, linetype = "dashed") +
+  geom_text(data = annotAB, aes(x = Amax, y = Y, label = Label), hjust = 1, cex = 2L) +
+  scale_fill_viridis(option = "B", discrete = TRUE, begin = 0, end = 0.2) +
   theme(legend.position = "bottom")
-tmp <- is.all.good(c(temp_plotA$M, temp_plotB$M))
-MAplotA <- MAplotA + ylim(min(tmp), max(tmp))
-MAplotB <- MAplotB + ylim(min(tmp), max(tmp))
-MAplot <- ggarrange(MAplotA, MAplotB, ncol = 2L, nrow = 1L)
 #poplot(MAplot, 12L, 22L)
-ggsave(paste0(shpDr, "/", MAttl, ".jpeg"), MAplot, dpi = 150L, width = 24L, units = "in")
-ggsave(paste0(shpDr, "/", MAttl, ".pdf"), MAplot, dpi = 150L, width = 24L, units = "in")
+ggsave(paste0(shpDr, "/", MAttl, ".jpeg"), MAplot, dpi = 75L, units = "in")
+ggsave(paste0(shpDr, "/", MAttl, ".pdf"), MAplot, dpi = 75L, units = "in")
 ReportCalls <- AddPlot2Report(Plot = MAplot, Title = MAttl, Dir = shpDr)
 #
 appNm <- paste0(normMeth, " normalisation")
-msg <- paste0("Keep results from ", normMeth, " normalisation? (untick to cancel correction)")
+msg <- paste0("Accept ", normMeth, " normalisation? (untick to cancel correction)")
 if ("Decision" %in% (normSequence[[nrmStp]])) {
   KeepShapeCorrRes <- normSequence[[nrmStp]]$Decision
 }
@@ -171,8 +217,8 @@ IMGsDims <- as.data.frame(t(parSapply(parClust, IMGs, \(x) { #x <- IMGs[1L]
   a <- jpeg::readJPEG(x)
   setNames(dim(a)[1L:2L], c("height", "width"))
 })))
-IMGsDims$height <- screenRes$width*0.35*IMGsDims$height/max(IMGsDims$height)
-IMGsDims$width <- screenRes$width*0.35*IMGsDims$width/max(IMGsDims$width)
+IMGsDims$height <- screenRes$width*c(0.35, 0.3)*IMGsDims$height/max(IMGsDims$height)
+IMGsDims$width <- screenRes$width*c(0.35, 0.3)*IMGsDims$width/max(IMGsDims$width)
 if (exists("IHAVERUN")) { rm(IHAVERUN) }
 ui <- fluidPage(
   useShinyjs(),
@@ -194,14 +240,18 @@ ui <- fluidPage(
                   h5(HTML("&nbsp;Does the original MA plot look like it is skewed?")),
                   h5(HTML("&nbsp;&nbsp;-> If yes: accept the correction if the correction did remove the skew.")))),
   br(),
-  fluidRow(withSpinner(imageOutput("MAplots", height = "505px"))),
-  fluidRow(withSpinner(imageOutput("SDplots", height = "505px"))),
+  fluidRow(withSpinner(imageOutput("MAplots", height = "500px"))),
+  fluidRow(withSpinner(imageOutput("SDplots", height = "400px"))),
   br(),
   br()
 )
 server <- function(input, output, session) {
-  output$MAplots <- renderPlot(MAplot, width = screenRes$width*0.8)
-  output$SDplots <- renderPlot(SDplot, height = screenRes$width*0.8/2, width = screenRes$width*0.8)
+  output$MAplots <- renderImage(list(src = paste0(shpDr, "/", MAttl, ".jpeg"),
+                                     contentType = "image/jpeg",
+                                     height = "500px"),
+    deleteFile = FALSE)
+  #output$SDplots <- renderPlot(SDplot, height = screenRes$width*0.8/2, width = screenRes$width*0.8)
+  output$SDplots <- renderPlot(SDplot)
   # output$MAplots <- renderImage({
   #   list(src = IMGs[1], height = 500, width = IMGsDims$width[1]*500/IMGsDims$height[1])
   # }, deleteFile = FALSE)

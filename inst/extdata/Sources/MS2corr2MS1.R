@@ -4,10 +4,11 @@
 # In the future (and also for Prot.Quant) we should take the data's noisiness into account, i.e.,
 # "what is the confidence we have on the averaged MS2-based profile?"
 MS2_based_Correction %<o% TRUE
-# A column named MS2_intensities with individual MS2 fragment intensities should be present!
-if ((LabelType == "LFQ")&&(sum(isDIA))&&("MS2_intensities" %in% colnames(ev))) { # We only run if we are in DIA mode and...
+# A column named "MS2_intensities" or "MS2 intensities" with individual MS2 fragment intensities should be present!
+ms2Kol <- intersect(c("MS2 intensities", "MS2_intensities"), colnames(ev))[1L]
+if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we are in DIA mode and...
   # ... we are either not using DiaNN or we are but we did not run QuantUMS
-  if ((MS2_based_Correction)&&((SearchSoft != "DIANN")||(!QuantUMS))) {
+  if (MS2_based_Correction && ((SearchSoft != "DIANN") || (!QuantUMS))) {
     msg <- "Refining MS1-level measurements using MS2 data..."
     ReportCalls <- AddMsg2Report(Space = FALSE)
     dir <- paste0(wd, "/Workflow control/", evNm, "s/MS2-based MS1 correction")
@@ -37,26 +38,36 @@ if ((LabelType == "LFQ")&&(sum(isDIA))&&("MS2_intensities" %in% colnames(ev))) {
     Grps <- Grps[which(Grps %in% GrpsVct)]
     chckMS2Corr <- FALSE
     ev[[nuRef]] <- ev[[ref]]
-    for (grp in Grps[]) { #grp <- Grps[1L]
+    for (grp in Grps) { #grp <- Grps[1L]
       grpMtch <- match(grp, Grps)
       w <- which(GrpsVct == grp)
-      MS2Tbl <- data.table(IDs = ev$id[w], MS1 = ev[w, ref], MS2 = ev$MS2_intensities[w],
+      tmp <- listMelt(strsplit(ev[w, ms2Kol], ";"), w, c("Intensity", "Which"))
+      tmp$Intensity <- as.numeric(tmp$Intensity)
+      tmp <- as.data.table(tmp)
+      tmp2 <- tmp[, .(MS2 = list(Intensity)), by = .(Which = Which)]
+      tmp2 <- tmp2$MS2[match(w, tmp2$Which)]
+      MS2Tbl <- data.table(IDs = ev$id[w],
+                           MS1 = ev[w, ref],
+                           MS2 = tmp2,
                            mod = ev$"Modified sequence"[w], Z = ev$Charge[w])
-      MS2Tbl <- MS2Tbl[, list(IDs = list(IDs), MS2 = list(MS2), MS1 = list(MS1),
-                              MS1_Av = mean(MS1, na.rm = TRUE)),
-                       by = list(`Modified sequence` = MS2Tbl$mod, Charge = MS2Tbl$Z)]
+      MS2Tbl <- MS2Tbl[, .(IDs = list(IDs),
+                           MS2 = list(MS2),
+                           MS1 = list(MS1),
+                           MS1_Av = mean(MS1, na.rm = TRUE)),
+                       by = .(`Modified sequence` = MS2Tbl$mod, Charge = MS2Tbl$Z)]
       MS2Tbl <- as.data.frame(MS2Tbl)
       source(parSrc, local = FALSE)
-      clusterExport(parClust, "LFQ.lm", envir = environment())
-      tst1 <- parSapply(parClust, MS2Tbl$IDs, length)
+      invisible(clusterCall(parClust, \() {
+        require(stats)
+        require(minpack.lm)
+        return()
+      }))
+      clusterExport(parClust, list("LFQ.lm", "diffLog", "is.all.good"), envir = environment())
+      tst1 <- lengths(MS2Tbl$IDs)
       wMult <- which(tst1 > 1L)
       MS2Tbl <- MS2Tbl[wMult,]
-      MS2Tbl$FiltMS2 <- parLapply(parClust, MS2Tbl$MS2, \(x) {
-        #x <- MS2Tbl$MS2[[1L]]
-        # if (length(x) == 1L) {
-        #   x <- magrittr::set_colnames(data.frame(A = unlist(x)), NULL)
-        # } else {
-        L <- min(sapply(x, length))
+      MS2Tbl$FiltMS2 <- parLapply(parClust, MS2Tbl$MS2, \(x) { #x <- MS2Tbl$MS2[1L]
+        L <- min(lengths(x))
         x <- as.data.frame(sapply(x, \(y) { y[1L:L] })) # Crop if necessary (shouldn't be the case)
         # Re-order fragments
         tst <- rowMeans(x, na.rm = TRUE)
@@ -64,16 +75,11 @@ if ((LabelType == "LFQ")&&(sum(isDIA))&&("MS2_intensities" %in% colnames(ev))) {
         # }
         return(x)
       })
-      # MS2Tbl$L <- parSapply(parClust, MS2Tbl$MS2, \(x) {
-      #   min(sapply(x, length))
-      # })
       MS2Tbl$CorrVal <- parLapply(parClust, MS2Tbl$FiltMS2, \(x) { #x <- MS2Tbl$FiltMS2[[1L]]
         Dat <- x
-        # if (ncol(x) > 1L) {
         k <- colnames(Dat)
         Dat$id <- 1L:nrow(Dat)
         Dat$Weights <- rowSums(Dat[, k], na.rm = TRUE)
-        #DefArg(LFQ.lm); ids = Dat$id; InputTabl = Dat; IntensCol = k; Summary.method = "weighted.mean";Summary.weights = "Weights"; Min.N = 1L; Max.N = 6L;Is.log = FALSE
         x <- LFQ.lm(Dat$id,
                     InputTabl = Dat,
                     IntensCol = k,
@@ -82,7 +88,6 @@ if ((LabelType == "LFQ")&&(sum(isDIA))&&("MS2_intensities" %in% colnames(ev))) {
                     Min.N = 1L,
                     Max.N = 6L,
                     Is.log = FALSE)
-        # } else { x <- Dat[1L, 1L] }
         return(x)
       })
       MS2Tbl$Av <- parSapply(parClust, MS2Tbl$CorrVal, mean)
@@ -107,7 +112,7 @@ if ((LabelType == "LFQ")&&(sum(isDIA))&&("MS2_intensities" %in% colnames(ev))) {
       ev[w, nuRef] <- tst$CorrVal2[match(ev$id[w], tst$ID)]
       # Additional stuff for plotting
       tst$PepL <- nchar(tst$Seq)
-      tmp <- listMelt(MS2Tbl$IDs, MS2Tbl$L)
+      tmp <- listMelt(MS2Tbl$IDs, 1L:nrow(MS2Tbl))
       tst$N_of_fragments <- tmp$L1[match(tst$ID, tmp$value)]
       tst$N_of_fragments <- factor(tst$N_of_fragments, levels = 1L:max(tst$N_of_fragments))
       tst$MQ.Exp <- Frac.map$MQ.Exp[match(tst$Sample, Frac.map$"s name")]
@@ -154,8 +159,8 @@ if ((LabelType == "LFQ")&&(sum(isDIA))&&("MS2_intensities" %in% colnames(ev))) {
         # Quick median normalisation
         M1 <- median(as.matrix(tst1[, Smpls]), na.rm = TRUE)
         M2 <- median(as.matrix(tst2[, Smpls]), na.rm = TRUE)
-        m1 <- sapply(Smpls, \(smpl) { median(tst1[[smpl]], na.rm = TRUE)})
-        m2 <- sapply(Smpls, \(smpl) { median(tst2[[smpl]], na.rm = TRUE)})
+        m1 <- vapply(Smpls, \(smpl) { median(tst1[[smpl]], na.rm = TRUE)}, 1)
+        m2 <- vapply(Smpls, \(smpl) { median(tst2[[smpl]], na.rm = TRUE)}, 1)
         tst1[, Smpls] <- sweep(tst1[, Smpls], 2L, M1/m1, "*")
         tst2[, Smpls] <- sweep(tst2[, Smpls], 2L, M2/m2, "*")
         # Additional row normalisation
@@ -163,20 +168,26 @@ if ((LabelType == "LFQ")&&(sum(isDIA))&&("MS2_intensities" %in% colnames(ev))) {
         tst2[, Smpls] <- sweep(tst2[, Smpls], 1L, rowMeans(tst2[, Smpls], na.rm = TRUE), "/")
         #
         #
-        intraCVs_Orig <- setNames(sapply(Smpls2Grps$Sample, \(smpls) {
+        intraCVs_Orig <- setNames(vapply(Smpls2Grps$Sample, \(smpls) {
           x <- unlist(tst1[, smpls])
           sd(x)/mean(x)
-        }), Smpls2Grps$Group)
-        intraCVs_Corr <- setNames(sapply(Smpls2Grps$Sample, \(smpls) {
+        }, 2), Smpls2Grps$Group)
+        intraCVs_Corr <- setNames(vapply(Smpls2Grps$Sample, \(smpls) {
           x <- unlist(tst2[, smpls])
           sd(x)/mean(x)
-        }), Smpls2Grps$Group)
+        }, 2), Smpls2Grps$Group)
         tmp <- unlist(tst1[, Smpls])
         globalCV_Orig <- sd(tmp)/mean(tmp)
         tmp <- unlist(tst2[, Smpls])
         globalCV_Corr <- sd(tmp)/mean(tmp)
+        M2corr_stats <- data.frame(intraCVs_Orig = intraCVs_Orig,
+                                   intraCVs_Corr = intraCVs_Corr,
+                                   globalCV_Orig= globalCV_Orig,
+                                   globalCV_Corr = globalCV_Corr)
+        write.csv(M2corr_stats, paste0(dir, "/Stats.csv"))
       }
-      # 
+      #
     }
   }
 }
+

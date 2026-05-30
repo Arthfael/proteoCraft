@@ -858,7 +858,7 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
         }
       })
       w <- which(file.exists(paste0(dr, "/", contDB$`Full ID`, ".fasta")))
-      tst <- parSapply(parClust, paste0(dr, "/", contDB$`Full ID`[w], ".fasta"), \(x) { #x <- paste0(dr, "/", contDB$`Full ID`[w], ".fasta")
+      tst <- parLapply(parClust, paste0(dr, "/", contDB$`Full ID`[w], ".fasta"), \(x) { #x <- paste0(dr, "/", contDB$`Full ID`[w], ".fasta")
         tst <- try(proteoCraft::Format.DB(x), silent = TRUE)
         tst <- if (inherits(tst, "try-error")) { list(Outcome = FALSE) } else {
           list(Outcome = TRUE,
@@ -867,58 +867,60 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
         return(tst)
       })
       tst <- tst[which(vapply(tst, \(x) { x$Outcome }, TRUE))]
-      tst <- lapply(tst, \(x) { x$tbl })
-      tst <- plyr::rbind.fill(tst)
-      contDB <- plyr::rbind.fill(tst,
-                                 contDB[which(!contDB$`Full ID` %in% tst$`Protein ID`),])
-      w1 <- which(grepl("^>(sp)|(tr)\\|", contDB$Header))
-      org <- unique(contDB$Organism_Full[w1])
-      library(UniProt.ws)
-      txIDs <- setNames(lapply(org, \(x) { c() }), org)
-      w <- which(org %in% names(Taxonomies))
-      if (length(w)) { txIDs[w] <- Taxonomies[w] }
-      w <- which(!org %in% names(Taxonomies))
-      if (length(w)) {
-        txIDs[w] <- setNames(parLapply(parClust, org[w], \(x) {
-          tst <- try(myTAI::taxonomy(organism = x, db = "ncbi", output = "classification"), silent = TRUE)
-          rs <- if (inherits(rs, "try-error")) { list(Outcome = FALSE) } else {
-            list(Outcome = TRUE,
-                 Res = tst) 
-          }
-        }), org[w])
-        wY <- w[which(vapply(txIDs[w], \(x) { x$Outcome }, TRUE))]
-        wN <- w[which(!vapply(txIDs[w], \(x) { x$Outcome }, TRUE))]
-        txIDs[wN] <- c()
-        txIDs[wY] <- lapply(txIDs[wY], \(x) { x$Res })
-        Taxonomies[org[wY]] <- txIDs[org[wY]]
-      }
-      txIDs <- Taxonomies[which(vapply(Taxonomies, \(x) { is.data.frame(x) }, TRUE))]
-      txIDs <- vapply(txIDs, \(x) { as.character(x$id[which(x$rank == "species")]) }, "")
-      kount <- 0L
-      w2 <- grep("^>(sp)|(tr)\\|", contDB$Header, invert = TRUE)
-      while ((length(w2))&&(kount < length(txIDs))) {
-        kount <- kount + 1L
-        sp <- gsub(" ", "+", txIDs[kount])
-        #tmp <- paste0("https://www.uniprot.org/uniprot/?query=organism_name:", sp, "&format=fasta") # Old 
-        tmp <- paste0("https://rest.uniprot.org/uniprotkb/search?query=organism_id:", sp, "&format=fasta")
-        dest <- paste0("D:/Fasta_databases/", gsub(" ", "_", sp), "_-_uniprot-all-accessions_", gsub("-", "", Sys.Date()), ".fasta")
-        tmp2 <- if (!file.exists(dest)) { try(download.file(tmp, dest), silent = TRUE) } else { 0L }
-        if ((!inherits(tmp2, "try-error"))&&(!tmp2)) {
-          tmp2 <- Format.DB(dest)
-          wY <- which(tmp2$Sequence %in% contDB$Sequence[w2])
-          if (length(wY)) {
-            contDB <- plyr::rbind.fill(contDB[which(!contDB$Sequence %in% tmp2$Sequence),],
-                                       tmp2[wY,])
-            w2 <- grep("^>(sp)|(tr)\\|", contDB$Header, invert = TRUE)
+      if (length(tst)) {
+        tst <- lapply(tst, \(x) { x$tbl })
+        tst <- plyr::rbind.fill(tst)
+        contDB <- plyr::rbind.fill(tst,
+                                   contDB[which(!contDB$`Full ID` %in% tst$`Protein ID`),])
+        w1 <- which(grepl("^>(sp)|(tr)\\|", contDB$Header))
+        org <- unique(contDB$Organism_Full[w1])
+        library(UniProt.ws)
+        txIDs <- setNames(lapply(org, \(x) { c() }), org)
+        w <- which(org %in% names(Taxonomies))
+        if (length(w)) { txIDs[w] <- Taxonomies[w] }
+        w <- which(!org %in% names(Taxonomies))
+        if (length(w)) {
+          txIDs[w] <- setNames(parLapply(parClust, org[w], \(x) {
+            tst <- try(myTAI::taxonomy(organism = x, db = "ncbi", output = "classification"), silent = TRUE)
+            rs <- if (inherits(rs, "try-error")) { list(Outcome = FALSE) } else {
+              list(Outcome = TRUE,
+                   Res = tst) 
+            }
+          }), org[w])
+          wY <- w[which(vapply(txIDs[w], \(x) { x$Outcome }, TRUE))]
+          wN <- w[which(!vapply(txIDs[w], \(x) { x$Outcome }, TRUE))]
+          txIDs[wN] <- c()
+          txIDs[wY] <- lapply(txIDs[wY], \(x) { x$Res })
+          Taxonomies[org[wY]] <- txIDs[org[wY]]
+        }
+        txIDs <- Taxonomies[which(vapply(Taxonomies, \(x) { is.data.frame(x) }, TRUE))]
+        txIDs <- vapply(txIDs, \(x) { as.character(x$id[which(x$rank == "species")]) }, "")
+        kount <- 0L
+        w2 <- grep("^>(sp)|(tr)\\|", contDB$Header, invert = TRUE)
+        while ((length(w2))&&(kount < length(txIDs))) {
+          kount <- kount + 1L
+          sp <- gsub(" ", "+", txIDs[kount])
+          #tmp <- paste0("https://www.uniprot.org/uniprot/?query=organism_name:", sp, "&format=fasta") # Old 
+          tmp <- paste0("https://rest.uniprot.org/uniprotkb/search?query=organism_id:", sp, "&format=fasta")
+          dest <- paste0("D:/Fasta_databases/", gsub(" ", "_", sp), "_-_uniprot-all-accessions_", gsub("-", "", Sys.Date()), ".fasta")
+          tmp2 <- if (!file.exists(dest)) { try(download.file(tmp, dest), silent = TRUE) } else { 0L }
+          if ((!inherits(tmp2, "try-error"))&&(!tmp2)) {
+            tmp2 <- Format.DB(dest)
+            wY <- which(tmp2$Sequence %in% contDB$Sequence[w2])
+            if (length(wY)) {
+              contDB <- plyr::rbind.fill(contDB[which(!contDB$Sequence %in% tmp2$Sequence),],
+                                         tmp2[wY,])
+              w2 <- grep("^>(sp)|(tr)\\|", contDB$Header, invert = TRUE)
+            }
           }
         }
+        contDB <- contDB[grep("^>(sp)|(tr)\\|", contDB$Header),] # We do not want anything unusable
+        contDB$Organism_Full <- "Contaminant"
+        contDB$Organism <- "Contaminant"
+        contDB$"Protein ID" <- paste0("CON__", gsub("^CON__", "", contDB$"Protein ID"))
+        contDB$"Potential contaminant" <- "+"
+        write.csv(contDB, contCsv, row.names = FALSE) 
       }
-      contDB <- contDB[grep("^>(sp)|(tr)\\|", contDB$Header),] # We do not want anything unusable
-      contDB$Organism_Full <- "Contaminant"
-      contDB$Organism <- "Contaminant"
-      contDB$"Protein ID" <- paste0("CON__", gsub("^CON__", "", contDB$"Protein ID"))
-      contDB$"Potential contaminant" <- "+"
-      write.csv(contDB, contCsv, row.names = FALSE)
     }
   }
   #db <- db[which(db$"Potential contaminant" != "+"),]

@@ -106,54 +106,61 @@ clustDat[[dataType]]$Positions_imputed <- myDataImp
 
 # Batch-correct
 # -------------
-# Sometimes we have identified a batch, but decided no to correct for it in the data we use for statistical tests
+# Sometimes we have a batch, but decided no to correct for it in the data we use for statistical tests
 # (e.g. since limma can encode it in its design matrix).
 # In that case, we may optionally still remove it from the PCA.
 if ((scrptType == "withReps") && (Param$Batch.effect != "")) { # Here we have replicates and group at samples group level
   nms <- Batch.effect$names
   w <- which(vapply(normSequence, \(x) { x$Method }, "") == "ComBat")
-  if (length(w)) {
+  if (length(w)) { # If some batch correction attempts took place, do any match...?
     btchs <- lapply(normSequence[w], \(x) { x$Batch })
     w <- w[which(vapply(btchs, \(x) { sum(nms %in% x) }, 1L) == length(nms))]
   }
-  if (length(w)) {
+  if (length(w)) { 
+    # ... yes: only run batch correction here if they were rejected during normalisation
     dcs <- vapply(normSequence[w], \(x) { x$Decision }, TRUE)
     runComBatNow <- sum(!dcs) > 0L
   } else {
+    # ... no: the batch effect wasn't corrected for (but presumably encoded in the limma formula)
     runComBatNow <- TRUE
   }
   if (runComBatNow) {
-    m <- match(colnames(myData), map$Samples)
-    btchs <- factor(map[m, Batch.effect$column])
-    mdlMtr <- designMatr_noBatch[match(gsub("___", "_", as.character(expMap[m, RSA$limmaCol])), row.names(designMatr_noBatch)),]
-    #mdlMtr <- model.matrix(~1, data = Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),])
-    if (dataType == "PG") {
-      tmp <- ComBat(dat = myData,
-                    batch = btchs,
-                    mod = mdlMtr,
-                    par.prior = TRUE)
-    }
-    if (dataType == "peptides") {
-      tmp <- lapply(NormGrps$Group, \(lGrp) { #lGrp <- NormGrps$Group[1L] #lGrp <- NormGrps$Group[2L]
-        w <- which(rownames(myData) %in% NormGrps$IDs[[match(lGrp, NormGrps$Group)]])
-        if (!length(w)) { return() }
-        #
-        # For ComBat we only use the longitudinal groups (peptide normalisation group),
-        # not the transversal groups (comparison/ratio groups).
-        # Indeed, batches will often intersect with the latter
-        rs <- ComBat(dat = myData[w,],
-                     batch = btchs,
-                     mod = mdlMtr,
-                     par.prior = TRUE)
-        rownames(rs) <- rownames(myData)[w]
-        return(rs)
-      })
-      tmp <- do.call(rbind, tmp)
-      tmp <- as.data.frame(tmp[match(rownames(myData), rownames(tmp)),])
-    }
-    rownames(tmp) <- rownames(myData)
-    myDataCorr <- tmp
-    clustDat[[dataType]]$ComBat <- myDataCorr
+    tmpForm <- paste0("~ ", VPAL$limmaCol)
+    batchCorr_designMatr <- model.matrix(as.formula(tmpForm), data = expMap)
+    m <- match(map$Ref.Sample.Aggregate, row.names(expMap)) # same rows as batchCorr_designMatr
+    mdlMtr <- batchCorr_designMatr[m,]
+    btch <- Exp.map[match(map$Ref.Sample.Aggregate, Exp.map$Ref.Sample.Aggregate), Batch.effect$column]
+    #btchCorrTst <- try({
+      if (dataType == "PG") {
+        tmp <- ComBat(dat = myData,
+                      batch = btch,
+                      mod = mdlMtr,
+                      par.prior = TRUE)
+      }
+      if (dataType == "peptides") {
+        tmp <- lapply(NormGrps$Group, \(lGrp) { #lGrp <- NormGrps$Group[1L] #lGrp <- NormGrps$Group[2L]
+          w <- which(rownames(myData) %in% NormGrps$IDs[[match(lGrp, NormGrps$Group)]])
+          if (!length(w)) { return() }
+          #
+          # For ComBat we only use the longitudinal groups (peptide normalisation group),
+          # not the transversal groups (comparison/ratio groups).
+          # Indeed, batches will often intersect with the latter
+          rs <- ComBat(dat = myData[w,],
+                       batch = btch,
+                       mod = mdlMtr,
+                       par.prior = TRUE)
+          rownames(rs) <- rownames(myData)[w]
+          return(rs)
+        })
+        tmp <- do.call(rbind, tmp)
+        tmp <- as.data.frame(tmp[match(rownames(myData), rownames(tmp)),])
+      }
+    #}, silent = TRUE)
+    #if (!inherits(btchCorrTst, "try-error")) {
+      rownames(tmp) <- rownames(myData)
+      myDataCorr <- tmp
+      clustDat[[dataType]]$ComBat <- myDataCorr
+    #} # otherwise a batch was confounded with a variable, typically contained a single sample per condition
   }
 }
 #

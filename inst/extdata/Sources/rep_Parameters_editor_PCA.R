@@ -1,6 +1,6 @@
 ### PCA plot for parameters app
 # Create first PCA to check on sample relationships
-if ((length(MQ.Exp) > 1L)||(LabelType == "Isobaric")) { # Should be always TRUE
+if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRUE
   source(parSrc, local = FALSE)
   data <- ev
   colnames(data)[which(colnames(data) == "MQ.Exp")] <- "Parent sample"
@@ -33,7 +33,7 @@ if ((length(MQ.Exp) > 1L)||(LabelType == "Isobaric")) { # Should be always TRUE
   }
   kols <- setdiff(kols, c(X, Y))
   ReportCalls <- AddSpace2Report()
-  ReportCalls$Calls <- AddTxt2Report("PSMs-level PCA plot:")
+  ReportCalls <- AddTxt2Report("PSMs-level PCA plot:")
   ReportCalls$Calls <- append(ReportCalls$Calls, list())
   dir <- paste0(wd, "/Dimensionality red. plots/PCA")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
@@ -107,13 +107,18 @@ if ((length(MQ.Exp) > 1L)||(LabelType == "Isobaric")) { # Should be always TRUE
         match(scoresA$Sample, Exp.map$MQ.Exp)
       }
       if (sum(is.na(m))) {
-        warning("Mapping samples through MQ.Exp to sample groups failed, check code!\nMapping colors to samples instead of sample groups...")
+        stop("Mapping samples through MQ.Exp to sample groups failed, check code!\nMapping colors to samples instead of sample groups...")
         scoresA$Colour <- scoresA$Sample
         colKol <- "colKol"
       } else {
         tmp <- Exp.map[m, Factors[which(Factors != "Replicate")]]
         tmp <- tmp[, which(vapply(colnames(tmp), \(x) { length(unique(tmp[[x]])) > 1L }, TRUE)), drop = FALSE]
         scoresA$"Sample group" <- do.call(paste, c(tmp, sep = " "))
+        tmp <- Exp.map[m, Factors]
+        tmp <- tmp[, which(vapply(colnames(tmp), \(x) { length(unique(tmp[[x]])) > 1L }, TRUE)), drop = FALSE]
+        scoresA$Sample <- do.call(paste, c(tmp, sep = " "))
+        scoresA$Replicate <- Exp.map$Replicate[m]
+        scoresA$Label <- do.call(paste, c(scoresA[, c("Sample group", "Replicate")], sep = "<br>"))
         colKol <- "Sample group"
         # tmp <- do.call(cbind, c(list(Exp.map[, "MQ.Exp", drop = FALSE],
         #                              tmp)))
@@ -152,7 +157,7 @@ if ((length(MQ.Exp) > 1L)||(LabelType == "Isobaric")) { # Should be always TRUE
         plot_lyPSMsPCA <- plot_ly(scoresA, x = ~PC1, y = ~PC2,
                                   text = ~Label, type = "scatter", mode = "markers",
                                   color = ~`Samples group`, colors = "viridis",
-                                  symbol = I(Symb))
+                                  symbol = I(Symb), hoverinfo = "text")
       }
       plot_lyPSMsPCA %<o% layout(plot_lyPSMsPCA, title = ttl)
       setwd(dir)

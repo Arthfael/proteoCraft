@@ -35,7 +35,7 @@ locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
 locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
 
 # Load backup?
-load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Do you want to load a backup?", "yesno")$res, c("yes", "no"))]
+load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Re-load a backup?", "yesno")$res, c("yes", "no"))]
 if (load_a_Bckp) {
   tst <- try({
     locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
@@ -50,6 +50,8 @@ if (load_a_Bckp) {
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }
 parSrc %<o% paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
 bckpSrc %<o% paste0(libPath, "/extdata/Sources/updateBackup.R")
+pgqSrc %<o% paste0(libPath, "/extdata/Sources/protQuant.R")
+
 # Boolean functions to check parameter values
 Src <- paste0(libPath, "/extdata/Sources/parBooleans.R")
 #rstudioapi::documentOpen(Src)
@@ -712,14 +714,6 @@ if (!"Protein group IDs" %in% colnames(ev)) {
   temp$Group.1 <- as.integer(temp$Group.1)
   ev$"Protein group IDs" <- temp$x[match(ev$id, temp$Group.1)]
 }
-if (tstOrg) {
-  test <- listMelt(strsplit(PG$`Protein IDs`, ";"), PG$id)
-  test$Org <- db[match(test$value, db$`Protein ID`), dbOrgKol]
-  test <- test[order(test$Org, decreasing = FALSE),]
-  test <- aggregate(test$Org, list(test$L1), \(x) { paste(unique(x), collapse = ";") })
-  pgOrgKol %<o% c("Organism", "Organism(s)")[(sum(grepl(";", test))>0L)+1L]
-  PG[[pgOrgKol]] <- test$x[match(PG$id, test$Group.1)]
-}
 
 # Peptidoforms per Protein Group
 Src <- paste0(libPath, "/extdata/Sources/pep_per_PG.R")
@@ -1053,16 +1047,6 @@ if ((length(Exp) > 1L)&&(NormalizePG)) {
   temp <- AdvNorm.IL(temp[, c("id", g)], "id", exprs.col = g, exprs.log = TRUE)
   PG[, gsub(topattern(PG.int.col), paste0("Norm. ", PG.int.cols["Original"]), g)] <- temp[, paste0("AdvNorm.", g)]
   PG.int.cols["Normalized"] <- PG.int.col <- paste0("Norm. ", PG.int.cols["Original"])
-  if (MakeRatios) {
-    for (gr in unique(SamplesMap$`Ratios group`)) { #gr <- unique(SamplesMap$`Ratios group`)[1L]
-      m <- SamplesMap[which(SamplesMap$`Ratios group` == gr),]
-      rf <- m$Experiment[which(m$Reference)]
-      for (i in m$Experiment[which(!m$Reference)]) { #i <- m$Experiment[which(!m$Reference)][1L]
-        PG[[paste0("Norm. ", rat.cols["Original"], " - ", i)]] <- (PG[[paste0(PG.int.col, i)]] - PG[[paste0(PG.int.col, rf)]])/log10(2L)
-      }
-    }
-    PG.rat.cols["Normalized"] <- PG.rat.col <- paste0("Norm. ", PG.rat.cols["Original"])
-  }
 }
 
 # Average expression columns:
@@ -1070,6 +1054,17 @@ if (length(Exp) > 1L) {
   for (i in PG.int.cols) {
     PG[[paste0("Mean ", gsub(" - $", "", i))]] <- apply(PG[, grep(topattern(i), colnames(PG), value = TRUE)],
                                                         1L, mean, na.rm = TRUE)
+  }
+}
+
+# logFCs
+if (MakeRatios) {
+  for (gr in unique(SamplesMap$`Ratios group`)) { #gr <- unique(SamplesMap$`Ratios group`)[1L]
+    m <- SamplesMap[which(SamplesMap$`Ratios group` == gr),]
+    rf <- m$Experiment[which(m$Reference)]
+    for (i in m$Experiment[which(!m$Reference)]) { #i <- m$Experiment[which(!m$Reference)][1L]
+      PG[[paste0(rat.cols["Original"], " - ", i)]] <- (PG[[paste0(PG.int.col, i)]] - PG[[paste0(PG.int.col, rf)]])/log10(2L)
+    }
   }
 }
 
@@ -1234,7 +1229,7 @@ temp$Type[which(temp$Type == "")] <- "Orig."
 temp$Type <- paste0("log10(", tolower(temp$Type), " LFQ)")
 temp$Type <- factor(temp$Type, levels = paste0("log10(", c("orig", "imput", "norm"), ". LFQ)"))
 long.dat$intens <- temp
-temp <- temp[which(is.all.good(temp$"log10(Intensity)", 2L)),]
+temp <- temp[which(is.finite(temp$"log10(Intensity)")),]
 ttl <- "LFQ density plot - PGs level"
 if (prot.list.Cond) {
   temp$"In list" <- PG$"In list"[match(temp$`Common Name (short)`, PG$`Common Name (short)`)]
@@ -1255,7 +1250,7 @@ plot <- plot +
     #panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     plot.background = element_blank(),
-    strip.text.y = element_blank(),
+    #strip.text.y = element_blank(),
     axis.title.y = element_blank()) +
   ggtitle(ttl) + facet_grid(Type~Experiment) +
   scale_y_continuous(expand = c(0L, 0L)) +
@@ -1371,7 +1366,7 @@ if (runGSEA) {
 #
 
 if (MakeRatios) {
-  FC_filt %<o% c()
+  FC_filt %<o% list()
   FC_Smpls %<o% list()
   # Fold change filters:
   ref <- rev(PG.int.cols[which(PG.int.cols != paste0("Imput. ", PG.int.cols["Original"]))])[1L]
@@ -1390,7 +1385,7 @@ if (MakeRatios) {
         nftst <- apply(PG[, paste0(ref, nf), drop = FALSE], 1L, \(x) { length(is.all.good(x)) }) > 0L
       }
     }
-    FC_filt <- append(FC_filt, setNames(lapply(smpl1, \(x) {
+    FC_filt <- append(FC_filt, setNames(lapply(smpl1, \(x) { #x <- smpl1[1L]
       e1 <- PG[[paste0(ref, x)]]
       r1 <- PG[[paste0(PG.rat.col, x)]]
       if (RatiosThresh_2sided) { r1 <- abs(r1) }
@@ -1444,7 +1439,7 @@ if (MakeRatios) {
   plot <- ggplot(temp) + geom_point(aes(x = `Mean log10(Intensity)`, y = `log2(Ratio)`, colour = Type), size = 0.1) +
     geom_hline(yintercept = 0, linewidth = 0.8, linetype = "dashed") +
     ggtitle(ttl) + coord_fixed(log10(2L)/log2(10L)) + theme_bw() + facet_grid(Type~Experiment) +
-    scale_color_viridis(option = "D", discrete = TRUE, begin = 0.25) +
+    scale_color_viridis(option = "D", discrete = TRUE, begin = 0.1, end = 0.4) +
     xlab("A = mean log10(Intensity)") + ylab("M = sample log2(Ratio)") +
     theme(strip.text.y = element_text(angle = 0))
   poplot(plot)
@@ -1591,7 +1586,7 @@ if (MakeRatios) {
       }, "")
       ptmpep$Name[which(ptmpep$Name == "")] <- paste0("Unknown ", ptm, "-modified peptide #", seq_along(which(ptmpep$Name == "")))
       #View(ptmpep[,c("Match(es)", "Modified sequence", "Code", paste0(Ptm, "-site(s)"))])
-      if (grepl("^[P,p]hospho( \\([A-Z]+\\))?$", ptm)) {
+      if (grepl("^[Pp]hospho( \\([A-Z]+\\))?$", ptm)) {
         p_col <- paste0(gsub(" |\\(|\\)", ".", ptm), ".Probabilities")
         scd_col <- paste0(gsub(" |\\(|\\)", ".", ptm), ".Score.Diffs")
         if (sum(c(p_col, scd_col) %in% colnames(ptmpep)) == 2L) {
@@ -2203,8 +2198,8 @@ Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Prep.R")
 #rstudioapi::documentOpen(Src)
 dataType <- "PG"
 source(Src, local = FALSE)
-dataType <- "peptides"
-source(Src, local = FALSE)
+#dataType <- "peptides"
+#source(Src, local = FALSE)
 
 #### Code chunk - Heatmaps with clustering at samples and protein groups level, highlighting proteins of interest
 clustMode <- "standard"

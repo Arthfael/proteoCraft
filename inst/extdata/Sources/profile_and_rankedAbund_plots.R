@@ -348,7 +348,7 @@ if (runRankAbundPlots||runProfPlots) {
   tmpFl2 <- tempfile(fileext = ".rds")
   exports <- c("samplesDF", "tmpFl1", "tmpFl2", "wd", "MainDir", "MainDir2", "PG_varkol", "pep_varkol",
                "WorkFlow", "GO_filt", "runMark", "MakeRatios", "mySamples", "QuantTypes", "QuantTypes_ref", "pepQuantTypes", "pepQuantTypes_ref",
-               "colScale", "fillScale", "colScale2", "fillScale2", "Exp", "scrptType", "tstOrg2")
+               "colScale", "fillScale", "colScale2", "fillScale2", "Exp", "scrptType", "tstOrg2", "myFlt")
   if (GO_filt) { exports <- union(exports, "GO_filter") }
   if (length(myFlt)) { exports <- union(exports, c("myFlt", "CompGOTerms", "myGOcolors")) }
   exports <- as.list(exports)

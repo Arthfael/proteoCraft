@@ -66,8 +66,9 @@ permRoot %<o% "Permutations test -log10(Pvalue) - "
 samRoot %<o% "SAM -log10(Pvalue) - "
 odpRoot %<o% "ODP -log10(Pvalue) - "
 lrtRoot %<o% "LRT -log10(Pvalue) - "
+rotsRoot %<o% "ROTS -log10(Pvalue) - "
 #
-pvalue.col %<o% c(StudentRoot, WelchRoot, modRoot, deqmsRoot, msqrobRoot, permRoot, samRoot#, odpRoot, lrtRoot
+pvalue.col %<o% c(StudentRoot, WelchRoot, modRoot, deqmsRoot, msqrobRoot, permRoot, samRoot, rotsRoot#, odpRoot, lrtRoot
 )
 names(pvalue.col) <- vapply(pvalue.col, \(x) { unlist(strsplit(x, "\\.|\\'| "))[1L] }, "")
 ParamFls <- c(paste0(wd, "/Parameters.csv"),
@@ -317,15 +318,15 @@ quantAlgoOpt %<o% allQuantAlgos$Algorithm
 if ((scrptType == "noReps") && (length(Exp) == 1L)) { # limpa needs at least 2 samples
   quantAlgoOpt <- setdiff(quantAlgoOpt, "limpa")
 }
+quantAlgoDflt <- c("LM", "LM")[match(scrptType, c("noReps", "withReps"))] # limpa is temporarily demoted
 if (("QuantMeth" %in% colnames(Param))&&(!"Quant_algorithm" %in% colnames(Param))) { # Old parameter name
   Param$Quant_algorithm <- Param$QuantMeth
 }
-if ((!validCharPar("quantAlgo", quantAlgoOpt))&&("Quant_algorithm" %in% colnames(Param))) {
-  tmp1 <- Param$Quant_algorithm
-  if (validCharPar("tmp1", quantAlgoOpt)) { quantAlgo <- tmp1 }
+if ("Quant_algorithm" %in% colnames(Param)) { # Current parameter name
+  quantAlgo <- Param$Quant_algorithm
 }
-if (!validCharPar("quantAlgo", quantAlgoOpt)) {
-  quantAlgo <- c("LM", "LM")[match(scrptType, c("noReps", "withReps"))] # limpa is now demoted
+if ((!exists("quantAlgo")) || (!validCharPar("quantAlgo", quantAlgoOpt))) { # Default
+  quantAlgo <- quantAlgoDflt
 }
 quantAlgo %<o% quantAlgo
 Param$Quant_algorithm <- quantAlgo
@@ -623,15 +624,13 @@ pepNormMethods %<o% list(list(Method = "median",
                               Source = "pepNorm_General.R",
                               funCall = "normFun <- function(x) { mean(x, na.rm = TRUE) }"),
                          list(Method = "Levenberg-Marquardt",
-                              Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { median(x, na.rm = TRUE) }" # used for the surrounding steps
-                         ),
+                              Source = "pepNorm_General.R"),
                          list(Method = "sum",
                               Source = "pepNorm_General.R",
                               funCall = "normFun <- function(x) { log10(sum(10^x, na.rm = TRUE)) }"),
                          list(Method = "logSum",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { median(x, na.rm = TRUE) }"),
+                              funCall = "normFun <- function(x) { sum(x, na.rm = TRUE) }"),
                          list(Method = "max",
                               Source = "pepNorm_General.R",
                               funCall = "normFun <- function(x) { max(x, na.rm = TRUE) }"),
@@ -640,15 +639,14 @@ pepNormMethods %<o% list(list(Method = "median",
                               funCall = "normFun <- function(x) { modeest::mlv(is.all.good(x), method = \"Parzen\") }"),
                          list(Method = "proteins",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { mean(x, na.rm = TRUE) }", # used for the surrounding steps
+                              funCall = "normFun <- function(x) { median(x, na.rm = TRUE) }",
                               Proteins = NA),
                          list(Method = "biotinylated proteins",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { mean(x, na.rm = TRUE) }" # used for the surrounding steps
-                         ),
+                              funCall = "normFun <- function(x) { median(x, na.rm = TRUE) }"),
                          list(Method = "GO terms",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { mean(x, na.rm = TRUE) }", # used for the surrounding steps
+                              funCall = "normFun <- function(x) { median(x, na.rm = TRUE) }",
                               Terms = NA),
                          list(Method = "LOESS",
                               Source = "pepNorm_Shape.R"),
@@ -1048,9 +1046,10 @@ make_ui1 <- \() {
              h6(em(" - Moderated t-test (limma): gold-standard linear modeling approach; fits protein group-wise linear models and applies empirical Bayes shrinkage of variances toward a pooled prior estimate, yielding more stable inference than classical t-tests")),
              h6(em(" - DEqMS: extends limma by modeling the dependence of variance on (as implemented here) number of observations, improving empirical Bayes variance estimation")),
              h6(em(" - MSqRob: a robust regression framework for proteomics differential analysis that reduces sensitivity to outliers and can better accommodate missingness patterns compared to limma")),
-             h6(em(" - Welch's t-test: modification of Student’s t-test that relaxes the equal-variance assumption and is more robust to heteroscedasticity")),
+             h6(em(" - Welch's t-test: modification of Student’s t-test that relaxes the equal-variance assumption and is more robust to heteroscedasticity (NB: for paired experimental designs, becomes identical to Student's t-test)")),
              h6(em(" - Permutation test (coin): based on the permutation distribution of a test statistic under the null hypothesis of exchangeability between groups")),
-             #h6(em(" - SAM's modified t-test (siggenes): modified t-statistic that adds a data-driven offset s₀ to the denominator to stabilize variance estimates and reduce false positives in low-replicate settings")),
+             h6(em(" - SAM's modified t-test (siggenes): modified t-statistic that adds a data-driven offset s₀ to the denominator to stabilize variance estimates and reduce false positives in low-replicate settings")),
+             h6(em(" - ROTS: \"reproducibility-optimized test statist\", a t-statistic modified according to the inherent properties of the data")),
              #h6(em(" - LRT (Likelihood Ratio Test //edge): compares a full and reduced linear model by testing whether inclusion of the explanatory variable significantly increases the likelihood of the observed data")),
              #h6(em(" - ODP (Optimal Discovery Procedure, Storey et al., 2007 //edge): a multiple-testing framework designed to maximize the expected number of true discoveries by borrowing information across hypotheses to improve ranking of signals")),
              if (scrptTypeFull == "withReps_PG_and_PTMs") {
@@ -1213,7 +1212,7 @@ server1 <- \(input, output, session) {
         #
         # PSMs normalisations
         fluidRow(column(1L,
-                        strong(" -> PSMs-level:")),
+                        h5(strong(" -> PSMs-level:"))),
                  column(2L,
                         checkboxInput("evLM", "Levenberg-Marquardt",
                                       Param$Adv.Norma.Ev.Intens, "100%"))),
@@ -1263,11 +1262,12 @@ server1 <- \(input, output, session) {
       #
       # Protein groups
       if (scrptTypeFull == "withReps_PG_and_PTMs") {
-        lst <- append(lst, list(fluidRow(column(2L,
-                                                h5(strong(" -> Protein Groups-level:"))),
-                                         column(2L,
-                                                checkboxInput("prtLM", "Levenberg-Marquardt",
-                                                              Param$Adv.Norma.Prot.Intens, "100%")))
+        lst <- append(lst,
+                      list(fluidRow(column(1L,
+                                           h5(strong(" -> Protein Groups-level:"))),
+                                    column(2L,
+                                           checkboxInput("prtLM", "Levenberg-Marquardt",
+                                                         Param$Adv.Norma.Prot.Intens, "100%")))
         ))
       }
       lst <- append(lst, list(br()))
@@ -2189,9 +2189,9 @@ if (length(w)) {
   Param[, w] <- as.logical(Param[, w])
 }
 
-ReportCalls$Calls <- AddTxt2Report(" -> Parameters:")
+ReportCalls <- AddTxt2Report(" -> Parameters:")
 for (i in 1L:ncol(Param)) {
-  ReportCalls$Calls <- AddTxt2Report(paste0("   - ", colnames(Param)[i], ": ", Param[[i]]))
+  ReportCalls <- AddTxt2Report(paste0("   - ", colnames(Param)[i], ": ", Param[[i]]))
 }
 ReportCalls <- AddSpace2Report()
 #

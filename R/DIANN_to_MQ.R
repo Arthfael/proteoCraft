@@ -224,9 +224,9 @@ DIANN_to_MQ <- function(DIANN_fl,
   }
   if ("First.Protein.Description" %in% colnames(DIANN)) {
     EV$"First protein name" <- DIANN$First.Protein.Description
-  } else {
-    cat("   (Column \"First.Protein.Description\" not found, no column of human-readable names generated...)\n")
-  }
+  } #else {
+    #cat("   (Column \"First.Protein.Description\" not found, no column of human-readable names generated...)\n")
+  #}
   # Process modifications
   wMod <- grep("\\(", EV$`Modified sequence`)
   mWMod <- match(unique(EV$`Modified sequence`[wMod]), EV$`Modified sequence`)
@@ -654,14 +654,18 @@ DIANN_to_MQ <- function(DIANN_fl,
            "Peptidoform.Q.Value", "Global.Peptidoform.Q.Value", "Lib.Peptidoform.Q.Value", "PTM.Site.Confidence", "Site.Occupancy.Probabilities",
            "Protein.Sites", "Lib.PTM.Site.Confidence"
   )
-  kol <- kol[which(kol %in% colnames(DIANN))]
+  kol <- intersect(kol, colnames(DIANN))
   EV[, gsub("Ms1", "MS1", gsub("\\.", " ", kol))] <- DIANN[, kol]
   #
   # Quantitative values
   EV$"MS1 Area" <- as.numeric(DIANN$Ms1.Area)
   QuantUMS <- ("Precursor.Quantity" %in% colnames(DIANN))
   if (QuantUMS) {
-    cat("   QuantUMS output columns detected, using those as Intensity instead of Ms1.Area.\n   (For your convenience the output Evidence (PSMs) table also contains a separate Ms1.Area column.)\n")
+    QuantUMS <- c(TRUE, FALSE)[match(dlg_message("QuantUMS output columns detected, using those instead of Ms1.Area for Intensity?",
+                                                 "yesno")$res, c("yes", "no"))]
+  }
+  if (QuantUMS) {
+    #cat("   QuantUMS output columns detected, using those as Intensity instead of Ms1.Area.\n   (For your convenience the output Evidence (PSMs) table also contains a separate Ms1.Area column.)\n")
     # If the QuantUMS output is present, we use it by default: it should be higher quality than "Ms1.Area" (MS1-based quant only).
     # We do not use the normalized version by default, in case normalization would actually be unsuitable for this particular experiment
     # ("normalization should never be on by default!")

@@ -1007,12 +1007,12 @@ Volcano.plot <- function(Prot,
     } else {
       if (symm) { which(temp$Colour %in% c(up_Nms, dwn_Nms)) } else { which(temp$Colour %in% up_Nms) }
     }
-    w0 <- which(temp$Colour %in% c("non significant", "too small FC"))
     if (prot_split && ("Colour2" %in% colnames(temp))) {
       w2 <- which((temp$Colour2 == "protein in list"))
       w1 <- setdiff(w1, w2) # Here it could be that we have overlap of w1 and w2 => we don't want that!
     } else { w2 <- which((temp$Colour == "protein in list")) }
     w3 <- which(temp$Colour == "target")
+    w0 <- setdiff(1L:nrow(temp), c(w1, w2, w3))
     temp <- rbind(temp[w0,], temp[w1,], temp[w2,], temp[w3,])
     #temp <- temp[which(is.all.good(temp$Y, 2)),]
     ttl <- paste0(title, i2)
@@ -1021,7 +1021,7 @@ Volcano.plot <- function(Prot,
     Xlab <- gsub(" - $", "", X.root)
     Ylab <- gsub(" - $", "", Y.root)
     test <- c(is.numeric(Size), is.numeric(Alpha))
-    temp$"P-value" <- 10^(-temp$Y)
+    temp$"P-value" <- 10L^(-temp$Y)
     pL_lbs <- c(plotly_labels, "X", "Y")
     pL_lbs_nms <- c(names(plotly_labels), Xlab, Ylab)
     temp$plotly_labels <- apply(temp[, plotly_labels, drop = FALSE], 1L, \(x) { #x <- temp[1, kol]
@@ -1146,8 +1146,8 @@ Volcano.plot <- function(Prot,
                           label = paste0(100*(1 - ta$a[2L]), "% conf. lev."),
                           color = ta$Colour[2L], hjust = 1L, size = 3.5)
       if (prot_split) {
-        plot2 <- plot2
-        ggplot2::stat_function(fun = \(x) { SAM_thresh(x, samS0, ta$Ta[1L], samDF) },
+        plot2 <- plot2 +
+          ggplot2::stat_function(fun = \(x) { SAM_thresh(x, samS0, ta$Ta[1L], samDF) },
                                color = ta$Colour[1L], xlim = c(ta$Ta[1L]*samS0, xlim[2L]), linetype = "dotted") +
           ggplot2::stat_function(fun = \(x) { SAM_thresh(x, samS0, ta$Ta[1L], samDF) },
                                  color = ta$Colour[1L], xlim = c(xlim[1L], -ta$Ta[1L]*samS0), linetype = "dotted") +
@@ -1324,13 +1324,19 @@ Volcano.plot <- function(Prot,
     simPlot <- plot
     simPlot$layers <- simPlot$layers[1L]
     if (show.labels) {
-      W <- which(temp$Labels != "")
+      W <- if (prot_split) { which(temp$Labels2 != "") } else { which(temp$Labels != "") }
       if (length(W)) {
-        simPlot <- plot2 <- plot
-        simPlot$layers <- simPlot$layers[1L]
+        plot2 <- plot
         lab <- temp[W,]
-        W2 <- which(!lab$Colour %in% c("protein in list", "target"))
-        W3 <- which(lab$Colour %in% c("protein in list", "target"))
+        if (prot_split) {
+          kolkol <- "Colour2"
+          labkol <- "Labels2"
+        } else {
+          kolkol <- "Colour"
+          labkol <- "Labels"
+        }
+        W2 <- which(!lab[[kolkol]] %in% c("protein in list", "target"))
+        W3 <- which(lab[[kolkol]] %in% c("protein in list", "target"))
         if (length(W2) > MaxLabels) {
           lab2 <- lab[W2,]
           Ord <- order(abs(lab2[[MaxLabels_priority]]), decreasing = TRUE) # ("abs" only needed for X, but makes no difference for Y => more concise code)
@@ -1340,27 +1346,29 @@ Volcano.plot <- function(Prot,
         plot2 <- if ((!is.numeric(Alpha)) && Alpha.labels) {
           plot2 +
             ggrepel::geom_text_repel(data = lab,
-                                     ggplot2::aes(label = Labels, x = X, y = Y,
-                                                  colour = Colour, alpha = Alpha),
+                                     ggplot2::aes(label = .data[[labkol]], x = X, y = Y,
+                                                  colour = .data[[kolkol]], alpha = Alpha),
                                      force = 4L, cex = cex, lineheight = lineheight,
                                      show.legend = FALSE)
         } else {
           plot2 +
             ggrepel::geom_text_repel(data = lab,
-                                     ggplot2::aes(label = Labels, x = X, y = Y,
-                                                  colour = Colour), alpha = 1L,
+                                     ggplot2::aes(label = .data[[labkol]], x = X, y = Y,
+                                                  colour = .data[[kolkol]]), alpha = 1L,
                                      force = 4L, cex = cex, lineheight = lineheight,
                                      show.legend = FALSE)
         }
+        #poplot(plot2)
         Plots$Labelled[[ttl]] <- plotEval(plot2)
         #
         # Make simplified plot:
         simPlot <- simPlot +
           ggrepel::geom_text_repel(data = lab,
-                                   ggplot2::aes(label = Labels, x = X, y = Y,
-                                                colour = Colour), alpha = 1L,
+                                   ggplot2::aes(label = .data[[labkol]], x = X, y = Y,
+                                                colour = .data[[kolkol]]), alpha = 1L,
                                    force = 4L, cex = 3.5, lineheight = lineheight,
                                    show.legend = FALSE)
+        #poplot(simPlot)
       }
       if (prot_split) {
         plot_prot2 <- plot_prot
@@ -1425,9 +1433,9 @@ Volcano.plot <- function(Prot,
       flPth <- paste0(subfolder, "/", nm, "_dat.csv")
       tmpDat <- data.frame(ID = gsub("\n|<br>", " | ", temp$Table_labels),
                            "log2FC" = temp$X,
-                           "P-value" = 10^-temp$Y,
+                           "P-value" = 10L^-temp$Y,
                            " -log10(P-value)" = temp$Y,
-                           "adj. P-value" = p.adjust(10^-temp$Y, "BH"),
+                           "adj. P-value" = p.adjust(10L^-temp$Y, "BH"),
                            check.names = FALSE)
       data.table::fwrite(tmpDat, flPth, sep = ",", row.names = FALSE, na = "NA")
     }

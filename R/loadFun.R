@@ -16,7 +16,9 @@
 #' 
 #' @export
 
-loadFun <- function(file, tryClassic = FALSE) {
+loadFun <- function(file,
+                    tryClassic = FALSE) {
+  #DefArg(loadFun)
   tryCatch({
     #if (.Platform$OS.type == "windows") {
       tst <- try(qs2::qs_readm(file,
@@ -27,7 +29,10 @@ loadFun <- function(file, tryClassic = FALSE) {
     # if (.Platform$OS.type == "unix") {
     #   tst <- try(fastSave::load.lbzip2(file, envir = globalenv()), silent = TRUE)
     # }
-    if (inherits(tst, "try-error") && tryClassic) { load(file, envir = globalenv()) } # This is for historic reasons
+    if (inherits(tst, "try-error") && tryClassic) {
+      warning("Old backup detected (before switch to qs/qs2), this will be very slow!")
+      base::load(file, envir = globalenv())
+    } # For historic reasons
   }, warning = "There was at least one error when reloading the backup!")
   library(proteoCraft) # Reload package
 }

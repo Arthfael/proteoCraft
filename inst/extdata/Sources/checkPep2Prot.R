@@ -6,7 +6,7 @@ I_eq_L %<o% TRUE # Could be made a global parameter
 setwd(wd)
 #ev$Proteins <- gsub(";CON_", ";", gsub("^CON_", "", gsub(";CON__", ";", gsub("^CON__", "", ev$Proteins))))
 if (Update_Prot_matches) {
-  ReportCalls$Calls <- AddTxt2Report(" - Checking peptide-to-protein assignments...")
+  ReportCalls <- AddTxt2Report(" - Checking peptide-to-protein assignments...")
   msg <- "ing peptide-to-protein matches...\n"
   if (exists("Reuse_Prot_matches")) {
     if ((!is.logical(Reuse_Prot_matches))||(is.na(Reuse_Prot_matches))) {
@@ -41,7 +41,7 @@ if (Update_Prot_matches) {
     tmpP <- Pep2Prot$Proteins[match(tmpPs, Pep2Prot$Sequence)]
     tmpE <- strsplit(tmpE, ";")
     tmpP <- strsplit(tmpP, ";")
-    f0 <- function(x) { paste(sort(x), collapse = ";") }
+    f0 <- \(x) { paste(sort(x), collapse = ";") }
     tst1 <- parSapply(parClust, tmpE, f0)
     tst2 <- parSapply(parClust, tmpP, f0)
     wN <- which(tst1 != tst2)
@@ -54,11 +54,11 @@ if (Update_Prot_matches) {
       tst$Orig <- strsplit(tst$Orig, ";")
       #View(tst)
       tst$Corr <- strsplit(tst$Corr, ";")
-      f0 <- function(x, y) { x[which(!x %in% y)] }
+      f0 <- \(x, y) { x[which(!x %in% y)] }
       tst$In_Orig_only <- lapply(1L:nrow(tst), \(x) { f0(unlist(tst$Orig[[x]]),
-                                                               unlist(tst$Corr[[x]])) })
+                                                         unlist(tst$Corr[[x]])) })
       tst$In_Corr_only <- lapply(1L:nrow(tst), \(x) { f0(unlist(tst$Corr[[x]]),
-                                                               unlist(tst$Orig[[x]])) })
+                                                         unlist(tst$Orig[[x]])) })
       tst$In_Orig_only_in_db <- vapply(tst$In_Orig_only, \(x) { sum(x %in% db$`Protein ID`) }, 1L)
       sum(unlist(tst$In_Orig_only_in_db))
       sum(!unlist(tst$In_Orig_only_in_db))
@@ -68,8 +68,8 @@ if (Update_Prot_matches) {
       #                                      unlist(tst$Corr[[x]])) })
     }
     tst <- sum(tst1 != tst2)
-    if (tst) {
-      msg <- paste0("Corrected ", tst, " out of ", length(tst1), " assignments (~", round(100*tst/length(tst1), 2L), "%)!
+    msg <- if (tst) {
+      paste0("Corrected ", tst, " out of ", length(tst1), " assignments (~", round(100*tst/length(tst1), 2L), "%)!
 Note that we do not take into account retention time or ion mobility!
 Discrepancies with the original search engine matches can have several causes:
  1) Protein present in original column but not corrected results:
@@ -79,7 +79,7 @@ Discrepancies with the original search engine matches can have several causes:
    a) Some search engines seem to miss some protein matches (at least old versions of MaxQuant) or to report only one out of several possible protein matches (some versions of FragPipe).
    b) In the case of I/L ambiguity, for newer search engines using modern spectrum prediction, retention time and/or ion mobility prediction models, this may be actually correct and reflect incompatibility of the latter characteristics.
 ")
-    } else { msg <- "All assignments validated.\n" }
+    } else { "All assignments validated.\n" }
     ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
   }
   ev$Proteins[wh1] <- Pep2Prot$Proteins[mtch1]

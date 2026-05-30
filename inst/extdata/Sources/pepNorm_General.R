@@ -17,9 +17,21 @@ wAG2 <- wAG1
 Outcome <- TRUE
 txt2 <- ""
 #
-currSamples <- allSamples[which(allSamples %in% colnames(tmpDat1))]
+currSamples <- intersect(allSamples, colnames(tmpDat1))
 #View(tmpDat1[wAG1, currSamples])
-m1 <- normFun(unlist(tmpDat1[wAG1, currSamples])) # Keep original global scale
+#
+# NB:
+# To preserve original global and between groups data scale, we calculate:
+# - m1: original global mean
+# - m2: original group mean
+# - m3: post-normalisation group mean
+# - m4: post-normalisation global mean
+# and apply:
+# - after group normalisation: + (m2 - m3)
+# - globally: + (m1 - m4)
+# Those 4 values used to be calculated with the median, however using the mean here is actually better mathematically.
+#
+m1 <- mean(unlist(tmpDat1[wAG1, currSamples]), na.rm = TRUE) # Original global scale
 tmpDat2 <- tmpDat1[, currSamples]*NA
 normFlt <- tmpDat1$id
 if (normSequence[[nrmStp]]$Method == "GO terms") {
@@ -60,6 +72,11 @@ if (normSequence[[nrmStp]]$Method == "biotinylated proteins") {
     Outcome <- FALSE
   }
 }
+if (normSequence[[nrmStp]]$Method == "histones") {
+  
+  stop("Work in progress, check back later!")
+  
+}
 Outcome <- length(normFlt) > 0L
 if (Outcome) {
   tstNorm <- try({
@@ -73,24 +90,24 @@ if (Outcome) {
         smpls <- unique(Exp.map$Ref.Sample.Aggregate[which(Exp.map[[RG$column]] == wGrp)])
         smpls <- smpls[which(smpls %in% colnames(tmpDat1))]
         if (length(smpls)) {
-          m2 <- normFun(is.all.good(unlist(tmpDat1[grpMtch, smpls]))) # Keep group's original scale
+          m2 <- mean(is.all.good(unlist(tmpDat1[grpMtch, smpls])), na.rm = TRUE) # Original group scale
           if (normSequence[[nrmStp]]$Method == "Levenberg-Marquardt") {
             tmp_nrm <- AdvNorm.IL(tmpDat1[grpMtch2, ], "Modified sequence", smpls, TRUE, 5L)
             colnames(tmp_nrm) <- gsub(topattern("AdvNorm."), "", colnames(tmp_nrm))
-            m <- tmpDat1[grpMtch, smpls] - tmp_nrm[, smpls]
+            m <- tmpDat1[grpMtch2, smpls] - tmp_nrm[, smpls]
             m <- colMeans(m, na.rm = TRUE)
           } else {
-            m <- sapply(smpls, function(smpl) { normFun(is.all.good(tmpDat1[grpMtch2, smpl])) })
+            m <- vapply(smpls, \(smpl) { normFun(is.all.good(tmpDat1[grpMtch2, smpl])) }, 1)
           }
           #m <- m-mean(m)
           tmpDat2[grpMtch, smpls] <- sweep(tmpDat1[grpMtch, smpls], 2L, m, "-")
-          m3 <- normFun(is.all.good(unlist(tmpDat2[grpMtch, smpls]))) # Keep group's original scale
-          tmpDat2[grpMtch, smpls] <- tmpDat2[grpMtch, smpls] + (m2 - m3)
+          m3 <- mean(is.all.good(unlist(tmpDat2[grpMtch, smpls])), na.rm = TRUE) # Posterior group scale
+          tmpDat2[grpMtch, smpls] <- tmpDat2[grpMtch, smpls] + (m2 - m3) # -> Preserve group scale
         }
       }
     }
-    m4 <- normFun(unlist(tmpDat2[wAG1, ])) # Keep original global scale
-    tmpDat2 <- tmpDat2 + (m1 - m4)
+    m4 <- mean(unlist(tmpDat2[wAG1, ]), na.rm = TRUE) # Posterior global scale
+    tmpDat2 <- tmpDat2 + (m1 - m4) # -> Preserve global scale
     txt2 <- if (normSequence[[nrmStp]]$Method == "Levenberg-Marquardt") {
       paste0("normalized using the ", normSequence[[nrmStp]]$Method, " procedure")
     } else {

@@ -13,7 +13,8 @@ make_Rat2(
   experiment.map,
   experiment.map_col = "Ref.Sample.Aggregate",
   int.root,
-  rat.root
+  rat.root,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ make_Rat2(
 \item{int.root}{Root of input intensity column names.}
 
 \item{rat.root}{Root of output ratios column names.}
+
+\item{verbose}{Logical, default = FALSE}
 }
 \value{
 Data supplemented with new ratio columns. Unlike make_Rat, no intensities are output.

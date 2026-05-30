@@ -2,7 +2,9 @@
 % Please edit documentation in R/protQuant.R
 \name{protQuant}
 \alias{protQuant}
-\title{protQuant}
+\title{protQuant
+We are shifting to running this code as a source now because the parallelisation within function as often was erratic.
+However, this should be kept even once fully "retired" in scripts as the source currently still uses this function's default arguments!}
 \usage{
 protQuant(
   Prot,
@@ -54,7 +56,7 @@ protQuant(
 
 \item{pg_PepIDs}{Name of the Protein/Protein groups table's peptide IDs column. Default = "Peptide IDs"}
 
-\item{pg_PepIDs_unique}{Used only if mode = "PreferUnique". Name of the Protein/Protein groups table's unique peptide IDs column. Default = "Unique peptide IDs"}
+\item{pg_PepIDs_unique}{Used only if N_unique is larger than 0. Name of the Protein/Protein groups table's unique peptide IDs column. Default = "Unique peptide IDs"}
 
 \item{pep_IDs}{The name of the Peptides table's IDs column. Default = "id"}
 

@@ -468,7 +468,9 @@ limmaForm <- paste0("~ 0 + ", VPAL$limmaCol)
 tmpForm <- VPAL$limmaCol
 if ((!is.na(Param$Batch.effect)) && (Param$Batch.effect != "")) {
   # Let's first make a design matrix without batch effect for use by ComBat
-  designMatr_noBatch %<o% model.matrix(as.formula(limmaForm))
+  designMatr_noBatch %<o% model.matrix(as.formula(limmaForm)#,
+                                       #data = expMap
+                                       )
   # Test before we edit column names
   tst <- lapply(tmpForm, \(x) { grep(topattern(x), colnames(designMatr_noBatch)) })
   l <- length(tmpForm)
@@ -488,7 +490,9 @@ if ((!is.na(Param$Batch.effect)) && (Param$Batch.effect != "")) {
   limmaForm <- paste0(limmaForm, " + ", Batch.effect$limmaCol)
   tmpForm <- c(tmpForm, Batch.effect$limmaCol)
 }
-designMatr %<o% model.matrix(as.formula(limmaForm))
+designMatr %<o% model.matrix(as.formula(limmaForm)#,
+                             #data = expMap
+                             )
 # Test before we edit column names
 tst <- lapply(tmpForm, \(x) { grep(topattern(x), colnames(designMatr)) })
 l <- length(tmpForm)
@@ -523,10 +527,9 @@ contrMatr %<o% makeContrasts(contrasts = myContrasts$Contrast,
 #  - failing that, pick the first
 # If this doesn't work, consider asking here/later for user input.
 if ((!"Reference" %in% colnames(Exp.map)) || (!is.logical(Exp.map$Reference)) || (length(unique(Exp.map$Reference[which(!is.na(Exp.map$Reference))])) != 2L)) {
-  allRefs <- union(myContrasts$B, myContrasts$D)
-  allRefs <- allRefs[which(nchar(allRefs) > 0L)]
+  allRefs <- setdiff(union(myContrasts$B, myContrasts$D), "")
   Rfs <- rownames(expMap)[which(expMap[[VPAL$limmaCol]] %in% allRefs)]
-  kol <- c(VPAL$column, RG$column, RRG$column)
+  kol <- c(VPAL$column, RG$column)
   pullDwnTst <- WorkFlow %in% c("PULLDOWN", "BIOID")
   if (pullDwnTst) {
     kol <- c(kol, "Target")
@@ -534,9 +537,9 @@ if ((!"Reference" %in% colnames(Exp.map)) || (!is.logical(Exp.map$Reference)) ||
   em <- Exp.map[match(Rfs, Exp.map[[RSA$column]]), kol]
   nc <- ncol(em)
   nr <- nrow(em)
-  colnames(em) <- c("samplesGroup", "compGroup", "referenceGroup", "Bait")[1L:nc]
+  colnames(em) <- c("samplesGroup", "compGroup", "Bait")[1L:nc]
   kol2 <- c("samplesGroup", "Bait")[1L:(pullDwnTst+1L)]
-  tst <- aggregate(1L:nr, list(em$compGroup, em$referenceGroup), \(x) {
+  tst <- aggregate(1L:nr, list(em$compGroup), \(x) {
     m <- match(unique(em$samplesGroup[x]), em$samplesGroup)
     return(set_colnames(em[m, kol2, drop = FALSE], kol2))
   })
@@ -561,13 +564,21 @@ if ((!"Reference" %in% colnames(Exp.map)) || (!is.logical(Exp.map$Reference)) ||
   # - Step 2: if that fails, take all
   #tst$samplesGroup <- vapply(tst$samplesGroup, \(x) { x[[1L]] }, "")
   Exp.map$Reference <- FALSE
-  for (i in 1L:nrow(tst)) {
-    w1 <- which((Exp.map[[RG$column]] == tst$Group.1[i])&
-                  (Exp.map[[RRG$column]] == tst$Group.2[i]))
-    w2 <- which((Exp.map[[RG$column]] == tst$Group.1[i])&
-                  (Exp.map[[RRG$column]] == tst$Group.2[i])&
-                  (Exp.map[[VPAL$column]] %in% tst$samplesGroup[[i]]))
-    stopifnot(length(w2) < length(w1)) # When this arrives, we will need to add a prompt to ask users to select reference levels for SAINTexpress, Amica...
-    Exp.map$Reference[w2] <- TRUE
+  for (i in 1L:nrow(tst)) { #i <- 1L
+    w1 <- which((Exp.map[[RG$column]] == tst$Group.1[i]))
+    w2 <- which((Exp.map[[RG$column]] == tst$Group.1[i])
+                &(Exp.map[[VPAL$column]] %in% tst$samplesGroup[[i]]))
+    if (length(w2) < length(w1)) {
+      rfVal <- opt <- setNames(vapply(cleanNms(VPAL$values), \(x) {
+        paste(c(x, rep(" ", 250L-nchar(x))), collapse = "")
+      }, ""), VPAL$values)
+      while (!length(setdiff(opt, rfVal))) {
+        rfVal <- dlg_list(opt, opt[1L], TRUE,
+                          title = paste0(tst$Group.1[i], " -> select one or more reference levels"))$res
+      }
+      Exp.map$Reference <- Exp.map[[VPAL$column]] %in% names(opt)[match(rfVal, opt)]
+    } else {
+      Exp.map$Reference[w2] <- TRUE
+    }
   }
 }

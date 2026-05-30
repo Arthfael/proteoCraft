@@ -56,7 +56,11 @@ LFQ.lm <- function(ids,
   #ids <- quant.pep.ids[[1]]
   #InputTabl = tmpPep;IntensCol = Pep.Intens.Nms;Summary.method = Summary.method;Summary.weights = Weights
   Viz <- FALSE
-  if ((missing(reNorm))||(!is.numeric(reNorm))||(length(reNorm) != 1L)||(is.na(reNorm))||(!reNorm %in% 0L:2L)) {
+  if (missing(reNorm)
+      || (!is.numeric(reNorm))
+      || (length(reNorm) != 1L)
+      || is.na(reNorm)
+      || (!reNorm %in% 0L:2L)) {
     reNorm <- 1L
   }
   #DefArg(LFQ.lm)
@@ -74,6 +78,10 @@ LFQ.lm <- function(ids,
   if (missing("Summary.weights")) {
     Summary.weights <- "Summary.weights"
     InputTabl[[Summary.weights]] <- 1L
+  } else {
+    if (Summary.method != "weighted.mean") {
+      warning("(Ignoring weights because Summary.method isn't weighted.mean!)")
+    }
   }
   mtch <- match(unlist(ids), InputTabl[[id]])
   if (length(mtch) >= Min.N) { # Are there enough values?
@@ -81,20 +89,20 @@ LFQ.lm <- function(ids,
     if (!Is.log) { temp1 <- log10(temp1) } # The rest assumes log-transformed data
     wights <- InputTabl[mtch, Summary.weights]
     w1 <- which(apply(temp1[, IntensCol, drop = FALSE], 1L, \(y) {
-      length(is.all.good(y))
+      sum(is.finite(y))
     }) > 0L)
     if (length(w1)) { # Are there enough valid values?
       # Remove peptides with only non-valid or missing values
       temp1 <- temp1[w1, , drop = FALSE]; wights <- wights[w1]
       tst2 <- vapply(IntensCol, \(y) {
-        length(is.all.good(temp1[[y]]))
+        sum(is.finite(temp1[[y]]))
       }, 1L)
       if (max(tst2) > 1L) { # Are there columns with at least 2 valid values?
         if (length(w1) > Max.N) { # (No need to re-calculate tst1)
           # Remove excess peptides, for cases where we have much more than we need and including all would slow down the calculations
           # (I'm looking at you, Titin!!!)
           Ranks <- nrow(temp1) + 1L - rank(apply(temp1[, IntensCol, drop = FALSE], 1L, \(x) {
-            sum(is.all.good(x))
+            sum(x[which(is.finite(x))])
           }))
           wR <- which(Ranks <= Max.N)
           temp1 <- temp1[wR, IntensCol, drop = FALSE]
@@ -102,10 +110,10 @@ LFQ.lm <- function(ids,
         }
         # Columns with at least 1 valid value
         wNN <- which(vapply(IntensCol, \(y) {
-          length(is.all.good(temp1[[y]]))
+          sum(is.finite(temp1[[y]]))
         }, 1L) > 0L)
         av <- apply(temp1[, wNN, drop = FALSE], 1L, \(y) {
-          stats::median(is.all.good(y))
+          stats::median(y[which(is.finite(y))])
         })
         # NB: temp2 and temp3 are already subsets through wNN
         # Thus, do not apply wNN to them!
@@ -161,13 +169,12 @@ LFQ.lm <- function(ids,
         }
         # Average aligned profiles
         temp3 <- apply(temp3, 2L, \(y) {
-          wAG <- which(is.all.good(y, 2L))
+          wAG <- which(is.finite(y))
           y <- y[wAG]
           wghts <- wights[wAG] # These are all 1 if method is not weighted mean
           if (length(y)) {
-            if (Summary.method == "weighted.mean") { y <- summaryFun(y, wghts) } else {
-              warning("(Ignoring weights because Summary.method isn't weighted.mean...)")
-              y <- summaryFun(y)
+            y <- if (Summary.method == "weighted.mean") { summaryFun(y, wghts) } else {
+              summaryFun(y)
             }
           } else {
             y <- NA_real_ # In previous versions was 0 here
@@ -179,26 +186,27 @@ LFQ.lm <- function(ids,
         temp3 <- as.numeric(temp3)
         # Re-scaling to estimate inter-proteins expression level
         if (reNorm %in% 0L:1L) {
-          m0 <- stats::median(is.all.good(temp3))
+          m0 <- stats::median(temp3[which(is.finite(temp3))])
           #if (is.na(m0)) { stop(m0) }
           temp3 <- temp3 - m0
           if (reNorm == 1L) {
             # -> best-flyer hypothesis logic
-            m1 <- apply(temp1[, wNN, drop = FALSE], 1L, \(x) { stats::median(is.all.good(x)) })
-            mx1 <- max(is.all.good(m1))
+            m1 <- apply(temp1[, wNN, drop = FALSE], 1L, \(x) { stats::median(x[which(is.finite(x))]) })
+            mx1 <- max(m1[which(is.finite(m1))])
             #if ((!is.na(m0))&&((is.na(mx1))||(!length(mx1)))) { stop(m1) }
             temp3 <- temp3 + mx1
           }
         }
         if (reNorm == 2L) {
-          m <- max(is.all.good(unlist(temp1[, wNN, drop = FALSE])))
+          m <- unlist(temp1[, wNN, drop = FALSE])
+          m <- max(m[which(is.finite(m))])
           m <- as.data.frame(which(temp1[, wNN, drop = FALSE] == m, arr.ind = TRUE))
           temp3 <- temp3 + temp1[m$row[1L], wNN[m$col[1L]]] - temp3[m$col[1L]]
         }
         rs[wNN] <- temp3
       } else {
         rs <- stats::setNames(apply(temp1, 2L, \(y) {
-          y <- is.all.good(y)
+          y <- y[which(is.finite(y))]
           if (!length(y)) { y <- NA_real_ }
           return(y)
         }), IntensCol)

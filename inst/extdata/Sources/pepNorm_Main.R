@@ -21,7 +21,7 @@ if (lNorm) {
   kol <- kol[w]
   tmpDat1 <- do.call(cbind, lapply(kol, \(k) {
     val <- log10(pep[[k]])
-    w <- which(!is.all.good(val, 2L))
+    w <- which(!is.finite(val))
     val[w] <- NA_real_ # We shouldn't have to deal with other types of invalid values! They break the rest.
     return(val)
   }))
@@ -30,8 +30,7 @@ if (lNorm) {
   addKol <- setNames(c("id", "Group", "Modified sequence", "Proteins"),
                      c("id", "Normalisation group", "Modified sequence", "Proteins"))
   tmpDat1[, addKol] <- pep[, names(addKol)]
-  clusterExport(parClust, "is.all.good", envir = environment())
-  wAG1 <- which(parApply(parClust, tmpDat1[, allSamples], 1L, \(x) { length(is.all.good(x)) }) > 0L)
+  wAG1 <- which(parApply(parClust, tmpDat1[, allSamples], 1L, \(x) { sum(is.finite(x)) }) > 0L)
   pepNorm[[1L]] <- list(Data = tmpDat1,
                        Filter = wAG1,
                        Pass = TRUE)
@@ -49,7 +48,7 @@ if (lNorm) {
                        "PCA plot - before norm.")
   #
   for (nrmStp in 1L:lNorm) { #nrmStp <- 1L #nrmStp <- nrmStp+1L
-    rg <- 1L:nrmStp # (and not 1L:(nrmStp-1): the first in the list is pre-norm data -> there is an offset)
+    rg <- 1L:nrmStp # (and not 1L:(nrmStp-1L): the first in the list is pre-norm data -> there is an offset)
     prevStp <- max(which(vapply(rg, \(i) { pepNorm[[i]]$Pass }, TRUE)))
     mth <- normSequence[[nrmStp]]$Method
     if (mth == "ComBat") {
@@ -57,7 +56,7 @@ if (lNorm) {
     } else {
       cat("\n +++ Step", nrmStp, mth, "\n    input = step", prevStp-1L, "\n") 
     }
-    xtmpDat1 <- pepNorm[[prevStp]]$Data # The first in the list is pre-norm data -> offset
+    tmpDat1 <- pepNorm[[prevStp]]$Data # The first in the list is pre-norm data -> offset
     #View(tmpDat1)
     #mth
     w <- which(!addKol %in% colnames(tmpDat1))

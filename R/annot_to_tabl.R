@@ -98,7 +98,7 @@ annot_to_tabl <- function(x,
           temp1[[paste0("A", i)]] <- temp$Annotations[(w[i-1L]+1L):(w[i]-1L)]
         }
         temp1$Annotations <- rowMeans(temp1[, paste0("A", as.character(1L:lw))], na.rm = TRUE)
-        temp1$Annotations[which(!is.all.good(temp1$Annotations, 2L))] <- NA
+        temp1$Annotations[which(!is.finite(temp1$Annotations))] <- NA
         temp <- temp1[, c("Sequence", "Annotations")]
       }
       temp$Names <- ""

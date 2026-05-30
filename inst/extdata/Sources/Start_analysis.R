@@ -648,18 +648,30 @@ if (nrow(allBckps)) {
   }
   if (length(bckps2Reload)) {
     cat(" -> Reloading backups...\n")
-    reloadedBckps <- allBckps[match(bckps2Reload, allBckps$Value),]
-    for (i in 1L:nrow(reloadedBckps)) { #i <- 1L
-      ext <- tolower(gsub(".*\\.", "", reloadedBckps$File[i]))
+  }
+  allBckps$Reload <- allBckps$Value %in% bckps2Reload
+  for (i in 1L:nrow(allBckps)) { #i <- 1L
+    ext <- tolower(gsub(".*\\.", "", allBckps$File[i]))
+    nms <- allBckps$ObjNm[[i]]
+    for (nm in nms) {
+      if (exists(nm)) {
+        # We want to make sure that no invalid version of the object lingers
+        rm(list = c(nm))
+        if (ext == "fasta") {
+          rm(fastas_reloaded)
+        }
+      }
+    }
+    if (allBckps$Reload[i]) {
       if (ext == "fasta") {
         loadInt <- TRUE
-        fastas_reloaded <- reloadedBckps$Full[i]
+        fastas_reloaded <- allBckps$Full[i]
       }
-      if (ext == "rdata") { loadFun(reloadedBckps$Full[i]) }
+      if (ext == "rdata") { loadFun(allBckps$Full[i]) }
       if (ext == "csv") {
-        tmp <- read.csv(reloadedBckps$Full[i], check.names = FALSE)
+        tmp <- read.csv(allBckps$Full[i], check.names = FALSE)
         areUok <- TRUE
-        if (reloadedBckps$Role[i] == "Map of MS files to biological samples") {
+        if (allBckps$Role[i] == "Map of MS files to biological samples") {
           colnames(tmp)[which(colnames(tmp) == "Raw.file")] <- "Raw file" # Backwards compatibility
           if (sum(!c("Parent sample", "MQ.Exp")#[labelMode]
                   %in% colnames(tmp)) == 2L) {
@@ -667,7 +679,7 @@ if (nrow(allBckps)) {
             areUok <- FALSE
           }
         }
-        if ((reloadedBckps$Role[i] == "Experimental structure map")&&(scrptType == "withReps")) {
+        if ((allBckps$Role[i] == "Experimental structure map")&&(scrptType == "withReps")) {
           # Backwards compatibility
           colnames(tmp)[which(colnames(tmp) == "Sample.name")] <- "Sample name" 
           colnames(tmp)[which(colnames(tmp) == "Isobaric.label")] <- "Isobaric label"
@@ -677,18 +689,13 @@ if (nrow(allBckps)) {
             expKl <- expKl[which(expKl %in% colnames(FracMap))[1L]]
           }
         }
-        if (exists(reloadedBckps$ObjNm[[i]])) {
-          # We want to make sure that no invalid version of the object lingers
-          rm(list = c(reloadedBckps$ObjNm[[i]]))
-        }
-        if (areUok) { assign(reloadedBckps$ObjNm[[i]], tmp) }
+        if (areUok) { assign(allBckps$ObjNm[[i]], tmp) }
       }
     }
-    cat("    Done!\n")
-    .obj <- unique(c(unlist(reloadedBckps$ObjNm), .obj))
-  } else {
-    cat(" -> No backups to reload\n")
   }
+  cat("    Done!\n")
+  .obj <- union(unlist(allBckps$ObjNm[which(allBckps$Reload)]), .obj)
+  .obj <- setdiff(.obj, unlist(allBckps$ObjNm[which(!allBckps$Reload)]))
 }
 
 # Clean-up WD to remove all output folders/files/plots/tables before we start?

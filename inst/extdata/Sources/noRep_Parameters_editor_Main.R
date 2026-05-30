@@ -147,15 +147,15 @@ quantAlgoOpt %<o% allQuantAlgos$Algorithm
 if ((scrptType == "noReps") && (length(Exp) == 1L)) { # limpa needs at least 2 samples
   quantAlgoOpt <- setdiff(quantAlgoOpt, "limpa")
 }
-if (("QuantMeth" %in% names(AnalysisParam))&&(!"Quant_algorithm" %in% names(AnalysisParam))) { # Old AnalysisParameter name
+quantAlgoDflt <- c("LM", "LM")[match(scrptType, c("noReps", "withReps"))] # limpa is temporarily demoted
+if (("QuantMeth" %in% names(AnalysisParam))&&(!"Quant_algorithm" %in% names(AnalysisParam))) { # Old parameter name
   AnalysisParam$Quant_algorithm <- AnalysisParam$QuantMeth
 }
-if ((!validCharPar("quantAlgo", quantAlgoOpt))&&("Quant_algorithm" %in% names(AnalysisParam))) {
-  tmp1 <- AnalysisParam$Quant_algorithm
-  if (validCharPar("tmp1", quantAlgoOpt)) { quantAlgo <- tmp1 }
+if ("Quant_algorithm" %in% names(AnalysisParam)) { # Current parameter name
+  quantAlgo <- AnalysisParam$Quant_algorithm
 }
-if (!validCharPar("quantAlgo", quantAlgoOpt)) {
-  quantAlgo <- c("LM", "LM")[match(scrptType, c("noReps", "withReps"))] # limpa is now demoted
+if ((!exists("quantAlgo")) || (!validCharPar("quantAlgo", quantAlgoOpt))) { # Default
+  quantAlgo <- quantAlgoDflt
 }
 quantAlgo %<o% quantAlgo
 AnalysisParam$Quant_algorithm <- quantAlgo
@@ -451,7 +451,7 @@ for (parI in myPar) {
   parNm <- paste0("run", parI)
   # Lowest level default: defined by context
   par_dflt <- par_dflt2 <- c(FALSE,
-                             WorkFlow %in% c("Discovery", "Regulation", "Pull-down"),
+                             Annotate && (WorkFlow %in% c("Discovery", "Regulation", "Pull-down")),
                              moreThan1Exp,
                              TRUE,
                              FALSE)[match(parI, myPar)]

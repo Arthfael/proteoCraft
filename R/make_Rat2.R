@@ -13,6 +13,7 @@
 #' @param experiment.map_col Name of the sample column in the experiment map.
 #' @param int.root Root of input intensity column names.
 #' @param rat.root Root of output ratios column names.
+#' @param verbose Logical, default = FALSE
 #' 
 #' @returns
 #' Data supplemented with new ratio columns. Unlike make_Rat, no intensities are output.
@@ -27,7 +28,8 @@ make_Rat2 <- function(myData = pep,
                       experiment.map,
                       experiment.map_col = "Ref.Sample.Aggregate",
                       int.root,
-                      rat.root) {
+                      rat.root,
+                      verbose = FALSE) {
   #DefArg(make_Rat2)
   #DefArg(make_Rat2, silent = FALSE)
   #myData = pep; contrasts = myContrasts; refGroups = RRG; int.log = FALSE; rat.log = 2L; experiment.map = Exp.map; int.root = pep.ref[length(pep.ref)]; rat.root = pep.ratios.ref
@@ -59,15 +61,15 @@ make_Rat2 <- function(myData = pep,
   #
   if (logTrans) {
     if (rat.log == int.log) {
-      cat("make_Ratios2: input data is log-transformed.\n")
+      if (verbose) { cat("     make_Ratios2: input data is log-transformed.\n") }
       log_Int2Rat <- 1L
     } else {
-      cat(paste0("make_Ratios2: input data is log-transformed and its base (", int.log, 
-                 ") is different from that of the desired ratios (", rat.log, ")\n"))
+      if (verbose) { cat(paste0("     make_Ratios2: input data is log-transformed and its base (", int.log,
+                                ") is different from that of the desired ratios (", rat.log, ")\n")) }
       log_Int2Rat <- base::log(rat.log, int.log)
     }
   } else {
-    cat("make_Ratios2: input data is not log-transformed.\n")
+    if (verbose) { cat("     make_Ratios2: input data is not log-transformed.\n") }
   }
   #
   ABkol <- c("A_samples", "B_samples")

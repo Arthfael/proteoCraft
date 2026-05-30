@@ -115,18 +115,27 @@ if (limpaMode) {
   kol <- paste0(intRef, rownames(expMap))
   kol <- intersect(kol, colnames(myData))
   tmpVal <- myData[, kol]
-  colnames(tmpVal) <- rownames(designMatr)[match(rownames(designMatr), gsub("___", "_", expMap[[RSA$limmaCol]]))]
-  NA_Filt <- as.data.frame(sapply(1L:ncol(designMatr), \(x) { #x <- 1L
-    kols <- row.names(designMatr)[which(designMatr[, x] == 1L)]
-    apply(tmpVal[, kols, drop = FALSE], 1L, \(y) { length(is.all.good(y)) }) >= 2L
-  }))
-  NA_Filt <- which(rowSums(NA_Filt) == ncol(NA_Filt)) # We will apply this result to decideTests
+  colnames(tmpVal) <- sub(topattern(intRef), "", colnames(tmpVal))
+  # We keep any row with 2+ non-missing values per samples group for at least one contrast of interest 
+  NA_Filt <- lapply(1L:nrow(myContrasts), \(i) { #i <- 1L #i <- 3L
+    smpls <- myContrasts[i, c("A_samples", "B_samples", "C_samples", "D_samples")]
+    smpls <- lapply(smpls, unlist)
+    smpls <- smpls[which(lengths(smpls) > 0L)]
+    tst <- do.call(cbind, lapply(smpls, \(x) {
+      apply(tmpVal[, x, drop = FALSE], 1L, \(y) { length(is.all.good(y)) }) >= 2L
+    }))
+    #View(tst[grsep(prot.list, x = PG$`Leading protein IDs`), , drop = FALSE])
+    tst <- rowSums(tst) == ncol(tst)
+  })
+  NA_Filt <- do.call(cbind, NA_Filt)
+  #View(NA_Filt[grsep(prot.list, x = PG$`Leading protein IDs`), , drop = FALSE])
+  NA_Filt <- which(rowSums(NA_Filt) >= 1L)
+  #
   voomFit <- voomaLmFit(tmpVal[NA_Filt, ], designMatr, keep.EList = TRUE)
   voomFit$genes <- myData[NA_Filt, namesCol] # For convenience
 }
-voomFit <- eBayes(voomFit) # Run F-test
-fit_postHoc <- contrasts.fit(voomFit, contrMatr)
-fit_postHoc <- eBayes(fit_postHoc)
+voomFit <- contrasts.fit(voomFit, contrMatr)
+voomFit <- eBayes(voomFit)
 if (limpaMode) {
   my_F_Data <- myData$genes
 } else {
@@ -134,9 +143,7 @@ if (limpaMode) {
   my_F_Data[[F_Root]] <- NA_real_
 }
 my_F_Data[NA_Filt, F_Root] <- -log10(voomFit$F.p.value)
-# Do NOT:
-#  - use contrasts.fit() before eBayes() for the F-test!
-#  - make limma tests artificially one-sided; instead:
+# Do NOT make limma tests artificially one-sided; instead:
 #     - apply FDR correction on two-sided limma tests
 #     - filter for logFCs using only biologically relevant side of test
 #
@@ -144,7 +151,8 @@ my_F_Data[NA_Filt, F_Root] <- -log10(voomFit$F.p.value)
 # ---------------------------------------------------------------------
 F_PVal_postHoc <- paste0(F_Root, " - ", myContrasts$Contrast)
 my_F_Data[, F_PVal_postHoc] <- NA_real_
-my_F_Data[NA_Filt, F_PVal_postHoc] <- -log10(fit_postHoc$p.value)
+my_F_Data[NA_Filt, F_PVal_postHoc] <- -log10(voomFit$p.value[, myContrasts$Contrast])
+#View(my_F_Data[grsep(prot.list, x = PG$`Leading protein IDs`), F_PVal_postHoc, drop = FALSE])
 
 # Step 3 - make decision for each FDR value
 # -----------------------------------------
@@ -168,9 +176,22 @@ my_F_Data[, fdrKol] <- F_fdr$F_test$`Significance vector`
 # b) Significance columns for each post-hoc test
 # ..............................................
 # Note that this could also be done globally. But usually here people consider each test individually.
-# The decision as to whether to calculate FDR thresholds for each post-hoc test indiviually,
+# The decision as to whether to calculate FDR thresholds for each post-hoc test individually,
 # or globally for all, could be parameter controlled in the future.
-tmp <- my_F_Data[, F_PVal_postHoc, drop = FALSE]
+tmp <- my_F_Data[, c(F_Root, F_PVal_postHoc), drop = FALSE]
+tmp_ <- dfMelt(tmp, c("Contrast", "-log10(P-val)"))
+tmp_$Contrast <- gsub_Rep(" - ", "\n- ", gsub_Rep(topattern(paste0(F_Root, " - ")), "", tmp_$Contrast))
+tmp_$Contrast[which(tmp_$Contrast == F_Root)] <- "F-test"
+tmp_$Contrast <- factor(tmp_$Contrast, levels = c("F-test", gsub(" - ", "\n- ", myContrasts$Contrast)))
+tmp_$`P-val` <- 10L^(-tmp_$`-log10(P-val)`)
+plot <- ggplot(tmp_) + geom_histogram(aes(x = `P-val`, fill = Contrast), bins = 100L) +
+  scale_fill_viridis(discrete = TRUE) + theme_bw() + facet_grid(Contrast~.) +
+  theme(strip.text.y = element_text(angle = 0))
+poplot(plot, 12L, 22L)
+suppressWarnings({
+  ggsave(paste0(ohDeer, "/ANOVA P values histogram.jpeg"), plot, dpi = 150)
+  ggsave(paste0(ohDeer, "/ANOVA P values histogram.pdf"), plot, dpi = 150)
+})
 globalFDR <- TRUE
 if (globalFDR) {
   tmp2 <- melt(tmp)
@@ -217,7 +238,7 @@ for (i in myContrasts$Contrast) {
 # We define a single logFC threshold for the whole test
 # First get log2FC columns
 xCol <- paste0(ratRef, myContrasts$Contrast)
-my_F_Data[NA_Filt, xCol] <- fit_postHoc$coefficients[, myContrasts$Contrast]
+my_F_Data[NA_Filt, xCol] <- voomFit$coefficients[, myContrasts$Contrast]
 regRoot_F <- "mod. F-test Regulated - "
 regKol <- paste0(regRoot_F, myContrasts$Contrast)
 my_F_Data[, regKol] <- "non significant"

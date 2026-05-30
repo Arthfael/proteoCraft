@@ -13,17 +13,17 @@ Factors2 %<o% Factors[which(!Factors %in% c("Experiment",
                                             "Time.point"))]
 #
 labelMode <- match(LabelType, c("LFQ", "Isobaric"))
-if ((exists("Exp.map"))&&(nrow(Exp.map))) {
-  tst <- (sum(!c("MQ.Exp", "Sample name") %in% colnames(Exp.map)) == 0L)&&
+if (exists("Exp.map") && nrow(Exp.map)) {
+  tst <- (sum(!c("MQ.Exp", "Sample name") %in% colnames(Exp.map)) == 0L) &&
     (sum(!FracMap[[expKl]] %in% Exp.map$MQ.Exp) == 0L)
   if (tst) { ExpMap <- Exp.map }
 }
-if ((exists("ExpMap"))&&(nrow(ExpMap))) {
-  tst <- (sum(!c("MQ.Exp", "Sample name") %in% colnames(ExpMap)) == 0L)&&
+if (exists("ExpMap") && nrow(ExpMap)) {
+  tst <- (sum(!c("MQ.Exp", "Sample name") %in% colnames(ExpMap)) == 0L) &&
     (sum(!FracMap[[expKl]] %in% ExpMap$MQ.Exp) == 0L)
   if (!tst) { rm(ExpMap) }
 }
-if ((!exists("ExpMap"))||(!nrow(ExpMap))) {
+if ((!exists("ExpMap")) || (!nrow(ExpMap))) {
   if (LabelType == "LFQ") {
     ExpMap <- data.frame("Experiment" = "?",
                          "Replicate" = "?",
@@ -54,7 +54,7 @@ ExpMap$Reference <- NULL
 if (!inherits(ExpMap$MQ.Exp, "list")) {
   ExpMap$MQ.Exp <- strsplit(ExpMap$MQ.Exp, ";")
 }
-if ((LocAnalysis)&&(!"Proportion" %in% colnames(ExpMap))) { ExpMap$Proportion <- 1 }
+if (LocAnalysis && (!"Proportion" %in% colnames(ExpMap))) { ExpMap$Proportion <- 1 }
 for (Fact in Factors2) { if (!Fact %in% colnames(ExpMap)) { ExpMap[[Fact]] <- "?" } }
 tmp <- aggregate(FracMap$Fraction, list(FracMap[[expKl]]), \(x) { paste(sort(unique(x)), collapse = ";") })
 tmp2 <- listMelt(ExpMap$MQ.Exp, 1L:nrow(ExpMap))
@@ -69,7 +69,7 @@ tst <- lapply(colnames(tmpTbl), \(x) { typeof(tmpTbl[[x]]) })
 w <- which(tst == "list")
 if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
-while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {
+while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
   dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
 }
@@ -394,7 +394,7 @@ Shiny.bindAll(table.table().node());"))
   session$onSessionEnded(\() { stopApp() })
 }
 runKount <- 0L
-while ((!runKount)||(!exists("ExpData3"))) {
+while ((!runKount) || (!exists("ExpData3"))) {
   eval(parse(text = runApp), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount+1L
@@ -417,7 +417,7 @@ tst <- lapply(colnames(tmpTbl), \(x) { typeof(tmpTbl[[x]]) })
 w <- which(vapply(colnames(tmpTbl), \(x) { inherits(tmpTbl[[x]], "list") }, TRUE))
 if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
-while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {
+while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
   dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
 }

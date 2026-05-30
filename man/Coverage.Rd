@@ -86,11 +86,4 @@ Coverage(proteins, peptides, "Align", TRUE, c(TRUE,TRUE,TRUE), 30)
 Coverage(proteins, peptides, "Align", TRUE, c(TRUE,TRUE,TRUE), 60)
 Coverage(proteins, peptides, "Align2", TRUE, c(TRUE,TRUE,TRUE), 60)
 
-# Notes:
-# * Never use Mode "Align" with sapply at it will create a graph for each protein!
-#   Instead, this function works with a vector of several proteins sequences as input.
-#   For the Align Mode, the display argument (ignored in Coverage Mode) should be a logical determining which proteins should be displayed.
-# * In general, since at present the Align Mode makes some assumptions about the length of the protein sequence(s) submitted, I would avoid applying it to:
-#   - too many or too large proteins;
-#   - too many peptides.
 }

@@ -80,9 +80,9 @@ dir <- paste0(wd, "/Workflow control")
 dirlist <- unique(c(dirlist, dir))
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 write.csv(temp, paste0(dir, "/Modifications.csv"), row.names = FALSE)
-ReportCalls$Calls <- AddTxt2Report("PTMs table:")
+ReportCalls <- AddTxt2Report("PTMs table:")
 ReportCalls$Objects$AABiases <- temp
-ReportCalls$Calls <- AddTbl2Report(ReportCalls$Calls, "AABiases")
+ReportCalls <- AddTbl2Report("AABiases")
 ReportCalls <- AddSpace2Report()
 
 #
@@ -154,10 +154,10 @@ ggsave(paste0(wd, "/Summary plots/", ttl, ".pdf"), plot, dpi = 150L, width = 10L
 if (exists("Tim")) {
   if (("Time.Points" %in% colnames(Param))&&(Param$Time.Points != "")) {
     tp %<o% as.character(sort(as.numeric(unlist(strsplit(Param$Time.Points, ";")))))
-    if (("Time.Point.Names" %in% colnames(Param))&&(Param$Time.Point.Names != "")) {
-      names(tp) <- gsub(" ", ".", unlist(strsplit(Param$Time.Point.Names, ";")))
+    names(tp) <- if (("Time.Point.Names" %in% colnames(Param))&&(Param$Time.Point.Names != "")) {
+      gsub(" ", ".", unlist(strsplit(Param$Time.Point.Names, ";")))
     } else {
-      names(tp) <- tp
+      tp
     }
     if (sum(tp != Tim)) {
       stop("Review your time points!")

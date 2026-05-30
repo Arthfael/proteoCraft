@@ -3,11 +3,13 @@
 #
 # This script calculates protein group-level quantitative values based on those of individual peptides.
 # Exact quantitation parameters (e.g. summarization method) are defined earlier in the workflow.
-cat("\n\nProtein group quantitation step\n")
 
 # Default parameter for reps, to be over-written when re-running post-re-normalisation
 if (!validLogicPar("post_ReNorm_reRun")) {
   post_ReNorm_reRun <- FALSE
+}
+if (!post_ReNorm_reRun) {
+  cat("\n\nProtein groups quantitation step\n")
 }
 
 # You may want to exclude peptides based on how many samples they are found in:
@@ -106,7 +108,7 @@ if (scrptType == "withReps") {
   cat(paste0("Input peptide intensities = ", refNm, "\n"))
   #pepRat_col <- pep.ratios.ref[length(pep.ratios.ref)]
   Prot.Expr.Root %<o% c(Original = "log10(Expr.) - ")
-  Prot.Rat.Root %<o% c(Original = "log2(Ratio) - ")
+  Prot.Rat.Root %<o% c(Original = "log2FC - ")
 }
 
 # Weights:
@@ -120,7 +122,7 @@ if (scrptType == "withReps") {
   Kols <- Kols[which(Kols %in% colnames(pep))]
   tmp <- pep[, Kols]
   clusterExport(parClust, list("smplsMap", "VPAL", "pep.ref", "is.all.good", "tmp", "pepInt_col"), envir = environment())
-  CV <- parSapply(parClust, VPAL$values, \(x) { #x <- VPAL$values[1L]
+  CVs <- parSapply(parClust, VPAL$values, \(x) { #x <- VPAL$values[1L] #x <- VPAL$values[4L]
     smpls <- smplsMap$Ref.Sample.Aggregate[which(smplsMap[[VPAL$column]] == x)]
     kols <- paste0(pepInt_col, smpls)
     kols <- intersect(kols, colnames(tmp))
@@ -133,7 +135,7 @@ if (scrptType == "withReps") {
     })
     return(x)
   })
-  pep$CV <- rowMeans(CV, na.rm = TRUE)
+  pep$CV <- rowMeans(CVs, na.rm = TRUE)
   pep$Weights <- -log10(pep$PEP*pep$CV)
   weightsInsrt <- "-log10(PEP * CV)"
 }
@@ -210,8 +212,8 @@ quantArgs %<o% list(pg_PepIDs = Pep4Quant,
                     useIntWeights = FALSE,
                     Priority = c("int", "rat")[(LabelType %in% c("SILAC"))+1L],
                     skipRatios = !MakeRatios,
-                    expMap = smplsMap,
-                    expMap_Samples_col = smplsKol,
+                    experimentMap = smplsMap,
+                    experimentMap_Samples_col = smplsKol,
                     pepInt_Root = pepInt_col,
                     pepRat_root = NULL,
                     pepInt_log = FALSE,
@@ -224,8 +226,11 @@ quantArgs %<o% list(pg_PepIDs = Pep4Quant,
                     N.reserved = 1L,
                     refGroups = NULL,
                     ratGroups = NULL,
-                    alsoRun = c("LM", "limpa", "QFeatures", "IQ"))
-if (scrptType == "withReps") { quantArgs$param <- tmpPar }
+                    alsoRun = c("LM", "IQ"))
+if (scrptType == "withReps") {
+  quantArgs$param <- tmpPar
+  quantArgs$alsoRun <- c(quantArgs$alsoRun, "limpa", "QFeatures")
+}
 if ((scrptType == "noReps")&&(MakeRatios)) {
   quantArgs$refGroups <- list(values = unique(smplsMap$Ratios_group),
                               names = "Ratios_group",
@@ -237,8 +242,9 @@ if ((scrptType == "noReps")&&(MakeRatios)) {
 msg <- if (post_ReNorm_reRun) {  " -> Protein groups re-quantitation from back-normalized peptides...\n"
 } else { " -> Starting protein groups quantitation...\n" }
 cat(msg)
+#stopCluster(parClust)
 #loadpack <- TRUE #loadpack <- FALSE
-source(parSrc)
+#source(parSrc)
 quantArgs2 <- quantArgs
 quantArgs2$cl <- parClust
 quantArgs2$Prot <- PG
@@ -246,7 +252,9 @@ quantArgs2$Pep <- pep[Pep2Use,]
 # For testing:
 #DefArg(protQuant);TESTING <- TRUE
 #invisible(lapply(names(quantArgs2), \(x) { assign(x, quantArgs2[[x]], envir = .GlobalEnv); return() }))
-quantData_list %<o% do.call(protQuant, quantArgs2) # In case this is run after PG reNorm (from back-reNormalized peptides),
+#quantData_list %<o% do.call(protQuant, quantArgs2) # function version - parallelism issues
+#rstudioapi::documentOpen(pgqSrc)
+source(pgqSrc)
 cat("    done!\n\n")
 quantData_list$reNormalized <- post_ReNorm_reRun
 # this replaces the original quantData_list object.

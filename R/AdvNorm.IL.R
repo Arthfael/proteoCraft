@@ -40,15 +40,11 @@ AdvNorm.IL <- function(df,
                        K = 5L) {
   # NB:
   # The function does not lend itself well to parallelization. It is much easier to parallelize different calls to the function.
-  TESTING <- FALSE
-  #DefArg(AdvNorm.IL); TESTING <- TRUE
+  #DefArg(AdvNorm.IL)
   #df = temp[, c("id", g)]; ids.col = "id"; exprs.col = g; exprs.log = TRUE
   #
-  if (TESTING) {
-    tm1 <<- Sys.time()
-  }
   if (length(exprs.col) == 1L) { stop("There must be at least 2 columns to normalise the data! Check the \"exprs.col\" argument.") }
-  if ((!is.logical(exprs.log))||(exprs.log != FALSE)) {
+  if ((!is.logical(exprs.log)) || (exprs.log != FALSE)) {
     if (is.logical(exprs.log)) { exprs.log.base <- 10L } else {
       exprs.log.base <- exprs.log
       exprs.log <- TRUE
@@ -59,11 +55,13 @@ AdvNorm.IL <- function(df,
   if (exprs.log) { for (klnm in exprs.col) { df[[klnm]] <- exprs.log.base^df[[klnm]] } }
   # Original medians
   ## Global
-  M1 <- is.all.good(unlist(df[, exprs.col]))
+  M1 <- unlist(df[, exprs.col])
+  M1 <- M1[which(is.finite(M1))]
   M1 <- median(M1[which(M1 > 0)])
   # Per column
   m1 <- apply(df[, exprs.col], 2L, \(x) {
-    x <- is.all.good(unlist(x))
+    x <- unlist(x)
+    x <- x[which(is.finite(x))]
     return(median(x[which(x > 0)]))
   })
   df2 <- df
@@ -109,7 +107,8 @@ AdvNorm.IL <- function(df,
   h <- h/(prod(h)^(1/n.exprs)) # Re-centre, since the 1st value was kept at 1
   df2[, exprs.col] <- sweep(df2[, exprs.col], 2L, h, "/")
   # Median after
-  M2 <- is.all.good(unlist(df2[, exprs.col]))
+  M2 <- unlist(df2[, exprs.col])
+  M2 <- M2[which(is.finite(M2))]
   M2 <- median(M2[which(M2 > 0)])
   # Re-apply original values scaling:
   df2[, exprs.col] <- df2[, exprs.col]*M1/M2
@@ -117,10 +116,6 @@ AdvNorm.IL <- function(df,
   if (exprs.log) { for (i in exprs.col) { df2[[i]] <- base::log(df2[[i]], exprs.log.base) } }
   w <- which(colnames(df2) %in% exprs.col)
   colnames(df2)[w] <- paste0("AdvNorm.", colnames(df2)[w])
-  if (TESTING) {
-    tm2 <<- Sys.time()
-    print(tm2-tm1)
-  } else {
-    return(df2)
-  }
+  #
+  return(df2)
 }

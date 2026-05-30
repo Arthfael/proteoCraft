@@ -47,9 +47,19 @@ tst <- sum(!file.exists(fls))
 if (tst) { Configure() }
 xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
 
+# Boolean functions to check parameter values
+Src <- paste0(libPath, "/extdata/Sources/parBooleans.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
+
 locDirs_fl %<o% grep("/Default_locations\\.xlsx$", fls, value = TRUE)
 locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
 locScriptsDir <- gsub("/[^/]+$", "/proteoCraft_localScripts", locDirs$Path[match("Temporary folder", locDirs$Folder)])
+
+# Run local scripts at startup - keep this after loading the backup!
+locScrptSrc %<o% paste0(libPath, "/extdata/Sources/runLocScrpts.R")
+source(locScrptSrc)
 
 # Run local startup scripts
 if ((length(locScriptsDir) == 1L)&&(dir.exists(locScriptsDir))) {
@@ -117,7 +127,6 @@ parSrc <- paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
 source(parSrc, local = FALSE)
 
 # Mode
-
 if ((exists("inDir"))&&(!is.null(inDir))&&(dir.exists(inDir))) { dfltDir <- inDir } else {
   if ((exists("parDir"))&&(!is.null(parDir))&&(dir.exists(parDir))) { dfltDir <- parDir } else {
     fl <- paste0(homePath, "/Default_locations.xlsx")
@@ -165,11 +174,11 @@ if (inputType == "alphaDIA") {
   parDir <- dirname(inDir)
 }
 kount <- 0L
-while ((!kount)||
-       (!exists("dstDir"))||
-       (!is.character(dstDir))||
-       (length(dstDir) != 1L)||
-       (is.na(dstDir))||
+while ((!kount) ||
+       (!exists("dstDir")) ||
+       (!is.character(dstDir)) ||
+       (length(dstDir) != 1L) ||
+       is.na(dstDir) ||
        (!dir.exists(dstDir))) {
   dstDir <- rstudioapi::selectDirectory("Select output directory", path = dflt)
   kount <- kount+1L
@@ -300,8 +309,7 @@ if (inputType == "DiaNN") {
                gsub(".*/", paste0(locs$Path[match("Archive folder", locs$Folder)], "/"), dir[1L]),
                gsub(".*/", paste0(locs$Path[match("Archive folder", locs$Folder)], "/"), dir[2L])))
     })))
-    dirs <- dirs[which(dir.exists(dirs))]
-    dirs <- dirs[which(dirs != ".")]
+    dirs <- setdiff(dirs[which(dir.exists(dirs))],  ".")
     dirFls <- setNames(lapply(dirs, \(dir) { list.files(dir, recursive = TRUE, full.names = TRUE) }), dirs)
     dirDFls <- setNames(lapply(dirs, \(dir) { grep("\\.d$", list.dirs(dir, recursive = TRUE, full.names = TRUE), value = TRUE) }), dirs)
     dirFls2 <- setNames(lapply(names(dirFls), \(nm) { basename(dirFls[[nm]]) }), dirs)
@@ -430,7 +438,7 @@ Update_Prot_matches <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("ye
 
 # Remove reverse database hits
 if ("Reverse" %in% colnames(ev)) {
-  ev <- ev[which((is.na(ev$Reverse))|(ev$Reverse != "+")),]
+  ev <- ev[which(is.na(ev$Reverse) | (ev$Reverse != "+")),]
 }
 
 # Fasta database and annotations 
@@ -582,8 +590,7 @@ if (!"Delta" %in% colnames(mods)) {
 mods <- mods[c(which(is.na(mods$`Old mark`)), which(!is.na(mods$`Old mark`))),]
 mods$Delta <- as.numeric(mods$Delta)
 mods <- mods[order(mods$Delta, decreasing = FALSE),]
-kol <- colnames(mods)
-kol <- kol[which(kol != "Old mark")]
+kol <- setdiff(colnames(mods), "Old mark")
 modsTst <- do.call(paste, c(mods[, kol], sep = ""))
 modsTst <- aggregate(1L:nrow(mods), list(modsTst), min)
 mods <- mods[modsTst$x,]
@@ -601,7 +608,11 @@ saveImgFun(backupFl)
 if (useExtTbl) {
   # This file is hard-coded in here: this is the table of mass-shift-to-PTM-name matches.
   # You can edit it but PLEASE stick to the current layout/logic or the script will BREAK!
-  modTblFl <- rstudioapi::selectFile("histone_modification_masses.xlsx")
+  dflt <- if (exists("modTblFl") && file.exists(modTblFl)) { modTblFl } else {
+    paste0(dstDir, "/histone_modification_masses.xlsx")
+  }
+  modTblFl <- rstudioapi::selectFile("Select file mapping expected PTM names to mass shifts",
+                                     path = dflt)
   stopifnot(file.exists(modTblFl))
   #
   modTbl <- openxlsx2::read_xlsx(modTblFl)
@@ -616,14 +627,29 @@ if (useExtTbl) {
   tst <- aggregate(tmp$Name, list(tmp$Pos, tmp$MW), \(x) { length(unique(x)) })
   stopifnot(max(tst$x) == 1L) # We assume that there is only one mod name for each combination of position and mass shift
   if (inputType %in% c("DiaNN", "Skyline")) {
-    if ("Pos" %in% colnames(mods)) {
-      mods$Site <- mods$Pos
-    } else {
-      if ("AA" %in% colnames(mods)) {
-        mods$Site <- mods$A
+    if (!"Site" %in% colnames(mods)) {
+      if ("Pos" %in% colnames(mods)) {
+        mods$Site <- mods$Pos
+      } else {
+        if ("AA" %in% colnames(mods)) {
+          mods$Site <- mods$A
+        } else { stop() }
+      }
+    }
+    if (!"Mass delta" %in% colnames(mods)) {
+      if ("Delta" %in% colnames(mods)) {
+        mods$"Mass delta" <- mods$Delta
+      } else {
+        if ("MW" %in% colnames(mods)) {
+          mods$"Mass delta" <- mods$MW
+        } else { stop() }
+      }
+    }
+    if (!"Full name" %in% colnames(mods)) {
+      if ("Name" %in% colnames(mods)) {
+        mods$"Full name" <- mods$Name
       } else { stop() }
     }
-    mods$"Mass delta" <- mods$Delta
   }
   mods2 <- listMelt(mods$Site, 1L:nrow(mods), c("Pos", "row"))
   mods2[, c("MW", "Name", "Mark")] <- mods[mods2$row, c("Mass delta", "Full name", "Mark")]
@@ -654,18 +680,17 @@ if (useExtTbl) {
       m <- mods2[w,]
       m$Pos[which(lengths(m$Pos) == 0L)] <- "X"
       r <- 1L
-      s <- 1L:nrow(m); s <- s[which(s != r)]
+      s <- setdiff(1L:nrow(m), r)
       tst <- lapply(s, \(x) {
         paste0(tolower(m$Pos[[x]]), substr(m$newMark[[x]], 1L, 1L))
       })
       tst <- lapply(seq_along(tst), \(x) {
-        rs <- tst[[x]]
-        rs[which(!rs %in% mods2$newMark)]
+        setdiff(tst[[x]], mods2$newMark)
       })
       l <- length(tst)
       if (l > 1L) {
         for (i in 2L:l) {
-          tst[[i]] <- tst[[i]][which(!tst[[i]] %in% unlist(tst[1L:(i-1L)]))]
+          tst[[i]] <- setdiff(tst[[i]], unlist(tst[1L:(i-1L)]))
         }
       }
       tst <- vapply(tst, \(x) {
@@ -716,7 +741,7 @@ if (useExtTbl) {
   mods2 <- mods
   mods2$newMark <- paste0("(", mods2$newMark, ")")
   mods2$newName <- paste0("(", mods2$newName, ")")
-  clusterExport(parClust, list("mods2", "nmKol", "annot_to_tabl"), envir = environment())
+  clusterExport(parClust, list("mods2", "nmKol", "annot_to_tabl", "AA"), envir = environment())
   unq2 <- as.data.frame(t(parSapply(parClust, unq, \(x) {
     #x <- unq[1L]
     x <- y <- annot_to_tabl(x)[[1L]]
@@ -773,7 +798,7 @@ statTsts_tst <- aggregate(groupsMap$Reference, list(groupsMap$Comparison_group),
         TRUE %in% x,
         length(unique(x)) == 2L))
 })
-statTsts <- (3 %in% statTsts_tst$x)
+statTsts <- (3L %in% statTsts_tst$x)
 if (!statTsts) {
   warning("No statistical tests will be performed!")
 }
@@ -786,36 +811,66 @@ if (!isQuant) {
   stop("No Intensity column detected, this is necessary for going further with this workflow...")
 }
 
-Nested <- FALSE
+# Blocks
 if (statTsts) {
-  # Nested (paired) replicates?
-  opt <- c("Yes                                                                                                                                                               ",
-           "No                                                                                                                                                                ")
-  Nested <- c(TRUE, FALSE)[match(dlg_list(opt, opt[2L], title = "Are the replicates paired?")$res, opt)]
+  opt <- c("Replicate", setdiff(myFact, "Batch"))
+  opt2 <- vapply(opt, \(x) { paste(c(x, rep(" ", 250L - nchar(x))), collapse = "") }, "")
+  Blocks <- opt[match(dlg_list(opt2, opt2[1L], title = "Are there any blocks of samples?")$res, opt2)]
+  hasBlocks <- length(Blocks) > 0L
 }
 
 Remove0Int <- FALSE
 #Remove0Int <- c(FALSE, TRUE)[match(dlg_message("Should we keep peptides with 0 intensity values?", "yesno")$res, c("yes", "no"))]
 if (Remove0Int) { ev <- ev[which(ev$Intensity > 0),] }
 
+# Limma formula, design matrix, contrasts
+limmaForm <- "~ 0 + groupFact"
+groupFact <- factor(samplesMap$Group, levels = Groups)
+lvls <- Groups
+lvlsConcat <- setNames(paste0("groupFact", lvls), lvls)
+if ("Batch" %in% colnames(samplesMap)) {
+  samplesMap$batchFct <- samplesMap$Batch
+  u <- as.character(unique(samplesMap$Batch))
+  if (identical(u, as.character(as.numeric(u)))) {
+    samplesMap$batchFct <- paste0("batch", samplesMap$batchFct)
+    u <- paste0("batch", u)
+  }
+  samplesMap$batchFct <- batchFact <- factor(samplesMap$batchFct, levels = u)
+  limmaForm <- paste0(limmaForm, " + batchFact")
+  lvls <- union(lvls, levels(batchFact))
+  lvlsConcat[levels(batchFact)] <- paste0("batchFact", levels(batchFact))
+}
+designMatr <- model.matrix(as.formula(limmaForm),
+                           data = samplesMap)
+row.names(designMatr) <- samplesMap$`Sample name`
+
+myContrasts <- data.frame(Contrast = unlist(lapply(compGrps, \(i) { #i <- compGrps[1L]
+  grpmp <- grpsMap[which(grpsMap$Comparison_group == i),]
+  refGrps <- unique(grpmp$Group[which(grpmp$Reference)])
+  trtGrps <- unique(grpmp$Group[which(!grpmp$Reference)])
+  lapply(refGrps, \(grp0) {
+    #paste0("Group", trtGrps, " - Group", grp0)
+    paste0(trtGrps, " - ", grp0)
+  })
+})))
+contrMatr <- makeContrasts(contrasts = myContrasts$Contrast,
+                           levels = lvls)
+rownames(contrMatr) <- lvlsConcat[match(rownames(contrMatr), names(lvlsConcat))]
+contrMatr <- contrMatr[which(rownames(contrMatr) %in% colnames(designMatr)),]
+myContrasts[, c("A", "B")] <- do.call(rbind, strsplit(myContrasts$Contrast, " - "))
+myContrasts$Name <- colnames(contrMatr)
+
 # Histone IDs
-Hist <- grep("histone", db$Header, ignore.case = TRUE, value = TRUE)
-Hist <- grep("ase(,|\\.| )", Hist, ignore.case = TRUE, value = TRUE, invert = TRUE)
-Hist <- grep("-(binding|like)", Hist, ignore.case = TRUE, value = TRUE, invert = TRUE)
-Hist <- grep("chaperone", Hist, ignore.case = TRUE, value = TRUE, invert = TRUE)
-Hist <- grep("ethyl", Hist, ignore.case = TRUE, value = TRUE, invert = TRUE)
-Hist <- grep("factor", Hist, ignore.case = TRUE, value = TRUE, invert = TRUE)
-Hist <- grep("non-histone", Hist, ignore.case = TRUE, value = TRUE, invert = TRUE)
-Hist <- grep("\\(fragment\\)", Hist, ignore.case = TRUE, value = TRUE, invert = TRUE)
-coreHist <- grep("H1|H5|linker", Hist, ignore.case = TRUE, value = TRUE, invert = TRUE)
-HistIDs <- db$`Protein ID`[match(Hist, db$Header)]
-coreHistIDs <- db$`Protein ID`[match(coreHist, db$Header)]
+allHistIDs <- getHistones(db)
+HistIDs <- allHistIDs$All
+coreHistIDs <- allHistIDs$Core
 histDB <- db[match(HistIDs, db$`Protein ID`),]
 #unique(db$`Common Name`[match(Hist, db$Header)])
 # Default organism may not be correct:
 writeFasta(histDB, paste0(dstDir, "/M_musculus_all_histones.fasta"))
 histDB$ID_Nm <- apply(histDB[, c("Protein ID", "Common Name")], 1L, paste, collapse = " - ")
 histDB$ID_Nm <- gsub("/", "_", histDB$ID_Nm)
+cat("Number of histones detected in database:", nrow(histDB), "\n")
 clusterExport(parClust, "histDB", envir = environment())
 
 ###################################################################################
@@ -905,30 +960,41 @@ if (!"Raw file path" %in% colnames(ev)) {
 if (!"Potential contaminant" %in% colnames(ev)) { ev$"Potential contaminant" <- "" }
 if (!"Reverse" %in% colnames(ev)) { ev$"Reverse" <- "" }
 kol1 <- c("Modified sequence", "Raw file path", "Experiment")
-kol2 <- c("Intensity", "Charge", "m/z", "Score")
-#c(kol1, kol2)[which(!c(kol1, kol2) %in% colnames(ev))]
+kol2 <- c("Intensity", "Charge", "m/z"#, "Score"
+          )
+#setdiff(c(kol1, kol2), colnames(ev))
 if (sum(!c(kol1, kol2) %in% colnames(ev))) {
   stop("Some columns necessary for going further with this workflow are missing...")
 }
 # We will allow summing if several raw files are assigned the same Experiment
 evSum <- as.data.table(ev[, c(kol1, kol2)])
 evSum <- evSum[,
-               list(Intensity = sum(Intensity, na.rm = TRUE),
-                    Charge = paste(Charge, collapse = ";"),
-                    `m/z` = paste(`m/z`, collapse = ";"),
-                    Score = max(Score, na.rm = TRUE)),
-               by = list(`Modified sequence` = `Modified sequence`,
-                         #`Raw file path` = `Raw file path`,
-                         Experiment = Experiment)]
+               .(Intensity = sum(Intensity, na.rm = TRUE),
+                 Charge = paste(Charge, collapse = ";"),
+                 `m/z` = paste(`m/z`, collapse = ";")),
+               by = .(`Modified sequence` = `Modified sequence`,
+                      #`Raw file path` = `Raw file path`,
+                      Experiment = Experiment)]
+if ("Score" %in% colnames(ev)) {
+  tmp <- as.data.table(ev[, c(kol1, "Score")])
+  tmp <- tmp[,
+             .(Score = max(Score, na.rm = TRUE)),
+             by = .(`Modified sequence` = `Modified sequence`,
+                    #`Raw file path` = `Raw file path`,
+                    Experiment = Experiment)]
+  tmp1 <- do.call(paste, c(tmp[, c("Modified sequence", "Experiment")], sep = "-_-"))
+  tmp2 <- do.call(paste, c(evSum[, c("Modified sequence", "Experiment")], sep = "-_-"))
+  evSum$Intensity2 <- tmp$Intensity[match(tmp2, tmp1)]
+}
 evSum <- as.data.frame(evSum)
 kol3 <- c("Modified sequence_verbose", "Modifications", "Proteins", "Histone(s)", "Mass",
           "Missed cleavages", "Potential contaminant", "Reverse")
-kol3 <- kol3[which(kol3 %in% colnames(ev))]
+kol3 <- intersect(kol3, colnames(ev))
 evSum[, kol3] <- ev[match(evSum[["Modified sequence"]], ev[["Modified sequence"]]), kol3]
 kol4 <- c("Modified sequence", "Modified sequence_verbose", "Modifications", "Intensity",
           "Raw file path", "Experiment", "Proteins", "Histone(s)", "Mass", "Charge", "m/z", "Score",
           "Missed cleavages", "Potential contaminant", "Reverse")
-kol4 <- kol4[which(kol4 %in% colnames(evSum))]
+kol4 <- intersect(kol4, colnames(evSum))
 evSum <- evSum[, kol4]
 
 Exp <- unique(evSum$Experiment)
@@ -941,9 +1007,8 @@ View(PSMs_per_Histone)
 write.csv(PSMs_per_Histone, file = paste0(dstDir, "/PSMs per Histone.csv"), row.names = FALSE)
 
 w <- which(parSapply(parClust, strsplit(evSum$`Histone(s)`, ";"), \(x) {
-  x <- unlist(x)
-  x <- x[which(x != "")]
-  (length(x) > 1L)||(!is.na(x))
+  x <- setdiff(unlist(x), "")
+  (length(x) > 1L) || (!is.na(x))
 }))
 histEv <- evSum[w,]
 tst <- gsub("^_[A-Z]+_$|^_[A-Z]*\\(|\\)[A-Z]*_$", "", gsub("\\)[A-Z]+\\(", "___",
@@ -1024,7 +1089,8 @@ saveImgFun(backupFl)
 kol <- c("Experiment", "Histone(s)", "Intensity", "Modified sequence", "Modified sequence_verbose")
 kol %in% colnames(histEv)
 tmpEv <- histEv[, kol]
-clusterExport(parClust, list("tmpEv", "histDir", "Hist", "Coverage", "histDB"), envir = environment())
+clusterExport(parClust, list("tmpEv", "histDir", "Hist", "histDB",
+                             "Coverage", "listMelt", "Isapply"), envir = environment())
 #clusterExport(parClust, "Coverage", envir = environment())
 for (e in Exp) { #e <- Exp[1L]
   w <- which(tmpEv$Experiment == e)
@@ -1088,7 +1154,7 @@ kol <- colnames(evSum)
 kol2 <- c("id", "Raw file", "Raw file2", "Raw file path", "Retention time (start)", "Retention time (end)", "Retention length", "Score", "q-value", "Charge", "Library index", "Library rt",
           "MS2 intensities", "MS/MS scan number", "IM", "IM (predicted)", "iIM", "iIM (predicted)", "Experiment", "Old_Experiment", "Search_engine_proteins", "Retention time",
           "Retention time (predicted)", "iRT", "iRT (predicted)", "Intensity", "PEP", "Theoretical m/z", "m/z", "Mass", "Delta score")
-kol1 <- kol[which(!kol %in% kol2)]
+kol1 <- setdiff(kol, kol2)
 tmp <- do.call(paste, c(evSum[, kol1], sep = "_<>_"))
 tmp <- aggregate(1L:nrow(evSum), list(tmp), min)
 pep <- evSum[tmp$x, kol1]
@@ -1100,16 +1166,17 @@ logIntRoot <- setNames("log10(int.) - ", intType)
 ratRoot <- "log2(Ratio) - "
 #
 tmp <- evSum[, c("Experiment", "Modified sequence", "Intensity")]
-exports <- list("allSamples", "samplesMap", "tmp", "intRoot", "is.all.good")
+exports <- list("allSamples", "samplesMap", "tmp", "intRoot")
 clusterExport(parClust, exports, envir = environment())
 clusterCall(parClust, \() library(data.table))
 tmp4 <- setNames(parLapply(parClust, allSamples, \(smpl) { #smpl <- allSamples[1L] #smpl <- allSamples[4L]
   w <- which(tmp$Experiment == smpl)
-  tmp2 <- data.frame(mod = NA, Intensity = NA)
+  tmp2 <- data.frame(mod = NA_character_,
+                     Intensity = NA_real_)
   if (length(w)) {
     tmp2 <- data.table(mod = tmp[w, "Modified sequence"],
                        Intensity = tmp[w, "Intensity"])
-    tmp2$Intensity[which(!is.all.good(tmp2$Intensity, 2L))] <- NA_real_
+    tmp2$Intensity[which(!is.finite(tmp2$Intensity))] <- NA_real_
     tmp2$Intensity[which(tmp2$Intensity <= 0)] <- NA_real_
     tmp2 <- tmp2[, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
     tmp2 <- as.data.frame(tmp2)
@@ -1128,13 +1195,13 @@ pep$id <- 1L:nrow(pep)
 labCol <- c("ModSeq", "Proteins", "Name", "Gene names")
 w <- which((labCol %in% colnames(ev))&(!labCol %in% colnames(evSum)))
 if (length(w)) { evSum[, labCol[w]] <- ev[match(evSum$`Modified sequence`, ev$`Modified sequence`), labCol[w]] }
-w <- which((labCol %in% colnames(evSum))&(!labCol %in% colnames(pep)))
+w <- which((labCol %in% colnames(evSum)) & (!labCol %in% colnames(pep)))
 if (length(w)) { pep[, labCol[w]] <- evSum[match(pep$`Modified sequence`, evSum$`Modified sequence`), labCol[w]] }
 pep$ModSeq <- gsub("^_|_$", "", pep$`Modified sequence`)
 pep$Name <- db$`Common Name`[match(gsub(";.*", "", pep$Proteins), db$`Protein ID`)]
 w <- which(is.na(pep$Name))
 pep$Name[w] <- "No match!"
-labCol <- labCol[which(labCol %in% colnames(pep))]
+labCol <- intersect(labCol, colnames(pep))
 clusterExport(parClust, "labCol", envir = environment())
 pep$Label <- parApply(parClust, pep[, labCol, drop = FALSE], 1L, \(x) {
   paste0(labCol, ": ", x, collapse = "\n")
@@ -1148,17 +1215,16 @@ normSummary <- data.frame(Sample = allSamples,
 saveImgFun(backupFl)
 #loadFun(backupFl)
 
-# Batch correction:
-#kol <- colnames(samplesMap)
-#kol <- kol[which(!kol %in% c("Sample", "Sample name", "Group", "Comparison_group",  "Reference", "Use"))]
+# Optional batch correction:
+#kol <- setdiff(!colnames(samplesMap), c("Sample", "Sample name", "Group", "Comparison_group",  "Reference", "Use"))
 kol <- c("Replicate", myFact)
 kol <- kol[which(vapply(kol, \(k) {
   length(unique(samplesMap[[k]])) > 1L
 }, TRUE))]
 if (length(kol)) {
   dflt <- kol
-  if (!Nested) {
-    dflt <- dflt[which(dflt != "Replicate")]
+  if (hasBlocks) {
+    dflt <- setdiff(dflt, Blocks)
   }
   if (exists("myBatches")) {
     dflt <- myBatches
@@ -1191,7 +1257,7 @@ if (length(kol)) {
         warning(paste0("The following batches are synonymous: ",
                        paste(do.call(paste, c(comb[w,], sep = " and ")), collapse = ", "),
                        ".\nThe following batches will be removed: ", btchs2Remove))
-        myBatches <- myBatches[which(!myBatches %in% btchs2Remove)]
+        myBatches <- setdiff(myBatches, btchs2Remove)
       }
     }
     #
@@ -1464,9 +1530,9 @@ if (length(Exp) > 1L) {
       x <- x[which(x > 0)]
       M <- median(x, na.rm = TRUE)
       m <- vapply(paste0("AdvNorm.", quntCol), \(x) {
-        x <- unlist(tmp[[x]])
+        x <- as.numeric(unlist(tmp[[x]]))
         x <- x[which(x > 0)]
-        median(is.all.good(as.numeric(x)))
+        median(x[which(is.finite(x))])
       }, 1)
       pep[, quntCol2] <- sweep(pep[, quntCol], 1L, m, "/")*M
       if (normMeth == normOpt[2L]) {
@@ -1485,7 +1551,7 @@ if (length(Exp) > 1L) {
         # Calculate Core peptides-only re-normalization factor at protein level:
         #prt2pep$Norm <- lapply(1L:nrow(prt2pep), \(x) { c() })
         tmp <- pep[, c("id", quntCol2)]
-        clusterExport(parClust, list("tmp", "quntCol2", "allSamples", "AdvNorm.IL", "is.all.good"), envir = environment())
+        clusterExport(parClust, list("tmp", "quntCol2", "allSamples", "AdvNorm.IL"), envir = environment())
         prt2pep[, allSamples] <- as.data.frame(t(parSapply(parClust, prt2pep$Core, \(x) { #x <- prt2pep$Core[2L]
           tmp1 <- tmp[match(unlist(x), tmp$id),]
           M <- unlist(tmp1[, quntCol2])
@@ -1495,9 +1561,9 @@ if (length(Exp) > 1L) {
           #View(tmp)
           #tst <- sapply(paste0("AdvNorm.", quntCol2), \(x) { summary(tmp[[x]]) });View(tst)
           m <- vapply(paste0("AdvNorm.", quntCol2), \(x) {
-            x <- unlist(tmp1[[x]])
+            x <- as.numeric(unlist(tmp1[[x]]))
             x <- x[which(x > 0)]
-            median(is.all.good(as.numeric(x)))
+            median(x[which(is.finite(x))])
           }, 1)
           return(setNames(M/m, allSamples)) 
         })))
@@ -1507,7 +1573,7 @@ if (length(Exp) > 1L) {
         pep2prt[, allSamples] <- prt2pep[match(pep2prt$prot, prt2pep$Group.1[wL]), allSamples]
         Norm <- aggregate(pep2prt[, allSamples], list(pep2prt$pep), \(x) { exp(mean(base::log(x), na.rm = TRUE)) })
         # If we cannot calculate a normalization factor, we need to remove the peptide
-        tst <- parApply(parClust, Norm[, allSamples], 1L, \(x) { length(is.all.good(x)) })
+        tst <- parApply(parClust, Norm[, allSamples], 1L, \(x) { sum(is.finite(x)) })
         Norm <- Norm[which(tst > 0L),]
         #
         # Now we need to remove peptides which cannot be normalized with this method
@@ -1547,12 +1613,12 @@ Rep <- unique(samplesMap$Replicate)
 compGrps <- unique(groupsMap$Comparison_group)
 pca_types <- c("Global", compGrps)
 pca_types2 <- "Histones"
-tstHist <- pep$`Histone(s)` > "" # Sometimes we only have histone peptide options, typically when working with Skyline  /n
+tstHist <- nchar(pep$`Histone(s)`) > 0L # Sometimes we only have histone peptide options, typically when working with Skyline  /n
 if (sum(!tstHist)) {
   pca_types2 <- c("Global", pca_types2)
 }
-for (pca_type in pca_types) {
-  for (pca_type2 in pca_types2) {
+for (pca_type in pca_types) { #pca_type <- pca_types[1L]
+  for (pca_type2 in pca_types2) { #pca_type2 <- pca_types2[1L]
     kol <- quntCol
     if (pca_type != "Global") {
       smpls <- samplesMap$"Sample name"[which(samplesMap$Comparison_group == pca_type)] 
@@ -1562,13 +1628,13 @@ for (pca_type in pca_types) {
     if (length(kol) > 1L) {
       temp <- pep[, kol, drop = FALSE]
       colnames(temp) <- gsub(topattern(intRoot[intType]), "", colnames(temp))
-      wOK <- which((apply(temp, 1L, \(x) { length(is.all.good(x)) }) == ncol(temp))
+      wOK <- which((apply(temp, 1L, \(x) { sum(is.finite(x)) }) == ncol(temp))
                    &((is.na(pep$"Potential contaminant"))|(pep$"Potential contaminant" != "+")))
-      temp <- temp[wOK,]
       if (pca_type2 == "Histones") {
-        temp <- temp[which(tstHist[wOK]),]
+        wOK <- wOK[which(tstHist[wOK])]
       }
-      temp <- sweep(temp, 1L, pep$"Av. log10 abundance"[w], "-") # Minimal effect:
+      temp <- temp[wOK,]
+      temp <- sweep(temp, 1L, pep$"Av. log10 abundance"[wOK], "-") # Minimal effect:
       # (the idea is that the final result is not affected by peptide intensity but by peptide logFCs only)
       temp <- temp + rnorm(length(unlist(temp)), 0, 10^-9) # To avoid constant/zero columns, add a small random error
       
@@ -1714,55 +1780,8 @@ if (statTsts) {
   # Statistics
   #
   source(parSrc)
-  clusterExport(parClust, list("Nested"), envir = environment())
+  clusterExport(parClust, list("hasBlocks", "Blocks", "designMatr", "contrMatr"), envir = environment())
   #reNorm <- FALSE
-  #
-  # From samplesMap to design matrix
-  groupsMap2 <- groupsMap[which(groupsMap$Comparison_group %in% statTsts_tst$Group.1[which(statTsts_tst$x == 3)]),]
-  samplesMap2 <- samplesMap[which(samplesMap$Group %in% groupsMap2$Group),]
-  samplesMap2$Sample <- samplesMap2$"Sample name"
-  compGrps <- unique(groupsMap2$Comparison_group)
-  Factors2 <- c("Group")
-  Factors <- c("Sample", "Replicate", Factors2)
-  for (fct in Factors) {
-    lvls0 <- sort(unique(samplesMap2[which(samplesMap2$Reference), fct]))
-    lvls1 <- sort(unique(samplesMap2[which(!samplesMap2$Reference), fct]))
-    assign(paste0(fct, "_"), factor(samplesMap2[[fct]], levels = unique(c(lvls0, lvls1))))
-  }
-  if (Nested) {
-    designCall <- paste0("designMatr <- model.matrix(~0 + Replicate_ + ", paste0(Factors2, "_", collapse = " + "), ")")
-  } else {
-    designCall <- paste0("designMatr <- model.matrix(~0 + ", paste0(Factors2, "_", collapse = " + "), ")")
-  }
-  #cat(designCall, "\n")
-  eval(parse(text = designCall))
-  #
-  # Define contrasts
-  expContrasts <- list()
-  for (ratGrp in compGrps) {
-    em <- samplesMap2[which(samplesMap2$Comparison_group == ratGrp),]
-    grp1 <- unique(em$Group[which(!em$Reference)])
-    grp0 <- unique(em$Group[which(em$Reference)])
-    expContrasts[[ratGrp]] <- plyr::rbind.fill(lapply(grp0, \(g0) { data.frame(x1 = paste0("Group_", grp1), x0 = paste0("Group_", g0)) }))
-  }
-  expContrasts <- plyr::rbind.fill(expContrasts)
-  tmp <- expContrasts
-  w <- which(!tmp$x1 %in% colnames(designMatr))
-  if (length(w)) { tmp$x1[w] <- "" }
-  w <- which(!tmp$x2 %in% colnames(designMatr))
-  if (length(w)) { tmp$x2[w] <- "" }
-  tmp <- apply(tmp, 1L, \(x) {
-    #x <- x[which(x != "")]
-    if (length(x) == 2L) { x <- paste(x, collapse = " - ") }
-    return(x)
-  })
-  contrCall <- paste0("contrMatr <- makeContrasts(",
-                      paste(tmp, collapse = ", "),
-                      ", levels = designMatr)")
-  # (NB: these could be renamed to something shorter, e.g. makeContrasts(Comp1 = A - B, Comp2 = A - C)
-  #cat(contrCall, "\n")
-  eval(parse(text = contrCall))
-  expContrasts$Name <- colnames(contrMatr)
   #
   colMatch <- data.frame(x = c("up", "down", "n.s.", "n.t."),
                          y = c(1L, -1L, 0L, NA))
@@ -1770,10 +1789,9 @@ if (statTsts) {
                        c("up", "down", "n.s.", "n.t."))
   colScale <- scale_colour_manual(name = "colour", values = myColors)
   #
-  FDR <- 0.3
-  FC <- 1.5
-  l10FC <- log10(FC) # For decideTests, to which we feed log10 data and so which needs a log10 FC!
-  l2FC <- log2(FC) # For plotting
+  myFDR <- 0.3
+  myFC <- 1.5
+  l2FC <- log2(myFC)
   statsXprs <- expression({
     intCols <- grep(intRoot[intType], colnames(myData), value = TRUE)
     w <- which(myData[, intCols] == 0, arr.ind = TRUE)
@@ -1788,8 +1806,8 @@ if (statTsts) {
     # First calculate mean per group
     for (grp in Groups) { #grp <- Groups[1L] #grp <- Groups[2L]
       #cat(" - Mean intensities ", grp, "\n")
-      w <- which(samplesMap2$Group == grp)
-      e1 <- samplesMap2[w,]
+      w <- which(samplesMap$Group == grp)
+      e1 <- samplesMap[w,]
       stopifnot(length(unique(e1$"Sample name")) == length(e1$"Sample name"))
       allSamples1 <- e1$"Sample name"
       col1 <- paste0(logIntRoot[intType], allSamples1)
@@ -1809,88 +1827,57 @@ if (statTsts) {
     }
     rm(grp)
     #
-    # Average lfc
-    if (Nested) {
-      for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[1L] #contr <- colnames(contrMatr)[2L]
-        tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
-        nm <- paste(tmp, collapse = " - ")
-        e <- samplesMap2[which(samplesMap2$Group %in% tmp),]
-        uRps <- unique(e$Replicate)
-        rps <- lapply(uRps, \(x) {
-          x0 <- e$"Sample name"[which((e$Replicate == x)&(e$Reference))]
-          x1 <- e$"Sample name"[which((e$Replicate == x)&(!e$Reference))]
-          if ((length(x0) == 1L)&&(length(x1) == 1L)) {
-            rs <- data.frame(Rep = x,
-                             Ref = x0,
-                             Sample = x1)
-          } else {
-            rs <- data.frame(Rep = x,
-                             Ref = NA,
-                             Sample = NA)
-          }
-          return(rs)
-        })
-        rps <- plyr::rbind.fill(rps)
-        rps <- rps[which(!is.na(rps$Ref)),]
-        rps <- rps[which(!is.na(rps$Sample)),]
-        myData[, paste0(ratRoot, nm, " ", uRps)] <- cbind(lapply(uRps, \(x) { #x <- uRps[1L]
-          m <- match(x, rps$Rep)
-          (myData[[paste0(logIntRoot[intType], rps$Sample[m])]] - myData[[paste0(logIntRoot[intType], rps$Ref[m])]])/log10(2)
-        }))
-        myData[[paste0(ratRoot, nm)]] <- apply(myData[, paste0(ratRoot, nm, " ", uRps)], 1L, mean, na.rm = TRUE)
-      }
+    tempVal <- myData[, paste0(logIntRoot[intType], samplesMap$`Sample name`)]
+    tempVal <- tempVal/log10(2L) # limma expects log2!
+    if (hasBlocks) {
+      blocksFact <- as.factor(samplesMap[[Blocks]])
+      corfit <- duplicateCorrelation(tempVal,
+                                     designMatr,
+                                     block = blocksFact)
+      fit <- lmFit(tempVal, designMatr, block = blocksFact, correlation = corfit$consensus)
     } else {
-      myData[, paste0(ratRoot, gsub("Group_", "", colnames(contrMatr)))] <- cbind(lapply(1L:nrow(expContrasts), \(x) { #x <- 1L
-        x <- gsub("^Group_", "", expContrasts[x,])
-        (myData[[paste0("Mean ", logIntRoot[intType], x[1L])]] - myData[[paste0("Mean ", logIntRoot[intType], x[2L])]])/log10(2L)
-      }))
+      fit <- lmFit(tempVal, designMatr)
     }
-    #View(myData[, c(paste0(logIntRoot[intType], samplesMap2$Sample), paste0(ratRoot, gsub("Group_", "", colnames(contrMatr))))])
-    #
-    tempVal <- myData[, paste0(logIntRoot[intType], samplesMap2$Sample)]
-    fit <- lmFit(tempVal, designMatr) # It's a nested design
     fit <- contrasts.fit(fit, contrMatr)
-    fit <- eBayes(fit) # Assumes 1% of genes change!!!
+    fit <- eBayes(fit)
     #View(fit$p.value)
     pVal <- fit$p.value
-    kol2 <- vapply(colnames(pVal), \(contr) { #contr <- colnames(pVal)[2L]
-      tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
-      nm <- paste(tmp, collapse = " - ")
-      return(paste0("Mod. P-value - ", nm))
-    }, "")
-    myData[, kol2] <- pVal
+    logFC <- fit$coefficients
+    #
+    # Draw a happy little histogram!
+    tmp <- melt(pVal)
+    colnames(tmp)[2L] <- "Contrast"
+    histPlot <- ggplot(tmp) +
+      geom_histogram(aes(x = value, fill = Contrast), bins = 100) +
+      theme_bw() + facet_grid(Contrast~.)
+    poplot(histPlot)
+    #
+    myData[, paste0(ratRoot, colnames(logFC))] <- logFC
+    myData[, paste0("Mod. P-value - ", colnames(pVal))] <- pVal
+    #
     FDR_thresh <- list()
-    for (i in 1L:ncol(pVal)) {
-      contr <- colnames(contrMatr)[i]
-      tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
-      nm <- paste(tmp, collapse = " - ")
+    for (i in 1L:ncol(pVal)) { #i <- 1L
       sig <- FDR(as.data.frame(pVal),
                  pvalue_col = colnames(pVal)[i],
-                 fdr = 30,
-                 returns = c(TRUE, TRUE, FALSE),
+                 fdr = myFDR,
+                 returns = rep(TRUE, 3L),
                  inputType = "log")
       #View(sig$`Significance vector`)
-      myData[[paste0("Signif. - ", nm)]] <- sig$`Significance vector`
-      FDR_thresh[[nm]] <- sig$Thresholds
+      myData[[paste0("Signif. - ", colnames(pVal)[i])]] <- sig$`Significance vector`
+      FDR_thresh[[colnames(pVal)[i]]] <- sig$Thresholds
     }
-    decisions <- decideTests(fit, adjust.method = "BH", p.value = FDR, lfc = l10FC) # Remember! The log base of the lfc threshold must be the same as that of the input data!!!
+    decisions <- decideTests(fit,
+                             adjust.method = "BH",
+                             p.value = myFDR,
+                             lfc = l2FC) # Remember! The log base of the lfc threshold must be the same as that of the input data!!!
     decisions <- as.data.frame(decisions@.Data)
-    nms <- vapply(colnames(decisions), \(contr) { #contr <- colnames(decisions)[2L]
-      tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
-      nm <- paste(tmp, collapse = " - ")
-      return(nm)
-    }, "")
-    kol2 <- paste0("Decision - ", nms)
-    colnames(decisions) <- nms
-    myData[, kol2] <- decisions
+    myData[, paste0("Decision - ", colnames(decisions))] <- decisions
     venn <- vennCounts(decisions)
     attributes(venn)$class <- NULL
     print(venn)
     #
     for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[2L]
-      tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
-      nm <- paste(tmp, collapse = " - ")
-      dc <- paste0("Decision - ", nm)
+      dc <- paste0("Decision - ", contr)
       myData[[dc]] <- colMatch$x[match(myData[[dc]], colMatch$y)]
     }
     myData$"is Histone" <- c("-", "+")[(myData$`Histone(s)` != "") + 1L]
@@ -1898,28 +1885,26 @@ if (statTsts) {
     myData$Alpha <- c(0.2, 1)[match(myData$"is Histone", c("-", "+"))]
     myData$Size <- c(0.1, 1.5)[match(myData$"is Histone", c("-", "+"))]
     for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[1L]
-      tmp <- gsub("Group_", "", expContrasts[match(contr, expContrasts$Name), c("x1", "x0")])
-      nm <- paste(tmp, collapse = " - ")
-      thresh <- FDR_thresh[[nm]]
-      ttl <- paste0(namesRoot, " ", nm)
-      grp0 <- gsub("^Group_", "", expContrasts$x0[match(contr, expContrasts$Name)])
-      grp1 <- gsub("^Group_", "", expContrasts$x1[match(contr, expContrasts$Name)])
-      k0 <- paste0(intRoot[intType], samplesMap$`Sample name`[which(samplesMap$Group %in% grp0)])
-      k1 <- paste0(intRoot[intType], samplesMap$`Sample name`[which(samplesMap$Group %in% grp1)])
-      fc <- paste0(ratRoot, nm)
-      pv <- paste0("Mod. P-value - ", nm)
-      dc <- paste0("Decision - ", nm)
+      thresh <- FDR_thresh[[contr]]
+      ttl <- paste0(namesRoot, " ", contr)
+      B <- myContrasts$B[match(contr, myContrasts$Name)]
+      A <- myContrasts$A[match(contr, myContrasts$Name)]
+      B_k <- paste0(intRoot[intType], samplesMap$`Sample name`[which(samplesMap$Group %in% B)])
+      A_k <- paste0(intRoot[intType], samplesMap$`Sample name`[which(samplesMap$Group %in% A)])
+      fc <- paste0(ratRoot, contr)
+      pv <- paste0("Mod. P-value - ", contr)
+      dc <- paste0("Decision - ", contr)
       kl <- c("is Histone", "Alpha", "Size", "Label")
-      #c(fc, pv, dc, kl, k0, k1) %in% colnames(myData)
-      myDat <- myData[, c(fc, pv, dc, kl, k0, k1)]
+      #c(fc, pv, dc, kl, B_k, A_k) %in% colnames(myData)
+      myDat <- myData[, c(fc, pv, dc, kl, B_k, A_k)]
       myDat[[pv]] <- -log10(myDat[[pv]])
-      colnames(myDat) <- c("log2 FC", "-log10 mod. P-value", "Decision", kl, k0, k1)
+      colnames(myDat) <- c("log2 FC", "-log10 mod. P-value", "Decision", kl, B_k, A_k)
       wNA <- which(is.na(myDat$`log2 FC`)|is.na(myDat$`-log10 mod. P-value`))
       wOK <- which(is.na(!myDat$`log2 FC`)&is.na(!myDat$`-log10 mod. P-value`))
-      wOKX <- which(is.all.good(myDat$`log2 FC`, 2))
-      wOKY <- which(is.all.good(myDat$`-log10 mod. P-value`, 2))
+      wOKX <- which(is.finite(myDat$`log2 FC`))
+      wOKY <- which(is.finite(myDat$`-log10 mod. P-value`))
       myDat$Label[wOKY] <- vapply(wOKY, \(x) {
-        paste0("-log10 mod. P-value: ", signif(myDat$`-log10 mod. P-value`[x], 5), "\n", myDat$Label[x])
+        paste0("-log10 mod. P-value: ", signif(myDat$`-log10 mod. P-value`[x], 5L), "\n", myDat$Label[x])
       }, "")
       myDat$Label[wOKX] <- vapply(wOKX, \(x) {
         paste0("log2 FC: ", signif(myDat$`log2 FC`[x]), "\n", myDat$Label[x])
@@ -1930,8 +1915,8 @@ if (statTsts) {
       yWdth <- yRng[2L]-yRng[1L]
       lNA <- length(wNA) 
       if (lNA) {
-        tstUp <- apply(myDat[, k1], 1L, \(x) { length(is.all.good(log10(x))) })
-        tstDw <- apply(myDat[, k0], 1L, \(x) { length(is.all.good(log10(x))) })
+        tstUp <- apply(myDat[, A_k], 1L, \(x) { sum(is.finite(log10(x))) })
+        tstDw <- apply(myDat[, B_k], 1L, \(x) { sum(is.finite(log10(x))) })
         wNAUp <- wNA[which(vapply(wNA, \(x) { (tstUp[x] > 0)&(tstDw[x] == 0) }, TRUE))]
         wNAUp <- sort(unique(c(wNAUp,
                                wNA[which((!is.na(myDat$`log2 FC`[wNA]))&(myDat$`log2 FC`[wNA] > 0))])))
@@ -1944,14 +1929,14 @@ if (statTsts) {
           myDat$`log2 FC`[wNAUp] <- xRng[2L]+3*xWdth/80
           myDat$`-log10 mod. P-value`[wNAUp] <- yRng[1L] + yWdth*21*(1L:lNAUp - 0.5)/(lNAUp*20)
           myDat$Label[wNAUp] <- vapply(wNAUp, \(x) {
-            paste0("Obs. in ", grp1, ": ", tstUp[x], "\n", myDat$Label[x])
+            paste0("Obs. in ", A, ": ", tstUp[x], "\n", myDat$Label[x])
           }, "")
         }
         if (lNADw) {
           myDat$`log2 FC`[wNADw] <- xRng[1L]-3*xWdth/80
           myDat$`-log10 mod. P-value`[wNADw] <- yRng[1L] + yWdth*21*(1L:lNADw - 0.5)/(lNADw*20)
           myDat$Label[wNADw] <- vapply(wNADw, \(x) {
-            paste0("Obs. in ", grp0, ": ", tstDw[x], "\n", myDat$Label[x])
+            paste0("Obs. in ", B, ": ", tstDw[x], "\n", myDat$Label[x])
           }, "")
         }
       }
@@ -1961,9 +1946,9 @@ if (statTsts) {
                          shape = `is Histone`, alpha = Alpha, size = Size, text = Label))
       if (length(wNA)) {
         plot <- plot +
-          geom_rect(xmin = xRng[1L]-xWdth/20, xmax = xRng[1L]-xWdth/40, ymin = yRng[1L], ymax = yRng[2L]+yWdth/20,
+          geom_rect(xmin = xRng[1L] - xWdth/20, xmax = xRng[1L]-xWdth/40, ymin = yRng[1L], ymax = yRng[2L]+yWdth/20,
                     fill = "lightpink1", color = NA) +
-          geom_rect(xmin = xRng[2L]+xWdth/40, xmax = xRng[2L]+xWdth/20, ymin = yRng[1L], ymax = yRng[2L]+yWdth/20,
+          geom_rect(xmin = xRng[2L] + xWdth/40, xmax = xRng[2L]+xWdth/20, ymin = yRng[1L], ymax = yRng[2L]+yWdth/20,
                     fill = "lightgreen", color = NA)
       }
       plot <- plot + geom_point() +
@@ -1973,11 +1958,11 @@ if (statTsts) {
         geom_hline(yintercept = -log10(thresh), color = "purple", linetype = "dashed") +
         scale_alpha_identity(guide = "none") + scale_size_identity(guide = "none") +
         ylab("-log10(moderated P-value)") +
-        scale_x_continuous(expand = c(0, 0)) + scale_y_continuous(expand = c(0, 0))
-      #poplot(plot, 12, 22)
+        scale_x_continuous(expand = c(0L, 0L)) + scale_y_continuous(expand = c(0L, 0L))
+      #poplot(plot, 12L, 22L)
       ttl2 <- gsub("/", " VS ", ttl)
       suppressWarnings({
-        ggsave(paste0(dstDir, "/", ttl2, ".jpeg"), plot, dpi = 300)
+        ggsave(paste0(dstDir, "/", ttl2, ".jpeg"), plot, dpi = 300L)
       })
       plotLy <- ggplotly(plot, tooltip = "text")
       # Fix legend
@@ -1997,7 +1982,7 @@ if (statTsts) {
                                                        text = shapeTxt,
                                                        showarrow = FALSE,
                                                        align = "left")),
-                       margin = list(r = 180))
+                       margin = list(r = 180L))
       #
       htmlwidgets::saveWidget(plotLy, paste0(dstDir, "/", ttl2, ".html"), selfcontained = TRUE)
       system(paste0("open \"", dstDir, "/", ttl2, ".html\""))
@@ -2023,27 +2008,31 @@ if (statTsts) {
 
 # Specific peptides/sites
 for (cmpGrp in compGrps) { #cmpGrp <- compGrps[1L]
-  grps <- unique(groupsMap2$Group[which(groupsMap2$Comparison_group == cmpGrp)])
-  grps2smpls <- setNames(lapply(grps, \(grp) { unique(samplesMap2$"Sample name"[which(samplesMap2$Group == grp)]) }), grps)
+  grps <- unique(groupsMap$Group[which(groupsMap$Comparison_group == cmpGrp)])
+  grps2smpls <- setNames(lapply(grps, \(grp) { unique(samplesMap$"Sample name"[which(samplesMap$Group == grp)]) }), grps)
   grps2kol <- setNames(lapply(grps2smpls, \(x) { paste0(intRoot[intType], x) }), grps)
   stopifnot(sum(!unlist(grps2kol) %in% colnames(pep)) == 0L,
             sum(!unlist(grps2kol) %in% colnames(Sites)) == 0L)
   for (grp1 in grps) { #grp1 <- grps[1L]
     k1 <- grps2kol[[grp1]]
-    tst <- groupsMap2$Reference[match(grp1, groupsMap2$Group)]
+    tst <- groupsMap$Reference[match(grp1, groupsMap$Group)]
     # This will mean comparing to reference
-    grp0 <- groupsMap2$Group[which((groupsMap2$Comparison_group == cmpGrp)&(groupsMap2$Reference != tst))]
+    grp0 <- groupsMap$Group[which((groupsMap$Comparison_group == cmpGrp)&(groupsMap$Reference != tst))]
     k0 <- unlist(grps2kol[grp0])
     pep[[paste0("Specific - ", grp1)]] <- vapply(1L:nrow(pep), \(i) {
-      x1 <- is.all.good(as.numeric(pep[i, k1]))
-      x0 <- is.all.good(as.numeric(pep[i, k0]))
-      res <- c("", "+")[(((!length(x0))&(length(x1) >= 3L))|((length(x0) == 1L)&(length(x1) >= 4L))) + 1L]
+      A <- as.numeric(pep[i, k1])
+      B <- as.numeric(pep[i, k0])
+      A <- A[which(is.finite(A))]
+      B <- B[which(is.finite(B))]
+      res <- c("", "+")[(((!length(B))&(length(A) >= 3L))|((length(B) == 1L)&(length(A) >= 4L))) + 1L]
       return(res)
     }, "a")
     Sites[[paste0("Specific - ", grp1)]] <- vapply(1L:nrow(Sites), \(i) {
-      x1 <- is.all.good(as.numeric(Sites[i, k1]))
-      x0 <- is.all.good(as.numeric(Sites[i, k0]))
-      res <- c("", "+")[(((!length(x0))&(length(x1) >= 3L))|((length(x0) == 1L)&(length(x1) >= 4L))) + 1L]
+      A <- as.numeric(Sites[i, k1])
+      B <- as.numeric(Sites[i, k0])
+      A <- A[which(is.finite(A))]
+      B <- B[which(is.finite(B))]
+      res <- c("", "+")[(((!length(B))&(length(A) >= 3L))|((length(B) == 1L)&(length(A) >= 4L))) + 1L]
       return(res)
     }, "a")
   }
@@ -2056,19 +2045,19 @@ samplesMap3 <- samplesMap[order(samplesMap$Comparison_group,
                                 samplesMap$Replicate),]
 allSamples3 <- unique(samplesMap3$"Sample name")
 Groups3 <- unique(samplesMap3$Group)
-kol <- c(paste0(intRoot[intType], allSamples3),
-         paste0("Specific - ", Groups3))
-kol <- kol[which(kol %in% colnames(pep))]
+kol <- intersect(c(paste0(intRoot[intType], allSamples3),
+                   paste0("Specific - ", Groups3)),
+                 colnames(pep))
 tmp <- pep[which(pep$`Histone(s)` != ""),]
 tmp$Modifications <- gsub(",", ";", tmp$`Modified sequence`)
-tmp <- tmp[, c(colnames(tmp)[which(!colnames(tmp) %in% kol)], kol)]
+tmp <- tmp[, unique(c(colnames(tmp), kol))]
 tmp$Label <- gsub("\n", " ", tmp$Label)
 fl <- paste0(dstDir, "/Histone peptides.csv")
 data.table::fwrite(tmp, fl, quote = FALSE, na = "NA", sep = ",")
 #openxlsx2::xl_open(fl)
 # - Sites
 tmp <- Sites[which(Sites$`Histone(s)` != ""),]
-tmp <- tmp[, c(colnames(tmp)[which(!colnames(tmp) %in% kol)], kol)]
+tmp <- tmp[, unique(c(colnames(tmp), kol))]
 tmp$Label <- gsub("\n", " ", tmp$Label)
 fl <- paste0(dstDir, "/Histone sites.csv")
 data.table::fwrite(tmp, fl, quote = FALSE, sep = ",", na = "NA")
@@ -2093,7 +2082,7 @@ if (length(Exp) > 1L) {
   #
   ImputeKlust <- TRUE
   MaxHClust <- min(c(floor(nrow(pep)/2), 100L)) # We want at most 20 clusters
-  MaxVClust <- nrow(groupsMap2)
+  MaxVClust <- nrow(groupsMap)
   VClustScl <- setNames(1L:MaxVClust, paste0("Cluster", 1L:MaxVClust))
   HClustScl <- setNames(1L:MaxHClust, paste0("Cluster", 1L:MaxHClust))
   VClustScl <- setNames(rainbow(MaxVClust), VClustScl)
@@ -2119,7 +2108,7 @@ if (length(Exp) > 1L) {
       temp <- log10(temp)
       Gr <- xMap$Comparison_group
       Gr <- setNames(match(Gr, unique(Gr)), Gr)
-      tst <- apply(temp, 1L, \(x) { length(is.all.good(x)) })
+      tst <- apply(temp, 1L, \(x) { sum(is.finite(x)) })
       filt <- rep(FALSE, nrow(temp))
       temp <- temp[which(tst > 0L),]
       if (ImputeKlust) {
@@ -2129,7 +2118,7 @@ if (length(Exp) > 1L) {
         rownames(imputed) <- rownames(temp)
         colnames(imputed) <- colnames(temp)
       }
-      w <- which(apply(temp, 1L, \(x) { length(is.all.good(x)) }) == length(kol))
+      w <- which(apply(temp, 1L, \(x) { sum(is.finite(x)) }) == length(kol))
       filt[which(tst > 0L)[w]] <- TRUE
       temp <- temp[w,]
       imputed <- imputed[w,]
@@ -2138,7 +2127,7 @@ if (length(Exp) > 1L) {
         temp <- sweep(temp, 1L, rwMns, "-")
       }
       if (normType == "Z-scored") {
-        SDs <- apply(temp, 1L, \(x) { sd(is.all.good(x)) })
+        SDs <- apply(temp, 1L, \(x) { sd(x[which(is.finite(x))]) })
         temp <- sweep(sweep(temp, 1L, rwMns, "-"), 1L, SDs, "/")
       }
       temp2 <- temp3 <- as.matrix(temp) + runif(length(temp), min = 0, max = 1e-10) # Small error added to avoid duplicate rows where this breaks
@@ -2148,7 +2137,7 @@ if (length(Exp) > 1L) {
       # But the clusters displayed using colours may be generated using either k-means or hierarchical clustering (default).
       temp2 <- t(temp2)
       tst2 <- apply(temp2, 1L, \(x) {
-        #x <- is.all.good(x) # it's been imputed, there are no missing values
+        #x <- x[which(is.finite(x))] # it's been imputed, there are no missing values
         sd(x)/mean(x)
       })
       temp2 <- temp2[, order(tst2, decreasing = TRUE)]
@@ -2536,7 +2525,7 @@ tmp$Site_long <- NULL
 tmp$Site <- NULL
 tmp$origMark <- NULL
 for (k in colnames(tmp)) {
-  if (typeof(tmp[[k]]) == "list") { tmp[[k]] <- vapply(tmp[[k]], paste, "", collapse = ";") }
+  if (inherits(tmp[[k]], "list")) { tmp[[k]] <- vapply(tmp[[k]], paste, "", collapse = ";") }
 }
 write.csv(tmp, paste0(dstDir, "/Mods table.csv"), row.names = FALSE)
 

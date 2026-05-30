@@ -13,7 +13,7 @@ if (length(Iso) <= 1L) {
   if (!dir.exists(irsDr)) { dir.create(irsDr, recursive = TRUE) }
   dirlist <- unique(c(dirlist, irsDr))
   #
-  currSamples <- allSamples[which(allSamples %in% colnames(tmpDat1))]
+  currSamples <- intersect(allSamples, colnames(tmpDat1))
   m <- match(currSamples, Exp.map$Ref.Sample.Aggregate)
   design <- data.frame(Sample = currSamples,
                        Iso = Exp.map$Isobaric.set[m],
@@ -266,7 +266,7 @@ Shiny.bindAll(table.table().node());"))
   PCsLst[[curr]] <- tmp$PCs
   #
   appNm <- "IRS batch correction"
-  msg <- "Keep results from IRS batch correction? (untick to cancel correction)"
+  msg <- "Accept IRS batch correction? (untick to cancel correction)"
   # if ((!exists("KeepIRSRes"))||(length(KeepIRSRes) != 1)||(!is.logical(KeepIRSRes))||(is.na(KeepIRSRes))) {
   #   KeepIRSRes <- TRUE
   # }

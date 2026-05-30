@@ -19,11 +19,10 @@ load_Bckp <- function(backup,
                       startDir,
                       clean = TRUE,
                       loadPack = TRUE) {
-  TESTING <- FALSE
   # Cleanup workspace here
-  #DefArg(load_Bckp)
   if (clean) { suppressWarnings(rm(list = ls(), envir = .GlobalEnv)) }
-  #DefArg(load_Bckp); TESTING <- TRUE
+  TESTING <- FALSE
+  #DefArg(load_Bckp);TESTING <- TRUE
   #
   misFun <- if (TESTING) {
     # Note:
@@ -74,8 +73,8 @@ load_Bckp <- function(backup,
   tst <- "Didnae work, matey!"
   inst <- as.data.frame(installed.packages())
   cat("Reloading backup file\n   ", bckp, "\n...\nplease hold...\n")
-  tst <- try(loadFun(bckp), silent = TRUE)
-  if ((inherits(tst, "try-error"))||((is.character(tst))&&(length(tst) == 1L)&&(tst == "Didnae work, matey!"))) {
+  tst <- try(loadFun(bckp, tryClassic = TRUE), silent = TRUE)
+  if (inherits(tst, "try-error") || (is.character(tst) && (length(tst) == 1L) && (tst == "Didnae work, matey!"))) {
     stop("Backup re-loading failed!")
   }
   assign("backupFile", bckp, envir = .GlobalEnv)

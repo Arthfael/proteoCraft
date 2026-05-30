@@ -21,12 +21,13 @@ is.all.good <- function(x, mode = "values") {
     x <- as.numeric(unlist(x))
     warning("I had to convert data to numerics, you may want to check your input!")
   }
-  res <- (!is.na(x))&(!is.nan(x))&(is.finite(x))
+  #res <- (!is.na(x))&(!is.nan(x))&(is.finite(x)) redundant filters!
+  res <- is.finite(x)
   if (!mode) {
-    if ("matrix" %in% klass) {
-      warning("Converting matrix data to numerics to filter it...")
-      x <- as.numeric(x)
-    }
+    #if ("matrix" %in% klass) {
+    #  warning("Converting matrix data to numerics to filter it...")
+    #  x <- as.numeric(x)
+    #}
     res <- x[which(res)]
   }
   return(res)

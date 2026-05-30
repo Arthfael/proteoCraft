@@ -63,7 +63,10 @@ dflt_Rpl <- 1L:(nr+nRep) %% nRep
 dflt_Rpl[which(dflt_Rpl == 0L)] <- nRep
 #
 if (length(myFact)) {
-  w <- which(!myFact %in% colnames(smplsMap))
+  w <- which((!myFact %in% colnames(smplsMap)) |
+               vapply(myFact, \(fct) {
+                 sum(!unique(smplsMap[[fct]]) %in% c("", NA)) == 0L
+               }, TRUE))
   if (length(w)) {
     smplsMap[, myFact[w]] <- ""
   }
@@ -149,21 +152,19 @@ ui <- fluidPage(useShinyjs(),
 server <- \(input, output, session) {
   smplsMap3 <- smplsMap
   output$smplsMap2 <- renderDT({ smplsMap2 },
-                             FALSE,
-                             escape = FALSE,
-                             class = "compact",
-                             selection = "none",
-                             editable = FALSE,
-                             rownames = FALSE,
-                             options = list(
-                               dom = "t",
-                               paging = FALSE,
-                               ordering = FALSE,
-                               autowidth = TRUE,
-                               columnDefs = wTest1,
-                               scrollX = FALSE
-                             ),
-                             callback = JS("table.rows().every(function(i, tab, row) {
+                               FALSE,
+                               escape = FALSE,
+                               class = "compact",
+                               selection = "none",
+                               editable = FALSE,
+                               rownames = FALSE,
+                               options = list(dom = "t",
+                                              paging = FALSE,
+                                              ordering = FALSE,
+                                              autowidth = TRUE,
+                                              columnDefs = wTest1,
+                                              scrollX = FALSE),
+                               callback = JS("table.rows().every(function(i, tab, row) {
         var $this = $(this.node());
         $this.attr('id', this.data()[0]);
         $this.addClass('shiny-input-container');
@@ -178,22 +179,21 @@ server <- \(input, output, session) {
     fct <- tmp[[1L]]
     i <- as.integer(tmp[[2L]])
     if (i < nr) {
-      observeEvent(input[[id2]],
-                   {
-                     x <- input[[id1]]
-                     for (k in (i+1L):nr) {
-                       idK <- paste0(fct, "___", as.character(k))
-                       if (fct %in% c("Group", myFact)) {
-                         updateTextInput(session, idK, NULL, x)
-                       }
-                       if (fct == "Replicate") {
-                         updateNumericInput(session, idK, NULL, x, 1L, Inf, 1L)
-                       }
-                       if (fct == "Use") {
-                         updateCheckboxInput(session, idK, NULL, as.logical(x))
-                       }
-                     }
-                   })
+      observeEvent(input[[id2]], {
+        x <- input[[id1]]
+        for (k in (i+1L):nr) {
+          idK <- paste0(fct, "___", as.character(k))
+          if (fct %in% c("Group", myFact)) {
+            updateTextInput(session, idK, NULL, x)
+          }
+          if (fct == "Replicate") {
+            updateNumericInput(session, idK, NULL, x, 1L, Inf, 1L)
+          }
+          if (fct == "Use") {
+            updateCheckboxInput(session, idK, NULL, as.logical(x))
+          }
+        }
+      })
     }
   })
   # Incremental fill-down for replicates
@@ -202,25 +202,23 @@ server <- \(input, output, session) {
       iChr <- as.character(i)
       id1 <- paste0("Replicate___", iChr)
       id2 <- paste0("Replicate___", iChr, "___INCR")
-      observeEvent(input[[id2]],
-                   {
-                     x <- input[[id1]]
-                     rplRg <- (i+1L):nr
-                     l <- length(rplRg)
-                     m <- match(x, dflt_Rpl)+1L
-                     rplVal <- dflt_Rpl[m:(m+l-1)]
-                     for (k in rplRg) {
-                       y <- rplVal[k-i]
-                       idK <- paste0("Replicate___", as.character(k))
-                       updateSelectInput(session, idK, NULL, 1L:nRep, y)
-                     }
-                   }
-      )
+      observeEvent(input[[id2]], {
+        x <- input[[id1]]
+        rplRg <- (i+1L):nr
+        l <- length(rplRg)
+        m <- match(x, dflt_Rpl)+1L
+        rplVal <- dflt_Rpl[m:(m+l-1)]
+        for (k in rplRg) {
+          y <- rplVal[k-i]
+          idK <- paste0("Replicate___", as.character(k))
+          updateSelectInput(session, idK, NULL, 1L:nRep, y)
+        }
+      })
     }
   })
   #output$PCA <- renderPlotly(plot_lyPCA)
   observeEvent(input$saveBtn, {
-    kls <- c("Sample name", "Group", "Replicate", "Use")
+    kls <- c("Sample name", "Group", myFact, "Replicate", "Use")
     for (kl in kls) {
       smplsMap3[[kl]] <- sapply(rws, \(i) {
         input[[paste0(kl, "___", as.character(i))]]

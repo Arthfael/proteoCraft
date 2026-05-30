@@ -14,7 +14,7 @@ make_Rat(
   experiment.map_col = "Ref.Sample.Aggregate",
   int.root,
   rat.root,
-  verbose = TRUE
+  verbose = FALSE
 )
 }
 \arguments{
@@ -36,7 +36,7 @@ make_Rat(
 
 \item{rat.root}{Root of ratios column names.}
 
-\item{verbose}{Logical, default = TRUE}
+\item{verbose}{Logical, default = FALSE}
 }
 \value{
 A list of two objects:

@@ -1,12 +1,29 @@
 ### Check P-values
 #
 source(parSrc)
-pvalDir <- paste0(wd, "/Workflow control/Protein groups/P-values")
+if (scrptTypeFull == "withReps_PTMs_only") {
+  pvalDir <- paste0(wd, "/Workflow control/Peptides/P-values")
+  myData <- pep
+  dataType <- "peptides"
+  ratRef <- pep.rat.ref
+  entityCol <- "peptide"
+  descrTxt <- "Peptide:"
+  rowsCol <- labCol <- "Modified sequence"
+}
+if (scrptTypeFull == "withReps_PG_and_PTMs") {
+  pvalDir <- paste0(wd, "/Workflow control/Protein groups/P-values")
+  myData <- PG
+  dataType <- entityCol <- "PG"
+  ratRef <- Prot.Rat.Root
+  descrTxt <- "Protein:"
+  labCol <- "Label"
+  rowsCol <- "Leading protein IDs"
+}
 if (!dir.exists(pvalDir)) { dir.create(pvalDir, recursive = TRUE) }
 dirlist <- unique(c(dirlist, pvalDir))
 #
 w <- which(vapply(pvalue.col, \(type) { #type <- pvalue.col[1L]
-  length(grep(topattern(type), colnames(PG))) > 0L
+  length(grep(topattern(type), colnames(myData))) > 0L
 }, TRUE))
 pvalueCol <- pvalue.col[w]
 #
@@ -16,12 +33,12 @@ whSingle <- which(!myContrasts$isDouble)
 temp <- lapply(whSingle, \(i) { #i <- 1L
   nm <- myContrasts$Contrast[i]
   j <- paste0(pvalueCol, nm)
-  w <- which(j %in% colnames(PG))
+  w <- which(j %in% colnames(myData))
   j <- j[w]
   if (!length(j)) { return(NA) }
-  x <- PG[, j, drop = FALSE]
+  x <- myData[, j, drop = FALSE]
   colnames(x) <- pkol2[w]
-  x$PG <- PG$Label
+  x[[entityCol]] <- myData[[labCol]]
   x$Contrast <- nm
   return(x)
 })
@@ -30,13 +47,12 @@ temp <- plyr::rbind.fill(temp)
 temp$Contrast <- gsub_Rep(" - ", "\n- ", temp$Contrast)
 tmpContr <- gsub(" - ", "\n- ", myContrasts$Contrast)
 temp$Contrast <- factor(temp$Contrast, levels = tmpContr)
-kol <- colnames(temp)
-kol <- setdiff(kol, c("PG", "Contrast"))
-temp <- temp[which(rowSums(temp[, kol]) > 0), ]
+kol <- setdiff(colnames(temp), c(entityCol, "Contrast"))
+temp <- temp[which(rowSums(temp[, kol]) > 0),]
 Comb <- gtools::combinations(length(kol), 2L, kol)
 tmpFl <- tempfile(fileext = ".rds")
 readr::write_rds(temp, tmpFl)
-clusterExport(parClust, list("Comb", "tmpFl", "pvalDir", "pvalueCol", "gsub_Rep", "is.all.good", "plotEval"), envir = environment())
+clusterExport(parClust, list("Comb", "tmpFl", "pvalDir", "pvalueCol", "gsub_Rep", "plotEval", "entityCol"), envir = environment())
 invisible(clusterCall(parClust, \() {
   require(ggplot2)
   require(viridis)
@@ -52,13 +68,14 @@ plotsList1 <- parLapply(parClust, 1L:nrow(Comb), \(i) { #i <- 1L
   Y <- Comb[i, 2L]
   X2 <- gsub(" -log10\\(Pvalue\\)$", "", X)
   Y2 <- gsub(" -log10\\(Pvalue\\)$", "", Y)
-  dat <- temp[, c(X, Y, "PG", "Contrast")]
+  dat <- temp[, c(X, Y, entityCol, "Contrast")]
   colnames(dat)[1L:2L] <- c("X", "Y")
   dat$"P-value, X axis" <- gsub_Rep(" -log10\\(Pvalue\\)$", "", Comb[i, 1L])
   dat$"P-value, Y axis" <- gsub_Rep(" -log10\\(Pvalue\\)$", "", Comb[i, 2L])
   ttl1 <- paste0("P-values scatter plot - ", X2, " VS ", Y2)
   ttl1a <- paste0(ttl1, " (-log10)")
-  Mx <- max(is.all.good(c(dat$X, dat$Y)))
+  Mx <- c(dat$X, dat$Y)
+  Mx <- max(Mx[which(is.finite(Mx))])
   uX <- unique(dat$`P-value, X axis`)
   uY <- unique(dat$`P-value, Y axis`)
   plot1 <- ggplot(dat) +
@@ -75,7 +92,7 @@ plotsList1 <- parLapply(parClust, 1L:nrow(Comb), \(i) { #i <- 1L
     scale_x_continuous(expand = c(0L, 0L)) +
     scale_y_continuous(expand = c(0L, 0L))
   plot1ly <- plot_ly(data = dat, x = ~X, y = ~Y, color = ~Contrast, type = "scatter", mode = "markers",
-                     text = ~paste("Protein:", PG,
+                     text = ~paste(descrTxt, dat[[entityCol]],
                                    "<br>x = ", signif(X, 3L),
                                    "<br>y = ", signif(Y, 3L)),
                      hoverinfo = "text")
@@ -112,17 +129,16 @@ for (nm in 1L:length(plotsList1)) {
 #vapply(plotsList, \(x) { x$Title }, "")
 #
 # P-values histogram:
-nbin <- 20L
+nbin <- c(20L, 40L)[(nrow(myData) > 2000L) + 1L]
 bd <- (0L:nbin)/nbin
-
 temp <- lapply(pvalueCol, \(type) { #type <- pvalueCol[1L]
-  kol <- grep(topattern(type), colnames(PG), value = TRUE)
+  kol <- grep(topattern(type), colnames(myData), value = TRUE)
   if (!length(kol)) { stop(type) }
-  temp <- PG[, kol, drop = FALSE]
+  temp <- myData[, kol, drop = FALSE]
   colnames(temp) <- cleanNms(gsub(topattern(type), "", colnames(temp)))
   temp <- dfMelt(temp)
   temp$value <- 10L^(-temp$value)
-  temp <- temp[which(is.all.good(temp$value, 2L)),]
+  temp <- temp[which(is.finite(temp$value)),]
   temp$Bin <- vapply(temp$value, \(x) { min(which(bd >= x))-1L }, 1L)
   res <- aggregate(temp$Bin, list(temp$variable, temp$Bin), length)
   colnames(res) <- c("Contrast", "Bin", "Count")
@@ -301,15 +317,15 @@ Param$P.values.type <- names(pvalue.col)[which(pvalue.use)]
 #   Prot.Expr.Root <- prExpr_roots["Quantitation"]
 # }
 # prExpr_roots %<o% prExpr_roots
-if (Param$P.values.type %in% c("Moderated", "DEqMS", "MSqRob")) {
-  nm <- c("limma", "DEqMS", "QFeatures")[match(Param$P.values.type, c("Moderated", "DEqMS", "MSqRob"))]
+if (Param$P.values.type %in% c("Moderated", "DEqMS", "MSqRob", "ROTS")) {
+  nm <- c("limma", "DEqMS", "QFeatures", "ROTS")[match(Param$P.values.type,
+                                                       c("Moderated", "DEqMS", "MSqRob", "ROTS"))]
   cat(paste0(" -> Updating protein log2 FC with the output from ", nm, "!\n"))
   #cat(paste0(" -> Updating protein log10 expression and log2 FC with the output from ", nm, "!\n"))
   #
-  nm <- c("limma", "DEqMS", "QFeatures")[match(Param$P.values.type, c("Moderated", "DEqMS", "MSqRob"))]
-  ratKol <- paste0(Prot.Rat.Root, myContrasts$Contrast)
+  whContr <- 1L:nrow(myContrasts) # default 
   if (nm %in% c("limma", "DEqMS")) { #nm <- "limma"
-    repRat <- limmaFits$PG[[nm]]$fit$coefficients[, myContrasts$Contrast, drop = FALSE]
+    repRat <- limmaFits[[dataType]][[nm]]$fit$coefficients[, myContrasts$Contrast[whContr], drop = FALSE]
   }
   if (nm == "QFeatures") {
     repRat <- MSqRob_infer[, grep(topattern("MSqRob logFC - "), colnames(MSqRob_infer), value = TRUE), drop = FALSE]
@@ -317,36 +333,29 @@ if (Param$P.values.type %in% c("Moderated", "DEqMS", "MSqRob")) {
     repRat <- sweep(repRat, 1L, rep(log10(2L), nrow(repRat)), "/")
     colnames(repRat) <- sub("^MSqRob logFC - ", "", colnames(repRat))
   }
-  m <- match(PG$`Leading protein IDs`, row.names(repRat))
+  if (nm == "ROTS") {
+    whContr <- which(!myContrasts$isDouble) # for ROTS we have only single contrasts
+    tmp <- lapply(myContrasts$Contrast[whContr], \(contr) {
+      rwnms <- rownames(ROTS_res[[contr]]$data)
+      logfc <- as.data.frame(t(data.frame(ROTS_res[[contr]]$logfc)))
+      colnames(logfc) <- rwnms
+      return(logfc)
+    })
+    tmp <- plyr::rbind.fill(tmp)
+    repRat <- t(tmp)
+    rownames(repRat) <- colnames(tmp)
+    colnames(repRat) <- myContrasts$Contrast[whContr]
+  }
+  ratKol <- paste0(ratRef, myContrasts$Contrast[whContr])
+  m <- match(myData[[rowsCol]], row.names(repRat))
   #sum(is.na(m))
-  PG[, ratKol] <- repRat[m, myContrasts$Contrast]
-  #
-  # Below: cool idea... but not feasible: neither limma not MSqRob currently output corrected values per sample!
-  # Update expression estimates
-  # These are for use as:
-  #  - input to algorithms without their inner advanced modeling mechanism
-  #  - data matrix for scientists
-  # nm <- c("limma", "DEqMS", "QFeatures")[match(Param$P.values.type, c("Moderated", "DEqMS", "MSqRob"))]
-  # prExpr_roots[nm] <- paste0(nm, " ", prExpr_roots["Quantitation"])
-  # intKol1 <- paste0(prExpr_roots["Quantitation"], Exp.map$Ref.Sample.Aggregate)
-  # intKol2 <- paste0(prExpr_roots[nm], Exp.map$Ref.Sample.Aggregate)
-  # if (nm %in% c("limma", "DEqMS")) {
-  #   #nm <- "limma"
-  #   repInt <- limmaFits$PG[[nm]]$fitted_values
-  #   # We fed limma log2 values so we need to adjust for log10
-  #   repInt <- sweep(repInt, 1L, rep(log2(10L), nrow(repInt)), "/")
-  #   colnames(repInt) <- rownames(expMap)[match(colnames(repInt), gsub("___", "_", as.character(expMap[[RSA$limmaCol]])))]
-  # }
-  # if (nm == "QFeatures") {
-  #   # Here unfortunately we do not have a post msqrob data matrix per sample!
-  #   repInt <- as.data.frame(SummarizedExperiment::assay(quantData_list$QFeatures_obj[["PG"]]))
-  #   colnames(repInt) <- sub(topattern(pep.ref[length(pep.ref)]), "", colnames(repInt))
-  # }
-  # PG[, intKol2] <- PG[, intKol1] * NA_real_
-  # w <- which(PG$`Leading protein IDs` %in% row.names(repInt))
-  # m <- match(PG$`Leading protein IDs`[w], row.names(repInt))
-  # #sum(is.na(m))
-  # PG[w, intKol2] <- repInt[m, Exp.map$Ref.Sample.Aggregate]
-  # Prot.Expr.Root <- prExpr_roots[nm]
+  myData[, ratKol] <- repRat[m, myContrasts$Contrast[whContr]]
 }
 #
+
+if (scrptTypeFull == "withReps_PTMs_only") {
+  pep <- myData
+}
+if (scrptTypeFull == "withReps_PG_and_PTMs") {
+  PG <- myData
+}

@@ -122,7 +122,7 @@ if (exists("Modifs")) {
         wb <- which(l > 1L)
         if (length(wb)) {
           temp1 <- cbind(b1[wb], b2[wb])
-          clusterExport(parClust, list("temp1", "annot_to_tabl", "Isapply", "is.all.good", "insertElems"), envir = environment())
+          clusterExport(parClust, list("temp1", "annot_to_tabl", "Isapply", "is.all.good", "insertElems", "AA"), envir = environment())
           b1[wb] <- parApply(parClust, temp1, 1L, \(x) {
             p <- 1L-x[[2L]]
             p <- p/sum(p)

@@ -35,7 +35,7 @@ locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
 locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
 
 # Load backup?
-load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Do you want to load a backup?", "yesno")$res, c("yes", "no"))]
+load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Re-load a backup?", "yesno")$res, c("yes", "no"))]
 if (load_a_Bckp) {
   tst <- try({
     locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
@@ -50,6 +50,8 @@ if (load_a_Bckp) {
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }
 parSrc %<o% paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
 bckpSrc %<o% paste0(libPath, "/extdata/Sources/updateBackup.R")
+
+
 # Boolean functions to check parameter values
 Src <- paste0(libPath, "/extdata/Sources/parBooleans.R")
 #rstudioapi::documentOpen(Src)
@@ -61,7 +63,7 @@ ExcelMax %<o% 32767L
 MakeRatios %<o% TRUE
 
 # Parameters used by the start analysis script:
-###-|-### Workflows: setNames(c("Differential Protein Expression analysis", "Pull-Down (e.g. co-IP)", "Biotin-based Pull-Down (BioID, TurboID, APEX...)", "Time Course","SubCellular Localisation analysis"), c("REGULATION", "PULLDOWN", "BIOID", "TIMECOURSE", "LOCALISATION"))
+###-|-### Workflows: setNames(c("Differential Peptide Expression analysis", "Pull-Down (e.g. co-IP)", "Biotin-based Pull-Down (BioID, TurboID, APEX...)", "Time Course", "SubCellular Localisation analysis"), c("REGULATION", "PULLDOWN", "BIOID", "TIMECOURSE", "LOCALISATION"))
 ###-|-### Replicates? TRUE
 ###-|-### External dependencies: Excel (loose); ScanHeadsman (loose); Cytoscape (loose); saintExpress (auto)
 
@@ -294,7 +296,7 @@ source(Src, local = FALSE)
 
 # Start processing the PSMs table
 ReportCalls <- AddSpace2Report()
-ReportCalls$Calls <- AddTxt2Report("Processing PSMs...")
+ReportCalls <- AddTxt2Report("Processing PSMs...")
 # Remove reverse database hits
 ev <- ev[which(ev$Reverse == ""),]
 
@@ -329,92 +331,11 @@ source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
 # Filter to keep only PSMs with valid quantitative values:
-if (LabelType == "LFQ") {
-  source(parSrc, local = FALSE)
-  clusterExport(parClust, "is.all.good", envir = environment()) # Use this (rather than loading library/calling by package::function syntax), in case we use a modified version of the function
-  if ((Param$Label == "DIA")&&("MS2 intensities" %in% colnames(ev))) {
-    ev$MS2_intensities <- strsplit(ev$"MS2 intensities", ";")
-    ev$MS2_intensities <- parLapply(parClust, ev$MS2_intensities, as.numeric) # (Let's keep this as a numeric list)
-    temp <- ev[, c(ev.col["Original"], "MS2_intensities")]
-    temp$SumS2 <- parSapply(parClust, temp$MS2_intensities, \(x) { sum(is.all.good(x)) })
-    # While we're at it, let's estimate missing MS1 intensities if we only have MS2:
-    # (sum of MS2 intensities * median ratio of precursor intensity to sum of MS2 intensities)
-    temp2 <- temp$Intensity/temp$SumS2
-    m <- median(is.all.good(temp2))
-    #sd(is.all.good(temp2))
-    #plot <- ggplot(temp) + geom_point(aes(x = log10(Intensity), y = log10(SumS2))) + theme_bw() + geom_abline(intercept = log10(1/m), slope = 1, colour = "red")
-    #poplot(plot)
-    w <- which(((!is.all.good(ev[[ev.col["Original"]]], 2L))|(ev[[ev.col["Original"]]] <= 0))&(temp$SumS2 > 0))
-    if (length(w)) { ev[w, ev.col["Original"]] <- temp$SumS2[w]*m }
-    test <- parApply(parClust, temp[, c(ev.col["Original"], "SumS2")], 1L, sum)
-  } else {
-    temp <- ev[, ev.col["Original"], drop = FALSE]
-    test <- parApply(parClust, temp, 1L, \(x) { sum(is.all.good(x)) })
-  }
-  l <- length(which(test == 0))
-  if (l) {
-    msg <- paste0("Removing ", l, " (", signif(100*l/nrow(ev), 2L), "%) PSMs with invalid expression values!")
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
-    w <- which(test > 0)
-    ev <- ev[w,]
-  }
-}
-if (LabelType == "Isobaric") { # If isobaric
-  kol <- paste0(ev.ref["Original"], get(IsobarLab))
-  w <- which(kol %in% colnames(ev))
-  # Remove unused channels (if applicable)
-  tmpIso <- get(IsobarLab)[w]
-  u <- sort(as.numeric(unique(Exp.map$"Isobaric label")))
-  w1 <- which(tmpIso %in% u)
-  w2 <- which(!tmpIso %in% u)
-  if (length(w2)) {
-    kol <- lapply(tmpIso[w2], \(x) {
-      paste0(c("Reporter intensity corrected ", "Reporter intensity ", "Reporter intensity count "), x)
-    })
-    w <- which(!colnames(ev) %in% unlist(kol))
-    ev <- ev[, w]
-  }
-  assign(IsobarLab, tmpIso[w1])
-  #
-  kol <- paste0(ev.ref["Original"], get(IsobarLab))
-  tst <- temp <- ev[, kol, drop = FALSE]
-  tst$MS1 <- ev[[ev.col["Original"]]]
-  tst$Reporter <- rowSums(temp, na.rm = TRUE)
-  # Check dependency: there should be one in log space
-  temp2 <- tst$MS1/tst$Reporter
-  m <- median(is.all.good(temp2))
-  #sd(is.all.good(temp2))
-  #plot <- ggplot(tst) + geom_point(aes(x = log10(MS1), y = log10(Reporter))) + theme_bw() + geom_abline(intercept = log10(1/m), slope = 1, colour = "red")
-  #poplot(plot)
-  #
-  #View()
-  # If precursor intensity is missing, replace by estimate (sum of reporter intensities * median ratio of precursor intensity to sum of reporter intensities)
-  w <- which((!is.all.good(ev[[ev.col["Original"]]], 2L))|(ev[[ev.col["Original"]]] <= 0))
-  if (length(w)) { ev[w, ev.col["Original"]] <- tst$Reporter[w]*m }
-  # Now the reverse scenario: no reporters, but we have precursor intensities; these are throw-away stuff 
-  w <- which(!is.all.good(tst$Reporter, 2L)|(tst$Reporter <= 0))
-  l <- length(w)
-  if (l) {
-    RemEv %<o% ev[w,]
-    #View(RemEv[, kol])
-    msg <- paste0("Removing ", l, " (", signif(100*l/nrow(ev), 2L), "%) PSMs with invalid expression values!")
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
-    w <- which(is.all.good(tst$Reporter, 2L)&(tst$Reporter > 0))
-    ev <- ev[w,]
-  }
-}
-rm(list = ls()[which(!ls() %in% .obj)])
+Src <- paste0(libPath, "/extdata/Sources/filtPSMs.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
-# Filter by intensity
-if ((!is.na(minInt))&&(is.numeric(minInt))&&(is.finite(minInt))&&(minInt >= 0)) {
-  wY <- which(ev$Intensity >= minInt)
-  wN <- which(ev$Intensity < minInt)
-  lN <- length(wN)
-  if (lN) {
-    warning(paste0("Removing ", lN, " PSMs with intensity lower than ", minInt, " minimum threshold...\n"))
-    ev <- ev[which(ev$Intensity >= minInt),]
-  }
-}
+rm(list = ls()[which(!ls() %in% .obj)])
 
 #### Code chunk - MA plots //ask
 Src <- paste0(libPath, "/extdata/Sources/MA_plots.R")
@@ -516,7 +437,7 @@ LocAnalysis2 %<o% FALSE
 source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
-#### Code chunk - Impute missing peptide intensities
+#### Code chunk - Optionally impute missing peptide intensities
 Src <- paste0(libPath, "/extdata/Sources/pep_Impute.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
@@ -557,8 +478,6 @@ stopClust <- TRUE
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
-
-useSAM %<o% ((names(pvalue.col)[which(pvalue.use)] == "Student")&&(useSAM_thresh))
 
 #### Code chunk - Annotations
 # (still required for dataset enrichment analysis, and also for output tables; not for the GO terms enrichment analysis)
@@ -624,17 +543,26 @@ if (globalGO) {
   source(Src, local = FALSE)
 }
 
+# Contrast log2FC columns
+pep.rat.ref %<o% "log2(FC) - "
+tmp <- make_Rat2(experiment.map = Exp.map,
+                 int.root = pep.ref[length(pep.ref)],
+                 rat.root = pep.rat.ref)
+pep[, colnames(tmp)] <- tmp
+
 #### Code chunk - Perform statistical tests
-dataType <- "PG"
+dataType <- "peptides"
 Src <- paste0(libPath, "/extdata/Sources/Stat_tests.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
 ### Visualize and check P-values
 # Needs rewriting to accept peptide-level input
-# Src <- paste0(libPath, "/extdata/Sources/pVal_check.R")
-# #rstudioapi::documentOpen(Src)
-# source(Src, local = FALSE)
+Src <- paste0(libPath, "/extdata/Sources/pVal_check.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
+useSAM %<o% ((names(pvalue.col)[which(pvalue.use)] == "Student")&&(useSAM_thresh))
 
 # Create list of control ratio values for the purpose of identifying vertical thresholds for plots:
 Src <- paste0(libPath, "/extdata/Sources/ratThresh.R")
