@@ -274,6 +274,11 @@ Src <- paste0(libPath, "/extdata/Sources/Fractions_Map_check.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
+#### Code chunk - MA plots //ask
+Src <- paste0(libPath, "/extdata/Sources/MA_plots.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
 #### Code chunk - Define analysis parameters
 # Define analysis parameters
 paramSrc <- paste0(libPath, "/extdata/Sources/rep_Parameters_editor_Main.R")
@@ -336,11 +341,6 @@ Src <- paste0(libPath, "/extdata/Sources/filtPSMs.R")
 source(Src, local = FALSE)
 
 rm(list = ls()[which(!ls() %in% .obj)])
-
-#### Code chunk - MA plots //ask
-Src <- paste0(libPath, "/extdata/Sources/MA_plots.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
 
 # Test for amino acid biases:
 Src <- paste0(libPath, "/extdata/Sources/AA_biases_test.R")
@@ -444,7 +444,7 @@ source(Src, local = FALSE)
 
 #### Code chunk - Re-normalize peptide intensities
 rfnm <- c("Original", "Imputation")[Impute+1L]
-Src <- paste0(libPath, "/extdata/Sources/pepNorm_VarPlot.R")
+Src <- paste0(libPath, "/extdata/Sources/pepNorm_VarPlot.R") # This may go, it currently isn't used much, and is kinda redundant with the MA plots...
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 #

@@ -26,7 +26,7 @@ if (lNorm) {
     return(val)
   }))
   tmpDat1 <- as.data.frame(tmpDat1)
-  colnames(tmpDat1) <- allSamples <- gsub(topattern(rf), "", kol)
+  colnames(tmpDat1) <- allSamples
   addKol <- setNames(c("id", "Group", "Modified sequence", "Proteins"),
                      c("id", "Normalisation group", "Modified sequence", "Proteins"))
   tmpDat1[, addKol] <- pep[, names(addKol)]
@@ -35,12 +35,17 @@ if (lNorm) {
                        Filter = wAG1,
                        Pass = TRUE)
   #View(tmpDat1[wAG1, allSamples])
+  #
+  # Imputation so we can do a preliminary PCA
   tmp <- Data_Impute2(tmpDat1[wAG1, allSamples],
                       Exp.map[match(allSamples, Exp.map$Ref.Sample.Aggregate), VPAL$column])
   tmp <- as.matrix(tmp$Imputed_data)
+  aggr <- #if (exists("Batch.effect")) { Batch.effect$column } else {
+    "Replicate"
+  #}
   tst <- pcaBatchPlots(tmp,
                        strt,
-                       VPAL$column,
+                       aggr,
                        Exp.map,
                        "Ref.Sample.Aggregate",
                        "",
@@ -134,7 +139,7 @@ if (lNorm) {
     tmp <- as.matrix(tmp$Imputed_data)
     tst <- pcaBatchPlots(tmp,
                          "Normalisation",
-                         VPAL$column,
+                         aggr,
                          Exp.map,
                          "Ref.Sample.Aggregate",
                          "",

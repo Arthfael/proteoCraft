@@ -68,10 +68,10 @@ tmpTbl <- ExpMap
 tst <- lapply(colnames(tmpTbl), \(x) { typeof(tmpTbl[[x]]) })
 w <- which(tst == "list")
 if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
-tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
+tst <- try(write.csv(tmpTbl, file = ExpMapPath), silent = TRUE)
 while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
   dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-  tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
+  tst <- try(write.csv(tmpTbl, file = ExpMapPath), silent = TRUE)
 }
 ExpMap <- ExpMap[which(vapply(ExpMap$MQ.Exp, \(x) { sum(x %in% FracMap[[expKl]]) > 0L }, TRUE)),]
 #
@@ -416,10 +416,10 @@ tmpTbl <- Exp.map
 tst <- lapply(colnames(tmpTbl), \(x) { typeof(tmpTbl[[x]]) })
 w <- which(vapply(colnames(tmpTbl), \(x) { inherits(tmpTbl[[x]], "list") }, TRUE))
 if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
-tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
+tst <- try(write.csv(tmpTbl, file = ExpMapPath), silent = TRUE)
 while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
   dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
-  tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE), silent = TRUE)
+  tst <- try(write.csv(tmpTbl, file = ExpMapPath), silent = TRUE)
 }
 #
 #system(paste0("open \"", wd, "/", ExpMapNm, ".csv\""))

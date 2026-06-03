@@ -11,3 +11,5 @@ inst/extdata/Utils_private/
 
 # (optionally protect other local caches)
 *.Rapp.history
+.Rproj.user
+.Rproj.user

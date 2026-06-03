@@ -58,11 +58,16 @@ if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
     em("Click "), actionButton("exitBtn", "exit"), em(" to continue."), br(), br(),
     #
     if (heatMaps_ON) {
-      fluidRow(column(12L,
-                      h4("Clustering heatmap"),
-                      selectInput("HeatMap", "Select heatmap", names(plotLeatMaps), dfltHtMp),
-                      radioButtons("NormType", "Normalisation method:", c("Norm. by row", "None"), "None"),
-                      withSpinner(plotlyOutput("myHeatmap_plot"))))
+      div(
+        fluidRow(column(12L,
+                        h4("Clustering heatmap"))),
+        fluidRow(column(2L,
+                        selectInput("HeatMap", "Select heatmap", names(plotLeatMaps), dfltHtMp)),
+                 column(2L,
+                        radioButtons("NormType", "Normalisation method:", c("Norm. by row", "None"), "None"))),
+        fluidRow(column(12L,
+                        withSpinner(plotlyOutput("myHeatmap_plot"))))
+      )
     },
     #
     if (dimRed_ON) {

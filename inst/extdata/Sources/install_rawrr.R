@@ -3,7 +3,7 @@
 
 rawrrVers <- rawrrVersions <- c(#"github",
   #"bioc",
-  "bioc_1.11.14")
+  "bioc_1.11.14") # NB: At least v1.18.0 seems to work too...
 rawrr_tst <- try({
   #unloadNamespace("rawrr")
   #remove.packages("rawrr")

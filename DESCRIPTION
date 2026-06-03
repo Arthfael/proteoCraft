@@ -1,6 +1,6 @@
 Package: proteoCraft
 Title: Functions and scripts for Proteomics Data Analysis
-Version: 4.1.0
+Version: 4.1.1
 Date: 2026-04-22
 Authors@R: 
     person("Armel", "Developer", , "armel.nicolas@ista.ac.at", role = c("aut", "cre"))
@@ -177,6 +177,7 @@ Imports:
     MatrixModels,
     matrixStats,
     memoise,
+    mgcv,
     microbenchmark,
     mime,
     miniUI,
@@ -373,3 +374,6 @@ Imports:
     zip,
     zoo
 Config/roxygen2/version: 8.0.0
+Suggests: 
+    pack,
+    pck
