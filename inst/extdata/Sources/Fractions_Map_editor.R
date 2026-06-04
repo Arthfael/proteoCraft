@@ -10,7 +10,7 @@ labelMode <- match(LabelType, c("LFQ", "Isobaric"))
 # - If LabelType == "Isobaric", at this stage each raw file maps to a single MQ.Exp but normally to several "Parent sample" values!
 #   Thus, in that case we use MQ.Exp as the basis here and do not have a "Parent sample" column!!!
 #
-if ((LabelType == "LFQ")&&(!"Parent sample" %in% colnames(FracMap))&&("MQ.Exp" %in% colnames(FracMap))) {
+if ((LabelType == "LFQ") && (!"Parent sample" %in% colnames(FracMap)) && ("MQ.Exp" %in% colnames(FracMap))) {
   FracMap$"Parent sample" <- FracMap$MQ.Exp
 }
 if (LabelType == "Isobaric") {
@@ -21,10 +21,10 @@ if (LabelType == "Isobaric") {
     FracMap$"Isobaric set" <- NULL
   }
   if (!"Isobaric.set" %in% colnames(FracMap)) {
-    FracMap$"Isobaric.set" <- 1
+    FracMap$"Isobaric.set" <- 1L
   }
 }
-# if (("MQ.Exp" %in% colnames(FracMap))&&("Experiment" %in% colnames(ev))) {
+# if (("MQ.Exp" %in% colnames(FracMap)) && ("Experiment" %in% colnames(ev))) {
 #   FracMap$Exp_Backup <- FracMap$MQ.Exp
 # }
 if ("Use" %in% colnames(FracMap)) {
@@ -53,7 +53,7 @@ allPTMs <- unique(c(Modifs$`Full name`, NA))
 #
 # Dummy for shiny app
 FracMap2a <- FracMap
-if ((LabelType == "LFQ")&&("MQ.Exp" %in% colnames(FracMap2a))) { FracMap2a$MQ.Exp <- NULL }
+if ((LabelType == "LFQ") && ("MQ.Exp" %in% colnames(FracMap2a))) { FracMap2a$MQ.Exp <- NULL }
 colnames(FracMap2a) <- gsub("-", "", gsub("\\.", " ", colnames(FracMap2a)))
 if (LabelType == "Isobaric") {
   # Exceptions
@@ -68,7 +68,8 @@ if (lu == nr) {
   nc <- nchar(tst)
   mnc <- min(nc)
   if (mnc >= 5L) {
-    w <- max(which(sapply(1L:mnc, \(x) { length(unique(substr(tst, 1L, x))) }) == 1L))
+    tst <- vapply(1L:mnc, \(x) { length(unique(substr(tst, 1L, x))) }, 1L)
+    w <- max(which(tst == min(tst)))
     FracMap2a$"Raw file" <- paste0("...", substr(FracMap2a$"Raw file", w+1L, nchar(FracMap2a$"Raw file")))
   }
   FracMap2a$"Raw files name" <- NULL
@@ -91,10 +92,10 @@ FracMap2[[parKol2]] <- shinyTextInput(FracMap[[parKol]],
                                       parKol2,
                                       paste0(wTest0[parKol], "px"))
 FracMap2$Fraction <- shinyNumInput(FracMap2a$Fraction,
-                                   1,
+                                   1L,
                                    Inf,
-                                   1,
-                                   1,
+                                   1L,
+                                   1L,
                                    paste0(wTest0["Fraction"], "px"),
                                    "Fraction")
 FracMap2$"PTMenriched" <- shinySelectInput(FracMap$"PTM-enriched",
@@ -103,10 +104,10 @@ FracMap2$"PTMenriched" <- shinySelectInput(FracMap$"PTM-enriched",
                                          paste0(wTest0["PTMenriched"], "px"))
 if (LabelType == "Isobaric") {
   FracMap2$"IsobaricSet" <- shinyNumInput(FracMap2$"Isobaric.set",
-                                          1,
+                                          1L,
                                           Inf,
-                                          1,
-                                          1,
+                                          1L,
+                                          1L,
                                           paste0(wTest0["Isobaric.set"], "px"),
                                           "IsobaricSet")
   FracMap2$"Isobaric.set" <- NULL
@@ -129,7 +130,7 @@ wTest1 <- sapply(colnames(FracMap2), \(k1) { #k1 <- colnames(FracMap2)[1L] #k1 <
     x <- wTest0[k1]
   } else {
     k0 <- kol0[match(k1, kol1)]
-    x <- if ((!is.na(k0))&&(k0 %in% names(wTest0))) { # Should not happen, currently we use kol1 names for wTest1
+    x <- if ((!is.na(k0)) && (k0 %in% names(wTest0))) { # Should not happen, currently we use kol1 names for wTest1
       wTest0[k0]
     } else { 30L }
   }
@@ -271,7 +272,7 @@ server <- \(input, output, session) {
   session$onSessionEnded(\() { stopApp() })
 }
 runKount <- 0L
-while ((!runKount)||(!exists("FracMap3"))) {
+while ((!runKount) || (!exists("FracMap3"))) {
   eval(parse(text = runApp), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount+1L

@@ -11,11 +11,24 @@ if (length(tstEnrich)) {
     pat <- paste0("\\(", Modifs$Mark[match(Mod, Modifs$`Full name`)], "\\)")
     ev[[Mod]] <- grepl(pat, ev$"Modified sequence")
     for (Type in c("PSMs", "Pep")) { #Type <- "PSMs"
+      inclSearch <- FALSE
       if (Type == "PSMs") {
-        tst <- data.table(Mod = ev[[Mod]],
-                          MS_file = ev$"Raw file path",
-                          temp = 1L)
-        tst <- tst[, list(Count = sum(temp)), by = list(MS_file = MS_file, Mod = Mod)]
+        if ("Search_ID" %in% colnames(ev)) {
+          uSrch <- unique(ev$Search_ID)
+          inclSearch <- length(uSrch) > 1L
+        }
+        if (inclSearch) {
+          tst <- data.table(Mod = ev[[Mod]],
+                            MS_file = ev$"Raw file path",
+                            Search = match(ev$Search_ID, uSrch),
+                            temp = 1L)
+          tst <- tst[, list(Count = sum(temp)), by = list(Search = Search, MS_file = MS_file, Mod = Mod)]
+        } else {
+          tst <- data.table(Mod = ev[[Mod]],
+                            MS_file = ev$"Raw file path",
+                            temp = 1L)
+          tst <- tst[, list(Count = sum(temp)), by = list(MS_file = MS_file, Mod = Mod)]
+        }
         tst <- as.data.frame(tst)
         Root <- "PSM"
       }
@@ -27,16 +40,20 @@ if (length(tstEnrich)) {
         tst <- as.data.frame(tst)
         Root <- "peptidoform"
       }
-      colnames(tst)[2L] <- Mod
+      colnames(tst)[match("Mod", colnames(tst))] <- Mod
       m <- match(tst$MS_file, FracMap$"Raw file")
       tst$Sample <- FracMap$MQ.Exp[m]
       tst <- tst[which(!is.na(tst$Sample)),]
       tst <- tst[which(tst$Sample %in% unlist(Exp.map$MQ.Exp)),]
       tst <- tst[which(tst$Sample %in% unlist(Exp.map$MQ.Exp)),]
       #which(vapply(Exp.map$MQ.Exp, \(y) { x %in% unlist(y) }, TRUE))
-      tst2 <- reshape2::melt(tst)
+      tst2 <- dfMelt(tst, id.vars = intersect(c("Search", "MS_file", Mod, "Sample"), colnames(tst)))
       colnames(tst2) <- gsub("\\(|\\)|\\[|\\]", "", gsub(" ", "_", colnames(tst2)))
-      frml <- as.formula(paste0("MS_file ~ `", gsub("\\(|\\)|\\[|\\]", "", gsub(" ", "_", Mod)), "`"))
+      frml <- if (inclSearch) {
+        as.formula(paste0("MS_file + Search ~  `", gsub("\\(|\\)|\\[|\\]", "", gsub(" ", "_", Mod)), "`"))
+      } else {
+        as.formula(paste0("MS_file ~ `", gsub("\\(|\\)|\\[|\\]", "", gsub(" ", "_", Mod)), "`"))
+      }
       tst2 <- cast(tst2, frml, fun.aggregate = sum)
       kN <- paste0("Non-", Mod, "-modified")
       kY <- paste0(Mod, "-modified")
@@ -58,13 +75,19 @@ if (length(tstEnrich)) {
         }
       }
       tst[[Mod]] <- factor(c("-", "+")[tst[[Mod]]+1L], levels = c("-", "+"))
+      if (inclSearch) {
+        tst$Search <- factor(tst$Search, levels = 1L:length(uSrch))
+      }
       ttl <- paste0(Mod, "-", Root, "s per MS file")
       plot <- ggplot(tst) + geom_bar(stat = "identity", position = "dodge",
-                                     aes(x = MS_file, y = Count, fill = .data[[Mod]])) +
+                                     aes(x = MS_file, y = log10(Count), fill = .data[[Mod]])) +
         theme_bw() + scale_fill_viridis(discrete = TRUE) + ggtitle(ttl) +
         theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1, size = 5L),
               plot.margin = unit(c(0L, 0L, 0L, 3L), "in"))
-      #poplot(plot, 12, 20)
+      if (inclSearch) {
+        plot <- plot + facet_grid(Search~.)
+      }
+      #poplot(plot, 12L, 22L)
       ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 300L)
       ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L)
       ReportCalls <- AddPlot2Report()
@@ -86,6 +109,11 @@ ReportCalls <- AddTbl2Report("AABiases")
 ReportCalls <- AddSpace2Report()
 
 #
+if (!exists("tstMQXp")) {
+  tstMQXp <- listMelt(Exp.map$MQ.Exp, 1L:nrow(Exp.map), c("MQ.Exp", "Row"))
+  tstMQXp <- aggregate(tstMQXp$Row, list(tstMQXp$MQ.Exp), list)
+  tstMQXp <- setNames(tstMQXp$x, tstMQXp$Group.1) 
+}
 if (LabelType == "LFQ") {
   aggrCol <- "RSA"
   tstMQXp2 <- setNames(vapply(MQ.Exp, \(x) {
@@ -144,7 +172,7 @@ ttl <- "Contributions to TIC"
 plot <- ggplot(tmp) +
   geom_bar(stat = "identity", aes(x = .data[[k]], y = `Total intensity`, fill = Organism)) +
   theme_bw() + scale_fill_viridis(discrete = TRUE, begin = 0.8, end = 0.2) +
-  ggtitle(ttl, subtitle = "Summed TIC for each class of identified peptides") +
+  ggtitle(ttl, subtitle = "Summed TIC per peptide class") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 print(plot) # This type of QC plot does not need to pop up, the side panel is fine
 ggsave(paste0(wd, "/Summary plots/", ttl, ".jpeg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")

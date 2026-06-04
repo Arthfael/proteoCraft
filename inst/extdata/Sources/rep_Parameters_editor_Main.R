@@ -1303,9 +1303,11 @@ server1 <- \(input, output, session) {
       # Protein groups
       if (scrptTypeFull == "withReps_PG_and_PTMs") {
         lst <- append(lst,
-                      list(fluidRow(h5(strong(" -> Protein Groups-level:")),
-                                    checkboxInput("prtLM", "Re-normalize?",
-                                                  Param$Adv.Norma.Prot.Intens, "100%"))))
+                      list(fluidRow(column(1L,
+                                           h5(strong(" -> Protein Groups-level:"))),
+                                    column(2L,
+                                           checkboxInput("prtLM", "Re-normalize?",
+                                                         Param$Adv.Norma.Prot.Intens, "100%")))))
       }
       lst <- append(lst, list(br()))
     } else {

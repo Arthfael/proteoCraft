@@ -231,7 +231,6 @@ tstXpFct <- FALSE
 while (!tstXpFct) {
   source(Src, local = FALSE)
 }
-#
 
 #### Code chunk - Edit Experiment map
 Src <- paste0(libPath, "/extdata/Sources/Experiment_Map_editor.R")
@@ -240,7 +239,6 @@ tstXpMp <- FALSE
 while (!tstXpMp) {
   source(Src, local = FALSE)
 }
-#
 
 #### Code chunk - Load and process search database(s)
 Src <- paste0(libPath, "/extdata/Sources/Process_Fasta_DBs.R")

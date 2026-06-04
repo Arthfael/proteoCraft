@@ -2,7 +2,10 @@
 #' 
 #' @description
 #' This is meant as an alternative to AdvNorm.IL() for applying a more robust method to aligning the samples.
-#' I have only tested, not written this function. ChatGPT and Perplexity did, in a merry-go-round, where I bounced the code from one to the other. Yes. We are there.
+#' I have only tested, not written this function. ChatGPT and Perplexity did, in a merry-go-round, where I bounced the code from one to the other.
+#' Yes.
+#' We are there.
+#' ...
 #' The idea for a more robust loss function was floated to my by chatGPT as  was discussing normalization with 'it'.
 #' And because I was too busy with other stuff and unfamiliar with the robuts loss function landscape, I asked it to make it for me.
 #' 

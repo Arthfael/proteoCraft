@@ -3,12 +3,12 @@
 # Use MS2-based measurements to improve estimates of precursor abundance.
 # In the future (and also for Prot.Quant) we should take the data's noisiness into account, i.e.,
 # "what is the confidence we have on the averaged MS2-based profile?"
-MS2_based_Correction %<o% TRUE
+MS2_based_Correction %<o% ((!exists("QuantUMS")) | (sum(QuantUMS) == 0L))
 # A column named "MS2_intensities" or "MS2 intensities" with individual MS2 fragment intensities should be present!
 ms2Kol <- intersect(c("MS2 intensities", "MS2_intensities"), colnames(ev))[1L]
 if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we are in DIA mode and...
   # ... we are either not using DiaNN or we are but we did not run QuantUMS
-  if (MS2_based_Correction && ((SearchSoft != "DIANN") || (!QuantUMS))) {
+  if (MS2_based_Correction) {
     msg <- "Refining MS1-level measurements using MS2 data..."
     ReportCalls <- AddMsg2Report(Space = FALSE)
     dir <- paste0(wd, "/Workflow control/", evNm, "s/MS2-based MS1 correction")

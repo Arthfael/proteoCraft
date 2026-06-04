@@ -72,7 +72,6 @@ ReportCalls <- AddTxt2Report(paste0("MA plot", c("", "s")[(length(grps) > 1L)+1L
 ReportCalls$Objects$MA_groups <- c()
 ReportCalls$Plots$MA_plots <- list()
 ReportCalls$Calls <- append(ReportCalls$Calls, list())
-LRepCalls <- length(ReportCalls$Calls)
 dir <- paste0(wd, "/Workflow control/MA plots")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 dirlist <- unique(c(dirlist, dir))
@@ -113,22 +112,22 @@ for (grp in grps) { #grp <- grps[1L]
   }
   kol_ <- c("Modified sequence", Y)
   if ("PTM-enrich." %in% colnames(data2)) { kol_ <- c(kol_, "PTM-enrich.") }
-  
   #w <- which(apply(data2[, smpls], 1L, \(x) { sum(is.finite(x)) })/length(smpls) >= 0.8) # If we wanted to filter for completeness
-  w <- 1L:nrow(tmpDat)
+  w <- 1L:nrow(data2)
   if (length(w)) {
     avg <- as.matrix(data2[w, smpls])
     avg <- rowMeans(replace(avg, !is.finite(avg), NA), na.rm = TRUE)
-    tmpDat_M <- (data2[w,] - avg)/log10(2L)
-    tmpDat_A <- (data2[w,] + avg)/2
+    tmpDat_M <- sweep(data2[w, smpls], 1L, avg, "-")/log10(2L)
+    tmpDat_A <- sweep(data2[w, smpls], 1L, avg, "+")/2
     tmpDat_M <- dfMelt(tmpDat_M, ColNames = c("Sample", "M (mean log2 FC)"))
     tmpDat_A <- dfMelt(tmpDat_A, ColNames = c("Sample", "A (mean log10 Intensity)"))
-    tmpDat <- tmpDat_A
+    tmpDat <- data2[rep(w, length(smpls)), kol_]
+    tmpDat$"Parent sample" <- tmpDat_M$Sample
     tmpDat$"M (mean log2 FC)" <- tmpDat_M$"M (mean log2 FC)"
+    tmpDat$"A (mean log10 Intensity)" <- tmpDat_A$"A (mean log10 Intensity)"
     rm(tmpDat_A, tmpDat_M)
-    # removing redundant filters: we are already filtering which data we plot!
-    #tmpDat <- tmpDat[which(is.finite(tmpDat$"M (mean log2 FC)")),]
-    #tmpDat <- tmpDat[which(is.finite(tmpDat$"A (mean log10 Intensity)")),]
+    tmpDat <- tmpDat[which(is.finite(tmpDat$"M (mean log2 FC)")),]
+    tmpDat <- tmpDat[which(is.finite(tmpDat$"A (mean log10 Intensity)")),]
     tst <- vapply(c(Y, X), \(x) { length(unique(tmpDat[[x]])) }, 1L)
     wrpKl <- c(Y, X)
     wrpKl2 <- paste0("`", wrpKl, "`")
@@ -192,7 +191,6 @@ for (grp in grps) { #grp <- grps[1L]
             strip.text.x = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 7),
             strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 7))
     #
-    # Finish me: here would be a good point to generate individual MA plots
     MAfl <- paste0(dir, "/", MAttl)
     tmpFl <- tempfile(fileext = ".RDS")
     readr::write_rds(tmpDat, tmpFl)
@@ -219,15 +217,10 @@ for (grp in grps) { #grp <- grps[1L]
         scale_color_manual(name = "Method", values = c(LOESS = "green", GAM = "magenta")) +
         scale_linetype_manual(name = "Method", values = c(LOESS = "dotted", GAM = "dashed"))
       # Estimate plot dimensions
-      gt <- ggplotGrob(plot)
-      width  <- sum(gt$widths)
-      height <- sum(gt$heights)
-      a <- convertWidth(width, "in", valueOnly = TRUE)
-      b <- convertHeight(height, "in", valueOnly = TRUE)
       #poplot(plot, 12L, 22L)
       fl <- paste0(MAfl, " - ", smpl)
-      ggsave(paste0(fl, ".jpeg"), plot, width = 10L, height = 10L*b/a, units = "in")
-      ggsave(paste0(fl, ".pdf"), plot, width = 10L, height = 10L*b/a, units = "in")
+      ggsave(paste0(fl, ".jpeg"), plot, width = 10L, units = "in")
+      ggsave(paste0(fl, ".pdf"), plot, width = 10L, units = "in")
       return(fl)
     })
     # You could then visualize those individually in the parameters app as opposed to seeing a very zoomed out facet plot
@@ -258,5 +251,6 @@ for (grp in grps) { #grp <- grps[1L]
     ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
   }
 }
+LRepCalls <- length(ReportCalls$Calls)
 ReportCalls$Calls[[LRepCalls]] <- append(ReportCalls$Calls[[LRepCalls]],
                                          "body_add_par(Report, \"\", style = \"Normal\")")

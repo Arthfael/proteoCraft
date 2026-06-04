@@ -191,12 +191,12 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       lN <- length(wN)
       tstY1 <- (lY > 0L)+1L # Did we manage to locate some files automatically?
       tstY2 <- (lY > 1L)+1L # ... more than 1?
-      tstN1 <- (lN > 0L)+1L # Did we fail to for some?
+      tstN1 <- (lN > 0L)+1L # Did we fail to locate some?
       tstN2 <- (lN > 1L)+1L # ... more than 1?
       if (tstY1 == 2L) {
         updtFls <- TRUE
         msg <- paste0(msg, "   However, the script automatically detected ",
-                      c(c("the", "all")[tstY2], "the following")[tstN1], " file", c("", "s")[tstY2],
+                      c(c("this", "all")[tstY2], "the following")[tstN1], " file", c("", "s")[tstY2],
                       " at the following location", c("", "s")[tstY2], ":\n",
                       paste(paste0(" - ", tbl$nuLoc[wY], "\n"), collapse = ""))
         rawFiles_i_nu <- rawFiles_i
@@ -571,7 +571,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       if (tstY1 == 2L) {
         updtFls <- TRUE
         msg <- paste0(msg, "   However, the script automatically detected ",
-                      c(c("the", "all")[tstY2], "the following")[tstN1], " file", c("", "s")[tstY2],
+                      c(c("this", "all")[tstY2], "the following")[tstN1], " file", c("", "s")[tstY2],
                       " at the following location", c("", "s")[tstY2], ":\n",
                       paste(paste0(" - ", tbl$nuLoc[wY], "\n"), collapse = ""))
         rawFiles_i_nu <- rawFiles_i
@@ -642,7 +642,8 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       cat(" - Processing PSMs...\n")
       source(parSrc, local = FALSE)
       ev_DIANN2MQ <- DIANN_to_MQ(psmFls_i,
-                                 cl = parClust)
+                                 cl = parClust,
+                                 log_Fl = diaNN_logFl_i)
       cat(" - Saving...\n")
       saveFun(ev_DIANN2MQ, file = psmsBckpFl_i)
       cat(" -> Done!\n")
@@ -887,12 +888,12 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       lN <- length(wN)
       tstY1 <- (lY > 0L)+1L # Did we manage to locate some files automatically?
       tstY2 <- (lY > 1L)+1L # ... more than 1?
-      tstN1 <- (lN > 0L)+1L # Did we fail to for some?
+      tstN1 <- (lN > 0L)+1L # Did we fail to locate some?
       tstN2 <- (lN > 1L)+1L # ... more than 1?
       if (tstY1 == 2L) {
         updtFls <- TRUE
         msg <- paste0(msg, "   However, the script automatically detected ",
-                      c(c("the", "all")[tstY2], "the following")[tstN1], " file", c("", "s")[tstY2],
+                      c(c("this", "all")[tstY2], "the following")[tstN1], " file", c("", "s")[tstY2],
                       " at the following location", c("", "s")[tstY2], ":\n",
                       paste(paste0(" - ", tbl$nuLoc[wY], "\n"), collapse = ""))
         rawFiles_i_nu <- rawFiles_i
@@ -1296,8 +1297,15 @@ if (exists("fastas_reloaded") && file.exists(fastas_reloaded)) { # Re-load from 
 }
 
 #  - FracMap
-FracMap %<o% lapply(searchOutputs, \(x) { x$FracMap })
+FracMap %<o% lapply(1L:length(searchOutputs), \(i) {
+  res <- searchOutputs[[i]]$FracMap
+  res$Search <- i
+  return(res)
+})
 FracMap <- do.call(plyr::rbind.fill, c(FracMap))
+if (length(unique(FracMap$Search)) == 1L) { FracMap$Search <- NULL } else {
+  FracMap <- FracMap[, c("Search", setdiff(colnames(FracMap), "Search"))]
+}
 tst1 <- "Parent sample" %in% colnames(FracMap)
 tst2 <- "MQ.Exp" %in% colnames(FracMap)
 if (tst2) {

@@ -136,10 +136,11 @@ basic.heatmap <- function(matr,
   matr3 <- cbind(expand.grid(dimnames(matr2)),
                  value = as.vector(matr2)) # Complicated, but works nicely and avoids warnings
   colnames(matr3) <- c("Row", "Column", "value")
-  lim <- ceiling(max(abs(is.all.good(as.numeric(matr3$value)))))
+  lim <- as.numeric(matr3$value)
+  lim <- ceiling(max(abs(lim[which(is.finite(lim))])))
   matr3$value[which((!is.finite(matr3$value))&(matr3$value < 0))] <- -lim
   matr3$value[which((!is.finite(matr3$value))&(matr3$value > 0))] <- lim
-  matr3$value[which(!is.all.good(matr3$value, mode = "logical"))] <- NA_real_
+  matr3$value[which(!is.na(matr3$value))] <- NA_real_
   matr3$Y <- Nrow:1L
   matr3$X <- as.numeric(sapply(1L:Ncol, \(x) { rep(x, Nrow) })) + h.Marg[1L]
   ttlX <- (h.Marg[1L] + 1L)/2
