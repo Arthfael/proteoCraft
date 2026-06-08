@@ -158,8 +158,10 @@ if ((scrptType == "withReps") && (Param$Batch.effect != "")) { # Here we have re
     #}, silent = TRUE)
     #if (!inherits(btchCorrTst, "try-error")) {
       rownames(tmp) <- rownames(myData)
-      myDataCorr <- tmp
-      clustDat[[dataType]]$ComBat <- myDataCorr
+      clustDat[[dataType]]$ComBat <- tmp
+      w <- which(clustDat[[dataType]]$Positions_imputed, arr.ind = TRUE)
+      tmp[w] <- NA_real_
+      clustDat[[dataType]]$ComBat_noImput <- tmp
     #} # otherwise a batch was confounded with a variable, typically contained a single sample per condition
   }
 }

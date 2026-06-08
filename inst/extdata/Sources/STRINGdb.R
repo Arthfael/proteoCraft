@@ -25,7 +25,7 @@ tmpPG$L1 <- as.integer(tmpPG$L1)
 IDs <- unique(unlist(lapply(names(Reg_filters), \(x) {
   i <- (x == "SAINTexpress")+1L
   lapply(Reg_filters[[x]]$`By condition`, \(y) {
-    w <- y$Filter
+    w <- y[[c("Filter", "prot_Filter")[i]]]
     dat <- get(c("PG", "allSAINTs")[i])
     w <- w[which(dat$"Potential contaminant"[w] != "+")]
     y <- dat[[c("Leading protein IDs", "Protein")[i]]][w]

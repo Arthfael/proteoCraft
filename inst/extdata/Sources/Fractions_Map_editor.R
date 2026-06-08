@@ -34,6 +34,9 @@ if ("Use" %in% colnames(FracMap)) {
 if ("PTM-enriched" %in% colnames(FracMap)) {
   FracMap$"PTM-enriched"[which(!FracMap$"PTM-enriched" %in% Modifs$`Full name`)] <- NA
 } else { FracMap$"PTM-enriched" <- NA }
+if (!"Fraction" %in% colnames(FracMap)) {
+  FracMap$Fraction <- 1L
+}
 FracMap$Use <- as.logical(toupper(FracMap$Use))
 FracMap$Use[which(is.na(FracMap$Use))] <- TRUE
 nr <- nrow(FracMap)
@@ -99,9 +102,9 @@ FracMap2$Fraction <- shinyNumInput(FracMap2a$Fraction,
                                    paste0(wTest0["Fraction"], "px"),
                                    "Fraction")
 FracMap2$"PTMenriched" <- shinySelectInput(FracMap$"PTM-enriched",
-                                         "PTMenriched",
-                                         allPTMs,
-                                         paste0(wTest0["PTMenriched"], "px"))
+                                           "PTMenriched",
+                                           allPTMs,
+                                           paste0(wTest0["PTMenriched"], "px"))
 if (LabelType == "Isobaric") {
   FracMap2$"IsobaricSet" <- shinyNumInput(FracMap2$"Isobaric.set",
                                           1L,
@@ -310,6 +313,7 @@ kol <- kol[which(kol %in% colnames(FracMap))]
 stopifnot(length(kol) > 0L)
 tst <- aggregate(FracMap[, kol], list(FracMap$MQ.Exp), \(x) { length(unique(x)) })
 colnames(tst)[1L] <- "Biological sample"
+for (k in colnames(tst)) { tst[[k]] <- as.character(tst[[k]]) }
 kount <- 0L
 strt <- unique(substr(tst$"Biological sample", 1L, 1L))
 while (length(strt) == 1L) {
@@ -317,23 +321,26 @@ while (length(strt) == 1L) {
   tst$"Biological sample" <- substr(tst$"Biological sample", 2L, nchar(tst$"Biological sample"))
   strt <- unique(substr(tst$"Biological sample", 1L, 1L))
 }
-nc <- nchar(c("Biological sample", tst[[1L]]))
-mx <- max(nc)
-w <- which(nc < mx)-1L
-if (length(w)) {
-  if (0L %in% w) { colnames(tst)[1L] <- paste0(c(colnames(tst)[1L], rep("  ", mx-nc[1L])), collapse = "") }
-  w <- w[which(w > 0L)]
-  tst[w, 1L] <- sapply(w, \(x) { paste0(c(tst[x, 1L], rep("  ", mx-nc[x+1L])), collapse = "") })
+for (k in colnames(tst)) {
+  m <- match(k, colnames(tst))
+  nc <- nchar(c(k, tst[[k]]))
+  mx <- max(nc)
+  w <- which(nc < mx)-1L
+  if (length(w)) {
+    if (0L %in% w) { colnames(tst)[m] <- k <- paste0(c(k, rep("  ", mx-nc[1L])), collapse = "") }
+    w <- w[which(w > 0L)]
+    tst[w, k] <- vapply(w, \(x) { paste0(c(tst[x, k], rep(" ", mx-nc[x+1L])), collapse = "") }, "")
+  }
 }
 msg <- c(paste(colnames(tst), collapse = "          "), do.call(paste, c(tst, sep = "          ")))
 msg2 <- msg <- paste(c(paste0("Check the number of:\n - MS files\n - fractions\n - enriched sample types",
                               c("", "\n - isobaric sets")[labelMode],
                               "\nper parent biological sample below. Is everything ok? If not, click \"no\" to get back to editing the table.\n\n   -----\n"),
                        msg, "\n   -----\n"), collapse = "\n")
-if (nchar(msg) > 1000L) {
-  cat(msg)
-  msg2 <- paste0(substr(msg, 1L, 996L), "...")
-}
+# if (nchar(msg) > 1000L) {
+#   cat(msg)
+#   msg2 <- paste0(gsub(" +$", "", substr(msg, 1L, 997L)), "...")
+# }
 #
 cat(" Check message in popup box before proceeding...\n")
 tstFrMp <- c(TRUE, FALSE)[match(dlg_message(msg2, "yesno", rstudio = TRUE)$res, c("yes", "no"))]

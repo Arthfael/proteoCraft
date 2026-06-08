@@ -122,7 +122,7 @@ if (limpaMode) {
     smpls <- lapply(smpls, unlist)
     smpls <- smpls[which(lengths(smpls) > 0L)]
     tst <- do.call(cbind, lapply(smpls, \(x) {
-      apply(tmpVal[, x, drop = FALSE], 1L, \(y) { length(is.all.good(y)) }) >= 2L
+      apply(tmpVal[, x, drop = FALSE], 1L, \(y) { sum(is.finite(y)) }) >= 2L
     }))
     #View(tst[grsep(prot.list, x = PG$`Leading protein IDs`), , drop = FALSE])
     tst <- rowSums(tst) == ncol(tst)
@@ -136,12 +136,14 @@ if (limpaMode) {
 }
 voomFit <- contrasts.fit(voomFit, contrMatr)
 voomFit <- eBayes(voomFit)
+F_Root1 <- sub(" -log10\\(", " ", sub("\\)$", "", F_Root))
 if (limpaMode) {
   my_F_Data <- myData$genes
 } else {
   my_F_Data <- myData[, unique(c(namesCol, idCol, protCol, mtchCol))]
-  my_F_Data[[F_Root]] <- NA_real_
 }
+my_F_Data[[F_Root1]] <- my_F_Data[[F_Root]] <- NA_real_
+my_F_Data[NA_Filt, F_Root1] <- voomFit$F.p.value
 my_F_Data[NA_Filt, F_Root] <- -log10(voomFit$F.p.value)
 # Do NOT make limma tests artificially one-sided; instead:
 #     - apply FDR correction on two-sided limma tests
@@ -149,8 +151,10 @@ my_F_Data[NA_Filt, F_Root] <- -log10(voomFit$F.p.value)
 #
 # Step 2 - run post-hoc tests (global moderated t-tests with contrasts)
 # ---------------------------------------------------------------------
+F_PVal_postHoc1 <- paste0(F_Root1, " - ", myContrasts$Contrast)
 F_PVal_postHoc <- paste0(F_Root, " - ", myContrasts$Contrast)
-my_F_Data[, F_PVal_postHoc] <- NA_real_
+my_F_Data[, F_PVal_postHoc] <- my_F_Data[, F_PVal_postHoc1] <- NA_real_
+my_F_Data[NA_Filt, F_PVal_postHoc1] <- voomFit$p.value[, myContrasts$Contrast]
 my_F_Data[NA_Filt, F_PVal_postHoc] <- -log10(voomFit$p.value[, myContrasts$Contrast])
 #View(my_F_Data[grsep(prot.list, x = PG$`Leading protein IDs`), F_PVal_postHoc, drop = FALSE])
 
@@ -167,10 +171,10 @@ fdrKol <- setNames(paste0("mod. F-test Significant-FDR=", BH.FDR_F*100, "%"),
                    BH.FDR_F*100)
 F_fdr <- list()
 F_fdr$F_test <- FDR(my_F_Data,
-                    pvalue_col = F_Root,
+                    pvalue_col = F_Root1,
                     fdr = BH.FDR_F,
                     returns = c(TRUE, TRUE, FALSE),
-                    inputType = "log")
+                    inputType = "raw")
 my_F_Data[, fdrKol] <- F_fdr$F_test$`Significance vector`
 #
 # b) Significance columns for each post-hoc test
@@ -178,12 +182,11 @@ my_F_Data[, fdrKol] <- F_fdr$F_test$`Significance vector`
 # Note that this could also be done globally. But usually here people consider each test individually.
 # The decision as to whether to calculate FDR thresholds for each post-hoc test individually,
 # or globally for all, could be parameter controlled in the future.
-tmp <- my_F_Data[, c(F_Root, F_PVal_postHoc), drop = FALSE]
-tmp_ <- dfMelt(tmp, c("Contrast", "-log10(P-val)"))
-tmp_$Contrast <- gsub_Rep(" - ", "\n- ", gsub_Rep(topattern(paste0(F_Root, " - ")), "", tmp_$Contrast))
-tmp_$Contrast[which(tmp_$Contrast == F_Root)] <- "F-test"
+tmp <- my_F_Data[, c(F_Root1, F_PVal_postHoc1), drop = FALSE]
+tmp_ <- dfMelt(tmp, c("Contrast", "P-val"))
+tmp_$Contrast <- gsub_Rep(" - ", "\n- ", gsub_Rep(topattern(paste0(F_Root1, " - ")), "", tmp_$Contrast))
+tmp_$Contrast[which(tmp_$Contrast == F_Root1)] <- "F-test"
 tmp_$Contrast <- factor(tmp_$Contrast, levels = c("F-test", gsub(" - ", "\n- ", myContrasts$Contrast)))
-tmp_$`P-val` <- 10L^(-tmp_$`-log10(P-val)`)
 plot <- ggplot(tmp_) + geom_histogram(aes(x = `P-val`, fill = Contrast), bins = 100L) +
   scale_fill_viridis(discrete = TRUE) + theme_bw() + facet_grid(Contrast~.) +
   theme(strip.text.y = element_text(angle = 0))
@@ -199,8 +202,7 @@ if (globalFDR) {
               pvalue_col = "value",
               fdr = BH.FDR_F,
               returns = c(TRUE, TRUE, FALSE),
-              inputType = "log")
-  tmp3$`Significance vector`[1:10,]
+              inputType = "raw")
   n <- length(F_PVal_postHoc)
   m <- nrow(tmp3$`Significance vector`)/n
   F_fdr[myContrasts$Contrast] <- lapply(1L:n, \(i) {
@@ -211,7 +213,7 @@ if (globalFDR) {
 } else {
   tmpFl <- tempfile(fileext = ".rds")
   readr::write_rds(tmp, tmpFl)
-  clusterExport(parClust, list("F_Root", "BH.FDR_F", "tmpFl", "FDR", "is.all.good"))
+  clusterExport(parClust, list("F_Root1", "BH.FDR_F", "tmpFl", "FDR"))
   invisible(clusterCall(parClust, \() {
     tmp <- readr::read_rds(tmpFl)
     assign("tmp", tmp, .GlobalEnv)
@@ -219,12 +221,12 @@ if (globalFDR) {
   }))
   unlink(tmpFl)
   F_fdr[myContrasts$Contrast] <- parLapply(parClust, myContrasts$Contrast, \(i) { #i <- myContrasts$Contrast[1L]
-    F_pv_i <- paste0(F_Root, " - ", i)
+    F_pv_i <- paste0(F_Root1, " - ", i)
     return(FDR(tmp,
                pvalue_col = F_pv_i,
                fdr = BH.FDR_F,
                returns = c(TRUE, TRUE, FALSE),
-               inputType = "log"))
+               inputType = "raw"))
   })
 }
 fdrKol_contr <- c()
@@ -380,12 +382,13 @@ if (dataType == "PG") {
 nbin <- ceiling(max(c(20L, 10L*round(nrow(myData)/1000L))))
 bd <- (0L:nbin)/nbin
 if (F_Root %in% colnames(myData)) {
-  temp <- data.frame(value = is.all.good(10L^(-myData[[F_Root]])))
+  temp <- myData[[F_Root1]]
+  temp <- data.frame(value = temp[which(is.finite(temp))])
   ttl <- "Histogram: F-test moderated Pvalue"
   plot <- ggplot(temp, aes(x = value)) +
     geom_histogram(bins = nbin, colour = "black", alpha = 0.25, fill = "green") +
     guides(fill = "none") + theme_bw() + ggtitle(ttl)
-  #poplot(plot)
+  #poplot(plot, 12L, 22L)
   ttla <- gsub(": ?", " - ", ttl)
   suppressMessages({
     ggsave(paste0(ohDeer, "/", ttla, ".jpeg"), plot, dpi = 300L)

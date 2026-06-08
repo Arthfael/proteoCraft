@@ -969,9 +969,8 @@ Volcano.plot <- function(Prot,
     # List of proteins of interest
     if (useProtList) {
       wLst <- which(temp$"Found_in_List")
-      if (!prot_split) {
-        temp$Colour[wLst] <- "protein in list"
-      } else {
+      temp$Colour[wLst] <- "protein in list"
+      if (prot_split) {
         temp$Colour2 <- "not in list"
         temp$Labels2 <- ""
         temp$Colour2[wLst] <- "protein in list"
@@ -1007,10 +1006,12 @@ Volcano.plot <- function(Prot,
     } else {
       if (symm) { which(temp$Colour %in% c(up_Nms, dwn_Nms)) } else { which(temp$Colour %in% up_Nms) }
     }
-    if (prot_split && ("Colour2" %in% colnames(temp))) {
-      w2 <- which((temp$Colour2 == "protein in list"))
+    if (prot_split) {
+      w2 <- if ("Colour2" %in% colnames(temp)) { which(temp$Colour2 == "protein in list") } else {
+        which(temp$Colour2 == "protein in list")
+      }
       w1 <- setdiff(w1, w2) # Here it could be that we have overlap of w1 and w2 => we don't want that!
-    } else { w2 <- which((temp$Colour == "protein in list")) }
+    }
     w3 <- which(temp$Colour == "target")
     w0 <- setdiff(1L:nrow(temp), c(w1, w2, w3))
     temp <- rbind(temp[w0,], temp[w1,], temp[w2,], temp[w3,])
@@ -1321,6 +1322,7 @@ Volcano.plot <- function(Prot,
     if (prot_split) {
       Plots$"Proteins in list - unlabelled"[[ttl]] <- plotEval(plot_prot)
     }
+    # Make simplified plot:
     simPlot <- plot
     simPlot$layers <- simPlot$layers[1L]
     if (show.labels) {
@@ -1361,7 +1363,7 @@ Volcano.plot <- function(Prot,
         #poplot(plot2)
         Plots$Labelled[[ttl]] <- plotEval(plot2)
         #
-        # Make simplified plot:
+        # Simplified plot:
         simPlot <- simPlot +
           ggrepel::geom_text_repel(data = lab,
                                    ggplot2::aes(label = .data[[labkol]], x = X, y = Y,
@@ -1397,6 +1399,7 @@ Volcano.plot <- function(Prot,
     limX <- summary(temp$X)
     limY <- summary(temp$Y)
     suppressWarnings({
+      # Simplified plot:
       simPlot$layers[[1L]]$mapping$size  <- NULL
       simPlot$layers[[1L]]$mapping$alpha <- NULL
       simPlot$layers[[1L]]$aes_params$size  <- 1L

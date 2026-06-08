@@ -1,5 +1,6 @@
 #### Code chunk - peptide tables for visualizing the coverage of proteins of interest in 3D using SCV
 if ((!is.null(prot.list))&&(length(prot.list))) {
+  nCharLim <- 25
   # From https://stackoverflow.com/questions/52911812/check-if-url-exists-in-r
   valid_url <- function(url_in, t = 2L){
     con <- url(url_in)
@@ -48,7 +49,7 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
     clusterExport(parClust,
                   list("grsep", "grsep2", "listMelt", "cov3D", "annot_to_tabl", "topattern", "cleanNms", "Exp",
                        "prVect", "intVect", "wd", "PDB_in_DB", "SCV_PTMs", "tmpDB", "Modifs", "valid_url", "modSq",
-                       "AA_table", "AA"),
+                       "AA_table", "AA", "nCharLim"),
                   envir = environment())
     tst3D <- parSapply(parClust, prot.list, \(plp) { #plp <- prot.list[1L]
       #
@@ -119,13 +120,14 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
         }, "")
       } else { seq2 <- gsub("[^A-Z]", "", seq2) }
       write(seq2, paste0(dir, "/SCV - observed peptides.txt"))
-      lapply(pdbFls, \(fl) { #fl <- pdbFls[1L]
+      tst <- try(lapply(pdbFls, \(fl) { #fl <- pdbFls[1L]
         lapply(names(intVect), \(x) { #i <- 1L; x <- names(intVect)[i] #i <- i+1L; x <- names(intVect)[i]
           nm <- gsub(".*/|\\.pdb$", "", fl)
           pth <- sub("\\.pdb$", paste0("_", cleanNms(x), ".html"), fl)
           cov3D(fl, seq1, path = pth, ttl = nm, intensities = intVect[[x]][grs], display = FALSE)
         })
-      })
+      }), silent = TRUE)
+      if (inherits(tst, "try.error")) { return(FALSE) } 
       return(TRUE)
     })
     # If this worked, we write a guide in the Coverage folder
@@ -141,7 +143,7 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
                  " - paste the peptides into the \"PSM/peptide list\" field",
                  " - load the pdb ",
                  "")
-      write(Guide, paste0(wd, "/Coverage/SCV - how to visualise protein coverage in 3D.txt"))
+      write(Guide, paste0(wd, "/Protein plots/SCV - how to visualise protein coverage in 3D.txt"))
     }
   }
 }

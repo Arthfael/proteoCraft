@@ -107,7 +107,7 @@ if (saintExprs) {
   #
   clusterExport(parClust,
                 list("Exp", "VPAL", "RG", "Annotate", "wd", "saintDir", "fcRt", "SaintEx", "kol_A", "kol_B",
-                     "cleanNms", "topattern", "is.all.good"),
+                     "cleanNms", "topattern"),
                 envir = environment())
   #
   SAINT_list <- lapply(1L:nrow(allContr), \(ii) { #ii <- 1L
@@ -169,7 +169,7 @@ if (saintExprs) {
       })
       x2 <- do.call(rbind, x2)
       #
-      x2 <- as.numeric(apply(x2, 2L, \(x) { mean(is.all.good(x), na.rm = TRUE) }))
+      x2 <- as.numeric(apply(x2, 2L, \(x) { mean(x[which(is.finite(x))]) }))
       return(x2)
     })))
     Interact <- dfMelt(Interact, c("Protein", "IP_name", "Intensity"), "Protein")
@@ -306,7 +306,8 @@ if (saintExprs) {
     w <- which(tmp1 == 0, arr.ind = TRUE)
     nr <- nrow(w)
     if (nr) {
-      mx <- max(c(is.all.good(as.numeric(tmp2))+0.2, 2))
+      mx <- as.numeric(tmp2)
+      mx <- max(c(mx[which(is.finite(mx))]+0.2, 2))
       ArbThr <- rbind(ArbThr,
                       data.frame(yintercept = mx-0.1,
                                  slope = 0,
@@ -398,15 +399,17 @@ if (saintExprs) {
         down <- grep("^down|^Anti-specific", unique(unlist(allSAINTs[, regkol])), value = TRUE)
         #
         flt <- list(Columns = k3,
-                    Filter_up = sort(which(allSAINTs[[k3]] %in% up)),
-                    Filter_down = sort(which(allSAINTs[[k3]] %in% down)),
-                    Filter = sort(which(allSAINTs[[k3]] %in% c(up, down))))
+                    prot_Filter_up = sort(which(allSAINTs[[k3]] %in% up)),
+                    prot_Filter_down = sort(which(allSAINTs[[k3]] %in% down)),
+                    prot_Filter = sort(which(allSAINTs[[k3]] %in% c(up, down))),
+                    prot_Background_filter = 1L:nrow(allSAINTs))
         # We want to translate it into rows from PG
         u <- unique(unlist(flt[paste0("Filter", c("_up", "_down", ""))]))
         m <- match(allSAINTs$PG_id[u], PG$id)
-        flt$PG_Filter_up <- m[match(flt$Filter_up, u)]
-        flt$PG_Filter_down <- m[match(flt$Filter_down, u)]
-        flt$PG_Filter <- m[match(flt$Filter, u)]
+        flt$Filter_up <- unique(m[which(u %in% flt$Filter_up)])
+        flt$Filter_down <- unique(m[which(u %in% flt$Filter_down)])
+        flt$Filter <- unique(m[which(u %in% flt$Filter)])
+        flt$Background_filter <- unique(match(allSAINTs$PG_id, PG$id))
         Reg_filters$"SAINTexpress"$"By condition"[[nm]] <- flt
       }
     }

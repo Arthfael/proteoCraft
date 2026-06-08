@@ -971,7 +971,7 @@ g <- grep(": SD$", g, value = TRUE, invert = TRUE)
 g <- grep("\\.REF$", g, value = TRUE, invert = TRUE)
 test <- quantData[, g]
 colnames(test) <- gsub(topattern(Prot.Expr.Root), "", colnames(test))
-test <- test[which(apply(test, 1L, \(x) { length(is.all.good(x)) }) > 0L),]
+test <- test[which(apply(test, 1L, \(x) { sum(is.finite(x)) }) > 0L),]
 test <- suppressMessages(dfMelt(test))
 test$variable <- as.character(test$variable)
 test[, RSA$names] <- ""
@@ -981,7 +981,7 @@ a <- RSA$names
 w <- which(vapply(a, \(x) { length(unique(test[[x]])) }, 1L) > 1L)
 if (length(w)) { a <- a[w] }
 test[[a[1L]]] <- factor(test[[a[1L]]], levels = sort(unique(test[[a[1L]]])))
-test <- test[which(is.all.good(test$value, 2L)),]
+test <- test[which(is.finite(test$value)),]
 test2 <- set_colnames(aggregate(test$value, list(test$variable), median), c("variable", "value"))
 test2[, a] <- test[match(test2$variable, test$variable), a]
 MinMax <- c(min(test$value), max(test$value))
@@ -1028,12 +1028,12 @@ g <- grep(": SD$", g, value = TRUE, invert = TRUE)
 g <- grep("REF\\.to\\.REF", g, value = TRUE, invert = TRUE)
 test <- quantData[, g, drop = FALSE]
 colnames(test) <- gsub(topattern(Prot.Rat.Root), "", colnames(test))
-test <- test[which(apply(test, 1L, \(x) { length(is.all.good(x)) }) > 0L), , drop = FALSE]
+test <- test[which(apply(test, 1L, \(x) { sum(is.finite(x)) }) > 0L), , drop = FALSE]
 test <- suppressMessages(dfMelt(test))
 test$Contrast <- gsub_Rep(" - ", " -\n", as.character(test$variable))
 allContr <- unique(test$Contrast)
 test$Contrast <- factor(test$Contrast, levels = allContr)
-test <- test[which(is.all.good(test$value, 2L)),]
+test <- test[which(is.finite(test$value)),]
 test2 <- set_colnames(aggregate(test$value, list(test$Contrast), median), c("Contrast", "value"))
 MinMax <- c(min(test$value), max(test$value))
 nbinz <- ceiling((MinMax[2L]-MinMax[1L])/0.1)
@@ -1080,11 +1080,11 @@ PG[, colnames(quantData)] <- quantData
 if (Param$Prot.Only.with.Quant) {
   colnames(quantData)
   test1 <- apply(quantData[,grep(topattern(Prot.Expr.Root), colnames(quantData), value = TRUE)],
-                 1L, \(x) { length(is.all.good(x)) })
+                 1L, \(x) { sum(is.finite(x)) })
   a <- grep(topattern(Prot.Rat.Root), colnames(quantData), value = TRUE)
   a <- a[which(!grepl(": SD$|: -log10\\(peptides Pvalue\\)$", a))]
   test2 <- apply(quantData[,a],
-                 1L, \(x) { length(is.all.good(x)) })
+                 1L, \(x) { sum(is.finite(x)) })
   PG <- PG[which((test1 > 0L)|(test2 > 0L)),]
 }
 if (!"Peptides count" %in% colnames(PG)) {
@@ -1125,7 +1125,6 @@ source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
 # Average expression columns per group
-clusterExport(parClust, "is.all.good", envir = environment())
 for (grp in VPAL$values) { #grp <- VPAL$values[1L] #grp <- VPAL$values[3L]
   em <- Exp.map[which(Exp.map[[VPAL$column]] == grp),]
   # PG
@@ -1213,7 +1212,7 @@ A <- myContrasts$Contrast
 test <- vapply(A, \(x) { #x <- A[6L]
   x <- paste0(pvalue.col[which(pvalue.use)], x)
   r <- x %in% colnames(PG)
-  if (r) { r <- length(is.all.good(as.numeric(PG[[x]]))) > 0L }
+  if (r) { r <- sum(is.finite(as.numeric(PG[[x]]))) > 0L }
   return(r)
 }, TRUE)
 A <- A[which(test)]
@@ -1293,9 +1292,12 @@ PG$"log10(1-PEP)" <- log10(PG$"1-PEP")
 PG$"log10(Peptides count)" <- log10(PG$"Peptides count")
 a <- grep(topattern(Prot.Expr.Root), colnames(PG), value = TRUE)
 a <- grep("\\.REF$", a, value = TRUE, invert = TRUE)
-PG$"Av. log10 abundance" <- apply(PG[, a], 1L, \(x) { mean(is.all.good(unlist(x))) })
-PG$"Rel. av. log10 abundance" <- PG$"Av. log10 abundance"/max(is.all.good(PG$"Av. log10 abundance"))
-PG$"Rel. log10(Peptides count)" <- PG$"log10(Peptides count)"/max(is.all.good(PG$"log10(Peptides count)"))
+PG$"Av. log10 abundance" <- apply(PG[, a], 1L, \(x) {
+  x <- unlist(x)
+  mean(x[which(is.finite(x))])
+})
+PG$"Rel. av. log10 abundance" <- PG$"Av. log10 abundance"/max(PG$"Av. log10 abundance"[which(is.finite(PG$"Av. log10 abundance"))])
+PG$"Rel. log10(Peptides count)" <- PG$"log10(Peptides count)"/max(PG$"log10(Peptides count)"[which(is.finite(PG$"log10(Peptides count)"))])
 # Plotly
 create_plotly %<o% TRUE
 create_plotly_local %<o% TRUE # No need for a licence when I can save local htmls! Still, old legacy code kept below.
@@ -1453,7 +1455,7 @@ if (("Q.values" %in% colnames(Param)) && is.logical(Param$Q.values) && Param$Q.v
     ReportCalls <- AddMsg2Report(Space = FALSE, Print = FALSE)
     for (pk in pkol) { #pk <- pkol[2L]
       temp <- 10L^(-PG[[pk]])
-      wag <- which(is.all.good(temp, 2L))
+      wag <- which(is.finite(temp))
       pi0 <- qvalue::pi0est(temp)$pi0[1L]
       temp <- try(qvalue::qvalue(temp[wag]), silent = TRUE) # For now we do not explicitly set pi0
       if (inherits(temp, "try-error")) {
@@ -1705,7 +1707,7 @@ if (F.test) {
       require(qvalue)
       if (F_Root %in% colnames(F_test_data)) {
         temp <- 10L^(-F_test_data[[F_Root]])
-        wag <- which(is.all.good(temp, 2L))
+        wag <- which(is.finite(temp))
         pi0 <- qvalue::pi0est(temp)$pi0[1L]
         temp <- try(qvalue::qvalue(temp[wag]), silent = TRUE) # For now we do not explicitly set pi0
         if (inherits(temp, "try-error")) {
@@ -1820,7 +1822,9 @@ for (tt in WhTsts) { #tt <- WhTsts[1L]
         colnames(temp2) <- temp[1L, 2L:(N+1L)]
         rownames(temp2) <-  temp[2L:(N+1L), 1L]
         for (i in 1L:nrow(temp2)) { temp2[[i]] <- as.numeric(temp2[[i]]) }
-        if (max(is.all.good(unlist(temp2)))) {
+        m <- unlist(temp2)
+        m <- max(m[which(is.finite(m))])
+        if (m) {
           temp2 <- as.matrix(temp2)
           basic.heatmap(temp2,
                         "N. of co-regulated PGs",
@@ -1901,7 +1905,8 @@ if (exists("Tim")) {
   A1 <- get(a1)
   ylim <- paste0(r, A1)
   ylim <- intersect(ylim, colnames(PG))
-  ylim <- max(is.all.good(unlist(PG[, ylim])))*1.05
+  m <- unlist(PG[, ylim])
+  ylim <- max(m[which(is.finite(m))])*1.05
   temp <- list()
   for (i in A) { #i <- A[1L]
     i1 <- unlist(strsplit(i, "___"))
@@ -1923,7 +1928,7 @@ if (exists("Tim")) {
         if (!length(t1)) { cat("   There is no valid data for aggregate", i, "\n")
         } else { cat("   There is only a single time point for aggregate", i, "\n") }
       } else {
-        test <- apply(PG[,c(t1, t2)], 1L, \(x) { length(is.all.good(x)) == length(tp)*2L })
+        test <- apply(PG[,c(t1, t2)], 1L, \(x) { sum(is.finite(x)) == length(tp)*2L })
         col <- c("Protein IDs", "Names", "ID")
         col <- intersect(col, colnames(PG))
         temp1 <- PG[which(test), c(col, Param$Plot.labels, t1)]
@@ -1973,8 +1978,10 @@ if (exists("Tim")) {
     })
     ReportCalls <- AddPlot2Report()
     if (create_plotly) {
-      #test <- aggregate(tmp$`log2(Ratio)`, list(tmp$IDs), \(x) {length(is.all.good(x)) == length(Tim)-1})
-      tmp2 <- aggregate(tmp$`log2(Ratio)`, list(tmp$IDs), \(x) { max(abs(is.all.good(x)))})
+      #test <- aggregate(tmp$`log2(Ratio)`, list(tmp$IDs), \(x) { sum(is.finite(x)) == length(Tim)-1L })
+      tmp2 <- aggregate(tmp$`log2(Ratio)`, list(tmp$IDs), \(x) {
+        max(abs(x[which(is.finite(x))]))
+      })
       tmp2 <- tmp2[order(tmp2$x, decreasing = TRUE),]
       tmp2 <- tmp2$Group.1[1L:min(c(1000L, nrow(tmp2)))]
       tmp2 <- tmp[which(tmp$IDs %in% tmp2),]
@@ -2213,13 +2220,13 @@ if (Param$Amica) {
       i2 <- cleanNms(i, rep = ".")
       kol <- paste0("LFQIntensity_", i2)
       AmicTbl[[kol]] <- PG[[paste0(prtRfRoot, i)]]/log10(2L)
-      AmicTbl[which(!is.all.good(AmicTbl[[kol]], 2L)), kol] <- NaN
+      AmicTbl[which(!is.finite(AmicTbl[[kol]])), kol] <- NaN
       kol <- paste0("razorUniqueCount_", i2)
       tmp$Tmp <- strsplit(PG[[paste0("Peptide IDs - ", i)]], ";")
       AmicTbl[[kol]] <- apply(tmp[, c("IDs", "Tmp")], 1L, \(x) {
         sum(x[[2L]] %in% x[[1L]])
       })
-      AmicTbl[which(!is.all.good(AmicTbl[[kol]], 2L)), kol] <- 0L
+      AmicTbl[which(!is.finite(AmicTbl[[kol]])), kol] <- 0L
     }
     tmp <- Exp.map$Ref.Sample.Aggregate[which(as.logical(Exp.map$Use))]
     kol <- paste0("LFQIntensity_", cleanNms(tmp, rep = "."))
@@ -2239,20 +2246,20 @@ if (Param$Amica) {
       gEd0 <- cleanNms(g0, rep = ".")
       kol <- paste0("P.Value_", gEd, "__vs__", paste(gEd0, collapse = "&"))
       AmicTbl[[kol]] <- 10L^(-PG[[paste0(pvalue.col[which(pvalue.use)], g)]])
-      AmicTbl[which(!is.all.good(AmicTbl[[kol]], 2L)), kol] <- NaN
+      AmicTbl[which(!is.finite(AmicTbl[[kol]])), kol] <- NaN
       kol <- paste0("adj.P.Val_", gEd, "__vs__", paste(gEd0, collapse = "&"))
       PVkol <- paste0(pvalue.col[which(pvalue.use)], g)
       AmicTbl[[kol]] <- p.adjust(10L^(-PG[[PVkol]]), method = "BH")
-      AmicTbl[which(!is.all.good(AmicTbl[[kol]], 2L)), kol] <- NaN
+      AmicTbl[which(!is.finite(AmicTbl[[kol]])), kol] <- NaN
       kol <- paste0("logFC_", gEd, "__vs__", paste(gEd0, collapse = "&"))
       AmicTbl[[kol]] <- PG[[paste0("Mean ", Prot.Rat.Root, g)]]
-      AmicTbl[which(!is.all.good(AmicTbl[[kol]], 2L)), kol] <- NaN
+      AmicTbl[which(!is.finite(AmicTbl[[kol]])), kol] <- NaN
       kol <- paste0("AveExpr_", gEd, "__vs__", paste(gEd0, collapse = "&"))
       AmicTbl[[kol]] <- PG[[paste0("Mean ", prtRfRoot, g)]]/log10(2)
-      AmicTbl[which(!is.all.good(AmicTbl[[kol]], 2L)), kol] <- NaN
+      AmicTbl[which(!is.finite(AmicTbl[[kol]])), kol] <- NaN
     }
     tst <- apply(AmicTbl[, grep("^AveExpr_", colnames(AmicTbl), value = TRUE), drop = FALSE], 1L, \(x) {
-      length(is.all.good(x))
+      sum(is.finite(x))
     }) > 0L
     AmicTbl$quantified <- c("", "+")[((AmicTbl$razorUniqueCount >= 2L)&(tst))+1L]
     AmicTbl <- AmicTbl[which(AmicTbl$quantified == "+"),]
@@ -2323,7 +2330,8 @@ if (length(protlspep)) { # Coverage
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
     p <- tmpPep[grs,]
     m <- apply(p[, xKol], 1L, \(x) {
-      10L^mean(is.all.good(log10(x)))
+      x <- log10(x)
+      10L^mean(x[which(is.finite(x))])
     })
     w <- which(m == 0)
     if (length(w)) { stop("I didn't expect this, investigate!")}
@@ -2338,7 +2346,8 @@ if (length(protlspep)) { # Coverage
     for (j in VPAL$values) { #j <- VPAL$values[1L]
       sm <- Exp.map[which(Exp.map[[VPAL$column]] == j),]
       m <- apply(p[, paste0(pep.ref[length(pep.ref)], sm$Ref.Sample.Aggregate)], 1L, \(x) {
-        10L^mean(is.all.good(log10(x)))
+        x <- log10(x)
+        10L^mean(x[which(is.finite(x))])
       })
       w <- which(m > 0)
       if (length(w)) {
@@ -2492,15 +2501,15 @@ if (length(protlspep)) {
 }
 invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 
-#### Code chunk - peptide tables for visualizing the coverage of proteins of interest in 3D
-Src <- paste0(libPath, "/extdata/Sources/3d_Cov.R")
-#rstudioapi::documentOpen(Src)
-source(Src)
-
 #### Code chunk - Create STRINGdb graph(s) and Cytoscape networks for regulated proteins
 strngSrc <- paste0(libPath, "/extdata/Sources/STRINGdb.R")
 #rstudioapi::documentOpen(strngSrc)
 source(strngSrc, local = FALSE)
+
+#### Code chunk - peptide tables for visualizing the coverage of proteins of interest in 3D
+Src <- paste0(libPath, "/extdata/Sources/3d_Cov.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
 
 #### Code chunk - For pull-downs: create table summarizing types of evidence for all proteins of interest
 # if (IsPullDown) {

@@ -87,7 +87,13 @@ if ((Annotate)&&(enrichGO||globalGO)) {
             GO_enrich.dat[[tstbee]] <- temp
             GO_enrich.FCRt[[tstbee]] <- fcr
             GO_enrich.tbl[[tstbee]] <- reg
-            flt <- setNames(lapply(UF, \(x) { flt[[x]]$Filter }), UF)
+            flt <- setNames(lapply(UF, \(x) {
+              if (tt == 4L) {
+                flt[[x]]$prot_Filter
+              } else {
+                flt[[x]]$Filter
+              }
+            }), UF)
             #flt <- setNames(lapply(UF, \(x) { flt[[x]]$Filter_down }), UF)
             #flt <- setNames(lapply(UF, \(x) { flt[[x]]$Filter_up }), UF)
             # see function code for defaults)
@@ -125,7 +131,7 @@ if ((Annotate)&&(enrichGO||globalGO)) {
             nms <- names(Reg_filters[[tstrt]][[bee]])
             for (nm in nms) {
               if (tt == 4L) {
-                Reg_filters[[tstrt]][[bee]][[nm]]$SAINTexpress_Background_filter <- Ref.Filt[[nm]]
+                Reg_filters[[tstrt]][[bee]][[nm]]$prot_Background_filter <- Ref.Filt[[nm]]
               } else {
                 Reg_filters[[tstrt]][[bee]][[nm]]$Background_filter <- Ref.Filt[[nm]]
               }

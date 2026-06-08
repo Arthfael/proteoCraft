@@ -2,7 +2,8 @@
 # (except ANOVA and SAINTexpress, which have their own sources)
 
 bhFDRs %<o% sort(BH.FDR, decreasing = FALSE)
-samRoots %<o% c(samRoot,
+samRoots %<o% c(sub(" -log10\\(", " ", sub("\\) - $", " - ", samRoot)),
+                samRoot,
                 paste0("SAM regulated-FDR=", paste(100*bhFDRs, collapse = "/"), "% FDR - "))
 samSubDir %<o% "Reg. analysis/SAM"
 ebamSubDir %<o% "Reg. analysis/EBAM"
@@ -67,6 +68,7 @@ cran_req <- unique(c(cran_req, "matrixStats"))
 if (!require(matrixStats, quietly = TRUE)) { pak::pak("matrixStats") }
 library(matrixStats)
 TESTs <- c("limma", "DEqMS")[1L:((dataType == "PG") + 1L)]
+limpaMode <- (dataType != "modPeptides") && (quantAlgo == "limpa")
 for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
   if ((!TEST %in% names(limmaFits[[dataType]])) || (!inherits(limmaFits[[dataType]][[TEST]], "list"))) {
     limmaFits[[dataType]][[TEST]] <- list()
@@ -80,7 +82,9 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
     pRoot <- deqmsRoot
     insrt <- "DEqMS mod. t-test"
   }
-  if ((dataType == "modPeptides")||(quantAlgo != "limpa")) {
+  if (limpaMode) {
+    tmpData <- quantData_list$EList_obj
+  } else {
     # Note: limpa can also be used for peptides... but that is for another day!
     wOK <- 1L:nrow(myData)
     if (TEST == "DEqMS") {
@@ -100,8 +104,6 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
     #
     tmpData <- myData[wOK, quantCol]/log10(2L) # For limma, use log2 data!!!
     rownames(tmpData) <- myData[wOK, namesCol]
-  } else {
-    tmpData <- quantData_list$EList_obj
   }
   if (Nested) {
     if (!RSA$limmaCol %in% colnames(expMap)) {
@@ -118,21 +120,24 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
         return(list(consensus = 0))
       }
     )
-    fit <- if ((dataType == "modPeptides")||(quantAlgo != "limpa")) {
-      lmFit(tmpData, designMatr, block = Block, correlation = corfit$consensus)
-    } else {
+    fit <- if (limpaMode) {
       limpa::dpcDE(tmpData, designMatr, block = Block)
+    } else {
+      lmFit(tmpData, designMatr, block = Block, correlation = corfit$consensus)
     }
   } else {
-    fit <- if ((dataType == "modPeptides")||(quantAlgo != "limpa")) {
-      lmFit(tmpData, designMatr)
-    } else {
+    fit <- if (limpaMode) {
       limpa::dpcDE(tmpData, designMatr)
+    } else {
+      lmFit(tmpData, designMatr)
     }
   }
+  #NB: voomaLmFit doesn't work as a replacement for lmFit here unless we either:
+  # - impute,
+  # - use limpa (but then we should use dpcDE instead!)
+  # - filter out any row with even a single NA!
   fit$genes <- rownames(tmpData)
-  fitted_values <- fitted(fit)
-  limmaFits[[dataType]][[TEST]]$fitted_values <- fitted_values
+  limmaFits[[dataType]][[TEST]]$fitted_values <- fitted(fit)
   fit <- contrasts.fit(fit, contrMatr)
   fit2 <- eBayes(fit) # Note: eBayes() performs empirical Bayes moderation of variances; the default settings are appropriate, and e.g. do not assume 1% of proteins are differentially expressed.
   fit2$genes <- fit$genes
@@ -143,12 +148,14 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
   # Here you could use decideTests() if wanting to switch to directly using decisions from limma
   if (TEST == "limma") {
     limmaFits[[dataType]][[TEST]]$fit <- fit2
-    kols <- paste0(pRoot, colnames(contrMatr))
-    myData[, kols] <- NA_real_
+    kols1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", deqmsRoot)), colnames(contrMatr))
+    kols2 <- paste0(deqmsRoot, colnames(contrMatr))
+    myData[, c(kols1, kols2)] <- NA_real_
     w <- which(myData[[namesCol]] %in% fit2$genes)
     m <- match(myData[w, namesCol], fit2$genes)
-    myData[w, kols] <- -log10(fit2$p.value[m,])
-    #View(myData[w, kols])
+    myData[w, kols1] <- fit2$p.value[m,]
+    myData[w, kols2] <- -log10(fit2$p.value[m,])
+    #View(myData[w, c(kols1, kols2)])
     # Plot moderated t-test results
     for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[1L]
       # Q-Q plot
@@ -207,11 +214,13 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       for (i in 1L:ncol(contrMatr)) { #i <- 1L
         contrNm <- colnames(contrMatr)[i]
         DEqMS.results <- outputResult(fit3, coef_col = i)
-        kol <- paste0(deqmsRoot, contrNm)
-        myData[[kol]] <- NA_real_
+        kol1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", deqmsRoot)), contrNm)
+        kol2 <- paste0(deqmsRoot, contrNm)
+        myData[[kol1]] <- myData[[kol2]] <- NA_real_
         w <- which(myData[[namesCol]] %in% row.names(DEqMS.results))
         m <- match(myData[[namesCol]][w], row.names(DEqMS.results))
-        myData[w, kol] <- -log10(DEqMS.results$sca.P.Value[m])
+        myData[w, kol1] <- DEqMS.results$sca.P.Value[m]
+        myData[w, kol1] <- -log10(DEqMS.results$sca.P.Value[m])
       }
     }
   }
@@ -226,7 +235,12 @@ if ((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) {
   cat("   - MSqRob test\n")
   #
   # Supplement experiment structure in the object
-  limmaForm2 <- as.formula(limmaForm)
+  #msqrobForm2 <- as.formula(limmaForm)
+  msqrobForm <- paste0("~ 0 + ", VPAL$limmaCol)
+  if (hasBatch) {
+    msqrobForm <- paste0(msqrobForm, " + ", Batch.effect$limmaCol)
+  }
+  msqrobForm2 <- as.formula(msqrobForm)
   inDat <- quantData_list$QFeatures_obj
   colDat <- inDat@colData
   colDat$Sample <- sub(".* - ", "", rownames(inDat@colData))
@@ -241,17 +255,17 @@ if ((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) {
   # Model
   qf <- msqrob(inDat,
                i = "PG",
-               formula = limmaForm2,
+               formula = msqrobForm2,
                robust = TRUE)
   #
   models <- rowData(qf[["PG"]])[["msqrobModels"]]
   #models[[1L]]@params
   # vd <- ExploreModelMatrix::VisualizeDesign(sampleData = colData(qf),
-  #                                           designFormula = limmaForm2,
+  #                                           designFormula = msqrobForm2,
   #                                           textSizeFitted = 4)
   # vd$plotlist
   #
-  designMsqrob <- model.matrix(limmaForm2, colData(qf))
+  designMsqrob <- model.matrix(msqrobForm2, colData(qf))
   whSingle <- which(myContrasts$Secondary == "")
   whDouble <- which(myContrasts$Secondary != "")
   Lit <- c("A", "B", "C", "D")
@@ -296,6 +310,8 @@ if ((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) {
   myData[, kol2] <- NA
   myData[w, kol2] <- MSqRob_infer[m, kol2]
   pval <- paste0("MSqRob pval - ", myContrasts$Contrast)
+  myData[, sub(topattern("MSqRob pval - "),
+               sub(" -log10\\(", " - ", sub("\\) - $", " - ", msqrobRoot)), pval)] <- myData[, pval]
   myData[, sub(topattern("MSqRob pval - "), msqrobRoot, pval)] <- -log10(myData[, pval])
   pvalue.col["MSqRob"] <- msqrobRoot
 }
@@ -350,7 +366,9 @@ if (length(whSingle)) {
   #
   # - Student's and Welch's t-tests and permutations test
   cat("   - t-tests and permutation tests\n")
-  clusterExport(parClust, "is.all.good", envir = environment())
+  logRoots <- c(StudentRoot, WelchRoot, permRoot)
+  rawRoots <- sub(" -log10\\(", " ", sub("\\) - $", " - ", logRoots))
+  clusterExport(parClust, "rawRoots", envir = environment())
   tmpTsts <- lapply(whSingle, \(i) { #i <- 1L #i <- 2L #i <- 3L
     # Get two groups from the contrast
     A <- myContrasts$A[[i]]
@@ -381,7 +399,7 @@ if (length(whSingle)) {
     if ((length(A_) < 2L)||(length(B_) < 2L)) { return(rep(NA, 3L)) }
     A_k <- paste0(intRef, A_)
     B_k <- paste0(intRef, B_)
-    nms <- paste0(c(StudentRoot, WelchRoot, permRoot), myContrasts$Contrast[[i]])
+    nms <- paste0(rawRoots, myContrasts$Contrast[[i]])
     altHyp <- c("two.sided", "greater")[myContrasts[i, "Up-only"]+1L]
     dt <- data.frame(sample = c(A_, B_),
                      group = c(rep(A, length(A_)), rep(B, length(B_))))
@@ -393,15 +411,15 @@ if (length(whSingle)) {
       vB <- as.numeric(tmpData[ii, B_k])
       dt$values <- c(vA, vB)
       if (Nested) {
-        w <- which((is.all.good(vA, 2L))&(is.all.good(vB, 2L)))
+        w <- which((is.finite(vA))&(is.finite(vB)))
         w <- c(w, w+length(vA))
       } else {
-        w <- which(is.all.good(dt$values, 2L))
+        w <- which(is.finite(dt$values))
       }
       dt <- dt[w,]
       vA <- dt$values[which(dt$group %in% A)]
       vB <- dt$values[which(dt$group %in% B)]
-      if ((length(unique(vA)) < 2L)||(length(unique(vB)) < 2L)) { return(rep(NA, 3L)) }
+      if ((length(unique(vA)) < 2L) || (length(unique(vB)) < 2L)) { return(rep(NA, 3L)) }
       tst1 <- try(t.test(x = vB, y = vA, paired = Nested, alternative = altHyp, var.equal = TRUE)$p.value, silent = TRUE)
       tst2 <- try(t.test(x = vB, y = vA, paired = Nested, alternative = altHyp, var.equal = FALSE)$p.value, silent = TRUE)
       tst3 <- try(pairwise_coin_test(dt, altHyp), silent = TRUE)
@@ -417,34 +435,37 @@ if (length(whSingle)) {
     colnames(RES) <- nms
     return(RES)
   })
-  tmpTsts <- do.call(cbind, tmpTsts)
-  #
-  # Log-transform p-values!
-  tmpTsts <- -log10(tmpTsts)
-  # Eventually we will de-log the P-values in the tables... but that battle can wait!
-  # This is here so it can be done more easily when the time comes.
-  #
-  tmpTsts1 <- as.data.frame(tmpTsts[, c(paste0(StudentRoot, myContrasts$Contrast[whSingle]),
-                                        paste0(WelchRoot, myContrasts$Contrast[whSingle]))])
-  permKol <- paste0(permRoot, myContrasts$Contrast[whSingle])
-  tstPerm <- vapply(permKol, \(x) { length(is.all.good(tmpTsts[, x])) }, 1L)
+  tmpTsts <- as.data.frame(do.call(cbind, tmpTsts))
+  kol <- kol12raw <- c(paste0(rawRoots[1L], myContrasts$Contrast[whSingle]),
+                       paste0(rawRoots[2L], myContrasts$Contrast[whSingle]))
+  kolLog <- kol12log <- c(paste0(logRoots[1L], myContrasts$Contrast[whSingle]),
+                          paste0(logRoots[2L], myContrasts$Contrast[whSingle]))
+  tmpTsts_ <- tmpTsts[, kol12raw]
+  kol3raw <- paste0(rawRoots[3L], myContrasts$Contrast[whSingle])
+  kol3log <- paste0(logRoots[3L], myContrasts$Contrast[whSingle])
+  tstPerm <- vapply(kol3raw, \(x) { sum(is.finite(tmpTsts[, x])) }, 1L)
   if (!max(tstPerm)) {
     warning("The permutations tests failed.")
   } else {
-    tmpTsts1[, permKol] <- tmpTsts[, permKol]
+    tmpTsts_[, kol3raw] <- tmpTsts[, kol3raw]
+    kolRaw <- c(kol12raw, kol3raw)
+    kolLog <- c(kol12log, kol3log)
   }
   # To check results
   checkTTests <- FALSE
   if (checkTTests) {
-    tmp <- dfMelt(tmpTsts1)
-    tmp[, c("test", "contrast")] <- do.call(rbind, strsplit(as.character(tmp$variable), " -log10\\(Pvalue\\) - "))
+    tmp <- dfMelt(tmpTsts_)
+    tmp <- tmp[which(is.finite(tmp$value)),]
+    tmp[, c("test", "contrast")] <- do.call(rbind, strsplit(as.character(tmp$variable), " Pvalue - "))
     plot <- ggplot(tmp) + geom_density(stat = "density", aes(x = value, color = test)) +
-      facet_grid(test~contrast) + theme_bw() + ggtitle("Classic tests: dist. of -log10(P-values)")
+      facet_grid(test~contrast) + theme_bw() + ggtitle("Classic tests: dist. of P-values")
     poplot(plot)
   }
-  myData[, colnames(tmpTsts1)] <- tmpTsts1
-  #View(tmpTsts1)
-  #summary(tmpTsts1)
+  #
+  myData[, kolRaw] <- tmpTsts_[, kolRaw]
+  myData[, kolLog] <- -log10(tmpTsts_[, kolRaw])
+  #View(tmpTsts_)
+  #summary(tmpTsts_)
   #
   # - Reproducibility-Optimized Test Statistic (ROTS)
   cat("   - ROTS tests\n")
@@ -460,7 +481,7 @@ if (length(whSingle)) {
     B_k <- paste0(intRef, B_)
     tst <- as.data.frame(sapply(list(A = A_k,
                                      B = B_k), \(kol) {
-                                       apply(tmpData[, kol], 1L, \(x) { length(is.all.good(x)) }) >= 2L
+                                       apply(tmpData[, kol], 1L, \(x) { sum(is.finite(x)) }) >= 2L
                                      }))
     w <- which(rowSums(tst) == 2)
     return(ROTS::ROTS(data = tmpData[w, c(A_k, B_k)]/log10(2L),
@@ -470,11 +491,14 @@ if (length(whSingle)) {
                       seed = mySeed))
   }), myContrasts$Contrast[whSingle])
   #View(ROTS_res[[myContrasts$Contrast[whSingle[1L]]]])
+  root <- sub(" -log10\\(", " ", sub("\\) - $", " - ", rotsRoot))
+  myData[, paste0(root, myContrasts$Contrast[whSingle])] <- NA_real_
   myData[, paste0(rotsRoot, myContrasts$Contrast[whSingle])] <- NA_real_
   for (contr in myContrasts$Contrast[whSingle]) { #contr <- myContrasts$Contrast[whSingle[1L]]
     w <- which(myData[[namesCol]] %in% rownames(ROTS_res[[contr]]$data))
-    myData[w, paste0(rotsRoot, contr)] <- -log10(ROTS_res[[contr]]$pvalue[match(myData[w, namesCol],
-                                                                                rownames(ROTS_res[[contr]]$data))])
+    myData[w, paste0(root, contr)] <- ROTS_res[[contr]]$pvalue[match(myData[w, namesCol],
+                                                                     rownames(ROTS_res[[contr]]$data))]
+    myData[w, paste0(rotsRoot, contr)] <- -log10(myData[w, paste0(root, contr)])
   }
   #
   #
@@ -517,7 +541,7 @@ if (length(whSingle)) {
         A_k <- paste0(intRef, A_)
         B_k <- paste0(intRef, B_)
         tmpData3 <- tmpData2[, c(B_k, A_k)]
-        tst <- parApply(parClust, tmpData3, 1L, \(x) { length(is.all.good(x)) })
+        tst <- parApply(parClust, tmpData3, 1L, \(x) { sum(is.finite(x)) })
         # Create filter for missing values appropriate for the current test:
         if (taest == "SAM") {
           wh <- which(tst > 1L)
@@ -545,11 +569,14 @@ if (length(whSingle)) {
             # NB: The current siggenes vignette has a typo: obviously FDR isn't equal to p0*False/FDR but to p0*False/Called
             s0 <- if ("s0" %in% slotNames(tmpSIGGENES)) { slot(tmpSIGGENES, "s0") } else { numeric(0) }
             #si <- median(apply(tmpData3[wh,], 1L, sd, na.rm = TRUE))
-            pVal <- -log10(tmpSIGGENES@p.value)
-            RES <- data.frame(A = rep(NA, nrow(myData)),
-                              B = rep(NA, nrow(myData)))
+            nr <- nrow(myData)
+            RES <- data.frame(A = rep(NA, nr),
+                              B = rep(NA, nr),
+                              C = rep(NA, nr),
+                              D = rep(NA, nr))
             colnames(RES) <- samK
-            RES[wh, samK[1L]] <- pVal
+            RES[wh, samK[1L]] <- tmpSIGGENES@p.value
+            RES[wh, samK[2L]] <- -log10(tmpSIGGENES@p.value)
           }
           if (taest == "EBAM") {
             ebamK <- paste0(ebamRoot, nm)
@@ -610,7 +637,7 @@ if (length(whSingle)) {
           colnames(D) <- c("D", "FDR")
           #unique(tmpSig3)
           if (taest == "SAM") {
-            RES[[samK[2L]]] <- tmpSig3
+            RES[[samK[3L]]] <- tmpSig3
             RES <- list(Val = RES,
                         siggenesOut = tmpSIGGENES,
                         decision = tmpSig2,

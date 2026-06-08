@@ -42,7 +42,8 @@ minReps <- max(c(repThresh, round(length(Rep)*repProp))) # Let's be stringent an
 # We now get for WGCNA the data prepared for downstream analyses by cluster_Heatmap_Prep.R
 dataType <- "PG"
 if (dataType == "PG") {
-  datNm <- intersect(c("Filtered", "Original"),
+  datNm <- intersect(c("Positions_imputed", #"Filtered",
+                       "Original"),
                      names(clustDat[[dataType]]))[1L]
 }
 # if (dataType == "peptides") {
@@ -51,13 +52,9 @@ if (dataType == "PG") {
 # }
 myClustData <- clustDat[[dataType]][[datNm]]
 myClustDataImp <- clustDat[[dataType]]$Positions_imputed
-w1 <- which(myClustDataImp == 1L, arr.ind = TRUE)
-w2 <- which(is.na(myClustDataImp), arr.ind = TRUE)
-if (nrow(w1)) { # Imputed values
-  myClustData[w1] <- clustDat[[dataType]]$Imputed[w1]
-}
-if (nrow(w2)) { # Values from limpa which are not based on any observations
-  myClustData[w2] <- clustDat[[dataType]]$Original[w2]
+w <- which(is.na(myClustDataImp), arr.ind = TRUE)
+if (nrow(w)) { # Values from limpa which are not based on any observations
+  myClustData[w] <- clustDat[[dataType]]$Original[w]
 }
 #
 exprData <- as.data.frame(t(myClustData))
@@ -158,13 +155,12 @@ scaleFact <- max(spt$fitIndices$SFT.R.sq)/max(spt$fitIndices$mean.k.)
 ttl <- "Scale independence vs Mean connectivity"
 ggPlot <- ggplot(spt$fitIndices) +
   geom_text(aes(label = Power, x = Power, y = SFT.R.sq), color = "darkgreen") +
-  geom_line(aes(x = Power, y = SFT.R.sq), color = "darkgreen", linetype = "dashed") +
+  geom_line(aes(x = Power, y = SFT.R.sq), color = "darkgreen", linetype = "dotted") +
   geom_text(aes(label = Power, x = Power, y = mean.k.*scaleFact), color = "purple") +
-  geom_line(aes(x = Power, y = mean.k.*scaleFact), color = "purple", linetype = "dashed") +
+  geom_line(aes(x = Power, y = mean.k.*scaleFact), color = "purple", linetype = "dotted") +
   scale_y_continuous(name = "Scale independence",
                      sec.axis = sec_axis(transform = ~./scaleFact, name = "Mean connectivity")) +
-  geom_hline(yintercept = #mxSFT.R.sq*
-               sftThresh, color = "red") +
+  geom_hline(yintercept = sftThresh, color = "blue", linetype = "dashed") +
   ggtitle(ttl) + xlab("Soft Threshold (power)") +
   theme_bw() + theme(panel.grid.major = element_blank(),
                      panel.grid.minor = element_blank(),
@@ -188,7 +184,10 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
   library(shiny)
   library(shinyWidgets)
   library(shinyjs)
-  ggPlot2 <- ggPlot + geom_vline(xintercept = pwrEst, color = "red")
+  ggPlot2 <- ggPlot +
+    geom_vline(xintercept = pwrEst, color = "red") +
+    geom_hline(yintercept = spt$fitIndices$SFT.R.sq[which(spt$fitIndices$Power == pwrEst)],
+               color = "red")
   appNm <- "Select WGCNA threshold"
   if (exists("appRunTest")) { rm(appRunTest) }
   ui <- fluidPage(
@@ -228,7 +227,12 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
       }
       if (updtPlot) {
         POWER(pwr)
-        assign("ggPlot2", ggPlot + geom_vline(xintercept = pwr, color = "red"), envir = .GlobalEnv)
+        assign("ggPlot2",
+               ggPlot +
+                 geom_vline(xintercept = pwr, color = "red") +
+                 geom_hline(yintercept = spt$fitIndices$SFT.R.sq[which(spt$fitIndices$Power == pwr)],
+                            color = "red"),
+               envir = .GlobalEnv)
       }
       return(renderPlot({ ggPlot2 }))
     }

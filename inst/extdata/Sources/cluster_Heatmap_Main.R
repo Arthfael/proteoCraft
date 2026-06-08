@@ -13,14 +13,11 @@ plotLeatMaps %<o% plotLeatMaps
 heatMaps <- list() # Unlike plotLeatMaps, not persistent
 #drawPlotly <- FALSE
 if (clustHtMp) {
-  if (dataType == "PG") {
-    datNm <- intersect(c("Filtered", "Original"),
+  datNm <- intersect(c("ComBat",
+                       "Filtered", # only for PG - because of limpa
+                       "Original"),
                     names(clustDat[[dataType]]))[1L]
-  }
-  if (dataType == "peptides") {
-    datNm <- intersect(c("ComBat", "Original"),
-                    names(clustDat[[dataType]]))[1L]
-  }
+  #
   myClustData <- clustDat[[dataType]][[datNm]]
   myClustDataImp <- clustDat[[dataType]]$Positions_imputed
   w1 <- which(myClustDataImp == 1L, arr.ind = TRUE)
@@ -36,10 +33,10 @@ if (clustHtMp) {
     # The order matters: the first is used to generate the PG-level cluster displayed on both heatmaps!
     clustDir <- paste0(wd, "/Clustering")
   }
-  useFilt <- ((grepl("-tests?$", clustMode))||(clustMode %in% c("re-localisation", "SAINTexpress")))
+  useFilt <- grepl("-tests?$", clustMode) || (clustMode %in% c("re-localisation", "SAINTexpress"))
   if (useFilt) {
     stopifnot(dataType == "PG")
-    normTypes <- c(normTypes, "Z-scored")
+    normTypes <- "Z-scored"
     clustRegFilters <- Reg_filters[[clustMode]]$`By condition`
     #
     clustDir <- paste0(wd, "/Reg. analysis/", clustMode, "/Heatmaps")
@@ -48,7 +45,7 @@ if (clustHtMp) {
   verbose <- FALSE
   if (!dir.exists(clustDir)) { dir.create(clustDir, recursive = TRUE) }
   if (scrptType == "withReps") {
-    dirlist <- unique(c(dirlist, dir))
+    dirlist <- union(dirlist, clustDir)
     #
     I <- list(Global = mySmpls)
     # Cluster groups based on Ratios-, GO enrichment- or Normalisation groups
@@ -136,7 +133,7 @@ if (clustHtMp) {
         cat(" -", normType, "\n")
       }
       normTypeInsrt <- paste0(" (", normTypes, ")")
-      normTypeInsrt[1L] <- ""
+      normTypeInsrt[match("None", normTypes)] <- ""
       normTypeInsrt <- normTypeInsrt[match(normType, normTypes)]
       tempDat <- as.data.frame(topData[, smpls, drop = FALSE])
       #
@@ -145,7 +142,7 @@ if (clustHtMp) {
         # Only used for withReps for the time being.
         # We will keep it simple, making one filter only and use any protein which is significant in any test.
         preFilt <- PG$Label[sort(unique(unlist(lapply(names(clustRegFilters), \(nm) {
-          clustRegFilters[[nm]]$PG_Filter
+          clustRegFilters[[nm]]$Filter
         }))))]
         w <- which(rownames(tempDat) %in% preFilt)
         tempDat <- tempDat[w, , drop = FALSE]
@@ -359,7 +356,7 @@ if (clustHtMp) {
         if ((clustMode == "standard") && (normType == "Norm. by row")) {
           # We use clusters only from normalised by row,
           # because we want to see the effect of relative expression
-          KlustKols <- unique(c(KlustKols, KlKol))
+          KlustKols <- union(KlustKols, KlKol)
           #PG[[KlKol]] <- HClusters[[clustNm]][match(PG$Label, names(HClusters[[clustNm]]))]
           PG[[KlKol]] <- HClusters[[i]][match(PG$Label, names(HClusters[[i]]))]
         }
@@ -848,13 +845,20 @@ if (clustHtMp) {
     source(Src, local = FALSE)
   }
   #
-  kol <- c("Leading protein IDs", "Protein names", "Genes", "Mol. weight [kDa]")
-  kol <- kol[which(kol %in% colnames(PG))]
-  temp <- PG[, c(kol, KlustKols)]
-  flPath <- paste0(clustDir, "/Protein Groups and Clusters.csv")
-  tst <- try(write.csv(temp, file = flPath, row.names = FALSE), silent = TRUE)
-  while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
-    dlg_message(paste0("File \"", flPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+  if (length(heatMaps)) {
+    kol <- intersect(c("Leading protein IDs", "Protein names", "Genes", "Mol. weight [kDa]"),
+                     colnames(PG))
+    temp <- PG[, c(kol, KlustKols)]
+    flPath <- paste0(clustDir, "/Protein Groups and Clusters.csv")
     tst <- try(write.csv(temp, file = flPath, row.names = FALSE), silent = TRUE)
+    while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
+      dlg_message(paste0("File \"", flPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+      tst <- try(write.csv(temp, file = flPath, row.names = FALSE), silent = TRUE)
+    }
+  } else {
+    unlink(clustDir)
+    if (scrptType == "withReps") {
+      dirlist <- setdiff(dirlist, clustDir)
+    }
   }
 }

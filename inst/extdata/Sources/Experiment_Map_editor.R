@@ -490,9 +490,9 @@ msg2 <- msg <- paste(c("Check the number of samples per factor level below. Is e
              apply(tst[[nm]], 1L, paste, collapse = "          "))),
     c("\n   -----\n"))
 })), "\n"), collapse = "\n")
-if (nchar(msg) >= 1000L) {
-  cat(msg)
-  msg2 <- paste0(substr(msg, 1L, 996L), "...")
-}
+# if (nchar(msg) >= 1000L) {
+#   cat(msg)
+#   msg2 <- paste0(substr(msg, 1L, 996L), "...")
+# }
 cat(" Check message in popup box before proceeding...\n")
 tstXpMp <- c(TRUE, FALSE)[match(dlg_message(msg2, "yesno", rstudio = TRUE)$res, c("yes", "no"))]
