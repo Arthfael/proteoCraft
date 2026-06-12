@@ -62,13 +62,15 @@ WelchRoot %<o% "Welch's t-test -log10(Pvalue) - "
 modRoot %<o% "Moderated t-test -log10(Pvalue) - "
 deqmsRoot %<o% "DEqMS mod. t-test -log10(Pvalue) - "
 msqrobRoot %<o% "MSqRob -log10(Pvalue) - "
+msstatsRoot %<o% "MSstats -log10(Pvalue) - "
 permRoot %<o% "Permutations test -log10(Pvalue) - "
 samRoot %<o% "SAM -log10(Pvalue) - "
 odpRoot %<o% "ODP -log10(Pvalue) - "
 lrtRoot %<o% "LRT -log10(Pvalue) - "
 rotsRoot %<o% "ROTS -log10(Pvalue) - "
 #
-pvalue.col %<o% c(StudentRoot, WelchRoot, modRoot, deqmsRoot, msqrobRoot, permRoot, samRoot, rotsRoot#, odpRoot, lrtRoot
+pvalue.col %<o% c(StudentRoot, WelchRoot, modRoot, deqmsRoot, msqrobRoot, msstatsRoot,
+                  permRoot, samRoot, rotsRoot#, odpRoot, lrtRoot
 )
 names(pvalue.col) <- vapply(pvalue.col, \(x) { unlist(strsplit(x, "\\.|\\'| "))[1L] }, "")
 ParamFls <- c(paste0(wd, "/Parameters.csv"),
@@ -619,34 +621,34 @@ normDat %<o% normDat
 #      - RUV normalization (could be interesting, see https://www.bioconductor.org/packages/release/bioc/vignettes/RUVnormalize/inst/doc/RUVnormalize.pdf)
 pepNormMethods %<o% list(list(Method = "median",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { median(x, na.rm = TRUE) }"),
+                              funCall = "normFun <- function(x) { median(x[which(is.finite(x))]) }"),
                          list(Method = "mean",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { mean(x, na.rm = TRUE) }"),
+                              funCall = "normFun <- function(x) { mean(x[which(is.finite(x))]) }"),
                          list(Method = "Levenberg-Marquardt",
                               Source = "pepNorm_General.R"),
                          list(Method = "sum",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { log10(sum(10^x, na.rm = TRUE)) }"),
+                              funCall = "normFun <- function(x) { log10(sum(10^x[which(is.finite(x))])) }"),
                          list(Method = "logSum",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { sum(x, na.rm = TRUE) }"),
+                              funCall = "normFun <- function(x) { sum(x[which(is.finite(x))]) }"),
                          list(Method = "max",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { max(x, na.rm = TRUE) }"),
+                              funCall = "normFun <- function(x) { max(x[which(is.finite(x))]) }"),
                          list(Method = "mode",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { modeest::mlv(is.all.good(x), method = \"Parzen\") }"),
+                              funCall = "normFun <- function(x) { modeest::mlv(x[which(is.finite(x))], method = \"Parzen\") }"),
                          list(Method = "proteins",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { median(x, na.rm = TRUE) }",
+                              funCall = "normFun <- function(x) { median(x[which(is.finite(x))]) }",
                               Proteins = NA),
                          list(Method = "biotinylated proteins",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { median(x, na.rm = TRUE) }"),
+                              funCall = "normFun <- function(x) { median(x[which(is.finite(x))]) }"),
                          list(Method = "GO terms",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { median(x, na.rm = TRUE) }",
+                              funCall = "normFun <- function(x) { median(x[which(is.finite(x))]) }",
                               Terms = NA),
                          list(Method = "GAM",
                               Source = "pepNorm_Shape.R"),

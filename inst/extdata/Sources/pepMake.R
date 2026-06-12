@@ -83,7 +83,7 @@ for (aa in c("O", "U")) { # Only keep the selenocysteine and pyrrolysine amino a
 pep$Length <- nchar(pep$Sequence)
 ev$Length <- pep$Length[mtch]
 tmp <- data.table(mod = ev$"Modified sequence", Intensity = ev$Intensity)
-tmp$Intensity[which(!is.all.good(tmp$Intensity, 2L))] <- NA_real_
+tmp$Intensity[which(!is.finite(tmp$Intensity))] <- NA_real_
 w2 <- which(ev$MQ.Exp %in% unique(unlist(tmp_EM$MQ.Exp[which(tmp_EM$Use)])))
 tmp2 <- copy(tmp)
 tmp2 <- tmp2[w2, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
@@ -122,7 +122,7 @@ if (exists("Modifs")) {
         wb <- which(l > 1L)
         if (length(wb)) {
           temp1 <- cbind(b1[wb], b2[wb])
-          clusterExport(parClust, list("temp1", "annot_to_tabl", "Isapply", "is.all.good", "insertElems", "AA"), envir = environment())
+          clusterExport(parClust, list("temp1", "annot_to_tabl", "Isapply", "insertElems", "AA"), envir = environment())
           b1[wb] <- parApply(parClust, temp1, 1L, \(x) {
             p <- 1L-x[[2L]]
             p <- p/sum(p)
@@ -132,7 +132,7 @@ if (exists("Modifs")) {
               as.numeric(annot_to_tabl(y, Nterm = FALSE, Cterm = FALSE, numeric_data = TRUE)[[1L]]$Annotations)
             })
             an <- sweep(an, 1L, p, "*")
-            n <- which(apply(an, 2L, \(y) { length(is.all.good(y)) }) == 0L)
+            n <- which(apply(an, 2L, \(y) { sum(c(y)) }) == 0L)
             an <- colSums(an, na.rm = TRUE)
             an[n] <- NA
             n <- which(!is.na(an))

@@ -18,8 +18,8 @@
 #'  - "iq": iq's fast implementation of MaxLFQ, backend = [iq::fast_MaxLFQ()]\cr
 #'  - "limpa" or "DPC": backend = [limpa::dpcQuant()]; current default\cr
 #'  - "QFeatures": backend = [QFeatures::aggregateFeatures()]\cr
-#' Note that limpa and QFeatures do not "just produce quantitative values": both output specific objects with complex modelling of each protein, which can be used for downstream analysis (respectively with limma or MSqRob).\cr
-# @param LFQ_stab Logical. Stabilize ratios? Default = TRUE
+#'  - "MSstats": backend = [MSstats::dataProcess()]\cr
+#' Note that limpa, QFeatures and MSstats do not "just produce quantitative values": they output specific objects or lists with complex modelling of the dataset, which can be used for downstream analysis (limpa -> limma, DFeatures -> msqrob2, MSstats covers modeling and stats).\cr
 #' @param reScaling Optional summary method for re-scaling. May be one of:\cr
 #'  - "median",\cr
 #'  - "mean",\cr
@@ -28,7 +28,7 @@
 #'  - "sum" (not recommended),\cr
 #'  - "MaxLFQ": like sum, but the value used is the value before any peptides are filtered out (not recommended),\cr
 #'  - "topN", where N should be the maximum number of peptides to average (e.g. "top3" - do not use "topN" as there is no default value for N!)\cr
-#'  - the name of any valid value of LFQ_algo, which allows re-scaling any LFQ algorithm using the scaling provided by another.\cr
+#'  - the name of any valid value of LFQ_algo, which allows re-scaling any LFQ algorithm using the scaling provided by another. Note that this doesn't make sense for all, as some are only meant to model logFC, not estimated abundance scale.\cr
 #'  - (you could also use the name of any other available averaging function, this should work in principle assuming similar syntax)
 #' @param topN_correct Logical, default = TRUE. In the case where we are using more than one peptide for the re-scaling step, should we correct for systematic peptide intensity biases between peptides of rank 1, 2, 3 and so on and so forth?
 #' @param minN Integer, default = 1. How many peptides should at least be present for quantitation? Values lower than 1 are increased to 1. May not be higher than N_unique!
@@ -72,12 +72,13 @@
 #'  - maximizes the usage of peptides-level ratios information.\cr
 #' Specifically, it can be broken down into 3 sub-steps:\cr
 #'   a) filtering peptides eligible for quantitation\cr
-#'   b) calculating a relative protein profile across samples:\cr
+#'   b) estimating/modeling (depending on algorithm) a relative protein profile across samples:\cr
 #'    - LM: this uses Levenberg-Marquardt to align peptide profiles, then summarizes them, and is broadly similar to MaxLFQ.\cr
 #'    - iq: the iq package's implementation of MaxLFQ, specifically the [iq::fast_MaxLFQ()] function.\cr
 #'    - limpa: uses [limpa::dpcQuant()].\cr
 #'    - QFeatures: uses [QFeatures::aggregateFeatures()].\cr
-#'   c) Optional re-scaling, i.e. "anchoring" the resulting relative profile to a scale value, such that different proteins are ranked relatively in a manner which - whilst imperfect because of widely different individual peptide detectabilities - would still be correct if the latter could be corrected for, or would otherwise operate under assumptions at least minimizing the expected error. See the reScaling argument.\cr
+#'    - MSstats: uses [MSstats::dataProcess()].\cr
+#'   c) Optional re-scaling, i.e. "anchoring" the resulting relative profile to a relative abundance value, such that different proteins are ranked relatively in a manner which - whilst imperfect because of widely different individual peptide detectabilities - would still be correct if the latter could be corrected for, or would otherwise operate under assumptions at least minimizing the expected error. See the reScaling argument.\cr
 #'    You may also rescale any quantitation (as specified in LFQ_algo) with the scale provided by another (using the reScaling argument), thus allowing for using the relative quantitation and scaling of any two methods.\cr
 #'    To re-scale the same way as MaxLFQ, use "sum" - but see N.B. below!\cr
 #'    iBAQ - which would be the equivalent of using "sum" then dividing by the number of observable peptides, but the additional step could easily be added outside this function.\cr
@@ -106,16 +107,8 @@
 #'  - "Data": output quantitative data.
 #'  - "EList_obj": EList object, only present if LFQ_algo or reScaling = "limpa"
 #'  - "QFeatures_obj": QFeatures object, only present if LFQ_algo or reScaling  = "QFeatures"
+#'  - "MSstats": list created by MSstats::dataProcess() 
 #' 
-#' @examples
-#' temp <- protQuant(Prot = PG, pg_PepIDs = Pep4Quant, Pep = pep, pep_IDs = "New Peptide ID",
-#'                   experimentMap = Exp.map,
-#'                   refGroups = Ratios.Ref.Groups,
-#'                   pepInt_Root = pep.ref, pepRat_root = pep.ratios.ref,
-#'                   pepInt_log = FALSE, pepRat_log = 2,
-#'                   protLFQ_toLog = TRUE, protRat_toLog = TRUE,
-#'                   mods_to_Exclude = Mod2Xclud, mod_Seq = "Modified sequence",
-#'                   minN = 2)
 #' 
 #' @export
 
@@ -155,8 +148,8 @@ if (N_unique) {
 }
 #
 # Algorithms: deal with synonyms and names degeneracy
-algoSyn <- data.frame(ALGO = c("LM", "IQ", "LIMPA", "QFEATURES", "QFEATURES"),
-                      SYNONYM = c(NA_character_, "MAXLFQ", "DPCQUANT", "MSQROB", "MSQROB2"))
+algoSyn <- data.frame(ALGO = c("LM", "IQ", "LIMPA", "QFEATURES", "QFEATURES", "MSSTATS"),
+                      SYNONYM = c(NA_character_, "MAXLFQ", "DPCQUANT", "MSQROB", "MSQROB2", NA_character_))
 #
 LFQ_algo <- gsub(" -_\\.", "", LFQ_algo)
 if (!exists("alsoRun")) { alsoRun <- c() }
@@ -183,6 +176,20 @@ if (length(mySmpls) == 1L) {
   }
   if (length(ALSORUN)) {
     w <- which(!ALSORUN %in% c("LIMPA", "QFEATURES"))
+    alsoRun <- alsoRun[w]
+    ALSORUN <- ALSORUN[w]
+  }
+}
+if (scrptTypeFull != "withReps_PG_and_PTMs") {
+  if (LFQ_ALGO == "MSSTATS") {
+    warning("MSstats necessitates a dataset with multiple sample groups and replicates! Defaulting to LM...")
+    LFQ_algo <- LFQ_ALGO <- "LM"
+  }
+  if (RESCALING == "MSSTATS") {
+    reScaling <- RESCALING <- "LM"
+  }
+  if (length(ALSORUN)) {
+    w <- which(ALSORUN != "MSSTATS")
     alsoRun <- alsoRun[w]
     ALSORUN <- ALSORUN[w]
   }
@@ -238,9 +245,8 @@ if ("LM" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
 # Parameters from optional re-scaling
 if (!skip_reScaling) {
   stopifnot(reSc_is_topN ||
-              (RESCALING %in% c("LM", "IQ", "LIMPA", "QFEATURES")) ||
-              ((!inherits(try(get(reScaling), silent = TRUE), "try-error")) &&
-                 inherits(get(reScaling), c("standardGeneric", "function"))))
+              (RESCALING %in% c("LM", "IQ", "LIMPA", "QFEATURES", "MSSTATS")) ||
+              (!inherits(try(getFunction(reScaling), silent = TRUE), "try-error")))
   useIntWeights <- FALSE
   reSc_topN <- Inf
   if (reSc_is_topN) {
@@ -363,7 +369,7 @@ mySmpls <- mySmpls[w]
 Pep.Intens.Nms <- Pep.Intens.Nms[w]
 #
 w <- which(apply(Pep[, Pep.Intens.Nms, drop = FALSE], 1L, \(x) {
-  length(is.all.good(x))
+  sum(is.finite(x))
 }) > 0L)
 Pep <- Pep[w,]
 #
@@ -642,7 +648,7 @@ Expr.root.full <- paste0(Expr.root, " - ")
 tmp1 <- data.table::as.data.table(Pep[, c(pep_IDs, Pep.Intens.Nms), drop = FALSE])
 tmp1 <- data.table::melt(tmp1, id.vars = pep_IDs)
 colnames(tmp1)[1L] <- "pepID"
-tmp1 <- tmp1[which(is.all.good(tmp1$value, 2L)),]
+tmp1 <- tmp1[which(is.finite(tmp1$value)),]
 tmp1 <- tmp1[, .(value = mean(value)), by = .(pepID = pepID)]
 Pep$avgPepInt <- tmp1$value[match(Pep[[pep_IDs]], tmp1$pepID)]
 #
@@ -772,7 +778,7 @@ if (useIntWeights &&
   tmp <- data.table::data.table(pepInt_log^Pep[, Pep.Intens.Nms, drop = FALSE])
   tmp$pepID <- Pep[[pep_IDs]]
   tmp <- data.table::melt(tmp, id.vars = "pepID")
-  tmp <- tmp[which(is.all.good(tmp$value, 2L)),]
+  tmp <- tmp[which(is.finite(tmp$value)),]
   tmp <- tmp[which(tmp$value > 0),]
   tmp <- tmp[, .(value = mean(value)), by = .(pepID)]
   Pep$useIntWeights <- tmp$value[match(Pep[[pep_IDs]], tmp$pepID)]
@@ -860,7 +866,7 @@ if ("LM" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
   readr::write_rds(tmpPep, tmpFl1)
   readr::write_rds(quant_pep_IDs, tmpFl2)
   parallel::clusterExport(parClust,
-                          list("is.all.good", "diffLog", "LFQ.lm", "tmpFl1", "tmpFl2"),
+                          list("diffLog", "LFQ.lm", "tmpFl1", "tmpFl2"),
                           envir = environment()) # (Overwrite the package's versions in case we have local ones)
   invisible(parallel::clusterCall(parClust, \() {
     library(stats)
@@ -886,14 +892,11 @@ if ("LM" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
   colnames(lmDat) <- sub(topattern(pepInt_Root), "", colnames(lmDat))
   lmDat <- lmDat[match(names(quant_pep_IDs), row.names(lmDat)),
                  mySmpls]
-  #
+  rownames(lmDat) <- names(quant_pep_IDs)
   allQuants$LM <- lmDat
-  if (LFQ_ALGO == "LM") {
-    res2 <- lmDat
-  }
   cat("            Done!\n")
 }
-if (sum(c("IQ", "LIMPA", "QFEATURES") %in% c(LFQ_ALGO, RESCALING, ALSORUN))) {
+if (sum(c("IQ", "LIMPA", "QFEATURES", "MSSTATS") %in% c(LFQ_ALGO, RESCALING, ALSORUN))) {
   # These algorithms do not take too long to run,
   # thus they could be run either be run as LFQ, with or without subsequent re-scaling,
   # or used to provide re-scaling for another LFQ method.
@@ -903,18 +906,25 @@ if (sum(c("IQ", "LIMPA", "QFEATURES") %in% c(LFQ_ALGO, RESCALING, ALSORUN))) {
     w <- which(colnames(tmp4) %in% Pep.Intens.Nms)
     colnames(tmp4)[w] <- sub(topattern(pepInt_Root), "", colnames(tmp4)[w])
     tmp4 <- melt(tmp4, id.vars = c("pepID", "PG"))
-    tmp4 <- tmp4[which(!is.na(tmp4$value)),]
+    tmp4 <- tmp4[which(is.finite(tmp4$value)),]
     tmp4 <- list(protein_list = tmp4$PG,
                  sample_list = tmp4$variable,
                  id = tmp4$pepID,
                  quant = tmp4$value)
     if (pepInt_log != 2L) {
-      tmp4$quant <- tmp4$quant/base::log(pepInt_log, 2L)
+      tmp4$quant <- tmp4$quant/base::log(2L, pepInt_log)
     }
     l <- unique(lengths(tmp4))
     stopifnot(sum(c("protein_list", "sample_list", "id", "quant") %in% names(tmp4)) == 4L,
               length(l) == 1L,
               l > 0L)
+    # tmp4DF <- data.frame(protein_list = tmp4$protein_list,
+    #                      sample_list = tmp4$sample_list,
+    #                      id = tmp4$id,
+    #                      quant = tmp4$quant)
+    # View(tmp4DF)
+    # sum(is.na(tmp4DF$quant)) == 0L
+    # sum(!is.finite(tmp4DF$quant)) == 0L
     iqObj <- iq::fast_MaxLFQ(tmp4)
     iqDat <- iqObj$estimate
     if (pepInt_log != 2L) {
@@ -923,11 +933,8 @@ if (sum(c("IQ", "LIMPA", "QFEATURES") %in% c(LFQ_ALGO, RESCALING, ALSORUN))) {
     # Check columns/row order
     iqDat <- as.data.frame(iqDat)[match(names(quant_pep_IDs), row.names(iqDat)),
                                   mySmpls]
-    #
+    rownames(iqDat) <- names(quant_pep_IDs)
     allQuants$IQ <- iqDat
-    if (LFQ_ALGO == "IQ") {
-      res2 <- iqDat
-    }
   }
   if ("LIMPA" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
     cat("    ----- running limpa method -----\n")
@@ -936,14 +943,18 @@ if (sum(c("IQ", "LIMPA", "QFEATURES") %in% c(LFQ_ALGO, RESCALING, ALSORUN))) {
     #
     # LIMPA and LIMMA need LOG2!!!...
     if (pepInt_log != 2L) {
-      tmp4 <- tmp4/base::log(pepInt_log, 2L)
+      tmp4 <- tmp4/base::log(2L, pepInt_log)
     }
+    #
+    # Deal with infinites which may break dpcCN!
+    w <- which(!is.finite(tmp4))
+    tmp4[w] <- NA_real_
     #
     dpcfit <- limpa::dpcCN(tmp4)
     #dpcfit <- limpa::dpc(tmp4)
     #limpa::plotDPC(dpcfit)
-    dpcRes <- limpa::dpcQuant(tmp4, tmpPep2$PG, dpc = dpcfit) 
-    dpcDat <- dpcRes$E
+    dpcObj <- limpa::dpcQuant(tmp4, tmpPep2$PG, dpc = dpcfit) 
+    dpcDat <- dpcObj$E
     #
     # ... but we can work with the log base we want, so convert back!
     if (pepInt_log != 2L) {
@@ -951,7 +962,7 @@ if (sum(c("IQ", "LIMPA", "QFEATURES") %in% c(LFQ_ALGO, RESCALING, ALSORUN))) {
     }
     #
     # Code to replace every value based on 0 observations with NA:
-    # w <- which(dpcRes$other$n.observations == 0L)
+    # w <- which(dpcObj$other$n.observations == 0L)
     # dpcDat[w] <- NA_real_
     # However, Gordon Smyth does not recommend doing it.
     # For a discussion about the proper usage of limpa, why there are no missing values in its output quant matrix,
@@ -963,40 +974,88 @@ if (sum(c("IQ", "LIMPA", "QFEATURES") %in% c(LFQ_ALGO, RESCALING, ALSORUN))) {
     dpcDat <- as.data.frame(dpcDat)[match(names(quant_pep_IDs), row.names(dpcDat)),
                                     mySmpls]
     #
+    rownames(dpcDat) <- names(quant_pep_IDs)
     allQuants$LIMPA <- dpcDat
-    if (LFQ_ALGO == "LIMPA") {
-      res2 <- dpcDat
-    }
   }
   if ("QFEATURES" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
     cat("    ----- running QFeatures method -----\n")
     tmp4 <- tmpPep2
     w <- which(colnames(tmp4) %in% Pep.Intens.Nms)
+    tmp5 <- as.matrix(tmp4[, w])
+    wNotOK <- which(!is.finite(tmp5))
+    tmp5[wNotOK] <- NA_real_
+    tmp4[, w] <- tmp5
     colnames(tmp4)[w] <- sub(topattern(pepInt_Root), "", colnames(tmp4)[w])
     tmp4$pepID <- 1L:nrow(tmp4) # Otherwise aggregateFeatures throws an error
-    QFeat_obj <- QFeatures::readQFeatures(assayData = tmp4,
-                                          fnames = "pepID",
-                                          quantCols = mySmpls,
-                                          name = "peptides")
-    QFeat_obj <- QFeatures::aggregateFeatures(QFeat_obj,
-                                              i = "peptides",
-                                              fcol = "PG",
-                                              na.rm = FALSE,
-                                              name = "PG")
-    dfDat <- SummarizedExperiment::assay(QFeat_obj[["PG"]])
+    QFeatObj <- QFeatures::readQFeatures(assayData = tmp4,
+                                         fnames = "pepID",
+                                         quantCols = mySmpls,
+                                         name = "peptides")
+    QFeatObj <- QFeatures::aggregateFeatures(QFeatObj,
+                                             i = "peptides",
+                                             fcol = "PG",
+                                             na.rm = FALSE,
+                                             name = "PG")
+    qfDat <- SummarizedExperiment::assay(QFeatObj[["PG"]])
     # Check columns/row order
-    dfDat <- as.data.frame(dfDat)[match(names(quant_pep_IDs), row.names(dfDat)),
+    qfDat <- as.data.frame(qfDat)[match(names(quant_pep_IDs), row.names(qfDat)),
                                   mySmpls]
+    rownames(qfDat) <- names(quant_pep_IDs)
+    allQuants$QFEATURES <- qfDat
+  }
+  if ("MSSTATS" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
+    tmp4 <- tmpPep2
+    tmp4[, Pep.Intens.Nms] <- pepInt_log^tmp4[, Pep.Intens.Nms]
+    w <- which(colnames(tmp4) %in% Pep.Intens.Nms)
+    colnames(tmp4)[w] <- sub(topattern(pepInt_Root), "", colnames(tmp4)[w])
+    tmp4 <- dfMelt(tmp4, c("pepID", "ProteinName", "Run", "Intensity"), c("pepID", "PG"))
+    tmp4 <- tmp4[which(is.finite(tmp4$Intensity)),]
+    m1 <- match(tmp4$Run, experimentMap$Ref.Sample.Aggregate)
+    tmp4$Condition <- experimentMap[m1,
+                                    gsub(";", "", param$Volcano.plots.Aggregate.Level)]
+    tmp4$BioReplicate <- experimentMap$Replicate[m1]
+    m2 <- match(tmp4$pepID, Pep[[pep_IDs]])
+    tmp4$PeptideModifiedSequence <- Pep$`Modified sequence`[m2]
+    tmp4$PrecursorCharge <- 0 # (we currently do not differentiate between different charge states of the same peptidoforms)
+    tmp4$FragmentIon <- "NA"
+    tmp4$ProductCharge <- 0
+    tmp4$IsotopeLabelType <- "L"
+    uID <- unique(tmp4$ProteinName)
+    tmp4$tmp <- as.character(match(tmp4$ProteinName, uID))
+    tmp4$PeptideSequence  <- do.call(paste, c(tmp4[, c("PeptideModifiedSequence", "tmp")], sep = "pg"))
+    # ... not a mistake, cf. how MSstats defines feature!
     #
-    allQuants$QFEATURES <- dfDat
-    if (LFQ_ALGO == "QFEATURES") {
-      res2 <- dfDat
-    }
+    tmp4$PeptideModifiedSequence <- NULL
+    MSstats_list <- MSstats::dataProcess(tmp4,
+                                         normalization = FALSE,
+                                         summaryMethod = "TMP"#,
+                                         #numberOfCores = N.clust # Unfortunately not available on Windows!
+                                         )
+    MSstats_quant <- MSstats_list$ProteinLevelData
+    MSstats_quant <- reshape::cast(MSstats_quant,
+                                   Protein ~ originalRUN,
+                                   mean,
+                                   value = "LogIntensities",
+                                   na.rm = TRUE)
+    rownames(MSstats_quant) <- MSstats_quant$Protein
+    MSstats_quant$Protein <- NULL
+    MSstats_quant <- MSstats_quant[match(names(quant_pep_IDs), rownames(MSstats_quant)),
+                                   mySmpls]
+    rownames(MSstats_quant) <- names(quant_pep_IDs)
+    allQuants$MSSTATS <- MSstats_quant
   }
 }
+# tst1 <- vapply(names(allQuants), \(nm) { sum(!colnames(allQuants[[nm]]) %in% mySmpls) == 0L }, TRUE)
+# tst2 <- vapply(allQuants, nrow, 1L) == nrow(Prot)
+# tst3 <- lapply(allQuants, rownames)
+# tst3 <- as.data.frame(do.call(cbind, tst3))
+# colnames(tst3) <- names(allQuants)
+# tst3$Orig <- names(quant_pep_IDs)
+# tst3a <- apply(tst3, 1L, \(x) { length(unique(x)) })
+# w <- which(tst3a > 1L)
+# View(tst3[w,])
+res2 <- allQuants[[LFQ_ALGO]]
 colnames(res2) <- paste0(Expr.root.full, colnames(res2))
-stopifnot(sum(!colnames(res2) %in% quntNms) == 0L)
-rownames(res2) <- names(quant_pep_IDs)
 #
 #########################################
 # Code to compare the different methods #
@@ -1011,9 +1070,9 @@ rownames(res2) <- names(quant_pep_IDs)
 #              X_method = c(rep("LM", 3*nr),
 #                           rep("iq", 2*nr),
 #                           rep("limpa", nr)),
-#              Y = c(iqDat[[k]], dpcDat[[k]], dfDat[[k]],
-#                    dpcDat[[k]], dfDat[[k]],
-#                    dfDat[[k]]),
+#              Y = c(iqDat[[k]], dpcDat[[k]], qfDat[[k]],
+#                    dpcDat[[k]], qfDat[[k]],
+#                    qfDat[[k]]),
 #              Y_method = c(rep("iq", nr), rep("limpa", nr), rep("QFeatures", nr),
 #                           rep("limpa", nr), rep("QFeatures", nr),
 #                           rep("QFeatures", nr)))
@@ -1061,7 +1120,7 @@ rownames(res2) <- names(quant_pep_IDs)
 # res3a <- as.data.frame(do.call(cbind, setNames(lapply(1L:nrow(contr), \(i) { f0(i, y = lmDat) }), colnames(res3e))))
 # res3b <- as.data.frame(do.call(cbind, setNames(lapply(1L:nrow(contr), \(i) { f0(i, y = iqDat) }), colnames(res3e))))
 # res3c <- as.data.frame(do.call(cbind, setNames(lapply(1L:nrow(contr), \(i) { f0(i, y = dpcDat) }), colnames(res3e))))
-# res3d <- as.data.frame(do.call(cbind, setNames(lapply(1L:nrow(contr), \(i) { f0(i, y = dfDat) }), colnames(res3e))))
+# res3d <- as.data.frame(do.call(cbind, setNames(lapply(1L:nrow(contr), \(i) { f0(i, y = qfDat) }), colnames(res3e))))
 # tst <- lapply(colnames(res3e), \(k) {
 #   data.frame(Group = cleanNms(k),
 #              X = c(rep(res3a[[k]], 4L),
@@ -1097,8 +1156,8 @@ rownames(res2) <- names(quant_pep_IDs)
 #
 # Re-scaling step
 if (!skip_reScaling) {
-  cat(" - Rescaling expression values\n")
-  if (RESCALING %in% c("MAXLFQ", "IQ", "LIMPA", "QFEATURES", "LM")) {
+  cat(" - Rescaling expression values, method =", RESCALING, "\n")
+  if (RESCALING %in% c("MAXLFQ", "IQ", "LIMPA", "QFEATURES", "LM", "MSSTATS")) {
     rescVal <- if (RESCALING == "MAXLFQ") {
       data.frame(PG = Prot$temp_IDs,
                  Value = base::log(Prot$"Summed Intensities", pepInt_log))
@@ -1228,9 +1287,12 @@ if ("IQ" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
   RES$iq_MaxLFQ <- iqObj
 }
 if ("LIMPA" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
-  RES$EList_obj <- dpcRes
+  RES$EList_obj <- dpcObj
 }
 if ("QFEATURES" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
-  RES$QFeatures_obj <- QFeat_obj
+  RES$QFeatures_obj <- QFeatObj
+}
+if ("MSSTATS" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
+  RES$MSstats_list <- MSstats_list
 }
 quantData_list %<o% RES

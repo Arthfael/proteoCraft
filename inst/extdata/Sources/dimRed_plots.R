@@ -23,15 +23,17 @@ if (dataType == "PG") {
   nameCol <- PG$Label
   contCol <- PG$`Potential contaminant`
   avgVal <- PG$"Av. log10 abundance"
+  insert <- "Protein Groups"
 }
 if (dataType == "modPeptides") {
   dimRedDat <- dimRedDat[match(ptmpep$id, rownames(dimRedDat)),]
   rownames(dimRedDat) <- nameCol <- ptmpep$Name
   contCol <- ptmpep$`Potential contaminant`
   avgVal <- rowMeans(dimRedDat, na.rm = TRUE)
+  insert <- paste0(ptm, "-modified peptides")
 }
 datMatch <- match(row.names(dimRedDat), nameCol)
-filt <- which((apply(dimRedDat[, kol], 1L, \(x) { length(is.all.good(x)) }) == ncol(dimRedDat))
+filt <- which((apply(dimRedDat[, kol], 1L, \(x) { sum(is.finite(x)) }) == ncol(dimRedDat))
               &((is.na(contCol[datMatch]))|(contCol[datMatch] != "+")))
 #
 # Plots
@@ -48,16 +50,16 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
   # PCA plots, by sample
   if (dataType == "PG") {
     msg <- "PCA plot, by sample"
-    dir <- paste0(wd, "/Dimensionality red. plots/PCA")
+    myLittleDir <- paste0(wd, "/Dimensionality red. plots/PCA")
     ttl <- "PCA plot - Samples (PG-level)"
   }
   if (dataType == "modPeptides") {
     msg <- paste0(ptm, " PCA plot, by sample")
-    dir <- paste0(modDirs[1], "/PCA")
+    myLittleDir <- paste0(modDirs[1], "/PCA")
     ttl <- paste0(ptm, " PCA plot - Samples")
   }
-  if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- union(dirlist, dir)
+  if (!dir.exists(myLittleDir)) { dir.create(myLittleDir, recursive = TRUE) }
+  dirlist <- union(dirlist, myLittleDir)
   ReportCalls <- AddMsg2Report(Space = FALSE)
   pc <- prcomp(t(dimRedDat), scale. = TRUE)
   scores <- as.data.frame(pc$x)
@@ -95,8 +97,8 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       geom_text_repel(aes(label = Sample), size = 2.5, show.legend = FALSE)
     plot <- if (substr(form, 1L, 1L) == "~") { plot + facet_wrap(form) } else { plot + facet_grid(form) }
     suppressMessages({
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggsave(paste0(myLittleDir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggsave(paste0(myLittleDir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     })
     #
     scores$"Samples group" <- factor(scores$Group)
@@ -118,11 +120,11 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                                   type = "scatter", mode = "text", showlegend = FALSE)
     }
     plot_lyPCAProt <- layout(plot_lyPCAProt, title = ttl)
-    setwd(dir)
-    saveWidget(plot_lyPCAProt, paste0(dir, "/", ttl, ".html"))
+    setwd(myLittleDir)
+    saveWidget(plot_lyPCAProt, paste0(myLittleDir, "/", ttl, ".html"))
     setwd(wd)
     dimRedPlotLy[["Samples PCA"]] <- plot_lyPCAProt
-    system(paste0("open \"", dir, "/", ttl, ".html"))
+    system(paste0("open \"", myLittleDir, "/", ttl, ".html"))
     # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
     ReportCalls <- AddPlot2Report()
   } else { warning("PCA failed, investigate!") }
@@ -132,9 +134,9 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     # PCA, t-SNE and UMAP plots, by protein group
     msg <- "PCA plots, by protein group"
     ReportCalls <- AddMsg2Report(Space = FALSE)
-    dir <- paste0(wd, "/Dimensionality red. plots/PCA")
-    if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    dirlist <- union(dirlist, dir)
+    myLittleDir <- paste0(wd, "/Dimensionality red. plots/PCA")
+    if (!dir.exists(myLittleDir)) { dir.create(myLittleDir, recursive = TRUE) }
+    dirlist <- union(dirlist, myLittleDir)
     pc <- prcomp(dimRedDat, scale. = TRUE)
     scores <- as.data.frame(pc$x)
     pv <- round(100L*(pc$sdev)^2L / sum(pc$sdev^2L), 0L)
@@ -184,7 +186,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     #aggregate(scores$Classifier, list(scores$Classifier), length)
     if (!LocAnalysis) { # -> Class based on regulation, supplemented with compartments
       g <- grep("^Regulated - ", colnames(PG), value = TRUE)
-      allVal[1L] <- nullVal <- paste(rep(" ", length(g)), collapse = "/")
+      allVal[1L] <- nullVal <- paste(rep(" ", length(g)), collapse = " / ")
       w <- which(scores$Classifier == " ")
       scores$Classifier[w] <- nullVal
       datMatch <- match(row.names(dimRedDat), nameCol)
@@ -259,8 +261,8 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     #poplot(plot, 12L, 22L)
     ReportCalls <- AddPlot2Report()
     suppressMessages({
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggsave(paste0(myLittleDir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggsave(paste0(myLittleDir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     })
     #
     # Plotly
@@ -345,10 +347,10 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     plot_lyPCAProt2 <- layout(plot_lyPCAProt2, title = ttl,
                               uirevision = TRUE)
     dimRedPlotLy[["PCA"]] <- plot_lyPCAProt2
-    setwd(dir)
-    saveWidget(plot_lyPCAProt2, paste0(dir, "/", ttl, ".html"))
+    setwd(myLittleDir)
+    saveWidget(plot_lyPCAProt2, paste0(myLittleDir, "/", ttl, ".html"))
     setwd(wd)
-    system(paste0("open \"", dir, "/", ttl, ".html"))
+    system(paste0("open \"", myLittleDir, "/", ttl, ".html"))
     # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
     #
     msg <- "t-SNE plots, by protein group"
@@ -357,9 +359,9 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     if (!require("Rtsne", quietly = TRUE)) { install.packages("Rtsne") }
     require(Rtsne)
     tsne <- try(Rtsne(dimRedDat, dims = 3L, perplexity = 30L, verbose = TRUE, max_iter = 500L), silent = TRUE)
-    dir <- paste0(wd, "/Dimensionality red. plots/t-SNE")
-    if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    dirlist <- union(dirlist, dir)
+    myLittleDir <- paste0(wd, "/Dimensionality red. plots/t-SNE")
+    if (!dir.exists(myLittleDir)) { dir.create(myLittleDir, recursive = TRUE) }
+    dirlist <- union(dirlist, myLittleDir)
     if (!inherits(tsne, "try-error")) {
       scores2 <- as.data.frame(tsne$Y)[, 1L:3L]
       rownames(scores2) <- rownames(dimRedDat)
@@ -389,8 +391,8 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       #poplot(plot, 12, 22)
       ReportCalls <- AddPlot2Report()
       suppressMessages({
-        ggsave(paste0(dir, "/", ttl2, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-        ggsave(paste0(dir, "/", ttl2, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+        ggsave(paste0(myLittleDir, "/", ttl2, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+        ggsave(paste0(myLittleDir, "/", ttl2, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
       })
       #
       # Plotly
@@ -435,10 +437,10 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       plot_lytSNE <- layout(plot_lytSNE, title = ttl2,
                             uirevision = TRUE)
       dimRedPlotLy[["t-SNE"]] <- plot_lytSNE
-      setwd(dir)
-      saveWidget(plot_lytSNE, paste0(dir, "/", ttl2, ".html"))
+      setwd(myLittleDir)
+      saveWidget(plot_lytSNE, paste0(myLittleDir, "/", ttl2, ".html"))
       setwd(wd)
-      #system(paste0("open \"", dir, "/", ttl2, ".html"))
+      #system(paste0("open \"", myLittleDir, "/", ttl2, ".html"))
     } else { warning(tsne) }
     #
     msg <- "UMAP plots, by protein group"
@@ -447,9 +449,9 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     if (!require("umap", quietly = TRUE)) { install.packages("umap") }
     require(umap)
     UMAP <- try(umap(dimRedDat, n_components = 3L), silent = TRUE)
-    dir <- paste0(wd, "/Dimensionality red. plots/UMAP")
-    if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    dirlist <- union(dirlist, dir)
+    myLittleDir <- paste0(wd, "/Dimensionality red. plots/UMAP")
+    if (!dir.exists(myLittleDir)) { dir.create(myLittleDir, recursive = TRUE) }
+    dirlist <- union(dirlist, myLittleDir)
     if (!inherits(UMAP, "try-error")) {
       UMAPlayout <- data.frame(UMAP$layout)
       rownames(UMAPlayout) <- rownames(dimRedDat)
@@ -478,8 +480,8 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       #poplot(plot, 12, 22)
       ReportCalls <- AddPlot2Report()
       suppressMessages({
-        ggsave(paste0(dir, "/", ttl3, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-        ggsave(paste0(dir, "/", ttl3, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+        ggsave(paste0(myLittleDir, "/", ttl3, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+        ggsave(paste0(myLittleDir, "/", ttl3, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
       })
       #
       # Plotly
@@ -524,12 +526,12 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       plot_lyUMAP <- layout(plot_lyUMAP, title = ttl3,
                             uirevision = TRUE)
       dimRedPlotLy[["UMAP"]] <- plot_lyUMAP
-      setwd(dir)
-      saveWidget(plot_lyUMAP, paste0(dir, "/", ttl3, ".html"))
+      setwd(myLittleDir)
+      saveWidget(plot_lyUMAP, paste0(myLittleDir, "/", ttl3, ".html"))
       setwd(wd)
-      #system(paste0("open \"", dir, "/", ttl3, ".html"))
+      #system(paste0("open \"", myLittleDir, "/", ttl3, ".html"))
     } else { warning(umap) }
   }
-} else { warning("Not enough observations to create Protein Groups-level dimensionality reduction plots!") }
+} else { warning(paste0("Not enough observations to create ", insert, "-level dimensionality reduction plots!")) }
 ReportCalls <- AddSpace2Report()
-saveFun(dimRedPlotLy, file = paste0(dir, "/DimRedPlots.RData"))
+saveFun(dimRedPlotLy, file = paste0(wd, "/Dimensionality red. plots/DimRedPlots.RData"))

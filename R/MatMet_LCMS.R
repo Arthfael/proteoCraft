@@ -47,9 +47,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
   } else { missing }
   #
   # Create cluster
-  # Create cluster
   stopCl <- FALSE
-  if ((is.null(cl))||(!inherits(cl, "cluster"))) {
+  if (misFun(cl) || is.null(cl) || (!inherits(cl, "cluster"))) {
     dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1L }
     nMax <- max(c(dc - N.reserved, 1L))
@@ -256,7 +255,9 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     BrMeth$MS_method.exists <- file.exists(BrMeth$MS_method)
     w <- which(BrMeth$MS_method.exists)
     uBrMeth$MS_method <- BrMeth$MS_method[w][match(uBrMeth$MethodID, BrMeth$MethodID[w])]
-    uBrMeth$MS_meth <- lapply(uBrMeth$MS_method, \(fl) { #fl <- BrMeth$MS_method[w[1L]]
+    uBrMeth$MS_meth <- NA
+    w2 <- which(!is.na(uBrMeth$MS_method))
+    uBrMeth$MS_meth[w2] <- lapply(uBrMeth$MS_method[w2], \(fl) { #fl <- uBrMeth$MS_method[w2][1L]
       #x <- readLines(fl)
       #x[1L:100L]
       SQltTDF <- dbConnect(drv = RSQLite::SQLite(), dbname = fl)
@@ -381,7 +382,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       pr <- pr[2L:nrow(pr),]
       return(as.data.frame(pr))
     })
-    uBrMeth$MS_method_parsed <- lapply(uBrMeth$MS_meth, \(x) { #x <- uBrMeth$MS_meth[[1L]]
+    uBrMeth <- uBrMeth[which(!is.na(uBrMeth$MS_meth)),]
+    uBrMeth$MS_method_parsed <- lapply(uBrMeth$MS_meth, \(x) { #x <- uBrMeth$MS_meth[1L]
       fl <- paste0(getwd(), "/", x$Name)
       GlobMetDat <- x$Method$Global
       PropsDat <- x$Method$Properties
@@ -471,7 +473,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
           x[[4L]] <- paste0("(frame groups ",  paste(x[[4L]][1L:(l-1L)], collapse = ", "), " and ",
                             x[[4L]][l], ", resp.)")
         } else {
-          if ((x[[1L]] == "PASEF Current Intens/Previous Intens")&&(x[[2L]] == "Off")) { res <- "" }
+          if ((x[[1L]] == "PASEF Current Intens/Previous Intens") && (x[[2L]] == "Off")) { res <- "" }
         }
         if (is.na(res)) {
           res <- paste0(tolower(x[[1L]]), " = ", x[[2L]])
@@ -498,7 +500,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       }
       DIAtst <- grepl("dia", PropsDF2$Text[which(PropsDF2$Name == "Scan Mode")], ignore.case = TRUE)
       PRMtst <- grepl("prm", PropsDF2$Text[which(PropsDF2$Name == "Scan Mode")], ignore.case = TRUE)
-      if ((!DIAtst)&&(is.logical(FrmDat))&&(is.na(FrmDat))) {
+      if ((!DIAtst) && is.logical(FrmDat) && is.na(FrmDat)) {
         Txt <- paste0("Isolation: ", isoWdths$Width[1L], " Th for target precursors up to ",
                       isoWdths$MZ[1L], " Th, then linear increase up to a maximum of ",
                       isoWdths$Width[2L], " Th at ",  isoWdths$MZ[2L], " Th; ",
@@ -730,7 +732,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         TXT <- c()
         #View(data.frame(Method = meth[which(meth != "")]))
         meth <- meths[[i_meth]]
-        if ((length(meth))&&(sum(nchar(meth)))) {
+        if (length(meth) && sum(nchar(meth))) {
           g <- grep("Method 1 is ", meth)
           lcMeth <- meth[1L:(g-1L)]
           msMeth <- meth[g:length(meth)]
@@ -908,7 +910,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
               ISOWINOFFSET <- if (ISOWINOFFSET == "0.0 m/z") { "(no offset)"} else { paste0("with ", ISOWINOFFSET, " offset") }
               F1MSS <- gsub("^ *Fixed first mass *| *$", "", grep("Fixed first mass", unlist(MSs$MS2$Data), value = TRUE))
               F1MSStst <- suppressWarnings(as.numeric(F1MSS))
-              F1MSS <- if ((!is.na(F1MSStst))&&(F1MSStst)) { paste0(F1MSS, " m/z fixed first mass, ") } else { "" }
+              F1MSS <- if ((!is.na(F1MSStst)) && F1MSStst) { paste0(F1MSS, " m/z fixed first mass, ") } else { "" }
               NCE <- gsub("^ *\\(N\\)CE */ *stepped *\\(N\\)CE +nce: *| *$", "", grep("\\(N\\)CE */ *stepped \\(N\\)CE +nce:", unlist(MSs$MS2$Data), value = TRUE))
               SCRNG <- sapply(c("MS1", "MS2"), \(x) { #x <- "MS1"
                 ln <- grep("^ *Scan range*", unlist(MSs[[x]]$Data))
@@ -926,12 +928,12 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                   ExclZ <- ExclZ[which(ExclZ != "unassigned")]
                 }
                 ExclZ[which(nchar(ExclZ) == 1L)] <- paste0(ExclZ[which(nchar(ExclZ) == 1L)], POL)
-                tst2 <- (length(grep("^>", ExclZ)) == 1L)&&(grep("^>", ExclZ) == length(ExclZ))
+                tst2 <- (length(grep("^>", ExclZ)) == 1L) && (grep("^>", ExclZ) == length(ExclZ))
                 if (tst2) { ExclZ <- ExclZ[1L:(length(ExclZ)-1L)] }
                 if (length(ExclZ) > 1L) { ExclZ <- c(paste(ExclZ[1L:(length(ExclZ)-1L)], collapse = ", "), ExclZ[length(ExclZ)]) }
                 ExclZ <- paste(ExclZ, collapse = c(" and ", ", ")[(tst1|tst2)+1L])
                 EXCLZ <- paste0("excluding charges ", ExclZ)
-                if (tst1||tst2) {
+                if (tst1 || tst2) {
                   EXCLZ <- if (tst1+tst2) { paste0(EXCLZ, " and higher or unassigned,") } else {
                     paste0(EXCLZ, " and ", c("higher", "unassigned")[which(c(tst1, tst2))], ",")
                   }

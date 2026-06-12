@@ -16,7 +16,7 @@ Volc.plot_2(
   h.lines,
   v.lines_min = NULL,
   labels = FALSE,
-  displ.limit = 50,
+  displ.limit = 50L,
   save = FALSE,
   print = TRUE,
   col_return = FALSE

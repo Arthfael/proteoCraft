@@ -10,11 +10,11 @@ if (protrul) {
         em <- em2[which(em2[[SubCellFracAggr$column]] == grp),]
         kol <- paste0(prtRfRoot, em$Ref.Sample.Aggregate)
         tempPG[[paste0(prtRfRoot, grp)]] <- apply(10^tempPG[, kol], 1L, \(x) {
-          log10(sum(is.all.good(x)))
+          log10(sum(x[which(is.finite(x))]))
         })
       }
       tempPG[[paste0(exprsRt, grp2)]] <- apply(tempPG[, paste0(prtRfRoot, unique(em2[[SubCellFracAggr$column]]))], 1L, \(x) {
-        mean(is.all.good(x))
+        mean(x[which(is.finite(x))])
       })
     }
   }

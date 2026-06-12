@@ -193,23 +193,22 @@ Shiny.bindAll(table.table().node());"))
     Exp.map$Ref.Sample.Aggregate[which((!1L:nrow(Exp.map) %in% mixed)&(Exp.map$Isobaric.set == IsoMap$Set[i]))]
   }), setNms)
   # Either intensity from IRS channel, or failing that log10 row means for the group
-  clusterExport(parClust, "is.all.good", envir = environment())
   irsRowMeans <- setNames(lapply(setNms, \(nm) {
     x <-  if (nm %in% mixedSets) {
       tmpDat1Imp[, Exp.map$Ref.Sample.Aggregate[mixed[which(mixedSets == nm)]], drop = FALSE]
     } else {
       tmpDat1Imp[, irsSamples[[nm]]]
     }
-    #log10(parApply(parClust, tmpDat1Imp[, x], 1L, \(y) { sum(10^is.all.good(y)) }))
-    #parApply(parClust, tmpDat1Imp[, x], 1L, \(y) { sum(is.all.good(y)) })
-    x <- parApply(parClust, x, 1L, \(y) { mean(is.all.good(y)) })
+    #log10(parApply(parClust, tmpDat1Imp[, x], 1L, \(y) { sum(10L^y[which(is.finite(y))]) }))
+    #parApply(parClust, tmpDat1Imp[, x], 1L, \(y) { sum(y[which(is.finite(y))]) })
+    x <- parApply(parClust, x, 1L, \(y) { mean(y[which(is.finite(y))]) })
     return(x)
   }), setNms)
   #View(do.call(cbind, irsRowMeans))
   # log10 geometric mean
   allMeans <- parApply(parClust, tmpDat1Imp[, currSamples], 1L, \(x) {
-    #log10(mean(10^is.all.good(x)))
-    mean(is.all.good(x))
+    #log10(mean(10L^x[which(is.finite(x))]))
+    mean(x[which(is.finite(x))])
   })
   #View(data.frame(meanOfAll = allMeans))
   # log10 scaling factors:
@@ -232,7 +231,7 @@ Shiny.bindAll(table.table().node());"))
   tmpDat2 <- tmpDat2[, colnames(tmpDat2Imp)]
   #
   wAG2 <- wAG1
-  #wAGstrict <- which(parApply(parClust, tmpDat2, 1L, \(x) { length(is.all.good(x)) }) == length(currSamples))
+  #wAGstrict <- which(parApply(parClust, tmpDat2, 1L, \(x) { sum(is.finite(x)) }) == length(currSamples))
   # Plot
   map <- Exp.map[, c("Ref.Sample.Aggregate", "Isobaric.set")]
   w1 <- which(colnames(tmpDat1Imp) %in% map$Ref.Sample.Aggregate) # Should be all

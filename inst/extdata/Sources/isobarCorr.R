@@ -60,7 +60,7 @@ if ((LabelType == "Isobaric")&&
           }))
           temp <- as.data.frame(t(parApply(parClust, e[,kol], 1L, \(x) {
             b <- as.numeric(x)
-            b[which(!is.all.good(b, 2L))] <- 0
+            b[which(!is.finite(b))] <- 0
             sb <- sum(b)
             if (sb > 0) {
               #showEqn(round(A, 3), b)
@@ -135,7 +135,7 @@ if ((LabelType == "Isobaric")&&
           clusterCall(parClust, \() library(proteoCraft))
           temp <- as.data.frame(t(parApply(parClust, e[, kol], 1L, \(x) {
             b <- as.numeric(x)
-            b[which(!is.all.good(b, 2L))] <- 0
+            b[which(!is.finite(b))] <- 0
             sb <- sum(b)
             if (sb > 0) {
               #showEqn(round(A, 3), b)

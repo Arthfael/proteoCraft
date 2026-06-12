@@ -1,7 +1,8 @@
 # Protein group quantitation
 # --------------------------
 #
-# This script calculates protein group-level quantitative values based on those of individual peptides.
+# This script calculates protein group-level quantitative values based on those of individual peptides
+# (through running the subscript protQuant.R - formerly a function - keep the function as its default arguments are still loaded by the script!)
 # Exact quantitation parameters (e.g. summarization method) are defined earlier in the workflow.
 
 # Default parameter for reps, to be over-written when re-running post-re-normalisation
@@ -34,9 +35,8 @@ if ("PepFoundInAtLeast" %in% names(tmpPar)) {
   }
 }
 PepFoundInAtLeast %<o% PepFoundInAtLeast
-clusterExport(parClust, "is.all.good", envir = environment())
 tst <- parApply(parClust, pep[, unlist(kol), drop = FALSE], 1L, \(x) {
-  sum(is.all.good(x) > 0)
+  sum(x[which(is.finite(x))] > 0)
 })
 Pep2Use %<o% which(tst >= PepFoundInAtLeast)
 #
@@ -55,10 +55,11 @@ if (scrptType == "withReps") {
     PepFoundInAtLeastGrp <- maxAllowed
   }
   tst <- pep[, unlist(kol)]
-  clusterExport(parClust, list("tst", "kol", "PepFoundInAtLeastGrp", "is.all.good"), envir = environment())
+  clusterExport(parClust, list("tst", "kol", "PepFoundInAtLeastGrp"), envir = environment())
   tst <- parSapply(parClust, 1L:nrow(pep), \(x) {
     x <- max(vapply(kol, \(kl) {
-      sum(is.all.good(unlist(tst[x, kl])) > 0)
+      x <- unlist(tst[x, kl])
+      sum(x[which(is.finite(x))] > 0)
     }, 1L) >= PepFoundInAtLeastGrp)
     return(x)
   }) > 0L
@@ -101,7 +102,7 @@ if (scrptType == "withReps") {
   smplsMap <- Exp.map
   smplsKol <- "Ref.Sample.Aggregate"
   if (post_ReNorm_reRun) { bckpNm <- paste0(bckpNm, "_reNorm") }
-  refNm <- if (post_ReNorm_reRun) { "Back-norm" } else {
+  refNm <- if (post_ReNorm_reRun && accept_PG_reNorm) { "Back-norm" } else {
     rev(setdiff(names(pep.ref), "Back-norm"))[1L]
   }
   pepInt_col <- pep.ref[refNm]
@@ -121,13 +122,14 @@ if (scrptType == "withReps") {
   Kols <- paste0(pepInt_col, smplsMap$Ref.Sample.Aggregate)
   Kols <- Kols[which(Kols %in% colnames(pep))]
   tmp <- pep[, Kols]
-  clusterExport(parClust, list("smplsMap", "VPAL", "pep.ref", "is.all.good", "tmp", "pepInt_col"), envir = environment())
+  clusterExport(parClust, list("smplsMap", "VPAL", "pep.ref", "tmp", "pepInt_col"), envir = environment())
   CVs <- parSapply(parClust, VPAL$values, \(x) { #x <- VPAL$values[1L] #x <- VPAL$values[4L]
     smpls <- smplsMap$Ref.Sample.Aggregate[which(smplsMap[[VPAL$column]] == x)]
     kols <- paste0(pepInt_col, smpls)
     kols <- intersect(kols, colnames(tmp))
     x <- apply(tmp[, kols, drop = FALSE], 1L, \(y) {
-      y <- is.all.good(log10(unlist(y)))
+      y <- log10(unlist(y))
+      y <- y[which(is.finite(y))]
       y <- if (length(y)) {
         sd(y)/mean(y)
       } else { NA }
@@ -179,7 +181,7 @@ if ((length(inDirs) == 1L)&&(QuantUMS)&&("Quantity Quality" %in% colnames(ev))) 
   #   theme_bw()
   # poplot(plot, 12L, 22L)
 }
-w <- which(!is.all.good(pep$Weights, 2L))
+w <- which(!is.finite(pep$Weights))
 pep$Weights[w] <- min(pep$Weights, na.rm = TRUE)
 #
 m <- max(pep$Weights)
@@ -226,10 +228,9 @@ quantArgs %<o% list(pg_PepIDs = Pep4Quant,
                     N.reserved = 1L,
                     refGroups = NULL,
                     ratGroups = NULL,
-                    alsoRun = c("LM", "IQ"))
+                    alsoRun = c())
 if (scrptType == "withReps") {
   quantArgs$param <- tmpPar
-  quantArgs$alsoRun <- c(quantArgs$alsoRun, "limpa", "QFeatures")
 }
 if ((scrptType == "noReps")&&(MakeRatios)) {
   quantArgs$refGroups <- list(values = unique(smplsMap$Ratios_group),
@@ -246,6 +247,12 @@ cat(msg)
 #loadpack <- TRUE #loadpack <- FALSE
 #source(parSrc)
 quantArgs2 <- quantArgs
+if (post_ReNorm_reRun) {
+  quantArgs2$alsoRun <- union(quantArgs2$alsoRun, c("LM", "iq"))
+  if (scrptType == "withReps") {
+    quantArgs2$alsoRun <- union(quantArgs2$alsoRun, c("limpa", "QFeatures", "MSstats"))
+  }
+}
 quantArgs2$cl <- parClust
 quantArgs2$Prot <- PG
 quantArgs2$Pep <- pep[Pep2Use,]

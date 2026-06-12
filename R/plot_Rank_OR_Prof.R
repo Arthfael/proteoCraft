@@ -76,7 +76,7 @@
         #}
       }
     }
-    myData <- myData[which(is.all.good(myData$Y, 2L)),]
+    myData <- myData[which(is.finite(myData$Y)),]
     myData[[kolnm]] <- myData$Y
     if (!nrow(myData)) { return(list(plotly_saved = FALSE,
                                      step = 1L)) }
@@ -338,7 +338,7 @@
         #}
       }
     }
-    myData <- myData[which(is.all.good(myData$Y, 2L)),]
+    myData <- myData[which(is.finite(myData$Y)),]
     if (!nrow(myData)) { return(list(plotly_saved = FALSE,
                                      step = 3L)) }
     #

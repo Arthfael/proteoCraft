@@ -15,8 +15,9 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 # for (nrmgrp in NormGrps) {
 #   w <- which(pep$`Normalisation group` == nrmgrp)
 #   for (k in g) {
-#     m <- median(is.all.good(pep[w, k]))
-#     #m <- mlv(is.all.good(pep[[k]]), method = "Parzen")[1L]
+#     m <- pep[w, k]
+#     m <- median(m[which(is.finite(m))])
+#     #m <- mlv(pep[which(is.finite(pep[[k]])), k], method = "Parzen")[1L]
 #     pep[w, paste0("norm. ", k)] <- pep[w, k]-m
 #     Norm.log2.Pep.Ratios[paste0(nrmgrp, " - ", gsub(topattern(pep.ratios.ref[1L]), "", k))] <- m
 #   }
@@ -38,8 +39,8 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #       library(proteoCraft)
 #       return()
 #     }))
-#     norm_temp <- parSapply(parClust, 0:length(agg), \(i) { #i <- 1L
-#       if (i == 0) {
+#     norm_temp <- parSapply(parClust, 0L:length(agg), \(i) { #i <- 1L
+#       if (i == 0L) {
 #         kol <- grep(paste0(topattern(pep.ratios.ref[1L]), ".+_REF\\.to\\.REF_"), colnames(pep), value = TRUE)
 #       } else {
 #         x <- agg[i]
@@ -115,17 +116,17 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #       temp2 <- Isapply(strsplit(temp$variable, "___"), unlist)
 #       colnames(temp2) <- unlist(Aggregate.map$Characteristics[which(Aggregate.map$Aggregate.Name == RSA$aggregate)])
 #       temp[, colnames(temp2)] <- temp2
-#       if (length(Ratios.Plot.wrap$names) > 1L) {
-#         temp$Wrap <- do.call(paste, c(temp2[, Ratios.Plot.wrap$names], sep = "_"))
-#       } else { temp$Wrap <- temp2[[Ratios.Plot.wrap$names]] }
-#       if (length(Ratios.Plot.colour$names) > 1L) {
-#         temp$Colour <- do.call(paste, c(temp2[, Ratios.Plot.colour$names], sep = "_"))
-#       } else { temp$Colour <- temp2[[Ratios.Plot.colour$names]] }
+#       temp$Wrap <- if (length(Ratios.Plot.wrap$names) > 1L) {
+#         do.call(paste, c(temp2[, Ratios.Plot.wrap$names], sep = "_"))
+#       } else { temp2[[Ratios.Plot.wrap$names]] }
+#       temp$Colour <- if (length(Ratios.Plot.colour$names) > 1L) {
+#         do.call(paste, c(temp2[, Ratios.Plot.colour$names], sep = "_"))
+#       } else { temp2[[Ratios.Plot.colour$names]] }
 #       temp$X <- do.call(paste, c(temp[, c("Norm", "Colour")], sep = "_"))
 #       temp$X <- factor(temp$X, levels = unique(unlist(vapply(c("Original", "Normalised"), \(x) {
 #         paste(x, unique(temp2[[Ratios.Plot.colour$names]]), sep = "_")
 #       }, ""))))
-#       temp <- temp[which(is.all.good(temp$value, 2L)),]
+#       temp <- temp[which(is.finite(temp$value)),]
 #       dir <- paste0(wd, "/Workflow control/Peptides/Ratios")
 #       if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 #       dirlist <- unique(c(dirlist, dir))
@@ -162,7 +163,7 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #     temp$variable[which(temp$Norm == "Original")] <- gsub_Rep(topattern(pep.ratios.ref[1L]), "", temp$variable[which(temp$Norm == "Original")])
 #     temp$variable[which(temp$Norm == "Normalised")] <- gsub_Rep(topattern(pep.ratios.ref[length(pep.ratios.ref)]), "", temp$variable[which(temp$Norm == "Normalised")])
 #     temp$Ratios.Group <- gsub_Rep("_REF.to.REF_[0-9]+$", "", temp$variable)
-#     temp <- temp[which(is.all.good(temp$value, 2L)),]
+#     temp <- temp[which(is.finite(temp$value)),]
 #     dir <- paste0(wd, "/Workflow control/Peptides/Ratios")
 #     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 #     dirlist <- unique(c(dirlist, dir))

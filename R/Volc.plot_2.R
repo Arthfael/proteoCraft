@@ -38,15 +38,15 @@ Volc.plot_2 <- function(data,
                         h.lines,
                         v.lines_min = NULL,
                         labels = FALSE,
-                        displ.limit = 50,
+                        displ.limit = 50L,
                         save = FALSE,
                         print = TRUE,
                         col_return = FALSE) {
   stopifnot(v.lines > 0)
-  if (is.null(a)) {
-    tmp <- data[, c(ids, x, y)]; colnames(tmp) <- c("Names", "X", "Y"); Alpha <- FALSE
+  tmp <- if (is.null(a)) {
+    data[, c(ids, x, y)]; colnames(tmp) <- c("Names", "X", "Y"); Alpha <- FALSE
   } else {
-    tmp <- data[, c(ids, x, y, a)]; colnames(tmp) <- c("Names", "X", "Y", "Alpha"); Alpha <- TRUE
+    data[, c(ids, x, y, a)]; colnames(tmp) <- c("Names", "X", "Y", "Alpha"); Alpha <- TRUE
   }
   tmp$Colour <- ""
   if (!is.null(v.lines)) {
@@ -61,38 +61,34 @@ Volc.plot_2 <- function(data,
   myColors <- c("red","blue","black")
   names(myColors) <- c("Increased","Decreased","")
   colScale <- ggplot2::scale_colour_manual(name = "colour", values = myColors)
-  filter <- which(is.all.good(tmp$Y, mode = "logical"))
+  filter <- which(is.finite(tmp$Y))
   tmp <- tmp[filter,]
   xm <- max(abs(tmp$X))
   ym <- max(tmp$Y)
   test <- which(tmp$Names != "")
-  if ((!is.null(displ.limit))&&(displ.limit > 0)) {
+  if ((!is.null(displ.limit)) && displ.limit) {
     if (length(test) > displ.limit) {
       a <- abs(tmp$X)
       a[which(tmp$Names == "")] <- 0
-      b <- length(a) + 1 - rank(a, ties.method = "average")
+      b <- length(a) + 1L - rank(a, ties.method = "average")
       tmp$Names[which(b > displ.limit)] <- ""
     }
   }
-  if (!Alpha) {
-    plot1 <- ggplot2::ggplot(tmp) +
-      ggplot2::geom_point(ggplot2::aes(x = X, y = Y, colour = Colour)) +
-      ggplot2::theme_bw() +
-      ggplot2::coord_fixed(ratio = 2*xm/ym, xlim = c(-xm, xm)*1.05, ylim = c(0, ym)*1.05,
-                           expand = FALSE) +
-      colScale +
-      ggplot2::xlab("log2(Ratio)") + ggplot2::ylab("-log10(P value)") +
-      ggplot2::ggtitle(title)
+  plot1 <- ggplot2::ggplot(tmp)
+  plot1 <- if (Alpha) {
+    plot1 +
+      ggplot2::geom_point(ggplot2::aes(x = X, y = Y, colour = Colour, alpha = Alpha))
   } else {
-    plot1 <- ggplot2::ggplot(tmp) +
-      ggplot2::geom_point(ggplot2::aes(x = X, y = Y, colour = Colour, alpha = Alpha)) +
-      ggplot2::theme_bw() +
-      ggplot2::coord_fixed(ratio = 2*xm/ym, xlim = c(-xm, xm)*1.05, ylim = c(0, ym)*1.05,
-                           expand = FALSE) +
-      colScale +
-      ggplot2::xlab("log2(Ratio)") + ggplot2::ylab("-log10(P value)") +
-      ggplot2::ggtitle(title)
+    plot1 +
+      ggplot2::geom_point(ggplot2::aes(x = X, y = Y, colour = Colour))
   }
+  plot1 <- plot1 +
+    ggplot2::theme_bw() +
+    ggplot2::coord_fixed(ratio = 2*xm/ym, xlim = c(-xm, xm)*1.05, ylim = c(0, ym)*1.05,
+                         expand = FALSE) +
+    colScale +
+    ggplot2::xlab("log2(Ratio)") + ggplot2::ylab("-log10(P value)") +
+    ggplot2::ggtitle(title)
   if (!missing(N)) {
     plot1 <- plot1 +
       ggplot2::geom_text(x = -xm, y = ym*1.025, label = paste0("N = ", N), hjust = 0)
@@ -105,7 +101,7 @@ Volc.plot_2 <- function(data,
                          label = paste0("log2(Ratio) = ", round(-log2(v.lines),2)),
                          cex = 3, hjust = 0, colour = "blue", angle = 90) +
       ggplot2::geom_text(x = log2(v.lines)+0.015*xm, y = 2*ym/3,
-                         label = paste0("log2(Ratio) = ", round(log2(v.lines), 2)),
+                         label = paste0("log2(Ratio) = ", round(log2(v.lines), 2L)),
                          cex = 3, hjust = 0, colour = "red", angle = 90)
     if ((!is.null(v.lines_min)&&(v.lines < v.lines_min))) {
       plot1 <- plot1 +
@@ -113,9 +109,9 @@ Volc.plot_2 <- function(data,
         ggplot2::geom_vline(xintercept = log2(v.lines_min), color = "darkred")
     }
   }
-  h.lines <- is.all.good(h.lines)
-  if (length(h.lines) > 0) {
-    for (i in 1:length(h.lines)) {
+  h.lines <- h.lines[which(is.finite(h.lines))]
+  if (length(h.lines)) {
+    for (i in 1L:length(h.lines)) {
       plot1 <- plot1 +
         ggplot2::geom_hline(yintercept = -log10(h.lines[i]),
                             colour = "orange") +
@@ -130,15 +126,15 @@ Volc.plot_2 <- function(data,
   if (print) {
     if (labels) { poplot(plot2) } else { poplot(plot1) }
   }
-  if ((length(save) > 1)||(save != FALSE)) {
+  if ((length(save) > 1L) || (save != FALSE)) {
     t <- gsub("/|:|\\*|\\?|<|>|\\|", "-", title)
     save <- unique(gsub("^jpg$", "jpeg", gsub("^\\.", "", tolower(save))))
     for (s in save) {
       if (s %in% c("jpeg", "tiff", "png", "bmp")) {
         ggplot2::ggsave(paste0(t, ".", s), plot1,
-                        dpi = 300, width = 10, height = 10, units = "in")
+                        dpi = 300L, width = 10L, height = 10L, units = "in")
         ggplot2::ggsave(paste0(t, "_labelled.", s), plot2,
-                        dpi = 300, width = 10, height = 10, units = "in")
+                        dpi = 300L, width = 10L, height = 10L, units = "in")
       } else {
         ggplot2::ggsave(paste0(t, ".", s), plot1)
         ggplot2::ggsave(paste0(t, "_labelled.", s), plot2)
@@ -154,10 +150,10 @@ Volc.plot_2 <- function(data,
     filter2 <- which(tmp$Colour != "")
     h <- -log10(h.lines)
     names(h) <- gsub("^Threshold-", "_", names(h))
-    tmp2 <- apply(tmp[filter2, c("Y", "Colour")], 1, function(x) {
+    tmp2 <- apply(tmp[filter2, c("Y", "Colour")], 1L, function(x) {
       x <- unlist(x)
-      t <- which(as.numeric(h) <= as.numeric(x[1]))
-      if (length(t) > 0) { r <- paste0(x[2], names(h)[min(t)]) } else { r <- "" }
+      t <- which(as.numeric(h) <= as.numeric(x[1L]))
+      r <- if (length(t)) { paste0(x[2L], names(h)[min(t)]) } else { "" }
       return(r)
     })
     col[filter[filter2]] <- tmp2

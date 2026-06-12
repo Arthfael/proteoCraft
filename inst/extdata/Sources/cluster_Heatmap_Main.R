@@ -28,7 +28,7 @@ if (clustHtMp) {
   if (nrow(w2)) { # Values from limpa which are not based on any observations
     myClustData[w2] <- clustDat[[dataType]]$Original[w2]
   }
-  normTypes <- c("Norm. by row", "None")
+  normTypes <- c("Norm. by row", "None", "Z-scored")
   if (clustMode == "standard") {
     # The order matters: the first is used to generate the PG-level cluster displayed on both heatmaps!
     clustDir <- paste0(wd, "/Clustering")
@@ -160,10 +160,10 @@ if (clustHtMp) {
           tempDat <- sweep(tempDat, 1L, rwMns, "-")
         }
         if (normType == "Z-scored") {
-          SDs <- apply(tempDat, 1L, \(x) { sd(is.all.good(x)) })
+          SDs <- apply(tempDat, 1L, \(x) { sd(x[which(is.finite(x))]) })
           tempDat <- sweep(sweep(tempDat, 1L, rwMns, "-"), 1L, SDs, "/")
         }
-        w <- which(apply(tempDat, 1L, \(x) { length(is.all.good(x)) }) > 0L)
+        w <- which(apply(tempDat, 1L, \(x) { sum(is.finite(x)) }) > 0L)
         tempDat <- tempDat[w,] # ... as an extra safety...
         temp2 <- as.matrix(tempDat)
         temp3 <- temp2 <- temp2 + runif(length(temp2), min = 0, max = 1e-10) # Small error added to avoid duplicate rows where this breaks
@@ -173,7 +173,7 @@ if (clustHtMp) {
         # But the clusters displayed using colours may be generated using either k-means or hierarchical clustering (default).
         temp2 <- t(temp2)
         tst2 <- apply(temp2, 2L, \(x) {
-          #x <- is.all.good(x) # it's been imputed, there are no missing values
+          x <- x[which(is.finite(x))]
           sd(x)/mean(x)
         })
         temp2 <- temp2[, order(tst2, decreasing = TRUE)]
@@ -805,9 +805,9 @@ if (clustHtMp) {
                                                    size = temp2m$.size, showscale = FALSE, showlegend = FALSE))
           }
           # setwd(clustDir)
-          # saveWidget(plotleatmapa, paste0(clustDir, "/", nm, normTypeInsrt, ".html"))
+          # saveWidget(plotleatmap, paste0(clustDir, "/", nm, normTypeInsrt, ".html"))
           # setwd(wd)
-          #system(paste0("open \"", clustDir, "/", nm, normTypeInsrt, ".html\""))
+          # system(paste0("open \"", clustDir, "/", nm, normTypeInsrt, ".html\""))
           if (clustMode == "standard") {
             plotLeatMaps[[i]][[normType]] <- list(Ttl = paste0(nm, normTypeInsrt),
                                                   Plot = plotleatmap,
@@ -832,7 +832,7 @@ if (clustHtMp) {
     return()
   }))
   #
-  if (clustMode == "standard") {
+  #if (clustMode == "standard") {
     saveFun(plotLeatMaps, file = paste0(clustDir, "/HeatMaps.RData"))
     # Save plotly plots
     dr <- clustDir
@@ -843,7 +843,7 @@ if (clustHtMp) {
     Src <- paste0(libPath, "/extdata/Sources/save_Plotlys.R")
     #rstudioapi::documentOpen(Src)
     source(Src, local = FALSE)
-  }
+  #}
   #
   if (length(heatMaps)) {
     kol <- intersect(c("Leading protein IDs", "Protein names", "Genes", "Mol. weight [kDa]"),

@@ -107,6 +107,7 @@
 #'  - "Data": output quantitative data.
 #'  - "EList_obj": EList object, only present if LFQ_algo or reScaling = "limpa"
 #'  - "QFeatures_obj": QFeatures object, only present if LFQ_algo or reScaling  = "QFeatures"
+#'  - "MSstats": list created by MSstats::dataProcess() 
 #' 
 #' @examples
 #' temp <- protQuant(Prot = PG, pg_PepIDs = Pep4Quant, Pep = pep, pep_IDs = "New Peptide ID",
@@ -200,8 +201,8 @@ protQuant <- function(Prot,
   }
   #
   # Algorithms: deal with synonyms and names degeneracy
-  algoSyn <- data.frame(ALGO = c("LM", "IQ", "LIMPA", "QFEATURES", "QFEATURES"),
-                        SYNONYM = c(NA_character_, "MAXLFQ", "DPCQUANT", "MSQROB", "MSQROB2"))
+  algoSyn <- data.frame(ALGO = c("LM", "IQ", "LIMPA", "QFEATURES", "QFEATURES", "MSSTATS"),
+                        SYNONYM = c(NA_character_, "MAXLFQ", "DPCQUANT", "MSQROB", "MSQROB2", NA_character_))
   #
   LFQ_algo <- gsub(" -_\\.", "", LFQ_algo)
   if (misFun(alsoRun)) { alsoRun <- c() }
@@ -219,15 +220,15 @@ protQuant <- function(Prot,
     if (RESCALING %in% algoSyn$SYNONYM) { RESCALING <- algoSyn$ALGO[match(RESCALING, algoSyn$SYNONYM)] }
   }
   if (length(mySmpls) == 1L) {
-    if (LFQ_ALGO %in% c("LIMPA", "QFEATURES")) {
+    if (LFQ_ALGO %in% c("LIMPA", "QFEATURES", "MSSTATS")) {
       warning("Only one sample, LFQ_algo can only be one of LM or iq, defaulting to LM...")
       LFQ_algo <- LFQ_ALGO <- "LM"
     }
-    if (RESCALING %in% c("LIMPA", "QFEATURES")) {
+    if (RESCALING %in% c("LIMPA", "QFEATURES", "MSSTATS")) {
       reScaling <- RESCALING <- "LM"
     }
     if (length(ALSORUN)) {
-      w <- which(!ALSORUN %in% c("LIMPA", "QFEATURES"))
+      w <- which(!ALSORUN %in% c("LIMPA", "QFEATURES", "MSSTATS"))
       alsoRun <- alsoRun[w]
       ALSORUN <- ALSORUN[w]
     }
@@ -283,9 +284,8 @@ protQuant <- function(Prot,
   # Parameters from optional re-scaling
   if (!skip_reScaling) {
     stopifnot(reSc_is_topN ||
-                (RESCALING %in% c("LM", "IQ", "LIMPA", "QFEATURES")) ||
-                ((!inherits(try(get(reScaling), silent = TRUE), "try-error")) &&
-                   inherits(get(reScaling), c("standardGeneric", "function"))))
+                (RESCALING %in% c("LM", "IQ", "LIMPA", "QFEATURES", "MSSTATS")) ||
+                (!inherits(try(getFunction(reScaling), silent = TRUE), "try-error")))
     useIntWeights <- FALSE
     reSc_topN <- Inf
     if (reSc_is_topN) {
@@ -408,7 +408,7 @@ protQuant <- function(Prot,
   Pep.Intens.Nms <- Pep.Intens.Nms[w]
   #
   w <- which(apply(Pep[, Pep.Intens.Nms, drop = FALSE], 1L, \(x) {
-    length(is.all.good(x))
+    sum(is.finite(x))
   }) > 0L)
   Pep <- Pep[w,]
   #
@@ -687,7 +687,7 @@ protQuant <- function(Prot,
   tmp1 <- data.table::as.data.table(Pep[, c(pep_IDs, Pep.Intens.Nms), drop = FALSE])
   tmp1 <- data.table::melt(tmp1, id.vars = pep_IDs)
   colnames(tmp1)[1L] <- "pepID"
-  tmp1 <- tmp1[which(is.all.good(tmp1$value, 2L)),]
+  tmp1 <- tmp1[which(is.finite(tmp1$value)),]
   tmp1 <- tmp1[, .(value = mean(value)), by = .(pepID = pepID)]
   Pep$avgPepInt <- tmp1$value[match(Pep[[pep_IDs]], tmp1$pepID)]
   #
@@ -818,7 +818,7 @@ protQuant <- function(Prot,
     tmp <- data.table::data.table(pepInt_log^Pep[, Pep.Intens.Nms, drop = FALSE])
     tmp$pepID <- Pep[[pep_IDs]]
     tmp <- data.table::melt(tmp, id.vars = "pepID")
-    tmp <- tmp[which(is.all.good(tmp$value, 2L)),]
+    tmp <- tmp[which(is.finite(tmp$value)),]
     tmp <- tmp[which(tmp$value > 0),]
     tmp <- tmp[, .(value = mean(value)), by = .(pepID)]
     Pep$useIntWeights <- tmp$value[match(Pep[[pep_IDs]], tmp$pepID)]
@@ -916,7 +916,7 @@ protQuant <- function(Prot,
     }
     N.clust <- length(cl)
     #
-    parallel::clusterExport(cl, list("is.all.good", "diffLog", "LFQ.lm"), envir = environment())
+    parallel::clusterExport(cl, list("diffLog", "LFQ.lm"), envir = environment())
     f0 <- .bind_worker(LFQ.lm,
                        list(tmpPep = tmpPep,
                             quant_pep_IDs = quant_pep_IDs,
@@ -926,7 +926,6 @@ protQuant <- function(Prot,
                             Weights = Weights,
                             minN = minN,
                             maxN = maxN,
-                            is.all.good = is.all.good,
                             diffLog = diffLog))
     cat("            Starting calculations...\n")
     lmDat <- parallel::parLapply(cl,
@@ -954,7 +953,7 @@ protQuant <- function(Prot,
       res2 <- lmDat
     }
   }
-  if (sum(c("IQ", "LIMPA", "QFEATURES") %in% c(LFQ_ALGO, RESCALING, ALSORUN))) {
+  if (sum(c("IQ", "LIMPA", "QFEATURES", "MSSTATS") %in% c(LFQ_ALGO, RESCALING, ALSORUN))) {
     # These algorithms do not take too long to run,
     # thus they could be run either be run as LFQ, with or without subsequent re-scaling,
     # or used to provide re-scaling for another LFQ method.

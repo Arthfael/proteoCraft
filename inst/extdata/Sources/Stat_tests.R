@@ -1,5 +1,10 @@
 # Perform statistical tests
 # (except ANOVA and SAINTexpress, which have their own sources)
+#
+# TO ADD:
+# - MSStats
+# - edge::lrt() (edge::odp() should better be moved to run_F_test as it is essentially equivalent to the F-test part)
+hasBatch %<o% (("Batch.effect" %in% colnames(Param)) && nchar(Param$Batch.effect))
 
 bhFDRs %<o% sort(BH.FDR, decreasing = FALSE)
 samRoots %<o% c(sub(" -log10\\(", " ", sub("\\) - $", " - ", samRoot)),
@@ -91,13 +96,16 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       grpTst <- aggregate(1L:nrow(expMap), list(expMap[[VPAL$limmaCol]]), list)
       tmpFl <- tempfile(fileext = ".rds")
       readr::write_rds(myData[, quantCol], tmpFl)
-      clusterExport(parClust, list("grpTst", "is.all.good", "quantCol", "tmpFl"), envir = environment())
+      clusterExport(parClust, list("grpTst", "quantCol", "tmpFl"), envir = environment())
       invisible(clusterCall(parClust, \() {
         assign("tmp", readr::read_rds(tmpFl), envir = .GlobalEnv)
       }))
-      tst <- t(parSapply(parClust, 1L:nrow(myData), \(x) {
-        vapply(grpTst$x, \(y) { length(is.all.good(tmp[x, unlist(y)])) }, 1L)
-      }))
+      tst <- parLapply(parClust, 1L:nrow(myData), \(i) { #i <- 1L
+        vapply(grpTst$x, \(smpls) { #smpls <- grpTst$x[1L]
+          sum(is.finite(unlist(tmp[i, unlist(smpls)])))
+        }, 1L)
+      })
+      tst <- do.call(rbind, tst)
       tst <- apply(tst, 1L, min)
       wOK <- which(tst >= 2L)
     }
@@ -148,8 +156,8 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
   # Here you could use decideTests() if wanting to switch to directly using decisions from limma
   if (TEST == "limma") {
     limmaFits[[dataType]][[TEST]]$fit <- fit2
-    kols1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", deqmsRoot)), colnames(contrMatr))
-    kols2 <- paste0(deqmsRoot, colnames(contrMatr))
+    kols1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", modRoot)), colnames(contrMatr))
+    kols2 <- paste0(modRoot, colnames(contrMatr))
     myData[, c(kols1, kols2)] <- NA_real_
     w <- which(myData[[namesCol]] %in% fit2$genes)
     m <- match(myData[w, namesCol], fit2$genes)
@@ -182,7 +190,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
     if (dataType == "PG") {
       countCol <- grep("^Evidences count - ", colnames(myData), value = TRUE)
     }
-    if (dataType == "modPeptides") {
+    if (dataType %in% c("peptides", "modPeptides")) {
       idCol <- grep("^Evidence IDs - ", colnames(myData), value = TRUE)
       countCol <- gsub("^Evidence IDs - ", "Evidences count - ", idCol)
       myData[, countCol] <- sapply(idCol, \(k) { lengths(strsplit(myData[[k]], ";")) })
@@ -211,17 +219,20 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       #
       limmaFits[[dataType]][[TEST]]$fit <- fit3
       #
+      kols1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", deqmsRoot)), colnames(contrMatr))
+      kols2 <- paste0(deqmsRoot, colnames(contrMatr))
       for (i in 1L:ncol(contrMatr)) { #i <- 1L
         contrNm <- colnames(contrMatr)[i]
         DEqMS.results <- outputResult(fit3, coef_col = i)
         kol1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", deqmsRoot)), contrNm)
         kol2 <- paste0(deqmsRoot, contrNm)
-        myData[[kol1]] <- myData[[kol2]] <- NA_real_
+        myData[[kol1]] <- NA_real_
         w <- which(myData[[namesCol]] %in% row.names(DEqMS.results))
         m <- match(myData[[namesCol]][w], row.names(DEqMS.results))
         myData[w, kol1] <- DEqMS.results$sca.P.Value[m]
-        myData[w, kol1] <- -log10(DEqMS.results$sca.P.Value[m])
       }
+      myData[, kols2] <- -log10(myData[, kols1])
+      #View(myData[, c(kols1, kols2)])
     }
   }
 }
@@ -253,10 +264,10 @@ if ((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) {
   }
   inDat@colData <- colDat
   # Model
-  qf <- msqrob(inDat,
-               i = "PG",
-               formula = msqrobForm2,
-               robust = TRUE)
+  qf <- msqrob2::msqrob(inDat,
+                        i = "PG",
+                        formula = msqrobForm2,
+                        robust = TRUE)
   #
   models <- rowData(qf[["PG"]])[["msqrobModels"]]
   #models[[1L]]@params
@@ -286,11 +297,11 @@ if ((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) {
   }
   contrMsqrob <- limma::makeContrasts(contrasts = myContrasts$msqrob2,
                                       levels = designMsqrob)
-  qf <- hypothesisTest(qf,
-                       i = "PG",
-                       contrast = contrMsqrob)
+  qf <- msqrob2::hypothesisTest(qf,
+                                i = "PG",
+                                contrast = contrMsqrob)
   #
-  MSqRob_infer %<o% lapply(colnames(contrMsqrob), \(k) {
+  MSqRob_infer %<o% lapply(colnames(contrMsqrob), \(k) { #k <- colnames(contrMsqrob)[1L]
     x <- rowData(qf[["PG"]])[[k]]
     colnames(x) <- paste0(colnames(x), " - ", k)
     return(x)
@@ -311,9 +322,43 @@ if ((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) {
   myData[w, kol2] <- MSqRob_infer[m, kol2]
   pval <- paste0("MSqRob pval - ", myContrasts$Contrast)
   myData[, sub(topattern("MSqRob pval - "),
-               sub(" -log10\\(", " - ", sub("\\) - $", " - ", msqrobRoot)), pval)] <- myData[, pval]
+               sub(" -log10\\(", " ", sub("\\) - $", " - ", msqrobRoot)), pval)] <- myData[, pval]
   myData[, sub(topattern("MSqRob pval - "), msqrobRoot, pval)] <- -log10(myData[, pval])
-  pvalue.col["MSqRob"] <- msqrobRoot
+}
+
+# MSstats
+if ((dataType == "PG") && ("MSstats_list" %in% names(quantData_list))) {
+  cat("   - MSstats test\n")
+  if (hasBatch) {
+    cat("       WARNING! MSstats as currently implemented in this workflow cannot handle batch effects -> we recommend rerunning with ComBat batch correction on!\n\n")
+  }
+  # Convert limma contrasts matrix to MSstats-compatible one 
+  msstatsContrMatr <- t(contrMatr[which(row.names(contrMatr) %in% expMap[[VPAL$limmaCol]]),])
+  tmp <- rownames(expMap)[match(colnames(msstatsContrMatr), expMap[[VPAL$limmaCol]])]
+  colnames(msstatsContrMatr) <- Exp.map[match(tmp, Exp.map$Ref.Sample.Aggregate), VPAL$column]
+  # Run test
+  msstatsComp %<o% MSstats::groupComparison(contrast.matrix = msstatsContrMatr,
+                                            data = quantData_list$MSstats_list)
+  # Process results
+  msstatsRes <- msstatsComp$ComparisonResult
+  msstatsLFC %<o% reshape::cast(msstatsRes,
+                                Protein ~ Label,
+                                unique,
+                                value = "log2FC") # Even though we fed it log10, MSstats outputs log2FC -> no need to convert!
+  msstatsPVal %<o% reshape::cast(msstatsRes,
+                                 Protein ~ Label,
+                                 unique,
+                                 value = "pvalue")
+  msstatsLFC <- msstatsLFC[match(myData[[namesCol]], msstatsLFC$Protein),
+                           myContrasts$Contrast]
+  msstatsPVal <- msstatsPVal[match(myData[[namesCol]], msstatsPVal$Protein),
+                             myContrasts$Contrast]
+  rownames(msstatsLFC) <- rownames(msstatsPVal) <- myData[[namesCol]]
+  #
+  kols1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", msstatsRoot)), myContrasts$Contrast)
+  kols2 <- paste0(msstatsRoot, myContrasts$Contrast)
+  myData[, kols1] <- msstatsPVal[, myContrasts$Contrast]
+  myData[, kols2] <- -log10(msstatsPVal[, myContrasts$Contrast])
 }
 
 # Others (classic Student's and Welch's t-test, permutations test) and ROTC
@@ -345,7 +390,6 @@ if (Nested) {
   blockCol <- Blocking.factors$limmaCol
   exports <- append(exports, "blockCol")
 }
-hasBatch %<o% (("Batch.effect" %in% colnames(Param))&&(nchar(Param$Batch.effect)))
 if (hasBatch) {
   parse.Param.aggreg.2("Batch.effect")
   batchCol <- Batch.effect$limmaCol
@@ -396,7 +440,7 @@ if (length(whSingle)) {
       A_ <- rownames(em)[which(em[[VPAL$limmaCol]] == A)]
       B_ <- rownames(em)[which(em[[VPAL$limmaCol]] == B)]
     }
-    if ((length(A_) < 2L)||(length(B_) < 2L)) { return(rep(NA, 3L)) }
+    if ((length(A_) < 2L) || (length(B_) < 2L)) { return(rep(NA, 3L)) }
     A_k <- paste0(intRef, A_)
     B_k <- paste0(intRef, B_)
     nms <- paste0(rawRoots, myContrasts$Contrast[[i]])
@@ -483,11 +527,11 @@ if (length(whSingle)) {
                                      B = B_k), \(kol) {
                                        apply(tmpData[, kol], 1L, \(x) { sum(is.finite(x)) }) >= 2L
                                      }))
-    w <- which(rowSums(tst) == 2)
+    w <- which(rowSums(tst) == 2L)
     return(ROTS::ROTS(data = tmpData[w, c(A_k, B_k)]/log10(2L),
                       groups = groups,
-                      B = 100,
-                      K = 500,
+                      B = 500L,
+                      K = 500L,
                       seed = mySeed))
   }), myContrasts$Contrast[whSingle])
   #View(ROTS_res[[myContrasts$Contrast[whSingle[1L]]]])

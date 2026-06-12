@@ -10,7 +10,7 @@ MQ.load()
 temp <- cor_mod_seq(ev)
 Modifs <- temp$PTMs
 ev <- temp$Peptides
-ev <- ev[which(is.all.good(ev$Intensity, 2L)),]
+ev <- ev[which(is.finite(ev$Intensity)),]
 
 Counts <- matrix(rep(0L, 6L), ncol = 2L)
 colnames(Counts) <- c("TMT", "Unlabelled")
@@ -40,7 +40,7 @@ w <- which(Comp$Sequence %in% temp$Group.1)
 Comp$Unlabelled[w] <- temp$x[match(Comp$Sequence[w], temp$Group.1)]
 Comp$"TMT (log10)" <- log10(Comp$TMT)
 Comp$"Unlabelled (log10)" <- log10(Comp$Unlabelled)
-w <- which(apply(Comp[, c("TMT (log10)", "Unlabelled (log10)")], 1L, \(x) { length(is.all.good(x)) }) == 2L)
+w <- which(apply(Comp[, c("TMT (log10)", "Unlabelled (log10)")], 1L, \(x) { sum(is.finite(x)) }) == 2L)
 
 linearMod <- lm(`TMT (log10)` ~ `Unlabelled (log10)`, data =  Comp)
 print(linearMod)

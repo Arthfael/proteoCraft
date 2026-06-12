@@ -1,6 +1,6 @@
 Package: proteoCraft
 Title: Functions and scripts for Proteomics Data Analysis
-Version: 4.1.1
+Version: 4.3.0
 Date: 2026-04-22
 Authors@R: 
     person("Armel", "Developer", , "armel.nicolas@ista.ac.at", role = c("aut", "cre"))
@@ -151,6 +151,7 @@ Imports:
     imputeLCMD,
     ini,
     iq,
+    irlba,
     isoband,
     iterators,
     jpeg,
@@ -188,6 +189,7 @@ Imports:
     modeltools,
     MSnbase,
     msqrob2,
+    MSstats,
     multcomp,
     multcompView,
     mvtnorm,

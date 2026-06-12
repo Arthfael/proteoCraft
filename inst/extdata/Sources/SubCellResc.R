@@ -147,7 +147,7 @@ if (LocAnalysis) {
     tst <- temp[, c(kol1[w], kol2[w])]
     tst <- reshape2::melt(tst, measure.vars = c(kol1[w], kol2[w]))
     tst$value <- suppressWarnings(log10(tst$value))
-    tst <- tst[which(is.all.good(tst$value, 2L)),]
+    tst <- tst[which(is.finite(tst$value)),]
     tst$variable <- as.character(tst$variable)
     tst2 <- data.frame(variable = unique(tst$variable))
     tst2[, c("Type", "Sample")] <- as.data.frame(t(sapply(strsplit(tst2$variable, " - "), unlist)))

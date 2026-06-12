@@ -62,7 +62,7 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
         require(minpack.lm)
         return()
       }))
-      clusterExport(parClust, list("LFQ.lm", "diffLog", "is.all.good"), envir = environment())
+      clusterExport(parClust, list("LFQ.lm", "diffLog"), envir = environment())
       tst1 <- lengths(MS2Tbl$IDs)
       wMult <- which(tst1 > 1L)
       MS2Tbl <- MS2Tbl[wMult,]
@@ -103,7 +103,7 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
       tst[, c("PEP", "Sample", "ModSeq", "Z", "Proteins", "Seq")] <- ev[m, c("PEP", "Raw file path", "Modified sequence",
                                                                              "Charge", "Proteins", "Sequence")]
       tst$Weights <- -log10(tst$PEP)/5
-      tst$Weights[which(!is.all.good(tst$Weights, 2L))] <- 3
+      tst$Weights[which(!is.finite(tst$Weights))] <- 3
       tst$Weights[which(tst$Weights > 3)] <- 3
       tst$CorrVal2 <- (tst$OrigVal+tst$CorrVal*tst$Weights)/(1+tst$Weights)
       tst$Ratio2 <- tst$CorrVal2/tst$OrigVal

@@ -588,7 +588,7 @@ Volcano.plot <- function(Prot,
   wOK <- which(tstTbl$All_OK)
   if (length(wOK)) {
     Wych <- setNames(lapply(wOK, \(x) {
-      wych <- (is.all.good(as.numeric(Prot[[xKols[x]]]), 2))&(is.all.good(as.numeric(Prot[[yKols[x]]]), 2L))
+      wych <- is.finite(as.numeric(Prot[[xKols[x]]])) & is.finite(as.numeric(Prot[[yKols[x]]]))
       if (!Contaminants) { wych <- wych & (Prot[[kontkol]] != "+") }
       return(which(wych))
     }), A[wOK])
@@ -605,7 +605,8 @@ Volcano.plot <- function(Prot,
   #
   # Define global x-limits
   tmp <- Prot[, xKols, drop = FALSE]
-  xlim <- is.all.good(as.numeric(unlist(tmp)))
+  xlim <- as.numeric(unlist(tmp))
+  xlim <- xlim[which(is.finite(xlim))]
   xlim <- if (X.normalized) {
     max(abs(xlim))*c(-1, 1)
   } else {
@@ -616,7 +617,8 @@ Volcano.plot <- function(Prot,
   #
   # Define global y-limits
   tmp <- Prot[, yKols, drop = FALSE]
-  ylim <- is.all.good(as.numeric(unlist(tmp)))
+  ylim <- as.numeric(unlist(tmp))
+  ylim <- ylim[which(is.finite(ylim))]
   ylim <- max(abs(ylim))*1.1
   #
   # Labels
@@ -743,8 +745,8 @@ Volcano.plot <- function(Prot,
           Alpha2 <- paste0("Alpha mapped to: ", Alpha)
           if ((!is.numeric(Alpha.min)) || (Alpha.min < 0L)) { Alpha.min <- 0L }
           if ((!is.numeric(Alpha.max)) || (Alpha.max > 1L)) { Alpha.max <- 1L }
-          temp$Alpha[which((temp$Alpha > 0L)&(is.infinite(temp$Alpha)))] <- max(is.all.good(temp$Alpha))
-          temp$Alpha[which(!is.all.good(temp$Alpha, 2L))] <- min(is.all.good(temp$Alpha))
+          temp$Alpha[which((temp$Alpha > 0L)&(is.infinite(temp$Alpha)))] <- max(temp$Alpha[which(is.finite(temp$Alpha))])
+          temp$Alpha[which(!is.finite(temp$Alpha))] <- min(temp$Alpha[which(is.finite(temp$Alpha))])
           temp$Alpha <- Alpha.min+(temp$Alpha-min(temp$Alpha))*(Alpha.max-Alpha.min)/(max(temp$Alpha)-min(temp$Alpha))
         }
       }
@@ -765,9 +767,9 @@ Volcano.plot <- function(Prot,
         if (!is.numeric(Size.min)) { Size.min <- 0.01 }
         if (!is.numeric(Size.max)) { Size.max <- 3L }
         #if (!is.numeric(Size.min)) { Size.min <- 0L }
-        #if (!is.numeric(Size.max)) { Size.max <- ceiling(max(is.all.good(temp$Size))) }
-        temp$Size[which((temp$Size > 0L)&(is.infinite(temp$Size)))] <- max(is.all.good(temp$Size))
-        temp$Size[which(!is.all.good(temp$Size, 2L))] <- min(is.all.good(temp$Size))
+        #if (!is.numeric(Size.max)) { Size.max <- ceiling(max(temp$Size[which(is.finite(temp$Size))])) }
+        temp$Size[which((temp$Size > 0L)&(is.infinite(temp$Size)))] <- max(temp$Size[which(is.finite(temp$Size))])
+        temp$Size[which(!is.finite(temp$Size))] <- min(temp$Size[which(is.finite(temp$Size))])
         temp$Size <- Size.min+(temp$Size-min(temp$Size))*(Size.max-Size.min)/(max(temp$Size)-min(temp$Size))
       }
     }
@@ -800,7 +802,7 @@ Volcano.plot <- function(Prot,
       mx <- if (X.normalized) { 0 } else { median(x$value) }
       R.thresh <- c("Upper" = NA)
       if (Ref.Ratio.method == "SD") {
-        offset <- c(median(is.all.good(temp$X)), 0)[X.normalized + 1L]
+        offset <- c(median(temp$X[which(is.finite(temp$X))]), 0)[X.normalized + 1L]
         sdx <- sd(x$value)
         R.thresh[["Upper"]] <- qnorm(1-ratios.FDR, m = mx, sd = sdx)
         if (symm) { R.thresh[["Lower"]] <- qnorm(ratios.FDR, m = mx, sd = sdx) }
@@ -1006,6 +1008,7 @@ Volcano.plot <- function(Prot,
     } else {
       if (symm) { which(temp$Colour %in% c(up_Nms, dwn_Nms)) } else { which(temp$Colour %in% up_Nms) }
     }
+    w2 <- integer()
     if (prot_split) {
       w2 <- if ("Colour2" %in% colnames(temp)) { which(temp$Colour2 == "protein in list") } else {
         which(temp$Colour2 == "protein in list")
@@ -1015,7 +1018,7 @@ Volcano.plot <- function(Prot,
     w3 <- which(temp$Colour == "target")
     w0 <- setdiff(1L:nrow(temp), c(w1, w2, w3))
     temp <- rbind(temp[w0,], temp[w1,], temp[w2,], temp[w3,])
-    #temp <- temp[which(is.all.good(temp$Y, 2)),]
+    #temp <- temp[which(is.finite(temp$Y)),]
     ttl <- paste0(title, i2)
     #Ylab <- paste0("-log10(", PorQ, "value)")
     #if (grepl("adj\\.|adjusted", tolower(Y.root))) { Ylab <- paste0("-log10(adjusted ", PorQ, "value)") }
@@ -1070,7 +1073,7 @@ Volcano.plot <- function(Prot,
     test2 <- vapply(test1, \(x) { is.numeric(temp[[x]]) }, TRUE)
     test1 <- test1[which(test2)]
     test <- apply(temp, 1L, \(x) {
-      length(is.all.good(as.numeric(unlist(x[test1]))))
+      sum(is.finite(as.numeric(unlist(x[test1]))))
     }) == length(test1)
     temp <- temp[which(test),]
     aes[grep(" ", aes)] <- paste0("\"", aes[grep(" ", aes)], "\"")
@@ -1322,21 +1325,26 @@ Volcano.plot <- function(Prot,
     if (prot_split) {
       Plots$"Proteins in list - unlabelled"[[ttl]] <- plotEval(plot_prot)
     }
-    # Make simplified plot:
+    #
+    # Initiate simplified plot:
     simPlot <- plot
     simPlot$layers <- simPlot$layers[1L]
+    #
+    # Labels
     if (show.labels) {
-      W <- if (prot_split) { which(temp$Labels2 != "") } else { which(temp$Labels != "") }
+      W <- #if (prot_split) { which(temp$Labels2 != "") } else {
+        which(temp$Labels != "")
+      #}
       if (length(W)) {
         plot2 <- plot
         lab <- temp[W,]
-        if (prot_split) {
-          kolkol <- "Colour2"
-          labkol <- "Labels2"
-        } else {
+        #if (prot_split) {
+        #  kolkol <- "Colour2"
+        #  labkol <- "Labels2"
+        #} else {
           kolkol <- "Colour"
           labkol <- "Labels"
-        }
+        #}
         W2 <- which(!lab[[kolkol]] %in% c("protein in list", "target"))
         W3 <- which(lab[[kolkol]] %in% c("protein in list", "target"))
         if (length(W2) > MaxLabels) {

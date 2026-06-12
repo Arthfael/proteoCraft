@@ -71,7 +71,7 @@ pepHtmp <- function(intProt = prot.list_pep,
   if (nrow(tmpPep)) {
     # Create cluster (some steps are slow otherwise)
     stopCl <- FALSE
-    if ((is.null(cl))||(!inherits(cl, "cluster"))) {
+    if (misFun(cl) || is.null(cl) || (!inherits(cl, "cluster"))) {
       dc <- parallel::detectCores()
       if (misFun(N.reserved)) { N.reserved <- 1L }
       nMax <- max(c(dc - N.reserved, 1L))
@@ -92,7 +92,7 @@ pepHtmp <- function(intProt = prot.list_pep,
     readr::write_rds(DB, tmpFl1)
     readr::write_rds(tmpPep, tmpFl2)
     parallel::clusterExport(cl,
-                            list("tmpFl1", "tmpFl2", "dir", "g", "g1", "ttlRoot", "ttlStem",
+                            list("tmpFl1", "tmpFl2", "g", "g1", "ttlRoot", "ttlStem",
                                  "is.log", "dstDir", "grsep2", "dfMelt"),
                             envir = environment())
     invisible(parallel::clusterCall(cl, \(x) {
@@ -199,7 +199,7 @@ pepHtmp <- function(intProt = prot.list_pep,
     }
     environment(f0) <- .GlobalEnv
     invisible(parallel::parApply(cl, tempDat, 1L, f0))
+    if (stopCl) { parallel::stopCluster(cl) }
   }
-  if (stopCl) { parallel::stopCluster(cl) }
   return()
 }

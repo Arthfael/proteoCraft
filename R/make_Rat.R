@@ -169,7 +169,8 @@ make_Rat <- function(myData = pep,
     }
     msgs <- c()
     for (a1 in A) { #a1 <- A[1L]
-      tmp <- is.all.good(myData[[paste0(int.root, a1)]])
+      tmp <- myData[[paste0(int.root, a1)]]
+      tmp <- tmp[which(is.finite(tmp))]
       if (!int.log) { tmp <- tmp[which(tmp > 0)] }
       emd <- signif(median(tmp), 3L)
       esd <- signif(sd(tmp), 3L)
@@ -181,7 +182,8 @@ make_Rat <- function(myData = pep,
                       paste0("      - expr.: median = ", emd, ", SD = ", esd, "\n"))
       }
       if (paste0(rat.root, a1) %in% colnames(myData)) {
-        tmp <- is.all.good(myData[[paste0(rat.root, a1)]])
+        tmp <- myData[[paste0(rat.root, a1)]]
+        tmp <- tmp[which(is.finite(tmp))]
         rmd <- signif(median(tmp), 3L)
         rsd <- signif(sd(tmp), 3L)
         msg <- paste0(msg, paste0("      - log", rat.log, "(ratio): median = ", rmd, ", SD = ", rsd, "\n"))

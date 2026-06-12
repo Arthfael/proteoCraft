@@ -186,6 +186,7 @@ A list:
  - "Data": output quantitative data.
  - "EList_obj": EList object, only present if LFQ_algo or reScaling = "limpa"
  - "QFeatures_obj": QFeatures object, only present if LFQ_algo or reScaling  = "QFeatures"
+ - "MSstats": list created by MSstats::dataProcess()
 }
 \description{
 A function to calculate estimated protein group Expression (inter-protein group quantitation vectors) from individual peptide values.

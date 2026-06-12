@@ -42,7 +42,7 @@ minReps <- max(c(repThresh, round(length(Rep)*repProp))) # Let's be stringent an
 # We now get for WGCNA the data prepared for downstream analyses by cluster_Heatmap_Prep.R
 dataType <- "PG"
 if (dataType == "PG") {
-  datNm <- intersect(c("Positions_imputed", #"Filtered",
+  datNm <- intersect(c("ComBat", "Imputed", #"Filtered",
                        "Original"),
                      names(clustDat[[dataType]]))[1L]
 }
@@ -604,19 +604,19 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         dev.off()
       }
       #
-      if (exists("DatAnalysisTxt")) {
-        if (GSEAmode == "standard") {
-          l <- length(DatAnalysisTxt)
-          DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                                      " Weighted Genes Correlation Networks Analysis was run using using package WGCNA.")
-        }
-      }
       # Perform GSEA analysis on each module of interest
       dataType <- "PG"
       GSEAmode <- "WGCNA"
       Src <- paste0(libPath, "/extdata/Sources/GSEA.R")
       #rstudioapi::documentOpen(Src)
       source(Src, local = FALSE)
+      #
+      #
+      if (exists("DatAnalysisTxt")) {
+        l <- length(DatAnalysisTxt)
+        DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
+                                    " Weighted Genes Correlation Networks Analysis was run using using package WGCNA.")
+      }
       #
       # Save results
       tmp <- data.frame("PG id" = PG$id[whWGCNA],

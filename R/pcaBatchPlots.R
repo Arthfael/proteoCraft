@@ -110,7 +110,7 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
     datAv0 <- setNames(lapply(grps$x, \(x) {
       apply(scores0[match(x, scores0$Sample), kol, drop = FALSE],
             2L, \(y) {
-              mean(is.all.good(y))
+              mean(y[which(is.finite(y))])
             })
     }), grps$Group.1)
     datAv0 <- do.call(rbind, c(datAv0))

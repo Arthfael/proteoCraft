@@ -124,7 +124,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
   #View(myData[, paste0(myRef, VPAL$values)])
   comp_list <- setNames(lapply(VPAL$values, \(grp) { #grp <- VPAL$values[1L]
     x <- myData[[paste0(myRef, grp)]]
-    which(is.all.good(as.numeric(x), 2L))
+    which(is.finite(as.numeric(x)))
   }), cleanNms2(VPAL$values))
   w <- which(lengths(comp_list) > 0L)
   VennExp <- names(comp_list)[w]

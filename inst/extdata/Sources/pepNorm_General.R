@@ -90,18 +90,23 @@ if (Outcome) {
         smpls <- unique(Exp.map$Ref.Sample.Aggregate[which(Exp.map[[RG$column]] == wGrp)])
         smpls <- smpls[which(smpls %in% colnames(tmpDat1))]
         if (length(smpls)) {
-          m2 <- mean(is.all.good(unlist(tmpDat1[grpMtch, smpls])), na.rm = TRUE) # Original group scale
+          m2 <- unlist(tmpDat1[grpMtch, smpls])
+          m2 <- mean(m2[which(is.finite(m2))]) # Original group scale
           if (normSequence[[nrmStp]]$Method == "Levenberg-Marquardt") {
             tmp_nrm <- AdvNorm.IL(tmpDat1[grpMtch2, ], "Modified sequence", smpls, TRUE, 5L)
             colnames(tmp_nrm) <- gsub(topattern("AdvNorm."), "", colnames(tmp_nrm))
             m <- tmpDat1[grpMtch2, smpls] - tmp_nrm[, smpls]
             m <- colMeans(m, na.rm = TRUE)
           } else {
-            m <- vapply(smpls, \(smpl) { normFun(is.all.good(tmpDat1[grpMtch2, smpl])) }, 1)
+            m <- vapply(smpls, \(smpl) {
+              x <- tmpDat1[grpMtch2, smpl]
+              normFun(x[which(is.finite(x))])
+            }, 1)
           }
           #m <- m-mean(m)
           tmpDat2[grpMtch, smpls] <- sweep(tmpDat1[grpMtch, smpls], 2L, m, "-")
-          m3 <- mean(is.all.good(unlist(tmpDat2[grpMtch, smpls])), na.rm = TRUE) # Posterior group scale
+          m3 <- unlist(tmpDat2[grpMtch, smpls])
+          m3 <- mean(m3[which(is.finite(m3))]) # Posterior group scale
           tmpDat2[grpMtch, smpls] <- tmpDat2[grpMtch, smpls] + (m2 - m3) # -> Preserve group scale
         }
       }

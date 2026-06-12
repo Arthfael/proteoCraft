@@ -129,8 +129,8 @@ Time.Profile <- function(df,
                     alpha = 0.2)
     }
     if (labels != FALSE) {
-      x1 <- min(is.all.good(temp$Time.point))
-      x2 <- max(is.all.good(temp$Time.point))
+      x1 <- min(temp$Time.point[which(is.finite(temp$Time.point))])
+      x2 <- max(temp$Time.point[which(is.finite(temp$Time.point))])
       temp2 <- temp[which(temp$Time.point == x1),]
       plot <- plot +
         ggplot2::geom_text(data = temp2,

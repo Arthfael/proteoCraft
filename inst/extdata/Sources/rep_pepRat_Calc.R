@@ -22,7 +22,7 @@ if (makePepRat) {
   colnames(temp) <- c("contrast", "ratio")
   temp$contrast <- factor(sub("\\) - \\(", ")\n- (", temp$contrast),
                           levels = sub("\\) - \\(", ")\n- (", myContrasts$Contrast))
-  temp <- temp[which(is.all.good(temp$ratio, 2L)),]
+  temp <- temp[which(is.finite(temp$ratio)),]
   dir <- paste0(wd, "/Workflow control/Peptides/Ratios")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   dirlist <- union(dirlist, dir)

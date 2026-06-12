@@ -3,12 +3,12 @@
 # - Updates ScriptPath
 # - Saves a backup
 # - Optionally destroys/recreates the cluster
-rm(list = ls()[which(!ls() %in% .obj)])
+rm(list = setdiff(ls(), .obj))
 clustTst <- try({
-  if ((validLogicPar("stopClust"))&&(stopClust)) {
+  if (validLogicPar("stopClust") && stopClust) {
     stopCluster(parClust)
   } else {
-    invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
+    invisible(clusterCall(parClust, \(x) { rm(list = ls()); gc() }))
   }
 }, silent = TRUE)
 Script <- readLines(ScriptPath)

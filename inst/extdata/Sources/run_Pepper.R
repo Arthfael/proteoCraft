@@ -428,10 +428,14 @@ if (runPepper) {
     tmp2 <- colSums(tmp2[, Exp], na.rm = TRUE)
     assign(paste0(names(obj)[i], "_sums"), tmp2)
   }
+  a1 <- unlist(Before[, Exp])
+  a2 <- unlist(After[, Exp])
+  a1 <- a1[which(is.finite(a1))]
+  a2 <- a2[which(is.finite(a2))]
   msg <- paste0("Pepper:\n\n#######\n   Final improvement per sample:\n\n\t -> Sum of intra-protein SDs, ratio before/after\n\t\t",
                 paste(Exp, collapse = "\t"), "\n\t\t",
                 paste(round(Before_sums/After_sums, 1L), collapse = "\t"), "\n\n\t -> Overall: ",
-                round(sum(is.all.good(unlist(Before[, Exp])))/sum(is.all.good(unlist(After[, Exp]))), 1L), "\n\n")
+                round(sum(a1)/sum(a2), 1L), "\n\n")
   cat(msg)
   write(msg, paste0(pepDir, "/Final outcome.txt"))
 }

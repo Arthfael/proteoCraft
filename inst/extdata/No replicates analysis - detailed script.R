@@ -363,7 +363,7 @@ if ((RemovZ1)&&(length(w1))) {
 }
 #
 # Remove evidences with null intensity values
-w1 <- which((is.all.good(ev$Intensity, 2L))&(ev$Intensity > 0))
+w1 <- which((is.finite(ev$Intensity))&(ev$Intensity > 0))
 w2 <- which(!1L:nrow(ev) %in% w1)
 l2 <- length(w2)
 if (l2) {
@@ -412,7 +412,7 @@ Src <- paste0(libPath, "/extdata/Sources/pepMake.R")
 source(Src, local = FALSE)
 for (e in Exp) { #e <- Exp[1L]
   temp <- ev[which(ev$Experiment == e),]
-  temp <-  set_colnames(aggregate(temp[[int.col]], list(temp$"Modified sequence"), \(x) { sum(is.all.good(x)) }),
+  temp <-  set_colnames(aggregate(temp[[int.col]], list(temp$"Modified sequence"), \(x) { sum(x[which(is.finite(x))]) }),
                         c("Modified sequence", int.col))
   pep[, paste0(int.col, " - ", e)] <- 0
   w <- which(pep$"Modified sequence" %in% temp$"Modified sequence")
@@ -426,7 +426,7 @@ if (PTMriched) {
 #### Code chunk - optionally impute missing expression values
 if ((length(Exp) > 1L)&&(Impute)) {
   kol <- grep(topattern(int.col), colnames(pep), value = TRUE)
-  tst <- length(which(!is.all.good(log10(unlist(pep[, kol])), 2L)))
+  tst <- sum(!is.finite(log10(unlist(pep[, kol]))))
   if (length(tst)) {
     cat("Incomplete peptides-level expression values matrix.\nImputing missing values with random draws from a gaussian distribution centered on the lowest observed value and with SD = 1/5 that of the data.\n")
     g <- grep(topattern(paste0(int.col, " - ")), colnames(pep), value = TRUE)
@@ -479,13 +479,13 @@ temp$Sample <- gsub_Rep(topattern(paste0(int.col, " - ")), "", temp$variable)
 temp$variable <- NULL
 temp$Sample <- factor(temp$Sample, levels = Exp)
 temp$value <- log10(temp$value)
-temp <- temp[which(is.all.good(temp$value, 2L)),]
+temp <- temp[which(is.finite(temp$value)),]
 if (PTMriched) {
   for (ptm in EnrichedPTMs) { temp[[ptm]] <- c("", ptm)[temp[[ptm]]+1L] }
-  if (length(EnrichedPTMs) > 1L) {
-    temp$PTMs <- do.call(paste, c(temp[, EnrichedPTMs], sep = "-"))
+  temp$PTMs <- if (length(EnrichedPTMs) > 1L) {
+    do.call(paste, c(temp[, EnrichedPTMs], sep = "-"))
   } else {
-    temp$PTMs <- temp[[EnrichedPTMs]]
+    temp[[EnrichedPTMs]]
   }
 }
 temp$Sample <- factor(temp$Sample, levels = Exp)
@@ -537,9 +537,8 @@ if (length(Exp) > 1L) {
   })
   temp2 <- plyr::rbind.fill(temp2)
   temp2$"Modified sequence" <- temp$"Modified sequence"
-  clusterExport(parClust, "is.all.good", envir = environment())
   test <- parApply(parClust, temp2[, c("log10(X intensity)", "log10(Y intensity)")], 1L, \(x) {
-    length(is.all.good(x))
+    sum(is.finite(x))
   }) == 2L
   temp2 <- temp2[which(test),]
   temp2$X <- factor(temp2$X, levels = Exp)
@@ -636,7 +635,7 @@ if (MakeRatios) {
       warning(paste0("Ratios group ", gr, " - there should be reference (control) and non-reference samples!"))
     } else {
       ref <- apply(pep[, paste0(int.col, " - ", m$Experiment[which(m$Reference)]), drop = FALSE], 1L, \(x) {
-        x <- is.all.good(x)
+        x <- x[which(is.finite(x))]
         l <- length(x)
         x <- if (!l) { NA_real_ } else { prod(x)^(1/l) }
         return(x)
@@ -654,7 +653,7 @@ if (MakeRatios) {
   temp <- dfMelt(temp, id.vars = "Modified sequence")
   temp$Sample <- gsub(topattern(paste0(rat.col, " - ")) , "", temp$variable)
   temp$Sample <- factor(temp$Sample, levels = Exp)
-  temp <- temp[which(is.all.good(temp$value, 2L)),]
+  temp <- temp[which(is.finite(temp$value)),]
   ttl <- "Ratios density plot - Peptides level"
   plot <- ggplot(temp) + geom_histogram(aes(x = value, fill = Sample), bins = 100L) +
     geom_vline(xintercept = RatiosThresh, colour = "red") +
@@ -1041,8 +1040,9 @@ source(quntSrc, local = FALSE)
 if ((length(Exp) > 1L)&&(NormalizePG)) {
   g <- grep(topattern(PG.int.col), colnames(PG), value = TRUE)
   temp <- PG[, c("id", g)]
-  m <- apply(temp[, g], 2L, \(x) { median(is.all.good(x)) })
-  M <- median(is.all.good(unlist(temp[, g])))
+  m <- apply(temp[, g], 2L, \(x) { median(x[which(is.finite(x))]) })
+  M <- unlist(temp[, g])
+  M <- median(M[which(is.finite(M))])
   temp[, g] <- sweep(temp[, g], 2L, m, "-") + M
   temp <- AdvNorm.IL(temp[, c("id", g)], "id", exprs.col = g, exprs.log = TRUE)
   PG[, gsub(topattern(PG.int.col), paste0("Norm. ", PG.int.cols["Original"]), g)] <- temp[, paste0("AdvNorm.", g)]
@@ -1132,9 +1132,8 @@ if (length(Exp) > 1L) {
     return(temp2)
   }), names(PG.int.cols))
   temp <- plyr::rbind.fill(temp)
-  clusterExport(parClust, "is.all.good", envir = environment())
   test <- parApply(parClust, temp[, c("log10(X LFQ)", "log10(Y LFQ)")], 1L, \(x) {
-    length(is.all.good(x))
+    sum(is.finite(x))
   }) == 2L
   temp <- temp[which(test),]
   w <- aggregate(1L:nrow(temp), list(temp$Type), list)
@@ -1206,7 +1205,7 @@ if (length(Exp) > 1L) {
   })
 }
 g <- as.character(sapply(PG.int.cols, \(x) { grep(topattern(x), colnames(PG), value = TRUE) }))
-test <- vapply(g, \(x) { length(is.all.good(PG[[x]])) }, 1L)
+test <- vapply(g, \(x) { sum(is.finite(PG[[x]])) }, 1L)
 print(test)
 invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 
@@ -1382,21 +1381,21 @@ if (MakeRatios) {
       nf <- SmplMp$Experiment[which(SmplMp$"Negative Filter")]
       if (length(nf)) {
         smpl1 <- smpl1[which(!smpl1 %in% nf)]
-        nftst <- apply(PG[, paste0(ref, nf), drop = FALSE], 1L, \(x) { length(is.all.good(x)) }) > 0L
+        nftst <- apply(PG[, paste0(ref, nf), drop = FALSE], 1L, \(x) { sum(is.finite(x)) }) > 0L
       }
     }
     FC_filt <- append(FC_filt, setNames(lapply(smpl1, \(x) { #x <- smpl1[1L]
       e1 <- PG[[paste0(ref, x)]]
       r1 <- PG[[paste0(PG.rat.col, x)]]
       if (RatiosThresh_2sided) { r1 <- abs(r1) }
-      w <- which(((r1 >= RatiosThresh)&(is.all.good(e1, 2L)))|(is.all.good(e1, 2L)&(!is.all.good(e0, 2L))))
-      if ((NegFilt)&&(length(nf))) { w <- w[which(!nftst[w])] }
+      w <- which(is.finite(e1) & ((r1 >= RatiosThresh) | (!is.finite(e0))))
+      if (NegFilt && length(nf)) { w <- w[which(!nftst[w])] }
       return(w)
     }), smpl1))
     FC_Smpls[[grp]] <- list(Numerator = smpl1, Denominator = smpl0)
   }
   #g <- grep(topattern(PG.rat.col), colnames(PG), value = TRUE)
-  #test <- setNames(vapply(g, \(x) { length(is.all.good(PG[[x]])) }, 1L), gsub(topattern(PG.rat.col), "", g))
+  #test <- setNames(vapply(g, \(x) { sum(is.finite(PG[[x]])) }, 1L), gsub(topattern(PG.rat.col), "", g))
   #print(test)
   #
   # Ratios distribution:
@@ -1413,7 +1412,7 @@ if (MakeRatios) {
   temp$Type <- paste0("log2(", tolower(temp$Type), " ratio)")
   temp$Type <- factor(temp$Type, levels = paste0("log2(", c("orig", "norm", "imput"), ". ratio)"))
   long.dat$ratios <- temp
-  temp <- temp[which(is.all.good(temp$"log2(Ratio)", 2L)),]
+  temp <- temp[which(is.finite(temp$"log2(Ratio)")),]
   ttl <- "Ratios density plot - PGs level"
   plot <- ggplot(temp) + geom_histogram(aes(x = `log2(Ratio)`, fill = Type), bins = 100L) +
     geom_vline(xintercept = RatiosThresh, colour = "red") +
@@ -1434,7 +1433,7 @@ if (MakeRatios) {
   tst1 <- do.call(paste, c(temp[, c("Common Name (short)", "Experiment")], sep = "___"))
   tst2 <- do.call(paste, c(long.dat$ratios[, c("Common Name (short)", "Experiment")], sep = "___"))
   temp$"log2(Ratio)" <- long.dat$ratios$`log2(Ratio)`[match(tst1, tst2)]
-  temp <- temp[which(is.all.good(temp$`log2(Ratio)`, 2L)),]
+  temp <- temp[which(is.finite(temp$`log2(Ratio)`)),]
   ttl <- "MA plots - PGs level"
   plot <- ggplot(temp) + geom_point(aes(x = `Mean log10(Intensity)`, y = `log2(Ratio)`, colour = Type), size = 0.1) +
     geom_hline(yintercept = 0, linewidth = 0.8, linetype = "dashed") +
@@ -1460,7 +1459,7 @@ if (MakeRatios) {
       xp0 <- SmplMp$Experiment[w0]
       for (x in w1) { #x <- w1[1L]
         xp1 <- SmplMp$Experiment[x]
-        wonly <- which(is.all.good(PG[[paste0(ref, xp1)]], 2L)&(!is.all.good(PG[[paste0(ref, xp0)]], 2L)))
+        wonly <- which(is.finite(PG[[paste0(ref, xp1)]])&(!is.finite(PG[[paste0(ref, xp0)]])))
         PG[[paste0("Regulated - ", xp1)]] <- ""
         if (RatiosThresh_2sided) {
           wup <- which(PG[[paste0(PG.rat.col, xp1)]] >= RatiosThresh)
@@ -1606,7 +1605,7 @@ if (MakeRatios) {
         temp <- Isapply(strsplit(ptmpep$"Protein group IDs", ";"), \(x) { #x <- strsplit(ptmpep$"Protein group IDs", ";")[1L]
           x <- unlist(x)
           y <- PG[match(x, PG$id), a1, drop = FALSE]
-          if (length(x) > 1L) { y <- apply(y, 2L, \(x) { mean(is.all.good(x)) }) }
+          if (length(x) > 1L) { y <- apply(y, 2L, \(x) { mean(x[which(is.finite(x))]) }) }
           return(unlist(y))
         })
         ptmpep[, paste0("ReNorm. ", a)] <- ptmpep[, a] - temp # It's log data so "-", not "/"
@@ -1638,13 +1637,13 @@ if (MakeRatios) {
             av <- apply(ptmpep[, cole0, drop = FALSE], 1L, mean, na.rm = TRUE)
             temp[, c(cols0, cols1)] <- sweep(2L^ptmpep[, c(colr0, colr1)], 1L, av, "*")
             #tst <- log10(temp[, cols1]/temp[, cols0])
-            #tst2 <- apply(tst, 2L, \(x) { summary(is.all.good(x)) })
+            #tst2 <- apply(tst, 2L, \(x) { summary(x[which(is.finite(x))]) })
           } else {
             temp[, cols0] <- ptmpep[, cole0] # This stays the same as before
             temp[, cols1] <- ptmpep[, cole0]*(2L^ptmpep[, colr1])
           }
           #tst <- log10(temp[, cols1]/temp[, cols0])
-          #tst2 <- apply(tst, 2L, \(x) { summary(is.all.good(x)) })
+          #tst2 <- apply(tst, 2L, \(x) { summary(x[which(is.finite(x))]) })
           # Note: the price of normalisation is that often there is no valid parent protein so a lot of NAs are introduced
           #
           totA <- apply(temp[, c(cols0, cols1)], 1L, sum, na.rm = TRUE)
@@ -1652,7 +1651,7 @@ if (MakeRatios) {
         }
         ptmpep[, colnames(temp)] <- temp
         #kol <- grep("ReNorm. log2", colnames(ptmpep), value = TRUE)
-        #tst <- apply(ptmpep[, kol], 2L, \(x) { summary(is.all.good(x)) })
+        #tst <- apply(ptmpep[, kol], 2L, \(x) { summary(x[which(is.finite(x))]) })
       }
       #
       # Fold change filters:
@@ -1669,7 +1668,7 @@ if (MakeRatios) {
           if (length(nf)) {
             smpl1 <- smpl1[which(!smpl1 %in% nf)]
             nftst <- apply(ptmpep[, paste0(Int, " - ", nf), drop = FALSE], 1L, \(x) {
-              length(is.all.good(x))
+              sum(is.finite(x))
             }) > 0L
           }
         }
@@ -1677,7 +1676,7 @@ if (MakeRatios) {
           e1 <- ptmpep[[paste0(Int, " - ", x)]]
           r1 <- ptmpep[[paste0(Rat, " - ", x)]]
           if (RatiosThresh_2sided) { r1 <- abs(r1) }
-          w <- which(((r1 >= RatiosThresh)&(is.all.good(e1, 2L)))|(is.all.good(e1, 2L)&(!is.all.good(e0, 2L))))
+          w <- which(is.finite(e1) & ((r1 >= RatiosThresh) | (!is.finite(e0))))
           if ((NegFilt)&&(length(nf))) { w <- w[which(!nftst[w])] }
           return(w)
         }), smpl1))
@@ -1698,7 +1697,7 @@ if (MakeRatios) {
           xp0 <- SmplMp$Experiment[w0]
           for (x in w1) { #x <- w1[1L]
             xp1 <- SmplMp$Experiment[x]
-            wonly <- which(is.all.good(ptmpep[[paste0(Int, " - ", xp1)]], 2L)&(!is.all.good(ptmpep[[paste0(Int, " - ", xp0)]], 2L)))
+            wonly <- which(is.finite(ptmpep[[paste0(Int, " - ", xp1)]])&(!is.finite(ptmpep[[paste0(Int, " - ", xp0)]])))
             PG[[paste0("Regulated - ", xp1)]] <- ""
             if (RatiosThresh_2sided) {
               wup <- which(ptmpep[[paste0(Rat, " - ", xp1)]] >= RatiosThresh)
@@ -1726,7 +1725,7 @@ if (MakeRatios) {
       temp$Type <- paste0("log2(", tolower(temp$Type), " ratio)")
       temp$Type <- factor(temp$Type, levels = paste0("log2(", c("orig", "norm", "imput", "renorm"), ". ratio)"))
       long.dat$ratios <- temp
-      temp <- temp[which(is.all.good(temp$"log2(Ratio)", 2L)),]
+      temp <- temp[which(is.finite(temp$"log2(Ratio)")),]
       ttl <- paste0("Ratios density plot - ", ptm, "-modified peptides")
       plot <- ggplot(temp) + geom_histogram(aes(x = `log2(Ratio)`, fill = Type), bins = 100L) +
         geom_vline(xintercept = RatiosThresh, colour = "red") +
@@ -1898,7 +1897,7 @@ if (Venn_Obs) {
     Xp <- sm$Experiment
     test <- setNames(lapply(Xp, \(exp) {
       x <- PG[[paste0(ref, exp)]]
-      which(is.all.good(x, 2L))
+      which(is.finite(x))
     }), Xp)
     w <- which(lengths(test) > 0L)
     VennExp <- Xp[w]
@@ -2080,15 +2079,17 @@ if (length(Exp) > 2L) {
   ## Impute data
   ## Here we have no way to decide between MAR/MCAR/MNAR,
   ## so we will instead replace every missing value with a random value drawn from a gaussian distribution of reduced m and sd
-  m <- median(is.all.good(unlist(temp)))
-  sd <- sd(is.all.good(unlist(temp)))
+  tmp <- unlist(temp)
+  tmp <- tmp[which(is.finite(tmp))]
+  m <- median(tmp)
+  sd <- sd(tmp)
   for (i in colnames(temp)) {
-    w <- which(!is.all.good(temp[[i]], 2L))
+    w <- which(!is.finite(temp[[i]]))
     temp2 <- rnorm(length(w), m-3, sd/2)
     temp[w, i] <- temp2
   }
   nrm <- PG[[paste0("Mean ", gsub(" - $", "", PG.int.col))]]
-  w <- which(is.all.good(nrm, 2L))
+  w <- which(is.finite(nrm))
   temp <- sweep(temp[w,], 1L, nrm[w], "-")
   rownames(temp) <- PG$"Leading protein IDs"[w]
   temp <- temp + rnorm(nrow(temp)*ncol(temp), 0, 10L^-24L) # Add small random value in case we (very rarely) get non-unique values per row
@@ -2138,7 +2139,7 @@ if (length(Exp) > 2L) {
                                                       c("Protein IDs", "Label")]
     scores$Alpha <- (scores$PC1^2L + scores$PC2^2L)
     scores$Direction <- apply(temp[w,], 1L, \(x) {
-      wh <- which(is.all.good(10L^x, 2L))
+      wh <- which(is.finite(10L^x))
       return(weighted.mean(c(seq_along(colnames(temp)))[wh], 10L^x[wh]))
     })
     scores$Class <- ""
@@ -2293,7 +2294,7 @@ if ((length(Exp) > 1L)&&(prot.list.Cond)) {
     for (kol in kols) {
       kol2 <- gsub(" log10\\(", " ", gsub("\\) - ", " - ", kol))
       temp[[kol2]] <- suppressWarnings(10L^temp[[kol]])
-      temp[which(!is.all.good(temp[[kol2]], 2L)), kol] <- NA_real_
+      temp[which(!is.finite(temp[[kol2]])), kol] <- NA_real_
       temp[[kol]] <- NULL
     }
     data.table::fwrite(temp, paste0(dir, "/Protein of interest profiles.tsv"),
@@ -2336,7 +2337,7 @@ if ((length(Exp) > 1L)&&(!is.null(prot.list))&&(length(prot.list))) {
         temp2$"Modified sequence" <- gsub("^_|_$", "", temp2$"Modified sequence")
         temp2$Sample <- as.character(temp2$Sample)
         temp2$value <- suppressWarnings(log2(temp2$value))+StdWdth/2
-        w <- which(!is.all.good(temp2$value, 2L))
+        w <- which(!is.finite(temp2$value))
         temp2$value[w] <- NA_real_
         temp2$value[which(temp2$value < -StdWdth/2)] <- -StdWdth/2
         temp2$Xmin <- match(temp2$Sample, colnames(temp))-1L

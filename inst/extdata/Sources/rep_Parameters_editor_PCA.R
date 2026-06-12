@@ -55,7 +55,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
     data2 <- as.data.frame(data2)
     data2 <- melt(data2, id.vars = c("Group", "MQ.Exp"))
     data2$value <- log10(data2$value)
-    data2 <- data2[which(is.all.good(data2$value, 2L)),]
+    data2 <- data2[which(is.finite(data2$value)),]
     data2$IsoBarLab <- Exp.map$`Isobaric label details`[match(as.integer(data2$variable), Exp.map$`Isobaric label`)]
     data2$Parent_sample <- do.call(paste, c(data2[, c("MQ.Exp", "IsoBarLab")], sep = "_"))
     data2 <- data2[which(data2$Parent_sample %in% Exp.map$`Parent sample`),]

@@ -2,7 +2,7 @@
 ttl <- "Peptides Variance vs Intensity dependency"
 kol <- grep(topattern(pep.ref[rfnm]), colnames(pep), value = TRUE)
 temp <- pep[, kol]
-w <- which(apply(temp, 1L, \(x) { length(is.all.good(x)) }) > 0L)
+w <- which(apply(temp, 1L, \(x) { sum(is.finite(x)) }) > 0L)
 temp <- temp[w,]
 Aggr <- VPAL
 if (LocAnalysis) { Aggr <- parse.Param.aggreg("Exp;Com") }

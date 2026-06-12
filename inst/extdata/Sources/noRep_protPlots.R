@@ -44,7 +44,7 @@ if (prot.list.Cond) {
       return()
     }))
     exports <- list("prot.names", "IDs.list", "TEST0", "tmpDB", "Exp", "TMP0", "nCharLim", "wd", "int.col",
-                    "WorkFlow", "runRat", "Coverage", "is.all.good", "listMelt", "poplot", "annot_to_tabl")
+                    "WorkFlow", "runRat", "Coverage", "listMelt", "poplot", "annot_to_tabl")
     if (runRat) { exports <- append(exports, list("comb", "myComb", "pepR")) }
     clusterExport(parClust, exports, envir = environment())
     #for (prnm in 1L:length(prot.names)) { #prnm <- 1L
@@ -126,12 +126,12 @@ if (prot.list.Cond) {
           wh <- which(TMP$Experiment == exp)
           if (!length(wh)) { return(NA) }
           e <- TMP[wh,]
-          wh <- which(is.all.good(log10(e$Intensity), 2L))
+          wh <- which(is.finite(log10(e$Intensity)))
           if (!length(wh)) { return(NA) }
           res <- set_colnames(aggregate(e$Intensity[wh], list(e$"Modified sequence"[wh]), sum),
                               c("Modified sequence", "Intensity"))
           e <- set_colnames(aggregate(e$PEP[wh], list(e$"Modified sequence"[wh]), \(x) {
-            x <- is.all.good(x)
+            x <- x[which(is.finite(x))]
             if (!length(x)) { return(NA) }
             return(max(x))
           }), c("Modified sequence", "PEP"))
@@ -144,12 +144,14 @@ if (prot.list.Cond) {
         }), Exp)
         tempev <- tempev[which(vapply(tempev, \(x) { is.data.frame(x) }, TRUE))]
         if (!length(tempev)) { return() }
-        mxInt <- ceiling(max(is.all.good(unlist(sapply(names(tempev), \(exp) { #exp <- names(tempev)[1L]
+        mxInt <- unlist(sapply(names(tempev), \(exp) { #exp <- names(tempev)[1L]
           tempev[[exp]]$"log10(Intensity)"
-        })))))
-        mxPEP <- ceiling(max(is.all.good(unlist(sapply(names(tempev), \(exp) {
+        }))
+        mxInt <- ceiling(max(mxInt[which(is.finite(mxInt))]))
+        mxPEP <- unlist(sapply(names(tempev), \(exp) {
           -log10(tempev[[exp]]$PEP)
-        })))))
+        }))
+        mxPEP <- ceiling(max(mxInt[which(is.finite(mxPEP))]))
         for (exp in names(tempev)) { #exp <- names(tempev)[1L]
           tmp <- tempev[[exp]]
           ttl1a <- paste0("Coverage - ", nm, " - ", exp, ", log10(int.)")
@@ -217,7 +219,7 @@ if (prot.list.Cond) {
           temp2 <- temp2[which(vapply(temp2, \(x) { is.data.frame(x) }, TRUE))]
           temp2 <- do.call(rbind, temp2)
           if (nrow(temp2)) {
-            test <- apply(temp2[, c("log10(LFQ, A)", "log10(LFQ, B)") ], 1L, \(x) { length(is.all.good(x)) }) == 2L
+            test <- apply(temp2[, c("log10(LFQ, A)", "log10(LFQ, B)") ], 1L, \(x) { sum(is.finite(x)) }) == 2L
             temp2 <- temp2[which(test),]
             temp3 <- as.data.frame(t(sapply(unique(temp2$Comparison), \(x) { #x <- unique(temp2$Comparison)[1L]
               x1 <- temp2[which(temp2$Comparison == unlist(x)), c("log10(LFQ, A)", "log10(LFQ, B)")]
@@ -293,7 +295,7 @@ if (prot.list.Cond) {
                                         "AA" = mwScl$AA[nr]*2-mwScl$AA[nr-1L]))
               mwScl$kDa <- paste0(round(mwScl$Da/1000), " kDa")
             }
-            ySum <- summary(is.all.good(temp2$`log10(A/B)`))
+            ySum <- summary(temp2$`log10(A/B)`[which(is.finite(temp2$`log10(A/B)`))])
             yScl <- ySum["Max."] - ySum["Min."]
             yMin <- ySum["Min."] - 0.1*yScl
             xLim <- c(-10L, max(c(seqL, mwScl$AA)))

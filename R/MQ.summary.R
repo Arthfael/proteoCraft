@@ -42,11 +42,11 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
   #DefArg(MQ.summary); TESTING <- TRUE
   #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = sc
   #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = max(c(20L, round(length(rawFiles2)/length(Exp)))); save = c("jpeg", "pdf")
-  if (TESTING) {
+  misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-    misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
-  } else { misFun <- missing }
+    \(x) { return(!exists(deparse(substitute(x)))) }
+  } else { missing }
   #
   tstCl <- stopCl <- misFun(cl)
   if (!misFun(MQtxt)) {
@@ -74,7 +74,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     W <- colnames(ev)[which(toupper(colnames(ev)) %in% c("CONTAMINANT", "POTENTIAL.CONTAMINANT"))]
     for (w in W) { ev <- ev[which((ev[[w]] != "+")|(is.na(ev[[w]]))),] }
     ev <- ev[which((ev$Reverse != "+")|(is.na(ev$Reverse))),]
-    ev <- ev[which((is.all.good(ev$Intensity, 2L))&(ev$Intensity > 0)),]
+    ev <- ev[which(is.finite(ev$Intensity) & (ev$Intensity > 0)),]
     W <- colnames(pg)[which(toupper(colnames(pg)) %in% c("CONTAMINANT", "POTENTIAL CONTAMINANT"))]
     for (w in W) { pg <- pg[which((pg[[w]] != "+")|(is.na(pg[[w]]))),] }
     pg <- pg[which(pg$id %in% unique(unlist(strsplit(ev$"Protein group IDs", ";")))),]
@@ -175,7 +175,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       }
       temp$variable <- apply(cbind(grepl("evidences", temp$variable, ignore.case = TRUE),
                                    grepl("peptides", temp$variable, ignore.case = TRUE)),
-                             1L, \(x) {c("Evidences", "Peptides")[which(unlist(x))]})
+                             1L, \(x) { c("Evidences", "Peptides")[which(unlist(x))] })
       temp$Sample <- factor(temp$Sample, levels = levels(rawFls))
     }
     if (length(levels(rawFls)) > sc) {
@@ -590,14 +590,14 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           if (length(w1)) {
             tst1 <- vapply(m$"Retention time"[w1], \(x) { temp$Retention.time[which(temp$Retention.time >= x)[1L]] }, 1)
             temp1 <- aggregate(m$"Precursor intensity"[w1]/m$"Precursor apex fraction"[w1], list(tst1),
-                               function(x) { sum(is.all.good(x)) })
+                               \(x) { sum(x[which(is.finite(x))]) })
             w1 <- which(temp$Retention.time %in% temp1$Group.1)
             temp[w1, paste0(r, "___Intensity_Not.identified")] <- temp1$x[match(temp$Retention.time[w1], temp1$Group.1)]
           }
           if (length(w2)) {
             tst2 <- vapply(m$"Retention time"[w2], \(x) { temp$Retention.time[which(temp$Retention.time >= x)[1L]] }, 1)
             temp2 <- aggregate(m$"Precursor intensity"[w2]/m$"Precursor apex fraction"[w2], list(tst2),
-                               function(x) { sum(is.all.good(x)) })
+                               \(x) { sum(x[which(is.finite(x))]) })
             w2 <- which(temp$Retention.time %in% temp2$Group.1)
             temp[w2, paste0(r, "___Intensity_Identified")] <- temp2$x[match(temp$Retention.time[w2], temp2$Group.1)]
           }

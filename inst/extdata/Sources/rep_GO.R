@@ -1,6 +1,6 @@
 #### Code chunk - Gene Ontology terms enrichment analysis
 warning("Please re-write me, this is getting ugly...")
-if ((Annotate)&&(enrichGO||globalGO)) {
+if (Annotate && (enrichGO || globalGO)) {
   msg <- "Gene Ontology terms enrichment analysis"
   ReportCalls <- AddMsg2Report(Space = FALSE)
   packs <- c("GO.db", "topGO")
@@ -13,7 +13,7 @@ if ((Annotate)&&(enrichGO||globalGO)) {
   GO_enrich.tbl %<o% list()
   GO_Plots %<o% list()
   Reg_GO_terms %<o% list()
-  GO.enrich.MultiRefs %<o% (("GO.enrichment.Ref.Aggr" %in% colnames(Param))&&(!Param$GO.enrichment.Ref.Aggr %in% c("", "NA", NA)))
+  GO.enrich.MultiRefs %<o% (("GO.enrichment.Ref.Aggr" %in% colnames(Param)) && (!Param$GO.enrichment.Ref.Aggr %in% c("", "NA", NA)))
   if (GO.enrich.MultiRefs) { parse.Param.aggreg.2("GO.enrichment.Ref.Aggr") }
   #
   if (runClueGO) {
@@ -109,7 +109,7 @@ if ((Annotate)&&(enrichGO||globalGO)) {
                 y <- Exp.map[which(Exp.map$Ref.Sample.Aggregate %in% c(A_, B_)), GO.enrichment.Ref.Aggr$column]
                 z <- Exp.map$Ref.Sample.Aggregate[which(Exp.map[[GO.enrichment.Ref.Aggr$column]] %in% y)]
                 w1 <- which(apply(PG[, paste0(Prot.Expr.Root, z)], 1L, \(x) {
-                  sum(is.all.good(x, 2L))
+                  sum(is.finite(x))
                 }) > 0L)
                 if (tt == 4L) {
                   w1 <- which(temp$PG_id %in% PG$id[w1])
@@ -123,7 +123,7 @@ if ((Annotate)&&(enrichGO||globalGO)) {
                 Ref.Filt <- tmpFilt
               }
             }
-            if ((length(Ref.Filt) > 1L)||(!is.na(Ref.Filt))) {
+            if ((length(Ref.Filt) > 1L) || (!is.na(Ref.Filt))) {
               flt <- setNames(lapply(names(flt), \(x) { flt[[x]][which(flt[[x]] %in% Ref.Filt[[x]])] }),
                               names(flt))
             }
@@ -140,10 +140,10 @@ if ((Annotate)&&(enrichGO||globalGO)) {
             Mode <- "regulated"
             if (tt %in% c(1L, 3L)) { dataType <- "PG" }
             if (tt == 4L) { dataType <- "Prot" }
-            if ((!exists("GO_mappings"))&&(file.exists("GO_mappings.RData"))) {
+            if ((!exists("GO_mappings")) && file.exists("GO_mappings.RData")) {
               loadFun("GO_mappings.RData")
             }
-            if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) { loadFun("GO_terms.RData") }
+            if ((!exists("GO_terms")) && file.exists("GO_terms.RData")) { loadFun("GO_terms.RData") }
             #
             Src <- paste0(libPath, "/extdata/Sources/GO_enrich.R")
             #rstudioapi::documentOpen(Src)
@@ -173,7 +173,7 @@ if ((Annotate)&&(enrichGO||globalGO)) {
                 plot <- GO_Plots[[tstbee]]$GO_plots[[ttl]]
                 ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
               }
-              if ((create_plotly)&&(!create_plotly_local)) { plot_ly[[paste0("GO plots - Regulated vs Observed - ", tstbee)]] <- GO_Plots[[tstbee]]$GO_plot_ly }
+              if (create_plotly && (!create_plotly_local)) { plot_ly[[paste0("GO plots - Regulated vs Observed - ", tstbee)]] <- GO_Plots[[tstbee]]$GO_plot_ly }
               temp <- GO_Plots[[tstbee]]$GO_terms
               temp$Mapping <- NULL
               if ("Offspring" %in% colnames(temp)) {
@@ -280,7 +280,8 @@ if ((Annotate)&&(enrichGO||globalGO)) {
                   colnames(temp2) <- temp[1L, 2L:(N+1L)]
                   rownames(temp2) <-  temp[2L:(N+1L), 1L]
                   for (i in 1L:nrow(temp2)) { temp2[[i]] <- as.numeric(temp2[[i]]) }
-                  if (max(is.all.good(unlist(temp2))) > 0L) {
+                  temp2ul <- unlist(temp2)
+                  if (max(temp2ul[which(is.finite(temp2ul))]) > 0L) {
                     temp2 <- as.matrix(temp2)
                     basic.heatmap(temp2, "N. of co-regulated GO terms", paste0(tstrt, "\n(", tolower(bee), ")"),
                                   save = c("pdf", "jpeg"), folder = dir)
@@ -294,7 +295,7 @@ if ((Annotate)&&(enrichGO||globalGO)) {
     }
   }
   if (globalGO) {
-    msg <- " - Dataset"
+    msg <- "\n - Dataset"
     ReportCalls <- AddMsg2Report(Space = FALSE)
     #
     dir <- paste0(wd, "/Reg. analysis/GO enrich/Dataset")
@@ -303,10 +304,10 @@ if ((Annotate)&&(enrichGO||globalGO)) {
     #
     Mode <- "dataset"
     dataType <- "PG"
-    if ((!exists("GO_mappings"))&&(file.exists("GO_mappings.RData"))) {
+    if ((!exists("GO_mappings")) && file.exists("GO_mappings.RData")) {
       loadFun("GO_mappings.RData")
     }
-    if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) {
+    if ((!exists("GO_terms")) && file.exists("GO_terms.RData")) {
       loadFun("GO_terms.RData")
     }
     #
@@ -336,11 +337,11 @@ if ((Annotate)&&(enrichGO||globalGO)) {
     #
     GO_Plots_2 %<o% goRES
     #
-    if ((!is.null(GO_Plots_2))&&("All_GO_terms" %in% names(GO_Plots_2))) {
+    if ((!is.null(GO_Plots_2)) && ("All_GO_terms" %in% names(GO_Plots_2))) {
       GO_terms <- GO_Plots_2$All_GO_terms
       GO_Plots_2$All_GO_terms <- NULL
     }
-    if ((create_plotly)&&(!create_plotly_local)) { plot_ly$"GO plots - Observed dataset vs Theoretical proteome" <- GO_Plots_2$GO_plot_ly }
+    if (create_plotly && (!create_plotly_local)) { plot_ly$"GO plots - Observed dataset vs Theoretical proteome" <- GO_Plots_2$GO_plot_ly }
   }
   l <- length(DatAnalysisTxt)
   DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],

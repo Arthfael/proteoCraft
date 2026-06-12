@@ -397,7 +397,7 @@ runKount <- 0L
 while ((!runKount) || (!exists("ExpData3"))) {
   eval(parse(text = runApp), envir = .GlobalEnv)
   shinyCleanup()
-  runKount <- runKount+1L
+  runKount <- runKount + 1L
 }
 #
 Exp.map %<o% ExpData3

@@ -2,6 +2,7 @@
 # - Can I rewrite this to handle also proteins level re-normalisation?
 lNorm <- length(normSequence) #lNorm <- 1L
 if (lNorm) {
+  cat("Peptides-level normalisations:\n------------------------------\n\n")
   # Initial values
   pepNorm %<o% list()
   NormGrps %<o% setNames(aggregate(pep$id, list(pep$"Normalisation group"), list),

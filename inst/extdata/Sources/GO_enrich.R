@@ -164,7 +164,7 @@ if (Mode == "regulated") {
       bars_title <- "GO bar plot_"
       title.root <- ttr
       bars_title.root <- btr
-      subfolder <- dir
+      subfolder <- myDir
     }
     if (scrptType == "noReps") {
       Prot <- PG
@@ -191,7 +191,7 @@ if (Mode == "regulated") {
       bars_title <- paste0(Ptm, " GO bar plot_")
       title.root <- ttr
       bars_title.root <- btr
-      subfolder <- dir
+      subfolder <- myDir
     }
     if (scrptType == "noReps") {
       Prot <- ptmpep
@@ -224,13 +224,13 @@ if (Mode == "dataset") {
       # - Quantified protein groups
       kol <- paste0(Prot.Expr.Root, RSA$values)
       kol <- kol[which(kol %in% colnames(Prot))]
-      filters[["Quant. - dataset"]] <- which(apply(Prot[, kol], 1L, \(x) { length(is.all.good(x)) }) > 0L)
+      filters[["Quant. - dataset"]] <- which(apply(Prot[, kol], 1L, \(x) { sum(is.finite(x)) }) > 0L)
       # Quantified protein groups per sample group
       if (!Impute) { # No point having sample-specific filters if all samples have the same amount of stuff!
         filters[paste0("Quant. - ", VPAL$values)] <- lapply(VPAL$values, \(x) { #x <- VPAL$values[1L]
           kol <- paste0(Prot.Expr.Root, Exp.map$Ref.Sample.Aggregate[which(Exp.map[[VPAL$column]] == x)])
           kol <- kol[which(kol %in% colnames(Prot))]
-          which(apply(Prot[, kol], 1L, \(x) { length(is.all.good(as.numeric(x))) }) > 0L)
+          which(apply(Prot[, kol], 1L, \(x) { sum(is.finite(as.numeric(x))) }) > 0L)
         })
       }
     }
@@ -965,7 +965,9 @@ if (length(wFltL)) {
       thresh$Colour <- colorRampPalette(c("red", "gold"))(length(GO_FDR))
       thresh$"-log10(Threshold)" <- -log10(thresh$Threshold)
       thresh$Label <- paste0(thresh$FDR*100, "% FDR threshold")
-      Ymax <- suppressWarnings(max(c(is.all.good(c(GO_tbl$Y, thresh$`-log10(Threshold)`, 3)))))
+      Ymax <- suppressWarnings(max(c(GO_tbl$Y[which(is.finite(GO_tbl$Y))],
+                                     thresh$`-log10(Threshold)`[which(is.finite(thresh$`-log10(Threshold)`))],
+                                     3)))
       winf <- which(is.infinite(GO_tbl$Y)&(GO_tbl$Y > 0))
       if (length(winf)) { GO_tbl$Y[winf] <- Ymax + 1 }
       # Calculate logFC
@@ -995,14 +997,15 @@ if (length(wFltL)) {
             tmp0 <- 10L^tmp0
             tmp1 <- 10L^tmp1
           }
-          tmp0 <- apply(tmp0, 1L, \(x) { sum(is.all.good(x, 2L)) }) > 0
-          tmp1 <- apply(tmp1, 1L, \(x) { sum(is.all.good(x, 2L)) }) > 0
+          tmp0 <- apply(tmp0, 1L, \(x) { sum(is.finite(x)) }) > 0
+          tmp1 <- apply(tmp1, 1L, \(x) { sum(is.finite(x)) }) > 0
           w0 <- which(tmp0&!tmp1)
           w1 <- which(!tmp0&tmp1)
           wB <- which(tmp0&tmp1) # This should always be empty!
           if (length(wB)) { warning("Invalid ratio, yet both sample groups seem to have valid values? Investigate!") }
-          Mn <- min(is.all.good(Prot[[FCkol]]))
-          Mx <- max(is.all.good(Prot[[FCkol]]))
+          fc <- Prot[[FCkol]][which(is.finite(Prot[[FCkol]]))]
+          Mn <- min(fc)
+          Mx <- max(fc)
           Prot[[FCkol]][w[w0]] <- Mn
           Prot[[FCkol]][w[w1]] <- Mx
         }
@@ -1015,19 +1018,21 @@ if (length(wFltL)) {
       GO.terms[wh, paste0("logFC - ", n1)] <- as.numeric(GO_tbl$logFC)
       # Calculate Z score
       if (True_Zscore) {
-        sd <- sd(is.all.good(GO_tbl$logFC))
-        m <- mean(is.all.good(GO_tbl$logFC))
+        fc <- GO_tbl$logFC[which(is.finite(GO_tbl$logFC))]
+        sd <- sd(fc)
+        m <- mean(fc)
         GO_tbl$"Z-score" <- (GO_tbl$logFC - m)/sd
         GO.terms[[paste0("Z-score - ", n1)]] <- NA_real_
         GO.terms[wh, paste0("Z-score - ", n1)] <- GO_tbl$"Z-score"
       } else {
         # "Z score" analog as used in package GOplot (see https://cran.r-project.org/web/packages/GOplot/vignettes/GOplot_vignette.html)
-        m <- mean(is.all.good(Prot[[FCkol]]))
+        m <- mean(Prot[[FCkol]][which(is.finite(Prot[[FCkol]]))])
         GO_tbl$"Z-score" <- vapply(GO_tbl$Rows, \(x) {
-          x <- is.all.good(Prot[x, FCkol])
+          x <- Prot[x, FCkol]
+          x <- x[which(is.finite(x))]
           l <- length(x)
           if (!l) { return(NA_real_) }
-          x <- is.all.good(x)-m
+          x <- x-m
           x <- x[which(x != 0)]
           x <- ifelse(x > 0, 1L, -1L)
           x <- sum(x)/sqrt(l)
@@ -1036,8 +1041,9 @@ if (length(wFltL)) {
         GO.terms[[paste0("(N_Up - N_Down)/sqrt(Tot.) - ", n1)]] <- NA_real_
         GO.terms[wh, paste0("(N_Up - N_Down)/sqrt(Tot.) - ", n1)] <- GO_tbl$"Z-score"
       }
-      Xmin <- suppressWarnings(min(is.all.good(c(GO_tbl$"Z-score", -1L))))
-      Xmax <- suppressWarnings(max(is.all.good(c(GO_tbl$"Z-score", 1L))))
+      zsc <- GO_tbl$"Z-score"[which(is.finite(GO_tbl$"Z-score"))]
+      Xmin <- suppressWarnings(min(c(zsc, -1L)))
+      Xmax <- suppressWarnings(max(c(zsc, 1L)))
       Xbreadth <- Xmax-Xmin
       Xmin <- Xmin-Xbreadth*0.05
       Xmax <- Xmax+Xbreadth*0.05
@@ -1055,8 +1061,8 @@ if (length(wFltL)) {
         GO_tbl[w,] <- tmp
         # aggregate(test, list(test), length)
       }
-      w <- which(is.all.good(GO_tbl$"Z-score", 2)&(is.all.good(GO_tbl$Y, 2))&(GO_tbl$Count >= MinCount))
-      #wN <- which(!is.all.good(GO_tbl$"Z-score", 2)|(!is.all.good(GO_tbl$Y, 2))|(GO_tbl$Count < MinCount))
+      w <- which(is.finite(GO_tbl$"Z-score")&(is.finite(GO_tbl$Y))&(GO_tbl$Count >= MinCount))
+      #wN <- which(!is.finite(GO_tbl$"Z-score")|(!is.finite(GO_tbl$Y))|(GO_tbl$Count < MinCount))
       if (length(w)) {
         GO_tbls2[[n1]] <- list(Success = TRUE,
                                Data = GO_tbl[w,],
@@ -1075,13 +1081,18 @@ if (length(wFltL)) {
     if (length(GO_tbls2)) {
       if (GlobalScales) {
         Xxtr <- max(c(vapply(names(GO_tbls), \(nm) {
-          suppressWarnings(max(abs(is.all.good(GO_tbls[[nm]]$Data$"Z-score"*1.05))))
+          x <- GO_tbls[[nm]]$Data$"Z-score"
+          x <- x[which(is.finite(x))]
+          max(abs(x*1.05))
         }, 1), 1))
         Xbreadth <- 2*Xxtr
         Xmin <- -Xxtr
         Xmax <- Xxtr
         Ymax <- max(c(vapply(names(GO_tbls), \(nm) {
-          suppressWarnings(max(is.all.good(c(GO_tbls[[nm]]$Data$Y, GO_tbls[[nm]]$Thresholds$"-log10(Threshold)"))))
+          x <- c(GO_tbls[[nm]]$Data$Y,
+                 GO_tbls[[nm]]$Thresholds$"-log10(Threshold)")
+          x <- x[which(is.finite(x))]
+          max(x)
         }, 1), 3))
       } else {
         Xxtr <- Xbreadth <- Xmin <- Xmax <- Ymax <- ""

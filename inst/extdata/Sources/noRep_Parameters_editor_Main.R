@@ -82,7 +82,7 @@ for (p in pr) { #p <- pr[1L]
 # Peptide classes to use for quantitation
 Pep4QuantOpt %<o% setNames(c("Unique peptide IDs", "Razor peptide IDs", "Peptide IDs"),
                            c("Unique", "Razor", "All"))
-if ((!validCharPar("Pep4Quant", Pep4QuantOpt))&&("Peptide classes eligible for quantitation" %in% names(AnalysisParam))) {
+if ((!validCharPar("Pep4Quant", Pep4QuantOpt)) && ("Peptide classes eligible for quantitation" %in% names(AnalysisParam))) {
   tmp1 <- toupper(gsub(" |_|-|\\.", "", as.character(AnalysisParam[["Peptide classes eligible for quantitation"]])))
   tmp2 <- Pep4QuantOpt
   names(tmp2) <- toupper(names(tmp2))
@@ -98,7 +98,7 @@ Pep4Quant %<o% Pep4Quant
 AnalysisParam$Prot.Quant.Use <- names(Pep4Quant)
 #
 # How many peptide do we need to quantify a protein?
-if ((!validIntegPar("N_Pep"))&&("N. of peptidoforms for quantitation" %in% names(AnalysisParam))) {
+if ((!validIntegPar("N_Pep")) && ("N. of peptidoforms for quantitation" %in% names(AnalysisParam))) {
   tmp1 <- AnalysisParam$"N. of peptidoforms for quantitation"
   if (validIntegPar("tmp1")) { N_Pep <- as.integer(tmp1) }
 }
@@ -112,7 +112,7 @@ AnalysisParam$"N. of peptidoforms for quantitation" <- N_Pep
 #
 # How many unique peptides (if available) to use to the exclusivity of any others
 # If set to 0, we will use peptides regardless of whether unique or not
-if ((!validIntegPar("N_unique_Pep", 0L))&&("Use.N.unique" %in% names(AnalysisParam))) {
+if ((!validIntegPar("N_unique_Pep", 0L)) && ("Use.N.unique" %in% names(AnalysisParam))) {
   tmp1 <- AnalysisParam$Use.N.unique
   if (validIntegPar("tmp1", 0L)) { N_unique_Pep <- as.integer(tmp1) }
 }
@@ -148,7 +148,7 @@ if ((scrptType == "noReps") && (length(Exp) == 1L)) { # limpa needs at least 2 s
   quantAlgoOpt <- setdiff(quantAlgoOpt, "limpa")
 }
 quantAlgoDflt <- c("LM", "LM")[match(scrptType, c("noReps", "withReps"))] # limpa is temporarily demoted
-if (("QuantMeth" %in% names(AnalysisParam))&&(!"Quant_algorithm" %in% names(AnalysisParam))) { # Old parameter name
+if (("QuantMeth" %in% names(AnalysisParam)) && (!"Quant_algorithm" %in% names(AnalysisParam))) { # Old parameter name
   AnalysisParam$Quant_algorithm <- AnalysisParam$QuantMeth
 }
 if ("Quant_algorithm" %in% names(AnalysisParam)) { # Current parameter name
@@ -179,7 +179,7 @@ reScAlgoOpt %<o% allReScAlgoOpt$Algorithm
 if ((scrptType == "noReps") && (length(Exp) == 1L)) { # limpa needs at least 2 samples
   reScAlgoOpt <- setdiff(reScAlgoOpt, "limpa")
 }
-if ((!validCharPar("reScAlgo", reScAlgoOpt))&&("ReScaling_algorithm" %in% names(AnalysisParam))) {
+if ((!validCharPar("reScAlgo", reScAlgoOpt)) && ("ReScaling_algorithm" %in% names(AnalysisParam))) {
   tmp1 <- AnalysisParam$ReScaling_algorithm
   if (validCharPar("tmp1", reScAlgoOpt)) { reScAlgo <- tmp1 }
 }
@@ -202,7 +202,7 @@ if (!validLogicPar("reScale")) {
   reScale <- (quantAlgo != reScAlgo)|(quantAlgo == "LM")
 }
 # Top-N
-if ((!validIntegPar("topN"))&&("topN" %in% names(AnalysisParam))) {
+if ((!validIntegPar("topN")) && ("topN" %in% names(AnalysisParam))) {
   tmp1 <- AnalysisParam$topN
   if (validIntegPar("tmp1")) { topN <- as.integer(tmp1) }
 }
@@ -219,7 +219,7 @@ AnalysisParam$topN <- topN
 # So if we want to average 3-or-failing-that-2-or-failing-that-1-peptide(s),
 # and still get a similar treatment for proteins with 1, 2 or 3+ peptides,
 # we need to correct for that difference.
-if ((!validLogicPar("topN_correct"))&&("topN_correct" %in% names(AnalysisParam))) {
+if ((!validLogicPar("topN_correct")) && ("topN_correct" %in% names(AnalysisParam))) {
   tmp1 <- as.logical(AnalysisParam$topN_correct)
   if (validLogicPar("tmp1")) { topN_correct <- tmp1 }
 }
@@ -228,7 +228,7 @@ topN_correct %<o% topN_correct
 AnalysisParam$topN_correct <- topN_correct
 #
 # Check peptide-to-protein matches
-if ((!validLogicPar("Update_Prot_matches"))&&("Update_Prot_matches" %in% names(AnalysisParam))) {
+if ((!validLogicPar("Update_Prot_matches")) && ("Update_Prot_matches" %in% names(AnalysisParam))) {
   tmp1 <- as.logical(AnalysisParam$Update_Prot_matches)
   if (validLogicPar("tmp1")) { Update_Prot_matches <- tmp1 }
 }
@@ -236,7 +236,7 @@ if (!validLogicPar("Update_Prot_matches")) { Update_Prot_matches <- TRUE }
 Update_Prot_matches %<o% Update_Prot_matches # See https://github.com/vdemichev/DiaNN/discussions/1631
 AnalysisParam$Update_Prot_matches <- Update_Prot_matches
 #
-if ((!validLogicPar("Impute"))&&("ImputeMissData" %in% names(AnalysisParam))) {
+if ((!validLogicPar("Impute")) && ("ImputeMissData" %in% names(AnalysisParam))) {
   tmp1 <- as.logical(AnalysisParam$ImputeMissData)
   if (validLogicPar("tmp1")) { Impute <- tmp1 }
 }
@@ -244,7 +244,7 @@ if (!validLogicPar("Impute")) { Impute <- FALSE }
 Impute %<o% Impute
 AnalysisParam$ImputeMissData <- Impute
 #
-if ((!validIntegPar("PepFoundInAtLeast", 1L))&&("PepFoundInAtLeast" %in% names(AnalysisParam))) {
+if ((!validIntegPar("PepFoundInAtLeast", 1L)) && ("PepFoundInAtLeast" %in% names(AnalysisParam))) {
   tmp1 <- AnalysisParam$PepFoundInAtLeast
   if (validIntegPar("tmp1", 0L)) { PepFoundInAtLeast <- as.integer(tmp1) }
 }
@@ -279,7 +279,7 @@ if ("CytoscapePath" %in% names(AnalysisParam)) {
   tmp <- normalizePath(path.expand(AnalysisParam$CytoscapePath), winslash = "/")
   tmp <- tmp[which(file.exists(tmp))]
   if (length(CytoScExe)) {
-    if ((length(tmp))&&(tmp %in% CytoScExe)) { CytoScExe <- tmp } else {
+    if (length(tmp) && (tmp %in% CytoScExe)) { CytoScExe <- tmp } else {
       AnalysisParam$CytoscapePath <- CytoScExe[1L]
     }
   }
@@ -288,9 +288,9 @@ if ("CytoscapePath" %in% names(AnalysisParam)) {
     AnalysisParam$CytoscapePath <- CytoScExe[1L]
   }
 }
-if (CytoScape&&("Cytoscape" %in% names(AnalysisParam))) {
+if (CytoScape && ("Cytoscape" %in% names(AnalysisParam))) {
   tmp1 <- as.logical(AnalysisParam$Cytoscape)
-  if (validLogicPar("tmp1")&&(!CytoScape)) {
+  if (validLogicPar("tmp1") && (!CytoScape)) {
     msg <- "Sorry, can't run Cytoscape: couldn't find a valid executable!"
     ReportCalls <- AddMsg2Report(Warning = TRUE)
   } else { CytoScape <- tmp1 }
@@ -298,7 +298,7 @@ if (CytoScape&&("Cytoscape" %in% names(AnalysisParam))) {
 AnalysisParam$Cytoscape <- CytoScape
 #
 # Proteome ruler
-if ((!validLogicPar("protrul"))&&("Proteomic ruler calculated" %in% names(AnalysisParam))) {
+if ((!validLogicPar("protrul")) && ("Proteomic ruler calculated" %in% names(AnalysisParam))) {
   tmp1 <- as.logical(AnalysisParam$"Proteomic ruler calculated")
   if (validLogicPar("tmp1")) { protrul <- tmp1 }
 }
@@ -310,7 +310,7 @@ if (!validLogicPar("protrul")) {
 }
 protrul %<o% protrul
 AnalysisParam$ProtRul <- protrul
-if ((!validIntegPar("ProtRulNuclL", 1L))&&("ProtRulNuclL" %in% names(AnalysisParam))) {
+if ((!validIntegPar("ProtRulNuclL", 1L)) && ("ProtRulNuclL" %in% names(AnalysisParam))) {
   tmp1 <- AnalysisParam$ProtRulNuclL
   if (validIntegPar("tmp1")) { ProtRulNuclL <- as.integer(tmp1) }
 }
@@ -321,9 +321,9 @@ AnalysisParam$ProtRulNuclL <- ProtRulNuclL
 Update_Prot_matches %<o% TRUE # See https://github.com/vdemichev/DiaNN/discussions/1631
 if ("Update_Prot_matches" %in% names(AnalysisParam)) {
   Update_Prot_matches <- as.logical(AnalysisParam$Update_Prot_matches)
-  if ((is.na(Update_Prot_matches))||(is.null(Update_Prot_matches))) { Update_Prot_matches <- TRUE }
+  if (is.na(Update_Prot_matches) || is.null(Update_Prot_matches)) { Update_Prot_matches <- TRUE }
 }
-if ((!is.logical(Update_Prot_matches))||(length(Update_Prot_matches) != 1L)||(is.na(Update_Prot_matches))) {
+if ((!is.logical(Update_Prot_matches)) || (length(Update_Prot_matches) != 1L) || is.na(Update_Prot_matches)) {
   Update_Prot_matches <- TRUE
 }
 AnalysisParam$Update_Prot_matches <- Update_Prot_matches
@@ -331,7 +331,7 @@ AnalysisParam$Update_Prot_matches <- Update_Prot_matches
 PepFoundInAtLeast %<o% 1L
 if ("PepFoundInAtLeast" %in% names(AnalysisParam)) {
   PepFoundInAtLeast <- suppressWarnings(as.integer(AnalysisParam$PepFoundInAtLeast))
-  if ((is.na(PepFoundInAtLeast))||(PepFoundInAtLeast < 1L)||(!moreThan1Exp)||(PepFoundInAtLeast > length(Exp))) {
+  if (is.na(PepFoundInAtLeast) || (PepFoundInAtLeast < 1L) || (!moreThan1Exp) || (PepFoundInAtLeast > length(Exp))) {
     PepFoundInAtLeast <- 1L
   }
 }
@@ -375,7 +375,7 @@ if (MakeRatios) {
   } else {
     AnalysisParam$"Ratios analysis - threshold" <-  RatiosThresh
   }
-  if ((is.na(RatiosThresh))||(!is.numeric(RatiosThresh))||(!RatiosThresh < 0)) {
+  if (is.na(RatiosThresh) || (!is.numeric(RatiosThresh)) || (!RatiosThresh < 0)) {
     RatiosThresh <- 1
   }
   RatiosThresh_2sided %<o% c(TRUE, FALSE)[(WorkFlow == "Pull-down")+1L]
@@ -385,7 +385,7 @@ if (MakeRatios) {
     AnalysisParam$"Ratios analysis - threshold is two-sided" <- RatiosThresh_2sided
   }
   RatiosThresh_2sided <- as.logical(RatiosThresh_2sided)
-  if ((is.na(RatiosThresh_2sided))||(is.null(RatiosThresh_2sided))) {
+  if (is.na(RatiosThresh_2sided) || is.null(RatiosThresh_2sided)) {
     RatiosThresh_2sided <- TRUE
   }
 }
@@ -393,14 +393,14 @@ if (MakeRatios) {
 removeMBR %<o% FALSE
 if ("Proteins list: remove match-between-runs" %in% names(AnalysisParam)) {
   removeMBR <- as.logical(AnalysisParam$"Proteins list: remove match-between-runs")
-  if ((is.na(removeMBR))||(is.null(removeMBR))||(!moreThan1Exp)) { removeMBR <- FALSE }
+  if (is.na(removeMBR) || is.null(removeMBR) || (!moreThan1Exp)) { removeMBR <- FALSE }
 }
 AnalysisParam$"Proteins list: remove match-between-runs" <- removeMBR
 #
 NormalizePG %<o% ((WorkFlow != "Band ID")&(moreThan1Exp))
 if ("NormalizePG" %in% names(AnalysisParam)) {
   NormalizePG <- as.logical(AnalysisParam$NormalizePG)
-  if ((is.na(NormalizePG))||(is.null(NormalizePG))||(!moreThan1Exp)) { NormalizePG <- moreThan1Exp }
+  if (is.na(NormalizePG) || is.null(NormalizePG) || (!moreThan1Exp)) { NormalizePG <- moreThan1Exp }
 }
 AnalysisParam$NormalizePG <- NormalizePG
 #
@@ -432,7 +432,7 @@ Mod2Write %<o% c()
 if ("Mod2Write" %in% names(AnalysisParam)) {
   Mod2Write <- AnalysisParam$Mod2Write
 } else { AnalysisParam$Mod2Write <- Mod2Write }
-if ((length(Mod2Write))&&(!Mod2Write %in% Modifs$Mark)) { Mod2Write <- c() }
+if (length(Mod2Write) && (!Mod2Write %in% Modifs$Mark)) { Mod2Write <- c() }
 #
 # Venn diagrams
 Venn_Obs %<o% moreThan1Exp
@@ -441,7 +441,7 @@ if ("Venn diagrams: observed" %in% names(AnalysisParam)) {
 }
 Venn_Obs <- moreThan1Exp # No matter the parameters, if there is only one sample, we DO NOT draw Venn diagrams, period
 Venn_Obs <- as.logical(Venn_Obs)
-if ((is.na(Venn_Obs))||(is.null(Venn_Obs))) { Venn_Obs <- FALSE }
+if (is.na(Venn_Obs) || is.null(Venn_Obs)) { Venn_Obs <- FALSE }
 AnalysisParam$"Venn diagrams: observed" <- Venn_Obs
 Venn_Obs %<o% Venn_Obs
 #
@@ -463,7 +463,7 @@ for (parI in myPar) {
   parOK <- (exists(parNm))
   if (parOK) {
     tmpPar <- get(parNm)
-    parOK <- (length(tmpPar) == 1)&&(is.logical(tmpPar))&&(!is.na(tmpPar))
+    parOK <- (length(tmpPar) == 1L) && is.logical(tmpPar) && (!is.na(tmpPar))
   }
   if (parOK) { par_dflt <- tmpPar }
   # Backup value
@@ -781,7 +781,7 @@ server1 <- function(input, output, session) {
   observe({ shinyFileChoose(input, "CustPG", roots = getVolumes(), filetypes = "csv")
     {
       tmp <- input$CustPG
-      if ((!is.null(tmp))&&(inherits(tmp, "list"))) {
+      if ((!is.null(tmp)) && inherits(tmp, "list")) {
         tmp <- parseFilePaths(getVolumes(), tmp)$datapath
         Par <- PARAM()
         Par$Custom.PGs <- normalizePath(tmp, winslash = "/")
@@ -792,7 +792,7 @@ server1 <- function(input, output, session) {
   observe({ shinyFileChoose(input, "CRAPome", roots = getVolumes(), filetypes = "csv" )
     {
       tmp <- input$CRAPome
-      if ((!is.null(tmp))&&(inherits(tmp, "list"))) {
+      if ((!is.null(tmp)) && inherits(tmp, "list")) {
         tmp <- parseFilePaths(getVolumes(), tmp)$datapath
         Par <- PARAM()
         Par$CRAPome_file <- normalizePath(tmp, winslash = "/")
@@ -1097,7 +1097,7 @@ server1 <- function(input, output, session) {
     observe({ shinyFileChoose(input, "CytoScVers2", roots = getVolumes(), filetypes = "exe")
       {
         tmp <- input$CytoScVers2
-        if ((!is.null(tmp))&&(inherits(tmp, "list"))) {
+        if ((!is.null(tmp)) && inherits(tmp, "list")) {
           assign("CytoScExe", input$CytoScVers2, envir = .GlobalEnv)
           tmp <- parseFilePaths(getVolumes(), tmp)$datapath
           Par <- PARAM()
@@ -1121,7 +1121,7 @@ server1 <- function(input, output, session) {
 }
 appTxt1 <- gsub("myApp", "myApp1", gsub("\\(ui", "(ui1", gsub(", server", ", server1", runApp)))
 runKount <- 0L
-while ((!runKount)||(!exists("appRunTest"))) {
+while ((!runKount) || (!exists("appRunTest"))) {
   ui1 <- make_ui() # Update ui with new values
   eval(parse(text = appTxt1), envir = .GlobalEnv)
   shinyCleanup()
@@ -1160,7 +1160,7 @@ if (prot.list.Cond) {
   prot.names %<o% names(IDs.list)
   db$"Potential contaminant"[which(db$`Protein ID` %in% prot.list)] <- ""
 }
-if (runClueGO&&!enrichGO) { runClueGO <- FALSE }
+if (runClueGO && (!enrichGO)) { runClueGO <- FALSE }
 #
 custPGs_file %<o% AnalysisParam$Custom.PGs
 custPGsTst <- (!is.na(custPGs_file))&(file.exists(custPGs_file))
@@ -1207,7 +1207,7 @@ AnalysisParam$"PTMs to exclude from quantitation" <- Mod2Xclud
 
 # Experiments
 SamplesMapPath %<o% paste0(wd, "/SamplesMap.csv")
-tst <- (("Experiment" %in% colnames(ev))&&(!sum(is.na(ev$Experiment)))) 
+tst <- (("Experiment" %in% colnames(ev)) && (!sum(is.na(ev$Experiment)))) 
 if (tst) {
   if ("Reference" %in% colnames(SamplesMap)) {
     SamplesMap <- SamplesMap[which(!is.na(SamplesMap$Reference)),]

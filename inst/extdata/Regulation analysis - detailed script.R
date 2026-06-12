@@ -146,6 +146,11 @@ Src <- paste0(libPath, "/extdata/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
+# Default volcano plot arguments
+Src <- paste0(libPath, "/extdata/Sources/dfltVolcPlotArgs.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
 #### Code chunk - Select input/output folders and define experimental structure
 # Reuse answers?
 # The script sometimes pauses to ask the user a question in a popup. These answers are stored.
@@ -1069,11 +1074,6 @@ suppressMessages({
 })
 ReportCalls <- AddPlot2Report()
 
-#### SubCellular Localisation analysis: re-scale to known proportions
-Src <- paste0(libPath, "/extdata/Sources/SubCellResc.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
-
 # Code chunk - Add quant data to PG:
 PG <- PG[, which(!colnames(PG) %in% colnames(quantData))]
 PG[, colnames(quantData)] <- quantData
@@ -1090,6 +1090,11 @@ if (Param$Prot.Only.with.Quant) {
 if (!"Peptides count" %in% colnames(PG)) {
   PG$"Peptides count" <- lengths(strsplit(PG$"Peptide IDs", ";"))
 }
+
+#### SubCellular Localisation analysis: re-scale to known proportions
+Src <- paste0(libPath, "/extdata/Sources/SubCellResc.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 if (!Param$Plot.labels %in% colnames(PG)) {
   tmp <- gsub("\\.", " ", Param$Plot.labels)
@@ -1109,20 +1114,10 @@ Src <- paste0(libPath, "/extdata/Sources/PG_Filters.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-# Backup data/update cluster
-#rstudioapi::documentOpen(bckpSrc)
-source(bckpSrc, local = FALSE)
-#loadFun(BckUpFl)
-
 #### Code chunk - samples Pearson correlation heatmap
 Src <- paste0(libPath, "/extdata/Sources/pearsonCorrMap.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
-
-# Backup data/update cluster
-#rstudioapi::documentOpen(bckpSrc)
-source(bckpSrc, local = FALSE)
-#loadFun(BckUpFl)
 
 # Average expression columns per group
 for (grp in VPAL$values) { #grp <- VPAL$values[1L] #grp <- VPAL$values[3L]
@@ -1326,39 +1321,6 @@ subDr <- "Reg. analysis/t-tests"
 subDr2 <- paste0(wd, "/", subDr)
 if (!dir.exists(subDr2)) { dir.create(subDr2, recursive = TRUE) }
 setwd(wd)
-# Default volcano plot arguments
-# (I've given this poor mess of an ever-evolving function so many arguments over the years!)
-volcPlot_args %<o% list(mode = "custom",
-                        experiments.map = Exp.map,
-                        contrasts = myContrasts,
-                        X.root = Prot.Rat.Root,
-                        Y.root = pvalue.col[which(pvalue.use)],
-                        aggregate.map = Aggregate.map,
-                        aggregate.name = VPAL$aggregate,
-                        aggregate.list = Aggregate.list,
-                        parameters = Param,
-                        save = c("jpeg", "pdf"),
-                        labels = c("FDR", "both")[useSAM+1L],
-                        Ref.Ratio.method = paste0("obs", RefRat_Mode),
-                        ratios.FDR = as.numeric(Param$Ratios.Contamination.Rates),
-                        FDR.thresh = FDR.thresholds,
-                        arbitrary.lines = arbitrary.thr,
-                        proteins = prot.list,
-                        proteins_split = protsplit,
-                        return = TRUE,
-                        return.plot = TRUE,
-                        title = "Volcano plot ",
-                        subfolder = subDr,
-                        subfolderpertype = FALSE,
-                        Alpha = "Rel. log10(Peptides count)",
-                        Size = "Rel. av. log10 abundance",
-                        Size.max = 2L,
-                        plotly = create_plotly,
-                        plotly_local = create_plotly_local,
-                        plotly_labels = PrLabKol,
-                        SAM = useSAM,
-                        curved_Thresh = SAM_thresh,
-                        saveData = TRUE)
 #source(parSrc)
 volcPlot_args2 <- volcPlot_args
 volcPlot_args2$Prot <- PG
@@ -1885,8 +1847,6 @@ if (!exists("xplorSrc")) {
 xplorSrc %<o% xplorSrc
 #rstudioapi::documentOpen(xplorSrc)
 source(xplorSrc, local = FALSE)
-
-Sys.sleep(1L)
 
 #### Code chunk - Optional: if there are time points, plot the curve of the ratios of one or all protein(s) over time
 if (exists("Tim")) {

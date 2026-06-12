@@ -4,14 +4,17 @@
 \alias{plotEval}
 \title{plotEval}
 \usage{
-plotEval(plot)
+plotEval(plot, ggplotify = FALSE)
 }
 \arguments{
-\item{plot}{ggplot to evaluate.}
+\item{plot}{The ggplot to evaluate.}
+
+\item{ggplotify}{Alternate (classic) method using ggplotify, producing a more complete (larger) evaluated ggplot.}
 }
 \value{
 Evaluated ggplot.
 }
 \description{
 A simple wrapup for evaluation a ggplot, allowing to save it in a parallel manner.
+By default this now outputs a gtable, but may also output a full ggplot (if ggplotify is TRUE).
 }

@@ -115,9 +115,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
       tmpFl <- tempfile(fileext = ".rds")
       readr::write_rds(quantData_norm, tmpFl)
       ids <- PG$id[nrmFlt]
-      exports <- list("tmpFl", "Exp.map", "Norm.Groups",
-                      "nrmFlt", "is.all.good", "Prot.Expr.Root",
-                      "ids", "AdvNorm.IL", "grpKols")
+      exports <- list("tmpFl", "Exp.map", "Norm.Groups", "nrmFlt", "Prot.Expr.Root", "ids", "AdvNorm.IL", "grpKols")
       clusterExport(parClust, exports, envir = environment())
       invisible(clusterCall(parClust, \() {
         quantData_norm <- readr::read_rds(tmpFl)
@@ -275,7 +273,7 @@ if (normPGs) {
   temp$Sample <- factor(temp$variable, levels = Samples)
   temp$variable <- NULL
   temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
-  temp <- temp[which(is.all.good(temp$value, 2L)),]
+  temp <- temp[which(is.finite(temp$value)),]
   ttlI1 <- paste0("Protein groups ", ttl, ", expression")
   intPlot1 <- ggplot(temp) +
     geom_violin(aes(x = Sample, y = value, colour = Sample, fill = Sample), alpha = 0.25) +
@@ -311,7 +309,7 @@ if (normPGs) {
   temp$Contrast <- factor(temp$Contrast, levels = allContr2)
   temp$variable <- NULL
   temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
-  temp <- temp[which(is.all.good(temp$value, 2L)),]
+  temp <- temp[which(is.finite(temp$value)),]
   ttlR1 <- paste0("Protein groups ", ttl, ", ratios")
   ratPlot1 <- ggplot(temp) +
     geom_violin(aes(x = Contrast, y = value, colour = Contrast, fill = Contrast), alpha = 0.25) +
@@ -346,7 +344,7 @@ if (normPGs) {
   temp$variable <- NULL
   temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
   temp$value <- suppressWarnings(log10(temp$value)) # Peptide intensities are not log-transformed!
-  temp <- temp[which(is.all.good(temp$value, 2L)),]
+  temp <- temp[which(is.finite(temp$value)),]
   ttlI2 <- paste0("Peptides ", ttl, " from PGs, intensity")
   intPlot2 <- ggplot(temp) +
     geom_violin(aes(x = Sample, y = value, colour = Sample, fill = Sample), alpha = 0.25) +
@@ -385,7 +383,7 @@ if (normPGs) {
   temp$Contrast <- factor(temp$Contrast, levels = allContr2)
   temp$variable <- NULL
   temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
-  temp <- temp[which(is.all.good(temp$value, 2L)),]
+  temp <- temp[which(is.finite(temp$value)),]
   ttlR2 <- paste0("Peptides ", ttl, " from PGs, ratios")
   ratPlot2 <- ggplot(temp) +
     geom_violin(aes(x = Contrast, y = value, colour = Contrast, fill = Contrast), alpha = 0.25) +
@@ -496,19 +494,20 @@ if (normPGs) {
     #   pep.Ref.Ratios <- pep.Ref.Ratios.norm
     #   pep[, colnames(pep.Ref.Ratios)] <- pep.Ref.Ratios
     # }
-    if (sum(c("limpa", "QFeatures") %in% c(quantAlgo, reScAlgo, quantArgs$alsoRun))) {
-      # In cases involving limpa and QFeatures, re-normalisation requires re-running the quant from back-normalized peptides,
-      # so the objects are properly normalized "in-depth"!
-      cat("   Re-running quantitation from back-normalized peptides!\n")
-      post_ReNorm_reRun <- TRUE
-      #rstudioapi::documentOpen(quntSrc)
-      source(quntSrc, local = FALSE)
-      summary(quantData_list$Data)
-    } else {
-      quantData <- quantData_norm
-    }
   } else {
     pep.ref <- pep.ref[setdiff(names(pep.ref), "Back-norm")]
   }
+  # We now only run one algorithm the first time we source quntSrc,
+  # then call it a second time, with all algorithms, regardless of whether re-normalisation was accepted or not.
+  cat(if (accept_PG_reNorm) {
+    "   Re-running quantitation from back-normalized peptides!\n   This will take longer as we will also run other algorithms to feed into downstream statistical inference."
+  } else {
+    "   Re-running quantitation with all algorithms (to feed into downstream statistical inference)\n"
+  })
+  post_ReNorm_reRun <- TRUE
+  #rstudioapi::documentOpen(quntSrc)
+  source(quntSrc, local = FALSE)
+  summary(quantData_list$Data)
+  #
   ReportCalls <- AddSpace2Report()
 }

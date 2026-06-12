@@ -398,7 +398,7 @@ Example: \"GO:0031012;2\"
       colnames(test) <- gsub(topattern("log10(SSD) - ", start = FALSE), "", colnames(test))
       w <- grep("^Mean ", colnames(test))
       colnames(test)[w] <- paste0(gsub("^Mean ", "", colnames(test)[w]), "___Mean")
-      test <- test[which(apply(test, 1L, \(x) { length(is.all.good(x)) }) > 0L),]
+      test <- test[which(apply(test, 1L, \(x) { sum(is.finite(x)) }) > 0L),]
       test <- suppressMessages(dfMelt(test))
       test$variable <- as.character(test$variable)
       test[, SubCellFracAggr$names] <- ""
@@ -408,7 +408,7 @@ Example: \"GO:0031012;2\"
       w <- which(vapply(a, \(x) { length(unique(test[[x]])) }, 1L) > 1L)
       if (length(w)) { a <- a[w] }
       test[[a[1L]]] <- factor(test[[a[1L]]], levels = sort(unique(test[[a[1L]]])))
-      test <- test[which(is.all.good(test$value, 2L)),]
+      test <- test[which(is.finite(test$value)),]
       test2 <- set_colnames(aggregate(test$value, list(test$variable), median), c("variable", "value"))
       test2[, a] <- test[match(test2$variable, test$variable), a]
       MinMax <- c(min(test$value), max(test$value))

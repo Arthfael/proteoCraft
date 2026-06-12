@@ -69,7 +69,7 @@ if (LabelType == "Isobaric") { # If isobaric
     #View(RemEv[, kol])
     msg <- paste0("Removing ", l, " (", signif(100L*l/nrow(ev), 2L), "%) PSMs with invalid expression values!")
     ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
-    w <- which(is.all.good(tst$Reporter, 2L)&(tst$Reporter > 0))
+    w <- which(is.finite(tst$Reporter)&(tst$Reporter > 0))
     ev <- ev[w,]
   }
 }

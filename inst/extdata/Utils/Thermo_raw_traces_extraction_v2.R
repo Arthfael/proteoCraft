@@ -1302,7 +1302,7 @@ propFlt <- \(x,
              upper = TRUE, # If TRUE, the proportion applies to the upper tail of the data, if not to the lower tail.
              average = TRUE # If TRUE, returns mean of filtered data, if FALSE returns data
 ) {
-  x <- is.all.good(x) 
+  x <- x[which(is.finite(x))] 
   l <- length(x)
   x <- sort(x, decreasing = upper)
   x <- x[1L:round(l*p)]
@@ -1312,7 +1312,7 @@ propFlt <- \(x,
 peakXtract <- \(fileName, # File name
                 data = chr,
                 WIP = FALSE, # Work-in-Progress? If so we will be plotting stuff to check behaviour
-                binSz = 10, # Default RT bin size (s)
+                binSz = 10L, # Default RT bin size (s)
                 targRg,
                 bgMode = "loess") { #fileName <- f[1L] #fileName <- f[2L] #fileName <- f[3L] #fileName <- f[4L] #fileName <- f[5L] #fileName <- f[6L]
   rtPrec <- 0.01/60 # 10 ms

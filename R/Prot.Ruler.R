@@ -152,17 +152,21 @@ Prot.Ruler <- function(Prot,
           histones <- histones[which(ltest > 0L),]
           exprsdata <- Prot[, Expr.cols$Expr.cols, drop = FALSE]
           R <- sapply(Expr.cols$Expr.cols, \(r) { #r <- Expr.cols$Expr.cols[1]
-            sapply(histones$"Protein Group IDs", \(h) { mean(is.all.good(as.numeric(exprsdata[match(h, Prot$id), r]))) })
+            sapply(histones$"Protein Group IDs", \(h) {
+              x <- as.numeric(exprsdata[match(h, Prot$id), r])
+              mean(x[which(is.finite(x))])
+            })
           })
           if (norm) {
             if (norm_filter) {
-              wR <- which(apply(R, 2L, \(x) { length(is.all.good(x)) }) > 0L)
+              wR <- which(apply(R, 2L, \(x) { sum(is.finite(x)) }) > 0L)
               exprsdata <- exprsdata[, wR, drop = FALSE]
             } else { wR <- 1L:length(Pr.Ruler.cols) }
-            R <- mean(is.all.good(as.numeric(unlist(R))))
+            R <- as.numeric(unlist(R))
+            R <- mean(R[which(is.finite(R))])
           } else {
-            R <- apply(R, 2L, \(x) { mean(is.all.good(x)) })
-            wR <- which(is.all.good(R, 2L))
+            R <- apply(R, 2L, \(x) { mean(x[which(is.finite(x))]) })
+            wR <- which(is.finite(R))
           }
           Pr.Ruler.cols <- Pr.Ruler.cols[wR]
           Prot[, Pr.Ruler.cols] <- NA_real_

@@ -323,7 +323,7 @@ if (length(PTMs)) {
       #
       df1 <- ptmpep[, kolPp1]
       df2 <- ptmpep[, kolPp2]
-      tst <- length(is.all.good(unlist(df1))) == length(is.all.good(unlist(df2)))
+      tst <- sum(is.finite(unlist(df1))) == sum(is.finite(unlist(df2)))
       if (!tst) {
         warning(paste0("Are you expecting re-normalisation of ", ptm,
                        "-modified peptides to results in losses of valid intensity values? If not, investigate, because it happened!"))
@@ -381,7 +381,10 @@ if (length(PTMs)) {
     #
     # Also mean expression over whole dataset
     kls <- grep(topattern(pepRf), colnames(ptmpep), value = TRUE)
-    ptmpep$"Mean Expr." <- apply(ptmpep[, kls], 1L, \(x) { mean(is.all.good(unlist(x))) })
+    ptmpep$"Mean Expr." <- apply(ptmpep[, kls], 1L, \(x) {
+      x <- unlist(x)
+      mean(x[which(is.finite(x))])
+    })
     # Create list of control ratio values for the purpose of identifying thresholds for plots:
     #
     if (Param$Ratios.Thresholds == "Absolute log2 FC threshold") {
@@ -402,8 +405,9 @@ if (length(PTMs)) {
       #   }
       #   x <- grep(paste0(topattern(paste0(ptms.ratios.ref[length(ptms.ratios.ref)], x1, "_REF.to.REF_")), "[0-9]+"),
       #             colnames(ptmpep), value = TRUE)
-      #   x <- if (length(x)) { is.all.good(as.numeric(unlist(ptmpep[, x]))) } else { NULL }
-      #   return(x)
+      #   if (!length(x)) { return(NULL) }
+      #   x <- as.numeric(unlist(ptmpep[, x]))
+      #   return(x[which(is.finite(x))])
       # }), VPAL$values)
     }
     #
@@ -414,7 +418,7 @@ if (length(PTMs)) {
     test <- sapply(A, \(x) { #x <- A[6L]
       x <- paste0(ptms.PVal, x)
       r <- x %in% colnames(ptmpep)
-      if (r) { r <- length(is.all.good(as.numeric(ptmpep[[x]]))) > 0L }
+      if (r) { r <- sum(is.finite(as.numeric(ptmpep[[x]]))) > 0L }
       return(r)
     })
     A <- A[which(test)]
@@ -434,8 +438,11 @@ if (length(PTMs)) {
     ptmpep$"log10(1-PEP)" <- log10(ptmpep$"1-PEP")
     a <- grep(topattern(pepRf), colnames(ptmpep), value = TRUE)
     a <- a[which(!grepl("\\.REF$", a))]
-    ptmpep$"Av. log10 abundance" <- apply(ptmpep[, a], 1L, \(x) { mean(is.all.good(unlist(x))) })
-    ptmpep$"Rel. av. log10 abundance" <- ptmpep$"Av. log10 abundance"/max(is.all.good(ptmpep$"Av. log10 abundance"))
+    ptmpep$"Av. log10 abundance" <- apply(ptmpep[, a], 1L, \(x) {
+      x <- unlist(x)
+      mean(x[which(is.finite(x))])
+    })
+    ptmpep$"Rel. av. log10 abundance" <- ptmpep$"Av. log10 abundance"/max(ptmpep$"Av. log10 abundance"[which(is.finite(ptmpep$"Av. log10 abundance"))])
     # Arbitrary thresholds
     P <- Param
     P$Plot.labels <- "Name"
@@ -607,7 +614,7 @@ if (length(PTMs)) {
         volcano.plots[[Ptm]]$"F-tests_Unlabelled" <- F_volc$Plots$"Unlabelled"
         volcano.plots[[Ptm]]$"F-tests_Labelled" <- F_volc$Plots$"Labelled"
         n2 <- names(volcano.plots[[Ptm]]$"F-tests_Labelled")
-        dir <- modDirs[3L]
+        myDir <- modDirs[3L]
         for (ttl in n2) {
           plot <- volcano.plots[[Ptm]]$"F-tests_Labelled"[[ttl]]
           ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
@@ -832,10 +839,10 @@ if (length(PTMs)) {
       for (tt in WhTsts) { #tt <- 1 #tt <- 2
         tstrt <- Tsts[tt]
         stopifnot(!is.na(tstrt))
-        dir <- paste0(modDirs[1L], "/GO enrich/", tstrt)
-        modDirs <- c(modDirs, dir)
-        if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-        dirlist <- union(dirlist, dir)
+        myDir <- paste0(modDirs[1L], "/GO enrich/", tstrt)
+        modDirs <- c(modDirs, myDir)
+        if (!dir.exists(myDir)) { dir.create(myDir, recursive = TRUE) }
+        dirlist <- union(dirlist, myDir)
         filt <- PTMs_Reg_filters[[Ptm]][[tstrt]]
         #By <- c("By condition", "By reference", "By analysis", "Whole dataset")
         By <- "By condition"
@@ -903,7 +910,7 @@ if (length(PTMs)) {
                   y <- Exp.map[which(Exp.map$Ref.Sample.Aggregate %in% c(A_, B_)), GO.enrichment.Ref.Aggr$column]
                   z <- Exp.map$Ref.Sample.Aggregate[which(Exp.map[[GO.enrichment.Ref.Aggr$column]] %in% y)]
                   w1 <- which(apply(ptmpep[, paste0(pepRf, z)], 1L, \(x) {
-                    sum(is.all.good(x, 2L))
+                    sum(is.finite(x))
                   }) > 0L)
                   w2 <- flt[[x]] # Required for if we are imputing missing values
                   return(sort(unique(c(w1, w2))))
@@ -938,7 +945,7 @@ if (length(PTMs)) {
               #rstudioapi::documentOpen(Src)
               source(Src, local = FALSE)
               #
-              clueGO_outDir <- dir
+              clueGO_outDir <- myDir
               clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
               Src <- paste0(libPath, "/extdata/Sources/ClueGO_enrich.R")
               #rstudioapi::documentOpen(Src)
@@ -988,7 +995,7 @@ if (length(PTMs)) {
                 temp <- temp[order(tst, decreasing = TRUE),]
                 temp <- temp[order(temp$Ontology, decreasing = FALSE),]
                 PTMs_Reg_GO_terms[[Ptm]][[tstbee]] <- temp
-                write.csv(temp, file = paste0(dir, "/", Ptm, " GO terms - ", tstbee, ".csv"), row.names = FALSE)
+                write.csv(temp, file = paste0(myDir, "/", Ptm, " GO terms - ", tstbee, ".csv"), row.names = FALSE)
                 w <- which(vapply(colnames(temp), \(x) { is.character(temp[[x]]) }, TRUE))
                 if (length(w)) {
                   for (i in w) { #i <- w[1L]
@@ -1023,7 +1030,7 @@ if (length(PTMs)) {
                   }
                 }
                 if (kount) {
-                  saveWorkbook(wb, paste0(dir, "/", Ptm, " GO terms - ", tstbee, ".xlsx"), overwrite = TRUE)
+                  saveWorkbook(wb, paste0(myDir, "/", Ptm, " GO terms - ", tstbee, ".xlsx"), overwrite = TRUE)
                   if (tt == 1L) {
                     Kol2 <- paste0("Significance - ", cleanNms(VPAL$values), " ", max(BH.FDR)*100, "%")
                     Kol2 <- Kol2[which(Kol2 %in% colnames(PTMs_Reg_GO_terms[[Ptm]][[tstbee]]))]
@@ -1037,7 +1044,7 @@ if (length(PTMs)) {
                       which(apply(PTMs_Reg_GO_terms[[Ptm]][[tstbee]][, Kol2], 1L, \(x) {"+" %in% x}))
                     } else { which(sapply(PTMs_Reg_GO_terms[[Ptm]][[tstbee]][,Kol2], \(x) {"+" %in% x})) }
                     write.csv(PTMs_Reg_GO_terms[[Ptm]][[tstbee]][w,],
-                              file = paste0(dir, "/", Ptm, " regulated GO terms - ", tstbee, ".csv"),
+                              file = paste0(myDir, "/", Ptm, " regulated GO terms - ", tstbee, ".csv"),
                               row.names = FALSE)
                   }
                   # Summary table and heatmap of number of co-regulated GO terms
@@ -1066,15 +1073,16 @@ if (length(PTMs)) {
                     }
                     temp[myRng, 1L] <- temp[1L, myRng] <- names(W)
                     nm <- paste0("N. of co-regulated GO terms\n", tstrt, "\n(", tolower(bee), ")")
-                    write.csv(temp, file = paste0(dir, "/", gsub("\n", " - ", gsub("\n\\(", " (", nm)), ".csv"), row.names = FALSE)
+                    write.csv(temp, file = paste0(myDir, "/", gsub("\n", " - ", gsub("\n\\(", " (", nm)), ".csv"), row.names = FALSE)
                     temp2 <- temp[myRng, myRng]
                     colnames(temp2) <- temp[1L, myRng]
                     rownames(temp2) <-  temp[myRng, 1L]
                     for (i in 1L:nrow(temp2)) { temp2[[i]] <- as.numeric(temp2[[i]]) }
-                    if (max(is.all.good(unlist(temp2)))) {
+                    temp2ul <- unlist(temp2)
+                    if (max(temp2ul[which(is.finite(temp2ul))])) {
                       temp2 <- as.matrix(temp2)
                       basic.heatmap(temp2, "N. of co-regulated GO terms", paste0(tstrt, "\n(", tolower(bee), ")"),
-                                    save = c("pdf", "jpeg"), folder = dir)
+                                    save = c("pdf", "jpeg"), folder = myDir)
                     } else { warning(paste0(tstrt, " co-regulated GO terms heatmap: nothing to plot")) }
                   } else { warning(paste0(tstrt, " performed for only one condition, skipping.")) }
                 }

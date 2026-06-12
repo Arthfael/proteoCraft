@@ -30,6 +30,7 @@ diffLog <- function(p,
       })
     )
   })
-  res <- is.all.good(unlist(res))
+  res <- unlist(res)
+  res <- res[which(is.finite(res))]
   return(res)
 }

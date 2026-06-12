@@ -73,7 +73,7 @@ if (plotPepProf) {
   }
   temp_pep$Category <- if (lOrg) { pep$temp[match(temp_pep$id, pep$id)] } else { "-" }
   temp_pep <- temp_pep[which(temp_pep$Y > 0),]
-  temp_pep <- temp_pep[which(is.all.good(temp_pep$Y, 2L)),]
+  temp_pep <- temp_pep[which(is.finite(temp_pep$Y)),]
   g <- grep("^Intensity - ", temp_pep$variable)
   temp_pep$Y[g] <- log10(temp_pep$Y[g])
   temp_pep$variable[g] <- gsub_Rep("^Intensity - ", "log10(Int.) - ", temp_pep$variable[g])

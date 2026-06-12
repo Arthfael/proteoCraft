@@ -552,7 +552,10 @@ FP_to_MQ <- function(FP_Workflow,
             "Nextscore", "PeptideProphet Probability", "Intensity", 
             "Best Score with Delta Mass", "Best Score without Delta Mass")
   kols <- kols[which(kols %in% colnames(PSMs))]
-  if ((FailIfNoQuant)&&((!"Intensity" %in% kols)||(!length(is.all.good(PSMs$Intensity)))||(!sum(PSMs$Intensity, na.rm = TRUE)))) {
+  if (FailIfNoQuant &&
+      ((!"Intensity" %in% kols) ||
+       (!sum(is.finite(PSMs$Intensity))) ||
+       (!sum(PSMs$Intensity[which(is.finite(PSMs$Intensity))])))) {
     if (isTMT) {
       warning("No MS1 quantitative information identified in PSMs table! Using sum of reporter intensities!")
       PSMs$Intensity <- rowSums(PSMs[, tmtKols, drop = FALSE], na.rm = TRUE)

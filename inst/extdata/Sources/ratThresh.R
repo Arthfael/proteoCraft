@@ -33,7 +33,10 @@ if (Param$Ratios.Thresholds == threshMsg) {
   #   }
   #   x <- unique(Exp.map[which(Exp.map[[VPAL$column]] == x), RG$column])
   #   x <- grep(paste0(topattern(paste0(Prot.Rat.Root, x1, "_REF.to.REF_")), "[0-9]+"), colnames(quantData), value = TRUE)
-  #   x <- if (length(x)) { is.all.good(as.numeric(unlist(quantData[, x]))) } else { NULL }
+  #   if (length(x)) {
+  #     x <- as.numeric(unlist(quantData[, x]))
+  #     x <- x[which(is.finite(x))]
+  #   } else { x <- NULL }
   #   return(x)
   # }), VPAL$values)
 }

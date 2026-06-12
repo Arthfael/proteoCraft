@@ -26,8 +26,8 @@ if (Impute) {
   plotTmp$Original <- log10(plotTmp$Original)
   plotTmp$Imputed <- log10(melt(temp2, id.vars = NULL)$value)
   plotTmp$Sample <- factor(plotTmp$Sample, levels = cleanNms(RSA$values))
-  w <- which(!is.all.good(plotTmp$Original, 2))
-  mnX <- floor(min(is.all.good(plotTmp$Original)) - 1)
+  w <- which(!is.finite(plotTmp$Original))
+  mnX <- floor(min(plotTmp$Original[which(is.finite(plotTmp$Original))]) - 1)
   plotTmp$Original[w] <- mnX
   ttl <- "Effect of imputation"
   plot <- ggplot(plotTmp) + geom_scattermore(aes(x = Original, y = Imputed, color = Sample), pointsize = 2.5) +
