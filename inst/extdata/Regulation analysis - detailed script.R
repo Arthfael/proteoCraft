@@ -1311,6 +1311,11 @@ arbitrary.thr %<o% data.frame(yintercept = -log10(c(0.05, 0.01)),
                               xintercept = c(NA, NA),
                               colour = c("orange", "red"),
                               label = c("5% P-value", "1% P-value"))
+# Default volcano plot arguments
+Src <- paste0(libPath, "/extdata/Sources/dfltVolcPlotArgs.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
 volcano.plots %<o% list()
 # For now, we are plotting non adjusted P-values because in bad cases adjusting causes all to collapse on 1 (0 as -log10)
 # Instead, we are sticking to plotting raw P-values with FDR thresholds

@@ -582,6 +582,11 @@ arbitrary.thr %<o% data.frame(yintercept = -log10(c(0.05, 0.01)),
                               xintercept = c(NA, NA),
                               colour = c("orange", "red"),
                               label = c("5% P-value", "1% P-value"))
+# Default volcano plot arguments
+Src <- paste0(libPath, "/extdata/Sources/dfltVolcPlotArgs.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
 volcano.plots %<o% list()
 filter_types %<o% tolower(unlist(strsplit(Param$Filters.type, ";")))
 filter_types[grep("^dat.+2$", filter_types, invert = TRUE)] <- substr(filter_types[which(!grepl("^dat.+2$", filter_types))], 1L, 3L)
