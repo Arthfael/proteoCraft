@@ -146,11 +146,6 @@ Src <- paste0(libPath, "/extdata/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-# Default volcano plot arguments
-Src <- paste0(libPath, "/extdata/Sources/dfltVolcPlotArgs.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
-
 #### Code chunk - Select input/output folders and define experimental structure
 # Reuse answers?
 # The script sometimes pauses to ask the user a question in a popup. These answers are stored.
