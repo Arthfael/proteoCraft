@@ -6,7 +6,7 @@
 \usage{
 robustNorm(
   df,
-  myColumns,
+  exprs.col,
   loss = c("l2", "huber", "tukey", "cauchy"),
   k = NULL,
   max_iter = 50L,
@@ -16,7 +16,7 @@ robustNorm(
 \arguments{
 \item{df}{Data frame containing expression values.}
 
-\item{myColumns}{Name of the columns containing expression data. THIS SHOULD BE LOG-TRANSFORMED!}
+\item{exprs.col}{Name of the columns containing expression data. THIS SHOULD BE LOG-TRANSFORMED!}
 
 \item{loss}{Loss function. Options are "l2" (= sum of squared errors), "huber", "tukey" or "cauchy".}
 

@@ -60,7 +60,9 @@ RefRat_Mode %<o% "2" # Values: RefRat_Mode = "2" or "1" # For now not a user-mod
 StudentRoot %<o% "Student's t-test -log10(Pvalue) - "
 WelchRoot %<o% "Welch's t-test -log10(Pvalue) - "
 modRoot %<o% "Moderated t-test -log10(Pvalue) - "
-deqmsRoot %<o% "DEqMS mod. t-test -log10(Pvalue) - "
+limpaModRoot %<o% "limpa mod. -log10(Pvalue) - "
+deqmsRoot %<o% "DEqMS mod. -log10(Pvalue) - "
+limpaDeqmsRoot %<o% "limpa-DEqMS mod. -log10(Pvalue) - "
 msqrobRoot %<o% "MSqRob -log10(Pvalue) - "
 msstatsRoot %<o% "MSstats -log10(Pvalue) - "
 permRoot %<o% "Permutations test -log10(Pvalue) - "
@@ -69,8 +71,8 @@ odpRoot %<o% "ODP -log10(Pvalue) - "
 lrtRoot %<o% "LRT -log10(Pvalue) - "
 rotsRoot %<o% "ROTS -log10(Pvalue) - "
 #
-pvalue.col %<o% c(StudentRoot, WelchRoot, modRoot, deqmsRoot, msqrobRoot, msstatsRoot,
-                  permRoot, samRoot, rotsRoot#, odpRoot, lrtRoot
+pvalue.col %<o% c(StudentRoot, WelchRoot, modRoot, limpaModRoot, deqmsRoot, limpaDeqmsRoot,
+                  msqrobRoot, msstatsRoot, permRoot, samRoot, rotsRoot#, odpRoot, lrtRoot
 )
 names(pvalue.col) <- vapply(pvalue.col, \(x) { unlist(strsplit(x, "\\.|\\'| "))[1L] }, "")
 ParamFls <- c(paste0(wd, "/Parameters.csv"),
@@ -627,6 +629,14 @@ pepNormMethods %<o% list(list(Method = "median",
                               funCall = "normFun <- function(x) { mean(x[which(is.finite(x))]) }"),
                          list(Method = "Levenberg-Marquardt",
                               Source = "pepNorm_General.R"),
+                         list(Method = "robust-l2",
+                              Source = "pepNorm_General.R"),
+                         list(Method = "robust-huber",
+                              Source = "pepNorm_General.R"),
+                         list(Method = "robust-tukey",
+                              Source = "pepNorm_General.R"),
+                         list(Method = "robust-cauchy",
+                              Source = "pepNorm_General.R"),
                          list(Method = "sum",
                               Source = "pepNorm_General.R",
                               funCall = "normFun <- function(x) { log10(sum(10^x[which(is.finite(x))])) }"),
@@ -713,7 +723,8 @@ if (exists("normSequence")) { dfltNormSeq <- normSequence } else {
                       list(Method = "IRS"),
                       list(Method = "ComBat",
                            Batch = "Isobaric.set"),
-                      list(Method = "Levenberg-Marquardt"))
+                      #list(Method = "Levenberg-Marquardt"),
+                      list(Method = "robust-huber"))
   if (LabelType == "Isobaric") {
     if (length(Iso) == 1L) {
       dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, \(x) {
@@ -888,6 +899,8 @@ if (inherits(tstAdvOpt, "try-error")) { tstAdvOpt <- FALSE }
 mtchCheckMsg1 <- "Not all search software will map peptides to protein IDs in the search database the same way. Using this function ensures consistent results regardless of search engine."
 mtchCheckMsg2 <- "!Checking assignments may result in removal of some identifications!"
 F_test_override <- FALSE
+allHistIDs <- getHistones(db)$All
+allHist <- setNames(protHeads2[allHistIDs], NULL)
 appNm <- paste0(dtstNm, " - Parameters")
 make_ui1 <- \() {
   fluidPage(
@@ -1202,7 +1215,7 @@ server1 <- \(input, output, session) {
         # Parameters shared by multiple normalisations
         h5(strong(" -> Normalisation filters"))),
         fluidRow(column(1L),
-                 column(3L,
+                 column(6L,
                         pickerInput("Norma.Prot.Ratio.to.proteins",
                                     "Proteins",
                                     protHeads,
@@ -1212,7 +1225,12 @@ server1 <- \(input, output, session) {
                                                   `live-search` = TRUE,
                                                   actionsBox = TRUE,
                                                   deselectAllText = "Clear search",
-                                                  showTick = TRUE))),
+                                                  showTick = TRUE),
+                                    width = "600px"),
+                        checkboxInput("Norma.to.Hist",
+                                      "include all histones",
+                                      FALSE,
+                                      "100%")),
                  if (Annotate) {
                    column(3L,
                           pickerInput("Norma.Prot.Ratio.to.GO",
@@ -1655,11 +1673,13 @@ server1 <- \(input, output, session) {
     if (quantAlgo == "limpa") {
       updateCheckboxInput(inputId = "Impute", value = FALSE)
       updatePickerInput(inputId = "Norma.Prot.Ratio.to.proteins", selected = NULL)
+      updateCheckboxInput(inputId = "Norma.to.Hist", value = FALSE)
       updatePickerInput(inputId = "Norma.Prot.Ratio.to.GO", selected = NULL)
       updateCheckboxInput(inputId = "Norma.Prot.Ratio.to.Biot", value = FALSE)
       updateRadioButtons(inputId = "TtstPval", selected = "Moderated")
       shinyjs::disable("Impute")
       shinyjs::disable("Norma.Prot.Ratio.to.proteins")
+      shinyjs::disable("Norma.to.Hist")
       shinyjs::disable("Norma.Prot.Ratio.to.GO")
       shinyjs::disable("Norma.Prot.Ratio.to.Biot")
       #
@@ -1668,6 +1688,7 @@ server1 <- \(input, output, session) {
     } else {
       shinyjs::enable("Impute")
       shinyjs::enable("Norma.Prot.Ratio.to.proteins")
+      shinyjs::enable("Norma.to.Hist")
       shinyjs::enable("Norma.Prot.Ratio.to.GO")
       shinyjs::enable("Norma.Prot.Ratio.to.Biot")
     }
@@ -1915,11 +1936,34 @@ server1 <- \(input, output, session) {
     PARAM(Par)
   })
   observeEvent(input$Norma.Prot.Ratio.to.proteins, {
+    updatePickerInput(inputId = "Norma.Prot.Ratio.to.proteins",
+                      selected = input$Norma.Prot.Ratio.to.proteins,
+                      choices = c(input$Norma.Prot.Ratio.to.proteins,
+                                  setdiff(protHeads, input$Norma.Prot.Ratio.to.proteins)))
     Par <- PARAM()
     Par$Norma.Prot.Ratio.to.proteins <- paste(db$`Protein ID`[dbOrd][match(input$Norma.Prot.Ratio.to.proteins, protHeads)],
                                               collapse = ";")
     PARAM(Par)
   }, ignoreNULL = FALSE)
+  observeEvent(input$Norma.to.Hist, {
+    Par <- PARAM()
+    if (input$Norma.to.Hist) {
+      tmp1 <- union(allHist, input$Norma.Prot.Ratio.to.proteins)
+      tmp1 <- tmp1[which(nchar(tmp1) > 0L)]
+      tmp2 <- union(allHistIDs,
+                    db$`Protein ID`[dbOrd][match(input$Norma.Prot.Ratio.to.proteins, protHeads)])
+    } else {
+      tmp1 <- setdiff(input$Norma.Prot.Ratio.to.proteins, allHist)
+      tmp2 <- setdiff(db$`Protein ID`[dbOrd][match(input$Norma.Prot.Ratio.to.proteins, protHeads)],
+                      allHistIDs)
+    }
+    updatePickerInput(inputId = "Norma.Prot.Ratio.to.proteins",
+                      selected = tmp1,
+                      choices = c(tmp1,
+                                  setdiff(protHeads, tmp1)))
+    Par$Norma.Prot.Ratio.to.proteins <- paste(tmp2, collapse = ";")
+    PARAM(Par)
+  }, ignoreNULL = TRUE)
   if (Annotate) {
     observeEvent(input$Norma.Prot.Ratio.to.GO, {
       Par <- PARAM()
@@ -2073,6 +2117,10 @@ server1 <- \(input, output, session) {
   # })
   # Proteins of interest
   observeEvent(input$IntProt, {
+    updatePickerInput(inputId = "IntProt",
+                      selected = input$IntProt,
+                      choices = c(input$IntProt,
+                                  setdiff(protHeads, input$IntProt)))
     prot.list <- db$`Protein ID`[dbOrd][match(input$IntProt, protHeads)]
     assign("prot.list", prot.list, envir = .GlobalEnv)
     Par <- PARAM()

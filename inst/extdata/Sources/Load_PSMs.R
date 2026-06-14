@@ -1359,75 +1359,95 @@ ev$`Raw file` <- gsub("\\.[^\\.]+$", "", gsub(".*/", "", ev$`Raw file path`)) # 
 
 if (exists("FracMap_reloaded")) {
   # 1st approach - match by unmodified file path
-  FracMap_bckp <- FracMap
-  m <- match(FracMap$`Raw file`, FracMap_reloaded$`Raw file`)
-  tst <- sum(is.na(m)) # Are there any NAs?
-  gs <- rep(FALSE, 3L) # Should we remove spaces - and if so then how?
-  # 2nd approach - match by modified file path
-  if (tst) {
-    m1 <- match(gsub(" ", "-", FracMap$`Raw file`), gsub(" ", "-", FracMap_reloaded$`Raw file`))
-    m2 <- match(gsub(" ", "_", FracMap$`Raw file`), gsub(" ", "_", FracMap_reloaded$`Raw file`))
-    m3 <- match(gsub(" ", "", FracMap$`Raw file`), gsub(" ", "", FracMap_reloaded$`Raw file`))
-    gs[1L] <- sum(is.na(m1))
-    gs[2L] <- sum(is.na(m2))
-    gs[3L] <- sum(is.na(m3))
-    w <- which(!gs)
-    tst <- length(w) == 0L # If we did not find a solution, we need to go on trying
-    if (!tst) {
-      m <- get(paste0("m", w[1L]))
+  srchTst <- sum(c("Search" %in% colnames(FracMap_reloaded),
+               "Search" %in% colnames(FracMap)))
+  if (srchTst %in% c(0L, 2L)) {
+    FracMap_bckp <- FracMap
+    mtchKols <- c("Raw file", "Raw files name")
+    if (srchTst == 2L) {
+      mtchKols <- c("tmp1", "tmp2")
+      FracMap_reloaded[[mtchKols[1L]]] <- do.call(paste, c(FracMap_reloaded[, c("Search", "Raw file")], sep = "->"))
+      FracMap_reloaded[[mtchKols[2L]]] <- do.call(paste, c(FracMap_reloaded[, c("Search", "Raw files name")], sep = "->"))
+      FracMap[[mtchKols[1L]]] <- do.call(paste, c(FracMap[, c("Search", "Raw file")], sep = "->"))
+      FracMap[[mtchKols[2L]]] <- do.call(paste, c(FracMap[, c("Search", "Raw files name")], sep = "->"))
     }
-  }
-  # 3rd approach - match by unmodified file name
-  if (tst) {
-    m <- match(FracMap$`Raw files name`, FracMap_reloaded$`Raw files name`)
-    tst <- sum(is.na(m))
-    gs <- rep(FALSE, 3L)
-  }
-  # 4th approach - match by modified file name
-  if (tst) {
-    m1 <- match(gsub(" ", "-", FracMap$`Raw files name`), gsub(" ", "-", FracMap_reloaded$`Raw file name`))
-    m2 <- match(gsub(" ", "_", FracMap$`Raw files name`), gsub(" ", "_", FracMap_reloaded$`Raw file name`))
-    m3 <- match(gsub(" ", "", FracMap$`Raw files name`), gsub(" ", "", FracMap_reloaded$`Raw file name`))
-    gs[1L] <- sum(is.na(m1))
-    gs[2L] <- sum(is.na(m2))
-    gs[3L] <- sum(is.na(m3))
-    w <- which(!gs)
-    tst <- length(w) == 0L # If we did not find a solution, we need to go on trying
-    if (!tst) {
-      m <- get(paste0("m", w[1L]))
-    }
-  }
-  if (!tst) {
-    k <- c("Raw file", "Raw files name", "Parent sample", "Fraction", "Use", "PTM-enriched")
-    k <- k[which(k %in% colnames(FracMap_reloaded))]
-    FracMap[, k] <- FracMap_reloaded[m, k]
-    if (LabelType == "LFQ") {
-      if ("Parent sample" %in% colnames(FracMap_reloaded)) {
-        FracMap$"Parent sample" <- FracMap_reloaded$"Parent sample"[m]
-      } else {
-        if ("MQ.Exp" %in% colnames(FracMap_reloaded)) {
-          FracMap$"Parent sample" <- FracMap_reloaded$MQ.Exp[m]
-        }
+    m <- match(FracMap[[mtchKols[1L]]], FracMap_reloaded[[mtchKols[1L]]])
+    tst <- sum(is.na(m)) # Are there any NAs?
+    gs <- rep(FALSE, 3L) # Should we remove spaces - and if so then how?
+    # 2nd approach - match by modified file path
+    if (tst) {
+      m1 <- match(gsub(" ", "-", FracMap[[mtchKols[1L]]]), gsub(" ", "-", FracMap_reloaded[[mtchKols[1L]]]))
+      m2 <- match(gsub(" ", "_", FracMap[[mtchKols[1L]]]), gsub(" ", "_", FracMap_reloaded[[mtchKols[1L]]]))
+      m3 <- match(gsub(" ", "", FracMap[[mtchKols[1L]]]), gsub(" ", "", FracMap_reloaded[[mtchKols[1L]]]))
+      gs[1L] <- sum(is.na(m1))
+      gs[2L] <- sum(is.na(m2))
+      gs[3L] <- sum(is.na(m3))
+      w <- which(!gs)
+      tst <- length(w) == 0L # If we did not find a solution, we need to go on trying
+      if (!tst) {
+        m <- get(paste0("m", w[1L]))
       }
     }
-    if (sum(gs)) {
-      rp <- c("-", "_", "")[which(gs)[1L]]
-      mEv <- match(gsub(" ", rp, ev$`Raw file path`), gsub(" ", rp, FracMap$`Raw file`))
-    } else {
-      mEv <- match(ev$`Raw file path`, FracMap$`Raw file`)
+    # 3rd approach - match by unmodified file name
+    if (tst) {
+      m <- match(FracMap[[mtchKols[2L]]], FracMap_reloaded[[mtchKols[2L]]])
+      tst <- sum(is.na(m))
+      gs <- rep(FALSE, 3L)
     }
-    tst <- sum(is.na(mEv))
+    # 4th approach - match by modified file name
+    if (tst) {
+      m1 <- match(gsub(" ", "-", FracMap[[mtchKols[2L]]]), gsub(" ", "-", FracMap_reloaded[[mtchKols[2L]]]))
+      m2 <- match(gsub(" ", "_", FracMap[[mtchKols[2L]]]), gsub(" ", "_", FracMap_reloaded[[mtchKols[2L]]]))
+      m3 <- match(gsub(" ", "", FracMap[[mtchKols[2L]]]), gsub(" ", "", FracMap_reloaded[[mtchKols[2L]]]))
+      gs[1L] <- sum(is.na(m1))
+      gs[2L] <- sum(is.na(m2))
+      gs[3L] <- sum(is.na(m3))
+      w <- which(!gs)
+      tst <- length(w) == 0L # If we did not find a solution, we need to go on trying
+      if (!tst) {
+        m <- get(paste0("m", w[1L]))
+      }
+    }
     if (!tst) {
-      ev$`Raw file` <- FracMap$`Raw files name`[mEv]
+      k <- c("Raw file", "Raw files name", "Parent sample", "Fraction", "Use", "PTM-enriched")
+      k <- k[which(k %in% colnames(FracMap_reloaded))]
+      FracMap[, k] <- FracMap_reloaded[m, k]
+      if (LabelType == "LFQ") {
+        if ("Parent sample" %in% colnames(FracMap_reloaded)) {
+          FracMap$"Parent sample" <- FracMap_reloaded$"Parent sample"[m]
+        } else {
+          if ("MQ.Exp" %in% colnames(FracMap_reloaded)) {
+            FracMap$"Parent sample" <- FracMap_reloaded$MQ.Exp[m]
+          }
+        }
+      }
+      if (sum(gs)) {
+        rp <- c("-", "_", "")[which(gs)[1L]]
+        mEv <- match(gsub(" ", rp, ev$`Raw file path`), gsub(" ", rp, FracMap$`Raw file`))
+      } else {
+        mEv <- match(ev$`Raw file path`, FracMap$`Raw file`)
+      }
+      tst <- sum(is.na(mEv))
+      if (!tst) {
+        ev$`Raw file` <- FracMap$`Raw files name`[mEv]
+      } else {
+        rm(FracMap_reloaded)
+        FracMap <- FracMap_bckp
+      }
+      # Final final test
+      rawFiles <- unique(FracMap$`Raw file`)
+      rawFiles2 <- unique(FracMap$`Raw files name`)
+      stopifnot(sum(!rawFiles %in% ev$`Raw file path`) == 0L,
+                sum(!rawFiles2 %in% ev$`Raw file`) == 0L)
+      if (srchTst == 2L) {
+        FracMap_reloaded$tmp1 <- NULL
+        FracMap_reloaded$tmp2 <- NULL
+        FracMap$tmp1 <- NULL
+        FracMap$tmp2 <- NULL
+      }
     } else {
       rm(FracMap_reloaded)
-      FracMap <- FracMap_bckp
     }
-    # Final final test
-    rawFiles <- unique(FracMap$`Raw file`)
-    rawFiles2 <- unique(FracMap$`Raw files name`)
-    stopifnot(sum(!rawFiles %in% ev$`Raw file path`) == 0L,
-              sum(!rawFiles2 %in% ev$`Raw file`) == 0L)
   } else {
     rm(FracMap_reloaded)
   }

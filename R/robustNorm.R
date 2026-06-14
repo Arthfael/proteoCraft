@@ -11,7 +11,7 @@
 #' 
 #' 
 #' @param df Data frame containing expression values.
-#' @param myColumns Name of the columns containing expression data. THIS SHOULD BE LOG-TRANSFORMED!
+#' @param exprs.col Name of the columns containing expression data. THIS SHOULD BE LOG-TRANSFORMED!
 #' @param loss Loss function. Options are "l2" (= sum of squared errors), "huber", "tukey" or "cauchy".
 #' @param k Tuning constants for the method, allowing to override the defaults.
 #' @param max_iter Integer, default = 50L.
@@ -33,15 +33,15 @@
 #' @export
 
 robustNorm <- function(df,
-                       myColumns,
+                       exprs.col,
                        loss = c("l2", "huber", "tukey", "cauchy"),
                        k = NULL,
                        max_iter = 50L,
                        tol = 1e-6) {
-  DefArg(robustNorm)
+  #DefArg(robustNorm)
   loss <- match.arg(loss)
   #
-  X <- as.matrix(df[, myColumns])
+  X <- as.matrix(df[, exprs.col])
   p <- nrow(X)
   s <- ncol(X)
   # Tuning constants
@@ -108,7 +108,7 @@ robustNorm <- function(df,
   }
   # Normalized matrix
   X_norm <- sweep(X, 2L, sample_offset, "-")
-  df[, myColumns] <- X_norm
+  df[, exprs.col] <- X_norm
   return(list(data = df,
               sample_offset = sample_offset,
               row_mean = row_mean,

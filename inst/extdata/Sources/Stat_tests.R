@@ -72,9 +72,12 @@ biocInstall("DEqMS")
 cran_req <- unique(c(cran_req, "matrixStats"))
 if (!require(matrixStats, quietly = TRUE)) { pak::pak("matrixStats") }
 library(matrixStats)
-TESTs <- c("limma", "DEqMS")[1L:((dataType == "PG") + 1L)]
-limpaMode <- (dataType != "modPeptides") && (quantAlgo == "limpa")
+rg <- 1L:((dataType == "PG") + 1L)
+TESTs <- c("limma", "DEqMS")[rg]
+limpaTest <- (dataType != "modPeptides") && (quantAlgo == "limpa")
+if (limpaTest) { TESTs <- c(TESTs, c("limpa->limma", "limpa->DEqMS")[rg]) }
 for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
+  limpaMode <- grepl("^limpa->", TEST)
   if ((!TEST %in% names(limmaFits[[dataType]])) || (!inherits(limmaFits[[dataType]][[TEST]], "list"))) {
     limmaFits[[dataType]][[TEST]] <- list()
   }
@@ -86,6 +89,14 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
   if (TEST == "DEqMS") {
     pRoot <- deqmsRoot
     insrt <- "DEqMS mod. t-test"
+  }
+  if (TEST == "limpa->limma") {
+    pRoot <- limpaModRoot
+    insrt <- "limpa->limma mod. t-test"
+  }
+  if (TEST == "limpa->DEqMS") {
+    pRoot <- limpaDeqmsRoot
+    insrt <- "limpa->DEqMS mod. t-test"
   }
   if (limpaMode) {
     tmpData <- quantData_list$EList_obj
@@ -156,8 +167,8 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
   # Here you could use decideTests() if wanting to switch to directly using decisions from limma
   if (TEST == "limma") {
     limmaFits[[dataType]][[TEST]]$fit <- fit2
-    kols1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", modRoot)), colnames(contrMatr))
-    kols2 <- paste0(modRoot, colnames(contrMatr))
+    kols1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", pRoot)), colnames(contrMatr))
+    kols2 <- paste0(pRoot, colnames(contrMatr))
     myData[, c(kols1, kols2)] <- NA_real_
     w <- which(myData[[namesCol]] %in% fit2$genes)
     m <- match(myData[w, namesCol], fit2$genes)
@@ -219,13 +230,13 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       #
       limmaFits[[dataType]][[TEST]]$fit <- fit3
       #
-      kols1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", deqmsRoot)), colnames(contrMatr))
-      kols2 <- paste0(deqmsRoot, colnames(contrMatr))
+      kols1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", pRoot)), colnames(contrMatr))
+      kols2 <- paste0(pRoot, colnames(contrMatr))
       for (i in 1L:ncol(contrMatr)) { #i <- 1L
         contrNm <- colnames(contrMatr)[i]
         DEqMS.results <- outputResult(fit3, coef_col = i)
-        kol1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", deqmsRoot)), contrNm)
-        kol2 <- paste0(deqmsRoot, contrNm)
+        kol1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", pRoot)), contrNm)
+        kol2 <- paste0(pRoot, contrNm)
         myData[[kol1]] <- NA_real_
         w <- which(myData[[namesCol]] %in% row.names(DEqMS.results))
         m <- match(myData[[namesCol]][w], row.names(DEqMS.results))

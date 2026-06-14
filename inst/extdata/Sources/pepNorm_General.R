@@ -72,11 +72,6 @@ if (normSequence[[nrmStp]]$Method == "biotinylated proteins") {
     Outcome <- FALSE
   }
 }
-if (normSequence[[nrmStp]]$Method == "histones") {
-  
-  stop("Work in progress, check back later!")
-  
-}
 Outcome <- length(normFlt) > 0L
 if (Outcome) {
   tstNorm <- try({
@@ -92,10 +87,20 @@ if (Outcome) {
         if (length(smpls)) {
           m2 <- unlist(tmpDat1[grpMtch, smpls])
           m2 <- mean(m2[which(is.finite(m2))]) # Original group scale
-          if (normSequence[[nrmStp]]$Method == "Levenberg-Marquardt") {
-            tmp_nrm <- AdvNorm.IL(tmpDat1[grpMtch2, ], "Modified sequence", smpls, TRUE, 5L)
-            colnames(tmp_nrm) <- gsub(topattern("AdvNorm."), "", colnames(tmp_nrm))
+          robTst <- grepl("^robust-", normSequence[[nrmStp]]$Method)
+          if ((normSequence[[nrmStp]]$Method %in% "Levenberg-Marquardt") || robTst) {
+            if (normSequence[[nrmStp]]$Method == "Levenberg-Marquardt") {
+              tmp_nrm <- AdvNorm.IL(tmpDat1[grpMtch2, ], "Modified sequence", smpls, TRUE, 5L)
+              colnames(tmp_nrm) <- gsub(topattern("AdvNorm."), "", colnames(tmp_nrm))
+            }
+            if (robTst) {
+              tmp_nrmLst <- robustNorm(tmpDat1[grpMtch2, smpls],
+                                       smpls,
+                                       sub("^robust-", "", normSequence[[nrmStp]]$Method))
+              tmp_nrm <- tmp_nrmLst$data
+            }
             m <- tmpDat1[grpMtch2, smpls] - tmp_nrm[, smpls]
+            #View(m)
             m <- colMeans(m, na.rm = TRUE)
           } else {
             m <- vapply(smpls, \(smpl) {

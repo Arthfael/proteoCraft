@@ -155,7 +155,7 @@ if (lNorm) {
     Ratios.Ref.Groups$values <- RRG$values <- unique(Exp.map[[RRG$column]])
     Ratios.Groups$values <- RG$values <- unique(Exp.map[[RG$column]])
     for (smpl in RSA$values) {
-      newDatLin[[smpl]] <- 10^newDatLin[[smpl]]
+      newDatLin[[smpl]] <- 10L^newDatLin[[smpl]]
     }
     # Assign results to pep
     pep.ref["Normalisation"] <- paste0("norm. ", pep.ref["Original"])
