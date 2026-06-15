@@ -93,11 +93,11 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
   }
   if (TEST == "limpa->limma") {
     pRoot <- limpaModRoot
-    insrt <- "limpa->limma mod. t-test"
+    insrt <- "limpa-limma mod. t-test"
   }
   if (TEST == "limpa->DEqMS") {
     pRoot <- limpaDeqmsRoot
-    insrt <- "limpa->DEqMS mod. t-test"
+    insrt <- "limpa-DEqMS mod. t-test"
   }
   if (limpaMode) {
     tmpData <- quantData_list$EList_obj
@@ -179,7 +179,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
     # Plot moderated t-test results
     for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[1L]
       # Q-Q plot
-      ttl <- paste0("mod. t-test QQ plot - ", contr)
+      ttl <- paste0(c("", "limpa-")[limpaMode+1L], "mod. t-test QQ plot - ", contr)
       fl <- paste0(ohDeer, "/", ttl)
       jpeg(file = paste0(fl, ".jpeg"), width = 400L, height = 350L)
       qqt(as.data.frame(fit2$t)[[contr]], df = fit2$df.prior + fit2$df.residual, pch = 16L, cex = 0.2)
