@@ -31,9 +31,9 @@ if (Annotate && (enrichGO || globalGO)) {
       tstrt <- Tsts[tt]
       stopifnot(!is.na(tstrt))
       ReportCalls <- AddMsg2Report(Msg = paste0("\n - ", tstrt), Space = FALSE)
-      dir <- paste0(wd, "/Reg. analysis/GO enrich/", tstrt)
-      if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-      dirlist <- unique(c(dirlist, dir))
+      myDir <- paste0(wd, "/Reg. analysis/GO enrich/", tstrt)
+      if (!dir.exists(myDir)) { dir.create(myDir, recursive = TRUE) }
+      dirlist <- unique(c(dirlist, myDir))
       filt <- Reg_filters[[tstrt]]
       #By <- c("By condition", "By reference", "By analysis", "Whole dataset")
       By <- "By condition"
@@ -150,7 +150,7 @@ if (Annotate && (enrichGO || globalGO)) {
             source(Src, local = FALSE)
             #
             if (runClueGO) {
-              clueGO_outDir <- dir
+              clueGO_outDir <- myDir
               clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
               Src <- paste0(libPath, "/extdata/Sources/ClueGO_enrich.R")
               #rstudioapi::documentOpen(Src)
@@ -168,7 +168,7 @@ if (Annotate && (enrichGO || globalGO)) {
                 GO_Plots[[tstbee]]$All_GO_terms <- NULL
               }
               n2 <- names(GO_Plots[[tstbee]]$GO_plots)
-              dir2 <- paste0(wd, "/", dir)
+              myDir2 <- paste0(wd, "/", myDir)
               for (ttl in n2) { #ttl <- n2[1L]
                 plot <- GO_Plots[[tstbee]]$GO_plots[[ttl]]
                 ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
@@ -201,7 +201,7 @@ if (Annotate && (enrichGO || globalGO)) {
               temp <- temp[order(temp$Ontology, decreasing = FALSE),]
               Reg_GO_terms[[tstbee]] <- temp
               #temp <- Reg_GO_terms[[tstbee]]
-              write.csv(temp, file = paste0(dir, "/GO terms - ", tstbee, ".csv"), row.names = FALSE)
+              write.csv(temp, file = paste0(myDir, "/GO terms - ", tstbee, ".csv"), row.names = FALSE)
               w <- which(vapply(colnames(temp), \(x) { is.character(temp[[x]]) }, TRUE))
               if (length(w)) {
                 for (i in w) { #i <- w[1L]
@@ -236,15 +236,15 @@ if (Annotate && (enrichGO || globalGO)) {
                 }
               }
               if (kount) {
-                saveWorkbook(wb, paste0(dir, "/GO terms - ", tstbee, ".xlsx"), overwrite = TRUE)
-                #openXL(paste0(dir, "/GO terms - ", tstbee, ".xlsx"))
+                saveWorkbook(wb, paste0(myDir, "/GO terms - ", tstbee, ".xlsx"), overwrite = TRUE)
+                #openXL(paste0(myDir, "/GO terms - ", tstbee, ".xlsx"))
                 Kol2 <- grep(paste0("^Significance - .+", " ", max(BH.FDR)*100L, "%"),
                              colnames(Reg_GO_terms[[tstbee]]), value = TRUE)
                 if (length(Kol2)) {
                   w <- if (length(Kol2) > 1L) {
                     which(apply(Reg_GO_terms[[tstbee]][,Kol2], 1L, \(x) {"+" %in% x}))
                   } else { which(vapply(Reg_GO_terms[[tstbee]][, Kol2], \(x) { "+" %in% x }, TRUE)) }
-                  write.csv(Reg_GO_terms[[tstbee]][w,], file = paste0(dir, "/Regulated GO terms - ", tstbee, ".csv"),
+                  write.csv(Reg_GO_terms[[tstbee]][w,], file = paste0(myDir, "/Regulated GO terms - ", tstbee, ".csv"),
                             row.names = FALSE)
                 }
                 # Summary table and heatmap of number of regulated GO terms
@@ -275,7 +275,7 @@ if (Annotate && (enrichGO || globalGO)) {
                   }
                   temp[2L:(N+1L), 1L] <- temp[1L, 2L:(N+1L)] <- names(W)
                   nm <- paste0("N. of co-regulated GO terms\n", tstrt, "\n(", tolower(bee), ")")
-                  write.csv(temp, file = paste0(dir, "/", gsub("\n", " - ", gsub("\n\\(", " (", nm)), ".csv"), row.names = FALSE)
+                  write.csv(temp, file = paste0(myDir, "/", gsub("\n", " - ", gsub("\n\\(", " (", nm)), ".csv"), row.names = FALSE)
                   temp2 <- temp[2L:(N+1L), 2L:(N+1L)]
                   colnames(temp2) <- temp[1L, 2L:(N+1L)]
                   rownames(temp2) <-  temp[2L:(N+1L), 1L]
@@ -284,7 +284,7 @@ if (Annotate && (enrichGO || globalGO)) {
                   if (max(temp2ul[which(is.finite(temp2ul))]) > 0L) {
                     temp2 <- as.matrix(temp2)
                     basic.heatmap(temp2, "N. of co-regulated GO terms", paste0(tstrt, "\n(", tolower(bee), ")"),
-                                  save = c("pdf", "jpeg"), folder = dir)
+                                  save = c("pdf", "jpeg"), folder = myDir)
                   }
                 } else { warning(paste0(tstrt, " performed for only one condition, skipping.")) }
               }
@@ -298,9 +298,9 @@ if (Annotate && (enrichGO || globalGO)) {
     msg <- "\n - Dataset"
     ReportCalls <- AddMsg2Report(Space = FALSE)
     #
-    dir <- paste0(wd, "/Reg. analysis/GO enrich/Dataset")
-    if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    dirlist <- unique(c(dirlist, dir))
+    myDir <- paste0(wd, "/Reg. analysis/GO enrich/Dataset")
+    if (!dir.exists(myDir)) { dir.create(myDir, recursive = TRUE) }
+    dirlist <- unique(c(dirlist, myDir))
     #
     Mode <- "dataset"
     dataType <- "PG"
@@ -320,7 +320,7 @@ if (Annotate && (enrichGO || globalGO)) {
     # Off because it was taking too long and failing sometimes
     # ClueGO really cannot handle too large gene lists, which are the norm here for dataset analysis
     #if (runClueGO) {
-    #  clueGO_outDir <- dir
+    #  clueGO_outDir <- myDir
     #  clueGO_type <- "Enrichment/Depletion (Two-sided hypergeometric test)"
     #  Src <- paste0(libPath, "/extdata/Sources/ClueGO_enrich.R")
     #  rstudioapi::documentOpen(Src)
