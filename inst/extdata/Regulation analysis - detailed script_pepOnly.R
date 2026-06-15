@@ -557,7 +557,7 @@ Src <- paste0(libPath, "/extdata/Sources/Stat_tests.R")
 source(Src, local = FALSE)
 
 ### Visualize and check P-values
-# Needs rewriting to accept peptide-level input
+dataType <- "peptides"
 Src <- paste0(libPath, "/extdata/Sources/pVal_check.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)

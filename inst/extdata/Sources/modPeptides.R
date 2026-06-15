@@ -7,11 +7,6 @@ if (scrptTypeFull == "withReps_PTMs_only") {
   PTM_normalize %<o% FALSE
 }
 #
-ptms.PVal <- pvalue.col[which(pvalue.use)]
-if (names(ptms.PVal) == "DEqMS") {
-  warning("Currently DEqMS doesn't work for PTM-modified peptides, using standard limma instead")
-  ptms.PVal <- pvalue.col["Moderated"]
-}
 ptms.ratios.ref %<o% setNames("log2(Ratio) - ",
                               "Original")
 PepLabKol %<o% setNames(c("Mod. sequence", "Proteins", "Common protein names", "PEP"),
@@ -35,6 +30,8 @@ if (length(PTMs)) {
   PTMs_int.ref %<o% list()
   PTMs_rat.ref %<o% list()
   PTMs_SAM_thresh %<o% list()
+  PTMs_PVal_col %<o% list()
+  PTMs_PVal_use %<o% list()
   if (F.test) {
     PTMs_F_test_data %<o% list()
     #PTMs_F_test_ref_ratios %<o% list() # Not needed
@@ -363,7 +360,6 @@ if (length(PTMs)) {
     ptmpep[, colnames(tmp)] <- tmp
     #
     dataType <- "modPeptides" # used for PCA and stats
-    #
     Src <- paste0(libPath, "/extdata/Sources/dimRed_plots.R")
     #rstudioapi::documentOpen(Src)
     source(Src, local = FALSE)
@@ -378,6 +374,15 @@ if (length(PTMs)) {
     Src <- paste0(libPath, "/extdata/Sources/Stat_tests.R")
     #rstudioapi::documentOpen(Src)
     source(Src, local = FALSE)
+    #
+    Src <- paste0(libPath, "/extdata/Sources/pVal_check.R")
+    #rstudioapi::documentOpen(Src)
+    source(Src, local = FALSE)
+    dataType
+    
+    
+    
+    
     #
     # Also mean expression over whole dataset
     kls <- grep(topattern(pepRf), colnames(ptmpep), value = TRUE)
@@ -415,12 +420,12 @@ if (length(PTMs)) {
     ## NB: For graphical reasons (volcano plots), there is only support for 4 different FDR values. This should suffice anyway.
     temp_thrsh <- c()
     A <- myContrasts$Contrast
-    test <- sapply(A, \(x) { #x <- A[6L]
+    test <- vapply(A, \(x) { #x <- A[6L]
       x <- paste0(ptms.PVal, x)
       r <- x %in% colnames(ptmpep)
       if (r) { r <- sum(is.finite(as.numeric(ptmpep[[x]]))) > 0L }
       return(r)
-    })
+    }, TRUE)
     A <- A[which(test)]
     stopifnot(length(A) > 0L)
     for (a in A) { #a <- A[1L]

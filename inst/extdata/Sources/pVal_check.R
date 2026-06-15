@@ -1,12 +1,12 @@
 ### Check P-values
 #
-print_gg <- function(p) { # Works for both ggplot and 
+print_gg %<o% function(p) { # Works for both ggplot and 
   grid::grid.newpage()
   grid::grid.draw(
     if (inherits(p, "ggplot")) { ggplot2::ggplot_gtable(ggplot2::ggplot_build(p)) } else { p } # already a gtable
   )
 }
-slim_plotly <- \(p) {
+slim_plotly %<o% \(p) {
   p <- plotly::plotly_build(p)
   p$x$visdat <- NULL      # removes the source data closures
   p$x$cur_data <- NULL    # removes current data reference
@@ -14,7 +14,7 @@ slim_plotly <- \(p) {
   return(p)
 }
 source(parSrc)
-if (scrptTypeFull == "withReps_PTMs_only") {
+if (dataType == "peptides") {
   pvalDir <- paste0(wd, "/Workflow control/Peptides/P-values")
   myData <- pep
   dataType <- "peptides"
@@ -22,30 +22,50 @@ if (scrptTypeFull == "withReps_PTMs_only") {
   entityCol <- "peptide"
   descrTxt <- "Peptide:"
   rowsCol <- labCol <- "Modified sequence"
+  appNm <- paste0(dtstNm, " - peptides P-values")
+  appTtl <- "peptides - type of P-values"
 }
-if (scrptTypeFull == "withReps_PG_and_PTMs") {
+if (dataType == "modPeptides") {
+  pvalDir <- paste0(modDirs[1L], "/P-values")
+  myData <- ptmpep
+  entityCol <- "PG"
+  ratRef <- ptms.ratios.ref
+  descrTxt <- paste0(ptm, "modified peptide:")
+  labCol <- "Name"
+  rowsCol <- "Modified sequence"
+  appNm <- paste0(dtstNm, " - ", ptm, "-mod. peptides P-values")
+  appNm <- paste0(ptm, " - type of P-values")
+}
+if (dataType == "PG") {
   pvalDir <- paste0(wd, "/Workflow control/Protein groups/P-values")
   myData <- PG
-  dataType <- entityCol <- "PG"
+  entityCol <- "PG"
   ratRef <- Prot.Rat.Root
   descrTxt <- "Protein:"
   labCol <- "Label"
   rowsCol <- "Leading protein IDs"
+  appNm <- paste0(dtstNm, " - PG P-values")
+  appTtl <- "PG - type of P-values"
 }
 if (!dir.exists(pvalDir)) { dir.create(pvalDir, recursive = TRUE) }
 dirlist <- union(dirlist, pvalDir)
 #
-w <- which(vapply(pvalue.col, \(type) { #type <- pvalue.col[1L]
+if ((dataType == "modPeptides") && (Ptm %in% names(PTMs_PVal_col))) {
+  my_PVal_Col <- PTMs_PVal_col[[Ptm]]
+} else {
+  my_PVal_Col <- pvalue.col
+}
+my_PVal_Col <- my_PVal_Col[which(vapply(my_PVal_Col, \(type) { #type <- my_PVal_Col[1L]
   length(grep(topattern(type), colnames(myData))) > 0L
-}, TRUE))
-pvalueCol <- pvalue.col[w]
+}, TRUE))]
+stopifnot(length(my_PVal_Col) > 0L)
 #
 # Scatter plots:
-pkol2 <- gsub(" - $", "", pvalueCol)
+pkol2 <- gsub(" - $", "", pval_Col)
 whSingle <- which(!myContrasts$isDouble)
 temp <- lapply(whSingle, \(i) { #i <- 1L
   nm <- myContrasts$Contrast[i]
-  j <- paste0(pvalueCol, nm)
+  j <- paste0(pval_Col, nm)
   w <- which(j %in% colnames(myData))
   j <- j[w]
   if (!length(j)) { return(NA) }
@@ -68,8 +88,8 @@ tmpFl <- tempfile(fileext = ".rds")
 readr::write_rds(temp, tmpFl)
 nr <- nrow(myContrasts)
 #
-clusterExport(parClust, list("Comb", "tmpFl", "pvalDir", "pvalueCol", "gsub_Rep",
-                             "plotEval", "slim_plotly", "entityCol", "pvalue.col", "nr"),
+clusterExport(parClust, list("Comb", "tmpFl", "pvalDir", "pval_Col", "gsub_Rep",
+                             "plotEval", "slim_plotly", "entityCol", "my_PVal_Col", "nr"),
               envir = environment())
 invisible(clusterCall(parClust, \() {
   require(ggplot2)
@@ -84,8 +104,8 @@ unlink(tmpFl)
 plotsList1 <- parLapply(parClust, 1L:nrow(Comb), \(i) { #i <- 1L
   X <- Comb[i, 1L]
   Y <- Comb[i, 2L]
-  X2 <- names(pvalue.col)[match(paste0(X, " - "), pvalue.col)]
-  Y2 <- names(pvalue.col)[match(paste0(Y, " - "), pvalue.col)]
+  X2 <- names(my_PVal_Col)[match(paste0(X, " - "), my_PVal_Col)]
+  Y2 <- names(my_PVal_Col)[match(paste0(Y, " - "), my_PVal_Col)]
   dat <- temp[, c(X, Y, entityCol, "Contrast", "Contr")]
   colnames(dat)[1L:2L] <- c("X", "Y")
   dat$"P-value, X axis" <- gsub_Rep(" -log10\\(Pvalue\\)$", "", Comb[i, 1L])
@@ -142,8 +162,8 @@ invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 # P-values histogram:
 nbin <- 40L
 bd <- (0L:nbin)/nbin
-pvalLvls <- gsub_Rep("('s)?( t-)?(test)? -log10\\(Pvalue\\) - $", "", pvalueCol)
-temp <- setNames(lapply(pvalueCol, \(type) { #type <- pvalueCol[1L]
+pvalLvls <- gsub_Rep("('s)?( t-)?(test)? -log10\\(Pvalue\\) - $", "", pval_Col)
+temp <- setNames(lapply(pval_Col, \(type) { #type <- pval_Col[1L]
   #
   # Estimate power at 0.05%
   kol <- grep(topattern(sub(" -log10\\(", " ", sub("\\) - $", " - ", type))), colnames(myData), value = TRUE)
@@ -173,7 +193,7 @@ temp <- setNames(lapply(pvalueCol, \(type) { #type <- pvalueCol[1L]
   res$Low <- 0L
   return(list(Dat = res,
               pwrEst = power_est))
-}), gsub("('s)?( t-)?(test)? -log10\\(Pvalue\\) - $", "", pvalueCol))
+}), gsub("('s)?( t-)?(test)? -log10\\(Pvalue\\) - $", "", pval_Col))
 pwrAnnot <- lapply(names(temp), \(x) { #x <- names(temp)[1L]
   data.frame("power estimate" = paste0(round(100L*temp[[x]]$pwrEst, 1L), "%"),
              "P-value type" = x,
@@ -209,7 +229,7 @@ plot2 <- ggplot(temp) +
 #poplot(plot2, 12L, 22L)
 Img2 <- paste0(pvalDir, "/", ttl2)
 w2 <- ((length(whSingle)+1)*1.25)*2
-h2 <- ((length(pvalueCol)+0.2)*1.25)*2
+h2 <- ((length(pval_Col)+0.2)*1.25)*2
 suppressMessages({
   ggsave(paste0(Img2, ".jpeg"), plot2, dpi = 150L, width = w2, height = h2, units = "in")
   ggsave(paste0(Img2, ".pdf"), plot2, dpi = 150L, width = w2, height = h2, units = "in")
@@ -239,10 +259,15 @@ names(plotsList) <- c("Histogram", Imgs1Nms)
 #
 # Which type of P-values do we want to use?
 msg <- "Confirm which type of P-values to use for t-test volcano plots"
-pvalue.use %<o% setNames((names(pvalue.col) == Param$P.values.type), names(pvalue.col))
-pvalueUse <- pvalue.use[names(pvalueCol)]
-if (!sum(pvalueUse)) { pvalueUse["Moderated"] <- TRUE }
-if (!sum(pvalueUse)) { pvalueUse[1L] <- TRUE }
+if ((dataType == "modPeptides") && (Ptm %in% names(PTMs_PVal_use))) {
+  my_PVal_Use <- PTMs_PVal_use[[Ptm]]
+} else {
+  my_PVal_Use <- setNames(names(my_PVal_Col) == Param$P.values.type,
+                          names(my_PVal_Col))
+  pval_Use <- my_PVal_Use[names(pval_Col)]
+}
+if (!sum(pval_Use)) { pval_Use["Moderated"] <- TRUE }
+if (!sum(pval_Use)) { pval_Use[1L] <- TRUE }
 #
 source(parSrc, local = FALSE)
 IMGsDims <- as.data.frame(t(parSapply(parClust, IMGS, \(x) { #x <- IMGs[1L]
@@ -251,8 +276,6 @@ IMGsDims <- as.data.frame(t(parSapply(parClust, IMGS, \(x) { #x <- IMGs[1L]
 })))
 IMGsDims$height <- round(screenRes$width*IMGsDims$height/max(IMGsDims$height)*0.3)
 IMGsDims$width <- round(screenRes$width*IMGsDims$width/max(IMGsDims$width)*0.3)
-appNm <- paste0(dtstNm, " - t-test P-values")
-
 ui <- fluidPage(
   useShinyjs(),
   setBackgroundColor( # Doesn't work
@@ -262,12 +285,12 @@ ui <- fluidPage(
     direction = "bottom"
   ),
   extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
-  titlePanel(tag("u", "Type of t-test P-values"),
+  titlePanel(tag("u", appTtl),
              appNm),
   br(),
   #
   fluidRow(column(2L,
-                  selectInput("PVal", msg, names(pvalueCol), names(pvalueCol)[which(pvalueUse)])),
+                  selectInput("PVal", msg, names(pval_Col), names(pval_Col)[which(pval_Use)])),
            column(2L,
                   actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"))),
   br(),
@@ -275,7 +298,7 @@ ui <- fluidPage(
                   selectInput("XY",
                               "Select comparison to display...",
                               Imgs1Nms,
-                              grep(names(pvalueCol)[which(pvalueUse)], Imgs1Nms, value = TRUE)[1L]),
+                              grep(names(pval_Col)[which(pval_Use)], Imgs1Nms, value = TRUE)[1L]),
                   withSpinner(plotlyOutput("Img1", inline = TRUE))),
            column(7L,
                   withSpinner(plotOutput("Img2", inline = TRUE)))),
@@ -292,10 +315,10 @@ server <- \(input, output, session) {
   }
   output$Img1 <- updtIMG1(FALSE)
   output$Img2 <- renderPlot({ print_gg(plotsList$Histogram$Plot) },
-                            height = 50L+200L*length(pvalueCol),
+                            height = 50L+200L*length(pval_Col),
                             width = 50L+200L*nrow(myContrasts))
   observeEvent(input$PVal, {
-    assign("pvalue.use", setNames(names(pvalue.col) == input$PVal, names(pvalue.col)), envir = .GlobalEnv)
+    assign("my_PVal_Use", setNames(names(my_PVal_Col) == input$PVal, names(my_PVal_Col)), envir = .GlobalEnv)
   }, ignoreInit = FALSE)
   observeEvent(input$XY, {
     i <- match(input$XY, Imgs1Nms)
@@ -316,89 +339,103 @@ while ((!runKount) || (!exists("appRunTst"))) {
   runKount <- runKount + 1L
 }
 #
-Param$P.values.type <- names(pvalue.col)[which(pvalue.use)]
 #
-# Update fold changes
-# The more advanced statistical frameworks provide estimates of average logFC per contrast. Get those.
-# if (!exists("prExpr_roots")) {
-#   prExpr_roots <- setNames(Prot.Expr.Root, "Quantitation")
-# } else {
-#   Prot.Expr.Root <- prExpr_roots["Quantitation"]
-# }
-# prExpr_roots %<o% prExpr_roots
-# Get the log2FCs from all methods for comparison
-ratKol <- paste0(ratRef, myContrasts$Contrast)
-logFCs <- list(make_Rat2 = set_colnames(quantData_list$Data[, ratKol], myContrasts$Contrast))
-nmsConv <- data.frame(Name = c("limma", "DEqMS", "QFeatures", "ROTS", "MSstats"),
-                      P.values.type = c("Moderated", "DEqMS", "MSqRob", "ROTS", "MSstats"))
-for (i in 1L:nrow(nmsConv)) { #i <- 5L
-  nm <- nmsConv$Name[i]
-  whContr <- 1L:nrow(myContrasts)
-  if (nm %in% c("limma", "DEqMS")) { #nm <- "limma"
-    repRat <- limmaFits[[dataType]][[nm]]$fit$coefficients[, myContrasts$Contrast[whContr], drop = FALSE] # Already log2!!!
+if (dataType == "PG") {
+  # Update fold changes
+  # The more advanced statistical frameworks provide estimates of average logFC per contrast. Get those.
+  # if (!exists("prExpr_roots")) {
+  #   prExpr_roots <- setNames(Prot.Expr.Root, "Quantitation")
+  # } else {
+  #   Prot.Expr.Root <- prExpr_roots["Quantitation"]
+  # }
+  # prExpr_roots %<o% prExpr_roots
+  # Get the log2FCs from all methods for comparison
+  ratKol <- paste0(ratRef, myContrasts$Contrast)
+  logFCs <- list(make_Rat2 = set_colnames(quantData_list$Data[, ratKol], myContrasts$Contrast))
+  nmsConv <- data.frame(Name = c("limma", "DEqMS", "QFeatures", "ROTS", "MSstats"),
+                        P.values.type = c("Moderated", "DEqMS", "MSqRob", "ROTS", "MSstats"))
+  for (i in 1L:nrow(nmsConv)) { #i <- 5L
+    nm <- nmsConv$Name[i]
+    whContr <- 1L:nrow(myContrasts)
+    if (nm %in% c("limma", "DEqMS")) { #nm <- "limma"
+      repRat <- limmaFits[[dataType]][[nm]]$fit$coefficients[, myContrasts$Contrast[whContr], drop = FALSE] # Already log2!!!
+      repRat <- as.data.frame(repRat)
+    }
+    if (nm == "QFeatures") {
+      repRat <- MSqRob_infer[, grep(topattern("MSqRob logFC - "), colnames(MSqRob_infer), value = TRUE), drop = FALSE]
+      # We produced log10 values for QFeatures, and we tested them as log10, so we need to change base here since we want log2FC!
+      repRat <- repRat/log10(2L) # Convert to log2!!!
+      colnames(repRat) <- sub("^MSqRob logFC - ", "", colnames(repRat))
+    }
+    if (nm == "MSstats") {
+      repRat <- msstatsLFC # Already log2!!!
+    }
+    if (nm == "ROTS") {
+      whContr <- which(!myContrasts$isDouble) # for ROTS we have only single contrasts
+      tmp <- lapply(myContrasts$Contrast[whContr], \(contr) {
+        rwnms <- rownames(ROTS_res[[contr]]$data)
+        logfc <- as.data.frame(t(data.frame(ROTS_res[[contr]]$logfc)))
+        colnames(logfc) <- rwnms
+        return(logfc)
+      })
+      tmp <- plyr::rbind.fill(tmp) # Already log2!!!
+      repRat <- as.data.frame(t(tmp))
+      rownames(repRat) <- colnames(tmp)
+      colnames(repRat) <- myContrasts$Contrast[whContr]
+    }
     repRat <- as.data.frame(repRat)
+    w <- which(!is.finite(as.matrix(repRat)), arr.ind = TRUE)
+    repRat[w] <- NA_real_
+    m <- match(myData[[rowsCol]], rownames(repRat))
+    repRat <- repRat[m, myContrasts$Contrast[whContr]]
+    rownames(repRat) <- myData[[rowsCol]]
+    logFCs[[nm]] <- repRat
   }
-  if (nm == "QFeatures") {
-    repRat <- MSqRob_infer[, grep(topattern("MSqRob logFC - "), colnames(MSqRob_infer), value = TRUE), drop = FALSE]
-    # We produced log10 values for QFeatures, and we tested them as log10, so we need to change base here since we want log2FC!
-    repRat <- repRat/log10(2L) # Convert to log2!!!
-    colnames(repRat) <- sub("^MSqRob logFC - ", "", colnames(repRat))
+  #vapply(logFCs, nrow, 1L)
+  #vapply(logFCs, ncol, 1L)
+  # To check the distribution of logFCs (they should be different but still roughly similar)
+  tst <- lapply(names(logFCs), \(nm) {
+    x <- melt(logFCs[[nm]])
+    x$Type <- nm
+    return(x)
+  })
+  tst <- do.call(rbind, tst)
+  tst <- tst[which(is.finite(tst$value)),]
+  colnames(tst)[1L:2L] <- c("Contrast", "logFC")
+  tst$Contrast <- factor(tst$Contrast, levels = myContrasts$Contrast)
+  tst$Type <- factor(tst$Type, levels = names(logFCs))
+  ttl <- "Distribution of logFCs"
+  plot <- ggplot(tst) +
+    ggtitle(ttl) +
+    geom_density(aes(x = logFC, color = Type)) +
+    facet_grid(Type~Contrast) +
+    theme_bw()
+  #poplot(plot, 12L, 22L)
+  ggsave(paste0(pvalDir, "/", ttl, ".jpeg"), plot, dpi = 100L)
+  if (Param$P.values.type %in% nmsConv$P.values.type) {
+    nm <- nmsConv$Name[match(Param$P.values.type, nmsConv$P.values.type)]
+    myData <- myData[, which(!colnames(myData) %in% ratKol)]
+    repRat <- logFCs[[nm]]
+    myData[, paste0(ratRef, colnames(repRat))] <- repRat
   }
-  if (nm == "MSstats") {
-    repRat <- msstatsLFC # Already log2!!!
-  }
-  if (nm == "ROTS") {
-    whContr <- which(!myContrasts$isDouble) # for ROTS we have only single contrasts
-    tmp <- lapply(myContrasts$Contrast[whContr], \(contr) {
-      rwnms <- rownames(ROTS_res[[contr]]$data)
-      logfc <- as.data.frame(t(data.frame(ROTS_res[[contr]]$logfc)))
-      colnames(logfc) <- rwnms
-      return(logfc)
-    })
-    tmp <- plyr::rbind.fill(tmp) # Already log2!!!
-    repRat <- as.data.frame(t(tmp))
-    rownames(repRat) <- colnames(tmp)
-    colnames(repRat) <- myContrasts$Contrast[whContr]
-  }
-  repRat <- as.data.frame(repRat)
-  w <- which(!is.finite(as.matrix(repRat)), arr.ind = TRUE)
-  repRat[w] <- NA_real_
-  m <- match(myData[[rowsCol]], rownames(repRat))
-  repRat <- repRat[m, myContrasts$Contrast[whContr]]
-  rownames(repRat) <- myData[[rowsCol]]
-  logFCs[[nm]] <- repRat
-}
-#vapply(logFCs, nrow, 1L)
-#vapply(logFCs, ncol, 1L)
-# To check the distribution of logFCs (they should be different but still roughly similar)
-tst <- lapply(names(logFCs), \(nm) {
-  x <- melt(logFCs[[nm]])
-  x$Type <- nm
-  return(x)
-})
-tst <- do.call(rbind, tst)
-tst <- tst[which(is.finite(tst$value)),]
-colnames(tst)[1L:2L] <- c("Contrast", "logFC")
-tst$Contrast <- factor(tst$Contrast, levels = myContrasts$Contrast)
-tst$Type <- factor(tst$Type, levels = names(logFCs))
-ttl <- "Distribution of logFCs"
-plot <- ggplot(tst) +
-  ggtitle(ttl) +
-  geom_density(aes(x = logFC, color = Type)) +
-  facet_grid(Type~Contrast) +
-  theme_bw()
-#poplot(plot, 12L, 22L)
-ggsave(paste0(pvalDir, "/", ttl, ".jpeg"), plot, dpi = 100L)
-if (Param$P.values.type %in% nmsConv$P.values.type) {
-  nm <- nmsConv$Name[match(Param$P.values.type, nmsConv$P.values.type)]
-  myData <- myData[, which(!colnames(myData) %in% ratKol)]
-  repRat <- logFCs[[nm]]
-  myData[, paste0(ratRef, colnames(repRat))] <- repRat
 }
 
-if (scrptTypeFull == "withReps_PTMs_only") {
+
+if (dataType == "peptides") {
   pep <- myData
+  pvalue.col %<o% my_PVal_Col
+  pvalue.use %<o% my_PVal_Use
+  Param$P.values.type <- names(pvalue.col)[which(pvalue.use)]
 }
-if (scrptTypeFull == "withReps_PG_and_PTMs") {
+if (dataType == "modPeptides") {
+  ptmpep <- myData
+  PTMs_PVal_col[[Ptm]] <- my_PVal_Col
+  PTMs_PVal_use[[Ptm]] <- my_PVal_Use
+  ptms.PVal <- my_PVal_Col[which(my_PVal_Use)]
+}
+if (dataType == "PG") {
   PG <- myData
+  pvalue.col %<o% my_PVal_Col
+  pvalue.use %<o% my_PVal_Use
+  Param$P.values.type <- names(pvalue.col)[which(pvalue.use)]
 }
