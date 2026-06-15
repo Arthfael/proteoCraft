@@ -111,7 +111,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
         scoresA$Colour <- scoresA$Sample
         colKol <- "colKol"
       } else {
-        tmp <- Exp.map[m, Factors[which(Factors != "Replicate")]]
+        tmp <- Exp.map[m, Factors[which(!Factors %in% c("Replicate", "Block", "Batch", "Litter"))], drop = FALSE]
         tmp <- tmp[, which(vapply(colnames(tmp), \(x) { length(unique(tmp[[x]])) > 1L }, TRUE)), drop = FALSE]
         scoresA$"Sample group" <- do.call(paste, c(tmp, sep = " "))
         tmp <- Exp.map[m, Factors]

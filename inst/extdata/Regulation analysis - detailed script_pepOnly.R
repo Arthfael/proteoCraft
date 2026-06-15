@@ -255,7 +255,7 @@ Src <- paste0(libPath, "/extdata/Sources/Load_Annotations.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 source(parSrc, local = FALSE)
-Src <- paste0(libPath, "/extdata/Sources/GO_prepare.R") # Doing this earlier but also keep latter instance for now
+Src <- paste0(libPath, "/extdata/Sources/GO_prepare.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 

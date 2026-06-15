@@ -1423,13 +1423,14 @@ if (exists("FracMap_reloaded")) {
       }
       if (sum(gs)) {
         rp <- c("-", "_", "")[which(gs)[1L]]
-        mEv <- match(gsub(" ", rp, ev$`Raw file path`), gsub(" ", rp, FracMap$`Raw file`))
+        mEv <- match(gsub(" ", rp, ev$`Raw file`), gsub(" ", rp, FracMap$`Raw files name`))
       } else {
-        mEv <- match(ev$`Raw file path`, FracMap$`Raw file`)
+        mEv <- match(ev$`Raw file`, FracMap$`Raw files name`)
       }
       tst <- sum(is.na(mEv))
       if (!tst) {
-        ev$`Raw file` <- FracMap$`Raw files name`[mEv]
+        # Fix paths in case we re-mapped them
+        ev$`Raw file path` <- FracMap$`Raw file`[mEv]
       } else {
         rm(FracMap_reloaded)
         FracMap <- FracMap_bckp
@@ -1440,8 +1441,10 @@ if (exists("FracMap_reloaded")) {
       stopifnot(sum(!rawFiles %in% ev$`Raw file path`) == 0L,
                 sum(!rawFiles2 %in% ev$`Raw file`) == 0L)
       if (srchTst == 2L) {
-        FracMap_reloaded$tmp1 <- NULL
-        FracMap_reloaded$tmp2 <- NULL
+        if (exists("FracMap_reloaded")) {
+          FracMap_reloaded$tmp1 <- NULL
+          FracMap_reloaded$tmp2 <- NULL  
+        }
         FracMap$tmp1 <- NULL
         FracMap$tmp2 <- NULL
       }

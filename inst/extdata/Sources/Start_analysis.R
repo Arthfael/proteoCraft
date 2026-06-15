@@ -571,7 +571,7 @@ RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 libPath <- paste0(RPath, "/proteoCraft")
 parSrc %<o% paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
-#
+
 # Detect backups and decide whether to keep them
 #labelMode <- match(LabelType, c("LFQ", "Isobaric"))
 FracMapNm %<o% "Fractions map"
