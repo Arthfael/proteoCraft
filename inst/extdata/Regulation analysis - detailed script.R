@@ -292,7 +292,6 @@ Src <- paste0(libPath, "/extdata/Sources/PTMs_check.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-
 # Start writing Materials and Methods
 Src <- paste0(libPath, "/extdata/Sources/autoMatMet.R")
 #rstudioapi::documentOpen(Src)
@@ -1307,6 +1306,8 @@ arbitrary.thr %<o% data.frame(yintercept = -log10(c(0.05, 0.01)),
                               colour = c("orange", "red"),
                               label = c("5% P-value", "1% P-value"))
 # Default volcano plot arguments
+PrLabKol %<o% setNames(c("Common Name (short)", "Protein IDs", "Genes", "PEP"),
+                       c("Protein name", "Protein ID(s)", "Gene(s)", "PEP"))
 Src <- paste0(libPath, "/extdata/Sources/dfltVolcPlotArgs.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
@@ -1315,8 +1316,6 @@ volcano.plots %<o% list()
 # For now, we are plotting non adjusted P-values because in bad cases adjusting causes all to collapse on 1 (0 as -log10)
 # Instead, we are sticking to plotting raw P-values with FDR thresholds
 #
-PrLabKol %<o% setNames(c("Common Name (short)", "Protein IDs", "Genes", "PEP"),
-                       c("Protein name", "Protein ID(s)", "Gene(s)", "PEP"))
 subDr <- "Reg. analysis/t-tests"
 subDr2 <- paste0(wd, "/", subDr)
 if (!dir.exists(subDr2)) { dir.create(subDr2, recursive = TRUE) }
@@ -1325,6 +1324,7 @@ setwd(wd)
 volcPlot_args2 <- volcPlot_args
 volcPlot_args2$Prot <- PG
 volcPlot_args2$cl <- parClust
+volcPlot_args2$subfolder <- subDr
 # For testing:
 #DefArg(Volcano.plot);TESTING <- TRUE
 #invisible(lapply(names(volcPlot_args2), \(x) { assign(x, volcPlot_args2[[x]], envir = .GlobalEnv); return() }))
