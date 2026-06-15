@@ -74,10 +74,11 @@ if (!require(matrixStats, quietly = TRUE)) { pak::pak("matrixStats") }
 library(matrixStats)
 rg <- 1L:((dataType == "PG") + 1L)
 TESTs <- c("limma", "DEqMS")[rg]
-limpaTest <- (dataType != "modPeptides") && (quantAlgo == "limpa")
+limpaTest <- (dataType == "PG") && ("EList_obj" %in% names(quantData_list))
 if (limpaTest) { TESTs <- c(TESTs, c("limpa->limma", "limpa->DEqMS")[rg]) }
 for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
   limpaMode <- grepl("^limpa->", TEST)
+  deqmsMode <- grepl("DEqMS$", TEST)
   if ((!TEST %in% names(limmaFits[[dataType]])) || (!inherits(limmaFits[[dataType]][[TEST]], "list"))) {
     limmaFits[[dataType]][[TEST]] <- list()
   }
@@ -103,7 +104,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
   } else {
     # Note: limpa can also be used for peptides... but that is for another day!
     wOK <- 1L:nrow(myData)
-    if (TEST == "DEqMS") {
+    if (deqmsMode) {
       grpTst <- aggregate(1L:nrow(expMap), list(expMap[[VPAL$limmaCol]]), list)
       tmpFl <- tempfile(fileext = ".rds")
       readr::write_rds(myData[, quantCol], tmpFl)
@@ -165,7 +166,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
   #   If using it (e.g. rewriting to include systematic P-value adjustment), set adjust.method = "none"!!!
   # - The way it tests a hypothesis seems better suited to F.tests than t-tests!
   # Here you could use decideTests() if wanting to switch to directly using decisions from limma
-  if (TEST == "limma") {
+  if (!deqmsMode) {
     limmaFits[[dataType]][[TEST]]$fit <- fit2
     kols1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", pRoot)), colnames(contrMatr))
     kols2 <- paste0(pRoot, colnames(contrMatr))
@@ -193,7 +194,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       dev.off()
     }
   }
-  if (TEST == "DEqMS") {
+  if (deqmsMode) {
     # DEqMS:
     # This is meant as en extension to limma to account "for variance dependence on the number of quantified peptides or PSMs
     # for statistical testing of differential protein expression."
