@@ -34,7 +34,7 @@ if (dataType == "modPeptides") {
   labCol <- "Name"
   rowsCol <- "Modified sequence"
   appNm <- paste0(dtstNm, " - ", ptm, "-mod. peptides P-values")
-  appNm <- paste0(ptm, " - type of P-values")
+  appTtl <- paste0(ptm, " - type of P-values")
 }
 if (dataType == "PG") {
   pvalDir <- paste0(wd, "/Workflow control/Protein groups/P-values")
