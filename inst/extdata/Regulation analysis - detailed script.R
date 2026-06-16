@@ -1108,11 +1108,6 @@ Src <- paste0(libPath, "/extdata/Sources/PG_Filters.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 
-#### Code chunk - samples Pearson correlation heatmap
-Src <- paste0(libPath, "/extdata/Sources/pearsonCorrMap.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
-
 # Average expression columns per group
 for (grp in VPAL$values) { #grp <- VPAL$values[1L] #grp <- VPAL$values[3L]
   em <- Exp.map[which(Exp.map[[VPAL$column]] == grp),]
@@ -1271,6 +1266,11 @@ source(Src, local = FALSE)
 clustMode <- "standard"
 dataType <- "PG"
 Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Main.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
+#### Code chunk - samples Pearson correlation heatmap
+Src <- paste0(libPath, "/extdata/Sources/pearsonCorrMap.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 

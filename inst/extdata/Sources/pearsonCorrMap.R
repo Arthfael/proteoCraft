@@ -4,28 +4,37 @@ if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
   dir <- paste0(wd, "/Pearson correlation map")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   if (scrptTypeFull == "withReps_PG_and_PTMs") {
+    dataType <- "PG"
     prtRfRoot <- if (LocAnalysis) { Prot.Expr.Root2 } else { Prot.Expr.Root }
     prtRfRoot %<o% prtRfRoot
     refRoot <- prtRfRoot
     dirlist <- unique(c(dirlist, dir))
-    g <- paste0(prtRfRoot, RSA$values)
-    w <- which(g %in% colnames(PG))
-    g <- g[w]
-    allSamples <- cleanNms(RSA$values[w])
-    kol <- paste0(prtRfRoot, RSA$values[w])
-    myData <- PG[, kol]
+    datNm <- intersect(c("ComBat", "Imputed", #"Filtered",
+                         "Original"),
+                       names(clustDat[[dataType]]))[1L]
+    myData <- clustDat[[dataType]][[datNm]]
+    allSamples <- colnames(myData)
     colnames(myData) <- paste0(prtRfRoot, allSamples)
     isLog <- TRUE
+    subTtl <- ""
+    if (datNm == "ComBat") {
+      subTtl <- "batch corrected (ComBat)"
+    }
+    if (datNm == "Imputed") {
+      subTtl <- "Imputed"
+    }
   }
   if (scrptTypeFull == "Histones") {
     refRoot <- "Intensity - "
     #allSamples already exists!
     myData <- pep
     isLog <- FALSE
+    subTtl<- "Peptide intensities"
   }
+  myData <- as.data.frame(myData)
   g <- paste0(refRoot, allSamples)
-  corMap <- sapply(seq_along(g), \(x) {
-    vapply(seq_along(g), \(y) {
+  corMap <- sapply(seq_along(g), \(x) { #x <- 2L
+    vapply(seq_along(g), \(y) { #y <- 1L
       if (x <= y) { return(NA) }
       x <- myData[[g[x]]]
       y <- myData[[g[y]]]
@@ -38,8 +47,8 @@ if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
     }, 1)
   })
   rownames(corMap) <- colnames(corMap) <- allSamples
-  corMap <- reshape::melt(corMap, measure.vars = allSamples)
-  colnames(corMap) <- c("Sample 2", "Sample 1", "Pearson corr.")
+  corMap <- dfMelt(corMap, ColNames = c("Sample 1", "Pearson corr."))
+  corMap$"Sample 2" <- allSamples
   corMap <- corMap[which(!is.na(corMap$"Pearson corr.")),]
   tmp <- myData[, g[2L:length(g)]]
   colnames(tmp) <- allSamples[2L:length(g)]
@@ -85,7 +94,7 @@ if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
     new_scale("fill") +
     geom_tile(data = corMap, aes(fill = `Pearson corr.`, x = 0.5, y = 0.5), width = 1L, height = 1L) +
     scale_fill_viridis(option = "B") + coord_fixed() +
-    facet_grid(`Sample 2`~`Sample 1`) + ggtitle(ttl) +
+    facet_grid(`Sample 2`~`Sample 1`) + ggtitle(ttl, subtitle = subTtl) +
     theme_minimal() + theme(axis.text.x = element_blank(),
                             axis.text.y = element_blank(),
                             panel.grid.major = element_blank(), 
