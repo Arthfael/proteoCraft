@@ -16,6 +16,7 @@
                               IDs_only,
                               trimName) { #i <- 1L
   #DefArg(.Format.DB_worker);btch <- batChes[[1L]]
+  btch <- unlist(btch)
   hdrs <- grep("^>", btch)
   temp1 <- data.frame(Header = btch[hdrs])
   # Batches
@@ -145,12 +146,12 @@
       # We want to fill important columns with any value, if none is available
       w <- which(temp1$"Common Name" %in% c("", " ", "NA", NA))
       tmpkol <- nms.list[which(nms.list %in% colnames(temp1))]
-      if ((length(w))&&(length(tmpkol))) {
-        f0 <- function(x) {
+      if (length(w) && length(tmpkol)) {
+        f0 <- \(x) {
           tt <- which(!x %in% c("", " ", "NA", NA))
           return(x[min(tt)])
         }
-        temp1$"Common Name" <- do.call(f0, c(temp1[, c("Common Name", tmpkol)]))
+        temp1$"Common Name" <- apply(temp1[, c("Common Name", tmpkol)], 1L, f0)
       }
     }
     w <- which(as.character(temp1$"Protein ID") %in% c("", " ", "NA"))

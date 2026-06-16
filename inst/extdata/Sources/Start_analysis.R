@@ -696,8 +696,8 @@ if (nrow(allBckps)) {
   cat("    Done!\n")
   .obj <- union(unlist(allBckps$ObjNm[which(allBckps$Reload)]), .obj)
   .obj <- setdiff(.obj, unlist(allBckps$ObjNm[which(!allBckps$Reload)]))
+  reloadedBckps %<o% allBckps[which(allBckps$Reload),]
 }
-reloadedBckps %<o% allBckps[which(allBckps$Reload),]
 
 # Clean-up WD to remove all output folders/files/plots/tables before we start?
 drs <- list.dirs(wd, TRUE, FALSE)

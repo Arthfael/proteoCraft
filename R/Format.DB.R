@@ -54,11 +54,11 @@ Format.DB <- function(file,
   TESTING <- FALSE
   #DefArg(Format.DB); TESTING <- TRUE
   misFun <- if (TESTING) {
-    function(x) { return(!exists(deparse(substitute(x)))) }
+    \(x) { return(!exists(deparse(substitute(x)))) }
   } else { missing }
   if (!misFun(cl)) { parallel <- TRUE }
   #
-  if ((is.logical(trimName))||(length(trimName) != 1L)||(is.na(trimName))) {
+  if (is.logical(trimName) || (length(trimName) != 1L) || is.na(trimName)) {
     trimName <- TRUE
   }
   MODE <- gsub("-|_|\\.| ", "", toupper(mode))

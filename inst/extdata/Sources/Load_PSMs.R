@@ -635,7 +635,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     }
     if (exists("ev_DIANN2MQ")) { rm(ev_DIANN2MQ) }
     psmsBckpFl_i <- paste0("diaNN PSMs converted to MQ-like format_", dir_i, ".RData")
-    if ((psmsBckpFl_i %in% reloadedBckps$File) && file.exists(psmsBckpFl_i)) {
+    if (exists("reloadedBckps") && (psmsBckpFl_i %in% reloadedBckps$File) && file.exists(psmsBckpFl_i)) {
       loadFun(psmsBckpFl_i)
     }
     if (!exists("ev_DIANN2MQ")) {
@@ -806,7 +806,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     ReportCalls <- AddTxt2Report(paste0(" -> FragPipe manifest file: ", fpManifestFl_i))
     if (exists("ev_FP2MQ")) { rm(ev_FP2MQ) }
     psmsBckpFl_i <- paste0("FragPipe PSMs converted to MQ-like format_", dir_i, ".RData")
-    if ((psmsBckpFl_i %in% reloadedBckps$File) && file.exists(psmsBckpFl_i)) {
+    if (exists("reloadedBckps") && (psmsBckpFl_i %in% reloadedBckps$File) && file.exists(psmsBckpFl_i)) {
       loadFun(psmsBckpFl_i)
     }
     if (!exists("ev_FP2MQ")) {
