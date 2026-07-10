@@ -85,7 +85,7 @@ styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[, 1L]
 # WorkBook %<o% wb_load(tmpFl)
 # Styles2 %<o% setNames(w, names(Styles)[w])
 WorkBook %<o% wb_load(fl)
-repFl <- paste0(wd, "/Tables/Report_", dtstNm, ".xlsx")
+repFl %<o% paste0(wd, "/Tables/Report_", dtstNm, ".xlsx")
 WorkBook <- wb_add_data(WorkBook, "Description", dtstNm, wb_dims(2L, 5L))
 WorkBook <- wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"), wb_dims(3L, 5L))
 WorkBook <- wb_add_data(WorkBook, "Description", WhoAmI, wb_dims(4L, 5L))

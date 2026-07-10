@@ -38,7 +38,7 @@ grsep <- function (pattern,
   if (mode == "grep") {
     res <- grep(pattern, x, ignore.case = ignore.case, perl = perl, value = value, fixed = fixed, useBytes = useBytes,
                 invert = invert)
-    if ((nchar(sep) > 0L) && (value == TRUE)) {
+    if (nchar(sep) && value) {
       res <- substr(res, start = nchar(sep) + 1L, stop = nchar(res) - nchar(sep))
     }
   }

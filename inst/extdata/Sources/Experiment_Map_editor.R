@@ -211,7 +211,7 @@ wTest1 <- apply(wTest1, 1L, \(x) {
   x2 <- as.integer(x[[2L]])
   list(width = x[[1L]],
        targets = x2,
-       names = colnames(ExpData2)[x2+1])
+       names = colnames(ExpData2)[x2+1L])
 })
 #
 g <- grep("___((FD)|(INCR))$", colnames(ExpData2))
@@ -288,7 +288,7 @@ server <- \(input, output, session) {
                                 options = list(dom = "t",
                                                paging = FALSE,
                                                ordering = FALSE,
-                                               autowidth = TRUE,
+                                               autoWidth = TRUE,
                                                columnDefs = wTest1,
                                                scrollX = FALSE),
                                 # the callback is essential to capture the inputs in each row

@@ -891,7 +891,8 @@ if ("LM" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
   lmDat <- as.data.frame(do.call(rbind, lmDat))
   colnames(lmDat) <- sub(topattern(pepInt_Root), "", colnames(lmDat))
   lmDat <- lmDat[match(names(quant_pep_IDs), row.names(lmDat)),
-                 mySmpls]
+                 mySmpls,
+                 drop = FALSE]
   rownames(lmDat) <- names(quant_pep_IDs)
   allQuants$LM <- lmDat
   cat("            Done!\n")
@@ -932,7 +933,8 @@ if (sum(c("IQ", "LIMPA", "QFEATURES", "MSSTATS") %in% c(LFQ_ALGO, RESCALING, ALS
     }
     # Check columns/row order
     iqDat <- as.data.frame(iqDat)[match(names(quant_pep_IDs), row.names(iqDat)),
-                                  mySmpls]
+                                  mySmpls,
+                                  drop = FALSE]
     rownames(iqDat) <- names(quant_pep_IDs)
     allQuants$IQ <- iqDat
   }
@@ -972,8 +974,8 @@ if (sum(c("IQ", "LIMPA", "QFEATURES", "MSSTATS") %in% c(LFQ_ALGO, RESCALING, ALS
     #
     # Check columns/row order
     dpcDat <- as.data.frame(dpcDat)[match(names(quant_pep_IDs), row.names(dpcDat)),
-                                    mySmpls]
-    #
+                                    mySmpls,
+                                    drop = FALSE]
     rownames(dpcDat) <- names(quant_pep_IDs)
     allQuants$LIMPA <- dpcDat
   }
@@ -999,7 +1001,8 @@ if (sum(c("IQ", "LIMPA", "QFEATURES", "MSSTATS") %in% c(LFQ_ALGO, RESCALING, ALS
     qfDat <- SummarizedExperiment::assay(QFeatObj[["PG"]])
     # Check columns/row order
     qfDat <- as.data.frame(qfDat)[match(names(quant_pep_IDs), row.names(qfDat)),
-                                  mySmpls]
+                                  mySmpls,
+                                  drop = FALSE]
     rownames(qfDat) <- names(quant_pep_IDs)
     allQuants$QFEATURES <- qfDat
   }
@@ -1040,7 +1043,8 @@ if (sum(c("IQ", "LIMPA", "QFEATURES", "MSSTATS") %in% c(LFQ_ALGO, RESCALING, ALS
     rownames(MSstats_quant) <- MSstats_quant$Protein
     MSstats_quant$Protein <- NULL
     MSstats_quant <- MSstats_quant[match(names(quant_pep_IDs), rownames(MSstats_quant)),
-                                   mySmpls]
+                                   mySmpls,
+                                   drop = FALSE]
     rownames(MSstats_quant) <- names(quant_pep_IDs)
     allQuants$MSSTATS <- MSstats_quant
   }

@@ -56,7 +56,7 @@
     }
     # Process values
     if (dataType == "PG") {
-      if ((quantType == "LFQ")&&(WorkFlow == "Band ID")) {
+      if ((quantType == "LFQ") && (WorkFlow == "Band ID")) {
         kolnm <- "LFQ"
         myData$Y <- 10L^myData$Y
         myData <- myData[which(myData$Y > 0),]
@@ -178,7 +178,7 @@
       geom_text(data = profData[wTxt,], aes(label = .data[[yKol]], x = Sample, y = Y, alpha = Alpha, color = id),
                 hjust = 0, cex = round(max(c(1, min(c(5, 100/length(wTxt))))), 1L))
     #poplot(plot_txt, 12L, 22L)
-    if ((quantType == "LFQ")&&(plotType %in% c("GO", "Mark"))) {
+    if ((quantType == "LFQ") && (plotType %in% c("GO", "Mark"))) {
       profData3 <- profData
       # Normalize by row
       protMeans <- aggregate(profData3$Y, list(profData3$`Leading protein IDs`), mean, na.rm = TRUE)
@@ -241,7 +241,7 @@
       if (file.exists(plPath2)) { unlink(plPath2) }
       tstPL <- try(saveWidget(partial_bundle(plotlyProfiles), plPath2), silent = TRUE)
       if (inherits(tstPL, "try-error")) { tstPL <- try(saveWidget(plotlyProfiles, plPath2), silent = TRUE) }
-      if ((!inherits(tstPL, "try-error"))&&(file.exists(plPath2))) {
+      if ((!inherits(tstPL, "try-error")) && file.exists(plPath2)) {
         tstPL <- file.rename(plPath2, plPath)
       } else { tstPL <- FALSE }
       ggsave(paste0(pth, ".jpeg"), plot, dpi = myDPI/2, width = 13L, height = 10L)
@@ -318,7 +318,7 @@
     #
     # Process values
     if (dataType == "PG") {
-      if ((quantType == "LFQ")&&(WorkFlow == "Band ID")) {
+      if ((quantType == "LFQ") && (WorkFlow == "Band ID")) {
         kolnm <- "LFQ"
         myData$Y <- 10L^myData$Y
         myData <- myData[which(myData$Y > 0),]
@@ -410,7 +410,7 @@
     ySpan <- c(intmin-yStep*nSteps, intmax*1.2+intscale*0.05)
     ySpan[1L] <- ySpan[1L]-(ySpan[2L]-ySpan[1L])*0.2
     #
-    # if ((tstReg)&&(length(spcFlt))) {
+    # if (tstReg && length(spcFlt)) {
     #   myDataSp$Y <- myDataSp$Y + intmax*0.01 # To offset the markers
     # }
     #
@@ -426,7 +426,7 @@
             axis.ticks = element_blank(),
             plot.margin = margin(r = 100L))
     #poplot(plot, 12L, 22L)
-    if ((dataType == "PG")&&(length(myFlt))) {
+    if ((dataType == "PG") && length(myFlt)) {
       wGO <- setNames(lapply(myFlt, \(x) { which(myData[[x]] == "+") }), myFlt)
       GOdat <- lapply(seq_along(myFlt), \(i) { #i <- 1L
         x <- myData[wGO[[myFlt[i]]],]
@@ -466,7 +466,7 @@
     if (plotType == "List") { plot <- plot + fillScale2 }
     #if (plotType %in% GO_filt) { plot <- plot + fillScale3 }
     #poplot(plot, 12L, 22L)
-    # if ((tstReg)&&(length(spcFlt))) {
+    # if (tstReg && length(spcFlt)) {
     #   plot <- plot +
     #     geom_point(data = myDataSp, aes(xPos, Y, fill = .data[[catnm]]), shape = 21L)
     # }
@@ -481,11 +481,11 @@
       if (file.exists(plPath2)) { unlink(plPath2) }
       tstPL <- try(saveWidget(partial_bundle(plot_ly), plPath2), silent = TRUE)
       if (inherits(tstPL, "try-error")) { tstPL <- try(saveWidget(plot_ly, plPath2), silent = TRUE) }
-      if ((!inherits(tstPL, "try-error"))&&(file.exists(plPath2))) {
+      if ((!inherits(tstPL, "try-error")) && file.exists(plPath2)) {
         tstPL <- file.rename(plPath2, plPath)
       } else { tstPL <- FALSE }
     }
-    if ((dataType == "PG")&&(length(myFlt))) {
+    if ((dataType == "PG") && length(myFlt)) {
       plot <- plot +
         geom_text(data = myFltDF, aes(x = xPos, y = Y, label = GO_term), size = 1.5, angle = -66, hjust = 0)
       #poplot(plot, 12L, 22L)

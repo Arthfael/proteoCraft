@@ -4,7 +4,14 @@
 \alias{writeFasta}
 \title{writeFasta}
 \usage{
-writeFasta(DB, destFl, filter, return = FALSE, newFl = FALSE)
+writeFasta(
+  DB,
+  destFl,
+  filter = NULL,
+  return = FALSE,
+  newFl = FALSE,
+  rowLength = 60L
+)
 }
 \arguments{
 \item{DB}{A data base of protein sequences. Must contain "Header" and "Sequence" column.}
@@ -16,6 +23,8 @@ writeFasta(DB, destFl, filter, return = FALSE, newFl = FALSE)
 \item{return}{Should the resulting character string be returned (TRUE), or only written to destFl (default)?}
 
 \item{newFl}{New file? If so the user will be prompted for the path of the destination file (and destFl will be ignored). Default = FALSE}
+
+\item{rowLength}{Purely cosmetic argument: how many amino acids should be written per row (default = 60)? If not a valid, positive integer greater than 1, this is ignored and sequences are written on a single row.}
 }
 \description{
 A function to write a data table of protein sequences, parsed from a fasta by Format.DB, as a fasta.

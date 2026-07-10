@@ -63,7 +63,7 @@ w <- which((apply(myData[, clustXprsKol, drop = FALSE], 1L, \(x) { sum(!is.na(x)
            &((is.na(myData$`Potential contaminant`))|(myData$`Potential contaminant` != "+")))
 myData <- set_colnames(myData[w, clustXprsKol, drop = FALSE], map$Samples)
 
-filt <- rownames(myData)[which(apply(myData[, map$Samples], 1L, \(x) { sum(is.finite(x)) }) > 0L)]
+filt <- rownames(myData)[which(apply(myData[, map$Samples, drop = FALSE], 1L, \(x) { sum(is.finite(x)) }) > 0L)]
 clustFilt[[dataType]] <- filt
 clustDat[[dataType]] <- list()
 clustDat[[dataType]]$Original <- myData

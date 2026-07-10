@@ -11,6 +11,12 @@ if (inherits(tst, "try-error")) {
 }
 #invisible(parallel::clusterCall(parClust, \() { NULL }))
 #
+if (!exists("validLogicPar")) {
+  # Boolean functions to check parameter values
+  Src <- paste0(libPath, "/extdata/Sources/parBooleans.R")
+  #rstudioapi::documentOpen(Src)
+  source(Src, local = FALSE)
+}
 # Optional code for loading packages onto the cluster - set loadpack to TRUE to run it
 # (can take a while to run)
 if (!validLogicPar("loadpack")) { loadpack <- FALSE }

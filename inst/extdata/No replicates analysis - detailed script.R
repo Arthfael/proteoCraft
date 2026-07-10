@@ -133,6 +133,7 @@ for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
 
 # Run local scripts at startup - keep this after loading the backup!
 locScrptSrc %<o% paste0(libPath, "/extdata/Sources/runLocScrpts.R")
+#rstudioapi::documentOpen(locScrptSrc)
 source(locScrptSrc)
 
 # Set Shiny options, load functions for creating a Word report, create Excel styles
@@ -1788,10 +1789,12 @@ source(bckpSrc, local = FALSE)
 
 #### Code chunk - Summary table and QC plots
 source(parSrc, local = FALSE)
-Exp_summary %<o% MQ.summary(wd = wd, ev = ev, pg = PG, mods = setNames(Modifs$Mark, Modifs$"Full name"),
-                            raw.files = rawFiles, sc = max(c(20L, round(length(rawFiles2)/length(Exp)))),
-                            save = c("jpeg", "pdf"), cl = parClust,
-                            MQtxt = inDirs[which(SearchSoft == "MAXQUANT")])
+tmp <- MQ.summary(wd = wd, ev = ev, pg = PG, mods = setNames(Modifs$Mark, Modifs$"Full name"),
+                  raw.files = rawFiles, sc = max(c(20L, round(length(rawFiles2)/length(Exp)))),
+                  cl = parClust, MQtxt = inDirs[which(SearchSoft == "MAXQUANT")])
+Exp_summary %<o% tmp$table
+if (!exists("QC_plotLys")) { QC_plotLys %<o% list() }
+QC_plotLys[names(tmp$plotLy)] <- tmp$plotLy
 write.csv(Exp_summary, paste0(wd, "/Workflow control/Summary.csv"), row.names = FALSE)
 #Exp_summary <- read.csv(paste0(wd, "/Workflow control/Summary.csv"), check.names = FALSE)
 
@@ -1830,6 +1833,12 @@ suppressMessages({
   ggsave(paste0(wd, "/Summary plots/", ttl, ".jpeg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
   ggsave(paste0(wd, "/Summary plots/", ttl, ".pdf"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
 })
+plotLy <- ggplotly(plot, tooltip = c("x", "y", "fill"))
+if (!exists("QC_plotLys")) { QC_plotLys %<o% list() }
+setwd(paste0(wd, "/Summary plots"))
+saveWidget(plotLy, paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
+setwd(wd)
+QC_plotLys[[ttl]] <- plotLy
 
 # Test for amino acid biases:
 Src <- paste0(libPath, "/extdata/Sources/AA_biases_test.R")

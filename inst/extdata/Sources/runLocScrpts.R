@@ -1,6 +1,6 @@
 # Run local startup scripts
 locScriptsDir <- gsub("/[^/]+$", "/proteoCraft_localScripts", locDirs$Path[match("Temporary folder", locDirs$Folder)])
-if ((length(locScriptsDir) == 1L)&&(dir.exists(locScriptsDir))) {
+if ((length(locScriptsDir) == 1L) && dir.exists(locScriptsDir)) {
   # Load local startup scripts
   strtScripts <- list.files(locScriptsDir, ".R$", full.names = TRUE)
   # Also handle links
@@ -19,6 +19,7 @@ if ((length(locScriptsDir) == 1L)&&(dir.exists(locScriptsDir))) {
   }
   # Source all startup scripts
   if (length(strtScripts)) {
+    strtScripts <- normalizePath(strtScripts, winslash = "/")
     strtScripts <- strtScripts[order(strtScripts)]
     for (fl in strtScripts) { source(fl) }
   }

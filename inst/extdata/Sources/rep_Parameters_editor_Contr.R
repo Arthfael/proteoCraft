@@ -244,7 +244,7 @@ server0 <- shinyServer(\(input, output, session) {
                                        options = list(dom = "t",
                                                       paging = FALSE,
                                                       ordering = FALSE,
-                                                      autowidth = TRUE,
+                                                      autoWidth = TRUE,
                                                       columnDefs = colDefs1,
                                                       scrollX = FALSE),
                                        callback = DT::JS("
@@ -279,7 +279,7 @@ table.on('change', 'select', function() {
                         options = list(dom = "t",
                                        paging = FALSE,
                                        ordering = FALSE,
-                                       autowidth = TRUE,
+                                       autoWidth = TRUE,
                                        columnDefs = colDefs2,
                                        scrollX = FALSE),
                         callback = DT::JS("

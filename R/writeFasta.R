@@ -12,6 +12,7 @@
 #' @param filter A character of protein accessions (IDs) to use as (positive) filter for the output. Requires that DB contain a "Protein ID" column.
 #' @param return Should the resulting character string be returned (TRUE), or only written to destFl (default)?
 #' @param newFl New file? If so the user will be prompted for the path of the destination file (and destFl will be ignored). Default = FALSE
+#' @param rowLength Purely cosmetic argument: how many amino acids should be written per row (default = 60)? If not a valid, positive integer greater than 1, this is ignored and sequences are written on a single row.
 #' 
 #' @examples
 #' DB <- Format.DB(".../My fasta database.fasta")
@@ -28,17 +29,31 @@
 
 writeFasta <- function(DB,
                        destFl,
-                       filter,
+                       filter = NULL,
                        return = FALSE,
-                       newFl = FALSE) {
+                       newFl = FALSE,
+                       rowLength = 60L) {
   #DefArg(writeFasta)
   nr <- nrow(DB)
   stopifnot(nrow(DB) > 0L,
             length(unique(DB$"Protein ID")) == nrow(DB))
-  if ((!missing("filter"))&&("Protein. ID" %in% colnames(DB))) {
+  if ((!is.null(filter)) && length(filter) && ("Protein ID" %in% colnames(DB))) {
     DB <- DB[which(DB$"Protein ID" %in% filter),]
     nr <- nrow(DB)
     stopifnot(nrow(DB) > 0L)
+  }
+  rowLength <- suppressWarnings(as.integer(rowLength))
+  if (is.finite(rowLength) && (rowLength > 0L)) {
+    tmpNC <- nchar(DB$Sequence)
+    tmpSq <- strsplit(DB$Sequence, "")
+    II <- 1L:nrow(DB)
+    DB$Sequence <- vapply(II, \(i) { #i <- 1L
+      x <- unlist(tmpSq[[i]])
+      rg <- 1L:tmpNC[i]
+      w <- which(rg %% 60L == 0L)
+      x[w] <- paste0(x[w], "\n")
+      paste(c(x, c("\n", "")[(tmpNC[i] %% rowLength == 0L) + 1L], "___\n"), collapse = "")
+    }, "")
   }
   tmp <- rep("", nr*3L)
   tmp[(1L:nr)*3L-2L] <- DB$Header
@@ -47,6 +62,11 @@ writeFasta <- function(DB,
     filt <- matrix(data = c("fasta", "*.fasta;*.fas;*.fa;*.fasta.fas"), ncol = 2L,
                    dimnames = list("Fasta"))
     destFl <- svDialogs::dlg_save("proteins of interest.fasta", "Select destination file", filters = filt)$res
+  }
+  rowLength <- suppressWarnings(as.integer(rowLength))
+  if (is.finite(rowLength) && (rowLength > 0L)) {
+    tmp <- unlist(strsplit(tmp, "\n+")) # ... the "+" here is for when protein length is exactly
+    tmp <- gsub("^___$", "", tmp)
   }
   if (!missing("destFl")) { writeLines(tmp, destFl) }
   if (return) { return(tmp) }

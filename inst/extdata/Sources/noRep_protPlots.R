@@ -48,7 +48,8 @@ if (prot.list.Cond) {
     if (runRat) { exports <- append(exports, list("comb", "myComb", "pepR")) }
     clusterExport(parClust, exports, envir = environment())
     #for (prnm in 1L:length(prot.names)) { #prnm <- 1L
-    tstProtPlots <- parLapply(parClust, 1L:length(prot.names), \(prnm) { #prnm <- 1L
+    tmpPlots <- setNames(parLapply(parClust, 1L:length(prot.names), \(prnm) { #prnm <- 1L
+      RES <- list()
       p <- prot.names[prnm]
       IDs <- IDs.list[[p]]
       if (length(IDs) == 0L) {
@@ -152,14 +153,17 @@ if (prot.list.Cond) {
           -log10(tempev[[exp]]$PEP)
         }))
         mxPEP <- ceiling(max(mxInt[which(is.finite(mxPEP))]))
+        RES$Coverage <- list()
+        RES$Coverage$logInt <- list()
+        RES$Coverage$PEP <- list()
         for (exp in names(tempev)) { #exp <- names(tempev)[1L]
           tmp <- tempev[[exp]]
           ttl1a <- paste0("Coverage - ", nm, " - ", exp, ", log10(int.)")
           ttl1b <- paste0("Coverage - ", nm, " - ", exp, ", sum log10(int.)")
           ttl2a <- paste0("Coverage - ", nm, " - ", exp, ", -log10(PEP)")
-          Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE,
-                   title = ttl1a, save = c("jpeg", "pdf"), intensities = tmp$`log10(Intensity)`,
-                   maxInt = mxInt)
+          RES$Coverage$logInt[[exp]] <- Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE,
+                                                 title = ttl1a, save = c("jpeg", "pdf", "html"), intensities = tmp$`log10(Intensity)`,
+                                                 maxInt = mxInt)
           Coverage(P, tmp$"Modified sequence", Mode = "Heat", display = FALSE,
                    title = ttl1b, save = c("jpeg", "pdf"), intensities = tmp$`log10(Intensity)`)
           dr1 <- paste0(wd, "/Protein plots/", nm2, "/Coverage/Intensity")
@@ -167,9 +171,9 @@ if (prot.list.Cond) {
             fs::file_move(paste0(ttl1a, ".", ext), dr1)
             fs::file_move(paste0(ttl1b, ".", ext), dr1)
           }
-          Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE,
-                   title = ttl2a, save = c("jpeg", "pdf"), intensities = -log10(tmp$PEP),
-                   maxInt = mxPEP, colscale = 8L)
+          RES$Coverage$PEP[[exp]] <- Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE,
+                                              title = ttl2a, save = c("jpeg", "pdf", "html"), intensities = -log10(tmp$PEP),
+                                              maxInt = mxPEP, colscale = 8L)
           dr2 <- paste0(wd, "/Protein plots/", nm2, "/Coverage/PEP")
           for (ext in c("jpeg", "pdf")) {
             fs::file_move(paste0(ttl2a, ".", ext), dr2)
@@ -177,50 +181,54 @@ if (prot.list.Cond) {
           # (Doing summed PEP Coverage maps makes no sense)
         }
         # Correlation and ratio plots:
-        if ((length(tempev) > 1L)&&(runRat)) {
-          temp1 <- reshape::melt(tempev)
-          temp1$Match <- sapply(strsplit(temp1$Matches, ";"), as.integer)
-          temp1$Matches <- NULL
-          if (inherits(temp1$Match, "list")) { # Deal with cases with multiple peptide matches in the protein
-            temp2 <- listMelt(temp1$Match, 1L:nrow(temp1), c("Match", "row"))
+        if ((length(tempev) > 1L) && runRat) {
+          tempAB <- reshape::melt(tempev)
+          tempAB$Match <- sapply(strsplit(tempAB$Matches, ";"), as.integer)
+          tempAB$Matches <- NULL
+          if (inherits(tempAB$Match, "list")) { # Deal with cases with multiple peptide matches in the protein
+            temp2 <- listMelt(tempAB$Match, 1L:nrow(tempAB), c("Match", "row"))
             temp2 <- as.data.frame(t(as.data.frame(strsplit(unique(apply(temp2, 1L, paste, collapse = "___")), "___"))))
             colnames(temp2) <- c("Match", "row")
             temp2$Match <- as.numeric(temp2$Match)
             temp2$row <- as.numeric(temp2$row)
-            temp2[, c("Modified sequence", "variable", "value", "L1")] <- temp1[temp2$row, c("Modified sequence", "variable", "value", "L1")]
-            temp1 <- temp2[, c("Modified sequence", "Match", "variable", "value", "L1")]; rm(temp2)
+            temp2[, c("Modified sequence", "variable", "value", "L1")] <- tempAB[temp2$row, c("Modified sequence", "variable", "value", "L1")]
+            tempAB <- temp2[, c("Modified sequence", "Match", "variable", "value", "L1")]; rm(temp2)
           }
-          temp1$variable <- as.character(temp1$variable)
-          temp1$Dummy <- apply(temp1[,c("Modified sequence", "L1")], 1L, paste, collapse = "---")
-          temp11 <- temp1[which(temp1$variable == "log10(Intensity)"),]
-          temp12 <- temp1[which(temp1$variable == "PEP"),]
-          temp11$PEP <- temp12$value[match(temp11$Dummy, temp12$Dummy)]
-          temp1 <- temp11; rm(temp11, temp12)
+          tempAB$variable <- as.character(tempAB$variable)
+          tempAB$Dummy <- apply(tempAB[,c("Modified sequence", "L1")], 1L, paste, collapse = "---")
+          tempAB1 <- tempAB[which(tempAB$variable == "log10(Intensity)"),]
+          tempAB2 <- tempAB[which(tempAB$variable == "PEP"),]
+          tempAB1$PEP <- tempAB2$value[match(tempAB1$Dummy, tempAB2$Dummy)]
+          tempAB <- tempAB1; rm(tempAB1, tempAB2)
           comb2 <- as.data.frame(gtools::permutations(length(Exp), 2, Exp, repeats.allowed = TRUE))
           colnames(comb2) <- c("A", "B")
           myComb2 <- do.call(paste, c(comb2, sep = " / "))
           comb2 <- comb2[which(myComb2 %in% myComb),]
-          temp2 <- lapply(1L:nrow(comb2), \(j) {
-            s1 <- temp1[which(temp1$L1 == comb2[j, 1L]),]
-            s2 <- temp1[which(temp1$L1 == comb2[j, 2L]),]
-            s2$tmp <- apply(s2[, c("Modified sequence", "Match")], 1L, paste, collapse = "___")
-            if (!sum(c(nrow(s1), nrow(s2)) > 0L) == 2L) { return() }
-            wtst <- which(s1$"Modified sequence" %in% s2$"Modified sequence")
-            if (!length(wtst)) { return() }
-            temp3 <- s1[which(s1$"Modified sequence" %in% s2$"Modified sequence"),
-                        c("Modified sequence", "Match" , "value")]
-            colnames(temp3)[which(colnames(temp3) == "value")] <- "log10(LFQ, A)"
-            temp3$"log10(LFQ, B)" <- s2$value[match(apply(temp3[, c("Modified sequence", "Match")],
-                                                          1L, paste, collapse = "___"),
-                                                    s2$tmp)]
-            temp3$Comparison <- paste0(comb2[j, 1L], " (A) vs ", comb2[j, 2L], " (B)")
-            return(temp3)
+          tempAB$tmp <- as.character(tempAB$Match)
+          temp2 <- lapply(1L:nrow(comb2), \(j) { #j <- 1L
+            w1 <- which(tempAB$L1 == comb2[j, 1L])
+            w2 <- which(tempAB$L1 == comb2[j, 2L])
+            if (!length(c(w1, w2))) { return() }
+            s1 <- tempAB[w1,]
+            s2 <- tempAB[w2,]
+            s1$tmp <- apply(s1[, c("Modified sequence", "tmp")], 1L, paste, collapse = "___")
+            s2$tmp <- apply(s2[, c("Modified sequence", "tmp")], 1L, paste, collapse = "___")
+            s <- data.frame(tmp = union(s1$tmp, s2$tmp),
+                            `log10(LFQ, A)` = NA,
+                            `log10(LFQ, B)` = NA,
+                            check.names = FALSE)
+            w1 <- which(s$tmp %in% s1$tmp)
+            w2 <- which(s$tmp %in% s2$tmp)
+            m1 <- match(s$tmp[w1], s1$tmp)
+            m2 <- match(s$tmp[w2], s2$tmp)
+            s[w1, c("Modified sequence", "Match", "log10(LFQ, A)")] <- s1[m1, c("Modified sequence", "Match", "value")]
+            s[w2, c("Modified sequence", "Match", "log10(LFQ, B)")] <- s2[m2, c("Modified sequence", "Match", "value")]
+            s$Comparison <- paste0(comb2[j, 1L], " (A) vs ", comb2[j, 2L], " (B)")
+            return(s)
           })
           temp2 <- temp2[which(vapply(temp2, \(x) { is.data.frame(x) }, TRUE))]
           temp2 <- do.call(rbind, temp2)
           if (nrow(temp2)) {
-            test <- apply(temp2[, c("log10(LFQ, A)", "log10(LFQ, B)") ], 1L, \(x) { sum(is.finite(x)) }) == 2L
-            temp2 <- temp2[which(test),]
             temp3 <- as.data.frame(t(sapply(unique(temp2$Comparison), \(x) { #x <- unique(temp2$Comparison)[1L]
               x1 <- temp2[which(temp2$Comparison == unlist(x)), c("log10(LFQ, A)", "log10(LFQ, B)")]
               x1 <- x1$"log10(LFQ, B)" - x1$"log10(LFQ, A)"
@@ -235,22 +243,51 @@ if (prot.list.Cond) {
             temp3 <- temp3[order(temp3$Comparison),]
             temp2$Sequence <- gsub("\\([^\\)]+\\)|_", "", temp2$"Modified sequence")
             temp2$"C-terminal extent" <- temp2$Match + nchar(temp2$Sequence) - 1L
-            temp2$"log10(A/B)" <- temp2$`log10(LFQ, A)` - temp2$`log10(LFQ, B)`
-            x_min <- min(temp2$`log10(LFQ, A)`)
-            y_min <- min(temp2$`log10(LFQ, B)`)
-            y_max <- max(temp2$`log10(LFQ, B)`)
+            temp2$"log2(A/B)" <- (temp2$`log10(LFQ, A)` - temp2$`log10(LFQ, B)`)/log10(2L)
+            temp2$"avg. log10(intensity)" <- apply(temp2[, c("log10(LFQ, A)", "log10(LFQ, B)")], 1L, \(x){
+              mean(x[which(is.finite(x))])
+            })
+            wInf <- which(!is.finite(temp2$"log2(A/B)"))
+            tstInf <- length(wInf)
+            tstInfA <- tstInfB <- FALSE
+            if (tstInf) {
+              logFC_rng <- range(temp2$"log2(A/B)", na.rm = TRUE)
+              wA <- wInf[which(is.finite(temp2$`log10(LFQ, A)`[wInf]))]
+              wB <- wInf[which(is.finite(temp2$`log10(LFQ, B)`[wInf]))]
+              tstInfA <- length(wA)
+              tstInfB <- length(wB)
+              if (tstInfA) {
+                temp2$"log2(A/B)"[wA] <- logFC_rng[2L] + 1
+              }
+              if (tstInfB) {
+                temp2$"log2(A/B)"[wB] <- logFC_rng[1L] - 1
+              }
+            }
             ttl <- paste0("Correlation plot - ", nm)
-            plot <- ggplot(temp2) + geom_point(aes(x = `log10(LFQ, A)`, y = `log10(LFQ, B)`, colour = `C-terminal extent`),
-                                               alpha = 1, size = 1L, shape = 16L) +
+            temp2$finiTest <- apply(temp2[, c("log10(LFQ, A)", "log10(LFQ, B)") ], 1L, \(x) { sum(is.finite(x)) }) == 2L
+            temp2Corr <- temp2[which(temp2$finiTest),]
+            x_min <- min(temp2Corr$`log10(LFQ, A)`)
+            y_min <- min(temp2Corr$`log10(LFQ, B)`)
+            y_max <- max(temp2Corr$`log10(LFQ, B)`)
+            plot <- ggplot(temp2Corr) +
+              geom_point(aes(x = `log10(LFQ, A)`, y = `log10(LFQ, B)`, colour = `C-terminal extent`),
+                         alpha = 1, size = 1L, shape = 16L) +
               geom_abline(intercept = 0, slope = 1, colour = "red") + coord_fixed(1L) +
               scale_colour_gradient(low = "green", high = "red") +
               geom_text(data = temp3, x = x_min, y = y_max - 0.01*(y_max - y_min), aes(label = R), hjust = 0, cex = 2.5) +
               geom_text(data = temp3, x = x_min, y = y_max - 0.06*(y_max - y_min), aes(label = Median), hjust = 0, cex = 2.5) +
               geom_text(data = temp3, x = x_min, y = y_max - 0.11*(y_max - y_min), aes(label = SD), hjust = 0, cex = 2.5) +
-              facet_grid(B~A) +
-              theme_bw() + theme(strip.text.y = element_text(angle = 0, vjust = 0.5, hjust = 0),
-                                 strip.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0)) +
-              ggtitle(ttl)
+              theme_bw() + theme(strip.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
+                                 strip.text.y = element_text(angle = -90, hjust = 0.5, vjust = 0.5)) +
+              ggtitle("Correlation plot",
+                      subtitle = nm1)
+            u <- unique(temp2Corr$Comparison)
+            if (length(u) == 1L) {
+              v <- unlist(strsplit(sub(" \\(B\\)$", "", u),  " \\(A\\) vs "))
+              plot <- plot + xlab(v[1L]) + ylab(v[2L])
+            } else {
+              plot <- plot + facet_grid(B~A)
+            }
             #poplot(plot)
             ttl_ <- gsub(":|\\*|\\?|<|>|\\||/", "-", ttl)
             suppressMessages({
@@ -260,7 +297,7 @@ if (prot.list.Cond) {
             temp2$A <- paste0("A = ", gsub(" \\(A\\)$", "", temp2$A))
             temp2$B <- paste0("B = ", gsub(" \\(B\\)$", "", temp2$B))
             Aext <- seqL <- nchar(P)
-            Bext <- max(temp2$`log10(A/B)`) - min(temp2$`log10(A/B)`)+1L
+            Bext <- max(temp2$`log2(A/B)`) - min(temp2$`log2(A/B)`)+1L
             sk <- Aext/(3*Bext)
             temp2$MW <- vapply(temp2$`C-terminal extent`, \(x) { mw(substr(P, 1L, x)) }, 1.5)
             tst <- data.frame(AA = unlist(strsplit(P, "")))
@@ -279,7 +316,7 @@ if (prot.list.Cond) {
               #x <- mwScl$Da[2L:nrow(mwScl)][4L]
               wh1 <- which(tst$MW <= x)
               wh2 <- which(tst$MW >= x)
-              if ((!length(wh1))||(!length(wh2))) { return(NA) }
+              if ((!length(wh1)) || (!length(wh2))) { return(NA) }
               w1 <- max(wh1)
               w2 <- min(wh2)
               x1 <- tst$MW[w1]
@@ -295,40 +332,104 @@ if (prot.list.Cond) {
                                         "AA" = mwScl$AA[nr]*2-mwScl$AA[nr-1L]))
               mwScl$kDa <- paste0(round(mwScl$Da/1000), " kDa")
             }
-            ySum <- summary(temp2$`log10(A/B)`[which(is.finite(temp2$`log10(A/B)`))])
+            ySum <- summary(temp2$`log2(A/B)`[which(is.finite(temp2$`log2(A/B)`))])
             yScl <- ySum["Max."] - ySum["Min."]
             yMin <- ySum["Min."] - 0.1*yScl
             xLim <- c(-10L, max(c(seqL, mwScl$AA)))
             yLim <- c(ySum["Min."]-yScl*0.3, ySum["Max."]+yScl*0.05)
             ttl <- paste0("Ratio plot - ", nm)
-            tst <- aggregate(temp2$Match, list(temp2$A, temp2$B), \(x) { length(unique(x)) })
             temp2$`Modified sequence` <- gsub("_", "", temp2$`Modified sequence`)
+            myCol <- dfltCol <- "log2(A/B)"
+            u <- unique(temp2$Comparison)
+            if (length(u) == 1L) {
+              v <- unlist(strsplit(sub(" \\(B\\)$", "", u),  " \\(A\\) vs "))
+              myCol <- paste0("log2(", v[1L], "/", v[2L], ")")
+              if (!myCol %in% colnames(temp2)) { # For if we rerun during testing
+                temp2[[myCol]] <- temp2[[dfltCol]]
+                temp2[[dfltCol]] <- NULL
+              }
+              temp2$A <- gsub_Rep(" \\(A\\)$", "", temp2$A)
+              temp2$B <- gsub_Rep(" \\(B\\)$", "", temp2$B)
+            }
+            temp2$"mod. seq." <- apply(temp2[, c("Modified sequence", "Match", "C-terminal extent", myCol, "avg. log10(intensity)")],
+                                       1L, \(x) {
+                                         x <- gsub("^ +| +$", "", unlist(x)) # because we are mixing characters and numbers of different lengths
+                                         paste0(" <i>", x[1L],
+                                                "</i>\nstart pos.: <i>", x[2L],
+                                                "</i>\nend pos.: <i>", x[3L],
+                                                "</i>\n", myCol, "<i>: ", x[4L],
+                                                "</i>\navg. log10(int.): <i>", x[5L], "</i>")
+                                       })
             plot <- ggplot(temp2) +
               annotate(geom = "rect", xmin = 0L, xmax = seqL, ymin = yLim[1L], ymax = yLim[2L],
                        fill = "lightblue", alpha = 0.1)
+            tst <- aggregate(temp2$Match, list(temp2$A, temp2$B), \(x) { length(unique(x)) })
             if (min(tst$x) >= 20L) {
-              plot <- plot + geom_smooth(aes(x = (`C-terminal extent`+Match)/2, y = `log10(A/B)`),
-                                         alpha = 0.1, linewidth = 0.5)
+              plot <- plot +
+                geom_smooth(data = temp2[which(temp2$finiTest),], aes(x = (`C-terminal extent`+Match)/2, y = .data[[myCol]]),
+                            alpha = 0.1, linewidth = 0.5,
+                            method = "loess", formula = y ~ x)
             }
-            plot <- plot + geom_segment(aes(x = Match, xend = `C-terminal extent`, text = `Modified sequence`,
-                                            y = `log10(A/B)`, yend = `log10(A/B)`, colour = `log10(A/B)`), linewidth = 1)
+            plot <- plot +
+              geom_segment(aes(x = Match, xend = `C-terminal extent`, tooltip = `mod. seq.`,
+                               y = .data[[myCol]], yend = .data[[myCol]], colour = `avg. log10(intensity)`),
+                           linewidth = 1L)
             if (nr) {
-              plot <- plot + geom_point(data = mwScl, aes(x = AA), y = yMin, shape = 17L, color = "blue") +
-                geom_text(data = mwScl, aes(x = AA-0.25, label = kDa), y = yMin - 0.025*yScl, hjust = 1,
-                          cex = 2, angle = 30, color = "blue")
+              plot <- plot +
+                geom_point(data = mwScl, aes(x = AA), y = yMin-0.1, shape = 17L, color = "blue") +
+                geom_text(data = mwScl, aes(x = AA-0.25, label = kDa), y = yMin - 0.1*yScl, hjust = 1,
+                          cex = 4, angle = 30, color = "blue")
             }
             plot <- plot + coord_fixed(round(sk*2)) +
               scale_colour_gradient(low = "green", high = "red") +
               scale_x_continuous(limits = c(0L, seqL), breaks = 50L*(1L:floor(seqL/50))) +
-              facet_grid(B~A) + ylab("log10(A/B)") +
               xlim(xLim[1L]-5L, xLim[2L]+5L) +
-              ylim(yLim[1L], yLim[2L]) + xlab("Amino acid") +
-              theme_bw() + theme(strip.text.y = element_text(angle = 0, vjust = 0.5, hjust = 0)#,
-                                 #strip.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0)
-              ) + ggtitle(ttl)
+              ylim(yLim[1L], yLim[2L]) +
+              xlab("Position") +
+              ggtitle("Ratio plot",
+                      subtitle = nm1) +
+              theme_bw()
+            if (length(u) > 1L) {
+              plot <- plot + facet_grid(B~A)
+            }
+            if (tstInf) {
+              datInfB <- datInfA <- aggregate(temp2[, c("A", "B")], list(temp2$Comparison), unique)
+              if (tstInfA) {
+                datInfA$Label <- paste0(sub("^A = ", "", datInfA$A), "-only")
+                plot <- plot +
+                  geom_hline(yintercept = logFC_rng[2L] + 0.5, color = "darkred", linetype = "dashed") +
+                  geom_text(data = datInfA, aes(label = Label),
+                            x = 5L, y = logFC_rng[2L] + 0.115*(logFC_rng[2L] - logFC_rng[1L]),
+                            color = "darkred", hjust = 0, fontface = "italic")
+              }
+              if (tstInfB) {
+                datInfB$Label <- paste0(sub("^B = ", "", datInfA$B), "-only")
+                plot <- plot +
+                  geom_hline(yintercept = logFC_rng[1L] - 0.5, color = "darkred", linetype = "dashed") +
+                  geom_text(data = datInfB, aes(label = Label),
+                            x = 5L, y = logFC_rng[1L] - 0.115*(logFC_rng[2L] - logFC_rng[1L]),
+                            color = "darkred", hjust = 0, fontface = "italic")
+              }
+            }
+            plotLY <- ggplotly(plot, tooltip = "tooltip")
+            w <- which(vapply(plotLY$x$data, \(x) {
+              (x$mode == "text") && (length(x$text) == 1L) && grepl("-only$", x$text)
+            }, TRUE))
+            for (i in w) {
+              plotLY$x$data[[i]]$text <- paste0("<i>", plotLY$x$data[[i]]$text, "</i>")
+            }
+            if (length(u) > 1L) {
+              # Move legend to the right to avoid overlap with y facet label
+              w <- which(vapply(1L:length(plotLY$x$data), \(x) { !is.null(plotLY$x$data[[x]]$marker$colorbar) }, TRUE))
+              plotLY$x$data[[w]]$marker$colorbar$x <- 1.1
+              # Rotate y facet label for ggplot version
+              plot <- plot +
+                theme(#strip.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0),
+                  strip.text.y = element_text(angle = 0, vjust = 0.5, hjust = 0))
+            }
+            #poplot(plot)
             setwd(drs[4L])
             ttl_ <- gsub(":|\\*|\\?|<|>|\\||/", "-", ttl)
-            plotLY <- ggplotly(plot)
             fl <- paste0(ttl_, ".html")
             tst <- try(saveWidget(partial_bundle(plotLY), fl), silent = TRUE)
             if (inherits(tst, "try-error")) {
@@ -341,15 +442,24 @@ if (prot.list.Cond) {
               }
             }
             suppressMessages({
-              ggsave(paste0(drs[4L], "/", ttl_, ".jpeg"), plot, dpi = 600L, width = 10L, height = 10L, units = "in")
-              ggsave(paste0(drs[4L], "/", ttl_, ".pdf"), plot, dpi = 600L, width = 10L, height = 10L, units = "in")
+              ggsave(paste0(drs[4L], "/", ttl_, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+              ggsave(paste0(drs[4L], "/", ttl_, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             })
             setwd(wd)
+            RES$Ratio_plot <- plotLY
           }
         }
       }
-      return()
-    })
+      return(RES)
+    }), prot.names)
+    ratioPlots %<o% setNames(lapply(prot.names, \(nm) { tmpPlots[[nm]]$Ratio_plot }), prot.names)
+    covPlots %<o% setNames(lapply(prot.names, \(nm) {
+      smpls1 <- names(tmpPlots[[nm]]$Coverage$logInt)
+      smpls2 <- names(tmpPlots[[nm]]$Coverage$PEP)
+      list(logInt = setNames(lapply(smpls1, \(smpl) { tmpPlots[[nm]]$Coverage$logInt[[smpl]][[1L]][[1L]] }), smpls1),
+           PEP = setNames(lapply(smpls2, \(smpl) { tmpPlots[[nm]]$Coverage$PEP[[smpl]][[1L]][[1L]] }), smpls2))
+    }), prot.names)
+    #ratioPlots[[1L]]
   }
 }
 # This code seems to damage the cluster: check the source afterwards!

@@ -161,7 +161,7 @@ server <- \(input, output, session) {
                                options = list(dom = "t",
                                               paging = FALSE,
                                               ordering = FALSE,
-                                              autowidth = TRUE,
+                                              autoWidth = TRUE,
                                               columnDefs = wTest1,
                                               scrollX = FALSE),
                                callback = JS("table.rows().every(function(i, tab, row) {

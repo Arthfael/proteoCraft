@@ -99,7 +99,7 @@ server <- \(input, output, session) {
                                 dom = "t",
                                 paging = FALSE,
                                 ordering = FALSE,
-                                autowidth = TRUE,
+                                autoWidth = TRUE,
                                 columnDefs = wTest1,
                                 scrollX = FALSE
                               ),

@@ -47,12 +47,12 @@ if (!require(proteoCraft)) {
     x <- gsub("\\|", "\\\\|", x)
     if (start) { x <- paste0("^", x) }
     if (end) { x <- paste0(x, "$") }
-    if ((length(x) > 1L)&&(collapse != FALSE)) { x <- paste(x, collapse = collapse) }
+    if ((length(x) > 1L) && (collapse != FALSE)) { x <- paste(x, collapse = collapse) }
     return(x)
   }
 } else { openwd <- proteoCraft::openwd }
 
-if ((exists("targDir"))&&(!is.null(targDir))&&(dir.exists(targDir))) {
+if (exists("targDir") && (!is.null(targDir)) && dir.exists(targDir)) {
   dflt <- targDir
 } else {
   dflt <- c("D:/Data/Projects", "...Search_Folder", "C:/", getwd())
@@ -113,7 +113,9 @@ if (!is.null(targDir)) {
       FilesDF$TimeDiff <- difftime(FilesDF$flsMdTm, FilesDF$flsCrTm, units = "hours")
       #
       DestDir <- NULL
-      while (is.null(DestDir)) { DestDir <- selectDirectory("Choose location where files will be cloned and/or the log(s) saved", path = "C:/") }
+      while (is.null(DestDir)) {
+        DestDir <- selectDirectory("Choose location where files will be cloned and/or the log(s) saved", path = "C:/")
+      }
       #
       # Check available space
       # Adapted from https://stackoverflow.com/questions/32200879/how-to-get-disk-space-of-windows-machine-with-r
@@ -345,8 +347,19 @@ if (!is.null(targDir)) {
                             "\n-> Select Thermo .raw files to include in calculations of useful instrument time (to charge):")
               Fls2Chrg <- dlg_list(rwFlstmp, rwFlstmp, TRUE, msg)$res
               Fls2Chrg <- rwFls[match(Fls2Chrg, rwFlstmp),]
+              
+              w <- which(FilesDF$Files %in% Fls2Chrg$Files)
+              FilesDF$TimeDiff <- NA_real_
+              FilesDF$TimeDiff[w] <- difftime(FilesDF$flsMdTm[w], FilesDF$flsCrTm[w], units = "hours")
+              wNeg <- w[which(FilesDF$TimeDiff[w] < 0)]
+              lNeg <- length(wNeg)
+              if (lNeg) {
+                warning(paste0(lNeg, " files have negative net run time (i.e. file modified date is earlier than file created date!) -> investigate!\nSetting those values to 0!"))
+                FilesDF$TimeDiff[wNeg] <- 0
+              }
               m <- match(Fls2Chrg$Files, FilesDF$Files)
               TimeDiff <- difftime(FilesDF$flsMdTm[m], FilesDF$flsCrTm[m], units = "hours")
+              #View(FilesDF[, c("Files", "TimeDiff")])
               # In that case, you do not want to use it, because "file created date" will now be lated than file modified date!
               Log1 <- c("THERMO INVOICING LOG",
                         "-----------------------",
@@ -356,7 +369,7 @@ if (!is.null(targDir)) {
                         "",
                         paste0(" - ", Fls2Chrg$Files),
                         "",
-                        paste0("Selected instrument run time to charge: ", ceiling(sum(TimeDiff)*10)/10, " h"),
+                        paste0("Selected instrument run time to charge: ", ceiling(sum(TimeDiff, na.rm = TRUE)*10)/10, " h"),
                         "")
               Log1Fl <- paste0(targDir, "/Thermo invoicing log_", gsub("[^0-9]", "", logTm), ".txt")
               write(Log1, Log1Fl)
@@ -498,7 +511,7 @@ if (!is.null(targDir)) {
             FilesDF$NewHash[wExst] <- parSapply(parClust, FilesDF$New[wExst], HashFun)
             BdHsh <- (is.na(FilesDF$NewHash[wExst]))|(FilesDF$Hash[wExst] != FilesDF$NewHash[wExst])
             BdHsh[which(is.na(BdHsh))] <- TRUE
-            tstBdHsh <- (sum(BdHsh)> 0L) + 1L
+            tstBdHsh <- (sum(BdHsh) > 0L) + 1L
             cat(paste0(" -> Result: ", c("no ", "")[tstBdHsh], "discrepancies found, ", c("ignor", "overwrit")[tstBdHsh], "ing overlapping files.\n"))
             SzOk <- FilesDF$NewSize[wExst] == FilesDF$size[wExst]
             FilesDF$Copy[wExst] <- (!SzOk)|(BdHsh)
@@ -536,7 +549,7 @@ if (!is.null(targDir)) {
                 }
                 w <- which(is.na(FilesDF$Hash[wBlh]))
                 if (length(w)) {
-                  a <- (length(w) > 1L)+1L
+                  a <- (length(w) > 1L) + 1L
                   msg <- paste0("Md5sum calculations failed for the following file", c("", "s")[a], " after 2 attempts:\n",
                                 paste(paste0(" - ", FilesDF$Files[wExst[w]]), collapse = "\n"), "\nCheck th", c("is", "ose")[a], " file", c("", "s")[a], ", ",
                                 c("it", "they")[a], " may be corrupt.")
@@ -746,9 +759,11 @@ if (!is.null(targDir)) {
             } 
           } else {
             msg <- if (!CopyFls) {
-              paste0(msgRoot, "\nCloning the files failed, investigate (not enough space? stable connection? bug? ...)\n")
+              paste0(msgRoot,
+                     "\nCloning the files failed, investigate (not enough space? stable connection? bug? ...)\n")
             } else {
-              paste0(msgRoot, "\nCloning the files failed after ", MaxAttempts, " attempts, investigate!\n")
+              paste0(msgRoot,
+                     "\nCloning the files failed after ", MaxAttempts, " attempts, investigate!\n")
             }
             warning(msg)
           }

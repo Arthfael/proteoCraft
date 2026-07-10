@@ -27,11 +27,11 @@ AA <- AA[which(!AA %in% c("O"))]
 dbFl <- rstudioapi::selectFile("Select fasta file",
                                path = paste0(fastaDir, "/*"),
                                filter = "fasta file (*.fasta|*.fas|*.fa|*.faa|*.fasta.fas|*.txt)")
-ext <- rev(unlist(strsplit(dbFl, "\\.")))[1] # In case the extension is different, e.g. .txt or .fa
+ext <- rev(unlist(strsplit(dbFl, "\\.")))[1L] # In case the extension is different, e.g. .txt or .fa
 db <- Format.DB(dbFl, cl = parClust) # loads database as table and removes duplicate entries by default
 tst <- nchar(gsub(paste(AA, collapse = "|"), "", db$Sequence))
-wY <- which(tst == 0)
-wN <- which(tst != 0)
+wY <- which(tst == 0L)
+wN <- which(tst != 0L)
 l <- length(wN)
 if (l) { warning(paste0("Removing ", l, " entries with non-standard amino acids.")) }
 db <- db[wY,]

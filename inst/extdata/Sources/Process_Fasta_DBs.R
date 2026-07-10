@@ -519,7 +519,7 @@ server <- \(input, output, session) {
                             options = list(dom = 't',
                                            paging = FALSE,
                                            ordering = FALSE,
-                                           autowidth = TRUE,
+                                           autoWidth = TRUE,
                                            columnDefs = wTest,
                                            scrollX = TRUE),
                             # the callback is essential to capture the inputs in each row
@@ -543,7 +543,7 @@ server <- \(input, output, session) {
                         options = list(dom = "t",
                                        paging = FALSE,
                                        ordering = FALSE,
-                                       autowidth = TRUE,
+                                       autoWidth = TRUE,
                                        columnDefs = list(list(width = "150px", targets = 0L),
                                                          list(width = "300px", targets = 1L),
                                                          list(width = "200px", targets = 2L),

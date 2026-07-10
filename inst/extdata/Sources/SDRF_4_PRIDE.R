@@ -912,7 +912,7 @@ if (idsL) {
                                     options = list(dom = "t",
                                                    paging = FALSE,
                                                    ordering = FALSE,
-                                                   autowidth = TRUE,
+                                                   autoWidth = TRUE,
                                                    columnDefs = wTest1,
                                                    scrollX = FALSE),
                                     # the callback is essential to capture the inputs in each row

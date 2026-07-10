@@ -484,13 +484,9 @@ make_ui <- function() {
       gradient = "linear",
       direction = "bottom"
     ),
-    tags$head(
-      tags$style(
-        '.inner.open {
+    tags$head(tags$style(".inner.open {
             overflow-y: hidden !important;
-        }'
-      )
-    ),
+        }")),
     extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
     titlePanel(tag("u", "Parameters"),
                appNm),

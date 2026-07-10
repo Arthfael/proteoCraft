@@ -14,7 +14,7 @@ MQ.summary(
   raw.files,
   subfolder = "Summary plots",
   plot = TRUE,
-  save = "pdf",
+  save = c("jpeg", "pdf", "html"),
   sc = 60L,
   N.clust,
   N.reserved = 1L,
@@ -25,7 +25,7 @@ MQ.summary(
 \arguments{
 \item{wd}{Working directory. Automatically set to local if left empty.}
 
-\item{ev}{The evidence file. Will try to load from the local directory if value is missing.}
+\item{ev}{The evidence/PSMs file. Will try to load from the local directory if value is missing.}
 
 \item{pg}{The protein groups file. Will try to load from the local directory if value is missing.}
 
@@ -37,7 +37,7 @@ MQ.summary(
 
 \item{plot}{Should we create plot?}
 
-\item{save}{Set this to a vector of acceptable file extensions to save the graph to the corresponding file format, or to FALSE if you do not want to save it. Default = "jpeg"}
+\item{save}{Set this to a vector of acceptable file extensions to save the graph to the corresponding file format, or to FALSE if you do not want to save it. Default = c("jpeg", "pdf", "html")}
 
 \item{sc}{Scale, the max number of raw files to be plotted together in one plot. Default = 60.}
 

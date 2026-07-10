@@ -342,6 +342,11 @@ source(Src, local = FALSE)
 
 rm(list = ls()[which(!ls() %in% .obj)])
 
+#### Code chunk - Summary table and QC plots
+Src <- paste0(libPath, "/extdata/Sources/rep_Summary.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
 # Test for amino acid biases:
 Src <- paste0(libPath, "/extdata/Sources/AA_biases_test.R")
 #rstudioapi::documentOpen(Src)

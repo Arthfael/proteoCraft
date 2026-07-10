@@ -56,7 +56,7 @@ FP_to_MQ <- function(FP_Workflow,
   #
   # Create cluster
   stopCl <- FALSE
-  if ((is.null(cl))||(!inherits(cl, "cluster"))) {
+  if (is.null(cl) || (!inherits(cl, "cluster"))) {
     dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1L }
     nMax <- max(c(dc - N.reserved, 1L))
@@ -73,7 +73,7 @@ FP_to_MQ <- function(FP_Workflow,
   N.clust <- length(cl)
   #
   # Load FragPipe parameter file
-  if ((!TESTING)&&((missing("FP_Workflow"))||(!file.exists(FP_Workflow)))) {
+  if ((!TESTING) && (missing("FP_Workflow") || (!file.exists(FP_Workflow)))) {
     stop("Invalid parameter \"FP_Workflow\": file not found!")
   }
   FP_Wrkflw <- readLines(FP_Workflow)
@@ -86,15 +86,9 @@ FP_to_MQ <- function(FP_Workflow,
                            grep("^workdir=", FP_Wrkflw, value = TRUE))))
   FixPaths <- FALSE
   if (!dir.exists(FP_Dir)) {
-    FP_Dir_old <- FP_Dir
-    FP_Dir <- dirname(FP_Workflow)
-    if (FP_Dir == FP_Dir_old) {
-      FP_Dir <- getwd()
-      warning(paste0("FragPipe's output directory was not found: \"", FP_Dir, "\", assuming the local folder instead!"))
-    } else {
-      warning(paste0("FragPipe's output directory was not found: \"", FP_Dir, "\", assuming the parent folder of the FragPipe Workflow file instead!"))
-    }
     FixPaths <- TRUE
+    warning(paste0("FragPipe's output directory was not found: \"", FP_Dir, "\", assuming the parent folder of the FragPipe Workflow file instead!"))
+    FP_Dir <- dirname(FP_Workflow)
   }
   if (isActuallyDIANN) {
     tst1 <- dir.exists(paste0(FP_Dir, "/diann-output"))

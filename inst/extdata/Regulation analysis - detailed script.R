@@ -2012,74 +2012,9 @@ Src <- paste0(libPath, "/extdata/Sources/proteome_Ruler.R")
 source(Src, local = FALSE)
 
 #### Code chunk - Summary table and QC plots
-if ((create_plotly)&&(!create_plotly_local)) { # This code is so old it's auld!
-  plot_ly_addresses %<o% data.frame(`Plot type` = NA, `Name` = NA, `Address` = NA)
-  kount <- 1L
-  for (n in seq_along(plot_ly)) { #n <- 1L
-    i <- plot_ly[[n]]
-    if (length(i)) {
-      plot_ly_addresses[kount,] <- c(names(plot_ly)[n], "", "")
-      for (j in seq_along(i)) { #j <- 1L
-        kount <- kount + 1L
-        k <- i[[j]]
-        plot_ly_addresses[kount,] <- c("",
-                                       names(i)[j],
-                                       paste0(gsub("\\.embed$", "", k$embed_url), "/?share_key=", k$share_key))
-      }
-      kount <- kount + 1L
-    }
-  }
-  class(plot_ly_addresses$Address) <- "hyperlink"
-  wb <- createWorkbook()
-  sheet  <- addWorksheet(wb, "Plotly plot addresses")
-  writeData(wb, sheet = "Plotly plot addresses", x = plot_ly_addresses)
-  style1 <- createStyle(textDecoration = "bold")
-  addStyle(wb, sheet = "Plotly plot addresses", style = style1, rows = 2L:nrow(plot_ly_addresses)+1L, cols = 1L, gridExpand = FALSE, stack = FALSE)
-  style2 <- createStyle()
-  addStyle(wb, sheet = "Plotly plot addresses", style = style2, rows = 2L:nrow(plot_ly_addresses)+1L, cols = 2L, gridExpand = FALSE, stack = FALSE)
-  style3 <- createStyle(textDecoration = "italic")
-  addStyle(wb, sheet = "Plotly plot addresses", style = style3, rows = 2L:nrow(plot_ly_addresses)+1L, cols = 3L, gridExpand = FALSE, stack = FALSE)
-  setColWidths(wb, sheet = "Plotly plot addresses", cols = 1L, widths = 25L)
-  setColWidths(wb, sheet = "Plotly plot addresses", cols = 2L, widths = 50L)
-  setColWidths(wb, sheet = "Plotly plot addresses", cols = 3L, widths = 60L)
-  freezePane(wb, 1L, firstRow = TRUE)
-  saveWorkbook(wb, file = "Tables/Plotly plot addresses.xlsx", overwrite = TRUE)
-}
-mods <- setNames(Modifs$Mark[which(Modifs$Type == "Variable")],
-                 nm = Modifs$"Full name"[which(Modifs$Type == "Variable")])
-tmp <- aggregate(Frac.map$"Raw file", list(Frac.map$MQ.Exp), length)
-tmp <- round(mean(tmp$x)) # Size of a full fraction set, rounding for cases where we removed some fractions
-defSc <- 60L # (Non-strict) default maximum number of files to look at per plot
-if (tmp > defSc) {
-  # If one set of fractions is larger than defSc
-  sc <- tmp
-} else {
-  # What is closest to default: n or n+1 full sets of fractions?
-  tst <- (defSc %% tmp) >= defSc/2L
-  # Identify N = fixed number of files from full fraction sets we can fit in one plot
-  N <- c(floor(defSc/tmp), ceiling(defSc/tmp))[tst+1L]*tmp
-  # If we divide the total number of files by that number, how many plots do we have?
-  Nplts <- ceiling(nrow(Frac.map)/N)
-  # So that makes how many files per plot:
-  sc <- ceiling(nrow(Frac.map)/Nplts)
-}
-sc <- max(c(sc, 1L))
-source(parSrc, local = FALSE)
-Exp_summary %<o% MQ.summary(ev = ev, pg = PG, wd = wd, mods = mods, save = "pdf",
-                            raw.files = rawFiles, sc = sc, cl = parClust,
-                            MQtxt = inDirs[which(SearchSoft == "MAXQUANT")])
-Exp_summary$"Biological sample" <- ""
-if ("Parent sample" %in% colnames(Frac.map)) {
-  Exp_summary$"Biological sample" <- Frac.map$"Parent sample"[match(Exp_summary$Sample, Frac.map$"Raw file")]
-}
-if ("MQ.Exp" %in% colnames(Frac.map)) {
-  Exp_summary$"Biological sample" <- Frac.map$MQ.Exp[match(Exp_summary$Sample, Frac.map$"Raw file")]
-}
-Exp_summary$"Biological sample"[1L] <- "All samples"
-Exp_summary <- Exp_summary[, c("Sample", "Biological sample",
-                               colnames(Exp_summary)[which(!colnames(Exp_summary) %in% c("Sample", "Biological sample"))])]
-write.csv(Exp_summary, paste0(wd, "/Workflow control/Summary.csv"), row.names = FALSE)
-#Exp_summary <- read.csv(paste0(wd, "/Workflow control/Summary.csv"), check.names = FALSE)
+Src <- paste0(libPath, "/extdata/Sources/rep_Summary.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readLines(ScriptPath)

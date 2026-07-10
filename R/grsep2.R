@@ -4,7 +4,7 @@
 #' A function to look for IDs in a separated character list.
 #' Unlike "grsep", it is not a wrapper for "grep/grepl". Unlike it, it should not break for large number of IDs.
 #' Also unlike grsep it does not have "gsub-like" capabilities (yet?)
-#' This function is based on reshape2; it is significantly faster than grsep on large vectors, but can be slower on smaller ones.
+#' This function is based on fast lists manipulation; it is significantly faster than grsep on large vectors, but can be slower on smaller ones.
 #' 
 #' @param IDs The IDs to search for.
 #' @param x A character vector listing IDs in which to search.
@@ -25,7 +25,8 @@ grsep2 <- function(IDs,
                    value = FALSE,
                    invert = FALSE) {
   #DefArg(grsep2)
-  stopifnot(length(x) > 0L, is.null(dim(as.character(x))))
+  stopifnot(length(x) > 0L,
+            is.null(dim(as.character(x))))
   Wh <- 1L:length(x)
   x <- as.character(x)
   g1 <- grep(sep, x)

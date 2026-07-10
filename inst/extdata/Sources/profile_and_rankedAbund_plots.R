@@ -6,7 +6,7 @@
 #
 #runRankAbundPlots %<o% TRUE
 #runProfPlots %<o% TRUE
-if (runRankAbundPlots||runProfPlots) {
+if (runRankAbundPlots || runProfPlots) {
   library(ggplot2)
   library(RColorBrewer)
   library(colorspace)
@@ -51,6 +51,8 @@ if (runRankAbundPlots||runProfPlots) {
   PG_varkol <- c("Leading protein IDs", "Protein IDs", "Common Name (short)", "id", "Label", "PEP")
   pep_varkol <- c("Modified sequence", "id", "Proteins", "PEP")
   if (prot.list.Cond) {
+    if (!"In list" %in% colnames(PG)) { PG$"In list" <- c("", "+")[grsep(prot.list, x = PG$`Protein IDs`, mode = "grepl")+1L] }
+    if (!"In list" %in% colnames(pep)) { pep$"In list" <- c("", "+")[grsep(prot.list, x = pep$Proteins, mode = "grepl")+1L] }
     PG_varkol <- union(PG_varkol, "In list")
     pep_varkol <- union(pep_varkol, "In list")
   }
@@ -58,7 +60,7 @@ if (runRankAbundPlots||runProfPlots) {
     PG_varkol <- union(PG_varkol, "GO-ID")
   }
   klstKol <- c()
-  if ((exists("KlustKols"))&&(length(KlustKols))) {
+  if (exists("KlustKols") && length(KlustKols)) {
     klstKol <- grep(" - Global$", KlustKols, value = TRUE)[1L]
     if (length(klstKol) == 1L) {
       PG_varkol <-  union(PG_varkol, klstKol)
@@ -88,15 +90,14 @@ if (runRankAbundPlots||runProfPlots) {
     pep$"Org. label" <- tmp2$Org[match(1L:nrow(pep), tmp2$row)]
     PG$"Org. label"[which(PG$`Potential contaminant` == "+")] <- "Contaminant"
     pep$"Org. label"[which(pep$`Potential contaminant` == "+")] <- "Contaminant"
+    tstOrg2 <- pep$"Org. label" # Should remain before the prot.list.Cond bit!
     if (prot.list.Cond) {
       PG$"Org. label"[which(PG$`In list` == "+")] <- "In list"
       pep$"Org. label"[which(pep$`In list` == "+")] <- "In list"
     }
     PG_varkol <- union(PG_varkol, "Org. label")
     pep_varkol <- union(pep_varkol, "Org. label")
-    #
-    tmp <- pep$"Org. label"
-    tstOrg2 <- aggregate(tmp, list(tmp), length)
+    tstOrg2 <- aggregate(tstOrg2, list(tstOrg2), length)
     tstOrg2 <- tstOrg2[order(tstOrg2$x, decreasing = TRUE),]
     tstOrg2 <- tstOrg2$Group.1[which(tstOrg2$x > 1L)]
     tstOrg2 <- tstOrg2[which(!tstOrg2 %in% c("Contaminant", "In list"))]
@@ -108,7 +109,8 @@ if (runRankAbundPlots||runProfPlots) {
   lOrg <- length(tstOrg2)
   if (lOrg) {
     myColors <- c(myColors,
-                  setNames(colorRampPalette(c("#47b7a4", "#eeee00"))(lOrg),
+                  setNames(#colorRampPalette(c("#47b7a4", "#eeee00"))(lOrg),
+                           rainbow(lOrg),
                            tstOrg2)) # We never expect more than a handful of organisms
     myColors[["Contaminant"]] <- "deepskyblue"
   }
@@ -129,7 +131,7 @@ if (runRankAbundPlots||runProfPlots) {
     GO_PG_col %<o% unique(unlist(strsplit(Param$GO.tabs, ";")))
     GO_filt %<o% (length(GO_PG_col) > 0L)
     if (GO_filt) {
-      if ((!exists("GO_terms"))&&(file.exists(paste0(wd, "/GO_terms.RData")))) { loadFun(paste0(wd, "/GO_terms.RData")) }
+      if ((!exists("GO_terms")) && file.exists(paste0(wd, "/GO_terms.RData"))) { loadFun(paste0(wd, "/GO_terms.RData")) }
       GO_PG_col <- GO_PG_col[which(GO_PG_col %in% GO_terms$ID)]
       GO_filt <- length(GO_PG_col) > 0L
     }
@@ -140,7 +142,7 @@ if (runRankAbundPlots||runProfPlots) {
     pep_ref <- paste0(int.cols["Original"], " - ")
     mySamples <- Exp
     if (GO_filt) {
-      if ((!exists("GO_terms"))&&(file.exists(paste0(wd, "/GO_terms.RData")))) { loadFun(paste0(wd, "/GO_terms.RData")) }
+      if ((!exists("GO_terms")) && file.exists(paste0(wd, "/GO_terms.RData"))) { loadFun(paste0(wd, "/GO_terms.RData")) }
     }
   }
   if (GO_filt) {
@@ -175,7 +177,7 @@ if (runRankAbundPlots||runProfPlots) {
   PG_kntKol <- paste0("Peptides count - ", mySamples)
   PG_kntKol <- PG_kntKol[which(PG_kntKol %in% colnames(PG))]
   myPG <- PG[, c(all_PG_kol, PG_varkol, PG_kntKol)]
-  if ((scrptType == "noReps")&&(length(PG_regKol))) {
+  if ((scrptType == "noReps") && length(PG_regKol)) {
     myPG[, PG_regKol] <- PG[, PG_regKol]
   }
   if (length(klstKol) == 1L) {
@@ -185,7 +187,7 @@ if (runRankAbundPlots||runProfPlots) {
   colnames(myPG)[which(colnames(myPG) == "Label")] <- "Protein Group"
   PG_varkol[which(PG_varkol == "Label")] <- "Protein Group"
   myPep <- pep[, c(all_pep_kol, pep_varkol)]
-  if ((scrptType == "noReps")&&(length(pep_regKol))) {
+  if ((scrptType == "noReps") && length(pep_regKol)) {
     myPep[, pep_regKol] <- pep[, pep_regKol]
   }
   myPG$"Protein Group" <- factor(myPG$"Protein Group", levels = myPG$"Protein Group")
@@ -218,14 +220,16 @@ if (runRankAbundPlots||runProfPlots) {
     myPG$Category[which(myPG$"In list" == "+")] <- c("+", "In list")[tst]
     myPep$Category[which(myPep$"In list" == "+")] <- c("+", "In list")[tst]
   }
-  lev <- c("In list", "+", tstOrg2, "-", "Contaminant")
-  lev1 <- lev[which(lev %in% unique(myPG$Category))]
-  lev2 <- lev[which(lev %in% unique(myPep$Category))]
+  lev <- union(c("In list", "+", tstOrg2, "-", "Contaminant"),
+               unique(myPG$Category) # This last bit as a safeguard against hiccups
+               )
+  lev1 <- intersect(lev, unique(myPG$Category))
+  lev2 <- intersect(lev, unique(myPep$Category))
   myPG$Category <- factor(myPG$Category, levels = lev1)
   myPep$Category <- factor(myPep$Category, levels = lev2)
   #
   myFlt <- c()
-  if (GO_filt||runMark) {
+  if (GO_filt || runMark) {
     if (GO_filt) { myFlt[names(GO_filter)] <- GO_filter }
     if (runMark) { myFlt[names(CompGOTerms)] <- CompGOTerms }
     tmp <- listMelt(strsplit(myPG$`GO-ID`, ";"), 1L:nrow(myPG), c("GO", "row"))
@@ -321,7 +325,7 @@ if (runRankAbundPlots||runProfPlots) {
   if (runRankAbundPlots) {
     samplesDF_Lst$ranked <- samplesDF1
   }
-  if ((runProfPlots)&&(moreThan1Exp)) {
+  if (runProfPlots && moreThan1Exp) {
     samplesDF2 <- aggregate(samplesDF1$values, list(samplesDF1$QuantType, samplesDF1$ref, samplesDF1$type), \(x){
       list(unique(x))
     })

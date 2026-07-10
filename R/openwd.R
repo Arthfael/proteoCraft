@@ -25,7 +25,7 @@ openwd <- function(dir) {
     tst <- try(shell(cmd, intern = TRUE), silent = TRUE)
     if (length(tst)) {
       if (syst == "windows") {
-        cat("Hmmm... something went wrong, I couldn't open this directory...\n")
+        #cat("Hmmm... something went wrong, the directory may or may not have been opened...\n") # Actually this isn't always a problem -> can usually be ignored
       } else {
         cat("Sorry, this function currently only works on a PC!\n")
         # (There used to be a poor joke about the "Steve Jobs cult" here, but... well he's been dead for years now, so I think I can let this go.)

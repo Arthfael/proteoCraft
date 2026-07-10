@@ -5,13 +5,13 @@
 #' Now also works partially for the output of DIA-NN if converted to MaxQuant-like format.
 #' 
 #' @param wd Working directory. Automatically set to local if left empty.
-#' @param ev The evidence file. Will try to load from the local directory if value is missing.
+#' @param ev The evidence/PSMs file. Will try to load from the local directory if value is missing.
 #' @param pg The protein groups file. Will try to load from the local directory if value is missing.
 #' @param filter Should we filter the files for contaminants, reverse hits, NA values, etc... Default = FALSE
 #' @param mods (Ideally named) vector of 2-letter modification codes (as used by older MaxQuant versions for Modified Sequences) of interest. The default is the default MQ PTMs list which we use in most projects.
 #' @param raw.files Vector of full raw file paths, sorted in the order you will want to use.
 #' @param plot Should we create plot?
-#' @param save Set this to a vector of acceptable file extensions to save the graph to the corresponding file format, or to FALSE if you do not want to save it. Default = "jpeg" 
+#' @param save Set this to a vector of acceptable file extensions to save the graph to the corresponding file format, or to FALSE if you do not want to save it. Default = c("jpeg", "pdf", "html")
 #' @param sc Scale, the max number of raw files to be plotted together in one plot. Default = 60. 
 #' @param N.clust A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
@@ -32,7 +32,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                        raw.files,
                        subfolder = "Summary plots",
                        plot = TRUE,
-                       save = "pdf",
+                       save = c("jpeg", "pdf", "html"),
                        sc = 60L,
                        N.clust,
                        N.reserved = 1L,
@@ -62,7 +62,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
   }
   if (!dir.exists(WD)) { dir.create(WD) }
   sv <- (length(save) > 1L)||((length(save) == 1L)&(!toupper(as.character(save)) %in% c("FALSE", "NaN", "NA")))
-  if (sv) { save <- unique(gsub("^jpg$", "jpeg", gsub("^\\.", "", tolower(save)))) }
+  if (sv) { save <- unique(sub("^jpg$", "jpeg", sub("^\\.", "", tolower(save)))) }
   if (misFun(ev)) {
     ev <- MQ.load(return = TRUE, assign = FALSE, pep = FALSE, prot = FALSE)$evidences
   }
@@ -80,7 +80,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     pg <- pg[which(pg$id %in% unique(unlist(strsplit(ev$"Protein group IDs", ";")))),]
   }
   Res <- data.frame(Sample = "Whole dataset",
-                    Evidences = nrow(ev),
+                    PSMs = nrow(ev),
                     Peptides = length(unique(ev$"Modified sequence")),
                     "Protein groups" = nrow(pg),
                     check.names = FALSE)
@@ -92,9 +92,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       pat <- paste0("\\(", mods[i], "\\)")
       temp <- grep(pat, ev$"Modified sequence", value = TRUE)
       l <- length(temp); lu <- length(unique(temp))
-      Res[[paste0(names(mods)[i], " - evidences")]] <- l
+      Res[[paste0(names(mods)[i], " - PSMs")]] <- l
       Res[[paste0(names(mods)[i], " - peptides")]] <- lu
-      Res[[paste0(names(mods)[i], " - % ev.")]] <- round(100*l/Res$Evidences[1L], 2L)
+      Res[[paste0(names(mods)[i], " - % ev.")]] <- round(100*l/Res$PSMs[1L], 2L)
       Res[[paste0(names(mods)[i], " - % pep.")]] <- round(100*lu/Res$Peptides[1L], 2L)
     }
   }
@@ -118,7 +118,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       return(sum(raws %in% ev$`Raw file`))
     }, 1)
     L <- length(unique(ev$`Raw file`))
-    if (!L %in% tstPth) { warning("Couldn't find raw paths in evidences file.") }
+    if (!L %in% tstPth) { warning("Couldn't find raw paths in PSMs file.") }
     w <- which(tstPth == L)[1L]
     if (!is.na(w)) {
       rawFls <- Raw[[c("Raw file", "Path", "Path")[w]]]
@@ -139,7 +139,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       p <- pg[which(pg$id %in% unlist(strsplit(e$"Protein group IDs", ";"))),]
       n <- nrow(Res)
       Res$Sample[n] <- r
-      Res$Evidences[n] <- nrow(e)
+      Res$PSMs[n] <- nrow(e)
       Res$Peptides[n] <- length(unique(e$"Modified sequence"))
       if ("Leading Protein IDs" %in% colnames(pg)) {
         Res$Proteins[n] <- length(unique(unlist(strsplit(p$"Leading Protein IDs", ";"))))
@@ -150,32 +150,33 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           pat <- paste0("\\(", mods[i], "\\)")
           temp <- grep(pat, e$"Modified sequence", value = TRUE)
           l <- length(temp); lu <- length(unique(temp))
-          Res[n, paste0(names(mods)[i], " - evidences")] <- l
+          Res[n, paste0(names(mods)[i], " - PSMs")] <- l
           Res[n, paste0(names(mods)[i], " - peptides")] <- lu
-          Res[n, paste0(names(mods)[i], " - % ev.")] <- round(100*l/Res$Evidences[n], 2L)
+          Res[n, paste0(names(mods)[i], " - % ev.")] <- round(100*l/Res$PSMs[n], 2L)
           Res[n, paste0(names(mods)[i], " - % pep.")] <- round(100*lu/Res$Peptides[n], 2L)
         }
       }
     }
-  } else { stop("Expecting a \"Raw file\" column in the evidence file!!!") }
+  } else { stop("Expecting a \"Raw file\" column in the PSMs file!!!") }
   if (plot) {
+    plotLy_lst <- list()
     tstVir <- require(viridis)
     # Plot - Peptides composition
     temp <- Res[which(!Res$Sample %in% c("Whole dataset", "")), which(!grepl("%", colnames(Res)))]
     if (nrow(temp)) {
       temp$Proteins <- NULL; temp$"Protein groups" <- NULL
-      temp <- dfMelt(temp, id.vars = "Sample")
+      temp <- dfMelt(temp, id.vars = "Sample", ColNames = c("Sample", "Type", "Count"))
       if (UseMods) {
-        temp$Modification <- vapply(as.character(temp$variable), \(x) {
+        temp$Modification <- vapply(as.character(temp$Type), \(x) {
           x <- unlist(strsplit(x, " - "))
           x <- if (length(x) == 1L) { "All" } else { x[1L] }
           return(x)
         }, "")
         temp$Modification <- factor(temp$Modification, levels = c("All", names(mods)))
       }
-      temp$variable <- apply(cbind(grepl("evidences", temp$variable, ignore.case = TRUE),
-                                   grepl("peptides", temp$variable, ignore.case = TRUE)),
-                             1L, \(x) { c("Evidences", "Peptides")[which(unlist(x))] })
+      temp$Type <- apply(cbind(grepl("PSMs", temp$Type, ignore.case = TRUE),
+                               grepl("peptides", temp$Type, ignore.case = TRUE)),
+                             1L, \(x) { c("PSMs", "Peptides")[which(unlist(x))] })
       temp$Sample <- factor(temp$Sample, levels = levels(rawFls))
     }
     if (length(levels(rawFls)) > sc) {
@@ -186,36 +187,43 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       if (nrow(temp)) { temp$iter <- 1L }
     }
     iters <- unique(temp$iter)
-    for (i in iters) { #i <- 1L
-      ttl <- if (length(iters) == 1L) { "Peptides composition" } else { paste0("Peptides composition - ", i) }
-      tmp <- temp[which(temp$iter == i),]
-      plot <- if (UseMods) {
-        ggplot2::ggplot(tmp) +
-          ggplot2::geom_col(ggplot2::aes(x = Sample, y = value, fill = Modification),
-                            colour = NA) +
-          ggplot2::facet_grid(variable~Modification)
-      } else {
-        ggplot2::ggplot(tmp) +
-          ggplot2::geom_col(ggplot2::aes(x = Sample, y = value, fill = variable),
-                            colour = NA) +
-          ggplot2::facet_grid(variable~.)
-      }
-      plot <- plot + ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
-        ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 66, hjust = 1, size = 7L))
-      if (tstVir) {
-        plot <- plot + viridis::scale_fill_viridis(begin = 0.2, discrete = TRUE, option = "D")
-      }
-      poplot(plot, 12L, 22L)
-      if (sv) { for (s in save) {
-        setwd(WD)
-        if (s %in% c("jpeg", "tiff", "png", "bmp")) {
-          ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                          dpi = 300L, width = 10L, height = 10L, units = "in")
+    if (nrow(temp)) {
+      for (i in iters) { #i <- 1L
+        ttl <- if (length(iters) == 1L) { "Peptides composition" } else { paste0("Peptides composition - ", i) }
+        tmp <- temp[which(temp$iter == i),]
+        plot <- if (UseMods) {
+          ggplot2::ggplot(tmp) +
+            ggplot2::geom_col(ggplot2::aes(x = Sample, y = Count, fill = Modification),
+                              colour = NA) +
+            ggplot2::facet_grid(Type~Modification)
         } else {
-          ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
+          ggplot2::ggplot(tmp) +
+            ggplot2::geom_col(ggplot2::aes(x = Sample, y = Count, fill = Type),
+                              colour = NA) +
+            ggplot2::facet_grid(Type~.)
         }
+        plot <- plot + ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
+          ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 66, hjust = 1, size = 7L))
+        if (tstVir) {
+          plot <- plot + viridis::scale_fill_viridis(begin = 0.2, discrete = TRUE, option = "D")
+        }
+        poplot(plot, 12L, 22L)
+        setwd(WD)
+        if (sv) { for (s in save) {
+          if (s == "html") {
+            plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y", "fill"))
+            plotLy <- layout(plotLy,
+              legend = list(x = 1.05,
+                            y = 1),
+              margin = list(r = 120L))
+            plotLy_lst[[ttl]] <- plotLy
+            htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
+          } else {
+            ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+          }
+        } }
         setwd(wd0)
-      } }
+      }
     } 
     # Plot - Protein coverage
     g <- grep("^Sequence coverage \\[%\\]( - )?", colnames(pg), value = TRUE)
@@ -251,16 +259,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         plot <- plot + viridis::scale_fill_viridis(begin = 0.2, discrete = FALSE, option = "B")
       }
       poplot(plot, 12L, 22L)
+      setwd(WD)
       if (sv) { for (s in save) {
-        setwd(WD)
-        if (s %in% c("jpeg", "tiff", "png", "bmp")) {
-          ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                          dpi = 300L, width = 10L, height = 10L, units = "in")
+        if (s == "html") {
+          plotLy_lst[[ttl]] <- plotly::ggplotly(plot, tooltip = c("x", "y"))
+          htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
         } else {
-          ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
+          ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
-        setwd(wd0)
       } }
+      setwd(wd0)
     }
     # Plot - Missed cleavages
     ev$iter <- if (length(levels(rawFls)) > sc) { Raw$iter[match(ev$"Raw file", Raw$"Raw file")] } else { 1L }
@@ -289,16 +297,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         plot <- plot + viridis::scale_fill_viridis(begin = 0.2, discrete = TRUE, option = "E")
       }
       poplot(plot, 12L, 22L)
+      setwd(WD)
       if (sv) { for (s in save) {
-        setwd(WD)
-        if (s %in% c("jpeg", "tiff", "png", "bmp")) {
-          ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                          dpi = 300L, width = 10L, height = 10L, units = "in")
+        if (s == "html") {
+          plotLy_lst[[ttl]] <- plotly::ggplotly(plot, tooltip = c("x", "y"))
+          htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
         } else {
-          ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
+          ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
-        setwd(wd0)
       } }
+      setwd(wd0)
     }
     # Plot - Peptide length
     for (i in iters) { #i <- 1L
@@ -329,16 +337,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         plot <- plot + viridis::scale_fill_viridis(begin = 0.2, discrete = TRUE, option = "D")
       }
       poplot(plot, 12L, 22L)
+      setwd(WD)
       if (sv) { for (s in save) {
-        setwd(WD)
-        if (s %in% c("jpeg", "tiff", "png", "bmp")) {
-          ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                          dpi = 300L, width = 10L, height = 10L, units = "in")
+        if (s == "html") {
+          plotLy_lst[[ttl]] <- plotly::ggplotly(plot, tooltip = c("x", "y"))
+          htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
         } else {
-          ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
+          ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
-        setwd(wd0)
       } }
+      setwd(wd0)
     }
     # Plot - TIC and Base peak
     if ("Path" %in% colnames(Raw)) {
@@ -444,16 +452,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                 ggplot2::ylab("Intensity") + ggplot2::coord_fixed(Rat) + ggplot2::theme_bw() # +
               #ggplot2::scale_x_discrete(breaks = 1L:floor(max(temp$"Retention time"))) # NB: Here use the global values for consistency between iterations
               poplot(plot, 12L, 22L)
+              setwd(WD)
               if (sv) { for (s in save) {
-                setwd(WD)
-                if (s %in% c("jpeg", "tiff", "png", "bmp")) {
-                  ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                                  dpi = 300L, width = 10L, height = 10L, units = "in")
+                if (s == "html") {
+                  plotLy_lst[[ttl]] <- plotly::ggplotly(plot, tooltip = c("x", "y"))
+                  htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
                 } else {
-                  ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
+                  ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
                 }
-                setwd(wd0)
               } }
+              setwd(wd0)
             }
           }
         }
@@ -509,16 +517,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             plot <- plot + ggplot2::scale_x_discrete(breaks = lev)
           }
           poplot(plot, 12L, 22L)
+          setwd(WD)
           if (sv) { for (s in save) {
-            setwd(WD)
-            if (s %in% c("jpeg", "tiff", "png", "bmp")) {
-              ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                              dpi = 300L, width = 10L, height = 10L, units = "in")
+            if (s == "html") {
+              plotLy_lst[[ttl]] <- plotly::ggplotly(plot, tooltip = c("x", "y"))
+              htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
             } else {
-              ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
+              ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
-            setwd(wd0)
           } }
+          setwd(wd0)
         }
       } else { warning("NB: \"msms.txt\" could not be loaded and may be corrupted...") }
     } else { message("NB: \"msms.txt\" could not be found.") }
@@ -567,16 +575,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             ggplot2::facet_wrap(~`Raw file`) + ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
             fillScale
           poplot(plot, 12L, 22L)
+          setwd(WD)
           if (sv) { for (s in save) {
-            setwd(WD)
-            if (s %in% c("jpeg", "tiff", "png", "bmp")) {
-              ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                              dpi = 300L, width = 10L, height = 10L, units = "in")
+            if (s == "html") {
+              plotLy_lst[[ttl]] <- plotly::ggplotly(plot, tooltip = c("x", "fill"))
+              htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
             } else {
-              ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
+              ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
-            setwd(wd0)
           } }
+          setwd(wd0)
         }
         # Plot - Precursor apex intensities
         temp <- data.frame(Retention.time = c(min(msmsScans$"Retention time")+bw*c(1L:(nb-1L)), max(msmsScans$"Retention time")))
@@ -627,16 +635,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             ggplot2::facet_wrap(~`Raw file`) + ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
             fillScale
           poplot(plot, 12L, 22L)
+          setwd(WD)
           if (sv) { for (s in save) {
-            setwd(WD)
-            if (s %in% c("jpeg", "tiff", "png", "bmp")) {
-              ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                              dpi = 300L, width = 10L, height = 10L, units = "in")
+            if (s == "html") {
+              plotLy_lst[[ttl]] <- plotly::ggplotly(plot, tooltip = c("x", "y", "fill"))
+              htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
             } else {
-              ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
+              ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
-            setwd(wd0)
           } }
+          setwd(wd0)
         }
         # Plot - Number of MSMS per duty cycle
         tst <- as.numeric(msmsScans$"Scan event number") > c(as.numeric(msmsScans$"Scan event number"[2L:nrow(msmsScans)]), 1)
@@ -653,16 +661,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             plot <- plot + viridis::scale_fill_viridis(begin = 0.2, discrete = TRUE, option = "D")
           }
           poplot(plot, 12L, 22L)
+          setwd(WD)
           if (sv) { for (s in save) {
-            setwd(WD)
-            if (s %in% c("jpeg", "tiff", "png", "bmp")) {
-              ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                              dpi = 300L, width = 10L, height = 10L, units = "in")
+            if (s == "html") {
+              plotLy_lst[[ttl]] <- plotly::ggplotly(plot, tooltip = c("x", "fill"))
+              htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
             } else {
-              ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
+              ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
-            setwd(wd0)
           } }
+          setwd(wd0)
         }
         # Plot - AGC fill
         if ("AGC Fill" %in% colnames(msmsScans)) {
@@ -687,22 +695,22 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                 plot <- plot + ggplot2::scale_x_discrete(breaks = lev)
               }
               poplot(plot, 12L, 22L)
+              setwd(WD)
               if (sv) { for (s in save) {
-                setwd(WD)
-                if (s %in% c("jpeg", "tiff", "png", "bmp")) {
-                  ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                                  dpi = 300L, width = 10L, height = 10L, units = "in")
+                if (s == "html") {
+                  plotLy_lst[[ttl]] <- plotly::ggplotly(plot, tooltip = c("x", "y"))
+                  htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
                 } else {
-                  ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
+                  ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
                 }
-                setwd(wd0)
               } }
+              setwd(wd0)
             }
           }
         }
       } else { warning("NB: \"msmsScans.txt\" could not be loaded and may be corrupted...") }
     } else { message("NB: \"msmsScans.txt\" could not be found.") }
-    # Plot - original evidences contamination level
+    # Plot - original PSMs contamination level
     wMQ <- which(vapply(MQtxt, \(dir) { "evidence.txt" %in% list.files(dir) }, TRUE))
     if (length(wMQ)) {
       ev2 <- lapply(MQtxt[wMQ], \(dir) {
@@ -722,11 +730,11 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         w2 <- which(ev2$`Potential contaminant` == "+")
         ev2$Class[w1] <- "Reverse"
         ev2$Class[w2] <- "Potential\ncontaminant"
-        # (I assume that if an evidence is both reverse and contaminant, the latter takes priority.)
+        # (I assume that if a PSM is both reverse and contaminant, the latter takes priority.)
         ev2$Class <- factor(ev2$Class, levels = c("Sample", "Reverse", "Potential\ncontaminant"))
         temp <- aggregate(1L:nrow(ev2), list(ev2$`Raw file`, ev2$Class), length)
         colnames(temp) <- c("Raw file", "Class", "Count")
-        ttl <- "Evidences QC"
+        ttl <- "PSMs QC"
         plot <- ggplot2::ggplot(temp) +
           ggplot2::geom_bar(stat = "identity",
                             ggplot2::aes(x = Class, y = Count, fill = Class)) +
@@ -736,21 +744,22 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           plot <- plot + viridis::scale_fill_viridis(begin = 0.2, discrete = TRUE, option = "D")
         }
         poplot(plot, 12L, 22L)
+        setwd(WD)
         if (sv) { for (s in save) {
-          setwd(WD)
-          if (s %in% c("jpeg", "tiff", "png", "bmp")) {
-            ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot,
-                            dpi = 300L, width = 10L, height = 10L, units = "in")
+          if (s == "html") {
+            plotLy_lst[[ttl]] <- plotly::ggplotly(plot, tooltip = c("x", "y"))
+            htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
           } else {
-            ggplot2::ggsave(paste0("Summary plots - ", ttl, ".", s), plot)
+            ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
           }
-          setwd(wd0)
         } }
+        setwd(wd0)
       }
     }
   }
   setwd(wd0)
   #
   if (stopCl) { parallel::stopCluster(cl) }
-  return(Res)
+  return(list(table = Res,
+              plotLy = plotLy_lst))
 }

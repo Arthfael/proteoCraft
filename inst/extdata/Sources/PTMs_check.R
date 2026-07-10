@@ -175,8 +175,16 @@ plot <- ggplot(tmp) +
   ggtitle(ttl, subtitle = "Summed TIC per peptide class") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-ggsave(paste0(wd, "/Summary plots/", ttl, ".jpeg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
-ggsave(paste0(wd, "/Summary plots/", ttl, ".pdf"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
+suppressMessages({
+  ggsave(paste0(wd, "/Summary plots/", ttl, ".jpeg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
+  ggsave(paste0(wd, "/Summary plots/", ttl, ".pdf"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
+})
+plotLy <- ggplotly(plot, tooltip = c("x", "y", "fill"))
+if (!exists("QC_plotLys")) { QC_plotLys %<o% list() }
+setwd(paste0(wd, "/Summary plots"))
+saveWidget(plotLy, paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
+setwd(wd)
+QC_plotLys[ttl] <- plotLy
 
 # Time points
 if (exists("Tim")) {

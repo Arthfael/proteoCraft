@@ -319,7 +319,7 @@ if (!RunByMaster) {
                           options = list(dom = "t",
                                          paging = FALSE,
                                          ordering = FALSE,
-                                         autowidth = TRUE,
+                                         autoWidth = TRUE,
                                          columnDefs = list(list(width = "100px", targets = 0L),
                                                            list(width = "400px", targets = 1L),
                                                            list(width = "200px", targets = 2L),
