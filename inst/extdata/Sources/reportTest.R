@@ -26,6 +26,7 @@ plotHght <- paste0(round(screenRes$height*0.75), "px")
 # UI functions
 make_prot_tab <- \(prot,
                    prots = allProt,
+                   dflt = dfltProt,
                    shiny = TRUE) {
   # - show:
   # Proteins tab
@@ -48,7 +49,7 @@ make_prot_tab <- \(prot,
   myTags <- if (shiny) {
     tags$div(
       if (prot.list.Cond && (length(prots) > 1L)) {
-        tags$div(selectInput("myProtein", "Select protein", allProt, dfltProt),
+        tags$div(selectInput("myProtein", "Select protein", allProt, dflt),
                  tags$br())
       },
       uiOutput("protComment"),
@@ -283,7 +284,7 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
   }
   col2 <- setdiff(colnames(df), c("PEP", quantCols))
   df[, col2] <- sapply(col2, \(k) {
-    if (k %in% covCols) {
+    if ((tab == "Protein groups") && (k %in% covCols)) {
       make_bar(df[[k]])
     } else {
       sprintf("<div class=\"cell-wrap\">%s</div>", df[[k]])
@@ -580,7 +581,7 @@ ui <- fluidPage(useShinyjs(),
                 fluidRow(column(4L,
                                 h2(dtstNm)),
                          column(8L,
-                                actionBttn("xprtBtn", "Export", icon = icon("file-export"), color = "success", style = "pill"),
+                                actionBttn("xprtBtn", " export final html report", icon = icon("file-export"), color = "success", style = "pill"),
                                 uiOutput("xprtMsg"))),
                 br(),
                 uiOutput("myUI"),
@@ -673,10 +674,10 @@ server <- \(input, output, session) {
                                   .noWS = "outside"))
     # 1. Rebuild the SAME UI we use in the app
     page <- # tagList(div(h3(paste0(dtstNm, " - report"), br(),
-            #                "Analysis run by: ", em(WhoAmI), br(),
-            #                "Date: ", em(Sys.Date()), br(),
-            #                "Package: ", em("proteoCraft v", package.version("proteoCraft")), br())),
-                    make_ui(FALSE)#)
+      #                "Analysis run by: ", em(WhoAmI), br(),
+      #                "Date: ", em(Sys.Date()), br(),
+      #                "Package: ", em("proteoCraft v", package.version("proteoCraft")), br())),
+      make_ui(FALSE)#)
     # 2. Wrap as browsable HTML
     page <- htmltools::browsable(page)
     # 3. Save to disk
@@ -753,3 +754,9 @@ gc <- grepl("^ *<link href=\"", hd1$original)
 hd1$new[gc] <- vapply(sub("\".*", "", sub("^ *<link href=\"", paste0(wd, "/"), hd1$original[gc])), inline_css, "")
 h2[rg1] <- hd1$new
 write(h2, htmlSCRprtFl)
+
+
+
+# TO DO
+# - remove local /lib folder
+# - overwrite report instead of keeping two versions

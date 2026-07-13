@@ -1793,9 +1793,10 @@ tmp <- MQ.summary(wd = wd, ev = ev, pg = PG, mods = setNames(Modifs$Mark, Modifs
                   raw.files = rawFiles, sc = max(c(20L, round(length(rawFiles2)/length(Exp)))),
                   cl = parClust, MQtxt = inDirs[which(SearchSoft == "MAXQUANT")])
 Exp_summary %<o% tmp$table
-if (!exists("QC_plotLys")) { QC_plotLys %<o% list() }
-QC_plotLys[names(tmp$plotLy)] <- tmp$plotLy
 write.csv(Exp_summary, paste0(wd, "/Workflow control/Summary.csv"), row.names = FALSE)
+if (!exists("QC_plotLys")) { QC_plotLys <- list() }
+QC_plotLys %<o%  QC_plotLys
+QC_plotLys[names(tmp$plotLy)] <- tmp$plotLy
 #Exp_summary <- read.csv(paste0(wd, "/Workflow control/Summary.csv"), check.names = FALSE)
 
 # Plot of contamination levels per sample
@@ -1809,12 +1810,12 @@ tmp2$Cont <- db$`Potential contaminant`[m]
 if (tstOrg) {
   tmp2$Organism <- db[m, dbOrgKol]
   tmp2 <- as.data.table(tmp2)
-  f0 <- function(x) { c("Target", "Contaminant")[("Contaminant" %in% x)+1L] }
+  f0 <- \(x) { c("Target", "Contaminant")[("Contaminant" %in% x) + 1L] }
   tmp2 <- tmp2[, list(x = f0(Organism)), by = list(Group.1 = Row)]
   tmp2 <- as.data.frame(tmp2)
 } else {
   tmp2 <- as.data.table(tmp2)
-  f0 <- function(x) { c("Target", "Contaminant")[("+" %in% x)+1L] }
+  f0 <- \(x) { c("Target", "Contaminant")[("+" %in% x) + 1L] }
   tmp2 <- tmp2[, list(x = f0(Cont)), by = list(Group.1 = Row)]
   tmp2 <- as.data.frame(tmp2)
 }
@@ -1826,7 +1827,7 @@ colnames(tmp) <- c("Experiment", "Organism", "Total intensity")
 tmp$Experiment <- factor(tmp$Experiment, levels = SamplesMap$Experiment)
 ttl <- "Contributions to TIC"
 plot <- ggplot(tmp) + geom_bar(stat = "identity", aes(x = Experiment, y = `Total intensity`, fill = Organism)) +
-  theme_bw() + scale_fill_viridis(discrete = TRUE, begin = 0.8, end = 0.2) +
+  theme_bw() + scale_fill_viridis(discrete = TRUE, begin = 0.2, end = 0.8) +
   ggtitle(ttl, subtitle = "Summed TIC for each class of identified peptides")
 poplot(plot)
 suppressMessages({
@@ -1834,7 +1835,8 @@ suppressMessages({
   ggsave(paste0(wd, "/Summary plots/", ttl, ".pdf"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
 })
 plotLy <- ggplotly(plot, tooltip = c("x", "y", "fill"))
-if (!exists("QC_plotLys")) { QC_plotLys %<o% list() }
+if (!exists("QC_plotLys")) { QC_plotLys <- list() }
+QC_plotLys %<o% QC_plotLys
 setwd(paste0(wd, "/Summary plots"))
 saveWidget(plotLy, paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)

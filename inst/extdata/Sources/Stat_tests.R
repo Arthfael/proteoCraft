@@ -215,8 +215,8 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
     # w <- which(psm.counts$count == 0L)
     # psm.counts$count[w] <- 1L
     fit2$count <- rep(1L, nrow(fit2))
-    w <- which(rownames(fit2$coefficients) %in% row.names(psm.counts))
-    m <- match(rownames(fit2$coefficients)[w], row.names(psm.counts))
+    w <- which(rownames(fit2$coefficients) %in% rownames(psm.counts))
+    m <- match(rownames(fit2$coefficients)[w], rownames(psm.counts))
     fit2$count[w] <- psm.counts$count[m]
     fit3 <- try(spectraCounteBayes(fit2), silent = TRUE)
     if (!inherits(fit3, "try-error")) {
@@ -239,8 +239,8 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
         kol1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", pRoot)), contrNm)
         kol2 <- paste0(pRoot, contrNm)
         myData[[kol1]] <- NA_real_
-        w <- which(myData[[namesCol]] %in% row.names(DEqMS.results))
-        m <- match(myData[[namesCol]][w], row.names(DEqMS.results))
+        w <- which(myData[[namesCol]] %in% rownames(DEqMS.results))
+        m <- match(myData[[namesCol]][w], rownames(DEqMS.results))
         myData[w, kol1] <- DEqMS.results$sca.P.Value[m]
       }
       myData[, kols2] <- -log10(myData[, kols1])
@@ -295,6 +295,7 @@ if ((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) {
   w <- which(Lit %in% colnames(myContrasts))
   tmp <- myContrasts[, Lit[w]]
   nms <- VPAL$names
+  
   if (length(Exp) == 1L) { nms <- setdiff(nms, "Experiment") }
   fct <- paste(paste0(nms, "_._"), collapse = "_")
   for (lit in Lit[w]) {
@@ -345,9 +346,10 @@ if ((dataType == "PG") && ("MSstats_list" %in% names(quantData_list))) {
     cat("       WARNING! MSstats as currently implemented in this workflow cannot handle batch effects -> we recommend rerunning with ComBat batch correction on!\n\n")
   }
   # Convert limma contrasts matrix to MSstats-compatible one 
-  msstatsContrMatr <- t(contrMatr[which(row.names(contrMatr) %in% expMap[[VPAL$limmaCol]]),])
+  msstatsContrMatr <- t(contrMatr[which(rownames(contrMatr) %in% expMap[[VPAL$limmaCol]]),])
   tmp <- rownames(expMap)[match(colnames(msstatsContrMatr), expMap[[VPAL$limmaCol]])]
   colnames(msstatsContrMatr) <- Exp.map[match(tmp, Exp.map$Ref.Sample.Aggregate), VPAL$column]
+  rownames(msstatsContrMatr) <- colnames(contrMatr)
   # Run test
   msstatsComp %<o% MSstats::groupComparison(contrast.matrix = msstatsContrMatr,
                                             data = quantData_list$MSstats_list)
@@ -362,9 +364,11 @@ if ((dataType == "PG") && ("MSstats_list" %in% names(quantData_list))) {
                                  unique,
                                  value = "pvalue")
   msstatsLFC <- msstatsLFC[match(myData[[namesCol]], msstatsLFC$Protein),
-                           myContrasts$Contrast]
+                           myContrasts$Contrast,
+                           drop = FALSE]
   msstatsPVal <- msstatsPVal[match(myData[[namesCol]], msstatsPVal$Protein),
-                             myContrasts$Contrast]
+                             myContrasts$Contrast,
+                             drop = FALSE]
   rownames(msstatsLFC) <- rownames(msstatsPVal) <- myData[[namesCol]]
   #
   kols1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", msstatsRoot)), myContrasts$Contrast)
@@ -628,8 +632,9 @@ if (length(whSingle)) {
             nr <- nrow(myData)
             RES <- data.frame(A = rep(NA, nr),
                               B = rep(NA, nr),
-                              C = rep(NA, nr),
-                              D = rep(NA, nr))
+                              C = rep(NA, nr)#,
+                              #D = rep(NA, nr)
+                              )
             colnames(RES) <- samK
             RES[wh, samK[1L]] <- tmpSIGGENES@p.value
             RES[wh, samK[2L]] <- -log10(tmpSIGGENES@p.value)
@@ -712,7 +717,7 @@ if (length(whSingle)) {
       })
     }, silent = TRUE)
     if (!inherits(tstTst, "try-error")) {
-      tmp <- cbind.data.frame(lapply(tstTst, \(x) { x$Val }))
+      tmp <- do.call(cbind, lapply(tstTst, \(x) { x$Val }))
       myData[, colnames(tmp)] <- tmp
       if (taest == "SAM") {
         samThresh <- setNames(lapply(tstTst, \(x) { x[c("siggenesOut", "decision", "S0", #"Si",

@@ -55,13 +55,13 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
   } else { MQtxt <- getwd() }
   wd0 <- getwd()
   WD <- if (misFun(wd)) { wd0 } else { wd }
-  WD <- gsub("/+$", "", normalizePath(WD, "/"))
+  WD <- sub("/+$", "", normalizePath(WD, "/"))
   if (!is.null(subfolder)) {
     subfolder <- gsub("^/+|/+$", "", gsub("\\\\", "/", subfolder)) # Here do not use normalizePath... try, you will see why ^^
     WD <- paste0(WD, "/", subfolder, "/")
   }
   if (!dir.exists(WD)) { dir.create(WD) }
-  sv <- (length(save) > 1L)||((length(save) == 1L)&(!toupper(as.character(save)) %in% c("FALSE", "NaN", "NA")))
+  sv <- (length(save) > 1L) || ((length(save) == 1L) && (!toupper(as.character(save)) %in% c("FALSE", "NaN", "NA")))
   if (sv) { save <- unique(sub("^jpg$", "jpeg", sub("^\\.", "", tolower(save)))) }
   if (misFun(ev)) {
     ev <- MQ.load(return = TRUE, assign = FALSE, pep = FALSE, prot = FALSE)$evidences
@@ -72,11 +72,11 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
   }
   if (filter) {
     W <- colnames(ev)[which(toupper(colnames(ev)) %in% c("CONTAMINANT", "POTENTIAL.CONTAMINANT"))]
-    for (w in W) { ev <- ev[which((ev[[w]] != "+")|(is.na(ev[[w]]))),] }
-    ev <- ev[which((ev$Reverse != "+")|(is.na(ev$Reverse))),]
+    for (w in W) { ev <- ev[which((ev[[w]] != "+") | is.na(ev[[w]])),] }
+    ev <- ev[which((ev$Reverse != "+") | is.na(ev$Reverse)),]
     ev <- ev[which(is.finite(ev$Intensity) & (ev$Intensity > 0)),]
     W <- colnames(pg)[which(toupper(colnames(pg)) %in% c("CONTAMINANT", "POTENTIAL CONTAMINANT"))]
-    for (w in W) { pg <- pg[which((pg[[w]] != "+")|(is.na(pg[[w]]))),] }
+    for (w in W) { pg <- pg[which((pg[[w]] != "+") | is.na(pg[[w]])),] }
     pg <- pg[which(pg$id %in% unique(unlist(strsplit(ev$"Protein group IDs", ";")))),]
   }
   Res <- data.frame(Sample = "Whole dataset",
@@ -99,7 +99,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     }
   }
   if ("Raw file" %in% colnames(ev)) {
-    Raw <- data.frame("Raw file" = gsub("\\.((raw)|(mzX?ML)|(d)|(dia))$", "", basename(raw.files)),
+    Raw <- data.frame("Raw file" = sub("\\.((raw)|(mzX?ML)|(d)|(dia))$", "", basename(raw.files)),
                       "Directory" = dirname(raw.files),
                       "Path" = raw.files,
                       "Extension" = vapply(strsplit(raw.files, "\\."), \(x) { rev(unlist(x))[1L] }, ""),
@@ -125,7 +125,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       if (w == 3L) { rawFls <- paste0(rawFls, ".", Raw$Extension) }
     } else {
       raw <- unique(ev$"Raw file")
-      Raw <- data.frame("Raw file" = gsub("\\.((raw)|(mzX?ML)|(d)|(dia))$", "", basename(raw)),
+      Raw <- data.frame("Raw file" = sub("\\.((raw)|(mzX?ML)|(d)|(dia))$", "", basename(raw)),
                         "Directory" = dirname(raw),
                         "Path" = raw,
                         "Extension" = vapply(strsplit(raw, "\\."), \(x) { rev(unlist(x))[1L] }, ""),
@@ -229,7 +229,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     g <- grep("^Sequence coverage \\[%\\]( - )?", colnames(pg), value = TRUE)
     if (length(g)) {
       temp <- dfMelt(pg[, g])
-      temp$Sample <- gsub("^Sequence coverage \\[%\\]( - )?", "", temp$variable)
+      temp$Sample <- sub("^Sequence coverage \\[%\\]( - )?", "", temp$variable)
       temp$Sample[which(temp$Sample == "")] <- "Global"
       temp$Sample <- gsub("___", " ", temp$Sample)
       temp <- aggregate(temp$value, list(round(temp$value), temp$Sample), length)
@@ -238,7 +238,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       temp <- temp[which(temp$"Sequence coverage [%]" > 0),]
       meds <- aggregate(temp$"Sequence coverage [%]", list(temp$Sample), median)
       colnames(meds) <- c("Sample", "Median")
-      meds$Label <- paste0("Median = ", signif(meds$Median, 3L), "%")
+      meds$Label <- paste0("Median =\n", signif(meds$Median, 3L), "%")
       ttl <- "Sequence coverage"
       sttl <- "(1st protein in group)"
       lev <- unique(temp$Sample)
@@ -251,8 +251,8 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                                        fill = `Sequence coverage [%]`)) +
         ggplot2::geom_text(data = meds,
                            ggplot2::aes(label = Label),
-                           x = max(temp$`Sequence coverage [%]`)*0.9,
-                           y = max(temp$Count)*0.9, hjust = 1, size = 3) +
+                           x = max(temp$`Sequence coverage [%]`)*0.5,
+                           y = max(temp$Count)*0.9, hjust = 0.5, size = 3) +
         ggplot2::facet_wrap(~Sample) +
         ggplot2::ggtitle(paste0(ttl, " (%)"), sttl) + ggplot2::theme_bw()
       if (tstVir) {
@@ -350,12 +350,12 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     }
     # Plot - TIC and Base peak
     if ("Path" %in% colnames(Raw)) {
-      we <- which(file.exists(gsub("\\.[^\\.]+$", ".raw", Raw$Path)))
+      we <- which(file.exists(sub("\\.[^\\.]+$", ".raw", Raw$Path)))
       if (length(we)) {
         #
         # Create cluster
         stopCl <- FALSE
-        if ((is.null(cl))||(!inherits(cl, "cluster"))) {
+        if (is.null(cl) || (!inherits(cl, "cluster"))) {
           dc <- parallel::detectCores()
           if (misFun(N.reserved)) { N.reserved <- 1L }
           nMax <- max(c(dc - N.reserved, 1L))

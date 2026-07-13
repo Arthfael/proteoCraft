@@ -9,8 +9,15 @@ inst/extdata/Utils_private/
 .RData
 .Ruserdata
 
+# Microsoft Office temporary/lock files
+~$*
+
 # (optionally protect other local caches)
 *.Rapp.history
+.Rproj.user
+.Rproj.user
+.Rproj.user
+.Rproj.user
 .Rproj.user
 .Rproj.user
 .Rproj.user

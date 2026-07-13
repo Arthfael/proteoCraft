@@ -61,11 +61,11 @@ my_PVal_Col <- my_PVal_Col[which(vapply(my_PVal_Col, \(type) { #type <- my_PVal_
 stopifnot(length(my_PVal_Col) > 0L)
 #
 # Scatter plots:
-pkol2 <- gsub(" - $", "", pval_Col)
+pkol2 <- gsub(" - $", "", my_PVal_Col)
 whSingle <- which(!myContrasts$isDouble)
 temp <- lapply(whSingle, \(i) { #i <- 1L
   nm <- myContrasts$Contrast[i]
-  j <- paste0(pval_Col, nm)
+  j <- paste0(my_PVal_Col, nm)
   w <- which(j %in% colnames(myData))
   j <- j[w]
   if (!length(j)) { return(NA) }
@@ -88,7 +88,7 @@ tmpFl <- tempfile(fileext = ".rds")
 readr::write_rds(temp, tmpFl)
 nr <- nrow(myContrasts)
 #
-clusterExport(parClust, list("Comb", "tmpFl", "pvalDir", "pval_Col", "gsub_Rep",
+clusterExport(parClust, list("Comb", "tmpFl", "pvalDir", "my_PVal_Col", "gsub_Rep",
                              "plotEval", "slim_plotly", "entityCol", "my_PVal_Col", "nr"),
               envir = environment())
 invisible(clusterCall(parClust, \() {
@@ -162,8 +162,8 @@ invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 # P-values histogram:
 nbin <- 40L
 bd <- (0L:nbin)/nbin
-pvalLvls <- gsub_Rep("('s)?( t-)?(test)? -log10\\(Pvalue\\) - $", "", pval_Col)
-temp <- setNames(lapply(pval_Col, \(type) { #type <- pval_Col[1L]
+pvalLvls <- gsub_Rep("('s)?( t-)?(test)? -log10\\(Pvalue\\) - $", "", my_PVal_Col)
+temp <- setNames(lapply(my_PVal_Col, \(type) { #type <- my_PVal_Col[1L]
   #
   # Estimate power at 0.05%
   kol <- grep(topattern(sub(" -log10\\(", " ", sub("\\) - $", " - ", type))), colnames(myData), value = TRUE)
@@ -193,7 +193,7 @@ temp <- setNames(lapply(pval_Col, \(type) { #type <- pval_Col[1L]
   res$Low <- 0L
   return(list(Dat = res,
               pwrEst = power_est))
-}), gsub("('s)?( t-)?(test)? -log10\\(Pvalue\\) - $", "", pval_Col))
+}), gsub("('s)?( t-)?(test)? -log10\\(Pvalue\\) - $", "", my_PVal_Col))
 pwrAnnot <- lapply(names(temp), \(x) { #x <- names(temp)[1L]
   data.frame("power estimate" = paste0(round(100L*temp[[x]]$pwrEst, 1L), "%"),
              "P-value type" = x,
@@ -229,7 +229,7 @@ plot2 <- ggplot(temp) +
 #poplot(plot2, 12L, 22L)
 Img2 <- paste0(pvalDir, "/", ttl2)
 w2 <- ((length(whSingle)+1)*1.25)*2
-h2 <- ((length(pval_Col)+0.2)*1.25)*2
+h2 <- ((length(my_PVal_Col)+0.2)*1.25)*2
 suppressMessages({
   ggsave(paste0(Img2, ".jpeg"), plot2, dpi = 150L, width = w2, height = h2, units = "in")
   ggsave(paste0(Img2, ".pdf"), plot2, dpi = 150L, width = w2, height = h2, units = "in")
@@ -264,7 +264,7 @@ if ((dataType == "modPeptides") && (Ptm %in% names(PTMs_PVal_use))) {
 } else {
   my_PVal_Use <- setNames(names(my_PVal_Col) == Param$P.values.type,
                           names(my_PVal_Col))
-  pval_Use <- my_PVal_Use[names(pval_Col)]
+  pval_Use <- my_PVal_Use[names(my_PVal_Col)]
 }
 if (!sum(pval_Use)) { pval_Use["Moderated"] <- TRUE }
 if (!sum(pval_Use)) { pval_Use[1L] <- TRUE }
@@ -290,7 +290,7 @@ ui <- fluidPage(
   br(),
   #
   fluidRow(column(2L,
-                  selectInput("PVal", msg, names(pval_Col), names(pval_Col)[which(pval_Use)])),
+                  selectInput("PVal", msg, names(my_PVal_Col), names(my_PVal_Col)[which(pval_Use)])),
            column(2L,
                   actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"))),
   br(),
@@ -298,7 +298,7 @@ ui <- fluidPage(
                   selectInput("XY",
                               "Select comparison to display...",
                               Imgs1Nms,
-                              grep(names(pval_Col)[which(pval_Use)], Imgs1Nms, value = TRUE)[1L]),
+                              grep(names(my_PVal_Col)[which(pval_Use)], Imgs1Nms, value = TRUE)[1L]),
                   withSpinner(plotlyOutput("Img1", inline = TRUE))),
            column(7L,
                   withSpinner(plotOutput("Img2", inline = TRUE)))),
@@ -315,8 +315,8 @@ server <- \(input, output, session) {
   }
   output$Img1 <- updtIMG1(FALSE)
   output$Img2 <- renderPlot({ print_gg(plotsList$Histogram$Plot) },
-                            height = 50L+200L*length(pval_Col),
-                            width = 50L+200L*nrow(myContrasts))
+                            height = 50L+200L*length(my_PVal_Col),
+                            width = 50L+200L*(nrow(myContrasts)+1L))
   observeEvent(input$PVal, {
     assign("my_PVal_Use", setNames(names(my_PVal_Col) == input$PVal, names(my_PVal_Col)), envir = .GlobalEnv)
   }, ignoreInit = FALSE)
@@ -351,7 +351,7 @@ if (dataType == "PG") {
   # prExpr_roots %<o% prExpr_roots
   # Get the log2FCs from all methods for comparison
   ratKol <- paste0(ratRef, myContrasts$Contrast)
-  logFCs <- list(make_Rat2 = set_colnames(quantData_list$Data[, ratKol], myContrasts$Contrast))
+  logFCs <- list(make_Rat2 = set_colnames(quantData_list$Data[, ratKol, drop = FALSE], myContrasts$Contrast))
   nmsConv <- data.frame(Name = c("limma", "DEqMS", "QFeatures", "ROTS", "MSstats"),
                         P.values.type = c("Moderated", "DEqMS", "MSqRob", "ROTS", "MSstats"))
   for (i in 1L:nrow(nmsConv)) { #i <- 5L
@@ -387,7 +387,7 @@ if (dataType == "PG") {
     w <- which(!is.finite(as.matrix(repRat)), arr.ind = TRUE)
     repRat[w] <- NA_real_
     m <- match(myData[[rowsCol]], rownames(repRat))
-    repRat <- repRat[m, myContrasts$Contrast[whContr]]
+    repRat <- repRat[m, myContrasts$Contrast[whContr], drop = FALSE]
     rownames(repRat) <- myData[[rowsCol]]
     logFCs[[nm]] <- repRat
   }
@@ -419,7 +419,6 @@ if (dataType == "PG") {
     myData[, paste0(ratRef, colnames(repRat))] <- repRat
   }
 }
-
 
 if (dataType == "peptides") {
   pep <- myData

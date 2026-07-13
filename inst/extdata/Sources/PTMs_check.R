@@ -171,7 +171,7 @@ if (LabelType == "Isobaric") {
 ttl <- "Contributions to TIC"
 plot <- ggplot(tmp) +
   geom_bar(stat = "identity", aes(x = .data[[k]], y = `Total intensity`, fill = Organism)) +
-  theme_bw() + scale_fill_viridis(discrete = TRUE, begin = 0.8, end = 0.2) +
+  theme_bw() + scale_fill_viridis(discrete = TRUE, begin = 0.2, end = 0.8) +
   ggtitle(ttl, subtitle = "Summed TIC per peptide class") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 print(plot) # This type of QC plot does not need to pop up, the side panel is fine
