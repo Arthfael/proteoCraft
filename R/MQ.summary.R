@@ -94,7 +94,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       l <- length(temp); lu <- length(unique(temp))
       Res[[paste0(names(mods)[i], " - PSMs")]] <- l
       Res[[paste0(names(mods)[i], " - peptides")]] <- lu
-      Res[[paste0(names(mods)[i], " - % ev.")]] <- round(100*l/Res$PSMs[1L], 2L)
+      Res[[paste0(names(mods)[i], " - % PSMs")]] <- round(100*l/Res$PSMs[1L], 2L)
       Res[[paste0(names(mods)[i], " - % pep.")]] <- round(100*lu/Res$Peptides[1L], 2L)
     }
   }
@@ -152,7 +152,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           l <- length(temp); lu <- length(unique(temp))
           Res[n, paste0(names(mods)[i], " - PSMs")] <- l
           Res[n, paste0(names(mods)[i], " - peptides")] <- lu
-          Res[n, paste0(names(mods)[i], " - % ev.")] <- round(100*l/Res$PSMs[n], 2L)
+          Res[n, paste0(names(mods)[i], " - % PSMs")] <- round(100*l/Res$PSMs[n], 2L)
           Res[n, paste0(names(mods)[i], " - % pep.")] <- round(100*lu/Res$Peptides[n], 2L)
         }
       }

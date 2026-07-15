@@ -6,7 +6,26 @@ library(DT)
 library(plotly)
 
 htmlRprtFl <- paste0(wd, "/Report_", dtstNm, ".html")
-htmlSCRprtFl <- paste0(wd, "/Report_", dtstNm, "_SC.html")
+tbl_css <- tags$style(HTML("table.dataTable th,
+table.dataTable td {
+  white-space: normal !important;
+  vertical-align: top;
+}
+table.dataTable td .cell-wrap {
+  display: block;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}"))
+report_header <- tags$header(paste0(dtstNm, " - report"),
+    br(),
+    "Analysis run by: ", em(WhoAmI),
+    br(),
+    "Date: ", em(Sys.Date()),
+    br(),
+    "Package: ", em(paste0("proteoCraft v", package.version("proteoCraft"))),
+    br(),
+    br())
 
 # Reload processed data from the report
 allNms <- openxlsx2::wb_get_sheet_names(openxlsx2::wb_load(repFl))
@@ -21,12 +40,15 @@ xlDat <- setNames(lapply(nms, \(nm) {
 }), nms)
 
 #
+#plotHght <- "400px"
 plotHght <- paste0(round(screenRes$height*0.75), "px")
+nmsHtMp <- names(plotLeatMaps$Global)
+nmsHtMp <- intersect(union("None", nmsHtMp), nmsHtMp)
+plotHtMpHght <- paste0(round(min(c(400, vapply(nmsHtMp, \(nm) { plotLeatMaps$Global[[nm]]$Render$sizingPolicy$defaultHeight }, 1)))), "px")
 
 # UI functions
-make_prot_tab <- \(prot,
+make_prot_tab <- \(dflt = dfltProt,
                    prots = allProt,
-                   dflt = dfltProt,
                    shiny = TRUE) {
   # - show:
   # Proteins tab
@@ -49,107 +71,135 @@ make_prot_tab <- \(prot,
   myTags <- if (shiny) {
     tags$div(
       if (prot.list.Cond && (length(prots) > 1L)) {
-        tags$div(selectInput("myProtein", "Select protein", allProt, dflt),
-                 tags$br())
+        tags$div(selectInput("myProtein", "Select protein", prots, dflt),
+                 br())
       },
       uiOutput("protComment"),
-      tags$br(),
+      br(),
       fluidRow(column(6L,
-                      plotlyOutput("ratioPlot", height = plotHght)),
-               column(6L,
                       if (length(Exp) > 1L) {
                         selectInput("mySample", "", Exp, Exp[1L]) 
                       },
-                      plotlyOutput("coverPlot", height = plotHght))),
+                      plotlyOutput("coverPlot", height = plotHght)),
+               column(6L,
+                      plotlyOutput("ratioPlot", height = plotHght))),
       br(),
       tags$hr(style = "border-color: black;"),
       uiOutput("protPep"),
       br())
   } else {
     ## Coverage plots ###################################################
-    cov_plots <- list()
     dfltSmpl <- Exp[1L]
-    for (prot in prots) {
-      for (exp in Exp) {
-        visible <- (prot == dflt) && (exp == dfltSmpl)
-        cov_plots <- append(cov_plots,
-                            tags$div(id = paste0("cov_", prot, "_", exp),
-                                     style = paste("width:100%;",
-                                                   if (visible) { "display:block;" } else { "display:none;" } ),
-                                     covPlots[[prot]]$logInt[[exp]]))
-      }
-    }
+    exp2smpl <- listMelt(lapply(prots, \(pr) { Exp }), prots, ColNames = c("Sample", "Protein"))
+    cov_plots <- lapply(1L:nrow(exp2smpl), \(i) {
+      exp <- exp2smpl$Sample[i]
+      pr <- exp2smpl$Protein[i]
+      tags$div(id = paste0("cov_", pr, "_", exp),
+               style = paste("width: 100%; display: ",
+                             if ((pr == dflt) && (exp == dfltSmpl)) { "block" } else { "none" },
+                             ";"),
+               covPlots[[pr]]$logInt[[exp]])
+    })
     ## Ratio plots ######################################################
-    ratioPlotsUI <- list()
+    ratio_plots_ui <- NULL
     if (exists("ratioPlots")) {
-      for (prot in intersect(prots, names(ratioPlots))) {
-        visible <- (prot == dflt)
-        ratioPlotsUI <- append(ratioPlotsUI,
-                               tags$div(id = paste0("rat_", prot),
-                                        style = if (visible) { "display:block;" } else { "display:none;" },
-                                        ratioPlots[[prot]]))
+      prots2 <- intersect(prots, names(ratioPlots))
+      if (length(prots2)) {
+        ratio_plots_ui <- lapply(prots2, \(pr) {
+          tags$div(id = paste0("rat_", pr),
+                   style = paste("width: 100%; display: ",
+                                 if (pr == dflt) { "block" } else { "display" },
+                                 ";"),
+                   ratioPlots[[pr]])
+        })
       }
     }
+    #
+    ## Comments #########################################################
+    prot_comments <- allComments[prots]
+    prComments <- lapply(prots, \(pr) {
+      make_comment_ui(pr,
+                      FALSE,
+                      prot_comments,
+                      pr == dflt,
+                      "prComment_")
+    })
+    #
+    ## Peptide tables  ##################################################
+    pepTables <- lapply(prots, \(pr) {
+      m <- match(pr, prots)
+      tags$div(id = paste0("pepTable_", m),
+               style = if (pr == dflt) { "width: 100%; display: block;" } else { "display: none;" },
+               make_tbl_ui(tab = "All peptidoforms",
+                           filt = pr))
+    })
     ## UI ###############################################################
     tagList(
       if (length(prots) > 1L) {
         fluidRow(column(12L,
-                        tags$label("Protein"),
-                        tags$select(id = "myProtein",
-                                    lapply(prots, \(pr) {
-                                      tags$option(value = pr,
-                                                  selected = pr == dflt[1L],
-                                                  pr)
-                                    })),
-                        tags$br()))
+                        make_select_tag("myProtein",
+                                        "",
+                                        "myProtein",
+                                        prots,
+                                        dflt),
+                        br()))
       },
-      make_comment_ui(dflt, shiny),
-      tags$br(),
+      prComments,
+      br(),
       fluidRow(column(6L,
-                      tags$label("Sample"),
                       if (length(Exp) > 1L) {
-                        tags$select(id = "mySample",
-                                    lapply(Exp, \(x) {
-                                      tags$option(value = x,
-                                                  selected = x == Exp[1L],
-                                                  x)
-                                    }))
+                        make_select_tag("mySample",
+                                        "",
+                                        "mySample",
+                                        Exp,
+                                        Exp[1L])
                       },
-                      tags$br(),
+                      br(),
                       cov_plots),
-               if (length(ratioPlotsUI)) {
-                 column(6L, ratioPlotsUI)
+               if (!is.null(ratio_plots_ui)) {
+                 column(6L, ratio_plots_ui)
                },
       ),
-      tags$script(HTML("function updateProteinPlots() {
+      pepTables,
+      tags$script(HTML("function updateProteinTab() {
   var prot = document.getElementById('myProtein').value;
+  var ind = document.getElementById('myProtein').selectedIndex + 1;
   var sample = document.getElementById('mySample').value;
-  document.querySelectorAll('[id^=\"cov_\"]')
-    .forEach(function(el) {
+  var comm = 'prComment_' + ind
+  document.querySelectorAll('[id^=\"cov_\"]').forEach(function(el) {
       el.style.display = 'none';
-    });
+  });
   var cov = document.getElementById('cov_' + prot + '_' + sample);
   if (cov)
     cov.style.display = 'block';
-  document.querySelectorAll('[id^=\"rat_\"]')
-    .forEach(function(el) {
+  document.querySelectorAll('[id^=\"pepTable_\"]').forEach(function(el) {
       el.style.display = 'none';
-    });
+  });
+  var pepTblID = document.getElementById('pepTable_' + ind);
+  if (pepTblID)
+    pepTblID.style.width = '100%';
+    pepTblID.style.display = 'block';
+  document.querySelectorAll('[id^=\"rat_\"]').forEach(function(el) {
+    el.style.display = 'none';
+  });
   var rat = document.getElementById('rat_' + prot);
   if (rat)
     rat.style.display = 'block';
+  document.querySelectorAll('[id^=\"prComment_\"]').forEach(function(el) {
+    el.style.display = 'none';
+  });
+  document.getElementById(comm).style.display = 'block';
+  document.getElementById(comm).style.whiteSpace = 'pre-wrap';
+  document.getElementById(comm).style.padding = '10px';
   window.dispatchEvent(
     new Event('resize')
   );
 }
-document.getElementById('mySample')
-  .addEventListener('change',
-                    updateProteinPlots);
+document.getElementById('mySample').addEventListener('change', updateProteinTab);
 var prot = document.getElementById('myProtein');
 if (prot)
-  prot.addEventListener('change',
-                        updateProteinPlots);")),
-      tags$br(),
+  prot.addEventListener('change', updateProteinTab);")),
+      br(),
       tags$hr(style = "border-color: black;"))
   }
 return(myTags)
@@ -157,40 +207,35 @@ return(myTags)
 make_comment_ui <- \(id,
                      shiny = TRUE,
                      values = allComments,
-                     toggle = FALSE) {
+                     ON = TRUE,
+                     root = "comment_") {
   if (shiny) {
-    textAreaInput(inputId = paste0("comment_", id),
+    textAreaInput(inputId = paste0(root, id),
                   label = NULL,
                   value = values[id],
                   width = "100%",
                   height = "150px")
   } else {
-    style <- "white-space: pre-wrap; padding: 10px;"
-    if (toggle) {
-      m <- match(id, names(values))
-      if (m > 1L) { style <- "display:none;"}
-    }
+    style <- if (ON) { "display: block; white-space: pre-wrap; padding: 10px;" } else { "display: none;" }
     tags$div(class = "comment-box",
-             `data-id` = paste0("comment_", id),
+             id = paste0(root, match(id, names(values))),
              style = style,
              values[id])
   }
 }
 make_bar <- \(x) {
-  sprintf(
-    '<div style="position:relative; width:100%%; background:#eee; height:16px; border-radius:4px;">
-        <div style="width:%s%%; background:#4CAF50; height:100%%; border-radius:4px;"></div>
-        <div style="position:absolute; top:0; left:50%%; transform:translateX(-50%%);
-                    font-size:11px; line-height:16px; color:black;">
-            %.1f%%
-        </div>
-     </div>',
-    x, x)
+  sprintf("<div style=\"position: relative; width: 100%%; background: #eee; height: 16px; border-radius: 4px;\">
+  <div style=\"width: %s%%; background: #4CAF50; height: 100%%; border-radius: 4px;\"></div>
+  <div style=\"position: absolute; top: 0; left: 50%%; transform: translateX(-50%%); font-size: 11px; line-height: 16px; color: black;\">
+    %.1f%%
+  </div>
+</div>", x, x)
 }
 make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
                  tab = "Protein groups", # can also be "All peptidoforms"; we will eventually add "`PTM`-modified", where `PTM` can be any PTM of interest
-                 filt = NULL, #filt = allProt[1L]
-                 dat = xlDat) {
+                 filt = NULL, #filt = allProt[1L] # Filter by "Common Name"
+                 dat = xlDat,
+                 minN = 1L) {
   df <- dat[[tab]]
   smplCols_lst <- setNames(lapply(exp, \(xp) {
     grep(topattern(paste0(" ", xp), FALSE, TRUE), colnames(df), value = TRUE)
@@ -240,15 +285,22 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
     repColNms <- c(repColNms, repRatCols)
   }
   if (tab == "Protein groups") {
-    k <- unlist(lapply(c("Pep. count ", "PSMs count "), \(k) { paste0(k, exp) }))
-    colNms <- c(colNms, k)
-    repColNms <- if (length(exp) == 1L) { c(repColNms, "Pep. count", "PSMs count") } else { c(repColNms, k) }
+    pepCountCols <- intersect(paste0("Pep. count ", exp), colnames(df))
+    psmCountCols <- intersect(paste0("PSMs count ", exp), colnames(df))
+    k <- union(pepCountCols, psmCountCols)
+    if (length(k)) {
+      colNms <- union(colNms, k)
+      repColNms <- if (length(exp) == 1L) { union(repColNms, c("Pep. count", "PSMs count")) } else { union(repColNms, k) }
+    }
   }
   df <- df[, colNms]
   flt <- if (is.null(filt)) {
     1L:nrow(df)
   } else {
     grsep(db$`Protein ID`[match(filt, db$`Common Name`)], x = df[[filtCol]])
+  }
+  if ((tab == "Protein groups") && is.integer(minN) && (minN > 0L) && length(pepCountCols)) {
+    flt <- flt[which(apply(df[flt, pepCountCols, drop = FALSE], 1L, max, na.rm = TRUE) >= minN)]
   }
   df <- df[flt,]
   colnames(df) <- colNms <- repColNms
@@ -257,6 +309,7 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
   }
   xprCols <- repXprCols
   if (useRat) { ratCols <- repRatCols }
+  covCols <- NULL
   if (tab == "Protein groups") {
     covCols <- paste0("Cov. ", exp)
     repCovCols <- if (length(exp) == 1L) { "Coverage" } else { covCols }
@@ -264,7 +317,7 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
       df[, repCovCols] <- dat[[tab]][flt, covCols]
     } else {
       if (("Coverage" %in% names(dat)) && (covCols %in% colnames(dat$Coverage))) {
-        m <- match(df$"Protein IDs"[flt], dat$Coverage$`Protein IDs`)
+        m <- match(df$"Protein IDs", dat$Coverage$`Protein IDs`)
         df[, repCovCols] <- dat$Coverage[m, covCols]
       }
     }
@@ -282,6 +335,14 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
     ratRng <- range(df[[ratCols]], na.rm = TRUE)
     quantCols <- c(quantCols, ratCols)
   }
+  covSortCols <- character(0)
+  covSortVals <- NULL
+  if (tab == "Protein groups" && (!is.null(covCols)) && length(covCols)) {
+    covSortCols <- paste0(covCols, "__sort")
+    covSortVals <- setNames(lapply(covCols, \(k) {
+      suppressWarnings(as.numeric(df[[k]]))
+    }), covSortCols)
+  }
   col2 <- setdiff(colnames(df), c("PEP", quantCols))
   df[, col2] <- sapply(col2, \(k) {
     if ((tab == "Protein groups") && (k %in% covCols)) {
@@ -290,32 +351,53 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
       sprintf("<div class=\"cell-wrap\">%s</div>", df[[k]])
     }
   })
+  if (length(covSortCols)) {
+    df[covSortCols] <- covSortVals
+  }
   wTest1 <- setNames(vapply(colnames(df), \(k) { #k <- colnames(df)[1L]
-    tmp <- as.character(df[[k]])
-    x <- min(c(250L, max(nchar(c(k, tmp))+3L, na.rm = TRUE)*10L))
-    if (is.na(x)) { x <- 50L }
-    return(as.integer(x))
+    # tmp <- as.character(df[[k]])
+    # x <- min(c(250L, max(nchar(c(k, tmp)) + 3L, na.rm = TRUE)*8L))
+    # if (is.na(x)) { x <- 50L }
+    # return(as.integer(x))
+    max(c(min(c(nchar(k)*8L + 24L,
+          250L)),
+          50L))
   }, 1L), colnames(df))
   wTest2 <- sum(wTest1) + 15L + ncol(df)*5L
   wTest1 <- paste0(as.character(wTest1), "px")
-  wTest1 <- aggregate((1L:length(wTest1))-1L, list(wTest1), c)
+  wTest1 <- aggregate((1L:length(wTest1)) - 1L, list(wTest1), c)
   wTest1 <- apply(wTest1, 1L, \(x) {
     x2 <- as.integer(x[[2L]])
     list(width = x[[1L]],
          targets = x2,
-         names = colnames(df)[x2+1L])
+         names = colnames(df)[x2 + 1L])
   })
+  covOrderDefs <- list()
+  if (length(covSortCols)) {
+    covVisibleTargets <- match(covCols, colnames(df)) - 1L
+    covSortTargets <- match(covSortCols, colnames(df)) - 1L
+    covOrderDefs <- c(Map(\(visible_col, sort_col) {
+      list(targets = visible_col,
+           orderData = sort_col)
+    },
+    covVisibleTargets,
+    covSortTargets),
+    list(list(targets = covSortTargets,
+              visible = FALSE,
+              searchable = FALSE)))
+  }
+  columnDefs_all <- c(unname(wTest1), covOrderDefs)
   df <- DT::datatable(df,
                       rownames = FALSE,
                       class = "compact",
                       escape = FALSE,
-                      options = list(#scrollX = TRUE,
-                        scrollY = "500px",
-                        autoWidth = FALSE,
-                        columnDefs = wTest1))
+                      options = list(scrollX = TRUE,
+                                     scrollY = "500px",
+                                     autoWidth = FALSE,
+                                     columnDefs = columnDefs_all))
   df <- DT::formatRound(df, c("PEP", quantCols), digits = 5L)
   df <- DT::formatStyle(df, "PEP",
-                        backgroundColor = DT::styleInterval(10^-seq(10, 0, length.out = 99L),
+                        backgroundColor = DT::styleInterval(10L^-seq(10, 0, length.out = 99L),
                                                             colorRampPalette(rev(ColScaleList$PEP))(100L)))
   df <- DT::formatStyle(df, xprCols,
                         backgroundColor = DT::styleInterval(seq(xprRng[1L], xprRng[2L], length.out = 99L),
@@ -327,82 +409,150 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
   }
   return(df)
 }
-# make_plot_div <- function(widget, id, visible = TRUE) {
-#   tags$div(id = id,
-#            style = sprintf(
-#              "display:%s; width:100%%;",
-#              if (visible) "block" else "none"
-#            ),
-#            widget)
-# }
+make_summTbl_ui <- \() {
+  df <- t(Exp_summary[, grep(" - % ", colnames(Exp_summary), invert = TRUE, value = TRUE)])
+  colnames(df) <- df[1L,]
+  df <- df[2L:nrow(df),]
+  wdth <- paste0(250L*(ncol(df) + 1L), "px")
+  #hght <- paste0(100L*(nrow(df)+1L), "px")
+  df <- DT::datatable(df,
+                      rownames = TRUE,
+                      class = "compact",
+                      escape = FALSE,
+                      #autoHideNavigation = TRUE,
+                      width = wdth,
+                      #height = hght,
+                      options = list(scrollX = TRUE,
+                                     scrollY = "500px",
+                                     autoWidth = FALSE,
+                                     columnDefs = list(list(width = "200px",
+                                                            targets = 1L:ncol(df) - 1L))))
+}
+make_select_tag <- \(id,
+                     label,
+                     name,
+                     values,
+                     selected) {
+    tags$div(if (nchar(label)) {
+    tags$label(`for` = id,
+               label)
+    },
+    tags$select(id = id,
+                name = name,
+                `data-default` = selected,
+                lapply(values, \(x) {
+                  tags$option(value = x,
+                              selected = if (x == selected) { "selected" } else { NULL },
+                              x)
+                })))
+}
 make_smpl_tab <- \(exp,
                    shiny = TRUE,
+                   quant = quantMeth,
                    dflt = dfltQuant) {
+  lQ <- length(quant)
   if (shiny) {
     tagList(make_comment_ui(exp, shiny),
-            selectInput(paste0("quant_", exp), "", c("LFQ", "Coverage"), dflt[exp]),
+            selectInput(paste0("quant_", exp), "", quant, dflt[exp]),
             plotlyOutput(paste0("quantLy_", exp), height = plotHght),
             br(),
             br(),
             tags$hr(style = "border-color: black;"),
             make_tbl_ui(exp))
   } else {
-    js <- sprintf(
-      "document.getElementById('%s').addEventListener(
-  'change',
-  function() {
-    var selected = document.getElementById('%s').value;
-    document.querySelectorAll('[id^=\"%s\"]').forEach(function(div) {
-      div.style.display = 'none';
-    });
-    document.getElementById('%s' + selected).style.display = 'block';
-    window.dispatchEvent(new Event('resize'));
-  }
-);",
-      paste0("quant_", exp),
-      paste0("quant_", exp),
-      paste0("Quant_", exp, "_"),
-      paste0("Quant_", exp, "_")
-    )
+    id1 <- paste0("quant_", exp)
+    id2 <- paste0("quant_", exp, "_")
+    js <- sprintf("document.getElementById('%s').addEventListener('change', function() {
+  var selected = document.getElementById('%s').selectedIndex + 1;
+  document.querySelectorAll('[id^=\"%s\"]').forEach(function(div) {
+    div.style.display = 'none';
+  });
+  document.getElementById('%s' + selected).style.display = 'block';
+  window.dispatchEvent(new Event('resize'));
+});",
+      id1,
+      id1,
+      id2,
+      id2)
     tagList(make_comment_ui(exp, shiny),
-            tags$div(id = paste0("Quant_", exp, "_", 1L),
-                     style = if (dflt[exp] == "LFQ") { "display:block;" } else { "display:none;" },
-                     ggQuantLy$LFQ[[exp]]$plotly),
-            tags$div(id = paste0("Quant_", exp, "_", 2L),
-                     style = if (dflt[exp] == "Coverage") { "display:block;" } else { "display:none;" },
-                     ggQuantLy$Coverage[[exp]]$plotly),
+            lapply(1L:lQ, \(i) {
+              tags$div(id = paste0("quant_", exp, "_", as.character(i)),
+                       style = if (quant[i] == dflt[exp]) { "display: block;" } else { "display: none;" },
+                       ggQuantLy[[quant[i]]][[exp]]$plotly)
+            }),
             br(),
-            tags$select(id = paste0("quant_", exp),
-                        lapply(1L:2L, \(i) {
-                          tags$option(value = i,
-                                      c("LFQ", "Coverage")[i])
-                        })),
+            make_select_tag(id1,
+                            "",
+                            id1,
+                            quant,
+                            dflt[exp]),
             br(),
             tags$hr(style = "border-color: black;"),
             tags$script(HTML(js)),
             make_tbl_ui(exp))
   }
 }
-make_strt_tab <- \(type = "Z-scored",
-                   shiny = TRUE) {
+make_strt_tab <- \(shiny = TRUE) {
   if (shiny) {
     tagList(make_comment_ui("Dataset overview", shiny),
-            fluidRow(column(6L,
-                            plotlyOutput("heatMap", height = plotHght)),
-                     column(6L,
-                            plotlyOutput("PCA", height = plotHght))),
+            br(),
+            h4(strong(tags$ul(em("Summary table")))),
+            make_summTbl_ui(),
+            br(),
+            br(),
+            fluidRow(column(strtColWdth,
+                            selectInput("myHeatMap",
+                                        "",
+                                        nmsHtMp,
+                                        nmsHtMp[1L]),
+                            plotlyOutput("heatMap", height = plotHtMpHght)),
+                     column(strtColWdth,
+                            plotlyOutput("PCA", height = plotHtMpHght))),
             br())
   } else {
+    styleOn <- paste0("display: block; height: ", plotHtMpHght)
     tagList(make_comment_ui("Dataset overview", shiny),
-            tags$div(style = "
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-      ",
-                     list(plotLeatMaps$Global[[type]]$Render,
-                          height = plotHght)))
+            br(),
+            h4(strong(tags$ul(em("Summary table")))),
+            make_summTbl_ui(),
+            br(),
+            br(),
+            fluidRow(
+              if (tstHtMp) {
+                column(strtColWdth,
+                       make_select_tag("myHeatMap",
+                                       "",
+                                       "myHeatMap",
+                                       nmsHtMp,
+                                       nmsHtMp[1L]),
+                       lapply(nmsHtMp, \(nm) {
+                         i <- match(nm, nmsHtMp)
+                         tags$div(id = paste0("HeatMap_", i),
+                                  style = if (i == 1L) { styleOn } else { "display: none;" },
+                                  plotLeatMaps$Global[[nm]]$Render)
+                       }))
+              },
+              if (tstPCA) {
+                column(strtColWdth,
+                       tags$div(id = "PCA",
+                                style = styleOn,
+                                dimRedPlotLy$PCA))
+              },
+            ),
+            br(),
+            tags$script(HTML(paste0("document.getElementById('myHeatMap').addEventListener('change', function() {
+  var HtMpID = document.getElementById('myHeatMap').selectedIndex + 1;
+  var HtMp = document.getElementById('HeatMap_' + HtMpID);
+  document.querySelectorAll('[id^=\"HeatMap_\"]').forEach(function(el) {
+    el.style.display = 'none';
+  });
+  HtMp.style.display = 'block';
+  HtMp.style.height = '", plotHtMpHght, "';
+  window.dispatchEvent(
+    new Event('resize')
+  );
+});"))))
   }
-  
 }
 make_QC_ui <- \(shiny = TRUE,
                 plotsList = QC_plotLys) {
@@ -415,36 +565,38 @@ make_QC_ui <- \(shiny = TRUE,
                                      uiOutput("QCtxt"))),
                      br()))
   } else {
+    QC_comments <- allComments[names(plotsList)]
     tabPanel("QC",
-             tagList(tags$select(id = "myQC",
-                                 lapply(seq_along(plotsList), \(i) {
-                                   tags$option(value = i,
-                                               names(plotsList)[i])
-                                 })),
+             tagList(make_select_tag("myQC",
+                                     "",
+                                     "myQC",
+                                     names(plotsList),
+                                     names(plotsList)[1L]),
                      lapply(seq_along(plotsList), \(i) {
                        nm <- names(plotsList)[i]
                        fluidRow(column(8L,
                                        tags$div(id = paste0("QC_", i),
-                                                style = if (i == 1L) { "display:block;" } else { "display:none;" },
-                                                plotsList[[i]])),
+                                                style = if (i == 1L) { "display: block;" } else { "display: none;" },
+                                                plotsList[[nm]])),
                                 column(4L,
-                                       make_comment_ui(nm, FALSE, toggle = TRUE)))
+                                       make_comment_ui(nm,
+                                                       FALSE,
+                                                       QC_comments,
+                                                       nm == names(plotsList)[1L],
+                                                       "QCcomment_")))
                      }),
-                     tags$script(HTML("document.getElementById('myQC').addEventListener(
-    'change',
-    function() {
-        var selected = document.getElementById('myQC').value;
-        document.querySelectorAll('[id^=\"QC_\"]').forEach(function(div) { div.style.display = 'none'; });
-        document.getElementById('QC_' + selected).style.display = 'block';
-        document.querySelectorAll('[id^=\"comment_\"]').forEach(function(div) { div.style.display = 'none'; });
-        var div = document.getElementById('comment_' + selected);
-        div.style.display = 'block';
-        div.style.whiteSpace = 'pre-wrap';
-        div.style.padding = '10px';
-        window.dispatchEvent(new Event('resize'));
-    }
-);")),
-                     br()))
+                     br(),
+                     tags$script(HTML("document.getElementById('myQC').addEventListener('change', function() {
+  var selected = document.getElementById('myQC').selectedIndex + 1;
+  document.querySelectorAll('[id^=\"QC_\"]').forEach(function(div) { div.style.display = 'none'; });
+  document.getElementById('QC_' + selected).style.display = 'block';
+  document.querySelectorAll('[id^=\"QCcomment_\"]').forEach(function(div) { div.style.display = 'none'; });
+  var div = document.getElementById('QCcomment_' + selected);
+  div.style.display = 'block';
+  div.style.whiteSpace = 'pre-wrap';
+  div.style.padding = '10px';
+  window.dispatchEvent(new Event('resize'));
+});"))))
   }
 }
 make_ui <- \(shiny = TRUE) {
@@ -454,7 +606,7 @@ make_ui <- \(shiny = TRUE) {
                       make_strt_tab(shiny = shiny)))
     }
     if (x %in% Exp) {
-      return(tabPanel(paste("sample = ", x),
+      return(tabPanel(paste0("sample = ", x),
                       make_smpl_tab(x,
                                     shiny = shiny)))
     }
@@ -465,7 +617,7 @@ make_ui <- \(shiny = TRUE) {
                           make_prot_tab(dfltProt,
                                         shiny = shiny)
                         },
-                        tags$br()
+                        br()
                       )))
     }
     if (x == "QC") {
@@ -476,7 +628,12 @@ make_ui <- \(shiny = TRUE) {
 }
 
 # If necessary reload plots data
-loadFun(paste0(wd, "/Clustering/HeatMaps.RData"))
+flHtMp <- paste0(wd, "/Clustering/HeatMaps.RData")
+tstHtMp <- file.exists(flHtMp)
+if (tstHtMp) {
+  loadFun(flHtMp)
+  tstHtMp <- exists("plotLeatMaps") && length(plotLeatMaps)
+}
 loadFun(paste0(wd, "/Sorting plots/quantPlots.RData"))
 flPCA <- paste0(wd, "/Dimensionality red. plots/DimRedPlots.RData")
 tstPCA <- file.exists(flPCA)
@@ -484,9 +641,10 @@ if (tstPCA) {
   loadFun(flPCA)
   tstPCA <- exists("dimRedPlotLy") && ("PCA" %in% names(dimRedPlotLy))
 }
+strtColWdth <- 12L/(tstHtMp + tstPCA)
 
 # Fix to plotly autoscaling
-if (exists("plotLeatMaps")) {
+if (tstHtMp) {
   for (x in names(plotLeatMaps)) { #x <- names(plotLeatMaps)[1L]
     for (y in names(plotLeatMaps[[x]])) { #y <- names(plotLeatMaps[[x]])[1L]
       plotLeatMaps[[x]][[y]]$Render$x$layout$xaxis$autorange <- TRUE
@@ -546,7 +704,7 @@ if (sum(!nms %in% names(allComments))) {
   allComments[nms_] <- ""
   if ("Dataset overview" %in% nms_) { allComments$"Dataset overview" <- dfltComment }
 }
-allComments <- allComments[nms]
+allComments %<o% allComments[nms]
 ratiosTest <- exists("ratioPlots") && (length(ratioPlots) > 0L)
 
 #
@@ -558,6 +716,7 @@ dfltQuant <- quantTst[, "Sample", drop = FALSE]
 dfltQuant$Type <- vapply(quantTst$Types, \(x) { x[[1L]] }, "")
 quantTst <- setNames(quantTst$Types, quantTst$Sample)
 dfltQuant <- setNames(dfltQuant$Type, dfltQuant$Sample)
+quantMeth <- unique(unlist(quantTst))
 #
 appPage <- 1L
 appNm <- "Edit report"
@@ -579,9 +738,12 @@ ui <- fluidPage(useShinyjs(),
                            appNm),
                 br(),
                 fluidRow(column(4L,
-                                h2(dtstNm)),
+                                h2(dtstNm),
+                                br()),
                          column(8L,
                                 actionBttn("xprtBtn", " export final html report", icon = icon("file-export"), color = "success", style = "pill"),
+                                br(),
+                                br(),
                                 uiOutput("xprtMsg"))),
                 br(),
                 uiOutput("myUI"),
@@ -592,10 +754,14 @@ server <- \(input, output, session) {
   #   PROT <- reactiveVal(dfltProt)
   # }
   QUANT <- reactiveVal(dfltQuant)
+  XPRTMSG <- reactiveVal(NULL)
+  MYPROT <- reactiveVal(dfltProt)
+  SAMPLE <- reactiveVal(Exp[1L])
+  NORMMETH <- reactiveVal("None")
   # Render UI
-  output$xprtMsg <- renderUI(HTML(""))
+  output$xprtMsg <- renderUI(XPRTMSG())
   output$myUI <- renderUI({ make_ui() })
-  output$heatMap <- renderPlotly(plotLeatMaps$Global$`Norm. by row`$Render)
+  output$heatMap <- renderPlotly(plotLeatMaps$Global[[NORMMETH()]]$Render)
   if (tstPCA) {
     output$PCA <- renderPlotly(dimRedPlotLy$PCA)
   }
@@ -607,6 +773,7 @@ server <- \(input, output, session) {
   }
   #
   # Event observers
+  observeEvent(input$myHeatMap, { NORMMETH(input$myHeatMap) })
   #  - Comments
   sapply(names(allComments), \(nm) {
     observeEvent(input[[paste0("comment_", nm)]], {
@@ -629,38 +796,17 @@ server <- \(input, output, session) {
   })
   #  - Proteins tab
   if (prot.list.Cond) {
+    output$ratioPlot <- renderPlotly(ratioPlots[[MYPROT()]])
+    output$coverPlot <- renderPlotly(covPlots[[MYPROT()]]$logInt[[SAMPLE()]])
+    output$protComment <- renderUI(make_comment_ui(MYPROT()))
+    output$protPep <- renderUI(make_tbl_ui(tab = "All peptidoforms",
+                                           filt = MYPROT()))
     if (length(allProt) > 1L) {
-      observeEvent(input$myProtein, {
-        output$ratioPlot <- renderPlotly(ratioPlots[[input$myProtein]])
-        output$coverPlot <- if (length(Exp) > 1L) {
-          renderPlotly(covPlots[[input$myProtein]]$logInt[[input$mySample]])
-        } else {
-          renderPlotly(covPlots[[input$myProtein]]$logInt[[Exp]])
-        }
-        output$protComment <- renderUI(make_comment_ui(input$myProtein))
-        output$protPep <- renderUI(make_tbl_ui(tab = "All peptidoforms",
-                                               filt = input$myProtein))
-      })
-    } else {
-      output$ratioPlot <- renderPlotly(ratioPlots[[allProt]])
-      output$coverPlot <- if (length(Exp) > 1L) {
-        renderPlotly(covPlots[[allProt]]$logInt[[input$mySample]])
-      } else {
-        renderPlotly(covPlots[[allProt]]$logInt[[Exp]])
-      }
-      output$protComment <- renderUI(make_comment_ui(allProt))
-      output$protPep <- renderUI(make_tbl_ui(tab = "All peptidoforms",
-                                             filt = allProt))
+      observeEvent(input$myProtein, { MYPROT(input$myProtein) })
     }
-  }
-  if (length(Exp) > 1L) {
-    observeEvent(input$mySample, {
-      output$coverPlot <- if (prot.list.Cond) {
-        renderPlotly(covPlots[[input$myProtein]]$logInt[[input$mySample]])
-      } else {
-        renderPlotly(covPlots[[allProt]]$logInt[[input$mySample]])
-      }
-    })
+    if (length(Exp) > 1L) {
+      observeEvent(input$mySample, { SAMPLE(input$mySample) })
+    }
   }
   #  - QC tab
   observeEvent(input$QC1, {
@@ -669,21 +815,28 @@ server <- \(input, output, session) {
   })
   #  - Render final report
   observeEvent(input$xprtBtn, {
-    output$xprtMsg <- renderUI(em("Exporting .html report, this will take a few seconds...",
-                                  style = "color:red",
-                                  .noWS = "outside"))
-    # 1. Rebuild the SAME UI we use in the app
-    page <- # tagList(div(h3(paste0(dtstNm, " - report"), br(),
-      #                "Analysis run by: ", em(WhoAmI), br(),
-      #                "Date: ", em(Sys.Date()), br(),
-      #                "Package: ", em("proteoCraft v", package.version("proteoCraft")), br())),
-      make_ui(FALSE)#)
-    # 2. Wrap as browsable HTML
-    page <- htmltools::browsable(page)
-    # 3. Save to disk
-    htmltools::save_html(page, htmlRprtFl)
-    assign("appRunTst", TRUE, envir = .GlobalEnv)
-    stopApp()
+    XPRTMSG(em("Exporting .html report, this will take a few seconds...",
+               style = "color:green",
+               .noWS = "outside"))
+    later::later(\() {
+      # Wrapping in this allows displaying the message before export completes
+      # 1. Rebuild the SAME UI we use in the app
+      page <- bslib::page_fluid(tags$head(tbl_css),
+                                tags$script(HTML("document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('select[data-default]').forEach(function(sel) {
+    sel.value = sel.dataset.default;
+    sel.dispatchEvent(new Event('change'));
+  });
+});")),
+        report_header,
+        make_ui(FALSE))
+      # 2. Wrap as browsable HTML
+      page <- htmltools::browsable(page)
+      # 3. Save to disk
+      htmltools::save_html(page, htmlRprtFl)
+      assign("appRunTst", TRUE, envir = .GlobalEnv)
+      stopApp()
+    }, 0.1)
   })
   session$onSessionEnded(\() { stopApp() })
 }
@@ -693,7 +846,6 @@ while ((!runKount) || (!exists("appRunTst")) || (!file.exists(htmlRprtFl))) {
   eval(parse(text = runApp), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount + 1L
-  appRunTst <- TRUE
 }
 
 # We now have our html... but it depends on local libraries... we want those embedded in it!
@@ -727,12 +879,12 @@ file_to_data_uri <- function(path) {
          base64enc::base64encode(path))
 }
 # - embed scripts
-read_asset <- function(path) {
+read_asset <- \(path) {
   readChar(path, # Do not use readLines, which isn't binary-safe!
            nchars = file.info(path)$size,
            useBytes = TRUE)
 }
-inline_script <- function(path) {
+inline_script <- \(path) {
   txt <- paste(read_asset(path), collapse = "")
   txt <- gsub("</script",
               "<\\/script",
@@ -745,7 +897,7 @@ inline_script <- function(path) {
 gs <- grep("^ *<script src=\"", hd1$original)
 hd1$new[gs] <- vapply(sub("\".*", "", sub("^ *<script src=\"", paste0(wd, "/"), hd1$original[gs])), inline_script, "")
 # - embed css
-inline_css <- function(path) {
+inline_css <- \(path) {
   paste0(  "<style>\n",
            read_asset(path),
            "\n</style>")
@@ -753,8 +905,8 @@ inline_css <- function(path) {
 gc <- grepl("^ *<link href=\"", hd1$original)
 hd1$new[gc] <- vapply(sub("\".*", "", sub("^ *<link href=\"", paste0(wd, "/"), hd1$original[gc])), inline_css, "")
 h2[rg1] <- hd1$new
-write(h2, htmlSCRprtFl)
-
+write(h2, htmlRprtFl)
+removeDirectory(paste0(wd, "/lib"), TRUE, FALSE)
 
 
 # TO DO

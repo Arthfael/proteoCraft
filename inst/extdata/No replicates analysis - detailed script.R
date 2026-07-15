@@ -1795,7 +1795,7 @@ tmp <- MQ.summary(wd = wd, ev = ev, pg = PG, mods = setNames(Modifs$Mark, Modifs
 Exp_summary %<o% tmp$table
 write.csv(Exp_summary, paste0(wd, "/Workflow control/Summary.csv"), row.names = FALSE)
 if (!exists("QC_plotLys")) { QC_plotLys <- list() }
-QC_plotLys %<o%  QC_plotLys
+QC_plotLys %<o% QC_plotLys
 QC_plotLys[names(tmp$plotLy)] <- tmp$plotLy
 #Exp_summary <- read.csv(paste0(wd, "/Workflow control/Summary.csv"), check.names = FALSE)
 
@@ -2450,6 +2450,11 @@ MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style
 
 # Write SDRF file in case you want to submit to PRIDE
 Src <- paste0(libPath, "/extdata/Sources/SDRF_4_PRIDE.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+
+# Write final HTML report
+Src <- paste0(libPath, "/extdata/Sources/noRep_HTML_report.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 

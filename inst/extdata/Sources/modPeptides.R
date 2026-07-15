@@ -493,6 +493,7 @@ if (length(PTMs)) {
     volcPlot_args2$plotly_labels <- c(PepLabKol, paste0(Ptm, "-site"))
     volcPlot_args2$curved_Thresh <- PTMs_SAM_thresh[[Ptm]]
     volcPlot_args2$cl <- parClust
+    #invisible(lapply(names(volcPlot_args2), \(x) { assign(x, volcPlot_args2[[x]], envir = .GlobalEnv); return() }))
     tempVPptm <- do.call(Volcano.plot, volcPlot_args2)
     #k2 <- grep(topattern(paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)])), colnames(ptmpep), value = TRUE)
     #df2 <- ptmpep[, k2]

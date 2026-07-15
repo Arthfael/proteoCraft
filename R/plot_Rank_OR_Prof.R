@@ -4,6 +4,8 @@
 #' Allows parallel drawing of all of these plots.
 #'
 #' @param ii Integer, index of the row of the samplesDF controlling what version of the plot is drawn.
+#' 
+#' @export
 
 .plot_Rank_OR_Prof <- function(ii) { #ii <- 1L #ii <- 2L #ii <- 5L #ii <- 7L #ii <- 13L #ii <- 18L #ii <- 23L
   quantType <- samplesDF$QuantType[ii]
