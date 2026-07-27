@@ -145,7 +145,8 @@ if (scrptType == "noReps") {
   pep$Weights <- -log10(pep$PEP)
   weightsInsrt <- "-log10(PEP)"
 }
-if ((length(inDirs) == 1L)&&(QuantUMS)&&("Quantity Quality" %in% colnames(ev))) {  # DiaNN specific:
+if (!exists("QuantUMS")) { QuantUMS <- FALSE }
+if ((length(inDirs) == 1L) && QuantUMS && ("Quantity Quality" %in% colnames(ev))) {  # DiaNN specific:
   if (!"Quantity Quality" %in% colnames(pep)) {
     tmp <- data.table(Qual = ev$"Quantity Quality", ModSeq = ev$"Modified sequence")
     tmp <- tmp[, .(Qual= mean(Qual)), by = .(ModSeq)]
@@ -232,7 +233,7 @@ quantArgs %<o% list(pg_PepIDs = Pep4Quant,
 if (scrptType == "withReps") {
   quantArgs$param <- tmpPar
 }
-if ((scrptType == "noReps")&&(MakeRatios)) {
+if ((scrptType == "noReps") && MakeRatios) {
   quantArgs$refGroups <- list(values = unique(smplsMap$Ratios_group),
                               names = "Ratios_group",
                               column = "Ratios_group")
@@ -274,51 +275,56 @@ myQuantBckpFl <- paste0(wd, "/", bckpNm, ".RData")
 saveFun(quantData_list, file = myQuantBckpFl)
 #loadFun(myQuantBckpFl)
 #
-opt <- setNames(c("limpa's dpcQuant function",
-                  paste0("an in-house MaxLFQ-like algorithm which computes a protein group-level profile across samples as the weighted mean of individual, normalized peptidoform profiles (weights = ",
-                         weightsInsrt, ")"),
-                  "MaxLFQ, as implemented in the iq package",
-                  "the aggregateFeatures function form the QFeatures package"),
-                c("limpa", "LM", "MaxLFQ (iq)", "QFeatures"))
-insrt <- paste0(", and quantified using ", opt[quantAlgo], ".")
-if (reScAlgo != quantAlgo) {
-  insrt <- paste0(insrt, " Row-normalized relative protein profiles were re-scaled ")
-  if (reScAlgo %in% c("limpa", "QFeatures", "MaxLFQ (iq)")) {
-    insrt <- paste0(insrt,
-                    "to the average row-wise expression scales provided by the output of ",
-                    c("limpa's dpcQuant",
-                      "QFeatures' aggregateFeatures",
-                      "iq's fast_MaxLFQ")[match(reScAlgo, c("limpa", "QFeatures", "MaxLFQ (iq)"))], " function.")
-  }
-  if (reScAlgo == "topN") {
-    insrt <- if (topN_correct) {
-      paste0(insrt,
-             "using the top", topN, " method (i.e. to the mean of up to ", topN, " highest intensity peptides).")
-    } else {
-      paste0(insrt,
-             "using a variation on the top", topN, " method, first correcting for each protein peptide intensities ranked by decreasing values for systematic rank-wise intensity bias, then averaging up to ", topN, " peptides.")
+
+#
+if (!exists("writeMatMeth")) { writeMatMeth <- TRUE }
+if (writeMatMeth) {
+  opt <- setNames(c("limpa's dpcQuant function",
+                    paste0("an in-house MaxLFQ-like algorithm which computes a protein group-level profile across samples as the weighted mean of individual, normalized peptidoform profiles (weights = ",
+                           weightsInsrt, ")"),
+                    "MaxLFQ, as implemented in the iq package",
+                    "the aggregateFeatures function form the QFeatures package"),
+                  c("limpa", "LM", "MaxLFQ (iq)", "QFeatures"))
+  insrt <- paste0(", and quantified using ", opt[quantAlgo], ".")
+  if (reScAlgo != quantAlgo) {
+    insrt <- paste0(insrt, " Row-normalized relative protein profiles were re-scaled ")
+    if (reScAlgo %in% c("limpa", "QFeatures", "MaxLFQ (iq)")) {
+      insrt <- paste0(insrt,
+                      "to the average row-wise expression scales provided by the output of ",
+                      c("limpa's dpcQuant",
+                        "QFeatures' aggregateFeatures",
+                        "iq's fast_MaxLFQ")[match(reScAlgo, c("limpa", "QFeatures", "MaxLFQ (iq)"))], " function.")
+    }
+    if (reScAlgo == "topN") {
+      insrt <- if (topN_correct) {
+        paste0(insrt,
+               "using the top", topN, " method (i.e. to the mean of up to ", topN, " highest intensity peptides).")
+      } else {
+        paste0(insrt,
+               "using a variation on the top", topN, " method, first correcting for each protein peptide intensities ranked by decreasing values for systematic rank-wise intensity bias, then averaging up to ", topN, " peptides.")
+      }
+    }
+    if (reScAlgo == "max") {
+      insrt <- paste0(insrt, "to the value of the highest intensity peptides.")
+    }
+    if (reScAlgo == "weighted.mean") {
+      insrt <- if (quantAlgo == "LM") {
+        paste0(insrt, "using the weighted mean of each protein group's peptides.")
+      } else {
+        paste0(insrt, "using the mean of each protein group's peptides weighted by ", weightsInsrt, ".")
+      }
+    }
+    if (reScAlgo %in% c("median", "sum")) {
+      insrt <- paste0(insrt, "using the ", reScAlgo, " of each protein group's peptides.")
+    }
+    if (!reScAlgo %in% reScAlgoOpt) {
+      insrt <- paste0(insrt, "to the result of summarizing each protein group's peptides with the ", reScAlgo, " function.")
     }
   }
-  if (reScAlgo == "max") {
-    insrt <- paste0(insrt, "to the value of the highest intensity peptides.")
-  }
-  if (reScAlgo == "weighted.mean") {
-    insrt <- if (quantAlgo == "LM") {
-      paste0(insrt, "using the weighted mean of each protein group's peptides.")
-    } else {
-      paste0(insrt, "using the mean of each protein group's peptides weighted by ", weightsInsrt, ".")
-    }
-  }
-  if (reScAlgo %in% c("median", "sum")) {
-    insrt <- paste0(insrt, "using the ", reScAlgo, " of each protein group's peptides.")
-  }
-  if (!reScAlgo %in% reScAlgoOpt) {
-    insrt <- paste0(insrt, "to the result of summarizing each protein group's peptides with the ", reScAlgo, " function.")
-  }
+  l <- length(DatAnalysisTxt)
+  DatAnalysisTxt[l] <- gsub("\\.$", insrt, DatAnalysisTxt[l])
+  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l], " Estimated expression values were log10-converted...")
 }
-l <- length(DatAnalysisTxt)
-DatAnalysisTxt[l] <- gsub("\\.$", insrt, DatAnalysisTxt[l])
-DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l], " Estimated expression values were log10-converted...")
 
 quantData <- quantData_list$Data
 if (scrptType == "withReps") {
@@ -342,7 +348,7 @@ if (scrptType == "noReps") {
                                     names(PG.int.cols)[match(PG.int.col, PG.int.cols)])
   PG[, colnames(quantData)] <- quantData
 }
-if ((scrptType == "noReps")&&(Impute)) {
+if ((scrptType == "noReps") && Impute) {
   # In that case we need to calculate expression values a second time, unfortunately... It doesn't take so long.
   PG.int.cols["Imputed"] <- PG.int.col <- paste0("Imput. ", PG.int.cols["Original"])
   PG.rat.cols["Imputed"] <- PG.rat.col <- paste0("Imput. ", PG.rat.cols["Original"])
@@ -367,6 +373,8 @@ if ((scrptType == "noReps")&&(Impute)) {
   m2 <- match("Peptides IDs used for quantitation", colnames(quantData2))
   colnames(quantData2)[m2] <- "Peptide IDs used for quantitation - Imputed"
   PG[, colnames(quantData2)] <- quantData2
-  l <- length(DatAnalysisTxt)
-  DatAnalysisTxt[l] <- sub("\\.\\.\\.$", "", DatAnalysisTxt[l])
+  if (writeMatMeth) {
+    l <- length(DatAnalysisTxt)
+    DatAnalysisTxt[l] <- sub("\\.\\.\\.$", "", DatAnalysisTxt[l])
+  }
 }

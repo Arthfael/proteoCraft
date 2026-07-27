@@ -1,8 +1,13 @@
 # Annotate the protein groups table
-if (!Annotate) { globalGO <- FALSE}
+if (!Annotate) { globalGO <- FALSE }
 p <- strsplit(PG$"Leading protein IDs", ";") #Here taking just the minimum set of protein IDs to explain the observed dataset.
 db$Observed <- db$"Protein ID" %in% unique(unlist(p))
 if (globalGO) {
+  #
+  Src <- paste0(libPath, "/extdata/Sources/GO_prepare.R")
+  #rstudioapi::documentOpen(Src)
+  source(Src, local = FALSE)
+  #
   temp <- listMelt(strsplit(PG$"Leading protein IDs", ";"), PG$id, c("Accession", "id"))
   kol <- annot.col[which(annot.col %in% colnames(db))]
   if ("Taxonomy" %in% kol) { # Taxonomy can be dealt with differently
@@ -58,7 +63,4 @@ if (globalGO) {
   #
   stopCluster(parClust)
   source(parSrc, local = FALSE)
-  Src <- paste0(libPath, "/extdata/Sources/GO_prepare.R")
-  #rstudioapi::documentOpen(Src)
-  source(Src, local = FALSE)
 }

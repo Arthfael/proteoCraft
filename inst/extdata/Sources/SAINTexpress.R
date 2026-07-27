@@ -141,7 +141,8 @@ if (saintExprs) {
     kol0k <- paste0("Evidences count - ", em$Ref.Sample.Aggregate[w0])
     kol1k <- paste0("Evidences count - ", em$Ref.Sample.Aggregate[w1])
     kolk <- c(kol0k, kol1k)
-    klnms <- gsub("\\.", "", cleanNms(em$Ref.Sample.Aggregate[c(w0, w1)], rep = ""))
+    klnms <- setNames(gsub("\\.", "", cleanNms(em$Ref.Sample.Aggregate[c(w0, w1)], rep = "")),
+                      em$Ref.Sample.Aggregate[c(w0, w1)])
     tmp <- PG[, c("id", kol, kolk)]
     clusterExport(parClust,
                   list("tmp", "kol", "kolk", "em"),
@@ -278,17 +279,35 @@ if (saintExprs) {
   allSAINTs[, kol] <- db[m, kol]
   #
   SUCCESS <- FALSE
-  for (ii in seq_along(SAINT_list)) {
+  intRf <- "log10(Expr.) - "
+  for (ii in seq_along(SAINT_list)) { #ii <- 1L
     wOK <- which(vapply(SAINT_list[[ii]], \(x) { x$Outcome }, TRUE))
     if (length(wOK)) {
       Grps <- names(SAINT_list[[ii]])[wOK]
-      for (grp in Grps) {
+      for (grp in Grps) { #grp <- Grps[1L]
         SUCCESS <- TRUE
         kol <- paste0(c(fcRt, paste0(c(kol_A, kol_B), " - ")), grp)
         allSAINTs[, kol] <- NA
         w <- which(allSAINTs$Protein %in% SAINT_list[[ii]][[grp]]$Table$Prey)
         m <- match(allSAINTs$Protein[w], SAINT_list[[ii]][[grp]]$Table$Prey)
         allSAINTs[w, kol] <- SAINT_list[[ii]][[grp]]$Table[m, kol]
+        tmp1 <- suppressWarnings(as.data.frame(do.call(rbind,
+                                                      lapply(strsplit(SAINT_list[[ii]][[grp]]$Table$Intensity[m], "\\|"),
+                                                             as.numeric))))
+        tmp0 <- suppressWarnings(as.data.frame(do.call(rbind,
+                                                       lapply(strsplit(SAINT_list[[ii]][[grp]]$Table$ctrlIntensity[m], "\\|"),
+                                                              as.numeric))))
+        AB <- unlist(strsplit(grp, " - "))
+        n1 <- paste0(AB[1L], as.character(1L:ncol(tmp1)))
+        n0 <- paste0(AB[2L], as.character(1L:ncol(tmp0)))
+        colnames(tmp1) <- k1 <- paste0(intRf, names(klnms)[match(n1, klnms)])
+        colnames(tmp0) <- k0 <- paste0(intRf, names(klnms)[match(n0, klnms)])
+        # NB: the code below allows overwriting by the next contrast, which may share A or B with this one,
+        # but that's presumably  ok because it should be the same data. Still, check one of these days.
+        if (sum(!k1 %in% colnames(allSAINTs))) { allSAINTs[, k1] <- NA_real_ }
+        if (sum(!k0 %in% colnames(allSAINTs))) { allSAINTs[, k0] <- NA_real_ }
+        allSAINTs[w, k1] <- tmp1
+        allSAINTs[w, k0] <- tmp0
       }
     }
   }
@@ -338,6 +357,9 @@ if (saintExprs) {
                                              c("Protein name", "Protein ID", "Gene"))
     volcPlot_args2$arbitrary.lines <- ArbThr
     volcPlot_args2$labels <- "thresholds"
+    volcPlot_args2$Alpha <- 1
+    volcPlot_args2$X.root_ind  <- intRf
+    volcPlot_args2$X.root_ind_base  <- 10L
     volcPlot_args2$cl <- parClust
     # For testing:
     #DefArg(Volcano.plot);TESTING <- TRUE

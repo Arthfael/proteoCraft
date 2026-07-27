@@ -645,6 +645,10 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     brLCMS_txt <- do.call(paste, c(tmp[, c("LC_txt", "MS_txt")], sep = "\n"))
     brLCMS_txt <- paste(brLCMS_txt, collapse = "\n")
     #cat(brLCMS_txt)
+    #
+    # Correct a Denglish error
+    brLCMS_txt <- gsub(" enable high sensitivity modus ", " enable high sensitivity mode ", brLCMS_txt)
+    #
     # # Vector of material and methods text for each LC/MS method
     all_LCMS_txts <- c(all_LCMS_txts, brLCMS_txt)
     #

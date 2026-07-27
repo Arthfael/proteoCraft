@@ -20,6 +20,8 @@ suppressMessages({
   ggsave(paste0(qcDir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
 })
 plotLy <- ggplotly(plot, tooltip = c("x", "y"))
+plotLy <- plotly::config(plotLy,
+                         modeBarButtonsToRemove = c("select2d", "lasso2d"))
 if (!exists("QC_plotLys")) { QC_plotLys <- list() }
 QC_plotLys %<o% QC_plotLys
 setwd(qcDir)

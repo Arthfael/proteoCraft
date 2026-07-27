@@ -38,6 +38,7 @@ if (length(w)) {
 limpaMode <- FALSE
 labCol <- c("Label", "Labels")
 if (dataType == "modPeptides") {
+  dat0 <- ptmpep
   intRef <- ptms.ref[length(ptms.ref)]
   ratRef <- ptms.ratios.ref
   namesCol <- "Name"
@@ -50,16 +51,14 @@ if (dataType == "modPeptides") {
   plotlyLab = c(PepLabKol, paste0(Ptm, "-site"))
   Size <- "Rel. av. log10 abundance"
   Alpha <- "-log10(PEP)"
-  labCol <- intersect(labCol, colnames(ptmpep))
+  labCol <- intersect(labCol, colnames(dat0))
   allKol <- unique(c("id", idCol, namesCol, "Genes", Size, Alpha, plotlyLab,
                      "Potential contaminant", labCol, mtchCol))
-  allKol <- intersect(allKol, colnames(ptmpep))
-  g <- grep(topattern(intRef), colnames(ptmpep), value = TRUE)
-  myData <- ptmpep[, c(allKol, g)]
-  ptmpep[, g] <- log2(ptmpep[, g]) # Because limma expects log2 expression data and for peptide input data isn't log-transformed!
+  allKol <- intersect(allKol, colnames(dat0))
   myData$"-log10(PEP)" <- -log10(myData$PEP)
 }
 if (dataType == "PG") {
+  dat0 <- PG
   intRef <- Prot.Expr.Root
   ratRef <- Prot.Rat.Root
   idCol <- protCol <- "Protein IDs"
@@ -68,26 +67,30 @@ if (dataType == "PG") {
   plotlyLab <- PrLabKol
   Size <- "Rel. av. log10 abundance"
   Alpha <- "Rel. log10(Peptides count)"
-  labCol <- intersect(labCol, colnames(PG))
+  labCol <- intersect(labCol, colnames(dat0))
   allKol <- unique(c("id", idCol, namesCol, "Genes", Size, Alpha, plotlyLab,
                      "Potential contaminant", labCol, mtchCol))
-  allKol <- intersect(allKol, colnames(PG))
-  if (quantAlgo == "limpa") {
-    limpaMode <- TRUE
-    myData <- quantData_list$EList_obj
-    w <- which(rownames(myData$genes) %in% PG[[mtchCol]])
-    m <- match(rownames(myData$genes)[w], PG[[mtchCol]])
-    myData$genes[, allKol] <- NA
-    myData$genes[w, allKol] <- PG[m, allKol]
-    colnames(myData) <- sub(".* - ", intRef, colnames(myData))
-  } else {
-    g <- grep(topattern(intRef), colnames(PG), value = TRUE)
-    myData <- PG[, c(allKol, g)]
-    myData[, g] <- myData[, g]/log10(2L) # Because limma expects log2 expression data
-  }
+  allKol <- intersect(allKol, colnames(dat0))
   namesRoot <- "PG"
   runLoc <- FALSE
   ohDeer <- paste0(wd, "/Reg. analysis/F-tests")
+  if (quantAlgo == "limpa") {
+    limpaMode <- TRUE
+  }
+}
+intRef2 <- sub("log10", "log2", intRef)
+if (limpaMode) {
+  myData <- quantData_list$EList_obj
+  w <- which(rownames(myData$genes) %in% dat0[[mtchCol]])
+  m <- match(rownames(myData$genes)[w], dat0[[mtchCol]])
+  myData$genes[, allKol] <- NA
+  myData$genes[w, allKol] <- dat0[m, allKol]
+  colnames(myData) <- paste0(intRef2, sub(".* - ", "", colnames(myData)))
+} else {
+  g <- grep(topattern(intRef), colnames(dat0), value = TRUE)
+  g2 <- sub(topattern(intRef), intRef2, g)
+  myData <- dat0[, c(allKol, g)]
+  myData[, g2] <- myData[, g]/log10(2L) # Because limma expects log2 expression data
 }
 refRat <- NULL
 BH.FDR_F <- sort(BH.FDR, decreasing = TRUE)
@@ -112,10 +115,10 @@ if (limpaMode) {
   voomFit <- limpa::dpcDE(myData, designMatr, keep.EList = TRUE)
   NA_Filt <- 1L:nrow(myData)
 } else {
-  kol <- paste0(intRef, rownames(expMap))
+  kol <- paste0(intRef2, rownames(expMap))
   kol <- intersect(kol, colnames(myData))
   tmpVal <- myData[, kol]
-  colnames(tmpVal) <- sub(topattern(intRef), "", colnames(tmpVal))
+  colnames(tmpVal) <- sub(topattern(intRef2), "", colnames(tmpVal))
   # We keep any row with 2+ non-missing values per samples group for at least one contrast of interest 
   NA_Filt <- lapply(1L:nrow(myContrasts), \(i) { #i <- 1L #i <- 3L
     smpls <- myContrasts[i, c("A_samples", "B_samples", "C_samples", "D_samples")]
@@ -274,6 +277,9 @@ if (length(kol)) { my_F_Data[, kol] <- myData[, kol] }
 my_F_Data[[Param$Plot.labels]] <- my_F_Data[[labCol[1L]]]
 volcPlot_args2 <- volcPlot_args
 volcPlot_args2$Prot <- my_F_Data
+g <- grep(topattern(intRef), colnames(myData), value = TRUE)
+volcPlot_args2$Prot[, g] <- myData[, g]
+volcPlot_args2$X.root_ind <- intRef
 volcPlot_args2$X.root <- ratRef
 volcPlot_args2$Y.root <- paste0(F_Root, " - ")
 volcPlot_args2$FDR.root <- "mod. F-test Significant-FDR="
@@ -282,6 +288,7 @@ volcPlot_args2$Proteins.col <- protCol
 volcPlot_args2$subfolder <- ohDeer
 volcPlot_args2$reg.root <- regRoot_F
 volcPlot_args2$title <- "F_test volcano plot "
+volcPlot_args2$Alpha <- 1
 volcPlot_args2$cl <- parClust
 # For testing:
 #DefArg(Volcano.plot);TESTING <- TRUE
@@ -298,66 +305,80 @@ Src <- paste0(libPath, "/extdata/Sources/save_Plotlys.R")
 source(Src, local = FALSE)
 #
 F_thresh <- F_volc$Thresholds
-thresh <- lapply(names(F_thresh$Absolute), \(x) {
-  y <- F_thresh$Absolute[[x]]
-  x <- data.frame(Group = rep(cleanNms(x), nrow(y)))
-  return(cbind(x, y))
-})
-thresh <- plyr::rbind.fill(thresh)
-thresh$Name <- NULL
-thresh$Root <- gsub(" - $", "", thresh$Root)
-thresh$Value <- thresh$Text.value
-thresh$Text.value <- NULL
-# FDR thresholds
-fdrThresh <- F_thresh$FDR
-if (!is.null(fdrThresh)) {
-  colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.up")] <- "Colour (up)"
-  colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.down")] <- "Colour (down)"
-  colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.line")] <- "Colour (line)"
-  if ("Test" %in% colnames(fdrThresh)) {
-    fdrThresh <- fdrThresh[, c("Test", colnames(fdrThresh)[which(colnames(fdrThresh) != "Test")])]
+absTst <- length(F_thresh$Absolute)
+fdrTst <- length(F_thresh$FDr)
+if (absTst || fdrTst) {
+  fl <- paste0(ohDeer, "/Thresholds.xlsx")
+  if (absTst) {
+    thresh <- lapply(names(F_thresh$Absolute), \(x) {
+      y <- F_thresh$Absolute[[x]]
+      x <- data.frame(Group = rep(cleanNms(x), nrow(y)))
+      return(cbind(x, y))
+    })
+    thresh <- plyr::rbind.fill(thresh)
+    thresh$Name <- NULL
+    thresh$Root <- gsub(" - $", "", thresh$Root)
+    thresh$Value <- thresh$Text.value
+    thresh$Text.value <- NULL
   }
-}
-fl <- paste0(ohDeer, "/Thresholds.xlsx")
-wb <- wb_workbook()
-wb <- wb_set_creators(wb, "Me")
-wb <- wb_add_worksheet(wb, "Thresholds")
-dms <- wb_dims(2L, 1L)
-wb <- wb_add_data(wb, "Thresholds", "Absolute thresholds", dms)
-wb <- wb_add_font(wb, "Thresholds", dms, "Calibri", wb_color(hex = "FF000000"), bold = "true",
-                  italic = "true", underline = "single")
-dms <- wb_dims(3L, 2L)
-wb <- wb_add_data_table(wb, "Thresholds", thresh, dms,
-                        col_names = TRUE, table_style = "TableStyleMedium2",
-                        banded_rows = TRUE, banded_cols = FALSE)
-dms <- wb_dims(nrow(thresh)+6L, 1L)
-wb <- wb_add_data(wb, "Thresholds", "FDR thresholds", dms)
-wb <- wb_add_font(wb, "Thresholds", dms, "Calibri", wb_color(hex = "FF000000"), bold = "true",
-                  italic = "true", underline = "single")
-dms <- wb_dims(nrow(thresh)+7L, 2L)
-if (!is.null(fdrThresh)) {
-  wb <- wb_add_data_table(wb, "Thresholds", fdrThresh, dms,
-                          col_names = TRUE, table_style = "TableStyleMedium2",
-                          banded_rows = TRUE, banded_cols = FALSE)
-  wb <- wb_set_col_widths(wb, "Thresholds", 1L, 3L)
-  tmp1 <- rbind(colnames(thresh), thresh)
-  colnames(tmp1) <- paste0("V", 1L:ncol(tmp1))
-  tmp2 <- rbind(colnames(fdrThresh), fdrThresh)
-  colnames(tmp2) <- paste0("V", 1L:ncol(tmp2))
-  tst <- plyr::rbind.fill(tmp1, tmp2)
+  # FDR thresholds
+  if (fdrTst) {
+    fdrThresh <- F_thresh$FDR
+    colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.up")] <- "Colour (up)"
+    colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.down")] <- "Colour (down)"
+    colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.line")] <- "Colour (line)"
+    if ("Test" %in% colnames(fdrThresh)) {
+      fdrThresh <- fdrThresh[, c("Test", colnames(fdrThresh)[which(colnames(fdrThresh) != "Test")])]
+    }
+  }
+  wb <- wb_workbook()
+  wb <- wb_set_creators(wb, "Me")
+  wb <- wb_add_worksheet(wb, "Thresholds")
+  dms <- wb_dims(2L, 1L)
+  tstWdth <- list()
+  if (absTst) {
+    wb <- wb_add_data(wb, "Thresholds", "Absolute thresholds", dms)
+    wb <- wb_add_font(wb, "Thresholds", dms, "Calibri", wb_color(hex = "FF000000"), bold = "true",
+                      italic = "true", underline = "single")
+    dms <- wb_dims(3L, 2L)
+    wb <- wb_add_data_table(wb, "Thresholds", thresh, dms,
+                            col_names = TRUE, table_style = "TableStyleMedium2",
+                            banded_rows = TRUE, banded_cols = FALSE)
+    dms <- wb_dims(nrow(thresh)+6L, 1L)
+    tmp1 <- rbind(colnames(thresh), thresh)
+    colnames(tmp1) <- paste0("V", 1L:ncol(tmp1))
+    tstWdth$Abs <- tmp1
+  }
+  if (fdrTst) {
+    wb <- wb_add_data(wb, "Thresholds", "FDR thresholds", dms)
+    wb <- wb_add_font(wb, "Thresholds", dms, "Calibri", wb_color(hex = "FF000000"), bold = "true",
+                      italic = "true", underline = "single")
+    if (absTst) {
+      dms <- wb_dims(nrow(thresh)+7L, 2L)
+    }
+    wb <- wb_add_data_table(wb, "Thresholds", fdrThresh, dms,
+                            col_names = TRUE, table_style = "TableStyleMedium2",
+                            banded_rows = TRUE, banded_cols = FALSE)
+    wb <- wb_set_col_widths(wb, "Thresholds", 1L, 3L)
+    tmp2 <- rbind(colnames(fdrThresh), fdrThresh)
+    colnames(tmp2) <- paste0("V", 1L:ncol(tmp2))
+    tstWdth$FDR <- tmp2
+  }
+  tstWdth <- plyr::rbind.fill(tstWdth)
   tst <- setNames(apply(tst, 2L, \(x) { max(nchar(x), na.rm = TRUE) }), NULL)
   wb <- wb_set_col_widths(wb, "Thresholds", 1L:(length(tst)+1L), c(3L, tst))
+  wb_save(wb, fl)
+  #xl_open(fl)
 }
-wb_save(wb, fl)
-#xl_open(fl)
 #
 # Final data to be exported to PG or pep
 if (limpaMode) {
   myData <- myData$genes
 }
 myData[, colnames(my_F_Data)] <- my_F_Data
+myData <- myData[, grep(topattern(intRef2), colnames(myData), invert = TRUE)]
 # Remove log2-transformed data from myData to avoid overwriting quant data in PG or pep
-kol <- grep(topattern(intRef), colnames(myData), value = TRUE, invert = TRUE)
+kol <- grep(topattern(intRef2), colnames(myData), value = TRUE, invert = TRUE)
 #
 F_kols <- c(grep(topattern(F_Root), colnames(myData), value = TRUE),
             grep(topattern(regRoot_F), colnames(myData), value = TRUE))

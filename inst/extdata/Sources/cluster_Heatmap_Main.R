@@ -804,6 +804,8 @@ if (clustHtMp) {
                                      marker = list(color = temp2m$.markCol,
                                                    size = temp2m$.size, showscale = FALSE, showlegend = FALSE))
           }
+          plotleatmap <- plotly::config(plotleatmap,
+                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
           # setwd(clustDir)
           # saveWidget(plotleatmap, paste0(clustDir, "/", nm, normTypeInsrt, ".html"))
           # setwd(wd)

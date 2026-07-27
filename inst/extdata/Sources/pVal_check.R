@@ -1,6 +1,6 @@
 ### Check P-values
 #
-print_gg %<o% function(p) { # Works for both ggplot and 
+print_gg %<o% function(p) { # Works for both ggplot and gtable
   grid::grid.newpage()
   grid::grid.draw(
     if (inherits(p, "ggplot")) { ggplot2::ggplot_gtable(ggplot2::ggplot_build(p)) } else { p } # already a gtable
@@ -32,7 +32,7 @@ if (dataType == "modPeptides") {
   ratRef <- ptms.ratios.ref
   descrTxt <- paste0(ptm, "modified peptide:")
   labCol <- "Name"
-  rowsCol <- "Modified sequence"
+  rowsCol <- "Name"
   appNm <- paste0(dtstNm, " - ", ptm, "-mod. peptides P-values")
   appTtl <- paste0(ptm, " - type of P-values")
 }
@@ -340,7 +340,7 @@ while ((!runKount) || (!exists("appRunTst"))) {
 }
 #
 #
-if (dataType == "PG") {
+if (dataType %in% c("modPeptides", "PG")) {
   # Update fold changes
   # The more advanced statistical frameworks provide estimates of average logFC per contrast. Get those.
   # if (!exists("prExpr_roots")) {
@@ -351,30 +351,48 @@ if (dataType == "PG") {
   # prExpr_roots %<o% prExpr_roots
   # Get the log2FCs from all methods for comparison
   ratKol <- paste0(ratRef, myContrasts$Contrast)
-  logFCs <- list(make_Rat2 = set_colnames(quantData_list$Data[, ratKol, drop = FALSE], myContrasts$Contrast))
-  nmsConv <- data.frame(Name = c("limma", "DEqMS", "QFeatures", "ROTS", "MSstats"),
-                        P.values.type = c("Moderated", "DEqMS", "MSqRob", "ROTS", "MSstats"))
+  if (dataType == "PG") {
+    logFCs <- list(make_Rat2 = set_colnames(quantData_list$Data[, ratKol, drop = FALSE], myContrasts$Contrast))
+  }
+  if (dataType == c("modPeptides")) {
+    logFCs <- list(make_Rat2 = set_colnames(ptmpep[, ratKol, drop = FALSE], myContrasts$Contrast))
+  }
+  nmsConv <- data.frame(Name = c("limma", "DEqMS", "limpa->limma",  "limpa->DEqMS", "QFeatures", "ROTS", "MSstats"),
+                        P.values.type = c("Moderated", "DEqMS", "Moderated", "DEqMS", "MSqRob", "ROTS", "MSstats"))
+  if (quantAlgo == "limpa") {
+    stop("Check the behaviour of this code chunk, and how P-value names are handled with limpa, before continuing! This may need some significant rewriting to distinguish between LM->limma vs limpa->limma.")
+  }
   for (i in 1L:nrow(nmsConv)) { #i <- 5L
     nm <- nmsConv$Name[i]
     whContr <- 1L:nrow(myContrasts)
+    if (exists("repRat")) { rm(repRat) }
     if (nm %in% c("limma", "DEqMS")) { #nm <- "limma"
-      repRat <- limmaFits[[dataType]][[nm]]$fit$coefficients[, myContrasts$Contrast[whContr], drop = FALSE] # Already log2!!!
-      repRat <- as.data.frame(repRat)
+      if ((dataType %in% names(limmaFits)) && (nm %in% names(limmaFits[[dataType]]))) {
+        repRat <- limmaFits[[dataType]][[nm]]$fit$coefficients[, myContrasts$Contrast[whContr], drop = FALSE] # Already log2!!!
+        repRat <- as.data.frame(repRat)
+      }
     }
     if (nm == "QFeatures") {
-      repRat <- MSqRob_infer[, grep(topattern("MSqRob logFC - "), colnames(MSqRob_infer), value = TRUE), drop = FALSE]
-      # We produced log10 values for QFeatures, and we tested them as log10, so we need to change base here since we want log2FC!
-      repRat <- repRat/log10(2L) # Convert to log2!!!
-      colnames(repRat) <- sub("^MSqRob logFC - ", "", colnames(repRat))
+      if (dataType %in% names(MSqRob_infer)) {
+        repRat <- MSqRob_infer[[dataType]][, grep(topattern("MSqRob logFC - "), colnames(MSqRob_infer[[dataType]]), value = TRUE),
+                                           drop = FALSE]
+        # We produced log10 values using QFeatures, and we fed them as log10 to MSqRob, so we need to change base here since we want log2FC!
+        repRat <- repRat/log10(2L) # Convert to log2!!!
+        colnames(repRat) <- sub("^MSqRob logFC - ", "", colnames(repRat))
+      }
     }
     if (nm == "MSstats") {
-      repRat <- msstatsLFC # Already log2!!!
+      if (dataType == "PG") {
+        repRat <- msstatsLFC # Already log2!!!
+      } else {
+        warning("Write the MSstats bit for peptides then rewrite this bit!")
+      }
     }
-    if (nm == "ROTS") {
+    if ((nm == "ROTS") && (dataType %in% names(ROTS_res))) {
       whContr <- which(!myContrasts$isDouble) # for ROTS we have only single contrasts
       tmp <- lapply(myContrasts$Contrast[whContr], \(contr) {
-        rwnms <- rownames(ROTS_res[[contr]]$data)
-        logfc <- as.data.frame(t(data.frame(ROTS_res[[contr]]$logfc)))
+        rwnms <- rownames(ROTS_res[[dataType]][[contr]]$data)
+        logfc <- as.data.frame(t(data.frame(ROTS_res[[dataType]][[contr]]$logfc)))
         colnames(logfc) <- rwnms
         return(logfc)
       })
@@ -383,13 +401,15 @@ if (dataType == "PG") {
       rownames(repRat) <- colnames(tmp)
       colnames(repRat) <- myContrasts$Contrast[whContr]
     }
-    repRat <- as.data.frame(repRat)
-    w <- which(!is.finite(as.matrix(repRat)), arr.ind = TRUE)
-    repRat[w] <- NA_real_
-    m <- match(myData[[rowsCol]], rownames(repRat))
-    repRat <- repRat[m, myContrasts$Contrast[whContr], drop = FALSE]
-    rownames(repRat) <- myData[[rowsCol]]
-    logFCs[[nm]] <- repRat
+    if (exists("repRat")) {
+      repRat <- as.data.frame(repRat)
+      w <- which(!is.finite(as.matrix(repRat)), arr.ind = TRUE)
+      repRat[w] <- NA_real_
+      m <- match(myData[[rowsCol]], rownames(repRat))
+      repRat <- repRat[m, myContrasts$Contrast[whContr], drop = FALSE]
+      rownames(repRat) <- myData[[rowsCol]]
+      logFCs[[nm]] <- repRat
+    }
   }
   #vapply(logFCs, nrow, 1L)
   #vapply(logFCs, ncol, 1L)

@@ -2,7 +2,7 @@
 if (globalGO) {
   # Global dataset GO enrichment - expression per sample vs total proteome
   ref <- rev(PG.int.cols[which(PG.int.cols != paste0("Imput. ", PG.int.cols["Original"]))])[1L]
-  xprsFilt <- setNames(lapply(Exp, \(e) { which(PG[[paste0(ref, e)]] > 0L) }), Exp)
+  xprsFilt <- setNames(lapply(Exp, \(e) { which(is.finite(PG[[paste0(ref, e)]])) }), Exp)
   dir <- paste0(wd, "/GO enrichment analysis/Sample vs total proteome")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   setwd(dir)

@@ -412,6 +412,8 @@ if (prot.list.Cond) {
               }
             }
             plotLY <- ggplotly(plot, tooltip = "tooltip")
+            plotLY <- plotly::config(plotLY,
+                                     modeBarButtonsToRemove = c("select2d", "lasso2d"))
             w <- which(vapply(plotLY$x$data, \(x) {
               (x$mode == "text") && (length(x$text) == 1L) && grepl("-only$", x$text)
             }, TRUE))

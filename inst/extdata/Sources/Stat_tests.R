@@ -28,7 +28,7 @@ source(parSrc, local = FALSE)
 #dataType <- "modPeptides" #dataType <- "PG"
 if (dataType == "modPeptides") {
   myData <- ptmpep
-  intRef <- pepRf
+  intRef <- ptmRf
   namesCol <- "Name"
   namesRoot <- "Pep"
   ohDeer <- paste0(wd, "/Reg. analysis/", ptm, "/t-tests")
@@ -122,8 +122,9 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       wOK <- which(tst >= 2L)
     }
     #
-    tmpData <- myData[wOK, quantCol]/log10(2L) # For limma, use log2 data!!!
-    rownames(tmpData) <- myData[wOK, namesCol]
+    tmpData <- myData[, quantCol]/log10(2L) # For limma, use log2 data!!!
+    rownames(tmpData) <- myData[, namesCol]
+    tmpData <- tmpData[wOK,]
   }
   if (Nested) {
     if (!RSA$limmaCol %in% colnames(expMap)) {
@@ -250,7 +251,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
 }
 
 # msqrob2
-if ((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) {
+if (((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) || (dataType %in% c("peptides", "modPeptides"))) {
   if (!require(msqrob2)) { pak::pak("msqrob2") }
   library(msqrob2)
   if (!require(ExploreModelMatrix)) { pak::pak("ExploreModelMatrix") }
@@ -264,7 +265,17 @@ if ((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) {
     msqrobForm <- paste0(msqrobForm, " + ", Batch.effect$limmaCol)
   }
   msqrobForm2 <- as.formula(msqrobForm)
-  inDat <- quantData_list$QFeatures_obj
+  if (dataType == "PG") {
+    nm <- "PG"
+    inDat <- quantData_list$QFeatures_obj
+  } else {
+    nm <- "peptidoforms"
+    if (dataType == "modPeptides") { nm <- paste0(ptm, "-", nm) }
+    inDat <- readQFeatures(myData,
+                           fnames = namesCol,
+                           quantCols = paste0(intRef, RSA$values),
+                           name = nm)
+  }
   colDat <- inDat@colData
   colDat$Sample <- sub(".* - ", "", rownames(inDat@colData))
   colDat[, Factors] <- Exp.map[match(colDat$Sample, Exp.map$Ref.Sample.Aggregate), Factors]
@@ -277,11 +288,11 @@ if ((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) {
   inDat@colData <- colDat
   # Model
   qf <- msqrob2::msqrob(inDat,
-                        i = "PG",
+                        i = nm,
                         formula = msqrobForm2,
                         robust = TRUE)
   #
-  models <- rowData(qf[["PG"]])[["msqrobModels"]]
+  models <- rowData(qf[[nm]])[["msqrobModels"]]
   #models[[1L]]@params
   # vd <- ExploreModelMatrix::VisualizeDesign(sampleData = colData(qf),
   #                                           designFormula = msqrobForm2,
@@ -295,7 +306,6 @@ if ((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) {
   w <- which(Lit %in% colnames(myContrasts))
   tmp <- myContrasts[, Lit[w]]
   nms <- VPAL$names
-  
   if (length(Exp) == 1L) { nms <- setdiff(nms, "Experiment") }
   fct <- paste(paste0(nms, "_._"), collapse = "_")
   for (lit in Lit[w]) {
@@ -311,32 +321,35 @@ if ((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) {
   contrMsqrob <- limma::makeContrasts(contrasts = myContrasts$msqrob2,
                                       levels = designMsqrob)
   qf <- msqrob2::hypothesisTest(qf,
-                                i = "PG",
+                                i = nm,
                                 contrast = contrMsqrob)
   #
-  MSqRob_infer %<o% lapply(colnames(contrMsqrob), \(k) { #k <- colnames(contrMsqrob)[1L]
-    x <- rowData(qf[["PG"]])[[k]]
+  tmpInfer <- lapply(colnames(contrMsqrob), \(k) { #k <- colnames(contrMsqrob)[1L]
+    x <- rowData(qf[[nm]])[[k]]
     colnames(x) <- paste0(colnames(x), " - ", k)
     return(x)
   })
-  MSqRob_infer <- do.call(cbind, MSqRob_infer)
-  kol1 <- colnames(MSqRob_infer) <- paste0("MSqRob ", colnames(MSqRob_infer))
+  tmpInfer <- do.call(cbind, tmpInfer)
+  kol1 <- colnames(tmpInfer) <- paste0("MSqRob ", colnames(tmpInfer))
   tmp <- sub(" - .*", "", kol1)
   kol2 <- vapply(strsplit(kol1, " - "), \(x) {
     paste(x[2L:length(x)], collapse = " - ")
   }, "")
   kol2 <- myContrasts$Contrast[match(kol2, myContrasts$msqrob2)]
   kol2 <- paste0(tmp, " - ", kol2)
-  colnames(MSqRob_infer) <- kol2
-  #View(MSqRob_infer)
-  w <- which(myData[[namesCol]] %in% rownames(MSqRob_infer))
-  m <- match(myData[w, namesCol], rownames(MSqRob_infer))
+  colnames(tmpInfer) <- kol2
+  #View(tmpInfer)
+  w <- which(myData[[namesCol]] %in% rownames(tmpInfer))
+  m <- match(myData[w, namesCol], rownames(tmpInfer))
   myData[, kol2] <- NA
-  myData[w, kol2] <- MSqRob_infer[m, kol2]
+  myData[w, kol2] <- tmpInfer[m, kol2]
   pval <- paste0("MSqRob pval - ", myContrasts$Contrast)
   myData[, sub(topattern("MSqRob pval - "),
                sub(" -log10\\(", " ", sub("\\) - $", " - ", msqrobRoot)), pval)] <- myData[, pval]
   myData[, sub(topattern("MSqRob pval - "), msqrobRoot, pval)] <- -log10(myData[, pval])
+  if ((!exists("MSqRob_infer")) || (!inherits(MSqRob_infer, "list"))) { MSqRob_infer <- list() }
+  MSqRob_infer %<o% MSqRob_infer
+  MSqRob_infer[[dataType]] <- tmpInfer
 }
 
 # MSstats
@@ -532,7 +545,11 @@ if (length(whSingle)) {
   bioc_req <- union(bioc_req, "ROTS")
   if (!require(ROTS)) { pak::pak("ROTS") }
   library(ROTS)
-  ROTS_res %<o% setNames(lapply(whSingle, \(i) { #i <- 1L #i <- 2L #i <- 3L
+  if (!exists("ROTS_res")) {
+    ROTS_res <- list()
+  }
+  ROTS_res %<o% ROTS_res
+  ROTS_tmp <- setNames(lapply(whSingle, \(i) { #i <- 1L #i <- 2L #i <- 3L
     # Get two groups from the contrast
     A_ <- myContrasts$A_samples[[i]]
     B_ <- myContrasts$B_samples[[i]]
@@ -550,16 +567,17 @@ if (length(whSingle)) {
                       K = 500L,
                       seed = mySeed))
   }), myContrasts$Contrast[whSingle])
-  #View(ROTS_res[[myContrasts$Contrast[whSingle[1L]]]])
+  #View(ROTS_tmp[[myContrasts$Contrast[whSingle[1L]]]])
   root <- sub(" -log10\\(", " ", sub("\\) - $", " - ", rotsRoot))
   myData[, paste0(root, myContrasts$Contrast[whSingle])] <- NA_real_
   myData[, paste0(rotsRoot, myContrasts$Contrast[whSingle])] <- NA_real_
   for (contr in myContrasts$Contrast[whSingle]) { #contr <- myContrasts$Contrast[whSingle[1L]]
-    w <- which(myData[[namesCol]] %in% rownames(ROTS_res[[contr]]$data))
-    myData[w, paste0(root, contr)] <- ROTS_res[[contr]]$pvalue[match(myData[w, namesCol],
-                                                                     rownames(ROTS_res[[contr]]$data))]
+    w <- which(myData[[namesCol]] %in% rownames(ROTS_tmp[[contr]]$data))
+    myData[w, paste0(root, contr)] <- ROTS_tmp[[contr]]$pvalue[match(myData[w, namesCol],
+                                                                     rownames(ROTS_tmp[[contr]]$data))]
     myData[w, paste0(rotsRoot, contr)] <- -log10(myData[w, paste0(root, contr)])
   }
+  ROTS_res[[dataType]] <- ROTS_tmp
   #
   #
   # SAM and EBAM

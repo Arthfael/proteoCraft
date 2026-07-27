@@ -1300,11 +1300,11 @@ create_plotly_local %<o% TRUE # No need for a licence when I can save local html
 #   plot_ly$"t-tests" <- list()
 # }
 # Arbitrary thresholds
-arbitrary.thr %<o% data.frame(yintercept = -log10(c(0.05, 0.01)),
-                              slope = c(0, 0),
-                              xintercept = c(NA, NA),
-                              colour = c("orange", "red"),
-                              label = c("5% P-value", "1% P-value"))
+# arbitrary.thr %<o% data.frame(yintercept = -log10(c(0.05, 0.01)),
+#                               slope = c(0, 0),
+#                               xintercept = c(NA, NA),
+#                               colour = c("orange", "red"),
+#                               label = c("5% P-value", "1% P-value"))
 # Default volcano plot arguments
 PrLabKol %<o% setNames(c("Common Name (short)", "Protein IDs", "Genes", "PEP"),
                        c("Protein name", "Protein ID(s)", "Gene(s)", "PEP"))
@@ -1325,6 +1325,7 @@ volcPlot_args2 <- volcPlot_args
 volcPlot_args2$Prot <- PG
 volcPlot_args2$cl <- parClust
 volcPlot_args2$subfolder <- subDr
+volcPlot_args2$X.root_ind <- Prot.Expr.Root
 # For testing:
 #DefArg(Volcano.plot);TESTING <- TRUE
 #invisible(lapply(names(volcPlot_args2), \(x) { assign(x, volcPlot_args2[[x]], envir = .GlobalEnv); return() }))
@@ -1447,6 +1448,7 @@ if (("Q.values" %in% colnames(Param)) && is.logical(Param$Q.values) && Param$Q.v
     volcPlot_args2$arbitrary.thresh <- qval.thresh
     volcPlot_args2$title <- "Q-values volcano plot "
     volcPlot_args2$cl <- parClust
+    volcPlot_args2$X.root_ind <- Prot.Expr.Root
     tempVP2 <- do.call(Volcano.plot, volcPlot_args2)
     #
     # Save plotly plots
@@ -2178,7 +2180,7 @@ source(bckpSrc, local = FALSE)
 
 #### Code chunk - Venn diagrams
 vennTst <- try({
-  Src <- paste0(libPath, "/extdata/Sources/Venn_diagrams.R")
+  Src <- paste0(libPath, "/extdata/Sources/rep_Venn.R")
   #rstudioapi::documentOpen(Src)
   source(Src, local = FALSE)
 }, silent = TRUE)

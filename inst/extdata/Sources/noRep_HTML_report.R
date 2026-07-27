@@ -4,28 +4,9 @@ library(bslib)
 library(htmltools)
 library(DT)
 library(plotly)
+library(jsonlite)
 
 htmlRprtFl <- paste0(wd, "/Report_", dtstNm, ".html")
-tbl_css <- tags$style(HTML("table.dataTable th,
-table.dataTable td {
-  white-space: normal !important;
-  vertical-align: top;
-}
-table.dataTable td .cell-wrap {
-  display: block;
-  white-space: normal !important;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}"))
-report_header <- tags$header(paste0(dtstNm, " - report"),
-    br(),
-    "Analysis run by: ", em(WhoAmI),
-    br(),
-    "Date: ", em(Sys.Date()),
-    br(),
-    "Package: ", em(paste0("proteoCraft v", package.version("proteoCraft"))),
-    br(),
-    br())
 
 # Reload processed data from the report
 allNms <- openxlsx2::wb_get_sheet_names(openxlsx2::wb_load(repFl))
@@ -38,15 +19,156 @@ xlDat <- setNames(lapply(nms, \(nm) {
   }
   return(dat)
 }), nms)
+#
+# Reload materials and methods
+matmethSections <- c("Samples preparation", "LC-MS/MS analysis", "Data analysis")
+fl <- paste0(wd, "/Materials and methods_WIP.docx")
+if (!exists("matmethTxt")) {
+  matmethTxt <- setNames(rep("", 3L),
+                         matmethSections)
+}
+if (file.exists(fl)) {
+  matmethTxt_fromFl <- officer::read_docx(fl)
+  matmethTxt_fromFl <- officer::docx_summary(matmethTxt_fromFl)
+  w <- match(matmethSections, matmethTxt_fromFl$text)
+  matmethTxt_fromFl <- setNames(vapply(1L:3L, \(i) {
+    rg <- (w[i]+1L):(c(w, nrow(matmethTxt_fromFl)+1L)[i+1L]-1L)
+    paste(setdiff(matmethTxt_fromFl$text[rg], ""), collapse = "\n")
+  }, ""), matmethSections)
+  w <- which(matmethTxt == "")
+  if (length(w)) {
+    matmethTxt[w] <- matmethTxt_fromFl[w]
+  }
+}
+#
+tstRat <- MakeRatios && exists("ratioPlots") && (length(ratioPlots) > 0L)
+# If necessary reload plots data
+flHtMp <- paste0(wd, "/Clustering/HeatMaps.RData")
+tstHtMp <- file.exists(flHtMp)
+if (tstHtMp) {
+  loadFun(flHtMp)
+  tstHtMp <- exists("plotLeatMaps") && length(plotLeatMaps)
+}
+loadFun(paste0(wd, "/Sorting plots/quantPlots.RData"))
+flPCA <- paste0(wd, "/Dimensionality red. plots/DimRedPlots.RData")
+tstPCA <- file.exists(flPCA)
+if (tstPCA) {
+  loadFun(flPCA)
+  tstPCA <- exists("dimRedPlotLy") && ("PCA" %in% names(dimRedPlotLy))
+}
+flVenn <- paste0(wd, "/Venn diagrams/Venn_plotly.RDS")
+tstVenn <- file.exists(flVenn)
+if (tstVenn) {
+  loadFun(flVenn)
+  tstVenn <- exists("plotly_Venn") && ("Global, LFQ" %in% names(plotly_Venn))
+}
+strtColWdth <- 12L/(tstVenn + tstPCA)
+
+# Fix to plotly autoscaling + remove some Modebar tools (redundant: they should already be gone, but in case we reload old data)
+if (tstHtMp) {
+  for (x in names(plotLeatMaps)) { #x <- names(plotLeatMaps)[1L]
+    for (y in names(plotLeatMaps[[x]])) { #y <- names(plotLeatMaps[[x]])[1L]
+      plotLeatMaps[[x]][[y]]$Render$x$layout$xaxis$autorange <- TRUE
+      plotLeatMaps[[x]][[y]]$Render$x$layout$yaxis$autorange <- TRUE
+      plotLeatMaps[[x]][[y]]$Render <- plotly::config(plotLeatMaps[[x]][[y]]$Render,
+                                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
+    }
+  }
+}
+if (!exists("ggQuantLy")) { stop("Ugh... really? No ranked abundance plots? Shouldn't we always have those by now?") }
+for (x in names(ggQuantLy)) { #x <- names(ggQuantLy)[1L]
+  for (y in names(ggQuantLy[[x]])) { #y <- names(ggQuantLy[[x]])[1L]
+    ggQuantLy[[x]][[y]]$plotly$x$layout$xaxis$autorange <- TRUE
+    ggQuantLy[[x]][[y]]$plotly$x$layout$yaxis$autorange <- TRUE
+    ggQuantLy[[x]][[y]]$plotly <- plotly::config(ggQuantLy[[x]][[y]]$plotly,
+                                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
+  }
+}
+if (tstPCA) {
+  for (x in names(dimRedPlotLy)) { #x <- names(dimRedPlotLy)[1L]
+    dimRedPlotLy[[x]]$x$layout$xaxis$autorange <- TRUE
+    dimRedPlotLy[[x]]$x$layout$yaxis$autorange <- TRUE
+    dimRedPlotLy[[x]] <- plotly::config(dimRedPlotLy[[x]],
+                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
+  }
+}
+if (exists("covPlots")) {
+  for (x in names(covPlots)) { #x <- names(covPlots)[1L]
+    for (y in names(covPlots[[x]])) { #y <- names(covPlots[[x]])[1L]
+      for (z in names(covPlots[[x]][[y]])) { #z <- names(covPlots[[x]][[y]])[1L]
+        covPlots[[x]][[y]][[z]]$x$layout$xaxis$autorange <- TRUE
+        covPlots[[x]][[y]][[z]]$x$layout$yaxis$autorange <- TRUE
+        covPlots[[x]][[y]][[z]] <- plotly::config(covPlots[[x]][[y]][[z]],
+                                                  modeBarButtonsToRemove = c("select2d", "lasso2d"))
+      }
+    }
+  }
+}
+if (tstRat) {
+  for (x in names(ratioPlots)) { #x <- names(ratioPlots)[1L]
+    ratioPlots[[x]]$x$layout$xaxis$autorange <- TRUE
+    ratioPlots[[x]]$x$layout$yaxis$autorange <- TRUE
+    ratioPlots[[x]] <- plotly::config(ratioPlots[[x]] ,
+                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
+  }
+}
+for (x in names(QC_plotLys)) { #x <- names(QC_plotLys)[1L]
+  QC_plotLys[[x]]$x$layout$xaxis$autorange <- TRUE
+  QC_plotLys[[x]]$x$layout$yaxis$autorange <- TRUE
+  QC_plotLys[[x]] <- plotly::config(QC_plotLys[[x]] ,
+                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
+}
+if (tstVenn) {
+  for (x in names(plotly_Venn)) { #x <- names(plotly_Venn)[1L]
+    plotly_Venn[[x]]$x$layout$xaxis$autorange <- TRUE
+    plotly_Venn[[x]]$x$layout$yaxis$autorange <- TRUE
+    plotly_Venn[[x]] <- plotly::config(plotly_Venn[[x]] ,
+                                       modeBarButtonsToRemove = c("select2d", "lasso2d"))
+  }
+}
 
 #
 #plotHght <- "400px"
 plotHght <- paste0(round(screenRes$height*0.75), "px")
 nmsHtMp <- names(plotLeatMaps$Global)
 nmsHtMp <- intersect(union("None", nmsHtMp), nmsHtMp)
-plotHtMpHght <- paste0(round(min(c(400, vapply(nmsHtMp, \(nm) { plotLeatMaps$Global[[nm]]$Render$sizingPolicy$defaultHeight }, 1)))), "px")
+plotHtMpHght <- paste0(round(min(c(400L, vapply(nmsHtMp, \(nm) { plotLeatMaps$Global[[nm]]$Render$sizingPolicy$defaultHeight }, 1)))), "px")
 
 # UI functions
+tbl_css <- tags$style(HTML("table.dataTable th,
+table.dataTable td {
+  white-space: normal !important;
+  vertical-align: top;
+}
+table.dataTable td .cell-wrap {
+  display: block;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}"))
+logoFl <- list.files(homePath,
+                     "^logo\\.((gif)|(tiff?)|(jpe?g)|(png))$", full.names = TRUE)[1L]
+report_header <- tags$header(
+  fluidRow(if (length(logoFl)) {
+    column(2L,
+           tags$img(src = knitr::image_uri(logoFl),
+                    style = "max-width: 100%; height: auto;"))
+  },
+  column(10L,
+         br(),
+         paste0(dtstNm, " - report"),
+         br(),
+         "Analysis run by: ", em(WhoAmI),
+         br(),
+         "Date: ", em(Sys.Date()),
+         br(),
+         "Package: ", em(paste0("proteoCraft v", package.version("proteoCraft"))),
+         br(),
+         br())),
+  style = "background: linear-gradient(to right, #e8f1ff, #ffffff); padding: 1rem; margin-bottom: 1rem;")
+  
+  
+# Functions
 make_prot_tab <- \(dflt = dfltProt,
                    prots = allProt,
                    shiny = TRUE) {
@@ -84,6 +206,7 @@ make_prot_tab <- \(dflt = dfltProt,
                column(6L,
                       plotlyOutput("ratioPlot", height = plotHght))),
       br(),
+      br(),
       tags$hr(style = "border-color: black;"),
       uiOutput("protPep"),
       br())
@@ -102,7 +225,7 @@ make_prot_tab <- \(dflt = dfltProt,
     })
     ## Ratio plots ######################################################
     ratio_plots_ui <- NULL
-    if (exists("ratioPlots")) {
+    if (tstRat) {
       prots2 <- intersect(prots, names(ratioPlots))
       if (length(prots2)) {
         ratio_plots_ui <- lapply(prots2, \(pr) {
@@ -160,29 +283,32 @@ make_prot_tab <- \(dflt = dfltProt,
                  column(6L, ratio_plots_ui)
                },
       ),
+      br(),
+      br(),
+      tags$hr(style = "border-color: black;"),
       pepTables,
       tags$script(HTML("function updateProteinTab() {
-  var prot = document.getElementById('myProtein').value;
-  var ind = document.getElementById('myProtein').selectedIndex + 1;
-  var sample = document.getElementById('mySample').value;
-  var comm = 'prComment_' + ind
+  const prot = document.getElementById('myProtein').value;
+  const ind = document.getElementById('myProtein').selectedIndex + 1;
+  const sample = document.getElementById('mySample').value;
+  const comm = 'prComment_' + ind
   document.querySelectorAll('[id^=\"cov_\"]').forEach(function(el) {
       el.style.display = 'none';
   });
-  var cov = document.getElementById('cov_' + prot + '_' + sample);
+  const cov = document.getElementById('cov_' + prot + '_' + sample);
   if (cov)
     cov.style.display = 'block';
   document.querySelectorAll('[id^=\"pepTable_\"]').forEach(function(el) {
       el.style.display = 'none';
   });
-  var pepTblID = document.getElementById('pepTable_' + ind);
+  const pepTblID = document.getElementById('pepTable_' + ind);
   if (pepTblID)
     pepTblID.style.width = '100%';
     pepTblID.style.display = 'block';
   document.querySelectorAll('[id^=\"rat_\"]').forEach(function(el) {
     el.style.display = 'none';
   });
-  var rat = document.getElementById('rat_' + prot);
+  const rat = document.getElementById('rat_' + prot);
   if (rat)
     rat.style.display = 'block';
   document.querySelectorAll('[id^=\"prComment_\"]').forEach(function(el) {
@@ -196,9 +322,9 @@ make_prot_tab <- \(dflt = dfltProt,
   );
 }
 document.getElementById('mySample').addEventListener('change', updateProteinTab);
-var prot = document.getElementById('myProtein');
-if (prot)
-  prot.addEventListener('change', updateProteinTab);")),
+const myProt = document.getElementById('myProtein');
+if (myProt)
+  myProt.addEventListener('change', updateProteinTab);")),
       br(),
       tags$hr(style = "border-color: black;"))
   }
@@ -236,16 +362,17 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
                  filt = NULL, #filt = allProt[1L] # Filter by "Common Name"
                  dat = xlDat,
                  minN = 1L) {
+  pgTest <- (tab == "Protein groups")
   df <- dat[[tab]]
   smplCols_lst <- setNames(lapply(exp, \(xp) {
     grep(topattern(paste0(" ", xp), FALSE, TRUE), colnames(df), value = TRUE)
   }), exp)
   smplCols <- setNames(unlist(smplCols_lst), NULL)
-  coreCols <- c("PEP", "Potential contaminant")
+  coreCols <- "PEP"
   if (tab %in% c("Protein groups", "All peptidoforms")) {
-    if (tab == "Protein groups") {
+    if (pgTest) {
       filtCol <- "Protein IDs"
-      coreCols <- union(c("Leading protein IDs", filtCol, "Common Names", "Genes", "Mol. weight [kDa]"), coreCols)
+      coreCols <- union(c("Leading protein IDs", filtCol, "Common Names", "Genes", "Mol. weight [kDa]", "Potential contaminant"), coreCols)
       intRoot <- "expr"
     }
     if (tab == "All peptidoforms") {
@@ -279,12 +406,16 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
   }
   #
   colNms <- c(coreCols, xprCols)
-  repColNms <- c(sub("_verbose$", "", coreCols), repXprCols)
+  repColNms <- c(sub("_verbose$", "",
+                     sub("^Potential contaminant$", "Cont.",
+                         sub("^Mol\\. weight \\[kDa\\]$", "MW (kDa)",
+                             sub("^Common Names$", "Common names", coreCols)))),
+                 repXprCols)
   if (useRat) {
     colNms <- c(colNms, ratCols)
     repColNms <- c(repColNms, repRatCols)
   }
-  if (tab == "Protein groups") {
+  if (pgTest) {
     pepCountCols <- intersect(paste0("Pep. count ", exp), colnames(df))
     psmCountCols <- intersect(paste0("PSMs count ", exp), colnames(df))
     k <- union(pepCountCols, psmCountCols)
@@ -299,7 +430,7 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
   } else {
     grsep(db$`Protein ID`[match(filt, db$`Common Name`)], x = df[[filtCol]])
   }
-  if ((tab == "Protein groups") && is.integer(minN) && (minN > 0L) && length(pepCountCols)) {
+  if (pgTest && is.integer(minN) && (minN > 0L) && length(pepCountCols)) {
     flt <- flt[which(apply(df[flt, pepCountCols, drop = FALSE], 1L, max, na.rm = TRUE) >= minN)]
   }
   df <- df[flt,]
@@ -310,7 +441,7 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
   xprCols <- repXprCols
   if (useRat) { ratCols <- repRatCols }
   covCols <- NULL
-  if (tab == "Protein groups") {
+  if (pgTest) {
     covCols <- paste0("Cov. ", exp)
     repCovCols <- if (length(exp) == 1L) { "Coverage" } else { covCols }
     if (covCols %in% colnames(dat[[tab]])) {
@@ -335,9 +466,9 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
     ratRng <- range(df[[ratCols]], na.rm = TRUE)
     quantCols <- c(quantCols, ratCols)
   }
-  covSortCols <- character(0)
+  covSortCols <- character(0L)
   covSortVals <- NULL
-  if (tab == "Protein groups" && (!is.null(covCols)) && length(covCols)) {
+  if (pgTest && (!is.null(covCols)) && length(covCols)) {
     covSortCols <- paste0(covCols, "__sort")
     covSortVals <- setNames(lapply(covCols, \(k) {
       suppressWarnings(as.numeric(df[[k]]))
@@ -345,7 +476,7 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
   }
   col2 <- setdiff(colnames(df), c("PEP", quantCols))
   df[, col2] <- sapply(col2, \(k) {
-    if ((tab == "Protein groups") && (k %in% covCols)) {
+    if (pgTest && (k %in% covCols)) {
       make_bar(df[[k]])
     } else {
       sprintf("<div class=\"cell-wrap\">%s</div>", df[[k]])
@@ -360,7 +491,7 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
     # if (is.na(x)) { x <- 50L }
     # return(as.integer(x))
     max(c(min(c(nchar(k)*8L + 24L,
-          250L)),
+                250L)),
           50L))
   }, 1L), colnames(df))
   wTest2 <- sum(wTest1) + 15L + ncol(df)*5L
@@ -387,14 +518,49 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
               searchable = FALSE)))
   }
   columnDefs_all <- c(unname(wTest1), covOrderDefs)
+  header_help <- c("PEP" = c("Posterior Error Probability = estimate of the probability that the peptide is a false discovery (local FDR) based on the local density of decoy hits",
+                             "Posterior Error Probability = estimate of the probability that the protein group is a false discovery (i.e. all its assigned peptides are false discoveries), calculated as the product of the PEPs of individual peptides)")[pgTest + 1L],
+                   "Leading protein IDs" = "Accessions of the minimum number of proteins required to explain the observed peptides assigned to the protein group",
+                   "Protein IDs" = "Accessions of all proteins the peptides in the group could originate from",
+                   "Proteins" = "Accessions of all proteins the peptide could originate from",
+                   "Modified sequence" = "Peptide sequence with any post-translational modification(s) detected",
+                   "Cont." = paste0(c("Peptides matching", "Proteins from")[pgTest + 1L],
+                                                    " a list of common environmental and laboratory contaminants, inc. e.g. Trypsin, Keratins, BSA,... are marked with a \"+\""),
+                   "Pep. count" = "Number of peptidoforms",
+                   "PSMs count" = "Number of individual identifications (Peptide-to-Spectrum matches)",
+                   "MW (kDa)" = "Molecular weight of the first protein in column \"Leading protein IDs\"",
+                   "Coverage" = "Sequence coverage of the first protein in column \"Leading protein IDs\"",
+                   "log10(" = c("log10 intensity-based estimated abundance",
+                                "log10 intensity-based estimated abundance")[pgTest + 1L], # For now the same, but should become more taylor-made based on which specific intensity/expression column we choose to show (e.g. normalised, imputed, corrected etc...)
+                   "log2(" = "estimated log2 Fold Change")
   df <- DT::datatable(df,
                       rownames = FALSE,
                       class = "compact",
                       escape = FALSE,
                       options = list(scrollX = TRUE,
                                      scrollY = "500px",
+                                     pageLength = 100L,
+                                     lengthMenu = list(c(10L, 25L, 50L, 100L, -1L),
+                                                       c("10", "25", "50", "100", "All")),
                                      autoWidth = FALSE,
-                                     columnDefs = columnDefs_all))
+                                     columnDefs = columnDefs_all,
+                                     initComplete = JS(sprintf("function(settings, json) {
+  const tips = %s;
+  const api = this.api();
+  // Sort prefixes longest-first, so more specific matches win
+  const entries = Object.entries(tips).sort(([a], [b]) => b.length - a.length);
+  api.columns().every(function(i) {
+    const header = api.column(i).header();
+    const colName = header.textContent.trim();
+    for (const [prefix, helpText] of entries) {
+      if (colName.startsWith(prefix)) {
+        header.setAttribute('title', helpText);
+        break;
+      }
+    }
+  });
+}",
+                                                               jsonlite::toJSON(as.list(header_help), auto_unbox = TRUE)))))
   df <- DT::formatRound(df, c("PEP", quantCols), digits = 5L)
   df <- DT::formatStyle(df, "PEP",
                         backgroundColor = DT::styleInterval(10L^-seq(10, 0, length.out = 99L),
@@ -413,19 +579,49 @@ make_summTbl_ui <- \() {
   df <- t(Exp_summary[, grep(" - % ", colnames(Exp_summary), invert = TRUE, value = TRUE)])
   colnames(df) <- df[1L,]
   df <- df[2L:nrow(df),]
-  wdth <- paste0(250L*(ncol(df) + 1L), "px")
+  #
+  # Drop fixed PTMs (alkylation)
+  fxdMods <- Modifs$`Full name`[which(Modifs$Type == "Fixed")]
+  l <- length(fxdMods)
+  if (l) {
+    if (l > 1L) {
+      fxdMods <- paste0("(", paste0("(", fxdMods, ")", collapse = "|"), ")")
+    }
+    pat <- paste0("^", fxdMods, " - ")
+    df <- df[grep(fxdMods, rownames(df), invert = TRUE),]
+  }
+  #
+  wdth <- paste0(160L*(ncol(df) + 1L) + 40*ncol(df), "px")
   #hght <- paste0(100L*(nrow(df)+1L), "px")
+  rownames(df) <- sub("eptides$", "eptidoforms", rownames(df))
+  rowHelp <- setNames(rep("", nrow(df)), rownames(df))
+  rowHelp["PSMs"] <- "\"Peptide-Spectrum-Matches\" = individual identifications by the search engine"
+  rowHelp["Peptidoforms"] <- "Peptides in a specific post-translationally-modified state"
+  rowHelp["Protein groups"] <- "Groups of sequence-related proteins whose presence in the dataset is inferred from a collected of observed peptide sequences.\nA protein group includes:\n - one or more \"leading\" protein(s), which explain all peptide sequences assigned to the group and, if multiple, are indistinguishable based on observations,\n - ... as well as any other proteins which have no unique (= proteotypic) peptide but can produce some of the peptides in the group."
   df <- DT::datatable(df,
                       rownames = TRUE,
                       class = "compact",
                       escape = FALSE,
-                      #autoHideNavigation = TRUE,
                       width = wdth,
                       #height = hght,
-                      options = list(scrollX = TRUE,
-                                     scrollY = "500px",
+                      height = "auto",
+                      fillContainer = FALSE,
+                      options = list(rowCallback = JS(sprintf("function(row, data, displayNum, displayIndex, dataIndex) {
+  const tips = %s;
+  // With rownames = TRUE, the row name is usually in the first cell
+  const rowNameCell = row.cells[0];
+  const rowName = rowNameCell.textContent.trim();
+  if (Object.prototype.hasOwnProperty.call(tips, rowName)) {
+    rowNameCell.setAttribute('title', tips[rowName]);
+  }
+}",
+                                                              jsonlite::toJSON(as.list(rowHelp), auto_unbox = TRUE))),
+                                     scrollX = TRUE,
+                                     paging = FALSE,
+                                     lengthChange = FALSE,
                                      autoWidth = FALSE,
-                                     columnDefs = list(list(width = "200px",
+                                     dom = "ft",
+                                     columnDefs = list(list(width = "160px",
                                                             targets = 1L:ncol(df) - 1L))))
 }
 make_select_tag <- \(id,
@@ -433,18 +629,18 @@ make_select_tag <- \(id,
                      name,
                      values,
                      selected) {
-    tags$div(if (nchar(label)) {
+  tags$div(if (nchar(label)) {
     tags$label(`for` = id,
                label)
-    },
-    tags$select(id = id,
-                name = name,
-                `data-default` = selected,
-                lapply(values, \(x) {
-                  tags$option(value = x,
-                              selected = if (x == selected) { "selected" } else { NULL },
-                              x)
-                })))
+  },
+  tags$select(id = id,
+              name = name,
+              `data-default` = selected,
+              lapply(values, \(x) {
+                tags$option(value = x,
+                            selected = if (x == selected) { "selected" } else { NULL },
+                            x)
+              })))
 }
 make_smpl_tab <- \(exp,
                    shiny = TRUE,
@@ -463,17 +659,17 @@ make_smpl_tab <- \(exp,
     id1 <- paste0("quant_", exp)
     id2 <- paste0("quant_", exp, "_")
     js <- sprintf("document.getElementById('%s').addEventListener('change', function() {
-  var selected = document.getElementById('%s').selectedIndex + 1;
+  const selected = document.getElementById('%s').selectedIndex + 1;
   document.querySelectorAll('[id^=\"%s\"]').forEach(function(div) {
     div.style.display = 'none';
   });
   document.getElementById('%s' + selected).style.display = 'block';
   window.dispatchEvent(new Event('resize'));
 });",
-      id1,
-      id1,
-      id2,
-      id2)
+                  id1,
+                  id1,
+                  id2,
+                  id2)
     tagList(make_comment_ui(exp, shiny),
             lapply(1L:lQ, \(i) {
               tags$div(id = paste0("quant_", exp, "_", as.character(i)),
@@ -486,6 +682,7 @@ make_smpl_tab <- \(exp,
                             id1,
                             quant,
                             dflt[exp]),
+            br(),
             br(),
             tags$hr(style = "border-color: black;"),
             tags$script(HTML(js)),
@@ -500,14 +697,24 @@ make_strt_tab <- \(shiny = TRUE) {
             make_summTbl_ui(),
             br(),
             br(),
-            fluidRow(column(strtColWdth,
-                            selectInput("myHeatMap",
-                                        "",
-                                        nmsHtMp,
-                                        nmsHtMp[1L]),
-                            plotlyOutput("heatMap", height = plotHtMpHght)),
-                     column(strtColWdth,
-                            plotlyOutput("PCA", height = plotHtMpHght))),
+            if (tstHtMp) {
+              column(12L,
+                     selectInput("myHeatMap",
+                                 "",
+                                 nmsHtMp,
+                                 nmsHtMp[1L]),
+                     plotlyOutput("heatMap", height = plotHtMpHght))
+            },
+            fluidRow(
+              if (tstPCA) {
+                column(4L*(3L-tstVenn),
+                       plotlyOutput("PCA", height = plotHtMpHght))
+              },
+              if (tstVenn) {
+                column(4L,
+                       plotlyOutput("Venn", height = plotHtMpHght))
+              },
+            ),
             br())
   } else {
     styleOn <- paste0("display: block; height: ", plotHtMpHght)
@@ -517,32 +724,38 @@ make_strt_tab <- \(shiny = TRUE) {
             make_summTbl_ui(),
             br(),
             br(),
+            if (tstHtMp) {
+              fluidRow(column(strtColWdth,
+                              make_select_tag("myHeatMap",
+                                              "",
+                                              "myHeatMap",
+                                              nmsHtMp,
+                                              nmsHtMp[1L]),
+                              lapply(nmsHtMp, \(nm) {
+                                i <- match(nm, nmsHtMp)
+                                tags$div(id = paste0("HeatMap_", i),
+                                         style = if (i == 1L) { styleOn } else { "display: none;" },
+                                         plotLeatMaps$Global[[nm]]$Render)
+                              })))
+            },
             fluidRow(
-              if (tstHtMp) {
-                column(strtColWdth,
-                       make_select_tag("myHeatMap",
-                                       "",
-                                       "myHeatMap",
-                                       nmsHtMp,
-                                       nmsHtMp[1L]),
-                       lapply(nmsHtMp, \(nm) {
-                         i <- match(nm, nmsHtMp)
-                         tags$div(id = paste0("HeatMap_", i),
-                                  style = if (i == 1L) { styleOn } else { "display: none;" },
-                                  plotLeatMaps$Global[[nm]]$Render)
-                       }))
-              },
               if (tstPCA) {
-                column(strtColWdth,
+                column(4L*(3L-tstVenn),
                        tags$div(id = "PCA",
                                 style = styleOn,
                                 dimRedPlotLy$PCA))
               },
+              if (tstVenn) {
+                column(4L,
+                       tags$div(id = "Venn",
+                                style = styleOn,
+                                plotly_Venn$`Global, LFQ`))
+              },
             ),
             br(),
             tags$script(HTML(paste0("document.getElementById('myHeatMap').addEventListener('change', function() {
-  var HtMpID = document.getElementById('myHeatMap').selectedIndex + 1;
-  var HtMp = document.getElementById('HeatMap_' + HtMpID);
+  const HtMpID = document.getElementById('myHeatMap').selectedIndex + 1;
+  const HtMp = document.getElementById('HeatMap_' + HtMpID);
   document.querySelectorAll('[id^=\"HeatMap_\"]').forEach(function(el) {
     el.style.display = 'none';
   });
@@ -587,11 +800,11 @@ make_QC_ui <- \(shiny = TRUE,
                      }),
                      br(),
                      tags$script(HTML("document.getElementById('myQC').addEventListener('change', function() {
-  var selected = document.getElementById('myQC').selectedIndex + 1;
+  const selected = document.getElementById('myQC').selectedIndex + 1;
   document.querySelectorAll('[id^=\"QC_\"]').forEach(function(div) { div.style.display = 'none'; });
   document.getElementById('QC_' + selected).style.display = 'block';
   document.querySelectorAll('[id^=\"QCcomment_\"]').forEach(function(div) { div.style.display = 'none'; });
-  var div = document.getElementById('QCcomment_' + selected);
+  const div = document.getElementById('QCcomment_' + selected);
   div.style.display = 'block';
   div.style.whiteSpace = 'pre-wrap';
   div.style.padding = '10px';
@@ -599,8 +812,38 @@ make_QC_ui <- \(shiny = TRUE,
 });"))))
   }
 }
-make_ui <- \(shiny = TRUE) {
-  tabs <- lapply(myTabs, function(x) {
+make_matmet_ui <- \(matmeth = matmethTxt,
+                    shiny = TRUE) {
+  # We want to load the processed materials and methods (potentially edited by the user)
+  # ============> This should be ideally run as part of the finalization script, after the materials and method edition stage
+  #
+  hght <- vapply(strsplit(matmeth, "\n"), \(x) {
+    paste0(as.character(20L*(sum(ceiling(nchar(unlist(x))/ceiling(screenRes$width/5.75)))+2L)), "px")
+  }, "")
+  if (shiny) {
+    tabPanel("Materials and methods",
+             tagList(textAreaInput("MatMet_SamplePrep", matmethSections[1L], matmeth[1L], "100%", hght[1L]),
+                     br(),
+                     textAreaInput("MatMet_LCMS", matmethSections[2L], matmeth[2L], "100%", hght[2L]),
+                     br(),
+                     textAreaInput("MatMet_DataAnalysis", matmethSections[3L], matmeth[3L], "100%", hght[3L]),
+                     br()))
+  } else {
+    tabPanel("Materials and methods",
+             tagList(h5(matmethSections[1L]),
+                     tags$p(matmeth[1L]),
+                     br(),
+                     h5(matmethSections[2L]),
+                     tags$p(matmeth[2L]),
+                     br(),
+                     h5(matmethSections[3L]),
+                     tags$p(matmeth[3L]),
+                     br()))
+  }
+}
+make_ui <- \(tabNames = myTabs,
+             shiny = TRUE) {
+  tabs <- lapply(tabNames, \(x) {
     if (x == "Dataset overview") {
       return(tabPanel(x,
                       make_strt_tab(shiny = shiny)))
@@ -613,7 +856,7 @@ make_ui <- \(shiny = TRUE) {
     if (x == "Proteins of interest") {
       return(tabPanel(x,
                       tagList(
-                        if (ratiosTest) {
+                        if (tstRat) {
                           make_prot_tab(dfltProt,
                                         shiny = shiny)
                         },
@@ -623,58 +866,11 @@ make_ui <- \(shiny = TRUE) {
     if (x == "QC") {
       return(make_QC_ui(shiny = shiny))
     }
+    if (x == "Materials and methods") {
+      return(make_matmet_ui(shiny = shiny))
+    }
   })
   return(bslib::navset_tab(!!!tabs))
-}
-
-# If necessary reload plots data
-flHtMp <- paste0(wd, "/Clustering/HeatMaps.RData")
-tstHtMp <- file.exists(flHtMp)
-if (tstHtMp) {
-  loadFun(flHtMp)
-  tstHtMp <- exists("plotLeatMaps") && length(plotLeatMaps)
-}
-loadFun(paste0(wd, "/Sorting plots/quantPlots.RData"))
-flPCA <- paste0(wd, "/Dimensionality red. plots/DimRedPlots.RData")
-tstPCA <- file.exists(flPCA)
-if (tstPCA) {
-  loadFun(flPCA)
-  tstPCA <- exists("dimRedPlotLy") && ("PCA" %in% names(dimRedPlotLy))
-}
-strtColWdth <- 12L/(tstHtMp + tstPCA)
-
-# Fix to plotly autoscaling
-if (tstHtMp) {
-  for (x in names(plotLeatMaps)) { #x <- names(plotLeatMaps)[1L]
-    for (y in names(plotLeatMaps[[x]])) { #y <- names(plotLeatMaps[[x]])[1L]
-      plotLeatMaps[[x]][[y]]$Render$x$layout$xaxis$autorange <- TRUE
-      plotLeatMaps[[x]][[y]]$Render$x$layout$yaxis$autorange <- TRUE
-    }
-  }
-}
-if (exists("ggQuantLy")) {
-  for (x in names(ggQuantLy)) { #x <- names(ggQuantLy)[1L]
-    for (y in names(ggQuantLy[[x]])) { #y <- names(ggQuantLy[[x]])[1L]
-      ggQuantLy[[x]][[y]]$plotly$x$layout$xaxis$autorange <- TRUE
-      ggQuantLy[[x]][[y]]$plotly$x$layout$yaxis$autorange <- TRUE
-    }
-  }
-}
-if (tstPCA) {
-  for (x in names(dimRedPlotLy)) { #x <- names(dimRedPlotLy)[1L]
-    dimRedPlotLy[[x]]$x$layout$xaxis$autorange <- TRUE
-    dimRedPlotLy[[x]]$x$layout$yaxis$autorange <- TRUE
-  }
-}
-if (exists("covPlots")) {
-  for (x in names(covPlots)) { #x <- names(covPlots)[1L]
-    for (y in names(covPlots[[x]])) { #y <- names(covPlots[[x]])[1L]
-      for (z in names(covPlots[[x]][[y]])) { #z <- names(covPlots[[x]][[y]])[1L]
-        covPlots[[x]][[y]][[z]]$x$layout$xaxis$autorange <- TRUE
-        covPlots[[x]][[y]][[z]]$x$layout$yaxis$autorange <- TRUE
-      }
-    }
-  }
 }
 
 # Plot HTML paths
@@ -688,7 +884,7 @@ if (prot.list.Cond) {
   myTabs <- union(myTabs, "Proteins of interest")
   nms <- union(nms, allProt)
 }
-myTabs <- union(myTabs, "QC")
+myTabs <- union(myTabs, c("QC", "Materials and methods"))
 nms <- union(nms, c("QC", names(QC_plotLys)))
 dfltComment <- paste0(nrow(PG), " protein groups were identified from ", nrow(ev), " PSMs", " corresponding to ", nrow(pep),
                       " distinct peptidoforms. ...")
@@ -699,24 +895,23 @@ if ((!exists("allComments")) || (!is.character(allComments))) {
     } else { "" }
   }, ""), nms)
 }
-if (sum(!nms %in% names(allComments))) {
-  nms_ <- setdiff(nms, names(allComments))
+nms_ <- setdiff(nms, names(allComments))
+if (length(nms_)) { # Generate defaults
   allComments[nms_] <- ""
   if ("Dataset overview" %in% nms_) { allComments$"Dataset overview" <- dfltComment }
 }
 allComments %<o% allComments[nms]
-ratiosTest <- exists("ratioPlots") && (length(ratioPlots) > 0L)
 
 #
-quantTst <- setNames(lapply(names(ggQuantLy), \(tp) { names(ggQuantLy[[tp]]) }), names(ggQuantLy))
-quantTst <- listMelt(quantTst, ColNames = c("Sample", "Type"))
-quantTst <- aggregate(quantTst$Type, list(quantTst$Sample), list)
-colnames(quantTst) <- c("Sample", "Types")
-dfltQuant <- quantTst[, "Sample", drop = FALSE]
-dfltQuant$Type <- vapply(quantTst$Types, \(x) { x[[1L]] }, "")
-quantTst <- setNames(quantTst$Types, quantTst$Sample)
+quantLst <- setNames(lapply(names(ggQuantLy), \(tp) { names(ggQuantLy[[tp]]) }), names(ggQuantLy))
+quantLst <- listMelt(quantLst, ColNames = c("Sample", "Type"))
+quantLst <- aggregate(quantLst$Type, list(quantLst$Sample), list)
+colnames(quantLst) <- c("Sample", "Types")
+dfltQuant <- quantLst[, "Sample", drop = FALSE]
+dfltQuant$Type <- vapply(quantLst$Types, \(x) { x[[1L]] }, "")
+quantLst <- setNames(quantLst$Types, quantLst$Sample)
 dfltQuant <- setNames(dfltQuant$Type, dfltQuant$Sample)
-quantMeth <- unique(unlist(quantTst))
+quantMeth <- unique(unlist(quantLst))
 #
 appPage <- 1L
 appNm <- "Edit report"
@@ -761,9 +956,14 @@ server <- \(input, output, session) {
   # Render UI
   output$xprtMsg <- renderUI(XPRTMSG())
   output$myUI <- renderUI({ make_ui() })
-  output$heatMap <- renderPlotly(plotLeatMaps$Global[[NORMMETH()]]$Render)
+  if (tstHtMp) {
+    output$heatMap <- renderPlotly(plotLeatMaps$Global[[NORMMETH()]]$Render)
+  }
   if (tstPCA) {
     output$PCA <- renderPlotly(dimRedPlotLy$PCA)
+  }
+  if (tstVenn) {
+    output$Venn <- renderPlotly(plotly_Venn$`Global, LFQ`)
   }
   #
   for (exp in Exp) {
@@ -813,6 +1013,22 @@ server <- \(input, output, session) {
     output$QCplotLy <- renderPlotly(QC_plotLys[[input$QC1]])
     output$QCtxt <- renderUI(make_comment_ui(input$QC1))
   })
+  #  - Materials and methods
+  observeEvent(input$MatMet_SamplePrep, {
+    txt <- matmethTxt
+    txt[matmethSections[1L]] <- input$MatMet_SamplePrep
+    assign("matmethTxt", txt, envir = .GlobalEnv)
+  })
+  observeEvent(input$MatMet_LCMS, {
+    txt <- matmethTxt
+    txt[matmethSections[2L]] <- input$MatMet_LCMS
+    assign("matmethTxt", txt, envir = .GlobalEnv)
+  })
+  observeEvent(input$MatMet_DataAnalysis, {
+    txt <- matmethTxt
+    txt[matmethSections[3L]] <- input$MatMet_DataAnalysis
+    assign("matmethTxt", txt, envir = .GlobalEnv)
+  })
   #  - Render final report
   observeEvent(input$xprtBtn, {
     XPRTMSG(em("Exporting .html report, this will take a few seconds...",
@@ -828,8 +1044,8 @@ server <- \(input, output, session) {
     sel.dispatchEvent(new Event('change'));
   });
 });")),
-        report_header,
-        make_ui(FALSE))
+                                report_header,
+                                make_ui(shiny = FALSE))
       # 2. Wrap as browsable HTML
       page <- htmltools::browsable(page)
       # 3. Save to disk
@@ -848,7 +1064,8 @@ while ((!runKount) || (!exists("appRunTst")) || (!file.exists(htmlRprtFl))) {
   runKount <- runKount + 1L
 }
 
-# We now have our html... but it depends on local libraries... we want those embedded in it!
+# We now have our html... but it depends on local libraries...
+# ---> We want those embedded in it so it is fully portable!
 h2 <- h1 <- readLines(htmlRprtFl)
 rg1 <- grep("</?head>", h1) + c(1L, -1L)
 rg1 <- rg1[1L]:rg1[2L]
@@ -858,10 +1075,10 @@ hd1$new <- hd1$original
 g <- grep("^ *<((style)|(script)|(link))( *[^>]+)?>", hd1$original)
 hd1$original[g]
 require(base64enc)
-read_file <- function(path) {
+read_file <- \(path) {
   paste(readLines(path, warn = FALSE), collapse = "\n")
 }
-file_to_data_uri <- function(path) {
+file_to_data_uri <- \(path) {
   ext <- tools::file_ext(path)
   mime <- switch(tolower(ext),
                  "woff2" = "font/woff2",
@@ -908,7 +1125,4 @@ h2[rg1] <- hd1$new
 write(h2, htmlRprtFl)
 removeDirectory(paste0(wd, "/lib"), TRUE, FALSE)
 
-
-# TO DO
-# - remove local /lib folder
-# - overwrite report instead of keeping two versions
+# To do: write Mat Meth locally

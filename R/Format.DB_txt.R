@@ -59,7 +59,6 @@ Format.DB_txt <- function(txt,
                           cl,
                           Feat_accRgx = "[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}") {
   TESTING <- FALSE
-  #
   #TESTING <- TRUE;DefArg(Format.DB_txt);usePar = TRUE;cl = parClust 
   #txt = annot_Fl;Features = TRUE
   #txt = x

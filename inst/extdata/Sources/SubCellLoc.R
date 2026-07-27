@@ -4,10 +4,10 @@ if (Annotate&&LocAnalysis) {
   ReportCalls <- AddMsg2Report(Space = FALSE)
   dir <- paste0(wd, "/pRoloc")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dir))
+  dirlist <- union(dirlist, dir)
   packs <- c("pRoloc", "pRolocGUI") # We will not use pRolocGUI as it seems to be using an outdated version of shinydashboardPlus (specifically a retired function)
   for (pack in packs) { #pack <- packs[1L]
-    bioc_req <- unique(c(bioc_req, pack))
+    bioc_req <- union(bioc_req, pack)
     biocInstall(pack)
   }
   parse.Param.aggreg.2("Ratios.Groups.Ref.Aggregate.Level", "SubCellFracAggr", "Com")
@@ -24,7 +24,7 @@ if (Annotate&&LocAnalysis) {
   # For sub-cellular localisation analysis, we need to define a series of compartment markers to predict protein location
   # We can use the very granular markers already defined above (pRoloc or built-in), or define new ones here
   ObjNm <- "CompGOTerms2"
-  .obj <- unique(c(ObjNm, .obj))
+  .obj <- union(ObjNm, .obj)
   if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
     msg <- "Enter a list of GO Cell Compartment (GO CC) terms for compartments of interest (semicolon-separated).
 You may also include:
@@ -34,8 +34,8 @@ You may also include:
 Example: \"GO:0031012;2\"
 "
     tmp <- unlist(strsplit(dlg_input(msg, "2")$res, "[;,] ?"))
-    if ("1" %in% tmp) { tmp <- unique(c(tmp, "GO:0005654", "GO:0000785", "GO:0005737")) }
-    if ("2" %in% tmp) { tmp <- unique(c(tmp, CompGOTerms)) }
+    if ("1" %in% tmp) { tmp <- union(tmp, c("GO:0005654", "GO:0000785", "GO:0005737")) }
+    if ("2" %in% tmp) { tmp <- union(tmp, CompGOTerms) }
     tmp <- tmp[which(tmp %in% GO_terms$ID[which(GO_terms$Ontology == "CC")])] # (Also neatly removes "1" and "2"...)
     ObjNm %<c% tmp
     AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
@@ -304,7 +304,7 @@ Example: \"GO:0031012;2\"
   #
   # Re-localisation analysis
   parse.Param.aggreg.2("Volcano.plots.Aggregate.Level", "SubCellFracAggr2", "Com")
-  SSD.Root %<o% "log10(SSD) - "
+  SSD.Root %<o% "log2(SSD) - "
   SSD.Pval.Root %<o% "Welch's t-test on SSDs -log10(Pvalue) - "
   WhRef <- lapply(SubCellFracAggr2$values, \(x) {
     unique(Exp.map$Reference[which(Exp.map[[SubCellFracAggr2$column]] == x)])
@@ -342,7 +342,7 @@ Example: \"GO:0031012;2\"
         #     A <- sweep(A, 1L, rowSums(A), "/") 
         #     B <- sweep(B, 1L, rowSums(B), "/") 
         #   }
-        #   res <- log10(rowSums((A-B)^2))
+        #   res <- log2(rowSums((A-B)^2))
         #   return(res)
         # }))
         # RefSSDs <- setNames(lapply(SubCellFracAggr2$values, \(x) { RefSSDs }), SubCellFracAggr2$values)
@@ -366,7 +366,7 @@ Example: \"GO:0031012;2\"
               P1 <- sweep(P1, 1L, rowSums(P1), "/") 
             }
             res <- P0-P1
-            res <- log10(rowSums((P0-P1)^2))
+            res <- log2(rowSums((P0-P1)^2L))
             return(res)
           }))
           colnames(SSDs[[grp]]) <- SSDkols <- paste0(SSD.Root, EM1[match(rps, EM1$Replicate), SubCellFracAggr$column])
@@ -379,23 +379,23 @@ Example: \"GO:0031012;2\"
               P0 <- sweep(P0, 1L, rowSums(P0), "/") 
               P1 <- sweep(P1, 1L, rowSums(P1), "/") 
             }
-            res <- log10(rowSums((P0-P1)^2))
+            res <- log2(rowSums((P0-P1)^2L))
             return(res)
           }))
           colnames(SSDs[[grp]]) <- SSDkols <- paste0(SSD.Root, apply(comb, 1L, \(i) {
             paste0(EM1[match(i[[2L]], EM1$Replicate), SubCellFracAggr$column], "_vs_", EM0[match(i[[1L]], EM0$Replicate), SubCellFracAggr$column])
           }))
         }
-        SSDs[[grp]][[paste0("Mean ", SSD.Root, grp)]] <- apply(SSDs[[grp]][, SSDkols, drop = FALSE], 1L, \(x) { log10(mean(10L^x)) })
+        SSDs[[grp]][[paste0("Mean ", SSD.Root, grp)]] <- apply(SSDs[[grp]][, SSDkols, drop = FALSE], 1L, \(x) { log2(mean(2^x)) })
         PG[, colnames(SSDs[[grp]])] <- NA_real_
         PG[wNC, colnames(SSDs[[grp]])] <- SSDs[[grp]]
       }
       # Check distribution
       # Test expression values:
-      g <- c(grep(topattern("log10(SSD) - "), colnames(PG), value = TRUE),
-             grep(topattern("Mean log10(SSD) - "), colnames(PG), value = TRUE))
+      g <- c(grep(topattern(SSD.Root), colnames(PG), value = TRUE),
+             grep(topattern(paste0("Mean ", SSD.Root)), colnames(PG), value = TRUE))
       test <- PG[, g]
-      colnames(test) <- gsub(topattern("log10(SSD) - ", start = FALSE), "", colnames(test))
+      colnames(test) <- gsub(topattern(SSD.Root, start = FALSE), "", colnames(test))
       w <- grep("^Mean ", colnames(test))
       colnames(test)[w] <- paste0(gsub("^Mean ", "", colnames(test)[w]), "___Mean")
       test <- test[which(apply(test, 1L, \(x) { sum(is.finite(x)) }) > 0L),]
@@ -428,8 +428,8 @@ Example: \"GO:0031012;2\"
       testI$variable <- cleanNms(testI$variable)
       dir <- paste0(wd, "/Reg. analysis/Localisation")
       if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-      dirlist <- unique(c(dirlist, dir))
-      ttl <- "Distribution of log10(SSD) values"
+      dirlist <- union(dirlist, dir)
+      ttl <- paste0("Distribution of ", sub(" - $", " values", log2(SSD)))
       plot <- ggplot(testI) +
         geom_area(aes(x = Intensity, y = value, fill = variable, group = variable,
                       colour = variable), alpha = 0.25) +
@@ -448,6 +448,7 @@ Example: \"GO:0031012;2\"
       })
       ReportCalls <- AddPlot2Report()
       # Statistical test
+      svDialogs::dlg_message("I'm sure it would be beneficial to implement a limma test here: do it!", "ok")
       M <- median(unlist(PG[wNC, grep(topattern(SSD.Root), colnames(PG), value = TRUE)]))
       for (wh in wh1) { #wh <- wh1[1L]
         grp <- SubCellFracAggr2$values[wh]
@@ -480,6 +481,9 @@ Example: \"GO:0031012;2\"
       volcPlot_args2$Y.root <- SSD.Pval.Root
       volcPlot_args2$cl <- parClust
       volcPlot_args2$X.normalized <- FALSE
+      volcPlot_args2$Alpha <- 1
+      volcPlot_args2$X.root_ind <- prtRfRoot
+      volcPlot_args2$X.root_ind_base <- 2L
       tempVP3 <- do.call(Volcano.plot, volcPlot_args2)
       #
       if (!class(tempVP3) %in% c("try-error", "character")) {
@@ -517,7 +521,7 @@ Example: \"GO:0031012;2\"
             PrtWidth <- 5
             dir <- paste0(wd, "/Reg. analysis/Localisation/Relocalised proteins")
             if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-            dirlist <- unique(c(dirlist, dir))
+            dirlist <- union(dirlist, dir)
             plotNorm <- FALSE
             grp <- gsub("^Re-localized - ", "", gi)
             EM1 <- Exp.map[which(Exp.map[[SubCellFracAggr2$column]] == grp),]

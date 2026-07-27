@@ -569,7 +569,9 @@ if ((!"Reference" %in% colnames(Exp.map)) || (!is.logical(Exp.map$Reference)) ||
     w2 <- which((Exp.map[[RG$column]] == tst$Group.1[i])
                 &(Exp.map[[VPAL$column]] %in% tst$samplesGroup[[i]]))
     if (length(w2) < length(w1)) {
-      rfVal <- opt <- setNames(vapply(cleanNms(VPAL$values), \(x) {
+      r1 <- unique(Exp.map[match(Rfs, Exp.map$Ref.Sample.Aggregate), VPAL$column])
+      r2 <- setdiff(VPAL$values, r1)
+      rfVal <- opt <- setNames(vapply(cleanNms(c(r1, r2)), \(x) {
         paste(c(x, rep(" ", 250L-nchar(x))), collapse = "")
       }, ""), VPAL$values)
       while (!length(setdiff(opt, rfVal))) {

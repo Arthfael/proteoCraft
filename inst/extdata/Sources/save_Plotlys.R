@@ -1,5 +1,5 @@
 # Save plotly plots
-cat(" -> Saving plotly plots...\n")
+cat(" ---> Saving plotly widgets...\n")
 if (!dir.exists(dr)) {
   dr2 <- paste0(wd, "/", dr)
   if (dir.exists(dr2)) {
@@ -21,7 +21,9 @@ if (l) {
     }
     # keep as plain JSON string (compact, cheap to ship)
     pl <- list(data = pl$x$data,
-               layout = pl$x$layout)
+               layout = pl$x$layout,
+               jsHooks = pl$jsHooks,
+               config = pl$x$config)
     #format(object.size(b), "MB")
     readr::write_rds(pl, tmpFls[i])
     return()
@@ -42,6 +44,8 @@ if (l) {
     w <- plotly::plot_ly()
     w$x$data   <- def$data
     w$x$layout <- def$layout
+    w$jsHooks  <- def$jsHooks
+    w$x$config  <- def$config
     pth <- file.path(dr, plot_Paths[i])
     htmlwidgets::saveWidget(w, pth, selfcontained = TRUE)
     setwd(curDir)

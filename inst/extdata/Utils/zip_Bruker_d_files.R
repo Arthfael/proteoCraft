@@ -18,15 +18,15 @@ if (length(dDirs)) {
   # We don't want any .d directory nested inside another - should never happen, but you never know.
   # If one is ever a sub-directory of another, we exclude the former.
   nc_dDir <- setNames(nchar(dDirs), dDirs)
-  tst <- vapply(dDirs, function(x) {
+  tst <- vapply(dDirs, \(x) {
     rest <- dDirs[which(dDirs != x)]
     w <- which(nc_dDir[rest] < nc_dDir[x])
     if (!length(w)) { return(FALSE) }
     rest <- rest[w]
-    tmp <- vapply(rest, function(y) {
-      substr(x, 1, nc_dDir[y]) == y
+    tmp <- vapply(rest, \(y) {
+      substr(x, 1L, nc_dDir[y]) == y
     }, TRUE)
-    return(sum(tmp) > 0)
+    return(sum(tmp) > 0L)
   }, TRUE)
   dDirs <- dDirs[which(!tst)]
   #
@@ -37,7 +37,7 @@ if (length(dDirs)) {
   #rstudioapi::documentOpen(parSrc)
   source(parSrc, local = FALSE)
   #
-  parLapply(parClust, dDirs, function(dr) { #dr <- dDirs[1]
+  parLapply(parClust, dDirs, \(dr) { #dr <- dDirs[1L]
     parDr <- dirname(dr)
     setwd(parDr)
     nm <- basename(dr)

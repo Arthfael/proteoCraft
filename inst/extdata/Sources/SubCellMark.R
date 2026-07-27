@@ -5,14 +5,18 @@ if (Annotate) {
                               "GO:0005783", "GO:0005794", "GO:0031988", "GO:0005739", "GO:0009536", "GO:0005886"),
                             c("Nucleus", "Nucleoplasm", "Chromatin", "Nucleolus", "Nuclear envelope", "Cytoplasm", "Cytosol",
                               "ER", "Golgi", "Vesicle", "Mitochondrion", "Plastid", "Plasma membrane"))
-  tstSp <- if ((exists("Org"))
-      &&(is.data.frame(Org))
-      &&(nrow(Org) >= 1L)
-      &&("Organism" %in% colnames(Org))
-      &&(!is.na(Org$Organism[1L]))) {
+  tstSp <- if (exists("Org")
+      && is.data.frame(Org)
+      && (nrow(Org) >= 1L)
+      && ("Organism" %in% colnames(Org))
+      && (!is.na(Org$Organism[1L]))) {
     Org$Organism[1L]
   } else {
-    unlist(strsplit(Param$Search.DB.species, ";"))[1L]
+    if (exists("Param") && ("Search.DB.species" %in% colnames(Param))) {
+      unlist(strsplit(Param$Search.DB.species, ";"))[1L]
+    } else {
+      svDialogs::dlg_input("Enter the dataset's main species (Linnean name, e.g. 'Homo sapiens')")$res
+    }
   }
   tstSp <- tolower(unlist(strsplit(tstSp, " ")))
   tstSp <- paste0(substr(tstSp[1L], 1L, 1L), substr(tstSp[2L], 1L, 3L))

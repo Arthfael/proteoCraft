@@ -32,7 +32,6 @@ Volcano.plot(
   Proteins.col = "Protein IDs",
   return = FALSE,
   return.plot = FALSE,
-  show.labels = "",
   title = "",
   title.root = "",
   subfolder = "Reg. analysis/t-tests",
@@ -65,7 +64,10 @@ Volcano.plot(
   SAM = FALSE,
   curved_Thresh,
   saveData = FALSE,
-  contrasts
+  contrasts,
+  X.root_ind,
+  X.root_ind_base = 10L,
+  show.labels = TRUE
 )
 }
 \arguments{
@@ -130,8 +132,6 @@ Volcano.plot(
 
 \item{return.plot}{Logical. Should we return the plot itself? Default = FALSE.}
 
-\item{show.labels}{Default = FALSE. If set to TRUE, the popped-up plot will be the one with labels.}
-
 \item{title}{It is possible to set a specific title. Failing that a default one will be provided based on the value of the mode argument.}
 
 \item{title.root}{Optional argument to add a character string at the beginning of the file names when saving.}
@@ -168,15 +168,15 @@ Volcano.plot(
 
 \item{plotly}{Logical. Should we generate a plotly? FALSE by default; if TRUE, the link will be automatically returned.}
 
-\item{plotly_local}{Logical. Save plotly files as local html? Default = TRUE. If set to FALSE, a valid plotly username and API key will have to be provided.}
+\item{plotly_local}{Deprecated (now always TRUE)}
 
-\item{plotly_username}{Plotly username, to be provided if plotly_local = FALSE}
+\item{plotly_username}{Deprecated}
 
-\item{plotly_API_key}{Plotly API key, to be provided if plotly_local = FALSE}
+\item{plotly_API_key}{Deprecated}
 
-\item{plotly_subfolder}{Default = "". Name of the plotly server sub-folder where plotly graphs are to be saved. Does not apply if plotly_local = TRUE}
+\item{plotly_subfolder}{Default = "". Name of the plotly server sub-folder where plotly graphs are to be saved.}
 
-\item{plotly_sharing}{One of "public", "private" or "secret". Note that which ones will work depends on the type of plotly subscription you have. Does not apply if plotly_local = TRUE}
+\item{plotly_sharing}{Deprecated}
 
 \item{plotly_labels}{Labels to be displayed in the plotly tooltip. A character corresponding to valid names of Prot columns. Naming this vector provides a way to override the original column names: what will be displayed in the tooltip will be the name in this vector, not the column name itself.}
 
@@ -197,6 +197,12 @@ Volcano.plot(
 \item{saveData}{Logical. If TRUE, a file containing the processed long-format data used to create each plot will be saved locally. Default = FALSE.}
 
 \item{contrasts}{If provided, supersedes experiments.map for the purpose of detecting samples (through the "Contrast" column), and if containing the "Up-only" column also defines whether plots are two-sided or not.}
+
+\item{X.root_ind}{Optional root of the column names of individual expression values, which can then be displayed in the tooltip.}
+
+\item{X.root_ind_base}{Log base of individual expression values. Default = 10L}
+
+\item{show.labels}{Currently unused (deprecated).}
 }
 \value{
 A list with at least one element ("Thresholds"). If return == TRUE, the Protein_groups_file - which may contain additional Regulated columns. If return.plot == TRUE, the evaluated ggplots. If plotly == TRUE, the plotly plots.

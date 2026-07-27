@@ -55,7 +55,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
   }
   if (dataType == "modPeptides") {
     msg <- paste0(ptm, " PCA plot, by sample")
-    myLittleDir <- paste0(modDirs[1], "/PCA")
+    myLittleDir <- paste0(modDirs[1L], "/PCA")
     ttl <- paste0(ptm, " PCA plot - Samples")
   }
   if (!dir.exists(myLittleDir)) { dir.create(myLittleDir, recursive = TRUE) }
@@ -119,6 +119,8 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       plot_lyPCAProt <- add_trace(plot_lyPCAProt, scores, x = ~PC1, y = ~PC2,
                                   type = "scatter", mode = "text", showlegend = FALSE)
     }
+    plot_lyPCAProt <- plotly::config(plot_lyPCAProt,
+                                     modeBarButtonsToRemove = c("select2d", "lasso2d"))
     plot_lyPCAProt <- layout(plot_lyPCAProt, title = ttl)
     setwd(myLittleDir)
     saveWidget(plot_lyPCAProt, paste0(myLittleDir, "/", ttl, ".html"))
@@ -344,6 +346,8 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                                  showlegend = FALSE,
                                  visible = TRUE)
     #
+    plot_lyPCAProt2 <- plotly::config(plot_lyPCAProt2,
+                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
     plot_lyPCAProt2 <- layout(plot_lyPCAProt2, title = ttl,
                               uirevision = TRUE)
     dimRedPlotLy[["PCA"]] <- plot_lyPCAProt2
@@ -434,6 +438,8 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                                showlegend = FALSE,
                                visible = TRUE)
       #
+      plot_lytSNE <- plotly::config(plot_lytSNE,
+                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
       plot_lytSNE <- layout(plot_lytSNE, title = ttl2,
                             uirevision = TRUE)
       dimRedPlotLy[["t-SNE"]] <- plot_lytSNE
@@ -523,6 +529,8 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                                showlegend = FALSE,
                                visible = TRUE)
       #
+      plot_lyUMAP <- plotly::config(plot_lyUMAP,
+                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
       plot_lyUMAP <- layout(plot_lyUMAP, title = ttl3,
                             uirevision = TRUE)
       dimRedPlotLy[["UMAP"]] <- plot_lyUMAP

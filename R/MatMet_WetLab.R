@@ -129,8 +129,23 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
   AddKolKount  <- 0L
   #View(allKolumns)
   #
-  N <- nrow(exp.map)
-  if ("Use" %in% colnames(exp.map)) { N <- sum(as.logical(exp.map$Use)) }
+  if (!missing(exp.map)) {
+    if ("Use" %in% colnames(exp.map)) {
+      moult <- sum(as.logical(exp.map$Use))
+    } else {
+      moult <- nrow(exp.map)
+    }
+  } else {
+    if (exists("rawFiles", envir = .GlobalEnv)) {
+      moult <- length(rawFiles)
+    } else {
+      moult <- NA_integer_
+      while ((!is.integer(moult)) || is.na(moult) || (moult < 1L)) {
+        moult <- as.integer(svDialogs::dlg_input("Enter the number of biological samples processed", 1L)$res)
+      }
+    }
+  }
+  moult <- (moult>1L)+1L
   reuseMatMeth <- FALSE
   if ((!is.null(File2Reload))&&(file.exists(File2Reload))) {
     if (dirname(File2Reload) == ".") { File2Reload <- paste0(getwd(), "/", File2Reload) }
@@ -319,7 +334,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
               wb <- createWorkbook()
               addWorksheet(wb, "Sheet1")
               writeData(wb, "Sheet1", allKolumns, 1L, 1L)
-              addStyle(wb, "Sheet1", Head, 1L, c(1L:ncol(allKolumns)))
+              addStyle(wb, "Sheet1", Head, 1L, 1L:ncol(allKolumns))
               tst <- sapply(1L:ncol(allKolumns), \(x) {
                 x1 <- ceiling(nchar(colnames(allKolumns)[x])*1.2)
                 x2 <- ceiling(nchar(allKolumns[[x]])*1.2)
@@ -373,7 +388,6 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
         SepPak <- c(TRUE, FALSE)[match(svDialogs::dlg_message("Were the samples Sep-Pak cleaned-up prior to analysis?",
                                                               "yesno")$res, c("yes", "no"))]
       }
-      moult <- (N>1L)+1L
       if (PreOmics) {
         tst <- grepl("kit adapted.+$", SPMeth)+1L
         kit <- gsub(" kit .+$", " kit", SPMeth)

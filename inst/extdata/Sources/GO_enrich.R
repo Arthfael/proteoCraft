@@ -1208,6 +1208,36 @@ if (length(wFltL)) {
           setwd(origWD)
         }
         if (bars) {
+          barAddStuff <- \(plot) {
+            plot +
+              ggplot2::facet_grid(Ontology~., switch = "y") +
+              ggplot2::xlim(-1, xmx) +
+              ggplot2::ylim(0, Ymax) +
+              ggplot2::labs(fill = paste0(c("(N(Up) - N(Down))/sqrt(Total)",
+                                            "Z-score")[True_Zscore+1L], zMsg)) +
+              ggplot2::geom_vline(xintercept = 0L, linetype = "dashed") +              
+              ggplot2::geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "orange") +              
+              ggplot2::geom_hline(yintercept = -log10(0.01), linetype = "dashed", color = "red") +              
+              ggplot2::geom_text(x = 0, y = -log10(0.05), label = "5% p-value", vjust = 0, hjust = 0, color = "orange") +              
+              ggplot2::geom_text(x = 0, y = -log10(0.01), label = "1% p-value", vjust = 0, hjust = 0, color = "red") +              
+              ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
+              ggplot2::ylab(paste0("-log10(", c("", "adj. ")[P_adjust+1L], "Pvalue)")) +
+              ggplot2::scale_fill_gradient2(low = "green", mid = "grey", high = "red",
+                                            midpoint = 0L, limits = c(-col_lim, col_lim)) +
+              ggplot2::geom_text(ggplot2::aes(label = Label3, x = X), y = -Ymax/20, hjust = 1, angle = 60, cex = 3L) +
+              ggplot2::coord_cartesian(clip = "off") +
+              ggplot2::ggtitle(barTtl) + ggplot2::theme_bw() +
+              ggplot2::theme(panel.grid.major.x = ggplot2::element_blank(),
+                             axis.text.x = ggplot2::element_blank(),
+                             axis.ticks = ggplot2::element_blank(),
+                             axis.title.x = ggplot2::element_blank(),
+                             strip.text.y = ggplot2::element_text(angle = 90),
+                             panel.spacing = ggplot2::unit(9L, "lines"),
+                             plot.margin = ggplot2::unit(c(1L, 1L, 10L, 1L), "lines")) +
+              ggplot2::geom_hline(data = thr, ggplot2::aes(yintercept = Y, colour = Colour), linetype = "dashed") +
+              ggplot2::geom_text(data = thr, ggplot2::aes(label = Label, y = Y-Ymax*0.02, colour = Colour), x = -1, hjust = 0, cex = 2.5) +
+              ggplot2::guides(colour = "none")
+          }
           col_lim <- 3
           GO_tbl2 <- GO_tbl
           GO_tbl2$X <- NULL
@@ -1245,37 +1275,16 @@ if (length(wFltL)) {
               thr$variable <- NULL
             } else {
               thr <- thresh
-              colnames(thr)[which(colnames(thr) == "-log10(Threshold)")] <- "Y"
+              colnames(thr)[match("-log10(Threshold)", colnames(thr))] <- "Y"
             }
             xmx <- suppressWarnings(max(GO_tbl3$X))+1
             zMsg <- c("", paste0("\n(truncated at ", col_lim, ")"))[(max(abs(GO_tbl3$`Z-score`)) > col_lim) + 1L]
             barplot_txt <- paste0("PLOT <- ggplot2::ggplot(GO_tbl3) +
-                  ggplot2::geom_bar(stat = \"identity\", ggplot2::aes(x = X, y = Y, fill = `Z-score*`INSERT1)) +
-                  ggplot2::facet_grid(Ontology~., switch = \"y\") +
-                  ggplot2::xlim(-1, ", xmx, ") +
-                  ggplot2::ylim(0, ", Ymax, ") +
-                  ggplot2::labs(fill = \"", c("(N(Up) - N(Down))/sqrt(Total)",
-                                              "Z-score")[True_Zscore+1L], zMsg, "\") +
-                  ggplot2::scale_fill_gradient2(low = \"green\", mid = \"grey\", high = \"red\", midpoint = 0, limits = c(-col_lim, col_lim)) +
-                  ggplot2::scale_y_continuous(expand = c(0,0)) +
-                  ggplot2::ylab(\"-log10(", c("", "adj. ")[P_adjust+1L], "Pvalue)\") + ggplot2::ggtitle(barTtl) + ggplot2::theme_bw() +
-                  ggplot2::theme(panel.grid.major.x = ggplot2::element_blank(),
-                        axis.text.x = ggplot2::element_blank(),
-                        axis.ticks = ggplot2::element_blank(),
-                        axis.title.x = ggplot2::element_blank(),
-                        strip.text.y = ggplot2::element_text(angle = 90)) +
-                  ggplot2::coord_cartesian(clip = \"off\")")
+  ggplot2::geom_bar(stat = \"identity\", ggplot2::aes(x = X, y = Y, fill = `Z-score*`INSERT1))")
             text_tmp <- gsub("INSERT1", "", gsub("^PLOT", "barplot1", barplot_txt))
             #cat(text_tmp)
             suppressWarnings(eval(parse(text = text_tmp)))
-            barplot1 <- barplot1 +
-              ggplot2::geom_text(ggplot2::aes(label = Label3, x = X), y = -Ymax/20, hjust = 1, angle = 60, cex = 3) +
-              ggplot2::theme(panel.spacing = ggplot2::unit(9L, "lines"),
-                             plot.margin = ggplot2::unit(c(1L, 1L, 10L, 1L), "lines"))
-            barplot1 <- barplot1 +
-              ggplot2::geom_hline(data = thr, ggplot2::aes(yintercept = Y, colour = Colour), linetype = "dashed") +
-              ggplot2::geom_text(data = thr, ggplot2::aes(label = Label, y = Y-Ymax*0.02, colour = Colour), x = -1, hjust = 0, cex = 2.5) +
-              ggplot2::guides(colour = "none")
+            barplot1 <- barAddStuff(barplot1)
             if (show) { poplot(barplot1, 12L, 22L) }
             GOplts[[paste0("GO bar plot - ", n1)]] <- plotEval(barplot1)
             barnm <- gsub("/|:|\\*|\\?|<|>|\\|", "-", barTtl)
@@ -1311,6 +1320,7 @@ if (length(wFltL)) {
                                gsub("^PLOT", "barplot2", barplot_txt))
               #cat(text_tmp)
               suppressWarnings(eval(parse(text = text_tmp)))
+              barplot2 <- barAddStuff(barplot2)
               barplot_ly <- plotly::ggplotly(barplot2, tooltip = c("text1", "text2", "text3", "text4"))
               setwd(plotly_subfolder)
               htmlwidgets::saveWidget(barplot_ly, paste0(barnm, ".html"), selfcontained = TRUE)

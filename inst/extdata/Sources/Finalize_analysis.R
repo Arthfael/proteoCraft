@@ -18,7 +18,7 @@ if (inherits(tst, "try-error")) {
 }
 unlink(tmpSrc)
 
-# Write pdf report
+# Write pdf report - scheduled for retirement!
 #if (scrptType == "withReps") {
 tst <- try({
   tmp <- paste0("Report <- ", unlist(ReportCalls$Calls))
@@ -33,6 +33,18 @@ tst <- try({
 }, silent = TRUE)
 if (inherits(tst, "try-error")) { warning("Couldn't write pdf report, investigate...") }
 #}
+
+# Write final HTML report
+if (scrptType == "noReps") {
+  Src <- paste0(libPath, "/extdata/Sources/noRep_HTML_report.R")
+  #rstudioapi::documentOpen(Src)
+  source(Src, local = FALSE)
+}
+if (scrptType == "withReps") { # TO DO...
+  Src <- paste0(libPath, "/extdata/Sources/rep_HTML_report.R")
+  #rstudioapi::documentOpen(Src)
+  source(Src, local = FALSE)
+}
 
 # Save session info
 dir <- paste0(wd, "/Workflow control")

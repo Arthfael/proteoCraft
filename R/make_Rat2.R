@@ -119,6 +119,7 @@ make_Rat2 <- function(myData = pep,
     return(rat)
   })
   myRats <- do.call(cbind, myRats)
+  myRats <- as.data.frame(myRats)
   colnames(myRats) <- paste0(rat.root, contrasts$Contrast)
   return(myRats)
 }

@@ -53,7 +53,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   #DIANN_fl <- PSMsFls
   #DIANN_fl <- rstudioapi::selectFile(path = paste0(getwd(), "/*.tsv"))
   #DIANN_fl <- diannRep
-  #DIANN_fl <- psmFls_i
+  #DIANN_fl <- psmFls_i; log_Fl = diaNN_logFl_i
   shinyOpt <- tolower(shinyOpt)
   if (!shinyOpt %in% c("popup", "dialog", "pane", "browser")) { shinyOpt <- "popup" }
   #

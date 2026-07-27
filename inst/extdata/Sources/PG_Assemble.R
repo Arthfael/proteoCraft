@@ -129,7 +129,7 @@ if (CustPG) {
   g <- grsep(tmp, x = seq$Proteins)
   if (length(g)) {
     seq2 <- seq[g,]
-    seq <- seq[which(! (1L:nrow(seq)) %in% g),]
+    seq <- seq[which(!(1L:nrow(seq)) %in% g),]
     Custom_PGs$.pep.ids <- list(NA)
     priorities <- sort(unique(Custom_PGs$"Priority level"), decreasing = TRUE) # Sorted by decreasing value (increasing priority)
     for (i in max(priorities):1L) { #i <- max(priorities)
@@ -140,7 +140,7 @@ if (CustPG) {
       wlp <- which(Custom_PGs$"Priority level" > i)
       if (length(wlp)) {
         Custom_PGs$.pep.ids[wlp] <- lapply(Custom_PGs$.pep.ids[wlp], \(x) {
-          x[which(!x %in% unlist(Custom_PGs$.pep.ids[wcp]))]
+          setdiff(x, unlist(Custom_PGs$.pep.ids[wcp]))
         })
       }
     }
@@ -330,7 +330,7 @@ prot$Is.Leading <- !prot$Prot.id %in% contained$Contained
 cat(" - Identifying Leading protein ID containing each subsumable protein ID.\n")
 w <- which(lengths(prot$Contains) > 0L)
 a <- setNames(prot$Contains[w], prot$Prot.id[w])
-a <- a[which(vapply(a, \(x) { length(unlist(x)) }, 1L) > 0L)]
+a <- a[which(lengths(a) > 0L)]
 if (length(a)) {
   temp <- listMelt(a)
   temp <- data.table::data.table(value = temp$value, L1 = temp$L1)
@@ -416,7 +416,7 @@ unlink(paste0(wd, "/tmp2.RDS"))
 f0 <- \(x) {
   x <- unlist(x)
   res <- unlist(tmp2$Contains[match(x, tmp2$Prot.id)])
-  res <- res[which(!res %in% x)]
+  res <- setdiff(res, x)
   return(res)
 }
 #environment(f0) <- .GlobalEnv
@@ -440,7 +440,7 @@ pg$"Protein IDs" <- vapply(pg$.Protein.IDs, \(x) { paste(unlist(x), collapse = "
 if (CustPG) {
   Custom_PGs$"Also contains" <- lapply(Custom_PGs$.lead.protein.ids, \(x) {
     res <- unlist(prot$Contains[match(unlist(x), prot$Prot.id)])
-    res <- res[which(!res %in% x)]
+    res <- setdiff(res, x)
     return(res)
   })
   Custom_PGs$.Protein.IDs <- apply(Custom_PGs[,c(".lead.protein.ids", "Also contains")], 1L, \(x) {
@@ -598,7 +598,7 @@ if (length(W)) {
     # NB: presumably n = 2 is impossible, if we did our job correctly defining Leading proteins above.
     if (n < 2L) { warning("   Check code: I expected at least 3, not 2 or less, overlapping groups here.") } # Always good to check that code is not buggy.
     # Table of peptides and PGs
-    peptopg <- set_rownames(magrittr::set_colnames(as.data.frame(sapply(overlappers, \(x) {
+    peptopg <- magrittr::set_rownames(magrittr::set_colnames(as.data.frame(sapply(overlappers, \(x) {
       P %in% unlist(pg$.pep.ids[x])
     })), overlappers), P)
     # Heuristic: we will sort protein groups by number of peptides then PEP and remove those which do not increase coverage
@@ -646,7 +646,7 @@ if (length(W)) {
         if (length(witch) > 1L) { witch <- witch[which(tst1b[witch] == min(tst1b[witch]))][1L] }
         wutch <- which(!c(1L:length(removables)) %in% witch)
         goners <- c(goners, removables[witch])
-        keepers <- keepers[which(!keepers %in% goners)]
+        keepers <- setdiff(keepers, goners)
         tst1a <- tst1a[wutch]
         tst1b <- tst1b[wutch]
         removables <- removables[wutch]
@@ -679,7 +679,7 @@ if (length(W)) {
     #  if (r == lr) { stop("Something went wrong!") }
     #  keepers <- sort(c(core, unique(as.integer(Com[which(tst),]))))
     #} else { keepers <- core }
-    #goners <- overlappers[which(!overlappers %in% keepers)]
+    #goners <- setdiff(overlappers, keepers)
     pg$Remove[goners] <- TRUE
     pt$Done[which(pt$id %in% unlist(pg$.pep.ids[overlappers]))] <- TRUE
   }
@@ -701,7 +701,7 @@ if (CustPG) {
   Custom_PGs$Origin <- "Custom"
   #Custom_PGs$"Priority level" <- NULL
   custpgpep <- unique(unlist(Custom_PGs$.pep.ids))
-  pg$.pep.ids <- lapply(pg$.pep.ids, \(x) { x[which(!x %in% custpgpep)] })
+  pg$.pep.ids <- lapply(pg$.pep.ids, \(x) { setdiff(x, custpgpep) })
   pg$"Priority level" <- Inf
   pg <- rbind(Custom_PGs, pg)
   seq <- rbind(seq2, seq)
@@ -711,7 +711,7 @@ doCont <- ((!is.null(ContCol))&&(ContCol %in% colnames(DB)))
 if (doCont) {
   tmp <- listMelt(strsplit(pg$`Protein IDs`, ";"), pg$temp.pg.id)
   tmp2 <- DB$`Protein ID`[which(DB[[ContCol]] == "+")]
-  tmp <- tmp[which(gsub("^CON__", "", tmp$value) %in% gsub("^CON__", "", tmp2)),]
+  tmp <- tmp[which(sub("^CON__", "", tmp$value) %in% sub("^CON__", "", tmp2)),]
   pg$"Potential contaminant" <- c("", "+")[(pg$temp.pg.id %in% tmp$L1)+1L]
 }
 cat(paste0("   Final number of protein groups: ", nrow(pg), "\n"))
@@ -778,7 +778,7 @@ seq$.Protein.group.IDs <- strsplit(seq$"Protein group IDs", ";")
 tmp <- data.frame(PG_IDs = unique(seq$"Protein group IDs"))
 tmp$.PG_IDs <- strsplit(tmp$PG_IDs, ";")
 kol <- c("id", "Peptides count", "PEP", "Priority level")
-kol <- kol[which(kol %in% colnames(pg))]
+kol <- intersect(kol, colnames(pg))
 tmp1 <- tmp$.PG_IDs
 tmp2 <- pg[, kol]
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
@@ -855,9 +855,9 @@ if (CustPG) { # Priority-based razor peptides decision for custom protein groups
     wcp <- which(pg$"Priority level" == i)
     p <- unique(unlist(pg$.pep.ids[wcp]))
     whp <- which(pg$"Priority level" < i)
-    if (length(whp)) { p <- p[which(!p %in% unique(unlist(pg$.pep.ids[whp])))] } # Remove peptides matching protein groups of higher priority
+    if (length(whp)) { p <- setdiff(!p, unique(unlist(pg$.pep.ids[whp]))) } # Remove peptides matching protein groups of higher priority
     m <- match(p, seq$id)
-    seq$.Razor.protein.group.ID[m] <- lapply(seq$.Protein.group.IDs[m], \(x) { x[which(x %in% pg$id[wcp])] })
+    seq$.Razor.protein.group.ID[m] <- lapply(seq$.Protein.group.IDs[m], \(x) { intersect(x %in% pg$id[wcp]) })
   }
 }
 # Update columns
@@ -997,13 +997,13 @@ pg[, c1] <- t(parallel::parApply(cl, tmp2[, c2], 1L, f0))
 cat(" - Getting Gene and Protein names + annotations...\n")
 ca <- c("Common Names", "Common Name")
 if (sum(ca %in% colnames(DB))) {
-  ca <- ca[which(ca %in% colnames(DB))]
+  ca <- intersect(ca, colnames(DB))
   test <- vapply(ca, \(x) { length(is.na(DB[[x]])) }, 1L) > 0L
   ca <- ca[which(test)[1L]]
 }
 cb <- c("Genes", "Gene", "Gene IDs", "Gene ID")
 if (sum(cb %in% colnames(DB))) {
-  cb <- cb[which(cb %in% colnames(DB))]
+  cb <- intersect(cb, colnames(DB))
   test <- vapply(cb, \(x) { length(is.na(DB[[x]])) }, 1L) > 0L
   cb <- cb[which(test)[1L]]
 }
@@ -1018,11 +1018,11 @@ if (length(cb) == 1L) {
   c2 <- c(c2, cb)
 }
 kol <- c("Protein ID", "Header", ca, cb)
-kol <- kol[which(kol %in% colnames(DB))]
+kol <- intersect(kol, colnames(DB))
 temp <- DB[, kol]
-temp$temp <- gsub("^>", "", temp$Header)
-temp$"Protein ID" <- gsub("^CON__", "", temp$"Protein ID")
-temp2b <- gsub("^CON__", "", gsub(";CON__", ";", pg$"Protein IDs"))
+temp$temp <- sub("^>", "", temp$Header)
+temp$"Protein ID" <- sub("^CON__", "", temp$"Protein ID")
+temp2b <- sub("^CON__", "", gsub(";CON__", ";", pg$"Protein IDs"))
 tmp2 <- strsplit(temp2b, ";")
 tmp1 <- temp[, c("Protein ID", c2)]
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
@@ -1198,8 +1198,7 @@ if ("Common Name" %in% colnames(DB)) {
     if (!length(x)) { x <- "" }
     return(x)
   }, "")
-  id.col <- c("Names", "Protein IDs", "Gene names")
-  id.col <- id.col[which(id.col %in% colnames(pg))]
+  id.col <- intersect(c("Names", "Protein IDs", "Gene names"), colnames(pg))
   w <- which(pg$"Common Name (short)" == "")
   if ((length(id.col))&&(length(w))) {
     pg$"Common Name (short)"[w] <- apply(pg[w, id.col], 1L, \(x) {

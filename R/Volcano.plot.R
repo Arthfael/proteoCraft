@@ -37,7 +37,7 @@
 #' @param arbitrary.thresh Default = NULL, ignored if mode = FDR. Similar to the above, but will define only horizontal lines. The lowest will determine the threshold below which no labels are displayed (except when using the "proteins" argument).
 #' @param return Logical. Should we return a column with significance levels? Default = FALSE.
 #' @param return.plot Logical. Should we return the plot itself? Default = FALSE.
-#' @param show.labels Default = FALSE. If set to TRUE, the popped-up plot will be the one with labels.
+#' @param show.labels Currently unused (deprecated).
 #' @param title It is possible to set a specific title. Failing that a default one will be provided based on the value of the mode argument.
 #' @param title.root Optional argument to add a character string at the beginning of the file names when saving.
 #' @param subfolder Name of the sub-folder where graphs are to be saved. Default = "Reg. analysis/t-tests"
@@ -54,11 +54,11 @@
 #' @param cex Label text size. Default = 2
 #' @param lineheight Label interline size. Default = 1
 #' @param plotly Logical. Should we generate a plotly? FALSE by default; if TRUE, the link will be automatically returned.
-#' @param plotly_local Logical. Save plotly files as local html? Default = TRUE. If set to FALSE, a valid plotly username and API key will have to be provided.
-#' @param plotly_username Plotly username, to be provided if plotly_local = FALSE
-#' @param plotly_API_key Plotly API key, to be provided if plotly_local = FALSE
-#' @param plotly_subfolder Default = "". Name of the plotly server sub-folder where plotly graphs are to be saved. Does not apply if plotly_local = TRUE
-#' @param plotly_sharing One of "public", "private" or "secret". Note that which ones will work depends on the type of plotly subscription you have. Does not apply if plotly_local = TRUE
+#' @param plotly_local Deprecated (now always TRUE)
+#' @param plotly_username Deprecated
+#' @param plotly_API_key Deprecated
+#' @param plotly_subfolder Default = "". Name of the plotly server sub-folder where plotly graphs are to be saved.
+#' @param plotly_sharing Deprecated
 #' @param plotly_labels Labels to be displayed in the plotly tooltip. A character corresponding to valid names of Prot columns. Naming this vector provides a way to override the original column names: what will be displayed in the tooltip will be the name in this vector, not the column name itself.
 #' @param Xlim Set fixed limits for the X axis.
 #' @param Ylim Set fixed limits for the Y axis.
@@ -71,6 +71,8 @@
 #' @param curved_Thresh Curved threshold parameters, only used if mode = "curved".\cr A named list, with one item for each (same names as the ones appended to X.root and Y.root in Prot column names).\cr Each item should be a named list of S0 (single value), Si (single value) and d (one value per FDR level) numerics.
 #' @param saveData Logical. If TRUE, a file containing the processed long-format data used to create each plot will be saved locally. Default = FALSE.
 #' @param contrasts If provided, supersedes experiments.map for the purpose of detecting samples (through the "Contrast" column), and if containing the "Up-only" column also defines whether plots are two-sided or not.
+#' @param X.root_ind Optional root of the column names of individual expression values, which can then be displayed in the tooltip.
+#' @param X.root_ind_base Log base of individual expression values. Default = 10L
 #'
 #' @details
 #' This monster of a function can draw volcano plots, but can also be used for the decision on regulation.
@@ -119,7 +121,6 @@ Volcano.plot <- function(Prot,
                          Proteins.col = "Protein IDs",
                          return = FALSE,
                          return.plot = FALSE,
-                         show.labels = "",
                          title = "",
                          title.root = "",
                          subfolder = "Reg. analysis/t-tests",
@@ -152,8 +153,12 @@ Volcano.plot <- function(Prot,
                          SAM = FALSE,
                          curved_Thresh,
                          saveData = FALSE,
-                         contrasts) {
+                         contrasts,
+                         X.root_ind,
+                         X.root_ind_base = 10L,
+                         show.labels = TRUE) {
   TESTING <- FALSE
+  #
   #DefArg(Volcano.plot); TESTING <- TRUE; cl <- parClust
   #invisible(lapply(names(volcPlot_args2), \(x) { assign(x, volcPlot_args2[[x]], envir = .GlobalEnv); return() }))
   origWD <- getwd()
@@ -184,9 +189,7 @@ Volcano.plot <- function(Prot,
   if ((!is.logical(plotly)) || (length(plotly) != 1L) || is.na(plotly)) {
     plotly <- TRUE
   }
-  if ((!is.logical(plotly_local)) || (length(plotly_local) != 1L) || is.na(plotly_local)) {
-    plotly_local <- FALSE
-  }
+  plotly_local <- TRUE
   if ((!is.logical(Contaminants)) || (length(Contaminants) != 1L) || is.na(Contaminants)) {
     Contaminants <- FALSE
   }
@@ -317,33 +320,10 @@ Volcano.plot <- function(Prot,
       Contaminants <- TRUE
     }
   }
-  stopifnot(!misFun(aggregate.name), show.labels %in% c("", TRUE, FALSE),
+  stopifnot(!misFun(aggregate.name),
             mode %in% c("standard", "custom", "curved"))
   if (plotly) {
     volcPlotly <- list()
-    if (!plotly_local) {
-      volcPlotly2 <- list()
-      ArgTst1 <- !misFun(parameters)
-      ArgTst2 <- !misFun(plotly_username)
-      ArgTst3 <- !misFun(plotly_API_key)
-      if (ArgTst1 && (!ArgTst2)) { plotly_username <- Param$Plotly_user_name }
-      if (ArgTst1 && (!ArgTst3)) { plotly_API_key <- Param$Plotly_API_key }
-      if (!plotly_sharing %in% c("public", "private", "secret")) {
-        warning("\"plotly_sharing\" should be one of \"public\", \"private\" or \"secret\", defaulting to \"secret\"!")
-        plotly_sharing <- "secret"
-      }
-      if (sum(c(!ArgTst2, !ArgTst3))) {
-        warning("\"plotly\" is set to TRUE but plotly login details are missing, skipping!")
-        plotly <- FALSE
-      } else {
-        if (nchar(plotly_subfolder)) {
-          plotly_subfolder <- gsub(":|\\*|\\?|<|>|\\||/", "-", plotly_subfolder)
-          plotly_subfolder <- paste0(gsub("/+$", "", plotly_subfolder), "/")
-        }
-        Sys.setenv("plotly_username" = plotly_username)
-        Sys.setenv("plotly_api_key" = plotly_API_key)
-      }
-    }
   }
   if (nchar(title.root)) {
     if (!substr(title.root, nchar(title.root), nchar(title.root)) %in% c(" ", ".", "_", ".")) {
@@ -354,16 +334,18 @@ Volcano.plot <- function(Prot,
     if (mode %in% c("standard", "custom", "curved")) { title <- "Volcano plot " }
   }
   plotNms <- c()
-  if (show.labels == "") {
-    #if (mode == "standard") { show.labels <- FALSE }
-    if (mode %in%  c("standard", "custom", "curved")) { show.labels <- TRUE }
-  }
   dfltPM <- TRUE
-  if (mode == "custom") {
-    a1 <- set_colnames(as.data.frame(Isapply(strsplit(unlist(strsplit(parameters$Plot.metrics, "; *")), ": *"), unlist)),
-                       c("Axis", "Name"))
-    if (parameters$Plot.threshold.metrics != "") {
-      dfltPM <- FALSE
+  #
+  if ((!misFun(parameters)) &&
+      nchar(parameters$Plot.metrics) &&
+      nchar(parameters$Plot.threshold.metrics) &&
+      nchar(parameters$Plot.threshold.values) &&
+      nchar(parameters$Plot.threshold.tests) &&
+      nchar(parameters$Plot.threshold.colours) &&
+      nchar(parameters$Plot.areas.colours)) {
+    dfltPM <- try({
+      a1 <- set_colnames(as.data.frame(Isapply(strsplit(unlist(strsplit(parameters$Plot.metrics, "; *")), ": *"), unlist)),
+                         c("Axis", "Name"))
       Plot.metrics <- as.data.frame(strsplit(unlist(strsplit(parameters$Plot.threshold.metrics, "; *")), ": *"))
       Plot.metrics <- as.data.frame(t(Plot.metrics)) 
       rownames(Plot.metrics) <- NULL
@@ -386,9 +368,10 @@ Volcano.plot <- function(Prot,
           a5[3L, which((a5[1L,] == x) & (a5[2L,] == y))]
         })
       }))
-    }
+    }, silent = TRUE)
+    dfltPM <- inherits(dfltPM, "try-error")
   }
-  if (dfltPM) {
+  if (dfltPM) { # Provide defaults in case the parameters above are not provided
     # Vertical (ratio) thresholds
     Plot.metrics <- data.frame(Levels = c("down", "up"),
                                Axis = "X",
@@ -422,6 +405,7 @@ Volcano.plot <- function(Prot,
                                down = grDevices::colorRampPalette(upColRg)(length(w)))
     rownames(Plot.colours) <- Plot.metrics$Levels[w]
   }
+  #
   #X <- gsub("\\.$", "", X.root)
   #Y <- gsub("\\.$", "", Y.root)
   B <- aggregate.name
@@ -511,7 +495,7 @@ Volcano.plot <- function(Prot,
   } else { proteins_split <- FALSE }
   #
   # Default colors
-  myColors <- setNames(c("lightgrey", "lightgrey", "purple", c("brown", "firebrick1")[proteins_split+1]),
+  myColors <- setNames(c("lightgrey", "lightgrey", "purple", "brown"),
                        c("non significant", "too small FC", "target", "protein in list"))
   if (useFDRtbl) {
     myColors[c(paste0("up, FDR = ", FDR_table$FDR, "%"),
@@ -647,8 +631,8 @@ Volcano.plot <- function(Prot,
   #
   plotMetr.lst <- list()
   Plots <- list(Simple = list(),
-                Unlabelled = list())
-  if (show.labels) { Plots$Labelled <- list() }
+                Unlabelled = list(),
+                Labelled = list())
   #
   # Update useProtList
   if (useProtList) {
@@ -660,6 +644,57 @@ Volcano.plot <- function(Prot,
         msg <- paste0(msg, " (no split plot will be created)")
         proteins_split <- FALSE
       }
+    }
+  }
+  #
+  baseCols <- "Labels"
+  #
+  Size <- Size[1L]
+  if (!is.numeric(Size)) {
+    if (!Size %in% colnames(Prot)) {
+      warning("Argument Size is not a numeric value or column name and will be ignored!")
+      Size <- 1
+    } else {
+      Prot$dot_size <- Prot[[Size]]
+      if (!is.numeric(Size.min)) { Size.min <- 0.01 }
+      if (!is.numeric(Size.max)) { Size.max <- 3L }
+      #if (!is.numeric(Size.min)) { Size.min <- 0L }
+      #if (!is.numeric(Size.max)) { Size.max <- ceiling(max(Prot$dot_size[which(is.finite(Prot$dot_size))])) }
+      wF <- which(is.finite(Prot$dot_size))
+      Prot$dot_size[which((Prot$dot_size > 0L) & is.infinite(Prot$dot_size))] <- max(Prot$dot_size[wF])
+      Prot$dot_size[which(!is.finite(Prot$dot_size))] <- min(Prot$dot_size[wF])
+      Prot$dot_size <- Size.min + (Prot$dot_size - min(Prot$dot_size))*(Size.max-Size.min)/(max(Prot$dot_size)-min(Prot$dot_size))
+      baseCols <- union(baseCols, "dot_size")
+    }
+  } else {
+    if (is.na(Size) || (Size < 0)) {
+      warning("The Size parameter is invalid and will be ignored!")
+      Alpha <- 1L
+    }
+  }
+  #
+  Alpha <- Alpha[1L]
+  if (!is.numeric(Alpha)) {
+    if (!Alpha %in% colnames(Prot)) {
+      warning("Argument Alpha is not a numeric value or column name and will be ignored!")
+      Alpha <- 1
+    } else {
+      Prot$dot_alpha <- Prot[[Alpha]]
+      if (!Alpha.identity) {
+        Alpha2 <- paste0("Alpha mapped to: ", Alpha)
+        if ((!is.numeric(Alpha.min)) || (Alpha.min < 0L)) { Alpha.min <- 0L }
+        if ((!is.numeric(Alpha.max)) || (Alpha.max > 1L)) { Alpha.max <- 1L }
+        wF <- which(is.finite(Prot$dot_alpha))
+        Prot$dot_alpha[which((Prot$dot_alpha > 0L) & is.infinite(Prot$dot_alpha))] <- max(Prot$dot_alpha[wF])
+        Prot$dot_alpha[which(!is.finite(Prot$dot_alpha))] <- min(Prot$dot_alpha[wF])
+        Prot$dot_alpha <- Alpha.min+(Prot$dot_alpha-min(Prot$dot_alpha))*(Alpha.max-Alpha.min)/(max(Prot$dot_alpha)-min(Prot$dot_alpha))
+        baseCols <- union(baseCols, "dot_alpha")
+      }
+    }
+  } else {
+    if (is.na(Alpha) || (Alpha > 1) || (Alpha < 0)) {
+      warning("The Alpha parameter is invalid and will be ignored!")
+      Alpha <- 1
     }
   }
   #
@@ -682,12 +717,16 @@ Volcano.plot <- function(Prot,
     #
     plot.metrics <- Plot.metrics
     plot.metrics$Name <- ""
+    w <- which(plot.metrics$Axis == "X")
+    plot.metrics$Name[w] <- paste0("log2FC = ", as.character(plot.metrics$Value[w], 3L))
+    w <- which(plot.metrics$Axis == "Y")
+    plot.metrics$Name[w] <- paste0("P-value = ", as.character(signif(10L^-plot.metrics$Value[w], 3L)))
     plot.colours <- Plot.colours
     if (!symm) {
       plot.metrics <- plot.metrics[which(plot.metrics$Levels != "down"),]
       plot.colours <- plot.colours[, which(colnames(plot.colours) != "down"), drop = FALSE]
     }
-    temp <- Prot[, "Labels", drop = FALSE]
+    temp <- Prot[, baseCols, drop = FALSE]
     prot_split <- FALSE
     if (useProtList) {
       temp$"Found_in_List" <- Prot$"Found_in_List"
@@ -704,6 +743,86 @@ Volcano.plot <- function(Prot,
     # This is so critical that to be on the safe side duplicate checks are in place where the issue was identified downstream.
     #
     temp <- temp[Wych[[i]],]
+    #
+    showHeatMap <- FALSE
+    if (!misFun(X.root_ind)) {
+      indSmpls <- list()
+      if (!misFun(contrasts)) {
+        m <- match(i, contrasts$Contrast)
+        A_ <- contrasts$A_samples[[m]]
+        B_ <- contrasts$B_samples[[m]]
+        indSmpls[[contrasts$A[m]]] <- A_
+        indSmpls[[contrasts$B[m]]] <- B_
+        if (contrasts$isDouble[m]) {
+          C_ <- contrasts$C_samples[[m]]
+          D_ <- contrasts$D_samples[[m]]
+          indSmpls[[contrasts$C[m]]] <- C_
+          indSmpls[[contrasts$D[m]]] <- D_
+        }
+        showHeatMap <- TRUE
+      } else {
+        smplGrpNm <- parameters$Volcano.plots.Aggregate.Level
+        smplGrpNm <- if (nchar(smplGrpNm) == 3L) {
+          aggregate.map$Characteristics[[match(smplGrpNm, aggregate.map$Aggregate.Name)]]
+        } else {
+          gsub(";", "", smplGrpNm)
+        }
+        compGrpNm <- parameters$Ratios.Groups
+        compGrpNm <- if (nchar(compGrpNm) == 3L) {
+          aggregate.map$Characteristics[[match(compGrpNm, aggregate.map$Aggregate.Name)]]
+        } else {
+          gsub(";", "", compGrpNm)
+        }
+        m1 <- which(experiments.map[[smplGrpNm]] == i)
+        A <- unique(experiments.map[m1, smplGrpNm])
+        A_ <- experiments.map$Ref.Sample.Aggregate[[m1]]
+        grp <- unique(experiments.map[m1, compGrpNm])
+        m0 <- which((experiments.map[[compGrpNm]] == grp) & (experiments.map$Reference))
+        B <- unique(experiments.map[m0, smplGrpNm])
+        B_ <- experiments.map$Ref.Sample.Aggregate[[m0]]
+        if (length(A_) && length(B_)) {
+          showHeatMap <- TRUE
+          indSmpls[[A]] <- A_
+          indSmpls[[B]] <- B_
+        }
+      }
+    }
+    if (showHeatMap) {
+      # For now we always Z-score:
+      # When showing individual values, it makes sense to show them Z-scored to highlight changes,
+      # otherwise significant values with very small logFC will look unchanged and that will be awkward.
+      Zscore_heatMap <- TRUE
+      # This could be controlled by a parameter in the future though.
+      indCol <- paste0(X.root_ind, unlist(indSmpls))
+      indDat <- Prot[Wych[[i]], paste0(X.root_ind, unlist(indSmpls))]
+      if (Zscore_heatMap) {
+        m <- rowMeans(indDat, na.rm = TRUE)
+        sd <- apply(indDat, 1L, sd, na.rm = TRUE)
+        indDat <- sweep(sweep(indDat, 1L, m, "-"), 1L, sd, "/")
+      }
+      indRng <- range(indDat, na.rm = TRUE)
+      if (exists("ColScaleList")) {
+        lowColor <- ColScaleList$`Individual Expr`[1L]
+        highColor <- ColScaleList$`Individual Expr`[2L]
+      } else {
+        lowColor <- "red"
+        highColor <- "green"
+      }
+      indPal <- scales::col_numeric(palette = c(lowColor, highColor),
+                                    domain = indRng)
+      indColDat <- matrix(paste0("<span style=\"color:", indPal(as.matrix(indDat)), "\">&#9632;</span>"), ncol = ncol(indDat))
+      colnames(indColDat) <- unlist(indSmpls)
+      indColDat <- as.data.frame(indColDat)
+      tmpHtMp <- setNames(lapply(names(indSmpls), \(grp) { #grp <- names(indSmpls)[1L]
+        do.call(paste,  c(indColDat[, unlist(indSmpls[[grp]])], sep = ""))
+      }), names(indSmpls))
+      tmpHtMp <- setNames(lapply(names(indSmpls), \(grp) { #grp <- names(indSmpls)[1L]
+        paste("&nbsp;<span>", grp, ":</span>", tmpHtMp[[grp]])
+      }), names(indSmpls))
+      tmpHtMp <- as.data.frame(do.call(cbind, tmpHtMp))
+      temp$HeatMap <- do.call(paste, c(tmpHtMp, sep = "<br>"))
+    }
+    #
     if (useFDRtbl) {
       fdr_table <- FDR_table
       if ("Sample" %in% colnames(fdr_table)) {
@@ -727,45 +846,6 @@ Volcano.plot <- function(Prot,
       }
     }
     #
-    Alpha <- Alpha[1L]
-    if (!is.numeric(Alpha)) {
-      if (!Alpha %in% colnames(Prot)) {
-        warning("Alpha levels are not numeric or mapped to a column and will be ignored!")
-        Alpha <- 1L
-      } else {
-        temp$Alpha <- Prot[Wych[[i]], Alpha]
-        if (!Alpha.identity) {
-          Alpha2 <- paste0("Alpha mapped to: ", Alpha)
-          if ((!is.numeric(Alpha.min)) || (Alpha.min < 0L)) { Alpha.min <- 0L }
-          if ((!is.numeric(Alpha.max)) || (Alpha.max > 1L)) { Alpha.max <- 1L }
-          temp$Alpha[which((temp$Alpha > 0L) & is.infinite(temp$Alpha))] <- max(temp$Alpha[which(is.finite(temp$Alpha))])
-          temp$Alpha[which(!is.finite(temp$Alpha))] <- min(temp$Alpha[which(is.finite(temp$Alpha))])
-          temp$Alpha <- Alpha.min+(temp$Alpha-min(temp$Alpha))*(Alpha.max-Alpha.min)/(max(temp$Alpha)-min(temp$Alpha))
-        }
-      }
-    } else {
-      if ((Alpha > 1L) || (Alpha < 0L)) {
-        warning("The Alpha parameter is not between 0 and 1 and will be ignored!")
-        Alpha <- 1L
-      }
-    }
-    #
-    Size <- Size[1L]
-    if (!is.numeric(Size)) {
-      if (!Size %in% colnames(Prot)) {
-        warning("Sizes are not numeric or mapped to a column and will be ignored!")
-        Size <- 1L
-      } else {
-        temp$Size <- Prot[Wych[[i]], Size]
-        if (!is.numeric(Size.min)) { Size.min <- 0.01 }
-        if (!is.numeric(Size.max)) { Size.max <- 3L }
-        #if (!is.numeric(Size.min)) { Size.min <- 0L }
-        #if (!is.numeric(Size.max)) { Size.max <- ceiling(max(temp$Size[which(is.finite(temp$Size))])) }
-        temp$Size[which((temp$Size > 0L) & is.infinite(temp$Size))] <- max(temp$Size[which(is.finite(temp$Size))])
-        temp$Size[which(!is.finite(temp$Size))] <- min(temp$Size[which(is.finite(temp$Size))])
-        temp$Size <- Size.min+(temp$Size-min(temp$Size))*(Size.max-Size.min)/(max(temp$Size)-min(temp$Size))
-      }
-    }
     use_target <- FALSE
     if ("Target" %in% colnames(experiments.map)) { # i-specific!!!
       w <- if (useContrasts) {
@@ -817,7 +897,7 @@ Volcano.plot <- function(Prot,
         R.thresh[["Upper"]] <- d+mx
         if (symm) { R.thresh[["Lower"]] <- -(d+mx) }
       }
-      R.thresh.label <- paste0(signif(R.thresh, 3L), " = ", c("upper", "lower")[1L:(symm+1)], "-tail of ", ratios.FDR*100, "% ",
+      R.thresh.label <- paste0(signif(R.thresh, 3L), " = ", c("upper", "lower")[1L:(symm+1L)], "-tail of ", ratios.FDR*100, "% ",
                                c("ctrl.", "within sample group")[match(Ref.Ratio.method, paste0("obs", c("1", "2")))],
                                " ratios")
       plot.metrics$Name[w.u] <- R.thresh.label[1L]
@@ -1014,91 +1094,151 @@ Volcano.plot <- function(Prot,
     temp <- rbind(temp[w0,], temp[w1,], temp[w2,], temp[w3,])
     #temp <- temp[which(is.finite(temp$Y)),]
     ttl <- paste0(title, i2)
-    #Ylab <- paste0("-log10(", PorQ, "value)")
-    #if (grepl("adj\\.|adjusted", tolower(Y.root))) { Ylab <- paste0("-log10(adjusted ", PorQ, "value)") }
+    subTtl <- paste0("Plotted: ", nrow(temp), " data points")
+    #
     Xlab <- gsub(" - $", "", X.root)
     Ylab <- gsub(" - $", "", Y.root)
     test <- c(is.numeric(Size), is.numeric(Alpha))
     temp$"P-value" <- 10L^(-temp$Y)
     pL_lbs <- c(plotly_labels, "X", "Y")
     pL_lbs_nms <- c(names(plotly_labels), Xlab, Ylab)
-    temp$plotly_labels <- apply(temp[, plotly_labels, drop = FALSE], 1L, \(x) { #x <- temp[1, kol]
+    temp$plotly_labels <- apply(temp[, pL_lbs, drop = FALSE], 1L, \(x) { #x <- temp[1, kol]
       paste0(pL_lbs_nms, ": ", gsub("\n", " ", x), collapse = "<br>")
     })
+    if (showHeatMap) {
+      temp$plotly_labels <- do.call(paste, c(temp[, c("plotly_labels", "HeatMap")],
+                         sep = paste0("<br>", c("", "Z-scored ")[Zscore_heatMap+1L], "log",
+                                      X.root_ind_base, " expr. values:<br>")))
+    }
     if (saveData) {
-      temp$Table_labels <- apply(temp[, pL_lbs], 1L, \(x) { #x <- temp[1, kol]
-        paste0(names(plotly_labels), ": ", gsub("\n", " ", x), collapse = "<br>")
+      temp$Table_labels <- apply(temp[, pL_lbs], 1L, \(x) { #x <- temp[1L, kol]
+        paste0(pL_lbs_nms, ": ", gsub("\n", " ", x), collapse = "<br>")
       })
     }
-    aes <- data.frame(x = "X", y = "Y", text = "plotly_labels")
-    non.aes <- data.frame(shape = 16L)
+    #
+    #
     if (is.finite("Xlim")) { xlim <- Xlim }
     if (is.finite("Ylim")) { ylim <- Ylim }
-    xlim <- c(min(c(xlim, plot.metrics$Value[which(plot.metrics$Axis == "X")]*1.1)),
-              max(c(xlim, plot.metrics$Value[which(plot.metrics$Axis == "X")]*1.1)))
+    xFrPar <- plot.metrics$Value[which(plot.metrics$Axis == "X")]*1.1
+    xlim <- c(min(c(xlim, xFrPar)),
+              max(c(xlim, xFrPar)))
     ylim <- max(c(ylim, plot.metrics$Value[which(plot.metrics$Axis == "Y")]*1.1))
-    pluses <- c("ggplot2::ggtitle(ttl, subtitle = paste0(\"Plotted: \", nrow(temp),\" data points.\"))",
-                "ggplot2::xlab(Xlab)", "ggplot2::ylab(Ylab)", "ggplot2::theme_bw()",
-                "ggplot2::xlim(xlim[1L], xlim[2L])", "ggplot2::ylim(0, ylim)" , "ggplot2::guides(___)")
-    if (length(unique(temp$Colour)) > 1) {
-      aes$colour <- "Colour"
-      pluses <- c(pluses, "colScale")
-    } else { non.aes$colour <- "\"lightgrey\"" }
-    if (!test[1L]) {
-      aes$size <- "Size"
-      #aes$fill <- "Colour"
-      #non.aes$shape <- 21L
-      #aes$colour <- NULL
-      #non.aes$colour <- NULL
-      #fillScale <- ggplot2::scale_fill_manual(name = "colour", values = myColors)
-      pluses <- c(pluses, "ggplot2::scale_size_identity(Size, guide = \"legend\")"#, "fillScale")
-      )
-    } else { non.aes$size <- "Size" }
-    pluses <- c(pluses, "ggplot2::scale_y_continuous(expand = c(0L, 0L))")
-    if (!test[2L]) {
-      aes$alpha <- "Alpha"
-      pluses <- if (Alpha.identity) { c(pluses, "ggplot2::scale_alpha_identity(Alpha)") } else {
-        gsub("^ggplot2::guides\\(", "ggplot2::guides(alpha = guide_legend(title = Alpha), ", pluses) 
-      }
-    } else { non.aes$alpha <- "Alpha" }
-    pluses <- gsub(", ___\\)", ")", pluses)
-    pluses <- setdiff(pluses, "ggplot2::guides(___)")
-    test1 <- sapply(aes[1L,], \(x) { which(colnames(temp) == x) })
-    test2 <- vapply(test1, \(x) { is.numeric(temp[[x]]) }, TRUE)
-    test1 <- test1[which(test2)]
-    test <- apply(temp, 1L, \(x) {
-      sum(is.finite(as.numeric(unlist(x[test1]))))
-    }) == length(test1)
-    temp <- temp[which(test),]
-    aes[grep(" ", aes)] <- paste0("\"", aes[grep(" ", aes)], "\"")
-    aes <- paste(vapply(1L:ncol(aes), \(x) {
-      paste(colnames(aes)[x], aes[x], sep = " = ")
-    }, ""), collapse = ", ")
-    non.aes <- paste(vapply(1L:ncol(non.aes), \(x) {
-      paste(colnames(non.aes)[x], non.aes[x], sep = " = ")
-    }, ""), collapse = ", ")
-    non.aes <- gsub("^dummy = NA, ", "", non.aes)
-    pluses <- paste(pluses, collapse = " + ")
-    plotMetr.lst[[i]] <- plot.metrics
+    xspan <- xlim[2L]-xlim[1L] # update
     #
-    plot.txt <- paste0("plot <- ggplot2::ggplot(temp) + ggplot2::geom_point(ggplot2::aes(", aes, "), ", non.aes, ") + ", pluses)
-    #cat(gsub(" \\+ ", " + \n  ", plot.txt))
-    #cat(gsub("ggplot2::", "", gsub(" \\+ ", " + \n  ", plot.txt)))
-    suppressMessages(suppressWarnings(eval(parse(text = plot.txt))))
-    #suppressMessages(suppressWarnings(eval(parse(text = plot.txt), envir = globalenv()))) # for testing only
-    #poplot(plot)
-    if (prot_split) {
-      plot.txt_2 <- gsub("^plot <- ", "plot_prot <- ",
-                         gsub("Colour", "Colour2",
-                              gsub("colScale", "colScale2",
-                                   #gsub("fillScale", "fillScale2",
-                                   plot.txt#)
-                              )))
-      #cat(gsub(" \\+ ", " + \n  ", plot.txt2))
-      #cat(gsub("ggplot2::", "", gsub(" \\+ ", " + \n  ", plot.txt2)))
-      suppressMessages(suppressWarnings(eval(parse(text = plot.txt_2)))) # This is the plot for proteins of interest
-      #poplot(plot_prot)
+    xTxtOffset <- xspan*0.01
+    xTxtPos <- xlim[1L]+xTxtOffset
+    yTxtOffset <- ylim*0.01
+    #
+    # Start building plots
+    # (The code here has been extensively re-written to avoid the old, clunky text mining-based approach.
+    # Not all parameters could be tested so there may be some hiccups.)
+    guides_ <- list()
+    aes_ <- list(x = rlang::expr(.data[[!!"X"]]),
+                 y = rlang::expr(.data[[!!"Y"]]))
+    args_gg_ <- list(shape = 16L)
+    pluses_gg_ <- list(title = ggplot2::ggtitle(ttl,
+                                                subtitle = subTtl),
+                       xlab = ggplot2::xlab(Xlab),
+                       ylab = ggplot2::ylab(Ylab),
+                       theme_bw = ggplot2::theme_bw())
+    if (plotly) {
+      args_ly_ <- list(data = temp,
+                       type = "scatter",
+                       mode = "markers",
+                       x = ~X,
+                       y = ~Y,
+                       text = ~plotly_labels,
+                       hoverinfo = "text")
+      layout_ly_ <- list(title = list(text = ttl,
+                                      x = 0.1,
+                                      xanchor = "left",
+                                      y = 1,
+                                      subtitle = list(text = subTtl,
+                                                      lineposition = "under")),
+                         xaxis = list(title = Xlab, minallowed = xlim[1L], maxallowed = xlim[2L]),
+                         yaxis = list(title = Ylab, minallowed = 0L, maxallowed = ylim))
+      traces_ly_ <- list()
     }
+    pluses_gg_basic_ <- pluses_gg_
+    # Aesthetics which can be mapped per plot
+    if (length(unique(temp$Colour)) > 1L) {
+      aes_$color <- rlang::expr(.data[[!!"Colour"]])
+      pluses_gg_$colScale <- colScale
+      guides_$color <- ggplot2::guide_legend(title = "Category")
+      if (plotly) {
+        args_ly_$color <- I(myColors[as.character(temp$Colour)])
+      }
+    } else {
+      args_gg_$color <- "darkgrey"
+      if (plotly) {
+        args_ly_$color <- "darkgrey"
+      }
+    }
+    # Aesthetics which (currently) can be mapped once (not per plot)
+    test <- c(Size = !is.numeric(Size) | (length(Size) != 1L),
+              Alpha = !is.numeric(Alpha) | (length(Alpha) != 1L))
+    if (test["Size"]) {
+      aes_$size <- rlang::expr(.data[[!!"dot_size"]])
+      pluses_gg_$scale_size <- ggplot2::scale_size_identity(Size, guide = "legend")
+      if (plotly) {
+        args_ly_$size <- I(temp$dot_size*10) # *10 because it seems the dots are smaller in plotly
+      }
+    } else {
+      args_gg_$size <- Size
+      if (plotly) {
+        args_ly_$size <- "darkgrey"
+      }
+    }
+    if (test[2L]) {
+      aes_$alpha <- rlang::expr(.data[[!!"dot_alpha"]])
+      if (Alpha.identity) { pluses_gg_$scale_alpha <- ggplot2::scale_alpha_identity(Alpha) } else {
+        guides_$alpha <- ggplot2::guide_legend(title = Alpha)
+      }
+      if (plotly) {
+        if (!"marker" %in% names(args_ly_)) { args_ly_$marker <- list() }
+        args_ly_$marker$opacity = ~dot_alpha
+      }
+    } else {
+      args_gg_$alpha <- Alpha
+      if (plotly) {
+        args_ly_$alpha <- 1
+      }
+    }
+    pluses_gg_$guides <- do.call(ggplot2::guides, guides_)
+    #
+    # Labels (ggplot version only)
+    wLabs <- which(temp$Labels != "")
+    plotLabels <- length(wLabs)
+    if (plotLabels) {
+      labels_dat <- temp[wLabs,]
+      kolkol <- "Colour"
+      labels_col <- "Labels"
+      W2 <- which(!labels_dat[[kolkol]] %in% c("protein in list", "target"))
+      W3 <- which(labels_dat[[kolkol]] %in% c("protein in list", "target"))
+      if (length(W2) > MaxLabels) {
+        labels_dat2 <- labels_dat[W2,]
+        Ord <- order(abs(labels_dat2[[MaxLabels_priority]]), decreasing = TRUE) # ("abs" only needed for X, but makes no difference for Y => more concise code)
+        labels_dat2 <- labels_dat2[Ord[1L:MaxLabels],]
+        labels_dat <- rbind(labels_dat2, labels_dat[W3,])
+      }
+      labels_aes_ <- list(x = aes_$x,
+                          y = aes_$y,
+                          label = rlang::expr(.data[[!!labels_col]]),
+                          colour = aes_$color)
+      labels_args_ <- list(data = labels_dat,
+                           force = 4L,
+                           cex = cex,
+                           lineheight = lineheight,
+                           show.legend = FALSE)
+      if (("alpha" %in% names(aes_)) && Alpha.labels) {
+        labels_aes_ <- aes_$alpha
+      } else {
+        labels_args_$alpha <- 1L
+      }
+      labels_args_$mapping <- do.call(ggplot2::aes, labels_aes_)
+      labels_layer <- do.call(ggrepel::geom_text_repel, labels_args_)
+    }
+    #
     # Significance thresholds
     if ((mode == "curved") && (i %in% names(curved_Thresh))) {
       # Option 1: curved SAM thresholds
@@ -1110,315 +1250,277 @@ Volcano.plot <- function(Prot,
       SAM_thresh <- \(x, s0, conf, df) {
         -log10(2*(1 - pt(conf*(1 + s0/(abs(x)/conf - s0)), df)))
       }
-      #suppressWarnings(eval(parse(text = plot.txt)))
-      plot <- plot +
-        ggplot2::annotate("text", x = xlim[1L]+xspan*0.02, y = ylim*0.98, label = paste0("SAM: s0 = ", signif(samS0, 5L)),
-                          vjust = 1L, hjust = 0L, size = 3.5)
-      #poplot(plot)
-      # w <- which((FDR_table$FDR == f3*100) & (FDR_table$Sample == i))
-      # threshCol <- FDR_table[w, paste0("fdr.col.", c("up", "down"))]
-      # threshCol <- hex2RGB(threshCol)
-      # threshCol <- as.data.frame(threshCol@coords)
-      # threshCol <- apply(threshCol, 2, \(x) { round(sqrt(mean(x^2))) }) # 255-base colors are not linear, go figure! One learns a new thing every day!
-      # threshCol <- RGB(threshCol[1L], threshCol[2L], threshCol[3L])
-      # threshCol <- hex(threshCol)
       ta <- data.frame(a = c(0.01, 0.05),
                        Colour = c("blue4", "blue"))
       ta$Ta <- vapply(ta$a, \(x) { qt(1-x, samDF) }, 1)
       xlim[1L] <- min(c(-ta$Ta*samS0*2, xlim[1L]))
       xlim[2L] <- max(c(ta$Ta*samS0*2, xlim[2L]))
-      #suppressWarnings(eval(parse(text = plot.txt)))
-      plot <- plot +
-        ggplot2::stat_function(fun = \(x) { SAM_thresh(x, samS0, ta$Ta[1L], samDF) },
-                               color = ta$Colour[1L], xlim = c(ta$Ta[1L]*samS0, xlim[2L]), linetype = "dotted") +
-        ggplot2::stat_function(fun = \(x) { SAM_thresh(x, samS0, ta$Ta[1L], samDF) },
-                               color = ta$Colour[1L], xlim = c(xlim[1L], -ta$Ta[1L]*samS0), linetype = "dotted") +
-        ggplot2::stat_function(fun = \(x) { SAM_thresh(x, samS0, ta$Ta[2L], samDF) },
-                               color = ta$Colour[2L], xlim = c(ta$Ta[2L]*samS0, xlim[2L]), linetype = "dotted") +
-        ggplot2::stat_function(fun = \(x) { SAM_thresh(x, samS0, ta$Ta[2L], samDF) },
-                               color = ta$Colour[2L], xlim = c(xlim[1L], -ta$Ta[2L]*samS0), linetype = "dotted") +
-        ggplot2::annotate("text", x = xlim[2L], y = -log10(2*(1 - pt(ta$Ta[1L], samDF)))*1.05,
-                          label = paste0(100*(1 - ta$a[1L]), "% conf. lev."),
-                          color = ta$Colour[1L], hjust = 1L, size = 3.5) +
-        ggplot2::annotate("text", x = xlim[2L], y = -log10(2*(1 - pt(ta$Ta[2L], samDF)))*1.05,
-                          label = paste0(100*(1 - ta$a[2L]), "% conf. lev."),
-                          color = ta$Colour[2L], hjust = 1L, size = 3.5)
-      if (prot_split) {
-        plot2 <- plot2 +
-          ggplot2::stat_function(fun = \(x) { SAM_thresh(x, samS0, ta$Ta[1L], samDF) },
-                               color = ta$Colour[1L], xlim = c(ta$Ta[1L]*samS0, xlim[2L]), linetype = "dotted") +
-          ggplot2::stat_function(fun = \(x) { SAM_thresh(x, samS0, ta$Ta[1L], samDF) },
-                                 color = ta$Colour[1L], xlim = c(xlim[1L], -ta$Ta[1L]*samS0), linetype = "dotted") +
-          ggplot2::stat_function(fun = \(x) { SAM_thresh(x, samS0, ta$Ta[2L], samDF) },
-                                 color = ta$Colour[2L], xlim = c(ta$Ta[2L]*samS0, xlim[2L]), linetype = "dotted") +
-          ggplot2::stat_function(fun = \(x) { SAM_thresh(x, samS0, ta$Ta[2L], samDF) },
-                                 color = ta$Colour[2L], xlim = c(xlim[1L], -ta$Ta[2L]*samS0), linetype = "dotted") +
-          ggplot2::annotate("text", x = xlim[2L], y = -log10(2*(1- pt(ta$Ta[1L], samDF)))*1.05,
-                            label = paste0(100*(1-ta$a[1L]), "% conf. lev."),
-                            color = ta$Colour[1L], hjust = 1L, size = 3.5) +
-          ggplot2::annotate("text", x = xlim[2L], y = -log10(2*(1 - pt(ta$Ta[2L], samDF)))*1.05,
-                            label = paste0(100*(1-ta$a[2L]), "% conf. lev."),
-                            color = ta$Colour[2L], hjust = 1L, size = 3.5)
+      pluses_gg_$curve <- list(curv_A1 = ggplot2::annotate("text", x = xTxtPos, y = ylim*0.98,
+                                                           label = paste0("SAM: s0 = ", signif(samS0, 5L)),
+                                                           vjust = 1L, hjust = 0L, size = 3.5),
+                               curv_A2 = ggplot2::annotate("text", x = xlim[2L], y = -log10(2*(1 - pt(ta$Ta[1L], samDF)))*1.05,
+                                                           label = paste0(100*(1 - ta$a[1L]), "% conf. lev."),
+                                                           color = ta$Colour[1L], hjust = 1L, size = 3.5),
+                               curv_A3 = ggplot2::annotate("text", x = xlim[2L], y = -log10(2*(1 - pt(ta$Ta[2L], samDF)))*1.05,
+                                                           label = paste0(100*(1 - ta$a[2L]), "% conf. lev."),
+                                                           color = ta$Colour[2L], hjust = 1L, size = 3.5))
+      myCurves <- list(curv_F1 = list(range = c(ta$Ta[1L]*samS0, xlim[2L]), i = 1L),
+                       curv_F2 = list(range = c(xlim[1L], -ta$Ta[1L]*samS0), i = 1L),
+                       curv_F3 = list(range = c(ta$Ta[2L]*samS0, xlim[2L]), i = 2L),
+                       curv_F4 = list(range = c(xlim[1L], -ta$Ta[2L]*samS0), i = 2L))
+      curvNms <- names(myCurves)
+      for (crvnm in curvNms) {
+        i <- myCurves[[crvnm]]$i
+        pluses_gg_$curve[[curvNms]] <- ggplot2::stat_function(fun = \(x) { SAM_thresh(x, samS0, ta$Ta[i], samDF) },
+                                                              color = ta$Colour[i],
+                                                              xlim = myCurves[[crvnm]]$range,
+                                                              linetype = "dotted")
       }
-      #poplot(plot)
+      if (plotly) {
+        xCurveRanges2 <- setNames(lapply(curvNms, \(crvnm) {
+          x <- myCurves[[crvnm]]$range
+          c(0L:100L/100)*(x[[2L]]-x[[1L]])+x[[1L]]
+        }), curvNms)
+        for (crvnm in curvNms) {
+          i <- myCurves[[crvnm]]$i
+          traces_ly_[[crvnm]] <- list(Trace = "plotly::add_segments",
+                                      x = xCurveRanges2[[x]],
+                                      y = SAM_thresh(x, samS0, ta$Ta[i], samDF),
+                                      type = "scatter",
+                                      mode = "lines",
+                                      line = list(color = ta$Colour[i],
+                                                  dash = "dot"),
+                                      name = crvnm,
+                                      inherit = FALSE)
+        }
+      }
     } else {
       # Option 2: straight horizontal/vertical thresholds
-      for (l in 1L:nrow(plot.metrics)) {
-        if (plot.metrics$Axis[l] == "X") {
-          if ((plot.metrics$Levels[l] == "up") || symm) {
-            offset <- xspan/50*c(-1,1)[which(c("down", "up") == plot.metrics$Levels[l])]
-            plot <- plot +
-              ggplot2::geom_vline(xintercept = plot.metrics$Value[l],
-                                  color = plot.metrics$Colour[l]) +
-              ggplot2::annotate("text", x = plot.metrics$Value[l]+offset,
-                                y = ylim*0.99, label = plot.metrics$Name[l],
-                                color = plot.metrics$Colour[l], cex = cex*1.2,
-                                hjust = 1L, angle = 90)
-            if (prot_split) {
-              plot_prot <- plot_prot +
-                ggplot2::geom_vline(xintercept = plot.metrics$Value[l],
-                                    color = plot.metrics$Colour[l]) + 
-                ggplot2::annotate("text", x = plot.metrics$Value[l]+offset,
-                                  y = ylim*0.99, label = plot.metrics$Name[l],
-                                  color = plot.metrics$Colour[l], cex = cex*1.2,
-                                  hjust = 1L, angle = 90)
-            }
+      wVL <-  which( { if (symm) { plot.metrics$Axis == "X" } else { plot.metrics$Levels == "up" } } & (plot.metrics$Value != 0L) )
+      wHL <- which(plot.metrics$Axis == "Y")
+      if (length(c(wVL, wHL))) {
+        pluses_gg_$newScale_1 <- ggnewscale::new_scale_color()
+        pluses_gg_$newScale_2 <- ggplot2::scale_color_identity()
+      }
+      if (length(wVL)) {
+        pluses_gg_$vlines <- list()
+        plot.metrics$hOffset <- plot.metrics$Value + xTxtOffset*c(-1, 1)[match(plot.metrics$Levels, c("down", "up"))]
+        pluses_gg_$vlines$L <- ggplot2::geom_vline(data = plot.metrics[wVL,], linetype = "dotted",
+                                                   ggplot2::aes(xintercept = Value, color = Colour))
+        pluses_gg_$vlines$A <- ggplot2::geom_text(data = plot.metrics[wVL,],
+                                                  ggplot2::aes(label = Name, x = hOffset, color = Colour),
+                                                  y = ylim*0.8, cex = cex*1.2, hjust = 1L, angle = 90)
+        if (plotly) {
+          for (ii in seq_along(wVL)) { # Apparently colors cannot be vectorized...
+            traces_ly_$vlines[[paste0("L", ii)]] <- list(Trace = "plotly::add_segments",
+                                                         x = plot.metrics$Value[wVL[ii]], xend = plot.metrics$Value[wVL[ii]],
+                                                         y = 0, yend = ylim,
+                                                         type = "scatter", mode = "lines",
+                                                         line = list(color = plot.metrics$Colour[wVL[ii]], dash = "dot"),
+                                                         inherit = FALSE, text = plot.metrics$Name[wVL[ii]], hoverinfo = "text",
+                                                         showlegend = FALSE)
           }
         }
-        if (("FDR" %in% labels) && (plot.metrics$Axis[l] == "Y")) {
-          plot <- plot +
-            ggplot2::geom_hline(yintercept = plot.metrics$Value[l],
-                                color = plot.metrics$Colour[l])
-          if (prot_split) {
-            plot_prot <- plot_prot +
-              ggplot2::geom_hline(yintercept = plot.metrics$Value[l],
-                                  color = plot.metrics$Colour[l])
+      }
+      if (length(wHL)) {
+        pluses_gg_$hlines <- list()
+        pluses_gg_$hlines$L <- ggplot2::geom_hline(data = plot.metrics[wHL,], linetype = "dotted",
+                                                   ggplot2::aes(yintercept = Value, color = Colour))
+        pluses_gg_$hlines$A <- ggplot2::geom_text(data = plot.metrics[wHL,], x = -xTxtPos, cex = cex*1.2,
+                                                  hjust = 1L, show.legend = FALSE,
+                                                  ggplot2::aes(label = Name, y = Value + yTxtOffset,
+                                                               color = Colour))
+        if (plotly) {
+          for (ii in seq_along(wHL)) { # Apparently colors cannot be vectorized...
+            traces_ly_$hlines[[paste0("L", ii)]] <- list(Trace = "plotly::add_segments",
+                                                         x = xlim[1L], xend = xlim[2L],
+                                                         y = plot.metrics$Value[wHL[ii]], yend = plot.metrics$Value[wHL[ii]],
+                                                         type = "scatter", mode = "lines",
+                                                         line = list(color = plot.metrics$Colour[wHL[ii]], dash = "dot"),
+                                                         inherit = FALSE, text = plot.metrics$Name[wHL[ii]], hoverinfo = "text",
+                                                         showlegend = FALSE)
           }
         }
       }
     }
     if (useFDRtbl && nrow(fdr_table)) {
-      plot <- plot +
-        ggplot2::geom_hline(data = fdr_table,
-                            ggplot2::aes(yintercept = -log10(Thresholds),
-                                         colour = I(fdr.col.line)),
-                            show.legend = FALSE) + 
-        ggplot2::geom_text(data = fdr_table, x = xlim[1L]+xspan*0.025,
-                           ggplot2::aes(y = -log10(Thresholds)+ylim*0.01,
-                                        label = paste0("FDR = ", FDR, "%"),
-                                        colour = I(fdr.col.line)),
-                           cex = cex * 1.2, hjust = 0L,
-                           show.legend = FALSE)
-      if (prot_split) {
-        plot_prot <- plot_prot +
-          ggplot2::geom_hline(data = fdr_table,
-                              ggplot2::aes(yintercept = -log10(Thresholds),
-                                           colour = I(fdr.col.line)),
-                              show.legend = FALSE) + 
-          ggplot2::geom_text(data = fdr_table, x = xlim[1L]+xspan*0.025,
-                             ggplot2::aes(y = -log10(Thresholds)+ylim*0.01,
-                                          label = paste0("FDR = ", FDR, "%"),
-                                          colour = I(fdr.col.line)),
-                             cex = cex * 1.2, hjust = 0L,
-                             show.legend = FALSE)
+      pluses_gg_$fdr <- list(L = ggplot2::geom_hline(data = fdr_table, linetype = "dotted",
+                                                     ggplot2::aes(yintercept = -log10(Thresholds), colour = fdr.col.line),
+                                                     show.legend = FALSE),
+                             T = ggplot2::geom_text(data = fdr_table, x = xTxtPos, cex = cex*1.2,
+                                                    hjust = 0L, show.legend = FALSE,
+                                                    ggplot2::aes(label = paste0("FDR = ", FDR, "%"),
+                                                                 y = -log10(Thresholds) + yTxtOffset,
+                                                                 colour = fdr.col.line)))
+      if (plotly) {
+        for (ii in 1L:nrow(fdr_table)) { # Apparently colors cannot be vectorized...
+          traces_ly_[[paste0("F", ii)]] <- list(Trace = "plotly::add_segments",
+                                                x = xlim[1L], xend = xlim[2L],
+                                                y = -log10(fdr_table$Thresholds[[ii]]), yend = -log10(fdr_table$Thresholds[[ii]]),
+                                                type = "scatter", mode = "lines",
+                                                line = list(color = fdr_table$fdr.col.line[[ii]], dash = "dot"),
+                                                inherit = FALSE, text = paste0("FDR = ", fdr_table$FDR[[ii]], "%"), hoverinfo = "text",
+                                                showlegend = FALSE)
+        }
       }
     }
-    if (!is.null(arbitrary.lines)) {
-      # (This part could be rewritten without a loop using "data = ...")
-      for (j in 1L:nrow(arbitrary.lines)) {
-        if (is.na(arbitrary.lines$xintercept[j])) {
-          if (arbitrary.lines$slope[j] != 0L) {
-            # Ablines are not really interesting for now so I am ignoring labels.
-            plot <- plot +
-              ggplot2::geom_abline(intercept = arbitrary.lines$yintercept[j],
-                                   slope = arbitrary.lines$slope[j],
-                                   colour = arbitrary.lines$colour[j], linetype = 3L)
-            if (prot_split) {
-              plot_prot <- plot_prot +
-                ggplot2::geom_abline(intercept = arbitrary.lines$yintercept[j],
-                                     slope = arbitrary.lines$slope[j],
-                                     colour = arbitrary.lines$colour[j], linetype = 3L)
-            }
-          } else {
-            plot <- plot +
-              ggplot2::geom_hline(yintercept = arbitrary.lines$yintercept[j],
-                                  colour = arbitrary.lines$colour[j], linetype = 3L) +
-              ggplot2::annotate("text",
-                                x = xlim[1L]+xspan*0.025,
-                                y = arbitrary.lines$yintercept[j] + ylim*0.01,
-                                label = arbitrary.lines$label[j],
-                                colour = arbitrary.lines$colour[j],
-                                cex = cex * 1.2, hjust = 0L)
-            if (prot_split) {
-              plot_prot <- plot_prot +
-                ggplot2::geom_hline(yintercept = arbitrary.lines$yintercept[j],
-                                    colour = arbitrary.lines$colour[j],
-                                    linetype = 3) +
-                ggplot2::annotate("text", x = xlim[1L]+xspan*0.025,
-                                  y = arbitrary.lines$yintercept[j] + ylim*0.01,
-                                  label = arbitrary.lines$label[j],
-                                  colour = arbitrary.lines$colour[j],
-                                  cex = cex * 1.2, hjust = 0L)
-            }
+    # Arbitrary lines
+    if ((!misFun(arbitrary.lines)) && (!is.null(arbitrary.lines)) && is.data.frame(arbitrary.lines) && nrow(arbitrary.lines)) {
+      w1 <- which(is.na(arbitrary.lines$xintercept) & arbitrary.lines$slope != 0L)
+      w2 <- which(is.na(arbitrary.lines$xintercept) & arbitrary.lines$slope == 0L)
+      w3 <- which(!is.na(arbitrary.lines$xintercept))
+      if (length(w1)) {
+        pluses_gg_$Arbi1 <- ggplot2::geom_abline(data = arbitrary.lines[w1,], linetype = "dotted",
+                                                 ggplot2::aes(intercept = yintercept, slope = slope,
+                                                              colour = colour))
+      }
+      if (length(w2)) {
+        pluses_gg_$Arbi2l <- ggplot2::geom_hline(data = arbitrary.lines[w2,], linetype = "dotted",
+                                                 ggplot2::aes(yintercept = yintercept, colour = colour)) 
+        pluses_gg_$Arbi2a <-  ggplot2::geom_text(data = arbitrary.lines[w2,], cex = cex * 1.2, hjust = 1L, x = -xTxtPos,
+                                                 ggplot2::aes(y = yintercept + yTxtOffset, label = label, colour = colour))
+      }
+      if (length(w3)) {
+        arbitrary.lines$Sign <- sign(arbitrary.lines$xintercept)
+        pluses_gg_$Arbi3l <- ggplot2::geom_vline(data = arbitrary.lines[w3,], linetype = "dotted",
+                                                 ggplot2::aes(xintercept = xintercept,  colour = colour))
+        pluses_gg_$Arbi3a <- ggplot2::geom_text(data = arbitrary.lines[w3,], cex = cex * 1.2, hjust = 0L, y = ylim * 0.5,
+                                                ggplot2::aes(x = xintercept + xTxtOffset * Sign,
+                                                             label = label, colour = colour))
+      }
+      if (plotly) {
+        w12 <- c(w1, w2)
+        if (length(w12)) {
+          for (ii in seq_along(w12)) { # Apparently colors cannot be vectorized...
+            jj <- w12[ii]
+            traces_ly_[[paste0("Arbi12_", ii)]] <- list(Trace = "plotly::add_segments",
+                                                        x = xlim[1L], xend = xlim[2L],
+                                                        y = arbitrary.lines$slope[[jj]] * xlim[1L] + arbitrary.lines$yintercept[[jj]],
+                                                        yend = arbitrary.lines$slope[[jj]] * xlim[2L] + arbitrary.lines$yintercept[[jj]],
+                                                        type = "scatter", mode = "lines",
+                                                        line = list(color = arbitrary.lines$colour[[jj]], dash = "dot"),
+                                                        text = arbitrary.lines$label[[jj]], hoverinfo = "text",
+                                                        inherit = FALSE, showlegend = FALSE)
           }
-        } else {
-          S <- sign(arbitrary.lines$xintercept)
-          plot <- plot +
-            ggplot2::geom_vline(xintercept = arbitrary.lines$xintercept[j],
-                                colour = arbitrary.lines$colour[j], linetype = 3L) +
-            ggplot2::annotate("text", x = arbitrary.lines$xintercept[j]+xspan*0.025*S,
-                              y = ylim*0.5, label = arbitrary.lines$label[j],
-                              colour = arbitrary.lines$colour[j],
-                              cex = cex * 1.2, hjust = 0L)
-          if (prot_split) {
-            plot_prot <- plot_prot +
-              ggplot2::geom_vline(xintercept = arbitrary.lines$xintercept[j],
-                                  colour = arbitrary.lines$colour[j], linetype = 3L) +
-              ggplot2::annotate("text", x = arbitrary.lines$xintercept[j]+xspan*0.025*S,
-                                y = ylim*0.5, label = arbitrary.lines$label[j],
-                                colour = arbitrary.lines$colour[j],
-                                cex = cex * 1.2, hjust = 0L)
+        }
+        if (length(w3)) {
+          for (ii in seq_along(w3)) { # Apparently colors cannot be vectorized...
+            jj <- w3[ii]
+            traces_ly_[[paste0("Arbi3_", ii)]] <- list(Trace = "plotly::add_segments",
+                                                       x = arbitrary.lines$xintercept[[jj]], xend = arbitrary.lines$xintercept[[jj]],
+                                                       y = 0, yend = ylim, type = "scatter", mode = "lines",
+                                                       line = list(color = arbitrary.lines$colour[[jj]], dash = "dot"),
+                                                       text = arbitrary.lines$label[[jj]], hoverinfo = "text",
+                                                       inherit = FALSE, showlegend = FALSE)
           }
         }
       }
     }
-    if ((!misFun(arbitrary.thresh)) && (!is.null(arbitrary.thresh))) {
-      if (labels != "FDR") {
-        for (j in 1L:nrow(arbitrary.thresh)) {
-          if (!is.na(arbitrary.thresh$xintercept[j])) {
-            warning("Significance thresholds are horizontal, \"xintercept\" will be ignored!")
-            arbitrary.thresh$xintercept[j] <- NA_real_
-          }
-          if (!arbitrary.thresh$slope[j] %in% c(NA, 0)) {
-            warning("Significance thresholds are horizontal, \"slope\" will be ignored!")
-            arbitrary.thresh$xintercept[j] <- 0
-          }
-          plot <- plot +
-            ggplot2::geom_hline(yintercept = arbitrary.thresh$yintercept[j],
-                                colour = arbitrary.thresh$colour[j], linetype = 3L) +
-            ggplot2::annotate("text", x = xlim[1L]+xspan*0.025,
-                              y = arbitrary.thresh$yintercept[j] + ylim*0.01,
-                              label = arbitrary.thresh$label[j],
-                              colour = arbitrary.thresh$colour[j],
-                              cex = cex * 1.2, hjust = 0L)
-          if (prot_split) {
-            plot_prot <- plot_prot +
-              ggplot2::geom_hline(yintercept = arbitrary.thresh$yintercept[j],
-                                  colour = arbitrary.thresh$colour[j], linetype = 3L) +
-              ggplot2::annotate("text", x = xlim[1L]+xspan*0.025,
-                                y = arbitrary.thresh$yintercept[j] + ylim*0.01,
-                                label = arbitrary.thresh$label[j],
-                                colour = arbitrary.thresh$colour[j],
-                                cex = cex * 1.2, hjust = 0L)
-          }
-        } 
+    # Arbitrary thresholds
+    if ((!misFun(arbitrary.thresh)) && (!is.null(arbitrary.thresh)) && is.data.frame(arbitrary.thresh) && nrow(arbitrary.thresh)) {
+      w <- which(is.na(arbitrary.thresh$xintercept) | (arbitrary.thresh$slope %in% c(NA, 0)))
+      if (length(w)) {
+        warning("Significance thresholds are horizontal, \"xintercept\" will be ignored!")
+        arbitrary.thresh$xintercept[w] <- NA_real_
+        arbitrary.thresh$slope[w] <- 0
       }
-    }
-    #
-    Plots$Unlabelled[[ttl]] <- plotEval(plot)
-    if (prot_split) {
-      Plots$"Proteins in list - unlabelled"[[ttl]] <- plotEval(plot_prot)
-    }
-    #
-    # Initiate simplified plot:
-    simPlot <- plot
-    simPlot$layers <- simPlot$layers[1L]
-    #
-    # Labels
-    if (show.labels) {
-      W <- #if (prot_split) { which(temp$Labels2 != "") } else {
-        which(temp$Labels != "")
-      #}
-      if (length(W)) {
-        plot2 <- plot
-        lab <- temp[W,]
-        #if (prot_split) {
-        #  kolkol <- "Colour2"
-        #  labkol <- "Labels2"
-        #} else {
-          kolkol <- "Colour"
-          labkol <- "Labels"
-        #}
-        W2 <- which(!lab[[kolkol]] %in% c("protein in list", "target"))
-        W3 <- which(lab[[kolkol]] %in% c("protein in list", "target"))
-        if (length(W2) > MaxLabels) {
-          lab2 <- lab[W2,]
-          Ord <- order(abs(lab2[[MaxLabels_priority]]), decreasing = TRUE) # ("abs" only needed for X, but makes no difference for Y => more concise code)
-          lab2 <- lab2[Ord[1L:MaxLabels],]
-          lab <- rbind(lab2, lab[W3,])
-        }
-        plot2 <- if ((!is.numeric(Alpha)) && Alpha.labels) {
-          plot2 +
-            ggrepel::geom_text_repel(data = lab,
-                                     ggplot2::aes(label = .data[[labkol]], x = X, y = Y,
-                                                  colour = .data[[kolkol]], alpha = Alpha),
-                                     force = 4L, cex = cex, lineheight = lineheight,
-                                     show.legend = FALSE)
-        } else {
-          plot2 +
-            ggrepel::geom_text_repel(data = lab,
-                                     ggplot2::aes(label = .data[[labkol]], x = X, y = Y,
-                                                  colour = .data[[kolkol]]), alpha = 1L,
-                                     force = 4L, cex = cex, lineheight = lineheight,
-                                     show.legend = FALSE)
-        }
-        #poplot(plot2)
-        Plots$Labelled[[ttl]] <- plotEval(plot2)
-        #
-        # Simplified plot:
-        simPlot <- simPlot +
-          ggrepel::geom_text_repel(data = lab,
-                                   ggplot2::aes(label = .data[[labkol]], x = X, y = Y,
-                                                colour = .data[[kolkol]]), alpha = 1L,
-                                   force = 4L, cex = 3.5, lineheight = lineheight,
-                                   show.legend = FALSE)
-        #poplot(simPlot)
-      }
-      if (prot_split) {
-        plot_prot2 <- plot_prot
-        W2 <- which(temp$Labels2 != "")
-        if (length(W2)) {
-          lab2 <- temp[W2,]
-          plot_prot2 <- if ((!is.numeric(Alpha)) && Alpha.labels) {
-            plot_prot2 +
-              ggrepel::geom_text_repel(data = lab2,
-                                       ggplot2::aes(label = Labels2, x = X, y = Y,
-                                                    colour = Colour2, alpha = Alpha),
-                                       force = 4L, cex = cex, lineheight = lineheight, max.overlaps = 250L,
-                                       show.legend = FALSE)
-          } else {
-            plot_prot2 +
-              ggrepel::geom_text_repel(data = lab2,
-                                       ggplot2::aes(label = Labels2, x = X, y = Y,
-                                                    colour = Colour2), alpha = 1L,
-                                       force = 4L, cex = cex, lineheight = lineheight, max.overlaps = 250L,
-                                       show.legend = FALSE)
-          }
-          Plots$"Proteins in list - labelled"[[ttl]] <- plotEval(plot_prot2)
+      pluses_gg_$Arbi4l <- ggplot2::geom_hline(data = arbitrary.thresh, linetype = "dotted",
+                                               ggplot2::aes(yintercept = yintercept, colour = colour)) 
+      pluses_gg_$Arbi4a <-  ggplot2::geom_text(data = arbitrary.thresh, cex = cex * 1.2, hjust = 0L, x = xTxtPos,
+                                               ggplot2::aes(y = yintercept + yTxtOffset, label = label, colour = colour))
+      if (plotly) {
+        for (ii in 1L:nrow(arbitrary.thresh)) { # Apparently colors cannot be vectorized...
+          traces_ly_[[paste0("Arbi4_", ii)]] <- list(Trace = "plotly::add_segments",
+                                                     x = arbitrary.thresh$xintercept[[ii]], xend = arbitrary.thresh$xintercept[[ii]],
+                                                     y = 0, yend = ylim, type = "scatter", mode = "lines",
+                                                     line = list(color = arbitrary.thresh$colour[[ii]], dash = "dot"),
+                                                     text = arbitrary.lines$label[[jj]], hoverinfo = "text",
+                                                     inherit = FALSE, showlegend = FALSE)
         }
       }
     }
     #
-    # The as.numeric below is important because the output class of summary is influenced by the input's class!
-    limX <- summary(as.numeric(temp$X))
-    limY <- summary(as.numeric(temp$Y))
+    # Final ggplot2 layers
+    pluses_gg_basic_$theme1 <- ggplot2::theme(panel.grid.major = ggplot2::element_blank(),
+                                              panel.grid.minor = ggplot2::element_blank())
+    pluses_gg_$scale_x <- pluses_gg_basic_$scale_x <- ggplot2::scale_x_continuous(limits = xlim,
+                                                                                  expand = c(0L, 0L))
+    pluses_gg_$scale_y <- pluses_gg_basic_$scale_y <- ggplot2::scale_y_continuous(limits = c(0, ylim),
+                                                                                  expand = c(0L, 0L))
     #
-    suppressWarnings({
-      # Simplified plot:
-      simPlot$layers[[1L]]$mapping$size  <- NULL
-      simPlot$layers[[1L]]$mapping$alpha <- NULL
-      simPlot$layers[[1L]]$aes_params$size  <- 1L
-      simPlot$layers[[1L]]$aes_params$alpha <- 1L
-      simPlot <- simPlot +
-        ggplot2::xlim(limX["Min."]*1.05, limX["Max."]*1.05)+
-        ggplot2::ylim(0, limY["Max."]*1.05) +
-        ggplot2::theme(panel.grid.major = ggplot2::element_blank(),
-                       panel.grid.minor = ggplot2::element_blank()) +
-        ggplot2::scale_x_continuous(expand = c(0, 0)) +
-        ggplot2::scale_y_continuous(expand = c(0, 0))
-    })
-    poplot(simPlot)
+    # Evaluate plots
+    args_gg_$mapping <- do.call(ggplot2::aes, aes_)
+    main_layer <- do.call(ggplot2::geom_point, args_gg_)
+    plot <- simPlot <- ggplot(temp) + main_layer
+    if (plotLabels) {
+      plot_labels <- plot + labels_layer
+    }
+    for (ii in seq_along(pluses_gg_)) { #ii <- 1L #ii <- ii+1L
+      if (inherits(pluses_gg_[[ii]], "list") && (!inherits(pluses_gg_[[ii]], "gg"))) {
+        for (jj in seq_along(pluses_gg_[[ii]])) { #jj <- 1L #jj <- jj+1L
+          plot <- plot + pluses_gg_[[ii]][[jj]]
+          if (plotLabels) { plot_labels <- plot_labels + pluses_gg_[[ii]][[jj]] }
+        }
+      } else {
+        plot <- plot + pluses_gg_[[ii]]
+        if (plotLabels) { plot_labels <- plot_labels + pluses_gg_[[ii]] }
+      }
+    }
+    for (ii in seq_along(pluses_gg_basic_)) { #ii <- 1L #ii <- ii+1L
+      if (inherits(pluses_gg_basic_[[ii]], "list") && (!inherits(pluses_gg_basic_[[ii]], "gg"))) {
+        for (jj in seq_along(pluses_gg_basic_[[ii]])) { #jj <- 1L #jj <- jj+1L
+          simPlot <- simPlot + pluses_gg_basic_[[ii]][[jj]]
+        }
+      } else {
+        simPlot <- simPlot + pluses_gg_[[ii]]
+      }
+    }
+    #poplot(simPlot)
+    #poplot(plot)
+    #poplot(plot_labels)
     Plots$Simple[[ttl]] <- plotEval(simPlot)
+    Plots$Unlabelled[[ttl]] <- plotEval(plot)
+    if (plotLabels) { Plots$Labelled[[ttl]] <- plotEval(plot_labels) }
+    if (prot_split) {
+      # This we do just for ggplot2, not with plotly (there will be a better solution)
+      args_gg_prot <- args_gg_
+      aes_prot <- aes_
+      aes_prot$color <- rlang::expr(.data[[!!"Colour2"]])
+      pluses_gg_prot <- pluses_gg_
+      pluses_gg_prot$colScale <- colScale2
+      args_gg_prot <- args_gg_
+      args_gg_prot$mapping <- do.call(ggplot2::aes, aes_prot)
+      main_layer_prot <- do.call(ggplot2::geom_point, args_gg_prot)
+      plot_prot <- ggplot(temp) + main_layer_prot
+      if (plotLabels) {
+        labels_dat_prot <- labels_dat[which(labels_dat$Colour2 %in% c("protein in list", "target")),]
+        labels_args_prot_ <- labels_args_
+        labels_args_prot_$data <- labels_dat_prot
+        labels_args_prot_$mapping$colour <- main_layer_prot$mapping$colour
+        labels_layer_prot <- do.call(ggrepel::geom_text_repel, labels_args_prot_)
+        plot_prot_labels <- plot_prot + labels_layer_prot
+      }
+      for (ii in seq_along(pluses_gg_prot)) { #ii <- 1L #ii <- ii+1L
+        if (inherits(pluses_gg_prot[[ii]], "list") && (!inherits(pluses_gg_prot[[ii]], "gg"))) {
+          for (jj in seq_along(pluses_gg_prot[[ii]])) { #jj <- 1L #jj <- jj+1L
+            plot_prot <- plot_prot + pluses_gg_prot[[ii]][[jj]]
+            if (plotLabels) { plot_prot_labels <- plot_prot_labels + pluses_gg_prot[[ii]][[jj]] }
+          }
+        } else {
+          plot_prot <- plot_prot + pluses_gg_prot[[ii]]
+          if (plotLabels) { plot_prot_labels <- plot_prot_labels + pluses_gg_prot[[ii]] }
+        }
+      }
+      #poplot(plot_prot)
+      #poplot(plot_prot_labels)
+      Plots$"Proteins in list - unlabelled"[[ttl]] <- plotEval(plot_prot)
+      if (plotLabels) { Plots$"Proteins in list - labelled"[[ttl]] <- plotEval(plot_prot_labels ) }
+      #
+      Symb <- c("circle", "star")[temp$Found_in_List+1L]
+      args_ly_$symbol <- I(Symb)
+    }
+    #
+    poplot(simPlot)
     # Make valid file name
     tr <- gsub("/|:|\\*|\\?|<|>|\\||/", "-", title.root)
     tt <- gsub("/|:|\\*|\\?|<|>|\\||/", "-", ttl)
@@ -1439,36 +1541,52 @@ Volcano.plot <- function(Prot,
     # Save data for users to replot with their own methods if they feel so inclined
     if (saveData) {
       flPth <- paste0(subfolder, "/", nm, "_dat.csv")
-      tmpDat <- data.frame(ID = gsub("\n|<br>", " | ", temp$Table_labels),
+      tmpDat <- data.frame("ID" = gsub("\n|<br>", " | ", temp$Table_labels),
                            "log2FC" = temp$X,
                            "P-value" = 10L^-temp$Y,
-                           " -log10(P-value)" = temp$Y,
+                           "-log10(P-value)" = temp$Y,
                            "adj. P-value" = p.adjust(10L^-temp$Y, "BH"),
                            check.names = FALSE)
       data.table::fwrite(tmpDat, flPth, sep = ",", row.names = FALSE, na = "NA")
     }
     if (plotly) {
-      plot_ly <- plotly::ggplotly(plot, tooltip = "text")
-      volcPlotly[[ttl]] <- list(Ttl = ttl,
-                                Plot = plot_ly)
-      if (prot_split) {
-        plot_ly_list <- plotly::ggplotly(plot_prot, tooltip = "text")
-        volcPlotly[[paste0(ttl, "_list")]] <- list(Ttl = paste0(ttl, "_list"),
-                                                   Plot = plot_ly_list)
-      }
-      if (!plotly_local) {
-        volcPlotly2[[ttl]] <- plotly::api_create(plot_ly,
-                                                 paste0(plotly_subfolder, tr, tt),
-                                                 "overwrite",
-                                                 plotly_sharing)
-        if (prot_split) {
-          volcPlotly2[[paste0(ttl, "_list")]] <- plotly::api_create(plot_ly_list,
-                                                                    paste0(plotly_subfolder, tr, tt, "_list"),
-                                                                    "overwrite",
-                                                                    plotly_sharing)
+      plotLy <- do.call(plotly::plot_ly,
+                        args_ly_)
+      for (ii in seq_along(traces_ly_)) { #ii <- 1L #ii <- ii+1L
+        if ("Trace" %in% names(traces_ly_[[ii]])) {
+          tmp <- traces_ly_[[ii]]
+          tmp$p <- plotLy
+          fun <- eval(parse(text = tmp$Trace))
+          tmp$Trace <- NULL
+          plotLy <- do.call(fun, tmp)
+        } else {
+          for (jj in seq_along(traces_ly_[[ii]])) { #jj <- 1L #jj <- jj+1L
+            tmp <- traces_ly_[[ii]][[jj]]
+            tmp$p <- plotLy
+            fun <- eval(parse(text = tmp$Trace))
+            tmp$Trace <- NULL
+            plotLy <- do.call(fun, tmp)
+          }
         }
       }
+      #
+      layout_ly_$p <- plotLy
+      plotLy <- do.call(plotly::layout, layout_ly_)
+      # Remove selection tools
+      plotLy <- plotly::config(plotLy,
+                               modeBarButtonsToRemove = c("select2d", "lasso2d"))
+      # Build
+      plotLy <- plotly::plotly_build(plotLy)
+      # Add search java-script
+      searchCol <- intersect(setdiff(plotly_labels, "PEP"), colnames(temp))
+      searchDat <- as.matrix(temp[, searchCol, drop = FALSE])
+      plotLy <- .plotlySearch(plotLy, searchDat, 0.1)
+      #
+      volcPlotly[[ttl]] <- list(Ttl = ttl,
+                                Plot = plotLy)
+      
     }
+    plotMetr.lst[[i]] <- plot.metrics
   }
   if (save) {
     cat(" ---> Saving ggplots...\n")
@@ -1488,7 +1606,7 @@ Volcano.plot <- function(Prot,
            Ext = saveExt[1L])
     }), paste0(names(Plots$Unlabelled), "_noLabel"))
     plotsLst <- c(lst0, lst1)
-    if (show.labels && length(Plots$Labelled)) {
+    if (length(Plots$Labelled)) {
       lst2 <- setNames(lapply(names(Plots$Labelled), \(nm) {
         list(Path = sfpt,
              Ttl = paste0(nm, "_tags"),
@@ -1505,7 +1623,7 @@ Volcano.plot <- function(Prot,
              Ext = saveExt[1L])
       }), paste0(names(Plots$"Proteins in list - unlabelled"), "_list_noLabel"))
       plotsLst <- c(plotsLst, lst3)
-      if (show.labels && length(Plots$"Proteins in list - labelled")) {
+      if (length(Plots$"Proteins in list - labelled")) {
         lst4 <- setNames(lapply(names(Plots$"Proteins in list - labelled"), \(nm) {
           list(Path = sfpt,
                Ttl = paste0(nm, "_list_tags"),
@@ -1543,7 +1661,7 @@ Volcano.plot <- function(Prot,
   if (return) { RES$Protein_groups_file <- Prot }
   if (return.plot) { RES$Plots <- Plots }
   if (plotly) {
-    RES$"Plotly plots" <- if (plotly_local) { volcPlotly } else { volcPlotly2 }
+    RES$"Plotly plots" <- volcPlotly
   }
   #
   setwd(origWD)

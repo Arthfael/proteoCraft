@@ -231,10 +231,10 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     quantCols <- intCols <- lapply(intColsTbl, \(x) { x$Log })
     ratColsTbl <- NULL
     if (!is.null(ratRf)) {
-      ratColsTbl <- setNames(lapply(names(ratRf), \(nm) {
-        res <- data.frame(Log = paste0(ratRf[nm], VPAL$values),
-                          Type = rep("Average", length(VPAL$values)),
-                          Sample = cleanNms(VPAL$values))
+      ratColsTbl <- setNames(lapply(names(ratRf), \(nm) { #nm <- names(ratRf)[1L]
+        res <- data.frame(Log = paste0(ratRf[nm], myContrasts$Contrast),
+                          Type = rep("Average", nrow(myContrasts)),
+                          Sample = myContrasts$Contrast)
         w <- which(res$Log %in% colnames(tempData))
         return(res[w,])
       }), names(ratRf))
@@ -254,7 +254,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     quantcol <- unlist(quantCols)
     PepColList %<o% c("gel", "quantcol", "signcol", "regcol") # These are any column for which we want to gsub "___" to " "
     if (!is.null(ratRf)) {
-      PepColList <- union(PepColList, grl)
+      PepColList <- union(PepColList, "grl")
     }
     .obj <- unique(c(PepColList, .obj)) # Here easier than using a custom operator
     if (ii > 1L) {
@@ -606,17 +606,9 @@ quantcol <- gel
 ratRf <- Prot.Rat.Root
 names(ratRf) <- paste0(names(ratRf), " rat.")
 ratColsTbl <- setNames(lapply(names(ratRf), \(nm) {
-  res <- data.frame(Log = c(#paste0("Mean ", ratRf[nm], VPAL$values),
-                            paste0(ratRf[nm], #RSA$values
-                                   myContrasts$Contrast
-                                   )),
-                    Type = c(rep("Average", length(#VPAL$values
-                      myContrasts$Contrast
-                      ))#,
-                             #rep("Individual", length(RSA$values))
-                             ),
-                    Sample = myContrasts$Contrast
-                    )
+  res <- data.frame(Log = paste0(ratRf[nm], myContrasts$Contrast),
+                    Type = rep("Average", nrow(myContrasts)),
+                    Sample = myContrasts$Contrast)
   w <- which(res$Log %in% colnames(tempData))
   return(res[w,])
 }), names(ratRf))

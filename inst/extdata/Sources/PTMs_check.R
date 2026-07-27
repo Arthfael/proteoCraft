@@ -180,6 +180,8 @@ suppressMessages({
   ggsave(paste0(wd, "/Summary plots/", ttl, ".pdf"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
 })
 plotLy <- ggplotly(plot, tooltip = c("x", "y", "fill"))
+plotLy <- plotly::config(plotLy,
+                         modeBarButtonsToRemove = c("select2d", "lasso2d"))
 if (!exists("QC_plotLys")) { QC_plotLys %<o% list() }
 setwd(paste0(wd, "/Summary plots"))
 saveWidget(plotLy, paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)

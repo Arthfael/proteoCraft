@@ -45,7 +45,7 @@ FP_to_MQ <- function(FP_Workflow,
   #DefArg(FP_to_MQ); cl = parClust;TESTING <- TRUE
   #FP_Workflow <- fpWorkflowFl_i; FP_Manifest <- fpManifestFl_i
   #FP_Workflow <- FP_WorkflowFl; FP_Manifest <- FP_ManifestFl
-  #FP_Workflow <- wrkfl; FP_Manifest <- mnfst
+  #FP_Workflow <- wrkflw; FP_Manifest <- mnfst
   #FP_Workflow <- paste0(wd, "/fragpipe.workflow"); FP_Manifest <- paste0(wd, "/fragpipe-files.fp-manifest")
   #
   misFun <- if (TESTING) {
@@ -522,7 +522,7 @@ FP_to_MQ <- function(FP_Workflow,
     PSMs <- plyr::rbind.fill(PSMs[w])
   } else {
     PSMs <- data.table::fread(FP_PSMs, integer64 = "numeric", check.names = FALSE,
-                              data.table = FALSE, fill = TRUE)
+                              data.table = FALSE, fill = Inf, sep = "\t")
     PSMs2Mnsfst <- match(gsub_Rep("\\\\", "/", PSMs$`Spectrum File`),
                          paste0(FP_Dir, "/interact-", FP_Mnfst$`File name`, ".pep.xml"))
     w <- which(is.na(PSMs2Mnsfst))
@@ -828,6 +828,7 @@ FP_to_MQ <- function(FP_Workflow,
                 WorkFlow = FP_Wrkflw)
   }
   if (isTMT) { Res[["TMT_annotations"]] <- TMTtbl }
+  Res$Fasta <- sub("^ *database\\.db-path=", "", grep("fasta", FP_Wrkflw, value = TRUE))
   #
   if (stopCl) { parallel::stopCluster(cl) }
   return(Res)

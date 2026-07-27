@@ -759,6 +759,8 @@ Coverage <- function(proteins,
         suppressMessages({
           if (ext == "html") {
             covPlotLy <- plotly::ggplotly(covPlot, tooltip = c("peptide", "PTM"))
+            covPlotLy <- plotly::config(covPlotLy,
+                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
             if (!P %in% names(plotLyst)) { plotLyst[[P]] <- list() }
             plotLyst[[P]][[Ttl]] <- covPlotLy
             htmlwidgets::saveWidget(covPlotLy, svpth, selfcontained = TRUE)

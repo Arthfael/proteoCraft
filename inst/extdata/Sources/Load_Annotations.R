@@ -1,4 +1,5 @@
 ### Load and process annotations
+if (!exists("homePath")) { homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft") }
 dfltLocsFl <- paste0(homePath, "/Default_locations.xlsx")
 dfltLocs <- openxlsx2::read_xlsx(dfltLocsFl)
 fastaLoc <- dfltLocs$Path[match("Fasta files", dfltLocs$Folder)]
@@ -6,7 +7,7 @@ fastaLoc <- dfltLocs$Path[match("Fasta files", dfltLocs$Folder)]
 GO.col %<o% c("GO", "GO-ID")
 if (Annotate) {
   source(parSrc, local = FALSE)
-  Parsed_annotations_lst <- lapply(1:nrow(AnnotFlsTbl), \(i) { #i <- 1L
+  Parsed_annotations_lst <- lapply(1L:nrow(AnnotFlsTbl), \(i) { #i <- 1L
     fl <- AnnotFlsTbl$Path[i]
     tp <- AnnotFlsTbl$Type[i]
     # If the annotation file is not present locally, make a local copy
@@ -50,11 +51,11 @@ if (Annotate) {
                    wAnnot,
                    c("name", "row"))[, c("row", "name")]
   # Match GO name/IDs to Parsed_annotations row(s)
-  tst2 <- set_colnames(aggregate(tst1$row, list(tst1$name), list), c("name", "rows"))
+  tst2 <- magrittr::set_colnames(aggregate(tst1$row, list(tst1$name), list), c("name", "rows"))
   tst2$ID <- gsub(".*\\[|\\]$", "", tst2$name)
   tst1$ID <- tst2$ID[match(tst1$name, tst2$name)]
   # Match GO IDs to their name(s)
-  tst3 <- set_colnames(aggregate(tst2$name, list(tst2$ID), unique), c("ID", "names"))
+  tst3 <- magrittr::set_colnames(aggregate(tst2$name, list(tst2$ID), unique), c("ID", "names"))
   tst3$L <- lengths(tst3$names)
   wDegen <- which(tst3$L > 1L)
   if (length(wDegen)) { # Indicates degeneracy and the need to fix names
@@ -69,14 +70,14 @@ if (Annotate) {
     tst2$name <- tst2$name_from_3
     tst2$name_from_3 <- NULL
     #
-    #tst3b <- set_colnames(aggregate(tst2$name, list(tst2$ID), unique), c("ID", "names"))
+    #tst3b <- magrittr::set_colnames(aggregate(tst2$name, list(tst2$ID), unique), c("ID", "names"))
     #tst3b$L <- lengths(tst3b$names)
     #max(tst3b$L) # Should be 1 now
     #
     # Apply new names to tst1
     w2 <- which(tst1$ID %in% tst2$ID)
     tst1$name[w2] <- tst2$name[match(tst1$ID[w2], tst2$ID)]
-    #tst3c <- set_colnames(aggregate(tst1$name, list(tst1$ID), unique), c("ID", "names"))
+    #tst3c <- magrittr::set_colnames(aggregate(tst1$name, list(tst1$ID), unique), c("ID", "names"))
     #tst3c$L <- lengths(tst3c$names)
     #max(tst3c$L) # Should be 1 now
     #

@@ -125,7 +125,10 @@ if (length(PTMs)) {
   for (ptm in PTMs) { #ptm <- PTMs[1L]
     pep[[ptm]] <- 1L:nrow(pep) %in% ptmsTst[[ptm]]
   }
-  ptms.ref %<o% pep.ref[length(pep.ref)]
+  ptms.ref %<o% c("Original" = paste0("log10(",
+                                      sub(" - $", ") - ",
+                                          gsub("Evidence intensities", "PSMs. int.",
+                                               pep.ref[length(pep.ref)]))))
   # ptms.ratios.ref %<o% setNames(pep.ratios.ref[length(pep.ratios.ref)],
   #                               "Original")
   for (ptm in PTMs) { #ptm <- PTMs[1L]
@@ -255,15 +258,13 @@ if (length(PTMs)) {
     }
     # Convert peptides intensities to log10
     # (I've had it! I should've done this way earlier)
-    ref <- ptms.ref[1L]
-    ref2 <- paste0("log10(", gsub(" - $", ") - ", gsub("Evidence intensities", "PSMs. int.", ref)))
+    ref <- pep.ref[length(pep.ref)]
     kols <- grep(topattern(ref), colnames(ptmpep), value = TRUE)
     for (kol in kols) {
       smpl <- gsub(topattern(ref), "", kol)
-      ptmpep[[paste0(ref2, smpl)]] <- log10(ptmpep[[kol]])
+      ptmpep[[paste0(ptms.ref, smpl)]] <- log10(ptmpep[[kol]])
       ptmpep[[kol]] <- NULL
     }
-    ptms.ref <- c("Original" = ref2)
     #
     # Optional: normalize to parent protein group
     if ((scrptTypeFull == "withReps_PG_and_PTMs")&&(PTM_normalize[[Ptm]])) {
@@ -282,14 +283,20 @@ if (length(PTMs)) {
       #
       #
       #
-      # Complete re-write on 16-04-2026 after the switch to a contrasts-centric approach (where any group may be a)
-      # from a ctrl vs .
+      # Complete re-write on 16-04-2026 after the switch to a contrasts-centric approach
+      # (where any group may be a denominator or a numerator in the comparison)
+      #
       kolPp1 <- paste0(ptms.ref, RSA$values)
       kolPG <- paste0(Prot.Expr.Root, RSA$values)
-      wXst <- which((kolPp1 %in% colnames(ptmpep))&(kolPG %in% colnames(PG)))
-      kolPp1 <- kolPp1[wXst]
-      kolPG <- kolPG[wXst]
-      grps <- Exp.map[match(RSA$values[wXst], Exp.map$Ref.Sample.Aggregate), VPAL$column]
+      #
+      # Below: commenting wXst-related code as honestly we want the script to break here if some columns are missing!
+      #wXst <- which((kolPp1 %in% colnames(ptmpep)) & (kolPG %in% colnames(PG)))
+      # kolPp1 <- kolPp1[wXst]
+      # kolPG <- kolPG[wXst]
+      #
+      grps <- Exp.map[match(RSA$values#[wXst]
+                            ,
+                            Exp.map$Ref.Sample.Aggregate), VPAL$column]
       pep2prot <- listMelt(strsplit(ptmpep$`Protein group IDs`, ";"), 1L:nrow(ptmpep), c("id", "row"))
       pep2prot$id <- as.integer(pep2prot$id)
       prtQuntDat <- PG[, c("id", kolPG)] # log-base = 10...
@@ -315,7 +322,8 @@ if (length(PTMs)) {
       # (refer to PG-level volcano plots to see whether these make sense...)
       ptms.ref["ReNorm."] <- paste0("ReNorm. ", ptms.ref["Original"])
       tmp <- ptmpep[, kolPp1] - pep2prot[, kolPG]
-      kolPp2 <- paste0(ptms.ref["ReNorm."], RSA$values[wXst])
+      kolPp2 <- paste0(ptms.ref["ReNorm."], RSA$values#[wXst]
+      )
       ptmpep[, kolPp2] <- tmp
       #
       df1 <- ptmpep[, kolPp1]
@@ -351,11 +359,11 @@ if (length(PTMs)) {
         #openwd(dr)
       }
     }
-    pepRf <- ptms.ref[length(ptms.ref)]
+    ptmRf <- ptms.ref[length(ptms.ref)]
     # Now calculate ratios
     tmp <- make_Rat2(ptmpep,
                      experiment.map = Exp.map,
-                     int.root = pepRf,
+                     int.root = ptmRf,
                      rat.root = ptms.ratios.ref)
     ptmpep[, colnames(tmp)] <- tmp
     #
@@ -364,7 +372,7 @@ if (length(PTMs)) {
     #rstudioapi::documentOpen(Src)
     source(Src, local = FALSE)
     #
-    #View(ptmpep[, grep(topattern(pepRf), colnames(ptmpep), value = TRUE)])
+    #View(ptmpep[, grep(topattern(ptmRf), colnames(ptmpep), value = TRUE)])
     #
     # Calculate average intensities and ratios, as well as Welch's t-test and moderated P-values;
     # For unpaired replicates a permutations t-test is also performed.
@@ -378,14 +386,9 @@ if (length(PTMs)) {
     Src <- paste0(libPath, "/extdata/Sources/pVal_check.R")
     #rstudioapi::documentOpen(Src)
     source(Src, local = FALSE)
-    dataType
-    
-    
-    
-    
     #
     # Also mean expression over whole dataset
-    kls <- grep(topattern(pepRf), colnames(ptmpep), value = TRUE)
+    kls <- grep(topattern(ptmRf), colnames(ptmpep), value = TRUE)
     ptmpep$"Mean Expr." <- apply(ptmpep[, kls], 1L, \(x) {
       x <- unlist(x)
       mean(x[which(is.finite(x))])
@@ -441,7 +444,7 @@ if (length(PTMs)) {
     }
     ptmpep$"1-PEP" <- 1 - ptmpep$PEP
     ptmpep$"log10(1-PEP)" <- log10(ptmpep$"1-PEP")
-    a <- grep(topattern(pepRf), colnames(ptmpep), value = TRUE)
+    a <- grep(topattern(ptmRf), colnames(ptmpep), value = TRUE)
     a <- a[which(!grepl("\\.REF$", a))]
     ptmpep$"Av. log10 abundance" <- apply(ptmpep[, a], 1L, \(x) {
       x <- unlist(x)
@@ -466,7 +469,7 @@ if (length(PTMs)) {
         stopifnot(FCkol %in% names(ptmpep))
         regKol <- paste0("Regulated - ", i)
         ptmpep[[regKol]] <- "non significant"
-        fdrs <- as.numeric(gsub("FDR$", "", colnames(dec)[which(colnames(dec) != mKol)]))
+        fdrs <- as.numeric(sub("FDR$", "", setdiff(colnames(dec), mKol)))
         fdrs <- sort(fdrs, decreasing = TRUE)
         for (f in fdrs) { #f <- fdrs[1L]
           w <- which(ptmpep[[mKol]] %in% dec[which(dec[[paste0(f, "FDR")]] == "+"), mKol])
@@ -492,7 +495,9 @@ if (length(PTMs)) {
     volcPlot_args2$subfolder <- subDr
     volcPlot_args2$plotly_labels <- c(PepLabKol, paste0(Ptm, "-site"))
     volcPlot_args2$curved_Thresh <- PTMs_SAM_thresh[[Ptm]]
+    volcPlot_args2$Alpha <- 1
     volcPlot_args2$cl <- parClust
+    volcPlot_args2$X.root_ind <- ptmRf
     #invisible(lapply(names(volcPlot_args2), \(x) { assign(x, volcPlot_args2[[x]], envir = .GlobalEnv); return() }))
     tempVPptm <- do.call(Volcano.plot, volcPlot_args2)
     #k2 <- grep(topattern(paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)])), colnames(ptmpep), value = TRUE)
@@ -603,7 +608,7 @@ if (length(PTMs)) {
                                                                 }) > 0L)))
     }
     if (F.test) {
-      #kol <- grep(topattern(pepRf), colnames(ptmpep), value = TRUE)
+      #kol <- grep(topattern(ptmRf), colnames(ptmpep), value = TRUE)
       #View(ptmpep[, kol])
       ReportCalls <- AddMsg2Report(Msg = " -> ", ptm, " F-tests volcano plots", Space = FALSE)
       # NB: id.col below should be unique!
@@ -720,14 +725,14 @@ if (length(PTMs)) {
     }
     #
     # Heatmap
-    g <- paste0(pepRf, RSA$values)
+    g <- paste0(ptmRf, RSA$values)
     grps <- Exp.map[match(RSA$values, Exp.map$Ref.Sample.Aggregate), VPAL$column]
     w <- which(g %in% colnames(ptmpep))
     g <- g[w]; grps <- grps[w]
     temp <- ptmpep[, g]
     rownames(temp) <- gsub("\n", " ", ptmpep$Name)
-    kol <- gsub(topattern(pepRf), "", g)
-    colnames(temp) <- gsub(topattern(pepRf), "", colnames(temp))
+    kol <- gsub(topattern(ptmRf), "", g)
+    colnames(temp) <- gsub(topattern(ptmRf), "", colnames(temp))
     kol <- cleanNms(kol)
     colnames(temp) <- cleanNms(colnames(temp))
     w <- which(!is.finite(as.matrix(temp)), arr.ind = TRUE)
@@ -834,7 +839,7 @@ if (length(PTMs)) {
                       "Leading razor protein", "Gene names", "Protein names", "Gene names (all)",
                       "Protein names (all)", "Weights", "Match(es)", "Code", "Name", annot.col2,
                       "Potential contaminant"))
-      Kol <- Kol[which(Kol %in% colnames(ptmpep))]
+      Kol <- intersect(Kol, colnames(ptmpep))
       PTMs_GO_enrich.dat[[Ptm]] <- list()
       PTMs_GO_enrich.FCRt[[Ptm]] <- list()
       PTMs_GO_enrich.tbl[[Ptm]] <- list()
@@ -852,7 +857,7 @@ if (length(PTMs)) {
         filt <- PTMs_Reg_filters[[Ptm]][[tstrt]]
         #By <- c("By condition", "By reference", "By analysis", "Whole dataset")
         By <- "By condition"
-        By <- By[which(By %in% names(filt))]
+        By <- intersect(By, names(filt))
         if (length(By)) {
           for (bee in By) { #bee <- By[1L]
             flt <- filt[[bee]]
@@ -915,7 +920,7 @@ if (length(PTMs)) {
                   B_ <- myContrasts$B_samples[[m]]
                   y <- Exp.map[which(Exp.map$Ref.Sample.Aggregate %in% c(A_, B_)), GO.enrichment.Ref.Aggr$column]
                   z <- Exp.map$Ref.Sample.Aggregate[which(Exp.map[[GO.enrichment.Ref.Aggr$column]] %in% y)]
-                  w1 <- which(apply(ptmpep[, paste0(pepRf, z)], 1L, \(x) {
+                  w1 <- which(apply(ptmpep[, paste0(ptmRf, z)], 1L, \(x) {
                     sum(is.finite(x))
                   }) > 0L)
                   w2 <- flt[[x]] # Required for if we are imputing missing values
@@ -928,7 +933,7 @@ if (length(PTMs)) {
                 }
               }
               if ((length(Pep.Ref.Filt) > 1L)||(!is.na(Pep.Ref.Filt))) {
-                flt <- setNames(lapply(names(flt), \(x) { flt[[x]][which(flt[[x]] %in% Pep.Ref.Filt[[x]])] }), names(flt))
+                flt <- setNames(lapply(names(flt), \(x) { intersect(flt[[x]], Pep.Ref.Filt[[x]]) }), names(flt))
               }
               # Also save the reference filters 
               nms <- names(PTMs_Reg_filters[[Ptm]][[tstrt]][[bee]])
@@ -991,8 +996,8 @@ if (length(PTMs)) {
                 lf <- grep("^logFC", colnames(temp), value = TRUE)
                 si <- grep("^Significance", colnames(temp), value = TRUE)
                 #lp <- grep("^Leading protein IDs", colnames(temp), value = TRUE)
-                #kl <- colnames(temp)[which(!colnames(temp) %in% c(gn, kn, pv, zs, lf, si, pp, lp))]
-                kl <- colnames(temp)[which(!colnames(temp) %in% c(gn, kn, pv, zs, lf, si, pp, pr))]
+                #kl <- setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pp, lp))
+                kl <- setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pp, pr))
                 #temp <- temp[, c(kl, si, gn, pp, lp, kn, pv, zs, lf)]
                 temp <- temp[, c(kl, si, gn, pp, pr, kn, pv, zs, lf)]
                 w <- apply(temp[, pv, drop = FALSE], 1L, \(x) { sum(!is.na(x)) }) > 0L
@@ -1039,16 +1044,13 @@ if (length(PTMs)) {
                   saveWorkbook(wb, paste0(myDir, "/", Ptm, " GO terms - ", tstbee, ".xlsx"), overwrite = TRUE)
                   if (tt == 1L) {
                     Kol2 <- paste0("Significance - ", cleanNms(VPAL$values), " ", max(BH.FDR)*100, "%")
-                    Kol2 <- Kol2[which(Kol2 %in% colnames(PTMs_Reg_GO_terms[[Ptm]][[tstbee]]))]
                   }
                   if (tt == 2L) {
                     Kol2 <- paste0("Significance - ", names(PTMs_Reg_filters[[Ptm]][[tstrt]][[bee]]), " ", max(BH.FDR)*100, "%")
-                    Kol2 <- Kol2[which(Kol2 %in% colnames(PTMs_Reg_GO_terms[[Ptm]][[tstbee]]))]
                   }
+                  Kol2 <- intersect(Kol2, colnames(PTMs_Reg_GO_terms[[Ptm]][[tstbee]]))
                   if (length(Kol2)) {
-                    w <- if (length(Kol2) > 1L) {
-                      which(apply(PTMs_Reg_GO_terms[[Ptm]][[tstbee]][, Kol2], 1L, \(x) {"+" %in% x}))
-                    } else { which(sapply(PTMs_Reg_GO_terms[[Ptm]][[tstbee]][,Kol2], \(x) {"+" %in% x})) }
+                    w <- which(apply(PTMs_Reg_GO_terms[[Ptm]][[tstbee]][, Kol2, drop = FALSE], 1L, \(x) { "+" %in% x }))
                     write.csv(PTMs_Reg_GO_terms[[Ptm]][[tstbee]][w,],
                               file = paste0(myDir, "/", Ptm, " regulated GO terms - ", tstbee, ".csv"),
                               row.names = FALSE)
@@ -1126,7 +1128,7 @@ if (Annotate) {
     rm(GO_mappings)
   }
   # otherwise they are also unused further down.
-  .obj <- .obj[which(!.obj %in% c("GO_terms", "GO_mappings"))]
+  .obj <- setdiff(.obj, c("GO_terms", "GO_mappings"))
 }
 if (CytoScape) {
   # Then close Cytoscape:

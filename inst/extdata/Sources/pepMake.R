@@ -1,22 +1,32 @@
 # Peptides: create pep object
 require(data.table)
 source(parSrc, local = FALSE)
-if (scrptType == "withReps") {
-  tmp_EM <- Exp.map
-  colnames(tmp_EM)[which(colnames(tmp_EM) == "Ref.Sample.Aggregate")] <- "Parent_sample"
-}
-if (scrptType == "noReps") {
-  ev$MQ.Exp <- FracMap$MQ.Exp[match(ev$"Raw file path", FracMap$"Raw file")]
-  tmp_EM <- aggregate(FracMap$MQ.Exp, list(FracMap$"Parent sample"), unique)
-  colnames(tmp_EM) <- c("Parent_sample", "MQ.Exp")
-  tmp_EM$Use <- FracMap$Use[match(tmp_EM$Parent_sample, FracMap$"Parent sample")]
+if (exists("scrptType")) {
+  mtchCol <- "MQ.Exp"
+  if (scrptType == "withReps") {
+    tmp_EM <- Exp.map
+    colnames(tmp_EM)[which(colnames(tmp_EM) == "Ref.Sample.Aggregate")] <- "Parent_sample"
+  }
+  if (scrptType == "noReps") {
+    ev[[mtchCol]] <- FracMap[match(ev$"Raw file path", FracMap$"Raw file"), mtchCol]
+    tmp_EM <- aggregate(FracMap[[mtchCol]], list(FracMap$"Parent sample"), unique)
+    colnames(tmp_EM) <- c("Parent_sample", mtchCol)
+    tmp_EM$Use <- FracMap$Use[match(tmp_EM$Parent_sample, FracMap$"Parent sample")]
+  }
+} else {
+  mtchCol <- "Experiment"
+  tmp_EM <- aggregate(ev$`Raw file`, list(ev$Experiment), \(x) { list(unique(x)) })
+  tmp_EM <- listMelt(tmp_EM$x, tmp_EM$Group.1, c("Parent_sample", mtchCol))
+  tmp_EM$Use <- TRUE
 }
 tmp <- as.character(ev$id)
-tmp2 <- data.table(id = tmp, mqxp = ev$MQ.Exp, mod = ev$"Modified sequence")
+tmp2 <- data.table(id = tmp, mqxp = ev[[mtchCol]], mod = ev$"Modified sequence")
 tmp2 <- tmp2[order(ev$id, decreasing = FALSE),]
 tmpFl1 <- tempfile(fileext = ".rds")
 tmpFl2 <- tempfile(fileext = ".rds")
-clusterExport(parClust, list("tmpFl1", "tmpFl2", "scrptType"), envir = environment())
+xprts <- list("tmpFl1", "tmpFl2", "mtchCol")
+if (exists("scrptType")) { xprts <- append(xprts, , "scrptType") }
+clusterExport(parClust, xprts, envir = environment())
 readr::write_rds(tmp_EM, tmpFl1)
 readr::write_rds(tmp2, tmpFl2)
 invisible(clusterCall(parClust, \() {
@@ -28,16 +38,21 @@ invisible(clusterCall(parClust, \() {
 unlink(tmpFl1)
 unlink(tmpFl2)
 myGrps <- "ALLMYSAMPLESTUDUDUDUMMMDADA"
-if (scrptType == "withReps") {
-  myGrps <- c(myGrps, RSA$values)
-}
-if (scrptType == "noReps") {
-  myGrps <- c(myGrps, Exp)
+if (exists("scrptType")) {
+  if (scrptType == "withReps") {
+    myGrps <- c(myGrps, RSA$values)
+  }
+  if (scrptType == "noReps") {
+    myGrps <- c(myGrps, Exp)
+  }
+} else {
+  Smpls <- unique(ev$`Raw file`)
+  myGrps <- c(myGrps, Smpls)
 }
 tmp4 <- setNames(parLapply(parClust, myGrps, \(i) { #i <- myGrps[1L] #i <- myGrps[2L]
   tmp3 <- data.table::copy(tmp2) # Because of how data.tables work! No idea how that plays with clusters...
   if (i != "ALLMYSAMPLESTUDUDUDUMMMDADA") {
-    mqe <- unique(unlist(tmp_EM$MQ.Exp[which(tmp_EM$Parent_sample == i)]))
+    mqe <- unique(unlist(tmp_EM[which(tmp_EM$Parent_sample == i), mtchCol]))
     tmp3 <- tmp3[which(tmp3$mqxp %in% mqe), c("id", "mod")]
   }
   tmp3 <- as.data.frame(tmp3[, list(IDs = paste(id, collapse = ";")),
@@ -46,7 +61,7 @@ tmp4 <- setNames(parLapply(parClust, myGrps, \(i) { #i <- myGrps[1L] #i <- myGrp
 }), myGrps)
 pep %<o% magrittr::set_colnames(tmp4[["ALLMYSAMPLESTUDUDUDUMMMDADA"]],
                                 c("Modified sequence", "Evidence IDs"))
-for (i in myGrps[2L:length(myGrps)]) {
+for (i in myGrps[2L:length(myGrps)]) { #i <- myGrps[2L]
   tmp <- tmp4[[i]]
   ki <- paste0("Evidence IDs - ", i)
   pep[[ki]] <- tmp$IDs[match(pep$"Modified sequence", tmp$ModSeq)]
@@ -84,11 +99,11 @@ pep$Length <- nchar(pep$Sequence)
 ev$Length <- pep$Length[mtch]
 tmp <- data.table(mod = ev$"Modified sequence", Intensity = ev$Intensity)
 tmp$Intensity[which(!is.finite(tmp$Intensity))] <- NA_real_
-w2 <- which(ev$MQ.Exp %in% unique(unlist(tmp_EM$MQ.Exp[which(tmp_EM$Use)])))
+w2 <- which(ev[[mtchCol]] %in% unique(unlist(tmp_EM[which(tmp_EM$Use), mtchCol])))
 tmp2 <- copy(tmp)
 tmp2 <- tmp2[w2, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
 pep$Intensity <- tmp2$Intensity[match(pep$"Modified sequence", tmp2$mod)]
-if ((sum(!tmp_EM$Use))||(length(unique(ev$MQ.Exp)) > length(unique(unlist(tmp_EM$MQ.Exp))))) {
+if ((sum(!tmp_EM$Use))||(length(unique(ev[[mtchCol]])) > length(unique(unlist(tmp_EM[[mtchCol]]))))) {
   tmp3 <- copy(tmp)
   tmp3 <- tmp3[, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
   pep$"Intensity (all samples including unused)" <- tmp3$Intensity[match(pep$"Modified sequence", tmp3$mod)]
@@ -163,26 +178,28 @@ if (exists("Modifs")) {
 }
 
 pep[, c("Reverse", "Potential contaminant")] <- ev[rvmtch2, c("Reverse", "Potential contaminant")]
-if (scrptType == "withReps") {
-  if ((Param$Norma.Pep.Intens)||(Param$Norma.Pep.Ratio)) {
-    if (Param$Norma.Ev.Intens) {
-      tst <- aggregate(ev$"Normalisation group", list(ev$"Modified sequence"), unique)
-      if (is.character(tst$x)) { # It could be that the same sequence is in different normalization groups - if so we do not want to re-use PSM-level normalisation groups!
-        pep$"Normalisation group" <- ev$"Normalisation group"[rvmtch2]
+if (exists("scrptType")) {
+  if (scrptType == "withReps") {
+    if ((Param$Norma.Pep.Intens)||(Param$Norma.Pep.Ratio)) {
+      if (Param$Norma.Ev.Intens) {
+        tst <- aggregate(ev$"Normalisation group", list(ev$"Modified sequence"), unique)
+        if (is.character(tst$x)) { # It could be that the same sequence is in different normalization groups - if so we do not want to re-use PSM-level normalisation groups!
+          pep$"Normalisation group" <- ev$"Normalisation group"[rvmtch2]
+        } else { pep$"Normalisation group" <- "Standard" }
       } else { pep$"Normalisation group" <- "Standard" }
-    } else { pep$"Normalisation group" <- "Standard" }
-    pep$MQ.Exp <- ev$MQ.Exp[match(pep$"Modified sequence", ev$"Modified sequence")]
-    nms <- Norm.Groups$names
-    w <- which(!nms %in% colnames(pep))
-    if (length(w)) { pep[, nms[w]] <- tmp_EM[match(pep$MQ.Exp, tmp_EM$MQ.Exp), nms[w]] }
-    pep$"Normalisation group" <- do.call(paste, c(pep[, c(nms, "Normalisation group")], sep = "_"))
+      pep[[mtchCol]] <- ev[match(pep$"Modified sequence", ev$"Modified sequence"), mtchCol]
+      nms <- Norm.Groups$names
+      w <- which(!nms %in% colnames(pep))
+      if (length(w)) { pep[, nms[w]] <- tmp_EM[match(pep[[mtchCol]], tmp_EM[[mtchCol]]), nms[w]] }
+      pep$"Normalisation group" <- do.call(paste, c(pep[, c(nms, "Normalisation group")], sep = "_"))
+    }
   }
-}
-if ("Quantity Quality" %in% colnames(ev)) { # DiaNN specific:
-  tmp <- data.table(Qual = ev$"Quantity Quality", ModSeq = ev$"Modified sequence")
-  tmp <- tmp[, list(Qual= mean(Qual)), by = list(ModSeq)]
-  tmp <- as.data.frame(tmp)
-  pep$"Quantity Quality" <- tmp$Qual[match(pep$"Modified sequence", tmp$ModSeq)]
+  if ("Quantity Quality" %in% colnames(ev)) { # DiaNN specific:
+    tmp <- data.table(Qual = ev$"Quantity Quality", ModSeq = ev$"Modified sequence")
+    tmp <- tmp[, list(Qual= mean(Qual)), by = list(ModSeq)]
+    tmp <- as.data.frame(tmp)
+    pep$"Quantity Quality" <- tmp$Qual[match(pep$"Modified sequence", tmp$ModSeq)]
+  }
 }
 # Interesting note by Vadim on the balance between using more noisy peptides for quant vs fewer high quality ones:
 #   https://github.com/vdemichev/DiaNN/issues/1102

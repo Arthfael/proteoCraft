@@ -1061,9 +1061,14 @@ invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 Script <- readLines(ScriptPath)
 
 #### Code chunk - Venn diagrams
-Src <- paste0(libPath, "/extdata/Sources/Venn_diagrams.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+vennTst <- try({
+  Src <- paste0(libPath, "/extdata/Sources/rep_Venn.R")
+  #rstudioapi::documentOpen(Src)
+  source(Src, local = FALSE)
+}, silent = TRUE)
+if (inherits(vennTst, "try-error")) {
+  warning("Venn diagrams failed ---> investigate!")
+}
 
 #### Code chunk - Finalize analysis and export results
 # Remove empty directories:

@@ -382,6 +382,14 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
       }
     }
   }
+  write(c("This directory is for user-modifiable defaults.",
+          " - Default_locations.xlsx: default folder locations",
+          " - LC_columns.xlsx: default LC column definitions (used when writing materials and methods)",
+          " - Sample_solvents.txt: solvents used for sample reconstitution (used when writing materials and methods)",
+          " - The R scripts here are copies of the ones in the R library folder",
+          "If you save the logo of your institution here as logo.png (or other extensions: tif, tiff, gif, jpeg, jpg), it will be included in the header of the final html report.",
+          ""),
+        paste0(homePath, "/Readme.txt"))
   cat("Done\n")
   return()
 }

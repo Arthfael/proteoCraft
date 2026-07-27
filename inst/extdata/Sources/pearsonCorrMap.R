@@ -5,8 +5,7 @@ if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   if (scrptTypeFull == "withReps_PG_and_PTMs") {
     dataType <- "PG"
-    prtRfRoot <- if (LocAnalysis) { Prot.Expr.Root2 } else { Prot.Expr.Root }
-    prtRfRoot %<o% prtRfRoot
+    prtRfRoot %<o% { if (LocAnalysis) { Prot.Expr.Root2 } else { Prot.Expr.Root } }
     refRoot <- prtRfRoot
     dirlist <- unique(c(dirlist, dir))
     datNm <- intersect(c("ComBat", "Imputed", #"Filtered",

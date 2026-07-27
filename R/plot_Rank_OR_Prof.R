@@ -235,6 +235,8 @@
     } else {
       plotlyCall_txt <- "plotlyProfiles <- ggplotly(plot, tooltip = toolTip)"
       eval(parse(text = plotlyCall_txt))
+      plotlyProfiles <- plotly::config(plotlyProfiles,
+                                       modeBarButtonsToRemove = c("select2d", "lasso2d"))
       pth <- paste0(subDir, "/", gsub("/|:|\\*|\\?|<|>|\\|", "-", ttl))
       plPath <- paste0(pth, ".html")
       currWD <- getwd()
@@ -475,6 +477,8 @@
     #poplot(plot, 12L, 22L)
     if (plotType == "All") {
       plot_ly <- ggplotly(plot, tooltip = toolTip)
+      plot_ly <- plotly::config(plot_ly,
+                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
       # a folder with external resources is created for each html plot!
       plPath <- paste0(pth, ".html")
       currWD <- getwd()
