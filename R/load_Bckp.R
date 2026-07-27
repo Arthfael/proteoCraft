@@ -20,10 +20,10 @@ load_Bckp <- function(backup,
                       clean = TRUE,
                       loadPack = TRUE) {
   # Cleanup workspace here
+  #DefArg(load_Bckp)
   if (clean) { suppressWarnings(rm(list = ls(), envir = .GlobalEnv)) }
   TESTING <- FALSE
-  #DefArg(load_Bckp);TESTING <- TRUE
-  #
+  #TESTING <- TRUE
   misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package
