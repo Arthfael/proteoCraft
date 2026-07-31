@@ -46,7 +46,7 @@ if (Input == Inputs[1]) {
     setwd(wd)
     #
     cat("Getting list of identified proteins...\n")
-    DIANNlog <- readLines(DIANNlogFl)
+    DIANNlog <- readr::read_lines(DIANNlogFl)
     DIANNcall <- grep("^diann.exe ", DIANNlog, value = TRUE)
     DIANNargs <- grep("^--", unlist(strsplit(gsub(" --", " Arg--", DIANNcall), " Arg")), value = TRUE)
     rprtFl <- gsub("\\\\", "/", gsub("^--out ", "", grep("^--out ", DIANNargs, value = TRUE)))
@@ -123,7 +123,7 @@ if (Input == Inputs[2]) {
                                         path = paste0(wd, "/*.fp-manifest"),
                                         filter = "FragPipe MANIFEST file (*.fp-manifest)")
   stopifnot(length(FP_Manifest) > 0)
-  FP_Workflow <- readLines(FP_Workflow)
+  FP_Workflow <- readr::read_lines(FP_Workflow)
   FP_Dir <- gsub("\\\\", "", gsub("\\\\\\\\", "/", gsub("^workdir=", "", grep("^workdir=", FP_Workflow, value = TRUE))))
   if (!dir.exists(FP_Dir)) {
     stop(paste0("FragPipe's output directory was not found: \"", FP_Dir, "\""))

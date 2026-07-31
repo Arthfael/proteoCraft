@@ -9,23 +9,23 @@ if ((length(locScriptsDir) == 1L) && dir.exists(locScriptsDir)) {
     # Resolve Windows .lnk targets using PowerShell
     get_shortcut_target <- \(lnk_path) {
       lnk_path <- normalizePath(lnk_path, mustWork = TRUE)
+      lnk_path <- gsub("'", "''", lnk_path, fixed = TRUE)
       result <- system2("powershell.exe",
                         args = c("-NoProfile",
-                                 "-NonInteractive",
                                  "-Command",
-                                 paste0("$shell = New-Object -ComObject WScript.Shell; ",
-                                        "$shell.CreateShortcut($args[0]).TargetPath"),
-                                 lnk_path),
+                                 paste0("$s = New-Object -ComObject WScript.Shell; ",
+                                        "$s.CreateShortcut('", lnk_path, "').TargetPath")),
                         stdout = TRUE,
                         stderr = TRUE)
       if ((!length(result)) || (!nzchar(result[1L]))) {
-        stop("Could not resolve Windows shortcut: ", lnk_path)
+        stop("Could not resolve shortcut: ", lnk_path)
       }
-      return(result[1L])
+      return(normalizePath(result[1L], winslash = "/"))
     }
     strtScriptsLnks <- vapply(strtScriptsLnks, get_shortcut_target, "")
     strtScripts <- union(strtScripts, strtScriptsLnks)
   }
+  
   # Source all startup scripts
   if (length(strtScripts)) {
     strtScripts <- normalizePath(strtScripts, winslash = "/")

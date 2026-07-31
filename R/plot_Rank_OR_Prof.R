@@ -434,6 +434,7 @@
       wGO <- setNames(lapply(myFlt, \(x) { which(myData[[x]] == "+") }), myFlt)
       GOdat <- lapply(seq_along(myFlt), \(i) { #i <- 1L
         x <- myData[wGO[[myFlt[i]]],]
+        if (!nrow(x)) { return() }
         x$xPos <- x$xPos-i*xStep
         x$Y <- x$Y-i*yStep
         x$GO_term <- myGOcolors[myFlt[i]]

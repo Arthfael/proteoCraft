@@ -106,8 +106,8 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
   fl0 <- paste0(proteoPath, "/extdata/Sample_solvents.txt")
   fl1 <- paste0(homePath, "/Sample_solvents.txt")
   if (file.exists(fl1)) {
-    opt0 <- readLines(fl0)
-    opt1 <- readLines(fl1)
+    opt0 <- readr::read_lines(fl0)
+    opt1 <- readr::read_lines(fl1)
     opt1 <- unique(c(opt1, opt0))
     opt1 <- opt1[which(nchar(opt1) > 0L)]
     opt1 <- opt1[which(!is.na(opt1))]

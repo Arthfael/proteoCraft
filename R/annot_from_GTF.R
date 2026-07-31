@@ -39,7 +39,7 @@ annot_from_GTF <- \(file,
     stopifnot(sum(tst) == 1L)
     mode <- names(tst)[which(tst)]
   }
-  txt <- readLines(file)
+  txt <- readr::read_lines(file)
   txt <- grep("^#", txt, invert = TRUE, value = TRUE)
   dat <- as.data.frame(t(as.data.frame(strsplit(txt, "\t"))))
   colnames(dat) <- c("seqname", "source", "feature", "start", "end", "score", "strand", "frame", "attribute")

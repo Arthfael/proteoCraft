@@ -119,7 +119,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     }
     #
     ReportCalls <- AddTxt2Report(paste0(" -> mqpar.xml file: ", mqparFl_i))
-    mqpar_i <- readLines(mqparFl_i)
+    mqpar_i <- readr::read_lines(mqparFl_i)
     fastas_i <- gsub(" *</?fastaFilePath> *", "", grep("<fastaFilePath>", mqpar_i, value = TRUE))
     fastas_i <- unlist(strsplit(gsub("\\\\", "/", gsub("^Fasta file\t", "", fastas_i)), ";"))
     mqVers_i <- gsub(" *</?maxQuantVersion> *", "", grep("<maxQuantVersion>", mqpar_i, value = TRUE))
@@ -442,7 +442,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     }
     ReportCalls <- AddTxt2Report(paste0(" -> DiaNN log file: ", diaNN_logFl_i))
     diaNN_logFlDir_i <- dirname(diaNN_logFl_i)
-    diannLog_i <- readLines(diaNN_logFl_i)
+    diannLog_i <- readr::read_lines(diaNN_logFl_i)
     diannCall_i <- grep("^diann.exe ", diannLog_i, ignore.case = TRUE, value = TRUE)[1L]
     if (is.na(diannCall_i)) {
       # Sometimes, the diaNN call does not include .exe (when run on Linux), so we can identify the proper row indirectly, based on the fact that afaik it is always immediately after the logical cores
@@ -513,7 +513,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       if (!file.exists(tmp)) { tmp <- paste0(diaNN_logFlDir_i, gsub(".*/", "/", tmp)) }
       if (!file.exists(tmp)) { tmp <- paste0(gsub("/[^/]+$", "", diaNN_logFlDir_i), gsub(".*/", "/", tmp)) } # The DiaNN-run-through-FragPipe case
       if (file.exists(tmp)) {
-        rawFiles_i <- gsub("^ *--f +", "", grep("^ *--f +", readLines(tmp), value = TRUE))
+        rawFiles_i <- gsub("^ *--f +", "", grep("^ *--f +", readr::read_lines(tmp), value = TRUE))
       }
     }
     rawFiles_i <- grep("\\.exe$", rawFiles_i, value = TRUE, invert = TRUE) # Yes, that happened!

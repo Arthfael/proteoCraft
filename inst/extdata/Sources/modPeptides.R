@@ -12,7 +12,7 @@ ptms.ratios.ref %<o% setNames("log2(Ratio) - ",
 PepLabKol %<o% setNames(c("Mod. sequence", "Proteins", "Common protein names", "PEP"),
                         c("Mod. sequence", "Protein(s)", "Protein name(s)", "PEP"))
 pep$"Mod. sequence" <- gsub("^_|_$", "", pep$"Modified sequence")
-if (("Phospho.analysis" %in% colnames(Param))&&(Param$Phospho.analysis)) {
+if (("Phospho.analysis" %in% colnames(Param)) && Param$Phospho.analysis) {
   warning("This argument is deprecated - use the \"PTM.analysis\" argument now.\nI understand you want to perform phosphopeptides analysis though so will be doing the editing for you... this time!\nCarry on please...")
   if ("PTM.analysis" %in% colnames(Param)) {
     a <- toupper(unlist(strsplit(Param$PTM.analysis, ";")))
@@ -36,13 +36,13 @@ if (length(PTMs)) {
     PTMs_F_test_data %<o% list()
     #PTMs_F_test_ref_ratios %<o% list() # Not needed
   }
-  if (("PTM.analysis_Norm" %in% colnames(Param))&&(Param$PTM.analysis_Norm != "")) {
+  if (("PTM.analysis_Norm" %in% colnames(Param)) && (Param$PTM.analysis_Norm != "")) {
     tmp <- as.logical(unlist(strsplit(as.character(Param$PTM.analysis_Norm), ";")))
-    if ((!length(tmp) %in% c(1L, length(PTMs)))||(NA %in% tmp)) {
+    if ((!length(tmp) %in% c(1L, length(PTMs))) || (NA %in% tmp)) {
       warning("I cannot make sense of parameter PTM.analysis_Norm, defaulting to TRUE")
       tmp <- TRUE
     }
-    if ((length(tmp) == 1L)&&(length(PTMs) > 1L)) {
+    if ((length(tmp) == 1L) && (length(PTMs) > 1L)) {
       warning(paste0("Recycling PTM.analysis_Norm (value = ", as.character(tmp), ") over PTMs..."))
       tmp <- rep(tmp, length(PTMs))
     }
@@ -76,7 +76,7 @@ if (length(PTMs)) {
   }), PTMs)
   tmp2u <- unique(tmp2)
   l2u <- length(tmp2u)
-  if ((l2u == 1L)&&(tmp2u)) {
+  if ((l2u == 1L) && tmp2u) {
     tmp2 <- ", re-normalizing values to account for average parent protein group(s) fold change."
   } else {
     if (l2u > 1L) {
@@ -202,7 +202,7 @@ if (length(PTMs)) {
           #    r1 <- if (y == 2L) { S[y-1L] %in% c("K", "R", "M") } else { S[y-1L] %in% c("K", "R") }
           #  } else { r1 <- TRUE }
           #  # r2: on the C-terminal end, is this a tryptic peptide or the last peptide in the protein?
-          #  r2 <- (m1$Seq[l] %in% c("K", "R"))|(y+l-1L == lS)
+          #  r2 <- (m1$Seq[l] %in% c("K", "R")) | (y+l-1L == lS)
           #  return(r1+r2 == 2L)
           #})
           #M <- M[which(test)]
@@ -267,7 +267,7 @@ if (length(PTMs)) {
     }
     #
     # Optional: normalize to parent protein group
-    if ((scrptTypeFull == "withReps_PG_and_PTMs")&&(PTM_normalize[[Ptm]])) {
+    if ((scrptTypeFull == "withReps_PG_and_PTMs") && PTM_normalize[[Ptm]]) {
       # Step 1: normalize ratios:
       # We essentially want to correct the fold change of each modified peptide by that of the parent protein
       #
@@ -488,7 +488,7 @@ if (length(PTMs)) {
     volcPlot_args2$Y.root <- ptms.PVal
     volcPlot_args2$parameters <- P
     volcPlot_args2$FDR.thresh <- PTMs_FDR.thresholds[[Ptm]]
-    volcPlot_args2$arbitrary.lines <- arbitrary.thr
+    #volcPlot_args2$arbitrary.lines <- arbitrary.thr
     volcPlot_args2$IDs.col <- "Code"
     volcPlot_args2$Proteins.col <- "Proteins"
     volcPlot_args2$title <- paste0(Ptm, " volcano plot ")
@@ -527,7 +527,7 @@ if (length(PTMs)) {
       plot <- volcano.plots[[Ptm]]$Labelled[[ttl]]
       ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
     }
-    if ((create_plotly)&&(!create_plotly_local)) {
+    if (create_plotly && (!create_plotly_local)) {
       plot_ly[[paste0(Ptm, "_Volcano plots (t-tests)")]] <- tempVPptm$"Plotly plots"
     }
     # Specificity mark for untested proteins
@@ -580,7 +580,7 @@ if (length(PTMs)) {
       colnames(g2) <- VPAL$names
       tst <- apply(Exp.map[, RRG$names, drop = FALSE], 1L, paste, collapse = "___")
       tmp <- apply(g2[,RRG$names, drop = FALSE], 1L, paste, collapse = "___")
-      g2$Ref <- sapply(tmp, \(x) { y <- unique(tst[which((Exp.map$Reference)&(tst == x))]) })
+      g2$Ref <- sapply(tmp, \(x) { y <- unique(tst[which(Exp.map$Reference & (tst == x))]) })
       for (i in unique(g2$Ref)) {
         w <- which(g2$Ref == i)
         PTMs_Reg_filters[[Ptm]]$"t-tests"$"By reference"[[i]] <- list(Columns = g[w],
@@ -631,7 +631,7 @@ if (length(PTMs)) {
           ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
         }
         # Legacy code for web-hosted plotly plots:
-        if ((create_plotly)&&(!create_plotly_local)) { plot_ly[[paste0(Ptm, "_Volcano plots (F-tests)")]] <- F_volc$"Plotly plots" }
+        if (create_plotly && (!create_plotly_local)) { plot_ly[[paste0(Ptm, "_Volcano plots (F-tests)")]] <- F_volc$"Plotly plots" }
         # Create F-test filters:
         g <- grep("^mod\\. F-test Regulated - ", colnames(PTMs_F_test_data[[Ptm]]), value = TRUE)
         g1 <- gsub("^mod\\. F-test Regulated - ", "", g)
@@ -658,7 +658,7 @@ if (length(PTMs)) {
               paste0(x[[1L]], " - ", x[[2L]], ", ref: ", x[[3L]])
             })
           }
-          w <- which((grepl(" vs ", g2$Condition))&(!grepl(" VS ", g2$Condition)))
+          w <- which(grepl(" vs ", g2$Condition) & (!grepl(" VS ", g2$Condition)))
           if (length(w)) {
             g2$tmp[w] <- sapply(strsplit(g2$Condition[w], split = " vs "), \(x) { x[[2L]] })
             g2$Ref[w] <- apply(g2[w, c("Group", "Analysis", "tmp")], 1L, \(x) {
@@ -742,6 +742,11 @@ if (length(PTMs)) {
     temp <- temp[w,]
     rwMns <- rwMns[w]
     temp[, kol] <- sweep(temp[, kol], 1L, rwMns, "-")
+    wNA <- which(vapply(kol, \(x) { sum(!is.na(temp[[x]])) == 0L }, TRUE))
+    wOKgrp <- which(!kol %in% kol[wNA])
+    grps <- grps[wOKgrp]
+    temp <- temp[, setdiff(colnames(temp), kol[wNA])]
+    kol <- setdiff(kol, kol[wNA])
     temp2 <- as.matrix(Data_Impute2(temp, grps)$Imputed_data)
     hcluster <- hclust(dist(t(temp2)))
     hdendro <- as.dendrogram(hcluster)
@@ -775,7 +780,7 @@ if (length(PTMs)) {
     temp2$Label2[w] <- paste0(substr(temp2$Label2[w], 1L, 22L), "...")
     # Create heatmap plot
     w1 <- which(temp2$Colour == "green")
-    w2 <- which((temp2$Xmin == max(temp2$Xmin))&(temp2$Colour == "green"))
+    w2 <- which((temp2$Xmin == max(temp2$Xmin)) & (temp2$Colour == "green"))
     nm <- paste0("Heatmap\n", Ptm, "-modified peptides")
     heatmap.plot <- ggplot(temp2) +
       geom_rect(aes(xmin = Xmin, xmax = Xmin+1, ymin = Ymin, ymax = Ymin+1, fill = value)) +
@@ -804,10 +809,10 @@ if (length(PTMs)) {
     #
     # Gene Ontology terms enrichment analysis
     if (enrichGO) {
-      if ((!exists("GO_mappings"))&&(file.exists("GO_mappings.RData"))) {
+      if ((!exists("GO_mappings")) && file.exists("GO_mappings.RData")) {
         loadFun("GO_mappings.RData")
       }
-      if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) {
+      if ((!exists("GO_terms")) && file.exists("GO_terms.RData")) {
         loadFun("GO_terms.RData")
       }
       p <- strsplit(ptmpep$Proteins, ";")
@@ -847,7 +852,7 @@ if (length(PTMs)) {
       PTMs_Reg_GO_terms[[Ptm]] <- list()
       Tsts <- c("t-tests", "F-tests")
       WhTsts <- which(Tsts %in% names(PTMs_Reg_filters[[Ptm]]))
-      for (tt in WhTsts) { #tt <- 1 #tt <- 2
+      for (tt in WhTsts) { #tt <- 1L #tt <- 2L
         tstrt <- Tsts[tt]
         stopifnot(!is.na(tstrt))
         myDir <- paste0(modDirs[1L], "/GO enrich/", tstrt)
@@ -867,10 +872,12 @@ if (length(PTMs)) {
               if (tt == 1L) { tmpdat <- ptmpep }
               if (tt == 2L) { tmpdat <- PTMs_F_test_data[[Ptm]] }
               flt <- if (tt %in% 1L:2L) {
-                flt[myContrasts$Contrast[which(myContrasts$Secondary == "")]]
+                flt[intersect(myContrasts$Contrast[which(myContrasts$Secondary == "")], names(flt))]
               } else {
                 flt[order(names(flt))]
               }
+            }
+            if (length(flt)) {
               for (kol in Kol) { tmpdat[, kol] <- ptmpep[, kol] }
               flt <- flt[order(names(flt))]
               reg <- setNames(lapply(flt, \(x) { list(x$Columns) }), names(flt))
@@ -932,7 +939,7 @@ if (length(PTMs)) {
                   Pep.Ref.Filt <- tmpFilt
                 }
               }
-              if ((length(Pep.Ref.Filt) > 1L)||(!is.na(Pep.Ref.Filt))) {
+              if ((length(Pep.Ref.Filt) > 1L) || (!is.na(Pep.Ref.Filt))) {
                 flt <- setNames(lapply(names(flt), \(x) { intersect(flt[[x]], Pep.Ref.Filt[[x]]) }), names(flt))
               }
               # Also save the reference filters 
@@ -945,10 +952,10 @@ if (length(PTMs)) {
               #
               Mode <- "regulated"
               dataType <- "modPeptides"
-              if ((!exists("GO_mappings"))&&(file.exists("GO_mappings.RData"))) {
+              if ((!exists("GO_mappings")) && file.exists("GO_mappings.RData")) {
                 loadFun("GO_mappings.RData")
               }
-              if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) {
+              if ((!exists("GO_terms")) && file.exists("GO_terms.RData")) {
                 loadFun("GO_terms.RData")
               }
               #
@@ -977,7 +984,7 @@ if (length(PTMs)) {
                   plot <- PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_plots[[ttl]]
                   ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
                 }
-                if ((create_plotly)&&(!create_plotly_local)) {
+                if (create_plotly && (!create_plotly_local)) {
                   plot_ly[[paste0(Ptm, "_GO plots - Regulated vs Observed - ", tstbee)]] <- PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_plot_ly
                 }
                 temp <- PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_terms
@@ -1066,13 +1073,13 @@ if (length(PTMs)) {
                     temp[myRng, 1L] <- temp[1L, myRng] <- names(W)
                     for (i in myRng) { #i <- 2
                       temp[i, myRng] <- sapply(Kol3, \(x) {
-                        sum((PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_terms[[x]] == "+")&(PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_terms[[Kol3[i]]] == "+"),
+                        sum((PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_terms[[x]] == "+") & (PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_terms[[Kol3[i]]] == "+"),
                             na.rm = TRUE)
                       })
                     }
                     names(W) <- cleanNms(gsub(" [0-9]+%$", "", names(W)))
                     tst <- sapply(strsplit(names(W), " - "), length)
-                    tst <- (min(tst) > 1L)&(length(unique(tst)) == 1L)
+                    tst <- (min(tst) > 1L) & (length(unique(tst)) == 1L)
                     if (tst) {
                       tst <- as.data.frame(t(sapply(strsplit(names(W), " - "), unlist)))
                       l <- apply(tst, 2L, \(x) { length(unique(x)) })

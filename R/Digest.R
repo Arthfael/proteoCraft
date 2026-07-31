@@ -52,18 +52,18 @@ Digest <- function(Seq,
                    cl) {
   parThresh <- 500L
   TESTING <- FALSE
-  #DefArg(Digest);TESTING <- TRUE; DB <- db
-  #Seq = setNames(DB$Sequence, DB$`Protein ID`) #Seq = DB$Sequence
-  #characters.test = TRUE; N.clust = 5
+  #DefArg(Digest); TESTING <- TRUE
+  #DB <- db; Seq = setNames(DB$Sequence, DB$`Protein ID`) #Seq = DB$Sequence
+  #characters.test = TRUE; N.clust = 5L
   #Cut = c("Y_", "W_", "F_")
   #Cut = c("E_")
   misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-    function(x) { return(!exists(deparse(substitute(x)))) }
+    \(x) { return(!exists(deparse(substitute(x)))) }
   } else { missing }
   Cut <- toupper(Cut)
-  stopifnot(class(missed) %in% c("numeric", "integer", "integer64") & missed == round(missed),
+  stopifnot((sum(c("numeric", "integer", "integer64") %in% class(missed)) > 0L) & (missed == round(missed)),
             missed >= 0L,
             min(nchar(Cut)) == 2L,
             max(nchar(Cut)) == 2L)
@@ -71,13 +71,13 @@ Digest <- function(Seq,
   if (is.null(names(Seq))) {
     names(Seq) <- paste0("Protein ", seq_along(Seq))
   }
-  if ((length(Seq) > parThresh)&&((missed)||(length(loose.avoid)))) {
+  if ((length(Seq) > parThresh) && (missed || length(loose.avoid))) {
     usePar <- require(parallel)
     if (usePar) {
       #
       # Create cluster
       stopCl <- FALSE
-      if ((is.null(cl))||(!inherits(cl, "cluster"))) {
+      if (is.null(cl) || (!inherits(cl, "cluster"))) {
         dc <- parallel::detectCores()
         if (misFun(N.reserved)) { N.reserved <- 1L }
         nMax <- max(c(dc - N.reserved, 1L))
@@ -114,36 +114,41 @@ Digest <- function(Seq,
   lsSq <- lengths(SEQ$x)
   stopifnot(min(lsSq) == 1L,
             max(lsSq) == 1L) # This indicates that the same accession has been provided with different sequences, which is not acceptable!
- # Create non-redundant protein names
+  # Create non-redundant protein names
   SEQ <- listMelt(setNames(SEQ$x, SEQ$Group.1))
   SEQ <- setNames(SEQ$value, SEQ$L1)
   lSEQ <- length(SEQ)
   if (usePar) {
-    ChnkSz <- lSEQ
-    ChnkSz <- ceiling(ChnkSz/N.clust)
-    Chnks <- data.frame(Start = 1L,
-                        End = lSEQ)
-    n <- ceiling(lSEQ/ChnkSz)
-    Chnks <- round((1L:(n-1L))*lSEQ/n)
-    Chnks <- c(Chnks, lSEQ)
-    Chnks <- data.frame(Start = c(1L, Chnks[1L:(n-1L)]+1L),
-                        End = Chnks)
+    ChnkSz <- lSEQ/N.clust
+    rg <- 1L:N.clust
+    if (length(rg) > 1L) {
+      Chnks <- data.frame(Start = as.integer(round((rg-1L)*ChnkSz+1L)),
+                          End = as.integer(round(rg*ChnkSz)))
+      w <- which(Chnks$Start[2L:N.clust] == Chnks$End[1L:(N.clust-1L)])
+      if (length(w)) {
+        Chnks$End[w] <- Chnks$End[w]-1L
+      }  
+    } else {
+      Chnks <- data.frame(Start = 1L,
+                          End = lSEQ)
+    }
     stopifnot(Chnks$Start[1L] == 1L,
               rev(Chnks$End)[1L] == lSEQ,
-              sum(vapply(1L:(nrow(Chnks)-1L), function(x) {
+              sum(vapply(1L:(nrow(Chnks)-1L), \(x) {
                 Chnks$Start[x+1L]-Chnks$End[x]-1L
               }, 1L)) == 0L)
-    Chnks <- apply(Chnks, 1L, function(x) { SEQ[x[[1L]]:x[[1L]]] })
+    chnkDat <- apply(Chnks, 1L, \(x) { SEQ[x[[1L]]:x[[2L]]] })
   }
   # Optional characters test
   if (characters.test) {
-    AA <- proteoCraft::AA
-    test <- if (usePar) {
-      unlist(parallel::parLapply(cl, Chnks, function(x) {
+    if (misFun(AA)) { AA <- proteoCraft::AA }
+    if (usePar) {
+      parallel::clusterExport(cl, "AA", envir = environment())
+      test <- unlist(parallel::parLapply(cl, chnkDat, \(x) {
         nchar(gsub(paste(AA, collapse = "|"), "", x))
       }))
     } else {
-      nchar(gsub(paste(AA, collapse = "|"), "", SEQ))
+      test <- nchar(gsub(paste(AA, collapse = "|"), "", SEQ))
     }
     if (max(test)) {
       if (lSEQ > 1L) {
@@ -161,11 +166,11 @@ Digest <- function(Seq,
   }
   cllpsTst <- FALSE
   cllps <- ""
-  if ((!misFun(collapse))&&(length(collapse) == 1)) {
+  if ((!misFun(collapse)) && (length(collapse) == 1L) && is.character(collapse)) {
     cllpsTst <- TRUE
     cllps <- as.character(collapse)
   }
-  F0 <- \(Sq) { #Sq <- SEQ #Sq <- Chnks[[1L]]
+  F0 <- \(Sq) { #Sq <- SEQ #Sq <- chnkDat[[1L]]
     nmsSq <- names(Sq)
     # N-terminal Methionine:
     if (RemoveNtermMet == "strict") { Sq <- gsub("^M", "", Sq) }
@@ -232,7 +237,7 @@ Digest <- function(Seq,
     # Now deal with loose.avoid
     if (length(loose.avoid)) {
       if (TESTING) { print(paste0("Creating effect of patterns partially but not fully blocking digest...")) }
-      temp <- listMelt(Rs) # Take our current set of digested peptides, where we assumed up to now
+      temp <- proteoCraft::listMelt(Rs) # Take our current set of digested peptides, where we assumed up to now
       # that loose.avoid were stricly blocking
       # Filter by matches to loose.avoids
       gr <- grep(paste(gsub("_", "", loose.avoid), collapse = "|"), temp$value)
@@ -276,17 +281,16 @@ Digest <- function(Seq,
   }
   if (usePar) {
     environment(F0) <- .GlobalEnv
-    parallel::clusterExport(cl, list("TESTING", "misFun", "RemoveNtermMet", "Cut", "strict.avoid",
+    parallel::clusterExport(cl, list("TESTING", "RemoveNtermMet", "Cut", "strict.avoid",
                                      "loose.avoid", "missed", "min", "max", "cllpsTst", "cllps"),
                             envir = environment())
-    RES <- parallel::parLapply(cl, Chnks, F0)
+    RES <- parallel::parLapply(cl, chnkDat, F0)
     #
     if (stopCl) { parallel::stopCluster(cl) }
     RES <- do.call(c, RES)
   } else {
     RES <- F0(SEQ)
   }
-  RES[[names(Seq)[1L]]]
   #
   Res <- setNames(lapply(Seq, \(x) { }), names(Seq))
   Res[names(RES)] <- RES

@@ -1449,9 +1449,14 @@ Volcano.plot <- function(Prot,
                                                                                   expand = c(0L, 0L))
     #
     # Evaluate plots
+    args_gg_Simp <- args_gg_
     args_gg_$mapping <- do.call(ggplot2::aes, aes_)
+    args_gg_Simp$mapping <- do.call(ggplot2::aes, aes_[setdiff(names(aes_), "size")])
     main_layer <- do.call(ggplot2::geom_point, args_gg_)
-    plot <- simPlot <- ggplot(temp) + main_layer
+    main_layer_Simp <- do.call(ggplot2::geom_point, args_gg_Simp)
+    plot <- ggplot(temp)
+    simPlot <- plot + main_layer_Simp
+    plot <- plot + main_layer
     if (plotLabels) {
       plot_labels <- plot + labels_layer
     }

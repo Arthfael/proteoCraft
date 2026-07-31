@@ -208,7 +208,7 @@ if (exists("Tim")) {
 }
 
 rm(list = ls()[which(!ls() %in% .obj)])
-Script <- readLines(ScriptPath)
+Script <- readr::read_lines(ScriptPath)
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
 source(parSrc, local = FALSE)

@@ -496,7 +496,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
         homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
         fl1 <- paste0(homePath, "/Sample_solvents.txt")
         if (file.exists(fl1)) {
-          opt1 <- readLines(fl1)
+          opt1 <- readr::read_lines(fl1)
         } else {
           opt1 <- c("a 9:1 mix of the iST kit's LC-LOAD buffer and 1.5% w/v N-Dodecyl-β-D-maltoside (DDM, 0.15% final)",
                     "a 9:1 mix of the iST kit's LC-LOAD buffer and 0.15% w/v N-Dodecyl-β-D-maltoside (DDM, 0.015% final)",

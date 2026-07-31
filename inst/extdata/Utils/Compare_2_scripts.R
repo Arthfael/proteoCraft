@@ -67,8 +67,8 @@ checkPlotXprs <- expression({
   poplot(plot, 12L, 20L)
 })
 checkScriptXprs <- expression({
-  fl1 <- readLines(f1)
-  fl2 <- readLines(f2)
+  fl1 <- readr::read_lines(f1)
+  fl2 <- readr::read_lines(f2)
   fl1 <- gsub(pat, "", fl1)
   fl2 <- gsub(pat, "", fl2)
   w1 <- which(fl1 != "")

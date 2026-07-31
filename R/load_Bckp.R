@@ -159,14 +159,14 @@ load_Bckp <- function(backup,
     # if (exists("ScriptPath")) {
     #   cat("Analysis script used ---> ", ScriptPath, "\n")
     #   if (file.exists(ScriptPath)) {
-    #     scrpt <- readLines(ScriptPath)
+    #     scrpt <- readr::read_lines(ScriptPath)
     #     scrpt <- data.frame(call = scrpt)
     #     scrpt$row <- 1L:nrow(scrpt)
     #     scrpt$listCall <- as.list(scrpt$call)
     #     allSources <- list.files(paste0(libPath, "/inst/extdata/Sources"), full.names = TRUE)
     #     allSources <- data.frame(Path = allSources,
     #                              Name = basename(allSources),
-    #                              Code = lapply(allSources, readLines))
+    #                              Code = lapply(allSources, readr::read_lines))
     #     g1 <- grep("^ *[a-zA-Z]*Src *<- *", scrpt$call)
     #     g2 <- grep("^ *source\\([a-zA-Z]*Src(, *local *= *FALSE)?\\)", scrpt$call)
     #     l1 <- length(g1)
@@ -219,7 +219,7 @@ load_Bckp <- function(backup,
     #         })
     #         wY <- which((nchar(srcFls) > 0L)&(file.exists(srcFls)))
     #         wN <- which((nchar(srcFls) == 0L)|(!file.exists(srcFls)))
-    #         srcs <- suppressWarnings(lapply(srcFls[wY], readLines))
+    #         srcs <- suppressWarnings(lapply(srcFls[wY], readr::read_lines))
     #         scrpt$listCall[g1] <- ""
     #         scrpt$listCall[g2[wY]] <- srcs
     #         scrpt$listCall[g2[wN]] <- ""

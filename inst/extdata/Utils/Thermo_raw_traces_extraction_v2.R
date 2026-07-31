@@ -1047,7 +1047,7 @@ if (!file.exists(pressScript)) {
 }
 stopifnot(file.exists(pressScript))
 # Create temporary python pressure script edited to create a more predictably named output
-tmp <- suppressWarnings(readLines(pressScript))
+tmp <- suppressWarnings(readr::read_lines(pressScript))
 w <- which(tmp == "        csv_path = file.replace('.mzML', f'_{convert_to_safe_filename(chrom_name)}.csv')")
 tmp[w] <- "        csv_path = file.replace('.mzML', f'.csv')"
 pressScript2 <- paste0(wd, "/pressScript.py")

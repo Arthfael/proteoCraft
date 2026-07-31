@@ -72,6 +72,9 @@ temp <- lapply(whSingle, \(i) { #i <- 1L
   x <- myData[, j, drop = FALSE]
   colnames(x) <- pkol2[w]
   x[[entityCol]] <- myData[[labCol]]
+  if (prot.list.Cond) {
+    x$In_list <- myData$`In list`
+  }
   x$Contrast <- nm
   return(x)
 })
@@ -81,7 +84,7 @@ temp$Contr <- gsub_Rep(" - ", "\n- ", temp$Contrast)
 tmpContr <- gsub(" - ", "\n- ", myContrasts$Contrast)
 temp$Contr <- factor(temp$Contr, levels = tmpContr)
 temp$Contrast <- factor(temp$Contrast, levels = myContrasts$Contrast)
-kol <- setdiff(colnames(temp), c(entityCol, "Contrast", "Contr"))
+kol <- setdiff(colnames(temp), c(entityCol, "Contrast", "Contr", "In_list"))
 temp <- temp[which(rowSums(temp[, kol], na.rm = TRUE) > 0),]
 Comb <- gtools::combinations(length(kol), 2L, kol)
 tmpFl <- tempfile(fileext = ".rds")
@@ -106,7 +109,8 @@ plotsList1 <- parLapply(parClust, 1L:nrow(Comb), \(i) { #i <- 1L
   Y <- Comb[i, 2L]
   X2 <- names(my_PVal_Col)[match(paste0(X, " - "), my_PVal_Col)]
   Y2 <- names(my_PVal_Col)[match(paste0(Y, " - "), my_PVal_Col)]
-  dat <- temp[, c(X, Y, entityCol, "Contrast", "Contr")]
+  kol <- intersect(c(X, Y, entityCol, "Contrast", "Contr", "In_list"), colnames(temp))
+  dat <- temp[, kol]
   colnames(dat)[1L:2L] <- c("X", "Y")
   dat$"P-value, X axis" <- gsub_Rep(" -log10\\(Pvalue\\)$", "", Comb[i, 1L])
   dat$"P-value, Y axis" <- gsub_Rep(" -log10\\(Pvalue\\)$", "", Comb[i, 2L])
@@ -118,7 +122,17 @@ plotsList1 <- parLapply(parClust, 1L:nrow(Comb), \(i) { #i <- 1L
   uY <- unique(dat$`P-value, Y axis`)
   myLim <- c(0, Mx)
   dat <- dat[which(is.finite(dat$X)&is.finite(dat$Y)),]
-  plot1 <- ggplot(dat, aes(x = X, y = Y, colour = Contrast, text = PG)) +
+  aes_ <- list(x = rlang::expr(.data[[!!"X"]]),
+               y = rlang::expr(.data[[!!"Y"]]),
+               colour = rlang::expr(.data[[!!"Contrast"]]),
+               text = rlang::expr(.data[[!!"PG"]]))
+  if ("In_list" %in% colnames(dat)) {
+    aes_$shape = rlang::expr(.data[[!!"In_list"]])
+  }
+  args_ <- list(data = dat,
+                mapping = do.call(aes, aes_))
+  plot1 <- do.call(ggplot, args_)
+  plot1 <- plot1 +
     scale_color_viridis(begin = 0.4, end = 0.8, discrete = TRUE, option = "F") +
     #facet_grid(`P-value, Y axis`~Contrast+`P-value, X axis`) + # This was for when we saved all as one plot outside the parLapply
     #facet_grid(Contrast~`P-value, Y axis`) +
@@ -130,6 +144,7 @@ plotsList1 <- parLapply(parClust, 1L:nrow(Comb), \(i) { #i <- 1L
     scale_x_continuous(expand = c(0L, 0L)) +
     scale_y_continuous(expand = c(0L, 0L)) +
     xlab(uX) + ylab(uY)
+  #poplot(plot1)
   plot1ly <- ggplotly(plot1 + geom_point(size = 0.33) +
                         theme(strip.background = element_blank(),
                               strip.text = element_blank()),
@@ -176,10 +191,11 @@ temp <- setNames(lapply(my_PVal_Col, \(type) { #type <- my_PVal_Col[1L]
   kol <- grep(topattern(type), colnames(myData), value = TRUE)
   if (!length(kol)) { stop(type) }
   temp <- myData[, kol, drop = FALSE]
-  colnames(temp) <- cleanNms(gsub(topattern(type), "", colnames(temp)))
+  colnames(temp) <- cleanNms(sub(topattern(type), "", colnames(temp)))
   temp <- dfMelt(temp)
   temp$value <- 10L^(-temp$value)
   temp <- temp[which(is.finite(temp$value)),]
+  nVal <- nrow(temp)
   temp$Bin <- vapply(temp$value, \(x) { min(which(bd >= x))-1L }, 1L)
   res <- aggregate(temp$Bin, list(temp$variable, temp$Bin), length)
   colnames(res) <- c("Contrast", "Bin", "Count")
@@ -190,8 +206,8 @@ temp <- setNames(lapply(my_PVal_Col, \(type) { #type <- my_PVal_Col[1L]
     res$Frequency[w] <- res$Count[w]/sum(res$Count[w])
   }
   res$"P-value type" <- gsub_Rep("('s)?( t-)?(test)? -log10\\(Pvalue\\) - $", "", type)
-  res$Low <- 0L
   return(list(Dat = res,
+              N = nVal,
               pwrEst = power_est))
 }), gsub("('s)?( t-)?(test)? -log10\\(Pvalue\\) - $", "", my_PVal_Col))
 pwrAnnot <- lapply(names(temp), \(x) { #x <- names(temp)[1L]
@@ -199,7 +215,13 @@ pwrAnnot <- lapply(names(temp), \(x) { #x <- names(temp)[1L]
              "P-value type" = x,
              check.names = FALSE)
 })
+nmbrAnnot <- lapply(names(temp), \(x) { #x <- names(temp)[1L]
+  data.frame("number of data points" = as.character(temp[[x]]$N),
+             "P-value type" = x,
+             check.names = FALSE)
+})
 pwrAnnot <- do.call(rbind, pwrAnnot)
+nmbrAnnot <- do.call(rbind, nmbrAnnot)
 temp <- do.call(rbind, lapply(names(temp), \(x) { #x <- names(temp)[1L]
   temp[[x]]$Dat
 }))
@@ -207,21 +229,29 @@ temp$"P-value type" <- factor(temp$"P-value type",
                               levels = pvalLvls)
 pwrAnnot$`P-value type` <- factor(pwrAnnot$`P-value type`,
                                   pvalLvls)
+nmbrAnnot$`P-value type` <- factor(nmbrAnnot$`P-value type`,
+                                   pvalLvls)
 temp$Contrast <- gsub_Rep(" - ", "\n- ", temp$Contrast)
 temp$Contrast <- factor(temp$Contrast, levels = tmpContr)
-pwrAnnot$Contrast <- factor(tmpContr[1L], levels = tmpContr)
+pwrAnnot$Contrast <- factor(temp$Contrast[1L], levels = tmpContr)
+nmbrAnnot$Contrast <- factor(temp$Contrast[1L], levels = tmpContr)
 ttl2 <- "P-values histogram"
+mx <- max(temp$Frequency)
 plot2 <- ggplot(temp) +
   geom_rect(position = "identity",
-            aes(xmin = (Bin-1L)/nbin, ymin = Low, xmax = Bin/nbin, ymax = Frequency,
-                fill = `P-value type`),
-            alpha = 0.5) +
+            aes(xmin = (Bin-1L)/nbin, xmax = Bin/nbin, ymax = Frequency, fill = `P-value type`),
+            ymin = 0, alpha = 0.5) +
   geom_text(data = pwrAnnot, label = "5% pVal pwr. est. =",
-            x = 0.01, y = 0.01, hjust = 0, vjust = 0, color = "red", size = 4L) +
+            x = 0.01, y = mx*0.6, hjust = 0, vjust = 0, color = "red", size = 4) +
   geom_text(data = pwrAnnot, aes(label = `power estimate`),
-            x = 0.9, y = 0.01, hjust = 1, vjust = 0, color = "red", size = 5L) +
+            x = 0.9, y = mx*0.6, hjust = 1, vjust = 0, color = "red", size = 5) +
+  geom_text(data = nmbrAnnot, label = "N. of tests =",
+            x = 0.01, y = mx*0.3, hjust = 0, vjust = 0, color = "red", size = 4) +
+  geom_text(data = nmbrAnnot, aes(label = `number of data points`),
+            x = 0.9, y = mx*0.3, hjust = 1, vjust = 0, color = "red", size = 5) +
   scale_fill_viridis(begin = 0.4, end = 0.8, discrete = TRUE, option = "G") +
-  scale_x_continuous(expand = c(0L, 0L)) + scale_y_continuous(expand = c(0L, 0L)) +
+  scale_x_continuous(expand = c(0L, 0L), limits = c(0, 1)) +
+  scale_y_continuous(expand = c(0L, 0L)) +
   facet_grid(`P-value type`~Contrast) + ggtitle(ttl2) + theme_bw() +
   theme(strip.text.y = element_text(angle = -90, size = 12L),
         strip.text.x = element_text(size = 12L),

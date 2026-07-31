@@ -11,7 +11,7 @@ clustTst <- try({
     invisible(clusterCall(parClust, \(x) { rm(list = ls()); gc() }))
   }
 }, silent = TRUE)
-Script <- readLines(ScriptPath)
+Script <- readr::read_lines(ScriptPath)
 gc()
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)

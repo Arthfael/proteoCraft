@@ -135,7 +135,7 @@ DIANN_to_MQ <- function(DIANN_fl,
     log_Fl <- unique(gsub("\\.((tsv)|(parquet))$", ".log.txt", DIANN_fl))
   }
   if (file.exists(log_Fl)) { 
-    log <- readLines(log_Fl)
+    log <- readr::read_lines(log_Fl)
     diannCall <- grep(" --[a-zA-Z]", log, value = TRUE)[1L]
     diannCall <- unlist(strsplit(diannCall, " +--"))
     diannCall <- diannCall[2L:length(diannCall)]

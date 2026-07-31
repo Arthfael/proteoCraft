@@ -258,7 +258,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     uBrMeth$MS_meth <- NA
     w2 <- which(!is.na(uBrMeth$MS_method))
     uBrMeth$MS_meth[w2] <- lapply(uBrMeth$MS_method[w2], \(fl) { #fl <- uBrMeth$MS_method[w2][1L]
-      #x <- readLines(fl)
+      #x <- readr::read_lines(fl)
       #x[1L:100L]
       SQltTDF <- dbConnect(drv = RSQLite::SQLite(), dbname = fl)
       #nms <- dbListTables(SQltTDF)

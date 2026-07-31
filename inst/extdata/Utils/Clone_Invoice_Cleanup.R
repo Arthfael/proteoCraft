@@ -205,7 +205,7 @@ if (!is.null(targDir)) {
           # }
           # stopifnot(file.exists(pressScript))
           # # Create temporary python pressure script edited to create a more predictably named output
-          # tmp <- suppressWarnings(readLines(pressScript))
+          # tmp <- suppressWarnings(readr::read_lines(pressScript))
           # w <- which(tmp == "        csv_path = file.replace('.mzML', f'_{convert_to_safe_filename(chrom_name)}.csv')")
           # tmp[w] <- "        csv_path = file.replace('.mzML', f'.csv')"
           # pressScript2 <- paste0(DestDir, "/pressScript.py")
@@ -417,7 +417,7 @@ if (!is.null(targDir)) {
                 clusterExport(parClust, list("pat", "DestDir", "parDir"), envir = environment())
                 dDrsTbl$"Length (h)" <- parApply(parClust, dDrsTbl[, c("d", "Log_file")], 1L, \(x) { #x <- dDrsTbl[1, c("d", "Log_file")]
                   lgFl <- x[[2L]]
-                  lg <- readLines(lgFl)
+                  lg <- readr::read_lines(lgFl)
                   #system(paste0("open \"", lgFl, "\""))
                   stp <- grep("COMPLETED", lg, value = TRUE)
                   if (!length(stp)) { stp <- grep("ABORTED", lg, value = TRUE) }

@@ -100,6 +100,8 @@ pepHtmp <- function(intProt = prot.list_pep,
       assign("tmpPep", readr::read_rds(tmpFl2), envir = .GlobalEnv)
       return()
     }))
+    unlink(tmpFl1)
+    unlink(tmpFl2)
     l <- length(intProt)
     tempDat <- data.frame(Protein = rep(intProt, 2L),
                           Method = c(rep("Mean", l), rep("ZSc", l)))
@@ -108,7 +110,7 @@ pepHtmp <- function(intProt = prot.list_pep,
       meth <- x[[2L]]
       Plp <- paste(DB[which(DB$"Protein ID" == plp),
                       c("Common Name", "Protein ID")], collapse = " - ")
-      grs <- grsep2(plp, tmpPep$Proteins)
+      grs <- proteoCraft::grsep2(plp, tmpPep$Proteins)
       if (length(grs)) {
         Seq <- DB$Sequence[match(plp, DB$"Protein ID")]
         temp <- tmpPep[grs, c("Sequence", "Modified sequence", g)]
@@ -136,7 +138,7 @@ pepHtmp <- function(intProt = prot.list_pep,
           if (meth == "ZSc") { SD <- apply(temp[, g1], 1L, sd, na.rm = TRUE) }
           temp[, g1] <- sweep(temp[, g1], 1L, M, "-")
           if (meth == "ZSc") { temp[, g1] <- sweep(temp[, g1], 1L, SD, "/") }
-          temp2 <- dfMelt(temp[, g1], c("Sample", "value"))
+          temp2 <- proteoCraft::dfMelt(temp[, g1], c("Sample", "value"))
           temp2$"Modified sequence" <- temp$"Modified sequence"
           temp2$Sample <- as.character(temp2$Sample)
           temp2$Xmin <- match(temp2$Sample, colnames(temp))-1L

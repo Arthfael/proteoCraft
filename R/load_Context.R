@@ -43,7 +43,7 @@ load_Context <- function(record,
                                      path = paste0(defltdir, "/*.txt"),
                                      filter = "Text file (*.txt)")
   }
-  record <- readLines(record)
+  record <- readr::read_lines(record)
   dtstNm <<- gsub("^ *-> *", "", record[grep("^Dataset name:", record)+1L])
   inDirs <<- gsub("^ *-> *", "", record[grep("^Input directory:", record)+1L])
   outdir <<- gsub("^ *-> *", "", record[grep("^Final output directory:", record)+1L])

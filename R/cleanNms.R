@@ -26,7 +26,7 @@ cleanNms <- function(Samples,
                      start = TRUE,
                      end = FALSE) {
   #DefArg(cleanNms)
-  if ((!is.null(Experiment))&&(length(Experiment) == 1L)) {
+  if ((!is.null(Experiment)) && (length(Experiment) == 1L)) {
     Samples <- sub(topattern(paste0(Experiment, sep),
                    start = start,
                    end = end),

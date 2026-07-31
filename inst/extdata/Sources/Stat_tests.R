@@ -183,16 +183,20 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       ttl <- paste0(c("", "limpa-")[limpaMode+1L], "mod. t-test QQ plot - ", contr)
       fl <- paste0(ohDeer, "/", ttl)
       jpeg(file = paste0(fl, ".jpeg"), width = 400L, height = 350L)
-      qqt(as.data.frame(fit2$t)[[contr]], df = fit2$df.prior + fit2$df.residual, pch = 16L, cex = 0.2)
-      abline(0, 1)
-      dev.off()
-      # MA plot
-      ttl <- paste0(insrt, " MA plot - ", contr)
-      fl <- paste0(ohDeer, "/", ttl)
-      jpeg(file = paste0(fl, ".jpeg"), width = 400L, height = 350L)
-      fit2$genes <- NULL
-      plotMD(fit2, column = match(contr, colnames(fit2$p.value)))
-      dev.off()
+      tmp <- as.data.frame(fit2$t)[[contr]]
+      w <- which(!is.na(tmp))
+      if (length(w)) {
+        qqt(tmp, df = fit2$df.prior + fit2$df.residual, pch = 16L, cex = 0.2)
+        abline(0, 1)
+        dev.off()
+        # MA plot
+        ttl <- paste0(insrt, " MA plot - ", contr)
+        fl <- paste0(ohDeer, "/", ttl)
+        jpeg(file = paste0(fl, ".jpeg"), width = 400L, height = 350L)
+        fit2$genes <- NULL
+        plotMD(fit2, column = match(contr, colnames(fit2$p.value)))
+        dev.off()
+      }
     }
   }
   if (deqmsMode) {
@@ -549,7 +553,7 @@ if (length(whSingle)) {
     ROTS_res <- list()
   }
   ROTS_res %<o% ROTS_res
-  ROTS_tmp <- setNames(lapply(whSingle, \(i) { #i <- 1L #i <- 2L #i <- 3L
+  ROTS_tmp <- try(setNames(lapply(whSingle, \(i) { #i <- 1L #i <- 2L #i <- 3L
     # Get two groups from the contrast
     A_ <- myContrasts$A_samples[[i]]
     B_ <- myContrasts$B_samples[[i]]
@@ -566,18 +570,20 @@ if (length(whSingle)) {
                       B = 500L,
                       K = 500L,
                       seed = mySeed))
-  }), myContrasts$Contrast[whSingle])
-  #View(ROTS_tmp[[myContrasts$Contrast[whSingle[1L]]]])
-  root <- sub(" -log10\\(", " ", sub("\\) - $", " - ", rotsRoot))
-  myData[, paste0(root, myContrasts$Contrast[whSingle])] <- NA_real_
-  myData[, paste0(rotsRoot, myContrasts$Contrast[whSingle])] <- NA_real_
-  for (contr in myContrasts$Contrast[whSingle]) { #contr <- myContrasts$Contrast[whSingle[1L]]
-    w <- which(myData[[namesCol]] %in% rownames(ROTS_tmp[[contr]]$data))
-    myData[w, paste0(root, contr)] <- ROTS_tmp[[contr]]$pvalue[match(myData[w, namesCol],
-                                                                     rownames(ROTS_tmp[[contr]]$data))]
-    myData[w, paste0(rotsRoot, contr)] <- -log10(myData[w, paste0(root, contr)])
+  }), myContrasts$Contrast[whSingle]), silent = TRUE)
+  if (!inherits(ROTS_tmp, "try-error")) {
+    #View(ROTS_tmp[[myContrasts$Contrast[whSingle[1L]]]])
+    root <- sub(" -log10\\(", " ", sub("\\) - $", " - ", rotsRoot))
+    myData[, paste0(root, myContrasts$Contrast[whSingle])] <- NA_real_
+    myData[, paste0(rotsRoot, myContrasts$Contrast[whSingle])] <- NA_real_
+    for (contr in myContrasts$Contrast[whSingle]) { #contr <- myContrasts$Contrast[whSingle[1L]]
+      w <- which(myData[[namesCol]] %in% rownames(ROTS_tmp[[contr]]$data))
+      myData[w, paste0(root, contr)] <- ROTS_tmp[[contr]]$pvalue[match(myData[w, namesCol],
+                                                                       rownames(ROTS_tmp[[contr]]$data))]
+      myData[w, paste0(rotsRoot, contr)] <- -log10(myData[w, paste0(root, contr)])
+    }
+    ROTS_res[[dataType]] <- ROTS_tmp
   }
-  ROTS_res[[dataType]] <- ROTS_tmp
   #
   #
   # SAM and EBAM
@@ -744,6 +750,8 @@ if (length(whSingle)) {
     }
   }
 }
+
+cat("All statistical tests done!\n\n")
 
 # Make sure that the data is numeric and not a matrix!!!
 kol <- grep("-log10\\(Pvalue\\) - ", colnames(myData), value = TRUE)

@@ -236,7 +236,7 @@ if (inputType == "FragPipe") {
   FracMap <- FP2MQ$FracMap
 }
 if (inputType == "DiaNN") {
-  diaNN_log <- readLines(diaNN_log_fl)
+  diaNN_log <- readr::read_lines(diaNN_log_fl)
   diaNN_Call <- grep("diann.exe ", diaNN_log, ignore.case = TRUE, value = TRUE)[1L]
   if (is.na(diaNN_Call)) {
     diaNN_Call <- diaNN_log[grep("^Logical CPU cores:", diaNN_log)+1L]

@@ -76,7 +76,7 @@ FP_to_MQ <- function(FP_Workflow,
   if ((!TESTING) && (missing("FP_Workflow") || (!file.exists(FP_Workflow)))) {
     stop("Invalid parameter \"FP_Workflow\": file not found!")
   }
-  FP_Wrkflw <- readLines(FP_Workflow)
+  FP_Wrkflw <- readr::read_lines(FP_Workflow)
   pat <- topattern("diann.run-dia-nn=")
   isActuallyDIANN <- as.logical(toupper(gsub(pat, "", grep(pat, FP_Wrkflw, value = TRUE))))
   #

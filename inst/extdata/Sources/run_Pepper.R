@@ -20,7 +20,7 @@ if (runPepper) {
   }
   #
   # Detect recommended training parameters for all datasets
-  trainParam <- suppressWarnings(readLines(paste0(PepScrptsDir, "/train_models.sh")))
+  trainParam <- suppressWarnings(readr::read_lines(paste0(PepScrptsDir, "/train_models.sh")))
   args <- c("peptide_file", "n_runs", "seq_length", "output_file", "filter_size", "n_filters", "n_layers", "n_nodes",
             "dropout", "learning_rate", "batch", "random_run")
   g <- grep("^python3 ", trainParam)
@@ -57,7 +57,7 @@ if (runPepper) {
   cat(paste0("Dataset = ", dtstNm, ", number of samples = ", lGrps, "\n"))
   #
   OHfl <- paste0(pepDir, "/OneHotEncodedPepQuants.tsv")
-  OHE <- readLines(paste0(PepScrptsDir, "/onehot_encode_peptide_sequences.py"))
+  OHE <- readr::read_lines(paste0(PepScrptsDir, "/onehot_encode_peptide_sequences.py"))
   arg1 <- which(OHE == "input_filename = sys.argv[1L]")
   arg2 <- which(OHE == "runs = int(sys.argv[2L])")
   arg3 <- which(OHE == "output_filename = sys.argv[3L]")
@@ -172,7 +172,7 @@ if (runPepper) {
   bstParam$output_file <- dtstNm
   #
   # Create model, using our own dataset and the above hypertuned parameters
-  TrCoeff <- readLines(paste0(PepScrptsDir, "/peptide_coefficient_predictor.py"))
+  TrCoeff <- readr::read_lines(paste0(PepScrptsDir, "/peptide_coefficient_predictor.py"))
   
   # Parameters from train_models.sh"
   w <- which(TrCoeff %in% c("parser = argparse.ArgumentParser()", "args = parser.parse_args()", "print(args)"))
@@ -276,7 +276,7 @@ if (runPepper) {
   #################################################
   #
   OHfl <- paste0(pepDir, "/OneHotEncodedPepQuants_Full.tsv")
-  OHE <- readLines(paste0(PepScrptsDir, "/onehot_encode_peptide_sequences.py"))
+  OHE <- readr::read_lines(paste0(PepScrptsDir, "/onehot_encode_peptide_sequences.py"))
   arg1 <- which(OHE == "input_filename = sys.argv[1L]")
   arg2 <- which(OHE == "runs = int(sys.argv[2L])")
   arg3 <- which(OHE == "output_filename = sys.argv[3L]")
@@ -291,7 +291,7 @@ if (runPepper) {
   #
   # Edit and run coefficients predictor transfer script
   #####################################################
-  TrsfrCoeff <- readLines(paste0(PepScrptsDir, "/peptide_coefficient_predictor_transfer.py"))
+  TrsfrCoeff <- readr::read_lines(paste0(PepScrptsDir, "/peptide_coefficient_predictor_transfer.py"))
   # Parameters from train_models.sh"
   w <- which(TrsfrCoeff %in% c("parser = argparse.ArgumentParser()", "args = parser.parse_args()", "print(args)"))
   TrsfrCoeff[w] <- ""

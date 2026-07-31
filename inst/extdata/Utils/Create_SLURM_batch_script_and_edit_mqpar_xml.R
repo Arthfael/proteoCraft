@@ -154,7 +154,7 @@ msg <- "Select the MaxQuant parameters file to edit"
 xmlnm <- rstudioapi::selectFile(msg,
                                 path = "D:\\groups_temp\\mqpar.xml",
                                 filter = "XML file (*.xml)")
-xml <- readLines(xmlnm)
+xml <- readr::read_lines(xmlnm)
 xmlnm <- basename(xmlnm)
 xmlmqvers <- unlist(strsplit(grep("maxQuantVersion", xml, value = TRUE), "> ?| ?<"))[3]
 #

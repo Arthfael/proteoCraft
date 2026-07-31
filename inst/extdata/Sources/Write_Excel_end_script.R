@@ -2,7 +2,7 @@
 sheetnm <- "Quality control"
 sheetnmsA <- unique(c(sheetnmsA, sheetnm))
 if (sheetnm %in% wb_get_sheet_names(WorkBook)) { WorkBook <- wb_remove_worksheet(WorkBook, sheetnm) }
-WorkBook <- wb_add_worksheet(WorkBook, sheetnm)
+WorkBook <- wb_add_worksheet(WorkBook, sheetnm, grid_lines = FALSE)
 dimsA <- wb_dims(2L, 2L)
 WorkBook <- wb_add_data(WorkBook, sheetnm, "Summary plots and tables", dimsA)
 stl <- wb_get_cell_style(WorkBook, "tmp", wb_dims(match("Header 1", styleNms), 1L))
@@ -90,6 +90,9 @@ WorkBook <- wb_add_data_table(WorkBook, sheetnm, AA_biases,
                               table_name ="Modifications", first_column = TRUE, banded_rows = TRUE)
 #wb_save(WorkBook, repFl);xl_open(repFl)
 #
+if ("tmp" %in% wb_get_sheet_names(WorkBook)) {
+  WorkBook <- wb_remove_worksheet(WorkBook, "tmp")
+}
 tmp <- setNames(wb_get_order(WorkBook), wb_get_sheet_names(WorkBook))
 mdpptbs <- grep("-mod. pept.$", names(tmp), value = TRUE)
 nms <- c("Protein groups",
@@ -99,22 +102,72 @@ nms <- c("Protein groups",
          mdpptbs,
          "Description",
          "Quality control")
-if ("tmp" %in% names(tmp)) { nms <- c(nms, "tmp") } # For when re-running/debugging
-nms <- nms[which(nms %in% names(tmp))]
+nms <- intersect(nms, names(tmp))
 tmp <- tmp[nms]
 tmp <- tmp[which(!is.na(tmp))]
 names(tmp) <- NULL
 WorkBook <- wb_set_order(WorkBook, tmp)
 dflt <- c("Protein groups", mdpptbs, "All peptidoforms")
-dflt <- dflt[which(dflt %in% nms)][1L]
-nms <- wb_get_sheet_names(WorkBook)
-WorkBook <- wb_set_selected(WorkBook, dflt)
-WorkBook <- wb_set_active_sheet(WorkBook, dflt)
+dflt <- intersect(dflt, nms)[1L]
+# This bit isn't currently working (report asap to Jan!)
+m <- match(dflt, nms)
+WorkBook <- wb_set_selected(WorkBook, m)
+WorkBook <- wb_set_active_sheet(WorkBook, m)
 WorkBook <- wb_set_base_font(WorkBook, 11L, font_name = "Calibri")
 #
-if ("tmp" %in% wb_get_sheet_names(WorkBook)) { WorkBook <- wb_remove_worksheet(WorkBook, "tmp") }
 #
-cat("   ---> Writing table...\n")
+cat("    ---> writing table...\n")
 wb_save(WorkBook, repFl)
-cat("        Done!\n")
+#xl_open(repFl)
+#
+# Edit .xlsx (for the bits which openxlsx2 cannot handle well at the moment - or rather which I haven't yet figured out how to make it do!)
+# - Unzip
+cat("         final edits...\n")
+dr <- paste0(wd, "/_unzipped")
+unzip(repFl, exdir = dr)
+# - Introduce new lines in column headers + fix selected and default tabs
+library(xml2)
+main <- paste0(dr, "/xl/workbook.xml")
+doc <- read_xml(main)
+ns <- xml_ns(doc)
+sheets <- xml_find_all(doc, ".//d1:sheets/d1:sheet", ns)
+nms <- xml_attr(sheets, "name")
+sheetVis <- as.character(nms) == dflt
+xml_attr(sheets, "tabSelected") <- NULL # Remove tabSelected from every sheet
+idx <- match(dflt, nms) # Select desired sheet
+xml_attr(sheets[[idx]], "tabSelected") <- "1"
+# Set activeTab
+view <- xml_find_first(doc, ".//d1:workbookView", ns)
+xml_attr(view, "activeTab") <- as.character(idx - 1L)
+# Write back
+write_xml(doc, main)
+#cat(tmp)
+#
+xmlFls <- list.files(dr, "\\.xml$", recursive = TRUE, full.names = TRUE)
+xmlDat <- setNames(lapply(xmlFls, readLines, encoding = "UTF-8"),
+                   xmlFls)
+w1 <- which(vapply(xmlFls, \(fl) {
+  any(grepl("///((VS)|(NL))///", xmlDat[[fl]]))
+}, TRUE))
+w2 <- which(xmlFls %in% paste0(dr, "/xl/worksheets/sheet", as.character(which(!sheetVis)), ".xml"))
+w <- union(w1, w2)
+for (fl in xmlFls[w1]) { #fl <- xmlFls[w1][1L]
+  xmlDat[[fl]] <- gsub(" ///NL///", " &#10;",
+                       gsub("///VS/// ", "/&#10;", xmlDat[[fl]]))
+}
+for (fl in xmlFls[w2]) { #fl <- xmlFls[w2][1L]
+  xmlDat[[fl]] <- sub("tabSelected=\"1\"", "tabSelected=\"0\"", xmlDat[[fl]])
+}
+for (fl in xmlFls[w]) {
+  writeLines(enc2utf8(xmlDat[[fl]]), fl, useBytes = TRUE)
+}
+# - Save
+setwd(dr)
+fls <- list.files(".", recursive = TRUE, all.files = TRUE)
+zip(zipfile = repFl,
+    files = fls)
+setwd(wd)
+# Final report
 xl_open(repFl)
+cat("        Done!\n")
+shell(paste0("RMDIR /S /Q \"", dr, "\""), mustWork = FALSE)

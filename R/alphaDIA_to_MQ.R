@@ -101,7 +101,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   stopifnot("run" %in% colnames(alphaDIA))
   log_Fl <- paste0(dirname(alphaDIA_fl), "/log.txt")
   if (file.exists(log_Fl)) { 
-    log <- readLines(log_Fl)
+    log <- readr::read_lines(log_Fl)
     gP <- grep("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: +├──", log) # All parameter groups
     gA <- grep("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: +├──raw_paths:", log)
     gB <- vapply(gA, \(x) { min(gP[which(gP > x)]) }, 1L)

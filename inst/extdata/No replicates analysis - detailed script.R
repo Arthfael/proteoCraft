@@ -1847,7 +1847,7 @@ source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
 #### Code chunk - Coverage maps for proteins of interest
-Src <- paste0(libPath, "/extdata/Sources/noRep_protPlots.R")
+Src <- paste0(libPath, "/extdata/Sources/protPlots.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 

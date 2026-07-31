@@ -1,5 +1,5 @@
 # Start writing Materials and Methods
-if (ProcessedByUs) { cat("Writing Materials & Methods template...\n") }
+if (ProcessedByUs) { cat("Materials & Methods: prompting user for information...\n") }
 #
 # 1) Wet lab
 if (scrptType == "noReps") { nr <- nrow(SamplesMap) }

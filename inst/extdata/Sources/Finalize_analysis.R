@@ -252,7 +252,7 @@ if (ok2Deliver&&dataDeliveryOk) {
 if (scrptType == "withReps") { sink(NULL, type = "message") }
 #close(logcon)
 rm(list = ls()[which(!ls() %in% .obj)])
-Script <- readLines(ScriptPath)
+Script <- readr::read_lines(ScriptPath)
 gc()
 invisible(parLapply(parClust, 1L:N.clust, \(x) { rm(list = ls());gc() }))
 rm(ReportCalls) # Temporary fix until I figure out how to fix the grphtype bug - I thought I had

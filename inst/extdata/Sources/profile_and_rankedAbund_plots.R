@@ -386,11 +386,11 @@ if (runRankAbundPlots || runProfPlots) {
   if (runRankAbundPlots) {
     whAb <- 1L:nrow(samplesDF1)
     for (quantType in QuantTypes) { #quantType <- QuantTypes[1L]
-      w1 <- whAb[which((samplesDF$type[whAb] == "PG")&(samplesDF$QuantType[whAb] == quantType)&(samplesDF$subtype[whAb] == "All"))]
+      w1 <- whAb[which((samplesDF$type[whAb] == "PG") & (samplesDF$QuantType[whAb] == quantType) & (samplesDF$subtype[whAb] == "All"))]
       ggQuantLy[[quantType]] <- setNames(tmPlots[w1], samplesDF$values[w1])
     }
     for (quantType in pepQuantTypes) { #quantType <- pepQuantTypes[1L]
-      w2 <- whAb[which((samplesDF$type[whAb] == "pep")&(samplesDF$QuantType[whAb] == quantType)&(samplesDF$subtype[whAb] == "All"))]
+      w2 <- whAb[which((samplesDF$type[whAb] == "pep") & (samplesDF$QuantType[whAb] == quantType) & (samplesDF$subtype[whAb] == "All"))]
       ggQuantLy[[paste0("peptides ", quantType)]] <- setNames(tmPlots[w2], samplesDF$values[w2])
     }
     saveFun(ggQuantLy, file = paste0(MainDir, "/quantPlots.RData"))
@@ -399,13 +399,13 @@ if (runRankAbundPlots || runProfPlots) {
     whPr <- 1L:nrow(samplesDF2)
     # Profile plots
     for (quantType in QuantTypes) { #quantType <- QuantTypes[1L]
-      w1 <- whPr[which((samplesDF2$type[whPr] == "PG")&(samplesDF2$QuantType[whPr] == quantType)&(samplesDF2$subtype[whPr] == "All"))]
+      w1 <- whPr[which((samplesDF2$type[whPr] == "PG") & (samplesDF2$QuantType[whPr] == quantType) & (samplesDF2$subtype[whPr] == "All"))]
       w1 <- w1 + nrow(samplesDF_Lst$ranked)
       stopifnot(length(w1) == 1L)
       ggProfLy[[quantType]] <- tmPlots[[w1]]
     }
     for (quantType in pepQuantTypes) { #quantType <- pepQuantTypes[1L]
-      w2 <- whPr[which((samplesDF2$type[whPr] == "pep")&(samplesDF2$QuantType[whPr] == quantType)&(samplesDF2$subtype[whPr] == "All"))]
+      w2 <- whPr[which((samplesDF2$type[whPr] == "pep") & (samplesDF2$QuantType[whPr] == quantType) & (samplesDF2$subtype[whPr] == "All"))]
       w2 <- w2 + nrow(samplesDF_Lst$ranked)
       lw2 <- length(w2)
       stopifnot(lw2 <= 1L)

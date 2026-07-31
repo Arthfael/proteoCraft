@@ -25,7 +25,7 @@ tmp2 <- tmp2[order(ev$id, decreasing = FALSE),]
 tmpFl1 <- tempfile(fileext = ".rds")
 tmpFl2 <- tempfile(fileext = ".rds")
 xprts <- list("tmpFl1", "tmpFl2", "mtchCol")
-if (exists("scrptType")) { xprts <- append(xprts, , "scrptType") }
+if (exists("scrptType")) { xprts <- append(xprts, "scrptType") }
 clusterExport(parClust, xprts, envir = environment())
 readr::write_rds(tmp_EM, tmpFl1)
 readr::write_rds(tmp2, tmpFl2)

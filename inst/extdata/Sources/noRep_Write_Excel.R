@@ -2,43 +2,53 @@
 # Create output Excel tables #
 ##############################
 #
+# Version for script without replicates
+#
 # Write the main peptidoforms- and protein groups-level, multi-tabs report.
 #
 # Create openxlsx2 styles
-#   It may make sense from the way Excel works, but I HATE how openxlsx2 deals with styles!
+#   It may make more sense from the way Excel works, but I HATE how openxlsx2 deals with styles!
+#   This is not a statement on openxlsx2 or Jan Marvin, which are both awesome!
+#   But the one thing I preferred in openxlsx over openxlsx2 was how it dealt with style.
 #   Anyway... 
 #   So. We will. CHEAT!
 #   I have saved a dummy tab with my old openxlsx styles,
 #   which I will load in openxlsx2 to get and copy the styles from.
-intNms <- \(nms, topLvl = FALSE, type = "PG") {
+intNms <- \(nms, topLvl = FALSE, type = "PG", newLine = FALSE) {
   m <- match(type, c("pep", "PG"))
   root <- c("Intensity", "Expression")[m]
   mode <- topLvl+1L
-  sapply(nms, \(nm) {
+  vapply(nms, \(nm) {
     if (nm %in% c("Original", "Intensity", "Expression", "Original int.", "Intensity int.", "Expression int.")) {
       nm <- c(c("int.", "expr.")[m], root)[mode]
     } else {
-      nm <- if (tolower(gsub("-", "", nm)) %in% c("renorm.", "renorm. int.", "renormalized", "renormalized int.")) {
-        "re-norm"
-      } else { substr(nm, 1L, min(c(3L, nchar(nm)))) }
+      nmTst <- tolower(gsub("-|\\.", "", nm))
+      nm <- if (grepl("((re)|(back))norm", nmTst)) {
+        "re-norm" 
+      } else { tolower(substr(nm, 1L, min(c(3L, nchar(nm))))) }
       nm <- paste0(nm, ". ", c(c("int.", "expr.")[m], root)[mode])
     }
-    paste0("log10(", nm, ")")
-  })
+    nm <- paste0("log10(", nm, ")")
+    if (newLine) { nm <- paste0(nm, " ///NL///") }
+    return(nm)
+  }, "")
 }
-ratNms <- \(nms, topLvl = FALSE) {
+ratNms <- \(nms, topLvl = FALSE, newLine = FALSE) {
   mode <- topLvl+1L
-  sapply(nms, \(nm) {
+  vapply(nms, \(nm) {
     if (nm %in% c("Original", "Ratios", "Original rat.", "Ratios rat.")) {
       nm <- c("rat.", "Ratio")[mode]
     } else {
-      nm <- if (tolower(gsub("-", "", nm)) %in% c("renorm.", "renorm. rat.", "renormalized", "renormalized rat.")) {
+      nmTst <- tolower(gsub("-|\\.", "", nm))
+      nm <- if (grepl("((re)|(back))norm", nmTst)) {
         "re-norm"
-      } else { substr(nm, 1L, min(c(3L, nchar(nm)))) }
+      } else { tolower(substr(nm, 1L, min(c(3L, nchar(nm))))) }
       nm <- paste0(nm, ". ", c("rat.", "ratios")[mode])
     }
     paste0("log2(", nm, ")")
-  })
+    if (newLine) { nm <- paste0(nm, " ///NL///") }
+    return(nm)
+  }, "")
 }
 for (nm in names(int.cols)) { #nm <- names(int.cols)[1L]
   rpl <- intNms(nm, type = "pep")
@@ -101,8 +111,8 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
     m <- match(intTbl[[nm]]$Log, KolNames)
     w <- which(!is.na(m))
     if (length(w)) {
-      rpl <- intNms(nm, type = "pep")
-      KolNames[m[w]] <- paste0(rpl, " ", intTbl[[nm]]$Sample[w])
+      rpl <- intNms(nm, type = "pep", newLine = TRUE)
+      KolNames[m[w]] <- paste0(rpl, intTbl[[nm]]$Sample[w])
     }
   }
   if (MakeRatios) {
@@ -110,8 +120,8 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
       m <- match(ratTbl[[nm]]$Log, KolNames)
       w <- which(!is.na(m))
       if (length(w)) {
-        rpl <- ratNms(nm)
-        KolNames[m[w]] <- paste0(rpl, " ", ratTbl[[nm]]$Sample[w])
+        rpl <- ratNms(nm, newLine = TRUE)
+        KolNames[m[w]] <- paste0(rpl, ratTbl[[nm]]$Sample[w])
       }
     }
     KolNames <- gsub("^Enriched", "Enr.", KolNames)
@@ -333,15 +343,15 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   KolNames <- gsub("Peptides?", "Pep.", KolNames)
   KolNames <- gsub("Evidences?", "PSMs", KolNames)
   KolNames <- gsub("Spectr((al)|(um))", "Spec.", KolNames)
-  KolNames <- gsub("Razor", "Raz.", KolNames)
+  #KolNames <- gsub("Razor", "Raz.", KolNames)
   KolNames <- gsub("Unique", "Uniq.", KolNames)
   KolNames <- gsub("MS/MS", "MS2", KolNames)
   for (nm in names(intTbl)) { #nm <- names(intTbl)[1L] #nm <- names(intTbl)[2L]
     m <- match(intTbl[[nm]]$Log, KolNames)
     w <- which(!is.na(m))
     if (length(w)) {
-      rpl <- intNms(nm)
-      KolNames[m[w]] <- paste0(rpl, " ", intTbl[[nm]]$Sample[w])
+      rpl <- intNms(nm, newLine = TRUE)
+      KolNames[m[w]] <- paste0(rpl, intTbl[[nm]]$Sample[w])
     }
   }
   if (!missing("ratTbl")) { # Actually, should never be missing in this workflow!
@@ -349,8 +359,8 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
       m <- match(ratTbl[[nm]]$Log, KolNames)
       w <- which(!is.na(m))
       if (length(w)) {
-        rpl <- ratNms(nm)
-        KolNames[m[w]] <- paste0(rpl, " ", ratTbl[[nm]]$Sample[w])
+        rpl <- ratNms(nm, newLine = TRUE)
+        KolNames[m[w]] <- paste0(rpl, ratTbl[[nm]]$Sample[w])
       }
     }
     KolNames <- gsub(".*Regulated - ", "reg. ", KolNames)

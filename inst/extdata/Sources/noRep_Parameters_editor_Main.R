@@ -1155,6 +1155,11 @@ if (prot.list.Cond) {
   }
   prot.names %<o% names(IDs.list)
   db$"Potential contaminant"[which(db$`Protein ID` %in% prot.list)] <- ""
+  #
+  temp <- db[which(db$`Protein ID` %in% prot.list),]
+  writeFasta(temp, intPrtFst)
+  AnalysisParam$"Proteins list: proteins" <- IDs.list
+  AnalysisParam$"Proteins list: names" <- prot.names
 }
 if (runClueGO && (!enrichGO)) { runClueGO <- FALSE }
 #
@@ -1174,13 +1179,6 @@ if (custPGsTst) {
     custPGs <- NA
   }
 } else { custPGs %<o% NA }
-#
-if (prot.list.Cond) {
-  temp <- db[which(db$`Protein ID` %in% prot.list),]
-  writeFasta(temp, paste0(wd, "/Proteins of interest.fasta"))
-  AnalysisParam$"Proteins list: proteins" <- IDs.list
-  AnalysisParam$"Proteins list: names" <- prot.names
-}
 
 # GO terms of interest (for profile plots, LFQ plots and similar, GO-specific tabs...)
 GO_filt %<o% FALSE

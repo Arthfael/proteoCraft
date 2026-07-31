@@ -34,16 +34,16 @@ if (tblMode == "PG") {
 for (l in LS) { if (!exists(l)) { assign(l, list()) } }
 sheetnmsA <- names(xlTabs)
 sheetnmsB <- sheetnmsA[which(!sheetnmsA %in% c("Description", "Quality control"))]
-cat(paste0("   Building ", tblMode2, " tab...\n"))
+cat(paste0("    - Building ", tblMode2, " tab...\n"))
 if (tblMode == "pep") {
-  nms <- intNms(names(intRf), TRUE, "pep")
+  nms <- sub(" ///NL///$", "", intNms(names(intRf), TRUE, "pep"))
   if (MakeRatios) {
     nms <- c(nms, ratNms(names(ratRf), TRUE))
   }
   datCol <- ColumnsTbl$Col[unique(which(ColumnsTbl$Class %in% nms))]
 }
 if (tblMode == "PG") {
-  nms <- intNms(names(intColsTbl), TRUE)
+  nms <- sub(" ///NL///$", "", intNms(names(intColsTbl), TRUE))
   if ((MakeRatios)&&(!is.null(ratRf))) {
     nms <- c(nms, ratNms(names(ratColsTbl), TRUE))
   }
@@ -65,7 +65,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   #
   if (!sheetnm %in% names(data_filt)) { data_filt[[sheetnm]] <- 1L:nrow(tempData) }
   if (!sheetnm %in% names(data_order)) { data_order[[sheetnm]] <- 1L:length(data_filt[[sheetnm]]) }
-  #WorkBook <- wb_add_worksheet(WorkBook, sheetnm)
+  #WorkBook <- wb_add_worksheet(WorkBook, sheetnm, grid_lines = FALSE)
   #saveFun(WorkBook, file = "WorkBook_bckp.RData")
   #
   # For testing:
@@ -123,7 +123,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   nRws <- nrow(myData)
   nCol <- ncol(myData)
   tblRws <- c(1L, nRws)
-  hdRg <- c(1L, 2L)
+  hdRg <- 1L:2L
   tblRws <- tblRws + 2L
   # Round PEPs, we don't need all of those zeros!!!
   if ("PEP" %in% colnames(myData)) { myData$PEP <- round(myData$PEP, 6L) }
@@ -136,10 +136,12 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   }
   #
   if (sheetnm %in% wb_get_sheet_names(WorkBook)) { WorkBook <- wb_remove_worksheet(WorkBook, sheetnm) }
-  WorkBook <- wb_add_worksheet(WorkBook, sheetnm)
-  #WB <- openxlsx2::wb_remove_worksheet(WB, sheetnm);WB <- openxlsx2::wb_add_worksheet(WB, sheetnm)
+  WorkBook <- wb_add_worksheet(WorkBook,
+                               sheetnm,
+                               grid_lines = FALSE)
+  #WB <- openxlsx2::wb_remove_worksheet(WB, sheetnm);WB <- openxlsx2::wb_add_worksheet(WB, sheetnm, grid_lines = FALSE)
   #
-  #WB <- openxlsx2::wb_load(fl);WB <- openxlsx2::wb_add_worksheet(WB, sheetnm)
+  #WB <- openxlsx2::wb_load(fl);WB <- openxlsx2::wb_add_worksheet(WB, sheetnm, grid_lines = FALSE)
   #
   tblNm <- tolower(gsub(" |\\$|\\.|-", "_", sheetnm))
   dims <- openxlsx2::wb_dims(rows = hdRg[2L], cols = 1L)
@@ -161,6 +163,10 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
                                            table_style = "TableStyleMedium2",
                                            banded_rows = TRUE,
                                            banded_cols = FALSE)
+  WorkBook <- openxlsx2::wb_add_cell_style(WorkBook,
+                                           sheetnm,
+                                           wb_dims(rows = hdRg[2L], cols = 1L:ncol(dummyData)),
+                                           wrap_text = TRUE)
   #wb_save(WorkBook, paste0(wd, "/tst.xlsx"));xl_open(paste0(wd, "/tst.xlsx"))
   #
   # Attempt to override the banding in the data columns,
@@ -210,9 +216,13 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   if (tblMode != "SAINTexpress") {
     if (Annotate) { kl <- c(kl, annot.col2) }
   }
+  w <- grep("Significant", xlTabs[[sheetnm]])
+  if (length(w)) { WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, w, 13L) }
   w <- unique(c(which(xlTabs[[sheetnm]] %in% kl),
                 grep("Regulated - ", xlTabs[[sheetnm]]))) # Specific columns
   if (length(w)) { WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, w, 15L) }
+  w <- which(xlTabs[[sheetnm]] == "Modified sequence_verbose")
+  if (length(w)) { WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, w, 18L) }
   #
   if (tblMode == "PG") {
     w <- which(xlTabs[[sheetnm]] %in% xmlCovCol)
@@ -266,7 +276,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
                                               sheetnm,
                                               hdRg,
                                               c(max(c(30L, min(c(ceiling(max(nchar(tstKol$Group))/20)*10L, 45L)))),
-                                                max(c(60L, min(c(ceiling(max(nchar(tmpKol2))/10)*20L, 180L))))))
+                                               80L))
   }
   # Freeze panes
   m <- match(CoreCol, xlTabs[[sheetnm]])

@@ -7,7 +7,7 @@ warning("As of August 2025, the main scripts can now handle an arbitrary number 
 
 require(rstudioapi)
 require(data.table)
-try(setDTthreads(threads = parallel::detectCores()-1), silent = TRUE)
+try(setDTthreads(threads = parallel::detectCores()-1L), silent = TRUE)
 
 
 dflt <- "C:"
@@ -33,87 +33,87 @@ setwd(dstDir)
 
 # Parse and edit calls to create a fake .log.txt
 dirs <- logFls <- logs <- calls <- list()
-for (i in 1:2) { #i <- 1
+for (i in 1L:2L) { #i <- 1L
   nm <- paste0("DiaNN", i)
   dirs[[nm]] <- get(paste0("dir", i))
   logFls[[nm]] <- get(paste0("fl", i, "lg"))
-  tmp <- readLines(logFls[[nm]])
+  tmp <- readr::read_lines(logFls[[nm]])
   logs[[nm]] <- tmp
-  tmp <- grep("^ *diann\\.exe ", tmp, value = TRUE)[1]
+  tmp <- grep("^ *diann\\.exe ", tmp, value = TRUE)[1L]
   tmp <- unlist(strsplit(tmp, " +--"))
-  tmp <- tmp[2:length(tmp)]
+  tmp <- tmp[2L:length(tmp)]
   tmp <- strsplit(tmp, " +")
   l <- sapply(tmp, length)
-  tmp[which(l == 1)] <- lapply(tmp[which(l == 1)], function(x) { c(x, "") })
-  tmp <- data.frame(Arg = sapply(tmp, function(x) { x[[1]] }),
-                    Val = sapply(tmp, function(x) { x[[2]] }))
+  tmp[which(l == 1L)] <- lapply(tmp[which(l == 1L)], \(x) { c(x, "") })
+  tmp <- data.frame(Arg = vapply(tmp, `[[`, "", 1L),
+                    Val = vapply(tmp, `[[`, "", 2L))
   calls[[nm]] <- tmp
 }
-files <- unique(unlist(lapply(paste0("DiaNN", 1:2), function(nm) {
+files <- unique(unlist(lapply(paste0("DiaNN", 1L:2L), \(nm) {
   tmp <- calls[[nm]]
   tmp$Val[which(tmp$Arg == "f")]
 })))
-fastas <- unique(unlist(lapply(paste0("DiaNN", 1:2), function(nm) {
+fastas <- unique(unlist(lapply(paste0("DiaNN", 1L:2L), \(nm) {
   tmp <- calls[[nm]]
   tmp$Val[which(tmp$Arg == "fasta")]
 })))
-fastas <- fastas[which(nchar(fastas) > 0)]
-libs <- unique(unlist(lapply(paste0("DiaNN", 1:2), function(nm) {
+fastas <- fastas[which(nchar(fastas) > 0L)]
+libs <- unique(unlist(lapply(paste0("DiaNN", 1L:2L), \(nm) {
   tmp <- calls[[nm]]
   tmp$Val[which(tmp$Arg == "lib")]
 })))
-libs <- libs[which(nchar(libs) > 0)]
-varmods <- unique(unlist(lapply(paste0("DiaNN", 1:2), function(nm) {
+libs <- libs[which(nchar(libs) > 0L)]
+varmods <- unique(unlist(lapply(paste0("DiaNN", 1L:2L), \(nm) {
   tmp <- calls[[nm]]
   tmp$Val[which(tmp$Arg == "var-mod")]
 })))
-reports <- setNames(lapply(paste0("DiaNN", 1:2), function(nm) {
+reports <- setNames(lapply(paste0("DiaNN", 1L:2L), \(nm) {
   tmp <- calls[[nm]]
   tmp <- tmp$Val[which(tmp$Arg == "out")]
   gsub("\\\\", "/", tmp)
-}), paste0("DiaNN", 1:2))
-FDRs <- as.numeric(unique(unlist(sapply(paste0("DiaNN", 1:2), function(nm) {
+}), paste0("DiaNN", 1L:2L))
+FDRs <- as.numeric(unique(unlist(sapply(paste0("DiaNN", 1L:2L), \(nm) {
   tmp <- calls[[nm]]
   tmp$Val[which(tmp$Arg == "qvalue")]
 }))))
-if (length(FDRs) > 1) { warning("Do we really want to combine datasets at different FDRs?!") }
+if (length(FDRs) > 1L) { warning("Do we really want to combine datasets at different FDRs?!") }
 
 # Create fake DiaNN-like call to put into a fake log.txt file
-call <- calls[[1]]
+call <- calls[[1L]]
 call$Val[which(call$Arg == "out")] <- gsub("/", "\\\\",paste0(dstDir, "/report.tsv"))
 call$Val[which(call$Arg == "call")] <- ""
 wf <- which(call$Arg == "f")
-wbf <- 1:(min(wf)-1)
-waf <- 1:nrow(call)
+wbf <- 1L:(min(wf)-1L)
+waf <- 1L:nrow(call)
 waf <- waf[which(!waf %in% c(wf, wbf))]
 call <- rbind(call[wbf, ],
               data.frame(Arg = "f", Val = files),
               call[waf,])
 wf <- which(call$Arg == "fasta")
-wbf <- 1:(min(wf)-1)
-waf <- 1:nrow(call)
+wbf <- 1L:(min(wf)-1L)
+waf <- 1L:nrow(call)
 waf <- waf[which(!waf %in% c(wf, wbf))]
 call <- rbind(call[wbf, ],
               data.frame(Arg = "fasta", Val = fastas),
               call[waf,])
 wf <- which(call$Arg == "var-mod")
-wbf <- 1:(min(wf)-1)
-waf <- 1:nrow(call)
+wbf <- 1L:(min(wf)-1L)
+waf <- 1L:nrow(call)
 waf <- waf[which(!waf %in% c(wf, wbf))]
 call <- rbind(call[wbf, ],
               data.frame(Arg = "var-mod", Val = varmods),
               call[waf,])
-Call <- paste0("diann.exe ", paste(paste0(" --", apply(call, 1, function(x) {
+Call <- paste0("diann.exe ", paste(paste0(" --", apply(call, 1L, \(x) {
   x <- unlist(x)
   x <- x[which(x != "")]
-  if (length(x) > 1) { x <- paste(x, collapse = " ") }
+  if (length(x) > 1L) { x <- paste(x, collapse = " ") }
   return(x)
 })), collapse = ""))
 Call <- gsub(" --lib --", " --", Call)
 Call <- gsub(" --fasta --", " --", Call)
 tmp <- as.data.frame(t(sapply(strsplit(gsub("^var-mod UniMod:", "", varmods), ","), unlist)))
-tmp <- apply(tmp, 1, function(x) {
-  paste0("Modification ", x[[1]], " with mass delta ", x[[2]], " at ", x[[3]], " will be considered as variable")
+tmp <- apply(tmp, 1L, \(x) {
+  paste0("Modification ", x[[1L]], " with mass delta ", x[[2L]], " at ", x[[3L]], " will be considered as variable")
 })
 Call <- c(Call, tmp)
 Call <- c(Call, paste0("Output will be filtered at ", gsub("^qvalue +", "", min(FDRs)), " FDR"))
@@ -122,7 +122,7 @@ write(Call, paste0(dstDir, "/report.log.txt")) # Fake DiaNN log with just the mi
 
 # Process reports and created single merged one
 PSMs <- list()
-for (i in 1:2) { #i <- 1 #i <- 2
+for (i in 1L:2L) { #i <- 1L #i <- 2L
   nm <- paste0("DiaNN", i)
   tmp <- reports[[nm]]
   tmp2 <- gsub("/[^/]+$", "", tmp)
@@ -136,11 +136,11 @@ for (i in 1:2) { #i <- 1 #i <- 2
   #fls$Exist <- file.exists(fls$Original)
   PSMs[[nm]] <- list(Table = tmp2, PSMs_file = tmp)
 }
-lapply(PSMs, function(x) { unique(x$Table$File.Name) })
-PSMsTbls <- lapply(PSMs, function(x) { x$Table })
+lapply(PSMs, \(x) { unique(x$Table$File.Name) })
+PSMsTbls <- lapply(PSMs, \(x) { x$Table })
 allPSMs <- plyr::rbind.fill(PSMsTbls)
 unique(allPSMs$File.Name)
-tst <- aggregate(1:nrow(allPSMs), list(allPSMs$File.Name), length)
+tst <- aggregate(1L:nrow(allPSMs), list(allPSMs$File.Name), length)
 tst$Group.1 <- gsub(".*\\\\", "", tst$Group.1)
 colnames(tst) <- c("File", "PSMs")
 View(tst)

@@ -38,7 +38,7 @@ docsPath <- normalizePath(Sys.getenv("HOME"), winslash = "/")
 if (grepl("^~", lockFl)) { lockFl <- gsub("^~", docsPath, lockFl) }
 #
 # Check that the R version you are running is the same as that in the lock file!
-tmp1 <- readLines(lockFl)
+tmp1 <- readr::read_lines(lockFl)
 tmp1 <- tmp1[grep("\"R\": *\\{", tmp1)+1L]
 tmp1 <- gsub(" *\"Version\": *\"|\" *,.*", "", tmp1)
 tmp2 <- version

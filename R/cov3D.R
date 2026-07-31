@@ -60,8 +60,8 @@ cov3D <- function(pdb,
   stopifnot(!misFun(pdb),
             !misFun(peptides))
   #
-  #pdb <- readLines(pdb)
-  if ((length(pdb) == 1L) && file.exists(pdb)) { pdb <- readLines(pdb) }
+  #pdb <- readr::read_lines(pdb)
+  if ((length(pdb) == 1L) && file.exists(pdb)) { pdb <- readr::read_lines(pdb) }
   model <- pdb[grep("^ATOM ", pdb)[1L]:length(pdb)]
   #nm <- gsub("^TITLE +| +$", "", grep("^TITLE +", pdb, value = TRUE)[1L])
   no <- grep("^ATOM ", model, invert = TRUE)

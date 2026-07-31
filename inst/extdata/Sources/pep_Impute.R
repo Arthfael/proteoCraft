@@ -46,5 +46,5 @@ if (Impute) {
   pep[, colnames(temp2)] <- temp2
   pep.ref["Imputation"] <- paste0("imput. ", pep.ref["Original"])
   rm(list = ls()[which(!ls() %in% .obj)])
-  Script <- readLines(ScriptPath)
+  Script <- readr::read_lines(ScriptPath)
 }

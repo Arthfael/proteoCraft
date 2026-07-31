@@ -668,7 +668,7 @@ Example: \"GO:0031012;2\"
   }
   ReportCalls <- AddSpace2Report()
   rm(list = ls()[which(!ls() %in% .obj)])
-  Script <- readLines(ScriptPath)
+  Script <- readr::read_lines(ScriptPath)
   gc()
   invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
   saveImgFun(BckUpFl)

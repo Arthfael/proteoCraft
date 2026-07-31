@@ -52,7 +52,9 @@ require(TeachingDemos)
 scrptPaths <- setNames(ScriptPath,
                        c("Replicates",
                          "No replicates")[match(scrptType, c("withReps", "noReps"))])
-WorkFlows %<o% eval(parse(text = gsub("^###-\\|-### *Workflows: *", "", grep("^###-\\|-### *Workflows: *", readLines(scrptPaths), value = TRUE))),
+WorkFlows %<o% eval(parse(text = gsub("^###-\\|-### *Workflows: *", "",
+                                      grep("^###-\\|-### *Workflows: *",
+                                           readr::read_lines(ScriptPath), value = TRUE))),
                     envir = .GlobalEnv)
 stopifnot(length(WorkFlows) > 0L) # This would mean that when ScriptPath was captured we had the wrong script open in the RStudio window!
 if (!RunByMaster) {
@@ -117,7 +119,7 @@ if (!RunByMaster) {
   SearchSoftware %<o% setNames(gsub(" ", "", toupper(tmp)), tmp)
   srchSoftOpt <- names(SearchSoftware)
   #
-  scriptPar <- readLines(ScriptPath)
+  scriptPar <- readr::read_lines(ScriptPath)
   scriptPar <- gsub("^###-\\|-### *", "", grep("^###-\\|-### *", scriptPar, value = TRUE))
   appNm <- "Start analysis"
   dtstNm2 <- gsub(":|\\*|\\?|<|>|\\||/", "-", dtstNm)

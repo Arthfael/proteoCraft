@@ -21,7 +21,7 @@ libKols <- colnames(lib)
 
 # Load DIA-NN parameters and identify fasta database used
 #require(proteoCraft)
-#DIANNparam <- readLines(paste0(wd, "/report.log.txt"))
+#DIANNparam <- readr::read_lines(paste0(wd, "/report.log.txt"))
 #DIANNcall <- grep("^diann.exe ", DIANNparam, value = TRUE)
 #fasta <- gsub("\\.fasta.+", ".fasta", unlist(strsplit(DIANNcall, "--fasta "))[2])
 #fasta <- normalizePath(fasta, winslash = "/")

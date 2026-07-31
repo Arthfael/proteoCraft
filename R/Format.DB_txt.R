@@ -64,7 +64,7 @@ Format.DB_txt <- function(txt,
   #txt = x
   Feat_isoRgx <- paste0("(", Feat_accRgx, ")(-[0-9]+)?")
   #
-  #txt <- readLines(AnnotFls)
+  #txt <- readr::read_lines(AnnotFls)
   misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
@@ -89,9 +89,9 @@ Format.DB_txt <- function(txt,
   N.clust <- length(cl)
   #
   # Detect whether txt is actually a path rather than the database already in environment. 
-  if ((length(txt) == 1L)&&(file.exists(txt))) {
+  if ((length(txt) == 1L) && file.exists(txt)) {
     cat(paste0("File path input detected, reading data at:\n", txt, "\n...\n"))
-    txt <- readLines(txt)
+    txt <- readr::read_lines(txt)
   }
   #
   G1 <- grep("^ID ", txt)
@@ -145,7 +145,7 @@ Format.DB_txt <- function(txt,
     tbl$Accession <- gsub("<->AC +|;\n$", "", gsub(";\n<->AC +", ";", tbl$Accession))
     tbl$Accession <- gsub("; +", ";", tbl$Accession)
     # The whole function takes long, sometimes we can take a shortcut:
-    if ((!is.null(filter))&&(!is.function(filter))) {
+    if ((!is.null(filter)) && (!is.function(filter))) {
       w <- which(vapply(strsplit(tbl$Accession, ";"), \(x) { sum(x %in% filter) > 0L }, TRUE))
       tbl <- tbl[w,]
       btch <- unlist(tbl$Text)

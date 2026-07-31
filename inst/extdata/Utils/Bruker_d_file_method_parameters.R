@@ -144,7 +144,7 @@ if (length(FILES)) {
   MS_method.exists <- file.exists(MS_method)
   w <- which(MS_method.exists)
   MS_meth <- setNames(lapply(MS_method[w], \(fl) { #fl <- MS_method[w[1]]
-    #x <- readLines(fl)
+    #x <- readr::read_lines(fl)
     #x[1:100]
     SQltTDF <- dbConnect(drv = RSQLite::SQLite(), dbname = fl)
     #Obj <- setNames(lapply(nms, \(nm) { suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", nm, "'"))) }), nms)

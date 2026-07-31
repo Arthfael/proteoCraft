@@ -14,7 +14,7 @@ dirlist %<o% c() # This should go!!!
 ScriptPath %<o% normalizePath(gtools::script_file(), winslash = "/")
 RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
 if (RunByMaster) { ScriptPath <- BehindTheScenes$ScriptFile }
-Script %<o% readLines(ScriptPath)
+Script %<o% readr::read_lines(ScriptPath)
 
 RPath %<o% as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
@@ -80,13 +80,13 @@ cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.ta
                      "Peptides", "xml2", "pdftools", "statmod", "ggpolypath", "venn", "gridExtra", "svDialogs", "htmlwidgets", "magrittr", "tibble",
                      "officer", "hexbin", "igraph", "matlib", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
                      "tidyr", "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "lmtest", "ssh", "taxize", "arrow", "PTMods",
-                     "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "plogr", "iq", "Rtsne"))
-bioc_req <- unique(c(bioc_req, "biomaRt", "GO.db", "UniProt.ws", "limma", "sva", "qvalue", "MSnbase", "DEP",
+                     "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "iq", "Rtsne", "DEP"))
+bioc_req <- unique(c(bioc_req, "biomaRt", "GO.db", "UniProt.ws", "limma", "sva", "qvalue", "MSnbase",
                      "Rgraphviz", "RCy3", "siggenes", "DEqMS", "limpa", "QFeatures", "pRoloc", "pRolocGUI", "rbioapi", "png", "Rhdf5lib"))
 inst <- as.data.frame(installed.packages())
 for (pack in cran_req) {
   if (!pack %in% inst$Package) {
-    if (pack %in% c("pak", "uchardet", "taxize")) {
+    if (pack %in% c("pak", "uchardet", "taxize", "DEP")) {
       # Exceptions where for now we want a specific version to be installed,
       # or have to help the installer so it finds the right location
       if (pack == "pak") {
@@ -103,6 +103,9 @@ for (pack in cran_req) {
       if (pack == "taxize") {
         pak::pak("ropensci/bold", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
         pak::pak("ropensci/taxize", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
+      }
+      if (pack == "DEP") {
+        pak::pak("arnesmits/DEP", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
       }
     } else {
       tst <- try(pak::pak(pack, ask = FALSE, upgrade = TRUE, dependencies = TRUE), silent = TRUE)
@@ -461,7 +464,7 @@ source(Src, local = FALSE)
 #View(pep[, grep(topattern(pep.ref[length(pep.ref)]), colnames(pep), value = TRUE)]) # Check final data visually
 
 rm(list = ls()[which(!ls() %in% .obj)])
-Script <- readLines(ScriptPath)
+Script <- readr::read_lines(ScriptPath)
 
 # Calculate peptide ratios - currently off
 makePepRat %<o% FALSE
@@ -600,7 +603,7 @@ kol <- c("Leading proteins", "Leading razor proteins", "Gene names", "Protein na
 ev[, kol] <- pep[match(ev$"Modified sequence", pep$"Modified sequence"), kol]
 
 rm(list = ls()[which(!ls() %in% .obj)])
-Script <- readLines(ScriptPath)
+Script <- readr::read_lines(ScriptPath)
 
 # Some more columns
 tmp <- strsplit(PG$"Leading protein IDs", ";")
@@ -1161,7 +1164,7 @@ if (useSAM) {
 }
 #
 rm(list = ls()[which(!ls() %in% .obj)])
-Script <- readLines(ScriptPath)
+Script <- readr::read_lines(ScriptPath)
 
 #### Code chunk - Prepare Annotations and (if applicable) GO terms
 # NB: I used to get functional annotations for all proteins in the protein group.
@@ -1178,7 +1181,7 @@ source(Src, local = FALSE)
 
 rm(list = ls()[which(!ls() %in% .obj)])
 invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
-Script <- readLines(ScriptPath)
+Script <- readr::read_lines(ScriptPath)
 
 #### Code chunk - ROC analysis
 Src <- paste0(libPath, "/extdata/Sources/ROC2.R")
@@ -1970,7 +1973,7 @@ if (exists("Tim")) {
 
 rm(list = ls()[which(!ls() %in% .obj)])
 invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
-Script <- readLines(ScriptPath)
+Script <- readr::read_lines(ScriptPath)
 
 #### Code chunk - Sub-Cellular localisation analysis
 # Includes:
@@ -2019,7 +2022,7 @@ Src <- paste0(libPath, "/extdata/Sources/rep_Summary.R")
 source(Src, local = FALSE)
 
 rm(list = ls()[which(!ls() %in% .obj)])
-Script <- readLines(ScriptPath)
+Script <- readr::read_lines(ScriptPath)
 
 #### Code chunk - XML coverage columns
 Src <- paste0(libPath, "/extdata/Sources/xml_Coverage_columns.R")
@@ -2029,7 +2032,7 @@ source(Src, local = FALSE)
 
 #### Code chunk - GO term columns
 GO_PG_col %<o% unique(unlist(strsplit(Param$GO.tabs, ";")))
-GO_filt %<o% length(GO_PG_col) > 0L
+GO_filt %<o% (length(GO_PG_col) > 0L)
 if (GO_filt) {
   if ((!exists("GO_terms"))&&(file.exists("GO_terms.RData"))) { loadFun("GO_terms.RData") }
   GO_PG_col <- intersect(GO_PG_col, GO_terms$ID)
@@ -2091,7 +2094,7 @@ source(xlSrc, local = FALSE)
 #xl_open(repFl)
 
 rm(list = ls()[which(!ls() %in% .obj)])
-Script <- readLines(ScriptPath)
+Script <- readr::read_lines(ScriptPath)
 source(parSrc, local = FALSE)#### Code chunk - Amica input tables
 # Write tables for Amica input:
 ## PG table
@@ -2168,7 +2171,7 @@ if (Param$Amica) {
     #data.table::fwrite(AmicTbl[1L:500L,], paste0(wd, "/Amica/Amica_file_short.csv"), row.names = FALSE, na = "NaN", quote = FALSE)
   })
   if (inherits(amicaTst, "try-error")) {
-    warning("Fix the Reference logic to allow writing Amica tables again!")
+    warning("Update this chunk to allow writing Amica tables again!")
   }
 }
 
@@ -2192,7 +2195,7 @@ if (inherits(vennTst, "try-error")) {
 protlspep <- prot.list_pep
 if (length(protlspep)) {
   test <- vapply(protlspep, \(i) { length(grsep2(i, PG$"Leading protein IDs")) }, 1L)
-  if (0 %in% test) {
+  if (0L %in% test) {
     w <- which(test == 0L)
     for (w1 in w) {
       m <- match(protlspep[w1], db$"Protein ID")
@@ -2202,191 +2205,17 @@ if (length(protlspep)) {
     protlspep <- protlspep[which(test > 0L)]
   }
 }
-if (length(protlspep)) { # Coverage
-  setwd(wd) # To make sure we are in the working directory
-  dir <- paste0(wd, "/Coverage")
-  if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dir))
-  xKol <- paste0(pep.ref[length(pep.ref)], Exp.map$Ref.Sample.Aggregate) 
-  tmpDB <- db[match(protlspep, db$"Protein ID"), c("Common Name", "Protein ID", "Sequence")]
-  tst <- lapply(protlspep, \(x) { grsep2(x, pep$Proteins) })
-  w <- which(lengths(tst) > 0L)
-  prots <- protlspep[w]
-  tst <- unique(unlist(tst))
-  tmpPep <- pep[tst, c("Proteins", "Modified sequence", xKol)]
-  source(parSrc, local = FALSE)
-  clusterExport(parClust, list("tmpDB", "tmpPep", "pep.ref", "xKol", "wd", "VPAL", "Exp.map", "Exp"), envir = environment())
-  lst <- parLapply(parClust, prots, \(i) { #i <- prots[1L]
-    nm <- tmpDB$"Common Name"[match(i, tmpDB$"Protein ID")]
-    nm <- gsub("[<>:\"/\\\\\\|\\?]", "-", nm)
-    if (nchar(nm) > 20L) { nm <- paste0(gsub(" $", "", substr(nm, 1L, 17L)), "...") }
-    seq <- setNames(tmpDB$Sequence[which(tmpDB$"Protein ID" == i)],
-                    paste(tmpDB[which(tmpDB$"Protein ID" == i), c("Protein ID", "Common Name")], collapse = " - "))
-    grs <- grsep2(i, tmpPep$Proteins)
-    drLst <- dir <- paste0(wd, "/Coverage/", i)
-    if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    p <- tmpPep[grs,]
-    m <- apply(p[, xKol], 1L, \(x) {
-      x <- log10(x)
-      10L^mean(x[which(is.finite(x))])
-    })
-    w <- which(m == 0)
-    if (length(w)) { stop("I didn't expect this, investigate!")}
-    p1 <- data.frame(Sequence = p$"Modified sequence",
-                     Intensity = m)
-    print(Coverage(seq, p1$Sequence))
-    ttl <- gsub(":|/", "-", names(seq))
-    setwd(dir) # To control precisely where it is saved
-    Coverage(seq, p1$Sequence, Mode = "Align2", title = paste0("Coverage map - ", nm), save = c("jpeg", "pdf"),
-             intensities = p1$Intensity, display = FALSE)
-    setwd(wd) # To make sure I return to the working directory
-    for (j in VPAL$values) { #j <- VPAL$values[1L]
-      sm <- Exp.map[which(Exp.map[[VPAL$column]] == j),]
-      m <- apply(p[, paste0(pep.ref[length(pep.ref)], sm$Ref.Sample.Aggregate)], 1L, \(x) {
-        x <- log10(x)
-        10L^mean(x[which(is.finite(x))])
-      })
-      w <- which(m > 0)
-      if (length(w)) {
-        p1 <- data.frame(Sequence = p$"Modified sequence"[w],
-                         Intensity = m[w])
-        dir2 <- paste0(dir, "/", gsub(":|\\*|\\?|<|>|\\|", "-", cleanNms(j, rep = "_")))
-        if (!dir.exists(dir2)) { dir.create(dir2, recursive = TRUE) }
-        drLst <- unique(c(drLst, dir2))
-        ttl <- paste0(gsub(":|/", "-", names(seq)), " - ", cleanNms(j, rep = "_"))
-        setwd(dir2) # To control precisely where it is saved
-        Coverage(seq, p1$Sequence, Mode = "Align2", save = c("jpeg", "pdf"), title = paste0("Coverage map - ", nm),
-                 intensities = p1$Intensity, display = FALSE)
-        setwd(wd) # To make sure I return to the working directory
-        for (k in sm$Ref.Sample.Aggregate) { #k <- sm$Ref.Sample.Aggregate[1L]
-          m <- p[[paste0(pep.ref[length(pep.ref)], k)]]
-          w <- which(m > 0)
-          if (length(w)) {
-            p1 <- data.frame(Sequence = p$"Modified sequence"[w],
-                             Intensity = m[w])
-            ttl <- paste0(gsub(":|/", "-", names(seq)), " - ", cleanNms(k, rep = "_"))
-            setwd(dir2) # To control precisely where it is saved
-            Coverage(seq, p1$Sequence, Mode = "Align2", save = c("jpeg", "pdf"),
-                     title = paste0("Coverage map - ", nm),
-                     intensities = p1$Intensity, display = FALSE)
-            setwd(wd) # To make sure I return to the working directory
-          }
-        }
-        setwd(wd) # To make sure I return to the working directory
-      }
-    }
-    return(drLst)
-  })
-  dirlist <- unique(c(dirlist, unlist(lst)))
-  setwd(wd) # To make sure I return to the working directory
-}
-if (length(protlspep)) { # XICs
-  for (indir in inDirs[which(SearchSoft == "DIANN")]) {
-    xicDir <- paste0(indir, "/report_xic")
-    if (dir.exists(xicDir)) {
-      XIC_fls <- list.files(xicDir, "\\.parquet$", full.names = TRUE)
-      if (length(XIC_fls)) {
-        require(arrow)
-        source(parSrc, local = FALSE)
-        g <- grsep2(protlspep, ev$Proteins)
-        u <- ev$"Mod. seq. (DiaNN format)"[g]
-        tmp <- Frac.map$`Raw files name`
-        clusterExport(parClust, list("tmp", "g", "u"), envir = environment())
-        XICs <- parLapply(parClust, XIC_fls, \(x) {
-          res <- arrow::read_parquet(x)
-          res$"Mod. seq." <- gsub_Rep("[0-9]+$", "", res$pr)
-          res <- res[which(res$"Mod. seq." %in% u),]
-          nm <- gsub(".*/|\\.xic\\.parquet$", "", x)
-          res$File <- nm
-          res$"Seq_Run" <- do.call(paste, c(res[, c("pr", "File")], sep = ">>>"))
-          res$File <- factor(res$File, levels = tmp)
-          res <- res[which(res$feature != "index"),]
-          return(res)
-        })
-        #View(XICs[[1L]])
-        XICs <- plyr::rbind.fill(XICs)
-        #View(XICs[1L:100L,])
-        #
-        m <- match(XICs$"Mod. seq.", ev$"Mod. seq. (DiaNN format)")
-        myKol <- c("Proteins", "Sequence", "Modified sequence", "PEP", "Quantity Quality")
-        XICs[, myKol] <- ev[m, myKol]
-        ev$tmp <- ">>>"
-        Boundaries <- do.call(paste0, c(ev[, c("Mod. seq. (DiaNN format)", "Charge", "tmp", "Raw file")]))
-        ev$tmp <- NULL
-        w <- which(Boundaries %in% XICs$Seq_Run)
-        Boundaries <- data.frame(Seq_Run = Boundaries[w],
-                                 RT = ev$`Retention time`[w],
-                                 `RT (start)` = ev$`Retention time (start)`[w],
-                                 `RT (end)` = ev$`Retention time (end)`[w],
-                                 check.names = FALSE)
-        Boundaries$File <- gsub(".*>>>", "", Boundaries$Seq_Run)
-        for (pr in protlspep) { #pr <- protlspep[1L]
-          xicDir2 <- paste0(wd, "/XIC/", pr)
-          if (!dir.exists(xicDir2)) { dir.create(xicDir2, recursive = TRUE) }
-          dirlist <- unique(c(dirlist, xicDir2))
-          g <- grsep2(pr, XICs$Proteins)
-          if (length(g)) {
-            XIC <- XICs[g,]
-            pkBnds <- Boundaries[which(Boundaries$Seq_Run %in% XIC$Seq_Run),]
-            u <- unique(XIC$"Modified sequence")
-            clusterExport(parClust, list("XIC", "pkBnds", "xicDir2", "pr"), envir = environment())
-            invisible(parLapply(parClust, u, \(sq) { #sq <- u[1L] #sq <- u[2L]
-              sq2 <- gsub("^_|_$", "", sq)
-              ppXIC <- XIC[which(XIC$"Modified sequence" == sq),]
-              yMax <- aggregate(ppXIC$value, list(ppXIC$File), max)
-              xMin <- min(ppXIC$rt)
-              bnds <- pkBnds[which(pkBnds$Seq_Run %in% ppXIC$Seq_Run),]
-              bnds$yMax <- yMax$x[match(bnds$File, yMax$Group.1)]
-              wMS1 <- which(ppXIC$feature == "ms1")
-              wMS2 <- which(ppXIC$feature != "ms1")
-              aNNOt <- aggregate(ppXIC[, c("PEP", "Quantity Quality")], list(ppXIC$File), \(x) { signif(mean(x, na.rm = TRUE), 3L) })
-              colnames(aNNOt)[1L] <- "File"
-              aNNOt$PEP <- paste0("PEP = ", aNNOt$PEP)
-              aNNOt$"Quantity Quality" <- paste0("Quantity Quality = ", aNNOt$"Quantity Quality")
-              aNNOt$Text <- do.call(paste, c(aNNOt[, c("PEP", "Quantity Quality")], sep = "\n"))
-              aNNOt$y <- yMax$x[match(aNNOt$File, yMax$Group.1)]
-              plot <- ggplot2::ggplot() + ggplot2::scale_y_continuous(expand = c(0L, 10L))
-              if (nrow(bnds)) {
-                plot <- plot +
-                  ggplot2::geom_rect(data = bnds, ggplot2::aes(xmin = `RT (start)`, ymin = 0, xmax = `RT (end)`, ymax = yMax),
-                                     fill = "lightblue", alpha = 0.2) +
-                  ggplot2::geom_vline(data = bnds, ggplot2::aes(xintercept = RT),
-                                      color = "darkblue", linewidth = 0.5) +
-                  ggplot2::geom_vline(data = bnds, ggplot2::aes(xintercept = `RT (start)`),
-                                      color = "darkblue", linewidth = 0.5, linetype = "dashed") +
-                  ggplot2::geom_vline(data = bnds, ggplot2::aes(xintercept = `RT (end)`),
-                                      color = "darkblue", linewidth = 0.5, linetype = "dashed")
-              }
-              if (length(wMS1)) {
-                plot <- plot +
-                  ggplot2::geom_line(data = ppXIC[wMS1,], ggplot2::aes(x = rt, y = value), color = "red",
-                                     linewidth = 0.5)
-              }
-              if (length(wMS2)) {
-                plot <- plot +
-                  ggplot2::geom_line(data = ppXIC[wMS2,], ggplot2::aes(x = rt, y = value, color = feature),
-                                     linewidth = 0.3)
-              }
-              plot <- plot +
-                ggplot2::geom_text(data = aNNOt, ggplot2::aes(label = Text, y = y), x = xMin, hjust = 0, vjust = 1, size = 3) +
-                ggplot2::scale_colour_viridis_d() +
-                ggplot2::facet_wrap(~File, scales = "free_y") + ggplot2::theme_bw() +
-                ggplot2::ggtitle(paste0(pr, " ", sq2)) +
-                ggplot2::xlab("Retention time") + ggplot2::ylab("Intensity")
-              #poplot(plot, 12L, 22L)
-              #
-              suppressMessages({
-                ggplot2::ggsave(paste0(xicDir2, "/", sq2, ".jpeg"), plot, dpi = 450L, height = 10L, width = 10L)
-                ggplot2::ggsave(paste0(xicDir2, "/", sq2, ".pdf"), plot, height = 10L, width = 10L)
-              })
-              return()
-            }))
-          }
-        }
-      }
-    }
-  }
-}
+#
+#### Code chunk - Coverage maps for proteins of interest
+Src <- paste0(libPath, "/extdata/Sources/protPlots.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+#
+# DiaNN: draw XIC for proteins of interest 
+Src <- paste0(libPath, "/extdata/Sources/protList_DiaNN_XIC.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
+#
 if (length(protlspep)) {
   source(parSrc, local = FALSE)
   dir <- paste0(wd, "/Heatmaps")

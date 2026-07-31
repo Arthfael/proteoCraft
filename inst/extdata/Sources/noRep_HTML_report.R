@@ -63,6 +63,7 @@ if (tstVenn) {
   tstVenn <- exists("plotly_Venn") && ("Global, LFQ" %in% names(plotly_Venn))
 }
 strtColWdth <- 12L/(tstVenn + tstPCA)
+tstCov <- exists("covPlots")
 
 # Fix to plotly autoscaling + remove some Modebar tools (redundant: they should already be gone, but in case we reload old data)
 if (tstHtMp) {
@@ -92,7 +93,7 @@ if (tstPCA) {
                                         modeBarButtonsToRemove = c("select2d", "lasso2d"))
   }
 }
-if (exists("covPlots")) {
+if (tstCov) {
   for (x in names(covPlots)) { #x <- names(covPlots)[1L]
     for (y in names(covPlots[[x]])) { #y <- names(covPlots[[x]])[1L]
       for (z in names(covPlots[[x]][[y]])) { #z <- names(covPlots[[x]][[y]])[1L]
@@ -166,8 +167,7 @@ report_header <- tags$header(
          br(),
          br())),
   style = "background: linear-gradient(to right, #e8f1ff, #ffffff); padding: 1rem; margin-bottom: 1rem;")
-  
-  
+
 # Functions
 make_prot_tab <- \(dflt = dfltProt,
                    prots = allProt,
@@ -212,17 +212,19 @@ make_prot_tab <- \(dflt = dfltProt,
       br())
   } else {
     ## Coverage plots ###################################################
-    dfltSmpl <- Exp[1L]
-    exp2smpl <- listMelt(lapply(prots, \(pr) { Exp }), prots, ColNames = c("Sample", "Protein"))
-    cov_plots <- lapply(1L:nrow(exp2smpl), \(i) {
-      exp <- exp2smpl$Sample[i]
-      pr <- exp2smpl$Protein[i]
-      tags$div(id = paste0("cov_", pr, "_", exp),
-               style = paste("width: 100%; display: ",
-                             if ((pr == dflt) && (exp == dfltSmpl)) { "block" } else { "none" },
-                             ";"),
-               covPlots[[pr]]$logInt[[exp]])
-    })
+    if (tstCov) {
+      dfltSmpl <- Exp[1L]
+      exp2smpl <- listMelt(lapply(prots, \(pr) { Exp }), prots, ColNames = c("Sample", "Protein"))
+      cov_plots <- lapply(1L:nrow(exp2smpl), \(i) {
+        exp <- exp2smpl$Sample[i]
+        pr <- exp2smpl$Protein[i]
+        tags$div(id = paste0("cov_", pr, "_", exp),
+                 style = paste("width: 100%; display: ",
+                               if ((pr == dflt) && (exp == dfltSmpl)) { "block" } else { "none" },
+                               ";"),
+                 covPlots[[pr]]$logInt[[exp]])
+      })
+    }
     ## Ratio plots ######################################################
     ratio_plots_ui <- NULL
     if (tstRat) {
@@ -253,8 +255,8 @@ make_prot_tab <- \(dflt = dfltProt,
       m <- match(pr, prots)
       tags$div(id = paste0("pepTable_", m),
                style = if (pr == dflt) { "width: 100%; display: block;" } else { "display: none;" },
-               make_tbl_ui(tab = "All peptidoforms",
-                           filt = pr))
+               make_tbl_ui_noReps(tab = "All peptidoforms",
+                                  filt = pr))
     })
     ## UI ###############################################################
     tagList(
@@ -357,11 +359,11 @@ make_bar <- \(x) {
   </div>
 </div>", x, x)
 }
-make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
-                 tab = "Protein groups", # can also be "All peptidoforms"; we will eventually add "`PTM`-modified", where `PTM` can be any PTM of interest
-                 filt = NULL, #filt = allProt[1L] # Filter by "Common Name"
-                 dat = xlDat,
-                 minN = 1L) {
+make_tbl_ui_noReps <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
+                        tab = "Protein groups", # can also be "All peptidoforms"; we will eventually add "`PTM`-modified", where `PTM` can be any PTM of interest
+                        filt = NULL, #filt = allProt[1L] # Filter by "Common Name"
+                        dat = xlDat,
+                        minN = 1L) {
   pgTest <- (tab == "Protein groups")
   df <- dat[[tab]]
   smplCols_lst <- setNames(lapply(exp, \(xp) {
@@ -525,7 +527,7 @@ make_tbl_ui <- \(exp = Exp, #exp <- Exp[1L] #exp <- Exp[2L]
                    "Proteins" = "Accessions of all proteins the peptide could originate from",
                    "Modified sequence" = "Peptide sequence with any post-translational modification(s) detected",
                    "Cont." = paste0(c("Peptides matching", "Proteins from")[pgTest + 1L],
-                                                    " a list of common environmental and laboratory contaminants, inc. e.g. Trypsin, Keratins, BSA,... are marked with a \"+\""),
+                                    " a list of common environmental and laboratory contaminants, inc. e.g. Trypsin, Keratins, BSA,... are marked with a \"+\""),
                    "Pep. count" = "Number of peptidoforms",
                    "PSMs count" = "Number of individual identifications (Peptide-to-Spectrum matches)",
                    "MW (kDa)" = "Molecular weight of the first protein in column \"Leading protein IDs\"",
@@ -654,7 +656,7 @@ make_smpl_tab <- \(exp,
             br(),
             br(),
             tags$hr(style = "border-color: black;"),
-            make_tbl_ui(exp))
+            make_tbl_ui_noReps(exp))
   } else {
     id1 <- paste0("quant_", exp)
     id2 <- paste0("quant_", exp, "_")
@@ -686,7 +688,7 @@ make_smpl_tab <- \(exp,
             br(),
             tags$hr(style = "border-color: black;"),
             tags$script(HTML(js)),
-            make_tbl_ui(exp))
+            make_tbl_ui_noReps(exp))
   }
 }
 make_strt_tab <- \(shiny = TRUE) {
@@ -841,8 +843,8 @@ make_matmet_ui <- \(matmeth = matmethTxt,
                      br()))
   }
 }
-make_ui <- \(tabNames = myTabs,
-             shiny = TRUE) {
+make_ui_noReps <- \(tabNames = myTabs,
+                    shiny = TRUE) {
   tabs <- lapply(tabNames, \(x) {
     if (x == "Dataset overview") {
       return(tabPanel(x,
@@ -879,9 +881,13 @@ make_ui <- \(tabNames = myTabs,
 #nPl <- length(myPlots)
 myTabs <- nms <- c("Dataset overview", Exp)
 if (prot.list.Cond) {
-  allProt <- names(covPlots)
-  dfltProt <- allProt[1L]
-  myTabs <- union(myTabs, "Proteins of interest")
+  if (tstCov) {
+    allProt <- names(covPlots)
+    dfltProt <- allProt[1L]
+    myTabs <- union(myTabs, "Proteins of interest")
+  } else {
+    stop("Write that bit!")
+  }
   nms <- union(nms, allProt)
 }
 myTabs <- union(myTabs, c("QC", "Materials and methods"))
@@ -955,7 +961,7 @@ server <- \(input, output, session) {
   NORMMETH <- reactiveVal("None")
   # Render UI
   output$xprtMsg <- renderUI(XPRTMSG())
-  output$myUI <- renderUI({ make_ui() })
+  output$myUI <- renderUI({ make_ui_noReps() })
   if (tstHtMp) {
     output$heatMap <- renderPlotly(plotLeatMaps$Global[[NORMMETH()]]$Render)
   }
@@ -999,9 +1005,9 @@ server <- \(input, output, session) {
     output$ratioPlot <- renderPlotly(ratioPlots[[MYPROT()]])
     output$coverPlot <- renderPlotly(covPlots[[MYPROT()]]$logInt[[SAMPLE()]])
     output$protComment <- renderUI(make_comment_ui(MYPROT()))
-    output$protPep <- renderUI(make_tbl_ui(tab = "All peptidoforms",
-                                           filt = MYPROT()))
-    if (length(allProt) > 1L) {
+    output$protPep <- renderUI(make_tbl_ui_noReps(tab = "All peptidoforms",
+                                                  filt = MYPROT()))
+    if (tstCov && (length(allProt) > 1L)) {
       observeEvent(input$myProtein, { MYPROT(input$myProtein) })
     }
     if (length(Exp) > 1L) {
@@ -1045,7 +1051,7 @@ server <- \(input, output, session) {
   });
 });")),
                                 report_header,
-                                make_ui(shiny = FALSE))
+                                make_ui_noReps(shiny = FALSE))
       # 2. Wrap as browsable HTML
       page <- htmltools::browsable(page)
       # 3. Save to disk
@@ -1066,7 +1072,7 @@ while ((!runKount) || (!exists("appRunTst")) || (!file.exists(htmlRprtFl))) {
 
 # We now have our html... but it depends on local libraries...
 # ---> We want those embedded in it so it is fully portable!
-h2 <- h1 <- readLines(htmlRprtFl)
+h2 <- h1 <- readr::read_lines(htmlRprtFl)
 rg1 <- grep("</?head>", h1) + c(1L, -1L)
 rg1 <- rg1[1L]:rg1[2L]
 hd1 <- h1[rg1]
@@ -1076,7 +1082,7 @@ g <- grep("^ *<((style)|(script)|(link))( *[^>]+)?>", hd1$original)
 hd1$original[g]
 require(base64enc)
 read_file <- \(path) {
-  paste(readLines(path, warn = FALSE), collapse = "\n")
+  paste(readr::read_lines(path, warn = FALSE), collapse = "\n")
 }
 file_to_data_uri <- \(path) {
   ext <- tools::file_ext(path)
@@ -1125,4 +1131,4 @@ h2[rg1] <- hd1$new
 write(h2, htmlRprtFl)
 removeDirectory(paste0(wd, "/lib"), TRUE, FALSE)
 
-# To do: write Mat Meth locally
+# To do: write Mat Meth as separate file too

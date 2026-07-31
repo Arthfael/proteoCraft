@@ -4,18 +4,19 @@
 if (saintExprs) { saintExprs <- "Target" %in% colnames(Exp.map) }
 if (saintExprs) {
   SaintRoot <- "C:/SAINTexpress"
-  SaintDir <- paste0(SaintRoot, "/SAINTexpress_v3.6.3__2018-03-09")
+  SAINTvers <- "SAINTexpress_v3.6.3__2018-03-09"
+  SaintDir <- paste0(SaintRoot, "/", SAINTvers)
   if (!dir.exists(SaintDir)) { dir.create(SaintDir, recursive = TRUE) }
   SaintEx <- paste0(SaintDir, "/Precompiled_binaries/Windows64/SAINTexpress-int.exe")
   if (!file.exists(SaintEx)) {
-    url <- "https://download.sourceforge.net/saint-apms/SAINTexpress_v3.6.3__2018-03-09.tar.gz"
+    url <- paste0("https://download.sourceforge.net/saint-apms/", SAINTvers, ".tar.gz")
     packs <- c("curl")
     for (pack in packs) {
       if (!suppressMessages(require(pack, character.only = TRUE))) { install.packages(pack, update = FALSE) }
       require(pack, character.only = TRUE)
     }
     cran_req <- unique(c(cran_req, packs))
-    destFl <- paste0(SaintRoot, "/SAINTexpress_v3.6.3__2018-03-09.tar.gz")
+    destFl <- paste0(SaintRoot, "/", SAINTvers, ".tar.gz")
     kount <- 0L
     while ((!kount)||((kount < 5L)&&(inherits(tst, "try-error")))) {
       tst <- try(download.file(url, destFl), silent = TRUE)
@@ -31,9 +32,6 @@ if (saintExprs) {
   }
 }
 if (saintExprs) {
-  #
-  msg <- "Running SAINTexpress analysis..."
-  ReportCalls <- AddMsg2Report(Space = FALSE)
   #
   subDr <- "Reg. analysis/SAINTexpress"
   saintDir <- paste0(gsub("/+$", "", wd), "/", subDr)
@@ -58,18 +56,23 @@ if (saintExprs) {
   Indiq <- c("T", "C")
   #
   # Translate contrasts into Bait structure
-  whSingle <- which(!myContrasts$isDouble)
   m <- match(Exp.map$Ref.Sample.Aggregate, rownames(expMap)) # just to be safe...
   EM <- expMap[m,]
   myContrasts$A_full <- Exp.map[match(myContrasts$A, EM[[VPAL$limmaCol]]), VPAL$column]
   myContrasts$B_full <- Exp.map[match(myContrasts$B, EM[[VPAL$limmaCol]]), VPAL$column]
-  allContr <- aggregate(myContrasts$A_full[whSingle], list(myContrasts$B_full[whSingle]), list)
-  colnames(allContr) <- c("Ref", "Treat")
-  allContr$Contr <- apply(allContr[, c("Ref", "Treat")], 1L, \(x) { #x <- allContr[1L, c("Ref", "Treat")]
-    A <- unlist(x[2L])
-    B <- unlist(x[1L])
-    vapply(A, \(y) { myContrasts$Contrast[which((myContrasts$A_full == y)&(myContrasts$B_full == B))] }, "")
-  })
+  saintContr <- myContrasts[which(myContrasts$`Up-only` & (!myContrasts$isDouble)),]
+  saintExprs <- nrow(saintContr) > 0L
+}
+if (saintExprs) {
+  msg <- "Running SAINTexpress analysis..."
+  ReportCalls <- AddMsg2Report(Space = FALSE)
+  #
+  allContr <- aggregate(1L:nrow(saintContr), list(saintContr$B_full), list)
+  allContr <- setNames(lapply(allContr$x, \(x) {
+    x <- saintContr[x, c("Contrast", "A_full", "B_full")]
+    colnames(x) <- c("Contr", "Treat", "Ref")
+    return(x)
+  }), allContr$Group.1)
   #
   # Prey and GO tables are not Target specific
   mtch <- listMelt(strsplit(PG$"Leading protein IDs", ";"), PG$id, c("Protein", "PG id"))
@@ -110,16 +113,16 @@ if (saintExprs) {
                      "cleanNms", "topattern"),
                 envir = environment())
   #
-  SAINT_list <- lapply(1L:nrow(allContr), \(ii) { #ii <- 1L
-    w0 <- which(Exp.map[[VPAL$column]] %in% allContr$Ref[ii])
-    w1 <- which(Exp.map[[VPAL$column]] %in% allContr$Treat[[ii]])
+  SAINT_list <- lapply(1L:length(allContr), \(ii) { #ii <- 1L
+    w0 <- which(Exp.map[[VPAL$column]] %in% allContr[[ii]]$Ref)
+    w1 <- which(Exp.map[[VPAL$column]] %in% allContr[[ii]]$Treat)
     em <- Exp.map[c(w0, w1), c("Ref.Sample.Aggregate", VPAL$column, RG$column, "Target")]
     em$Reference <- c(rep(TRUE, length(w0)),
                       rep(FALSE, length(w1)))
     em$Contrast <- NA_character_
     w0 <- which(em$Reference)
     w1 <- which(!em$Reference)
-    em$Contrast[w1] <- allContr$Contr[[ii]][match(em[w1, VPAL$column], allContr$Treat[[ii]])]
+    em$Contrast[w1] <- allContr[[ii]]$Contr[match(em[w1, VPAL$column], allContr[[ii]]$Treat)]
     em$IP_name <- gsub("\\.", "", cleanNms(em$Ref.Sample.Aggregate, rep = ""))
     #
     Bait <- data.frame(IP_name = em$IP_name,
@@ -185,7 +188,7 @@ if (saintExprs) {
     tmpFl2 <- tempfile(fileext = ".rds")
     readr::write_rds(Interact, tmpFl1)
     readr::write_rds(Prey, tmpFl2)
-    exports <- list("Bait", "Grps", "tmpFl1", "tmpFl2")
+    exports <- list("Bait", "Grps", "tmpFl1", "tmpFl2", "klnms")
     if (Annotate) {
       tmpFl3 <- tempfile(fileext = ".rds")
       readr::write_rds(GO, tmpFl3)
@@ -207,7 +210,7 @@ if (saintExprs) {
     if (Annotate) {
       unlink(tmpFl3)
     }
-    saint_Lst <- setNames(parLapply(parClust, Grps, \(grp) { #grp <- Grps[1L]
+    saint_Lst <- setNames(parLapply(parClust, Grps, \(grp) { #grp <- Grps[1L] #grp <- Grps[2L]
       grpMtch <- match(grp, Grps)
       dr <- paste0(saintDir, "/", grp)
       if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
@@ -248,7 +251,8 @@ if (saintExprs) {
       #cat("   ", grp2, "\n")
       system(cmd)
       #cat("    -> done\n")
-      rs <- list(Outcome = file.exists(lstFl))
+      rs <- list(Outcome = file.exists(lstFl),
+                 colNames = klnms)
       if (rs$Outcome) {
         # Read and process results
         tmpDF <- data.table::fread(lstFl, integer64 = "numeric", check.names = FALSE, data.table = FALSE)
@@ -283,11 +287,12 @@ if (saintExprs) {
   for (ii in seq_along(SAINT_list)) { #ii <- 1L
     wOK <- which(vapply(SAINT_list[[ii]], \(x) { x$Outcome }, TRUE))
     if (length(wOK)) {
+      SUCCESS <- TRUE
       Grps <- names(SAINT_list[[ii]])[wOK]
       for (grp in Grps) { #grp <- Grps[1L]
-        SUCCESS <- TRUE
         kol <- paste0(c(fcRt, paste0(c(kol_A, kol_B), " - ")), grp)
         allSAINTs[, kol] <- NA
+        klnms <- SAINT_list[[ii]][[grp]]$colNames
         w <- which(allSAINTs$Protein %in% SAINT_list[[ii]][[grp]]$Table$Prey)
         m <- match(allSAINTs$Protein[w], SAINT_list[[ii]][[grp]]$Table$Prey)
         allSAINTs[w, kol] <- SAINT_list[[ii]][[grp]]$Table[m, kol]
@@ -393,7 +398,7 @@ if (saintExprs) {
     #
     # Regulated columns
     # Here we do not use the ones from Volcano.plot because the logic is different than usual
-    nms <- allContr$Contr
+    nms <- unlist(lapply(1L:length(allContr), \(ii) { allContr[[ii]]$Contr }))
     regkol <- paste0("Regulated - ", nms)
     Reg_filters$"SAINTexpress" <- list()
     if ("con" %in% filter_types) {
@@ -401,36 +406,26 @@ if (saintExprs) {
     }
     allSAINTs[, regkol] <- ""
     for (nm in nms) { #nm <- nms[1L]
-      twoSided <- !myContrasts$`Up-only`[match(nm, myContrasts$Contrast)]
       thresh <- tempVPip$Thresholds$Absolute[[nm]]
       up <- thresh$Value[match("up", thresh$Levels)]
-      down <- thresh$Value[match("down", thresh$Levels)]
       k1 <- paste0("BFDR - ", nm)
       k2 <- paste0("log2(FC) - ", nm)
       k3 <- paste0("Regulated - ", nm)
       allSAINTs[which(allSAINTs[[k1]] <= max(BH.FDR)), k3] <- "too small FC" # base level
       for (f in rev(BH.FDR)) {
-        allSAINTs[which((allSAINTs[[k1]] <= f)&(allSAINTs[[k2]] >= up)), k3] <- paste0("up, FDR = ", f*100,"%")
-        if (twoSided) {
-          allSAINTs[which((allSAINTs[[k1]] <= f)&(allSAINTs[[k2]] <= down)), k3] <- paste0("down, FDR = ", f*100,"%")
-        }
+        allSAINTs[which((allSAINTs[[k1]] <= f) & (allSAINTs[[k2]] >= up)), k3] <- paste0("up, FDR = ", f*100,"%")
       }
       # Create SAINTexpress-based filters
       if ("con" %in% filter_types) {
         up <- grep("^up|^Specific", unique(unlist(allSAINTs[, regkol])), value = TRUE)
-        down <- grep("^down|^Anti-specific", unique(unlist(allSAINTs[, regkol])), value = TRUE)
         #
         flt <- list(Columns = k3,
-                    prot_Filter_up = sort(which(allSAINTs[[k3]] %in% up)),
-                    prot_Filter_down = sort(which(allSAINTs[[k3]] %in% down)),
-                    prot_Filter = sort(which(allSAINTs[[k3]] %in% c(up, down))),
+                    prot_Filter = sort(which(allSAINTs[[k3]] %in% up)),
                     prot_Background_filter = 1L:nrow(allSAINTs))
         # We want to translate it into rows from PG
-        u <- unique(unlist(flt[paste0("Filter", c("_up", "_down", ""))]))
+        u <- unique(unlist(flt[paste0("Filter", c("_up", ""))]))
         m <- match(allSAINTs$PG_id[u], PG$id)
-        flt$Filter_up <- unique(m[which(u %in% flt$Filter_up)])
-        flt$Filter_down <- unique(m[which(u %in% flt$Filter_down)])
-        flt$Filter <- unique(m[which(u %in% flt$Filter)])
+        flt$Filter <- unique(m[which(u %in% flt$prot_Filter)])
         flt$Background_filter <- unique(match(allSAINTs$PG_id, PG$id))
         Reg_filters$"SAINTexpress"$"By condition"[[nm]] <- flt
       }
@@ -459,6 +454,23 @@ if (saintExprs) {
     #
   }
   # "Master, don't forget the Athenians!"
-  dlg_message("TO DO: add SAINTq for PSM-level analysis of DIA data!", "ok")
+  dlg_message("TO DO (maybe?): add SAINTq for PSM-level analysis of DIA data!", "ok")
+  # SaintQDir <- paste0(SaintRoot, "/saintq")
+  # SAINTqVers <- "saintq_v0.0.4"
+  # url <- paste0("https://download.sourceforge.net/saint-apms/", SAINTqVers, ".tar.gz")
+  # destFl <- paste0(SaintRoot, "/", SAINTqVers, ".tar.gz")
+  # kount <- 0L
+  # while ((!kount)||((kount < 5L)&&(inherits(tst, "try-error")))) {
+  #   tst <- try(download.file(url, destFl), silent = TRUE)
+  #   kount <- kount+1L
+  # }
+  # if (inherits(tst, "try-error")) { saintQ <- FALSE } else {
+  #   gunzip(destFl)
+  #   utils::untar(gsub("\\.gz$", "", destFl), exdir = SaintRoot)
+  #   unlink(destFl)
+  #   unlink(gsub("\\.gz$", "", destFl))
+  #   SaintQEx <- paste0(SaintQDir, "/binaries/saintq.exe")
+  #   saintQ <- file.exists(SaintQEx)
+  # }
 }
 setwd(wd)

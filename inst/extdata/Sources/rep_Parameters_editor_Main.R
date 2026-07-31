@@ -2124,18 +2124,13 @@ server1 <- \(input, output, session) {
   #   PARAM(Par)
   # })
   # Proteins of interest
-  observeEvent(input$IntProt, {
+  IntProt_debounced <- debounce(reactive(input$IntProt), 5000L)
+  observeEvent(IntProt_debounced(), {
     updatePickerInput(inputId = "IntProt",
-                      selected = input$IntProt,
-                      choices = c(input$IntProt,
-                                  setdiff(protHeads, input$IntProt)))
-    prot.list <- db$`Protein ID`[dbOrd][match(input$IntProt, protHeads)]
-    assign("prot.list", prot.list, envir = .GlobalEnv)
-    Par <- PARAM()
-    ##Par$Prot.list_pep <-
-    Par$Prot.list <- paste(prot.list, collapse = ";")
-    PARAM(Par)
-  }, ignoreNULL = FALSE)
+                      selected = IntProt_debounced(),
+                      choices = union(IntProt_debounced(),
+                                      protHeads))
+  })
   # Use curved SAM thresholds for Student's t-test
   observeEvent(input$useSAM_thresh, {
     useSAM_thresh <- as.logical(input$useSAM_thresh)
@@ -2249,6 +2244,14 @@ server1 <- \(input, output, session) {
     for (w in wMp) {
       if (nchar(Par[[w]])) { Par[[w]] <- paste(substr(unlist(strsplit(Par[[w]], ";")), 1L, 3L), collapse = ";") }
     }
+    tmp <- input$IntProt
+    if (length(tmp)) {
+      prot.list <- db$`Protein ID`[dbOrd][match(tmp, protHeads)]
+      assign("prot.list", prot.list, envir = .GlobalEnv)
+      ##Par$Prot.list_pep <-
+      Par$Prot.list <- paste(prot.list, collapse = ";")
+    }
+    PARAM(Par)
     assign("Param", Par, envir = .GlobalEnv)
     assign("Mod4Quant", m4Quant(), envir = .GlobalEnv)
     assign("Mod2Xclud", m2Xclud(), envir = .GlobalEnv)
@@ -2372,8 +2375,43 @@ if (Param$GO.terms.for.proteins.of.interest) {
 }
 prot.list.Cond %<o% (length(prot.list) > 0L)
 if (prot.list.Cond) {
-  writeFasta(db[match(prot.list, db$`Protein ID`),], intPrtFst)
+  m <- match(prot.list, db$`Protein ID`)
+  x <- aggregate(db$`Protein ID`[m], list(db$`Common Name`[m]), list)
+  IDs.list %<o% setNames(as.list(x$x), x$Group.1)
+  w <- which(nchar(names(IDs.list)) == 0L)
+  if (length(w)) {
+    for (i in w) {
+      names(IDs.list)[i] <- paste0(unlist(IDs.list[i]), collapse = ";")
+      db$`Common Name`[match(IDs.list[[i]], db$`Protein ID`)] <- names(IDs.list)[i]
+    }
+  }
+  prot.names %<o% names(IDs.list)
+  db$"Potential contaminant"[which(db$`Protein ID` %in% prot.list)] <- ""
+  #
+  temp <- db[which(db$`Protein ID` %in% prot.list),]
+  writeFasta(temp, intPrtFst)
 }
+
+if (prot.list.Cond) {
+  m <- match(prot.list, db$`Protein ID`)
+  x <- aggregate(db$`Protein ID`[m], list(db$`Common Name`[m]), list)
+  IDs.list %<o% setNames(as.list(x$x), x$Group.1)
+  w <- which(nchar(names(IDs.list)) == 0L)
+  if (length(w)) {
+    for (i in w) {
+      names(IDs.list)[i] <- paste0(unlist(IDs.list[i]), collapse = ";")
+      db$`Common Name`[match(IDs.list[[i]], db$`Protein ID`)] <- names(IDs.list)[i]
+    }
+  }
+  prot.names %<o% names(IDs.list)
+  db$"Potential contaminant"[which(db$`Protein ID` %in% prot.list)] <- ""
+  #
+  temp <- db[which(db$`Protein ID` %in% prot.list),]
+  writeFasta(temp, paste0(wd, "/Proteins of interest.fasta"))
+  AnalysisParam$"Proteins list: proteins" <- IDs.list
+  AnalysisParam$"Proteins list: names" <- prot.names
+}
+
 
 # Similar list as above: proteins for which a heatmap of peptides and a coverage map will be drawn:
 if (!exists("prot.list_pep")) { prot.list_pep %<o% c() }

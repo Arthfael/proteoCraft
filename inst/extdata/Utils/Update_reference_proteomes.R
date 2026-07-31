@@ -180,7 +180,7 @@ if (length(wY)) {
       cat(" - ", allOrgs[i], "\n")
       # It would be more efficient to read the source only once...
       # but somehow it gets corrupted everytime I loop
-      Src <- readLines(paste0(dbDir, "/Remove_duplicate_protein_sequences_and_fragments.R"))
+      Src <- readr::read_lines(paste0(dbDir, "/Remove_duplicate_protein_sequences_and_fragments.R"))
       Src <- grep("openwd\\(", Src, invert = TRUE, value = TRUE)
       g <- grep("^dbFl +<- +", Src)
       stopifnot(length(g) == 1)

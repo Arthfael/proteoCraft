@@ -77,12 +77,12 @@ Format.DB <- function(file,
   if (in.env) {
     DB <- if (grepl(">", file[1L])) { file } else { get(file) }
   } else {
-    DB <- readLines(file[1L])
+    DB <- readr::read_lines(file[1L])
     if (length(file) > 1L) {
-      for (i in 2L:length(file)) { DB <- c(DB, readLines(file[i])) }
+      for (i in 2L:length(file)) { DB <- c(DB, readr::read_lines(file[i])) }
     }
   }
-  revTest <- (is.character(revString))&&(length(revString) == 1L)&&(nchar(revString))
+  revTest <- is.character(revString) && (length(revString) == 1L) && nchar(revString)
   if (revTest) {
     Protein.ID.rule <- gsub("^\\^>", paste0("^>(?:", revString, ")?"), Protein.ID.rule)
     Name.rule <- gsub("^\\^>", paste0("^>(?:", revString, ")?"), Name.rule)
@@ -141,7 +141,7 @@ Format.DB <- function(file,
                   "No Isoforms")
   }
   headRs <- grep("^>", DB)
-  if ((parallel) && (length(headRs) < 500L)) {
+  if (parallel && (length(headRs) < 500L)) {
     parallel <- FALSE
   }
   if (parallel) {
@@ -250,7 +250,7 @@ Format.DB <- function(file,
   if (max(IDsCheck$x) > 1L) {
     stop("Incorrect Protein.ID.rule or corrupt database: multiple entries with distinct sequences have the same protein accession!")
   }
-  if ((parallel) && (stopCl)) {
+  if (parallel && stopCl) {
     parallel::stopCluster(cl)
   }
   return(res)

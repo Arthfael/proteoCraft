@@ -43,7 +43,7 @@ FPs <- setNames(lapply(dirs, function(dir) { #dir <- dirs[1]
     colnames(FP_Mnfst) <- c("Path", "Experiment", "Replicate", "Data type")
     FP_Mnfst$Path <- gsub("\\\\", "/", FP_Mnfst$Path)
     return(list(Outcome = TRUE,
-                Workflow = readLines(FP_WorkflowFl),
+                Workflow = readr::read_lines(FP_WorkflowFl),
                 Manifest = FP_Mnfst))
   } else {
     return(list(Outcome = FALSE))

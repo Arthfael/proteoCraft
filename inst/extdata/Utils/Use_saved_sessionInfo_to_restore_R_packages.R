@@ -21,7 +21,7 @@ except <- c("parallel", "snow", "rstudioapi", "BiocManager", "pak")
 # (it seems to forget to release some handles?)
 sessInfFl <- rstudioapi::selectFile()
 #system(paste0("open \"", sessInfFl, "\""))
-sessInf <- readLines(sessInfFl)
+sessInf <- readr::read_lines(sessInfFl)
 
 currRVers <- paste(sessionInfo()$R.version[c("major", "minor")], collapse = ".")
 reloadRVers <- gsub("^R +version +| +\\(.*", "", sessInf[1])

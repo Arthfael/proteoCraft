@@ -33,7 +33,7 @@ dFls2$execLog_ok <- lengths(dFls2$execLog) == 1L
 w <- which(dFls2$execLog_ok)
 dFls2$startPress <- NA_real_
 dFls2$startPress[w] <- parSapply(parClust, dFls2$execLog[w], function(lgFl) { #lgFl <- dFls2$execLog[w[1]]
-  lg <- readLines(unlist(lgFl))
+  lg <- readr::read_lines(unlist(lgFl))
   writeClipboard(lg)
   #... now I need to figure out which pressure to extract
   

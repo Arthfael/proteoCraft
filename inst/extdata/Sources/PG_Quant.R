@@ -323,7 +323,6 @@ if (writeMatMeth) {
   }
   l <- length(DatAnalysisTxt)
   DatAnalysisTxt[l] <- gsub("\\.$", insrt, DatAnalysisTxt[l])
-  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l], " Estimated expression values were log10-converted...")
 }
 
 quantData <- quantData_list$Data
@@ -373,8 +372,4 @@ if ((scrptType == "noReps") && Impute) {
   m2 <- match("Peptides IDs used for quantitation", colnames(quantData2))
   colnames(quantData2)[m2] <- "Peptide IDs used for quantitation - Imputed"
   PG[, colnames(quantData2)] <- quantData2
-  if (writeMatMeth) {
-    l <- length(DatAnalysisTxt)
-    DatAnalysisTxt[l] <- sub("\\.\\.\\.$", "", DatAnalysisTxt[l])
-  }
 }

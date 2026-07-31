@@ -42,7 +42,7 @@ fastasTbl %<o% data.frame(Full = fastas,
                           Name = basename(fastas),
                           Dir = dirname(fastas),
                           Contaminant = FALSE)
-if (exists("isContaminant")) { 
+if (exists("isContaminant")) {
   fastasTbl$Contaminant <- as.logical(isContaminant[fastasTbl$Full])
 }
 fastasTbl$Contaminant[which(is.na(fastasTbl$Contaminant))] <- FALSE
@@ -227,7 +227,7 @@ tstL <- (nrow(fastasTbl) > 1L)+1L
 whFnd <- which(fastasTbl$Exists)
 stopifnot(length(whFnd) > 0L)
 fastasTbl$Data[whFnd] <- lapply(whFnd, \(x) {
-  rs <- readLines(fastasTbl$Full[x])
+  rs <- readr::read_lines(fastasTbl$Full[x])
   if(length(rs) == 0L) { stop(paste0("Fasta database \"", fastasTbl$Full[x], "\" appears to be empty!")) }
   return(rs)
 })
@@ -834,7 +834,7 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
   contDBFls <- contDBFls[which(file.exists(contDBFls))]
   if (length(contDBFls)) {
     contDB <- lapply(contDBFls, \(contDBFl) {
-      x <- readLines(contDBFl)
+      x <- readr::read_lines(contDBFl)
       x <- Format.DB(x, in.env = TRUE, cl = parClust)
       return(x)
     })

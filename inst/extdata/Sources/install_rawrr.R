@@ -49,9 +49,9 @@ rawrr_tst <- try({
         writeLines(paste(msg, paste0("# ", date()), "eula=true", 
                          sep = "\n"), fileConn)
         close(fileConn)
-        return(TRUE %in% grepl("eula=true", tolower(readLines(eulaFile))))
+        return(TRUE %in% grepl("eula=true", tolower(readr::read_lines(eulaFile))))
       }
-    } else { return(TRUE %in% grepl("eula=true", tolower(readLines(eulaFile)))) }
+    } else { return(TRUE %in% grepl("eula=true", tolower(readr::read_lines(eulaFile)))) }
     msg <- "Yes, we accept Thermo's License agreement, get on with it!"
     cat(msg, "\n")
   }

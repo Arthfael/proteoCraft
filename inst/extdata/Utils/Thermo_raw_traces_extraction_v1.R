@@ -93,9 +93,9 @@ tst <- try({
           writeLines(paste(msg, paste0("# ", date()), "eula=true", 
                            sep = "\n"), fileConn)
           close(fileConn)
-          return(TRUE %in% grepl("eula=true", tolower(readLines(eulaFile))))
+          return(TRUE %in% grepl("eula=true", tolower(readr::read_lines(eulaFile))))
         }
-      } else { return(TRUE %in% grepl("eula=true", tolower(readLines(eulaFile)))) }
+      } else { return(TRUE %in% grepl("eula=true", tolower(readr::read_lines(eulaFile)))) }
       msg <- "Yes, we accept Thermo's License agreement, get on with it!"
       cat(msg, "\n")
     }
@@ -320,7 +320,7 @@ if (!file.exists(pressScript)) {
 }
 stopifnot(file.exists(pressScript))
 # Create temporary python pressure script edited to create a more predictably named output
-tmp <- suppressWarnings(readLines(pressScript))
+tmp <- suppressWarnings(readr::read_lines(pressScript))
 w <- which(tmp == "        csv_path = file.replace('.mzML', f'_{convert_to_safe_filename(chrom_name)}.csv')")
 tmp[w] <- "        csv_path = file.replace('.mzML', f'.csv')"
 pressScript2 <- paste0(wd, "/pressScript.py")

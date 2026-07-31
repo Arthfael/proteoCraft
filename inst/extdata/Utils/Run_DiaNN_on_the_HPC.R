@@ -307,7 +307,7 @@ if (length(fls2)) {
     if (!fl %in% names(flsSizes)) { flsSizes[[fl]] <- file.size(fl) }
     flnm <- basename(fl)
     FILE <- file(flnm, "wb")
-    dat <- readLines(fl)
+    dat <- readr::read_lines(fl)
     write(dat, FILE)
     close.connection(FILE)
     scp_upload(sshsess, flnm, BATCHDIR, verbose = TRUE)

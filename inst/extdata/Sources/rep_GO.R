@@ -44,11 +44,17 @@ if (Annotate && (enrichGO || globalGO)) {
           if (bee == "Whole dataset") { flt <- list("Whole dataset" = flt) }
           tstbee <- paste0(tstrt, "_", tolower(bee))
           if (length(flt)) {
-            flt <- if (tt %in% c(1L:2L, 4L)) {
-              flt[myContrasts$Contrast[which(myContrasts$Secondary == "")]]
+            flt <- if (tt %in% 1L:2L) {
+              flt[intersect(myContrasts$Contrast[which(!myContrasts$isDouble)], names(flt))]
             } else {
-              flt[order(names(flt))]
+              if (tt == 4L) {
+                flt[myContrasts$Contrast[which((!myContrasts$isDouble) & myContrasts$`Up-only`)]]
+              } else {
+                flt[order(names(flt))]                
+              }
             }
+          }
+          if (length(flt)) {
             reg <- setNames(lapply(flt, \(x) { list(x$Columns) }), names(flt))
             reg <- set_colnames(reshape::melt(reg), c("Name", "Bleh", "For"))
             reg$Bleh <- NULL
@@ -260,13 +266,13 @@ if (Annotate && (enrichGO || globalGO)) {
                   temp[2L:(N+1L), 1L] <- temp[1L, 2L:(N+1L)] <- names(W)
                   for (i in 2L:(N+1L)) { #i <- 2
                     temp[i, 2L:(N+1L)] <- vapply(Kol3, \(x) {
-                      sum((GO_Plots[[tstbee]]$GO_terms[[x]] == "+")&(GO_Plots[[tstbee]]$GO_terms[[Kol3[i]]] == "+"),
+                      sum((GO_Plots[[tstbee]]$GO_terms[[x]] == "+") & (GO_Plots[[tstbee]]$GO_terms[[Kol3[i]]] == "+"),
                           na.rm = TRUE)
                     }, 1L)
                   }
                   names(W) <- cleanNms(gsub(" [0-9]+%$", "", names(W)))
                   tst <- lengths(strsplit(names(W), " - "))
-                  tst <- (min(tst) > 1L)&(length(unique(tst)) == 1L)
+                  tst <- (min(tst) > 1L) & (length(unique(tst)) == 1L)
                   if (tst) {
                     tst <- as.data.frame(t(sapply(strsplit(names(W), " - "), unlist)))
                     l <- apply(tst, 2L, \(x) { length(unique(x)) })
