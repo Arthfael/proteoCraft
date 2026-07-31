@@ -1010,13 +1010,13 @@ server1 <- function(input, output, session) {
     PARAM(Par)
   })
   # Proteins of interest
-  observeEvent(input$IntProt, {
-    prot.list <- db$`Protein ID`[dbOrd][match(input$IntProt, protHeads)]
-    assign("prot.list", prot.list, envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$Prot.list <- prot.list
-    PARAM(Par)
-  }, ignoreNULL = FALSE)
+  IntProt_debounced <- debounce(reactive(input$IntProt), 5000L)
+  observeEvent(IntProt_debounced(), {
+    tmp <- IntProt_debounced()
+    updatePickerInput(inputId = "IntProt",
+                      selected = tmp,
+                      choices = union(tmp, protHeads))
+  })
   # GO enrichment
   observeEvent(input$GOenrich, {
     if (input$GOenrich) { shinyjs::enable("runClueGO") }
@@ -1106,6 +1106,18 @@ server1 <- function(input, output, session) {
   # Save
   observeEvent(input$saveBtn, {
     Par <- PARAM()
+    tmp <- IntProt_debounced()
+    if (length(tmp)) {
+      prot.list <- db$`Protein ID`[dbOrd][match(tmp, protHeads)]
+      assign("prot.list", prot.list, envir = .GlobalEnv)
+      ##Par$Prot.list_pep <-
+      Par$Prot.list <- paste(prot.list, collapse = ";")
+    }
+    # tmp <- normProt_debounced()
+    # if (length(tmp)) {
+    #   tmp <- db$`Protein ID`[dbOrd][match(tmp, protHeads)]
+    #   Par$Norma.Prot.Ratio.to.proteins <- paste(tmp, collapse = ";")
+    # }
     assign("AnalysisParam", Par, envir = .GlobalEnv)
     assign("Mod4Quant", m4Quant(), envir = .GlobalEnv)
     assign("Mod2Xclud", m2Xclud(), envir = .GlobalEnv)

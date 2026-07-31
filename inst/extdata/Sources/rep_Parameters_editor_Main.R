@@ -2252,14 +2252,12 @@ server1 <- \(input, output, session) {
       tmp <- db$`Protein ID`[dbOrd][match(tmp, protHeads)]
       Par$Norma.Prot.Ratio.to.proteins <- paste(tmp, collapse = ";")
     }
-    PARAM(Par)
     assign("Param", Par, envir = .GlobalEnv)
     assign("Mod4Quant", m4Quant(), envir = .GlobalEnv)
     assign("Mod2Xclud", m2Xclud(), envir = .GlobalEnv)
     assign("appRunTest", TRUE, envir = .GlobalEnv)
     stopApp()
   })
-  #observeEvent(input$cancel, { stopApp() })
   session$onSessionEnded(\() { stopApp() })
 }
 if (exists("appRunTest")) { rm(appRunTest) }
