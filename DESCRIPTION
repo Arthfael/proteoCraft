@@ -315,6 +315,7 @@ Imports:
     stabledist,
     statip,
     stats,
+    stringfish,
     stringi,
     stringr,
     SummarizedExperiment,

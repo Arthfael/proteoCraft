@@ -25,7 +25,6 @@ if ((length(locScriptsDir) == 1L) && dir.exists(locScriptsDir)) {
     strtScriptsLnks <- vapply(strtScriptsLnks, get_shortcut_target, "")
     strtScripts <- union(strtScripts, strtScriptsLnks)
   }
-  
   # Source all startup scripts
   if (length(strtScripts)) {
     strtScripts <- normalizePath(strtScripts, winslash = "/")

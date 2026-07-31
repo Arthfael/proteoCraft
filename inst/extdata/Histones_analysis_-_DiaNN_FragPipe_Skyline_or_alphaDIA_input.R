@@ -68,13 +68,20 @@ if ((length(locScriptsDir) == 1L)&&(dir.exists(locScriptsDir))) {
   # Also handle links
   strtScriptsLnks <- list.files(locScriptsDir, ".R\\.lnk$", full.names = TRUE)
   if (length(strtScriptsLnks)) {
-    if (!require(RDCOMClient)) { pak::pak("omegahat/RDCOMClient") }
-    library(RDCOMClient)
-    get_shortcut_target <- \(lnk_path) { # Thanks istaGPT...
-      #lnk_path <- strtScriptsLnks[1L]
-      shell <- RDCOMClient::COMCreate("WScript.Shell")
-      shortcut <- shell$CreateShortcut(normalizePath(lnk_path, mustWork = TRUE))
-      shortcut$TargetPath()
+    get_shortcut_target <- \(lnk_path) {
+      lnk_path <- normalizePath(lnk_path, mustWork = TRUE)
+      lnk_path <- gsub("'", "''", lnk_path, fixed = TRUE)
+      result <- system2("powershell.exe",
+                        args = c("-NoProfile",
+                                 "-Command",
+                                 paste0("$s = New-Object -ComObject WScript.Shell; ",
+                                        "$s.CreateShortcut('", lnk_path, "').TargetPath")),
+                        stdout = TRUE,
+                        stderr = TRUE)
+      if ((!length(result)) || (!nzchar(result[1L]))) {
+        stop("Could not resolve shortcut: ", lnk_path)
+      }
+      return(normalizePath(result[1L], winslash = "/"))
     }
     strtScriptsLnks <- vapply(strtScriptsLnks, get_shortcut_target, "")
     strtScripts <- union(strtScripts, strtScriptsLnks)
