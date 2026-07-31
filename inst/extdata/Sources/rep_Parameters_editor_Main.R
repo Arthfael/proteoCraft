@@ -1943,32 +1943,28 @@ server1 <- \(input, output, session) {
     Par$Adv.Norma.Ev.Intens <- input$evLM
     PARAM(Par)
   })
-  observeEvent(input$Norma.Prot.Ratio.to.proteins, {
+  normProt_debounced <- debounce(reactive(input$Norma.Prot.Ratio.to.proteins), 5000L)
+  observeEvent(normProt_debounced(), {
+    tmp <- normProt_debounced()
     updatePickerInput(inputId = "Norma.Prot.Ratio.to.proteins",
-                      selected = input$Norma.Prot.Ratio.to.proteins,
-                      choices = c(input$Norma.Prot.Ratio.to.proteins,
-                                  setdiff(protHeads, input$Norma.Prot.Ratio.to.proteins)))
-    Par <- PARAM()
-    Par$Norma.Prot.Ratio.to.proteins <- paste(db$`Protein ID`[dbOrd][match(input$Norma.Prot.Ratio.to.proteins, protHeads)],
-                                              collapse = ";")
-    PARAM(Par)
+                      selected = tmp,
+                      choices = union(tmp, protHeads))
   }, ignoreNULL = FALSE)
   observeEvent(input$Norma.to.Hist, {
     Par <- PARAM()
     if (input$Norma.to.Hist) {
-      tmp1 <- union(allHist, input$Norma.Prot.Ratio.to.proteins)
+      tmp1 <- union(allHist, normProt_debounced())
       tmp1 <- tmp1[which(nchar(tmp1) > 0L)]
       tmp2 <- union(allHistIDs,
-                    db$`Protein ID`[dbOrd][match(input$Norma.Prot.Ratio.to.proteins, protHeads)])
+                    db$`Protein ID`[dbOrd][match(normProt_debounced(), protHeads)])
     } else {
-      tmp1 <- setdiff(input$Norma.Prot.Ratio.to.proteins, allHist)
-      tmp2 <- setdiff(db$`Protein ID`[dbOrd][match(input$Norma.Prot.Ratio.to.proteins, protHeads)],
+      tmp1 <- setdiff(normProt_debounced(), allHist)
+      tmp2 <- setdiff(db$`Protein ID`[dbOrd][match(normProt_debounced(), protHeads)],
                       allHistIDs)
     }
     updatePickerInput(inputId = "Norma.Prot.Ratio.to.proteins",
                       selected = tmp1,
-                      choices = c(tmp1,
-                                  setdiff(protHeads, tmp1)))
+                      choices = union(tmp1, protHeads))
     Par$Norma.Prot.Ratio.to.proteins <- paste(tmp2, collapse = ";")
     PARAM(Par)
   }, ignoreNULL = TRUE)
@@ -2126,10 +2122,10 @@ server1 <- \(input, output, session) {
   # Proteins of interest
   IntProt_debounced <- debounce(reactive(input$IntProt), 5000L)
   observeEvent(IntProt_debounced(), {
+    tmp <- IntProt_debounced()
     updatePickerInput(inputId = "IntProt",
-                      selected = IntProt_debounced(),
-                      choices = union(IntProt_debounced(),
-                                      protHeads))
+                      selected = tmp,
+                      choices = union(tmp, protHeads))
   })
   # Use curved SAM thresholds for Student's t-test
   observeEvent(input$useSAM_thresh, {
@@ -2244,12 +2240,17 @@ server1 <- \(input, output, session) {
     for (w in wMp) {
       if (nchar(Par[[w]])) { Par[[w]] <- paste(substr(unlist(strsplit(Par[[w]], ";")), 1L, 3L), collapse = ";") }
     }
-    tmp <- input$IntProt
+    tmp <- IntProt_debounced()
     if (length(tmp)) {
       prot.list <- db$`Protein ID`[dbOrd][match(tmp, protHeads)]
       assign("prot.list", prot.list, envir = .GlobalEnv)
       ##Par$Prot.list_pep <-
       Par$Prot.list <- paste(prot.list, collapse = ";")
+    }
+    tmp <- normProt_debounced()
+    if (length(tmp)) {
+      tmp <- db$`Protein ID`[dbOrd][match(tmp, protHeads)]
+      Par$Norma.Prot.Ratio.to.proteins <- paste(tmp, collapse = ";")
     }
     PARAM(Par)
     assign("Param", Par, envir = .GlobalEnv)
@@ -2408,8 +2409,6 @@ if (prot.list.Cond) {
   #
   temp <- db[which(db$`Protein ID` %in% prot.list),]
   writeFasta(temp, paste0(wd, "/Proteins of interest.fasta"))
-  AnalysisParam$"Proteins list: proteins" <- IDs.list
-  AnalysisParam$"Proteins list: names" <- prot.names
 }
 
 
