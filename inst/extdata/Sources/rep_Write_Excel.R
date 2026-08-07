@@ -13,6 +13,7 @@
 #   I have saved a dummy tab with my old openxlsx styles,
 #   which I will load in openxlsx2 to get and copy the styles from.
 MakeRatios <- TRUE # (Used by the sourced, core sub-script)
+dxfs_Style_nms <- c()
 intNms <- \(nms, topLvl = FALSE, type = "PG", newLine = FALSE) {
   m <- match(type, c("pep", "PG"))
   root <- c("Intensity", "Expression")[m]
@@ -44,7 +45,7 @@ ratNms <- \(nms, topLvl = FALSE, newLine = FALSE) {
       } else { tolower(substr(nm, 1L, min(c(3L, nchar(nm))))) }
       nm <- paste0(nm, ". ", c("rat.", "ratios")[mode])
     }
-    paste0("log2(", nm, ")")
+    nm <- paste0("log2(", nm, ")")
     if (newLine) { nm <- paste0(nm, " ///NL///") }
     return(nm)
   }, "")
@@ -114,6 +115,7 @@ replFun <- \(colNames,
 }
 KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   #KolNames <- xlTabs[[sheetnm]]
+  #KolNames <- ColumnsTbl$Col
   klnms <- KolNames
   KolNames <- sub("Peptides?", "Pep.", KolNames)
   KolNames <- sub("Evidences?", "PSMs", KolNames)
@@ -146,11 +148,11 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
     wF <- grep("mod\\. F[-\\.]?test:? +", KolNames)
     KolNames[wF] <- sub("mod\\. F[-\\.]?test:? +", "F-test ", KolNames[wF]) # Shorter F-test tag
   }
-  KolNames <- sub(" +-log10.*Pvalue\\)", " -log10 pval.", KolNames)
-  KolNames <- sub(".*Pvalue", "pval.", KolNames)
-  KolNames <- sub(".*Regulated", " reg.", KolNames)
+  KolNames <- sub("^///NL///", "", sub(" *-log10.*Pvalue\\)", "///NL///-log10 pval.", KolNames))
+  KolNames <- sub("^///NL///", "", sub(" *Pvalue", "///NL///pval.", KolNames))
+  KolNames <- sub("Regulated", "reg.", KolNames)
   gSg <- grep("Significant-", KolNames)
-  KolNames[gSg] <- sub(" +Significant-", " ", KolNames[gSg])
+  KolNames[gSg] <- sub("^ +", "", sub(" *Significant-", " ", KolNames[gSg]))
   #
   KolNames <- sub("^Cluster \\([^\\)]+\\)", "Clust.", KolNames)
   #
@@ -414,7 +416,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     ColumnsTbl[["Filters"]] <- qualFlt
     # Melt
     ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, \(x) { sum(!is.na(x)) }, 1L) > 0L)]
-    ColumnsTbl <- set_colnames(reshape::melt.list(ColumnsTbl), c("Col", "Grp"))
+    ColumnsTbl <- listMelt(ColumnsTbl, ColNames = c("Col", "Grp"))
     #tst <- aggregate(ColumnsTbl$Grp, list(ColumnsTbl$Col), length); View(tst)
     #aggregate(ColumnsTbl$Grp, list(ColumnsTbl$Col), unique)
     stopifnot(nrow(ColumnsTbl) == length(unique(ColumnsTbl$Col)))
@@ -452,6 +454,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     ColumnsTbl$edit_Col <- unlist(a)
     #
     Src <- paste0(libPath, "/extdata/Sources/fstWrite_Excel_core_script.R")
+    #if (ii == 2) { stop() }
     #rstudioapi::documentOpen(Src)
     source(Src, local = FALSE)
     #saveFun(WorkBook, file = "WorkBook_bckp.RData")
@@ -502,11 +505,11 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl, locTbl = SubCel
     wF <- grep("mod\\. F[-\\.]?test:? +", KolNames)
     KolNames[wF] <- sub("mod\\. F[-\\.]?test:? +", "F-test ", KolNames[wF]) # Shorter F-test tag
   }
-  KolNames <- sub(" +-log10.*Pvalue\\)", " -log10 pval.", KolNames)
-  KolNames <- sub(".*Pvalue", "pval.", KolNames)
-  KolNames <- sub(".*Regulated", " reg.", KolNames)
+  KolNames <- sub("^///NL///", "", sub(" *-log10.*Pvalue\\)", "///NL///-log10 pval.", KolNames))
+  KolNames <- sub("^///NL///", "", sub(" *Pvalue", "///NL///pval.", KolNames))
+  KolNames <- sub("Regulated", "reg.", KolNames)
   gSg <- grep("Significant-", KolNames)
-  KolNames[gSg] <- sub(" +Significant-", " ", KolNames[gSg])
+  KolNames[gSg] <- sub("^ +", "", sub(" *Significant-", " ", KolNames[gSg]))
   #
   KolNames <- sub("log10\\(est\\. copies/cell\\)", "ProtRul.", KolNames)
   KolNames <- sub(topattern("Sequence coverage [%]", start = FALSE), "Cov.", KolNames)
@@ -662,10 +665,10 @@ regcol <- grep("^((Enriched)|(Regulated)) - ", colnames(tempData), value = TRUE)
 signcol <- grep("^Significant-FDR=[1-9][0-9]*\\.*[0-9]*% - ", colnames(tempData), value = TRUE)
 signcol <- grep(" - Analysis_[0-9]+", signcol, invert = TRUE, value = TRUE)
 covcol <- c(#xmlCovCol,
-            c("Sequence coverage [%]",
-              "Unique + razor sequence coverage [%]",
-              "Unique sequence coverage [%]")[1L:c(1L, 3L)[isEukaLike+1L]],
-            grep(topattern("Sequence coverage [%] - "), colnames(tempData), value = TRUE))
+  c("Sequence coverage [%]",
+    "Unique + razor sequence coverage [%]",
+    "Unique sequence coverage [%]")[1L:c(1L, 3L)[isEukaLike+1L]],
+  grep(topattern("Sequence coverage [%] - "), colnames(tempData), value = TRUE))
 kol <- c(kol, "Mol. weight [kDa]", covcol, "PEP", covcol, quantcol, pvalcol, regcol, signcol)
 if (exists("KlustKols") && length(KlustKols)) { kol <- union(kol, KlustKols) }
 qualFlt <- QualFilt
@@ -967,7 +970,7 @@ if (saintExprs) {
   tblMode <- tblMode2 <- TbNm <- "SAINTexpress"
   # Function for editing the header
   KolEdit <- \(KolNames, #intTbl = intColsTbl,
-                      ratTbl = ratColsTbl) {
+               ratTbl = ratColsTbl) {
     #KolNames <- xlTabs[[sheetnm]]
     klnms <- KolNames
     KolNames <- sub("^log2\\(FC\\) - ", "log2(FC) ///NL///", KolNames)

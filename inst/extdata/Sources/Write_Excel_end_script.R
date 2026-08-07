@@ -152,7 +152,7 @@ w1 <- which(vapply(xmlFls, \(fl) {
 w2 <- which(xmlFls %in% paste0(dr, "/xl/worksheets/sheet", as.character(which(!sheetVis)), ".xml"))
 w <- union(w1, w2)
 for (fl in xmlFls[w1]) { #fl <- xmlFls[w1][1L]
-  xmlDat[[fl]] <- gsub(" ///NL///", " &#10;",
+  xmlDat[[fl]] <- gsub("///NL///", "&#10;",
                        gsub("///VS/// ", "/&#10;", xmlDat[[fl]]))
 }
 for (fl in xmlFls[w2]) { #fl <- xmlFls[w2][1L]

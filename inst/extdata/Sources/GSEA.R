@@ -5,6 +5,11 @@
 
 source(parSrc)
 
+if (!exists("GSEA_plots")) { GSEA_plots <- list() }
+GSEA_plots %<o% GSEA_plots
+if (!GSEAmode %in% names(GSEA_plots)) { GSEA_plots[[GSEAmode]] <- list() }
+GSEA_plots[[GSEAmode]][[dataType]] <- list()
+ 
 keyType <- "UNIPROT"
 idCol <- "Leading protein IDs"
 if (!exists("GSEAmode")) { GSEAmode <- "standard" }
@@ -47,8 +52,11 @@ if (GSEAmode == "WGCNA") {
   }
   isOK <- TRUE
 }
-if (!dir.exists(ohDeer)) { dir.create(ohDeer, recursive = TRUE) }
-if (exists("dirlist")) { dirlist <- unique(c(dirlist, ohDeer)) }
+ohDeer <- paste0(ohDeer, c("", "/jpeg", "/pdf"))
+for (dr in ohDeer) {
+  if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
+}
+if (exists("dirlist")) { dirlist <- union(dirlist, ohDeer) }
 if (isOK) {
   if (Annotate) {
     # Either we can use the annotations we already have
@@ -184,7 +192,7 @@ if (isOK) {
   }
   cpParam <- SerialParam()
   readr::write_rds(tmpDat, paste0(wd, "/tmpDat.RDS"))
-  exports <- list("idCol", "rankCol", "keyType", "wd", "cpParam", "Annotate")
+  exports <- list("idCol", "rankCol", "keyType", "wd", "cpParam", "Annotate", "wd")
   if (Annotate) {
     readr::write_rds(term2Prot, paste0(wd, "/term2Prot.RDS"))
     readr::write_rds(term2name, paste0(wd, "/term2name.RDS"))
@@ -261,42 +269,88 @@ if (isOK) {
   #
   # GSEA dot plots
   nmRoot <- "GSEA dotplot"
-  invisible(lapply(names(gses), \(grp) { #grp <- names(gses)[1L]
+  tmp <- setNames(lapply(names(gses), \(grp) { #grp <- names(gses)[1L]
     gse <- gses[[grp]]$GSE
     try({
+      ttl <- paste0(nmRoot, " _ ", grp)
+      svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "jpeg", "pdf"))
       plot <- clusterProfiler::dotplot(gse, showCategory = nCat, split = ".sign", font.size = 4L,
                       label_format = 500L # don't you dare wrap my labels!!!
       ) + ggplot2::facet_grid(.~.sign) +
-        ggplot2::coord_fixed(0.025)
+        ggplot2::coord_fixed(0.025) +
+        ggtitle(grp, subtitle = nmRoot) +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        theme(plot.subtitle = element_text(hjust = 0.5))
       suppressMessages({
         plot <- plot + viridis::scale_fill_viridis()
         #plot <- dotplot(gse, showCategory = nCat, color = "pvalue", split = ".sign") + facet_grid(.~.sign)
         #poplot(plot)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300L)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300L)
+        ggplot2::ggsave(svpth[2L], plot, dpi = 300L)
+        ggplot2::ggsave(svpth[3L], plot, dpi = 300L)
+        plotL <- plotly::ggplotly(plot)
+        # Fix tooltip
+        w <- which(vapply(1L:length(plotL$x$data), \(i) {
+          x <- plotL$x$data[[i]]
+          ("hoveron" %in% names(x)) && (x$hoveron == "points")
+        }, TRUE))
+        for (i in w) {
+          plotL$x$data[[i]]$text <- gsub("I\\(enrichplot_point_shape\\): *21<br */>", "", plotL$x$data[[i]]$text)
+        }
+        plotL <- plotly::config(plotL,
+                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
+        setwd(ohDeer[1L])
+        htmlwidgets::saveWidget(plotL, svpth[1L], selfcontained = TRUE)
+        setwd(wd)
       })
+      return(plotL)
     }, silent = TRUE)
-  }))
+  }), names(gses))
+  GSEA_plots[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
   #
   # GSEA enrichment map plots
   nmRoot <- "GSEA enrichment map"
-  invisible(lapply(names(gses), \(grp) { #grp <- names(gses)[1L]
+  tmp <- setNames(lapply(names(gses), \(grp) { #grp <- names(gses)[1L]
     gse <- gses[[grp]]$GSE
+    g <- grep("^NA(\\.[0-9]+)?$", rownames(gse@result), invert = TRUE)
+    gse@result <- gse@result[g,]
+    nCat <- min(c(50L, nrow(gse@result)))
     try({
       gse2 <- pairwise_termsim(gse, method = "JC", semData = NULL)
-      plot <- clusterProfiler::emapplot(gse2, showCategory = nCat)
+      ttl <- paste0(nmRoot, " _ ", grp)
+      svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "jpeg", "pdf"))
+      plot <- clusterProfiler::emapplot(gse2, showCategory = nCat) +
+        ggtitle(grp, subtitle = nmRoot) +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        theme(plot.subtitle = element_text(hjust = 0.5))
       suppressMessages({
         plot <- plot + viridis::scale_color_viridis(option = "cividis", direction = -1L)
         l <- length(plot$layers)
-        w <- which(sapply(1L:l, \(x) { inherits(plot$layers[[x]]$geom, "GeomTextRepel") }))
+        w <- which(vapply(1L:l, \(x) { inherits(plot$layers[[x]]$geom, "GeomTextRepel") }, TRUE))
         plot$layers[[w]]$aes_params$size <- 4L
         #getMethod("emapplot", "gseaResult")
         #poplot(plot)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300L)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300L)
+        ggplot2::ggsave(svpth[2L], plot, dpi = 300L)
+        ggplot2::ggsave(svpth[3L], plot, dpi = 300L)
+        plotL <- plotly::ggplotly(plot)
+        # Fix tooltip
+        w <- which(vapply(1L:length(plotL$x$data), \(i) {
+          x <- plotL$x$data[[i]]
+          ("hoveron" %in% names(x)) && (x$hoveron == "points")
+        }, TRUE))
+        for (i in w) {
+          plotL$x$data[[i]]$text <- paste0(plot@data$name, "<br />",
+                                           gsub("[xy]: *-?[0-9]+(\\.[0-9]+)?<br />", "", plotL$x$data[[i]]$text))
+        }
+        plotL <- plotly::config(plotL,
+                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
+        setwd(ohDeer[1L])
+        htmlwidgets::saveWidget(plotL, svpth[1L], selfcontained = TRUE)
+        setwd(wd)
       })
+      return(plotL)
     }, silent = TRUE)
-  }))
+  }), names(gses))
+  GSEA_plots[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
   #
   # GSEA category net plots
   if (!"Label" %in% colnames(db)) {
@@ -308,19 +362,24 @@ if (isOK) {
   # - Update labels to ones more informative
   # - Plot as interactive plotly
   #  (see commented discussion below about how to achieve this)
-  invisible(lapply(names(gses), \(grp) { #grp <- names(gses)[1L]
+  tmp <- setNames(lapply(names(gses), \(grp) { #grp <- names(gses)[1L] #grp <- names(gses)[3L]
     gse <- gses[[grp]]$GSE
     try({
       lFC <- gses[[grp]]$lFC
+      ttl <- paste0(nmRoot, " _ ", grp)
+      svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "jpeg", "pdf"))
       plot <- clusterProfiler::cnetplot(gse, foldChange = lFC, showCategory = 10L,
                                         color_edge = "grey",
                                         #cex_label_category = 1.2, cex_label_gene = 0.8 # Those parameters do not work for me...
-      )
+      ) +
+        ggtitle(grp, subtitle = nmRoot) +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        theme(plot.subtitle = element_text(hjust = 0.5))
       suppressMessages({
         plot <- plot + viridis::scale_color_viridis()
         # ... so I used a hacky solution:
         l <- length(plot$layers)
-        w <- which(sapply(1L:l, \(x) { inherits(plot$layers[[x]]$geom, "GeomTextRepel") }))
+        w <- which(vapply(1L:l, \(x) { inherits(plot$layers[[x]]$geom, "GeomTextRepel") }, TRUE))
         plot$layers[[w]]$aes_params$size <- 1.6 # Downside: applies to both categories and proteins!
         # Edit labels
         plot$data$label <- plot$data$label
@@ -328,40 +387,99 @@ if (isOK) {
         plot$data$label[w] <- db$Label[match(plot$data$label[w], db$`Protein ID`)]
         #
         #poplot(plot)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300L)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300L)
+        ggplot2::ggsave(svpth[2L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
+        ggplot2::ggsave(svpth[3L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
         #
-        # plot2 <- plotly::ggplotly(plot, tooltip = "label")
-        # htmlwidgets::saveWidget(plot2, paste0(ohDeer, "/", grp, " ", nmRoot, ".html"),
-        #                         selfcontained = TRUE)
-        # Doesn't work...
-        # Maybe the solution would be to get the data from the ggplot created,
-        # including the segment layer, which uses its own data,
-        # and rewrite my own ggplot2 call?
-        # That way I could also easily filter for specific GO terms.
-        # TBC...
+        plotL <- plotly::ggplotly(plot)
+        # Fix tooltip
+        w <- which(vapply(1L:length(plotL$x$data), \(i) {
+          x <- plotL$x$data[[i]]
+          ("hoveron" %in% names(x)) && (x$hoveron == "points")
+        }, TRUE))
+        for (i in w) {
+          plotL$x$data[[i]]$text <- paste0(plot@data$label, "<br />",
+                                           gsub("[xy]: *-?[0-9]+(\\.[0-9]+)?<br />", "",
+                                                gsub("<br />I\\(\\.hilight\\):.*", "", plotL$x$data[[i]]$text)))
+        }
+        # Re-add lost traces
+        # - Nodes
+        plot2 <- ggplot2::ggplot_build(plot)
+        w <- match("geom_point", names(plot@layers))
+        pt_dat <- plot2$data[[w]]
+        pt_dat$label <- paste0("GO term: ",
+                               do.call(paste, c(plot@data[1L:nrow(pt_dat), c("label", "size")], sep = "\nsize: "))) # GO terms go first in the table
+        plotL <- plotly::add_trace(plotL,
+                                   x = pt_dat$x,
+                                   y = pt_dat$y,
+                                   type = "scatter",
+                                   mode = "markers",
+                                   text = pt_dat$label,
+                                   marker = list(color = pt_dat$colour,
+                                                 size = pt_dat$size*4),
+                                   hoverinfo = "text",
+                                   showlegend = FALSE,
+                                   inherit = FALSE)
+        # - segments
+        w <- match("geom_segment", names(plot@layers))
+        seg_dat <- plot2$data[[w]]
+        length(plotL$x$data)
+        plotL <- plotly::add_trace(plotL,
+                                   x = as.vector(rbind(seg_dat$x, seg_dat$xend, NA)),
+                                   y = as.vector(rbind(seg_dat$y, seg_dat$yend, NA)),
+                                   type = "scatter",
+                                   mode = "lines",
+                                   line = list(color = "black",
+                                               width = 1),
+                                   hoverinfo = "skip",
+                                   showlegend = FALSE,
+                                   inherit = FALSE)
+        plotL <- plotly::plotly_build(plotL)
+        l <- length(plotL$x$data)
+        plotL$x$data <- c(plotL$x$data[l],
+                          plotL$x$data[-l])
+        #
+        plotL <- plotly::config(plotL,
+                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
+        setwd(ohDeer[1L])
+        htmlwidgets::saveWidget(plotL, svpth[1L], selfcontained = TRUE)
+        setwd(wd)
       })
+      return(plotL)
     }, silent = TRUE)
-  }))
+  }), names(gses))
+  GSEA_plots[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
   #
   # GSEA ridge plots
   nmRoot <- "GSEA ridge plot"
-  invisible(lapply(names(gses), \(grp) { #grp <- names(gses)[1L]
+  tmp <- setNames(lapply(names(gses), \(grp) { #grp <- names(gses)[1L]
     gse <- gses[[grp]]$GSE
     try({
       lFC <- gses[[grp]]$lFC
+      ttl <- paste0(nmRoot, " _ ", grp)
+      svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "jpeg", "pdf"))
       plot <- enrichplot::ridgeplot(gse, fill = "pvalue", label_format = 500L # don't you dare wrap my labels!!!
       ) + ggplot2::labs(x = "enrichment distribution") +
         ggplot2::theme(axis.text.x = ggplot2::element_text(size = 5L),
-                       axis.text.y = ggplot2::element_text(size = 5L))
+                       axis.text.y = ggplot2::element_text(size = 5L)) +
+        ggtitle(grp, subtitle = nmRoot) +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        theme(plot.subtitle = element_text(hjust = 0.5))
       suppressMessages({
         plot <- plot + viridis::scale_fill_viridis()
         #poplot(plot)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".jpeg"), plot, dpi = 300L)
-        ggplot2::ggsave(paste0(ohDeer, "/", grp, " ", nmRoot, ".pdf"), plot, dpi = 300L)
+        ggplot2::ggsave(svpth[2L], plot, dpi = 300L)
+        ggplot2::ggsave(svpth[3L], plot, dpi = 300L)
+        plotL <- plotly::ggplotly(plot)
+        plotL <- plotly::config(plotL,
+                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
+        setwd(ohDeer[1L])
+        htmlwidgets::saveWidget(plotL, svpth[1L], selfcontained = TRUE)
+        setwd(wd)
       })
+      return(plotL)
     }, silent = TRUE)
-  }))
+  }), names(gses))
+  GSEA_plots[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
   #
   if ((exists("DatAnalysisTxt"))&&(GSEAmode == "standard")) {
     l <- length(DatAnalysisTxt)

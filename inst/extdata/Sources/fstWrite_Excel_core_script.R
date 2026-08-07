@@ -27,14 +27,14 @@ if (tblMode == "PG") {
   # We now want coverage columns in another tab - they are otherwise slowing the main tab too much
   xlTabs$Coverage <- c(CoreCol, CoreCol2, covcol)
   tmp <- xlTabs[[TbNm]]
-  tmp <- tmp[which(!tmp %in% covcol)]
+  tmp <- setdiff(tmp, covcol)
   xlTabs[[TbNm]] <- tmp
 }
 # Write tab, apply formatting etc...
 for (l in LS) { if (!exists(l)) { assign(l, list()) } }
 sheetnmsA <- names(xlTabs)
-sheetnmsB <- sheetnmsA[which(!sheetnmsA %in% c("Description", "Quality control"))]
-cat(paste0("    - Building ", tblMode2, " tab...\n"))
+sheetnmsB <- setdiff(sheetnmsA, c("Description", "Quality control"))
+cat(paste0("    - building ", tblMode2, " tab...\n"))
 if (tblMode == "pep") {
   nms <- sub(" ///NL///$", "", intNms(names(intRf), TRUE, "pep"))
   if (MakeRatios) {
@@ -50,6 +50,7 @@ if (tblMode == "PG") {
   datCol <- ColumnsTbl$Col[unique(c(which(ColumnsTbl$Class %in% nms),
                                     grep("est\\. copies/cell", ColumnsTbl$Class)))]
 }
+#
 if (tblMode == "SAINTexpress") {
   datCol <- ColumnsTbl$Col[which(ColumnsTbl$Class == "log2(rat.), avg.")]
 }
@@ -58,10 +59,8 @@ wrtHeader <- TRUE
 for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   # Very important early filter, to avoid discrepancies between header and columns!
   # Should be done at least before the header is written
-  xlTabs[[sheetnm]] <- xlTabs[[sheetnm]][which(xlTabs[[sheetnm]] %in% colnames(tempData))]
-  xlTabs[[sheetnm]] <- ColumnsTbl$Col[which(ColumnsTbl$Col %in% xlTabs[[sheetnm]])] # The order in ColumnsTbl should make sense!
-  #xlTabs[[sheetnm]] <- colnames(tempData)[which(colnames(tempData) %in% xlTabs[[sheetnm]])] # We now define the order not in ColumnsTbl but when we build tempData
-  # This may be reverted, but is the current trend!!!
+  xlTabs[[sheetnm]] <- intersect(xlTabs[[sheetnm]], colnames(tempData))
+  xlTabs[[sheetnm]] <- intersect(xlTabs[[sheetnm]], ColumnsTbl$Col) # The order matters!
   #
   if (!sheetnm %in% names(data_filt)) { data_filt[[sheetnm]] <- 1L:nrow(tempData) }
   if (!sheetnm %in% names(data_order)) { data_order[[sheetnm]] <- 1L:length(data_filt[[sheetnm]]) }
@@ -77,7 +76,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   colRg <- 1L:length(xlTabs[[sheetnm]])
   #
   # Write the data
-  # Styles list which applies to this tab
+  # Styles list which applies to this tab and is in the right order (important for group processing/grouping!)
   ColumnsTbl2 <- data.frame(Col = xlTabs[[sheetnm]], Grp = "", Class = "")
   w <- which(ColumnsTbl2$Col %in% ColumnsTbl$Col)
   ColumnsTbl2[w, c("Grp", "Class")] <- ColumnsTbl[match(xlTabs[[sheetnm]][w], ColumnsTbl$Col), c("Grp", "Class")] 
@@ -139,17 +138,26 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   WorkBook <- wb_add_worksheet(WorkBook,
                                sheetnm,
                                grid_lines = FALSE)
-  #WB <- openxlsx2::wb_remove_worksheet(WB, sheetnm);WB <- openxlsx2::wb_add_worksheet(WB, sheetnm, grid_lines = FALSE)
+  #WorkBook <- openxlsx2::wb_remove_worksheet(WorkBook, sheetnm);WorkBook <- openxlsx2::wb_add_worksheet(WorkBook, sheetnm, grid_lines = FALSE)
   #
-  #WB <- openxlsx2::wb_load(fl);WB <- openxlsx2::wb_add_worksheet(WB, sheetnm, grid_lines = FALSE)
+  #WorkBook <- openxlsx2::wb_load(fl);WorkBook <- openxlsx2::wb_add_worksheet(WorkBook, sheetnm, grid_lines = FALSE)
   #
   tblNm <- tolower(gsub(" |\\$|\\.|-", "_", sheetnm))
   dims <- openxlsx2::wb_dims(rows = hdRg[2L], cols = 1L)
   # We will not write the first row of the data, but a nicely behaved dummy row without any NAs, NaNs or Inf...
   dummyData <- myData[1L, , drop = FALSE]
-  tst <- vapply(colnames(myData), \(x) { inherits(myData[[x]], c("numeric", "integer")) }, TRUE)
-  wNum <- setNames(which(tst), NULL)
-  wTxt <- setNames(which(!tst), NULL)
+  # Check storage type before writing data to avoid issues - e.g. writing numerics as text
+  for (k in colnames(myData)) {
+    if (is.factor(myData[[k]])) { myData[[k]] <- as.character(myData[[k]]) }
+    if (is.list(myData[[k]])) { myData[[k]] <- vapply(myData[[k]], paste, "", collapse = ";") }
+    if (is.matrix(myData[[k]]) || is.data.frame(myData[[k]])) { myData[[k]] <- drop(myData[[k]]) }
+  }
+  typeTst <- setNames(vapply(colnames(myData), \(x) {
+    #inherits(myData[[x]], c("numeric", "integer"))
+    is.numeric(myData[[x]])
+  }, TRUE), colnames(myData))
+  wNum <- setNames(which(typeTst), NULL)
+  wTxt <- setNames(which(!typeTst), NULL)
   dummyData[wNum] <- 0L
   dummyData[wTxt] <- "Hello world!"
   if (tblNm %in% WorkBook$tables$tab_name) { # Let's see if that works...
@@ -206,49 +214,23 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
                              , colRg)
   WorkBook <- openxlsx2::wb_add_cell_style(WorkBook, sheetnm, dims, vertical = "center")
   #a1 <- WorkBook$worksheets[[3L]]$sheet_data$cc; a2 <- WorkBook$worksheets[[3L]]$sheet_data$cc; length(unique(a1$c_s)); length(unique(a2$c_s))
-  kl <- "id" # Not idKl!
-  if (tblMode == "pep") { kl <- c(kl, aacol) }
-  w <- which(xlTabs[[sheetnm]] %in% kl) # Peptide ID column, Amino Acid counts
-  if (length(w)) { WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, w, 5L) }
-  # Expression and annotations columns, PEP, some others...
-  if (tblMode != "SAINTexpress") { kl <- c(quantcol, "PEP") }
-  kl <- c(quantcol, CoreCol[which(CoreCol != "id")])
-  if (tblMode != "SAINTexpress") {
-    if (Annotate) { kl <- c(kl, annot.col2) }
-  }
-  w <- grep("Significant", xlTabs[[sheetnm]])
-  if (length(w)) { WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, w, 13L) }
-  w <- unique(c(which(xlTabs[[sheetnm]] %in% kl),
-                grep("Regulated - ", xlTabs[[sheetnm]]))) # Specific columns
-  if (length(w)) { WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, w, 15L) }
-  w <- which(xlTabs[[sheetnm]] == "Modified sequence_verbose")
-  if (length(w)) { WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, w, 18L) }
+  colWdth <- setNames(vapply(strsplit(colnames(myData), "///((NL)|(VS))///"), \(x) { #x <- strsplit(colnames(myData)[35L], "///((NL)|(VS))///")
+    x <- unlist(x)
+    x <- max(vapply(strsplit(x, ""), \(y) {
+      length(y) + sum(y %in% LETTERS)
+    }, 1L)) + 4L
+    max(c(5L, min(c(35L, x))))
+  }, 1L), colnames(myData))
+  colHgth <- (max(vapply(strsplit(colnames(myData), "///((NL)|(VS))///"), length, 1L))+0.5)*15.75
+  WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, 1L:length(colWdth), colWdth)
   #
-  if (tblMode == "PG") {
-    w <- which(xlTabs[[sheetnm]] %in% xmlCovCol)
-    if (length(w)) {
-      WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, w, 100L)
-      dims <- openxlsx2::wb_dims(tblRws[1L]#:tblRws[2L]
-                                 , w)
-      WorkBook <- openxlsx2::wb_add_cell_style(WorkBook, sheetnm,
-                                               dims, vertical = "top")
-    }
-    w <- which(xlTabs[[sheetnm]] %in% covcol[which(!covcol %in% xmlCovCol)])
-    if (length(w)) { WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, w, 11L) }
-  }
-  if (tblMode == "SAINTexpress") {
-    w <- which(xlTabs[[sheetnm]] %in% boostcol)		
-    if (length(w)) {
-      WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, w, 50L)
-    }
+  w <- which(xlTabs[[sheetnm]] %in% xmlCovCol)
+  if (length(w)) {
+    dims <- openxlsx2::wb_dims(tblRws[1L], w)
+    WorkBook <- openxlsx2::wb_add_cell_style(WorkBook, sheetnm,
+                                             dims, vertical = "top")
   }
   #
-  w <- grep("([Ee]vidence|[Pp]eptide) IDs", xlTabs[[sheetnm]]) # Peptide and protein IDs columns
-  if (length(w)) { WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, w, 10L) }
-  #
-  w <- which(xlTabs[[sheetnm]] %in% qualFlt) # Quality filter, contaminants
-  if (length(w)) { WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, w, 14L) }
-  WorkBook <- openxlsx2::wb_add_cell_style(WorkBook, sheetnm, "A1", vertical = "top")
   if (wrtHeader) {
     # Style the header
     # - Header borders
@@ -269,14 +251,11 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
     }
     #
     # Row heights:
-    # This should be done differently:
-    # Figure out how many characters can be fitted in each column's width, then adjust column height accordingly.
-    # For now this heuristic will do.
     WorkBook <- openxlsx2::wb_set_row_heights(WorkBook,
                                               sheetnm,
                                               hdRg,
-                                              c(max(c(30L, min(c(ceiling(max(nchar(tstKol$Group))/20)*10L, 45L)))),
-                                               80L))
+                                              c(max(c(30L, min(45L, c(ceiling(max(nchar(tstKol$Group))/20)*10L)))),
+                                                colHgth))
   }
   # Freeze panes
   m <- match(CoreCol, xlTabs[[sheetnm]])
@@ -292,7 +271,9 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
     match(ColumnsTbl$Grp[match(x, ColumnsTbl$Col)], styleNms)
   }, 1L)))
   w2 <- colRg
-  w2 <- w2[which(!w2 %in% w1)]
+  w2 <- setdiff(w2, w1)
+  #View(ColumnsTbl[w1,])
+  #View(ColumnsTbl[w2,])
   if (length(w1)) {
     CS1 <- setNames(lapply(xlTabs[[sheetnm]][w1], \(x) { #x <- xlTabs[[sheetnm]][w1][1L]
       m <- match(x, ColumnsTbl$Col)
@@ -302,20 +283,26 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
       res$Style <- openxlsx2::wb_get_cell_style(WorkBook, "tmp", res$tmpCell)
       return(res)
     }), xlTabs[[sheetnm]][w1])
-    CS1tst <- aggregate(1L:length(CS1), list(vapply(CS1, paste, "", collapse = "-")), \(x) {
+    CS1tst <- vapply(CS1, paste, "", collapse = "-")
+    CS1tst <- aggregate(1L:length(CS1), list(CS1tst), \(x) {
       c(min(x), max(x))
     })
     CS1tst[, c("Min", "Max")] <- as.data.frame(CS1tst$x)
     CS1tst$x <- NULL
     CS1tst <- CS1tst[order(CS1tst$Min),]
-    CS1tst$Range <- apply(CS1tst[, c("Min", "Max")], 1L, \(x) { list(w1[x[[1L]]:x[[2L]]]) })
+    CS1tst$Ranges <- apply(CS1tst[, c("Min", "Max")], 1L, \(x) {
+      x <- w1[x[[1L]]:x[[2L]]]
+      split(x, cumsum(c(TRUE, diff(x) != 1L)))
+    })
     for (rw in 1L:nrow(CS1tst)) {
       mn <- CS1tst$Min[rw]
-      mx <- CS1tst$Max[rw]
-      rg <- unlist(CS1tst$Range[[rw]])
-      dims <- openxlsx2::wb_dims(tblRws[1L]#:tblRws[2L]
-                                 , rg)
-      WB <- openxlsx2::wb_set_cell_style(WorkBook, sheetnm, dims, CS1[[mn]]$Style)
+      #mx <- CS1tst$Max[rw] # not used, since it's used to access CS1 and the values for mn and mx are the same
+      colRngs <- CS1tst$Ranges[[rw]]
+      for (colRng in colRngs) { #colRng <- colRngs[[1L]]
+        dims <- openxlsx2::wb_dims(tblRws[1L]#:tblRws[2L]
+                                   , colRng)
+        WorkBook <- openxlsx2::wb_set_cell_style(WorkBook, sheetnm, dims, CS1[[mn]]$Style)
+      }
     }
   }
   if (length(w2)) {
@@ -326,65 +313,76 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
       res$Style <- Styles[[res$Group]]
       return(res)
     }), xlTabs[[sheetnm]][w2])
-    CS2tst <- aggregate(1L:length(CS2), list(vapply(CS2, paste, "", collapse = "-")), \(x) {
+    CS2tst <- vapply(CS2, paste, "", collapse = "-")
+    CS2tst <- aggregate(1L:length(CS2), list(CS2tst), \(x) {
       c(min(x), max(x))
     })
     CS2tst[, c("Min", "Max")] <- as.data.frame(CS2tst$x)
     CS2tst$x <- NULL
     CS2tst <- CS2tst[order(CS2tst$Min),]
-    CS2tst$Range <- apply(CS2tst[, c("Min", "Max")], 1L, \(x) { list(w2[x[[1L]]:x[[2L]]]) })
+    CS2tst$Ranges <- apply(CS2tst[, c("Min", "Max")], 1L, \(x) {
+      x <- w2[x[[1L]]:x[[2L]]]
+      split(x, cumsum(c(TRUE, diff(x) != 1L)))
+    })
     #wb_save(WorkBook, paste0(wd, "/tst.xlsx"));xl_open(paste0(wd, "/tst.xlsx"))
     #wb_save(WorkBook, paste0(wd, "/tst.xlsx"));xl_open(paste0(wd, "/tst.xlsx"))
     # for (rw in 1L:nrow(CS2tst)) { #rw <- 1L
     #   print(CS2tst$Group.1[[rw]])
     # }
-    for (rw in 1L:nrow(CS2tst)) { #rw <- 1L
+    for (rw in 1L:nrow(CS2tst)) { #rw <- 1L #rw <- 3L #rw <- 4L
       mn <- CS2tst$Min[rw]
-      mx <- CS2tst$Max[rw]
-      rg <- unlist(CS2tst$Range[[rw]])
-      dims <- openxlsx2::wb_dims(tblRws[1L]#:tblRws[2L]
-                                 , rg)
+      #mx <- CS2tst$Max[rw] # not used, since it's used to access CS2 and the values for mn and mx are the same
       if ("Style" %in% names(CS2[[mn]])) {
-        if (CS2[[mn]]$Style %in% names(DecoList)) {
-          deco <- DecoList[[CS2[[mn]]$Style]]
-          WorkBook <- openxlsx2::wb_add_font(WorkBook, sheetnm, dims,
-                                             italic = c("", "true")[("italic" %in% deco)+1L],
-                                             bold = c("", "true")[("bold" %in% deco)+1L])
-        }
-        if (CS2[[mn]]$Style %in% names(SignifList)) {
-          signi <- SignifList[[CS2[[mn]]$Style]]
-          WorkBook <- openxlsx2::wb_add_numfmt(WorkBook, sheetnm, dims,
-                                               paste(c("0.", rep(0L, signi)), collapse = ""))
-        }
-        if (CS2[[mn]]$Style %in% names(ColScaleList)) {
-          condFrmt <- ColScaleList[[CS2[[mn]]$Style]]
-          WorkBook <- openxlsx2::wb_add_conditional_formatting(WorkBook, sheetnm, dims,
-                                                               type = "colorScale", style = condFrmt)
-          #WB <- openxlsx2::wb_add_font(WB, sheetnm, dims, color = openxlsx2::wb_color(hex = "FF000000"))
-        }
-        if (CS2[[mn]]$Style %in% names(ColList)) {
-          clr <- ColList[[CS2[[mn]]$Style]]
-          WorkBook <- openxlsx2::wb_add_font(WorkBook, sheetnm, dims,
-                                             color = openxlsx2::wb_color(hex = "white"))
-        }
-        if (CS2[[mn]]$Style %in% names(HAlignList)) {
-          hal <- HAlignList[[CS2[[mn]]$Style]]
-          WorkBook <- openxlsx2::wb_add_cell_style(WorkBook, sheetnm, dims, horizontal = hal)
-        }
-        if (CS2[[mn]]$Style %in% names(ContainsList)) {
-          cntn <- ContainsList[[CS2[[mn]]$Style]]
-          stl <- capture.output(cntn$style)
-          deco <- tolower(gsub(".* ", "", gsub(" *$", "", grep("Font decoration", stl, value = TRUE))))
-          cntnFrt <- gsub(".* ", "", gsub(" *$", "", grep("Font colour", stl, value = TRUE)))
-          cntnBgrd <- gsub(".* ", "", gsub(" *$", "", grep("Cell fill background", stl, value = TRUE)))
-          cntnHrz <- gsub(".* ", "", gsub(" *$", "", grep("Cell horz. align", stl, value = TRUE)))
-          WorkBook <- openxlsx2::wb_add_dxfs_style(WorkBook, CS2[[mn]]$Style,
-                                                   font_color = openxlsx2::wb_color(cntnFrt),
-                                                   bg_fill = openxlsx2::wb_color(cntnBgrd),
-                                                   text_bold = c("", "single")[("bold" %in% deco)+1L],
-                                                   text_italic = c("", "italic")[("italic" %in% deco)+1L])
-          WorkBook <- openxlsx2::wb_add_conditional_formatting(WorkBook, sheetnm, dims,
-                                                               type = "containsText", style = CS2[[mn]]$Style, rule = cntn$rule)
+        colRngs <- CS2tst$Ranges[[rw]]
+        for (colRng in colRngs) { #colRng <- colRngs[[1L]]
+          dims <- openxlsx2::wb_dims(tblRws[1L]#:tblRws[2L]
+                                     , colRng)
+          dims2 <- openxlsx2::wb_dims(tblRws[1L]:(tblRws[1L]+1L), colRng)
+          stlNm <- CS2[[mn]]$Style
+          if (stlNm %in% names(DecoList)) {
+            deco <- DecoList[[stlNm]]
+            WorkBook <- openxlsx2::wb_add_font(WorkBook, sheetnm, dims,
+                                               italic = c("", "true")[("italic" %in% deco)+1L],
+                                               bold = c("", "true")[("bold" %in% deco)+1L])
+          }
+          if (stlNm %in% names(SignifList)) {
+            signi <- SignifList[[stlNm]]
+            WorkBook <- openxlsx2::wb_add_numfmt(WorkBook, sheetnm, dims,
+                                                 paste(c("0.", rep("0", signi)), collapse = ""))
+          }
+          if (stlNm %in% names(ColScaleList)) {
+            condFrmt <- ColScaleList[[stlNm]]
+            WorkBook <- openxlsx2::wb_add_conditional_formatting(WorkBook, sheetnm, dims,
+                                                                 type = "colorScale", style = condFrmt)
+            #WorkBook <- openxlsx2::wb_add_font(WorkBook, sheetnm, dims, color = openxlsx2::wb_color(hex = "FF000000"))
+          }
+          if (stlNm %in% names(ColList)) {
+            clr <- ColList[[stlNm]]
+            WorkBook <- openxlsx2::wb_add_font(WorkBook, sheetnm, dims,
+                                               color = openxlsx2::wb_color(hex = "white"))
+          }
+          if (stlNm %in% names(HAlignList)) {
+            hal <- HAlignList[[stlNm]]
+            WorkBook <- openxlsx2::wb_add_cell_style(WorkBook, sheetnm, dims, horizontal = hal)
+          }
+          if (stlNm %in% names(ContainsList)) {
+            cntn <- ContainsList[[stlNm]]
+            stl <- capture.output(cntn$style)
+            deco <- tolower(gsub(".* ", "", gsub(" *$", "", grep("Font decoration", stl, value = TRUE))))
+            cntnFrt <- gsub(".* ", "", gsub(" *$", "", grep("Font colour", stl, value = TRUE)))
+            cntnBgrd <- gsub(".* ", "", gsub(" *$", "", grep("Cell fill background", stl, value = TRUE)))
+            cntnHrz <- gsub(".* ", "", gsub(" *$", "", grep("Cell horz. align", stl, value = TRUE)))
+            if (!stlNm %in% dxfs_Style_nms) {
+              WorkBook <- openxlsx2::wb_add_dxfs_style(WorkBook, stlNm,
+                                                       font_color = openxlsx2::wb_color(cntnFrt),
+                                                       bg_fill = openxlsx2::wb_color(cntnBgrd),
+                                                       text_bold = c("", "single")[("bold" %in% deco)+1L],
+                                                       text_italic = c("", "italic")[("italic" %in% deco)+1L])
+              dxfs_Style_nms <- union(dxfs_Style_nms, stlNm)
+            }
+            WorkBook <- openxlsx2::wb_add_conditional_formatting(WorkBook, sheetnm, dims,
+                                                                 type = "containsText", style = stlNm, rule = cntn$rule)
+          }
         }
       }
     }
@@ -403,9 +401,9 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   #wNum2 <- which(cc_3$typ == 2) #
   #wTxt2 <- which(cc_3$typ == 4)
   stopifnot(#(length(uNum) == 1)&&(uNum == "2"), # Worked until at least 1.10, doesn't work for 1.14 (I don't know when the break occurred)
-            #(length(uTxt) == 1)&&(uTxt == "4"), # Worked until at least 1.10, doesn't work for 1.14 (I don't know when the break occurred)
-            length(unique(c(wNum, wTxt))) == nCol,
-            sum(wNum %in% wTxt) == 0L) # We only cover types 2 and 4
+    #(length(uTxt) == 1)&&(uTxt == "4"), # Worked until at least 1.10, doesn't work for 1.14 (I don't know when the break occurred)
+    length(unique(c(wNum, wTxt))) == nCol,
+    sum(wNum %in% wTxt) == 0L) # We only cover types 2 and 4
   tmp <- cc_3
   tmp$v <- tmp$is <- ""
   tmp$c_t[wTxt] <- "inlineStr"
@@ -499,19 +497,25 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   # Fix range of conditional formatting
   cf <- WorkBook$worksheets[[sheetMtch]]$conditionalFormatting
   # - method 1: works in some versions of openxlsx2
-  if ((is.data.frame(cf))&&(nrow(cf))) {
+  if (is.data.frame(cf) && nrow(cf)) {
     g <- grep("[A-Z]+3$", cf$sqref)
     cf$sqref[g] <- gsub("3$", as.character(nRws+2L), cf$sqref[g])
     WorkBook$worksheets[[sheetMtch]]$conditionalFormatting <- cf
   }
   # - method 2: works in some others
-  if ((is.character(cf))&&(length(cf))) {
+  if (is.character(cf) && length(cf)) {
     cfNms <- names(WorkBook$worksheets[[sheetMtch]]$conditionalFormatting)
     w <- which(gsub("[A-Z]", "", cfNms) == "3:3")
     if (length(w)) {
       cfNms[w] <- gsub("3$", nRws+2L, cfNms[w])
       names(WorkBook$worksheets[[sheetMtch]]$conditionalFormatting)[w] <- cfNms
     }
+    
+    WorkBook$worksheets[[sheetMtch]]$conditionalFormatting[w] <- gsub("type=\"percentile\" val=\"50\"",
+                                                                      "type=\"num\" val=\"0\"",
+                                                                      WorkBook$worksheets[[sheetMtch]]$conditionalFormatting[w],
+                                                                      fixed = TRUE)
+    
   }
   #
   WorkBook$worksheets[[sheetMtch]]$sheet_data$cc <- cc
@@ -588,8 +592,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   if (tblMode == "PG") {
     # - Coverage columns:
     #   - Xml encoded coverage
-    kols <- xmlCovCol
-    kols <- kols[which(kols %in% xlTabs[[sheetnm]])]
+    kols <- intersect(xmlCovCol, xlTabs[[sheetnm]])
     if (length(kols)) {
       for (kol in kols) {
         dims <- openxlsx2::wb_dims(tblRws[1L]:tblRws[2L], match(kol, xlTabs[[sheetnm]]))
@@ -599,12 +602,11 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
       }
     }
     #   - Data bar summaries
-    kols <- grep("\\[%\\]", covcol, value = TRUE)
-    kols <- kols[which(kols %in% xlTabs[[sheetnm]])]
+    kols <- intersect(grep("\\[%\\]", covcol, value = TRUE), xlTabs[[sheetnm]])
     if (length(kols)) {
       for (kol in kols) {
         dims <- openxlsx2::wb_dims(tblRws[1L]:tblRws[2L], match(kol,
-                                                              xlTabs[[sheetnm]]))
+                                                                xlTabs[[sheetnm]]))
         WorkBook <- openxlsx2::wb_add_conditional_formatting(WorkBook, sheetnm,
                                                              dims, type = "dataBar",
                                                              style = c("FF63C384",

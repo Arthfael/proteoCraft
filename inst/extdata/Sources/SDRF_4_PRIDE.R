@@ -56,7 +56,7 @@ reload_SDRF <- file.exists(sdrfPth)
 if (reload_SDRF) {
   auld_SDRF <- read.delim(sdrfPth, sep = "\t", check.names = FALSE)
   filtOnt <- \(ontNm, colNm) {
-    if ((!is.na(colNm))&&(colNm %in% colnames(auld_SDRF))) {
+    if ((!is.na(colNm)) && (colNm %in% colnames(auld_SDRF))) {
       tmp <- unique(auld_SDRF[[colNm]])
       tmp <- tmp[which(!is.na(tmp))]
       tmp <- tmp[which(!tolower(tmp) %in% c("unknown", "not available"))]
@@ -114,7 +114,7 @@ if (isFnd["Cell_types"]) {
   tmp <- data.table::fread(ontoFls$File[match("Cell_types", ontoFls$Name)])
   availCellTypes <- sort(unique(tmp$label))
   cellTypeTxt <- " the cell type analyzed"
-  if ((!exists("myCellType"))||(!is.character(myCellType))||(sum(!myCellType %in% availCellTypes))) {
+  if ((!exists("myCellType")) || (!is.character(myCellType)) || sum(!myCellType %in% availCellTypes)) {
     myCellType <- c()
     myCellType2 <- "not available"
   } else {
@@ -126,7 +126,7 @@ if (isFnd["Tissues"]) {
   tmp <- data.table::fread(ontoFls$File[match("Tissues", ontoFls$Name)])
   availTissues <- sort(unique(tmp$label))
   tissueTxt <- " the tissue or organism part analyzed"
-  if ((!exists("myTissue"))||(!is.character(myTissue))||(sum(!myTissue %in% availTissues))) {
+  if ((!exists("myTissue")) || (!is.character(myTissue)) || sum(!myTissue %in% availTissues)) {
     myTissue <- c()
     myTissue2 <- "not available"
   } else {
@@ -138,7 +138,7 @@ if (isFnd["Modifications"]) {
   tmp <- data.table::fread(ontoFls$File[match("Modifications", ontoFls$Name)])
   availMods <- sort(unique(tmp$label))
   modsTxt <- " any Post-Translational Modifications which were included in the analysis"
-  if ((!exists("myPTMs"))||(!is.character(myPTMs))||(sum(!myPTMs %in% availMods))) {
+  if ((!exists("myPTMs")) || (!is.character(myPTMs)) || sum(!myPTMs %in% availMods)) {
     myPTMs <- c()
     myPTMs2 <- "not available"
   } else {
@@ -150,7 +150,7 @@ if (isFnd["Diseases"]) {
   tmp <- data.table::fread(ontoFls$File[match("Diseases", ontoFls$Name)])
   availDiseases <- sort(unique(tmp$label))
   diseasesTxt <- " any diseases relevant to the dataset"
-  if ((!exists("myDisease"))||(!is.character(myDisease))||(sum(!myDisease %in% availDiseases))) {
+  if ((!exists("myDisease")) || (!is.character(myDisease)) || sum(!myDisease %in% availDiseases)) {
     myDisease <- c()
     myDisease2 <- "not available"
   } else {
@@ -168,7 +168,9 @@ if (isFnd["MS_models"]) {
   tmp2$Instruments <- list(sort(unique(unlist(Vendors2Instr$Instruments))))
   Vendors2Instr <- rbind(Vendors2Instr, tmp2)
   MSInstrTxt <- " the Mass Spectrometer model(s) on which the data was acquired"
-  if ((!exists("myVendor")) || (!is.character(myVendor)) || sum(!myVendor %in% Vendors2Instr$Vendor)) { myVendor <- "All vendors" }
+  if ((!exists("myVendor")) || (!is.character(myVendor)) || sum(!myVendor %in% Vendors2Instr$Vendor)) {
+    myVendor <- "All vendors"
+  }
   if ((!exists("myMSInstr")) || (!is.character(myMSInstr)) || sum(!myMSInstr %in% availInstr)) {
     if (exists("LCMS_instr") && inherits(LCMS_instr, "list") && ("MS" %in% names(LCMS_instr))) {
       myMSInstr <- intersect(availInstr, LCMS_instr$MS)
@@ -182,7 +184,7 @@ if (isFnd["MS_acq_meth"]) {
   tmp <- data.table::fread(ontoFls$File[match("MS_acq_meth", ontoFls$Name)])
   availAcqMeth <- sort(unique(tmp$Name))
   acqMethTxt <- " relevant MS acquisition method(s)"
-  if ((!exists("myAcqMeth"))||(!is.character(myAcqMeth))||(!sum(myAcqMeth %in% availAcqMeth))) {
+  if ((!exists("myAcqMeth")) || (!is.character(myAcqMeth)) || sum(!myAcqMeth %in% availAcqMeth)) {
     myAcqMeth <- c()
     myAcqMeth2 <- "not available"
   } else {
@@ -194,7 +196,7 @@ if (isFnd["MS_quant_meth"]) {
   tmp <- data.table::fread(ontoFls$File[match("MS_quant_meth", ontoFls$Name)])
   availQuantMeth <- sort(unique(tmp$Name))
   quantMethTxt <- " relevant MS quantification method(s)"
-  if ((!exists("myQuantMeth"))||(!is.character(myQuantMeth))||(!sum(myQuantMeth %in% availQuantMeth))) {
+  if ((!exists("myQuantMeth")) || (!is.character(myQuantMeth)) || sum(!myQuantMeth %in% availQuantMeth)) {
     myQuantMeth <- c()
     myQuantMeth2 <- "not available"
   } else {
@@ -206,7 +208,7 @@ if (isFnd["MS_label_meth"]) {
   tmp <- data.table::fread(ontoFls$File[match("MS_label_meth", ontoFls$Name)])
   availLabelMeth <- sort(unique(tmp$Name))
   labelMethTxt <- " relevant MS labelling method(s)"
-  if ((!exists("myLabelMeth"))||(!is.character(myLabelMeth))||(!sum(myLabelMeth %in% availLabelMeth))) {
+  if ((!exists("myLabelMeth")) || (!is.character(myLabelMeth)) || sum(!myLabelMeth %in% availLabelMeth)) {
     myLabelMeth <- c()
     myLabelMeth2 <- "not available"
   } else {
@@ -627,7 +629,7 @@ serverA <- \(input, output, session) {
 }
 appTxtA <- gsub("myApp", "myAppA", gsub("\\(ui", "(uiA", gsub(", server", ", serverA", runApp)))
 runKount <- 0L
-while ((!runKount)||(!exists("appRunTest"))) {
+while ((!runKount) || (!exists("appRunTest"))) {
   eval(parse(text = appTxtA), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount+1L
@@ -638,7 +640,7 @@ myVendor <- tmpVnd[which(vapply(tmpVnd, \(x) {
   w <- which(availInstrDF$Vendor == x)
   sum(myMSInstr %in% availInstrDF$Instrument[w])
 }, 1L) > 0L)]
-if ((length(myVendor))&&(sum(!myVendor %in% c("Bruker Daltonics", "Thermo Fisher Scientific")))) {
+if (length(myVendor) && (sum(!myVendor %in% c("Bruker Daltonics", "Thermo Fisher Scientific")))) {
   stop("Vendor not yet supported!")
 }
 # Create duplicates which we will use now to map to our data
@@ -660,7 +662,7 @@ if (scrptType == "noReps") {
 reload_SDRF <- exists("auld_SDRF")
 if (reload_SDRF) {
   SDRF <- auld_SDRF
-  reload_SDRF <- (nrow(SDRF) >= nrow(Frac.map2))&&("comment[data file]" %in% colnames(SDRF))
+  reload_SDRF <- (nrow(SDRF) >= nrow(Frac.map2)) && ("comment[data file]" %in% colnames(SDRF))
 }
 if (reload_SDRF) {
   tmp <- gsub(".*/", "", Frac.map2$`Raw file`)
@@ -720,7 +722,7 @@ if (scrptType == "noReps") {
   tmp[, myKol] <- SamplesMap[tmp$L1, myKol]
   Frac.map2[, myKol] <- tmp[match(Frac.map2$`Parent sample`, tmp$value), myKol]
 }
-if ((reload_SDRF)&&(nrow(SDRF) != nrow(Frac.map2))) {
+if (reload_SDRF && (nrow(SDRF) != nrow(Frac.map2))) {
   rm(SDRF)
   reload_SDRF <- FALSE
 }
@@ -811,7 +813,7 @@ for (i in wNotNA) { #i <- wNotNA[1L]
   } else {
     editOnts <- c(editOnts, nm)
     strtVal <- c()
-    if ((reload_SDRF)&&(myOntDF$Column[i] %in% colnames(SDRF))) {
+    if (reload_SDRF && (myOntDF$Column[i] %in% colnames(SDRF))) {
       strtVal <- SDRF[[myOntDF$Column[i]]]
     } else {
       if (length(myOntDF$Candidate_col[[i]]) == 1L) {
@@ -964,7 +966,7 @@ Shiny.bindAll(table.table().node());"))
   if (exists("SDRF3")) { rm(SDRF3) }
   appTxtB <- gsub("myApp", "myAppB", gsub("\\(ui", "(uiB", gsub(", server", ", serverB", runApp)))
   runKount <- 0L
-  while ((!runKount)||(!exists("appRunTest"))) {
+  while ((!runKount) || (!exists("appRunTest"))) {
     eval(parse(text = appTxtB), envir = .GlobalEnv)
     runKount <- runKount+1L
   }
@@ -1006,7 +1008,7 @@ writeExprs <- expression({
   }, silent = TRUE)
 })
 eval(writeExprs)
-while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) { # We only want this to happen if the file is locked for editing
+while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) { # We only want this to happen if the file is locked for editing
   eval(writeExprs)
 }
 #openxlsx::openXL(sdrfPth)
@@ -1017,7 +1019,7 @@ if (pyTest) {
   #cat(cmd)
   a <- system(cmd, intern = TRUE)
   #openwd(dirname(sdrfPth))
-  if ((length(a) == 1L)&&(a == "Everything seems to be fine. Well done.")) {
+  if ((length(a) == 1L) && (a == "Everything seems to be fine. Well done.")) {
     cat(a, "\n... but remember: it is always a good idea to also check it manually!\n")
   }
 }

@@ -14,6 +14,7 @@
 #   So. We will. CHEAT!
 #   I have saved a dummy tab with my old openxlsx styles,
 #   which I will load in openxlsx2 to get and copy the styles from.
+dxfs_Style_nms <- c()
 intNms <- \(nms, topLvl = FALSE, type = "PG", newLine = FALSE) {
   m <- match(type, c("pep", "PG"))
   root <- c("Intensity", "Expression")[m]
@@ -45,7 +46,7 @@ ratNms <- \(nms, topLvl = FALSE, newLine = FALSE) {
       } else { tolower(substr(nm, 1L, min(c(3L, nchar(nm))))) }
       nm <- paste0(nm, ". ", c("rat.", "ratios")[mode])
     }
-    paste0("log2(", nm, ")")
+    nm <- paste0("log2(", nm, ")")
     if (newLine) { nm <- paste0(nm, " ///NL///") }
     return(nm)
   }, "")

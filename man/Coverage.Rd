@@ -20,7 +20,7 @@ Coverage(
   intensities = NULL,
   na = "red",
   maxInt = NULL,
-  bgcol = "black",
+  bgcol = "lightgrey",
   I_eq_L = TRUE
 )
 }
@@ -50,9 +50,9 @@ Coverage(
 
 \item{size}{Only used if Mode = "Align", "Align2" or "Heat". The character size. Default = 2.5, you may want to reduce it for large proteins.}
 
-\item{save}{Only used if Mode = "Align", "Align2" or "Heat". Preferred alternative to "save.path", though less flexible: vector of ggsave-compatible file extensions, (or .html to save as plotly) to add to the "title" argument to save the graph to. Allows saving as multiple formats through a single function call. Default = "jpeg"; set to FALSE to not save it.}
+\item{save}{Only used if Mode = "Align", "Align2" or "Heat". Vector of ggsave-compatible file extensions, or .html to save as plotly, to save the graph to. Allows saving as multiple formats through a single function call. Default = "html"; set to FALSE to not save the plot.}
 
-\item{save.path}{Only used if Mode = "Align", "Align2" or "Heat". Prefer the "save" argument. If set, must be a character vector with the name of the file(s) in which to save each plot, so must have the same length as \"title\". The name must end in a ggsave-compatible extension. Default = FALSE}
+\item{save.path}{Only used if Mode = "Align", "Align2" or "Heat". Relative or absolute file path without extension. If set, must have the same length as \"title\". The extension is provided by save or (if save is logical) "html" will be used by default.}
 
 \item{intensities}{Only used if Mode = "Align2" or "Heat". Values to map to the "colscale" argument so that peptides can be printed with different colours, e.g. mapped to abundance.}
 
@@ -60,7 +60,7 @@ Coverage(
 
 \item{maxInt}{If provided, the maximum of the intensity scale is not detected from the values in intensities but provided externally. Useful if drawing maps from several intensity vectors and wanting to apply a single scale to all.}
 
-\item{bgcol}{Only used if Mode = "Align2" or "Heat". Which colour should the background be? Default = "black".}
+\item{bgcol}{Only used if Mode = "Align2" or "Heat". Which colour should the background be? Default = "lightgrey"}
 
 \item{I_eq_L}{Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631}
 }

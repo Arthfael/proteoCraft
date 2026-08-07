@@ -16,6 +16,7 @@
 #   I have saved a dummy tab with my old openxlsx styles,
 #   which I will load in openxlsx2 to get and copy the styles from.
 MakeRatios <- TRUE # (Used by the sourced, core sub-script)
+dxfs_Style_nms <- c()
 intNms <- \(nms, topLvl = FALSE, type = "PG", newLine = FALSE) {
   m <- match(type, c("pep", "PG"))
   root <- c("Intensity", "Expression")[m]
@@ -47,7 +48,7 @@ ratNms <- \(nms, topLvl = FALSE, newLine = FALSE) {
       } else { tolower(substr(nm, 1L, min(c(3L, nchar(nm))))) }
       nm <- paste0(nm, ". ", c("rat.", "ratios")[mode])
     }
-    paste0("log2(", nm, ")")
+    nm <- paste0("log2(", nm, ")")
     if (newLine) { nm <- paste0(nm, " ///NL///") }
     return(nm)
   }, "")
@@ -137,11 +138,11 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
     wF <- grep("mod\\. F[-\\.]?test:? +", KolNames)
     KolNames[wF] <- sub("mod\\. F[-\\.]?test:? +", "F-test ", KolNames[wF]) # Shorter F-test tag
   }
-  KolNames <- sub(" +-log10.*Pvalue\\)", " -log10 pval.", KolNames)
-  KolNames <- sub(".*Pvalue", "pval.", KolNames)
-  KolNames <- sub(".*Regulated", " reg.", KolNames)
+  KolNames <- sub("^///NL///", "", sub(" *-log10.*Pvalue\\)", "///NL///-log10 pval.", KolNames))
+  KolNames <- sub("^///NL///", "", sub(" *Pvalue", "///NL///pval.", KolNames))
+  KolNames <- sub("Regulated", "reg.", KolNames)
   gSg <- grep("Significant-", KolNames)
-  KolNames[gSg] <- sub(" +Significant-", " ", KolNames[gSg])
+  KolNames[gSg] <- sub("^ +", "", sub(" *Significant-", " ", KolNames[gSg]))
   #
   KolNames <- sub("^Cluster \\([^\\)]+\\)", "Clust.", KolNames)
   #
@@ -278,12 +279,12 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     signcol <- grep("^Significant-FDR=[1-9][0-9]*\\.*[0-9]*% - ", colnames(tempData), value = TRUE)
     signcol <- grep(" - Analysis_[0-9]+", signcol, invert = TRUE, value = TRUE)
     quantcol <- unlist(quantCols)
-    PepColList %<o% c("gel", "grl", "quantcol", "signcol", "regcol") # These are any column for which we want to gsub "___" to " "
-    .obj <- unique(c(PepColList, .obj)) # Here easier than using a custom operator
+    pepColObj %<o% c("gel", "grl", "quantcol", "signcol", "regcol") # These are any column for which we want to gsub "___" to " "
+    .obj <- unique(c(pepColObj, .obj)) # Here easier than using a custom operator
     if (ii > 1L) {
       gpl <- grep(topattern(pvalue.col[which(pvalue.use)]), colnames(tempData), value = TRUE)
       quantcol <- c(quantcol, gpl)
-      PepColList <- c(PepColList, "gpl")
+      pepColObj <- c(pepColObj, "gpl")
     }
     aacol <- paste0(AA, " Count")
     qualFlt <- QualFilt[which(QualFilt %in% colnames(ev))]
@@ -304,7 +305,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     tempData <- tempData[, kol]
     # If there is only one experiment, remove it from the names here...
     colnames(tempData) <- cleanNms(colnames(tempData), start = FALSE)
-    for (i in PepColList) { assign(i, cleanNms(get(i), start = FALSE)) }
+    for (i in pepColObj) { assign(i, cleanNms(get(i), start = FALSE)) }
     intColsTbl <- lapply(intColsTbl, \(x) {
       x$Log <- cleanNms(x$Log, start = FALSE)
       x
@@ -392,7 +393,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     ColumnsTbl[["Filters"]] <- qualFlt
     # Melt
     ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, \(x) { length(x[which(!is.na(x))]) }, 1L) > 0L)]
-    ColumnsTbl <- set_colnames(reshape::melt.list(ColumnsTbl), c("Col", "Grp"))
+    ColumnsTbl <- listMelt(ColumnsTbl, ColNames = c("Col", "Grp"))
     #tst <- aggregate(ColumnsTbl$Grp, list(ColumnsTbl$Col), length); View(tst)
     #tst <- aggregate(ColumnsTbl$Grp, list(ColumnsTbl$Col), unique); View(tst)
     #tst <- aggregate(1L:nrow(ColumnsTbl), list(ColumnsTbl$Col), unique); w <- which(lengths(tst$x) > 1L); setNames(tst$x[w], tst$Group.1[w])

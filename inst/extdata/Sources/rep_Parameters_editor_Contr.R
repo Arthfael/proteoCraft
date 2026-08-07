@@ -517,70 +517,70 @@ contrMatr %<o% makeContrasts(contrasts = myContrasts$Contrast,
 # Reference column
 # ----------------
 #
-# Although we have gotten rid of the Reference-centered approach to stats (to shift to contrasts),
-# there are still cases where we need one:
-#  - for SAINTexpress (pull-downs)... but this is addressed there, and better done there than here
-#  - for Amica
+# We have gotten rid of the Reference-centered approach to stats (to shift to contrasts).
+# The last two places where Reference was used, Amica and SAINTexpress, just got rewritten to remove this need.
+# We will comment this chunk for now and test this for a while, then if ok remove this.
+#
 # What we will do then is detect References from the contrasts table.
 # If we have several references per comparison group, we will:
 #  - aim for one with NA/control Target (bait) protein
 #  - failing that, pick the first
 # If this doesn't work, consider asking here/later for user input.
-if ((!"Reference" %in% colnames(Exp.map)) || (!is.logical(Exp.map$Reference)) || (length(unique(Exp.map$Reference[which(!is.na(Exp.map$Reference))])) != 2L)) {
-  allRefs <- setdiff(union(myContrasts$B, myContrasts$D), "")
-  Rfs <- rownames(expMap)[which(expMap[[VPAL$limmaCol]] %in% allRefs)]
-  kol <- c(VPAL$column, RG$column)
-  pullDwnTst <- WorkFlow %in% c("PULLDOWN", "BIOID")
-  if (pullDwnTst) {
-    kol <- c(kol, "Target")
-  }
-  em <- Exp.map[match(Rfs, Exp.map[[RSA$column]]), kol]
-  nc <- ncol(em)
-  nr <- nrow(em)
-  colnames(em) <- c("samplesGroup", "compGroup", "Bait")[1L:nc]
-  kol2 <- c("samplesGroup", "Bait")[1L:(pullDwnTst+1L)]
-  tst <- aggregate(1L:nr, list(em$compGroup), \(x) {
-    m <- match(unique(em$samplesGroup[x]), em$samplesGroup)
-    return(set_colnames(em[m, kol2, drop = FALSE], kol2))
-  })
-  tst$samplesGroup <- lapply(1L:nrow(tst), \(i) { tst$x[i]$samplesGroup })
-  if (pullDwnTst) {
-    tst$Bait <- lapply(1L:nrow(tst), \(i) { tst$x[i]$Bait })
-  }
-  tst$x <- NULL
-  # - Step 1: give priority to NA baits
-  if (pullDwnTst) {
-    tst$L <- lengths(tst$samplesGroup)
-    w <- which(tst$L > 1L)
-    if (length(w)) {
-      tst$samplesGroup[w] <- lapply(w, \(x) {
-        w <- which(is.na(tst$Bait[[x]]))
-        x <- tst$samplesGroup[[x]]
-        if (length(w)) { x <- x[w] }
-        return(x)
-      })
-    }
-  }
-  # - Step 2: if that fails, take all
-  #tst$samplesGroup <- vapply(tst$samplesGroup, \(x) { x[[1L]] }, "")
-  Exp.map$Reference <- FALSE
-  for (i in 1L:nrow(tst)) { #i <- 1L
-    w1 <- which((Exp.map[[RG$column]] == tst$Group.1[i]))
-    w2 <- which((Exp.map[[RG$column]] == tst$Group.1[i])
-                &(Exp.map[[VPAL$column]] %in% tst$samplesGroup[[i]]))
-    if (length(w2) < length(w1)) {
-      r1 <- unique(Exp.map[match(Rfs, Exp.map$Ref.Sample.Aggregate), VPAL$column])
-      r2 <- setdiff(VPAL$values, r1)
-      rfVal <- opt <- setNames(vapply(cleanNms(c(r1, r2)), \(x) {
-        paste(c(x, rep(" ", 250L-nchar(x))), collapse = "")
-      }, ""), VPAL$values)
-      while (!length(setdiff(opt, rfVal))) {
-        rfVal <- dlg_list(opt, opt[1L], TRUE,
-                          title = paste0(tst$Group.1[i], " -> select one or more reference levels"))$res
-      }
-      Exp.map$Reference <- Exp.map[[VPAL$column]] %in% names(opt)[match(rfVal, opt)]
-    } else {
-      Exp.map$Reference[w2] <- TRUE
-    }
-  }
-}
+# if ((!"Reference" %in% colnames(Exp.map)) || (!is.logical(Exp.map$Reference)) || (length(unique(Exp.map$Reference[which(!is.na(Exp.map$Reference))])) != 2L)) {
+#   allRefs <- setdiff(union(myContrasts$B, myContrasts$D), "")
+#   Rfs <- rownames(expMap)[which(expMap[[VPAL$limmaCol]] %in% allRefs)]
+#   kol <- c(VPAL$column, RG$column)
+#   pullDwnTst <- WorkFlow %in% c("PULLDOWN", "BIOID")
+#   if (pullDwnTst) {
+#     kol <- c(kol, "Target")
+#   }
+#   em <- Exp.map[match(Rfs, Exp.map[[RSA$column]]), kol]
+#   nc <- ncol(em)
+#   nr <- nrow(em)
+#   colnames(em) <- c("samplesGroup", "compGroup", "Bait")[1L:nc]
+#   kol2 <- c("samplesGroup", "Bait")[1L:(pullDwnTst+1L)]
+#   tst <- aggregate(1L:nr, list(em$compGroup), \(x) {
+#     m <- match(unique(em$samplesGroup[x]), em$samplesGroup)
+#     return(set_colnames(em[m, kol2, drop = FALSE], kol2))
+#   })
+#   tst$samplesGroup <- lapply(1L:nrow(tst), \(i) { tst$x[i]$samplesGroup })
+#   if (pullDwnTst) {
+#     tst$Bait <- lapply(1L:nrow(tst), \(i) { tst$x[i]$Bait })
+#   }
+#   tst$x <- NULL
+#   # - Step 1: give priority to NA baits
+#   if (pullDwnTst) {
+#     tst$L <- lengths(tst$samplesGroup)
+#     w <- which(tst$L > 1L)
+#     if (length(w)) {
+#       tst$samplesGroup[w] <- lapply(w, \(x) {
+#         w <- which(is.na(tst$Bait[[x]]))
+#         x <- tst$samplesGroup[[x]]
+#         if (length(w)) { x <- x[w] }
+#         return(x)
+#       })
+#     }
+#   }
+#   # - Step 2: if that fails, take all
+#   #tst$samplesGroup <- vapply(tst$samplesGroup, \(x) { x[[1L]] }, "")
+#   Exp.map$Reference <- FALSE
+#   for (i in 1L:nrow(tst)) { #i <- 1L
+#     w1 <- which((Exp.map[[RG$column]] == tst$Group.1[i]))
+#     w2 <- which((Exp.map[[RG$column]] == tst$Group.1[i])
+#                 &(Exp.map[[VPAL$column]] %in% tst$samplesGroup[[i]]))
+#     if (length(w2) < length(w1)) {
+#       r1 <- unique(Exp.map[match(Rfs, Exp.map$Ref.Sample.Aggregate), VPAL$column])
+#       r2 <- setdiff(VPAL$values, r1)
+#       rfVal <- opt <- setNames(vapply(cleanNms(c(r1, r2)), \(x) {
+#         paste(c(x, rep(" ", 250L-nchar(x))), collapse = "")
+#       }, ""), VPAL$values)
+#       while (!length(setdiff(opt, rfVal))) {
+#         rfVal <- dlg_list(opt, opt[1L], TRUE,
+#                           title = paste0(tst$Group.1[i], " -> select one or more reference levels"))$res
+#       }
+#       Exp.map$Reference <- Exp.map[[VPAL$column]] %in% names(opt)[match(rfVal, opt)]
+#     } else {
+#       Exp.map$Reference[w2] <- TRUE
+#     }
+#   }
+# }

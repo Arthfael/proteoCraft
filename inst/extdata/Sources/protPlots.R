@@ -189,29 +189,28 @@ if (goAhead) {
       RES$Coverage <- list()
       RES$Coverage$logInt <- list()
       RES$Coverage$PEP <- list()
-      for (exp in names(tempev)) { #exp <- names(tempev)[1L]
-        exp_ <- if (scrptType == "noReps") { cleanNms(exp) } else { exp }
+      for (exp in names(tempev)) { #exp <- names(tempev)[1L] #exp <- names(tempev)[2L]
+        exp_ <- if (scrptType == "withReps") { cleanNms(exp) } else { exp }
         tmp <- tempev[[exp]]
         ttl1a <- paste0("Coverage - ", nm, " - ", exp_, ", log10(int.)")
         ttl1b <- paste0("Coverage - ", nm, " - ", exp_, ", sum log10(int.)")
         ttl2a <- paste0("Coverage - ", nm, " - ", exp_, ", -log10(PEP)")
+        dr1 <- paste0(wd, "/Protein plots/", nm2, "/Coverage/Intensity")
         RES$Coverage$logInt[[exp]] <- Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE,
-                                               title = ttl1a, save = c("jpeg", "pdf", "html"), intensities = tmp$`log10(Intensity)`,
+                                               title = ttl1a, save = c("jpeg", "pdf", "html"),
+                                               save.path = paste0(dr1, "/", sub("^Coverage - ", "Cov. ", ttl1a)),
+                                               intensities = tmp$`log10(Intensity)`,
                                                maxInt = mxInt)
         Coverage(P, tmp$"Modified sequence", Mode = "Heat", display = FALSE,
-                 title = ttl1b, save = c("jpeg", "pdf"), intensities = tmp$`log10(Intensity)`)
-        dr1 <- paste0(wd, "/Protein plots/", nm2, "/Coverage/Intensity")
-        for (ext in c("jpeg", "pdf")) {
-          fs::file_move(paste0(ttl1a, ".", ext), dr1)
-          fs::file_move(paste0(ttl1b, ".", ext), dr1)
-        }
-        RES$Coverage$PEP[[exp]] <- Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE,
-                                            title = ttl2a, save = c("jpeg", "pdf", "html"), intensities = -log10(tmp$PEP),
-                                            maxInt = mxPEP, colscale = 8L)
+                 title = ttl1b, save = c("jpeg", "pdf"),
+                 save.path = paste0(dr1, "/", sub("^Coverage - ", "Cov. ", ttl1b)),
+                 intensities = tmp$`log10(Intensity)`)
         dr2 <- paste0(wd, "/Protein plots/", nm2, "/Coverage/PEP")
-        for (ext in c("jpeg", "pdf")) {
-          fs::file_move(paste0(ttl2a, ".", ext), dr2)
-        }
+        RES$Coverage$PEP[[exp]] <- Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE,
+                                            title = ttl2a, save = c("jpeg", "pdf", "html"),
+                                            save.path = paste0(dr2, "/", sub("^Coverage - ", "Cov. ", ttl2a)),
+                                            intensities = -log10(tmp$PEP),
+                                            maxInt = mxPEP, colscale = 8L)
         # (Doing summed PEP Coverage maps makes no sense)
       }
       # Correlation and ratio plots:

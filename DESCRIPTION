@@ -261,6 +261,7 @@ Imports:
     RCurl,
     RCy3,
     Rdpack,
+    rdtools,
     readr,
     reformulas,
     remotes,

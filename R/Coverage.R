@@ -28,12 +28,12 @@
 #' @param colour Ignored if Mode = "Coverage". The colour in which covered regions of protein sequences should be shown. Default = "red".
 #' @param colscale Only used if Mode = "Align2". Which colour scale do you want to use for peptide intensities? Default = 1 ("darkblue"->"orange"). Other values are 2L: "darkblue"->"red", 3: "darkblue"->"green", 4: "black"->"blue", 5: "black"->"orange", 6: "black"->"red", 7: "black"->"green" and 8: "red"->"green"
 #' @param size Only used if Mode = "Align", "Align2" or "Heat". The character size. Default = 2.5, you may want to reduce it for large proteins.
-#' @param save Only used if Mode = "Align", "Align2" or "Heat". Preferred alternative to "save.path", though less flexible: vector of ggsave-compatible file extensions, (or .html to save as plotly) to add to the "title" argument to save the graph to. Allows saving as multiple formats through a single function call. Default = "jpeg"; set to FALSE to not save it.
-#' @param save.path Only used if Mode = "Align", "Align2" or "Heat". Prefer the "save" argument. If set, must be a character vector with the name of the file(s) in which to save each plot, so must have the same length as \"title\". The name must end in a ggsave-compatible extension. Default = FALSE
+#' @param save Only used if Mode = "Align", "Align2" or "Heat". Vector of ggsave-compatible file extensions, or .html to save as plotly, to save the graph to. Allows saving as multiple formats through a single function call. Default = "html"; set to FALSE to not save the plot.
+#' @param save.path Only used if Mode = "Align", "Align2" or "Heat". Relative or absolute file path without extension. If set, must have the same length as \"title\". The extension is provided by save or (if save is logical) "html" will be used by default.
 #' @param intensities Only used if Mode = "Align2" or "Heat". Values to map to the "colscale" argument so that peptides can be printed with different colours, e.g. mapped to abundance.
 #' @param na Only used if Mode = "Align2" or "Heat". Colour for NA values.
 #' @param maxInt If provided, the maximum of the intensity scale is not detected from the values in intensities but provided externally. Useful if drawing maps from several intensity vectors and wanting to apply a single scale to all.
-#' @param bgcol Only used if Mode = "Align2" or "Heat". Which colour should the background be? Default = "black".
+#' @param bgcol Only used if Mode = "Align2" or "Heat". Which colour should the background be? Default = "lightgrey"
 #' @param I_eq_L Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631
 #' 
 #' @returns
@@ -70,7 +70,7 @@ Coverage <- function(proteins,
                      intensities = NULL,
                      na = "red",
                      maxInt = NULL,
-                     bgcol = "black",
+                     bgcol = "lightgrey",
                      I_eq_L = TRUE) {
   TESTING <- FALSE
   #DefArg(Coverage);TESTING = TRUE
@@ -85,6 +85,8 @@ Coverage <- function(proteins,
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
     \(x) { return(!exists(deparse(substitute(x)))) }
   } else { missing }
+  #
+  wd0 <- getwd()
   #
   if (misFun(I_eq_L) || (!is.logical(I_eq_L)) || is.na(I_eq_L)) {
     #if (exists("isDIA") && is.logical(isDIA) && (!is.na(isDIA))) {
@@ -116,34 +118,68 @@ Coverage <- function(proteins,
     }
   }
   if (Mode != "Coverage") {
-    Table <- data.frame(Title = title)
-    if (length(title) == 1L) { Table$"Protein(s)" <- list(namez) } else {
+    filesTbl <- data.frame(Title = title)
+    if (length(title) == 1L) { filesTbl$"Protein(s)" <- list(namez) } else {
       if (length(title) != length(proteins)) {
         if (length(title) == 1L) { title <- paste0(title, " - ", namez) } else {
           warning("\"title\"'s length must be either one of the same length as the protein vector, creating a default title!")
           title <- paste0("Coverage - ", namez)
-          Table <- data.frame(Title = gsub(":|\\*|\\?|<|>|\\||/", "-", title))
+          filesTbl <- data.frame(Title = gsub(":|\\*|\\?|<|>|\\||/", "-", title))
         }
       }
-      Table$"Protein(s)" <- as.list(namez)
+      filesTbl$"Protein(s)" <- as.list(namez)
     }
-    if ((length(save) > 1L) || (as.character(save) != "FALSE")) {
-      save.grph <- misFun(save.path) || (length(save.path) != length(title))
-      if (save.grph) {
-        if ((!misFun(save.path)) && (length(save.path) != length(title))) {
-          warning("Argument \"save.path\" will be ignored as its length is not compatible with that of the \"title\" argument!")
-        }
-        save.grph <- as.character("save") != "FALSE"
-        if (save.grph) { Table$Path <- lapply(Table$Title, \(x) { paste0(x, ".", save) }) }
+    #
+    allExt <- c("html", "eps", "ps", "tex", "pdf", "jpg", "jpeg", "tiff", "png", "bmp", "svg", "wmf")
+    if (is.null(save) || (!length(save)) || misFun(save)) { save <- FALSE }
+    if (is.logical(save)) {
+      if ((length(save) != 1L) || is.na(save)) {
+        warning("Invalid save argument, no plot will be saved")
+        savePlots <- FALSE
       } else {
-        Table$Path <- if (as.character("save") == "FALSE") {
-          save.path
-        } else {
-          #warning("Both the \"save.path\" and \"save\" arguments were provided. I will use \"save.path\" for the file name but \"save\" for the extension(s).")
-          lapply(gsub("\\.[^A-Z,a-z,0-9]+$", "", save.path), \(x) { paste0(x, ".", save) })
+        savePlots <- save
+      }
+      if (savePlots) {
+        saveExt <- "html"
+      }
+    } else {
+      stopifnot(is.character(save))
+      save <- intersect(gsub(" ", "", sub("^\\.", "", save)),
+                        allExt)
+      savePlots <- length(save) > 0L
+    }
+    if (savePlots) {
+      if (misFun(save.path)) {
+        save.path <- title
+      } else {
+        if (length(save.path) != length(title)) {
+          warning("Argument save.path, if provided, must have the same length as argument title! Ignoring it!")
+          save.path <- title
         }
       }
-    } else { save.grph <- FALSE }
+      save.path <- gsub("^/|/+", "/", gsub("\\\\", "/", save.path))
+      w <- which((!grepl("/", save.path)) | (!dir.exists(dirname(save.path))))
+      if (length(w)) {
+        save.path[w] <- paste0(wd0, "/", save.path[w])
+      }
+      bsNm <- basename(save.path)
+      w <- grepl("\\.", save.path)
+      if (length(w)) {
+        xt <- tolower(sub(".*\\.", "", bsNm[w])) # reasonable assumption: no double extensions
+        w2 <- w[which(xt %in% allExt)]
+        if (length(w2)) {
+          warning("Do not provide extensions as part of the save.path argument, but using the save argument!")
+          save.path[w2] <- sub("\\.[^\\.]+$", "", save.path[w2])
+        }
+      }
+      filesTbl$Path <- lapply(save.path, \(pth) { paste0(pth, ".", save) })
+      filesTbl$Dir <- dirname(save.path)
+      uD <- unique(filesTbl$Dir)
+      w <- which(!dir.exists(uD))
+      if (length(w)) {
+        for (i in w) { dir.create(uD[i], recursive = TRUE) }
+      }
+    }
   }
   if (misFun(intensities) || is.null(intensities)) { intensities <- rep(1, length(peptides)) } else {
     intensities <- as.numeric(unlist(intensities))
@@ -230,8 +266,8 @@ Coverage <- function(proteins,
   xmList <- plotLyst <- list()
   for (Ttl in unique(title)) { #Ttl <- unique(title)[1L]
     plotCreated <- FALSE
-    tbl <- Table[which(Table$Title == Ttl),]
-    nmz <- unlist(tbl$Protein)
+    flsTbl <- filesTbl[match(Ttl, filesTbl$Title),]
+    nmz <- unlist(flsTbl$Protein)
     prots <- proteins[nmz]
     protsOrig <- proteinsOrig[nmz]
     poZ2 <- pos2[,c("Seq", nmz)]
@@ -315,6 +351,7 @@ Coverage <- function(proteins,
       plotCreated <- TRUE
     }
     if (Mode %in% c("Align2", "Heat")) {
+      addDots <- FALSE
       matches <- lapply(nmz, \(n) { #n <- nmz[1L]
         peptides[[paste0("Matches_", n)]] <- lapply(peptides$Sequence, \(x) { #x <- peptides$Sequence[1L]
           x <- poZ2[[match(x, poZ2$Seq), n]]
@@ -465,7 +502,7 @@ Coverage <- function(proteins,
           #
           # ---- Code chunk developed with istaGPT and chatGPT - END ---- #
           #
-          interPepDist <- 1/(max(matches$offset)*1.5)
+          interPepDist <- 1/(max(matches$offset+1L)*1.5)
           matches$Y <- matches$Y - matches$offset*interPepDist - 0.05
           Yextent <- 0.4*interPepDist
           if (Yextent < 0.01) {
@@ -475,8 +512,8 @@ Coverage <- function(proteins,
           }
           matches$X1 <- matches$X1 - Xextent
           matches$X2 <- matches$X2 + Xextent
-          matches$Y1 <- matches$Y + Yextent
-          matches$Y2 <- matches$Y - Yextent
+          matches$Y1 <- matches$Y - Yextent*0.5
+          matches$Y2 <- matches$Y - 1.5*Yextent
         }
         #
         # Restore correct I/L sequence
@@ -485,13 +522,39 @@ Coverage <- function(proteins,
         align.temp$Amino_acid <- NULL
         #
         if (Mode == "Align2") {
+          library(colorspace)
+          contrast_color <- \(col, target_chroma = 80) { # From chatGPT
+            # Convert names and hex to hex
+            col <- grDevices::rgb(t(grDevices::col2rgb(col)), maxColorValue = 255)
+            # Convert to HCL
+            hcl <- as(hex2RGB(col), "polarLUV")
+            cc <- hcl@coords
+            H <- (cc[, "H"] + 180) %% 360
+            C <- cc[, "C"]
+            L <- cc[, "L"]
+            # Flip luminance
+            L <- 100 - L
+            # Ensure sufficient chroma
+            C <- pmax(C, target_chroma)
+            # Reduce chroma until the colour is in gamut
+            repeat {
+              out <- polarLUV(L = L, C = C, H = H)
+            ok <- is.na(hex(out)) == FALSE
+              if (all(ok))
+                break
+            C[!ok] <- C[!ok] * 0.95
+            }
+            hex(out)
+          }
+          myCol <- contrast_color(bgcol)
           yxRat <- yxRat2 <- 3
-          covPlot <- ggplot2::ggplot(align.temp) + ggplot2::coord_fixed(yxRat) +
-            ggplot2::geom_text(ggplot2::aes(label = AA, x = X, y = Y, fontface = Face, hjust = Hjust),
-                               colour = "white", cex = size, vjust = 0) + 
+          covPlot <- ggplot2::ggplot() + ggplot2::coord_fixed(yxRat) +
+            ggplot2::geom_text(data = align.temp,
+                               ggplot2::aes(label = AA, x = X, y = Y, fontface = Face, hjust = Hjust),
+                               colour = myCol, cex = size, vjust = 0, inherit.aes = FALSE) + 
             ggplot2::geom_rect(data = matches,
                                ggplot2::aes(xmin = X1, xmax = X2, ymin = Y2, ymax = Y1, fill = Intensity, peptide = peptide),
-                               show.legend = (length(unique(matches$Intensity)) > 1L)) +
+                               show.legend = (length(unique(matches$Intensity)) > 1L), inherit.aes = FALSE) +
             ggplot2::scale_fill_gradient(low = colscale[1L], high = colscale[2L], na.value = na,
                                          breaks = brks, labels = brkstxt, limits = c(0, maxInt)) +
             ggplot2::scale_x_discrete(breaks = NULL) + 
@@ -547,7 +610,7 @@ Coverage <- function(proteins,
           mods$X <- as.numeric(mods$Xa) + as.numeric(mods$Xb) - 1L
           mods$X <- mods$X + c(0.5, 0, -0.5)[match(mods$Type, c("Nterm", "Internal", "Cterm"))]
           if (Mode == "Align2") {
-            mods$Y <- as.numeric(mods$Y) + interPepDist*0.2
+            mods$Y <- as.numeric(mods$Y)
           }
           mods$Modification <- gsub(" \\(Internal\\)$", "", apply(mods[, c("Modification", "Type")], 1L, \(x) {
             paste0(x[[1L]], " (", x[[2L]], ")")
@@ -563,10 +626,10 @@ Coverage <- function(proteins,
           if (Mode == "Align2") {
             covPlot <- covPlot +
               ggplot2::geom_point(data = mods,
-                                  ggplot2::aes(x = X, y = Y,
+                                  ggplot2::aes(x = X, y = Y - Yextent,
                                                colour = Modification, shape = Modification,
                                                PTM = Modification),
-                                  size = size*0.33) +
+                                  size = size*0.33, inherit.aes = FALSE) +
               ggplot2::theme(legend.background = ggplot2::element_blank()) # +
             #ggplot2::geom_text(data = mods,
             #                   ggplot2::aes(x = X, y = Y, label = Modification),
@@ -574,43 +637,67 @@ Coverage <- function(proteins,
             #poplot(covPlot, new.window = new.window)
           }
         }
-        temp <- setNames(lapply(nmz, \(n)  {
-          wm <- which(matches$Protein == n)
-          x <- if (length(wm)) { aggregate(matches$ID[wm], list(matches$ID[wm]), length) } else { NA }
-          return(x)
-        }), nmz)
-        whinna <- which(!is.na(temp))
-        if (length(whinna)) {
-          dotstest <- plyr::rbind.fill(temp[whinna])
-          dw <- which(dotstest$x > 1L)
-          if (length(dw)) {
-            dotstest <- dotstest[dw, , drop = FALSE]
-            dotstest[, c("X", "Y")] <- Isapply(dotstest$Group.1, \(x) {
-              matches[which(matches$ID == x), c("X1", "Y")]
+        if (Mode == "Align2") {
+          dotstest <- setNames(lapply(nmz, \(n)  {
+            wm <- which(matches$Protein == n)
+            if (!length(wm)) { return() }
+            aggregate(matches$ID[wm], list(matches$ID[wm]), length)
+          }), nmz)
+          dotstest <- do.call(rbind, dotstest)
+          dotstest <- dotstest[which(dotstest$x > 1L),]
+          if (nrow(dotstest)) {
+            dotstest$dots <- lapply(dotstest$Group.1, \(x) { #x <- dotstest$Group.1
+              x <- matches[which(matches$ID == x),]
+              rng1 <- 1L:(nrow(x)-1L)
+              rng2 <- rng1+1
+              return(rbind(data.frame(Y1 = x$Y1[rng1],
+                                      Y2 = x$Y2[rng1],
+                                      X1 = x$X2[rng1],
+                                      Intensity = x$Intensity[rng1],
+                                      peptide =  x$peptide[rng1],
+                                      side = "Right",
+                                      check.names = FALSE),
+                           data.frame(Y1 = x$Y1[rng2],
+                                      Y2 = x$Y2[rng2],
+                                      X1 = x$X1[rng2],
+                                      Intensity = x$Intensity[rng2],
+                                      peptide =  x$peptide[rng2],
+                                      side = "Left",
+                                      check.names = FALSE)))
             })
-            dotstest[, c("Left", "Right")] <- as.data.frame(t(apply(dotstest[, c("X", "Y")],
-                                                                    1L,
-                                                                    \(x) { # x <- dotstest[1L, c("X", "Y")]
-                                                                      w <- which(unlist(x[[1L]]) == 1L-Xextent)
-                                                                      w <- w[which(w >= 2L)]
-                                                                      return(c(unlist(x[[2L]])[w], unlist(x[[2L]])[w-1L]))
-                                                                    })))
-            Left <- unlist(dotstest$Left); ll <- length(Left)
-            Right <- unlist(dotstest$Right); lr <- length(Right)
-            dots <- list()
-            if (ll) { dots$"LL" <- data.frame(Y = Left,
-                                              X = 1-Xextent-0.5,
-                                              Label = "...") }
-            if (lr) { dots$"RR" <- data.frame(Y = Right,
-                                              X = scale+Xextent+0.5,
-                                              Label = "...") }
-            dots <- plyr::rbind.fill(dots)
-            if ((ll+lr) && (Mode == "Align2")) {
-              covPlot <- covPlot +
-                ggplot2::geom_text(data = dots,
-                                   ggplot2::aes(x = X, y = Y, label = Label),
-                                   vjust = 0, colour = "white", cex = size)
-              #poplot(covPlot, new.window = new.window)
+            dotstest <- do.call(rbind, dotstest$dots)
+            whL <- which(dotstest$side == "Left")
+            whR <- which(dotstest$side == "Right")
+            lL <- length(whL)
+            lR <- length(whR)
+            addDots <- lL+lR
+            if (addDots) {
+              dots <- list()
+              if (lL) {
+                dots$"LL" <- rbind(dotstest[whL,],
+                                   dotstest[whL,],
+                                   dotstest[whL,])
+                dots$"LL"$X1 <- dots$"LL"$X1 - c(rep(0.3, lL),
+                                                 rep(0.9, lL),
+                                                 rep(1.5, lL))
+                dots$"LL"$X2 <- dots$"LL"$X1 - 0.3
+                dots$"LL"$Alpha <- c(rep(0.8, lL),
+                                     rep(0.6, lL),
+                                     rep(0.4, lL))
+              }
+              if (lR) {
+                dots$"RR" <- rbind(dotstest[whR,],
+                                   dotstest[whR,],
+                                   dotstest[whR,])
+                dots$"RR"$X1 <- dots$"RR"$X1 + c(rep(0.3, lR),
+                                                 rep(0.9, lR),
+                                                 rep(1.5, lR))
+                dots$"RR"$X2 <- dots$"RR"$X1 + 0.3
+                dots$"RR"$Alpha <- c(rep(0.8, lR),
+                                     rep(0.6, lR),
+                                     rep(0.4, lR))
+              }
+              dots <- plyr::rbind.fill(dots) 
             }
           }
         }
@@ -738,7 +825,7 @@ Coverage <- function(proteins,
                            title = ggplot2::element_text(colour = "white"),
                            plot.margin = ggplot2::margin(1L, 4L, 1L, 1L, "cm"))
           plotCreated <- TRUE
-          #poplot(covPlot, 12, 20, new.window)
+          #poplot(covPlot, 12L, 20L, new.window)
         }
       } else {
         warning(paste0("Not a single peptide matches the sequence(s)!"))
@@ -753,19 +840,48 @@ Coverage <- function(proteins,
       if (display) {
         poplot(covPlot, height = hght, width = wdth, new.window = new.window)
       }
-      if (!save.grph) { return() }
-      for (svpth in unlist(tbl$Path)) { #svpth <- unlist(tbl$Path)[1L]
+      if (!savePlots) { return() }
+      covPlot2 <- covPlot
+      if (addDots) {
+        covPlot2 <- covPlot +
+          ggplot2::geom_rect(data = dots,
+                             ggplot2::aes(xmin = X1, xmax = X2, ymin = Y1, ymax = Y2, fill = Intensity, alpha = Alpha),
+                             inherit.aes = FALSE)
+        #poplot(covPlot2, new.window = new.window)
+      }
+      for (svpth in unlist(flsTbl$Path)) { #svpth <- unlist(flsTbl$Path)[1L]
         ext <- rev(unlist(strsplit(svpth, "\\.")))[1L]
         suppressMessages({
           if (ext == "html") {
+            setwd(dirname(svpth))
             covPlotLy <- plotly::ggplotly(covPlot, tooltip = c("peptide", "PTM"))
+            if (addDots) {
+              nGeom <- length(ggplot_build(covPlot2)$data)
+              rectBuilt <- ggplot_build(covPlot2)$data[[nGeom]]
+              for (i in 1L:nrow(rectBuilt)) {
+                covPlotLy <- plotly::add_polygons(covPlotLy,
+                                                  x = c(rectBuilt$xmin[i], rectBuilt$xmax[i],
+                                                        rectBuilt$xmax[i], rectBuilt$xmin[i]),
+                                                  y = c(rectBuilt$ymin[i], rectBuilt$ymin[i],
+                                                        rectBuilt$ymax[i], rectBuilt$ymax[i]),
+                                                  fillcolor = rectBuilt$fill[i],
+                                                  opacity = rectBuilt$alpha[i],
+                                                  hoveron = "fills",
+                                                  hoverinfo = "text",
+                                                  text = paste0("peptide: ", dots$peptide[i]),
+                                                  showlegend = FALSE,
+                                                  line = list(width = 0),
+                                                  inherit = FALSE)
+              }
+            }
             covPlotLy <- plotly::config(covPlotLy,
                                         modeBarButtonsToRemove = c("select2d", "lasso2d"))
             if (!P %in% names(plotLyst)) { plotLyst[[P]] <- list() }
             plotLyst[[P]][[Ttl]] <- covPlotLy
             htmlwidgets::saveWidget(covPlotLy, svpth, selfcontained = TRUE)
+            setwd(wd0)
           } else {
-            ggplot2::ggsave(svpth, covPlot,
+            ggplot2::ggsave(svpth, covPlot2,
                             dpi = 300L,
                             width = wdth,
                             height = hght,
