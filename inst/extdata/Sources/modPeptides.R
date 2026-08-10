@@ -715,6 +715,31 @@ if (length(PTMs)) {
       } else { warning("The F-test did not generate any plots! Investigate!") }
     }
     #
+    # DiaNN input only:
+    # Extract XICs for all regulated peptides, allowing visual checks on the reliability of the peptide.
+    w <- which(SearchSoft == "DIANN")
+    if (length(w)) {
+      w <- w[which(dir.exists(paste0(inDirs[w], "/report_xic")))]
+    }
+    if (length(w)) {
+      regPep <- lapply(names(PTMs_Reg_filters[[Ptm]]), \(tt) { #tt <- names(PTMs_Reg_filters[[Ptm]])[1L]
+        if (tt == "t-tests") { tmp <- ptmpep }
+        if (tt == "F-tests") { tmp <- PTMs_F_test_data[[Ptm]] }
+        filt <- PTMs_Reg_filters[[Ptm]][[tt]]$"By condition"
+        nms <- names(filt)
+        tmp$"Modified sequence"[unique(unlist(lapply(nms, \(nm) { #nm <- nms[1L]
+          filt[[nm]]$Filter
+        })))]
+      })
+      regPep <- unique(unlist(regPep))
+      if (length(regPep)) {
+        dataType <- "modPeptides"
+        Src <- paste0(libPath, "/extdata/Sources/protList_DiaNN_XIC.R")
+        #rstudioapi::documentOpen(Src)
+        source(Src, local = FALSE)
+      }
+    }
+    #
     # Gene-Set Enrichment Analysis (GSEA)
     if (runGSEA) {
       dataType <- "modPeptides"

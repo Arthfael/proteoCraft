@@ -2119,7 +2119,7 @@ if (inherits(vennTst, "try-error")) {
 }
 
 #### Code chunk - Coverage maps, XICs and heatmaps for proteins of interest
-protlspep <- prot.list_pep
+protlspep <- union(prot.list, prot.list_pep)
 if (length(protlspep)) {
   test <- vapply(protlspep, \(i) { length(grsep2(i, PG$"Leading protein IDs")) }, 1L)
   if (0L %in% test) {
@@ -2138,12 +2138,13 @@ Src <- paste0(libPath, "/extdata/Sources/protPlots.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
 #
-# DiaNN: draw XIC for proteins of interest 
-Src <- paste0(libPath, "/extdata/Sources/protList_DiaNN_XIC.R")
-#rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
-#
+# DiaNN: draw XIC and heatmap for proteins of interest 
 if (length(protlspep)) {
+  dataType <- "protList"
+  Src <- paste0(libPath, "/extdata/Sources/protList_DiaNN_XIC.R")
+  #rstudioapi::documentOpen(Src)
+  source(Src, local = FALSE)
+  #
   source(parSrc, local = FALSE)
   dir <- paste0(wd, "/Heatmaps")
   pepHtmp(protlspep,

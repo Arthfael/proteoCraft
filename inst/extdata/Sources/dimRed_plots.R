@@ -542,4 +542,4 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
   }
 } else { warning(paste0("Not enough observations to create ", insert, "-level dimensionality reduction plots!")) }
 ReportCalls <- AddSpace2Report()
-saveFun(dimRedPlotLy, file = paste0(wd, "/Dimensionality red. plots/DimRedPlots.RData"))
+saveFun(dimRedPlotLy, file = paste0(myLittleDir, "/DimRedPlots.RData"))
