@@ -1,6 +1,8 @@
 ##############################
 # Create output Excel tables #
 ##############################
+require(openxlsx2)
+require(xml2)
 #
 # Version for script without replicates
 #
@@ -24,8 +26,8 @@ intNms <- \(nms, topLvl = FALSE, type = "PG", newLine = FALSE) {
       nm <- c(c("int.", "expr.")[m], root)[mode]
     } else {
       nmTst <- tolower(gsub("-|\\.", "", nm))
-      nm <- if (grepl("((re)|(back))norm", nmTst)) {
-        "re-norm" 
+      nm <- if (grepl("norm", nmTst)) {
+        sub("norm.*", "norm", nmTst)
       } else { tolower(substr(nm, 1L, min(c(3L, nchar(nm))))) }
       nm <- paste0(nm, ". ", c(c("int.", "expr.")[m], root)[mode])
     }
@@ -41,8 +43,8 @@ ratNms <- \(nms, topLvl = FALSE, newLine = FALSE) {
       nm <- c("rat.", "Ratio")[mode]
     } else {
       nmTst <- tolower(gsub("-|\\.", "", nm))
-      nm <- if (grepl("((re)|(back))norm", nmTst)) {
-        "re-norm"
+      nm <- if (grepl("norm", nmTst)) {
+        sub("norm.*", "norm", nmTst)
       } else { tolower(substr(nm, 1L, min(c(3L, nchar(nm))))) }
       nm <- paste0(nm, ". ", c("rat.", "ratios")[mode])
     }

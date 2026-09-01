@@ -118,7 +118,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                                           filter = "XML file (*.xml)")
     }
     #
-    ReportCalls <- AddTxt2Report(paste0(" -> mqpar.xml file: ", mqparFl_i))
+    cat(paste0(" -> mqpar.xml file: ", mqparFl_i, "\n"))
     mqpar_i <- readr::read_lines(mqparFl_i)
     fastas_i <- gsub(" *</?fastaFilePath> *", "", grep("<fastaFilePath>", mqpar_i, value = TRUE))
     fastas_i <- unlist(strsplit(gsub("\\\\", "/", gsub("^Fasta file\t", "", fastas_i)), ";"))
@@ -440,7 +440,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                                               path = paste0(inDirs[dir_i], "/*.log.txt"),
                                               filter = "DiaNN .log.txt file (*.log.txt)")
     }
-    ReportCalls <- AddTxt2Report(paste0(" -> DiaNN log file: ", diaNN_logFl_i))
+    cat(paste0(" -> DiaNN log file: ", diaNN_logFl_i, "\n"))
     diaNN_logFlDir_i <- dirname(diaNN_logFl_i)
     diannLog_i <- readr::read_lines(diaNN_logFl_i)
     diannCall_i <- grep("^diann.exe ", diannLog_i, ignore.case = TRUE, value = TRUE)[1L]
@@ -802,8 +802,8 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                                                path = paste0(inDirs[dir_i], "/*.fp-manifest"),
                                                filter = "FragPipe manifest file (*.fp-manifest)")
     }
-    ReportCalls <- AddTxt2Report(paste0(" -> FragPipe workflow file: ", fpWorkflowFl_i))
-    ReportCalls <- AddTxt2Report(paste0(" -> FragPipe manifest file: ", fpManifestFl_i))
+    cat(paste0(" -> FragPipe workflow file: ", fpWorkflowFl_i, "\n"))
+    cat(paste0(" -> FragPipe manifest file: ", fpManifestFl_i, "\n"))
     if (exists("ev_FP2MQ")) { rm(ev_FP2MQ) }
     psmsBckpFl_i <- paste0("FragPipe PSMs converted to MQ-like format_", dir_i, ".RData")
     if (exists("reloadedBckps") && (psmsBckpFl_i %in% reloadedBckps$File) && file.exists(psmsBckpFl_i)) {

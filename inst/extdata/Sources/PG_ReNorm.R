@@ -233,8 +233,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
     DatAnalysisTxt[l] <- gsub("\\.\\.\\.$",
                               paste0(" and re-normalized ", insrt, txTmp, "."),
                               DatAnalysisTxt[l])
-    ReportCalls <- AddTxt2Report(paste0("Re-normalizing Protein groups-level expression values to the median value of ",
-                                        txTmp))
+    cat(paste0("Re-normalizing Protein groups-level expression values to the median value of ", txTmp, "\n"))
   }
 }
 # Calculate protein ratios (now calculated here, not earlier as in earlier version)
@@ -290,7 +289,6 @@ if (normPGs) {
   #  ggsave(paste0(dirPG, "/", ttlI1, ".jpeg"), intPlot1, dpi = 300L)
   #  ggsave(paste0(dirPG, "/", ttlI1, ".pdf"), intPlot1, dpi = 300L)
   #})
-  #ReportCalls <- AddPlot2Report(Plot = intPlot1, Title = ttlI1)
   #
   #   - Ratios
   allContr <- gsub(topattern(Prot.Rat.Root), "", RatKol)
@@ -326,7 +324,6 @@ if (normPGs) {
   #  ggsave(paste0(dirPG, "/", ttlR1, ".jpeg"), ratPlot1, dpi = 300L)
   #  ggsave(paste0(dirPG, "/", ttlR1, ".pdf"), ratPlot1, dpi = 300L)
   #})
-  #ReportCalls <- AddPlot2Report(Plot = ratPlot1, Title = ttlR1)
   #
   # - Peptides
   #   - Intensities
@@ -361,7 +358,6 @@ if (normPGs) {
   #  ggsave(paste0(dirPep, "/", ttlI2, ".jpeg"), intPlot2, dpi = 300L)
   #  ggsave(paste0(dirPep, "/", ttlI2, ".pdf"), intPlot2, dpi = 300L)
   #})
-  #ReportCalls <- AddPlot2Report(Plot = intPlot2, Title = ttlI2)
   #
   # - Peptides ratios
   temp1 <- make_Rat2(int.log = FALSE,
@@ -400,7 +396,6 @@ if (normPGs) {
   #  ggsave(paste0(dirPep, "/", ttlR2, ".jpeg"), ratPlot2, dpi = 300L)
   #  ggsave(paste0(dirPep, "/", ttlR2, ".pdf"), ratPlot2, dpi = 300L)
   #})
-  #ReportCalls <- AddPlot2Report(Plot = ratPlot2, Title = ttlR2)
   #
   nrmPlots2 <- lapply(nrmPlots, \(x) {
     x$Ext <- "pdf"
@@ -509,5 +504,4 @@ if (normPGs) {
   source(quntSrc, local = FALSE)
   summary(quantData_list$Data)
   #
-  ReportCalls <- AddSpace2Report()
 }

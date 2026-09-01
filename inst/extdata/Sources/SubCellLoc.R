@@ -1,7 +1,6 @@
 #### Sub-Cellular localisation analysis
 if (Annotate&&LocAnalysis) {
-  msg <- "Sub-Cellular localisation analysis:"
-  ReportCalls <- AddMsg2Report(Space = FALSE)
+  cat("Sub-Cellular localisation analysis:\n")
   dir <- paste0(wd, "/pRoloc")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   dirlist <- union(dirlist, dir)
@@ -65,8 +64,7 @@ Example: \"GO:0031012;2\"
     SubCellMark2$value <- PG$Label[SubCellMark2$value]
     SubCellMark2 <- setNames(SubCellMark2$L1, SubCellMark2$value)
     if (length(SubCellMark2)) {
-      msg <- " - Performing per-sample pRoloc analysis"
-      ReportCalls <- AddMsg2Report(Space = FALSE)
+      cat(" - Running per-sample pRoloc analysis\n")
       ttls <- c()
       pRolocVisMeth <- "t-SNE"
       tmpPG <- PG[, c("id", "Leading protein IDs", "Protein IDs", "Protein names", "Genes", "Label")]
@@ -285,7 +283,6 @@ Example: \"GO:0031012;2\"
         pRolocData[[grp]] <- tmpClass[[grp]]$MSnData
         SVMparams[[grp]] <- tmpClass[[grp]]$SVMparams
       }
-      ReportCalls <- AddSpace2Report()
       if (length(ttls)) {
         SilentPDF2JPEG <- \(ttl) {
           suppressMessages(
@@ -315,8 +312,7 @@ Example: \"GO:0031012;2\"
     wh0 <- which(WhRef)
     wh1 <- which(!WhRef)
     if ((length(wh0) == 1L)&&(length(wh1))) {
-      msg <- " - Performing re-localisation analysis"
-      ReportCalls <- AddMsg2Report(Space = FALSE)
+      cat(" - Running re-localisation analysis\n")
       LocAnalysis2 <- TRUE
       EM0 <- Exp.map[which(Exp.map[[SubCellFracAggr2$column]] == SubCellFracAggr2$values[wh0]),]
       EM0$Replicate <- as.numeric(EM0$Replicate)
@@ -446,7 +442,6 @@ Example: \"GO:0031012;2\"
         ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
         ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
       })
-      ReportCalls <- AddPlot2Report()
       # Statistical test
       svDialogs::dlg_message("I'm sure it would be beneficial to implement a limma test here: do it!", "ok")
       M <- median(unlist(PG[wNC, grep(topattern(SSD.Root), colnames(PG), value = TRUE)]))
@@ -507,10 +502,6 @@ Example: \"GO:0031012;2\"
         volcano.plots$Localisation_Labelled <- tempVP3$Plots$Labelled
         n2 <- names(volcano.plots$Localisation_Labelled)
         dir <- paste0(wd, "/Reg. analysis/Localisation")
-        for (ttl in n2) {
-          plot <- volcano.plots$Localisation_Labelled[[ttl]]
-          ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
-        }
         if ((create_plotly)&&(!create_plotly_local)) { plot_ly$"Localisation" <- tempVP3$"Plotly plots" }
         # Edit wording + create filters
         g <- grep("^Re-localized - ", colnames(PG), value = TRUE)
@@ -666,7 +657,6 @@ Example: \"GO:0031012;2\"
   } else {
     warning("Skipping re-localisation analysis: some subcellular fraction groups contain both reference and non-reference samples...")
   }
-  ReportCalls <- AddSpace2Report()
   rm(list = ls()[which(!ls() %in% .obj)])
   Script <- readr::read_lines(ScriptPath)
   gc()

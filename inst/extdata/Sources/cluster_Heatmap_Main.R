@@ -124,9 +124,8 @@ if (clustHtMp) {
     smpls <- I[[i]]
     smplsMtch <- match(smpls, mySmpls)
     xMp <- clustMap[smplsMtch,]
-    msg <- paste0("Creating ", c("", paste0(i, " "))[(i == "Global")+1L], "heatmap",
-                  c(paste0(" for ", i), "")[(i == "Global")+1L], ".")
-    ReportCalls <- AddMsg2Report(Space = FALSE)
+    cat(paste0("Creating ", c("", paste0(i, " "))[(i == "Global")+1L], "heatmap",
+               c(paste0(" for ", i), "")[(i == "Global")+1L], ".\n"))
     for (normType in normTypes) { #normType <- normTypes[1L] #normType <- normTypes[2L] #normType <- normTypes[3L]
       clustNm <- paste0(i, " - ", normType)
       if (length(normTypes) > 1L) {

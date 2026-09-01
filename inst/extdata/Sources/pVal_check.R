@@ -258,7 +258,7 @@ plot2 <- ggplot(temp) +
         axis.text = element_text(size = 10L))
 #poplot(plot2, 12L, 22L)
 Img2 <- paste0(pvalDir, "/", ttl2)
-w2 <- ((length(whSingle)+1)*1.25)*2
+w2 <- ((length(whSingle)+1L)*1.25)*2
 h2 <- ((length(my_PVal_Col)+0.2)*1.25)*2
 suppressMessages({
   ggsave(paste0(Img2, ".jpeg"), plot2, dpi = 150L, width = w2, height = h2, units = "in")
@@ -266,7 +266,6 @@ suppressMessages({
 })
 #system(paste0("open \"", Img2, ".jpeg\""))
 #system(paste0("open \"", Img2, ".pdf\""))
-ReportCalls <- AddPlot2Report(Title = ttl2, Dir = pvalDir)
 #
 plot2ly <- ggplotly(plot2)
 plot2ly <- layout(plot2ly,

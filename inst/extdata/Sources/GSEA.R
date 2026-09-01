@@ -5,8 +5,7 @@
 
 source(parSrc)
 
-if (!exists("GSEA_plots")) { GSEA_plots <- list() }
-GSEA_plots %<o% GSEA_plots
+if (!exists("GSEA_plots")) { GSEA_plots %<o% list() }
 if (!GSEAmode %in% names(GSEA_plots)) { GSEA_plots[[GSEAmode]] <- list() }
 GSEA_plots[[GSEAmode]][[dataType]] <- list()
  

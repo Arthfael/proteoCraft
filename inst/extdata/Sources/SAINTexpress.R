@@ -64,8 +64,7 @@ if (saintExprs) {
   saintExprs <- nrow(saintContr) > 0L
 }
 if (saintExprs) {
-  msg <- "Running SAINTexpress analysis..."
-  ReportCalls <- AddMsg2Report(Space = FALSE)
+  cat("Running SAINTexpress analysis...\n")
   #
   allContr <- aggregate(1L:nrow(saintContr), list(saintContr$B_full), list)
   allContr <- setNames(lapply(allContr$x, \(x) {
@@ -338,9 +337,8 @@ if (saintExprs) {
                                  xintercept = NA,
                                  colour = "#F000FF",
                                  label = "^ Infinite value (BFDR = 0)"))
-      msg <- paste0("      Replacing ", nr, " infinite -log10(BFDR) value", c("", "s")[(nr > 1L)+1L],
-                    " with a high but finite value of ", mx, " for the purpose of plotting them!")
-      ReportCalls <- AddMsg2Report(Space = FALSE)
+      cat(paste0("      Replacing ", nr, " infinite -log10(BFDR) value", c("", "s")[(nr > 1L)+1L],
+                 " with a high but finite value of ", mx, " for the purpose of plotting them!\n"))
       tmp2[w] <- mx
     }
     allSAINTs[, k2] <- as.data.frame(tmp2)
@@ -371,9 +369,12 @@ if (saintExprs) {
     #invisible(lapply(names(volcPlot_args2), \(x) { assign(x, volcPlot_args2[[x]], envir = .GlobalEnv); return() }))
     tempVPip <- do.call(Volcano.plot, volcPlot_args2)
     #
+    if (!exists("volcPlotly")) { volcPlotly %<o% list() }
+    volcPlotly[["SAINTexpress"]] <- tempVPip$`Plotly plots`
+    #
     # Save plotly plots
     dr <- saintDir
-    myPlotLys <- tempVPip$`Plotly plots`
+    myPlotLys <- volcPlotly[["SAINTexpress"]]
     Src <- paste0(libPath, "/extdata/Sources/save_Plotlys.R")
     #rstudioapi::documentOpen(Src)
     source(Src, local = FALSE)

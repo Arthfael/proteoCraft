@@ -291,8 +291,7 @@ if ("CytoscapePath" %in% names(AnalysisParam)) {
 if (CytoScape && ("Cytoscape" %in% names(AnalysisParam))) {
   tmp1 <- as.logical(AnalysisParam$Cytoscape)
   if (validLogicPar("tmp1") && (!CytoScape)) {
-    msg <- "Sorry, can't run Cytoscape: couldn't find a valid executable!"
-    ReportCalls <- AddMsg2Report(Warning = TRUE)
+    cat("Sorry, can't run Cytoscape: couldn't find a valid executable!\n")
   } else { CytoScape <- tmp1 }
 }
 AnalysisParam$Cytoscape <- CytoScape
@@ -493,7 +492,7 @@ make_ui <- function() {
     h2(dtstNm), 
     br(),
     tags$hr(style = "border-color: black;"),
-    h4("Proteins of interest"),
+    h4(strong("Proteins of interest")),
     pickerInput("IntProt", NULL, protHeads, protDflt, TRUE,
                 pickerOptions(title = "Search me",
                               `live-search` = TRUE,
@@ -501,7 +500,7 @@ make_ui <- function() {
                               deselectAllText = "Clear search")),
     br(),
     tags$hr(style = "border-color: black;"),
-    h4("Data processing"),
+    h4(strong("Data processing")),
     fluidRow(
       if (moreThan1Exp) {
         column(2L,
@@ -528,7 +527,6 @@ make_ui <- function() {
     br(),
     # Quantitation
     ## Choice of algorithm + Proteomics ruler
-    tags$hr(style = "border-color: black;"),
     h4(strong("Protein Groups quantitation")),
     fluidRow(column(2L,
                     h4("Peptides eligible for quantitation:"),
@@ -676,7 +674,7 @@ server1 <- function(input, output, session) {
   # Ratios
   output$Ratios <- renderUI({
     if (MakeRatios) {
-      lst <- list(list(h4("Ratios analysis")),
+      lst <- list(list(h4(strong("Ratios analysis"))),
                   list(fluidRow(column(2L,
                                        numericInput("RatiosThresh", "Fold change threshold (log2)",
                                                     RatiosThresh, 0, width = "100%")),
@@ -693,7 +691,7 @@ server1 <- function(input, output, session) {
     lst <- list(list(br()))
     if (Annotate) {
       lst <- list(
-        list(h4("GO terms enrichment"),
+        list(h4(strong("GO terms enrichment")),
              fluidRow(column(1L,
                              checkboxInput("GOenrich", "GO enrichment", globalGO, "100%"),
                              checkboxInput("runClueGO", "run ClueGO enrichment (NB: this is rather slow)", runClueGO, "100%")),
@@ -1137,7 +1135,7 @@ while ((!runKount) || (!exists("appRunTest"))) {
 }
 #
 # Post-processing
-prot.list %<o% AnalysisParam$Prot.list
+prot.list %<o% unlist(strsplit(AnalysisParam$Prot.list, ";"))
 if (AnalysisParam$GO.terms.for.proteins.of.interest) {
   tmpGO <- AnalysisParam$"GO terms of interest"
   GO_prot.list <- list()

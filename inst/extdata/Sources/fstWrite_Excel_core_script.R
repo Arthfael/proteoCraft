@@ -393,8 +393,11 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   #  - CC = actual data!
   sheetMtch <- match(sheetnm, wb_get_sheet_names(WorkBook))
   cc <- WorkBook$worksheets[[sheetMtch]]$sheet_data$cc
-  cc_3 <- cc[which(cc$row_r == "3"),]
   cc_12 <- cc[which(cc$row_r %in% c("1", "2")),]
+  cc_3 <- cc[which(cc$row_r == "3"),]
+  cc_3$Column <- colnames(dummyData)
+  #View(cc_12)
+  #View(cc_3)
   rownames(cc_12) <- NULL
   #uNum <- unique(cc_3$typ[wNum]) # Worked until at least 1.10, doesn't work for 1.14 (I don't know when the break occurred)
   #uTxt <- unique(cc_3$typ[wTxt]) # Worked until at least 1.10, doesn't work for 1.14 (I don't know when the break occurred)
@@ -491,8 +494,10 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   }
   #
   rownames(cc_Rest) <- NULL
+  cc_Rest$Column <- NULL
   cc <- rbind(cc_12, cc_Rest)
   rownames(cc) <- as.character(1L:nrow(cc))
+  WorkBook$worksheets[[sheetMtch]]$sheet_data$cc <- cc
   #
   # Fix range of conditional formatting
   cf <- WorkBook$worksheets[[sheetMtch]]$conditionalFormatting
@@ -510,15 +515,11 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
       cfNms[w] <- gsub("3$", nRws+2L, cfNms[w])
       names(WorkBook$worksheets[[sheetMtch]]$conditionalFormatting)[w] <- cfNms
     }
-    
     WorkBook$worksheets[[sheetMtch]]$conditionalFormatting[w] <- gsub("type=\"percentile\" val=\"50\"",
                                                                       "type=\"num\" val=\"0\"",
                                                                       WorkBook$worksheets[[sheetMtch]]$conditionalFormatting[w],
                                                                       fixed = TRUE)
-    
   }
-  #
-  WorkBook$worksheets[[sheetMtch]]$sheet_data$cc <- cc
   #
   #  - Row attributes!
   ra <- WorkBook$worksheets[[sheetMtch]]$sheet_data$row_attr

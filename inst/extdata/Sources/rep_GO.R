@@ -1,8 +1,8 @@
 #### Code chunk - Gene Ontology terms enrichment analysis
-warning("Please re-write me, this is getting ugly...")
+warning("Please, me dude: re-write me, this is getting ugly...")
+setwd(wd)
 if (Annotate && (enrichGO || globalGO)) {
-  msg <- "Gene Ontology terms enrichment analysis"
-  ReportCalls <- AddMsg2Report(Space = FALSE)
+  cat("Gene Ontology terms enrichment analysis\n")
   packs <- c("GO.db", "topGO")
   for (pack in packs) {
     bioc_req <- unique(c(bioc_req, pack))
@@ -30,7 +30,7 @@ if (Annotate && (enrichGO || globalGO)) {
     for (tt in WhTsts) { #tt <- 1L #tt <- 2L #tt <- 3L #tt <- 4L
       tstrt <- Tsts[tt]
       stopifnot(!is.na(tstrt))
-      ReportCalls <- AddMsg2Report(Msg = paste0("\n - ", tstrt), Space = FALSE)
+      cat("\n - ", tstrt, "\n")
       myDir <- paste0(wd, "/Reg. analysis/GO enrich/", tstrt)
       if (!dir.exists(myDir)) { dir.create(myDir, recursive = TRUE) }
       dirlist <- unique(c(dirlist, myDir))
@@ -177,7 +177,6 @@ if (Annotate && (enrichGO || globalGO)) {
               myDir2 <- paste0(wd, "/", myDir)
               for (ttl in n2) { #ttl <- n2[1L]
                 plot <- GO_Plots[[tstbee]]$GO_plots[[ttl]]
-                ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
               }
               if (create_plotly && (!create_plotly_local)) { plot_ly[[paste0("GO plots - Regulated vs Observed - ", tstbee)]] <- GO_Plots[[tstbee]]$GO_plot_ly }
               temp <- GO_Plots[[tstbee]]$GO_terms
@@ -301,8 +300,7 @@ if (Annotate && (enrichGO || globalGO)) {
     }
   }
   if (globalGO) {
-    msg <- "\n - Dataset"
-    ReportCalls <- AddMsg2Report(Space = FALSE)
+    cat("\n - Dataset\n")
     #
     myDir <- paste0(wd, "/Reg. analysis/GO enrich/Dataset")
     if (!dir.exists(myDir)) { dir.create(myDir, recursive = TRUE) }

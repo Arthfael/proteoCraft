@@ -147,7 +147,6 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #         ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".pdf"), plot,
 #                dpi = 300, width = 10, height = 10, units = "in")
 #       })
-#       ReportCalls <- AddPlot2Report(Title = ttl)
 #     } else { warning(paste0("Nothing to plot for level ", i)) }
 #   }
 #   # Also look at Ref-to-Ref ratios:
@@ -183,7 +182,6 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #       ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".pdf"), plot,
 #              dpi = 300L, width = 10L, height = 10L, units = "in")
 #     })
-#     ReportCalls <- AddPlot2Report(Title = ttl)
 #     l <- length(DatAnalysisTxt)
 #     DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l], " Peptide ratios were then re-normalized.")
 #   } else { warning("Nothing to plot for Reference-to-Reference ratios!") }

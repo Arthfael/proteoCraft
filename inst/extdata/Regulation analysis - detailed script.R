@@ -301,8 +301,7 @@ Src <- paste0(libPath, "/extdata/Sources/autoMatMet.R")
 source(Src, local = FALSE)
 
 # Start processing the PSMs table
-ReportCalls <- AddSpace2Report()
-ReportCalls <- AddTxt2Report("Processing PSMs...")
+cat("Processing PSMs...\n")
 # Remove reverse database hits
 ev <- ev[which(ev$Reverse == ""),]
 
@@ -423,8 +422,7 @@ g <- grep(topattern(pep.ref["Original"]), colnames(pep), value = TRUE)
 test <- rowSums(pep[, g])
 l <- length(which(test == 0))
 if (l) {
-  msg <- paste0("Removing ", l, " peptide", c("", "s")[(l > 1L)+1L], " with invalid expression values - this is unexpected, investigate!")
-  ReportCalls <- AddMsg2Report(Space = FALSE, Warning = TRUE)
+  cat(paste0("Removing ", l, " peptide", c("", "s")[(l > 1L)+1L], " with invalid expression values - this is unexpected, investigate!\n"))
   pep <- pep[which(test > 0),]
   w <- which(ev$id %in% unique(as.integer(unlist(strsplit(pep$"Evidence IDs", ";")))))
   ev <- ev[w,]
@@ -481,8 +479,7 @@ source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
 #### Code chunk - Assemble protein groups
-ReportCalls <- AddSpace2Report()
-ReportCalls <- AddTxt2Report("Starting protein groups assembly...")
+cat("Starting protein groups assembly...\n")
 if ("N. of peptidoforms for quantitation" %in% colnames(Param)) {
   N_Pep <- as.integer(Param$"N. of peptidoforms for quantitation")
   if (is.na(N_Pep) || (N_Pep <= 0L)) {
@@ -559,8 +556,7 @@ warning("(TO DO: add 'split-by-taxonomy?' here!)")
 # Check those rare proteins IDs which are not in the search DB (should be contaminants)
 tst <- unlist(strsplit(pep$Proteins, ";"))
 if (length(tst)) {
-  msg <- paste0("These protein accessions in peptides are not in the database: ", paste(setdiff(tst, db$`Protein ID`), collapse = " - "))
-  ReportCalls <- AddMsg2Report(Space = FALSE, Print = FALSE)
+  cat(paste0("These protein accessions in peptides are not in the database: ", paste(setdiff(tst, db$`Protein ID`), collapse = " - "), "\n"))
 }
 
 # Basic fix, because I do not like the way I was doing Quality filters up to now
@@ -1022,7 +1018,6 @@ suppressMessages({
   ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
   ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
 })
-ReportCalls <- AddPlot2Report()
 #
 # Test ratio values:
 g <- grep(topattern(Prot.Rat.Root), colnames(quantData), value = TRUE)
@@ -1069,7 +1064,6 @@ suppressMessages({
   ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
   ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
 })
-ReportCalls <- AddPlot2Report()
 
 # Code chunk - Add quant data to PG:
 PG <- PG[, which(!colnames(PG) %in% colnames(quantData))]
@@ -1225,8 +1219,7 @@ if (Adj_Pval) {
   pvalue.use <- pvalue.use[w]
   pkol <- grep(topattern(pvalue.col), colnames(PG), value = TRUE)
   if (!length(pkol)) { stop("There should be P-value columns in the protein groups table at this stage!") }
-  msg <- "Adjusting P-values..."
-  ReportCalls <- AddMsg2Report(Space = FALSE, Print = FALSE)
+  cat("Adjusting P-values...\n")
   for (pk in pkol) { #pk <- pkol[1L]
     pk2 <- gsub("-log10\\(Pvalue\\) ", "-log10(adj. Pvalue) ", pk)
     if (pk2 == pk) { stop("Bug!!!") } else {
@@ -1337,6 +1330,9 @@ if (inherits(tempVP, "try-error") || is.character(tempVP)) {
   stop("MAJOR ERROR: No volcano plots were created, investigate!")
 }
 #
+if (!exists("volcPlotly")) { volcPlotly %<o% list() }
+volcPlotly[["t-test"]] <- tempVP$`Plotly plots`
+
 # Save plotly plots
 dr <- paste0(wd, "/", subDr)
 myPlotLys <- tempVP$"Plotly plots"
@@ -1409,7 +1405,6 @@ volcano.plots$Labelled <- temp4$Labelled
 dir <- paste0(wd, "/Reg. analysis/t-tests")
 for (ttl in n2) {
   plot <- volcano.plots$Labelled[[ttl]]
-  ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
 }
 
 # Also calculate Q-values - for now, the plot is created but not saved!
@@ -1417,8 +1412,7 @@ if (("Q.values" %in% colnames(Param)) && is.logical(Param$Q.values) && Param$Q.v
   require(qvalue)
   pkol <- grep(topattern(pvalue.col[which(pvalue.use)]), colnames(PG), value = TRUE)
   if (length(pkol)) {
-    msg <- "Calculating Q-values..."
-    ReportCalls <- AddMsg2Report(Space = FALSE, Print = FALSE)
+    cat("Calculating Q-values...\n")
     for (pk in pkol) { #pk <- pkol[2L]
       temp <- 10L^(-PG[[pk]])
       wag <- which(is.finite(temp))
@@ -1453,6 +1447,9 @@ if (("Q.values" %in% colnames(Param)) && is.logical(Param$Q.values) && Param$Q.v
     volcPlot_args2$cl <- parClust
     volcPlot_args2$X.root_ind <- Prot.Expr.Root
     tempVP2 <- do.call(Volcano.plot, volcPlot_args2)
+    #
+    if (!exists("volcPlotly")) { volcPlotly %<o% list() }
+    volcPlotly[["t-test (Q-values)"]] <- tempVP2$`Plotly plots`
     #
     # Save plotly plots
     dr <- paste0(wd, "/", subDr)
@@ -1609,8 +1606,7 @@ if (F.test) {
   ))
   for (d in dir) { if (!dir.exists(d)) { dir.create(d, recursive = TRUE) }}
   dirlist <- unique(c(dirlist, dir))
-  msg <- "Performing F-test"
-  ReportCalls <- AddMsg2Report(Space = FALSE, Print = FALSE)
+  cat("Running F-test\n")
   #
   if (("F.test_within" %in% colnames(Param))&&(Param$F.test_within != "")) {
     warning("Parameter \"F.test_within\" is deprecated!")
@@ -1636,10 +1632,6 @@ if (F.test) {
     volcano.plots$"F-tests_Labelled" <- F_volc$Plots$"Labelled"
     n2 <- names(volcano.plots$"F-tests_Labelled")
     dir <- paste0(dir, "/Reg. analysis/F-tests")
-    for (ttl in n2) {
-      plot <- volcano.plots$"F-tests_Labelled"[[ttl]]
-      ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
-    }
     #
     # Create F-test filters:
     Freg_Root <- gsub(" -log10\\(Pvalue\\)", " Regulated", F_Root)
@@ -1855,8 +1847,7 @@ source(xplorSrc, local = FALSE)
 
 #### Code chunk - Optional: if there are time points, plot the curve of the ratios of one or all protein(s) over time
 if (exists("Tim")) {
-  msg <- "Time profile plots"
-  ReportCalls <- AddMsg2Report(Space = FALSE)
+  cat("Time profile plots\n")
   dir <- paste0(wd, "/Time profile plots")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   dirlist <- unique(c(dirlist, dir))
@@ -1941,7 +1932,6 @@ if (exists("Tim")) {
       ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 600L, width = 10L, height = 10L, units = "in")
       ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 600L, width = 10L, height = 10L, units = "in")
     })
-    ReportCalls <- AddPlot2Report()
     if (create_plotly) {
       #test <- aggregate(tmp$`log2(Ratio)`, list(tmp$IDs), \(x) { sum(is.finite(x)) == length(Tim)-1L })
       tmp2 <- aggregate(tmp$`log2(Ratio)`, list(tmp$IDs), \(x) {

@@ -25,9 +25,7 @@ cleanNms2 %<o% function(names,
 }
 #
 vennlev <- c("up", "down")
-ReportCalls <- AddSpace2Report()
-msg <- "Venn diagrams"
-ReportCalls <- AddMsg2Report()
+cat("Venn diagrams\n")
 #
 if (!exists("plotly_Venn")) { plotly_Venn <- list() }
 plotly_Venn %<o% plotly_Venn
@@ -135,8 +133,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
   lV <- length(VennExp)
   OK <- lV > 1L
   ttl <- paste0(vennRoot, "LFQ Venn diagram, all")
-  msg <- paste0(" - ", names(II)[ii], " - observations per sample groups")
-  ReportCalls <- AddMsg2Report(Space = FALSE)
+  cat(paste0(" - ", names(II)[ii], " - observations per sample groups\n"))
   if (lV > VennMx) {
     msg <- paste0("Too many groups, select at least 2 and up to ", VennMx,
                   " to include in Venn diagram ", ttl, ", or cancel to skip.")
@@ -171,7 +168,6 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
       ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L)
     })
     #system(paste0("open \"", dir, "/", ttl, ".jpg", "\""))
-    ReportCalls <- AddImg2Report(paste0(dir, "/", ttl, ".jpg"))
     #
     wb <- openxlsx2::wb_workbook()
     wb$styles_mgr$add(HdrStlVenn, "Header_style")
@@ -198,10 +194,8 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
     openxlsx2::wb_save(wb, vennXLfl)
     #openxlsx2::xl_open(vennXLfl)
   } else {
-    msg <- paste0("     ", ttl, ": not enough groups to compare!")
-    ReportCalls <- AddMsg2Report(Space = FALSE)
+    cat(paste0("     ", ttl, ": not enough groups to compare!\n"))
   }
-  ReportCalls <- AddSpace2Report()
   #
   dir2 <- paste0(dir, "/t-tests")
   if (!dir.exists(dir2)) { dir.create(dir2, recursive = TRUE) }
@@ -211,15 +205,14 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
   wb$styles_mgr$add(HdrStlVenn, "Header_style")
   wbKount <- 0L
   flt_nmz <- names(ttest_Filt)
-  msg <- " - t-tests"
-  ReportCalls <- AddMsg2Report(Space = FALSE)
+  cat(" - t-tests\n")
   if (length(flt_nmz) > 1L) {
     for (r in vennlev) { #r <- "up"
       m <- (length(vennlev) > 1L)+1L
       levTxt0 <- c("", r)[m]
       levTxt1 <- c("", paste0(" ", r))[m]
       levTxt2 <- c("", paste0(", ", r))[m]
-      ReportCalls <- AddMsg2Report(Msg = paste0("   -> ", levTxt0), Offset = TRUE, Space = FALSE)
+      cat(paste0("   -> ", levTxt0, "\n"))
       for (grp in VennGrp2$values) { #grp <- VennGrp2$values[1L]
         n <- (length(VennGrp2$values) > 1L)+1L
         grpTxt <- cleanNms(grp, rep = " ")
@@ -227,7 +220,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
         grpTxt1 <- c("", paste0(" ", grpTxt))[n]
         grpTxt2 <- c("", paste0(", ", grpTxt))[n]
         if (n == 2L) {
-          ReportCalls <- AddMsg2Report(Msg = paste0("     + ", grpTxt), Offset = TRUE, Space = FALSE)
+          cat(paste0("     + ", grpTxt, "\n"))
         }
         em <- Exp.map[which(Exp.map[[VennGrp2$column]] == grp),]
         nmz <- intersect(flt_nmz, myContrasts$Contrast)
@@ -283,7 +276,6 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
             ggsave(paste0(dir2, "/", ttl, ".pdf"), plot, dpi = 150L)
           })
           #system(paste0("open \"", dir2, "/", ttl, ".jpg", "\""))
-          ReportCalls <- AddImg2Report(paste0(dir2, "/", ttl, ".jpg"))
           #
           wbKount <- wbKount+1L
           SheetNm <- paste0("t-test", grpTxt1, levTxt1)
@@ -306,8 +298,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
           wb <- openxlsx2::wb_add_font(wb, SheetNm, hdrDms, size = 12L, bold = TRUE)
           wb <- openxlsx2::wb_set_cell_style(wb, SheetNm, hdrDms, wb$styles_mgr$get_xf_id("Header_style"))
         } else {
-          msg <- paste0("       ", ttl, ": not enough groups with regulated proteins to compare!")
-          ReportCalls <- AddMsg2Report(Space = FALSE)
+          cat(paste0("       ", ttl, ": not enough groups with regulated proteins to compare!\n"))
         }
       }
     }
@@ -317,7 +308,6 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
     openxlsx2::wb_save(wb, vennXLfl)
     #openxlsx2::xl_open(vennXLfl)
   }
-  ReportCalls <- AddSpace2Report()
   #
   if (F.test) {
     dir2 <- paste0(dir, "/F-test")
@@ -348,14 +338,13 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
       }
     }
     if (OK) {
-      msg <- " - F-tests"
-      ReportCalls <- AddMsg2Report(Space = FALSE)
+      cat(" - F-tests\n")
       for (r in vennlev) { #r <- "up"
         m <- (length(vennlev) > 1L)+1L
         levTxt0 <- c("", r)[m]
         levTxt1 <- c("", paste0(" ", r))[m]
         levTxt2 <- c("", paste0(", ", r))[m]
-        ReportCalls <- AddMsg2Report(Msg = paste0("   -> ", levTxt0), Offset = TRUE, Space = FALSE)
+        cat(paste0("   -> ", levTxt0, "\n"))
         ttl <- paste0(vennRoot, "Venn diagram - F-test, global -", levTxt1)
         nmz2 <- gsub("\\) - \\(", ") -\n(", nmz)
         comp_list <- setNames(lapply(nmz, \(x) {
@@ -397,8 +386,6 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
             })
             #system(paste0("open \"", dir2, "/", ttl, ".jpg", "\""))
             #
-            ReportCalls <- AddImg2Report(paste0(dir2, "/", ttl, ".jpg"))
-            #
             wbKount <- wbKount+1L
             SheetNm <- paste0("F-test", levTxt1)
             if (SheetNm %in% wb_get_sheet_names(wb)) { wb <- openxlsx2::wb_remove_worksheet(wb, SheetNm) }
@@ -420,22 +407,15 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
             wb <- openxlsx2::wb_add_font(wb, SheetNm, hdrDms, size = 12L, bold = TRUE)
             wb <- openxlsx2::wb_set_cell_style(wb, SheetNm, hdrDms, wb$styles_mgr$get_xf_id("Header_style"))
           } else {
-            msg <- paste0("     Could not draw global F-tests Venn diagram: more than ", VennMx,
-                          " groups to compare!")
-            ReportCalls <- AddMsg2Report(Space = FALSE)
+            cat("     Could not draw global F-tests Venn diagram: more than ", VennMx, " groups to compare!\n"))
           }
-          ReportCalls <- AddSpace2Report()
         } else {
-          msg <- paste0("   Could not draw global F-tests Venn diagram", levTxt1,
-                        ": not enough groups with regulated proteins to compare!")
-          ReportCalls <- AddMsg2Report()
+          cat(paste0("   Could not draw global F-tests Venn diagram", levTxt1, ": not enough groups with regulated proteins to compare!\n"))
         }
       }
     } else {
-      msg <- "   Could not draw global F-tests Venn diagram: not enough groups to compare!"
-      ReportCalls <- AddMsg2Report()
+      cat("   Could not draw global F-tests Venn diagram: not enough groups to compare!\n")
     }
-    ReportCalls <- AddSpace2Report()
     if (wbKount) {
       vennXLfl <- paste0(dir2, "/Venn diagrams.xlsx")
       openxlsx2::wb_save(wb, vennXLfl)
@@ -444,6 +424,5 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
     #
   }
   setwd(wd)
-  ReportCalls <- AddSpace2Report()
 }
 saveFun(plotly_Venn, paste0(dir, "/Venn_plotly.RDS"))

@@ -482,8 +482,7 @@ if ("CytoscapePath" %in% colnames(Param)) {
 if (CytoScape && ("Cytoscape" %in% colnames(Param))) {
   tmp1 <- as.logical(Param$Cytoscape)
   if (validLogicPar("tmp1") && (!CytoScape)) {
-    msg <- "Sorry, can't run Cytoscape: couldn't find a valid executable!"
-    ReportCalls <- AddMsg2Report(Warning = TRUE)
+    cat("Sorry, can't run Cytoscape: couldn't find a valid executable!\n")
   } else { CytoScape <- tmp1 }
 }
 Param$Cytoscape <- CytoScape
@@ -2324,12 +2323,6 @@ if (length(w)) {
   Param[, w] <- as.logical(Param[, w])
 }
 
-ReportCalls <- AddTxt2Report(" -> Parameters:")
-for (i in 1L:ncol(Param)) {
-  ReportCalls <- AddTxt2Report(paste0("   - ", colnames(Param)[i], ": ", Param[[i]]))
-}
-ReportCalls <- AddSpace2Report()
-#
 # Create sub-directories vector:
 # (this should go...)
 dir <- c("Workflow control/MA plots", paste0("Workflow control/", evNm, "s", c("", "/Normalisation")),
@@ -2465,7 +2458,6 @@ if (("Cont.DB" %in% colnames(Param)) && (!toupper(as.character(Param$Cont.DB)) %
   if (sum(!tst)) {
     msg <- paste0("The following contaminant fasta", c("", "s")[(sum(!tst) > 1L)+1L], "could not be found:", paste0(" - ", temp[which(!tst)], "\n"))
     stop(msg)
-    #ReportCalls <- AddMsg2Report(Space = FALSE)
     #temp <- temp[which(tst)]
   }
   temp <- lapply(temp, Format.DB)

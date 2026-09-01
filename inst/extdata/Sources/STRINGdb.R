@@ -18,8 +18,7 @@ dirlist <- unique(c(dirlist, dir))
 intNets <- list()
 Tsts <- c("t-tests", "F-tests", "Localisation", "SAINTexpress")
 WhTsts <- which(Tsts %in% names(Reg_filters))
-msg <- "Starting STRINGdb network analysis"
-ReportCalls <- AddMsg2Report(Space = FALSE)
+cat("Starting STRINGdb network analysis\n")
 tmpPG <- listMelt(strsplit(PG$"Leading protein IDs", ";"), PG$id)
 tmpPG$L1 <- as.integer(tmpPG$L1)
 IDs <- unique(unlist(lapply(names(Reg_filters), \(x) {
@@ -317,11 +316,9 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
                  dpi = 120L, width = 100L, height = 100L, units = "in", limitsize = FALSE)
           ggsave(paste0(wd, "/STRINGdb/", grphType, "/All ", ttl, ".pdf"), plot,
                  dpi = 120L, width = 100L, height = 100L, units = "in", limitsize = FALSE)
-          ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg  = FALSE)
         }
       }
     }
-    ReportCalls <- AddSpace2Report()
     #
     # Cytoscape
     if (CytoScape) {
@@ -341,9 +338,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
         dirlist <- unique(c(dirlist, dir))
         #
         # Use Cytoscape to represent networks of gated proteins with overlayed logFC
-        msg <- "Creating Cytoscape network .cx files..."
-        ReportCalls <- AddMsg2Report()
-        cat("Creating Cytoscape networks...\n")
+        cat("Creating Cytoscape network .cx files...\n")
         for (grphType in GraphTypes[wL]) { #grphType <- GraphTypes[wL][1L]
           cat(" ->", grphType, "\n")
           for (Nm in names(intNets[[grphType]])) { #Nm <- names(intNets[[grphType]])[1L]

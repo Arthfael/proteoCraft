@@ -32,13 +32,10 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
     Y <- if (length(w1) > 1L) { kols[w1[2]] } else { kols[w2[2]] }
   }
   kols <- setdiff(kols, c(X, Y))
-  ReportCalls <- AddSpace2Report()
-  ReportCalls <- AddTxt2Report("PSMs-level PCA plot:")
-  ReportCalls$Calls <- append(ReportCalls$Calls, list())
+  cat("PSMs-level PCA plot:\n")
   dir <- paste0(wd, "/Dimensionality red. plots/PCA")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   dirlist <- unique(c(dirlist, dir))
-  LRepCalls <- length(ReportCalls$Calls)
   lsKl <- c("Modified sequence", Y)
   if (LabelType == "LFQ") { lsKl <- c(lsKl, X) }
   ls <- lapply(lsKl, \(kl) { data[[kl]] })
@@ -144,7 +141,6 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
         ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 20L, height = 20L, units = "in")
         ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 20L, height = 20L, units = "in")
       })
-      ReportCalls <- AddPlot2Report(Space = FALSE)
       Symb <- "circle"
       # Custom color scale
       scoresA$`Samples group` <- factor(scoresA[[colKol]])
@@ -165,12 +161,9 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
       #system(paste0("open \"", dir, "/", ttl, ".html"))
       setwd(wd)
     } else {
-      msg <- "Not enough valid data to draw a PSM-level PCA plot!"
-      ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
+      cat("Not enough valid data to draw a PSM-level PCA plot!\n")
     }
   }
-  ReportCalls$Calls[[LRepCalls]] <- append(ReportCalls$Calls[[LRepCalls]],
-                                           "body_add_par(Report, \"\", style = \"Normal\")")
 } else {
   stop("Uh, I think you have the wrong analysis pipeline here...\nwhere are my sample groups and replicates!?!?!")
 }

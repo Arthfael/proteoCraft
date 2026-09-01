@@ -41,7 +41,7 @@ if (DiscFilt) {
     l <- length(DatAnalysisTxt)
     DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
                                 " Data was filtered to only include proteins identified in the provided true-discovery filter.")
-    ReportCalls <- AddTxt2Report("Removing proteins not included in the TRUE-Discovery filter!")
+    cat("Removing proteins not included in the TRUE-Discovery filter!\n")
   }
   if (DiscFiltMode == DiscFiltModes[3L]) {
     if (length(unique(RG$values)) == 1L) {

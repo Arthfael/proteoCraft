@@ -1247,8 +1247,7 @@ invisible(parallel::clusterCall(cl, \(x) {
 }))
 tm2 <- Sys.time()
 try({
-  msg <- paste0(nrow(pg), " protein groups assembled in ", gsub("^Time difference of ", "", capture.output(tm2-tm1)))
-  ReportCalls <- AddMsg2Report(Space = FALSE, Print = TRUE)
+  cat(paste0(nrow(pg), " protein groups assembled in ", gsub("^Time difference of ", "", capture.output(tm2-tm1)), "\n"))
 }, silent = TRUE)
 #
 fl <- "PG_assembly"

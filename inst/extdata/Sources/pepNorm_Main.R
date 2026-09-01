@@ -128,7 +128,6 @@ if (lNorm) {
     poplot(plot, 12L, 22L)
     ggsave(paste0(nrmDr, "/", ttl, ".jpeg"), plot, dpi = 150L, height = 10L, units = "in")
     ggsave(paste0(nrmDr, "/", ttl, ".pdf"), plot, dpi = 150L, height = 10L, units = "in")
-    ReportCalls <- AddPlot2Report(Dir = nrmDr)
     #
     finNorm <- max(wNorm)
     newDat <- as.data.frame(pepNorm[[finNorm]]$Data)

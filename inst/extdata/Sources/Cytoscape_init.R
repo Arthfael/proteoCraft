@@ -22,8 +22,7 @@ invisible(suppressMessages({
       tst <- try(RCy3::cytoscapePing(), silent = TRUE)
     }
     if (inherits(tst, "try-error")) {
-      msg <- "Could not connect to Cytoscape! Skipping creation of network .cx files..."
-      ReportCalls <- AddMsg2Report()
+      cat("Could not connect to Cytoscape! Skipping creation of network .cx files...\n")
       CytoScape <- FALSE
     }
   }

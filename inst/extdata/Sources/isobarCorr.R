@@ -6,8 +6,7 @@ if ((LabelType == "Isobaric")&&
   if (!require("matlib", quietly = TRUE)) { install.packages("matlib") }
   cran_req <- c(cran_req, "matlib")
   Iso.purity <- read.csv(Param$Label.Purities.file)
-  msg <- paste0("Correcting ", evNm, " reporter intensities for labels purity.")
-  ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
+  cat(paste0("Correcting ", evNm, " reporter intensities for labels purity.\n"))
   l <- length(DatAnalysisTxt)
   DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
                               " Reporter intensities were corrected for ", IsobarLab, " label purity factors.")

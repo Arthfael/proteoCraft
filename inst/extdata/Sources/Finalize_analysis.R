@@ -18,33 +18,10 @@ if (inherits(tst, "try-error")) {
 }
 unlink(tmpSrc)
 
-# Write pdf report - scheduled for retirement!
-#if (scrptType == "withReps") {
-tst <- try({
-  tmp <- paste0("Report <- ", unlist(ReportCalls$Calls))
-  tmpSrc <- paste0(wd, "/tmp.R")
-  write(tmp, tmpSrc)
-  source(tmpSrc, local = FALSE)
-  Report %<o% Report
-  # Write report to Word file
-  print(Report, target = paste0(wd, "/Workflow control/Analysis report.docx"))
-  #system(paste0("open \"", wd, "/Workflow control/Analysis report.docx"))
-  unlink(tmpSrc)
-}, silent = TRUE)
-if (inherits(tst, "try-error")) { warning("Couldn't write pdf report, investigate...") }
-#}
-
 # Write final HTML report
-if (scrptType == "noReps") {
-  Src <- paste0(libPath, "/extdata/Sources/noRep_HTML_report.R")
-  #rstudioapi::documentOpen(Src)
-  source(Src, local = FALSE)
-}
-if (scrptType == "withReps") { # TO DO...
-  Src <- paste0(libPath, "/extdata/Sources/rep_HTML_report.R")
-  #rstudioapi::documentOpen(Src)
-  source(Src, local = FALSE)
-}
+Src <- paste0(libPath, "/extdata/Sources/HTML_report.R")
+#rstudioapi::documentOpen(Src)
+source(Src, local = FALSE)
 
 # Save session info
 dir <- paste0(wd, "/Workflow control")
@@ -255,7 +232,6 @@ rm(list = ls()[which(!ls() %in% .obj)])
 Script <- readr::read_lines(ScriptPath)
 gc()
 invisible(parLapply(parClust, 1L:N.clust, \(x) { rm(list = ls());gc() }))
-rm(ReportCalls) # Temporary fix until I figure out how to fix the grphtype bug - I thought I had
 setwd(wd); saveImgFun(BckUpFl) # Leave an ultimate backup in the temporary folder
 #loadFun(BckUpFl)
 

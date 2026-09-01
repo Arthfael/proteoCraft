@@ -141,7 +141,7 @@ ui <- fluidPage(useShinyjs(),
                           br(),
                           br(),
                           span(uiOutput("Message"), style = "color:red"),
-                          withSpinner(DT::DTOutput("mySampleMap", width = wTest2))),
+                          withSpinner(DT::DTOutput("mySampleMap"))),
                 br(),
                 actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"))
 if (exists("smplMap3")) { rm(smplMap3) }

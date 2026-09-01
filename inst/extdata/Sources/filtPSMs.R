@@ -22,8 +22,7 @@ if (LabelType == "LFQ") {
   }
   l <- length(which(test == 0))
   if (l) {
-    msg <- paste0("Removing ", l, " (", signif(100*l/nrow(ev), 2L), "%) PSMs with invalid expression values!")
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
+    cat(paste0("Removing ", l, " (", signif(100*l/nrow(ev), 2L), "%) PSMs with invalid expression values!\n"))
     w <- which(test > 0)
     ev <- ev[w,]
   }
@@ -62,14 +61,13 @@ if (LabelType == "Isobaric") { # If isobaric
   w <- which((!is.finite(ev[[ev.col["Original"]]])) | (ev[[ev.col["Original"]]] <= 0))
   if (length(w)) { ev[w, ev.col["Original"]] <- tst$Reporter[w]*m }
   # Now the reverse scenario: no reporters, but we have precursor intensities; these are throw-away stuff 
-  w <- which(!is.finite(tst$Reporter)|(tst$Reporter <= 0))
+  w <- which((!is.finite(tst$Reporter)) | (tst$Reporter <= 0))
   l <- length(w)
   if (l) {
     RemEv %<o% ev[w,]
     #View(RemEv[, kol])
-    msg <- paste0("Removing ", l, " (", signif(100L*l/nrow(ev), 2L), "%) PSMs with invalid expression values!")
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
-    w <- which(is.finite(tst$Reporter)&(tst$Reporter > 0))
+    cat(paste0("Removing ", l, " (", signif(100L*l/nrow(ev), 2L), "%) PSMs with invalid expression values!\n"))
+    w <- which(is.finite(tst$Reporter) & (tst$Reporter > 0))
     ev <- ev[w,]
   }
 }

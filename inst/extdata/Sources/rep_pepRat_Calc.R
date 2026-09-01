@@ -38,7 +38,6 @@ if (makePepRat) {
     ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
   })
-  ReportCalls <- AddPlot2Report()
   #
   #### Code chunk - Normalize peptide ratios
   # Legacy, I really do not think that this is a good idea at this stage if intensities have been well normalized.

@@ -42,5 +42,3 @@ plot <- ggplot(temp2) +
 #poplot(plot, 12L, 22L)
 ggsave(paste0(dir, "/", ttl, " - ", rfnm, ".jpeg"), plot, width = 10L, height = 10L, units = "in", dpi = 300L)
 ggsave(paste0(dir, "/", ttl, " - ", rfnm, ".pdf"), plot, width = 10L, height = 10L, units = "in", dpi = 300L)
-ReportCalls <- AddPlot2Report(Title = paste0(ttl, " - ", rfnm))
-#

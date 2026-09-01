@@ -3,8 +3,7 @@ if (Impute) {
   l <- length(DatAnalysisTxt)
   DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
                               " Missing values were imputed using two different strategies: i) the KNN (K-Nearest Neighbours) method for Missing-(Completely)-At-Random values within sample groups, and ii) the QRILC (Quantile Regression Imputation of Left-Censored data) method for Missing-Not-At-Random values.")
-  msg <- "Imputing missing values..."
-  ReportCalls <- AddMsg2Report(Space = FALSE)
+  cat("Imputing missing values...\n")
   #
   dir <- paste0(wd, "/Workflow control/Peptides/Imputation")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }

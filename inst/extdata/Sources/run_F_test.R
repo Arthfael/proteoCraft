@@ -56,6 +56,7 @@ if (dataType == "modPeptides") {
                      "Potential contaminant", labCol, mtchCol))
   allKol <- intersect(allKol, colnames(dat0))
   myData$"-log10(PEP)" <- -log10(myData$PEP)
+  volcName <- paste0(ptm, " F-test")
 }
 if (dataType == "PG") {
   dat0 <- PG
@@ -77,6 +78,7 @@ if (dataType == "PG") {
   if (quantAlgo == "limpa") {
     limpaMode <- TRUE
   }
+  volcName <- "F-test"
 }
 intRef2 <- sub("log10", "log2", intRef)
 if (limpaMode) {
@@ -297,9 +299,13 @@ F_volc <- do.call(Volcano.plot, volcPlot_args2)
 stopCluster(parClust)
 source(parSrc)
 #
+if (!exists("volcPlotly")) { volcPlotly %<o% list() }
+volcPlotly[[volcName]] <- F_volc$`Plotly plots`
+#
+#
 # Save plotly plots
 dr <- ohDeer
-myPlotLys <- F_volc$`Plotly plots`
+myPlotLys <- volcPlotly[[volcName]]
 Src <- paste0(libPath, "/extdata/Sources/save_Plotlys.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)
@@ -415,7 +421,6 @@ if (F_Root %in% colnames(myData)) {
     ggsave(paste0(ohDeer, "/", ttla, ".jpeg"), plot, dpi = 300L)
     ggsave(paste0(ohDeer, "/", ttla, ".pdf"), plot, dpi = 300L)
   })
-  ReportCalls <- AddPlot2Report(Title = ttla)
 }
 # Cleanup
 for (i in allArgs) { try(rm(i), silent = TRUE) }

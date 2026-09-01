@@ -56,18 +56,15 @@ if (length(ptmChck)) {
       l1 <- length(i1)-length(i1m) # This is the number of un-modified PSMs we are removing from enriched runs
       l0 <- length(i0)-length(i0u) # This is the number of modified PSMs we are removing from non-enriched runs
       if (l1) {
-        msg <- paste0("Removing ", l1, " peptide PSMs without the ", ptm, " modification from ", ptm,
-                      "-enriched raw files (", round(100*l1/length(i1), 2L), "%)!")
-        ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
+        cat(paste0("Removing ", l1, " peptide PSMs without the ", ptm, " modification from ", ptm,
+                   "-enriched raw files (", round(100*l1/length(i1), 2L), "%)!\n"))
       }
       if (l0) {
-        msg <- paste0("Removing ", l0, " ", ptm, "-modified peptide PSMs from non-enriched samples!")
-        ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
+        cat(paste0("Removing ", l0, " ", ptm, "-modified peptide PSMs from non-enriched samples!\n"))
       }
       ev <- ev[which(ev$id %in% c(i0u, i1m, i2)),]
     } else {
-      msg <- paste0("Not a single ", ptm, "-modified PSMs found in ", ptm, "-enriched raw files, investigate!")
-      ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
+      cat(paste0("Not a single ", ptm, "-modified PSMs found in ", ptm, "-enriched raw files, investigate!\n"))
     }
   }
   ev$runID <- NULL
@@ -149,8 +146,7 @@ for (i in 1L:nrow(tmp)) {
 #aggregate(ev$MQ.Exp, list(ev$"Normalisation group + Fraction"), \(x) { length(unique(x)) })
 #
 if (Param$Norma.Ev.Intens) {
-  msg <- paste(c(evNm, "s-level normalisations:\n", rep("-", nchar(evNm)), "-----------------------\n"), collapse = "")
-  ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
+  cat(paste(c(evNm, "s-level normalisations:\n", rep("-", nchar(evNm)), "-----------------------\n"), collapse = ""), "\n")
   #
   Norma.Ev.Intens.Groups %<o% set_colnames(aggregate(ev$"Normalisation group + Fraction",
                                                      list(ev$"Raw file path"), unique),
@@ -159,11 +155,9 @@ if (Param$Norma.Ev.Intens) {
   w <- which(tst$x > 1L)
   #tst <- aggregate(Norma.Ev.Intens.Groups$"Raw file", list(Norma.Ev.Intens.Groups$Groups), list)
   if (length(w)) {
-    msg <- " - Normalizing MS1-level PSM intensities"
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
+    cat(" - Normalizing MS1-level PSM intensities\n")
     if (length(w) > 1L) { cat(" (per fraction/PTM enrichment group)\n") }
-    msg <- "   - Classic normalisation to the median"
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
+    cat("   - Classic normalisation to the median\n")
     Norma.Ev.Intens.Groups <- Norma.Ev.Intens.Groups[which(Norma.Ev.Intens.Groups$Groups %in% tst$Group.1[w]),]
     # (Per fractions X PTM enrichment group)
     # Step 1a:
@@ -193,11 +187,7 @@ if (Param$Norma.Ev.Intens) {
       }
     }
     if (("Adv.Norma.Ev.Intens" %in% colnames(Param))&&(Param$Adv.Norma.Ev.Intens != FALSE)) {
-      msg <- c("   - Levenberg-Marquardt normalisation..."#,
-               #"     (this can take some time)",
-               #"     ..."
-      )
-      ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Print = FALSE)
+      cat("   - Levenberg-Marquardt normalisation...\n")
       cat(paste0(msg, "\n", collapse = "\n"))
       txtAdv <- "Evidence MS1 intensities"
       ev.col["Advanced normalisation"] <- paste0("AdvNorm. ", ev.col["Original"])
@@ -234,10 +224,9 @@ if (Param$Norma.Ev.Intens) {
   }
   if (LabelType == "Isobaric") {
     msg <- " - Normalizing Reporter intensities"
-    if (length(Iso) > 1L) { msg <- c(msg, paste0("   (per ", IsobarLab, " sample)\n")) }
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
-    msg <- " - Classic normalisation to the median"
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
+    if (length(Iso) > 1L) { msg <- paste0(msg, "   (per ", IsobarLab, " sample)") }
+    cat(msg, "\n")
+    cat("   - Classic normalisation to the median\n")
     # Per combined sample
     er1 <- ev.ref["Normalisation"] <- paste0("Norm. ", ev.ref["Original"])
     er0 <- ev.ref[match("Normalisation", names(ev.ref))-1L]
@@ -260,9 +249,7 @@ if (Param$Norma.Ev.Intens) {
     tstAdvNrm <- FALSE
     if (("Adv.Norma.Ev.Intens" %in% colnames(Param))&&(Param$Adv.Norma.Ev.Intens != FALSE)) {
       if (Param$Adv.Norma.Ev.Intens.Type == "C") {
-        msg <- c("   - Levenberg-Marquardt normalisation...", "     (please wait)", "     ...")
-        ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Print = FALSE)
-        cat(paste0(msg, "\n", collapse = "\n"))
+        cat("   - Levenberg-Marquardt normalisation...\n     (please wait)", "     ...\n")
         # Per combined sample
         # Because this is computationally expensive, we are doing it per Fraction then averaging:
         # the values should be the same across fractions
@@ -276,11 +263,9 @@ if (Param$Norma.Ev.Intens) {
         tmpEv$Fraction <- if ("Fraction" %in% colnames(ev)) { ev$Fraction } else { 1L }
         clusterCall(parClust, \() library(proteoCraft))
         m4 <- tstRI <- list()
-        msg <- "     Estimating normalisation factors within..."
-        ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Print = FALSE)
+        cat("     Estimating normalisation factors within...\n")
         for (i in Iso) { #i <- Iso[1L]
-          msg <- paste0("     ...", IsobarLab, " sample ", i, "...")
-          ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Print = FALSE)
+          cat("     ...", IsobarLab, " sample ", i, "...\n")
           wi <- which(tmpEv$Isobaric.set == i)
           #View(tmpEv[wi, k0])
           tmp <- as.data.table(tmpEv[wi, c("Unique State", "Fraction", k0)])
@@ -380,7 +365,6 @@ if (Param$Norma.Ev.Intens) {
     print(plot) # This type of QC plot does not need to pop up, the side panel is fine
     ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-    ReportCalls <- AddPlot2Report()
   } else {
     w <- (("Adv.Norma.Ev.Intens" %in% colnames(Param))&(Param$Adv.Norma.Ev.Intens != FALSE))+1L
     l <- length(DatAnalysisTxt)
@@ -436,7 +420,6 @@ if (Param$Norma.Ev.Intens) {
     print(plot) # This type of QC plot does not need to pop up, the side panel is fine
     ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-    ReportCalls <- AddPlot2Report()
   }
 }
 # If isobaric, re-scale reporter intensities to total evidence intensities:
@@ -482,7 +465,6 @@ if (LabelType == "Isobaric") {
   print(plot) # This type of QC plot does not need to pop up, the side panel is fine
   ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
   ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-  ReportCalls <- AddPlot2Report()
   #
   #Isobaric data: valid values
   kol <- grep(topattern(ev.ref["Original"]), colnames(ev), value = TRUE)
@@ -522,10 +504,7 @@ if (LabelType == "Isobaric") {
   colnames(tst) <- NULL
   data.table::fwrite(tst, paste0(wd, "/Workflow control/Valid values test.csv"), quote = FALSE, sep = ",", col.names = FALSE, na = "NA")
   #system(paste0("open \"", wd, "/Workflow control/Valid values test.csv\""))
-  ReportCalls <- AddTxt2Report("Number of valid values per sample and channel:")
-  ReportCalls$Objects$Valid_values <- as.data.frame(tst)
-  ReportCalls <- AddTbl2Report("Valid_values")
-  ReportCalls <- AddSpace2Report()
+  #
   ## To do here:
   ## - Format table
   ## - Add fraction-specificity

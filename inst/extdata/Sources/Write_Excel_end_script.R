@@ -128,19 +128,19 @@ unzip(repFl, exdir = dr)
 # - Introduce new lines in column headers + fix selected and default tabs
 library(xml2)
 main <- paste0(dr, "/xl/workbook.xml")
-doc <- read_xml(main)
-ns <- xml_ns(doc)
-sheets <- xml_find_all(doc, ".//d1:sheets/d1:sheet", ns)
-nms <- xml_attr(sheets, "name")
+doc <- xml2::read_xml(main)
+ns <- xml2::xml_ns(doc)
+sheets <- xml2::xml_find_all(doc, ".//d1:sheets/d1:sheet", ns)
+nms <- xml2::xml_attr(sheets, "name")
 sheetVis <- as.character(nms) == dflt
-xml_attr(sheets, "tabSelected") <- NULL # Remove tabSelected from every sheet
+xml2::xml_attr(sheets, "tabSelected") <- NULL # Remove tabSelected from every sheet
 idx <- match(dflt, nms) # Select desired sheet
-xml_attr(sheets[[idx]], "tabSelected") <- "1"
+xml2::xml_attr(sheets[[idx]], "tabSelected") <- "1"
 # Set activeTab
-view <- xml_find_first(doc, ".//d1:workbookView", ns)
-xml_attr(view, "activeTab") <- as.character(idx - 1L)
+view <- xml2::xml_find_first(doc, ".//d1:workbookView", ns)
+xml2::xml_attr(view, "activeTab") <- as.character(idx - 1L)
 # Write back
-write_xml(doc, main)
+xml2::write_xml(doc, main)
 #cat(tmp)
 #
 xmlFls <- list.files(dr, "\\.xml$", recursive = TRUE, full.names = TRUE)
@@ -161,13 +161,12 @@ for (fl in xmlFls[w2]) { #fl <- xmlFls[w2][1L]
 for (fl in xmlFls[w]) {
   writeLines(enc2utf8(xmlDat[[fl]]), fl, useBytes = TRUE)
 }
-# - Save
+# - Save final report
 setwd(dr)
 fls <- list.files(".", recursive = TRUE, all.files = TRUE)
 zip(zipfile = repFl,
     files = fls)
 setwd(wd)
-# Final report
 xl_open(repFl)
 cat("        Done!\n")
 shell(paste0("RMDIR /S /Q \"", dr, "\""), mustWork = FALSE)

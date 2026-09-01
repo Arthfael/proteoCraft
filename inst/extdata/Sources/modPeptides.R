@@ -21,8 +21,7 @@ if (("Phospho.analysis" %in% colnames(Param)) && Param$Phospho.analysis) {
 }
 PTMs %<o% if ("PTM.analysis" %in% colnames(Param)) { PTMs <- unlist(strsplit(Param$PTM.analysis, ";")) } else { c() }
 if (length(PTMs)) {
-  msg <- "Modified peptides analysis"
-  ReportCalls <- AddMsg2Report(Space = FALSE)
+  cat("Modified peptides analysis\n")
   PTMs_ref.ratios %<o% list()
   PTMs_FDR.thresholds %<o% list()
   PTMs_pep %<o% list()
@@ -133,7 +132,7 @@ if (length(PTMs)) {
   #                               "Original")
   for (ptm in PTMs) { #ptm <- PTMs[1L]
     source(parSrc, local = FALSE)
-    ReportCalls <- AddMsg2Report(Msg = paste0(" - ", ptm), Space = FALSE)
+    cat(" -", ptm, "\n")
     modDirs <- c("", "/t-tests")
     if (F.test) { modDirs <- c(modDirs, "/F-tests") }
     modDirs <-  paste0(wd, "/Reg. analysis/", ptm, modDirs)
@@ -455,7 +454,7 @@ if (length(PTMs)) {
     P <- Param
     P$Plot.labels <- "Name"
     P$Plot.metrics <- paste0("X:Ratio_Mean.log2;Y:", ptms.PVal)
-    ReportCalls <- AddMsg2Report(Msg = " -> ", ptm, " t-tests volcano plots", Space = FALSE)
+   cat(" ->", ptm, "t-tests volcano plots\n")
     #k1 <- grep(topattern(paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)])), colnames(ptmpep), value = TRUE)
     #df1 <- ptmpep[, k1]
     #subDr <- gsub(topattern(wd), "", modDirs[2L])
@@ -506,9 +505,12 @@ if (length(PTMs)) {
     stopCluster(parClust)
     source(parSrc)
     #
+    if (!exists("volcPlotly")) { volcPlotly %<o% list() }
+    volcPlotly[[paste0(ptm, " t-test")]] <- tempVPptm$`Plotly plots`
+    #
     # Save plotly plots
     dr <- subDr
-    myPlotLys <- tempVPptm$`Plotly plots`
+    myPlotLys <- volcPlotly[[paste0(ptm, " t-test")]]
     Src <- paste0(libPath, "/extdata/Sources/save_Plotlys.R")
     #rstudioapi::documentOpen(Src)
     source(Src, local = FALSE)
@@ -522,11 +524,6 @@ if (length(PTMs)) {
     #
     ptmpep <- tempVPptm$Protein_groups_file
     volcano.plots[[Ptm]] <- tempVPptm$Plots
-    n2 <- names(volcano.plots[[Ptm]]$Labelled)
-    for (ttl in n2) {
-      plot <- volcano.plots[[Ptm]]$Labelled[[ttl]]
-      ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
-    }
     if (create_plotly && (!create_plotly_local)) {
       plot_ly[[paste0(Ptm, "_Volcano plots (t-tests)")]] <- tempVPptm$"Plotly plots"
     }
@@ -610,7 +607,7 @@ if (length(PTMs)) {
     if (F.test) {
       #kol <- grep(topattern(ptmRf), colnames(ptmpep), value = TRUE)
       #View(ptmpep[, kol])
-      ReportCalls <- AddMsg2Report(Msg = " -> ", ptm, " F-tests volcano plots", Space = FALSE)
+      cat(" ->", ptm, "F-tests volcano plots\n")
       # NB: id.col below should be unique!
       stopifnot(length(unique(ptmpep$Name)) == nrow(ptmpep))
       #
@@ -624,12 +621,7 @@ if (length(PTMs)) {
         #F_test_ref_ratios %<o% F_volc$`Reference ratios` # Not needed
         volcano.plots[[Ptm]]$"F-tests_Unlabelled" <- F_volc$Plots$"Unlabelled"
         volcano.plots[[Ptm]]$"F-tests_Labelled" <- F_volc$Plots$"Labelled"
-        n2 <- names(volcano.plots[[Ptm]]$"F-tests_Labelled")
         myDir <- modDirs[3L]
-        for (ttl in n2) {
-          plot <- volcano.plots[[Ptm]]$"F-tests_Labelled"[[ttl]]
-          ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
-        }
         # Legacy code for web-hosted plotly plots:
         if (create_plotly && (!create_plotly_local)) { plot_ly[[paste0(Ptm, "_Volcano plots (F-tests)")]] <- F_volc$"Plotly plots" }
         # Create F-test filters:
@@ -741,13 +733,15 @@ if (length(PTMs)) {
     }
     #
     # Gene-Set Enrichment Analysis (GSEA)
-    if (runGSEA) {
-      dataType <- "modPeptides"
-      GSEAmode <- "standard"
-      Src <- paste0(libPath, "/extdata/Sources/GSEA.R")
-      #rstudioapi::documentOpen(Src)
-      source(Src, local = FALSE)
-    }
+    try({
+      if (runGSEA) {
+        dataType <- "modPeptides"
+        GSEAmode <- "standard"
+        Src <- paste0(libPath, "/extdata/Sources/GSEA.R")
+        #rstudioapi::documentOpen(Src)
+        source(Src, local = FALSE)
+      }
+    }, silent = TRUE)
     #
     # Heatmap
     g <- paste0(ptmRf, RSA$values)
@@ -828,7 +822,6 @@ if (length(PTMs)) {
       ggsave(paste0(modDirs[1L], "/", nm, ".jpeg"), htmp, width = 20L, height = 20L, units = "in", dpi = 600L)
       ggsave(paste0(modDirs[1L], "/", nm, ".pdf"), htmp, width = 20L, height = 20L, units = "in", dpi = 600L)
     })
-    ReportCalls <- AddPlot2Report(Title = nm, Dir = modDirs[1L])
     #system(paste0("open \"", modDirs[1L], "/", nm, ".jpeg", "\""))
     #system(paste0("open \"", modDirs[1L], "/", nm, ".pdf", "\""))
     #
@@ -973,7 +966,7 @@ if (length(PTMs)) {
                 PTMs_Reg_filters[[Ptm]][[tstrt]][[bee]][[nm]]$Background_filter <- Pep.Ref.Filt[[nm]]
               }
               #
-              ReportCalls <- AddMsg2Report(Msg = " - GO terms enrichment analysis", Space = FALSE)
+              cat(" - GO terms enrichment analysis\n")
               #
               Mode <- "regulated"
               dataType <- "modPeptides"
@@ -1003,11 +996,6 @@ if (length(PTMs)) {
                 if ("All_GO_terms" %in% names(PTMs_GO_Plots[[Ptm]][[tstbee]])) {
                   GO_terms <- PTMs_GO_Plots[[Ptm]][[tstbee]]$All_GO_terms
                   PTMs_GO_Plots[[Ptm]][[tstbee]]$All_GO_terms <- NULL  
-                }
-                n2 <- names(PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_plots)
-                for (ttl in n2) { #ttl <- n2[1L]
-                  plot <- PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_plots[[ttl]]
-                  ReportCalls <- AddPlot2Report(Space = FALSE, Jpeg = FALSE)
                 }
                 if (create_plotly && (!create_plotly_local)) {
                   plot_ly[[paste0(Ptm, "_GO plots - Regulated vs Observed - ", tstbee)]] <- PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_plot_ly
@@ -1133,7 +1121,6 @@ if (length(PTMs)) {
       }
     }
     PTMs_pep[[Ptm]] <- ptmpep
-    ReportCalls <- AddSpace2Report()
     PTMs_int.ref[[Ptm]] <- ptms.ref
     #PTMs_rat.ref[[Ptm]] <- ptms.ratios.ref
     #write.csv(ptmpep, paste0("Tables/", Ptm, "-modified peptides.csv"), row.names = FALSE)

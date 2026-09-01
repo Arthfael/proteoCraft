@@ -125,7 +125,6 @@ tstNorm <- try({
       #poplot(SDplot, 6L, 12L)
       ggsave(paste0(shpDr, "/", SDttl, ".jpeg"), SDplot, dpi = 75L, width = 12L, height = 6L, units = "in")
       ggsave(paste0(shpDr, "/", SDttl, ".pdf"), SDplot, dpi = 75L, width = 12L, height = 6L, units = "in")
-      ReportCalls <- AddPlot2Report(Plot = SDplot, Title = SDttl, Space = FALSE, Dir = shpDr)
     }
   }
 }, silent = TRUE)

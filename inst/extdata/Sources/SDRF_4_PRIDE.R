@@ -107,6 +107,10 @@ ontoFls <- data.frame(File = paste0(homePath, "/", c("Tissues",
                                     ".csv"))
 ontoFls$Name <- gsub("\\.csv$", "", basename(ontoFls$File))
 ontoFls$Exists <- file.exists(ontoFls$File)
+if (sum(!ontoFls$Exists)) {
+  proteoCraft::Configure()
+  ontoFls$Exists <- file.exists(ontoFls$File)
+}
 #sum(!ontoFls$Exists)
 #View(ontoFls)
 isFnd <- setNames(ontoFls$Exists, ontoFls$Name)
@@ -455,12 +459,15 @@ serverA <- \(input, output, session) {
     if (grepl("^H((\\.)|(omo))[ _\\-\\.]?sapiens", myOrg)) { devOnt <- "Human" }
     if (grepl("^C((\\.)|(aenorhabditis))[ _\\-\\.]?elegans", myOrg)) { devOnt <- "Worms" }
     if (!is.na(devOnt)) {
-      dvStgDF <- read.csv(paste0(homePath, "/DevStages_", devOnt, ".csv"))
-      opt <- dvStgDF$Name
-      if (exists("myDevStages")) {
-        myDevStages <- unique(myDevStages)
-        myDS1 <- intersect(myDevStages, opt)
-        myDS2 <- paste(setdiff(myDevStages, opt), collapse = "|")
+      fl <- paste0(homePath, "/DevStages_", devOnt, ".csv")
+      if (file.exists(fl)) {
+        dvStgDF <- read.csv(paste0(homePath, "/DevStages_", devOnt, ".csv"))
+        opt <- dvStgDF$Name
+        if (exists("myDevStages")) {
+          myDevStages <- unique(myDevStages)
+          myDS1 <- intersect(myDevStages, opt)
+          myDS2 <- paste(setdiff(myDevStages, opt), collapse = "|")
+        }
       }
     }
     renderUI(list(list(fluidRow(

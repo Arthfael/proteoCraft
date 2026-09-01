@@ -9,8 +9,7 @@ ms2Kol <- intersect(c("MS2 intensities", "MS2_intensities"), colnames(ev))[1L]
 if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we are in DIA mode and...
   # ... we are either not using DiaNN or we are but we did not run QuantUMS
   if (MS2_based_Correction) {
-    msg <- "Refining MS1-level measurements using MS2 data..."
-    ReportCalls <- AddMsg2Report(Space = FALSE)
+    cat("Refining MS1-level measurements using MS2 data...\n")
     dir <- paste0(wd, "/Workflow control/", evNm, "s/MS2-based MS1 correction")
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
     if (exists("dirlist")) { dirlist <- unique(c(dirlist, dir)) }

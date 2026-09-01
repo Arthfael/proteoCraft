@@ -196,17 +196,17 @@ if (goAhead) {
         ttl1b <- paste0("Coverage - ", nm, " - ", exp_, ", sum log10(int.)")
         ttl2a <- paste0("Coverage - ", nm, " - ", exp_, ", -log10(PEP)")
         dr1 <- paste0(wd, "/Protein plots/", nm2, "/Coverage/Intensity")
-        RES$Coverage$logInt[[exp]] <- Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE,
+        RES$Coverage$logInt[[exp]] <- Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE, scale = 100L,
                                                title = ttl1a, save = c("jpeg", "pdf", "html"),
                                                save.path = paste0(dr1, "/", sub("^Coverage - ", "Cov. ", ttl1a)),
                                                intensities = tmp$`log10(Intensity)`,
                                                maxInt = mxInt)
-        Coverage(P, tmp$"Modified sequence", Mode = "Heat", display = FALSE,
+        Coverage(P, tmp$"Modified sequence", Mode = "Heat", display = FALSE, scale = 100L,
                  title = ttl1b, save = c("jpeg", "pdf"),
                  save.path = paste0(dr1, "/", sub("^Coverage - ", "Cov. ", ttl1b)),
                  intensities = tmp$`log10(Intensity)`)
         dr2 <- paste0(wd, "/Protein plots/", nm2, "/Coverage/PEP")
-        RES$Coverage$PEP[[exp]] <- Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE,
+        RES$Coverage$PEP[[exp]] <- Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE, scale = 100L,
                                             title = ttl2a, save = c("jpeg", "pdf", "html"),
                                             save.path = paste0(dr2, "/", sub("^Coverage - ", "Cov. ", ttl2a)),
                                             intensities = -log10(tmp$PEP),
@@ -487,13 +487,25 @@ if (goAhead) {
     }
     return(RES)
   }), prot.names[mtchTst])
-  ratioPlots %<o% setNames(lapply(prot.names, \(nm) { tmpPlots[[nm]]$Ratio_plot }), prot.names)
-  covPlots %<o% setNames(lapply(prot.names, \(nm) {
+  if (scrptType == "noReps") {
+    ratioPlots %<o% setNames(lapply(names(tmpPlots), \(nm) { tmpPlots[[nm]]$Ratio_plot }), prot.names)
+  }
+  covPlots %<o% setNames(lapply(names(tmpPlots), \(nm) { #nm <- names(tmpPlots)[1L]
     smpls1 <- names(tmpPlots[[nm]]$Coverage$logInt)
     smpls2 <- names(tmpPlots[[nm]]$Coverage$PEP)
-    list(logInt = setNames(lapply(smpls1, \(smpl) { tmpPlots[[nm]]$Coverage$logInt[[smpl]][[1L]][[1L]] }), smpls1),
-         PEP = setNames(lapply(smpls2, \(smpl) { tmpPlots[[nm]]$Coverage$PEP[[smpl]][[1L]][[1L]] }), smpls2))
-  }), prot.names)
+    l1 <- length(smpls1)
+    l2 <- length(smpls2)
+    res <- list()
+    if (l1) {
+      names(smpls1) <- if (scrptType == "noReps") { smpls1 } else { cleanNms(smpls1) }
+      res$logInt = setNames(lapply(names(smpls1), \(smpl) { tmpPlots[[nm]]$Coverage$logInt[[smpls1[smpl]]][[1L]][[1L]] }), names(smpls1))
+    }
+    if (l2) {
+      names(smpls2) <- if (scrptType == "noReps") { smpls2 } else { cleanNms(smpls2) }
+      res$PEP = setNames(lapply(names(smpls2), \(smpl) { tmpPlots[[nm]]$Coverage$PEP[[smpls2[smpl]]][[1L]][[1L]] }), names(smpls2))
+    }
+    return(res)
+  }), names(tmpPlots))
   #ratioPlots[[1L]]
 }
 # This code seems to damage the cluster: check the source afterwards!

@@ -6,10 +6,10 @@ I_eq_L %<o% TRUE # Could be made a global parameter
 setwd(wd)
 #ev$Proteins <- gsub(";CON_", ";", gsub("^CON_", "", gsub(";CON__", ";", gsub("^CON__", "", ev$Proteins))))
 if (Update_Prot_matches) {
-  ReportCalls <- AddTxt2Report(" - Checking peptide-to-protein assignments...")
+  cat(" - Checking peptide-to-protein assignments...\n")
   msg <- "ing peptide-to-protein matches...\n"
   if (exists("Reuse_Prot_matches")) {
-    if ((!is.logical(Reuse_Prot_matches))||(is.na(Reuse_Prot_matches))) {
+    if ((!is.logical(Reuse_Prot_matches)) || is.na(Reuse_Prot_matches)) {
       Reuse_Prot_matches <- FALSE
     }
   }
@@ -46,7 +46,7 @@ if (Update_Prot_matches) {
     tst2 <- parSapply(parClust, tmpP, f0)
     wN <- which(tst1 != tst2)
     ViewTst <- FALSE
-    if ((length(wN))&&(ViewTst)) {
+    if (length(wN) && ViewTst) {
       # Below some code to help with investigations...
       tst <- data.frame(Seq = tmpPs[wN],
                         Orig = tst1[wN],
@@ -80,7 +80,7 @@ Discrepancies with the original search engine matches can have several causes:
    b) In the case of I/L ambiguity, for newer search engines using modern spectrum prediction, retention time and/or ion mobility prediction models, this may be actually correct and reflect incompatibility of the latter characteristics.
 ")
     } else { "All assignments validated.\n" }
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE)
+    cat(msg)
   }
   ev$Proteins[wh1] <- Pep2Prot$Proteins[mtch1]
   if (!Reuse_Prot_matches) {
@@ -108,15 +108,14 @@ if ("NA" %in% tst) { stop("\"NA\" is not an accepted protein accession!") }
 #  test <- unique(unlist(lapply(a1, \(x) { ev$id[grep(x, a)] })))
 #}
 #kol <- which(toupper(colnames(ev)) %in% c("CONTAMINANT", "POTENTIAL CONTAMINANT"))
-#ev <- ev[which((is.na(ev[[kol]]))|(ev[[kol]] == "")|(ev$id %in% test)),]
+#ev <- ev[which(is.na(ev[[kol]]) | (ev[[kol]] == "") | (ev$id %in% test)),]
 # Test if there are still any evidences without any matching proteins from the database
 ev$"Tryptic peptide?" <- TRUE
 w <- which(ev$Proteins == "")
 l <- length(w)
 if (l) {
   tst <- (l>1L)+1L
-  msg <- paste0(length(w), " sequence", c("", "s")[tst], " (", round(100*l/nrow(ev)), "%) do not match a tryptic peptide from the database.\nThese will be matched to database proteins assuming non-tryptic cleavage!")
-  ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
+  cat(paste0(length(w), " sequence", c("", "s")[tst], " (", round(100*l/nrow(ev)), "%) do not match a tryptic peptide from the database.\nThese will be matched to database proteins assuming non-tryptic cleavage!\n"))
   ev$"Tryptic peptide?"[w] <- FALSE
   tmpEV <- data.frame(Seq = unique(ev$Sequence[w]))
   tmpEV$Seq2 <- tmpEV$Seq

@@ -1102,6 +1102,9 @@ Volcano.plot <- function(Prot,
     temp$"P-value" <- 10L^(-temp$Y)
     pL_lbs <- c(plotly_labels, "X", "Y")
     pL_lbs_nms <- c(names(plotly_labels), Xlab, Ylab)
+    if ("PEP" %in% pL_lbs) {
+      temp$PEP <- formatC(temp$PEP, format = "e", digits = 5L)
+    }
     temp$plotly_labels <- apply(temp[, pL_lbs, drop = FALSE], 1L, \(x) { #x <- temp[1, kol]
       paste0(pL_lbs_nms, ": ", gsub("\n", " ", x), collapse = "<br>")
     })

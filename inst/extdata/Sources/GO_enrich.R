@@ -20,7 +20,6 @@
 # - Mode: One of "dataset" or "regulated". In "dataset" Mode, we are comparing the parent database ("DB")  to the observed dataset and using the "Prot_FC_root" argument as the full name of the fold change column. In "regulated" Mode, we use filters to select regulated protein groups and each will come with its own fold change column. See the "filters" and "Prot_FC_root" arguments.
 # - filters: A named list of filters used in "regulated" Mode. Each filter should bear a specific name (e.g. "Treatment 1" or "Whole experiment"; if not, defaults will be provided) and correspond to a vector of row indices in the protein groups file to select. The names will also be used as suffix to add to the fold change root (see the "Prot_FC_root" argument) so cannot be random.
 # - ref.filters: Optional (default = NA). If provided, then we do not use the whole Prot/DB table provided (depending on Mode) but first apply this filter to it.
-# - show: Default = TRUE. Set to FALSE to not print the graphs.
 # - save: Should the plot be saved? Default = FALSE. Set it to a vector of acceptable file extensions to save to the corresponding file format.
 # - title: It is possible to set a specific title. Failing that a default one will be provided.
 # - title.root: Default = "Bubble_plot_". Is added at the beginning of the file names when saving.
@@ -68,7 +67,6 @@ allArgs <- c("db_ID_col",
              "ref.filters", # MUST STAY HERE
              "Prot_FC_root",
              "Prot_FC_is_log",
-             "show",
              "title",
              "bars_title",
              "title.root",
@@ -120,7 +118,6 @@ Prot_FC_is_log <- TRUE
 FillGaps <- FALSE
 FillGaps_Expr_is_log <- TRUE
 ref.filters <- NA
-show <- TRUE
 title.root <- "Bubble_plot_"
 bars <- TRUE
 bars_title.root <- "Bar_plot_"
@@ -159,7 +156,6 @@ if (Mode == "regulated") {
       filters <- flt
       ref.filters <- Ref.Filt
       Prot_FC_root <- GO_enrich.FCRt[[tstbee]]
-      show <- (bee == "By condition")
       title <- "GO bubble plot_"
       bars_title <- "GO bar plot_"
       title.root <- ttr
@@ -186,7 +182,6 @@ if (Mode == "regulated") {
       filters <- flt
       ref.filters <- Pep.Ref.Filt
       Prot_FC_root <- PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]]
-      show <- (bee == "By condition")
       title <- paste0(Ptm, " GO bubble plot_")
       bars_title <- paste0(Ptm, " GO bar plot_")
       title.root <- ttr
@@ -243,13 +238,19 @@ if (Mode == "dataset") {
     # Placeholder
   }
 }
+if (!exists("GO_plot_ly")) { GO_plot_ly %<o% list() }
+if (!dataType %in% names(GO_plot_ly)) { GO_plot_ly[[dataType]] <- list() }
+if (Mode == "regulated") { slotNm <- Tsts[tt] }
+if (Mode == "dataset") { slotNm <- "Dataset" }
+if (!slotNm %in% names(GO_plot_ly[[dataType]])) { GO_plot_ly[[dataType]][[slotNm]] <- list() }
+
 #lengths(filters)
 
-#Prot = GO_enrich.dat[[tstbee]]; Mode = "regulated"; filters = flt; ref.filters = Ref.Filt; Prot_FC_root = GO_enrich.FCRt[[tstbee]]; show = (bee == "By condition"); title.root = paste0("Bubble_plot_", tolower(bee)); bars_title.root = paste0("Bar_plot_", tolower(bee)); save = c("jpeg", "pdf"); return = TRUE; True_Zscore = TRUE; subfolder = dir; subfolderpertype = FALSE
+#Prot = GO_enrich.dat[[tstbee]]; Mode = "regulated"; filters = flt; ref.filters = Ref.Filt; Prot_FC_root = GO_enrich.FCRt[[tstbee]]; title.root = paste0("Bubble_plot_", tolower(bee)); bars_title.root = paste0("Bar_plot_", tolower(bee)); save = c("jpeg", "pdf"); return = TRUE; True_Zscore = TRUE; subfolder = dir; subfolderpertype = FALSE
 # OR (dataset)
 #Prot = PG; Mode = "dataset"; Prot_FC_root = "Av. log10 abundance"; save = c("jpeg", "pdf"); return = TRUE; True_Zscore = TRUE; subfolder = "Reg. analysis/GO enrich/Dataset"; subfolderpertype = FALSE
 # OR (modified peptides)
-#Prot = temPTM; Mode = "regulated"; ID_col = "Proteins"; filters = flt; ref.filters = Pep.Ref.Filt; Prot_FC_root = PTMs_GO_enrich.FCRt[[ptm]][[tstbee]]; show = (bee == "By condition"); title.root = paste0("Bubble_plot_", tolower(bee)); save = c("jpeg", "pdf"); return = TRUE; True_Zscore = TRUE; subfolder = dir; subfolderpertype = FALSE
+#Prot = temPTM; Mode = "regulated"; ID_col = "Proteins"; filters = flt; ref.filters = Pep.Ref.Filt; Prot_FC_root = PTMs_GO_enrich.FCRt[[ptm]][[tstbee]]; title.root = paste0("Bubble_plot_", tolower(bee)); save = c("jpeg", "pdf"); return = TRUE; True_Zscore = TRUE; subfolder = dir; subfolderpertype = FALSE
 # OR (no replicates script:
 #      - sample composition analysis
 #Prot = PG; Mode = "dataset"; filters = filt; Prot_FC_root = ref; save = c("jpeg", "pdf"); return = TRUE; True_Zscore = FALSE; subfolderpertype = FALSE
@@ -299,22 +300,17 @@ if (nchar(title)) {
   if (title == " - ") { title <- "" }
 }
 if (!validCharPar("title.root")) { title.root <- "" }
-if (nchar(title.root)) {
-  title.root <- paste0(gsub("[- _\\.\\,;]+$", "", title.root), " - ")
-  if (title.root == " - ") { title.root <- "" }
-}
+if (nchar(title.root)) { title.root <- sub("[- _\\.\\,;]+$", "", title.root) }
+if (nchar(title.root)) { title.root <- paste0(title.root, " - ") }
 title.root <- if ((title.root == "") && (title != "")) {
   title
 } else { if (title != "") { paste0(title.root, title) } }
 if (bars) {
   if (nchar(bars_title)) {
-    bars_title <- paste0(gsub("[- _\\.\\,;]+$", "", bars_title), " - ")
-    if (bars_title == " - ") { bars_title <- "" }
+    bars_title <- gsub("[- _\\.\\,;]+$", "", bars_title)
   }
-  if (nchar(bars_title.root)) {
-    bars_title.root <- paste0(gsub("[- _\\.\\,;]+$", "", bars_title.root), " - ")
-    if (bars_title.root == " - ") { bars_title.root <- "" }
-  }
+  if (nchar(bars_title.root)) { bars_title.root <- sub("[- _\\.\\,;]+$", "", bars_title.root) }
+  if (nchar(bars_title.root)) { bars_title.root <-  paste0(bars_title.root, " - ") }
   bars_title.root <- if ((bars_title.root == "") && (bars_title != "")) {
     bars_title
   } else { if (bars_title != "") { paste0(bars_title.root, bars_title) } }
@@ -554,7 +550,7 @@ ref.mapFilters <- setNames(lapply(ref.filters, \(x) {
 #lengths(ref.filters)
 #lengths(ref.mapFilters)
 #
-GO_plots <- GO_FDR_thresholds <- GO_plot_ly <- list()
+goPlots <- GO_FDR_thresholds <- list()
 kount <- 0L
 scrange <- c(1L, 30L)
 grphs <- c()
@@ -1104,9 +1100,9 @@ if (length(wFltL)) {
         } else {
           Xxtr <- Xbreadth <- Xmin <- Xmax <- Ymax <- ""
         }
-        exports <- list("GlobalScales", "Xxtr", "Xbreadth", "Xmin", "Xmax", "Ymax", "GO_tbls2", "GO_plots", "title.root", "P_adjust", "plotly", "show", "grphs",
+        exports <- list("GlobalScales", "Xxtr", "Xbreadth", "Xmin", "Xmax", "Ymax", "GO_tbls2", "goPlots", "title.root", "P_adjust", "plotly", "grphs",
                         "save", "origWD", "subfolder", "subfolderpertype", "bars", "graph", "True_Zscore", "scrange", "textFun", "cex", "lineheight", "repel",
-                        "plotly_subfolder", "MaxTerms", "MaxTerms_bar", "MaxChar", "poplot", "plotEval",
+                        "plotly_subfolder", "MaxTerms", "MaxTerms_bar", "MaxChar", "plotEval",
                         "Ont", "title", "title.root", "bars_title", "bars_title.root", "GO_FDR")
         parallel::clusterExport(parClust, exports, envir = environment())
         plotsF0 <- \(n1) { #n1 <- names(GO_tbls2)[1L] #n1 <- names(GO_tbls2)[2L]
@@ -1171,7 +1167,6 @@ if (length(wFltL)) {
                                    cex = cex, lineheight = lineheight)
           }
           if (length(winf)) { plot <- plot + ggplot2::geom_hline(yintercept = Ymax, colour = "black", linetype = "dotted") }
-          if (show) { poplot(plot, 12L, 22L) }        
           GOplts[[paste0("GO bubble plot - ", n1)]] <- plotEval(plot)
           nm <- gsub("/|:|\\*|\\?|<|>|\\|", "-", dotTtl)
           if (nchar(nm) > 98L) { nm <- substr(nm, 1L, 98L) }
@@ -1199,6 +1194,7 @@ if (length(wFltL)) {
               })
             }
           }
+          bubbleOK <- barOK <- FALSE
           if (plotly) {
             aes2 <- paste(sapply(1L:ncol(aes2), \(x) { paste(colnames(aes2)[x], aes2[x], sep = " = ") }), collapse = ", ")
             plot.txt2 <- paste0("plot2 <- ggplot2::ggplot(GO_tbl) + ggplot2::geom_point(ggplot2::aes(", aes2, "), ", # non.aes, 
@@ -1213,10 +1209,11 @@ if (length(wFltL)) {
             setwd(plotly_subfolder)
             htmlwidgets::saveWidget(plot_ly, paste0(nm, ".html"), selfcontained = TRUE)
             setwd(origWD)
+            bubbleOK <- TRUE
           }
           if (bars) {
-            barAddStuff <- \(plot) {
-              plot +
+            barAddStuff <- \(plot, labels = TRUE) {
+              plot <- plot +
                 ggplot2::facet_grid(Ontology~., switch = "y") +
                 ggplot2::xlim(-1, xmx) +
                 ggplot2::ylim(0, Ymax) +
@@ -1231,7 +1228,6 @@ if (length(wFltL)) {
                 ggplot2::ylab(paste0("-log10(", c("", "adj. ")[P_adjust+1L], "Pvalue)")) +
                 ggplot2::scale_fill_gradient2(low = "green", mid = "grey", high = "red",
                                               midpoint = 0L, limits = c(-col_lim, col_lim)) +
-                ggplot2::geom_text(ggplot2::aes(label = Label3, x = X), y = -Ymax/20, hjust = 1, angle = 60, cex = 3L) +
                 ggplot2::coord_cartesian(clip = "off") +
                 ggplot2::ggtitle(barTtl) + ggplot2::theme_bw() +
                 ggplot2::theme(panel.grid.major.x = ggplot2::element_blank(),
@@ -1239,11 +1235,51 @@ if (length(wFltL)) {
                                axis.ticks = ggplot2::element_blank(),
                                axis.title.x = ggplot2::element_blank(),
                                strip.text.y = ggplot2::element_text(angle = 90),
-                               panel.spacing = ggplot2::unit(9L, "lines"),
                                plot.margin = ggplot2::unit(c(1L, 1L, 10L, 1L), "lines")) +
                 ggplot2::geom_hline(data = thr, ggplot2::aes(yintercept = Y, colour = Colour), linetype = "dashed") +
                 ggplot2::geom_text(data = thr, ggplot2::aes(label = Label, y = Y-Ymax*0.02, colour = Colour), x = -1, hjust = 0, cex = 2.5) +
                 ggplot2::guides(colour = "none")
+              if (labels) {
+                plot <- plot +
+                  ggplot2::geom_text(ggplot2::aes(label = Label3, x = X), y = -Ymax/20, hjust = 1, angle = 60, cex = 2L) +
+                  ggplot2::theme(panel.spacing = ggplot2::unit(18L, "lines"),
+                                 panel.heights = ggplot2::unit(rep(18L, 3L), "lines"))
+              }
+              return(plot)
+            }
+            col_lim <- 3
+            GO_tbl2 <- GO_tbl
+            GO_tbl2$X <- NULL
+            GO_tbl3 <- data.frame()
+            wK <- which(GO_tbl2$Count > 0L)
+            if (length(wK)) {
+              wOnt <- unique(GO_tbl2$Ontology[wK])
+              GO_tbl3 <- lapply(wOnt, \(ont) { #ont <- wOnt[1L]
+                tmp <- GO_tbl2[wK,][which(GO_tbl2$Ontology[wK] == ont),]
+                if (!nrow(tmp)) { return() }
+                tmp <- tmp[order(tmp[[paste0(c("", "adj. ")[P_adjust+1L], "Pvalue")]], decreasing = FALSE),]
+                tmp <- tmp[1L:min(c(nrow(tmp), MaxTerms_bar)),]
+                tmp <- tmp[order(tmp$`Z-score`, decreasing = FALSE),]
+                sfpt <- if (subfolderpertype) { paste0(subfolder, "/", sv) } else { subfolder }
+                if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
+                suppressMessages({
+                  if (sv %in% c("jpeg", "tiff", "png", "bmp")) { #Note: tiff does not seem to work currently!
+                    ggplot2::ggsave(paste0(sfpt, "/", nm, ".", sv), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+                  } else {
+                    ggplot2::ggsave(paste0(sfpt, "/",nm, ".", sv), plot)
+                  }
+                })
+              })
+            }
+            if (plotly) {
+              if (length(winf)) {
+                plot2 <- plot2 +
+                  ggplot2::geom_hline(yintercept = Ymax, colour = "black", linetype = "dotted")
+              }
+              plot_ly <- plotly::ggplotly(plot2, tooltip = c("text1", "text2", "text3", "text4"))
+              setwd(plotly_subfolder)
+              htmlwidgets::saveWidget(plot_ly, paste0(nm, ".html"), selfcontained = TRUE)
+              setwd(origWD)
             }
             col_lim <- 3
             GO_tbl2 <- GO_tbl
@@ -1292,7 +1328,6 @@ if (length(wFltL)) {
               #cat(text_tmp)
               suppressWarnings(eval(parse(text = text_tmp)))
               barplot1 <- barAddStuff(barplot1)
-              if (show) { poplot(barplot1, 12L, 22L) }
               GOplts[[paste0("GO bar plot - ", n1)]] <- plotEval(barplot1)
               barnm <- gsub("/|:|\\*|\\?|<|>|\\|", "-", barTtl)
               if (nchar(barnm) > 98L) { barnm <- substr(barnm, 1L, 98L) }
@@ -1314,9 +1349,9 @@ if (length(wFltL)) {
                   setwd(sfpt)
                   suppressMessages({
                     if (sv %in% c("jpeg", "tiff", "png", "bmp")) { #Note: tiff does not seem to work currently!
-                      ggplot2::ggsave(paste0(sfpt, "/",barnm, ".", sv), barplot1, dpi = 300L, width = 10L, height = 10L, units = "in")
+                      ggplot2::ggsave(paste0(sfpt, "/", barnm, ".", sv), barplot1, dpi = 300L, width = 10L, height = 10L, units = "in")
                     } else {
-                      ggplot2::ggsave(paste0(sfpt, "/",barnm, ".", sv), barplot1)
+                      ggplot2::ggsave(paste0(sfpt, "/", barnm, ".", sv), barplot1)
                     }
                   })
                 }
@@ -1327,11 +1362,26 @@ if (length(wFltL)) {
                                  gsub("^PLOT", "barplot2", barplot_txt))
                 #cat(text_tmp)
                 suppressWarnings(eval(parse(text = text_tmp)))
-                barplot2 <- barAddStuff(barplot2)
-                barplot_ly <- plotly::ggplotly(barplot2, tooltip = c("text1", "text2", "text3", "text4"))
+                barplot2 <- barAddStuff(barplot2, FALSE)
+                barplot_ly <- plotly::ggplotly(barplot2,
+                                               tooltip = c("text1", "text2", "text3", "text4"))
+                tst <- paste0(c("(N(Up) - N(Down))/sqrt(Total)", "Z-score")[True_Zscore+1L], zMsg)
+                tst <- sapply(1L:length(barplot_ly$x$data), \(x){
+                  sum(tst %in% unlist(barplot_ly$x$data[[x]]))
+                })
+                w <- which(tst > 0L)
+                if (length(w) == 1L) {
+                  barplot_ly$x$data[[w]]$marker$colorbar$x <- 1.1
+                  barplot_ly$x$data[[w]]$marker$colorbar$xanchor <- "left"
+                }
+                barplot_ly$x$data <- lapply(barplot_ly$x$data, \(trace) { # To fix issue with warnings in shiny when this ggplotly gets plotted
+                  if (trace$type == "bar") { trace$mode <- NULL }
+                  return(trace)
+                })
                 setwd(plotly_subfolder)
                 htmlwidgets::saveWidget(barplot_ly, paste0(barnm, ".html"), selfcontained = TRUE)
                 setwd(origWD)
+                barOK <- TRUE
               }
             }
           }
@@ -1350,20 +1400,26 @@ if (length(wFltL)) {
             setwd(origWD)
           }
           res <- list(GO_plots = GOplts)
+          if (bubbleOK + barOK) { res$GO_plotly <- list() }
+          if (bubbleOK) { res$GO_plotly$Bubble <- plot_ly }
+          if (barOK) { res$GO_plotly$Bar <- barplot_ly }
           return(res)
         }
         #environment(plotsF0) <- .GlobalEnv # Only needed if code run as function!
         cat("     Drawing plots...\n")
-        tst <- try({ tstPlots <- setNames(parallel::parLapply(parClust, names(GO_tbls2), plotsF0),
-                                          names(GO_tbls2)) }, silent = TRUE)
-        if (inherits(tst, "try-error")) {
+        tstPlots <- try({ setNames(parallel::parLapply(parClust, names(GO_tbls2), plotsF0),
+                                   names(GO_tbls2)) }, silent = TRUE)
+        if (inherits(tstPlots, "try-error")) {
           tstPlots <- setNames(lapply(names(GO_tbls2), plotsF0),
                                names(GO_tbls2))
         }
-        lapply(names(GO_tbls2), \(flt) { #flt <- names(GO_tbls2)[1L]
+        for (flt in names(tstPlots)) { #flt <- names(tstPlots)[1L]
           nms <- names(tstPlots[[flt]]$GO_plots)
-          GO_plots[nms] <<- tstPlots[[flt]]$GO_plots[nms]
-        })
+          goPlots[nms] <- tstPlots[[flt]]$GO_plots[nms]
+          nm <- unique(sub("GO ((bar)|(bubble)) plot - ", "", nms))
+          stopifnot(length(nm) == 1L)
+          GO_plot_ly[[dataType]][[slotNm]][[nm]] <- tstPlots[[flt]]$GO_plotly
+        }
       }
     }
   }
@@ -1375,7 +1431,6 @@ if (kount) {
   wK <- which(rowSums(GO.terms[, KK, drop = FALSE]) > 0L)
   goRES <- list(GO_terms = GO.terms[wK,],
                 All_GO_terms = GO.terms,
-                GO_plots = GO_plots)
+                GO_plots = goPlots)
   if (!P_adjust) { goRES$GO_FDR_thresholds <- GO_FDR_thresholds }
-  if (plotly) { goRES[["GO_plotly"]] <- GO_plot_ly }
 } else { goRES <- NA }

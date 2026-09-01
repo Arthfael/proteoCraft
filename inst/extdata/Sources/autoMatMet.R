@@ -1,5 +1,5 @@
 # Start writing Materials and Methods
-if (ProcessedByUs) { cat("Materials & Methods: prompting user for information...\n") }
+if (ProcessedByUs) { cat("Materials & Methods: (the user will be prompted for information...)\n") }
 #
 # 1) Wet lab
 if (scrptType == "noReps") { nr <- nrow(SamplesMap) }
@@ -43,7 +43,7 @@ if (mzMLtst) { # Fix for when we searched mzML-converted files
     }
   }
 }
-if (((inherits(LCMS_meth_lst, "try-error")))||(is.null(LCMS_meth_lst))) {
+if ((inherits(LCMS_meth_lst, "try-error")) || is.null(LCMS_meth_lst)) {
   LCMS_meth <- "TEMPLATE"
 } else {
   LCMS_meth <- LCMS_meth_lst$Text

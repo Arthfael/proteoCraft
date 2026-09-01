@@ -301,8 +301,7 @@ Src <- paste0(libPath, "/extdata/Sources/autoMatMet.R")
 source(Src, local = FALSE)
 
 # Start processing the PSMs table
-ReportCalls <- AddSpace2Report()
-ReportCalls <- AddTxt2Report("Processing PSMs...")
+cat("Processing PSMs...\n")
 # Remove reverse database hits
 ev <- ev[which(ev$Reverse == ""),]
 
@@ -429,8 +428,7 @@ g <- grep(topattern(pep.ref["Original"]), colnames(pep), value = TRUE)
 test <- rowSums(pep[, g])
 l <- length(which(test == 0))
 if (l) {
-  msg <- paste0("Removing ", l, " peptide", c("", "s")[(l > 1L)+1L], " with invalid expression values - this is unexpected, investigate!")
-  ReportCalls <- AddMsg2Report(Space = FALSE, Warning = TRUE)
+  cat(paste0("Removing ", l, " peptide", c("", "s")[(l > 1L)+1L], " with invalid expression values - this is unexpected, investigate!\n"))
   pep <- pep[which(test > 0),]
   w <- which(ev$id %in% unique(as.integer(unlist(strsplit(pep$"Evidence IDs", ";")))))
   ev <- ev[w,]

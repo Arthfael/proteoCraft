@@ -60,7 +60,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
   }
   if (!dir.exists(myLittleDir)) { dir.create(myLittleDir, recursive = TRUE) }
   dirlist <- union(dirlist, myLittleDir)
-  ReportCalls <- AddMsg2Report(Space = FALSE)
+  cat(msg, "\n")
   pc <- prcomp(t(dimRedDat), scale. = TRUE)
   scores <- as.data.frame(pc$x)
   pv <- round(100L*(pc$sdev)^2L / sum(pc$sdev^2L), 0L)
@@ -128,14 +128,12 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     dimRedPlotLy[["Samples PCA"]] <- plot_lyPCAProt
     system(paste0("open \"", myLittleDir, "/", ttl, ".html"))
     # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
-    ReportCalls <- AddPlot2Report()
   } else { warning("PCA failed, investigate!") }
   #
   #
   if (dataType == "PG") {
     # PCA, t-SNE and UMAP plots, by protein group
-    msg <- "PCA plots, by protein group"
-    ReportCalls <- AddMsg2Report(Space = FALSE)
+    cat("PCA plots, by protein group\n")
     myLittleDir <- paste0(wd, "/Dimensionality red. plots/PCA")
     if (!dir.exists(myLittleDir)) { dir.create(myLittleDir, recursive = TRUE) }
     dirlist <- union(dirlist, myLittleDir)
@@ -261,7 +259,6 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       ggtitle(ttl, subtitle = pv) + theme_bw() +
       guides(alpha = "none", size = "none", colour = guide_legend(title = gsub("/", "/\n", ClassNm)))
     #poplot(plot, 12L, 22L)
-    ReportCalls <- AddPlot2Report()
     suppressMessages({
       ggsave(paste0(myLittleDir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
       ggsave(paste0(myLittleDir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
@@ -357,8 +354,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     system(paste0("open \"", myLittleDir, "/", ttl, ".html"))
     # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
     #
-    msg <- "t-SNE plots, by protein group"
-    ReportCalls <- AddMsg2Report(Space = FALSE)
+    cat("t-SNE plots, by protein group\n")
     cran_req <- unique(c(cran_req, "Rtsne"))
     if (!require("Rtsne", quietly = TRUE)) { install.packages("Rtsne") }
     require(Rtsne)
@@ -393,7 +389,6 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         ggtitle(ttl2, subtitle = pv) + theme_bw() +
         guides(alpha = "none", size = "none", colour = guide_legend(title = gsub("/", "/\n", ClassNm)))
       #poplot(plot, 12, 22)
-      ReportCalls <- AddPlot2Report()
       suppressMessages({
         ggsave(paste0(myLittleDir, "/", ttl2, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         ggsave(paste0(myLittleDir, "/", ttl2, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
@@ -449,8 +444,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       #system(paste0("open \"", myLittleDir, "/", ttl2, ".html"))
     } else { warning(tsne) }
     #
-    msg <- "UMAP plots, by protein group"
-    ReportCalls <- AddMsg2Report(Space = FALSE)
+    cat("UMAP plots, by protein group\n")
     cran_req <- unique(c(cran_req, "umap"))
     if (!require("umap", quietly = TRUE)) { install.packages("umap") }
     require(umap)
@@ -483,8 +477,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         scale_alpha_identity() + scale_size_identity() +
         ggtitle(ttl3, subtitle = pv) + theme_bw() +
         guides(alpha = "none", size = "none", colour = guide_legend(title = gsub("/", "/\n", ClassNm)))
-      #poplot(plot, 12, 22)
-      ReportCalls <- AddPlot2Report()
+      #poplot(plot, 12L, 22L)
       suppressMessages({
         ggsave(paste0(myLittleDir, "/", ttl3, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         ggsave(paste0(myLittleDir, "/", ttl3, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
@@ -540,6 +533,5 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       #system(paste0("open \"", myLittleDir, "/", ttl3, ".html"))
     } else { warning(umap) }
   }
+  saveFun(dimRedPlotLy, file = paste0(myLittleDir, "/DimRedPlots.RData"))
 } else { warning(paste0("Not enough observations to create ", insert, "-level dimensionality reduction plots!")) }
-ReportCalls <- AddSpace2Report()
-saveFun(dimRedPlotLy, file = paste0(myLittleDir, "/DimRedPlots.RData"))

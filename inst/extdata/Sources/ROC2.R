@@ -1,14 +1,12 @@
 #### ROC analysis
 if (length(ROC_GOterms)) {
   library(ggplot2)
-  msg <- "ROC analysis"
-  ReportCalls <- AddMsg2Report()
+  cat("ROC analysis\n")
   ROC_GOterms <- unique(unlist(c(ROC_GOterms, GO_terms$Offspring[match(ROC_GOterms, GO_terms$ID)])))
   PG$"ROC - True Positive" <- FALSE
   PG$"ROC - True Positive"[grsep2(ROC_GOterms, PG$`GO-ID`)] <- TRUE
   if (sum(PG$"True Positive") < 10L) {
-    msg <- "Not enough TRUE positives for ROC analysis (min = 10), skipping!"
-    ReportCalls <- AddMsg2Report(Warning = TRUE, Print = FALSE)
+    cat("Not enough TRUE positives for ROC analysis (min = 10), skipping!\n")
   } else {
     dir <- paste0(wd, "/ROC analysis")
     dirlist <- unique(c(dirlist, dir))
@@ -33,7 +31,6 @@ if (length(ROC_GOterms)) {
           ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L)
           ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L)
         })
-        ReportCalls <- AddPlot2Report(Title = gsub(": ?", " - ", ttl))
       }
     }
   }

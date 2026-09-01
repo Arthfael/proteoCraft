@@ -1,6 +1,6 @@
 Package: proteoCraft
 Title: Functions and scripts for Proteomics Data Analysis
-Version: 4.3.3
+Version: 4.3.4
 Date: 2026-04-22
 Authors@R: 
     person("Armel", "Developer", , "armel.nicolas@ista.ac.at", role = c("aut", "cre"))
@@ -201,7 +201,7 @@ Imports:
     officer,
     openssl,
     openxlsx,
-    openxlsx2,
+    openxlsx2 (== 1.14),
     otel,
     pak,
     parallel,

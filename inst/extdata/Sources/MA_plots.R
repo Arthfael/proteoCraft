@@ -67,11 +67,7 @@ if (length(kols) > 1L) {
   Grpkol <- "Group"
 } else { Grpkol <- kols }
 grps <- sort(unique(data[[Grpkol]]))
-ReportCalls <- AddSpace2Report()
-ReportCalls <- AddTxt2Report(paste0("MA plot", c("", "s")[(length(grps) > 1L)+1L], ":"))
-ReportCalls$Objects$MA_groups <- c()
-ReportCalls$Plots$MA_plots <- list()
-ReportCalls$Calls <- append(ReportCalls$Calls, list())
+cat(paste0("MA plot", c("", "s")[(length(grps) > 1L)+1L], ":\n"))
 dir <- paste0(wd, "/Workflow control/MA plots")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 dirlist <- unique(c(dirlist, dir))
@@ -245,12 +241,7 @@ for (grp in grps) { #grp <- grps[1L]
       ggsave(paste0(MAfl, ".jpeg"), plot, width = 10L, height = 10L*b/a, units = "in")
       ggsave(paste0(MAfl, ".pdf"), plot, width = 10L, height = 10L*b/a, units = "in")
     })
-    ReportCalls <- AddPlot2Report(Space = FALSE, Title = MAttl)
   } else {
-    msg <- paste0("Not enough valid data", c("", paste0(" for group ", grp))[(length(grps) > 1L) + 1L], " to draw an MA plot!")
-    ReportCalls <- AddMsg2Report(Offset = TRUE, Space = FALSE, Warning = TRUE)
+    cat(paste0("Not enough valid data", c("", paste0(" for group ", grp))[(length(grps) > 1L) + 1L], " to draw an MA plot!\n"))
   }
 }
-LRepCalls <- length(ReportCalls$Calls)
-ReportCalls$Calls[[LRepCalls]] <- append(ReportCalls$Calls[[LRepCalls]],
-                                         "body_add_par(Report, \"\", style = \"Normal\")")

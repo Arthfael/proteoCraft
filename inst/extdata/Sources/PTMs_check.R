@@ -90,7 +90,6 @@ if (length(tstEnrich)) {
       #poplot(plot, 12L, 22L)
       ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 300L)
       ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L)
-      ReportCalls <- AddPlot2Report()
     }
   }
 }
@@ -103,10 +102,6 @@ dir <- paste0(wd, "/Workflow control")
 dirlist <- unique(c(dirlist, dir))
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 write.csv(temp, paste0(dir, "/Modifications.csv"), row.names = FALSE)
-ReportCalls <- AddTxt2Report("PTMs table:")
-ReportCalls$Objects$AABiases <- temp
-ReportCalls <- AddTbl2Report("AABiases")
-ReportCalls <- AddSpace2Report()
 
 #
 if (!exists("tstMQXp")) {
@@ -171,7 +166,7 @@ if (LabelType == "Isobaric") {
 ttl <- "Contributions to TIC"
 plot <- ggplot(tmp) +
   geom_bar(stat = "identity", aes(x = .data[[k]], y = `Total intensity`, fill = Organism)) +
-  theme_bw() + scale_fill_viridis(discrete = TRUE, begin = 0.2, end = 0.8) +
+  theme_bw() + scale_fill_viridis(discrete = TRUE, begin = 0.8, end = 0.2) +
   ggtitle(ttl, subtitle = "Summed TIC per peptide class") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 print(plot) # This type of QC plot does not need to pop up, the side panel is fine
@@ -186,7 +181,7 @@ if (!exists("QC_plotLys")) { QC_plotLys %<o% list() }
 setwd(paste0(wd, "/Summary plots"))
 saveWidget(plotLy, paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)
-QC_plotLys[ttl] <- plotLy
+QC_plotLys[[ttl]] <- plotLy
 
 # Time points
 if (exists("Tim")) {
