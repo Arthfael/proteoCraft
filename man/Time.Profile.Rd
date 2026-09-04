@@ -43,9 +43,9 @@ Time.Profile(
 }
 \description{
 A function to plot the time profile of protein(s).
-The function assumes that expression column names follow the following patttern:
+The function assumes that expression column names follow the following pattern:
 "root.cond.tp" (i.e. a root string then the condition then the time point).
-If there are error columns, these should follow a similar patttern with their own root.
+If there are error columns, these should follow a similar pattern with their own root.
 }
 \examples{
 # To plot a single protein's profile:

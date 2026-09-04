@@ -192,6 +192,7 @@ if (plotPepProf) {
     }
     if (fileType == "html") {
       plot_ly <- plotly::ggplotly(plot, tooltip = c("Peptide_ID", "text"))
+      plot_ly <- plotly::plotly_build(plot_ly)
       setwd(SubDir) # For some reason, unless I do this the default selfcontained = TRUE argument gets ignored and
       # a folder with external resources is created for each html plot!
       tst <- try(htmlwidgets::saveWidget(plotly::partial_bundle(plot_ly), flPath), silent = TRUE)
@@ -288,6 +289,7 @@ if (plotPepProf) {
       }
       if (fileType == "html") {
         plot_ly <- plotly::ggplotly(plot, tooltip = c("Peptide_ID", "text")) # Super slowwwwww
+        plot_ly <- plotly::plotly_build(plot_ly)
         setwd(SubDir) # For some reason, unless I do this the default selfcontained = TRUE argument gets ignored and
         # a folder with external resources is created for each html plot!
         tst <- try(htmlwidgets::saveWidget(plotly::partial_bundle(plot_ly), flPath), silent = TRUE)

@@ -177,9 +177,10 @@ suppressMessages({
 plotLy <- ggplotly(plot, tooltip = c("x", "y", "fill"))
 plotLy <- plotly::config(plotLy,
                          modeBarButtonsToRemove = c("select2d", "lasso2d"))
+plotLy <- plotly_build(plotLy)
 if (!exists("QC_plotLys")) { QC_plotLys %<o% list() }
 setwd(paste0(wd, "/Summary plots"))
-saveWidget(plotLy, paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
+saveWidget(partial_bundle(plotLy), paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)
 QC_plotLys[[ttl]] <- plotLy
 

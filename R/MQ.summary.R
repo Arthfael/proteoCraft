@@ -218,8 +218,10 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               legend = list(x = 1.05,
                             y = 1),
               margin = list(r = 120L))
+            plotLy <- plotly::plotly_build(plotLy)
+            plotLy <- plotly::plotly_build(plotLy)
             plotLy_lst[[ttl]] <- plotLy
-            htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
+            htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
           } else {
             ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
           }
@@ -267,8 +269,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
           plotLy <- plotly::config(plotLy,
                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
+          plotLy <- plotly::plotly_build(plotLy)
           plotLy_lst[[ttl]] <- plotLy
-          htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
+          htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
         } else {
           ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
@@ -308,8 +311,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
           plotLy <- plotly::config(plotLy,
                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
+          plotLy <- plotly::plotly_build(plotLy)
           plotLy_lst[[ttl]] <- plotLy
-          htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
+          htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
         } else {
           ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
@@ -351,8 +355,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
           plotLy <- plotly::config(plotLy,
                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
+          plotLy <- plotly::plotly_build(plotLy)
           plotLy_lst[[ttl]] <- plotLy
-          htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
+          htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
         } else {
           ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
@@ -469,8 +474,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                   plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
                   plotLy <- plotly::config(plotLy,
                                            modeBarButtonsToRemove = c("select2d", "lasso2d"))
+                  plotLy <- plotly::plotly_build(plotLy)
                   plotLy_lst[[ttl]] <- plotLy
-                  htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
+                  htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
                 } else {
                   ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
                 }
@@ -537,8 +543,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
               plotLy <- plotly::config(plotLy,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
+              plotLy <- plotly::plotly_build(plotLy)
               plotLy_lst[[ttl]] <- plotLy
-              htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
+              htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
             } else {
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
@@ -598,8 +605,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               plotLy <- plotly::ggplotly(plot, tooltip = c("x", "fill"))
               plotLy <- plotly::config(plotLy,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
+              plotLy <- plotly::plotly_build(plotLy)
               plotLy_lst[[ttl]] <- plotLy
-              htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
+              htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
             } else {
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
@@ -661,8 +669,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y", "fill"))
               plotLy <- plotly::config(plotLy,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
+              plotLy <- plotly::plotly_build(plotLy)
               plotLy_lst[[ttl]] <- plotLy
-              htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
+              htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
             } else {
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
@@ -690,8 +699,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               plotLy <- plotly::ggplotly(plot, tooltip = c("x", "fill"))
               plotLy <- plotly::config(plotLy,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
+              plotLy <- plotly::plotly_build(plotLy)
               plotLy_lst[[ttl]] <- plotLy
-              htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
+              htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
             } else {
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
@@ -727,8 +737,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                   plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
                   plotLy <- plotly::config(plotLy,
                                            modeBarButtonsToRemove = c("select2d", "lasso2d"))
+                  plotLy <- plotly::plotly_build(plotLy)
                   plotLy_lst[[ttl]] <- plotLy
-                  htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
+                  htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
                 } else {
                   ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
                 }
@@ -779,8 +790,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
             plotLy <- plotly::config(plotLy,
                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
+            plotLy <- plotly::plotly_build(plotLy)
             plotLy_lst[[ttl]] <- plotLy
-            htmlwidgets::saveWidget(plotLy_lst[[ttl]], paste0(ttl, ".html"), selfcontained = TRUE)
+            htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
           } else {
             ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
           }

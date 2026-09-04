@@ -1435,7 +1435,7 @@ if (length(kol)) {
         }
         runKount <- 0L
         while ((!runKount)||(!exists("IHAVERUN"))) {
-          eval(parse(text = runApp), envir = .GlobalEnv)
+          eval(parse(text = run_App), envir = .GlobalEnv)
           shinyCleanup()
           runKount <- runKount+1L
         }
@@ -1991,6 +1991,7 @@ if (statTsts) {
                                                        align = "left")),
                        margin = list(r = 180L))
       #
+      plotLy <- plotly_build(plotLy)
       htmlwidgets::saveWidget(plotLy, paste0(dstDir, "/", ttl2, ".html"), selfcontained = TRUE)
       system(paste0("open \"", dstDir, "/", ttl2, ".html\""))
     }
@@ -2099,7 +2100,7 @@ if (length(Exp) > 1L) {
   KlustRoot <- paste0("Cluster (", c("K-means", "hierarch.")[KlustMeth], ") - ")
   normTypes <- c("Norm. by row", "Z-scored")
   kol <- paste0(intRoot[intType], allSamples)
-  plotLeatMaps <- list()
+  plotLeatMaps %<o% list()
   prot.list.Cond <- TRUE
   prot.list <- histDB$`Protein ID`
   KlustKols <- c()

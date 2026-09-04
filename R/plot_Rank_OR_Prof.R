@@ -103,7 +103,7 @@
         frm <- paste0(".~`", catnm, "`")
       }
       frm <- as.formula(frm)
-      myFacets <- facet_grid(frm)
+      myFacets <- ggplot2::facet_grid(frm)
       Ngl <- c(0, 90)[(length(levels(profData[[catnm]])) > 5L) + 1L]
     }
     if (plotType == "List") {
@@ -111,7 +111,7 @@
       profData$"In list" <- factor(profData$"In list", levels = c("-", "+"))
       catnm <- "In list"
       frm <- as.formula(paste0(".~`", catnm, "`"))
-      myFacets <- facet_grid(frm)
+      myFacets <- ggplot2::facet_grid(frm)
       Ngl <- c(0, 90)[(length(levels(profData[[catnm]])) > 5L) + 1L]
     }
     if (plotType %in% c("GO", "Mark")) {
@@ -138,7 +138,7 @@
         profData$"GO term" <- names(myFlt2)[match(profData$"GO term", myFlt2)]
         profData$"GO term" <- factor(profData$"GO term", levels = names(myFlt2))
         frm <- as.formula(paste0("~`", catnm, "`"))
-        myFacets <- facet_wrap(frm)
+        myFacets <- ggplot2::facet_wrap(frm)
         Ngl <- 0
       }
     }
@@ -163,23 +163,24 @@
               max(profData$Y, na.rm = TRUE))
     # It's important to have fixed colours here (using scale_linetype_identity()) so we can consistently plot in the app
     # different protein subsets with always the same colors assigned to each.
-    ggCall_txt <- "plot <- ggplot(profData, aes(x = Sample, y = Y, text1 = .data[[yKol]], text2 = .data[[kolnm]], text3 = PEP, text4 = .data[[txt4Kol]], colour = .data[[colKol]])) +
-                  geom_line(aes(group = id), alpha = 0.1) +
-                  geom_point(aes(size = DotSize)) + ggtitle(ttl) + ylab(kolnm) + myFacets +
-                  theme_bw() + scale_size_identity(guide = \"none\") + scale_linetype_identity(guide = \"none\") +
-                  theme(legend.position = \"none\",
-                        axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1),
-                        strip.text = element_text(face = \"bold\", size = 8L, lineheight = 0.8, angle = Ngl),
-                        strip.background = element_rect(fill = \"lightblue\", colour = \"black\", linewidth = 1)) +
-                  scale_alpha_identity(guide = \"none\") + scale_colour_identity()"
+    ggCall_txt <- "plot <- ggplot2::ggplot(profData, ggplot2::aes(x = Sample, y = Y, text1 = .data[[yKol]], text2 = .data[[kolnm]], text3 = PEP, text4 = .data[[txt4Kol]], colour = .data[[colKol]])) +
+  ggplot2::geom_line(ggplot2::aes(group = id), alpha = 0.1) +
+  ggplot2::geom_point(ggplot2::aes(size = DotSize)) + ggplot2::ggtitle(ttl) + ggplot2::ylab(kolnm) + myFacets +
+  ggplot2::theme_bw() + ggplot2::scale_size_identity(guide = \"none\") + ggplot2::scale_linetype_identity(guide = \"none\") +
+  ggplot2::theme(legend.position = \"none\",
+                 axis.text.x = ggplot2::element_text(angle = 60, vjust = 1, hjust = 1),
+                 strip.text = ggplot2::element_text(face = \"bold\", size = 8L, lineheight = 0.8, angle = Ngl),
+                 strip.background = ggplot2::element_rect(fill = \"lightblue\", colour = \"black\", linewidth = 1)) +
+  ggplot2::scale_alpha_identity(guide = \"none\") + ggplot2::scale_colour_identity()"
     suppressWarnings({
       eval(parse(text = ggCall_txt))
     })
-    #poplot(plot, 12L, 22L)
+    #proteoCraft::poplot(plot, 12L, 22L)
     plot_txt <- plot +
-      geom_text(data = profData[wTxt,], aes(label = .data[[yKol]], x = Sample, y = Y, alpha = Alpha, color = id),
-                hjust = 0, cex = round(max(c(1, min(c(5, 100/length(wTxt))))), 1L))
-    #poplot(plot_txt, 12L, 22L)
+      ggplot2::geom_text(data = profData[wTxt,],
+                         ggplot2::aes(label = .data[[yKol]], x = Sample, y = Y, alpha = Alpha, color = id),
+                         hjust = 0, cex = round(max(c(1, min(c(5, 100/length(wTxt))))), 1L))
+    #proteoCraft::poplot(plot_txt, 12L, 22L)
     if ((quantType == "LFQ") && (plotType %in% c("GO", "Mark"))) {
       profData3 <- profData
       # Normalize by row
@@ -198,15 +199,15 @@
       profData3$x <- NULL
       ttl3 <- paste0("Avg. norm. ", ttl)
       ggCall_txt3 <- gsub("\n +", "\n", gsub("^ +", "", unlist(strsplit(ggCall_txt, " +\\+ *\n?"))))
-      g <- grep("geom_line\\(", ggCall_txt3)
-      ggCall_txt3[g] <- "geom_ribbon(alpha = 0.1, linetype = \"dotted\", aes(ymin = `Y - 95% CI`, ymax = `Y + 95% CI`))"
-      g <- grep("ylab\\(", ggCall_txt3)
-      ggCall_txt3[g] <- "ylab(\"log10 avg. norm. profile\")"
-      g <- grep("ggtitle\\(", ggCall_txt3)
-      ggCall_txt3[g] <- "ggtitle(ttl3, subtitle = \"ribbon = 95% confidence interval\")"
-      g <- grep("geom_point\\(|scale_[a-z]+_identity\\(", ggCall_txt3)
+      g <- grep("ggplot2::geom_line\\(", ggCall_txt3)
+      ggCall_txt3[g] <- "ggplot2::geom_ribbon(alpha = 0.1, linetype = \"dotted\", ggplot2::aes(ymin = `Y - 95% CI`, ymax = `Y + 95% CI`))"
+      g <- grep("ggplot2::ylab\\(", ggCall_txt3)
+      ggCall_txt3[g] <- "ggplot2::ylab(\"log10 avg. norm. profile\")"
+      g <- grep("ggplot2::ggtitle\\(", ggCall_txt3)
+      ggCall_txt3[g] <- "ggplot2::ggtitle(ttl3, subtitle = \"ribbon = 95% confidence interval\")"
+      g <- grep("ggplot2::geom_point\\(|scale_[a-z]+_identity\\(", ggCall_txt3)
       ggCall_txt3 <- ggCall_txt3[-g]
-      ggCall_txt3 <- c(ggCall_txt3, "geom_line()")
+      ggCall_txt3 <- c(ggCall_txt3, "ggplot2::geom_line()")
       ggCall_txt3 <- paste(ggCall_txt3, collapse = " + \n")
       ggCall_txt3 <- gsub(", text1 = .+, colour = \\.data\\[\\[colKol\\]\\]\\)",
                           ", group = `GO term`, colour = `GO term`, fill = `GO term`)",
@@ -215,7 +216,7 @@
       suppressWarnings({
         eval(parse(text = gsub("  +", " ", ggCall_txt3)))
       })
-      #poplot(rib_plot, 12L, 22L)
+      #proteoCraft::poplot(rib_plot, 12L, 22L)
       pth3 <- paste0(subDir, "/", ttl3)
       if (plotType == "GO") {
         nm <- "GO trends"
@@ -223,8 +224,8 @@
       if (plotType == "Mark") {
         nm <- "Compartment trends"
       }
-      ggsave(paste0(pth3, ".jpeg"), rib_plot, dpi = 150L, width = 13L, height = 10L)
-      ggsave(paste0(pth3, ".pdf"), rib_plot, dpi = 150L, width = 13L, height = 10L)
+      ggplot2::ggsave(paste0(pth3, ".jpeg"), rib_plot, dpi = 150L, width = 13L, height = 10L)
+      ggplot2::ggsave(paste0(pth3, ".pdf"), rib_plot, dpi = 150L, width = 13L, height = 10L)
       myRes <- list(path = pth3,
                     title = ttl3,
                     ggCall = ggCall_txt3,
@@ -233,25 +234,26 @@
                     width = 13L,
                     height = 10L)
     } else {
-      plotlyCall_txt <- "plotlyProfiles <- ggplotly(plot, tooltip = toolTip)"
+      plotlyCall_txt <- "plotlyProfiles <- plotly::ggplotly(plot, tooltip = toolTip)"
       eval(parse(text = plotlyCall_txt))
       plotlyProfiles <- plotly::config(plotlyProfiles,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
+      plotlyProfiles <- plotly::plotly_build(plotlyProfiles)
       pth <- paste0(subDir, "/", gsub("/|:|\\*|\\?|<|>|\\|", "-", ttl))
       plPath <- paste0(pth, ".html")
       currWD <- getwd()
       plPath2 <- paste0(currWD, "/", basename(plPath))
       if (file.exists(plPath)) { unlink(plPath) }
       if (file.exists(plPath2)) { unlink(plPath2) }
-      tstPL <- try(saveWidget(partial_bundle(plotlyProfiles), plPath2), silent = TRUE)
-      if (inherits(tstPL, "try-error")) { tstPL <- try(saveWidget(plotlyProfiles, plPath2), silent = TRUE) }
+      tstPL <- try(htmlwidgets::saveWidget(plotly::partial_bundle(plotlyProfiles), plPath2), silent = TRUE)
+      if (inherits(tstPL, "try-error")) { tstPL <- try(htmlwidgets::saveWidget(plotlyProfiles, plPath2), silent = TRUE) }
       if ((!inherits(tstPL, "try-error")) && file.exists(plPath2)) {
         tstPL <- file.rename(plPath2, plPath)
       } else { tstPL <- FALSE }
-      ggsave(paste0(pth, ".jpeg"), plot, dpi = myDPI/2, width = 13L, height = 10L)
-      ggsave(paste0(pth, ".pdf"), plot, width = 13L, height = 10L)
-      ggsave(paste0(pth, "_lab.jpeg"), plot_txt, dpi = myDPI, width = 13L, height = 10L)
-      ggsave(paste0(pth, "_lab.pdf"), plot_txt, width = 13L, height = 10L)
+      ggplot2::ggsave(paste0(pth, ".jpeg"), plot, dpi = myDPI/2, width = 13L, height = 10L)
+      ggplot2::ggsave(paste0(pth, ".pdf"), plot, width = 13L, height = 10L)
+      ggplot2::ggsave(paste0(pth, "_lab.jpeg"), plot_txt, dpi = myDPI, width = 13L, height = 10L)
+      ggplot2::ggsave(paste0(pth, "_lab.pdf"), plot_txt, width = 13L, height = 10L)
       evPlot <- plotEval(plot)
       evPlot_txt <- plotEval(plot_txt)
       myRes <- list(path = pth,
@@ -343,8 +345,10 @@
       }
     }
     myData <- myData[which(is.finite(myData$Y)),]
-    if (!nrow(myData)) { return(list(plotly_saved = FALSE,
-                                     step = 3L)) }
+    if (!nrow(myData)) {
+      return(list(plotly_saved = FALSE,
+                  step = 3L))
+    }
     #
     myData <- myData[order(myData$Y, decreasing = TRUE),]
     nrws <- nrow(myData)
@@ -377,19 +381,6 @@
       myData <- myData[order(myData$`In list`),]
       txtFilt <- which(myData[[catnm]] == "+")
     }
-    # if (plotType %in% GO_filter) {
-    #   goID <- plotType
-    #   goID2 <- gsub("^GO:", "GO", goID)
-    #   nm <- AnnotationDbi::Term(goID)
-    #   myData[[goID2]] <- factor(myData[[goID]], levels = c("-", "+"))
-    #   ttl <- paste0(ttl, ", ", goID, " ", nm)
-    #   myColors3 <- setNames(c("lightgrey", "purple"), c("-", "+"))
-    #   colScale3 <- scale_colour_manual(name = goID, values = myColors3)
-    #   fillScale3 <- scale_fill_manual(name = goID, values = myColors3)
-    #   catnm <- goID
-    #   myData <- myData[order(myData[[catnm]]),]
-    #   txtFilt <- which(myData[[catnm]] == "+")
-    # }
     Sz <- max(c(1.5, min(c(0.01, round(600/nrow(myData), 2L)))))
     myData$xPos <- as.numeric(myData[[xKol]]) # not integer, we will add non integer shifts   
     wLst <- c()
@@ -414,22 +405,18 @@
     ySpan <- c(intmin-yStep*nSteps, intmax*1.2+intscale*0.05)
     ySpan[1L] <- ySpan[1L]-(ySpan[2L]-ySpan[1L])*0.2
     #
-    # if (tstReg && length(spcFlt)) {
-    #   myDataSp$Y <- myDataSp$Y + intmax*0.01 # To offset the markers
-    # }
-    #
-    plot <- ggplot() + theme_bw() + ylab(kolnm) + xlab(xKol) + scale_size_identity() +
-      ggtitle(ttl,
-              subtitle = paste0(length(unique(myData$id)), " ", tolower(xKol), "s"))  +
-      theme(panel.border = element_blank(),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            axis.line = element_line(colour = "black"),
-            axis.line.x = element_blank(),
-            axis.text.x = element_blank(),
-            axis.ticks = element_blank(),
-            plot.margin = margin(r = 100L))
-    #poplot(plot, 12L, 22L)
+    plot <- ggplot2::ggplot() + ggplot2::theme_bw() + ggplot2::ylab(kolnm) + ggplot2::xlab(xKol) + ggplot2::scale_size_identity() +
+      ggplot2::ggtitle(ttl,
+                       subtitle = paste0(length(unique(myData$id)), " ", tolower(xKol), "s"))  +
+      ggplot2::theme(panel.border = ggplot2::element_blank(),
+                     panel.grid.major = ggplot2::element_blank(),
+                     panel.grid.minor = ggplot2::element_blank(),
+                     axis.line = ggplot2::element_line(colour = "black"),
+                     axis.line.x = ggplot2::element_blank(),
+                     axis.text.x = ggplot2::element_blank(),
+                     axis.ticks = ggplot2::element_blank(),
+                     plot.margin = ggplot2::margin(r = 100L))
+    #proteoCraft::poplot(plot, 12L, 22L)
     if ((dataType == "PG") && length(myFlt)) {
       wGO <- setNames(lapply(myFlt, \(x) { which(myData[[x]] == "+") }), myFlt)
       GOdat <- lapply(seq_along(myFlt), \(i) { #i <- 1L
@@ -446,68 +433,71 @@
                             xPos = nrws - xStep*(1L:nSteps+0.5),
                             Y = intmin - yStep*(1L:nSteps+0.5))
       plot <- plot +
-        geom_segment(data = GOdat,
-                     aes(x = xPos, xend = xPos-xStep, y = Y, yend = Y-yStep, text1 = .data[[xKol]], text2 = Compartment, color = GO_term)) +
-        scale_color_identity()
-      #poplot(plot, 12L, 22L)
+        ggplot2::geom_segment(data = GOdat,
+                              ggplot2::aes(x = xPos, xend = xPos-xStep, y = Y, yend = Y-yStep, text1 = .data[[xKol]], text2 = Compartment, color = GO_term)) +
+        ggplot2::scale_color_identity()
+      #proteoCraft::poplot(plot, 12L, 22L)
     }
-    #poplot(plot, 12L, 22L)
+    #proteoCraft::poplot(plot, 12L, 22L)
     # Here we could add a switch to choose between different geom:
-    # geom_bar(stat = "identity", aes(x = xPos, y = Y, fill = .data[[catnm]], text1 = .data[[xKol]], text2 = .data[[kolnm]], text3 = PEP, text4 = .data[[txt4Kol]])) +
-    # geom_tile(aes(x = xPos, y = Y, fill = .data[[catnm]], text1 = .data[[xKol]], text2 = .data[[kolnm]], text3 = PEP, text4 = .data[[txt4Kol]]), height = intscale*0.001) +
+    # ggplot2::geom_bar(stat = "identity", ggplot2::aes(x = xPos, y = Y, fill = .data[[catnm]], text1 = .data[[xKol]], text2 = .data[[kolnm]], text3 = PEP, text4 = .data[[txt4Kol]])) +
+    # ggplot2::geom_tile(ggplot2::aes(x = xPos, y = Y, fill = .data[[catnm]], text1 = .data[[xKol]], text2 = .data[[kolnm]], text3 = PEP, text4 = .data[[txt4Kol]]), height = intscale*0.001) +
     plot <- plot +
-      geom_point(data = myData[wRst,],
-                 aes(x = xPos, y = Y, fill = .data[[catnm]], text1 = .data[[xKol]], text2 = .data[[kolnm]], text3 = PEP, text4 = .data[[txt4Kol]]),
-                 size = Sz, shape = 21L, colour = "transparent")
-    #poplot(plot, 12L, 22L)
+      ggplot2::geom_point(data = myData[wRst,],
+                          ggplot2::aes(x = xPos, y = Y, fill = .data[[catnm]], text1 = .data[[xKol]], text2 = .data[[kolnm]],
+                                       text3 = PEP, text4 = .data[[txt4Kol]]),
+                          size = Sz, shape = 21L, colour = "transparent")
+    #proteoCraft::poplot(plot, 12L, 22L)
     if (length(wLst)) {
       plot <- plot +
-        geom_point(data = myData[wLst,],
-                   aes(x = xPos, y = Y, fill = .data[[catnm]], text1 = .data[[xKol]], text2 = .data[[kolnm]], text3 = PEP, text4 = .data[[txt4Kol]]),
-                   size = Sz*1.5, shape = 23L, colour = "transparent")
+        ggplot2::geom_point(data = myData[wLst,],
+                            ggplot2::aes(x = xPos, y = Y, fill = .data[[catnm]], text1 = .data[[xKol]], text2 = .data[[kolnm]],
+                                         text3 = PEP, text4 = .data[[txt4Kol]]),
+                            size = Sz*1.5, shape = 23L, colour = "transparent")
     }
-    #poplot(plot, 12L, 22L)
+    #proteoCraft::poplot(plot, 12L, 22L)
     if (plotType == "All") { plot <- plot + fillScale }
     if (plotType == "List") { plot <- plot + fillScale2 }
     #if (plotType %in% GO_filt) { plot <- plot + fillScale3 }
-    #poplot(plot, 12L, 22L)
+    #proteoCraft::poplot(plot, 12L, 22L)
     # if (tstReg && length(spcFlt)) {
     #   plot <- plot +
-    #     geom_point(data = myDataSp, aes(xPos, Y, fill = .data[[catnm]]), shape = 21L)
+    #     ggplot2::geom_point(data = myDataSp, ggplot2::aes(xPos, Y, fill = .data[[catnm]]), shape = 21L)
     # }
-    #poplot(plot, 12L, 22L)
+    #proteoCraft::poplot(plot, 12L, 22L)
     if (plotType == "All") {
-      plot_ly <- ggplotly(plot, tooltip = toolTip)
-      plot_ly <- plotly::config(plot_ly,
-                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
+      plotLy <- plotly::ggplotly(plot, tooltip = toolTip)
+      plotLy <- plotly::config(plotLy,
+                               modeBarButtonsToRemove = c("select2d", "lasso2d"))
+      plotLy <- plotly::plotly_build(plotLy)
       # a folder with external resources is created for each html plot!
       plPath <- paste0(pth, ".html")
       currWD <- getwd()
       plPath2 <- paste0(currWD, "/", basename(plPath))
       if (file.exists(plPath)) { unlink(plPath) }
       if (file.exists(plPath2)) { unlink(plPath2) }
-      tstPL <- try(saveWidget(partial_bundle(plot_ly), plPath2), silent = TRUE)
-      if (inherits(tstPL, "try-error")) { tstPL <- try(saveWidget(plot_ly, plPath2), silent = TRUE) }
+      tstPL <- try(htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), plPath2), silent = TRUE)
+      if (inherits(tstPL, "try-error")) { tstPL <- try(htmlwidgets::saveWidget(plotLy, plPath2), silent = TRUE) }
       if ((!inherits(tstPL, "try-error")) && file.exists(plPath2)) {
         tstPL <- file.rename(plPath2, plPath)
       } else { tstPL <- FALSE }
     }
     if ((dataType == "PG") && length(myFlt)) {
       plot <- plot +
-        geom_text(data = myFltDF, aes(x = xPos, y = Y, label = GO_term), size = 1.5, angle = -66, hjust = 0)
-      #poplot(plot, 12L, 22L)
+        ggplot2::geom_text(data = myFltDF, ggplot2::aes(x = xPos, y = Y, label = GO_term), size = 1.5, angle = -66, hjust = 0)
+      #proteoCraft::poplot(plot, 12L, 22L)
     }
     plot <- plot + ggnewscale::new_scale_color()
     if (plotType == "All") { plot <- plot + fillScale + colScale }
     if (plotType == "List") { plot <- plot + fillScale2 + colScale2 }
     #if (plotType %in% GO_filt) { plot <- plot + colScale3 }
     plot <- plot +
-      coord_cartesian(xlim = xSpan, ylim = ySpan) +
-      geom_text(data = myData[txtFilt,], angle = 45, hjust = 0, cex = 2.5,
-                aes(xPos, Y + intscale*0.025, colour = .data[[catnm]], label = .data[[xKol]]))
-    #poplot(plot, 12L, 22L)
-    ggsave(paste0(pth, ".jpeg"), plot, dpi = myDPI, width = 25L, height = 10L)
-    ggsave(paste0(pth, ".pdf"), plot, dpi = myDPI, width = 25L, height = 10L)
+      ggplot2::coord_cartesian(xlim = xSpan, ylim = ySpan) +
+      ggplot2::geom_text(data = myData[txtFilt,], angle = 45, hjust = 0, cex = 2.5,
+                         ggplot2::aes(xPos, Y + intscale*0.025, colour = .data[[catnm]], label = .data[[xKol]]))
+    #proteoCraft::poplot(plot, 12L, 22L)
+    ggplot2::ggsave(paste0(pth, ".jpeg"), plot, dpi = myDPI, width = 25L, height = 10L)
+    ggplot2::ggsave(paste0(pth, ".pdf"), plot, dpi = myDPI, width = 25L, height = 10L)
     evPlot <- plotEval(plot)
     myRes <- list(title = ttl,
                   path = pth,
@@ -522,7 +512,7 @@
                                category = catnm))
     if (tstPL) {
       myRes$plotly_path <- plPath
-      myRes$plotly <- plot_ly
+      myRes$plotly <- plotLy
     }
   }
   return(myRes)

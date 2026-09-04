@@ -156,8 +156,9 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
                                   symbol = I(Symb), hoverinfo = "text")
       }
       plot_lyPSMsPCA %<o% layout(plot_lyPSMsPCA, title = ttl)
+      plot_lyPSMsPCA <- plotly_build(plot_lyPSMsPCA)
       setwd(dir)
-      saveWidget(plot_lyPSMsPCA, paste0(dir, "/", ttl, ".html"), selfcontained = TRUE)
+      saveWidget(partial_bundle(plot_lyPSMsPCA), paste0(dir, "/", ttl, ".html"), selfcontained = TRUE)
       #system(paste0("open \"", dir, "/", ttl, ".html"))
       setwd(wd)
     } else {

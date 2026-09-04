@@ -179,8 +179,10 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
                                         type = "scatter", mode = "text", showlegend = FALSE)
       }
       plotlyPCA1 <- plotly::layout(plotlyPCA1, title = nm1)
+      
+      plotlyPCA1 <- plotly::plotly_build(plotlyPCA1)
       plotlyPCA[[btch]] <- plotlyPCA1
-      suppressWarnings(htmlwidgets::saveWidget(plotlyPCA1, paste0(dir, "/", nm1, ".html")))
+      suppressWarnings(htmlwidgets::saveWidget(plotly::partial_bundle(plotlyPCA1), paste0(dir, "/", nm1, ".html")))
       if (openMe) { system(paste0("open \"", dir, "/", nm1, ".html")) }
     }
   } else { stop("PCA failed, investigate!") }

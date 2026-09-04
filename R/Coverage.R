@@ -876,9 +876,10 @@ Coverage <- function(proteins,
             }
             covPlotLy <- plotly::config(covPlotLy,
                                         modeBarButtonsToRemove = c("select2d", "lasso2d"))
+            covPlotLy <- plotly::plotly_build(covPlotLy)
             if (!P %in% names(plotLyst)) { plotLyst[[P]] <- list() }
             plotLyst[[P]][[Ttl]] <- covPlotLy
-            htmlwidgets::saveWidget(covPlotLy, svpth, selfcontained = TRUE)
+            htmlwidgets::saveWidget(plotly::partial_bundle(covPlotLy), svpth, selfcontained = TRUE)
             setwd(wd0)
           } else {
             ggplot2::ggsave(svpth, covPlot2,

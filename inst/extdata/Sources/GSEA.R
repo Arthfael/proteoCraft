@@ -297,8 +297,9 @@ if (isOK) {
         }
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
+        plotL <- plotly::plotly_build(plotL)
         setwd(ohDeer[1L])
-        htmlwidgets::saveWidget(plotL, svpth[1L], selfcontained = TRUE)
+        htmlwidgets::saveWidget(plotly::partial_bundle(plotL), svpth[1L], selfcontained = TRUE)
         setwd(wd)
       })
       return(plotL)
@@ -319,8 +320,9 @@ if (isOK) {
       svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "jpeg", "pdf"))
       plot <- clusterProfiler::emapplot(gse2, showCategory = nCat) +
         ggtitle(grp, subtitle = nmRoot) +
-        theme(plot.title = element_text(hjust = 0.5)) +
-        theme(plot.subtitle = element_text(hjust = 0.5))
+        theme_bw() +
+        theme(plot.title = element_text(hjust = 0.5),
+              plot.subtitle = element_text(hjust = 0.5))
       suppressMessages({
         plot <- plot + viridis::scale_color_viridis(option = "cividis", direction = -1L)
         l <- length(plot$layers)
@@ -342,8 +344,9 @@ if (isOK) {
         }
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
+        plotL <- plotly::plotly_build(plotL)
         setwd(ohDeer[1L])
-        htmlwidgets::saveWidget(plotL, svpth[1L], selfcontained = TRUE)
+        htmlwidgets::saveWidget(plotly::partial_bundle(plotL), svpth[1L], selfcontained = TRUE)
         setwd(wd)
       })
       return(plotL)
@@ -372,8 +375,9 @@ if (isOK) {
                                         #cex_label_category = 1.2, cex_label_gene = 0.8 # Those parameters do not work for me...
       ) +
         ggtitle(grp, subtitle = nmRoot) +
-        theme(plot.title = element_text(hjust = 0.5)) +
-        theme(plot.subtitle = element_text(hjust = 0.5))
+        theme_bw() +
+        theme(plot.title = element_text(hjust = 0.5),
+              plot.subtitle = element_text(hjust = 0.5))
       suppressMessages({
         plot <- plot + viridis::scale_color_viridis()
         # ... so I used a hacky solution:
@@ -439,8 +443,9 @@ if (isOK) {
         #
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
+        plotL <- plotly::plotly_build(plotL)
         setwd(ohDeer[1L])
-        htmlwidgets::saveWidget(plotL, svpth[1L], selfcontained = TRUE)
+        htmlwidgets::saveWidget(plotly::partial_bundle(plotL), svpth[1L], selfcontained = TRUE)
         setwd(wd)
       })
       return(plotL)
@@ -471,8 +476,9 @@ if (isOK) {
         plotL <- plotly::ggplotly(plot)
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
+        plotL <- plotly::plotly_build(plotL)
         setwd(ohDeer[1L])
-        htmlwidgets::saveWidget(plotL, svpth[1L], selfcontained = TRUE)
+        htmlwidgets::saveWidget(plotly::partial_bundle(plotL), svpth[1L], selfcontained = TRUE)
         setwd(wd)
       })
       return(plotL)

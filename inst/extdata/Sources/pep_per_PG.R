@@ -41,8 +41,9 @@ suppressMessages({
   ggsave(paste0(qcDir, "/", ttl, ".pdf"), plot, dpi = 300L)
 })
 plotLy <- ggplotly(plot, tooltip = c("x", "y"))
+plotLy <- plotly_build(plotLy)
 if (!exists("QC_plotLys")) { QC_plotLys %<o% list() }
 setwd(qcDir)
-saveWidget(plotLy, paste0(qcDir, "/", ttl, ".html"), selfcontained = TRUE)
+saveWidget(partial_bundle(plotLy), paste0(qcDir, "/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)
 QC_plotLys[[ttl]] <- plotLy

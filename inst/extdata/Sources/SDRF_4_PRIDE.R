@@ -634,7 +634,7 @@ serverA <- \(input, output, session) {
     stopApp()
   })
 }
-appTxtA <- gsub("myApp", "myAppA", gsub("\\(ui", "(uiA", gsub(", server", ", serverA", runApp)))
+appTxtA <- gsub("myApp", "myAppA", gsub("\\(ui", "(uiA", gsub(", server", ", serverA", run_App)))
 runKount <- 0L
 while ((!runKount) || (!exists("appRunTest"))) {
   eval(parse(text = appTxtA), envir = .GlobalEnv)
@@ -971,7 +971,7 @@ Shiny.bindAll(table.table().node());"))
     session$onSessionEnded(\() { stopApp() })
   }
   if (exists("SDRF3")) { rm(SDRF3) }
-  appTxtB <- gsub("myApp", "myAppB", gsub("\\(ui", "(uiB", gsub(", server", ", serverB", runApp)))
+  appTxtB <- gsub("myApp", "myAppB", gsub("\\(ui", "(uiB", gsub(", server", ", serverB", run_App)))
   runKount <- 0L
   while ((!runKount) || (!exists("appRunTest"))) {
     eval(parse(text = appTxtB), envir = .GlobalEnv)

@@ -167,11 +167,11 @@ if (length(pc1$rotation)) {
               symbol = I(Symb))
     }
     plot_lyPCA %<o% layout(plot_lyPCA, title = ttl)
-    renderPlotly({ plot_lyPCA <- plot_lyPCA })
+    plot_lyPCA <- plotly_build(plot_lyPCA)
     pcaDir <- paste0(wd, "/Workflow control/Peptides/PCA plot")
     if (!dir.exists(pcaDir)) { dir.create(pcaDir, recursive = TRUE) }
     setwd(pcaDir)
-    saveWidget(plot_lyPCA, paste0(wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"),
+    saveWidget(partial_bundle(plot_lyPCA), paste0(wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"),
                selfcontained = TRUE)
     setwd(wd)
     #system(paste0("open \"", wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"))

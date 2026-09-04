@@ -524,7 +524,7 @@ if (length(PTMs)) {
     #
     ptmpep <- tempVPptm$Protein_groups_file
     volcano.plots[[Ptm]] <- tempVPptm$Plots
-    if (create_plotly && (!create_plotly_local)) {
+    if (create_plotly) {
       plot_ly[[paste0(Ptm, "_Volcano plots (t-tests)")]] <- tempVPptm$"Plotly plots"
     }
     # Specificity mark for untested proteins
@@ -623,7 +623,7 @@ if (length(PTMs)) {
         volcano.plots[[Ptm]]$"F-tests_Labelled" <- F_volc$Plots$"Labelled"
         myDir <- modDirs[3L]
         # Legacy code for web-hosted plotly plots:
-        if (create_plotly && (!create_plotly_local)) { plot_ly[[paste0(Ptm, "_Volcano plots (F-tests)")]] <- F_volc$"Plotly plots" }
+        if (create_plotly) { plot_ly[[paste0(Ptm, "_Volcano plots (F-tests)")]] <- F_volc$"Plotly plots" }
         # Create F-test filters:
         g <- grep("^mod\\. F-test Regulated - ", colnames(PTMs_F_test_data[[Ptm]]), value = TRUE)
         g1 <- gsub("^mod\\. F-test Regulated - ", "", g)
@@ -997,7 +997,7 @@ if (length(PTMs)) {
                   GO_terms <- PTMs_GO_Plots[[Ptm]][[tstbee]]$All_GO_terms
                   PTMs_GO_Plots[[Ptm]][[tstbee]]$All_GO_terms <- NULL  
                 }
-                if (create_plotly && (!create_plotly_local)) {
+                if (create_plotly) {
                   plot_ly[[paste0(Ptm, "_GO plots - Regulated vs Observed - ", tstbee)]] <- PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_plot_ly
                 }
                 temp <- PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_terms

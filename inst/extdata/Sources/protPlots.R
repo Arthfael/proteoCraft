@@ -462,6 +462,7 @@ if (goAhead) {
               theme(#strip.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0),
                 strip.text.y = element_text(angle = 0, vjust = 0.5, hjust = 0))
           }
+          plotLY <- plotly_build(plotLY)
           #poplot(plot)
           setwd(drs[4L])
           ttl_ <- gsub(":|\\*|\\?|<|>|\\||/", "-", ttl)

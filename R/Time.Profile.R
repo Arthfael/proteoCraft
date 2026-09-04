@@ -2,9 +2,9 @@
 #'
 #' @description 
 #' A function to plot the time profile of protein(s).
-#' The function assumes that expression column names follow the following patttern:
+#' The function assumes that expression column names follow the following pattern:
 #' "root.cond.tp" (i.e. a root string then the condition then the time point).
-#' If there are error columns, these should follow a similar patttern with their own root.
+#' If there are error columns, these should follow a similar pattern with their own root.
 #' 
 #' @param df The protein/protein groups file, which must include expression data (and SE)
 #' @param prot Optional: the protein ID to be plotted. If left at its default value of "", all protein groups will be plotted on one graph.

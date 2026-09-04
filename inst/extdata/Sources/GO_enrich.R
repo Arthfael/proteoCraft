@@ -56,6 +56,7 @@
 # Check our parent cluster
 source(parSrc, local = FALSE)
 
+setwd(wd)
 # Argument names
 allArgs <- c("db_ID_col",
              "True_Zscore",
@@ -301,19 +302,21 @@ if (nchar(title)) {
 }
 if (!validCharPar("title.root")) { title.root <- "" }
 if (nchar(title.root)) { title.root <- sub("[- _\\.\\,;]+$", "", title.root) }
+if ((title.root == "") && (title != "")) {
+  title.root <- title
+} else { if (title != "") { title.root <- paste0(title.root, title) } }
+if (nchar(title.root)) { title.root <- sub("[- _\\.\\,;]+$", "", title.root) }
 if (nchar(title.root)) { title.root <- paste0(title.root, " - ") }
-title.root <- if ((title.root == "") && (title != "")) {
-  title
-} else { if (title != "") { paste0(title.root, title) } }
 if (bars) {
   if (nchar(bars_title)) {
     bars_title <- gsub("[- _\\.\\,;]+$", "", bars_title)
   }
   if (nchar(bars_title.root)) { bars_title.root <- sub("[- _\\.\\,;]+$", "", bars_title.root) }
+  if ((bars_title.root == "") && (bars_title != "")) {
+    bars_title.root <- bars_title
+  } else { if (bars_title != "") {  bars_title.root <- paste0(bars_title.root, bars_title) } }
+  if (nchar(bars_title.root)) { bars_title.root <- sub("[- _\\.\\,;]+$", "", bars_title.root) }
   if (nchar(bars_title.root)) { bars_title.root <-  paste0(bars_title.root, " - ") }
-  bars_title.root <- if ((bars_title.root == "") && (bars_title != "")) {
-    bars_title
-  } else { if (bars_title != "") { paste0(bars_title.root, bars_title) } }
 }
 stopifnot(ID_col %in% colnames(Prot), Mode %in% c("dataset", "regulated"),
           is.numeric(as.numeric(cex)), is.numeric(as.numeric(lineheight)), is.logical(plotly),
@@ -689,7 +692,8 @@ if (length(wFltL)) {
   if (inherits(tst, "try-error")) {
     GO_tbls <- setNames(lapply(names(mapFilters), Fisher0), names(mapFilters))
   }
-  GO_tbls <- GO_tbls[which(!vapply(GO_tbls, is.null, TRUE))]
+  tst <- setNames(!vapply(GO_tbls, is.null, TRUE), NULL)
+  GO_tbls <- GO_tbls[which(tst)]
   if (length(GO_tbls)) {
     #vapply(GO_tbls, \(x) { x$Outcome }, TRUE)
     GO_tbls <- GO_tbls[which(vapply(GO_tbls, \(x) { x$Outcome }, TRUE))]
@@ -1205,9 +1209,10 @@ if (length(wFltL)) {
               plot2 <- plot2 +
                 ggplot2::geom_hline(yintercept = Ymax, colour = "black", linetype = "dotted")
             }
-            plot_ly <- plotly::ggplotly(plot2, tooltip = c("text1", "text2", "text3", "text4"))
+            bubblot_ly <- plotly::ggplotly(plot2, tooltip = c("text1", "text2", "text3", "text4"))
+            bubblot_ly <- plotly::plotly_build(bubblot_ly)
             setwd(plotly_subfolder)
-            htmlwidgets::saveWidget(plot_ly, paste0(nm, ".html"), selfcontained = TRUE)
+            htmlwidgets::saveWidget(bubblot_ly, paste0(nm, ".html"), selfcontained = TRUE)
             setwd(origWD)
             bubbleOK <- TRUE
           }
@@ -1222,8 +1227,8 @@ if (length(wFltL)) {
                 ggplot2::geom_vline(xintercept = 0L, linetype = "dashed") +              
                 ggplot2::geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "orange") +              
                 ggplot2::geom_hline(yintercept = -log10(0.01), linetype = "dashed", color = "red") +              
-                ggplot2::geom_text(x = 0, y = -log10(0.05), label = "5% p-value", vjust = 0, hjust = 0, color = "orange") +              
-                ggplot2::geom_text(x = 0, y = -log10(0.01), label = "1% p-value", vjust = 0, hjust = 0, color = "red") +              
+                ggplot2::geom_text(x = 0, y = -log10(0.05), label = "5% p-value", vjust = 0, hjust = 1, color = "orange") +              
+                ggplot2::geom_text(x = 0, y = -log10(0.01), label = "1% p-value", vjust = 0, hjust = 1, color = "red") +              
                 ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
                 ggplot2::ylab(paste0("-log10(", c("", "adj. ")[P_adjust+1L], "Pvalue)")) +
                 ggplot2::scale_fill_gradient2(low = "green", mid = "grey", high = "red",
@@ -1235,51 +1240,16 @@ if (length(wFltL)) {
                                axis.ticks = ggplot2::element_blank(),
                                axis.title.x = ggplot2::element_blank(),
                                strip.text.y = ggplot2::element_text(angle = 90),
-                               plot.margin = ggplot2::unit(c(1L, 1L, 10L, 1L), "lines")) +
-                ggplot2::geom_hline(data = thr, ggplot2::aes(yintercept = Y, colour = Colour), linetype = "dashed") +
-                ggplot2::geom_text(data = thr, ggplot2::aes(label = Label, y = Y-Ymax*0.02, colour = Colour), x = -1, hjust = 0, cex = 2.5) +
+                               plot.margin = ggplot2::unit(c(2L, 1L, 10L, 1L), "lines"),
+                               panel.heights = ggplot2::unit(rep(3L, 3L), "in"),
+                               panel.widths = ggplot2::unit(rep(7L, 3L), "in")) +
                 ggplot2::guides(colour = "none")
               if (labels) {
                 plot <- plot +
-                  ggplot2::geom_text(ggplot2::aes(label = Label3, x = X), y = -Ymax/20, hjust = 1, angle = 60, cex = 2L) +
-                  ggplot2::theme(panel.spacing = ggplot2::unit(18L, "lines"),
-                                 panel.heights = ggplot2::unit(rep(18L, 3L), "lines"))
+                  ggplot2::geom_text(ggplot2::aes(label = Label3, x = X), y = -Ymax/20, hjust = 1, angle = 60, cex = 4L) +
+                  ggplot2::theme(panel.spacing = ggplot2::unit(2L, "in"))
               }
               return(plot)
-            }
-            col_lim <- 3
-            GO_tbl2 <- GO_tbl
-            GO_tbl2$X <- NULL
-            GO_tbl3 <- data.frame()
-            wK <- which(GO_tbl2$Count > 0L)
-            if (length(wK)) {
-              wOnt <- unique(GO_tbl2$Ontology[wK])
-              GO_tbl3 <- lapply(wOnt, \(ont) { #ont <- wOnt[1L]
-                tmp <- GO_tbl2[wK,][which(GO_tbl2$Ontology[wK] == ont),]
-                if (!nrow(tmp)) { return() }
-                tmp <- tmp[order(tmp[[paste0(c("", "adj. ")[P_adjust+1L], "Pvalue")]], decreasing = FALSE),]
-                tmp <- tmp[1L:min(c(nrow(tmp), MaxTerms_bar)),]
-                tmp <- tmp[order(tmp$`Z-score`, decreasing = FALSE),]
-                sfpt <- if (subfolderpertype) { paste0(subfolder, "/", sv) } else { subfolder }
-                if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
-                suppressMessages({
-                  if (sv %in% c("jpeg", "tiff", "png", "bmp")) { #Note: tiff does not seem to work currently!
-                    ggplot2::ggsave(paste0(sfpt, "/", nm, ".", sv), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-                  } else {
-                    ggplot2::ggsave(paste0(sfpt, "/",nm, ".", sv), plot)
-                  }
-                })
-              })
-            }
-            if (plotly) {
-              if (length(winf)) {
-                plot2 <- plot2 +
-                  ggplot2::geom_hline(yintercept = Ymax, colour = "black", linetype = "dotted")
-              }
-              plot_ly <- plotly::ggplotly(plot2, tooltip = c("text1", "text2", "text3", "text4"))
-              setwd(plotly_subfolder)
-              htmlwidgets::saveWidget(plot_ly, paste0(nm, ".html"), selfcontained = TRUE)
-              setwd(origWD)
             }
             col_lim <- 3
             GO_tbl2 <- GO_tbl
@@ -1341,7 +1311,8 @@ if (length(wFltL)) {
                   barnm <- paste0(substr(barnm, 1L, 93L), "...", c("0", "")[(nchar(fixkount) > 1L)+1L], fixkount)
                 }
               }
-              grphs <- c(grphs, barnm)    
+              grphs <- c(grphs, barnm)
+              nX <- max(c(50, min(c(100, max(aggregate(GO_tbl3$ID, list(GO_tbl3$Ontology), length)$x)))))
               if ((length(save) > 1L) || (save != FALSE)) {
                 for (sv in save) {
                   sfpt <- if (subfolderpertype) { paste0(subfolder, "/", sv) } else { subfolder }
@@ -1349,7 +1320,7 @@ if (length(wFltL)) {
                   setwd(sfpt)
                   suppressMessages({
                     if (sv %in% c("jpeg", "tiff", "png", "bmp")) { #Note: tiff does not seem to work currently!
-                      ggplot2::ggsave(paste0(sfpt, "/", barnm, ".", sv), barplot1, dpi = 300L, width = 10L, height = 10L, units = "in")
+                      ggplot2::ggsave(paste0(sfpt, "/", barnm, ".", sv), barplot1, dpi = 150L, width = nX/4, height = 15L, units = "in")
                     } else {
                       ggplot2::ggsave(paste0(sfpt, "/", barnm, ".", sv), barplot1)
                     }
@@ -1366,9 +1337,9 @@ if (length(wFltL)) {
                 barplot_ly <- plotly::ggplotly(barplot2,
                                                tooltip = c("text1", "text2", "text3", "text4"))
                 tst <- paste0(c("(N(Up) - N(Down))/sqrt(Total)", "Z-score")[True_Zscore+1L], zMsg)
-                tst <- sapply(1L:length(barplot_ly$x$data), \(x){
+                tst <- vapply(1L:length(barplot_ly$x$data), \(x){
                   sum(tst %in% unlist(barplot_ly$x$data[[x]]))
-                })
+                }, 1L)
                 w <- which(tst > 0L)
                 if (length(w) == 1L) {
                   barplot_ly$x$data[[w]]$marker$colorbar$x <- 1.1
@@ -1378,6 +1349,7 @@ if (length(wFltL)) {
                   if (trace$type == "bar") { trace$mode <- NULL }
                   return(trace)
                 })
+                barplot_ly <- plotly::plotly_build(barplot_ly)
                 setwd(plotly_subfolder)
                 htmlwidgets::saveWidget(barplot_ly, paste0(barnm, ".html"), selfcontained = TRUE)
                 setwd(origWD)
@@ -1401,7 +1373,7 @@ if (length(wFltL)) {
           }
           res <- list(GO_plots = GOplts)
           if (bubbleOK + barOK) { res$GO_plotly <- list() }
-          if (bubbleOK) { res$GO_plotly$Bubble <- plot_ly }
+          if (bubbleOK) { res$GO_plotly$Bubble <- bubblot_ly }
           if (barOK) { res$GO_plotly$Bar <- barplot_ly }
           return(res)
         }

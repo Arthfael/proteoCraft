@@ -409,7 +409,7 @@ table.on('click', 'button', function() {
   session$onSessionEnded(\() { stopApp() })
 })
 if (exists("appRunTest")) { rm(appRunTest) }
-appTxt0 <- sub("myApp", "myApp0", sub("\\(ui", "(ui0", sub(", server", ", server0", runApp)))
+appTxt0 <- sub("myApp", "myApp0", sub("\\(ui", "(ui0", sub(", server", ", server0", run_App)))
 runKount <- 0L
 while ((!runKount) || (!exists("appRunTest"))) {
   ui0 <- make_ui0() # Update ui with current values

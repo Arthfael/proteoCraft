@@ -296,8 +296,8 @@ Skyline_to_MQ <- function(Skyline_fl,
   if (length(gNI)) {
     screenRes <- rpanel::rp.screenresolution()
     if (shinyOpt == "popup") {
-      #runApp1 <- "print(shiny::shinyApp(DIANN_to_MQ_ui1(tstMap), DIANN_to_MQ_server1, options = list(height = screenRes$height, width = screenRes$width)))"
-      runApp2 <- "print(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))"
+      #run_App1 <- "print(shiny::shinyApp(DIANN_to_MQ_ui1(tstMap), DIANN_to_MQ_server1, options = list(height = screenRes$height, width = screenRes$width)))"
+      run_App2 <- "print(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))"
     }
     if (shinyOpt %in% c("dialog", "pane")) {
       if (shinyOpt == "pane") {
@@ -306,12 +306,12 @@ Skyline_to_MQ <- function(Skyline_fl,
       if (shinyOpt == "dialog") {
         myViewer <- shiny::dialogViewer("Viewer", width = screenRes$width, height = screenRes$height)
       }
-      #runApp1 <- "shiny::runGadget(shiny::shinyApp(DIANN_to_MQ_ui1(tstMap), DIANN_to_MQ_server1, options = list(height = screenRes$height, width = screenRes$width)), viewer = myViewer, stopOnCancel = FALSE)"
-      runApp2 <- "shiny::runGadget(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)), viewer = myViewer, stopOnCancel = FALSE)"
+      #run_App1 <- "shiny::runGadget(shiny::shinyApp(DIANN_to_MQ_ui1(tstMap), DIANN_to_MQ_server1, options = list(height = screenRes$height, width = screenRes$width)), viewer = myViewer, stopOnCancel = FALSE)"
+      run_App2 <- "shiny::runGadget(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)), viewer = myViewer, stopOnCancel = FALSE)"
     }
     if (shinyOpt == "browser") {
-      #runApp1 <- "print(shiny::shinyApp(DIANN_to_MQ_ui1(tstMap), DIANN_to_MQ_server1, options = list(height = \"100%\", width = \"100%\", launch.browser = TRUE)))"
-      runApp2 <- "print(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = \"100%\", width = \"100%\", launch.browser = TRUE)))"
+      #run_App1 <- "print(shiny::shinyApp(DIANN_to_MQ_ui1(tstMap), DIANN_to_MQ_server1, options = list(height = \"100%\", width = \"100%\", launch.browser = TRUE)))"
+      run_App2 <- "print(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = \"100%\", width = \"100%\", launch.browser = TRUE)))"
     }
     #
     tmp <- modsTmp[which(vapply(modsTmp$Comp, \(x) { sum(comps[gNI] %in% x) }, 1L) > 0L),]
@@ -400,8 +400,8 @@ Skyline_to_MQ <- function(Skyline_fl,
     con <- file(fl, "r+")
     serialize(Mods, con)
     suppressWarnings(suppressMessages(try(close(con), silent = TRUE))) # Only necessary in function mode
-    #runApp2 <- "print(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))"
-    eval(parse(text = runApp2))
+    #run_App2 <- "print(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))"
+    eval(parse(text = run_App2))
     shinyCleanup()
     con <- file(fl, "r")
     Mods <- unserialize(con)

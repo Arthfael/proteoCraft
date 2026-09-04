@@ -811,8 +811,7 @@ if (clustHtMp) {
           # system(paste0("open \"", clustDir, "/", nm, normTypeInsrt, ".html\""))
           if (clustMode == "standard") {
             plotLeatMaps[[i]][[normType]] <- list(Ttl = paste0(nm, normTypeInsrt),
-                                                  Plot = plotleatmap,
-                                                  Render = plotly::plotly_build(plotleatmap))
+                                                  Plot = plotly::plotly_build(plotleatmap))
           }
         }
         #poplot(heatmap.plot, 12L, 22L)

@@ -1125,7 +1125,7 @@ server1 <- function(input, output, session) {
   #observeEvent(input$cancel, { stopApp() })
   session$onSessionEnded(function() { stopApp() })
 }
-appTxt1 <- gsub("myApp", "myApp1", gsub("\\(ui", "(ui1", gsub(", server", ", server1", runApp)))
+appTxt1 <- gsub("myApp", "myApp1", gsub("\\(ui", "(ui1", gsub(", server", ", server1", run_App)))
 runKount <- 0L
 while ((!runKount) || (!exists("appRunTest"))) {
   ui1 <- make_ui() # Update ui with new values

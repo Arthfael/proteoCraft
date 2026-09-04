@@ -122,10 +122,11 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     plot_lyPCAProt <- plotly::config(plot_lyPCAProt,
                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
     plot_lyPCAProt <- layout(plot_lyPCAProt, title = ttl)
-    setwd(myLittleDir)
-    saveWidget(plot_lyPCAProt, paste0(myLittleDir, "/", ttl, ".html"))
-    setwd(wd)
+    plot_lyPCAProt <- plotly_build(plot_lyPCAProt)
     dimRedPlotLy[["Samples PCA"]] <- plot_lyPCAProt
+    setwd(myLittleDir)
+    saveWidget(partial_bundle(plot_lyPCAProt), paste0(myLittleDir, "/", ttl, ".html"))
+    setwd(wd)
     system(paste0("open \"", myLittleDir, "/", ttl, ".html"))
     # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
   } else { warning("PCA failed, investigate!") }
@@ -347,9 +348,10 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                                       modeBarButtonsToRemove = c("select2d", "lasso2d"))
     plot_lyPCAProt2 <- layout(plot_lyPCAProt2, title = ttl,
                               uirevision = TRUE)
+    plot_lyPCAProt2 <- plotly_build(plot_lyPCAProt2)
     dimRedPlotLy[["PCA"]] <- plot_lyPCAProt2
     setwd(myLittleDir)
-    saveWidget(plot_lyPCAProt2, paste0(myLittleDir, "/", ttl, ".html"))
+    saveWidget(partial_bundle(plot_lyPCAProt2), paste0(myLittleDir, "/", ttl, ".html"))
     setwd(wd)
     system(paste0("open \"", myLittleDir, "/", ttl, ".html"))
     # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
@@ -437,9 +439,10 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                                     modeBarButtonsToRemove = c("select2d", "lasso2d"))
       plot_lytSNE <- layout(plot_lytSNE, title = ttl2,
                             uirevision = TRUE)
+      plot_lytSNE <- plotly_build(plot_lytSNE)
       dimRedPlotLy[["t-SNE"]] <- plot_lytSNE
       setwd(myLittleDir)
-      saveWidget(plot_lytSNE, paste0(myLittleDir, "/", ttl2, ".html"))
+      saveWidget(partial_bundle(plot_lytSNE), paste0(myLittleDir, "/", ttl2, ".html"))
       setwd(wd)
       #system(paste0("open \"", myLittleDir, "/", ttl2, ".html"))
     } else { warning(tsne) }
@@ -526,9 +529,10 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                                     modeBarButtonsToRemove = c("select2d", "lasso2d"))
       plot_lyUMAP <- layout(plot_lyUMAP, title = ttl3,
                             uirevision = TRUE)
+      plot_lyUMAP <- plotly_build(plot_lyUMAP)
       dimRedPlotLy[["UMAP"]] <- plot_lyUMAP
       setwd(myLittleDir)
-      saveWidget(plot_lyUMAP, paste0(myLittleDir, "/", ttl3, ".html"))
+      saveWidget(partial_bundle(plot_lyUMAP), paste0(myLittleDir, "/", ttl3, ".html"))
       setwd(wd)
       #system(paste0("open \"", myLittleDir, "/", ttl3, ".html"))
     } else { warning(umap) }

@@ -213,7 +213,7 @@ if (ok2Deliver) {
   if (length(tmpRDat)) { # Now put them back in their original place
     fs::file_move(tmpRDat2, tmpRDat)
   }
-  dataDeliveryOk <- (is.logical(Tsts$"Data analysis"))&&(!is.na(Tsts$"Data analysis"))&&(Tsts$"Data analysis" == TRUE)
+  dataDeliveryOk <- is.logical(Tsts$"Data analysis") && (!is.na(Tsts$"Data analysis")) && Tsts$"Data analysis"
 }
 # - 4 Cleanup!
 if (ok2Deliver&&dataDeliveryOk) {

@@ -1285,9 +1285,8 @@ PG$"Rel. av. log10 abundance" <- PG$"Av. log10 abundance"/max(PG$"Av. log10 abun
 PG$"Rel. log10(Peptides count)" <- PG$"log10(Peptides count)"/max(PG$"log10(Peptides count)"[which(is.finite(PG$"log10(Peptides count)"))])
 # Plotly
 create_plotly %<o% TRUE
-create_plotly_local %<o% TRUE # No need for a licence when I can save local htmls! Still, old legacy code kept below.
 # create_plotly <- !((as.character(Param$Plotly_user_name) %in% c("", "NA", " "))&(as.character(Param$Plotly_API_key) %in% c("", "NA", " ")))
-# if (create_plotly && (!create_plotly_local)) {
+# if (create_plotly) {
 #   plotly_subfolder %<o% gsub(":|\\*|\\?|<|>|\\|", "-", Param$Project)
 #   plotly_subfolder <- paste0(gsub("/+$", "", plotly_subfolder), "/")
 #   Sys.setenv("plotly_username" = Param$Plotly_user_name)
@@ -1946,17 +1945,9 @@ if (exists("Tim")) {
         ggtitle(ttl) + guides(color = "none", group = "none") +
         facet_wrap(~Aggregate) + ylim(c(-ylim, ylim)) + theme_bw()
       plot.ly <- ggplotly(plot, tooltip = "text")
-      if (create_plotly_local) {
-        saveWidget(plot.ly, paste0(dir, "/", ttl, ".html"))
-        system(paste0("open \"", dir, "/", ttl, ".html"))
-      } else {
-        poplot(plot)
-        # Legacy code for web-hosted plotly plots:
-        plot_ly_object <- api_create(x = plot.ly, filename = paste0(plotly_subfolder, ttl),
-                                     fileopt = "overwrite", sharing = "secret")
-        plot_ly$"Time profile" <- list()
-        plot_ly$"Time profile"$"Global time profile" <- plot_ly_object  
-      }
+      plot.ly <- plotly_build(plot.ly)
+      saveWidget(plot.ly, paste0(dir, "/", ttl, ".html"))
+      system(paste0("open \"", dir, "/", ttl, ".html"))
     } else { poplot(plot) }
   }
 }

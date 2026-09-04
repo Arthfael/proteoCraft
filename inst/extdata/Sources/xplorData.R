@@ -196,6 +196,6 @@ if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
     observeEvent(input$exitBtn, stopApp())
     session$onSessionEnded(\() stopApp())
   }
-  eval(parse(text = runApp), envir = .GlobalEnv)
+  eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
 }

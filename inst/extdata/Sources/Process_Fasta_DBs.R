@@ -458,7 +458,7 @@ slctXprs <- expression({
     }
   }
 })
-#eval(parse(text = runApp), envir = .GlobalEnv)
+#eval(parse(text = run_App), envir = .GlobalEnv)
 typeXprs <- expression({
   dat <- ANNOTTBL()
   dat$Type[i] <- evnt$value
@@ -473,7 +473,7 @@ typeXprs <- expression({
   assign("annotTbl2", dat2, envir = .GlobalEnv)
   output$annotFls <- updt_AnnotFls()
 })
-#eval(parse(text = runApp), envir = .GlobalEnv)
+#eval(parse(text = run_App), envir = .GlobalEnv)
 rmvXprs <- expression({
   dat <- ANNOTTBL()
   nAnnot <- nrow(dat)
@@ -631,7 +631,7 @@ table.on('change', 'select', function() {
 }
 runKount <- 0L
 while ((!runKount)||(!exists("fastasTbl3"))) {
-  eval(parse(text = runApp), envir = .GlobalEnv)
+  eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount+1L
 }

@@ -128,7 +128,7 @@ Shiny.bindAll(table.table().node());"))
 }
 runKount <- 0L
 while ((!runKount)||(!exists("frMap2"))) {
-  eval(parse(text = runApp), envir = .GlobalEnv)
+  eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount+1L
 }

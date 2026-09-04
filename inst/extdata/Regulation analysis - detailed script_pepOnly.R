@@ -574,7 +574,6 @@ Src <- paste0(libPath, "/extdata/Sources/ratThresh.R")
 source(Src, local = FALSE)
 
 create_plotly %<o% TRUE
-create_plotly_local %<o% TRUE # No need for a licence when I can save local htmls! Still, old legacy code kept below.
 # Arbitrary thresholds
 arbitrary.thr %<o% data.frame(yintercept = -log10(c(0.05, 0.01)),
                               slope = c(0, 0),

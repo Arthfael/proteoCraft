@@ -264,12 +264,13 @@ cov3D <- function(pdb,
                                  title = list(text = ttl, x = 0.5, y = 0.95, xanchor = "center", yanchor = "bottom"))
   }
   #
+  my3dplotly <- plotly::plotly_build(my3dplotly)
   #path <- paste0(wdBckp, "test.html")
   if (!misFun(path)) {
     dir <- dirname(path)
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
     setwd(dir) # Somehow the self-contained argument of saveWidget only works if the current work directory is the same as the location of the destination html 
-    htmlwidgets::saveWidget(my3dplotly, path, selfcontained = TRUE)
+    htmlwidgets::saveWidget(plotly::partial_bundle(my3dplotly), path, selfcontained = TRUE)
     setwd(wdBckp)
     if (display) { system(paste0("open \"", path, "\"")) }
   } else {

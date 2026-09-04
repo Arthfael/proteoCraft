@@ -224,7 +224,7 @@ if (!RunByMaster) {
         shiny::em(" - valid in- and output directories are selected."),
         shiny::br()
       )))
-  #eval(parse(text = runApp), envir = .GlobalEnv)
+  #eval(parse(text = run_App), envir = .GlobalEnv)
   slctDirXprs <- expression({
     dat <- INPUTTBL()
     nr <- nrow(dat)
@@ -257,7 +257,7 @@ if (!RunByMaster) {
       }
     }
   })
-  #eval(parse(text = runApp), envir = .GlobalEnv)
+  #eval(parse(text = run_App), envir = .GlobalEnv)
   srchSoftXprs <- expression({
     dat <- INPUTTBL()
     dat$"Search engine"[i] <- evnt$value
@@ -271,7 +271,7 @@ if (!RunByMaster) {
     inputTbl2 <<- dat2
     output$inDirs <- updt_inDirs()
   })
-  #eval(parse(text = runApp), envir = .GlobalEnv)
+  #eval(parse(text = run_App), envir = .GlobalEnv)
   rmvDirXprs <- expression({
     dat <- INPUTTBL()
     nr <- nrow(dat)
@@ -297,7 +297,7 @@ if (!RunByMaster) {
       output$inDirs <- updt_inDirs()
     }
   })
-  #eval(parse(text = runApp), envir = .GlobalEnv)
+  #eval(parse(text = run_App), envir = .GlobalEnv)
   server <- shiny::shinyServer(function(input, output, session) {
     WHO <- shiny::reactiveVal(WhoAmI)
     USECUST <- shiny::reactiveVal(FALSE)
@@ -452,7 +452,7 @@ table.on('change', 'select', function() {
     shiny::observeEvent(input$cancel, { shiny::stopApp() })
     session$onSessionEnded(function() { shiny::stopApp() })
   })
-  eval(parse(text = runApp), envir = .GlobalEnv)
+  eval(parse(text = run_App), envir = .GlobalEnv)
   #
   #
   inDirs <- gsub("/+", "/", inDirs)

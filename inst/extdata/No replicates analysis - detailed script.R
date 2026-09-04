@@ -1832,6 +1832,7 @@ plotLy <- plotly::config(plotLy,
 if (!exists("QC_plotLys")) { QC_plotLys <- list() }
 QC_plotLys %<o% QC_plotLys
 setwd(paste0(wd, "/Summary plots"))
+plotLy <- plotly_build(plotLy)
 saveWidget(plotLy, paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)
 QC_plotLys[[ttl]] <- plotLy
@@ -1933,6 +1934,7 @@ if (length(Exp) > 2L) {
       plot_lyPCA <- add_trace(plot_lyPCA, scores, x = ~PC1, y = ~PC2, z = ~PC3, type = "scatter3d", mode = "text",
                               showlegend = FALSE)
       plot_lyPCA <- layout(plot_lyPCA, title = ttl)
+      plot_lyPCA <- plotly_build(plot_lyPCA)
       tst <- try(saveWidget(partial_bundle(plot_lyPCA), paste0(wd, "/PCA plots/", ttl, ".html")), silent = TRUE)
       if (inherits(tst, "try-error")) { tst <- try(saveWidget(plot_lyPCA, paste0(wd, "/PCA plots/", ttl, ".html")), silent = TRUE) }
       if (!inherits(tst, "try-error")) { system(paste0("open \"", wd, "/PCA plots/", ttl, ".html")) }
@@ -1983,18 +1985,28 @@ if (length(Exp) > 2L) {
     ggsave(paste0(wd, "/PCA plots/", ttl, ".jpeg"), plot, dpi = 150L)
     ggsave(paste0(wd, "/PCA plots/", ttl, ".pdf"), plot, dpi = 150L)
   })
-  if ("PC3" %in% colnames(scores)) {
-    plot_lyPCAProt <- plot_ly(scores, x = ~PC1, y = ~PC2, z = ~PC3, color = ~Direction, text = ~`Protein group`,
-                              type = "scatter3d", mode = "markers", showlegend = FALSE, marker = list(size = 1L))
-    plot_lyPCAProt <- layout(plot_lyPCAProt, title = ttl)
-    if ((prot.list.Cond)&&(length(g1))) {
-      scores3 <- scores2
-      scores3$"Protein group" <- gsub(" - | ?, ?", "<br>", scores3$"Protein group")
-      plot_lyPCAProt <- add_trace(plot_lyPCAProt, data = scores3, x = ~PC1, y = ~PC2, z = ~PC3,
-                                  type = "scatter3d", mode = "markers+text", color = I("red"), marker = list(size = 5L),
-                                  showlegend = FALSE, textposition = "bottom right")
+  plot_lyPCAProt <- if ("PC3" %in% colnames(scores)) {
+    plot_ly(scores, x = ~PC1, y = ~PC2, z = ~PC3, color = ~Direction, text = ~`Protein group`,
+            type = "scatter3d", mode = "markers", showlegend = FALSE, marker = list(size = 1L))
+  } else {
+    plot_ly(scores, x = ~PC1, y = ~PC2, color = ~Direction, text = ~`Protein group`,
+            type = "scatter3d", mode = "markers", showlegend = FALSE, marker = list(size = 1L))
+  }
+  plot_lyPCAProt <- layout(plot_lyPCAProt, title = ttl)
+  if ((prot.list.Cond)&&(length(g1))) {
+    scores3 <- scores2
+    scores3$"Protein group" <- gsub(" - | ?, ?", "<br>", scores3$"Protein group")
+    plot_lyPCAProt <- if ("PC3" %in% colnames(scores)) {
+      add_trace(plot_lyPCAProt, data = scores3, x = ~PC1, y = ~PC2, z = ~PC3,
+                type = "scatter3d", mode = "markers+text", color = I("red"), marker = list(size = 5L),
+                showlegend = FALSE, textposition = "bottom right")
+    } else {
+      add_trace(plot_lyPCAProt, data = scores3, x = ~PC1, y = ~PC2,
+                type = "scatter3d", mode = "markers+text", color = I("red"), marker = list(size = 5L),
+                showlegend = FALSE, textposition = "bottom right")
     }
-  } else { plot_lyPCAProt <- ggplotly(plot, tooltip = "text") }
+  }
+  plot_lyPCAProt <- plotly_build(plot_lyPCAProt)
   tst <- try(saveWidget(partial_bundle(plot_lyPCAProt), paste0(wd, "/PCA plots/", ttl, ".html")), silent = TRUE)
   if (inherits(tst, "try-error")) { tst <- try(saveWidget(plot_lyPCAProt, paste0(wd, "/PCA plots/", ttl, ".html")), silent = TRUE) }
   if (!inherits(tst, "try-error")) { system(paste0("open \"", wd, "/PCA plots/", ttl, ".html")) }

@@ -14,11 +14,7 @@ if (l) {
   tmpFls <- paste0(dr, "/tmp", 1L:l, ".RDS")
   invisible(lapply(1L:l, \(i) { #i <- 1L
     x <- myPlotLys[[i]]
-    pl <- if ("Render" %in% names(x)) { # Solution for when a plotly is buggy: pre-render it before exporting
-      x$Render
-    } else {
-      plotly::plotly_build(x$Plot)
-    }
+    pl <- plotly::plotly_build(x$Plot) # Solution for when a plotly is buggy: re-render it before exporting
     # keep as plain JSON string (compact, cheap to ship)
     pl <- list(data = pl$x$data,
                layout = pl$x$layout,
@@ -46,6 +42,7 @@ if (l) {
     w$x$layout <- def$layout
     w$jsHooks  <- def$jsHooks
     w$x$config  <- def$config
+    w <- plotly::partial_bundle(w)
     pth <- file.path(dr, plot_Paths[i])
     htmlwidgets::saveWidget(w, pth, selfcontained = TRUE)
     setwd(curDir)

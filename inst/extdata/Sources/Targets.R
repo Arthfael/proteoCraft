@@ -88,7 +88,7 @@ if ("Target" %in% colnames(Exp.map)) {
       session$onSessionEnded(\() { stopApp() })
     }
     # Modify App so that any remaining NAs turn off saving/closing the App!
-    eval(parse(text = runApp), envir = .GlobalEnv)
+    eval(parse(text = run_App), envir = .GlobalEnv)
     shinyCleanup()
     w1 <- which((nchar(targProt) > 0L)&(!targProt %in% protHeads3))
     w2 <- which(targProt %in% protHeads3)

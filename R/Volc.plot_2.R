@@ -150,7 +150,7 @@ Volc.plot_2 <- function(data,
     filter2 <- which(tmp$Colour != "")
     h <- -log10(h.lines)
     names(h) <- gsub("^Threshold-", "_", names(h))
-    tmp2 <- apply(tmp[filter2, c("Y", "Colour")], 1L, function(x) {
+    tmp2 <- apply(tmp[filter2, c("Y", "Colour")], 1L, \(x) {
       x <- unlist(x)
       t <- which(as.numeric(h) <= as.numeric(x[1L]))
       r <- if (length(t)) { paste0(x[2L], names(h)[min(t)]) } else { "" }

@@ -502,7 +502,7 @@ Example: \"GO:0031012;2\"
         volcano.plots$Localisation_Labelled <- tempVP3$Plots$Labelled
         n2 <- names(volcano.plots$Localisation_Labelled)
         dir <- paste0(wd, "/Reg. analysis/Localisation")
-        if ((create_plotly)&&(!create_plotly_local)) { plot_ly$"Localisation" <- tempVP3$"Plotly plots" }
+        if (create_plotly) { plot_ly$"Localisation" <- tempVP3$"Plotly plots" }
         # Edit wording + create filters
         g <- grep("^Re-localized - ", colnames(PG), value = TRUE)
         for (gi in g) { #gi <- g[1L]

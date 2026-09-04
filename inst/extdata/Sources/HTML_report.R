@@ -141,12 +141,12 @@ global_autorange <- "function(el, x) {
 if (tstHtMp) {
   for (x in names(plotLeatMaps)) { #x <- names(plotLeatMaps)[1L]
     for (y in names(plotLeatMaps[[x]])) { #y <- names(plotLeatMaps[[x]])[1L]
-      p <- plotLeatMaps[[x]][[y]]$Render
-      p$Render$x$layout$xaxis$autorange <- TRUE
-      p$Render$x$layout$yaxis$autorange <- TRUE
+      p <- plotLeatMaps[[x]][[y]]$Plot
+      p$x$layout$xaxis$autorange <- TRUE
+      p$x$layout$yaxis$autorange <- TRUE
       p <- htmlwidgets::onRender(p, global_autorange)
-      plotLeatMaps[[x]][[y]]$Render <- plotly::config(p,
-                                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
+      plotLeatMaps[[x]][[y]]$Plot <- plotly::config(p,
+                                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
     }
   }
 }
@@ -243,20 +243,25 @@ if ((scrptType == "noReps") && (length(Exp) == 2L)) {
   nmsHtMp <- setdiff(nmsHtMp, "Z-scored")
 }
 nmsHtMp <- intersect(union("None", nmsHtMp), nmsHtMp)
-plotHtMpHght <- paste0(round(min(c(400L, vapply(nmsHtMp, \(nm) { plotLeatMaps$Global[[nm]]$Render$sizingPolicy$defaultHeight }, 1)))), "px")
+plotHtMpHght <- paste0(round(min(c(400L, vapply(nmsHtMp, \(nm) { plotLeatMaps$Global[[nm]]$Plot$sizingPolicy$defaultHeight }, 1)))), "px")
 plotPCAHght <- "700px"
 
 # UI functions
-tbl_css <- tags$style(HTML("table.dataTable th,
-table.dataTable td {
+tbl_css <- tags$style(HTML("table.dataTable td {
   white-space: normal !important;
-  vertical-align: top;
+  vertical-align: top !important;
 }
-table.dataTable td .cell-wrap {
-  display: block;
-  white-space: normal !important;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+.cell-wrap {
+  max-height: 80px !important;
+  overflow: hidden !important;
+  white-space: normal;
+  vertical-align: top !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+}
+table.dataTable thead th {
+    background-color: #4472c4 !important;
+    color: white !important;
 }"))
 logoFl <- list.files(homePath,
                      "^logo\\.((gif)|(tiff?)|(jpe?g)|(png))$", full.names = TRUE)[1L]
@@ -284,6 +289,7 @@ report_header <- tags$header(
 make_prot_tab <- \(dflt = dfltProt,
                    prots = allProt,
                    shiny = TRUE) {
+  myCol <- tolower(viridis::viridis(6, alpha = 0.2)[4L])
   myExp <- if (scrptType == "noReps") { Exp } else { setNames(smplGrps, NULL) }
   # - show:
   # Proteins tab
@@ -303,8 +309,8 @@ make_prot_tab <- \(dflt = dfltProt,
   #                # #            #
   ################## ##############
   # Peptides table
-  myTags <- if (shiny) {
-    tags$div(
+  if (shiny) {
+    tagList(tags$div(
       if (prot.list.Cond && (length(prots) > 1L)) {
         tags$div(selectInput("myProtein", "Select protein", prots, dflt),
                  br())
@@ -325,7 +331,8 @@ make_prot_tab <- \(dflt = dfltProt,
       br(),
       tags$hr(style = "border-color: black;"),
       uiOutput("protPep"),
-      br())
+      br(),
+      style = paste0("background: ", myCol, ";")))
   } else {
     ## Coverage plots ###################################################
     if (tstCov) {
@@ -375,7 +382,7 @@ make_prot_tab <- \(dflt = dfltProt,
                                 filt = pr))
     })
     ## UI ###############################################################
-    tagList(
+    tagList(tags$div(
       if (length(prots) > 1L) {
         fluidRow(column(12L,
                         make_select_tag("myProtein",
@@ -467,9 +474,8 @@ if (myProt) {
 }
 "))),
       br(),
-      tags$hr(style = "border-color: black;"))
+      style = paste0("background: ", myCol, ";")))
   }
-return(myTags)
 }
 make_comment_ui <- \(id,
                      shiny = TRUE,
@@ -716,7 +722,8 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   df <- DT::formatStyle(df, ratCol,
                         backgroundColor = DT::styleInterval(seq(ratRng[1L], ratRng[2L], length.out = 99L),
                                                             colorRampPalette(ColScaleList$`Summary Ratios`)(100L)))
-  return(df)
+  return(tags$div(df,
+                  style = paste0("background: #ffffff;")))
 }
 make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
                       tab = "Protein groups", # can also be "All peptidoforms"; we will eventually add "`PTM`-modified", where `PTM` can be any PTM of interest
@@ -945,7 +952,8 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
                           backgroundColor = DT::styleInterval(seq(ratRng[1L], ratRng[2L], length.out = 99L),
                                                               colorRampPalette(ColScaleList$`Individual Ratios`)(100L)))
   }
-  return(df)
+  return(tags$div(df,
+                  style = paste0("background: #ffffff;")))
 }
 make_summTbl_ui <- \() {
   df <- t(Exp_summary[, grep(" - % ", colnames(Exp_summary), invert = TRUE, value = TRUE)])
@@ -1001,6 +1009,8 @@ make_summTbl_ui <- \() {
                                      dom = "ft",
                                      columnDefs = list(list(width = "160px",
                                                             targets = 1L:ncol(df) - 1L))))
+  return(tags$div(df,
+                  style = paste0("background: #ffffff;")))
 }
 make_select_tag <- \(id,
                      label,
@@ -1024,16 +1034,19 @@ make_smpl_tab <- \(exp,
                    shiny = TRUE,
                    quant = quantMeth,
                    dflt = dfltQuant) {
+  myCol <- tolower(viridis::viridis(6, alpha = 0.2)[2L])
   exp2 <- if (scrptType == "noReps") { exp } else { names(smplGrps)[match(exp, smplGrps)] }
   lQ <- length(quant)
   if (shiny) {
-    tagList(make_comment_ui(exp, shiny),
-            selectInput(paste0("quant_", exp), "", quant, dflt[exp]),
-            plotlyOutput(paste0("quantLy_", exp), height = plotHght),
-            br(),
-            br(),
-            tags$hr(style = "border-color: black;"),
-            make_smpl_tbl_ui(exp))
+    tagList(tags$div(
+      make_comment_ui(exp, shiny),
+      selectInput(paste0("quant_", exp), "", quant, dflt[exp]),
+      plotlyOutput(paste0("quantLy_", exp), height = plotHght),
+      br(),
+      br(),
+      tags$hr(style = "border-color: black;"),
+      make_smpl_tbl_ui(exp),
+      style = paste0("background: ", myCol, ";")))
   } else {
     id1 <- paste0("quant_", exp)
     id2 <- paste0("quant_", exp, "_")
@@ -1049,27 +1062,30 @@ make_smpl_tab <- \(exp,
                   id1,
                   id2,
                   id2)
-    tagList(make_comment_ui(exp, shiny),
-            lapply(1L:lQ, \(i) {
-              tags$div(id = paste0("quant_", exp, "_", as.character(i)),
-                       style = if (quant[i] == dflt[exp]) { "display: block;" } else { "display: none;" },
-                       ggQuantLy[[quant[i]]][[exp2]]$plotly)
-            }),
-            br(),
-            make_select_tag(id1,
-                            "",
-                            id1,
-                            quant,
-                            dflt[exp]),
-            br(),
-            br(),
-            tags$hr(style = "border-color: black;"),
-            tags$script(HTML(js)),
-            make_smpl_tbl_ui(exp))
+    tagList(tags$div(
+      make_comment_ui(exp, shiny),
+      lapply(1L:lQ, \(i) {
+        tags$div(id = paste0("quant_", exp, "_", as.character(i)),
+                 style = if (quant[i] == dflt[exp]) { "display: block;" } else { "display: none;" },
+                 ggQuantLy[[quant[i]]][[exp2]]$plotly)
+      }),
+      br(),
+      make_select_tag(id1,
+                      "",
+                      id1,
+                      quant,
+                      dflt[exp]),
+      br(),
+      br(),
+      tags$hr(style = "border-color: black;"),
+      tags$script(HTML(js)),
+      make_smpl_tbl_ui(exp),
+      style = paste0("background: ", myCol, ";")))
   }
 }
 make_ctrst_tab <- \(contr,
                     shiny = TRUE) {
+  myCol <- tolower(viridis::viridis(6, alpha = 0.2)[3L])
   styleOn <- paste0("display: block; height: ", plotHtMpHght)
   contr2 <- gsub(" ", "_", contr)
   saintIDs <- c(paste0("SAINTexpress volcano plot ", contr),
@@ -1078,174 +1094,192 @@ make_ctrst_tab <- \(contr,
     GSEA_IDs <- paste0(contr2, "_GSEA", as.character(1L:4L))
   }
   if (shiny) {
-    tagList(make_comment_ui(contr, shiny),
-            if (saintExprs && (saintIDs[1L] %in% names(volcPlotly$SAINTexpress))) {
-              div(h3("SAINTexpress"),
-                  fluidRow(column(6L,
-                                  plotlyOutput(paste0(contr2, "_SAINT_volcPlot"))),
-                           if (enrichGO) {
-                             column(6L,
-                                    plotlyOutput(paste0(contr2, "_SAINT_GObars")))
-                           },
-                  ),
-                  tags$hr(style = "border-color: black;"))
-            },
-            div(h3("t-test"),
-                fluidRow(column(6L,
-                                plotlyOutput(paste0(contr2, "_volcPlot"))),
-                         if (enrichGO) {
-                           column(6L,
-                                  plotlyOutput(paste0(contr2, "_GObars")))
-                         },
-                ),
-                tags$hr(style = "border-color: black;")),
-            if (F.test) {
-              # Add F-test part here... or maybe dropdown to choose f-/F-test... or drop F-test altogether?
-            },
-            if (runGSEA) {
-              div(h3("GSEA"),
-                  fluidRow(column(6L,
-                                  plotlyOutput(GSEA_IDs[1L]),
-                                  plotlyOutput(GSEA_IDs[2L])),
-                           column(6L,
-                                  plotlyOutput(GSEA_IDs[3L]),
-                                  plotlyOutput(GSEA_IDs[4L]))),
-                  tags$hr(style = "border-color: black;"))
-            },
-            make_ctrst_tbl_ui(contr))
+    tagList(tags$div(
+      make_comment_ui(contr, shiny),
+      if (saintExprs && (saintIDs[1L] %in% names(volcPlotly$SAINTexpress))) {
+        div(h3("SAINTexpress"),
+            fluidRow(column(6L,
+                            plotlyOutput(paste0(contr2, "_SAINT_volcPlot"), height = "600px")),
+                     if (enrichGO) {
+                       column(6L,
+                              br(),
+                              br(),
+                              plotlyOutput(paste0(contr2, "_SAINT_GObars"), height = "600px"))
+                     },
+            ),
+            tags$hr(style = "border-color: black;"))
+      },
+      div(h3("t-test"),
+          fluidRow(column(6L,
+                          plotlyOutput(paste0(contr2, "_volcPlot"), height = "600px")),
+                   if (enrichGO) {
+                     column(6L,
+                            br(),
+                            br(),
+                            plotlyOutput(paste0(contr2, "_GObars"), height = "600px"))
+                   },
+          ),
+          tags$hr(style = "border-color: black;")),
+      if (F.test) {
+        # Add F-test part here... or maybe dropdown to choose f-/F-test... or drop F-test altogether?
+      },
+      if (runGSEA) {
+        div(h3("GSEA"),
+            fluidRow(column(6L,
+                            plotlyOutput(GSEA_IDs[1L]),
+                            plotlyOutput(GSEA_IDs[2L])),
+                     column(6L,
+                            plotlyOutput(GSEA_IDs[3L]),
+                            plotlyOutput(GSEA_IDs[4L]))),
+            tags$hr(style = "border-color: black;"))
+      },
+      make_ctrst_tbl_ui(contr),
+      style = paste0("background: ", myCol, ";")))
   } else {
-    tagList(make_comment_ui(contr, shiny),
-            if (saintExprs && (saintIDs[1L] %in% names(volcPlotly$SAINTexpress))) {
-              div(h3("SAINTexpress"),
-                  fluidRow(column(6L,
-                                  tags$div(id = saintIDs[2L],
-                                           style = styleOn,
-                                           volcPlotly$SAINTexpress[[saintIDs[1L]]]$Plot)),
-                           if (enrichGO) {
-                             column(6L,
-                                    tags$div(id = saintIDs[3L],
-                                             style = styleOn,
-                                             GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar))
-                           },
-                  ),
-                  tags$hr(style = "border-color: black;"))
-            },
-            div(h3("t-test"),
-                fluidRow(column(6L,
-                                tags$div(id = paste0(contr2, "_volcPlot"),
-                                         style = styleOn,
-                                         volcPlotly$"t-test"[[paste0("Volcano plot ", contr)]]$Plot)),
-                         if (enrichGO) {
-                           column(6L,
-                                  tags$div(id = paste0(contr2, "_GObars"),
-                                           style = styleOn,
-                                           GO_plot_ly$PG$"t-test"[[contr]]$Bar))
-                         },
-                ),
-                tags$hr(style = "border-color: black;")),
-            if (F.test) {
-              # Add F-test part here... or maybe dropdown to choose f-/F-test... or drop F-test altogether?
-            },
-            if (runGSEA) {
-              div(h3("GSEA"),
-                  # NB: I also tried the plotly::subplot() approach to displaying the plots together in one,
-                  # but this fails (subplots look corrupted, possibly because they are slightly hacky)
-                  fluidRow(column(6L,
-                                  tags$div(id = GSEA_IDs[1L],
-                                           style = styleOn,
-                                           GSEA_plots$standard$PG$`GSEA dotplot`[[contr]]),
-                                  tags$div(id = GSEA_IDs[2L],
-                                           style = styleOn,
-                                           GSEA_plots$standard$PG$`GSEA enrichment map`[[contr]])),
-                           column(6L,
-                                  tags$div(id = GSEA_IDs[3L],
-                                           style = styleOn,
-                                           GSEA_plots$standard$PG$`GSEA ridge plot`[[contr]]),
-                                  tags$div(id = GSEA_IDs[4L],
-                                           style = styleOn,
-                                           GSEA_plots$standard$PG$`GSEA category net plot`[[contr]]))),
-                  tags$hr(style = "border-color: black;"))
-            },
-            make_ctrst_tbl_ui(contr))
+    styleOn6 <- "display: block; height: 600px"
+    styleOn4 <- "display: block; height: 400px"
+    tagList(tags$div(
+      make_comment_ui(contr, shiny),
+      if (saintExprs && (saintIDs[1L] %in% names(volcPlotly$SAINTexpress))) {
+        div(h3("SAINTexpress"),
+            fluidRow(column(6L,
+                            tags$div(id = saintIDs[2L],
+                                     style = styleOn6,
+                                     volcPlotly$SAINTexpress[[saintIDs[1L]]]$Plot)),
+                     if (enrichGO) {
+                       column(6L,
+                              br(),
+                              br(),
+                              tags$div(id = saintIDs[3L],
+                                       style = styleOn6,
+                                       GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar))
+                     },
+            ),
+            tags$hr(style = "border-color: black;"))
+      },
+      div(h3("t-test"),
+          fluidRow(column(6L,
+                          tags$div(id = paste0(contr2, "_volcPlot"),
+                                   style = styleOn6,
+                                   volcPlotly$"t-test"[[paste0("Volcano plot ", contr)]]$Plot)),
+                   if (enrichGO) {
+                     column(6L,
+                            br(),
+                            br(),
+                            tags$div(id = paste0(contr2, "_GObars"),
+                                     style = styleOn6,
+                                     GO_plot_ly$PG$"t-test"[[contr]]$Bar))
+                   },
+          ),
+          tags$hr(style = "border-color: black;")),
+      if (F.test) {
+        # Add F-test part here... or maybe dropdown to choose f-/F-test... or drop F-test altogether?
+      },
+      if (runGSEA) {
+        div(h3("GSEA"),
+            # NB: I also tried the plotly::subplot() approach to displaying the plots together in one,
+            # but this fails (subplots look corrupted, possibly because they are slightly hacky)
+            fluidRow(column(6L,
+                            tags$div(id = GSEA_IDs[1L],
+                                     style = styleOn4,
+                                     GSEA_plots$standard$PG$`GSEA dotplot`[[contr]]),
+                            tags$div(id = GSEA_IDs[2L],
+                                     style = styleOn4,
+                                     GSEA_plots$standard$PG$`GSEA enrichment map`[[contr]])),
+                     column(6L,
+                            tags$div(id = GSEA_IDs[3L],
+                                     style = styleOn4,
+                                     GSEA_plots$standard$PG$`GSEA ridge plot`[[contr]]),
+                            tags$div(id = GSEA_IDs[4L],
+                                     style = styleOn4,
+                                     GSEA_plots$standard$PG$`GSEA category net plot`[[contr]]))),
+            tags$hr(style = "border-color: black;"))
+      },
+      make_ctrst_tbl_ui(contr),
+      style = paste0("background: ", myCol, ";")))
   }
 }
 make_strt_tab <- \(shiny = TRUE) {
+  myCol <- tolower(viridis::viridis(6, alpha = 0.2)[1L])
   # TO DO
   # Add Dataset GO terms enrichment
   if (shiny) {
-    tagList(make_comment_ui("Dataset overview", shiny),
-            br(),
-            h4(strong(tags$ul(em("Summary table")))),
-            make_summTbl_ui(),
-            br(),
-            br(),
-            if (tstHtMp) {
-              column(12L,
-                     selectInput("myHeatMap",
-                                 "",
-                                 nmsHtMp,
-                                 nmsHtMp[1L]),
-                     plotlyOutput("heatMap", height = plotHtMpHght))
-            },
-            if (globalGO && ("Observed dataset" %in% names(GO_plot_ly))) {
-              fluidRow(column(12L,
-                              plotlyOutput("GO_enrich_Dataset", height = plotHtMpHght)))
-            },
-            fluidRow(
-              if (tstPCA) {
-                column(4L*(3L-tstVenn),
-                       plotlyOutput("PCA", height = plotPCAHght))
-              },
-              if (tstVenn) {
-                column(4L,
-                       plotlyOutput("Venn", height = plotHtMpHght))
-              },
-            ),
-            br())
+    tagList(tags$div(
+      make_comment_ui("Dataset overview", shiny),
+      br(),
+      h4(strong(tags$ul(em("Summary table")))),
+      make_summTbl_ui(),
+      br(),
+      br(),
+      if (tstHtMp) {
+        column(12L,
+               selectInput("myHeatMap",
+                           "",
+                           nmsHtMp,
+                           nmsHtMp[1L]),
+               plotlyOutput("heatMap", height = plotHtMpHght))
+      },
+      if (globalGO && ("Observed dataset" %in% names(GO_plot_ly))) {
+        fluidRow(column(12L,
+                        plotlyOutput("GO_enrich_Dataset", height = plotHtMpHght)))
+      },
+      fluidRow(
+        if (tstPCA) {
+          column(4L*(3L-tstVenn),
+                 plotlyOutput("PCA", height = plotPCAHght))
+        },
+        if (tstVenn) {
+          column(4L,
+                 plotlyOutput("Venn", height = plotHtMpHght))
+        },
+      ),
+      br(),
+      style = paste0("background: ", myCol, ";")))
   } else {
     styleOn <- paste0("display: block; height: ", plotHtMpHght)
-    tagList(make_comment_ui("Dataset overview", shiny),
-            br(),
-            h4(strong(tags$ul(em("Summary table")))),
-            make_summTbl_ui(),
-            br(),
-            br(),
-            if (tstHtMp) {
-              fluidRow(column(strtColWdth,
-                              make_select_tag("myHeatMap",
-                                              "",
-                                              "myHeatMap",
-                                              nmsHtMp,
-                                              nmsHtMp[1L]),
-                              lapply(nmsHtMp, \(nm) {
-                                i <- match(nm, nmsHtMp)
-                                tags$div(id = paste0("HeatMap_", i),
-                                         style = if (i == 1L) { styleOn } else { "display: none;" },
-                                         plotLeatMaps$Global[[nm]]$Render)
-                              })))
-            },
-            if (globalGO && ("Observed dataset" %in% names(GO_plot_ly))) {
-              fluidRow(column(12L,
-                              tags$div(id = "GO_enrich_Dataset",
-                                       style = if (i == 1L) { styleOn } else { "display: none;" },
-                                       GO_plot_ly$`Observed dataset`$Bar)))
-            },
-            fluidRow(
-              if (tstPCA) {
-                column(4L*(3L-tstVenn),
-                       tags$div(id = "PCA",
-                                style = styleOn,
-                                dimRedPlotLy$PCA))
-              },
-              if (tstVenn) {
-                column(4L,
-                       tags$div(id = "Venn",
-                                style = styleOn,
-                                plotly_Venn$`Global, LFQ`))
-              },
-            ),
-            br(),
-            tags$script(HTML(paste0("document.getElementById('myHeatMap').addEventListener('change', function() {
+    tagList(tags$div(
+      make_comment_ui("Dataset overview", shiny),
+      br(),
+      h4(strong(tags$ul(em("Summary table")))),
+      make_summTbl_ui(),
+      br(),
+      br(),
+      if (tstHtMp) {
+        fluidRow(column(strtColWdth,
+                        make_select_tag("myHeatMap",
+                                        "",
+                                        "myHeatMap",
+                                        nmsHtMp,
+                                        nmsHtMp[1L]),
+                        lapply(nmsHtMp, \(nm) {
+                          i <- match(nm, nmsHtMp)
+                          tags$div(id = paste0("HeatMap_", i),
+                                   style = if (i == 1L) { styleOn } else { "display: none;" },
+                                   plotLeatMaps$Global[[nm]]$Plot)
+                        })))
+      },
+      if (globalGO && ("Observed dataset" %in% names(GO_plot_ly))) {
+        fluidRow(column(12L,
+                        tags$div(id = "GO_enrich_Dataset",
+                                 style = if (i == 1L) { styleOn } else { "display: none;" },
+                                 GO_plot_ly$`Observed dataset`$Bar)))
+      },
+      fluidRow(
+        if (tstPCA) {
+          column(4L*(3L-tstVenn),
+                 tags$div(id = "PCA",
+                          style = styleOn,
+                          dimRedPlotLy$PCA))
+        },
+        if (tstVenn) {
+          column(4L,
+                 tags$div(id = "Venn",
+                          style = styleOn,
+                          plotly_Venn$`Global, LFQ`))
+        },
+      ),
+      br(),
+      tags$script(HTML(paste0("document.getElementById('myHeatMap').addEventListener('change', function() {
   const HtMpID = document.getElementById('myHeatMap').selectedIndex + 1;
   const HtMp = document.getElementById('HeatMap_' + HtMpID);
   document.querySelectorAll('[id^=\"HeatMap_\"]').forEach(function(el) {
@@ -1256,42 +1290,45 @@ make_strt_tab <- \(shiny = TRUE) {
   window.dispatchEvent(
     new Event('resize')
   );
-});"))))
+});"))),
+      style = paste0("background: ", myCol, ";")))
   }
 }
-make_QC_ui <- \(shiny = TRUE,
-                plotsList = QC_plotLys) {
+make_QC_tab <- \(shiny = TRUE,
+                 plotsList = QC_plotLys) {
+  myCol <- tolower(viridis::viridis(6, alpha = 0.2)[5L])
   if (shiny) {
-    tabPanel("QC",
-             tagList(selectInput("QC1", "", names(plotsList), names(plotsList)[1L]),
-                     fluidRow(column(8L,
-                                     plotlyOutput("QCplotLy", height = plotHght)),
-                              column(4L,
-                                     uiOutput("QCtxt"))),
-                     br()))
+    tagList(tags$div(
+      selectInput("QC1", "", names(plotsList), names(plotsList)[1L]),
+      fluidRow(column(8L,
+                      plotlyOutput("QCplotLy", height = plotHght)),
+               column(4L,
+                      uiOutput("QCtxt"))),
+      br(),
+      style = paste0("background: ", myCol, ";")))
   } else {
     QC_comments <- allComments[names(plotsList)]
-    tabPanel("QC",
-             tagList(make_select_tag("myQC",
-                                     "",
-                                     "myQC",
-                                     names(plotsList),
-                                     names(plotsList)[1L]),
-                     lapply(seq_along(plotsList), \(i) { #i <-1L #i <- i+1L
-                       nm <- names(plotsList)[i]
-                       fluidRow(column(8L,
-                                       tags$div(id = paste0("QC_", i),
-                                                style = if (i == 1L) { "display: block;" } else { "display: none;" },
-                                                plotsList[[nm]])),
-                                column(4L,
-                                       make_comment_ui(nm,
-                                                       FALSE,
-                                                       QC_comments,
-                                                       nm == names(plotsList)[1L],
-                                                       "QCcomment_")))
-                     }),
-                     br(),
-                     tags$script(HTML("document.getElementById('myQC').addEventListener('change', function() {
+    tagList(tags$div(
+      make_select_tag("myQC",
+                      "",
+                      "myQC",
+                      names(plotsList),
+                      names(plotsList)[1L]),
+      lapply(seq_along(plotsList), \(i) { #i <-1L #i <- i+1L
+        nm <- names(plotsList)[i]
+        fluidRow(column(8L,
+                        tags$div(id = paste0("QC_", i),
+                                 style = if (i == 1L) { "display: block;" } else { "display: none;" },
+                                 plotsList[[nm]])),
+                 column(4L,
+                        make_comment_ui(nm,
+                                        FALSE,
+                                        QC_comments,
+                                        nm == names(plotsList)[1L],
+                                        "QCcomment_")))
+      }),
+      br(),
+      tags$script(HTML("document.getElementById('myQC').addEventListener('change', function() {
   const selected = document.getElementById('myQC').selectedIndex + 1;
   document.querySelectorAll('[id^=\"QC_\"]').forEach(function(div) { div.style.display = 'none'; });
   document.getElementById('QC_' + selected).style.display = 'block';
@@ -1301,11 +1338,13 @@ make_QC_ui <- \(shiny = TRUE,
   div.style.whiteSpace = 'pre-wrap';
   div.style.padding = '10px';
   window.dispatchEvent(new Event('resize'));
-});"))))
+});")),
+      style = paste0("background: ", myCol, ";")))
   }
 }
-make_matmet_ui <- \(matmeth = matmethTxt,
-                    shiny = TRUE) {
+make_matmet_tab <- \(matmeth = matmethTxt,
+                     shiny = TRUE) {
+  myCol <- tolower(viridis::viridis(6, alpha = 0.2)[6L])
   # We want to load the processed materials and methods (potentially edited by the user)
   # ============> This should be ideally run as part of the finalization script, after the materials and method edition stage
   #
@@ -1313,24 +1352,26 @@ make_matmet_ui <- \(matmeth = matmethTxt,
     paste0(as.character(20L*(sum(ceiling(nchar(unlist(x))/ceiling(screenRes$width/5.75)))+2L)), "px")
   }, "")
   if (shiny) {
-    tabPanel("Materials and methods",
-             tagList(textAreaInput("MatMet_SamplePrep", matmethSections[1L], matmeth[1L], "100%", hght[1L]),
-                     br(),
-                     textAreaInput("MatMet_LCMS", matmethSections[2L], matmeth[2L], "100%", hght[2L]),
-                     br(),
-                     textAreaInput("MatMet_DataAnalysis", matmethSections[3L], matmeth[3L], "100%", hght[3L]),
-                     br()))
+    tagList(tags$div(
+      textAreaInput("MatMet_SamplePrep", matmethSections[1L], matmeth[1L], "100%", hght[1L]),
+      br(),
+      textAreaInput("MatMet_LCMS", matmethSections[2L], matmeth[2L], "100%", hght[2L]),
+      br(),
+      textAreaInput("MatMet_DataAnalysis", matmethSections[3L], matmeth[3L], "100%", hght[3L]),
+      br(),
+      style = paste0("background: ", myCol, ";")))
   } else {
-    tabPanel("Materials and methods",
-             tagList(h5(matmethSections[1L]),
-                     tags$p(matmeth[1L]),
-                     br(),
-                     h5(matmethSections[2L]),
-                     tags$p(matmeth[2L]),
-                     br(),
-                     h5(matmethSections[3L]),
-                     tags$p(matmeth[3L]),
-                     br()))
+    tagList(tags$div(
+      h5(matmethSections[1L]),
+      tags$p(matmeth[1L]),
+      br(),
+      h5(matmethSections[2L]),
+      tags$p(matmeth[2L]),
+      br(),
+      h5(matmethSections[3L]),
+      tags$p(matmeth[3L]),
+      br(),
+      style = paste0("background: ", myCol, ";")))
   }
 }
 make_ui_noReps <- \(tabNames = myTabs,
@@ -1351,10 +1392,12 @@ make_ui_noReps <- \(tabNames = myTabs,
                                     shiny = shiny)))
     }
     if (x == "QC") {
-      return(make_QC_ui(shiny = shiny))
+      return(tabPanel(x,
+                      make_QC_tab(shiny = shiny)))
     }
     if (x == "Materials and methods") {
-      return(make_matmet_ui(shiny = shiny))
+      return(tabPanel(x,
+                      make_matmet_tab(shiny = shiny)))
     }
   })
   return(bslib::navset_tab(!!!tabs))
@@ -1382,10 +1425,12 @@ make_ui_Reps <- \(tabNames = myTabs,
                                     shiny = shiny)))
     }
     if (x == "QC") {
-      return(make_QC_ui(shiny = shiny))
+      return(tabPanel(x,
+                      make_QC_tab(shiny = shiny)))
     }
     if (x == "Materials and methods") {
-      return(make_matmet_ui(shiny = shiny))
+      return(tabPanel(x,
+                      make_matmet_tab(shiny = shiny)))
     }
   })
   return(bslib::navset_tab(!!!tabs))
@@ -1450,18 +1495,7 @@ appPage <- 1L
 appNm <- "Edit report"
 ui <- fluidPage(useShinyjs(),
                 extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
-                tags$head(tags$style(HTML("table.dataTable td {
-    white-space: normal !important;
-    vertical-align: top !important;
-}")),
-                          tags$style(HTML(".cell-wrap {
-    max-height: 80px !important;
-    overflow: hidden !important;
-    white-space: normal;
-    vertical-align: top !important;
-    overflow-wrap: break-word !important;
-    word-break: break-word !important;
-}"))),
+                tags$head(tbl_css),
                 titlePanel(tag("u", appNm),
                            appNm),
                 br(),
@@ -1491,7 +1525,7 @@ server <- \(input, output, session) {
   output$xprtMsg <- renderUI(XPRTMSG())
   output$myUI <- renderUI(make_ui())
   if (tstHtMp) {
-    output$heatMap <- renderPlotly(plotLeatMaps$Global[[NORMMETH()]]$Render)
+    output$heatMap <- renderPlotly(plotLeatMaps$Global[[NORMMETH()]]$Plot)
   }
   if (tstPCA) {
     output$PCA <- renderPlotly(dimRedPlotLy$PCA)
@@ -1646,11 +1680,11 @@ server <- \(input, output, session) {
   })
   session$onSessionEnded(\() { stopApp() })
 }
-#eval(parse(text = runApp), envir = .GlobalEnv)
+#eval(parse(text = run_App), envir = .GlobalEnv)
 runKount <- 0L
 if (exists("appRunTst")) { rm(appRunTst) }
 while ((!runKount) || (!exists("appRunTst")) || (!file.exists(htmlRprtFl))) {
-  eval(parse(text = runApp), envir = .GlobalEnv)
+  eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount + 1L
 }

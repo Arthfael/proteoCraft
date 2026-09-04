@@ -2260,7 +2260,7 @@ server1 <- \(input, output, session) {
   session$onSessionEnded(\() { stopApp() })
 }
 if (exists("appRunTest")) { rm(appRunTest) }
-appTxt1 <- sub("myApp", "myApp1", sub("\\(ui", "(ui1", sub(", server", ", server1", runApp)))
+appTxt1 <- sub("myApp", "myApp1", sub("\\(ui", "(ui1", sub(", server", ", server1", run_App)))
 runKount <- 0L
 while ((!runKount) || (!exists("appRunTest"))) {
   ui1 <- make_ui1() # Update ui with current values

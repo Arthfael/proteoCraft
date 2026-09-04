@@ -309,7 +309,7 @@ if (!inherits(tstNorm, "try-error")) {
     session$onSessionEnded(function() { stopApp() })
   }
   while (!exists("IHAVERUN")) {
-    eval(parse(text = runApp), envir = .GlobalEnv)
+    eval(parse(text = run_App), envir = .GlobalEnv)
     shinyCleanup()
   }
   msg <- paste0(" -> ", normMeth, " correction for intensity range variance biases ",
