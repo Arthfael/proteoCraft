@@ -277,7 +277,6 @@ if (isOK) {
                       label_format = 500L # don't you dare wrap my labels!!!
       ) + ggplot2::facet_grid(.~.sign) +
         ggplot2::coord_fixed(0.025) +
-        ggtitle(grp, subtitle = nmRoot) +
         theme(plot.title = element_text(hjust = 0.5)) +
         theme(plot.subtitle = element_text(hjust = 0.5))
       suppressMessages({
@@ -298,9 +297,17 @@ if (isOK) {
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
         plotL <- plotly::plotly_build(plotL)
+        plotL2 <- plotly::layout(plotL,
+                                 title = list(text = grp,
+                                              automargin = TRUE,
+                                              subtitle = list(text = nmRoot)))
         setwd(ohDeer[1L])
-        htmlwidgets::saveWidget(plotly::partial_bundle(plotL), svpth[1L], selfcontained = TRUE)
+        htmlwidgets::saveWidget(plotly::partial_bundle(plotL2), svpth[1L], selfcontained = TRUE)
         setwd(wd)
+        #
+        plot <- plot + ggtitle(grp, subtitle = nmRoot)
+        ggplot2::ggsave(svpth[2L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
+        ggplot2::ggsave(svpth[3L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
       })
       return(plotL)
     }, silent = TRUE)
@@ -319,7 +326,6 @@ if (isOK) {
       ttl <- paste0(nmRoot, " _ ", grp)
       svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "jpeg", "pdf"))
       plot <- clusterProfiler::emapplot(gse2, showCategory = nCat) +
-        ggtitle(grp, subtitle = nmRoot) +
         theme_bw() +
         theme(plot.title = element_text(hjust = 0.5),
               plot.subtitle = element_text(hjust = 0.5))
@@ -345,9 +351,17 @@ if (isOK) {
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
         plotL <- plotly::plotly_build(plotL)
+        plotL2 <- plotly::layout(plotL,
+                                 title = list(text = grp,
+                                              automargin = TRUE,
+                                              subtitle = list(text = nmRoot)))
         setwd(ohDeer[1L])
-        htmlwidgets::saveWidget(plotly::partial_bundle(plotL), svpth[1L], selfcontained = TRUE)
+        htmlwidgets::saveWidget(plotly::partial_bundle(plotL2), svpth[1L], selfcontained = TRUE)
         setwd(wd)
+        #
+        plot <- plot + ggtitle(grp, subtitle = nmRoot)
+        ggplot2::ggsave(svpth[2L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
+        ggplot2::ggsave(svpth[3L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
       })
       return(plotL)
     }, silent = TRUE)
@@ -374,7 +388,6 @@ if (isOK) {
                                         color_edge = "grey",
                                         #cex_label_category = 1.2, cex_label_gene = 0.8 # Those parameters do not work for me...
       ) +
-        ggtitle(grp, subtitle = nmRoot) +
         theme_bw() +
         theme(plot.title = element_text(hjust = 0.5),
               plot.subtitle = element_text(hjust = 0.5))
@@ -390,8 +403,6 @@ if (isOK) {
         plot$data$label[w] <- db$Label[match(plot$data$label[w], db$`Protein ID`)]
         #
         #poplot(plot)
-        ggplot2::ggsave(svpth[2L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
-        ggplot2::ggsave(svpth[3L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
         #
         plotL <- plotly::ggplotly(plot)
         # Fix tooltip
@@ -444,9 +455,17 @@ if (isOK) {
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
         plotL <- plotly::plotly_build(plotL)
+        plotL2 <- plotly::layout(plotL,
+                                 title = list(text = grp,
+                                              automargin = TRUE,
+                                              subtitle = list(text = nmRoot)))
         setwd(ohDeer[1L])
-        htmlwidgets::saveWidget(plotly::partial_bundle(plotL), svpth[1L], selfcontained = TRUE)
+        htmlwidgets::saveWidget(plotly::partial_bundle(plotL2), svpth[1L], selfcontained = TRUE)
         setwd(wd)
+        #
+        plot <- plot + ggtitle(grp, subtitle = nmRoot)
+        ggplot2::ggsave(svpth[2L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
+        ggplot2::ggsave(svpth[3L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
       })
       return(plotL)
     }, silent = TRUE)
@@ -465,7 +484,6 @@ if (isOK) {
       ) + ggplot2::labs(x = "enrichment distribution") +
         ggplot2::theme(axis.text.x = ggplot2::element_text(size = 5L),
                        axis.text.y = ggplot2::element_text(size = 5L)) +
-        ggtitle(grp, subtitle = nmRoot) +
         theme(plot.title = element_text(hjust = 0.5)) +
         theme(plot.subtitle = element_text(hjust = 0.5))
       suppressMessages({
@@ -477,9 +495,17 @@ if (isOK) {
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
         plotL <- plotly::plotly_build(plotL)
+        plotL2 <- plotly::layout(plotL,
+                                 title = list(text = grp,
+                                              automargin = TRUE,
+                                              subtitle = list(text = nmRoot)))
         setwd(ohDeer[1L])
-        htmlwidgets::saveWidget(plotly::partial_bundle(plotL), svpth[1L], selfcontained = TRUE)
+        htmlwidgets::saveWidget(plotly::partial_bundle(plotL2), svpth[1L], selfcontained = TRUE)
         setwd(wd)
+        #
+        plot <- plot + ggtitle(grp, subtitle = nmRoot)
+        ggplot2::ggsave(svpth[2L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
+        ggplot2::ggsave(svpth[3L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
       })
       return(plotL)
     }, silent = TRUE)

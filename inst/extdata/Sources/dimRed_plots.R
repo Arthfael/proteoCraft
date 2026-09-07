@@ -240,9 +240,9 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     wBoring <- which(scores$Classifier == nullVal)
     wComp <- which(scores$Classifier %in% compVal)
     wReg <- which(scores$Classifier %in% regVal)
-    scores$Size <- 1L
-    scores$Size[wComp] <- 1.2
-    scores$Size[wReg] <- 1.6
+    scores$Size <- 3L
+    scores$Size[wComp] <- 3.2
+    scores$Size[wReg] <- 3.5
     ttl <- "PCA plot - Protein groups (PG-level)"
     plot <- ggplot(scores[wBoring,], aes(x = PC1, y = PC2, colour = Classifier, size = Size)) +
       geom_scattermore(shape = 16L)
@@ -292,7 +292,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     # PL_symbolScale[which(names(PL_symbolScale) == " ")] <- "circle"
     # PL_symbolScale[which(names(PL_symbolScale) %in% compVal)] <- "cross"
     # PL_symbolScale[which(names(PL_symbolScale) %in% regVal)] <- "square"
-    PL_symbolScale <- setNames(c("circle", "cross", "square"), Categories)
+    PL_symbolScale <- setNames(c("circle", "circle", "diamond"), Categories)
     # Default camera
     myCam <- list(eye = list(x = 1.6,
                              y = 1.6,
@@ -319,10 +319,9 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     for (val in allVal) { #val <- allVal[1L]
       myCat <- val2Cat[val]
       if (is.na(myCat)) { myCat <- 1 } # To be on the safe side!
-      sz <- catsEyes[myCat]*1.5
-      if (val == nullVal) { subDat <- scores } else {
-        subDat <- scores[which(scores$Classifier == val),]
-        sz <- sz*3L
+      sz <- catsEyes[myCat]
+      subDat <- if (val == nullVal) { scores } else {
+        scores[which(scores$Classifier == val),]
       }
       args <- base_args
       args$name <- val

@@ -524,9 +524,7 @@ if (length(PTMs)) {
     #
     ptmpep <- tempVPptm$Protein_groups_file
     volcano.plots[[Ptm]] <- tempVPptm$Plots
-    if (create_plotly) {
-      plot_ly[[paste0(Ptm, "_Volcano plots (t-tests)")]] <- tempVPptm$"Plotly plots"
-    }
+    #
     # Specificity mark for untested proteins
     # We can assume that proteins with PSMs only in the specific pull-down samples are actually specifically enriched!
     # -> Label them as such!
@@ -622,8 +620,7 @@ if (length(PTMs)) {
         volcano.plots[[Ptm]]$"F-tests_Unlabelled" <- F_volc$Plots$"Unlabelled"
         volcano.plots[[Ptm]]$"F-tests_Labelled" <- F_volc$Plots$"Labelled"
         myDir <- modDirs[3L]
-        # Legacy code for web-hosted plotly plots:
-        if (create_plotly) { plot_ly[[paste0(Ptm, "_Volcano plots (F-tests)")]] <- F_volc$"Plotly plots" }
+        #
         # Create F-test filters:
         g <- grep("^mod\\. F-test Regulated - ", colnames(PTMs_F_test_data[[Ptm]]), value = TRUE)
         g1 <- gsub("^mod\\. F-test Regulated - ", "", g)
@@ -997,9 +994,6 @@ if (length(PTMs)) {
                   GO_terms <- PTMs_GO_Plots[[Ptm]][[tstbee]]$All_GO_terms
                   PTMs_GO_Plots[[Ptm]][[tstbee]]$All_GO_terms <- NULL  
                 }
-                if (create_plotly) {
-                  plot_ly[[paste0(Ptm, "_GO plots - Regulated vs Observed - ", tstbee)]] <- PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_plot_ly
-                }
                 temp <- PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_terms
                 temp$Mapping <- NULL
                 if ("Offspring" %in% colnames(temp)) {
@@ -1163,3 +1157,9 @@ if (CytoScape) {
     cat("(This error can be ignored as it does not interrupt script execution.\nIt looks like you are trying to close Cytoscape although it is already open (maybe running this script by bits after an interruption?)\n\n")
   }
 }
+
+# Backup data/update cluster
+stopClust <- TRUE
+#rstudioapi::documentOpen(bckpSrc)
+source(bckpSrc, local = FALSE)
+#loadFun(BckUpFl)

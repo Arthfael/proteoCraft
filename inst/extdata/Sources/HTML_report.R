@@ -65,30 +65,17 @@ xlDat <- setNames(lapply(nms, \(nm) { #nm <- nms[1L] #nm <- nms[4L]
   }
   return(dat)
 }), nms)
-#
+
 # Reload materials and methods
-matmethSections <- c("Samples preparation", "LC-MS/MS analysis", "Data analysis")
-fl <- paste0(wd, "/Materials and methods_WIP.docx")
 if (!exists("matmethTxt")) {
-  matmethTxt <- setNames(rep("", 3L),
-                         matmethSections)
+  matmethTxt <- list("Samples preparation" = MatMetCalls$Texts$WetLab,
+                     "LC-MS/MS analysis" = MatMetCalls$Texts$LCMS,
+                     "Data analysis" = MatMetCalls$Texts$DatAnalysis)
 }
-if (file.exists(fl)) {
-  matmethTxt_fromFl <- officer::read_docx(fl)
-  matmethTxt_fromFl <- officer::docx_summary(matmethTxt_fromFl)
-  w <- match(matmethSections, matmethTxt_fromFl$text)
-  matmethTxt_fromFl <- setNames(vapply(1L:3L, \(i) {
-    rg <- (w[i]+1L):(c(w, nrow(matmethTxt_fromFl)+1L)[i+1L]-1L)
-    paste(setdiff(matmethTxt_fromFl$text[rg], ""), collapse = "\n")
-  }, ""), matmethSections)
-  w <- which(matmethTxt == "")
-  if (length(w)) {
-    matmethTxt[w] <- matmethTxt_fromFl[w]
-  }
-}
-#
+matmethSections <- names(matmethTxt)
+
+# Reload plots data
 tstRat <- (scrptType == "noReps") && MakeRatios && exists("ratioPlots") && (length(ratioPlots) > 0L)
-# If necessary reload plots data
 flHtMp <- paste0(wd, "/Clustering/HeatMaps.RData")
 tstHtMp <- file.exists(flHtMp)
 if (tstHtMp) {
@@ -289,7 +276,7 @@ report_header <- tags$header(
 make_prot_tab <- \(dflt = dfltProt,
                    prots = allProt,
                    shiny = TRUE) {
-  myCol <- tolower(viridis::viridis(6, alpha = 0.2)[4L])
+  myCol <- tolower(viridis::viridis(6L, alpha = 0.2)[4L])
   myExp <- if (scrptType == "noReps") { Exp } else { setNames(smplGrps, NULL) }
   # - show:
   # Proteins tab
@@ -1010,7 +997,7 @@ make_summTbl_ui <- \() {
                                      columnDefs = list(list(width = "160px",
                                                             targets = 1L:ncol(df) - 1L))))
   return(tags$div(df,
-                  style = paste0("background: #ffffff;")))
+                  style = "background: #ffffff;"))
 }
 make_select_tag <- \(id,
                      label,
@@ -1034,7 +1021,7 @@ make_smpl_tab <- \(exp,
                    shiny = TRUE,
                    quant = quantMeth,
                    dflt = dfltQuant) {
-  myCol <- tolower(viridis::viridis(6, alpha = 0.2)[2L])
+  myCol <- tolower(viridis::viridis(6L, alpha = 0.2)[2L])
   exp2 <- if (scrptType == "noReps") { exp } else { names(smplGrps)[match(exp, smplGrps)] }
   lQ <- length(quant)
   if (shiny) {
@@ -1085,7 +1072,7 @@ make_smpl_tab <- \(exp,
 }
 make_ctrst_tab <- \(contr,
                     shiny = TRUE) {
-  myCol <- tolower(viridis::viridis(6, alpha = 0.2)[3L])
+  myCol <- tolower(viridis::viridis(6L, alpha = 0.2)[3L])
   styleOn <- paste0("display: block; height: ", plotHtMpHght)
   contr2 <- gsub(" ", "_", contr)
   saintIDs <- c(paste0("SAINTexpress volcano plot ", contr),
@@ -1093,10 +1080,11 @@ make_ctrst_tab <- \(contr,
   if (runGSEA) {
     GSEA_IDs <- paste0(contr2, "_GSEA", as.character(1L:4L))
   }
+  saintXPRS <- saintExprs && (saintIDs[1L] %in% names(volcPlotly$SAINTexpress))
   if (shiny) {
     tagList(tags$div(
       make_comment_ui(contr, shiny),
-      if (saintExprs && (saintIDs[1L] %in% names(volcPlotly$SAINTexpress))) {
+      if (saintXPRS) {
         div(h3("SAINTexpress"),
             fluidRow(column(6L,
                             plotlyOutput(paste0(contr2, "_SAINT_volcPlot"), height = "600px")),
@@ -1107,31 +1095,36 @@ make_ctrst_tab <- \(contr,
                               plotlyOutput(paste0(contr2, "_SAINT_GObars"), height = "600px"))
                      },
             ),
-            tags$hr(style = "border-color: black;"))
+            style = "background: #ffffff;"))
       },
-      div(h3("t-test"),
-          fluidRow(column(6L,
-                          plotlyOutput(paste0(contr2, "_volcPlot"), height = "600px")),
-                   if (enrichGO) {
-                     column(6L,
-                            br(),
-                            br(),
-                            plotlyOutput(paste0(contr2, "_GObars"), height = "600px"))
-                   },
-          ),
-          tags$hr(style = "border-color: black;")),
+      if (!saintXPRS) {
+        div(h3("t-test"),
+            fluidRow(column(6L,
+                            plotlyOutput(paste0(contr2, "_volcPlot"), height = "600px")),
+                     if (enrichGO) {
+                       column(6L,
+                              br(),
+                              br(),
+                              plotlyOutput(paste0(contr2, "_GObars"), height = "600px"))
+                     },
+            ),
+            style = "background: #ffffff;")
+      },
+      tags$hr(style = "border-color: black;"),
       if (F.test) {
         # Add F-test part here... or maybe dropdown to choose f-/F-test... or drop F-test altogether?
       },
       if (runGSEA) {
-        div(h3("GSEA"),
-            fluidRow(column(6L,
-                            plotlyOutput(GSEA_IDs[1L]),
-                            plotlyOutput(GSEA_IDs[2L])),
-                     column(6L,
-                            plotlyOutput(GSEA_IDs[3L]),
-                            plotlyOutput(GSEA_IDs[4L]))),
-            tags$hr(style = "border-color: black;"))
+        div(
+          div(h3("GSEA"),
+              fluidRow(column(6L,
+                              plotlyOutput(GSEA_IDs[1L]),
+                              plotlyOutput(GSEA_IDs[2L])),
+                       column(6L,
+                              plotlyOutput(GSEA_IDs[3L]),
+                              plotlyOutput(GSEA_IDs[4L]))),
+              style = "background: #ffffff;"),
+          tags$hr(style = "border-color: black;"))
       },
       make_ctrst_tbl_ui(contr),
       style = paste0("background: ", myCol, ";")))
@@ -1140,7 +1133,7 @@ make_ctrst_tab <- \(contr,
     styleOn4 <- "display: block; height: 400px"
     tagList(tags$div(
       make_comment_ui(contr, shiny),
-      if (saintExprs && (saintIDs[1L] %in% names(volcPlotly$SAINTexpress))) {
+      if (saintXPRS) {
         div(h3("SAINTexpress"),
             fluidRow(column(6L,
                             tags$div(id = saintIDs[2L],
@@ -1155,52 +1148,57 @@ make_ctrst_tab <- \(contr,
                                        GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar))
                      },
             ),
-            tags$hr(style = "border-color: black;"))
+            style = "background: #ffffff;")
       },
-      div(h3("t-test"),
-          fluidRow(column(6L,
-                          tags$div(id = paste0(contr2, "_volcPlot"),
-                                   style = styleOn6,
-                                   volcPlotly$"t-test"[[paste0("Volcano plot ", contr)]]$Plot)),
-                   if (enrichGO) {
-                     column(6L,
-                            br(),
-                            br(),
-                            tags$div(id = paste0(contr2, "_GObars"),
+      if (!saintXPRS) {
+        div(h3("t-test"),
+            fluidRow(column(6L,
+                            tags$div(id = paste0(contr2, "_volcPlot"),
                                      style = styleOn6,
-                                     GO_plot_ly$PG$"t-test"[[contr]]$Bar))
-                   },
-          ),
-          tags$hr(style = "border-color: black;")),
+                                     volcPlotly$"t-test"[[paste0("Volcano plot ", contr)]]$Plot)),
+                     if (enrichGO) {
+                       column(6L,
+                              br(),
+                              br(),
+                              tags$div(id = paste0(contr2, "_GObars"),
+                                       style = styleOn6,
+                                       GO_plot_ly$PG$"t-test"[[contr]]$Bar))
+                     },
+            ),
+            style = "background: #ffffff;")
+      },
+      tags$hr(style = "border-color: black;")
       if (F.test) {
         # Add F-test part here... or maybe dropdown to choose f-/F-test... or drop F-test altogether?
       },
       if (runGSEA) {
-        div(h3("GSEA"),
-            # NB: I also tried the plotly::subplot() approach to displaying the plots together in one,
-            # but this fails (subplots look corrupted, possibly because they are slightly hacky)
-            fluidRow(column(6L,
-                            tags$div(id = GSEA_IDs[1L],
-                                     style = styleOn4,
-                                     GSEA_plots$standard$PG$`GSEA dotplot`[[contr]]),
-                            tags$div(id = GSEA_IDs[2L],
-                                     style = styleOn4,
-                                     GSEA_plots$standard$PG$`GSEA enrichment map`[[contr]])),
-                     column(6L,
-                            tags$div(id = GSEA_IDs[3L],
-                                     style = styleOn4,
-                                     GSEA_plots$standard$PG$`GSEA ridge plot`[[contr]]),
-                            tags$div(id = GSEA_IDs[4L],
-                                     style = styleOn4,
-                                     GSEA_plots$standard$PG$`GSEA category net plot`[[contr]]))),
-            tags$hr(style = "border-color: black;"))
+        div(
+          div(h3("GSEA"),
+              # NB: I also tried the plotly::subplot() approach to displaying the plots together in one,
+              # but this fails (subplots look corrupted, possibly because they are slightly hacky)
+              fluidRow(column(6L,
+                              tags$div(id = GSEA_IDs[1L],
+                                       style = styleOn4,
+                                       GSEA_plots$standard$PG$`GSEA dotplot`[[contr]]),
+                              tags$div(id = GSEA_IDs[2L],
+                                       style = styleOn4,
+                                       GSEA_plots$standard$PG$`GSEA enrichment map`[[contr]])),
+                       column(6L,
+                              tags$div(id = GSEA_IDs[3L],
+                                       style = styleOn4,
+                                       GSEA_plots$standard$PG$`GSEA ridge plot`[[contr]]),
+                              tags$div(id = GSEA_IDs[4L],
+                                       style = styleOn4,
+                                       GSEA_plots$standard$PG$`GSEA category net plot`[[contr]]))),
+              style = "background: #ffffff;"),
+          tags$hr(style = "border-color: black;"))
       },
       make_ctrst_tbl_ui(contr),
       style = paste0("background: ", myCol, ";")))
   }
 }
 make_strt_tab <- \(shiny = TRUE) {
-  myCol <- tolower(viridis::viridis(6, alpha = 0.2)[1L])
+  myCol <- tolower(viridis::viridis(6L, alpha = 0.2)[1L])
   # TO DO
   # Add Dataset GO terms enrichment
   if (shiny) {
@@ -1296,7 +1294,7 @@ make_strt_tab <- \(shiny = TRUE) {
 }
 make_QC_tab <- \(shiny = TRUE,
                  plotsList = QC_plotLys) {
-  myCol <- tolower(viridis::viridis(6, alpha = 0.2)[5L])
+  myCol <- tolower(viridis::viridis(6L, alpha = 0.2)[5L])
   if (shiny) {
     tagList(tags$div(
       selectInput("QC1", "", names(plotsList), names(plotsList)[1L]),
@@ -1344,7 +1342,7 @@ make_QC_tab <- \(shiny = TRUE,
 }
 make_matmet_tab <- \(matmeth = matmethTxt,
                      shiny = TRUE) {
-  myCol <- tolower(viridis::viridis(6, alpha = 0.2)[6L])
+  myCol <- tolower(viridis::viridis(6L, alpha = 0.2)[6L])
   # We want to load the processed materials and methods (potentially edited by the user)
   # ============> This should be ideally run as part of the finalization script, after the materials and method edition stage
   #
@@ -1750,4 +1748,22 @@ h2[rg1] <- hd1$new
 write(h2, htmlRprtFl)
 removeDirectory(paste0(wd, "/lib"), TRUE, FALSE)
 
-# To do: write Mat Meth as separate file too
+# Write Mat Meth template as separate file
+MatMetCalls$Texts$WetLab <- matmethTxt["Samples preparation"]
+MatMetCalls$Texts$LCMS <- matmethTxt["LC-MS/MS analysis"]
+MatMetCalls$Texts$DatAnalysis <- matmethTxt["Data analysis"]
+setwd(wd)
+tmp <- paste0("MatMet <- ", unlist(MatMetCalls$Calls))
+tmpSrc <- paste0(wd, "/tmp.R")
+write(tmp, tmpSrc)
+MatMetFl <- paste0(wd, "/Materials and methods_WIP.docx")
+tst <- try({
+  source(tmpSrc, local = FALSE)
+  #rstudioapi::documentOpen(tmpSrc)
+  MatMet %<o% MatMet
+  print(MatMet, target = MatMetFl)
+}, silent = TRUE)
+if (inherits(tst, "try-error")) {
+  warning("Couldn't write materials and methods template, investigate...")
+}
+unlink(tmpSrc)

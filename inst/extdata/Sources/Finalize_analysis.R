@@ -1,24 +1,10 @@
-# Write Materials and Method to text size
-setwd(wd)
-tmp <- paste0("MatMet <- ", unlist(MatMetCalls$Calls))
-tmpSrc <- paste0(wd, "/tmp.R")
-write(tmp, tmpSrc)
-MatMetFl <- paste0(wd, "/Materials and methods_WIP.docx")
-tst <- try({
-  source(tmpSrc, local = FALSE)
-  #rstudioapi::documentOpen(tmpSrc)
-  MatMet %<o% MatMet
-  print(MatMet, target = MatMetFl)
-}, silent = TRUE)
-if (inherits(tst, "try-error")) {
-  warning("Couldn't write materials and methods template, investigate...")
-} else {
-  system(paste0("open \"", MatMetFl, "\""))
-  dlg_message("Check materials and methods text, make any necessary edits, then save and click ok", "ok")
-}
-unlink(tmpSrc)
+######################################################################
+###                                                                ###
+### Finalize analysis, write reports, move data, cleanup folder... ###
+###                                                                ###
+######################################################################
 
-# Write final HTML report
+# Write final HTML report and materials and methods template file
 Src <- paste0(libPath, "/extdata/Sources/HTML_report.R")
 #rstudioapi::documentOpen(Src)
 source(Src, local = FALSE)

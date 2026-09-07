@@ -332,7 +332,7 @@ source(Src, local = FALSE)
 
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
-source(bckpSrc, local = FALSE)
+#source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
 # Filter to keep only PSMs with valid quantitative values:
@@ -356,7 +356,7 @@ ev$"Unique State" <- do.call(paste, c(ev[, c("Modified sequence", "Charge")], se
 
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
-source(bckpSrc, local = FALSE)
+#source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
 # DIA-only: MS2-based correction of MS1-based quantitative values
@@ -432,7 +432,7 @@ LocAnalysis2 %<o% FALSE
 
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
-source(bckpSrc, local = FALSE)
+#source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
 #### Code chunk - Optionally impute missing peptide intensities
@@ -1285,15 +1285,7 @@ PG$"Rel. av. log10 abundance" <- PG$"Av. log10 abundance"/max(PG$"Av. log10 abun
 PG$"Rel. log10(Peptides count)" <- PG$"log10(Peptides count)"/max(PG$"log10(Peptides count)"[which(is.finite(PG$"log10(Peptides count)"))])
 # Plotly
 create_plotly %<o% TRUE
-# create_plotly <- !((as.character(Param$Plotly_user_name) %in% c("", "NA", " "))&(as.character(Param$Plotly_API_key) %in% c("", "NA", " ")))
-# if (create_plotly) {
-#   plotly_subfolder %<o% gsub(":|\\*|\\?|<|>|\\|", "-", Param$Project)
-#   plotly_subfolder <- paste0(gsub("/+$", "", plotly_subfolder), "/")
-#   Sys.setenv("plotly_username" = Param$Plotly_user_name)
-#   Sys.setenv("plotly_api_key" = Param$Plotly_API_key)
-#   plot_ly %<o% list()
-#   plot_ly$"t-tests" <- list()
-# }
+
 # Arbitrary thresholds
 # arbitrary.thr %<o% data.frame(yintercept = -log10(c(0.05, 0.01)),
 #                               slope = c(0, 0),
@@ -1583,7 +1575,6 @@ clustersTest <- try({
 if (inherits(clustersTest, "try-error")) {
   warning("Could not draw heatmap for t-test results!")
 }
-#
 
 # Backup data/update cluster
 stopClust <- TRUE
@@ -1697,7 +1688,7 @@ if (F.test) {
     #
     # Backup data/update cluster
     #rstudioapi::documentOpen(bckpSrc)
-    source(bckpSrc, local = FALSE)
+    #source(bckpSrc, local = FALSE)
     #loadFun(BckUpFl)
     #
   } else { warning("F-test analysis failed, check your parameters!")}
@@ -1985,12 +1976,6 @@ source(bckpSrc, local = FALSE)
 modPepSrc <- paste0(libPath, "/extdata/Sources/modPeptides.R")
 #rstudioapi::documentOpen(modPepSrc)
 source(modPepSrc, local = FALSE)
-
-# Backup data/update cluster
-stopClust <- TRUE
-#rstudioapi::documentOpen(bckpSrc)
-source(bckpSrc, local = FALSE)
-#loadFun(BckUpFl)
 
 #### Code chunk - Proteomic ruler
 Src <- paste0(libPath, "/extdata/Sources/proteome_Ruler.R")

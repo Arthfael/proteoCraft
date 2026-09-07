@@ -332,7 +332,7 @@ source(Src, local = FALSE)
 
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
-source(bckpSrc, local = FALSE)
+#source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
 # Filter to keep only PSMs with valid quantitative values:
@@ -361,7 +361,7 @@ ev$"Unique State" <- do.call(paste, c(ev[, c("Modified sequence", "Charge")], se
 
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
-source(bckpSrc, local = FALSE)
+#source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
 # DIA-only: MS2-based correction of MS1-based quantitative values
@@ -438,7 +438,7 @@ LocAnalysis2 %<o% FALSE
 
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
-source(bckpSrc, local = FALSE)
+#source(bckpSrc, local = FALSE)
 #loadFun(BckUpFl)
 
 #### Code chunk - Optionally impute missing peptide intensities
@@ -645,12 +645,6 @@ if (F.test) {
 modPepSrc <- paste0(libPath, "/extdata/Sources/modPeptides.R")
 #rstudioapi::documentOpen(modPepSrc)
 source(modPepSrc, local = FALSE)
-
-# Backup data/update cluster
-stopClust <- TRUE
-#rstudioapi::documentOpen(bckpSrc)
-source(bckpSrc, local = FALSE)
-#loadFun(BckUpFl)
 
 #### Code chunk - Create output tables
 ## PSMs

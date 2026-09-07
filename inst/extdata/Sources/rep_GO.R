@@ -178,7 +178,6 @@ if (Annotate && (enrichGO || globalGO)) {
               for (ttl in n2) { #ttl <- n2[1L]
                 plot <- GO_Plots[[tstbee]]$GO_plots[[ttl]]
               }
-              if (create_plotly) { plot_ly[[paste0("GO plots - Regulated vs Observed - ", tstbee)]] <- GO_Plots[[tstbee]]$GO_plot_ly }
               temp <- GO_Plots[[tstbee]]$GO_terms
               temp$Mapping <- NULL
               if ("Offspring" %in% colnames(temp)) {
@@ -345,7 +344,6 @@ if (Annotate && (enrichGO || globalGO)) {
       GO_terms <- GO_Plots_2$All_GO_terms
       GO_Plots_2$All_GO_terms <- NULL
     }
-    if (create_plotly) { plot_ly$"GO plots - Observed dataset vs Theoretical proteome" <- GO_Plots_2$GO_plot_ly }
   }
   l <- length(DatAnalysisTxt)
   DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
