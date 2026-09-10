@@ -58,11 +58,11 @@ if (length(PTMs)) {
     ### Check that Cytoscape is installed and can run, then launch it.
     Src <- paste0(libPath, "/extdata/Sources/Cytoscape_init.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
     # Initialize ClueGO
     Src <- paste0(libPath, "/extdata/Sources/ClueGO_init.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
     #
   }
   #
@@ -131,7 +131,7 @@ if (length(PTMs)) {
   # ptms.ratios.ref %<o% setNames(pep.ratios.ref[length(pep.ratios.ref)],
   #                               "Original")
   for (ptm in PTMs) { #ptm <- PTMs[1L]
-    source(parSrc, local = FALSE)
+    source(parSrc)
     cat(" -", ptm, "\n")
     modDirs <- c("", "/t-tests")
     if (F.test) { modDirs <- c(modDirs, "/F-tests") }
@@ -337,7 +337,7 @@ if (length(PTMs)) {
                  "Re-normalisation (intensities)",
                  modDirs[1L])
       if (length(prot.list)) {
-        source(parSrc, local = FALSE)
+        source(parSrc)
         dr <- paste0(modDirs[1L], "/Heatmaps")
         pepHtmp(prot.list,
                 ptmpep,
@@ -369,7 +369,7 @@ if (length(PTMs)) {
     dataType <- "modPeptides" # used for PCA and stats
     Src <- paste0(libPath, "/extdata/Sources/dimRed_plots.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
     #
     #View(ptmpep[, grep(topattern(ptmRf), colnames(ptmpep), value = TRUE)])
     #
@@ -380,11 +380,11 @@ if (length(PTMs)) {
     #
     Src <- paste0(libPath, "/extdata/Sources/Stat_tests.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
     #
     Src <- paste0(libPath, "/extdata/Sources/pVal_check.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
     #
     # Also mean expression over whole dataset
     kls <- grep(topattern(ptmRf), colnames(ptmpep), value = TRUE)
@@ -513,13 +513,13 @@ if (length(PTMs)) {
     myPlotLys <- volcPlotly[[paste0(ptm, " t-test")]]
     Src <- paste0(libPath, "/extdata/Sources/save_Plotlys.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
     #
     VP_list <- tempVPptm
     insrt <- ""
     Src <- paste0(libPath, "/extdata/Sources/thresholds_Excel.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
     #
     #
     ptmpep <- tempVPptm$Protein_groups_file
@@ -613,7 +613,7 @@ if (length(PTMs)) {
       #
       FSrc %<o% paste0(libPath, "/extdata/Sources/run_F_test.R")
       #rstudioapi::documentOpen(FSrc)
-      tstFtst <- try(source(FSrc, local = FALSE), silent = TRUE)
+      tstFtst <- try(source(FSrc), silent = TRUE)
       #
       if (!inherits(tstFtst, "try-error")) {
         #F_test_ref_ratios %<o% F_volc$`Reference ratios` # Not needed
@@ -725,7 +725,7 @@ if (length(PTMs)) {
         dataType <- "modPeptides"
         Src <- paste0(libPath, "/extdata/Sources/protList_DiaNN_XIC.R")
         #rstudioapi::documentOpen(Src)
-        source(Src, local = FALSE)
+        source(Src)
       }
     }
     #
@@ -736,7 +736,7 @@ if (length(PTMs)) {
         GSEAmode <- "standard"
         Src <- paste0(libPath, "/extdata/Sources/GSEA.R")
         #rstudioapi::documentOpen(Src)
-        source(Src, local = FALSE)
+        source(Src)
       }
     }, silent = TRUE)
     #
@@ -824,11 +824,11 @@ if (length(PTMs)) {
     #
     # Gene Ontology terms enrichment analysis
     if (enrichGO) {
-      if ((!exists("GO_mappings")) && file.exists("GO_mappings.RData")) {
-        loadFun("GO_mappings.RData")
+      if ((!exists("GO_mappings")) && file.exists("GO_mappings.RDS")) {
+        loadFun("GO_mappings.RDS")
       }
-      if ((!exists("GO_terms")) && file.exists("GO_terms.RData")) {
-        loadFun("GO_terms.RData")
+      if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) {
+        loadFun("GO_terms.RDS")
       }
       p <- strsplit(ptmpep$Proteins, ";")
       test <- sapply(annot.col, \(x) { x %in% colnames(db) })
@@ -967,22 +967,22 @@ if (length(PTMs)) {
               #
               Mode <- "regulated"
               dataType <- "modPeptides"
-              if ((!exists("GO_mappings")) && file.exists("GO_mappings.RData")) {
-                loadFun("GO_mappings.RData")
+              if ((!exists("GO_mappings")) && file.exists("GO_mappings.RDS")) {
+                loadFun("GO_mappings.RDS")
               }
-              if ((!exists("GO_terms")) && file.exists("GO_terms.RData")) {
-                loadFun("GO_terms.RData")
+              if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) {
+                loadFun("GO_terms.RDS")
               }
               #
               Src <- paste0(libPath, "/extdata/Sources/GO_enrich.R")
               #rstudioapi::documentOpen(Src)
-              source(Src, local = FALSE)
+              source(Src)
               #
               clueGO_outDir <- myDir
               clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
               Src <- paste0(libPath, "/extdata/Sources/ClueGO_enrich.R")
               #rstudioapi::documentOpen(Src)
-              source(Src, local = FALSE)
+              source(Src)
               #
               # Cleanup - do it now, not within sources!
               try(rm(list = allArgs), silent = TRUE)
@@ -1133,11 +1133,11 @@ if (length(PTMs)) {
 if (Annotate) {
   # (Testing for existence in case we are rerunning part of the script)
   if (exists("GO_terms")) {
-    saveFun(GO_terms, file = "GO_terms.RData")
+    saveFun(GO_terms, file = "GO_terms.RDS")
     rm(GO_terms)
   }
   if (exists("GO_mappings")) {
-    saveFun(GO_mappings, file = "GO_mappings.RData")
+    saveFun(GO_mappings, file = "GO_mappings.RDS")
     rm(GO_mappings)
   }
   # otherwise they are also unused further down.
@@ -1161,5 +1161,5 @@ if (CytoScape) {
 # Backup data/update cluster
 stopClust <- TRUE
 #rstudioapi::documentOpen(bckpSrc)
-source(bckpSrc, local = FALSE)
+source(bckpSrc)
 #loadFun(BckUpFl)

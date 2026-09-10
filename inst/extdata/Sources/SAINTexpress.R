@@ -377,13 +377,13 @@ if (saintExprs) {
     myPlotLys <- volcPlotly[["SAINTexpress"]]
     Src <- paste0(libPath, "/extdata/Sources/save_Plotlys.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
     #
     VP_list <- tempVPip
     insrt <- ""
     Src <- paste0(libPath, "/extdata/Sources/thresholds_Excel.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
     #
     # Folder cleanup
     dirs <- list.dirs(saintDir)
@@ -438,7 +438,7 @@ if (saintExprs) {
       dataType <- "PG"
       clstSrc <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Main.R")
       #rstudioapi::documentOpen(clstSrc)
-      source(clstSrc, local = FALSE)
+      source(clstSrc)
     }, silent = TRUE) # Allowed to fail, but with a warning!
     if (inherits(clustersTest, "try-error")) {
       warning("Could not draw heatmap for SAINTexpress results!")

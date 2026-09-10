@@ -875,6 +875,8 @@ if ("LM" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
     assign("quant_pep_IDs", readr::read_rds(tmpFl2), envir = .GlobalEnv)
     return()
   }))
+  unlink(tmpFl1)
+  unlink(tmpFl2)
   cat("            Starting calculations...\n")
   lmDat <- parallel::parLapply(parClust,
                                quant_pep_IDs,

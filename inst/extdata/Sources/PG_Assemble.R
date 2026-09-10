@@ -1255,6 +1255,6 @@ if (splitByOrg) {
   fl <- paste0(fl, "_", uOrgsNorm[currOrg])
   n_of_PGs <- n_of_PGs + nrow(pg)
 }
-fl <- paste0(wd, "/", fl, ".RData")
+fl <- paste0(wd, "/", fl, ".RDS")
 saveFun(PG_assembly, file = fl)
 cat("\nDone!\n\n")

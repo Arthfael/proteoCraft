@@ -488,13 +488,13 @@ Example: \"GO:0031012;2\"
         myPlotLys <- tempVP3
         Src <- paste0(libPath, "/extdata/Sources/save_Volcano_plotlys.R")
         #rstudioapi::documentOpen(Src)
-        source(Src, local = FALSE)
+        source(Src)
         #
         VP_list <- tempVP3
         insrt <- ""
         Src <- paste0(libPath, "/extdata/Sources/thresholds_Excel.R")
         #rstudioapi::documentOpen(Src)
-        source(Src, local = FALSE)
+        source(Src)
         #
         g <- grep("Regulated - ", colnames(tempVP3$Protein_groups_file), value = TRUE)
         PG[, gsub("^Regulated - ", "Re-localized - ", g)] <- tempVP3$Protein_groups_file[,g]
@@ -640,7 +640,7 @@ Example: \"GO:0031012;2\"
         dataType <- "PG"
         Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Main.R")
         #rstudioapi::documentOpen(Src)
-        source(Src, local = FALSE)
+        source(Src)
         #
       } else { warning("No localisation volcano plots created, investigate!") }
     } else {
@@ -663,5 +663,5 @@ Example: \"GO:0031012;2\"
   invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
   saveImgFun(BckUpFl)
   #loadFun(BckUpFl)
-  source(parSrc, local = FALSE)
+  source(parSrc)
 }

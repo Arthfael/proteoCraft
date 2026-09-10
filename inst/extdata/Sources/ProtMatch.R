@@ -50,7 +50,7 @@ RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winsl
 libPath <- paste0(RPath, "/proteoCraft")
 parSrc <- paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
 #rstudioapi::documentOpen(parSrc)
-source(parSrc, local = FALSE)
+source(parSrc)
 #
 # Define final protein aggregate function
 fAggr0 <- \(x) { paste(sort(unique(x)), collapse = ";") }

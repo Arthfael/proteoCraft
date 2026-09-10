@@ -131,7 +131,7 @@ if (runRankAbundPlots || runProfPlots) {
     GO_PG_col %<o% unique(unlist(strsplit(Param$GO.tabs, ";")))
     GO_filt %<o% (length(GO_PG_col) > 0L)
     if (GO_filt) {
-      if ((!exists("GO_terms")) && file.exists(paste0(wd, "/GO_terms.RData"))) { loadFun(paste0(wd, "/GO_terms.RData")) }
+      if ((!exists("GO_terms")) && file.exists(paste0(wd, "/GO_terms.RDS"))) { loadFun(paste0(wd, "/GO_terms.RDS")) }
       GO_PG_col <- GO_PG_col[which(GO_PG_col %in% GO_terms$ID)]
       GO_filt <- length(GO_PG_col) > 0L
     }
@@ -142,7 +142,7 @@ if (runRankAbundPlots || runProfPlots) {
     pep_ref <- paste0(int.cols["Original"], " - ")
     mySamples <- Exp
     if (GO_filt) {
-      if ((!exists("GO_terms")) && file.exists(paste0(wd, "/GO_terms.RData"))) { loadFun(paste0(wd, "/GO_terms.RData")) }
+      if ((!exists("GO_terms")) && file.exists(paste0(wd, "/GO_terms.RDS"))) { loadFun(paste0(wd, "/GO_terms.RDS")) }
     }
   }
   if (GO_filt) {
@@ -393,7 +393,7 @@ if (runRankAbundPlots || runProfPlots) {
       w2 <- whAb[which((samplesDF$type[whAb] == "pep") & (samplesDF$QuantType[whAb] == quantType) & (samplesDF$subtype[whAb] == "All"))]
       ggQuantLy[[paste0("peptides ", quantType)]] <- setNames(tmPlots[w2], samplesDF$values[w2])
     }
-    saveFun(ggQuantLy, file = paste0(MainDir, "/quantPlots.RData"))
+    saveFun(ggQuantLy, file = paste0(MainDir, "/quantPlots.RDS"))
   }
   if (runProfPlots) {
     whPr <- 1L:nrow(samplesDF2)
@@ -413,6 +413,6 @@ if (runRankAbundPlots || runProfPlots) {
         ggProfLy[[paste0("peptides ", quantType)]] <- tmPlots[[w2]]        
       }
     }
-    saveFun(ggProfLy, file = paste0(MainDir2, "/profilePlots.RData"))
+    saveFun(ggProfLy, file = paste0(MainDir2, "/profilePlots.RDS"))
   }
 }

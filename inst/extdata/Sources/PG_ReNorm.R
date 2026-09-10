@@ -501,7 +501,7 @@ if (normPGs) {
   })
   post_ReNorm_reRun <- TRUE
   #rstudioapi::documentOpen(quntSrc)
-  source(quntSrc, local = FALSE)
+  source(quntSrc)
   summary(quantData_list$Data)
   #
 }

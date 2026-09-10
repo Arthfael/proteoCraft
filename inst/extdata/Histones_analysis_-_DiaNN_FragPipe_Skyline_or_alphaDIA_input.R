@@ -50,7 +50,7 @@ xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
 # Boolean functions to check parameter values
 Src <- paste0(libPath, "/extdata/Sources/parBooleans.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 
 
 locDirs_fl %<o% grep("/Default_locations\\.xlsx$", fls, value = TRUE)
@@ -126,12 +126,12 @@ homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteo
 # Set Shiny options, load functions for creating a Word report, create Excel styles
 Src <- paste0(libPath, "/extdata/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 
 # Create parallel processing cluster
 parSrc <- paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
 #rstudioapi::documentOpen(parSrc)
-source(parSrc, local = FALSE)
+source(parSrc)
 
 # Mode
 if ((exists("inDir"))&&(!is.null(inDir))&&(dir.exists(inDir))) { dfltDir <- inDir } else {
@@ -204,7 +204,7 @@ if (!dir.exists(histDir)) { dir.create(histDir) } else {
   }
 }
 
-backupFl <- paste0(dstDir, "/Backup.RData")
+backupFl <- paste0(dstDir, "/Backup.RDS")
 write(inDir, paste0(dstDir, "/Input search directory.txt")) # In case I reprocess and do not have the backup file
 #saveImgFun(backupFl)
 #loadFun(backupFl)
@@ -475,7 +475,7 @@ if (!file.exists(prsDB_Fl)) {
   db <- data.table::fread(prsDB_Fl, integer64 = "numeric", check.names = FALSE, data.table = FALSE) 
 }
 db <- db[grep("^>rev_", db$Header, invert = TRUE),] # Remove reverse database entries
-parsedAnnot_Fl <- paste0(dstDir, "/Parsed Annot.rds")
+parsedAnnot_Fl <- paste0(dstDir, "/Parsed Annot.RDS")
 reUseAnnotBckp <- file.exists(parsedAnnot_Fl)
 if (reUseAnnotBckp) {
   reUseAnnotBckp <- c(TRUE, FALSE)[match(dlg_message("Parsed annotation backup found in folder. Re-use?", "yesno")$res,
@@ -492,13 +492,13 @@ if (reUseAnnotBckp) {
 ### NB: This doesn't take into consideration N-terminal methionines!!!
 if (Update_Prot_matches) {
   I_eq_L %<o% TRUE
-  fl <- paste0(dstDir, "/evmatch.RData")
+  fl <- paste0(dstDir, "/evmatch.RDS")
   if (file.exists(fl)) { loadFun(fl) } else {
     Seq <- unique(ev$Sequence)
     DB <- db
     Src <- paste0(libPath, "/extdata/Sources/ProtMatch.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
     saveFun(evmatch, fl)
   }
   ev$Search_engine_proteins <- ev$Proteins
@@ -777,7 +777,7 @@ if (useExtTbl) {
 # Edit samples map
 Src <- paste0(libPath, "/extdata/Sources/hist_Fractions_Map_editor.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 
 if (!"Old_Experiment" %in% colnames(ev)) { ev$Old_Experiment <- ev$Experiment }
 w <- which(!ev$`Raw file` %in% samplesMap$Sample)
@@ -798,7 +798,7 @@ Groups <- unique(samplesMap$Group)
 # Edit groups map
 Src <- paste0(libPath, "/extdata/Sources/hist_Groups_Map_editor.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 
 statTsts_tst <- aggregate(groupsMap$Reference, list(groupsMap$Comparison_group), \(x) {
   sum(c(FALSE %in% x,

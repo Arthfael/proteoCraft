@@ -49,7 +49,7 @@ if ((LabelType == "Isobaric")&&
             sum(vapply(1L:length(lb), \(y) { A[y+x-1L, y] == 100L }, TRUE))
           }, 1L) == length(lb))
           A <- A[(1L:length(lb))+w-1L,]
-          source(parSrc, local = FALSE)
+          source(parSrc)
           exports <- list("A", "e", "kol")
           clusterExport(parClust, exports, envir = environment())
           invisible(clusterCall(parClust, \() {

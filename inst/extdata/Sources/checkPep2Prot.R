@@ -16,13 +16,13 @@ if (Update_Prot_matches) {
   if (Reuse_Prot_matches) {
     msg <- paste0("Re-load", msg)
     cat(msg)
-    if (!exists("evmatch")) { loadFun(paste0(wd, "/evmatch.RData")) }
+    if (!exists("evmatch")) { loadFun(paste0(wd, "/evmatch.RDS")) }
     Pep2Prot <- evmatch
   } else {
     msg <- paste0("Check", msg)
     cat(msg)
     #
-    source(parSrc, local = FALSE) # Always a good idea to check your cluster before such a big function...
+    source(parSrc) # Always a good idea to check your cluster before such a big function...
     #
     Seq <- unique(ev$Sequence)
     DB <- db
@@ -35,7 +35,7 @@ if (Update_Prot_matches) {
   wh2 <- which(Pep2Prot$Sequence %in% ev$Sequence)
   mtch1 <- match(ev$Sequence[wh1], Pep2Prot$Sequence)
   if (!"Proteins" %in% colnames(ev)) { ev$Proteins <- "" } else {
-    source(parSrc, local = FALSE)
+    source(parSrc)
     tmpPs <- unique(Pep2Prot$Sequence[wh2])
     tmpE <- ev$Proteins[match(tmpPs, ev$Sequence)]
     tmpP <- Pep2Prot$Proteins[match(tmpPs, Pep2Prot$Sequence)]
@@ -86,7 +86,7 @@ Discrepancies with the original search engine matches can have several causes:
   if (!Reuse_Prot_matches) {
     # Save in case you need to reload:
     evmatch <- ev[, c("Sequence", "Proteins")]
-    saveFun(evmatch, file = paste0(wd, "/evmatch.RData"))
+    saveFun(evmatch, file = paste0(wd, "/evmatch.RDS"))
   }
 } else {
   kol <- c("Leading proteins", "Proteins")

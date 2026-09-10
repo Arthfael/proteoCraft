@@ -1,5 +1,5 @@
 if (LabelType == "LFQ") {
-  source(parSrc, local = FALSE)
+  source(parSrc)
   if ((Param$Label == "DIA") && ("MS2 intensities" %in% colnames(ev))) {
     ev$MS2_intensities <- strsplit(ev$"MS2 intensities", ";")
     ev$MS2_intensities <- parLapply(parClust, ev$MS2_intensities, as.numeric) # (Let's keep this as a numeric list)

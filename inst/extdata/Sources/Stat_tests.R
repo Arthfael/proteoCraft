@@ -24,7 +24,7 @@ if ((!dataType %in% names(limmaFits)) || (!inherits(limmaFits[[dataType]], "list
   limmaFits[[dataType]] <- list()
 }
 #
-source(parSrc, local = FALSE)
+source(parSrc)
 #dataType <- "modPeptides" #dataType <- "PG"
 if (dataType == "modPeptides") {
   myData <- ptmpep
@@ -112,6 +112,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       invisible(clusterCall(parClust, \() {
         assign("tmp", readr::read_rds(tmpFl), envir = .GlobalEnv)
       }))
+      unlink(tmpFl)
       tst <- parLapply(parClust, 1L:nrow(myData), \(i) { #i <- 1L
         vapply(grpTst$x, \(smpls) { #smpls <- grpTst$x[1L]
           sum(is.finite(unlist(tmp[i, unlist(smpls)])))

@@ -55,7 +55,7 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
                            MS1_Av = mean(MS1, na.rm = TRUE)),
                        by = .(`Modified sequence` = MS2Tbl$mod, Charge = MS2Tbl$Z)]
       MS2Tbl <- as.data.frame(MS2Tbl)
-      source(parSrc, local = FALSE)
+      source(parSrc)
       invisible(clusterCall(parClust, \() {
         require(stats)
         require(minpack.lm)

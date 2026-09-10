@@ -18,7 +18,7 @@ if (tmp > defSc) {
   sc <- ceiling(nrow(Frac.map)/Nplts)
 }
 sc <- max(c(sc, 1L))
-source(parSrc, local = FALSE)
+source(parSrc)
 tmp <- MQ.summary(ev = ev, pg = PG, wd = wd, mods = mods,
                   raw.files = rawFiles, sc = sc, cl = parClust,
                   MQtxt = inDirs[which(SearchSoft == "MAXQUANT")])

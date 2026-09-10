@@ -4,7 +4,7 @@ if (Annotate) {
   packs <- c("annotate", "GO.db", "AnnotationDbi")
   for (pck in packs) { if (!require(pck, character.only = TRUE)) { pak::pak(pck) } }
   for (pck in packs) { library(pck, character.only = TRUE) }
-  if (file.exists("GO_terms.RData")) { loadFun("GO_terms.RData") }
+  if (file.exists("GO_terms.RDS")) { loadFun("GO_terms.RDS") }
   if (!exists("GO_terms")) {
     # Terms from AnnotationDbi
     GO_terms <- AnnotationDbi::select(GO.db,
@@ -46,17 +46,17 @@ if (Annotate) {
     })
     GO_terms <- GO_terms[which(!is.na(GO_terms$Ontology)),]
     GO_terms <- GO_terms[order(GO_terms$Ontology),]
-    saveFun(GO_terms, file = "GO_terms.RData")
+    saveFun(GO_terms, file = "GO_terms.RDS")
   }
   GO_terms %<o% GO_terms
-  #loadFun("GO_terms.RData")
-  if (file.exists("GO_mappings.RData")) { loadFun("GO_mappings.RData") }
+  #loadFun("GO_terms.RDS")
+  if (file.exists("GO_mappings.RDS")) { loadFun("GO_mappings.RDS") }
   if (!exists("GO_mappings")) {
     packs <- c("GO.db", "topGO")
     for (pck in packs) { if (!require(pck, character.only = TRUE)) { pak::pak(pck) } }
     for (pck in packs) { library(pck, character.only = TRUE) }
     GO_mappings <- GO_map(db, cl = parClust)$Mappings
-    saveFun(GO_mappings, file = "GO_mappings.RData")
+    saveFun(GO_mappings, file = "GO_mappings.RDS")
   }
   GO_mappings %<o% GO_mappings
 }

@@ -458,10 +458,10 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     Src <- paste0(libPath, "/extdata/Sources/fstWrite_Excel_core_script.R")
     #if (ii == 2) { stop() }
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
-    #saveFun(WorkBook, file = "WorkBook_bckp.RData")
+    source(Src)
+    #saveFun(WorkBook, file = "WorkBook_bckp.RDS")
     #wb_save(WorkBook, paste0(wd, "/tst.xlsx")); xl_open(paste0(wd, "/tst.xlsx"))
-    #loadFun("WorkBook_bckp.RData")
+    #loadFun("WorkBook_bckp.RDS")
   }
 }
 tblMode <- "PG"
@@ -734,7 +734,7 @@ if (F.test) {
   tempData[, Fkol] <- tmpPGf[match(tempData$`Protein IDs`, tmpPGf$`Protein IDs`), Fkol]
 }
 if (Annotate && LocAnalysis) {
-  if ((!exists("GO_terms")) && file.exists("GO_terms.RData")) { loadFun("GO_terms.RData") }
+  if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) { loadFun("GO_terms.RDS") }
   GOCC <- GO_terms$ID[which(GO_terms$Ontology == "CC")]
   tempData$"GO-ID (CC)" <- lapply(strsplit(tempData$`GO-ID`, ";"), \(x) { intersect(x, GOCC) })
   w <- which(lengths(tempData$"GO-ID (CC)") > 0L)
@@ -964,10 +964,10 @@ ColumnsTbl$edit_Col <- unlist(a)
 #
 Src <- paste0(libPath, "/extdata/Sources/fstWrite_Excel_core_script.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
-#saveFun(WorkBook, file = "WorkBook_bckp.RData")
+source(Src)
+#saveFun(WorkBook, file = "WorkBook_bckp.RDS")
 #wb_save(WorkBook, paste0(wd, "/tst.xlsx")); xl_open(paste0(wd, "/tst.xlsx"))
-#loadFun("WorkBook_bckp.RData")
+#loadFun("WorkBook_bckp.RDS")
 if (saintExprs) {
   tblMode <- tblMode2 <- TbNm <- "SAINTexpress"
   # Function for editing the header
@@ -1126,16 +1126,16 @@ if (saintExprs) {
   ColumnsTbl$edit_Col <- unlist(a)
   Src <- paste0(libPath, "/extdata/Sources/fstWrite_Excel_core_script.R")
   #rstudioapi::documentOpen(Src)
-  source(Src, local = FALSE)
-  #saveFun(WorkBook, file = "WorkBook_bckp.RData")
+  source(Src)
+  #saveFun(WorkBook, file = "WorkBook_bckp.RDS")
   #wb_save(WorkBook, paste0(wd, "/tst.xlsx")); xl_open(paste0(wd, "/tst.xlsx"))
-  #loadFun("WorkBook_bckp.RData")
+  #loadFun("WorkBook_bckp.RDS")
 }
-#tmpFl <- tempfile(fileext = ".rds")
+#tmpFl <- tempfile(fileext = ".RDS")
 #readr::write_rds(WorkBook, tmpFl)
 #
 Src <- paste0(libPath, "/extdata/Sources/Write_Excel_end_script.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 #WorkBook$get_active_sheet()
 #xl_open(repFl)

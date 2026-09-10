@@ -1,5 +1,5 @@
 # Optional - Normalize evidence MS1 intensities, then, if applicable, MS2 reporter (Isobaric labelling) or fragment (DIA) intensities
-source(parSrc, local = FALSE)
+source(parSrc)
 #
 stopifnot(length(unique(ev$id)) == nrow(ev)) # Important check to have here!
 # What if we combined several searches and forgot to assign new IDs?

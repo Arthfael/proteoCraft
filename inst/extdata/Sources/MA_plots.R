@@ -17,7 +17,7 @@ ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file") # Update again
 #
 MAplotFls %<o% c()
 if ((length(MQ.Exp) <= 1L) && (LabelType != "Isobaric")) { stop("Whut? Something's gone wrong!") } # Should be always TRUE
-source(parSrc, local = FALSE)
+source(parSrc)
 invisible(clusterCall(parClust, \() {
   library(ggplot2)
   library(scattermore)

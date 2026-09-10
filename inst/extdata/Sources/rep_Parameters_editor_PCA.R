@@ -1,7 +1,7 @@
 ### PCA plot for parameters app
 # Create first PCA to check on sample relationships
 if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRUE
-  source(parSrc, local = FALSE)
+  source(parSrc)
   data <- ev
   colnames(data)[which(colnames(data) == "MQ.Exp")] <- "Parent sample"
   data <- data[which(data$Reverse != "+"),]

@@ -22,7 +22,7 @@ if (!exists("writeSearch")) { writeSearch <- TRUE }
 
 ObjNm <- "ProcessedByUs"
 if (!exists(ObjNm)) {
-  if ((scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
+  if ((scrptType == "withReps") && ReUseAnsw && (ObjNm %in% AllAnsw$Parameter)) {
     ProcessedByUs <- AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]]
   } else {
     ProcessedByUs <- TRUE
@@ -97,11 +97,11 @@ if (!RunByMaster) {
   # outRoot <- inRoot2[c(grep("^Results delivery folder ", names(inRoot2)),
   #                      grep("^Archive folder ", names(inRoot2)),
   #                      grep("^Results delivery folder |^Archive folder ", names(inRoot2), invert = TRUE))]
-  if ((!exists("WorkFlow"))||(is.null(WorkFlow))||(length(WorkFlow) != 1L)||(!WorkFlow %in% c(WorkFlows, names(WorkFlows)))) {
+  if ((!exists("WorkFlow")) || is.null(WorkFlow) || (length(WorkFlow) != 1L) || (!WorkFlow %in% c(WorkFlows, names(WorkFlows)))) {
     WorkFlow <- WorkFlows[1L]
   } else {
     #if (scrptType == "withReps") { # Commented because this should apply to both, if incorrect change to if (scrptType == "noReps") {
-    if ((!WorkFlow %in% WorkFlows)&&(WorkFlow %in% names(WorkFlows))) {
+    if ((!WorkFlow %in% WorkFlows) && (WorkFlow %in% names(WorkFlows))) {
       WorkFlow <- WorkFlows[WorkFlow]
     } # Because I was stupid when I created Workflow and Workflows
     # The former matches a name, not a value, of the latter
@@ -124,7 +124,7 @@ if (!RunByMaster) {
   appNm <- "Start analysis"
   dtstNm2 <- gsub(":|\\*|\\?|<|>|\\||/", "-", dtstNm)
   updt_Type0 <- function(searchDir, default = NULL) {
-    if ((is.null(default))||(!default %in% srchSoftOpt)) {
+    if (is.null(default) || (!default %in% srchSoftOpt)) {
       fls <- list.files(searchDir)
       tsv2txt <- length(grep("\\.tsv$", fls))/length(grep("\\.txt$", fls))
       default <- c(FALSE,
@@ -140,7 +140,7 @@ if (!RunByMaster) {
     }
     return(default)
   }
-  if ((!exists("SearchSoft"))||(sum(!SearchSoft %in% names(SearchSoftware)))||(length(SearchSoft) != length(inDirs))) {
+  if ((!exists("SearchSoft")) || (sum(!SearchSoft %in% names(SearchSoftware))) || (length(SearchSoft) != length(inDirs))) {
     SearchSoft <- vapply(inDirs, updt_Type0, "")
   }
   nr0 <- length(inDirs)
@@ -239,7 +239,7 @@ if (!RunByMaster) {
                                              c("", "additional ")[(i > 1L) + 1L],
                                              "input folder"),
                                       path = dflt)
-    if ((length(dr) == 1L)&&(!is.na(dr))&&(dir.exists(dr))) {
+    if ((length(dr) == 1L) && (!is.na(dr)) && dir.exists(dr)) {
       if (dr %in% drs) {
         warning("You already selected this directory! Ignoring...")
       } else {
@@ -428,7 +428,7 @@ table.on('change', 'select', function() {
     shiny::observeEvent(input$ProcessedByUs, {
       ProcessedByUs <<- input$ProcessedByUs
       ObjNm <- "ProcessedByUs"
-      if ((scrptType == "withReps")&&(ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) {
+      if ((scrptType == "withReps") && ReUseAnsw && (ObjNm %in% AllAnsw$Parameter)) {
         AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
         tmp <- AllAnsw[1L,]
         tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
@@ -493,7 +493,7 @@ if (sum(SearchSoft %in% names(SearchSoftware))) { SearchSoft %<o% SearchSoftware
 inDirs %<o% inDirs
 WhoAmI %<o% WhoAmI
 WorkFlow %<o% WorkFlow
-BckUpFl %<o% paste0(wd, "/Backup.RData")
+BckUpFl %<o% paste0(wd, "/Backup.RDS")
 RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 #
@@ -505,6 +505,34 @@ RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winsl
 
 setwd(wd)
 
+#
+# We used to save RDS backups with the wrong extension (.RData)
+# So we can re-use these potentially, we will detect them and fix the extension. Let's also ensure we are consistent with capitalization of RDS.
+fls <- c(list.files(wd, "\\.RData$", ignore.case = TRUE, full.names = TRUE),
+         list.files(wd, "\\.rds$", full.names = TRUE))
+if (length(fls)) {
+  fls <- data.frame(path = fls)
+  fls$basename <- basename(fls$path)
+  fls$name <- sub("\\.((RData)|(rds))$", "", fls$basename, ignore.case = TRUE)
+  fls$dir <- dirname(fls$path)
+  fls$replname <- paste0(fls$name, ".RDS")
+  fls$repl <- paste0(fls$dir, "/", fls$replname)
+  w <- which((fls$name %in% c("Backup", "evmatch", "HeatMaps", "quantPlots", "Parsed_annotations", "AnalysisParam", "pep_intens_norm", "profilePlots",
+                              "Pepper_bckp", "PG_assembly", "GO_terms", "GO_mappings", "PG_quant", "PG_quant_reNorm", "Contrasts")) |
+               grepl("converted to MQ-like format", fls$name))
+  if (length(w)) {
+    w1 <- w[which(file.exists(fls$repl[w]))]
+    if (length(w1)) { # Necessitated because file.exists("a.RDS") returns TRUE even if the file existing is "a.rds" (different case)
+      w1 <- w1[which(vapply(w1, \(x) {
+        fls$replname[x] %in% list.files(fls$dir[x])
+      }, TRUE))]
+    }
+    w2 <- setdiff(w, w1)
+    if (length(w1)) { unlink(fls$path[w1]) }
+    if (length(w2)) { file.rename(fls$path[w2], fls$repl[w2]) }
+  }
+}
+#
 
 for (pack in c(cran_req, bioc_req, "proteoCraft")) {
   try(library(pack, character.only = TRUE), silent = TRUE)
@@ -515,13 +543,13 @@ for (pack in c(cran_req, bioc_req, "proteoCraft")) {
   # add something here to catch issues with packages which cannot be unloaded...
 }
 tst <- try(normalizePath(rawrr:::.rawrrAssembly(), winslash = "/"), silent = TRUE)
-if ((!inherits(tst, "try-error"))||(!file.exists(tst))) {
+if ((!inherits(tst, "try-error")) || (!file.exists(tst))) {
   suppressMessages(rawrr::installRawrrExe())
 }
 data.table::setDTthreads(threads = detectCores()-1L)
 #
 inst <- as.data.frame(installed.packages())
-if ((!"proteoCraft" %in% inst$Package)||((exists("updt_proteoCraft"))&&(updt_proteoCraft))) {
+if ((!"proteoCraft" %in% inst$Package) || (exists("updt_proteoCraft") && updt_proteoCraft)) {
   locFl <- paste0(homePath, "/Default_locations.xlsx")
   locs <- openxlsx2::read_xlsx(locFl)
   pckgloc <- paste0(locs$Path[match("Server share", locs$Folder)], "/proteoCraft_package")
@@ -550,7 +578,7 @@ if ((!"proteoCraft" %in% inst$Package)||((exists("updt_proteoCraft"))&&(updt_pro
       nuPack <- rstudioapi::selectFile("Select tarball (\\.tar.gz) for updating the proteoCraft package", filter = "tarball (*.tar.gz)")
     }
   }
-  if ((!is.na(nuPack))&&(file.exists(nuPack))) {
+  if ((!is.na(nuPack)) && file.exists(nuPack)) {
     cat("Updating proteoCraft package...\n")
     unloadNamespace("proteoCraft")
     remove.packages("proteoCraft")
@@ -608,13 +636,10 @@ if (scrptType == "noReps") {
                                ObjNm = "SamplesMap"))
 }
 tmpDF <- data.frame(File = c(basename(intPrtFst),
-                             #"Parsed_annotations.RData",
-                             "evmatch.RData"),
+                             "evmatch.RDS"),
                     Role = c("FASTA of proteins of special interest",
-                             #"Parsed functional annotations",
                              "Matches of peptide sequences to parent proteins"),
                     ObjNm = c("prot.list",
-                              #"Parsed_annotations",
                               "evmatch"))
 tmpDF$Full <- paste0(wd, "/", tmpDF$File)
 allBckps <- rbind(allBckps, tmpDF)
@@ -622,7 +647,7 @@ tmp <- lapply(1L:length(inDirs), \(dir_i) {
   # No need for MQ, it's faster and easier to just reload and do the minimal processing we do
   if (SearchSoft[dir_i] %in% c("DIANN", "FRAGPIPE")) {
     m <- match(SearchSoft[dir_i], c("DIANN", "FRAGPIPE"))
-    psmsBckpFl_i <- paste0(c("diaNN", "FragPipe")[m], " PSMs converted to MQ-like format_", dir_i, ".RData")
+    psmsBckpFl_i <- paste0(c("diaNN", "FragPipe")[m], " PSMs converted to MQ-like format_", dir_i, ".RDS")
     tmpDF <- data.frame(File = psmsBckpFl_i,
                         Role = "Processed PSMs",
                         ObjNm = paste0("ev_", c("DIANN", "FP")[m], "2MQ_", dir_i))
@@ -632,6 +657,7 @@ tmp <- lapply(1L:length(inDirs), \(dir_i) {
 })
 tmp <- plyr::rbind.fill(tmp)
 allBckps <- rbind(allBckps, tmp)
+
 #View(allBckps[which(!file.exists(allBckps$Full)),])
 allBckps <- allBckps[which(file.exists(allBckps$Full)),]
 reloadedBckps %<o% allBckps[NULL,]
@@ -669,7 +695,10 @@ if (nrow(allBckps)) {
         loadInt <- TRUE
         fastas_reloaded <- allBckps$Full[i]
       }
-      if (ext == "rdata") { loadFun(allBckps$Full[i]) }
+      if (ext == "rdata") {
+        try({ load(allBckps$Full[i]) })
+      }
+      if (ext == "rds") { loadFun(allBckps$Full[i]) }
       if (ext == "csv") {
         tmp <- read.csv(allBckps$Full[i], check.names = FALSE)
         areUok <- TRUE
@@ -681,7 +710,7 @@ if (nrow(allBckps)) {
             areUok <- FALSE
           }
         }
-        if ((allBckps$Role[i] == "Experimental structure map")&&(scrptType == "withReps")) {
+        if ((allBckps$Role[i] == "Experimental structure map") && (scrptType == "withReps")) {
           # Backwards compatibility
           colnames(tmp)[which(colnames(tmp) == "Sample.name")] <- "Sample name" 
           colnames(tmp)[which(colnames(tmp) == "Isobaric.label")] <- "Isobaric label"
@@ -726,7 +755,7 @@ if (length(drs)) {
 }
 
 # Re-load fasta of proteins of interest?
-if ((!nrow(reloadedBckps))||(!"FASTA of proteins of special interest" %in% reloadedBckps$Role)) {
+if ((!nrow(reloadedBckps)) || (!"FASTA of proteins of special interest" %in% reloadedBckps$Role)) {
   loadInt <- c(TRUE, FALSE)[match(dlg_message("Load a fasta of proteins of interest?", "yesno")$res, c("yes", "no"))]
   if (loadInt) {
     intFast <- selectFile(paste0("Select proteins of interest fasta", intPrtFst), path = wd)

@@ -35,7 +35,7 @@ if (length(dDirs)) {
   libPath <- paste0(RPath, "/proteoCraft")
   parSrc <- paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
   #rstudioapi::documentOpen(parSrc)
-  source(parSrc, local = FALSE)
+  source(parSrc)
   #
   parLapply(parClust, dDirs, \(dr) { #dr <- dDirs[1L]
     parDr <- dirname(dr)

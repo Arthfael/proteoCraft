@@ -22,8 +22,8 @@ RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 PepScrptsDir <- paste0(RPath, "/proteoCraft/extdata/Pepper")
 stopifnot(dir.exists(PepScrptsDir))
-pyInit <- paste0(PepScrptsDir, "/Python_start.R")
-source(pyInit)
+pyInitSrc <- paste0(PepScrptsDir, "/Python_start.R")
+source(pyInitSrc)
 
 
 

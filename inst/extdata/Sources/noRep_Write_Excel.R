@@ -331,12 +331,12 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     #
     Src <- paste0(libPath, "/extdata/Sources/fstWrite_Excel_core_script.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
   }
 }
-#saveFun(WorkBook, file = "WorkBook_bckp.RData")
+#saveFun(WorkBook, file = "WorkBook_bckp.RDS")
 #wb_save(WorkBook, repFl);xl_open(repFl)
-#loadFun("WorkBook_bckp.RData")
+#loadFun("WorkBook_bckp.RDS")
 TbNm <- "Protein groups"
 tblMode <- tblMode2 <- "PG"
 # Function for editing the header
@@ -688,9 +688,9 @@ ColumnsTbl$edit_Col <- unlist(a)
 #
 Src <- paste0(libPath, "/extdata/Sources/fstWrite_Excel_core_script.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 #
 Src <- paste0(libPath, "/extdata/Sources/Write_Excel_end_script.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 #xl_open(repFl)

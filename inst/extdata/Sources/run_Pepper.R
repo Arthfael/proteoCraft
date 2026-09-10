@@ -359,8 +359,8 @@ if (runPepper) {
   write(TrsfrCoeff, paste0(pepDir, "/TransferCoeff.py"))
   py_clear_last_error()
   cat(" - Running coefficients transfer script...\n")
-  #saveImgFun(paste0(pepDir, "/Pepper_bckp.RData"))
-  #loadFun(paste0(dtst, "/Pepper_bckp.RData"))
+  #saveImgFun(paste0(pepDir, "/Pepper_bckp.RDS"))
+  #loadFun(paste0(dtst, "/Pepper_bckp.RDS"))
   #
   cmd <- paste0("python \"", pepDir, "/TransferCoeff.py\"")
   #cat(cmd)

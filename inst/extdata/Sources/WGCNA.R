@@ -609,7 +609,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
       GSEAmode <- "WGCNA"
       Src <- paste0(libPath, "/extdata/Sources/GSEA.R")
       #rstudioapi::documentOpen(Src)
-      source(Src, local = FALSE)
+      source(Src)
       #
       #
       if (exists("DatAnalysisTxt")) {

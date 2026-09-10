@@ -35,7 +35,7 @@ IDs <- unique(unlist(lapply(names(Reg_filters), \(x) {
 w <- which(db$`Protein ID` %in% IDs)
 allTaxIDs <- unique(db$TaxID[w])
 tmpPG <- tmpPG[which(tmpPG$value %in% IDs),]
-source(parSrc, local = FALSE)
+source(parSrc)
 allProteins_mapped <- try(setNames(lapply(allTaxIDs, \(txid) { #txid <- allTaxIDs[1L]
   kol <- c("Protein ID", "Common Name", "TAIR")
   kol <- intersect(kol, colnames(db))
@@ -174,7 +174,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
     filtersDF$GraphType[1L:nr] <- GraphTypes[1L]
     nr <- nr*2L
     txidsTst <- (length(unique(filtersDF$TaxID)) > 1L)+1L
-    source(parSrc, local = FALSE)
+    source(parSrc)
     clusterExport(parClust,
                   c("wd", "filtersDF", "allProteins_mapped", "tmpPG", "GraphTypes", "Exp", "txidsTst", "cleanNms", "topattern"),
                   envir = environment())
@@ -328,7 +328,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
         # Check that Cytoscape is running and available
         Src <- paste0(libPath, "/extdata/Sources/Cytoscape_init.R")
         #rstudioapi::documentOpen(Src)
-        source(Src, local = FALSE)
+        source(Src)
         #
         # Create directory for Cytoscape networks
         #dirs <- paste0(wd, "/Cytoscape/", GraphTypes) # No!

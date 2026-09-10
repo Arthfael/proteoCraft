@@ -9,7 +9,7 @@ libPath <- paste0(RPath, "/proteoCraft")
 # Create parallel processing cluster
 parSrc <- paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
 #rstudioapi::documentOpen(parSrc)
-source(parSrc, local = FALSE)
+source(parSrc)
 
 dbFl1 <- paste0(wd, "/MpTak1v5.1_r1.protein.fasta")
 dbFl2 <- paste0(wd, "/Marchantia_polymorpha_UP_20260121_Iso.fasta")
@@ -111,9 +111,10 @@ dig1DF$"Similarity score" <- parSapply(parClust, 1L:nrow(dig1DF), \(x) { #x <- 1
 })
 readr::write_rds(selfAlign, tmpFl)
 clusterCall(parClust, \(x) {
-  selfAlign <<- readr::read_rds(tmpFl)
+  assign("selfAlign", readr::read_rds(tmpFl), envir = .GlobalEnv)
   return(NULL)
 })
+tmpFl <- unlink(tmpFl)
 selfAlign$"Self similarity score" <- parSapply(parClust, 1L:nrow(selfAlign), \(x) { #x <- 1L
   pwalign::pairwiseAlignment(selfAlign$Seq[[x]],
                              selfAlign$Seq[[x]],

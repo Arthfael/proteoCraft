@@ -6,7 +6,7 @@ fastaLoc <- dfltLocs$Path[match("Fasta files", dfltLocs$Folder)]
 #
 GO.col %<o% c("GO", "GO-ID")
 if (Annotate) {
-  source(parSrc, local = FALSE)
+  source(parSrc)
   Parsed_annotations_lst <- lapply(1L:nrow(AnnotFlsTbl), \(i) { #i <- 1L
     fl <- AnnotFlsTbl$Path[i]
     tp <- AnnotFlsTbl$Type[i]
@@ -175,7 +175,7 @@ if (Annotate) {
       db[[i]] <- parSapply(parClust, db[[i]], paste, collapse = ";")
     }
   }
-  saveFun(Parsed_annotations, file = "Parsed_annotations.RData")
+  saveFun(Parsed_annotations, file = "Parsed_annotations.RDS")
   pth <- paste0(wd, "/Parsed, annotated search db.csv")
   f0 <- \() {
     data.table::fwrite(db, pth,

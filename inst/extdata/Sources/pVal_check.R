@@ -298,7 +298,7 @@ if ((dataType == "modPeptides") && (Ptm %in% names(PTMs_PVal_use))) {
 if (!sum(pval_Use)) { pval_Use["Moderated"] <- TRUE }
 if (!sum(pval_Use)) { pval_Use[1L] <- TRUE }
 #
-source(parSrc, local = FALSE)
+source(parSrc)
 IMGsDims <- as.data.frame(t(parSapply(parClust, IMGS, \(x) { #x <- IMGs[1L]
   a <- jpeg::readJPEG(x)
   setNames(dim(a)[1L:2L], c("height", "width"))

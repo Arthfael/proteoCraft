@@ -634,13 +634,13 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       }
     }
     if (exists("ev_DIANN2MQ")) { rm(ev_DIANN2MQ) }
-    psmsBckpFl_i <- paste0("diaNN PSMs converted to MQ-like format_", dir_i, ".RData")
+    psmsBckpFl_i <- paste0("diaNN PSMs converted to MQ-like format_", dir_i, ".RDS")
     if (exists("reloadedBckps") && (psmsBckpFl_i %in% reloadedBckps$File) && file.exists(psmsBckpFl_i)) {
       loadFun(psmsBckpFl_i)
     }
     if (!exists("ev_DIANN2MQ")) {
       cat(" - Processing PSMs...\n")
-      source(parSrc, local = FALSE)
+      source(parSrc)
       ev_DIANN2MQ <- DIANN_to_MQ(psmFls_i,
                                  cl = parClust,
                                  log_Fl = diaNN_logFl_i)
@@ -805,13 +805,13 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     cat(paste0(" -> FragPipe workflow file: ", fpWorkflowFl_i, "\n"))
     cat(paste0(" -> FragPipe manifest file: ", fpManifestFl_i, "\n"))
     if (exists("ev_FP2MQ")) { rm(ev_FP2MQ) }
-    psmsBckpFl_i <- paste0("FragPipe PSMs converted to MQ-like format_", dir_i, ".RData")
+    psmsBckpFl_i <- paste0("FragPipe PSMs converted to MQ-like format_", dir_i, ".RDS")
     if (exists("reloadedBckps") && (psmsBckpFl_i %in% reloadedBckps$File) && file.exists(psmsBckpFl_i)) {
       loadFun(psmsBckpFl_i)
     }
     if (!exists("ev_FP2MQ")) {
       cat(" - Processing PSMs...\n")
-      source(parSrc, local = FALSE)
+      source(parSrc)
       ev_FP2MQ <- FP_to_MQ(fpWorkflowFl_i,
                            fpManifestFl_i,
                            FailIfNoQuant = TRUE,

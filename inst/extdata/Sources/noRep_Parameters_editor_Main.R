@@ -13,7 +13,7 @@ moreThan1Exp %<o% (length(Exp) > 1L)
 # Boolean functions to check parameter values
 Src <- paste0(libPath, "/extdata/Sources/parBooleans.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 #
 # Species
 SpeciesTst %<o% "Unspecified"
@@ -31,9 +31,9 @@ if ("Kingdom" %in% colnames(db)) {
 KingdomTst %<o% KingdomTst
 isEukaLike %<o% (KingdomTst %in% c("Eukaryota", "Archaea"))
 #
-if (file.exists("AnalysisParam.RData")) {
+if (file.exists("AnalysisParam.RDS")) {
   tmp <- AnalysisParam
-  loadFun("AnalysisParam.RData")
+  loadFun("AnalysisParam.RDS")
   for (nm in names(AnalysisParam)) {
     if (!nm %in% names(tmp)) { tmp[[nm]] <- AnalysisParam[[nm]] }
   }

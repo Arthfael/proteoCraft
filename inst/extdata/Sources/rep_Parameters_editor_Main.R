@@ -11,29 +11,29 @@ moreThan1Exp %<o% TRUE
 # Boolean functions to check parameter values
 Src <- paste0(libPath, "/extdata/Sources/parBooleans.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 #
 # PCA prior to shiny app
 Src <- paste0(libPath, "/extdata/Sources/rep_Parameters_editor_PCA.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 #
 # Protein headers for shiny
 Src <- paste0(libPath, "/extdata/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 #
 # Proteins of interest
 Src <- paste0(libPath, "/extdata/Sources/protList.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 #
 # Targets
 # Sometimes the user does not fill the Target factor with valid protein IDs... but this is what we would actually need.
 # Here, if necessary, we will remap those to valid IDs:
 Src <- paste0(libPath, "/extdata/Sources/Targets.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 #
 # KnockOut, KnockIn or KnockDown
 tst <- tolower(gsub("[- _]", "", Factors))
@@ -47,12 +47,12 @@ if (sum(c("knockout", "knockin", "knockdown") %in% tst)) {
 #
 Src <- paste0(libPath, "/extdata/Sources/protList2.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 #
 # Protein headers for shiny (update)
 Src <- paste0(libPath, "/extdata/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 #
 # Defaults
 nSmpls <- nrow(Exp.map)
@@ -561,7 +561,7 @@ ROCfilt_GOterms_Pos %<o% c()
 ROCfilt_GOterms_Neg %<o% c()
 annotRep <- Annotate && (scrptType == "withReps")
 if (annotRep) {
-  if ((!exists("GO_terms")) && file.exists("GO_terms.RData")) { loadFun("GO_terms.RData") }
+  if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) { loadFun("GO_terms.RDS") }
   if ("ROC.GO.terms" %in% colnames(Param)) {
     Param$ROC_GOterms <- Param$ROC.GO.terms
     Param$ROC.GO.terms <- NULL
@@ -2340,10 +2340,10 @@ dirlist <- union(dirlist, paste0(wd, "/", dir))
 # Refresh list of interesting proteins:
 Src <- paste0(libPath, "/extdata/Sources/protList.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 Src <- paste0(libPath, "/extdata/Sources/protList2.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 
 if ("Prot.list_separate.plots" %in% colnames(Param)) {
   protsplit %<o% Param$Prot.list_separate.plots

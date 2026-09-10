@@ -7,10 +7,10 @@
 Height <- 500L
 HEIGHT <- paste0(as.character(Height, "px"))
 # Defaults
-loadFun(paste0(wd, "/Clustering/HeatMaps.RData"))
-loadFun(paste0(wd, "/Dimensionality red. plots/DimRedPlots.RData"))
-loadFun(paste0(wd, "/Sorting plots/quantPlots.RData"))
-loadFun(paste0(wd, "/Profile plots/profilePlots.RData"))
+loadFun(paste0(wd, "/Clustering/HeatMaps.RDS"))
+loadFun(paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS"))
+loadFun(paste0(wd, "/Sorting plots/quantPlots.RDS"))
+loadFun(paste0(wd, "/Profile plots/profilePlots.RDS"))
 heatMaps_ON <- exists("plotLeatMaps")&&(length(plotLeatMaps) > 0L)
 dimRed_ON <- exists("dimRedPlotLy")&&(length(dimRedPlotLy) > 0L)
 quant_ON <- exists("ggQuantLy")&&(length(ggQuantLy) > 0L)

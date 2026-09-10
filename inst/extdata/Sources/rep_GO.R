@@ -20,7 +20,7 @@ if (Annotate && (enrichGO || globalGO)) {
     # Initialize ClueGO
     Src <- paste0(libPath, "/extdata/Sources/ClueGO_init.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
   }
   #
   if (enrichGO) {
@@ -146,21 +146,23 @@ if (Annotate && (enrichGO || globalGO)) {
             Mode <- "regulated"
             if (tt %in% c(1L, 3L)) { dataType <- "PG" }
             if (tt == 4L) { dataType <- "Prot" }
-            if ((!exists("GO_mappings")) && file.exists("GO_mappings.RData")) {
-              loadFun("GO_mappings.RData")
+            if ((!exists("GO_mappings")) && file.exists("GO_mappings.RDS")) {
+              loadFun("GO_mappings.RDS")
             }
-            if ((!exists("GO_terms")) && file.exists("GO_terms.RData")) { loadFun("GO_terms.RData") }
+            if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) {
+              loadFun("GO_terms.RDS")
+            }
             #
             Src <- paste0(libPath, "/extdata/Sources/GO_enrich.R")
             #rstudioapi::documentOpen(Src)
-            source(Src, local = FALSE)
+            source(Src)
             #
             if (runClueGO) {
               clueGO_outDir <- myDir
               clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
               Src <- paste0(libPath, "/extdata/Sources/ClueGO_enrich.R")
               #rstudioapi::documentOpen(Src)
-              source(Src, local = FALSE)
+              source(Src)
             }
             #
             # Cleanup - do it now, not within sources!
@@ -307,18 +309,18 @@ if (Annotate && (enrichGO || globalGO)) {
     #
     Mode <- "dataset"
     dataType <- "PG"
-    if ((!exists("GO_mappings")) && file.exists("GO_mappings.RData")) {
-      loadFun("GO_mappings.RData")
+    if ((!exists("GO_mappings")) && file.exists("GO_mappings.RDS")) {
+      loadFun("GO_mappings.RDS")
     }
-    if ((!exists("GO_terms")) && file.exists("GO_terms.RData")) {
-      loadFun("GO_terms.RData")
+    if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) {
+      loadFun("GO_terms.RDS")
     }
     #
     #try(rm(list = allArgs), silent = TRUE)
     #
     Src <- paste0(libPath, "/extdata/Sources/GO_enrich.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
     #
     # Off because it was taking too long and failing sometimes
     # ClueGO really cannot handle too large gene lists, which are the norm here for dataset analysis
@@ -327,7 +329,7 @@ if (Annotate && (enrichGO || globalGO)) {
     #  clueGO_type <- "Enrichment/Depletion (Two-sided hypergeometric test)"
     #  Src <- paste0(libPath, "/extdata/Sources/ClueGO_enrich.R")
     #  rstudioapi::documentOpen(Src)
-    #  source(Src, local = FALSE)
+    #  source(Src)
     #}
     #
     # Cleanup - do it now, not within sources!
@@ -336,7 +338,7 @@ if (Annotate && (enrichGO || globalGO)) {
     # Quick Fisher exact test on GO terms of interest - looking only at observed data per group
     Src <- paste0(libPath, "/extdata/Sources/interestGO_Fisher.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
     #
     GO_Plots_2 %<o% goRES
     #

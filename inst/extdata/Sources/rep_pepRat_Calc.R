@@ -47,6 +47,6 @@ if (makePepRat) {
   if (Param$Norma.Pep.Ratio) {
     Src <- paste0(libPath, "/extdata/Sources/rep_pepRat_ReNorm.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
   }
 }

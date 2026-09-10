@@ -658,7 +658,7 @@ if (!require(pack, character.only = TRUE)) {
 }
 if (!require(pack, character.only = TRUE)) {
   Src2 <- paste0(libPath, "/extdata/Sources/taxonomy.R")
-  source(Src2, local = FALSE)
+  source(Src2)
 }
 tst %<o% try(setNames(lapply(Sp, \(x) {
   suppressMessages(taxonomy(organism = x, db = "ncbi", output = "classification"))
@@ -684,7 +684,7 @@ if (taxTst) {
     x$name[match("superkingdom", x$rank)]
   }, "")
 }
-source(parSrc, local = FALSE)
+source(parSrc)
 dbs <- setNames(lapply(whFnd, \(i) { #i <- whFnd[1L] #i <- whFnd[2L]
   tmp <- Format.DB(unlist(fastasTbl$Data[[i]]), #file <- unlist(fastasTbl$Data[[i]])
                    in.env = TRUE,

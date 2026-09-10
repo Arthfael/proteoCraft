@@ -1,6 +1,6 @@
 # Peptides: create pep object
 require(data.table)
-source(parSrc, local = FALSE)
+source(parSrc)
 if (exists("scrptType")) {
   mtchCol <- "MQ.Exp"
   if (scrptType == "withReps") {
@@ -22,8 +22,8 @@ if (exists("scrptType")) {
 tmp <- as.character(ev$id)
 tmp2 <- data.table(id = tmp, mqxp = ev[[mtchCol]], mod = ev$"Modified sequence")
 tmp2 <- tmp2[order(ev$id, decreasing = FALSE),]
-tmpFl1 <- tempfile(fileext = ".rds")
-tmpFl2 <- tempfile(fileext = ".rds")
+tmpFl1 <- tempfile(fileext = ".RDS")
+tmpFl2 <- tempfile(fileext = ".RDS")
 xprts <- list("tmpFl1", "tmpFl2", "mtchCol")
 if (exists("scrptType")) { xprts <- append(xprts, "scrptType") }
 clusterExport(parClust, xprts, envir = environment())

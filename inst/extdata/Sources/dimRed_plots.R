@@ -160,7 +160,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         # Get or generate subcellular localisation markers - for later use
         Src <- paste0(libPath, "/extdata/Sources/SubCellMark.R")
         #rstudioapi::documentOpen(Src)
-        source(Src, local = FALSE)
+        source(Src)
       }
       tst3 <- aggregate(SubCellMark, list(SubCellMark), length)
       tmp <- strsplit(PG$`Leading protein IDs`[datMatch], ";")
@@ -536,5 +536,5 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       #system(paste0("open \"", myLittleDir, "/", ttl3, ".html"))
     } else { warning(umap) }
   }
-  saveFun(dimRedPlotLy, file = paste0(myLittleDir, "/DimRedPlots.RData"))
+  saveFun(dimRedPlotLy, file = paste0(myLittleDir, "/DimRedPlots.RDS"))
 } else { warning(paste0("Not enough observations to create ", insert, "-level dimensionality reduction plots!")) }

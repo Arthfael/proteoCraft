@@ -12,7 +12,7 @@ if (!require(limma)) { pak::pak("limma") }
 library(limma)
 
 # Check our parent cluster
-source(parSrc, local = FALSE)
+source(parSrc)
 
 cat("\n -> Starting ANOVA\n")
 
@@ -308,7 +308,7 @@ dr <- ohDeer
 myPlotLys <- volcPlotly[[volcName]]
 Src <- paste0(libPath, "/extdata/Sources/save_Plotlys.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 #
 F_thresh <- F_volc$Thresholds
 absTst <- length(F_thresh$Absolute)

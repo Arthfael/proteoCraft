@@ -76,14 +76,14 @@ matmethSections <- names(matmethTxt)
 
 # Reload plots data
 tstRat <- (scrptType == "noReps") && MakeRatios && exists("ratioPlots") && (length(ratioPlots) > 0L)
-flHtMp <- paste0(wd, "/Clustering/HeatMaps.RData")
+flHtMp <- paste0(wd, "/Clustering/HeatMaps.RDS")
 tstHtMp <- file.exists(flHtMp)
 if (tstHtMp) {
   loadFun(flHtMp)
   tstHtMp <- exists("plotLeatMaps") && length(plotLeatMaps)
 }
-loadFun(paste0(wd, "/Sorting plots/quantPlots.RData"))
-flPCA <- paste0(wd, "/Dimensionality red. plots/DimRedPlots.RData")
+loadFun(paste0(wd, "/Sorting plots/quantPlots.RDS"))
+flPCA <- paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS")
 tstPCA <- file.exists(flPCA)
 if (tstPCA) {
   loadFun(flPCA)
@@ -1758,7 +1758,7 @@ tmpSrc <- paste0(wd, "/tmp.R")
 write(tmp, tmpSrc)
 MatMetFl <- paste0(wd, "/Materials and methods_WIP.docx")
 tst <- try({
-  source(tmpSrc, local = FALSE)
+  source(tmpSrc)
   #rstudioapi::documentOpen(tmpSrc)
   MatMet %<o% MatMet
   print(MatMet, target = MatMetFl)

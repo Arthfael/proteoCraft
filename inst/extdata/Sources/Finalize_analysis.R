@@ -7,7 +7,7 @@
 # Write final HTML report and materials and methods template file
 Src <- paste0(libPath, "/extdata/Sources/HTML_report.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 
 # Save session info
 dir <- paste0(wd, "/Workflow control")
@@ -166,14 +166,13 @@ if (ok2Deliver) {
   #unloadNamespace("usethis")
   #unloadNamespace("fs")
   # pak::pak("r-lib/fs")
-  # Above ^ = Great function which seems to simplify package installation
   # compared with install.packages() and devtools::install_github()
-  # - 3c) temporarily move .RData files out of the way
-  tmpRDat <- grep("\\.RData$", list.files(wd, full.names = TRUE), value = TRUE) # Move all RData files out of the way for now
-  tmpRDat <- grep("/Backup\\.RData$", tmpRDat, value = TRUE, invert = TRUE) # We do want to export the final Backup.RData file: it is large, but useful to have
-  tmpRDat2 <- gsub(topattern(wd), projDir, tmpRDat)
-  if (length(tmpRDat)) {
-    fs::file_move(tmpRDat, tmpRDat2)
+  # - 3c) temporarily move .RDS files out of the way
+  tmpRDS <- grep("\\.RDS$", list.files(wd, full.names = TRUE), value = TRUE) # Move all RDS files out of the way for now
+  tmpRDS <- grep("/Backup\\.RDS$", tmpRDS, value = TRUE, invert = TRUE) # We do want to export the final Backup.RDS file: it is large, but useful to have
+  tmpRDS2 <- gsub(topattern(wd), projDir, tmpRDS)
+  if (length(tmpRDS)) {
+    fs::file_move(tmpRDS, tmpRDS2)
   }
   # - 3d) copy analysis results
   cat(" - Copying processing results from\n\t\t", wd, "\n   to\n\t\t", procDir, "\n\n")
@@ -186,18 +185,18 @@ if (ok2Deliver) {
   } else {
     if ((is.character(Tsts$"Data analysis"))&&(Tsts$"Data analysis" == tmpDr)) {
       Tsts$"Data analysis" <- file.rename(tmpDr, procDir)
-      tmp <- grep("\\.RData$", list.files(procDir, all.files = TRUE, full.names = TRUE), value = TRUE)
-      tmp <- grep("/Backup\\.RData$", tmp, value = TRUE, invert = TRUE) # We want to export the final Backup.RData file: it is large, but useful to have
-      unlink(tmp) # Unlink the other RData files
+      tmp <- grep("\\.RDS$", list.files(procDir, all.files = TRUE, full.names = TRUE), value = TRUE)
+      tmp <- grep("/Backup\\.RDS$", tmp, value = TRUE, invert = TRUE) # We want to export the final Backup.RDS file: it is large, but useful to have
+      unlink(tmp) # Unlink the other RDS files
       unlink(paste0(procDir, "/.RHistory"))
     } else {
       warning("Analysis results not copied to destination - usually this is a path length issue.\nYou will have to copy them manually.")
       Tsts$"Data analysis" <- FALSE
     }
   }
-  # - 3e) move .RData files back
-  if (length(tmpRDat)) { # Now put them back in their original place
-    fs::file_move(tmpRDat2, tmpRDat)
+  # - 3e) move .RDS files back
+  if (length(tmpRDS)) { # Now put them back in their original place
+    fs::file_move(tmpRDS2, tmpRDS)
   }
   dataDeliveryOk <- is.logical(Tsts$"Data analysis") && (!is.na(Tsts$"Data analysis")) && Tsts$"Data analysis"
 }

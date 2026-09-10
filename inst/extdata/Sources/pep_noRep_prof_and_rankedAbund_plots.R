@@ -1,6 +1,6 @@
 # Ranked abudance and profile plots at peptides level
 # This chunk has been vastly improved, and the others should be improved on the same model!!! 
-source(parSrc, local = FALSE)
+source(parSrc)
 clusterExport(parClust, "abbrFun", envir = environment())
 plotPepProf %<o% runProfPlots # For now, should come under control of a parameter eventually
 if (plotPepProf) {

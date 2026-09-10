@@ -70,7 +70,7 @@ if (lNorm) {
     wAG1 <- pepNorm[[prevStp]]$Filter
     nrmSrc <- paste0(libPath, "/extdata/Sources/", normSequence[[nrmStp]]$Source)
     #rstudioapi::documentOpen(nrmSrc)
-    source(nrmSrc, local = FALSE)
+    source(nrmSrc)
     # These sources should all take as inputs:
     #   - tmpDat1 -> data from previous step
     #   - wAG1 -> filter (though they are all currently the same values... as should be expected)
@@ -159,7 +159,7 @@ if (lNorm) {
     # Assign results to pep
     pep.ref["Normalisation"] <- paste0("norm. ", pep.ref["Original"])
     pep[, paste0(pep.ref["Normalisation"], RSA$values)] <- newDatLin[, RSA$values]
-    saveFun(pepNorm, paste0(nrmDr, "/pep_intens_norm.RData"))
+    saveFun(pepNorm, paste0(nrmDr, "/pep_intens_norm.RDS"))
     #
     # MatMet
     TxtSteps <- unlist(lapply(pepNorm[wNorm], \(x) { x$Text }))

@@ -59,12 +59,12 @@ if (exists("dirlist")) { dirlist <- union(dirlist, ohDeer) }
 if (isOK) {
   if (Annotate) {
     # Either we can use the annotations we already have
-    if (!exists("GO_mappings")) { try(loadFun("GO_mappings.RData"), silent = TRUE) }
-    if (!exists("GO_terms")) { try(loadFun("GO_terms.RData"), silent = TRUE) }
+    if (!exists("GO_mappings")) { try(loadFun("GO_mappings.RDS"), silent = TRUE) }
+    if (!exists("GO_terms")) { try(loadFun("GO_terms.RDS"), silent = TRUE) }
     if (sum(!c(exists("GO_mappings"), exists("GO_terms")))) {
       Src <- paste0(libPath, "/extdata/Sources/GO_prepare.R") # Doing this earlier but also keep latter instance for now
       #rstudioapi::documentOpen(Src)
-      source(Src, local = FALSE)
+      source(Src)
     }
     term2Prot <- GO_mappings$Protein
     term2Prot <- listMelt(strsplit(term2Prot$Protein, ";"), term2Prot$GO, c("protein", "term"))

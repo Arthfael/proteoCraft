@@ -87,8 +87,8 @@ pepHtmp <- function(intProt = prot.list_pep,
     N.clust <- length(cl)
     #
     WD <- getwd()
-    tmpFl1 <- paste0(wd, "/tmp1.rds")
-    tmpFl2 <- paste0(wd, "/tmp2.rds")
+    tmpFl1 <- tempfile(fileext = ".rds")
+    tmpFl2 <- tempfile(fileext = ".rds")
     readr::write_rds(DB, tmpFl1)
     readr::write_rds(tmpPep, tmpFl2)
     parallel::clusterExport(cl,

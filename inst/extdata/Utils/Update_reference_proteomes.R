@@ -42,7 +42,7 @@ if (!require(pack, character.only = TRUE)) {
 }
 if ((!require(pack, character.only = TRUE))||(!exists("taxonomy"))||(!is.function(taxonomy))) {
   Src2 <- paste0(libPath, "/extdata/Sources/taxonomy.R")
-  source(Src2, local = FALSE)
+  source(Src2)
 }
 # Map taxonomy
 cat("Mapping species names to taxIDs...\n")

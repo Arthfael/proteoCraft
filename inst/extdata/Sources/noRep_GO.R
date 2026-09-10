@@ -14,14 +14,14 @@ if (globalGO) {
   #
   Src <- paste0(libPath, "/extdata/Sources/GO_enrich.R")
   #rstudioapi::documentOpen(Src)
-  source(Src, local = FALSE)
+  source(Src)
   #
   if (runClueGO) {
     clueGO_outDir <- dir
     clueGO_type <- "Enrichment/Depletion (Two-sided hypergeometric test)"
     Src <- paste0(libPath, "/extdata/Sources/ClueGO_enrich.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
   }
   #
   # Cleanup - do it now, not within sources!
@@ -136,14 +136,14 @@ if (globalGO) {
       #
       Src <- paste0(libPath, "/extdata/Sources/GO_enrich.R")
       #rstudioapi::documentOpen(Src)
-      source(Src, local = FALSE)
+      source(Src)
       #
       if (runClueGO) {
         clueGO_outDir <- dir
         clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
         Src <- paste0(libPath, "/extdata/Sources/ClueGO_enrich.R")
         #rstudioapi::documentOpen(Src)
-        source(Src, local = FALSE)
+        source(Src)
       }
       #
       # Cleanup - do it now, not within sources!
@@ -237,14 +237,14 @@ if (globalGO) {
           #
           Src <- paste0(libPath, "/extdata/Sources/GO_enrich.R")
           #rstudioapi::documentOpen(Src)
-          source(Src, local = FALSE)
+          source(Src)
           #
           if (runClueGO) {
             clueGO_outDir <- dir
             clueGO_type <- "Enrichment (Right-sided hypergeometric test)"
             Src <- paste0(libPath, "/extdata/Sources/ClueGO_enrich.R")
             #rstudioapi::documentOpen(Src)
-            source(Src, local = FALSE)
+            source(Src)
           }
           #
           # Cleanup - do it now, not within sources!

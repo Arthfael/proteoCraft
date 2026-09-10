@@ -428,17 +428,17 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     ColumnsTbl$Class[which(ColumnsTbl$Col %in% aacol)] <- "Amino Acid counts"
     ColumnsTbl$Hide <- ColumnsTbl$Class %in% c("Spectral count", "Spectrum IDs", "Amino Acid counts", "Annotations", "Cluster (hierarch.)")
     #
-    if (MakeRatios) { a <- KolEdit(ColumnsTbl$Col, intColsTbl, ratColsTbl) } else { a <- KolEdit(ColumnsTbl$Col, intColsTbl) }
+    a <- if (MakeRatios) { KolEdit(ColumnsTbl$Col, intColsTbl, ratColsTbl) } else { KolEdit(ColumnsTbl$Col, intColsTbl) }
     ColumnsTbl$edit_Col <- unlist(a)
     #
     Src <- paste0(libPath, "/extdata/Sources/fstWrite_Excel_core_script.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
   }
 }
 #
 Src <- paste0(libPath, "/extdata/Sources/Write_Excel_end_script.R")
 #rstudioapi::documentOpen(Src)
-source(Src, local = FALSE)
+source(Src)
 #WorkBook$get_active_sheet()
 #xl_open(repFl)

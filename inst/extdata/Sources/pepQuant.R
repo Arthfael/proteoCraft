@@ -47,7 +47,7 @@ if (exists("scrptType")) {
   refCol <- "Name"
   ev.col <- "Intensity"
 }
-source(parSrc, local = FALSE)
+source(parSrc)
 exports <- list("smpls", "tmp_EM", "pep.ref", "LabelType", "wd", "refCol")
 if (LabelType == "Isobaric") {
   tmp <- ev[, c("MQ.Exp", "Modified sequence",

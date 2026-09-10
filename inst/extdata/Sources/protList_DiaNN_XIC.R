@@ -21,7 +21,7 @@ if (length(dianXDirs)) {
     XIC_fls <- xicFiles[[inDir]]
     #ms1Mob_fls <- list.files(xicDir, "\\.ms1_mobilogram\\.parquet$", full.names = TRUE)
     #ms2Mob_fls <- list.files(xicDir, "\\.ms2_mobilogram\\.parquet$", full.names = TRUE)
-    source(parSrc, local = FALSE)
+    source(parSrc)
     if (dataType == "protList") {
       g <- grsep2(protlspep, ev$Proteins)
       xicOutDir <- paste0(wd, "/XIC")
@@ -79,6 +79,7 @@ if (length(dianXDirs)) {
         return()
       }))
       unlink(tmpFl1)
+      unlink(tmpFl2)
       dirlist <- union(dirlist, paste0(xicOutDir, "/", myProts))
       invisible(parLapply(parClust, myProts, \(pr) { #pr <- myProts[1L]
         xicDir2 <- paste0(xicOutDir, "/", pr)

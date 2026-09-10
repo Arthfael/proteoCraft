@@ -65,11 +65,11 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   if (!sheetnm %in% names(data_filt)) { data_filt[[sheetnm]] <- 1L:nrow(tempData) }
   if (!sheetnm %in% names(data_order)) { data_order[[sheetnm]] <- 1L:length(data_filt[[sheetnm]]) }
   #WorkBook <- wb_add_worksheet(WorkBook, sheetnm, grid_lines = FALSE)
-  #saveFun(WorkBook, file = "WorkBook_bckp.RData")
+  #saveFun(WorkBook, file = "WorkBook_bckp.RDS")
   #
   # For testing:
   # data_filt[[sheetnm]] <- data_order[[sheetnm]] <- 1L:10L
-  #loadFun("WorkBook_bckp.RData")
+  #loadFun("WorkBook_bckp.RDS")
   wtst <- data_filt[[sheetnm]]
   sheetrows <- length(wtst)+2L # delete me? not used anywhere I think
   ord <- data_order[[sheetnm]]

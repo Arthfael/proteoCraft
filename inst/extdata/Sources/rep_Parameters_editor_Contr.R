@@ -108,7 +108,7 @@ fullContrFun <- \(prim, sec) {
   if (missing(sec) || is.na(sec) || (length(sec) != 1L) || (sec == "")) { return(prim) }
   return(paste0("(", prim, ") - (", sec, ")"))
 }
-contrastsFl %<o% paste0(wd, "/Contrasts.rds")
+contrastsFl %<o% paste0(wd, "/Contrasts.RDS")
 if (file.exists(contrastsFl)) {
   myContrasts <- readr::read_rds(contrastsFl)
   g <- grep("\\) - \\(", myContrasts$Contrast)

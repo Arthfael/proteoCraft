@@ -6,7 +6,7 @@ if (globalGO) {
   #
   Src <- paste0(libPath, "/extdata/Sources/GO_prepare.R")
   #rstudioapi::documentOpen(Src)
-  source(Src, local = FALSE)
+  source(Src)
   #
   temp <- listMelt(strsplit(PG$"Leading protein IDs", ";"), PG$id, c("Accession", "id"))
   kol <- annot.col[which(annot.col %in% colnames(db))]
@@ -62,5 +62,5 @@ if (globalGO) {
   PG$Ontology <- NULL # Temporary fix for now, this column is broken
   #
   stopCluster(parClust)
-  source(parSrc, local = FALSE)
+  source(parSrc)
 }

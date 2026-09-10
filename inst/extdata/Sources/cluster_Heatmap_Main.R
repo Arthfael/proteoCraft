@@ -261,7 +261,7 @@ if (clustHtMp) {
           # Here we really want to optimize the number of clusters
           # Apply the same method for optimization for any clustering method
           # Number of cluster should not depend on method
-          source(parSrc, local = FALSE)
+          source(parSrc)
           clusterExport(parClust, list("temp3", "Straps"), envir = environment())
           HClust_rg <- 2L:MaxHClust
           tst <- setNames(parLapply(parClust, HClust_rg, \(kl) { #kl <- 2L
@@ -833,7 +833,7 @@ if (clustHtMp) {
   }))
   #
   #if (clustMode == "standard") {
-    saveFun(plotLeatMaps, file = paste0(clustDir, "/HeatMaps.RData"))
+    saveFun(plotLeatMaps, file = paste0(clustDir, "/HeatMaps.RDS"))
     # Save plotly plots
     dr <- clustDir
     myPlotLys <- list()
@@ -842,7 +842,7 @@ if (clustHtMp) {
     }
     Src <- paste0(libPath, "/extdata/Sources/save_Plotlys.R")
     #rstudioapi::documentOpen(Src)
-    source(Src, local = FALSE)
+    source(Src)
   #}
   #
   if (length(heatMaps)) {

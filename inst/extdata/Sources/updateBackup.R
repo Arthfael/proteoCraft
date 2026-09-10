@@ -15,4 +15,4 @@ Script <- readr::read_lines(ScriptPath)
 gc()
 saveImgFun(BckUpFl)
 #loadFun(BckUpFl)
-if (!inherits(clustTst, "try-error")) { source(parSrc, local = FALSE) }
+if (!inherits(clustTst, "try-error")) { source(parSrc) }
