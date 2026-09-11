@@ -1,9 +1,6 @@
 #### Dimensionality reduction plots
 # Currently only used by the replicate scripts!
 #
-if (!exists("dimRedPlotLy")) { dimRedPlotLy <- list() }
-dimRedPlotLy %<o% dimRedPlotLy
-#
 Exp.map$RSA_cleaned <- cleanNms(Exp.map$Ref.Sample.Aggregate)
 #
 # Data to plot
@@ -35,6 +32,9 @@ if (dataType == "modPeptides") {
 datMatch <- match(row.names(dimRedDat), nameCol)
 filt <- which((apply(dimRedDat[, kol], 1L, \(x) { sum(is.finite(x)) }) == ncol(dimRedDat))
               &((is.na(contCol[datMatch]))|(contCol[datMatch] != "+")))
+#
+if (!exists("dimRedPlotLy")) { dimRedPlotLy %<o% list() }
+if (!dataType %in% names(dimRedPlotLy)) { dimRedPlotLy[[dataType]] <- list() }
 #
 # Plots
 # -----
@@ -123,7 +123,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
     plot_lyPCAProt <- layout(plot_lyPCAProt, title = ttl)
     plot_lyPCAProt <- plotly_build(plot_lyPCAProt)
-    dimRedPlotLy[["Samples PCA"]] <- plot_lyPCAProt
+    dimRedPlotLy[[dataType]][["Samples PCA"]] <- plot_lyPCAProt
     setwd(myLittleDir)
     saveWidget(partial_bundle(plot_lyPCAProt), paste0(myLittleDir, "/", ttl, ".html"))
     setwd(wd)
@@ -348,7 +348,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     plot_lyPCAProt2 <- layout(plot_lyPCAProt2, title = ttl,
                               uirevision = TRUE)
     plot_lyPCAProt2 <- plotly_build(plot_lyPCAProt2)
-    dimRedPlotLy[["PCA"]] <- plot_lyPCAProt2
+    dimRedPlotLy[[dataType]][["PCA"]] <- plot_lyPCAProt2
     setwd(myLittleDir)
     saveWidget(partial_bundle(plot_lyPCAProt2), paste0(myLittleDir, "/", ttl, ".html"))
     setwd(wd)
@@ -439,7 +439,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       plot_lytSNE <- layout(plot_lytSNE, title = ttl2,
                             uirevision = TRUE)
       plot_lytSNE <- plotly_build(plot_lytSNE)
-      dimRedPlotLy[["t-SNE"]] <- plot_lytSNE
+      dimRedPlotLy[[dataType]][["t-SNE"]] <- plot_lytSNE
       setwd(myLittleDir)
       saveWidget(partial_bundle(plot_lytSNE), paste0(myLittleDir, "/", ttl2, ".html"))
       setwd(wd)
@@ -529,7 +529,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       plot_lyUMAP <- layout(plot_lyUMAP, title = ttl3,
                             uirevision = TRUE)
       plot_lyUMAP <- plotly_build(plot_lyUMAP)
-      dimRedPlotLy[["UMAP"]] <- plot_lyUMAP
+      dimRedPlotLy[[dataType]][["UMAP"]] <- plot_lyUMAP
       setwd(myLittleDir)
       saveWidget(partial_bundle(plot_lyUMAP), paste0(myLittleDir, "/", ttl3, ".html"))
       setwd(wd)

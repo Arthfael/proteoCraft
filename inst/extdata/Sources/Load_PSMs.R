@@ -230,8 +230,8 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
           tst <- tst[which(lengths(tst) == 1L)]
           if (length(tst)) {
             tst <- setNames(unlist(tst), names(tst))
-            wY2 <- which(is.na(tbl$nuLoc)&(tbl$file %in% names(tst)))
-            wN2 <- which(is.na(tbl$nuLoc)&(!tbl$file %in% names(tst)))
+            wY2 <- which(is.na(tbl$nuLoc) & (tbl$file %in% names(tst)))
+            wN2 <- which(is.na(tbl$nuLoc) & (!tbl$file %in% names(tst)))
             tstY2 <- (length(wY2) > 1L)+1L
             tstN2 <- (length(wN2) > 1L)+1L
             if (length(wY2)) {
@@ -605,8 +605,8 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
           tst <- tst[which(lengths(tst) == 1L)]
           if (length(tst)) {
             tst <- setNames(unlist(tst), names(tst))
-            wY2 <- which(is.na(tbl$nuLoc)&(tbl$file %in% names(tst)))
-            wN2 <- which(is.na(tbl$nuLoc)&(!tbl$file %in% names(tst)))
+            wY2 <- which(is.na(tbl$nuLoc) & (tbl$file %in% names(tst)))
+            wN2 <- which(is.na(tbl$nuLoc) & (!tbl$file %in% names(tst)))
             tstY2 <- (length(wY2) > 1L)+1L
             tstN2 <- (length(wN2) > 1L)+1L
             if (length(wY2)) {
@@ -696,32 +696,53 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     FxMd <- FxMd[which(!FxMd %in% FxMdC)]
     FxMdC <- gsub("cysteine[ ,-]?", "", FxMdC, ignore.case = TRUE)
     FxMdC <- paste0(toupper(substr(FxMdC, 1L, 1L)), substr(FxMdC, 2L, nchar(FxMdC)))
-    VarMd <- gsub(" will be considered as variable$", "", grep(" will be considered as variable$", diannLog_i, value = TRUE))
+    VarMd <- sub("^Modification ", "", sub(" will be considered as variable$", "", grep(" will be considered as variable$", diannLog_i, value = TRUE)))
     if (length(VarMd)) {
-      VarMd <- set_colnames(Isapply(strsplit(gsub("^Modification ", "", VarMd), " with mass delta | at "), unlist),
+      VarMd <- set_colnames(Isapply(strsplit(VarMd, " with mass delta | at "), unlist),
                             c("UniMod", "Delta mass", "AA"))
-      VarMd <- set_colnames(aggregate(VarMd$AA, list(VarMd$UniMod, VarMd$`Delta mass`), list),
+      VarMd$UniMod <- sub("^Uni[Mm]od:?", "", VarMd$UniMod)
+      VarMd$AA <- lapply(strsplit(VarMd$AA, ""), \(aa) {
+        w <- which(aa == "*")
+        lW <- length(w)
+        if (lW) {
+          stopifnot(lW == 1L, aa[w+1L] == "n") # check assumptions
+          aa <- aa[-(w+1L)]
+          aa[w] <- "*n"
+        }
+        return(aa)
+      })
+      tmp <- listMelt(VarMd$AA, ColNames = c("AA", "row"))
+      tmp[, c("UniMod", "Delta mass")] <- VarMd[tmp$row, c("UniMod", "Delta mass")]
+      VarMd <- set_colnames(aggregate(tmp$AA, list(tmp$UniMod, tmp$`Delta mass`), list),
                             c("UniMod", "Delta mass", "AA"))
-      VarMd$UniMod <- gsub("^UniMod:", "", VarMd$UniMod)
       VarMd$Type <- "Variable"
       VarMd$"Full name" <- apply(VarMd[, c("UniMod", "Delta mass")], 1L, \(x) { #x <- VarMd[1, c("UniMod", "Delta mass")]
-        unique(UniMod$Name[which((UniMod$UnimodId == x[[1L]])&(round((UniMod$MonoMass == x[[2L]])*2L)/2 == 0L))])
+        unique(UniMod$Name[which((UniMod$UnimodId == x[[1L]]) & (round((UniMod$MonoMass == x[[2L]])*2L)/2 == 0L))])
       })
       w <- which(lapply(VarMd$`Full name`, length) == 0L)
       if (length(w)) {
-        VarMd$`Full name`[w] <- apply(VarMd[w, c("Delta mass", "AA")], 1L, \(x) {
+        VarMd$`Full name`[w] <- apply(VarMd[w, c("Delta mass", "AA")], 1L, \(x) { #x <- VarMd[w[1L], c("Delta mass", "AA")]
           pos <- sort(unlist(x[[2L]]))
-          pos[which(pos == "*n")] <- "_" # Check, this may not be correct...
+          pos[which(pos == "*n")] <- "_"
+          delta <- as.numeric(x[[1L]])
+          mods_i <- mods_i[order(abs(mods_i$`Mass shift` - delta)),]
           # in fact, check whether this part of DIANN_to_MQ() should not be improved.
-          mods_i$`Full name`[which((mods_i$`Mass shift` == x[[1L]])&(mods_i$AA %in% pos))]
+          res <- mods_i$`Full name`[which((abs(mods_i$`Mass shift`) - delta < 0.0001) & (vapply(mods_i$AA, \(y) { sum(y %in% pos) > 0L }, TRUE)))]
+          if (!length(res)) { res <- "unknown_PTM" }
+          return(res)
         })
+        w <- which(VarMd$`Full name` ==  "unknown_PTM")
+        lW <- length(w)
+        if (lW) {
+          VarMd$`Full name`[w] <- paste0(VarMd$`Full name`, "_", as.character(1L:lW))
+        }
       }
       VarMd$Text <- apply(VarMd[, c("Full name", "AA")], 1L, \(x) {
         x[[2L]][which(x[[2L]] == "n")] <- "N-term"
         x[[2L]][which(x[[2L]] == "*n")] <- "protein N-term"
         x[[2L]][which(x[[2L]] == "c")] <- "C-term"
         x[[2L]][which(x[[2L]] == "*c")] <- "protein C-term"
-        paste0(x[[1L]], " (", paste(x[[2L]], collapse = ""), ")")
+        paste0(x[[1L]], " (", paste(x[[2L]], collapse = ", "), ")")
       })
     }
     # Note that it is possible that a modification was searched but not found (so is present in VarMd but not mods_i)
@@ -927,8 +948,8 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
           tst <- tst[which(lengths(tst) == 1L)]
           if (length(tst)) {
             tst <- setNames(unlist(tst), names(tst))
-            wY2 <- which(is.na(tbl$nuLoc)&(tbl$file %in% names(tst)))
-            wN2 <- which(is.na(tbl$nuLoc)&(!tbl$file %in% names(tst)))
+            wY2 <- which(is.na(tbl$nuLoc) & (tbl$file %in% names(tst)))
+            wN2 <- which(is.na(tbl$nuLoc) & (!tbl$file %in% names(tst)))
             tstY2 <- (length(wY2) > 1L)+1L
             tstN2 <- (length(wN2) > 1L)+1L
             if (length(wY2)) {
@@ -1040,7 +1061,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     Ump <- as.logical(toupper(gsub(topattern("diaumpire.run-diaumpire="), "", grep(topattern("diaumpire.run-diaumpire="), fpWorkflow_i, value = TRUE))))
     Diane <- as.logical(toupper(gsub(topattern("diann.run-dia-nn="), "", grep(topattern("diann.run-dia-nn="), fpWorkflow_i, value = TRUE))))
     isDIA_i <- Diane|Ump # I think theoretically you could use either without the other... although probably for any DIA dataset you will use DiaNN
-    #stopifnot(((Param$Label == "DIA")&isDIA)|((Param$Label != "DIA")&!isDIA)) # Sanity check
+    #stopifnot(((Param$Label == "DIA") & isDIA)|((Param$Label != "DIA") & (!isDIA))) # Sanity check
     # OpenSearch is indirectly identified as cases where unusually high values for tolerances are used
     PrTolUp <- gsub(topattern("msfragger.precursor_mass_upper="), "", grep(topattern("msfragger.precursor_mass_upper="), fpWorkflow_i, value = TRUE))
     PrTolDwn <- gsub(topattern("msfragger.precursor_mass_lower="), "", grep(topattern("msfragger.precursor_mass_lower="), fpWorkflow_i, value = TRUE))

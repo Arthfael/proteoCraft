@@ -13,11 +13,6 @@ Src <- paste0(libPath, "/extdata/Sources/parBooleans.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 #
-# PCA prior to shiny app
-Src <- paste0(libPath, "/extdata/Sources/rep_Parameters_editor_PCA.R")
-#rstudioapi::documentOpen(Src)
-source(Src)
-#
 # Protein headers for shiny
 Src <- paste0(libPath, "/extdata/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
@@ -895,6 +890,44 @@ useSAM_thresh %<o% FALSE
 tstAdvOpt <- try(sum(file.exists(Param$Custom.PGs, Param$TrueDisc_filter, Param$CRAPome_file)) > 0L)
 if (inherits(tstAdvOpt, "try-error")) { tstAdvOpt <- FALSE }
 #
+# PTMs for statistical analysis
+wVar <- which(Modifs$Type == "Variable")
+lVar <- length(wVar)
+if (lVar) {
+  ptmIDsLst <- setNames(lapply(wVar, \(i) {
+    ptm <- Modifs$`Full name`[i]
+    aa <- Modifs$AA[[i]]
+    aa[which(aa == "_")] <- "N-term"
+    paste0("PTMstats_", ptm, "___", aa)
+  }), Modifs$`Full name`[wVar])
+  ptmIDs <- unlist(ptmIDsLst)
+  #
+  PTMstats <- data.frame(mod = Modifs$`Full name`[wVar])
+  PTMstats$sites <- setNames(vector(mode = "list", length = lVar), PTMstats$mod)
+  if (("PTM.analysis" %in% colnames(Param)) && (nchar(Param$PTM.analysis))) {
+    tmp <- unlist(strsplit(Param$PTM.analysis, ";"))
+    tmp2 <- data.frame(mod = sub(" \\(.*", "", tmp))
+    w <- which(tmp2$mod %in% Modifs$`Full name`)
+    if (length(w)) {
+      tmp2 <- tmp2[w, , drop = FALSE]
+      tmp3 <- listMelt(Modifs$AA, Modifs$`Full name`, c("site", "mod"))
+      tmp3 <- aggregate(tmp3$site, list(tmp3$mod), unique)
+      tmp2$sites <- setNames(tmp3$x[match(tmp2$mod, tmp3$Group.1)], tmp2$mod)
+      g <- grep(" \\(", tmp)
+      if (length(g)) {
+        tmp2$sites[tmp2$mod[g]] <- strsplit(gsub(".* \\(|\\)", "", tmp[g]), " *, *")
+        # Here we will assume that "N-term" should be written, not "_"!
+      }
+      w <- which(!PTMstats$mod %in% tmp2$mod)
+      if (length(w)) {
+        tmp2 <- rbind(tmp2, PTMstats[w,])
+      }
+      PTMstats <- tmp2
+    }
+  }
+  PTMstats <- PTMstats[order(PTMstats$mod),]
+}
+#
 mtchCheckMsg1 <- "Not all search software will map peptides to protein IDs in the search database the same way. Using this function ensures consistent results regardless of search engine."
 mtchCheckMsg2 <- "!Checking assignments may result in removal of some identifications!"
 F_test_override <- FALSE
@@ -910,9 +943,39 @@ make_ui1 <- \() {
       gradient = "linear",
       direction = "bottom"
     ),
-    tags$head(
-      tags$style(HTML("#MAplot img { max-width: 80%; height: auto; }"))
-    ),
+    tags$head(tags$style(HTML("#MAplot img { max-width: 80%; height: auto; }
+#PTMstats .ptm-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+#PTMstats .ptm-name {
+  display: flex;
+  font-weight: bold;
+  align-items: center;
+  height: 20px;
+  margin-right: 5px;
+  white-space: nowrap;
+  position: relative;
+  top: -8px;
+}
+#PTMstats .checkbox {
+  display: flex !important;
+  align-items: center;
+  height: 20px;
+  margin: 0 12px 0 0 !important;
+}
+#PTMstats .checkbox label {
+  display: flex !important;
+  align-items: center;
+  height: 20px;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  line-height: 20px;
+}
+#PTMstats .checkbox input {
+  margin-top: 0 !important;
+}"))),
     extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
     titlePanel(tag("u", "Parameters"),
                #em(appNm)), # Doesn't work =(
@@ -1146,17 +1209,8 @@ make_ui1 <- \() {
     tags$hr(style = "border-color: black;"),
     withSpinner(uiOutput("CytoScape")),
     h4(strong("Post-translational modifications (PTMs)")),
-    fluidRow(column(2L,
-                    pickerInput("PTMsStats",
-                                "Select PTM(s) (if any) for which statistical tests will be performed and subtables written:",
-                                Modifs$`Full name`[which(Modifs$Type == "Variable")],
-                                unlist(strsplit(ptmDflt2, ";")),
-                                TRUE,
-                                pickerOptions(title = "Search me",
-                                              `live-search` = TRUE,
-                                              actionsBox = TRUE,
-                                              deselectAllText = "Clear search",
-                                              showTick = TRUE))),
+    fluidRow(column(3L,
+                    uiOutput("PTMstats")),
              column(2L,
                     checkboxInput("PTMsReNorm",
                                   "Re-normalize modified peptides ratios to those of parent Protein Group(s)?",
@@ -1482,7 +1536,7 @@ server1 <- \(input, output, session) {
   # Dynamic UI
   # Map Parameters to Factors
   output$QuantMsg <- updtQuantMsg(FALSE)
-  output$PSMsPCA <- renderPlotly(plot_lyPSMsPCA)
+  output$PSMsPCA <- renderPlotly(dimRedPlotLy$PSMs$"Samples PCA")
   output$RSA_msg <- updtRSAmsg(FALSE)
   output$FORMULA <- updtFORM(FALSE)
   output$FactMappings <- renderUI({ lstFct })
@@ -1492,8 +1546,8 @@ server1 <- \(input, output, session) {
   # })
   # Factors
   sapply(rev(wMp), \(w) { # Reversed order so the red warning message isn't displayed by default!
-    myFct <- colnames(Param)[w]
     observeEvent(input[[myFct]], {
+      myFct <- colnames(Param)[w]
       #tmpVal <- VPAL$names
       #myFct <- "Volcano.plots.Aggregate.Level"
       tmpVal <- input[[myFct]] # Current aggregate
@@ -1595,6 +1649,42 @@ server1 <- \(input, output, session) {
     
     return(lst)
   })
+  # PTMs
+  if (lVar) {
+    output$PTMstats <- renderUI({
+      div(style = "display: grid; grid-template-columns: 1fr; width: 100%;",
+          lapply(wVar, \(i) { #ii <- 4L
+            aa <- Modifs$AA[[i]]
+            aa[which(aa == "_")] <- "N-term"
+            ptm <- Modifs$`Full name`[i]
+            ids <- ptmIDsLst[[ptm]]
+            div(class = "ptm-row",
+                span(class = "ptm-name",
+                     paste0(ptm, ":")),
+                lapply(1L:length(aa), \(ii) { #ii <- 1L
+                  a <- aa[ii]
+                  checkboxInput(ids[[ii]],
+                                a,
+                                a %in% PTMstats$sites[[ptm]],
+                                c("50px", "80px")[(a == "N-term") + 1L])
+                }))
+          }))
+    })
+    sapply(ptmIDs, \(id) { #id <- ptmIDs[[1L]]
+      observeEvent(input[[id]], {
+        tmp <- unlist(strsplit(sub("^PTMstats_", "", id), "___"))
+        ptm <- tmp[1L]
+        aa <- tmp[[2L]] # Use explicit "N-term", not "_" or any other alternative!
+        # Below: somehow only going through these intermediate variables is working, otherwise this fails...
+        tmp <- PTMstats$sites
+        sts <- tmp[[ptm]]
+        sts <- if (input[[id]]) { sort(union(sts, aa)) } else { setdiff(sts, aa) }
+        tmp[[ptm]] <- sts
+        PTMstats$sites[names(tmp)] <- tmp
+        assign("PTMstats", PTMstats, envir = .GlobalEnv)
+      }, ignoreInit = TRUE)
+    })
+  }
   #
   # Labels purity correction - only for isobarically labelled samples
   updtIsoPur <- \(reactive = TRUE, lblType = LabelType) {
@@ -1662,7 +1752,7 @@ server1 <- \(input, output, session) {
   })
   # Update PSM-to-Protein matches?
   observeEvent(input$Update_Prot_matches, {
-    Update_Prot_matches <- input$Update_Prot_matches
+    Update_Prot_matches <- as.logical(input$Update_Prot_matches)
     assign("Update_Prot_matches", Update_Prot_matches, envir = .GlobalEnv)
     Par <- PARAM()
     Par$Update_Prot_matches <- Update_Prot_matches
@@ -2213,12 +2303,7 @@ server1 <- \(input, output, session) {
     }
     })
   }
-  # PTMs to test statistically
-  observeEvent(input$PTMsStats, {
-    Par <- PARAM()
-    Par$PTM.analysis <- paste(input$PTMsStats, collapse = ";")
-    PARAM(Par)
-  }, ignoreNULL = FALSE)
+  #
   # Re-normalize PTM peptides
   observeEvent(input$PTMsReNorm, {
     Par <- PARAM()
@@ -2265,8 +2350,8 @@ runKount <- 0L
 while ((!runKount) || (!exists("appRunTest"))) {
   ui1 <- make_ui1() # Update ui with current values
   eval(parse(text = appTxt1), envir = .GlobalEnv)
-  shinyCleanup()
   runKount <- runKount+1L
+  shinyCleanup()
 }
 rm(list = ls(pattern = "^\\.shiny"))
 shiny::stopApp()
@@ -2321,6 +2406,42 @@ w <- grep("^ *((TRUE)|(FALSE)) *$", Param[1L,], ignore.case = TRUE)
 if (length(w)) {
   Param[1L, w] <- gsub(" ", "", toupper(Param[1L, w]))
   Param[, w] <- as.logical(Param[, w])
+}
+if (lVar) {
+  Param$PTM.analysis <- ""
+  PTMstats <- PTMstats[which(lengths(PTMstats$sites) > 0L),]
+  if (nrow(PTMstats)) {
+    PTMstats %<o% PTMstats
+    Param$PTM.analysis <- paste(vapply(PTMstats$mod, \(ptm) {
+      paste0(ptm, " (", paste(PTMstats$sites[[ptm]], collapse = ", "), ")")
+    }, ""), collapse = ";")
+    PTMstats$mark <- Modifs$Mark[match(PTMstats$mod, Modifs$`Full name`)]
+    # Patterns for individual site matching
+    patFun <- \(x, collapse = FALSE) {
+      pat <- c()
+      x1 <- PTMstats$mark[[x]]
+      x2 <- PTMstats$sites[[x]]
+      w2n <- which(x2 == "N-term")
+      w2c <- which(x2 == "C-term")
+      w2i <- which(!x2 %in% c("N-term","C-term"))
+      if (length(w2n)) {
+        pat <- c(pat, paste0("^_[A-Z]?\\(([^A-Z\\),]{2},)*", x1, "(,[^A-Z\\),]{2})*\\)"))
+      }
+      if (length(w2c)) {
+        pat <- c(pat, paste0("\\(([^A-Z\\),]{2},)*", x1, "(,[^A-Z\\),]{2})*\\)_$"))
+      }
+      if (length(w2i)) {
+        i <- x2[w2i]
+        if (collapse && (length(w2i) > 1L)) { i <- paste0("[", paste(i, collapse = ""), "]") }
+        pat <- c(pat, paste0(i, "\\(([^A-Z\\),]{2},)*", x1, "(,[^A-Z\\),]{2})*\\)"))
+      }
+      if (collapse) { pat <- paste(pat, collapse = "|") }
+      return(pat)
+    }
+    PTMstats$patterns_i <- lapply(1L:nrow(PTMstats), patFun)
+    # Global pattern for matching to any site
+    PTMstats$pattern <- vapply(1L:nrow(PTMstats), patFun, "", TRUE)
+  }
 }
 
 # Create sub-directories vector:

@@ -157,142 +157,143 @@ load_Bckp <- function(backup,
     if (exists("ScriptPath")) {
       cat("Analysis script used ---> ", ScriptPath, "\n")
       if (file.exists(ScriptPath)) {
-        # This code rests on the assumption that we follow the following pattern when calling sourced sub-scripts:
-        # .*Src ((<-)|(%<[co]%)) # ... define path to source
-        # source(.*Src) # source call
-        #
-        scrptBckps <- grep("source\\(bckpSrc(, local = FALSE)?\\)", scrptCode, value = TRUE)
-        # Process script and sources and identify which remanent objects they create
-        allSrcs <- data.frame(Path = c(ScriptPath,
-                                       list.files(paste0(libPath, "/extdata/Sources"), ".R$", full.names = TRUE, recursive = TRUE),
-                                       list.files(paste0(libPath, "/extdata/Pepper"), ".R$", full.names = TRUE, recursive = TRUE)))
-        allSrcs$Name <- basename(allSrcs$Path)
-        allSrcs$Code <- lapply(allSrcs$Path, \(x) { sub(" *#.*", "", readLines(x)) })
-        scrptCode <- sub("^ *", "", sub(" *#.*", "", allSrcs$Code[[1L]]))
-        lScrpt <- length(scrptCode)
-        w_bckpCalls <- c(1L, grep("source\\( *bckpSrc", scrptCode), lScrpt)
-        # Identify other scripts sourced by each script
-        allSrcs$g <- lapply(allSrcs$Code, \(x) { grep("source\\(", x) }) # ... first where the source call occurs...
-        allSrcs$gSrc <- lapply(allSrcs$Code, \(x) { grep("Src *((<-)|(%<[co]%)) *", x) }) #... then where...
-        allSrcs$allSrcs <- lapply(1L:nrow(allSrcs), \(x) { allSrcs$Code[[x]][allSrcs$gSrc[[x]]] }) # ... and how the path to which source is called is defined
-        # Case where we assign a source to a non-generic object name:
-        # specSrcDefs = source paths which are not assigned to the recycled "Src" object but assigned specific, often remanent object names
-        specSrcDefs <- sort(unique(sub(" ((<-)|(*%<[co]%)) *", " <- ", sub("^ *", "", unlist(allSrcs$allSrcs)))))
-        specSrcDefs <- grep("^Src", specSrcDefs, value = TRUE, invert = TRUE)
-        specSrcDefs <- data.frame(obj = sub(".* +", "", sub(" *((<-)|(%<[co]%)) *.*", "", specSrcDefs)),
-                                  src = sub(".*/", "", sub("\\.R\".*", "", specSrcDefs)))
-        specSrcDefs <- specSrcDefs[which(specSrcDefs$src == make.names(specSrcDefs$src)),]
-        specSrcDefs$src <- paste0(specSrcDefs$src, ".R")
-        specSrcDefs <- specSrcDefs[which((specSrcDefs$src != basename(ScriptPath)) & (specSrcDefs$src %in% allSrcs$Name)),]
-        #
-        allSrcs$subSrcs <- lapply(1L:nrow(allSrcs), \(x) { #x <- 1L #x <- x+1L #x <- 53L #x <- 75L #x <- 110L
-          g <- allSrcs$g[[x]]
-          lg <- length(g)
-          if (!lg) { return() }
-          gSrc <- allSrcs$gSrc[[x]]
-          locSrcs <- length(gSrc)
-          if (locSrcs) {
-            srcDefs <- allSrcs$allSrcs[[x]]
-            srcDefs <- data.frame(gSrc = gSrc,
-                                  obj = sub(".* +", "", sub(" *((<-)|(%<[co]%)) *.*", "", srcDefs)),
-                                  src = sub(".*/", "", sub("\\.R\".*", "", srcDefs)))
-            srcDefs <- srcDefs[which(srcDefs$src == make.names(srcDefs$src)),]
-            locSrcs <- nrow(srcDefs)
-          }
-          if (locSrcs) {
-            srcDefs$src <- paste0(srcDefs$src, ".R")
-            srcDefs <- srcDefs[which((srcDefs$src != basename(ScriptPath)) & (srcDefs$src %in% allSrcs$Name)),]
-            locSrcs <- nrow(srcDefs)
-          }
-          Srcs <- sub("(, *local *= *((FALSE)|(TRUE)|(F)|(T)))? *\\).*", "", sub(".*source\\( *", "", allSrcs$Code[[x]][g]))
-          srcNms <- rep(NA, lg)
-          for (i in 1L:lg) { #i <- 1L
-            Src <- Srcs[i]
-            j <- c()
+        try({
+          # This code rests on the assumption that we follow the following pattern when calling sourced sub-scripts:
+          # .*Src ((<-)|(%<[co]%)) # ... define path to source
+          # source(.*Src) # source call
+          #
+          # Process script and sources and identify which remanent objects they create
+          allSrcs <- data.frame(Path = c(ScriptPath,
+                                         list.files(paste0(libPath, "/extdata/Sources"), ".R$", full.names = TRUE, recursive = TRUE),
+                                         list.files(paste0(libPath, "/extdata/Pepper"), ".R$", full.names = TRUE, recursive = TRUE)))
+          allSrcs$Name <- basename(allSrcs$Path)
+          allSrcs$Code <- lapply(allSrcs$Path, \(x) { sub(" *#.*", "", readLines(x)) })
+          scrptCode <- sub("^ *", "", sub(" *#.*", "", allSrcs$Code[[1L]]))
+          lScrpt <- length(scrptCode)
+          w_bckpCalls <- c(1L, grep("source\\( *bckpSrc", scrptCode), lScrpt)
+          # Identify other scripts sourced by each script
+          allSrcs$g <- lapply(allSrcs$Code, \(x) { grep("source\\(", x) }) # ... first where the source call occurs...
+          allSrcs$gSrc <- lapply(allSrcs$Code, \(x) { grep("Src *((<-)|(%<[co]%)) *", x) }) #... then where...
+          allSrcs$allSrcs <- lapply(1L:nrow(allSrcs), \(x) { allSrcs$Code[[x]][allSrcs$gSrc[[x]]] }) # ... and how the path to which source is called is defined
+          # Case where we assign a source to a non-generic object name:
+          # specSrcDefs = source paths which are not assigned to the recycled "Src" object but assigned specific, often remanent object names
+          specSrcDefs <- sort(unique(sub(" ((<-)|(*%<[co]%)) *", " <- ", sub("^ *", "", unlist(allSrcs$allSrcs)))))
+          specSrcDefs <- grep("^Src", specSrcDefs, value = TRUE, invert = TRUE)
+          specSrcDefs <- data.frame(obj = sub(".* +", "", sub(" *((<-)|(%<[co]%)) *.*", "", specSrcDefs)),
+                                    src = sub(".*/", "", sub("\\.R\".*", "", specSrcDefs)))
+          specSrcDefs <- specSrcDefs[which(specSrcDefs$src == make.names(specSrcDefs$src)),]
+          specSrcDefs$src <- paste0(specSrcDefs$src, ".R")
+          specSrcDefs <- specSrcDefs[which((specSrcDefs$src != basename(ScriptPath)) & (specSrcDefs$src %in% allSrcs$Name)),]
+          #
+          allSrcs$subSrcs <- lapply(1L:nrow(allSrcs), \(x) { #x <- 1L #x <- x+1L #x <- 53L #x <- 75L #x <- 110L
+            g <- allSrcs$g[[x]]
+            lg <- length(g)
+            if (!lg) { return() }
+            gSrc <- allSrcs$gSrc[[x]]
+            locSrcs <- length(gSrc)
             if (locSrcs) {
-              j <- which((srcDefs$gSrc < g[i]) & (srcDefs$obj == Src))
+              srcDefs <- allSrcs$allSrcs[[x]]
+              srcDefs <- data.frame(gSrc = gSrc,
+                                    obj = sub(".* +", "", sub(" *((<-)|(%<[co]%)) *.*", "", srcDefs)),
+                                    src = sub(".*/", "", sub("\\.R\".*", "", srcDefs)))
+              srcDefs <- srcDefs[which(srcDefs$src == make.names(srcDefs$src)),]
+              locSrcs <- nrow(srcDefs)
             }
-            if (length(j)) { srcNms[i] <- srcDefs$src[max(j)] } else {
-              m <- match(Src, specSrcDefs$obj)
-              if (!is.na(m)) { srcNms[i] <- specSrcDefs$src[m] } # else { print(Src) }
+            if (locSrcs) {
+              srcDefs$src <- paste0(srcDefs$src, ".R")
+              srcDefs <- srcDefs[which((srcDefs$src != basename(ScriptPath)) & (srcDefs$src %in% allSrcs$Name)),]
+              locSrcs <- nrow(srcDefs)
             }
-          }
-          w <- which(!is.na(srcNms))
-          return(data.frame(i = g[w],
-                            source = srcNms[w]))
-        })
-        # Replace code in parent scripts
-        allSrcs$Code_lst <- lapply(allSrcs$Code, as.list)
-        lSubSrcs <- vapply(allSrcs$subSrcs, \(x) { return( if (!is.data.frame(x)) { 0L } else { nrow(x) } ) }, 1L)
-        wh1 <- which(lSubSrcs == 0L)
-        wh2 <- which(lSubSrcs > 0L)
-        while (length(wh2)) {
-          tmp <- lapply(wh2, \(i) { #i <- wh2[1L] #i <- wh2[4L]
-            Srcs <- allSrcs$subSrcs[[i]]
-            Code <- allSrcs$Code_lst[[i]]
-            w1 <- which(Srcs$source %in% allSrcs$Name[wh1])
-            w2 <- which(!Srcs$source %in% allSrcs$Name[wh1])
-            if (length(w1)) {
-              Code[Srcs$i[w1]] <- allSrcs$Code_lst[match(Srcs$source[w1], allSrcs$Name)]
-              Srcs <- Srcs[w2,]
+            Srcs <- sub("(, *local *= *((FALSE)|(TRUE)|(F)|(T)))? *\\).*", "", sub(".*source\\( *", "", allSrcs$Code[[x]][g]))
+            srcNms <- rep(NA, lg)
+            for (i in 1L:lg) { #i <- 1L
+              Src <- Srcs[i]
+              j <- c()
+              if (locSrcs) {
+                j <- which((srcDefs$gSrc < g[i]) & (srcDefs$obj == Src))
+              }
+              if (length(j)) { srcNms[i] <- srcDefs$src[max(j)] } else {
+                m <- match(Src, specSrcDefs$obj)
+                if (!is.na(m)) { srcNms[i] <- specSrcDefs$src[m] } # else { print(Src) }
+              }
             }
-            return(list(sources = Srcs,
-                        code = Code))
+            w <- which(!is.na(srcNms))
+            return(data.frame(i = g[w],
+                              source = srcNms[w]))
           })
-          allSrcs$Code_lst[wh2] <- lapply(tmp, \(x) { x$code })
-          allSrcs$subSrcs[wh2] <- lapply(tmp, \(x) { x$sources })
+          # Replace code in parent scripts
+          allSrcs$Code_lst <- lapply(allSrcs$Code, as.list)
           lSubSrcs <- vapply(allSrcs$subSrcs, \(x) { return( if (!is.data.frame(x)) { 0L } else { nrow(x) } ) }, 1L)
           wh1 <- which(lSubSrcs == 0L)
           wh2 <- which(lSubSrcs > 0L)
-        }
-        code_lst <- allSrcs$Code_lst[[1L]]
-        code_lst <- listMelt(code_lst, 1L:length(code_lst), c("code", "row"))
-        #
-        # Analyse objects created
-        # Identify remanent objects created by each source
-        w_obj1 <- grep("%<[co]%", code_lst$code)
-        w_obj2 <- grep(".obj <- ((union)|(c)|(unique\\(c))\\(", code_lst$code)
-        obj <- list()
-        if (length(w_obj1)) {
-          obj1 <- sub(".* +", "", sub(" *%<[co]%.*", "", code_lst$code[w_obj1]))
-          w <- which(obj1 == make.names(obj1)) # Check that we only parsed valid variable names
-          obj1 <- data.frame(obj = obj1[w],
-                             row = code_lst$row[w_obj1[w]])
-          obj$v1 <- obj1
-        }
-        if (length(w_obj2)) {
-          obj2 <- sub("\\).*", "", sub(".*, *", "", code_lst$code[w_obj2])) # Sometimes the left element is an expression: we cannot handle those cases 
-          w <- which(obj2 == make.names(obj2)) # Check that we only parsed valid variable names
-          obj2 <- data.frame(obj = obj2[w],
-                             row = code_lst$row[w_obj2[w]])
-          obj$v2 <- obj2
-        }
-        obj <- do.call(rbind, obj)
-        obj <- obj[order(obj$row),]
-        obj$prediction <- vapply(obj$row, \(x) { min(w_bckpCalls[which(w_bckpCalls > x)]) }, 1L)
-        cat(paste0("\n   FYI, the last remanent object created before this backup was made is \"", .obj[1L], "\""))
-        w <- which(.obj %in% obj$obj)
-        if (length(w)) {
-          pred <- lapply(.obj[w], \(x) { unique(obj$prediction[which(obj$obj == x)]) })
-          pred1 <- pred[[1L]]         # Prediction from 1st object in .obj (last added)
-          pred2 <- max(unlist(pred))  # Prediction from all objects
-          tst <- (pred2 %in% pred1)
-          if (pred2 < lScrpt) {
-            rg <- (pred2+1L):lScrpt
-            rg <- rg[which(scrptCode[rg] != "")]
-            if (length(rg)) { pred2 <- rg[1L] }
+          while (length(wh2)) {
+            tmp <- lapply(wh2, \(i) { #i <- wh2[1L] #i <- wh2[4L]
+              Srcs <- allSrcs$subSrcs[[i]]
+              Code <- allSrcs$Code_lst[[i]]
+              w1 <- which(Srcs$source %in% allSrcs$Name[wh1])
+              w2 <- which(!Srcs$source %in% allSrcs$Name[wh1])
+              if (length(w1)) {
+                Code[Srcs$i[w1]] <- allSrcs$Code_lst[match(Srcs$source[w1], allSrcs$Name)]
+                Srcs <- Srcs[w2,]
+              }
+              return(list(sources = Srcs,
+                          code = Code))
+            })
+            allSrcs$Code_lst[wh2] <- lapply(tmp, \(x) { x$code })
+            allSrcs$subSrcs[wh2] <- lapply(tmp, \(x) { x$sources })
+            lSubSrcs <- vapply(allSrcs$subSrcs, \(x) { return( if (!is.data.frame(x)) { 0L } else { nrow(x) } ) }, 1L)
+            wh1 <- which(lSubSrcs == 0L)
+            wh2 <- which(lSubSrcs > 0L)
           }
-          if (pred2 > rev(w_bckpCalls)[2L]) {
-            msg <- paste0("   ", c("However, b", "B")[tst + 1L],
-                          "ackup analysis suggests that this backup had reached the end of the analysis, so there should be nothing more to run...\n   But maybe you want to re-run some parts without starting from scratch?\n   (opening script...)\n")
-            cat(msg)
-            suppressWarnings(rstudioapi::documentOpen(ScriptPath))
-          } else {
-            cat(paste0(c("   However, it seems that at some point the script had also been run with this data beyond that point, thus we suggest starting execution from",
+          code_lst <- allSrcs$Code_lst[[1L]]
+          code_lst <- listMelt(code_lst, 1L:length(code_lst), c("code", "row"))
+          #
+          # Analyse objects created
+          # Identify remanent objects created by each source
+          w_obj1 <- grep("%<[co]%", code_lst$code)
+          w_obj2 <- grep(".obj <- ((union)|(c)|(unique\\(c))\\(", code_lst$code)
+          obj <- list()
+          if (length(w_obj1)) {
+            obj1 <- sub(".* +", "", sub(" *%<[co]%.*", "", code_lst$code[w_obj1]))
+            w <- which(obj1 == make.names(obj1)) # Check that we only parsed valid variable names
+            obj1 <- data.frame(obj = obj1[w],
+                               row = code_lst$row[w_obj1[w]])
+            obj$v1 <- obj1
+          }
+          if (length(w_obj2)) {
+            obj2 <- sub("\\).*", "", sub(".*, *", "", code_lst$code[w_obj2])) # Sometimes the left element is an expression: we cannot handle those cases 
+            w <- which(obj2 == make.names(obj2)) # Check that we only parsed valid variable names
+            obj2 <- data.frame(obj = obj2[w],
+                               row = code_lst$row[w_obj2[w]])
+            obj$v2 <- obj2
+          }
+          obj <- do.call(rbind, obj)
+          obj <- obj[order(obj$row),]
+          obj$prediction <- vapply(obj$row, \(x) { min(w_bckpCalls[which(w_bckpCalls > x)]) }, 1L)
+          cat(paste0("\n   FYI, the last remanent object created before this backup was made is \"", .obj[1L], "\""))
+          w <- which(.obj %in% obj$obj)
+          if (length(w)) {
+            pred <- lapply(.obj[w], \(x) { unique(obj$prediction[which(obj$obj == x)]) })
+            pred1 <- pred[[1L]]         # Prediction from 1st object in .obj (last added)
+            pred2 <- max(unlist(pred))  # Prediction from all objects
+            tst <- (pred2 %in% pred1)
+            if (pred2 < lScrpt) {
+              rg <- (pred2+1L):lScrpt
+              rg <- rg[which(scrptCode[rg] != "")]
+              if (length(rg)) { pred2 <- rg[1L] }
+            }
+            if (pred2 > rev(w_bckpCalls)[2L]) {
+              msg <- paste0("   ", c("However, b", "B")[tst + 1L],
+                            "ackup analysis suggests that this backup had reached the end of the analysis, so there should be nothing more to run...\n   But maybe you want to re-run some parts without starting from scratch?\n   (opening script...)\n")
+              cat(msg)
+              suppressWarnings(rstudioapi::documentOpen(ScriptPath))
+            } else {
+              cat(paste0(c("   However, it seems that at some point the script had also been run with this data beyond that point, thus we suggest starting execution from",
                            "   Backup analysis suggests starting execution from")[tst + 1L], pred2, ")\n"))
-            suppressWarnings(rstudioapi::documentOpen(ScriptPath, pred2))
+              suppressWarnings(rstudioapi::documentOpen(ScriptPath, pred2))
+            }
           }
-        }
+        }, silent = TRUE)
       } else {
         cat(" ... but it appears the file doesn't exist anymore...\n")
         cat(paste0("   FYI, the last object listed in .obj is \"", rev(.obj)[1L], "\".\n"))

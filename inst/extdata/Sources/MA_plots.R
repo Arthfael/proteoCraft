@@ -67,7 +67,7 @@ if (length(kols) > 1L) {
   Grpkol <- "Group"
 } else { Grpkol <- kols }
 grps <- sort(unique(data[[Grpkol]]))
-cat(paste0("MA plot", c("", "s")[(length(grps) > 1L)+1L], ":\n"))
+cat("Drawing MA plot...\n")
 dir <- paste0(wd, "/Workflow control/MA plots")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 dirlist <- unique(c(dirlist, dir))

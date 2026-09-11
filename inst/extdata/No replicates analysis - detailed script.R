@@ -45,6 +45,7 @@ if (load_a_Bckp) {
   xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
   locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
   locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
+  ScriptPath <- normalizePath(gtools::script_file(), winslash = "/") # update
 }
 
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }

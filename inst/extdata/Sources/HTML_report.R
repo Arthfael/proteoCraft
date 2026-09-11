@@ -87,7 +87,7 @@ flPCA <- paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS")
 tstPCA <- file.exists(flPCA)
 if (tstPCA) {
   loadFun(flPCA)
-  tstPCA <- exists("dimRedPlotLy") && ("PCA" %in% names(dimRedPlotLy))
+  tstPCA <- exists("dimRedPlotLy") && ("PCA" %in% names(dimRedPlotLy$PG))
 }
 flVenn <- paste0(wd, "/Venn diagrams/Venn_plotly.RDS")
 tstVenn <- file.exists(flVenn)
@@ -150,12 +150,14 @@ for (x in names(ggQuantLy)) { #x <- names(ggQuantLy)[1L]
 }
 if (tstPCA) {
   for (x in names(dimRedPlotLy)) { #x <- names(dimRedPlotLy)[1L]
-    p <- dimRedPlotLy[[x]]
-    p$x$layout$xaxis$autorange <- TRUE
-    p$x$layout$yaxis$autorange <- TRUE
-    p <- htmlwidgets::onRender(p, global_autorange)
-    dimRedPlotLy[[x]] <- plotly::config(p,
-                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
+    for (y in names(dimRedPlotLy[[x]])) { #x <- names(dimRedPlotLy[[x]])[1L]
+      p <- dimRedPlotLy$PG[[x]][[y]]
+      p$x$layout$xaxis$autorange <- TRUE
+      p$x$layout$yaxis$autorange <- TRUE
+      p <- htmlwidgets::onRender(p, global_autorange)
+      dimRedPlotLy[[x]][[y]] <- plotly::config(p,
+                                          modeBarButtonsToRemove = c("select2d", "lasso2d"))
+    }
   }
 }
 if (tstCov) {
@@ -1267,7 +1269,7 @@ make_strt_tab <- \(shiny = TRUE) {
           column(4L*(3L-tstVenn),
                  tags$div(id = "PCA",
                           style = styleOn,
-                          dimRedPlotLy$PCA))
+                          dimRedPlotLy$PG$PCA))
         },
         if (tstVenn) {
           column(4L,
@@ -1526,7 +1528,7 @@ server <- \(input, output, session) {
     output$heatMap <- renderPlotly(plotLeatMaps$Global[[NORMMETH()]]$Plot)
   }
   if (tstPCA) {
-    output$PCA <- renderPlotly(dimRedPlotLy$PCA)
+    output$PCA <- renderPlotly(dimRedPlotLy$PG$PCA)
   }
   if (tstVenn) {
     output$Venn <- renderPlotly(plotly_Venn$`Global, LFQ`)

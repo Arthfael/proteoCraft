@@ -36,13 +36,13 @@ wTest1 <- apply(wTest1, 1L, \(x) {
 })
 #
 if (exists("appRunTest")) { rm(appRunTest) }
-dotLab <- RSA$names
+#dotLab <- RSA$names
 colLab <- VPAL$names
 if (length(Exp) == 1L) {
-  dotLab <- dotLab[which(dotLab != "Experiment")]
+  #dotLab <- dotLab[which(dotLab != "Experiment")]
   colLab <- colLab[which(colLab != "Experiment")]
 }
-dotLab <- paste(dotLab, collapse = " ")
+#dotLab <- paste(dotLab, collapse = " ")
 colLab <- paste(colLab, collapse = " ")
 ui <- fluidPage(
   useShinyjs(),
@@ -73,7 +73,7 @@ ui <- fluidPage(
     ),
     mainPanel(
       h4(em("Plot mappings:")),
-      h5(em(paste0("Dot labels = ", dotLab))),
+      #h5(em(paste0("Dot labels = ", dotLab))),
       h5(em(paste0("Colour = ", outlierAnnot_color))),
       h5(em(paste0("Colour labels = ", colLab))),
       h5(em(paste0("Shape = ", outlierAnnot_shape))),
@@ -109,7 +109,7 @@ server <- \(input, output, session) {
       Shiny.unbindAll(table.table().node());
       Shiny.bindAll(table.table().node());"))
   output$Msg <- renderUI({ em(" ") })
-  output$PCA <- renderPlotly(plot_lyPCA)
+  output$PCA <- renderPlotly(dimRedPlotLy$peptides[["Samples PCA"]])
   # sapply(seq_len(nrow(Include)), \(x) {
   #   id <- paste0("check___", as.character(x))
   #   observeEvent(input[[id]], {

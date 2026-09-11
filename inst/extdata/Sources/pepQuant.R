@@ -8,6 +8,10 @@
 # - Add Pearson correlation heatmap amongst those visualizations used to decide whether to remove any outliers, it is very good!
 #
 require(parallel)
+#
+if (!exists("dimRedPlotLy")) { dimRedPlotLy %<o% list() }
+if (!"peptides" %in% names(dimRedPlotLy)) { dimRedPlotLy$peptides <- list() }
+#
 pep.ref %<o% setNames("Int. - ", "Original")
 if (exists("scrptType")) {
   if (scrptType == "noReps") {
@@ -113,6 +117,10 @@ if (length(pc1$rotation)) {
   scores1 <- as.data.frame(pc1$x)
   if ("PC2" %in% colnames(scores1)) {
     rownames(scores1) <- gsub(topattern(pep.ref["Original"]), "", rownames(scores1))
+    if (!"Clean_name" %in% colnames(Exp.map)) {
+      Exp.map$Clean_name <- cleanNms(Exp.map$Ref.Sample.Aggregate)
+    }
+    scores1$Label <- Exp.map$Clean_name[match(rownames(scores1), Exp.map$Ref.Sample.Aggregate)]
     scores1[, RSA$names] <- Isapply(strsplit(rownames(scores1), "___"), unlist)
     scores1$Use <- tmp_EM$Use[match(rownames(scores1), tmp_EM[[refCol]])]
     rownames(scores1) <- NULL
@@ -124,7 +132,6 @@ if (length(pc1$rotation)) {
     w <- which(vapply(VPAL$names, \(x) { length(unique(scores1[[x]])) }, 1L) > 1L)
     w <- w[which(tolower(substr(names(w), 1L, 3L)) != "rep")]
     scores1$Samples_group <- do.call(paste, c(scores1[, VPAL$names[w], drop = FALSE], sep = " "))
-    scores1$Label <- do.call(paste, c(scores1[, RSA$names, drop = FALSE], sep = " "))
     outlierAnnot_shape %<o% "Replicate"
     outlierAnnot_color %<o% "Samples_group"
     ttl <- "PCA plot - Preliminary - peptide level"
@@ -137,14 +144,15 @@ if (length(pc1$rotation)) {
     plot <- ggplot(scores1, aes(x = PC1, y = PC2, colour = .data[[outlierAnnot_color]])) +
       geom_point(aes(shape = .data[[outlierAnnot_shape]])) +
       ggpubr::stat_conf_ellipse(aes(fill = .data[[outlierAnnot_color]]),
-                                alpha = 0.2, geom = "polygon", show.legend = FALSE) +
-      scale_color_viridis_d(begin = 0.25) +
+                                alpha = 0.1, geom = "polygon", show.legend = FALSE) +
+      scale_color_viridis_d() +
+      scale_fill_viridis_d() +
       coord_fixed() + theme_bw() +
       xlab(xLab) + ylab(yLab) +
       geom_hline(yintercept = 0, colour = "black") + geom_vline(xintercept = 0, colour = "black") +
       ggtitle(ttl#, subtitle = pv1_
       ) +
-      geom_text_repel(aes(label = Label), size = 2.5, show.legend = FALSE)
+      geom_text_repel(aes(label = Label), size = 3, show.legend = FALSE)
     #poplot(plot)
     suppressMessages({
       ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
@@ -166,8 +174,9 @@ if (length(pc1$rotation)) {
               color = ~`Samples group`, colors = "viridis",
               symbol = I(Symb))
     }
-    plot_lyPCA %<o% layout(plot_lyPCA, title = ttl)
+    plot_lyPCA <- layout(plot_lyPCA, title = ttl)
     plot_lyPCA <- plotly_build(plot_lyPCA)
+    dimRedPlotLy$peptides <- list("Samples PCA" = plot_lyPCA)
     pcaDir <- paste0(wd, "/Workflow control/Peptides/PCA plot")
     if (!dir.exists(pcaDir)) { dir.create(pcaDir, recursive = TRUE) }
     setwd(pcaDir)

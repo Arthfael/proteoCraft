@@ -18,7 +18,7 @@ profile_ON <- exists("ggProfLy")&&(length(ggProfLy) > 0L)
 if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
   HEIGHT2 <- paste0(as.character(Height*2L/(quant_ON+profile_ON)), "px")
   if (dimRed_ON) {
-    nmsDmRds <- names(dimRedPlotLy)[which(names(dimRedPlotLy) != "Samples PCA")]
+    nmsDmRds <- names(dimRedPlotLy$PG)[which(names(dimRedPlotLy$PG) != "Samples PCA")]
     dfltDmRd <- c("PCA", nmsDmRds)
     dfltDmRd <- dfltDmRd[which(dfltDmRd %in% nmsDmRds)[1L]]
   }
@@ -152,13 +152,13 @@ if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
     #
     output$mySmplsDimRed_plot <- renderPlotly(suppressMessages({
       req(dimRed_ON)
-      req(dimRedPlotLy[["Samples PCA"]])
-      dimRedPlotLy[["Samples PCA"]]
+      req(dimRedPlotLy$PG[["Samples PCA"]])
+      dimRedPlotLy$PG[["Samples PCA"]]
     }))
     output$myPGDimRed_plot <- renderPlotly(suppressMessages({
       req(dimRed_ON)
-      req(dimRedPlotLy[[DIMRED()]])
-      return(dimRedPlotLy[[DIMRED()]])
+      req(dimRedPlotLy$PG[[DIMRED()]])
+      return(dimRedPlotLy$PG[[DIMRED()]])
     }))
     #
     output$myProfilePlot <- renderPlotly(suppressMessages({

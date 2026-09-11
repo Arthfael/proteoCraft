@@ -476,8 +476,8 @@ if (normPGs) {
     })
   }
   runKount <- 0L
-  while ((!runKount) || (!exists("appRunTest")) || (!appRunTest)) {
-    eval(parse(text = run_App), envir = .GlobalEnv)
+  while (!runKount) {
+    if (!exists("appRunTest")) { eval(parse(text = run_App), envir = .GlobalEnv) }
     runKount <- runKount+1L
     shinyCleanup()
   }
@@ -492,8 +492,7 @@ if (normPGs) {
   } else {
     pep.ref <- pep.ref[setdiff(names(pep.ref), "Back-norm")]
   }
-  # We now only run one algorithm the first time we source quntSrc,
-  # then call it a second time, with all algorithms, regardless of whether re-normalisation was accepted or not.
+  # We ran one algorithm the first time we sourced quntSrc, but now we rerun it a second time with all algorithms, regardless of whether re-normalisation was accepted or not!
   cat(if (accept_PG_reNorm) {
     "   Re-running quantitation from back-normalized peptides!\n   This will take longer as we will also run other algorithms to feed into downstream statistical inference."
   } else {

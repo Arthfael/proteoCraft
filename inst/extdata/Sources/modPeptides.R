@@ -19,9 +19,11 @@ if (("Phospho.analysis" %in% colnames(Param)) && Param$Phospho.analysis) {
     if (!"PHOSPHO" %in% a) { Param$PTM.analysis <- paste(c(a, "PHOSPHO"), collapse = ";") }
   } else { Param$PTM.analysis <- "PHOSPHO" }
 }
-PTMs %<o% if ("PTM.analysis" %in% colnames(Param)) { PTMs <- unlist(strsplit(Param$PTM.analysis, ";")) } else { c() }
-if (length(PTMs)) {
+if ((exists("PTMstats")) && (nrow(PTMstats))) {
   cat("Modified peptides analysis\n")
+  #
+  PTMs %<o% PTMstats$mod
+  #
   PTMs_ref.ratios %<o% list()
   PTMs_FDR.thresholds %<o% list()
   PTMs_pep %<o% list()
@@ -31,7 +33,7 @@ if (length(PTMs)) {
   PTMs_SAM_thresh %<o% list()
   PTMs_PVal_col %<o% list()
   PTMs_PVal_use %<o% list()
-  if (F.test) {
+  if (exists("F.test") && F.test) {
     PTMs_F_test_data %<o% list()
     #PTMs_F_test_ref_ratios %<o% list() # Not needed
   }
@@ -90,7 +92,7 @@ if (length(PTMs)) {
                               "-modified peptides as for protein groups", tmp2)
   #
   ptmNms <- setNames(vapply(PTMs, \(ptm) { #ptm <- PTMs[1L]
-    a <- unlist(strsplit(gsub("\\)$", "", ptm), "\\("))
+    a <- unlist(strsplit(sub("\\)$", "", ptm), "\\("))
     Ptm <- if (length(a) > 1L) {
       paste0(toupper(substr(a[1L], 1L, 1L)), substr(a[1L], 2L, nchar(ptm)), "(", a[2L], ")")
     } else {
@@ -99,11 +101,11 @@ if (length(PTMs)) {
     return(Ptm)
   }, ""), PTMs)
   ptmsTst <- setNames(lapply(PTMs, \(ptm) { #ptm <- PTMs[1L]
-    Ptm <- ptmNms[[ptm]]
-    w <- which(Modifs$"Full name" == Ptm)
-    if (length(w) != 1L) { return(0) }
-    p <- Modifs$Mark[w]
-    ppat <- paste0("\\(", p, "\\)|\\(", p, ",|,", p, "\\)|,", p, ",") # Pattern to catch all instances of the mod
+    m <- match(ptm, PTMstats$mod)
+    if (length(m) != 1L) { return() }
+    #p <- Modifs$Mark[w]
+    #ppat <- paste0("\\(", p, "\\)|\\(", p, ",|,", p, "\\)|,", p, ",") # Pattern to catch all instances of the mod
+    ppat <- PTMstats$pattern[m]
     tmp <- grepl(ppat, pep$"Modified sequence")
     g <- which(tmp)
     return(g)
@@ -134,26 +136,29 @@ if (length(PTMs)) {
     source(parSrc)
     cat(" -", ptm, "\n")
     modDirs <- c("", "/t-tests")
-    if (F.test) { modDirs <- c(modDirs, "/F-tests") }
+    if (exists("F.test") && F.test) { modDirs <- c(modDirs, "/F-tests") }
     modDirs <-  paste0(wd, "/Reg. analysis/", ptm, modDirs)
     for (dr in modDirs) { if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }}
     dirlist <- union(dirlist, modDirs)
     #
     Ptm <- ptmNms[ptm]
     g <- ptmsTst[[ptm]]
-    w <- which(Modifs$"Full name" == Ptm)
-    p <- Modifs$Mark[w]
-    ppat <- paste0("\\(", p, "\\)|\\(", p, ",|,", p, "\\)|,", p, ",") # Pattern to catch all instances of the mod
-    ptmsh <- substr(p, 1L, 1L)
-    ptmpep <- pep[ptmsTst[[ptm]], ]
+    ptmpep <- pep[g,] # View(ptmpep)
+    tmp <- ptmpep$`Modified sequence`
+    pats <- PTMstats$patterns_i[[match(ptm, PTMstats$mod)]]
+    for (pat in pats) { #pat <- pats[1L]
+      rpl <- sub("\\(.*", ">", pat)
+      tmp <- gsub(pat, rpl, tmp)
+    }
+    tmp <- gsub("[^A-Z>]", "", tmp)
+    ptmsh <- tolower(substr(ptm, 1L, 1L))
+    tmp <- gsub(">", ptmsh, tmp)
     #pep[[paste0(Ptm, " ID")]] <- ""
     #ptmpep <- pep[g,]
     #pep[g, paste0(Ptm, " ID")] <- ptmpep$ModPep_ID <- seq_len(nrow(ptmpep))
-    temp <- ptmpep[, c("Modified sequence", myIDcol)]
-    temp[[myIDcol]] <- strsplit(temp[[myIDcol]], ";")
-    temp$"Modified sequence" <- gsub(paste0("[^A-Z", ptmsh, "]"), "",
-                                     gsub(ppat, ptmsh, temp$"Modified sequence"))
-    #ptmpep[, c("Match(es)", paste0(Ptm, "-site(s)"))] <- ""
+    temp <- data.frame("Modified sequence" = tmp,
+                       check.names = FALSE)
+    temp[[myIDcol]] <- strsplit(ptmpep[[myIDcol]], ";")
     dbsmall <- db[which(db$"Protein ID" %in% unique(unlist(temp[[myIDcol]]))), c("Protein ID", "Sequence")]
     # On I/L ambiguity remaining even with newer DIA methods taking into account RT, IM and fragments intensity, see https://github.com/vdemichev/DiaNN/discussions/1631
     dbsmall$"Seq*" <- gsub("I", "L", dbsmall$Sequence)
@@ -164,7 +169,7 @@ if (length(PTMs)) {
     temp2 <- temp[, kol]
     clusterExport(parClust, list("temp2", "dbsmall", "ptmsh", "listMelt"), envir = environment())
     temp3 <- parApply(parClust, temp2, 1L, \(x) {
-      #x <- temp[1, kol]
+      #x <- temp[1L, kol]
       #A <- sapply(seq_len(nrow(temp)), \(i) {
       #print(i)
       #x <- temp[i, kol]
@@ -225,7 +230,8 @@ if (length(PTMs)) {
       return(matches)
       #})
     })
-    ptmpep[, c("Match(es)", paste0(Ptm, "-site(s)"))] <- as.data.frame(t(temp3))
+    temp3 <- as.data.frame(t(temp3))
+    ptmpep[, c("Match(es)", paste0(Ptm, "-site(s)"))] <- temp3
     ptmpep[[paste0(Ptm, "-site")]] <- gsub(" .+", "", ptmpep[[paste0(Ptm, "-site(s)")]])
     ptmpep <- ptmpep[which(!is.na(ptmpep$`Match(es)`)),]
     ptmpep$tmp1 <- gsub("^_|_$", "", ptmpep$"Modified sequence")
@@ -454,7 +460,7 @@ if (length(PTMs)) {
     P <- Param
     P$Plot.labels <- "Name"
     P$Plot.metrics <- paste0("X:Ratio_Mean.log2;Y:", ptms.PVal)
-   cat(" ->", ptm, "t-tests volcano plots\n")
+    cat(" ->", ptm, "t-tests volcano plots\n")
     #k1 <- grep(topattern(paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)])), colnames(ptmpep), value = TRUE)
     #df1 <- ptmpep[, k1]
     #subDr <- gsub(topattern(wd), "", modDirs[2L])
@@ -602,7 +608,7 @@ if (length(PTMs)) {
                                                                   length(which(x %in% c(up, down)))
                                                                 }) > 0L)))
     }
-    if (F.test) {
+    if (exists("F.test") && F.test) {
       #kol <- grep(topattern(ptmRf), colnames(ptmpep), value = TRUE)
       #View(ptmpep[, kol])
       cat(" ->", ptm, "F-tests volcano plots\n")

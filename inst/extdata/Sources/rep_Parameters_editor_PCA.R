@@ -1,5 +1,9 @@
 ### PCA plot for parameters app
 # Create first PCA to check on sample relationships
+#
+if (!exists("dimRedPlotLy")) { dimRedPlotLy %<o% list() }
+if (!"PSMs" %in% names(dimRedPlotLy)) { dimRedPlotLy$PSMs <- list() }
+#
 if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRUE
   source(parSrc)
   data <- ev
@@ -32,7 +36,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
     Y <- if (length(w1) > 1L) { kols[w1[2]] } else { kols[w2[2]] }
   }
   kols <- setdiff(kols, c(X, Y))
-  cat("PSMs-level PCA plot:\n")
+  cat("Drawing PSMs-level PCA plot\n")
   dir <- paste0(wd, "/Dimensionality red. plots/PCA")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   dirlist <- unique(c(dirlist, dir))
@@ -157,6 +161,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
       }
       plot_lyPSMsPCA %<o% layout(plot_lyPSMsPCA, title = ttl)
       plot_lyPSMsPCA <- plotly_build(plot_lyPSMsPCA)
+      dimRedPlotLy$PSMs <- list("Samples PCA" = plot_lyPSMsPCA)
       setwd(dir)
       saveWidget(partial_bundle(plot_lyPSMsPCA), paste0(dir, "/", ttl, ".html"), selfcontained = TRUE)
       #system(paste0("open \"", dir, "/", ttl, ".html"))

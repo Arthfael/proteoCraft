@@ -188,7 +188,6 @@ if (Param$Norma.Ev.Intens) {
     }
     if (("Adv.Norma.Ev.Intens" %in% colnames(Param))&&(Param$Adv.Norma.Ev.Intens != FALSE)) {
       cat("   - Levenberg-Marquardt normalisation...\n")
-      cat(paste0(msg, "\n", collapse = "\n"))
       txtAdv <- "Evidence MS1 intensities"
       ev.col["Advanced normalisation"] <- paste0("AdvNorm. ", ev.col["Original"])
       ev[[ev.col["Advanced normalisation"]]] <- NA_real_

@@ -45,6 +45,7 @@ if (load_a_Bckp) {
   xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
   locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
   locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
+  ScriptPath <- normalizePath(gtools::script_file(), winslash = "/") # update
 }
 
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }
@@ -277,7 +278,13 @@ Src <- paste0(libPath, "/extdata/Sources/MA_plots.R")
 source(Src)
 
 #### Code chunk - Define analysis parameters
-# Define analysis parameters
+#
+# PCA prior to parameters app
+Src <- paste0(libPath, "/extdata/Sources/rep_Parameters_editor_PCA.R")
+#rstudioapi::documentOpen(Src)
+#source(Src)
+#
+# Parameters app
 paramSrc <- paste0(libPath, "/extdata/Sources/rep_Parameters_editor_Main.R")
 #rstudioapi::documentOpen(paramSrc)
 source(paramSrc)
