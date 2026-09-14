@@ -270,7 +270,7 @@ load_Bckp <- function(backup,
           obj <- do.call(rbind, obj)
           obj <- obj[order(obj$row),]
           obj$prediction <- vapply(obj$row, \(x) { min(w_bckpCalls[which(w_bckpCalls > x)]) }, 1L)
-          cat(paste0("\n   FYI, the last remanent object created before this backup was made is \"", .obj[1L], "\""))
+          cat(paste0("\n   FYI, the last remanent object created before this backup was made is \"", .obj[1L], "\"\n..."))
           w <- which(.obj %in% obj$obj)
           if (length(w)) {
             pred <- lapply(.obj[w], \(x) { unique(obj$prediction[which(obj$obj == x)]) })
@@ -304,5 +304,4 @@ load_Bckp <- function(backup,
   }
   if (exists("mySeed")) { set.seed(mySeed) }
   cat("\nYou're good to go!\n")
-  return()
 }

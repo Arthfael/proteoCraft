@@ -22,9 +22,11 @@ suppressMessages({
 plotLy <- ggplotly(plot, tooltip = c("x", "y"))
 plotLy <- plotly::config(plotLy,
                          modeBarButtonsToRemove = c("select2d", "lasso2d"))
-if (!exists("QC_plotLys")) { QC_plotLys %<o% list() }
+if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
+if (!exists("QC_plotLys")) { QC_plotLys <- list() }
 setwd(qcDir)
 plotLy <- plotly_build(plotLy)
 saveWidget(plotLy, paste0(qcDir, "/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)
 QC_plotLys[[ttl]] <- plotLy
+saveFun(qcBckUpFl)

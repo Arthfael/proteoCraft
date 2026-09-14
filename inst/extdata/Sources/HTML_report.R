@@ -76,26 +76,24 @@ matmethSections <- names(matmethTxt)
 
 # Reload plots data
 tstRat <- (scrptType == "noReps") && MakeRatios && exists("ratioPlots") && (length(ratioPlots) > 0L)
-flHtMp <- paste0(wd, "/Clustering/HeatMaps.RDS")
-tstHtMp <- file.exists(flHtMp)
-if (tstHtMp) {
-  loadFun(flHtMp)
-  tstHtMp <- exists("plotLeatMaps") && length(plotLeatMaps)
+heatMaps_ON <- file.exists(heatMaps_fl)
+if (heatMaps_ON) {
+  loadFun(heatMaps_fl)
+  heatMaps_ON <- exists("plotLeatMaps") && length(plotLeatMaps)
 }
 loadFun(paste0(wd, "/Sorting plots/quantPlots.RDS"))
-flPCA <- paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS")
-tstPCA <- file.exists(flPCA)
-if (tstPCA) {
-  loadFun(flPCA)
-  tstPCA <- exists("dimRedPlotLy") && ("PCA" %in% names(dimRedPlotLy$PG))
+dimRed_fl <- paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS")
+PCA_ON <- file.exists(dimRed_fl)
+if (PCA_ON) {
+  loadFun(dimRed_fl)
+  PCA_ON <- exists("dimRedPlotLy") && ("PCA" %in% names(dimRedPlotLy$PG))
 }
-flVenn <- paste0(wd, "/Venn diagrams/Venn_plotly.RDS")
-tstVenn <- file.exists(flVenn)
-if (tstVenn) {
-  loadFun(flVenn)
-  tstVenn <- exists("plotly_Venn") && ("Global, LFQ" %in% names(plotly_Venn))
+Venn_ON <- file.exists(Venn_fl)
+if (Venn_ON) {
+  loadFun(Venn_fl)
+  Venn_ON <- exists("plotly_Venn") && ("Global, LFQ" %in% names(plotly_Venn))
 }
-strtColWdth <- 12L/max(c(1L, tstVenn + tstPCA))
+strtColWdth <- 12L/max(c(1L, Venn_ON + PCA_ON))
 tstCov <- exists("covPlots")
 
 # Fix to plotly autoscaling + remove some Modebar tools (redundant: they should already be gone, but in case we reload old data) + fix warnings
@@ -125,7 +123,7 @@ global_autorange <- "function(el, x) {
   globalRange('x');
   globalRange('y');
 }"
-if (tstHtMp) {
+if (heatMaps_ON) {
   for (x in names(plotLeatMaps)) { #x <- names(plotLeatMaps)[1L]
     for (y in names(plotLeatMaps[[x]])) { #y <- names(plotLeatMaps[[x]])[1L]
       p <- plotLeatMaps[[x]][[y]]$Plot
@@ -137,7 +135,7 @@ if (tstHtMp) {
     }
   }
 }
-if (!exists("ggQuantLy")) { stop("Ugh... really? No ranked abundance plots? Shouldn't we always have those by now?") }
+if (!exists("ggQuantLy")) { loadFun(paste0(wd, "/Sorting plots/quantPlots.RDS")) }
 for (x in names(ggQuantLy)) { #x <- names(ggQuantLy)[1L]
   for (y in names(ggQuantLy[[x]])) { #y <- names(ggQuantLy[[x]])[1L]
     p <- ggQuantLy[[x]][[y]]$plotly
@@ -148,7 +146,7 @@ for (x in names(ggQuantLy)) { #x <- names(ggQuantLy)[1L]
                                                  modeBarButtonsToRemove = c("select2d", "lasso2d"))
   }
 }
-if (tstPCA) {
+if (PCA_ON) {
   for (x in names(dimRedPlotLy)) { #x <- names(dimRedPlotLy)[1L]
     for (y in names(dimRedPlotLy[[x]])) { #x <- names(dimRedPlotLy[[x]])[1L]
       p <- dimRedPlotLy$PG[[x]][[y]]
@@ -156,7 +154,7 @@ if (tstPCA) {
       p$x$layout$yaxis$autorange <- TRUE
       p <- htmlwidgets::onRender(p, global_autorange)
       dimRedPlotLy[[x]][[y]] <- plotly::config(p,
-                                          modeBarButtonsToRemove = c("select2d", "lasso2d"))
+                                               modeBarButtonsToRemove = c("select2d", "lasso2d"))
     }
   }
 }
@@ -184,6 +182,7 @@ if (tstRat) {
                                       modeBarButtonsToRemove = c("select2d", "lasso2d"))
   }
 }
+loadFun(qcBckUpFl)
 for (x in names(QC_plotLys)) { #x <- names(QC_plotLys)[1L]
   p <- QC_plotLys[[x]]
   p$x$layout$xaxis$autorange <- TRUE
@@ -192,7 +191,7 @@ for (x in names(QC_plotLys)) { #x <- names(QC_plotLys)[1L]
   QC_plotLys[[x]] <- plotly::config(p,
                                     modeBarButtonsToRemove = c("select2d", "lasso2d"))
 }
-if (tstVenn) {
+if (Venn_ON) {
   for (x in names(plotly_Venn)) { #x <- names(plotly_Venn)[1L]
     p <- plotly_Venn[[x]]
     p$x$layout$xaxis$autorange <- TRUE
@@ -1097,7 +1096,7 @@ make_ctrst_tab <- \(contr,
                               plotlyOutput(paste0(contr2, "_SAINT_GObars"), height = "600px"))
                      },
             ),
-            style = "background: #ffffff;"))
+            style = "background: #ffffff;")
       },
       if (!saintXPRS) {
         div(h3("t-test"),
@@ -1169,7 +1168,7 @@ make_ctrst_tab <- \(contr,
             ),
             style = "background: #ffffff;")
       },
-      tags$hr(style = "border-color: black;")
+      tags$hr(style = "border-color: black;"),
       if (F.test) {
         # Add F-test part here... or maybe dropdown to choose f-/F-test... or drop F-test altogether?
       },
@@ -1211,7 +1210,7 @@ make_strt_tab <- \(shiny = TRUE) {
       make_summTbl_ui(),
       br(),
       br(),
-      if (tstHtMp) {
+      if (heatMaps_ON) {
         column(12L,
                selectInput("myHeatMap",
                            "",
@@ -1224,11 +1223,11 @@ make_strt_tab <- \(shiny = TRUE) {
                         plotlyOutput("GO_enrich_Dataset", height = plotHtMpHght)))
       },
       fluidRow(
-        if (tstPCA) {
-          column(4L*(3L-tstVenn),
+        if (PCA_ON) {
+          column(4L*(3L-Venn_ON),
                  plotlyOutput("PCA", height = plotPCAHght))
         },
-        if (tstVenn) {
+        if (Venn_ON) {
           column(4L,
                  plotlyOutput("Venn", height = plotHtMpHght))
         },
@@ -1244,7 +1243,7 @@ make_strt_tab <- \(shiny = TRUE) {
       make_summTbl_ui(),
       br(),
       br(),
-      if (tstHtMp) {
+      if (heatMaps_ON) {
         fluidRow(column(strtColWdth,
                         make_select_tag("myHeatMap",
                                         "",
@@ -1265,13 +1264,13 @@ make_strt_tab <- \(shiny = TRUE) {
                                  GO_plot_ly$`Observed dataset`$Bar)))
       },
       fluidRow(
-        if (tstPCA) {
-          column(4L*(3L-tstVenn),
+        if (PCA_ON) {
+          column(4L*(3L-Venn_ON),
                  tags$div(id = "PCA",
                           style = styleOn,
                           dimRedPlotLy$PG$PCA))
         },
-        if (tstVenn) {
+        if (Venn_ON) {
           column(4L,
                  tags$div(id = "Venn",
                           style = styleOn,
@@ -1524,13 +1523,13 @@ server <- \(input, output, session) {
   # Render UI
   output$xprtMsg <- renderUI(XPRTMSG())
   output$myUI <- renderUI(make_ui())
-  if (tstHtMp) {
+  if (heatMaps_ON) {
     output$heatMap <- renderPlotly(plotLeatMaps$Global[[NORMMETH()]]$Plot)
   }
-  if (tstPCA) {
+  if (PCA_ON) {
     output$PCA <- renderPlotly(dimRedPlotLy$PG$PCA)
   }
-  if (tstVenn) {
+  if (Venn_ON) {
     output$Venn <- renderPlotly(plotly_Venn$`Global, LFQ`)
   }
   #
@@ -1769,3 +1768,11 @@ if (inherits(tst, "try-error")) {
   warning("Couldn't write materials and methods template, investigate...")
 }
 unlink(tmpSrc)
+
+try({
+  rm(ggQuantLy,
+     plotLeatMaps,
+     dimRedPlotLy,
+     plotly_Venn,
+     QC_plotLys)
+}, silent = TRUE)

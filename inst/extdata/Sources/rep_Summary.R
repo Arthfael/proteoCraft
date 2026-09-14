@@ -23,8 +23,11 @@ tmp <- MQ.summary(ev = ev, pg = PG, wd = wd, mods = mods,
                   raw.files = rawFiles, sc = sc, cl = parClust,
                   MQtxt = inDirs[which(SearchSoft == "MAXQUANT")])
 Exp_summary %<o% tmp$table
-if (!exists("QC_plotLys")) { QC_plotLys %<o% list() }
+if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
+if (!exists("QC_plotLys")) { QC_plotLys <- list() }
 QC_plotLys[names(tmp$plotLy)] <- tmp$plotLy
+saveFun(qcBckUpFl)
+
 Exp_summary$"Biological sample" <- ""
 if ("Parent sample" %in% colnames(Frac.map)) {
   Exp_summary$"Biological sample" <- Frac.map$"Parent sample"[match(Exp_summary$Sample, Frac.map$"Raw file")]

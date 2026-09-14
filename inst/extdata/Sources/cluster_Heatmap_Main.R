@@ -8,9 +8,8 @@
 # To avoid the issue, do not use the "~column" formula notation but instead the "data$column" notation when mapping variables to columns in the data of each trace.
 #
 drawPlotly <- TRUE
-if (!exists("plotLeatMaps")) { plotLeatMaps <- list() }
-plotLeatMaps %<o% plotLeatMaps
-heatMaps <- list() # Unlike plotLeatMaps, not persistent
+if ((!exists("plotLeatMaps")) || (!inherits(plotLeatMaps, "list"))) { plotLeatMaps <- list() }
+if ((!exists("heatMaps")) || (!inherits(heatMaps, "list"))) { plotLeatMaps <- list() }
 #drawPlotly <- FALSE
 if (clustHtMp) {
   datNm <- intersect(c("ComBat",

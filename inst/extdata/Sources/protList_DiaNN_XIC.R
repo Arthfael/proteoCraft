@@ -37,7 +37,7 @@ if (length(dianXDirs)) {
     myProts_pepList <- setNames(myProts_pepList$x, myProts_pepList$Group.1)
     myProts <- names(myProts_pepList)
     u <- unique(unlist(myProts_pepList))
-    tmp <- Frac.map$`Raw files name`
+    tmp <- unique(Frac.map$`Raw files name`)
     clusterExport(parClust, list("tmp", "u"), envir = environment())
     XICs <- parLapply(parClust, XIC_fls, \(x) { #x <- XIC_fls[1L]
       res <- arrow::read_parquet(x)

@@ -271,12 +271,10 @@ if (scrptType == "withReps") {
   g <- grep("^log2FC - ", colnames(quantData_list$Data))
   colnames(quantData_list$Data)[g] <- sub("^log2FC - ", Prot.Rat.Root, colnames(quantData_list$Data)[g])
 }
-myQuantBckpFl <- paste0(wd, "/", bckpNm, ".RDS")
+myQuantBckpFl %<o% paste0(wd, "/", bckpNm, ".RDS")
 saveFun(quantData_list, file = myQuantBckpFl)
 #loadFun(myQuantBckpFl)
-#
 
-#
 if (!exists("writeMatMeth")) { writeMatMeth <- TRUE }
 if (writeMatMeth) {
   opt <- setNames(c("limpa's dpcQuant function",
@@ -360,7 +358,7 @@ if ((scrptType == "noReps") && Impute) {
   cat(" -> 2nd Protein groups quantitation (this time from imputed peptides)...\n")
   quantData_list_Imput %<o% do.call(protQuant, quantArgs_Imp)
   cat("    done!\n\n")
-  myQuantBckpFl2 <- paste0(wd, "/", bckpNm, "2.RDS")
+  myQuantBckpFl2 %<o% paste0(wd, "/", bckpNm, "2.RDS")
   saveFun(quantData_list_Imput, file = myQuantBckpFl2)
   #loadFun(myQuantBckpFl2)
   quantData2 <- quantData_list_Imput$Data

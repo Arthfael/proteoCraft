@@ -1787,8 +1787,8 @@ tmp <- MQ.summary(wd = wd, ev = ev, pg = PG, mods = setNames(Modifs$Mark, Modifs
                   cl = parClust, MQtxt = inDirs[which(SearchSoft == "MAXQUANT")])
 Exp_summary %<o% tmp$table
 write.csv(Exp_summary, paste0(wd, "/Workflow control/Summary.csv"), row.names = FALSE)
+if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
 if (!exists("QC_plotLys")) { QC_plotLys <- list() }
-QC_plotLys %<o% QC_plotLys
 QC_plotLys[names(tmp$plotLy)] <- tmp$plotLy
 #Exp_summary <- read.csv(paste0(wd, "/Workflow control/Summary.csv"), check.names = FALSE)
 

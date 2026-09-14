@@ -15,8 +15,7 @@ DIANN_to_MQ(
   cl,
   shinyOpt = "popup",
   digPattern = "KR",
-  log_Fl,
-  useQuantUMS
+  log_Fl
 )
 }
 \arguments{
@@ -41,8 +40,6 @@ DIANN_to_MQ(
 \item{digPattern}{Default = "KR" for trypsin. Only used for the "Missed cleavages" column. Vector of amino acids after which the enzyme cleaves.}
 
 \item{log_Fl}{If missing, the function will try to detect the log file based on the name of the report - but this may fail!}
-
-\item{useQuantUMS}{Logical. If missing, and QuantUMS data is detected, the user will be prompted for which to use.}
 }
 \description{
 Converts a diaNN PSMs table to a MaxQuant evidence.txt-like table.

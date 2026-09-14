@@ -7,14 +7,16 @@
 Height <- 500L
 HEIGHT <- paste0(as.character(Height, "px"))
 # Defaults
-loadFun(paste0(wd, "/Clustering/HeatMaps.RDS"))
-loadFun(paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS"))
-loadFun(paste0(wd, "/Sorting plots/quantPlots.RDS"))
-loadFun(paste0(wd, "/Profile plots/profilePlots.RDS"))
-heatMaps_ON <- exists("plotLeatMaps")&&(length(plotLeatMaps) > 0L)
-dimRed_ON <- exists("dimRedPlotLy")&&(length(dimRedPlotLy) > 0L)
-quant_ON <- exists("ggQuantLy")&&(length(ggQuantLy) > 0L)
-profile_ON <- exists("ggProfLy")&&(length(ggProfLy) > 0L)
+try({
+  loadFun(heatMaps_fl)
+  loadFun(dimRed_fl)
+  loadFun(paste0(wd, "/Sorting plots/quantPlots.RDS"))
+  loadFun(paste0(wd, "/Profile plots/profilePlots.RDS"))
+}, silent = TRUE)
+heatMaps_ON <- exists("plotLeatMaps") && (length(plotLeatMaps) > 0L)
+dimRed_ON <- exists("dimRedPlotLy") && (length(dimRedPlotLy) > 0L)
+quant_ON <- exists("ggQuantLy") && (length(ggQuantLy) > 0L)
+profile_ON <- exists("ggProfLy") && (length(ggProfLy) > 0L)
 if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
   HEIGHT2 <- paste0(as.character(Height*2L/(quant_ON+profile_ON)), "px")
   if (dimRed_ON) {
@@ -199,3 +201,9 @@ if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
   eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
 }
+try({
+  rm(plotLeatMaps,
+     dimRedPlotLy,
+     ggQuantLy,
+     ggProfLy)
+}, silent = TRUE)

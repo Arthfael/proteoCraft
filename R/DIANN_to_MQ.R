@@ -24,7 +24,7 @@
 #' @param shinyOpt One of "popup" (default), "pane", "dialog", or "browser".
 #' @param digPattern Default = "KR" for trypsin. Only used for the "Missed cleavages" column. Vector of amino acids after which the enzyme cleaves. 
 #' @param log_Fl If missing, the function will try to detect the log file based on the name of the report - but this may fail!
-#' @param useQuantUMS Logical. If missing, and QuantUMS data is detected, the user will be prompted for which to use.
+# #' @param useQuantUMS Logical. If missing, and QuantUMS data is detected, the user will be prompted for which to use.
 #' 
 #' @examples
 #' DIANN_fl <- rstudioapi::selectFile()
@@ -46,8 +46,9 @@ DIANN_to_MQ <- function(DIANN_fl,
                         cl,
                         shinyOpt = "popup",
                         digPattern = "KR",
-                        log_Fl,
-                        useQuantUMS) {
+                        log_Fl#,
+                        #useQuantUMS
+                        ) {
   TESTING <- FALSE
   #DefArg(DIANN_to_MQ);TESTING <- TRUE; cl <- parClust
   #DIANN_fl <- PSMsFls
@@ -666,10 +667,11 @@ DIANN_to_MQ <- function(DIANN_fl,
   # Quantitative values
   EV$"MS1 Area" <- as.numeric(DIANN$Ms1.Area)
   hasQuantUMS <- ("Precursor.Quantity" %in% colnames(DIANN))
-  if (hasQuantUMS && (misFun(useQuantUMS) || (!is.logical(useQuantUMS)) || (length(useQuantUMS) != 1L) || is.na(useQuantUMS))) {
-    useQuantUMS <- c(TRUE, FALSE)[match(svDialogs::dlg_message("QuantUMS output columns detected, using those instead of Ms1.Area for Intensity?",
-                                                               "yesno")$res, c("yes", "no"))]
-  } else { useQuantUMS <- FALSE }
+  useQuantUMS <- hasQuantUMS
+  # if (hasQuantUMS && (misFun(useQuantUMS) || (!is.logical(useQuantUMS)) || (length(useQuantUMS) != 1L) || is.na(useQuantUMS))) {
+  #   useQuantUMS <- c(TRUE, FALSE)[match(svDialogs::dlg_message("QuantUMS output columns detected, using those instead of Ms1.Area for Intensity?",
+  #                                                              "yesno")$res, c("yes", "no"))]
+  # } else { useQuantUMS <- FALSE }
   if (useQuantUMS) {
     #cat("   QuantUMS output columns detected, using those as Intensity instead of Ms1.Area.\n   (For your convenience the output Evidence (PSMs) table also contains a separate Ms1.Area column.)\n")
     # If the QuantUMS output is present, we use it by default: it should be higher quality than "Ms1.Area" (MS1-based quant only).

@@ -18,9 +18,10 @@ HdrStlVenn <- createStyle(textDecoration = "bold", halign = "left", valign = "bo
 wb <- createWorkbook()
 wbKount <- 0L
 VennMx <- 7L
+VennDir <- paste0(wd, "/Venn diagrams")
+if (!dir.exists(VennDir)) { dir.create(VennDir, recursive = TRUE) }
+Venn_fl %<o% paste0(VennDir, "/Venn_plotly.RDS")
 if (Venn_Obs) {
-  dir <- paste0(wd, "/Venn diagrams")
-  if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   ref <- PG.int.cols["Original"]
   Grps <- unique(SamplesMap$`Ratios group`)
   for (grp in Grps) {
@@ -78,10 +79,10 @@ if (Venn_Obs) {
       plotly_Venn[[subTtl]] <- plotLy
       poplot(plot)
       suppressMessages({
-        ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 150L)
-        ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L)
+        ggsave(paste0(VennDir, "/", ttl, ".jpg"), plot, dpi = 150L)
+        ggsave(paste0(VennDir, "/", ttl, ".pdf"), plot, dpi = 150L)
       })
-      #system(paste0("open \"", dir, "/", ttl, ".jpg", "\""))
+      #system(paste0("open \"", VennDir, "/", ttl, ".jpg", "\""))
       wbKount <- wbKount+1L
       if (SheetNm %in% names(wb)) { removeWorksheet(wb, SheetNm) } 
       addWorksheet(wb, SheetNm)
@@ -151,7 +152,7 @@ if (Venn_Ratios) {
             return(rs)
           }), VennExp)
         }
-        setwd(wd); suppressWarnings(dir.create("Venn diagrams"))
+        setwd(wd)
         for (vt in VennTypes) { #vt <- ""
           ttl <- sub("_\\(\\)$", "", paste0("Ratios_Venn_diagram_-_global", "_(", vt, ")"))
           SheetNm <- paste0(c("Up/down", "Up", "Down")[match(vt, VennTypes)], "-reg. PGs")
@@ -181,10 +182,10 @@ if (Venn_Ratios) {
             plotly_Venn[[subTtl]] <- plotLy
             poplot(plot)
             suppressMessages({
-              ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 150L)
-              ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L)
+              ggsave(paste0(VennDir, "/", ttl, ".jpg"), plot, dpi = 150L)
+              ggsave(paste0(VennDir, "/", ttl, ".pdf"), plot, dpi = 150L)
             })
-            #system(paste0("open \"", dir, "/", ttl, ".jpg", "\""))
+            #system(paste0("open \"", VennDir, "/", ttl, ".jpg", "\""))
             wbKount <- wbKount+1L
             if (SheetNm %in% names(wb)) { removeWorksheet(wb, SheetNm) } 
             addWorksheet(wb, SheetNm)
@@ -211,4 +212,4 @@ if (Venn_Ratios) {
 }
 if (wbKount) { saveWorkbook(wb, paste0(wd, "/Venn diagrams/Venn diagrams.xlsx"), overwrite = TRUE) }
 setwd(wd)
-saveFun(plotly_Venn, paste0(dir, "/Venn_plotly.RDS"))
+saveFun(plotly_Venn, Venn_fl)

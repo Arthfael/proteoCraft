@@ -74,6 +74,7 @@ if (!require(matrixStats, quietly = TRUE)) { pak::pak("matrixStats") }
 library(matrixStats)
 rg <- 1L:((dataType == "PG") + 1L)
 TESTs <- c("limma", "DEqMS")[rg]
+if ((dataType == "PG") && (!exists("quantData_list"))) { loadFun(myQuantBckpFl) }
 limpaTest <- (dataType == "PG") && ("EList_obj" %in% names(quantData_list))
 if (limpaTest) { TESTs <- c(TESTs, c("limpa->limma", "limpa->DEqMS")[rg]) }
 for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]

@@ -494,6 +494,7 @@ inDirs %<o% inDirs
 WhoAmI %<o% WhoAmI
 WorkFlow %<o% WorkFlow
 BckUpFl %<o% paste0(wd, "/Backup.RDS")
+qcBckUpFl %<o% paste0(wd, "/QC.RDS")
 RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 #

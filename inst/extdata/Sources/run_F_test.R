@@ -82,6 +82,7 @@ if (dataType == "PG") {
 }
 intRef2 <- sub("log10", "log2", intRef)
 if (limpaMode) {
+  if (!exists("quantData_list")) { loadFun(myQuantBckpFl) }
   myData <- quantData_list$EList_obj
   w <- which(rownames(myData$genes) %in% dat0[[mtchCol]])
   m <- match(rownames(myData$genes)[w], dat0[[mtchCol]])
@@ -371,7 +372,7 @@ if (absTst || fdrTst) {
     tstWdth$FDR <- tmp2
   }
   tstWdth <- plyr::rbind.fill(tstWdth)
-  tst <- setNames(apply(tst, 2L, \(x) { max(nchar(x), na.rm = TRUE) }), NULL)
+  tst <- setNames(apply(as.data.frame(tst), 2L, \(x) { max(nchar(x), na.rm = TRUE) }), NULL)
   wb <- wb_set_col_widths(wb, "Thresholds", 1L:(length(tst)+1L), c(3L, tst))
   wb_save(wb, fl)
   #xl_open(fl)
@@ -424,3 +425,4 @@ if (F_Root %in% colnames(myData)) {
 }
 # Cleanup
 for (i in allArgs) { try(rm(i), silent = TRUE) }
+if (limpaMode) { rm(quantData_list) }

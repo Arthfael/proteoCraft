@@ -29,6 +29,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
   if (!dir.exists(dirPep)) { dir.create(dirPep, recursive = TRUE) }
   dirlist <- unique(c(dirlist, dirPep))
   #
+  if (!exists("quantData_list")) { loadFun(myQuantBckpFl) }
   quantData <- quantData_list$Data
   quantData_norm <- quantData
   stopifnot(sum(rownames(quantData) != PG$`Protein IDs`) == 0L)

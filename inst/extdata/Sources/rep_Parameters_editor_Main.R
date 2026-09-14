@@ -933,6 +933,7 @@ mtchCheckMsg2 <- "!Checking assignments may result in removal of some identifica
 F_test_override <- FALSE
 allHistIDs <- getHistones(db)$All
 allHist <- setNames(protHeads2[allHistIDs], NULL)
+if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
 appNm <- paste0(dtstNm, " - Parameters")
 make_ui1 <- \() {
   fluidPage(

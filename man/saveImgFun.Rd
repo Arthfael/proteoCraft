@@ -4,10 +4,14 @@
 \alias{saveImgFun}
 \title{saveImgFun}
 \usage{
-saveImgFun(file)
+saveImgFun(file, N.clust, N.reserved = 1L)
 }
 \arguments{
 \item{file}{The path/file to save to.}
+
+\item{N.clust}{A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1. This is probably not a good idea for large sessions however!}
+
+\item{N.reserved}{Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.}
 }
 \description{
 Function to save all objects in the environment quickly.

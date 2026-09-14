@@ -1,7 +1,9 @@
 ### PCA plot for parameters app
 # Create first PCA to check on sample relationships
 #
-if (!exists("dimRedPlotLy")) { dimRedPlotLy %<o% list() }
+dimRed_fl %<o% paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS")
+if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
+if (!exists("dimRedPlotLy")) { dimRedPlotLy <- list() }
 if (!"PSMs" %in% names(dimRedPlotLy)) { dimRedPlotLy$PSMs <- list() }
 #
 if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRUE
@@ -162,6 +164,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
       plot_lyPSMsPCA %<o% layout(plot_lyPSMsPCA, title = ttl)
       plot_lyPSMsPCA <- plotly_build(plot_lyPSMsPCA)
       dimRedPlotLy$PSMs <- list("Samples PCA" = plot_lyPSMsPCA)
+      saveFun(dimRedPlotLy, file = dimRed_fl)
       setwd(dir)
       saveWidget(partial_bundle(plot_lyPSMsPCA), paste0(dir, "/", ttl, ".html"), selfcontained = TRUE)
       #system(paste0("open \"", dir, "/", ttl, ".html"))

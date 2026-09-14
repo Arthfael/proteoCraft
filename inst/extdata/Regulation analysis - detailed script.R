@@ -1695,6 +1695,8 @@ if (F.test) {
     #
   } else { warning("F-test analysis failed, check your parameters!")}
 }
+if (exists("quantData_list")) { rm(quantData_list) }
+
 # Mat-meth text
 tmp <- BH.FDR*100
 l <- length(tmp)

@@ -37,13 +37,13 @@ A list:
  - sigma = scaled Median Absolute Deviation of the residuals
 }
 \description{
-This is meant as an alternative to AdvNorm.IL() for applying a more robust method to aligning the samples.
+This is meant as an alternative to AdvNorm.IL() for applying a more robust method to aligning the samples. AdvNorm.IL is currently faster though.
 I have only tested, not written this function. ChatGPT and Perplexity did, in a merry-go-round, where I bounced the code from one to the other.
 Yes.
 We are there.
 ...
-The idea for a more robust loss function was floated to my by chatGPT as  was discussing normalization with 'it'.
-And because I was too busy with other stuff and unfamiliar with the robuts loss function landscape, I asked it to make it for me.
+The idea for a more robust loss function was floated to my by chatGPT as I was discussing normalization with 'it'.
+And because I was too busy with other stuff and unfamiliar with the robust loss function landscape, I asked it to make it for me.
 }
 \examples{
 normData <- robustNorm(pep, paste0("log10(Int.) - ", mySamples))

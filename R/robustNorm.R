@@ -1,13 +1,13 @@
 #' robustNorm
 #' 
 #' @description
-#' This is meant as an alternative to AdvNorm.IL() for applying a more robust method to aligning the samples.
+#' This is meant as an alternative to AdvNorm.IL() for applying a more robust method to aligning the samples. AdvNorm.IL is currently faster though.
 #' I have only tested, not written this function. ChatGPT and Perplexity did, in a merry-go-round, where I bounced the code from one to the other.
 #' Yes.
 #' We are there.
 #' ...
-#' The idea for a more robust loss function was floated to my by chatGPT as  was discussing normalization with 'it'.
-#' And because I was too busy with other stuff and unfamiliar with the robuts loss function landscape, I asked it to make it for me.
+#' The idea for a more robust loss function was floated to my by chatGPT as I was discussing normalization with 'it'.
+#' And because I was too busy with other stuff and unfamiliar with the robust loss function landscape, I asked it to make it for me.
 #' 
 #' 
 #' @param df Data frame containing expression values.
@@ -84,19 +84,21 @@ robustNorm <- function(df,
     fitted <- outer(row_mean, sample_offset, "+")
     residuals <- X - fitted
     # Robust scale estimate (MAD)
-    sigma <- mad(as.vector(residuals), na.rm = TRUE)
+    r <- as.vector(residuals)
+    r <- r[which(is.finite(r))]
+    sigma <- mad(r, na.rm = TRUE)
     if ((!is.finite(sigma)) || (sigma == 0L)) { sigma <- 1 }
     # Standardized residuals
     r_std <- residuals/sigma
     # Robust weights
     W <- robust_weights(r_std, loss, k)
-    W[which(is.na(X))] <- NA
+    W[which(!is.finite(X))] <- NA
     # Update protein means
     X_adj <- sweep(X, 2L, sample_offset, "-")
-    row_mean <- vapply(seq_len(p), \(i) { wmean(X_adj[i,], W[i,]) }, 1)
+    row_mean <- rowSums(X_adj * W, na.rm = TRUE)/rowSums(W, na.rm = TRUE)
     # Update sample offsets
     X_centered <- sweep(X, 1L, row_mean, "-")
-    sample_offset <- vapply(seq_len(s), \(j) { wmean(X_centered[, j], W[, j]) }, 1)
+    sample_offset <- colSums(X_centered * W, na.rm = TRUE)/colSums(W, na.rm = TRUE)
     # Identifiability constraint
     sample_offset <- sample_offset - mean(sample_offset, na.rm = TRUE)
     # Convergence

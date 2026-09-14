@@ -24,8 +24,8 @@ if (runRankAbundPlots || runProfPlots) {
     AllTermNames %<o% unique(unlist(strsplit(db$GO, ";")))
   }
   #
-  ggQuantLy %<o% list()
-  ggProfLy %<o% list()
+  ggQuantLy <- list()
+  ggProfLy <- list()
   #
   pepQuantTypes_ref %<o% setNames("PLACEHOLDER", "intensities")
   pepQuantTypes %<o% names(pepQuantTypes_ref)

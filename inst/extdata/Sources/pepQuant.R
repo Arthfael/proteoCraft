@@ -9,7 +9,8 @@
 #
 require(parallel)
 #
-if (!exists("dimRedPlotLy")) { dimRedPlotLy %<o% list() }
+if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
+if (!exists("dimRedPlotLy")) { dimRedPlotLy <- list() }
 if (!"peptides" %in% names(dimRedPlotLy)) { dimRedPlotLy$peptides <- list() }
 #
 pep.ref %<o% setNames("Int. - ", "Original")
@@ -113,78 +114,80 @@ pc1 <- stats::prcomp(t(data[, kol]), scale. = TRUE)
 dir <- paste0(wd, "/Workflow control/Peptides/PCA plot")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 if (exists("dirlist")) { dirlist <- unique(c(dirlist, dir)) } 
-if (length(pc1$rotation)) {
-  scores1 <- as.data.frame(pc1$x)
-  if ("PC2" %in% colnames(scores1)) {
-    rownames(scores1) <- gsub(topattern(pep.ref["Original"]), "", rownames(scores1))
-    if (!"Clean_name" %in% colnames(Exp.map)) {
-      Exp.map$Clean_name <- cleanNms(Exp.map$Ref.Sample.Aggregate)
-    }
-    scores1$Label <- Exp.map$Clean_name[match(rownames(scores1), Exp.map$Ref.Sample.Aggregate)]
-    scores1[, RSA$names] <- Isapply(strsplit(rownames(scores1), "___"), unlist)
-    scores1$Use <- tmp_EM$Use[match(rownames(scores1), tmp_EM[[refCol]])]
-    rownames(scores1) <- NULL
-    pv1 <- round(100*(pc1$sdev)^2L / sum(pc1$sdev^2L), 0L)
-    pv1 <- pv1[which(pv1 > 0)]
-    pv1_ <- paste0("Original: ", paste(vapply(seq_along(pv1), \(x) {
-      paste0("PC", x, ": ", pv1[x], "%")
-    }, ""), collapse = ", "))
-    w <- which(vapply(VPAL$names, \(x) { length(unique(scores1[[x]])) }, 1L) > 1L)
-    w <- w[which(tolower(substr(names(w), 1L, 3L)) != "rep")]
-    scores1$Samples_group <- do.call(paste, c(scores1[, VPAL$names[w], drop = FALSE], sep = " "))
-    outlierAnnot_shape %<o% "Replicate"
-    outlierAnnot_color %<o% "Samples_group"
-    ttl <- "PCA plot - Preliminary - peptide level"
-    xLab <- paste0("PC1 = ", pv1[1L], "%")
-    yLab <- paste0("PC2 = ", pv1[2L], "%")
-    require(ggplot2)
-    require(ggrepel)
-    require(plotly)
-    require(htmlwidgets)
-    plot <- ggplot(scores1, aes(x = PC1, y = PC2, colour = .data[[outlierAnnot_color]])) +
-      geom_point(aes(shape = .data[[outlierAnnot_shape]])) +
-      ggpubr::stat_conf_ellipse(aes(fill = .data[[outlierAnnot_color]]),
-                                alpha = 0.1, geom = "polygon", show.legend = FALSE) +
-      scale_color_viridis_d() +
-      scale_fill_viridis_d() +
-      coord_fixed() + theme_bw() +
-      xlab(xLab) + ylab(yLab) +
-      geom_hline(yintercept = 0, colour = "black") + geom_vline(xintercept = 0, colour = "black") +
-      ggtitle(ttl#, subtitle = pv1_
-      ) +
-      geom_text_repel(aes(label = Label), size = 3, show.legend = FALSE)
-    #poplot(plot)
-    suppressMessages({
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-    })
-    nReps <- max(as.numeric(Rep))
-    Symb <- rep(c("circle", "diamond", "square", "cross", "x"), nReps)[seq_len(nReps)]             
-    Symb <- Symb[as.numeric(scores1[[outlierAnnot_shape]])]
-    # Custom color scale
-    scores1$"Samples group" <- factor(scores1$Samples_group)
-    plot_lyPCA <- if ("PC3" %in% colnames(scores1)) {
-      plot_ly(scores1, x = ~PC1, y = ~PC2, z = ~PC3,
-              text = ~Label, type = "scatter3d", mode = "markers",
-              color = ~get(outlierAnnot_color), colors = "viridis",
-              symbol = I(Symb))
-    } else {
-      plot_ly(scores1, x = ~PC1, y = ~PC2,
-              text = ~Label, type = "scatter", mode = "markers",
-              color = ~`Samples group`, colors = "viridis",
-              symbol = I(Symb))
-    }
-    plot_lyPCA <- layout(plot_lyPCA, title = ttl)
-    plot_lyPCA <- plotly_build(plot_lyPCA)
-    dimRedPlotLy$peptides <- list("Samples PCA" = plot_lyPCA)
-    pcaDir <- paste0(wd, "/Workflow control/Peptides/PCA plot")
-    if (!dir.exists(pcaDir)) { dir.create(pcaDir, recursive = TRUE) }
-    setwd(pcaDir)
-    saveWidget(partial_bundle(plot_lyPCA), paste0(wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"),
-               selfcontained = TRUE)
-    setwd(wd)
-    #system(paste0("open \"", wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"))
-  } else {
-    stop("There was only one component to the PCA, something must've gone wrong when generating the peptides table!") #(I think this will never happen, the previous check should be identical...?)
-  }
-} else { stop("There was only one component to the PCA, something must've gone wrong when generating the peptides table!") }
+if (!length(pc1$rotation)) {
+  stop("There was only one component to the PCA, something must've gone wrong when generating the peptides table!")
+}
+scores1 <- as.data.frame(pc1$x)
+if (!"PC2" %in% colnames(scores1)) {
+  stop("There was only one component to the PCA, something must've gone wrong when generating the peptides table!")
+  #(I think this will never happen, the previous check should be identical...?)
+}
+rownames(scores1) <- gsub(topattern(pep.ref["Original"]), "", rownames(scores1))
+if (!"Clean_name" %in% colnames(Exp.map)) {
+  Exp.map$Clean_name <- cleanNms(Exp.map$Ref.Sample.Aggregate)
+}
+scores1$Label <- Exp.map$Clean_name[match(rownames(scores1), Exp.map$Ref.Sample.Aggregate)]
+scores1[, RSA$names] <- Isapply(strsplit(rownames(scores1), "___"), unlist)
+scores1$Use <- tmp_EM$Use[match(rownames(scores1), tmp_EM[[refCol]])]
+rownames(scores1) <- NULL
+pv1 <- round(100*(pc1$sdev)^2L / sum(pc1$sdev^2L), 0L)
+pv1 <- pv1[which(pv1 > 0)]
+pv1_ <- paste0("Original: ", paste(vapply(seq_along(pv1), \(x) {
+  paste0("PC", x, ": ", pv1[x], "%")
+}, ""), collapse = ", "))
+w <- which(vapply(VPAL$names, \(x) { length(unique(scores1[[x]])) }, 1L) > 1L)
+w <- w[which(tolower(substr(names(w), 1L, 3L)) != "rep")]
+scores1$Samples_group <- do.call(paste, c(scores1[, VPAL$names[w], drop = FALSE], sep = " "))
+outlierAnnot_shape %<o% "Replicate"
+outlierAnnot_color %<o% "Samples_group"
+ttl <- "PCA plot - Preliminary - peptide level"
+xLab <- paste0("PC1 = ", pv1[1L], "%")
+yLab <- paste0("PC2 = ", pv1[2L], "%")
+require(ggplot2)
+require(ggrepel)
+require(plotly)
+require(htmlwidgets)
+plot <- ggplot(scores1, aes(x = PC1, y = PC2, colour = .data[[outlierAnnot_color]])) +
+  geom_point(aes(shape = .data[[outlierAnnot_shape]])) +
+  ggpubr::stat_conf_ellipse(aes(fill = .data[[outlierAnnot_color]]),
+                            alpha = 0.1, geom = "polygon", show.legend = FALSE) +
+  scale_color_viridis_d() +
+  scale_fill_viridis_d() +
+  coord_fixed() + theme_bw() +
+  xlab(xLab) + ylab(yLab) +
+  geom_hline(yintercept = 0, colour = "black") + geom_vline(xintercept = 0, colour = "black") +
+  ggtitle(ttl#, subtitle = pv1_
+  ) +
+  geom_text_repel(aes(label = Label), size = 3, show.legend = FALSE)
+#poplot(plot)
+suppressMessages({
+  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+})
+nReps <- max(as.numeric(Rep))
+Symb <- rep(c("circle", "diamond", "square", "cross", "x"), nReps)[seq_len(nReps)]             
+Symb <- Symb[as.numeric(scores1[[outlierAnnot_shape]])]
+# Custom color scale
+scores1$"Samples group" <- factor(scores1$Samples_group)
+plot_lyPCA <- if ("PC3" %in% colnames(scores1)) {
+  plot_ly(scores1, x = ~PC1, y = ~PC2, z = ~PC3,
+          text = ~Label, type = "scatter3d", mode = "markers",
+          color = ~get(outlierAnnot_color), colors = "viridis",
+          symbol = I(Symb))
+} else {
+  plot_ly(scores1, x = ~PC1, y = ~PC2,
+          text = ~Label, type = "scatter", mode = "markers",
+          color = ~`Samples group`, colors = "viridis",
+          symbol = I(Symb))
+}
+plot_lyPCA <- layout(plot_lyPCA, title = ttl)
+plot_lyPCA <- plotly_build(plot_lyPCA)
+dimRedPlotLy$peptides <- list("Samples PCA" = plot_lyPCA)
+saveFun(dimRedPlotLy, file = dimRed_fl)
+pcaDir <- paste0(wd, "/Workflow control/Peptides/PCA plot")
+if (!dir.exists(pcaDir)) { dir.create(pcaDir, recursive = TRUE) }
+setwd(pcaDir)
+saveWidget(partial_bundle(plot_lyPCA), paste0(wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"),
+           selfcontained = TRUE)
+setwd(wd)
+#system(paste0("open \"", wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"))

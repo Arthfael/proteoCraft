@@ -55,9 +55,12 @@ if ((exists("PTMs_pep"))&&(length(PTMs_pep))) {
   II[paste0(Mod2Venn, "-mod. pept.")] <- 1L+(seq_along(length(Mod2Venn)))
 }
 if (scrptMtch == 1L) { II <- II[1L:length(II)] } # For now
+VennDir <- paste0(wd, "/Venn diagrams")
+if (!dir.exists(VennDir)) { dir.create(VennDir, recursive = TRUE) }
+Venn_fl %<o% paste0(VennDir, "/Venn_plotly.RDS")
 for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
   if ((scrptMtch == 2L)&&(ii == 1L)) { # For now, we may extend to withReps_PTMs_only later
-    dir <- paste0(wd, "/Venn diagrams")
+    dir <- VennDir
     ttest_Filt <- Reg_filters$"t-tests"$"By condition"
     vennRoot <- ""
     myData <- PG
@@ -407,7 +410,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
             wb <- openxlsx2::wb_add_font(wb, SheetNm, hdrDms, size = 12L, bold = TRUE)
             wb <- openxlsx2::wb_set_cell_style(wb, SheetNm, hdrDms, wb$styles_mgr$get_xf_id("Header_style"))
           } else {
-            cat("     Could not draw global F-tests Venn diagram: more than ", VennMx, " groups to compare!\n"))
+            cat("     Could not draw global F-tests Venn diagram: more than", VennMx, "groups to compare!\n")
           }
         } else {
           cat(paste0("   Could not draw global F-tests Venn diagram", levTxt1, ": not enough groups with regulated proteins to compare!\n"))
@@ -425,4 +428,4 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
   }
   setwd(wd)
 }
-saveFun(plotly_Venn, paste0(dir, "/Venn_plotly.RDS"))
+saveFun(plotly_Venn, Venn_fl)

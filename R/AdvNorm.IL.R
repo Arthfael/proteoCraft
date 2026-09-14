@@ -75,7 +75,7 @@ AdvNorm.IL <- function(df,
   # Create main optimization function:
   N <- length(exprs.col)
   comb <- gtools::combinations(N, 2L, exprs.col)
-  diffLog2 <- \(p, nms, dat, append = TRUE) {
+  diffLog2 <- \(p, nms, dat) {
     # There is also diffLog! Can I replace one by the other?
     p <- c(1, unlist(p))
     #stopifnot(length(p) == length(nms))

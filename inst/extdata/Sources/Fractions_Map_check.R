@@ -162,3 +162,4 @@ w <- which(lengths(FactorsLevels) > 0L)
 Factors <- Factors[w]
 FactorsLevels <- FactorsLevels[Factors]
 #rm(ev) # Nope, we keep it for now
+if (exists("searchOutputs")) { rm(searchOutputs) } # Not needed anymore, and very large!

@@ -2,12 +2,9 @@
 #
 if ((!exists("clustDat")) || (!inherits(clustDat, "list"))) { clustDat <- list() }
 if ((!exists("clustFilt")) || (!inherits(clustFilt, "list"))) { clustFilt <- list() }
-if ((!exists("plotLeatMaps")) || (!inherits(plotLeatMaps, "list"))) { plotLeatMaps <- list() }
-if ((!exists("Heatmaps")) || (!inherits(Heatmaps, "list"))) { Heatmaps <- list() }
 clustDat %<o% clustDat
 clustFilt %<o% clustFilt
-plotLeatMaps %<o% plotLeatMaps
-Heatmaps %<o% Heatmaps
+heatMaps_fl %<o% paste0(wd, "/Clustering/HeatMaps.RDS")
 #
 if (scrptType == "withReps") { clustHtMp <- TRUE }
 if (scrptType == "noReps") { clustHtMp <- length(Exp) > 1L }

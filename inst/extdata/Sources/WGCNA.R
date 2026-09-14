@@ -204,7 +204,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
                appNm),
     br(),
     h5(tags$div(
-      "Select the lowest power for which R^2 is above 0.8 - or starts to plateau, keeping mean connnectivity in a reasonable range (10-100),", tags$br(),
+      "Select the lowest power for which R^2 is above 0.8 - or starts to plateau, keeping mean connectivity in a reasonable range (10-100),", tags$br(),
       "then click \"Save\".")),
     uiOutput("Current"),
     br(),

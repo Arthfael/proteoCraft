@@ -381,6 +381,7 @@ if (dataType %in% c("modPeptides", "PG")) {
   # Get the log2FCs from all methods for comparison
   ratKol <- paste0(ratRef, myContrasts$Contrast)
   if (dataType == "PG") {
+    if (!exists("quantData_list")) { loadFun(myQuantBckpFl) }
     logFCs <- list(make_Rat2 = set_colnames(quantData_list$Data[, ratKol, drop = FALSE], myContrasts$Contrast))
   }
   if (dataType == c("modPeptides")) {
