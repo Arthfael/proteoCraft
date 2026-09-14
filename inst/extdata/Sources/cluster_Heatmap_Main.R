@@ -9,7 +9,7 @@
 #
 drawPlotly <- TRUE
 if ((!exists("plotLeatMaps")) || (!inherits(plotLeatMaps, "list"))) { plotLeatMaps <- list() }
-if ((!exists("heatMaps")) || (!inherits(heatMaps, "list"))) { plotLeatMaps <- list() }
+if ((!exists("heatMaps")) || (!inherits(heatMaps, "list"))) { heatMaps <- list() }
 #drawPlotly <- FALSE
 if (clustHtMp) {
   datNm <- intersect(c("ComBat",

@@ -184,7 +184,7 @@ setwd(paste0(wd, "/Summary plots"))
 saveWidget(partial_bundle(plotLy), paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)
 QC_plotLys[[ttl]] <- plotLy
-saveFun(qcBckUpFl)
+saveFun(QC_plotLys, qcBckUpFl)
 
 # Time points
 if (exists("Tim")) {

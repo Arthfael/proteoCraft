@@ -26,7 +26,7 @@ Exp_summary %<o% tmp$table
 if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
 if (!exists("QC_plotLys")) { QC_plotLys <- list() }
 QC_plotLys[names(tmp$plotLy)] <- tmp$plotLy
-saveFun(qcBckUpFl)
+saveFun(QC_plotLys, qcBckUpFl)
 
 Exp_summary$"Biological sample" <- ""
 if ("Parent sample" %in% colnames(Frac.map)) {

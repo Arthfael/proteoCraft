@@ -29,4 +29,4 @@ plotLy <- plotly_build(plotLy)
 saveWidget(plotLy, paste0(qcDir, "/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)
 QC_plotLys[[ttl]] <- plotLy
-saveFun(qcBckUpFl)
+saveFun(QC_plotLys, qcBckUpFl)
