@@ -158,9 +158,7 @@ plotsList1 <- parLapply(parClust, 1L:nrow(Comb), \(i) { #i <- 1L
   w1 <- 5
   h1 <- w1*(length(unique(dat$Contrast)) + 0.5)/3
   suppressMessages({
-    ggsave(paste0(Img1, ".jpeg"), plot1, dpi = 150L, width = w1,# height = h1,
-           units = "in")
-    ggsave(paste0(Img1, ".pdf"), plot1, dpi = 150L, width = w1,# height = h1,
+    ggsave(paste0(Img1, ".svg"), plot1, dpi = 150L, width = w1,# height = h1,
            units = "in")
   })
   #system(paste0("open \"", Img1, ".jpeg\""))
@@ -261,11 +259,9 @@ Img2 <- paste0(pvalDir, "/", ttl2)
 w2 <- ((length(whSingle)+1L)*1.25)*2
 h2 <- ((length(my_PVal_Col)+0.2)*1.25)*2
 suppressMessages({
-  ggsave(paste0(Img2, ".jpeg"), plot2, dpi = 150L, width = w2, height = h2, units = "in")
-  ggsave(paste0(Img2, ".pdf"), plot2, dpi = 150L, width = w2, height = h2, units = "in")
+  ggsave(paste0(Img2, ".svg"), plot2, dpi = 150L, width = w2, height = h2, units = "in")
 })
-#system(paste0("open \"", Img2, ".jpeg\""))
-#system(paste0("open \"", Img2, ".pdf\""))
+#system(paste0("open \"", Img2, ".svg\""))
 #
 plot2ly <- ggplotly(plot2)
 plot2ly <- layout(plot2ly,

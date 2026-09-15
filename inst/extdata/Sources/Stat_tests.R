@@ -370,18 +370,18 @@ if ((dataType == "PG") && ("MSstats_list" %in% names(quantData_list))) {
   colnames(msstatsContrMatr) <- Exp.map[match(tmp, Exp.map$Ref.Sample.Aggregate), VPAL$column]
   rownames(msstatsContrMatr) <- colnames(contrMatr)
   # Run test
-  msstatsComp %<o% MSstats::groupComparison(contrast.matrix = msstatsContrMatr,
-                                            data = quantData_list$MSstats_list)
+  msstatsComp <- MSstats::groupComparison(contrast.matrix = msstatsContrMatr,
+                                          data = quantData_list$MSstats_list)
   # Process results
   msstatsRes <- msstatsComp$ComparisonResult
-  msstatsLFC %<o% reshape::cast(msstatsRes,
-                                Protein ~ Label,
-                                unique,
-                                value = "log2FC") # Even though we fed it log10, MSstats outputs log2FC -> no need to convert!
-  msstatsPVal %<o% reshape::cast(msstatsRes,
-                                 Protein ~ Label,
-                                 unique,
-                                 value = "pvalue")
+  msstatsLFC <- reshape::cast(msstatsRes,
+                              Protein ~ Label,
+                              unique,
+                              value = "log2FC") # Even though we fed it log10, MSstats outputs log2FC -> no need to convert!
+  msstatsPVal <- reshape::cast(msstatsRes,
+                               Protein ~ Label,
+                               unique,
+                               value = "pvalue")
   msstatsLFC <- msstatsLFC[match(myData[[namesCol]], msstatsLFC$Protein),
                            myContrasts$Contrast,
                            drop = FALSE]
@@ -401,7 +401,7 @@ if ((dataType == "PG") && ("MSstats_list" %in% names(quantData_list))) {
 pairwise_coin_test <- \(data,
                         alternative = "two.sided",
                         skipBlocks = TRUE # Otherwise in most cases we cannot run the test, because blocks = replicates and N = 1 -> no permutations!
-                        ) {
+) {
   formTxt <- "values ~ group"
   data$group <- as.factor(data$group)
   tst <- c("batch", "block") %in% colnames(data)
@@ -660,7 +660,7 @@ if (length(whSingle)) {
                               B = rep(NA, nr),
                               C = rep(NA, nr)#,
                               #D = rep(NA, nr)
-                              )
+            )
             colnames(RES) <- samK
             RES[wh, samK[1L]] <- tmpSIGGENES@p.value
             RES[wh, samK[2L]] <- -log10(tmpSIGGENES@p.value)

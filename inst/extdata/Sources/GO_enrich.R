@@ -143,7 +143,7 @@ GlobalScales <- TRUE
 N.reserved <- 1L
 GO.mappings <- GO_mappings
 GO.terms <- GO_terms
-save <- c("jpeg", "pdf")
+save <- "svg"
 subfolderpertype <- FALSE
 bars_title <- title <- ""
 #
@@ -290,7 +290,7 @@ if ((!exists("subfolder")) || is.null(subfolder) || (!nchar(subfolder))) {
   }
 }
 if ((length(save) > 1L) || (save != FALSE)) {
-  save <- unique(gsub("^jpg$", "jpeg", gsub("^\\.", "", tolower(save))))
+  save <- unique(sub("^jpg$", "jpeg", sub("^\\.", "", tolower(save))))
   for (ss in save) {
     sfpt <- if (subfolderpertype) { paste0(subfolder, "/", ss) } else { subfolder }
     if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
@@ -1190,7 +1190,7 @@ if (length(wFltL)) {
               sfpt <- if (subfolderpertype) { paste0(subfolder, "/", sv) } else { subfolder }
               if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
               suppressMessages({
-                if (sv %in% c("jpeg", "tiff", "png", "bmp")) { #Note: tiff does not seem to work currently!
+                if (sv %in% c("jpeg", "tiff", "png", "bmp", "svg")) { #Note: tiff does not seem to work currently!
                   ggplot2::ggsave(paste0(sfpt, "/", nm, ".", sv), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
                 } else {
                   ggplot2::ggsave(paste0(sfpt, "/",nm, ".", sv), plot)
@@ -1319,7 +1319,7 @@ if (length(wFltL)) {
                   if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
                   setwd(sfpt)
                   suppressMessages({
-                    if (sv %in% c("jpeg", "tiff", "png", "bmp")) { #Note: tiff does not seem to work currently!
+                    if (sv %in% c("jpeg", "tiff", "png", "bmp", "svg")) { #Note: tiff does not seem to work currently!
                       ggplot2::ggsave(paste0(sfpt, "/", barnm, ".", sv), barplot1, dpi = 150L, width = nX/4, height = 15L, units = "in")
                     } else {
                       ggplot2::ggsave(paste0(sfpt, "/", barnm, ".", sv), barplot1)

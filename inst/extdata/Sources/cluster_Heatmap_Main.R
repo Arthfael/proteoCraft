@@ -10,6 +10,15 @@
 drawPlotly <- TRUE
 if ((!exists("plotLeatMaps")) || (!inherits(plotLeatMaps, "list"))) { plotLeatMaps <- list() }
 if ((!exists("heatMaps")) || (!inherits(heatMaps, "list"))) { heatMaps <- list() }
+if (!exists("clustDat")) {
+  if (exists("clustDat_fl") && file.exists(clustDat_fl)) {
+    loadImg(clustDat_fl)
+  } else {
+    Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
+    #rstudioapi::documentOpen(Src)
+    source(Src)
+  }
+}
 #drawPlotly <- FALSE
 if (clustHtMp) {
   datNm <- intersect(c("ComBat",

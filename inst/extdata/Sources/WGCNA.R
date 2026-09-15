@@ -39,7 +39,16 @@ for (dr in wgcnaDirs) {
 col <- paste0(Prot.Expr.Root, RSA$values)
 minReps <- max(c(repThresh, round(length(Rep)*repProp))) # Let's be stringent and ask for 3 replicates
 #
-# We now get for WGCNA the data prepared for downstream analyses by cluster_Heatmap_Prep.R
+# We now get for WGCNA the data prepared for downstream analyses by cluster_Heatmap_PrepTop.R
+if (!exists("clustDat")) {
+  if (exists("clustDat_fl") && file.exists(clustDat_fl)) {
+    loadImg(clustDat_fl)
+  } else {
+    Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
+    #rstudioapi::documentOpen(Src)
+    source(Src)
+  }
+}
 dataType <- "PG"
 if (dataType == "PG") {
   datNm <- intersect(c("ComBat", "Imputed", #"Filtered",
@@ -640,4 +649,5 @@ open_conns <- showConnections()
 sock_conns <- as.integer(rownames(open_conns[grep("sockconn", open_conns[,"class"]), , drop = FALSE]))
 for (i in sock_conns) try(close(getConnection(i)), silent = TRUE)
 source(parSrc)
+detach("package:WGCNA", unload = TRUE)
 #

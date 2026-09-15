@@ -45,6 +45,7 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
                           openMe = FALSE,
                           isRef,
                           make_Avg = FALSE) {
+  wd0 <- getwd()
   #DefArg(pcaBatchPlots)
   suppressWarnings({
     make_Avg <- as.logical(make_Avg)
@@ -182,12 +183,15 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
       
       plotlyPCA1 <- plotly::plotly_build(plotlyPCA1)
       plotlyPCA[[btch]] <- plotlyPCA1
+      setwd(dir)
       suppressWarnings(htmlwidgets::saveWidget(plotly::partial_bundle(plotlyPCA1), paste0(dir, "/", nm1, ".html")))
+      
       if (openMe) { system(paste0("open \"", dir, "/", nm1, ".html")) }
     }
   } else { stop("PCA failed, investigate!") }
   w <- which(colnames(scores0) %in% kol)
   colnames(scores0)[w] <- paste0(root, "_", colnames(scores0)[w])
+  setwd(wd0)
   return(list(Scores = scores0,
               PlotLy = plotlyPCA,
               PCs = pc0))

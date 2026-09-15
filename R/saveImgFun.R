@@ -50,10 +50,11 @@ saveImgFun <- function(file,
   # then add its class to the vector below of excluded classes which should not be saved.
   # 
   obj <- obj[which(vapply(obj, \(x) {
-    sum(c("cluster", # e.g. parClust
-          "connection", # any connection
-          "rdocx") # created by package officer
-        %in% class(get(x)))
+    sum(inherits(get(x),
+                 "cluster", # e.g. parClust
+                 "connection", # any connection
+                 "rdocx") # created by package officer
+    )
   }, 1L) == 0L)]
   #
   # Alternate way to using do.call:

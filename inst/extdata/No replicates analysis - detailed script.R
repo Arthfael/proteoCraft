@@ -315,8 +315,7 @@ if (PTMriched) {
       theme_bw() + theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1))
     poplot(plot)
     suppressMessages({
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150L)
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L)
+      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L)
     })
     #
     PTMev2Remov[[ptm]] <- lapply(Exp, \(exp) { #exp <- Exp[1L]
@@ -500,8 +499,7 @@ poplot(plot, 12L, 22L)
 dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 suppressMessages({
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+  ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
 })
 
 # Correlation:
@@ -609,8 +607,7 @@ if (length(Exp) > 1L) {
                          strip.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0)) + ggtitle(ttl)
     poplot(plot, 12L, 22L)
     suppressMessages({
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     })
   } else { warning("Do we really have enough data to continue? Investigate...") }
 }
@@ -659,8 +656,7 @@ if (MakeRatios) {
   if (RatiosThresh_2sided) { plot <- plot + geom_vline(xintercept = -RatiosThresh, colour = "red") }
   poplot(plot, 12L, 22L)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
   })
 }
 
@@ -1194,8 +1190,7 @@ if (length(Exp) > 1L) {
   }
   poplot(plot, 12L, 22L)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
   })
 }
 g <- as.character(sapply(PG.int.cols, \(x) { grep(topattern(x), colnames(PG), value = TRUE) }))
@@ -1318,8 +1313,7 @@ if (length(M)) {
   #poplot(plot3)
   #poplot(plot3a)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl2, ".jpeg"), plot3a, dpi = 300L, width = 10L, height = 10L, units = "in")
-    ggsave(paste0(dir, "/", ttl2, ".pdf"), plot3a, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggsave(paste0(dir, "/", ttl2, ".svg"), plot3a, dpi = 300L, width = 10L, height = 10L, units = "in")
   })
   leg3 <- get_legend(plot3)
   plot3 <- plot3 + theme(legend.position = "none")
@@ -1336,15 +1330,13 @@ if (length(M)) {
   plot4 <- as.ggplot(plot4)
   poplot(plot4)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot4, dpi = 300L, width = 10L, height = 10L, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot4, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".svg"), plot4, dpi = 300L, width = 10L, height = 10L, units = "in")
   })
   #poplot(plot3)
 } else {
   poplot(plot, 12L, 22L)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
   })
 }
 
@@ -1418,8 +1410,7 @@ if (MakeRatios) {
   if (RatiosThresh_2sided) { plot <- plot + geom_vline(xintercept = -RatiosThresh, colour = "red") }
   poplot(plot)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
   })
   # MA plots:
   temp <- long.dat$intens
@@ -1437,8 +1428,7 @@ if (MakeRatios) {
     theme(strip.text.y = element_text(angle = 0))
   poplot(plot)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
   })
   # "Regulated/Enriched" columns
   ref <- rev(PG.int.cols[which(PG.int.cols != paste0("Imput. ", PG.int.cols["Original"]))])[1L]
@@ -1731,8 +1721,7 @@ if (MakeRatios) {
       if (RatiosThresh_2sided) { plot <- plot + geom_vline(xintercept = -RatiosThresh, colour = "red") }
       poplot(plot)
       suppressMessages({
-        ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-        ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+        ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
       })
       #
       # Gene-Set Enrichment Analysis (GSEA)
@@ -1824,8 +1813,7 @@ plot <- ggplot(tmp) + geom_bar(stat = "identity", aes(x = Experiment, y = `Total
   ggtitle(ttl, subtitle = "Summed TIC for each class of identified peptides")
 poplot(plot)
 suppressMessages({
-  ggsave(paste0(wd, "/Summary plots/", ttl, ".jpeg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
-  ggsave(paste0(wd, "/Summary plots/", ttl, ".pdf"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
+  ggsave(paste0(wd, "/Summary plots/", ttl, ".svg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
 })
 plotLy <- ggplotly(plot, tooltip = c("x", "y", "fill"))
 plotLy <- plotly::config(plotLy,
@@ -1935,14 +1923,16 @@ if (length(Exp) > 2L) {
       plot_lyPCA <- add_trace(plot_lyPCA, scores, x = ~PC1, y = ~PC2, z = ~PC3, type = "scatter3d", mode = "text",
                               showlegend = FALSE)
       plot_lyPCA <- layout(plot_lyPCA, title = ttl)
+      
       plot_lyPCA <- plotly_build(plot_lyPCA)
+      setwd(paste0(wd, "/PCA plots"))
       tst <- try(saveWidget(partial_bundle(plot_lyPCA), paste0(wd, "/PCA plots/", ttl, ".html")), silent = TRUE)
       if (inherits(tst, "try-error")) { tst <- try(saveWidget(plot_lyPCA, paste0(wd, "/PCA plots/", ttl, ".html")), silent = TRUE) }
+      setwd(wd)
       if (!inherits(tst, "try-error")) { system(paste0("open \"", wd, "/PCA plots/", ttl, ".html")) }
     } else { poplot(plot, width = 18L) }
     suppressMessages({
-      ggsave(paste0(wd, "/PCA plots/", ttl, ".jpeg"), plot, dpi = 150L)
-      ggsave(paste0(wd, "/PCA plots/", ttl, ".pdf"), plot, dpi = 150L)
+      ggsave(paste0(wd, "/PCA plots/", ttl, ".svg"), plot, dpi = 150L)
     })
     ## 2/ Protein groups level:
     pc <- prcomp(temp, scale. = TRUE)
@@ -1956,7 +1946,7 @@ if (length(Exp) > 2L) {
     rownames(scores) <- NULL
     scores[, c("Protein IDs", "Protein group")] <- PG[match(scores$"Leading protein IDs", PG$"Leading protein IDs"),
                                                       c("Protein IDs", "Label")]
-    scores$Alpha <- (scores$PC1^2L + scores$PC2^2L)
+    scores$Alpha <- scores$PC1^2L + scores$PC2^2L
     scores$Direction <- apply(temp[w,], 1L, \(x) {
       wh <- which(is.finite(10L^x))
       return(weighted.mean(c(seq_along(colnames(temp)))[wh], 10L^x[wh]))
@@ -1983,8 +1973,7 @@ if (length(Exp) > 2L) {
       plot <- plot + geom_point(data = scores2, colour = "red", shape = 2L, aes(x = PC1, y = PC2, text = `Protein group`))
   }
   suppressMessages({
-    ggsave(paste0(wd, "/PCA plots/", ttl, ".jpeg"), plot, dpi = 150L)
-    ggsave(paste0(wd, "/PCA plots/", ttl, ".pdf"), plot, dpi = 150L)
+    ggsave(paste0(wd, "/PCA plots/", ttl, ".svg"), plot, dpi = 150L)
   })
   plot_lyPCAProt <- if ("PC3" %in% colnames(scores)) {
     plot_ly(scores, x = ~PC1, y = ~PC2, z = ~PC3, color = ~Direction, text = ~`Protein group`,
@@ -2008,8 +1997,10 @@ if (length(Exp) > 2L) {
     }
   }
   plot_lyPCAProt <- plotly_build(plot_lyPCAProt)
+  setwd(paste0(wd, "/PCA plots"))
   tst <- try(saveWidget(partial_bundle(plot_lyPCAProt), paste0(wd, "/PCA plots/", ttl, ".html")), silent = TRUE)
   if (inherits(tst, "try-error")) { tst <- try(saveWidget(plot_lyPCAProt, paste0(wd, "/PCA plots/", ttl, ".html")), silent = TRUE) }
+  setwd(wd)
   if (!inherits(tst, "try-error")) { system(paste0("open \"", wd, "/PCA plots/", ttl, ".html")) }
   #plot <- plot + geom_text_repel(data = scores, aes(x = PC1, y = PC2, label = `Protein group`, alpha = Alpha), size = 2.5)
   if ((prot.list.Cond)&&(length(g1))) {
@@ -2018,18 +2009,14 @@ if (length(Exp) > 2L) {
   }
   #poplot(plot, width = 18L)
   suppressMessages({
-    ggsave(paste0(wd, "/PCA plots/", ttl, " (labels).jpeg"), plot, dpi = 150L)
-    ggsave(paste0(wd, "/PCA plots/", ttl, " (labels).pdf"), plot, dpi = 150L)
+    ggsave(paste0(wd, "/PCA plots/", ttl, " (labels).svg"), plot, dpi = 150L)
   })
 } else { warning("No PCA plots drawn: samples are too similar!") }
 
 # Prepare data for clustering and dimensionality reduction plots
-Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Prep.R")
+Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
 #rstudioapi::documentOpen(Src)
-dataType <- "PG"
 source(Src)
-#dataType <- "peptides"
-#source(Src)
 
 #### Code chunk - Heatmaps with clustering at samples and protein groups level, highlighting proteins of interest
 clustMode <- "standard"
@@ -2213,13 +2200,10 @@ if ((length(Exp) > 1L)&&(!is.null(prot.list))&&(length(prot.list))) {
           xlim(Xlim[1L], Xlim[2L]) + ylim(Ylim[1L], Ylim[2L])
         poplot(heatmap.plot)
         suppressMessages({
-          ggsave(paste0(dir, "/", ttl, ".jpeg"), heatmap.plot,
-                 dpi = 600L, width = 20L, height = 12L, units = "in")
-          ggsave(paste0(dir, "/", ttl, ".pdf"), heatmap.plot,
+          ggsave(paste0(dir, "/", ttl, ".svg"), heatmap.plot,
                  dpi = 600L, width = 20L, height = 12L, units = "in")
         })
-        #system(paste0("open \"", dir, "/", ttl, ".jpeg", "\""))
-        #system(paste0("open \"", dir, "/", ttl, ".pdf", "\""))
+        #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
       }
     }
   }

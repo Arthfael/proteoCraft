@@ -312,7 +312,7 @@ ev <- ev[which(ev$Reverse == ""),]
 RemovZ1 <- FALSE
 w1 <- which(ev$Charge == 1L)
 wHt1 <- which(ev$Charge > 1L)
-if ((RemovZ1)&&(length(w1))) {
+if (RemovZ1 && length(w1)) {
   AmIBogus <- paste(unique(ev$"Modified sequence"[w1]), collapse = "\n")
   #cat(AmIBogus)
   cat("Removing the following presumably bogus identifications with Z=1:\n", AmIBogus, "\n")
@@ -675,7 +675,7 @@ if (("ARATH" %in% db$Organism) || (3702L %in% db$TaxID)) {
   kol <- c("TAIR", "TAIR_v2")
   if (sum(kol %in% colnames(db)) == 2L) {
     #View(db[, kol])
-    w <- which((nchar(db$TAIR) > 0L)&(nchar(db$TAIR_v2) > 0L))
+    w <- which((nchar(db$TAIR) > 0L) & (nchar(db$TAIR_v2) > 0L))
     tmp4 <- db[w, kol]
     tmp4$TAIR <- strsplit(tmp4$TAIR, ";")
     tmp4$TAIR_v2 <- strsplit(tmp4$TAIR_v2, ";")
@@ -753,7 +753,7 @@ exports <- if (!"Sequence coverage [%]" %in% colnames(PG)) {
     Coverage(x[[1L]], x[[2L]])
   }), 1L)
 }
-CreateMSMSKol %<o% (("MS/MS IDs" %in% colnames(ev))&&(class(ev$"MS/MS IDs") %in% c("integer", "character")))
+CreateMSMSKol %<o% (("MS/MS IDs" %in% colnames(ev)) && sum(c("integer", "character") %in% class(ev$"MS/MS IDs")))
 if (CreateMSMSKol) {
   # There appear to be no MSMS IDs for DIA in MaxQuant.
   ev$temp <- parLapply(parClust, strsplit(as.character(ev$"MS/MS IDs"), ";"), as.integer)
@@ -994,7 +994,7 @@ testI <- data.frame("log10(Expression)" = (binz[2L:(nbinz+1L)]+binz[1L:nbinz])/2
 for (v in unique(test$variable)) {
   wv <- which(test$variable == v)
   testI[[v]] <- vapply(1L:nbinz, \(x) {
-    sum((test$value[wv] > binz[x])&(test$value[wv] <= binz[x+1L]))
+    sum((test$value[wv] > binz[x]) & (test$value[wv] <= binz[x+1L]))
   }, 1L)
 }
 testI <- reshape2::melt(testI, id.vars = "log10(Expression)")
@@ -1017,8 +1017,7 @@ plot <- if (length(a) == 1L) { plot + facet_wrap(as.formula(paste0("~", a))) } e
 }
 print(plot) # This type of QC plot does not need to pop up, the side panel is fine
 suppressMessages({
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
+  ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
 })
 #
 # Test ratio values:
@@ -1044,7 +1043,7 @@ testR <- data.frame(log2FC = (binz[2L:(nbinz+1L)]+binz[1L:nbinz])/2,
 for (ctr in allContr) {
   wv <- which(test$Contrast == ctr)
   testR[[ctr]] <- vapply(1L:nbinz, \(x) {
-    sum((test$value[wv] > binz[x])&(test$value[wv] <= binz[x+1L]))
+    sum((test$value[wv] > binz[x]) & (test$value[wv] <= binz[x+1L]))
   }, 1L)
 }
 testR <- dfMelt(testR, id.vars = "log2FC")
@@ -1063,8 +1062,7 @@ plot <- ggplot(testR) +
   scale_y_continuous(limits = c(0, max(testR$value)*1.1), expand = c(0L, 0L)) + facet_wrap(~Contrast)
 print(plot) # This type of QC plot does not need to pop up, the side panel is fine
 suppressMessages({
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
+  ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
 })
 
 # Code chunk - Add quant data to PG:
@@ -1078,7 +1076,7 @@ if (Param$Prot.Only.with.Quant) {
   a <- a[which(!grepl(": SD$|: -log10\\(peptides Pvalue\\)$", a))]
   test2 <- apply(quantData[,a],
                  1L, \(x) { sum(is.finite(x)) })
-  PG <- PG[which((test1 > 0L)|(test2 > 0L)),]
+  PG <- PG[which((test1 > 0L) | (test2 > 0L)),]
 }
 if (!"Peptides count" %in% colnames(PG)) {
   PG$"Peptides count" <- lengths(strsplit(PG$"Peptide IDs", ";"))
@@ -1213,7 +1211,7 @@ for (a in A) { #a <- A[1L]
 #View(PG[, grep("^Significant-FDR=", colnames(PG))])
 
 #### Code chunk - Optional: adjust P-values
-Adj_Pval %<o% (("Adjust.P.values" %in% colnames(Param))&&(Param$Adjust.P.values))
+Adj_Pval %<o% (("Adjust.P.values" %in% colnames(Param)) && Param$Adjust.P.values)
 if (Adj_Pval) {
   pval.adjust %<o% TRUE
   w <- grep("^adj. ", names(pvalue.col), invert = TRUE)
@@ -1253,11 +1251,8 @@ source(bckpSrc)
 #loadFun(BckUpFl)
 
 # Prepare data for clustering and dimensionality reduction plots
-Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_Prep.R")
+Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
 #rstudioapi::documentOpen(Src)
-dataType <- "PG"
-source(Src)
-dataType <- "peptides"
 source(Src)
 
 #### Code chunk - Heatmaps with clustering at samples and protein groups level, highlighting proteins of interest
@@ -1537,7 +1532,7 @@ if ("ref" %in% filter_types) {
   colnames(g2) <- VPAL$names
   tst <- do.call(paste, c(Exp.map[, RRG$names, drop = FALSE], sep = "___"))
   tmp <- do.call(paste, c(g2[, RRG$names, drop = FALSE], sep = "___"))
-  g2$Ref <- vapply(tmp, \(x) { unique(tst[which((Exp.map$Reference)&(tst == x))]) }, "")
+  g2$Ref <- vapply(tmp, \(x) { unique(tst[which(Exp.map$Reference & (tst == x))]) }, "")
   for (i in unique(g2$Ref)) {
     w <- which(g2$Ref == i)
     u <- grep("^up|^Specific", unique(as.character(PG[, g[w]])), value = TRUE)
@@ -1588,25 +1583,21 @@ source(bckpSrc)
 #Param <- Param.load()
 F.test %<o% FALSE
 if (("F.test" %in% colnames(Param)) && is.logical(Param$F.test) && (length(Param$F.test) == 1L) && (!is.na(Param$F.test)) && Param$F.test) {
-  F.test <- !((length(VPAL$values) == 2L)&&(pvalue.col[pvalue.use] == "Moderated t-test -log10(Pvalue) - "))
+  F.test <- !((length(VPAL$values) == 2L) && (pvalue.col[pvalue.use] == "Moderated t-test -log10(Pvalue) - "))
 }
 if (F.test) {
-  dir <- paste0(wd, "/", c("Reg. analysis/F-tests"#,
-                           #"Reg. analysis/F-tests/pdf",
-                           #"Reg. analysis/F-tests/jpeg",
-                           #"Reg. analysis/F-tests/html"
-  ))
+  dir <- paste0(wd, "/Reg. analysis/F-tests")
   for (d in dir) { if (!dir.exists(d)) { dir.create(d, recursive = TRUE) }}
   dirlist <- unique(c(dirlist, dir))
   cat("Running F-test\n")
   #
-  if (("F.test_within" %in% colnames(Param))&&(Param$F.test_within != "")) {
+  if (("F.test_within" %in% colnames(Param)) && (Param$F.test_within != "")) {
     warning("Parameter \"F.test_within\" is deprecated!")
   }
-  if (("F.test_factors" %in% colnames(Param))&&(Param$F.test_factors != "")) {
+  if (("F.test_factors" %in% colnames(Param)) && (Param$F.test_factors != "")) {
     warning("Parameter \"F.test_factors\" is deprecated!")
   }
-  if (("F.test_factors_ref" %in% colnames(Param))&&(Param$F.test_factors_ref != "")) {
+  if (("F.test_factors_ref" %in% colnames(Param)) && (Param$F.test_factors_ref != "")) {
     warning("Parameter \"F.test_factors_ref\" is deprecated!")
   }
   #
@@ -1635,7 +1626,7 @@ if (F.test) {
     Reg_filters$"F-tests" <- list()
     if ("con" %in% filter_types) {
       Reg_filters$"F-tests"$"By condition" <- list()
-      for (i in seq_along(g)) { #i <- 1
+      for (i in seq_along(g)) { #i <- 1L
         Reg_filters$"F-tests"$"By condition"[[g1[i]]] <- list(Columns = g[i],
                                                               Filter_up = sort(which(F_test_data[[g[i]]] %in% up)),
                                                               Filter_down = sort(which(F_test_data[[g[i]]] %in% down)),
@@ -1654,7 +1645,7 @@ if (F.test) {
                                                       length(which(x %in% c(up, down)))
                                                     }) > 0L)))
     }
-    if (("Q.values" %in% colnames(Param))&&(Param$Q.values)) {
+    if (("Q.values" %in% colnames(Param)) && Param$Q.values) {
       require(qvalue)
       if (F_Root %in% colnames(F_test_data)) {
         temp <- 10L^(-F_test_data[[F_Root]])
@@ -1663,7 +1654,7 @@ if (F.test) {
         temp <- try(qvalue::qvalue(temp[wag]), silent = TRUE) # For now we do not explicitly set pi0
         if (inherits(temp, "try-error")) {
           temp <- try(qvalue::qvalue(temp[wag], pi0 = pi0), silent = TRUE)
-          while ((inherits(temp, "try-error"))&&(pi0 <= 1)) {
+          while (inherits(temp, "try-error") && (pi0 <= 1)) {
             pi0 <- pi0 + 0.05
             temp <- try(qvalue(temp[wag], pi0 = pi0), silent = TRUE)
           }
@@ -1761,7 +1752,7 @@ for (tt in WhTsts) { #tt <- WhTsts[1L]
         nms <- names(flt)
         #nms <- cleanNms(nms)
         # tst <- lengths(strsplit(nms, " - "))
-        # tst <- (min(tst) > 1L)&(length(unique(tst)) == 1L)
+        # tst <- (min(tst) > 1L) & (length(unique(tst)) == 1L)
         # if (tst) {
         #   tst <- as.data.frame(t(sapply(strsplit(nms, " - "), unlist)))
         #   l <- apply(tst, 2L, \(x) { length(unique(x)) })
@@ -1782,7 +1773,7 @@ for (tt in WhTsts) { #tt <- WhTsts[1L]
           basic.heatmap(temp2,
                         "N. of co-regulated PGs",
                         paste0(tstrt, "\n(", tolower(bee), ")"),
-                        save = c("pdf", "jpeg"),
+                        save = "svg",
                         folder = dir)
         } else { warning(paste0("Not a single regulated protein group in any of the ", tstrt, " performed, skipping.")) }
       } else {
@@ -1861,7 +1852,7 @@ if (exists("Tim")) {
     e <- Exp.map[l,]
     t1 <- paste0(r, e[[a1]])
     t2 <- paste0(p, e[[a1]])
-    w <- which((t1 %in% colnames(PG))&(t2 %in% colnames(PG)))
+    w <- which((t1 %in% colnames(PG)) & (t2 %in% colnames(PG)))
     if (length(w)) {
       e <- e[w,]
       t1 <- unique(t1[w])
@@ -1917,8 +1908,7 @@ if (exists("Tim")) {
       facet_wrap(~Aggregate) +
       ylim(c(-ylim, ylim)) + theme_bw()
     suppressMessages({
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 600L, width = 10L, height = 10L, units = "in")
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 600L, width = 10L, height = 10L, units = "in")
+      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 600L, width = 10L, height = 10L, units = "in")
     })
     if (create_plotly) {
       #test <- aggregate(tmp$`log2(Ratio)`, list(tmp$IDs), \(x) { sum(is.finite(x)) == length(Tim)-1L })
@@ -1963,7 +1953,7 @@ source(Src)
 Src <- paste0(libPath, "/extdata/Sources/Cytoscape_init.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
-runClueGO <- runClueGO&CytoScape
+runClueGO <- runClueGO & CytoScape
 
 #### Code chunk - Gene Ontology terms enrichment analysis
 goSrc <- paste0(libPath, "/extdata/Sources/rep_GO.R")
@@ -2142,7 +2132,7 @@ source(Src)
 #     length(which(!x %in% c("", NA, "NA", "non significant", "too small FC")))
 #   })
 #   prot <- unique(c(prot.list, unlist(strsplit(PG$"Leading protein IDs"[which(test > 0L)], ";"))))
-#   if ((!is.null(prot.list_pep))&&(length(prot.list_pep))) { prot <- unique(c(prot, prot.list_pep)) }
+#   if ((!is.null(prot.list_pep)) && (length(prot.list_pep)) { prot <- unique(c(prot, prot.list_pep)) }
 #   if (length(prot)) {
 #     dir <- paste0(wd, "/Evidences type tables")
 #     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
@@ -2150,7 +2140,7 @@ source(Src)
 #     for (i in prot) {
 #       temp <- ev[grsep2(i, ev$"Leading proteins"),]
 #       temp <- sapply(unique(ev$Type), \(x) {
-#         vapply(unique(ev$"Raw file"), \(y) { length(which((temp$Type == x)&(temp$"Raw file" == y))) }, 1L)
+#         vapply(unique(ev$"Raw file"), \(y) { length(which((temp$Type == x) & (temp$"Raw file" == y))) }, 1L)
 #       })
 #       write.csv(temp, paste0(dir, "/Ev table - ", i, ".csv"))
 #     }

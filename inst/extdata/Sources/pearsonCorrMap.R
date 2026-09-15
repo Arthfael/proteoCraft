@@ -1,6 +1,15 @@
 #### Samples Pearson correlation heatmap
 if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
   # (It's not implemented yet for other types of scripts)
+  if (!exists("clustDat")) {
+    if (exists("clustDat_fl") && file.exists(clustDat_fl)) {
+      loadImg(clustDat_fl)
+    } else {
+      Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
+      #rstudioapi::documentOpen(Src)
+      source(Src)
+    }
+  }
   dir <- paste0(wd, "/Pearson correlation map")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   if (scrptTypeFull == "withReps_PG_and_PTMs") {

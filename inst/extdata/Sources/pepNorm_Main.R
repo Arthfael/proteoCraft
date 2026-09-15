@@ -4,7 +4,7 @@ lNorm <- length(normSequence) #lNorm <- 1L
 if (lNorm) {
   cat("Peptides-level normalisations:\n------------------------------\n\n")
   # Initial values
-  pepNorm %<o% list()
+  pepNorm <- list()
   NormGrps %<o% setNames(aggregate(pep$id, list(pep$"Normalisation group"), list),
                          c("Group", "IDs"))
   nrmDr <- paste0(wd, "/Workflow control/Peptides/Intensities")
@@ -126,8 +126,10 @@ if (lNorm) {
       theme(strip.text.y = element_text(angle = 0)) +
       coord_fixed(0.5)
     poplot(plot, 12L, 22L)
-    ggsave(paste0(nrmDr, "/", ttl, ".jpeg"), plot, dpi = 150L, height = 10L, units = "in")
-    ggsave(paste0(nrmDr, "/", ttl, ".pdf"), plot, dpi = 150L, height = 10L, units = "in")
+    suppressWarnings({
+      ggsave(paste0(nrmDr, "/", ttl, ".jpeg"), plot, dpi = 150L, height = 8L, units = "in")
+      ggsave(paste0(nrmDr, "/", ttl, ".pdf"), plot, dpi = 150L, height = 8L, units = "in")
+    })
     #
     finNorm <- max(wNorm)
     newDat <- as.data.frame(pepNorm[[finNorm]]$Data)
@@ -145,6 +147,12 @@ if (lNorm) {
                          "",
                          nrmDr,
                          "PCA plot - final norm.")
+    if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
+    if (!exists("dimRedPlotLy")) { dimRedPlotLy <- list() }
+    if (!"peptides" %in% names(dimRedPlotLy)) { dimRedPlotLy$peptides <- list() }
+    dimRedPlotLy$peptides$"Samples PCA_norm" <- tst$PlotLy[[aggr]]
+    saveFun(dimRedPlotLy, file = dimRed_fl)
+    #
     # De-log
     newDatLin <- newDat
     wHere <- which(RSA$values %in% colnames(newDatLin))
@@ -159,7 +167,6 @@ if (lNorm) {
     # Assign results to pep
     pep.ref["Normalisation"] <- paste0("norm. ", pep.ref["Original"])
     pep[, paste0(pep.ref["Normalisation"], RSA$values)] <- newDatLin[, RSA$values]
-    saveFun(pepNorm, paste0(nrmDr, "/pep_intens_norm.RDS"))
     #
     # MatMet
     TxtSteps <- unlist(lapply(pepNorm[wNorm], \(x) { x$Text }))
@@ -173,5 +180,8 @@ if (lNorm) {
     }
     TxtSteps <- paste0(paste(TxtSteps[1L:(l-1L)], collapse = ", "), ", then ", TxtSteps[l])
     #
+    saveFun(pepNorm, paste0(nrmDr, "/pep_intens_norm.RDS"))
+    rm(pepNorm)
+    #loadFun(paste0(nrmDr, "/pep_intens_norm.RDS"))
   }
 }

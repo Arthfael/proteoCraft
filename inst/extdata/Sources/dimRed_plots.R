@@ -7,6 +7,15 @@ Exp.map$RSA_cleaned <- cleanNms(Exp.map$Ref.Sample.Aggregate)
 # ------------
 # Note on missing values: currently we do not impute but filter by number of valid values.
 # This may change.
+if (!exists("clustDat")) {
+  if (exists("clustDat_fl") && file.exists(clustDat_fl)) {
+    loadImg(clustDat_fl)
+  } else {
+    Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
+    #rstudioapi::documentOpen(Src)
+    source(Src)
+  }
+}
 dataType2 <- if (dataType == "modPeptides") { "peptides" } else { dataType }
 nm <- intersect(c("ComBat", "Original"),
                 names(clustDat[[dataType2]]))[1L]

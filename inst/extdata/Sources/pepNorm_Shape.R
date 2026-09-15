@@ -316,7 +316,7 @@ if (!inherits(tstNorm, "try-error")) {
                 c("rejec", "accep")[KeepShapeCorrRes+1L], "ted.\n")
   if (KeepShapeCorrRes) {
     txt2 <- paste0("corrected for intensity range variance biases using ",
-                   c(paste0(normMeth, " regression"), "VSN")[match(normMeth, c("LOESS", "VSN"))])
+                   paste0(normMeth, c(rep(" regression", 2L), ""))[match(normMeth, c("LOESS", "GAM", "VSN"))])
   }
   normSequence[[nrmStp]]$Decision <- Outcome <- KeepShapeCorrRes
   cat(msg)

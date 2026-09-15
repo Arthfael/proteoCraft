@@ -5,6 +5,7 @@ if ((!exists("clustFilt")) || (!inherits(clustFilt, "list"))) { clustFilt <- lis
 clustDat %<o% clustDat
 clustFilt %<o% clustFilt
 heatMaps_fl %<o% paste0(wd, "/Clustering/HeatMaps.RDS")
+clustDat_fl %<o% paste0(wd, "/Clustering/HeatMaps_data.RDS")
 #
 if (scrptType == "withReps") { clustHtMp <- TRUE }
 if (scrptType == "noReps") { clustHtMp <- length(Exp) > 1L }
@@ -57,7 +58,7 @@ if (dataType == "PG") {
 # Original data
 # -------------
 w <- which((apply(myData[, clustXprsKol, drop = FALSE], 1L, \(x) { sum(!is.na(x)) }) > 0L)
-           &((is.na(myData$`Potential contaminant`))|(myData$`Potential contaminant` != "+")))
+           & (is.na(myData$`Potential contaminant`) | (myData$`Potential contaminant` != "+")))
 myData <- set_colnames(myData[w, clustXprsKol, drop = FALSE], map$Samples)
 
 filt <- rownames(myData)[which(apply(myData[, map$Samples, drop = FALSE], 1L, \(x) { sum(is.finite(x)) }) > 0L)]
@@ -68,7 +69,7 @@ clustDat[[dataType]]$Original <- myData
 #
 # Now, if we are using limpa to quantify, and dataType is "PG", we may want to filter out some values which are essentially worst estimates
 # (it's not imputation, but... it's not detection either!)
-if ((dataType == "PG")&&(quantAlgo == "limpa")) {
+if ((dataType == "PG") && (quantAlgo == "limpa")) {
   psmsCol <- gsub(topattern(rfRoot), "Evidences count - ", clustXprsKol)
   psmsFlt <- as.matrix(PG[match(rownames(myData), PG$Label), psmsCol])
   w <- which(psmsFlt == 0L, arr.ind = TRUE)
@@ -172,3 +173,5 @@ if (dataType == "PG") {
   VClusters %<o% list()
   HClusters %<o% list()
 }
+saveImg(clustDat, clustDat_fl)
+#loadImg(clustDat_fl)

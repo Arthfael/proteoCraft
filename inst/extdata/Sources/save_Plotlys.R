@@ -53,3 +53,4 @@ if (l) {
   setwd(wd)
   # - Done!
 }
+rm(myPlotLys)

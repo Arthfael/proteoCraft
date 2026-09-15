@@ -260,14 +260,15 @@ basic.heatmap <- function(matr,
     poplot(plot)
   }
   # Save
-  save <- unique(gsub("^jpg$", "jpeg", gsub("^\\.", "", tolower(save))))
-  if ((length(save) > 1)||(save != "false")) {
+  save <- unique(sub("^jpg$", "jpeg", sub("^\\.", "", tolower(as.character(save)))))
+  save <- setdiff(save, "false")
+  if (length(save)) {
     if (!dir.exists(folder)) { dir.create(folder, recursive = TRUE) }
     folder <- normalizePath(folder, winslash = "/")
     ttl <- title
-    if ((!missing(subtitle))&&(nchar(subtitle))) { ttl <- paste0(ttl, " - ", subtitle) }
+    if ((!missing(subtitle)) && nchar(subtitle)) { ttl <- paste0(ttl, " - ", subtitle) }
     ttl <- gsub("\n|/|:|\\*|\\?|<|>|\\|", "-", ttl)
-    if (identical(save, "true")) { save <- "jpeg" }
+    if (identical(save, "true")) { save <- "svg" }
     for (sv in save) {
       ttlSv <- paste0(ttl, ".", sv)
       fl <- paste0(folder, "/", ttlSv)

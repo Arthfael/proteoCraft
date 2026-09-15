@@ -118,11 +118,8 @@ if (Outcome) {
     }
     m4 <- mean(unlist(tmpDat2[wAG1, ]), na.rm = TRUE) # Posterior global scale
     tmpDat2 <- tmpDat2 + (m1 - m4) # -> Preserve global scale
-    txt2 <- if (normSequence[[nrmStp]]$Method == "Levenberg-Marquardt") {
-      paste0("normalized using the ", normSequence[[nrmStp]]$Method, " procedure")
-    } else {
-      paste0("normalized to the ", normSequence[[nrmStp]]$Method)
-    }
+    w <- (normSequence[[nrmStp]]$Method == "Levenberg-Marquardt") + 1L
+    txt2 <- paste("normalized using the", normSequence[[nrmStp]]$Method, c("method", "procedure")[w])
   }, silent = TRUE)
   Outcome <- !inherits(tstNorm, "try-error")
 }

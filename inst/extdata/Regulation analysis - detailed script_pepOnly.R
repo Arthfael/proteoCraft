@@ -312,7 +312,7 @@ ev <- ev[which(ev$Reverse == ""),]
 RemovZ1 <- FALSE
 w1 <- which(ev$Charge == 1L)
 wHt1 <- which(ev$Charge > 1L)
-if ((RemovZ1)&&(length(w1))) {
+if (RemovZ1 && length(w1)) {
   AmIBogus <- paste(unique(ev$"Modified sequence"[w1]), collapse = "\n")
   #cat(AmIBogus)
   cat("Removing the following presumably bogus identifications with Z=1:\n", AmIBogus, "\n")
@@ -569,7 +569,7 @@ Src <- paste0(libPath, "/extdata/Sources/pVal_check.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
-useSAM %<o% ((names(pvalue.col)[which(pvalue.use)] == "Student")&&(useSAM_thresh))
+useSAM %<o% ((names(pvalue.col)[which(pvalue.use)] == "Student") && useSAM_thresh)
 
 # Create list of control ratio values for the purpose of identifying vertical thresholds for plots:
 Src <- paste0(libPath, "/extdata/Sources/ratThresh.R")
@@ -594,7 +594,7 @@ filter_types[grep("^dat.+2$", filter_types, invert = TRUE)] <- substr(filter_typ
 filter_types[grep("^dat.+2$", filter_types)] <- "dat2"
 filter_types <- unique(c("con", filter_types))
 if ("ref" %in% filter_types) {
-  if ((RRG$aggregate != RG$aggregate)||(Nested)) {
+  if ((RRG$aggregate != RG$aggregate) || Nested) {
     warning("Grouping filter by reference is not feasible if replicates are paired!")
     filter_types <- filter_types[which(filter_types != "ref")]
   } else {
@@ -605,7 +605,7 @@ if ("ref" %in% filter_types) {
   }
 }
 F_Root %<o% "mod. F-test -log10(Pvalue)"
-GO.enrich.MultiRefs %<o% (("GO.enrichment.Ref.Aggr" %in% colnames(Param))&&(!Param$GO.enrichment.Ref.Aggr %in% c("", "NA", NA)))
+GO.enrich.MultiRefs %<o% (("GO.enrichment.Ref.Aggr" %in% colnames(Param)) && (!Param$GO.enrichment.Ref.Aggr %in% c("", "NA", NA)))
 F.test %<o% Param$F.test
 
 if (F.test) {
