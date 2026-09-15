@@ -1814,12 +1814,6 @@ if (runWGCNA) {
   source(Src)
 }
 
-# Backup data/update cluster
-stopClust <- TRUE
-#rstudioapi::documentOpen(bckpSrc)
-source(bckpSrc)
-#loadFun(BckUpFl)
-
 #### Code chunk - Dimensionality reduction plots
 dataType <- "PG"
 dmrdSrc <- paste0(libPath, "/extdata/Sources/dimRed_plots.R")
@@ -1950,6 +1944,12 @@ if (exists("Tim")) {
 rm(list = ls()[which(!ls() %in% .obj)])
 invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 Script <- readr::read_lines(ScriptPath)
+
+# Backup data/update cluster
+stopClust <- TRUE
+#rstudioapi::documentOpen(bckpSrc)
+source(bckpSrc)
+#loadFun(BckUpFl)
 
 #### Code chunk - Sub-Cellular localisation analysis
 # Includes:
