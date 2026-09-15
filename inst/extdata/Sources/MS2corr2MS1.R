@@ -127,23 +127,20 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
                                        size = 0.01, alpha = 0.1, shape = 16L) + coord_fixed() +
         theme_bw() + ggtitle(ttl, subtitle = grp) + facet_wrap(~Sample)
       #poplot(plot)
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150L, width = scl, height = scl, units = "in")
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L, width = scl, height = scl, units = "in")
+      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L, width = scl, height = scl, units = "in")
       # ttl <- paste0("Group ", grpMtch, " - Original MS1 vs MS2-corrected MS1 (Nb. of fragments)")
       # plot <- ggplot(tst) + geom_point(aes(x = log10(OrigVal), y = log10(CorrVal), colour = N_of_fragments),
       #                                  size = 0.01, alpha = 0.1, shape = 16) + coord_fixed() +
       #   theme_bw() + ggtitle(ttl, subtitle = grp) + facet_grid(N_of_fragments~Sample)
       # poplot(plot)
-      # ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300)
-      # ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300)
+      # ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L)
       ttl <- paste0("Group ", grpMtch, " - Original MS1 vs final corrected MS1 (PEP)")
       plot <- ggplot(tst) +
         geom_scattermore(aes(x = log10(OrigVal), y = log10(CorrVal2), colour = -log10(PEP)),
                          size = 0.01, alpha = 0.1, shape = 16L) + coord_fixed() +
         theme_bw() + ggtitle(ttl, subtitle = grp) + facet_wrap(~Sample)
       #poplot(plot)
-      ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150L, width = scl, height = scl, units = "in")
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L, width = scl, height = scl, units = "in")
+      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L, width = scl, height = scl, units = "in")
       if (chckMS2Corr) {
         tst0 <- data.table(Samples_group = tst$Samples_group, Sample = tst$Sample_name,
                            ModSeq = tst$ModSeq, Charge = tst$Z,

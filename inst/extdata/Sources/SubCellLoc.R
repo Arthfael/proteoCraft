@@ -52,7 +52,7 @@ Example: \"GO:0031012;2\"
     CompGOTerms2$Offspring <- lapply(CompGOTerms2$Offspring, \(x) {
       x[which(!x %in% c(CompGOTerms2$Term, allOffspr$Group.1[which(allOffspr$x > 1L)]))]
     })
-    CompGOTerms2$Name <- gsub(" \\[GO:[0-9]{7}\\]$", "", GO_terms$Term[match(CompGOTerms2$Term, GO_terms$ID)])
+    CompGOTerms2$Name <- sub(" *\\[GO:[0-9]{7}\\]$", "", GO_terms$Term[match(CompGOTerms2$Term, GO_terms$ID)])
     CompGOTerms2$All <- apply(CompGOTerms2[, c("Term", "Offspring")], 1L, \(x) { unique(unlist(x)) })
     tst <- setNames(lapply(CompGOTerms2$All, \(x) { grep(paste(x, collapse = "|"), PG$"GO-ID") }),
                     CompGOTerms2$Name)
@@ -134,10 +134,10 @@ Example: \"GO:0031012;2\"
             ttl <- paste0("Markers hier. clust. - ", grp1)
             ttl2 <- paste0("Markers hierarchical clustering\n", grp1)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::pdf(paste0(dir, "/", ttl, ".pdf"), width = 10L, height = 10L); par(cex.main = 1L)
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
             mrkHClust(MSnData, main = ttl2)
             dev.off()
-            #system(paste0("open \"", dir, "/", ttl, ".pdf", "\""))
+            #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             #
             # Average markers class profile plots
             hc <- mrkHClust(MSnData, plot = FALSE)
@@ -148,10 +148,10 @@ Example: \"GO:0031012;2\"
             fmat <- mrkConsProfiles(MSnData)
             ttl <- paste0("Marker classes av. profiles - ", grp1)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::pdf(paste0(dir, "/", ttl, ".pdf"), width = 10L, height = 10L); par(cex.main = 1L)
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
             plotConsProfiles(fmat, order = m_order)
             dev.off()
-            #system(paste0("open \"", dir, "/", ttl, ".pdf", "\""))
+            #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             #
             # Dimensionality reduction
             pRolocVisMeth2 <- pRolocVisMeth
@@ -159,7 +159,7 @@ Example: \"GO:0031012;2\"
             ttl <- paste0(pRolocVisMeth, " - ", grp1)
             ttl2 <- gsub(" - ", "\n", ttl)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::pdf(paste0(dir, "/", ttl, ".pdf"), width = 10L, height = 10L); par(cex.main = 1L)
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
             plot2D(MSnData, fcol = "markers", main = ttl2, method = pRolocVisMeth2)
             addLegend(MSnData, fcol = "markers", cex = 0.7, where = "bottomright", ncol = 2L)
             if (plotPLmtchs) {
@@ -169,7 +169,7 @@ Example: \"GO:0031012;2\"
                      pch = 1)
             }
             dev.off()
-            #system(paste0("open \"", dir, "/", ttl, ".pdf", "\""))
+            #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             #plot3D(MSnData, fcol = "markers", main = ttl2) # Much worse - but also much older - than plotly
             #
             #pRolocVis(MSnData) # Not used: buggy
@@ -179,17 +179,17 @@ Example: \"GO:0031012;2\"
             ttl <- paste0("Subcell. res. heatmap - ", grp1)
             ttl2 <- paste0("Sub-cellular resolution heatmap\n", grp1)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::pdf(paste0(dir, "/", ttl, ".pdf"), width = 10L, height = 10L); par(cex.main = 1L)
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
             levelPlot(hlq, main = ttl2)
             dev.off()
-            #system(paste0("open \"", dir, "/", ttl, ".pdf", "\""))
+            #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             ttl <- paste0("Subcell. res. boxplot - ", grp1)
             ttl2 <- paste0("Sub-cellular resolution boxplot\n", grp1)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::pdf(paste0(dir, "/", ttl, ".pdf"), width = 10L, height = 10L); par(cex.main = 1L)
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
             plot(hlq, main = ttl2)
             dev.off()
-            #system(paste0("open \"", dir, "/", ttl, ".pdf", "\""))
+            #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             #
             # Prediction of compartment assignment
             ## ... Unsupervised (kept as an example here, but doesn't look very useful)
@@ -217,17 +217,17 @@ Example: \"GO:0031012;2\"
             ttl <- paste0("SVM opt. boxplot - ", grp1)
             ttl2 <- paste0("SVM optimisation boxplot\n", grp1)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::pdf(paste0(dir, "/", ttl, ".pdf"), width = 10L, height = 10L); par(cex.main = 1L)
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
             plot(params, main = ttl2)
             dev.off()
-            #system(paste0("open \"", dir, "/", ttl, ".pdf", "\""))
+            #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             ttl <- paste0("SVM opt. heatmap - ", grp1)
             ttl2 <- paste0("SVM optimisation heatmap\n", grp1)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::pdf(paste0(dir, "/", ttl, ".pdf"), width = 10L, height = 10L); par(cex.main = 1L)
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
             levelPlot(params)
             dev.off()
-            #system(paste0("open \"", dir, "/", ttl, ".pdf", "\""))
+            #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             #f1Count(params)
             params2 <- getParams(params)
             MSnData <- svmClassification(MSnData, params,
@@ -243,7 +243,7 @@ Example: \"GO:0031012;2\"
             ttl <- paste0(pRolocVisMeth, " with predictions - ", grp1)
             ttl2 <- gsub(" - ", "\n", ttl)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::pdf(paste0(dir, "/", ttl, ".pdf"), width = 10L, height = 10L); par(cex.main = 1L)
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
             plot2D(MSnData, fcol = "markers", main = ttl2, method = pRolocVisMeth2)
             addLegend(MSnData, fcol = "markers", cex = 0.7, where = "bottomright", ncol = 2L)
             if (plotPLmtchs) {
@@ -253,7 +253,7 @@ Example: \"GO:0031012;2\"
                      pch = 1)
               dev.off()
             }
-            #system(paste0("open \"", dir, "/", ttl, ".pdf", "\""))
+            #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             lokol <- paste0("Localisation - ", grp)
             #PG[[lokol]] <<- ""
             w <- which(p2 != "unknown")
@@ -283,19 +283,7 @@ Example: \"GO:0031012;2\"
         pRolocData[[grp]] <- tmpClass[[grp]]$MSnData
         SVMparams[[grp]] <- tmpClass[[grp]]$SVMparams
       }
-      if (length(ttls)) {
-        SilentPDF2JPEG <- \(ttl) {
-          suppressMessages(
-            suppressWarnings(
-              pdf_convert(paste0(ttl, ".pdf"), "jpeg", filenames = paste0(ttl, ".jpeg"), dpi = 600L)
-            )
-          )
-        }
-        clusterExport(parClust, list("dir", "SilentPDF2JPEG", "pdf_convert"), envir = environment())
-        parSapply(parClust, ttls, \(ttl) { try(SilentPDF2JPEG(paste0(dir, "/", ttl)), silent = TRUE) })
-      }
-      w <- which(!PG$Label %in% names(SubCellMark2))
-      #View(PG[w, grep("^Localisation - ", colnames(PG), value = TRUE)])
+      #w <- which(!PG$Label %in% names(SubCellMark2)); View(PG[w, grep("^Localisation - ", colnames(PG), value = TRUE)])
     }
   }
   #
@@ -393,7 +381,7 @@ Example: \"GO:0031012;2\"
       test <- PG[, g]
       colnames(test) <- gsub(topattern(SSD.Root, start = FALSE), "", colnames(test))
       w <- grep("^Mean ", colnames(test))
-      colnames(test)[w] <- paste0(gsub("^Mean ", "", colnames(test)[w]), "___Mean")
+      colnames(test)[w] <- paste0(sub("^Mean ", "", colnames(test)[w]), "___Mean")
       test <- test[which(apply(test, 1L, \(x) { sum(is.finite(x)) }) > 0L),]
       test <- suppressMessages(dfMelt(test))
       test$variable <- as.character(test$variable)
@@ -439,8 +427,7 @@ Example: \"GO:0031012;2\"
       }
       poplot(plot, 12L, 22L)
       suppressMessages({
-        ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
-        ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
+        ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
       })
       # Statistical test
       svDialogs::dlg_message("I'm sure it would be beneficial to implement a limma test here: do it!", "ok")
@@ -457,7 +444,7 @@ Example: \"GO:0031012;2\"
                     returns = c(TRUE, TRUE, FALSE),
                     method = "BH",
                     inputType = "log")
-        SSDs[[grp]][, gsub("^Significant-", "Signif. SSDs-", colnames(temp$`Significance vector`))] <- temp$`Significance vector`
+        SSDs[[grp]][, sub("^Significant-", "Signif. SSDs-", colnames(temp$`Significance vector`))] <- temp$`Significance vector`
         SSD.FDR.thresh <- c(SSD.FDR.thresh, temp$Thresholds)
         PG[, colnames(SSDs[[grp]])] <- NA_real_
         PG[wNC, colnames(SSDs[[grp]])] <- SSDs[[grp]]
@@ -497,7 +484,7 @@ Example: \"GO:0031012;2\"
         source(Src)
         #
         g <- grep("Regulated - ", colnames(tempVP3$Protein_groups_file), value = TRUE)
-        PG[, gsub("^Regulated - ", "Re-localized - ", g)] <- tempVP3$Protein_groups_file[,g]
+        PG[, sub("^Regulated - ", "Re-localized - ", g)] <- tempVP3$Protein_groups_file[,g]
         volcano.plots$Localisation_Unlabelled <- tempVP3$Plots$Unlabelled
         volcano.plots$Localisation_Labelled <- tempVP3$Plots$Labelled
         n2 <- names(volcano.plots$Localisation_Labelled)
@@ -514,7 +501,7 @@ Example: \"GO:0031012;2\"
             if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
             dirlist <- union(dirlist, dir)
             plotNorm <- FALSE
-            grp <- gsub("^Re-localized - ", "", gi)
+            grp <- sub("^Re-localized - ", "", gi)
             EM1 <- Exp.map[which(Exp.map[[SubCellFracAggr2$column]] == grp),]
             EM1$Replicate <- as.numeric(EM1$Replicate)
             EM1 <- EM1[order(EM1$Replicate, EM1$Compartment),]
@@ -549,7 +536,7 @@ Example: \"GO:0031012;2\"
               pepPrfl <- pepPrfl[order(Match),]
               pepPrfl[, kol] <- sweep(pepPrfl[, kol], 1L, rowMax(as.matrix(pepPrfl[, kol])), "/")
               mSeq <- unique(pepPrfl$"Modified sequence") 
-              colnames(pepPrfl) <- gsub(topattern(PepRoot), "", colnames(pepPrfl))
+              colnames(pepPrfl) <- sub(topattern(PepRoot), "", colnames(pepPrfl))
               pepPrfl$Sequence <- NULL
               pepPrfl <- reshape2::melt(pepPrfl, id.vars = "Modified sequence")
               colnames(pepPrfl) <- c("Entity", "Sample", "value")
@@ -612,19 +599,18 @@ Example: \"GO:0031012;2\"
                 xlim(-5-NCSc, max(temp$xend+1)) + ylim(0, max(temp$y+20))
               #poplot(plot, 12L, 22L)
               suppressMessages({
-                ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150L, width = 20L, height = 12L, units = "in")
-                ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L, width = 20L, height = 12L, units = "in")
+                ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L, width = 20L, height = 12L, units = "in")
               })
             }
           }
         }
-        g1 <- gsub("^Re-localized - ", "", g)
+        g1 <- sub("^Re-localized - ", "", g)
         up <- grep("^reloc\\., FDR = ", unique(unlist(PG[, g])), value = TRUE)
         Reg_filters$Localisation <- list()
         if ("con" %in% filter_types) {
           Reg_filters$Localisation$"By condition" <- list()
           rat <- paste0("Mean ", SSD.Root, g1)
-          for (i in seq_along(g)) { #i <- 1
+          for (i in seq_along(g)) { #i <- 1L
             Reg_filters$Localisation$"By condition"[[g1[i]]] <- list(Columns = g[i],
                                                                      Filter_up = sort(which(PG[[g[i]]] %in% up)),
                                                                      Filter_down = c(),

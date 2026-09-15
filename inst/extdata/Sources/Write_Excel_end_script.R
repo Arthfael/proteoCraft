@@ -15,22 +15,24 @@ WorkBook <- wb_set_row_heights(WorkBook, sheetnm, 1L, 15L)
 colWdths <- rep(8.43, 1000L) # Should be enough, what say you?
 colWdths[1L] <- 5L
 colWdths[2L] <- tmp
-fls <- c(list.files(paste0(wd, "/Summary plots"), ".jpeg", full.names = TRUE, recursive = TRUE),
-         list.files(paste0(wd, "/Workflow control"), ".jpeg", full.names = TRUE, recursive = TRUE))
-fls <- fls[which(file.exists(fls))]
+fls <- c(list.files(paste0(wd, "/Summary plots"), ".svg", full.names = TRUE, recursive = TRUE),
+         list.files(paste0(wd, "/Workflow control"), ".svg", full.names = TRUE, recursive = TRUE))
 nImgs <- length(fls)
 o <- 24L
 if (nImgs) {
-  flsTbl <- data.frame(File = fls,
+  fls2 <- sub("\\.svg$", ".png", fls)
+  lapply(1L:nImgs, \(i) { rsvg::rsvg_png(fls[i], file = fls2[i]) })
+  flsTbl <- data.frame(File = fls2,
                        x = ceiling(1L:nImgs/2),
                        y = (((1L:nImgs)+1L) %% 2L) + 1L,
                        Width = 0L,
                        Height = 0L)
-  flsTblList <- sapply(1:nImgs, list)
+  flsTblList <- sapply(1L:nImgs, list)
   for (i in 1L:nImgs) {
-    flsTblList[[i]] <- readJPEG(flsTbl$File[i])
+    flsTblList[[i]] <- png::readPNG(flsTbl$File[i])
     flsTbl[i, c("Height", "Width")] <- dim(flsTblList[[i]])[1L:2L]
   }
+  #View(flsTbl[, c("Height", "Width")])
   # We want a 3000*3000 image to fit into a rough square of 20 rows and 6 columns
   # A row should be 20 pixels high
   # A column should be 64 pixels wide
@@ -43,7 +45,7 @@ if (nImgs) {
     w <- which((flsTbl$x < flsTbl$x[i])&(flsTbl$y == flsTbl$y[i]))
     if (length(w)) {
       res <- (sum(flsTbl$Width_Xl[w]+1L)*8.43+8.43)*1.5
-      res <- which(cumsum(colWdths[2:length(colWdths)]) > res)[1L]
+      res <- which(cumsum(colWdths[2L:length(colWdths)]) > res)[1L]
     } else { res <- 2L }
     return(res)
   }, 1)
@@ -169,4 +171,4 @@ zip(zipfile = repFl,
 setwd(wd)
 xl_open(repFl)
 cat("        Done!\n")
-shell(paste0("RMDIR /S /Q \"", dr, "\""), mustWork = FALSE)
+# shell(paste0("RMDIR /S /Q \"", dr, "\""), mustWork = FALSE)

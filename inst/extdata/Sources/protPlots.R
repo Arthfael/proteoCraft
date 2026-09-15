@@ -197,17 +197,17 @@ if (goAhead) {
         ttl2a <- paste0("Coverage - ", nm, " - ", exp_, ", -log10(PEP)")
         dr1 <- paste0(wd, "/Protein plots/", nm2, "/Coverage/Intensity")
         RES$Coverage$logInt[[exp]] <- Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE, scale = 100L,
-                                               title = ttl1a, save = c("jpeg", "pdf", "html"),
+                                               title = ttl1a, save = c("svg", "html"),
                                                save.path = paste0(dr1, "/", sub("^Coverage - ", "Cov. ", ttl1a)),
                                                intensities = tmp$`log10(Intensity)`,
                                                maxInt = mxInt)
         Coverage(P, tmp$"Modified sequence", Mode = "Heat", display = FALSE, scale = 100L,
-                 title = ttl1b, save = c("jpeg", "pdf"),
+                 title = ttl1b, save = "svg",
                  save.path = paste0(dr1, "/", sub("^Coverage - ", "Cov. ", ttl1b)),
                  intensities = tmp$`log10(Intensity)`)
         dr2 <- paste0(wd, "/Protein plots/", nm2, "/Coverage/PEP")
         RES$Coverage$PEP[[exp]] <- Coverage(P, tmp$"Modified sequence", Mode = "Align2", display = FALSE, scale = 100L,
-                                            title = ttl2a, save = c("jpeg", "pdf", "html"),
+                                            title = ttl2a, save = c("svg", "html"),
                                             save.path = paste0(dr2, "/", sub("^Coverage - ", "Cov. ", ttl2a)),
                                             intensities = -log10(tmp$PEP),
                                             maxInt = mxPEP, colscale = 8L)
@@ -324,8 +324,7 @@ if (goAhead) {
           #poplot(plot)
           ttl_ <- gsub(":|\\*|\\?|<|>|\\||/", "-", ttl)
           suppressMessages({
-            ggsave(paste0(drs[3L], "/", ttl_, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-            ggsave(paste0(drs[3L], "/", ttl_, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+            ggsave(paste0(drs[3L], "/", ttl_, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
           })
           temp2$A <- paste0("A = ", gsub(" \\(A\\)$", "", temp2$A))
           temp2$B <- paste0("B = ", gsub(" \\(B\\)$", "", temp2$B))
@@ -342,7 +341,7 @@ if (goAhead) {
           mwScl <- mwScl[which(mwScl <= max(tst$MW))]
           mwScl <- data.frame(Da = mwScl)
           mwScl$AA <- 0L
-          mwScl$AA[2L:nrow(mwScl)] <- sapply(mwScl$Da[2L:nrow(mwScl)], \(x) {
+          mwScl$AA[2L:nrow(mwScl)] <- vapply(mwScl$Da[2L:nrow(mwScl)], \(x) {
             #x <- mwScl$Da[2L:nrow(mwScl)][1L]
             #x <- mwScl$Da[2L:nrow(mwScl)][2L]
             #x <- mwScl$Da[2L:nrow(mwScl)][3L]
@@ -356,7 +355,7 @@ if (goAhead) {
             x2 <- tst$MW[w2]
             aa <- (x-x1)*(w2-w1)/(x2-x1) + w1
             return(aa)
-          })
+          }, 1)
           mwScl <- mwScl[which(!is.na(mwScl$AA)),]
           nr <- nrow(mwScl)
           if (nr) {
@@ -478,8 +477,7 @@ if (goAhead) {
             }
           }
           suppressMessages({
-            ggsave(paste0(drs[4L], "/", ttl_, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-            ggsave(paste0(drs[4L], "/", ttl_, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+            ggsave(paste0(drs[4L], "/", ttl_, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
           })
           setwd(wd)
           RES$Ratio_plot <- plotLY

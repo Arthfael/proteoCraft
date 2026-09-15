@@ -822,11 +822,9 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
                         padding = 5L)
     nm <- gsub("\n", " - ", nm)
     suppressMessages({
-      ggsave(paste0(modDirs[1L], "/", nm, ".jpeg"), htmp, width = 20L, height = 20L, units = "in", dpi = 600L)
-      ggsave(paste0(modDirs[1L], "/", nm, ".pdf"), htmp, width = 20L, height = 20L, units = "in", dpi = 600L)
+      ggsave(paste0(modDirs[1L], "/", nm, ".svg"), htmp, width = 20L, height = 20L, units = "in", dpi = 600L)
     })
-    #system(paste0("open \"", modDirs[1L], "/", nm, ".jpeg", "\""))
-    #system(paste0("open \"", modDirs[1L], "/", nm, ".pdf", "\""))
+    #system(paste0("open \"", modDirs[1L], "/", nm, ".svg", "\""))
     #
     # Gene Ontology terms enrichment analysis
     if (enrichGO) {
@@ -1110,7 +1108,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
                     if (max(temp2ul[which(is.finite(temp2ul))])) {
                       temp2 <- as.matrix(temp2)
                       basic.heatmap(temp2, "N. of co-regulated GO terms", paste0(tstrt, "\n(", tolower(bee), ")"),
-                                    save = c("pdf", "jpeg"), folder = myDir)
+                                    save = "svg", folder = myDir)
                     } else { warning(paste0(tstrt, " co-regulated GO terms heatmap: nothing to plot")) }
                   } else { warning(paste0(tstrt, " performed for only one condition, skipping.")) }
                 }

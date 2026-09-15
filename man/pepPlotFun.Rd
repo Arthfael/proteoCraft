@@ -23,7 +23,7 @@ pepPlotFun(
 
 \item{dstDir}{Destination directory.}
 
-\item{save}{Logical, should we save the plot (default = TRUE).}
+\item{save}{Logical (default = TRUE), should we save the plot. Currently, the format is svg.}
 
 \item{xpMap}{Experiment map, default = Exp.map}
 

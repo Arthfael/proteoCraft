@@ -12,7 +12,7 @@
 #' @param colours_invert Default = FALSE. If TRUE, the viridis scale of choice is reverted.
 #' @param na.colour Optional: What colour should NA values be displayed as?
 #' @param print TRUE by default. But can be set to FALSE because sometimes you just want to save a plot for later without printing it.
-#' @param save FALSE by default. Set to format you want pictures saved as ("jpeg", "png", "pdf"...)
+#' @param save FALSE by default. Set to format you want pictures saved as ("jpeg", "png", "pdf", "svg"...)
 #' @param folder Where to save the graph. Default = getwd()
 #' @param return FALSE by default. Set to TRUE to return the created plot.
 #' @param print_values If TRUE (default), values are printed on the heatmap.
@@ -263,6 +263,7 @@ basic.heatmap <- function(matr,
   save <- unique(sub("^jpg$", "jpeg", sub("^\\.", "", tolower(as.character(save)))))
   save <- setdiff(save, "false")
   if (length(save)) {
+    if ("svg" %in% save) { require(svglite) }
     if (!dir.exists(folder)) { dir.create(folder, recursive = TRUE) }
     folder <- normalizePath(folder, winslash = "/")
     ttl <- title

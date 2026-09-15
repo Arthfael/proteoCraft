@@ -362,8 +362,7 @@ if (Param$Norma.Ev.Intens) {
       coord_fixed() + theme_bw() + ylab(paste0(IsobarLab, " channel")) + ggtitle(ttl)
     if (length(Iso) > 1L) { plot <- plot + facet_wrap(~Iso) }
     print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
   } else {
     w <- (("Adv.Norma.Ev.Intens" %in% colnames(Param))&(Param$Adv.Norma.Ev.Intens != FALSE))+1L
     l <- length(DatAnalysisTxt)
@@ -417,8 +416,7 @@ if (Param$Norma.Ev.Intens) {
       facet_wrap(~Norm, scales = "free") + theme_bw() + ggtitle(ttl) +
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
     print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
   }
 }
 # If isobaric, re-scale reporter intensities to total evidence intensities:
@@ -462,8 +460,7 @@ if (LabelType == "Isobaric") {
     facet_grid(MQ.Exp ~ Norm, scales = "free", space = "free") + theme_bw() + ggtitle(ttl) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
   print(plot) # This type of QC plot does not need to pop up, the side panel is fine
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+  ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
   #
   #Isobaric data: valid values
   kol <- grep(topattern(ev.ref["Original"]), colnames(ev), value = TRUE)

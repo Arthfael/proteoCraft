@@ -149,8 +149,7 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
                                  size = 2.5, show.legend = FALSE)
       #poplot(plot)
       if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-      ggplot2::ggsave(paste0(dir, "/", nm1, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-      ggplot2::ggsave(paste0(dir, "/", nm1, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggplot2::ggsave(paste0(dir, "/", nm1, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
       #
       if ("PC3" %in% colnames(scores1)) {
         if (make_Avg) {

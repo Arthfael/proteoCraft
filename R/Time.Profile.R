@@ -78,14 +78,9 @@ Time.Profile <- function(df,
       }
       poplot(plot)
       if (as.character(save) != "FALSE") {
-        save <- gsub("^jpg$", "jpeg", gsub("^\\.", "", save))
-        if (save == "pdf") {
-          ggplot2::ggsave(paste0("Time profile_", df[i, prot.col], ".pdf"), plot)
-        }
-        if (save %in% c("jpeg", "tiff", "png", "bmp")) {
-          ggplot2::ggsave(paste0("Time profile_", df[i, prot.col], ".", save), plot,
-                          dpi = 300L, width = 10L, height = 10L, units = "in")
-        }
+        save <- sub("^jpg$", "jpeg", sub("^\\.", "", save))
+        ggplot2::ggsave(paste0("Time profile_", df[i, prot.col], ".", save), plot,
+                        dpi = 300L, width = 10L, height = 10L, units = "in")
       }
     }
   } else {
@@ -146,14 +141,9 @@ Time.Profile <- function(df,
     }
     poplot(plot)
     if (as.character(save) != "FALSE") {
-      save <- gsub("^jpg$", "jpeg", gsub("^\\.", "", save))
-      if (save == "pdf") {
-        ggplot2::ggsave(paste0("Global time profile.pdf"), plot)
-      }
-      if (save %in% c("jpeg", "tiff", "png", "bmp")) {
-        ggplot2::ggsave(paste0("Global time profile.", save), plot,
-                        dpi = 300L, width = 10L, height = 10L, units = "in")
-      }
+      save <- sub("^jpg$", "jpeg", sub("^\\.", "", save))
+      ggplot2::ggsave(paste0("Global time profile.", save), plot,
+                      dpi = 300L, width = 10L, height = 10L, units = "in")
     }
   }
 }

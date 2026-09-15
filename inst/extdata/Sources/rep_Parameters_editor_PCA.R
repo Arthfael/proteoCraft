@@ -144,8 +144,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
                         size = 2.5, show.legend = FALSE)
       #poplot(plot)
       suppressMessages({
-        ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 20L, height = 20L, units = "in")
-        ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 20L, height = 20L, units = "in")
+        ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 20L, height = 20L, units = "in")
       })
       Symb <- "circle"
       # Custom color scale

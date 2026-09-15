@@ -161,8 +161,7 @@ plot <- ggplot(scores1, aes(x = PC1, y = PC2, colour = .data[[outlierAnnot_color
   geom_text_repel(aes(label = Label), size = 3, show.legend = FALSE)
 #poplot(plot)
 suppressMessages({
-  ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-  ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+  ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
 })
 nReps <- max(as.numeric(Rep))
 Symb <- rep(c("circle", "diamond", "square", "cross", "x"), nReps)[seq_len(nReps)]             

@@ -252,8 +252,7 @@ if (clustHtMp) {
               theme_bw() + ggtitle(vnm)
             #poplot(vplot)
             suppressMessages({
-              ggsave(paste0(clustDir, "/", vnm, normTypeInsrt, ".jpeg"), vplot, dpi = 150L)
-              ggsave(paste0(clustDir, "/", vnm, normTypeInsrt, ".pdf"), vplot, dpi = 150L)
+              ggsave(paste0(clustDir, "/", vnm, normTypeInsrt, ".svg"), vplot, dpi = 150L)
             })
           }
           NVClust[[clustNm]] <- max(min(c(floor(ncol(temp2)/2), c(NGr, 2L))))
@@ -331,8 +330,7 @@ if (clustHtMp) {
               theme(legend.position = "none") + ylab("Normalised total Within-clusters vs Total Sum of Squares")
             #poplot(hplot)
             suppressMessages({
-              ggsave(paste0(clustDir, "/", hnm, normTypeInsrt, ".jpeg"), hplot, dpi = 150L)
-              ggsave(paste0(clustDir, "/", hnm, normTypeInsrt, ".pdf"), hplot, dpi = 150L)
+              ggsave(paste0(clustDir, "/", hnm, normTypeInsrt, ".svg"), hplot, dpi = 150L)
             })
           }
         }
@@ -640,13 +638,11 @@ if (clustHtMp) {
         #
         # Export evaluated version for later parallel saving
         evalPlot <- plotEval(heatmap.plot)
-        heatMaps[[paste0(i, " - ", normType, ".jpeg")]] <- list(Plot = evalPlot,
-                                                                Ttl = paste0(clustDir, "/", nm, normTypeInsrt, ".jpeg"),
-                                                                Width = 18L,
-                                                                Height = 9L,
-                                                                Units = "in")
-        heatMaps[[paste0(i, " - ", normType, ".pdf")]] <- list(Plot = evalPlot,
-                                                               Ttl = paste0(clustDir, "/", nm, normTypeInsrt, ".pdf"))                                            
+        heatMaps[[paste0(i, " - ", normType, ".svg")]] <- list(Plot = evalPlot,
+                                                               Ttl = paste0(clustDir, "/", nm, normTypeInsrt, ".svg"),
+                                                               Width = 18L,
+                                                               Height = 9L,
+                                                               Units = "in")
         #
         if (drawPlotly) {
           # Plotly version
@@ -831,12 +827,7 @@ if (clustHtMp) {
   #
   # Save ggplots
   invisible(parLapply(parClust, heatMaps, \(x) {
-    if (grepl("\\.pdf$", x$Ttl)) {
-      ggplot2::ggsave(x$Ttl, x$Plot)
-    }
-    if (grepl("\\.jpeg$", x$Ttl)) {
-      ggplot2::ggsave(x$Ttl, x$Plot, width = x$Width, height = x$Height, units = x$Units)
-    }
+    ggplot2::ggsave(x$Ttl, x$Plot, width = x$Width, height = x$Height, units = x$Units)
     return()
   }))
   #

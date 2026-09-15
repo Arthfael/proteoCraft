@@ -1140,7 +1140,7 @@ for (e in Exp) { #e <- Exp[1L]
                    title = paste0(nm, " coverage - ", e),
                    intensities = tmpSq$Intensity,
                    save.path = paste0(histDir, "/", nm, " - ", e),
-                   save = c("pdf", "jpeg"))
+                   save = "svg")
           fl <- paste0(histDir, "/", nm, " - ", e)
           if (file.exists(fl)) { unlink(fl) }
         } else { stop() }
@@ -1697,8 +1697,7 @@ for (pca_type in pca_types) { #pca_type <- pca_types[1L]
           # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
         } else { poplot(plot, width = 18L) }
         suppressWarnings({
-          ggsave(paste0(dstDir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-          ggsave(paste0(dstDir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+          ggsave(paste0(dstDir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         })
       } else { warning(paste0(pca_type, " PCA failed, investigate!")) }
     }
@@ -2182,8 +2181,7 @@ if (length(Exp) > 1L) {
         theme_bw() + ggtitle(vnm)
       #poplot(vplot)
       suppressWarnings({
-        ggsave(paste0(dir, "/", vnm, normTypeInsrt, ".jpeg"), vplot, dpi = 150L)
-        ggsave(paste0(dir, "/", vnm, normTypeInsrt, ".pdf"), vplot, dpi = 150L)
+        ggsave(paste0(dir, "/", vnm, normTypeInsrt, ".svg"), vplot, dpi = 150L)
       })
       NVClust <- max(c(NGr, 2))
       # 2/ At protein groups level
@@ -2242,8 +2240,7 @@ if (length(Exp) > 1L) {
         theme(legend.position = "none") + ylab("Normalised total Within-clusters vs Total Sum of Squares")
       #poplot(hplot)
       suppressWarnings({
-        ggsave(paste0(dir, "/", hnm, normTypeInsrt, ".jpeg"), hplot, dpi = 150L)
-        ggsave(paste0(dir, "/", hnm, normTypeInsrt, ".pdf"), hplot, dpi = 150L)
+        ggsave(paste0(dir, "/", hnm, normTypeInsrt, ".svg"), hplot, dpi = 150L)
       })
       # Apply cutoffs
       if (KlustMeth == 1L) {
@@ -2466,10 +2463,9 @@ if (length(Exp) > 1L) {
           geom_text(data = temp2c, aes(x = Xmin+0.5, label = label2),
                     y = -1, colour = "red", angle = -60, hjust = 0, cex = 2)
       }
-      #poplot(heatmap.plot, 12, 20)
+      #poplot(heatmap.plot, 12L, 20L)
       suppressWarnings({
-        ggsave(paste0(dir, "/", nm, ".jpeg"), heatmap.plot)
-        ggsave(paste0(dir, "/", nm, ".pdf"), heatmap.plot)
+        ggsave(paste0(dir, "/", nm, ".svg"), heatmap.plot)
       })
       #
       # Plotly version

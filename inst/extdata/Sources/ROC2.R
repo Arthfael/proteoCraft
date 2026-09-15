@@ -28,8 +28,7 @@ if (length(ROC_GOterms)) {
           theme_bw() + ggtitle(ttl)
         poplot(plot)
         suppressMessages({
-          ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 300L)
-          ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L)
+          ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L)
         })
       }
     }

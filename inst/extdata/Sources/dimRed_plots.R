@@ -108,8 +108,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       geom_text_repel(aes(label = Sample), size = 2.5, show.legend = FALSE)
     plot <- if (substr(form, 1L, 1L) == "~") { plot + facet_wrap(form) } else { plot + facet_grid(form) }
     suppressMessages({
-      ggsave(paste0(myLittleRed_dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-      ggsave(paste0(myLittleRed_dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggsave(paste0(myLittleRed_dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     })
     #
     scores$"Samples group" <- factor(scores$Group)
@@ -272,8 +271,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       guides(alpha = "none", size = "none", colour = guide_legend(title = gsub("/", "/\n", ClassNm)))
     #poplot(plot, 12L, 22L)
     suppressMessages({
-      ggsave(paste0(myLittleRed_dir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-      ggsave(paste0(myLittleRed_dir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggsave(paste0(myLittleRed_dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     })
     #
     # Plotly
@@ -402,8 +400,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         guides(alpha = "none", size = "none", colour = guide_legend(title = gsub("/", "/\n", ClassNm)))
       #poplot(plot, 12, 22)
       suppressMessages({
-        ggsave(paste0(myLittleRed_dir, "/", ttl2, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-        ggsave(paste0(myLittleRed_dir, "/", ttl2, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+        ggsave(paste0(myLittleRed_dir, "/", ttl2, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
       })
       #
       # Plotly
@@ -492,8 +489,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         guides(alpha = "none", size = "none", colour = guide_legend(title = gsub("/", "/\n", ClassNm)))
       #poplot(plot, 12L, 22L)
       suppressMessages({
-        ggsave(paste0(myLittleRed_dir, "/", ttl3, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-        ggsave(paste0(myLittleRed_dir, "/", ttl3, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+        ggsave(paste0(myLittleRed_dir, "/", ttl3, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
       })
       #
       # Plotly

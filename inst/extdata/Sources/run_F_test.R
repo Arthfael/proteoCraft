@@ -198,8 +198,7 @@ plot <- ggplot(tmp_) + geom_histogram(aes(x = `P-val`, fill = Contrast), bins = 
   theme(strip.text.y = element_text(angle = 0))
 poplot(plot, 12L, 22L)
 suppressWarnings({
-  ggsave(paste0(ohDeer, "/ANOVA P values histogram.jpeg"), plot, dpi = 150)
-  ggsave(paste0(ohDeer, "/ANOVA P values histogram.pdf"), plot, dpi = 150)
+  ggsave(paste0(ohDeer, "/ANOVA P values histogram.svg"), plot, dpi = 150L)
 })
 globalFDR <- TRUE
 if (globalFDR) {
@@ -419,8 +418,7 @@ if (F_Root %in% colnames(myData)) {
   #poplot(plot, 12L, 22L)
   ttla <- gsub(": ?", " - ", ttl)
   suppressMessages({
-    ggsave(paste0(ohDeer, "/", ttla, ".jpeg"), plot, dpi = 300L)
-    ggsave(paste0(ohDeer, "/", ttla, ".pdf"), plot, dpi = 300L)
+    ggsave(paste0(ohDeer, "/", ttla, ".svg"), plot, dpi = 300L)
   })
 }
 # Cleanup

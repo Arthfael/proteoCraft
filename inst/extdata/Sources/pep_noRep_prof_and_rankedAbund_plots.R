@@ -11,7 +11,7 @@ if (plotPepProf) {
   #
   pepQuantTypes %<o% "intensities"
   PltTst <- c("All", "List")[1L:(1L+("+" %in% pep$`In list`))]
-  plotTypes <- c("jpeg", "pdf", "html")
+  plotTypes <- c("svg", "html")
   l1 <- length(Exp)
   l2 <- length(pepQuantTypes)
   l3 <- length(PltTst)
@@ -181,15 +181,6 @@ if (plotPepProf) {
             plot.margin = margin(r = 100L))
     if (plotMode == "All") { plot <- plot + colScale + fillScale }
     if (plotMode == "List") { plot <- plot + colScale2 + fillScale2 }
-    if (fileType %in% c("jpeg", "pdf")) {
-      plot <- plot +
-        geom_text(data = temp[filt,], angle = 45, hjust = 0, cex = 3.5, show.legend = FALSE,
-                  aes(Peptide_ID, y, colour = .data[[catnm]], label = `Peptide ID`))
-      #poplot(plot, 12L, 22L)
-      suppressMessages({
-        ggsave(filename = flPath, plot, dpi = 600L, width = 30L, height = 10L, units = "in")
-      })
-    }
     if (fileType == "html") {
       plot_ly <- plotly::ggplotly(plot, tooltip = c("Peptide_ID", "text"))
       plot_ly <- plotly::plotly_build(plot_ly)
@@ -198,6 +189,14 @@ if (plotPepProf) {
       tst <- try(htmlwidgets::saveWidget(plotly::partial_bundle(plot_ly), flPath), silent = TRUE)
       if (inherits(tst, "try-error")) { tst <- try(htmlwidgets::saveWidget(plot_ly, flPath), silent = TRUE) }
       setwd(wd)
+    } else {
+      plot <- plot +
+        geom_text(data = temp[filt,], angle = 45, hjust = 0, cex = 3.5, show.legend = FALSE,
+                  aes(Peptide_ID, y, colour = .data[[catnm]], label = `Peptide ID`))
+      #poplot(plot, 12L, 22L)
+      suppressMessages({
+        ggsave(filename = flPath, plot, dpi = 600L, width = 30L, height = 10L, units = "in")
+      })
     }
   })
   unlink(paste0(wd, "/tmp_", Exp, ".RDS"))
@@ -258,11 +257,10 @@ if (plotPepProf) {
       wTxt <- which(temp$Sample == rev(levels(temp$Sample))[1L])
       frm <- as.formula(paste0("~`", catnm, "`"))
       flPath <- paste0(SubDir, "/", ttl, ".", fileType)
-      if (fileType %in% c("jpeg", "pdf")) {
-        dat <- temp
-      }
-      if (fileType == "html") {
-        dat <- temp[which((!is.na(temp$`In list`))&(temp$`In list` == "+")),]
+      dat <- if (fileType == "html") {
+        temp[which((!is.na(temp$`In list`))&(temp$`In list` == "+")),]
+      } else {
+        temp
       }
       plot <- ggplot(dat, aes(text1 = Peptide_ID, text2 = Value)) +
         geom_line(aes(x = Sample, y = Y, group = id, color = id), alpha = 0.1, show.legend = FALSE) +
@@ -278,15 +276,6 @@ if (plotPepProf) {
         scale_alpha_identity(guide = "none") +
         viridis::scale_color_viridis(option = "D")
       #poplot(plot, 12L, 22L)
-      if (fileType %in% c("jpeg", "pdf")) {
-        plot <- plot +
-          geom_text(data = dat[wTxt,], aes(label = `Peptide ID`, x = Sample, y = Y, alpha = Alpha, color = id),
-                    hjust = 0, cex = 2L)
-        #poplot(plot, 12L, 22L)
-        suppressMessages({
-          ggsave(filename = flPath, plot, dpi = 600L, width = 30L, height = 10L, units = "in")
-        })
-      }
       if (fileType == "html") {
         plot_ly <- plotly::ggplotly(plot, tooltip = c("Peptide_ID", "text")) # Super slowwwwww
         plot_ly <- plotly::plotly_build(plot_ly)
@@ -296,6 +285,14 @@ if (plotPepProf) {
         if (inherits(tst, "try-error")) { tst <- try(htmlwidgets::saveWidget(plot_ly, flPath), silent = TRUE) }
         #system(paste0("open \"", flPath, "\""))
         setwd(wd)
+      } else {
+        plot <- plot +
+          geom_text(data = dat[wTxt,], aes(label = `Peptide ID`, x = Sample, y = Y, alpha = Alpha, color = id),
+                    hjust = 0, cex = 2L)
+        #poplot(plot, 12L, 22L)
+        suppressMessages({
+          ggsave(filename = flPath, plot, dpi = 600L, width = 30L, height = 10L, units = "in")
+        })
       }
     })
   }

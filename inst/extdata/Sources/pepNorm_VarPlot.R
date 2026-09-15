@@ -30,7 +30,7 @@ temp2 <- data.frame("log10(Mean)" = log10(rowMeans(temp, na.rm = TRUE)),
 w <- which(!is.na(temp2$`Strongest in...`))
 temp2 <- temp2[w,]
 temp2$"Main charge" <- paste0("Z = ", tst2$x[match(pep$`Modified sequence`[w], tst2$Group.1)])
-temp2$"Main charge" <- factor(temp2$"Main charge", levels = paste0("Z = ", as.character(1:8)))
+temp2$"Main charge" <- factor(temp2$"Main charge", levels = paste0("Z = ", as.character(1L:8L)))
 dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 dirlist <- unique(c(dirlist, dir))
@@ -40,5 +40,4 @@ plot <- ggplot(temp2) +
   scale_colour_viridis_d(begin = 0.25) +
   facet_grid(`Strongest in...` ~ `Main charge`) + theme(strip.text.y.right = element_text(angle = 0))
 #poplot(plot, 12L, 22L)
-ggsave(paste0(dir, "/", ttl, " - ", rfnm, ".jpeg"), plot, width = 10L, height = 10L, units = "in", dpi = 300L)
-ggsave(paste0(dir, "/", ttl, " - ", rfnm, ".pdf"), plot, width = 10L, height = 10L, units = "in", dpi = 300L)
+ggsave(paste0(dir, "/", ttl, " - ", rfnm, ".svg"), plot, width = 10L, height = 10L, units = "in", dpi = 150L)

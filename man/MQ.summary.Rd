@@ -14,7 +14,7 @@ MQ.summary(
   raw.files,
   subfolder = "Summary plots",
   plot = TRUE,
-  save = c("jpeg", "pdf", "html"),
+  save = c("svg", "html"),
   sc = 60L,
   N.clust,
   N.reserved = 1L,
@@ -37,7 +37,7 @@ MQ.summary(
 
 \item{plot}{Should we create plot?}
 
-\item{save}{Set this to a vector of acceptable file extensions to save the graph to the corresponding file format, or to FALSE if you do not want to save it. Default = c("jpeg", "pdf", "html")}
+\item{save}{Set this to a vector of acceptable file extensions to save the graph to the corresponding file format, or to FALSE if you do not want to save it. Default = c("svg", "html")}
 
 \item{sc}{Scale, the max number of raw files to be plotted together in one plot. Default = 60.}
 

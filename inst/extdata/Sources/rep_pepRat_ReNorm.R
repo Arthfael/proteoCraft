@@ -142,10 +142,8 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #       if (length(unique(temp$Wrap)) > 1) { plot <- plot + facet_wrap(~Wrap) }
 #       print(plot) # This type of QC plot does not need to pop up, the side panel is fine
 #       suppressMessages({
-#         ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".jpeg"), plot,
-#                dpi = 300, width = 10, height = 10, units = "in")
-#         ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".pdf"), plot,
-#                dpi = 300, width = 10, height = 10, units = "in")
+#         ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".svg"), plot,
+#                dpi = 300L, width = 10L, height = 10L, units = "in")
 #       })
 #     } else { warning(paste0("Nothing to plot for level ", i)) }
 #   }
@@ -177,9 +175,7 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #       ggtitle(ttl)
 #     print(plot) # This type of QC plot does not need to pop up, the side panel is fine
 #     suppressMessages({
-#       ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".jpeg"), plot,
-#              dpi = 300L, width = 10L, height = 10L, units = "in")
-#       ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".pdf"), plot,
+#       ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".svg"), plot,
 #              dpi = 300L, width = 10L, height = 10L, units = "in")
 #     })
 #     l <- length(DatAnalysisTxt)

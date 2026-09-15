@@ -161,7 +161,7 @@ plotsList1 <- parLapply(parClust, 1L:nrow(Comb), \(i) { #i <- 1L
     ggsave(paste0(Img1, ".svg"), plot1, dpi = 150L, width = w1,# height = h1,
            units = "in")
   })
-  #system(paste0("open \"", Img1, ".jpeg\""))
+  #system(paste0("open \"", Img1, ".svg\""))
   lst <- list(Plot = ggplot2::ggplot_gtable(ggplot2::ggplot_build(plot1)), # to print these use print_gg()
               Plotly = slim_plotly(plot1ly),
               Title = ttl1)
@@ -271,15 +271,15 @@ plot2 <- ggplot2::ggplot_gtable(ggplot2::ggplot_build(plot2))
 plotsList2 <- list(list(Title = ttl2,
                         Plot = plot2,
                         Plotly = slim_plotly(plot2ly)))
-Imgs1 <- list.files(pvalDir, "^P-values scatter plot - .*\\.jpeg$", full.names = TRUE)
-Img2 <- gsub("(\\.jpeg)+$", ".jpeg", paste0(Img2, ".jpeg"))
+Imgs1 <- list.files(pvalDir, "^P-values scatter plot - .*\\.svg$", full.names = TRUE)
+Img2 <- sub("(\\.svg)+$", ".svg", paste0(Img2, ".svg"))
 Imgs1 <- Imgs1[which(Imgs1 != Img2)]
 IMGS <- c(Img2, Imgs1)
 plotsList <- append(plotsList2, plotsList1)
 Imgs1Nms <- gsub(" t-test|'s", "",
                  gsub("Moderated", "Mod.",
                       gsub("Permutations", "Perm.",
-                           gsub(".*/P-values scatter plot - |\\.jpeg", "", Imgs1))))
+                           gsub(".*/P-values scatter plot - |\\.svg", "", Imgs1))))
 names(plotsList) <- c("Histogram", Imgs1Nms)
 #
 # Which type of P-values do we want to use?
@@ -295,12 +295,17 @@ if (!sum(pval_Use)) { pval_Use["Moderated"] <- TRUE }
 if (!sum(pval_Use)) { pval_Use[1L] <- TRUE }
 #
 source(parSrc)
-IMGsDims <- as.data.frame(t(parSapply(parClust, IMGS, \(x) { #x <- IMGs[1L]
-  a <- jpeg::readJPEG(x)
-  setNames(dim(a)[1L:2L], c("height", "width"))
-})))
-IMGsDims$height <- round(screenRes$width*IMGsDims$height/max(IMGsDims$height)*0.3)
-IMGsDims$width <- round(screenRes$width*IMGsDims$width/max(IMGsDims$width)*0.3)
+# IMGsDims <- as.data.frame(t(parSapply(parClust, IMGS, \(x) { #x <- IMGs[1L] # From when the images were saved as jpeg... keep this for now
+#   a <- jpeg::readJPEG(x)
+#   setNames(dim(a)[1L:2L], c("height", "width"))
+# })))
+# IMGsDims <- as.data.frame(t(parSapply(parClust, IMGS, \(x) { #x <- IMGs[1L]
+#   a <- xml2::read_xml(x)
+#   v <- as.numeric(strsplit(xml2::xml_attr(a, "viewBox"), " ")[[1L]])
+#   setNames(v[3L:4L], c("width", "height"))
+# })))
+# IMGsDims$width <- round(screenRes$width*IMGsDims$width/max(IMGsDims$width)*0.3)
+# IMGsDims$height <- round(screenRes$width*IMGsDims$height/max(IMGsDims$height)*0.3)
 ui <- fluidPage(
   useShinyjs(),
   setBackgroundColor( # Doesn't work
@@ -457,7 +462,7 @@ if (dataType %in% c("modPeptides", "PG")) {
     facet_grid(Type~Contrast) +
     theme_bw()
   #poplot(plot, 12L, 22L)
-  ggsave(paste0(pvalDir, "/", ttl, ".jpeg"), plot, dpi = 100L)
+  ggsave(paste0(pvalDir, "/", ttl, ".svg"), plot, dpi = 100L)
   if (Param$P.values.type %in% nmsConv$P.values.type) {
     nm <- nmsConv$Name[match(Param$P.values.type, nmsConv$P.values.type)]
     myData <- myData[, which(!colnames(myData) %in% ratKol)]

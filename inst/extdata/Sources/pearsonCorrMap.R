@@ -113,7 +113,6 @@ if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
                             strip.text.x.top = element_text(angle = 45, size = 5.5))
   poplot(plot, 12L, 22L)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 600L)
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 600L)
+    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 600L)
   })
 }

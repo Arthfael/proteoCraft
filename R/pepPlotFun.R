@@ -7,7 +7,7 @@
 #' @param df2 Normalized quantitative data.
 #' @param ttl Title.
 #' @param dstDir Destination directory.
-#' @param save Logical, should we save the plot (default = TRUE).
+#' @param save Logical (default = TRUE), should we save the plot. Currently, the format is svg.
 #' @param xpMap Experiment map, default = Exp.map
 #' @param VPAL Volcano.plots.Aggregate.Level object, default = Volcano.plots.Aggregate.Level
 #' 
@@ -35,7 +35,7 @@ pepPlotFun <- function(df1,
   rm(tst2)
   tst1 <- tst1[which(is.finite(tst1$value)),]
   g <- grepl("_REF\\.to\\.REF_", tst1$variable)
-  tst1$Type <- c("Samples", "References")[g+1]
+  tst1$Type <- c("Samples", "References")[g+1L]
   tst1$Group <- xpMap[match(tst1$variable, xpMap$Ref.Sample.Aggregate),
                       VPAL$column]
   tst1$variable <- cleanNms(tst1$variable)
@@ -50,16 +50,15 @@ pepPlotFun <- function(df1,
                           ggplot2::aes(x = value, colour = variable, fill = variable)) +
     ggplot2::scale_y_continuous(expand = c(0, 0)) +
     ggplot2::facet_grid(Norm~Group) + ggplot2::ggtitle(ttl) + ggplot2::theme_bw()
-  if (grepl("ratio", ttl, ignore.case = TRUE)) { ntrcpt <- 0 } else {
-    ntrcpt <- median(tst1$value[which((tst1$Group != "References")&
-                                        (tst1$Norm == "Original"))])
+  ntrcpt <- if (grepl("ratio", ttl, ignore.case = TRUE)) { 0 } else {
+    median(tst1$value[which((tst1$Group != "References") &
+                              (tst1$Norm == "Original"))])
   }
   plot <- plot + ggplot2::geom_vline(xintercept = ntrcpt, linetype = "dashed")
   print(plot) # This type of QC plot does not need to pop up, the side panel is fine
   if (save) {
     suppressMessages({
-      ggplot2::ggsave(paste0(dstDir, "/", ttl, ".jpeg"), plot, dpi = 150)
-      ggplot2::ggsave(paste0(dstDir, "/", ttl, ".pdf"), plot, dpi = 150)
+      ggplot2::ggsave(paste0(dstDir, "/", ttl, ".svg"), plot, dpi = 150L)
     })
   }
   return()

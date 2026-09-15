@@ -123,8 +123,7 @@ tstNorm <- try({
       SDplotB <- sd2 + theme_bw() + ggtitle("", subtitle = "After")
       SDplot <- ggpubr::ggarrange(SDplotA, SDplotB, ncol = 2L, nrow = 1L)
       #poplot(SDplot, 6L, 12L)
-      ggsave(paste0(shpDr, "/", SDttl, ".jpeg"), SDplot, dpi = 75L, width = 12L, height = 6L, units = "in")
-      ggsave(paste0(shpDr, "/", SDttl, ".pdf"), SDplot, dpi = 75L, width = 12L, height = 6L, units = "in")
+      ggsave(paste0(shpDr, "/", SDttl, ".svg"), SDplot, dpi = 75L, width = 12L, height = 6L, units = "in")
     }
   }
 }, silent = TRUE)
@@ -235,8 +234,7 @@ if (!inherits(tstNorm, "try-error")) {
       geom_text(data = ann, aes(x = Amax, y = Y, label = Label), hjust = 1, size = 3L)
     #poplot(MAplot, 12L, 22L)
     fl <- paste0(MAfl, " - ", smpl)
-    ggsave(paste0(fl, ".jpeg"), MAplot, width = 10L, units = "in")
-    ggsave(paste0(fl, ".pdf"), MAplot, width = 10L, units = "in")
+    ggsave(paste0(fl, ".svg"), MAplot, width = 10L, units = "in")
     return(fl)
   }), levels(datAB$Sample))
   #
@@ -287,8 +285,8 @@ if (!inherits(tstNorm, "try-error")) {
   server <- function(input, output, session) {
     updtMA <- \(reactive = TRUE) {
       myMA <- { if (reactive) { input$my_MA_plot } else { names(tmpMAplotFls)[1L] } }
-      renderImage(list(src = paste0(tmpMAplotFls[myMA], ".jpeg"), # For now any MA plots will do if there are several
-                       contentType = "image/jpeg",
+      renderImage(list(src = paste0(tmpMAplotFls[myMA], ".svg"), # For now any MA plots will do if there are several
+                       contentType = "image/svg+xml",
                        height = c("700px", "500px")[(normMeth == "VSN")+1L]),
                   deleteFile = FALSE)
     }

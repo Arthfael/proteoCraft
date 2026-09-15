@@ -49,7 +49,7 @@ basic.heatmap(
 
 \item{print}{TRUE by default. But can be set to FALSE because sometimes you just want to save a plot for later without printing it.}
 
-\item{save}{FALSE by default. Set to format you want pictures saved as ("jpeg", "png", "pdf"...)}
+\item{save}{FALSE by default. Set to format you want pictures saved as ("jpeg", "png", "pdf", "svg"...)}
 
 \item{folder}{Where to save the graph. Default = getwd()}
 

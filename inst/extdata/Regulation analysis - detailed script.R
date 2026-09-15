@@ -81,7 +81,7 @@ cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.ta
                      "Peptides", "xml2", "pdftools", "statmod", "ggpolypath", "venn", "gridExtra", "svDialogs", "htmlwidgets", "magrittr", "tibble",
                      "officer", "hexbin", "igraph", "matlib", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
                      "tidyr", "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "lmtest", "ssh", "taxize", "arrow", "PTMods",
-                     "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "iq", "Rtsne", "DEP"))
+                     "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "iq", "Rtsne", "DEP", "svglite"))
 bioc_req <- unique(c(bioc_req, "biomaRt", "GO.db", "UniProt.ws", "limma", "sva", "qvalue", "MSnbase",
                      "Rgraphviz", "RCy3", "siggenes", "DEqMS", "limpa", "QFeatures", "pRoloc", "pRolocGUI", "rbioapi", "png", "Rhdf5lib"))
 inst <- as.data.frame(installed.packages())

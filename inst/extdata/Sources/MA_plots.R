@@ -215,8 +215,7 @@ for (grp in grps) { #grp <- grps[1L]
       # Estimate plot dimensions
       #poplot(plot, 12L, 22L)
       fl <- paste0(MAfl, " - ", smpl)
-      ggsave(paste0(fl, ".jpeg"), plot, width = 10L, units = "in")
-      ggsave(paste0(fl, ".pdf"), plot, width = 10L, units = "in")
+      ggsave(paste0(fl, ".svg"), plot, width = 10L, units = "in")
       return(fl)
     })
     # You could then visualize those individually in the parameters app as opposed to seeing a very zoomed out facet plot
@@ -238,8 +237,7 @@ for (grp in grps) { #grp <- grps[1L]
     b <- convertHeight(height, "in", valueOnly = TRUE)
     #poplot(plot, 12L, 22L)
     suppressMessages({
-      ggsave(paste0(MAfl, ".jpeg"), plot, width = 10L, height = 10L*b/a, units = "in")
-      ggsave(paste0(MAfl, ".pdf"), plot, width = 10L, height = 10L*b/a, units = "in")
+      ggsave(paste0(MAfl, ".svg"), plot, width = 10L, height = 10L*b/a, units = "in")
     })
   } else {
     cat(paste0("Not enough valid data", c("", paste0(" for group ", grp))[(length(grps) > 1L) + 1L], " to draw an MA plot!\n"))

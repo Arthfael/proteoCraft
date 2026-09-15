@@ -85,7 +85,7 @@
 #'                    aggregate.map = Aggregate.map,
 #'                    aggregate.name = Volcano.plots.Aggregate.Level$aggregate,
 #'                    parameters = Param,
-#'                    save = c("jpeg", "pdf"),
+#'                    save = "svg",
 #'                    labels = "both",
 #'                    proteins = prot.list,
 #'                    return = TRUE,

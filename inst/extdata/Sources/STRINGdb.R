@@ -312,9 +312,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
             geom_text(aes(label = Lab, x = x, y = y + 0.48), cex = 2.5) +
             geom_text(label = paste0(grphType, " interactions"), x = dim/2+0.5, y = dim+0.7, cex = 5)
           poplot(plot)
-          ggsave(paste0(wd, "/STRINGdb/", grphType, "/All ", ttl, ".jpeg"), plot,
-                 dpi = 120L, width = 100L, height = 100L, units = "in", limitsize = FALSE)
-          ggsave(paste0(wd, "/STRINGdb/", grphType, "/All ", ttl, ".pdf"), plot,
+          ggsave(paste0(wd, "/STRINGdb/", grphType, "/All ", ttl, ".svg"), plot,
                  dpi = 120L, width = 100L, height = 100L, units = "in", limitsize = FALSE)
         }
       }

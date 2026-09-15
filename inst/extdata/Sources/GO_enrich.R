@@ -247,16 +247,16 @@ if (!slotNm %in% names(GO_plot_ly[[dataType]])) { GO_plot_ly[[dataType]][[slotNm
 
 #lengths(filters)
 
-#Prot = GO_enrich.dat[[tstbee]]; Mode = "regulated"; filters = flt; ref.filters = Ref.Filt; Prot_FC_root = GO_enrich.FCRt[[tstbee]]; title.root = paste0("Bubble_plot_", tolower(bee)); bars_title.root = paste0("Bar_plot_", tolower(bee)); save = c("jpeg", "pdf"); return = TRUE; True_Zscore = TRUE; subfolder = dir; subfolderpertype = FALSE
+#Prot = GO_enrich.dat[[tstbee]]; Mode = "regulated"; filters = flt; ref.filters = Ref.Filt; Prot_FC_root = GO_enrich.FCRt[[tstbee]]; title.root = paste0("Bubble_plot_", tolower(bee)); bars_title.root = paste0("Bar_plot_", tolower(bee)); save = "svg"; return = TRUE; True_Zscore = TRUE; subfolder = dir; subfolderpertype = FALSE
 # OR (dataset)
-#Prot = PG; Mode = "dataset"; Prot_FC_root = "Av. log10 abundance"; save = c("jpeg", "pdf"); return = TRUE; True_Zscore = TRUE; subfolder = "Reg. analysis/GO enrich/Dataset"; subfolderpertype = FALSE
+#Prot = PG; Mode = "dataset"; Prot_FC_root = "Av. log10 abundance"; save = "svg"; return = TRUE; True_Zscore = TRUE; subfolder = "Reg. analysis/GO enrich/Dataset"; subfolderpertype = FALSE
 # OR (modified peptides)
-#Prot = temPTM; Mode = "regulated"; ID_col = "Proteins"; filters = flt; ref.filters = Pep.Ref.Filt; Prot_FC_root = PTMs_GO_enrich.FCRt[[ptm]][[tstbee]]; title.root = paste0("Bubble_plot_", tolower(bee)); save = c("jpeg", "pdf"); return = TRUE; True_Zscore = TRUE; subfolder = dir; subfolderpertype = FALSE
+#Prot = temPTM; Mode = "regulated"; ID_col = "Proteins"; filters = flt; ref.filters = Pep.Ref.Filt; Prot_FC_root = PTMs_GO_enrich.FCRt[[ptm]][[tstbee]]; title.root = paste0("Bubble_plot_", tolower(bee)); save = "svg"; return = TRUE; True_Zscore = TRUE; subfolder = dir; subfolderpertype = FALSE
 # OR (no replicates script:
 #      - sample composition analysis
-#Prot = PG; Mode = "dataset"; filters = filt; Prot_FC_root = ref; save = c("jpeg", "pdf"); return = TRUE; True_Zscore = FALSE; subfolderpertype = FALSE
+#Prot = PG; Mode = "dataset"; filters = filt; Prot_FC_root = ref; save = "svg"; return = TRUE; True_Zscore = FALSE; subfolderpertype = FALSE
 #      -  2 samples comparisons analysis
-#Prot = PG; Mode = "regulated"; filters = FC_filt; ref.filters = filt[names(FC_filt)]; Prot_FC_root = paste0(rat.col, " - "); FillGaps = TRUE; FillGaps_Smpls = FC_Smpls; FillGaps_Expr_root = PG.int.col; FillGaps_Expr_is_log = TRUE; save = c("jpeg", "pdf"); return = TRUE; GO_FDR = c(0.1, 0.2, 0.3); True_Zscore = TRUE; subfolderpertype = FALSE
+#Prot = PG; Mode = "regulated"; filters = FC_filt; ref.filters = filt[names(FC_filt)]; Prot_FC_root = paste0(rat.col, " - "); FillGaps = TRUE; FillGaps_Smpls = FC_Smpls; FillGaps_Expr_root = PG.int.col; FillGaps_Expr_is_log = TRUE; save = "svg"; return = TRUE; GO_FDR = c(0.1, 0.2, 0.3); True_Zscore = TRUE; subfolderpertype = FALSE
 # Preliminary admin stuff...
 origWD <- getwd()
 #

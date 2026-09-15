@@ -11,7 +11,7 @@
   quantType <- samplesDF$QuantType[ii]
   dataType <- samplesDF$type[ii]
   plotType <- samplesDF$subtype[ii]
-  #tstReg <- ((quantType == "LFQ")&MakeRatios)
+  #tstReg <- (quantType == "LFQ") & MakeRatios
   ref <- samplesDF$ref[ii]
   kolnm <- gsub(" - $", "", ref)
   if (grepl("\\(Expr\\.\\)", kolnm)) { kolnm <- gsub("\\(Expr\\.\\)", " LFQ", kolnm) }
@@ -224,8 +224,7 @@
       if (plotType == "Mark") {
         nm <- "Compartment trends"
       }
-      ggplot2::ggsave(paste0(pth3, ".jpeg"), rib_plot, dpi = 150L, width = 13L, height = 10L)
-      ggplot2::ggsave(paste0(pth3, ".pdf"), rib_plot, dpi = 150L, width = 13L, height = 10L)
+      ggplot2::ggsave(paste0(pth3, ".svg"), rib_plot, dpi = 150L, width = 13L, height = 10L)
       myRes <- list(path = pth3,
                     title = ttl3,
                     ggCall = ggCall_txt3,
@@ -247,13 +246,11 @@
       if (file.exists(plPath2)) { unlink(plPath2) }
       tstPL <- try(htmlwidgets::saveWidget(plotly::partial_bundle(plotlyProfiles), plPath2), silent = TRUE)
       if (inherits(tstPL, "try-error")) { tstPL <- try(htmlwidgets::saveWidget(plotlyProfiles, plPath2), silent = TRUE) }
-      if ((!inherits(tstPL, "try-error")) && file.exists(plPath2)) {
-        tstPL <- file.rename(plPath2, plPath)
-      } else { tstPL <- FALSE }
-      ggplot2::ggsave(paste0(pth, ".jpeg"), plot, dpi = myDPI/2, width = 13L, height = 10L)
-      ggplot2::ggsave(paste0(pth, ".pdf"), plot, width = 13L, height = 10L)
-      ggplot2::ggsave(paste0(pth, "_lab.jpeg"), plot_txt, dpi = myDPI, width = 13L, height = 10L)
-      ggplot2::ggsave(paste0(pth, "_lab.pdf"), plot_txt, width = 13L, height = 10L)
+      tstPL <- if ((!inherits(tstPL, "try-error")) && file.exists(plPath2)) {
+        file.rename(plPath2, plPath)
+      } else { FALSE }
+      ggplot2::ggsave(paste0(pth, ".svg"), plot, width = 13L, height = 10L)
+      ggplot2::ggsave(paste0(pth, "_lab.svg"), plot_txt, width = 13L, height = 10L)
       evPlot <- plotEval(plot)
       evPlot_txt <- plotEval(plot_txt)
       myRes <- list(path = pth,
@@ -478,9 +475,9 @@
       if (file.exists(plPath2)) { unlink(plPath2) }
       tstPL <- try(htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), plPath2), silent = TRUE)
       if (inherits(tstPL, "try-error")) { tstPL <- try(htmlwidgets::saveWidget(plotLy, plPath2), silent = TRUE) }
-      if ((!inherits(tstPL, "try-error")) && file.exists(plPath2)) {
-        tstPL <- file.rename(plPath2, plPath)
-      } else { tstPL <- FALSE }
+      tstPL <- if ((!inherits(tstPL, "try-error")) && file.exists(plPath2)) {
+        file.rename(plPath2, plPath)
+      } else { FALSE }
     }
     if ((dataType == "PG") && length(myFlt)) {
       plot <- plot +
@@ -496,8 +493,7 @@
       ggplot2::geom_text(data = myData[txtFilt,], angle = 45, hjust = 0, cex = 2.5,
                          ggplot2::aes(xPos, Y + intscale*0.025, colour = .data[[catnm]], label = .data[[xKol]]))
     #proteoCraft::poplot(plot, 12L, 22L)
-    ggplot2::ggsave(paste0(pth, ".jpeg"), plot, dpi = myDPI, width = 25L, height = 10L)
-    ggplot2::ggsave(paste0(pth, ".pdf"), plot, dpi = myDPI, width = 25L, height = 10L)
+    ggplot2::ggsave(paste0(pth, ".svg"), plot, dpi = myDPI, width = 25L, height = 10L)
     evPlot <- plotEval(plot)
     myRes <- list(title = ttl,
                   path = pth,

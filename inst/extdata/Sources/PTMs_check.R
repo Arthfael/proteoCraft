@@ -88,8 +88,7 @@ if (length(tstEnrich)) {
         plot <- plot + facet_grid(Search~.)
       }
       #poplot(plot, 12L, 22L)
-      ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 300L)
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 300L)
+      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L)
     }
   }
 }
@@ -171,8 +170,7 @@ plot <- ggplot(tmp) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 print(plot) # This type of QC plot does not need to pop up, the side panel is fine
 suppressMessages({
-  ggsave(paste0(wd, "/Summary plots/", ttl, ".jpeg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
-  ggsave(paste0(wd, "/Summary plots/", ttl, ".pdf"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
+  ggsave(paste0(wd, "/Summary plots/", ttl, ".svg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
 })
 plotLy <- ggplotly(plot, tooltip = c("x", "y", "fill"))
 plotLy <- plotly::config(plotLy,

@@ -51,7 +51,7 @@ if (GSEAmode == "WGCNA") {
   }
   isOK <- TRUE
 }
-ohDeer <- paste0(ohDeer, c("", "/jpeg", "/pdf"))
+ohDeer <- paste0(ohDeer, c("", "/svg"))
 for (dr in ohDeer) {
   if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
 }
@@ -272,7 +272,7 @@ if (isOK) {
     gse <- gses[[grp]]$GSE
     try({
       ttl <- paste0(nmRoot, " _ ", grp)
-      svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "jpeg", "pdf"))
+      svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "svg"))
       plot <- clusterProfiler::dotplot(gse, showCategory = nCat, split = ".sign", font.size = 4L,
                       label_format = 500L # don't you dare wrap my labels!!!
       ) + ggplot2::facet_grid(.~.sign) +
@@ -324,7 +324,7 @@ if (isOK) {
     try({
       gse2 <- pairwise_termsim(gse, method = "JC", semData = NULL)
       ttl <- paste0(nmRoot, " _ ", grp)
-      svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "jpeg", "pdf"))
+      svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "svg"))
       plot <- clusterProfiler::emapplot(gse2, showCategory = nCat) +
         theme_bw() +
         theme(plot.title = element_text(hjust = 0.5),
@@ -383,7 +383,7 @@ if (isOK) {
     try({
       lFC <- gses[[grp]]$lFC
       ttl <- paste0(nmRoot, " _ ", grp)
-      svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "jpeg", "pdf"))
+      svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "svg"))
       plot <- clusterProfiler::cnetplot(gse, foldChange = lFC, showCategory = 10L,
                                         color_edge = "grey",
                                         #cex_label_category = 1.2, cex_label_gene = 0.8 # Those parameters do not work for me...
@@ -479,7 +479,7 @@ if (isOK) {
     try({
       lFC <- gses[[grp]]$lFC
       ttl <- paste0(nmRoot, " _ ", grp)
-      svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "jpeg", "pdf"))
+      svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "svg"))
       plot <- enrichplot::ridgeplot(gse, fill = "pvalue", label_format = 500L # don't you dare wrap my labels!!!
       ) + ggplot2::labs(x = "enrichment distribution") +
         ggplot2::theme(axis.text.x = ggplot2::element_text(size = 5L),

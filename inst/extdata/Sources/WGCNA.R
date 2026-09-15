@@ -133,8 +133,7 @@ ggPlot <- ggplot(dend_data$segments) + theme_bw() +
         axis.ticks.y = element_blank())
 poplot(ggPlot, 6L, 11L)
 suppressMessages({
-  ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), ggPlot, dpi = 300L)
-  ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"), ggPlot, dpi = 300L)
+  ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), ggPlot, dpi = 300L)
 })
 #
 # Unlike in the tutorial, we will NOT remove outliers:
@@ -181,8 +180,7 @@ ggPlot <- ggplot(spt$fitIndices) +
                      axis.title.y.right = element_text(color = "purple"))
 #poplot(ggPlot, 6, 11)
 suppressMessages({
-  ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), ggPlot, dpi = 300L)
-  ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"), ggPlot, dpi = 300L)
+  ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), ggPlot, dpi = 300L)
 })
 pwrEst <- spt$powerEstimate
 if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
@@ -264,8 +262,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     observeEvent(input$saveBtn, {
       assign("pwrEst", input$Power, envir = .GlobalEnv)
       suppressWarnings({
-        ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), ggPlot2, dpi = 300L)
-        ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"), ggPlot2, dpi = 300L)
+        ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), ggPlot2, dpi = 300L)
       })
       assign("appRunTest", TRUE, envir = .GlobalEnv)
       stopApp()
@@ -328,13 +325,13 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     # Record plot
     p <- recordPlot()
     dev.off()
-    # Replay plot to devices
-    pdf(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"))
+    # Replay plot to svg device (or any other device)
+    svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
     replayPlot(p)
     dev.off()
-    jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-    replayPlot(p)
-    dev.off()
+    # jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
+    # replayPlot(p)
+    # dev.off()
     #
     # Identify each module's Eigengene ("Well, akshually, it's an Eigen-Protein-Group!")
     MElist <- moduleEigengenes(exprData, colors = modColors) 
@@ -363,12 +360,12 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     p <- recordPlot()
     dev.off()
     # Replay plot to devices
-    pdf(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"))
+    svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
     replayPlot(p)
     dev.off()
-    jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-    replayPlot(p)
-    dev.off()
+    # jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
+    # replayPlot(p)
+    # dev.off()
     #
     # Merge modules below default 0.25 line (75% similarity or more)
     merge <- mergeCloseModules(exprData, modColors, cutHeight = mergeThresh)
@@ -389,12 +386,12 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     p <- recordPlot()
     dev.off()
     # Replay plot to devices
-    pdf(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"))
+    svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
     replayPlot(p)
     dev.off()
-    jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-    replayPlot(p)
-    dev.off()
+    # jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
+    # replayPlot(p)
+    # dev.off()
     #
     # Relate samples to experimental factors
     myFact <- Factors[which(vapply(Factors, \(Fact) { length(FactorsLevels[[Fact]]) }, 1L) > 1L)]
@@ -459,12 +456,12 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     p <- recordPlot()
     dev.off()
     # Replay plot to devices
-    pdf(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"))
+    svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
     replayPlot(p)
     dev.off()
-    jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-    replayPlot(p)
-    dev.off()
+    # jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
+    # replayPlot(p)
+    # dev.off()
     #
     # Let's check the relationship between our modules and our Traits
     MET <- MEs
@@ -480,12 +477,12 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     p <- recordPlot()
     dev.off()
     # Replay plot to devices
-    pdf(paste0(wgcnaDirs[1L], "/", ttl, ".pdf"))
+    svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
     replayPlot(p)
     dev.off()
-    jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-    replayPlot(p)
-    dev.off()
+    # jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
+    # replayPlot(p)
+    # dev.off()
     #
     shScale <- scale_shape_manual(values = c(`FALSE` = 21L, `TRUE` = 24L))
     if (length(traitModules)) {
@@ -573,12 +570,12 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         p <- recordPlot()
         dev.off()
         # Replay plot to devices
-        pdf(paste0(dr, "/", ttl, ".pdf"))
+        svg(paste0(dr, "/", ttl, ".svg"), width = 16L, height = 12L)
         replayPlot(p)
         dev.off()
-        jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-        replayPlot(p)
-        dev.off()
+        # jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
+        # replayPlot(p)
+        # dev.off()
         #
         # -> Meta-modules:
         # = groups of modules with mutual correlations stronger than their correlation with the specified trait
@@ -590,12 +587,12 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         p <- recordPlot()
         dev.off()
         # Replay plot to devices
-        pdf(paste0(dr, "/", ttl, ".pdf"))
+        svg(paste0(dr, "/", ttl, ".svg"), width = 16L, height = 12L)
         replayPlot(p)
         dev.off()
-        jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-        replayPlot(p)
-        dev.off()
+        # jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
+        # replayPlot(p)
+        # dev.off()
         #
         # Plot the heatmap matrix
         ttl <- paste0(Fact, " - Eigengene adjacency heatmap")
@@ -605,12 +602,12 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         p <- recordPlot()
         dev.off()
         # Replay plot to devices
-        pdf(paste0(dr, "/", ttl, ".pdf"))
+        svg(paste0(dr, "/", ttl, ".svg"), width = 16L, height = 12L)
         replayPlot(p)
         dev.off()
-        jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-        replayPlot(p)
-        dev.off()
+        # jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
+        # replayPlot(p)
+        # dev.off()
       }
       #
       # Perform GSEA analysis on each module of interest

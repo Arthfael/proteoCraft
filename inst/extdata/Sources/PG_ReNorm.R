@@ -202,8 +202,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
       theme_bw()
     # Note: this plot isn't scaled the same way for x and y, but we should see a correlation
     #poplot(plot)
-    ggsave(paste0(dirPG, "/Effect of LM normalisation.jpeg"), plot, dpi = 100L)
-    ggsave(paste0(dirPG, "/Effect of LM normalisation.pdf"), plot, dpi = 100L)
+    ggsave(paste0(dirPG, "/Effect of LM normalisation.svg"), plot, dpi = 100L)
     #
     # Now propagate effects to peptides
     smplsNorm <- if (Norma.Prot.Ratio.Adv) {
@@ -285,10 +284,9 @@ if (normPGs) {
   #print(intPlot1)
   nrmPlots[["PG_int"]] <- list(Path = paste0(dirPG, "/", ttlI1),
                                Plot = plotEval(intPlot1),
-                               Ext = "jpeg")
+                               Ext = "svg")
   #suppressMessages({
-  #  ggsave(paste0(dirPG, "/", ttlI1, ".jpeg"), intPlot1, dpi = 300L)
-  #  ggsave(paste0(dirPG, "/", ttlI1, ".pdf"), intPlot1, dpi = 300L)
+  #  ggsave(paste0(dirPG, "/", ttlI1, ".svg"), intPlot1, dpi = 300L)
   #})
   #
   #   - Ratios
@@ -320,10 +318,9 @@ if (normPGs) {
   #print(ratPlot1)
   nrmPlots[["PG_rat"]] <- list(Path = paste0(dirPG, "/", ttlR1),
                                Plot = plotEval(ratPlot1),
-                               Ext = "jpeg")
+                               Ext = "svg")
   #suppressMessages({
-  #  ggsave(paste0(dirPG, "/", ttlR1, ".jpeg"), ratPlot1, dpi = 300L)
-  #  ggsave(paste0(dirPG, "/", ttlR1, ".pdf"), ratPlot1, dpi = 300L)
+  #  ggsave(paste0(dirPG, "/", ttlR1, ".svg"), ratPlot1, dpi = 300L)
   #})
   #
   # - Peptides
@@ -354,10 +351,9 @@ if (normPGs) {
   #print(intPlot2)
   nrmPlots[["Pep_int"]] <- list(Path = paste0(dirPep, "/", ttlI2),
                                 Plot = plotEval(intPlot2),
-                                Ext = "jpeg")
+                                Ext = "svg")
   #suppressMessages({
-  #  ggsave(paste0(dirPep, "/", ttlI2, ".jpeg"), intPlot2, dpi = 300L)
-  #  ggsave(paste0(dirPep, "/", ttlI2, ".pdf"), intPlot2, dpi = 300L)
+  #  ggsave(paste0(dirPep, "/", ttlI2, ".svg"), intPlot2, dpi = 300L)
   #})
   #
   # - Peptides ratios
@@ -392,14 +388,13 @@ if (normPGs) {
   #print(ratPlot2)
   nrmPlots[["Pep_rat"]] <- list(Path = paste0(dirPep, "/", ttlR2),
                                 Plot = plotEval(ratPlot2),
-                                Ext = "jpeg")
+                                Ext = "svg")
   #suppressMessages({
-  #  ggsave(paste0(dirPep, "/", ttlR2, ".jpeg"), ratPlot2, dpi = 300L)
-  #  ggsave(paste0(dirPep, "/", ttlR2, ".pdf"), ratPlot2, dpi = 300L)
+  #  ggsave(paste0(dirPep, "/", ttlR2, ".svg"), ratPlot2, dpi = 300L)
   #})
   #
   nrmPlots2 <- lapply(nrmPlots, \(x) {
-    x$Ext <- "pdf"
+    x$Ext <- "svg"
     return(x)
   })
   nrmPlots <- c(nrmPlots, nrmPlots2)
@@ -442,11 +437,16 @@ if (normPGs) {
     br(),
     br()
   )
-  IMGs <- c(paste0(dirPG, "/", c(ttlI1, ttlR1), ".jpeg"),
-            paste0(dirPep, "/", c(ttlI2, ttlR2), ".jpeg"))
-  IMGsDims <- as.data.frame(t(parSapply(parClust, IMGs, \(x) { #x <- IMGs[1L]
-    a <- jpeg::readJPEG(x)
-    setNames(dim(a)[1L:2L], c("height", "width"))
+  IMGs <- c(paste0(dirPG, "/", c(ttlI1, ttlR1), ".svg"),
+            paste0(dirPep, "/", c(ttlI2, ttlR2), ".svg"))
+  # IMGsDims <- as.data.frame(t(parSapply(parClust, IMGs, \(x) { #x <- IMGs[1L]
+  #   a <- jpeg::readJPEG(x)
+  #   setNames(dim(a)[1L:2L], c("height", "width"))
+  # })))
+  IMGsDims <- as.data.frame(t(parSapply(parClust, IMGS, \(x) { #x <- IMGs[1L]
+    a <- xml2::read_xml(x)
+    v <- as.numeric(strsplit(xml2::xml_attr(a, "viewBox"), " ")[[1L]])
+    setNames(v[3L:4L], c("width", "height"))
   })))
   IMGsDims$height <- screenRes$width*0.35*IMGsDims$height/max(IMGsDims$height)
   IMGsDims$width <- screenRes$width*0.35*IMGsDims$width/max(IMGsDims$width)
@@ -456,16 +456,28 @@ if (normPGs) {
     # output$pepIntensities <- renderPlot(intPlot2)
     # output$pepRatios <- renderPlot(ratPlot2)
     output$pgIntensities <- renderImage({
-      list(src = IMGs[1L], height = IMGsDims$height[1L], width = IMGsDims$width[1L])
+      list(src = IMGs[1L],
+           contentType = "image/svg+xml",
+           height = IMGsDims$height[1L],
+           width = IMGsDims$width[1L])
     }, deleteFile = FALSE)
     output$pgRatios <- renderImage({
-      list(src = IMGs[2L], height = IMGsDims$height[2L], width = IMGsDims$width[2L])
+      list(src = IMGs[2L],
+           contentType = "image/svg+xml",
+           height = IMGsDims$height[2L],
+           width = IMGsDims$width[2L])
     }, deleteFile = FALSE)
     output$pepIntensities <- renderImage({
-      list(src = IMGs[3L], height = IMGsDims$height[3L], width = IMGsDims$width[3L])
+      list(src = IMGs[3L],
+           contentType = "image/svg+xml",
+           height = IMGsDims$height[3L],
+           width = IMGsDims$width[3L])
     }, deleteFile = FALSE)
     output$pepRatios <- renderImage({
-      list(src = IMGs[4L], height = IMGsDims$height[4L], width = IMGsDims$width[4L])
+      list(src = IMGs[4L],
+           contentType = "image/svg+xml",
+           height = IMGsDims$height[4L],
+           width = IMGsDims$width[4L])
     }, deleteFile = FALSE)
     #
     observeEvent(input$accept_PG_reNorm, { assign("accept_PG_reNorm", as.logical(input[["accept_PG_reNorm"]]), envir = .GlobalEnv) })

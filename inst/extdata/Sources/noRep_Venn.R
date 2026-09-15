@@ -79,8 +79,7 @@ if (Venn_Obs) {
       plotly_Venn[[subTtl]] <- plotLy
       poplot(plot)
       suppressMessages({
-        ggsave(paste0(VennDir, "/", ttl, ".jpg"), plot, dpi = 150L)
-        ggsave(paste0(VennDir, "/", ttl, ".pdf"), plot, dpi = 150L)
+        ggsave(paste0(VennDir, "/", ttl, ".svg"), plot, dpi = 150L)
       })
       #system(paste0("open \"", VennDir, "/", ttl, ".jpg", "\""))
       wbKount <- wbKount+1L
@@ -182,8 +181,7 @@ if (Venn_Ratios) {
             plotly_Venn[[subTtl]] <- plotLy
             poplot(plot)
             suppressMessages({
-              ggsave(paste0(VennDir, "/", ttl, ".jpg"), plot, dpi = 150L)
-              ggsave(paste0(VennDir, "/", ttl, ".pdf"), plot, dpi = 150L)
+              ggsave(paste0(VennDir, "/", ttl, ".svg"), plot, dpi = 150L)
             })
             #system(paste0("open \"", VennDir, "/", ttl, ".jpg", "\""))
             wbKount <- wbKount+1L

@@ -127,8 +127,7 @@ if (lNorm) {
       coord_fixed(0.5)
     poplot(plot, 12L, 22L)
     suppressWarnings({
-      ggsave(paste0(nrmDr, "/", ttl, ".jpeg"), plot, dpi = 150L, height = 8L, units = "in")
-      ggsave(paste0(nrmDr, "/", ttl, ".pdf"), plot, dpi = 150L, height = 8L, units = "in")
+      ggsave(paste0(nrmDr, "/", ttl, ".svg"), plot, dpi = 150L, height = 8L, units = "in")
     })
     #
     finNorm <- max(wNorm)

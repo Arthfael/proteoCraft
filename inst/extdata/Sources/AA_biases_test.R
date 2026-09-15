@@ -16,8 +16,7 @@ plot <- ggplot(AA_biases) +
   theme(legend.position = "none")
 print(plot)
 suppressMessages({
-  ggsave(paste0(qcDir, "/", ttl, ".jpeg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-  ggsave(paste0(qcDir, "/", ttl, ".pdf"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+  ggsave(paste0(qcDir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
 })
 plotLy <- ggplotly(plot, tooltip = c("x", "y"))
 plotLy <- plotly::config(plotLy,

@@ -140,8 +140,7 @@ if (length(dianXDirs)) {
             #proteoCraft::poplot(plot, 12L, 22L)
             #
             suppressMessages({
-              ggplot2::ggsave(paste0(xicDir2, "/", sq2, ".jpeg"), plot, dpi = 450L, height = 10L, width = 15L)
-              ggplot2::ggsave(paste0(xicDir2, "/", sq2, ".pdf"), plot, height = 10L, width = 10L)
+              ggplot2::ggsave(paste0(xicDir2, "/", sq2, ".svg"), plot, height = 10L, width = 10L)
             })
           })
         }

@@ -37,8 +37,7 @@ qcDir <- paste0(wd, "/Summary plots")
 if (scrptType == "withReps") { dirlist <- union(dirlist, qcDir) }
 if (!dir.exists(qcDir)) { dir.create(qcDir, recursive = TRUE) }
 suppressMessages({
-  ggsave(paste0(qcDir, "/", ttl, ".jpg"), plot, dpi = 300L)
-  ggsave(paste0(qcDir, "/", ttl, ".pdf"), plot, dpi = 300L)
+  ggsave(paste0(qcDir, "/", ttl, ".svg"), plot, dpi = 300L)
 })
 plotLy <- ggplotly(plot, tooltip = c("x", "y"))
 plotLy <- plotly_build(plotLy)

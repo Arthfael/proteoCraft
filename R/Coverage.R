@@ -74,12 +74,12 @@ Coverage <- function(proteins,
                      I_eq_L = TRUE) {
   TESTING <- FALSE
   #DefArg(Coverage);TESTING = TRUE
-  #proteins = P; peptides = tmp$"Modified sequence"; Mode = "Align2"; title = ttl; save = c("jpeg", "pdf"); intensities = tmp$`log10(Intensity)`
+  #proteins = P; peptides = tmp$"Modified sequence"; Mode = "Align2"; title = ttl; save = "svg"; intensities = tmp$`log10(Intensity)`
   #proteins = x[[1L]]; peptides = x[[2L]]; Mode = "XML"; colour = "green"
   #proteins = sq; peptides = tmpSq$"Modified sequence_verbose"; intensities = tmpSq$Intensity; Mode = "Align2"; save = FALSE
   #proteins = sq; peptides = tmpSq$"Modified sequence_verbose"; intensities = tmpSq$Intensity; Mode = "Heat"; save = FALSE
-  #proteins = seq; peptides = p1$Sequence; Mode = "Align2"; title = paste0("Coverage map - ", nm); save = c("jpeg", "pdf"); intensities = p1$Intensity; display = FALSE
-  #proteins = P; peptides = tmp$"Modified sequence"; Mode = "Heat"; display = FALSE;title = ttl1b; save = c("jpeg", "pdf"); intensities = tmp$`log10(Intensity)`;maxInt = mxInt; na = "cyan"
+  #proteins = seq; peptides = p1$Sequence; Mode = "Align2"; title = paste0("Coverage map - ", nm); save = "svg"; intensities = p1$Intensity; display = FALSE
+  #proteins = P; peptides = tmp$"Modified sequence"; Mode = "Heat"; display = FALSE;title = ttl1b; save = "svg"; intensities = tmp$`log10(Intensity)`;maxInt = mxInt; na = "cyan"
   misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
@@ -882,6 +882,7 @@ Coverage <- function(proteins,
             htmlwidgets::saveWidget(plotly::partial_bundle(covPlotLy), svpth, selfcontained = TRUE)
             setwd(wd0)
           } else {
+            if (ext == "svg") { require(svglite) }
             ggplot2::ggsave(svpth, covPlot2,
                             dpi = 300L,
                             width = wdth,

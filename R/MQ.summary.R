@@ -11,7 +11,7 @@
 #' @param mods (Ideally named) vector of 2-letter modification codes (as used by older MaxQuant versions for Modified Sequences) of interest. The default is the default MQ PTMs list which we use in most projects.
 #' @param raw.files Vector of full raw file paths, sorted in the order you will want to use.
 #' @param plot Should we create plot?
-#' @param save Set this to a vector of acceptable file extensions to save the graph to the corresponding file format, or to FALSE if you do not want to save it. Default = c("jpeg", "pdf", "html")
+#' @param save Set this to a vector of acceptable file extensions to save the graph to the corresponding file format, or to FALSE if you do not want to save it. Default = c("svg", "html")
 #' @param sc Scale, the max number of raw files to be plotted together in one plot. Default = 60. 
 #' @param N.clust A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
@@ -32,7 +32,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                        raw.files,
                        subfolder = "Summary plots",
                        plot = TRUE,
-                       save = c("jpeg", "pdf", "html"),
+                       save = c("svg", "html"),
                        sc = 60L,
                        N.clust,
                        N.reserved = 1L,
@@ -41,7 +41,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
   TESTING <- FALSE
   #DefArg(MQ.summary); TESTING <- TRUE
   #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = sc
-  #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = max(c(20L, round(length(rawFiles2)/length(Exp)))); save = c("jpeg", "pdf")
+  #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = max(c(20L, round(length(rawFiles2)/length(Exp)))); save = "svg"
   misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
@@ -673,6 +673,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               plotLy_lst[[ttl]] <- plotLy
               htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
             } else {
+              if (s == "svg") { require(svglite) }
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
           } }
@@ -703,6 +704,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               plotLy_lst[[ttl]] <- plotLy
               htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
             } else {
+              if (s == "svg") { require(svglite) }
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
           } }

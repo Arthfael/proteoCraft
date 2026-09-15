@@ -290,7 +290,7 @@ if (Annotate && (enrichGO || globalGO)) {
                   if (max(temp2ul[which(is.finite(temp2ul))]) > 0L) {
                     temp2 <- as.matrix(temp2)
                     basic.heatmap(temp2, "N. of co-regulated GO terms", paste0(tstrt, "\n(", tolower(bee), ")"),
-                                  save = c("pdf", "jpeg"), folder = myDir)
+                                  "svg", folder = myDir)
                   }
                 } else { warning(paste0(tstrt, " performed for only one condition, skipping.")) }
               }

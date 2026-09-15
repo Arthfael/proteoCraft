@@ -37,8 +37,7 @@ if (Impute) {
   # Add a way to look at number of missed values across sample group, so we can distinguish MNAR from MAR on the plots!
   poplot(plot, 12L, 22L)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".jpeg"), plot, dpi = 150L)
-    ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L)
+    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L)
   })
   #
   colnames(temp2) <- gsub(pat, paste0("imput. ", pep.ref["Original"]), colnames(temp2))

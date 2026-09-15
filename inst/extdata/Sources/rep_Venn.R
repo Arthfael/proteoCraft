@@ -167,8 +167,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
     plotly_Venn[[subTtl]] <- plotLy
     poplot(plot)
     suppressMessages({
-      ggsave(paste0(dir, "/", ttl, ".jpg"), plot, dpi = 150L)
-      ggsave(paste0(dir, "/", ttl, ".pdf"), plot, dpi = 150L)
+      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L)
     })
     #system(paste0("open \"", dir, "/", ttl, ".jpg", "\""))
     #
@@ -275,8 +274,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
           plotly_Venn[[ttl]] <- plotLy
           poplot(plot)
           suppressMessages({
-            ggsave(paste0(dir2, "/", ttl, ".jpg"), plot, dpi = 150L)
-            ggsave(paste0(dir2, "/", ttl, ".pdf"), plot, dpi = 150L)
+            ggsave(paste0(dir2, "/", ttl, ".svg"), plot, dpi = 150L)
           })
           #system(paste0("open \"", dir2, "/", ttl, ".jpg", "\""))
           #
@@ -384,8 +382,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
             plotly_Venn[[ttl]] <- plotLy
             poplot(plot)
             suppressMessages({
-              ggsave(paste0(dir2, "/", ttl, ".jpg"), plot, dpi = 150L)
-              ggsave(paste0(dir2, "/", ttl, ".pdf"), plot, dpi = 150L)
+              ggsave(paste0(dir2, "/", ttl, ".svg"), plot, dpi = 150L)
             })
             #system(paste0("open \"", dir2, "/", ttl, ".jpg", "\""))
             #

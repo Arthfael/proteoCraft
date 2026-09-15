@@ -80,7 +80,7 @@ cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.ta
                      "parallel", "openxlsx", "openxlsx2", "openssl", "plotly", "Peptides", "venn", "ggdendro", "ggpubr", "colorspace", "ggnewscale",
                      "viridis", "factoextra", "NbClust", "gridExtra", "svDialogs", "htmlwidgets", "magrittr", "tibble", "fs", "officer", "snow",
                      "imputeLCMD", "ggplotify", "cowplot", "plyr", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders", "jpeg", "stringi",
-                     "readr", "ssh", "taxize", "arrow", "iq", "Rtsne"))
+                     "readr", "ssh", "taxize", "arrow", "iq", "Rtsne", "svglite"))
 bioc_req <- unique(c(bioc_req, "UniProt.ws", "pcaMethods", "impute", "GO.db", "topGO", "pcaMethods",
                      "limpa", "QFeatures"))
 inst <- as.data.frame(installed.packages())
