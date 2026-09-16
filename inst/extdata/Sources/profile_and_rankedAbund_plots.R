@@ -393,7 +393,7 @@ if (runRankAbundPlots || runProfPlots) {
       w2 <- whAb[which((samplesDF$type[whAb] == "pep") & (samplesDF$QuantType[whAb] == quantType) & (samplesDF$subtype[whAb] == "All"))]
       ggQuantLy[[paste0("peptides ", quantType)]] <- setNames(tmPlots[w2], samplesDF$values[w2])
     }
-    saveFun(ggQuantLy, file = paste0(MainDir, "/quantPlots.RDS"))
+    saveFun(ggQuantLy, paste0(MainDir, "/quantPlots.RDS"))
   }
   if (runProfPlots) {
     whPr <- 1L:nrow(samplesDF2)

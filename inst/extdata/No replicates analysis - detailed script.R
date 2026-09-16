@@ -1818,13 +1818,14 @@ suppressMessages({
 plotLy <- ggplotly(plot, tooltip = c("x", "y", "fill"))
 plotLy <- plotly::config(plotLy,
                          modeBarButtonsToRemove = c("select2d", "lasso2d"))
-if (!exists("QC_plotLys")) { QC_plotLys <- list() }
-QC_plotLys %<o% QC_plotLys
-setwd(paste0(wd, "/Summary plots"))
 plotLy <- plotly_build(plotLy)
-saveWidget(plotLy, paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
+setwd(paste0(wd, "/Summary plots"))
+saveWidget(partial_bundle(plotLy), paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)
+if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
+if (!exists("QC_plotLys")) { QC_plotLys <- list() }
 QC_plotLys[[ttl]] <- plotLy
+saveFun(QC_plotLys, qcBckUpFl)
 
 # Test for amino acid biases:
 Src <- paste0(libPath, "/extdata/Sources/AA_biases_test.R")

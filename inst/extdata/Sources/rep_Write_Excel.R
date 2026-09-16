@@ -68,7 +68,7 @@ for (nm in names(Prot.Rat.Root)) { #nm <- names(Prot.Rat.Root)[1L]
 }
 fl <- system.file("extdata", "Report - column names - with replicates.xlsx", package = "proteoCraft")
 styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[, 1L]
-WorkBook %<o% wb_load(fl)
+WorkBook <- wb_load(fl)
 repFl %<o% paste0(wd, "/Tables/Report_", dtstNm, ".xlsx")
 WorkBook <- wb_add_data(WorkBook, "Description", dtstNm, wb_dims(2L, 5L))
 WorkBook <- wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"), wb_dims(3L, 5L))
@@ -81,7 +81,7 @@ cat(" -> Writing Excel report...\n")
 
 
 
-# Function for editing our header
+# Functions for editing our header
 replacements_Map <- data.frame(in_PG = c(myContrasts$Contrast, RSA$values, VPAL$values),
                                Name = c(sub(" - ", " ///VS/// ", myContrasts$Contrast), cleanNms(c(RSA$values, VPAL$values))))
 replacements_Map <- cbind(replacements_Map,
@@ -193,6 +193,9 @@ if (exists("PTMs_pep") && length(PTMs_pep)) {
   Mod2Write <- names(PTMs_pep)
   II[paste0(Mod2Write, "-mod. pept.")] <- 1L+(seq_along(length(Mod2Write)))
 }
+# II <- II[names(II) != "All peptidoforms"] # For now we are going to turn off the peptidoforms tab, as it is just too large.
+# # We may still reuse this in the future to write a separate report for peptidoforms in the future...
+# # But note that currently the sheer number of peptides to write kinda breaks some of the code we use to fix XML files at the end of Write_Excel_end_script.R
 for (ii in II) { #ii <- II[1L] #ii <- II[2L]
   tblMode <- "pep" # used for controlling behavior
   tblMode2 <- "peptides" # used for printing messages

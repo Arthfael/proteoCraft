@@ -40,11 +40,13 @@ suppressMessages({
   ggsave(paste0(qcDir, "/", ttl, ".svg"), plot, dpi = 300L)
 })
 plotLy <- ggplotly(plot, tooltip = c("x", "y"))
+plotLy <- plotly::config(plotLy,
+                         modeBarButtonsToRemove = c("select2d", "lasso2d"))
 plotLy <- plotly_build(plotLy)
-if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
-if (!exists("QC_plotLys")) { QC_plotLys <- list() }
 setwd(qcDir)
 saveWidget(partial_bundle(plotLy), paste0(qcDir, "/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)
+if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
+if (!exists("QC_plotLys")) { QC_plotLys <- list() }
 QC_plotLys[[ttl]] <- plotLy
 saveFun(QC_plotLys, qcBckUpFl)

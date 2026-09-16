@@ -97,7 +97,7 @@ styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[, 1L]
 # openXL(tmpFl)
 # WorkBook %<o% wb_load(tmpFl)
 # Styles2 %<o% setNames(w, names(Styles)[w])
-WorkBook %<o% wb_load(fl)
+WorkBook <- wb_load(fl)
 repFl %<o% paste0(wd, "/Tables/Report_", dtstNm, ".xlsx")
 WorkBook <- wb_add_data(WorkBook, "Description", dtstNm, wb_dims(2L, 5L))
 WorkBook <- wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"), wb_dims(3L, 5L))
@@ -144,7 +144,7 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   return(KolNames)
 }
 #KolEdit(xlTabs[[sheetnm]], intColsTbl, ratColsTbl)
-if ((prot.list.Cond)&&(!"In list" %in% colnames(ev))) {
+if (prot.list.Cond && (!"In list" %in% colnames(ev))) {
   g <- grsep2(prot.list, ev$Proteins)
   w <- rep(FALSE, nrow(ev))
   w[g] <- TRUE
@@ -155,9 +155,12 @@ QualFilt %<o% c(#pgOrgKol,
   grep("^Quality filter: ", colnames(PG), value = TRUE))
 if (NegFilt) { QualFilt <- c(QualFilt, "Direct identification in negative filter sample(s)") }
 II <- setNames(1L, "All peptidoforms")
-if ((length(Mod2Write))&&(PTMriched)) {
+if (length(Mod2Write) && PTMriched) {
   II[paste0(Modifs$`Full name`[match(Mod2Write, Modifs$Mark)], "-mod. pept.")] <- 1L+(seq_along(length(Mod2Write)))
 }
+# II <- II[names(II) != "All peptidoforms"] # For now we are going to turn off the peptidoforms tab, as it is just too large.
+# # We may still reuse this in the future to write a separate report for peptidoforms in the future...
+# # But note that currently the sheer number of peptides to write kinda breaks some of the code we use to fix XML files at the end of Write_Excel_end_script.R
 for (ii in II) { #ii <- II[1L] #ii <- II[2L]
   tblMode <- tblMode2 <- "pep"
   TbNm <- names(II)[ii]
@@ -521,7 +524,7 @@ if (WorkFlow == "Band ID") {
   covcol <- c("Max. theoretical sequence coverage [%]", covcol)
 }
 kol <- c(kol, "Mol. weight [kDa]", covcol, "PEP", quantcol)
-if ((exists("KlustKols"))&&(length(KlustKols))) { kol <- c(kol, KlustKols) }
+if (exists("KlustKols") && length(KlustKols)) { kol <- c(kol, KlustKols) }
 qualFlt <- QualFilt
 kol <- unique(c(kol, qualFlt))
 if (Annotate) { kol <- c(kol, annot.col) }
@@ -591,7 +594,7 @@ ColumnsTbl[["PEP"]] <- "PEP"
 ColumnsTbl[["Filters"]] <- qualFlt
 ColumnsTbl[["In list"]] <- "In list"
 # - Clusters
-if ((exists("KlustKols"))&&(length(KlustKols))) { ColumnsTbl[["Cluster"]] <- KlustKols }
+if (exists("KlustKols") && length(KlustKols)) { ColumnsTbl[["Cluster"]] <- KlustKols }
 # - Coverage
 ColumnsTbl[["Coverage"]] <- covcol
 # Melt
@@ -634,7 +637,7 @@ if (MakeRatios) {
 ColumnsTbl$Class[grep("[Aa]nnotations", ColumnsTbl$Grp)] <- "Annotations"
 ColumnsTbl$Class[grep("[Ss]equence coverage \\[%\\]", ColumnsTbl$Col)] <- "Sequence coverage [%]"
 ColumnsTbl$Class[grep("^1st ID cov\\.", ColumnsTbl$Col)] <- "1st accession sequence coverage (peptides)"
-if ((exists("KlustKols"))&&(length(KlustKols))) {
+if (exists("KlustKols") && length(KlustKols)) {
   ColumnsTbl$Class[which(ColumnsTbl$Grp == "Cluster")] <- paste0("Cluster (", c("K-means", "hierarch.")[KlustMeth], ")")
 }
 ColumnsTbl$Class[which(ColumnsTbl$Grp %in% c("PEP", "Filters", "Negative filter"))] <- "QC filters"

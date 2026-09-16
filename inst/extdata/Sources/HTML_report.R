@@ -65,6 +65,7 @@ xlDat <- setNames(lapply(nms, \(nm) { #nm <- nms[1L] #nm <- nms[4L]
   }
   return(dat)
 }), nms)
+peptidoTst <- "All peptidoforms" %in% names(xlDat)
 
 # Reload materials and methods
 if (!exists("matmethTxt")) {
@@ -81,7 +82,6 @@ if (heatMaps_ON) {
   loadFun(heatMaps_fl)
   heatMaps_ON <- exists("plotLeatMaps") && length(plotLeatMaps)
 }
-loadFun(paste0(wd, "/Sorting plots/quantPlots.RDS"))
 dimRed_fl <- paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS")
 PCA_ON <- file.exists(dimRed_fl)
 if (PCA_ON) {
@@ -135,7 +135,7 @@ if (heatMaps_ON) {
     }
   }
 }
-if (!exists("ggQuantLy")) { loadFun(paste0(wd, "/Sorting plots/quantPlots.RDS")) }
+loadFun(paste0(wd, "/Ranked abundance/quantPlots.RDS"))
 for (x in names(ggQuantLy)) { #x <- names(ggQuantLy)[1L]
   for (y in names(ggQuantLy[[x]])) { #y <- names(ggQuantLy[[x]])[1L]
     p <- ggQuantLy[[x]][[y]]$plotly
@@ -274,197 +274,6 @@ report_header <- tags$header(
 
 
 # Functions
-make_prot_tab <- \(dflt = dfltProt,
-                   prots = allProt,
-                   shiny = TRUE) {
-  myCol <- tolower(viridis::viridis(6L, alpha = 0.2)[4L])
-  myExp <- if (scrptType == "noReps") { Exp } else { setNames(smplGrps, NULL) }
-  # - show:
-  # Proteins tab
-  #################################
-  #     dropdown for protein      #
-  #################################
-  # ->
-  #################################
-  #      comment for protein      #
-  #################################
-  ################## ##############
-  #samples dropdown# #            #
-  ################## #            #
-  ################## #   Ratios   #
-  #                # #    plot    #
-  #    Coverage    # #            #
-  #                # #            #
-  ################## ##############
-  # Peptides table
-  if (shiny) {
-    tagList(tags$div(
-      if (prot.list.Cond && (length(prots) > 1L)) {
-        tags$div(selectInput("myProtein", "Select protein", prots, dflt),
-                 br())
-      },
-      uiOutput("protComment"),
-      br(),
-      fluidRow(column(6L,
-                      if (length(myExp) > 1L) {
-                        selectInput("mySample", "", myExp, myExp[1L]) 
-                      },
-                      plotlyOutput("coverPlot", height = plotHght)),
-               if (scrptType == "noReps") {
-                 column(6L,
-                        plotlyOutput("ratioPlot", height = plotHght))
-               },
-      ),
-      br(),
-      br(),
-      tags$hr(style = "border-color: black;"),
-      uiOutput("protPep"),
-      br(),
-      style = paste0("background: ", myCol, ";")))
-  } else {
-    ## Coverage plots ###################################################
-    if (tstCov) {
-      dfltExp <- myExp[1L]
-      exp2smpl <- listMelt(lapply(prots, \(pr) { myExp }), prots, ColNames = c("Sample", "Protein"))
-      cov_plots <- lapply(1L:nrow(exp2smpl), \(i) {
-        exp <- exp2smpl$Sample[i]
-        pr <- exp2smpl$Protein[i]
-        tags$div(id = paste0("cov_", pr, "_", exp),
-                 style = paste("width: 100%; display: ",
-                               if ((pr == dflt) && (exp == dfltExp)) { "block" } else { "none" },
-                               ";"),
-                 covPlots[[pr]]$logInt[[exp]])
-      })
-    }
-    ## Ratio plots ######################################################
-    ratio_plots_ui <- NULL
-    if (tstRat) {
-      prots2 <- intersect(prots, names(ratioPlots))
-      if (length(prots2)) {
-        ratio_plots_ui <- lapply(prots2, \(pr) {
-          tags$div(id = paste0("rat_", pr),
-                   style = paste("width: 100%; display: ",
-                                 if (pr == dflt) { "block" } else { "display" },
-                                 ";"),
-                   ratioPlots[[pr]])
-        })
-      }
-    }
-    #
-    ## Comments #########################################################
-    prot_comments <- allComments[prots]
-    prComments <- lapply(prots, \(pr) {
-      make_comment_ui(pr,
-                      FALSE,
-                      prot_comments,
-                      pr == dflt,
-                      "prComment_")
-    })
-    #
-    ## Peptide tables  ##################################################
-    pepTables <- lapply(prots, \(pr) {
-      m <- match(pr, prots)
-      tags$div(id = paste0("pepTable_", m),
-               style = if (pr == dflt) { "width: 100%; display: block;" } else { "display: none;" },
-               make_smpl_tbl_ui(tab = "All peptidoforms",
-                                filt = pr))
-    })
-    ## UI ###############################################################
-    tagList(tags$div(
-      if (length(prots) > 1L) {
-        fluidRow(column(12L,
-                        make_select_tag("myProtein",
-                                        "",
-                                        "myProtein",
-                                        prots,
-                                        dflt),
-                        br()))
-      },
-      prComments,
-      br(),
-      fluidRow(column(6L,
-                      if (length(myExp) > 1L) {
-                        make_select_tag("mySample",
-                                        "",
-                                        "mySample",
-                                        myExp,
-                                        myExp[1L])
-                      },
-                      br(),
-                      cov_plots),
-               if (!is.null(ratio_plots_ui)) {
-                 column(6L, ratio_plots_ui)
-               },
-      ),
-      br(),
-      br(),
-      tags$hr(style = "border-color: black;"),
-      pepTables,
-      tags$script(HTML(paste0("function updateProteinTab() {
-  const protEl = document.getElementById('myProtein');
-  const sampleEl = document.getElementById('mySample');
-  const singleSample = ",
-                              jsonlite::toJSON(if (length(Exp) == 1L) { myExp[1L] } else { NULL },
-                                               auto_unbox = TRUE),
-                              ";
-  // Nothing useful to update if there isn't even a protein
-  if (!protEl) {
-    return;
-  }
-  const prot = protEl.value;
-  const ind = protEl.selectedIndex + 1;
-  // If there is no sample selector, use the single sample
-  // encoded by the first/only option, if available.
-  const sample = sampleEl ? sampleEl.value : singleSample;
-  const comm = 'prComment_' + ind;
-  document.querySelectorAll('[id^=\"cov_\"]').forEach(function(el) {
-    el.style.display = 'none';
-  });
-  if (sample !== null) {
-    const cov = document.getElementById('cov_' + prot + '_' + sample);
-    if (cov) {
-      cov.style.display = 'block';
-    }
-  }
-  document.querySelectorAll('[id^=\"pepTable_\"]').forEach(function(el) {
-    el.style.display = 'none';
-  });
-  const pepTblID = document.getElementById('pepTable_' + ind);
-  if (pepTblID) {
-    pepTblID.style.width = '100%';
-    pepTblID.style.display = 'block';
-  }
-  document.querySelectorAll('[id^=\"rat_\"]').forEach(function(el) {
-    el.style.display = 'none';
-  });
-  const rat = document.getElementById('rat_' + prot);
-  if (rat) {
-    rat.style.display = 'block';
-  }
-  document.querySelectorAll('[id^=\"prComment_\"]').forEach(function(el) {
-    el.style.display = 'none';
-  });
-  const comment = document.getElementById(comm);
-  if (comment) {
-    comment.style.display = 'block';
-    comment.style.whiteSpace = 'pre-wrap';
-    comment.style.padding = '10px';
-  }
-  window.dispatchEvent(new Event('resize'));
-}
-const mySample = document.getElementById('mySample');
-if (mySample) {
-  mySample.addEventListener('change', updateProteinTab);
-}
-const myProt = document.getElementById('myProtein');
-if (myProt) {
-  myProt.addEventListener('change', updateProteinTab);
-}
-"))),
-      br(),
-      style = paste0("background: ", myCol, ";")))
-  }
-}
 make_comment_ui <- \(id,
                      shiny = TRUE,
                      values = allComments,
@@ -713,6 +522,17 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   return(tags$div(df,
                   style = paste0("background: #ffffff;")))
 }
+tmp <- if (scrptType == "noReps") { Exp } else { smplGrps }
+xpCols_list <- setNames(lapply(tmp, \(xp) {
+  grep(topattern(paste0("\n", xp), FALSE, TRUE), colnames(df), value = TRUE)
+}), tmp)
+tst <- unlist(xpCols_list)
+if (!length(tst)) {
+  warning("It seems there was an issue with the Excel table, I would expect sample/sample groups to be preceded by a new line in the table headers!")
+  xpCols_list <- setNames(lapply(tmp, \(xp) {
+    grep(topattern(paste0(" ", xp), FALSE, TRUE), colnames(df), value = TRUE)
+  }), tmp)
+}
 make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
                       tab = "Protein groups", # can also be "All peptidoforms"; we will eventually add "`PTM`-modified", where `PTM` can be any PTM of interest
                       filt = NULL, #filt = allProt[1L] # Filter by "Common Name"
@@ -728,9 +548,7 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
       Exp.map$Clean_name[which(Exp.map$clean_Group_name == x)]
     })))
   }
-  smplCols_lst <- setNames(lapply(exp, \(xp) {
-    grep(topattern(paste0("\n", xp), FALSE, TRUE), colnames(df), value = TRUE)
-  }), exp)
+  smplCols_lst <- xpCols_list[exp]
   smplCols <- setNames(unlist(smplCols_lst), NULL)
   coreCols <- "PEP"
   if (tab %in% c("Protein groups", "All peptidoforms")) {
@@ -942,6 +760,199 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
   }
   return(tags$div(df,
                   style = paste0("background: #ffffff;")))
+}
+make_prot_tab <- \(dflt = dfltProt,
+                   prots = allProt,
+                   shiny = TRUE) {
+  myCol <- tolower(viridis::viridis(6L, alpha = 0.2)[4L])
+  myExp <- if (scrptType == "noReps") { Exp } else { setNames(smplGrps, NULL) }
+  # - show:
+  # Proteins tab
+  #################################
+  #     dropdown for protein      #
+  #################################
+  # ->
+  #################################
+  #      comment for protein      #
+  #################################
+  ################## ##############
+  #samples dropdown# #            #
+  ################## #            #
+  ################## #   Ratios   #
+  #                # #    plot    #
+  #    Coverage    # #            #
+  #                # #            #
+  ################## ##############
+  # Peptides table
+  if (shiny) {
+    tagList(tags$div(
+      if (prot.list.Cond && (length(prots) > 1L)) {
+        tags$div(selectInput("myProtein", "Select protein", prots, dflt),
+                 br())
+      },
+      uiOutput("protComment"),
+      br(),
+      fluidRow(column(6L,
+                      if (length(myExp) > 1L) {
+                        selectInput("mySample", "", myExp, myExp[1L]) 
+                      },
+                      plotlyOutput("coverPlot", height = plotHght)),
+               if (scrptType == "noReps") {
+                 column(6L,
+                        plotlyOutput("ratioPlot", height = plotHght))
+               },
+      ),
+      br(),
+      br(),
+      tags$hr(style = "border-color: black;"),
+      if (peptidoTst) { uiOutput("protPep") },
+      br(),
+      style = paste0("background: ", myCol, ";")))
+  } else {
+    ## Coverage plots ###################################################
+    if (tstCov) {
+      dfltExp <- myExp[1L]
+      exp2smpl <- listMelt(lapply(prots, \(pr) { myExp }), prots, ColNames = c("Sample", "Protein"))
+      cov_plots <- lapply(1L:nrow(exp2smpl), \(i) {
+        exp <- exp2smpl$Sample[i]
+        pr <- exp2smpl$Protein[i]
+        tags$div(id = paste0("cov_", pr, "_", exp),
+                 style = paste("width: 100%; display: ",
+                               if ((pr == dflt) && (exp == dfltExp)) { "block" } else { "none" },
+                               ";"),
+                 covPlots[[pr]]$logInt[[exp]])
+      })
+    }
+    ## Ratio plots ######################################################
+    ratio_plots_ui <- NULL
+    if (tstRat) {
+      prots2 <- intersect(prots, names(ratioPlots))
+      if (length(prots2)) {
+        ratio_plots_ui <- lapply(prots2, \(pr) {
+          tags$div(id = paste0("rat_", pr),
+                   style = paste("width: 100%; display: ",
+                                 if (pr == dflt) { "block" } else { "display" },
+                                 ";"),
+                   ratioPlots[[pr]])
+        })
+      }
+    }
+    #
+    ## Comments #########################################################
+    prot_comments <- allComments[prots]
+    prComments <- lapply(prots, \(pr) {
+      make_comment_ui(pr,
+                      FALSE,
+                      prot_comments,
+                      pr == dflt,
+                      "prComment_")
+    })
+    #
+    ## Peptide tables  ##################################################
+    if (peptidoTst) {
+      pepTables <- lapply(prots, \(pr) {
+        m <- match(pr, prots)
+        tags$div(id = paste0("pepTable_", m),
+                 style = if (pr == dflt) { "width: 100%; display: block;" } else { "display: none;" },
+                 make_smpl_tbl_ui(tab = "All peptidoforms",
+                                  filt = pr))
+      })
+    }
+    ## UI ###############################################################
+    tagList(tags$div(
+      if (length(prots) > 1L) {
+        fluidRow(column(12L,
+                        make_select_tag("myProtein",
+                                        "",
+                                        "myProtein",
+                                        prots,
+                                        dflt),
+                        br()))
+      },
+      prComments,
+      br(),
+      fluidRow(column(6L,
+                      if (length(myExp) > 1L) {
+                        make_select_tag("mySample",
+                                        "",
+                                        "mySample",
+                                        myExp,
+                                        myExp[1L])
+                      },
+                      br(),
+                      cov_plots),
+               if (!is.null(ratio_plots_ui)) {
+                 column(6L, ratio_plots_ui)
+               },
+      ),
+      br(),
+      br(),
+      tags$hr(style = "border-color: black;"),
+      if (peptidoTst) { pepTables },
+      tags$script(HTML(paste0("function updateProteinTab() {
+  const protEl = document.getElementById('myProtein');
+  const sampleEl = document.getElementById('mySample');
+  const singleSample = ",
+                              jsonlite::toJSON(if (length(Exp) == 1L) { myExp[1L] } else { NULL },
+                                               auto_unbox = TRUE),
+                              ";
+  // Nothing useful to update if there isn't even a protein
+  if (!protEl) {
+    return;
+  }
+  const prot = protEl.value;
+  const ind = protEl.selectedIndex + 1;
+  // If there is no sample selector, use the single sample
+  // encoded by the first/only option, if available.
+  const sample = sampleEl ? sampleEl.value : singleSample;
+  const comm = 'prComment_' + ind;
+  document.querySelectorAll('[id^=\"cov_\"]').forEach(function(el) {
+    el.style.display = 'none';
+  });
+  if (sample !== null) {
+    const cov = document.getElementById('cov_' + prot + '_' + sample);
+    if (cov) {
+      cov.style.display = 'block';
+    }
+  }
+  document.querySelectorAll('[id^=\"pepTable_\"]').forEach(function(el) {
+    el.style.display = 'none';
+  });
+  const pepTblID = document.getElementById('pepTable_' + ind);
+  if (pepTblID) {
+    pepTblID.style.width = '100%';
+    pepTblID.style.display = 'block';
+  }
+  document.querySelectorAll('[id^=\"rat_\"]').forEach(function(el) {
+    el.style.display = 'none';
+  });
+  const rat = document.getElementById('rat_' + prot);
+  if (rat) {
+    rat.style.display = 'block';
+  }
+  document.querySelectorAll('[id^=\"prComment_\"]').forEach(function(el) {
+    el.style.display = 'none';
+  });
+  const comment = document.getElementById(comm);
+  if (comment) {
+    comment.style.display = 'block';
+    comment.style.whiteSpace = 'pre-wrap';
+    comment.style.padding = '10px';
+  }
+  window.dispatchEvent(new Event('resize'));
+}
+const mySample = document.getElementById('mySample');
+if (mySample) {
+  mySample.addEventListener('change', updateProteinTab);
+}
+const myProt = document.getElementById('myProtein');
+if (myProt) {
+  myProt.addEventListener('change', updateProteinTab);
+}
+"))),
+      br(),
+      style = paste0("background: ", myCol, ";")))
+  }
 }
 make_summTbl_ui <- \() {
   df <- t(Exp_summary[, grep(" - % ", colnames(Exp_summary), invert = TRUE, value = TRUE)])
@@ -1618,10 +1629,12 @@ server <- \(input, output, session) {
       return(p)
     })
     output$protComment <- renderUI(make_comment_ui(MYPROT()))
-    output$protPep <- renderUI({
-      make_smpl_tbl_ui(tab = "All peptidoforms",
-                       filt = MYPROT())
-    })
+    if (peptidoTst) {
+      output$protPep <- renderUI({
+        make_smpl_tbl_ui(tab = "All peptidoforms",
+                         filt = MYPROT())
+      })  
+    }
     if (tstCov && (length(allProt) > 1L)) {
       observeEvent(input$myProtein, { MYPROT(input$myProtein) })
     }

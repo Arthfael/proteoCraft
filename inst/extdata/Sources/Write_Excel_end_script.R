@@ -15,13 +15,13 @@ WorkBook <- wb_set_row_heights(WorkBook, sheetnm, 1L, 15L)
 colWdths <- rep(8.43, 1000L) # Should be enough, what say you?
 colWdths[1L] <- 5L
 colWdths[2L] <- tmp
-fls <- c(list.files(paste0(wd, "/Summary plots"), ".svg", full.names = TRUE, recursive = TRUE),
-         list.files(paste0(wd, "/Workflow control"), ".svg", full.names = TRUE, recursive = TRUE))
+fls <- c(list.files(paste0(wd, "/Summary plots"), "\\.svg$", full.names = TRUE, recursive = TRUE),
+         grep(" VS ", list.files(paste0(wd, "/Workflow control"), "\\.svg$", full.names = TRUE, recursive = TRUE), value = TRUE, invert = TRUE))
 nImgs <- length(fls)
 o <- 24L
 if (nImgs) {
   fls2 <- sub("\\.svg$", ".png", fls)
-  lapply(1L:nImgs, \(i) { rsvg::rsvg_png(fls[i], file = fls2[i]) })
+  invisible(lapply(1L:nImgs, \(i) { rsvg::rsvg_png(fls[i], file = fls2[i]) }))
   flsTbl <- data.frame(File = fls2,
                        x = ceiling(1L:nImgs/2),
                        y = (((1L:nImgs)+1L) %% 2L) + 1L,
@@ -32,36 +32,37 @@ if (nImgs) {
     flsTblList[[i]] <- png::readPNG(flsTbl$File[i])
     flsTbl[i, c("Height", "Width")] <- dim(flsTblList[[i]])[1L:2L]
   }
-  #View(flsTbl[, c("Height", "Width")])
+  #View(flsTbl[, c("File", "Height", "Width")])
   # We want a 3000*3000 image to fit into a rough square of 20 rows and 6 columns
   # A row should be 20 pixels high
   # A column should be 64 pixels wide
   # 20*20
   # 64*6
   flsTbl$Max <- apply(flsTbl[, c("Width", "Height")], 1L, max)
-  flsTbl$Width_Xl <- 4L*flsTbl$Width/flsTbl$Max
-  flsTbl$Height_Xl <- 4L*flsTbl$Height/flsTbl$Max
-  flsTbl$Col <- vapply(1L:nrow(flsTbl), function(i) {
-    w <- which((flsTbl$x < flsTbl$x[i])&(flsTbl$y == flsTbl$y[i]))
+  flsTbl$Width_Xl <- floor(4L*flsTbl$Width/flsTbl$Max)
+  flsTbl$Height_Xl <- floor(4L*flsTbl$Height/flsTbl$Max)
+  flsTbl$Col <- vapply(1L:nrow(flsTbl), \(i) {
+    w <- which((flsTbl$x < flsTbl$x[i]) & (flsTbl$y == flsTbl$y[i]))
     if (length(w)) {
       res <- (sum(flsTbl$Width_Xl[w]+1L)*8.43+8.43)*1.5
       res <- which(cumsum(colWdths[2L:length(colWdths)]) > res)[1L]
     } else { res <- 2L }
     return(res)
-  }, 1)
-  flsTbl$Row <- vapply(1L:nrow(flsTbl), function(i) {
-    w <- which((flsTbl$y < flsTbl$y[i])&(flsTbl$x == flsTbl$x[i]))
+  }, 1L)
+  flsTbl$Row <- vapply(1L:nrow(flsTbl), \(i) {
+    w <- which((flsTbl$y < flsTbl$y[i]) & (flsTbl$x == flsTbl$x[i]))
     if (length(w)) {
-      res <- ceiling(sum(flsTbl$Height_Xl[w]*24L/4L+1L))
+      res <- as.integer(ceiling(sum(flsTbl$Height_Xl[w]*6L+1L)))
     } else { res <- 0L }
-    return(res+3)
-  }, 1)
+    return(res+3L)
+  }, 1L)
+  #View(flsTbl[, c("File", "Height", "Width", "Row", "Col")])
   for (i in 1L:nImgs) {
     WorkBook <- wb_add_image(WorkBook, sheetnm, wb_dims(flsTbl$Row[i],
                                                         flsTbl$Col[i]),
                              flsTbl$File[i],
-                             flsTbl$Width_Xl[i]*1.2,
-                             flsTbl$Height_Xl[i]*1.2)
+                             flsTbl$Width_Xl[i],
+                             flsTbl$Height_Xl[i])
   }
   o <- o + max(flsTbl$Row)
 }
@@ -74,11 +75,11 @@ if (exists("Exp_summary")) {
                                 first_column = TRUE,
                                 banded_rows = TRUE)
   XpSum_OS <- nrow(Exp_summary) + 2L 
-} else { XpSum_OS <- 0 }
+} else { XpSum_OS <- 0L }
 if (exists("Modifs")) {
   temp <- Modifs[, c("Full name", "Mark", "Type", "AA")]
-  w <- which(sapply(colnames(temp), function(x) { class(temp[[x]]) }) == "list")
-  if (length(w)) { for (k in colnames(temp)[w]) { temp[[k]] <- sapply(temp[[k]], paste, collapse = ", ") } }
+  w <- which(vapply(colnames(temp), \(x) { inherits(temp[[x]], "list") }, TRUE))
+  if (length(w)) { for (k in colnames(temp)[w]) { temp[[k]] <- vapply(temp[[k]], paste, "", collapse = ", ") } }
   dms <- wb_dims(2L + XpSum_OS + o, 2L)
   WorkBook <- wb_add_data_table(WorkBook, sheetnm, temp,
                                 dms, col_names = TRUE, row_names = FALSE,
@@ -121,6 +122,7 @@ WorkBook <- wb_set_base_font(WorkBook, 11L, font_name = "Calibri")
 cat("    ---> writing table...\n")
 wb_save(WorkBook, repFl)
 #xl_open(repFl)
+if (nImgs) { unlink(fls2) }
 #
 # Edit .xlsx (for the bits which openxlsx2 cannot handle well at the moment - or rather which I haven't yet figured out how to make it do!)
 # - Unzip
@@ -153,16 +155,56 @@ w1 <- which(vapply(xmlFls, \(fl) {
 }, TRUE))
 w2 <- which(xmlFls %in% paste0(dr, "/xl/worksheets/sheet", as.character(which(!sheetVis)), ".xml"))
 w <- union(w1, w2)
-for (fl in xmlFls[w1]) { #fl <- xmlFls[w1][1L]
-  xmlDat[[fl]] <- gsub("///NL///", "&#10;",
-                       gsub("///VS/// ", "/&#10;", xmlDat[[fl]]))
+nChars <- setNames(vapply(xmlFls[w], \(fl) { nchar(xmlDat[[fl]]) }, 1L), xmlFls[w])
+chunk_size <- 5e7
+# Some of these files are very, very... VERY large, so we want to process by chunks... but we also do not want to miss anything!
+# So we will process by chunks:
+pats1 <- c("///NL///", "///VS/// ")
+rpls1 <- c("&#10;", "&#10;")
+rplFun1 <- \(x) { gsub(pats1[1L], rpls1[1L], gsub(pats1[2L], rpls1[2L], x)) }
+pats2 <- c("tabSelected=\"1\"")
+rpls2 <- c("tabSelected=\"0\"")
+rplFun2 <- \(x) { gsub(pats2[1L], rpls2[1L], x) }
+pat <- paste(union(pats1, pats2), collapse = "|")
+maxL <- max(nchar(union(pats1, pats2)))
+for (fl in xmlFls[w]) { #fl <- xmlFls[w][1L] #fl <- names(nChars)[which.max(nChars)]
+  tmp <- xmlDat[[fl]]
+  nc <- nChars[fl]
+  n <- ceiling(nc/chunk_size)
+  rg <- round(seq_len(n)/n*nc) # NB: here the order of division/multiplication is important here to prevent integer overflow!!!
+  if (nc <= chunk_size) {
+    tst <- data.frame(start = 1L,
+                      end = nc)
+  } else {
+    # If more than one chunk, let's verify that there is no overlaps between the area surrounding breaks and pattern matches!
+    brks <- rg[seq_len(n-1L)]
+    brksTst <- vapply(brks, \(x) {
+      grepl(pat, substr(tmp, x-maxL, x+maxL+1L))
+    }, TRUE)
+    rg <- rg[setdiff(seq_len(n), which(brksTst))]
+    n <- length(rg)
+    tst <- data.frame(end = rg)
+    tst$start <- c(1L, tst$end[seq_len(n-1L)]+1L)
+  }
+  tst$dat <- vapply(seq_len(nrow(tst)), \(i) {
+    substr(tmp, tst$start[i], tst$end[i])
+  }, "")
+  if (fl %in% xmlFls[w1]) {
+    tst$dat <- rplFun1(tst$dat)
+  }
+  if (fl %in% xmlFls[w2]) {
+    tst$dat <- rplFun2(tst$dat)
+  }
+  con <- base::file(fl, "wb")
+  for (x in tst$dat) {
+    writeChar(enc2utf8(x), con, eos = NULL, useBytes = TRUE)
+  }
+  close(con)
 }
-for (fl in xmlFls[w2]) { #fl <- xmlFls[w2][1L]
-  xmlDat[[fl]] <- sub("tabSelected=\"1\"", "tabSelected=\"0\"", xmlDat[[fl]])
-}
-for (fl in xmlFls[w]) {
-  writeLines(enc2utf8(xmlDat[[fl]]), fl, useBytes = TRUE)
-}
+# Note: it would be faster to concatenate the chunks from all files and process the whole thing together once.
+# Parallelization could also be considered carefully here (e.g. serialize chunks to disk then parLapply over indices using readr::read_rds() to write each the current node)
+#
+gc()
 # - Save final report
 setwd(dr)
 fls <- list.files(".", recursive = TRUE, all.files = TRUE)

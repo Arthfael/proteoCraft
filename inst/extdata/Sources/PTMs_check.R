@@ -176,11 +176,11 @@ plotLy <- ggplotly(plot, tooltip = c("x", "y", "fill"))
 plotLy <- plotly::config(plotLy,
                          modeBarButtonsToRemove = c("select2d", "lasso2d"))
 plotLy <- plotly_build(plotLy)
-if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
-if (!exists("QC_plotLys")) { QC_plotLys <- list() }
 setwd(paste0(wd, "/Summary plots"))
 saveWidget(partial_bundle(plotLy), paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)
+if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
+if (!exists("QC_plotLys")) { QC_plotLys <- list() }
 QC_plotLys[[ttl]] <- plotLy
 saveFun(QC_plotLys, qcBckUpFl)
 
@@ -202,9 +202,3 @@ if (exists("Tim")) {
     Tim <- as.character(sort(as.numeric(Tim)))
   }
 }
-
-rm(list = ls()[which(!ls() %in% .obj)])
-Script <- readr::read_lines(ScriptPath)
-saveImgFun(BckUpFl)
-#loadFun(BckUpFl)
-source(parSrc)

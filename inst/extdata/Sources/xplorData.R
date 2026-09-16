@@ -10,7 +10,7 @@ HEIGHT <- paste0(as.character(Height, "px"))
 try({
   loadFun(heatMaps_fl)
   loadFun(dimRed_fl)
-  loadFun(paste0(wd, "/Sorting plots/quantPlots.RDS"))
+  loadFun(paste0(wd, "/Ranked abundance/quantPlots.RDS"))
   loadFun(paste0(wd, "/Profile plots/profilePlots.RDS"))
 }, silent = TRUE)
 heatMaps_ON <- exists("plotLeatMaps") && (length(plotLeatMaps) > 0L)
