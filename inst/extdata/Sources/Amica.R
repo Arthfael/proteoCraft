@@ -52,7 +52,9 @@ if (Param$Amica) {
       AmicTbl[which(!is.finite(AmicTbl[[kol]])), kol] <- NaN
       kol <- paste0("AveExpr_", nm)
       m <- match(contr, myContrasts$Contrast)
-      AmicTbl[[kol]] <- PG[[paste0("Mean ", prtRfRoot, myContrasts$A_full[m])]]/log10(2L)
+      A <- myContrasts$A[m]
+      A <- Exp.map[match(A, cleanNms(Exp.map[[VPAL$column]])), VPAL$column]
+      AmicTbl[[kol]] <- PG[[paste0("Mean ", prtRfRoot, A)]]/log10(2L)
       AmicTbl[which(!is.finite(AmicTbl[[kol]])), kol] <- NaN
     }
     tst <- apply(AmicTbl[, grep("^AveExpr_", colnames(AmicTbl), value = TRUE), drop = FALSE], 1L, \(x) {
