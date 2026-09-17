@@ -116,7 +116,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
       tmpFl <- tempfile(fileext = ".rds")
       readr::write_rds(quantData_norm, tmpFl)
       ids <- PG$id[nrmFlt]
-      exports <- list("tmpFl", "Exp.map", "Norm.Groups", "nrmFlt", "Prot.Expr.Root", "ids", "AdvNorm.IL", "grpKols")
+      exports <- list("tmpFl", "Exp.map", "Norm.Groups", "nrmFlt", "Prot.Expr.Root", "ids", "robustNorm", "grpKols")
       clusterExport(parClust, exports, envir = environment())
       invisible(clusterCall(parClust, \() {
         quantData_norm <- readr::read_rds(tmpFl)
@@ -149,7 +149,8 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
       if (Norma.Prot.Ratio.Adv) {
         xpMed0 <- apply(dat, 2L, median, na.rm = TRUE)
         dat$id <- ids
-        nrmDat <- AdvNorm.IL(dat, "id", kol, TRUE, 5L)
+        #nrmDat <- AdvNorm.IL(dat, "id", kol, TRUE, 5L)
+        nrmDat <- robustNorm(dat, kol, loss = "huber")
         nrmKol <- paste0("AdvNorm.", kol)
         nrmDat <- nrmDat[, nrmKol]
         xpMed2 <- apply(nrmDat, 2L, median, na.rm = TRUE)

@@ -1161,9 +1161,3 @@ if (CytoScape) {
     cat("(This error can be ignored as it does not interrupt script execution.\nIt looks like you are trying to close Cytoscape although it is already open (maybe running this script by bits after an interruption?)\n\n")
   }
 }
-
-# Backup data/update cluster
-stopClust <- TRUE
-#rstudioapi::documentOpen(bckpSrc)
-source(bckpSrc)
-#loadFun(BckUpFl)
