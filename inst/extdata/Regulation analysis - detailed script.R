@@ -1960,16 +1960,19 @@ goSrc <- paste0(libPath, "/extdata/Sources/rep_GO.R")
 #rstudioapi::documentOpen(goSrc)
 source(goSrc)
 
+#### Code chunk - Modified peptides analysis
+modPepSrc <- paste0(libPath, "/extdata/Sources/modPeptides.R")
+#rstudioapi::documentOpen(modPepSrc)
+source(modPepSrc)
+
+saveFun(GO_plot_ly, GO_plot_ly_fl)
+rm(GO_plot_ly)
+
 # Backup data/update cluster
 stopClust <- TRUE
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
 #loadFun(BckUpFl)
-
-#### Code chunk - Modified peptides analysis
-modPepSrc <- paste0(libPath, "/extdata/Sources/modPeptides.R")
-#rstudioapi::documentOpen(modPepSrc)
-source(modPepSrc)
 
 #### Code chunk - Proteomic ruler
 Src <- paste0(libPath, "/extdata/Sources/proteome_Ruler.R")

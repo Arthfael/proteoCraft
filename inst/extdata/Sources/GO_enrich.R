@@ -239,7 +239,8 @@ if (Mode == "dataset") {
     # Placeholder
   }
 }
-if (!exists("GO_plot_ly")) { GO_plot_ly %<o% list() }
+if (!exists("GO_plot_ly_fl")) { GO_plot_ly_fl %<o% paste0(wd, "/Reg. analysis/GO enrich/GO_plot_ly.RDS") }
+if (!exists("GO_plot_ly")) { GO_plot_ly <- list() }
 if (!dataType %in% names(GO_plot_ly)) { GO_plot_ly[[dataType]] <- list() }
 if (Mode == "regulated") { slotNm <- Tsts[tt] }
 if (Mode == "dataset") { slotNm <- "Dataset" }

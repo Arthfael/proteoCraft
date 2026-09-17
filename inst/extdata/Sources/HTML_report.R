@@ -200,28 +200,29 @@ if (Venn_ON) {
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
   }
 }
-# for (tt in names(GO_plot_ly$PG)) {
-#   for (x in names(GO_plot_ly$PG[[tt]])) { #x <- names(GO_plot_ly$PG[[tt]])[1L]
-#     for (nm in c("Bar", "Bubble")) {
-#       p <- GO_plot_ly$PG[[tt]][[x]][[nm]]
-#       p$x$layout$xaxis$autorange <- TRUE
-#       p$x$layout$yaxis$autorange <- TRUE
-#       GO_plot_ly$PG[[tt]][[x]][[nm]] <- plotly::config(p,
-#                                                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
-#     }
-#   }
-# }
-# if (!is.null(GO_plot_ly$Prot$SAINTexpress)) {
-#   for (x in names(GO_plot_ly$Prot$SAINTexpress)) { #x <- names(GO_plot_ly$Prot$SAINTexpress)[1L]
-#     for (nm in c("Bar", "Bubble")) {
-#       p <- GO_plot_ly$Prot$SAINTexpress[[x]][[nm]]
-#       p$x$layout$xaxis$autorange <- TRUE
-#       p$x$layout$yaxis$autorange <- TRUE
-#       GO_plot_ly$Prot$SAINTexpress[[x]][[nm]] <- plotly::config(p,
-#                                                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
-#     }
-#   }
-# }
+loadFun(GO_plot_ly_fl)
+for (tt in names(GO_plot_ly$PG)) {
+  for (x in names(GO_plot_ly$PG[[tt]])) { #x <- names(GO_plot_ly$PG[[tt]])[1L]
+    for (nm in c("Bar", "Bubble")) {
+      p <- GO_plot_ly$PG[[tt]][[x]][[nm]]
+      p$x$layout$xaxis$autorange <- TRUE
+      p$x$layout$yaxis$autorange <- TRUE
+      GO_plot_ly$PG[[tt]][[x]][[nm]] <- plotly::config(p,
+                                                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
+    }
+  }
+}
+if (!is.null(GO_plot_ly$Prot$SAINTexpress)) {
+  for (x in names(GO_plot_ly$Prot$SAINTexpress)) { #x <- names(GO_plot_ly$Prot$SAINTexpress)[1L]
+    for (nm in c("Bar", "Bubble")) {
+      p <- GO_plot_ly$Prot$SAINTexpress[[x]][[nm]]
+      p$x$layout$xaxis$autorange <- TRUE
+      p$x$layout$yaxis$autorange <- TRUE
+      GO_plot_ly$Prot$SAINTexpress[[x]][[nm]] <- plotly::config(p,
+                                                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
+    }
+  }
+}
 
 #
 #plotHght <- "400px"

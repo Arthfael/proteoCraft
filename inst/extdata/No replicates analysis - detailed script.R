@@ -1867,6 +1867,9 @@ goSrc <- paste0(libPath, "/extdata/Sources/noRep_GO.R")
 #rstudioapi::documentOpen(goSrc)
 source(goSrc)
 
+saveFun(GO_plot_ly, GO_plot_ly_fl)
+rm(GO_plot_ly)
+
 #### Code chunk - Venn diagrams
 vennTst <- try({
   Src <- paste0(libPath, "/extdata/Sources/noRep_Venn.R")

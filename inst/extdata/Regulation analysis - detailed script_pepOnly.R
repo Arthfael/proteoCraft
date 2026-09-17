@@ -649,6 +649,9 @@ modPepSrc <- paste0(libPath, "/extdata/Sources/modPeptides.R")
 #rstudioapi::documentOpen(modPepSrc)
 source(modPepSrc)
 
+saveFun(GO_plot_ly, GO_plot_ly_fl)
+rm(GO_plot_ly)
+
 #### Code chunk - Create output tables
 ## PSMs
 dir <- paste0(wd, "/Tables")
