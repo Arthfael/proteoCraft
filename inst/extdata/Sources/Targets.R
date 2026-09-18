@@ -1,10 +1,10 @@
 if ("Target" %in% colnames(Exp.map)) {
-  TargetProteins %<o% unique(unlist(strsplit(Exp.map$Target[which(!is.na(Exp.map$Target))], ";")))
-  TargetProteins <- TargetProteins[which(!TargetProteins %in% c("NA", "", "Control"))]
+  TargetProteins %<o% unique(unlist(strsplit(Exp.map$Target[!is.na(Exp.map$Target)], ";")))
+  TargetProteins <- setdiff(TargetProteins, c("NA", "", "Control"))
   w <- which(!TargetProteins %in% db$`Protein ID`)
   if (length(w)) {
     targProt <- setNames(rep(NA, length(w)), TargetProteins[w])
-    protHeads3 <- c(protHeads2[prot.list[which(prot.list %in% names(protHeads2))]], "Other")
+    protHeads3 <- c(protHeads2[intersect(prot.list, names(protHeads2))], "Other")
     names(protHeads3) <- NULL
     appNm <- paste0(dtstNm, " - Baits")
     dfltProt <- setNames(lapply(w, \(x) {
@@ -99,7 +99,7 @@ if ("Target" %in% colnames(Exp.map)) {
         if (res$Outcome) { res$Output <- x }
         return(res)
       })
-      tmp <- tmp[which(vapply(tmp, \(x) { x$Outcome }, TRUE))]
+      tmp <- tmp[vapply(tmp, \(x) { x$Outcome }, TRUE)]
       if (length(tmp)) {
         tmp <- plyr::rbind.fill(tmp)
         db <- plyr::rbind.fill(db, tmp)
@@ -107,7 +107,7 @@ if ("Target" %in% colnames(Exp.map)) {
     }
     if (length(w2)) {
       tmp <- targProt[w2]
-      tmp <- tmp[which(tmp != "Other")]
+      tmp <- setdiff(tmp, "Other")
       m <- match(tmp, protHeads2)
       w3 <- which(!is.na(m))
       targProt[w2[w3]] <- names(protHeads2)[m[w3]]

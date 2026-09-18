@@ -99,7 +99,7 @@ seq$.Proteins <- strsplit(seq$Proteins, ";")
 rws <- 1L:nrow(seq)
 tmp1 <- seq$.Proteins
 tmp1 <- listMelt(tmp1)
-tmp1 <- tmp1[which(tmp1$value %in% DB$"Protein ID"),]
+tmp1 <- tmp1[tmp1$value %in% DB$"Protein ID",]
 tmp1 <- data.table::as.data.table(tmp1)
 tmp1 <- tmp1[, list(value = list(value)), by = list(L1)]
 tmp1 <- tmp1[order(tmp1$L1),]
@@ -129,7 +129,7 @@ if (CustPG) {
   g <- grsep(tmp, x = seq$Proteins)
   if (length(g)) {
     seq2 <- seq[g,]
-    seq <- seq[which(!(1L:nrow(seq)) %in% g),]
+    seq <- seq[!(1L:nrow(seq)) %in% g,]
     Custom_PGs$.pep.ids <- list(NA)
     priorities <- sort(unique(Custom_PGs$"Priority level"), decreasing = TRUE) # Sorted by decreasing value (increasing priority)
     for (i in max(priorities):1L) { #i <- max(priorities)
@@ -295,7 +295,7 @@ f0 <- \(x) {
   #Prot.id <- Prot.id[[1L]] #(for testing)
   x3l <- lengths(pep_to_P_to_pep)
   test <- vapply(pep_to_P_to_pep, \(y) { sum(y %in% pep.ids) }, 1L) == x3l # Can the 2nd protein be subsumed in the 1st?
-  res <- pep_to_P[which(test)]
+  res <- pep_to_P[test]
   return(res)
 }
 #environment(f0) <- .GlobalEnv
@@ -314,7 +314,7 @@ unlink(paste0(wd, "/tmp1.RDS"))
 f0 <- \(x) {
   x1 <- tmp1[["Prot.id"]][[x]]
   x2 <- tmp1[["temp"]][[x]]
-  return(list(x2[which(x2 != x1)]))
+  return(list(setdiff(x2, x1)))
 }
 #environment(f0) <- .GlobalEnv
 prot$Contains <- parallel::parLapply(cl, 1L:nrow(prot), f0)
@@ -330,7 +330,7 @@ prot$Is.Leading <- !prot$Prot.id %in% contained$Contained
 cat(" - Identifying Leading protein ID containing each subsumable protein ID.\n")
 w <- which(lengths(prot$Contains) > 0L)
 a <- setNames(prot$Contains[w], prot$Prot.id[w])
-a <- a[which(lengths(a) > 0L)]
+a <- a[lengths(a) > 0L]
 if (length(a)) {
   temp <- listMelt(a)
   temp <- data.table::data.table(value = temp$value, L1 = temp$L1)
@@ -384,13 +384,13 @@ if (length(a)) {
   ## Contained proteins get (temporary) Leading status here if they are equivalent to all of their containers,
   ## i.e. if they have no container larger than them:
   contained$Is.Leading <- contained$test == 0L
-  prot$Is.Leading[match(contained$Contained[which(contained$Is.Leading)], prot$Prot.id)] <- TRUE
+  prot$Is.Leading[match(contained$Contained[contained$Is.Leading], prot$Prot.id)] <- TRUE
 }
 ## Create protein groups:
 cat(" - Creating temporary protein groups.\n")
 pg <- prot
-if (CustPG) { pg <- pg[which(!pg$Prot.id %in% prot2$Prot.id),] }
-pg <- pg[which(pg$Is.Leading), c("Protein", "Prot.id", "pep.ids")]
+if (CustPG) { pg <- pg[!pg$Prot.id %in% prot2$Prot.id,] }
+pg <- pg[pg$Is.Leading, c("Protein", "Prot.id", "pep.ids")]
 pg <- magrittr::set_colnames(aggregate(pg[,c("Protein", "Prot.id")],
                                        list(pg$pep.ids),
                                        paste,
@@ -401,7 +401,7 @@ pg$.pep.ids <- lapply(strsplit(pg$"Peptide IDs", ";"), as.integer)
 pg$"Peptides count" <- lengths(pg$.pep.ids)
 pg$.Leading.protein.IDs <- strsplit(pg$"Leading protein IDs", ";")
 pg$.lead.protein.ids <- strsplit(pg$lead.protein.ids, ";")
-#temp <- prot[which(prot$Is.Leading),]
+#temp <- prot[prot$Is.Leading,]
 tmp1 <- pg$.lead.protein.ids
 tmp2 <- prot[, c("Contains", "Prot.id")]
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
@@ -474,7 +474,7 @@ unlink(paste0(wd, "/tmp1.RDS"))
 unlink(paste0(wd, "/tmp2.RDS"))
 f0 <- \(x) {
   x <- unlist(x)
-  a1 <- tmp1[which(tmp1 != x)]
+  a1 <- setdiff(tmp1, x)
   x1 <- unlist(tmp2[x]) # pep ids for that PG
   y <- unique(unlist(tmp2[a1])) # pep ids for all other PGs
   sum(x1 %in% y) == length(x1) # Are all peptides for that PG contained in the others?
@@ -555,16 +555,16 @@ W <- which(pg$Removable)
 pg$Remove <- FALSE
 if (length(W)) {
   # Get peptides of removable protein groups and sort them by current number of protein groups
-  pt <- seq[which(seq$id %in% unlist(pg$.pep.ids[W])),]
+  pt <- seq[seq$id %in% unlist(pg$.pep.ids[W]),]
   pt <- pt[order(lengths(pt$.temp.pg.ids), decreasing = TRUE),]
   # For now none of these peptides have been dealt with:
   pt$Done <- FALSE
   while (sum(!pt$Done)) {
     i <- which(!pt$Done)[1L]
-    cat(paste0(" ---> Still ", length(unique(unlist(pt$.temp.pg.ids[which(!pt$Done)]))), " unresolved protein groups...\n"))
+    cat(paste0(" ---> Still ", length(unique(unlist(pt$.temp.pg.ids[!pt$Done]))), " unresolved protein groups...\n"))
     #cat(paste0("   i = ", i, "\n"))
     # Get all protein groups for the current peptide:
-    ptpg <- pg[which(pg$temp.pg.id %in% unlist(pt$.temp.pg.ids[i])),]
+    ptpg <- pg[pg$temp.pg.id %in% unlist(pt$.temp.pg.ids[i]),]
     # Peptides from those PGs:
     p <- unlist(ptpg$.pep.ids)
     # overlappers = PGs containing at least one "p" peptide:
@@ -603,7 +603,7 @@ if (length(W)) {
     })), overlappers), P)
     # Heuristic: we will sort protein groups by number of peptides then PEP and remove those which do not increase coverage
     peep <- setNames(pg$PEP[overlappers], overlappers) # PEP is used to tie-break protein groups of equal ranking
-    peep[which(is.na(peep))] <- 1
+    peep[is.na(peep)] <- 1
     peptopg <- peptopg[, order(peep, decreasing = FALSE)]
     smcl <- setNames(colSums(peptopg), colnames(peptopg)) # Then the main ranking is applied: number of peptides
     peptopg <- peptopg[, order(smcl, decreasing = TRUE)]
@@ -618,32 +618,32 @@ if (length(W)) {
     # There may be cases where the final number of protein groups is not the smallest? Not sure.
     while (curr < aim) {
       wnc <- which(!covpep)
-      wni <- names(incl)[which(!incl)]
+      wni <- names(incl)[!incl]
       tst <- apply(peptopg[wnc, wni, drop = FALSE], 2L, sum)
-      bst <- wni[which(tst == max(tst))]
-      if (length(bst) > 1L) { bst <- bst[which(smcl[bst] == max(smcl[bst]))[1L]] }
+      bst <- wni[tst == max(tst)]
+      if (length(bst) > 1L) { bst <- bst[smcl[bst] == max(smcl[bst])][1L] }
       covpep[wnc] <- peptopg[wnc, bst]
       incl[bst] <- TRUE
       curr <- sum(covpep)
     }
-    goners <- as.integer(names(incl)[which(!incl)])
-    keepers <- as.integer(names(incl)[which(incl)])
-    removables <- keepers[which(pg$Removable[keepers])] # self explanatory
+    goners <- as.integer(names(incl)[!incl])
+    keepers <- as.integer(names(incl)[incl])
+    removables <- keepers[pg$Removable[keepers]] # self explanatory
     P2 <- unique(unlist(pg$.pep.ids[keepers])); L2 <- length(P2)
     stopifnot(L == L2)
     # Second filter: trying to remove some more, one by one
     tst1a <- lengths(pg$.pep.ids[removables]) # Their N of peptides
     tst1b <- pg$PEP[removables] # Their PEPs
-    tst1b[which(is.na(tst1b))] <- 1
+    tst1b[is.na(tst1b)] <- 1
     go <- length(removables) > 0L
     while (go) {
       tst2 <- vapply(removables, \(x) {
-        length(unique(unlist(pg$.pep.ids[keepers[which(keepers != x)]])))
+        length(unique(unlist(pg$.pep.ids[setdiff(keepers, x)])))
       }, 1L) == L # Can any of these be dropped without affecting the number of peptides?
       witch <- which(tst2)
       if (length(witch)) {
-        witch <- witch[which(tst1a[witch] == max(tst1a[witch]))]
-        if (length(witch) > 1L) { witch <- witch[which(tst1b[witch] == min(tst1b[witch]))][1L] }
+        witch <- witch[tst1a[witch] == max(tst1a[witch])]
+        if (length(witch) > 1L) { witch <- witch[tst1b[witch] == min(tst1b[witch])][1L] }
         wutch <- which(!c(1L:length(removables)) %in% witch)
         goners <- c(goners, removables[witch])
         keepers <- setdiff(keepers, goners)
@@ -662,8 +662,8 @@ if (length(W)) {
     # but takes centuries to complete for some protein groups.
     # Now how many do we want to remove?
     # We know how many we want to keep at least: all those not flagged pg$Removable == TRUE
-    #core <- overlappers[which(!pg$Removable[overlappers])]; lc <- length(core)
-    #removables <- overlappers[which(pg$Removable[overlappers])]; lr <- length(removables)
+    #core <- overlappers[!pg$Removable[overlappers]]; lc <- length(core)
+    #removables <- overlappers[pg$Removable[overlappers]]; lr <- length(removables)
     # We want to try all ways to choose between 0 and lr removables, going up, such that we get all peptides.
     #cp <- unique(unlist(pg$.pep.ids[core]))
     #tst <- which(!P %in% cp)
@@ -677,16 +677,16 @@ if (length(W)) {
     #    if (length(which(tst))) { done <- TRUE }
     #  }
     #  if (r == lr) { stop("Something went wrong!") }
-    #  keepers <- sort(c(core, unique(as.integer(Com[which(tst),]))))
+    #  keepers <- sort(c(core, unique(as.integer(Com[tst,]))))
     #} else { keepers <- core }
     #goners <- setdiff(overlappers, keepers)
     pg$Remove[goners] <- TRUE
-    pt$Done[which(pt$id %in% unlist(pg$.pep.ids[overlappers]))] <- TRUE
+    pt$Done[pt$id %in% unlist(pg$.pep.ids[overlappers])] <- TRUE
   }
 }
 cat("   All protein groups successfully resolved!\n")
 ## Remove those protein groups we don't need anymore:
-pg1 <- pg[which(!pg$Remove),]
+pg1 <- pg[!pg$Remove,]
 p1 <- unique(unlist(pg1$.pep.ids))
 p <- unique(unlist(pg$.pep.ids))
 if (sum(!p %in% p1)) {
@@ -710,8 +710,8 @@ if (CustPG) {
 doCont <- ((!is.null(ContCol))&&(ContCol %in% colnames(DB)))
 if (doCont) {
   tmp <- listMelt(strsplit(pg$`Protein IDs`, ";"), pg$temp.pg.id)
-  tmp2 <- DB$`Protein ID`[which(DB[[ContCol]] == "+")]
-  tmp <- tmp[which(sub("^CON__", "", tmp$value) %in% sub("^CON__", "", tmp2)),]
+  tmp2 <- DB$`Protein ID`[DB[[ContCol]] == "+"]
+  tmp <- tmp[sub("^CON_+", "", tmp$value) %in% sub("^CON_+", "", tmp2),]
   pg$"Potential contaminant" <- c("", "+")[(pg$temp.pg.id %in% tmp$L1)+1L]
 }
 cat(paste0("   Final number of protein groups: ", nrow(pg), "\n"))
@@ -727,7 +727,7 @@ if (splitByOrg) {
 }
 # Peptide IDs
 pepcolnm <- if (grepl("peptide", Peptide.IDs, ignore.case = TRUE)) {
-  gsub("ss$", "s", paste0(Peptide.IDs, "s"))
+  sub("ss$", "s", paste0(Peptide.IDs, "s"))
 } else { "Peptide IDs" }
 pg[[pepcolnm]] <- vapply(pg$.pep.ids, paste, "", collapse = ";")
 # Assign final PG IDs to seq
@@ -742,7 +742,7 @@ invisible(parallel::clusterCall(cl, \() {
 }))
 unlink(paste0(wd, "/tmp1.RDS"))
 unlink(paste0(wd, "/tmp2.RDS"))
-f0 <- \(x) { tmp2$id[which(tmp2$temp.pg.id %in% unlist(x))] }
+f0 <- \(x) { tmp2$id[tmp2$temp.pg.id %in% unlist(x)] }
 #environment(f0) <- .GlobalEnv
 tmp1 <- seq$.PG.ids <- parallel::parSapply(cl, tmp1, f0)
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
@@ -757,7 +757,7 @@ seq$"Protein group IDs" <- parallel::parSapply(cl, tmp1, f0)
 pg$temp.pg.id <- NULL
 # Unique peptides: peptides unique to a protein group
 cat(" - Identifying unique peptides.\n")
-temp <- seq[which(!grepl(";", seq$"Protein group IDs")), c("id", "Protein group IDs")]
+temp <- seq[!grepl(";", seq$"Protein group IDs"), c("id", "Protein group IDs")]
 temp <- magrittr::set_colnames(aggregate(temp$id, list(temp$"Protein group IDs"), \(x) {
   x
 }), c("id", "pep.ids"))
@@ -808,7 +808,7 @@ f0 <- \(x) {
   w3 <- which(k == Mk) # ~ x[w2][w3]
   if (length(w3) > 1) {
     z <- tmp2$PEP[w1[w2]] # ~ x[w2]
-    z[which(is.na(z))] <- 1
+    z[is.na(z)] <- 1
     z[-w3] <- 1
     mP <- min(z, na.rm = TRUE)
     w3 <- which((k == Mk)&(z == mP)) # ~ x[w2][w3]
@@ -946,7 +946,7 @@ cat(" - Getting sequence coverage.\n")
 c1 <- c("Sequence coverage [%]", "Unique + razor sequence coverage [%]", "Unique sequence coverage [%]")
 c2 <- c(".Leading.protein.IDs", ".pep.ids", ".razor.pep.ids", ".unique.pep.ids")
 tmp1 <- DB[, c("Protein ID", "Sequence")]
-tmp1$`Protein ID` <- gsub("^CON__", "", tmp1$`Protein ID`)
+tmp1$`Protein ID` <- sub("^CON_+", "", tmp1$`Protein ID`)
 tmp2 <- pg[, c2]
 tmp3 <- seq[, c("id", "Sequence")]
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
@@ -966,7 +966,7 @@ unlink(paste0(wd, "/tmp3.RDS"))
 unlink(paste0(wd, "/c2.RDS"))
 f0 <- \(x) {
   #x <- tmp2[1, c2]
-  s <- gsub("^CON__", "", unlist(x[[1L]])[1L])
+  s <- sub("^CON_+", "", unlist(x[[1L]])[1L])
   w <- match(s, tmp1$"Protein ID")
   ptids <- unlist(x[[2L]])
   prids <- unlist(x[[3L]])
@@ -999,13 +999,13 @@ ca <- c("Common Names", "Common Name")
 if (sum(ca %in% colnames(DB))) {
   ca <- intersect(ca, colnames(DB))
   test <- vapply(ca, \(x) { length(is.na(DB[[x]])) }, 1L) > 0L
-  ca <- ca[which(test)[1L]]
+  ca <- ca[test][1L]
 }
 cb <- c("Genes", "Gene", "Gene IDs", "Gene ID")
 if (sum(cb %in% colnames(DB))) {
   cb <- intersect(cb, colnames(DB))
   test <- vapply(cb, \(x) { length(is.na(DB[[x]])) }, 1L) > 0L
-  cb <- cb[which(test)[1L]]
+  cb <- cb[test][1L]
 }
 c1 <- c("Number of proteins", "Fasta headers")
 c2 <- "temp"
@@ -1021,8 +1021,8 @@ kol <- c("Protein ID", "Header", ca, cb)
 kol <- intersect(kol, colnames(DB))
 temp <- DB[, kol]
 temp$temp <- sub("^>", "", temp$Header)
-temp$"Protein ID" <- sub("^CON__", "", temp$"Protein ID")
-temp2b <- sub("^CON__", "", gsub(";CON__", ";", pg$"Protein IDs"))
+temp$"Protein ID" <- sub("^CON_+", "", temp$"Protein ID")
+temp2b <- sub("^CON_+", "", gsub(";CON_+", ";", pg$"Protein IDs"))
 tmp2 <- strsplit(temp2b, ";")
 tmp1 <- temp[, c("Protein ID", c2)]
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
@@ -1161,7 +1161,7 @@ pg$"Also contains" <- NULL
 pg$lead.protein.ids <- NULL
 pg$unique.pep.ids <- NULL
 pg$"Unique peptide IDs" <- ""
-temp <- seq[which(!grepl(";", seq$"Protein group IDs")), c("id", "Protein group IDs")]
+temp <- seq[!grepl(";", seq$"Protein group IDs"), c("id", "Protein group IDs")]
 temp <- aggregate(temp$id, list(temp$"Protein group IDs"), \(x) {
   paste(sort(x), collapse = ";")
 })
@@ -1182,7 +1182,7 @@ if ("Common Name" %in% colnames(DB)) {
   unlink(paste0(wd, "/tmp2.RDS"))      
   f0 <- \(x) {
     x <- tmp1$"Common Name"[match(unlist(x), tmp1$"Protein ID")]
-    x <- x[which((!is.na(x))&(x != ""))]
+    x <- x[(!is.na(x)) & (x != "")]
     paste(x, collapse = ";")
   }
   #environment(f0) <- .GlobalEnv
@@ -1247,7 +1247,7 @@ invisible(parallel::clusterCall(cl, \(x) {
 }))
 tm2 <- Sys.time()
 try({
-  cat(paste0(nrow(pg), " protein groups assembled in ", gsub("^Time difference of ", "", capture.output(tm2-tm1)), "\n"))
+  cat(paste0(nrow(pg), " protein groups assembled in ", sub("^Time difference of ", "", capture.output(tm2-tm1)), "\n"))
 }, silent = TRUE)
 #
 fl <- "PG_assembly"

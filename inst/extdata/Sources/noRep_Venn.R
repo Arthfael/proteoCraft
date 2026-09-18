@@ -11,7 +11,6 @@ for (pck in packs) {
 }
 #
 if (!exists("plotly_Venn")) { plotly_Venn <- list() }
-plotly_Venn %<o% plotly_Venn
 #
 HdrStlVenn <- createStyle(textDecoration = "bold", halign = "left", valign = "bottom", wrapText = TRUE,
                           numFmt = "TEXT", fontSize = 12L, textRotation = 60)

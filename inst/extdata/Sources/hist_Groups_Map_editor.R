@@ -13,7 +13,7 @@ if (reLoad) {
     (sum(!Groups %in% grpsMap_Disk$Group) == 0L)
 }
 grpsMap <- if (reLoad) {
-  grpsMap_Disk[which(grpsMap_Disk$Group %in% samplesMap$Group),]
+  grpsMap_Disk[grpsMap_Disk$Group %in% samplesMap$Group,]
 } else {
   data.frame(Group = Groups,
              Reference = FALSE,
@@ -182,8 +182,8 @@ while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L]
 #
 groupsMap <- grpsMap
 groupsMap[, colnames(grpsMap3)] <- grpsMap3
-#groupsMap <- groupsMap[which(groupsMap$Use),]
-groupsMap <- groupsMap[which(groupsMap$Group %in% samplesMap$Group),]
+#groupsMap <- groupsMap[groupsMap$Use,]
+groupsMap <- groupsMap[groupsMap$Group %in% samplesMap$Group,]
 #
 #############################################
 # Done!                                     #

@@ -31,7 +31,7 @@ if (!exists(ObjNm)) {
 ProcessedByUs %<o% as.logical(ProcessedByUs)
 if (is.na(ProcessedByUs)) { ProcessedByUs <- TRUE }
 if (scrptType == "withReps") {
-  AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
+  AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm,]
   tmp <- AllAnsw[1L,]
   tmp[, c("Parameter", "Message")] <- c(ObjNm, "No questions asked!")
   tmp$Value <- list(get(ObjNm))
@@ -89,8 +89,8 @@ if (!RunByMaster) {
         grepl(topattern(rt), indir)
       }, TRUE)) > 0L
     }, TRUE)
-    inRoot2 <- c(inRoot2[which(tst)][order(nchar(inRoot2[which(tst)]), decreasing = TRUE)],
-                 inRoot2[which(!tst)])
+    inRoot2 <- c(inRoot2[tst][order(nchar(inRoot2[tst]), decreasing = TRUE)],
+                 inRoot2[!tst])
   }
   if (!exists("WhoAmI")) { WhoAmI <- Sys.getenv("USERNAME") }
   #
@@ -110,7 +110,7 @@ if (!RunByMaster) {
   }
   #
   if (exists("inDirs")) {
-    inDirs <- inDirs[which(dir.exists(inDirs))]
+    inDirs <- inDirs[dir.exists(inDirs)]
     if (!length(inDirs)) { rm(inDirs) }
   }
   if (!exists("inDirs")) { inDirs <- inRoot2[grep("^Search folder ", names(inRoot2))[1L]] }
@@ -136,7 +136,7 @@ if (!RunByMaster) {
         w <- which(default)
         default[w[2:length(w)]] <- FALSE
       }
-      default <- srchSoftOpt[which(default)]
+      default <- srchSoftOpt[default]
     }
     return(default)
   }
@@ -229,10 +229,10 @@ if (!RunByMaster) {
     dat <- INPUTTBL()
     nr <- nrow(dat)
     rg <- 1L:nr
-    rg0 <- rg[which(rg != i)]
+    rg0 <- rg[rg != i]
     drs <- dat$Value[rg0]
     dflt <- dat$Value[i]
-    if (!dir.exists(dflt)) { dflt <- rev(drs[which(dir.exists(drs))]) }
+    if (!dir.exists(dflt)) { dflt <- rev(drs[dir.exists(drs)]) }
     if (!length(dflt)) { dflt <- "C:/" }
     if (length(dflt) > 1L) { dflt <- dflt[1L] }
     dr <- rstudioapi::selectDirectory(paste0("Select ",
@@ -249,10 +249,10 @@ if (!RunByMaster) {
         tp <- updt_Type0(dr)
         dat$"Search engine"[i] <- tp
         INPUTTBL(dat)
-        inputTbl <<- dat
+        assign("inputTbl", dat, envir = .GlobalEnv)
         dat2$"Search engine"[i] <- fSlct0(i, dat)
         INPUTTBL2(dat2)
-        inputTbl2 <<- dat2
+        assign("inputTbl2", dat2, envir = .GlobalEnv)
         output$inDirs <- updt_inDirs()
       }
     }
@@ -263,12 +263,12 @@ if (!RunByMaster) {
     dat$"Search engine"[i] <- evnt$value
     INPUTTBL(dat)
     if ("" %in% colnames(dat)) { stop() }
-    inputTbl <<- dat
+    assign("inputTbl", dat, envir = .GlobalEnv)
     dat2 <- INPUTTBL2()
-    tmp <<- fSlct0(i, dat)
+    assign("tmp", fSlct0(i, dat), envir = .GlobalEnv)
     dat2$"Search engine"[i] <- tmp
     INPUTTBL2(dat2)
-    inputTbl2 <<- dat2
+    assign("inputTbl2", dat2, envir = .GlobalEnv)
     output$inDirs <- updt_inDirs()
   })
   #eval(parse(text = run_App), envir = .GlobalEnv)
@@ -280,7 +280,7 @@ if (!RunByMaster) {
       dat <- dat[w,]
       INPUTTBL(dat)
       if ("" %in% colnames(dat)) { stop() }
-      inputTbl <<- dat
+      assign("inputTbl", dat, envir = .GlobalEnv)
       dat2 <- INPUTTBL2()[w,]
       nr2 <- nrow(dat)
       rng2 <- as.character(1L:nr2)
@@ -293,7 +293,7 @@ if (!RunByMaster) {
         as.character(shiny::actionButton(id, "Remove dataset"))
       }, "")
       INPUTTBL2(dat2)
-      inputTbl2 <<- dat2
+      assign("inputTbl2", dat2, envir = .GlobalEnv)
       output$inDirs <- updt_inDirs()
     }
   })
@@ -374,7 +374,7 @@ table.on('change', 'select', function() {
       dat <- rbind(dat, datDflt)
       INPUTTBL(dat)
       if ("" %in% colnames(dat)) { stop() }
-      inputTbl <<- dat
+      assign("inputTbl", dat, envir = .GlobalEnv)
       datDflt$Value <- ""
       datDflt2 <- datDflt
       datDflt2$"Input search folder" <- as.character(shiny::actionButton(paste0("selectDir___", iChr), "Select input"))
@@ -383,7 +383,7 @@ table.on('change', 'select', function() {
       colnames(datDflt2)[4] <- ""
       dat2 <- rbind(dat2, datDflt2)
       INPUTTBL2(dat2)
-      inputTbl2 <<- dat2
+      assign("inputTbl2", dat2, envir = .GlobalEnv)
       output$inDirs <- updt_inDirs()
     })
     #
@@ -392,16 +392,16 @@ table.on('change', 'select', function() {
     output$Workflows <- shiny::renderUI({
       lst <- vector("list", 1L)
       lst[[1L]] <- list(selectInput("Workflow",
-                                   "Select data analysis workflow",
-                                   wrkFlws,
-                                   wrkFlw,
-                                   width = "100%"))
+                                    "Select data analysis workflow",
+                                    wrkFlws,
+                                    wrkFlw,
+                                    width = "100%"))
       return(lst)
     })
     #
     # Observers
     shiny::observeEvent(input$Who, { WHO(input$Who) })
-    shiny::observeEvent(input$Workflow, { WorkFlow <<- input$Workflow })
+    shiny::observeEvent(input$Workflow, { assign("WorkFlow", input$Workflow, envir = .GlobalEnv) })
     #
     shiny::observeEvent(input$dtstNm, {
       if (nchar(input$dtstNm)) {
@@ -412,41 +412,41 @@ table.on('change', 'select', function() {
     })
     #
     shiny::observeEvent(input$vCPUs, {
-      N.clust <<- input$vCPUs
+      assign("N.clust", input$vCPUs, envir = .GlobalEnv)
     })
     shiny::observeEvent(input$writeRaws, {
       #updt_OutDr()
-      writeRaws <<- input$writeRaws
+      assign("writeRaws", input$writeRaws, envir = .GlobalEnv)
     })
     shiny::observeEvent(input$Seed, {
       #updt_OutDr()
-      mySeed <<- input$Seed
+      assign("mySeed", input$Seed, envir = .GlobalEnv)
     })
     shiny::observeEvent(input$writeSearch, {
-      writeSearch <<- input$writeSearch
+      assign("writeSearch", input$writeSearch, envir = .GlobalEnv)
     })
     shiny::observeEvent(input$ProcessedByUs, {
-      ProcessedByUs <<- input$ProcessedByUs
+      assign("ProcessedByUs", input$ProcessedByUs, envir = .GlobalEnv)
       ObjNm <- "ProcessedByUs"
       if ((scrptType == "withReps") && ReUseAnsw && (ObjNm %in% AllAnsw$Parameter)) {
-        AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
+        AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm,]
         tmp <- AllAnsw[1L,]
         tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
         tmp$Value <- list(get(ObjNm))
         m <- match(ObjNm, AllAnsw$Parameter)
         if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
-        AllAnsw <<- AllAnsw
+        assign("AllAnsw", input$AllAnsw, envir = .GlobalEnv)
       }
     })
     shiny::observeEvent(input$saveBtn, {
       WhoAmI <- WHO()
       if (WhoAmI == "Your name here") { WhoAmI <- NA_character_ }
-      WhoAmI <<- WhoAmI
-      dtstNm <<- DATASETNAME()
-      WorkFlow <<- input$Workflow
-      inputTbl <<- INPUTTBL()
-      inDirs <<- inputTbl$Value
-      SearchSoft <<- inputTbl$"Search engine"
+      assign("WhoAmI", WhoAmI, envir = .GlobalEnv)
+      assign("dtstNm", DATASETNAME(), envir = .GlobalEnv)
+      assign("WorkFlow", input$Workflow, envir = .GlobalEnv)
+      assign("inputTbl", INPUTTBL(), envir = .GlobalEnv)
+      assign("inDirs", inputTbl$Value, envir = .GlobalEnv)
+      assign("SearchSoft", inputTbl$"Search engine", envir = .GlobalEnv)
       shiny::stopApp()
     })
     shiny::observeEvent(input$cancel, { shiny::stopApp() })
@@ -465,7 +465,7 @@ table.on('change', 'select', function() {
   })
   tst2 <- c(sapply(tst2, \(x) { x[[1L]] }),
             sapply(tst2, \(x) { if (length(x) >= 2L) { x[[2L]] } else { NA } }))
-  tst2 <- tst2[which(!is.na(tst2))]
+  tst2 <- tst2[!is.na(tst2)]
   tst2 <- paste(tst2[1L:(min(c(2L, length(tst2))))], collapse = "")
   tst3 <- gsub("[a-z, ]", "", dtstNm)
   projDir %<o% paste0(inRoot$Path[match("Temporary folder", inRoot$Folder)], "/", tst2, "_", tst3, "_", tst)
@@ -522,11 +522,11 @@ if (length(fls)) {
                               "Pepper_bckp", "PG_assembly", "GO_terms", "GO_mappings", "PG_quant", "PG_quant_reNorm", "Contrasts")) |
                grepl("converted to MQ-like format", fls$name))
   if (length(w)) {
-    w1 <- w[which(file.exists(fls$repl[w]))]
+    w1 <- w[file.exists(fls$repl[w])]
     if (length(w1)) { # Necessitated because file.exists("a.RDS") returns TRUE even if the file existing is "a.rds" (different case)
-      w1 <- w1[which(vapply(w1, \(x) {
+      w1 <- w1[vapply(w1, \(x) {
         fls$replname[x] %in% list.files(fls$dir[x])
-      }, TRUE))]
+      }, TRUE)]
     }
     w2 <- setdiff(w, w1)
     if (length(w1)) { unlink(fls$path[w1]) }
@@ -568,11 +568,11 @@ if ((!"proteoCraft" %in% inst$Package) || (exists("updt_proteoCraft") && updt_pr
       })))
       k <- 1L
       klK <- paste0("V", as.character(k))
-      pckgs <- pckgs[which(pckgs[[klK]] == max(pckgs[[klK]])), , drop = FALSE]
+      pckgs <- pckgs[pckgs[[klK]] == max(pckgs[[klK]]), , drop = FALSE]
       while (nrow(pckgs) > 1L) {
         k <- k+1L
         klK <- paste0("V", as.character(k))
-        pckgs <- pckgs[which(pckgs[[klK]] == max(pckgs[[klK]])), , drop = FALSE]
+        pckgs <- pckgs[pckgs[[klK]] == max(pckgs[[klK]]), , drop = FALSE]
       }
       nuPack <- pckgs$Name
     } else {
@@ -659,8 +659,8 @@ tmp <- lapply(1L:length(inDirs), \(dir_i) {
 tmp <- plyr::rbind.fill(tmp)
 allBckps <- rbind(allBckps, tmp)
 
-#View(allBckps[which(!file.exists(allBckps$Full)),])
-allBckps <- allBckps[which(file.exists(allBckps$Full)),]
+#View(allBckps[!file.exists(allBckps$Full),])
+allBckps <- allBckps[file.exists(allBckps$Full),]
 reloadedBckps %<o% allBckps[NULL,]
 loadInt %<o% FALSE
 if (nrow(allBckps)) {
@@ -671,7 +671,7 @@ if (nrow(allBckps)) {
   allBckps$Value <- paste0(do.call(paste, c(allBckps[, c("Role", "Value")], sep = " (file = ")), ")")
   bckps2Reload %<o% dlg_list(allBckps$Value, allBckps$Value, TRUE, title = "Backups detected: which should we reload?")$res
   #
-  unusedBckps <- allBckps[which(!allBckps$Value %in% bckps2Reload),]
+  unusedBckps <- allBckps[!allBckps$Value %in% bckps2Reload,]
   if (nrow(unusedBckps)) { # Remove the object if it already exists and we do not want to reload it!
     suppressWarnings(rm(list = unlist(unusedBckps$ObjNm)))
   }
@@ -704,7 +704,7 @@ if (nrow(allBckps)) {
         tmp <- read.csv(allBckps$Full[i], check.names = FALSE)
         areUok <- TRUE
         if (allBckps$Role[i] == "Map of MS files to biological samples") {
-          colnames(tmp)[which(colnames(tmp) == "Raw.file")] <- "Raw file" # Backwards compatibility
+          colnames(tmp)[colnames(tmp) == "Raw.file"] <- "Raw file" # Backwards compatibility
           if (sum(!c("Parent sample", "MQ.Exp")#[labelMode]
                   %in% colnames(tmp)) == 2L) {
             warning("Invalid Fractions map reloaded, ignoring...")
@@ -713,12 +713,12 @@ if (nrow(allBckps)) {
         }
         if ((allBckps$Role[i] == "Experimental structure map") && (scrptType == "withReps")) {
           # Backwards compatibility
-          colnames(tmp)[which(colnames(tmp) == "Sample.name")] <- "Sample name" 
-          colnames(tmp)[which(colnames(tmp) == "Isobaric.label")] <- "Isobaric label"
-          colnames(tmp)[which(colnames(tmp) == "Isobaric.label.details")] <- "Isobaric label details"
+          colnames(tmp)[colnames(tmp) == "Sample.name"] <- "Sample name" 
+          colnames(tmp)[colnames(tmp) == "Isobaric.label"] <- "Isobaric label"
+          colnames(tmp)[colnames(tmp) == "Isobaric.label.details"] <- "Isobaric label details"
           if (exists("FracMap")) {
             expKl <- c("MQ.Exp", "Parent sample")
-            expKl <- expKl[which(expKl %in% colnames(FracMap))[1L]]
+            expKl <- intersect(expKl, colnames(FracMap))[1L]
           }
         }
         if (areUok) { assign(allBckps$ObjNm[[i]], tmp) }
@@ -726,9 +726,9 @@ if (nrow(allBckps)) {
     }
   }
   cat("    Done!\n")
-  .obj <- union(unlist(allBckps$ObjNm[which(allBckps$Reload)]), .obj)
-  .obj <- setdiff(.obj, unlist(allBckps$ObjNm[which(!allBckps$Reload)]))
-  reloadedBckps %<o% allBckps[which(allBckps$Reload),]
+  .obj <- union(unlist(allBckps$ObjNm[allBckps$Reload]), .obj)
+  .obj <- setdiff(.obj, unlist(allBckps$ObjNm[!allBckps$Reload]))
+  reloadedBckps %<o% allBckps[allBckps$Reload,]
 }
 
 # Clean-up WD to remove all output folders/files/plots/tables before we start?

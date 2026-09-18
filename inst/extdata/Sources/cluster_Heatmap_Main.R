@@ -67,7 +67,7 @@ if (clustHtMp) {
         } else { "Exp" }
         if ((length(Exp) == 1L) && (nchar(ClustGrp) %% 3L > 0L)) { ClustGrp <- Param_filter(ClustGrp, "Exp") }
         val <- Aggregate.list[[ClustGrp]]
-        nms <- unlist(Aggregate.map$Characteristics[which(Aggregate.map$Aggregate.Name == gsub(";", "", ClustGrp))])
+        nms <- unlist(Aggregate.map$Characteristics[Aggregate.map$Aggregate.Name == gsub(";", "", ClustGrp)])
         kol <- if (length(nms) == 1L) { nms } else { ClustGrp }
         ClustGrp <- list(aggregate = ClustGrp,
                          values = val,
@@ -76,7 +76,7 @@ if (clustHtMp) {
         if (length(ClustGrp$values) > 1L) {
           for (i in ClustGrp$values) {
             iNm <- paste0(ClustGrp$column, " = ", cleanNms(i))
-            I[[iNm]] <- mySmpls[which(clustMap[[ClustGrp$column]] == i)]
+            I[[iNm]] <- mySmpls[clustMap[[ClustGrp$column]] == i]
           }
         }
       }
@@ -91,18 +91,18 @@ if (clustHtMp) {
         if (length(val) > 1L) {
           for (i in val) {
             iNm <- paste0(col, " = ", cleanNms(i))
-            I[[iNm]] <- mySmpls[which(clustMap[[col]] == i)]
+            I[[iNm]] <- mySmpls[clustMap[[col]] == i]
           }
         }
       }
     }
-    I <- I[which(lengths(I) > 1L)]
+    I <- I[lengths(I) > 1L]
   }
   if (scrptType == "noReps") {
     I <- list(Global = clustMap$Samples)
     if (MakeRatios && (length(unique(clustMap$`Ratios group`)) > 1L)) {
       for (rtGrp in unique(clustMap$`Ratios group`)) {
-        tmp <- clustMap$Samples[which(clustMap$`Ratios group` == rtGrp)]
+        tmp <- clustMap$Samples[clustMap$`Ratios group` == rtGrp]
         if (length(tmp) > 1L) {
           I[[as.character(rtGrp)]] <- tmp
         }
@@ -167,7 +167,7 @@ if (clustHtMp) {
           tempDat <- sweep(tempDat, 1L, rwMns, "-")
         }
         if (normType == "Z-scored") {
-          SDs <- apply(tempDat, 1L, \(x) { sd(x[which(is.finite(x))]) })
+          SDs <- apply(tempDat, 1L, \(x) { sd(x[is.finite(x)]) })
           tempDat <- sweep(sweep(tempDat, 1L, rwMns, "-"), 1L, SDs, "/")
         }
         w <- which(apply(tempDat, 1L, \(x) { sum(is.finite(x)) }) > 0L)
@@ -180,7 +180,7 @@ if (clustHtMp) {
         # But the clusters displayed using colours may be generated using either k-means or hierarchical clustering (default).
         temp2 <- t(temp2)
         tst2 <- apply(temp2, 2L, \(x) {
-          x <- x[which(is.finite(x))]
+          x <- x[is.finite(x)]
           sd(x)/mean(x)
         })
         temp2 <- temp2[, order(tst2, decreasing = TRUE)]
@@ -239,7 +239,7 @@ if (clustHtMp) {
             g1 <- grep("geom_vline", tstLy)
             g2 <- grep("\\[\\[[0-9]+\\]\\]", tstLy)
             if (length(g2)) {
-              g2 <- as.numeric(gsub("\\[|\\]", "", tstLy[max(g2[which(g2 < g1)])]))
+              g2 <- as.numeric(gsub("\\[|\\]", "", tstLy[max(g2[g2 < g1])]))
               vplot$layers[[g2]] <- NULL
             }
             vplot <- vplot +
@@ -274,7 +274,7 @@ if (clustHtMp) {
           tst <- setNames(parLapply(parClust, HClust_rg, \(kl) { #kl <- 2L
             try(kmeans(temp3, kl, nstart = Straps)$tot.withinss, silent = TRUE)
           }), HClust_rg)
-          tst <- tst[which(vapply(tst, \(x) { !inherits(x, "try-error") }, TRUE))]
+          tst <- tst[vapply(tst, \(x) { !inherits(x, "try-error") }, TRUE)]
           tst <- setNames(as.numeric(tst)/kmeans(temp3, 1L, nstart = 1L)$tot.withinss, names(tst))
           yScl2 <- max(tst)
           tst2 <- data.frame("Number of clusters k" = as.integer(names(tst)),
@@ -564,7 +564,7 @@ if (clustHtMp) {
           xlim(Xlim[1L], Xlim[2L]) + ylim(Ylim[1L], Ylim[2L])
         #poplot(heatmap.plot, 12, 20)
         # heatmap.plot <- heatmap.plot + 
-        #   geom_text(data = temp2a[which(temp2a$Xmin == min(temp2$Xmin)),],
+        #   geom_text(data = temp2a[temp2a$Xmin == min(temp2$Xmin),],
         #             aes(x = Xmin, y = Ymin, label = Sample))
         # Title, axis labels, colour scale annotations
         #
@@ -623,7 +623,7 @@ if (clustHtMp) {
           m <- match(temp2m$`Leading protein IDs`, PG$`Leading protein IDs`)
           temp2m$Label <- PG$Label[m]
           temp2m$"Compartment marker" <- PG$"Compartment marker"[m]
-          temp2m <- temp2m[which(temp2m$`Compartment marker` != ""),]
+          temp2m <- temp2m[temp2m$`Compartment marker` != "",]
           addSCmarks <- nrow(temp2m)
           if (addSCmarks) {
             heatmap.plot <- heatmap.plot +
@@ -675,7 +675,7 @@ if (clustHtMp) {
                                       showlegend = FALSE, hoverinfo = "none")
           # Sample labels
           v_labs2 <- v_labs
-          colnames(v_labs2)[which(colnames(v_labs2) == "label")] <- "Sample"
+          colnames(v_labs2)[colnames(v_labs2) == "label"] <- "Sample"
           gap <- abs(max(plLyV$x))
           plotleatmap <- layout(plotleatmap,
                                 shapes = list(list(

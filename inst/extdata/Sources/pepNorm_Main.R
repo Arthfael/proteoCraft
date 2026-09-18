@@ -88,12 +88,12 @@ if (lNorm) {
                                 Pass = Outcome)
   }
   wNorm <- which(vapply(pepNorm, \(x) { x$Pass }, TRUE))
-  wNorm <- wNorm[which(wNorm != 1L)]
+  wNorm <- wNorm[wNorm != 1L]
   if (length(wNorm)) {
     # Visualisations
     dat <- lapply(c(1L, wNorm), \(i) {
       df <- as.data.frame(pepNorm[[i]]$Data)
-      currSamples <- allSamples[which(allSamples %in% colnames(df))]
+      currSamples <- intersect(allSamples, colnames(df))
       x <- df[, currSamples]
       colnames(x) <- cleanNms(colnames(x))
       x[, addKol] <- pep[, names(addKol)]
@@ -132,7 +132,7 @@ if (lNorm) {
     #
     finNorm <- max(wNorm)
     newDat <- as.data.frame(pepNorm[[finNorm]]$Data)
-    currSamples <- allSamples[which(allSamples %in% colnames(newDat))]
+    currSamples <- intersect(allSamples, colnames(newDat))
     newDat <- newDat[, currSamples]
     tmp <- newDat
     tmp <- Data_Impute2(tmp,
@@ -156,7 +156,7 @@ if (lNorm) {
     newDatLin <- newDat
     wHere <- which(RSA$values %in% colnames(newDatLin))
     Ref.Sample.Aggregate$values <- RSA$values <- RSA$values[wHere]
-    Exp.map <- Exp.map[which(Exp.map$Ref.Sample.Aggregate %in% RSA$values),]
+    Exp.map <- Exp.map[Exp.map$Ref.Sample.Aggregate %in% RSA$values,]
     Volcano.plots.Aggregate.Level$values <- VPAL$values <- unique(Exp.map[[VPAL$column]])
     Ratios.Ref.Groups$values <- RRG$values <- unique(Exp.map[[RRG$column]])
     Ratios.Groups$values <- RG$values <- unique(Exp.map[[RG$column]])
@@ -169,12 +169,12 @@ if (lNorm) {
     #
     # MatMet
     TxtSteps <- unlist(lapply(pepNorm[wNorm], \(x) { x$Text }))
-    TxtSteps <- TxtSteps[which(nchar(TxtSteps) > 0L)]
+    TxtSteps <- TxtSteps[nchar(TxtSteps) > 0L]
     l <- length(TxtSteps)
     for (wrd in c("normalized", "corrected")) {
       pat <- paste0("^", wrd, " ")
       g <- grep(pat, TxtSteps)
-      g <- g[which(g %in% (g+1L))]
+      g <- intersect(g, (g+1L))
       if (length(g)) { TxtSteps[g] <- gsub(pat, "", TxtSteps[g]) }
     }
     TxtSteps <- paste0(paste(TxtSteps[1L:(l-1L)], collapse = ", "), ", then ", TxtSteps[l])

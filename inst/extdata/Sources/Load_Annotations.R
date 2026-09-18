@@ -42,6 +42,7 @@ if (Annotate) {
 }
 if (Annotate) {
   Parsed_annotations %<o% Parsed_annotations
+  rm(Parsed_annotations)
   #
   # Check GO for name degeneracies
   # (the same term has had different names in different files, and we allow for multiple files)
@@ -59,13 +60,13 @@ if (Annotate) {
   tst3$L <- lengths(tst3$names)
   wDegen <- which(tst3$L > 1L)
   if (length(wDegen)) { # Indicates degeneracy and the need to fix names
-    degen <- tst3[which(tst3$L > 1L),] # Degenerate ID-to-names mappings
+    degen <- tst3[tst3$L > 1L,] # Degenerate ID-to-names mappings
     degen$name <- vapply(degen$names, \(x) { x[[1L]] }, "") # Take the first name
-    rws1 <- unique(unlist(tst2$rows[which(tst2$ID %in% degen$ID)])) # Rows where the degenerate IDs are present
-    tst1 <- tst1[which(tst1$row %in% rws1),] # Keep ALL annotations for those rows
-    tst2 <- tst2[which(tst2$ID %in% degen$ID),]
+    rws1 <- unique(unlist(tst2$rows[tst2$ID %in% degen$ID])) # Rows where the degenerate IDs are present
+    tst1 <- tst1[tst1$row %in% rws1,] # Keep ALL annotations for those rows
+    tst2 <- tst2[tst2$ID %in% degen$ID,]
     tst2$name_from_3 <- degen$name[match(tst2$ID, degen$ID)] # Get replacement names
-    #View(tst2[which(tst2$name != tst2$name_from_3),]) # Check before updating
+    #View(tst2[tst2$name != tst2$name_from_3,]) # Check before updating
     # If those are ok, replace:
     tst2$name <- tst2$name_from_3
     tst2$name_from_3 <- NULL
@@ -105,14 +106,14 @@ if (Annotate) {
   tst3$N_names <- lengths(tst3$Name)
   #max(tst3$N_names)
   stopifnot(max(tst3$N_names) == 1L)
-  #View(tst3[which(tst3$N_names > 1L),])
-  #View(tst3[which(tst3$N_names == 0L),])
+  #View(tst3[tst3$N_names > 1L,])
+  #View(tst3[tst3$N_names == 0L,])
   #View(Parsed_annotations[, c("GO", "GO-ID")])
   #db <- db[, which(!colnames(db) %in% annot.col)]
   kol <- colnames(Parsed_annotations)
-  annot.col %<o% kol[which(!kol %in% c("Accession", "id", "ID", "Names", "Sequence", "MW (Da)", "Common Name"))]
-  annot.col2 %<o% annot.col[which(!annot.col %in% colnames(db))]
-  annot.col3 %<o% annot.col[which(annot.col %in% colnames(db))]
+  annot.col %<o% setdiff(kol, c("Accession", "id", "ID", "Names", "Sequence", "MW (Da)", "Common Name"))
+  annot.col2 %<o% setdiff(annot.col, colnames(db))
+  annot.col3 %<o% intersect(annot.col, colnames(db))
   if (length(annot.col2)) { db[, annot.col2] <- NA_character_ }
   w <- which(db$`Protein ID` %in% Parsed_annotations$Accession)
   if (mType == "Sequence") {
@@ -138,7 +139,7 @@ if (Annotate) {
   #View(db)
   tst1 <- unlist(strsplit(db$`GO-ID`, ";"))
   tst4 <- unique(tst1)
-  tst4 <- tst4[which(nchar(tst4) > 0L)]
+  tst4 <- tst4[nchar(tst4) > 0L]
   Annotate <- length(tst4) > 0L
 }
 if (Annotate) {
@@ -152,7 +153,7 @@ if (Annotate) {
   if (length(annot.col3)) {
     for (kol in annot.col3) { #kol <- annot.col3[1L]
       w <- which(!is.na(mtch)) # check that there is a valid match...
-      w <- w[which((is.na(db[w, kol]))|(db[w, kol] %in% c("", "NA", "NaN")))] #... and that it is useful!
+      w <- w[is.na(db[w, kol]) | (db[w, kol] %in% c("", "NA", "NaN"))] #... and that it is useful!
       db[w, kol] <- Parsed_annotations[mtch[w], kol]
       w <- which((is.na(db[[kol]]))|(db[[kol]] %in% c("", "NA", "NaN"))) #... and that it is useful!
       db[w, kol] <- ""
@@ -163,8 +164,8 @@ if (Annotate) {
   tst3 <- data.table(A1 = tst1, A2 = tst2)
   tst3 <- tst3[, list(x = unique(A2)), by = list(Group.1 = A1)]
   tst3 <- as.data.frame(tst3)
-  #View(tst3[which(lengths(tst3$x) > 1L),])
-  #View(tst3[which(lengths(tst3$x) == 0L),])
+  #View(tst3[lengths(tst3$x) > 1L,])
+  #View(tst3[lengths(tst3$x) == 0L,])
   stopifnot(length(tst3$x) == length(unique(tst3$x)),
             is.character(tst3$x))
   db$Ontology <- NULL # Temporary fix for now, this column is broken

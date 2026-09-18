@@ -22,20 +22,20 @@ if (Param$Ratios.Thresholds == threshMsg) {
   stop("This option is deprecated!")
   # Ref.Ratios %<o% setNames(lapply(VPAL$values, \(x) { #x <- VPAL$values[1L]
   #   if (RatConGrps == "Ratio groups") {
-  #     x1 <- unique(Exp.map[which(Exp.map[[VPAL$column]] == x), RG$column])
+  #     x1 <- unique(Exp.map[Exp.map[[VPAL$column]] == x, RG$column])
   #   }
   #   if (RatConGrps == "Experiments") {
-  #     x1 <- unique(Exp.map$Experiment[which(Exp.map[[VPAL$column]] == x)])
-  #     x1 <- unique(Exp.map[which(Exp.map$Experiment == x1), RG$column])
+  #     x1 <- unique(Exp.map$Experiment[Exp.map[[VPAL$column]] == x])
+  #     x1 <- unique(Exp.map[Exp.map$Experiment == x1, RG$column])
   #   }
   #   if (RatConGrps == "Whole dataset") {
   #     x1 <- unique(Exp.map[[RG$column]])
   #   }
-  #   x <- unique(Exp.map[which(Exp.map[[VPAL$column]] == x), RG$column])
+  #   x <- unique(Exp.map[Exp.map[[VPAL$column]] == x, RG$column])
   #   x <- grep(paste0(topattern(paste0(Prot.Rat.Root, x1, "_REF.to.REF_")), "[0-9]+"), colnames(quantData), value = TRUE)
   #   if (length(x)) {
   #     x <- as.numeric(unlist(quantData[, x]))
-  #     x <- x[which(is.finite(x))]
+  #     x <- x[is.finite(x)]
   #   } else { x <- NULL }
   #   return(x)
   # }), VPAL$values)

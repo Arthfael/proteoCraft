@@ -69,6 +69,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   #
   data(modifications, package = "PTMods")
   UniMod <- modifications
+  rm(modifications)
   # Remove:
   # - substitutions
   UniMod <- UniMod[grep("^[A-Z][a-z]{2}->[A-Z][a-z]{2} substitution$", UniMod$Description, invert = TRUE),]
@@ -113,7 +114,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
     rwFls <- unique(alphaDIA$run)
     rwFlPths <- paste0(dirname(alphaDIA_fl), "/", rwFls)
     if (sum(!file.exists(rwFlPths))) {
-      rwFlPths <- paste0(gsub("/[^/]+$", "", dirname(alphaDIA_fl)), "/", rwFls)
+      rwFlPths <- paste0(sub("/[^/]+$", "", dirname(alphaDIA_fl)), "/", rwFls)
     }
     if (sum(!file.exists(rwFlPths))) {
       msg <- paste0(", cannot get full paths of input raw files!")
@@ -234,7 +235,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   }
   allPTMs$`tmp mark` <- NULL
   #
-  allPTMs$"Mass shift" <- UniMod$MonoMass[match(gsub("^UniMod:", "", allPTMs$UniMod), UniMod$UnimodId)]
+  allPTMs$"Mass shift" <- UniMod$MonoMass[match(sub("^UniMod:", "", allPTMs$UniMod), UniMod$UnimodId)]
   if ("Mass delta" %in% colnames(allPTMs)) {
     tst <- allPTMs$"Mass shift" - allPTMs$"Mass delta"
     stopifnot(max(tst, na.rm = TRUE) < 0.1)

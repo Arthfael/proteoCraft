@@ -66,7 +66,7 @@ writeFasta <- function(DB,
   rowLength <- suppressWarnings(as.integer(rowLength))
   if (is.finite(rowLength) && (rowLength > 0L)) {
     tmp <- unlist(strsplit(tmp, "\n+")) # ... the "+" here is for when protein length is exactly
-    tmp <- gsub("^___$", "", tmp)
+    tmp <- sub("^___$", "", tmp)
   }
   if (!missing("destFl")) { writeLines(tmp, destFl) }
   if (return) { return(tmp) }

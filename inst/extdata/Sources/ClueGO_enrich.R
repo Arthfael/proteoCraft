@@ -69,7 +69,7 @@ if (clueGOahead) {
         }
         #
         IDs_lst <- grep("^((cRAP)|(CON__))", IDs_lst, value = TRUE, invert = TRUE)
-        IDs_lst <- IDs_lst[which(IDs_lst != "NA")]
+        IDs_lst <- IDs_lst[IDs_lst != "NA"]
         #writeClipboard(IDs_lst)
         if (ii == 1L) {
           IDs_lst1 <- IDs_lst

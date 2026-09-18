@@ -31,7 +31,7 @@ rawrr_tst <- try({
     #}
     # 
   }
-  yesRawFileReaderLicenseIsAccepted <- function(showLicense = FALSE) {
+  yesRawFileReaderLicenseIsAccepted <- \(showLicense = FALSE) {
     licenseFile <- file.path(system.file(package = "rawrr"), 
                              "rawrrassembly", "RawFileReaderLicense.txt")
     stopifnot(file.exists(licenseFile))
@@ -55,7 +55,7 @@ rawrr_tst <- try({
     msg <- "Yes, we accept Thermo's License agreement, get on with it!"
     cat(msg, "\n")
   }
-  installRawFileReaderDLLsNoAcpt <- function(sourceUrl = rawrr:::.thermofisherlsmsUrl(), ...) { #sourceUrl = rawrr:::.thermofisherlsmsUrl()
+  installRawFileReaderDLLsNoAcpt <- \(sourceUrl = rawrr:::.thermofisherlsmsUrl(), ...) { #sourceUrl = rawrr:::.thermofisherlsmsUrl()
     rawfileReaderDLLsPath <- rawrr::rawrrAssemblyPath()
     if (isTRUE(dir.exists(rawfileReaderDLLsPath))) {
       msg <- sprintf("removing files in directory '%s'", rawfileReaderDLLsPath)
@@ -69,7 +69,7 @@ rawrr_tst <- try({
     stopifnot(yesRawFileReaderLicenseIsAccepted())
     .rawfileReaderDLLs <- getAnywhere(.rawfileReaderDLLs)
     .rawfileReaderDLLs <- .rawfileReaderDLLs$objs[[1L]]
-    rv <- vapply(.rawfileReaderDLLs(), function(dll) { #dll <- .rawfileReaderDLLs()[1L]
+    rv <- vapply(.rawfileReaderDLLs(), \(dll) { #dll <- .rawfileReaderDLLs()[1L]
       destfile <- file.path(rawfileReaderDLLsPath, dll)
       download.file(file.path(paste0(sourceUrl, c("", "Assemblies/")[(rawrrVersions == "github")+1L],
                                      dll)), destfile = destfile, 

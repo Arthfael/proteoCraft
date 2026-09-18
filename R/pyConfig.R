@@ -22,7 +22,7 @@
   py_list <- c()
   checkSDRF <- FALSE
   if (length(py_path)) {
-    py_path <- gsub("/Python/.*", "/Python/", py_path)
+    py_path <- sub("/Python/.*", "/Python/", py_path)
     py_list <- lapply(py_path, \(x) {
       x <- list.dirs(x, full.names = TRUE, recursive = TRUE)
       x <- grep("/Scripts$", x, value = TRUE)

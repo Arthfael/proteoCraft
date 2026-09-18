@@ -33,8 +33,8 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
       names(isDIA) <- inDirs
     }
     GrpsVct <- ev$Search_ID
-    Grps <- names(isDIA)[which(isDIA)]
-    Grps <- Grps[which(Grps %in% GrpsVct)]
+    Grps <- names(isDIA)[isDIA]
+    Grps <- intersect(Grps, GrpsVct)
     chckMS2Corr <- FALSE
     ev[[nuRef]] <- ev[[ref]]
     for (grp in Grps) { #grp <- Grps[1L]
@@ -102,8 +102,8 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
       tst[, c("PEP", "Sample", "ModSeq", "Z", "Proteins", "Seq")] <- ev[m, c("PEP", "Raw file path", "Modified sequence",
                                                                              "Charge", "Proteins", "Sequence")]
       tst$Weights <- -log10(tst$PEP)/5
-      tst$Weights[which(!is.finite(tst$Weights))] <- 3
-      tst$Weights[which(tst$Weights > 3)] <- 3
+      tst$Weights[!is.finite(tst$Weights)] <- 3
+      tst$Weights[tst$Weights > 3] <- 3
       tst$CorrVal2 <- (tst$OrigVal+tst$CorrVal*tst$Weights)/(1+tst$Weights)
       tst$Ratio2 <- tst$CorrVal2/tst$OrigVal
       # Add corrected data to ev

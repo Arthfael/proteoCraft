@@ -101,7 +101,7 @@ Time.Profile <- function(df,
       if (length(x) == 1L) { return(x) }
       return(paste0(x[1L], "..."))
     }, "")
-    c1 <- gsub(topattern(exprs.root), "", temp$variable)
+    c1 <- sub(topattern(exprs.root), "", temp$variable)
     temp$Time.point <- gsub(paste(paste0("^", gsub("\\.", "\\\\.", conds), "\\."), collapse = "|"), "", c1)
     temp$Time.point <- tp[as.character(temp$Time.point)]
     temp$Condition <- gsub(paste(paste0("\\.", gsub("\\.", "\\\\.", names(tp)), "$"), collapse = "|"), "", c1)

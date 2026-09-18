@@ -5,16 +5,16 @@ if (protrul) {
   if (LocAnalysis) {
     tempPG <- tempPG[, grep(topattern(exprsRt), colnames(tempPG), invert = TRUE)]
     for (grp2 in SubCellFracAggr2$values) { #grp2 <- SubCellFracAggr2$values[1L]
-      em2 <- Exp.map[which(Exp.map[[SubCellFracAggr2$column]] == grp2),]
+      em2 <- Exp.map[Exp.map[[SubCellFracAggr2$column]] == grp2,]
       for (grp in unique(em2[[SubCellFracAggr$column]])) { #grp <- unique(em2[[SubCellFracAggr$column]])[1L]
-        em <- em2[which(em2[[SubCellFracAggr$column]] == grp),]
+        em <- em2[em2[[SubCellFracAggr$column]] == grp,]
         kol <- paste0(prtRfRoot, em$Ref.Sample.Aggregate)
         tempPG[[paste0(prtRfRoot, grp)]] <- apply(10^tempPG[, kol], 1L, \(x) {
-          log10(sum(x[which(is.finite(x))]))
+          log10(sum(x[is.finite(x)]))
         })
       }
       tempPG[[paste0(exprsRt, grp2)]] <- apply(tempPG[, paste0(prtRfRoot, unique(em2[[SubCellFracAggr$column]]))], 1L, \(x) {
-        mean(x[which(is.finite(x))])
+        mean(x[is.finite(x)])
       })
     }
   }

@@ -18,53 +18,8 @@ if (scrptType == "withReps") {
   }
 }
 
-
 # Reload processed data from the report
-allNms <- openxlsx2::wb_get_sheet_names(openxlsx2::wb_load(repFl))
-nms <- setdiff(allNms, c("Description", "Quality control"))
-xlDat <- setNames(lapply(nms, \(nm) { #nm <- nms[1L] #nm <- nms[4L]
-  dat <- openxlsx2::read_xlsx(repFl, match(nm, allNms), 2L)
-  if ("Potential contaminant" %in% colnames(dat)) {
-    w <- which(is.na(dat$"Potential contaminant"))
-    if (length(w)) { dat$"Potential contaminant"[w] <- "" }
-  }
-  # Sometimes, a numeric column appears to be re-loaded as text...
-  w <- which(vapply(colnames(dat), \(x) { is.character(dat[[x]]) }, TRUE))
-  if (length(w)) { #print(colnames(dat)[w])
-    w1 <- w[which(vapply(colnames(dat)[w], \(x) {
-      x1 <- dat[[x]]
-      x2 <- suppressWarnings(as.character(as.integer(dat[[x]])))
-      tst <- x1 == x2
-      wNA <- which(is.na(tst))
-      tst[wNA] <- is.na(x1[wNA]) & is.na(x2[wNA])
-      wVal <- which(dat[[x]] == "#VALUE!")
-      tst[wVal] <- is.na(x2[wVal])
-      return(sum(!tst) == 0L)
-    }, TRUE))]
-    w2 <- w[which(vapply(colnames(dat)[w], \(x) { #x <- colnames(dat)[27L]
-      x1 <- dat[[x]]
-      x2 <- suppressWarnings(as.character(as.numeric(dat[[x]])))
-      tst <- x1 == x2
-      wNA <- which(is.na(tst))
-      tst[wNA] <- is.na(x1[wNA]) & is.na(x2[wNA])
-      wVal <- which(dat[[x]] == "#VALUE!")
-      tst[wVal] <- is.na(x2[wVal])
-      return(sum(!tst) == 0L)
-    }, TRUE))]
-    w2 <- setdiff(w2, w1)
-    if (length(w1)) {
-      for (i in w1) {
-        dat[[i]] <- as.integer(dat[[i]])
-      }
-    }
-    if (length(w2)) {
-      for (i in w2) {
-        dat[[i]] <- as.numeric(dat[[i]])
-      }
-    }
-  }
-  return(dat)
-}), nms)
+if (!exists("xlDat")) { loadFun(paste0(wd, "/Tables/xlDat.RDS")) }
 peptidoTst <- "All peptidoforms" %in% names(xlDat)
 
 # Reload materials and methods
@@ -76,7 +31,11 @@ if (!exists("matmethTxt")) {
 matmethSections <- names(matmethTxt)
 
 # Reload plots data
-tstRat <- (scrptType == "noReps") && MakeRatios && exists("ratioPlots") && (length(ratioPlots) > 0L)
+tstRat <- (scrptType == "noReps") && MakeRatios && exists("ratioPlots_fl") && file.exists(ratioPlots_fl)
+if (tstRat) {
+  loadFun(ratioPlots_fl)
+  tstRat <- length(ratioPlots) > 0L
+}
 heatMaps_ON <- file.exists(heatMaps_fl)
 if (heatMaps_ON) {
   loadFun(heatMaps_fl)
@@ -88,13 +47,17 @@ if (PCA_ON) {
   loadFun(dimRed_fl)
   PCA_ON <- exists("dimRedPlotLy") && ("PCA" %in% names(dimRedPlotLy$PG))
 }
-Venn_ON <- file.exists(Venn_fl)
+Venn_ON <- exists("Venn_fl") && file.exists(Venn_fl)
 if (Venn_ON) {
   loadFun(Venn_fl)
   Venn_ON <- exists("plotly_Venn") && ("Global, LFQ" %in% names(plotly_Venn))
 }
 strtColWdth <- 12L/max(c(1L, Venn_ON + PCA_ON))
-tstCov <- exists("covPlots")
+tstCov <- exists("covPlots_fl") && file.exists(covPlots_fl)
+if (tstCov) {
+  loadFun(covPlots_fl)
+  tstCov <- length(covPlots) > 0L
+}
 
 # Fix to plotly autoscaling + remove some Modebar tools (redundant: they should already be gone, but in case we reload old data) + fix warnings
 global_autorange <- "function(el, x) {
@@ -318,7 +281,7 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   tmp2 <- gsub(" /\n.*", "", tmp)
   tmp2 <- gsub(".*\n", "", tmp2)
   smplCols_lst <- setNames(lapply(grps, \(xp) {
-    tmp[which(tmp2 %in% c(xp, exp[[xp]]))]
+    tmp[tmp2 %in% c(xp, exp[[xp]])]
   }), grps)
   smplCols <- setNames(unlist(smplCols_lst), NULL)
   coreCols <- "PEP"
@@ -349,7 +312,7 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   xprCols <- intersect(xprCols, colnames(df))
   repXprCols <- if (length(exp) == 1L) { sub(" *\n$", "", fullIntRoot) } else { xprCols }
   #
-  ratCols <- grep(paste0("log2\\(.*rat\\.\\) \n"), smplCols, value = TRUE)
+  ratCols <- grep("log2\\(.*rat\\.\\) \n", smplCols, value = TRUE)
   stopifnot(length(ratCols) > 0L) # For contrasts we always MUST have a logFC column!
   fullRatRoot <- rev(paste0(vapply(strsplit(ratCols, "\n"), `[[`, "", 1L), "\n"))[1L]
   ratCol <- paste0(fullRatRoot, sub(" - ", " /\n", contr))
@@ -378,7 +341,7 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
     grsep(db$`Protein ID`[match(filt, db$`Common Name`)], x = df[[filtCol]])
   }
   if (pgTest && is.integer(minN) && (minN > 0L) && length(pepCountCols)) {
-    flt <- flt[which(apply(df[flt, pepCountCols, drop = FALSE], 1L, max, na.rm = TRUE) >= minN)]
+    flt <- flt[apply(df[flt, pepCountCols, drop = FALSE], 1L, max, na.rm = TRUE) >= minN]
   }
   if (!length(flt)) { return() }
   df <- df[flt,]
@@ -406,7 +369,7 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   #
   # Make sure this re-ordering is done after any other data is added from dat to df!
   orderVect <- df[, xprCols]
-  if (length(exp) > 1L) { orderVect <- apply(orderVect, 1L, \(x) { mean(x[which(is.finite(x))]) }) }
+  if (length(exp) > 1L) { orderVect <- apply(orderVect, 1L, \(x) { mean(x[is.finite(x)]) }) }
   df <- df[order(orderVect, decreasing = TRUE),]
   #
   quantCols <- xprCols
@@ -523,17 +486,6 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   return(tags$div(df,
                   style = paste0("background: #ffffff;")))
 }
-tmp <- if (scrptType == "noReps") { Exp } else { smplGrps }
-xpCols_list <- setNames(lapply(tmp, \(xp) {
-  grep(topattern(paste0("\n", xp), FALSE, TRUE), colnames(df), value = TRUE)
-}), tmp)
-tst <- unlist(xpCols_list)
-if (!length(tst)) {
-  warning("It seems there was an issue with the Excel table, I would expect sample/sample groups to be preceded by a new line in the table headers!")
-  xpCols_list <- setNames(lapply(tmp, \(xp) {
-    grep(topattern(paste0(" ", xp), FALSE, TRUE), colnames(df), value = TRUE)
-  }), tmp)
-}
 make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
                       tab = "Protein groups", # can also be "All peptidoforms"; we will eventually add "`PTM`-modified", where `PTM` can be any PTM of interest
                       filt = NULL, #filt = allProt[1L] # Filter by "Common Name"
@@ -546,10 +498,12 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
   }
   if ((scrptType == "withReps") && (tab == "All peptidoforms")) {
     exp <- unique(unlist(lapply(exp, \(x) {
-      Exp.map$Clean_name[which(Exp.map$clean_Group_name == x)]
+      Exp.map$Clean_name[Exp.map$clean_Group_name == x]
     })))
   }
-  smplCols_lst <- xpCols_list[exp]
+  smplCols_lst <- setNames(lapply(exp, \(xp) {
+    grep(topattern(paste0("\n", xp), FALSE, TRUE), colnames(df), value = TRUE)
+  }), exp)
   smplCols <- setNames(unlist(smplCols_lst), NULL)
   coreCols <- "PEP"
   if (tab %in% c("Protein groups", "All peptidoforms")) {
@@ -616,7 +570,7 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
     grsep(db$`Protein ID`[match(filt, db$`Common Name`)], x = df[[filtCol]])
   }
   if (pgTest && is.integer(minN) && (minN > 0L) && length(pepCountCols)) {
-    flt <- flt[which(apply(df[flt, pepCountCols, drop = FALSE], 1L, max, na.rm = TRUE) >= minN)]
+    flt <- flt[apply(df[flt, pepCountCols, drop = FALSE], 1L, max, na.rm = TRUE) >= minN]
   }
   if (!length(flt)) { return() }
   df <- df[flt,]
@@ -644,7 +598,7 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
   #
   # Make sure this re-ordering is done after any other data is added from dat to df!
   orderVect <- df[, xprCols]
-  if (length(exp) > 1L) { orderVect <- apply(orderVect, 1L, \(x) { mean(x[which(is.finite(x))]) }) }
+  if (length(exp) > 1L) { orderVect <- apply(orderVect, 1L, \(x) { mean(x[is.finite(x)]) }) }
   df <- df[order(orderVect, decreasing = TRUE),]
   #
   quantCols <- xprCols
@@ -967,7 +921,7 @@ make_summTbl_ui <- \() {
   } 
   #
   # Drop fixed PTMs (alkylation)
-  fxdMods <- Modifs$`Full name`[which(Modifs$Type == "Fixed")]
+  fxdMods <- Modifs$`Full name`[Modifs$Type == "Fixed"]
   l <- length(fxdMods)
   if (l) {
     if (l > 1L) {
@@ -1459,7 +1413,7 @@ myTabs <- nms <- if (scrptType == "noReps") {
 }
 if (prot.list.Cond) {
   if (tstCov) {
-    allProt <- names(covPlots)[which(vapply(names(covPlots), \(x) { length(covPlots[[x]]$logInt) > 0L }, TRUE))]
+    allProt <- names(covPlots)[vapply(names(covPlots), \(x) { length(covPlots[[x]]$logInt) > 0L }, TRUE)]
     dfltProt <- allProt[1L]
     nms <- union(nms, allProt)
   } else {

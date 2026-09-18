@@ -73,6 +73,7 @@ Skyline_to_MQ <- function(Skyline_fl,
   #
   data(modifications, package = "PTMods")
   UniMod <- modifications
+  rm(modifications)
   # Remove:
   # - substitutions
   UniMod <- UniMod[grep("^[A-Z][a-z]{2}->[A-Z][a-z]{2} substitution$", UniMod$Description, invert = TRUE),]
@@ -443,7 +444,7 @@ Skyline_to_MQ <- function(Skyline_fl,
     }
   }
   if (length(wNI)) {
-    tmp <- aggregate(gsub("^_", "", Mods$AA[wNI]), list(Mods$Match[wNI]), \(x) { sort(unique(x)) })
+    tmp <- aggregate(sub("^_", "", Mods$AA[wNI]), list(Mods$Match[wNI]), \(x) { sort(unique(x)) })
     allPTMs$Site[wNI] <- allPTMs$AA[wNI] <- tmp$x[match(allPTMs$`Full name`[wNI], tmp$Group.1)]
     w <- which(allPTMs$Position[wNI] == "Any N-term")
     if (length(w)) { allPTMs$Site[wNI][w] <- lapply(allPTMs$Site[wNI][w], \(x) { paste0("n", x) }) }
@@ -508,7 +509,7 @@ Skyline_to_MQ <- function(Skyline_fl,
     # Sometimes there will be discrepancies, where UniMod has a compatible isobaric PTM with a different name!
   }
   if (!"Mass shift" %in% colnames(allPTMs)) {
-    allPTMs$"Mass shift" <- UniMod$MonoMass[match(gsub("^UniMod:", "", allPTMs$UniMod), UniMod$UnimodId)]
+    allPTMs$"Mass shift" <- UniMod$MonoMass[match(sub("^UniMod:", "", allPTMs$UniMod), UniMod$UnimodId)]
     if ("Mass delta" %in% colnames(allPTMs)) {
       tst <- allPTMs$"Mass shift" - allPTMs$"Mass delta"
       stopifnot(max(tst, na.rm = TRUE) < 0.1)

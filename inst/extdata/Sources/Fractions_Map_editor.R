@@ -29,16 +29,16 @@ if (LabelType == "Isobaric") {
 # }
 if ("Use" %in% colnames(FracMap)) {
   FracMap$Use <- as.logical(FracMap$Use)
-  FracMap$Use[which(is.na(FracMap$Use))] <- FALSE
+  FracMap$Use[is.na(FracMap$Use)] <- FALSE
 } else { FracMap$Use <- TRUE }
 if ("PTM-enriched" %in% colnames(FracMap)) {
-  FracMap$"PTM-enriched"[which(!FracMap$"PTM-enriched" %in% Modifs$`Full name`)] <- NA
+  FracMap$"PTM-enriched"[!FracMap$"PTM-enriched" %in% Modifs$`Full name`] <- NA
 } else { FracMap$"PTM-enriched" <- NA }
 if (!"Fraction" %in% colnames(FracMap)) {
   FracMap$Fraction <- 1L
 }
 FracMap$Use <- as.logical(toupper(FracMap$Use))
-FracMap$Use[which(is.na(FracMap$Use))] <- TRUE
+FracMap$Use[is.na(FracMap$Use)] <- TRUE
 nr <- nrow(FracMap)
 rws <- seq_len(nr)
 chRws <- as.character(rws)
@@ -52,7 +52,7 @@ if (LabelType == "Isobaric") {
   kol0 <- c(kol0, "Isobaric.set")
 }
 ALLIDS <- unlist(lapply(kol1, \(x) { paste0(x, "___", chRws) }))
-allPTMs <- unique(c(Modifs$`Full name`, NA))
+allPTMs <- union(Modifs$`Full name`, NA)
 #
 # Dummy for shiny app
 FracMap2a <- FracMap
@@ -60,8 +60,8 @@ if ((LabelType == "LFQ") && ("MQ.Exp" %in% colnames(FracMap2a))) { FracMap2a$MQ.
 colnames(FracMap2a) <- gsub("-", "", gsub("\\.", " ", colnames(FracMap2a)))
 if (LabelType == "Isobaric") {
   # Exceptions
-  colnames(FracMap2a)[which(colnames(FracMap2a) == "Isobaric set")] <- "Isobaric.set"
-  colnames(FracMap2a)[which(colnames(FracMap2a) == "MQ Exp")] <- "MQ.Exp"
+  colnames(FracMap2a)[colnames(FracMap2a) == "Isobaric set"] <- "Isobaric.set"
+  colnames(FracMap2a)[colnames(FracMap2a) == "MQ Exp"] <- "MQ.Exp"
 }
 lu <- length(unique(FracMap2a$"Raw files name"))
 if (lu == nr) {
@@ -115,7 +115,7 @@ if (LabelType == "Isobaric") {
                                           "IsobaricSet")
   FracMap2$"Isobaric.set" <- NULL
 }
-kol <- colnames(FracMap2)[which(!colnames(FracMap2) %in% c(kol0, kol1))]
+kol <- setdiff(colnames(FracMap2), c(kol0, kol1))
 #kol %in% names(wTest0)
 #wTest0[kol]
 ALLFDIDS <- c()
@@ -295,21 +295,21 @@ for (k in colnames(FracMap)) { FracMap[[k]] <- gsub("\t|\n|^ +| +$", "", FracMap
 FracMap$Use <- as.logical(toupper(FracMap$Use))
 if (LabelType == "LFQ") {
   FracMap$"MQ.Exp" <- NULL
-  colnames(FracMap)[which(colnames(FracMap) == "Parent sample")] <- "MQ.Exp"
+  colnames(FracMap)[colnames(FracMap) == "Parent sample"] <- "MQ.Exp"
 }
 tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
 while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
   dlg_message(paste0("File \"", FracMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
 }
-FracMap <- FracMap[which(FracMap$Use),]
+FracMap <- FracMap[FracMap$Use,]
 MQ.Exp %<o% sort(unique(FracMap$MQ.Exp))
 #
 kol <- setNames(c("Raw file", "Fraction", "PTM-enriched"), c("Raw files", "Fractions", "Type of PTM-enrichment sample"))
 if (LabelType == "Isobaric") {
   kol["Isobaric.set"] <- "Isobaric.set"
 }
-kol <- kol[which(kol %in% colnames(FracMap))]
+kol <- intersect(kol, colnames(FracMap))
 stopifnot(length(kol) > 0L)
 tst <- aggregate(FracMap[, kol], list(FracMap$MQ.Exp), \(x) { length(unique(x)) })
 colnames(tst)[1L] <- "Biological sample"
@@ -328,7 +328,7 @@ for (k in colnames(tst)) {
   w <- which(nc < mx)-1L
   if (length(w)) {
     if (0L %in% w) { colnames(tst)[m] <- k <- paste0(c(k, rep("  ", mx-nc[1L])), collapse = "") }
-    w <- w[which(w > 0L)]
+    w <- w[w > 0L]
     tst[w, k] <- vapply(w, \(x) { paste0(c(tst[x, k], rep(" ", mx-nc[x+1L])), collapse = "") }, "")
   }
 }

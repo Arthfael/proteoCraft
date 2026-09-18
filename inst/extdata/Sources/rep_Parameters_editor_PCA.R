@@ -9,9 +9,9 @@ if (!"PSMs" %in% names(dimRedPlotLy)) { dimRedPlotLy$PSMs <- list() }
 if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRUE
   source(parSrc)
   data <- ev
-  colnames(data)[which(colnames(data) == "MQ.Exp")] <- "Parent sample"
-  data <- data[which(data$Reverse != "+"),]
-  data <- data[which((is.na(data$"Potential contaminant"))|(data$"Potential contaminant" != "+")),]
+  colnames(data)[colnames(data) == "MQ.Exp"] <- "Parent sample"
+  data <- data[data$Reverse != "+",]
+  data <- data[is.na(data$"Potential contaminant") | (data$"Potential contaminant" != "+"),]
   kol <- if (LabelType == "Isobaric") {
     grep(paste0(topattern(ev.ref["Original"]), "[0-9]+$"), colnames(data), value = TRUE)
   } else { ev.col["Original"] }
@@ -58,10 +58,10 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
     data2 <- as.data.frame(data2)
     data2 <- melt(data2, id.vars = c("Group", "MQ.Exp"))
     data2$value <- log10(data2$value)
-    data2 <- data2[which(is.finite(data2$value)),]
+    data2 <- data2[is.finite(data2$value),]
     data2$IsoBarLab <- Exp.map$`Isobaric label details`[match(as.integer(data2$variable), Exp.map$`Isobaric label`)]
     data2$Parent_sample <- do.call(paste, c(data2[, c("MQ.Exp", "IsoBarLab")], sep = "_"))
-    data2 <- data2[which(data2$Parent_sample %in% Exp.map$`Parent sample`),]
+    data2 <- data2[data2$Parent_sample %in% Exp.map$`Parent sample`,]
     data2 <- as.data.table(data2)
     data2 <- dcast(data2[, c("Group", "value", "Parent_sample")], Group~Parent_sample)
     data2 <- as.data.frame(data2)
@@ -70,7 +70,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
     #data2[, lsKl] <- data[match(data2$Group, tmp), lsKl]
     data <- data2
     kol2 <- colnames(data)
-    kol2 <- kol2[which(kol2 != "Group")]
+    kol2 <- setdiff(kol2, "Group")
     impGrps <- rep(1L, length(kol2))
   }
   if (LabelType == "LFQ") {
@@ -98,8 +98,8 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
     if ("PC2" %in% colnames(scoresA)) {
       scoresA$Sample <- rownames(scoresA)
       rownames(scoresA) <- NULL
-      pvA <- round(100*(pcA$sdev)^2 / sum(pcA$sdev^2), 0L)
-      pvA <- pvA[which(pvA > 0)]
+      pvA <- round(100*(pcA$sdev)^2L / sum(pcA$sdev^2L), 0L)
+      pvA <- pvA[pvA > 0]
       pvA2 <- paste0("Original: ", paste(vapply(1L:length(pvA), \(x) {
         paste0("PC", x, ": ", pvA[x], "%")
       }, ""), collapse = ", "))
@@ -114,7 +114,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
         scoresA$Colour <- scoresA$Sample
         colKol <- "colKol"
       } else {
-        tmp <- Exp.map[m, Factors[which(!Factors %in% c("Replicate", "Block", "Batch", "Litter"))], drop = FALSE]
+        tmp <- Exp.map[m, setdiff(Factors, c("Replicate", "Block", "Batch", "Litter")), drop = FALSE]
         tmp <- tmp[, which(vapply(colnames(tmp), \(x) { length(unique(tmp[[x]])) > 1L }, TRUE)), drop = FALSE]
         scoresA$"Sample group" <- do.call(paste, c(tmp, sep = " "))
         tmp <- Exp.map[m, Factors]
@@ -160,7 +160,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
                                   color = ~`Samples group`, colors = "viridis",
                                   symbol = I(Symb), hoverinfo = "text")
       }
-      plot_lyPSMsPCA %<o% layout(plot_lyPSMsPCA, title = ttl)
+      plot_lyPSMsPCA <- layout(plot_lyPSMsPCA, title = ttl)
       plot_lyPSMsPCA <- plotly_build(plot_lyPSMsPCA)
       dimRedPlotLy$PSMs <- list("Samples PCA" = plot_lyPSMsPCA)
       saveFun(dimRedPlotLy, file = dimRed_fl)

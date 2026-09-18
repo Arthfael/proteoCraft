@@ -44,7 +44,7 @@ if (tblMode == "pep") {
 }
 if (tblMode == "PG") {
   nms <- sub(" ///NL///$", "", intNms(names(intColsTbl), TRUE))
-  if ((MakeRatios)&&(!is.null(ratRf))) {
+  if (MakeRatios && (!is.null(ratRf))) {
     nms <- c(nms, ratNms(names(ratColsTbl), TRUE))
   }
   datCol <- ColumnsTbl$Col[unique(c(which(ColumnsTbl$Class %in% nms),
@@ -52,7 +52,7 @@ if (tblMode == "PG") {
 }
 #
 if (tblMode == "SAINTexpress") {
-  datCol <- ColumnsTbl$Col[which(ColumnsTbl$Class == "log2(rat.), avg.")]
+  datCol <- ColumnsTbl$Col[ColumnsTbl$Class == "log2(rat.), avg."]
 }
 stopifnot(length(datCol) > 0L)
 wrtHeader <- TRUE
@@ -99,12 +99,12 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   tstKol <- as.data.frame(t(sapply(strsplit(unique(unlist(tstKol)), ";"), as.numeric)))
   colnames(tstKol) <- c("First", "Last")
   tstKol$Group <- ColumnsTbl2$Class[tstKol$First]
-  tstKol <- tstKol[which(tstKol$Group != ""), , drop = FALSE]
+  tstKol <- tstKol[tstKol$Group != "", , drop = FALSE]
   whLevel[[sheetnm]] <- rep(1L, length(xlTabs[[sheetnm]])) # For now all columns are to write in the 1st header row; this may change
   #
   # Prepare 1st level header
   m <- match(xlTabs[[sheetnm]], ColumnsTbl$Col) #m <- match(ColumnsTbl$Col, ColumnsTbl$Col)
-  #xlTabs[[sheetnm]][which(is.na(m))]
+  #xlTabs[[sheetnm]][is.na(m)]
   tmpKol2 <- ColumnsTbl$edit_Col[m]
   w <- which(tmpKol2 == "")
   if (length(w)) {
@@ -161,8 +161,13 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   dummyData[wNum] <- 0L
   dummyData[wTxt] <- "Hello world!"
   if (tblNm %in% WorkBook$tables$tab_name) { # Let's see if that works...
-    WorkBook$tables <- WorkBook$tables[which(WorkBook$tables$tab_name != tblNm),]
+    WorkBook$tables <- WorkBook$tables[WorkBook$tables$tab_name != tblNm,]
   }
+  #
+  # Save that finalized sheet data to a list so we can re-use it later for the report!
+  if (!exists("xlDat")) { xlDat <- list() }
+  xlDat[[sheetnm]] <- myData
+  #
   WorkBook <- openxlsx2::wb_add_data_table(WorkBook,
                                            sheetnm,
                                            dummyData,
@@ -393,8 +398,8 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   #  - CC = actual data!
   sheetMtch <- match(sheetnm, wb_get_sheet_names(WorkBook))
   cc <- WorkBook$worksheets[[sheetMtch]]$sheet_data$cc
-  cc_12 <- cc[which(cc$row_r %in% c("1", "2")),]
-  cc_3 <- cc[which(cc$row_r == "3"),]
+  cc_12 <- cc[cc$row_r %in% c("1", "2"),]
+  cc_3 <- cc[cc$row_r == "3",]
   cc_3$Column <- colnames(dummyData)
   #View(cc_12)
   #View(cc_3)
@@ -403,8 +408,9 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   #uTxt <- unique(cc_3$typ[wTxt]) # Worked until at least 1.10, doesn't work for 1.14 (I don't know when the break occurred)
   #wNum2 <- which(cc_3$typ == 2) #
   #wTxt2 <- which(cc_3$typ == 4)
-  stopifnot(#(length(uNum) == 1)&&(uNum == "2"), # Worked until at least 1.10, doesn't work for 1.14 (I don't know when the break occurred)
-    #(length(uTxt) == 1)&&(uTxt == "4"), # Worked until at least 1.10, doesn't work for 1.14 (I don't know when the break occurred)
+  stopifnot(
+    #(length(uNum) == 1L) && (uNum == "2"), # Worked until at least 1.10, doesn't work for 1.14 (I don't know when the break occurred)
+    #(length(uTxt) == 1) && (uTxt == "4"), # Worked until at least 1.10, doesn't work for 1.14 (I don't know when the break occurred)
     length(unique(c(wNum, wTxt))) == nCol,
     sum(wNum %in% wTxt) == 0L) # We only cover types 2 and 4
   tmp <- cc_3
@@ -442,7 +448,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
       KolEdit(xmlCovCol, intColsTbl, ratColsTbl)
     }
   } else { KolEdit(xmlCovCol, intColsTbl) }
-  wTxt2 <- wTxt[which(!colnames(myData[wTxt]) %in% a)]
+  wTxt2 <- wTxt[!colnames(myData[wTxt]) %in% a]
   if (length(wTxt2)) {
     rg <- unlist(lapply(wTxt2, \(i) { lngRws+i }))
     dat <- unlist(lapply(wTxt2, \(i) { myData[[i]] }))
@@ -459,7 +465,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   w <- which((cc_Rest$is %in% c("<is><t>-Inf</t></is>", "<is><t>Inf</t></is>",
                                 "<is><t>-Inf</t xml:space=\"preserve\"></is>",
                                 "<is><t xml:space=\"preserve\">Inf</t></is>"))
-             |(is.infinite(cc_Rest$is)))
+             | is.infinite(cc_Rest$is))
   if (length(w)) {
     cc_Rest$v[w] <- "#NUM!" 
     cc_Rest$c_t[w] <- "e"
@@ -472,21 +478,21 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   }
   w <- which((cc_Rest$is %in% c("<is><t>NaN</t></is>",
                                 "<is><t xml:space=\"preserve\">NaN</t></is>"))
-             |(is.nan(cc_Rest$is)))
+             | is.nan(cc_Rest$is))
   if (length(w)) {
     cc_Rest$v[w] <- "#VALUE!" 
     cc_Rest$c_t[w] <- "e"
     cc_Rest$is[w] <- ""
   }
   # Deal with NAs
-  w <- which((is.na(cc_Rest$v))|(cc_Rest$v == "NA"))
+  w <- which(is.na(cc_Rest$v) | (cc_Rest$v == "NA"))
   if (length(w)) {
     cc_Rest$v[w] <- "#N/A"
     cc_Rest$c_t[w] <- "e"
   }
   w <- which((cc_Rest$is %in% c("<is><t>NA</t></is>",
                                 "<is><t xml:space=\"preserve\">NA</t></is>"))
-             |(is.na(cc_Rest$is)))
+             | is.na(cc_Rest$is))
   if (length(w)) {
     cc_Rest$v[w] <- "#N/A"
     cc_Rest$c_t[w] <- "e"
@@ -567,16 +573,16 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
     m <- which(ColumnsTbl$Class == x)
     return(which(xlTabs[[sheetnm]] %in% ColumnsTbl$Col[m]))
   })
-  tst <- tst[which(lengths(tst$Col) > 0L),]
+  tst <- tst[lengths(tst$Col) > 0L,]
   filt <- c("General Peptides information",
             unique(ColumnsTbl$Class[match(intCols[[rev(names(intCols))[1L]]], ColumnsTbl$Col)]),
             "QC filters")
-  if ((MakeRatios)&&(!is.null(ratRf))) {
+  if (MakeRatios && (!is.null(ratRf))) {
     filt <- c(filt,
               unique(ColumnsTbl$Class[match(ratCols[[rev(names(ratCols))[1L]]], ColumnsTbl$Col)]),
               "Regulated")
   }
-  tst <- tst[which(!tst$Group %in% filt),]
+  tst <- tst[!tst$Group %in% filt,]
   if (nrow(tst)) {
     tst$Min <- sapply(tst$Col, min)
     tst$Max <- sapply(tst$Col, max)

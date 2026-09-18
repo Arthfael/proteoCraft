@@ -28,7 +28,6 @@ vennlev <- c("up", "down")
 cat("Venn diagrams\n")
 #
 if (!exists("plotly_Venn")) { plotly_Venn <- list() }
-plotly_Venn %<o% plotly_Venn
 #
 HdrStlVenn <- openxlsx2::create_cell_style(num_fmt_id = "General",
                                            horizontal = "left",
@@ -82,7 +81,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
       tmpIi[Wi] <- NA_real_
       myData[, colIi] <- tmpIi[, colIi]
       tmpIg <- setNames(lapply(uSg, \(x) {
-        x <- rowMeans(tmpIi[, colIi[Si[which(Sg == x)]]], na.rm = TRUE)
+        x <- rowMeans(tmpIi[, colIi[Si[Sg == x]]], na.rm = TRUE)
         w <- which(is.na(x))
         x[w] <- NA_real_
         return(x)
@@ -121,7 +120,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
     }
   }
   topTitle <- paste0("Venn diagram - ", names(II)[ii])
-  infoKol <- infoKol[which(infoKol %in% colnames(myData))]
+  infoKol <- intersect(infoKol, colnames(myData))
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   dirlist <- unique(c(dirlist, dir))
   #
@@ -224,7 +223,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
         if (n == 2L) {
           cat(paste0("     + ", grpTxt, "\n"))
         }
-        em <- Exp.map[which(Exp.map[[VennGrp2$column]] == grp),]
+        em <- Exp.map[Exp.map[[VennGrp2$column]] == grp,]
         nmz <- intersect(flt_nmz, myContrasts$Contrast)
         comp_list <- setNames(lapply(nmz, \(x) { #x <- nmz[1L]
           ttest_Filt[[x]][[paste0("Filter_", r)]]
@@ -258,7 +257,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
           tmp <- myData[unique(unlist(comp_list)), c(idKol, infoKol, "id", kr)]
           if (r == "up") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
           if (r == "down") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
-          tst <- apply(tmp[, kr], 1L, \(x) { length(w[which(x %in% good)]) })
+          tst <- apply(tmp[, kr], 1L, \(x) { length(w[x %in% good]) })
           tmp <- tmp[order(tst, decreasing = TRUE),]
           write.csv(tmp, paste0(dir2, "/", ttl, " - table.csv"), row.names = FALSE)
           subTtl <- paste0("t-tests, ", r)
@@ -320,7 +319,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
     wbKount <- 0L
     #
     nmz <- names(Ftest_Filt)
-    #nmz <- nmz[which(!grepl(" VS ", nmz))]
+    #nmz <- nmz[!grepl(" VS ", nmz)]
     OK <- length(nmz) > 1L
     if (length(nmz) > VennMx) {
       msg <- paste0("Too many groups, select at least 2 and up to ", VennMx,
@@ -367,7 +366,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
             tmp[, kr] <- myFData[w, kr]
             if (r == "up") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
             if (r == "down") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
-            tst <- apply(tmp[, kr], 1L, \(x) { length(w[which(x %in% good)]) })
+            tst <- apply(tmp[, kr], 1L, \(x) { length(w[x %in% good]) })
             tmp <- tmp[order(tst, decreasing = TRUE),]
             write.csv(tmp, paste0(dir2, "/", ttl, " - table.csv"), row.names = FALSE)
             plot <- venn(comp_list, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)

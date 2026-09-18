@@ -88,6 +88,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   #
   data(modifications, package = "PTMods")
   UniMod <- modifications
+  rm(modifications)
   # Remove:
   # - substitutions
   UniMod <- UniMod[grep("^[A-Z][a-z]{2}->[A-Z][a-z]{2} substitution$", UniMod$Description, invert = TRUE),]
@@ -133,7 +134,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   }
   #
   if (misFun(log_Fl)) {
-    log_Fl <- unique(gsub("\\.((tsv)|(parquet))$", ".log.txt", DIANN_fl))
+    log_Fl <- unique(sub("\\.((tsv)|(parquet))$", ".log.txt", DIANN_fl))
   }
   if (file.exists(log_Fl)) { 
     log <- readr::read_lines(log_Fl)
@@ -147,12 +148,12 @@ DIANN_to_MQ <- function(DIANN_fl,
     if (Detect.Lib) {
       if (file.exists(log_Fl)) {
         DIANNLib_fl <- gsub(".+\\] Saving the library to |\\.speclib$", "", grep("\\] Saving the library to ", log, value = TRUE))
-        x <- gsub("^lib ", "", grep("^lib ", diannCall, value = TRUE))
+        x <- sub("^lib ", "", grep("^lib ", diannCall, value = TRUE))
         x <- x[which(nchar(x) > 0L)]
         if (length(x)) { diannCall <- c(diannCall, x) }
         DIANNLib_fl <- gsub("\\\\", "/", DIANNLib_fl)
         DIANNLib_fl <- unique(DIANNLib_fl[which(DIANNLib_fl != "")])
-        DIANNLib_fl <- unique(c(DIANNLib_fl, gsub("\\.skyline$", "", DIANNLib_fl)))
+        DIANNLib_fl <- unique(c(DIANNLib_fl, sub("\\.skyline$", "", DIANNLib_fl)))
         if (length(DIANNLib_fl)) {
           if (sum(dirname(DIANNLib_fl) != dirname(DIANN_fl))) {
             DIANNLib_fl <- c(DIANNLib_fl, paste0(dirname(DIANN_fl), "/", basename(DIANNLib_fl)))
@@ -201,7 +202,7 @@ DIANN_to_MQ <- function(DIANN_fl,
     stopifnot("Run.Index" %in% colnames(DIANN),
               file.exists(log_Fl))
     tst <- aggregate(DIANN$Run, list(DIANN$Run.Index), unique)
-    fls <- gsub("(\\\\)+", "/", gsub("^f ", "", grep("^f ", diannCall, value = TRUE)))
+    fls <- gsub("(\\\\)+", "/", sub("^f ", "", grep("^f ", diannCall, value = TRUE)))
     flNms <- gsub(".*/|\\.[^\\.]+$", "", fls)
     tst$x2 <- flNms[tst$Group.1 + 1L]
     stopifnot(sum(tst$x != tst$x2) == 0L)
@@ -336,7 +337,7 @@ DIANN_to_MQ <- function(DIANN_fl,
         }
         return(w)
       })
-      Mods$tag <- do.call(paste, c(data.frame(AA = gsub("^_", "", Mods$AA),
+      Mods$tag <- do.call(paste, c(data.frame(AA = sub("^_", "", Mods$AA),
                                               Name = paste0("+", as.character(round(Mods$DM), 4L)),
                                               NTerm = c("", "(N-term)")[grepl("^_", Mods$AA)+1L]),
                                    sep = " "))
@@ -442,7 +443,7 @@ DIANN_to_MQ <- function(DIANN_fl,
     }
   }
   if (modsType == "No idea") {
-    tmp <- aggregate(gsub("^_", "", Mods$AA), list(Mods$Match), \(x) { sort(unique(x)) })
+    tmp <- aggregate(sub("^_", "", Mods$AA), list(Mods$Match), \(x) { sort(unique(x)) })
     allPTMs$Site <- allPTMs$AA <- tmp$x[match(allPTMs$`Full name`, tmp$Group.1)]
     w <- which(allPTMs$Position == "Any N-term")
     if (length(w)) { allPTMs$Site[w] <- lapply(allPTMs$Site[w], \(x) { paste0("n", x) }) }
@@ -511,7 +512,7 @@ DIANN_to_MQ <- function(DIANN_fl,
     # Sometimes there will be discrepancies, where UniMod has a compatible isobaric PTM with a different name!
   }
   if (!"Mass shift" %in% colnames(allPTMs)) {
-    allPTMs$"Mass shift" <- UniMod$MonoMass[match(gsub("^UniMod:", "", allPTMs$UniMod), UniMod$UnimodId)]
+    allPTMs$"Mass shift" <- UniMod$MonoMass[match(sub("^UniMod:", "", allPTMs$UniMod), UniMod$UnimodId)]
     if ("Mass delta" %in% colnames(allPTMs)) {
       tst <- allPTMs$"Mass shift" - allPTMs$"Mass delta"
       stopifnot(max(tst, na.rm = TRUE) < 0.1)
@@ -645,9 +646,9 @@ DIANN_to_MQ <- function(DIANN_fl,
     EV$"Leading proteins" <- DIANN$Protein.Group # (Will be removed later anyway in the classic workflow, since we perform protein inference again)
     kol <- c("PG.Quantity", "PG.Normalised", "PG.MaxLFQ", "Genes.Quantity", "Genes.Normalised", "Genes.MaxLFQ", "Genes.MaxLFQ.Unique")
     kol <- kol[which(kol %in% colnames(DIANN))]
-    EV[, gsub(" Normalised$", " Normalised quantity", gsub("\\.", " ", kol))] <- DIANN[, kol]
+    EV[, sub(" Normalised$", " Normalised quantity", gsub("\\.", " ", kol))] <- DIANN[, kol]
     kol <- c("Protein.Q.Value", "PG.Q.Value", "Global.PG.Q.Value", "GG.Q.Value")
-    EV[, gsub(" Q Value$", " q-value", gsub("\\.", " ", kol))] <- DIANN[, kol]
+    EV[, sub(" Q Value$", " q-value", gsub("\\.", " ", kol))] <- DIANN[, kol]
   }
   kol <- c("Precursor.Quantity", "Precursor.Normalised", # Should be QuantUMS values, see https://github.com/vdemichev/DiaNN/discussions/764
            # As I understand:

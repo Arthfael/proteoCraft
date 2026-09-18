@@ -25,8 +25,8 @@
                                list(tmp2),
                                length)
       tmp2$x <- as.character(tmp2$x)
-      tmp2 <- paste(gsub("^1 ", "",
-                         do.call(paste, c(tmp2[, c("x", "Group.1")], sep = " "))),
+      tmp2 <- paste(sub("^1 ", "",
+                        do.call(paste, c(tmp2[, c("x", "Group.1")], sep = " "))),
                     collapse = ",")
     } else { tmp2 <- "" }
     rs$Mod[2L] <- tmp2; rs$Mod[1L] <- ""
@@ -42,7 +42,7 @@
     obsptms <- unlist(x[[3L]])
     if (length(obsptms)) {
       obsptms <- obsptms[which(obsptms != "")]
-      rs$Mod[l+1L] <- gsub("^,", "", paste(c(rs$Mod[l+1L], obsptms), collapse = ","))
+      rs$Mod[l+1L] <- sub("^,", "", paste(c(rs$Mod[l+1L], obsptms), collapse = ","))
     }
   }
   w <- which(rs$Mod != "")

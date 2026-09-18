@@ -1,7 +1,7 @@
 #### Code chunk - Gene Ontology terms enrichment analysis
 if (globalGO) {
   # Global dataset GO enrichment - expression per sample vs total proteome
-  ref <- rev(PG.int.cols[which(PG.int.cols != paste0("Imput. ", PG.int.cols["Original"]))])[1L]
+  ref <- rev(setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
   xprsFilt <- setNames(lapply(Exp, \(e) { which(is.finite(PG[[paste0(ref, e)]])) }), Exp)
   dir <- paste0(wd, "/GO enrichment analysis/Sample vs total proteome")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
@@ -48,11 +48,11 @@ if (globalGO) {
     zs <- grep("^(Z-score|\\(N_Up - N_Down\\)/sqrt\\(Tot\\.\\))", colnames(temp), value = TRUE)
     lf <- grep("^logFC", colnames(temp), value = TRUE)
     si <- grep("^Significance", colnames(temp), value = TRUE)
-    kl <- colnames(temp)[which(!colnames(temp) %in% c(gn, kn, pv, zs, lf, si, pg, pr))]
+    kl <- setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, pr))
     temp <- temp[, c(kl, si, gn, pg, pr, kn, pv, zs, lf)]
-    w <- apply(temp[, pv, drop = FALSE], 1L, \(x) { sum(!is.na(x)) }) > 0L
+    w <- apply(temp[, pv, drop = FALSE], 1L, sum, na.rm = TRUE) > 0L
     temp <- temp[w,]
-    tst <- apply(temp[, kn, drop = FALSE], 1L, \(x) { sum(x[which(!is.na(x))]) })
+    tst <- apply(temp[, kn, drop = FALSE], 1L, sum, na.rm = TRUE)
     temp <- temp[order(tst, decreasing = TRUE),]
     temp <- temp[order(temp$Ontology, decreasing = FALSE),]
     w <- which(vapply(colnames(temp), \(x) { is.character(temp[[x]]) }, TRUE))
@@ -118,14 +118,14 @@ if (globalGO) {
                                   wrap_text = TRUE)
       wb$styles_mgr$add(HdrStl, "Header_style")
       nTabs <- 0L
-      SmplMp <- SamplesMap[which(SamplesMap$`Ratios group` == grp),]
-      tmp <- paste0("Comparisons to ", SmplMp$Experiment[which(SmplMp$Reference)])
+      SmplMp <- SamplesMap[SamplesMap$`Ratios group` == grp,]
+      tmp <- paste0("Comparisons to ", SmplMp$Experiment[SmplMp$Reference])
       if (length(rat.grps) > 1L) { tmp <- paste0("Group", grp, " (", tmp, ")") }
       dir <- paste0(wd, "/GO enrichment analysis/", tmp)
       if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
       setwd(dir)
-      db_obs %<o% db[which(db$"Protein ID" %in% unlist(strsplit(PG$"Leading protein IDs", ";"))),]
-      fcFilt <- FC_filt[which(names(FC_filt) %in% SmplMp$Experiment)]
+      db_obs %<o% db[db$"Protein ID" %in% unlist(strsplit(PG$"Leading protein IDs", ";")),]
+      fcFilt <- FC_filt[names(FC_filt) %in% SmplMp$Experiment]
       nms <- names(fcFilt)
       filt2 <- setNames(lapply(nms, \(x) {
         unique(unlist(xprsFilt[SmplMp$Experiment]))
@@ -168,11 +168,11 @@ if (globalGO) {
         zs <- grep("^(Z-score|\\(N_Up - N_Down\\)/sqrt\\(Tot\\.\\))", colnames(temp), value = TRUE)
         lf <- grep("^logFC", colnames(temp), value = TRUE)
         si <- grep("^Significance", colnames(temp), value = TRUE)
-        kl <- colnames(temp)[which(!colnames(temp) %in% c(gn, kn, pv, zs, lf, si, pg, pr))]
+        kl <- setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, pr))
         temp <- temp[, c(kl, si, gn, pg, pr, kn, pv, zs, lf)]
-        w <- apply(temp[, pv, drop = FALSE], 1L, \(x) { sum(!is.na(x)) }) > 0L
+        w <- apply(temp[, pv, drop = FALSE], 1L, sum, na.rm = TRUE) > 0L
         temp <- temp[w,]
-        tst <- apply(temp[, kn, drop = FALSE], 1L, \(x) { sum(x[which(!is.na(x))]) })
+        tst <- apply(temp[, kn, drop = FALSE], 1L, sum, na.rm = TRUE)
         temp <- temp[order(tst, decreasing = TRUE),]
         temp <- temp[order(temp$Ontology, decreasing = FALSE),]
         w <- which(vapply(colnames(temp), \(x) { is.character(temp[[x]]) }, TRUE))
@@ -219,8 +219,8 @@ if (globalGO) {
       for (ptm in EnrichedPTMs) { #ptm <- EnrichedPTMs[1L]
         ptmpep <- PTMs_pep[[ptm]]
         for (grp in rat.grps) { #grp <- rat.grps[1L]
-          SmplMp <- SamplesMap[which(SamplesMap$`Ratios group` == grp),]
-          tmp <- paste0("Comparisons to ", SmplMp$Experiment[which(SmplMp$Reference)])
+          SmplMp <- SamplesMap[SamplesMap$`Ratios group` == grp,]
+          tmp <- paste0("Comparisons to ", SmplMp$Experiment[SmplMp$Reference])
           if (length(rat.grps) > 1L) { tmp <- paste0("Group", grp, " (", tmp, ")") }
           nms <- names(PTMs_FC_filt[[ptm]])
           filt3 <- setNames(lapply(nms, \(x) {
@@ -269,11 +269,11 @@ if (globalGO) {
             zs <- grep("^(Z-score|\\(N_Up - N_Down\\)/sqrt\\(Tot\\.\\))", colnames(temp), value = TRUE)
             lf <- grep("^logFC", colnames(temp), value = TRUE)
             si <- grep("^Significance", colnames(temp), value = TRUE)
-            kl <- colnames(temp)[which(!colnames(temp) %in% c(gn, kn, pv, zs, lf, si, pg, pr))]
+            kl <- setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, pr))
             temp <- temp[, c(kl, si, gn, pg, pr, kn, pv, zs, lf)]
-            w <- apply(temp[, pv, drop = FALSE], 1L, \(x) { sum(!is.na(x)) }) > 0L
+            w <- apply(temp[, pv, drop = FALSE], 1L, sum, na.rm = TRUE) > 0L
             temp <- temp[w,]
-            tst <- apply(temp[, kn, drop = FALSE], 1L, \(x) { sum(x[which(!is.na(x))]) })
+            tst <- apply(temp[, kn, drop = FALSE], 1L, sum, na.rm = TRUE)
             temp <- temp[order(tst, decreasing = TRUE),]
             temp <- temp[order(temp$Ontology, decreasing = FALSE),]
             w <- which(vapply(colnames(temp), \(x) { is.character(temp[[x]]) }, TRUE))

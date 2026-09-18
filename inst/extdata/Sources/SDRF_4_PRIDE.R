@@ -58,9 +58,9 @@ if (reload_SDRF) {
   filtOnt <- \(ontNm, colNm) {
     if ((!is.na(colNm)) && (colNm %in% colnames(auld_SDRF))) {
       tmp <- unique(auld_SDRF[[colNm]])
-      tmp <- tmp[which(!is.na(tmp))]
-      tmp <- tmp[which(!tolower(tmp) %in% c("unknown", "not available"))]
-      tmp <- tmp[which(nchar(tmp) > 0L)]
+      tmp <- tmp[!is.na(tmp)]
+      tmp <- tmp[!tolower(tmp) %in% c("unknown", "not available")]
+      tmp <- tmp[nchar(tmp) > 0L]
       assign(ontNm, tmp, envir = .GlobalEnv)
     }
   }
@@ -621,8 +621,8 @@ serverA <- \(input, output, session) {
     assign("myDisease", unique(input$Diseases), envir = .GlobalEnv)
     tmp <- unique(c(input$devStages1,
                     unlist(strsplit(input$devStages2, "\\|"))))
-    tmp <- tmp[which(!is.na(tmp))]
-    tmp <- tmp[which(nchar(tmp) > 0L)]
+    tmp <- tmp[!is.na(tmp)]
+    tmp <- tmp[nchar(tmp) > 0L]
     assign("myDevStages", tmp, envir = .GlobalEnv)
     assign("myVendor", unique(input$Vendor), envir = .GlobalEnv)
     assign("myMSInstr", unique(input$MS_instr), envir = .GlobalEnv)
@@ -643,10 +643,10 @@ while ((!runKount) || (!exists("appRunTest"))) {
 }
 # Update myVendor
 tmpVnd <- setdiff(availMSVend, "All vendors")
-myVendor <- tmpVnd[which(vapply(tmpVnd, \(x) {
+myVendor <- tmpVnd[vapply(tmpVnd, \(x) {
   w <- which(availInstrDF$Vendor == x)
   sum(myMSInstr %in% availInstrDF$Instrument[w])
-}, 1L) > 0L)]
+}, 1L) > 0L]
 if (length(myVendor) && (sum(!myVendor %in% c("Bruker Daltonics", "Thermo Fisher Scientific")))) {
   stop("Vendor not yet supported!")
 }
@@ -654,8 +654,8 @@ if (length(myVendor) && (sum(!myVendor %in% c("Bruker Daltonics", "Thermo Fisher
 myOntologies <- c("mainOrg", myOntDF$myOntology)
 for (i in myOntologies) {
   tmp <- unique(get(i))
-  tmp <- tmp[which(tolower(tmp) != "unknown")]
-  tmp <- tmp[which(!is.na(tmp))]
+  tmp <- tmp[tolower(tmp) != "unknown"]
+  tmp <- tmp[!is.na(tmp)]
   tmp <- c(tmp, "not available")
   assign(paste0(i, as.character(2L)), tmp)
 }
@@ -756,6 +756,7 @@ if (!"characteristics[biological replicate]" %in% colnames(SDRF)) {
   SDRF$"characteristics[biological replicate]" <- if ("Replicate" %in% colnames(Frac.map2)) {
     Frac.map2$Replicate
   } else { 1L }
+  SDRF$"characteristics[biological replicate]"[is.na(SDRF$"characteristics[biological replicate]")] <- "pooled"
 }
 # if (!"comment[label]" %in% colnames(SDRF)) {
 #   SDRF$"comment[label]" <- "label free" # Change this if doing TMT/SILAC!!!
@@ -792,7 +793,7 @@ myOntDF$Candidate_col_root <- list(c("Cell Type", "Cell type"),
                                    "PTM-enriched")
 myOntDF$Candidate_col <- lapply(1L:nrow(myOntDF), \(i) { #i <- 8L
   candKols <- myOntDF$Candidate_col_root[[i]]
-  candKols <- candKols[which(!is.na(candKols))]
+  candKols <- candKols[!is.na(candKols)]
   if (length(candKols)) {
     candKols <- unique(c(candKols,
                          gsub(" ", "", candKols),
@@ -803,9 +804,9 @@ myOntDF$Candidate_col <- lapply(1L:nrow(myOntDF), \(i) { #i <- 8L
     candKols <- intersect(candKols, colnames(Frac.map2))
   }
   if (length(candKols)) {
-    candKols <- candKols[which(vapply(candKols, \(k) { #k <- candKols[1L]
+    candKols <- candKols[vapply(candKols, \(k) { #k <- candKols[1L]
       sum(!unique(Frac.map2[[k]]) %in% c(get(myOntDF$myOntology[i]), get(paste0(myOntDF$myOntology[i], "2"))))
-    }, 1L) == 0L)]
+    }, 1L) == 0L]
   }
   return(candKols)
 })

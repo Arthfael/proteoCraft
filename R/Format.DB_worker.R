@@ -34,9 +34,9 @@
     }
   } else { # TAIR-specific behaviour
     if (IDs_only) {
-      temp1$"Protein ID" <- gsub(" \\| (Symbols: )?.*", "", gsub("^>", "",temp1$Header))
+      temp1$"Protein ID" <- gsub(" \\| (Symbols: )?.*", "", sub("^>", "",temp1$Header))
     } else {
-      temp1[, c("Protein ID", "Gene", "Common Name", "Chromosome")] <- Isapply(strsplit(gsub("^>", "",temp1$Header), " \\| (Symbols: )?"),
+      temp1[, c("Protein ID", "Gene", "Common Name", "Chromosome")] <- Isapply(strsplit(sub("^>", "",temp1$Header), " \\| (Symbols: )?"),
                                                                                unlist)
       temp1 <- temp1[, c("Protein ID", "Common Name", "Gene", "Chromosome", "Header")]
       temp1$"Common Name" <- gsub(" / ", ";", gsub("; ", ", ", gsub("  ?", " ", temp1$"Common Name")))
@@ -46,7 +46,7 @@
     }
   }
   if (("Name" %in% colnames(temp1))&&(trimName)) {
-    temp1$Name <- gsub("_[^_]*$", "", temp1$Name)
+    temp1$Name <- sub("_[^_]*$", "", temp1$Name)
   }
   if (!IDs_only) {
     if (mode %in% c("REFSEQCDS", "NCBI", "UNIPROTKB")) {
@@ -56,7 +56,7 @@
     if (mode == "UNIPROTKB") {
       temp1$Organism <- temp1$Organism_Full <- ""
       g <- grep("^>.+OS=", temp1$Header)
-      temp1$Organism[g] <- temp1$Organism_Full[g] <- gsub(" [A-Z]{2}=.+$", "", gsub("^>.+OS=", "", temp1$Header[g]))
+      temp1$Organism[g] <- temp1$Organism_Full[g] <- sub(" [A-Z]{2}=.+$", "", sub("^>.+OS=", "", temp1$Header[g]))
       g <- grep("[^_]+_[^_]+", temp1$"Full ID")
       temp1$Organism[g] <- gsub(".*_", "", temp1$"Full ID"[g])
       unique(temp1$Organism_Full)
@@ -79,7 +79,7 @@
       a <- grep("^[I,i]soform [a-z,A-Z,0-9]+ of ", temp1$"Common Name")
       if (length(a)) {
         a1 <- temp1$"Common Name"[a]
-        b1 <- gsub("^[I,i]soform [a-z,A-Z,0-9]+ of ", "", a1)
+        b1 <- sub("^[I,i]soform [a-z,A-Z,0-9]+ of ", "", a1)
         c1 <- nchar(a1)
         c2 <- nchar(b1)
         b2 <- vapply(1L:length(a), \(x) {
@@ -136,7 +136,7 @@
       }, "")
     }
     if (!"Common Name" %in% colnames(temp1)) {
-      temp1$"Common Name" <- vapply(strsplit(gsub(" \\[[^\\[]+\\]$", "", temp1$Header), " "), \(x) {
+      temp1$"Common Name" <- vapply(strsplit(sub(" \\[[^\\[]+\\]$", "", temp1$Header), " "), \(x) {
         x <- unlist(x)
         if (length(x) > 1L) {
           x <- paste(x[2L:length(x)], collapse = " ")
@@ -160,7 +160,7 @@
     temp1$Sequence <- gsub(" ", "", vapply(1L:(length(hdrs)-1L), \(x) {
       paste(btch[(hdrs[x]+1L):(hdrs[x+1L]-1L)], collapse = "")
     }, ""))
-    temp1$Sequence <- gsub("\\*$", "", temp1$Sequence) # Required for some types of databases, such as TAIR
+    temp1$Sequence <- sub("\\*$", "", temp1$Sequence) # Required for some types of databases, such as TAIR
     temp1$Sequence <- stats::setNames(temp1$Sequence, temp1$"Protein ID")
   } else { temp1 <- temp1$"Protein ID" }
   #rm(list = setdiff(ls(), "temp1"))

@@ -20,8 +20,7 @@ if (runRankAbundPlots || runProfPlots) {
   spLevel <- "species"
   #
   if (Annotate) {
-    AllTerms %<o% unique(unlist(strsplit(db$`GO-ID`, ";")))
-    AllTermNames %<o% unique(unlist(strsplit(db$GO, ";")))
+    AllTerms <- unique(unlist(strsplit(db$`GO-ID`, ";")))
   }
   #
   ggQuantLy <- list()
@@ -31,7 +30,7 @@ if (runRankAbundPlots || runProfPlots) {
   pepQuantTypes %<o% names(pepQuantTypes_ref)
   QuantTypes_ref %<o% setNames(c("PLACEHOLDER", "Sequence coverage [%] - ", "Spectral count - "),
                                c("LFQ", "Coverage", "Spectra"))
-  if (!CreateMSMSKol) { QuantTypes_ref <- QuantTypes_ref[which(names(QuantTypes_ref) != "Spectra")] }
+  if (!CreateMSMSKol) { QuantTypes_ref <- QuantTypes_ref[names(QuantTypes_ref) != "Spectra"] }
   QuantTypes %<o% names(QuantTypes_ref)
   lQ1 <- length(QuantTypes)
   lQ2 <- length(pepQuantTypes)
@@ -79,28 +78,25 @@ if (runRankAbundPlots || runProfPlots) {
     tmp1$Org <- tmp$Org[match(tmp1$value, tmp$ID)]
     tmp2$Org <- tmp$Org[match(tmp2$value, tmp$ID)]
     f0 <- \(x) {
-      x <- sort(unique(x))
-      x <- c(x[which(x %in% Org$Organism)],
-             x[which(!x %in% Org$Organism)])
-      paste(x, collapse = ";")
+      paste(union(Org$Organism, sort(x)), collapse = ";")
     }
     tmp1 <- tmp1[, .(Org = f0(Org)), by = .(row = as.integer(L1))]
     tmp2 <- tmp2[, .(Org = f0(Org)), by = .(row = as.integer(L1))]
     PG$"Org. label" <- tmp1$Org[match(1L:nrow(PG), tmp1$row)]
     pep$"Org. label" <- tmp2$Org[match(1L:nrow(pep), tmp2$row)]
-    PG$"Org. label"[which(PG$`Potential contaminant` == "+")] <- "Contaminant"
-    pep$"Org. label"[which(pep$`Potential contaminant` == "+")] <- "Contaminant"
+    PG$"Org. label"[PG$`Potential contaminant` == "+"] <- "Contaminant"
+    pep$"Org. label"[pep$`Potential contaminant` == "+"] <- "Contaminant"
     tstOrg2 <- pep$"Org. label" # Should remain before the prot.list.Cond bit!
     if (prot.list.Cond) {
-      PG$"Org. label"[which(PG$`In list` == "+")] <- "In list"
-      pep$"Org. label"[which(pep$`In list` == "+")] <- "In list"
+      PG$"Org. label"[PG$`In list` == "+"] <- "In list"
+      pep$"Org. label"[pep$`In list` == "+"] <- "In list"
     }
     PG_varkol <- union(PG_varkol, "Org. label")
     pep_varkol <- union(pep_varkol, "Org. label")
     tstOrg2 <- aggregate(tstOrg2, list(tstOrg2), length)
     tstOrg2 <- tstOrg2[order(tstOrg2$x, decreasing = TRUE),]
-    tstOrg2 <- tstOrg2$Group.1[which(tstOrg2$x > 1L)]
-    tstOrg2 <- tstOrg2[which(!tstOrg2 %in% c("Contaminant", "In list"))]
+    tstOrg2 <- tstOrg2$Group.1[tstOrg2$x > 1L]
+    tstOrg2 <- setdiff(tstOrg2, c("Contaminant", "In list"))
   }
   Org_Nms %<o% abbrOrg(tstOrg2)
   #
@@ -132,13 +128,13 @@ if (runRankAbundPlots || runProfPlots) {
     GO_filt %<o% (length(GO_PG_col) > 0L)
     if (GO_filt) {
       if ((!exists("GO_terms")) && file.exists(paste0(wd, "/GO_terms.RDS"))) { loadFun(paste0(wd, "/GO_terms.RDS")) }
-      GO_PG_col <- GO_PG_col[which(GO_PG_col %in% GO_terms$ID)]
+      GO_PG_col <- intersect(GO_PG_col, GO_terms$ID)
       GO_filt <- length(GO_PG_col) > 0L
     }
     GO_filter <- GO_PG_col
   }
   if (scrptType == "noReps") {
-    PG_ref <- rev(PG.int.cols[which(PG.int.cols != paste0("Imput. ", PG.int.cols["Original"]))])[1L]
+    PG_ref <- rev(setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
     pep_ref <- paste0(int.cols["Original"], " - ")
     mySamples <- Exp
     if (GO_filt) {
@@ -150,7 +146,7 @@ if (runRankAbundPlots || runProfPlots) {
     w <- which(is.na(names(GO_filter)))
     if (length(w)) {
       if (exists("CompGOTerms")) {
-        w1 <- w[which(GO_filter[w] %in% CompGOTerms)]
+        w1 <- w[GO_filter[w] %in% CompGOTerms]
         if (length(w1)) {
           names(GO_filter)[w1] <- names(CompGOTerms)[match(GO_filter[w1], CompGOTerms)]
           
@@ -171,21 +167,21 @@ if (runRankAbundPlots || runProfPlots) {
   if (scrptType == "noReps") {
     # Currently left out for replicates script because there isn't any-more a 1:1 relationship between tests and sample groups!
     PG_regKol <- pep_regKol <- paste0("Regulated - ", mySamples)
-    PG_regKol <- PG_regKol[which(PG_regKol %in% colnames(PG))]
-    pep_regKol <- pep_regKol[which(pep_regKol %in% colnames(pep))]
+    PG_regKol <- intersect(PG_regKol, colnames(PG))
+    pep_regKol <- intersect(pep_regKol, colnames(pep))
   }
   PG_kntKol <- paste0("Peptides count - ", mySamples)
-  PG_kntKol <- PG_kntKol[which(PG_kntKol %in% colnames(PG))]
+  PG_kntKol <- intersect(PG_kntKol, colnames(PG))
   myPG <- PG[, c(all_PG_kol, PG_varkol, PG_kntKol)]
   if ((scrptType == "noReps") && length(PG_regKol)) {
     myPG[, PG_regKol] <- PG[, PG_regKol]
   }
   if (length(klstKol) == 1L) {
-    colnames(myPG)[which(colnames(myPG) == klstKol)] <- "Cluster"
-    PG_varkol[which(PG_varkol == klstKol)] <- "Cluster"
+    colnames(myPG)[colnames(myPG) == klstKol] <- "Cluster"
+    PG_varkol[PG_varkol == klstKol] <- "Cluster"
   }
-  colnames(myPG)[which(colnames(myPG) == "Label")] <- "Protein Group"
-  PG_varkol[which(PG_varkol == "Label")] <- "Protein Group"
+  colnames(myPG)[colnames(myPG) == "Label"] <- "Protein Group"
+  PG_varkol[PG_varkol == "Label"] <- "Protein Group"
   myPep <- pep[, c(all_pep_kol, pep_varkol)]
   if ((scrptType == "noReps") && length(pep_regKol)) {
     myPep[, pep_regKol] <- pep[, pep_regKol]
@@ -194,8 +190,8 @@ if (runRankAbundPlots || runProfPlots) {
   myPep$"Modified sequence" <- gsub("^_|_$", "", myPep$"Modified sequence")
   myPep$"Modified sequence" <- factor(myPep$"Modified sequence", levels = myPep$"Modified sequence")
   if (prot.list.Cond) {
-    myPG$`In list`[which(myPG$`In list` == "")] <- "-"
-    myPep$`In list`[which(myPep$`In list` == "")] <- "-"
+    myPG$`In list`[myPG$`In list` == ""] <- "-"
+    myPep$`In list`[myPep$`In list` == ""] <- "-"
   }
   test <- aggregate(myPG$"Protein Group", list(myPG$"Protein Group"), length)
   w <- which(test$x > 1L)
@@ -217,8 +213,8 @@ if (runRankAbundPlots || runProfPlots) {
   pep_varkol <- union(pep_varkol, "Category")
   if (prot.list.Cond) {
     tst <- (lOrg > 0L)+1L
-    myPG$Category[which(myPG$"In list" == "+")] <- c("+", "In list")[tst]
-    myPep$Category[which(myPep$"In list" == "+")] <- c("+", "In list")[tst]
+    myPG$Category[myPG$"In list" == "+"] <- c("+", "In list")[tst]
+    myPep$Category[myPep$"In list" == "+"] <- c("+", "In list")[tst]
   }
   lev <- union(c("In list", "+", tstOrg2, "-", "Contaminant"),
                unique(myPG$Category) # This last bit as a safeguard against hiccups
@@ -239,14 +235,14 @@ if (runRankAbundPlots || runProfPlots) {
                                   GOBPOFFSPRING[[goID]],
                                   GOCCOFFSPRING[[goID]],
                                   GOMFOFFSPRING[[goID]])))
-      gofilter <- gofilter[which(!is.na(gofilter))]
+      gofilter <- gofilter[!is.na(gofilter)]
       if (sum(gofilter %in% AllTerms)) {
         myPG[[goID]] <- "-"
-        wtst <- unique(tmp$row[which(tmp$GO %in% gofilter)])
+        wtst <- unique(tmp$row[tmp$GO %in% gofilter])
         myPG[wtst, goID] <- "+"
         PG_varkol <- union(PG_varkol, goID)
       } else {
-        myFlt <- myFlt[which(myFlt != goID)] # Not setdiff, it strips names!!!
+        myFlt <- setdiff(myFlt, goID) # Not setdiff, it strips names!!!
       }
     }
     if (length(myFlt)) {
@@ -306,13 +302,13 @@ if (runRankAbundPlots || runProfPlots) {
   #     w <- which(tmp$value == goID)
   #     PltTst[goID] <- length(w) > 0L
   #     if (PltTst[goID]) {
-  #       myPG[[goID]] <- 1L:nrow(myPG) %in% tmp$L1[which(tmp$value == goID)]
+  #       myPG[[goID]] <- 1L:nrow(myPG) %in% tmp$L1[tmp$value == goID]
   #       PG_varkol <- union(PG_varkol, goID)
   #     }
   #   }
-  #   PG_varkol <- PG_varkol[which(PG_varkol != "GO-ID")]
+  #   PG_varkol <- setdiff(PG_varkol, "GO-ID")
   # }
-  PltTst <- PltTst[which(PltTst)]
+  PltTst <- PltTst[PltTst]
   samplesDF1 <- lapply(names(PltTst), \(x) {
     rs <- samplesDF1
     rs$subtype <- x
@@ -330,12 +326,12 @@ if (runRankAbundPlots || runProfPlots) {
       list(unique(x))
     })
     colnames(samplesDF2) <- c("QuantType", "ref", "type", "values")
-    samplesDF2 <- samplesDF2[which(samplesDF2$type != "pep"),] # Those take just too bloody long!!!
-    samplesDF2 <- samplesDF2[which(lengths(samplesDF2$values) > 1L),]
+    samplesDF2 <- samplesDF2[samplesDF2$type != "pep",] # Those take just too bloody long!!!
+    samplesDF2 <- samplesDF2[lengths(samplesDF2$values) > 1L,]
     #
     PltTst2 <- setNames(c(TRUE, prot.list.Cond, GO_filt, exists("CompGOTerms")),
                         c("All", "List", "GO", "Mark"))
-    PltTst2 <- PltTst2[which(PltTst2)]
+    PltTst2 <- PltTst2[PltTst2]
     samplesDF2 <- lapply(names(PltTst2), \(x) {
       rs <- samplesDF2
       rs$subtype <- x
@@ -386,11 +382,11 @@ if (runRankAbundPlots || runProfPlots) {
   if (runRankAbundPlots) {
     whAb <- 1L:nrow(samplesDF1)
     for (quantType in QuantTypes) { #quantType <- QuantTypes[1L]
-      w1 <- whAb[which((samplesDF$type[whAb] == "PG") & (samplesDF$QuantType[whAb] == quantType) & (samplesDF$subtype[whAb] == "All"))]
+      w1 <- whAb[(samplesDF$type[whAb] == "PG") & (samplesDF$QuantType[whAb] == quantType) & (samplesDF$subtype[whAb] == "All")]
       ggQuantLy[[quantType]] <- setNames(tmPlots[w1], samplesDF$values[w1])
     }
     for (quantType in pepQuantTypes) { #quantType <- pepQuantTypes[1L]
-      w2 <- whAb[which((samplesDF$type[whAb] == "pep") & (samplesDF$QuantType[whAb] == quantType) & (samplesDF$subtype[whAb] == "All"))]
+      w2 <- whAb[(samplesDF$type[whAb] == "pep") & (samplesDF$QuantType[whAb] == quantType) & (samplesDF$subtype[whAb] == "All")]
       ggQuantLy[[paste0("peptides ", quantType)]] <- setNames(tmPlots[w2], samplesDF$values[w2])
     }
     saveFun(ggQuantLy, paste0(MainDir, "/quantPlots.RDS"))
@@ -399,13 +395,13 @@ if (runRankAbundPlots || runProfPlots) {
     whPr <- 1L:nrow(samplesDF2)
     # Profile plots
     for (quantType in QuantTypes) { #quantType <- QuantTypes[1L]
-      w1 <- whPr[which((samplesDF2$type[whPr] == "PG") & (samplesDF2$QuantType[whPr] == quantType) & (samplesDF2$subtype[whPr] == "All"))]
+      w1 <- whPr[(samplesDF2$type[whPr] == "PG") & (samplesDF2$QuantType[whPr] == quantType) & (samplesDF2$subtype[whPr] == "All")]
       w1 <- w1 + nrow(samplesDF_Lst$ranked)
       stopifnot(length(w1) == 1L)
       ggProfLy[[quantType]] <- tmPlots[[w1]]
     }
     for (quantType in pepQuantTypes) { #quantType <- pepQuantTypes[1L]
-      w2 <- whPr[which((samplesDF2$type[whPr] == "pep") & (samplesDF2$QuantType[whPr] == quantType) & (samplesDF2$subtype[whPr] == "All"))]
+      w2 <- whPr[(samplesDF2$type[whPr] == "pep") & (samplesDF2$QuantType[whPr] == quantType) & (samplesDF2$subtype[whPr] == "All")]
       w2 <- w2 + nrow(samplesDF_Lst$ranked)
       lw2 <- length(w2)
       stopifnot(lw2 <= 1L)

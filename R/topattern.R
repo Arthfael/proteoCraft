@@ -52,6 +52,6 @@ topattern <- function(x,
   x <- gsub("\\|", "\\\\|", x)
   if (start) { x <- paste0("^", x) }
   if (end) { x <- paste0(x, "$") }
-  if ((length(x) > 1L)&&(is.character(collapse))) { x <- paste(x, collapse = collapse) }
+  if ((length(x) > 1L) && is.character(collapse)) { x <- paste(x, collapse = collapse) }
   return(x)
 }

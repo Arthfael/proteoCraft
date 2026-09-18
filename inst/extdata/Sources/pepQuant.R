@@ -20,10 +20,10 @@ if (exists("scrptType")) {
   }
   if (!"Use" %in% colnames(Exp.map)) { Exp.map$Use <- TRUE } else {
     if (is.character(Exp.map$Use)) {
-      Exp.map$Use[which(Exp.map$Use == "T")] <- "TRUE"
-      Exp.map$Use[which(Exp.map$Use == "F")] <- "FALSE"
+      Exp.map$Use[Exp.map$Use == "T"] <- "TRUE"
+      Exp.map$Use[Exp.map$Use == "F"] <- "FALSE"
       Exp.map$Use <- as.logical(Exp.map$Use)
-      Exp.map$Use[which(is.na(Exp.map$Use))] <- TRUE
+      Exp.map$Use[is.na(Exp.map$Use)] <- TRUE
     }
     tmp_EM <- Exp.map
     refCol <- "Ref.Sample.Aggregate"
@@ -64,7 +64,7 @@ if (LabelType == "LFQ") {
   exports <- append(exports, "ev.col")
 }
 readr::write_rds(tmp, paste0(wd, "/tmp.RDS"))
-smpls <- unique(tmp_EM[which(tmp_EM$Use), refCol])
+smpls <- unique(tmp_EM[tmp_EM$Use, refCol])
 clusterExport(parClust, exports, envir = environment())
 invisible(clusterCall(parClust, \(x) {
   library(data.table)
@@ -83,7 +83,7 @@ tmp4 <- setNames(parLapply(parClust, smpls, \(smpl) { #smpl <- smpls[1L]
       tmp3 <- tmp[w2, paste0(ev.ref[length(ev.ref)], j), drop = FALSE]
       for (k in j) {
         kk <- paste0(ev.ref[length(ev.ref)], j)
-        tmp3[which(!is.finite(tmp3[[kk]])), kk] <- NA_real_
+        tmp3[!is.finite(tmp3[[kk]]), kk] <- NA_real_
       }
       if (length(j) > 1L) { tmp3 <- apply(tmp3, 1L, sum, na.rm = TRUE) } # Ultra-rare cases where the same parent sample is in different isobaric channels in different fractions
       tmp2 <- data.table(mod = tmp$"Modified sequence"[w2],
@@ -92,7 +92,7 @@ tmp4 <- setNames(parLapply(parClust, smpls, \(smpl) { #smpl <- smpls[1L]
     if (LabelType == "LFQ") {
       tmp2 <- data.table(mod = tmp$"Modified sequence"[w2],
                          Intensity = tmp[w2, ev.col[length(ev.col)]])
-      tmp2$Intensity[which(!is.finite(tmp2$Intensity))] <- NA_real_
+      tmp2$Intensity[!is.finite(tmp2$Intensity)] <- NA_real_
     }
     tmp2 <- tmp2[, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
     tmp2 <- as.data.frame(tmp2)
@@ -106,7 +106,7 @@ for (smpl in smpls) { #smpl <- smpls[1L]
   pep[w3, paste0(pep.ref["Original"], smpl)] <- tmp$Intensity[match(pep$"Modified sequence"[w3], tmp$mod)]
 }
 kol <- paste0(pep.ref["Original"], RSA$values)
-kol <- kol[which(kol %in% colnames(pep))]
+kol <- intersect(kol, colnames(pep))
 data <- pep[, c("Modified sequence", kol)]
 w <- which(rowSums(data[, kol], na.rm = TRUE) > 0)
 data <- data[w,]
@@ -131,12 +131,12 @@ scores1[, RSA$names] <- Isapply(strsplit(rownames(scores1), "___"), unlist)
 scores1$Use <- tmp_EM$Use[match(rownames(scores1), tmp_EM[[refCol]])]
 rownames(scores1) <- NULL
 pv1 <- round(100*(pc1$sdev)^2L / sum(pc1$sdev^2L), 0L)
-pv1 <- pv1[which(pv1 > 0)]
+pv1 <- pv1[pv1 > 0]
 pv1_ <- paste0("Original: ", paste(vapply(seq_along(pv1), \(x) {
   paste0("PC", x, ": ", pv1[x], "%")
 }, ""), collapse = ", "))
 w <- which(vapply(VPAL$names, \(x) { length(unique(scores1[[x]])) }, 1L) > 1L)
-w <- w[which(tolower(substr(names(w), 1L, 3L)) != "rep")]
+w <- w[tolower(substr(names(w), 1L, 3L)) != "rep"]
 scores1$Samples_group <- do.call(paste, c(scores1[, VPAL$names[w], drop = FALSE], sep = " "))
 outlierAnnot_shape %<o% "Replicate"
 outlierAnnot_color %<o% "Samples_group"

@@ -28,7 +28,7 @@ pathAbbr <- \(paths) {
   }, TRUE)
   wN <- suppressWarnings(min(which(!tst2)))
   wY <- which(tst2)
-  if (length(wY)) { wY <- max(wY[which(wY < wN)]) }
+  if (length(wY)) { wY <- max(wY[wY < wN]) }
   if (length(wY)) {
     rmv <- paste(tst[[1L]][wY], collapse = "/")
     nc <- nchar(rmv) + 1L
@@ -45,15 +45,15 @@ fastasTbl %<o% data.frame(Full = fastas,
 if (exists("isContaminant")) {
   fastasTbl$Contaminant <- as.logical(isContaminant[fastasTbl$Full])
 }
-fastasTbl$Contaminant[which(is.na(fastasTbl$Contaminant))] <- FALSE
+fastasTbl$Contaminant[is.na(fastasTbl$Contaminant)] <- FALSE
 fastasTbl$Loc <- c("Local", "Cluster")[grepl("^/+nfs/", fastasTbl$Dir)+1L]
 fastasTbl$Exists <- file.exists(fastasTbl$Full)
 fastasTbl$ExistsHere <- file.exists(paste0(wd, "/", fastasTbl$Name))
 fastasTbl$TXT <- gsub("\\.fa((s(ta(\\.fas)?)?)|(a))?$", ".txt", fastasTbl$Full) # Should catch .fasta, .fa, .faa, .fas, .fasta.fas
 fastasTbl$TXTHere <- paste0(wd, "/", gsub("\\.fa((s(ta(\\.fas)?)?)|(a))?$", ".txt", fastasTbl$Name))
-fastasTbl$TXTExists <- grepl("\\.txt$", fastasTbl$TXT)&(file.exists(fastasTbl$TXT))
-fastasTbl$TXTExistsHere <- grepl("\\.txt$", fastasTbl$TXTHere)&(file.exists(fastasTbl$TXTHere))
-w1 <- which((fastasTbl$ExistsHere)&(fastasTbl$Loc == "Cluster")) # Conflict between here and cluster
+fastasTbl$TXTExists <- grepl("\\.txt$", fastasTbl$TXT) & file.exists(fastasTbl$TXT)
+fastasTbl$TXTExistsHere <- grepl("\\.txt$", fastasTbl$TXTHere) & file.exists(fastasTbl$TXTHere)
+w1 <- which((fastasTbl$ExistsHere) & (fastasTbl$Loc == "Cluster")) # Conflict between here and cluster
 if (length(w1)) {
   require(tools)
   if (!SSH_on) {
@@ -62,7 +62,7 @@ if (length(w1)) {
     sshost <- dlg_input(msg)$res
     sshsess <- ssh_connect(sshost)
     kount <- 1L
-    while ((kount < 5L)&&(!inherits(sshsess, "ssh_session"))) {
+    while ((kount < 5L) && (!inherits(sshsess, "ssh_session"))) {
       sshsess <- ssh_connect(sshost)
       kount <- kount + 1L
     }
@@ -74,8 +74,8 @@ if (length(w1)) {
     tst2 <- vapply(fastasTbl$Full[w1], \(x) { #x <- fastasTbl$Full[w1[1L]]
       gsub(" .*", "", capture.output(ssh_exec_wait(sshsess, paste0("md5sum \"", x, "\"")))[1L])
     }, "")
-    w1y <- w1[which(tst1 == tst2)]
-    w1n <- w1[which(tst1 != tst2)]
+    w1y <- w1[tst1 == tst2]
+    w1n <- w1[tst1 != tst2]
     fastasTbl$Exists[w1n] <- FALSE
     fastasTbl$ExistsHere[w1y] <- fastasTbl$Exists[w1y] <- TRUE
     fastasTbl$Full[w1y] <- paste0(wd, "/", fastasTbl$Name[w1y])
@@ -83,11 +83,11 @@ if (length(w1)) {
     fastasTbl$Loc[w1y] <- "Local"
   }
 }
-w2 <- which((!fastasTbl$Exists)&(fastasTbl$Loc == "Local")) # Local but not found...
+w2 <- which((!fastasTbl$Exists) & (fastasTbl$Loc == "Local")) # Local but not found...
 if (length(w2)) {
-  w2o <- w2[which(file.exists(paste0(wd, "/", fastasTbl$Name[w2])))] # ... and are currently in the data processing folder...
+  w2o <- w2[file.exists(paste0(wd, "/", fastasTbl$Name[w2]))] # ... and are currently in the data processing folder...
   if (length(w2o)) {
-    tst <- (length(w2o) == 1)+1
+    tst <- (length(w2o) == 1L)+1L
     msg <- paste0(c("Several", "One")[tst], " Fasta file", c("s", "")[tst], " used to search the data w", c("ere", "as")[tst],
                   " not found at the original location, but ", c("are", "is")[tst], " present in the temporary data processing folder:\n",
                   paste(paste0(" - \"", fastasTbl$Full[w2o], "\""), collapse = "\n"))
@@ -95,13 +95,13 @@ if (length(w2)) {
     fastasTbl$Dir[w2o] <- wd
     fastasTbl$Full[w2o] <- paste0(wd, "/", fastasTbl$Name[w2o])
     fastasTbl$Exists[w2o] <- fastasTbl$ExistsHere[w2o] <- TRUE
-    w2 <- which((!fastasTbl$Exists)&(fastasTbl$Loc == "Local"))
+    w2 <- which((!fastasTbl$Exists) & (fastasTbl$Loc == "Local"))
   }
 }
 if (length(w2)) {
   fls <- unlist(lapply(inDirs, list.files, full.names = TRUE))
   flNms <- basename(fls)
-  w2i <- w2[which(fastasTbl$Name[w2] %in% flNms)] # ... or the input folder...
+  w2i <- w2[fastasTbl$Name[w2] %in% flNms] # ... or the input folder...
   if (length(w2i)) {
     tst <- (length(w2i) == 1L)+1L
     msg <- paste0(c("Several", "One")[tst], " Fasta file", c("s", "")[tst], " used to search the data w", c("ere", "as")[tst],
@@ -111,7 +111,7 @@ if (length(w2)) {
     fastasTbl$Full[w2i] <- vapply(fastasTbl$Name[w2], \(x) { fls[match(x, flNms)] }, "")
     fastasTbl$Dir[w2i] <- dirnames(fastasTbl$Full[w2i])
     fastasTbl$Exists[w2i] <- fastasTbl$ExistsHere[w2i] <- TRUE
-    w2 <- which((!fastasTbl$Exists)&(fastasTbl$Loc == "Local"))
+    w2 <- which((!fastasTbl$Exists) & (fastasTbl$Loc == "Local"))
   }
 }
 if (length(w2)) {
@@ -127,7 +127,7 @@ if (length(w2)) {
     fastasTbl$Loc[i] <- "Local"
   }
 }
-w3 <- which((!fastasTbl$ExistsHere)&(fastasTbl$Exists)) # These exist in the current directory but not at the original location stipulated in their path
+w3 <- which((!fastasTbl$ExistsHere) & fastasTbl$Exists) # These exist in the current directory but not at the original location stipulated in their path
 if (length(w3)) {
   fs::file_copy(fastasTbl$Full[w3], wd)
   fastasTbl$ExistsHere[w3] <- TRUE
@@ -137,13 +137,13 @@ if (length(w3)) {
   fastas_map$Actual[w3m] <- nwFast3[m3]
   fastasTbl$Full[w3] <- nwFast3
   fastasTbl$Dir[w3] <- wd
-  w3b <- which((!fastasTbl$TXTExistsHere[w3])&(fastasTbl$TXTExists[w3]))
+  w3b <- which((!fastasTbl$TXTExistsHere[w3]) & fastasTbl$TXTExists[w3])
   if (length(w3b)) {
     file_copy(fastasTbl$TXT[w3][w3b], wd)
     fastasTbl$TXTExistsHere[w3][w3b] <- TRUE
   }
 }
-w4 <- which((!fastasTbl$ExistsHere)&(fastasTbl$Loc == "Cluster")) # These do not exist here but are on the cluster
+w4 <- which((!fastasTbl$ExistsHere) & (fastasTbl$Loc == "Cluster")) # These do not exist here but are on the cluster
 if (length(w4)) {
   require(tools)
   if (!SSH_on) {
@@ -152,7 +152,7 @@ if (length(w4)) {
     sshost <- dlg_input(msg)$res
     sshsess <- ssh_connect(sshost)
     kount <- 1L
-    while ((kount < 5L)&&(!inherits(sshsess, "ssh_session"))) {
+    while ((kount < 5L) && (!inherits(sshsess, "ssh_session"))) {
       sshsess <- ssh_connect(sshost)
       kount <- kount + 1L
     }
@@ -161,8 +161,8 @@ if (length(w4)) {
   }
   if (SSH_on) {
     tst <- try(scp_download(sshsess, fastasTbl$Full[w4], wd), silent = TRUE)
-    w4y <- w4[which(file.exists(paste0(wd, "/", fastasTbl$Name[w4])))]
-    w4n <- w4[which(!file.exists(paste0(wd, "/", fastasTbl$Name[w4])))]
+    w4y <- w4[file.exists(paste0(wd, "/", fastasTbl$Name[w4]))]
+    w4n <- w4[!file.exists(paste0(wd, "/", fastasTbl$Name[w4]))]
     if (length(w4y)) {
       fastasTbl$ExistsHere[w4y] <- fastasTbl$Exists[w4y] <- TRUE
       fastasTbl$Full[w4y] <- paste0(wd, "/", fastasTbl$Name[w4y])
@@ -191,7 +191,7 @@ tst <- aggregate(fastasTbl$Full, list(fastasTbl$Name), list)
 tst$L <- lengths(tst$x)
 if (max(tst$L) > 1L) {
   msg <- paste0("Possible duplicate fasta databases detected:", 
-                paste(paste0("\n\n", unlist(tst$x[which(tst$L > 1L)])), collapse = ""),
+                paste(paste0("\n\n", unlist(tst$x[tst$L > 1L])), collapse = ""),
                 "\n\n\nAre they really duplicates?\n")
   simplFasta <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = TRUE)$res, c("yes", "no"))]
   if (simplFasta) {
@@ -203,7 +203,7 @@ if (max(tst$L) > 1L) {
     tmp <- Isapply(fastasTbl2$Full, \(x) {
       w <- which(fastasTbl$Full == x)
       if (length(w) > 1L) {
-        w <- which((fastasTbl$Full == x)&(fastasTbl$ExistsHere))
+        w <- which((fastasTbl$Full == x) & fastasTbl$ExistsHere)
       }
       if (length(w) > 1L) { w <- w[1L] }
       return(fastasTbl[w, kol])
@@ -249,7 +249,7 @@ fastasTbl$Species[whFnd] <- vapply(fastasTbl$Headers[whFnd], \(hdrs) { #hdrs <- 
   if (tst == 2L) { pat <- "^[^\\[]+\\[|\\].*$" }
   g <- grep(pat, hdrs)
   hdrs <- gsub(pat, "", hdrs[g])
-  hdrs <- hdrs[which(nchar(hdrs) > 0L)]
+  hdrs <- hdrs[nchar(hdrs) > 0L]
   hdrs <- grep("^[A-Z][a-z]+( [a-z,A-Z]+( .*)?)", hdrs, value = TRUE)
   if (length(hdrs)) {
     hdrs <- data.table(Species = hdrs, Species2 = hdrs)
@@ -307,13 +307,13 @@ annotDir <- fastasDir <- dfltLocs$Path[match("Fasta files", dfltLocs$Folder)]
 annotDflt <- paste0(fastasDir, "/.+\\.((txt)|(gtf)|(gff))$")
 annotOpt <- setNames(c("txt", "gtf", "gff"),
                      c("UniProtKB .txt", "NCBI .gtf", "NCBI .gff"))
-AnnotFls <- if ((!exists("AnnotFls"))||(!is.character(AnnotFls))) { c() } else {
-  if (length(AnnotFls)) { AnnotFls[which(file.exists(AnnotFls))] }
+AnnotFls <- if ((!exists("AnnotFls")) || (!is.character(AnnotFls))) { c() } else {
+  if (length(AnnotFls)) { AnnotFls[file.exists(AnnotFls)] }
 }
-if ((exists("AnnotFlsTbl"))&&(is.data.frame(AnnotFlsTbl))&&(nrow(AnnotFlsTbl))) {
+if (exists("AnnotFlsTbl") && is.data.frame(AnnotFlsTbl) && nrow(AnnotFlsTbl)) {
   AnnotFls <- unique(c(AnnotFls, AnnotFlsTbl$Path))
 }
-AnnotFls <- AnnotFls[which(!is.na(AnnotFls))]
+AnnotFls <- AnnotFls[!is.na(AnnotFls)]
 AnnotFls %<o% AnnotFls
 nr0 <- length(AnnotFls)
 updt_Type1 <- \(file) {
@@ -406,7 +406,7 @@ fastasTbl2 <- data.frame("Name" = fastasTbl$Name,
                          "Type" = fastasTbl$Type,
                          "Contaminants-only" = fastasTbl$Contaminant,
                          check.names = FALSE)
-fastasTbl2$"Contaminants-only"[which(is.na(fastasTbl2$"Contaminants-only"))] <- FALSE # Doesn't hurts
+fastasTbl2$"Contaminants-only"[is.na(fastasTbl2$"Contaminants-only")] <- FALSE # Doesn't hurts
 fastasTbl2$Type <- shinySelectInput(fastasTbl$Type,
                                     "Type",
                                     optSrc,
@@ -425,7 +425,7 @@ wTest <- list(list(width = NmWdth, targets = 0L),
 edith <- list(target = "column",
               enable = list(columns = grep(" regex$", colnames(fastasTbl2))-1L))
 tmp <- c(0L:(ncol(fastasTbl2)-1L))
-tmp <- tmp[which(!tmp %in% edith$enable$columns)]
+tmp <- setdiff(tmp, edith$enable$columns)
 edith$disable <- list(columns = tmp)
 if (exists("fastasTbl3")) { rm(fastasTbl3) }
 if (exists("annotTbl3")) { rm(annotTbl3) }
@@ -433,11 +433,11 @@ slctXprs <- expression({
   dat <- ANNOTTBL()
   nAnnot <- nrow(dat)
   rg <- 1L:nAnnot
-  rg0 <- rg[which(rg != i)]
+  rg0 <- setdiff(rg, i)
   fls <- dat$Path[rg0]
   fl <- rstudioapi::selectFile(paste0("Select ", c("", "additional ")[(i>1L)+1L], " functional annotation file"),
                                path = ANNOTDIR())
-  if ((length(fl) == 1L)&&(!is.na(fl))&&(file.exists(fl))) {
+  if ((length(fl) == 1L) && (!is.na(fl)) && file.exists(fl)) {
     if (fl %in% fls) {
       warning("You already selected this file! Ignoring...")
     } else {
@@ -568,7 +568,7 @@ table.on('change', 'select', function() {
   # Observers
   observeEvent(input$Fastas_cell_edit, {
     kol <- colnames(fastasTbl2)[input$Fastas_cell_edit$col+1L]
-    if ((length(kol))&&(kol %in% colnames(fastasTbl3))) {
+    if (length(kol) && (kol %in% colnames(fastasTbl3))) {
       fastasTbl3[input$Fastas_cell_edit$row, kol] <<- input$Fastas_cell_edit$value
     }
   }, ignoreNULL = FALSE)
@@ -630,12 +630,12 @@ table.on('change', 'select', function() {
   session$onSessionEnded(\() { stopApp() })
 }
 runKount <- 0L
-while ((!runKount)||(!exists("fastasTbl3"))) {
+while ((!runKount) || (!exists("fastasTbl3"))) {
   eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount+1L
 }
-annotTbl3 <- annotTbl3[which(file.exists(annotTbl3$Path)),]
+annotTbl3 <- annotTbl3[file.exists(annotTbl3$Path),]
 isContaminant <- setNames(fastasTbl3$Contaminant, fastasTbl3$Full)
 Annotate %<o% (nrow(annotTbl3) > 0L)
 if (Annotate) {
@@ -665,7 +665,7 @@ tst %<o% try(setNames(lapply(Sp, \(x) {
 }), Sp), silent = TRUE)
 if (inherits(tst, "try-error")) {
   kount <- 0L
-  while ((kount < 20L)&&(inherits(tst, "try-error"))) {
+  while ((kount < 20L) && inherits(tst, "try-error")) {
     tst %<o% try(setNames(lapply(Sp, \(x) {
       suppressMessages(taxonomy(organism = x, db = "ncbi", output = "classification"))
     }), Sp), silent = TRUE)
@@ -703,7 +703,7 @@ dbs <- setNames(lapply(whFnd, \(i) { #i <- whFnd[1L] #i <- whFnd[2L]
     if (!inherits(g, "try-error")) { tmp <- tmp[g,] }
   }
   tmp$"Protein of interest" <- (fastasTbl$Name[i] == "Proteins of interest.fasta")
-  if ((!is.na(fastasTbl$Species[i]))&&(!fastasTbl$Species[i] %in% c("mixed", "prompt user", "unknown"))) {
+  if ((!is.na(fastasTbl$Species[i])) && (!fastasTbl$Species[i] %in% c("mixed", "prompt user", "unknown"))) {
     tmp$Organism_Full <- fastasTbl$Species[i]
   }
   if (taxTst) {
@@ -715,18 +715,18 @@ dbs <- setNames(lapply(whFnd, \(i) { #i <- whFnd[1L] #i <- whFnd[2L]
 #
 kol <- c("Organism_Full", "Organism")
 dbs_Org %<o% setNames(lapply(dbs, \(db) { #db <- dbs[[1L]] #db <- dbs[[2L]] #db <- dbs[[3L]] #db <- dbs[[4L]]
-  kol <- kol[which(kol %in% colnames(db))]
-  tst <- vapply(kol, \(x) { length(unique(db[which(!as.character(db[[x]]) %in% c("", "NA")), x])) }, 1L)
+  kol <- intersect(kol, colnames(db))
+  tst <- vapply(kol, \(x) { length(unique(db[!as.character(db[[x]]) %in% c("", "NA"), x])) }, 1L)
   kol <- kol[order(tst, decreasing = TRUE)][1L]
   w <- which(db$`Potential contaminant` != "+")
   if (!length(w)) { return() }
   org %<o% aggregate(w, list(db[w, kol]), length)
   colnames(org) <- c("Organism", "Count")
-  org <- org[which(org$Count == max(org$Count)[1L]),]
-  org$Source <- aggregate(db$Source[which(db[[kol]] %in% org$Organism)], list(db[which(db[[kol]] %in% org$Organism), kol]), \(x) {
-    unique(x[which(!is.na(x))])
+  org <- org[org$Count == max(org$Count)[1L],]
+  org$Source <- aggregate(db$Source[db[[kol]] %in% org$Organism], list(db[db[[kol]] %in% org$Organism, kol]), \(x) {
+    unique(x[!is.na(x)])
   })$x
-  org$Source[which(is.na(org$Source))] <- ""
+  org$Source[is.na(org$Source)] <- ""
   return(org)
 }), fastasTbl$Full[whFnd])
 tmp <- listMelt(fastasTbl$Full_list, fastasTbl$Full, c("Original", "Final"))
@@ -791,7 +791,7 @@ if (n) {
   db <- db[tst$Row,]
 }
 #
-w2 <- which((!db$`Protein ID` %in% db$`Protein ID`[w])|(db$`Protein of interest`))
+w2 <- which((!db$`Protein ID` %in% db$`Protein ID`[w]) | db$`Protein of interest`)
 db <- db[w2,]
 db <- db[order(db$"Protein of interest", decreasing = TRUE),]
 for (i in 1L:nrow(fastasTbl)) { if (!file.exists(paste0(wd, "/", fastasTbl$Name[i]))) {
@@ -831,7 +831,7 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
   contDBFls <- paste0(libPath, "/extData/", c("CCP_cRAPome.fasta",
                                               "contaminants.fasta")[c(sum(c("DIANN", "FRAGPIPE") %in% SearchSoft),
                                                                       "MAXQUANT" %in% SearchSoft)])
-  contDBFls <- contDBFls[which(file.exists(contDBFls))]
+  contDBFls <- contDBFls[file.exists(contDBFls)]
   if (length(contDBFls)) {
     contDB <- lapply(contDBFls, \(contDBFl) {
       x <- readr::read_lines(contDBFl)
@@ -851,7 +851,7 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
         if (!grepl(":", x)) {
           tmp <- paste0("https://rest.uniprot.org/uniprotkb/", x, ".fasta")
           dest <- paste0(dr, "/", x, ".fasta")
-          if ((!file.exists(dest))||(base::file.size(dest) == 0)) {
+          if ((!file.exists(dest)) || (base::file.size(dest) == 0)) {
             try(utils::download.file(tmp, dest), silent = TRUE)
             
           }
@@ -866,12 +866,12 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
         }
         return(tst)
       })
-      tst <- tst[which(vapply(tst, \(x) { x$Outcome }, TRUE))]
+      tst <- tst[vapply(tst, \(x) { x$Outcome }, TRUE)]
       if (length(tst)) {
         tst <- lapply(tst, \(x) { x$tbl })
         tst <- plyr::rbind.fill(tst)
         contDB <- plyr::rbind.fill(tst,
-                                   contDB[which(!contDB$`Full ID` %in% tst$`Protein ID`),])
+                                   contDB[!contDB$`Full ID` %in% tst$`Protein ID`,])
         w1 <- which(grepl("^>(sp)|(tr)\\|", contDB$Header))
         org <- unique(contDB$Organism_Full[w1])
         library(UniProt.ws)
@@ -887,28 +887,28 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
                    Res = tst) 
             }
           }), org[w])
-          wY <- w[which(vapply(txIDs[w], \(x) { x$Outcome }, TRUE))]
-          wN <- w[which(!vapply(txIDs[w], \(x) { x$Outcome }, TRUE))]
+          wY <- w[vapply(txIDs[w], \(x) { x$Outcome }, TRUE)]
+          wN <- w[!vapply(txIDs[w], \(x) { x$Outcome }, TRUE)]
           txIDs[wN] <- c()
           txIDs[wY] <- lapply(txIDs[wY], \(x) { x$Res })
           Taxonomies[org[wY]] <- txIDs[org[wY]]
         }
-        txIDs <- Taxonomies[which(vapply(Taxonomies, \(x) { is.data.frame(x) }, TRUE))]
-        txIDs <- vapply(txIDs, \(x) { as.character(x$id[which(x$rank == "species")]) }, "")
+        txIDs <- Taxonomies[vapply(Taxonomies, \(x) { is.data.frame(x) }, TRUE)]
+        txIDs <- vapply(txIDs, \(x) { as.character(x$id[x$rank == "species"]) }, "")
         kount <- 0L
         w2 <- grep("^>(sp)|(tr)\\|", contDB$Header, invert = TRUE)
-        while ((length(w2))&&(kount < length(txIDs))) {
+        while (length(w2) && (kount < length(txIDs))) {
           kount <- kount + 1L
           sp <- gsub(" ", "+", txIDs[kount])
           #tmp <- paste0("https://www.uniprot.org/uniprot/?query=organism_name:", sp, "&format=fasta") # Old 
           tmp <- paste0("https://rest.uniprot.org/uniprotkb/search?query=organism_id:", sp, "&format=fasta")
           dest <- paste0("D:/Fasta_databases/", gsub(" ", "_", sp), "_-_uniprot-all-accessions_", gsub("-", "", Sys.Date()), ".fasta")
           tmp2 <- if (!file.exists(dest)) { try(download.file(tmp, dest), silent = TRUE) } else { 0L }
-          if ((!inherits(tmp2, "try-error"))&&(!tmp2)) {
+          if ((!inherits(tmp2, "try-error")) && (!tmp2)) {
             tmp2 <- Format.DB(dest)
             wY <- which(tmp2$Sequence %in% contDB$Sequence[w2])
             if (length(wY)) {
-              contDB <- plyr::rbind.fill(contDB[which(!contDB$Sequence %in% tmp2$Sequence),],
+              contDB <- plyr::rbind.fill(contDB[!contDB$Sequence %in% tmp2$Sequence,],
                                          tmp2[wY,])
               w2 <- grep("^>(sp)|(tr)\\|", contDB$Header, invert = TRUE)
             }
@@ -923,13 +923,13 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
       }
     }
   }
-  #db <- db[which(db$"Potential contaminant" != "+"),]
+  #db <- db[db$"Potential contaminant" != "+",]
   w <- which(db$Sequence %in% contDB$Sequence)
   db$"Potential contaminant"[w] <- "+"
   for (kol in c("Organism", "Organism_Full")) { if (!kol %in% colnames(db)) { db[[kol]] <- NA_character_ } }
   db[w, c("Organism", "Organism_Full")] <- "Contaminant"
   db$"Protein ID"[w] <- paste0("CON__", gsub("^CON__", "", db$"Protein ID"[w]))
-  contDB %<o% contDB[which(!contDB$Sequence %in% db$Sequence),]
+  contDB %<o% contDB[!contDB$Sequence %in% db$Sequence,]
   if (nrow(contDB)) {
     contDB$"Potential contaminant" <- "+"
     db <- rbind.fill(db, contDB)
@@ -939,8 +939,8 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
 # Gene column!
 # This column can be missing, yet it is critical for some functions (e.g. GO enrichment)
 if (!"Gene" %in% colnames(db)) { db$Gene <- "" }
-wY <- which((is.na(db$Gene))|(db$Gene == ""))  # "Yes", as in "yes it's broken, fix it!"
-wN <- which((!is.na(db$Gene))&(db$Gene != "")) # "No", as in "nope, everything's fine here, carry on"
+wY <- which((is.na(db$Gene)) | (db$Gene == ""))  # "Yes", as in "yes it's broken, fix it!"
+wN <- which((!is.na(db$Gene)) & (db$Gene != "")) # "No", as in "nope, everything's fine here, carry on"
 lY <- length(wY)
 if (lY) {
   tmp <- as.character(1L:lY)
@@ -967,14 +967,14 @@ if (lY) {
 }
 
 #
-w <- which((is.na(db$Organism))|(db$Organism == ""))
+w <- which(is.na(db$Organism) | (db$Organism == ""))
 if (length(w)) {
-  w1 <- w[which(db$`Potential contaminant`[w] == "+")]
-  w2 <- w[which(db$`Potential contaminant`[w] != "+")]
+  w1 <- w[db$`Potential contaminant`[w] == "+"]
+  w2 <- w[db$`Potential contaminant`[w] != "+"]
   db$Organism[w1] <- "Contaminant"
   db$Organism[w2] <- "Unknown"
 }
-w <- which((is.na(db$Organism_Full))|(db$Organism_Full == ""))
+w <- which(is.na(db$Organism_Full) | (db$Organism_Full == ""))
 if (length(w)) { db$Organism_Full[w] <- db$Organism[w] }
 
 # Organism columns

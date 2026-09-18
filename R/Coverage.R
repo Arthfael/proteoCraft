@@ -612,7 +612,7 @@ Coverage <- function(proteins,
           if (Mode == "Align2") {
             mods$Y <- as.numeric(mods$Y)
           }
-          mods$Modification <- gsub(" \\(Internal\\)$", "", apply(mods[, c("Modification", "Type")], 1L, \(x) {
+          mods$Modification <- sub(" \\(Internal\\)$", "", apply(mods[, c("Modification", "Type")], 1L, \(x) {
             paste0(x[[1L]], " (", x[[2L]], ")")
           }))
           #tmpshp <- unique(mods$Modification)

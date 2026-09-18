@@ -60,7 +60,7 @@ if (saintExprs) {
   EM <- expMap[m,]
   myContrasts$A_full <- Exp.map[match(myContrasts$A, EM[[VPAL$limmaCol]]), VPAL$column]
   myContrasts$B_full <- Exp.map[match(myContrasts$B, EM[[VPAL$limmaCol]]), VPAL$column]
-  saintContr <- myContrasts[which(myContrasts$`Up-only` & (!myContrasts$isDouble)),]
+  saintContr <- myContrasts[myContrasts$`Up-only` & (!myContrasts$isDouble),]
   saintExprs <- nrow(saintContr) > 0L
 }
 if (saintExprs) {
@@ -127,8 +127,8 @@ if (saintExprs) {
     Bait <- data.frame(IP_name = em$IP_name,
                        Bait = em$Target,
                        Indicator = Indiq[em$Reference+1L])
-    #Bait <- Bait[which((!is.na(Bait$Bait))&(Bait$Bait %in% Prey$Protein)),]
-    Bait$Bait[which((is.na(Bait$Bait))|(!Bait$Bait %in% Prey$Protein))] <- "CONTROL"
+    #Bait <- Bait[(!is.na(Bait$Bait)) & (Bait$Bait %in% Prey$Protein),]
+    Bait$Bait[is.na(Bait$Bait) | (!Bait$Bait %in% Prey$Protein)] <- "CONTROL"
     # if (("CONTROL" %in% Bait$Bait)&&(!"CONTROL" %in% Prey$Protein)) {
     #   # Add a dummy CONTROL protein if any co-IPs do not have a bait (typically IP- isotype controls)
     #   Prey <- rbind(Prey,
@@ -165,23 +165,23 @@ if (saintExprs) {
       x2[w] <- NA_real_
       # - also remove (in case we used limpa) values from the same row and with the same value as removed values
       x2 <- lapply(1L:nrow(x1), \(i) {
-        rmv <- x1[i, which(is.na(x2[i,]) & !is.na(x1[i,]))]
+        rmv <- x1[i, is.na(x2[i,]) & (!is.na(x1[i,]))]
         keep <- x2[i,]
-        keep[which(keep %in% rmv)] <- NA_real_
+        keep[keep %in% rmv] <- NA_real_
         return(keep)
       })
       x2 <- do.call(rbind, x2)
       #
-      x2 <- as.numeric(apply(x2, 2L, \(x) { mean(x[which(is.finite(x))]) }))
+      x2 <- as.numeric(apply(x2, 2L, \(x) { mean(x[is.finite(x)]) }))
       return(x2)
     })))
     Interact <- dfMelt(Interact, c("Protein", "IP_name", "Intensity"), "Protein")
-    Interact <- Interact[which(!is.na(Interact$Intensity)),]
+    Interact <- Interact[!is.na(Interact$Intensity),]
     Interact$IP_name <- as.character(Interact$IP_name)
     Interact$Intensity <- 10L^Interact$Intensity
     Interact$Bait <- Bait$Bait[match(Interact$IP_name, Bait$IP_name)]
     Interact <- Interact[, c("IP_name", "Bait", "Protein", "Intensity")]
-    Grps <- unique(em$Contrast[which(!em$Reference)])
+    Grps <- unique(em$Contrast[!em$Reference])
     #
     tmpFl1 <- tempfile(fileext = ".rds")
     tmpFl2 <- tempfile(fileext = ".rds")
@@ -215,11 +215,11 @@ if (saintExprs) {
       if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
       setwd(dr)
       #
-      em_ <- em[which(em$Reference | em$Contrast == grp),]
+      em_ <- em[em$Reference | (em$Contrast == grp),]
       Bait2 <- Bait[match(em_$IP_name, Bait$IP_name),]
-      Interact2 <- Interact[which(Interact$IP_name %in% Bait2$IP_name),]
-      Prey2 <- Prey[which(Prey$Protein %in% c(Bait2$Bait, Interact2$Protein)),]
-      Interact2 <- Interact2[which(Interact2$Protein %in% c(Bait2$Bait, Prey$Protein)),]
+      Interact2 <- Interact[Interact$IP_name %in% Bait2$IP_name,]
+      Prey2 <- Prey[Prey$Protein %in% c(Bait2$Bait, Interact2$Protein),]
+      Interact2 <- Interact2[Interact2$Protein %in% c(Bait2$Bait, Prey$Protein),]
       baitFl <- paste0(dr, "/", grpMtch, "_tempBait.txt")
       preyFl <- paste0(dr, "/", grpMtch, "_tempPrey.txt")
       interFl <- paste0(dr, "/", grpMtch, "_tempInteract.txt")
@@ -228,7 +228,7 @@ if (saintExprs) {
       data.table::fwrite(Interact2, interFl, quote = FALSE, col.names = FALSE, row.names = FALSE, eol = "\n", sep = "\t", na = "NA")
       goFl <- paste0(dr,  "/", grpMtch, "_tempGO.txt")
       if (Annotate) {
-        GO2 <- GO[which(GO$value %in% Prey$Protein),]
+        GO2 <- GO[GO$value %in% Prey$Protein,]
         GO2 <- aggregate(GO2$value, list(GO2$L1), \(x) { paste(unique(x), collapse = " ") })
         data.table::fwrite(GO2, goFl, quote = FALSE, col.names = FALSE, row.names = FALSE, eol = "\n", sep = "\t", na = "NA")
       }
@@ -330,7 +330,7 @@ if (saintExprs) {
     nr <- nrow(w)
     if (nr) {
       mx <- as.numeric(tmp2)
-      mx <- max(c(mx[which(is.finite(mx))]+0.2, 2))
+      mx <- max(c(mx[is.finite(mx)]+0.2, 2))
       ArbThr <- rbind(ArbThr,
                       data.frame(yintercept = mx-0.1,
                                  slope = 0,
@@ -412,9 +412,9 @@ if (saintExprs) {
       k1 <- paste0("BFDR - ", nm)
       k2 <- paste0("log2(FC) - ", nm)
       k3 <- paste0("Regulated - ", nm)
-      allSAINTs[which(allSAINTs[[k1]] <= max(BH.FDR)), k3] <- "too small FC" # base level
+      allSAINTs[allSAINTs[[k1]] <= max(BH.FDR), k3] <- "too small FC" # base level
       for (f in rev(BH.FDR)) {
-        allSAINTs[which((allSAINTs[[k1]] <= f) & (allSAINTs[[k2]] >= up)), k3] <- paste0("up, FDR = ", f*100,"%")
+        allSAINTs[(allSAINTs[[k1]] <= f) & (allSAINTs[[k2]] >= up), k3] <- paste0("up, FDR = ", f*100,"%")
       }
       # Create SAINTexpress-based filters
       if ("con" %in% filter_types) {
@@ -426,7 +426,7 @@ if (saintExprs) {
         # We want to translate it into rows from PG
         u <- unique(unlist(flt[paste0("Filter", c("_up", ""))]))
         m <- match(allSAINTs$PG_id[u], PG$id)
-        flt$Filter <- unique(m[which(u %in% flt$prot_Filter)])
+        flt$Filter <- unique(m[u %in% flt$prot_Filter])
         flt$Background_filter <- unique(match(allSAINTs$PG_id, PG$id))
         Reg_filters$"SAINTexpress"$"By condition"[[nm]] <- flt
       }

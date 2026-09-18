@@ -156,7 +156,7 @@ if (ok2Deliver) {
     x <- unlist(x) 
     vapply(1L:length(x), \(y) { paste(x[1L:y], collapse = "/") }, "")
   })))
-  tstDrs <- tstDrs[which(!tstDrs %in% tstDrs2)]
+  tstDrs <- setdiff(tstDrs, tstDrs2)
   if (length(tstDrs)) { for (dr in tstDrs) { unlink(dr) } } # Remove empty directories
   # - 3b) create final output directory
   g <- grep("^3(\\.[0-9]+)?_", list.dirs(outDir, FALSE, FALSE), value = TRUE)
@@ -213,7 +213,7 @@ if (ok2Deliver&&dataDeliveryOk) {
 # End logging:
 if (scrptType == "withReps") { sink(NULL, type = "message") }
 #close(logcon)
-rm(list = ls()[which(!ls() %in% .obj)])
+rm(list = setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 gc()
 invisible(parLapply(parClust, 1L:N.clust, \(x) { rm(list = ls());gc() }))
@@ -233,7 +233,7 @@ invisible(suppressMessages({
 locsFl <- paste0(homePath, "/Default_locations.xlsx")
 locs <- openxlsx2::read_xlsx(locsFl)
 archDirDflt <- locs$Path[match("Archive folder (searches)", locs$Folder)]
-archDirDflt <- archDirDflt[which(dir.exists(archDirDflt))]
+archDirDflt <- archDirDflt[dir.exists(archDirDflt)]
 
 #
 if ((dataDeliveryOk)&&(length(archDirDflt) == 1L)) {
@@ -243,7 +243,7 @@ if ((dataDeliveryOk)&&(length(archDirDflt) == 1L)) {
   if (L == 1L) {
     msg <- "Archive input (= search) folder?"
     archiveIndirs <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
-    inDirs2Arch <- inDirs2[which(archiveIndirs)]
+    inDirs2Arch <- inDirs2[archiveIndirs]
   }
   if (L > 1L) { 
     msg <- paste0("Which input (= search) folder(s) would you like to archive?")
@@ -280,7 +280,7 @@ if ((dataDeliveryOk)&&(length(archDirDflt) == 1L)) {
                 ""),
               paste0(indir, "/Archiving_log.txt"))
         drs <- list.dirs(indir, recursive = TRUE, full.names = TRUE)
-        drs <- drs[which(drs != indir)]
+        drs <- setdiff(drs, indir)
         fls <- list.files(indir, recursive = TRUE)
         if ((length(drs))&&(length(fls) == 1L)&&(fls == "Archiving_log.txt")) {
           for (dr in drs) { unlink(dr, TRUE, TRUE) }

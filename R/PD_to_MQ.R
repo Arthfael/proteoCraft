@@ -137,7 +137,7 @@ PD_to_MQ <- function(PD,
     x <- x[which(! x %in% Fixed.mods)]
     x <- aggregate(x, list(x), length)
     x <- x[order(x$Group.1), 2L:1L]
-    x <- apply(x, 1L, \(y) { gsub("^1 ", "", paste(y, collapse = " ")) } )
+    x <- apply(x, 1L, \(y) { sub("^1 ", "", paste(y, collapse = " ")) } )
     return(paste(x, collapse = ","))
   }, "")
   temp <- PD[w,c("temp_mod", "temp_pos")]
@@ -179,7 +179,7 @@ PD_to_MQ <- function(PD,
   EV$Proteins <- gsub("; ", ";", PD$"Protein Accessions")
   EV$PEP <- PD$"Percolator PEP"
   EV$"Missed cleavages" <- PD$"# Missed Cleavages"
-  EV$"Raw file" <- gsub("\\.raw$", "", PD$"Spectrum File", ignore.case = TRUE)
+  EV$"Raw file" <- sub("\\.raw$", "", PD$"Spectrum File", ignore.case = TRUE)
   EV$"Retention time" <- PD$"RT [min]"
   # For some peptides, we sometimes have a better estimate of Retention Time, as the apex of the peak could be detected:
   # This should not change the value by more than 1-2 min

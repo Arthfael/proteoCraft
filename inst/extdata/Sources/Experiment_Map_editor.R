@@ -4,13 +4,12 @@ library(shiny)
 library(shinyjs)
 library(DT)
 #
-expKl <- c("MQ.Exp", "Parent sample")
-expKl <- expKl[which(expKl %in% colnames(FracMap))[1L]]
+expKl <- intersect(c("MQ.Exp", "Parent sample"), colnames(FracMap))[1L]
 
-Factors2 %<o% Factors[which(!Factors %in% c("Experiment",
-                                            "Replicate",
-                                            "Isobaric.set",
-                                            "Time.point"))]
+Factors2 %<o% setdiff(Factors, c("Experiment",
+                                 "Replicate",
+                                 "Isobaric.set",
+                                 "Time.point"))
 #
 labelMode <- match(LabelType, c("LFQ", "Isobaric"))
 if (exists("Exp.map") && nrow(Exp.map)) {
@@ -73,12 +72,12 @@ while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L]
   dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmpTbl, file = ExpMapPath), silent = TRUE)
 }
-ExpMap <- ExpMap[which(vapply(ExpMap$MQ.Exp, \(x) { sum(x %in% FracMap[[expKl]]) > 0L }, TRUE)),]
+ExpMap <- ExpMap[vapply(ExpMap$MQ.Exp, \(x) { sum(x %in% FracMap[[expKl]]) > 0L }, TRUE),]
 #
 # Edit map
 ExpData <- read.csv(ExpMapPath, check.names = FALSE)
-ExpData <- ExpData[which(vapply(ExpData$MQ.Exp, \(x) { sum(x %in% FracMap[[expKl]]) }, 1L) > 0L),]
-for (Fact in Factors[which(!Factors %in% colnames(ExpData))]) { ExpData[[Fact]] <- "?" }
+ExpData <- ExpData[vapply(ExpData$MQ.Exp, \(x) { sum(x %in% FracMap[[expKl]]) }, 1L) > 0L,]
+for (Fact in Factors[!Factors %in% colnames(ExpData)]) { ExpData[[Fact]] <- "?" }
 if (LabelType == "LFQ") {
   ExpData$Use <- as.logical(vapply(ExpData$MQ.Exp, \(x) { max(FracMap$Use[match(x, FracMap[[expKl]])]) }, 1L))
 }
@@ -95,10 +94,10 @@ if (LocAnalysis) {
   }
 }
 tst <- lengths(FactorsLevels)
-Fact1 <- Factors[which(tst == 1L)]
-Fact2 <- Factors[which(tst > 1L)]
+Fact1 <- Factors[tst == 1L]
+Fact2 <- Factors[tst > 1L]
 Others <- c("MQ.Exp", "Sample name")
-Others <- Others[which(Others %in% colnames(ExpData))]
+Others <- intersect(Others, colnames(ExpData))
 nr <- nrow(ExpData)
 rws <- seq_len(nr)
 charRws <- as.character(rws)
@@ -113,12 +112,12 @@ for (fct in Fact1) { #fct <- Fact1[1L]
 }
 L <- length(FactorsLevels[["Replicate"]])
 dflt_Rpl <- 1L:(nr+L) %% L
-dflt_Rpl[which(dflt_Rpl == 0L)] <- L
+dflt_Rpl[dflt_Rpl == 0L] <- L
 dflt_Rpl <- FactorsLevels[["Replicate"]][dflt_Rpl] # Easy template
 k1 <- c("MQ.Exp", "Experiment", "Replicate")
 k2 <- colnames(ExpData)
-k2 <- k2[which(!k2 %in% c(k1, "Sample name", "Use"))]
-ExpData <- ExpData[which(vapply(ExpData$MQ.Exp, \(x) { sum(x %in% MQ.Exp) }, 1L) > 0L), ]
+k2 <- setdiff(k2, c(k1, "Sample name", "Use"))
+ExpData <- ExpData[vapply(ExpData$MQ.Exp, \(x) { sum(x %in% MQ.Exp) }, 1L) > 0L, ]
 # Test order
 tst <- suppressWarnings(as.integer(substr(ExpData$MQ.Exp, 1L, 1L)))
 if (!sum(is.na(tst))) {
@@ -152,21 +151,21 @@ wTest0 <- setNames(vapply(colnames(ExpData), \(k) { #k <- colnames(ExpData)[1L]
 #
 # Dummy table for app
 tst <- lengths(FactorsLevels)
-Fact1 <- Factors[which(tst == 1L)]
-Fact2 <- Factors[which(tst > 1L)]
+Fact1 <- Factors[tst == 1L]
+Fact2 <- Factors[tst > 1L]
 #Fact2 <- "Developmental.stage"
 myKol <- c(Others, "Sample name")
 if (LabelType == "Isobaric") {
   myKol <- c(myKol, "Isobaric label", "Isobaric label details")
 }
-myKol <- unique(c(myKol, Factors, "Sample name"))
-myKol2 <- c("Parent sample", myKol[which(myKol != "Parent sample")])
+myKol <- union(myKol, c(Factors, "Sample name"))
+myKol2 <- union("Parent sample", myKol)
 ExpData2 <- ExpData[, myKol2]
 kol <- c()
 for (fct in Fact2) { #fct <- Fact2[1L]
   IDs <- Fact2IDs[[fct]]
   lvls <- FactorsLevels[[fct]]
-  lvls2 <- lvls[which(!is.na(lvls))]
+  lvls2 <- lvls[!is.na(lvls)]
   ExpData2[[fct]] <- shinySelectInput(ExpData[[fct]],
                                       fct,
                                       lvls,
@@ -193,7 +192,7 @@ if (LocAnalysis) {
 }
 idsL <- length(ALLIDS)
 smplWdth <- paste0(as.character(max(nchar(ExpData2$"Parent sample"))*10L), "px")
-kol2 <- colnames(ExpData2)[which(!colnames(ExpData2) %in% c(kol, "Use", "Sample name"))]
+kol2 <- setdiff(colnames(ExpData2), c(kol, "Use", "Sample name"))
 ExpData2$Use <- shinyCheckInput(ExpData$Use,
                                 "Use")
 ExpData2$Use___FD <- shinyFDInput("Use", nr, TRUE)
@@ -225,7 +224,7 @@ facLevels2$Use <- c(TRUE, FALSE)
 edith <- list(target = "column",
               disable = list(columns = c(0L, match(Fact1, colnames(ExpData2))-1)))
 tmp <- c(0L:(ncol(ExpData2)-1L))
-tmp <- tmp[which(!tmp %in% edith$disable$columns)]
+tmp <- setdiff(tmp, edith$disable$columns)
 edith$enable <- list(columns = tmp)
 isoMsg <- ""
 if (LabelType == "Isobaric") {
@@ -402,14 +401,14 @@ while ((!runKount) || (!exists("ExpData3"))) {
 #
 Exp.map %<o% ExpData3
 k0 <- colnames(ExpMap)
-k0 <- k0[which(!k0 %in% colnames(Exp.map))]
+k0 <- k0[!k0 %in% colnames(Exp.map)]
 if (length(k0)) {
   e1 <- vapply(Exp.map$MQ.Exp, paste, "", collapse = ";")
   e3 <- vapply(ExpData3$MQ.Exp, paste, "", collapse = ";")
   Exp.map[, k0] <- ExpData3[match(e1, e3), k0]
 }
 Exp.map$Use <- as.logical(Exp.map$Use)
-Exp.map$Use[which(is.na(Exp.map$Use))] <- FALSE
+Exp.map$Use[is.na(Exp.map$Use)] <- FALSE
 #sum(!Exp.map$Use)
 #sum(Exp.map$Use)
 tmpTbl <- Exp.map
@@ -424,7 +423,7 @@ while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L]
 #
 #system(paste0("open \"", wd, "/", ExpMapNm, ".csv\""))
 #Exp.map2 %<o% read.csv(ExpMapPath, check.names = FALSE)
-Exp.map <- Exp.map[which(Exp.map$Use),]
+Exp.map <- Exp.map[Exp.map$Use,]
 kol <- colnames(Exp.map)
 kol1 <- c("MQ.Exp", "Parent sample", "Sample name", "Use")
 if (LabelType == "Isobaric") {

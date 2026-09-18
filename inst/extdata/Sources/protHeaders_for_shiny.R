@@ -1,5 +1,5 @@
-dbOrd %<o% 1L:nrow(db)
-protDeflt %<o% NULL
+dbOrd <- 1L:nrow(db)
+protDeflt <- NULL
 if (!exists("prot.list")) {
   prot.list %<o% c()
 }
@@ -11,11 +11,11 @@ if (length(prot.list)) {
                which(!db$`Protein ID` %in% prot.list))
   }
 }
-protHeads %<o% setNames(gsub("^>", "", db$Header[dbOrd]), db$`Protein ID`[dbOrd])
+protHeads <- setNames(sub("^>", "", db$Header[dbOrd]), db$`Protein ID`[dbOrd])
 nc <- nchar(protHeads)
 w <- which(nc > 70L)
 if (length(w)) { protHeads[w] <- paste0(substr(protHeads[w], 1L, 70L), "...") }
-protHeads2 %<o% protHeads
+protHeads2 <- protHeads
 names(protHeads) <- NULL # Otherwise names can cause shenanigans (be used in shiny instead of the value)
 lM <- length(wM)
 if (lM) {

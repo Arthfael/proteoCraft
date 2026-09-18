@@ -20,8 +20,8 @@ if (scrptType == "noReps") {
 }
 if (scrptType == "withReps") {
   kol <- lapply(VPAL$values, \(x) {
-    x <- paste0(pep.ref["Original"], Exp.map$Ref.Sample.Aggregate[which(Exp.map[[VPAL$column]] == x)])
-    return(x[which(x %in% colnames(pep))])
+    x <- paste0(pep.ref["Original"], Exp.map$Ref.Sample.Aggregate[Exp.map[[VPAL$column]] == x])
+    return(intersect(x, colnames(pep)))
   })
   tmpPar <- Param
 }
@@ -36,7 +36,7 @@ if ("PepFoundInAtLeast" %in% names(tmpPar)) {
 }
 PepFoundInAtLeast %<o% PepFoundInAtLeast
 tst <- parApply(parClust, pep[, unlist(kol), drop = FALSE], 1L, \(x) {
-  sum(x[which(is.finite(x))] > 0)
+  sum(x[is.finite(x)] > 0)
 })
 Pep2Use %<o% which(tst >= PepFoundInAtLeast)
 #
@@ -59,7 +59,7 @@ if (scrptType == "withReps") {
   tst <- parSapply(parClust, 1L:nrow(pep), \(x) {
     x <- max(vapply(kol, \(kl) {
       x <- unlist(tst[x, kl])
-      sum(x[which(is.finite(x))] > 0)
+      sum(x[is.finite(x)] > 0)
     }, 1L) >= PepFoundInAtLeastGrp)
     return(x)
   }) > 0L
@@ -120,16 +120,16 @@ if (scrptType == "withReps") {
 if (scrptType == "withReps") {
   source(parSrc)
   Kols <- paste0(pepInt_col, smplsMap$Ref.Sample.Aggregate)
-  Kols <- Kols[which(Kols %in% colnames(pep))]
+  Kols <- intersect(Kols, colnames(pep))
   tmp <- pep[, Kols]
   clusterExport(parClust, list("smplsMap", "VPAL", "pep.ref", "tmp", "pepInt_col"), envir = environment())
   CVs <- parSapply(parClust, VPAL$values, \(x) { #x <- VPAL$values[1L] #x <- VPAL$values[4L]
-    smpls <- smplsMap$Ref.Sample.Aggregate[which(smplsMap[[VPAL$column]] == x)]
+    smpls <- smplsMap$Ref.Sample.Aggregate[smplsMap[[VPAL$column]] == x]
     kols <- paste0(pepInt_col, smpls)
     kols <- intersect(kols, colnames(tmp))
     x <- apply(tmp[, kols, drop = FALSE], 1L, \(y) {
       y <- log10(unlist(y))
-      y <- y[which(is.finite(y))]
+      y <- y[is.finite(y)]
       y <- if (length(y)) {
         sd(y)/mean(y)
       } else { NA }
@@ -187,7 +187,7 @@ pep$Weights[w] <- min(pep$Weights, na.rm = TRUE)
 #
 m <- max(pep$Weights)
 pep$Weights <- pep$Weights/m
-pep$Weights[which(pep$Weights < 0.001)] <- 0.001
+pep$Weights[pep$Weights < 0.001] <- 0.001
 summary(pep$Weights)
 #
 Mod.Excl.is.strict %<o% FALSE

@@ -1,16 +1,16 @@
 # Peptide XIC extraction - core script
-dianXDirs <- inDirs[which(SearchSoft == "DIANN")]
+dianXDirs <- inDirs[SearchSoft == "DIANN"]
 if (length(dianXDirs)) {
   xicDirs <- setNames(paste0(dianXDirs, "/report_xic"),
                       dianXDirs)
-  xicDirs <- xicDirs[which(dir.exists(xicDirs))]
+  xicDirs <- xicDirs[dir.exists(xicDirs)]
   dianXDirs <- names(xicDirs)
 }
 if (length(dianXDirs)) {
   xicFiles <- setNames(lapply(dianXDirs, \(dr) {
     list.files(xicDirs[dr], "\\.xic\\.parquet$", full.names = TRUE)
   }), dianXDirs)
-  xicFiles <- xicFiles[which(lengths(xicFiles) > 0L)]
+  xicFiles <- xicFiles[lengths(xicFiles) > 0L]
   dianXDirs <- names(xicFiles)
   xicDirs <- xicDirs[dianXDirs]
 }
@@ -42,12 +42,12 @@ if (length(dianXDirs)) {
     XICs <- parLapply(parClust, XIC_fls, \(x) { #x <- XIC_fls[1L]
       res <- arrow::read_parquet(x)
       res$"Mod. seq." <- proteoCraft::gsub_Rep("[0-9]+$", "", res$pr)
-      res <- res[which(res$"Mod. seq." %in% u),]
+      res <- res[res$"Mod. seq." %in% u,]
       nm <- gsub(".*/|\\.xic\\.parquet$", "", x)
       res$File <- nm
       res$"Seq_Run" <- do.call(paste, c(res[, c("pr", "File")], sep = ">>>"))
       res$File <- factor(res$File, levels = tmp)
-      res <- res[which((!is.na(res$File)) & (res$feature != "index")),]
+      res <- res[(!is.na(res$File)) & (res$feature != "index"),]
       return(res)
     })
     #View(XICs[[1L]])
@@ -87,14 +87,14 @@ if (length(dianXDirs)) {
         pp <- myProts_pepList[[pr]]
         g <- which(XICs$`Mod. seq.` %in% pp)
         if (length(g)) {
-          pkBnds <- Boundaries[which(Boundaries$Seq_Run %in% XICs$Seq_Run[g]),]
+          pkBnds <- Boundaries[Boundaries$Seq_Run %in% XICs$Seq_Run[g],]
           lapply(pp, \(sq) { #sq <- pp[1L] #sq <- pp[11L]
             w <- which(XICs$`Mod. seq.` == sq)
             if (!length(w)) { return() } # I have no idea why this sometimes occurs, but it does!
             XIC <- XICs[w,]
             yMax <- aggregate(XIC$value, list(XIC$File), max)
             xMin <- min(XIC$rt)
-            bnds <- pkBnds[which(pkBnds$Seq_Run %in% XIC$Seq_Run),]
+            bnds <- pkBnds[pkBnds$Seq_Run %in% XIC$Seq_Run,]
             bnds$yMax <- yMax$x[match(bnds$File, yMax$Group.1)]
             wMS1 <- which(XIC$feature == "ms1")
             wMS2 <- which(XIC$feature != "ms1")

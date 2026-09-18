@@ -4,11 +4,11 @@ if (LabelType == "LFQ") {
     ev$MS2_intensities <- strsplit(ev$"MS2 intensities", ";")
     ev$MS2_intensities <- parLapply(parClust, ev$MS2_intensities, as.numeric) # (Let's keep this as a numeric list)
     temp <- ev[, c(ev.col["Original"], "MS2_intensities")]
-    temp$SumS2 <- parSapply(parClust, temp$MS2_intensities, \(x) { sum(x[which(is.finite(x))]) })
+    temp$SumS2 <- parSapply(parClust, temp$MS2_intensities, \(x) { sum(x[is.finite(x)]) })
     # While we're at it, let's estimate missing MS1 intensities if we only have MS2:
     # (sum of MS2 intensities * median ratio of precursor intensity to sum of MS2 intensities)
     m <- temp$Intensity/temp$SumS2
-    m <- m[which(is.finite(m))]
+    m <- m[is.finite(m)]
     m <- median(m)
     #sd(m)
     #plot <- ggplot(temp) + geom_point(aes(x = log10(Intensity), y = log10(SumS2))) + theme_bw() + geom_abline(intercept = log10(1/m), slope = 1, colour = "red")
@@ -18,7 +18,7 @@ if (LabelType == "LFQ") {
     test <- parApply(parClust, temp[, c(ev.col["Original"], "SumS2")], 1L, sum)
   } else {
     temp <- ev[, ev.col["Original"], drop = FALSE]
-    test <- parApply(parClust, temp, 1L, \(x) { sum(x[which(is.finite(x))]) })
+    test <- parApply(parClust, temp, 1L, \(x) { sum(x[is.finite(x)]) })
   }
   l <- length(which(test == 0))
   if (l) {
@@ -50,7 +50,7 @@ if (LabelType == "Isobaric") { # If isobaric
   tst$Reporter <- rowSums(temp, na.rm = TRUE)
   # Check dependency: there should be one in log space
   m <- tst$MS1/tst$Reporter
-  m <- m[which(is.finite(m))]
+  m <- m[is.finite(m)]
   m <- median(m)
   #sd(m)
   #plot <- ggplot(tst) + geom_point(aes(x = log10(MS1), y = log10(Reporter))) + theme_bw() + geom_abline(intercept = log10(1/m), slope = 1, colour = "red")
@@ -78,6 +78,6 @@ if ((!is.na(minInt)) && is.numeric(minInt) && is.finite(minInt) && (minInt >= 0)
   lN <- length(wN)
   if (lN) {
     warning(paste0("Removing ", lN, " PSMs with intensity lower than ", minInt, " minimum threshold...\n"))
-    ev <- ev[which(ev$Intensity >= minInt),]
+    ev <- ev[ev$Intensity >= minInt,]
   }
 }

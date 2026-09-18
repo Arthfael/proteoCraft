@@ -240,7 +240,7 @@ Volcano.plot <- function(Prot,
     if ((length(save) == 1L) && is.logical(save) && (save == TRUE)) {
       saveExt <- "jpeg" # default
     }
-    saveExt <- unique(gsub("^jpg$", "jpeg", gsub("^\\.", "", tolower(save))))
+    saveExt <- unique(sub("^jpg$", "jpeg", sub("^\\.", "", tolower(save))))
     save <- TRUE
   } else { save <- FALSE}
   #
@@ -266,9 +266,9 @@ Volcano.plot <- function(Prot,
       xKols <- grep(topattern(X.root), colnames(Prot), value = TRUE)
       yKols <- grep(topattern(Y.root), colnames(Prot), value = TRUE)
       rgKols <- grep(topattern(reg.root), colnames(Prot), value = TRUE)
-      xTst <- gsub(topattern(X.root), "", xKols)
-      yTst <- gsub(topattern(Y.root), "", yKols)
-      rgTst <- gsub(topattern(reg.root), "", rgKols)
+      xTst <- sub(topattern(X.root), "", xKols)
+      yTst <- sub(topattern(Y.root), "", yKols)
+      rgTst <- sub(topattern(reg.root), "", rgKols)
       tstDF <- data.frame(Group = unique(c(xTst, yTst, rgTst)))
       tstDF$X <- xKols[match(tstDF$Group, xTst)]
       tstDF$Y <- yKols[match(tstDF$Group, yTst)]
@@ -294,7 +294,7 @@ Volcano.plot <- function(Prot,
       FDR_table <- data.frame(FDR = g,
                               Thresholds = FDR.thresh)
       if ((length(tst) == 1L) && tst) {
-        FDR_table$Sample <-  gsub("^Threshold-FDR=[1-9][0-9]*\\.*[0-9]*% - ", "", names(FDR.thresh))
+        FDR_table$Sample <-  sub("^Threshold-FDR=[1-9][0-9]*\\.*[0-9]*% - ", "", names(FDR.thresh))
       }
     }
     useFDRtbl <- (!is.null(FDR_table)) && is.data.frame(FDR_table) && nrow(FDR_table)
@@ -303,7 +303,7 @@ Volcano.plot <- function(Prot,
     rownames(FDR_table) <- paste0("Threshold-FDR=", FDR_table$FDR, "% - ", FDR_table$Sample)
     f <- grep(topattern(FDR.root), colnames(Prot), value = TRUE)
     FDR_table <- FDR_table[order(FDR_table$FDR, decreasing = TRUE),]
-    FDR.values <- as.numeric(unique(gsub("%( - .+)?$", "", gsub(topattern(FDR.root), "", f))))
+    FDR.values <- as.numeric(unique(sub("%( - .+)?$", "", sub(topattern(FDR.root), "", f))))
     fdr.col.up <- grDevices::colorRampPalette(upColRg)(length(FDR.values))
     fdr.col.down <- grDevices::colorRampPalette(downColRg)(length(FDR.values))
     fdr.col.line <- rainbow(n = length(FDR.values), start = 2/6, end = 1/6, v = 0.75)
@@ -406,8 +406,8 @@ Volcano.plot <- function(Prot,
     rownames(Plot.colours) <- Plot.metrics$Levels[w]
   }
   #
-  #X <- gsub("\\.$", "", X.root)
-  #Y <- gsub("\\.$", "", Y.root)
+  #X <- sub("\\.$", "", X.root)
+  #Y <- sub("\\.$", "", Y.root)
   B <- aggregate.name
   A <- aggregate.list[[B]]
   if (nchar(B) == 3L) { B <- aggregate.map$Characteristics[[which(aggregate.map$Aggregate.Name == B)]] }
@@ -474,8 +474,8 @@ Volcano.plot <- function(Prot,
   if (misFun(proteins_split)) { proteins_split <- FALSE}
   if (useProtList) {
     if (misFun(Proteins.col) || (!Proteins.col %in% colnames(Prot))) { Proteins.col <- IDs.col }
-    proteins <- gsub("^CON_+", "", proteins)
-    Prot[[Proteins.col]] <- gsub(";CON_+", ";", gsub("^CON_+", "", Prot[[Proteins.col]]))
+    proteins <- sub("^CON_+", "", proteins)
+    Prot[[Proteins.col]] <- gsub(";CON_+", ";", sub("^CON_+", "", Prot[[Proteins.col]]))
     proteins <- intersect(proteins, unique(unlist(strsplit(Prot[[Proteins.col]], ";"))))
     useProtList <- length(proteins) > 0L
     if (useProtList) {
@@ -855,15 +855,15 @@ Volcano.plot <- function(Prot,
       }
       target <- unique(unlist(strsplit(experiments.map$Target[w], ";")))
       target <- setdiff(target, c("", "NA", NA))
-      target <- unique(gsub("^CON_+", "", target))
+      target <- unique(sub("^CON_+", "", target))
       use_target <- length(target) > 0L
     }
     if (regProvided) {
       rgKol <- regKols[i]
       temp$Colour <- Prot[Wych[[i]], rgKol]
       # Important to simplify the specific/anti-specific categories:
-      temp$Colour <- gsub("^Specific.*", "Specific", temp$Colour)
-      temp$Colour <- gsub("^Anti-specific.*", "Anti-specific", temp$Colour)
+      temp$Colour <- sub("^Specific.*", "Specific", temp$Colour)
+      temp$Colour <- sub("^Anti-specific.*", "Anti-specific", temp$Colour)
     } else {
       temp$Colour <- "non significant" # Default Colour values
     }
@@ -971,7 +971,7 @@ Volcano.plot <- function(Prot,
                                  signif(plot.metrics$Value[w.d], 3L))
           }
           if ((mode == "standard") && (!misFun(arbitrary.thresh))) {
-            fdr <- as.numeric(gsub("% FDR$", "", plot.metrics$Levels[which(plot.metrics$Axis == "Y")]))/100
+            fdr <- as.numeric(sub("% FDR$", "", plot.metrics$Levels[which(plot.metrics$Axis == "Y")]))/100
             fdr <- sort(fdr)
             up_Nms <- setNames(vapply(fdr, \(x) {
               w <- which(plot.metrics$Levels == paste0(x*100, "% FDR"))
@@ -1059,7 +1059,7 @@ Volcano.plot <- function(Prot,
     if (use_target) { # Will overwrite "protein in list" tag with "target" tag where relevant
       if (!useProtList) {
         if (misFun(Proteins.col) || (!Proteins.col %in% colnames(Prot))) { Proteins.col <- IDs.col }
-        Prot[[Proteins.col]] <- gsub(";CON_+", ";", gsub("^CON_+", "", Prot[[Proteins.col]]))
+        Prot[[Proteins.col]] <- gsub(";CON_+", ";", sub("^CON_+", "", Prot[[Proteins.col]]))
       }
       w <- grsep2(target, temp[[Proteins.col]])
       temp$Colour[w] <- "target" # The "target" tag should be in all versions of the graph.
@@ -1096,8 +1096,8 @@ Volcano.plot <- function(Prot,
     ttl <- paste0(title, i2)
     subTtl <- paste0("Plotted: ", nrow(temp), " data points")
     #
-    Xlab <- gsub(" - $", "", X.root)
-    Ylab <- gsub(" - $", "", Y.root)
+    Xlab <- sub(" - $", "", X.root)
+    Ylab <- sub(" - $", "", Y.root)
     test <- c(is.numeric(Size), is.numeric(Alpha))
     temp$"P-value" <- 10L^(-temp$Y)
     pL_lbs <- c(plotly_labels, "X", "Y")

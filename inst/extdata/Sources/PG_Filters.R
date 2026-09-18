@@ -19,23 +19,23 @@ if (DiscFilt) {
     }
     if (DiscFiltMode == DiscFiltModes[1L]) {
       # We only remove a PG if no leading protein is TRUE in the filter
-      DiscFiltFilt <- aggregate(DiscFiltFilt[, RG$values], list(DiscFiltFilt$"PG ID"), function(x) { as.logical(max(x)) })
+      DiscFiltFilt <- aggregate(DiscFiltFilt[, RG$values], list(DiscFiltFilt$"PG ID"), \(x) { as.logical(max(x)) })
     }
     if (DiscFiltMode == DiscFiltModes[2L]) {
       # We remove a PG if any leading protein is FALSE in the filter
-      DiscFiltFilt <- aggregate(DiscFiltFilt[, RG$values], list(DiscFiltFilt$"PG ID"), function(x) { as.logical(min(x)) })
+      DiscFiltFilt <- aggregate(DiscFiltFilt[, RG$values], list(DiscFiltFilt$"PG ID"), \(x) { as.logical(min(x)) })
     }
     colnames(DiscFiltFilt) <- c("PG ID", RG$values)
     DiscFiltFilt <- DiscFiltFilt[match(PG$id, DiscFiltFilt$"PG ID"),] # Re-order
     # Apply filter to quantitative data
     for (grp in RG$values) { #grp <- RG$values[1L]
       w <- which(!DiscFiltFilt[[grp]])
-      em <- Exp.map[which(Exp.map[[RG$column]] == grp),]
+      em <- Exp.map[Exp.map[[RG$column]] == grp,]
       kol <- c(paste0(Prot.Expr.Root, em$Ref.Sample.Aggregate),
                grep(topattern(paste0(Prot.Expr.Root, grp, ".REF")), colnames(quantData), value = TRUE),
                paste0(Prot.Rat.Root, em$Ref.Sample.Aggregate),
                grep(topattern(paste0(Prot.Rat.Root, grp, "_REF.to.REF_")), colnames(quantData), value = TRUE))
-      kol <- kol[which(kol %in% colnames(quantData))]
+      kol <- intersect(kol, colnames(quantData))
       quantData[w, kol] <- NA_real_
     }
     l <- length(DatAnalysisTxt)
@@ -50,7 +50,7 @@ if (DiscFilt) {
     DiscFiltFilt[, RG$values] <- ""
     for (grp in RG$values) { DiscFiltTbl[[grp]] <- c("", "+")[DiscFiltTbl[[grp]]+1L] }
     DiscFiltFilt[w, RG$values] <- DiscFiltTbl[match(DiscFiltFilt$`Leading protein ID`[w], DiscFiltTbl$`Protein ID`), RG$values]
-    DiscFiltFilt <- aggregate(DiscFiltFilt[, RG$values], list(DiscFiltFilt$`PG ID`), function(x) {
+    DiscFiltFilt <- aggregate(DiscFiltFilt[, RG$values], list(DiscFiltFilt$`PG ID`), \(x) {
       c("", "+")[("+" %in% unlist(x))+1L]
     })
     colnames(DiscFiltFilt) <- c("id", DiscFiltCols)

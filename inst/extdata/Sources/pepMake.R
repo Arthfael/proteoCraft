@@ -5,7 +5,7 @@ if (exists("scrptType")) {
   mtchCol <- "MQ.Exp"
   if (scrptType == "withReps") {
     tmp_EM <- Exp.map
-    colnames(tmp_EM)[which(colnames(tmp_EM) == "Ref.Sample.Aggregate")] <- "Parent_sample"
+    colnames(tmp_EM)[colnames(tmp_EM) == "Ref.Sample.Aggregate"] <- "Parent_sample"
   }
   if (scrptType == "noReps") {
     ev[[mtchCol]] <- FracMap[match(ev$"Raw file path", FracMap$"Raw file"), mtchCol]
@@ -52,11 +52,11 @@ if (exists("scrptType")) {
 tmp4 <- setNames(parLapply(parClust, myGrps, \(i) { #i <- myGrps[1L] #i <- myGrps[2L]
   tmp3 <- data.table::copy(tmp2) # Because of how data.tables work! No idea how that plays with clusters...
   if (i != "ALLMYSAMPLESTUDUDUDUMMMDADA") {
-    mqe <- unique(unlist(tmp_EM[which(tmp_EM$Parent_sample == i), mtchCol]))
-    tmp3 <- tmp3[which(tmp3$mqxp %in% mqe), c("id", "mod")]
+    mqe <- unique(unlist(tmp_EM[tmp_EM$Parent_sample == i, mtchCol]))
+    tmp3 <- tmp3[tmp3$mqxp %in% mqe, c("id", "mod")]
   }
-  tmp3 <- as.data.frame(tmp3[, list(IDs = paste(id, collapse = ";")),
-                             keyby = list(ModSeq = mod)])
+  tmp3 <- as.data.frame(tmp3[, .(IDs = paste(id, collapse = ";")),
+                             keyby = .(ModSeq = mod)])
   return(tmp3)
 }), myGrps)
 pep %<o% magrittr::set_colnames(tmp4[["ALLMYSAMPLESTUDUDUDUMMMDADA"]],
@@ -65,7 +65,7 @@ for (i in myGrps[2L:length(myGrps)]) { #i <- myGrps[2L]
   tmp <- tmp4[[i]]
   ki <- paste0("Evidence IDs - ", i)
   pep[[ki]] <- tmp$IDs[match(pep$"Modified sequence", tmp$ModSeq)]
-  pep[which(is.na(pep[[ki]])), ki] <- ""
+  pep[is.na(pep[[ki]]), ki] <- ""
 }
 pep$id <- 1L:nrow(pep)
 rvmtch2 <- match(pep$"Modified sequence", ev$"Modified sequence")
@@ -98,8 +98,8 @@ for (aa in c("O", "U")) { # Only keep the selenocysteine and pyrrolysine amino a
 pep$Length <- nchar(pep$Sequence)
 ev$Length <- pep$Length[mtch]
 tmp <- data.table(mod = ev$"Modified sequence", Intensity = ev$Intensity)
-tmp$Intensity[which(!is.finite(tmp$Intensity))] <- NA_real_
-w2 <- which(ev[[mtchCol]] %in% unique(unlist(tmp_EM[which(tmp_EM$Use), mtchCol])))
+tmp$Intensity[!is.finite(tmp$Intensity)] <- NA_real_
+w2 <- which(ev[[mtchCol]] %in% unique(unlist(tmp_EM[tmp_EM$Use, mtchCol])))
 tmp2 <- copy(tmp)
 tmp2 <- tmp2[w2, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
 pep$Intensity <- tmp2$Intensity[match(pep$"Modified sequence", tmp2$mod)]
@@ -126,11 +126,11 @@ if (exists("Modifs")) {
       for (j in c(" Probabilities", " Score Diffs")) { #j <- " Probabilities"
         j1 <- paste0(Modifs$"Full name"[i], j)
         temp <- ev[, c("Modified sequence", j1, "PEP")]
-        temp <- temp[which(temp[[j1]] != ""),]
+        temp <- temp[temp[[j1]] != "",]
         a0 <- unique(temp$"Modified sequence")
         clusterExport(parClust, list("temp", "j1"), envir = environment())
-        b1 <- parLapply(parClust, a0, \(x) { temp[which(temp$"Modified sequence" == x), j1] })
-        b2 <- parLapply(parClust, a0, \(x) { temp$PEP[which(temp$"Modified sequence" == x)] })
+        b1 <- parLapply(parClust, a0, \(x) { temp[temp$"Modified sequence" == x, j1] })
+        b2 <- parLapply(parClust, a0, \(x) { temp$PEP[temp$"Modified sequence" == x] })
         l <- vapply(b1, \(x) { length(unique(x)) }, 1L)
         wb <- which(l == 1L)
         if (length(wb)) { b1[wb] <- sapply(b1[wb], \(x) { unique(x) }) } 

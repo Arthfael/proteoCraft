@@ -4,7 +4,8 @@ source(parSrc)
 if (!require(PTMods, quietly = TRUE)) { pak::pak("rformassspectrometry/PTMods") }
 require(PTMods)
 data(modifications, package = "PTMods")
-UniMod %<o% modifications
+UniMod <- modifications
+rm(modifications)
 #
 searchOutputs %<o% list()
 l_inDirs <- length(inDirs)
@@ -124,11 +125,11 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     fastas_i <- unlist(strsplit(gsub("\\\\", "/", gsub("^Fasta file\t", "", fastas_i)), ";"))
     mqVers_i <- gsub(" *</?maxQuantVersion> *", "", grep("<maxQuantVersion>", mqpar_i, value = TRUE))
     mqFold_i <- paste0("C:/MaxQuant/MaxQuant_", c("", "v"), mqVers_i)
-    mqFold_i <- mqFold_i[which(dir.exists(mqFold_i))]
+    mqFold_i <- mqFold_i[dir.exists(mqFold_i)]
     dr <- gsub("\\\\", "/", gsub(" *</?fixed((Combined)|(Search))Folder> *", "", grep("<fixed((Combined)|(Search))Folder>", mqpar_i, value = TRUE)))
     if ((length(dr) != 1L) || (dr == "")) { dr <- inDirs[dir_i] }
     psmFls_i <- paste0(dr, c("", "/txt", "/combined/txt"), "/evidence.txt")
-    psmFls_i <- psmFls_i[which(file.exists(psmFls_i))]
+    psmFls_i <- psmFls_i[file.exists(psmFls_i)]
     if (length(psmFls_i) > 1L) {
       psmFls_i <- rstudioapi::selectFile(paste0(inDirs[dir_i], ": could not find MaxQuant's evidence.txt file, please select it manually"),
                                          path = paste0(inDirs[dir_i], "/*.txt"),
@@ -155,11 +156,11 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                  gsub(".*/", paste0(archDir, "/"), dir[1L:2L]),
                  archDir))
       })))
-      dirs <- dirs[which(dir.exists(dirs))]
-      dirs <- dirs[which(dirs != ".")]
+      dirs <- dirs[dir.exists(dirs)]
+      dirs <- setdiff(dirs, ".")
       if (length(dirs) > 1L) {
-        dirTst <- lapply(dirs, \(x) { grep(topattern(x), dirs[which(dirs != x)], value = TRUE) })
-        dirs <- dirs[which(!dirs %in% unlist(dirTst))]
+        dirTst <- lapply(dirs, \(x) { grep(topattern(x), setdiff(dirs, x), value = TRUE) })
+        dirs <- setdiff(dirs, unlist(dirTst))
       }
       if (length(dirs)) {
         dirFls <- setNames(lapply(dirs, safe_listFls), dirs)
@@ -180,7 +181,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
           })
         }
         tbl$nuLoc <- apply(tbl[, dirs, drop = FALSE], 1L, \(x) {
-          x <- x[which(!is.na(x))]
+          x <- x[!is.na(x)]
           if (!length(x)) { x <- NA_character_ }
           return(x)
         })
@@ -211,23 +212,23 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
           newFlsTst <- gsub(".*/", "", newFls)
           wNA <- which(is.na(tbl$nuLoc))
           tst <- setNames(lapply(tbl$file[wNA], \(fl) { #fl <- tbl$file[wNA[1L]]
-            x <- newFls[which(newFlsTst == fl)]
+            x <- newFls[newFlsTst == fl]
             if (length(x) > 1L) {
               nc <- nchar(x)
-              x <- x[which(nc == min(nc))]
+              x <- x[nc == min(nc)]
             } else {
               # Backup solution in case we replaced spaces with something else - e.g. when working on Linux
-              x <- newFls[which(gsub(" ", "-", newFlsTst) == gsub(" ", "-", fl)
-                                |gsub(" ", "_", newFlsTst) == gsub(" ", "_", fl)
-                                |gsub(" ", "", newFlsTst) == gsub(" ", "", fl))]
+              x <- newFls[(gsub(" ", "-", newFlsTst) == gsub(" ", "-", fl))
+                          | (gsub(" ", "_", newFlsTst) == gsub(" ", "_", fl))
+                          | (gsub(" ", "", newFlsTst) == gsub(" ", "", fl))]
               if (length(x) > 1L) {
                 nc <- nchar(x)
-                x <- x[which(nc == min(nc))]
+                x <- x[nc == min(nc)]
               }
             }
             return(x)
           }), tbl$file[wNA])
-          tst <- tst[which(lengths(tst) == 1L)]
+          tst <- tst[lengths(tst) == 1L]
           if (length(tst)) {
             tst <- setNames(unlist(tst), names(tst))
             wY2 <- which(is.na(tbl$nuLoc) & (tbl$file %in% names(tst)))
@@ -278,7 +279,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     #
     g2 <- grep("</?experiments>", mqpar_i)
     g2 <- gsub(" *</?string> *", "", mqpar_i[(g2[1L]+1L):(g2[2L]-1L)])
-    if (length(g2[which(g2 != "")]) == 0L) { g2[which(g2 == "")] <- "Exp1" }
+    if (!sum(g2 != "")) { g2[g2 == ""] <- "Exp1" }
     g3 <- grep("</?fractions>", mqpar_i)
     g3 <- as.integer(gsub("^32767$", "1", gsub(" *</?short> *", "", mqpar_i[(g3[1L]+1L):(g3[2L]-1L)])))
     g4 <- grep("</?ptms>", mqpar_i)
@@ -323,7 +324,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       assign(isobarLab_i, val)
     } else {
       fracMap_i$"Parent sample" <- fracMap_i$MQ.Exp
-      k <- colnames(fracMap_i)[which(colnames(fracMap_i) != "Parent sample")]
+      k <- setdiff(colnames(fracMap_i), "Parent sample")
       fracMap_i <- fracMap_i[, c("Parent sample", k)]
     }
     #
@@ -336,7 +337,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     gVar <- (grep("<variableModifications>", mqpar_i)+1L):(grep("</variableModifications>", mqpar_i)-1L)
     FxMd <- gsub(" *</?string> *", "", mqpar_i[gFx])
     FxMdC <- grep("\\(C\\)", FxMd, value = TRUE)
-    FxMd <- FxMd[which(!FxMd %in% FxMdC)]
+    FxMd <- setdiff(FxMd, FxMdC)
     VarMd <- gsub(" *</?string> *", "", mqpar_i[gVar])
     searchTxt_i <- paste0(c("The r", "R")[moult], "aw file", c(" was", "s were")[moult], " searched in MaxQuant")
     if (length(mqVers_i) && nchar(mqVers_i)) {
@@ -350,8 +351,8 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     FDRs <- gsub(" *</?[A-Z,a-z]*Fdr[A-Z,a-z]*> *", "", tstFDRs)
     w <- which(!FDRs %in% c("False", "True"))
     FDRs <- setNames(as.numeric(FDRs[w]), gsub(" *</?|>.+", "", tstFDRs[w]))
-    FDRs <- FDRs[which(names(FDRs) != "psmFdrCrosslink")]
-    if (DPep == "False") { FDRs <- FDRs[which(names(FDRs) != "dependentPeptideFdr")] }
+    FDRs <- FDRs[names(FDRs) != "psmFdrCrosslink"]
+    if (DPep == "False") { FDRs <- FDRs[names(FDRs) != "dependentPeptideFdr"] }
     lFxMdC <- length(FxMdC)
     if (lFxMdC) {
       txt <- if (length(FxMdC) == 1L) {
@@ -530,11 +531,11 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                  gsub(".*/", paste0(archDir, "/"), dir[1L:2L]),
                  archDir))
       })))
-      dirs <- dirs[which(dir.exists(dirs))]
-      dirs <- dirs[which(dirs != ".")]
+      dirs <- dirs[dir.exists(dirs)]
+      dirs <- setdiff(dirs, ".")
       if (length(dirs) > 1L) {
-        dirTst <- lapply(dirs, \(x) { grep(topattern(x), dirs[which(dirs != x)], value = TRUE) })
-        dirs <- dirs[which(!dirs %in% unlist(dirTst))]
+        dirTst <- lapply(dirs, \(x) { grep(topattern(x), setdiff(dirs, x), value = TRUE) })
+        dirs <- setdiff(dirs, unlist(dirTst))
       }
       if (length(dirs)) {
         dirFls <- setNames(lapply(dirs, safe_listFls), dirs)
@@ -555,7 +556,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
           })
         }
         tbl$nuLoc <- apply(tbl[, dirs, drop = FALSE], 1L, \(x) {
-          x <- x[which(!is.na(x))]
+          x <- x[!is.na(x)]
           if (!length(x)) { x <- NA_character_ }
           return(x)
         })
@@ -586,23 +587,23 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
           newFlsTst <- gsub(".*/", "", newFls)
           wNA <- which(is.na(tbl$nuLoc))
           tst <- setNames(lapply(tbl$file[wNA], \(fl) { #fl <- tbl$file[wNA[1L]]
-            x <- newFls[which(newFlsTst == fl)]
+            x <- newFls[newFlsTst == fl]
             if (length(x) > 1L) {
               nc <- nchar(x)
-              x <- x[which(nc == min(nc))]
+              x <- x[nc == min(nc)]
             } else {
               # Backup solution in case we replaced spaces with something else - e.g. when working on Linux
-              x <- newFls[which(gsub(" ", "-", newFlsTst) == gsub(" ", "-", fl)
-                                |gsub(" ", "_", newFlsTst) == gsub(" ", "_", fl)
-                                |gsub(" ", "", newFlsTst) == gsub(" ", "", fl))]
+              x <- newFls[(gsub(" ", "-", newFlsTst) == gsub(" ", "-", fl))
+                          | (gsub(" ", "_", newFlsTst) == gsub(" ", "_", fl))
+                          | (gsub(" ", "", newFlsTst) == gsub(" ", "", fl))]
               if (length(x) > 1L) {
                 nc <- nchar(x)
-                x <- x[which(nc == min(nc))]
+                x <- x[nc == min(nc)]
               }
             }
             return(x)
           }), tbl$file[wNA])
-          tst <- tst[which(lengths(tst) == 1L)]
+          tst <- tst[lengths(tst) == 1L]
           if (length(tst)) {
             tst <- setNames(unlist(tst), names(tst))
             wY2 <- which(is.na(tbl$nuLoc) & (tbl$file %in% names(tst)))
@@ -693,7 +694,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     diannCall_i2 <- unlist(strsplit(diannCall_i, " +--"))
     FxMd <- gsub(" enabled as a fixed modification$", "", grep(" enabled as a fixed modification$", diannLog_i, value = TRUE))
     FxMdC <- grep("Cysteine", FxMd, value = TRUE)
-    FxMd <- FxMd[which(!FxMd %in% FxMdC)]
+    FxMd <- setdiff(FxMd, FxMdC)
     FxMdC <- gsub("cysteine[ ,-]?", "", FxMdC, ignore.case = TRUE)
     FxMdC <- paste0(toupper(substr(FxMdC, 1L, 1L)), substr(FxMdC, 2L, nchar(FxMdC)))
     VarMd <- sub("^Modification ", "", sub(" will be considered as variable$", "", grep(" will be considered as variable$", diannLog_i, value = TRUE)))
@@ -717,17 +718,17 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                             c("UniMod", "Delta mass", "AA"))
       VarMd$Type <- "Variable"
       VarMd$"Full name" <- apply(VarMd[, c("UniMod", "Delta mass")], 1L, \(x) { #x <- VarMd[1, c("UniMod", "Delta mass")]
-        unique(UniMod$Name[which((UniMod$UnimodId == x[[1L]]) & (round((UniMod$MonoMass == x[[2L]])*2L)/2 == 0L))])
+        unique(UniMod$Name[(UniMod$UnimodId == x[[1L]]) & (round((UniMod$MonoMass == x[[2L]])*2L)/2 == 0L)])
       })
       w <- which(lapply(VarMd$`Full name`, length) == 0L)
       if (length(w)) {
         VarMd$`Full name`[w] <- apply(VarMd[w, c("Delta mass", "AA")], 1L, \(x) { #x <- VarMd[w[1L], c("Delta mass", "AA")]
           pos <- sort(unlist(x[[2L]]))
-          pos[which(pos == "*n")] <- "_"
+          pos[pos == "*n"] <- "_"
           delta <- as.numeric(x[[1L]])
           mods_i <- mods_i[order(abs(mods_i$`Mass shift` - delta)),]
           # in fact, check whether this part of DIANN_to_MQ() should not be improved.
-          res <- mods_i$`Full name`[which((abs(mods_i$`Mass shift`) - delta < 0.0001) & (vapply(mods_i$AA, \(y) { sum(y %in% pos) > 0L }, TRUE)))]
+          res <- mods_i$`Full name`[(abs(mods_i$`Mass shift`) - delta < 0.0001) & (vapply(mods_i$AA, \(y) { sum(y %in% pos) > 0L }, TRUE))]
           if (!length(res)) { res <- "unknown_PTM" }
           return(res)
         })
@@ -738,10 +739,10 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         }
       }
       VarMd$Text <- apply(VarMd[, c("Full name", "AA")], 1L, \(x) {
-        x[[2L]][which(x[[2L]] == "n")] <- "N-term"
-        x[[2L]][which(x[[2L]] == "*n")] <- "protein N-term"
-        x[[2L]][which(x[[2L]] == "c")] <- "C-term"
-        x[[2L]][which(x[[2L]] == "*c")] <- "protein C-term"
+        x[[2L]][x[[2L]] == "n"] <- "N-term"
+        x[[2L]][x[[2L]] == "*n"] <- "protein N-term"
+        x[[2L]][x[[2L]] == "c"] <- "C-term"
+        x[[2L]][x[[2L]] == "*c"] <- "protein C-term"
         paste0(x[[1L]], " (", paste(x[[2L]], collapse = ", "), ")")
       })
     }
@@ -873,11 +874,11 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
                  gsub(".*/", paste0(archDir, "/"), dir[1L:2L]),
                  archDir))
       })))
-      dirs <- dirs[which(dir.exists(dirs))]
-      dirs <- dirs[which(dirs != ".")]
+      dirs <- dirs[dir.exists(dirs)]
+      dirs <- setdiff(dirs, ".")
       if (length(dirs) > 1L) {
-        dirTst <- lapply(dirs, \(x) { grep(topattern(x), dirs[which(dirs != x)], value = TRUE) })
-        dirs <- dirs[which(!dirs %in% unlist(dirTst))]
+        dirTst <- lapply(dirs, \(x) { grep(topattern(x), setdiff(dirs, x), value = TRUE) })
+        dirs <- setdiff(dirs, unlist(dirTst))
       }
       if (length(dirs)) {
         dirFls <- setNames(lapply(dirs, safe_listFls), dirs)
@@ -898,7 +899,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
           })
         }
         tbl$nuLoc <- apply(tbl[, dirs, drop = FALSE], 1L, \(x) {
-          x <- x[which(!is.na(x))]
+          x <- x[!is.na(x)]
           if (!length(x)) { x <- NA_character_ }
           return(x)
         })
@@ -929,23 +930,23 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
           newFlsTst <- gsub(".*/", "", newFls)
           wNA <- which(is.na(tbl$nuLoc))
           tst <- setNames(lapply(tbl$file[wNA], \(fl) { #fl <- tbl$file[wNA[1L]]
-            x <- newFls[which(newFlsTst == fl)]
+            x <- newFls[newFlsTst == fl]
             if (length(x) > 1L) {
               nc <- nchar(x)
-              x <- x[which(nc == min(nc))]
+              x <- x[nc == min(nc)]
             } else {
               # Backup solution in case we replaced spaces with something else - e.g. when working on Linux
-              x <- newFls[which(gsub(" ", "-", newFlsTst) == gsub(" ", "-", fl)
-                                |gsub(" ", "_", newFlsTst) == gsub(" ", "_", fl)
-                                |gsub(" ", "", newFlsTst) == gsub(" ", "", fl))]
+              x <- newFls[(gsub(" ", "-", newFlsTst) == gsub(" ", "-", fl))
+                          | (gsub(" ", "_", newFlsTst) == gsub(" ", "_", fl))
+                          | (gsub(" ", "", newFlsTst) == gsub(" ", "", fl))]
               if (length(x) > 1L) {
                 nc <- nchar(x)
-                x <- x[which(nc == min(nc))]
+                x <- x[nc == min(nc)]
               }
             }
             return(x)
           }), tbl$file[wNA])
-          tst <- tst[which(lengths(tst) == 1L)]
+          tst <- tst[lengths(tst) == 1L]
           if (length(tst)) {
             tst <- setNames(unlist(tst), names(tst))
             wY2 <- which(is.na(tbl$nuLoc) & (tbl$file %in% names(tst)))
@@ -1015,25 +1016,25 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     FxMdTbl <- unlist(strsplit(FxMdTbl, ";"))
     FxMdTbl <- Isapply(strsplit(FxMdTbl, ","), unlist)
     colnames(FxMdTbl) <- c("Shift", "Site", "Enabled", "MaxOccurences")
-    FxMdTbl <- FxMdTbl[which(FxMdTbl$Enabled == "true"),]
+    FxMdTbl <- FxMdTbl[FxMdTbl$Enabled == "true",]
     FxMdTbl$AAName <- gsub(".+\\(|\\)", "", FxMdTbl$Site)
     FxMdTbl$AAName <- sapply(FxMdTbl$AAName, \(x) {
       paste0(toupper(substr(x, 1L, 1L)), substr(x, 2L, nchar(x)))
     })
     FxMdTbl$AA <- gsub(" \\(.+\\)", "", FxMdTbl$Site)
     FxMdTbl$Shift <- as.numeric(FxMdTbl$Shift)
-    FxMdTbl <- FxMdTbl[which(FxMdTbl$Shift != 0),]
+    FxMdTbl <- FxMdTbl[FxMdTbl$Shift != 0,]
     FxMdTbl$Shift <- as.character(FxMdTbl$Shift)
     g <- grep("^-", FxMdTbl$Shift, invert = TRUE)
     FxMdTbl$Shift[g] <- paste0("+", FxMdTbl$Shift[g])
     FxMdTbl$Name <- apply(FxMdTbl[, c("Shift", "AAName")], 1L, \(x) { paste0(x[[1L]], " (", x[[2L]], ")") })
-    FxMdC <- FxMdTbl$Name[which(FxMdTbl$AA == "C")]
-    FxMd <- FxMdTbl$Name[which(FxMdTbl$AA != "C")]
+    FxMdC <- FxMdTbl$Name[FxMdTbl$AA == "C"]
+    FxMd <- FxMdTbl$Name[FxMdTbl$AA != "C"]
     VarMd <- gsub(topattern("msfragger.table.var-mods="), "", grep(topattern("msfragger.table.var-mods="), fpWorkflow_i, value = TRUE))
     VarMd <- unlist(strsplit(VarMd, ";"))
     VarMd <- Isapply(strsplit(VarMd, ","), unlist)
     colnames(VarMd) <- c("Shift", "Site", "Enabled", "MaxOccurences")
-    VarMd <- VarMd[which(VarMd$Enabled == "true"),]
+    VarMd <- VarMd[VarMd$Enabled == "true",]
     for (i in 1L:nrow(AA_table)) { VarMd$Site <- gsub(AA_table$AA[i], paste0(";", AA_table$AA[i], ";"), VarMd$Site) }
     VarMd$Site <- gsub("n", ";peptide N-term;", VarMd$Site)
     VarMd$Site <- gsub("c", ";peptide C-term;", VarMd$Site)
@@ -1250,8 +1251,8 @@ if (!sum(!kol1 %in% colnames(tst))) {
   modsTst_a[, k[w]] <- modsTst_b[, k[w]]
   modsTst_a$Type <- aggregate(modsTst$Type, list(modsTst$Mark, round(modsTst$"Mass shift", 4L)), \(x) {
     x <- unique(x)
-    x <- x[which(!is.na(x))]
-    x <- x[which(x != "NA")]
+    x <- x[!is.na(x)]
+    x <- setdiff(x, "NA")
     if ((length(x) > 1L) && ("Variable" %in% x)) {
       x <- "Variable"
     }
@@ -1260,10 +1261,10 @@ if (!sum(!kol1 %in% colnames(tst))) {
   if ("Mass delta" %in% colnames(modsTst)) {
     modsTst_a$"Mass delta" <- aggregate(1L:nrow(modsTst), list(modsTst$Mark, round(modsTst$"Mass shift", 4L)), \(x) {
       rs <- unique(unlist(modsTst$`Mass delta`[x]))
-      rs <- rs[which(!is.na(rs))]
+      rs <- rs[!is.na(rs)]
       if (!length(rs)) {
         rs <- unique(unlist(modsTst$`Mass shift`[x]))
-        rs <- rs[which(!is.na(rs))]
+        rs <- rs[!is.na(rs)]
       }
       rs <- if (length(rs)) { mean(rs) } else { NA }
       return(rs)
@@ -1431,7 +1432,7 @@ if (exists("FracMap_reloaded")) {
     }
     if (!tst) {
       k <- c("Raw file", "Raw files name", "Parent sample", "Fraction", "Use", "PTM-enriched")
-      k <- k[which(k %in% colnames(FracMap_reloaded))]
+      k <- intersect(k, colnames(FracMap_reloaded))
       FracMap[, k] <- FracMap_reloaded[m, k]
       if (LabelType == "LFQ") {
         if ("Parent sample" %in% colnames(FracMap_reloaded)) {
@@ -1443,7 +1444,7 @@ if (exists("FracMap_reloaded")) {
         }
       }
       if (sum(gs)) {
-        rp <- c("-", "_", "")[which(gs)[1L]]
+        rp <- c("-", "_", "")[gs][1L]
         mEv <- match(gsub(" ", rp, ev$`Raw file`), gsub(" ", rp, FracMap$`Raw files name`))
       } else {
         mEv <- match(ev$`Raw file`, FracMap$`Raw files name`)

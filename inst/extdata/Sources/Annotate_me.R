@@ -9,12 +9,12 @@ if (globalGO) {
   source(Src)
   #
   temp <- listMelt(strsplit(PG$"Leading protein IDs", ";"), PG$id, c("Accession", "id"))
-  kol <- annot.col[which(annot.col %in% colnames(db))]
+  kol <- intersect(annot.col, colnames(db))
   if ("Taxonomy" %in% kol) { # Taxonomy can be dealt with differently
     PG$Taxonomy <- db$Taxonomy[match(gsub(";.*", "", PG$`Leading protein IDs`), db$`Protein ID`)]
   }
-  kol2 <- annot.col[which(!annot.col %in% "Taxonomy")]
-  kol2 <- kol2[which(kol2 %in% colnames(db))]
+  kol2 <- setdiff(annot.col, "Taxonomy")
+  kol2 <- intersect(kol2, colnames(db))
   temp[, kol2] <- db[match(temp$Accession, db$"Protein ID"), kol2]
   tst1 <- unlist(strsplit(temp$`GO-ID`, ";"))
   tst2 <- unlist(strsplit(temp$GO, ";"))
@@ -22,11 +22,11 @@ if (globalGO) {
   # Test that...
   tst3 <- data.table(ID = tst1, Name = tst2)
   # - ... each ID has a single name, and that names are unique
-  tst3a <- tst3[, list(Name = list(unique(Name))), by = list(ID = ID)]
+  tst3a <- tst3[, .(Name = list(unique(Name))), by = .(ID = ID)]
   tst3a <- as.data.frame(tst3a)
   tst3a$N_names <- lengths(tst3a$Name)
   # - ... each name is unique to one ID
-  tst3b <- tst3[, list(ID = list(unique(ID))), by = list(Name = Name)]
+  tst3b <- tst3[, .(ID = list(unique(ID))), by = .(Name = Name)]
   tst3b <- as.data.frame(tst3b)
   tst3b$N_IDs <- lengths(tst3b$ID)
   stopifnot(max(tst3b$N_IDs) == 1L)
@@ -38,7 +38,7 @@ if (globalGO) {
   # Below commented data.table aggregation code... which is slower so not used.
   #
   # temp2 <- as.data.table(temp[, c("id", kol2)])
-  # temp2 <- temp2[, lapply(.SD, f0), by = list(Group.1 = id), .SDcols = kol2]
+  # temp2 <- temp2[, lapply(.SD, f0), by = .(Group.1 = id), .SDcols = kol2]
   # temp2 <- as.data.frame(temp2)
   #
   for (i in kol2) {
@@ -47,7 +47,7 @@ if (globalGO) {
   tst1 <- unlist(strsplit(temp$`GO-ID`, ";"))
   tst2 <- unlist(strsplit(temp$GO, ";"))
   tst3 <- data.table(ID = tst1, Name = tst2)
-  tst3 <- tst3[, list(Name = list(unique(Name))), by = list(ID = ID)]
+  tst3 <- tst3[, .(Name = list(unique(Name))), by = .(ID = ID)]
   tst3 <- as.data.frame(tst3)
   tst3b$N_IDs <- lengths(tst3b$ID)
   stopifnot(max(tst3b$N_IDs) == 1L)

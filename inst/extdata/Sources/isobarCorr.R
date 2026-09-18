@@ -19,18 +19,18 @@ if ((LabelType == "Isobaric")&&
       if (!sum(!Iso %in% test)) {
         test <- data.frame(Isobaric.set = test, check.names = FALSE)
         test$"Purity table" <- lapply(test$Isobaric.set, \(x) {
-          Iso.purity[which(vapply(Iso.purity$Isobaric.set, \(y) { x %in% y }, TRUE)),
-                     which(colnames(Iso.purity) != Isobaric.set)]
+          Iso.purity[vapply(Iso.purity$Isobaric.set, \(y) { x %in% y }, TRUE),
+                     colnames(Iso.purity) != Isobaric.set]
         })
         kol <- paste0("corr. ", ev.ref["Original"], get(IsobarLab))
-        kol <- kol[which(paste0(ev.ref["Original"], get(IsobarLab)) %in% colnames(ev))]
+        kol <- kol[paste0(ev.ref["Original"], get(IsobarLab)) %in% colnames(ev)]
         ev[, kol] <- NA_real_
         for (i in Iso) { #i <- Iso[1L]
-          wI <- which(ev$"Raw file path" %in% Frac.map$"Raw file"[which(Frac.map$Isobaric.set == i)])
+          wI <- which(ev$"Raw file path" %in% Frac.map$"Raw file"[Frac.map$Isobaric.set == i])
           e <- ev[wI,]
-          pt <- test$"Purity table"[[which(test$Isobaric.set == i)]]
-          lb <- Exp.map$"Isobaric label"[which(Exp.map$Isobaric.set == i)]
-          lb2 <- Exp.map$"Isobaric label details"[which(Exp.map$Isobaric.set == i)]
+          pt <- test$"Purity table"[[test$Isobaric.set == i]]
+          lb <- Exp.map$"Isobaric label"[Exp.map$Isobaric.set == i]
+          lb2 <- Exp.map$"Isobaric label details"[Exp.map$Isobaric.set == i]
           kol <- paste0(ev.ref[length(ev.ref)], lb)
           w <- which(kol %in% colnames(e))
           kol <- kol[w] ; lb <- lb[w] ; lb2 <- lb2[w]
@@ -42,7 +42,7 @@ if ((LabelType == "Isobaric")&&
           A <- matrix(rep(0L, length(lb)*(length(lb)+length(w)-1)), ncol = length(lb))
           for (j in 1L:length(lb2)) {
             tmp <- as.numeric(pt[j, w])
-            tmp[which(is.na(tmp))] <- 0
+            tmp[is.na(tmp)] <- 0
             A[j:(j+length(w)-1L), j] <- tmp
           }
           w <- which(vapply(1L:length(w), \(x) {
@@ -59,14 +59,14 @@ if ((LabelType == "Isobaric")&&
           }))
           temp <- as.data.frame(t(parApply(parClust, e[,kol], 1L, \(x) {
             b <- as.numeric(x)
-            b[which(!is.finite(b))] <- 0
+            b[!is.finite(b)] <- 0
             sb <- sum(b)
             if (sb > 0) {
               #showEqn(round(A, 3), b)
               #res <- as.numeric(gsub(".+= +", "", Solve(A, b))) # I stopped using this since it seems to return approximations sometimes
               res <- solve(A, b)
               # There are cases where we will get negative values which we will have to truncate:
-              res[which(res < 0L)] <- 0
+              res[res < 0] <- 0
               res <- #round(
                 res*sb/sum(res)
               #, 0)# I used to round here, but do not think it's necessary
@@ -87,27 +87,27 @@ if ((LabelType == "Isobaric")&&
     test <- sort(unique(as.integer(unlist(strsplit(Iso.purity$Isobaric.set, ";")))))
     if (exists("Iso")) {
       if (!sum(!Iso %in% test)) {
-        test <- test[which(test %in% Iso)]
+        test <- test[test %in% Iso]
         test <- data.frame(Isobaric_set = test)
         test$Purity.table <- lapply(test$Isobaric_set, \(x) {
-          Iso.purity[which(vapply(lapply(strsplit(Iso.purity$Isobaric.set, ";"), as.integer), \(y) { x %in% unlist(y) }, TRUE)),
-                     which(colnames(Iso.purity) != "Isobaric.set")]
+          Iso.purity[vapply(lapply(strsplit(Iso.purity$Isobaric.set, ";"), as.integer), \(y) { x %in% unlist(y) }, TRUE),
+                     colnames(Iso.purity) != "Isobaric.set"]
         })
         kol <- paste0("corr. ", ev.ref["Original"], get(IsobarLab))
-        kol <- kol[which(paste0(ev.ref["Original"], get(IsobarLab)) %in% colnames(ev))]
+        kol <- kol[paste0(ev.ref["Original"], get(IsobarLab)) %in% colnames(ev)]
         ev[, kol] <- NA_real_
         for (i in Iso) { #i <- Iso[1]
-          wI <- which(ev$"Raw file path" %in% Frac.map$"Raw file"[which(Frac.map$Isobaric.set == i)])
+          wI <- which(ev$"Raw file path" %in% Frac.map$"Raw file"[Frac.map$Isobaric.set == i])
           e <- ev[wI,]
-          pt <- test$Purity.table[[which(test$Isobaric_set == i)]]
-          lb <- Exp.map$"Isobaric label"[which(Exp.map$Isobaric.set == i)]
-          lb2 <- Exp.map$"Isobaric label details"[which(Exp.map$Isobaric.set == i)]
+          pt <- test$Purity.table[[test$Isobaric_set == i]]
+          lb <- Exp.map$"Isobaric label"[Exp.map$Isobaric.set == i]
+          lb2 <- Exp.map$"Isobaric label details"[Exp.map$Isobaric.set == i]
           kol <- paste0(ev.ref[length(ev.ref)], lb)
           w <- which(kol %in% colnames(e))
           kol <- kol[w] ; lb <- lb[w] ; lb2 <- lb2[w]
           o <- order(as.numeric(lb))
           kol <- kol[o] ; lb <- lb[o] ; lb2 <- lb2[o]
-          pt <- pt[which(pt$Isobaric.label.details %in% lb2),]
+          pt <- pt[pt$Isobaric.label.details %in% lb2,]
           kol2 <- c("MI_minus.2", "MI_minus.1", "Monoisotopic", "MI_plus.1", "MI_plus.2")
           kol3 <- c("Who_minus.2", "Who_minus.1", "Who_plus.1", "Who_plus.2")
           pt[, kol2] <- sweep(pt[, kol2], 1L, rowSums(pt[, kol2]), "/")
@@ -116,10 +116,10 @@ if ((LabelType == "Isobaric")&&
           kount <- 0
           for (l in lb2) { #l <- lb2[2]
             kount <- kount+1L
-            tmp <- unlist(pt[which(pt$Isobaric.label.details == l), kol3])
+            tmp <- unlist(pt[pt$Isobaric.label.details == l, kol3])
             wc <- wc2 <- which(tmp != "")
-            wc2[which(wc2 > 2L)] <- wc2[which(wc2 > 2L)]+1L
-            fact <- pt[which(pt$Isobaric.label.details == l), kol2, drop = FALSE]
+            wc2[wc2 > 2L] <- wc2[wc2 > 2L]+1L
+            fact <- pt[pt$Isobaric.label.details == l, kol2, drop = FALSE]
             fact <- fact[, sort(c(3L, wc2))]
             colnames(fact) <- c(l, tmp[wc])[order(c(3L, wc2))]
             fact <- fact[, which(colnames(fact) %in% colnames(A))]
@@ -134,14 +134,14 @@ if ((LabelType == "Isobaric")&&
           clusterCall(parClust, \() library(proteoCraft))
           temp <- as.data.frame(t(parApply(parClust, e[, kol], 1L, \(x) {
             b <- as.numeric(x)
-            b[which(!is.finite(b))] <- 0
+            b[!is.finite(b)] <- 0
             sb <- sum(b)
             if (sb > 0) {
               #showEqn(round(A, 3), b)
               #res <- as.numeric(gsub(".+= +", "", Solve(A, b))) # I stopped using this since it seems to return approximations sometimes
               res <- solve(A, b)
               # There are cases where we will get negative values which we will have to truncate:
-              res[which(res < 0)] <- 0
+              res[res < 0] <- 0
               res <- #round(
                 res*sb/sum(res)
               #, 0)# I used to round here, but do not think it's necessary

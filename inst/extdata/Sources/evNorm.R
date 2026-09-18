@@ -21,7 +21,7 @@ if (!"Search_ID" %in% colnames(ev)) {
 ev$"Normalisation group" <- "Standard"
 if (!"PTM-enriched" %in% colnames(Frac.map)) { Frac.map$"PTM-enriched" <- NA } # (In column "PTM enriched", we use NA to indicate "no enrichment"!!!)
 ptmChck <- unique(Frac.map$"PTM-enriched")
-ptmChck <- ptmChck[which(!is.na(ptmChck))]
+ptmChck <- ptmChck[!is.na(ptmChck)]
 if (length(ptmChck)) {
   if (sum(!ptmChck %in% Modifs$`Full name`)) { stop("Some of the modifications in column \"PTM-enriched\" of Fractions map are invalid!") }
   # Here is what we want to do for those modifications:
@@ -39,8 +39,8 @@ if (length(ptmChck)) {
   for (ptm in ptmChck) { #ptm <- ptmChck[1L]
     # Below "modified" means "modified with ptm" and "enriched" means "enriched for ptm"
     mrk <- Modifs$Mark[match(ptm, Modifs$`Full name`)]
-    rw1 <- Frac.map$runID[which(Frac.map$"PTM-enriched" == ptm)]
-    rw0 <- Frac.map$runID[which((is.na(Frac.map$"PTM-enriched"))|(Frac.map$"PTM-enriched" != ptm))]
+    rw1 <- Frac.map$runID[Frac.map$"PTM-enriched" == ptm]
+    rw0 <- Frac.map$runID[is.na(Frac.map$"PTM-enriched") | (Frac.map$"PTM-enriched" != ptm)]
     sum(rw1 %in% rw0)
     w1 <- which(ev$runID %in% rw1)
     w0 <- which(ev$runID %in% rw0)
@@ -48,11 +48,11 @@ if (length(ptmChck)) {
     i1 <- ev$id[w1] # IDs of PSMs from enriched runs
     i0 <- ev$id[w0] # IDs of PSMs from non-enriched runs
     ev$"Normalisation group"[match(i1, ev$id)] <- ptm
-    i2 <- ev$id[which(!ev$runID %in% c(rw0, rw1))] # Any others
+    i2 <- ev$id[!ev$runID %in% c(rw0, rw1)] # Any others
     m1 <- match(i1, ev$id)
     i1m <- i1[grep(mrk, ev$"Modified sequence"[m1])] # Modified PSMs from enriched samples (i.e. what we were trying to enrich!)
     if (length(i1m)) {
-      i0u <- i0[which(!ev$"Modified sequence"[match(i0, ev$id)] %in% unique(ev$"Modified sequence"[match(i1m, ev$id)]))] # Un-modified PSMs from non-enriched runs
+      i0u <- i0[!ev$"Modified sequence"[match(i0, ev$id)] %in% unique(ev$"Modified sequence"[match(i1m, ev$id)])] # Un-modified PSMs from non-enriched runs
       l1 <- length(i1)-length(i1m) # This is the number of un-modified PSMs we are removing from enriched runs
       l0 <- length(i0)-length(i0u) # This is the number of modified PSMs we are removing from non-enriched runs
       if (l1) {
@@ -62,7 +62,7 @@ if (length(ptmChck)) {
       if (l0) {
         cat(paste0("Removing ", l0, " ", ptm, "-modified peptide PSMs from non-enriched samples!\n"))
       }
-      ev <- ev[which(ev$id %in% c(i0u, i1m, i2)),]
+      ev <- ev[ev$id %in% c(i0u, i1m, i2),]
     } else {
       cat(paste0("Not a single ", ptm, "-modified PSMs found in ", ptm, "-enriched raw files, investigate!\n"))
     }
@@ -126,7 +126,7 @@ if (l > 1L) {
       }, 1L) > 0L) + i
       if (length(w)) {
         grps <- tst$Group.1[w]
-        ev$`Normalisation group`[which(ev$`Normalisation group` %in% grps)] <- tst$Group.1[i]
+        ev$`Normalisation group`[ev$`Normalisation group` %in% grps] <- tst$Group.1[i]
         tst <- tst[-w,]
         l <- nrow(tst)
       }
@@ -158,7 +158,7 @@ if (Param$Norma.Ev.Intens) {
     cat(" - Normalizing MS1-level PSM intensities\n")
     if (length(w) > 1L) { cat(" (per fraction/PTM enrichment group)\n") }
     cat("   - Classic normalisation to the median\n")
-    Norma.Ev.Intens.Groups <- Norma.Ev.Intens.Groups[which(Norma.Ev.Intens.Groups$Groups %in% tst$Group.1[w]),]
+    Norma.Ev.Intens.Groups <- Norma.Ev.Intens.Groups[Norma.Ev.Intens.Groups$Groups %in% tst$Group.1[w],]
     # (Per fractions X PTM enrichment group)
     # Step 1a:
     ev.col["Normalisation"] <- paste0("norm. ", ev.col["Original"])
@@ -172,15 +172,15 @@ if (Param$Norma.Ev.Intens) {
     }
     for (grp2 in Grps2) { Norm.Ev[[paste0("Grp", grp2)]] <- 1L }
     for (grp in Norm.Ev$Group) { #grp <- Norm.Ev$Group[1L]
-      r <- Norma.Ev.Intens.Groups$"Raw file"[which(Norma.Ev.Intens.Groups$Groups == grp)]
+      r <- Norma.Ev.Intens.Groups$"Raw file"[Norma.Ev.Intens.Groups$Groups == grp]
       wg <- which(ev$"Raw file path" %in% r)
       M <- log10(unlist(ev[wg, ev.col["Original"]]))
-      M <- 10L^median(M[which(is.finite(M))]) # For preserving original scale
+      M <- 10L^median(M[is.finite(M)]) # For preserving original scale
       for (grp2 in Grps2) { #grp2 <- Grps2[1L]
         w2 <- which(ev[wg, Grps2Kol] == grp2)
         if (length(w2)) {
           m <- log10(ev[wg[w2], ev.col["Original"]])
-          m <- 10L^median(m[which(is.finite(m))])
+          m <- 10L^median(m[is.finite(m)])
           ev[wg[w2], ev.col["Normalisation"]] <- ev[wg[w2], ev.col["Original"]]*M/m
           Norm.Ev[match(grp, Norm.Ev$Group), paste0("Grp", grp2)] <- m/M
         }
@@ -195,7 +195,7 @@ if (Param$Norma.Ev.Intens) {
       for (grp2 in Grps2) { AdvNorm.Ev[[paste0("Grp", grp2)]] <- 1L }
       for (grp in Norm.Ev$Group) { #grp <- Norm.Ev$Group[1L]
         w <- which(Norma.Ev.Intens.Groups$Groups == grp)
-        r <- Norma.Ev.Intens.Groups$"Raw file"[which(Norma.Ev.Intens.Groups$Groups == grp)]
+        r <- Norma.Ev.Intens.Groups$"Raw file"[Norma.Ev.Intens.Groups$Groups == grp]
         wg <- which(ev$"Raw file path" %in% r)
         tmp <- data.table(Uniq = ev$`Unique State`[wg], Grp = ev[wg, Grps2Kol], Int = ev[wg, ev.col["Normalisation"]])
         tmp <- tmp[, list(x = sum(Int, na.rm = TRUE)), keyby = list(Group.1 = Uniq, Group.2 = Grp)]
@@ -237,10 +237,10 @@ if (Param$Norma.Ev.Intens) {
     for (i in Iso) { #i <- Iso[1L]
       wg <- which(ev$Isobaric.set == i)
       M3 <- log10(unlist(ev[wg, k0]))
-      M3 <- 10L^median(M3[which(is.finite(M3))]) # For preserving original scale
+      M3 <- 10L^median(M3[is.finite(M3)]) # For preserving original scale
       m3 <- vapply(get(IsobarLab), \(ch) {
         rs <- log10(ev[wg, paste0(er0, ch)])
-        return(10L^median(rs[which(is.finite(rs))]))
+        return(10L^median(rs[is.finite(rs)]))
       }, 1)
       ev[wg, k1] <- sweep(ev[wg, k0], 2L, M3/m3, "*")
       Norm.Ev.RepIntens[match(i, Norm.Ev.RepIntens$Group), paste0("Channel_", get(IsobarLab))] <- m3/M3
@@ -274,14 +274,14 @@ if (Param$Norma.Ev.Intens) {
           clusterExport(parClust, list("tmp", "k0", "Fr", "AdvNorm.IL"), envir = environment())
           # Create normalized data
           tmp2 <- setNames(parLapply(parClust, Fr, \(fr) { #fr <- Fr[1L]
-            dat <- tmp[which(tmp$Fraction == fr),]
+            dat <- tmp[tmp$Fraction == fr,]
             AdvNorm.IL(dat, "Unique State", k0, FALSE, 5L)
           }), paste0("Fr. ", Fr))
           # Compute normalisation factors
           tmp2F <- as.data.frame(sapply(Fr, \(fr) {
             isbrLb <- get(IsobarLab)
             sapply(1L:length(isbrLb), \(x) {
-              setNames(mean(tmp[which(tmp$Fraction == fr), k0[x]]/(tmp2[[paste0("Fr. ", fr)]][, paste0("AdvNorm.", k0[x])]),
+              setNames(mean(tmp[tmp$Fraction == fr, k0[x]]/(tmp2[[paste0("Fr. ", fr)]][, paste0("AdvNorm.", k0[x])]),
                             na.rm = TRUE), paste0("Ch. ", isbrLb[x]))
             })
           }))
@@ -292,7 +292,7 @@ if (Param$Norma.Ev.Intens) {
           # Number of valid values
           tmp2K <- as.data.frame(sapply(Fr, \(fr) {
             vapply(1L:length(get(IsobarLab)), \(x) {
-              sum(is.finite(log10(tmp[which(tmp$Fraction == fr), k0[x]])))
+              sum(is.finite(log10(tmp[tmp$Fraction == fr, k0[x]])))
             }, 1L)
           }))
           colnames(tmp2K) <- paste0("Fr. ", Fr)
@@ -303,14 +303,14 @@ if (Param$Norma.Ev.Intens) {
             weighted.mean(tmp2F[match(x, tmp2F$Label), paste0("Fr. ", Fr)],
                           tmp2K[match(x, tmp2K$Label), paste0("Fr. ", Fr)])
           }, 1), paste0("Ch ", get(IsobarLab)))
-          tmp2NormFact[which(is.na(tmp2NormFact))] <- 1 # Better not normalize than corrupt data!
+          tmp2NormFact[is.na(tmp2NormFact)] <- 1 # Better not normalize than corrupt data!
           m4[[i]] <- tmp2NormFact
         }
         # Apply results
         m4 <- as.data.frame(t(sapply(m4, unlist)))
         for (i in Iso) {
           wi <- which(tmpEv$Isobaric.set == i)
-          ev[wi, k1] <- sweep(ev[wi, k0], 2L, unlist(m4[which(rownames(m4) == i),
+          ev[wi, k1] <- sweep(ev[wi, k0], 2L, unlist(m4[rownames(m4) == i,
                                                         paste0("Ch ", get(IsobarLab))]), "/")
         }
         AdvNorm.Ev.RepIntens[, paste0("Channel_", get(IsobarLab))] <- 1/m4[match(AdvNorm.Ev.RepIntens$Group, rownames(m4)), paste0("Ch ", get(IsobarLab))]
@@ -329,7 +329,7 @@ if (Param$Norma.Ev.Intens) {
     Norm.Ev.RepIntens.All$Fraction <- "All"
     if (tstAdvNrm) {
       tmp2tst <- suppressMessages(melt(tstRI))
-      colnames(tmp2tst)[which(colnames(tmp2tst) == "L1")] <- "Iso"
+      colnames(tmp2tst)[colnames(tmp2tst) == "L1"] <- "Iso"
       tmp2tst$Channel <- get(IsobarLab)
       tmp2tst$Fraction <- as.numeric(gsub("^Fr\\. ", "", tmp2tst$variable))
       for (i in Iso) {
@@ -385,7 +385,7 @@ if (Param$Norma.Ev.Intens) {
       mqe <- unlist(Exp.map$MQ.Exp[match(smpl, Exp.map$Ref.Sample.Aggregate)])
       w <- which(ev$MQ.Exp %in% mqe)
       mRt <- ev[w, ev.col[length(ev.col)]]/ev[w, ev.col["Original"]]
-      mRt <- median(mRt[which(is.finite(mRt))])
+      mRt <- median(mRt[is.finite(mRt)])
       clusterExport(parClust, "mRt", envir = environment())
       ev[[kol]][w] <- parLapply(parClust, ev[[kol]][w], \(x) { x*mRt })
     }
@@ -393,7 +393,7 @@ if (Param$Norma.Ev.Intens) {
     kol2 <- unique(c("id", "MQ.Exp", "MS2_intensities", kol))
     tst <- ev[, kol2]
     # Here it is easier to sum per row (otherwise this makes for very slow processing, creates a very huge table and plot, with little added value)
-    kolz <- colnames(tst)[which(!colnames(tst) %in% c("id", "MQ.Exp"))]
+    kolz <- colnames(tst)[!colnames(tst) %in% c("id", "MQ.Exp")]
     for (kl in kolz) {
       tst[[kl]] <- if (!inherits(tst[[kl]], "list")) { vapply(strsplit(tst[[kl]], ";"), as.numeric, 1) }
       parSapply(parClust, tst[[kl]], sum)
@@ -402,7 +402,7 @@ if (Param$Norma.Ev.Intens) {
     tst$value <- log10(tst$value)
     tst$variable <- as.character(tst$variable)
     tst$Norm <- "Original"
-    tst$Norm[which(tst$variable == kol)] <- "Normalised"
+    tst$Norm[tst$variable == kol] <- "Normalised"
     tst$Norm <- factor(tst$Norm, levels = c("Original", "Normalised"))
     ttl <- paste0(evNm, "s intensity normalisation")
     dir <- paste0(wd, "/Workflow control/", evNm, "s/Normalisation")
@@ -440,8 +440,8 @@ if (LabelType == "Isobaric") {
   test <- data.table::melt(test, id.vars = "MQ.Exp")
   test <- as.data.frame(test)
   test$Norm <- NA_character_
-  test$Norm[which(test$variable %in% a0)] <- "Original"
-  test$Norm[which(test$variable %in% a1)] <- "Normalised"
+  test$Norm[test$variable %in% a0] <- "Original"
+  test$Norm[test$variable %in% a1] <- "Normalised"
   test$Norm <- factor(test$Norm, levels = c("Original", "Normalised"))
   test$value <- log10(test$value)
   #aggregate(temp, list(ev$MQ.Exp), \(x) { sum(!is.na(x)) })
@@ -475,13 +475,13 @@ if (LabelType == "Isobaric") {
   })
   tst2 <- set_rownames(sapply(MQ.Exp, \(x) {
     vapply(kol, \(y) {
-      sum(ev[which(ev$MQ.Exp == x), y] > 0L)
+      sum(ev[ev$MQ.Exp == x, y] > 0L)
     }, 1)
   }), rownames(tst1))
   tst3 <- set_rownames(sapply(MQ.Exp, \(x) {
     vapply(kol, \(y) {
-      rs <- log10(ev[which(ev$MQ.Exp == x), y])
-      round(median(rs[which(is.finite(rs))]), 2L)
+      rs <- log10(ev[ev$MQ.Exp == x, y])
+      round(median(rs[is.finite(rs)]), 2L)
     }, 1)
   }), rownames(tst1))
   tst <- rbind(rep("", length(MQ.Exp)),

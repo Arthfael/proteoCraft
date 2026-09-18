@@ -173,8 +173,8 @@ Digest <- function(Seq,
   F0 <- \(Sq) { #Sq <- SEQ #Sq <- chnkDat[[1L]]
     nmsSq <- names(Sq)
     # N-terminal Methionine:
-    if (RemoveNtermMet == "strict") { Sq <- gsub("^M", "", Sq) }
-    if (RemoveNtermMet == "loose") { Sq <- gsub("^M", "@M", Sq) }
+    if (RemoveNtermMet == "strict") { Sq <- sub("^M", "", Sq) }
+    if (RemoveNtermMet == "loose") { Sq <- sub("^M", "@M", Sq) }
     # For loose removal, the above method:
     # - ensures that we know which M are protein N-terminal and that M is still available normally for potential cleavage sites
     # - and avoids duplicating the list - we can deal with these peptides later (before applying size filters!!!)
@@ -190,13 +190,13 @@ Digest <- function(Seq,
       gAmb <- grep("^M[VT]", Sq)
       gAmb <- gAmb[which(!gAmb %in% gPr)] # Apply proline block
       # Apply
-      Sq[gSmll] <- gsub("^M", "", Sq[gSmll])
+      Sq[gSmll] <- sub("^M", "", Sq[gSmll])
       Sq[gAmb] <- paste0("@", Sq[gAmb])
     }
     if (RemoveNtermMet %in% c("loose", "predict")) { AT <- grepl("^@M", Sq) }
     # Introduce breaks in the sequence
     if (TESTING) { print("Identifying cleavage sites...") }
-    for (C in Cut) { Sq <- gsub("_$", "", gsub(gsub("_", "", C), C, Sq)) }
+    for (C in Cut) { Sq <- sub("_$", "", gsub(gsub("_", "", C), C, Sq)) }
     # Deal with patterns strictly blocking digest 
     if (length(strict.avoid)) { #strict.avoid <- loose.avoid # (for TESTING)
       for (sa in strict.avoid) {
@@ -243,7 +243,7 @@ Digest <- function(Seq,
       gr <- grep(paste(gsub("_", "", loose.avoid), collapse = "|"), temp$value)
       temp <- temp[gr,]
       # Restore cuts
-      for (C in Cut) { temp$value <- gsub("_$", "", gsub(gsub("_", "", C), C, temp$value)) }
+      for (C in Cut) { temp$value <- sub("_$", "", gsub(gsub("_", "", C), C, temp$value)) }
       temp$value <- strsplit(temp$value, "_")
       tstL <- lengths(temp$value)
       wL <- which(tstL > 1L) # Normally this should be all of them, since all are matches
@@ -268,8 +268,8 @@ Digest <- function(Seq,
     }
     if (RemoveNtermMet %in% c("loose", "predict")) {
       Rs[AT] <- lapply(Rs[AT], \(x) {
-        unique(c(gsub("^@M", "M", x),
-                 gsub("^@M", "", x)))
+        unique(c(sub("^@M", "M", x),
+                 sub("^@M", "", x)))
       })
     }
     Rs <- lapply(Rs, \(x) { unique(x[which(nchar(x) >= min)]) }) # Filter for min and remove rare duplicates

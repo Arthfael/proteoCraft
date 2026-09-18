@@ -15,11 +15,16 @@ Src <- paste0(libPath, "/extdata/Sources/parBooleans.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 #
+# Protein headers for shiny
+Src <- paste0(libPath, "/extdata/Sources/protHeaders_for_shiny.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
+#
 # Species
 SpeciesTst %<o% "Unspecified"
 if ("Taxonomy" %in% colnames(db)) {
-  SpeciesTst <- unique(db$Taxonomy[which(gsub(" *(\\(|\\[).*", "", db[[dbOrgKol]]) == mainOrg)])
-  SpeciesTst <- SpeciesTst[which(as.character(SpeciesTst) != "NA")][1L]
+  SpeciesTst <- unique(db$Taxonomy[gsub(" *(\\(|\\[).*", "", db[[dbOrgKol]]) == mainOrg])
+  SpeciesTst <- SpeciesTst[as.character(SpeciesTst) != "NA"][1L]
 }
 if ("Kingdom" %in% colnames(db)) {
   KingdomTst <- aggregate(db$Kingdom, list(db$Kingdom), length)
@@ -46,7 +51,7 @@ if ("PTMs eligible for quantitation" %in% names(AnalysisParam)) {
   Mod4Quant <- AnalysisParam$"PTMs eligible for quantitation"
 }
 ptmDflt1 <- Modifs$`Full name`[match(Mod4Quant, Modifs$Mark)]
-Mod2Xclud %<o% set_colnames(Modifs[which(!Modifs$Mark %in% Mod4Quant), c("Mark", "AA")],
+Mod2Xclud %<o% set_colnames(Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")],
                             c("Mark", "Where"))
 if ("PTMs to exclude from quantitation" %in% names(AnalysisParam)) {
   Mod2Xclud <- AnalysisParam$"PTMs to exclude from quantitation"
@@ -57,7 +62,7 @@ klustChoices %<o% c("K-means", "hierarchical")
 KlustMeth %<o% 1 # Changed from 2
 #
 if (Annotate) {
-  allGO <- unique(unlist(strsplit(db$GO[which(!is.na(db$GO))], ";")))
+  allGO <- unique(unlist(strsplit(db$GO[!is.na(db$GO)], ";")))
   allGO2 <- paste0("GO:", gsub(".* \\[GO:|\\]$", "", allGO))
 }
 if (!"GO.terms.for.proteins.of.interest" %in% names(AnalysisParam)) { AnalysisParam$GO.terms.for.proteins.of.interest <- FALSE }
@@ -125,10 +130,10 @@ AnalysisParam$Use.N.unique <- N_unique_Pep
 ptmDflt1 <- grep("^[Pp]hospho", Modifs$`Full name`, value = TRUE, invert = TRUE)
 Mod4Quant %<o% Modifs$Mark[match(ptmDflt1, Modifs$`Full name`)]
 if ("Prot.Quant.Mod.Excl" %in% names(AnalysisParam)) {
-  Mod4Quant <- Mod4Quant[which(!Mod4Quant %in% unlist(strsplit(AnalysisParam$Prot.Quant.Mod.Excl, ";")))]
+  Mod4Quant <- setdiff(Mod4Quant, unlist(strsplit(AnalysisParam$Prot.Quant.Mod.Excl, ";")))
 }
 ptmDflt1 <- Modifs$`Full name`[match(Mod4Quant, Modifs$Mark)]
-Mod2Xclud %<o% set_colnames(Modifs[which(!Modifs$Mark %in% Mod4Quant), c("Mark", "AA")],
+Mod2Xclud %<o% set_colnames(Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")],
                             c("Mark", "Where"))
 #
 allQuantAlgos %<o% data.frame(Algorithm = c("limpa",
@@ -277,7 +282,7 @@ if ("CytoScapePath" %in% names(AnalysisParam)) {
 }
 if ("CytoscapePath" %in% names(AnalysisParam)) {
   tmp <- normalizePath(path.expand(AnalysisParam$CytoscapePath), winslash = "/")
-  tmp <- tmp[which(file.exists(tmp))]
+  tmp <- tmp[file.exists(tmp)]
   if (length(CytoScExe)) {
     if (length(tmp) && (tmp %in% CytoScExe)) { CytoScExe <- tmp } else {
       AnalysisParam$CytoscapePath <- CytoScExe[1L]
@@ -344,25 +349,25 @@ if ("Protein of interest" %in% names(db)) {
     suppressWarnings({
       tmp1 <- as.character(db$"Protein of interest")
       tmp2 <- as.logical(db$"Protein of interest")
-      tmp2[which(tmp1 %in% c("", "-"))] <- FALSE
-      tmp2[which(tmp1 == "+")] <- TRUE
+      tmp2[tmp1 %in% c("", "-")] <- FALSE
+      tmp2[tmp1 == "+"] <- TRUE
       db$"Protein of interest" <- tmp2
     })
   }
-  tmp <- unique(c(tmp, db$`Protein ID`[which(db$"Protein of interest")]))
+  tmp <- union(tmp, db$`Protein ID`[db$"Protein of interest"])
 }
 if ("Prot.list" %in% names(AnalysisParam)) {
-  tmp <- unique(c(tmp, unlist(strsplit(AnalysisParam$Prot.list, ";"))))
+  tmp <- union(tmp, unlist(strsplit(AnalysisParam$Prot.list, ";")))
 }
 if ("Prot.list_pep" %in% names(AnalysisParam)) {
-  tmp <- unique(c(tmp, unlist(strsplit(AnalysisParam$Prot.list_pep, ";"))))
+  tmp <- union(tmp, unlist(strsplit(AnalysisParam$Prot.list_pep, ";")))
 }
 if (length(tmp)) {
   m <- match(tmp, db$`Protein ID`)
-  m <- m[which(!is.na(m))]
+  m <- m[!is.na(m)]
   dbOrd <- c(m, which(!db$`Protein ID` %in% tmp))
 }
-protHeads <- gsub("^>", "", db$Header[dbOrd])
+protHeads <- sub("^>", "", db$Header[dbOrd])
 if (length(tmp)) { protDflt <- protHeads[1L:length(m)] }
 #
 tstAdvOpt <- try(sum(file.exists(AnalysisParam$Custom.PGs, AnalysisParam$CRAPome_file)) > 0L)
@@ -470,7 +475,7 @@ for (parI in myPar) {
   #
   if (!parOK) { assign(parNm, par_dflt) }
   assign(parNm, par_dflt)
-  .obj <- unique(c(parNm, .obj))
+  .obj <- union(parNm, .obj)
 }
 #
 appNm <- paste0(dtstNm, " - Parameters")
@@ -881,7 +886,7 @@ server1 <- function(input, output, session) {
   observeEvent(input$PTMsQuant, {
     assign("ptmDflt1", input$PTMsQuant, envir = .GlobalEnv)
     m4Quant(Modifs$Mark[match(unlist(input$PTMsQuant), Modifs$`Full name`)])
-    m2Xclud(set_colnames(Modifs[which(!Modifs$Mark %in% Mod4Quant), c("Mark", "AA")],
+    m2Xclud(set_colnames(Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")],
                          c("Mark", "Where")))
   }, ignoreNULL = FALSE)
   #   - Number of samples in which observed
@@ -1066,7 +1071,7 @@ server1 <- function(input, output, session) {
   # PTMs to use for PG Quant
   observeEvent(input$PTMsQuant, {
     m4Quant(Modifs$Mark[match(unlist(input$PTMsQuant), Modifs$`Full name`)])
-    m2Xclud(set_colnames(Modifs[which(!Modifs$Mark %in% Mod4Quant), c("Mark", "AA")],
+    m2Xclud(set_colnames(Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")],
                          c("Mark", "Where")))
   }, ignoreNULL = FALSE)
   # PTMs to write a tab for
@@ -1142,14 +1147,14 @@ if (AnalysisParam$GO.terms.for.proteins.of.interest) {
   GO_prot.list$Offspring <- lapply(tmpGO, \(x) {
     ont <- Ontology(x)
     x <- c(x, get(paste0("GO", ont, "OFFSPRING"))[[x]])
-    x <- x[which(!is.na(x))]
+    x <- x[!is.na(x)]
     return(x)
   })
   tmpGO2 <- listMelt(strsplit(db$`GO-ID`, ";"), db$`Protein ID`)
   GO_prot.list$Proteins <- lapply(GO_prot.list$Offspring, \(x) {
-    unique(tmpGO2$L1[which(tmpGO2$value %in% unlist(x))])
+    unique(tmpGO2$L1[tmpGO2$value %in% unlist(x)])
   })
-  prot.list <- unique(c(prot.list, unlist(GO_prot.list$Proteins)))
+  prot.list <- union(prot.list, unlist(GO_prot.list$Proteins))
 }
 prot.list.Cond %<o% (length(prot.list) > 0L)
 if (prot.list.Cond) {
@@ -1164,9 +1169,9 @@ if (prot.list.Cond) {
     }
   }
   prot.names %<o% names(IDs.list)
-  db$"Potential contaminant"[which(db$`Protein ID` %in% prot.list)] <- ""
+  db$"Potential contaminant"[db$`Protein ID` %in% prot.list] <- ""
   #
-  temp <- db[which(db$`Protein ID` %in% prot.list),]
+  temp <- db[db$`Protein ID` %in% prot.list,]
   writeFasta(temp, intPrtFst)
   AnalysisParam$"Proteins list: proteins" <- IDs.list
   AnalysisParam$"Proteins list: names" <- prot.names
@@ -1194,11 +1199,7 @@ if (custPGsTst) {
 GO_filt %<o% FALSE
 if (exists("GO_filter")) { GO_filt <- length(GO_filter) > 0L }
 GO_filt <- GO_filt&Annotate
-if (GO_filt) {
-  library(GO.db)
-  AllTerms %<o% unique(unlist(strsplit(db$`GO-ID`, ";")))
-  AllTermNames %<o% unique(unlist(strsplit(db$GO, ";")))
-}
+if (GO_filt) { library(GO.db) }
 
 # Venn diagrams
 AnalysisParam$"Venn diagrams: observed" <- Venn_Obs
@@ -1214,7 +1215,7 @@ SamplesMapPath %<o% paste0(wd, "/SamplesMap.csv")
 tst <- (("Experiment" %in% colnames(ev)) && (!sum(is.na(ev$Experiment)))) 
 if (tst) {
   if ("Reference" %in% colnames(SamplesMap)) {
-    SamplesMap <- SamplesMap[which(!is.na(SamplesMap$Reference)),]
+    SamplesMap <- SamplesMap[!is.na(SamplesMap$Reference),]
   }
   Exp %<o% SamplesMap$Experiment
   w1 <- which(ev$Experiment %in% Exp)
@@ -1240,5 +1241,5 @@ if (tst) {
 }
 if (identical(c("MQ.Exp", "Experiment") %in% colnames(SamplesMap), c(TRUE, FALSE))) {
   # Here we use Experiment as synonym for MQ.Exp
-  colnames(SamplesMap)[which(colnames(SamplesMap) == "MQ.Exp")] <- "Experiment"
+  colnames(SamplesMap)[colnames(SamplesMap) == "MQ.Exp"] <- "Experiment"
 }

@@ -84,8 +84,8 @@ Format.DB <- function(file,
   }
   revTest <- is.character(revString) && (length(revString) == 1L) && nchar(revString)
   if (revTest) {
-    Protein.ID.rule <- gsub("^\\^>", paste0("^>(?:", revString, ")?"), Protein.ID.rule)
-    Name.rule <- gsub("^\\^>", paste0("^>(?:", revString, ")?"), Name.rule)
+    Protein.ID.rule <- sub("^\\^>", paste0("^>(?:", revString, ")?"), Protein.ID.rule)
+    Name.rule <- sub("^\\^>", paste0("^>(?:", revString, ")?"), Name.rule)
   }
   # print(revString)
   # print(revTest)

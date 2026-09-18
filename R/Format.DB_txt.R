@@ -131,7 +131,7 @@ Format.DB_txt <- function(txt,
     g1 <- grep("^ID ", btch)
     tbl <- data.frame(ID = btch[g1])
     #should be faster than the previous version (commented line below, in case it causes issues):
-    tbl$ID <- gsub(" .+$", "",gsub("^[^ ]+ ", "", gsub(" +", " ", tbl$ID)))
+    tbl$ID <- sub(" .+$", "",sub("^[^ ]+ ", "", gsub(" +", " ", tbl$ID)))
     #tbl$ID <- vapply(strsplit(gsub(" +", " ", tbl$ID), " "), \(x) { unlist(x)[2L] }, "")
     # UniProtKB Accessions
     g1 <- c(g1, length(btch)+1L)
@@ -190,7 +190,7 @@ Format.DB_txt <- function(txt,
           if (inherits(tst4, "try-error") || (length(tst4[[2L]]) != length(unique(tst4[[2L]]))) || (!is.character(tst4[[2L]])) || (!is.character(tst4[[3L]]))) {
             #stop(i)
             stop(msg)
-          } else { warning(gsub("\\!$", ", but we managed to make sense of it.", msg)) }
+          } else { warning(sub("\\!$", ", but we managed to make sense of it.", msg)) }
         }
       }
     }
@@ -285,7 +285,7 @@ Format.DB_txt <- function(txt,
           colnames(ptms) <- c("Residue", "PTM")
         }
         if (which(tst) == 2) {
-          ptms <- data.frame(Residue = gsub("^FT +MOD_RES +", "", unlist(x[1L])[unlist(x[2L])]),
+          ptms <- data.frame(Residue = sub("^FT +MOD_RES +", "", unlist(x[1L])[unlist(x[2L])]),
                              PTM = gsub("^FT +/note=\"|\"$", "", unlist(x[1L])[unlist(x[2L])+1]))
         }
         ptms <- aggregate(ptms$PTM, list(ptms$Residue), \(y) {
@@ -344,7 +344,7 @@ Format.DB_txt <- function(txt,
                        if (length(g)) {
                          x <- c(paste(gsub(".+; +|\\.$", "", g), collapse = ";"),
                                 paste(gsub(";.+", "", gsub(pat, "", g)), collapse = ";"),
-                                paste(gsub(".+; +", "", gsub("; [^;]+$", "", g)), collapse = ";"))
+                                paste(gsub(".+; +", "", sub("; [^;]+$", "", g)), collapse = ";"))
                        }
                        return(x)
                      })
@@ -370,10 +370,10 @@ Format.DB_txt <- function(txt,
     # Features
     if (Features) {
       if (!usePar) { cat("   Features...\n") }
-      tbl$Features <- gsub("^<->FT +", "", gsub("<->(?!FT +)[^\n]*\n", "", tbl$Text2, perl = TRUE))
+      tbl$Features <- sub("^<->FT +", "", gsub("<->(?!FT +)[^\n]*\n", "", tbl$Text2, perl = TRUE))
       w <- which(tbl$Features != "")
       tbl$Features <- strsplit(tbl$Features, "(\n<->)?FT +")
-      tbl$Features[w] <- lapply(w, \(i) { #i <- w[1L] #i <- 2 #i <- 116 #i <- 243 #i <- 410 #i <- 475 #i <- 195
+      tbl$Features[w] <- lapply(w, \(i) { #i <- w[1L] #i <- 2L
         x <- unlist(tbl$Features[i])
         lX <- length(x)
         # The assumption I originally made about the structure was that each item covers 3 rows.

@@ -219,13 +219,13 @@ if (Mode == "dataset") {
       filters <- list("Observed dataset" = 1L:nrow(Prot))
       # - Quantified protein groups
       kol <- paste0(Prot.Expr.Root, RSA$values)
-      kol <- kol[which(kol %in% colnames(Prot))]
+      kol <- intersect(kol, colnames(Prot))
       filters[["Quant. - dataset"]] <- which(apply(Prot[, kol], 1L, \(x) { sum(is.finite(x)) }) > 0L)
       # Quantified protein groups per sample group
       if (!Impute) { # No point having sample-specific filters if all samples have the same amount of stuff!
         filters[paste0("Quant. - ", VPAL$values)] <- lapply(VPAL$values, \(x) { #x <- VPAL$values[1L]
-          kol <- paste0(Prot.Expr.Root, Exp.map$Ref.Sample.Aggregate[which(Exp.map[[VPAL$column]] == x)])
-          kol <- kol[which(kol %in% colnames(Prot))]
+          kol <- paste0(Prot.Expr.Root, Exp.map$Ref.Sample.Aggregate[Exp.map[[VPAL$column]] == x])
+          kol <- intersect(kol, colnames(Prot))
           which(apply(Prot[, kol], 1L, \(x) { sum(is.finite(as.numeric(x))) }) > 0L)
         })
       }
@@ -395,7 +395,7 @@ if (!exists("GO.terms")) {
             "Term" %in% colnames(GO.terms))
   GO.terms$Mapping <- "Input data"
 }
-#GO.terms <- GO.terms[which(!is.na(GO.terms$ID)),]
+#GO.terms <- GO.terms[!is.na(GO.terms$ID),]
 NoOnt <- !"Ontology" %in% colnames(GO.terms)
 NoOffspr <- (!"Offspring" %in% colnames(GO.terms)) & OffspringCounts
 if (NoOnt) { GO.terms$Ontology <- NA_character_ }
@@ -422,12 +422,12 @@ if (NoOnt + NoOffspr) {
   if (NoOffspr) {
     GO.terms$Offspring <- apply(GO.terms[, c("ID", "Offspring")], 1L, \(x) {
       x <- unique(unlist(x))
-      return(x[which(!is.na(x))])
+      return(x[!is.na(x)])
     })
   }
 }
 # Remove deprecated GO.terms (i.e. those which do not have an ontology):
-GO.terms <- GO.terms[which(!is.na(GO.terms$Ontology)),]
+GO.terms <- GO.terms[!is.na(GO.terms$Ontology),]
 # Match terms to rows in the proteins table
 GO.terms$"Protein table row(s)" <- NA_integer_
 tmp1 <- if (OffspringCounts) {
@@ -483,7 +483,7 @@ if (Mode == "dataset") {
 }
 w <- which(nchar(GO.mappings$Protein$Protein) > 0L)
 Mappings2 <- listMelt(strsplit(GO.mappings$Protein$Protein[w], ";"), GO.mappings$Protein$GO[w])
-Mappings2 <- Mappings2[which(Mappings2$value %in% unlist(strsplit(parentData[[parentCol]], ";"))),]
+Mappings2 <- Mappings2[Mappings2$value %in% unlist(strsplit(parentData[[parentCol]], ";")),]
 Mappings2 <- data.table::data.table(L1 = Mappings2$L1, value = Mappings2$value)
 Mappings2 <- Mappings2[, list(GO = list(unique(L1))), by = list(Protein = value)]
 Mappings2 <- as.data.frame(Mappings2)
@@ -533,10 +533,10 @@ if ("Potential contaminant" %in% colnames(parentData)) {
   wCnt <- which((!is.na(parentData$"Potential contaminant")) & (parentData$"Potential contaminant" == "+"))
   if (length(wCnt)) {
     filters <- setNames(lapply(filters, \(x) {
-      x[which(!x %in% wCnt)]
+      setdiff(x, wCnt)
     }), names(filters))
     ref.filters <- setNames(lapply(ref.filters, \(x) {
-      x[which(!x %in% wCnt)]
+      setdiff(x, wCnt)
     }), names(ref.filters))
   }
 }
@@ -544,12 +544,12 @@ if ("Potential contaminant" %in% colnames(parentData)) {
 mapFilters <- setNames(lapply(filters, \(x) {
   # At some point a bug was introduced here applying these filters to parentData, not Prot
   # This is corrected here:
-  names(Mappings)[which(names(Mappings) %in% unique(unlist(strsplit(Prot[unlist(x), ID_col], ";"))))]
+  intersect(names(Mappings), unique(unlist(strsplit(Prot[unlist(x), ID_col], ";"))))
 }), names(filters))
 #lengths(filters)
 #lengths(mapFilters)
 ref.mapFilters <- setNames(lapply(ref.filters, \(x) {
-  names(Mappings)[which(names(Mappings) %in% unique(unlist(strsplit(parentData[unlist(x), parentCol], ";"))))]
+  intersect(names(Mappings), unique(unlist(strsplit(parentData[unlist(x), parentCol], ";"))))
 }), names(ref.filters))
 #lengths(ref.filters)
 #lengths(ref.mapFilters)
@@ -657,7 +657,7 @@ if (length(wFltL)) {
                          Pvalue = resultFisher[[ont]]@score),
               silent = TRUE)
         })
-        GO_tbl <- GO_tbl[which(!vapply(GO_tbl, inherits, TRUE, "try-error"))]
+        GO_tbl <- GO_tbl[!vapply(GO_tbl, inherits, TRUE, "try-error")]
       }
     }
     if (length(GO_tbl)) {
@@ -665,7 +665,7 @@ if (length(wFltL)) {
       GO_tbl$Ontology <- Ont[Wh1][GO_tbl$L1]
       GO_tbl$L1 <- NULL
       GO_tbl$variable <- NULL
-      colnames(GO_tbl)[which(colnames(GO_tbl) == "value")] <- "Pvalue"
+      colnames(GO_tbl)[colnames(GO_tbl) == "value"] <- "Pvalue"
       GO_tbl$Term <- tmpGO$Term[match(GO_tbl$ID, tmpGO$ID)]
       GO_tbl$Mapping <- NA
       res <- list(Outcome = TRUE,
@@ -694,10 +694,10 @@ if (length(wFltL)) {
     GO_tbls <- setNames(lapply(names(mapFilters), Fisher0), names(mapFilters))
   }
   tst <- setNames(!vapply(GO_tbls, is.null, TRUE), NULL)
-  GO_tbls <- GO_tbls[which(tst)]
+  GO_tbls <- GO_tbls[tst]
   if (length(GO_tbls)) {
     #vapply(GO_tbls, \(x) { x$Outcome }, TRUE)
-    GO_tbls <- GO_tbls[which(vapply(GO_tbls, \(x) { x$Outcome }, TRUE))]
+    GO_tbls <- GO_tbls[vapply(GO_tbls, \(x) { x$Outcome }, TRUE)]
     if (length(GO_tbls)) {
       # Define filter functions
       f0 <- \(x, filt) {
@@ -706,7 +706,7 @@ if (length(wFltL)) {
       }
       #environment(f0) <- .GlobalEnv # Only needed if code run as function!
       f1 <- \(x, filt, ids) {
-        x <- x[which(x %in% filt)]
+        x <- intersect(x, filt)
         x <- if (length(x)) { paste(sort(unique(unlist(ids[x]))), collapse = ";") } else { "" }
         return(x)
       }
@@ -714,10 +714,10 @@ if (length(wFltL)) {
       #
       tmpGO.terms <- lapply(GO_tbls, \(x) { #x <- GO_tbls[[1L]]
         GO_tbl <- x$Output
-        GO_tbl[which(is.na(GO_tbl$Term)),]
+        GO_tbl[is.na(GO_tbl$Term),]
       })
       tmpGO.terms <- plyr::rbind.fill(tmpGO.terms)
-      tmpGO.terms <- tmpGO.terms[which(!tmpGO.terms$ID %in% GO.terms$ID),]
+      tmpGO.terms <- tmpGO.terms[!tmpGO.terms$ID %in% GO.terms$ID,]
       if (OffspringCounts && nrow(tmpGO.terms)) { # It only makes sense to use these extra terms if OffspringCounts is TRUE
         #cat("Processing additional terms of interest identified by topGO...\n")
         tmpGO.terms$Pvalue <- NULL
@@ -744,13 +744,13 @@ if (length(wFltL)) {
             tmpGO.terms$Term[wo] <- annotate::getGOTerm(tmpGO.terms$ID[wo])[[ont]]
           }
         }
-        tmpGO.terms <- tmpGO.terms[which(lengths(tmpGO.terms$Offspring) > 0L),]
+        tmpGO.terms <- tmpGO.terms[lengths(tmpGO.terms$Offspring) > 0L,]
         tmpGO.terms$Term <- apply(tmpGO.terms[, c("Term","ID")], 1L, \(x) { paste0(unlist(x[[1L]]), " [", x[[2L]], "]") })
         tmpGO.terms$"Protein table row(s)" <- NA_integer_
         #sum(!tmpGO.terms$ID %in% unlist(GO.terms$Offspring)) # Those new terms are all OffSpring terms of existing ones!
         #w <- which(lengths(GO.terms$Offspring) > 0L)
         tmp1 <- listMelt(GO.terms$Offspring, 1L:nrow(GO.terms), c("ID", "Row")) # Here I can use only Offspring, the IDs in tmpGO.terms are not in GO.terms
-        tmp1 <- tmp1[which(tmp1$ID %in% tmpGO.terms$ID),]
+        tmp1 <- tmp1[tmp1$ID %in% tmpGO.terms$ID,]
         tmp1$"Protein table row(s)" <- GO.terms$"Protein table row(s)"[tmp1$Row]
         tmpGO.terms$"Protein table row(s)" <- tmp1$`Protein table row(s)`[match(tmpGO.terms$ID, tmp1$ID)]
         #
@@ -896,7 +896,7 @@ if (length(wFltL)) {
         if (GenTst) {
           tmp2 <- listMelt(tmpProt, 1L:length(tmpProt))
           tmp2$Gene <- DB[match(tmp2$value, DB[[db_ID_col]]), db_Gene_col]
-          tmp2 <- tmp2[which(vapply(tmp2$Gene, nchar, 1L) > 0L),]
+          tmp2 <- tmp2[vapply(tmp2$Gene, nchar, 1L) > 0L,]
           tmp2 <- listMelt(strsplit(tmp2$Gene, ";"), tmp2$L1)
           tmp2 <- aggregate(tmp2$value, list(as.numeric(tmp2$L1)), list)
           tmpGn <- data.frame(row = 1L:nrow(Prot))
@@ -932,7 +932,7 @@ if (length(wFltL)) {
         #
         #cat("     Preparing plots...\n")
         tmp <- GO_tbl[, c("ID", "Term")]
-        tmp$Term[which(is.na(tmp$Term))] <- ""
+        tmp$Term[is.na(tmp$Term)] <- ""
         GO_tbl$Label <- do.call(paste, c(tmp, sep = "\n"))
         GO_tbl$Label2 <- GO_tbl$Label
         w <- which(nchar(GO_tbl$Label) > MaxChar)
@@ -973,8 +973,8 @@ if (length(wFltL)) {
         thresh$Colour <- colorRampPalette(c("red", "gold"))(length(GO_FDR))
         thresh$"-log10(Threshold)" <- -log10(thresh$Threshold)
         thresh$Label <- paste0(thresh$FDR*100, "% FDR threshold")
-        Ymax <- suppressWarnings(max(c(GO_tbl$Y[which(is.finite(GO_tbl$Y))],
-                                       thresh$`-log10(Threshold)`[which(is.finite(thresh$`-log10(Threshold)`))],
+        Ymax <- suppressWarnings(max(c(GO_tbl$Y[is.finite(GO_tbl$Y)],
+                                       thresh$`-log10(Threshold)`[is.finite(thresh$`-log10(Threshold)`)],
                                        3)))
         winf <- which(is.infinite(GO_tbl$Y) & (GO_tbl$Y > 0))
         if (length(winf)) { GO_tbl$Y[winf] <- Ymax + 1 }
@@ -988,7 +988,7 @@ if (length(wFltL)) {
         } else {
           FCkol <- Prot_FC_root
         }
-        FCkol <- FCkol[which(FCkol %in% colnames(Prot))]
+        FCkol <- intersect(FCkol, colnames(Prot))
         if (!length(FCkol)) {
           warning(paste0("No fold change column found for this filter (expected name: \"", FCkol, "\"), replacing it with a dummy column!"))
           Prot[[FCkol]] <- if (Prot_FC_is_log) { 0 } else { 1 }
@@ -1011,7 +1011,7 @@ if (length(wFltL)) {
             w1 <- which((!tmp0) & tmp1)
             wB <- which(tmp0 & tmp1) # This should always be empty!
             if (length(wB)) { warning("Invalid ratio, yet both sample groups seem to have valid values? Investigate!") }
-            fc <- Prot[[FCkol]][which(is.finite(Prot[[FCkol]]))]
+            fc <- Prot[[FCkol]][is.finite(Prot[[FCkol]])]
             Mn <- min(fc)
             Mx <- max(fc)
             Prot[[FCkol]][w[w0]] <- Mn
@@ -1026,7 +1026,7 @@ if (length(wFltL)) {
         GO.terms[wh, paste0("logFC - ", n1)] <- as.numeric(GO_tbl$logFC)
         # Calculate Z score
         if (True_Zscore) {
-          fc <- GO_tbl$logFC[which(is.finite(GO_tbl$logFC))]
+          fc <- GO_tbl$logFC[is.finite(GO_tbl$logFC)]
           sd <- sd(fc)
           m <- mean(fc)
           GO_tbl$"Z-score" <- (GO_tbl$logFC - m)/sd
@@ -1034,14 +1034,14 @@ if (length(wFltL)) {
           GO.terms[wh, paste0("Z-score - ", n1)] <- GO_tbl$"Z-score"
         } else {
           # "Z score" analog as used in package GOplot (see https://cran.r-project.org/web/packages/GOplot/vignettes/GOplot_vignette.html)
-          m <- mean(Prot[[FCkol]][which(is.finite(Prot[[FCkol]]))])
+          m <- mean(Prot[[FCkol]][is.finite(Prot[[FCkol]])])
           GO_tbl$"Z-score" <- vapply(GO_tbl$Rows, \(x) {
             x <- Prot[x, FCkol]
-            x <- x[which(is.finite(x))]
+            x <- x[is.finite(x)]
             l <- length(x)
             if (!l) { return(NA_real_) }
             x <- x-m
-            x <- x[which(x != 0)]
+            x <- setdiff(x, 0)
             x <- ifelse(x > 0, 1L, -1L)
             x <- sum(x)/sqrt(l)
             return(x)
@@ -1049,7 +1049,7 @@ if (length(wFltL)) {
           GO.terms[[paste0("(N_Up - N_Down)/sqrt(Tot.) - ", n1)]] <- NA_real_
           GO.terms[wh, paste0("(N_Up - N_Down)/sqrt(Tot.) - ", n1)] <- GO_tbl$"Z-score"
         }
-        zsc <- GO_tbl$"Z-score"[which(is.finite(GO_tbl$"Z-score"))]
+        zsc <- GO_tbl$"Z-score"[is.finite(GO_tbl$"Z-score")]
         Xmin <- suppressWarnings(min(c(zsc, -1L)))
         Xmax <- suppressWarnings(max(c(zsc, 1L)))
         Xbreadth <- Xmax-Xmin
@@ -1059,13 +1059,13 @@ if (length(wFltL)) {
         for (ont in Ont[Wh1]) { #ont <- Ont[Wh1][1L]
           w <- which(GO_tbl$Ontology == ont)
           m <- if (P_adjust) { -log10(max(GO_FDR)) } else {
-            thresh$"-log10(Threshold)"[which((thresh$Ontology == ont) & (thresh$FDR == max(GO_FDR)))]
+            thresh$"-log10(Threshold)"[(thresh$Ontology == ont) & (thresh$FDR == max(GO_FDR))]
           }
           GO_tbl$test[w] <- GO_tbl$Y[w] >= m
           tmp <- GO_tbl[w,]
           ord <- c(1L:nrow(tmp))[order(tmp$Y, decreasing = TRUE)]
-          if (MinTerms) { tmp$test[which(1L:nrow(tmp) %in% ord[1L:MinTerms])] <- TRUE }
-          if (MaxTerms) { tmp$test[which(1L:nrow(tmp) %in% ord[(MaxTerms+1L):length(ord)])] <- FALSE }
+          if (MinTerms) { tmp$test[1L:nrow(tmp) %in% ord[1L:MinTerms]] <- TRUE }
+          if (MaxTerms) { tmp$test[1L:nrow(tmp) %in% ord[(MaxTerms+1L):length(ord)]] <- FALSE }
           GO_tbl[w,] <- tmp
           # aggregate(test, list(test), length)
         }
@@ -1090,7 +1090,7 @@ if (length(wFltL)) {
         if (GlobalScales) {
           Xxtr <- max(c(vapply(names(GO_tbls), \(nm) {
             x <- GO_tbls[[nm]]$Data$"Z-score"
-            x <- x[which(is.finite(x))]
+            x <- x[is.finite(x)]
             max(abs(x*1.05))
           }, 1), 1))
           Xbreadth <- 2*Xxtr
@@ -1099,7 +1099,7 @@ if (length(wFltL)) {
           Ymax <- max(c(vapply(names(GO_tbls), \(nm) {
             x <- c(GO_tbls[[nm]]$Data$Y,
                    GO_tbls[[nm]]$Thresholds$"-log10(Threshold)")
-            x <- x[which(is.finite(x))]
+            x <- x[is.finite(x)]
             max(x)
           }, 1), 3))
         } else {
@@ -1124,9 +1124,9 @@ if (length(wFltL)) {
             Xmax <- Xxtr
             Ymax <- GO_tbls2[[n1]]$Ymax
           }
-          sub1 <- GO_tbl[which(GO_tbl$test),]
-          sub2 <- sub1[which(sub1$Y == 0),]
-          sub1 <- sub1[which(sub1$Y > 0),]
+          sub1 <- GO_tbl[GO_tbl$test,]
+          sub2 <- sub1[sub1$Y == 0,]
+          sub1 <- sub1[sub1$Y > 0,]
           dotTtl <- paste0(title.root, n2)
           aes <- data.frame(x = "\`Z-score\`", y = "Y", size = "Count", alpha = "Y", colour = "Ontology")
           #non.aes <- data.frame(alpha = 0.1)
@@ -1260,14 +1260,14 @@ if (length(wFltL)) {
             if (length(wK)) {
               wOnt <- unique(GO_tbl2$Ontology[wK])
               GO_tbl3 <- lapply(wOnt, \(ont) { #ont <- wOnt[1L]
-                tmp <- GO_tbl2[wK,][which(GO_tbl2$Ontology[wK] == ont),]
+                tmp <- GO_tbl2[wK,][GO_tbl2$Ontology[wK] == ont,]
                 if (!nrow(tmp)) { return() }
                 tmp <- tmp[order(tmp[[paste0(c("", "adj. ")[P_adjust+1L], "Pvalue")]], decreasing = FALSE),]
                 tmp <- tmp[1L:min(c(nrow(tmp), MaxTerms_bar)),]
                 tmp <- tmp[order(tmp$`Z-score`, decreasing = FALSE),]
                 tmp$"Z-score*" <- tmp$`Z-score`
-                tmp$"Z-score*"[which(tmp$"Z-score*" > col_lim)] <- col_lim
-                tmp$"Z-score*"[which(tmp$"Z-score*" < -col_lim)] <- -col_lim
+                tmp$"Z-score*"[tmp$"Z-score*" > col_lim] <- col_lim
+                tmp$"Z-score*"[tmp$"Z-score*" < -col_lim] <- -col_lim
                 tmp$X <- 1L:nrow(tmp)
                 tmp[, c("Label", "Label2", "Label3")] <- GO_tbl[match(tmp$ID, GO_tbl$ID), c("Label", "Label2", "Label3")]
                 return(tmp)
@@ -1284,8 +1284,8 @@ if (length(wFltL)) {
                              Label = paste0(GO_FDR*100, "%"))
                 })
                 thr <- listMelt(thr, unique(GO_tbl3$Ontology))
-                colnames(thr)[which(colnames(thr) == "L1")] <- "Ontology"
-                colnames(thr)[which(colnames(thr) == "value")] <- "Y"
+                colnames(thr)[colnames(thr) == "L1"] <- "Ontology"
+                colnames(thr)[colnames(thr) == "value"] <- "Y"
                 thr$variable <- NULL
               } else {
                 thr <- thresh

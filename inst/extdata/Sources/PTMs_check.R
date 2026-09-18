@@ -2,7 +2,7 @@
 # In case we have enriched for a PTM, it helps to check how good the enrichment was:
 # This should be before any PSMs are filtered out - we want to look at the data "straight out of the MS"
 tstEnrich <- unique(FracMap$`PTM-enriched`)
-tstEnrich <- tstEnrich[which((!is.na(tstEnrich))&(tstEnrich != "NA"))]
+tstEnrich <- tstEnrich[(!is.na(tstEnrich)) & (tstEnrich != "NA")]
 if (length(tstEnrich)) {
   dir <- paste0(wd, "/Summary plots")
   dirlist <- unique(c(dirlist, dir))
@@ -43,9 +43,9 @@ if (length(tstEnrich)) {
       colnames(tst)[match("Mod", colnames(tst))] <- Mod
       m <- match(tst$MS_file, FracMap$"Raw file")
       tst$Sample <- FracMap$MQ.Exp[m]
-      tst <- tst[which(!is.na(tst$Sample)),]
-      tst <- tst[which(tst$Sample %in% unlist(Exp.map$MQ.Exp)),]
-      tst <- tst[which(tst$Sample %in% unlist(Exp.map$MQ.Exp)),]
+      tst <- tst[!is.na(tst$Sample),]
+      tst <- tst[tst$Sample %in% unlist(Exp.map$MQ.Exp),]
+      tst <- tst[tst$Sample %in% unlist(Exp.map$MQ.Exp),]
       #which(vapply(Exp.map$MQ.Exp, \(y) { x %in% unlist(y) }, TRUE))
       tst2 <- dfMelt(tst, id.vars = intersect(c("Search", "MS_file", Mod, "Sample"), colnames(tst)))
       colnames(tst2) <- gsub("\\(|\\)|\\[|\\]", "", gsub(" ", "_", colnames(tst2)))
@@ -57,8 +57,8 @@ if (length(tstEnrich)) {
       tst2 <- cast(tst2, frml, fun.aggregate = sum)
       kN <- paste0("Non-", Mod, "-modified")
       kY <- paste0(Mod, "-modified")
-      colnames(tst2)[which(colnames(tst2) == "FALSE")] <- kN
-      colnames(tst2)[which(colnames(tst2) == "TRUE")] <- kY
+      colnames(tst2)[colnames(tst2) == "FALSE"] <- kN
+      colnames(tst2)[colnames(tst2) == "TRUE"] <- kY
       tst2[[paste0(Mod, " [%]")]] <- signif(100*tst2[[kY]]/(tst2[[kY]]+tst2[[kN]]), 3L)
       tst2$Sample <- tst$Sample[match(tst2$MS_file, tst$MS_file)]
       tst2 <- tst2[, c("Sample", "MS_file", kN, kY, paste0(Mod, " [%]"))]
@@ -68,7 +68,7 @@ if (length(tstEnrich)) {
         w <- which(tst[[Mod]] == i)
         w2 <- which(!rw %in% tst$MS_file[w])
         if (length(w2)) {
-          tmp <- tst[which((tst$MS_file %in% rw[w2])&(tst[[Mod]] == !i)),]
+          tmp <- tst[(tst$MS_file %in% rw[w2]) & (tst[[Mod]] == !i),]
           tmp[[Mod]] <- i
           tmp$Count <- 0L
           tst <- rbind(tst, tmp)
@@ -148,7 +148,7 @@ if (tstOrg) {
   tmp2 <- as.data.frame(tmp2)
 }
 tmp$Organism <- tmp2$x[match(1L:nrow(tmp), tmp2$Group.1)]
-tmp <- tmp[which(!is.na(tmp$Organism)),]
+tmp <- tmp[!is.na(tmp$Organism),]
 tmp$Organism <- factor(tmp$Organism, levels = c("Contaminant", "Target"))
 tmp$Intensity <- as.numeric(tmp$Intensity)
 tmp <- aggregate(tmp$Intensity, list(tmp[[aggrCol]], tmp$Organism), sum, na.rm = TRUE)

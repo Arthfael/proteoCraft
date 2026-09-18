@@ -8,12 +8,12 @@ if (Annotate && (enrichGO || globalGO)) {
     bioc_req <- unique(c(bioc_req, pack))
     biocInstall(pack)
   }
-  GO_enrich.dat %<o% list()
-  GO_enrich.FCRt %<o% list()
-  GO_enrich.tbl %<o% list()
-  GO_Plots %<o% list()
-  Reg_GO_terms %<o% list()
-  GO.enrich.MultiRefs %<o% (("GO.enrichment.Ref.Aggr" %in% colnames(Param)) && (!Param$GO.enrichment.Ref.Aggr %in% c("", "NA", NA)))
+  GO_Plots <- list()
+  Reg_GO_terms <- list()
+  GO_enrich.dat <- list()
+  GO_enrich.FCRt <- list()
+  GO_enrich.tbl <- list()
+  GO.enrich.MultiRefs <- (("GO.enrichment.Ref.Aggr" %in% colnames(Param)) && (!Param$GO.enrichment.Ref.Aggr %in% c("", "NA", NA)))
   if (GO.enrich.MultiRefs) { parse.Param.aggreg.2("GO.enrichment.Ref.Aggr") }
   #
   if (runClueGO) {
@@ -37,7 +37,7 @@ if (Annotate && (enrichGO || globalGO)) {
       filt <- Reg_filters[[tstrt]]
       #By <- c("By condition", "By reference", "By analysis", "Whole dataset")
       By <- "By condition"
-      By <- By[which(By %in% names(filt))]
+      By <- intersect(By, names(filt))
       if (length(By)) {
         for (bee in By) { #bee <- By[1L]
           flt <- filt[[bee]]
@@ -45,10 +45,10 @@ if (Annotate && (enrichGO || globalGO)) {
           tstbee <- paste0(tstrt, "_", tolower(bee))
           if (length(flt)) {
             flt <- if (tt %in% 1L:2L) {
-              flt[intersect(myContrasts$Contrast[which(!myContrasts$isDouble)], names(flt))]
+              flt[intersect(myContrasts$Contrast[!myContrasts$isDouble], names(flt))]
             } else {
               if (tt == 4L) {
-                flt[myContrasts$Contrast[which((!myContrasts$isDouble) & myContrasts$`Up-only`)]]
+                flt[myContrasts$Contrast[(!myContrasts$isDouble) & myContrasts$`Up-only`]]
               } else {
                 flt[order(names(flt))]                
               }
@@ -64,7 +64,7 @@ if (Annotate && (enrichGO || globalGO)) {
             tmpdat <- get(c("PG", "F_test_data", "PG", "allSAINTs")[tt])
             UF <- unique(reg$For)
             temp <- as.data.frame(do.call(cbind, lapply(UF, \(x) { #x <- UF[1L]
-              x <- reg$ParentFC[which(reg$For == x)]
+              x <- reg$ParentFC[reg$For == x]
               x <- if (length(x) > 1L) { apply(tmpdat[, x], 1L, log_ratio_av) } else { tmpdat[[x]] }
               return(x)
             })))
@@ -112,8 +112,8 @@ if (Annotate && (enrichGO || globalGO)) {
                 m <- match(x, myContrasts$Contrast)
                 A_ <- myContrasts$A_samples[[m]]
                 B_ <- myContrasts$B_samples[[m]]
-                y <- Exp.map[which(Exp.map$Ref.Sample.Aggregate %in% c(A_, B_)), GO.enrichment.Ref.Aggr$column]
-                z <- Exp.map$Ref.Sample.Aggregate[which(Exp.map[[GO.enrichment.Ref.Aggr$column]] %in% y)]
+                y <- Exp.map[Exp.map$Ref.Sample.Aggregate %in% c(A_, B_), GO.enrichment.Ref.Aggr$column]
+                z <- Exp.map$Ref.Sample.Aggregate[Exp.map[[GO.enrichment.Ref.Aggr$column]] %in% y]
                 w1 <- which(apply(PG[, paste0(Prot.Expr.Root, z)], 1L, \(x) {
                   sum(is.finite(x))
                 }) > 0L)
@@ -130,7 +130,7 @@ if (Annotate && (enrichGO || globalGO)) {
               }
             }
             if ((length(Ref.Filt) > 1L) || (!is.na(Ref.Filt))) {
-              flt <- setNames(lapply(names(flt), \(x) { flt[[x]][which(flt[[x]] %in% Ref.Filt[[x]])] }),
+              flt <- setNames(lapply(names(flt), \(x) { intersect(flt[[x]], Ref.Filt[[x]]) }),
                               names(flt))
             }
             # Also save the reference filters 
@@ -196,13 +196,13 @@ if (Annotate && (enrichGO || globalGO)) {
               lf <- grep("^logFC", colnames(temp), value = TRUE)
               si <- grep("^Significance", colnames(temp), value = TRUE)
               #lp <- grep("^Leading protein IDs", colnames(temp), value = TRUE)
-              #kl <- colnames(temp)[which(!colnames(temp) %in% c(gn, kn, pv, zs, lf, si, pg, lp))]
-              kl <- colnames(temp)[which(!colnames(temp) %in% c(gn, kn, pv, zs, lf, si, pg, pr))]
+              #kl <- setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, lp))
+              kl <- setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, pr))
               #temp <- temp[, c(kl, si, gn, pg, lp, kn, pv, zs, lf)]
               temp <- temp[, c(kl, si, gn, pg, pr, kn, pv, zs, lf)]
-              w <- apply(temp[, pv, drop = FALSE], 1L, \(x) { sum(!is.na(x)) }) > 0L
+              w <- apply(temp[, pv, drop = FALSE], 1L, sum, na.rm = TRUE) > 0L
               temp <- temp[w,]
-              tst <- apply(temp[, kn, drop = FALSE], 1L, \(x) { sum(x[which(!is.na(x))]) })
+              tst <- apply(temp[, kn, drop = FALSE], 1L, sum, na.rm = TRUE)
               temp <- temp[order(tst, decreasing = TRUE),]
               temp <- temp[order(temp$Ontology, decreasing = FALSE),]
               Reg_GO_terms[[tstbee]] <- temp
@@ -257,10 +257,10 @@ if (Annotate && (enrichGO || globalGO)) {
                 Kol3 <- grep(paste0("^Significance - [^ ]+ [1-9][0-9]*\\.*[0-9]*%$"),
                              colnames(GO_Plots[[tstbee]]$GO_terms), value = TRUE)
                 tst <- as.numeric(gsub(paste0("^Significance - [^ ]+ |%$"), "", Kol3))
-                Kol3 <- Kol3[which(tst == max(tst))]
+                Kol3 <- Kol3[tst == max(tst)]
                 N <- length(Kol3)
                 if (N > 1L) {
-                  temp <- as.data.frame(matrix(rep("", (N+1)^2), ncol = N+1L))
+                  temp <- as.data.frame(matrix(rep("", (N+1L)^2L), ncol = N+1L))
                   W <- lapply(Kol3, \(x) { which(GO_Plots[[tstbee]]$GO_terms[[x]] == "+") })
                   names(W) <- gsub(paste0("^Significance - | ", max(BH.FDR)*100L, "%$"), "", Kol3)
                   temp[2L:(N+1L), 1L] <- temp[1L, 2L:(N+1L)] <- names(W)
@@ -287,7 +287,7 @@ if (Annotate && (enrichGO || globalGO)) {
                   rownames(temp2) <-  temp[2L:(N+1L), 1L]
                   for (i in 1L:nrow(temp2)) { temp2[[i]] <- as.numeric(temp2[[i]]) }
                   temp2ul <- unlist(temp2)
-                  if (max(temp2ul[which(is.finite(temp2ul))]) > 0L) {
+                  if (max(temp2ul[is.finite(temp2ul)]) > 0L) {
                     temp2 <- as.matrix(temp2)
                     basic.heatmap(temp2, "N. of co-regulated GO terms", paste0(tstrt, "\n(", tolower(bee), ")"),
                                   "svg", folder = myDir)
@@ -340,11 +340,8 @@ if (Annotate && (enrichGO || globalGO)) {
     #rstudioapi::documentOpen(Src)
     source(Src)
     #
-    GO_Plots_2 %<o% goRES
-    #
-    if ((!is.null(GO_Plots_2)) && ("All_GO_terms" %in% names(GO_Plots_2))) {
-      GO_terms <- GO_Plots_2$All_GO_terms
-      GO_Plots_2$All_GO_terms <- NULL
+    if ((!is.null(goRES)) && ("All_GO_terms" %in% names(goRES))) {
+      GO_terms <- goRES$All_GO_terms
     }
   }
   l <- length(DatAnalysisTxt)

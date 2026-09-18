@@ -78,12 +78,12 @@ FP_to_MQ <- function(FP_Workflow,
   }
   FP_Wrkflw <- readr::read_lines(FP_Workflow)
   pat <- topattern("diann.run-dia-nn=")
-  isActuallyDIANN <- as.logical(toupper(gsub(pat, "", grep(pat, FP_Wrkflw, value = TRUE))))
+  isActuallyDIANN <- as.logical(toupper(sub(pat, "", grep(pat, FP_Wrkflw, value = TRUE))))
   #
   FP_Dir <- gsub("\\\\", "",
                  gsub("\\\\\\\\", "/",
-                      gsub("^workdir=", "",
-                           grep("^workdir=", FP_Wrkflw, value = TRUE))))
+                      sub("^workdir=", "",
+                          grep("^workdir=", FP_Wrkflw, value = TRUE))))
   FixPaths <- FALSE
   if (!dir.exists(FP_Dir)) {
     FixPaths <- TRUE
@@ -108,10 +108,10 @@ FP_to_MQ <- function(FP_Workflow,
     }
   }
   pat <- topattern("tmtintegrator.run-tmtintegrator=")
-  isTMT <- as.logical(gsub(pat, "", grep(pat, FP_Wrkflw, value = TRUE)))
+  isTMT <- as.logical(sub(pat, "", grep(pat, FP_Wrkflw, value = TRUE)))
   if (isTMT) {
     pat <- topattern("tmtintegrator.channel_num=TMT-")
-    TMTplex <- as.integer(gsub(pat, "", grep(pat, FP_Wrkflw, value = TRUE)))
+    TMTplex <- as.integer(sub(pat, "", grep(pat, FP_Wrkflw, value = TRUE)))
     TMTtblFl <- paste0(FP_Dir, "/experiment_annotation.tsv")
     if (!file.exists(TMTtblFl)) {
       stop(paste0("This is a TMT dataset but file \"", TMTtblFl, "\" could not be found in the results folder!"))
@@ -213,6 +213,7 @@ FP_to_MQ <- function(FP_Workflow,
   # - Load and post-process UniMod object
   data(modifications, package = "PTMods")
   UniMod <- modifications
+  rm(modifications)
   # As of early 2023 this package did not have the whole of Unimod,
   # in particular TMT16plex was missing.
   # This is fixed now, so code is commented.
@@ -304,13 +305,15 @@ FP_to_MQ <- function(FP_Workflow,
   }
   Modifs <- list()
   # - Fixed modifications
-  g <- grep("^msfragger\\.table\\.fix-mods=", FP_Wrkflw, value = TRUE)
-  fixMods <- unlist(strsplit(gsub("^msfragger\\.table\\.fix-mods=", "", g), ";"))
+  pat <- topattern("msfragger.table.fix-mods=")
+  g <- grep(pat, FP_Wrkflw, value = TRUE)
+  fixMods <- unlist(strsplit(sub(pat, "", g), ";"))
   fixMods <- strsplit(fixMods, ",")
   Modifs[["Fixed"]] <- parseMods(fixMods, TRUE)
   # - Variable modifications
-  g <- grep("^msfragger\\.table\\.var-mods=", FP_Wrkflw, value = TRUE)
-  varMods <- unlist(strsplit(gsub("^msfragger\\.table\\.var-mods=", "", g), ";"))
+  pat <- topattern("msfragger.table.var-mods=")
+  g <- grep(pat, FP_Wrkflw, value = TRUE)
+  varMods <- unlist(strsplit(sub(pat, "", g), ";"))
   varMods <- strsplit(varMods, ",")
   Modifs[["Variable"]] <- parseMods(varMods, FALSE)
   # - Combine
@@ -371,7 +374,7 @@ FP_to_MQ <- function(FP_Workflow,
       res$Site[which(res$Site %in% paste0(c("N", "C"), "-term"))] <- ""
       w <- which((res$Position != "")&(res$Site != ""))
       if (length(w)) {
-        res$Site[w] <- gsub("^ ", "", paste0(apply(res[w, c("Site", "Position")], 1L, paste, collapse = " ("), ")"))
+        res$Site[w] <- sub("^ ", "", paste0(apply(res[w, c("Site", "Position")], 1L, paste, collapse = " ("), ")"))
       }
       w <- which((res$Position != "")&(res$Site == ""))
       if (length(w)) { res$Site[w] <- res$Position[w] }
@@ -572,7 +575,7 @@ FP_to_MQ <- function(FP_Workflow,
     tmp <- strsplit(tmp, "; _;_")
     tmp2 <- unique(unlist(tmp))
     tmp3 <- unique(unlist(strsplit(tmp2, ", _;_")))
-    tmp3 <- gsub("^Mod[0-9]+: ", "", grep("^Mod[0-9]+: ", tmp3, value = TRUE))
+    tmp3 <- sub("^Mod[0-9]+: ", "", grep("^Mod[0-9]+: ", tmp3, value = TRUE))
     tmp4 <- data.frame(Full = tmp3,
                        `Mass delta` = NA_real_,
                        PeakApex = NA_real_,
@@ -580,9 +583,9 @@ FP_to_MQ <- function(FP_Workflow,
     #tmp4 <- tmp4[grep("^Unannotated mass-shift |^Unidentified modification of ", tmp4$Full, invert = TRUE),]
     #tmp4 <- tmp4[grep("^((First)|(Second)|(Third)) isotopic peak|^Isotopic peak error$", tmp4$Full, invert = TRUE),]
     g <- grep("Theoretical: ", tmp4$Full)
-    tmp4$"Mass delta"[g] <- as.numeric(gsub("(, .+)?\\)$", "", gsub(".+Theoretical: ", "", tmp4$Full[g])))
+    tmp4$"Mass delta"[g] <- as.numeric(sub("(, .+)?\\)$", "", gsub(".+Theoretical: ", "", tmp4$Full[g])))
     g <- grep("PeakApex: ", tmp4$Full)
-    tmp4$PeakApex[g] <- as.numeric(gsub("(, .+)?\\)$", "", gsub(".+PeakApex: ", "", tmp4$Full[g])))
+    tmp4$PeakApex[g] <- as.numeric(sub("(, .+)?\\)$", "", gsub(".+PeakApex: ", "", tmp4$Full[g])))
     tmp4$"Full name" <- gsub(" \\(((Theoretical)|(PeakApex)): .+", "", tmp4$Full)
     w <- which(is.na(tmp4$"Mass delta"))
     tmp4$"Mass delta"[w] <- tmp4$PeakApex[w] 
@@ -680,8 +683,8 @@ FP_to_MQ <- function(FP_Workflow,
                                                         pat = aaPat)
     tmp <- cbind(a1, a2)
     if (OpenSearch) {
-      a3 <- gsub("^Mod[0-9]+: ", "", gsub(", Mod[0-9]+: ", ";", gsub("; .+", "", PSMs$"Observed Modifications"[wMdSq2])))
-      a3 <- gsub(" \\([^\\)]+\\)$", "", gsub(" \\([^\\)]+\\), ", ", ", a3)) 
+      a3 <- sub("^Mod[0-9]+: ", "", gsub(", Mod[0-9]+: ", ";", gsub("; .+", "", PSMs$"Observed Modifications"[wMdSq2])))
+      a3 <- sub(" \\([^\\)]+\\)$", "", gsub(" \\([^\\)]+\\), ", ", ", a3)) 
       a3 <- gsub(" ", "_", gsub(",", ".", gsub("\\(", "{", gsub("\\)", "}", a3))))
       a3 <- strsplit(a3, ";")
       stopifnot(sum(!unique(unlist(a3)) %in% Modifs$"Full name") == 0L)
@@ -703,7 +706,7 @@ FP_to_MQ <- function(FP_Workflow,
     #
     #tst <- unique(unlist(strsplit(gsub("(_|\\))[A-Z]+(_|\\()", "_", EV$"Modified sequence_verbose"), "\\)_$|_|,")))
     #tst <- grep("^[A-Z]+$", tst, value = TRUE, invert = TRUE)
-    #tst <- gsub("^[0-9]+ ", "", tst[which(tst != "")])
+    #tst <- sub("^[0-9]+ ", "", tst[which(tst != "")])
     #sum(!tst %in% Modifs$"Full name")
     tmp <- strsplit(EV$"Modified sequence_verbose"[wMdSq2], "\\(|\\)")
     f0 <- .bind_worker(.FP2MQ_modSeqWrkr3,
@@ -743,7 +746,7 @@ FP_to_MQ <- function(FP_Workflow,
                                                     f0,
                                                     mods = Modifs)
   }
-  #tst <- unique(gsub("^[0-9]+ ", "", unlist(strsplit(EV$Modifications[wMdSq2], ","))))
+  #tst <- unique(sub("^[0-9]+ ", "", unlist(strsplit(EV$Modifications[wMdSq2], ","))))
   #sum(!tst %in% Modifs$"Full name")
   # Mass and mass error columns
   EV$"m/z" <- PSMs$"Calibrated Observed M/Z"

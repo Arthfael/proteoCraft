@@ -3,7 +3,7 @@ if (!interactive()) { stop("This script should only be run within an interactive
 options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
 options(svDialogs.rstudio = TRUE)
-#rm(list = ls()[which(!ls() %in% c("dtstNm", "wd", "inDirs", "outDir"))])
+#rm(list = setdiff(ls(), c("dtstNm", "wd", "inDirs", "outDir")))
 closeAllConnections()
 
 ## Load proteoCraft
@@ -112,8 +112,8 @@ for (pack in cran_req) {
       }
       if (inherits(tst, "try-error")) {
         warning(paste0("Package ", pack, " wasn't installed properly, skipping..."))
-        cran_req <- cran_req[which(cran_req != pack)]
-        bioc_req <- bioc_req[which(bioc_req != pack)]
+        cran_req <- setdiff(cran_req, pack)
+        bioc_req <- setdiff(bioc_req, pack)
       }
     }
     inst <- as.data.frame(installed.packages())
@@ -306,7 +306,7 @@ source(Src)
 # Start processing the PSMs table
 cat("Processing PSMs...\n")
 # Remove reverse database hits
-ev <- ev[which(ev$Reverse == ""),]
+ev <- ev[is.na(ev$Reverse) | (ev$Reverse == ""),]
 
 # Optionally remove charge 1 PSMs - off for now, but may become either user decision or parameter controlled
 RemovZ1 <- FALSE
@@ -343,7 +343,7 @@ Src <- paste0(libPath, "/extdata/Sources/filtPSMs.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
-rm(list = ls()[which(!ls() %in% .obj)])
+rm(list = setdiff(ls(), .obj))
 
 #### Code chunk - Summary table and QC plots
 Src <- paste0(libPath, "/extdata/Sources/rep_Summary.R")
@@ -432,7 +432,7 @@ test <- rowSums(pep[, g])
 l <- length(which(test == 0))
 if (l) {
   cat(paste0("Removing ", l, " peptide", c("", "s")[(l > 1L)+1L], " with invalid expression values - this is unexpected, investigate!\n"))
-  pep <- pep[which(test > 0),]
+  pep <- pep[test > 0,]
   w <- which(ev$id %in% unique(as.integer(unlist(strsplit(pep$"Evidence IDs", ";")))))
   ev <- ev[w,]
 }
@@ -469,7 +469,7 @@ Src <- paste0(libPath, "/extdata/Sources/pepNorm_VarPlot.R")
 source(Src)
 #View(pep[, grep(topattern(pep.ref[length(pep.ref)]), colnames(pep), value = TRUE)]) # Check final data visually
 
-rm(list = ls()[which(!ls() %in% .obj)])
+rm(list = setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 
 # Calculate peptide ratios - currently off
@@ -494,12 +494,12 @@ p <- strsplit(PG$"Leading protein IDs", ";") #Here taking just the minimum set o
 db$Observed <- db$"Protein ID" %in% unique(unlist(p))
 if (globalGO) {
   temp <- listMelt(strsplit(PG$"Leading protein IDs", ";"), PG$id)
-  kol <- annot.col[which(annot.col %in% colnames(db))]
+  kol <- annot.col[annot.col %in% colnames(db)]
   if ("Taxonomy" %in% kol) {
     PG$Taxonomy <- db$Taxonomy[match(gsub(";.*", "", PG$`Leading protein IDs`), db$`Protein ID`)]
   }
-  kol2 <- annot.col[which(!annot.col %in% "Taxonomy")]
-  kol2 <- annot.col[which(annot.col %in% colnames(db))]
+  kol2 <- annot.col[!annot.col %in% "Taxonomy"]
+  kol2 <- annot.col[annot.col %in% colnames(db)]
   temp[, kol2] <- db[match(temp$value, db$"Protein ID"), kol2]
   tst1 <- unlist(strsplit(temp$`GO-ID`, ";"))
   tst2 <- unlist(strsplit(temp$GO, ";"))
@@ -533,8 +533,8 @@ if (globalGO) {
   #
   PG[, kol2] <- temp[match(PG$id, temp$Group.1), kol2]
   #
-  #View(tst3[which(lengths(tst3$x) > 1L),])
-  #View(tst3[which(lengths(tst3$x) == 0L),])
+  #View(tst3[lengths(tst3$x) > 1L,])
+  #View(tst3[lengths(tst3$x) == 0L,])
   #
   # Also peptides (minor approximation: use first protein group)
   pep[, kol] <- PG[match(as.integer(gsub(";.*", "", pep$`Protein group ID`)), PG$id), kol]
@@ -569,7 +569,7 @@ Src <- paste0(libPath, "/extdata/Sources/pVal_check.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
-useSAM %<o% ((names(pvalue.col)[which(pvalue.use)] == "Student") && useSAM_thresh)
+useSAM %<o% ((names(pvalue.col)[pvalue.use] == "Student") && useSAM_thresh)
 
 # Create list of control ratio values for the purpose of identifying vertical thresholds for plots:
 Src <- paste0(libPath, "/extdata/Sources/ratThresh.R")
@@ -588,19 +588,18 @@ Src <- paste0(libPath, "/extdata/Sources/dfltVolcPlotArgs.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
-volcano.plots %<o% list()
 filter_types %<o% tolower(unlist(strsplit(Param$Filters.type, ";")))
-filter_types[grep("^dat.+2$", filter_types, invert = TRUE)] <- substr(filter_types[which(!grepl("^dat.+2$", filter_types))], 1L, 3L)
+filter_types[grep("^dat.+2$", filter_types, invert = TRUE)] <- substr(filter_types[!grepl("^dat.+2$", filter_types)], 1L, 3L)
 filter_types[grep("^dat.+2$", filter_types)] <- "dat2"
 filter_types <- unique(c("con", filter_types))
 if ("ref" %in% filter_types) {
   if ((RRG$aggregate != RG$aggregate) || Nested) {
     warning("Grouping filter by reference is not feasible if replicates are paired!")
-    filter_types <- filter_types[which(filter_types != "ref")]
+    filter_types <- filter_types[filter_types != "ref"]
   } else {
     if (sum(vapply(RG$names, \(x) {! x %in% RSA$names }, TRUE)) > 0L) {
       warning("Grouping filter by reference is not feasible if the factors used for \"RG\" are not included in those used for \"RRG\"!")
-      filter_types <- filter_types[which(filter_types != "ref")]
+      filter_types <- filter_types[filter_types != "ref"]
     }
   }
 }
@@ -616,7 +615,7 @@ if (F.test) {
   expContrasts_F %<o% expContrasts
   expContrasts_F$Type <- "Simple"
   expContrasts_F$Contrasts <- tmp <- apply(expContrasts_F[, c("x1", "x0")], 1L, \(x) {
-    x <- x[which(x %in% colnames(designMatr))]
+    x <- x[x %in% colnames(designMatr)]
     paste(x, collapse = " - ")
   })
   expContrasts_F$Map <- NULL
@@ -667,7 +666,7 @@ xlSrc <- paste0(libPath, "/extdata/Sources/rep_Write_Excel_pepOnly.R")
 source(xlSrc)
 #xl_open(repFl)
 
-rm(list = ls()[which(!ls() %in% .obj)])
+rm(list = setdiff(ls(), .obj))
 invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 Script <- readr::read_lines(ScriptPath)
 
@@ -688,7 +687,7 @@ dirlist <- dirlist[order(nchar(dirlist), decreasing = TRUE)]
 for (dir in dirlist) { #d <- dirlist[1L]
   if (!length(list.files(dir))) {
     unlink(dir, recursive = TRUE)
-    dirlist <- dirlist[which(dirlist != dir)]
+    dirlist <- setdiff(dirlist, dir)
   }
 }
 # Save decisions

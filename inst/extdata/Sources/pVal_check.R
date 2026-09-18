@@ -55,9 +55,9 @@ if ((dataType == "modPeptides") && (Ptm %in% names(PTMs_PVal_col))) {
 } else {
   my_PVal_Col <- pvalue.col
 }
-my_PVal_Col <- my_PVal_Col[which(vapply(my_PVal_Col, \(type) { #type <- my_PVal_Col[1L]
+my_PVal_Col <- my_PVal_Col[vapply(my_PVal_Col, \(type) { #type <- my_PVal_Col[1L]
   length(grep(topattern(type), colnames(myData))) > 0L
-}, TRUE))]
+}, TRUE)]
 stopifnot(length(my_PVal_Col) > 0L)
 #
 # Scatter plots:
@@ -78,14 +78,14 @@ temp <- lapply(whSingle, \(i) { #i <- 1L
   x$Contrast <- nm
   return(x)
 })
-temp <- temp[which(vapply(temp, is.data.frame, TRUE))]
+temp <- temp[vapply(temp, is.data.frame, TRUE)]
 temp <- plyr::rbind.fill(temp)
 temp$Contr <- gsub_Rep(" - ", "\n- ", temp$Contrast)
 tmpContr <- gsub(" - ", "\n- ", myContrasts$Contrast)
 temp$Contr <- factor(temp$Contr, levels = tmpContr)
 temp$Contrast <- factor(temp$Contrast, levels = myContrasts$Contrast)
 kol <- setdiff(colnames(temp), c(entityCol, "Contrast", "Contr", "In_list"))
-temp <- temp[which(rowSums(temp[, kol], na.rm = TRUE) > 0),]
+temp <- temp[rowSums(temp[, kol], na.rm = TRUE) > 0,]
 Comb <- gtools::combinations(length(kol), 2L, kol)
 tmpFl <- tempfile(fileext = ".rds")
 readr::write_rds(temp, tmpFl)
@@ -117,11 +117,11 @@ plotsList1 <- parLapply(parClust, 1L:nrow(Comb), \(i) { #i <- 1L
   ttl1 <- paste0("P-values scatter plot - ", X2, " VS ", Y2)
   ttl1a <- paste0(X2, " VS ", Y2, " (-log10)")
   Mx <- c(dat$X, dat$Y)
-  Mx <- max(Mx[which(is.finite(Mx))])
+  Mx <- max(Mx[is.finite(Mx)])
   uX <- unique(dat$`P-value, X axis`)
   uY <- unique(dat$`P-value, Y axis`)
   myLim <- c(0, Mx)
-  dat <- dat[which(is.finite(dat$X)&is.finite(dat$Y)),]
+  dat <- dat[is.finite(dat$X) & is.finite(dat$Y),]
   aes_ <- list(x = rlang::expr(.data[[!!"X"]]),
                y = rlang::expr(.data[[!!"Y"]]),
                colour = rlang::expr(.data[[!!"Contrast"]]),
@@ -182,7 +182,7 @@ temp <- setNames(lapply(my_PVal_Col, \(type) { #type <- my_PVal_Col[1L]
   kol <- grep(topattern(sub(" -log10\\(", " ", sub("\\) - $", " - ", type))), colnames(myData), value = TRUE)
   if (!length(kol)) { stop(type) }
   pvals <- unlist(myData[, kol, drop = FALSE])
-  pvals <- pvals[which(is.finite(pvals))]
+  pvals <- pvals[is.finite(pvals)]
   power_est <- mean(pvals < 0.05)
   #
   # Data for plotting
@@ -192,7 +192,7 @@ temp <- setNames(lapply(my_PVal_Col, \(type) { #type <- my_PVal_Col[1L]
   colnames(temp) <- cleanNms(sub(topattern(type), "", colnames(temp)))
   temp <- dfMelt(temp)
   temp$value <- 10L^(-temp$value)
-  temp <- temp[which(is.finite(temp$value)),]
+  temp <- temp[is.finite(temp$value),]
   nVal <- nrow(temp)
   temp$Bin <- vapply(temp$value, \(x) { min(which(bd >= x))-1L }, 1L)
   res <- aggregate(temp$Bin, list(temp$variable, temp$Bin), length)
@@ -273,7 +273,7 @@ plotsList2 <- list(list(Title = ttl2,
                         Plotly = slim_plotly(plot2ly)))
 Imgs1 <- list.files(pvalDir, "^P-values scatter plot - .*\\.svg$", full.names = TRUE)
 Img2 <- sub("(\\.svg)+$", ".svg", paste0(Img2, ".svg"))
-Imgs1 <- Imgs1[which(Imgs1 != Img2)]
+Imgs1 <- Imgs1[Imgs1 != Img2]
 IMGS <- c(Img2, Imgs1)
 plotsList <- append(plotsList2, plotsList1)
 Imgs1Nms <- gsub(" t-test|'s", "",
@@ -320,7 +320,7 @@ ui <- fluidPage(
   br(),
   #
   fluidRow(column(2L,
-                  selectInput("PVal", msg, names(my_PVal_Col), names(my_PVal_Col)[which(pval_Use)])),
+                  selectInput("PVal", msg, names(my_PVal_Col), names(my_PVal_Col)[pval_Use])),
            column(2L,
                   actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"))),
   br(),
@@ -328,7 +328,7 @@ ui <- fluidPage(
                   selectInput("XY",
                               "Select comparison to display...",
                               Imgs1Nms,
-                              grep(names(my_PVal_Col)[which(pval_Use)], Imgs1Nms, value = TRUE)[1L]),
+                              grep(names(my_PVal_Col)[pval_Use], Imgs1Nms, value = TRUE)[1L]),
                   withSpinner(plotlyOutput("Img1", inline = TRUE))),
            column(7L,
                   withSpinner(plotOutput("Img2", inline = TRUE)))),
@@ -451,7 +451,7 @@ if (dataType %in% c("modPeptides", "PG")) {
     return(x)
   })
   tst <- do.call(rbind, tst)
-  tst <- tst[which(is.finite(tst$value)),]
+  tst <- tst[is.finite(tst$value),]
   colnames(tst)[1L:2L] <- c("Contrast", "logFC")
   tst$Contrast <- factor(tst$Contrast, levels = myContrasts$Contrast)
   tst$Type <- factor(tst$Type, levels = names(logFCs))
@@ -475,17 +475,29 @@ if (dataType == "peptides") {
   pep <- myData
   pvalue.col %<o% my_PVal_Col
   pvalue.use %<o% my_PVal_Use
-  Param$P.values.type <- names(pvalue.col)[which(pvalue.use)]
+  Param$P.values.type <- names(pvalue.col)[pvalue.use]
 }
 if (dataType == "modPeptides") {
   ptmpep <- myData
   PTMs_PVal_col[[Ptm]] <- my_PVal_Col
   PTMs_PVal_use[[Ptm]] <- my_PVal_Use
-  ptms.PVal <- my_PVal_Col[which(my_PVal_Use)]
+  ptms.PVal <- my_PVal_Col[my_PVal_Use]
 }
 if (dataType == "PG") {
   PG <- myData
   pvalue.col %<o% my_PVal_Col
   pvalue.use %<o% my_PVal_Use
-  Param$P.values.type <- names(pvalue.col)[which(pvalue.use)]
+  Param$P.values.type <- names(pvalue.col)[pvalue.use]
+}
+if (exists("limmaFits")) {
+  saveFun(limmaFits, limmaFits_fl)
+  rm(limmaFits)
+}
+if (exists("ROTS_res")) {
+  saveFun(ROTS_res, ROTS_res_fl)
+  rm(ROTS_res)
+}
+if (exists("MSqRob_infer")) {
+  saveFun(MSqRob_infer, MSqRob_infer_fl)
+  rm(MSqRob_infer)
 }

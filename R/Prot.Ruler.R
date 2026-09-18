@@ -49,8 +49,8 @@ Prot.Ruler <- function(Prot,
     kol <- kol[which(!grepl("\\.REF$", kol))]
     # Log-transform now if data wasn't, we will de-log later
     if ((is.logical(log.Expr))&&(!log.Exp)) { Prot[, kol]  <- base::log(Prot[, kol], log.Expr.base) }
-    PRcol <- gsub(topattern(Expr.roots[i]), PrRulerRoot, kol)
-    Samples <- gsub(topattern(Expr.roots[i]), "", kol)
+    PRcol <- sub(topattern(Expr.roots[i]), PrRulerRoot, kol)
+    Samples <- sub(topattern(Expr.roots[i]), "", kol)
     Prot[, PRcol] <- NA_real_
     temp <- data.frame(Root = rep(Expr.roots[i], length(kol)), Expr.cols = kol, Pr.Ruler.cols = PRcol, Sample = Samples)
     Expr.cols <- if (i == 1L) { temp } else { rbind(Expr.cols, temp) }
@@ -75,7 +75,7 @@ Prot.Ruler <- function(Prot,
     libPath <- paste0(RPath, "/proteoCraft")
     orgmap <- read.delim(paste0(libPath, "/extdata/NCBI_GENOME_REPORTS_overview.txt"))
   }
-  orgmap$Linnean_name <- gsub("\\'.*$", "", gsub("^\\'", "", orgmap$X.Organism.Name))
+  orgmap$Linnean_name <- sub("\\'.*$", "", sub("^\\'", "", orgmap$X.Organism.Name))
   if ("Organism_Full" %in% colnames(DB)) {
     Orgs <- unique(unlist(strsplit(Prot[[Proteins.col]], ";")))
     Orgs <- Orgs[which(!is.na(Orgs))]

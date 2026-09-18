@@ -107,7 +107,7 @@ nms <- c("Protein groups",
          "Quality control")
 nms <- intersect(nms, names(tmp))
 tmp <- tmp[nms]
-tmp <- tmp[which(!is.na(tmp))]
+tmp <- tmp[!is.na(tmp)]
 names(tmp) <- NULL
 WorkBook <- wb_set_order(WorkBook, tmp)
 dflt <- c("Protein groups", mdpptbs, "All peptidoforms")
@@ -118,6 +118,53 @@ WorkBook <- wb_set_selected(WorkBook, m)
 WorkBook <- wb_set_active_sheet(WorkBook, m)
 WorkBook <- wb_set_base_font(WorkBook, 11L, font_name = "Calibri")
 #
+# This bit is moved here from the HTML_report.R source to save just the information we need for the HTML report later
+report_SheetNms %<o% wb_get_sheet_names(WorkBook)
+# nms <- setdiff(report_SheetNms, c("Description", "Quality control"))
+# xlDat <- setNames(lapply(nms, \(nm) { #nm <- nms[1L] #nm <- nms[4L]
+#   dat <- wb_to_df(WorkBook, match(nm, report_SheetNms), 2L)
+#   if ("Potential contaminant" %in% colnames(dat)) {
+#     w <- which(is.na(dat$"Potential contaminant"))
+#     if (length(w)) { dat$"Potential contaminant"[w] <- "" }
+#   }
+#   # Sometimes, a numeric column appears to be re-loaded as text...
+#   w <- which(vapply(colnames(dat), \(x) { is.character(dat[[x]]) }, TRUE))
+#   if (length(w)) { #print(colnames(dat)[w])
+#     w1 <- w[vapply(colnames(dat)[w], \(x) {
+#       x1 <- dat[[x]]
+#       x2 <- suppressWarnings(as.character(as.integer(dat[[x]])))
+#       tst <- x1 == x2
+#       wNA <- which(is.na(tst))
+#       tst[wNA] <- is.na(x1[wNA]) & is.na(x2[wNA])
+#       wVal <- which(dat[[x]] == "#VALUE!")
+#       tst[wVal] <- is.na(x2[wVal])
+#       return(sum(!tst) == 0L)
+#     }, TRUE)]
+#     w2 <- w[vapply(colnames(dat)[w], \(x) { #x <- colnames(dat)[27L]
+#       x1 <- dat[[x]]
+#       x2 <- suppressWarnings(as.character(as.numeric(dat[[x]])))
+#       tst <- x1 == x2
+#       wNA <- which(is.na(tst))
+#       tst[wNA] <- is.na(x1[wNA]) & is.na(x2[wNA])
+#       wVal <- which(dat[[x]] == "#VALUE!")
+#       tst[wVal] <- is.na(x2[wVal])
+#       return(sum(!tst) == 0L)
+#     }, TRUE)]
+#     w2 <- setdiff(w2, w1)
+#     if (length(w1)) {
+#       for (i in w1) {
+#         dat[[i]] <- as.integer(dat[[i]])
+#       }
+#     }
+#     if (length(w2)) {
+#       for (i in w2) {
+#         dat[[i]] <- as.numeric(dat[[i]])
+#       }
+#     }
+#   }
+#   return(dat)
+# }), nms)
+saveFun(xlDat, paste0(wd, "/Tables/xlDat.RDS"))
 #
 cat("    ---> writing table...\n")
 wb_save(WorkBook, repFl)
@@ -160,7 +207,7 @@ chunk_size <- 5e7
 # Some of these files are very, very... VERY large, so we want to process by chunks... but we also do not want to miss anything!
 # So we will process by chunks:
 pats1 <- c("///NL///", "///VS/// ")
-rpls1 <- c("&#10;", "&#10;")
+rpls1 <- c("&#10;", "/&#10;")
 rplFun1 <- \(x) { gsub(pats1[1L], rpls1[1L], gsub(pats1[2L], rpls1[2L], x)) }
 pats2 <- c("tabSelected=\"1\"")
 rpls2 <- c("tabSelected=\"0\"")
@@ -168,6 +215,7 @@ rplFun2 <- \(x) { gsub(pats2[1L], rpls2[1L], x) }
 pat <- paste(union(pats1, pats2), collapse = "|")
 maxL <- max(nchar(union(pats1, pats2)))
 for (fl in xmlFls[w]) { #fl <- xmlFls[w][1L] #fl <- names(nChars)[which.max(nChars)]
+  cat(fl, "\n")
   tmp <- xmlDat[[fl]]
   nc <- nChars[fl]
   n <- ceiling(nc/chunk_size)
@@ -189,6 +237,7 @@ for (fl in xmlFls[w]) { #fl <- xmlFls[w][1L] #fl <- names(nChars)[which.max(nCha
   tst$dat <- vapply(seq_len(nrow(tst)), \(i) {
     substr(tmp, tst$start[i], tst$end[i])
   }, "")
+  rm(tmp)
   if (fl %in% xmlFls[w1]) {
     tst$dat <- rplFun1(tst$dat)
   }
@@ -205,6 +254,7 @@ for (fl in xmlFls[w]) { #fl <- xmlFls[w][1L] #fl <- names(nChars)[which.max(nCha
 # Parallelization could also be considered carefully here (e.g. serialize chunks to disk then parLapply over indices using readr::read_rds() to write each the current node)
 #
 gc()
+#rm(list = setdiff(ls(), .obj))
 # - Save final report
 setwd(dr)
 fls <- list.files(".", recursive = TRUE, all.files = TRUE)

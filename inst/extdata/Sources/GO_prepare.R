@@ -17,9 +17,9 @@ if (Annotate) {
     # Also get terms from our own annotations
     go <- data.frame(ID = gsub(".+ \\[|\\]", "", unique(unlist(strsplit(db$GO, ";")))),
                            Term = unique(unlist(strsplit(db$GO, ";"))))
-    go <- go[which(!is.na(GO_terms$ID)),]
+    go <- go[!is.na(GO_terms$ID),]
     go <- go[grep("^GO:[0-9]{7}$", go$ID),]
-    go <- go[which(!go$ID %in% GO_terms$ID),]
+    go <- go[!go$ID %in% GO_terms$ID,]
     if (nrow(go)) {
       go$Ontology <- NA_character_
       GO_terms <- rbind(go, GO_terms)
@@ -42,9 +42,9 @@ if (Annotate) {
       }
     }
     GO_terms$Offspring <- parLapply(parClust, GO_terms$Offspring, \(x) {
-      x[which(!is.na(x))]
+      x[!is.na(x)]
     })
-    GO_terms <- GO_terms[which(!is.na(GO_terms$Ontology)),]
+    GO_terms <- GO_terms[!is.na(GO_terms$Ontology),]
     GO_terms <- GO_terms[order(GO_terms$Ontology),]
     saveFun(GO_terms, file = "GO_terms.RDS")
   }

@@ -48,10 +48,10 @@ annot_from_GTF <- \(file,
     dat <- dat[which(dat$feature == "CDS"),]
   }
   if (mode == "GTF") {
-    tmp <- strsplit(gsub("\"$", "", dat$attribute), "\"; *")
+    tmp <- strsplit(sub("\"$", "", dat$attribute), "\"; *")
     tmp <- lapply(tmp, \(x) { #x <- tmp[[1L]]
       x1 <- gsub(" *\".*", "", x)
-      x2 <- gsub("^[^ ]+ *\"", "", x)
+      x2 <- sub("^[^ ]+ *\"", "", x)
       x2 <- data.frame(t(x2))
       colnames(x2) <- x1
       return(x2)
@@ -87,10 +87,9 @@ annot_from_GTF <- \(file,
   }
   tmp2 <- reshape::melt(tmp[, c("Accession", goKol1)], id.vars = "Accession")
   tmp2 <- tmp2[which(!is.na(tmp2$value)),]
-  tmp2$"GO-ID" <- gsub(".* \\[", "", gsub("\\]$", "", tmp2$value))
-  tst <- unique(gsub("^GO:[0-9]{7}$", "", tmp2$"GO-ID"))
-  stopifnot(length(tst) == 1L,
-            tst == "") # Again, would indicate false parsing assumptions
+  tmp2$"GO-ID" <- gsub(".* \\[", "", sub("\\]$", "", tmp2$value))
+  tst <- setdiff(unique(sub("^GO:[0-9]{7}$", "", tmp2$"GO-ID")), "")
+  stopifnot(length(tst) == 0L) # Again, error would indicate false parsing assumptions
   tmp2 <- aggregate(tmp2[, c("value", "GO-ID")], list(tmp2$Accession), \(x) {
     paste(unique(x), collapse = ";")
   })

@@ -3,7 +3,7 @@ if (!interactive()) { stop("This script should only be run within an interactive
 options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
 options(svDialogs.rstudio = TRUE)
-#rm(list = ls()[which(!ls() %in% c("dtstNm", "wd", "inDirs", "outDir"))])
+#rm(list = setdiff(ls(), c("dtstNm", "wd", "inDirs", "outDir")))
 closeAllConnections()
 
 ## Load proteoCraft
@@ -183,12 +183,12 @@ while (!tstFrMp) {
 
 #FracMap <- read.csv(FracMapPath, check.names = FALSE)
 # No need to reload the local copy, values are updated in environment
-m <- match(FracMap$`Raw files name`[which(FracMap$Use)], rawFiles2)
-m <- m[which(!is.na(m))]
+m <- match(FracMap$`Raw files name`[FracMap$Use], rawFiles2)
+m <- m[!is.na(m)]
 rawFiles <- rawFiles[m]
 rawFiles2 <- rawFiles2[m]
-FracMap <- FracMap[which(FracMap$Use),]
-ev <- ev[which(ev$`Raw file path` %in% FracMap$`Raw file`),]
+FracMap <- FracMap[FracMap$Use,]
+ev <- ev[ev$`Raw file path` %in% FracMap$`Raw file`,]
 ev$Experiment <- FracMap$`Parent sample`[match(ev$`Raw file path`, FracMap$`Raw file`)]
 exp <- unique(FracMap$"Parent sample")
 if (length(rawFiles) < nrow(FracMap)) {
@@ -273,7 +273,7 @@ source(Src)
 w <- which(ev$Proteins == "")
 if (length(w)) {
   warning(paste0("Removing ", length(w), " peptide evidences with no matches to the search database."))
-  ev <- ev[which(ev$Proteins != ""),]
+  ev <- ev[ev$Proteins != "",]
 }
 
 # Gene names
@@ -292,8 +292,8 @@ temp2 <- as.data.frame(temp2)
 ev$"Gene names" <- temp2$Genes[match(ev$id, temp2$id)]
 
 # Deal with PTM-enriched data
-FracMap$`PTM-enriched`[which(FracMap$`PTM-enriched` == "NA")] <- NA
-EnrichedPTMs %<o% unique(FracMap$`PTM-enriched`[which(!is.na(FracMap$`PTM-enriched`))])
+FracMap$`PTM-enriched`[FracMap$`PTM-enriched` == "NA"] <- NA
+EnrichedPTMs %<o% unique(FracMap$`PTM-enriched`[!is.na(FracMap$`PTM-enriched`)])
 PTMriched %<o% (length(EnrichedPTMs) > 0L)
 PTMev2Remov %<o% list()
 if (PTMriched) {
@@ -303,7 +303,7 @@ if (PTMriched) {
     ev[[ptm]] <- grepl(paste0("\\(", Modifs$Mark[match(ptm, Modifs$`Full name`)], "\\)"),
                        ev$`Modified sequence`)
     ttl <- paste0(ptm, "-enrichment efficiency")
-    w <- which(ev$`Raw file path` %in% FracMap$`Raw file`[which(FracMap$`PTM-enriched` == ptm)])
+    w <- which(ev$`Raw file path` %in% FracMap$`Raw file`[FracMap$`PTM-enriched` == ptm])
     tmp <- ev[w, c("Raw file", ptm)]
     tmp <- aggregate(tmp[[ptm]], list(tmp$`Raw file`, tmp[[ptm]]), length)
     colnames(tmp) <- c("Raw file", ptm, "Count")
@@ -320,20 +320,20 @@ if (PTMriched) {
     #
     PTMev2Remov[[ptm]] <- lapply(Exp, \(exp) { #exp <- Exp[1L]
       res <- c()
-      fm <- FracMap[which(FracMap$`Parent sample` == exp),]
-      tst <- unique(fm$`PTM-enriched`[which(fm$`Parent sample` == exp)])
+      fm <- FracMap[FracMap$`Parent sample` == exp,]
+      tst <- unique(fm$`PTM-enriched`[fm$`Parent sample` == exp])
       if ((ptm %in% tst)&&(length(tst) > 1L)) {
         # We need to filter out peptides with the mark from all non-enriched samples
-        smpls1 <- fm$`Raw file`[which((is.na(fm$`PTM-enriched`))|(fm$`PTM-enriched` != ptm))] # Non-enriched/flow through samples
-        smpls2 <- fm$`Raw file`[which(fm$`PTM-enriched` == ptm)] # Enriched samples
+        smpls1 <- fm$`Raw file`[is.na(fm$`PTM-enriched`) | (fm$`PTM-enriched` != ptm)] # Non-enriched/flow through samples
+        smpls2 <- fm$`Raw file`[fm$`PTM-enriched` == ptm] # Enriched samples
         if (!smpls1 %in% unique(ev$`Raw file path`)) { # Preempt bugs
           stop("Debug me pleeeeeeease!!!")
         }
         # From smpls1 we remove peptides bearing the PTM
-        res <- ev$id[which((ev[[ptm]])&(ev$`Raw file path` %in% smpls1))]
+        res <- ev$id[ev[[ptm]] & (ev$`Raw file path` %in% smpls1)]
       }
       # And from smpls2 (enriched samples) we remove peptides not bearing the PTM
-      res <- c(res, ev$id[which((!ev[[ptm]])&(ev$`Raw file path` %in% smpls2))])
+      res <- c(res, ev$id[(!ev[[ptm]]) & (ev$`Raw file path` %in% smpls2)])
       return(res)
     })
   }
@@ -342,14 +342,14 @@ PTMev2Remov <- unlist(PTMev2Remov)
 l <- length(PTMev2Remov)
 if (l) {
   msg <- paste0("Removing ", l, " PSMs (", signif(100*l/nrow(ev), 2L), "%) with enriched PTMs from non-enriched samples.")
-  ev <- ev[which(!ev$id %in% PTMev2Remov),]
+  ev <- ev[!ev$id %in% PTMev2Remov,]
 }
 
 # Negative filter
 if (!"Negative Filter" %in% colnames(SamplesMap)) {
   SamplesMap$"Negative Filter" <- FALSE
 }
-SamplesMap$"Negative Filter"[which(is.na(SamplesMap$"Negative Filter"))] <- FALSE
+SamplesMap$"Negative Filter"[is.na(SamplesMap$"Negative Filter")] <- FALSE
 NegFilt %<o% (sum(SamplesMap$`Negative Filter`) > 0L)
 
 # Filter PSMs
@@ -364,24 +364,24 @@ if ((RemovZ1)&&(length(w1))) {
 }
 #
 # Remove evidences with null intensity values
-w1 <- which((is.finite(ev$Intensity))&(ev$Intensity > 0))
-w2 <- which(!1L:nrow(ev) %in% w1)
+w1 <- which(is.finite(ev$Intensity) & (ev$Intensity > 0))
+w2 <- setdiff(1L:nrow(ev), w1)
 l2 <- length(w2)
 if (l2) {
   warning(paste0("Removing ", l2, " (", round(100*l2/nrow(ev), 2L), "%) peptide evidences with invalid or null intensity values!"))
   nullEv <- ev[w2,]
   ev <- ev[w1,]
 }
-w1 <- which((is.na(ev$Reverse))|(ev$Reverse != "+"))
-w2 <- which(!1L:nrow(ev) %in% w1)
+w1 <- which((is.na(ev$Reverse)) | (ev$Reverse != "+"))
+w2 <- setdiff(1L:nrow(ev), w1)
 l2 <- length(w2)
 if (l2) {
   warning(paste0("Removing ", l2, " (", round(100*l2/nrow(ev), 2L), "%) reverse peptide evidences!"))
   revEv <- ev[w2,]
   ev <- ev[w1, ]
 }
-w1 <- which((is.na(ev$"Potential contaminant"))|(ev$"Potential contaminant" != "+"))
-w2 <- which(!1L:nrow(ev) %in% w1)
+w1 <- which(is.na(ev$"Potential contaminant") | (ev$"Potential contaminant" != "+"))
+w2 <- setdiff(1L:nrow(ev), w1)
 l2 <- length(w2)
 if (l2) {
   message(paste0(round(100*l2/nrow(ev), 2L), "% of valid identifications are potential contaminants."))
@@ -389,7 +389,7 @@ if (l2) {
   #  ev <- ev[w, ]
 }
 
-Exp <- expOrder[which(expOrder %in% ev$Experiment)] # Update experiments
+Exp <- expOrder[expOrder %in% ev$Experiment] # Update experiments
 
 # DIA-only: MS2-based correction of MS1-based quantitative values
 Src <- paste0(libPath, "/extdata/Sources/MS2corr2MS1.R")
@@ -472,7 +472,7 @@ temp$Sample <- gsub_Rep(topattern(paste0(int.col, " - ")), "", temp$variable)
 temp$variable <- NULL
 temp$Sample <- factor(temp$Sample, levels = Exp)
 temp$value <- log10(temp$value)
-temp <- temp[which(is.finite(temp$value)),]
+temp <- temp[is.finite(temp$value),]
 if (PTMriched) {
   for (ptm in EnrichedPTMs) { temp[[ptm]] <- c("", ptm)[temp[[ptm]]+1L] }
   temp$PTMs <- if (length(EnrichedPTMs) > 1L) {
@@ -532,11 +532,11 @@ if (length(Exp) > 1L) {
   test <- parApply(parClust, temp2[, c("log10(X intensity)", "log10(Y intensity)")], 1L, \(x) {
     sum(is.finite(x))
   }) == 2L
-  temp2 <- temp2[which(test),]
+  temp2 <- temp2[test,]
   temp2$X <- factor(temp2$X, levels = Exp)
   temp2$Y <- factor(temp2$Y, levels = Exp)
   temp3 <- as.data.frame(t(sapply(unique(temp2$Comparison), \(x) { #x <- unique(temp2$Comparison)[1L]
-    x1 <- temp2[which(temp2$Comparison == unlist(x)), c("log10(X intensity)", "log10(Y intensity)")]
+    x1 <- temp2[temp2$Comparison == unlist(x), c("log10(X intensity)", "log10(Y intensity)")]
     x1 <- x1$"log10(Y intensity)"-x1$"log10(X intensity)"
     return(setNames(c(x, paste0("Median = ", round(median(x1), 3L)), paste0("S.D. = ", round(sd(x1), 3L))),
                     c("Comparison", "Median", "SD")))
@@ -579,11 +579,11 @@ if (length(Exp) > 1L) {
     if (inherits(x, "try-error")) { x <- list(Success = FALSE) }
     return(x)
   }), comps)
-  tmp2D <- tmp2D[which(vapply(tmp2D, \(x) { x$Success }, TRUE))]
+  tmp2D <- tmp2D[vapply(tmp2D, \(x) { x$Success }, TRUE)]
   tmp2D <- lapply(tmp2D, \(x) { x$Density })
   if (length(tmp2D)) {
     comps <- names(tmp2D)
-    temp2 <- temp2[which(temp2$Comparison %in% comps),]
+    temp2 <- temp2[temp2$Comparison %in% comps,]
     temp2$Density <- 0
     for (cmp in comps) { #cmp <- comps[1L]
       w <- which(temp2$Comparison == cmp)
@@ -619,14 +619,14 @@ rat.cols %<o% c()
 if (MakeRatios) {
   rat.cols["Original"] <- rat.col
   rat.grps %<o% unique(SamplesMap$`Ratios group`)
-  rat.grps <- rat.grps[which(!is.na(rat.grps))]
+  rat.grps <- rat.grps[!is.na(rat.grps)]
   for (gr in rat.grps) { #gr <- rat.grps[1L]
-    m <- SamplesMap[which(SamplesMap$`Ratios group` == gr),]
+    m <- SamplesMap[SamplesMap$`Ratios group` == gr,]
     if (sum(c(TRUE, FALSE) %in% m$Reference) < 2L) {
       warning(paste0("Ratios group ", gr, " - there should be reference (control) and non-reference samples!"))
     } else {
-      ref <- apply(pep[, paste0(int.col, " - ", m$Experiment[which(m$Reference)]), drop = FALSE], 1L, \(x) {
-        x <- x[which(is.finite(x))]
+      ref <- apply(pep[, paste0(int.col, " - ", m$Experiment[m$Reference]), drop = FALSE], 1L, \(x) {
+        x <- x[is.finite(x)]
         l <- length(x)
         x <- if (!l) { NA_real_ } else { prod(x)^(1/l) }
         return(x)
@@ -644,7 +644,7 @@ if (MakeRatios) {
   temp <- dfMelt(temp, id.vars = "Modified sequence")
   temp$Sample <- gsub(topattern(paste0(rat.col, " - ")) , "", temp$variable)
   temp$Sample <- factor(temp$Sample, levels = Exp)
-  temp <- temp[which(is.finite(temp$value)),]
+  temp <- temp[is.finite(temp$value),]
   ttl <- "Ratios density plot - Peptides level"
   plot <- ggplot(temp) + geom_histogram(aes(x = value, fill = Sample), bins = 100L) +
     geom_vline(xintercept = RatiosThresh, colour = "red") +
@@ -739,17 +739,17 @@ for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
       if (tstFllID) {
         m1 <- data.frame(m1 = m1, m2 = match(x, tmp3))
         m1 <- apply(m1, 1L, \(y) {
-          y <- unique(y[which(!is.na(y))])
+          y <- unique(y[!is.na(y)])
           if (!length(y)) { y <- "" }
           return(y)
         })
         m1 <- unlist(m1)
       }
       x <- tmp4[m1]
-      x[which(x %in% c("", " ", "NA", NA))] <- ""
+      x[x %in% c("", " ", "NA", NA)] <- ""
       if (!length(x)) { x <- "" }
       if (i == "Genes") { x <- unique(x) }
-      x <- x[which(x != "")]
+      x <- setdiff(x, "")
       x <- paste(x, collapse = ";")
       return(x)
     })
@@ -764,7 +764,7 @@ if (length(w) == 2L) {
   for (i in genkol) { temp[[i]] <- strsplit(temp[[i]], ";") }
   PG$Genes <- apply(temp, 1L, \(x) { paste(sort(unique(unlist(x))), collapse = ";") })
   PG$"Gene names" <- NULL
-} else { if (length(w) == 1L) { colnames(PG)[which(colnames(PG) %in% genkol)] <- "Genes" } }
+} else { if (length(w) == 1L) { colnames(PG)[colnames(PG) %in% genkol] <- "Genes" } }
 
 # Here, if this is a BioID type experiment, we also want to mark protein groups which have Biotin peptides:
 if (IsBioID) {
@@ -789,7 +789,7 @@ if (IsBioID) {
     wpg <- which(PG$id %in% wpg)
     PG[["Biot. peptide IDs"]] <- ""
     temp <- listMelt(strsplit(PG$"Peptide IDs", ";"), PG$id)
-    temp <- temp[which(temp$value %in% pep$id[g]),]
+    temp <- temp[temp$value %in% pep$id[g],]
     temp <- aggregate(temp$value, list(temp$L1), \(x) { paste(sort(x), collapse = ";") })
     PG[wpg, "Biot. peptide IDs"] <- temp$x[match(PG$id[wpg], temp$Group.1)]
     PG[["Biot. peptides count"]] <- lengths(strsplit(PG[["Biot. peptide IDs"]], ";"))
@@ -831,7 +831,7 @@ if (CreateMSMSKol) {
   #PG[, paste0("Spectr", c("al count", "um IDs"))]
   temp <- reshape::melt(setNames(lapply(strsplit(PG$`Evidence IDs`, ";"), as.integer), PG$id))
   temp$MSMSIDs <- ev$temp[match(temp$value, ev$id)]
-  temp <- temp[which(lengths(temp$MSMSIDs) > 0L),] # Remove Match-Between-Runs evidences (no MS/MS)
+  temp <- temp[lengths(temp$MSMSIDs) > 0L,] # Remove Match-Between-Runs evidences (no MS/MS)
   temp <- reshape::melt(setNames(temp$MSMSIDs, temp$L1))
   temp <- do.call(data.frame, aggregate(temp$value, list(temp$L1), \(x) {
     x <- unique(x)
@@ -938,7 +938,7 @@ temp <- parLapply(parClust, Exp, \(exp) { #exp <- Exp[1L]
       kolBp <- grep("^Biot\\. peptide", kolB, value = TRUE)
       if (CreateMSMSKol) {
         kolBs <- grep("^Biot\\. spectr", kolB, value = TRUE)
-        kolB <- kolB[which(!kolB %in% kolBs)]; rm(kolBs) #I don't think we need those columns now... too many is too many
+        kolB <- setdiff(kolB, kolBs); rm(kolBs) #I don't think we need those columns now... too many is too many
       }
       kolBk <- grep(" count - ", kolB, value = TRUE)
       kolBi <- grep(" IDs - ", kolB, value = TRUE)
@@ -1030,9 +1030,9 @@ source(quntSrc)
 if ((length(Exp) > 1L)&&(NormalizePG)) {
   g <- grep(topattern(PG.int.col), colnames(PG), value = TRUE)
   temp <- PG[, c("id", g)]
-  m <- apply(temp[, g], 2L, \(x) { median(x[which(is.finite(x))]) })
+  m <- apply(temp[, g], 2L, \(x) { median(x[is.finite(x)]) })
   M <- unlist(temp[, g])
-  M <- median(M[which(is.finite(M))])
+  M <- median(M[is.finite(M)])
   temp[, g] <- sweep(temp[, g], 2L, m, "-") + M
   temp <- AdvNorm.IL(temp[, c("id", g)], "id", exprs.col = g, exprs.log = TRUE)
   PG[, gsub(topattern(PG.int.col), paste0("Norm. ", PG.int.cols["Original"]), g)] <- temp[, paste0("AdvNorm.", g)]
@@ -1050,9 +1050,9 @@ if (length(Exp) > 1L) {
 # logFCs
 if (MakeRatios) {
   for (gr in unique(SamplesMap$`Ratios group`)) { #gr <- unique(SamplesMap$`Ratios group`)[1L]
-    m <- SamplesMap[which(SamplesMap$`Ratios group` == gr),]
-    rf <- m$Experiment[which(m$Reference)]
-    for (i in m$Experiment[which(!m$Reference)]) { #i <- m$Experiment[which(!m$Reference)][1L]
+    m <- SamplesMap[SamplesMap$`Ratios group` == gr,]
+    rf <- m$Experiment[m$Reference]
+    for (i in m$Experiment[!m$Reference]) { #i <- m$Experiment[!m$Reference][1L]
       PG[[paste0(rat.cols["Original"], " - ", i)]] <- (PG[[paste0(PG.int.col, i)]] - PG[[paste0(PG.int.col, rf)]])/log10(2L)
     }
   }
@@ -1074,7 +1074,8 @@ if (GO_filt) {
                                 GOBPOFFSPRING[[goID]],
                                 GOCCOFFSPRING[[goID]],
                                 GOMFOFFSPRING[[goID]])))
-    gofilter <- gofilter[which(!is.na(gofilter))]
+    gofilter <- gofilter[!is.na(gofilter)]
+    AllTerms <- unique(unlist(strsplit(db$`GO-ID`, ";")))
     if (sum(gofilter %in% AllTerms)) {
       PG[[goID]] <- ""
       PG[grsep(gofilter, x = PG$`GO-ID`), goID] <- "+"
@@ -1125,13 +1126,13 @@ if (length(Exp) > 1L) {
   test <- parApply(parClust, temp[, c("log10(X LFQ)", "log10(Y LFQ)")], 1L, \(x) {
     sum(is.finite(x))
   }) == 2L
-  temp <- temp[which(test),]
+  temp <- temp[test,]
   w <- aggregate(1L:nrow(temp), list(temp$Type), list)
   temp2 <- data.frame(Comparison = rep(unique(temp$Comparison), length(PG.int.cols)))
   temp2$Type <- as.character(sapply(names(PG.int.cols), \(x) { rep(x, length(unique(temp$Comparison))) }))
   temp2[, c("Median", "SD", "R")] <- as.data.frame(t(apply(temp2[, c("Type", "Comparison")], 1L, \(x) {
     #x <- temp2[1L, c("Type", "Comparison")]
-    x1 <- temp[which((temp$Type == x[[1L]])&(temp$Comparison == x[[2L]])), c("log10(X LFQ)", "log10(Y LFQ)")]
+    x1 <- temp[(temp$Type == x[[1L]]) & (temp$Comparison == x[[2L]]), c("log10(X LFQ)", "log10(Y LFQ)")]
     x2 <- x1$"log10(Y LFQ)"-x1$"log10(X LFQ)"
     return(c(paste0("Median = ", round(median(x2), 3L)),
              paste0("S.D. = ", round(sd(x2), 3L)),
@@ -1184,8 +1185,9 @@ if (length(Exp) > 1L) {
     theme_bw() + theme(strip.text.y = element_text(angle = -90, vjust = 0, hjust = 0.5),
                        strip.text.x = element_text(angle = 0, vjust = 0, hjust = 0.5))
   if (prot.list.Cond) {
-    plot <- plot + geom_point(data = temp[which(temp$`In list` == "+"),], aes(x = `log10(X LFQ)`, y = `log10(Y LFQ)`), size = 1L, shape = 1L, color = "red") +
-      geom_text(data = temp[which(temp$`In list` == "+"),], aes(label = `Common Name (short)`, x = `log10(X LFQ)`, y = `log10(Y LFQ)`),
+    plot <- plot +
+      geom_point(data = temp[temp$`In list` == "+",], aes(x = `log10(X LFQ)`, y = `log10(Y LFQ)`), size = 1L, shape = 1L, color = "red") +
+      geom_text(data = temp[temp$`In list` == "+",], aes(label = `Common Name (short)`, x = `log10(X LFQ)`, y = `log10(Y LFQ)`),
                 size = 2L, hjust = 0, vjust = 0, color = "red")
   }
   poplot(plot, 12L, 22L)
@@ -1204,7 +1206,7 @@ dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 temp <- PG[, c("Common Name (short)", as.character(sapply(PG.int.cols, \(x) { paste0(x, Exp) })))]
 temp <- reshape::melt(temp, id.vars = "Common Name (short)")
-colnames(temp)[which(colnames(temp) == "value")] <- "log10(Intensity)"
+colnames(temp)[colnames(temp) == "value"] <- "log10(Intensity)"
 if (length(Exp) > 1L) {
   temp2 <- PG[, c("Common Name (short)", paste0("Mean ", gsub(" - $", "", PG.int.cols)))]
   temp2 <- dfMelt(temp2, id.vars = "Common Name (short)")
@@ -1213,11 +1215,11 @@ if (length(Exp) > 1L) {
 temp$Experiment <- gsub(paste0(".*", topattern(PG.int.cols["Original"], start = FALSE)), "", temp$variable)
 temp$Experiment <- factor(temp$Experiment, levels = SamplesMap$Experiment)
 temp$Type <- gsub(paste0(" ?", topattern(PG.int.cols["Original"], start = FALSE), ".*$"), "", temp$variable)
-temp$Type[which(temp$Type == "")] <- "Orig."
+temp$Type[temp$Type == ""] <- "Orig."
 temp$Type <- paste0("log10(", tolower(temp$Type), " LFQ)")
 temp$Type <- factor(temp$Type, levels = paste0("log10(", c("orig", "imput", "norm"), ". LFQ)"))
 long.dat$intens <- temp
-temp <- temp[which(is.finite(temp$"log10(Intensity)")),]
+temp <- temp[is.finite(temp$"log10(Intensity)"),]
 ttl <- "LFQ density plot - PGs level"
 if (prot.list.Cond) {
   temp$"In list" <- PG$"In list"[match(temp$`Common Name (short)`, PG$`Common Name (short)`)]
@@ -1256,7 +1258,8 @@ if (GO_filt) {
                                 GOBPOFFSPRING[[goID]],
                                 GOCCOFFSPRING[[goID]],
                                 GOMFOFFSPRING[[goID]])))
-    gofilter <- gofilter[which(!is.na(gofilter))]
+    gofilter <- gofilter[!is.na(gofilter)]
+    AllTerms <- unique(unlist(strsplit(db$`GO-ID`, ";")))
     if (sum(gofilter %in% AllTerms)) {
       temp[[goID]] <- 0L
       wtst <- grsep2(gofilter, PG$`GO-ID`)
@@ -1277,11 +1280,11 @@ if (length(M)) {
   leg2 <- get_legend(plot)
   plot2 <- plot + theme(legend.position = "none")
   #
-  temp2 <- temp[which(temp$Type == "log10(orig. LFQ)"),
+  temp2 <- temp[temp$Type == "log10(orig. LFQ)",
                 c("log10(Intensity)", "Experiment", names(M))]
   temp2 <- dfMelt(temp2, id.vars = c("log10(Intensity)", "Experiment"))
   colnames(temp2) <- c("log10(Intensity)", "Experiment", "GO term", "+")
-  temp2 <- temp2[which(temp2$"+" == 1L),]
+  temp2 <- temp2[temp2$"+" == 1L,]
   if (globalGO) {
     temp2$`GO term` <- GO_terms$Term[match(temp2$`GO term`, GO_terms$ID)]
     temp2$`GO term` <- gsub("\\]$", "", gsub(" \\[", "\n",  temp2$`GO term`))
@@ -1354,19 +1357,19 @@ if (MakeRatios) {
   FC_filt %<o% list()
   FC_Smpls %<o% list()
   # Fold change filters:
-  ref <- rev(PG.int.cols[which(PG.int.cols != paste0("Imput. ", PG.int.cols["Original"]))])[1L]
+  ref <- rev(setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
   rat.grps <- unique(SamplesMap$`Ratios group`)
-  rat.grps <- rat.grps[which(!is.na(rat.grps))]
+  rat.grps <- rat.grps[!is.na(rat.grps)]
   for (grp in rat.grps) { #grp <- rat.grps[1L]
-    SmplMp <- SamplesMap[which(SamplesMap$`Ratios group` == grp),]
-    smpl0 <- SmplMp$Experiment[which(SmplMp$Reference)]
+    SmplMp <- SamplesMap[SamplesMap$`Ratios group` == grp,]
+    smpl0 <- SmplMp$Experiment[SmplMp$Reference]
     stopifnot(length(smpl0) == 1L)
-    smpl1 <- SmplMp$Experiment[which(!SmplMp$Reference)]
+    smpl1 <- SmplMp$Experiment[!SmplMp$Reference]
     e0 <- PG[[paste0(ref, smpl0)]]
     if (NegFilt) {
-      nf <- SmplMp$Experiment[which(SmplMp$"Negative Filter")]
+      nf <- SmplMp$Experiment[SmplMp$"Negative Filter"]
       if (length(nf)) {
-        smpl1 <- smpl1[which(!smpl1 %in% nf)]
+        smpl1 <- setdiff(smpl1, nf)
         nftst <- apply(PG[, paste0(ref, nf), drop = FALSE], 1L, \(x) { sum(is.finite(x)) }) > 0L
       }
     }
@@ -1375,7 +1378,7 @@ if (MakeRatios) {
       r1 <- PG[[paste0(PG.rat.col, x)]]
       if (RatiosThresh_2sided) { r1 <- abs(r1) }
       w <- which(is.finite(e1) & ((r1 >= RatiosThresh) | (!is.finite(e0))))
-      if (NegFilt && length(nf)) { w <- w[which(!nftst[w])] }
+      if (NegFilt && length(nf)) { w <- w[!nftst[w]] }
       return(w)
     }), smpl1))
     FC_Smpls[[grp]] <- list(Numerator = smpl1, Denominator = smpl0)
@@ -1390,15 +1393,15 @@ if (MakeRatios) {
     grep(topattern(x), colnames(PG), value = TRUE)
   }))))]
   temp <- reshape::melt(temp, id.vars = "Common Name (short)")
-  colnames(temp)[which(colnames(temp) == "value")] <- "log2(Ratio)"
+  colnames(temp)[colnames(temp) == "value"] <- "log2(Ratio)"
   temp$Experiment <- gsub(paste0(".*", topattern(PG.rat.cols["Original"], start = FALSE)), "", temp$variable)
   temp$Experiment <- factor(temp$Experiment, levels = SamplesMap$Experiment)
   temp$Type <- gsub(paste0(" ?", topattern(PG.rat.cols["Original"], start = FALSE), ".*$"), "", temp$variable)
-  temp$Type[which(temp$Type == "")] <- "Orig."
+  temp$Type[temp$Type == ""] <- "Orig."
   temp$Type <- paste0("log2(", tolower(temp$Type), " ratio)")
   temp$Type <- factor(temp$Type, levels = paste0("log2(", c("orig", "norm", "imput"), ". ratio)"))
   long.dat$ratios <- temp
-  temp <- temp[which(is.finite(temp$"log2(Ratio)")),]
+  temp <- temp[is.finite(temp$"log2(Ratio)"),]
   ttl <- "Ratios density plot - PGs level"
   plot <- ggplot(temp) + geom_histogram(aes(x = `log2(Ratio)`, fill = Type), bins = 100L) +
     geom_vline(xintercept = RatiosThresh, colour = "red") +
@@ -1414,11 +1417,11 @@ if (MakeRatios) {
   })
   # MA plots:
   temp <- long.dat$intens
-  temp <- temp[which(temp$Experiment %in% long.dat$ratios$Experiment),]
+  temp <- temp[temp$Experiment %in% long.dat$ratios$Experiment,]
   tst1 <- do.call(paste, c(temp[, c("Common Name (short)", "Experiment")], sep = "___"))
   tst2 <- do.call(paste, c(long.dat$ratios[, c("Common Name (short)", "Experiment")], sep = "___"))
   temp$"log2(Ratio)" <- long.dat$ratios$`log2(Ratio)`[match(tst1, tst2)]
-  temp <- temp[which(is.finite(temp$`log2(Ratio)`)),]
+  temp <- temp[is.finite(temp$`log2(Ratio)`),]
   ttl <- "MA plots - PGs level"
   plot <- ggplot(temp) + geom_point(aes(x = `Mean log10(Intensity)`, y = `log2(Ratio)`, colour = Type), size = 0.1) +
     geom_hline(yintercept = 0, linewidth = 0.8, linetype = "dashed") +
@@ -1431,9 +1434,9 @@ if (MakeRatios) {
     ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
   })
   # "Regulated/Enriched" columns
-  ref <- rev(PG.int.cols[which(PG.int.cols != paste0("Imput. ", PG.int.cols["Original"]))])[1L]
+  ref <- rev(setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
   for (grp in rat.grps) { #grp <- rat.grps[1L]
-    SmplMp <- SamplesMap[which(SamplesMap$`Ratios group` == grp),]
+    SmplMp <- SamplesMap[SamplesMap$`Ratios group` == grp,]
     if (sum(c(TRUE, FALSE) %in% SmplMp$Reference) < 2L) {
       stop("The reference column should include TRUE and FALSE values!")
     } else {
@@ -1463,8 +1466,8 @@ if (MakeRatios) {
     PTMs_FC_Smpls %<o% list()
     PTM_normalize %<o% list()
     PTMs_pep %<o% list()
-    PTMs_intRf %<o% rev(int.cols[which(int.cols != paste0("Imput. ", int.cols["Original"]))])[1L]
-    PTMs_ratRf %<o% rev(rat.cols[which(rat.cols != paste0("Imput. ", rat.cols["Original"]))])[1L]
+    PTMs_intRf %<o% rev(setdiff(int.cols, paste0("Imput. ", int.cols["Original"])))[1L]
+    PTMs_ratRf %<o% rev(setdiff(rat.cols, paste0("Imput. ", rat.cols["Original"])))[1L]
     PTMs_intNm0 <- names(PTMs_intRf)
     PTMs_ratNm0 <- names(PTMs_ratRf)
     for (ptm in EnrichedPTMs) { #ptm <- EnrichedPTMs[1L]
@@ -1473,7 +1476,7 @@ if (MakeRatios) {
       PTMs_FC_filt[[ptm]] <- c()
       PTMs_FC_Smpls[[ptm]] <- list()
       PTM_normalize[[ptm]] <- TRUE
-      ptmpep <- pep[which(pep[[ptm]]),]
+      ptmpep <- pep[pep[[ptm]],]
       a <- unlist(strsplit(gsub("\\)$", "", ptm), "\\("))
       if (length(a) > 1L) {
         Ptm <- paste0(toupper(substr(a[1L], 1L, 1L)), substr(a[1L], 2L, nchar(ptm)), "(", a[2L], ")")
@@ -1487,7 +1490,7 @@ if (MakeRatios) {
       temp$"Modified sequence" <- gsub(paste0("[^A-Z", ptmsh, "]"), "",
                                        gsub(ppat, ptmsh, temp$"Modified sequence"))
       ptmpep[, c("Match(es)", paste0(Ptm, "-site(s)"))] <- ""
-      dbsmall <- db[which(db$"Protein ID" %in% unique(unlist(temp$"Leading proteins"))), c("Protein ID", "Sequence")]
+      dbsmall <- db[db$"Protein ID" %in% unique(unlist(temp$"Leading proteins")), c("Protein ID", "Sequence")]
       # On I/L ambiguity remaining even with newer DIA methods taking into account RT, IM and fragments intensity,
       # see https://github.com/vdemichev/DiaNN/discussions/1631
       dbsmall$"Seq*" <- gsub("I", "L", dbsmall$Sequence)
@@ -1518,25 +1521,25 @@ if (MakeRatios) {
             m1 <- m
             m1$Match <- apply(m1[, c("Seq", "Offset")], 1L, \(y) { which(S == y[1L]) - as.numeric(y[2L]) })
             M <- unlist(m1$Match)
-            M <- M[which(M > 0L)]
+            M <- M[M > 0L]
             M <- aggregate(M, list(M), length)
             M <- M[order(-M$x),]
-            M <- M$Group.1[which(M$x == l)]
+            M <- M$Group.1[M$x == l]
             # Check that peptides are tryptic:
             #test <- sapply(M, \(y) {
             #  # r1: on the N-terminal end, is the peptide preceded by K, R or (if starting at position 2, M)?
             #  if (y > 1L) {
-            #    if (y == 2) { r1 <- S[y-1] %in% c("K", "R", "M") } else { r1 <- S[y-1] %in% c("K", "R") }
+            #    if (y == 2L) { r1 <- S[y-1L] %in% c("K", "R", "M") } else { r1 <- S[y-1L] %in% c("K", "R") }
             #  } else { r1 <- TRUE }
             #  # r2: on the C-terminal end, is this a tryptic peptide or the last peptide in the protein?
-            #  r2 <- (m1$Seq[l] %in% c("K", "R"))|(y+l-1 == lS)
-            #  return(r1+r2 == 2)
+            #  r2 <- (m1$Seq[l] %in% c("K", "R")) | (y+l-1L == lS)
+            #  return(r1+r2 == 2L)
             #})
-            #M <- M[which(test)]
+            #M <- M[test]
             return(M)
           })
           names(matches) <- q
-          matches <- matches[which(lengths(matches) > 0L)]
+          matches <- matches[lengths(matches) > 0L]
           if (length(matches)) {
             matches <- set_colnames(reshape::melt(matches), c("Match", "Protein"))
             matches <- aggregate(matches$Protein, list(matches$Match), paste, collapse = ";")
@@ -1553,7 +1556,7 @@ if (MakeRatios) {
         return(matches)
       })))
       ptmpep[[paste0(Ptm, "-site")]] <- gsub(" .+", "", ptmpep[[paste0(Ptm, "-site(s)")]])
-      ptmpep <- ptmpep[which(!is.na(ptmpep$`Match(es)`)),]
+      ptmpep <- ptmpep[!is.na(ptmpep$`Match(es)`),]
       ptmpep$tmp1 <- gsub("^_|_$", "", ptmpep$`Modified sequence`)
       ptmpep$tmp2 <- ptmpep[[paste0(Ptm, "-site(s)")]]
       nc <- nchar(ptmpep$tmp2)
@@ -1567,7 +1570,7 @@ if (MakeRatios) {
       ptmpep$Name[w] <- vapply(strsplit(gsub("[/,;].+$", "", ptmpep[w, paste0(Ptm, "-site(s)")]), " "), \(x) {
         paste0(x[[1L]], " ", db$"Common Name"[match(x[[2L]], db$"Protein ID")])
       }, "")
-      ptmpep$Name[which(ptmpep$Name == "")] <- paste0("Unknown ", ptm, "-modified peptide #", seq_along(which(ptmpep$Name == "")))
+      ptmpep$Name[ptmpep$Name == ""] <- paste0("Unknown ", ptm, "-modified peptide #", seq_along(which(ptmpep$Name == "")))
       #View(ptmpep[,c("Match(es)", "Modified sequence", "Code", paste0(Ptm, "-site(s)"))])
       if (grepl("^[Pp]hospho( \\([A-Z]+\\))?$", ptm)) {
         p_col <- paste0(gsub(" |\\(|\\)", ".", ptm), ".Probabilities")
@@ -1589,7 +1592,7 @@ if (MakeRatios) {
         temp <- Isapply(strsplit(ptmpep$"Protein group IDs", ";"), \(x) { #x <- strsplit(ptmpep$"Protein group IDs", ";")[1L]
           x <- unlist(x)
           y <- PG[match(x, PG$id), a1, drop = FALSE]
-          if (length(x) > 1L) { y <- apply(y, 2L, \(x) { mean(x[which(is.finite(x))]) }) }
+          if (length(x) > 1L) { y <- apply(y, 2L, \(x) { mean(x[is.finite(x)]) }) }
           return(unlist(y))
         })
         ptmpep[, paste0("ReNorm. ", a)] <- ptmpep[, a] - temp # It's log data so "-", not "/"
@@ -1601,10 +1604,10 @@ if (MakeRatios) {
                                                ncol = length(Exp))),
                              paste0(PTMs_intRf["Re-normalized"], " - ", Exp))
         for (grp in rat.grps) { #grp <- rat.grps[1L]
-          e <- SamplesMap[which(SamplesMap$`Ratios group` == grp),]
-          smpls0 <- e$Experiment[which(e$Reference %in% c("TRUE", TRUE))]
+          e <- SamplesMap[SamplesMap$`Ratios group` == grp,]
+          smpls0 <- e$Experiment[e$Reference %in% c("TRUE", TRUE)]
           stopifnot(length(smpls0) == 1L) # This is a script without replicates! Only one reference is allowed per sample group!
-          smpls1 <- e$Experiment[which(!e$Reference %in% c("TRUE", TRUE))]
+          smpls1 <- e$Experiment[!e$Reference %in% c("TRUE", TRUE)]
           # Pre-normalisation values
           cole0 <- paste0(PTMs_intRf[PTMs_intNm0], " - ", smpls0)
           cole1 <- paste0(PTMs_intRf[PTMs_intNm0], " - ", smpls1)
@@ -1613,7 +1616,7 @@ if (MakeRatios) {
           cols1 <- paste0(PTMs_intRf["Re-normalized"], " - ", smpls1)
           # The re-normalised ratios we use for that // these are log2-transformed!
           colr0 <- paste0(PTMs_ratRf["Re-normalized"], " - ", smpls0)
-          colr0 <- colr0[which(colr0 %in% colnames(ptmpep))]
+          colr0 <- intersect(colr0, colnames(ptmpep))
           colr1 <- paste0(PTMs_ratRf["Re-normalized"], " - ", smpls1)
           #
           totB <- apply(ptmpep[, c(cole0, cole1)], 1L, sum, na.rm = TRUE)
@@ -1621,13 +1624,13 @@ if (MakeRatios) {
             av <- apply(ptmpep[, cole0, drop = FALSE], 1L, mean, na.rm = TRUE)
             temp[, c(cols0, cols1)] <- sweep(2L^ptmpep[, c(colr0, colr1)], 1L, av, "*")
             #tst <- log10(temp[, cols1]/temp[, cols0])
-            #tst2 <- apply(tst, 2L, \(x) { summary(x[which(is.finite(x))]) })
+            #tst2 <- apply(tst, 2L, \(x) { summary(x[is.finite(x)]) })
           } else {
             temp[, cols0] <- ptmpep[, cole0] # This stays the same as before
             temp[, cols1] <- ptmpep[, cole0]*(2L^ptmpep[, colr1])
           }
           #tst <- log10(temp[, cols1]/temp[, cols0])
-          #tst2 <- apply(tst, 2L, \(x) { summary(x[which(is.finite(x))]) })
+          #tst2 <- apply(tst, 2L, \(x) { summary(x[is.finite(x)]) })
           # Note: the price of normalisation is that often there is no valid parent protein so a lot of NAs are introduced
           #
           totA <- apply(temp[, c(cols0, cols1)], 1L, sum, na.rm = TRUE)
@@ -1635,22 +1638,22 @@ if (MakeRatios) {
         }
         ptmpep[, colnames(temp)] <- temp
         #kol <- grep("ReNorm. log2", colnames(ptmpep), value = TRUE)
-        #tst <- apply(ptmpep[, kol], 2L, \(x) { summary(x[which(is.finite(x))]) })
+        #tst <- apply(ptmpep[, kol], 2L, \(x) { summary(x[is.finite(x)]) })
       }
       #
       # Fold change filters:
       Int <- PTMs_intRf[length(PTMs_intRf)]
       Rat <- PTMs_ratRf[length(PTMs_ratRf)]
       for (grp in rat.grps) { #grp <- rat.grps[1L]
-        SmplMp <- SamplesMap[which(SamplesMap$`Ratios group` == grp),]
-        smpl0 <- SmplMp$Experiment[which(SmplMp$Reference)]
+        SmplMp <- SamplesMap[SamplesMap$`Ratios group` == grp,]
+        smpl0 <- SmplMp$Experiment[SmplMp$Reference]
         stopifnot(length(smpl0) == 1L)
-        smpl1 <- SmplMp$Experiment[which(!SmplMp$Reference)]
+        smpl1 <- SmplMp$Experiment[!SmplMp$Reference]
         e0 <- ptmpep[[paste0(Int, " - ", smpl0)]]
         if (NegFilt) {
-          nf <- SmplMp$Experiment[which(SmplMp$"Negative Filter")]
+          nf <- SmplMp$Experiment[SmplMp$"Negative Filter"]
           if (length(nf)) {
-            smpl1 <- smpl1[which(!smpl1 %in% nf)]
+            smpl1 <- setdiff(smpl1, nf)
             nftst <- apply(ptmpep[, paste0(Int, " - ", nf), drop = FALSE], 1L, \(x) {
               sum(is.finite(x))
             }) > 0L
@@ -1661,7 +1664,7 @@ if (MakeRatios) {
           r1 <- ptmpep[[paste0(Rat, " - ", x)]]
           if (RatiosThresh_2sided) { r1 <- abs(r1) }
           w <- which(is.finite(e1) & ((r1 >= RatiosThresh) | (!is.finite(e0))))
-          if ((NegFilt)&&(length(nf))) { w <- w[which(!nftst[w])] }
+          if ((NegFilt)&&(length(nf))) { w <- w[!nftst[w]] }
           return(w)
         }), smpl1))
         PTMs_FC_Smpls[[ptm]][[grp]] <- list(Numerator = smpl1, Denominator = smpl0)
@@ -1671,7 +1674,7 @@ if (MakeRatios) {
       Int <- PTMs_intRf[length(PTMs_intRf)]
       Rat <- PTMs_ratRf[length(PTMs_ratRf)]
       for (grp in rat.grps) { #grp <- rat.grps[1L]
-        SmplMp <- SamplesMap[which(SamplesMap$`Ratios group` == grp),]
+        SmplMp <- SamplesMap[SamplesMap$`Ratios group` == grp,]
         if (sum(c(TRUE, FALSE) %in% SmplMp$Reference) < 2L) {
           stop("The reference column should include TRUE and FALSE values!")
         } else {
@@ -1701,15 +1704,15 @@ if (MakeRatios) {
         grep(topattern(x), colnames(ptmpep), value = TRUE)
       })))]
       temp <- dfMelt(temp, id.vars = "Code")
-      colnames(temp)[which(colnames(temp) == "value")] <- "log2(Ratio)"
+      colnames(temp)[colnames(temp) == "value"] <- "log2(Ratio)"
       temp$Experiment <- gsub(paste0(".*", topattern(paste0(PTMs_ratRf["Original"], " - "), start = FALSE)), "", temp$variable)
       temp$Experiment <- factor(temp$Experiment, levels = SamplesMap$Experiment)
       temp$Type <- gsub(paste0(" ?", topattern(PTMs_ratRf["Original"], start = FALSE), ".*$"), "", temp$variable)
-      temp$Type[which(temp$Type == "")] <- "Orig."
+      temp$Type[temp$Type == ""] <- "Orig."
       temp$Type <- paste0("log2(", tolower(temp$Type), " ratio)")
       temp$Type <- factor(temp$Type, levels = paste0("log2(", c("orig", "norm", "imput", "renorm"), ". ratio)"))
       long.dat$ratios <- temp
-      temp <- temp[which(is.finite(temp$"log2(Ratio)")),]
+      temp <- temp[is.finite(temp$"log2(Ratio)"),]
       ttl <- paste0("Ratios density plot - ", ptm, "-modified peptides")
       plot <- ggplot(temp) + geom_histogram(aes(x = `log2(Ratio)`, fill = Type), bins = 100L) +
         geom_vline(xintercept = RatiosThresh, colour = "red") +
@@ -1741,7 +1744,7 @@ if (MakeRatios) {
 if (IsBioID2) {
   for (exp in Exp) { #exp <- Exp[1L]
     PG[[paste0("Biot. peptides count - ", exp)]] <- 0L
-    e <- ev[which(ev$Experiment == exp),]
+    e <- ev[ev$Experiment == exp,]
     g <- grep(topattern(Modifs$Mark[wbiot], start = FALSE), e$"Modified sequence")
     if (length(g)) {
       e <- e[g,]
@@ -1755,7 +1758,7 @@ if (IsBioID2) {
 
 #### Code chunk - Proteomic ruler
 if (protrul) {
-  ref <- rev(PG.int.cols[which(PG.int.cols != paste0("Imput. ", PG.int.cols["Original"]))])[1L]
+  ref <- rev(setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
   if (length(Exp) > 1L) { ref <- c(ref, paste0("Mean ", gsub(" - $", "", ref))) }
   temp <- try(Prot.Ruler(PG, db, ref, NuclL = ProtRulNuclL), silent = TRUE)
   if ((!inherits(temp, "try-error"))&&(!is.logical(temp))) {
@@ -1773,7 +1776,7 @@ source(bckpSrc)
 source(parSrc)
 tmp <- MQ.summary(wd = wd, ev = ev, pg = PG, mods = setNames(Modifs$Mark, Modifs$"Full name"),
                   raw.files = rawFiles, sc = max(c(20L, round(length(rawFiles2)/length(Exp)))),
-                  cl = parClust, MQtxt = inDirs[which(SearchSoft == "MAXQUANT")])
+                  cl = parClust, MQtxt = inDirs[SearchSoft == "MAXQUANT"])
 Exp_summary %<o% tmp$table
 write.csv(Exp_summary, paste0(wd, "/Workflow control/Summary.csv"), row.names = FALSE)
 if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
@@ -1802,7 +1805,7 @@ if (tstOrg) {
   tmp2 <- as.data.frame(tmp2)
 }
 tmp$Organism <- tmp2$x[match(1L:nrow(tmp), tmp2$Group.1)]
-tmp <- tmp[which(!is.na(tmp$Organism)),]
+tmp <- tmp[!is.na(tmp$Organism),]
 tmp$Organism <- factor(tmp$Organism, levels = c("Contaminant", "Target"))
 tmp <- aggregate(tmp$Intensity, list(tmp$Experiment, tmp$Organism), sum)
 colnames(tmp) <- c("Experiment", "Organism", "Total intensity")
@@ -1890,7 +1893,7 @@ if (length(Exp) > 2L) {
   ## Here we have no way to decide between MAR/MCAR/MNAR,
   ## so we will instead replace every missing value with a random value drawn from a gaussian distribution of reduced m and sd
   tmp <- unlist(temp)
-  tmp <- tmp[which(is.finite(tmp))]
+  tmp <- tmp[is.finite(tmp)]
   m <- median(tmp)
   sd <- sd(tmp)
   for (i in colnames(temp)) {
@@ -1907,7 +1910,7 @@ if (length(Exp) > 2L) {
   pc <- prcomp(t(temp), scale. = TRUE)
   scores <- as.data.frame(pc$x)
   pv <- round(100*(pc$sdev)^2L / sum(pc$sdev^2L), 0L)
-  pv <- pv[which(pv > 0)]
+  pv <- pv[pv > 0]
   pv <- paste0("Components: ", paste(vapply(seq_along(pv), \(x) {
     paste0("PC", x, ": ", pv[x], "%")
   }, ""), collapse = ", "))
@@ -1942,7 +1945,7 @@ if (length(Exp) > 2L) {
     pc <- prcomp(temp, scale. = TRUE)
     scores <- as.data.frame(pc$x)
     pv <- round(100*(pc$sdev)^2L / sum(pc$sdev^2L), 0L)
-    pv <- pv[which(pv > 0)]
+    pv <- pv[pv > 0]
     pv <- paste0("Components: ", paste(vapply(seq_along(pv), \(x) {
       paste0("PC", x, ": ", pv[x], "%")
     }, ""), collapse = ", "))
@@ -2050,15 +2053,15 @@ source(xplorSrc)
 # Negative filter
 if (NegFilt) {
   e <- ev[grep("-MATCH$", ev$Type, invert = TRUE),]
-  nf <- SamplesMap$Experiment[which(SamplesMap$"Negative Filter")]
-  e <- e[which(e$Experiment %in% nf),]
+  nf <- SamplesMap$Experiment[SamplesMap$"Negative Filter"]
+  e <- e[e$Experiment %in% nf,]
   PG$"Direct identification in negative filter sample(s)" <- vapply(strsplit(PG$`Evidence IDs`, ";"), \(x) {
     sum(unlist(x) %in% e$id)
   }, 1L) > 0L
   PG$"Direct identification in negative filter sample(s)" <- c("", "+")[match(PG$"Direct identification in negative filter sample(s)", c(FALSE, TRUE))]
   if (MakeRatios) {
-    exp <- SamplesMap$Experiment[which(!SamplesMap$Reference)]
-    PG[which(PG$"Direct identification in negative filter sample(s)" == "+"),
+    exp <- SamplesMap$Experiment[!SamplesMap$Reference]
+    PG[PG$"Direct identification in negative filter sample(s)" == "+",
        paste0(c("Enriched", "Regulated")[RatiosThresh_2sided+1L], " - ", exp)] <- ""
   }
 }
@@ -2114,7 +2117,7 @@ if ((length(Exp) > 1L)&&(prot.list.Cond)) {
     for (kol in kols) {
       kol2 <- gsub(" log10\\(", " ", gsub("\\) - ", " - ", kol))
       temp[[kol2]] <- suppressWarnings(10L^temp[[kol]])
-      temp[which(!is.finite(temp[[kol2]])), kol] <- NA_real_
+      temp[!is.finite(temp[[kol2]]), kol] <- NA_real_
       temp[[kol]] <- NULL
     }
     data.table::fwrite(temp, paste0(dir, "/Protein of interest profiles.tsv"),
@@ -2128,10 +2131,10 @@ if ((length(Exp) > 1L)&&(!is.null(prot.list))&&(length(prot.list))) {
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   ref <- int.cols[which(names(int.cols) == "Imputed")-1L]
   kol <- paste0(ref, " - ", Exp)
-  kol <- kol[which(kol %in% colnames(pep))]
+  kol <- intersect(kol, colnames(pep))
   StdWdth <- 6L
   for (plp in prot.list) { #plp <- prot.list[1L]
-    Plp <- paste(db[which(db$"Protein ID" == plp), c("Common Name", "Protein ID")], collapse = " - ")
+    Plp <- paste(db[db$"Protein ID" == plp, c("Common Name", "Protein ID")], collapse = " - ")
     grs <- grsep2(plp, pep$Proteins)
     if (length(grs)) {
       temp <- pep[grs, c("Sequence", "Modified sequence", kol)]
@@ -2150,7 +2153,7 @@ if ((length(Exp) > 1L)&&(!is.null(prot.list))&&(length(prot.list))) {
         colnames(temp) <- gsub(topattern(paste0(ref, " - ")), "", colnames(temp))
         # Create heatmap
         temp <- temp[, c("Modified sequence", Exp)]
-        tst <- apply(temp[, Exp, drop = FALSE], 1L, \(x) { mean(x[which(x > 0)]) })
+        tst <- apply(temp[, Exp, drop = FALSE], 1L, \(x) { mean(x[x > 0]) })
         temp[, Exp] <- sweep(temp[, Exp, drop = FALSE], 1L, tst, "/")
         temp2 <- set_colnames(dfMelt(temp, id.vars = "Modified sequence"),
                               c("Modified sequence", "Sample", "value"))
@@ -2159,7 +2162,7 @@ if ((length(Exp) > 1L)&&(!is.null(prot.list))&&(length(prot.list))) {
         temp2$value <- suppressWarnings(log2(temp2$value))+StdWdth/2
         w <- which(!is.finite(temp2$value))
         temp2$value[w] <- NA_real_
-        temp2$value[which(temp2$value < -StdWdth/2)] <- -StdWdth/2
+        temp2$value[temp2$value < -StdWdth/2] <- -StdWdth/2
         temp2$Xmin <- match(temp2$Sample, colnames(temp))-1L
         temp2$Xmax <- temp2$Xmin+1L
         temp2$Ymax <- nrow(temp):1L

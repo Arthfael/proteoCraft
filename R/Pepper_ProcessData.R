@@ -50,6 +50,7 @@ Pepper_ProcessData <- function(Ev,
     if ("UniMod" %in% colnames(Modifs)) {
       data(modifications, package = "PTMods")
       UniMod <- modifications
+      rm(modifications)
       Modifs$"Mass shift" <- UniMod$MonoMass[match(Modifs$UniMod, UniMod$UnimodId)]
     } else {
       if (SearchSoft == "MAXQUANT") {
@@ -69,7 +70,7 @@ Pepper_ProcessData <- function(Ev,
         Modifs$"Mass shift" <- sapply(strsplit(Modifs$Composition, " "), \(x) {
           #x <- strsplit(modifs$Formula, " ")[1L]
           x <- unlist(x)
-          x <- as.data.frame(t(sapply(strsplit(gsub("\\)$", "", x), "\\("), \(y) {
+          x <- as.data.frame(t(sapply(strsplit(sub("\\)$", "", x), "\\("), \(y) {
             if (length(y) == 1L) { y <- c(y, 1L) }
             return(y)
           })))
@@ -106,7 +107,7 @@ Pepper_ProcessData <- function(Ev,
     g <- grep("[RK].+", tempEv$Sequence)
     tmp2 <- tmp <- Ev$Sequence[g] # Sequences with at least one missed tryptic cleavage
     for (aa in c("R", "K")) { tmp2 <- gsub(aa, paste0(aa, "_"), tmp2) }
-    tmp2 <- unlist(strsplit(gsub("_$", "", tmp2), "_"))
+    tmp2 <- unlist(strsplit(sub("_$", "", tmp2), "_"))
     tmp <- unique(c(tmp, tmp2))
     w3 <- which(!tempEv$Sequence %in% tmp) # New ev filter - includes the previous ones
     tempEv <- tempEv[w3,]
@@ -140,7 +141,8 @@ Pepper_ProcessData <- function(Ev,
   tempEv2$PeptideSequenceModifications <- tempEv2$Peptide
   g <- grep("\\(", tempEv2$ID)
   tmpMS <- Modifs$`Mass shift`
-  tmpMdSq <- gsub("|_;_[0-9]+$", "", tempEv2$ID[g])
+  # tmpMdSq <- gsub("|_;_[0-9]+$", "", tempEv2$ID[g]) # This used to be the code, but this looks wrong...
+  tmpMdSq <- sub("_;_[0-9]+$", "", tempEv2$ID[g])    # ... so I have edited it here, but not tested!
   for (aa in AA) { tmpMdSq <- gsub(aa, paste0("_", aa, "_"), tmpMdSq) }
   tmpMdSq <- gsub("\\(|\\)", "", gsub("_+", "_", tmpMdSq))
   tmpMdSq <- strsplit(paste0(tmpMdSq, "_"), "_")

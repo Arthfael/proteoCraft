@@ -101,7 +101,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
       dimz <- c(x[3L], x[4L])
       w <- which(!is.na(dimz))
       dimzTst <- length(w) > 0L
-      dimz <- if (dimzTst) { paste(paste0(gsub("\\.0+$", "", dimz), c(" cm", " µm ID"))[w], collapse = " * ") } else { NA_character_ }
+      dimz <- if (dimzTst) { paste(paste0(sub("\\.0+$", "", dimz), c(" cm", " µm ID"))[w], collapse = " * ") } else { NA_character_ }
       pn <- c(x[6L], x[7L])
       w <- which(!is.na(pn))
       pnTst <- length(w) > 0L
@@ -372,7 +372,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                   if (max(sq+NOrigFrac/2L+tst/2L) == NOrigFrac) {
                     repl <- gsub("___", " and ", repl)
                   } else {
-                    repl <- gsub("\\)\\.$", paste0("... ", Klps(NOrigFrac/2L-rev(sq)+1L),  " with ", Klps(NOrigFrac-rev(sq)+1L),  ")."), gsub("___", ", ", repl))
+                    repl <- sub("\\)\\.$", paste0("... ", Klps(NOrigFrac/2L-rev(sq)+1L),  " with ", Klps(NOrigFrac-rev(sq)+1L),  ")."), gsub("___", ", ", repl))
                   }
                 }
               } else { repl <- paste0(" by ", tst, " into ", NFrac, ".") }
@@ -390,7 +390,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
       }
       if (PreOmics) {
         tst <- grepl("kit adapted.+$", SPMeth)+1L
-        kit <- gsub(" kit .+$", " kit", SPMeth)
+        kit <- sub(" kit .+$", " kit", SPMeth)
         protocol <- gsub("iST(-NHS)? kit( adapted)?", "", SPMeth)
         if (SP3) {
           insrt <- paste0(" first cleaned up by SP3 using a commercial kit (PreOmics GmbH, ",
@@ -439,7 +439,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
         if (LysC) { LysCT <- svDialogs::dlg_input("For how long (h)?", 4L)$res }
         Txt <- paste0("Paramagnetic beads-bound sample",c(" was", "s were")[moult], " digested directly on beads. ",
                       " Beads were re-suspended in 2x beads volume (~40-80 µL) 100 mM triethylammonium bicarbonate (TEAB).")
-        if (LysC) { Txt <- gsub("\\.$", paste0(" and pre-digested with LysC (Promega; 400 ng per sample, ", LysCT, " h at 37°C)."), Txt) }
+        if (LysC) { Txt <- sub("\\.$", paste0(" and pre-digested with LysC (Promega; 400 ng per sample, ", LysCT, " h at 37°C)."), Txt) }
         Txt <- paste0(Txt,
                       " Beads were captured with a magnetic concentrator and the supernatant collected into a fresh protein LoBind tube.",
                       " Proteins on the beads were reduced in 250 µL 100 mM TEAB, ", ReductC, " ", Reduct, " for ", ReductT,  " min at ", ReductTmp, "°C with shaking,",
@@ -457,7 +457,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                       " Peptides were then labelled with ", LablMeth, " according to the manufacturer's instructions, the reaction was quenched,",
                       " samples were combined according to SUPPLEMENTARY_TABLE_LABELLING_SCHEME, clean-up was completed and the combined sample", c(" was", "s were")[moult],
                       " vacuum dried.")
-      } else { if (PreOmics) { Txt <- gsub("\\.$", paste0(" and ", c("the ", "")[moult], "cleaned-up sample", c(" was", "s were")[moult], " vacuum dried."), Txt) } }
+      } else { if (PreOmics) { Txt <- sub("\\.$", paste0(" and ", c("the ", "")[moult], "cleaned-up sample", c(" was", "s were")[moult], " vacuum dried."), Txt) } }
       # Add fractionation/enrichment text
       if ((PreOmics)||(SPMeth %in% c("EnrichSepPak", "FASP"))) { # Excluding in-gel digest because we do not fractionate after digest for these (but we may enrich)
         N2 <- 1L
@@ -475,7 +475,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
           }
           if (Frac) {
             Txt <- if (Enrich) {
-              gsub("\\.$", paste0(", then the ", FracSource, " was fractionated into ", NFrac,
+              sub("\\.$", paste0(", then the ", FracSource, " was fractionated into ", NFrac,
                                   " fractions using ", FracMeth, "."), Txt)
             } else {
               paste0(Txt, " ", c("The", "Each")[moult], " whole ", FracSource, " was fractionated into ", NFrac,
@@ -510,7 +510,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
         m <- max(250L, nchar(opt))
         opt <- sapply(opt, \(x) { paste(c(x, rep(" ", m-nchar(x))), collapse = "") })
         loadBuf <- svDialogs::dlg_list(opt, opt[1L], "Which LCMS loading buffer were the samples re-dissolved in?")$res
-        loadBuf <- gsub(" +$", "", loadBuf)
+        loadBuf <- sub(" +$", "", loadBuf)
         if (loadBuf == "Other...") {
           loadBuf <- svDialogs::dlg_input("Enter LCMS loading buffer composition:", "")$res
           write(c(loadBuf, opt1), fl1)

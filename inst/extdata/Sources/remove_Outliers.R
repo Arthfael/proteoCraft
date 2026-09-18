@@ -39,8 +39,8 @@ if (exists("appRunTest")) { rm(appRunTest) }
 #dotLab <- RSA$names
 colLab <- VPAL$names
 if (length(Exp) == 1L) {
-  #dotLab <- dotLab[which(dotLab != "Experiment")]
-  colLab <- colLab[which(colLab != "Experiment")]
+  #dotLab <- setdiff(dotLab, "Experiment")
+  colLab <- setdiff(colLab, "Experiment")
 }
 #dotLab <- paste(dotLab, collapse = " ")
 colLab <- paste(colLab, collapse = " ")
@@ -146,7 +146,7 @@ server <- \(input, output, session) {
       w <- which(vapply(colnames(tmpTbl), \(x) { inherits(tmpTbl[[x]], "list") }, TRUE))
       if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
       tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE, quote = TRUE), silent = TRUE)
-      while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {
+      while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
         dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
         tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE, quote = TRUE), silent = TRUE)
       }
@@ -159,7 +159,7 @@ server <- \(input, output, session) {
   session$onSessionEnded(\() { stopApp() })
 }
 runKount <- 0L
-while ((!runKount)||(!exists("appRunTest"))) {
+while ((!runKount) || (!exists("appRunTest"))) {
   eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount+1L
@@ -168,27 +168,27 @@ while ((!runKount)||(!exists("appRunTest"))) {
 #tmp <- read.csv(Param$Experiments.map)
 #tmp$Use <- Exp.map$Use
 #write.csv(tmp, file = paste0("backup_", Param$Experiments.map), row.names = FALSE)
-Exp.map <- Exp.map[which(Exp.map$Use),]
+Exp.map <- Exp.map[Exp.map$Use,]
 expMap <- expMap[match(Exp.map$Ref.Sample.Aggregate, rownames(expMap)),]
-designMatr <- designMatr[which(rownames(designMatr) %in% gsub("___", "_", as.character(expMap[[RSA$limmaCol]]))),]
+designMatr <- designMatr[rownames(designMatr) %in% gsub("___", "_", as.character(expMap[[RSA$limmaCol]])),]
 # NOTE: filtering designMatr removes its attributes... but they are not necessary for the use we make of the matrix
 for (lit in c("A", "B", "C", "D")) { #lit <- "A"
   kl <- paste0(lit, "_samples")
   if (kl %in% colnames(myContrasts)) {
     myContrasts[[kl]] <- lapply(1:nrow(myContrasts), \(i) {
-      rownames(expMap)[which(expMap[[VPAL$limmaCol]] == myContrasts[i, lit])]
+      rownames(expMap)[expMap[[VPAL$limmaCol]] == myContrasts[i, lit]]
     })
   }
 }
 test <- vapply(1L:nrow(myContrasts), \(i) {
-  tst <- (length(myContrasts$A_samples[[i]]) > 0L)&(length(myContrasts$B_samples[[i]]) > 0L)
+  tst <- (length(myContrasts$A_samples[[i]]) > 0L) & (length(myContrasts$B_samples[[i]]) > 0L)
   if (nchar(myContrasts$Secondary[[i]])) {
-    tst <- tst&(length(myContrasts$C_samples[[i]]) > 0L)&(length(myContrasts$D_samples[[i]]) > 0L)
+    tst <- tst & (length(myContrasts$C_samples[[i]]) > 0L) & (length(myContrasts$D_samples[[i]]) > 0L)
   }
   return(tst)
 }, TRUE)
-myContrasts <- myContrasts[which(test),]
-contrMatr <- contrMatr[, which(colnames(contrMatr) %in% myContrasts$Contrast), drop = FALSE]
+myContrasts <- myContrasts[test,]
+contrMatr <- contrMatr[, colnames(contrMatr) %in% myContrasts$Contrast, drop = FALSE]
 if (LabelType == "Isobaric") { Iso <- sort(unique(Exp.map$Isobaric.set)) }
 for (i in 1L:nrow(Aggregate.map)) { #i <- 1L
   n <- Aggregate.map$Aggregate.Name[i]

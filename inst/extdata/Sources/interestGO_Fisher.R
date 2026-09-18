@@ -43,18 +43,18 @@ if (length(GO.tabs)) {
     fishrTsts[[go]] <- c()
     go_and_offspring <- union(go, GO_terms$Offspring[[match(go, GO_terms$ID)]])
     #
-    goRws <- unique(tmpGO$Row[which(tmpGO$GO %in% go_and_offspring)]) # pep rows with annotations for the current term
+    goRws <- unique(tmpGO$Row[tmpGO$GO %in% go_and_offspring]) # pep rows with annotations for the current term
     tstFish <- lapply(names(kol), \(grp) { #grp <- names(kol)[1L]
       tmp <- pep[, kol[[grp]], drop = FALSE] > 0
       w <- which(rowSums(tmp) >= 2L)
-      w1 <- w[which(w %in% goRws)] # Row of pep with non missing quant values for this group AND the current term
-      w2 <- w[which(!w %in% goRws)] # Row of pep with non missing quant values for this group BUT not the current term
-      p1 <- unique(tmpPrt$Protein[which(tmpPrt$Row %in% w1)])
-      p2 <- unique(tmpPrt$Protein[which(tmpPrt$Row %in% w2)])
+      w1 <- intersect(w, goRws) # Row of pep with non missing quant values for this group AND the current term
+      w2 <- setdiff(w, goRws) # Row of pep with non missing quant values for this group BUT not the current term
+      p1 <- unique(tmpPrt$Protein[tmpPrt$Row %in% w1])
+      p2 <- unique(tmpPrt$Protein[tmpPrt$Row %in% w2])
       n1 <- length(p1)
       n2 <- length(p2)
-      p3 <- unique(dbGO$Protein[which((dbGO$GO %in% go_and_offspring)&(!dbGO$Protein %in% c(p1, p2)))])
-      p4 <- unique(dbGO$Protein[which(!dbGO$Protein %in% c(p1, p2, p3))])
+      p3 <- unique(dbGO$Protein[(dbGO$GO %in% go_and_offspring) & (!dbGO$Protein %in% c(p1, p2))])
+      p4 <- setdiff(dbGO$Protein, c(p1, p2, p3))
       n3 <- length(p3)
       n4 <- length(p4)
       dat <- data.frame("In group" = c(n1, n2),
@@ -110,7 +110,7 @@ if (length(GO.tabs)) {
   myGOdata2 <- setNames(lapply(Ontologies, \(ont) {
     my_topGO_tst <- setNames(lapply(names(kol), \(nm) { #nm <- names(kol)[1L]
       x <- myGOdata[[ont]][[nm]]
-      x <- x[which(x$ID %in% GO.tabs),]
+      x <- x[x$ID %in% GO.tabs,]
       myGOdata[[ont]][[nm]] <- x
     }), names(kol))
   }), Ontologies)

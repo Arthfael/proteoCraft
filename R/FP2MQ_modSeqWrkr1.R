@@ -12,7 +12,7 @@
                                mods,
                                pat) {
   #x <- strsplit(PSMs$`Assigned Modifications`[wMdSq[1]], ", ?")
-  x <- gsub("\\)$", "", unlist(x))
+  x <- sub("\\)$", "", unlist(x))
   ptms <- as.data.frame(t(sapply(x, function(y) { unlist(strsplit(y, split = "\\(")) })))
   colnames(ptms) <- c("Site", "Mass shift")
   rownames(ptms) <- NULL
@@ -21,7 +21,7 @@
     if (aa == "C-term") { ps <- l+1L }
     if (!aa %in% c("N-term", "C-term")) {
       ps <- gsub(paste0(pat, "$"), "", aa)
-      aa <- gsub("^[0-9]+", "", aa)
+      aa <- sub("^[0-9]+", "", aa)
     }
     return(c(aa, ps))
   }))

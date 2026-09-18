@@ -8,9 +8,9 @@ if (length(w)) {
     }
     return(rs)
   }), prot.list[w])
-  pY <- names(tst)[which(vapply(tst, \(x) { x$Outcome }, TRUE))]
-  pN <- names(tst)[which(vapply(tst, \(x) { !x$Outcome }, TRUE))]
-  if (length(pN)) { prot.list <- prot.list[which(!prot.list %in% pN)] }
+  pY <- names(tst)[vapply(tst, \(x) { x$Outcome }, TRUE)]
+  pN <- names(tst)[vapply(tst, \(x) { !x$Outcome }, TRUE)]
+  if (length(pN)) { prot.list <- setdiff(prot.list, pN) }
   if (length(pY)) {
     tst <- lapply(tst[pY], \(x) { Format.DB(x$Res, in.env = TRUE) })
     tst <- plyr::rbind.fill(tst)

@@ -5,11 +5,11 @@ nCharLim <- 40L
 goAhead <- FALSE
 if (prot.list.Cond) {
   setwd(wd)
-  evids <- as.integer(unlist(strsplit(PG$`Evidence IDs`[which(PG$`In list` == "+")], ";")))
+  evids <- as.integer(unlist(strsplit(PG$`Evidence IDs`[PG$`In list` == "+"], ";")))
   goAhead <- length(evids)
 }
 if (goAhead) {
-  TMP0 <- ev[which(ev$id %in% evids),]
+  TMP0 <- ev[ev$id %in% evids,]
   if (scrptType == "withReps") {
     rfRoot <- pep.ref[length(pep.ref)]
     smplLvl <- VPAL$values
@@ -26,8 +26,8 @@ if (goAhead) {
     TMP0 <- TMP0[grep("-MATCH$", TMP0$Type, invert = TRUE),]
   }
   TEST0 <- listMelt(strsplit(TMP0$Proteins, ";"), TMP0$id)
-  TEST0 <- TEST0[which(TEST0$value %in% unlist(IDs.list)),]
-  tmpDB <- db[which(db$`Protein ID` %in% prot.list),
+  TEST0 <- TEST0[TEST0$value %in% unlist(IDs.list),]
+  tmpDB <- db[db$`Protein ID` %in% prot.list,
               c("Protein ID", "Common Name", "Sequence")]
   runRat <- FALSE
   if (scrptType == "withReps") {
@@ -40,7 +40,7 @@ if (goAhead) {
     if (l > 1L) {
       comb <- as.data.frame(gtools::permutations(l, 2L, smplLvl, repeats.allowed = TRUE))
       colnames(comb) <- c("A", "B")
-      comb <- comb[which(comb$A != comb$B),]
+      comb <- comb[comb$A != comb$B,]
       myComb <- do.call(paste, c(comb, sep = " / "))
       opt <- vapply(myComb, \(x) { paste(c(x, rep(" ", max(c(1L, 250L-nchar(x))))), collapse = "") }, "")
       slct <- dlg_list(opt, opt, TRUE, "Ratio plots: select comparisons of interest")$res
@@ -65,7 +65,7 @@ if (goAhead) {
       p <- toupper(svDialogs::dlgInput(paste0("Sorry, I could not find protein name \"", IDs, "\" in the database, do you want to provide an alternate name?"), "")$res)
       if (p != "") {
         prot.names[iii] <- p
-        IDs <- tmpDB$"Protein ID"[which(tmpDB$"Common Name" == p)]
+        IDs <- tmpDB$"Protein ID"[tmpDB$"Common Name" == p]
         if (length(IDs) == 0L) { warning("Really sorry, but I really cannot make sense of this protein name, skipping...") }
       } else { warning("Ok, fine, we'll skip then.") }
     }
@@ -113,7 +113,8 @@ if (goAhead) {
       nm2 <- gsub(":", "_", gsub("\\.\\.\\.$", "", nm))
       cat("Generating plots for", nm, "\n")
       suppressWarnings({
-        drs <- paste0(wd, "/Protein plots/", nm2, c(paste0("/Coverage/", c("Intensity", "PEP")),
+        drs <- paste0(wd, "/Protein plots/", nm2, c(paste0("/Coverage/", c("Intensity",
+                                                                           "PEP")),
                                                     "/Correlation",
                                                     "/Ratios"))
         for (dr in drs) { if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) } }
@@ -137,14 +138,14 @@ if (goAhead) {
           x <- unlist(x$Mtch)
           if (length(x)) {
             x <- aggregate(x, list(x), length)
-            x <- x[which(x$x == l),]
+            x <- x[x$x == l,]
             if (nrow(x)) { rs <- x$Group.1 }
           }
         }
         return(rs)
       })
       s <- listMelt(s$Matches, s$Seq, c("Matches", "Seq"))
-      s <- s[which(!is.na(s$Matches)),]
+      s <- s[!is.na(s$Matches),]
       if (!nrow(s)) {
         warning(paste0("No peptides identified for protein accession ", id, "."))
         return()
@@ -165,7 +166,7 @@ if (goAhead) {
         res <- set_colnames(aggregate(e$Intensity[wh], list(e$"Modified sequence"[wh]), sum),
                             c("Modified sequence", "Intensity"))
         e <- set_colnames(aggregate(e$PEP[wh], list(e$"Modified sequence"[wh]), \(x) {
-          x <- x[which(is.finite(x))]
+          x <- x[is.finite(x)]
           if (!length(x)) { return(NA) }
           return(max(x))
         }), c("Modified sequence", "PEP"))
@@ -176,16 +177,16 @@ if (goAhead) {
                               paste, "", collapse = ";")
         return(res)
       }), smplLvl)
-      tempev <- tempev[which(vapply(tempev, \(x) { is.data.frame(x) }, TRUE))]
+      tempev <- tempev[vapply(tempev, \(x) { is.data.frame(x) }, TRUE)]
       if (!length(tempev)) { return() }
       mxInt <- unlist(sapply(names(tempev), \(exp) { #exp <- names(tempev)[1L]
         tempev[[exp]]$"log10(Intensity)"
       }))
-      mxInt <- ceiling(max(mxInt[which(is.finite(mxInt))]))
+      mxInt <- ceiling(max(mxInt[is.finite(mxInt)]))
       mxPEP <- unlist(sapply(names(tempev), \(exp) {
         -log10(tempev[[exp]]$PEP)
       }))
-      mxPEP <- ceiling(max(mxInt[which(is.finite(mxPEP))]))
+      mxPEP <- ceiling(max(mxInt[is.finite(mxPEP)]))
       RES$Coverage <- list()
       RES$Coverage$logInt <- list()
       RES$Coverage$PEP <- list()
@@ -229,14 +230,14 @@ if (goAhead) {
         }
         tempAB$variable <- as.character(tempAB$variable)
         tempAB$Dummy <- apply(tempAB[,c("Modified sequence", "L1")], 1L, paste, collapse = "---")
-        tempAB1 <- tempAB[which(tempAB$variable == "log10(Intensity)"),]
-        tempAB2 <- tempAB[which(tempAB$variable == "PEP"),]
+        tempAB1 <- tempAB[tempAB$variable == "log10(Intensity)",]
+        tempAB2 <- tempAB[tempAB$variable == "PEP",]
         tempAB1$PEP <- tempAB2$value[match(tempAB1$Dummy, tempAB2$Dummy)]
         tempAB <- tempAB1; rm(tempAB1, tempAB2)
         comb2 <- as.data.frame(gtools::permutations(length(smplLvl), 2L, smplLvl, repeats.allowed = TRUE))
         colnames(comb2) <- c("A", "B")
         myComb2 <- do.call(paste, c(comb2, sep = " / "))
-        comb2 <- comb2[which(myComb2 %in% myComb),]
+        comb2 <- comb2[myComb2 %in% myComb,]
         tempAB$tmp <- as.character(tempAB$Match)
         temp2 <- lapply(1L:nrow(comb2), \(j) { #j <- 1L
           w1 <- which(tempAB$L1 == comb2[j, 1L])
@@ -259,11 +260,11 @@ if (goAhead) {
           s$Comparison <- paste0(comb2[j, 1L], " (A) vs ", comb2[j, 2L], " (B)")
           return(s)
         })
-        temp2 <- temp2[which(vapply(temp2, \(x) { is.data.frame(x) }, TRUE))]
+        temp2 <- temp2[vapply(temp2, \(x) { is.data.frame(x) }, TRUE)]
         temp2 <- do.call(rbind, temp2)
         if (nrow(temp2)) {
           temp3 <- as.data.frame(t(sapply(unique(temp2$Comparison), \(x) { #x <- unique(temp2$Comparison)[1L]
-            x1 <- temp2[which(temp2$Comparison == unlist(x)), c("log10(LFQ, A)", "log10(LFQ, B)")]
+            x1 <- temp2[temp2$Comparison == unlist(x), c("log10(LFQ, A)", "log10(LFQ, B)")]
             x1 <- x1$"log10(LFQ, B)" - x1$"log10(LFQ, A)"
             return(setNames(c(x,
                               paste0("Median = ", round(median(x1), 3L)),
@@ -278,15 +279,15 @@ if (goAhead) {
           temp2$"C-terminal extent" <- temp2$Match + nchar(temp2$Sequence) - 1L
           temp2$"log2(A/B)" <- (temp2$`log10(LFQ, A)` - temp2$`log10(LFQ, B)`)/log10(2L)
           temp2$"avg. log10(intensity)" <- apply(temp2[, c("log10(LFQ, A)", "log10(LFQ, B)")], 1L, \(x){
-            mean(x[which(is.finite(x))])
+            mean(x[is.finite(x)])
           })
           wInf <- which(!is.finite(temp2$"log2(A/B)"))
           tstInf <- length(wInf)
           tstInfA <- tstInfB <- FALSE
           if (tstInf) {
             logFC_rng <- range(temp2$"log2(A/B)", na.rm = TRUE)
-            wA <- wInf[which(is.finite(temp2$`log10(LFQ, A)`[wInf]))]
-            wB <- wInf[which(is.finite(temp2$`log10(LFQ, B)`[wInf]))]
+            wA <- wInf[is.finite(temp2$`log10(LFQ, A)`[wInf])]
+            wB <- wInf[is.finite(temp2$`log10(LFQ, B)`[wInf])]
             tstInfA <- length(wA)
             tstInfB <- length(wB)
             if (tstInfA) {
@@ -298,7 +299,7 @@ if (goAhead) {
           }
           ttl <- paste0("Correlation plot - ", nm)
           temp2$finiTest <- apply(temp2[, c("log10(LFQ, A)", "log10(LFQ, B)") ], 1L, \(x) { sum(is.finite(x)) }) == 2L
-          temp2Corr <- temp2[which(temp2$finiTest),]
+          temp2Corr <- temp2[temp2$finiTest,]
           x_min <- min(temp2Corr$`log10(LFQ, A)`)
           y_min <- min(temp2Corr$`log10(LFQ, B)`)
           y_max <- max(temp2Corr$`log10(LFQ, B)`)
@@ -338,7 +339,7 @@ if (goAhead) {
           mwScl <- ceiling(max(tst$MW)/1000)*1000
           intSp <- round((mwScl/5)/1000)*1000
           mwScl <- (0L:(mwScl/intSp))*intSp
-          mwScl <- mwScl[which(mwScl <= max(tst$MW))]
+          mwScl <- mwScl[mwScl <= max(tst$MW)]
           mwScl <- data.frame(Da = mwScl)
           mwScl$AA <- 0L
           mwScl$AA[2L:nrow(mwScl)] <- vapply(mwScl$Da[2L:nrow(mwScl)], \(x) {
@@ -356,7 +357,7 @@ if (goAhead) {
             aa <- (x-x1)*(w2-w1)/(x2-x1) + w1
             return(aa)
           }, 1)
-          mwScl <- mwScl[which(!is.na(mwScl$AA)),]
+          mwScl <- mwScl[!is.na(mwScl$AA),]
           nr <- nrow(mwScl)
           if (nr) {
             mwScl <- rbind(mwScl,
@@ -364,7 +365,7 @@ if (goAhead) {
                                       "AA" = mwScl$AA[nr]*2-mwScl$AA[nr-1L]))
             mwScl$kDa <- paste0(round(mwScl$Da/1000), " kDa")
           }
-          ySum <- summary(temp2$`log2(A/B)`[which(is.finite(temp2$`log2(A/B)`))])
+          ySum <- summary(temp2$`log2(A/B)`[is.finite(temp2$`log2(A/B)`)])
           yScl <- ySum["Max."] - ySum["Min."]
           yMin <- ySum["Min."] - 0.1*yScl
           xLim <- c(-10L, max(c(seqL, mwScl$AA)))
@@ -398,7 +399,7 @@ if (goAhead) {
           tst <- aggregate(temp2$Match, list(temp2$A, temp2$B), \(x) { length(unique(x)) })
           if (min(tst$x) >= 20L) {
             plot <- plot +
-              geom_smooth(data = temp2[which(temp2$finiTest),], aes(x = (`C-terminal extent`+Match)/2, y = .data[[myCol]]),
+              geom_smooth(data = temp2[temp2$finiTest,], aes(x = (`C-terminal extent`+Match)/2, y = .data[[myCol]]),
                           alpha = 0.1, linewidth = 0.5,
                           method = "loess", formula = y ~ x)
           }
@@ -487,9 +488,12 @@ if (goAhead) {
     return(RES)
   }), prot.names[mtchTst])
   if (scrptType == "noReps") {
-    ratioPlots %<o% setNames(lapply(names(tmpPlots), \(nm) { tmpPlots[[nm]]$Ratio_plot }), prot.names)
+    ratioPlots <- setNames(lapply(names(tmpPlots), \(nm) { tmpPlots[[nm]]$Ratio_plot }), prot.names)
+    ratioPlots_fl %<o% paste0(wd, "/Protein plots/ratioPlots.RDS")
+    saveFun(ratioPlots, ratioPlots_fl)
+    rm(ratioPlots)
   }
-  covPlots %<o% setNames(lapply(names(tmpPlots), \(nm) { #nm <- names(tmpPlots)[1L]
+  covPlots <- setNames(lapply(names(tmpPlots), \(nm) { #nm <- names(tmpPlots)[1L]
     smpls1 <- names(tmpPlots[[nm]]$Coverage$logInt)
     smpls2 <- names(tmpPlots[[nm]]$Coverage$PEP)
     l1 <- length(smpls1)
@@ -505,6 +509,9 @@ if (goAhead) {
     }
     return(res)
   }), names(tmpPlots))
+  covPlots_fl %<o% paste0(wd, "/Protein plots/covPlots.RDS")
+  saveFun(covPlots, covPlots_fl)
+  rm(covPlots)
   #ratioPlots[[1L]]
 }
 # This code seems to damage the cluster: check the source afterwards!

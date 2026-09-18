@@ -14,11 +14,11 @@ if (length(ROC_GOterms)) {
     pack <- "pROC"
     bioc_req <- unique(c(bioc_req, pack))
     biocInstall(pack)
-    w1 <- which(paste0(pvalue.col[which(pvalue.use)], VPAL$values) %in% colnames(PG))
+    w1 <- which(paste0(pvalue.col[pvalue.use], VPAL$values) %in% colnames(PG))
     if (!length(w1)) { stop("Where are my P-values?!?!%&$+*!*") } else {
       for (grp in VPAL$values[w1]) { #grp <- VPAL$values[w1[1L]]
         grp2 <- cleanNms(grp)
-        pkol <- paste0(pvalue.col[which(pvalue.use)], grp)
+        pkol <- paste0(pvalue.col[pvalue.use], grp)
         w2 <- which(is.finite(PG[[pkol]]))
         PG$"ROC - Predictor" <- 10L^(-PG[[pkol]])
         rocobj <- pROC::roc(PG[w2, ], "ROC - True Positive", "ROC - Predictor")

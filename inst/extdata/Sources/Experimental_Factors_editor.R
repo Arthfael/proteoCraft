@@ -5,8 +5,8 @@ minFactDesc <- setNames(c("grouping of sample groups to compare", "maximum numbe
                         minFact)
 if (file.exists("Factors.RData")) {
   load("Factors.RData")
-  Factors <- setNames(tmp$Factors, substr(tmp$Factors, 1, 3))
-  Factors <- Factors[which(!is.na(Factors))]
+  Factors <- setNames(tmp$Factors, substr(tmp$Factors, 1L, 3L))
+  Factors <- Factors[!is.na(Factors)]
   if (length(Factors)) { FactorsLevels %<o% tmp$Levels[Factors] } else { rm(Factors) }
 }
 if (WorkFlow == "PULLDOWN") {
@@ -27,15 +27,15 @@ if (LabelType == "Isobaric") {
 }
 if (!exists("Factors")) {
   Factors <- minFact
-  FactorsLevels %<o% setNames(lapply(Factors, function(x) { c("") }), Factors)
+  FactorsLevels %<o% setNames(lapply(Factors, \(x) { c("") }), Factors)
 } else { Factors %<o% unique(c(Factors, minFact)) }
-Factors <- Factors[which(!Factors %in% "Group")] # See below...
+Factors <- setdiff(Factors, "Group") # See below...
 if (WorkFlow == "BIOID") {
   Factors <- unique(c(Factors, "Target")) # In this case target is not obligatory
   minFactDesc["Target"] <- "ID (e.g. UniProtKB accession) in the search database(s) of the bait protein"
 }
 if (!exists("FactorsLevels")) {
-  FactorsLevels %<o% setNames(lapply(Factors, function(x) { c("") }), Factors)
+  FactorsLevels %<o% setNames(lapply(Factors, \(x) { c("") }), Factors)
   if (LabelType == "Isobaric") {
     FactorsLevels["Isobaric.set"] <- sort(unique(FracMap$Isobaric.set))
   }
@@ -44,9 +44,9 @@ w <- which(!Factors %in% names(FactorsLevels))
 if (length(w)) {
   FactorsLevels[Factors[w]] <- c()
 }
-Factors %<o% Factors[which(!is.na(Factors))]
+Factors %<o% Factors[!is.na(Factors)]
 if (LabelType == "Isobaric") {
-  for (Fct in Factors[which(!Factors %in% c("Experiment", "Replicate", "Isobaric.set"))]) {
+  for (Fct in setdiff(Factors, c("Experiment", "Replicate", "Isobaric.set"))) {
     FactorsLevels[[Fct]] <- unique(c(FactorsLevels[[Fct]], "Mixed_IRS"))
   }
 }
@@ -58,10 +58,10 @@ if (exists("runTst")) { rm(runTst) }
 ui <- fluidPage(
   useShinyjs(),
   setBackgroundColor( # Doesn't work
-     color = c(#"#F8F8FF",
-       "#F2F0FA"),
-     gradient = "linear",
-     direction = "bottom"
+    color = c(#"#F8F8FF",
+      "#F2F0FA"),
+    gradient = "linear",
+    direction = "bottom"
   ),
   extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
   titlePanel(tag("u", "Experimental Factors editor"),
@@ -114,14 +114,14 @@ ui <- fluidPage(
   br(),
   br()
 )
-server <- function(input, output, session) {
+server <- \(input, output, session) {
   # Initialize reactive variables
   FACT <- reactiveVal(Factors)
   FACTLevels <- reactiveVal(FactorsLevels)
   intFact <- c("Replicate", "Isobaric.set")
-  dfltInt <- c(2, 1)
+  dfltInt <- c(2L, 1L)
   # Create function to update output$Factors for UI
-  updtFactUI <- function(reactive = TRUE) {
+  updtFactUI <- \(reactive = TRUE) {
     if (reactive) {
       FAKT <- FACT()
       FAKTLevels <- FACTLevels()
@@ -133,7 +133,7 @@ server <- function(input, output, session) {
     # Update UI
     return(renderUI({
       lst <- vector("list", L)
-      for (i in 1:L) {
+      for (i in 1L:L) {
         Fact <- FAKT[i]
         if (Fact %in% intFact) {
           miN <- dfltInt[match(Fact, intFact)]
@@ -152,8 +152,8 @@ server <- function(input, output, session) {
                                               paste0(Fact, ", levels = ", paste(FAKTLevels[[Fact]], collapse = " / ")), "")))
         }
         lst[[i]] <- append(lst[[i]],
-                           list(fluidRow(column(3, actionBttn(paste0(Fact, "_levAdd"), "Add level(s)", color = "primary", size = "xs", style = "pill")),
-                                         column(3, actionBttn(paste0(Fact, "_levRmv"), "Remove level(s)", color = "primary", size = "xs", style = "pill"))),
+                           list(fluidRow(column(3L, actionBttn(paste0(Fact, "_levAdd"), "Add level(s)", color = "primary", size = "xs", style = "pill")),
+                                         column(3L, actionBttn(paste0(Fact, "_levRmv"), "Remove level(s)", color = "primary", size = "xs", style = "pill"))),
                                 tags$hr(style = "border-color: grey;"),
                                 br()))
       }
@@ -168,23 +168,23 @@ server <- function(input, output, session) {
   #
   # Observers for already extent factors
   #  - Add new Factor level
-  sapply(Factors, function(Fact) {
+  sapply(Factors, \(Fact) {
     observeEvent(input[[paste0(Fact, "_levAdd")]], {
       vals <- input[[paste0(Fact, "_lev")]]
-      vals <- vals[which(!is.na(vals))]
+      vals <- vals[!is.na(vals)]
       if (length(vals)) {
         if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
         if (Fact != "Target") { vals <- gsub("-", ".", vals) }
         tmp2 <- FACTLevels()
         if (Fact %in% intFact) {
-          tmp2[[Fact]] <- 1:max(as.integer(c(vals, dfltInt[match(Fact, intFact)])))
+          tmp2[[Fact]] <- 1L:max(as.integer(c(vals, dfltInt[match(Fact, intFact)])))
         } else {
           if (Fact == "Time.point") {
             vals <- suppressWarnings(as.numeric(vals))
-            vals <- vals[which(!is.na(vals))]
+            vals <- vals[!is.na(vals)]
           }
           tmp <- unique(c(FACTLevels()[[Fact]], vals))
-          tmp <- tmp[which(tmp != "")]
+          tmp <- setdiff(tmp, "")
           tmp2[[Fact]] <- tmp
         }
         FACTLevels(tmp2)
@@ -193,22 +193,22 @@ server <- function(input, output, session) {
     })
   })
   #  - Remove Factor level
-  sapply(Factors, function(Fact) {
+  sapply(Factors, \(Fact) {
     observeEvent(input[[paste0(Fact, "_levRmv")]], {
       vals <- input[[paste0(Fact, "_lev")]]
-      vals <- vals[which(!is.na(vals))]
+      vals <- vals[!is.na(vals)]
       if (length(vals)) {
         if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
         if (Fact != "Target") { vals <- gsub("-", ".", vals) }
         tmp2 <- FACTLevels()
         if (Fact %in% intFact) {
-          tmp2[[Fact]] <- 1:(max(c(as.integer(vals)-1, dfltInt[match(Fact, intFact)])))
+          tmp2[[Fact]] <- 1L:(max(c(as.integer(vals)-1L, dfltInt[match(Fact, intFact)])))
         } else {
           if (Fact == "Time.point") {
             vals <- suppressWarnings(as.numeric(vals))
-            vals <- vals[which(!is.na(vals))]
+            vals <- vals[!is.na(vals)]
           }
-          tmp2[[Fact]] <- tmp2[[Fact]][which(!tmp2[[Fact]] %in% vals)]
+          tmp2[[Fact]] <- setdiff(tmp2[[Fact]], vals)
         }
         FACTLevels(tmp2)
         output$Factors <- updtFactUI()
@@ -221,12 +221,12 @@ server <- function(input, output, session) {
     msg <- " "
     Facts <- gsub("[^A-Z,a-z,0-9]", "\\.", unlist(strsplit(input$nuFact, " +")))
     # We must strictly disallow Group here or rewrite any bit of code where Group is used generically
-    Facts <- Facts[which(!Facts %in% c("Group"))]
-    sapply(Facts, function(Fact) {
-      if ((nchar(Fact) < 3)||(grepl("^[0-9]", Fact))||(substr(Fact, 1, 3) %in% substr(FACT(), 1, 3))) {
+    Facts <- setdiff(Facts, "Group")
+    sapply(Facts, \(Fact) {
+      if ((nchar(Fact) < 3L)||(grepl("^[0-9]", Fact))||(substr(Fact, 1L, 3L) %in% substr(FACT(), 1L, 3L))) {
         msg <- "Invalid Factor name! Must be at least 3 characters long and start with a capital letter! The first 3 characters must be unique to this Factor!"
       } else {
-        Fact <- paste0(toupper(substr(Fact, 1, 1)), tolower(substr(Fact, 2, nchar(Fact))))
+        Fact <- paste0(toupper(substr(Fact, 1L, 1L)), tolower(substr(Fact, 2L, nchar(Fact))))
         if (!Fact %in% FACT()) {
           FACT(c(FACT(), Fact))
           tmp <- FACTLevels()
@@ -235,20 +235,20 @@ server <- function(input, output, session) {
           # Also, ABSOLUTELY crucial: create new observers for level addition/removal!!!
           observeEvent(input[[paste0(Fact, "_levAdd")]], {
             vals <- input[[paste0(Fact, "_lev")]]
-            vals <- vals[which(!is.na(vals))]
+            vals <- vals[!is.na(vals)]
             if (length(vals)) {
               if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
               if (Fact != "Target") { vals <- gsub("-", ".", vals) }
               tmp2 <- FACTLevels()
               if (Fact %in% intFact) {
-                tmp2[[Fact]] <- 1:max(as.integer(c(vals, dfltInt[match(Fact, intFact)])))
+                tmp2[[Fact]] <- 1L:max(as.integer(c(vals, dfltInt[match(Fact, intFact)])))
               } else {
                 if (Fact == "Time.point") {
                   vals <- suppressWarnings(as.numeric(vals))
-                  vals <- vals[which(!is.na(vals))]
+                  vals <- vals[!is.na(vals)]
                 }
                 tmp <- unique(c(FACTLevels()[[Fact]], vals))
-                tmp <- tmp[which(tmp != "")]
+                tmp <- setdiff(tmp, "")
                 tmp2[[Fact]] <- tmp
               }
               FACTLevels(tmp2)
@@ -257,20 +257,20 @@ server <- function(input, output, session) {
           })
           observeEvent(input[[paste0(Fact, "_levRmv")]], {
             vals <- input[[paste0(Fact, "_lev")]]
-            vals <- vals[which(!is.na(vals))]
+            vals <- vals[!is.na(vals)]
             if (length(vals)) {
               if (is.character(vals)) { vals <- unlist(strsplit(vals, " ")) }
               if (Fact != "Target") { vals <- gsub("-", ".", vals) }
               tmp2 <- FACTLevels()
               if (Fact %in% intFact) {
-                tmp2[[Fact]] <- 1:(max(c(as.integer(vals)-1, dfltInt[match(Fact, intFact)])))
+                tmp2[[Fact]] <- 1L:(max(c(as.integer(vals)-1L, dfltInt[match(Fact, intFact)])))
               } else {
                 if (Fact == "Time.point") {
                   vals <- suppressWarnings(as.numeric(vals))
-                  vals <- vals[which(!is.na(vals))]
+                  vals <- vals[!is.na(vals)]
                 }
                 tmp <- unique(c(FACTLevels()[[Fact]], vals))
-                tmp2[[Fact]] <- tmp2[[Fact]][which(!tmp2[[Fact]] %in% vals)]
+                tmp2[[Fact]] <- setdiff(tmp2[[Fact]], vals)
               }
               FACTLevels(tmp2)
               output$Factors <- updtFactUI()
@@ -289,7 +289,7 @@ server <- function(input, output, session) {
     if ((nchar(tmp) < 3)||(grepl("^[0-9]", tmp))) {
       msg <- "Invalid Factor name! Must be at least 3 characters long and start with a capital letter!"
     } else {
-      tmp <- paste0(toupper(substr(tmp, 1, 1)), tolower(substr(tmp, 2, nchar(tmp))))
+      tmp <- paste0(toupper(substr(tmp, 1L, 1L)), tolower(substr(tmp, 2L, nchar(tmp))))
       if (!tmp %in% FACT()) {
         msg <- "Cannot remove a non-existent Factor!"
       } else {
@@ -297,7 +297,7 @@ server <- function(input, output, session) {
           msg <- paste0("Factor ", tmp, " is included by default in this workflow and cannot be removed!")
         } else {
           tmp2 <- FACT()
-          tmp2 <- tmp2[which(tmp2 != tmp)]
+          tmp2 <- setdiff(tmp2, tmp)
           FACT(tmp2)
           FACTLevels(FACTLevels()[FACT()])
         }
@@ -314,31 +314,31 @@ server <- function(input, output, session) {
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+  session$onSessionEnded(\() { stopApp() })
 }
-runKount <- 0
+runKount <- 0L
 while ((!runKount)||(!exists("runTst"))) {
   eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
-  runKount <- runKount+1
+  runKount <- runKount+1L
 }
 #
 if ("Target" %in% Factors) {
-  FactorsLevels$Target <- FactorsLevels$Target[which(!is.na(FactorsLevels$Target))]
-  if (length(FactorsLevels$Target) == 1) {
+  FactorsLevels$Target <- FactorsLevels$Target[!is.na(FactorsLevels$Target)]
+  if (length(FactorsLevels$Target) == 1L) {
     FactorsLevels$Target <- c(FactorsLevels$Target, "Control")
-    if (length(FactorsLevels$Target) == 1) {
+    if (length(FactorsLevels$Target) == 1L) {
       FactorsLevels$Target <- c(FactorsLevels$Target, "Ctrl")
     }
   }
 }
-FactorsLevels <- setNames(lapply(Factors, function(fct) {
+FactorsLevels <- setNames(lapply(Factors, \(fct) {
   x <- FactorsLevels[[fct]]
-  x[which(!is.na(x))]
+  x[!is.na(x)]
 }), Factors)
-Factors <- Factors[which(sapply(FactorsLevels[Factors], length) > 0)]
-names(Factors) <- substr(Factors, 1, 3)
-Factors <- Factors[c("Exp", names(Factors)[which(!names(Factors) %in% c("Exp", "Rep"))], "Rep")]
+Factors <- Factors[lengths(FactorsLevels[Factors]) > 0L]
+names(Factors) <- substr(Factors, 1L, 3L)
+Factors <- Factors[c("Exp", setdiff(names(Factors), c("Exp", "Rep")), "Rep")]
 FactorsLevels <- FactorsLevels[Factors]
 tmp <- list(Factors = Factors, Levels = FactorsLevels)
 save(tmp, file = "Factors.RData")

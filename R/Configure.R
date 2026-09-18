@@ -131,7 +131,7 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
     try(.pyConfig(), silent = TRUE)
   }
   #
-  locScriptsDir <- gsub("/[^/]+$", "/proteoCraft_localScripts", locDirs$Path[match("Temporary folder", locDirs$Folder)])
+  locScriptsDir <- sub("/[^/]+$", "/proteoCraft_localScripts", locDirs$Path[match("Temporary folder", locDirs$Folder)])
   if (!dir.exists(locScriptsDir)) { dir.create(locScriptsDir) }
   write(c("Save here any script (or a windows shortcut to any script) which you want to run automatically at the beginning of the main analysis scripts.",
           "For instance, as the developer, I keep in this folder a script to source my local working versions of the package's functions,",
@@ -327,11 +327,11 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
           rs2[names(rs)[w]] <- rs[names(rs)[w]]
         }
         rs <- unlist(rs2)
-        names(rs) <- gsub("^MS:[0-9]+\\.", "", names(rs))
+        names(rs) <- sub("^MS:[0-9]+\\.", "", names(rs))
         rs <- rs[grep("^MS:[0-9]+$", names(rs))]
         rs <- sort(rs)
         if (!length(rs)) { return(NULL) }
-        rs <- data.frame(Vendor = gsub(" instrument model$", "", vendorsLab[[x]]),
+        rs <- data.frame(Vendor = sub(" instrument model$", "", vendorsLab[[x]]),
                          Instrument = rs)
         return(rs)
       })

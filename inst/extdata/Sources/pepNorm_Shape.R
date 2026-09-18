@@ -34,7 +34,7 @@ if (!dir.exists(shpDr)) { dir.create(shpDr, recursive = TRUE) }
 dirlist <- unique(c(dirlist, shpDr))
 #
 currSamples <- intersect(allSamples, colnames(tmpDat1))
-A <- parApply(parClust, tmpDat1[wAG1, currSamples], 1L, \(x) { mean(x[which(is.finite(x))]) })
+A <- parApply(parClust, tmpDat1[wAG1, currSamples], 1L, \(x) { mean(x[is.finite(x)]) })
 #
 tmpDat2 <- tmpDat1[, currSamples]*NA_real_
 #
@@ -44,7 +44,7 @@ tstNorm <- try({
   for (lGrp in NormGrps$Group) { #lGrp <- NormGrps$Group[1]
     grpMtch <- match(NormGrps$IDs[[match(lGrp, NormGrps$Group)]],
                      tmpDat1$id[wAG1])
-    grpMtch <- grpMtch[which(!is.na(grpMtch))]
+    grpMtch <- grpMtch[!is.na(grpMtch)]
     #
     dat <- as.matrix(tmpDat1[grpMtch, currSamples])
     if (normMeth == "LOESS") {
@@ -132,7 +132,7 @@ if (!inherits(tstNorm, "try-error")) {
   wAG2 <- wAG1
   # Visualize
   stateLev <- c("before", "after")
-  filtFun <- \(x) { x[which(is.finite(x))] }
+  filtFun <- \(x) { x[is.finite(x)] }
   tmpAB <- lapply(1L:2L, \(i) { #i <- 1L
     if (i == 1L) { tmpDat <- tmpDat1[wAG1, currSamples] }
     if (i == 2L) { tmpDat <- tmpDat2[wAG2, currSamples] }
@@ -148,18 +148,18 @@ if (!inherits(tstNorm, "try-error")) {
     tmpDat <- tmpDat_A
     tmpDat$"M (mean log2 FC)" <- tmpDat_M$"M (mean log2 FC)"
     rm(tmpDat_A, tmpDat_M)
-    tmpDat <- tmpDat[which(is.finite(tmpDat$"M (mean log2 FC)")),]
-    tmpDat <- tmpDat[which(is.finite(tmpDat$"A (mean log10 Intensity)")),]
+    tmpDat <- tmpDat[is.finite(tmpDat$"M (mean log2 FC)"),]
+    tmpDat <- tmpDat[is.finite(tmpDat$"A (mean log10 Intensity)"),]
     tmpDat[, c("Sample_group", "Replicate")] <- Exp.map[match(tmpDat$Sample, Exp.map$Clean_name),
                                                         c(VPAL$column, "Replicate")]
     tmpDat$state <- stateLev[i]
     tmpDat$state <- factor(tmpDat$state, levels = stateLev)
     annot_ <- data.frame(Sample = unique(tmpDat$Sample))
     annot_$Median <- vapply(annot_$Sample, \(x) {
-      paste0("Median: ", round(median(filtFun(tmpDat$"M (mean log2 FC)"[which(tmpDat$Sample == x)])), 3L))
+      paste0("Median: ", round(median(filtFun(tmpDat$"M (mean log2 FC)"[tmpDat$Sample == x])), 3L))
     }, "")
     annot_$IQR <- vapply(annot_$Sample, \(x) {
-      paste0("IQR: ", round(IQR(filtFun(tmpDat$"M (mean log2 FC)"[which(tmpDat$Sample == x)])), 3L))
+      paste0("IQR: ", round(IQR(filtFun(tmpDat$"M (mean log2 FC)"[tmpDat$Sample == x])), 3L))
     }, "")
     annot_$Amax <- max(filtFun(tmpDat$"A (mean log10 Intensity)"))*1.1
     annot_$Amin <- min(filtFun(tmpDat$"A (mean log10 Intensity)"))*1.1
@@ -226,8 +226,8 @@ if (!inherits(tstNorm, "try-error")) {
   }))
   unlink(tmpFl)
   tmpMAplotFls <- setNames(parSapply(parClust, levels(datAB$Sample), \(smpl) { #smpl <- levels(datAB$Sample)[1L] 
-    dat <- datAB[which(datAB$Sample == smpl),]
-    ann <- annotAB[which(annotAB$Sample == smpl),]
+    dat <- datAB[datAB$Sample == smpl,]
+    ann <- annotAB[annotAB$Sample == smpl,]
     MAplot$data <- dat
     ttl <- paste0(MAttl, " - ", smpl)
     MAplot <- MAplot + ggtitle(ttl) +

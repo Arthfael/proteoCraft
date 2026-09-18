@@ -87,14 +87,14 @@ replFun <- \(colNames,
   replMap$matches <- lapply(1L:nrow(replMap), \(x) {
     which(substr(colNames, nc-replMap$nchar[[x]]+1L, nc) == replMap$in_PG[[x]])
   })
-  replMap <- replMap[which(lengths(replMap$matches) > 0L),]
+  replMap <- replMap[lengths(replMap$matches) > 0L,]
   if (!nrow(replMap)) { return(replColNames) }
   col2val <- listMelt(replMap$matches, replMap$in_PG, c("match", "val"))
   col2val$nchar <- nchar(col2val$match)
   col2val <- aggregate(1L:nrow(col2val), list(col2val$match), \(x) {
     v <- col2val$val[[x]]
     l <- col2val$nchar[[x]]
-    return(v[which(l == max(l))])
+    return(v[l == max(l)])
   })
   colnames(col2val) <- c("column", "match")
   m <- match(col2val$match, replMap$in_PG)
@@ -159,9 +159,9 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   # Which is annoying, because this limits how much fat we can cut
   tst <- aggregate(KolNames, list(KolNames), c)
   tst$L <- lengths(tst$x)
-  tst <- tst[which(tst$Group.1 != ""),]
+  tst <- tst[tst$Group.1 != "",]
   stopifnot(max(tst$L) == 1L)
-  #tst$x[which(tst$L > 1L)]
+  #tst$x[tst$L > 1L]
   #
   KolNames <- as.data.frame(t(KolNames))
   colnames(KolNames) <- klnms
@@ -214,7 +214,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     gel <- setNames(lapply(intRf, \(rf) {
       x <- c(paste0(rf, RSA$values),
              paste0("Mean ", rf, VPAL$values))
-      return(x[which(x %in% colnames(tempData))])
+      return(intersect(x, colnames(tempData)))
     }), intRf)
     if (ii == 1L) {
       # Log transform for normal tables - not necessary for PTM-modified tables as we already transformed
@@ -284,12 +284,12 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     pepColObj %<o% c("gel", "grl", "quantcol", "signcol", "regcol") # These are any column for which we want to gsub "___" to " "
     .obj <- unique(c(pepColObj, .obj)) # Here easier than using a custom operator
     if (ii > 1L) {
-      gpl <- grep(topattern(pvalue.col[which(pvalue.use)]), colnames(tempData), value = TRUE)
+      gpl <- grep(topattern(pvalue.col[pvalue.use]), colnames(tempData), value = TRUE)
       quantcol <- c(quantcol, gpl)
       pepColObj <- c(pepColObj, "gpl")
     }
     aacol <- paste0(AA, " Count")
-    qualFlt <- QualFilt[which(QualFilt %in% colnames(ev))]
+    qualFlt <- intersect(QualFilt, colnames(ev))
     w <- which(!qualFlt %in% colnames(tempData))
     if (length(w)) {
       tempData[, qualFlt[w]] <- ev[match(tempData$"Modified sequence", ev$"Modified sequence"), qualFlt[w]]
@@ -297,13 +297,13 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     kol <- c(CoreCol, CoreCol2, evcol, spcol, "PEP", quantcol, signcol, regcol, qualFlt, aacol)
     if (ii > 1L) { kol <- c(kol, "Code") }
     if (Annotate) {
-      PepAnnotCol %<o% annot.col[which(annot.col %in% colnames(tempData))]
+      PepAnnotCol %<o% intersect(annot.col, colnames(tempData))
       kol <- c(kol, PepAnnotCol)
     }
     #tst <- data.frame(Names = names(kol), Column = setNames(kol, NULL), Found = kol %in% colnames(tempData));View(tst)
-    kol <- kol[which(kol %in% colnames(tempData))]
-    #kol[which(!kol %in% colnames(tempData))]
-    #colnames(tempData)[which(!colnames(tempData) %in% kol)]
+    kol <- intersect(kol, colnames(tempData))
+    #setdiff(kol, colnames(tempData))
+    #setdiff(colnames(tempData), kol)
     tempData <- tempData[, kol]
     # If there is only one experiment, remove it from the names here...
     colnames(tempData) <- cleanNms(colnames(tempData), start = FALSE)
@@ -322,8 +322,8 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     colnames(tempData) <- gsub("_names$", " names", colnames(tempData))
     if (Annotate) { PepAnnotCol <- gsub("_names$", " names", PepAnnotCol) }
     for (k in regcol) {
-      tempData[which(tempData[[k]] == "non significant"), k] <- "n.s."
-      tempData[which(tempData[[k]] == ""), k] <- "n.t."
+      tempData[tempData[[k]] == "non significant", k] <- "n.s."
+      tempData[tempData[[k]] == "", k] <- "n.t."
     }
     if ((ii > 1L)&&(F.test)) {
       tempPepF <- PTMs_F_test_data[[Ptm]]
@@ -338,8 +338,8 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
       regcolF %<o% grep("^mod\\. F-test Regulated", colnames(tempPepF), value = TRUE)
       Fkol %<o% c(regcolF, mnratcolF, pvalcolF, signcolF)
       for (k in regcolF) {
-        tempPepF[which(tempPepF[[k]] == "non significant"), k] <- "n.s."
-        tempPepF[which(tempPepF[[k]] == ""), k] <- "n.t."
+        tempPepF[tempPepF[[k]] == "non significant", k] <- "n.s."
+        tempPepF[tempPepF[[k]] == "", k] <- "n.t."
       }
       tempData[, Fkol] <- tempPepF[match(tempData$"Modified sequence", tempPepF$"Modified sequence"), Fkol]
     }
@@ -386,7 +386,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     if (Annotate) {
       AnnotTbl$Columns <- list(c("GO", "GO-ID"), c("Taxonomy", "TaxID"), NA, NA, NA, NA, "EMBL", NA)
       for (i in annot) { AnnotTbl$Columns[match(i, AnnotTbl$Name)] <- list(c(i, paste0(i, " names"))) }
-      AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(annot.col2[which(!annot.col2 %in% unlist(AnnotTbl$Columns))])
+      AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(setdiff(annot.col2, unlist(AnnotTbl$Columns)))
       for (i in 1L:nrow(AnnotTbl)) { ColumnsTbl[[paste0(AnnotTbl$Name[i], " annotations")]] <- AnnotTbl$Columns[[i]] }
     }
     # - PEP
@@ -394,16 +394,16 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     # - Filters
     ColumnsTbl[["Filters"]] <- qualFlt
     # Melt
-    ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, \(x) { length(x[which(!is.na(x))]) }, 1L) > 0L)]
+    ColumnsTbl <- ColumnsTbl[vapply(ColumnsTbl, \(x) { sum(!is.na(x)) }, 1L) > 0L]
     ColumnsTbl <- listMelt(ColumnsTbl, ColNames = c("Col", "Grp"))
     #tst <- aggregate(ColumnsTbl$Grp, list(ColumnsTbl$Col), length); View(tst)
     #tst <- aggregate(ColumnsTbl$Grp, list(ColumnsTbl$Col), unique); View(tst)
     #tst <- aggregate(1L:nrow(ColumnsTbl), list(ColumnsTbl$Col), unique); w <- which(lengths(tst$x) > 1L); setNames(tst$x[w], tst$Group.1[w])
     stopifnot(nrow(ColumnsTbl) == length(unique(ColumnsTbl$Col)))
     ColumnsTbl$Class <- ""
-    ColumnsTbl$Class[which(ColumnsTbl$Grp == "IDs")] <- "General Peptides information"
-    ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(evcol))] <- "Evidence IDs"
-    ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(spcol))] <- "Spectral count"
+    ColumnsTbl$Class[ColumnsTbl$Grp == "IDs"] <- "General Peptides information"
+    ColumnsTbl$Class[ColumnsTbl$Col %in% evcol] <- "Evidence IDs"
+    ColumnsTbl$Class[ColumnsTbl$Col %in% spcol] <- "Spectral count"
     for (nm in names(intRf)) { #nm <- names(intRf)[1L]
       rpl <- intNms(nm, TRUE, type = "pep")
       ColumnsTbl$Class[grep(topattern(intRf[nm]), ColumnsTbl$Col)] <- rpl
@@ -414,18 +414,18 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
       ColumnsTbl$Class[grep(topattern(ratRf[nm]), ColumnsTbl$Col)] <- rpl
       ColumnsTbl$Class[grep(topattern(paste0("Mean ", ratRf[nm])), ColumnsTbl$Col)] <- rpl
     }
-    ColumnsTbl$Class[which(ColumnsTbl$Grp == "P-values")] <- gsub(" - $", "", pvalue.col[which(pvalue.use)])
-    ColumnsTbl$Class[which(ColumnsTbl$Col %in% regcol)] <- "Regulated"
-    ColumnsTbl$Class[which(ColumnsTbl$Col %in% signcol)] <- "Significant"
+    ColumnsTbl$Class[ColumnsTbl$Grp == "P-values"] <- gsub(" - $", "", pvalue.col[pvalue.use])
+    ColumnsTbl$Class[ColumnsTbl$Col %in% regcol] <- "Regulated"
+    ColumnsTbl$Class[ColumnsTbl$Col %in% signcol] <- "Significant"
     if ((ii > 1L)&&(F.test)) {
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test summary Ratios")] <- "F-test"
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test P-values")] <- "F-test"
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test significant")] <- "F-test"
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test regulated")] <- "F-test"
+      ColumnsTbl$Class[ColumnsTbl$Grp == "F-test summary Ratios"] <- "F-test"
+      ColumnsTbl$Class[ColumnsTbl$Grp == "F-test P-values"] <- "F-test"
+      ColumnsTbl$Class[ColumnsTbl$Grp == "F-test significant"] <- "F-test"
+      ColumnsTbl$Class[ColumnsTbl$Grp == "F-test regulated"] <- "F-test"
     }
     ColumnsTbl$Class[grep("[Aa]nnotations", ColumnsTbl$Grp)] <- "Annotations"
-    ColumnsTbl$Class[which(ColumnsTbl$Grp %in% c("PEP", "Filters"))] <- "QC filters"
-    ColumnsTbl$Class[which(ColumnsTbl$Col %in% aacol)] <- "Amino Acid counts"
+    ColumnsTbl$Class[ColumnsTbl$Grp %in% c("PEP", "Filters")] <- "QC filters"
+    ColumnsTbl$Class[ColumnsTbl$Col %in% aacol] <- "Amino Acid counts"
     ColumnsTbl$Hide <- ColumnsTbl$Class %in% c("Spectral count", "Spectrum IDs", "Amino Acid counts", "Annotations", "Cluster (hierarch.)")
     #
     a <- if (MakeRatios) { KolEdit(ColumnsTbl$Col, intColsTbl, ratColsTbl) } else { KolEdit(ColumnsTbl$Col, intColsTbl) }

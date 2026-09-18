@@ -66,7 +66,7 @@ cov3D <- function(pdb,
   #nm <- gsub("^TITLE +| +$", "", grep("^TITLE +", pdb, value = TRUE)[1L])
   no <- grep("^ATOM ", model, invert = TRUE)
   if (length(no)) { model <- model[1L:(no[1L]-1L)] }
-  # tmp <- strsplit(gsub("^ATOM +", "", model), " +")
+  # tmp <- strsplit(sub("^ATOM +", "", model), " +")
   # tst <- lengths(tmp)
   # tst <- aggregate(1L:length(tst), list(tst), list)
   # colnames(tst) <- c("Entries", "Rows")
@@ -194,7 +194,7 @@ cov3D <- function(pdb,
     modsTst <- modsTst[order(modsTst$x),]
     modsTst$Pos <- do.call(paste, c(modsTst[, c("Group.2", "Group.1")], sep = ""))
     modsTst <- aggregate(modsTst$x, list(modsTst$Pos), \(x) { paste(unique(x), collapse = " / ") })
-    modsTst$Pos <- as.integer(gsub("^[A-Z]", "", modsTst$Group.1))
+    modsTst$Pos <- as.integer(sub("^[A-Z]", "", modsTst$Group.1))
     modsTst[, c("Residue", "AA", "X", "Y", "Z")] <- dat2[modsTst$Pos, c("Residue", "AA", "X", "Y", "Z")]
     modsTst$PTM <- do.call(paste, c(modsTst[, c("AA", "x")], sep = " "))
     modsTst$Type <- "mod. AA"

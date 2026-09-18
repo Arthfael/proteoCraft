@@ -39,20 +39,20 @@ if (length(Iso) <= 1L) {
       # Column "Set" MUST be absent AND valid
       tst1 <- TRUE
       if ("Set" %in% colnames(IsoMap)) {
-        tst1 <- sum(!unique(Exp.map$Isobaric.set[which(Exp.map$Use)]) %in% IsoMap$Set)
+        tst1 <- sum(!unique(Exp.map$Isobaric.set[Exp.map$Use]) %in% IsoMap$Set)
       }
       # Column "All channels" MUST be present and valid
-      tst2 <- sum((!"All channels" %in% colnames(IsoMap))&&
-                    (sum(vapply(IsoMap$"All channels", \(x) {
-                      !x %in% unique(unlist(Exp.map$"Isobaric label details"))
-                    }, TRUE))))
+      tst2 <- sum((!"All channels" %in% colnames(IsoMap))
+                  && (sum(vapply(IsoMap$"All channels", \(x) {
+                    !x %in% unique(unlist(Exp.map$"Isobaric label details"))
+                  }, TRUE))))
       # IF column "Reference channel(s)" is present, it MUST be valid
       tst3 <- FALSE
       if ("Reference channel(s)" %in% colnames(IsoMap)) {
         tst3 <- aggregate(Exp.map$"Isobaric label details", list(Exp.map$Isobaric.set), list)
         tst3 <- sum(vapply(IsoMap$Set, \(i) {
           x <- IsoMap$"Reference channel(s)"[[i]]
-          x <- x[which(x != "")]
+          x <- setdiff(x, "")
           sum(!x %in% tst3$x[[i]])
         }, 1L) > 0L)
       }
@@ -158,7 +158,7 @@ Shiny.bindAll(table.table().node());"))
     session$onSessionEnded(function() { stopApp() })
   }
   runKount <- 0L
-  while ((!runKount)||(!exists("IHAVERUN"))) {
+  while ((!runKount) || (!exists("IHAVERUN"))) {
     eval(parse(text = run_App), envir = .GlobalEnv)
     shinyCleanup()
     runKount <- runKount+1L
@@ -169,7 +169,7 @@ Shiny.bindAll(table.table().node());"))
   w <- which(tst == "list")
   if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
   tst <- try(write.csv(tmpTbl, file = IsoMapPath, row.names = FALSE), silent = TRUE)
-  while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {
+  while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
     dlg_message(paste0("File \"", IsoMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
     tst <- try(write.csv(tmpTbl, file = IsoMapPath, row.names = FALSE), silent = TRUE)
   }
@@ -190,25 +190,25 @@ Shiny.bindAll(table.table().node());"))
   mixed <- unique(unlist(lapply(Factors, \(x) { which(Exp.map[[x]] == "Mixed_IRS") })))
   mixedSets <- paste0("Set", as.character(unique(Exp.map$Isobaric.set[mixed])))
   irsSamples <- setNames(lapply(1L:nrow(IsoMap), \(i) {
-    Exp.map$Ref.Sample.Aggregate[which((!1L:nrow(Exp.map) %in% mixed)&(Exp.map$Isobaric.set == IsoMap$Set[i]))]
+    Exp.map$Ref.Sample.Aggregate[(!1L:nrow(Exp.map) %in% mixed) & (Exp.map$Isobaric.set == IsoMap$Set[i])]
   }), setNms)
   # Either intensity from IRS channel, or failing that log10 row means for the group
   irsRowMeans <- setNames(lapply(setNms, \(nm) {
     x <-  if (nm %in% mixedSets) {
-      tmpDat1Imp[, Exp.map$Ref.Sample.Aggregate[mixed[which(mixedSets == nm)]], drop = FALSE]
+      tmpDat1Imp[, Exp.map$Ref.Sample.Aggregate[mixed[mixedSets == nm]], drop = FALSE]
     } else {
       tmpDat1Imp[, irsSamples[[nm]]]
     }
-    #log10(parApply(parClust, tmpDat1Imp[, x], 1L, \(y) { sum(10L^y[which(is.finite(y))]) }))
-    #parApply(parClust, tmpDat1Imp[, x], 1L, \(y) { sum(y[which(is.finite(y))]) })
-    x <- parApply(parClust, x, 1L, \(y) { mean(y[which(is.finite(y))]) })
+    #log10(parApply(parClust, tmpDat1Imp[, x], 1L, \(y) { sum(10L^y[is.finite(y)]) }))
+    #parApply(parClust, tmpDat1Imp[, x], 1L, \(y) { sum(y[is.finite(y)]) })
+    x <- parApply(parClust, x, 1L, \(y) { mean(y[is.finite(y)]) })
     return(x)
   }), setNms)
   #View(do.call(cbind, irsRowMeans))
   # log10 geometric mean
   allMeans <- parApply(parClust, tmpDat1Imp[, currSamples], 1L, \(x) {
-    #log10(mean(10L^x[which(is.finite(x))]))
-    mean(x[which(is.finite(x))])
+    #log10(mean(10L^x[is.finite(x)]))
+    mean(x[is.finite(x)])
   })
   #View(data.frame(meanOfAll = allMeans))
   # log10 scaling factors:
@@ -266,7 +266,7 @@ Shiny.bindAll(table.table().node());"))
   #
   appNm <- "IRS batch correction"
   msg <- "Accept IRS batch correction? (untick to cancel correction)"
-  # if ((!exists("KeepIRSRes"))||(length(KeepIRSRes) != 1)||(!is.logical(KeepIRSRes))||(is.na(KeepIRSRes))) {
+  # if ((!exists("KeepIRSRes")) || (length(KeepIRSRes) != 1) || (!is.logical(KeepIRSRes)) || is.na(KeepIRSRes)) {
   #   KeepIRSRes <- TRUE
   # }
   corrTst <- t.test(unlist(tmpDat2Imp[wAG1, currSamples[wHere]]),
@@ -355,7 +355,7 @@ Shiny.bindAll(table.table().node());"))
     session$onSessionEnded(function() { stopApp() })
   }
   runKount <- 0L
-  while ((!runKount)||(!exists("IHAVERUN"))) {
+  while ((!runKount) || (!exists("IHAVERUN"))) {
     eval(parse(text = run_App), envir = .GlobalEnv)
     runKount <- runKount+1L
   }

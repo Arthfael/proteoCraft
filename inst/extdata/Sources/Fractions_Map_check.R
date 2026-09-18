@@ -2,16 +2,16 @@
 #ev %<o% do.call(plyr::rbind.fill, lapply(searchOutputs, \(x) { x$ev })); ev$id <- 1L:nrow(ev)
 Exp.map$Use <- as.logical(Exp.map$Use)
 #MQ.Exp %<o% sort(unique(FracMap$MQ.Exp))
-MQ.Exp <- MQ.Exp[which(MQ.Exp %in% unique(unlist(Exp.map$MQ.Exp[which(Exp.map$Use)])))]
+MQ.Exp <- intersect(MQ.Exp, unique(unlist(Exp.map$MQ.Exp[Exp.map$Use])))
 if (file.exists(FracMapPath)) {
   Frac.map %<o% read.csv(FracMapPath, check.names = FALSE)
   if (("Parent sample" %in% colnames(Frac.map))&&(!"MQ.Exp" %in% colnames(Frac.map))) {
     Frac.map$MQ.Exp <- Frac.map$"Parent sample"
   }
-  Frac.map <- Frac.map[which(Frac.map$Use),]
-  MQ.Exp <- MQ.Exp[which(MQ.Exp %in% unique(unlist(Frac.map$MQ.Exp[which(Frac.map$Use)])))]
-  Exp.map <- Exp.map[which(vapply(Exp.map$MQ.Exp, \(x) { sum(x %in% MQ.Exp) }, 1L) > 0L),]
-  Frac.map <- Frac.map[which(Frac.map$MQ.Exp %in% MQ.Exp),]
+  Frac.map <- Frac.map[Frac.map$Use,]
+  MQ.Exp <- intersect(MQ.Exp, unique(unlist(Frac.map$MQ.Exp[Frac.map$Use])))
+  Exp.map <- Exp.map[vapply(Exp.map$MQ.Exp, \(x) { sum(x %in% MQ.Exp) }, 1L) > 0L,]
+  Frac.map <- Frac.map[Frac.map$MQ.Exp %in% MQ.Exp,]
   m <- match(ev$`Raw file`, rawFiles2)
   if (!sum(!is.na(m))) {
     stop()
@@ -22,16 +22,16 @@ if (file.exists(FracMapPath)) {
   }
   test <- sort(unique(Frac.map$MQ.Exp))
   if (sum(test != sort(MQ.Exp))) { stop("Column \"Experiment\" not defined properly in Fractions map!") }
-  Frac.map <- Frac.map[which(Frac.map$MQ.Exp %in% MQ.Exp),]
+  Frac.map <- Frac.map[Frac.map$MQ.Exp %in% MQ.Exp,]
   Frac.map$Experiment <- vapply(Frac.map$MQ.Exp, \(x) { #x <- Frac.map$MQ.Exp[1L]
-    x1 <- unlist(unique(Exp.map$Experiment[which(vapply(Exp.map$MQ.Exp, \(y) { x %in% unlist(y) }, TRUE))]))
+    x1 <- unlist(unique(Exp.map$Experiment[vapply(Exp.map$MQ.Exp, \(y) { x %in% unlist(y) }, TRUE)]))
     if (length(x1) == 1L) { return(x1) } else {
       if (length(x1) > 1L) { stop(paste0(x, " - each raw file must be mapped to exactly one Experiment!")) } else {
         return(NA)
       }
     }
   }, "")
-  Frac.map <- Frac.map[which(!is.na(Frac.map$Experiment)),]
+  Frac.map <- Frac.map[!is.na(Frac.map$Experiment),]
   if (("Replicate" %in% colnames(Frac.map))&&(sum(sort(unique(Frac.map$Replicate)) != sort(Rep)) != 0L)) {
     stop("Replicates from Fractions map and Experiment map do not match!")
   }
@@ -55,8 +55,8 @@ if (file.exists(FracMapPath)) {
   tst <- sum(is.na(ev2fr))
   if (tst) {
     warning(paste0("Removing ", tst, " PSMs not matching selected raw files..."))
-    ev <- ev[which(!is.na(ev2fr)),]
-    ev2fr <- ev2fr[which(!is.na(ev2fr))]
+    ev <- ev[!is.na(ev2fr),]
+    ev2fr <- ev2fr[!is.na(ev2fr)]
   }
   if (!"MQ.Exp" %in% colnames(ev)) {
     ev$MQ.Exp <- Frac.map$MQ.Exp[ev2fr]
@@ -79,10 +79,10 @@ if (file.exists(FracMapPath)) {
     } else { ev$Isobaric.set <- Frac.map$Isobaric.set[ev2fr] }
   }
   # Filter for ones to keep
-  MQ.Exp <- MQ.Exp[which(MQ.Exp %in% Frac.map$MQ.Exp)]
-  Exp.map <- Exp.map[which(vapply(Exp.map$MQ.Exp, \(x) { sum(x %in% MQ.Exp) }, 1L) > 0L),]
+  MQ.Exp <- intersect(MQ.Exp, Frac.map$MQ.Exp)
+  Exp.map <- Exp.map[vapply(Exp.map$MQ.Exp, \(x) { sum(x %in% MQ.Exp) }, 1L) > 0L,]
   Frac.map$Fraction <- as.numeric(gsub("^ | $", "", Frac.map$Fraction))
-  ev <- ev[which(ev$MQ.Exp %in% MQ.Exp),]
+  ev <- ev[ev$MQ.Exp %in% MQ.Exp,]
   ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file")
   # Final test
   test <- data.frame(Ev = sort(unique(ev$MQ.Exp)),
@@ -98,7 +98,7 @@ if (file.exists(FracMapPath)) {
   }
   Unique.Frac %<o% data.frame(Unique.Frac.ID = unique(Frac.map$Unique.Frac.ID))
   Unique.Frac$Raw.files <- lapply(Unique.Frac$Unique.Frac.ID, \(x) {
-    Frac.map$"Raw file"[which(Frac.map$Unique.Frac.ID == x)]
+    Frac.map$"Raw file"[Frac.map$Unique.Frac.ID == x]
   })
   ev$"Unique Frac" <- Frac.map$Unique.Frac.ID[ev2fr]
 } else {
@@ -118,8 +118,8 @@ if (file.exists(FracMapPath)) {
 # Filter
 Exp.map$Use <- as.logical(Exp.map$Use)
 Frac.map$Use <- as.logical(Frac.map$Use)
-Exp.map <- Exp.map[which(Exp.map$Use),]
-Frac.map <- Frac.map[which(Frac.map$Use),]
+Exp.map <- Exp.map[Exp.map$Use,]
+Frac.map <- Frac.map[Frac.map$Use,]
 stopifnot(sum(sort(unique(Exp.map$Experiment)) != sort(unique(Frac.map$Experiment))) == 0L)
 stopifnot(sum(sort(unique(unlist(Exp.map$MQ.Exp))) != sort(unique(unlist(Frac.map$MQ.Exp)))) == 0L)
 ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file") # Update it
@@ -128,8 +128,8 @@ tst$L1 <- as.integer(tst$L1)
 tst <- tst[order(tst$L1, tst$value),]
 MQ.Exp <- sort(unique(tst$value))
 if (LabelType == "LFQ") { stopifnot(length(MQ.Exp) == length(unique(MQ.Exp)))}
-ev <- ev[which(ev$MQ.Exp %in% MQ.Exp),]
-ev <- ev[which(ev$"Raw file path" %in% Frac.map$"Raw file"),]
+ev <- ev[ev$MQ.Exp %in% MQ.Exp,]
+ev <- ev[ev$"Raw file path" %in% Frac.map$"Raw file",]
 # Update values
 ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file")
 rawFiles %<o% unique(ev$"Raw file path")

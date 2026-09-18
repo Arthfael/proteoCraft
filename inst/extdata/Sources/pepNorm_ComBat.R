@@ -124,7 +124,7 @@ ui <- fluidPage(
   titlePanel(tag("u", appNm),
              appNm),
   br(),
-  fluidRow(column(5,
+  fluidRow(column(5L,
                   checkboxInput("KeepResults", msg, KeepComBatRes),
                   actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
                   h4("Recommended criteria:"),
@@ -135,12 +135,14 @@ ui <- fluidPage(
                   h5(HTML("&nbsp;&nbsp;&nbsp;- ... or it improves the apparent grouping of expected sample groups.")),
                   withSpinner(DTOutput("PCs")))),
   br(),
-  fluidRow(column(6, withSpinner(plotlyOutput("Before", height = "600px"))),
-           column(6, withSpinner(plotlyOutput("After", height = "600px")))),
+  fluidRow(column(6L,
+                  withSpinner(plotlyOutput("Before", height = "600px"))),
+           column(6L,
+                  withSpinner(plotlyOutput("After", height = "600px")))),
   br(),
   br()
 )
-server <- function(input, output, session) {
+server <- \(input, output, session) {
   output$Before <- renderPlotly(PCAlyLst[["original"]][[myBatch2]])
   output$After <- renderPlotly(PCAlyLst[[myBatch2]][[myBatch2]])
   output$PCs <- renderDT({ PCs },
@@ -172,7 +174,7 @@ server <- function(input, output, session) {
     stopApp()
   })
   #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+  session$onSessionEnded(\() { stopApp() })
 }
 runKount <- 0L
 while ((!runKount)||(!exists("IHAVERUN"))) {

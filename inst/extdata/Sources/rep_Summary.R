@@ -1,6 +1,6 @@
 #### Summary table and QC plots
-mods <- setNames(Modifs$Mark[which(Modifs$Type == "Variable")],
-                 nm = Modifs$"Full name"[which(Modifs$Type == "Variable")])
+mods <- setNames(Modifs$Mark[Modifs$Type == "Variable"],
+                 nm = Modifs$"Full name"[Modifs$Type == "Variable"])
 tmp <- aggregate(Frac.map$"Raw file", list(Frac.map$MQ.Exp), length)
 tmp <- round(mean(tmp$x)) # Size of a full fraction set, rounding for cases where we removed some fractions
 defSc <- 60L # (Non-strict) default maximum number of files to look at per plot
@@ -21,7 +21,7 @@ sc <- max(c(sc, 1L))
 source(parSrc)
 tmp <- MQ.summary(ev = ev, pg = PG, wd = wd, mods = mods,
                   raw.files = rawFiles, sc = sc, cl = parClust,
-                  MQtxt = inDirs[which(SearchSoft == "MAXQUANT")])
+                  MQtxt = inDirs[SearchSoft == "MAXQUANT"])
 Exp_summary %<o% tmp$table
 if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
 if (!exists("QC_plotLys")) { QC_plotLys <- list() }
@@ -36,7 +36,6 @@ if ("MQ.Exp" %in% colnames(Frac.map)) {
   Exp_summary$"Biological sample" <- Frac.map$MQ.Exp[match(Exp_summary$Sample, Frac.map$"Raw file")]
 }
 Exp_summary$"Biological sample"[1L] <- "All samples"
-Exp_summary <- Exp_summary[, c("Sample", "Biological sample",
-                               colnames(Exp_summary)[which(!colnames(Exp_summary) %in% c("Sample", "Biological sample"))])]
+Exp_summary <- Exp_summary[, union(c("Sample", "Biological sample"), colnames(Exp_summary))]
 write.csv(Exp_summary, paste0(wd, "/Workflow control/Summary.csv"), row.names = FALSE)
 #Exp_summary <- read.csv(paste0(wd, "/Workflow control/Summary.csv"), check.names = FALSE)

@@ -28,13 +28,13 @@ if (MakeRatios) {
   SamplesMap$Reference <- NULL
 }
 SamplesMap %<o% SamplesMap
-SamplesMap <- SamplesMap[which(SamplesMap$`Parent sample` %in% FracMap$`Parent sample`),]
+SamplesMap <- SamplesMap[SamplesMap$`Parent sample` %in% FracMap$`Parent sample`,]
 nr <- nrow(SamplesMap)
 rws <- 1L:nr
 chRws <- as.character(rws)
 # if ("Order" %in% colnames(SamplesMap)) {
 #   u <- unique(SamplesMap$Order)
-#   u <- u[which(!u %in% rws)]
+#   u <- setdiff(u %in% rws)
 #   if (length(u) < nr) { SamplesMap$Order <- rws }
 # } else { SamplesMap$Order <- rws }
 smplMapKol1 <- c("Negative Filter", "Use")
@@ -44,12 +44,12 @@ if (MakeRatios) {
 for (kol in smplMapKol1) {
   if (kol %in% colnames(SamplesMap)) {
     SamplesMap[[kol]] <- as.logical(toupper(SamplesMap[[kol]]))
-    SamplesMap[which(is.na(SamplesMap[[kol]])), kol] <- c(FALSE, TRUE)[(kol == "Use") + 1L]
+    SamplesMap[is.na(SamplesMap[[kol]]), kol] <- c(FALSE, TRUE)[(kol == "Use") + 1L]
   }
 }
 if (!"Use" %in% colnames(SamplesMap)) { SamplesMap$Use <- TRUE }
 SamplesMap$Use <- suppressWarnings(as.logical(SamplesMap$Use))
-SamplesMap$Use[which(is.na(SamplesMap$Use))] <- TRUE
+SamplesMap$Use[is.na(SamplesMap$Use)] <- TRUE
 smplMapKol <- smplMapKol1
 if (MakeRatios) {
   smplMapKol <- c("Ratios group", smplMapKol)
@@ -84,7 +84,7 @@ smplMap2 <- smplMap <- SamplesMap[, which(!colnames(SamplesMap) %in% "New name")
 if (nrow(smplMap2) == 1L) {
   smplMap2 <- smplMap2[, which(colnames(smplMap2) != "Negative Filter")]
 }
-#colnames(smplMap2)[which(colnames(smplMap2) == "MQ.Exp")] <- "Parent sample"
+#colnames(smplMap2)[colnames(smplMap2) == "MQ.Exp"] <- "Parent sample"
 # Estimate table column widths
 wTest1 <- vapply(colnames(smplMap2), \(k) { #k <- colnames(smplMap2)[1L]
   #if (k == "Parent sample") { k <- "MQ.Exp" }
@@ -177,7 +177,7 @@ Shiny.bindAll(table.table().node());"))
   })
   observeEvent(input$expOrder, {
     tmp <- input$expOrder
-    tmp <- c(tmp, exp[which(!exp %in% tmp)])
+    tmp <- union(tmp, exp)
     assign("expOrder", tmp, envir = .GlobalEnv)
   })
   observeEvent(input$saveBtn, {
@@ -186,7 +186,7 @@ Shiny.bindAll(table.table().node());"))
     }
     assign("smplMap3", smplMap3, envir = .GlobalEnv)
     tmp <- input$expOrder
-    tmp <- c(tmp, exp[which(!exp %in% tmp)])
+    tmp <- union(tmp, exp)
     assign("expOrder", tmp, envir = .GlobalEnv)
     stopApp()
   })

@@ -44,14 +44,14 @@ load_Context <- function(record,
                                      filter = "Text file (*.txt)")
   }
   record <- readr::read_lines(record)
-  dtstNm <<- gsub("^ *-> *", "", record[grep("^Dataset name:", record)+1L])
-  inDirs <<- gsub("^ *-> *", "", record[grep("^Input directory:", record)+1L])
-  outdir <<- gsub("^ *-> *", "", record[grep("^Final output directory:", record)+1L])
-  wd <<- gsub("^ *-> *", "", record[grep("^Temporary work directory:", record)+1L])
+  assign("dtstNm", sub("^ *-> *", "", record[grep("^Dataset name:", record)+1L]), envir = .GlobalEnv)
+  assign("inDirs", sub("^ *-> *", "", record[grep("^Input directory:", record)+1L]), envir = .GlobalEnv)
+  assign("outdir", sub("^ *-> *", "", record[grep("^Final output directory:", record)+1L]), envir = .GlobalEnv)
+  assign("wd", sub("^ *-> *", "", record[grep("^Temporary work directory:", record)+1L]), envir = .GlobalEnv)
   if (!dir.exists(wd)) { dir.create(wd, recursive = TRUE) }
   lapply(inDirs, \(indir) {
-    if (!dir.exists(indir)) { stop(paste0("Input directory \"", indir, "\" does not exist!")) }
+    if (!dir.exists(indir)) { warning(paste0("Input directory \"", indir, "\" does not exist!")) }
   })
   setwd(wd)
-  .obj <<- c(".obj", "dtstNm", "inDirs", "outdir", "wd")
+  assign(".obj", c(".obj", "dtstNm", "inDirs", "outdir", "wd"), envir = .GlobalEnv)
 }

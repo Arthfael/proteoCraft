@@ -15,6 +15,6 @@
   x <- x[order(x$Group.1, decreasing = FALSE),]
   x$Group.1 <- mods$"Full name"[match(x$Group.1, mods$Mark)]
   return(paste(apply(x, 1L, function(y) {
-    gsub("^1 ", "", paste(rev(y), collapse = " "))
+    sub("^1 ", "", paste(rev(y), collapse = " "))
   }), collapse = ","))
 }

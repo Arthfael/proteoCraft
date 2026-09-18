@@ -62,18 +62,18 @@ if (plotPepProf) {
   #
   # Prepare data
   temp_pep <- dfMelt(pep[, unique(plotsDF$kol), drop = FALSE])
-  colnames(temp_pep)[which(colnames(temp_pep) == "value")] <- "Y"
+  colnames(temp_pep)[colnames(temp_pep) == "value"] <- "Y"
   temp_pep$variable <- as.character(temp_pep$variable)
   varkol <- c("Sequence", "Proteins", "Peptide ID", "Peptide_ID", "id")
   if (prot.list.Cond) { varkol <- c(varkol, "In list") }
   temp_pep[, varkol] <- pep[, varkol]
   if (prot.list.Cond) {
-    temp_pep$`In list`[which(temp_pep$`In list` == "")] <- "-"
+    temp_pep$`In list`[temp_pep$`In list` == ""] <- "-"
     temp_pep$"In list" <- factor(temp_pep$"In list", levels = c("-", "+"))
   }
   temp_pep$Category <- if (lOrg) { pep$temp[match(temp_pep$id, pep$id)] } else { "-" }
-  temp_pep <- temp_pep[which(temp_pep$Y > 0),]
-  temp_pep <- temp_pep[which(is.finite(temp_pep$Y)),]
+  temp_pep <- temp_pep[temp_pep$Y > 0,]
+  temp_pep <- temp_pep[is.finite(temp_pep$Y),]
   g <- grep("^Intensity - ", temp_pep$variable)
   temp_pep$Y[g] <- log10(temp_pep$Y[g])
   temp_pep$variable[g] <- gsub_Rep("^Intensity - ", "log10(Int.) - ", temp_pep$variable[g])
@@ -82,13 +82,13 @@ if (plotPepProf) {
   plotsDF$root[g] <- "log10(Int.) - "
   temp_pep$Sample <- gsub_Rep(".* - ", "", temp_pep$variable)
   lev <- c("In list", "+", tstOrg2, "-", "Contaminant")
-  lev <- lev[which(lev %in% unique(temp_pep$Category))]
+  lev <- intersect(lev, unique(temp_pep$Category))
   temp_pep$Category <- factor(temp_pep$Category, levels = lev)
   #
   # Serialize data
   tmp <- aggregate(1L:nrow(temp_pep), list(temp_pep$Sample), list)
   sapply(Exp, \(exp) { #exp <- Exp[1L]
-    readr::write_rds(temp_pep[tmp$x[[which(tmp$Group.1 == exp)]],], paste0(wd, "/tmp_", exp, ".RDS"))
+    readr::write_rds(temp_pep[tmp$x[[tmp$Group.1 == exp]],], paste0(wd, "/tmp_", exp, ".RDS"))
   })
   #
   MainDir <- paste0(wd, "/Ranked abundance")
@@ -201,7 +201,7 @@ if (plotPepProf) {
   })
   unlink(paste0(wd, "/tmp_", Exp, ".RDS"))
   if (length(Exp) > 1L) {
-    plotsDF2 <- plotsDF[which((plotsDF$Ext != "html")|(plotsDF$Mode == "List")),]
+    plotsDF2 <- plotsDF[(plotsDF$Ext != "html") | (plotsDF$Mode == "List"),]
     # We only draw the html version if we are drawing for proteins in the list
     plotsDF2$Exp <- NULL
     plotsDF2$kol <- NULL
@@ -234,7 +234,7 @@ if (plotPepProf) {
         w <- which(!lev %in% c("In list", "Contaminant"))
         lev2 <- lev
         lev2[w] <- sapply(strsplit(as.character(lev[w]), ""), abbrFun)
-        lev2[which(lev2 == "Contaminant")] <- "Cont."
+        lev2[lev2 == "Contaminant"] <- "Cont."
         lev2 <- gsub(";", "\n", lev2)
         temp$Category <- as.character(temp$Category)
         temp$Category <- lev2[match(temp$Category, lev)]
@@ -258,7 +258,7 @@ if (plotPepProf) {
       frm <- as.formula(paste0("~`", catnm, "`"))
       flPath <- paste0(SubDir, "/", ttl, ".", fileType)
       dat <- if (fileType == "html") {
-        temp[which((!is.na(temp$`In list`))&(temp$`In list` == "+")),]
+        temp[(!is.na(temp$`In list`)) & (temp$`In list` == "+"),]
       } else {
         temp
       }
@@ -295,8 +295,8 @@ if (plotPepProf) {
         })
       }
     })
+    unlink(paste0(wd, "/tmp.RDS"))
   }
-  unlink(paste0(wd, "/tmp.RDS"))
   pep$temp <- NULL
 }
 invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))

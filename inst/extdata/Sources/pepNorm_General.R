@@ -39,10 +39,10 @@ if (normSequence[[nrmStp]]$Method == "GO terms") {
   if (length(Norma.Prot.Ratio.to.GO)) {
     tmp <- listMelt(strsplit(tmpDat1$Proteins, ";"), tmpDat1$id)
     tmp$"GO-ID" <- db$"GO-ID"[match(tmp$value, db$`Protein ID`)]
-    tmp <- tmp[which(!is.na(tmp$"GO-ID")),]
+    tmp <- tmp[!is.na(tmp$"GO-ID"),]
     tmp <- listMelt(strsplit(tmp$"GO-ID", ";"), tmp$L1)
     tmp <- as.data.table(tmp)
-    tmp <- tmp[which(tmp$value %in% Norma.Prot.Ratio.to.GO),]
+    tmp <- tmp[tmp$value %in% Norma.Prot.Ratio.to.GO,]
     normFlt <- tmpDat1$id[unique(tmp$L1)]
   } else {
     Outcome <- FALSE
@@ -50,10 +50,10 @@ if (normSequence[[nrmStp]]$Method == "GO terms") {
 }
 if (normSequence[[nrmStp]]$Method == "proteins") {
   Prot.Ratio.ref.Acc %<o% unique(unlist(strsplit(Param$Norma.Prot.Ratio.to.proteins, ";")))
-  Prot.Ratio.ref.Acc <- Prot.Ratio.ref.Acc[which(Prot.Ratio.ref.Acc %in% db$"Protein ID")]
+  Prot.Ratio.ref.Acc <- intersect(Prot.Ratio.ref.Acc, db$"Protein ID")
   if (length(Prot.Ratio.ref.Acc)) {
     tmp <- listMelt(strsplit(tmpDat1$Proteins, ";"), tmpDat1$id)
-    tmp <- tmp[which(tmp$value %in% Prot.Ratio.ref.Acc),]
+    tmp <- tmp[tmp$value %in% Prot.Ratio.ref.Acc,]
     normFlt <- tmpDat1$id[unique(tmp$L1)]
   } else {
     Outcome <- FALSE
@@ -78,15 +78,15 @@ if (Outcome) {
     for (lGrp in NormGrps$Group) { #lGrp <- NormGrps$Group[1L] # Longitudinal group (peptide class)
       grpMtch <- match(NormGrps$IDs[[match(lGrp, NormGrps$Group)]],
                        tmpDat1$id[wAG1])
-      grpMtch <- grpMtch[which(!is.na(grpMtch))]
-      grpMtch2 <- grpMtch[which(tmpDat1$id[grpMtch] %in% normFlt)]
+      grpMtch <- grpMtch[!is.na(grpMtch)]
+      grpMtch2 <- grpMtch[tmpDat1$id[grpMtch] %in% normFlt]
       stopifnot(length(grpMtch2) > 0L)
       for (wGrp in RG$values) { #wGrp <- RG$values[1L] # Transversal group (ratios group, i.e. comparison group)
-        smpls <- unique(Exp.map$Ref.Sample.Aggregate[which(Exp.map[[RG$column]] == wGrp)])
-        smpls <- smpls[which(smpls %in% colnames(tmpDat1))]
+        smpls <- unique(Exp.map$Ref.Sample.Aggregate[Exp.map[[RG$column]] == wGrp])
+        smpls <- intersect(smpls, colnames(tmpDat1))
         if (length(smpls)) {
           m2 <- unlist(tmpDat1[grpMtch, smpls])
-          m2 <- mean(m2[which(is.finite(m2))]) # Original group scale
+          m2 <- mean(m2[is.finite(m2)]) # Original group scale
           robTst <- grepl("^robust-", normSequence[[nrmStp]]$Method)
           if ((normSequence[[nrmStp]]$Method %in% "Levenberg-Marquardt") || robTst) {
             if (normSequence[[nrmStp]]$Method == "Levenberg-Marquardt") {
@@ -105,13 +105,13 @@ if (Outcome) {
           } else {
             m <- vapply(smpls, \(smpl) {
               x <- tmpDat1[grpMtch2, smpl]
-              normFun(x[which(is.finite(x))])
+              normFun(x[is.finite(x)])
             }, 1)
           }
           #m <- m-mean(m)
           tmpDat2[grpMtch, smpls] <- sweep(tmpDat1[grpMtch, smpls], 2L, m, "-")
           m3 <- unlist(tmpDat2[grpMtch, smpls])
-          m3 <- mean(m3[which(is.finite(m3))]) # Posterior group scale
+          m3 <- mean(m3[is.finite(m3)]) # Posterior group scale
           tmpDat2[grpMtch, smpls] <- tmpDat2[grpMtch, smpls] + (m2 - m3) # -> Preserve group scale
         }
       }

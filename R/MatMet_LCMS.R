@@ -698,9 +698,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         }
         if (ScanHdsMnTst) {
           parallel::clusterExport(cl, list("ScanHdsMnLoc"), envir = environment())
-          f0 <- function(rwfl) { #rwfl <- rawMeth$Raw.file[w2][1L]
-            cmd <- paste0("\"", ScanHdsMnLoc, "/ScanHeadsman.exe\" \"", rwfl, "\" -n -m=1 -t=",
-                          1)
+          f0 <- \(rwfl) { #rwfl <- rawMeth$Raw.file[w2][1L]
+            cmd <- paste0("\"", ScanHdsMnLoc, "/ScanHeadsman.exe\" \"", rwfl, "\" -n -m=1 -t=1")
             #cat(paste0(cmd, "\n"))
             system(cmd)
           }
@@ -740,7 +739,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
           g <- grep("Method 1 is ", meth)
           lcMeth <- meth[1L:(g-1L)]
           msMeth <- meth[g:length(meth)]
-          INSTR <- gsub("^ +Method of ", "", msMeth[3L])
+          INSTR <- sub("^ +Method of ", "", msMeth[3L])
           NANO <- gsub(" +", " ", gsub("Thermo", "", gsub("_", " ", gsub("^Instrument: | on .*", "", grep("^Instrument: ", lcMeth, value = TRUE, ignore.case = TRUE))), ignore.case = TRUE))
           ADflt <- "MS-grade H₂O + 0.1% formic acid"
           BDflt <- "80% acetonitrile in H₂O + 0.08% formic acid"
@@ -974,12 +973,12 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                 brks <- c(0L, brks)
                 l <- length(brks)
                 InclWind <- as.data.frame(sapply(2L:l, \(x) {
-                  gsub("^ +", "", substr(InclWind, brks[x-1]+1L, brks[x]))
+                  sub("^ +", "", substr(InclWind, brks[x-1]+1L, brks[x]))
                 }))
                 colnames(InclWind) <- sapply(2L:l, \(x) {
-                  df <- data.frame(x = gsub("^ +", "", substr(InclHdr, brks[x-1L]+1L, brks[x])),
-                                   y = gsub("^ +", "", substr(InclUnit, brks[x-1L]+1L, brks[x])))
-                  x <- gsub(" +$", "", do.call(paste, c(df, sep = " ")))
+                  df <- data.frame(x = sub("^ +", "", substr(InclHdr, brks[x-1L]+1L, brks[x])),
+                                   y = sub("^ +", "", substr(InclUnit, brks[x-1L]+1L, brks[x])))
+                  x <- sub(" +$", "", do.call(paste, c(df, sep = " ")))
                 })
                 InclWind$`Mass [m/z]` <- as.numeric(InclWind$`Mass [m/z]`)
                 InclWind$`Start [min]` <- as.numeric(InclWind$`Start [min]`)
@@ -987,8 +986,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                 InclWind <- InclWind[order(InclWind$`Start [min]`, InclWind$`Mass [m/z]`, decreasing = FALSE),]
                 NWind <- nrow(InclWind)
                 #if (length(InclWind) == TOPN) {
-                InclWindL <- InclWind$`Mass [m/z]`-as.numeric(gsub(" m/z$", "", ISOWIN))/2
-                InclWindR <- InclWind$`Mass [m/z]`+as.numeric(gsub(" m/z$", "", ISOWIN))/2
+                InclWindL <- InclWind$`Mass [m/z]`-as.numeric(sub(" m/z$", "", ISOWIN))/2
+                InclWindR <- InclWind$`Mass [m/z]`+as.numeric(sub(" m/z$", "", ISOWIN))/2
                 OLtst <- unique(round(InclWindR[1L:(NWind-1L)] - InclWindL[2L:NWind], 3L))
                 stopifnot(length(OLtst) == 1L)
                 if (OLtst == 0L) { OLtxt <- "no overlap" }

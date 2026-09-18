@@ -84,7 +84,7 @@ expMap <- expMap[order(#expMap[[RRG$limmaCol]], # Do not use RRG here
 # Make contrasts
 ratGrps <- unique(expMap[[RG$limmaCol]])
 contrBlocks <- setNames(lapply(ratGrps, \(grp) {
-  x <- as.character(unique(expMap[which(expMap[[RG$limmaCol]] == grp), VPAL$limmaCol]))
+  x <- as.character(unique(expMap[expMap[[RG$limmaCol]] == grp, VPAL$limmaCol]))
   setNames(x, cleanNms(x, rep = " "))
 }), ratGrps)
 contrBlocks2 <- stack(contrBlocks)
@@ -320,7 +320,7 @@ table.on('click', 'button', function() {
   observeEvent(input$Primary, {
     #AB <- dfltContr_Opt[match(dfltContr_Opt$Contrast[1L], dfltContr_Opt$Contrast), c("A", "B")]
     AB <- dfltContr_Opt[match(input$Primary, dfltContr_Opt$Contrast), c("A", "B")]
-    tmp <- c("", dfltContr_Opt$Contrast[which((!dfltContr_Opt$A %in% AB)&(!dfltContr_Opt$B %in% AB))])
+    tmp <- c("", dfltContr_Opt$Contrast[(!dfltContr_Opt$A %in% AB) & (!dfltContr_Opt$B %in% AB)])
     updateSelectInput(inputId = "Secondary",
                       choices = tmp,
                       selected = "")
@@ -451,7 +451,7 @@ kol <- c("A", "B", "C", "D")
 kol <- intersect(kol, colnames(myContrasts))
 for (i in kol) {
   myContrasts[[paste0(i, "_samples")]] <- lapply(myContrasts[[i]], \(x) {
-    rownames(expMap)[which(expMap[[VPAL$limmaCol]] == x)]
+    rownames(expMap)[expMap[[VPAL$limmaCol]] == x]
   })
 }
 if (!"Secondary" %in% colnames(myContrasts)) {

@@ -721,7 +721,7 @@
   if ((!is.null(ContCol))&&(ContCol %in% colnames(DB))) {
     tmp <- listMelt(strsplit(pg$`Protein IDs`, ";"), pg$temp.pg.id)
     tmp2 <- DB$`Protein ID`[which(DB[[ContCol]] == "+")]
-    tmp <- tmp[which(gsub("^CON__", "", tmp$value) %in% gsub("^CON__", "", tmp2)),]
+    tmp <- tmp[which(sub("^CON_+", "", tmp$value) %in% sub("^CON_+", "", tmp2)),]
     pg$"Potential contaminant" <- c("", "+")[(pg$temp.pg.id %in% tmp$L1)+1L]
   }
   cat(paste0("   Final number of protein groups: ", nrow(pg), "\n"))
@@ -734,7 +734,7 @@
   # Peptide IDs
   pepcolnm <- {
     if (grepl("peptide", Peptide.IDs, ignore.case = TRUE)) {
-      gsub("ss$", "s", paste0(Peptide.IDs, "s"))
+      sub("ss$", "s", paste0(Peptide.IDs, "s"))
     } else { "Peptide IDs" }
   }
   pg[[pepcolnm]] <- vapply(pg$.pep.ids, paste, "", collapse = ";")
@@ -958,7 +958,7 @@
   c1 <- c("Sequence coverage [%]", "Unique + razor sequence coverage [%]", "Unique sequence coverage [%]")
   c2 <- c(".Leading.protein.IDs", ".pep.ids", ".razor.pep.ids", ".unique.pep.ids")
   tmp1 <- DB[, c("Protein ID", "Sequence")]
-  tmp1$`Protein ID` <- gsub("^CON__", "", tmp1$`Protein ID`)
+  tmp1$`Protein ID` <- sub("^CON_+", "", tmp1$`Protein ID`)
   tmp2 <- pg[, c2]
   tmp3 <- seq[, c("id", "Sequence")]
   readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
@@ -978,7 +978,7 @@
   unlink(paste0(wd, "/c2.RDS"))
   f0 <- \(x) {
     #x <- tmp2[1, c2]
-    s <- gsub("^CON__", "", unlist(x[[1L]])[1L])
+    s <- sub("^CON_+", "", unlist(x[[1L]])[1L])
     w <- match(s, tmp1$"Protein ID")
     ptids <- unlist(x[[2L]])
     prids <- unlist(x[[3L]])
@@ -1032,9 +1032,9 @@
   kol <- c("Protein ID", "Header", ca, cb)
   kol <- kol[which(kol %in% colnames(DB))]
   temp <- DB[, kol]
-  temp$temp <- gsub("^>", "", temp$Header)
-  temp$"Protein ID" <- gsub("^CON__", "", temp$"Protein ID")
-  temp2b <- gsub("^CON__", "", gsub(";CON__", ";", pg$"Protein IDs"))
+  temp$temp <- sub("^>", "", temp$Header)
+  temp$"Protein ID" <- sub("^CON_+", "", temp$"Protein ID")
+  temp2b <- sub("^CON_+", "", gsub(";CON_+", ";", pg$"Protein IDs"))
   tmp2 <- strsplit(temp2b, ";")
   tmp1 <- temp[, c("Protein ID", c2)]
   readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))

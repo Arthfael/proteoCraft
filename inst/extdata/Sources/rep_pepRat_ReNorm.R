@@ -16,8 +16,8 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #   w <- which(pep$`Normalisation group` == nrmgrp)
 #   for (k in g) {
 #     m <- pep[w, k]
-#     m <- median(m[which(is.finite(m))])
-#     #m <- mlv(pep[which(is.finite(pep[[k]])), k], method = "Parzen")[1L]
+#     m <- median(m[is.finite(m)])
+#     #m <- mlv(pep[is.finite(pep[[k]]), k], method = "Parzen")[1L]
 #     pep[w, paste0("norm. ", k)] <- pep[w, k]-m
 #     Norm.log2.Pep.Ratios[paste0(nrmgrp, " - ", gsub(topattern(pep.ratios.ref[1L]), "", k))] <- m
 #   }
@@ -29,10 +29,10 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #   if (Param$Adv.Norma.Pep.Ratio.Type == "C") {
 #     k <- Adv.Norma.Pep.Ratio.Type.Group$column
 #     test <- vapply(Adv.Norma.Pep.Ratio.Type.Group$values, \(i) { #i <- Adv.Norma.Pep.Ratio.Type.Group$values[1L]
-#       i <- Exp.map$Ref.Sample.Aggregate[which(Exp.map[[k]] == i)]
-#       return(length(which(paste0(pep.ratios.ref[length(pep.ratios.ref)], i) %in% colnames(pep))))
+#       i <- Exp.map$Ref.Sample.Aggregate[Exp.map[[k]] == i]
+#       return(sum(paste0(pep.ratios.ref[length(pep.ratios.ref)], i) %in% colnames(pep)))
 #     }, 1L)
-#     agg <- Adv.Norma.Pep.Ratio.Type.Group$values[which(test > 1L)]
+#     agg <- Adv.Norma.Pep.Ratio.Type.Group$values[test > 1L]
 #     exports <- list("agg", "Adv.Norma.Pep.Ratio.Type.Group", "Exp.map", "pep.ratios.ref", "pep", "Param")
 #     clusterExport(parClust, exports, envir = environment())
 #     invisible(clusterCall(parClust, \() {
@@ -54,7 +54,7 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #         })
 #         temp2 <- sort(unique(unlist(temp)))
 #         test <- vapply(temp2, \(x) { sum(vapply(temp, \(y) { x %in% unlist(y) }, TRUE)) }, 1L)
-#         temp2 <- temp2[which(test == length(temp))]
+#         temp2 <- temp2[test == length(temp)]
 #         temp3 <- Exp.map[temp2,]
 #         kol <- paste0(pep.ratios.ref[length(pep.ratios.ref)], temp3$Ref.Sample.Aggregate)
 #         w <- which(kol %in% colnames(pep))
@@ -90,7 +90,7 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 # if (Param$Norma.Pep.Ratio.show) {
 #   for (i in Ratios.Plot.split$values) { #i <- Ratios.Plot.split$values[1L]
 #     j <- setNames(unlist(strsplit(i, "___")),
-#                   unlist(Aggregate.map$Characteristics[which(Aggregate.map$Aggregate.Name == Ratios.Plot.split$aggregate)]))
+#                   unlist(Aggregate.map$Characteristics[Aggregate.map$Aggregate.Name == Ratios.Plot.split$aggregate]))
 #     k <- lapply(names(j), \(x) {
 #       if (j[[x]] == "NA") {
 #         return(which((is.na(Exp.map[[x]]))|(Exp.map[[x]] == j[[x]])))
@@ -99,11 +99,11 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #     })
 #     l <- sort(unique(unlist(k)))
 #     test <- vapply(l, \(x) { sum(vapply(k, \(y) { x %in% y }, TRUE)) == length(k) }, 1L)
-#     temp <- Exp.map$Ref.Sample.Aggregate[l[which(test)]]
+#     temp <- Exp.map$Ref.Sample.Aggregate[l[test]]
 #     a1 <- paste0(pep.ratios.ref[1L], temp)
 #     a2 <- paste0(pep.ratios.ref[length(pep.ratios.ref)], temp)
-#     a1 <- a1[which(a1 %in% colnames(pep))]
-#     a2 <- a2[which(a2 %in% colnames(pep))]
+#     a1 <- intersect(a1, colnames(pep))
+#     a2 <- intersect(a2, colnames(pep))
 #     if (length(a1)) {
 #       temp <- pep[, c("Modified sequence", a1, a2)]
 #       temp <- reshape2::melt(temp)
@@ -111,10 +111,10 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #       temp$Norm <- c("Original", "Normalised")[temp$Norm + 1L]
 #       temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
 #       temp$variable <- as.character(temp$variable)
-#       temp$variable[which(temp$Norm == "Original")] <- gsub_Rep(topattern(pep.ratios.ref[1L]), "", temp$variable[which(temp$Norm == "Original")])
-#       temp$variable[which(temp$Norm == "Normalised")] <- gsub_Rep(topattern(pep.ratios.ref[length(pep.ratios.ref)]), "", temp$variable[which(temp$Norm == "Normalised")])
+#       temp$variable[temp$Norm == "Original"] <- gsub_Rep(topattern(pep.ratios.ref[1L]), "", temp$variable[temp$Norm == "Original"])
+#       temp$variable[temp$Norm == "Normalised"] <- gsub_Rep(topattern(pep.ratios.ref[length(pep.ratios.ref)]), "", temp$variable[temp$Norm == "Normalised"])
 #       temp2 <- Isapply(strsplit(temp$variable, "___"), unlist)
-#       colnames(temp2) <- unlist(Aggregate.map$Characteristics[which(Aggregate.map$Aggregate.Name == RSA$aggregate)])
+#       colnames(temp2) <- unlist(Aggregate.map$Characteristics[Aggregate.map$Aggregate.Name == RSA$aggregate])
 #       temp[, colnames(temp2)] <- temp2
 #       temp$Wrap <- if (length(Ratios.Plot.wrap$names) > 1L) {
 #         do.call(paste, c(temp2[, Ratios.Plot.wrap$names], sep = "_"))
@@ -126,7 +126,7 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #       temp$X <- factor(temp$X, levels = unique(unlist(vapply(c("Original", "Normalised"), \(x) {
 #         paste(x, unique(temp2[[Ratios.Plot.colour$names]]), sep = "_")
 #       }, ""))))
-#       temp <- temp[which(is.finite(temp$value)),]
+#       temp <- temp[is.finite(temp$value),]
 #       dir <- paste0(wd, "/Workflow control/Peptides/Ratios")
 #       if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 #       dirlist <- unique(c(dirlist, dir))
@@ -157,10 +157,10 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #     temp$Norm <- c("Original", "Normalised")[temp$Norm + 1L]
 #     temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
 #     temp$variable <- as.character(temp$variable)
-#     temp$variable[which(temp$Norm == "Original")] <- gsub_Rep(topattern(pep.ratios.ref[1L]), "", temp$variable[which(temp$Norm == "Original")])
-#     temp$variable[which(temp$Norm == "Normalised")] <- gsub_Rep(topattern(pep.ratios.ref[length(pep.ratios.ref)]), "", temp$variable[which(temp$Norm == "Normalised")])
+#     temp$variable[temp$Norm == "Original"] <- gsub_Rep(topattern(pep.ratios.ref[1L]), "", temp$variable[temp$Norm == "Original"])
+#     temp$variable[temp$Norm == "Normalised"] <- gsub_Rep(topattern(pep.ratios.ref[length(pep.ratios.ref)]), "", temp$variable[temp$Norm == "Normalised"])
 #     temp$Ratios.Group <- gsub_Rep("_REF.to.REF_[0-9]+$", "", temp$variable)
-#     temp <- temp[which(is.finite(temp$value)),]
+#     temp <- temp[is.finite(temp$value),]
 #     dir <- paste0(wd, "/Workflow control/Peptides/Ratios")
 #     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 #     dirlist <- unique(c(dirlist, dir))

@@ -13,9 +13,9 @@
   plotType <- samplesDF$subtype[ii]
   #tstReg <- (quantType == "LFQ") & MakeRatios
   ref <- samplesDF$ref[ii]
-  kolnm <- gsub(" - $", "", ref)
+  kolnm <- sub(" - $", "", ref)
   if (grepl("\\(Expr\\.\\)", kolnm)) { kolnm <- gsub("\\(Expr\\.\\)", " LFQ", kolnm) }
-  if (grepl("^Sequence coverage ", kolnm)) { kolnm <- gsub("^Sequence coverage ", "Coverage ", kolnm) }
+  if (grepl("^Sequence coverage ", kolnm)) { kolnm <- sub("^Sequence coverage ", "Coverage ", kolnm) }
   smpls <- samplesDF$values[[ii]]
   toolTip <- paste0("text", as.character(1L:4L))
   tstPL <- FALSE
@@ -42,7 +42,7 @@
     if (!dir.exists(subDir)) { dir.create(subDir, recursive = TRUE) }
     qKol <- grep(topattern(ref), colnames(myData), value = TRUE)
     if (dataType == "PG") {
-      nKol <- gsub(topattern(ref), "Peptides count - ", qKol)
+      nKol <- sub(topattern(ref), "Peptides count - ", qKol)
       myData2 <- reshape::melt(myData[, c(varkol, nKol)], id.vars = varkol)
     }
     #
@@ -198,7 +198,7 @@
       profData3[, c("Y", "Y + 95% CI", "Y - 95% CI")] <- do.call(as.data.frame, list(profData3$x))
       profData3$x <- NULL
       ttl3 <- paste0("Avg. norm. ", ttl)
-      ggCall_txt3 <- gsub("\n +", "\n", gsub("^ +", "", unlist(strsplit(ggCall_txt, " +\\+ *\n?"))))
+      ggCall_txt3 <- gsub("\n +", "\n", sub("^ +", "", unlist(strsplit(ggCall_txt, " +\\+ *\n?"))))
       g <- grep("ggplot2::geom_line\\(", ggCall_txt3)
       ggCall_txt3[g] <- "ggplot2::geom_ribbon(alpha = 0.1, linetype = \"dotted\", ggplot2::aes(ymin = `Y - 95% CI`, ymax = `Y + 95% CI`))"
       g <- grep("ggplot2::ylab\\(", ggCall_txt3)
@@ -302,11 +302,11 @@
     # }
     # if (tstReg) {
     #   myData2 <- myData[, c(rgKol, varkol)]
-    #   colnames(myData2)[1L] <- gsub(topattern(ref), "", colnames(myData2)[1L])
+    #   colnames(myData2)[1L] <- sub(topattern(ref), "", colnames(myData2)[1L])
     #   myData2 <- reshape::melt(myData2, id.vars = varkol)
     #   colnames(myData2) <- c(varkol, "Sample", "Reg")
     # }
-    colnames(myData)[1L] <- gsub(topattern(ref), "", colnames(myData)[1L])
+    colnames(myData)[1L] <- sub(topattern(ref), "", colnames(myData)[1L])
     myData <- reshape::melt(myData, id.vars = varkol)
     colnames(myData) <- c(varkol, "Sample", "Y")
     # if (tstReg) {

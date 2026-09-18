@@ -5,20 +5,20 @@
 # Edit a map defining the relationship between MS runs and biological samples
 
 if ("PTM-enriched" %in% colnames(FracMap)) {
-  FracMap$"PTM-enriched"[which(!FracMap$"PTM-enriched" %in% Modifs$`Full name`)] <- NA
+  FracMap$"PTM-enriched"[!FracMap$"PTM-enriched" %in% Modifs$`Full name`] <- NA
 } else { FracMap$"PTM-enriched" <- NA }
 # Try sorting automatically
 tst <- grepl("_[0-9]+\\.d$", FracMap$`Raw file`)
 if (sum(tst)) {
   FracMap$Bruker_run_ID <- NA_integer_
-  FracMap$Bruker_run_ID[which(tst)] <- as.integer(gsub(".*_|\\.d$", "", FracMap$`Raw file`[which(tst)]))
+  FracMap$Bruker_run_ID[tst] <- as.integer(gsub(".*_|\\.d$", "", FracMap$`Raw file`[tst]))
   w1 <- which(!is.na(FracMap$Bruker_run_ID))
   w2 <- which(is.na(FracMap$Bruker_run_ID))
   w1 <- w1[order(FracMap$Bruker_run_ID[w1])]
   FracMap <- FracMap[c(w1, w2),]
 }
 FracMap$Use <- as.logical(FracMap$Use)
-FracMap$Use[which(is.na(FracMap$Use))] <- TRUE
+FracMap$Use[is.na(FracMap$Use)] <- TRUE
 nr <- nrow(FracMap)
 rws <- seq_len(nr)
 chRws <- as.character(rws)
@@ -36,7 +36,7 @@ wTest0 <- setNames(vapply(colnames(FracMap), \(k) { #k <- colnames(FracMap)[1]
 frMap <- FracMap
 frMap$"Raw files name" <- NULL
 frMap$Use <- as.logical(toupper(frMap$Use))
-frMap$Use[which(is.na(FracMap$Use))] <- TRUE
+frMap$Use[is.na(FracMap$Use)] <- TRUE
 frMap$Use <- shinyCheckInput(frMap$Use, "Use")
 frMap$"PTM-enriched" <- shinySelectInput(FracMap$"PTM-enriched",
                                          "PTMenriched",
@@ -44,11 +44,11 @@ frMap$"PTM-enriched" <- shinySelectInput(FracMap$"PTM-enriched",
                                          paste0(30*max(c(nchar(as.character(Modifs$`Full name`)), 2)), "px"))
 frMap$"Parent sample" <- shinyTextInput(frMap$"Parent sample", "Sample", paste0(wTest0["Parent sample"], "px"))
 k <- c("Raw file", "Parent sample", "Fraction", "PTM-enriched", "Bruker_run_ID", "Use")
-k <- k[which(k %in% colnames(frMap))]
+k <- intersect(k, colnames(frMap))
 frMap <- frMap[, k]
 # Estimate dummy table column widths
 wTest1 <- vapply(colnames(frMap), \(k) { #k <- colnames(frMap)[1L]
-  if ((k == "Parent sample")&&(!k %in% names(wTest0))) { k <- "MQ.Exp" }
+  if ((k == "Parent sample") && (!k %in% names(wTest0))) { k <- "MQ.Exp" }
   x <- if (k %in% names(wTest0)) { wTest0[k] } else { 30L }
   return(as.integer(x))
 }, 1L)
@@ -127,7 +127,7 @@ Shiny.bindAll(table.table().node());"))
   session$onSessionEnded(\() { stopApp() })
 }
 runKount <- 0L
-while ((!runKount)||(!exists("frMap2"))) {
+while ((!runKount) || (!exists("frMap2"))) {
   eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount+1L

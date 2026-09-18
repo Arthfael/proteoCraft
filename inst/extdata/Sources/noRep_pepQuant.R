@@ -1,8 +1,8 @@
 # No replicates script:
 # Calculate per-sample peptide intensities from PSM intensities
 for (e in Exp) { #e <- Exp[1L]
-  temp <- ev[which(ev$Experiment == e),]
-  temp <-  magrittr::set_colnames(aggregate(temp[[int.col]], list(temp$"Modified sequence"), \(x) { sum(x[which(is.finite(x))]) }),
+  temp <- ev[ev$Experiment == e,]
+  temp <-  magrittr::set_colnames(aggregate(temp[[int.col]], list(temp$"Modified sequence"), \(x) { sum(x[is.finite(x)]) }),
                                   c("Modified sequence", int.col))
   pep[, paste0(int.col, " - ", e)] <- 0
   w <- which(pep$"Modified sequence" %in% temp$"Modified sequence")

@@ -9,7 +9,7 @@ tmp2 <- data.frame(Variable = c("Protein groups", "Protein groups with 2+ peptid
                              "",
                              as.character(signif(as.numeric(tmp2), 3L))))
 tmp2$Txt <- apply(tmp2[, c("Variable", "Value")], 1L, \(x) {
-  x <- x[which(x != "")]
+  x <- setdiff(x, "")
   x <- if (length(x)) { paste(x, collapse = ": ") } else { "" }
   return(x)
 })

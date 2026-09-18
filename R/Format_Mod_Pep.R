@@ -18,7 +18,7 @@
 Format_Mod_Pep <- function(x) {
   x1 <- unique(x)
   x2 <- gsub("^_|_$", "", x1)
-  for (a in AA) { x2 <- gsub(a, paste0("-", a, "-"), x2) }
+  for (aa in AA) { x2 <- gsub(aa, paste0("-", aa, "-"), x2) }
   x2 <- strsplit(x2, "-+")
   y <- unique(unlist(x2))
   y <- y[which(!y %in% AA)]

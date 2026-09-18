@@ -24,7 +24,6 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
   #
   PTMs %<o% PTMstats$mod
   #
-  PTMs_ref.ratios %<o% list()
   PTMs_FDR.thresholds %<o% list()
   PTMs_pep %<o% list()
   PTMs_Reg_filters %<o% list()
@@ -50,13 +49,11 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     PTM_normalize %<o% setNames(tmp, PTMs)
   } else { PTM_normalize %<o% setNames(rep(TRUE, length(PTMs)), PTMs) }
   if (enrichGO) {
-    PTMs_GO_Plots %<o% list()
-    PTMs_Reg_GO_terms %<o% list()
-    PTMs_GO_enrich.dat %<o% list()
-    PTMs_GO_enrich.FCRt %<o% list()
-    PTMs_GO_enrich.tbl %<o% list()
-    PTMs_GO_Plots %<o% list()
-    PTMs_Reg_GO_terms %<o% list()
+    PTMs_GO_Plots <- list()
+    PTMs_Reg_GO_terms <- list()
+    PTMs_GO_enrich.dat <- list()
+    PTMs_GO_enrich.FCRt <- list()
+    PTMs_GO_enrich.tbl <- list()
     ### Check that Cytoscape is installed and can run, then launch it.
     Src <- paste0(libPath, "/extdata/Sources/Cytoscape_init.R")
     #rstudioapi::documentOpen(Src)
@@ -81,7 +78,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     tmp2 <- ", re-normalizing values to account for average parent protein group(s) fold change."
   } else {
     if (l2u > 1L) {
-      tmp2 <- names(tmp2)[which(tmp2)]; l2 <- length(tmp2)
+      tmp2 <- names(tmp2)[tmp2]; l2 <- length(tmp2)
       if (l2 > 1L) { tmp2 <- paste0(paste(tmp2[seq_len(lT-1L)], collapse = ", "), " and ", tmp2[lT], "") }
       tmp2 <- ", normalizing values to correct for parent protein group(s) fold change."
     } else { tmp2 <- "." }
@@ -159,7 +156,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     temp <- data.frame("Modified sequence" = tmp,
                        check.names = FALSE)
     temp[[myIDcol]] <- strsplit(ptmpep[[myIDcol]], ";")
-    dbsmall <- db[which(db$"Protein ID" %in% unique(unlist(temp[[myIDcol]]))), c("Protein ID", "Sequence")]
+    dbsmall <- db[db$"Protein ID" %in% unique(unlist(temp[[myIDcol]])), c("Protein ID", "Sequence")]
     # On I/L ambiguity remaining even with newer DIA methods taking into account RT, IM and fragments intensity, see https://github.com/vdemichev/DiaNN/discussions/1631
     dbsmall$"Seq*" <- gsub("I", "L", dbsmall$Sequence)
     temp$"ModSeq*" <- gsub("I", "L", temp$"Modified sequence")
@@ -195,10 +192,10 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
           m1 <- m
           m1$Match <- apply(m1[, c("Seq", "Offset")], 1L, \(y) { which(S == y[1L]) - as.numeric(y[2L]) })
           M <- unlist(m1$Match)
-          M <- M[which(M > 0L)]
+          M <- M[M > 0L]
           M <- aggregate(M, list(M), length)
           M <- M[order(-M$x),]
-          M <- M$Group.1[which(M$x == l)]
+          M <- M$Group.1[M$x == l]
           # Check that peptides are tryptic:
           #test <- sapply(M, \(y) {
           #  # r1: on the N-terminal end, is the peptide preceded by K, R or (if starting at position 2, M)?
@@ -209,11 +206,11 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
           #  r2 <- (m1$Seq[l] %in% c("K", "R")) | (y+l-1L == lS)
           #  return(r1+r2 == 2L)
           #})
-          #M <- M[which(test)]
+          #M <- M[test]
           return(M)
         })
         names(matches) <- q
-        matches <- matches[which(lengths(matches) > 0L)]
+        matches <- matches[lengths(matches) > 0L]
         if (length(matches)) {
           matches <- listMelt(matches, ColNames = c("Match", "Protein"))
           matches <- aggregate(matches$Protein, list(matches$Match), paste, collapse = ";")
@@ -233,7 +230,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     temp3 <- as.data.frame(t(temp3))
     ptmpep[, c("Match(es)", paste0(Ptm, "-site(s)"))] <- temp3
     ptmpep[[paste0(Ptm, "-site")]] <- gsub(" .+", "", ptmpep[[paste0(Ptm, "-site(s)")]])
-    ptmpep <- ptmpep[which(!is.na(ptmpep$`Match(es)`)),]
+    ptmpep <- ptmpep[!is.na(ptmpep$`Match(es)`),]
     ptmpep$tmp1 <- gsub("^_|_$", "", ptmpep$"Modified sequence")
     ptmpep$tmp2 <- ptmpep[[paste0(Ptm, "-site(s)")]]
     nc <- nchar(ptmpep$tmp2)
@@ -249,7 +246,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     temp2$Protein <- db$"Common Name"[match(temp2$Protein, db$"Protein ID")]
     temp2$ModSeq <- gsub("^_|_$", "", ptmpep$`Modified sequence`[w])
     ptmpep$Name[w] <- do.call(paste, c(temp2[, c("Site", "ModSeq", "Protein")], sep = "\n"))
-    ptmpep$Name[which(ptmpep$Name == "")] <- paste0("Unknown source ", ptm, "-modified peptide #", seq_along(which(ptmpep$Name == "")))
+    ptmpep$Name[ptmpep$Name == ""] <- paste0("Unknown source ", ptm, "-modified peptide #", seq_along(which(ptmpep$Name == "")))
     #View(ptmpep[,c("Match(es)", "Modified sequence", "Code", paste0(Ptm, "-site(s)"))])
     if (grepl("^[P,p]hospho( \\([A-Z]+\\))?$", ptm)) {
       p_col <- paste0(gsub(" |\\(|\\)", ".", ptm), ".Probabilities")
@@ -396,7 +393,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     kls <- grep(topattern(ptmRf), colnames(ptmpep), value = TRUE)
     ptmpep$"Mean Expr." <- apply(ptmpep[, kls], 1L, \(x) {
       x <- unlist(x)
-      mean(x[which(is.finite(x))])
+      mean(x[is.finite(x)])
     })
     # Create list of control ratio values for the purpose of identifying thresholds for plots:
     #
@@ -405,23 +402,6 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     }
     if (Param$Ratios.Thresholds == threshMsg) {
       stop("This option is deprecated!")
-      # PTMs_ref.ratios[[Ptm]] <- ref.rat <- setNames(lapply(VPAL$values, \(x) { #x <- VPAL$values[1L]
-      #   if (RatConGrps == "Ratio groups") {
-      #     x1 <- unique(Exp.map[which(Exp.map[[VPAL$column]] == x), RG$column])
-      #   }
-      #   if (RatConGrps == "Experiments") {
-      #     x1 <- unique(Exp.map$Experiment[which(Exp.map[[VPAL$column]] == x)])
-      #     x1 <- unique(Exp.map[which(Exp.map$Experiment == x1), RG$column])
-      #   }
-      #   if (RatConGrps == "Whole dataset") {
-      #     x1 <- unique(Exp.map[[RG$column]])
-      #   }
-      #   x <- grep(paste0(topattern(paste0(ptms.ratios.ref[length(ptms.ratios.ref)], x1, "_REF.to.REF_")), "[0-9]+"),
-      #             colnames(ptmpep), value = TRUE)
-      #   if (!length(x)) { return(NULL) }
-      #   x <- as.numeric(unlist(ptmpep[, x]))
-      #   return(x[which(is.finite(x))])
-      # }), VPAL$values)
     }
     #
     # Estimate P-value significance for a set of accepted FDRs:
@@ -434,7 +414,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
       if (r) { r <- sum(is.finite(as.numeric(ptmpep[[x]]))) > 0L }
       return(r)
     }, TRUE)
-    A <- A[which(test)]
+    A <- A[test]
     stopifnot(length(A) > 0L)
     for (a in A) { #a <- A[1L]
       temp <- FDR(data = ptmpep,
@@ -450,12 +430,12 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     ptmpep$"1-PEP" <- 1 - ptmpep$PEP
     ptmpep$"log10(1-PEP)" <- log10(ptmpep$"1-PEP")
     a <- grep(topattern(ptmRf), colnames(ptmpep), value = TRUE)
-    a <- a[which(!grepl("\\.REF$", a))]
+    a <- a[!grepl("\\.REF$", a)]
     ptmpep$"Av. log10 abundance" <- apply(ptmpep[, a], 1L, \(x) {
       x <- unlist(x)
-      mean(x[which(is.finite(x))])
+      mean(x[is.finite(x)])
     })
-    ptmpep$"Rel. av. log10 abundance" <- ptmpep$"Av. log10 abundance"/max(ptmpep$"Av. log10 abundance"[which(is.finite(ptmpep$"Av. log10 abundance"))])
+    ptmpep$"Rel. av. log10 abundance" <- ptmpep$"Av. log10 abundance"/max(ptmpep$"Av. log10 abundance"[is.finite(ptmpep$"Av. log10 abundance")])
     # Arbitrary thresholds
     P <- Param
     P$Plot.labels <- "Name"
@@ -477,10 +457,10 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
         fdrs <- as.numeric(sub("FDR$", "", setdiff(colnames(dec), mKol)))
         fdrs <- sort(fdrs, decreasing = TRUE)
         for (f in fdrs) { #f <- fdrs[1L]
-          w <- which(ptmpep[[mKol]] %in% dec[which(dec[[paste0(f, "FDR")]] == "+"), mKol])
+          w <- which(ptmpep[[mKol]] %in% dec[dec[[paste0(f, "FDR")]] == "+", mKol])
           if (length(w)) {
-            ptmpep[which(ptmpep[w, FCkol] > 0), regKol] <- paste0("up, FDR = ", f*100, "%")
-            ptmpep[which(ptmpep[w, FCkol] < 0), regKol] <- paste0("down, FDR = ", f*100, "%")
+            ptmpep[ptmpep[w, FCkol] > 0, regKol] <- paste0("up, FDR = ", f*100, "%")
+            ptmpep[ptmpep[w, FCkol] < 0, regKol] <- paste0("down, FDR = ", f*100, "%")
           }
         }
       }
@@ -529,7 +509,6 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     #
     #
     ptmpep <- tempVPptm$Protein_groups_file
-    volcano.plots[[Ptm]] <- tempVPptm$Plots
     #
     # Specificity mark for untested proteins
     # We can assume that proteins with PSMs only in the specific pull-down samples are actually specifically enriched!
@@ -581,7 +560,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
       colnames(g2) <- VPAL$names
       tst <- apply(Exp.map[, RRG$names, drop = FALSE], 1L, paste, collapse = "___")
       tmp <- apply(g2[,RRG$names, drop = FALSE], 1L, paste, collapse = "___")
-      g2$Ref <- sapply(tmp, \(x) { y <- unique(tst[which(Exp.map$Reference & (tst == x))]) })
+      g2$Ref <- sapply(tmp, \(x) { y <- unique(tst[Exp.map$Reference & (tst == x)]) })
       for (i in unique(g2$Ref)) {
         w <- which(g2$Ref == i)
         PTMs_Reg_filters[[Ptm]]$"t-tests"$"By reference"[[i]] <- list(Columns = g[w],
@@ -623,8 +602,6 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
       #
       if (!inherits(tstFtst, "try-error")) {
         #F_test_ref_ratios %<o% F_volc$`Reference ratios` # Not needed
-        volcano.plots[[Ptm]]$"F-tests_Unlabelled" <- F_volc$Plots$"Unlabelled"
-        volcano.plots[[Ptm]]$"F-tests_Labelled" <- F_volc$Plots$"Labelled"
         myDir <- modDirs[3L]
         #
         # Create F-test filters:
@@ -714,7 +691,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     # Extract XICs for all regulated peptides, allowing visual checks on the reliability of the peptide.
     w <- which(SearchSoft == "DIANN")
     if (length(w)) {
-      w <- w[which(dir.exists(paste0(inDirs[w], "/report_xic")))]
+      w <- w[dir.exists(paste0(inDirs[w], "/report_xic"))]
     }
     if (length(w)) {
       regPep <- lapply(names(PTMs_Reg_filters[[Ptm]]), \(tt) { #tt <- names(PTMs_Reg_filters[[Ptm]])[1L]
@@ -836,15 +813,15 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
       }
       p <- strsplit(ptmpep$Proteins, ";")
       test <- sapply(annot.col, \(x) { x %in% colnames(db) })
-      annot.col2 <- annot.col[which(test)]
-      tmpDB <- db[which(db$Observed), c("Protein ID", annot.col2)]
+      annot.col2 <- annot.col[test]
+      tmpDB <- db[db$Observed, c("Protein ID", annot.col2)]
       clusterExport(parClust, c("tmpDB", "annot.col2"), envir = environment())
       temp <- parLapply(parClust, p, \(x) {
         m <- match(x, tmpDB$"Protein ID")
         y <- tmpDB[m, annot.col2]
         if (length(m) > 1L) {
           y <- apply(y, 2L, \(z) {
-            z <- z[which(!is.na(z))]
+            z <- z[!is.na(z)]
             paste(sort(unique(unlist(strsplit(as.character(z), ";")))), collapse = ";")
           })
         }
@@ -891,7 +868,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
               if (tt == 1L) { tmpdat <- ptmpep }
               if (tt == 2L) { tmpdat <- PTMs_F_test_data[[Ptm]] }
               flt <- if (tt %in% 1L:2L) {
-                flt[intersect(myContrasts$Contrast[which(myContrasts$Secondary == "")], names(flt))]
+                flt[intersect(myContrasts$Contrast[myContrasts$Secondary == ""], names(flt))]
               } else {
                 flt[order(names(flt))]
               }
@@ -911,7 +888,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
               #tmpdat <- get(c("ptmpep", "PTMs_F_test_data[[Ptm]]", "ptmpep", "PTMs_allSAINTs")[tt]) # PTMs_allSAINTs doesn't exist... yet
               UF <- unique(reg$For)
               temPTM <- as.data.frame(do.call(cbind, lapply(UF, \(x) { #x <- UF[1L]
-                x <- reg$ParentFC[which(reg$For == x)]
+                x <- reg$ParentFC[reg$For == x]
                 x <- if (length(x) > 1L) { apply(tmpdat[, x], 1L, log_ratio_av) } else { tmpdat[[x]] }
                 return(x)
               })))
@@ -944,8 +921,8 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
                   m <- match(x, myContrasts$Contrast)
                   A_ <- myContrasts$A_samples[[m]]
                   B_ <- myContrasts$B_samples[[m]]
-                  y <- Exp.map[which(Exp.map$Ref.Sample.Aggregate %in% c(A_, B_)), GO.enrichment.Ref.Aggr$column]
-                  z <- Exp.map$Ref.Sample.Aggregate[which(Exp.map[[GO.enrichment.Ref.Aggr$column]] %in% y)]
+                  y <- Exp.map[Exp.map$Ref.Sample.Aggregate %in% c(A_, B_), GO.enrichment.Ref.Aggr$column]
+                  z <- Exp.map$Ref.Sample.Aggregate[Exp.map[[GO.enrichment.Ref.Aggr$column]] %in% y]
                   w1 <- which(apply(ptmpep[, paste0(ptmRf, z)], 1L, \(x) {
                     sum(is.finite(x))
                   }) > 0L)
@@ -1020,7 +997,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
                 temp <- temp[, c(kl, si, gn, pp, pr, kn, pv, zs, lf)]
                 w <- apply(temp[, pv, drop = FALSE], 1L, \(x) { sum(!is.na(x)) }) > 0L
                 temp <- temp[w,]
-                tst <- apply(temp[, kn, drop = FALSE], 1L, \(x) { sum(x[which(!is.na(x))]) })
+                tst <- apply(temp[, kn, drop = FALSE], 1L, \(x) { sum(x[!is.na(x)]) })
                 temp <- temp[order(tst, decreasing = TRUE),]
                 temp <- temp[order(temp$Ontology, decreasing = FALSE),]
                 PTMs_Reg_GO_terms[[Ptm]][[tstbee]] <- temp
@@ -1105,7 +1082,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
                     rownames(temp2) <-  temp[myRng, 1L]
                     for (i in 1L:nrow(temp2)) { temp2[[i]] <- as.numeric(temp2[[i]]) }
                     temp2ul <- unlist(temp2)
-                    if (max(temp2ul[which(is.finite(temp2ul))])) {
+                    if (max(temp2ul[is.finite(temp2ul)])) {
                       temp2 <- as.matrix(temp2)
                       basic.heatmap(temp2, "N. of co-regulated GO terms", paste0(tstrt, "\n(", tolower(bee), ")"),
                                     save = "svg", folder = myDir)

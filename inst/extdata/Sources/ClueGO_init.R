@@ -66,7 +66,7 @@ if (CytoScape) {
     if (l > 2L) { rs <- paste(c(rs, x[3L:l]), collapse = " ") }
     return(rs)
   })))
-  orgNm <- myOrgNm[which(myOrgNm %in% names(clueGOrgs))]
+  orgNm <- myOrgNm[myOrgNm %in% names(clueGOrgs)]
   clueGOahead <- (length(orgNm) > 0L)
   if (!clueGOahead) {
     msg <- "I could not identify the organism automatically, select organism from this list"
@@ -75,13 +75,13 @@ if (CytoScape) {
     opt <- setNames(sapply(optNms, \(x) { paste(c(x, rep(" ", 250L-nchar(x))), collapse = "") }), optNms)
     tmp <- dlg_list(opt, opt[dlNew], title = msg)$res
     orgNm <- optNms[match(tmp, opt)]
-    if ((length(orgNm) == 1L)&&(orgNm == dlNew)) {
+    if ((length(orgNm) == 1L) && (orgNm == dlNew)) {
       msg <- paste0("Download the new organism in ClueGO from within the CytoScape GUI\n(click on the leftmost blue paw icon)\nthen click \"ok\" to continue.")
       dlg_message(msg, "ok")
       rqst <- paste0(clueGO_URL, "/organisms/get-all-organism-info")
       response <- httr::GET(rqst, encode = "json")
       clueGOrgs <- httr::content(response, encode = "json")
-      orgNm <- myOrgNm[which(myOrgNm %in% names(clueGOrgs))]
+      orgNm <- myOrgNm[myOrgNm %in% names(clueGOrgs)]
       if (!length(orgNm)) {
         msg <- "I could not identify the organism automatically, select organism from this list"
         optNms <- names(clueGOrgs)

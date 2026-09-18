@@ -20,15 +20,15 @@ profile_ON <- exists("ggProfLy") && (length(ggProfLy) > 0L)
 if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
   HEIGHT2 <- paste0(as.character(Height*2L/(quant_ON+profile_ON)), "px")
   if (dimRed_ON) {
-    nmsDmRds <- names(dimRedPlotLy$PG)[which(names(dimRedPlotLy$PG) != "Samples PCA")]
+    nmsDmRds <- names(dimRedPlotLy$PG)[names(dimRedPlotLy$PG) != "Samples PCA"]
     dfltDmRd <- c("PCA", nmsDmRds)
-    dfltDmRd <- dfltDmRd[which(dfltDmRd %in% nmsDmRds)[1L]]
+    dfltDmRd <- intersect(dfltDmRd, nmsDmRds)[1L]
   }
   if (heatMaps_ON) {
     dfltHtMp <- c("Global", names(plotLeatMaps))
-    dfltHtMp <- dfltHtMp[which(dfltHtMp %in% names(plotLeatMaps))[1L]]
+    dfltHtMp <- intersect(dfltHtMp, names(plotLeatMaps))[1L]
     dfltNrmTp <- c("Norm. by row", names(plotLeatMaps[[dfltHtMp]]))
-    dfltNrmTp <- dfltNrmTp[which(dfltNrmTp %in% names(plotLeatMaps[[dfltHtMp]]))[1L]]
+    dfltNrmTp <- intersect(dfltNrmTp, names(plotLeatMaps[[dfltHtMp]]))[1L]
   }
   if (quant_ON||profile_ON) {
     dfltQuant <- c("Expression", "LFQ")
@@ -41,11 +41,11 @@ if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
       }
       dfltProt <- allProt[1L]
       dfltQuant <- union(dfltQuant, names(ggProfLy))
-      dfltQuant <- dfltQuant[which(dfltQuant %in% names(ggProfLy))[1L]]
+      dfltQuant <- intersect(dfltQuant, names(ggProfLy))[1L]
     }
     if (quant_ON) {
       dfltQuant <- union(dfltQuant, names(ggQuantLy))
-      dfltQuant <- dfltQuant[which(dfltQuant %in% names(ggQuantLy))[1L]]
+      dfltQuant <- intersect(dfltQuant, names(ggQuantLy))[1L]
       allSamples <- unique(unlist(lapply(names(ggQuantLy), \(x) { names(ggQuantLy[[x]]) })))
     }
   }

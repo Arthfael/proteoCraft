@@ -54,7 +54,7 @@ if (Update_Prot_matches) {
       tst$Orig <- strsplit(tst$Orig, ";")
       #View(tst)
       tst$Corr <- strsplit(tst$Corr, ";")
-      f0 <- \(x, y) { x[which(!x %in% y)] }
+      f0 <- \(x, y) { x[!x %in% y] }
       tst$In_Orig_only <- lapply(1L:nrow(tst), \(x) { f0(unlist(tst$Orig[[x]]),
                                                          unlist(tst$Corr[[x]])) })
       tst$In_Corr_only <- lapply(1L:nrow(tst), \(x) { f0(unlist(tst$Corr[[x]]),
@@ -89,8 +89,7 @@ Discrepancies with the original search engine matches can have several causes:
     saveFun(evmatch, file = paste0(wd, "/evmatch.RDS"))
   }
 } else {
-  kol <- c("Leading proteins", "Proteins")
-  kol <- kol[which(kol %in% colnames(ev))]
+  kol <- intersect(c("Leading proteins", "Proteins"), colnames(ev))
   tmp <- ev[, kol, drop = FALSE]
   for (k in kol) { tmp[[k]] <- strsplit(tmp[[k]], ";") }
   ev$Proteins <- parApply(parClust, tmp, 1L, \(x) {
@@ -99,16 +98,6 @@ Discrepancies with the original search engine matches can have several causes:
 }
 tst <- unique(unlist(strsplit(ev$Proteins, ";")))
 if ("NA" %in% tst) { stop("\"NA\" is not an accepted protein accession!") }
-#View(ev[, c("Sequence", "Proteins")])
-#test <- c()
-#if (!is.null(prot.list)) {
-#  a <- paste0(";", ev$Proteins, ";")
-#  b <- prot.list
-#  a1 <- paste0(";", b, ";")
-#  test <- unique(unlist(lapply(a1, \(x) { ev$id[grep(x, a)] })))
-#}
-#kol <- which(toupper(colnames(ev)) %in% c("CONTAMINANT", "POTENTIAL CONTAMINANT"))
-#ev <- ev[which(is.na(ev[[kol]]) | (ev[[kol]] == "") | (ev$id %in% test)),]
 # Test if there are still any evidences without any matching proteins from the database
 ev$"Tryptic peptide?" <- TRUE
 w <- which(ev$Proteins == "")
@@ -144,8 +133,9 @@ if (l) {
   unlink("tmpEV.RDS")
   unlink("tmpDB.RDS")
   ev$Proteins[w] <- tmpEV$Proteins[match(ev$Sequence[w], tmpEV$Seq)]
-  ev <- ev[which(ev$Proteins != ""),]
+  ev <- ev[ev$Proteins != "",]
 }
 # Also remove those protein columns we will re-create later
 ev$"Leading proteins" <- NULL
 ev$"Leading razor protein" <- NULL
+rm(evmatch)

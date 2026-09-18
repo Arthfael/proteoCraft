@@ -6,6 +6,8 @@ require(shinyjs)
 require(shinyBS)
 require(htmlwidgets)
 #
+#
+#
 moreThan1Exp %<o% TRUE
 #
 # Boolean functions to check parameter values
@@ -17,6 +19,22 @@ source(Src)
 Src <- paste0(libPath, "/extdata/Sources/protHeaders_for_shiny.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
+#
+# Species
+SpeciesTst %<o% "Unspecified"
+if ("Taxonomy" %in% colnames(db)) {
+  SpeciesTst <- unique(db$Taxonomy[gsub(" *(\\(|\\[).*", "", db[[dbOrgKol]]) == mainOrg])
+  SpeciesTst <- SpeciesTst[as.character(SpeciesTst) != "NA"][1L]
+}
+if ("Kingdom" %in% colnames(db)) {
+  KingdomTst <- aggregate(db$Kingdom, list(db$Kingdom), length)
+  KingdomTst <- KingdomTst[order(KingdomTst$x, decreasing = TRUE),]
+  KingdomTst <- KingdomTst$Group.1[1L]
+} else {
+  KingdomTst <- "unknown" # Could be user prompted
+}
+KingdomTst %<o% KingdomTst
+isEukaLike %<o% (KingdomTst %in% c("Eukaryota", "Archaea"))
 #
 # Proteins of interest
 Src <- paste0(libPath, "/extdata/Sources/protList.R")
@@ -111,7 +129,7 @@ if (ParamFl == ParamFls[2L]) {
   }
   if ("Target" %in% Factors) {
     tmp <- FactorsLevels$Target
-    tmp <- tmp[which((!is.na(tmp))&(tmp != "NA"))]
+    tmp <- tmp[(!is.na(tmp)) & (tmp != "NA")]
     Param$Prot.list <- paste(union(tmp, unlist(strsplit(Param$Prot.list, ";"))), collapse = ";")
     Param$Prot.list_pep <- paste(union(tmp, unlist(strsplit(Param$Prot.list_pep, ";"))), collapse = ";")
   }
@@ -122,28 +140,13 @@ if (ParamFl == ParamFls[2L]) {
   ptmDflt2 <- ""
   if ("PTM.analysis" %in% colnames(Param)) {
     tmp <- unlist(strsplit(as.character(Param$PTM.analysis), ";"))
-    tmp <- tmp[which(tmp %in% Modifs$`Full name`)]
+    tmp <- intersect(tmp, Modifs$`Full name`)
     ptmDflt2 <- tmp
   }
 }
 if (!"PTM.analysis_Norm" %in% colnames(Param)) { Param$PTM.analysis_Norm <- TRUE } 
 tmp <- Param$PTM.analysis_Norm
 if (!validLogicPar("tmp")) { Param$PTM.analysis_Norm <- TRUE }
-# Species
-SpeciesTst %<o% "Unspecified"
-if ("Taxonomy" %in% colnames(db)) {
-  SpeciesTst <- unique(db$Taxonomy[which(gsub(" *(\\(|\\[).*", "", db[[dbOrgKol]]) == mainOrg)])
-  SpeciesTst <- SpeciesTst[which(as.character(SpeciesTst) != "NA")][1L]
-}
-if ("Kingdom" %in% colnames(db)) {
-  KingdomTst <- aggregate(db$Kingdom, list(db$Kingdom), length)
-  KingdomTst <- KingdomTst[order(KingdomTst$x, decreasing = TRUE),]
-  KingdomTst <- KingdomTst$Group.1[1L]
-} else {
-  KingdomTst <- "unknown" # Could be user prompted
-}
-KingdomTst %<o% KingdomTst
-isEukaLike %<o% (KingdomTst %in% c("Eukaryota", "Archaea"))
 #
 if (!"PTM.analysis" %in% colnames(Param)) { Param$PTM.analysis <- paste(ptmDflt2, collapse = ";") }
 if ("Output" %in% colnames(Param)) { Param$Output <- NULL } # Deprecated
@@ -172,7 +175,7 @@ if (tst) {
   if (!tst) { tmp <- "MAP2FACTS" }
 }
 if ((length(tmp) == 1L) && (tmp == "AUTOFACT")) {
-  Param$Volcano.plots.Aggregate.Level <- paste(substr(Factors[which(Factors != "Replicate")], 1L, 3L), collapse = ";")
+  Param$Volcano.plots.Aggregate.Level <- paste(substr(setdiff(Factors, "Replicate"), 1L, 3L), collapse = ";")
 }
 klustChoices %<o% c("K-means", "hierarchical")
 KlustMeth %<o% 1L # Changed from 2
@@ -186,10 +189,10 @@ saintExprs %<o% saintExprs
 Param$saintExprs <- saintExprs
 #
 if (Annotate) {
-  allGO <- unique(unlist(strsplit(db$GO[which(!is.na(db$GO))], ";")))
+  allGO <- unique(unlist(strsplit(db$GO[!is.na(db$GO)], ";")))
   allGO2 <- paste0("GO:", gsub(".* \\[GO:|\\]$", "", allGO))
   dftlGO2 <- unique(unlist(strsplit(Param$GO.tabs, ";")))
-  dftlGO2 <- dftlGO2[which(dftlGO2 %in% allGO2)]
+  dftlGO2 <- intersect(dftlGO2, allGO2)
   dftlGO <- allGO[match(dftlGO2, allGO2)]
   w <- c(which(allGO %in% dftlGO),
          which(!allGO %in% dftlGO))
@@ -200,11 +203,10 @@ if (Annotate) {
       && (is.character(Param$Norma.Prot.Ratio.to.GO))
       && nchar(Param$Norma.Prot.Ratio.to.GO)) {
     tmp <- unlist(strsplit(Param$Norma.Prot.Ratio.to.GO, ";"))
-    tmp <- tmp[which(tmp %in% allGO2)]
+    tmp <- intersect(tmp, allGO2)
     if (length(tmp)) {
       nrm2GO <- allGO[match(tmp, allGO2)]
-      nrm2GOall <- c(nrm2GO,
-                     allGO[which(!allGO %in% nrm2GO)])
+      nrm2GOall <- union(nrm2GO, allGO)
     }
   } else {
     nrm2GOall <- allGO
@@ -295,10 +297,10 @@ Param$Min.N.pep <- N_Pep
 ptmDflt1 <- grep("^[Pp]hospho", Modifs$`Full name`, value = TRUE, invert = TRUE)
 Mod4Quant %<o% Modifs$Mark[match(ptmDflt1, Modifs$`Full name`)]
 if ("Prot.Quant.Mod.Excl" %in% colnames(Param)) {
-  Mod4Quant <- Mod4Quant[which(!Mod4Quant %in% unlist(strsplit(Param$Prot.Quant.Mod.Excl, ";")))]
+  Mod4Quant <- setdiff(Mod4Quant, unlist(strsplit(Param$Prot.Quant.Mod.Excl, ";")))
 }
 ptmDflt1 <- Modifs$`Full name`[match(Mod4Quant, Modifs$Mark)]
-Mod2Xclud %<o% set_colnames(Modifs[which(!Modifs$Mark %in% Mod4Quant), c("Mark", "AA")],
+Mod2Xclud %<o% set_colnames(Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")],
                             c("Mark", "Where"))
 #
 allQuantAlgos %<o% data.frame(Algorithm = c("limpa",
@@ -463,7 +465,7 @@ if ("CytoScapePath" %in% colnames(Param)) {
 }
 if ("CytoscapePath" %in% colnames(Param)) {
   tmp <- normalizePath(path.expand(Param$CytoscapePath), winslash = "/")
-  tmp <- tmp[which(file.exists(tmp))]
+  tmp <- tmp[file.exists(tmp)]
   if (length(CytoScExe)) {
     if (length(tmp) && (tmp %in% CytoScExe)) { CytoScExe <- tmp } else {
       Param$CytoscapePath <- CytoScExe[1L]
@@ -563,17 +565,17 @@ if (annotRep) {
   }
   if ("ROC_GOterms" %in% colnames(Param)) { 
     tmp <- unlist(strsplit(Param$ROC_GOterms, ";"))
-    tmp <- tmp[which(tmp %in% GO_terms$ID)]
+    tmp <- intersect(tmp, GO_terms$ID)
     if (length(tmp)) { ROC_GOterms <- tmp }
   }
   if ("ROCfilt_GOterms_Pos" %in% colnames(Param)) {
     tmp <- unlist(strsplit(Param$ROCfilt_GOterms_Pos, ";"))
-    tmp <- tmp[which(tmp %in% GO_terms$ID)]
+    tmp <- intersect(tmp, GO_terms$ID)
     if (length(tmp)) { ROCfilt_GOterms_Pos <- tmp }
   }
   if ("ROCfilt_GOterms_Neg" %in% colnames(Param)) {
     tmp <- unlist(strsplit(Param$ROCfilt_GOterms_Neg, ";"))
-    tmp <- tmp[which(tmp %in% GO_terms$ID)]
+    tmp <- intersect(tmp, GO_terms$ID)
     if (length(tmp)) { ROCfilt_GOterms_Neg <- tmp }
   }
 }
@@ -617,10 +619,10 @@ normDat %<o% normDat
 #      - RUV normalization (could be interesting, see https://www.bioconductor.org/packages/release/bioc/vignettes/RUVnormalize/inst/doc/RUVnormalize.pdf)
 pepNormMethods %<o% list(list(Method = "median",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { median(x[which(is.finite(x))]) }"),
+                              funCall = "normFun <- function(x) { median(x[is.finite(x)]) }"),
                          list(Method = "mean",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { mean(x[which(is.finite(x))]) }"),
+                              funCall = "normFun <- function(x) { mean(x[is.finite(x)]) }"),
                          list(Method = "Levenberg-Marquardt",
                               Source = "pepNorm_General.R"),
                          list(Method = "robust-l2",
@@ -633,26 +635,26 @@ pepNormMethods %<o% list(list(Method = "median",
                               Source = "pepNorm_General.R"),
                          list(Method = "sum",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { log10(sum(10L^x[which(is.finite(x))])) }"),
+                              funCall = "normFun <- function(x) { log10(sum(10L^x[is.finite(x)])) }"),
                          list(Method = "logSum",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { sum(x[which(is.finite(x))]) }"),
+                              funCall = "normFun <- function(x) { sum(x[is.finite(x)]) }"),
                          list(Method = "max",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { max(x[which(is.finite(x))]) }"),
+                              funCall = "normFun <- function(x) { max(x[is.finite(x)]) }"),
                          list(Method = "mode",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { modeest::mlv(x[which(is.finite(x))], method = \"Parzen\") }"),
+                              funCall = "normFun <- function(x) { modeest::mlv(x[is.finite(x)], method = \"Parzen\") }"),
                          list(Method = "proteins",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { median(x[which(is.finite(x))]) }",
+                              funCall = "normFun <- function(x) { median(x[is.finite(x)]) }",
                               Proteins = NA),
                          list(Method = "biotinylated proteins",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { median(x[which(is.finite(x))]) }"),
+                              funCall = "normFun <- function(x) { median(x[is.finite(x)]) }"),
                          list(Method = "GO terms",
                               Source = "pepNorm_General.R",
-                              funCall = "normFun <- function(x) { median(x[which(is.finite(x))]) }",
+                              funCall = "normFun <- function(x) { median(x[is.finite(x)]) }",
                               Terms = NA),
                          list(Method = "GAM",
                               Source = "pepNorm_Shape.R"),
@@ -670,13 +672,13 @@ L <- length(pepNormMethods)
 pepNormMethodsDF <- data.frame(Method = vapply(1L:L, \(i) { pepNormMethods[[i]]$Method }, ""),
                                Source = vapply(1L:L, \(i) { pepNormMethods[[i]]$Source }, ""))
 # General normalisation methods
-genPepNormMeth <- pepNormMethodsDF$Method[which(pepNormMethodsDF$Source == "pepNorm_General.R")]
-# genPepNormMeth <- genPepNormMeth[which(!genPepNormMeth %in% c("proteins", "GO terms"))] # These have their own box // NO THEY DON'T, NOT AS STEPS!
+genPepNormMeth <- pepNormMethodsDF$Method[pepNormMethodsDF$Source == "pepNorm_General.R"]
+# genPepNormMeth <- setdiff(genPepNormMeth, c("proteins", "GO terms")) # These have their own box // NO THEY DON'T, NOT AS STEPS!
 if (!IsBioID) {
-  genPepNormMeth <- genPepNormMeth[which(genPepNormMeth != "biotinylated proteins")]
+  genPepNormMeth <- setdiff(genPepNormMeth, "biotinylated proteins")
 }
 # "Shape" (variance stabilisation) normalisation methods
-shapePepNormMeth <- pepNormMethodsDF$Method[which(pepNormMethodsDF$Source == "pepNorm_Shape.R")]
+shapePepNormMeth <- pepNormMethodsDF$Method[pepNormMethodsDF$Source == "pepNorm_Shape.R"]
 #
 # 2 functions to convert between different normalisation sequence formats:
 normSeqProc12 <- \(seq) { #seq <- dfltNormSeq
@@ -693,14 +695,13 @@ normSeqProc12 <- \(seq) { #seq <- dfltNormSeq
 normSeqProc21 <- \(seq2) { #seq2 <- dfltNormSeq2
   l <- length(seq2)
   if (!l) { return(list()) }
-  seq2 <- gsub("^[0-9]+ - ", "", seq2)
+  seq2 <- sub("^[0-9]+ - ", "", seq2)
   dict <- vapply(pepNormMethods, \(i) { i$Method }, "")
   lapply(1L:l, \(i) {
     x <- unlist(strsplit(seq2[[i]], ": "))
     rs <- list(Method = x[[1L]])
     m <- match(x[[1L]], dict)
-    nms <- names(pepNormMethods[[m]])
-    nms <- nms[which(nms != "Method")]
+    nms <- setdiff(pepNormMethods[[m]], "Method")
     if (length(nms)) {
       rs[nms] <- pepNormMethods[[m]][nms]
     }
@@ -721,16 +722,16 @@ if (exists("normSequence")) { dfltNormSeq <- normSequence } else {
                       list(Method = "robust-huber"))
   if (LabelType == "Isobaric") {
     if (length(Iso) == 1L) {
-      dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, \(x) {
+      dfltNormSeq <- dfltNormSeq[vapply(dfltNormSeq, \(x) {
         (x$Method != "ComBat") | (x$Batch != "Isobaric.set")
-      }, TRUE))]
+      }, TRUE)]
     }
   } else {
-    dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, \(x) { x$Method }, "") != "IRS")]
-    dfltNormSeq <- dfltNormSeq[which(vapply(dfltNormSeq, \(x) {
+    dfltNormSeq <- dfltNormSeq[vapply(dfltNormSeq, \(x) { x$Method }, "") != "IRS"]
+    dfltNormSeq <- dfltNormSeq[vapply(dfltNormSeq, \(x) {
       if ("Batch" %in% names(x)) { return(x$Batch) }
       return("")
-    }, "") != "Isobaric.set")]
+    }, "") != "Isobaric.set"]
   }
 }
 normSequence %<o% dfltNormSeq
@@ -807,7 +808,7 @@ wMp <- c(which(colnames(Param) == coreNms[1L]),
          ))))
 lstFct <- list()
 dfltFct <- list()
-factOpt2 <- Factors[which(Factors != "Replicate")]
+factOpt2 <- setdiff(Factors, "Replicate")
 for (w in wMp) { #w <- wMp[3L] #w <- wMp[5L] #w <- wMp[6L]
   myFct <- colnames(Param)[w]
   lbl <- gsub("\\.", " ", myFct)
@@ -834,11 +835,11 @@ for (w in wMp) { #w <- wMp[3L] #w <- wMp[5L] #w <- wMp[6L]
     }
   }
   if (myFct == "Batch.effect") {
-    Opt <- Factors[which(Factors != "Experiment")]
+    Opt <- setdiff(Factors, "Experiment")
     dflt <- intersect(c(dflt, "Batch"), Factors)
   }
   if (myFct == "Blocking.factors") {
-    Opt <- Factors[which(Factors != "Experiment")]
+    Opt <- setdiff(Factors, "Experiment")
     dflt <- intersect(c(dflt, "Block"), Factors)
   }
   w <- which(!dflt %in% Opt)
@@ -851,7 +852,7 @@ for (w in wMp) { #w <- wMp[3L] #w <- wMp[5L] #w <- wMp[6L]
     warning(paste0("Factor", c("", "s")[(l > 1L)+1L], " ",
                    rmvOptTxt, " ha", c("s", "ve")[(l > 1L)+1L],
                    " special meaning and cannot be used to define ", myFct))
-    dflt <- dflt[which(dflt %in% Opt)]
+    dflt <- intersect(dflt, Opt)
   }
   if (length(Exp) == 1L) {
     Opt <- setdiff(Opt, "Experiment")
@@ -897,7 +898,7 @@ if (lVar) {
   ptmIDsLst <- setNames(lapply(wVar, \(i) {
     ptm <- Modifs$`Full name`[i]
     aa <- Modifs$AA[[i]]
-    aa[which(aa == "_")] <- "N-term"
+    aa[aa == "_"] <- "N-term"
     paste0("PTMstats_", ptm, "___", aa)
   }), Modifs$`Full name`[wVar])
   ptmIDs <- unlist(ptmIDsLst)
@@ -1656,7 +1657,7 @@ server1 <- \(input, output, session) {
       div(style = "display: grid; grid-template-columns: 1fr; width: 100%;",
           lapply(wVar, \(i) { #ii <- 4L
             aa <- Modifs$AA[[i]]
-            aa[which(aa == "_")] <- "N-term"
+            aa[aa == "_"] <- "N-term"
             ptm <- Modifs$`Full name`[i]
             ids <- ptmIDsLst[[ptm]]
             div(class = "ptm-row",
@@ -1823,7 +1824,7 @@ server1 <- \(input, output, session) {
     ptmDflt1 <- input$PTMsQuant
     assign("ptmDflt1", ptmDflt1, envir = .GlobalEnv)
     m4Quant(Modifs$Mark[match(unlist(input$PTMsQuant), Modifs$`Full name`)])
-    m2Xclud(set_colnames(Modifs[which(!Modifs$Mark %in% Mod4Quant), c("Mark", "AA")],
+    m2Xclud(set_colnames(Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")],
                          c("Mark", "Where")))
   }, ignoreNULL = FALSE)
   #   - Number of samples in which observed
@@ -2044,7 +2045,7 @@ server1 <- \(input, output, session) {
     Par <- PARAM()
     if (input$Norma.to.Hist) {
       tmp1 <- union(allHist, normProt_debounced())
-      tmp1 <- tmp1[which(nchar(tmp1) > 0L)]
+      tmp1 <- tmp1[nchar(tmp1) > 0L]
       tmp2 <- union(allHistIDs,
                     db$`Protein ID`[dbOrd][match(normProt_debounced(), protHeads)])
     } else {
@@ -2117,7 +2118,7 @@ server1 <- \(input, output, session) {
     tmp <- input$PepNormSeq
     if (length(tmp)) {
       tmp <- paste0(1L:length(tmp),
-                    gsub("^[0-9]+ - ", " - ", input$PepNormSeq))
+                    sub("^[0-9]+ - ", " - ", input$PepNormSeq))
     }
     normSequence <- normSeqProc21(tmp)
     NORMSEQ(tmp)
@@ -2172,7 +2173,7 @@ server1 <- \(input, output, session) {
   observeEvent(input$AddFDR, {
     Par <- PARAM()
     tmp <- sort(union(unlist(strsplit(Par$BH.FDR.values, ";")), input$FDR))
-    tmp <- tmp[which((tmp <= 1)&(tmp > 0))]
+    tmp <- tmp[(tmp <= 1) & (tmp > 0)]
     tmp1 <- paste(tmp, collapse = ";") 
     tmp2 <- paste(tmp, collapse = " / ") 
     Par$BH.FDR.values <- tmp1
@@ -2182,7 +2183,7 @@ server1 <- \(input, output, session) {
   observeEvent(input$RemvFDR, {
     Par <- PARAM()
     tmp <- sort(unique(unlist(strsplit(Par$BH.FDR.values, ";"))))
-    tmp <- tmp[which(tmp != input$FDR)]
+    tmp <- setdiff(tmp, input$FDR)
     tmp1 <- paste(tmp, collapse = ";") 
     tmp2 <- paste(tmp, collapse = " / ") 
     Par$BH.FDR.values <- tmp1
@@ -2368,7 +2369,7 @@ if (F_test_override) {
 Param$Ratios.Groups.Ref.Aggregate.Level <- paste0(Param$Volcano.plots.Aggregate.Level, ";Rep")
 Param$Ratios.Plot.split <- "Exp"
 tmp <- unlist(strsplit(Param$Ratios.Groups.Ref.Aggregate.Level, ";"))
-tmp <- c(tmp[which(!tmp %in% c("Exp", "Rep"))], "Rep")
+tmp <- c(setdiff(tmp, c("Exp", "Rep")), "Rep")
 Param$Ratios.Plot.wrap <- tmp[1L]
 Param$Ratios.Plot.colour <- tmp[min(c(2, length(tmp)))]
 # if (Param$Ratios.Thresholds == "% of intra-sample group ratios") {
@@ -2410,7 +2411,7 @@ if (length(w)) {
 }
 if (lVar) {
   Param$PTM.analysis <- ""
-  PTMstats <- PTMstats[which(lengths(PTMstats$sites) > 0L),]
+  PTMstats <- PTMstats[lengths(PTMstats$sites) > 0L,]
   if (nrow(PTMstats)) {
     PTMstats %<o% PTMstats
     Param$PTM.analysis <- paste(vapply(PTMstats$mod, \(ptm) {
@@ -2478,12 +2479,12 @@ if (Param$GO.terms.for.proteins.of.interest) {
   GO_prot.list$Offspring <- lapply(tmpGO, \(x) {
     ont <- Ontology(x)
     x <- c(x, get(paste0("GO", ont, "OFFSPRING"))[[x]])
-    x <- x[which(!is.na(x))]
+    x <- x[!is.na(x)]
     return(x)
   })
   tmpGO2 <- listMelt(strsplit(db$`GO-ID`, ";"), db$`Protein ID`)
   GO_prot.list$Proteins <- lapply(GO_prot.list$Offspring, \(x) {
-    unique(tmpGO2$L1[which(tmpGO2$value %in% unlist(x))])
+    unique(tmpGO2$L1[tmpGO2$value %in% unlist(x)])
   })
   prot.list <- union(prot.list, unlist(GO_prot.list$Proteins))
 }
@@ -2500,9 +2501,9 @@ if (prot.list.Cond) {
     }
   }
   prot.names %<o% names(IDs.list)
-  db$"Potential contaminant"[which(db$`Protein ID` %in% prot.list)] <- ""
+  db$"Potential contaminant"[db$`Protein ID` %in% prot.list] <- ""
   #
-  temp <- db[which(db$`Protein ID` %in% prot.list),]
+  temp <- db[db$`Protein ID` %in% prot.list,]
   writeFasta(temp, intPrtFst)
 }
 
@@ -2518,9 +2519,9 @@ if (prot.list.Cond) {
     }
   }
   prot.names %<o% names(IDs.list)
-  db$"Potential contaminant"[which(db$`Protein ID` %in% prot.list)] <- ""
+  db$"Potential contaminant"[db$`Protein ID` %in% prot.list] <- ""
   #
-  temp <- db[which(db$`Protein ID` %in% prot.list),]
+  temp <- db[db$`Protein ID` %in% prot.list,]
   writeFasta(temp, paste0(wd, "/Proteins of interest.fasta"))
 }
 
@@ -2548,11 +2549,11 @@ prot.list_pep %<o% union(prot.list_pep, tmp)
 # Filter lists to only keep existing ones
 if (prot.list.Cond) {
   prot.list <- sub("^CON_+", "", prot.list)
-  prot.list <- prot.list[which(prot.list %in% db$"Protein ID")]
+  prot.list <- prot.list[prot.list %in% db$"Protein ID"]
 }
 if (length(prot.list_pep)) {
   prot.list_pep <- sub("^CON_+", "", prot.list_pep)
-  prot.list_pep <- prot.list_pep[which(prot.list_pep %in% db$"Protein ID")]
+  prot.list_pep <- prot.list_pep[prot.list_pep %in% db$"Protein ID"]
 }
 
 # Custom protein groups
@@ -2578,23 +2579,23 @@ if (("Cont.DB" %in% colnames(Param)) && (!toupper(as.character(Param$Cont.DB)) %
   temp <- unlist(strsplit(Param$Cont.DB, ";"))
   tst <- file.exists(temp)
   if (sum(!tst)) {
-    msg <- paste0("The following contaminant fasta", c("", "s")[(sum(!tst) > 1L)+1L], "could not be found:", paste0(" - ", temp[which(!tst)], "\n"))
+    msg <- paste0("The following contaminant fasta", c("", "s")[(sum(!tst) > 1L)+1L], "could not be found:", paste0(" - ", temp[!tst], "\n"))
     stop(msg)
-    #temp <- temp[which(tst)]
+    #temp <- temp[tst]
   }
   temp <- lapply(temp, Format.DB)
   temp <- plyr::rbind.fill(temp)
   w <- which(is.na(temp), arr.ind = TRUE)
   temp[w] <- ""
-  temp$Organism_Full[which(temp$Organism_Full == "")] <- "Contaminant"
-  temp$Organism[which(temp$Organism == "")] <- "Contaminant"
+  temp$Organism_Full[temp$Organism_Full == ""] <- "Contaminant"
+  temp$Organism[temp$Organism == ""] <- "Contaminant"
   temp$"Protein ID" <- paste0("CON__", sub("^CON_+", "",  temp$"Protein ID"))
   temp$"Potential contaminant" <- "+"
   # Remove all evidences which match one of these proteins:
   #test <- strsplit(ev$Proteins, ";")
   #test <- vapply(test, \(x) { sum(x %in% temp$"Protein ID") }, 1L) > 0L
-  #cont.ev %<o% ev[which(test),]
-  #ev <- ev[which(!test),]
+  #cont.ev %<o% ev[test,]
+  #ev <- ev[!test,]
   contDB <- { if (exists("contDB")) { plyr::rbind.fill(list(contDB, temp)) } else { temp } }
   w <- which(is.na(contDB), arr.ind = TRUE)
   contDB[w] <- ""
@@ -2634,7 +2635,7 @@ if (DiscFilt) {
         msg <- "How should we name the filter column?"
         tmp <- dlg_input(msg, "Found in ...")$res
         ObjNm %<c% tmp
-        AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
+        AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm,]
         tmp <- AllAnsw[1L,]
         tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
         tmp$Value <- list(get(ObjNm))
@@ -2687,7 +2688,7 @@ if ("Pep.Impute" %in% colnames(Param)) { Impute %<o% as.logical(Param$Pep.Impute
     tmp <- opt[sub(" +$", "", dlg_list(paste0(names(opt), tmp), paste0(dflt, tmp), title = msg)$res)]
     if (is.na(tmp)) { tmp <- FALSE }
     ObjNm %<c% tmp
-    AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
+    AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm,]
     tmp <- AllAnsw[1L,]
     tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
     tmp$Value <- list(get(ObjNm))
@@ -2776,6 +2777,6 @@ if (!inherits(Exp.map$MQ.Exp, "list")) { Exp.map$MQ.Exp <- strsplit(Exp.map$MQ.E
 tstMQXp <- listMelt(Exp.map$MQ.Exp, 1L:nrow(Exp.map), c("MQ.Exp", "Row"))
 tstMQXp <- aggregate(tstMQXp$Row, list(tstMQXp$MQ.Exp), list)
 tstMQXp <- setNames(tstMQXp$x, tstMQXp$Group.1) 
-MQ.Exp <- MQ.Exp[which(MQ.Exp %in% names(tstMQXp))]
-ev <- ev[which(ev$MQ.Exp %in% names(tstMQXp)),]
+MQ.Exp <- intersect(MQ.Exp, names(tstMQXp))
+ev <- ev[ev$MQ.Exp %in% names(tstMQXp),]
 rownames(Exp.map) <- Exp.map$Clean_name <- cleanNms(Exp.map$Ref.Sample.Aggregate)

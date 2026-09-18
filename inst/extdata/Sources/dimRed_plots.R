@@ -75,7 +75,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
   pc <- prcomp(t(dimRedDat), scale. = TRUE)
   scores <- as.data.frame(pc$x)
   pv <- round(100L*(pc$sdev)^2L / sum(pc$sdev^2L), 0L)
-  pv <- pv[which(pv > 5L)]
+  pv <- pv[pv > 5L]
   pv_ <- paste0("Components: ", paste(vapply(seq_along(pv), \(x) {
     paste0("PC", x, ": ", pv[x], "%")
   }, ""), collapse = ", "))
@@ -86,7 +86,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
   scores$Ratios.Groups <- cleanNms(Exp.map[m, RG$column])
   scores[, RSA$names] <- Exp.map[m, RSA$names]
   if (exists("Tim")) {
-    scores$"Time.point" <- as.numeric(scores[[Aggregates[[which(names(Aggregates) == "Tim")]]]])
+    scores$"Time.point" <- as.numeric(scores[[Aggregates[[names(Aggregates) == "Tim"]]]])
   }
   form <- if (exists("Tim")) {
     if (length(Exp) > 1L) { "Experiment ~ Time.point" } else { "~Time.point" }
@@ -151,7 +151,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     pc <- prcomp(dimRedDat, scale. = TRUE)
     scores <- as.data.frame(pc$x)
     pv <- round(100L*(pc$sdev)^2L / sum(pc$sdev^2L), 0L)
-    pv <- pv[which(pv >= 5L)]
+    pv <- pv[pv >= 5L]
     pv <- paste0("Components: ", paste(vapply(seq_along(pv), \(x) {
       paste0("PC", x, ": ", pv[x], "%")
     }, ""), collapse = ", "))
@@ -175,7 +175,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       tst3 <- aggregate(SubCellMark, list(SubCellMark), length)
       tmp <- strsplit(PG$`Leading protein IDs`[datMatch], ";")
       SubCellMark2 <- listMelt(strsplit(PG$`Leading protein IDs`[datMatch], ";"), datMatch, c("ID", "row"))
-      SubCellMark2 <- SubCellMark2[which(SubCellMark2$ID %in% names(SubCellMark)),]
+      SubCellMark2 <- SubCellMark2[SubCellMark2$ID %in% names(SubCellMark),]
       SubCellMark2$Comp <- SubCellMark[match(SubCellMark2$ID, names(SubCellMark))]
       SubCellMark2$Label <- nameCol[SubCellMark2$row]
       tst <- aggregate(SubCellMark2$row, list(SubCellMark2$Comp), list)
@@ -187,7 +187,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         scores$Classifier[w1] <- comp
       }
       SubCellMark2 <- aggregate(SubCellMark2$Comp, list(SubCellMark2$Label), unique)
-      SubCellMark2 <- SubCellMark2[which(lengths(SubCellMark2$x) == 1L),]
+      SubCellMark2 <- SubCellMark2[lengths(SubCellMark2$x) == 1L,]
       SubCellMark2$x <- unlist(SubCellMark2$x)
       SubCellMark2 <- setNames(SubCellMark2$x, SubCellMark2$Group.1)
     }
@@ -208,7 +208,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                    gsub_Rep("^Specific: .*", "up",
                             gsub_Rep("^((non significant)|(too small FC))$", " ",
                                      gsub_Rep(", FDR = .+", "", PG[datMatch, x]))))
-          y[which(y == "")] <- " "
+          y[y == ""] <- " "
           return(y)
         })
         tmp <- do.call(cbind, tmp)
@@ -216,7 +216,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         ClassNm <- paste(ClassNm, collapse = " / ")
         tmp <- do.call(paste, c(tmp, sep = " / "))
         gcl <- grep("^ (/ )+$", tmp, invert = TRUE)
-        gcl <- gcl[which(tmp[gcl] != nullVal)]
+        gcl <- gcl[tmp[gcl] != nullVal]
         scores$Classifier[gcl] <- tmp[gcl]
       } else {
         ClassNm <- "Regulated"
@@ -225,12 +225,12 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                         gsub_Rep("^Specific: .*", "up",
                                  gsub_Rep("^((non significant)|(too small FC))$", " ",
                                           gsub_Rep(", FDR = .+", "", PG[datMatch, x]))))
-          y[which(y == "")] <- " "
+          y[y == ""] <- " "
           return(y)
         })
         tmp <- do.call(cbind, tmp)
         tmp <- apply(tmp, 1L, \(x) {
-          x <- x[which(x != "")]
+          x <- setdiff(x, "")
           x <- if (length(x)) { "regulated" } else { "" }
         })
         gcl <- which(tmp == "regulated")
@@ -244,9 +244,9 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     scores$Classifier <- factor(scores$Classifier, levels = allVal)
     myColors <- setNames(c("grey", rainbow(length(allVal)-1L)), allVal)
     colScale <- scale_colour_manual(name = "colour", values = myColors)
-    scores <- rbind(scores[which(scores$Classifier == nullVal),],
-                    scores[which(scores$Classifier %in% compVal),],
-                    scores[which(scores$Classifier %in% regVal),])
+    scores <- rbind(scores[scores$Classifier == nullVal,],
+                    scores[scores$Classifier %in% compVal,],
+                    scores[scores$Classifier %in% regVal,])
     wBoring <- which(scores$Classifier == nullVal)
     wComp <- which(scores$Classifier %in% compVal)
     wReg <- which(scores$Classifier %in% regVal)
@@ -298,9 +298,9 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     catsEyes <- aggregate(scores$Size, list(scores$Category), unique)
     catsEyes <- setNames(catsEyes$x, catsEyes$Group.1)
     # PL_symbolScale <- PL_colScale
-    # PL_symbolScale[which(names(PL_symbolScale) == " ")] <- "circle"
-    # PL_symbolScale[which(names(PL_symbolScale) %in% compVal)] <- "cross"
-    # PL_symbolScale[which(names(PL_symbolScale) %in% regVal)] <- "square"
+    # PL_symbolScale[names(PL_symbolScale) == " "] <- "circle"
+    # PL_symbolScale[names(PL_symbolScale) %in% compVal] <- "cross"
+    # PL_symbolScale[names(PL_symbolScale) %in% regVal] <- "square"
     PL_symbolScale <- setNames(c("circle", "circle", "diamond"), Categories)
     # Default camera
     myCam <- list(eye = list(x = 1.6,
@@ -330,7 +330,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       if (is.na(myCat)) { myCat <- 1 } # To be on the safe side!
       sz <- catsEyes[myCat]
       subDat <- if (val == nullVal) { scores } else {
-        scores[which(scores$Classifier == val),]
+        scores[scores$Classifier == val,]
       }
       args <- base_args
       args$name <- val
@@ -419,7 +419,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         myCat <- val2Cat[val]
         sz <- catsEyes[myCat]*1.5
         if (val == nullVal) { subDat <- scores2 } else {
-          subDat <- scores2[which(scores2$Classifier == val),]
+          subDat <- scores2[scores2$Classifier == val,]
           sz <- sz*3L
         }
         args <- base_args2
@@ -508,7 +508,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         myCat <- val2Cat[val]
         sz <- catsEyes[myCat]*1.5
         if (val == nullVal) { subDat <- UMAPlayout } else {
-          subDat <- UMAPlayout[which(UMAPlayout$Classifier == val),]
+          subDat <- UMAPlayout[UMAPlayout$Classifier == val,]
           sz <- sz*3L
         }
         args <- base_args3

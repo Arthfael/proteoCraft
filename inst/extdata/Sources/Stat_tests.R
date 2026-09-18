@@ -18,8 +18,16 @@ samDir <- paste0(wd, "/", samSubDir)
 ebamDir <- paste0(wd, "/", ebamSubDir)
 if (!dir.exists(samDir)) { dir.create(samDir, recursive = TRUE) }
 if (!dir.exists(ebamDir)) { dir.create(ebamDir, recursive = TRUE) }
-if (!exists("limmaFits")) { limmaFits <- list() }
-limmaFits %<o% limmaFits
+ROTS_res_fl %<o% paste0(wd, "/Reg. analysis/ROTS.RDS")
+limmaFits_fl %<o% paste0(wd, "/Reg. analysis/limmaFits.RDS")
+MSqRob_infer_fl %<o% paste0(wd, "/Reg. analysis/MSqRob.RDS")
+if (!exists("limmaFits")) {
+  if (file.exists(limmaFits_fl)) {
+    loadFun(limmaFits_fl)
+  } else {
+    limmaFits <- list()
+  }
+}
 if ((!dataType %in% names(limmaFits)) || (!inherits(limmaFits[[dataType]], "list"))) {
   limmaFits[[dataType]] <- list()
 }
@@ -216,7 +224,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
     }
     psm.counts <- data.frame(count = rowMins(as.matrix(myData[, countCol])))
     rownames(psm.counts) <- myData[[namesCol]]
-    psm.counts$count[which(is.na(psm.counts$count))] <- 0L
+    psm.counts$count[is.na(psm.counts$count)] <- 0L
     psm.counts$count <- psm.counts$count+1L # Pseudo-counts, to allow for PGs with 0 PSMs
     # # We need a least 1 and will treat 0 and 1 together
     # w <- which(psm.counts$count == 0L)
@@ -353,8 +361,13 @@ if (((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) || (dat
   myData[, sub(topattern("MSqRob pval - "),
                sub(" -log10\\(", " ", sub("\\) - $", " - ", msqrobRoot)), pval)] <- myData[, pval]
   myData[, sub(topattern("MSqRob pval - "), msqrobRoot, pval)] <- -log10(myData[, pval])
-  if ((!exists("MSqRob_infer")) || (!inherits(MSqRob_infer, "list"))) { MSqRob_infer <- list() }
-  MSqRob_infer %<o% MSqRob_infer
+  if (!exists("MSqRob_infer")) {
+    if (file.exists(MSqRob_infer_fl)) {
+      loadFun(MSqRob_infer_fl)
+    } else {
+      MSqRob_infer <- list()
+    }
+  }
   MSqRob_infer[[dataType]] <- tmpInfer
 }
 
@@ -365,7 +378,7 @@ if ((dataType == "PG") && ("MSstats_list" %in% names(quantData_list))) {
     cat("       WARNING! MSstats as currently implemented in this workflow cannot handle batch effects -> we recommend rerunning with ComBat batch correction on!\n\n")
   }
   # Convert limma contrasts matrix to MSstats-compatible one 
-  msstatsContrMatr <- t(contrMatr[which(rownames(contrMatr) %in% expMap[[VPAL$limmaCol]]),])
+  msstatsContrMatr <- t(contrMatr[rownames(contrMatr) %in% expMap[[VPAL$limmaCol]],])
   tmp <- rownames(expMap)[match(colnames(msstatsContrMatr), expMap[[VPAL$limmaCol]])]
   colnames(msstatsContrMatr) <- Exp.map[match(tmp, Exp.map$Ref.Sample.Aggregate), VPAL$column]
   rownames(msstatsContrMatr) <- colnames(contrMatr)
@@ -409,7 +422,7 @@ pairwise_coin_test <- \(data,
   if (sum(tst)) {
     if (tst[1L]) { data$batch <- as.factor(data$batch) }
     if (tst[2L]) { data$block <- as.factor(data$block) }
-    formTxt <- paste0(formTxt, " | ", paste(c("batch", "block")[which(tst)], collapse = " + "))
+    formTxt <- paste0(formTxt, " | ", paste(c("batch", "block")[tst], collapse = " + "))
   }
   form <- as.formula(formTxt)
   # permutation‑based Wilcoxon/Mann–Whitney–type test (allows for covariates, and optionally for blocking)
@@ -453,16 +466,16 @@ if (length(whSingle)) {
     A <- myContrasts$A[[i]]
     B <- myContrasts$B[[i]]
     # Extract sub-map
-    em <- expMap[which(expMap[[VPAL$limmaCol]] %in% c(A, B)),]
+    em <- expMap[expMap[[VPAL$limmaCol]] %in% c(A, B),]
     # Check that columns are in input data
-    em <- em[which(paste0(intRef, rownames(em)) %in% colnames(tmpData)),]
+    em <- em[paste0(intRef, rownames(em)) %in% colnames(tmpData),]
     if (!nrow(em)) { return(matrix(rep(NA_real_, 3L*nrow(tmpData)), ncol = 3L)) }
     if (Nested) {
       uBlck <- unique(em[[blockCol]])
       tmp <- lapply(uBlck, \(x) {
         #list( # No: each block should contain exactly 1 sample per group!
-        c(rownames(em)[which((em[[VPAL$limmaCol]] == A)&(em[[blockCol]] == x))],
-          rownames(em)[which((em[[VPAL$limmaCol]] == B)&(em[[blockCol]] == x))])
+        c(rownames(em)[(em[[VPAL$limmaCol]] == A) & (em[[blockCol]] == x)],
+          rownames(em)[(em[[VPAL$limmaCol]] == B) & (em[[blockCol]] == x)])
       })
       #w <- which(vapply(tmp, \(x) { sum(lengths(x) >= 1L) }, 1L) == 2L)
       w <- which(lengths(tmp) == 2L) # Each block should contain exactly 1 sample per group!
@@ -472,8 +485,8 @@ if (length(whSingle)) {
       B_ <- tmp[, 2L]
       em <- em[match(c(A_, B_), rownames(em)),]
     } else {
-      A_ <- rownames(em)[which(em[[VPAL$limmaCol]] == A)]
-      B_ <- rownames(em)[which(em[[VPAL$limmaCol]] == B)]
+      A_ <- rownames(em)[em[[VPAL$limmaCol]] == A]
+      B_ <- rownames(em)[em[[VPAL$limmaCol]] == B]
     }
     if ((length(A_) < 2L) || (length(B_) < 2L)) { return(rep(NA, 3L)) }
     A_k <- paste0(intRef, A_)
@@ -496,8 +509,8 @@ if (length(whSingle)) {
         w <- which(is.finite(dt$values))
       }
       dt <- dt[w,]
-      vA <- dt$values[which(dt$group %in% A)]
-      vB <- dt$values[which(dt$group %in% B)]
+      vA <- dt$values[dt$group %in% A]
+      vB <- dt$values[dt$group %in% B]
       if ((length(unique(vA)) < 2L) || (length(unique(vB)) < 2L)) { return(rep(NA, 3L)) }
       tst1 <- try(t.test(x = vB, y = vA, paired = Nested, alternative = altHyp, var.equal = TRUE)$p.value, silent = TRUE)
       tst2 <- try(t.test(x = vB, y = vA, paired = Nested, alternative = altHyp, var.equal = FALSE)$p.value, silent = TRUE)
@@ -534,7 +547,7 @@ if (length(whSingle)) {
   checkTTests <- FALSE
   if (checkTTests) {
     tmp <- dfMelt(tmpTsts_)
-    tmp <- tmp[which(is.finite(tmp$value)),]
+    tmp <- tmp[is.finite(tmp$value),]
     tmp[, c("test", "contrast")] <- do.call(rbind, strsplit(as.character(tmp$variable), " Pvalue - "))
     plot <- ggplot(tmp) + geom_density(stat = "density", aes(x = value, color = test)) +
       facet_grid(test~contrast) + theme_bw() + ggtitle("Classic tests: dist. of P-values")
@@ -552,9 +565,12 @@ if (length(whSingle)) {
   if (!require(ROTS)) { pak::pak("ROTS") }
   library(ROTS)
   if (!exists("ROTS_res")) {
-    ROTS_res <- list()
+    if (file.exists(ROTS_res_fl)) {
+      loadFun(ROTS_res_fl)
+    } else {
+      ROTS_res <- list()
+    }
   }
-  ROTS_res %<o% ROTS_res
   ROTS_tmp <- try(setNames(lapply(whSingle, \(i) { #i <- 1L #i <- 2L #i <- 3L
     # Get two groups from the contrast
     A_ <- myContrasts$A_samples[[i]]
@@ -685,7 +701,7 @@ if (length(whSingle)) {
               }
               dr <- c(samDir, ebamDir)[match(taest, c("SAM", "EBAM"))]
               XLfun <- eval(parse(text = paste0("siggenes::", tolower(taest), "2excel")), envir = .GlobalEnv)
-              dlt <- max(d$Delta[which(d$FDR <= f)])
+              dlt <- max(d$Delta[d$FDR <= f])
               if (!length(dlt)) {
                 warning(paste0(taest, ": poor Delta estimate for group ", nm, " at ", 100*f, "% FDR"))
                 dlt <- 0

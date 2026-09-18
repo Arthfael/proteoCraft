@@ -193,7 +193,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
   library(shinyjs)
   ggPlot2 <- ggPlot +
     geom_vline(xintercept = pwrEst, color = "red") +
-    geom_hline(yintercept = spt$fitIndices$SFT.R.sq[which(spt$fitIndices$Power == pwrEst)],
+    geom_hline(yintercept = spt$fitIndices$SFT.R.sq[spt$fitIndices$Power == pwrEst],
                color = "red")
   appNm <- "Select WGCNA threshold"
   if (exists("appRunTest")) { rm(appRunTest) }
@@ -237,7 +237,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         assign("ggPlot2",
                ggPlot +
                  geom_vline(xintercept = pwr, color = "red") +
-                 geom_hline(yintercept = spt$fitIndices$SFT.R.sq[which(spt$fitIndices$Power == pwr)],
+                 geom_hline(yintercept = spt$fitIndices$SFT.R.sq[spt$fitIndices$Power == pwr],
                             color = "red"),
                envir = .GlobalEnv)
       }
@@ -394,7 +394,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     # dev.off()
     #
     # Relate samples to experimental factors
-    myFact <- Factors[which(vapply(Factors, \(Fact) { length(FactorsLevels[[Fact]]) }, 1L) > 1L)]
+    myFact <- Factors[vapply(Factors, \(Fact) { length(FactorsLevels[[Fact]]) }, 1L) > 1L]
     xpMap <- Exp.map[, c("Ref.Sample.Aggregate", myFact)]
     for (Fact in myFact) { #Fact <- myFact[1L] #Fact <- myFact[2L]
       # Values must be numeric but may be arbitrary (not quantitative)
@@ -431,9 +431,9 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
       tst <- vapply(1L:nrow(moduleTraitCor), \(x) {
         (abs(moduleTraitCor[x, Fact]) >= corThresh) & (moduleTraitPVal[x, Fact] <= pvalThresh)
       }, TRUE)
-      substring(rownames(moduleTraitCor)[which(tst)], 3L)
+      substring(rownames(moduleTraitCor)[tst], 3L)
     }), myFact)
-    traitModules <- traitModules[which(lengths(traitModules) > 0L)]
+    traitModules <- traitModules[lengths(traitModules) > 0L]
     #
     # Display correlations and their p-values
     textMatrix <- paste(signif(moduleTraitCor, 2L), "\n(",
@@ -521,7 +521,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
           kl <- match(mod, modNames)
           modulePGs <- which(merge$colors == mod)
           # pick hubs
-          hubs <- rownames(PGmodMembership)[which(PGmodMembership[, mod] > hubThresh)] # Value could be a parameter!
+          hubs <- rownames(PGmodMembership)[PGmodMembership[, mod] > hubThresh] # Value could be a parameter!
           mergedModHubs[match(hubs, names(mergedModHubs))] <- TRUE
           # Here we want to see a positive correlation (cor > 0.5) between module membership and significance
           tmp <- data.frame("X" = abs(PGmodMembership[modulePGs, kl]),

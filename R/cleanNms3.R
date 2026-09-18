@@ -51,7 +51,7 @@ cleanNms3 <- function(names,
     }, "")
   }
   gSp <- grep(" ", names[g])
-  rts <- gsub(" [^ ]+$", "", names[g]) # Roots are defined as anything before the last occurrence of a space
+  rts <- sub(" [^ ]+$", "", names[g]) # Roots are defined as anything before the last occurrence of a space
   names2Fix <- gsub(".* ", "", names[g]) # Names are after that space
   #
   # We need to treat separately these stupid .REF and _REF.to.REF_ columns

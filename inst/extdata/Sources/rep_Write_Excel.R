@@ -96,14 +96,14 @@ replFun <- \(colNames,
   replMap$matches <- lapply(1L:nrow(replMap), \(x) {
     which(substr(colNames, nc-replMap$nchar[[x]]+1L, nc) == replMap$in_PG[[x]])
   })
-  replMap <- replMap[which(lengths(replMap$matches) > 0L),]
+  replMap <- replMap[lengths(replMap$matches) > 0L,]
   if (!nrow(replMap)) { return(replColNames) }
   col2val <- listMelt(replMap$matches, replMap$in_PG, c("match", "val"))
   col2val$nchar <- nchar(col2val$match)
   col2val <- aggregate(1L:nrow(col2val), list(col2val$match), \(x) {
     v <- col2val$val[[x]]
     l <- col2val$nchar[[x]]
-    return(v[which(l == max(l))])
+    return(v[l == max(l)])
   })
   colnames(col2val) <- c("column", "match")
   m <- match(col2val$match, replMap$in_PG)
@@ -169,9 +169,9 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   # Which is annoying, because this limits how much fat we can cut
   tst <- aggregate(KolNames, list(KolNames), c)
   tst$L <- lengths(tst$x)
-  tst <- tst[which(tst$Group.1 != ""),]
+  tst <- tst[tst$Group.1 != "",]
   stopifnot(max(tst$L) == 1L)
-  #tst$x[which(tst$L > 1L)]
+  #tst$x[tst$L > 1L]
   #
   KolNames <- as.data.frame(t(KolNames))
   colnames(KolNames) <- klnms
@@ -302,7 +302,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     }
     .obj <- union(PepColList, .obj) # Here easier than using a custom operator
     if (ii > 1L) {
-      gpl <- grep(topattern(pvalue.col[which(pvalue.use)]), colnames(tempData), value = TRUE)
+      gpl <- grep(topattern(pvalue.col[pvalue.use]), colnames(tempData), value = TRUE)
       quantcol <- c(quantcol, gpl)
       PepColList <- c(PepColList, "gpl")
     }
@@ -342,8 +342,8 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     colnames(tempData) <- sub("_names$", " names", colnames(tempData))
     if (Annotate) { PepAnnotCol <- sub("_names$", " names", PepAnnotCol) }
     for (k in regcol) {
-      tempData[which(tempData[[k]] == "non significant"), k] <- "n.s."
-      tempData[which(tempData[[k]] == ""), k] <- "n.t."
+      tempData[tempData[[k]] == "non significant", k] <- "n.s."
+      tempData[tempData[[k]] == "", k] <- "n.t."
     }
     if ((ii > 1L) && F.test) {
       tempPepF <- PTMs_F_test_data[[Ptm]]
@@ -359,8 +359,8 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
       Fkol %<o% c(regcolF, #mnratcolF,
                   pvalcolF, signcolF)
       for (k in regcolF) {
-        tempPepF[which(tempPepF[[k]] == "non significant"), k] <- "n.s."
-        tempPepF[which(tempPepF[[k]] == ""), k] <- "n.t."
+        tempPepF[tempPepF[[k]] == "non significant", k] <- "n.s."
+        tempPepF[tempPepF[[k]] == "", k] <- "n.t."
       }
       tempData[, Fkol] <- tempPepF[match(tempData$"Modified sequence", tempPepF$"Modified sequence"),
                                    Fkol]
@@ -420,15 +420,15 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     # - Filters
     ColumnsTbl[["Filters"]] <- qualFlt
     # Melt
-    ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, \(x) { sum(!is.na(x)) }, 1L) > 0L)]
+    ColumnsTbl <- ColumnsTbl[vapply(ColumnsTbl, \(x) { sum(!is.na(x)) }, 1L) > 0L]
     ColumnsTbl <- listMelt(ColumnsTbl, ColNames = c("Col", "Grp"))
     #tst <- aggregate(ColumnsTbl$Grp, list(ColumnsTbl$Col), length); View(tst)
     #aggregate(ColumnsTbl$Grp, list(ColumnsTbl$Col), unique)
     stopifnot(nrow(ColumnsTbl) == length(unique(ColumnsTbl$Col)))
     ColumnsTbl$Class <- ""
-    ColumnsTbl$Class[which(ColumnsTbl$Grp == "IDs")] <- "General Peptides information"
-    ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(evcol))] <- "Evidence IDs"
-    ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(spcol))] <- "Spectral count"
+    ColumnsTbl$Class[ColumnsTbl$Grp == "IDs"] <- "General Peptides information"
+    ColumnsTbl$Class[ColumnsTbl$Col %in% c(evcol)] <- "Evidence IDs"
+    ColumnsTbl$Class[ColumnsTbl$Col %in% c(spcol)] <- "Spectral count"
     for (nm in names(intRf)) { #nm <- names(intRf)[1L]
       rpl <- intNms(nm, TRUE, type = "pep")
       ColumnsTbl$Class[grep(topattern(intRf[nm]), ColumnsTbl$Col)] <- rpl
@@ -441,18 +441,18 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
         #ColumnsTbl$Class[grep(topattern(paste0("Mean ", ratRf[nm])), ColumnsTbl$Col)] <- rpl
       }
     }
-    ColumnsTbl$Class[which(ColumnsTbl$Grp == "P-values")] <- sub(" - $", "", pvalue.col[which(pvalue.use)])
-    ColumnsTbl$Class[which(ColumnsTbl$Col %in% regcol)] <- "Regulated"
-    ColumnsTbl$Class[which(ColumnsTbl$Col %in% signcol)] <- "Significant"
+    ColumnsTbl$Class[ColumnsTbl$Grp == "P-values"] <- sub(" - $", "", pvalue.col[pvalue.use])
+    ColumnsTbl$Class[ColumnsTbl$Col %in% regcol] <- "Regulated"
+    ColumnsTbl$Class[ColumnsTbl$Col %in% signcol] <- "Significant"
     if ((ii > 1L) && F.test) {
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test summary Ratios")] <- "ANOVA"
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test P-values")] <- "ANOVA"
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test significant")] <- "ANOVA"
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test regulated")] <- "ANOVA"
+      ColumnsTbl$Class[ColumnsTbl$Grp == "F-test summary Ratios"] <- "ANOVA"
+      ColumnsTbl$Class[ColumnsTbl$Grp == "F-test P-values"] <- "ANOVA"
+      ColumnsTbl$Class[ColumnsTbl$Grp == "F-test significant"] <- "ANOVA"
+      ColumnsTbl$Class[ColumnsTbl$Grp == "F-test regulated"] <- "ANOVA"
     }
     ColumnsTbl$Class[grep("[Aa]nnotations", ColumnsTbl$Grp)] <- "Annotations"
-    ColumnsTbl$Class[which(ColumnsTbl$Grp %in% c("PEP", "Filters"))] <- "QC filters"
-    ColumnsTbl$Class[which(ColumnsTbl$Col %in% aacol)] <- "Amino Acid counts"
+    ColumnsTbl$Class[ColumnsTbl$Grp %in% c("PEP", "Filters")] <- "QC filters"
+    ColumnsTbl$Class[ColumnsTbl$Col %in% aacol] <- "Amino Acid counts"
     ColumnsTbl$Hide <- ColumnsTbl$Class %in% c("Spectral count", "Spectrum IDs", "Amino Acid counts", "Annotations", "Cluster (hierarch.)")
     #
     a <- if (MakeRatios) { KolEdit(ColumnsTbl$Col, intColsTbl, ratColsTbl) } else { KolEdit(ColumnsTbl$Col, intColsTbl) }
@@ -532,9 +532,9 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl, locTbl = SubCel
   # Which is annoying, because this limits how much fat we can cut
   tst <- aggregate(KolNames, list(KolNames), c)
   tst$L <- lengths(tst$x)
-  tst <- tst[which(tst$Group.1 != ""),]
+  tst <- tst[tst$Group.1 != "",]
   stopifnot(max(tst$L) == 1L)
-  #tst$x[which(tst$L > 1L)]
+  #tst$x[tst$L > 1L]
   #
   KolNames <- as.data.frame(t(KolNames))
   colnames(KolNames) <- klnms
@@ -624,7 +624,7 @@ if (quantAlgo == "limpa") {
       tmpIi[Wi] <- NA_real_
       tempData[, colIi] <- tmpIi[, colIi]
       tmpIg <- setNames(lapply(uSg, \(x) {
-        x <- rowMeans(tmpIi[, colIi[Si[which(Sg == x)]]], na.rm = TRUE)
+        x <- rowMeans(tmpIi[, colIi[Si[Sg == x]]], na.rm = TRUE)
         w <- which(is.na(x))
         x[w] <- NA_real_
         return(x)
@@ -729,8 +729,8 @@ if (F.test) {
   signcolF %<o% grep("^mod\\. F-test Significant", colnames(tmpPGf), value = TRUE)
   regcolF %<o% grep("^mod\\. F-test Regulated", colnames(tmpPGf), value = TRUE)
   for (k in regcolF) {
-    tmpPGf[which(tmpPGf[[k]] == "non significant"), k] <- "n.s."
-    tmpPGf[which(tmpPGf[[k]] == ""), k] <- "n.t."
+    tmpPGf[tmpPGf[[k]] == "non significant", k] <- "n.s."
+    tmpPGf[tmpPGf[[k]] == "", k] <- "n.t."
   }
   Fkol %<o% c(regcolF, #mnratcolF,
               pvalcolF, signcolF)
@@ -738,7 +738,7 @@ if (F.test) {
 }
 if (Annotate && LocAnalysis) {
   if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) { loadFun("GO_terms.RDS") }
-  GOCC <- GO_terms$ID[which(GO_terms$Ontology == "CC")]
+  GOCC <- GO_terms$ID[GO_terms$Ontology == "CC"]
   tempData$"GO-ID (CC)" <- lapply(strsplit(tempData$`GO-ID`, ";"), \(x) { intersect(x, GOCC) })
   w <- which(lengths(tempData$"GO-ID (CC)") > 0L)
   tempData$"GO (CC)" <- ""
@@ -747,8 +747,8 @@ if (Annotate && LocAnalysis) {
   }, "")
   if (LocAnalysis2) {
     for (k in lokol6) {
-      tempData[which(tempData[[k]] == "non significant"), k] <- "n.s."
-      tempData[which(tempData[[k]] == ""), k] <- "n.t."
+      tempData[tempData[[k]] == "non significant", k] <- "n.s."
+      tempData[tempData[[k]] == "", k] <- "n.t."
       tempData[[k]] <- sub("^up, FDR = ", "re-loc., FDR = ", tempData[[k]])
     }
   }
@@ -786,14 +786,14 @@ if (IsBioID2) {
 # - Expression values
 for (nm in names(intRf)) { #nm <- names(intRf[1L])
   rpl <- intNms(nm)
-  ColumnsTbl[[paste0(rpl, ", avg.")]] <- intColsTbl[[nm]]$Log[which(intColsTbl[[nm]]$Type == "Average")]
-  ColumnsTbl[[paste0(rpl, ", indiv.")]] <- intColsTbl[[nm]]$Log[which(intColsTbl[[nm]]$Type == "Individual")]
+  ColumnsTbl[[paste0(rpl, ", avg.")]] <- intColsTbl[[nm]]$Log[intColsTbl[[nm]]$Type == "Average"]
+  ColumnsTbl[[paste0(rpl, ", indiv.")]] <- intColsTbl[[nm]]$Log[intColsTbl[[nm]]$Type == "Individual"]
 }
 # - Ratios
 for (nm in names(ratRf)) { #nm <- names(ratRf[1L])
   rpl <- ratNms(nm)
-  ColumnsTbl[[paste0(rpl, ", avg.")]] <- ratColsTbl[[nm]]$Log[which(ratColsTbl[[nm]]$Type == "Average")]
-  #ColumnsTbl[[paste0(rpl, ", indiv.")]] <- ratColsTbl[[nm]]$Log[which(ratColsTbl[[nm]]$Type == "Individual")]
+  ColumnsTbl[[paste0(rpl, ", avg.")]] <- ratColsTbl[[nm]]$Log[ratColsTbl[[nm]]$Type == "Average"]
+  #ColumnsTbl[[paste0(rpl, ", indiv.")]] <- ratColsTbl[[nm]]$Log[ratColsTbl[[nm]]$Type == "Individual"]
 }
 # - P-values
 ColumnsTbl[["P-values"]] <- pvalcol
@@ -844,24 +844,24 @@ if (exists("KlustKols") && length(KlustKols)) { ColumnsTbl[["Cluster"]] <- Klust
 # - Coverage
 ColumnsTbl[["Coverage"]] <- covcol
 # Melt
-ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, \(x) { sum(!is.na(x)) }, 1L) > 0L)]
+ColumnsTbl <- ColumnsTbl[vapply(ColumnsTbl, \(x) { sum(!is.na(x)) }, 1L) > 0L]
 ColumnsTbl <- listMelt(ColumnsTbl, names(ColumnsTbl), c("Col", "Grp"))
 stopifnot(nrow(ColumnsTbl) == length(unique(ColumnsTbl$Col)))
 #tst <- aggregate(ColumnsTbl$Col, list(ColumnsTbl$Col), length)
-#tst[which(tst$x > 1L),]
+#tst[tst$x > 1L,]
 ColumnsTbl$Class <- ""
-ColumnsTbl$Class[which(ColumnsTbl$Grp == "IDs")] <- "General Protein Group information"
-ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(pepcountcol1, pepcountcol2))] <- "Peptides count"
-ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(pepidcol1, pepidcol2))] <- "Peptide IDs"
-ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(evcountcol1, evcountcol2))] <- "Evidences count"
-ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(evidcol1, evidcol2))] <- "Evidence IDs"
-ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(speccountcol1, speccountcol2))] <- "Spectral count"
-ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(specidcol1, specidcol2))] <- "Spectrum IDs"
+ColumnsTbl$Class[ColumnsTbl$Grp == "IDs"] <- "General Protein Group information"
+ColumnsTbl$Class[ColumnsTbl$Col %in% c(pepcountcol1, pepcountcol2)] <- "Peptides count"
+ColumnsTbl$Class[ColumnsTbl$Col %in% c(pepidcol1, pepidcol2)] <- "Peptide IDs"
+ColumnsTbl$Class[ColumnsTbl$Col %in% c(evcountcol1, evcountcol2)] <- "Evidences count"
+ColumnsTbl$Class[ColumnsTbl$Col %in% c(evidcol1, evidcol2)] <- "Evidence IDs"
+ColumnsTbl$Class[ColumnsTbl$Col %in% c(speccountcol1, speccountcol2)] <- "Spectral count"
+ColumnsTbl$Class[ColumnsTbl$Col %in% c(specidcol1, specidcol2)] <- "Spectrum IDs"
 if (IsBioID2) {
-  ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(biotpepcountcol1, biotpepcountcol2))] <- "Biotin peptides count"
-  ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(biotpepidcol1, biotpepidcol2))] <- "Biotin peptide IDs"
-  ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(biotevcountcol1, biotevcountcol2))] <- "Biotin evidences count"
-  ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(biotevidcol1, biotevidcol2))] <- "Biotin evidence IDs"
+  ColumnsTbl$Class[ColumnsTbl$Col %in% c(biotpepcountcol1, biotpepcountcol2)] <- "Biotin peptides count"
+  ColumnsTbl$Class[ColumnsTbl$Col %in% c(biotpepidcol1, biotpepidcol2)] <- "Biotin peptide IDs"
+  ColumnsTbl$Class[ColumnsTbl$Col %in% c(biotevcountcol1, biotevcountcol2)] <- "Biotin evidences count"
+  ColumnsTbl$Class[ColumnsTbl$Col %in% c(biotevidcol1, biotevidcol2)] <- "Biotin evidence IDs"
 }
 for (nm in names(intRf)) { #nm <- names(intRf)[1L]
   rpl <- intNms(nm, TRUE)
@@ -877,35 +877,35 @@ for (nm in names(ratRf)) { #nm <- names(ratRf)[1L]
   kl <- intersect(kl, ColumnsTbl$Col)
   ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
 }
-ColumnsTbl$Class[which(ColumnsTbl$Grp == "Proteome Ruler")] <- "log10(est. copies/cell)"
-ColumnsTbl$Class[which(ColumnsTbl$Col %in% pvalcol)] <- "P-value"
-ColumnsTbl$Class[which(ColumnsTbl$Col %in% signcol)] <- "Significant"
-ColumnsTbl$Class[which(ColumnsTbl$Col %in% regcol)] <- "Regulated"
+ColumnsTbl$Class[ColumnsTbl$Grp == "Proteome Ruler"] <- "log10(est. copies/cell)"
+ColumnsTbl$Class[ColumnsTbl$Col %in% pvalcol] <- "P-value"
+ColumnsTbl$Class[ColumnsTbl$Col %in% signcol] <- "Significant"
+ColumnsTbl$Class[ColumnsTbl$Col %in% regcol] <- "Regulated"
 if (F.test) {
-  #ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test summary Ratios")] <- "ANOVA"
-  ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test P-values")] <- "ANOVA"
-  ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test significant")] <- "ANOVA"
-  ColumnsTbl$Class[which(ColumnsTbl$Grp == "F-test regulated")] <- "ANOVA"
+  #ColumnsTbl$Class[ColumnsTbl$Grp == "F-test summary Ratios"] <- "ANOVA"
+  ColumnsTbl$Class[ColumnsTbl$Grp == "F-test P-values"] <- "ANOVA"
+  ColumnsTbl$Class[ColumnsTbl$Grp == "F-test significant"] <- "ANOVA"
+  ColumnsTbl$Class[ColumnsTbl$Grp == "F-test regulated"] <- "ANOVA"
 }
 if (Annotate) {
   ColumnsTbl$Class[grep("[Aa]nnotations", ColumnsTbl$Grp)] <- "Annotations"
   if (LocAnalysis) {
-    ColumnsTbl$Class[which(ColumnsTbl$Grp == "Localisation")] <- "Localisation"
+    ColumnsTbl$Class[ColumnsTbl$Grp == "Localisation"] <- "Localisation"
     if (LocAnalysis2) {
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "SSDs P-values")] <- sub(" - $", "", SSD.Pval.Root)
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "SSDs significant")] <- paste0(sub(" - $", "", SSD.Pval.Root))
-      ColumnsTbl$Class[which(ColumnsTbl$Grp == "Re-localized")] <- "Re-localized"
+      ColumnsTbl$Class[ColumnsTbl$Grp == "SSDs P-values"] <- sub(" - $", "", SSD.Pval.Root)
+      ColumnsTbl$Class[ColumnsTbl$Grp == "SSDs significant"] <- paste0(sub(" - $", "", SSD.Pval.Root))
+      ColumnsTbl$Class[ColumnsTbl$Grp == "Re-localized"] <- "Re-localized"
     }
   }
 }
 ColumnsTbl$Class[grep("[Ss]equence coverage \\[%\\]", ColumnsTbl$Col)] <- "Sequence coverage [%]"
 ColumnsTbl$Class[grep("^1st ID cov\\.", ColumnsTbl$Col)] <- "1st accession sequence coverage (peptides)"
 if (exists("KlustKols") && length(KlustKols)) {
-  ColumnsTbl$Class[which(ColumnsTbl$Grp == "Cluster")] <- paste0("Cluster (", c("K-means", "hierarch.")[KlustMeth], ")")
+  ColumnsTbl$Class[ColumnsTbl$Grp == "Cluster"] <- paste0("Cluster (", c("K-means", "hierarch.")[KlustMeth], ")")
 }
-ColumnsTbl$Class[which(ColumnsTbl$Grp %in% c("PEP", "Filters", "Negative filter"))] <- "QC filters"
+ColumnsTbl$Class[ColumnsTbl$Grp %in% c("PEP", "Filters", "Negative filter")] <- "QC filters"
 stopifnot(min(nchar(ColumnsTbl$Class)) > 0L)
-#View(ColumnsTbl[which(nchar(ColumnsTbl$Class) == 0L),])
+#View(ColumnsTbl[nchar(ColumnsTbl$Class) == 0L,])
 w <- c(which(ColumnsTbl$Class == "General Protein Group information"),
        as.integer(unlist(lapply(names(intCols), \(nm) {
          rpl <- intNms(nm, TRUE)
@@ -943,7 +943,7 @@ w <- c(w,
        which(ColumnsTbl$Class == "Biotin evidence IDs"),
        which(ColumnsTbl$Class == "Annotations"))
 stopifnot(length(w) == nrow(ColumnsTbl))
-#View(ColumnsTbl[which(!1L:nrow(ColumnsTbl) %in% w),])
+#View(ColumnsTbl[!1L:nrow(ColumnsTbl) %in% w,])
 ColumnsTbl <- ColumnsTbl[w,]
 ColumnsTbl$Hide <- ColumnsTbl$Class %in% c("Peptide IDs", "Peptides count", "Evidence IDs", "Evidences count", "Spectral count", "Spectrum IDs",
                                            "Biotin peptides count", "Biotin peptide IDs", "Biotin evidences count", "Biotin evidence IDs",
@@ -951,13 +951,13 @@ ColumnsTbl$Hide <- ColumnsTbl$Class %in% c("Peptide IDs", "Peptides count", "Evi
 if (length(intCols) > 1L) {
   for (nm in names(intCols)[1L:(length(intCols) - 1L)]) {
     rpl <- intNms(nm)
-    ColumnsTbl$Hide[which(ColumnsTbl$Class == rpl)] <- TRUE
+    ColumnsTbl$Hide[ColumnsTbl$Class == rpl] <- TRUE
   }
 }
 if (length(ratCols) > 1L) {
   for (nm in names(ratCols)[1L:(length(ratCols) - 1L)]) {
     rpl <- ratNms(nm)
-    ColumnsTbl$Hide[which(ColumnsTbl$Class == rpl)] <- TRUE
+    ColumnsTbl$Hide[ColumnsTbl$Class == rpl] <- TRUE
   }
 }
 #
@@ -1007,9 +1007,9 @@ if (saintExprs) {
     # Which is annoying, because this limits how much fat we can cut
     tst <- aggregate(KolNames, list(KolNames), c)
     tst$L <- lengths(tst$x)
-    tst <- tst[which(tst$Group.1 != ""),]
+    tst <- tst[tst$Group.1 != "",]
     stopifnot(max(tst$L) == 1L)
-    #tst$x[which(tst$L > 1L)]
+    #tst$x[tst$L > 1L]
     #
     KolNames <- as.data.frame(t(KolNames))
     colnames(KolNames) <- klnms
@@ -1059,7 +1059,7 @@ if (saintExprs) {
     tempData <- tempData[order(tempData[[k]], decreasing = FALSE),]
   }
   m <- match(prot.list, tempData$Protein)
-  m <- m[which(!is.na(m))]
+  m <- m[!is.na(m)]
   w <- c(m, which(!tempData$Protein %in% prot.list))
   tempData <- tempData[w,]
   #
@@ -1069,7 +1069,7 @@ if (saintExprs) {
   # Quantitation
   # - Ratios
   for (nm in names(ratRf)) { #nm <- names(ratRf[1L])
-    ColumnsTbl[[names(ratRf)]] <- ratColsTbl[[nm]]$Log[which(ratColsTbl[[nm]]$Type == "Average")]
+    ColumnsTbl[[names(ratRf)]] <- ratColsTbl[[nm]]$Log[ratColsTbl[[nm]]$Type == "Average"]
   }
   # SAINTexpress stats
   ColumnsTbl$"P-values" <- fdrcol
@@ -1084,28 +1084,28 @@ if (saintExprs) {
   # - Filters
   ColumnsTbl$Filters <- qualFlt
   # Melt
-  ColumnsTbl <- ColumnsTbl[which(vapply(ColumnsTbl, \(x) { sum(!is.na(x)) }, 1L) > 0L)]
+  ColumnsTbl <- ColumnsTbl[vapply(ColumnsTbl, \(x) { sum(!is.na(x)) }, 1L) > 0L]
   ColumnsTbl <- listMelt(ColumnsTbl, names(ColumnsTbl), c("Col", "Grp"))
   stopifnot(nrow(ColumnsTbl) == length(unique(ColumnsTbl$Col)))
   #tst <- aggregate(ColumnsTbl$Col, list(ColumnsTbl$Col), length)
-  #tst[which(tst$x > 1L),]
+  #tst[tst$x > 1L,]
   ColumnsTbl$Class <- ""
-  ColumnsTbl$Class[which(ColumnsTbl$Grp == "IDs")] <- "General Protein Group information"
+  ColumnsTbl$Class[ColumnsTbl$Grp == "IDs"] <- "General Protein Group information"
   for (nm in names(ratRf)) { #nm <- names(ratRf)[1L]
     rpl <- "log2(rat.), avg."
     kl <- paste0(ratRf[[nm]], myContrasts$Contrast)
     kl <- intersect(kl, ColumnsTbl$Col)
     ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
   }
-  ColumnsTbl$Class[which(ColumnsTbl$Col %in% fdrcol)] <- "FDR"
-  ColumnsTbl$Class[which(ColumnsTbl$Col %in% c(avgPcol, maxPcol, topoAvgPcol, topoMaxPcol))] <- "SAINTexpress P"
-  ColumnsTbl$Class[which(ColumnsTbl$Col %in% saintcol)] <- "SAINTexpress score"
-  ColumnsTbl$Class[which(ColumnsTbl$Col %in% oddscol)] <- "SAINTexpress odds score"
-  ColumnsTbl$Class[which(ColumnsTbl$Col %in% boostcol)] <- "SAINTexpress boost"
-  ColumnsTbl$Class[which(ColumnsTbl$Col %in% regcol)] <- "Regulated"
-  ColumnsTbl$Class[which(ColumnsTbl$Grp %in% c("PEP", "Filters", "Negative filter"))] <- "QC filters"
+  ColumnsTbl$Class[ColumnsTbl$Col %in% fdrcol] <- "FDR"
+  ColumnsTbl$Class[ColumnsTbl$Col %in% c(avgPcol, maxPcol, topoAvgPcol, topoMaxPcol)] <- "SAINTexpress P"
+  ColumnsTbl$Class[ColumnsTbl$Col %in% saintcol] <- "SAINTexpress score"
+  ColumnsTbl$Class[ColumnsTbl$Col %in% oddscol] <- "SAINTexpress odds score"
+  ColumnsTbl$Class[ColumnsTbl$Col %in% boostcol] <- "SAINTexpress boost"
+  ColumnsTbl$Class[ColumnsTbl$Col %in% regcol] <- "Regulated"
+  ColumnsTbl$Class[ColumnsTbl$Grp %in% c("PEP", "Filters", "Negative filter")] <- "QC filters"
   stopifnot(min(nchar(ColumnsTbl$Class)) > 0L)
-  #View(ColumnsTbl[which(nchar(ColumnsTbl$Class) == 0L),])
+  #View(ColumnsTbl[nchar(ColumnsTbl$Class) == 0L,])
   w <- c(which(ColumnsTbl$Class == "General Protein Group information"),
          as.integer(unlist(lapply(names(ratCols), \(nm) {
            which(ColumnsTbl$Class == "log2(rat.), avg.")
@@ -1121,7 +1121,7 @@ if (saintExprs) {
          which(ColumnsTbl$Grp == "boosted_by"),
          which(ColumnsTbl$Class == "QC filters"))
   stopifnot(length(w) == nrow(ColumnsTbl))
-  #View(ColumnsTbl[which(!1L:nrow(ColumnsTbl) %in% w),])
+  #View(ColumnsTbl[!1L:nrow(ColumnsTbl) %in% w,])
   ColumnsTbl <- ColumnsTbl[w,]
   ColumnsTbl$Hide <- ColumnsTbl$Class %in% "SAINTexpress P" # Let's not show too much stuff
   #

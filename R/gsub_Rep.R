@@ -28,12 +28,12 @@
 #' @export
 
 gsub_Rep <- function(pattern,
-                      replacement,
-                      x,
-                      ignore.case = FALSE,
-                      perl = FALSE,
-                      fixed = FALSE,
-                      useBytes = FALSE) {
+                     replacement,
+                     x,
+                     ignore.case = FALSE,
+                     perl = FALSE,
+                     fixed = FALSE,
+                     useBytes = FALSE) {
   u <- unique(x)
   nu <- gsub(pattern, replacement, u, ignore.case, perl, fixed, useBytes)
   nu[match(x, u)]

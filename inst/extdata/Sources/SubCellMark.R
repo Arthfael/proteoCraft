@@ -32,7 +32,7 @@ if (Annotate) {
     tst <- data.frame(Comp = SubCellMark,
                       Mark = names(SubCellMark) %in% db$`Protein ID`)
     tst <- aggregate(tst$Mark, list(tst$Comp), sum)
-    tst <- tst[which(tst$x > 3L),]
+    tst <- tst[tst$x > 3L,]
     useProloc <- nrow(tst) >= 5L
   }
   if (!useProloc) { # ... or generate them automatically
@@ -43,7 +43,7 @@ if (Annotate) {
     tst2 <- aggregate(tst$Compartment, list(tst$Accession), \(x) {
       length(unique(x))
     })
-    tst <- tst[which(tst$Accession %in% tst2$Group.1[which(tst2$x == 1L)]),]
+    tst <- tst[tst$Accession %in% tst2$Group.1[tst2$x == 1L],]
     SubCellMark <- setNames(tst$Compartment, tst$Accession)
   }
   SubCellMark %<o% SubCellMark
@@ -51,13 +51,13 @@ if (Annotate) {
   # Annotate PG
   if ((exists("PG"))&&(length(SubCellMark))) {
     tst <- listMelt(strsplit(PG$`Leading protein IDs`, ";"), ColNames = c("Accession", "Row"))
-    tst <- tst[which(tst$Accession %in% names(SubCellMark)),]
+    tst <- tst[tst$Accession %in% names(SubCellMark),]
     tst$Comp <- SubCellMark[match(tst$Accession, names(SubCellMark))]
     tst <- as.data.table(tst)
     tst <- tst[, .(Comp = list(unique(Comp))), by = .(Row = as.integer(Row))]
     tst <- as.data.frame(tst)
     tst$L <- lengths(tst$Comp)
-    tst <- tst[which(tst$L == 1L),]
+    tst <- tst[tst$L == 1L,]
     tst$Comp <- vapply(tst$Comp, unlist, "")
     PG$"Compartment marker" <- ""
     PG$"Compartment marker"[tst$Row] <- tst$Comp

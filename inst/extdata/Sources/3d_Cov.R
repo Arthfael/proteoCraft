@@ -16,6 +16,7 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
       require(PTMods)
       data(modifications, package = "PTMods")
       UniMod <- modifications
+      rm(modifications)
       Modifs$"Mass shift" <- UniMod$MonoMass[match(as.integer(sub("^UniMod:", "", Modifs$UniMod)), UniMod$UnimodId)]
     } else {
       kols <- c("Mass delta", "Delta mass")
@@ -71,7 +72,7 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
       # PDB: we get PDB IDs from parsing the txt file
       if (PDB_in_DB) {
         tmp <- unlist(strsplit(tmpDB[match(plp, tmpDB$"Protein ID"), "PDB"], ";"))
-        tmp <- tmp[which(tmp != "")]
+        tmp <- setdiff(tmp, "")
         if (length(tmp)) {
           for (i in tmp) {
             fl <- paste0(dir, "/PDB-", i, ".pdb")
@@ -94,10 +95,10 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
                                 vers = 1L:6L)
       alphURLsTbl$Valid <- vapply(alphURLsTbl$url, valid_url, TRUE)
       if (sum(alphURLsTbl$Valid)) {
-        alphURLsTbl <- alphURLsTbl[which(alphURLsTbl$Valid),]
+        alphURLsTbl <- alphURLsTbl[alphURLsTbl$Valid,]
         wh <- aggregate(1L:nrow(alphURLsTbl), list(alphURLsTbl$Frag), \(x) {
           v <- alphURLsTbl$vers[x]
-          x[which(v == max(v))]
+          x[v == max(v)]
         })$x
         alphURLs <- setNames(alphURLsTbl$url[wh], paste0(dir, "/", alphURLsTbl$Name[wh]))
         lapply(names(alphURLs), \(x) {

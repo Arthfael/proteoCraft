@@ -1,5 +1,5 @@
 #### Sub-Cellular localisation analysis
-if (Annotate&&LocAnalysis) {
+if (Annotate && LocAnalysis) {
   cat("Sub-Cellular localisation analysis:\n")
   dir <- paste0(wd, "/pRoloc")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
@@ -24,7 +24,7 @@ if (Annotate&&LocAnalysis) {
   # We can use the very granular markers already defined above (pRoloc or built-in), or define new ones here
   ObjNm <- "CompGOTerms2"
   .obj <- union(ObjNm, .obj)
-  if ((ReUseAnsw)&&(ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
+  if (ReUseAnsw && (ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
     msg <- "Enter a list of GO Cell Compartment (GO CC) terms for compartments of interest (semicolon-separated).
 You may also include:
  - 1 for a low-resolution markers list (nucleoplasm - chromatin - cytoplasm)
@@ -35,9 +35,9 @@ Example: \"GO:0031012;2\"
     tmp <- unlist(strsplit(dlg_input(msg, "2")$res, "[;,] ?"))
     if ("1" %in% tmp) { tmp <- union(tmp, c("GO:0005654", "GO:0000785", "GO:0005737")) }
     if ("2" %in% tmp) { tmp <- union(tmp, CompGOTerms) }
-    tmp <- tmp[which(tmp %in% GO_terms$ID[which(GO_terms$Ontology == "CC")])] # (Also neatly removes "1" and "2"...)
+    tmp <- intersect(tmp, GO_terms$ID[GO_terms$Ontology == "CC"]) # (Also neatly removes "1" and "2"...)
     ObjNm %<c% tmp
-    AllAnsw <- AllAnsw[which(AllAnsw$Parameter != ObjNm),]
+    AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm,]
     tmp <- AllAnsw[1L,]
     tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
     tmp$Value <- list(get(ObjNm))
@@ -50,16 +50,16 @@ Example: \"GO:0031012;2\"
     allOffspr <- unlist(CompGOTerms2$Offspring)
     allOffspr <- aggregate(allOffspr, list(allOffspr), length)
     CompGOTerms2$Offspring <- lapply(CompGOTerms2$Offspring, \(x) {
-      x[which(!x %in% c(CompGOTerms2$Term, allOffspr$Group.1[which(allOffspr$x > 1L)]))]
+      setdiff(x, c(CompGOTerms2$Term, allOffspr$Group.1[allOffspr$x > 1L]))
     })
     CompGOTerms2$Name <- sub(" *\\[GO:[0-9]{7}\\]$", "", GO_terms$Term[match(CompGOTerms2$Term, GO_terms$ID)])
     CompGOTerms2$All <- apply(CompGOTerms2[, c("Term", "Offspring")], 1L, \(x) { unique(unlist(x)) })
     tst <- setNames(lapply(CompGOTerms2$All, \(x) { grep(paste(x, collapse = "|"), PG$"GO-ID") }),
                     CompGOTerms2$Name)
     tst2 <- unique(unlist(tst))
-    tst2 <- tst2[which(vapply(tst2, \(x) { sum(vapply(tst, \(y) { x %in% y }, TRUE)) }, 1L) == 1L)]
-    tst <- lapply(tst, \(x) { x[which(x %in% tst2)] })
-    tst <- tst[which(lengths(tst) > 0L)]
+    tst2 <- tst2[vapply(tst2, \(x) { sum(vapply(tst, \(y) { x %in% y }, TRUE)) }, 1L) == 1L]
+    tst <- lapply(tst, \(x) { intersect(x, tst2) })
+    tst <- tst[lengths(tst) > 0L]
     SubCellMark2 %<o% listMelt(tst) # Overwrite former value
     SubCellMark2$value <- PG$Label[SubCellMark2$value]
     SubCellMark2 <- setNames(SubCellMark2$L1, SubCellMark2$value)
@@ -87,7 +87,7 @@ Example: \"GO:0031012;2\"
         if (length(w)) {
           em <- Exp.map[w,]
           kol <- paste0(prtRfRoot, unique(em$Ref.Sample.Aggregate))
-          kol <- kol[which(kol %in% colnames(tempDat))]
+          kol <- intersect(kol, colnames(tempDat))
           temp1 <- tempDat[, kol]
           # Add a small noise to avoid non-unicity issue
           sd <- sd(unlist(temp1))
@@ -96,7 +96,7 @@ Example: \"GO:0031012;2\"
           #
           temp1 <- 10L^temp1
           tst <- rowSums(temp1)
-          wAG <- which((!is.na(tst))&(is.finite(tst))&(tst > 0L))
+          wAG <- which((!is.na(tst)) & is.finite(tst) & (tst > 0L))
           if (length(wAG)) {
             #cat(paste0(grp1, ":\n", paste(rep("-", nchar(grp1)+1L), collapse = ""), "\n"))
             m <- match(unique(em[[VPAL$column]]), em[[VPAL$column]])
@@ -206,7 +206,7 @@ Example: \"GO:0031012;2\"
             # This is really, reaaally slow!
             cat(" Predicting compartment localisation using SVM (100 iterations), please wait...\n")
             wghts <- classWeights(MSnData, fcol = "markers")
-            wghts <- wghts[which(wghts < 1)]
+            wghts <- wghts[wghts < 1]
             params <- suppressMessages(suppressWarnings(svmOptimisation(MSnData, "markers", times = 10L, xval = 5L,
                                                                         class.weights = wghts, verbose = TRUE)))
             # The line above takes a millenium and a half
@@ -273,7 +273,7 @@ Example: \"GO:0031012;2\"
       }
       tmpClass <- parLapply(parClust, SubCellFracAggr$values, f0)
       names(tmpClass) <- SubCellFracAggr$values
-      grps <- names(tmpClass)[which(vapply(tmpClass, \(x) { x$Success }, TRUE))]
+      grps <- names(tmpClass)[vapply(tmpClass, \(x) { x$Success }, TRUE)]
       for (grp in grps) {
         ttls <- c(ttls, tmpClass[[grp]]$Titles)
         lokol <- tmpClass[[grp]]$Column
@@ -292,17 +292,17 @@ Example: \"GO:0031012;2\"
   SSD.Root %<o% "log2(SSD) - "
   SSD.Pval.Root %<o% "Welch's t-test on SSDs -log10(Pvalue) - "
   WhRef <- lapply(SubCellFracAggr2$values, \(x) {
-    unique(Exp.map$Reference[which(Exp.map[[SubCellFracAggr2$column]] == x)])
+    unique(Exp.map$Reference[Exp.map[[SubCellFracAggr2$column]] == x])
   })
   tst <- lengths(WhRef)
   if (max(tst) == 1L) {
     tempDat2 <- 10L^tempDat
     wh0 <- which(WhRef)
     wh1 <- which(!WhRef)
-    if ((length(wh0) == 1L)&&(length(wh1))) {
+    if ((length(wh0) == 1L) && length(wh1)) {
       cat(" - Running re-localisation analysis\n")
       LocAnalysis2 <- TRUE
-      EM0 <- Exp.map[which(Exp.map[[SubCellFracAggr2$column]] == SubCellFracAggr2$values[wh0]),]
+      EM0 <- Exp.map[Exp.map[[SubCellFracAggr2$column]] == SubCellFracAggr2$values[wh0],]
       EM0$Replicate <- as.numeric(EM0$Replicate)
       EM0 <- EM0[order(EM0$Replicate, EM0$Compartment),]
       grp0 <- SubCellFracAggr2$values[wh0]
@@ -320,8 +320,8 @@ Example: \"GO:0031012;2\"
         # RefSSDs %<o% as.numeric(apply(comb, 1L, \(i) { #i <- comb[1,]
         #   # NB: differs now from the way Ref.Ratios is written - but for a good reason.
         #   # We operate using different groupings for subcellular re-localisation analysis.
-        #   A <- tempDat2[, paste0(prtRfRoot, EM0$Ref.Sample.Aggregate[which(EM0$Replicate == i[[1L]])])]
-        #   B <- tempDat2[, paste0(prtRfRoot, EM0$Ref.Sample.Aggregate[which(EM0$Replicate == i[[2L]])])]
+        #   A <- tempDat2[, paste0(prtRfRoot, EM0$Ref.Sample.Aggregate[EM0$Replicate == i[[1L]]])]
+        #   B <- tempDat2[, paste0(prtRfRoot, EM0$Ref.Sample.Aggregate[EM0$Replicate == i[[2L]]])]
         #   if (NormSSDs) {
         #     A <- sweep(A, 1L, rowSums(A), "/") 
         #     B <- sweep(B, 1L, rowSums(B), "/") 
@@ -336,15 +336,15 @@ Example: \"GO:0031012;2\"
       SSD.FDR.thresh %<o% c()
       for (wh in wh1) { #wh <- wh1[1L]
         grp <- SubCellFracAggr2$values[wh]
-        EM1 <- Exp.map[which(Exp.map[[SubCellFracAggr2$column]] == grp),]
+        EM1 <- Exp.map[Exp.map[[SubCellFracAggr2$column]] == grp,]
         EM1$Replicate <- as.numeric(EM1$Replicate)
         EM1 <- EM1[order(EM1$Replicate, EM1$Compartment),]
         # Calculate sum of squared differences
         if (grepl("Rep", SubCellFracAggr$aggregate)) {
           rps <- unique(EM1$Replicate)
           SSDs[[grp]] <- as.data.frame(sapply(rps, \(rp) {
-            P0 <- tempDat2[, paste0(prtRfRoot, EM0$Ref.Sample.Aggregate[which(EM0$Replicate == rp)])]
-            P1 <- tempDat2[, paste0(prtRfRoot, EM1$Ref.Sample.Aggregate[which(EM1$Replicate == rp)])]
+            P0 <- tempDat2[, paste0(prtRfRoot, EM0$Ref.Sample.Aggregate[EM0$Replicate == rp])]
+            P1 <- tempDat2[, paste0(prtRfRoot, EM1$Ref.Sample.Aggregate[EM1$Replicate == rp])]
             if (NormSSDs) {
               P0 <- sweep(P0, 1L, rowSums(P0), "/") 
               P1 <- sweep(P1, 1L, rowSums(P1), "/") 
@@ -357,8 +357,8 @@ Example: \"GO:0031012;2\"
         } else {
           comb <- gtools::permutations(max(as.numeric(Rep)), 2L, as.numeric(Rep), repeats.allowed = TRUE)
           SSDs[[grp]] <- as.data.frame(apply(comb, 1L, \(i) {
-            P0 <- tempDat2[, paste0(prtRfRoot, EM0$Ref.Sample.Aggregate[which(EM0$Replicate == i[[1L]])])]
-            P1 <- tempDat2[, paste0(prtRfRoot, EM1$Ref.Sample.Aggregate[which(EM1$Replicate == i[[2L]])])]
+            P0 <- tempDat2[, paste0(prtRfRoot, EM0$Ref.Sample.Aggregate[EM0$Replicate == i[[1L]]])]
+            P1 <- tempDat2[, paste0(prtRfRoot, EM1$Ref.Sample.Aggregate[EM1$Replicate == i[[2L]]])]
             if (NormSSDs) {
               P0 <- sweep(P0, 1L, rowSums(P0), "/") 
               P1 <- sweep(P1, 1L, rowSums(P1), "/") 
@@ -382,17 +382,17 @@ Example: \"GO:0031012;2\"
       colnames(test) <- gsub(topattern(SSD.Root, start = FALSE), "", colnames(test))
       w <- grep("^Mean ", colnames(test))
       colnames(test)[w] <- paste0(sub("^Mean ", "", colnames(test)[w]), "___Mean")
-      test <- test[which(apply(test, 1L, \(x) { sum(is.finite(x)) }) > 0L),]
+      test <- test[apply(test, 1L, \(x) { sum(is.finite(x)) }) > 0L,]
       test <- suppressMessages(dfMelt(test))
       test$variable <- as.character(test$variable)
       test[, SubCellFracAggr$names] <- ""
       w <- rep(FALSE, nrow(test))
-      test[which(!w), SubCellFracAggr$names] <- Isapply(strsplit(test$variable[which(!w)], "___"), unlist)
+      test[!w, SubCellFracAggr$names] <- Isapply(strsplit(test$variable[!w], "___"), unlist)
       a <- SubCellFracAggr$names
       w <- which(vapply(a, \(x) { length(unique(test[[x]])) }, 1L) > 1L)
       if (length(w)) { a <- a[w] }
       test[[a[1L]]] <- factor(test[[a[1L]]], levels = sort(unique(test[[a[1L]]])))
-      test <- test[which(is.finite(test$value)),]
+      test <- test[is.finite(test$value),]
       test2 <- set_colnames(aggregate(test$value, list(test$variable), median), c("variable", "value"))
       test2[, a] <- test[match(test2$variable, test$variable), a]
       MinMax <- c(min(test$value), max(test$value))
@@ -404,7 +404,7 @@ Example: \"GO:0031012;2\"
       for (v in unique(test$variable)) {
         wv <- which(test$variable == v)
         testI[[v]] <- vapply(seq_len(nbinz), \(x) {
-          sum((test$value[wv] > binz[x])&(test$value[wv] <= binz[x+1L]))
+          sum((test$value[wv] > binz[x]) & (test$value[wv] <= binz[x+1L]))
         }, 1L)
       }
       testI <- reshape2::melt(testI, id.vars = "Intensity")
@@ -485,15 +485,11 @@ Example: \"GO:0031012;2\"
         #
         g <- grep("Regulated - ", colnames(tempVP3$Protein_groups_file), value = TRUE)
         PG[, sub("^Regulated - ", "Re-localized - ", g)] <- tempVP3$Protein_groups_file[,g]
-        volcano.plots$Localisation_Unlabelled <- tempVP3$Plots$Unlabelled
-        volcano.plots$Localisation_Labelled <- tempVP3$Plots$Labelled
-        n2 <- names(volcano.plots$Localisation_Labelled)
-        dir <- paste0(wd, "/Reg. analysis/Localisation")
         if (create_plotly) { plot_ly$"Localisation" <- tempVP3$"Plotly plots" }
         # Edit wording + create filters
         g <- grep("^Re-localized - ", colnames(PG), value = TRUE)
         for (gi in g) { #gi <- g[1L]
-          PG[which(PG[[gi]] == "too small FC"), gi] <- "unchanged distr."
+          PG[PG[[gi]] == "too small FC", gi] <- "unchanged distr."
           wUp <- grep("^up, FDR = ", PG[[gi]])
           if (length(wUp)) {
             PrtWidth <- 5
@@ -502,7 +498,7 @@ Example: \"GO:0031012;2\"
             dirlist <- union(dirlist, dir)
             plotNorm <- FALSE
             grp <- sub("^Re-localized - ", "", gi)
-            EM1 <- Exp.map[which(Exp.map[[SubCellFracAggr2$column]] == grp),]
+            EM1 <- Exp.map[Exp.map[[SubCellFracAggr2$column]] == grp,]
             EM1$Replicate <- as.numeric(EM1$Replicate)
             EM1 <- EM1[order(EM1$Replicate, EM1$Compartment),]
             for (wup in wUp) { #wup <- wUp[1L]
@@ -551,7 +547,7 @@ Example: \"GO:0031012;2\"
               pepPrfl$"SubCell. Frac." <- factor(pepPrfl$Compartment, levels = Com)
               pepPrfl$Angle <- 60
               pepPrfl$Size <- 2L
-              pepPrfl <- pepPrfl[which(pepPrfl$value > 0),]
+              pepPrfl <- pepPrfl[pepPrfl$value > 0,]
               temp <- rbind(Prfl, pepPrfl)
               temp2 <- aggregate(temp[, c("x", "Angle", "Size")], list(temp$Entity), unique)
               colnames(temp2) <- c("Entity", "X", "Angle", "Size")
@@ -643,7 +639,7 @@ Example: \"GO:0031012;2\"
   } else {
     warning("Skipping re-localisation analysis: some subcellular fraction groups contain both reference and non-reference samples...")
   }
-  rm(list = ls()[which(!ls() %in% .obj)])
+  rm(list = setdiff(ls(), .obj))
   Script <- readr::read_lines(ScriptPath)
   gc()
   invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))

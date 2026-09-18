@@ -26,7 +26,7 @@ if (Impute) {
   plotTmp$Imputed <- log10(melt(temp2, id.vars = NULL)$value)
   plotTmp$Sample <- factor(plotTmp$Sample, levels = cleanNms(RSA$values))
   w <- which(!is.finite(plotTmp$Original))
-  mnX <- floor(min(plotTmp$Original[which(is.finite(plotTmp$Original))]) - 1)
+  mnX <- floor(min(plotTmp$Original[is.finite(plotTmp$Original)]) - 1)
   plotTmp$Original[w] <- mnX
   ttl <- "Effect of imputation"
   plot <- ggplot(plotTmp) + geom_scattermore(aes(x = Original, y = Imputed, color = Sample), pointsize = 2.5) +
@@ -43,6 +43,6 @@ if (Impute) {
   colnames(temp2) <- gsub(pat, paste0("imput. ", pep.ref["Original"]), colnames(temp2))
   pep[, colnames(temp2)] <- temp2
   pep.ref["Imputation"] <- paste0("imput. ", pep.ref["Original"])
-  rm(list = ls()[which(!ls() %in% .obj)])
+  rm(list = setdiff(ls(), .obj))
   Script <- readr::read_lines(ScriptPath)
 }

@@ -10,11 +10,11 @@ if (reLoad) {
   smplsMap <- read.csv(smplsMapFl,
                        check.names = FALSE)
   # Backwards compatibility
-  if (("Old" %in% colnames(smplsMap))&&(!"Sample" %in% colnames(smplsMap))) {
-    colnames(smplsMap)[which(colnames(smplsMap) == "Old")] <- "Sample"
+  if (("Old" %in% colnames(smplsMap)) && (!"Sample" %in% colnames(smplsMap))) {
+    colnames(smplsMap)[colnames(smplsMap) == "Old"] <- "Sample"
   }
-  if (("New" %in% colnames(smplsMap))&&(!"Sample name" %in% colnames(smplsMap))) {
-    colnames(smplsMap)[which(colnames(smplsMap) == "New")] <- "Sample name"
+  if (("New" %in% colnames(smplsMap)) && (!"Sample name" %in% colnames(smplsMap))) {
+    colnames(smplsMap)[colnames(smplsMap) == "New"] <- "Sample name"
   }
   #
   reLoad <- sum(dfltKol %in% colnames(smplsMap)) == 3L
@@ -26,13 +26,13 @@ if (!reLoad) {
                          Use = TRUE)
 }
 dfltFact <- c()
-if ((exists("myFact"))&&(length(myFact))&&(is.character(myFact))) {
-  dfltFact <- unique(c(dfltFact, myFact))
+if (exists("myFact") && length(myFact) && is.character(myFact)) {
+  dfltFact <- union(dfltFact, myFact)
 }
 kol <- colnames(smplsMap)
-kol <- kol[which(!kol %in% c(dfltKol, "Use", "Sample name"))]
+kol <- setdiff(kol, c(dfltKol, "Use", "Sample name"))
 if (length(kol)) {
-  dfltFact <- unique(c(dfltFact, kol))
+  dfltFact <- union(dfltFact, kol)
 }
 if (!length(dfltFact)) {
   dfltFact <- c("Fact1", "Fact2")
@@ -42,8 +42,7 @@ myFact <- dlg_input("Enter name of columns you would like to add to the table (i
                     dfltFact)$res
 myFact <- unlist(strsplit(myFact, " +/ +"))
 myFact <- unique(myFact)
-myFact <- myFact[which(myFact != "")]
-myFact <- myFact[which(!myFact %in% c(dfltKol, "Use", "Sample name"))]
+myFact <- setdiff(myFact, c("", dfltKol, "Use", "Sample name"))
 
 if (!"Sample name" %in% colnames(smplsMap)) {
   smplsMap$"Sample name" <- smplsMap$Sample
@@ -60,7 +59,7 @@ rws <- seq_len(nr)
 chRws <- as.character(rws)
 if (!exists("nRep")) { nRep <- nr }
 dflt_Rpl <- 1L:(nr+nRep) %% nRep
-dflt_Rpl[which(dflt_Rpl == 0L)] <- nRep
+dflt_Rpl[dflt_Rpl == 0L] <- nRep
 #
 if (length(myFact)) {
   w <- which((!myFact %in% colnames(smplsMap)) |
@@ -239,7 +238,7 @@ server <- \(input, output, session) {
   session$onSessionEnded(\() { stopApp() })
 }
 runKount <- 0L
-while ((!runKount)||(!exists("appRunTest"))) {
+while ((!runKount) || (!exists("appRunTest"))) {
   eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount+1L
@@ -247,14 +246,14 @@ while ((!runKount)||(!exists("appRunTest"))) {
 #
 samplesMap <- smplsMap
 samplesMap[, colnames(smplsMap3)] <- smplsMap3
-samplesMap <- samplesMap[which(samplesMap$Use),]
+samplesMap <- samplesMap[samplesMap$Use,]
 #
 tmpTbl <- smplsMap3
 tst <- lapply(colnames(smplsMap3), \(x) { typeof(smplsMap3[[x]]) })
 w <- which(tst == "list")
 if (length(w)) { for (i in w) { smplsMap3[[i]] <- vapply(smplsMap3[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(tmpTbl, file = smplsMapFl, row.names = FALSE, quote = TRUE), silent = TRUE)
-while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {
+while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
   dlg_message(paste0("File \"", smplsMapFl, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmpTbl, file = smplsMapFl, row.names = FALSE, quote = TRUE), silent = TRUE)
 }

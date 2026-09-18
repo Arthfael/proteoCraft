@@ -3,7 +3,7 @@ if (!interactive()) { stop("This script should only be run within an interactive
 options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
 options(svDialogs.rstudio = TRUE)
-#rm(list = ls()[which(!ls() %in% c("dtstNm", "wd", "inDirs", "outDir"))])
+#rm(list = setdiff(ls(), c("dtstNm", "wd", "inDirs", "outDir")))
 closeAllConnections()
 
 ## Load proteoCraft
@@ -306,7 +306,7 @@ source(Src)
 # Start processing the PSMs table
 cat("Processing PSMs...\n")
 # Remove reverse database hits
-ev <- ev[which(ev$Reverse == ""),]
+ev <- ev[is.na(ev$Reverse) | (ev$Reverse == ""),]
 
 # Optionally remove charge 1 PSMs - off for now, but may become either user decision or parameter controlled
 RemovZ1 <- FALSE
@@ -343,7 +343,7 @@ Src <- paste0(libPath, "/extdata/Sources/filtPSMs.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
-rm(list = ls()[which(!ls() %in% .obj)])
+rm(list = setdiff(ls(), .obj))
 
 # Test for amino acid biases:
 Src <- paste0(libPath, "/extdata/Sources/AA_biases_test.R")
@@ -426,7 +426,7 @@ test <- rowSums(pep[, g])
 l <- length(which(test == 0))
 if (l) {
   cat(paste0("Removing ", l, " peptide", c("", "s")[(l > 1L)+1L], " with invalid expression values - this is unexpected, investigate!\n"))
-  pep <- pep[which(test > 0),]
+  pep <- pep[test > 0,]
   w <- which(ev$id %in% unique(as.integer(unlist(strsplit(pep$"Evidence IDs", ";")))))
   ev <- ev[w,]
 }
@@ -464,7 +464,7 @@ Src <- paste0(libPath, "/extdata/Sources/pepNorm_VarPlot.R")
 source(Src)
 #View(pep[, grep(topattern(pep.ref[length(pep.ref)]), colnames(pep), value = TRUE)]) # Check final data visually
 
-rm(list = ls()[which(!ls() %in% .obj)])
+rm(list = setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 
 # Calculate peptide ratios - currently off
@@ -506,9 +506,9 @@ if (splitByOrg) {
   myTmpPepFilt <- listMelt(strsplit(pep$Proteins, ";"), ColNames = c("ID", "Row"))
   myTmpPepFilt$Org <- db[match(myTmpPepFilt$ID, db$`Protein ID`), dbOrgKol]
   for (currOrg in uOrgs) {
-    DB <- db[which(db[[dbOrgKol]] == currOrg),]
-    Pep <- pep[which(1L:nrow(pep) %in% myTmpPepFilt$Row[which(myTmpPepFilt$Org == currOrg)]),]
-    Ev <- ev[which(ev$`Modified sequence` %in% Pep$`Modified sequence`),]
+    DB <- db[db[[dbOrgKol]] == currOrg,]
+    Pep <- pep[1L:nrow(pep) %in% myTmpPepFilt$Row[myTmpPepFilt$Org == currOrg],]
+    Ev <- ev[ev$`Modified sequence` %in% Pep$`Modified sequence`,]
     source(pgSrc)
     PGs_list[[currOrg]] <- PG_assembly
   }
@@ -581,7 +581,7 @@ source(Src)
 
 source(parSrc)
 tmp1 <- strsplit(pep$Proteins, ";")
-tmp2 <- db[which(db$"Protein ID" %in% unlist(tmp1)), c("Protein ID", "Gene", "Name", "Common Name")]
+tmp2 <- db[db$"Protein ID" %in% unlist(tmp1), c("Protein ID", "Gene", "Name", "Common Name")]
 exports <- list("tmp1", "tmp2")
 clusterExport(parClust, "tmp2", envir = environment())
 tmp <- parSapply(parClust, tmp1, \(x) {
@@ -601,7 +601,7 @@ kol <- c("Leading proteins", "Leading razor proteins", "Gene names", "Protein na
          "Protein names (all)", "Common protein names", "Protein group IDs")
 ev[, kol] <- pep[match(ev$"Modified sequence", pep$"Modified sequence"), kol]
 
-rm(list = ls()[which(!ls() %in% .obj)])
+rm(list = setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 
 # Some more columns
@@ -634,14 +634,14 @@ for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
       if (tstFllID) {
         m1 <- data.frame(m1 = m1, m2 = match(x, tmp3))
         m1 <- apply(m1, 1L, \(y) {
-          y <- unique(y[which(!is.na(y))])
+          y <- unique(y[!is.na(y)])
           if (!length(y)) { y <- "" }
           return(y)
         })
         m1 <- unlist(m1)
       }
       x <- tmp4[m1]
-      x[which(x %in% c("", " ", "NA", NA))] <- ""
+      x[x %in% c("", " ", "NA", NA)] <- ""
       if (!length(x)) { x <- "" }
       if (i == "Genes") { x <- unique(x) }
       x <- setdiff(x, "")
@@ -658,7 +658,7 @@ if (length(w) == 2L) {
   for (i in genkol) { temp[[i]] <- strsplit(temp[[i]], ";") }
   PG$Genes <- apply(temp, 1L, \(x) { paste(sort(unique(unlist(x))), collapse = ";") })
   PG$"Gene names" <- NULL
-} else { if (length(w) == 1L) { colnames(PG)[which(colnames(PG) %in% genkol)] <- "Genes" } }
+} else { if (length(w) == 1L) { colnames(PG)[colnames(PG) %in% genkol] <- "Genes" } }
 invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 #
 # If Arabidopsis:
@@ -685,7 +685,7 @@ if (("ARATH" %in% db$Organism) || (3702L %in% db$TaxID)) {
     w <- which(db$TAIR == "")
     db$TAIR[w] <- db$TAIR_v2[w]
     db$TAIR_v2 <- NULL
-    db$TAIR[which(is.na(db$TAIR))] <- ""
+    db$TAIR[is.na(db$TAIR)] <- ""
   }
   tmp2 <- listMelt(strsplit(PG$`Leading protein IDs`, ";"), PG$id)
   tmp2$TAIR <- db$TAIR[match(tmp2$value, db$`Protein ID`)]
@@ -713,7 +713,7 @@ if (IsBioID) {
       PG[["Biot. peptide IDs"]] <- ""
       temp <- setNames(lapply(strsplit(PG$"Peptide IDs", ";"), as.integer), PG$id)
       temp <- listMelt(temp)
-      temp <- temp[which(temp$value %in% pep$id[g]),]
+      temp <- temp[temp$value %in% pep$id[g],]
       temp <- aggregate(temp$value, list(temp$L1), \(x) { paste(sort(x), collapse = ";") })
       PG[wpg, "Biot. peptide IDs"] <- temp$x[match(PG$id[wpg], temp$Group.1)]
       PG[["Biot. peptides count"]] <- lengths(strsplit(PG[["Biot. peptide IDs"]], ";"))
@@ -760,7 +760,7 @@ if (CreateMSMSKol) {
   #PG[, paste0("Spectr", c("al count", "um IDs"))]
   temp <- listMelt(lapply(strsplit(PG$`Evidence IDs`, ";"), as.integer), PG$id, c("Ev_id", "PG_id"))
   temp$MSMSIDs <- ev$temp[match(temp$Ev_id, ev$id)]
-  temp <- temp[which(lengths(temp$MSMSIDs) > 0L),] # Remove Match-Between-Runs evidences (no MS/MS)
+  temp <- temp[lengths(temp$MSMSIDs) > 0L,] # Remove Match-Between-Runs evidences (no MS/MS)
   temp <- listMelt(temp$MSMSIDs, temp$PG_id, c("MSMSIDs", "PG_id"))
   temp <- do.call(data.frame, aggregate(temp$MSMSIDs, list(temp$PG_id), \(x) {
     x <- unique(x)
@@ -923,8 +923,8 @@ invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 if (CRAPome) {
   tst <- strsplit(PG$`Protein IDs`, ";")
   tst <- listMelt(tst)
-  tst <- tst[which(tst$value %in% CRAPomeProteins),]
-  PG$`Potential contaminant`[which(PG$id %in% tst$L1)] <- "+"
+  tst <- tst[tst$value %in% CRAPomeProteins,]
+  PG$`Potential contaminant`[PG$id %in% tst$L1] <- "+"
 }
 
 # Proteins in list
@@ -939,7 +939,7 @@ if (prot.list.Cond) {
   pep$"Potential contaminant"[g2] <- ""
   ev$"Potential contaminant"[grsep2(prot.list, ev$Proteins)] <- ""
   pep$"Potential contaminant"[grsep2(prot.list, pep$Proteins)] <- ""
-  db$"Potential contaminant"[which(db$`Protein ID` %in% prot.list)] <- ""
+  db$"Potential contaminant"[db$`Protein ID` %in% prot.list] <- ""
 }
 
 # Backup data/update cluster
@@ -971,17 +971,17 @@ g <- grep(": SD$", g, value = TRUE, invert = TRUE)
 g <- grep("\\.REF$", g, value = TRUE, invert = TRUE)
 test <- quantData[, g]
 colnames(test) <- gsub(topattern(Prot.Expr.Root), "", colnames(test))
-test <- test[which(apply(test, 1L, \(x) { sum(is.finite(x)) }) > 0L),]
+test <- test[apply(test, 1L, \(x) { sum(is.finite(x)) }) > 0L,]
 test <- suppressMessages(dfMelt(test))
 test$variable <- as.character(test$variable)
 test[, RSA$names] <- ""
 w <- rep(FALSE, nrow(test))
-test[which(!w), RSA$names] <- Isapply(strsplit(test$variable[which(!w)], "___"), unlist)
+test[!w, RSA$names] <- Isapply(strsplit(test$variable[!w], "___"), unlist)
 a <- RSA$names
 w <- which(vapply(a, \(x) { length(unique(test[[x]])) }, 1L) > 1L)
 if (length(w)) { a <- a[w] }
 test[[a[1L]]] <- factor(test[[a[1L]]], levels = sort(unique(test[[a[1L]]])))
-test <- test[which(is.finite(test$value)),]
+test <- test[is.finite(test$value),]
 test2 <- set_colnames(aggregate(test$value, list(test$variable), median), c("variable", "value"))
 test2[, a] <- test[match(test2$variable, test$variable), a]
 MinMax <- c(min(test$value), max(test$value))
@@ -1026,12 +1026,12 @@ g <- grep(": SD$", g, value = TRUE, invert = TRUE)
 g <- grep("REF\\.to\\.REF", g, value = TRUE, invert = TRUE)
 test <- quantData[, g, drop = FALSE]
 colnames(test) <- gsub(topattern(Prot.Rat.Root), "", colnames(test))
-test <- test[which(apply(test, 1L, \(x) { sum(is.finite(x)) }) > 0L), , drop = FALSE]
+test <- test[apply(test, 1L, \(x) { sum(is.finite(x)) }) > 0L, , drop = FALSE]
 test <- suppressMessages(dfMelt(test))
 test$Contrast <- gsub_Rep(" - ", " -\n", as.character(test$variable))
 allContr <- unique(test$Contrast)
 test$Contrast <- factor(test$Contrast, levels = allContr)
-test <- test[which(is.finite(test$value)),]
+test <- test[is.finite(test$value),]
 test2 <- set_colnames(aggregate(test$value, list(test$Contrast), median), c("Contrast", "value"))
 MinMax <- c(min(test$value), max(test$value))
 nbinz <- ceiling((MinMax[2L]-MinMax[1L])/0.1)
@@ -1047,7 +1047,7 @@ for (ctr in allContr) {
   }, 1L)
 }
 testR <- dfMelt(testR, id.vars = "log2FC")
-colnames(testR)[which(colnames(testR) == "variable")] <- "Contrast"
+colnames(testR)[colnames(testR) == "variable"] <- "Contrast"
 dir <- paste0(wd, "/Workflow control/Protein groups/Expression")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 dirlist <- unique(c(dirlist, dir))
@@ -1073,10 +1073,10 @@ if (Param$Prot.Only.with.Quant) {
   test1 <- apply(quantData[,grep(topattern(Prot.Expr.Root), colnames(quantData), value = TRUE)],
                  1L, \(x) { sum(is.finite(x)) })
   a <- grep(topattern(Prot.Rat.Root), colnames(quantData), value = TRUE)
-  a <- a[which(!grepl(": SD$|: -log10\\(peptides Pvalue\\)$", a))]
+  a <- a[!grepl(": SD$|: -log10\\(peptides Pvalue\\)$", a)]
   test2 <- apply(quantData[,a],
                  1L, \(x) { sum(is.finite(x)) })
-  PG <- PG[which((test1 > 0L) | (test2 > 0L)),]
+  PG <- PG[(test1 > 0L) | (test2 > 0L),]
 }
 if (!"Peptides count" %in% colnames(PG)) {
   PG$"Peptides count" <- lengths(strsplit(PG$"Peptide IDs", ";"))
@@ -1107,7 +1107,7 @@ source(Src)
 
 # Average expression columns per group
 for (grp in VPAL$values) { #grp <- VPAL$values[1L] #grp <- VPAL$values[3L]
-  em <- Exp.map[which(Exp.map[[VPAL$column]] == grp),]
+  em <- Exp.map[Exp.map[[VPAL$column]] == grp,]
   # PG
   kol <- paste0(Prot.Expr.Root, em$Ref.Sample.Aggregate)
   kol <- intersect(kol, colnames(PG))
@@ -1135,7 +1135,7 @@ Src <- paste0(libPath, "/extdata/Sources/pVal_check.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
-useSAM %<o% ((names(pvalue.col)[which(pvalue.use)] == "Student") && useSAM_thresh)
+useSAM %<o% ((names(pvalue.col)[pvalue.use] == "Student") && useSAM_thresh)
 if (useSAM) {
   # In this case, we bypass the original decision and base it off SAM even though we plot Student's P-values
   for (i in names(SAM_thresh)) { #i <- names(SAM_thresh)[1L]
@@ -1148,16 +1148,16 @@ if (useSAM) {
     fdrs <- as.numeric(gsub("FDR$", "", setdiff(colnames(dec), mKol)))
     fdrs <- sort(fdrs, decreasing = TRUE)
     for (f in fdrs) { #f <- fdrs[1L]
-      w <- which(PG[[mKol]] %in% dec[which(dec[[paste0(f, "FDR")]] == "+"), mKol])
+      w <- which(PG[[mKol]] %in% dec[dec[[paste0(f, "FDR")]] == "+", mKol])
       if (length(w)) {
-        PG[which(PG[w, FCkol] > 0), regKol] <- paste0("up, FDR = ", f*100, "%")
-        PG[which(PG[w, FCkol] < 0), regKol] <- paste0("down, FDR = ", f*100, "%")
+        PG[PG[w, FCkol] > 0, regKol] <- paste0("up, FDR = ", f*100, "%")
+        PG[PG[w, FCkol] < 0, regKol] <- paste0("down, FDR = ", f*100, "%")
       }
     }
   }
 }
 #
-rm(list = ls()[which(!ls() %in% .obj)])
+rm(list = setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 
 #### Code chunk - Prepare Annotations and (if applicable) GO terms
@@ -1173,7 +1173,7 @@ Src <- paste0(libPath, "/extdata/Sources/SubCellMark.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
-rm(list = ls()[which(!ls() %in% .obj)])
+rm(list = setdiff(ls(), .obj))
 invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 Script <- readr::read_lines(ScriptPath)
 
@@ -1185,23 +1185,23 @@ source(Src)
 #### Code chunk - Estimate P-value significance for a set of accepted FDRs
 ## NB: For graphical reasons (volcano plots), there is only support for 4 different FDR values. This should suffice anyway.
 a <- sapply(strsplit(Param$Plot.metrics, ";"), \(x) { strsplit(x, ":") })
-a[[2L]][2L] <- gsub("\\.$", "", pvalue.col[which(pvalue.use)])
+a[[2L]][2L] <- gsub("\\.$", "", pvalue.col[pvalue.use])
 Param$Plot.metrics <- paste(vapply(a, paste, "", collapse = ":"), collapse = ";")
 FDR.thresholds %<o% c()
 
 A <- myContrasts$Contrast
 test <- vapply(A, \(x) { #x <- A[6L]
-  x <- paste0(pvalue.col[which(pvalue.use)], x)
+  x <- paste0(pvalue.col[pvalue.use], x)
   r <- x %in% colnames(PG)
   if (r) { r <- sum(is.finite(as.numeric(PG[[x]]))) > 0L }
   return(r)
 }, TRUE)
-A <- A[which(test)]
+A <- A[test]
 PG <- PG[, grep("^Significant-FDR=", colnames(PG), invert = TRUE)]
 for (a in A) { #a <- A[1L]
   temp <- FDR(data = PG,
               aggr = a,
-              pvalue_root = pvalue.col[which(pvalue.use)],
+              pvalue_root = pvalue.col[pvalue.use],
               fdr = BH.FDR,
               returns = rep(TRUE, 3L),
               inputType = "log")
@@ -1276,10 +1276,10 @@ a <- grep(topattern(Prot.Expr.Root), colnames(PG), value = TRUE)
 a <- grep("\\.REF$", a, value = TRUE, invert = TRUE)
 PG$"Av. log10 abundance" <- apply(PG[, a], 1L, \(x) {
   x <- unlist(x)
-  mean(x[which(is.finite(x))])
+  mean(x[is.finite(x)])
 })
-PG$"Rel. av. log10 abundance" <- PG$"Av. log10 abundance"/max(PG$"Av. log10 abundance"[which(is.finite(PG$"Av. log10 abundance"))])
-PG$"Rel. log10(Peptides count)" <- PG$"log10(Peptides count)"/max(PG$"log10(Peptides count)"[which(is.finite(PG$"log10(Peptides count)"))])
+PG$"Rel. av. log10 abundance" <- PG$"Av. log10 abundance"/max(PG$"Av. log10 abundance"[is.finite(PG$"Av. log10 abundance")])
+PG$"Rel. log10(Peptides count)" <- PG$"log10(Peptides count)"/max(PG$"log10(Peptides count)"[is.finite(PG$"log10(Peptides count)")])
 # Plotly
 create_plotly %<o% TRUE
 
@@ -1347,10 +1347,10 @@ thresh$Text.value <- NULL
 fdrThresh <- tempVP$Thresholds$FDR
 fdrThresh$Test <- cleanNms(fdrThresh$Sample)
 fdrThresh$Sample <- NULL
-colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.up")] <- "Colour (up)"
-colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.down")] <- "Colour (down)"
-colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.line")] <- "Colour (line)"
-fdrThresh <- fdrThresh[, c("Test", colnames(fdrThresh)[which(colnames(fdrThresh) != "Test")])]
+colnames(fdrThresh)[colnames(fdrThresh) == "fdr.col.up"] <- "Colour (up)"
+colnames(fdrThresh)[colnames(fdrThresh) == "fdr.col.down"] <- "Colour (down)"
+colnames(fdrThresh)[colnames(fdrThresh) == "fdr.col.line"] <- "Colour (line)"
+fdrThresh <- fdrThresh[, c("Test", colnames(fdrThresh)[colnames(fdrThresh) != "Test"])]
 fl <- paste0(wd, "/", subDr, "/Thresholds.xlsx")
 wb <- wb_workbook()
 wb <- wb_set_creators(wb, "Me")
@@ -1398,7 +1398,7 @@ for (ttl in n2) {
 # Also calculate Q-values - for now, the plot is created but not saved!
 if (("Q.values" %in% colnames(Param)) && is.logical(Param$Q.values) && Param$Q.values) {
   require(qvalue)
-  pkol <- grep(topattern(pvalue.col[which(pvalue.use)]), colnames(PG), value = TRUE)
+  pkol <- grep(topattern(pvalue.col[pvalue.use]), colnames(PG), value = TRUE)
   if (length(pkol)) {
     cat("Calculating Q-values...\n")
     for (pk in pkol) { #pk <- pkol[2L]
@@ -1414,10 +1414,10 @@ if (("Q.values" %in% colnames(Param)) && is.logical(Param$Q.values) && Param$Q.v
         }
       }
       if (!inherits(temp, "try-error")) {
-        PG[[gsub(topattern(pvalue.col[which(pvalue.use)]), "-log10(Qvalue) - ", pk)]] <- NA_real_
-        PG[[gsub(topattern(pvalue.col[which(pvalue.use)]), "local FDR ", pk)]] <- NA_real_
-        PG[wag, gsub(topattern(pvalue.col[which(pvalue.use)]), "-log10(Qvalue) - ", pk)] <- -log10(temp$qvalues)
-        PG[wag, gsub(topattern(pvalue.col[which(pvalue.use)]), "local FDR ", pk)] <- temp$lfdr
+        PG[[gsub(topattern(pvalue.col[pvalue.use]), "-log10(Qvalue) - ", pk)]] <- NA_real_
+        PG[[gsub(topattern(pvalue.col[pvalue.use]), "local FDR ", pk)]] <- NA_real_
+        PG[wag, gsub(topattern(pvalue.col[pvalue.use]), "-log10(Qvalue) - ", pk)] <- -log10(temp$qvalues)
+        PG[wag, gsub(topattern(pvalue.col[pvalue.use]), "local FDR ", pk)] <- temp$lfdr
       }
     }
     qval.thresh %<o% data.frame(yintercept = -log10(BH.FDR),
@@ -1498,7 +1498,7 @@ if (length(w)) {
 ## These can then be used for further steps down the line, such as volcano plots, etc...
 Reg_filters %<o% list()
 filter_types %<o% tolower(unlist(strsplit(Param$Filters.type, ";")))
-filter_types[grep("^dat.+2$", filter_types, invert = TRUE)] <- substr(filter_types[which(!grepl("^dat.+2$", filter_types))], 1L, 3L)
+filter_types[grep("^dat.+2$", filter_types, invert = TRUE)] <- substr(filter_types[!grepl("^dat.+2$", filter_types)], 1L, 3L)
 filter_types[grep("^dat.+2$", filter_types)] <- "dat2"
 filter_types <- unique(c("con", filter_types))
 if ("ref" %in% filter_types) {
@@ -1532,7 +1532,7 @@ if ("ref" %in% filter_types) {
   colnames(g2) <- VPAL$names
   tst <- do.call(paste, c(Exp.map[, RRG$names, drop = FALSE], sep = "___"))
   tmp <- do.call(paste, c(g2[, RRG$names, drop = FALSE], sep = "___"))
-  g2$Ref <- vapply(tmp, \(x) { unique(tst[which(Exp.map$Reference & (tst == x))]) }, "")
+  g2$Ref <- vapply(tmp, \(x) { unique(tst[Exp.map$Reference & (tst == x)]) }, "")
   for (i in unique(g2$Ref)) {
     w <- which(g2$Ref == i)
     u <- grep("^up|^Specific", unique(as.character(PG[, g[w]])), value = TRUE)
@@ -1695,7 +1695,7 @@ if (l > 1L) { tmp <- paste0(paste(tmp[1L:(l-1L)], collapse = "%, "), " and ", tm
 tmp2 <- Param$Ratios.Contamination.Rates
 tmpPVal <- gsub(" -log10\\(pvalue\\) - ", "",
                 gsub("welch", "Welch",
-                     gsub("student", "Student", tolower(pvalue.col[which(pvalue.use)]))))
+                     gsub("student", "Student", tolower(pvalue.col[pvalue.use]))))
 if (grepl("^moderated", tmpPVal, ignore.case = TRUE)) { tmpPVal <- paste0(tmpPVal, " (limma)") }
 if (grepl("^DEqMS mod\\.", tmpPVal, ignore.case = TRUE)) { tmpPVal <- paste0(gsub("deqms mod\\. ", "DEqMS moderated ", tmpPVal), " (limma + edge)") }
 if (grepl("^((EBA)|(S))AM ", tmpPVal, ignore.case = TRUE)) { tmpPVal <- paste0(tmpPVal, " (siggenes)") }
@@ -1767,7 +1767,7 @@ for (tt in WhTsts) { #tt <- WhTsts[1L]
         rownames(temp2) <-  temp[2L:(N+1L), 1L]
         for (i in 1L:nrow(temp2)) { temp2[[i]] <- as.numeric(temp2[[i]]) }
         m <- unlist(temp2)
-        m <- max(m[which(is.finite(m))])
+        m <- max(m[is.finite(m)])
         if (m) {
           temp2 <- as.matrix(temp2)
           basic.heatmap(temp2,
@@ -1831,7 +1831,7 @@ if (exists("Tim")) {
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   dirlist <- unique(c(dirlist, dir))
   r <- paste0("Mean ", Prot.Rat.Root)
-  p <- pvalue.col[which(pvalue.use)]
+  p <- pvalue.col[pvalue.use]
   a <- gsub("Tim", "", VPAL$aggregate)
   o <- parse.Param.aggreg(Param_filter(Param$Volcano.plots.Aggregate.Level, "Tim"))$names
   A <- get(a)
@@ -1841,14 +1841,14 @@ if (exists("Tim")) {
   ylim <- paste0(r, A1)
   ylim <- intersect(ylim, colnames(PG))
   m <- unlist(PG[, ylim])
-  ylim <- max(m[which(is.finite(m))])*1.05
+  ylim <- max(m[is.finite(m)])*1.05
   temp <- list()
   for (i in A) { #i <- A[1L]
     i1 <- unlist(strsplit(i, "___"))
     e <- lapply(seq_along(o), \(x) { which(Exp.map[[o[x]]] == i1[x]) })
     l <- unique(unlist(e))
     t <- vapply(l, \(x) { length(which(unlist(e) == x)) == length(o) }, TRUE)
-    l <- l[which(t)]
+    l <- l[t]
     e <- Exp.map[l,]
     t1 <- paste0(r, e[[a1]])
     t2 <- paste0(p, e[[a1]])
@@ -1857,7 +1857,7 @@ if (exists("Tim")) {
       e <- e[w,]
       t1 <- unique(t1[w])
       t2 <- unique(t2[w])
-      tp <- unique(e[[Aggregates[which(names(Aggregates) == "Tim")]]])
+      tp <- unique(e[[Aggregates[names(Aggregates) == "Tim"]]])
       tp <- sort(as.numeric(tp))
       if (length(t1) <= 1L) {
         if (!length(t1)) { cat("   There is no valid data for aggregate", i, "\n")
@@ -1866,11 +1866,11 @@ if (exists("Tim")) {
         test <- apply(PG[,c(t1, t2)], 1L, \(x) { sum(is.finite(x)) == length(tp)*2L })
         col <- c("Protein IDs", "Names", "ID")
         col <- intersect(col, colnames(PG))
-        temp1 <- PG[which(test), c(col, Param$Plot.labels, t1)]
+        temp1 <- PG[test, c(col, Param$Plot.labels, t1)]
         temp1$IDs <- as.character(1L:nrow(temp1))
-        temp2 <- PG[which(test), c(col, Param$Plot.labels, t2)]
+        temp2 <- PG[test, c(col, Param$Plot.labels, t2)]
         temp1 <- reshape2::melt(temp1, id.vars = c(col, "IDs", Param$Plot.labels))
-        colnames(temp1)[which(colnames(temp1) == "value")] <- "log2(Ratio)"
+        colnames(temp1)[colnames(temp1) == "value"] <- "log2(Ratio)"
         temp1$variable <- gsub_Rep(topattern(r, start = FALSE), "", as.character(temp1$variable))
         temp2 <- reshape2::melt(temp2, id.vars = c(col, Param$Plot.labels))
         temp1$"-log10(Pvalue)" <- temp2$value[match(temp1$"Protein IDs", temp2$"Protein IDs")]
@@ -1913,11 +1913,11 @@ if (exists("Tim")) {
     if (create_plotly) {
       #test <- aggregate(tmp$`log2(Ratio)`, list(tmp$IDs), \(x) { sum(is.finite(x)) == length(Tim)-1L })
       tmp2 <- aggregate(tmp$`log2(Ratio)`, list(tmp$IDs), \(x) {
-        max(abs(x[which(is.finite(x))]))
+        max(abs(x[is.finite(x)]))
       })
       tmp2 <- tmp2[order(tmp2$x, decreasing = TRUE),]
       tmp2 <- tmp2$Group.1[1L:min(c(1000L, nrow(tmp2)))]
-      tmp2 <- tmp[which(tmp$IDs %in% tmp2),]
+      tmp2 <- tmp[tmp$IDs %in% tmp2,]
       plot <- ggplot(tmp2) +
         geom_line(aes(x = `Time point`, y = `log2(Ratio)`, group = IDs, color = IDs, text = Label)) +
         scale_color_viridis_d(begin = 0.25) +
@@ -1931,7 +1931,7 @@ if (exists("Tim")) {
   }
 }
 
-rm(list = ls()[which(!ls() %in% .obj)])
+rm(list = setdiff(ls(), .obj))
 invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 Script <- readr::read_lines(ScriptPath)
 
@@ -1984,7 +1984,7 @@ Src <- paste0(libPath, "/extdata/Sources/rep_Summary.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
-rm(list = ls()[which(!ls() %in% .obj)])
+rm(list = setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 
 #### Code chunk - XML coverage columns
@@ -2006,10 +2006,10 @@ if (GO_filt) {
   Offspring <- setNames(lapply(GO_PG_col, \(x) { #x <- "GO:0009725"
     ont <- Ontology(x)
     x <- c(x, get(paste0("GO", ont, "OFFSPRING"))[[x]])
-    x <- x[which(!is.na(x))]
+    x <- x[!is.na(x)]
     return(x)
   }), GO_PG_col)
-  tmp <- tmp[which(tmp$Term %in% unlist(Offspring)),]
+  tmp <- tmp[tmp$Term %in% unlist(Offspring),]
   tmp <- aggregate(tmp$Row, list(tmp$Term), c)
   colnames(tmp) <- c("Term", "Rows")
   w <- which(vapply(GO_PG_col, \(x) { sum(Offspring[[x]] %in% tmp$Term) }, 1L) == 0L)
@@ -2056,7 +2056,7 @@ xlSrc <- paste0(libPath, "/extdata/Sources/rep_Write_Excel.R")
 source(xlSrc)
 #xl_open(repFl)
 
-rm(list = ls()[which(!ls() %in% .obj)])
+rm(list = setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 source(parSrc)
 
@@ -2092,7 +2092,7 @@ if (length(protlspep)) {
       nm <- paste0(db$"Protein ID"[m], " - ", db$"Common Name"[m])
       warning(paste0("Protein of interest ",nm, " was not found in the dataset!"))
     }
-    protlspep <- protlspep[which(test > 0L)]
+    protlspep <- protlspep[test > 0L]
   }
 }
 #
@@ -2130,11 +2130,11 @@ source(Src)
 
 #### Code chunk - For pull-downs: create table summarizing types of evidence for all proteins of interest
 # if (IsPullDown) {
-#   g <- paste0("Regulated - ", unique(Exp.map[which(!Exp.map$Reference), VPAL$column]))
+#   g <- paste0("Regulated - ", unique(Exp.map[!Exp.map$Reference, VPAL$column]))
 #   test <- apply(PG[, g, drop = FALSE], 1L, \(x) {
 #     length(which(!x %in% c("", NA, "NA", "non significant", "too small FC")))
 #   })
-#   prot <- unique(c(prot.list, unlist(strsplit(PG$"Leading protein IDs"[which(test > 0L)], ";"))))
+#   prot <- unique(c(prot.list, unlist(strsplit(PG$"Leading protein IDs"[test > 0L], ";"))))
 #   if ((!is.null(prot.list_pep)) && (length(prot.list_pep)) { prot <- unique(c(prot, prot.list_pep)) }
 #   if (length(prot)) {
 #     dir <- paste0(wd, "/Evidences type tables")

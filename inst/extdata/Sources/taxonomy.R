@@ -1,4 +1,4 @@
-#' From myTAI because the CRAN version's gone and the function is not present on the github version. 
+#' From myTAI because the CRAN version is gone and the function is not present on the current github version. 
 #' @title Retrieving Taxonomic Information of a Query Organism
 #' @description This function takes the scientific name of a query organism
 #' and returns selected output formats of taxonomic information for the corresponding organism.

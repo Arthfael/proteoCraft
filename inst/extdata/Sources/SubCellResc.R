@@ -41,7 +41,7 @@ if (LocAnalysis) {
     tmp2a <- aggregate(tmp2[, kol2b], list(tmp2$"Modified sequence", tmp2$MQ.Exp), sum)
     tmp2 <- data.frame(`Modified sequence` = pep$"Modified sequence", check.names = FALSE)
     for (mqexp in MQ.Exp) { #mqexp <- MQ.Exp[1L]
-      em <- Exp.map[which(Exp.map$MQ.Exp == mqexp),]
+      em <- Exp.map[Exp.map$MQ.Exp == mqexp,]
       m <- match(chan, em$"Isobaric label")
       w <- which(!is.na(m))
       kol2c <- paste0(pep.ref["Original"], em$Ref.Sample.Aggregate[m[w]])
@@ -52,7 +52,7 @@ if (LocAnalysis) {
     }
   } else {
     tmp2a <- as.data.table(ev[, kol2])
-    colnames(tmp2a)[which(colnames(tmp2a) == ev.col["Original"])] <- "Int"
+    colnames(tmp2a)[colnames(tmp2a) == ev.col["Original"]] <- "Int"
     tmp2a <- tmp2a[, list(x = sum(Int)),
                    by = list(`Modified sequence` = `Modified sequence`,
                              `Raw file` = `Raw file path`,
@@ -80,8 +80,8 @@ if (LocAnalysis) {
   BefAft <- tmp2[, kol2c]/tmp1[, kol1]
   colnames(BefAft) <- RSA$values[WhInColNms]
   BefAft <- vapply(VPAL$values, \(x) {
-    x <- Exp.map$Ref.Sample.Aggregate[which(Exp.map[[VPAL$column]] == x)]
-    x <- x[which(x %in% RSA$values[WhInColNms])]
+    x <- Exp.map$Ref.Sample.Aggregate[Exp.map[[VPAL$column]] == x]
+    x <- intersect(x, RSA$values[WhInColNms])
     x <- median(unlist(BefAft[, x]), na.rm = TRUE)
     return(x)
   }, 1)
@@ -109,7 +109,7 @@ if (LocAnalysis) {
   # (Presumably it is ok to normalize within those groups, as samples should be replicates)
   # For now the covariates aggregate used is VPAL, but we could map it to a custom one using a new Param
   for (grp in VPAL$values) { #grp <- VPAL$values[1L]
-    smpls <- Exp.map$Ref.Sample.Aggregate[which(Exp.map[[VPAL$column]] == grp)]
+    smpls <- Exp.map$Ref.Sample.Aggregate[Exp.map[[VPAL$column]] == grp]
     PepKol1 <- paste0(prevRef, smpls)
     PepKol2 <- paste0(pep.ref2, smpls) 
     w <- which(PepKol1 %in% colnames(pep))
@@ -143,11 +143,11 @@ if (LocAnalysis) {
     }
     kol1 <- paste0(rt1, RSA$values)
     kol2 <- paste0(rt2, RSA$values)
-    w <- which((kol1 %in% colnames(temp))&(kol2 %in% colnames(temp)))
+    w <- which((kol1 %in% colnames(temp)) & (kol2 %in% colnames(temp)))
     tst <- temp[, c(kol1[w], kol2[w])]
     tst <- reshape2::melt(tst, measure.vars = c(kol1[w], kol2[w]))
     tst$value <- suppressWarnings(log10(tst$value))
-    tst <- tst[which(is.finite(tst$value)),]
+    tst <- tst[is.finite(tst$value),]
     tst$variable <- as.character(tst$variable)
     tst2 <- data.frame(variable = unique(tst$variable))
     tst2[, c("Type", "Sample")] <- as.data.frame(t(sapply(strsplit(tst2$variable, " - "), unlist)))

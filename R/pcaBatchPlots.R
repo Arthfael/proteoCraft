@@ -59,7 +59,7 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
   kol <- intersect(kol, colnames(dat))
   dat <- dat[, kol]
   if (nchar(intRoot)) {
-    colnames(dat) <- gsub(topattern(intRoot), "", colnames(dat))
+    colnames(dat) <- sub(topattern(intRoot), "", colnames(dat))
   }
   stopifnot(batches %in% colnames(map),
             ncol(dat) > 1L,

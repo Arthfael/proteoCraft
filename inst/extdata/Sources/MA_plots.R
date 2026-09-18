@@ -12,8 +12,7 @@
 # - isobaric (+/- MQ experiments/fractions)
 #
 
-# Update:
-ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file") # Update again
+ev2fr <- match(ev$"Raw file path", Frac.map$"Raw file") # Update again
 #
 MAplotFls %<o% c()
 if ((length(MQ.Exp) <= 1L) && (LabelType != "Isobaric")) { stop("Whut? Something's gone wrong!") } # Should be always TRUE
@@ -28,13 +27,13 @@ invisible(clusterCall(parClust, \() {
 }))
 #
 data <- ev
-colnames(data)[which(colnames(data) == "MQ.Exp")] <- "Parent sample"
-if (("PTM-enriched" %in% colnames(Frac.map))&&(sum(Modifs$"Full name" %in% Frac.map$"PTM-enriched"))) {
+colnames(data)[colnames(data) == "MQ.Exp"] <- "Parent sample"
+if (("PTM-enriched" %in% colnames(Frac.map)) && (sum(Modifs$"Full name" %in% Frac.map$"PTM-enriched"))) {
   data$"PTM-enrich." <- Frac.map$"PTM-enriched"[ev2fr]
-  data$"PTM-enrich."[which(is.na(data$"PTM-enrich."))] <- ""
+  data$"PTM-enrich."[is.na(data$"PTM-enrich.")] <- ""
 }
-data <- data[which(data$Reverse != "+"),]
-data <- data[which((is.na(data$"Potential contaminant"))|(data$"Potential contaminant" != "+")),]
+data <- data[data$Reverse != "+",]
+data <- data[is.na(data$"Potential contaminant") | (data$"Potential contaminant" != "+"),]
 quntKol <- if (LabelType == "Isobaric") {
   grep(paste0(topattern(ev.ref["Original"]), "[0-9]+$"), colnames(data), value = TRUE)
 } else { ev.col["Original"] }
@@ -73,7 +72,7 @@ if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 dirlist <- unique(c(dirlist, dir))
 #
 for (grp in grps) { #grp <- grps[1L]
-  data2 <- data[which(data[[Grpkol]] == grp),]
+  data2 <- data[data[[Grpkol]] == grp,]
   lsKl <- c("Modified sequence", Y)
   if (LabelType == "LFQ") { lsKl <- c(lsKl, X) }
   if ("PTM-enrich." %in% colnames(data2)) { lsKl <- c(lsKl, "PTM-enrich.") }
@@ -122,8 +121,8 @@ for (grp in grps) { #grp <- grps[1L]
     tmpDat$"M (mean log2 FC)" <- tmpDat_M$"M (mean log2 FC)"
     tmpDat$"A (mean log10 Intensity)" <- tmpDat_A$"A (mean log10 Intensity)"
     rm(tmpDat_A, tmpDat_M)
-    tmpDat <- tmpDat[which(is.finite(tmpDat$"M (mean log2 FC)")),]
-    tmpDat <- tmpDat[which(is.finite(tmpDat$"A (mean log10 Intensity)")),]
+    tmpDat <- tmpDat[is.finite(tmpDat$"M (mean log2 FC)"),]
+    tmpDat <- tmpDat[is.finite(tmpDat$"A (mean log10 Intensity)"),]
     tst <- vapply(c(Y, X), \(x) { length(unique(tmpDat[[x]])) }, 1L)
     wrpKl <- c(Y, X)
     wrpKl2 <- paste0("`", wrpKl, "`")
@@ -131,7 +130,7 @@ for (grp in grps) { #grp <- grps[1L]
       w <- which(tst > 1L)
       wrpKl <- wrpKl[w]
       wrpKl2 <- wrpKl2[w]
-      #if ((length(wrpKl) == 1)&&(grepl(" ", wrpKl))) { wrpKl <- paste0("`", wrpKl, "`") }
+      #if ((length(wrpKl) == 1) && grepl(" ", wrpKl)) { wrpKl <- paste0("`", wrpKl, "`") }
     } else {
       if ((tst[1L] >= tst[2L]*3) || (tst[1L] <= tst[2L]/3)) {
         wrpKl2 <- paste0("`", paste(wrpKl, collapse = " | "), "`")
@@ -141,14 +140,14 @@ for (grp in grps) { #grp <- grps[1L]
     }
     lst <- lapply(wrpKl, \(k) { tmpDat[[k]] })
     annot <- aggregate(tmpDat$"M (mean log2 FC)", lst, \(x) {
-      x <- x[which(is.finite(x))]
+      x <- x[is.finite(x)]
       c(paste0("Median: ", signif(median(x), 3L)),
         paste0("IQR: ", signif(IQR(x), 3L)))
     })
     annot[, c("Median", "IQR")] <- do.call(as.data.frame, annot)
     annot$x <- NULL
     colnames(annot)[1L:length(wrpKl)] <- wrpKl
-    filtFun <- \(x) { x[which(is.finite(x))] }
+    filtFun <- \(x) { x[is.finite(x)] }
     annot$Amax <- max(filtFun(tmpDat$"A (mean log10 Intensity)"))*1.1
     annot$Amin <- min(filtFun(tmpDat$"A (mean log10 Intensity)"))*1.1
     annot$Mmax <- max(filtFun(tmpDat$"M (mean log2 FC)"))*1.1
@@ -199,8 +198,8 @@ for (grp in grps) { #grp <- grps[1L]
     }))
     unlink(tmpFl)
     MAplotFls[smpls] <- parSapply(parClust, smpls, \(smpl) { #smpl <- smpls[1L] 
-      dat <- tmpDat[which(tmpDat$`Parent sample` == smpl),]
-      ann <- annot2[which(annot2$`Parent sample` == smpl),]
+      dat <- tmpDat[tmpDat$`Parent sample` == smpl,]
+      ann <- annot2[annot2$`Parent sample` == smpl,]
       plot$data <- dat
       ttl <- paste0(MAttl, " - ", smpl)
       plot <- plot + ggtitle(ttl) +

@@ -11,7 +11,7 @@
 # d) Re-establish the original scale (check that the mean of all values is unchanged after normalization).
 # e) Re-calculate log ratios.
 #
-#rm(list = ls()[which(!ls() %in% .obj)])
+#rm(list = setdiff(ls(), .obj))
 normPGs <- 0L
 Norma.Prot.Ratio.classic %<o% FALSE
 Norma.Prot.Ratio.to.Biot %<o% FALSE
@@ -69,16 +69,16 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
       (!Param$Norma.Prot.Ratio.to.proteins %in% c("", "NA")) &&
       (!Norma.Prot.Ratio.to.Biot)) {
     Prot.Ratio.ref.Acc %<o% unique(unlist(strsplit(Param$Norma.Prot.Ratio.to.proteins, ";")))
-    Prot.Ratio.ref.Acc <- Prot.Ratio.ref.Acc[which(Prot.Ratio.ref.Acc %in% db$"Protein ID")]
+    Prot.Ratio.ref.Acc <- Prot.Ratio.ref.Acc[Prot.Ratio.ref.Acc %in% db$"Protein ID"]
     if (length(Prot.Ratio.ref.Acc)) {
-      Prot.Ratio.ref.Acc <- Prot.Ratio.ref.Acc[which(Prot.Ratio.ref.Acc %in% unique(unlist(strsplit(PG$"Protein IDs", ";"))))] # Having "Leading protein IDs" here was too stringent
+      Prot.Ratio.ref.Acc <- Prot.Ratio.ref.Acc[Prot.Ratio.ref.Acc %in% unique(unlist(strsplit(PG$"Protein IDs", ";")))] # Having "Leading protein IDs" here was too stringent
       Norma.Prot.Ratio.classic <- FALSE
       l <- length(Prot.Ratio.ref.Acc)
       if (l) {
         temp <- strsplit(PG$"Protein IDs", ";")
         temp <- listMelt(temp, PG$id)
         temp$Norm <- temp$value %in% Prot.Ratio.ref.Acc
-        temp <- temp$L1[which(temp$Norm)]
+        temp <- temp$L1[temp$Norm]
         nrmFlt <- which(PG$id %in% temp)
         if (length(nrmFlt)) {
           Norma.Prot.Ratio.classic <- Norma.Prot.Ratio.to.Biot <- FALSE
@@ -106,25 +106,12 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
     stopifnot(normPGs == 1L) # Only one method may run - otherwise it makes no sense!
     #
     grpKols <- setNames(lapply(Norm.Groups$values, \(grp) { #grp <- Norm.Groups$values[[1L]]
-      em <- Exp.map[which(Exp.map[[Norm.Groups$column]] == grp),]
+      em <- Exp.map[Exp.map[[Norm.Groups$column]] == grp,]
       smpls <- em$Ref.Sample.Aggregate
       xpKol <- paste0(Prot.Expr.Root, smpls)
       w <- which(xpKol %in% colnames(quantData_norm))
       setNames(xpKol[w], smpls[w])
     }), Norm.Groups$values)
-    if (Norma.Prot.Ratio.Adv) {
-      tmpFl <- tempfile(fileext = ".rds")
-      readr::write_rds(quantData_norm, tmpFl)
-      ids <- PG$id[nrmFlt]
-      exports <- list("tmpFl", "Exp.map", "Norm.Groups", "nrmFlt", "Prot.Expr.Root", "ids", "robustNorm", "grpKols")
-      clusterExport(parClust, exports, envir = environment())
-      invisible(clusterCall(parClust, \() {
-        quantData_norm <- readr::read_rds(tmpFl)
-        assign("quantData_norm", quantData_norm, envir = .GlobalEnv)
-        return()
-      }))
-      unlink(tmpFl)
-    }
     #
     normDf <- data.frame(Sample = Exp.map$Ref.Sample.Aggregate,
                          Group = Exp.map[[Norm.Groups$column]])
@@ -142,24 +129,22 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
       dat <- quantData_norm[nrmFlt, kol]
       # Original group scale
       m2 <- mean(unlist(dat), na.rm = TRUE)
-      normDf$prior_Group[which(normDf$Group == grp)] <- m2
+      normDf$prior_Group[normDf$Group == grp] <- m2
       # Calculate shift
       m <- match(nms, normDf$Sample)
       normDf$shift_median[m] <- shift <- -apply(dat, 2L, median, na.rm = TRUE)
       if (Norma.Prot.Ratio.Adv) {
         xpMed0 <- apply(dat, 2L, median, na.rm = TRUE)
-        dat$id <- ids
-        #nrmDat <- AdvNorm.IL(dat, "id", kol, TRUE, 5L)
         nrmDat <- robustNorm(dat, kol, loss = "huber")
-        nrmKol <- paste0("AdvNorm.", kol)
-        nrmDat <- nrmDat[, nrmKol]
+        nrmDat <- nrmDat$data[, kol]
+        colnames(nrmDat) <- nrmKol <- paste0("AdvNorm.", kol)
         xpMed2 <- apply(nrmDat, 2L, median, na.rm = TRUE)
         normDf$shift_LM[m] <- shift <- xpMed2 - xpMed0
       }
       quantData_norm[, kol] <- sweep(quantData_norm[, kol], 2L, shift, "+")
       # Posterior group scale
       m3 <- mean(unlist(quantData_norm[nrmFlt, kol]), na.rm = TRUE)
-      normDf$posterior_Group[which(normDf$Group == grp)] <- m3
+      normDf$posterior_Group[normDf$Group == grp] <- m3
       quantData_norm[, kol] <- quantData_norm[, kol] + (m3 - m2)
     }
     # Posterior global scale
@@ -178,7 +163,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
     tst <- normDf
     tst[, RSA$names] <- Exp.map[match(tst$Sample, Exp.map$Ref.Sample.Aggregate), RSA$names]
     nms <- VPAL$names
-    if (length(Exp) == 1L) { nms <- nms[which(nms != "Experiment")] }
+    if (length(Exp) == 1L) { nms <- setdiff(nms, "Experiment") }
     tst$Samples_group <- do.call(paste, c(tst[, nms, drop = FALSE], sep = " "))
     l <- length(nms)
     if (l > 2L) {
@@ -224,9 +209,9 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
     ttl <- paste0("re-normalisation",
                   c(paste0(" (to ", c("biotinylated",
                                       "user-defined invariant"), " proteins)"),
-                    "")[which(c(Norma.Prot.Ratio.to.Biot,
-                                Norma.Prot.Ratio.to.proteins,
-                                Norma.Prot.Ratio.classic))])
+                    "")[c(Norma.Prot.Ratio.to.Biot,
+                          Norma.Prot.Ratio.to.proteins,
+                          Norma.Prot.Ratio.classic)])
     l <- length(DatAnalysisTxt)
     insrt <- if (Norma.Prot.Ratio.Adv) {
       "using the Levenberg-marquart procedure to minimize the difference between "
@@ -273,7 +258,7 @@ if (normPGs) {
   temp$Sample <- factor(temp$variable, levels = Samples)
   temp$variable <- NULL
   temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
-  temp <- temp[which(is.finite(temp$value)),]
+  temp <- temp[is.finite(temp$value),]
   ttlI1 <- paste0("Protein groups ", ttl, ", expression")
   intPlot1 <- ggplot(temp) +
     geom_violin(aes(x = Sample, y = value, colour = Sample, fill = Sample), alpha = 0.25) +
@@ -307,7 +292,7 @@ if (normPGs) {
   temp$Contrast <- factor(temp$Contrast, levels = allContr2)
   temp$variable <- NULL
   temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
-  temp <- temp[which(is.finite(temp$value)),]
+  temp <- temp[is.finite(temp$value),]
   ttlR1 <- paste0("Protein groups ", ttl, ", ratios")
   ratPlot1 <- ggplot(temp) +
     geom_violin(aes(x = Contrast, y = value, colour = Contrast, fill = Contrast), alpha = 0.25) +
@@ -340,7 +325,7 @@ if (normPGs) {
   temp$variable <- NULL
   temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
   temp$value <- suppressWarnings(log10(temp$value)) # Peptide intensities are not log-transformed!
-  temp <- temp[which(is.finite(temp$value)),]
+  temp <- temp[is.finite(temp$value),]
   ttlI2 <- paste0("Peptides ", ttl, " from PGs, intensity")
   intPlot2 <- ggplot(temp) +
     geom_violin(aes(x = Sample, y = value, colour = Sample, fill = Sample), alpha = 0.25) +
@@ -377,7 +362,7 @@ if (normPGs) {
   temp$Contrast <- factor(temp$Contrast, levels = allContr2)
   temp$variable <- NULL
   temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
-  temp <- temp[which(is.finite(temp$value)),]
+  temp <- temp[is.finite(temp$value),]
   ttlR2 <- paste0("Peptides ", ttl, " from PGs, ratios")
   ratPlot2 <- ggplot(temp) +
     geom_violin(aes(x = Contrast, y = value, colour = Contrast, fill = Contrast), alpha = 0.25) +
@@ -444,7 +429,7 @@ if (normPGs) {
   #   a <- jpeg::readJPEG(x)
   #   setNames(dim(a)[1L:2L], c("height", "width"))
   # })))
-  IMGsDims <- as.data.frame(t(parSapply(parClust, IMGS, \(x) { #x <- IMGs[1L]
+  IMGsDims <- as.data.frame(t(parSapply(parClust, IMGs, \(x) { #x <- IMGs[1L]
     a <- xml2::read_xml(x)
     v <- as.numeric(strsplit(xml2::xml_attr(a, "viewBox"), " ")[[1L]])
     setNames(v[3L:4L], c("width", "height"))

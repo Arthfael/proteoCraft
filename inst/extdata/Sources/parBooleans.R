@@ -1,7 +1,7 @@
 # Boolean functions to check parameter values
-validLogicPar %<o% function(x,
-                            length_1 = TRUE,
-                            noNAs = TRUE) {
+validLogicPar %<o% \(x,
+                     length_1 = TRUE,
+                     noNAs = TRUE) {
   stopifnot(is.character(x))
   if (!exists(x, .GlobalEnv)) { return(FALSE) }
   val <- get(x, .GlobalEnv)
@@ -14,10 +14,10 @@ validLogicPar %<o% function(x,
   }
   return(TRUE)
 }
-validIntegPar %<o% function(x,
-                            min = 1L,
-                            length_1 = TRUE,
-                            noNAs = TRUE) {
+validIntegPar %<o% \(x,
+                     min = 1L,
+                     length_1 = TRUE,
+                     noNAs = TRUE) {
   stopifnot(is.character(x))
   if (!exists(x, .GlobalEnv)) { return(FALSE) }
   val <- get(x, .GlobalEnv)
@@ -33,10 +33,10 @@ validIntegPar %<o% function(x,
   }
   return(sum((is.na(val))|(val >= min)) == l)
 }
-validNumPar %<o% function(x,
-                          filtExpr = "",
-                          length_1 = TRUE,
-                          noNAs = TRUE) {
+validNumPar %<o% \(x,
+                   filtExpr = "",
+                   length_1 = TRUE,
+                   noNAs = TRUE) {
   stopifnot(is.character(x))
   if (!exists(x, .GlobalEnv)) { return(FALSE) }
   val <- get(x, .GlobalEnv)
@@ -48,7 +48,7 @@ validNumPar %<o% function(x,
     if (tst) { return(FALSE) }
   }
   if (filtExpr != "") {
-    tst <- lapply(val, function(x) {
+    tst <- lapply(val, \(x) {
       y <- try(eval(parse(text = paste0(x, " ", filtExpr))), silent = TRUE)
       if (inherits(y, "try-error")) { y <- FALSE }
       return(y)
@@ -58,10 +58,10 @@ validNumPar %<o% function(x,
   }
   return(sum((is.na(val))|(val >= min)) == l)
 }
-validCharPar %<o% function(x,
-                           filt,
-                           length_1 = TRUE,
-                           noNAs = TRUE) {
+validCharPar %<o% \(x,
+                    filt,
+                    length_1 = TRUE,
+                    noNAs = TRUE) {
   stopifnot(is.character(x))
   x <- gsub("^ +| +$", "", x)
   if (!exists(x, .GlobalEnv)) { return(FALSE) }

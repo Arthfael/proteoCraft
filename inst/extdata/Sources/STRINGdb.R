@@ -26,7 +26,7 @@ IDs <- unique(unlist(lapply(names(Reg_filters), \(x) {
   lapply(Reg_filters[[x]]$`By condition`, \(y) {
     w <- y[[c("Filter", "prot_Filter")[i]]]
     dat <- get(c("PG", "allSAINTs")[i])
-    w <- w[which(dat$"Potential contaminant"[w] != "+")]
+    w <- w[dat$"Potential contaminant"[w] != "+"]
     y <- dat[[c("Leading protein IDs", "Protein")[i]]][w]
     if (i == 1L) { y <- unlist(strsplit(y, ";")) }
     return(y)
@@ -34,12 +34,12 @@ IDs <- unique(unlist(lapply(names(Reg_filters), \(x) {
 })))
 w <- which(db$`Protein ID` %in% IDs)
 allTaxIDs <- unique(db$TaxID[w])
-tmpPG <- tmpPG[which(tmpPG$value %in% IDs),]
+tmpPG <- tmpPG[tmpPG$value %in% IDs,]
 source(parSrc)
 allProteins_mapped <- try(setNames(lapply(allTaxIDs, \(txid) { #txid <- allTaxIDs[1L]
   kol <- c("Protein ID", "Common Name", "TAIR")
   kol <- intersect(kol, colnames(db))
-  tmpDB <- db[which((db$`Protein ID` %in% IDs)&(db$TaxID == txid)), kol]
+  tmpDB <- db[(db$`Protein ID` %in% IDs) & (db$TaxID == txid), kol]
   x <- gsub("^cRAP[0-9]{3}", "", gsub("^CON__", "", tmpDB$`Protein ID`))
   y <- split(x, ceiling(seq_along(x)/20))
   n <- length(y)
@@ -66,7 +66,7 @@ allProteins_mapped <- try(setNames(lapply(allTaxIDs, \(txid) { #txid <- allTaxID
     if (rs$Outcome) { rs$Result <- a }
     return(rs)
   })
-  w <- which(vapply(res, \(rs) { rs$Outcome&&is.data.frame(rs$Result) }, TRUE))
+  w <- which(vapply(res, \(rs) { rs$Outcome && is.data.frame(rs$Result) }, TRUE))
   res <- res[w]
   if (!length(res)) { return(data.frame(Error = c())) }
   res <- lapply(res, \(rs) { rs$Result })
@@ -79,7 +79,7 @@ if (4L %in% WhTsts) {
   tmpMap <- listMelt(strsplit(PG$`Leading protein IDs`, ";"), PG$id)
 }
 # See https://string-db.org/help/api/ for API help
-if (length(WhTsts)&&length(allProteins_mapped)) {
+if (length(WhTsts) && length(allProteins_mapped)) {
   filtersDF <- lapply(WhTsts, \(tt) { #tt <- 1L #tt <- 2L #tt <- 3L #tt <- 4L
     Filt <- Reg_filters[[Tsts[tt]]]$"By condition"
     nms <- sort(names(Filt))
@@ -95,16 +95,16 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
     }, TRUE))
     filtDF <- filtDF[w,]
     nr <- nrow(filtDF)
-    if ((!is.null(nr)) && (nr)) {
+    if ((!is.null(nr)) && nr) {
       filtDF$W <- lapply(1L:nr, \(x) { #x <- 1L
         w <- filtDF$Filter[[x]]$Filter
         typ <- filtDF$Type[x]
         if (length(w)) {
           if (typ == 1L) {
-            w <- w[which(PG$"Potential contaminant"[w] != "+")]
+            w <- w[PG$"Potential contaminant"[w] != "+"]
           }
           if (typ == 2L) {
-            w <- w[which(allSAINTs$"Potential contaminant"[w] != "+")]
+            w <- w[allSAINTs$"Potential contaminant"[w] != "+"]
           }
         }
         return(w)
@@ -160,13 +160,13 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
       })
       filtDF <- plyr::rbind.fill(filtDF)
       if (!is.null(filtDF$Reg)) {
-        filtDF <- filtDF[which(vapply(filtDF$Reg, \(x) { (is.data.frame(x))&&(nrow(x) > 0L) }, TRUE)),]
+        filtDF <- filtDF[vapply(filtDF$Reg, \(x) { is.data.frame(x) && (nrow(x) > 0L) }, TRUE),]
       }
     }
     return(filtDF)
   })
   filtersDF <- plyr::rbind.fill(filtersDF)
-  filtersDF <- filtersDF[which(paste0("TaxID_", filtersDF$TaxID) %in% names(allProteins_mapped)),]
+  filtersDF <- filtersDF[paste0("TaxID_", filtersDF$TaxID) %in% names(allProteins_mapped),]
   nr <- nrow(filtersDF)
   if ((!is.null(nr)) && nr) {
     filtersDF <- rbind(filtersDF, filtersDF)
@@ -195,7 +195,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
       #cat(grphNm, "\n")
       #typ <- filtersDF$Type[i]
       proteins_mapped <- allProteins_mapped[[paste0("TaxID_", txid)]]
-      proteins_mapped <- proteins_mapped[which(proteins_mapped$queryItem %in% regTbl$ID),]
+      proteins_mapped <- proteins_mapped[proteins_mapped$queryItem %in% regTbl$ID,]
       if (nrow(proteins_mapped) > 1L) {
         m <- match(proteins_mapped$queryItem, regTbl$ID)
         proteins_mapped[, c("logFC", "PG id")] <- regTbl[m, c("logFC", "PG id")]
@@ -231,7 +231,7 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
         }, silent = TRUE)
         if (exists("intNet")) { # This may fail if we have too many nodes! The current limit is 2000.
           # They suggest to use their "Cytoscape stringApp", this may be worth looking into.
-          if ((!is.null(intNet))&&(is.data.frame(intNet))&&(nrow(intNet))) {
+          if ((!is.null(intNet)) && is.data.frame(intNet) && nrow(intNet)) {
             for (ab in c("A", "B")) {
               m <- match(intNet[[paste0("stringId_", ab)]], proteins_mapped$stringId)
               intNet[, paste0(c("Original_", paste0(KOL, "_")), ab)] <- proteins_mapped[m, c("queryItem", KOL)]
@@ -279,14 +279,14 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
     }), GraphTypes)
     intNets %<o% setNames(lapply(GraphTypes, \(grphType) {
       w <- which(filtersDF$GraphType == grphType)
-      w <- w[which(vapply(w, \(x) { inherits(tstSTRINGs[[x]]$Data, "list") }, TRUE))]
+      w <- w[vapply(w, \(x) { inherits(tstSTRINGs[[x]]$Data, "list") }, TRUE)]
       setNames(lapply(w, \(x) { tstSTRINGs[[x]]$Data }),
                vapply(w, \(x) { tstSTRINGs[[x]]$Name }, ""))
     }), GraphTypes)
     for (grphType in GraphTypes) { #grphType <- GraphTypes[1L]
       if (length(STRINGplots[[grphType]])) {
         fls <- STRINGplots[[grphType]]
-        fls <- fls[which(file.exists(fls))]
+        fls <- fls[file.exists(fls)]
         if (length(fls) > 1L) {
           PNGs <- parLapply(parClust, fls, readPNG)
           g <- parLapply(parClust, PNGs, \(png) { grid::rasterGrob(png, interpolate = TRUE) })
@@ -404,8 +404,8 @@ if (length(WhTsts)&&length(allProteins_mapped)) {
             gD <- igraph::set_vertex_attr(gD, "betweenness", index = igraph::V(gD), value = betAll.norm)
             #summary(gD)
             F1 <- \(x) {
-              data.frame(V4 = dsAll[which(igraph::V(gD)$name == as.character(x$V1)),
-                                    which(igraph::V(gD)$name == as.character(x$V2))])
+              data.frame(V4 = dsAll[igraph::V(gD)$name == as.character(x$V1),
+                                    igraph::V(gD)$name == as.character(x$V2)])
             }
             dataSet.ext <- plyr::ddply(intNet[, kol], .variables = kol, \(x) { data.frame(F1(x)) })
             gD <- igraph::set_edge_attr(gD, "weight", index = igraph::E(gD), value = 0)

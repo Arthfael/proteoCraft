@@ -50,14 +50,14 @@ if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
         x <- log10(x)
         y <- log10(y)
       }
-      w <- which((is.finite(x))&(is.finite(y)))
+      w <- which(is.finite(x) & is.finite(y))
       return(cor(x[w], y[w], method = "pearson"))
     }, 1)
   })
   rownames(corMap) <- colnames(corMap) <- allSamples
   corMap <- dfMelt(corMap, ColNames = c("Sample 1", "Pearson corr."))
   corMap$"Sample 2" <- allSamples
-  corMap <- corMap[which(!is.na(corMap$"Pearson corr.")),]
+  corMap <- corMap[!is.na(corMap$"Pearson corr."),]
   tmp <- myData[, g[2L:length(g)]]
   colnames(tmp) <- allSamples[2L:length(g)]
   tmp <- reshape::melt(tmp, measure.vars = allSamples[2L:length(g)])
@@ -78,8 +78,8 @@ if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
       scattrMap <- rbind(scattrMap, tmp2)
     }
   }
-  scattrMap <- scattrMap[which(!is.na(scattrMap$X)),]
-  scattrMap <- scattrMap[which(!is.na(scattrMap$Y)),]
+  scattrMap <- scattrMap[!is.na(scattrMap$X),]
+  scattrMap <- scattrMap[!is.na(scattrMap$Y),]
   Mn <- min(scattrMap$X)
   scattrMap$X <- scattrMap$X - Mn
   scattrMap$Y <- scattrMap$Y - Mn

@@ -14,6 +14,7 @@ if ((!exists("clustDat")) || (!inherits(clustDat, "list"))) {
   }
 }
 clustDat %<o% clustDat
+if (!exists("clustFilt")) { clustFilt<- list() }
 clustFilt %<o% clustFilt
 if (scrptType == "withReps") { dirlist <- union(dirlist, clustDir) }
 #
@@ -71,7 +72,7 @@ w <- which((apply(myData[, clustXprsKol, drop = FALSE], 1L, \(x) { sum(!is.na(x)
            & (is.na(myData$`Potential contaminant`) | (myData$`Potential contaminant` != "+")))
 myData <- set_colnames(myData[w, clustXprsKol, drop = FALSE], map$Samples)
 
-filt <- rownames(myData)[which(apply(myData[, map$Samples, drop = FALSE], 1L, \(x) { sum(is.finite(x)) }) > 0L)]
+filt <- rownames(myData)[apply(myData[, map$Samples, drop = FALSE], 1L, \(x) { sum(is.finite(x)) }) > 0L]
 clustFilt[[dataType]] <- filt
 clustDat[[dataType]] <- list()
 clustDat[[dataType]]$Original <- myData
@@ -122,7 +123,7 @@ if ((scrptType == "withReps") && (Param$Batch.effect != "")) { # Here we have re
   w <- which(vapply(normSequence, \(x) { x$Method }, "") == "ComBat")
   if (length(w)) { # If some batch correction attempts took place, do any match...?
     btchs <- lapply(normSequence[w], \(x) { x$Batch })
-    w <- w[which(vapply(btchs, \(x) { sum(nms %in% x) }, 1L) == length(nms))]
+    w <- w[vapply(btchs, \(x) { sum(nms %in% x) }, 1L) == length(nms)]
   }
   if (length(w)) { 
     # ... yes: only run batch correction here if they were rejected during normalisation

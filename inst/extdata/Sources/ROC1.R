@@ -10,8 +10,8 @@ if (length(ROCfilt_GOterms_Pos)) {
     ROCfilt_Neg <- unique(unlist(lapply(ROCfilt_GOterms_Neg, \(x) {
       GO_terms$Offspring[match(x, GO_terms$ID)]
     })))
-    ROCfilt_Pos <- ROCfilt_Pos[which(!ROCfilt_Pos %in% ROCfilt_Neg)]
-    ROCfilt_Neg <- ROCfilt_Neg[which(!ROCfilt_Neg %in% ROCfilt_Pos)]
+    ROCfilt_Pos <- setdiff(ROCfilt_Pos, ROCfilt_Neg)
+    ROCfilt_Neg <- setdiff(ROCfilt_Neg, ROCfilt_Pos)
   }
 }
 if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
@@ -29,16 +29,16 @@ if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
   tmp2 <- data.table(Intensity = ev$Intensity, Sequence = ev$Sequence)
   tmp2 <- tmp2[, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(Sequence = Sequence)]
   tmp2 <- as.data.frame(tmp2)
-  tmp2 <- tmp2[which(tmp2$Intensity > 0),]
+  tmp2 <- tmp2[tmp2$Intensity > 0,]
   tmp2$Predictor <- log10(tmp2$Intensity)
   tmp2 <- tmp2[order(tmp2$Predictor, decreasing = TRUE),]
   #tmp2$Predictor <- nrow(tmp2):1L # Does not have an effect on the result!
   tmp3 <- listMelt(strsplit(db$`GO-ID`, ";"), db$`Protein ID`, c("Term", "Protein"))
-  tmp3 <- tmp3[which(tmp3$Term %in% c(ROCfilt_Pos, ROCfilt_Neg)),]
+  tmp3 <- tmp3[tmp3$Term %in% c(ROCfilt_Pos, ROCfilt_Neg),]
   tst <- rep(FALSE, 2L)
   if (length(ROCfilt_Pos)) {
     tmp2$"True Positive" <- FALSE
-    p <- tmp3$Protein[which(tmp3$Term %in% ROCfilt_Pos)]
+    p <- tmp3$Protein[tmp3$Term %in% ROCfilt_Pos]
     s <- tmp$Sequence[match(p, tmp$Protein)]
     w <- which(tmp2$Sequence %in% s)
     tmp2$"True Positive"[w] <- TRUE
@@ -53,7 +53,7 @@ if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
   }
   if (length(ROCfilt_Neg)) {
     tmp2$"Not True Negative" <- TRUE
-    p <- tmp3$Protein[which(tmp3$Term %in% ROCfilt_Neg)]
+    p <- tmp3$Protein[tmp3$Term %in% ROCfilt_Neg]
     s <- tmp$Sequence[match(p, tmp$Protein)]
     w <- which(tmp2$Sequence %in% s)
     tmp2$"Not True Negative"[w] <- FALSE
@@ -88,6 +88,6 @@ if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
     }
     # Would be much better with, wait for it, a shiny app!
     tmp2Flt <- tmp2[1L:round(nrow(tmp2)*ROCintPerc/100),]
-    ev <- ev[which(ev$Sequence %in% tmp2Flt$Sequence),]
+    ev <- ev[ev$Sequence %in% tmp2Flt$Sequence,]
   }
 }

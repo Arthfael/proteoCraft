@@ -128,7 +128,7 @@ Volc.plot_2 <- function(data,
   }
   if ((length(save) > 1L) || (save != FALSE)) {
     t <- gsub("/|:|\\*|\\?|<|>|\\|", "-", title)
-    save <- unique(gsub("^jpg$", "jpeg", gsub("^\\.", "", tolower(save))))
+    save <- unique(sub("^jpg$", "jpeg", sub("^\\.", "", tolower(save))))
     for (s in save) {
       if (s %in% c("jpeg", "tiff", "png", "bmp")) {
         ggplot2::ggsave(paste0(t, ".", s), plot1,
@@ -149,7 +149,7 @@ Volc.plot_2 <- function(data,
     col <- rep("", nrow(data))
     filter2 <- which(tmp$Colour != "")
     h <- -log10(h.lines)
-    names(h) <- gsub("^Threshold-", "_", names(h))
+    names(h) <- sub("^Threshold-", "_", names(h))
     tmp2 <- apply(tmp[filter2, c("Y", "Colour")], 1L, \(x) {
       x <- unlist(x)
       t <- which(as.numeric(h) <= as.numeric(x[1L]))

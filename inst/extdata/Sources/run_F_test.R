@@ -126,7 +126,7 @@ if (limpaMode) {
   NA_Filt <- lapply(1L:nrow(myContrasts), \(i) { #i <- 1L #i <- 3L
     smpls <- myContrasts[i, c("A_samples", "B_samples", "C_samples", "D_samples")]
     smpls <- lapply(smpls, unlist)
-    smpls <- smpls[which(lengths(smpls) > 0L)]
+    smpls <- smpls[lengths(smpls) > 0L]
     tst <- do.call(cbind, lapply(smpls, \(x) {
       apply(tmpVal[, x, drop = FALSE], 1L, \(y) { sum(is.finite(y)) }) >= 2L
     }))
@@ -191,7 +191,7 @@ my_F_Data[, fdrKol] <- F_fdr$F_test$`Significance vector`
 tmp <- my_F_Data[, c(F_Root1, F_PVal_postHoc1), drop = FALSE]
 tmp_ <- dfMelt(tmp, c("Contrast", "P-val"))
 tmp_$Contrast <- gsub_Rep(" - ", "\n- ", gsub_Rep(topattern(paste0(F_Root1, " - ")), "", tmp_$Contrast))
-tmp_$Contrast[which(tmp_$Contrast == F_Root1)] <- "F-test"
+tmp_$Contrast[tmp_$Contrast == F_Root1] <- "F-test"
 tmp_$Contrast <- factor(tmp_$Contrast, levels = c("F-test", gsub(" - ", "\n- ", myContrasts$Contrast)))
 plot <- ggplot(tmp_) + geom_histogram(aes(x = `P-val`, fill = Contrast), bins = 100L) +
   scale_fill_viridis(discrete = TRUE) + theme_bw() + facet_grid(Contrast~.) +
@@ -330,11 +330,11 @@ if (absTst || fdrTst) {
   # FDR thresholds
   if (fdrTst) {
     fdrThresh <- F_thresh$FDR
-    colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.up")] <- "Colour (up)"
-    colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.down")] <- "Colour (down)"
-    colnames(fdrThresh)[which(colnames(fdrThresh) == "fdr.col.line")] <- "Colour (line)"
+    colnames(fdrThresh)[colnames(fdrThresh) == "fdr.col.up"] <- "Colour (up)"
+    colnames(fdrThresh)[colnames(fdrThresh) == "fdr.col.down"] <- "Colour (down)"
+    colnames(fdrThresh)[colnames(fdrThresh) == "fdr.col.line"] <- "Colour (line)"
     if ("Test" %in% colnames(fdrThresh)) {
-      fdrThresh <- fdrThresh[, c("Test", colnames(fdrThresh)[which(colnames(fdrThresh) != "Test")])]
+      fdrThresh <- fdrThresh[, union("Test", colnames(fdrThresh))]
     }
   }
   wb <- wb_workbook()
@@ -410,7 +410,7 @@ nbin <- ceiling(max(c(20L, 10L*round(nrow(myData)/1000L))))
 bd <- (0L:nbin)/nbin
 if (F_Root %in% colnames(myData)) {
   temp <- myData[[F_Root1]]
-  temp <- data.frame(value = temp[which(is.finite(temp))])
+  temp <- data.frame(value = temp[is.finite(temp)])
   ttl <- "Histogram: F-test moderated Pvalue"
   plot <- ggplot(temp, aes(x = value)) +
     geom_histogram(bins = nbin, colour = "black", alpha = 0.25, fill = "green") +

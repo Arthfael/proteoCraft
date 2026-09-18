@@ -7,7 +7,7 @@ temp <- temp[w,]
 Aggr <- VPAL
 if (LocAnalysis) { Aggr <- parse.Param.aggreg("Exp;Com") }
 tst <- setNames(lapply(Aggr$values, \(x) { #x <- Aggr$values[2L]
-  em <- Exp.map[which(Exp.map[[Aggr$column]] == x),]
+  em <- Exp.map[Exp.map[[Aggr$column]] == x,]
   if (nrow(em)) {
     kl <- paste0(pep.ref[rfnm], em$Ref.Sample.Aggregate)
     return(rowMeans(temp[, kl, drop = FALSE], na.rm = TRUE))
@@ -15,10 +15,10 @@ tst <- setNames(lapply(Aggr$values, \(x) { #x <- Aggr$values[2L]
     return(NULL)
   }
 }), Aggr$values)
-tst <- tst[which(!vapply(tst, is.null, TRUE))]
+tst <- tst[!vapply(tst, is.null, TRUE)]
 tst <- as.data.frame(do.call(cbind, tst))
 kol <- colnames(tst) <- cleanNms(colnames(tst))
-tst <- apply(tst, 1L, \(x) { kol[which(x == max(x))][1L] })
+tst <- apply(tst, 1L, \(x) { kol[x == max(x)][1L] })
 tst2 <- as.data.table(ev[, c("Charge", "Modified sequence")])
 tst2 <- tst2[, .(x = round(mean(Charge))),
              by = .(Group.1 = `Modified sequence`)]

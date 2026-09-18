@@ -28,7 +28,7 @@ if (runPepper) {
   trainParam <- sapply(args, \(arg) {
     sapply(seq_along(g), \(x) {
       h <- grep(paste0("--", arg), trainParam)
-      h <- gsub(paste0(".*'--", arg, "' +"), "", trainParam[h[which(h %in% g[x]:c(g, l)[x+1L])]])
+      h <- gsub(paste0(".*'--", arg, "' +"), "", trainParam[intersect(h %in% g[x]:c(g, l)[x+1L])])
       pat1 <- paste0("^", substr(h, 1L, 1L))
       pat2 <- paste0(substr(h, 1L, 1L), ".*$")
       h <- gsub(pat2, "", gsub(pat1, "", h))
@@ -110,13 +110,13 @@ if (runPepper) {
   GrdSrch <- as.data.frame(t(sapply(strsplit(gsub("\\.tsv$", "", GrdSrchFls), "_"), \(x) {
     x <- unlist(x)
     x <- suppressWarnings(as.numeric(x))
-    x <- x[which(!is.na(x))]
+    x <- x[!is.na(x)]
     return(x)
   })))
   colnames(GrdSrch) <- paramKol
   tst <- apply(GrdSrch, 2L, \(x) { length(unique(x)) })
-  GrdSrch <- GrdSrch[, which(tst > 1L), drop = FALSE]
-  paramKol2 <- paramKol[which(tst > 1L)]
+  GrdSrch <- GrdSrch[, tst > 1L, drop = FALSE]
+  paramKol2 <- paramKol[tst > 1L]
   rs <- plyr::rbind.fill(lapply(GrdSrchFls, read.delim))
   rs$X <- NULL
   GrdSrch[, gsub("\\.", "_", colnames(rs))] <- rs
@@ -143,13 +143,13 @@ if (runPepper) {
   GrdSrch <- as.data.frame(t(sapply(strsplit(gsub("\\.tsv$", "", GrdSrchFls), "_"), \(x) {
     x <- unlist(x)
     x <- suppressWarnings(as.numeric(x))
-    x <- x[which(!is.na(x))]
+    x <- x[!is.na(x)]
     return(x)
   })))
   colnames(GrdSrch) <- paramKol
   tst <- apply(GrdSrch, 2L, \(x) { length(unique(x)) })
-  GrdSrch <- GrdSrch[, which(tst > 1L), drop = FALSE]
-  paramKol2 <- paramKol[which(tst > 1L)]
+  GrdSrch <- GrdSrch[, tst > 1L, drop = FALSE]
+  paramKol2 <- paramKol[tst > 1L]
   rs <- plyr::rbind.fill(lapply(GrdSrchFls, read.delim))
   rs$X <- NULL
   GrdSrch[, gsub("\\.", "_", colnames(rs))] <- rs
@@ -430,8 +430,8 @@ if (runPepper) {
   }
   a1 <- unlist(Before[, Exp])
   a2 <- unlist(After[, Exp])
-  a1 <- a1[which(is.finite(a1))]
-  a2 <- a2[which(is.finite(a2))]
+  a1 <- a1[is.finite(a1)]
+  a2 <- a2[is.finite(a2)]
   msg <- paste0("Pepper:\n\n#######\n   Final improvement per sample:\n\n\t -> Sum of intra-protein SDs, ratio before/after\n\t\t",
                 paste(Exp, collapse = "\t"), "\n\t\t",
                 paste(round(Before_sums/After_sums, 1L), collapse = "\t"), "\n\n\t -> Overall: ",

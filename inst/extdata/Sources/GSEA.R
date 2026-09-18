@@ -75,18 +75,18 @@ if (isOK) {
     # Or we will have to get an annotations package (currently 20 organisms are supported)
     if ((!exists("Org"))||(!is.data.frame(Org))||(nrow(Org) != 1L)) {
       kol <- intersect(c("Organism_Full", "Organism"), colnames(db))
-      tst <- sapply(kol, \(x) { length(unique(db[which(!as.character(db[[x]]) %in% c("", "NA")), x])) })
+      tst <- sapply(kol, \(x) { length(unique(db[!as.character(db[[x]]) %in% c("", "NA"), x])) })
       kol <- kol[order(tst, decreasing = TRUE)][1L]
       w <- which(db$`Potential contaminant` != "+")
       Org %<o% aggregate(w, list(db[w, kol]), length)
       colnames(Org) <- c("Organism", "Count")
       isOK <- max(Org$Count) >= nrow(db) * 0.3
       if (isOK) {
-        Org <- Org[which(Org$Count == max(Org$Count)[1L]),]
-        Org$Source <- aggregate(db$Source[which(db[[kol]] %in% Org$Organism)], list(db[which(db[[kol]] %in% Org$Organism), kol]), \(x) {
-          unique(x[which(!is.na(x))])
+        Org <- Org[which(Org$Count == max(Org$Count))[1L],]
+        Org$Source <- aggregate(db$Source[db[[kol]] %in% Org$Organism], list(db[db[[kol]] %in% Org$Organism, kol]), \(x) {
+          unique(x[!is.na(x)])
         })$x
-        Org$Source[which(is.na(Org$Source))] <- ""
+        Org$Source[is.na(Org$Source)] <- ""
       }
     }
     if (isOK) {
@@ -183,7 +183,7 @@ if (isOK) {
     for (pck in packs) { library(pck, character.only = TRUE) }
     return()
   }))
-  tmpDat <- myData[which((nchar(myData[[idCol]]) > 0L)&(!is.na(myData[[idCol]]))),
+  tmpDat <- myData[(nchar(myData[[idCol]]) > 0L) & (!is.na(myData[[idCol]])),
                    c(idCol, rankCol)]
   if (length(unique(tmpDat[[idCol]])) < nrow(tmpDat)) {
     tmpDat <- aggregate(tmpDat[, rankCol], list(tmpDat[[idCol]]), mean, na.rm = TRUE)
@@ -214,10 +214,10 @@ if (isOK) {
   f0 <- \(kol, userAnnot = Annotate) { #kol <- rankCol[1L]
     tmp <- setNames(tmpDat[[kol]],
                     gsub(";.*| - .*", "", tmpDat[[idCol]]))
-    tmp <- tmp[which(!is.na(tmp))]
+    tmp <- tmp[!is.na(tmp)]
     tmp <- na.omit(tmp)
     tmp <- sort(tmp, decreasing = TRUE)
-    tmp <- tmp[which(nchar(names(tmp)) > 0L)]
+    tmp <- tmp[nchar(names(tmp)) > 0L]
     #View(tmp)
     gse <- suppressMessages({
       if (userAnnot) {

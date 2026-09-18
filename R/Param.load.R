@@ -55,7 +55,7 @@ Param.load <- function(file = "Parameters.csv", filter.deprecated = TRUE, WD_det
       setwd(Param$WD)
     } else {
       tmpwd <- dirname(file)
-      if (!grepl("^[A-Z]:", tmpwd)) { tmpwd <- paste0(getwd(), "/", gsub("^\\.$", "", dirname(file))) }
+      if (!grepl("^[A-Z]:", tmpwd)) { tmpwd <- paste0(getwd(), "/", sub("^\\.$", "", dirname(file))) }
       if (grepl("^[A-Z]:", tmpwd)) { Param$WD <- tmpwd }
     }
   }

@@ -23,6 +23,6 @@
   }
   mds <- mds[order(mds$Group.1, decreasing = FALSE),]
   return(paste(apply(mds, 1L, function(y) {
-    gsub("^1 ", "", paste(rev(y), collapse = " "))
+    sub("^1 ", "", paste(rev(y), collapse = " "))
   }), collapse = ","))
 }

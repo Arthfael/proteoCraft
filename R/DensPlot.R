@@ -65,7 +65,7 @@ DensPlot <- function(data,
   if (print) { poplot(plot) }
   if ((length(save) > 1L)||(save != FALSE)) {
     t <- gsub("/|:|\\*|\\?|<|>|\\|", "-", title)
-    save <- unique(gsub("^jpg$", "jpeg", gsub("^\\.", "", tolower(save))))
+    save <- unique(sub("^jpg$", "jpeg", sub("^\\.", "", tolower(save))))
     for (s in save) {
       if (s %in% c("jpeg", "tiff", "png", "bmp")) {
         ggplot2::ggsave(filename = paste0(t, ".", s),
