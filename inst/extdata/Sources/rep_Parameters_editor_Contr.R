@@ -55,7 +55,7 @@ for (aggrNm in c("RSA", "VPAL", "RG", "RRG", "Blocking.factors", "Batch.effect")
     nm <- paste(tmp, collapse = "_")
     if (!grepl("_\\._$", nm)) { nm <- paste0(nm, "_._") }
     aggr$limmaCol <- nm
-    expMap[[nm]] <- do.call(paste, c(expMap[, tmp, drop = FALSE], sep = "___"))
+    expMap[[nm]] <- do.call(paste, c(expMap[, tmp, drop = FALSE], sep = "_"))
     expMap[[nm]] <- factor(expMap[[nm]], levels = unique(expMap[[nm]]))
     nm %<c% as.factor(expMap[[nm]])
     if (length(Exp) == 1L) { tmp <- setdiff(tmp, "Experiment_._") }
@@ -64,7 +64,7 @@ for (aggrNm in c("RSA", "VPAL", "RG", "RRG", "Blocking.factors", "Batch.effect")
       if (!grepl("_\\._$", nm)) { nm <- paste0(nm, "_._") }
       aggr$limmaCol <- nm
       if (!nm %in% colnames(expMap)) {
-        expMap[[nm]] <- do.call(paste, c(expMap[, tmp, drop = FALSE], sep = "___"))
+        expMap[[nm]] <- do.call(paste, c(expMap[, tmp, drop = FALSE], sep = "_"))
         expMap[[nm]] <- factor(expMap[[nm]], levels = unique(expMap[[nm]]))
         nm %<c% factor(expMap[[nm]])
       }
@@ -89,11 +89,11 @@ contrBlocks <- setNames(lapply(ratGrps, \(grp) {
 }), ratGrps)
 contrBlocks2 <- stack(contrBlocks)
 colnames(contrBlocks2) <- c("Samples group", "Comparison group")
-contrBlocks2$Name <- rownames(contrBlocks2)
+contrBlocks2$Name_ <- rownames(contrBlocks2)
 rownames(contrBlocks2) <- NULL
 tmp1 <- cleanNms(VPAL$values, rep = " ")
 tmp2 <- cleanNms(VPAL$values, rep = "_")
-contrBlocks2$Name_ <- tmp2[match(contrBlocks2$Name, tmp1)]
+contrBlocks2$Name <- tmp1[match(contrBlocks2$Name_, tmp2)]
 dfltContr_Opt <- setNames(lapply(ratGrps, \(grp) { #grp <- ratGrps[1L]
   x <- as.data.frame(gtools::permutations(length(contrBlocks[[grp]]), 2L, names(contrBlocks[[grp]])))
   colnames(x) <- c("A", "B")
@@ -430,9 +430,6 @@ if (alsoDouble) {
   }
 }
 tmp1 <- strsplit(myContrasts$Primary, " - ")
-tmp1 <- lapply(tmp1, \(x) {
-  contrBlocks2$Name_[match(x, contrBlocks2$Name)]
-})
 myContrasts$Contrast <- myContrasts$Primary <- vapply(tmp1, paste, "", collapse = " - ")
 myContrasts$A <- contrBlocks2$`Samples group`[match(sub(" - .*", "", myContrasts$Primary), contrBlocks2$Name_)]
 myContrasts$B <- contrBlocks2$`Samples group`[match(sub(".* - ", "", myContrasts$Primary), contrBlocks2$Name_)]

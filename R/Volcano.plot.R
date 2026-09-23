@@ -323,7 +323,7 @@ Volcano.plot <- function(Prot,
   stopifnot(!misFun(aggregate.name),
             mode %in% c("standard", "custom", "curved"))
   if (plotly) {
-    volcPlotly <- list()
+    volcanoPlotly <- list()
   }
   if (nchar(title.root)) {
     if (!substr(title.root, nchar(title.root), nchar(title.root)) %in% c(" ", ".", "_", ".")) {
@@ -1590,7 +1590,7 @@ Volcano.plot <- function(Prot,
       searchDat <- as.matrix(temp[, searchCol, drop = FALSE])
       plotLy <- .plotlySearch(plotLy, searchDat, 0.1)
       #
-      volcPlotly[[ttl]] <- list(Ttl = ttl,
+      volcanoPlotly[[ttl]] <- list(Ttl = ttl,
                                 Plot = plotLy)
       
     }
@@ -1669,7 +1669,7 @@ Volcano.plot <- function(Prot,
   if (return) { RES$Protein_groups_file <- Prot }
   if (return.plot) { RES$Plots <- Plots }
   if (plotly) {
-    RES$"Plotly plots" <- volcPlotly
+    RES$"Plotly plots" <- volcanoPlotly
   }
   #
   setwd(origWD)

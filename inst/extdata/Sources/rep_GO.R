@@ -13,7 +13,7 @@ if (Annotate && (enrichGO || globalGO)) {
   GO_enrich.dat <- list()
   GO_enrich.FCRt <- list()
   GO_enrich.tbl <- list()
-  GO.enrich.MultiRefs <- (("GO.enrichment.Ref.Aggr" %in% colnames(Param)) && (!Param$GO.enrichment.Ref.Aggr %in% c("", "NA", NA)))
+  GO.enrich.MultiRefs %<o% (("GO.enrichment.Ref.Aggr" %in% colnames(Param)) && (!Param$GO.enrichment.Ref.Aggr %in% c("", "NA", NA)))
   if (GO.enrich.MultiRefs) { parse.Param.aggreg.2("GO.enrichment.Ref.Aggr") }
   #
   if (runClueGO) {

@@ -1,4 +1,5 @@
 # Special quality control tab
+repFl2 <- sub("\\.xlsx$", "_TEMP.xlsx", repFl) # Temporary file still with the tags in the header which we will replace with line breaks!
 sheetnm <- "Quality control"
 sheetnmsA <- unique(c(sheetnmsA, sheetnm))
 if (sheetnm %in% wb_get_sheet_names(WorkBook)) { WorkBook <- wb_remove_worksheet(WorkBook, sheetnm) }
@@ -91,7 +92,7 @@ dms <- wb_dims(2L + XpSum_OS + Mods_OS + o, 2L)
 WorkBook <- wb_add_data_table(WorkBook, sheetnm, AA_biases,
                               dms, col_names = TRUE, row_names = FALSE,
                               table_name ="Modifications", first_column = TRUE, banded_rows = TRUE)
-#wb_save(WorkBook, repFl);xl_open(repFl)
+#wb_save(WorkBook, repFl2);xl_open(repFl2)
 #
 if ("tmp" %in% wb_get_sheet_names(WorkBook)) {
   WorkBook <- wb_remove_worksheet(WorkBook, "tmp")
@@ -120,62 +121,23 @@ WorkBook <- wb_set_base_font(WorkBook, 11L, font_name = "Calibri")
 #
 # This bit is moved here from the HTML_report.R source to save just the information we need for the HTML report later
 report_SheetNms %<o% wb_get_sheet_names(WorkBook)
-# nms <- setdiff(report_SheetNms, c("Description", "Quality control"))
-# xlDat <- setNames(lapply(nms, \(nm) { #nm <- nms[1L] #nm <- nms[4L]
-#   dat <- wb_to_df(WorkBook, match(nm, report_SheetNms), 2L)
-#   if ("Potential contaminant" %in% colnames(dat)) {
-#     w <- which(is.na(dat$"Potential contaminant"))
-#     if (length(w)) { dat$"Potential contaminant"[w] <- "" }
-#   }
-#   # Sometimes, a numeric column appears to be re-loaded as text...
-#   w <- which(vapply(colnames(dat), \(x) { is.character(dat[[x]]) }, TRUE))
-#   if (length(w)) { #print(colnames(dat)[w])
-#     w1 <- w[vapply(colnames(dat)[w], \(x) {
-#       x1 <- dat[[x]]
-#       x2 <- suppressWarnings(as.character(as.integer(dat[[x]])))
-#       tst <- x1 == x2
-#       wNA <- which(is.na(tst))
-#       tst[wNA] <- is.na(x1[wNA]) & is.na(x2[wNA])
-#       wVal <- which(dat[[x]] == "#VALUE!")
-#       tst[wVal] <- is.na(x2[wVal])
-#       return(sum(!tst) == 0L)
-#     }, TRUE)]
-#     w2 <- w[vapply(colnames(dat)[w], \(x) { #x <- colnames(dat)[27L]
-#       x1 <- dat[[x]]
-#       x2 <- suppressWarnings(as.character(as.numeric(dat[[x]])))
-#       tst <- x1 == x2
-#       wNA <- which(is.na(tst))
-#       tst[wNA] <- is.na(x1[wNA]) & is.na(x2[wNA])
-#       wVal <- which(dat[[x]] == "#VALUE!")
-#       tst[wVal] <- is.na(x2[wVal])
-#       return(sum(!tst) == 0L)
-#     }, TRUE)]
-#     w2 <- setdiff(w2, w1)
-#     if (length(w1)) {
-#       for (i in w1) {
-#         dat[[i]] <- as.integer(dat[[i]])
-#       }
-#     }
-#     if (length(w2)) {
-#       for (i in w2) {
-#         dat[[i]] <- as.numeric(dat[[i]])
-#       }
-#     }
-#   }
-#   return(dat)
-# }), nms)
+xlDat <- setNames(lapply(names(xlDat), \(x) {
+  x <- xlDat[[x]]
+  colnames(x) <- gsub("///NL///", "\n", gsub("///VS/// ", "/\n", colnames(x)))
+  return(x)
+}), names(xlDat))
 saveFun(xlDat, paste0(wd, "/Tables/xlDat.RDS"))
 #
 cat("    ---> writing table...\n")
-wb_save(WorkBook, repFl)
-#xl_open(repFl)
+wb_save(WorkBook, repFl2)
+#xl_open(repFl2)
 if (nImgs) { unlink(fls2) }
 #
 # Edit .xlsx (for the bits which openxlsx2 cannot handle well at the moment - or rather which I haven't yet figured out how to make it do!)
 # - Unzip
 cat("         final edits...\n")
 dr <- paste0(wd, "/_unzipped")
-unzip(repFl, exdir = dr)
+unzip(repFl2, exdir = dr)
 # - Introduce new lines in column headers + fix selected and default tabs
 library(xml2)
 main <- paste0(dr, "/xl/workbook.xml")
@@ -261,6 +223,8 @@ fls <- list.files(".", recursive = TRUE, all.files = TRUE)
 zip(zipfile = repFl,
     files = fls)
 setwd(wd)
+unlink(repFl2)
 xl_open(repFl)
 cat("        Done!\n")
 # shell(paste0("RMDIR /S /Q \"", dr, "\""), mustWork = FALSE)
+rm(WorkBook)

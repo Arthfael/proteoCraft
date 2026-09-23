@@ -390,10 +390,7 @@ if (dataType %in% c("modPeptides", "PG")) {
   }
   nmsConv <- data.frame(Name = c("limma", "DEqMS", "limpa->limma",  "limpa->DEqMS", "QFeatures", "ROTS", "MSstats"),
                         P.values.type = c("Moderated", "DEqMS", "Moderated", "DEqMS", "MSqRob", "ROTS", "MSstats"))
-  if (quantAlgo == "limpa") {
-    stop("Check the behaviour of this code chunk, and how P-value names are handled with limpa, before continuing! This may need some significant rewriting to distinguish between LM->limma vs limpa->limma.")
-  }
-  for (i in 1L:nrow(nmsConv)) { #i <- 5L
+  for (i in 1L:nrow(nmsConv)) { #i <- 3L #i <- 5L
     nm <- nmsConv$Name[i]
     whContr <- 1L:nrow(myContrasts)
     if (exists("repRat")) { rm(repRat) }

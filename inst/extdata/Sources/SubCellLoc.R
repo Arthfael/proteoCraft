@@ -37,8 +37,8 @@ Example: \"GO:0031012;2\"
     if ("2" %in% tmp) { tmp <- union(tmp, CompGOTerms) }
     tmp <- intersect(tmp, GO_terms$ID[GO_terms$Ontology == "CC"]) # (Also neatly removes "1" and "2"...)
     ObjNm %<c% tmp
-    AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm,]
-    tmp <- AllAnsw[1L,]
+    AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm, , drop = FALSE]
+    tmp <- AllAnsw[1L, , drop = FALSE]
     tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
     tmp$Value <- list(get(ObjNm))
     m <- match(ObjNm, AllAnsw$Parameter)

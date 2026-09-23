@@ -1304,7 +1304,7 @@ subDr <- "Reg. analysis/t-tests"
 subDr2 <- paste0(wd, "/", subDr)
 if (!dir.exists(subDr2)) { dir.create(subDr2, recursive = TRUE) }
 setwd(wd)
-#source(parSrc)
+source(parSrc)
 volcPlot_args2 <- volcPlot_args
 volcPlot_args2$Prot <- PG
 volcPlot_args2$cl <- parClust
@@ -1318,8 +1318,13 @@ if (inherits(tempVP, "try-error") || is.character(tempVP)) {
   stop("MAJOR ERROR: No volcano plots were created, investigate!")
 }
 #
-if (!exists("volcPlotly")) { volcPlotly %<o% list() }
+if (!exists("volcPlotly_fl")) { volcPlotly_fl %<o% paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
+if (!exists("volcPlotly")) {
+  if (file.exists(volcPlotly_fl)) { loadFun(volcPlotly_fl) } else { volcPlotly <- list() }
+}
 volcPlotly[["t-test"]] <- tempVP$`Plotly plots`
+saveFun(volcPlotly, volcPlotly_fl)
+#loadFun(volcPlotly_fl)
 
 # Save plotly plots
 dr <- paste0(wd, "/", subDr)
@@ -1436,8 +1441,13 @@ if (("Q.values" %in% colnames(Param)) && is.logical(Param$Q.values) && Param$Q.v
     volcPlot_args2$X.root_ind <- Prot.Expr.Root
     tempVP2 <- do.call(Volcano.plot, volcPlot_args2)
     #
-    if (!exists("volcPlotly")) { volcPlotly %<o% list() }
+    if (!exists("volcPlotly_fl")) { volcPlotly_fl %<o% paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
+    if (!exists("volcPlotly")) {
+      if (file.exists(volcPlotly_fl)) { loadFun(volcPlotly_fl) } else { volcPlotly <- list() }
+    }
     volcPlotly[["t-test (Q-values)"]] <- tempVP2$`Plotly plots`
+    saveFun(volcPlotly, volcPlotly_fl)
+    #loadFun(volcPlotly_fl)
     #
     # Save plotly plots
     dr <- paste0(wd, "/", subDr)

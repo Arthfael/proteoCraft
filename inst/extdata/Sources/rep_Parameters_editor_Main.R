@@ -697,11 +697,11 @@ normSeqProc21 <- \(seq2) { #seq2 <- dfltNormSeq2
   if (!l) { return(list()) }
   seq2 <- sub("^[0-9]+ - ", "", seq2)
   dict <- vapply(pepNormMethods, \(i) { i$Method }, "")
-  lapply(1L:l, \(i) {
+  lapply(1L:l, \(i) { #i <- 1L
     x <- unlist(strsplit(seq2[[i]], ": "))
     rs <- list(Method = x[[1L]])
     m <- match(x[[1L]], dict)
-    nms <- setdiff(pepNormMethods[[m]], "Method")
+    nms <- setdiff(names(pepNormMethods[[m]]), "Method")
     if (length(nms)) {
       rs[nms] <- pepNormMethods[[m]][nms]
     }
@@ -2635,8 +2635,8 @@ if (DiscFilt) {
         msg <- "How should we name the filter column?"
         tmp <- dlg_input(msg, "Found in ...")$res
         ObjNm %<c% tmp
-        AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm,]
-        tmp <- AllAnsw[1L,]
+        AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm, , drop = FALSE]
+        tmp <- AllAnsw[1L, , drop = FALSE]
         tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
         tmp$Value <- list(get(ObjNm))
         m <- match(ObjNm, AllAnsw$Parameter)
@@ -2688,8 +2688,8 @@ if ("Pep.Impute" %in% colnames(Param)) { Impute %<o% as.logical(Param$Pep.Impute
     tmp <- opt[sub(" +$", "", dlg_list(paste0(names(opt), tmp), paste0(dflt, tmp), title = msg)$res)]
     if (is.na(tmp)) { tmp <- FALSE }
     ObjNm %<c% tmp
-    AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm,]
-    tmp <- AllAnsw[1L,]
+    AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm, , drop = FALSE]
+    tmp <- AllAnsw[1L, , drop = FALSE]
     tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
     tmp$Value <- list(get(ObjNm))
     m <- match(ObjNm, AllAnsw$Parameter)

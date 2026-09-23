@@ -2,7 +2,7 @@
 # (except ANOVA and SAINTexpress, which have their own sources)
 #
 # TO ADD:
-# - MSStats
+# - MSStats for PTMs
 # - edge::lrt() (edge::odp() should better be moved to run_F_test as it is essentially equivalent to the F-test part)
 hasBatch %<o% (("Batch.effect" %in% colnames(Param)) && nchar(Param$Batch.effect))
 

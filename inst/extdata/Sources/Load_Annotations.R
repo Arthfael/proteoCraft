@@ -26,9 +26,9 @@ if (Annotate) {
   })
   Parsed_annotations <- dplyr::bind_rows(Parsed_annotations_lst)
 }
-Annotate <- ((exists("Parsed_annotations"))
-             &&(is.data.frame(Parsed_annotations))
-             &&(nrow(Parsed_annotations) > 0L))
+Annotate %<o% (exists("Parsed_annotations") &&
+                 is.data.frame(Parsed_annotations) &&
+                 nrow(Parsed_annotations))
 if (Annotate) {
   if ("Sequence" %in% colnames(Parsed_annotations)) {
     mType <- "Sequence"
@@ -41,9 +41,6 @@ if (Annotate) {
   }
 }
 if (Annotate) {
-  Parsed_annotations %<o% Parsed_annotations
-  rm(Parsed_annotations)
-  #
   # Check GO for name degeneracies
   # (the same term has had different names in different files, and we allow for multiple files)
   # Match Parsed_annotations rows to GO name(s)
@@ -155,7 +152,7 @@ if (Annotate) {
       w <- which(!is.na(mtch)) # check that there is a valid match...
       w <- w[is.na(db[w, kol]) | (db[w, kol] %in% c("", "NA", "NaN"))] #... and that it is useful!
       db[w, kol] <- Parsed_annotations[mtch[w], kol]
-      w <- which((is.na(db[[kol]]))|(db[[kol]] %in% c("", "NA", "NaN"))) #... and that it is useful!
+      w <- which(is.na(db[[kol]]) | (db[[kol]] %in% c("", "NA", "NaN"))) #... and that it is useful!
       db[w, kol] <- ""
     }
   }
@@ -183,11 +180,12 @@ if (Annotate) {
                        quote = FALSE, sep = ",", row.names = FALSE, col.names = TRUE, na = "NA")
   }
   tst <- try(f0(), silent = TRUE)
-  while ((inherits(tst, "try-error"))&&(grepl("cannot open the connection", tst[1L]))) {
+  while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
     dlg_message(paste0("File \"", pth, "\" appears to be locked for editing, close the file then click ok..."), "ok")
     tst <- try(f0(), silent = TRUE)
   }
   #db <- data.table::fread(paste0(wd, "/Parsed, annotated search db.csv"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
   #write.csv(db, "Parsed, annotated search db.csv", row.names = FALSE)
   #db <- read.csv("Parsed, annotated search db.csv", check.names = FALSE, colClasses = "character")
+  rm(Parsed_annotations)
 }

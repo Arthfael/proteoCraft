@@ -491,8 +491,13 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     stopCluster(parClust)
     source(parSrc)
     #
-    if (!exists("volcPlotly")) { volcPlotly %<o% list() }
+    if (!exists("volcPlotly_fl")) { volcPlotly_fl %<o% paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
+    if (!exists("volcPlotly")) {
+      if (file.exists(volcPlotly_fl)) { loadFun(volcPlotly_fl) } else { volcPlotly <- list() }
+    }
     volcPlotly[[paste0(ptm, " t-test")]] <- tempVPptm$`Plotly plots`
+    saveFun(volcPlotly, volcPlotly_fl)
+    #loadFun(volcPlotly_fl)
     #
     # Save plotly plots
     dr <- subDr
@@ -916,6 +921,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
               ttr <- btr <- ""
               if (length(By) > 1L) { ttr <- btr <- paste0(tolower(bee), "_") }
               Pep.Ref.Filt <- tmpFilt <- setNames(lapply(names(flt), \(x) { 1L:nrow(PTMs_GO_enrich.dat[[Ptm]][[tstbee]]) }), names(flt))
+              GO.enrich.MultiRefs %<o% (("GO.enrichment.Ref.Aggr" %in% colnames(Param)) && (!Param$GO.enrichment.Ref.Aggr %in% c("", "NA", NA)))
               if (GO.enrich.MultiRefs) {
                 Pep.Ref.Filt <- try(setNames(lapply(names(flt), \(x) { #x <- names(flt)[1L]
                   m <- match(x, myContrasts$Contrast)
@@ -1133,7 +1139,7 @@ if (CytoScape) {
       #cat(cmd)
       shell(cmd)
     })
-  })
+  }, silent = TRUE)
   if (inherits(tst, "try-error")) {
     cat("(This error can be ignored as it does not interrupt script execution.\nIt looks like you are trying to close Cytoscape although it is already open (maybe running this script by bits after an interruption?)\n\n")
   }

@@ -5,10 +5,13 @@
 
 source(parSrc)
 
-if (!exists("GSEA_plots")) { GSEA_plots %<o% list() }
-if (!GSEAmode %in% names(GSEA_plots)) { GSEA_plots[[GSEAmode]] <- list() }
-GSEA_plots[[GSEAmode]][[dataType]] <- list()
- 
+GSEA_plotly_fl %<o% paste0(wd, "/Reg. analysis/GSEA/GSEA_plotly.RDS")
+if (!exists("GSEA_plotly")) {
+  if (file.exists(GSEA_plotly_fl)) { loadFun(GSEA_plotly_fl) } else { GSEA_plotly <- list() }
+}
+if (!GSEAmode %in% names(GSEA_plotly)) { GSEA_plotly[[GSEAmode]] <- list() }
+GSEA_plotly[[GSEAmode]][[dataType]] <- list()
+
 keyType <- "UNIPROT"
 idCol <- "Leading protein IDs"
 if (!exists("GSEAmode")) { GSEAmode <- "standard" }
@@ -283,8 +286,6 @@ if (isOK) {
         plot <- plot + viridis::scale_fill_viridis()
         #plot <- dotplot(gse, showCategory = nCat, color = "pvalue", split = ".sign") + facet_grid(.~.sign)
         #poplot(plot)
-        ggplot2::ggsave(svpth[2L], plot, dpi = 300L)
-        ggplot2::ggsave(svpth[3L], plot, dpi = 300L)
         plotL <- plotly::ggplotly(plot)
         # Fix tooltip
         w <- which(vapply(1L:length(plotL$x$data), \(i) {
@@ -307,12 +308,11 @@ if (isOK) {
         #
         plot <- plot + ggtitle(grp, subtitle = nmRoot)
         ggplot2::ggsave(svpth[2L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
-        ggplot2::ggsave(svpth[3L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
       })
       return(plotL)
     }, silent = TRUE)
   }), names(gses))
-  GSEA_plots[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
+  GSEA_plotly[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
   #
   # GSEA enrichment map plots
   nmRoot <- "GSEA enrichment map"
@@ -336,8 +336,6 @@ if (isOK) {
         plot$layers[[w]]$aes_params$size <- 4L
         #getMethod("emapplot", "gseaResult")
         #poplot(plot)
-        ggplot2::ggsave(svpth[2L], plot, dpi = 300L)
-        ggplot2::ggsave(svpth[3L], plot, dpi = 300L)
         plotL <- plotly::ggplotly(plot)
         # Fix tooltip
         w <- which(vapply(1L:length(plotL$x$data), \(i) {
@@ -361,12 +359,11 @@ if (isOK) {
         #
         plot <- plot + ggtitle(grp, subtitle = nmRoot)
         ggplot2::ggsave(svpth[2L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
-        ggplot2::ggsave(svpth[3L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
       })
       return(plotL)
     }, silent = TRUE)
   }), names(gses))
-  GSEA_plots[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
+  GSEA_plotly[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
   #
   # GSEA category net plots
   if (!"Label" %in% colnames(db)) {
@@ -465,12 +462,11 @@ if (isOK) {
         #
         plot <- plot + ggtitle(grp, subtitle = nmRoot)
         ggplot2::ggsave(svpth[2L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
-        ggplot2::ggsave(svpth[3L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
       })
       return(plotL)
     }, silent = TRUE)
   }), names(gses))
-  GSEA_plots[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
+  GSEA_plotly[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
   #
   # GSEA ridge plots
   nmRoot <- "GSEA ridge plot"
@@ -489,8 +485,6 @@ if (isOK) {
       suppressMessages({
         plot <- plot + viridis::scale_fill_viridis()
         #poplot(plot)
-        ggplot2::ggsave(svpth[2L], plot, dpi = 300L)
-        ggplot2::ggsave(svpth[3L], plot, dpi = 300L)
         plotL <- plotly::ggplotly(plot)
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
@@ -505,12 +499,11 @@ if (isOK) {
         #
         plot <- plot + ggtitle(grp, subtitle = nmRoot)
         ggplot2::ggsave(svpth[2L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
-        ggplot2::ggsave(svpth[3L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
       })
       return(plotL)
     }, silent = TRUE)
   }), names(gses))
-  GSEA_plots[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
+  GSEA_plotly[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
   #
   if ((exists("DatAnalysisTxt"))&&(GSEAmode == "standard")) {
     l <- length(DatAnalysisTxt)
@@ -519,3 +512,5 @@ if (isOK) {
   }
   # See https://learn.gencore.bio.nyu.edu/rna-seq-analysis/gene-set-enrichment-analysis/ for more
 }
+saveFun(GSEA_plotly, GSEA_plotly_fl)
+#loadFun(GSEA_plotly_fl)

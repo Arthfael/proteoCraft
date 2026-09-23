@@ -350,7 +350,7 @@ if (runRankAbundPlots || runProfPlots) {
                "WorkFlow", "GO_filt", "runMark", "MakeRatios", "mySamples", "QuantTypes", "QuantTypes_ref", "pepQuantTypes", "pepQuantTypes_ref",
                "colScale", "fillScale", "colScale2", "fillScale2", "Exp", "scrptType", "tstOrg2", "myFlt")
   if (GO_filt) { exports <- union(exports, "GO_filter") }
-  if (length(myFlt)) { exports <- union(exports, c("myFlt", "CompGOTerms", "myGOcolors")) }
+  if (length(myFlt)) { exports <- union(exports, c("CompGOTerms", "myGOcolors")) }
   exports <- as.list(exports)
   clusterExport(parClust, exports, envir = environment())
   readr::write_rds(myPG, tmpFl1)

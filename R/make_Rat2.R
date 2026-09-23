@@ -38,9 +38,9 @@ make_Rat2 <- function(myData = pep,
   # Process int.log argument:
   #  - Input intensity data may be log-transformed or not
   #  - We will output data in the same scale.
-  if ((!is.logical(int.log))&&(!is.numeric(int.log))) { stop("Invalid \"int.log\" argument!") }
+  if ((!is.logical(int.log)) && (!is.numeric(int.log))) { stop("Invalid \"int.log\" argument!") }
   if (is.logical(int.log)) {
-    if (!is.na(int.log)&&int.log) {
+    if ((!is.na(int.log)) && int.log) {
       logTrans <- TRUE
       warning("Assuming default log10 intensities.")
       int.log <- 10L
@@ -57,7 +57,7 @@ make_Rat2 <- function(myData = pep,
   # Process rat.log argument
   #  - Here we just want the desired log base.
   #  - We will always output log-transformed ratios.
-  if ((!is.numeric(rat.log))||(rat.log <= 0)) { stop("Invalid \"rat.log\" argument!") }
+  if ((!is.numeric(rat.log)) || (rat.log <= 0)) { stop("Invalid \"rat.log\" argument!") }
   #
   if (logTrans) {
     if (rat.log == int.log) {

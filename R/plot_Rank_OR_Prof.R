@@ -422,11 +422,11 @@
         x$xPos <- x$xPos-i*xStep
         x$Y <- x$Y-i*yStep
         x$GO_term <- myGOcolors[myFlt[i]]
-        x$Compartment <- names(myFlt)[i]
+        x$Compartment <- myFlt[i]
         return(x)
       })
       GOdat <- do.call(rbind, GOdat)
-      myFltDF <- data.frame(GO_term = gsub(" *\\[.*", "", names(myFlt)),
+      myFltDF <- data.frame(GO_term = gsub(" *\\[.*", "", myFlt),
                             xPos = nrws - xStep*(1L:nSteps+0.5),
                             Y = intmin - yStep*(1L:nSteps+0.5))
       plot <- plot +

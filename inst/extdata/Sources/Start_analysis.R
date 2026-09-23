@@ -31,8 +31,8 @@ if (!exists(ObjNm)) {
 ProcessedByUs %<o% as.logical(ProcessedByUs)
 if (is.na(ProcessedByUs)) { ProcessedByUs <- TRUE }
 if (scrptType == "withReps") {
-  AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm,]
-  tmp <- AllAnsw[1L,]
+  AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm, , drop = FALSE]
+  tmp <- AllAnsw[1L, , drop = FALSE]
   tmp[, c("Parameter", "Message")] <- c(ObjNm, "No questions asked!")
   tmp$Value <- list(get(ObjNm))
   m <- match(ObjNm, AllAnsw$Parameter)
@@ -429,8 +429,8 @@ table.on('change', 'select', function() {
       assign("ProcessedByUs", input$ProcessedByUs, envir = .GlobalEnv)
       ObjNm <- "ProcessedByUs"
       if ((scrptType == "withReps") && ReUseAnsw && (ObjNm %in% AllAnsw$Parameter)) {
-        AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm,]
-        tmp <- AllAnsw[1L,]
+        AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm, , drop = FALSE]
+        tmp <- AllAnsw[1L, , drop = FALSE]
         tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
         tmp$Value <- list(get(ObjNm))
         m <- match(ObjNm, AllAnsw$Parameter)

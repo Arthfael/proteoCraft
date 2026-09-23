@@ -240,7 +240,9 @@ if (Mode == "dataset") {
   }
 }
 if (!exists("GO_plot_ly_fl")) { GO_plot_ly_fl %<o% paste0(wd, "/Reg. analysis/GO enrich/GO_plot_ly.RDS") }
-if (!exists("GO_plot_ly")) { GO_plot_ly <- list() }
+if (!exists("GO_plot_ly")) {
+  if (file.exists(GO_plot_ly_fl))  { loadFun(GO_plot_ly_fl) } else { GO_plot_ly <- list() }
+}
 if (!dataType %in% names(GO_plot_ly)) { GO_plot_ly[[dataType]] <- list() }
 if (Mode == "regulated") { slotNm <- Tsts[tt] }
 if (Mode == "dataset") { slotNm <- "Dataset" }
@@ -1397,6 +1399,7 @@ if (length(wFltL)) {
     }
   }
 }
+saveFun(GO_plot_ly, GO_plot_ly_fl)
 cat("     Done!\n")
 setwd(origWD)
 if (kount) {

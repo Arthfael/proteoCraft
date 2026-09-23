@@ -9,8 +9,9 @@ library(htmltools)
 library(DT)
 library(plotly)
 library(jsonlite)
+library(svDialogs)
 
-htmlRprtFl <- paste0(wd, "/Report_", dtstNm, ".html")
+htmlRprt_fl <- paste0(wd, "/Report_", dtstNm, ".html")
 if (scrptType == "withReps") {
   smplGrps <- setNames(cleanNms(VPAL$values), VPAL$values)
   if (!"clean_Group_name" %in% colnames(Exp.map)) {
@@ -18,19 +19,35 @@ if (scrptType == "withReps") {
   }
 }
 
+# Should we show sample group composition tabs?
+# - Experimental, this will evolve as we go
+# - By default, we do not show them unless the sample groups are expected to be very contrasted
+if ((!exists("showSmplGrpTabs")) || (!is.logical(showSmplGrpTabs))) {
+  showSmplGrpTabs <- ((WorkFlow %in% c("PULLDOWN", "BIOID", "LOCALISATION"))
+                      | sum(c("TISSUE", "CELLLINE", "COMPARTMENT") %in% toupper(gsub(" _-\\.", "", Factors))))
+}
+showSmplGrpTabs %<o% showSmplGrpTabs[1L]
+m <- match(showSmplGrpTabs, c(TRUE, FALSE))
+opt <- c("Yes                                                                                                ",
+         "No                                                                                                 ")
+showSmplGrpTabs <- c(TRUE, FALSE)[match(sub(" +$", "", dlg_list(opt, opt[m], title = "Include sample group tabs in the HTML report?")$res),
+                                        c("Yes", "No"))]
+
 # Reload processed data from the report
 if (!exists("xlDat")) { loadFun(paste0(wd, "/Tables/xlDat.RDS")) }
+#saveFun(xlDat, paste0(wd, "/Tables/xlDat.RDS"))
 peptidoTst <- "All peptidoforms" %in% names(xlDat)
 
 # Reload materials and methods
 if (!exists("matmethTxt")) {
-  matmethTxt <- list("Samples preparation" = MatMetCalls$Texts$WetLab,
-                     "LC-MS/MS analysis" = MatMetCalls$Texts$LCMS,
-                     "Data analysis" = MatMetCalls$Texts$DatAnalysis)
+  matmethTxt <- c("Samples preparation" = paste(MatMetCalls$Texts$WetLab, collapse = "\n"),
+                  "LC-MS/MS analysis" = paste(MatMetCalls$Texts$LCMS, collapse = "\n"),
+                  "Data analysis" = paste(MatMetCalls$Texts$DatAnalysis, collapse = "\n"))
 }
 matmethSections <- names(matmethTxt)
 
 # Reload plots data
+loadFun(volcPlot_ly_fl)
 tstRat <- (scrptType == "noReps") && MakeRatios && exists("ratioPlots_fl") && file.exists(ratioPlots_fl)
 if (tstRat) {
   loadFun(ratioPlots_fl)
@@ -41,11 +58,11 @@ if (heatMaps_ON) {
   loadFun(heatMaps_fl)
   heatMaps_ON <- exists("plotLeatMaps") && length(plotLeatMaps)
 }
-dimRed_fl <- paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS")
+if (!exists("dimRed_fl")) { dimRed_fl <- paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS") }
 PCA_ON <- file.exists(dimRed_fl)
 if (PCA_ON) {
   loadFun(dimRed_fl)
-  PCA_ON <- exists("dimRedPlotLy") && ("PCA" %in% names(dimRedPlotLy$PG))
+  PCA_ON <- exists("dimRedPlotLy") && (!is.null(dimRedPlotLy$PG$PCA))
 }
 Venn_ON <- exists("Venn_fl") && file.exists(Venn_fl)
 if (Venn_ON) {
@@ -58,6 +75,7 @@ if (tstCov) {
   loadFun(covPlots_fl)
   tstCov <- length(covPlots) > 0L
 }
+if (runGSEA) { loadFun(GSEA_plotly_fl) }
 
 # Fix to plotly autoscaling + remove some Modebar tools (redundant: they should already be gone, but in case we reload old data) + fix warnings
 global_autorange <- "function(el, x) {
@@ -111,8 +129,8 @@ for (x in names(ggQuantLy)) { #x <- names(ggQuantLy)[1L]
 }
 if (PCA_ON) {
   for (x in names(dimRedPlotLy)) { #x <- names(dimRedPlotLy)[1L]
-    for (y in names(dimRedPlotLy[[x]])) { #x <- names(dimRedPlotLy[[x]])[1L]
-      p <- dimRedPlotLy$PG[[x]][[y]]
+    for (y in names(dimRedPlotLy[[x]])) { #y <- names(dimRedPlotLy[[x]])[1L]
+      p <- dimRedPlotLy[[x]][[y]]
       p$x$layout$xaxis$autorange <- TRUE
       p$x$layout$yaxis$autorange <- TRUE
       p <- htmlwidgets::onRender(p, global_autorange)
@@ -171,7 +189,7 @@ for (tt in names(GO_plot_ly$PG)) {
       p$x$layout$xaxis$autorange <- TRUE
       p$x$layout$yaxis$autorange <- TRUE
       GO_plot_ly$PG[[tt]][[x]][[nm]] <- plotly::config(p,
-                                                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
+                                                       modeBarButtonsToRemove = c("select2d", "lasso2d"))
     }
   }
 }
@@ -999,7 +1017,8 @@ make_smpl_tab <- \(exp,
       br(),
       br(),
       tags$hr(style = "border-color: black;"),
-      make_smpl_tbl_ui(exp),
+      #make_smpl_tbl_ui(exp),
+      uiOutput(paste0("PG_table_", exp)),
       style = paste0("background: ", myCol, ";")))
   } else {
     id1 <- paste0("quant_", exp)
@@ -1093,7 +1112,8 @@ make_ctrst_tab <- \(contr,
               style = "background: #ffffff;"),
           tags$hr(style = "border-color: black;"))
       },
-      make_ctrst_tbl_ui(contr),
+      #make_ctrst_tbl_ui(contr),
+      uiOutput(paste0(contr2, "_PG_tbl")),
       style = paste0("background: ", myCol, ";")))
   } else {
     styleOn6 <- "display: block; height: 600px"
@@ -1146,17 +1166,17 @@ make_ctrst_tab <- \(contr,
               fluidRow(column(6L,
                               tags$div(id = GSEA_IDs[1L],
                                        style = styleOn4,
-                                       GSEA_plots$standard$PG$`GSEA dotplot`[[contr]]),
+                                       GSEA_plotly$standard$PG$`GSEA dotplot`[[contr]]),
                               tags$div(id = GSEA_IDs[2L],
                                        style = styleOn4,
-                                       GSEA_plots$standard$PG$`GSEA enrichment map`[[contr]])),
+                                       GSEA_plotly$standard$PG$`GSEA enrichment map`[[contr]])),
                        column(6L,
                               tags$div(id = GSEA_IDs[3L],
                                        style = styleOn4,
-                                       GSEA_plots$standard$PG$`GSEA ridge plot`[[contr]]),
+                                       GSEA_plotly$standard$PG$`GSEA ridge plot`[[contr]]),
                               tags$div(id = GSEA_IDs[4L],
                                        style = styleOn4,
-                                       GSEA_plots$standard$PG$`GSEA category net plot`[[contr]]))),
+                                       GSEA_plotly$standard$PG$`GSEA category net plot`[[contr]]))),
               style = "background: #ffffff;"),
           tags$hr(style = "border-color: black;"))
       },
@@ -1184,7 +1204,7 @@ make_strt_tab <- \(shiny = TRUE) {
                            nmsHtMp[1L]),
                plotlyOutput("heatMap", height = plotHtMpHght))
       },
-      if (globalGO && ("Observed dataset" %in% names(GO_plot_ly))) {
+      if (globalGO && (!is.null(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar))) {
         fluidRow(column(12L,
                         plotlyOutput("GO_enrich_Dataset", height = plotHtMpHght)))
       },
@@ -1223,11 +1243,11 @@ make_strt_tab <- \(shiny = TRUE) {
                                    plotLeatMaps$Global[[nm]]$Plot)
                         })))
       },
-      if (globalGO && ("Observed dataset" %in% names(GO_plot_ly))) {
+      if (globalGO && (!is.null(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar))) {
         fluidRow(column(12L,
                         tags$div(id = "GO_enrich_Dataset",
                                  style = if (i == 1L) { styleOn } else { "display: none;" },
-                                 GO_plot_ly$`Observed dataset`$Bar)))
+                                 GO_plot_ly$PG$Dataset$`Observed dataset`$Bar)))
       },
       fluidRow(
         if (PCA_ON) {
@@ -1313,7 +1333,7 @@ make_matmet_tab <- \(matmeth = matmethTxt,
   # We want to load the processed materials and methods (potentially edited by the user)
   # ============> This should be ideally run as part of the finalization script, after the materials and method edition stage
   #
-  hght <- vapply(strsplit(matmeth, "\n"), \(x) {
+  hght <- vapply(lapply(matmeth, strsplit, split = "\n"), \(x) {
     paste0(as.character(20L*(sum(ceiling(nchar(unlist(x))/ceiling(screenRes$width/5.75)))+2L)), "px")
   }, "")
   if (shiny) {
@@ -1346,7 +1366,7 @@ make_ui_noReps <- \(tabNames = myTabs,
       return(tabPanel(x,
                       make_strt_tab(shiny = shiny)))
     }
-    if (x %in% Exp) {
+    if (showSmplGrpTabs && (x %in% Exp)) {
       return(tabPanel(paste0("sample = ", x),
                       make_smpl_tab(x,
                                     shiny = shiny)))
@@ -1374,7 +1394,7 @@ make_ui_Reps <- \(tabNames = myTabs,
       return(tabPanel(x,
                       make_strt_tab(shiny = shiny)))
     }
-    if (x %in% smplGrps) {
+    if (showSmplGrpTabs && (x %in% smplGrps)) {
       return(tabPanel(paste0("sample group = ", x),
                       make_smpl_tab(x,
                                     shiny = shiny)))
@@ -1503,7 +1523,9 @@ server <- \(input, output, session) {
     exp2 <- if (scrptType == "noReps") { exp } else { names(smplGrps)[match(exp, smplGrps)] }
     idQ <- paste0("quant_", exp)
     idQLy <- paste0("quantLy_", exp)
+    idSmplPGTbl <- paste0("PG_table_", exp)
     output[[idQLy]] <- renderPlotly(ggQuantLy[[input[[idQ]]]][[exp2]]$plotly)
+    output[[idSmplPGTbl]] <- renderUI(make_smpl_tbl_ui(exp)) #... or exp2?
   })
   #
   if (scrptType == "withReps") {
@@ -1512,6 +1534,7 @@ server <- \(input, output, session) {
       # this would display the plots from the last contrast in all contrast tabs!
       contr2 <- gsub(" ", "_", contr)
       output[[paste0(contr2, "_volcPlot")]] <- renderPlotly(volcPlotly$"t-test"[[paste0("Volcano plot ", contr)]]$Plot)
+      output[[paste0(contr2, "_PG_tbl")]] <- renderUI(make_ctrst_tbl_ui(contr))
       if (enrichGO) {
         output[[paste0(contr2, "_GObars")]] <- renderPlotly(GO_plot_ly$PG$"t-test"[[contr]]$Bar)
       }
@@ -1520,10 +1543,10 @@ server <- \(input, output, session) {
       }
       if (runGSEA) {
         GSEA_IDs <- paste0(contr2, "_GSEA", as.character(1L:4L))
-        output[[GSEA_IDs[1L]]] <- renderPlotly(GSEA_plots$standard$PG$`GSEA dotplot`[[contr]])
-        output[[GSEA_IDs[2L]]] <- renderPlotly(GSEA_plots$standard$PG$`GSEA enrichment map`[[contr]])
-        output[[GSEA_IDs[3L]]] <- renderPlotly(GSEA_plots$standard$PG$`GSEA ridge plot`[[contr]])
-        output[[GSEA_IDs[4L]]] <- renderPlotly(GSEA_plots$standard$PG$`GSEA category net plot`[[contr]])
+        output[[GSEA_IDs[1L]]] <- renderPlotly(GSEA_plotly$standard$PG$`GSEA dotplot`[[contr]])
+        output[[GSEA_IDs[2L]]] <- renderPlotly(GSEA_plotly$standard$PG$`GSEA enrichment map`[[contr]])
+        output[[GSEA_IDs[3L]]] <- renderPlotly(GSEA_plotly$standard$PG$`GSEA ridge plot`[[contr]])
+        output[[GSEA_IDs[4L]]] <- renderPlotly(GSEA_plotly$standard$PG$`GSEA category net plot`[[contr]])
       }
       saintIDs <- c(paste0("SAINTexpress volcano plot ", contr),
                     paste0(contr2, c("_SAINT_volcPlot", "_SAINT_GObars")))
@@ -1640,7 +1663,8 @@ server <- \(input, output, session) {
       # 2. Wrap as browsable HTML
       page <- htmltools::browsable(page)
       # 3. Save to disk
-      htmltools::save_html(page, htmlRprtFl)
+      htmltools::save_html(page, htmlRprt_fl)
+      #
       assign("appRunTst", TRUE, envir = .GlobalEnv)
       stopApp()
     }, 0.1)
@@ -1650,7 +1674,7 @@ server <- \(input, output, session) {
 #eval(parse(text = run_App), envir = .GlobalEnv)
 runKount <- 0L
 if (exists("appRunTst")) { rm(appRunTst) }
-while ((!runKount) || (!exists("appRunTst")) || (!file.exists(htmlRprtFl))) {
+while ((!runKount) || (!exists("appRunTst")) || (!file.exists(htmlRprt_fl))) {
   eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount + 1L
@@ -1658,7 +1682,7 @@ while ((!runKount) || (!exists("appRunTst")) || (!file.exists(htmlRprtFl))) {
 
 # We now have our html... but it depends on local libraries...
 # ---> We want those embedded in it so it is fully portable!
-h2 <- h1 <- readr::read_lines(htmlRprtFl)
+h2 <- h1 <- readr::read_lines(htmlRprt_fl)
 rg1 <- grep("</?head>", h1) + c(1L, -1L)
 rg1 <- rg1[1L]:rg1[2L]
 hd1 <- h1[rg1]
@@ -1714,7 +1738,7 @@ inline_css <- \(path) {
 gc <- grepl("^ *<link href=\"", hd1$original)
 hd1$new[gc] <- vapply(sub("\".*", "", sub("^ *<link href=\"", paste0(wd, "/"), hd1$original[gc])), inline_css, "")
 h2[rg1] <- hd1$new
-write(h2, htmlRprtFl)
+write(h2, htmlRprt_fl)
 removeDirectory(paste0(wd, "/lib"), TRUE, FALSE)
 
 # Write Mat Meth template as separate file
