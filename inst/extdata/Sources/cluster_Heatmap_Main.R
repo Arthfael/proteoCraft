@@ -638,13 +638,18 @@ if (clustHtMp) {
         #
         # Export evaluated version for later parallel saving
         evalPlot <- plotEval(heatmap.plot)
-        heatMaps[[paste0(i, " - ", normType, ".svg")]] <- list(Plot = evalPlot,
-                                                               Ttl = paste0(clustDir, "/", nm, normTypeInsrt, ".svg"),
+        heatMaps[[paste0(i, " - ", normType, ".jpeg")]] <- list(Plot = evalPlot,
+                                                                Ttl = paste0(clustDir, "/", nm, normTypeInsrt, ".jpeg"),
+                                                                Width = 18L,
+                                                                Height = 9L,
+                                                                Units = "in")
+        heatMaps[[paste0(i, " - ", normType, ".pdf")]] <- list(Plot = evalPlot,
+                                                               Ttl = paste0(clustDir, "/", nm, normTypeInsrt, ".pdf"),
                                                                Width = 18L,
                                                                Height = 9L,
                                                                Units = "in")
         #
-        if (drawPlotly) {
+        if (drawPlotly && (clustMode == "standard")) {
           # Plotly version
           tempLy <- temp2a[w2a,]
           tempLy$Sample <- factor(tempLy$Sample, levels = smpls)
@@ -807,16 +812,16 @@ if (clustHtMp) {
                                      marker = list(color = temp2m$.markCol,
                                                    size = temp2m$.size, showscale = FALSE, showlegend = FALSE))
           }
+          # Final edits to the plot
+          plotleatmap$x$layout$xaxis$autorange <- TRUE
+          plotleatmap$x$layout$yaxis$autorange <- TRUE
+          plotleatmap <- htmlwidgets::onRender(plotleatmap, global_autorange)
           plotleatmap <- plotly::config(plotleatmap,
                                         modeBarButtonsToRemove = c("select2d", "lasso2d"))
-          # setwd(clustDir)
-          # saveWidget(plotleatmap, paste0(clustDir, "/", nm, normTypeInsrt, ".html"))
-          # setwd(wd)
-          # system(paste0("open \"", clustDir, "/", nm, normTypeInsrt, ".html\""))
-          if (clustMode == "standard") {
-            plotLeatMaps[[i]][[normType]] <- list(Ttl = paste0(nm, normTypeInsrt),
-                                                  Plot = plotly::plotly_build(plotleatmap))
-          }
+          plotleatmap <- plotly::plotly_build(plotleatmap)
+          #plotleatmap <- plotly::partial_bundle(plotleatmap)
+          plotLeatMaps[[i]][[normType]] <- plotLeatMaps[[i]][[normType]] <- list(Ttl = paste0(nm, normTypeInsrt),
+                                                                                 Plot = plotleatmap)
         }
         #poplot(heatmap.plot, 12L, 22L)
       } else {

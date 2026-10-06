@@ -424,4 +424,12 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
   }
   setwd(wd)
 }
+for (nm in names(plotly_Venn)) { #nm <- names(plotly_Venn)[1L]
+  p <- plotly::plotly_build(plotly_Venn[[nm]])
+  p$x$layout$xaxis$autorange <- TRUE
+  p$x$layout$yaxis$autorange <- TRUE
+  p <- htmlwidgets::onRender(p, global_autorange)
+  plotly_Venn[[nm]] <- plotly::config(p,
+                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
+}
 saveFun(plotly_Venn, Venn_fl)

@@ -356,7 +356,10 @@ Shiny.bindAll(table.table().node());"))
   }
   runKount <- 0L
   while ((!runKount) || (!exists("IHAVERUN"))) {
+    g <- shiny:::.globals
+    g$appState <- NULL
     eval(parse(text = run_App), envir = .GlobalEnv)
+    shinyCleanup()
     runKount <- runKount+1L
   }
   msg <- paste0(" -> Internal Reference Scaling-based correction of ", IsobarLab, "-associated batch effect ", c("rejec", "accep")[KeepIRSRes+1], "ted.\n")

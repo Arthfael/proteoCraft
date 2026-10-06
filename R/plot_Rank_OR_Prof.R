@@ -80,7 +80,7 @@
     }
     myData <- myData[which(is.finite(myData$Y)),]
     myData[[kolnm]] <- myData$Y
-    if (!nrow(myData)) { return(list(plotly_saved = FALSE,
+    if (!nrow(myData)) { return(list(#plotly_saved = FALSE,
                                      step = 1L)) }
     #
     profData <- myData
@@ -143,7 +143,7 @@
       }
     }
     if (!goOn) {
-      return(list(plotly_saved = FALSE,
+      return(list(#plotly_saved = FALSE,
                   step = 2L))
     }
     lvls <- mySamples
@@ -235,9 +235,13 @@
     } else {
       plotlyCall_txt <- "plotlyProfiles <- plotly::ggplotly(plot, tooltip = toolTip)"
       eval(parse(text = plotlyCall_txt))
+      plotlyProfiles$x$layout$xaxis$autorange <- TRUE
+      plotlyProfiles$x$layout$yaxis$autorange <- TRUE
+      plotlyProfiles <- htmlwidgets::onRender(plotlyProfiles, global_autorange)
       plotlyProfiles <- plotly::config(plotlyProfiles,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
       plotlyProfiles <- plotly::plotly_build(plotlyProfiles)
+      #plotlyProfiles <- plotly::partial_bundle(plotlyProfiles)
       pth <- paste0(subDir, "/", gsub("/|:|\\*|\\?|<|>|\\|", "-", ttl))
       plPath <- paste0(pth, ".html")
       currWD <- getwd()
@@ -245,7 +249,7 @@
       if (file.exists(plPath)) { unlink(plPath) }
       if (file.exists(plPath2)) { unlink(plPath2) }
       tstPL <- try(htmlwidgets::saveWidget(plotly::partial_bundle(plotlyProfiles), plPath2), silent = TRUE)
-      if (inherits(tstPL, "try-error")) { tstPL <- try(htmlwidgets::saveWidget(plotlyProfiles, plPath2), silent = TRUE) }
+      #tstPL <- try(htmlwidgets::saveWidget(plotlyProfiles, plPath2), silent = TRUE)
       tstPL <- if ((!inherits(tstPL, "try-error")) && file.exists(plPath2)) {
         file.rename(plPath2, plPath)
       } else { FALSE }
@@ -253,26 +257,27 @@
       ggplot2::ggsave(paste0(pth, "_lab.svg"), plot_txt, width = 13L, height = 10L)
       evPlot <- plotEval(plot)
       evPlot_txt <- plotEval(plot_txt)
-      myRes <- list(path = pth,
-                    title = ttl,
-                    ggCall = ggCall_txt,
-                    ggPlot = evPlot_txt,
-                    ggPlot_no_text = evPlot,
-                    dpi = 150L,
-                    width = 13L,
-                    height = 10L,
-                    data = profData,
-                    data2 = list(colName = kolnm,
-                                 yCol = yKol,
-                                 color = colKol,
-                                 labCol = txt4Kol,
-                                 facets = myFacets,
-                                 category = catnm,
-                                 angle = Ngl),
-                    yRange = yLim,
-                    plotly_saved = tstPL,
-                    plotly = plotlyProfiles,
-                    plCall = plotlyCall_txt)
+      myRes <- list(title = ttl,
+                    # path = pth,
+                    # ggCall = ggCall_txt,
+                    # ggPlot = evPlot_txt,
+                    # ggPlot_no_text = evPlot,
+                    # dpi = 150L,
+                    # width = 13L,
+                    # height = 10L,
+                    # data = profData,
+                    # data2 = list(colName = kolnm,
+                    #              yCol = yKol,
+                    #              color = colKol,
+                    #              labCol = txt4Kol,
+                    #              facets = myFacets,
+                    #              category = catnm,
+                    #              angle = Ngl),
+                    # yRange = yLim,
+                    # plotly_saved = tstPL,
+                    plotly = plotlyProfiles#,
+                    #plCall = plotlyCall_txt
+                    )
     }
   } else { # Draw ranked abundance plot
     smpl <- smpls; rm(smpls) # For clarity
@@ -294,7 +299,7 @@
       myData <- myPep[, c(myKol, varkol)]
     }
     if (!dir.exists(subDir)) { dir.create(subDir, recursive = TRUE) }
-    if (!myKol %in% colnames(myData)) { return(list(plotly_saved = FALSE,
+    if (!myKol %in% colnames(myData)) { return(list(#plotly_saved = FALSE,
                                                     step = 1L)) }
     # if (tstReg) {
     #   rgKol <- paste0("Regulated - ", smpl)
@@ -343,7 +348,7 @@
     }
     myData <- myData[which(is.finite(myData$Y)),]
     if (!nrow(myData)) {
-      return(list(plotly_saved = FALSE,
+      return(list(#plotly_saved = FALSE,
                   step = 3L))
     }
     #
@@ -464,9 +469,13 @@
     #proteoCraft::poplot(plot, 12L, 22L)
     if (plotType == "All") {
       plotLy <- plotly::ggplotly(plot, tooltip = toolTip)
+      plotLy$x$layout$xaxis$autorange <- TRUE
+      plotLy$x$layout$yaxis$autorange <- TRUE
+      plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
       plotLy <- plotly::config(plotLy,
                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
       plotLy <- plotly::plotly_build(plotLy)
+      #plotLy <- plotly::partial_bundle(plotLy)
       # a folder with external resources is created for each html plot!
       plPath <- paste0(pth, ".html")
       currWD <- getwd()
@@ -474,7 +483,7 @@
       if (file.exists(plPath)) { unlink(plPath) }
       if (file.exists(plPath2)) { unlink(plPath2) }
       tstPL <- try(htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), plPath2), silent = TRUE)
-      if (inherits(tstPL, "try-error")) { tstPL <- try(htmlwidgets::saveWidget(plotLy, plPath2), silent = TRUE) }
+      #tstPL <- try(htmlwidgets::saveWidget(plotLy, plPath2), silent = TRUE)
       tstPL <- if ((!inherits(tstPL, "try-error")) && file.exists(plPath2)) {
         file.rename(plPath2, plPath)
       } else { FALSE }
@@ -495,19 +504,20 @@
     #proteoCraft::poplot(plot, 12L, 22L)
     ggplot2::ggsave(paste0(pth, ".svg"), plot, dpi = myDPI, width = 25L, height = 10L)
     evPlot <- plotEval(plot)
-    myRes <- list(title = ttl,
-                  path = pth,
-                  ggPlot = evPlot,
-                  dpi = myDPI,
-                  width = 25L,
-                  height = 10L,
-                  plotly_saved = tstPL,
-                  data2 = list(colName = kolnm,
-                               xCol = xKol,
-                               labCol = txt4Kol,
-                               category = catnm))
+    myRes <- list(# title = ttl,
+                  # path = pth,
+                  # ggPlot = evPlot,
+                  # dpi = myDPI,
+                  # width = 25L,
+                  # height = 10L,
+                  # plotly_saved = tstPL,
+                  # data2 = list(colName = kolnm,
+                  #              xCol = xKol,
+                  #              labCol = txt4Kol,
+                  #              category = catnm)
+                  )
     if (tstPL) {
-      myRes$plotly_path <- plPath
+      #myRes$plotly_path <- plPath
       myRes$plotly <- plotLy
     }
   }

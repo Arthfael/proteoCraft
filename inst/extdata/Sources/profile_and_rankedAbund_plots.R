@@ -348,7 +348,7 @@ if (runRankAbundPlots || runProfPlots) {
   tmpFl2 <- tempfile(fileext = ".rds")
   exports <- c("samplesDF", "tmpFl1", "tmpFl2", "wd", "MainDir", "MainDir2", "PG_varkol", "pep_varkol",
                "WorkFlow", "GO_filt", "runMark", "MakeRatios", "mySamples", "QuantTypes", "QuantTypes_ref", "pepQuantTypes", "pepQuantTypes_ref",
-               "colScale", "fillScale", "colScale2", "fillScale2", "Exp", "scrptType", "tstOrg2", "myFlt")
+               "colScale", "fillScale", "colScale2", "fillScale2", "Exp", "scrptType", "tstOrg2", "myFlt", "global_autorange")
   if (GO_filt) { exports <- union(exports, "GO_filter") }
   if (length(myFlt)) { exports <- union(exports, c("CompGOTerms", "myGOcolors")) }
   exports <- as.list(exports)
@@ -368,13 +368,7 @@ if (runRankAbundPlots || runProfPlots) {
     assign("myPep", readr::read_rds(tmpFl2), .GlobalEnv)
     return()
   }))
-  tmPlots <- try(parLapply(parClust, 1L:nrow(samplesDF), .plot_Rank_OR_Prof), silent = TRUE)
-  #tmPlots <- try(parLapply(parClust, grep("^ranked\\.", rownames(samplesDF)), .plot_Rank_OR_Prof), silent = TRUE) # Test only ranked abundance plots
-  #tmPlots <- try(parLapply(parClust, grep("^profiles\\.", rownames(samplesDF)), .plot_Rank_OR_Prof), silent = TRUE) # Test only profile plots
-  # if (inherits(tmPlots, "try-error")) {
-  #   warning("Going the slow way...")
-  #   tmPlots <- try(lapply(1L:nrow(samplesDF), .plot_Rank_OR_Prof), silent = TRUE) 
-  # }
+  tmPlots <- try(clusterApplyLB(parClust, 1L:nrow(samplesDF), .plot_Rank_OR_Prof), silent = TRUE)
   if (inherits(tmPlots, "try-error")) { stop(paste(c("Error: something's gone wrong:", tmPlots), collapse = "\n")) }
   unlink(tmpFl1)
   unlink(tmpFl2)
@@ -389,7 +383,8 @@ if (runRankAbundPlots || runProfPlots) {
       w2 <- whAb[(samplesDF$type[whAb] == "pep") & (samplesDF$QuantType[whAb] == quantType) & (samplesDF$subtype[whAb] == "All")]
       ggQuantLy[[paste0("peptides ", quantType)]] <- setNames(tmPlots[w2], samplesDF$values[w2])
     }
-    saveFun(ggQuantLy, paste0(MainDir, "/quantPlots.RDS"))
+    ggQuantLy_fl %<o% paste0(MainDir, "/quantPlots.RDS")
+    saveFun(ggQuantLy, ggQuantLy_fl)
   }
   if (runProfPlots) {
     whPr <- 1L:nrow(samplesDF2)
@@ -409,6 +404,7 @@ if (runRankAbundPlots || runProfPlots) {
         ggProfLy[[paste0("peptides ", quantType)]] <- tmPlots[[w2]]        
       }
     }
-    saveFun(ggProfLy, file = paste0(MainDir2, "/profilePlots.RDS"))
+    ggProfLy_fl %<o% paste0(MainDir, "/profilePlots.RDS")
+    saveFun(ggProfLy, ggProfLy_fl)
   }
 }

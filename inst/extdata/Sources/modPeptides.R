@@ -19,7 +19,7 @@ if (("Phospho.analysis" %in% colnames(Param)) && Param$Phospho.analysis) {
     if (!"PHOSPHO" %in% a) { Param$PTM.analysis <- paste(c(a, "PHOSPHO"), collapse = ";") }
   } else { Param$PTM.analysis <- "PHOSPHO" }
 }
-if ((exists("PTMstats")) && (nrow(PTMstats))) {
+if (exists("PTMstats") && nrow(PTMstats)) {
   cat("Modified peptides analysis\n")
   #
   PTMs %<o% PTMstats$mod
@@ -492,9 +492,8 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     source(parSrc)
     #
     if (!exists("volcPlotly_fl")) { volcPlotly_fl %<o% paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
-    if (!exists("volcPlotly")) {
-      if (file.exists(volcPlotly_fl)) { loadFun(volcPlotly_fl) } else { volcPlotly <- list() }
-    }
+    if ((!exists("volcPlotly")) && file.exists(volcPlotly_fl)) { loadFun(volcPlotly_fl) }
+    if (!exists("volcPlotly")) { volcPlotly <- list() }
     volcPlotly[[paste0(ptm, " t-test")]] <- tempVPptm$`Plotly plots`
     saveFun(volcPlotly, volcPlotly_fl)
     #loadFun(volcPlotly_fl)
@@ -720,6 +719,7 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     # Gene-Set Enrichment Analysis (GSEA)
     try({
       if (runGSEA) {
+        cat("\n")
         dataType <- "modPeptides"
         GSEAmode <- "standard"
         Src <- paste0(libPath, "/extdata/Sources/GSEA.R")
@@ -761,15 +761,16 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     vord <- order.dendrogram(vdendro)
     vord <- rownames(temp)[vord]
     require(ggdendro)
-    hdendro.plot <- ggdendrogram(data = hdendro) + theme(axis.text.y = element_text(size = 0.1),
-                                                         plot.margin = margin(0L, 0L, 0L, 0L, "cm"))
+    hdendro.plot <- ggdendrogram(data = hdendro) +
+      theme(axis.text.y = element_text(size = 0.1),
+            plot.margin = margin(0L, 0L, 0L, 0L, "cm"))
     vdendro.plot <- ggdendrogram(data = vdendro, rotate = TRUE, labels = FALSE, leaf_labels = FALSE) +
       theme(axis.text.y = element_blank(), axis.text.x = element_blank(),
             panel.background = element_rect(fill = "transparent", colour = NA), 
             plot.background = element_rect(fill = "transparent", colour = NA),
             plot.margin = margin(0L, 0L, 0L, 0L, "cm"))
     # Data wrangling
-    temp2 <- set_colnames(reshape::melt.data.frame(temp), c("Sample", "value"))
+    temp2 <- dfMelt(temp, c("Sample", "value"))
     temp2$Label <- rownames(temp)
     temp2$Sample <- as.character(temp2$Sample)
     temp2$Colour <- "grey"
@@ -810,12 +811,12 @@ if ((exists("PTMstats")) && (nrow(PTMstats))) {
     #
     # Gene Ontology terms enrichment analysis
     if (enrichGO) {
-      if ((!exists("GO_mappings")) && file.exists("GO_mappings.RDS")) {
-        loadFun("GO_mappings.RDS")
-      }
-      if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) {
-        loadFun("GO_terms.RDS")
-      }
+      #
+      if (!exists("GO_mappings_fl")) { GO_mappings_fl %<o% paste0(wd, "/GO_mappings.RDS") }
+      if (!exists("GO_terms_fl")) { GO_terms_fl %<o% paste0(wd, "/GO_terms.RDS") }
+      if ((!exists("GO_mappings")) && file.exists(GO_mappings_fl)) { loadFun(GO_mappings_fl) }
+      if ((!exists("GO_terms")) && file.exists(GO_terms_fl)) { loadFun(GO_terms_fl) }
+      #
       p <- strsplit(ptmpep$Proteins, ";")
       test <- sapply(annot.col, \(x) { x %in% colnames(db) })
       annot.col2 <- annot.col[test]

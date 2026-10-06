@@ -230,11 +230,11 @@ if (!inherits(tstNorm, "try-error")) {
     ann <- annotAB[annotAB$Sample == smpl,]
     MAplot$data <- dat
     ttl <- paste0(MAttl, " - ", smpl)
-    MAplot <- MAplot + ggtitle(ttl) +
-      geom_text(data = ann, aes(x = Amax, y = Y, label = Label), hjust = 1, size = 3L)
-    #poplot(MAplot, 12L, 22L)
+    MAplot <- MAplot + ggplot2::ggtitle(ttl) +
+      ggplot2::geom_text(data = ann, ggplot2::aes(x = Amax, y = Y, label = Label), hjust = 1, size = 3L)
+    #proteoCraft::poplot(MAplot, 12L, 22L)
     fl <- paste0(MAfl, " - ", smpl)
-    ggsave(paste0(fl, ".svg"), MAplot, width = 10L, units = "in")
+    ggplot2::ggsave(paste0(fl, ".svg"), MAplot, width = 10L, units = "in")
     return(fl)
   }), levels(datAB$Sample))
   #
@@ -306,9 +306,13 @@ if (!inherits(tstNorm, "try-error")) {
     })
     session$onSessionEnded(function() { stopApp() })
   }
-  while (!exists("IHAVERUN")) {
+  runKount <- 0L
+  while ((!runKount) || (!exists("IHAVERUN"))) {
+    g <- shiny:::.globals
+    g$appState <- NULL
     eval(parse(text = run_App), envir = .GlobalEnv)
     shinyCleanup()
+    runKount <- runKount+1L
   }
   msg <- paste0(" -> ", normMeth, " correction for intensity range variance biases ",
                 c("rejec", "accep")[KeepShapeCorrRes+1L], "ted.\n")

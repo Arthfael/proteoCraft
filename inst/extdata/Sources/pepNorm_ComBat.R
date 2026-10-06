@@ -178,6 +178,8 @@ server <- \(input, output, session) {
 }
 runKount <- 0L
 while ((!runKount)||(!exists("IHAVERUN"))) {
+  g <- shiny:::.globals
+  g$appState <- NULL
   eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount+1L

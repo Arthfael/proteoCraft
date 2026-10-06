@@ -2,6 +2,9 @@
 warning("Please, me dude: re-write me, this is getting ugly...")
 setwd(wd)
 if (Annotate && (enrichGO || globalGO)) {
+  if (!exists("GO_mappings_fl")) { GO_mappings_fl %<o% paste0(wd, "/GO_mappings.RDS") }
+  if (!exists("GO_terms_fl")) { GO_terms_fl %<o% paste0(wd, "/GO_terms.RDS") }
+  #
   cat("Gene Ontology terms enrichment analysis\n")
   packs <- c("GO.db", "topGO")
   for (pack in packs) {
@@ -146,11 +149,11 @@ if (Annotate && (enrichGO || globalGO)) {
             Mode <- "regulated"
             if (tt %in% c(1L, 3L)) { dataType <- "PG" }
             if (tt == 4L) { dataType <- "Prot" }
-            if ((!exists("GO_mappings")) && file.exists("GO_mappings.RDS")) {
-              loadFun("GO_mappings.RDS")
+            if ((!exists("GO_mappings")) && file.exists(GO_mappings_fl)) {
+              loadFun(GO_mappings_fl)
             }
-            if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) {
-              loadFun("GO_terms.RDS")
+            if ((!exists("GO_terms")) && file.exists(GO_terms_fl)) {
+              loadFun(GO_terms_fl)
             }
             #
             Src <- paste0(libPath, "/extdata/Sources/GO_enrich.R")
@@ -309,11 +312,11 @@ if (Annotate && (enrichGO || globalGO)) {
     #
     Mode <- "dataset"
     dataType <- "PG"
-    if ((!exists("GO_mappings")) && file.exists("GO_mappings.RDS")) {
-      loadFun("GO_mappings.RDS")
+    if ((!exists("GO_mappings")) && file.exists(GO_mappings_fl)) {
+      loadFun(GO_mappings_fl)
     }
-    if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) {
-      loadFun("GO_terms.RDS")
+    if ((!exists("GO_terms")) && file.exists(GO_terms_fl)) {
+      loadFun(GO_terms_fl)
     }
     #
     #try(rm(list = allArgs), silent = TRUE)

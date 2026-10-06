@@ -631,6 +631,8 @@ table.on('change', 'select', function() {
 }
 runKount <- 0L
 while ((!runKount) || (!exists("fastasTbl3"))) {
+  g <- shiny:::.globals
+  g$appState <- NULL
   eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount+1L

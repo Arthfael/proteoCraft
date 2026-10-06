@@ -390,6 +390,7 @@ if (normPGs) {
       ggplot2::ggsave(paste0(x$Path, ".", x$Ext), x$Plot, dpi = 300L)
     })
   })
+  rm(nrmPlots, nrmPlots2)
   #
   msg <- "Accept re-normalisation results?"
   appNm <- paste0(dtstNm, " - PG re-normalisation")
@@ -467,18 +468,19 @@ if (normPGs) {
     }, deleteFile = FALSE)
     #
     observeEvent(input$accept_PG_reNorm, { assign("accept_PG_reNorm", as.logical(input[["accept_PG_reNorm"]]), envir = .GlobalEnv) })
-    observeEvent(input$saveBtn, { stopApp() })
-    #observeEvent(input$cancel, { stopApp() })
-    session$onSessionEnded(\() {
+    observeEvent(input$saveBtn, {
       assign("appRunTest", TRUE, envir = .GlobalEnv)
       stopApp()
     })
+    session$onSessionEnded(\() { stopApp() })
   }
   runKount <- 0L
-  while (!runKount) {
-    if (!exists("appRunTest")) { eval(parse(text = run_App), envir = .GlobalEnv) }
-    runKount <- runKount+1L
+  while ((!runKount) || (!exists("appRunTest"))) {
+    g <- shiny:::.globals
+    g$appState <- NULL
+    eval(parse(text = run_App), envir = .GlobalEnv)
     shinyCleanup()
+    runKount <- runKount+1L
   }
   #
   if (accept_PG_reNorm) {

@@ -209,4 +209,12 @@ if (Venn_Ratios) {
 }
 if (wbKount) { saveWorkbook(wb, paste0(wd, "/Venn diagrams/Venn diagrams.xlsx"), overwrite = TRUE) }
 setwd(wd)
+for (nm in names(plotly_Venn)) { #nm <- names(plotly_Venn)[1L]
+  p <- plotly::plotly_build(plotly_Venn[[nm]])
+  p$x$layout$xaxis$autorange <- TRUE
+  p$x$layout$yaxis$autorange <- TRUE
+  p <- htmlwidgets::onRender(p, global_autorange)
+  plotly_Venn[[nm]] <- plotly::config(p,
+                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
+}
 saveFun(plotly_Venn, Venn_fl)

@@ -129,15 +129,21 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       plot_lyPCAProt <- add_trace(plot_lyPCAProt, scores, x = ~PC1, y = ~PC2,
                                   type = "scatter", mode = "text", showlegend = FALSE)
     }
+    plot_lyPCAProt <- layout(plot_lyPCAProt, title = ttl,
+                             uirevision = TRUE)
+    plot_lyPCAProt$x$layout$xaxis$autorange <- TRUE
+    plot_lyPCAProt$x$layout$yaxis$autorange <- TRUE
+    plot_lyPCAProt <- htmlwidgets::onRender(plot_lyPCAProt, global_autorange)
     plot_lyPCAProt <- plotly::config(plot_lyPCAProt,
                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
-    plot_lyPCAProt <- layout(plot_lyPCAProt, title = ttl)
-    plot_lyPCAProt <- plotly_build(plot_lyPCAProt)
+    plot_lyPCAProt <- plotly::plotly_build(plot_lyPCAProt)
+    #plot_lyPCAProt <- plotly::partial_bundle(plot_lyPCAProt)
     dimRedPlotLy[[dataType]][["Samples PCA"]] <- plot_lyPCAProt
     setwd(myLittleRed_dir)
-    saveWidget(partial_bundle(plot_lyPCAProt), paste0(myLittleRed_dir, "/", ttl, ".html"))
+    htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyPCAProt), paste0(myLittleRed_dir, "/", ttl, ".html"))
+    #htmlwidgets::saveWidget(plot_lyPCAProt, paste0(myLittleRed_dir, "/", ttl, ".html"))
     setwd(wd)
-    system(paste0("open \"", myLittleRed_dir, "/", ttl, ".html"))
+    #system(paste0("open \"", myLittleRed_dir, "/", ttl, ".html"))
     # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
   } else { warning("PCA failed, investigate!") }
   #
@@ -352,16 +358,21 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                                  showlegend = FALSE,
                                  visible = TRUE)
     #
-    plot_lyPCAProt2 <- plotly::config(plot_lyPCAProt2,
-                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
     plot_lyPCAProt2 <- layout(plot_lyPCAProt2, title = ttl,
                               uirevision = TRUE)
-    plot_lyPCAProt2 <- plotly_build(plot_lyPCAProt2)
+    plot_lyPCAProt2$x$layout$xaxis$autorange <- TRUE
+    plot_lyPCAProt2$x$layout$yaxis$autorange <- TRUE
+    plot_lyPCAProt2 <- htmlwidgets::onRender(plot_lyPCAProt2, global_autorange)
+    plot_lyPCAProt2 <- plotly::config(plot_lyPCAProt2,
+                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
+    plot_lyPCAProt2 <- plotly::plotly_build(plot_lyPCAProt2)
+    #plot_lyPCAProt2 <- plotly::partial_bundle(plot_lyPCAProt2)
     dimRedPlotLy[[dataType]][["PCA"]] <- plot_lyPCAProt2
     setwd(myLittleRed_dir)
-    saveWidget(partial_bundle(plot_lyPCAProt2), paste0(myLittleRed_dir, "/", ttl, ".html"))
+    htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyPCAProt2), paste0(myLittleRed_dir, "/", ttl, ".html"))
+    #htmlwidgets::saveWidget(plot_lyPCAProt2, paste0(myLittleRed_dir, "/", ttl, ".html"))
     setwd(wd)
-    system(paste0("open \"", myLittleRed_dir, "/", ttl, ".html"))
+    #system(paste0("open \"", myLittleRed_dir, "/", ttl, ".html"))
     # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
     #
     cat("t-SNE plots, by protein group\n")
@@ -442,14 +453,19 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                                showlegend = FALSE,
                                visible = TRUE)
       #
-      plot_lytSNE <- plotly::config(plot_lytSNE,
-                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
       plot_lytSNE <- layout(plot_lytSNE, title = ttl2,
                             uirevision = TRUE)
-      plot_lytSNE <- plotly_build(plot_lytSNE)
+      plot_lytSNE$x$layout$xaxis$autorange <- TRUE
+      plot_lytSNE$x$layout$yaxis$autorange <- TRUE
+      plot_lytSNE <- htmlwidgets::onRender(plot_lytSNE, global_autorange)
+      plot_lytSNE <- plotly::config(plot_lytSNE,
+                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
+      plot_lytSNE <- plotly::plotly_build(plot_lytSNE)
+      #plot_lytSNE <- plotly::partial_bundle(plot_lytSNE)
       dimRedPlotLy[[dataType]][["t-SNE"]] <- plot_lytSNE
       setwd(myLittleRed_dir)
-      saveWidget(partial_bundle(plot_lytSNE), paste0(myLittleRed_dir, "/", ttl2, ".html"))
+      htmlwidgets::saveWidget(plotly::partial_bundle(plot_lytSNE), paste0(myLittleRed_dir, "/", ttl2, ".html"))
+      #htmlwidgets::saveWidget(plot_lytSNE, paste0(myLittleRed_dir, "/", ttl2, ".html"))
       setwd(wd)
       #system(paste0("open \"", myLittleRed_dir, "/", ttl2, ".html"))
     } else { warning(tsne) }
@@ -531,14 +547,19 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                                showlegend = FALSE,
                                visible = TRUE)
       #
-      plot_lyUMAP <- plotly::config(plot_lyUMAP,
-                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
       plot_lyUMAP <- layout(plot_lyUMAP, title = ttl3,
                             uirevision = TRUE)
-      plot_lyUMAP <- plotly_build(plot_lyUMAP)
+      plot_lyUMAP$x$layout$xaxis$autorange <- TRUE
+      plot_lyUMAP$x$layout$yaxis$autorange <- TRUE
+      plot_lyUMAP <- htmlwidgets::onRender(plot_lyUMAP, global_autorange)
+      plot_lyUMAP <- plotly::config(plot_lyUMAP,
+                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
+      plot_lyUMAP <- plotly::plotly_build(plot_lyUMAP)
+      #plot_lyUMAP <- plotly::partial_bundle(plot_lyUMAP)
       dimRedPlotLy[[dataType]][["UMAP"]] <- plot_lyUMAP
       setwd(myLittleRed_dir)
-      saveWidget(partial_bundle(plot_lyUMAP), paste0(myLittleRed_dir, "/", ttl3, ".html"))
+      htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyUMAP), paste0(myLittleRed_dir, "/", ttl3, ".html"))
+      #htmlwidgets::saveWidget(plot_lyUMAP, paste0(myLittleRed_dir, "/", ttl3, ".html"))
       setwd(wd)
       #system(paste0("open \"", myLittleRed_dir, "/", ttl3, ".html"))
     } else { warning(umap) }

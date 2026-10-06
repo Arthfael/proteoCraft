@@ -13,7 +13,6 @@ slim_plotly %<o% \(p) {
   attr(p, "orig_gg") <- NULL   # drop embedded ggplot if present
   return(p)
 }
-source(parSrc)
 if (dataType == "peptides") {
   pvalDir <- paste0(wd, "/Workflow control/Peptides/P-values")
   myData <- pep
@@ -91,6 +90,7 @@ tmpFl <- tempfile(fileext = ".rds")
 readr::write_rds(temp, tmpFl)
 nr <- nrow(myContrasts)
 #
+source(parSrc)
 clusterExport(parClust, list("Comb", "tmpFl", "pvalDir", "my_PVal_Col", "gsub_Rep",
                              "plotEval", "slim_plotly", "entityCol", "my_PVal_Col", "nr"),
               envir = environment())
@@ -276,10 +276,13 @@ Img2 <- sub("(\\.svg)+$", ".svg", paste0(Img2, ".svg"))
 Imgs1 <- Imgs1[Imgs1 != Img2]
 IMGS <- c(Img2, Imgs1)
 plotsList <- append(plotsList2, plotsList1)
-Imgs1Nms <- gsub(" t-test|'s", "",
-                 gsub("Moderated", "Mod.",
-                      gsub("Permutations", "Perm.",
-                           gsub(".*/P-values scatter plot - |\\.svg", "", Imgs1))))
+imgNmsEdit <- \(nm) {
+  gsub(" t-test|'s", "",
+       gsub("Moderated", "Mod.",
+            gsub("Permutations", "Perm.",
+                 gsub(".*/P-values scatter plot - |\\.svg", "", nm))))
+}
+Imgs1Nms <- imgNmsEdit(Imgs1)
 names(plotsList) <- c("Histogram", Imgs1Nms)
 #
 # Which type of P-values do we want to use?
@@ -294,18 +297,9 @@ if ((dataType == "modPeptides") && (Ptm %in% names(PTMs_PVal_use))) {
 if (!sum(pval_Use)) { pval_Use["Moderated"] <- TRUE }
 if (!sum(pval_Use)) { pval_Use[1L] <- TRUE }
 #
-source(parSrc)
-# IMGsDims <- as.data.frame(t(parSapply(parClust, IMGS, \(x) { #x <- IMGs[1L] # From when the images were saved as jpeg... keep this for now
-#   a <- jpeg::readJPEG(x)
-#   setNames(dim(a)[1L:2L], c("height", "width"))
-# })))
-# IMGsDims <- as.data.frame(t(parSapply(parClust, IMGS, \(x) { #x <- IMGs[1L]
-#   a <- xml2::read_xml(x)
-#   v <- as.numeric(strsplit(xml2::xml_attr(a, "viewBox"), " ")[[1L]])
-#   setNames(v[3L:4L], c("width", "height"))
-# })))
-# IMGsDims$width <- round(screenRes$width*IMGsDims$width/max(IMGsDims$width)*0.3)
-# IMGsDims$height <- round(screenRes$width*IMGsDims$height/max(IMGsDims$height)*0.3)
+tmpNm <- imgNmsEdit(names(my_PVal_Col)[pval_Use])
+dfltImg <- union(grep(topattern(tmpNm), Imgs1Nms, value = TRUE),
+                 grep(topattern(tmpNm, FALSE, TRUE), Imgs1Nms, value = TRUE))[1L]
 ui <- fluidPage(
   useShinyjs(),
   setBackgroundColor( # Doesn't work
@@ -328,7 +322,7 @@ ui <- fluidPage(
                   selectInput("XY",
                               "Select comparison to display...",
                               Imgs1Nms,
-                              grep(names(my_PVal_Col)[pval_Use], Imgs1Nms, value = TRUE)[1L]),
+                              dfltImg),
                   withSpinner(plotlyOutput("Img1", inline = TRUE))),
            column(7L,
                   withSpinner(plotOutput("Img2", inline = TRUE)))),
@@ -364,6 +358,8 @@ server <- \(input, output, session) {
 }
 runKount <- 0L
 while ((!runKount) || (!exists("appRunTst"))) {
+  g <- shiny:::.globals
+  g$appState <- NULL
   eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount + 1L
@@ -498,3 +494,4 @@ if (exists("MSqRob_infer")) {
   saveFun(MSqRob_infer, MSqRob_infer_fl)
   rm(MSqRob_infer)
 }
+source(parSrc)

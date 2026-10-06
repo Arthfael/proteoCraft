@@ -874,15 +874,46 @@ Coverage <- function(proteins,
                                                   inherit = FALSE)
               }
             }
+            covPlotLy <- plotly::plotly_build(covPlotLy)
+            covPlotLy$x$layout$xaxis$autorange <- TRUE
+            covPlotLy$x$layout$yaxis$autorange <- TRUE
+            covPlotLy <- htmlwidgets::onRender(covPlotLy,
+                                                "function(el, x) {
+  var gd = el;
+  function globalRange(axisPrefix) {
+    var axes = Object.keys(gd._fullLayout).filter(function(k) {
+      return k.match(new RegExp('^' + axisPrefix + 'axis[0-9]*$'));
+    });
+    if (axes.length <= 1)
+      return;
+    var minVal = Infinity;
+    var maxVal = -Infinity;
+    axes.forEach(function(name) {
+      var axis = gd._fullLayout[name];
+      if (axis && axis.range) {
+        minVal = Math.min(minVal, axis.range[0], axis.range[1]);
+        maxVal = Math.max(maxVal, axis.range[0], axis.range[1]);
+      }
+    });
+    if (isFinite(minVal) && isFinite(maxVal)) {
+      axes.forEach(function(name) {
+        Plotly.relayout(gd, name + '.range', [minVal, maxVal]);
+      });
+    }
+  }
+  globalRange('x');
+  globalRange('y');
+}")
             covPlotLy <- plotly::config(covPlotLy,
                                         modeBarButtonsToRemove = c("select2d", "lasso2d"))
-            covPlotLy <- plotly::plotly_build(covPlotLy)
+            #covPlotLy <- plotly::partial_bundle(covPlotLy)
             if (!P %in% names(plotLyst)) { plotLyst[[P]] <- list() }
             plotLyst[[P]][[Ttl]] <- covPlotLy
             htmlwidgets::saveWidget(plotly::partial_bundle(covPlotLy), svpth, selfcontained = TRUE)
+            #htmlwidgets::saveWidget(covPlotLy, svpth, selfcontained = TRUE)
             setwd(wd0)
           } else {
-            if (ext == "svg") { require(svglite) }
+            if (ext == "svg") { library(svglite) }
             ggplot2::ggsave(svpth, covPlot2,
                             dpi = 300L,
                             width = wdth,
@@ -910,7 +941,7 @@ Coverage <- function(proteins,
         })))
         rs$V2 <- c(1L, 2L)[match(rs$V2, c("not found", "found"))]
         rs <- apply(rs[, c("V1", "V2")], 1L, \(y) {
-          #y <- rs[1, c("V1", "V2")]
+          #y <- rs[1L, c("V1", "V2")]
           z <- as.numeric(y[[2L]])
           list(openxlsx2::fmt_txt(y[[1L]], bold = as.logical(z-1L),
                                   color = openxlsx2::wb_color(hex = c("grey", colour)[as.numeric(z)])))

@@ -16,8 +16,13 @@ WorkBook <- wb_set_row_heights(WorkBook, sheetnm, 1L, 15L)
 colWdths <- rep(8.43, 1000L) # Should be enough, what say you?
 colWdths[1L] <- 5L
 colWdths[2L] <- tmp
-fls <- c(list.files(paste0(wd, "/Summary plots"), "\\.svg$", full.names = TRUE, recursive = TRUE),
-         grep(" VS ", list.files(paste0(wd, "/Workflow control"), "\\.svg$", full.names = TRUE, recursive = TRUE), value = TRUE, invert = TRUE))
+# Images to embed:
+# For now we are only going for those in Summary plots
+# Automated detection was including way too many images, we need to rewrite this in a more structured, directed manner!
+fls <- c(list.files(paste0(wd, "/Summary plots"), "\\.svg$", full.names = TRUE, recursive = TRUE)#,
+         # grep(" VS |/((Step [0-9]+)|(MA plot)) - ", list.files(paste0(wd, "/Workflow control"), "\\.svg$", full.names = TRUE, recursive = TRUE),
+         #      value = TRUE, invert = TRUE)
+         )
 nImgs <- length(fls)
 o <- 24L
 if (nImgs) {
@@ -55,7 +60,7 @@ if (nImgs) {
     if (length(w)) {
       res <- as.integer(ceiling(sum(flsTbl$Height_Xl[w]*6L+1L)))
     } else { res <- 0L }
-    return(res+3L)
+    return(res+4L)
   }, 1L)
   #View(flsTbl[, c("File", "Height", "Width", "Row", "Col")])
   for (i in 1L:nImgs) {
@@ -226,5 +231,5 @@ setwd(wd)
 unlink(repFl2)
 xl_open(repFl)
 cat("        Done!\n")
-# shell(paste0("RMDIR /S /Q \"", dr, "\""), mustWork = FALSE)
+shell(paste0("RMDIR /S /Q \"", dr, "\""), mustWork = FALSE)
 rm(WorkBook)

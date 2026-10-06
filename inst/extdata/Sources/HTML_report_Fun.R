@@ -1,223 +1,6 @@
-# Create html report to:
-# - organize the most important tables and plots into a coherent html file
-# - capture user comments on each section
-
-library(shiny)
-library(shinyjs)
-library(bslib)
-library(htmltools)
-library(DT)
-library(plotly)
-library(jsonlite)
-library(svDialogs)
-
-htmlRprt_fl <- paste0(wd, "/Report_", dtstNm, ".html")
-if (scrptType == "withReps") {
-  smplGrps <- setNames(cleanNms(VPAL$values), VPAL$values)
-  if (!"clean_Group_name" %in% colnames(Exp.map)) {
-    Exp.map$clean_Group_name <- smplGrps[Exp.map[[VPAL$column]]]
-  }
-}
-
-# Should we show sample group composition tabs?
-# - Experimental, this will evolve as we go
-# - By default, we do not show them unless the sample groups are expected to be very contrasted
-if ((!exists("showSmplGrpTabs")) || (!is.logical(showSmplGrpTabs))) {
-  showSmplGrpTabs <- ((WorkFlow %in% c("PULLDOWN", "BIOID", "LOCALISATION"))
-                      | sum(c("TISSUE", "CELLLINE", "COMPARTMENT") %in% toupper(gsub(" _-\\.", "", Factors))))
-}
-showSmplGrpTabs %<o% showSmplGrpTabs[1L]
-m <- match(showSmplGrpTabs, c(TRUE, FALSE))
-opt <- c("Yes                                                                                                ",
-         "No                                                                                                 ")
-showSmplGrpTabs <- c(TRUE, FALSE)[match(sub(" +$", "", dlg_list(opt, opt[m], title = "Include sample group tabs in the HTML report?")$res),
-                                        c("Yes", "No"))]
-
-# Reload processed data from the report
-if (!exists("xlDat")) { loadFun(paste0(wd, "/Tables/xlDat.RDS")) }
-#saveFun(xlDat, paste0(wd, "/Tables/xlDat.RDS"))
-peptidoTst <- "All peptidoforms" %in% names(xlDat)
-
-# Reload materials and methods
-if (!exists("matmethTxt")) {
-  matmethTxt <- c("Samples preparation" = paste(MatMetCalls$Texts$WetLab, collapse = "\n"),
-                  "LC-MS/MS analysis" = paste(MatMetCalls$Texts$LCMS, collapse = "\n"),
-                  "Data analysis" = paste(MatMetCalls$Texts$DatAnalysis, collapse = "\n"))
-}
-matmethSections <- names(matmethTxt)
-
-# Reload plots data
-loadFun(volcPlot_ly_fl)
-tstRat <- (scrptType == "noReps") && MakeRatios && exists("ratioPlots_fl") && file.exists(ratioPlots_fl)
-if (tstRat) {
-  loadFun(ratioPlots_fl)
-  tstRat <- length(ratioPlots) > 0L
-}
-heatMaps_ON <- file.exists(heatMaps_fl)
-if (heatMaps_ON) {
-  loadFun(heatMaps_fl)
-  heatMaps_ON <- exists("plotLeatMaps") && length(plotLeatMaps)
-}
-if (!exists("dimRed_fl")) { dimRed_fl <- paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS") }
-PCA_ON <- file.exists(dimRed_fl)
-if (PCA_ON) {
-  loadFun(dimRed_fl)
-  PCA_ON <- exists("dimRedPlotLy") && (!is.null(dimRedPlotLy$PG$PCA))
-}
-Venn_ON <- exists("Venn_fl") && file.exists(Venn_fl)
-if (Venn_ON) {
-  loadFun(Venn_fl)
-  Venn_ON <- exists("plotly_Venn") && ("Global, LFQ" %in% names(plotly_Venn))
-}
-strtColWdth <- 12L/max(c(1L, Venn_ON + PCA_ON))
-tstCov <- exists("covPlots_fl") && file.exists(covPlots_fl)
-if (tstCov) {
-  loadFun(covPlots_fl)
-  tstCov <- length(covPlots) > 0L
-}
-if (runGSEA) { loadFun(GSEA_plotly_fl) }
-
-# Fix to plotly autoscaling + remove some Modebar tools (redundant: they should already be gone, but in case we reload old data) + fix warnings
-global_autorange <- "function(el, x) {
-  var gd = el;
-  function globalRange(axisPrefix) {
-    var axes = Object.keys(gd._fullLayout).filter(function(k) {
-      return k.match(new RegExp('^' + axisPrefix + 'axis[0-9]*$'));
-    });
-    if (axes.length <= 1)
-      return;
-    var minVal = Infinity;
-    var maxVal = -Infinity;
-    axes.forEach(function(name) {
-      var axis = gd._fullLayout[name];
-      if (axis && axis.range) {
-        minVal = Math.min(minVal, axis.range[0], axis.range[1]);
-        maxVal = Math.max(maxVal, axis.range[0], axis.range[1]);
-      }
-    });
-    if (isFinite(minVal) && isFinite(maxVal)) {
-      axes.forEach(function(name) {
-        Plotly.relayout(gd, name + '.range', [minVal, maxVal]);
-      });
-    }
-  }
-  globalRange('x');
-  globalRange('y');
-}"
-if (heatMaps_ON) {
-  for (x in names(plotLeatMaps)) { #x <- names(plotLeatMaps)[1L]
-    for (y in names(plotLeatMaps[[x]])) { #y <- names(plotLeatMaps[[x]])[1L]
-      p <- plotLeatMaps[[x]][[y]]$Plot
-      p$x$layout$xaxis$autorange <- TRUE
-      p$x$layout$yaxis$autorange <- TRUE
-      p <- htmlwidgets::onRender(p, global_autorange)
-      plotLeatMaps[[x]][[y]]$Plot <- plotly::config(p,
-                                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
-    }
-  }
-}
-loadFun(paste0(wd, "/Ranked abundance/quantPlots.RDS"))
-for (x in names(ggQuantLy)) { #x <- names(ggQuantLy)[1L]
-  for (y in names(ggQuantLy[[x]])) { #y <- names(ggQuantLy[[x]])[1L]
-    p <- ggQuantLy[[x]][[y]]$plotly
-    p$plotly$x$layout$xaxis$autorange <- TRUE
-    p$plotly$x$layout$yaxis$autorange <- TRUE
-    p <- htmlwidgets::onRender(p, global_autorange)
-    ggQuantLy[[x]][[y]]$plotly <- plotly::config(p,
-                                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
-  }
-}
-if (PCA_ON) {
-  for (x in names(dimRedPlotLy)) { #x <- names(dimRedPlotLy)[1L]
-    for (y in names(dimRedPlotLy[[x]])) { #y <- names(dimRedPlotLy[[x]])[1L]
-      p <- dimRedPlotLy[[x]][[y]]
-      p$x$layout$xaxis$autorange <- TRUE
-      p$x$layout$yaxis$autorange <- TRUE
-      p <- htmlwidgets::onRender(p, global_autorange)
-      dimRedPlotLy[[x]][[y]] <- plotly::config(p,
-                                               modeBarButtonsToRemove = c("select2d", "lasso2d"))
-    }
-  }
-}
-if (tstCov) {
-  for (x in names(covPlots)) { #x <- names(covPlots)[1L]
-    for (y in names(covPlots[[x]])) { #y <- names(covPlots[[x]])[1L]
-      for (z in names(covPlots[[x]][[y]])) { #z <- names(covPlots[[x]][[y]])[1L]
-        p <- covPlots[[x]][[y]][[z]]
-        p$x$layout$xaxis$autorange <- TRUE
-        p$x$layout$yaxis$autorange <- TRUE
-        p <- htmlwidgets::onRender(p, global_autorange)
-        covPlots[[x]][[y]][[z]] <- plotly::config(p,
-                                                  modeBarButtonsToRemove = c("select2d", "lasso2d"))
-      }
-    }
-  }
-}
-if (tstRat) {
-  for (x in names(ratioPlots)) { #x <- names(ratioPlots)[1L]
-    p <- ratioPlots[[x]]
-    p$x$layout$xaxis$autorange <- TRUE
-    p$x$layout$yaxis$autorange <- TRUE
-    p <- htmlwidgets::onRender(p, global_autorange)
-    ratioPlots[[x]] <- plotly::config(p,
-                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
-  }
-}
-loadFun(qcBckUpFl)
-for (x in names(QC_plotLys)) { #x <- names(QC_plotLys)[1L]
-  p <- QC_plotLys[[x]]
-  p$x$layout$xaxis$autorange <- TRUE
-  p$x$layout$yaxis$autorange <- TRUE
-  p <- htmlwidgets::onRender(p, global_autorange)
-  QC_plotLys[[x]] <- plotly::config(p,
-                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
-}
-if (Venn_ON) {
-  for (x in names(plotly_Venn)) { #x <- names(plotly_Venn)[1L]
-    p <- plotly_Venn[[x]]
-    p$x$layout$xaxis$autorange <- TRUE
-    p$x$layout$yaxis$autorange <- TRUE
-    plotly_Venn[[x]] <- plotly::config(p,
-                                       modeBarButtonsToRemove = c("select2d", "lasso2d"))
-  }
-}
-loadFun(GO_plot_ly_fl)
-for (tt in names(GO_plot_ly$PG)) {
-  for (x in names(GO_plot_ly$PG[[tt]])) { #x <- names(GO_plot_ly$PG[[tt]])[1L]
-    for (nm in c("Bar", "Bubble")) {
-      p <- GO_plot_ly$PG[[tt]][[x]][[nm]]
-      p$x$layout$xaxis$autorange <- TRUE
-      p$x$layout$yaxis$autorange <- TRUE
-      GO_plot_ly$PG[[tt]][[x]][[nm]] <- plotly::config(p,
-                                                       modeBarButtonsToRemove = c("select2d", "lasso2d"))
-    }
-  }
-}
-if (!is.null(GO_plot_ly$Prot$SAINTexpress)) {
-  for (x in names(GO_plot_ly$Prot$SAINTexpress)) { #x <- names(GO_plot_ly$Prot$SAINTexpress)[1L]
-    for (nm in c("Bar", "Bubble")) {
-      p <- GO_plot_ly$Prot$SAINTexpress[[x]][[nm]]
-      p$x$layout$xaxis$autorange <- TRUE
-      p$x$layout$yaxis$autorange <- TRUE
-      GO_plot_ly$Prot$SAINTexpress[[x]][[nm]] <- plotly::config(p,
-                                                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
-    }
-  }
-}
-
-#
-#plotHght <- "400px"
-plotHght <- paste0(round(screenRes$height*0.75), "px")
-nmsHtMp <- names(plotLeatMaps$Global)
-if ((scrptType == "noReps") && (length(Exp) == 2L)) {
-  nmsHtMp <- setdiff(nmsHtMp, "Z-scored")
-}
-nmsHtMp <- intersect(union("None", nmsHtMp), nmsHtMp)
-plotHtMpHght <- paste0(round(min(c(400L, vapply(nmsHtMp, \(nm) { plotLeatMaps$Global[[nm]]$Plot$sizingPolicy$defaultHeight }, 1)))), "px")
-plotPCAHght <- "700px"
-
-# UI functions
-tbl_css <- tags$style(HTML("table.dataTable td {
+# UI functions used by the HTML report
+safe_id <- \(x) { gsub("[: ]", "_", x) }
+myCSS <- tags$style(HTML("table.dataTable td {
   white-space: normal !important;
   vertical-align: top !important;
 }
@@ -232,7 +15,27 @@ tbl_css <- tags$style(HTML("table.dataTable td {
 table.dataTable thead th {
     background-color: #4472c4 !important;
     color: white !important;
-}"))
+}
+.plot-container {
+     border-radius: 10px;
+     overflow: hidden;
+}
+"))
+
+fix_plotly_sizing <- \(x, px_height = 700L, depth = 0L) {
+  if (depth > 40L) { return(x) }
+  if (inherits(x, "plotly")) {
+    x$x$layout$xaxis$autorange <- TRUE
+    x$x$layout$yaxis$autorange <- TRUE
+    x <- htmlwidgets::onRender(x, global_autorange)
+    x$sizingPolicy$browser$fill <- FALSE   # stop depending on a flex ancestor for height
+    x$height <- px_height                  # fixed pixel height, independent of CSS context
+    return(plotly::config(x, modeBarButtonsToRemove = c("select2d", "lasso2d")))
+  }
+  if (is.list(x) && identical(class(x), "list")) { return(lapply(x, fix_plotly_sizing, px_height = px_height, depth = depth + 1L)) }
+  x
+}
+
 logoFl <- list.files(homePath,
                      "^logo\\.((gif)|(tiff?)|(jpe?g)|(png))$", full.names = TRUE)[1L]
 report_header <- tags$header(
@@ -259,10 +62,10 @@ report_header <- tags$header(
 make_comment_ui <- \(id,
                      shiny = TRUE,
                      values = allComments,
-                     ON = TRUE,
-                     root = "comment_") {
+                     ON = TRUE) {
+  if (!id %in% names(values)) { stop("Invalid comment name!") }
   if (shiny) {
-    textAreaInput(inputId = paste0(root, id),
+    textAreaInput(inputId = paste0("comment_", safe_id(id)),
                   label = NULL,
                   value = values[id],
                   width = "100%",
@@ -287,8 +90,12 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
                        tab = "Protein groups", # can also be "All peptidoforms"; we will eventually add "`PTM`-modified", where `PTM` can be any PTM of interest
                        filt = NULL, #filt = allProt[1L] # Filter by "Common Name"
                        dat = xlDat,
-                       minN = 1L) {
+                       minN = 1L,
+                       regMsg,
+                       filtMsg) {
+  stopifnot(tab %in% names(dat))
   m <- match(contr, myContrasts$Contrast)
+  contr2 <- sub(" - ", " /\n", contr)
   exp <- setNames(myContrasts[m, c("A_samples", "B_samples")],
                   myContrasts[m, c("A", "B")])
   exp <- lapply(exp, \(x) { Exp.map$Clean_name[match(unlist(x), Exp.map[[RSA$column]])] })
@@ -296,10 +103,11 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   pgTest <- (tab == "Protein groups")
   df <- dat[[tab]]
   tmp <- grep("\n", colnames(df), value = TRUE)
-  tmp2 <- gsub(" /\n.*", "", tmp)
-  tmp2 <- gsub(".*\n", "", tmp2)
+  tmp2 <- gsub(".*\n", "", sub(" /\n.*", "", tmp))
   smplCols_lst <- setNames(lapply(grps, \(xp) {
-    tmp[tmp2 %in% c(xp, exp[[xp]])]
+    tmp[tmp2 %in% #c(
+          xp#, exp[[xp]])
+    ]
   }), grps)
   smplCols <- setNames(unlist(smplCols_lst), NULL)
   coreCols <- "PEP"
@@ -316,33 +124,41 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
       intRoot <- "int"
     }
   } else {
-    stop("TO DO!")
     filtCol <- "Proteins"
     coreCols <- union(c("Modified sequence_verbose", #"Sequence",
                         filtCol), coreCols) # Check before use...
     intRoot <- "int" # Presumably...
   }
   #
-  xprCols <- grep(paste0("log10\\(([^\\)]+ )?", intRoot, "\\.\\) "), smplCols, value = TRUE)
+  xprCols <- grep(paste0("log10\\(([^\\)]+ )?", intRoot, "\\.\\) "), colnames(df), value = TRUE)
   fullIntRoot <- rev(paste0(vapply(strsplit(xprCols, "\n"), `[[`, "", 1L), "\n"))[1L]
+  smpls <- unlist(exp[grps])
   smpls_and_grps <- unlist(lapply(grps, \(grp) { c(grp, exp[[grp]]) }))
-  xprCols <- paste0(fullIntRoot, smpls_and_grps)
-  xprCols <- intersect(xprCols, colnames(df))
-  repXprCols <- if (length(exp) == 1L) { sub(" *\n$", "", fullIntRoot) } else { xprCols }
+  xprCols <- intersect(paste0(fullIntRoot, smpls),
+                       colnames(df))
+  if (!length(xprCols)) { # In this case we only have an average column
+    xprCols <- intersect(paste0(smpls_and_grps, smpls),
+                         colnames(df))
+  }
+  repXprCols <- if (length(grps) == 1L) { sub(" *\n$", "", fullIntRoot) } else { xprCols }
   #
   ratCols <- grep("log2\\(.*rat\\.\\) \n", smplCols, value = TRUE)
   stopifnot(length(ratCols) > 0L) # For contrasts we always MUST have a logFC column!
   fullRatRoot <- rev(paste0(vapply(strsplit(ratCols, "\n"), `[[`, "", 1L), "\n"))[1L]
-  ratCol <- paste0(fullRatRoot, sub(" - ", " /\n", contr))
+  ratCol <- paste0(fullRatRoot, contr2)
   ratCol <- repRatCol <- intersect(ratCol, colnames(df)) 
   stopifnot(length(ratCol) == 1L) # Again
   #
-  colNms <- c(coreCols, xprCols, ratCol)
+  PValCol <- paste0(sub(" -log10\\(Pvalue\\) - ", "\n-log10 pval. \n", pvalue.col[pvalue.use]), contr2)
+  repPValCol <- sub("\n-log10 pval\\. \n", "\npval. \n", PValCol)
+  decCol <- repDecCol <- paste0("reg. \n", contr2)
+  #
+  colNms <- c(coreCols, xprCols, ratCol, PValCol, decCol)
   repColNms <- c(sub("_verbose$", "",
                      sub("^Potential contaminant$", "Cont.",
                          sub("^Mol\\. weight \\[kDa\\]$", "MW (kDa)",
                              sub("^Common Names$", "Common names", coreCols)))),
-                 repXprCols, repRatCol)
+                 repXprCols, repRatCol, repPValCol, repDecCol)
   if (pgTest) {
     pepCountCols <- intersect(paste0("Pep. count \n", grps), colnames(df))
     psmCountCols <- intersect(paste0("PSMs count \n", grps), colnames(df))
@@ -353,6 +169,7 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
     }
   }
   df <- df[, colNms]
+  df[[PValCol]] <- 10L^-df[[PValCol]]
   flt <- if (is.null(filt)) {
     1L:nrow(df)
   } else {
@@ -361,7 +178,12 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   if (pgTest && is.integer(minN) && (minN > 0L) && length(pepCountCols)) {
     flt <- flt[apply(df[flt, pepCountCols, drop = FALSE], 1L, max, na.rm = TRUE) >= minN]
   }
-  if (!length(flt)) { return() }
+  if (!length(flt)) {
+    if (missing(filtMsg)) { filtMsg <- paste0("No matching ", sub("^All", "", tab), " to show...") }
+    return(div(em(HTML(filtMsg)),
+               br(),
+               br()))
+  }
   df <- df[flt,]
   colnames(df) <- colNms <- repColNms
   if ("Modified sequence" %in% colNms) {
@@ -384,6 +206,17 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
     covCols <- repCovCols
   }
   xprRng <- range(df[, xprCols], na.rm = TRUE)
+  #
+  # Filter now to only return regulated proteins
+  rg <- grep("^((up)|(down)),|specific", df[[repDecCol]])
+  if (!length(rg)) {
+    if (missing(regMsg)) { regMsg <- paste0("No significant ", tolower(gsub("^All|s$", "", tab)), " to show...") }
+    return(div(em(HTML(regMsg)),
+               br(),
+               br()))
+  }
+  df <- df[rg, ]
+  df <- df[, setdiff(colnames(df), repDecCol)]
   #
   # Make sure this re-ordering is done after any other data is added from dat to df!
   orderVect <- df[, xprCols]
@@ -696,7 +529,7 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
                       class = "compact",
                       escape = FALSE,
                       options = list(scrollX = TRUE,
-                                     scrollY = "500px",
+                                     scrollY = "1000px",
                                      pageLength = 100L,
                                      lengthMenu = list(c(10L, 25L, 50L, 100L, -1L),
                                                        c("10", "25", "50", "100", "All")),
@@ -736,7 +569,9 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
 }
 make_prot_tab <- \(dflt = dfltProt,
                    prots = allProt,
-                   shiny = TRUE) {
+                   shiny = TRUE,
+                   tables) {
+  if (missing(tables)) { tables <- !shiny }
   myCol <- tolower(viridis::viridis(6L, alpha = 0.2)[4L])
   myExp <- if (scrptType == "noReps") { Exp } else { setNames(smplGrps, NULL) }
   # - show:
@@ -769,21 +604,21 @@ make_prot_tab <- \(dflt = dfltProt,
                       if (length(myExp) > 1L) {
                         selectInput("mySample", "", myExp, myExp[1L]) 
                       },
-                      plotlyOutput("coverPlot", height = plotHght)),
+                      withSpinner(plotlyOutput("coverPlot", height = plotHght))),
                if (scrptType == "noReps") {
                  column(6L,
-                        plotlyOutput("ratioPlot", height = plotHght))
+                        withSpinner(plotlyOutput("ratioPlot", height = plotHght)))
                },
       ),
       br(),
       br(),
       tags$hr(style = "border-color: black;"),
-      if (peptidoTst) { uiOutput("protPep") },
+      if (tables && peptidoTst) { uiOutput("protPep") },
       br(),
       style = paste0("background: ", myCol, ";")))
   } else {
     ## Coverage plots ###################################################
-    if (tstCov) {
+    if (cov_ON) {
       dfltExp <- myExp[1L]
       exp2smpl <- listMelt(lapply(prots, \(pr) { myExp }), prots, ColNames = c("Sample", "Protein"))
       cov_plots <- lapply(1L:nrow(exp2smpl), \(i) {
@@ -793,12 +628,13 @@ make_prot_tab <- \(dflt = dfltProt,
                  style = paste("width: 100%; display: ",
                                if ((pr == dflt) && (exp == dfltExp)) { "block" } else { "none" },
                                ";"),
-                 covPlots[[pr]]$logInt[[exp]])
+                 class = "plot-container",
+                 fix_plotly_sizing(covPlots[[pr]]$logInt[[exp]]))
       })
     }
     ## Ratio plots ######################################################
     ratio_plots_ui <- NULL
-    if (tstRat) {
+    if (rat_ON) {
       prots2 <- intersect(prots, names(ratioPlots))
       if (length(prots2)) {
         ratio_plots_ui <- lapply(prots2, \(pr) {
@@ -806,7 +642,8 @@ make_prot_tab <- \(dflt = dfltProt,
                    style = paste("width: 100%; display: ",
                                  if (pr == dflt) { "block" } else { "display" },
                                  ";"),
-                   ratioPlots[[pr]])
+                   class = "plot-container",
+                   fix_plotly_sizing(ratioPlots[[pr]]))
         })
       }
     }
@@ -817,12 +654,11 @@ make_prot_tab <- \(dflt = dfltProt,
       make_comment_ui(pr,
                       FALSE,
                       prot_comments,
-                      pr == dflt,
-                      "prComment_")
+                      pr == dflt)
     })
     #
     ## Peptide tables  ##################################################
-    if (peptidoTst) {
+    if (tables && peptidoTst) {
       pepTables <- lapply(prots, \(pr) {
         m <- match(pr, prots)
         tags$div(id = paste0("pepTable_", m),
@@ -861,7 +697,7 @@ make_prot_tab <- \(dflt = dfltProt,
       br(),
       br(),
       tags$hr(style = "border-color: black;"),
-      if (peptidoTst) { pepTables },
+      if (tables && peptidoTst) { pepTables },
       tags$script(HTML(paste0("function updateProteinTab() {
   const protEl = document.getElementById('myProtein');
   const sampleEl = document.getElementById('mySample');
@@ -960,7 +796,8 @@ make_summTbl_ui <- \() {
                       rownames = TRUE,
                       class = "compact",
                       escape = FALSE,
-                      width = wdth,
+                      width = "100%",
+                      #width = wdth,
                       #height = hght,
                       height = "auto",
                       fillContainer = FALSE,
@@ -981,8 +818,9 @@ make_summTbl_ui <- \() {
                                      dom = "ft",
                                      columnDefs = list(list(width = "160px",
                                                             targets = 1L:ncol(df) - 1L))))
-  return(tags$div(df,
-                  style = "background: #ffffff;"))
+  return(tags$div(h4(strong(em("Summary table"))),
+                  df,
+                  style = "background: #ffffff; overflow: auto;"))
 }
 make_select_tag <- \(id,
                      label,
@@ -1004,25 +842,35 @@ make_select_tag <- \(id,
 }
 make_smpl_tab <- \(exp,
                    shiny = TRUE,
-                   quant = quantMeth,
-                   dflt = dfltQuant) {
+                   quant,
+                   dflt = dfltQuant,
+                   tables) {
+  if (runRankAbundPlots) {
+    if (missing(quant)) { quant <- quantMeth }
+    if (missing(dflt)) { dflt <- dfltQuant }
+  }
+  if (missing(tables)) { tables <- !shiny }
   myCol <- tolower(viridis::viridis(6L, alpha = 0.2)[2L])
   exp2 <- if (scrptType == "noReps") { exp } else { names(smplGrps)[match(exp, smplGrps)] }
+  exp_ <- safe_id(exp)
   lQ <- length(quant)
+  id1 <- paste0("quant_", exp)
   if (shiny) {
     tagList(tags$div(
-      make_comment_ui(exp, shiny),
-      selectInput(paste0("quant_", exp), "", quant, dflt[exp]),
-      plotlyOutput(paste0("quantLy_", exp), height = plotHght),
-      br(),
+      uiOutput(paste0("cmmnt_", exp_)),
+      if (runRankAbundPlots) {
+        div(selectInput(id1, "", quant, dflt[exp]),
+            withSpinner(plotlyOutput(paste0("quantLy_", exp), height = plotHght)),
+            br())
+      },
       br(),
       tags$hr(style = "border-color: black;"),
-      #make_smpl_tbl_ui(exp),
-      uiOutput(paste0("PG_table_", exp)),
+      if (tables) {
+        uiOutput(paste0("PG_table_", exp))
+      },
       style = paste0("background: ", myCol, ";")))
   } else {
-    id1 <- paste0("quant_", exp)
-    id2 <- paste0("quant_", exp, "_")
+    id2 <- paste0(id1, "_")
     js <- sprintf("document.getElementById('%s').addEventListener('change', function() {
   const selected = document.getElementById('%s').selectedIndex + 1;
   document.querySelectorAll('[id^=\"%s\"]').forEach(function(div) {
@@ -1037,61 +885,88 @@ make_smpl_tab <- \(exp,
                   id2)
     tagList(tags$div(
       make_comment_ui(exp, shiny),
-      lapply(1L:lQ, \(i) {
-        tags$div(id = paste0("quant_", exp, "_", as.character(i)),
-                 style = if (quant[i] == dflt[exp]) { "display: block;" } else { "display: none;" },
-                 ggQuantLy[[quant[i]]][[exp2]]$plotly)
-      }),
-      br(),
-      make_select_tag(id1,
-                      "",
-                      id1,
-                      quant,
-                      dflt[exp]),
-      br(),
+      if (runRankAbundPlots) {
+        div(lapply(1L:lQ, \(i) {
+          tags$div(id = paste0("quant_", exp, "_", as.character(i)),
+                   style = if (quant[i] == dflt[exp]) { "display: block;" } else { "display: none;" },
+                   class = "plot-container",
+                   fix_plotly_sizing(ggQuantLy[[quant[i]]][[exp2]]$plotly))
+        }),
+        br(),
+        make_select_tag(id1,
+                        "",
+                        id1,
+                        quant,
+                        dflt[exp]),
+        br())
+      },
       br(),
       tags$hr(style = "border-color: black;"),
       tags$script(HTML(js)),
-      make_smpl_tbl_ui(exp),
+      if (tables) {
+        make_smpl_tbl_ui(exp)
+      },
       style = paste0("background: ", myCol, ";")))
   }
 }
 make_ctrst_tab <- \(contr,
-                    shiny = TRUE) {
+                    shiny = TRUE,
+                    tables,
+                    ptm) {
+  if (missing(tables)) { tables <- !shiny }
   myCol <- tolower(viridis::viridis(6L, alpha = 0.2)[3L])
   styleOn <- paste0("display: block; height: ", plotHtMpHght)
-  contr2 <- gsub(" ", "_", contr)
+  contr_ <- safe_id(contr)
+  volcID <- paste0(contr_, "_volcPlot")
+  commentID <- paste0("cmmnt_", contr_)
+  goID <- paste0(contr_, "_GObars")
   saintIDs <- c(paste0("SAINTexpress volcano plot ", contr),
-                paste0(contr2, c("_SAINT_volcPlot", "_SAINT_GObars")))
+                paste0(contr_, c("_SAINT_volcPlot", "_SAINT_GObars")))
+  saintXPRS <- saintExprs & (saintIDs[1L] %in% names(volcPlotly$SAINTexpress))
+  GSEA_tst <- runGSEA
   if (runGSEA) {
-    GSEA_IDs <- paste0(contr2, "_GSEA", as.character(1L:4L))
+    GSEA_IDs <- paste0(contr_, "_GSEA", as.character(1L:4L))
+    GSEA_tst <- { if (missing(ptm)) { "PG" } else { ptm } } %in% wh_GSEA[[contr]]
   }
-  saintXPRS <- saintExprs && (saintIDs[1L] %in% names(volcPlotly$SAINTexpress))
+  tblID <- paste0(contr_, "_tbl")
+  if (!missing(ptm)) {
+    volcID <- paste0(ptm, "_", volcID)
+    commentID <- paste0("cmmnt_", ptm, "_", contr_)
+    goID <- paste0(ptm, "_", goID)
+    if (runGSEA) {
+      GSEA_IDs <- paste0(ptm, "_", GSEA_IDs)
+    }
+    tblID <- paste0(ptm, "_", tblID)
+    # SAINTexpress and PTMs are not compatible right now - do they even make sense to combine?
+  }
+  volcNm1 <- if (missing(ptm)) { "t-test" } else { paste0(ptm, " t-test") }
+  volcNm2 <- if (missing(ptm)) { paste0("Volcano plot ", contr) } else { paste0(ptm, " volcano plot ", contr) }
+  slotNm <- if (missing(ptm)) { "PG" } else { ptm }
+  cmmntNm <- if (missing(ptm)) { contr} else { paste0(Ptm, ": ", contr) }
   if (shiny) {
     tagList(tags$div(
-      make_comment_ui(contr, shiny),
-      if (saintXPRS) {
+      uiOutput(commentID),
+      if (missing(ptm) && saintXPRS) {
         div(h3("SAINTexpress"),
             fluidRow(column(6L,
-                            plotlyOutput(paste0(contr2, "_SAINT_volcPlot"), height = "600px")),
+                            withSpinner(plotlyOutput(saintIDs[2L], height = "600px"))),
                      if (enrichGO) {
                        column(6L,
                               br(),
                               br(),
-                              plotlyOutput(paste0(contr2, "_SAINT_GObars"), height = "600px"))
+                              withSpinner(plotlyOutput(saintIDs[3L], height = "600px")))
                      },
             ),
             style = "background: #ffffff;")
-      },
-      if (!saintXPRS) {
+      } else {
         div(h3("t-test"),
             fluidRow(column(6L,
-                            plotlyOutput(paste0(contr2, "_volcPlot"), height = "600px")),
+                            withSpinner(plotlyOutput(volcID, height = "600px"))),
                      if (enrichGO) {
                        column(6L,
                               br(),
                               br(),
-                              plotlyOutput(paste0(contr2, "_GObars"), height = "600px"))
+                              withSpinner(plotlyOutput(goID, height = "600px")))
                      },
             ),
             style = "background: #ffffff;")
@@ -1100,56 +975,64 @@ make_ctrst_tab <- \(contr,
       if (F.test) {
         # Add F-test part here... or maybe dropdown to choose f-/F-test... or drop F-test altogether?
       },
-      if (runGSEA) {
+      if (GSEA_tst) {
         div(
           div(h3("GSEA"),
               fluidRow(column(6L,
-                              plotlyOutput(GSEA_IDs[1L]),
-                              plotlyOutput(GSEA_IDs[2L])),
+                              h5("dot plot"),
+                              withSpinner(plotlyOutput(GSEA_IDs[1L], height = "600px")),
+                              h5("enrichment map"),
+                              withSpinner(plotlyOutput(GSEA_IDs[2L], height = "600px"))),
                        column(6L,
-                              plotlyOutput(GSEA_IDs[3L]),
-                              plotlyOutput(GSEA_IDs[4L]))),
+                              h5("ridge plot"),
+                              withSpinner(plotlyOutput(GSEA_IDs[3L], height = "600px")),
+                              h5("net plot"),
+                              withSpinner(plotlyOutput(GSEA_IDs[4L], height = "600px")))),
               style = "background: #ffffff;"),
           tags$hr(style = "border-color: black;"))
       },
-      #make_ctrst_tbl_ui(contr),
-      uiOutput(paste0(contr2, "_PG_tbl")),
+      if (tables) {
+        uiOutput(tblID)
+      },
       style = paste0("background: ", myCol, ";")))
   } else {
     styleOn6 <- "display: block; height: 600px"
-    styleOn4 <- "display: block; height: 400px"
+    styleOn5 <- "display: block; height: 500px"
     tagList(tags$div(
-      make_comment_ui(contr, shiny),
-      if (saintXPRS) {
+      make_comment_ui(cmmntNm, shiny),
+      if (missing(ptm) && saintXPRS) {
         div(h3("SAINTexpress"),
             fluidRow(column(6L,
                             tags$div(id = saintIDs[2L],
                                      style = styleOn6,
-                                     volcPlotly$SAINTexpress[[saintIDs[1L]]]$Plot)),
-                     if (enrichGO) {
+                                     class = "plot-container",
+                                     fix_plotly_sizing(volcPlotly$SAINTexpress[[saintIDs[1L]]]$Plot, 600L))),
+                     if (enrichGO && (!is.null(GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar))) {
                        column(6L,
                               br(),
                               br(),
                               tags$div(id = saintIDs[3L],
                                        style = styleOn6,
-                                       GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar))
+                                       class = "plot-container",
+                                       fix_plotly_sizing(GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar, 600L)))
                      },
             ),
             style = "background: #ffffff;")
-      },
-      if (!saintXPRS) {
+      } else {
         div(h3("t-test"),
             fluidRow(column(6L,
-                            tags$div(id = paste0(contr2, "_volcPlot"),
+                            tags$div(id = volcID,
                                      style = styleOn6,
-                                     volcPlotly$"t-test"[[paste0("Volcano plot ", contr)]]$Plot)),
-                     if (enrichGO) {
+                                     class = "plot-container",
+                                     fix_plotly_sizing(volcPlotly[[volcNm1]][[volcNm2]]$Plot, 600L))),
+                     if (enrichGO && (!is.null(GO_plot_ly[[slotNm]]$"t-test"[[contr]]$Bar))) {
                        column(6L,
                               br(),
                               br(),
-                              tags$div(id = paste0(contr2, "_GObars"),
+                              tags$div(id = goID,
                                        style = styleOn6,
-                                       GO_plot_ly$PG$"t-test"[[contr]]$Bar))
+                                       class = "plot-container",
+                                       fix_plotly_sizing(GO_plot_ly[[slotNm]]$"t-test"[[contr]]$Bar, 600L)))
                      },
             ),
             style = "background: #ffffff;")
@@ -1158,29 +1041,44 @@ make_ctrst_tab <- \(contr,
       if (F.test) {
         # Add F-test part here... or maybe dropdown to choose f-/F-test... or drop F-test altogether?
       },
-      if (runGSEA) {
+      if (GSEA_tst) {
         div(
           div(h3("GSEA"),
               # NB: I also tried the plotly::subplot() approach to displaying the plots together in one,
               # but this fails (subplots look corrupted, possibly because they are slightly hacky)
               fluidRow(column(6L,
+                              h5("dot plot"),
                               tags$div(id = GSEA_IDs[1L],
-                                       style = styleOn4,
-                                       GSEA_plotly$standard$PG$`GSEA dotplot`[[contr]]),
+                                       style = styleOn5,
+                                       class = "plot-container",
+                                       fix_plotly_sizing(GSEA_plotly$standard[[slotNm]][[GSEA_plotNms[1L]]][[contr]], 500L)),
+                              h5("enrichment map"),
                               tags$div(id = GSEA_IDs[2L],
-                                       style = styleOn4,
-                                       GSEA_plotly$standard$PG$`GSEA enrichment map`[[contr]])),
+                                       style = styleOn5,
+                                       class = "plot-container",
+                                       fix_plotly_sizing(GSEA_plotly$standard[[slotNm]][[GSEA_plotNms[2L]]][[contr]], 500L))),
                        column(6L,
+                              h5("ridge plot"),
                               tags$div(id = GSEA_IDs[3L],
-                                       style = styleOn4,
-                                       GSEA_plotly$standard$PG$`GSEA ridge plot`[[contr]]),
+                                       style = styleOn5,
+                                       class = "plot-container",
+                                       fix_plotly_sizing(GSEA_plotly$standard[[slotNm]][[GSEA_plotNms[3L]]][[contr]], 500L)),
+                              h5("net plot"),
                               tags$div(id = GSEA_IDs[4L],
-                                       style = styleOn4,
-                                       GSEA_plotly$standard$PG$`GSEA category net plot`[[contr]]))),
+                                       style = styleOn5,
+                                       class = "plot-container",
+                                       fix_plotly_sizing(GSEA_plotly$standard[[slotNm]][[GSEA_plotNms[4L]]][[contr]], 500L)))),
               style = "background: #ffffff;"),
           tags$hr(style = "border-color: black;"))
       },
-      make_ctrst_tbl_ui(contr),
+      if (tables) {
+        if (missing(ptm)) {
+          make_ctrst_tbl_ui(contr)
+        } else {
+          make_ctrst_tbl_ui(contr,
+                            paste0(ptm, "-mod. pept."))
+        }
+      },
       style = paste0("background: ", myCol, ";")))
   }
 }
@@ -1192,75 +1090,83 @@ make_strt_tab <- \(shiny = TRUE) {
     tagList(tags$div(
       make_comment_ui("Dataset overview", shiny),
       br(),
-      h4(strong(tags$ul(em("Summary table")))),
       make_summTbl_ui(),
       br(),
-      br(),
       if (heatMaps_ON) {
-        column(12L,
-               selectInput("myHeatMap",
-                           "",
-                           nmsHtMp,
-                           nmsHtMp[1L]),
-               plotlyOutput("heatMap", height = plotHtMpHght))
+        div(fluidRow(column(1L,
+                            em("Heatmap type:")),
+                     column(11L,
+                            selectInput("myHeatMap",
+                                        "",
+                                        nmsHtMp,
+                                        nmsHtMp[1L]))),
+            fluidRow(column(12L,
+                            withSpinner(plotlyOutput("heatMap", height = "700px")))))
       },
-      if (globalGO && (!is.null(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar))) {
-        fluidRow(column(12L,
-                        plotlyOutput("GO_enrich_Dataset", height = plotHtMpHght)))
-      },
+      br(),
       fluidRow(
+        if (globalGO && (!is.null(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar))) {
+          column(5L,
+                 withSpinner(plotlyOutput("GO_enrich_Dataset", height = "700px")))
+        },
         if (PCA_ON) {
-          column(4L*(3L-Venn_ON),
-                 plotlyOutput("PCA", height = plotPCAHght))
+          column(4L,
+                 withSpinner(plotlyOutput("PCA", height = "700px")))
         },
         if (Venn_ON) {
-          column(4L,
-                 plotlyOutput("Venn", height = plotHtMpHght))
+          column(3L,
+                 withSpinner(plotlyOutput("Venn", height = "700px")))
         },
       ),
       br(),
       style = paste0("background: ", myCol, ";")))
   } else {
-    styleOn <- paste0("display: block; height: ", plotHtMpHght)
+    styleOn7 <- "display: block; height: 700px"
     tagList(tags$div(
       make_comment_ui("Dataset overview", shiny),
       br(),
-      h4(strong(tags$ul(em("Summary table")))),
       make_summTbl_ui(),
       br(),
-      br(),
       if (heatMaps_ON) {
-        fluidRow(column(strtColWdth,
-                        make_select_tag("myHeatMap",
-                                        "",
-                                        "myHeatMap",
-                                        nmsHtMp,
-                                        nmsHtMp[1L]),
-                        lapply(nmsHtMp, \(nm) {
-                          i <- match(nm, nmsHtMp)
-                          tags$div(id = paste0("HeatMap_", i),
-                                   style = if (i == 1L) { styleOn } else { "display: none;" },
-                                   plotLeatMaps$Global[[nm]]$Plot)
-                        })))
+        div(fluidRow(column(1L,
+                            em("Heatmap type:")),
+                     column(11L,
+                            make_select_tag("myHeatMap",
+                                            "",
+                                            "myHeatMap",
+                                            nmsHtMp,
+                                            nmsHtMp[1L]))),
+            fluidRow(column(12L,
+                            lapply(nmsHtMp, \(nm) {
+                              i <- match(nm, nmsHtMp)
+                              tags$div(id = paste0("HeatMap_", i),
+                                       style = if (i == 1L) { styleOn7 } else { "display: none;" },
+                                       class = "plot-container",
+                                       fix_plotly_sizing(plotLeatMaps$Global[[nm]]$Plot))
+                            }))))
       },
-      if (globalGO && (!is.null(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar))) {
-        fluidRow(column(12L,
-                        tags$div(id = "GO_enrich_Dataset",
-                                 style = if (i == 1L) { styleOn } else { "display: none;" },
-                                 GO_plot_ly$PG$Dataset$`Observed dataset`$Bar)))
-      },
+      br(),
       fluidRow(
+        if (globalGO && (!is.null(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar))) {
+          column(5L,
+                 tags$div(id = "GO_enrich_Dataset",
+                          style = styleOn7,
+                          class = "plot-container",
+                          fix_plotly_sizing(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar)))
+        },
         if (PCA_ON) {
-          column(4L*(3L-Venn_ON),
+          column(4L,
                  tags$div(id = "PCA",
-                          style = styleOn,
-                          dimRedPlotLy$PG$PCA))
+                          style = styleOn7,
+                          class = "plot-container",
+                          fix_plotly_sizing(dimRedPlotLy$PG$PCA)))
         },
         if (Venn_ON) {
-          column(4L,
+          column(3L,
                  tags$div(id = "Venn",
-                          style = styleOn,
-                          plotly_Venn$`Global, LFQ`))
+                          style = styleOn7,
+                          class = "plot-container",
+                          fix_plotly_sizing(plotly_Venn$`Global, LFQ`)))
         },
       ),
       br(),
@@ -1282,17 +1188,17 @@ make_strt_tab <- \(shiny = TRUE) {
 make_QC_tab <- \(shiny = TRUE,
                  plotsList = QC_plotLys) {
   myCol <- tolower(viridis::viridis(6L, alpha = 0.2)[5L])
+  QC_comments <- allComments[names(plotsList)]
   if (shiny) {
     tagList(tags$div(
-      selectInput("QC1", "", names(plotsList), names(plotsList)[1L]),
+      selectInput("QC", "", names(plotsList), names(plotsList)[1L]),
       fluidRow(column(8L,
-                      plotlyOutput("QCplotLy", height = plotHght)),
+                      withSpinner(plotlyOutput("QCplotLy", height = plotHght))),
                column(4L,
                       uiOutput("QCtxt"))),
       br(),
       style = paste0("background: ", myCol, ";")))
   } else {
-    QC_comments <- allComments[names(plotsList)]
     tagList(tags$div(
       make_select_tag("myQC",
                       "",
@@ -1304,13 +1210,13 @@ make_QC_tab <- \(shiny = TRUE,
         fluidRow(column(8L,
                         tags$div(id = paste0("QC_", i),
                                  style = if (i == 1L) { "display: block;" } else { "display: none;" },
-                                 plotsList[[nm]])),
+                                 class = "plot-container",
+                                 fix_plotly_sizing(plotsList[[nm]], plotHght))),
                  column(4L,
                         make_comment_ui(nm,
-                                        FALSE,
+                                        shiny,
                                         QC_comments,
-                                        nm == names(plotsList)[1L],
-                                        "QCcomment_")))
+                                        nm == names(plotsList)[1L])))
       }),
       br(),
       tags$script(HTML("document.getElementById('myQC').addEventListener('change', function() {
@@ -1347,6 +1253,7 @@ make_matmet_tab <- \(matmeth = matmethTxt,
       style = paste0("background: ", myCol, ";")))
   } else {
     tagList(tags$div(
+      em(HTML("This is an automatically-generated materials and methods template and may contain inaccuracies. Please remember to check with us the details before including this in a publication!")),
       h5(matmethSections[1L]),
       tags$p(matmeth[1L]),
       br(),
@@ -1366,7 +1273,7 @@ make_ui_noReps <- \(tabNames = myTabs,
       return(tabPanel(x,
                       make_strt_tab(shiny = shiny)))
     }
-    if (showSmplGrpTabs && (x %in% Exp)) {
+    if (x %in% Exp) {
       return(tabPanel(paste0("sample = ", x),
                       make_smpl_tab(x,
                                     shiny = shiny)))
@@ -1389,6 +1296,7 @@ make_ui_noReps <- \(tabNames = myTabs,
 }
 make_ui_Reps <- \(tabNames = myTabs,
                   shiny = TRUE) {
+  #tabNames <- tabNames[c(1L, 8L, 13L)]
   tabs <- lapply(tabNames, \(x) {
     if (x == "Dataset overview") {
       return(tabPanel(x,
@@ -1403,6 +1311,17 @@ make_ui_Reps <- \(tabNames = myTabs,
       return(tabPanel(paste0("contrast = ", x),
                       make_ctrst_tab(contr = x,
                                      shiny = shiny)))
+    }
+    if (length(PTMs)) {
+      tmp <- unlist(lapply(PTMs, \(Ptm) { paste0(Ptm, ": ", myContrasts$Contrast)}))
+      if (x %in% tmp) { #x <- tmp[1L]
+        Ptm <- sub(": .*", "", x)
+        contr <- sub(topattern(paste0(Ptm, ": ")), "", x)
+        return(tabPanel(paste0(Ptm, " contrast = ", contr),
+                        make_ctrst_tab(contr = contr,
+                                       shiny = shiny,
+                                       ptm = Ptm)))
+      }
     }
     if (x == "Proteins of interest") {
       return(tabPanel(x,
@@ -1421,350 +1340,3 @@ make_ui_Reps <- \(tabNames = myTabs,
   return(bslib::navset_tab(!!!tabs))
 }
 make_ui <- if (scrptType == "noReps") { make_ui_noReps } else { make_ui_Reps }
-
-# Plot HTML paths
-#myPlots <- list.files(paste0(wd, "/Ranked abundance/LFQ"), "\\.html$", full.names = TRUE)
-#names(myPlots) <- gsub(".* - |\\.html$", "", myPlots)
-#nPl <- length(myPlots)
-myTabs <- nms <- if (scrptType == "noReps") {
-  c("Dataset overview", Exp)
-} else {
-  c("Dataset overview", smplGrps, myContrasts$Contrast)
-}
-if (prot.list.Cond) {
-  if (tstCov) {
-    allProt <- names(covPlots)[vapply(names(covPlots), \(x) { length(covPlots[[x]]$logInt) > 0L }, TRUE)]
-    dfltProt <- allProt[1L]
-    nms <- union(nms, allProt)
-  } else {
-    allProt <- do.call(paste, c(db[match(prot.list, db$`Protein ID`), c("Protein ID", "Common Name")], sep = "_"))
-    dfltProt <- allProt[1L]
-  }
-  myTabs <- union(myTabs, "Proteins of interest")
-} else {
-  dfltProt <- c()
-}
-myTabs <- union(myTabs, c("QC", "Materials and methods"))
-nms <- union(nms, c("QC", names(QC_plotLys)))
-dfltComment <- paste0(nrow(PG), " protein groups were identified from ", nrow(ev), " PSMs", " corresponding to ", nrow(pep),
-                      " distinct peptidoforms. ...")
-if ((!exists("allComments")) || (!is.character(allComments))) {
-  allComments <- setNames(vapply(nms, \(nm) {
-    if (nm == "Dataset overview") {
-      dfltComment
-    } else { "" }
-  }, ""), nms)
-}
-nms_ <- setdiff(nms, names(allComments))
-if (length(nms_)) { # Generate defaults
-  allComments[nms_] <- ""
-  if ("Dataset overview" %in% nms_) { allComments$"Dataset overview" <- dfltComment }
-}
-allComments %<o% allComments[nms]
-
-#
-quantLst <- setNames(lapply(names(ggQuantLy), \(tp) { names(ggQuantLy[[tp]]) }), names(ggQuantLy))
-quantLst <- listMelt(quantLst, ColNames = c("Sample", "Type"))
-quantLst <- aggregate(quantLst$Type, list(quantLst$Sample), list)
-colnames(quantLst) <- c("Sample", "Types")
-if (scrptType == "withReps") {
-  quantLst$Sample <- cleanNms(quantLst$Sample)
-}
-dfltQuant <- quantLst[, "Sample", drop = FALSE]
-dfltQuant$Type <- vapply(quantLst$Types, \(x) { x[[1L]] }, "")
-quantLst <- setNames(quantLst$Types, quantLst$Sample)
-dfltQuant <- setNames(dfltQuant$Type, dfltQuant$Sample)
-quantMeth <- unique(unlist(quantLst))
-#
-appPage <- 1L
-appNm <- "Edit report"
-ui <- fluidPage(useShinyjs(),
-                extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
-                tags$head(tbl_css),
-                titlePanel(tag("u", appNm),
-                           appNm),
-                br(),
-                fluidRow(column(4L,
-                                h2(dtstNm),
-                                br()),
-                         column(8L,
-                                actionBttn("xprtBtn", " export final html report", icon = icon("file-export"), color = "success", style = "pill"),
-                                br(),
-                                br(),
-                                uiOutput("xprtMsg"))),
-                br(),
-                uiOutput("myUI"),
-                br(),
-                br())
-server <- \(input, output, session) {
-  # if (prot.list.Cond) {
-  #   PROT <- reactiveVal(dfltProt)
-  # }
-  myExp <- if (scrptType == "noReps") { Exp } else { setNames(smplGrps, NULL) }
-  QUANT <- reactiveVal(dfltQuant)
-  XPRTMSG <- reactiveVal(NULL)
-  MYPROT <- reactiveVal(dfltProt)
-  SAMPLE <- reactiveVal(myExp[1L])
-  NORMMETH <- reactiveVal("None")
-  # Render UI
-  output$xprtMsg <- renderUI(XPRTMSG())
-  output$myUI <- renderUI(make_ui())
-  if (heatMaps_ON) {
-    output$heatMap <- renderPlotly(plotLeatMaps$Global[[NORMMETH()]]$Plot)
-  }
-  if (PCA_ON) {
-    output$PCA <- renderPlotly(dimRedPlotLy$PG$PCA)
-  }
-  if (Venn_ON) {
-    output$Venn <- renderPlotly(plotly_Venn$`Global, LFQ`)
-  }
-  #
-  lapply(myExp, \(exp) {
-    exp2 <- if (scrptType == "noReps") { exp } else { names(smplGrps)[match(exp, smplGrps)] }
-    idQ <- paste0("quant_", exp)
-    idQLy <- paste0("quantLy_", exp)
-    idSmplPGTbl <- paste0("PG_table_", exp)
-    output[[idQLy]] <- renderPlotly(ggQuantLy[[input[[idQ]]]][[exp2]]$plotly)
-    output[[idSmplPGTbl]] <- renderUI(make_smpl_tbl_ui(exp)) #... or exp2?
-  })
-  #
-  if (scrptType == "withReps") {
-    lapply(myContrasts$Contrast, \(contr) {
-      # Don't use a for loop here! In absence of a reactive component to how we access the plotly plot in the list,
-      # this would display the plots from the last contrast in all contrast tabs!
-      contr2 <- gsub(" ", "_", contr)
-      output[[paste0(contr2, "_volcPlot")]] <- renderPlotly(volcPlotly$"t-test"[[paste0("Volcano plot ", contr)]]$Plot)
-      output[[paste0(contr2, "_PG_tbl")]] <- renderUI(make_ctrst_tbl_ui(contr))
-      if (enrichGO) {
-        output[[paste0(contr2, "_GObars")]] <- renderPlotly(GO_plot_ly$PG$"t-test"[[contr]]$Bar)
-      }
-      if (F.test) {
-        # Add F-test part here... or maybe dropdown to choose f-/F-test... or drop F-test altogether?
-      }
-      if (runGSEA) {
-        GSEA_IDs <- paste0(contr2, "_GSEA", as.character(1L:4L))
-        output[[GSEA_IDs[1L]]] <- renderPlotly(GSEA_plotly$standard$PG$`GSEA dotplot`[[contr]])
-        output[[GSEA_IDs[2L]]] <- renderPlotly(GSEA_plotly$standard$PG$`GSEA enrichment map`[[contr]])
-        output[[GSEA_IDs[3L]]] <- renderPlotly(GSEA_plotly$standard$PG$`GSEA ridge plot`[[contr]])
-        output[[GSEA_IDs[4L]]] <- renderPlotly(GSEA_plotly$standard$PG$`GSEA category net plot`[[contr]])
-      }
-      saintIDs <- c(paste0("SAINTexpress volcano plot ", contr),
-                    paste0(contr2, c("_SAINT_volcPlot", "_SAINT_GObars")))
-      if (saintExprs && (saintIDs[1L] %in% names(volcPlotly$SAINTexpress))) {
-        output[[saintIDs[2L]]] <- renderPlotly(volcPlotly$SAINTexpress[[saintIDs[1L]]]$Plot)
-        if (enrichGO) {
-          output[[saintIDs[3L]]] <- renderPlotly(GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar)
-        }
-      }
-    })
-  }
-  if (globalGO && (!is.null(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar))) {
-    output$GO_enrich_Dataset <- renderPlotly(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar)
-  }
-  #
-  # Event observers
-  observeEvent(input$myHeatMap, { NORMMETH(input$myHeatMap) })
-  #  - Comments
-  sapply(names(allComments), \(nm) {
-    observeEvent(input[[paste0("comment_", nm)]], {
-      allComments[[nm]] <- input[[paste0("comment_", nm)]]
-      allComments <<- allComments
-    })
-  })
-  #  - Quant method
-  sapply(myExp, \(exp) {
-    exp2 <- if (scrptType == "noReps") { exp } else { names(smplGrps)[match(exp, smplGrps)] }
-    idQ <- paste0("quant_", exp)
-    idQLy <- paste0("quantLy_", exp)
-    observeEvent(input[[idQ]], {
-      dfltQuant <- QUANT()
-      dfltQuant[exp] <- input[[idQ]]
-      QUANT(dfltQuant)
-      assign("dfltQuant", dfltQuant, envir = .GlobalEnv)
-      # Update plot
-      output[[idQLy]] <- renderPlotly(ggQuantLy[[input[[idQ]]]][[exp2]]$plotly)
-    })
-  })
-  #  - Proteins tab
-  if (prot.list.Cond) {
-    if (scrptType == "noReps") {
-      output$ratioPlot <- renderPlotly(ratioPlots[[MYPROT()]])
-    }
-    output$coverPlot <- renderPlotly({
-      p <- covPlots[[MYPROT()]]$logInt[[SAMPLE()]]
-      if (is.null(p)) {
-        return(plot_ly(type = "scatter",
-                       mode = "markers") |>
-                 layout(xaxis = list(visible = FALSE),
-                        yaxis = list(visible = FALSE),
-                        annotations = list(list(text = "No identifications for this protein in this sample!",
-                                                x = 0.5,
-                                                y = 0.5,
-                                                xref = "paper",
-                                                yref = "paper",
-                                                showarrow = FALSE))))
-      }
-      return(p)
-    })
-    output$protComment <- renderUI(make_comment_ui(MYPROT()))
-    if (peptidoTst) {
-      output$protPep <- renderUI({
-        make_smpl_tbl_ui(tab = "All peptidoforms",
-                         filt = MYPROT())
-      })  
-    }
-    if (tstCov && (length(allProt) > 1L)) {
-      observeEvent(input$myProtein, { MYPROT(input$myProtein) })
-    }
-    if (length(myExp) > 1L) {
-      observeEvent(input$mySample, {
-        SAMPLE(input$mySample)
-      })
-    }
-  }
-  #  - QC tab
-  observeEvent(input$QC1, {
-    output$QCplotLy <- renderPlotly(QC_plotLys[[input$QC1]])
-    output$QCtxt <- renderUI(make_comment_ui(input$QC1))
-  })
-  #  - Materials and methods
-  observeEvent(input$MatMet_SamplePrep, {
-    txt <- matmethTxt
-    txt[matmethSections[1L]] <- input$MatMet_SamplePrep
-    assign("matmethTxt", txt, envir = .GlobalEnv)
-  })
-  observeEvent(input$MatMet_LCMS, {
-    txt <- matmethTxt
-    txt[matmethSections[2L]] <- input$MatMet_LCMS
-    assign("matmethTxt", txt, envir = .GlobalEnv)
-  })
-  observeEvent(input$MatMet_DataAnalysis, {
-    txt <- matmethTxt
-    txt[matmethSections[3L]] <- input$MatMet_DataAnalysis
-    assign("matmethTxt", txt, envir = .GlobalEnv)
-  })
-  #  - Render final report
-  observeEvent(input$xprtBtn, {
-    XPRTMSG(em("Exporting .html report, this will take a few seconds...",
-               style = "color:green",
-               .noWS = "outside"))
-    later::later(\() {
-      # Wrapping in this allows displaying the message before export completes
-      # 1. Rebuild the SAME UI we use in the app
-      page <- bslib::page_fluid(tags$head(tbl_css),
-                                tags$script(HTML("document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('select[data-default]').forEach(function(sel) {
-    sel.value = sel.dataset.default;
-    sel.dispatchEvent(new Event('change'));
-  });
-});")),
-                                report_header,
-                                make_ui(shiny = FALSE))
-      # 2. Wrap as browsable HTML
-      page <- htmltools::browsable(page)
-      # 3. Save to disk
-      htmltools::save_html(page, htmlRprt_fl)
-      #
-      assign("appRunTst", TRUE, envir = .GlobalEnv)
-      stopApp()
-    }, 0.1)
-  })
-  session$onSessionEnded(\() { stopApp() })
-}
-#eval(parse(text = run_App), envir = .GlobalEnv)
-runKount <- 0L
-if (exists("appRunTst")) { rm(appRunTst) }
-while ((!runKount) || (!exists("appRunTst")) || (!file.exists(htmlRprt_fl))) {
-  eval(parse(text = run_App), envir = .GlobalEnv)
-  shinyCleanup()
-  runKount <- runKount + 1L
-}
-
-# We now have our html... but it depends on local libraries...
-# ---> We want those embedded in it so it is fully portable!
-h2 <- h1 <- readr::read_lines(htmlRprt_fl)
-rg1 <- grep("</?head>", h1) + c(1L, -1L)
-rg1 <- rg1[1L]:rg1[2L]
-hd1 <- h1[rg1]
-hd1 <- data.frame(original = hd1)
-hd1$new <- hd1$original
-g <- grep("^ *<((style)|(script)|(link))( *[^>]+)?>", hd1$original)
-hd1$original[g]
-require(base64enc)
-read_file <- \(path) {
-  paste(readr::read_lines(path, warn = FALSE), collapse = "\n")
-}
-file_to_data_uri <- \(path) {
-  ext <- tools::file_ext(path)
-  mime <- switch(tolower(ext),
-                 "woff2" = "font/woff2",
-                 "woff"  = "font/woff",
-                 "ttf"   = "font/ttf",
-                 "png"   = "image/png",
-                 "jpg"   = "image/jpeg",
-                 "jpeg"  = "image/jpeg",
-                 "svg"   = "image/svg+xml",
-                 "gif"   = "image/gif",
-                 "application/octet-stream")
-  paste0("data:",
-         mime,
-         ";base64,",
-         base64enc::base64encode(path))
-}
-# - embed scripts
-read_asset <- \(path) {
-  readChar(path, # Do not use readLines, which isn't binary-safe!
-           nchars = file.info(path)$size,
-           useBytes = TRUE)
-}
-inline_script <- \(path) {
-  txt <- paste(read_asset(path), collapse = "")
-  txt <- gsub("</script",
-              "<\\/script",
-              txt,
-              ignore.case = TRUE)
-  paste0("<script>\n",
-         txt,
-         "\n</script>")
-}
-gs <- grep("^ *<script src=\"", hd1$original)
-hd1$new[gs] <- vapply(sub("\".*", "", sub("^ *<script src=\"", paste0(wd, "/"), hd1$original[gs])), inline_script, "")
-# - embed css
-inline_css <- \(path) {
-  paste0(  "<style>\n",
-           read_asset(path),
-           "\n</style>")
-}
-gc <- grepl("^ *<link href=\"", hd1$original)
-hd1$new[gc] <- vapply(sub("\".*", "", sub("^ *<link href=\"", paste0(wd, "/"), hd1$original[gc])), inline_css, "")
-h2[rg1] <- hd1$new
-write(h2, htmlRprt_fl)
-removeDirectory(paste0(wd, "/lib"), TRUE, FALSE)
-
-# Write Mat Meth template as separate file
-MatMetCalls$Texts$WetLab <- matmethTxt["Samples preparation"]
-MatMetCalls$Texts$LCMS <- matmethTxt["LC-MS/MS analysis"]
-MatMetCalls$Texts$DatAnalysis <- matmethTxt["Data analysis"]
-setwd(wd)
-tmp <- paste0("MatMet <- ", unlist(MatMetCalls$Calls))
-tmpSrc <- paste0(wd, "/tmp.R")
-write(tmp, tmpSrc)
-MatMetFl <- paste0(wd, "/Materials and methods_WIP.docx")
-tst <- try({
-  source(tmpSrc)
-  #rstudioapi::documentOpen(tmpSrc)
-  MatMet %<o% MatMet
-  print(MatMet, target = MatMetFl)
-}, silent = TRUE)
-if (inherits(tst, "try-error")) {
-  warning("Couldn't write materials and methods template, investigate...")
-}
-unlink(tmpSrc)
-
-try({
-  rm(ggQuantLy,
-     plotLeatMaps,
-     dimRedPlotLy,
-     plotly_Venn,
-     QC_plotLys)
-}, silent = TRUE)

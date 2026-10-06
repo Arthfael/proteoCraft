@@ -13,8 +13,19 @@ l <- length(myPlotLys)
 if (l) {
   tmpFls <- paste0(dr, "/tmp", 1L:l, ".RDS")
   invisible(lapply(1L:l, \(i) { #i <- 1L
-    x <- myPlotLys[[i]]
-    pl <- plotly::plotly_build(x$Plot) # Solution for when a plotly is buggy: re-render it before exporting
+    pl <- myPlotLys[[i]]
+    if (!inherits(pl, "plotly")) {
+      stopifnot("Plot" %in% names(pl))
+      pl <- pl$Plot
+      stopifnot(inherits(pl, "plotly"))
+    }
+    pl$x$layout$xaxis$autorange <- TRUE
+    pl$x$layout$yaxis$autorange <- TRUE
+    pl <- htmlwidgets::onRender(pl, global_autorange)
+    pl <- plotly::config(pl,
+                         modeBarButtonsToRemove = c("select2d", "lasso2d"))
+    pl <- plotly::plotly_build(pl)
+    pl <- plotly::partial_bundle(pl)
     # keep as plain JSON string (compact, cheap to ship)
     pl <- list(data = pl$x$data,
                layout = pl$x$layout,
@@ -44,7 +55,7 @@ if (l) {
     w$x$config  <- def$config
     w <- plotly::partial_bundle(w)
     pth <- file.path(dr, plot_Paths[i])
-    htmlwidgets::saveWidget(w, pth, selfcontained = TRUE)
+    htmlwidgets::saveWidget(w, pth)
     setwd(curDir)
     return(pth)
   }

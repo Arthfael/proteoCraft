@@ -12,6 +12,7 @@
 #' @param asRatios Is the data fed to the intensities argument actually ratios data (default = FALSE)? If TRUE, this changes the default color scale from "viridis" to "plasma"
 #' @param I_eq_L Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631
 #' @param ttl Title of the plot.
+#' @param return Should we return the final plotly plot? Default = FALSE
 #'
 #' @returns
 #' This function does not return anything.
@@ -29,7 +30,8 @@ cov3D <- function(pdb,
                   display = TRUE,
                   asRatios = FALSE,
                   I_eq_L = TRUE,
-                  ttl = NULL) {
+                  ttl = NULL,
+                  return = FALSE) {
   TESTING <- FALSE
   #DefArg(cov3D) ;TESTING = TRUE
   #pdb = pdbFl; peptides = tmpDat$Group.1; path = paste0(Par_dir, "/FLAG_KCC2_coverage (", pdbNm, ").html"); intensities = tmpDat$x
@@ -264,17 +266,51 @@ cov3D <- function(pdb,
                                  title = list(text = ttl, x = 0.5, y = 0.95, xanchor = "center", yanchor = "bottom"))
   }
   #
+  my3dplotly$x$layout$xaxis$autorange <- TRUE
+  my3dplotly$x$layout$yaxis$autorange <- TRUE
+  my3dplotly <- htmlwidgets::onRender(my3dplotly,
+                                      "function(el, x) {
+  var gd = el;
+  function globalRange(axisPrefix) {
+    var axes = Object.keys(gd._fullLayout).filter(function(k) {
+      return k.match(new RegExp('^' + axisPrefix + 'axis[0-9]*$'));
+    });
+    if (axes.length <= 1)
+      return;
+    var minVal = Infinity;
+    var maxVal = -Infinity;
+    axes.forEach(function(name) {
+      var axis = gd._fullLayout[name];
+      if (axis && axis.range) {
+        minVal = Math.min(minVal, axis.range[0], axis.range[1]);
+        maxVal = Math.max(maxVal, axis.range[0], axis.range[1]);
+      }
+    });
+    if (isFinite(minVal) && isFinite(maxVal)) {
+      axes.forEach(function(name) {
+        Plotly.relayout(gd, name + '.range', [minVal, maxVal]);
+      });
+    }
+  }
+  globalRange('x');
+  globalRange('y');
+}")
+  my3dplotly <- plotly::config(my3dplotly,
+                               modeBarButtonsToRemove = c("select2d", "lasso2d"))
   my3dplotly <- plotly::plotly_build(my3dplotly)
+  #my3dplotly <- plotly::partial_bundle(my3dplotly)
   #path <- paste0(wdBckp, "test.html")
   if (!misFun(path)) {
     dir <- dirname(path)
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
     setwd(dir) # Somehow the self-contained argument of saveWidget only works if the current work directory is the same as the location of the destination html 
-    htmlwidgets::saveWidget(plotly::partial_bundle(my3dplotly), path, selfcontained = TRUE)
+    htmlwidgets::saveWidget(plotly::partial_bundle(my3dplotly), path)
+    #htmlwidgets::saveWidget(my3dplotly, path)
     setwd(wdBckp)
     if (display) { system(paste0("open \"", path, "\"")) }
   } else {
     if (display) { print(my3dplotly) }
   }
+  if (return) { return(my3dplotly) }
   return()
 }

@@ -14,6 +14,7 @@ L <- length(RSA$values)
 if (L <= 15L) { warning("WGCNA is not recommended below 15 samples!") } else {
   if (L <= 30L) { warning("Low number of samples, WGCNA modules reliability may be poor !") }
 }
+cat("Starting WGCNA analysis...\n")
 #
 # Global parameters
 hubThresh <- 0.8
@@ -272,6 +273,8 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
   }
   runKount <- 0L
   while ((!runKount)||(!exists("appRunTest"))) {
+    g <- shiny:::.globals
+    g$appState <- NULL
     eval(parse(text = run_App), envir = .GlobalEnv)
     shinyCleanup()
     runKount <- runKount+1L
@@ -280,7 +283,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
   goOn <- FALSE
   roundWeGo <- !goOn
   while ((roundWeGo)&&(pwrEst >= 1)) {
-    cat("Power level =", pwrEst, "\n")
+    cat("   Power level =", pwrEst, "\n")
     # Adjacency
     adjacency <- adjacency(exprData, power = pwrEst)
     rownames(adjacency) <- colnames(adjacency) <- colnames(exprData)
@@ -610,12 +613,15 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         # dev.off()
       }
       #
-      # Perform GSEA analysis on each module of interest
-      dataType <- "PG"
-      GSEAmode <- "WGCNA"
-      Src <- paste0(libPath, "/extdata/Sources/GSEA.R")
-      #rstudioapi::documentOpen(Src)
-      source(Src)
+      if (runGSEA) {
+        cat("\n")
+        # Perform GSEA analysis on each module of interest
+        dataType <- "PG"
+        GSEAmode <- "WGCNA"
+        Src <- paste0(libPath, "/extdata/Sources/GSEA.R")
+        #rstudioapi::documentOpen(Src)
+        source(Src)
+      }
       #
       #
       if (exists("DatAnalysisTxt")) {

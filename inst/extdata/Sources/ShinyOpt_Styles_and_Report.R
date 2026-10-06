@@ -7,7 +7,7 @@ if (shinyOpt == shinyOpts[1L]) {
   #run_App %<o% "print(shiny::shinyApp(ui, server, options = list(height = screenRes$height, width = screenRes$width)))"
   run_App %<o% c("myApp <- shiny::shinyApp(ui, server, options = list(height = screenRes$height, width = \"100%\"))",
                  "shiny::runApp(myApp)")
-  #myViewer %<o% shiny::dialogViewer("Viewer", width = screenRes$width, height = screenRes$height)
+  # myViewer %<o% shiny::dialogViewer("Viewer", width = screenRes$width, height = screenRes$height)
   # run_App %<o% c("myApp <- shiny::shinyApp(ui, server)",
   #                "shiny::runGadget(myApp, viewer = myViewer, stopOnCancel = FALSE)")
 }
@@ -241,3 +241,34 @@ SignifList %<o% list(`Individual Expr` = 5L,
 ColList %<o% list(`Cluster` = "black")
 HAlignList %<o% list(`Cluster` = "center")
 ExcelMax %<o% 32767L
+
+# For plotly widgets
+global_autorange %<o% "function(el, x) {
+  var gd = el;
+  function apply() {
+    if (done) return;
+    if (!el._fullLayout || !el.offsetWidth || !el.offsetHeight) return;
+    var update = {};
+    ['x', 'y'].forEach(function(prefix) {
+      var re = new RegExp('^' + prefix + 'axis[0-9]*$');
+      var names = Object.keys(el._fullLayout).filter(function(k) { return re.test(k); });
+      names = names.filter(function(n) {
+        var ax = el._fullLayout[n];
+        return ax && ax.range && (ax.type === 'linear' || ax.type === 'log');
+      });
+      if (names.length <= 1) return;
+      var lo = Infinity, hi = -Infinity;
+      names.forEach(function(n) {
+        var r = el._fullLayout[n].range;
+        lo = Math.min(lo, r[0], r[1]);
+        hi = Math.max(hi, r[0], r[1]);
+      });
+      if (isFinite(lo) && isFinite(hi)) {
+        names.forEach(function(n) { update[n + '.range'] = [lo, hi]; });
+      }
+    });
+    done = true;
+    if (Object.keys(update).length) Plotly.relayout(gd, update);
+  }
+  el.on('plotly_afterplot', apply);
+}"

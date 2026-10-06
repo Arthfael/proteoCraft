@@ -662,6 +662,8 @@ while (!areWeGood) {
       #observeEvent(input$cancel, { stopApp() })
       session$onSessionEnded(\() { stopApp() })
     }
+    g <- shiny:::.globals
+    g$appState <- NULL
     eval(parse(text = run_App))
     shinyCleanup()
     FactorsLevels <- setNames(lapply(Factors, \(fct) {
@@ -934,6 +936,8 @@ while (!areWeGood) {
   }
   runKount <- 0L
   while ((!runKount)||(!exists("ExpData3"))) {
+    g <- shiny:::.globals
+    g$appState <- NULL
     eval(parse(text = run_App))
     shinyCleanup()
     runKount <- runKount+1L

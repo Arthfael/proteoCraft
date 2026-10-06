@@ -88,9 +88,11 @@ if ("Target" %in% colnames(Exp.map)) {
       session$onSessionEnded(\() { stopApp() })
     }
     # Modify App so that any remaining NAs turn off saving/closing the App!
+    g <- shiny:::.globals
+    g$appState <- NULL
     eval(parse(text = run_App), envir = .GlobalEnv)
     shinyCleanup()
-    w1 <- which((nchar(targProt) > 0L)&(!targProt %in% protHeads3))
+    w1 <- which((nchar(targProt) > 0L) & (!targProt %in% protHeads3))
     w2 <- which(targProt %in% protHeads3)
     if (length(w1)) {
       tmp <- lapply(paste0("https://rest.uniprot.org/uniprotkb/", targProt[w1], ".fasta"), \(x) {

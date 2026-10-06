@@ -163,21 +163,27 @@ if (LabelType == "Isobaric") {
   tmp[[k]] <- factor(cleanNms(tmp[[k]]), levels = Iso)
 }
 ttl <- "Contributions to TIC"
-plot <- ggplot(tmp) +
-  geom_bar(stat = "identity", aes(x = .data[[k]], y = `Total intensity`, fill = Organism)) +
-  theme_bw() + scale_fill_viridis(discrete = TRUE, begin = 0.8, end = 0.2) +
-  ggtitle(ttl, subtitle = "Summed TIC per peptide class") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+plot <- ggplot2::ggplot(tmp) +
+  ggplot2::geom_bar(stat = "identity",
+                    ggplot2::aes(x = .data[[k]], y = `Total intensity`, fill = Organism)) +
+  ggplot2::theme_bw() + viridis::scale_fill_viridis(discrete = TRUE, begin = 0.8, end = 0.2) +
+  ggplot2::ggtitle(ttl, subtitle = "Summed TIC per peptide class") +
+  ggplot2::theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 print(plot) # This type of QC plot does not need to pop up, the side panel is fine
 suppressMessages({
-  ggsave(paste0(wd, "/Summary plots/", ttl, ".svg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
+  ggplot2::ggsave(paste0(wd, "/Summary plots/", ttl, ".svg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
 })
-plotLy <- ggplotly(plot, tooltip = c("x", "y", "fill"))
+plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y", "fill"))
+plotLy$x$layout$xaxis$autorange <- TRUE
+plotLy$x$layout$yaxis$autorange <- TRUE
+plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
 plotLy <- plotly::config(plotLy,
                          modeBarButtonsToRemove = c("select2d", "lasso2d"))
-plotLy <- plotly_build(plotLy)
+plotLy <- plotly::plotly_build(plotLy)
+#plotLy <- plotly::partial_bundle(plotLy)
 setwd(paste0(wd, "/Summary plots"))
-saveWidget(partial_bundle(plotLy), paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
+htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
+#htmlwidgets::saveWidget(plotLy, paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)
 if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
 if (!exists("QC_plotLys")) { QC_plotLys <- list() }

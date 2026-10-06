@@ -105,7 +105,7 @@ ontoFls <- data.frame(File = paste0(homePath, "/", c("Tissues",
                                                                             "Fly",
                                                                             "Worms"))),
                                     ".csv"))
-ontoFls$Name <- gsub("\\.csv$", "", basename(ontoFls$File))
+ontoFls$Name <- sub("\\.csv$", "", basename(ontoFls$File))
 ontoFls$Exists <- file.exists(ontoFls$File)
 if (sum(!ontoFls$Exists)) {
   proteoCraft::Configure()
@@ -686,6 +686,15 @@ if (reload_SDRF) {
     reload_SDRF <- FALSE
   }
 }
+#
+Frac.map2 <- Frac.map2[, setdiff(colnames(Frac.map2), c("Raw file", "Search", "Unique.Frac.ID"))] # For now - if we start supporting different enzymes this may have to change
+#View(Frac.map2)
+# I sometimes have set different fraction numbers to the same file in different searches
+# This will not do here:
+tst <- do.call(paste, c(Frac.map2[, setdiff(colnames(Frac.map2), c("Fraction", "PTM-enriched"))], sep = " | "))
+tst <- aggregate(1L:length(tst), list(tst), min)
+tst <- tst[order(tst$x),]
+Frac.map2 <- Frac.map2[tst$x,]
 nr <- nrow(Frac.map2)
 if (scrptType == "withReps") {
   if (LabelType == "LFQ") {
@@ -705,7 +714,7 @@ if (scrptType == "withReps") {
     tmp$FracRow <- 1L:nrow(tmp)
     tmp <- listMelt(tmp$ExpRow, tmp$FracRow, c("ExpRow", "FracRow"))
     k <- colnames(Frac.map2)
-    k <- setdiff(k, c("Unique.Frac.ID", "Use", "MQ.Exp"))
+    k <- setdiff(k, c("Use", "MQ.Exp"))
     tmp[, k] <- Frac.map2[tmp$FracRow, k]
     k <- colnames(Exp.map)
     k <- grep("^([A-Z][a-z]{2}){2,}$", k, value = TRUE, invert = TRUE)
@@ -713,7 +722,7 @@ if (scrptType == "withReps") {
     tmp[, k] <- Exp.map[tmp$ExpRow, k]
     tmp$FracRow <- NULL
     tmp$ExpRow <- NULL
-    tmp$`Isobaric label details` <- paste0(IsobarLab, gsub("^[A-Za-z]+", "", tmp$`Isobaric label details`))
+    tmp$`Isobaric label details` <- paste0(IsobarLab, sub("^[A-Za-z]+", "", tmp$`Isobaric label details`))
     # Hard fix
     w <- which(tmp$`Isobaric label details` == "TMT126C")
     if (length(w)) { tmp$`Isobaric label details`[w] <- "TMT126" }
@@ -734,6 +743,7 @@ if (reload_SDRF && (nrow(SDRF) != nrow(Frac.map2))) {
   reload_SDRF <- FALSE
 }
 nr <- nrow(Frac.map2) # Update just in case
+#
 if (!reload_SDRF) {
   SDRF <- data.frame("source name" = paste0("sample ", 1L:nr),
                      "characteristics[organism]" = tolower(mainOrg),
@@ -766,7 +776,7 @@ if (!"comment[cleavage agent details]" %in% colnames(SDRF)) {
   SDRF$"comment[cleavage agent details]" <- #"NT=Trypsin;AC=MS:1001251;CS=(?⇐[KR])(?!P)"
     "NT=Trypsin;AC=MS:1001251"
 }
-
+rws <- seq_len(nr)
 #
 SDRF2 <- SDRF[, c("comment[data file]", "comment[fraction identifier]"), drop = FALSE]
 colnames(SDRF2) <- c("MS raw file", "Fraction")
@@ -774,7 +784,7 @@ if (LabelType == "Isobaric") {
   SDRF2 <- cbind(Frac.map2[, "Sample name", drop = FALSE],
                  SDRF2)
 }
-rws <- seq_len(nr)
+#
 wTest0 <- setNames(vapply(1L:nrow(myOntDF), \(i) { #i <- 1L
   x <- max(nchar(c(myOntDF$myOntology[i],
                    get(paste0(myOntDF$myOntology[i], 2))))) + 6L
@@ -1028,6 +1038,8 @@ if (pyTest) {
   a <- system(cmd, intern = TRUE)
   #openwd(dirname(sdrfPth))
   if ((length(a) == 1L) && (a == "Everything seems to be fine. Well done.")) {
-    cat(a, "\n... but remember: it is always a good idea to also check it manually!\n")
+    cat(a, "\n... but remember: it is always a good idea to also check it manually!\n\n")
+  } else {
+    cat(paste(a, collapse = "\n"), "\n\n")
   }
 }

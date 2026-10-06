@@ -394,6 +394,8 @@ Shiny.bindAll(table.table().node());"))
 }
 runKount <- 0L
 while ((!runKount) || (!exists("ExpData3"))) {
+  g <- shiny:::.globals
+  g$appState <- NULL
   eval(parse(text = run_App), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount + 1L

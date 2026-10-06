@@ -10,14 +10,8 @@ bhFDRs %<o% sort(BH.FDR, decreasing = FALSE)
 samRoots %<o% c(sub(" -log10\\(", " ", sub("\\) - $", " - ", samRoot)),
                 samRoot,
                 paste0("SAM regulated-FDR=", paste(100*bhFDRs, collapse = "/"), "% FDR - "))
-samSubDir %<o% "Reg. analysis/SAM"
-ebamSubDir %<o% "Reg. analysis/EBAM"
 ebamRoot %<o% paste0("EBAM regulated-FDR=", paste(100*bhFDRs, collapse = "/"), "% FDR - ")
 #
-samDir <- paste0(wd, "/", samSubDir)
-ebamDir <- paste0(wd, "/", ebamSubDir)
-if (!dir.exists(samDir)) { dir.create(samDir, recursive = TRUE) }
-if (!dir.exists(ebamDir)) { dir.create(ebamDir, recursive = TRUE) }
 ROTS_res_fl %<o% paste0(wd, "/Reg. analysis/ROTS.RDS")
 limmaFits_fl %<o% paste0(wd, "/Reg. analysis/limmaFits.RDS")
 MSqRob_infer_fl %<o% paste0(wd, "/Reg. analysis/MSqRob.RDS")
@@ -33,6 +27,7 @@ if ((!dataType %in% names(limmaFits)) || (!inherits(limmaFits[[dataType]], "list
 }
 #
 source(parSrc)
+#rstudioapi::documentOpen(parSrc)
 #dataType <- "modPeptides" #dataType <- "PG"
 if (dataType == "modPeptides") {
   myData <- ptmpep
@@ -63,7 +58,15 @@ if (dataType == "PG") {
   namesCol <- "Leading protein IDs"
   namesRoot <- "PG"
   ohDeer <- paste0(wd, "/Reg. analysis/t-tests")
+  MSstatsDir <- paste0(ohDeer, "/MSstats")
+  if (!dir.exists(MSstatsDir)) { dir.create(MSstatsDir, recursive = TRUE) }
 }
+#
+samDir <- sub("/t-tests$", "/SAM", ohDeer)
+ebamDir <- sub("/t-tests$", "/EBAM", ohDeer)
+if (!dir.exists(samDir)) { dir.create(samDir, recursive = TRUE) }
+if (!dir.exists(ebamDir)) { dir.create(ebamDir, recursive = TRUE) }
+#
 quantCol <- paste0(intRef, RSA$values)
 if (!dir.exists(ohDeer)) { dir.create(ohDeer, recursive = TRUE) }
 
@@ -373,6 +376,21 @@ if (((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) || (dat
 
 # MSstats
 if ((dataType == "PG") && ("MSstats_list" %in% names(quantData_list))) {
+  #
+  # Work within MSstats dir to avoid saving logs in random places
+  setwd(MSstatsDir)
+  # Remove old logs if present
+  logFls <- list.files(MSstatsDir, "\\.log$", full.names = TRUE)
+  if (length(logFls)) {
+    for (fl in logFls) { unlink(fl) }
+  }
+  #
+  # Note on MSstats at PTM level:
+  # Currently MSstatsPTM (the MSstats-family package for PTMs) only takes as input sites, not peptidoforms!
+  # Thus, it doesn't fit here.
+  # Instead, I should first re-write modPeptides so it also creates a PTM-site table, which can then be fed to MSstatsPTM.
+  # Then this source can be re-written to also run on PTM-sites, in which case we will use MSstatsPTM in this chunk here.
+  #
   cat("   - MSstats test\n")
   if (hasBatch) {
     cat("       WARNING! MSstats as currently implemented in this workflow cannot handle batch effects -> we recommend rerunning with ComBat batch correction on!\n\n")
@@ -407,6 +425,7 @@ if ((dataType == "PG") && ("MSstats_list" %in% names(quantData_list))) {
   kols2 <- paste0(msstatsRoot, myContrasts$Contrast)
   myData[, kols1] <- msstatsPVal[, myContrasts$Contrast]
   myData[, kols2] <- -log10(msstatsPVal[, myContrasts$Contrast])
+  setwd(wd)
 }
 
 # Others (classic Student's and Welch's t-test, permutations test) and ROTC
@@ -571,7 +590,10 @@ if (length(whSingle)) {
       ROTS_res <- list()
     }
   }
-  ROTS_tmp <- try(setNames(lapply(whSingle, \(i) { #i <- 1L #i <- 2L #i <- 3L
+  clusterExport(parClust, list("myContrasts", "mySeed", "intRef"), envir = environment())
+  # Can't believe the below wasn't parallelized yet!!!
+  # In fact, it's so slow it should probably become parameter-dependent!
+  ROTS_tmp <- try(setNames(parLapply(parClust, whSingle, \(i) { #i <- 1L #i <- 2L #i <- 3L
     # Get two groups from the contrast
     A_ <- myContrasts$A_samples[[i]]
     B_ <- myContrasts$B_samples[[i]]

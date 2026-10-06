@@ -3,14 +3,12 @@
 #    GSEA uses external annotations and correlates it with the average fold change per comparison,
 #    to show trends as to whether a specific set in enriched or not.
 
-source(parSrc)
-
-GSEA_plotly_fl %<o% paste0(wd, "/Reg. analysis/GSEA/GSEA_plotly.RDS")
-if (!exists("GSEA_plotly")) {
-  if (file.exists(GSEA_plotly_fl)) { loadFun(GSEA_plotly_fl) } else { GSEA_plotly <- list() }
+if (GSEAmode == "standard") {
+  cat("   GSEA\n   ----\n")
 }
-if (!GSEAmode %in% names(GSEA_plotly)) { GSEA_plotly[[GSEAmode]] <- list() }
-GSEA_plotly[[GSEAmode]][[dataType]] <- list()
+if (GSEAmode == "WGCNA") {
+  cat("   GSEA on WGCNA results\n   ---------------------\n")
+}
 
 keyType <- "UNIPROT"
 idCol <- "Leading protein IDs"
@@ -18,6 +16,7 @@ if (!exists("GSEAmode")) { GSEAmode <- "standard" }
 stopifnot(GSEAmode %in% c("standard", "WGCNA"))
 if (GSEAmode == "standard") {
   if (dataType == "modPeptides") {
+    dataType2 <- Ptm
     myData <- ptmpep
     if (scrptType == "withReps") { ratRef <- ptms.ratios.ref }
     if (scrptType == "noReps") { ratRef <- PTMs_ratRf[length(PTMs_ratRf)] }
@@ -26,6 +25,7 @@ if (GSEAmode == "standard") {
     ohDeer <- paste0(wd, "/Reg. analysis/", ptm, "/GSEA")
   }
   if (dataType == "PG") {
+    dataType2 <- dataType
     myData <- PG
     if (scrptType == "withReps") { ratRef <- Prot.Rat.Root }
     if (scrptType == "noReps") { ratRef <- PG.rat.cols }
@@ -43,9 +43,11 @@ if (GSEAmode == "standard") {
 }
 if (GSEAmode == "WGCNA") {
   if (dataType == "modPeptides") {
-    warning("Parameters for modified peptides not written yet! Why are you even running this source?")
+    stop("Parameters for modified peptides not written yet! Why are you even running this source with these parameters?")
+    dataType2 <- Ptm
   }
   if (dataType == "PG") {
+    dataType2 <- dataType
     myData <- PGmodMembership
     myData$id <- colnames(exprData)
     idCol <- "id"
@@ -54,16 +56,32 @@ if (GSEAmode == "WGCNA") {
   }
   isOK <- TRUE
 }
+
+GSEA_plotly_fl %<o% paste0(wd, "/Reg. analysis/GSEA/GSEA_plotly.RDS")
+if ((!exists("GSEA_plotly")) && file.exists(GSEA_plotly_fl)) {
+  loadFun(GSEA_plotly_fl)
+}
+if (!exists("GSEA_plotly")) {
+  GSEA_plotly <- list()
+}
+if (!GSEAmode %in% names(GSEA_plotly)) { GSEA_plotly[[GSEAmode]] <- list() }
+GSEA_plotly[[GSEAmode]][[dataType2]] <- list()
+
 ohDeer <- paste0(ohDeer, c("", "/svg"))
 for (dr in ohDeer) {
   if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
 }
 if (exists("dirlist")) { dirlist <- union(dirlist, ohDeer) }
+packs <- c()
+exports <- c("packs", "idCol", "rankCol", "keyType", "cpParam", "Annotate", "rdsFls")
 if (isOK) {
   if (Annotate) {
+    
     # Either we can use the annotations we already have
-    if (!exists("GO_mappings")) { try(loadFun("GO_mappings.RDS"), silent = TRUE) }
-    if (!exists("GO_terms")) { try(loadFun("GO_terms.RDS"), silent = TRUE) }
+    if (!exists("GO_mappings_fl")) { GO_mappings_fl %<o% paste0(wd, "/GO_mappings.RDS") }
+    if (!exists("GO_terms_fl")) { GO_terms_fl %<o% paste0(wd, "/GO_terms.RDS") }
+    if (!exists("GO_mappings")) { try(loadFun(GO_mappings_fl), silent = TRUE) }
+    if (!exists("GO_terms")) { try(loadFun(GO_terms_fl), silent = TRUE) }
     if (sum(!c(exists("GO_mappings"), exists("GO_terms")))) {
       Src <- paste0(libPath, "/extdata/Sources/GO_prepare.R") # Doing this earlier but also keep latter instance for now
       #rstudioapi::documentOpen(Src)
@@ -147,20 +165,16 @@ if (isOK) {
     #myOrgAnnot <- hub[db$`Protein ID`]
     if (isOK) {
       orgDBpkg <- orgDBs$db[match(organism, orgDBs$Full)]
-      packs <- c("AnnotationDbi", orgDBpkg)
-      for (pck in packs) {
+      packs2 <- c("AnnotationDbi", orgDBpkg)
+      for (pck in packs2) {
         if (!require(pck, character.only = TRUE)) {
           pak::pak(pck, upgrade = FALSE, ask = FALSE)
         }
       }
-      for (pck in packs) {
+      for (pck in packs2) {
         library(pck, character.only = TRUE)
       }
-      clusterExport(parClust, "packs", envir = environment())
-      invisible(clusterCall(parClust, \() {
-        for (pck in packs) { library(pck, character.only = TRUE) }
-        return()
-      }))
+      packs <- union(packs, packs2)
       eval(parse(text = paste0("myKeys <- keytypes(", orgDBpkg, ")")))
       if (!"UNIPROT" %in% myKeys) {
         if ((organism == "Arabidopsis thaliana")&&("TAIR" %in% colnames(db))) {
@@ -172,20 +186,16 @@ if (isOK) {
   }
 }
 if (isOK) {
-  packs <- c("GO.db", "clusterProfiler", "BiocParallel", "pathview", "enrichplot", "DOSE")
-  for (pck in packs) {
+  packs3 <- c("GO.db", "clusterProfiler", "BiocParallel", "pathview", "enrichplot", "DOSE")
+  for (pck in packs3) {
     if (!require(pck, character.only = TRUE)) {
       pak::pak(pck, upgrade = FALSE, ask = FALSE)
     }
   }
-  for (pck in packs) {
+  for (pck in packs3) {
     library(pck, character.only = TRUE)
   }
-  clusterExport(parClust, "packs", envir = environment())
-  invisible(clusterCall(parClust, \() {
-    for (pck in packs) { library(pck, character.only = TRUE) }
-    return()
-  }))
+  packs <- union(packs, packs3)
   tmpDat <- myData[(nchar(myData[[idCol]]) > 0L) & (!is.na(myData[[idCol]])),
                    c(idCol, rankCol)]
   if (length(unique(tmpDat[[idCol]])) < nrow(tmpDat)) {
@@ -193,27 +203,32 @@ if (isOK) {
     colnames(tmpDat) <- c(idCol, rankCol)
   }
   cpParam <- SerialParam()
-  readr::write_rds(tmpDat, paste0(wd, "/tmpDat.RDS"))
-  exports <- list("idCol", "rankCol", "keyType", "wd", "cpParam", "Annotate", "wd")
+  rdsFls <- paste0(wd, "/", c("tmpDat",
+                              "term2Prot",
+                              "term2name",
+                              "gses",
+                              "minDB"),
+                   ".RDS")
+  readr::write_rds(tmpDat, rdsFls[1L])
   if (Annotate) {
-    readr::write_rds(term2Prot, paste0(wd, "/term2Prot.RDS"))
-    readr::write_rds(term2name, paste0(wd, "/term2name.RDS"))
+    readr::write_rds(term2Prot, rdsFls[2L])
+    readr::write_rds(term2name, rdsFls[3L])
   } else {
-    exports <- append(exports, "orgDBpkg")
+    exports <- c(exports, "orgDBpkg")
   }
+  source(parSrc)
   clusterExport(parClust, exports, envir = environment())
   invisible(clusterCall(parClust, \(x) {
-    require(clusterProfiler)
-    assign("tmpDat", readr::read_rds(paste0(wd, "/tmpDat.RDS")), envir = .GlobalEnv)
+    for (pck in packs) { library(pck, character.only = TRUE) }
+    assign("tmpDat", readr::read_rds(rdsFls[1L]), envir = .GlobalEnv)
     if (Annotate) {
-      assign("term2Prot", readr::read_rds(paste0(wd, "/term2Prot.RDS")), envir = .GlobalEnv)
-      assign("term2name", readr::read_rds(paste0(wd, "/term2name.RDS")), envir = .GlobalEnv)
-    } else {
-      require(orgDBpkg, character.only = TRUE)
+      assign("term2Prot", readr::read_rds(rdsFls[2L]), envir = .GlobalEnv)
+      assign("term2name", readr::read_rds(rdsFls[3L]), envir = .GlobalEnv)
     }
     return()
   }))
   #
+  cat("    - Running analysis...\n")
   f0 <- \(kol, userAnnot = Annotate) { #kol <- rankCol[1L]
     tmp <- setNames(tmpDat[[kol]],
                     gsub(";.*| - .*", "", tmpDat[[idCol]]))
@@ -252,7 +267,7 @@ if (isOK) {
                 lFC = tmp))
   }
   environment(f0) <- .GlobalEnv
-  gses <- parLapply(parClust, rankCol, f0)
+  gses <- clusterApplyLB(parClust, rankCol, f0)
   #
   # Rename
   names(gses) <- rankCol
@@ -260,28 +275,44 @@ if (isOK) {
     names(gses) <- cleanNms(gsub(topattern(ratRef), "", names(gses)))
   }
   #
-  unlink(paste0(wd, "/tmpDat.RDS"))
+  unlink(rdsFls[1L])
   if (Annotate) {
-    unlink(paste0(wd, "/term2Prot.RDS"))
-    unlink(paste0(wd, "/term2name.RDS"))
+    unlink(rdsFls[2L])
+    unlink(rdsFls[3L])
   }
   #
   #d <- GOSemSim::godata(annoDb = orgDBpkg, ont = "BP") # It seems to make sense to use BP here since we are interested in which biological processes are reacting to the perturbation
-  nCat <- 50L
   #
-  # GSEA dot plots
-  nmRoot <- "GSEA dotplot"
-  tmp <- setNames(lapply(names(gses), \(grp) { #grp <- names(gses)[1L]
-    gse <- gses[[grp]]$GSE
+  cat("    - Drawing plots...\n")
+  nmRoots <- paste0("GSEA ", c("dotplot",
+                               "enrichment map",
+                               "category net plot",
+                               "ridge plot"))
+  GSEA_plotFun <- \(grp, type) {
+    switch(type,
+           dotplot = GSEA_dotplotFun(grp),
+           enrichment = GSEA_enrichFun(grp),
+           net = GSEA_netFun(grp),
+           ridge = GSEA_ridgeFun(grp))
+  }
+  GSEA_dotplotFun <- \(x,
+                       nmRoot = nmRoots[1L],
+                       nCat = 50L) { #x <- plotsDF$GSE[1L] #x <- plotsDF$GSE[9L]
+    gse <- gses[[x]]$GSE
+    if (!inherits(gse, "gseaResult")) { return() }
     try({
-      ttl <- paste0(nmRoot, " _ ", grp)
+      ttl <- paste0(nmRoot, " _ ", x)
       svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "svg"))
       plot <- clusterProfiler::dotplot(gse, showCategory = nCat, split = ".sign", font.size = 4L,
-                      label_format = 500L # don't you dare wrap my labels!!!
+                                       label_format = 500L # don't you dare wrap my labels!!!
       ) + ggplot2::facet_grid(.~.sign) +
         ggplot2::coord_fixed(0.025) +
-        theme(plot.title = element_text(hjust = 0.5)) +
-        theme(plot.subtitle = element_text(hjust = 0.5))
+        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5),
+                       plot.subtitle = ggplot2::element_text(hjust = 0.5),
+                       axis.text.x = ggplot2::element_blank(), axis.ticks.x = ggplot2::element_blank(), 
+                       axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank(), 
+                       panel.grid.major = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(),
+                       plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"))
       suppressMessages({
         plot <- plot + viridis::scale_fill_viridis()
         #plot <- dotplot(gse, showCategory = nCat, color = "pvalue", split = ".sign") + facet_grid(.~.sign)
@@ -295,40 +326,48 @@ if (isOK) {
         for (i in w) {
           plotL$x$data[[i]]$text <- gsub("I\\(enrichplot_point_shape\\): *21<br */>", "", plotL$x$data[[i]]$text)
         }
+        plotL$x$layout$xaxis$autorange <- TRUE
+        plotL$x$layout$yaxis$autorange <- TRUE
+        plotL <- htmlwidgets::onRender(plotL, global_autorange)
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
         plotL <- plotly::plotly_build(plotL)
+        #plotL <- plotly::partial_bundle(plotL)
         plotL2 <- plotly::layout(plotL,
-                                 title = list(text = grp,
+                                 title = list(text = x,
                                               automargin = TRUE,
                                               subtitle = list(text = nmRoot)))
+        wd0 <- getwd()
         setwd(ohDeer[1L])
         htmlwidgets::saveWidget(plotly::partial_bundle(plotL2), svpth[1L], selfcontained = TRUE)
-        setwd(wd)
+        #htmlwidgets::saveWidget(plotL2, svpth[1L], selfcontained = TRUE)
+        setwd(wd0)
         #
-        plot <- plot + ggtitle(grp, subtitle = nmRoot)
+        plot <- plot + ggtitle(x, subtitle = nmRoot)
         ggplot2::ggsave(svpth[2L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
       })
       return(plotL)
     }, silent = TRUE)
-  }), names(gses))
-  GSEA_plotly[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
-  #
-  # GSEA enrichment map plots
-  nmRoot <- "GSEA enrichment map"
-  tmp <- setNames(lapply(names(gses), \(grp) { #grp <- names(gses)[1L]
-    gse <- gses[[grp]]$GSE
+  }
+  GSEA_enrichFun <- \(x,
+                      nmRoot = nmRoots[2L],
+                      nCat = 50L) { #x <- plotsDF$GSE[1L] #x <- plotsDF$GSE[9L]
+    gse <- gses[[x]]$GSE
+    if (!inherits(gse, "gseaResult")) { return() }
     g <- grep("^NA(\\.[0-9]+)?$", rownames(gse@result), invert = TRUE)
     gse@result <- gse@result[g,]
-    nCat <- min(c(50L, nrow(gse@result)))
+    nCat <- min(c(nCat, nrow(gse@result)))
     try({
       gse2 <- pairwise_termsim(gse, method = "JC", semData = NULL)
-      ttl <- paste0(nmRoot, " _ ", grp)
+      ttl <- paste0(nmRoot, " _ ", x)
       svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "svg"))
       plot <- clusterProfiler::emapplot(gse2, showCategory = nCat) +
-        theme_bw() +
-        theme(plot.title = element_text(hjust = 0.5),
-              plot.subtitle = element_text(hjust = 0.5))
+        ggplot2::theme_bw() +
+        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5),
+                       plot.subtitle = ggplot2::element_text(hjust = 0.5),
+                       axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank(),
+                       panel.grid.major = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(),
+                       plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"))
       suppressMessages({
         plot <- plot + viridis::scale_color_viridis(option = "cividis", direction = -1L)
         l <- length(plot$layers)
@@ -346,48 +385,48 @@ if (isOK) {
           plotL$x$data[[i]]$text <- paste0(plot@data$name, "<br />",
                                            gsub("[xy]: *-?[0-9]+(\\.[0-9]+)?<br />", "", plotL$x$data[[i]]$text))
         }
+        plotL$x$layout$xaxis$autorange <- TRUE
+        plotL$x$layout$yaxis$autorange <- TRUE
+        plotL <- htmlwidgets::onRender(plotL, global_autorange)
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
         plotL <- plotly::plotly_build(plotL)
+        #plotL <- plotly::partial_bundle(plotL)
         plotL2 <- plotly::layout(plotL,
-                                 title = list(text = grp,
+                                 title = list(text = x,
                                               automargin = TRUE,
                                               subtitle = list(text = nmRoot)))
+        wd0 <- getwd()
         setwd(ohDeer[1L])
         htmlwidgets::saveWidget(plotly::partial_bundle(plotL2), svpth[1L], selfcontained = TRUE)
-        setwd(wd)
+        #htmlwidgets::saveWidget(plotL2, svpth[1L], selfcontained = TRUE)
+        setwd(wd0)
         #
-        plot <- plot + ggtitle(grp, subtitle = nmRoot)
+        plot <- plot + ggtitle(x, subtitle = nmRoot)
         ggplot2::ggsave(svpth[2L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
       })
       return(plotL)
     }, silent = TRUE)
-  }), names(gses))
-  GSEA_plotly[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
-  #
-  # GSEA category net plots
-  if (!"Label" %in% colnames(db)) {
-    db$Label <- do.call(paste, c(db[, c("Common Name", "Protein ID")], sep = "\n"))
   }
-  nmRoot <- "GSEA category net plot"
-  # For this plot it would be nice to be able to:
-  # - Do it for GO terms of interest only
-  # - Update labels to ones more informative
-  # - Plot as interactive plotly
-  #  (see commented discussion below about how to achieve this)
-  tmp <- setNames(lapply(names(gses), \(grp) { #grp <- names(gses)[1L] #grp <- names(gses)[3L]
-    gse <- gses[[grp]]$GSE
+  GSEA_netFun <- \(x,
+                   nmRoot = nmRoots[3L]) { #x <- plotsDF$GSE[1L] #x <- plotsDF$GSE[9L]
+    gse <- gses[[x]]$GSE
+    if (!inherits(gse, "gseaResult")) { return() }
     try({
-      lFC <- gses[[grp]]$lFC
-      ttl <- paste0(nmRoot, " _ ", grp)
+      lFC <- gses[[x]]$lFC
+      ttl <- paste0(nmRoot, " _ ", x)
       svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "svg"))
       plot <- clusterProfiler::cnetplot(gse, foldChange = lFC, showCategory = 10L,
                                         color_edge = "grey",
                                         #cex_label_category = 1.2, cex_label_gene = 0.8 # Those parameters do not work for me...
       ) +
-        theme_bw() +
-        theme(plot.title = element_text(hjust = 0.5),
-              plot.subtitle = element_text(hjust = 0.5))
+        ggplot2::theme_bw() +
+        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5),
+                       plot.subtitle = ggplot2::element_text(hjust = 0.5),
+                       axis.text.x = ggplot2::element_blank(), axis.ticks.x = ggplot2::element_blank(), 
+                       axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank(), 
+                       panel.grid.major = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(),
+                       plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"))
       suppressMessages({
         plot <- plot + viridis::scale_color_viridis()
         # ... so I used a hacky solution:
@@ -396,8 +435,8 @@ if (isOK) {
         plot$layers[[w]]$aes_params$size <- 1.6 # Downside: applies to both categories and proteins!
         # Edit labels
         plot$data$label <- plot$data$label
-        w <- which(plot$data$label %in% db$`Protein ID`)
-        plot$data$label[w] <- db$Label[match(plot$data$label[w], db$`Protein ID`)]
+        w <- which(plot$data$label %in% miniDB$`Protein ID`)
+        plot$data$label[w] <- miniDB$Label[match(plot$data$label[w], miniDB$`Protein ID`)]
         #
         #poplot(plot)
         #
@@ -449,68 +488,163 @@ if (isOK) {
         plotL$x$data <- c(plotL$x$data[l],
                           plotL$x$data[-l])
         #
+        plotL$x$layout$xaxis$autorange <- TRUE
+        plotL$x$layout$yaxis$autorange <- TRUE
+        plotL <- htmlwidgets::onRender(plotL, global_autorange)
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
         plotL <- plotly::plotly_build(plotL)
+        #plotL <- plotly::partial_bundle(plotL)
         plotL2 <- plotly::layout(plotL,
-                                 title = list(text = grp,
+                                 title = list(text = x,
                                               automargin = TRUE,
                                               subtitle = list(text = nmRoot)))
+        wd0 <- getwd()
         setwd(ohDeer[1L])
         htmlwidgets::saveWidget(plotly::partial_bundle(plotL2), svpth[1L], selfcontained = TRUE)
-        setwd(wd)
+        #htmlwidgets::saveWidget(plotL2, svpth[1L], selfcontained = TRUE)
+        setwd(wd0)
         #
-        plot <- plot + ggtitle(grp, subtitle = nmRoot)
+        plot <- plot + ggtitle(x, subtitle = nmRoot)
         ggplot2::ggsave(svpth[2L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
       })
       return(plotL)
     }, silent = TRUE)
-  }), names(gses))
-  GSEA_plotly[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
-  #
-  # GSEA ridge plots
-  nmRoot <- "GSEA ridge plot"
-  tmp <- setNames(lapply(names(gses), \(grp) { #grp <- names(gses)[1L]
-    gse <- gses[[grp]]$GSE
+  }
+  GSEA_ridgeFun <- \(x,
+                     nmRoot = nmRoots[4L]) { #x <- plotsDF$GSE[1L] #x <- plotsDF$GSE[9L]
+    gse <- gses[[x]]$GSE
+    if (!inherits(gse, "gseaResult")) { return() }
     try({
-      lFC <- gses[[grp]]$lFC
-      ttl <- paste0(nmRoot, " _ ", grp)
+      lFC <- gses[[x]]$lFC
+      ttl <- paste0(nmRoot, " _ ", x)
       svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "svg"))
       plot <- enrichplot::ridgeplot(gse, fill = "pvalue", label_format = 500L # don't you dare wrap my labels!!!
       ) + ggplot2::labs(x = "enrichment distribution") +
         ggplot2::theme(axis.text.x = ggplot2::element_text(size = 5L),
-                       axis.text.y = ggplot2::element_text(size = 5L)) +
-        theme(plot.title = element_text(hjust = 0.5)) +
-        theme(plot.subtitle = element_text(hjust = 0.5))
+                       axis.text.y = ggplot2::element_text(size = 5L),
+                       plot.title = ggplot2::element_text(hjust = 0.5),
+                       plot.subtitle = ggplot2::element_text(hjust = 0.5),
+                       panel.grid.major = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(),
+                       plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"))
       suppressMessages({
         plot <- plot + viridis::scale_fill_viridis()
         #poplot(plot)
         plotL <- plotly::ggplotly(plot)
+        #
+        plotL$x$layout$xaxis$autorange <- TRUE
+        plotL$x$layout$yaxis$autorange <- TRUE
+        plotL <- htmlwidgets::onRender(plotL, global_autorange)
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
         plotL <- plotly::plotly_build(plotL)
+        #plotL <- plotly::partial_bundle(plotL)
         plotL2 <- plotly::layout(plotL,
-                                 title = list(text = grp,
+                                 title = list(text = x,
                                               automargin = TRUE,
                                               subtitle = list(text = nmRoot)))
+        wd0 <- getwd()
         setwd(ohDeer[1L])
         htmlwidgets::saveWidget(plotly::partial_bundle(plotL2), svpth[1L], selfcontained = TRUE)
-        setwd(wd)
+        #htmlwidgets::saveWidget(plotL2, svpth[1L], selfcontained = TRUE)
+        setwd(wd0)
         #
-        plot <- plot + ggtitle(grp, subtitle = nmRoot)
+        plot <- plot + ggtitle(x, subtitle = nmRoot)
         ggplot2::ggsave(svpth[2L], plot, dpi = 300L, width = 7L, height = 7L, unit = "in")
       })
       return(plotL)
     }, silent = TRUE)
-  }), names(gses))
-  GSEA_plotly[[GSEAmode]][[dataType]][[nmRoot]] <- tmp
+  }
   #
-  if ((exists("DatAnalysisTxt"))&&(GSEAmode == "standard")) {
+  plotsDF <- data.frame(GSE = rep(names(gses), 4L),
+                        type = unlist(lapply(c("dotplot", "enrichment", "net", "ridge"), \(x) {  rep(x, length(gses)) })))
+  clusterExport(parClust, list("GSEA_dotplotFun", "GSEA_enrichFun", "GSEA_netFun", "GSEA_ridgeFun",
+                               "GSEA_plotFun", "plotsDF", "nmRoots", "ohDeer",
+                               "global_autorange"), envir = environment())
+  readr::write_rds(gses, rdsFls[4L])
+  if (!"Label" %in% colnames(db)) {
+    db$Label <- do.call(paste, c(db[, c("Common Name", "Protein ID")], sep = "\n"))
+  }
+  readr::write_rds(db[, c("Protein ID", "Label")], rdsFls[5L])
+  invisible(clusterCall(parClust, \() {
+    for (pck in packs) { library(pck, character.only = TRUE) }
+    environment(GSEA_plotFun) <- .GlobalEnv
+    environment(GSEA_dotplotFun) <- .GlobalEnv
+    environment(GSEA_enrichFun) <- .GlobalEnv
+    environment(GSEA_netFun) <- .GlobalEnv
+    environment(GSEA_ridgeFun) <- .GlobalEnv
+    assign("gses", readr::read_rds(rdsFls[4L]), envir = .GlobalEnv)
+    assign("miniDB", readr::read_rds(rdsFls[5L]), envir = .GlobalEnv)
+    return()
+  }))
+  unlink(rdsFls[4L])
+  unlink(rdsFls[5L])
+  # NB:
+  # Do not use clusterApplyLB here, it fails if a "try-error" object is returned
+  # (it does not distinguish between my try-errors and a failed node calculation)
+  # Going for clusterApplyLB would thus require rewriting the output of the functions as
+  #   list(outcome = ..., plot = plotL)
+  # instead of directly returning plotL...
+  temp <- parLapply(parClust, 1L:nrow(plotsDF), \(i) { #i <- 9L
+    grp <- plotsDF$GSE[i]
+    type <- plotsDF$type[i]
+    GSEA_plotFun(grp, type)
+  })
+  #
+  # Check results
+  errorTst <- which(vapply(temp, \(x) { inherits(x, "try-error") }, TRUE))
+  #
+  # Assign to list object
+  # - GSEA dot plots
+  w <- which(plotsDF$type == "dotplot")
+  w <- setdiff(w, errorTst)
+  if (length(w)) {
+    GSEA_plotly[[GSEAmode]][[dataType2]][[nmRoots[1L]]] <- setNames(temp[w], plotsDF$GSE[w])
+  }
+  # - GSEA enrichment map plots
+  w <- which(plotsDF$type == "enrichment")
+  w <- setdiff(w, errorTst)
+  if (length(w)) {
+    GSEA_plotly[[GSEAmode]][[dataType2]][[nmRoots[2L]]] <- setNames(temp[w], plotsDF$GSE[w])
+  }
+  # - GSEA category net plots
+  w <- which(plotsDF$type == "net")
+  w <- setdiff(w, errorTst)
+  if (length(w)) {
+    GSEA_plotly[[GSEAmode]][[dataType2]][[nmRoots[3L]]] <- setNames(temp[w], plotsDF$GSE[w])
+  }
+  # - GSEA ridge plots
+  w <- which(plotsDF$type == "ridge")
+  w <- setdiff(w, errorTst)
+  if (length(w)) {
+    GSEA_plotly[[GSEAmode]][[dataType2]][[nmRoots[4L]]] <- setNames(temp[w], plotsDF$GSE[w])
+  }
+  #
+  if (exists("DatAnalysisTxt") && (GSEAmode == "standard")) {
     l <- length(DatAnalysisTxt)
     DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
                                 " Gene Set Enrichment Analysis was run using clusterProfiler.")
   }
   # See https://learn.gencore.bio.nyu.edu/rna-seq-analysis/gene-set-enrichment-analysis/ for more
+  #
 }
+# Final cleanup
+# - global env
+for (pck in rev(packs)) {
+  try(detach(paste0("package:", pck), unload = TRUE), silent = TRUE)
+}
+# - the cluster (not applicable if mode is WGCNA)
+if (GSEAmode == "standard") {
+  invisible(clusterCall(parClust, \(x) {
+    for (pck in rev(packs)) {
+      try(detach(paste0("package:", pck), unload = TRUE), silent = TRUE)
+    }
+    rm(list = ls())
+    gc()
+    return()
+  }))
+}
+cat("    - Saving results...\n")
 saveFun(GSEA_plotly, GSEA_plotly_fl)
 #loadFun(GSEA_plotly_fl)
+cat("    - Done!\n\n")

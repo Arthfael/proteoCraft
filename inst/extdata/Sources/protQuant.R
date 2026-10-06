@@ -206,21 +206,7 @@ stopifnot(nrow(Prot) > 0L,
 w <- which((ALSORUN %in% algoSyn$ALGO)&(!ALSORUN %in% c(LFQ_ALGO, RESCALING)))
 alsoRun <- alsoRun[w]
 ALSORUN <- ALSORUN[w]
-#
-#    I considered including MSstats... but:
-#     - MSstats actually does not come with a real protein quantitation algorithm
-#     - Its dataProcess() function provides log10 values which... are pre-modelling and DO NOT constitute LFQ
-#       (very poor correlation with other methods at both intensity and logFCs level)
-#     - MSstats provides average logFCs per contrast, not per sample... (then again, it is the same for limma or MSqRob)
-#     - These av. logFCs are based on modelling the data (as part of groupComparison()) and are not consistent with the values provided by dataProcess()
-#    -> it is better to export the list of peptides used here for quantitation from this function,
-#    and then feed it to a standalone MSstats wrapper further down the road (as part of statistical testing).
-#    MSstats would then be best suited for the SAINTexpress treatment, i.e. with its own tab in the report!
-#
-#    Also note that MSstats is comparatively very, very slow!!!
-#    For now the embryo code is still present in the function (see further down below) as reference for when, eventually,
-#    a full MSstats workflow is finally added to the stat tests source.
-#
+
 # No need to rescale if the algorithm used for LFQ and re-scaling is the same!
 if (LFQ_ALGO == RESCALING) {
   skip_reScaling <- TRUE
@@ -1030,6 +1016,9 @@ if (sum(c("IQ", "LIMPA", "QFEATURES", "MSSTATS") %in% c(LFQ_ALGO, RESCALING, ALS
     tmp4$PeptideSequence  <- do.call(paste, c(tmp4[, c("PeptideModifiedSequence", "tmp")], sep = "pg"))
     # ... not a mistake, cf. how MSstats defines feature!
     #
+    #    Note that MSstat's dataProcess() function provides log10 values which are pre-modelling and DO NOT constitute LFQ
+    #       (very poor correlation with other methods at both intensity and logFCs level)
+    #    These are not consistent with the modelling based avg. logFCs per contrast provided by groupComparison()
     tmp4$PeptideModifiedSequence <- NULL
     MSstats_list <- MSstats::dataProcess(tmp4,
                                          normalization = FALSE,
@@ -1302,3 +1291,4 @@ if ("MSSTATS" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
   RES$MSstats_list <- MSstats_list
 }
 quantData_list %<o% RES
+#

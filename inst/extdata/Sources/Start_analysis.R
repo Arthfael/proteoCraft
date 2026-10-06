@@ -32,11 +32,13 @@ ProcessedByUs %<o% as.logical(ProcessedByUs)
 if (is.na(ProcessedByUs)) { ProcessedByUs <- TRUE }
 if (scrptType == "withReps") {
   AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm, , drop = FALSE]
-  tmp <- AllAnsw[1L, , drop = FALSE]
-  tmp[, c("Parameter", "Message")] <- c(ObjNm, "No questions asked!")
-  tmp$Value <- list(get(ObjNm))
-  m <- match(ObjNm, AllAnsw$Parameter)
-  if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
+  if ((!is.null(AllAnsw)) && nrow(AllAnsw)) {
+    tmp <- AllAnsw[1L, , drop = FALSE]
+    tmp[, c("Parameter", "Message")] <- c(ObjNm, "No questions asked!")
+    tmp$Value <- list(get(ObjNm))
+    m <- match(ObjNm, AllAnsw$Parameter)
+    if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
+  }
 }
 
 N.clust %<o% N.clust
@@ -452,7 +454,10 @@ table.on('change', 'select', function() {
     shiny::observeEvent(input$cancel, { shiny::stopApp() })
     session$onSessionEnded(function() { shiny::stopApp() })
   })
+  g <- shiny:::.globals
+  g$appState <- NULL
   eval(parse(text = run_App), envir = .GlobalEnv)
+  shinyCleanup()
   #
   #
   inDirs <- gsub("/+", "/", inDirs)

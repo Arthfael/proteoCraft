@@ -160,12 +160,19 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
                                   color = ~`Samples group`, colors = "viridis",
                                   symbol = I(Symb), hoverinfo = "text")
       }
-      plot_lyPSMsPCA <- layout(plot_lyPSMsPCA, title = ttl)
-      plot_lyPSMsPCA <- plotly_build(plot_lyPSMsPCA)
+      plot_lyPSMsPCA <- plotly::layout(plot_lyPSMsPCA, title = ttl)
+      plot_lyPSMsPCA$x$layout$xaxis$autorange <- TRUE
+      plot_lyPSMsPCA$x$layout$yaxis$autorange <- TRUE
+      plot_lyPSMsPCA <- htmlwidgets::onRender(plot_lyPSMsPCA, global_autorange)
+      plot_lyPSMsPCA <- plotly::config(plot_lyPSMsPCA,
+                                       modeBarButtonsToRemove = c("select2d", "lasso2d"))
+      plot_lyPSMsPCA <- plotly::plotly_build(plot_lyPSMsPCA)
+      #plot_lyPSMsPCA <- plotly::partial_bundle(plot_lyPSMsPCA)
       dimRedPlotLy$PSMs <- list("Samples PCA" = plot_lyPSMsPCA)
       saveFun(dimRedPlotLy, file = dimRed_fl)
       setwd(dir)
-      saveWidget(partial_bundle(plot_lyPSMsPCA), paste0(dir, "/", ttl, ".html"), selfcontained = TRUE)
+      htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyPSMsPCA), paste0(dir, "/", ttl, ".html"))
+      #htmlwidgets::saveWidget(plot_lyPSMsPCA, paste0(dir, "/", ttl, ".html"))
       #system(paste0("open \"", dir, "/", ttl, ".html"))
       setwd(wd)
     } else {

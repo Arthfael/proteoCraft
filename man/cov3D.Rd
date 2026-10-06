@@ -13,7 +13,8 @@ cov3D(
   display = TRUE,
   asRatios = FALSE,
   I_eq_L = TRUE,
-  ttl = NULL
+  ttl = NULL,
+  return = FALSE
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ cov3D(
 \item{I_eq_L}{Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631}
 
 \item{ttl}{Title of the plot.}
+
+\item{return}{Should we return the final plotly plot? Default = FALSE}
 }
 \value{
 This function does not return anything.

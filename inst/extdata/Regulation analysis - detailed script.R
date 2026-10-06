@@ -189,7 +189,7 @@ setwd(wd)
 # Log the current analysis:
 dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- unique(c(dirlist, dir))
+dirlist <- union(dirlist, dir)
 start_date %<o% gsub(":", "-", gsub(" ", "_", Sys.time()))
 if (! paste0(wd, "/Workflow control/Data_analysis_log_", start_date, ".txt") %in% list.files()) {
   write(c(paste0("Data_analysis_log_", start_date), "__________________________", ""),
@@ -476,7 +476,6 @@ if (makePepRat) {
 }
 
 # Backup data/update cluster
-stopClust <- TRUE
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
 #loadFun(BckUpFl)
@@ -490,7 +489,7 @@ if ("N. of peptidoforms for quantitation" %in% colnames(Param)) {
     N_Pep <- 1L
   }
 } else { N_Pep <- 1L }
-.obj <- unique(c("N_Pep", .obj))
+N_Pep %<o% N_Pep
 #
 tm1 <- Sys.time()
 
@@ -540,7 +539,8 @@ if (splitByOrg) {
   ev[, kol] <- tmpPeps[match(ev$`Modified sequence`, tmpPeps$`Modified sequence`), kol]
 } else {
   source(pgSrc)
-  #loadFun("PG_assembly.RDS")
+  #loadFun(paste0(wd, "/PG_assembly.RDS"))
+  #rstudioapi::documentOpen(pgSrc)
   PG <- PG_assembly$Protein.groups
   pep <- PG_assembly$Peptides
   db <- PG_assembly$Database
@@ -551,7 +551,7 @@ PG %<o% PG
 
 # Here would be a good place to check protein taxonomy and [if necessary/as per parameters] split hybrid groups!
 # Should be controlled by a parameter only showing up if taxonomy is present in db and has more than one value!
-warning("(TO DO: add 'split-by-taxonomy?' here!)")
+warning("(TO DO: add a 'split-by-taxonomy?' parameter!)")
 # Default = TRUE
 # Don't forget to update PG IDs in PG, ev and pep afterwards! Also check potential contaminant column!
 
@@ -808,7 +808,7 @@ invisible(clusterCall(parClust, \() {
 unlink(tmpFl1)
 unlink(tmpFl2)
 unlink(tmpFl3)
-temp <- parApply(parClust, Samplez, 1L, \(Smpl) { #Smpl <- unlist(Samplez[1,])
+temp <- parApply(parClust, Samplez, 1L, \(Smpl) { #Smpl <- unlist(Samplez[1L,])
   smpl <- Smpl[[1L]]
   gr <- Smpl[[2L]]
   res <- temp_PG[, "id", drop = FALSE]
@@ -943,7 +943,6 @@ if (prot.list.Cond) {
 }
 
 # Backup data/update cluster
-stopClust <- TRUE
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
 #loadFun(BckUpFl)
@@ -1002,7 +1001,7 @@ testI[, a] <- test[match(testI$variable, test$variable), a]
 testI$variable <- cleanNms(testI$variable)
 dir <- paste0(wd, "/Workflow control/Protein groups/Expression")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- unique(c(dirlist, dir))
+dirlist <- union(dirlist, dir)
 ttl <- "Protein groups - distribution of Expression values"
 plot <- ggplot(testI) +
   geom_area(aes(x = `log10(Expression)`, y = value, fill = variable, group = variable,
@@ -1050,7 +1049,7 @@ testR <- dfMelt(testR, id.vars = "log2FC")
 colnames(testR)[colnames(testR) == "variable"] <- "Contrast"
 dir <- paste0(wd, "/Workflow control/Protein groups/Expression")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- unique(c(dirlist, dir))
+dirlist <- union(dirlist, dir)
 ttl <- "Protein groups - distribution of Ratios"
 plot <- ggplot(testR) +
   geom_area(aes(x = log2FC, y = value, fill = Contrast, group = Contrast,
@@ -1296,7 +1295,6 @@ Src <- paste0(libPath, "/extdata/Sources/dfltVolcPlotArgs.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
-volcano.plots %<o% list()
 # For now, we are plotting non adjusted P-values because in bad cases adjusting causes all to collapse on 1 (0 as -log10)
 # Instead, we are sticking to plotting raw P-values with FDR thresholds
 #
@@ -1319,9 +1317,8 @@ if (inherits(tempVP, "try-error") || is.character(tempVP)) {
 }
 #
 if (!exists("volcPlotly_fl")) { volcPlotly_fl %<o% paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
-if (!exists("volcPlotly")) {
-  if (file.exists(volcPlotly_fl)) { loadFun(volcPlotly_fl) } else { volcPlotly <- list() }
-}
+if ((!exists("volcPlotly")) && file.exists(volcPlotly_fl)) { loadFun(volcPlotly_fl) }
+if (!exists("volcPlotly")) { volcPlotly <- list() }
 volcPlotly[["t-test"]] <- tempVP$`Plotly plots`
 saveFun(volcPlotly, volcPlotly_fl)
 #loadFun(volcPlotly_fl)
@@ -1387,18 +1384,9 @@ wb <- wb_set_col_widths(wb, "Thresholds", 1L:(length(tst)+1L), c(3L, tst))
 wb_save(wb, fl)
 #xl_open(fl)
 #
-temp3 <- tempVP$Protein_groups_file
-temp4 <- tempVP$Plots
-g <- grep("Regulated - ", colnames(temp3), value = TRUE)
-#View(temp3[,g])
-PG[,g] <- temp3[,g]
-n2 <- names(temp4$Labelled)
-volcano.plots$Unlabelled <- temp4$Unlabelled
-volcano.plots$Labelled <- temp4$Labelled
-dir <- paste0(wd, "/Reg. analysis/t-tests")
-for (ttl in n2) {
-  plot <- volcano.plots$Labelled[[ttl]]
-}
+g <- grep("Regulated - ", colnames(tempVP$Protein_groups_file), value = TRUE)
+#View(tempVP$Protein_groups_file[,g])
+PG[, g] <- tempVP$Protein_groups_file[,g]
 
 # Also calculate Q-values - for now, the plot is created but not saved!
 if (("Q.values" %in% colnames(Param)) && is.logical(Param$Q.values) && Param$Q.values) {
@@ -1510,7 +1498,7 @@ Reg_filters %<o% list()
 filter_types %<o% tolower(unlist(strsplit(Param$Filters.type, ";")))
 filter_types[grep("^dat.+2$", filter_types, invert = TRUE)] <- substr(filter_types[!grepl("^dat.+2$", filter_types)], 1L, 3L)
 filter_types[grep("^dat.+2$", filter_types)] <- "dat2"
-filter_types <- unique(c("con", filter_types))
+filter_types <- union("con", filter_types)
 if ("ref" %in% filter_types) {
   if (Nested) {
     warning("Grouping filter by reference is not feasible if replicates are paired!")
@@ -1584,7 +1572,6 @@ if (inherits(clustersTest, "try-error")) {
 }
 
 # Backup data/update cluster
-stopClust <- TRUE
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
 #loadFun(BckUpFl)
@@ -1598,7 +1585,7 @@ if (("F.test" %in% colnames(Param)) && is.logical(Param$F.test) && (length(Param
 if (F.test) {
   dir <- paste0(wd, "/Reg. analysis/F-tests")
   for (d in dir) { if (!dir.exists(d)) { dir.create(d, recursive = TRUE) }}
-  dirlist <- unique(c(dirlist, dir))
+  dirlist <- union(dirlist, dir)
   cat("Running F-test\n")
   #
   if (("F.test_within" %in% colnames(Param)) && (Param$F.test_within != "")) {
@@ -1621,10 +1608,6 @@ if (F.test) {
   if (!inherits(tstFtst, "try-error")) {
     F.test <- TRUE
     #F_test_ref_ratios %<o% F_volc$`Reference ratios` # Not needed
-    volcano.plots$"F-tests_Unlabelled" <- F_volc$Plots$"Unlabelled"
-    volcano.plots$"F-tests_Labelled" <- F_volc$Plots$"Labelled"
-    n2 <- names(volcano.plots$"F-tests_Labelled")
-    dir <- paste0(dir, "/Reg. analysis/F-tests")
     #
     # Create F-test filters:
     Freg_Root <- gsub(" -log10\\(Pvalue\\)", " Regulated", F_Root)
@@ -1742,7 +1725,7 @@ for (tt in WhTsts) { #tt <- WhTsts[1L]
   stopifnot(!is.na(tstrt))
   dir <- paste0(wd, "/Reg. analysis/", tstrt)
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dir))
+  dirlist <- union(dirlist, dir)
   filt <- Reg_filters[[tstrt]]
   By <- c("By condition", "By reference", "By analysis")
   By <- intersect(By, names(filt))
@@ -1839,7 +1822,7 @@ if (exists("Tim")) {
   cat("Time profile plots\n")
   dir <- paste0(wd, "/Time profile plots")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dir))
+  dirlist <- union(dirlist, dir)
   r <- paste0("Mean ", Prot.Rat.Root)
   p <- pvalue.col[pvalue.use]
   a <- gsub("Tim", "", VPAL$aggregate)
@@ -1941,12 +1924,7 @@ if (exists("Tim")) {
   }
 }
 
-rm(list = setdiff(ls(), .obj))
-invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
-Script <- readr::read_lines(ScriptPath)
-
 # Backup data/update cluster
-stopClust <- TRUE
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
 #loadFun(BckUpFl)
@@ -1979,7 +1957,6 @@ saveFun(GO_plot_ly, GO_plot_ly_fl)
 rm(GO_plot_ly)
 
 # Backup data/update cluster
-stopClust <- TRUE
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
 #loadFun(BckUpFl)
@@ -2051,11 +2028,16 @@ if (GO_filt) {
   }
 }
 
+# Backup data/update cluster
+#rstudioapi::documentOpen(bckpSrc)
+source(bckpSrc)
+#loadFun(BckUpFl)
+
 #### Code chunk - Create output tables
 ## PSMs
 dir <- paste0(wd, "/Tables")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- unique(c(dirlist, dir))
+dirlist <- union(dirlist, dir)
 w <- which(vapply(colnames(ev), \(x) { inherits(ev[[x]], "list") }, TRUE))
 if (length(w)) { for (i in w) { ev[[i]] <- parSapply(parClust, ev[[i]], paste, collapse = ";") } }
 data.table::fwrite(ev, paste0(dir, "/evidence.tsv"), sep = "\t", row.names = FALSE, na = "NA")
@@ -2076,7 +2058,6 @@ Src <- paste0(libPath, "/extdata/Sources/Amica.R")
 source(Src)
 
 # Backup data/update cluster
-stopClust <- TRUE
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
 #loadFun(BckUpFl)
@@ -2144,12 +2125,12 @@ source(Src)
 #   test <- apply(PG[, g, drop = FALSE], 1L, \(x) {
 #     length(which(!x %in% c("", NA, "NA", "non significant", "too small FC")))
 #   })
-#   prot <- unique(c(prot.list, unlist(strsplit(PG$"Leading protein IDs"[test > 0L], ";"))))
-#   if ((!is.null(prot.list_pep)) && (length(prot.list_pep)) { prot <- unique(c(prot, prot.list_pep)) }
+#   prot <- union(prot.list, unlist(strsplit(PG$"Leading protein IDs"[test > 0L], ";")))
+#   if ((!is.null(prot.list_pep)) && (length(prot.list_pep)) { prot <-  union(prot, prot.list_pep) }
 #   if (length(prot)) {
 #     dir <- paste0(wd, "/Evidences type tables")
 #     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-#     dirlist <- unique(c(dirlist, dir))
+#     dirlist <- union(dirlist, dir)
 #     for (i in prot) {
 #       temp <- ev[grsep2(i, ev$"Leading proteins"),]
 #       temp <- sapply(unique(ev$Type), \(x) {
@@ -2187,6 +2168,11 @@ MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style
 
 # Write SDRF file in case you want to submit to PRIDE
 Src <- paste0(libPath, "/extdata/Sources/SDRF_4_PRIDE.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
+
+# Write final HTML report and materials and methods template file
+Src <- paste0(libPath, "/extdata/Sources/HTML_report_Main.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 

@@ -151,7 +151,10 @@ bars_title <- title <- ""
 if (Mode == "regulated") {
   True_Zscore <- TRUE
   if (dataType %in% c("PG", "Prot")) {
-    if (dataType == "Prot") { ID_col <- "Protein" }
+    dataType2 <- dataType
+    if (dataType == "Prot") {
+      ID_col <- "Protein"
+    }
     if (scrptType == "withReps") {
       Prot <- GO_enrich.dat[[tstbee]]
       filters <- flt
@@ -176,6 +179,7 @@ if (Mode == "regulated") {
     }
   }
   if (dataType == "modPeptides") {
+    dataType2 <- Ptm
     Prot_is_Pep <- TRUE
     ID_col <- "Proteins"
     if (scrptType == "withReps") {
@@ -209,6 +213,7 @@ if (Mode == "dataset") {
   # NB: for "dataset", the X axis corresponds for the trend of entities to be in the lower (left)
   # or upper (right) side of the expression range!
   if (dataType == "PG") {
+    dataType2 <- dataType
     Prot <- PG
     if (scrptType == "withReps") {
       Prot_FC_root <- "Av. log10 abundance"
@@ -237,16 +242,18 @@ if (Mode == "dataset") {
   }
   if (dataType == "modPeptides") {
     # Placeholder
+    stop()
+    dataType2 <- dataType
   }
 }
 if (!exists("GO_plot_ly_fl")) { GO_plot_ly_fl %<o% paste0(wd, "/Reg. analysis/GO enrich/GO_plot_ly.RDS") }
 if (!exists("GO_plot_ly")) {
   if (file.exists(GO_plot_ly_fl))  { loadFun(GO_plot_ly_fl) } else { GO_plot_ly <- list() }
 }
-if (!dataType %in% names(GO_plot_ly)) { GO_plot_ly[[dataType]] <- list() }
+if (!dataType2 %in% names(GO_plot_ly)) { GO_plot_ly[[dataType2]] <- list() }
 if (Mode == "regulated") { slotNm <- Tsts[tt] }
 if (Mode == "dataset") { slotNm <- "Dataset" }
-if (!slotNm %in% names(GO_plot_ly[[dataType]])) { GO_plot_ly[[dataType]][[slotNm]] <- list() }
+if (!slotNm %in% names(GO_plot_ly[[dataType]])) { GO_plot_ly[[dataType2]][[slotNm]] <- list() }
 
 #lengths(filters)
 
@@ -1107,7 +1114,7 @@ if (length(wFltL)) {
         } else {
           Xxtr <- Xbreadth <- Xmin <- Xmax <- Ymax <- ""
         }
-        exports <- list("GlobalScales", "Xxtr", "Xbreadth", "Xmin", "Xmax", "Ymax", "GO_tbls2", "goPlots", "title.root", "P_adjust", "plotly", "grphs",
+        exports <- list("GlobalScales", "Xxtr", "Xbreadth", "Xmin", "Xmax", "Ymax", "GO_tbls2", "title.root", "P_adjust", "plotly", "grphs",
                         "save", "origWD", "subfolder", "subfolderpertype", "bars", "graph", "True_Zscore", "scrange", "textFun", "cex", "lineheight", "repel",
                         "plotly_subfolder", "MaxTerms", "MaxTerms_bar", "MaxChar", "plotEval",
                         "Ont", "title", "title.root", "bars_title", "bars_title.root", "GO_FDR")
@@ -1213,6 +1220,11 @@ if (length(wFltL)) {
                 ggplot2::geom_hline(yintercept = Ymax, colour = "black", linetype = "dotted")
             }
             bubblot_ly <- plotly::ggplotly(plot2, tooltip = c("text1", "text2", "text3", "text4"))
+            bubblot_ly$x$layout$xaxis$autorange <- TRUE
+            bubblot_ly$x$layout$yaxis$autorange <- TRUE
+            bubblot_ly <- htmlwidgets::onRender(bubblot_ly, global_autorange)
+            bubblot_ly <- plotly::config(bubblot_ly,
+                                         modeBarButtonsToRemove = c("select2d", "lasso2d"))
             bubblot_ly <- plotly::plotly_build(bubblot_ly)
             setwd(plotly_subfolder)
             htmlwidgets::saveWidget(bubblot_ly, paste0(nm, ".html"), selfcontained = TRUE)
@@ -1352,6 +1364,11 @@ if (length(wFltL)) {
                   if (trace$type == "bar") { trace$mode <- NULL }
                   return(trace)
                 })
+                barplot_ly$x$layout$xaxis$autorange <- TRUE
+                barplot_ly$x$layout$yaxis$autorange <- TRUE
+                barplot_ly <- htmlwidgets::onRender(barplot_ly, global_autorange)
+                barplot_ly <- plotly::config(barplot_ly,
+                                             modeBarButtonsToRemove = c("select2d", "lasso2d"))
                 barplot_ly <- plotly::plotly_build(barplot_ly)
                 setwd(plotly_subfolder)
                 htmlwidgets::saveWidget(barplot_ly, paste0(barnm, ".html"), selfcontained = TRUE)
@@ -1393,7 +1410,7 @@ if (length(wFltL)) {
           goPlots[nms] <- tstPlots[[flt]]$GO_plots[nms]
           nm <- unique(sub("GO ((bar)|(bubble)) plot - ", "", nms))
           stopifnot(length(nm) == 1L)
-          GO_plot_ly[[dataType]][[slotNm]][[nm]] <- tstPlots[[flt]]$GO_plotly
+          GO_plot_ly[[dataType2]][[slotNm]][[nm]] <- tstPlots[[flt]]$GO_plotly
         }
       }
     }

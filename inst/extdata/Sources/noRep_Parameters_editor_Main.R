@@ -64,6 +64,9 @@ KlustMeth %<o% 1 # Changed from 2
 if (Annotate) {
   allGO <- unique(unlist(strsplit(db$GO[!is.na(db$GO)], ";")))
   allGO2 <- paste0("GO:", gsub(".* \\[GO:|\\]$", "", allGO))
+  #
+  GO_mappings_fl %<o% paste0(wd, "/GO_mappings.RDS")
+  GO_terms_fl %<o% paste0(wd, "/GO_terms.RDS")
 }
 if (!"GO.terms.for.proteins.of.interest" %in% names(AnalysisParam)) { AnalysisParam$GO.terms.for.proteins.of.interest <- FALSE }
 if (!"Custom.PGs" %in% names(AnalysisParam)) { AnalysisParam$Custom.PGs <- "" }

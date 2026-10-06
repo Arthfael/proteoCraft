@@ -402,6 +402,8 @@ Skyline_to_MQ <- function(Skyline_fl,
     serialize(Mods, con)
     suppressWarnings(suppressMessages(try(close(con), silent = TRUE))) # Only necessary in function mode
     #run_App2 <- "print(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))"
+    g <- shiny:::.globals
+    g$appState <- NULL
     eval(parse(text = run_App2))
     shinyCleanup()
     con <- file(fl, "r")

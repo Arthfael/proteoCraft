@@ -1,13 +1,8 @@
-######################################################################
-###                                                                ###
-### Finalize analysis, write reports, move data, cleanup folder... ###
-###                                                                ###
-######################################################################
-
-# Write final HTML report and materials and methods template file
-Src <- paste0(libPath, "/extdata/Sources/HTML_report.R")
-#rstudioapi::documentOpen(Src)
-source(Src)
+#######################################################
+###                                                 ###
+### Finalize analysis, move data, cleanup folder... ###
+###                                                 ###
+#######################################################
 
 # Save session info
 dir <- paste0(wd, "/Workflow control")
@@ -29,7 +24,7 @@ libPath %<o% paste0(RPath, "/proteoCraft")
 homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
 dirLocsFl <- paste0(homePath, "/Default_locations.xlsx")
 dirLocs <- openxlsx2::read_xlsx(dirLocsFl)
-if ((exists("outDir"))&&(length(outDir) == 1L)&&(!is.na(outDir))&&(dir.exists(outDir))) {
+if (exists("outDir") && (length(outDir) == 1L) && (!is.na(outDir)) && dir.exists(outDir)) {
   dflt <- outDir
 } else {
   dflt <- dirLocs$Path[match("Results delivery folder", dirLocs$Folder)]
@@ -37,7 +32,7 @@ if ((exists("outDir"))&&(length(outDir) == 1L)&&(!is.na(outDir))&&(dir.exists(ou
 if (!dir.exists(dflt)) { dflt <- wd }
 outDir %<o% rstudioapi::selectDirectory("Select data delivery folder",
                                         path = dflt)
-ok2Deliver %<o% ((exists("outDir"))&&(length(outDir) == 1L)&&(!is.na(outDir))&&(dir.exists(outDir)))
+ok2Deliver %<o% (exists("outDir") && (length(outDir) == 1L) && (!is.na(outDir)) && dir.exists(outDir))
 dataDeliveryOk %<o% FALSE
 if (ok2Deliver) {
   Tsts <- list()
@@ -183,7 +178,7 @@ if (ok2Deliver) {
     warning("Analysis results not copied to destination - usually this is a path length issue.\nYou will have to copy them manually.")
     Tsts$"Data analysis" <- FALSE
   } else {
-    if ((is.character(Tsts$"Data analysis"))&&(Tsts$"Data analysis" == tmpDr)) {
+    if (is.character(Tsts$"Data analysis") && (Tsts$"Data analysis" == tmpDr)) {
       Tsts$"Data analysis" <- file.rename(tmpDr, procDir)
       tmp <- grep("\\.RDS$", list.files(procDir, all.files = TRUE, full.names = TRUE), value = TRUE)
       tmp <- grep("/Backup\\.RDS$", tmp, value = TRUE, invert = TRUE) # We want to export the final Backup.RDS file: it is large, but useful to have
@@ -201,7 +196,7 @@ if (ok2Deliver) {
   dataDeliveryOk <- is.logical(Tsts$"Data analysis") && (!is.na(Tsts$"Data analysis")) && Tsts$"Data analysis"
 }
 # - 4 Cleanup!
-if (ok2Deliver&&dataDeliveryOk) {
+if (ok2Deliver && dataDeliveryOk) {
   cleanUp <- c(TRUE, FALSE)[match(dlg_message("Should we cleanup the temporary folder? (parameter files will remain)", "yesno")$res, c("yes", "no"))]
   if (cleanUp) {
     drs <- list.dirs(wd, recursive = FALSE, full.names = TRUE)
@@ -236,7 +231,7 @@ archDirDflt <- locs$Path[match("Archive folder (searches)", locs$Folder)]
 archDirDflt <- archDirDflt[dir.exists(archDirDflt)]
 
 #
-if ((dataDeliveryOk)&&(length(archDirDflt) == 1L)) {
+if (dataDeliveryOk && (length(archDirDflt) == 1L)) {
   inDirs2 <- grep(topattern(archDirDflt), inDirs, value = TRUE, invert = TRUE)
   L <- length(inDirs2)
   inDirs2Arch <- c()
@@ -282,7 +277,7 @@ if ((dataDeliveryOk)&&(length(archDirDflt) == 1L)) {
         drs <- list.dirs(indir, recursive = TRUE, full.names = TRUE)
         drs <- setdiff(drs, indir)
         fls <- list.files(indir, recursive = TRUE)
-        if ((length(drs))&&(length(fls) == 1L)&&(fls == "Archiving_log.txt")) {
+        if (length(drs) && (length(fls) == 1L) && (fls == "Archiving_log.txt")) {
           for (dr in drs) { unlink(dr, TRUE, TRUE) }
         }
       }
@@ -302,7 +297,7 @@ tmp <- paste0(do.call(paste, c(pkgs[, c("Name", "Version")], sep = " (")), ")")
 tmp <- paste0("Depends: ", paste(tmp, collapse = ", "))
 write(tmp, dscrptFl)
 renv::snapshot(force = TRUE, prompt = FALSE, type = "explicit")
-if ((exists("renv"))&&(renv)) { try(renv::deactivate(), silent = TRUE) }
+if (exists("renv") && renv) { try(renv::deactivate(), silent = TRUE) }
 setwd(wd)
 
 # Done!

@@ -149,7 +149,14 @@ if (lNorm) {
     if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
     if (!exists("dimRedPlotLy")) { dimRedPlotLy <- list() }
     if (!"peptides" %in% names(dimRedPlotLy)) { dimRedPlotLy$peptides <- list() }
-    dimRedPlotLy$peptides$"Samples PCA_norm" <- tst$PlotLy[[aggr]]
+    tmp <- tst$PlotLy[[aggr]]
+    tmp <- plotly::plotly_build(tmp)
+    tmp$x$layout$xaxis$autorange <- TRUE
+    tmp$x$layout$yaxis$autorange <- TRUE
+    tmp <- htmlwidgets::onRender(tmp, global_autorange)
+    tmp <- plotly::config(tmp,
+                          modeBarButtonsToRemove = c("select2d", "lasso2d"))
+    dimRedPlotLy$peptides$"Samples PCA_norm" <- tmp
     saveFun(dimRedPlotLy, file = dimRed_fl)
     #
     # De-log

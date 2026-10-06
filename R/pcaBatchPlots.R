@@ -179,12 +179,43 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
                                         type = "scatter", mode = "text", showlegend = FALSE)
       }
       plotlyPCA1 <- plotly::layout(plotlyPCA1, title = nm1)
-      
+      plotlyPCA1$x$layout$xaxis$autorange <- TRUE
+      plotlyPCA1$x$layout$yaxis$autorange <- TRUE
+      plotlyPCA1 <- htmlwidgets::onRender(plotlyPCA1,
+                                          "function(el, x) {
+  var gd = el;
+  function globalRange(axisPrefix) {
+    var axes = Object.keys(gd._fullLayout).filter(function(k) {
+      return k.match(new RegExp('^' + axisPrefix + 'axis[0-9]*$'));
+    });
+    if (axes.length <= 1)
+      return;
+    var minVal = Infinity;
+    var maxVal = -Infinity;
+    axes.forEach(function(name) {
+      var axis = gd._fullLayout[name];
+      if (axis && axis.range) {
+        minVal = Math.min(minVal, axis.range[0], axis.range[1]);
+        maxVal = Math.max(maxVal, axis.range[0], axis.range[1]);
+      }
+    });
+    if (isFinite(minVal) && isFinite(maxVal)) {
+      axes.forEach(function(name) {
+        Plotly.relayout(gd, name + '.range', [minVal, maxVal]);
+      });
+    }
+  }
+  globalRange('x');
+  globalRange('y');
+}")
+      plotlyPCA1 <- plotly::config(plotlyPCA1,
+                                   modeBarButtonsToRemove = c("select2d", "lasso2d"))
       plotlyPCA1 <- plotly::plotly_build(plotlyPCA1)
+      #plotlyPCA1 <- plotly::partial_bundle(plotlyPCA1)
       plotlyPCA[[btch]] <- plotlyPCA1
       setwd(dir)
       suppressWarnings(htmlwidgets::saveWidget(plotly::partial_bundle(plotlyPCA1), paste0(dir, "/", nm1, ".html")))
-      
+      #suppressWarnings(htmlwidgets::saveWidget(plotlyPCA1, paste0(dir, "/", nm1, ".html")))
       if (openMe) { system(paste0("open \"", dir, "/", nm1, ".html")) }
     }
   } else { stop("PCA failed, investigate!") }

@@ -183,11 +183,17 @@ if (plotPepProf) {
     if (plotMode == "List") { plot <- plot + colScale2 + fillScale2 }
     if (fileType == "html") {
       plot_ly <- plotly::ggplotly(plot, tooltip = c("Peptide_ID", "text"))
+      plot_ly$x$layout$xaxis$autorange <- TRUE
+      plot_ly$x$layout$yaxis$autorange <- TRUE
+      plot_ly <- htmlwidgets::onRender(plot_ly, global_autorange)
+      plot_ly <- plotly::config(plot_ly,
+                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
       plot_ly <- plotly::plotly_build(plot_ly)
+      #plot_ly <- plotly::partial_bundle(plot_ly)
       setwd(SubDir) # For some reason, unless I do this the default selfcontained = TRUE argument gets ignored and
       # a folder with external resources is created for each html plot!
-      tst <- try(htmlwidgets::saveWidget(plotly::partial_bundle(plot_ly), flPath), silent = TRUE)
-      if (inherits(tst, "try-error")) { tst <- try(htmlwidgets::saveWidget(plot_ly, flPath), silent = TRUE) }
+      htmlwidgets::saveWidget(plotly::partial_bundle(plot_ly), flPath, selfcontained = TRUE)
+      #htmlwidgets::saveWidget(plot_ly, flPath, selfcontained = TRUE)
       setwd(wd)
     } else {
       plot <- plot +
@@ -278,11 +284,17 @@ if (plotPepProf) {
       #poplot(plot, 12L, 22L)
       if (fileType == "html") {
         plot_ly <- plotly::ggplotly(plot, tooltip = c("Peptide_ID", "text")) # Super slowwwwww
+        plot_ly$x$layout$xaxis$autorange <- TRUE
+        plot_ly$x$layout$yaxis$autorange <- TRUE
+        plot_ly <- htmlwidgets::onRender(plot_ly, global_autorange)
+        plot_ly <- plotly::config(plot_ly,
+                                  modeBarButtonsToRemove = c("select2d", "lasso2d"))
         plot_ly <- plotly::plotly_build(plot_ly)
+        #plot_ly <- plotly::partial_bundle(plot_ly)
         setwd(SubDir) # For some reason, unless I do this the default selfcontained = TRUE argument gets ignored and
         # a folder with external resources is created for each html plot!
-        tst <- try(htmlwidgets::saveWidget(plotly::partial_bundle(plot_ly), flPath), silent = TRUE)
-        if (inherits(tst, "try-error")) { tst <- try(htmlwidgets::saveWidget(plot_ly, flPath), silent = TRUE) }
+        htmlwidgets::saveWidget(plotly::partial_bundle(plot_ly), flPath, selfcontained = TRUE)
+        #htmlwidgets::saveWidget(plot_ly, flPath, selfcontained = TRUE)
         #system(paste0("open \"", flPath, "\""))
         setwd(wd)
       } else {

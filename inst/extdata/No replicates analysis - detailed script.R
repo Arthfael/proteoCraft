@@ -671,7 +671,7 @@ source(parSrc)
 Src <- paste0(libPath, "/extdata/Sources/PG_Assemble.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
-#loadFun("PG_assembly.RDS")
+#loadFun(paste0(wd, "/PG_assembly.RDS"))
 #
 PG %<o% PG_assembly$Protein.groups
 pep <- PG_assembly$Peptides
@@ -2067,7 +2067,6 @@ if (NegFilt) {
 }
 
 # Backup data/update cluster
-stopClust <- TRUE
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
 #loadFun(BckUpFl)
@@ -2259,6 +2258,11 @@ MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style
 
 # Write SDRF file in case you want to submit to PRIDE
 Src <- paste0(libPath, "/extdata/Sources/SDRF_4_PRIDE.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
+
+# Write final HTML report and materials and methods template file
+Src <- paste0(libPath, "/extdata/Sources/HTML_report_Main.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 

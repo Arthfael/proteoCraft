@@ -212,6 +212,9 @@ if (Annotate) {
     nrm2GOall <- allGO
     nrm2GO <- c()
   }
+  #
+  GO_mappings_fl %<o% paste0(wd, "/GO_mappings.RDS")
+  GO_terms_fl %<o% paste0(wd, "/GO_terms.RDS")
 }
 if (!"GO.terms.for.proteins.of.interest" %in% colnames(Param)) { Param$GO.terms.for.proteins.of.interest <- FALSE }
 if (!"Amica" %in% colnames(Param)) { Param$Amica <- TRUE }
@@ -934,7 +937,9 @@ mtchCheckMsg2 <- "!Checking assignments may result in removal of some identifica
 F_test_override <- FALSE
 allHistIDs <- getHistones(db)$All
 allHist <- setNames(protHeads2[allHistIDs], NULL)
-if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
+if ((!exists("dimRedPlotLy")) && exists("dimRed_fl") && file.exists(dimRed_fl)) {
+  try({ loadFun(dimRed_fl) }, silent = TRUE)
+}
 appNm <- paste0(dtstNm, " - Parameters")
 make_ui1 <- \() {
   fluidPage(

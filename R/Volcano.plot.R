@@ -578,21 +578,21 @@ Volcano.plot <- function(Prot,
   #
   # Define global x-limits
   tmp <- Prot[, xKols, drop = FALSE]
-  xlim <- as.numeric(unlist(tmp))
-  xlim <- xlim[which(is.finite(xlim))]
-  xlim <- if (X.normalized) {
-    max(abs(xlim))*c(-1, 1)
+  x_lim <- as.numeric(c(Xlim, unlist(tmp)))
+  x_lim <- x_lim[which(is.finite(x_lim))]
+  x_lim <- if (X.normalized) {
+    max(abs(x_lim))*c(-1, 1)
   } else {
-    c(min(xlim), max(xlim))
+    c(min(x_lim), max(x_lim))
   }
-  xspan <- xlim[2L]-xlim[1L]
-  xlim <- xlim + xspan*c(-0.05, 0.05)
+  xspan <- x_lim[2L]-x_lim[1L]
+  x_lim <- x_lim + xspan*c(-0.05, 0.05)
   #
   # Define global y-limits
   tmp <- Prot[, yKols, drop = FALSE]
-  ylim <- as.numeric(unlist(tmp))
-  ylim <- ylim[which(is.finite(ylim))]
-  ylim <- max(abs(ylim))*1.1
+  y_lim <- as.numeric(c(Ylim, unlist(tmp)))
+  y_lim <- y_lim[which(is.finite(y_lim))]
+  y_lim <- max(abs(y_lim))*1.1
   #
   # Labels
   Prot$Labels <- Prot[[parameters$Plot.labels]]
@@ -699,6 +699,8 @@ Volcano.plot <- function(Prot,
   }
   #
   for (i in A) { #i <- A[1L]
+    xlim <- x_lim
+    ylim <- y_lim
     i2 <- if (useContrasts) { i } else {
       cleanNms3(i,
                 experiments.map = experiments.map,
@@ -1120,8 +1122,6 @@ Volcano.plot <- function(Prot,
     }
     #
     #
-    if (is.finite("Xlim")) { xlim <- Xlim }
-    if (is.finite("Ylim")) { ylim <- Ylim }
     xFrPar <- plot.metrics$Value[which(plot.metrics$Axis == "X")]*1.1
     xlim <- c(min(c(xlim, xFrPar)),
               max(c(xlim, xFrPar)))
@@ -1480,7 +1480,7 @@ Volcano.plot <- function(Prot,
           simPlot <- simPlot + pluses_gg_basic_[[ii]][[jj]]
         }
       } else {
-        simPlot <- simPlot + pluses_gg_[[ii]]
+        simPlot <- simPlot + pluses_gg_[[ii]] # Not a mistake!
       }
     }
     #poplot(simPlot)

@@ -371,3 +371,5 @@ if ((scrptType == "noReps") && Impute) {
   colnames(quantData2)[m2] <- "Peptide IDs used for quantitation - Imputed"
   PG[, colnames(quantData2)] <- quantData2
 }
+rm(list = setdiff(ls(), c(.obj, "")))
+gc()

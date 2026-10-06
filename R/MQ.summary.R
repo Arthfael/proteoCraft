@@ -160,6 +160,32 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
   } else { stop("Expecting a \"Raw file\" column in the PSMs file!!!") }
   if (plot) {
     plotLy_lst <- list()
+    global_autorange <- "function(el, x) {
+  var gd = el;
+  function globalRange(axisPrefix) {
+    var axes = Object.keys(gd._fullLayout).filter(function(k) {
+      return k.match(new RegExp('^' + axisPrefix + 'axis[0-9]*$'));
+    });
+    if (axes.length <= 1)
+      return;
+    var minVal = Infinity;
+    var maxVal = -Infinity;
+    axes.forEach(function(name) {
+      var axis = gd._fullLayout[name];
+      if (axis && axis.range) {
+        minVal = Math.min(minVal, axis.range[0], axis.range[1]);
+        maxVal = Math.max(maxVal, axis.range[0], axis.range[1]);
+      }
+    });
+    if (isFinite(minVal) && isFinite(maxVal)) {
+      axes.forEach(function(name) {
+        Plotly.relayout(gd, name + '.range', [minVal, maxVal]);
+      });
+    }
+  }
+  globalRange('x');
+  globalRange('y');
+}"
     tstVir <- require(viridis)
     # Plot - Peptides composition
     temp <- Res[which(!Res$Sample %in% c("Whole dataset", "")), which(!grepl("%", colnames(Res)))]
@@ -212,16 +238,20 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         if (sv) { for (s in save) {
           if (s == "html") {
             plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y", "fill"))
-            plotLy <- plotly::config(plotLy,
-                                     modeBarButtonsToRemove = c("select2d", "lasso2d"))
             plotLy <- layout(plotLy,
               legend = list(x = 1.05,
                             y = 1),
               margin = list(r = 120L))
+            plotLy$x$layout$xaxis$autorange <- TRUE
+            plotLy$x$layout$yaxis$autorange <- TRUE
+            plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+            plotLy <- plotly::config(plotLy,
+                                     modeBarButtonsToRemove = c("select2d", "lasso2d"))
             plotLy <- plotly::plotly_build(plotLy)
-            plotLy <- plotly::plotly_build(plotLy)
+            #plotLy <- plotly::partial_bundle(plotLy)
             plotLy_lst[[ttl]] <- plotLy
-            htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
+            htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
+            #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
           } else {
             ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
           }
@@ -267,11 +297,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       if (sv) { for (s in save) {
         if (s == "html") {
           plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
+          plotLy$x$layout$xaxis$autorange <- TRUE
+          plotLy$x$layout$yaxis$autorange <- TRUE
+          plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
           plotLy <- plotly::config(plotLy,
                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
           plotLy <- plotly::plotly_build(plotLy)
+          #plotLy <- plotly::partial_bundle(plotLy)
           plotLy_lst[[ttl]] <- plotLy
-          htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
+          htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
+          #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
         } else {
           ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
@@ -309,11 +344,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       if (sv) { for (s in save) {
         if (s == "html") {
           plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
+          plotLy$x$layout$xaxis$autorange <- TRUE
+          plotLy$x$layout$yaxis$autorange <- TRUE
+          plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
           plotLy <- plotly::config(plotLy,
                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
           plotLy <- plotly::plotly_build(plotLy)
+          #plotLy <- plotly::partial_bundle(plotLy)
           plotLy_lst[[ttl]] <- plotLy
-          htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
+          htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
+          #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
         } else {
           ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
@@ -353,11 +393,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       if (sv) { for (s in save) {
         if (s == "html") {
           plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
+          plotLy$x$layout$xaxis$autorange <- TRUE
+          plotLy$x$layout$yaxis$autorange <- TRUE
+          plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
           plotLy <- plotly::config(plotLy,
                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
           plotLy <- plotly::plotly_build(plotLy)
+          #plotLy <- plotly::partial_bundle(plotLy)
           plotLy_lst[[ttl]] <- plotLy
-          htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
+          htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
+          #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
         } else {
           ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
@@ -472,11 +517,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               if (sv) { for (s in save) {
                 if (s == "html") {
                   plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
+                  plotLy$x$layout$xaxis$autorange <- TRUE
+                  plotLy$x$layout$yaxis$autorange <- TRUE
+                  plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
                   plotLy <- plotly::config(plotLy,
                                            modeBarButtonsToRemove = c("select2d", "lasso2d"))
                   plotLy <- plotly::plotly_build(plotLy)
+                  #plotLy <- plotly::partial_bundle(plotLy)
                   plotLy_lst[[ttl]] <- plotLy
-                  htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
+                  htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
+                  #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
                 } else {
                   ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
                 }
@@ -491,12 +541,12 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     nb <- 200L
     # MSMS file
     msmsOK <- FALSE
-    wMQ <- which(vapply(MQtxt, \(dir) { "msms.txt" %in% list.files(dir) }, TRUE))
+    wMQ <- which(vapply(MQtxt, \(dr) { "msms.txt" %in% list.files(dr) }, TRUE))
     if (length(wMQ)) {
-      msms <- lapply(MQtxt[wMQ], \(dir) {
+      msms <- lapply(MQtxt[wMQ], \(dr) {
         tst <- try({
-          rs <- data.table::fread(paste0(dir, "/msms.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
-          rs$Search_output_dir <- dir
+          rs <- data.table::fread(paste0(dr, "/msms.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
+          rs$Search_output_dir <- dr
           return(rs)
         }, silent = TRUE)
         if (inherits(tst, "try-error")) { return() }
@@ -541,11 +591,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           if (sv) { for (s in save) {
             if (s == "html") {
               plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
+              plotLy$x$layout$xaxis$autorange <- TRUE
+              plotLy$x$layout$yaxis$autorange <- TRUE
+              plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
               plotLy <- plotly::config(plotLy,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
               plotLy <- plotly::plotly_build(plotLy)
+              #plotLy <- plotly::partial_bundle(plotLy)
               plotLy_lst[[ttl]] <- plotLy
-              htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
+              htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
+              #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
@@ -553,15 +608,15 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           setwd(wd0)
         }
       } else { warning("NB: \"msms.txt\" could not be loaded and may be corrupted...") }
-    } else { message("NB: \"msms.txt\" could not be found.") }
+    }
     #
     # MSMS scans file
-    wMQ <- which(vapply(MQtxt, \(dir) { "msmsScans.txt" %in% list.files(dir) }, TRUE))
+    wMQ <- which(vapply(MQtxt, \(dr) { "msmsScans.txt" %in% list.files(dr) }, TRUE))
     if (length(wMQ)) {
-      msmsScans <- lapply(MQtxt[wMQ], \(dir) {
+      msmsScans <- lapply(MQtxt[wMQ], \(dr) {
         tst <- try({
-          rs <- data.table::fread(paste0(dir, "/msmsScans.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
-          rs$Search_output_dir <- dir
+          rs <- data.table::fread(paste0(dr, "/msmsScans.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
+          rs$Search_output_dir <- dr
           return(rs)
         }, silent = TRUE)
         if (inherits(tst, "try-error")) { return() }
@@ -603,11 +658,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           if (sv) { for (s in save) {
             if (s == "html") {
               plotLy <- plotly::ggplotly(plot, tooltip = c("x", "fill"))
+              plotLy$x$layout$xaxis$autorange <- TRUE
+              plotLy$x$layout$yaxis$autorange <- TRUE
+              plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
               plotLy <- plotly::config(plotLy,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
               plotLy <- plotly::plotly_build(plotLy)
+              #plotLy <- plotly::partial_bundle(plotLy)
               plotLy_lst[[ttl]] <- plotLy
-              htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
+              htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
+              #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
@@ -667,11 +727,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           if (sv) { for (s in save) {
             if (s == "html") {
               plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y", "fill"))
+              plotLy$x$layout$xaxis$autorange <- TRUE
+              plotLy$x$layout$yaxis$autorange <- TRUE
+              plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
               plotLy <- plotly::config(plotLy,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
               plotLy <- plotly::plotly_build(plotLy)
+              #plotLy <- plotly::partial_bundle(plotLy)
               plotLy_lst[[ttl]] <- plotLy
-              htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
+              htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
+              #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
               if (s == "svg") { require(svglite) }
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
@@ -698,11 +763,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           if (sv) { for (s in save) {
             if (s == "html") {
               plotLy <- plotly::ggplotly(plot, tooltip = c("x", "fill"))
+              plotLy$x$layout$xaxis$autorange <- TRUE
+              plotLy$x$layout$yaxis$autorange <- TRUE
+              plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
               plotLy <- plotly::config(plotLy,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
               plotLy <- plotly::plotly_build(plotLy)
+              #plotLy <- plotly::partial_bundle(plotLy)
               plotLy_lst[[ttl]] <- plotLy
-              htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
+              htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
+              #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
               if (s == "svg") { require(svglite) }
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
@@ -737,11 +807,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               if (sv) { for (s in save) {
                 if (s == "html") {
                   plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
+                  plotLy$x$layout$xaxis$autorange <- TRUE
+                  plotLy$x$layout$yaxis$autorange <- TRUE
+                  plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
                   plotLy <- plotly::config(plotLy,
                                            modeBarButtonsToRemove = c("select2d", "lasso2d"))
                   plotLy <- plotly::plotly_build(plotLy)
+                  #plotLy <- plotly::partial_bundle(plotLy)
                   plotLy_lst[[ttl]] <- plotLy
-                  htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
+                  htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
+                  #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
                 } else {
                   ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
                 }
@@ -751,7 +826,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           }
         }
       } else { warning("NB: \"msmsScans.txt\" could not be loaded and may be corrupted...") }
-    } else { message("NB: \"msmsScans.txt\" could not be found.") }
+    }
     # Plot - original PSMs contamination level
     wMQ <- which(vapply(MQtxt, \(dir) { "evidence.txt" %in% list.files(dir) }, TRUE))
     if (length(wMQ)) {
@@ -790,11 +865,16 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         if (sv) { for (s in save) {
           if (s == "html") {
             plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
+            plotLy$x$layout$xaxis$autorange <- TRUE
+            plotLy$x$layout$yaxis$autorange <- TRUE
+            plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
             plotLy <- plotly::config(plotLy,
                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
             plotLy <- plotly::plotly_build(plotLy)
+            #plotLy <- plotly::partial_bundle(plotLy)
             plotLy_lst[[ttl]] <- plotLy
-            htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"), selfcontained = TRUE)
+            htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
+            #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
           } else {
             ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
           }

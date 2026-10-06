@@ -68,7 +68,7 @@ smpls <- unique(tmp_EM[tmp_EM$Use, refCol])
 clusterExport(parClust, exports, envir = environment())
 invisible(clusterCall(parClust, \(x) {
   library(data.table)
-  tmp <<- readr::read_rds(paste0(wd, "/tmp.RDS"))
+  assign("tmp", readr::read_rds(paste0(wd, "/tmp.RDS")), envir = .GlobalEnv)
   return()
 }))
 unlink(paste0(wd, "/tmp.RDS"))
@@ -169,24 +169,30 @@ Symb <- Symb[as.numeric(scores1[[outlierAnnot_shape]])]
 # Custom color scale
 scores1$"Samples group" <- factor(scores1$Samples_group)
 plot_lyPCA <- if ("PC3" %in% colnames(scores1)) {
-  plot_ly(scores1, x = ~PC1, y = ~PC2, z = ~PC3,
-          text = ~Label, type = "scatter3d", mode = "markers",
-          color = ~get(outlierAnnot_color), colors = "viridis",
-          symbol = I(Symb))
+  plotly::plot_ly(scores1, x = ~PC1, y = ~PC2, z = ~PC3,
+                  text = ~Label, type = "scatter3d", mode = "markers",
+                  color = ~get(outlierAnnot_color), colors = "viridis",
+                  symbol = I(Symb))
 } else {
-  plot_ly(scores1, x = ~PC1, y = ~PC2,
-          text = ~Label, type = "scatter", mode = "markers",
-          color = ~`Samples group`, colors = "viridis",
-          symbol = I(Symb))
+  plotly::plot_ly(scores1, x = ~PC1, y = ~PC2,
+                  text = ~Label, type = "scatter", mode = "markers",
+                  color = ~`Samples group`, colors = "viridis",
+                  symbol = I(Symb))
 }
-plot_lyPCA <- layout(plot_lyPCA, title = ttl)
-plot_lyPCA <- plotly_build(plot_lyPCA)
+plot_lyPCA <- plotly::layout(plot_lyPCA, title = ttl)
+plot_lyPCA$x$layout$xaxis$autorange <- TRUE
+plot_lyPCA$x$layout$yaxis$autorange <- TRUE
+plot_lyPCA <- htmlwidgets::onRender(plot_lyPCA, global_autorange)
+plot_lyPCA <- plotly::config(plot_lyPCA,
+                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
+plot_lyPCA <- plotly::plotly_build(plot_lyPCA)
+#plot_lyPCA <- plotly::partial_bundle(plot_lyPCA)
 dimRedPlotLy$peptides <- list("Samples PCA" = plot_lyPCA)
 saveFun(dimRedPlotLy, file = dimRed_fl)
 pcaDir <- paste0(wd, "/Workflow control/Peptides/PCA plot")
 if (!dir.exists(pcaDir)) { dir.create(pcaDir, recursive = TRUE) }
 setwd(pcaDir)
-saveWidget(partial_bundle(plot_lyPCA), paste0(wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"),
-           selfcontained = TRUE)
+saveWidget(plotly::partial_bundle(plot_lyPCA), paste0(wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"))
+#saveWidget(plot_lyPCA, paste0(wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"))
 setwd(wd)
 #system(paste0("open \"", wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"))
