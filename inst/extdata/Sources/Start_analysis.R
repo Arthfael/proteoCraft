@@ -1,6 +1,44 @@
 ######################
 ### Start analysis ###
 ######################
+inst <- as.data.frame(installed.packages())
+if ((!"proteoCraft" %in% inst$Package) || (exists("updt_proteoCraft") && updt_proteoCraft)) {
+  locFl <- paste0(homePath, "/Default_locations.xlsx")
+  locs <- openxlsx2::read_xlsx(locFl)
+  pckgloc <- paste0(locs$Path[match("Server share", locs$Folder)], "/proteoCraft_package")
+  goOn <- dir.exists(pckgloc)
+  if (goOn) {
+    pckgs <- list.files(pckgloc, "\\.tar\\.gz$", full.names = TRUE)
+    goOn <- length(pckgs) > 0L
+    if (goOn) {
+      pckgs <- data.frame(Name = pckgs, check.names = FALSE)
+      temp <- strsplit(gsub(".*/proteoCraft_|\\.tar\\.gz$", "", pckgs$Name), "\\.")
+      pckgs[, paste0("V", as.character(1L:4L))] <- as.data.frame(t(sapply(temp, \(x) {
+        x <- as.numeric(unlist(x))
+        if (length(x) < 4L) { x <- c(x, rep(0L, 4L-length(x))) }
+        return(x)
+      })))
+      k <- 1L
+      klK <- paste0("V", as.character(k))
+      pckgs <- pckgs[pckgs[[klK]] == max(pckgs[[klK]]), , drop = FALSE]
+      while (nrow(pckgs) > 1L) {
+        k <- k+1L
+        klK <- paste0("V", as.character(k))
+        pckgs <- pckgs[pckgs[[klK]] == max(pckgs[[klK]]), , drop = FALSE]
+      }
+      nuPack <- pckgs$Name
+    } else {
+      nuPack <- rstudioapi::selectFile("Select tarball (.tar.gz) for updating the proteoCraft package", filter = "tarball (*.tar.gz)")
+    }
+  }
+  if ((!is.na(nuPack)) && file.exists(nuPack)) {
+    cat("Updating proteoCraft package...\n")
+    unloadNamespace("proteoCraft")
+    remove.packages("proteoCraft")
+    install.packages(nuPack, dependencies = TRUE)
+  }
+}
+library(proteoCraft)
 
 if (!exists("renv")) { renv %<o% FALSE }
 
@@ -45,11 +83,6 @@ N.clust %<o% N.clust
 writeRaws %<o% writeRaws
 writeSearch %<o% writeSearch
 ProcessedByUs %<o% ProcessedByUs
-require(openxlsx)
-require(shiny)
-require(shinyjs)
-require(shinyFiles)
-require(TeachingDemos)
 
 scrptPaths <- setNames(ScriptPath,
                        c("Replicates",
@@ -60,45 +93,54 @@ WorkFlows %<o% eval(parse(text = gsub("^###-\\|-### *Workflows: *", "",
                     envir = .GlobalEnv)
 stopifnot(length(WorkFlows) > 0L) # This would mean that when ScriptPath was captured we had the wrong script open in the RStudio window!
 if (!RunByMaster) {
-  fl <- paste0(homePath, "/Default_locations.xlsx")
-  flTst <- file.exists(fl)
-  if (!flTst) { file.copy(paste0(RPath, "/proteoCraft/extdata/Default_locations.xlsx"), fl) }
-  inRoot <- openxlsx::read.xlsx(fl)
-  if (is.na(inRoot$Path[match("Temporary folder", inRoot$Folder)])) {
-    inRoot$Path[match("Temporary folder", inRoot$Folder)] <- homePath
-    wb <- openxlsx::createWorkbook()
-    openxlsx::addWorksheet(wb, "Default_folders")
-    openxlsx::writeData(wb, "Default_folders", inRoot, 1L, 1L)
-    openxlsx::setColWidths(wb, "Default_folders", match(c("Folder", "Path", "Help"), colnames(inRoot)),
-                           c(25L, 60L, 150L))
-    HdStl <- openxlsx::createStyle(textDecoration = c("bold", "underline"))
-    PthStl <- openxlsx::createStyle(fontName = "Consolas", textDecoration = "italic")
-    HlpStl <- openxlsx::createStyle(textDecoration = "italic")
-    openxlsx::addStyle(wb, "Default_folders", HdStl, 1L, 1L:ncol(inRoot), stack = TRUE)
-    openxlsx::addStyle(wb, "Default_folders", PthStl, 1L+(1L:nrow(inRoot)), match("Path", colnames(inRoot)),
-                       stack = TRUE)
-    openxlsx::addStyle(wb, "Default_folders", HlpStl, 1L+(1L:nrow(inRoot)), match("Help", colnames(inRoot)),
-                       stack = TRUE)
-    openxlsx::saveWorkbook(wb, fl, overwrite = TRUE)
-    #system(paste0("open \"", fl, "\""))
+  locDirsFl2 <- paste0(homePath, "/Default_locations.xlsx")
+  flTst <- file.exists(locDirsFl2)
+  if (!flTst) { file.copy(paste0(RPath, "/proteoCraft/extdata/Default_locations.xlsx"), locDirsFl2) }
+  dirTbl <- openxlsx::read.xlsx(locDirsFl2)
+  if (is.na(dirTbl$Path[match("Temporary folder", dirTbl$Folder)])) {
+    dirTbl$Path[match("Temporary folder", dirTbl$Folder)] <- homePath
+    
+    wb <- openxlsx2::wb_workbook()
+    wb <- openxlsx2::wb_add_worksheet(wb, "Default_folders")
+    nr <- nrow(dirTbl)
+    nc <- ncol(dirTbl)
+    wb <- openxlsx2::wb_add_data_table(wb, "Default_folders",
+                                       dirTbl, table_style = "TableStyleMedium5")
+    wb <- openxlsx2::wb_add_font(wb, "Default_folders",
+                                 openxlsx2::wb_dims(1L, 1L:nc),
+                                 bold = TRUE, underline = "single")
+    wb <- openxlsx2::wb_add_font(wb, "Default_folders",
+                                 openxlsx2::wb_dims(1L:nr + 1L, match("Path", colnames(dirTbl))),
+                                 name = "Consolas", italic = TRUE)
+    wb <- openxlsx2::wb_add_font(wb, "Default_folders",
+                                 openxlsx2::wb_dims(1L:nr + 1L, match("Help", colnames(dirTbl))),
+                                 italic = TRUE)
+    wb <- openxlsx2::wb_add_cell_style(wb, "Default_folders",
+                                       openxlsx2::wb_dims(1L:(nr+1L), 1L:nc),
+                                       horizontal = "left", vertical = "top", wrap_text = TRUE)
+    wb <- openxlsx2::wb_set_col_widths(wb, "Default_folders",
+                                       match(c("Folder", "Path", "Help"), colnames(dirTbl)),
+                                       c(25L, 60L, 150L))
+    openxlsx2::wb_save(wb, locFile2, TRUE)
+    #openxlsx2::xl_open(locFile)
   }
-  m <- match(c("Search folder", "Results delivery folder", "Archive folder"), inRoot$Folder)
-  inRoot2 <- setNames(inRoot$Path[m], paste0(inRoot$Folder[m], " (", inRoot$Path[m], ")"))
-  inRoot2 <- c(inRoot2, shinyFiles::getVolumes()()) # this makes the directory at the base of your computer.
+  m <- match(c("Search folder", "Results delivery folder", "Archive folder"), dirTbl$Folder)
+  dirTbl2 <- setNames(dirTbl$Path[m], paste0(dirTbl$Folder[m], " (", dirTbl$Path[m], ")"))
+  dirTbl2 <- c(dirTbl2, shinyFiles::getVolumes()()) # this makes the directory at the base of your computer.
   if (exists("inDirs")) {
-    tst <- vapply(inRoot2, \(rt) {
+    tst <- vapply(dirTbl2, \(rt) {
       sum(vapply(inDirs, \(indir) {
         grepl(topattern(rt), indir)
       }, TRUE)) > 0L
     }, TRUE)
-    inRoot2 <- c(inRoot2[tst][order(nchar(inRoot2[tst]), decreasing = TRUE)],
-                 inRoot2[!tst])
+    dirTbl2 <- c(dirTbl2[tst][order(nchar(dirTbl2[tst]), decreasing = TRUE)],
+                 dirTbl2[!tst])
   }
   if (!exists("WhoAmI")) { WhoAmI <- Sys.getenv("USERNAME") }
   #
-  # outRoot <- inRoot2[c(grep("^Results delivery folder ", names(inRoot2)),
-  #                      grep("^Archive folder ", names(inRoot2)),
-  #                      grep("^Results delivery folder |^Archive folder ", names(inRoot2), invert = TRUE))]
+  # outRoot <- dirTbl2[c(grep("^Results delivery folder ", names(dirTbl2)),
+  #                      grep("^Archive folder ", names(dirTbl2)),
+  #                      grep("^Results delivery folder |^Archive folder ", names(dirTbl2), invert = TRUE))]
   if ((!exists("WorkFlow")) || is.null(WorkFlow) || (length(WorkFlow) != 1L) || (!WorkFlow %in% c(WorkFlows, names(WorkFlows)))) {
     WorkFlow <- WorkFlows[1L]
   } else {
@@ -115,8 +157,8 @@ if (!RunByMaster) {
     inDirs <- inDirs[dir.exists(inDirs)]
     if (!length(inDirs)) { rm(inDirs) }
   }
-  if (!exists("inDirs")) { inDirs <- inRoot2[grep("^Search folder ", names(inRoot2))[1L]] }
-  defRt <- inRoot2[match(gsub("/.*", "/", inRoot2[grep("^Search folder ", names(inRoot2))]), inRoot2)]
+  if (!exists("inDirs")) { inDirs <- dirTbl2[grep("^Search folder ", names(dirTbl2))[1L]] }
+  defRt <- dirTbl2[match(gsub("/.*", "/", dirTbl2[grep("^Search folder ", names(dirTbl2))]), dirTbl2)]
   tmp <- c("MaxQuant", "DiaNN", "FragPipe", "Proteome Discoverer")
   SearchSoftware %<o% setNames(gsub(" ", "", toupper(tmp)), tmp)
   srchSoftOpt <- names(SearchSoftware)
@@ -136,7 +178,7 @@ if (!RunByMaster) {
       if (!sum(default)) { default[1L] <- TRUE }
       if (sum(default) > 1L) {
         w <- which(default)
-        default[w[2:length(w)]] <- FALSE
+        default[w[2L:length(w)]] <- FALSE
       }
       default <- srchSoftOpt[default]
     }
@@ -180,7 +222,8 @@ if (!RunByMaster) {
         gradient = "linear",
         direction = "bottom"
       ),
-      shinyjs::extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+      shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                             functions = c("toggleFullScreen")),
       shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
       shiny::titlePanel(shiny::tag("u", "Start analysis"),
                         appNm),
@@ -216,7 +259,7 @@ if (!RunByMaster) {
             shiny::br())),
         shiny::br(),
         shiny::em("Once you are finished, click "),
-        shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+        shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
         shiny::em(" to continue."),
         shiny::br(),
         shiny::em("Saving is only possible once:"),
@@ -344,7 +387,7 @@ table.on('change', 'select', function() {
 });
 ")))
     }
-    observeEvent(input$dt_event, {
+    shiny::observeEvent(input$dt_event, {
       evnt <- input$dt_event
       id <- evnt$id
       i <- as.integer(gsub(".*___", "", id))
@@ -360,7 +403,7 @@ table.on('change', 'select', function() {
         if(root == "searchSoft") { eval(srchSoftXprs) }
       }
     })
-    observeEvent(input$addBtn, {
+    shiny::observeEvent(input$addBtn, {
       dat <- INPUTTBL()
       dat2 <- INPUTTBL2()
       drs <- dat$Value
@@ -393,11 +436,11 @@ table.on('change', 'select', function() {
     output$inDirs <- updt_inDirs(reactive = FALSE)
     output$Workflows <- shiny::renderUI({
       lst <- vector("list", 1L)
-      lst[[1L]] <- list(selectInput("Workflow",
-                                    "Select data analysis workflow",
-                                    wrkFlws,
-                                    wrkFlw,
-                                    width = "100%"))
+      lst[[1L]] <- list(shiny::selectInput("Workflow",
+                                           "Select data analysis workflow",
+                                           wrkFlws,
+                                           wrkFlw,
+                                           width = "100%"))
       return(lst)
     })
     #
@@ -473,7 +516,7 @@ table.on('change', 'select', function() {
   tst2 <- tst2[!is.na(tst2)]
   tst2 <- paste(tst2[1L:(min(c(2L, length(tst2))))], collapse = "")
   tst3 <- gsub("[a-z, ]", "", dtstNm)
-  projDir %<o% paste0(inRoot$Path[match("Temporary folder", inRoot$Folder)], "/", tst2, "_", tst3, "_", tst)
+  projDir %<o% paste0(dirTbl$Path[match("Temporary folder", dirTbl$Folder)], "/", tst2, "_", tst3, "_", tst)
   #wd %<o% paste0(projDir, "/Proc")
   wd %<o% projDir
   if (!dir.exists(wd)) { dir.create(wd, recursive = TRUE) }
@@ -519,7 +562,7 @@ fls <- c(list.files(wd, "\\.RData$", ignore.case = TRUE, full.names = TRUE),
 if (length(fls)) {
   fls <- data.frame(path = fls)
   fls$basename <- basename(fls$path)
-  fls$name <- sub("\\.((RData)|(rds))$", "", fls$basename, ignore.case = TRUE)
+  fls$name <- sub("\\.(RData|rds)$", "", fls$basename, ignore.case = TRUE)
   fls$dir <- dirname(fls$path)
   fls$replname <- paste0(fls$name, ".RDS")
   fls$repl <- paste0(fls$dir, "/", fls$replname)
@@ -548,55 +591,12 @@ for (pack in c(cran_req, bioc_req, "proteoCraft")) {
   # 
   # add something here to catch issues with packages which cannot be unloaded...
 }
-tst <- try(normalizePath(rawrr:::.rawrrAssembly(), winslash = "/"), silent = TRUE)
-if ((!inherits(tst, "try-error")) || (!file.exists(tst))) {
-  suppressMessages(rawrr::installRawrrExe())
-}
 data.table::setDTthreads(threads = detectCores()-1L)
 #
-inst <- as.data.frame(installed.packages())
-if ((!"proteoCraft" %in% inst$Package) || (exists("updt_proteoCraft") && updt_proteoCraft)) {
-  locFl <- paste0(homePath, "/Default_locations.xlsx")
-  locs <- openxlsx2::read_xlsx(locFl)
-  pckgloc <- paste0(locs$Path[match("Server share", locs$Folder)], "/proteoCraft_package")
-  goOn <- dir.exists(pckgloc)
-  if (goOn) {
-    pckgs <- list.files(pckgloc, "\\.tar\\.gz$", full.names = TRUE)
-    goOn <- length(pckgs) > 0L
-    if (goOn) {
-      pckgs <- data.frame(Name = pckgs, check.names = FALSE)
-      temp <- strsplit(gsub(".*/proteoCraft_|\\.tar\\.gz$", "", pckgs$Name), "\\.")
-      pckgs[, paste0("V", as.character(1L:4L))] <- as.data.frame(t(sapply(temp, \(x) {
-        x <- as.numeric(unlist(x))
-        if (length(x) < 4L) { x <- c(x, rep(0L, 4L-length(x))) }
-        return(x)
-      })))
-      k <- 1L
-      klK <- paste0("V", as.character(k))
-      pckgs <- pckgs[pckgs[[klK]] == max(pckgs[[klK]]), , drop = FALSE]
-      while (nrow(pckgs) > 1L) {
-        k <- k+1L
-        klK <- paste0("V", as.character(k))
-        pckgs <- pckgs[pckgs[[klK]] == max(pckgs[[klK]]), , drop = FALSE]
-      }
-      nuPack <- pckgs$Name
-    } else {
-      nuPack <- rstudioapi::selectFile("Select tarball (\\.tar.gz) for updating the proteoCraft package", filter = "tarball (*.tar.gz)")
-    }
-  }
-  if ((!is.na(nuPack)) && file.exists(nuPack)) {
-    cat("Updating proteoCraft package...\n")
-    unloadNamespace("proteoCraft")
-    remove.packages("proteoCraft")
-    install.packages(nuPack, dependencies = TRUE)
-  }
-}
-require(proteoCraft)
 set.seed(mySeed)
 if (renv) {
   if (nuEnv) {
-    renv::snapshot(force = TRUE, prompt = FALSE#, exclude = "fastSave" # We are not including fastSave anymore
-    )
+    renv::snapshot(force = TRUE, prompt = FALSE)
   }
 }
 LocAnalysis %<o% (WorkFlow %in% c("LOCALISATION", "LOCALIZATION"))
@@ -685,7 +685,7 @@ if (nrow(allBckps)) {
   }
   allBckps$Reload <- allBckps$Value %in% bckps2Reload
   for (i in 1L:nrow(allBckps)) { #i <- 1L
-    ext <- tolower(gsub(".*\\.", "", allBckps$File[i]))
+    ext <- tolower(sub(".*\\.", "", allBckps$File[i]))
     nms <- allBckps$ObjNm[[i]]
     for (nm in nms) {
       if (exists(nm)) {

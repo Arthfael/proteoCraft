@@ -7,13 +7,14 @@
 # If you want to run this, you will thus first need to run the GO enrichment section first
 setwd(wd)
 # Packages for STRINGdb graphs
-packs <- c("rbioapi", "png")
-for (pack in packs) { require(pack, character.only = TRUE) }
+library(igraph)
+library(RCy3)
+library(png)
 # Create STRINGdb directory
 GraphTypes %<o% c("Functional", "Physical")
 dirs <- paste0(wd, "/STRINGdb/", GraphTypes)
 for (dir in dirs) { if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) } }
-dirlist <- unique(c(dirlist, dir))
+dirlist <- union(dirlist, dir)
 # Process filters for STRINGdb
 intNets <- list()
 Tsts <- c("t-tests", "F-tests", "Localisation", "SAINTexpress")
@@ -40,7 +41,7 @@ allProteins_mapped <- try(setNames(lapply(allTaxIDs, \(txid) { #txid <- allTaxID
   kol <- c("Protein ID", "Common Name", "TAIR")
   kol <- intersect(kol, colnames(db))
   tmpDB <- db[(db$`Protein ID` %in% IDs) & (db$TaxID == txid), kol]
-  x <- gsub("^cRAP[0-9]{3}", "", gsub("^CON__", "", tmpDB$`Protein ID`))
+  x <- sub("^cRAP[0-9]{3}", "", sub("^CON__", "", tmpDB$`Protein ID`))
   y <- split(x, ceiling(seq_along(x)/20))
   n <- length(y)
   clusterExport(parClust, c("txid", "y", "tmpDB"), envir = environment())
@@ -138,7 +139,7 @@ if (length(WhTsts) && length(allProteins_mapped)) {
           reg2$"PG id" <- tmpMap$L1[match(reg2$ID, tmpMap$value)]
         }
         reg2$TaxID <- db$TaxID[match(reg2$ID, db$"Protein ID")]
-        reg2$ID <- gsub("^cRAP[0-9]{3}", "", gsub("^CON__", "", reg2$ID))
+        reg2$ID <- sub("^cRAP[0-9]{3}", "", sub("^CON__", "", reg2$ID))
         reg2 <- aggregate(1L:nrow(reg2), list(reg2$TaxID), \(x) {
           list(reg2[x,])
         })
@@ -155,7 +156,7 @@ if (length(WhTsts) && length(allProteins_mapped)) {
           if (!tx %in% names(tmp$Reg[[y]])) { return() }
           return(tmp$Reg[[y]][[tx]])
         })
-        tmp$TaxID <- gsub("^TaxID_", "", tx)
+        tmp$TaxID <- sub("^TaxID_", "", tx)
         return(tmp)
       })
       filtDF <- plyr::rbind.fill(filtDF)
@@ -188,9 +189,8 @@ if (length(WhTsts) && length(allProteins_mapped)) {
       STRINGplot_I <- NA
       img_I <- NA
       grphNm <- paste0(c("", paste0("taxID_", txid, "_"))[txidsTst],
-                       gsub("[:\\*\\?<>\\|/| ,]+", "_", tstbee), "_", gsub("[:\\*\\?<>\\|/| ,]+", "_",
-                                                                           gsub("\\(|\\)", "",
-                                                                                fltNm)))
+                       gsub("[:*?<>/| ,]+", "_", tstbee), "_",
+                       gsub("[:*?<>/| ,]+", "_", gsub("\\(|\\)", "", fltNm)))
       imgpath <- paste0(wd, "/STRINGdb/", grphType, "/", grphNm, ".png")
       #cat(grphNm, "\n")
       #typ <- filtersDF$Type[i]
@@ -288,7 +288,7 @@ if (length(WhTsts) && length(allProteins_mapped)) {
         fls <- STRINGplots[[grphType]]
         fls <- fls[file.exists(fls)]
         if (length(fls) > 1L) {
-          PNGs <- parLapply(parClust, fls, readPNG)
+          PNGs <- parLapply(parClust, fls, png::readPNG)
           g <- parLapply(parClust, PNGs, \(png) { grid::rasterGrob(png, interpolate = TRUE) })
           dim <- ceiling(sqrt(length(g)))
           l <- length(gsub(".*/|\\.png$", "", fls))
@@ -296,7 +296,7 @@ if (length(WhTsts) && length(allProteins_mapped)) {
           tst$x <- rep(1L:dim, dim)[1L:l]
           tst$y <- as.numeric(sapply(dim:1L, \(x) { rep(x, dim) }))[1L:l]
           tst$Grob <- g
-          tst$Lab <- gsub("\\)$", "", gsub("\\)_-_\\(", "\nvs\n", gsub("_by_condition_(\\()?", "\n", tst$tile)))
+          tst$Lab <- sub("\\)$", "", gsub("\\)_-_\\(", "\nvs\n", gsub("_by_condition_(\\()?", "\n", tst$tile)))
           ttl <- paste0(tolower(grphType), " STRING plots")
           plot <- ggplot(tst) +
             geom_tile(aes(x = x, y = y), width = 0.96, height = 0.96, fill = "white") + coord_equal() + theme_bw() +
@@ -333,7 +333,7 @@ if (length(WhTsts) && length(allProteins_mapped)) {
         dirs <- paste0(wd, "/STRINGdb/", GraphTypes) # These are Cytoscape versions of STRINGdb graphs,
         # the logical place to save them is in STRINGdb!!!
         for (dir in dirs) { if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) } }
-        dirlist <- unique(c(dirlist, dir))
+        dirlist <- union(dirlist, dir)
         #
         # Use Cytoscape to represent networks of gated proteins with overlayed logFC
         cat("Creating Cytoscape network .cx files...\n")
@@ -435,7 +435,7 @@ if (length(WhTsts) && length(allProteins_mapped)) {
         # Then close Cytoscape:
         try({
           RCy3::closeSession(save.before.closing = FALSE)
-          cmd <- paste0("taskkill/im \"", gsub(".+/", "", CytoScExe), "\" /f")
+          cmd <- paste0("taskkill/im \"", sub(".+/", "", CytoScExe), "\" /f")
           #cat(cmd)
           shell(cmd)
         }, silent = TRUE)

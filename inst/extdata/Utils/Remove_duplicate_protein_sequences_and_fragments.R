@@ -41,5 +41,5 @@ db <- db[which(!g),]
 db2 <- Format.DB(paste0(fastaDir, "/CCP_cRAPome.fasta")) # loads contaminants
 #db <- plyr::rbind.fill(db, db2)
 db <- rbind(db, db2)
-writeFasta(db, gsub(paste0("\\.", ext, "$"), paste0("_noDupl_cont.", ext), dbFl)) # Write fixed database with original extension
+writeFasta(db, sub(paste0("\\.", ext, "$"), paste0("_noDupl_cont.", ext), dbFl)) # Write fixed database with original extension
 openwd(dirname(dbFl))

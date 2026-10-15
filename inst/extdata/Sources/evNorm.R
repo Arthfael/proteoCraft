@@ -346,11 +346,10 @@ if (Param$Norma.Ev.Intens) {
     Norm.Ev.RepIntens.All$Iso <- factor(paste0(IsobarLab, " sample ", Norm.Ev.RepIntens.All$Iso),
                                         levels = paste0(IsobarLab, " sample ", Iso))
     w <- (("Adv.Norma.Ev.Intens" %in% colnames(Param))&(Param$Adv.Norma.Ev.Intens != FALSE))+1L
-    l <- length(DatAnalysisTxt)
-    DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l], " MS1 intensities and ", IsobarLab,
-                                " reporter intensities were re-normalized ",
-                                c("to the median",
-                                  "using the Levenberg-Marquardt procedure to minimize sample-to-sample differences")[w], ".")
+    DatAnalysisTxt$evNorm <- paste0("MS1 intensities and ", IsobarLab,
+                                    " reporter intensities were re-normalized ",
+                                    c("to the median",
+                                      "using the Levenberg-Marquardt procedure to minimize sample-to-sample differences")[w], ".")
     # Visualize results
     dir <- paste0(wd, "/Workflow control/", evNm, "s/Reporter intensities")
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
@@ -365,19 +364,17 @@ if (Param$Norma.Ev.Intens) {
     ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
   } else {
     w <- (("Adv.Norma.Ev.Intens" %in% colnames(Param))&(Param$Adv.Norma.Ev.Intens != FALSE))+1L
-    l <- length(DatAnalysisTxt)
-    DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l], " MS1 intensities were re-normalized ",
-                                c("to the median",
-                                  "using the Levenberg-Marquardt procedure to minimize sample-to-sample differences")[w], ".")
+    DatAnalysisTxt$evNorm <- paste0("MS1 intensities were re-normalized ",
+                                    c("to the median",
+                                      "using the Levenberg-Marquardt procedure to minimize sample-to-sample differences")[w], ".")
   }
   if ((LabelType == "LFQ") && sum(isDIA) && ("MS2_intensities" %in% colnames(ev))) {
     stop("Old, suspicious code: check before running!")
     # If DIA, re-scale MS2 intensities by applying MS1 normalisation factors
     # Important: this bit must remain after the normalisation of MS1 intensities
-    l <- length(DatAnalysisTxt)
-    DatAnalysisTxt[l] <- gsub("\\.$",
-                              ", then individual MS2 intensities were re-scaled using MS1 intensities.",
-                              DatAnalysisTxt[l])
+    DatAnalysisTxt$evNorm <- sub("\\.$",
+                                 ", then individual MS2 intensities were re-scaled using MS1 intensities.",
+                                 DatAnalysisTxt$evNorm)
     kol <- gsub("Intensity", "MS2 intensities", ev.col[length(ev.col)])
     stopifnot(grepl("MS2 intensities", kol))
     ev[[kol]] <- ev$MS2_intensities # (Let's keep this as a numeric list)
@@ -422,10 +419,9 @@ if (Param$Norma.Ev.Intens) {
 # If isobaric, re-scale reporter intensities to total evidence intensities:
 # Important: this bit must remain after the normalization of MS1 intensities
 if (LabelType == "Isobaric") {
-  l <- length(DatAnalysisTxt)
-  DatAnalysisTxt[l] <- gsub("\\.$",
-                            ", then reporter intensities were re-scaled using MS1 intensities.",
-                            DatAnalysisTxt[l])
+  DatAnalysisTxt$evNorm <- sub("\\.$",
+                               ", then reporter intensities were re-scaled using MS1 intensities.",
+                               DatAnalysisTxt$evNorm)
   ev.ref["Adjusted"] <- paste0("adj. ", ev.ref["Original"])
   k0 <- paste0(ev.ref[match("Adjusted", names(ev.ref))-1L], get(IsobarLab))
   k1 <- paste0(ev.ref["Adjusted"], get(IsobarLab))

@@ -15,9 +15,6 @@ if (length(ROCfilt_GOterms_Pos)) {
   }
 }
 if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
-  pack <- "pROC"
-  bioc_req <- unique(c(bioc_req, pack))
-  if (!require(pack, character.only = TRUE)) { biocInstall(pack) }
   cat("PSMs filtering using ROC analysis\n")
   dir <- paste0(wd, "/Workflow control/", evNm, "s/ROC analysis")
   dirlist <- unique(c(dirlist, dir))
@@ -70,12 +67,9 @@ if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
   plotPath <- paste0(dir, "/", ttl, ".png")
   if (sum(tst)) {
     if (sum(tst) == 2L) {
-      pack <- "gridExtra"
-      cran_req <- unique(c(cran_req, pack))
-      if (!require(pack, character.only = TRUE)) { pak:pkg_install(pack) }
-      rocPlot1 <- as.grob(rocPlot1)
-      rocPlot2 <- as.grob(rocPlot2)
-      png(plotPath); grid.arrange(rocPlot1, rocPlot2); dev.off()
+      rocPlot1 <- ggplotify::as.grob(rocPlot1)
+      rocPlot2 <- ggplotify::as.grob(rocPlot2)
+      grDevices::png(plotPath); gridExtra::grid.arrange(rocPlot1, rocPlot2); grDevices::dev.off()
     } else {
       rocPlot <- get(paste0("rocPlot", which(tst)))
       ggsave(plotPath, rocPlot)

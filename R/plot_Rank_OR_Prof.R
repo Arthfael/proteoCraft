@@ -47,12 +47,12 @@
     }
     #
     myData <- reshape::melt(myData[, c(varkol, qKol)], id.vars = varkol)
-    colnames(myData)[which(colnames(myData) == "variable")] <- "Sample"
+    colnames(myData)[match("variable", colnames(myData))] <- "Sample"
     myData$Sample <- gsub_Rep(topattern(ref), "", myData$Sample)
     if (scrptType == "withReps") {
       myData$Sample <- cleanNms(myData$Sample)
     }
-    colnames(myData)[which(colnames(myData) == "value")] <- "Y"
+    colnames(myData)[match("value", colnames(myData))] <- "Y"
     if (dataType == "PG") {
       myData[[txt4Kol]] <- myData2$value
     }
@@ -61,24 +61,24 @@
       if ((quantType == "LFQ") && (WorkFlow == "Band ID")) {
         kolnm <- "LFQ"
         myData$Y <- 10L^myData$Y
-        myData <- myData[which(myData$Y > 0),]
+        myData <- myData[myData$Y > 0,]
       } else {
         if (quantType %in% c("Coverage", "Spectra")) {
-          myData <- myData[which(myData$Y > 0),]
+          myData <- myData[myData$Y > 0,]
         }
       }
     }
     if (dataType == "pep") {
       if (quantType == "intensities") {
         #if (WorkFlow == "Band ID") { # Always log transform, otherwise it becomes difficult to read at peptides level!
-        #  myData <- myData[which(myData$Y > 0),]
+        #  myData <- myData[myData$Y > 0,]
         #} else {
         kolnm <- "log10(intensity)"
         myData$Y <- log10(myData$Y)
         #}
       }
     }
-    myData <- myData[which(is.finite(myData$Y)),]
+    myData <- myData[is.finite(myData$Y),]
     myData[[kolnm]] <- myData$Y
     if (!nrow(myData)) { return(list(#plotly_saved = FALSE,
                                      step = 1L)) }
@@ -87,14 +87,14 @@
     goOn <- TRUE
     if (plotType == "All") {
       ttl <- baseTtl
-      lev1 <- unique(profData$Category)
-      lev1 <- lev1[which(!lev1 %in% c("In list", "Contaminant"))]
+      lev1 <- setdiff(unique(profData$Category),
+                      c("In list", "Contaminant"))
       lev1 <- union(lev1, c("In list", "Contaminant"))
       catnm <- "Category"
       profData$Category <- factor(profData$Category, levels = lev1)
       if ("Cluster" %in% colnames(profData)) {
         uCl <- sort(unique(profData$Cluster))
-        uCl <- uCl[which(!is.na(uCl))]
+        uCl <- uCl[!is.na(uCl)]
         w <- which(is.na(profData$Cluster))
         profData$Cluster[w] <- "Not clustered"
         profData$Cluster <- factor(profData$Cluster, levels = c(uCl, "Not clustered"))
@@ -124,14 +124,14 @@
         myFlt2 <- CompGOTerms
       }
       catnm <- "GO term"
-      myFlt2 <- myFlt2[which(myFlt2 %in% colnames(profData))]
+      myFlt2 <- intersect(myFlt2, colnames(profData))
       goOn <- length(myFlt2)
       if (goOn) {
         profData <- lapply(myFlt2, \(go) { #go <- myFlt2[1L]
-          dat <- profData[which(profData[[go]] == "+"),]
+          dat <- profData[profData[[go]] == "+",]
           if (!nrow(dat)) { return() }
           dat$"GO term" <- go
-          dat <- dat[, which(!colnames(dat) %in% myFlt2)]
+          dat <- dat[, !colnames(dat) %in% myFlt2]
           return(dat)
         })
         profData <- do.call(rbind, profData)
@@ -157,7 +157,7 @@
     profData$DotSize <- 1L
     #profData$Alpha <- c(rep(0.25, 2L), rep(0.5, length(Org_Nms)), rep(1L, 2L))[m]
     profData$Alpha <- 1
-    profData <- profData[which(!is.na(profData$Y)),]
+    profData <- profData[!is.na(profData$Y),]
     wTxt <- which(profData$Sample == rev(levels(profData$Sample))[1L])
     yLim <- c(min(profData$Y, na.rm = TRUE),
               max(profData$Y, na.rm = TRUE))
@@ -237,7 +237,7 @@
       eval(parse(text = plotlyCall_txt))
       plotlyProfiles$x$layout$xaxis$autorange <- TRUE
       plotlyProfiles$x$layout$yaxis$autorange <- TRUE
-      plotlyProfiles <- htmlwidgets::onRender(plotlyProfiles, global_autorange)
+      plotlyProfiles <- htmlwidgets::onRender(plotlyProfiles, jsFun$global_auto_range)
       plotlyProfiles <- plotly::config(plotlyProfiles,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
       plotlyProfiles <- plotly::plotly_build(plotlyProfiles)
@@ -329,24 +329,24 @@
       if ((quantType == "LFQ") && (WorkFlow == "Band ID")) {
         kolnm <- "LFQ"
         myData$Y <- 10L^myData$Y
-        myData <- myData[which(myData$Y > 0),]
+        myData <- myData[myData$Y > 0,]
       } else {
         if (quantType %in% c("Coverage", "Spectra")) {
-          myData <- myData[which(myData$Y > 0),]
+          myData <- myData[myData$Y > 0,]
         }
       }
     }
     if (dataType == "pep") {
       if (quantType == "intensities") {
         #if (WorkFlow == "Band ID") { # Always log transform, otherwise it becomes difficult to read at peptides level!
-        #  myData <- myData[which(myData$Y > 0),]
+        #  myData <- myData[myData$Y > 0,]
         #} else {
         kolnm <- "log10(intensity)"
         myData$Y <- log10(myData$Y)
         #}
       }
     }
-    myData <- myData[which(is.finite(myData$Y)),]
+    myData <- myData[is.finite(myData$Y),]
     if (!nrow(myData)) {
       return(list(#plotly_saved = FALSE,
                   step = 3L))
@@ -471,7 +471,7 @@
       plotLy <- plotly::ggplotly(plot, tooltip = toolTip)
       plotLy$x$layout$xaxis$autorange <- TRUE
       plotLy$x$layout$yaxis$autorange <- TRUE
-      plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+      plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
       plotLy <- plotly::config(plotLy,
                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
       plotLy <- plotly::plotly_build(plotLy)

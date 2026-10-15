@@ -9,7 +9,7 @@
 if (runRankAbundPlots || runProfPlots) {
   library(ggplot2)
   library(RColorBrewer)
-  library(colorspace)
+  #library(colorspace)
   library(ggplot2)
   library(plotly)
   library(AnnotationDbi)
@@ -73,8 +73,8 @@ if (runRankAbundPlots || runProfPlots) {
     tmp <- data.frame(ID = tmp,
                       Org = db[match(tmp, db$`Protein ID`),
                                dbOrgKol])
-    tmp$Org <- gsub(" *\\([^\\)]*\\)", "", tmp$Org)
-    if (spLevel == "species") { tmp$Org <- gsub(" subsp((\\.)|(ecies)) .*", "", tmp$Org) }
+    tmp$Org <- gsub(" *\\([^)]*\\)", "", tmp$Org)
+    if (spLevel == "species") { tmp$Org <- sub(" subsp(\\.|ecies).*", "", tmp$Org) }
     tmp1$Org <- tmp$Org[match(tmp1$value, tmp$ID)]
     tmp2$Org <- tmp$Org[match(tmp2$value, tmp$ID)]
     f0 <- \(x) {
@@ -155,7 +155,7 @@ if (runRankAbundPlots || runProfPlots) {
       w <- which(is.na(names(GO_filter)))
       names(GO_filter)[w] <- GO_filter[w]
     }
-    names(GO_filter) <- gsub(" *\\[.*", "", names(GO_filter))
+    names(GO_filter) <- sub(" *\\[.*", "", names(GO_filter))
   }
   QuantTypes_ref["LFQ"] <- PG_ref
   pepQuantTypes_ref["intensities"] <- pep_ref
@@ -348,7 +348,7 @@ if (runRankAbundPlots || runProfPlots) {
   tmpFl2 <- tempfile(fileext = ".rds")
   exports <- c("samplesDF", "tmpFl1", "tmpFl2", "wd", "MainDir", "MainDir2", "PG_varkol", "pep_varkol",
                "WorkFlow", "GO_filt", "runMark", "MakeRatios", "mySamples", "QuantTypes", "QuantTypes_ref", "pepQuantTypes", "pepQuantTypes_ref",
-               "colScale", "fillScale", "colScale2", "fillScale2", "Exp", "scrptType", "tstOrg2", "myFlt", "global_autorange")
+               "colScale", "fillScale", "colScale2", "fillScale2", "Exp", "scrptType", "tstOrg2", "myFlt", "jsFun")
   if (GO_filt) { exports <- union(exports, "GO_filter") }
   if (length(myFlt)) { exports <- union(exports, c("CompGOTerms", "myGOcolors")) }
   exports <- as.list(exports)
@@ -358,7 +358,7 @@ if (runRankAbundPlots || runProfPlots) {
   invisible(clusterCall(parClust, \() {
     library(ggplot2)
     library(RColorBrewer)
-    library(colorspace)
+    #library(colorspace)
     library(ggplot2)
     library(plotly)
     library(AnnotationDbi)

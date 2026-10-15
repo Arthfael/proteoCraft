@@ -269,7 +269,7 @@ PeakPicking <- TRUE
 mzMLs <- paste0(wd, "/", gsub("\\.raw$", ".mzML", basename(fls), ignore.case = TRUE))
 pressFls <- gsub("\\.mzML$", ".csv", mzMLs)
 clusterExport(parClust, list("fls", "mzMLs", "pressFls"), envir = environment())
-w <- which((!file.exists(mzMLs))|(file.size(mzMLs) <= 2000))
+w <- which((!file.exists(mzMLs)) | (file.size(mzMLs) <= 2000))
 if (length(w)) {
   if (tolower(Convert_mode) == "thermorawfileparser") { # Mode 1: using ThermoRawFileParser
     clusterExport(parClust, list("deer", "zlib", "PeakPicking"), envir = environment())

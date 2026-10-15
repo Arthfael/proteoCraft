@@ -1,21 +1,23 @@
 #### Venn diagrams (no-replicates workflow version)
 setwd(wd)
-packs <- c("ggplot2", "ggpolypath", "venn")
-for (pck in packs) {
-  if (!require(pck, character.only = TRUE)) {
-    pak::pak(pck, upgrade = FALSE, ask = FALSE)
-  }
-}
-for (pck in packs) {
-  library(pck, character.only = TRUE)
-}
+library(ggplot2)
+library(ggpolypath)
+library(venn)
+library(plotly)
+library(htmlwidgets)
 #
 if (!exists("plotly_Venn")) { plotly_Venn <- list() }
 #
-HdrStlVenn <- createStyle(textDecoration = "bold", halign = "left", valign = "bottom", wrapText = TRUE,
-                          numFmt = "TEXT", fontSize = 12L, textRotation = 60)
-wb <- createWorkbook()
+HdrStlVenn <- openxlsx2::create_cell_style(num_fmt_id = "General",
+                                           horizontal = "left",
+                                           vertical = "bottom",
+                                           text_rotation = 60,
+                                           wrap_text = TRUE)
+wb <- openxlsx2::wb_workbook()
+wb$styles_mgr$add(HdrStlVenn, "Header_style")
 wbKount <- 0L
+myData <- PG
+idKol <- "Leading protein IDs"
 VennMx <- 7L
 VennDir <- paste0(wd, "/Venn diagrams")
 if (!dir.exists(VennDir)) { dir.create(VennDir, recursive = TRUE) }
@@ -67,14 +69,18 @@ if (Venn_Obs) {
       }
       test <- test[VennExp]
       AnalysisParam$"Venn diagram (LFC) - samples" <- list(VennExp)
-      plot <- venn(test, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)
+      plot <- venn::venn(test, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)
       subTtl <- "Global, LFQ"
       plot <- plot + ggtitle("Venn diagram", subtitle = subTtl) +
         theme(plot.title = element_text(size = 15L), plot.subtitle = element_text(size = 10L))
       plot@layers$geom_path <- NULL
       plotLy <- ggplotly(plot, tooltip = "label")
+      plotLy$x$layout$xaxis$autorange <- TRUE
+      plotLy$x$layout$yaxis$autorange <- TRUE
+      plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
       plotLy <- plotly::config(plotLy,
                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
+      plotLy <- plotly::plotly_build(plotLy)
       plotly_Venn[[subTtl]] <- plotLy
       poplot(plot)
       suppressMessages({
@@ -82,18 +88,25 @@ if (Venn_Obs) {
       })
       #system(paste0("open \"", VennDir, "/", ttl, ".jpg", "\""))
       wbKount <- wbKount+1L
-      if (SheetNm %in% names(wb)) { removeWorksheet(wb, SheetNm) } 
-      addWorksheet(wb, SheetNm)
-      writeData(wb, SheetNm, PG[, c("id", "Leading protein IDs", "Genes")], 1L, 1L)
+      if (SheetNm %in% names(wb)) { removeWorksheet(wb, SheetNm) }
+      if (SheetNm %in% wb_get_sheet_names(wb)) { wb <- openxlsx2::wb_remove_worksheet(wb, SheetNm) }
+      wb <- openxlsx2::wb_add_worksheet(wb, SheetNm)
       l <- length(test)
-      tmp <- sapply(names(test), \(smpl) {
-        res <- rep("", nrow(PG))
-        res[test[[smpl]]] <- "+"
+      tmp <- sapply(VennExp, \(grp) {
+        res <- rep("", nrow(myData))
+        res[test[[grp]]] <- "+"
         return(res)
       })
-      writeData(wb, SheetNm, tmp, 4L, 1L)
-      setRowHeights(wb, SheetNm, 1L, 120L)
-      addStyle(wb, SheetNm, HdrStlVenn, 1L, 1L:(l+3L))
+      tmp <- as.data.frame(tmp)
+      tmp[[idKol]] <- myData[[idKol]]
+      tmp <- tmp[, c(idKol, VennExp)]
+      wb <- openxlsx2::wb_add_data(wb, SheetNm, tmp, openxlsx2::wb_dims(2L, 2L))
+      wb <- openxlsx2::wb_set_row_heights(wb, SheetNm, 2L, 120L)
+      wb <- openxlsx2::wb_set_col_widths(wb, SheetNm, 1L, 3L)
+      wb <- openxlsx2::wb_set_col_widths(wb, SheetNm, 1L, 10L)
+      hdrDms <- openxlsx2::wb_dims(2L, 1L:(l+1L) + 1L)
+      wb <- openxlsx2::wb_add_font(wb, SheetNm, hdrDms, size = 12L, bold = TRUE)
+      wb <- openxlsx2::wb_set_cell_style(wb, SheetNm, hdrDms, wb$styles_mgr$get_xf_id("Header_style"))
     } else { warning("Skipping LFC Venn diagrams: not enough valid samples!") }
   }
 }
@@ -109,8 +122,7 @@ if (Venn_Ratios) {
     w <- which(tst == 0L)
     if (0L %in% tst) {
       l <- length(w)
-      tmp <- names(fc_filt)[which(tst == 0L)]
-      if (l > 1L) { tmp <- paste0(paste(tmp[1L:(l-1L)], collapse = ", "), " and ", tmp[l]) }
+      tmp <- .commAnd(names(fc_filt)[which(tst == 0L)])
       warning(paste0("No filtered proteins for samples ", tmp, ", they will be skipped!"))
     }
     fc_filt <- fc_filt[which(tst > 0L)]
@@ -175,8 +187,12 @@ if (Venn_Ratios) {
               theme(plot.title = element_text(size = 15L), plot.subtitle = element_text(size = 10L))
             plot@layers$geom_path <- NULL
             plotLy <- ggplotly(plot, tooltip = "label")
+            plotLy$x$layout$xaxis$autorange <- TRUE
+            plotLy$x$layout$yaxis$autorange <- TRUE
+            plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
             plotLy <- plotly::config(plotLy,
                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
+            plotLy <- plotly::plotly_build(plotLy)
             plotly_Venn[[subTtl]] <- plotLy
             poplot(plot)
             suppressMessages({
@@ -184,18 +200,24 @@ if (Venn_Ratios) {
             })
             #system(paste0("open \"", VennDir, "/", ttl, ".jpg", "\""))
             wbKount <- wbKount+1L
-            if (SheetNm %in% names(wb)) { removeWorksheet(wb, SheetNm) } 
-            addWorksheet(wb, SheetNm)
-            writeData(wb, SheetNm, PG[, c("id", "Leading protein IDs", "Genes")], 1L, 1L)
+            if (SheetNm %in% wb_get_sheet_names(wb)) { wb <- openxlsx2::wb_remove_worksheet(wb, SheetNm) }
+            wb <- openxlsx2::wb_add_worksheet(wb, SheetNm)
             l <- length(flt)
             tmp <- sapply(names(flt), \(smpl) {
-              res <- rep("", nrow(PG))
+              res <- rep("", nrow(myData))
               res[flt[[smpl]]] <- "+"
               return(res)
             })
-            writeData(wb, SheetNm, tmp, 4L, 1L)
-            setRowHeights(wb, SheetNm, 1L, 120L)
-            addStyle(wb, SheetNm, HdrStlVenn, 1L, 1L:(l+3L))
+            tmp <- as.data.frame(tmp)
+            tmp[[idKol]] <- myData[[idKol]]
+            tmp <- tmp[, c(idKol, names(flt))]
+            wb <- openxlsx2::wb_add_data(wb, SheetNm, tmp, openxlsx2::wb_dims(2L, 2L))
+            wb <- openxlsx2::wb_set_row_heights(wb, SheetNm, 2L, 120L)
+            wb <- openxlsx2::wb_set_col_widths(wb, SheetNm, 1L, 3L)
+            wb <- openxlsx2::wb_set_col_widths(wb, SheetNm, 1L, 10L)
+            hdrDms <- openxlsx2::wb_dims(2L, 1L:(l+1L) + 1L)
+            wb <- openxlsx2::wb_add_font(wb, SheetNm, hdrDms, size = 12L, bold = TRUE)
+            wb <- openxlsx2::wb_set_cell_style(wb, SheetNm, hdrDms, wb$styles_mgr$get_xf_id("Header_style"))
           } else { message(sub(" \\(\\)$", "", paste0("No overlaps to plot (", vt, ")"))) }
         }
       }
@@ -207,13 +229,16 @@ if (Venn_Ratios) {
     }
   }
 }
-if (wbKount) { saveWorkbook(wb, paste0(wd, "/Venn diagrams/Venn diagrams.xlsx"), overwrite = TRUE) }
+if (wbKount) {
+  vennXLfl <- paste0(wd, "/Venn diagrams/Venn diagrams.xlsx")
+  openxlsx2::wb_save(wb, vennXLfl)
+}
 setwd(wd)
 for (nm in names(plotly_Venn)) { #nm <- names(plotly_Venn)[1L]
   p <- plotly::plotly_build(plotly_Venn[[nm]])
   p$x$layout$xaxis$autorange <- TRUE
   p$x$layout$yaxis$autorange <- TRUE
-  p <- htmlwidgets::onRender(p, global_autorange)
+  p <- htmlwidgets::onRender(p, jsFun$global_auto_range)
   plotly_Venn[[nm]] <- plotly::config(p,
                                       modeBarButtonsToRemove = c("select2d", "lasso2d"))
 }

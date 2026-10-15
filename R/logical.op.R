@@ -19,11 +19,11 @@ logical.op <- function(x, test, y, ties = TRUE) {
   if (!lX) { stop("x must be a vector of non-null length!") }
   if (!lY) { stop("y must be a vector of non-null length!") }
   if (lX != lY) {
-    if (lX == 1) {
+    if (lX == 1L) {
       x <- rep(x, lY)
       lX <- lY
     }
-    if (lY == 1) {
+    if (lY == 1L) {
       y <- rep(y, lX)
       lY <- lX
     }
@@ -38,9 +38,9 @@ logical.op <- function(x, test, y, ties = TRUE) {
   if (test %in% EQUAL) { return(x == y) }
   if (test %in% DIFFERENT) { return(x != y) }
   if (test %in% SUPERIOR) {
-    if ((ties)||(test == ">=")) { return(x >= y) } else { return(x > y) }
+    if (ties || (test == ">=")) { return(x >= y) } else { return(x > y) }
   }
   if (test %in% INFERIOR) {
-    if ((ties)||(test == "<=")) { return(x <= y) } else { return(x < y) }
+    if (ties || (test == "<=")) { return(x <= y) } else { return(x < y) }
   }
 }

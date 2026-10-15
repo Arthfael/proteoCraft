@@ -122,7 +122,7 @@ load_Bckp <- function(backup,
         if (inherits(loadTst, "try-error")) { warning(loadTst) }
       }
     }
-    library("proteoCraft", character.only = TRUE)
+    library(proteoCraft)
   }
   # Re-create parallel cluster
   usePar <- FALSE
@@ -159,7 +159,7 @@ load_Bckp <- function(backup,
       if (file.exists(ScriptPath)) {
         try({
           # This code rests on the assumption that we follow the following pattern when calling sourced sub-scripts:
-          # .*Src ((<-)|(%<[co]%)) # ... define path to source
+          # .*Src (<-|%<[co]%) # ... define path to source
           # source(.*Src) # source call
           #
           # Process script and sources and identify which remanent objects they create
@@ -173,17 +173,17 @@ load_Bckp <- function(backup,
           w_bckpCalls <- c(1L, grep("source\\( *bckpSrc", scrptCode), lScrpt)
           # Identify other scripts sourced by each script
           allSrcs$g <- lapply(allSrcs$Code, \(x) { grep("source\\(", x) }) # ... first where the source call occurs...
-          allSrcs$gSrc <- lapply(allSrcs$Code, \(x) { grep("Src *((<-)|(%<[co]%)) *", x) }) #... then where...
+          allSrcs$gSrc <- lapply(allSrcs$Code, \(x) { grep("Src *(<-|%<[co]%) *", x) }) #... then where...
           allSrcs$allSrcs <- lapply(1L:nrow(allSrcs), \(x) { allSrcs$Code[[x]][allSrcs$gSrc[[x]]] }) # ... and how the path to which source is called is defined
           # Case where we assign a source to a non-generic object name:
           # specSrcDefs = source paths which are not assigned to the recycled "Src" object but assigned specific, often remanent object names
-          specSrcDefs <- sort(unique(sub(" ((<-)|(*%<[co]%)) *", " <- ", sub("^ *", "", unlist(allSrcs$allSrcs)))))
+          specSrcDefs <- sort(unique(sub(" (<-|*%<[co]%) *", " <- ", sub("^ *", "", unlist(allSrcs$allSrcs)))))
           specSrcDefs <- grep("^Src", specSrcDefs, value = TRUE, invert = TRUE)
-          specSrcDefs <- data.frame(obj = sub(".* +", "", sub(" *((<-)|(%<[co]%)) *.*", "", specSrcDefs)),
+          specSrcDefs <- data.frame(obj = sub(".* +", "", sub(" *(<-|%<[co]%) *.*", "", specSrcDefs)),
                                     src = sub(".*/", "", sub("\\.R\".*", "", specSrcDefs)))
-          specSrcDefs <- specSrcDefs[which(specSrcDefs$src == make.names(specSrcDefs$src)),]
+          specSrcDefs <- specSrcDefs[specSrcDefs$src == make.names(specSrcDefs$src),]
           specSrcDefs$src <- paste0(specSrcDefs$src, ".R")
-          specSrcDefs <- specSrcDefs[which((specSrcDefs$src != basename(ScriptPath)) & (specSrcDefs$src %in% allSrcs$Name)),]
+          specSrcDefs <- specSrcDefs[(specSrcDefs$src != basename(ScriptPath)) & (specSrcDefs$src %in% allSrcs$Name),]
           #
           allSrcs$subSrcs <- lapply(1L:nrow(allSrcs), \(x) { #x <- 1L #x <- x+1L #x <- 53L #x <- 75L #x <- 110L
             g <- allSrcs$g[[x]]
@@ -194,17 +194,17 @@ load_Bckp <- function(backup,
             if (locSrcs) {
               srcDefs <- allSrcs$allSrcs[[x]]
               srcDefs <- data.frame(gSrc = gSrc,
-                                    obj = sub(".* +", "", sub(" *((<-)|(%<[co]%)) *.*", "", srcDefs)),
+                                    obj = sub(".* +", "", sub(" *(<-|%<[co]%) *.*", "", srcDefs)),
                                     src = sub(".*/", "", sub("\\.R\".*", "", srcDefs)))
-              srcDefs <- srcDefs[which(srcDefs$src == make.names(srcDefs$src)),]
+              srcDefs <- srcDefs[srcDefs$src == make.names(srcDefs$src),]
               locSrcs <- nrow(srcDefs)
             }
             if (locSrcs) {
               srcDefs$src <- paste0(srcDefs$src, ".R")
-              srcDefs <- srcDefs[which((srcDefs$src != basename(ScriptPath)) & (srcDefs$src %in% allSrcs$Name)),]
+              srcDefs <- srcDefs[(srcDefs$src != basename(ScriptPath)) & (srcDefs$src %in% allSrcs$Name),]
               locSrcs <- nrow(srcDefs)
             }
-            Srcs <- sub("(, *local *= *((FALSE)|(TRUE)|(F)|(T)))? *\\).*", "", sub(".*source\\( *", "", allSrcs$Code[[x]][g]))
+            Srcs <- sub("(, *local *= *(FALSE|TRUE|F|T))? *\\).*", "", sub(".*source\\( *", "", allSrcs$Code[[x]][g]))
             srcNms <- rep(NA, lg)
             for (i in 1L:lg) { #i <- 1L
               Src <- Srcs[i]
@@ -251,7 +251,7 @@ load_Bckp <- function(backup,
           # Analyse objects created
           # Identify remanent objects created by each source
           w_obj1 <- grep("%<[co]%", code_lst$code)
-          w_obj2 <- grep(".obj <- ((union)|(c)|(unique\\(c))\\(", code_lst$code)
+          w_obj2 <- grep(".obj <- (union|c|unique\\(c)\\(", code_lst$code)
           obj <- list()
           if (length(w_obj1)) {
             obj1 <- sub(".* +", "", sub(" *%<[co]%.*", "", code_lst$code[w_obj1]))
@@ -269,17 +269,17 @@ load_Bckp <- function(backup,
           }
           obj <- do.call(rbind, obj)
           obj <- obj[order(obj$row),]
-          obj$prediction <- vapply(obj$row, \(x) { min(w_bckpCalls[which(w_bckpCalls > x)]) }, 1L)
+          obj$prediction <- vapply(obj$row, \(x) { min(w_bckpCalls[w_bckpCalls > x]) }, 1L)
           cat(paste0("\n   FYI, the last remanent object created before this backup was made is \"", .obj[1L], "\"\n..."))
           w <- which(.obj %in% obj$obj)
           if (length(w)) {
-            pred <- lapply(.obj[w], \(x) { unique(obj$prediction[which(obj$obj == x)]) })
+            pred <- lapply(.obj[w], \(x) { unique(obj$prediction[obj$obj == x]) })
             pred1 <- pred[[1L]]         # Prediction from 1st object in .obj (last added)
             pred2 <- max(unlist(pred))  # Prediction from all objects
             tst <- (pred2 %in% pred1)
             if (pred2 < lScrpt) {
               rg <- (pred2+1L):lScrpt
-              rg <- rg[which(scrptCode[rg] != "")]
+              rg <- rg[scrptCode[rg] != ""]
               if (length(rg)) { pred2 <- rg[1L] }
             }
             if (pred2 > rev(w_bckpCalls)[2L]) {

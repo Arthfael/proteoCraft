@@ -78,7 +78,10 @@
 #' This monster of a function can draw volcano plots, but can also be used for the decision on regulation.
 #' 
 #' @returns
-#' A list with at least one element ("Thresholds"). If return == TRUE, the Protein_groups_file - which may contain additional Regulated columns. If return.plot == TRUE, the evaluated ggplots. If plotly == TRUE, the plotly plots.
+#' A list with at least one element ("Thresholds").\cr
+#' If return == TRUE, the Protein_groups_file - which may contain additional Regulated columns.\cr
+#' If return.plot == TRUE, the evaluated ggplots.\cr
+#' If plotly == TRUE, the plotly plots.
 #'
 #' @examples                 
 #' PG <- Volcano.plot(Prot = PG, mode = "custom", experiments.map = Exp.map,
@@ -257,7 +260,7 @@ Volcano.plot <- function(Prot,
   }
   if (regProvided) {
     labels <- c("regulated",
-                labels[which(labels == "proteins")],
+                labels[labels == "proteins"],
                 "FDR")
   }
   useFDRtbl <- FALSE
@@ -273,13 +276,13 @@ Volcano.plot <- function(Prot,
       tstDF$X <- xKols[match(tstDF$Group, xTst)]
       tstDF$Y <- yKols[match(tstDF$Group, yTst)]
       tstDF$Reg <- rgKols[match(tstDF$Group, rgTst)]
-      tstDF <- tstDF[which(apply(tstDF[, c("X", "Y", "Reg")], 1L, \(x) { sum(is.na(x)) }) == 0L),]
+      tstDF <- tstDF[apply(tstDF[, c("X", "Y", "Reg")], 1L, \(x) { sum(is.na(x)) }) == 0L,]
       stopifnot(nrow(tstDF) > 0L)
       FDR_table <- lapply(1L:nrow(tstDF), \(x) { #x <- 1L
-        fdr_table <- Prot[grep("^((up)|(down)), FDR = ", Prot[[tstDF$Reg[[x]]]]),
+        fdr_table <- Prot[grep("^(up|down), FDR = ", Prot[[tstDF$Reg[[x]]]]),
                           c(tstDF$X[[x]], tstDF$Y[[x]], tstDF$Reg[[x]])]
         if (!nrow(fdr_table)) { return() }
-        fdr_table$FDRs <- as.numeric(gsub("^((up)|(down)), FDR = |%$", "", fdr_table[[tstDF$Reg[[x]]]]))
+        fdr_table$FDRs <- as.numeric(gsub("^(up|down), FDR = |%$", "", fdr_table[[tstDF$Reg[[x]]]]))
         fdr_table <- aggregate(fdr_table[[tstDF$Y[[x]]]], list(fdr_table$FDRs), min)
         colnames(fdr_table) <- c("FDR", "Thresholds")
         fdr_table$Thresholds <- 10L^-fdr_table$Thresholds # Because of how they are stored
@@ -363,8 +366,8 @@ Volcano.plot <- function(Prot,
       Plot.metrics$Colour <- a4$Colour[match(Plot.metrics$Levels, a4$Direction)]
       a5 <- unlist(strsplit(parameters$Plot.areas.colours, "; *"))
       a5 <- as.data.frame(strsplit(a5, "[_:] *"))
-      Plot.colours <- as.data.frame(sapply(Plot.metrics$Levels[which(Plot.metrics$Axis == "X")], \(x) {
-        sapply(Plot.metrics$Levels[which(Plot.metrics$Axis == "Y")], \(y) {
+      Plot.colours <- as.data.frame(sapply(Plot.metrics$Levels[Plot.metrics$Axis == "X"], \(x) {
+        sapply(Plot.metrics$Levels[Plot.metrics$Axis == "Y"], \(y) {
           a5[3L, which((a5[1L,] == x) & (a5[2L,] == y))]
         })
       }))
@@ -399,7 +402,7 @@ Volcano.plot <- function(Prot,
     }
     tmpmetr$Text.value <- as.character(tmpmetr$Value)
     Plot.metrics <- rbind(Plot.metrics, tmpmetr)
-    Plot.metrics <- Plot.metrics[which(Plot.metrics$Levels != "Dummy"),]
+    Plot.metrics <- Plot.metrics[Plot.metrics$Levels != "Dummy",]
     w <- which(Plot.metrics$Axis == "Y")
     Plot.colours <- data.frame(up = grDevices::colorRampPalette(downColRg)(length(w)),
                                down = grDevices::colorRampPalette(upColRg)(length(w)))
@@ -410,7 +413,7 @@ Volcano.plot <- function(Prot,
   #Y <- sub("\\.$", "", Y.root)
   B <- aggregate.name
   A <- aggregate.list[[B]]
-  if (nchar(B) == 3L) { B <- aggregate.map$Characteristics[[which(aggregate.map$Aggregate.Name == B)]] }
+  if (nchar(B) == 3L) { B <- aggregate.map$Characteristics[[aggregate.map$Aggregate.Name == B]] }
   #
   useContrasts <- !misFun(contrasts) && is.data.frame(contrasts) && !is.null(contrasts)
   #
@@ -446,7 +449,7 @@ Volcano.plot <- function(Prot,
   #
   xKols <- setNames(paste0(X.root, A), A)
   yKols <- setNames(paste0(Y.root, A), A)
-  PorQ <- rev(unlist(strsplit(toupper(gsub("-value.*", "", Y.root, ignore.case = TRUE)), "")))[1L]
+  PorQ <- rev(unlist(strsplit(toupper(sub("-value.*", "", Y.root, ignore.case = TRUE)), "")))[1L]
   if (!PorQ %in% c("P", "Q")) { PorQ <- "P" }
   if ((length(labels) == 1L) && (labels == "proteins") && proteins_split) {
     warning("Argument \"proteins_split\" will be ignored since argument \"labels\" is set to \"proteins\".")
@@ -518,7 +521,7 @@ Volcano.plot <- function(Prot,
     tstTbl$All_OK <- tstTbl$All_OK & tstTbl$PVal
     #
     # Define colors for existing levels
-    tmp <- unique(unlist(Prot[, regKols[which(tstTbl$Reg)]]))
+    tmp <- unique(unlist(Prot[, regKols[tstTbl$Reg]]))
     up_Nms <- grep("^up", tmp, value = TRUE)
     upSp <- grep("^Specific", tmp, value = TRUE)
     dwn_Nms <- grep("^down", tmp, value = TRUE)
@@ -579,7 +582,7 @@ Volcano.plot <- function(Prot,
   # Define global x-limits
   tmp <- Prot[, xKols, drop = FALSE]
   x_lim <- as.numeric(c(Xlim, unlist(tmp)))
-  x_lim <- x_lim[which(is.finite(x_lim))]
+  x_lim <- x_lim[is.finite(x_lim)]
   x_lim <- if (X.normalized) {
     max(abs(x_lim))*c(-1, 1)
   } else {
@@ -591,7 +594,7 @@ Volcano.plot <- function(Prot,
   # Define global y-limits
   tmp <- Prot[, yKols, drop = FALSE]
   y_lim <- as.numeric(c(Ylim, unlist(tmp)))
-  y_lim <- y_lim[which(is.finite(y_lim))]
+  y_lim <- y_lim[is.finite(y_lim)]
   y_lim <- max(abs(y_lim))*1.1
   #
   # Labels
@@ -659,10 +662,10 @@ Volcano.plot <- function(Prot,
       if (!is.numeric(Size.min)) { Size.min <- 0.01 }
       if (!is.numeric(Size.max)) { Size.max <- 3L }
       #if (!is.numeric(Size.min)) { Size.min <- 0L }
-      #if (!is.numeric(Size.max)) { Size.max <- ceiling(max(Prot$dot_size[which(is.finite(Prot$dot_size))])) }
+      #if (!is.numeric(Size.max)) { Size.max <- ceiling(max(Prot$dot_size[is.finite(Prot$dot_size)])) }
       wF <- which(is.finite(Prot$dot_size))
-      Prot$dot_size[which((Prot$dot_size > 0L) & is.infinite(Prot$dot_size))] <- max(Prot$dot_size[wF])
-      Prot$dot_size[which(!is.finite(Prot$dot_size))] <- min(Prot$dot_size[wF])
+      Prot$dot_size[(Prot$dot_size > 0L) & is.infinite(Prot$dot_size)] <- max(Prot$dot_size[wF])
+      Prot$dot_size[!is.finite(Prot$dot_size)] <- min(Prot$dot_size[wF])
       Prot$dot_size <- Size.min + (Prot$dot_size - min(Prot$dot_size))*(Size.max-Size.min)/(max(Prot$dot_size)-min(Prot$dot_size))
       baseCols <- union(baseCols, "dot_size")
     }
@@ -685,8 +688,8 @@ Volcano.plot <- function(Prot,
         if ((!is.numeric(Alpha.min)) || (Alpha.min < 0L)) { Alpha.min <- 0L }
         if ((!is.numeric(Alpha.max)) || (Alpha.max > 1L)) { Alpha.max <- 1L }
         wF <- which(is.finite(Prot$dot_alpha))
-        Prot$dot_alpha[which((Prot$dot_alpha > 0L) & is.infinite(Prot$dot_alpha))] <- max(Prot$dot_alpha[wF])
-        Prot$dot_alpha[which(!is.finite(Prot$dot_alpha))] <- min(Prot$dot_alpha[wF])
+        Prot$dot_alpha[(Prot$dot_alpha > 0L) & is.infinite(Prot$dot_alpha)] <- max(Prot$dot_alpha[wF])
+        Prot$dot_alpha[!is.finite(Prot$dot_alpha)] <- min(Prot$dot_alpha[wF])
         Prot$dot_alpha <- Alpha.min+(Prot$dot_alpha-min(Prot$dot_alpha))*(Alpha.max-Alpha.min)/(max(Prot$dot_alpha)-min(Prot$dot_alpha))
         baseCols <- union(baseCols, "dot_alpha")
       }
@@ -725,8 +728,8 @@ Volcano.plot <- function(Prot,
     plot.metrics$Name[w] <- paste0("P-value = ", as.character(signif(10L^-plot.metrics$Value[w], 3L)))
     plot.colours <- Plot.colours
     if (!symm) {
-      plot.metrics <- plot.metrics[which(plot.metrics$Levels != "down"),]
-      plot.colours <- plot.colours[, which(colnames(plot.colours) != "down"), drop = FALSE]
+      plot.metrics <- plot.metrics[plot.metrics$Levels != "down",]
+      plot.colours <- plot.colours[, colnames(plot.colours) != "down", drop = FALSE]
     }
     temp <- Prot[, baseCols, drop = FALSE]
     prot_split <- FALSE
@@ -803,9 +806,10 @@ Volcano.plot <- function(Prot,
         indDat <- sweep(sweep(indDat, 1L, m, "-"), 1L, sd, "/")
       }
       indRng <- range(indDat, na.rm = TRUE)
-      if (exists("ColScaleList")) {
-        lowColor <- ColScaleList$`Individual Expr`[1L]
-        highColor <- ColScaleList$`Individual Expr`[2L]
+      data(XL_formatting, package = "proteoCraft")
+      if (exists("xl_colScales")) {
+        lowColor <- xl_colScales$`Individual Expr`[1L]
+        highColor <- xl_colScales$`Individual Expr`[2L]
       } else {
         lowColor <- "red"
         highColor <- "green"
@@ -828,7 +832,7 @@ Volcano.plot <- function(Prot,
     if (useFDRtbl) {
       fdr_table <- FDR_table
       if ("Sample" %in% colnames(fdr_table)) {
-        fdr_table <- fdr_table[which(fdr_table$Sample == i),]
+        fdr_table <- fdr_table[fdr_table$Sample == i,]
       }
       fdr.values <- fdr_table$FDR
       if (!regProvided) {
@@ -840,7 +844,7 @@ Volcano.plot <- function(Prot,
         f2 <- paste0("FDR=", sort(fdr.values, decreasing = TRUE), "%")
         temp[, f2] <- Prot[Wych[[i]], f1]
         test <- apply(temp[, rev(f2), drop = FALSE], 1L, \(x) {
-          c(paste0("FDR ", sort(fdr.values), "%"), "")[which(c(x, "+") == "+")[1L]]
+          c(paste0("FDR ", sort(fdr.values), "%"), "")[c(x, "+") == "+"][1L]
         })
         #unique(test)
         temp$FDR <- test
@@ -851,7 +855,7 @@ Volcano.plot <- function(Prot,
     use_target <- FALSE
     if ("Target" %in% colnames(experiments.map)) { # i-specific!!!
       w <- if (useContrasts) {
-        which(experiments.map$Ref.Sample.Aggregate %in% contrasts$A_samples[[which(contrasts$Contrast == i)]])
+        which(experiments.map$Ref.Sample.Aggregate %in% contrasts$A_samples[[contrasts$Contrast == i]])
       } else {
         which(experiments.map[[aggregate.name]] == i)
       }
@@ -873,14 +877,14 @@ Volcano.plot <- function(Prot,
     if (symm) { w.d <- which(plot.metrics$Levels == "down") }
     if ((!misFun(Ref.Ratio.values)) && (!is.null(Ref.Ratio.values))) {
       x <- data.frame(value = sort(unlist(Ref.Ratio.values[[i]])))
-      if (!symm) { x <- x[which(x$value > 0L), , drop = FALSE] }
+      if (!symm) { x <- x[x$value > 0L, , drop = FALSE] }
       mx <- if (X.normalized) { 0 } else { median(x$value) }
       R.thresh <- c("Upper" = NA)
       if (Ref.Ratio.method == "SD") {
-        offset <- c(median(temp$X[which(is.finite(temp$X))]), 0)[X.normalized + 1L]
+        offset <- c(median(temp$X[is.finite(temp$X)]), 0)[X.normalized + 1L]
         sdx <- sd(x$value)
-        R.thresh[["Upper"]] <- qnorm(1-ratios.FDR, m = mx, sd = sdx)
-        if (symm) { R.thresh[["Lower"]] <- qnorm(ratios.FDR, m = mx, sd = sdx) }
+        R.thresh[["Upper"]] <- qnorm(1-ratios.FDR, mean = mx, sd = sdx)
+        if (symm) { R.thresh[["Lower"]] <- qnorm(ratios.FDR, mean = mx, sd = sdx) }
       }
       if (Ref.Ratio.method %in% paste0("obs", c("1", "2"))) {
         # Below, this is not exactly the same thing here as doing quantile(x$value, c(ratios.FDR/2, 1-ratios.FDR/2))
@@ -923,7 +927,7 @@ Volcano.plot <- function(Prot,
         samS0 <- curved_Thresh[[i]]$S0
         samDF <- curved_Thresh[[i]]$degFr
         samD <- curved_Thresh[[i]]$d
-        samD <- samD[which(!is.na(samD$D)),]
+        samD <- samD[!is.na(samD$D),]
         samD <- samD[order(samD$FDR, decreasing = TRUE),]
         samMd <- c(median(temp$X, na.rm = TRUE), 0)[X.normalized + 1L]
       }
@@ -936,7 +940,7 @@ Volcano.plot <- function(Prot,
                               Up = logical.op(as.numeric(temp$X),
                                               plot.metrics$Test[w.u],
                                               plot.metrics$Value[w.u]))
-          temp$Colour[which(tstDF$FDR)] <- "too small FC"
+          temp$Colour[tstDF$FDR] <- "too small FC"
           w_u <- which(tstDF$FDR & tstDF$Up)
           #print(length(w_u))
           temp$Colour[w_u] <- paste0("up, FDR = ", f3, "%")
@@ -954,11 +958,11 @@ Volcano.plot <- function(Prot,
             wA <- which(dec[[paste0(f3, "FDR")]] == "+")
             w <- which((FDR_table$FDR == f3*100) & (FDR_table$Sample == i))
             if (length(wA)) {
-              wU <- wA[which(temp$X[wA] > samMd)]
+              wU <- wA[temp$X[wA] > samMd]
               temp$Colour[wU] <- FDR_table$fdr.col.up[w]
               if (symm) {
                 #setdiff(wA, c(wU, wD))
-                wD <- wA[which(temp$X[wA] < samMd)]
+                wD <- wA[temp$X[wA] < samMd]
                 temp$Colour[wU] <- FDR_table$fdr.col.down[w]
               }
             }
@@ -973,7 +977,7 @@ Volcano.plot <- function(Prot,
                                  signif(plot.metrics$Value[w.d], 3L))
           }
           if ((mode == "standard") && (!misFun(arbitrary.thresh))) {
-            fdr <- as.numeric(sub("% FDR$", "", plot.metrics$Levels[which(plot.metrics$Axis == "Y")]))/100
+            fdr <- as.numeric(sub("% FDR$", "", plot.metrics$Levels[plot.metrics$Axis == "Y"]))/100
             fdr <- sort(fdr)
             up_Nms <- setNames(vapply(fdr, \(x) {
               w <- which(plot.metrics$Levels == paste0(x*100, "% FDR"))
@@ -988,8 +992,8 @@ Volcano.plot <- function(Prot,
             }))
             colnames(test.f) <- paste0(rev(fdr)*100, "% FDR")
             for (f in colnames(test.f)) {
-              temp$Colour[which(test.f[[f]])] <- "too small FC"
-              temp$Colour[which(test.u & test.f[[f]])] <- up_Nms[[f]]
+              temp$Colour[test.f[[f]]] <- "too small FC"
+              temp$Colour[test.u & test.f[[f]]] <- up_Nms[[f]]
             }
             myColors[up_Nms] <- plot.colours$up[match(names(up_Nms), rownames(plot.colours))]
             if (symm) {
@@ -998,7 +1002,7 @@ Volcano.plot <- function(Prot,
                 paste0("Ratio ", plot.metrics$Test[w.d], " ", signif(plot.metrics$Value[w.d], 3L),
                        ",\n  -log10(p) ", plot.metrics$Test[w], " ", signif(plot.metrics$Value[w], 3L))
               }, ""), paste0(fdr*100, "% FDR"))
-              for (f in colnames(test.f)) { temp$Colour[which(test.d & test.f[[f]])] <- dwn_Nms[[f]] }
+              for (f in colnames(test.f)) { temp$Colour[test.d & test.f[[f]]] <- dwn_Nms[[f]] }
               myColors[dwn_Nms] <- plot.colours$down[match(names(dwn_Nms), rownames(plot.colours))]
             }
           } else {
@@ -1015,9 +1019,9 @@ Volcano.plot <- function(Prot,
             test.l <- logical.op(temp$Y,
                                  plot.metrics$Test[w.l],
                                  plot.metrics$Value[w.l])
-            temp$Colour[which(test.l)] <- "too small FC"
-            temp$Colour[which(test.u & test.l)] <- up_Nms_l
-            temp$Colour[which(test.u & test.s)] <- up_Nms_s
+            temp$Colour[test.l] <- "too small FC"
+            temp$Colour[test.u & test.l] <- up_Nms_l
+            temp$Colour[test.u & test.s] <- up_Nms_s
             myColors[c(up_Nms_s, up_Nms_l)] <- plot.colours$up[match(c("strict", "loose"), rownames(plot.colours))]
             if (symm) {
               dwn_Nms_l <- paste0("Ratio ", plot.metrics$Test[w.d], " ", signif(plot.metrics$Value[w.d], 3L),
@@ -1025,8 +1029,8 @@ Volcano.plot <- function(Prot,
               dwn_Nms_s <- paste0("Ratio ", plot.metrics$Test[w.d], " ", signif(plot.metrics$Value[w.d], 3L),
                                   ",\n  -log10(", PorQ, ") ", plot.metrics$Test[w.s], " ", plot.metrics$Text.value[w.s])
               dwn_Nms <- c(dwn_Nms_s, dwn_Nms_l)
-              temp$Colour[which(test.d & test.l)] <- dwn_Nms_l
-              temp$Colour[which(test.d & test.s)] <- dwn_Nms_s
+              temp$Colour[test.d & test.l] <- dwn_Nms_l
+              temp$Colour[test.d & test.s] <- dwn_Nms_s
               myColors[c(dwn_Nms_s, dwn_Nms_l)] <- plot.colours$down[match(c("strict", "loose"), rownames(plot.colours))]
             }
           }
@@ -1094,7 +1098,7 @@ Volcano.plot <- function(Prot,
     w3 <- which(temp$Colour == "target")
     w0 <- setdiff(1L:nrow(temp), c(w1, w2, w3))
     temp <- rbind(temp[w0,], temp[w1,], temp[w2,], temp[w3,])
-    #temp <- temp[which(is.finite(temp$Y)),]
+    #temp <- temp[is.finite(temp$Y),]
     ttl <- paste0(title, i2)
     subTtl <- paste0("Plotted: ", nrow(temp), " data points")
     #
@@ -1122,10 +1126,10 @@ Volcano.plot <- function(Prot,
     }
     #
     #
-    xFrPar <- plot.metrics$Value[which(plot.metrics$Axis == "X")]*1.1
+    xFrPar <- plot.metrics$Value[plot.metrics$Axis == "X"]*1.1
     xlim <- c(min(c(xlim, xFrPar)),
               max(c(xlim, xFrPar)))
-    ylim <- max(c(ylim, plot.metrics$Value[which(plot.metrics$Axis == "Y")]*1.1))
+    ylim <- max(c(ylim, plot.metrics$Value[plot.metrics$Axis == "Y"]*1.1))
     xspan <- xlim[2L]-xlim[1L] # update
     #
     xTxtOffset <- xspan*0.01
@@ -1501,7 +1505,7 @@ Volcano.plot <- function(Prot,
       main_layer_prot <- do.call(ggplot2::geom_point, args_gg_prot)
       plot_prot <- ggplot(temp) + main_layer_prot
       if (plotLabels) {
-        labels_dat_prot <- labels_dat[which(labels_dat$Colour2 %in% c("protein in list", "target")),]
+        labels_dat_prot <- labels_dat[labels_dat$Colour2 %in% c("protein in list", "target"),]
         labels_args_prot_ <- labels_args_
         labels_args_prot_$data <- labels_dat_prot
         labels_args_prot_$mapping$colour <- main_layer_prot$mapping$colour

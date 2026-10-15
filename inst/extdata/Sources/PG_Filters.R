@@ -38,9 +38,7 @@ if (DiscFilt) {
       kol <- intersect(kol, colnames(quantData))
       quantData[w, kol] <- NA_real_
     }
-    l <- length(DatAnalysisTxt)
-    DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                                " Data was filtered to only include proteins identified in the provided true-discovery filter.")
+    DatAnalysisTxt$PGfilt <- "Data was filtered to only include proteins identified in a pre-defined true-discovery filter."
     cat("Removing proteins not included in the TRUE-Discovery filter!\n")
   }
   if (DiscFiltMode == DiscFiltModes[3L]) {

@@ -63,7 +63,7 @@ wTest1 <- apply(wTest1, 1L, \(x) {
        names = colnames(grpsMap2)[x2+1L])
 })
 #
-g <- grep("___((FD)|(INCR))$", colnames(grpsMap2))
+g <- grep("___(FD|INCR)$", colnames(grpsMap2))
 colnames(grpsMap2)[g] <- ""
 #
 if (exists("appRunTest")) { rm(appRunTest) }
@@ -74,7 +74,8 @@ ui <- fluidPage(useShinyjs(),
                   gradient = "linear",
                   direction = "bottom"
                 ),
-                extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+                extendShinyjs(text = jsFun$toggle_full_screen,
+                              functions = c("toggleFullScreen")),
                 tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
                 titlePanel(tag("u", "Sample groups map"),
                            appNm),

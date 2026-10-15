@@ -13,10 +13,10 @@
                                pat) {
   #x <- strsplit(PSMs$`Assigned Modifications`[wMdSq[1]], ", ?")
   x <- sub("\\)$", "", unlist(x))
-  ptms <- as.data.frame(t(sapply(x, function(y) { unlist(strsplit(y, split = "\\(")) })))
+  ptms <- as.data.frame(t(sapply(x, \(y) { unlist(strsplit(y, split = "\\(")) })))
   colnames(ptms) <- c("Site", "Mass shift")
   rownames(ptms) <- NULL
-  ptms[, c("Site", "Position")] <- t(sapply(ptms$Site, function(aa) {
+  ptms[, c("Site", "Position")] <- t(sapply(ptms$Site, \(aa) {
     if (aa == "N-term") { ps <- 0L }
     if (aa == "C-term") { ps <- l+1L }
     if (!aa %in% c("N-term", "C-term")) {

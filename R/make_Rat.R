@@ -15,8 +15,8 @@
 #' @param verbose Logical, default = FALSE
 #' 
 #' @returns
-#' A list of two objects:
-#'  - Ratios_to_Refs: map of ratios to references,
+#' A list of two objects:\cr
+#'  - Ratios_to_Refs: map of ratios to references,\cr
 #'  - Data: data supplemented with new ratios and intensities columns
 #' 
 #' @export
@@ -56,15 +56,15 @@ make_Rat <- function(myData = pep,
     j <- setNames(unlist(strsplit(i, "___")), refGroups$names)
     temp <- lapply(refGroups$names, \(x) {
       if (j[[x]] == "NA") {
-        return(which((is.na(experiment.map[[x]]))|(experiment.map[[x]] == j[[x]])))
+        return(which(is.na(experiment.map[[x]]) | (experiment.map[[x]] == j[[x]])))
       }
       return(which(experiment.map[[x]] == j[[x]]))
     })
     temp2 <- sort(unique(unlist(temp)))
     test <- vapply(temp2, \(x) { sum(vapply(temp, \(y) { x %in% unlist(y) }, TRUE)) }, 1L)
-    temp2 <- temp2[which(test == length(temp))]
+    temp2 <- temp2[test == length(temp)]
     temp3 <- experiment.map[temp2,]
-    temp3 <- temp3[which(temp3$Reference),]
+    temp3 <- temp3[temp3$Reference,]
     smpls <- temp3[[experiment.map_col]]
     if (!length(smpls)) { return() }
     kol <- paste0(int.root, smpls)
@@ -85,7 +85,7 @@ make_Rat <- function(myData = pep,
                 Name = nm,
                 Map = map))
   })
-  rat.2.ref <- rat.2.ref[which(vapply(rat.2.ref, \(x) { "Values" %in% names(x) }, TRUE))]
+  rat.2.ref <- rat.2.ref[vapply(rat.2.ref, \(x) { "Values" %in% names(x) }, TRUE)]
   nms <- vapply(rat.2.ref, \(x) { x$Name }, "")
   #
   # Reference values
@@ -113,26 +113,26 @@ make_Rat <- function(myData = pep,
     j <- set_names(unlist(strsplit(i, "___")), refGroups$names)
     temp <- lapply(refGroups$names, \(x) {
       if (j[[x]] == "NA") {
-        return(which((is.na(experiment.map[[x]]))|(experiment.map[[x]] == j[[x]])))
+        return(which(is.na(experiment.map[[x]]) | (experiment.map[[x]] == j[[x]])))
       }
       return(which(experiment.map[[x]] == j[[x]]))
     })
     temp2 <- sort(unique(unlist(temp)))
     test <- vapply(temp2, \(x) { sum(vapply(temp, \(y) { x %in% unlist(y) }, TRUE)) }, 1L)
-    temp2 <- temp2[which(test == length(temp))]
+    temp2 <- temp2[test == length(temp)]
     temp3 <- experiment.map[temp2,]
     # Get reference
-    k <- j[which(names(j) %in% refGroups$names)]
+    k <- j[names(j) %in% refGroups$names]
     b <- paste0(int.root, paste(k, collapse = "___"), ".REF")
     rfVct <- vals[[b]] # Already has the correct RATIOS log base
     #
     A <- a <- temp3[[experiment.map_col]]
-    if (length(which(temp3$Reference)) == 1L) {
+    if (sum(temp3$Reference) == 1L) {
       # If there is only one ref in the group, remove it as there is no point calculating a ratio to itself,
       # or re-calculating its expression to itself.
-      a <- temp3[which(!temp3$Reference), experiment.map_col]
+      a <- temp3[!temp3$Reference, experiment.map_col]
     }
-    a <- a[which(paste0(int.root, a) %in% colnames(myData))]
+    a <- a[paste0(int.root, a) %in% colnames(myData)]
     if (!length(a)) {
       warning(paste0(paste0("There are no ", c("ratios", "expression values")[match(Priority, c("int", "rat"))],
                             " to calculate for level ", i)))
@@ -170,8 +170,8 @@ make_Rat <- function(myData = pep,
     msgs <- c()
     for (a1 in A) { #a1 <- A[1L]
       tmp <- myData[[paste0(int.root, a1)]]
-      tmp <- tmp[which(is.finite(tmp))]
-      if (!int.log) { tmp <- tmp[which(tmp > 0)] }
+      tmp <- tmp[is.finite(tmp)]
+      if (!int.log) { tmp <- tmp[tmp > 0] }
       emd <- signif(median(tmp), 3L)
       esd <- signif(sd(tmp), 3L)
       msg <- if (logTrans) {
@@ -183,7 +183,7 @@ make_Rat <- function(myData = pep,
       }
       if (paste0(rat.root, a1) %in% colnames(myData)) {
         tmp <- myData[[paste0(rat.root, a1)]]
-        tmp <- tmp[which(is.finite(tmp))]
+        tmp <- tmp[is.finite(tmp)]
         rmd <- signif(median(tmp), 3L)
         rsd <- signif(sd(tmp), 3L)
         msg <- paste0(msg, paste0("      - log", rat.log, "(ratio): median = ", rmd, ", SD = ", rsd, "\n"))

@@ -54,16 +54,16 @@ Digest(
 \item{cl}{Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!}
 }
 \description{
-A function to digest unmodified protein Sequence into peptides.
-
-Will by default allow for loss of N-terminal methionine.
-Default parameters digest like trypsin.
-Proline after the R or K is assumed to block some but not all cleavages, hence both missed and cleaved peptides are included.
-
-Uses parallel processing by default for now.
-Still needs some speed boosts. The whole thing should be parallelized in one big go, as opposed to by bits.
-The regex approach currently used may not be ideal. It provided a small speed bump when introduced to replace list-based approaches, but may more less safe.
-
+A function to digest unmodified protein Sequence into peptides.\cr
+\cr
+Will by default allow for loss of N-terminal methionine.\cr
+Default parameters digest like trypsin.\cr
+Proline after the R or K is assumed to block some but not all cleavages, hence both missed and cleaved peptides are included.\cr
+\cr
+Uses parallel processing by default for now.\cr
+Still needs some speed boosts. The whole thing should be parallelized in one big go, as opposed to by bits.\cr
+The regex approach currently used may not be ideal. It provided a small speed bump when introduced to replace list-based approaches, but may more less safe.\cr
+\cr
 Used by ProtMatch, but not by the much faster/better ProtMatch2.
 }
 \examples{

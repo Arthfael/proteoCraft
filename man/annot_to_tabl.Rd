@@ -30,8 +30,8 @@ annot_to_tabl(
 \item{numeric_data}{Is the data numeric? Default = FALSE}
 }
 \value{
-A named list, with for each modified peptide a data.frame with 2 columns:
- - "Sequence" = amino acid
+A named list, with for each modified peptide a data.frame with 2 columns:\cr
+ - "Sequence" = amino acid\cr
  - "Annotations" = PTM at this position
 }
 \description{

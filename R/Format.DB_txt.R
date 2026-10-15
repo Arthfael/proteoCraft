@@ -154,7 +154,7 @@ Format.DB_txt <- function(txt,
     # Names
     if (!usePar) { cat("   Names...\n") }
     tbl$Names <- gsub("<->(?!DE +[^;]+Name: Full=)[^\n]*\n", "", tbl$Text2, perl = TRUE)
-    tbl$Names <- gsub(";\n", ";", gsub("<->DE +[^;]+Name: Full=| \\{[^\\}]+\\}|;\n$", "", tbl$Names))
+    tbl$Names <- gsub(";\n", ";", gsub("<->DE +[^;]+Name: Full=| \\{[^}]+\\}|;\n$", "", tbl$Names))
     # GO terms
     if (GO) {
       if (!usePar) { cat("   Gene Ontology annotations...\n") }
@@ -206,7 +206,7 @@ Format.DB_txt <- function(txt,
       tbl$Taxonomy <- gsub("^<->OC +|\\.?\n$", "", gsub("\n<->OC +", " ", tbl$Taxonomy))
       # TaxID
       tbl$TaxID <- gsub("<->(?!OX +NCBI_TaxID=)[^\n]*\n", "", tbl$Text2, perl = TRUE)
-      tbl$TaxID <- gsub("^<->OX +NCBI_TaxID=| *(\\{[^\\}]+\\})?;?\n$", "", gsub("\n<->OX +NCBI_TaxID=", ";", tbl$TaxID))
+      tbl$TaxID <- gsub("^<->OX +NCBI_TaxID=| *(\\{[^}]+\\})?;?\n$", "", gsub("\n<->OX +NCBI_TaxID=", ";", tbl$TaxID))
     }
     # Other annotations:
     for (i in c("InterPro", "Pfam", "PIRSF", "PROSITE")) { #i <- "InterPro" #i <- "PROSITE"
@@ -225,8 +225,8 @@ Format.DB_txt <- function(txt,
       if (!usePar) { cat("   EMBL accessions...\n") }
       i <- "EMBL"
       pat1 <- paste0("<->(?!DR +", i, ")[^\n]*\n")
-      pat2 <- paste0("; +[^;]+; +[^\\.;]+\\.\n<->DR +", i, "; +")
-      pat3 <- paste0("^<->DR +", i, "; +|; +[^;]+; +[^\\.;]+\\.\n$")
+      pat2 <- paste0("; +[^;]+; +[^.;]+\\.\n<->DR +", i, "; +")
+      pat3 <- paste0("^<->DR +", i, "; +|; +[^;]+; +[^.;]+\\.\n$")
       tbl[[i]] <- gsub(pat1, "", tbl$Text2, perl = TRUE)
       tbl[[i]] <- gsub("; +", ";", gsub(pat3, "", gsub(pat2, ";", tbl[[i]])))
     }
@@ -276,7 +276,7 @@ Format.DB_txt <- function(txt,
         #x <- tbl[w[1L], c("Text", "tmp", "Sequence")]
         seq <- paste0("_", unlist(x[[3L]]), "_")
         if (which(tst) == 1L) {
-          tmp <- strsplit(gsub("^FT +MOD_RES +|[\\.,;].*$", "", unlist(x[1L])[unlist(x[2L])]), " +")
+          tmp <- strsplit(gsub("^FT +MOD_RES +|[.,;].*$", "", unlist(x[1L])[unlist(x[2L])]), " +")
           ptms <- as.data.frame(t(sapply(tmp, \(y) {
             y <- unlist(y)
             stopifnot(y[1L] == y[2L])
@@ -378,7 +378,7 @@ Format.DB_txt <- function(txt,
         lX <- length(x)
         # The assumption I originally made about the structure was that each item covers 3 rows.
         # Unfortunately, this isn't true...
-        pat <- paste0("^[A-Z_]+ +(", Feat_isoRgx, ":)?[\\?<>]?[0-9]*(\\.\\.[\\?<>]?[0-9]*)?$")
+        pat <- paste0("^[A-Z_]+ +(", Feat_isoRgx, ":)?[?<>]?[0-9]*(\\.\\.[?<>]?[0-9]*)?$")
         #grep(pat, x, value = TRUE)
         Nms <- grep(pat, x)
         lNms <- length(Nms)
@@ -388,12 +388,12 @@ Format.DB_txt <- function(txt,
           data.frame(first = Nms, last = c(Nms[2L:lNms]-1L, lX))         
         }
         rgs$Name <- gsub(" +.*", "", x[Nms])
-        rgs$Start <- suppressWarnings(as.integer(gsub(paste0("^[A-Z_]+ +(", Feat_isoRgx, ":)?[\\?<>]?|\\.\\.[\\?<>]?[0-9]*$"), "", x[Nms])))
+        rgs$Start <- suppressWarnings(as.integer(gsub(paste0("^[A-Z_]+ +(", Feat_isoRgx, ":)?[?<>]?|\\.\\.[?<>]?[0-9]*$"), "", x[Nms])))
         rgs$End <- NA_integer_
-        g <- grep("\\.\\.\\?$|\\.\\.[\\?<>]?[0-9]+$", x[Nms], invert = TRUE)
+        g <- grep("\\.\\.\\?$|\\.\\.[?<>]?[0-9]+$", x[Nms], invert = TRUE)
         rgs$End[g] <- rgs$Start[g]
-        g <- grep("\\.\\.[\\?<>]?[0-9]+$", x[Nms])
-        rgs$End[g] <- suppressWarnings(as.integer(gsub(".*\\.\\.[\\?<>]?", "", x[Nms[g]])))
+        g <- grep("\\.\\.[?<>]?[0-9]+$", x[Nms])
+        rgs$End[g] <- suppressWarnings(as.integer(gsub(".*\\.\\.[?<>]?", "", x[Nms[g]])))
         for (kol in c("Note", "Evidence", "Id")) {
           k <- tolower(kol)
           rgs[[kol]] <- lapply(1L:nrow(rgs), \(j) { #j <- 1 #j <- 67 #j <- 2
@@ -405,7 +405,7 @@ Format.DB_txt <- function(txt,
             if (lN) {
               if (lN != 1L) { stop(paste(c(i, tbl$Accession[i], kol, j), collapse = " ")) }
               gS <- grep("/", y)
-              gS <- gS[which(gS > gN)]
+              gS <- gS[gS > gN]
               y <- if (length(gS)) { y[gN:(gS[1L]-1)] } else { y[gN:length(y)] }
               y <- paste(y, collapse = "\n")
               rs <- strsplit(gsub(paste0("^/", k, "=\"|\"$"), "", y), "\n")
@@ -445,13 +445,13 @@ Format.DB_txt <- function(txt,
   tst <- nchar(gsub("[^;]", "", rsTbl$Accession))
   m <- max(tst)
   if (m) {
-    kl <- colnames(rsTbl)
-    kl <- kl[which(kl != "Accession")]
+    kl <- setdiff(colnames(rsTbl),
+                  "Accession")
     w <- which(tst > 0L)
     rsTbl$ROW <- 1L:nrow(rsTbl)
     tmp <- listMelt(strsplit(rsTbl$Accession[w], ";"), w, c("Accession", "ROW"))
     tmp[, kl] <- rsTbl[tmp$ROW, kl]
-    rsTbl <- rbind(rsTbl[which(tst == 0L),],
+    rsTbl <- rbind(rsTbl[tst == 0L,],
                    tmp)
     rsTbl <- rsTbl[order(rsTbl$ROW, decreasing = FALSE),]
     rsTbl$ROW <- NULL

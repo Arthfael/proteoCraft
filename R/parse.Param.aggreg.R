@@ -47,7 +47,7 @@ parse.Param.aggreg <- function(parameter,
   }, 1L) == 0L))
   aggr <- map$Aggregate.Name[a]
   val <- aggr.list[[aggr]]
-  nms2 <- nms <- unlist(map$Characteristics[which(map$Aggregate.Name == aggr)])
+  nms2 <- nms <- unlist(map$Characteristics[map$Aggregate.Name == aggr])
   kol <- if (length(nms) == 1L) { nms } else { aggr }
   if (length(experiment) == 1L) { nms2 <- setdiff(nms2, "Experiment") }
   res <- list(aggregate = aggr,

@@ -8,13 +8,13 @@ SamplesMapNm %<o% "Samples map"
 SamplesMapPath %<o% paste0(wd, "/", SamplesMapNm, ".csv")
 if (file.exists(SamplesMapPath)) {
   SamplesMap <- data.table::fread(SamplesMapPath, check.names = FALSE, data.table = FALSE)
-  if (("MQ.Exp" %in% colnames(SamplesMap))&&(!"Parent sample" %in% colnames(SamplesMap))) {
+  if (("MQ.Exp" %in% colnames(SamplesMap)) && (!"Parent sample" %in% colnames(SamplesMap))) {
     SamplesMap$"Parent sample" <- SamplesMap$"MQ.Exp"
   }
 }
 exp <- unique(FracMap$`Parent sample`) # Update
-if ((!exists("SamplesMap"))||
-    (nrow(SamplesMap) < length(unique(FracMap$`Parent sample`)))||
+if ((!exists("SamplesMap")) ||
+    (nrow(SamplesMap) < length(unique(FracMap$`Parent sample`))) ||
     (sum(!exp %in% SamplesMap$`Parent sample`))) {
   SamplesMap <- data.frame("Parent sample" = exp,
                            "Negative Filter" = FALSE,
@@ -80,9 +80,9 @@ if (!exists("expOrder")) {
 expOrder %<o% expOrder
 SamplesMap <- SamplesMap[match(expOrder, SamplesMap$"Parent sample"),]
 #
-smplMap2 <- smplMap <- SamplesMap[, which(!colnames(SamplesMap) %in% "New name")] # This column is deprecated and ignored
+smplMap2 <- smplMap <- SamplesMap[, !colnames(SamplesMap) %in% "New name"] # This column is deprecated and ignored
 if (nrow(smplMap2) == 1L) {
-  smplMap2 <- smplMap2[, which(colnames(smplMap2) != "Negative Filter")]
+  smplMap2 <- smplMap2[, colnames(smplMap2) != "Negative Filter"]
 }
 #colnames(smplMap2)[colnames(smplMap2) == "MQ.Exp"] <- "Parent sample"
 # Estimate table column widths
@@ -133,7 +133,8 @@ ui <- fluidPage(useShinyjs(),
                 ),
                 titlePanel(tag("u", "Experiment map"),
                            appNm),
-                extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+                extendShinyjs(text = jsFun$toggle_full_screen,
+                              functions = c("toggleFullScreen")),
                 tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
                 mainPanel(h4("Optional: define samples order"),
                           selectInput("expOrder", "",
@@ -194,7 +195,7 @@ Shiny.bindAll(table.table().node());"))
   session$onSessionEnded(function() { stopApp() })
 }
 runKount <- 0L
-while ((!runKount)||(!exists("smplMap3"))) {
+while ((!runKount) || (!exists("smplMap3"))) {
   g <- shiny:::.globals
   g$appState <- NULL
   eval(parse(text = run_App), envir = .GlobalEnv)
@@ -209,7 +210,7 @@ tmp <- SamplesMap
 w <- which(vapply(colnames(tmp), \(x) { inherits(tmp[[x]], "list") }, TRUE))
 if (length(w)) { for (i in w) { tmp[[i]] <- vapply(tmp[[i]], paste, "", collapse = ";") } }
 tst <- try(write.csv(tmp, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
-while (inherits(tst, "try-error")&&(grepl("cannot open the connection", tst[1L]))) { # We only want this to happen if the file is locked for editing
+while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) { # We only want this to happen if the file is locked for editing
   dlg_message(paste0("File \"", SamplesMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmp, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
 }

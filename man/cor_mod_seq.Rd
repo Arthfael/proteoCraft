@@ -14,8 +14,8 @@ cor_mod_seq(Pep, modseqcol = "Modified sequence", modcol = "Modifications")
 \item{modcol}{The name of the modifications column. Only used if the file is actually in the old MaxQuant format. Default = "Modifications"}
 }
 \value{
-A list of two objects:
-- Peptides: the peptides table with (where applicable) modified sequence in 2-letters format
+A list of two objects:\cr
+- Peptides: the peptides table with (where applicable) modified sequence in 2-letters format\cr
 - PTMs: a modifications table
 }
 \description{

@@ -1,18 +1,22 @@
-#' DIANN_to_MQ_server2
+#' .DIANN_to_MQ_server1
 #'
 #' @description 
 #' Server for app used to decide whether to update PTM marks.
 #' 
-#' @export
+#' @param input The server function input, cf. https://shiny.posit.co/r/getstarted/shiny-basics
+#' @param output The server function's output, cf. https://shiny.posit.co/r/getstarted/shiny-basics
+#' @param session Shiny session.
 
-DIANN_to_MQ_server1 <- function(input, output, session) {
+.DIANN_to_MQ_server1 <- function(input,
+                                 output,
+                                 session) {
   REMAP <- reactiveVal(tstMap)
   output$PTMs <- shiny::renderUI({
     lst <- list()
     for (i in mrks) {
       lst <- append(lst,
-                    list(shiny::fluidRow(shiny::column(1, ""),
-                                         shiny::column(4, shiny::em(i)))))
+                    list(shiny::fluidRow(shiny::column(1L, ""),
+                                         shiny::column(4L, shiny::em(i)))))
     }
     return(lst)
   })

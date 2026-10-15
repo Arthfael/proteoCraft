@@ -26,16 +26,17 @@ alphaDIA_to_MQ(
 
 \item{shinyOpt}{One of "popup" (default), "pane", "dialog", or "browser".}
 }
+\value{
+A list of 2 items:\cr
+- Evidence: a data.frame similar to the evidence.txt table MaxQuant creates\cr
+- PTMs: a modifications table
+}
 \description{
 Converts an alphaDIA precursors .tsv output table to a MaxQuant evidence.txt-like table.
 As with the other functions of this type, the idea is not to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.
 
 This will evolve as the Mann lab update https://alphadia.readthedocs.io/en/latest/methods/output-format.html
 which as of 2025/07/16 is incomplete.
-
-The output is a list of 2 items:
-- Evidence: a data.frame similar to the evidence.txt table MaxQuant creates
-- PTMs: a modifications table
 }
 \examples{
 alphaDIA_fl <- rstudioapi::selectFile()

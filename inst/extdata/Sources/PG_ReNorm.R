@@ -212,13 +212,10 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
                     "")[c(Norma.Prot.Ratio.to.Biot,
                           Norma.Prot.Ratio.to.proteins,
                           Norma.Prot.Ratio.classic)])
-    l <- length(DatAnalysisTxt)
     insrt <- if (Norma.Prot.Ratio.Adv) {
       "using the Levenberg-marquart procedure to minimize the difference between "
     } else { "to the median of " }
-    DatAnalysisTxt[l] <- gsub("\\.\\.\\.$",
-                              paste0(" and re-normalized ", insrt, txTmp, "."),
-                              DatAnalysisTxt[l])
+    DatAnalysisTxt$PG_reNorm <- paste0("and re-normalized ", insrt, txTmp, ".")
     cat(paste0("Re-normalizing Protein groups-level expression values to the median value of ", txTmp, "\n"))
   }
 }
@@ -403,7 +400,8 @@ if (normPGs) {
       gradient = "linear",
       direction = "bottom"
     ),
-    extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+    extendShinyjs(text = jsFun$toggle_full_screen,
+                  functions = c("toggleFullScreen")),
     titlePanel(tag("u", "Protein Groups (and peptides) re-normalisation"),
                appNm),
     br(),

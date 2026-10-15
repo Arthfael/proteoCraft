@@ -142,7 +142,7 @@ if (exists("Modifs")) {
             p <- 1L-x[[2L]]
             p <- p/sum(p)
             x <- x[[1L]]
-            s <- unlist(strsplit(unique(gsub("\\([^\\)]+\\)", "", x)), ""))
+            s <- unlist(strsplit(unique(gsub("\\([^)]+\\)", "", x)), ""))
             an <- Isapply(x, \(y) {
               as.numeric(annot_to_tabl(y, Nterm = FALSE, Cterm = FALSE, numeric_data = TRUE)[[1L]]$Annotations)
             })

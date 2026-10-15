@@ -14,9 +14,9 @@
 #' @param Max.N How many peptides can we use at most for the Levenberg-Marquardt procedure? Using too many peptides can be an issue, e.g. with huge proteins like Titin. Default = 50. The most intense peptides will be selected.
 #' @param Is.log Are input intensities log-transformed? TRUE by default.
 #' @param reNorm Integer. What to re-normalize the profile to? If set to...\cr
-#' - 1 (default), to the median intensity of the highest median intensity peptide,
-#' - 2 (former default), to the highest original single intensity value,
-#' - 0, to the profile's own median intensity.
+#' - 1 (default), to the median intensity of the highest median intensity peptide,\cr
+#' - 2 (former default), to the highest original single intensity value,\cr
+#' - 0, to the profile's own median intensity.\cr
 #' 
 #' @details
 #' This function is used at two levels:
@@ -50,10 +50,10 @@ LFQ.lm <- function(ids,
                    Max.N = 50L,
                    Is.log = TRUE,
                    reNorm = 1L) {
-  require(stats) # Precaution to help with interpreting Summary.method 
-  require(minpack.lm) # Because it runs C code 
+  requireNamespace("stats") # Precaution to help with interpreting Summary.method 
+  requireNamespace("minpack.lm") # Because it runs C code 
   #DefArg(LFQ.lm)
-  #ids <- quant.pep.ids[[1]]
+  #ids <- quant.pep.ids[[1L]]
   #InputTabl = tmpPep;IntensCol = Pep.Intens.Nms;Summary.method = Summary.method;Summary.weights = Weights
   Viz <- FALSE
   if (missing(reNorm)
@@ -102,7 +102,7 @@ LFQ.lm <- function(ids,
           # Remove excess peptides, for cases where we have much more than we need and including all would slow down the calculations
           # (I'm looking at you, Titin!!!)
           Ranks <- nrow(temp1) + 1L - rank(apply(temp1[, IntensCol, drop = FALSE], 1L, \(x) {
-            sum(x[which(is.finite(x))])
+            sum(x[is.finite(x)])
           }))
           wR <- which(Ranks <= Max.N)
           temp1 <- temp1[wR, IntensCol, drop = FALSE]
@@ -113,7 +113,7 @@ LFQ.lm <- function(ids,
           sum(is.finite(temp1[[y]]))
         }, 1L) > 0L)
         av <- apply(temp1[, wNN, drop = FALSE], 1L, \(y) {
-          stats::median(y[which(is.finite(y))])
+          stats::median(y[is.finite(y)])
         })
         # NB: temp2 and temp3 are already subsets through wNN
         # Thus, do not apply wNN to them!
@@ -186,27 +186,27 @@ LFQ.lm <- function(ids,
         temp3 <- as.numeric(temp3)
         # Re-scaling to estimate inter-proteins expression level
         if (reNorm %in% 0L:1L) {
-          m0 <- stats::median(temp3[which(is.finite(temp3))])
+          m0 <- stats::median(temp3[is.finite(temp3)])
           #if (is.na(m0)) { stop(m0) }
           temp3 <- temp3 - m0
           if (reNorm == 1L) {
             # -> best-flyer hypothesis logic
-            m1 <- apply(temp1[, wNN, drop = FALSE], 1L, \(x) { stats::median(x[which(is.finite(x))]) })
-            mx1 <- max(m1[which(is.finite(m1))])
-            #if ((!is.na(m0))&&((is.na(mx1))||(!length(mx1)))) { stop(m1) }
+            m1 <- apply(temp1[, wNN, drop = FALSE], 1L, \(x) { stats::median(x[is.finite(x)]) })
+            mx1 <- max(m1[is.finite(m1)])
+            #if ((!is.na(m0)) && (is.na(mx1) || (!length(mx1)))) { stop(m1) }
             temp3 <- temp3 + mx1
           }
         }
         if (reNorm == 2L) {
           m <- unlist(temp1[, wNN, drop = FALSE])
-          m <- max(m[which(is.finite(m))])
+          m <- max(m[is.finite(m)])
           m <- as.data.frame(which(temp1[, wNN, drop = FALSE] == m, arr.ind = TRUE))
           temp3 <- temp3 + temp1[m$row[1L], wNN[m$col[1L]]] - temp3[m$col[1L]]
         }
         rs[wNN] <- temp3
       } else {
         rs <- stats::setNames(apply(temp1, 2L, \(y) {
-          y <- y[which(is.finite(y))]
+          y <- y[is.finite(y)]
           if (!length(y)) { y <- NA_real_ }
           return(y)
         }), IntensCol)

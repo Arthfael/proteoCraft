@@ -2,7 +2,7 @@
 % Please edit documentation in R/Custom_operator_2.R
 \name{\%<o\%}
 \alias{\%<o\%}
-\title{%<o%}
+\title{\%<o\%}
 \usage{
 x \%<o\% y
 }
@@ -12,6 +12,7 @@ x \%<o\% y
 \item{y}{Value to assign.}
 }
 \description{
+\preformatted{
 These two custom assignment operators are meant to be used within the data analysis scripts.
 Both scripts regularly purge their environment of temporary objects, to avoid unnecessary inflation of data.
 Both operators are meant to create remanent objects, i.e. objects which are proof against this purge.
@@ -21,30 +22,31 @@ Each operator:
  - ... and in addition adds the object's name to a hidden object, .obj, which lists all remanent objects.
  - If .obj does not exist, it is created.
  
- Both operators differ slightly in usage:
- - "\%<o\%" takes the following syntax:
+Both operators differ slightly in usage:
+ - \%<o\% takes the following syntax:
          object \%<o\% value
- - "\%<c\%" takes the following syntax (note quotes):
-         "object" \%<o\% value
+ - \%<c\% takes the following syntax (note quotes):
+         "object" \%<c\% value
    or
-         object_name \%<o\% value
+         object_name \%<c\% value
 
 Careful!!!
 Those operators have the following limitations:
  - repeated assignments within the same line do not work!!!
  - if the value on the right is a logical test, it should be surrounded by parentheses!!!
 }
+}
 \examples{
-exists(".obj")
-exists("a")
-exists("b")
+if (exists(".obj")) { print(.obj) } else { print(".obj doesn't exist yet") }
+if (exists("a")) { rm(a) }
+if (exists("b")) { rm(b) }
 a \%<o\% "test 1"
 "b" \%<c\% "test 2"
 exists("a")
 exists("b")
 a
 b
-rm(list = ls()[which(!ls() \%in\% .obj)])
+rm(list = setdiff(ls(), .obj))
 a
 b
 .obj

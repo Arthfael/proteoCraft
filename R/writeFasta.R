@@ -1,10 +1,10 @@
 #' writeFasta
 #'
 #' @description 
-#' A function to write a data table of protein sequences, parsed from a fasta by Format.DB, as a fasta.
-#' The fasta is:
-#'  - written down if a destination file is provided using destFl,
-#'  - or, if newFl is TRUE, a modal dialog is opened to interactively choose it.
+#' A function to write a data table of protein sequences, parsed from a fasta by Format.DB, as a fasta.\cr
+#' The fasta is:\cr
+#'  - written down if a destination file is provided using destFl,\cr
+#'  - or, if newFl is TRUE, a modal dialog is opened to interactively choose it.\cr
 #'  - The fasta can also optionally be returned as a character string.
 #' 
 #' @param DB A data base of protein sequences. Must contain "Header" and "Sequence" column.
@@ -38,7 +38,7 @@ writeFasta <- function(DB,
   stopifnot(nrow(DB) > 0L,
             length(unique(DB$"Protein ID")) == nrow(DB))
   if ((!is.null(filter)) && length(filter) && ("Protein ID" %in% colnames(DB))) {
-    DB <- DB[which(DB$"Protein ID" %in% filter),]
+    DB <- DB[DB$"Protein ID" %in% filter,]
     nr <- nrow(DB)
     stopifnot(nrow(DB) > 0L)
   }

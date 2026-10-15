@@ -14,6 +14,7 @@
 #' AA.bias <- AA_bias(Ev = ev, DB = db)
 #' 
 #' @import data.table
+#' 
 #' @export
 
 AA_bias <- function(Ev,
@@ -26,14 +27,15 @@ AA_bias <- function(Ev,
   E <- unlist(strsplit(E, ""))
   AA <- data.table::data.table(E = E,
                                dumdum = as.integer(rep(1L, length(E))))
-  AA <- AA[, list(`Occurrences - dataset` = sum(dumdum)), keyby = list(AA = E)]
+  AA <- AA[, .(`Occurrences - dataset` = sum(dumdum)),
+           keyby = .(AA = E)]
   AA <- as.data.frame(AA)
   AA$"% - dataset" <- 100*AA$`Occurrences - dataset`/sum(AA$`Occurrences - dataset`)
   D <- unlist(strsplit(toupper(DB$Sequence), ""))
   AA_db <- data.table::data.table(D = D,
                                   dumdum = as.integer(rep(1L, length(D))))
-  AA_db <- AA_db[, list(x = sum(dumdum)),
-                 keyby = list(Group.1 = D)]
+  AA_db <- AA_db[, .(x = sum(dumdum)),
+                 keyby = .(Group.1 = D)]
   AA_db <- as.data.frame(AA_db)
   AA$"Occurrences - database" <- AA_db$x[match(AA$AA, AA_db$Group.1)]
   AA$"% - database" <- 100*AA$`Occurrences - database`/sum(AA$`Occurrences - database`)

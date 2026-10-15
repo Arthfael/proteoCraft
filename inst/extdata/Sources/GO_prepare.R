@@ -1,9 +1,9 @@
 # Prepare GO term maps
 if (Annotate) {
   Ontologies %<o% setNames(c("BP", "CC", "MF"), c("Biological Process", "Cell Compartment", "Molecular Function"))
-  packs <- c("annotate", "GO.db", "AnnotationDbi")
-  for (pck in packs) { if (!require(pck, character.only = TRUE)) { pak::pak(pck) } }
-  for (pck in packs) { library(pck, character.only = TRUE) }
+  library(annotate)
+  library(GO.db)
+  library(AnnotationDbi)
   if (!exists("GO_mappings_fl")) { GO_mappings_fl %<o% paste0(wd, "/GO_mappings.RDS") }
   if (!exists("GO_terms_fl")) { GO_terms_fl %<o% paste0(wd, "/GO_terms.RDS") }
   if (file.exists(GO_mappings_fl)) { loadFun(GO_mappings_fl) }
@@ -54,9 +54,6 @@ if (Annotate) {
   GO_terms %<o% GO_terms
   #loadFun(GO_terms_fl)
   if (!exists("GO_mappings")) {
-    packs <- c("GO.db", "topGO")
-    for (pck in packs) { if (!require(pck, character.only = TRUE)) { pak::pak(pck) } }
-    for (pck in packs) { library(pck, character.only = TRUE) }
     GO_mappings <- GO_map(db, cl = parClust)$Mappings
     saveFun(GO_mappings, GO_mappings_fl)
   }

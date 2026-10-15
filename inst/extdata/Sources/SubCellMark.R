@@ -25,7 +25,7 @@ if (Annotate) {
   l2 <- length(tst2)
   tst2 <- data.frame(Species = tst2[c(1L:(l2/2L))*2L-1L],
                      IDsType = tst2[c(1L:(l2/2L))*2L])
-  tst2$SpTag <- gsub("^[^\\[]+\\[|(\\]|_).*:$", "", tst2$Species)
+  tst2$SpTag <- gsub("^[^[]+\\[|(\\]|_).*:$", "", tst2$Species)
   useProloc <- (tstSp %in% tst2$SpTag)
   if (useProloc) { # Use pRoloc markers if our species is available in pRoloc...
     SubCellMark <- pRolocmarkers(tstSp)

@@ -7,7 +7,6 @@
 # This implementation is based on the tutorial:
 # https://fuzzyatelin.github.io/bioanth-stats/module-F21-Group1/module-F21-Group1.html
 #
-if (!require(WGCNA)) { pak::pak("WGCNA") }
 library(WGCNA)
 #
 L <- length(RSA$values)
@@ -186,9 +185,6 @@ suppressMessages({
 pwrEst <- spt$powerEstimate
 if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
   # Shiny app to select threshold
-  if (!require(shiny)) { pak::pak("shiny") }
-  if (!require(shinyWidgets)) { pak::pak("shinyWidgets") }
-  if (!require(shinyjs)) { pak::pak("shinyjs") }
   library(shiny)
   library(shinyWidgets)
   library(shinyjs)
@@ -206,7 +202,8 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
       gradient = "linear",
       direction = "bottom"
     ),
-    extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+    extendShinyjs(text = jsFun$toggle_full_screen,
+                  functions = c("toggleFullScreen")),
     tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
     titlePanel(tag("u", appNm),
                appNm),
@@ -624,10 +621,8 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
       }
       #
       #
-      if (exists("DatAnalysisTxt")) {
-        l <- length(DatAnalysisTxt)
-        DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                                    " Weighted Genes Correlation Networks Analysis was run using using package WGCNA.")
+      if (exists("DatAnalysisTxt") && inherits(DatAnalysisTxt, "list")) {
+        DatAnalysisTxt$WGCNA <- "Weighted Genes Correlation Networks Analysis was run using using package WGCNA."
       }
       #
       # Save results

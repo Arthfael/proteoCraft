@@ -9,7 +9,7 @@ rawrr_tst <- try({
   #remove.packages("rawrr")
   #
   rawrrVers_inst <- packageVersion("rawrr")
-  if ((rawrrVers_inst != "1.11.14")||(!require(rawrr, quietly = TRUE))) {
+  if ((rawrrVers_inst != "1.11.14") || (!require(rawrr, quietly = TRUE))) {
     # if (length(rawrrVers) > 1L) {
     #   rawrrVers <- dlg_list(rawrrVersions, rawrrVersions[3L], title = "Select which rawrr version should be installed")$res
     # }

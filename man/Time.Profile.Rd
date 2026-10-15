@@ -42,9 +42,9 @@ Time.Profile(
 \item{labels}{default = FALSE. If set to a column name, will display these as protein labels to the left of each profile. Ignored when only plotting a single protein ID.}
 }
 \description{
-A function to plot the time profile of protein(s).
-The function assumes that expression column names follow the following pattern:
-"root.cond.tp" (i.e. a root string then the condition then the time point).
+A function to plot the time profile of protein(s).\cr
+The function assumes that expression column names follow the following pattern:\cr
+"root.cond.tp" (i.e. a root string then the condition then the time point).\cr
 If there are error columns, these should follow a similar pattern with their own root.
 }
 \examples{

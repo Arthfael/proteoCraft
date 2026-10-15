@@ -1,9 +1,6 @@
 #
-if (!require(svDialogs)) { install.packages("svDialogs") }
 library(svDialogs)
-if (!require(data.table)) { install.packages("data.table") }
 library(data.table)
-if (!require(parallel)) { install.packages("parallel") }
 library(parallel)
 nClst <- detectCores()-1L
 
@@ -36,7 +33,7 @@ l <- length(trainParam)
 trainParam <- sapply(args, \(arg) {
   sapply(1L:length(g), \(x) {
     h <- grep(paste0("--", arg), trainParam)
-    h <- gsub(paste0(".*'--", arg, "' +"), "", trainParam[h[which(h %in% g[x]:c(g, l)[x+1L])]])
+    h <- gsub(paste0(".*'--", arg, "' +"), "", trainParam[h[h %in% g[x]:c(g, l)[x+1L]]])
     pat1 <- paste0("^", substr(h, 1L, 1L))
     pat2 <- paste0(substr(h, 1L, 1L), ".*$")
     h <- gsub(pat2, "", gsub(pat1, "", h))
@@ -159,16 +156,16 @@ while ((N > 0L)&&(kount < N+1L)) {
   kount <- kount + 1L
 }
 Step1Tries <- L # Update it if we got any bonus tests
-GrdSrch <- as.data.frame(t(sapply(strsplit(gsub("\\.tsv$", "", GrdSrchFls), "_"), \(x) {
+GrdSrch <- as.data.frame(t(sapply(strsplit(sub("\\.tsv$", "", GrdSrchFls), "_"), \(x) {
   x <- unlist(x)
   x <- suppressWarnings(as.numeric(x))
-  x <- x[which(!is.na(x))]
+  x <- x[!is.na(x)]
   return(x)
 })))
 colnames(GrdSrch) <- paramKol
 tst <- apply(GrdSrch, 2L, \(x) { length(unique(x)) })
-GrdSrch <- GrdSrch[, which(tst > 1L), drop = FALSE]
-paramKol2 <- paramKol[which(tst > 1L)]
+GrdSrch <- GrdSrch[, tst > 1L, drop = FALSE]
+paramKol2 <- paramKol[tst > 1L]
 rs <- plyr::rbind.fill(lapply(GrdSrchFls, read.delim))
 rs$X <- NULL
 GrdSrch[, gsub("\\.", "_", colnames(rs))] <- rs
@@ -192,16 +189,16 @@ while ((N > 0L)&&(kount < N+1L)) {
   N <- Step1Tries + Step2Tries - L
   kount <- kount + 1L
 }
-GrdSrch <- as.data.frame(t(sapply(strsplit(gsub("\\.tsv$", "", GrdSrchFls), "_"), \(x) {
+GrdSrch <- as.data.frame(t(sapply(strsplit(sub("\\.tsv$", "", GrdSrchFls), "_"), \(x) {
   x <- unlist(x)
   x <- suppressWarnings(as.numeric(x))
-  x <- x[which(!is.na(x))]
+  x <- x[!is.na(x)]
   return(x)
 })))
 colnames(GrdSrch) <- paramKol
 tst <- apply(GrdSrch, 2L, \(x) { length(unique(x)) })
-GrdSrch <- GrdSrch[, which(tst > 1L), drop = FALSE]
-paramKol2 <- paramKol[which(tst > 1L)]
+GrdSrch <- GrdSrch[, tst > 1L, drop = FALSE]
+paramKol2 <- paramKol[tst > 1L]
 rs <- plyr::rbind.fill(lapply(GrdSrchFls, read.delim))
 rs$X <- NULL
 GrdSrch[, gsub("\\.", "_", colnames(rs))] <- rs
@@ -249,9 +246,9 @@ if (length(G)) {
     tmp <- TrCoeff[g]
     arg <- gsub("\'.*", "", gsub(paste0(basePat, "\'--"), "", tmp))
     stopifnot(nchar(arg) > 0L)
-    val <- unlist(strsplit(tmp, "[,\\(] *default *= *"))
+    val <- unlist(strsplit(tmp, "[,(] *default *= *"))
     if (!length(val) == 2L) { stop(paste0("No default for argument ", arg, "! Give me a hand here, human!")) }
-    val <- gsub(" *[,\\)].*", "", val[2L])
+    val <- gsub(" *[,)].*", "", val[2L])
     TrCoeff[g] <- if (tst1) {
       if (tst2) { paste0(arg, " = float(", val, ")") } else {
         paste0(arg, " = int(", val, ")")
@@ -313,9 +310,7 @@ py_clear_last_error()
 # Store for later use
 saveModel <- c(TRUE, FALSE)[match(dlg_message("Should we store this model for later use?", "yesno")$res, c("yes", "no"))]
 if (saveModel) {
-  if (!require(shiny)) { install.packages("shiny") }
   library(shiny)
-  if (!require(DT)) { install.packages("DT") }
   library(DT)
   modDir <- paste0(homePath, "/Pepper_models")
   if (!dir.exists(modDir)) { dir.create(modDir, recursive = TRUE) }

@@ -17,7 +17,7 @@ gsub_Rep(
 \arguments{
 \item{pattern}{A character string containing a regular expression (or character string for fixed = TRUE) to be matched in the given character vector. Coerced by as.character to a character string if possible. If a character vector of length 2 or more is supplied, the first element is used with a warning. Missing values are allowed.}
 
-\item{replacement}{A replacement for matched pattern in sub and gsub. Coerced to character if possible. For fixed = FALSE this can include backreferences "\1" to "\9" to parenthesized subexpressions of pattern. For perl = TRUE only, it can also contain "\U" or "\L" to convert the rest of the replacement to upper or lower case and "\E" to end case conversion. If a character vector of length 2 or more is supplied, the first element is used with a warning. If NA, all elements in the result corresponding to matches will be set to NA.}
+\item{replacement}{A replacement for matched pattern in sub and gsub. Coerced to character if possible. For fixed = FALSE this can include backreferences \code{"\\1"} to \code{"\\9"} to parenthesized subexpressions of pattern. For perl = TRUE only, it can also contain \code{"\\U"} or \code{"\\L"} to convert the rest of the replacement to upper or lower case and \code{"\\E"} to end case conversion. If a character vector of length 2 or more is supplied, the first element is used with a warning. If NA, all elements in the result corresponding to matches will be set to NA.}
 
 \item{x}{a character vector where matches are sought, or an object which can be coerced by as.character to a character vector. Long vectors are supported.}
 

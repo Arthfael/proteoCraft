@@ -1,10 +1,8 @@
-#
-if (!require(R.utils)) { pak::pak("R.utils") }
-library(R.utils)
+#library(R.utils)
+library(proteoCraft)
 
 # Set up virtual environment using reticulate
 #Sys.setenv(RETICULATE_PYTHON = "C:\\Program Files\\")
-if (!require(reticulate)) { pak::pak("reticulate") }
 library(reticulate) # Note! We use reticulate mostly for a few convenient functions,
 # but after that we run Python through command line!
 # Using reticulate has these issues:
@@ -26,28 +24,30 @@ pyPacks <- c("numpy",
 myHome <- paste0(shell("echo %homedrive%", intern = TRUE),
                  shell("echo %homepath%", intern = TRUE))
 #cat(myHome)
-homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
-dfltLocFl <- paste0(homePath, "/Default_locations.xlsx")
-dfltLoc <- openxlsx2::read_xlsx(dfltLocFl)
+if (!exists("homePath")) { homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft") }
+if (!exists("locDirs")) {
+  locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
+  locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
+}
 if ("Python" %in% locDirs$Folder) { 
   pyPath <- gsub("/", "\\\\", locDirs$Path[match("Python", locDirs$Folder)])
 } else {
   tmp <- list.files("C:/Program files", "python\\.exe$", recursive = TRUE, full.names = TRUE)
   tmp <- grep("/Lib/venv/", tmp, value = TRUE, invert = TRUE)
   tmp <- normalizePath(tmp)
-  tmp <- gsub("\\\\Program Files\\\\", "\\\\PROGRA~1\\\\", tmp)
+  tmp <- sub("\\\\Program Files\\\\", "\\\\PROGRA~1\\\\", tmp)
   tmp2 <- data.frame(type = "PythonCore", hive = "HLM",
-                     install_path = gsub("\\\\python\\.exe$", "\\\\", tmp),
-                     executable_path = gsub("\\\\python\\.exe$", "\\\\\\\\python.exe", tmp),
+                     install_path = sub("\\\\python\\.exe$", "\\\\", tmp),
+                     executable_path = sub("\\\\python\\.exe$", "\\\\\\\\python.exe", tmp),
                      arch = "x64")
-  tmp2$version <- sapply(paste0(tmp2$install_path, "NEWS.txt"), \(x) { #x <- paste0(tmp2$install_path, "NEWS.txt")[1L]
+  tmp2$version <- vapply(paste0(tmp2$install_path, "NEWS.txt"), \(x) { #x <- paste0(tmp2$install_path, "NEWS.txt")[1L]
     if (file.exists(x)) {
       x <- readLines(x)
       x <- grep("What's New in Python ", x, value = TRUE)[1L]
-      x <- gsub(" .+", "", gsub("What's New in Python ", "", x))
+      x <- sub(" .+", "", sub("What's New in Python ", "", x))
     } else { x <- NA_character_ }
     return(x)
-  })
+  }, "")
   pyPaths <- py_versions_windows()
   pyPaths <- rbind(pyPaths, tmp2)
   pyFound <- FALSE
@@ -76,7 +76,7 @@ if ("Python" %in% locDirs$Folder) {
       })))
       pyPaths[, c("V1", "V2", "V3")] <- tst
       # Currently, tensorflow is not supported for Python > 3.10 
-      w <- which((pyPaths$V1 < 3L)|((pyPaths$V1 == 3L)&(pyPaths$V2 <= 10L)))
+      w <- which((pyPaths$V1 < 3L) | ((pyPaths$V1 == 3L) & (pyPaths$V2 <= 10L)))
       pyPaths <- pyPaths[w,]
       if (length(w)) { pyPaths <- pyPaths[order(pyPaths$V1, pyPaths$V2, pyPaths$V3, decreasing = TRUE),] }
     }

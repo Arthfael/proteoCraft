@@ -21,12 +21,12 @@ MatMet_WetLab(
 
 \item{Label}{Were the samples labelled isobarically ("TMT", "TMTPRO" or "ITRAQ"), with "SILAC", or label-free ("LFQ")? This is only relevant for isobaric labels (otherwise ignored) because a) this affects the choice of iST kit, and b) the labelling procedure will then be reported in the samples processing.}
 
-\item{Columns}{Path to a table of LC columns to pick from.}
+\item{Columns}{Path to a table of LC columns to pick from. Default = "default" (path where we save column definitions by default)}
 }
 \description{
-A function to handle writing the wet-lab part of Materials & Methods, interactively asking relevant questions as it moves down the decision tree.
-Very much a Rube Goldberg engine, which is fine. Just remember that it creates a WIP which should be checked/corrected before publication!
-
+A function to handle writing the wet-lab part of Materials & Methods, interactively asking relevant questions as it moves down the decision tree.\cr
+Very much a Rube Goldberg engine, which is fine. Just remember that it creates a WIP which should be checked/corrected before publication!\cr
+\cr
 !!! When editing function, always save with UTF-8 encoding!!!
 }
 \examples{

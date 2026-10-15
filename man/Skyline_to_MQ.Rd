@@ -30,8 +30,8 @@ Skyline_to_MQ(
 \item{digPattern}{Default = "KR" for trypsin. Only used for the "Missed cleavages" column if that from Skyline is missing. Vector of amino acids after which the enzyme cleaves.}
 }
 \value{
-A list of two items:
- - "Evidence": Skyline report formatted to be similar (not identical!) to MaxQuant evidence files
+A list of two items:\cr
+ - "Evidence": Skyline report formatted to be similar (not identical!) to MaxQuant evidence files\cr
  - "PTMs": modifications table
 }
 \description{

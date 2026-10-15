@@ -37,9 +37,9 @@ LFQ.lm(
 \item{Is.log}{Are input intensities log-transformed? TRUE by default.}
 
 \item{reNorm}{Integer. What to re-normalize the profile to? If set to...\cr
-- 1 (default), to the median intensity of the highest median intensity peptide,
-- 2 (former default), to the highest original single intensity value,
-- 0, to the profile's own median intensity.}
+- 1 (default), to the median intensity of the highest median intensity peptide,\cr
+- 2 (former default), to the highest original single intensity value,\cr
+- 0, to the profile's own median intensity.\cr}
 
 \item{Intensity.weights}{default = FALSE; if TRUE, will take into account individual peptide intensities when calculating average profile if "Summary.method" is either mean "mean" or "weighted.mean" (thus, it will actually be a weighted mean regardless).}
 }

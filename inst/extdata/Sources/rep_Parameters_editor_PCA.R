@@ -163,7 +163,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
       plot_lyPSMsPCA <- plotly::layout(plot_lyPSMsPCA, title = ttl)
       plot_lyPSMsPCA$x$layout$xaxis$autorange <- TRUE
       plot_lyPSMsPCA$x$layout$yaxis$autorange <- TRUE
-      plot_lyPSMsPCA <- htmlwidgets::onRender(plot_lyPSMsPCA, global_autorange)
+      plot_lyPSMsPCA <- htmlwidgets::onRender(plot_lyPSMsPCA, jsFun$global_auto_range)
       plot_lyPSMsPCA <- plotly::config(plot_lyPSMsPCA,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
       plot_lyPSMsPCA <- plotly::plotly_build(plot_lyPSMsPCA)

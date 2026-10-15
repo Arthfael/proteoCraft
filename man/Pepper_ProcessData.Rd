@@ -39,11 +39,10 @@ Pepper_ProcessData(
 \item{filter}{If TRUE, the data is filtered to create a training set. If FALSE (default), the data isn't filtered (used for preparing data to which a pre-trained model will be transferred).}
 }
 \description{
-A function to take an ev data.frame and convert it to a Pepper-compatible table. This can then be one-hot encoded for the purpose
-of training a model on it, or a pre-trained model can be applied to it.
-
-
-Note:
-An issue may be silent fixed modifications (TMT, cysteine alkylations) in MaxQuant. The final model should thus specify
-what type of data it is suitable for.
+A function to take an ev data.frame and convert it to a Pepper-compatible table.\cr
+This can then be one-hot encoded for the purpose of training a model on it, or a pre-trained model can be applied to it.\cr
+\cr
+Note:\cr
+An issue may be silent fixed modifications (TMT, cysteine alkylations) in MaxQuant.\cr
+ The final model should thus specify what type of data it is suitable for.
 }

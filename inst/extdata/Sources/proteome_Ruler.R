@@ -1,3 +1,4 @@
+# Run Proteome Ruler
 if (protrul) {
   ProtRulRoot %<o% "log10(est. copies/cell) - "
   tempPG <- PG
@@ -25,9 +26,7 @@ if (protrul) {
     kol <- c(grep(topattern(exprsRt), colnames(temp), value = TRUE), grep(topattern(ProtRulRoot), colnames(temp), value = TRUE))
     PG[, kol] <- temp[, kol]
     protrul <- TRUE
-    l <- length(DatAnalysisTxt)
-    DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                                " Protein group copy numbers per cell were estimated using a variant of the proteome ruler logic, normalizing to scaled values of all identified histones.")
+    DatAnalysisTxt$protRul <- "Protein group copy numbers per cell were estimated using our implementation of the proteome ruler logic, normalizing values so that those of identified histones are as close as possible to the expected copy number per cell."
   } else {
     warning("Failed to run Prot.Ruler function; is the remote NCBI server available?")
     protrul <- FALSE

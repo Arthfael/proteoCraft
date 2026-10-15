@@ -22,8 +22,8 @@
 #' @param digPattern Default = "KR" for trypsin. Only used for the "Missed cleavages" column if that from Skyline is missing. Vector of amino acids after which the enzyme cleaves. 
 #' 
 #' @returns
-#' A list of two items:
-#'  - "Evidence": Skyline report formatted to be similar (not identical!) to MaxQuant evidence files
+#' A list of two items:\cr
+#'  - "Evidence": Skyline report formatted to be similar (not identical!) to MaxQuant evidence files\cr
 #'  - "PTMs": modifications table
 #'  
 #' @examples
@@ -53,7 +53,7 @@ Skyline_to_MQ <- function(Skyline_fl,
   #
   # Create cluster
   stopCl <- FALSE
-  if ((is.null(cl))||(!inherits(cl, "cluster"))) {
+  if (is.null(cl) || (!inherits(cl, "cluster"))) {
     dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1L }
     nMax <- max(c(dc - N.reserved, 1L))
@@ -79,8 +79,8 @@ Skyline_to_MQ <- function(Skyline_fl,
   UniMod <- UniMod[grep("^[A-Z][a-z]{2}->[A-Z][a-z]{2} substitution$", UniMod$Description, invert = TRUE),]
   # - deltas
   g <- grepl("^Delta:", UniMod$Name)
-  UniMod_D <- UniMod[which(g),]
-  UniMod <- UniMod[which(!g),]
+  UniMod_D <- UniMod[g,]
+  UniMod <- UniMod[!g,]
   #
   Skyline <- data.table::fread(Skyline_fl, integer64 = "numeric", check.names = FALSE, data.table = FALSE)
   #
@@ -169,7 +169,7 @@ Skyline_to_MQ <- function(Skyline_fl,
   for (k in fileCols[w]) { Skyline[[k]] <- gsub_Rep("\\\\", "/", Skyline[[k]]) }
   for (k in fileCols) {
     if (!k %in% colnames(Skyline)) {
-      j <- fileCols[which((fileCols %in% colnames(Skyline))&(fileCols != k))][1L]
+      j <- fileCols[(fileCols %in% colnames(Skyline)) & (fileCols != k)][1L]
       Skyline[[k]] <- Skyline[[j]]
     }
   }
@@ -315,7 +315,7 @@ Skyline_to_MQ <- function(Skyline_fl,
       run_App2 <- "print(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = \"100%\", width = \"100%\", launch.browser = TRUE)))"
     }
     #
-    tmp <- modsTmp[which(vapply(modsTmp$Comp, \(x) { sum(comps[gNI] %in% x) }, 1L) > 0L),]
+    tmp <- modsTmp[vapply(modsTmp$Comp, \(x) { sum(comps[gNI] %in% x) }, 1L) > 0L,]
     # Here we will want to make sense of those mods
     # First, get the precise mass shift for each, so we can narrow down options
     #
@@ -324,7 +324,7 @@ Skyline_to_MQ <- function(Skyline_fl,
                         list(tmp1 = tmp1))
     tmp$Mods <- parallel::parLapply(cl, tmp1, wrk)
     Mods <- sort(unique(unlist(tmp$Mods)))
-    Mods <- Mods[which(gsub(".*mod_", "", Mods) %in% comps[gNI])]
+    Mods <- Mods[gsub(".*mod_", "", Mods) %in% comps[gNI]]
     # parallel::clusterExport(cl, "Mods", envir = environment())
     # f0 <- \(x) {
     #   x <- aggregate(x, list(x), length)
@@ -344,9 +344,9 @@ Skyline_to_MQ <- function(Skyline_fl,
     Mods$Options <- apply(Mods[, c("DM", "AA")], 1L, \(x) { #x <- Mods[1, c("DM", "AA")]
       dm <- as.numeric(x[[1L]])
       w <- if (substr(x[[2L]], 1L, 1L) == "_") {
-        which((abs(UniMod$MonoMass - dm) <= precVal)&(UniMod$Site %in% c(substr(x[[2L]], 2L, 2L), "N-term")))
+        which((abs(UniMod$MonoMass - dm) <= precVal) & (UniMod$Site %in% c(substr(x[[2L]], 2L, 2L), "N-term")))
       } else {
-        which((abs(UniMod$MonoMass - dm) <= precVal)&(UniMod$Site == x[[2L]]))
+        which((abs(UniMod$MonoMass - dm) <= precVal) & (UniMod$Site == x[[2L]]))
       }
       if (length(w)) {
         Ddm <- dm - UniMod$MonoMass[w]
@@ -390,7 +390,7 @@ Skyline_to_MQ <- function(Skyline_fl,
       if (length(opt) >= 1L) {
         dflt <- opt[1L]
         m <- match(commonPTMs, opt)
-        m <- m[which(!is.na(m))]
+        m <- m[!is.na(m)]
         if (length(m)) { dflt <- opt[m[1L]] }
       } else { dflt <- Mods$tag[i] }
       return(dflt)
@@ -428,7 +428,7 @@ Skyline_to_MQ <- function(Skyline_fl,
   }
   allPTMs <- plyr::rbind.fill(allPTMsLst)
   allPTMs$Type <- "Variable"
-  allPTMs$Type[which(allPTMs$"Full name" %in% Fixed.mods)] <- "Fixed"
+  allPTMs$Type[allPTMs$"Full name" %in% Fixed.mods] <- "Fixed"
   allPTMs$Mark <- tolower(substr(allPTMs$"Full name", 1L, 2L))  
   ## Identify affected Amino Acids
   allPTMs$AA <- allPTMs$Site <- allPTMs$Site_long <- list(NA)
@@ -457,8 +457,8 @@ Skyline_to_MQ <- function(Skyline_fl,
     w <- which(allPTMs$Position[wNI] == "Protein C-term")
     if (length(w)) { allPTMs$Site[wNI][w] <- "^]" }
     allPTMs$Site_long[wNI] <- lapply(strsplit(gsub("\\^", "", lapply(allPTMs$Site[wNI], paste, collapse = "")), ""), \(x) {
-      x[which(x %in% c("[", "n"))] <- "N-term"
-      x[which(x %in% c("]", "c"))] <- "C-term"
+      x[x %in% c("[", "n")] <- "N-term"
+      x[x %in% c("]", "c")] <- "C-term"
       return(x)
     })
   }
@@ -472,7 +472,7 @@ Skyline_to_MQ <- function(Skyline_fl,
     for (i in W) { #i <- 7L #i <- W[1L]
       w <- which(allPTMs$Mark == tstMark$Group.1[i])
       m <- allPTMs[w,]
-      m$AA[which(vapply(m$AA, length, 1L) == 0L)] <- "X"
+      m$AA[vapply(m$AA, length, 1L) == 0L] <- "X"
       r <- if ("Acetyl" %in% m$"Full name") { which(m$"Full name" == "Acetyl") } else { 1L }
       s <- setdiff(1L:nrow(m), r)
       test <- apply(m[s, c("AA", "Mark")], 1L, \(x) { paste0(tolower(x[[1L]]), substr(x[[2L]], 1L, 1L))[1L] })
@@ -490,7 +490,7 @@ Skyline_to_MQ <- function(Skyline_fl,
         taken <- unique(c(allPTMs$Mark, m$Mark))
         for (j in s) {
           tst <- paste0(tolower(m$AA[s]), char[kount])
-          while (((tst) %in% taken)&&(kount < length(char))) {
+          while (((tst) %in% taken) && (kount < length(char))) {
             kount <- kount+1L
             tst <- paste0(tolower(m$AA[s]), char[kount])
           }
@@ -551,15 +551,15 @@ Skyline_to_MQ <- function(Skyline_fl,
   EV$`Modified sequence_verbose` <- paste0("_", EV$Sequence, "_")
   EV$`Modified sequence`[wMod] <- temp2[, 1L]
   EV$`Modified sequence_verbose`[wMod] <- temp2[, 2L]
-  #tst <- unique(unlist(strsplit(gsub("[A-Z]", "", EV$`Modified sequence`[wMod]), "[\\(\\)]")))
-  #tst <- unique(unlist(strsplit(gsub("[A-Z]", "", EV$`Modified sequence_verbose`[wMod]), "[\\(\\)]")))
+  #tst <- unique(unlist(strsplit(gsub("[A-Z]", "", EV$`Modified sequence`[wMod]), "[()]")))
+  #tst <- unique(unlist(strsplit(gsub("[A-Z]", "", EV$`Modified sequence_verbose`[wMod]), "[()]")))
   #
   EV$Modifications <- "Unmodified"
   uMdSq <- unique(EV$`Modified sequence`[wMod])
-  tempMod1 <- gsub("[_|\\)][A-Z]*[_|\\(]", ",", uMdSq)
+  tempMod1 <- gsub("[_|)][A-Z]*[_|(]", ",", uMdSq)
   tempMod2 <- strsplit(tempMod1, ",")
   #
-  f0 <- \(x, y) { x[which(!x %in% c("", y))] }
+  f0 <- \(x, y) { x[!x %in% c("", y)] }
   wrk <- .bind_worker(f0,
                       list(tempMod2 = tempMod2,
                            Fixed.mods = Fixed.mods))

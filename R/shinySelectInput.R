@@ -6,7 +6,7 @@
 #' @param startVal Starting values of each select input.
 #' @param root Root of the created input names. Names generated will be of the form "root___i", where i is the 1:n row number.
 #' @param levels Allowed values.
-#' @param width The width of the input, e.g. "400px", or "100\%".\cr Default = "600px"
+#' @param width The width of the input, e.g. "400px", or "100\%". Default = "600px"
 #' @param NAs If TRUE (default), NA selections are allowed (and NA is included as another additional allowed level). If FALSE, they are automatically replaced with the first authorized level at initialization.
 #' 
 #' @examples
@@ -36,19 +36,19 @@ shinySelectInput <- function(startVal,
   levels <- unique(levels)
   stopifnot(length(levels) > 0L)
   if (NAs) {
-    startVal[which(!startVal %in% levels)] <- NA
+    startVal[!startVal %in% levels] <- NA
     levels <- unique(c(levels, NA))
   } else {
-    levels <- levels[which(!is.na(levels))]
+    levels <- levels[!is.na(levels)]
     stopifnot(length(levels) > 0L)
-    startVal[which(!startVal %in% levels)] <- levels[1L]
+    startVal[!startVal %in% levels] <- levels[1L]
   }
   rg <- seq_len(l)
   ids <- paste0(root, "___", as.character(rg))
-  if ((length(width) != 1L)||(is.na(width))||(is.null(width))) {
+  if ((length(width) != 1L) || is.na(width) || is.null(width)) {
     width <- paste0(600L, "px")
   }
-  inputs <- vapply(rg, function(i) {
+  inputs <- vapply(rg, \(i) {
     as.character(shiny::selectInput(ids[i],
                                     "",
                                     levels,

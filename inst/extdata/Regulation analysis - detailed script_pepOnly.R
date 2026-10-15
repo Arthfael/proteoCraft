@@ -60,7 +60,6 @@ source(Src)
 ReUseAnsw %<o% FALSE
 scrptType %<o% "withReps"
 scrptTypeFull %<o% "withReps_PTMs_only"
-ExcelMax %<o% 32767L
 MakeRatios %<o% TRUE
 
 # Parameters used by the start analysis script:
@@ -75,12 +74,12 @@ if(!exists("cran_req")) { cran_req <- "pak" }
 cran_req %<o% cran_req
 if(!exists("bioc_req")) { bioc_req <- c() } 
 bioc_req %<o% bioc_req
-cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT", "shinyBS", "stringr",
-                     "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "rgl", "ggrepel", "rstudioapi", "modeest",
-                     "minpack.lm", "snow", "viridis", "pcaMethods", "impute", "imputeLCMD", "parallel", "coin", "openxlsx", "openxlsx2", "plotly",
-                     "Peptides", "xml2", "pdftools", "statmod", "ggpolypath", "venn", "gridExtra", "svDialogs", "htmlwidgets", "magrittr", "tibble",
-                     "officer", "hexbin", "igraph", "matlib", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
-                     "tidyr", "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "lmtest", "ssh", "taxize", "arrow", "PTMods",
+cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT",
+                     "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "ggrepel", "rstudioapi", "modeest",
+                     "minpack.lm", "snow", "viridis", "imputeLCMD", "parallel", "coin", "openxlsx", "openxlsx2", "plotly",
+                     "Peptides", "xml2", "statmod", "ggpolypath", "venn", "svDialogs", "htmlwidgets", "magrittr",
+                     "officer", "hexbin", "igraph", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
+                     "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "ssh", "taxize", "arrow", "PTMods",
                      "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "Rtsne", "DEP", "svglite"))
 bioc_req <- unique(c(bioc_req, "biomaRt", "GO.db", "UniProt.ws", "limma", "sva", "qvalue", "MSnbase",
                      "Rgraphviz", "RCy3", "siggenes", "DEqMS", "limpa", "QFeatures"))
@@ -406,30 +405,24 @@ Src <- paste0(libPath, "/extdata/Sources/remove_Outliers.R")
 source(Src)
 
 DatAnalysisTxt %<o% DatAnalysisTxt # Just in case...
-l <- length(DatAnalysisTxt)
 if (length(inDirs) > 1L) {
-  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                              " PSM tables ")
-  DatAnalysisTxt[l] <- if (length(unique(SearchSoft)) > 1L) {
-    paste0(DatAnalysisTxt[l],
-           "from the different search engines were converted to a similar format and ")
+  tmp <- "PSM tables "
+  tmp <- if (length(unique(SearchSoft)) > 1L) {
+    paste0(tmp, "from the different search engines were converted to a format similar to a MaxQuant evidence table and ")
   } else {
-    paste0(DatAnalysisTxt[l],
-           "were ")
+    paste0(tmp, "were ")
   }
-  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                              "combined into a single table, then this ")
+  tmp <- paste0(tmp, "combined, then ")
 } else {
-  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                              " The long format PSMs table ")
+  tmp <- paste0(tmp, "PSMs were ")
 }
-DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                            "was transformed into a wide format peptidoforms table, summing up quantitative values where necessary.")
+tmp <- paste0(tmp, "aggregated over modified sequence into a peptidoforms table, summing up quantitative values where necessary.")
+DatAnalysisTxt$pepMake <- tmp
 
 g <- grep(topattern(pep.ref["Original"]), colnames(pep), value = TRUE)
 # View(pep[, g])
 test <- rowSums(pep[, g])
-l <- length(which(test == 0))
+l <- sum(test == 0)
 if (l) {
   cat(paste0("Removing ", l, " peptide", c("", "s")[(l > 1L)+1L], " with invalid expression values - this is unexpected, investigate!\n"))
   pep <- pep[test > 0,]
@@ -485,68 +478,10 @@ if (makePepRat) {
 source(bckpSrc)
 #loadFun(BckUpFl)
 
-#### Code chunk - Annotations
-# (still required for dataset enrichment analysis, and also for output tables; not for the GO terms enrichment analysis)
-# I used to get functional annotations for all proteins in the protein group.
-# However we are now - and I think with reason - only using annotations from the leading protein(s)!
-p <- strsplit(PG$"Leading protein IDs", ";") #Here taking just the minimum set of protein IDs to explain the observed dataset.
-db$Observed <- db$"Protein ID" %in% unique(unlist(p))
-if (globalGO) {
-  temp <- listMelt(strsplit(PG$"Leading protein IDs", ";"), PG$id)
-  kol <- annot.col[annot.col %in% colnames(db)]
-  if ("Taxonomy" %in% kol) {
-    PG$Taxonomy <- db$Taxonomy[match(gsub(";.*", "", PG$`Leading protein IDs`), db$`Protein ID`)]
-  }
-  kol2 <- annot.col[!annot.col %in% "Taxonomy"]
-  kol2 <- annot.col[annot.col %in% colnames(db)]
-  temp[, kol2] <- db[match(temp$value, db$"Protein ID"), kol2]
-  tst1 <- unlist(strsplit(temp$`GO-ID`, ";"))
-  tst2 <- unlist(strsplit(temp$GO, ";"))
-  tst2a <- gsub(".*\\[|\\]$", "", tst2)
-  tst3 <- data.table(A1 = tst1, A2 = tst2)
-  tst3 <- tst3[, list(x = unique(A2)), by = list(Group.1 = A1)]
-  tst3 <- as.data.frame(tst3)
-  stopifnot(length(tst3$x) == length(unique(tst3$x)),
-            is.character(tst3$x),
-            length(which(temp$value != temp$Accession)) == 0L)
-  for (i in kol2) { temp[[i]] <- strsplit(as.character(temp[[i]]), ";") }
-  f0 <- function(x) { list(unique(unlist(x))) }
-  temp <- aggregate(temp[, kol2], list(temp$L1), f0)
-  #
-  # Below commented data.table aggregation code... which is slower so not used.
-  #
-  # temp2 <- as.data.table(temp[, c("L1", kol2)])
-  # temp2 <- temp2[, lapply(.SD, f0), by = list(Group.1 = L1), .SDcols = kol2]
-  # temp2 <- as.data.frame(temp2)
-  #
-  for (i in kol2) {
-    temp[[i]] <- parSapply(parClust, temp[[i]], \(x) { paste(unique(unlist(x)), collapse = ";") }) # Do not use sort here or it will break the correspondance between "GO" and "GO-ID"
-  }
-  tst1 <- unlist(strsplit(temp$`GO-ID`, ";"))
-  tst2 <- unlist(strsplit(temp$GO, ";"))
-  tst3 <- data.table(A1 = tst1, A2 = tst2)
-  tst3 <- tst3[, list(x = unique(A2)), by = list(Group.1 = A1)]
-  tst3 <- as.data.frame(tst3)
-  stopifnot(length(tst3$x) == length(unique(tst3$x)),
-            is.character(tst3$x))
-  #
-  PG[, kol2] <- temp[match(PG$id, temp$Group.1), kol2]
-  #
-  #View(tst3[lengths(tst3$x) > 1L,])
-  #View(tst3[lengths(tst3$x) == 0L,])
-  #
-  # Also peptides (minor approximation: use first protein group)
-  pep[, kol] <- PG[match(as.integer(gsub(";.*", "", pep$`Protein group ID`)), PG$id), kol]
-  #
-  PG$Ontology <- NULL # Temporary fix for now, this column is broken
-  #
-  # It makes sense to close/re-create parallel clusters regularly to reduce memory usage + avoid corruption
-  source(parSrc)
-  #
-  Src <- paste0(libPath, "/extdata/Sources/GO_prepare.R")
-  #rstudioapi::documentOpen(Src)
-  source(Src)
-}
+#### Code chunk - Prepare Annotations and (if applicable) GO terms
+Src <- paste0(libPath, "/extdata/Sources/Annotate_me.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
 
 # Contrast log2FC columns
 pep.rat.ref %<o% "log2(FC) - "
@@ -635,7 +570,7 @@ if (F.test) {
                           x0 = gsub(".*\\) - \\(|\\)$", "", tmp2),
                           name = tmp2Nm,
                           Type = "Double")
-    tmp2Tbl$All <- lapply(1L:nrow(tmp2Tbl), \(x) { gsub("^Group_", "", unlist(strsplit(unlist(tmp2Tbl[x, c("x1", "x0")]), " - "))) })
+    tmp2Tbl$All <- lapply(1L:nrow(tmp2Tbl), \(x) { sub("^Group_", "", unlist(strsplit(unlist(tmp2Tbl[x, c("x1", "x0")]), " - "))) })
     tmp <- c(tmp, tmp2)
     expContrasts_F <- rbind(expContrasts_F, tmp2Tbl)
   }
@@ -691,24 +626,15 @@ for (dir in dirlist) { #d <- dirlist[1L]
 # Save decisions
 save(AllAnsw, file = "All_decisions.RData")
 
-# Finalize reports
-#
-MatMetCalls$Texts$DatAnalysis <- c(MatMetCalls$Texts$DatAnalysis, DatAnalysisTxt)
-for (i in seq_along(MatMetCalls$Texts$DatAnalysis)) {
-  MatMetCalls$Calls <- append(MatMetCalls$Calls,
-                              paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$DatAnalysis[", i,"], prop = WrdFrmt$",
-                                     c("Body", "Template_text")[(MatMetCalls$Texts$DatAnalysis[i] == "TEMPLATE")+1L],
-                                     "_text), fp_p = WrdFrmt$just))"))
-}
-MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style = \"Normal\")")
-#
-
 # Write SDRF file in case you want to submit to PRIDE
 Src <- paste0(libPath, "/extdata/Sources/SDRF_4_PRIDE.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
 # Write final HTML report and materials and methods template file
+Src <- paste0(libPath, "/extdata/Sources/HTML_report_Fun.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
 Src <- paste0(libPath, "/extdata/Sources/HTML_report_Main.R")
 #rstudioapi::documentOpen(Src)
 source(Src)

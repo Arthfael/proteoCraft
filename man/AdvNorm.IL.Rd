@@ -32,13 +32,14 @@ The input data.frame df must contain a column of IDs and 2 or more expression co
 This is slower but is better than median only.
 }
 \examples{
-adv.norm.data <- AdvNorm.IL(data, "Unique State", paste0("Reporter intensity ", as.character(0L:9L)), FALSE, K = 5L)
-require(ggplot2)
-require(reshape2)
-test <- melt(adv.norm.data)
+adv.norm.data <- AdvNorm.IL(data, "Unique State",
+                            paste0("Reporter intensity ", as.character(0L:9L)),
+                            FALSE, K = 5L)
+test <- dfMelt(adv.norm.data)
 test$value <- log10(test$value)
-plot <- ggplot(test) + geom_density(stat = "density", aes(x = value, colour = variable))
+plot <- ggplot2::ggplot(test) +
+  ggplot2::geom_density(stat = "density", ggplot2::aes(x = value, colour = variable))
 grDevices::windows(width = 10L, height = 10L)
-print(plot)
+poplot(plot, 12L, 22L)
 
 }

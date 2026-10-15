@@ -21,7 +21,7 @@ if (l) {
     }
     pl$x$layout$xaxis$autorange <- TRUE
     pl$x$layout$yaxis$autorange <- TRUE
-    pl <- htmlwidgets::onRender(pl, global_autorange)
+    pl <- htmlwidgets::onRender(pl, jsFun$global_auto_range)
     pl <- plotly::config(pl,
                          modeBarButtonsToRemove = c("select2d", "lasso2d"))
     pl <- plotly::plotly_build(pl)

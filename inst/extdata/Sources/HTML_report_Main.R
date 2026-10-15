@@ -37,14 +37,26 @@ if (scrptType == "withReps") {
   # }
 }
 
-funFile <- paste0(libPath, "/extdata/Sources/HTML_report_Fun.R")
-source(funFile)
 # Below: leftover from an aborted attempt at parallelisation
+funFile <- paste0(libPath, "/extdata/Sources/HTML_report_Fun.R")
 # obj2Xport <- readLines(funFile)
-# obj2Xport <- grep("^[^ ]+ *((<-)|(%<[co]%)) *", obj2Xport, value = TRUE)
-# obj2Xport <- gsub(" *((<-)|(%<[co]%)) *.*", "", obj2Xport)
+# obj2Xport <- grep("^[^ ]+ *(<-|%<[co]%) *", obj2Xport, value = TRUE)
+# obj2Xport <- sub(" *(<-|%<[co]%) *.*", "", obj2Xport)
 # obj2Xport <- intersect(obj2Xport, ls())
 
+# Materials and methods object
+MatMetCalls$Texts$DatAnalysis <- if (exists("matmethTxt") && (!is.null(matmethTxt$"Data analysis"))) {
+  strsplit(matmethTxt$"Data analysis", "\n")
+} else {
+  c(MatMetCalls$Texts$DatAnalysis, paste(unlist(DatAnalysisTxt), collapse = " "))
+}
+for (i in seq_along(MatMetCalls$Texts$DatAnalysis)) {
+  MatMetCalls$Calls <- append(MatMetCalls$Calls,
+                              paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$DatAnalysis[", i,"], prop = WrdFrmt$",
+                                     c("Body", "Template_text")[(MatMetCalls$Texts$DatAnalysis[i] == "TEMPLATE")+1L],
+                                     "_text), fp_p = WrdFrmt$just))"))
+}
+MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style = \"Normal\")")
 if (!exists("matmethTxt")) {
   matmethTxt <- c("Samples preparation" = paste(MatMetCalls$Texts$WetLab, collapse = "\n"),
                   "LC-MS/MS analysis" = paste(MatMetCalls$Texts$LCMS, collapse = "\n"),
@@ -388,19 +400,20 @@ build_section <- \(sec) { #sec <- sections[[1L]]
 if (runGSEA) {
   GSEA_plotNms <- c("GSEA dotplot", "GSEA enrichment map", "GSEA ridge plot", "GSEA category net plot")
   wh_GSEA <- setNames(lapply(myContrasts$Contrast, \(contr) {
-    c("PG", PTMs)[which(vapply(c("PG", PTMs), \(GSEA_nm) { #GSEA_nm <- c("PG", PTMs)[1L] #GSEA_nm <- c("PG", PTMs)[2L]
+    c("PG", PTMs)[vapply(c("PG", PTMs), \(GSEA_nm) { #GSEA_nm <- c("PG", PTMs)[1L] #GSEA_nm <- c("PG", PTMs)[2L]
       sum(vapply(GSEA_plotNms, \(plotNm) { #plotNm <- GSEA_plotNms[1L]
         p <- GSEA_plotly$standard[[GSEA_nm]][[plotNm]][[contr]]
         (!is.null(p)) && (inherits(p, "plotly"))
       }, TRUE))
-    }, 1L) > 0L)]
+    }, 1L) > 0L]
   }), myContrasts$Contrast)
 }
 
 appPage <- 1L
 appNm <- "Edit report"
 ui <- fluidPage(useShinyjs(),
-                extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+                extendShinyjs(text = jsFun$toggle_full_screen,
+                              functions = c("toggleFullScreen")),
                 tags$head(myCSS),
                 titlePanel(tag("u", appNm), appNm),
                 br(),
@@ -598,9 +611,22 @@ removeDirectory(paste0(wd, "/lib"), TRUE, FALSE)
 # Save the final materials and methods to a local file
 # ====================================================
 cat("Writing materials and methods template...\n")
+# - Update values
 MatMetCalls$Texts$WetLab <- matmethTxt["Samples preparation"]
 MatMetCalls$Texts$LCMS <- matmethTxt["LC-MS/MS analysis"]
 MatMetCalls$Texts$DatAnalysis <- matmethTxt["Data analysis"]
+# - Word formatting styles (package used = officer):
+WrdFrmt <-list()
+WrdFrmt$Main_title <- officer::fp_text(bold = TRUE, font.family = "Calibri", font.size = 12L, underlined = TRUE) # For Main title
+WrdFrmt$Section_title <- officer::fp_text(bold = TRUE, font.family = "Calibri") # For section title
+WrdFrmt$Section_title_ital <- officer::fp_text(bold = TRUE, italic = TRUE, font.family = "Calibri") # For italic title
+WrdFrmt$Body_text <- officer::fp_text(font.family = "Calibri") # For normal body text
+WrdFrmt$Body_text_ital <- officer::fp_text(italic = TRUE, font.family = "Calibri") # For italic body text
+WrdFrmt$Body_text_under <- officer::fp_text(underlined = TRUE, font.family = "Calibri") # For underlined body text
+WrdFrmt$Template_text <- officer::fp_text(font.family = "Calibri", color = "red") # For empty template body text
+WrdFrmt$just <- officer::fp_par(text.align = "justify")
+WrdFrmt$left <- officer::fp_par(text.align = "left")
+# - Parse
 setwd(wd)
 tmp <- paste0("MatMet <- ", unlist(MatMetCalls$Calls))
 tmpSrc <- paste0(wd, "/tmp.R")

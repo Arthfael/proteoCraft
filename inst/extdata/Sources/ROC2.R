@@ -1,6 +1,7 @@
 #### ROC analysis
 if (length(ROC_GOterms)) {
   library(ggplot2)
+  library(pROC)
   cat("ROC analysis\n")
   ROC_GOterms <- unique(unlist(c(ROC_GOterms, GO_terms$Offspring[match(ROC_GOterms, GO_terms$ID)])))
   PG$"ROC - True Positive" <- FALSE
@@ -11,9 +12,6 @@ if (length(ROC_GOterms)) {
     dir <- paste0(wd, "/ROC analysis")
     dirlist <- unique(c(dirlist, dir))
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    pack <- "pROC"
-    bioc_req <- unique(c(bioc_req, pack))
-    biocInstall(pack)
     w1 <- which(paste0(pvalue.col[pvalue.use], VPAL$values) %in% colnames(PG))
     if (!length(w1)) { stop("Where are my P-values?!?!%&$+*!*") } else {
       for (grp in VPAL$values[w1]) { #grp <- VPAL$values[w1[1L]]

@@ -6,7 +6,7 @@
 \usage{
 cleanNms(
   Samples,
-  Experiment = Exp,
+  Experiment,
   sep = "___",
   rep = " ",
   start = TRUE,
@@ -16,9 +16,9 @@ cleanNms(
 \arguments{
 \item{Samples}{The vector of sample names, or of column names containing sample names. Each name should be made of "___"-aggregated factor levels.}
 
-\item{Experiment}{The Experiment object.}
+\item{Experiment}{The Experiment object. Dropped from the left-hand side of names if provided as a length 1 vector (i.e., as in most cases, we are dealing with a single experiment at a time). If missing and exists("Exp") is TRUE, Exp is assumed to be the expected value, so set to NULL to override this behaviour!}
 
-\item{sep}{Expected separator. Default = "___". NB: avoid too simple separators which may be used as also parts of factor level names, otherwise weird things may happen.}
+\item{sep}{Expected separator. Default = "___", used throughout the replicates workflows. NB: avoid too simple separators which may be used as also parts of factor level names, otherwise weird things may happen.}
 
 \item{rep}{Replacement, user-friendlier separator. Default = " "}
 

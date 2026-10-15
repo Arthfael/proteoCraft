@@ -60,7 +60,6 @@ source(Src)
 ReUseAnsw %<o% FALSE
 scrptType %<o% "withReps"
 scrptTypeFull %<o% "withReps_PG_and_PTMs"
-ExcelMax %<o% 32767L
 MakeRatios %<o% TRUE
 
 # Parameters used by the start analysis script:
@@ -75,12 +74,12 @@ if(!exists("cran_req")) { cran_req <- "pak" }
 cran_req %<o% cran_req
 if(!exists("bioc_req")) { bioc_req <- c() } 
 bioc_req %<o% bioc_req
-cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT", "shinyBS", "stringr",
-                     "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "rgl", "ggrepel", "rstudioapi", "modeest",
-                     "minpack.lm", "snow", "viridis", "pcaMethods", "impute", "imputeLCMD", "parallel", "coin", "openxlsx", "openxlsx2", "plotly",
-                     "Peptides", "xml2", "pdftools", "statmod", "ggpolypath", "venn", "gridExtra", "svDialogs", "htmlwidgets", "magrittr", "tibble",
-                     "officer", "hexbin", "igraph", "matlib", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
-                     "tidyr", "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "lmtest", "ssh", "taxize", "arrow", "PTMods",
+cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT",
+                     "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "ggrepel", "rstudioapi", "modeest",
+                     "minpack.lm", "snow", "viridis", "imputeLCMD", "parallel", "coin", "openxlsx", "openxlsx2", "plotly",
+                     "Peptides", "xml2", "statmod", "ggpolypath", "venn", "svDialogs", "htmlwidgets", "magrittr",
+                     "officer", "hexbin", "igraph", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
+                     "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "ssh", "taxize", "arrow", "PTMods",
                      "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "iq", "Rtsne", "DEP", "svglite"))
 bioc_req <- unique(c(bioc_req, "biomaRt", "GO.db", "UniProt.ws", "limma", "sva", "qvalue", "MSnbase",
                      "Rgraphviz", "RCy3", "siggenes", "DEqMS", "limpa", "QFeatures", "pRoloc", "pRolocGUI", "rbioapi", "png", "Rhdf5lib"))
@@ -400,30 +399,24 @@ Src <- paste0(libPath, "/extdata/Sources/remove_Outliers.R")
 source(Src)
 
 DatAnalysisTxt %<o% DatAnalysisTxt # Just in case...
-l <- length(DatAnalysisTxt)
 if (length(inDirs) > 1L) {
-  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                              " PSM tables ")
-  DatAnalysisTxt[l] <- if (length(unique(SearchSoft)) > 1L) {
-    paste0(DatAnalysisTxt[l],
-           "from the different search engines were converted to a similar format and ")
+  tmp <- "PSM tables "
+  tmp <- if (length(unique(SearchSoft)) > 1L) {
+    paste0(tmp, "from the different search engines were converted to a format similar to a MaxQuant evidence table and ")
   } else {
-    paste0(DatAnalysisTxt[l],
-           "were ")
+    paste0(tmp, "were ")
   }
-  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                              "combined into a single table, then this ")
+  tmp <- paste0(tmp, "combined, then ")
 } else {
-  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                              " The long format PSMs table ")
+  tmp <- paste0(tmp, "PSMs were ")
 }
-DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                            "was transformed into a wide format peptidoforms table, summing up quantitative values where necessary.")
+tmp <- paste0(tmp, "aggregated over modified sequence into a peptidoforms table, summing up quantitative values where necessary.")
+DatAnalysisTxt$pepMake <- tmp
 
 g <- grep(topattern(pep.ref["Original"]), colnames(pep), value = TRUE)
 # View(pep[, g])
 test <- rowSums(pep[, g])
-l <- length(which(test == 0))
+l <- sum(test == 0)
 if (l) {
   cat(paste0("Removing ", l, " peptide", c("", "s")[(l > 1L)+1L], " with invalid expression values - this is unexpected, investigate!\n"))
   pep <- pep[test > 0,]
@@ -498,7 +491,7 @@ pgSrc <- paste0(libPath, "/extdata/Sources/PG_Assemble.R")
 #rstudioapi::documentOpen(pgSrc)
 if (splitByOrg) {
   uOrgs <- unique(db[[dbOrgKol]])
-  uOrgsNorm <- gsub("_+", "_", gsub("[<>,:\"/\\|?\\.\\]", "_", uOrgs))
+  uOrgsNorm <- gsub("_+", "_", gsub("[<>,:\"/|?.\\\\]", "_", uOrgs))
   stopifnot(length(uOrgsNorm) == length(uOrgs)) # Unhandled exception
   names(uOrgsNorm) <- uOrgs
   PGs_list <- list()
@@ -538,9 +531,9 @@ if (splitByOrg) {
   pep[, kol] <- tmpPeps[match(pep$`Modified sequence`, tmpPeps$`Modified sequence`), kol]
   ev[, kol] <- tmpPeps[match(ev$`Modified sequence`, tmpPeps$`Modified sequence`), kol]
 } else {
-  source(pgSrc)
-  #loadFun(paste0(wd, "/PG_assembly.RDS"))
   #rstudioapi::documentOpen(pgSrc)
+  source(pgSrc)
+  #loadFun("PG_assembly.RDS")
   PG <- PG_assembly$Protein.groups
   pep <- PG_assembly$Peptides
   db <- PG_assembly$Database
@@ -570,9 +563,7 @@ if (length(g)) {
   }
 }
 #
-l <- length(DatAnalysisTxt)
-DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                            " Protein groups were inferred from observed peptides.")
+DatAnalysisTxt$PG_assemble <- "Observed peptides were grouped and assembled into Protein Groups using a heuristic maximum parsimony algorithm."
 
 # Peptidoforms per Protein Group
 Src <- paste0(libPath, "/extdata/Sources/pep_per_PG.R")
@@ -670,8 +661,8 @@ if (("ARATH" %in% db$Organism) || (3702L %in% db$TaxID)) {
   if (klnm %in% colnames(db)) { klnm <- "TAIR_v2" }
   db[[klnm]] <- ""
   w <- which(db$`Protein ID` %in% tmp$UniProt)
-  db[w, klnm] <- gsub("\\.[0-9]+$", "",
-                      gsub("\\.[0-9]+;", ";", toupper(tmp$TAIR[match(db$`Protein ID`[w], tmp$UniProt)])))
+  db[w, klnm] <- sub("\\.[0-9]+$", "",
+                     gsub("\\.[0-9]+;", ";", toupper(tmp$TAIR[match(db$`Protein ID`[w], tmp$UniProt)])))
   kol <- c("TAIR", "TAIR_v2")
   if (sum(kol %in% colnames(db)) == 2L) {
     #View(db[, kol])
@@ -808,7 +799,7 @@ invisible(clusterCall(parClust, \() {
 unlink(tmpFl1)
 unlink(tmpFl2)
 unlink(tmpFl3)
-temp <- parApply(parClust, Samplez, 1L, \(Smpl) { #Smpl <- unlist(Samplez[1L,])
+temp <- parApply(parClust, Samplez, 1L, \(Smpl) { #Smpl <- unlist(Samplez[1,])
   smpl <- Smpl[[1L]]
   gr <- Smpl[[2L]]
   res <- temp_PG[, "id", drop = FALSE]
@@ -969,7 +960,7 @@ g <- grep(topattern(Prot.Expr.Root), colnames(quantData), value = TRUE)
 g <- grep(": SD$", g, value = TRUE, invert = TRUE)
 g <- grep("\\.REF$", g, value = TRUE, invert = TRUE)
 test <- quantData[, g]
-colnames(test) <- gsub(topattern(Prot.Expr.Root), "", colnames(test))
+colnames(test) <- sub(topattern(Prot.Expr.Root), "", colnames(test))
 test <- test[apply(test, 1L, \(x) { sum(is.finite(x)) }) > 0L,]
 test <- suppressMessages(dfMelt(test))
 test$variable <- as.character(test$variable)
@@ -1024,7 +1015,7 @@ g <- grep(topattern(Prot.Rat.Root), colnames(quantData), value = TRUE)
 g <- grep(": SD$", g, value = TRUE, invert = TRUE)
 g <- grep("REF\\.to\\.REF", g, value = TRUE, invert = TRUE)
 test <- quantData[, g, drop = FALSE]
-colnames(test) <- gsub(topattern(Prot.Rat.Root), "", colnames(test))
+colnames(test) <- sub(topattern(Prot.Rat.Root), "", colnames(test))
 test <- test[apply(test, 1L, \(x) { sum(is.finite(x)) }) > 0L, , drop = FALSE]
 test <- suppressMessages(dfMelt(test))
 test$Contrast <- gsub_Rep(" - ", " -\n", as.character(test$variable))
@@ -1065,7 +1056,7 @@ suppressMessages({
 })
 
 # Code chunk - Add quant data to PG:
-PG <- PG[, which(!colnames(PG) %in% colnames(quantData))]
+PG <- PG[, !colnames(PG) %in% colnames(quantData)]
 PG[, colnames(quantData)] <- quantData
 if (Param$Prot.Only.with.Quant) {
   colnames(quantData)
@@ -1144,7 +1135,7 @@ if (useSAM) {
     stopifnot(FCkol %in% names(PG))
     regKol <- paste0("Regulated - ", i)
     PG[[regKol]] <- "non significant"
-    fdrs <- as.numeric(gsub("FDR$", "", setdiff(colnames(dec), mKol)))
+    fdrs <- as.numeric(sub("FDR$", "", setdiff(colnames(dec), mKol)))
     fdrs <- sort(fdrs, decreasing = TRUE)
     for (f in fdrs) { #f <- fdrs[1L]
       w <- which(PG[[mKol]] %in% dec[dec[[paste0(f, "FDR")]] == "+", mKol])
@@ -1160,9 +1151,6 @@ rm(list = setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 
 #### Code chunk - Prepare Annotations and (if applicable) GO terms
-# NB: I used to get functional annotations for all proteins in the protein group.
-#     However we are now - and I think with reason - only using annotations from the leading protein(s)!
-setwd(wd)
 Src <- paste0(libPath, "/extdata/Sources/Annotate_me.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
@@ -1184,7 +1172,7 @@ source(Src)
 #### Code chunk - Estimate P-value significance for a set of accepted FDRs
 ## NB: For graphical reasons (volcano plots), there is only support for 4 different FDR values. This should suffice anyway.
 a <- sapply(strsplit(Param$Plot.metrics, ";"), \(x) { strsplit(x, ":") })
-a[[2L]][2L] <- gsub("\\.$", "", pvalue.col[pvalue.use])
+a[[2L]][2L] <- sub("\\.$", "", pvalue.col[pvalue.use])
 Param$Plot.metrics <- paste(vapply(a, paste, "", collapse = ":"), collapse = ";")
 FDR.thresholds %<o% c()
 
@@ -1220,12 +1208,12 @@ if (Adj_Pval) {
   if (!length(pkol)) { stop("There should be P-value columns in the protein groups table at this stage!") }
   cat("Adjusting P-values...\n")
   for (pk in pkol) { #pk <- pkol[1L]
-    pk2 <- gsub("-log10\\(Pvalue\\) ", "-log10(adj. Pvalue) ", pk)
+    pk2 <- sub("-log10\\(Pvalue\\) ", "-log10(adj. Pvalue) ", pk)
     if (pk2 == pk) { stop("Bug!!!") } else {
       PG[[pk2]] <- -log10(p.adjust(10L^(-PG[[pk]]), method = "BH"))
     }
   }
-  pvalue.col2 <- gsub("-log10\\(Pvalue\\)\\.", "-log10(adj. Pvalue).", pvalue.col)
+  pvalue.col2 <- sub("-log10\\(Pvalue\\)\\.", "-log10(adj. Pvalue).", pvalue.col)
   names(pvalue.col2) <- paste0("adj. ", names(pvalue.col2))
   pvalue.col <- c(pvalue.col, pvalue.col2)
   pvalue.use <- c(pvalue.use, rep(FALSE, length(pvalue.use))) # For now we are providing adjusted P-value columns but still plotting raw P-values on volcano plots.
@@ -1234,9 +1222,7 @@ if (Adj_Pval) {
   #                              xintercept = rep(NA, 2L),
   #                              colour = colorRampPalette(c("orange", "red"))(2L),
   #                              label = paste0(c(0.01, 0.05)*100, "% P-value"))
-  l <- length(DatAnalysisTxt)
-  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                              " P-values were adjusted using the Benjamini-Hochberg (FDR) method.")
+  DatAnalysisTxt$pValAdj <- "P-values were adjusted using the Benjamini-Hochberg (FDR) method."
 }
 
 # Create list of control ratio values for the purpose of identifying vertical thresholds for plots:
@@ -1295,6 +1281,7 @@ Src <- paste0(libPath, "/extdata/Sources/dfltVolcPlotArgs.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
+volcano.plots %<o% list()
 # For now, we are plotting non adjusted P-values because in bad cases adjusting causes all to collapse on 1 (0 as -log10)
 # Instead, we are sticking to plotting raw P-values with FDR thresholds
 #
@@ -1317,7 +1304,9 @@ if (inherits(tempVP, "try-error") || is.character(tempVP)) {
 }
 #
 if (!exists("volcPlotly_fl")) { volcPlotly_fl %<o% paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
-if ((!exists("volcPlotly")) && file.exists(volcPlotly_fl)) { loadFun(volcPlotly_fl) }
+if (!exists("volcPlotly")) {
+  if (file.exists(volcPlotly_fl)) { loadFun(volcPlotly_fl) } else { volcPlotly <- list() }
+}
 if (!exists("volcPlotly")) { volcPlotly <- list() }
 volcPlotly[["t-test"]] <- tempVP$`Plotly plots`
 saveFun(volcPlotly, volcPlotly_fl)
@@ -1343,7 +1332,7 @@ thresh <- lapply(names(tempVP$Thresholds$Absolute), \(x) {
 })
 thresh <- plyr::rbind.fill(thresh)
 thresh$Name <- NULL
-thresh$Root <- gsub(" - $", "", thresh$Root)
+thresh$Root <- sub(" - $", "", thresh$Root)
 thresh$Value <- thresh$Text.value
 thresh$Text.value <- NULL
 fdrThresh <- tempVP$Thresholds$FDR
@@ -1386,11 +1375,11 @@ wb_save(wb, fl)
 #
 g <- grep("Regulated - ", colnames(tempVP$Protein_groups_file), value = TRUE)
 #View(tempVP$Protein_groups_file[,g])
-PG[, g] <- tempVP$Protein_groups_file[,g]
+PG[, g] <- tempVP$Protein_groups_file[, g]
 
 # Also calculate Q-values - for now, the plot is created but not saved!
 if (("Q.values" %in% colnames(Param)) && is.logical(Param$Q.values) && Param$Q.values) {
-  require(qvalue)
+  library(qvalue)
   pkol <- grep(topattern(pvalue.col[pvalue.use]), colnames(PG), value = TRUE)
   if (length(pkol)) {
     cat("Calculating Q-values...\n")
@@ -1407,10 +1396,12 @@ if (("Q.values" %in% colnames(Param)) && is.logical(Param$Q.values) && Param$Q.v
         }
       }
       if (!inherits(temp, "try-error")) {
-        PG[[gsub(topattern(pvalue.col[pvalue.use]), "-log10(Qvalue) - ", pk)]] <- NA_real_
-        PG[[gsub(topattern(pvalue.col[pvalue.use]), "local FDR ", pk)]] <- NA_real_
-        PG[wag, gsub(topattern(pvalue.col[pvalue.use]), "-log10(Qvalue) - ", pk)] <- -log10(temp$qvalues)
-        PG[wag, gsub(topattern(pvalue.col[pvalue.use]), "local FDR ", pk)] <- temp$lfdr
+        k1 <- sub(topattern(pvalue.col[pvalue.use]), "-log10(Qvalue) - ", pk)
+        k2 <- sub(topattern(pvalue.col[pvalue.use]), "local FDR ", pk)
+        PG[[k1]] <- NA_real_
+        PG[[k2]] <- NA_real_
+        PG[wag, k1] <- -log10(temp$qvalues)
+        PG[wag, k2] <- temp$lfdr
       }
     }
     qval.thresh %<o% data.frame(yintercept = -log10(BH.FDR),
@@ -1450,9 +1441,7 @@ if (("Q.values" %in% colnames(Param)) && is.logical(Param$Q.values) && Param$Q.v
     #rstudioapi::documentOpen(Src)
     source(Src)
     #
-    l <- length(DatAnalysisTxt)
-    DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                                " Q-values were computed using package qvalue.")
+    DatAnalysisTxt$qVal <- "Q-values were computed using package qvalue."
   }
 }
 
@@ -1511,7 +1500,7 @@ if ("ref" %in% filter_types) {
   }
 }
 g <- grep("^Regulated - ", colnames(PG), value = TRUE)
-g1 <- gsub("^Regulated - ", "", g)
+g1 <- sub("^Regulated - ", "", g)
 up <- grep("^up|^Specific", unique(unlist(PG[, g])), value = TRUE)
 down <- grep("^down|^Anti-specific", unique(unlist(PG[, g])), value = TRUE) # The "anti-specific" part will only become relevant if in future I disconnect symmetry and/or adding specific tags from pull-down experiments
 Reg_filters$"t-tests" <- list()
@@ -1537,26 +1526,26 @@ if ("ref" %in% filter_types) {
     d <- grep("^down", unique(as.character(PG[, g[w]])), value = TRUE)
     Reg_filters$"t-tests"$"By reference"[[i]] <- list(Columns = g[w],
                                                       Filter_up = sort(which(apply(PG[, g[w], drop = FALSE], 1L, \(x) {
-                                                        length(which(x %in% up))
+                                                        sum(x %in% up)
                                                       }) > 0L)),
                                                       Filter_down = sort(which(apply(PG[, g[w], drop = FALSE], 1L, \(x) {
-                                                        length(which(x %in% down))
+                                                        sum(x %in% down)
                                                       }) > 0L)),
                                                       Filter = sort(which(apply(PG[, g[w], drop = FALSE], 1L, \(x) {
-                                                        length(which(x %in% c(up, down)))
+                                                        sum(x %in% c(up, down))
                                                       }) > 0L)))
   }
 }
 if (sum(c("dat", "dat2") %in% filter_types)) {
   Reg_filters$"t-tests"$"Whole dataset" <- list(Columns = g,
                                                 Filter_up = sort(which(apply(PG[, g, drop = FALSE], 1L, \(x) {
-                                                  length(which(x %in% up))
+                                                  sum(x %in% up)
                                                 }) > 0L)),
                                                 Filter_down = sort(which(apply(PG[, g, drop = FALSE], 1L, \(x) {
-                                                  length(which(x %in% down))
+                                                  sum(x %in% down)
                                                 }) > 0L)),
                                                 Filter = sort(which(apply(PG[, g, drop = FALSE], 1L, \(x) {
-                                                  length(which(x %in% c(up, down)))
+                                                  sum(x %in% c(up, down))
                                                 }) > 0L)))
 }
 #
@@ -1610,10 +1599,10 @@ if (F.test) {
     #F_test_ref_ratios %<o% F_volc$`Reference ratios` # Not needed
     #
     # Create F-test filters:
-    Freg_Root <- gsub(" -log10\\(Pvalue\\)", " Regulated", F_Root)
+    Freg_Root <- sub(" -log10\\(Pvalue\\)", " Regulated", F_Root)
     pat <- topattern(paste0(Freg_Root, " - "))
     g <- grep(pat, colnames(F_test_data), value = TRUE)
-    g1 <- gsub(pat, "", g)
+    g1 <- sub(pat, "", g)
     up <- grep("^up|^Specific", unique(unlist(F_test_data[, g])), value = TRUE)
     down <- grep("^down|^Anti-specific", unique(unlist(F_test_data[, g])), value = TRUE) # The "anti-specific" part will only become relevant if in future I disconnect symmetry and/or adding specific tags from pull-down experiments
     Reg_filters$"F-tests" <- list()
@@ -1629,17 +1618,17 @@ if (F.test) {
     if ("dat2" %in% filter_types) {
       Reg_filters$"F-tests"$"Whole dataset" <- list(Columns = g,
                                                     Filter_up = sort(which(apply(F_test_data[, g, drop = FALSE], 1L, \(x) {
-                                                      length(which(x %in% up))
+                                                      sum(x %in% up)
                                                     }) > 0L)),
                                                     Filter_down = sort(which(apply(F_test_data[, g, drop = FALSE], 1L, \(x) {
-                                                      length(which(x %in% down))
+                                                      sum(x %in% down)
                                                     }) > 0L)),
                                                     Filter = sort(which(apply(F_test_data[, g, drop = FALSE], 1L, \(x) {
-                                                      length(which(x %in% c(up, down)))
+                                                      sum(x %in% c(up, down))
                                                     }) > 0L)))
     }
     if (("Q.values" %in% colnames(Param)) && Param$Q.values) {
-      require(qvalue)
+      library(qvalue)
       if (F_Root %in% colnames(F_test_data)) {
         temp <- 10L^(-F_test_data[[F_Root]])
         wag <- which(is.finite(temp))
@@ -1682,35 +1671,37 @@ if (F.test) {
 if (exists("quantData_list")) { rm(quantData_list) }
 
 # Mat-meth text
-tmp <- BH.FDR*100
-l <- length(tmp)
-if (l > 1L) { tmp <- paste0(paste(tmp[1L:(l-1L)], collapse = "%, "), " and ", tmp[l], "%") }
-tmp2 <- Param$Ratios.Contamination.Rates
-tmpPVal <- gsub(" -log10\\(pvalue\\) - ", "",
-                gsub("welch", "Welch",
-                     gsub("student", "Student", tolower(pvalue.col[pvalue.use]))))
+tmpFDR <- .commAnd(paste0(as.character(BH.FDR*100), "%"))
+tmpCont <- as.character(Param$Ratios.Contamination.Rates*100)
+tmpPVal <- sub(" -log10\\(pvalue\\) - ", "",
+               sub("welch", "Welch",
+                   sub("student", "Student", tolower(pvalue.col[pvalue.use]))))
 if (grepl("^moderated", tmpPVal, ignore.case = TRUE)) { tmpPVal <- paste0(tmpPVal, " (limma)") }
-if (grepl("^DEqMS mod\\.", tmpPVal, ignore.case = TRUE)) { tmpPVal <- paste0(gsub("deqms mod\\. ", "DEqMS moderated ", tmpPVal), " (limma + edge)") }
-if (grepl("^((EBA)|(S))AM ", tmpPVal, ignore.case = TRUE)) { tmpPVal <- paste0(tmpPVal, " (siggenes)") }
+if (grepl("^DEqMS mod\\.", tmpPVal, ignore.case = TRUE)) { tmpPVal <- paste0(sub("deqms mod\\. ", "DEqMS moderated ", tmpPVal), " (limma + edge)") }
+if (grepl("^(EBA|S)AM ", tmpPVal, ignore.case = TRUE)) { tmpPVal <- paste0(tmpPVal, " (siggenes)") }
 if (grepl("^permutations ", tmpPVal, ignore.case = TRUE)) { tmpPVal <- paste0(tmpPVal, " (coin)") }
-if (grepl("^(ODP)|(LRT) ", tmpPVal, ignore.case = TRUE)) { tmpPVal <- paste0(tmpPVal, " (edge)") }
-l <- length(DatAnalysisTxt)
-DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                            " Average log10 expression values were tested for significance using a ",
-                            #c("two", "one")[match(AltHyp, c("two.sided", "greater", "lower"))], "-sided ", # Nope!
-                            tmpPVal, " per samples group",
-                            c("", " and a moderated ANOVA (limma, F-test run using voomaLmFit for heteroskedasticity correction with individual moderated t-tests as post-hoc tests)")[F.test+1L],
-                            ". Significance thresholds were calculated using the Benjamini-Hochberg procedure for False Discovery Rate (FDR) values of ", tmp,
-                            ". For all tests, differentially expressed protein groups were defined as those with a significant P-value and a",
-                            c("n absolute", "")[IsPullDown+1L],
-                            " log2 average ratio greater than ",
-                            c(paste0(Param$Ratios.Contamination.Rates*100, "% of ",
-                                     c(paste0("control-to", c("-average", "")[Nested+1L],
-                                              "-control"),
-                                       "intra-sample groups")[match(RefRat_Mode, c("1", "2"))],
-                                     " ratios"),
-                              Param$Ratios.Contamination.Rates)[match(Param$Ratios.Thresholds,
-                                                                      threshOpt)], ".")
+if (grepl("^(ODP|LRT) ", tmpPVal, ignore.case = TRUE)) { tmpPVal <- paste0(tmpPVal, " (edge)") }
+DatAnalysisTxt$Stats <- paste0("Protein group log10 expression values were tested for significance using a ", tmpPVal,
+                               c("",
+                                 " and a moderated ANOVA (limma, F-test run using voomaLmFit for heteroskedasticity correction with moderated t-tests as post-hoc tests)")[F.test+1L],
+                               ". Significance thresholds were calculated using the Benjamini-Hochberg procedure for False Discovery Rate (FDR) values of ", tmpFDR,
+                               ". For all tests, differentially expressed protein groups were defined as those with a significant P-value.")
+a <- as.character(Param$Ratios.Contamination.Rates)
+b <- as.numeric(Param$Ratios.Contamination.Rates)
+if (b) {
+  DatAnalysisTxt$Stats <- sub("\\.$",
+                              paste0(" and a",
+                                     c("n absolute", "")[IsPullDown+1L],
+                                     " log2 average ratio greater than ",
+                                     c(paste0(as.character(b*100), "% of ",
+                                              c(paste0("control-to", c("-average", "")[Nested+1L],
+                                                       "-control"),
+                                                "intra-sample groups")[match(RefRat_Mode, c("1", "2"))],
+                                              " ratios"),
+                                       a)[match(Param$Ratios.Thresholds,
+                                                threshOpt)], "."),
+                              DatAnalysisTxt$Stats)
+}                            
 
 #### Code chunk - SAINTexpress
 saintSrc %<o% paste0(libPath, "/extdata/Sources/SAINTexpress.R")
@@ -1740,7 +1731,7 @@ for (tt in WhTsts) { #tt <- WhTsts[1L]
         temp[2L:(N+1L), 1L] <- temp[1L, 2L:(N+1L)] <- names(flt)
         for (i in 2L:(N+1L)) {
           x <- flt[[temp[i, 1L]]]$Filter
-          temp[i, 2L:(N+1)] <- vapply(temp[1L, 2L:(N+1L)], \(y) { sum(x %in% flt[[y]]$Filter) }, 1L)
+          temp[i, 2L:(N+1L)] <- vapply(temp[1L, 2L:(N+1L)], \(y) { sum(x %in% flt[[y]]$Filter) }, 1L)
         }
         nms <- names(flt)
         #nms <- cleanNms(nms)
@@ -1749,7 +1740,7 @@ for (tt in WhTsts) { #tt <- WhTsts[1L]
         # if (tst) {
         #   tst <- as.data.frame(t(sapply(strsplit(nms, " - "), unlist)))
         #   l <- apply(tst, 2L, \(x) { length(unique(x)) })
-        #   tst <- tst[, which(l > 1L), drop = FALSE]
+        #   tst <- tst[, l > 1L, drop = FALSE]
         #   nms <- do.call(paste, c(tst, sep = " - "))
         # }
         temp[2L:(N+1L), 1L] <- temp[1L, 2L:(N+1L)] <- nms
@@ -1840,7 +1831,7 @@ if (exists("Tim")) {
     i1 <- unlist(strsplit(i, "___"))
     e <- lapply(seq_along(o), \(x) { which(Exp.map[[o[x]]] == i1[x]) })
     l <- unique(unlist(e))
-    t <- vapply(l, \(x) { length(which(unlist(e) == x)) == length(o) }, TRUE)
+    t <- vapply(l, \(x) { sum(unlist(e) == x) == length(o) }, TRUE)
     l <- l[t]
     e <- Exp.map[l,]
     t1 <- paste0(r, e[[a1]])
@@ -2063,13 +2054,15 @@ source(bckpSrc)
 #loadFun(BckUpFl)
 
 #### Code chunk - Venn diagrams
-vennTst <- try({
-  Src <- paste0(libPath, "/extdata/Sources/rep_Venn.R")
-  #rstudioapi::documentOpen(Src)
-  source(Src)
-}, silent = TRUE)
-if (inherits(vennTst, "try-error")) {
-  warning("Venn diagrams failed ---> investigate!")
+if (pkgsCheck["Venn"]) {
+  vennTst <- try({
+    Src <- paste0(libPath, "/extdata/Sources/rep_Venn.R")
+    #rstudioapi::documentOpen(Src)
+    source(Src)
+  }, silent = TRUE)
+  if (inherits(vennTst, "try-error")) {
+    warning("Venn diagrams failed ---> investigate!")
+  }
 }
 
 #### Code chunk - Coverage maps, XICs and heatmaps for proteins of interest
@@ -2110,14 +2103,18 @@ if (length(protlspep)) {
 invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 
 #### Code chunk - Create STRINGdb graph(s) and Cytoscape networks for regulated proteins
-strngSrc <- paste0(libPath, "/extdata/Sources/STRINGdb.R")
-#rstudioapi::documentOpen(strngSrc)
-source(strngSrc)
+if (runSTRINGdb) {
+  strngSrc <- paste0(libPath, "/extdata/Sources/STRINGdb.R")
+  #rstudioapi::documentOpen(strngSrc)
+  source(strngSrc)
+}
 
 #### Code chunk - peptide tables for visualizing the coverage of proteins of interest in 3D
-Src <- paste0(libPath, "/extdata/Sources/3d_Cov.R")
-#rstudioapi::documentOpen(Src)
-source(Src)
+if (pkgsCheck["3d_Cov"]) {
+  Src <- paste0(libPath, "/extdata/Sources/3d_Cov.R")
+  #rstudioapi::documentOpen(Src)
+  source(Src)
+}
 
 #### Code chunk - For pull-downs: create table summarizing types of evidence for all proteins of interest
 # if (IsPullDown) {
@@ -2125,12 +2122,12 @@ source(Src)
 #   test <- apply(PG[, g, drop = FALSE], 1L, \(x) {
 #     length(which(!x %in% c("", NA, "NA", "non significant", "too small FC")))
 #   })
-#   prot <- union(prot.list, unlist(strsplit(PG$"Leading protein IDs"[test > 0L], ";")))
-#   if ((!is.null(prot.list_pep)) && (length(prot.list_pep)) { prot <-  union(prot, prot.list_pep) }
+#   prot <- unique(c(prot.list, unlist(strsplit(PG$"Leading protein IDs"[test > 0L], ";"))))
+#   if ((!is.null(prot.list_pep)) && (length(prot.list_pep)) { prot <- unique(c(prot, prot.list_pep)) }
 #   if (length(prot)) {
 #     dir <- paste0(wd, "/Evidences type tables")
 #     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-#     dirlist <- union(dirlist, dir)
+#     dirlist <- unique(c(dirlist, dir))
 #     for (i in prot) {
 #       temp <- ev[grsep2(i, ev$"Leading proteins"),]
 #       temp <- sapply(unique(ev$Type), \(x) {
@@ -2155,23 +2152,15 @@ for (dir in dirlist) { #d <- dirlist[1L]
 # Save decisions - should this go?
 save(AllAnsw, file = "All_decisions.RData")
 
-# Finalize reports
-MatMetCalls$Texts$DatAnalysis <- c(MatMetCalls$Texts$DatAnalysis, DatAnalysisTxt)
-for (i in seq_along(MatMetCalls$Texts$DatAnalysis)) {
-  MatMetCalls$Calls <- append(MatMetCalls$Calls,
-                              paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$DatAnalysis[", i,"], prop = WrdFrmt$",
-                                     c("Body", "Template_text")[(MatMetCalls$Texts$DatAnalysis[i] == "TEMPLATE")+1L],
-                                     "_text), fp_p = WrdFrmt$just))"))
-}
-MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style = \"Normal\")")
-#
-
 # Write SDRF file in case you want to submit to PRIDE
 Src <- paste0(libPath, "/extdata/Sources/SDRF_4_PRIDE.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
 # Write final HTML report and materials and methods template file
+Src <- paste0(libPath, "/extdata/Sources/HTML_report_Fun.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
 Src <- paste0(libPath, "/extdata/Sources/HTML_report_Main.R")
 #rstudioapi::documentOpen(Src)
 source(Src)

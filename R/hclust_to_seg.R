@@ -22,11 +22,11 @@ hclust_to_seg <- function(hc) {
   #
   # Leaves
   x[hc$order] <- seq_len(n)
-  y[1:n] <- 0
+  y[1L:n] <- 0
   #
   # Precompute absolute indices
-  left_idx  <- ifelse(merge[, 1] < 0, -merge[, 1], n + merge[, 1])
-  right_idx <- ifelse(merge[, 2] < 0, -merge[, 2], n + merge[, 2])
+  left_idx  <- ifelse(merge[, 1L] < 0, -merge[, 1L], n + merge[, 1L])
+  right_idx <- ifelse(merge[, 2L] < 0, -merge[, 2L], n + merge[, 2L])
   #
   # Compute internal node positions (iterative dependency)
   i_seq <- seq_len(n_merge)
@@ -44,20 +44,20 @@ hclust_to_seg <- function(hc) {
                      xend = numeric(3 * n_merge),
                      yend = numeric(3 * n_merge))
   # vertical left
-  segs$x[3*i_seq - 2] <- x[left_idx]
-  segs$y[3*i_seq - 2] <- y[left_idx]
-  segs$xend[3*i_seq - 2] <- x[left_idx]
-  segs$yend[3*i_seq - 2] <- y[parent_idx]
+  segs$x[3L*i_seq - 2L] <- x[left_idx]
+  segs$y[3L*i_seq - 2L] <- y[left_idx]
+  segs$xend[3L*i_seq - 2L] <- x[left_idx]
+  segs$yend[3L*i_seq - 2L] <- y[parent_idx]
   # vertical right
-  segs$x[3*i_seq - 1] <- x[right_idx]
-  segs$y[3*i_seq - 1] <- y[right_idx]
-  segs$xend[3*i_seq - 1] <- x[right_idx]
-  segs$yend[3*i_seq - 1] <- y[parent_idx]
+  segs$x[3L*i_seq - 1L] <- x[right_idx]
+  segs$y[3L*i_seq - 1L] <- y[right_idx]
+  segs$xend[3L*i_seq - 1L] <- x[right_idx]
+  segs$yend[3L*i_seq - 1L] <- y[parent_idx]
   # horizontal top
-  segs$x[3*i_seq]    <- x[left_idx]
-  segs$y[3*i_seq]    <- y[parent_idx]
-  segs$xend[3*i_seq] <- x[right_idx]
-  segs$yend[3*i_seq] <- y[parent_idx]
+  segs$x[3L*i_seq]    <- x[left_idx]
+  segs$y[3L*i_seq]    <- y[parent_idx]
+  segs$xend[3L*i_seq] <- x[right_idx]
+  segs$yend[3L*i_seq] <- y[parent_idx]
   # Labels
   labs <- data.frame(x = x[hc$order],
                      y = y[hc$order],

@@ -36,13 +36,13 @@ shinyPlusFD <- function(root,
                         buttonLabel = "+",
                         stem = "INCR",
                         width = "15px") {
-  stopifnot(l > 0)
+  stopifnot(l > 0L)
   rg <- seq_len(l)
   ids <- paste0(root, "___", as.character(rg), "___", stem)
-  if ((length(width) != 1)||(is.na(width))||(is.null(width))) {
-    width <- paste0((nchar(buttonLabel) + 1)*10, "px")
+  if ((length(width) != 1L) || is.na(width) || is.null(width)) {
+    width <- paste0((nchar(buttonLabel) + 1L)*10L, "px")
   }
-  inputs <- vapply(rg, function(i) {
+  inputs <- vapply(rg, \(i) {
     as.character({
       if (!nchar(buttonLabel)) {
         shinyWidgets::actionBttn(ids[i],

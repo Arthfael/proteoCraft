@@ -27,23 +27,23 @@ robustNorm(
 \item{tol}{Tolerance, default = 1e-6}
 }
 \value{
-A list:
- - data = data.frame with normalized values
- - sample_offset = optimized offsets
- - row_mean = row_mean,
- - weights
- - iterations = last iteration before convergence 
- - loss = loss function used
+A list:\cr
+ - data = data.frame with normalized values\cr
+ - sample_offset = optimized offsets\cr
+ - row_mean = row_mean,\cr
+ - weights\cr
+ - iterations = last iteration before convergence\cr
+ - loss = loss function used\cr
  - sigma = scaled Median Absolute Deviation of the residuals
 }
 \description{
-This is meant as an alternative to AdvNorm.IL() for applying a more robust method to aligning the samples. AdvNorm.IL is currently faster though.
-I have only tested, not written this function. ChatGPT and Perplexity did, in a merry-go-round, where I bounced the code from one to the other.
-Yes.
-We are there.
-...
-The idea for a more robust loss function was floated to my by chatGPT as I was discussing normalization with 'it'.
-And because I was too busy with other stuff and unfamiliar with the robust loss function landscape, I asked it to make it for me.
+This is meant as an alternative to AdvNorm.IL() for applying a more robust method to aligning the samples. AdvNorm.IL is currently faster though.\cr
+I have only tested, not written this function. ChatGPT and Perplexity did, in a merry-go-round, where I bounced the code from one to the other.\cr
+Yes.\cr
+We are here.\cr
+...\cr
+The idea for a more robust loss function was floated to my by chatGPT as I was discussing normalization with 'it'.\cr
+And because I was too busy with other stuff and unfamiliar with the robust loss function landscape, I asked it to make it for me.\cr
 }
 \examples{
 normData <- robustNorm(pep, paste0("log10(Int.) - ", mySamples))

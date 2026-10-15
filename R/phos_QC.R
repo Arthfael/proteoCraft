@@ -34,7 +34,7 @@ phos_QC <- function(PhPep,
   M <- annot_to_tabl(PhPep[[ModSeq_col]])
   P <- annot_to_tabl(PhPep[[P_col]], Nterm = FALSE, Cterm = FALSE, numeric_data = TRUE)
   ScD <- annot_to_tabl(PhPep[[ScD_col]], Nterm = FALSE, Cterm = FALSE, numeric_data = TRUE)
-  res <- vapply(1:l, function(x) {
+  res <- vapply(1L:l, \(x) {
     m <- M[[x]]
     p <- P[[x]]
     scd <- ScD[[x]]
@@ -43,12 +43,12 @@ phos_QC <- function(PhPep,
                 is.data.frame(scd))
       m$P <- as.numeric(p$Annotations)
       m$ScD <- as.numeric(scd$Annotations)
-      m <- m[2:(nrow(m)-1),]
+      m <- m[2L:(nrow(m)-1L),]
       w <- which(m$Annotations == "ph")
-      test <- vapply(w, function(y) {
+      test <- vapply(w, \(y) {
         (m$P[[y]] >= min_P)&(m$ScD[[y]] >= min_delta_sc)
       }, TRUE)
-      r <- (sum(test) == length(w))&(PhPep[x,PEP_col] <= max_PEP)
+      r <- (sum(test) == length(w))&(PhPep[x, PEP_col] <= max_PEP)
     } else { r <- FALSE }
     return(r)
   }, TRUE)

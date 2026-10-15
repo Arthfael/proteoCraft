@@ -74,7 +74,7 @@ cov3D <- function(pdb,
   # colnames(tst) <- c("Entries", "Rows")
   # tst$nRows <- lengths(tst$Rows)
   #if (tst$nRows > 0L) {
-    # n <- sum(tst$nRows[which(tst$Entries != 11L)])
+    # n <- sum(tst$nRows[tst$Entries != 11L])
     # i <- (n > 1L)+1L
     # warning(paste0("Parsing method 1 failed: ", n, " model row", c("", "s")[i], " do", c("es", "")[i], " not contain the expected number (11) of entries!\nTrying parsing method 2..."))
     dat <- data.frame(V1 = gsub("^ +| +$", "", substr(model, 5L, 11L)),
@@ -98,7 +98,7 @@ cov3D <- function(pdb,
   dat$Z <- as.numeric(dat$Z)
   dat$`Residue sequence number` <- as.integer(dat$`Residue sequence number`)
   dat$`Temperature factor (B-factor)` <- as.factor(dat$`Temperature factor (B-factor)`)
-  dat2 <- dat[which(dat$`Branch indicator` == "CA"),] # CA = carbon alpha it seems?
+  dat2 <- dat[dat$`Branch indicator` == "CA",] # CA = carbon alpha it seems?
   #
   # Compute coverage
   #peptides <- aggregate(ev$Intensity, list(ev$"Modified sequence"), sum, na.rm = TRUE)
@@ -121,7 +121,7 @@ cov3D <- function(pdb,
     pepTbl$I2Lpep <- gsub("I", "L", pepTbl$I2Lpep)
   }
   pepTbl$I2Lpep <- setNames(annot_to_tabl(pepTbl$I2Lpep), peptides)
-  pepTbl$I2Lpep <- setNames(lapply(pepTbl$I2Lpep, \(x) { x[which(x$Sequence != "_"),] }), peptides)
+  pepTbl$I2Lpep <- setNames(lapply(pepTbl$I2Lpep, \(x) { x[x$Sequence != "_",] }), peptides)
   pepTbl$matches <- setNames(lapply(pepTbl$I2Lpep, \(x) { #x <- pepTbl$I2Lpep[[1L]]
     rg <- 1L:nrow(x)
     l <- length(rg)
@@ -130,7 +130,7 @@ cov3D <- function(pdb,
     })
     w <- unlist(w)
     w <- aggregate(w, list(w), length)
-    return(w$Group.1[which(w$x == l)])
+    return(w$Group.1[w$x == l])
   }), peptides)
   # To check matches:
   # pepTbl$tst <- vapply(1:nrow(pepTbl), \(i) { #i <- 1L
@@ -169,7 +169,7 @@ cov3D <- function(pdb,
     x <- x$Annotations
     return(which(x != ""))
   })
-  wMds <- which((lengths(modsTst) > 0L)&(lengths(pepTbl$matches) > 0L))
+  wMds <- which(lengths(modsTst) & lengths(pepTbl$matches))
   if (length(wMds)) {
     modsTst <- setNames(lapply(wMds, \(x) {
       y <- list(Tbl = pepTbl$I2Lpep[[x]],
@@ -206,10 +206,10 @@ cov3D <- function(pdb,
   #
   symb <- setNames(c("circle", "diamond"), c("AA", "mod. AA"))
   #
-  w0 <- which((is.na(dat2$Intensity))|(dat2$Intensity == 0))
+  w0 <- which(is.na(dat2$Intensity) | (dat2$Intensity == 0))
   dat2$Intensity[w0] <- NA_real_
   dat2$AA <- do.call(paste, c(dat2[, c("AA", "Residue sequence number")], sep = " "))
-  w0 <- which((is.na(dat3$Intensity))|(dat3$Intensity == 0))
+  w0 <- which(is.na(dat3$Intensity) | (dat3$Intensity == 0))
   dat3$Intensity[w0] <- NA_real_
   my3dplotly <- plotly::plot_ly(symbols = symb)
   argsLst <- list(p = my3dplotly,

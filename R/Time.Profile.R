@@ -1,9 +1,9 @@
 #' Time.Profile
 #'
 #' @description 
-#' A function to plot the time profile of protein(s).
-#' The function assumes that expression column names follow the following pattern:
-#' "root.cond.tp" (i.e. a root string then the condition then the time point).
+#' A function to plot the time profile of protein(s).\cr
+#' The function assumes that expression column names follow the following pattern:\cr
+#' "root.cond.tp" (i.e. a root string then the condition then the time point).\cr
 #' If there are error columns, these should follow a similar pattern with their own root.
 #' 
 #' @param df The protein/protein groups file, which must include expression data (and SE)
@@ -124,9 +124,9 @@ Time.Profile <- function(df,
                     alpha = 0.2)
     }
     if (labels != FALSE) {
-      x1 <- min(temp$Time.point[which(is.finite(temp$Time.point))])
-      x2 <- max(temp$Time.point[which(is.finite(temp$Time.point))])
-      temp2 <- temp[which(temp$Time.point == x1),]
+      x1 <- min(temp$Time.point[is.finite(temp$Time.point)])
+      x2 <- max(temp$Time.point[is.finite(temp$Time.point)])
+      temp2 <- temp[temp$Time.point == x1,]
       plot <- plot +
         ggplot2::geom_text(data = temp2,
                            ggplot2::aes(label = Tag, x = Time.point, y = Expression,

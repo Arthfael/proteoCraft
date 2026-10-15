@@ -78,12 +78,12 @@ cleanNms3 <- function(names,
     names2Fix2new <- vapply(names2Fix2, \(x) { #x <- names2Fix2[1L] #x <- rev(names2Fix2)[1L]
       tst <- setNames(lapply(kol, \(y) { which(experiments.map[[y]] == x) }),
                       kol)
-      tst <- tst[which(lengths(tst) > 0L)[1L]]
+      tst <- tst[lengths(tst) > 0L][1L]
       w <- tst[[1L]]
       k <- names(tst)
       k <- aggregate.map$Characteristics[[match(k, aggregate.map$Aggregate.Name)]]
-      k <- k[which(!k %in% Aggr[w1])]
-      k <- RSA$names[which(RSA$names %in% k)] # for order
+      k <- setdiff(k, Aggr[w1])
+      k <- intersect(RSA$names, k) # for order
       return(unique(do.call(paste, c(experiments.map[w, k, drop = FALSE], sep = rep))))
     }, "")
   }

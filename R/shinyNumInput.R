@@ -31,13 +31,13 @@ shinyNumInput <- function(startVal,
                           width = "300px",
                           root) {
   l <- length(startVal)
-  stopifnot(l > 0)
+  stopifnot(l > 0L)
   startVal <- suppressWarnings(as.numeric(startVal))
   naRep <- suppressWarnings(as.numeric(naRep))
-  if (!is.na(naRep)) { startVal[which(is.na(startVal))] <- naRep }
+  if (!is.na(naRep)) { startVal[is.na(startVal)] <- naRep }
   rg <- seq_len(l)
   ids <- paste0(root, "___", as.character(rg))
-  inputs <- vapply(rg, function(i) {
+  inputs <- vapply(rg, \(i) {
     as.character(shiny::numericInput(ids[i],
                                      "",
                                      startVal[i],

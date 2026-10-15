@@ -7,8 +7,6 @@
 #' @param mode Mode string
 #' @param IDs_only Logical, return only IDs?
 #' @param trimName Logical, whether to trim names (anything after the last underscore will be trimmed)
-#' 
-#' @export
 
 .Format.DB_worker <- function(btch,
                               Roolz,
@@ -121,22 +119,24 @@
           if (tt == "isoform") {
             temp1$"No Isoforms" <- temp1$"Full Name"
             temp1[a, c("No Isoforms", u)] <- Isapply(b, \(x) {
-              x <- x[which(x != "")]
+              x <- x[x != ""]
               return(c(x[1L], paste(x[2L:length(x)], collapse = " ")))
             })
           } else { temp1[a, u] <- vapply(b, \(x) { rev(unlist(x))[1L] }, "") }
-        } else { if (tt == "isoform") { nms.list <- nms.list[which(nms.list != "No Isoforms")] }}
+        } else { if (tt == "isoform") { nms.list <- setdiff(nms.list, "No Isoforms") }}
       }
     }
     if (mode == "REFSEQCDS") {
       tt <- gsub("CCDS:CCDS[0-9]+\\.*[0-9]*,", "", temp1$Header)
       temp1$"Gene ID" <- vapply(tt, \(x) {
-        y <- regexpr("^>.*\\[db_xref=GeneID\\:([^\\]]+)\\]", x, perl = TRUE)
+        y <- regexpr("^>.*\\[db_xref=GeneID\\:([^]]+)\\]", x, perl = TRUE)
         return(substr(x,  attributes(y)$capture.start, attributes(y)$capture.start + attributes(y)$capture.length - 1L))
       }, "")
     }
     if (!"Common Name" %in% colnames(temp1)) {
-      temp1$"Common Name" <- vapply(strsplit(sub(" \\[[^\\[]+\\]$", "", temp1$Header), " "), \(x) {
+      # Below: untested correction to the reject: this seems correct, but test!
+      temp1$"Common Name" <- vapply(strsplit(sub(" \\[[^]]+\\]$", "", temp1$Header), " "), \(x) {
+      #temp1$"Common Name" <- vapply(strsplit(sub(" \\[[^[]+\\]$", "", temp1$Header), " "), \(x) { # original code
         x <- unlist(x)
         if (length(x) > 1L) {
           x <- paste(x[2L:length(x)], collapse = " ")
@@ -145,7 +145,7 @@
       }, "")
       # We want to fill important columns with any value, if none is available
       w <- which(temp1$"Common Name" %in% c("", " ", "NA", NA))
-      tmpkol <- nms.list[which(nms.list %in% colnames(temp1))]
+      tmpkol <- intersect(nms.list, colnames(temp1))
       if (length(w) && length(tmpkol)) {
         f0 <- \(x) {
           tt <- which(!x %in% c("", " ", "NA", NA))

@@ -173,7 +173,8 @@ make_ui0 <- \() {
         gradient = "linear",
         direction = "bottom"
       ),
-      shinyjs::extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+      shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                             functions = c("toggleFullScreen")),
       tags$head(tags$script(HTML("
 Shiny.addCustomMessageHandler('updateSecondary', function(data) {
   var sel = document.getElementById('Secondary');

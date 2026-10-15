@@ -10,7 +10,7 @@ require(xml2)
 #
 # Create openxlsx2 styles
 #   It may make more sense from the way Excel works, but I HATE how openxlsx2 deals with styles!
-#   This is not a statement on openxlsx2 or Jan Marvin, which are both awesome!
+#   This is not a statement on openxlsx2 or Jan Marvin, both of which/whom are awesome!
 #   But the one thing I preferred in openxlsx over openxlsx2 was how it dealt with style.
 #   Anyway... 
 #   So. We will. CHEAT!
@@ -84,7 +84,7 @@ if (MakeRatios) {
     }
   }
 }
-fl <- system.file("extdata", "Report - column names - no replicates.xlsx", package = "proteoCraft")
+fl <- system.file("extdata", "Report_column_names_noRep.xlsx", package = "proteoCraft")
 styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[, 1L]
 # wb <- loadWorkbook(fl)
 # addWorksheet(wb, "tmp")
@@ -127,14 +127,14 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
         KolNames[m[w]] <- paste0(rpl, ratTbl[[nm]]$Sample[w])
       }
     }
-    KolNames <- gsub("^Enriched", "Enr.", KolNames)
-    KolNames <- gsub("^Regulated", "Reg.", KolNames)
+    KolNames <- sub("^Enriched", "Enr.", KolNames)
+    KolNames <- sub("^Regulated", "Reg.", KolNames)
   }
   KntKol <- paste0(AA, " Count")
   w <- which(KolNames %in% KntKol)
-  KolNames[w] <- gsub(" Count$", "", KolNames[w])
+  KolNames[w] <- sub(" Count$", "", KolNames[w])
   #
-  KolNames <- gsub("( - )|(___)", " ", KolNames)
+  KolNames <- gsub("( - |___)", " ", KolNames)
   #
   # Those names must be unique if the data is to be written as a table!
   tst <- aggregate(KolNames, list(KolNames), length)
@@ -176,8 +176,8 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     ratRf <- PTMs_ratRf
     tblMode2 <- paste0(Ptm, "-modified pep")
   }
-  # names(intRf) <- gsub("^Original ", "", paste0(names(intRf), " intensities"))
-  # names(ratRf) <- gsub("^Original ", "", paste0(names(ratRf), " ratios"))
+  # names(intRf) <- sub("^Original ", "", paste0(names(intRf), " intensities"))
+  # names(ratRf) <- sub("^Original ", "", paste0(names(ratRf), " ratios"))
   # (In this workflow, as of this version all peptide intensities are non-log-transformed but ratios are!)
   if (nrow(tempData)) {
     CoreCol <- "Modified sequence"
@@ -230,7 +230,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
       }
       quantcol <- c(quantcol, grl)
       quantCols[names(ratRf)] <- ratCols
-      regcol <- grep("^((Enriched)|(Regulated)) - ", colnames(tempData), value = TRUE)
+      regcol <- grep("^(Enriched|Regulated) - ", colnames(tempData), value = TRUE)
     }
     aacol <- paste0(AA, " Count")
     qualFlt <- intersect(QualFilt, colnames(ev))
@@ -306,7 +306,8 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
              which(ColumnsTbl$Class == "Regulated")
       )
     }
-    w <- c(w, which(ColumnsTbl$Class == "QC filters"),
+    w <- c(w,
+           which(ColumnsTbl$Class == "QC filters"),
            which(ColumnsTbl$Class == "Evidence IDs"),
            which(ColumnsTbl$Class == "Spectral count"),
            which(ColumnsTbl$Class == "Amino Acid counts"))
@@ -347,12 +348,12 @@ tblMode <- tblMode2 <- "PG"
 KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   #KolNames <- xlTabs[[sheetnm]]
   klnms <- KolNames
-  KolNames <- gsub("Peptides?", "Pep.", KolNames)
-  KolNames <- gsub("Evidences?", "PSMs", KolNames)
-  KolNames <- gsub("Spectr((al)|(um))", "Spec.", KolNames)
-  #KolNames <- gsub("Razor", "Raz.", KolNames)
-  KolNames <- gsub("Unique", "Uniq.", KolNames)
-  KolNames <- gsub("MS/MS", "MS2", KolNames)
+  KolNames <- sub("Peptides?", "Pep.", KolNames)
+  KolNames <- sub("Evidences?", "PSMs", KolNames)
+  KolNames <- sub("Spectr(al|um)", "Spec.", KolNames)
+  #KolNames <- sub("Razor", "Raz.", KolNames)
+  KolNames <- sub("Unique", "Uniq.", KolNames)
+  KolNames <- sub("MS/MS", "MS2", KolNames)
   for (nm in names(intTbl)) { #nm <- names(intTbl)[1L] #nm <- names(intTbl)[2L]
     m <- match(intTbl[[nm]]$Log, KolNames)
     w <- which(!is.na(m))
@@ -370,19 +371,19 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
         KolNames[m[w]] <- paste0(rpl, ratTbl[[nm]]$Sample[w])
       }
     }
-    KolNames <- gsub(".*Regulated - ", "reg. ", KolNames)
+    KolNames <- sub(".*Regulated - ", "reg. ", KolNames)
   }
-  #KolNames <- gsub(".*Pvalue\\)( - )?", "-log10 pval. ", KolNames)
-  #KolNames <- gsub(".*Significant-", "signif. ", KolNames)
-  KolNames <- gsub("log10\\(est\\. copies/cell\\) (- )?", "ProtRul. ", KolNames)
-  KolNames <- gsub(paste0(topattern("Sequence coverage [%] ", start = FALSE), "(- )?"), "Cov. ", KolNames)
+  #KolNames <- sub(".*Pvalue\\)( - )?", "-log10 pval. ", KolNames)
+  #KolNames <- sub(".*Significant-", "signif. ", KolNames)
+  KolNames <- sub("log10\\(est\\. copies/cell\\) (- )?", "ProtRul. ", KolNames)
+  KolNames <- sub(paste0(topattern("Sequence coverage [%] ", start = FALSE), "(- )?"), "Cov. ", KolNames)
   KolNames[KolNames == "Max. theoretical sequence coverage [%]"] <- "Theoretical max."
   KolNames[KolNames == "Sequence coverage [%]"] <- "All peptides"
   KolNames[KolNames == "Uniq. + razor sequence coverage [%]"] <- "Unique + razor"
   KolNames[KolNames == "Uniq. sequence coverage [%]"] <- "Unique"
-  KolNames <- gsub("^Cluster \\([^\\)]+\\) - ", "Clust. ", KolNames)
+  KolNames <- sub("^Cluster \\([^)]+\\) - ", "Clust. ", KolNames)
   #
-  KolNames <- gsub("( - )|(___)", " ", KolNames)
+  KolNames <- gsub("( - |___)", " ", KolNames)
   #
   # Those names must be unique if the data is to be written as a table!
   # Which is annoying, because this limits how much fat we can cut
@@ -441,8 +442,8 @@ specidcol2 <- grep("[Ss]pectrum IDs - ", pepevspeccol, value = TRUE)
 pepevspeccol <- c(pepcountcol1, pepcountcol2, pepidcol1, pepidcol2,
                   evcountcol1, evcountcol2, evidcol1, evidcol2,
                   speccountcol1, speccountcol2, specidcol1, specidcol2)
-pepevspeccola <- grep("((([Ss]pectral|[Pp]eptides|[Ee]vidences) count)|(([Ss]pectrum|[Pp]eptide|[Ee]vidence) IDs))$", pepevspeccol, value = TRUE)
-pepevspeccolb <- grep("((([Ss]pectral|[Pp]eptides|[Ee]vidences) count)|(([Ss]pectrum|[Pp]eptide|[Ee]vidence) IDs)) - ", pepevspeccol, value = TRUE)
+pepevspeccola <- grep("(([Ss]pectral|[Pp]eptides|[Ee]vidences) count|([Ss]pectrum|[Pp]eptide|[Ee]vidence) IDs)$", pepevspeccol, value = TRUE)
+pepevspeccolb <- grep("(([Ss]pectral|[Pp]eptides|[Ee]vidences) count|([Ss]pectrum|[Pp]eptide|[Ee]vidence) IDs) - ", pepevspeccol, value = TRUE)
 kol <- c(CoreCol, "In list", CoreCol2, pepevspeccol)
 intRf <- PG.int.cols
 names(intRf) <- paste0(names(intRf), " int.")
@@ -499,7 +500,7 @@ if (MakeRatios) {
   ratColsTbl <- setNames(lapply(names(ratRf), \(nm) {
     # Note: Peptide values are already log-transformed in this workflow!!!
     res <- data.frame(
-      Log = c(paste0("Mean ", gsub(" - $", "", ratRf[nm])), paste0(ratRf[nm], Exp)),
+      Log = c(paste0("Mean ", sub(" - $", "", ratRf[nm])), paste0(ratRf[nm], Exp)),
       Type = c("Average", rep("Individual", length(Exp))),
       Sample = c("Average", Exp))
     w <- which(res$Log %in% colnames(tempData))
@@ -513,7 +514,7 @@ if (MakeRatios) {
   }
   quantcol <- c(quantcol, grl)
   quantCols[names(ratRf)] <- ratCols
-  regcol <- grep("^((Enriched)|(Regulated)) - ", colnames(tempData), value = TRUE)
+  regcol <- grep("^(Enriched|Regulated) - ", colnames(tempData), value = TRUE)
 }
 if (protrul) { quantcol <- c(quantcol, grep(topattern("log10(est. copies/cell) - ", start = FALSE), colnames(tempData), value = TRUE)) }
 covcol <- c(#xmlCovCol,
@@ -583,7 +584,7 @@ if (protrul) {
 }
 # - Annotations
 if (Annotate) {
-  annot.col2 <- gsub("_names$", " names", annot.col)
+  annot.col2 <- sub("_names$", " names", annot.col)
   AnnotTbl$Columns <- list(c("GO", "GO-ID"), c("Taxonomy", "TaxID"), NA, NA, NA, NA, "EMBL", NA)
   for (i in annot) { AnnotTbl$Columns[match(i, AnnotTbl$Name)] <- list(c(i, paste0(i, " names"))) }
   AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(setdiff(annot.col2, unlist(AnnotTbl$Columns)))
@@ -621,7 +622,7 @@ if (IsBioID2) {
 }
 for (nm in names(intRf)) { #nm <- names(intRf)[1L] #nm <- names(intRf)[2L]
   rpl <- intNms(nm, TRUE)
-  kl <- c(paste0("Mean ", gsub(" - $", "", intRf[nm])), paste0(intRf[[nm]], Exp))
+  kl <- c(paste0("Mean ", sub(" - $", "", intRf[nm])), paste0(intRf[[nm]], Exp))
   kl <- intersect(kl, ColumnsTbl$Col)
   ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
 }
@@ -629,7 +630,7 @@ ColumnsTbl$Class[grep("Ruler", ColumnsTbl$Grp)] <- "log10(est. copies/cell)"
 if (MakeRatios) {
   for (nm in names(ratRf)) { #nm <- names(ratRf)[1L]
     rpl <- ratNms(nm, TRUE)
-    kl <- c(paste0("Mean ", gsub(" - $", "", ratRf[[nm]])), paste0(ratRf[[nm]], Exp))
+    kl <- c(paste0("Mean ", sub(" - $", "", ratRf[[nm]])), paste0(ratRf[[nm]], Exp))
     kl <- intersect(kl, ColumnsTbl$Col)
     ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
   }

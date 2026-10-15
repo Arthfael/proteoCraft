@@ -21,14 +21,15 @@
 #' Normalized data. New column names are recycled from the original ones (in exprs.col), with "AdvNorm. " added as a prefix. 
 #' 
 #' @examples
-#' adv.norm.data <- AdvNorm.IL(data, "Unique State", paste0("Reporter intensity ", as.character(0L:9L)), FALSE, K = 5L)
-#' require(ggplot2)
-#' require(reshape2)
-#' test <- melt(adv.norm.data)
+#' adv.norm.data <- AdvNorm.IL(data, "Unique State",
+#'                             paste0("Reporter intensity ", as.character(0L:9L)),
+#'                             FALSE, K = 5L)
+#' test <- dfMelt(adv.norm.data)
 #' test$value <- log10(test$value)
-#' plot <- ggplot(test) + geom_density(stat = "density", aes(x = value, colour = variable))
+#' plot <- ggplot2::ggplot(test) +
+#'   ggplot2::geom_density(stat = "density", ggplot2::aes(x = value, colour = variable))
 #' grDevices::windows(width = 10L, height = 10L)
-#' print(plot)
+#' poplot(plot, 12L, 22L)
 #' 
 #' @import data.table
 #' @export
@@ -56,13 +57,13 @@ AdvNorm.IL <- function(df,
   # Original medians
   ## Global
   M1 <- unlist(df[, exprs.col])
-  M1 <- M1[which(is.finite(M1))]
-  M1 <- median(M1[which(M1 > 0)])
+  M1 <- M1[is.finite(M1)]
+  M1 <- median(M1[M1 > 0])
   # Per column
   m1 <- apply(df[, exprs.col], 2L, \(x) {
     x <- unlist(x)
-    x <- x[which(is.finite(x))]
-    return(median(x[which(x > 0)]))
+    x <- x[is.finite(x)]
+    return(median(x[x > 0]))
   })
   df2 <- df
   df2[, exprs.col] <- sweep(df2[, exprs.col], 2L, m1, "/")
@@ -82,7 +83,7 @@ AdvNorm.IL <- function(df,
     dat <- dat[, c(ids.col, nms)]
     dat[, nms] <- sweep(dat[, nms], 2L, p, "/")
     dat2 <- data.table::as.data.table(dat)
-    colnames(dat2)[which(colnames(dat2) == ids.col)] <- "Group.1"
+    colnames(dat2)[colnames(dat2) == ids.col] <- "Group.1"
     # Aggregate (if necessary) by ID, using sum:
     dat2 <- dat2[, lapply(.SD, sum, na.rm = TRUE), by = Group.1, , .SDcols = nms]
     #dat2 <- as.data.frame(dat2); dat3 <- as.matrix(dat2[, nms])
@@ -90,8 +91,8 @@ AdvNorm.IL <- function(df,
     dat3 <- log10(dat3)
     dat3 <- dat3[, comb[, 1L]] - dat3[, comb[, 2L]]
     dat3 <- unlist(dat3)
-    dat3 <- dat3[which(!is.na(dat3))]
-    dat3 <- dat3[which(is.finite(dat3))]
+    dat3 <- dat3[!is.na(dat3)]
+    dat3 <- dat3[is.finite(dat3)]
     return(dat3)
   }
   diffLog2_h <- \(...) {
@@ -108,8 +109,8 @@ AdvNorm.IL <- function(df,
   df2[, exprs.col] <- sweep(df2[, exprs.col], 2L, h, "/")
   # Median after
   M2 <- unlist(df2[, exprs.col])
-  M2 <- M2[which(is.finite(M2))]
-  M2 <- median(M2[which(M2 > 0)])
+  M2 <- M2[is.finite(M2)]
+  M2 <- median(M2[M2 > 0])
   # Re-apply original values scaling:
   df2[, exprs.col] <- df2[, exprs.col]*M1/M2
   # Apply to expression data

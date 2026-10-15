@@ -122,7 +122,7 @@ ExpData <- ExpData[vapply(ExpData$MQ.Exp, \(x) { sum(x %in% MQ.Exp) }, 1L) > 0L,
 tst <- suppressWarnings(as.integer(substr(ExpData$MQ.Exp, 1L, 1L)))
 if (!sum(is.na(tst))) {
   nc1 <- nchar(ExpData$MQ.Exp)
-  nc2 <- nchar(gsub("^[0-9]+", "", ExpData$MQ.Exp))
+  nc2 <- nchar(sub("^[0-9]+", "", ExpData$MQ.Exp))
   ord <- as.integer(substr(ExpData$MQ.Exp, 1L, nc1-nc2))
   if (length(unique(ord)) == length(ord)) {
     ExpData <- ExpData[order(ord, decreasing = FALSE),]
@@ -213,7 +213,7 @@ wTest1 <- apply(wTest1, 1L, \(x) {
        names = colnames(ExpData2)[x2+1L])
 })
 #
-g <- grep("___((FD)|(INCR))$", colnames(ExpData2))
+g <- grep("___(FD|INCR)$", colnames(ExpData2))
 colnames(ExpData2)[g] <- ""
 #
 facLevels2 <- lapply(FactorsLevels, \(x) {
@@ -242,7 +242,8 @@ ui <- fluidPage(
     gradient = "linear",
     direction = "bottom"
   ),
-  extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+  extendShinyjs(text = jsFun$toggle_full_screen,
+                functions = c("toggleFullScreen")),
   # Dummy, hidden div to load arrow-down icon
   # tags$div(
   #   class = "container",

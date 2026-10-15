@@ -82,7 +82,7 @@ make_Rat2 <- function(myData = pep,
   # -> myData's base is that of rat.log
   myRats <- lapply(1L:nrow(contrasts), \(i) { #i <- 1L #i <- 3L #i <- 5L
     rat <- setNames(lapply(refGroups$values, \(grp) { #grp <- refGroups$values[1L]
-      em <- experiment.map[which(experiment.map[[refGroups$column]] == grp),]
+      em <- experiment.map[experiment.map[[refGroups$column]] == grp,]
       rs <- setNames(lapply(ABkol, \(x) { #x <- ABkol[1L]
         x <- contrasts[[x]][[i]]
         x <- intersect(x, em[[experiment.map_col]])
@@ -98,7 +98,7 @@ make_Rat2 <- function(myData = pep,
     rat <- rowMeans(rat, na.rm = TRUE)
     if (CDkol_tst) {
       second <- setNames(lapply(refGroups$values, \(grp) { #grp <- refGroups$values[1L]
-        em <- experiment.map[which(experiment.map[[refGroups$column]] == grp),]
+        em <- experiment.map[experiment.map[[refGroups$column]] == grp,]
         rs <- setNames(lapply(CDkol, \(x) { #x <- CDkol[1L]
           x <- contrasts[[x]][[i]]
           x <- intersect(x, em[[experiment.map_col]])

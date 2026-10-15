@@ -306,26 +306,27 @@ if ((length(save) > 1L) || (save != FALSE)) {
     if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
   }
 }
+ttlChckPat <- "[- _.,;]+$"
 if (nchar(title)) {
-  title <- paste0(gsub("[- _\\.\\,;]+$", "", title), " - ")
+  title <- paste0(sub(ttlChckPat, "", title), " - ")
   if (title == " - ") { title <- "" }
 }
 if (!validCharPar("title.root")) { title.root <- "" }
-if (nchar(title.root)) { title.root <- sub("[- _\\.\\,;]+$", "", title.root) }
+if (nchar(title.root)) { title.root <- sub(ttlChckPat, "", title.root) }
 if ((title.root == "") && (title != "")) {
   title.root <- title
 } else { if (title != "") { title.root <- paste0(title.root, title) } }
-if (nchar(title.root)) { title.root <- sub("[- _\\.\\,;]+$", "", title.root) }
+if (nchar(title.root)) { title.root <- sub(ttlChckPat, "", title.root) }
 if (nchar(title.root)) { title.root <- paste0(title.root, " - ") }
 if (bars) {
   if (nchar(bars_title)) {
-    bars_title <- gsub("[- _\\.\\,;]+$", "", bars_title)
+    bars_title <- sub(ttlChckPat, "", bars_title)
   }
-  if (nchar(bars_title.root)) { bars_title.root <- sub("[- _\\.\\,;]+$", "", bars_title.root) }
+  if (nchar(bars_title.root)) { bars_title.root <- sub(ttlChckPat, "", bars_title.root) }
   if ((bars_title.root == "") && (bars_title != "")) {
     bars_title.root <- bars_title
   } else { if (bars_title != "") {  bars_title.root <- paste0(bars_title.root, bars_title) } }
-  if (nchar(bars_title.root)) { bars_title.root <- sub("[- _\\.\\,;]+$", "", bars_title.root) }
+  if (nchar(bars_title.root)) { bars_title.root <- sub(ttlChckPat, "", bars_title.root) }
   if (nchar(bars_title.root)) { bars_title.root <-  paste0(bars_title.root, " - ") }
 }
 stopifnot(ID_col %in% colnames(Prot), Mode %in% c("dataset", "regulated"),
@@ -654,7 +655,7 @@ if (length(wFltL)) {
         if (length(Wh1) < length(Ont)) {
           msg <- Ont[-Wh1]
           msg <- if (length(msg) == 1L) { paste0("Term ", msg) } else {
-            paste0("Terms ", paste(msg[1L:(length(msg)-1)], collapse = ", "), " and ", msg[length(msg)])
+            paste0("Terms ", .commAnd(msg))
           }
           msg <- paste0("Analysis failed for ", msg)
           if (Mode == "regulated") { msg <- paste0("Filter ", n2, ": ", msg) }
@@ -1159,7 +1160,7 @@ if (length(wFltL)) {
           pluses <- paste(pluses, collapse = " + ")
           plot.txt <- paste0("plot <- ggplot2::ggplot(GO_tbl) + ggplot2::geom_point(shape = 16, ggplot2::aes(", aes, "))")
           if (exists("non.aes", inherits = FALSE) && length(non.aes)) {
-            plot.txt <- paste0(gsub("\\)$", ", ", plot.txt), non.aes, ")")
+            plot.txt <- paste0(sub("\\)$", ", ", plot.txt), non.aes, ")")
           }
           if (exists("pluses", inherits = FALSE) && length(pluses)) {
             plot.txt <- paste0(plot.txt, " + ", pluses)
@@ -1222,7 +1223,7 @@ if (length(wFltL)) {
             bubblot_ly <- plotly::ggplotly(plot2, tooltip = c("text1", "text2", "text3", "text4"))
             bubblot_ly$x$layout$xaxis$autorange <- TRUE
             bubblot_ly$x$layout$yaxis$autorange <- TRUE
-            bubblot_ly <- htmlwidgets::onRender(bubblot_ly, global_autorange)
+            bubblot_ly <- htmlwidgets::onRender(bubblot_ly, jsFun$global_auto_range)
             bubblot_ly <- plotly::config(bubblot_ly,
                                          modeBarButtonsToRemove = c("select2d", "lasso2d"))
             bubblot_ly <- plotly::plotly_build(bubblot_ly)
@@ -1366,7 +1367,7 @@ if (length(wFltL)) {
                 })
                 barplot_ly$x$layout$xaxis$autorange <- TRUE
                 barplot_ly$x$layout$yaxis$autorange <- TRUE
-                barplot_ly <- htmlwidgets::onRender(barplot_ly, global_autorange)
+                barplot_ly <- htmlwidgets::onRender(barplot_ly, jsFun$global_auto_range)
                 barplot_ly <- plotly::config(barplot_ly,
                                              modeBarButtonsToRemove = c("select2d", "lasso2d"))
                 barplot_ly <- plotly::plotly_build(barplot_ly)
@@ -1408,7 +1409,7 @@ if (length(wFltL)) {
         for (flt in names(tstPlots)) { #flt <- names(tstPlots)[1L]
           nms <- names(tstPlots[[flt]]$GO_plots)
           goPlots[nms] <- tstPlots[[flt]]$GO_plots[nms]
-          nm <- unique(sub("GO ((bar)|(bubble)) plot - ", "", nms))
+          nm <- unique(sub("GO (bar|bubble) plot - ", "", nms))
           stopifnot(length(nm) == 1L)
           GO_plot_ly[[dataType2]][[slotNm]][[nm]] <- tstPlots[[flt]]$GO_plotly
         }

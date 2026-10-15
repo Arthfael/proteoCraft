@@ -24,7 +24,7 @@ sessInfFl <- rstudioapi::selectFile()
 sessInf <- readr::read_lines(sessInfFl)
 
 currRVers <- paste(sessionInfo()$R.version[c("major", "minor")], collapse = ".")
-reloadRVers <- gsub("^R +version +| +\\(.*", "", sessInf[1])
+reloadRVers <- gsub("^R +version +| +\\(.*", "", sessInf[1L])
 if (currRVers != reloadRVers) {
   stop(paste0("RStudio is currently using R version ", currRVers, " but the session you are trying to reload used ", reloadRVers, "!\n",
               "This script cannot change RStudio's version during a session, so please go to 'Tools > Global Options...', change the version, restart the session then start again."))
@@ -33,13 +33,13 @@ if (currRVers != reloadRVers) {
 # Available packages
 avail <- as.data.frame(available.packages(type = "both"))
 avail$Origin <- "CRAN"
-avail2 <- as.data.frame(available.packages(repos = BiocManager::repositories()[1], type = "both"))
+avail2 <- as.data.frame(available.packages(repos = BiocManager::repositories()[1L], type = "both"))
 avail2$Origin <- "Bioc"
 avail <- rbind(avail, avail2)
-avail$Dep <- gsub(" *\\([^\\)]+\\)", "", avail$Depends)
+avail$Dep <- gsub(" *\\([^)]+\\)", "", avail$Depends)
 avail$Dep <- gsub("^R$", "", gsub("^R, |^R,\n", "", avail$Dep))
 avail$Dep <- strsplit(avail$Dep, ",[ \n]")
-avail$Dep <- sapply(avail$Dep, function(x) { x[which(!is.na(x))] })
+avail$Dep <- sapply(avail$Dep, \(x) { x[which(!is.na(x))] })
 avail$nDep <- sapply(avail$Dep, length)
 except <- unique(c(except, unlist(avail$Dep[match(except, avail$Package)])))
 
@@ -58,7 +58,7 @@ pcksFull <- unlist(strsplit(gsub(" *\\[[0-9]+\\] *", "", pcksFull), " +"))
 proteoCraft_Vers <- grep("^proteoCraft_?", pcksFull, value = TRUE)
 aRmel_Vers <- grep("^aRmel_?", pcksFull, value = TRUE) # Old name
 stopifnot(length(c(proteoCraft_Vers, aRmel_Vers)) > 0)
-pcksFull <- grep("^((proteoCraft)|(aRmel))_?", pcksFull, value = TRUE, invert = TRUE)
+pcksFull <- grep("^(proteoCraft|aRmel)_?", pcksFull, value = TRUE, invert = TRUE)
 if (exists("except")) {
   for (pck in except) {
     pcksFull <- grep(paste0("^", pck, "_?"), pcksFull, value = TRUE, invert = TRUE)
@@ -88,12 +88,12 @@ if (length(w)) {
   pckDF$nDep <- avail$nDep[m]
   pckDF <- pckDF[order(pckDF$nDep, decreasing = FALSE),]
   pckDF$Origin <- avail$Origin[m]
-  w <- which(pckDF$nDep > 0)
-  rg <- 1:nrow(pckDF)
-  for (i in w) { #i <- w[1]
+  w <- which(pckDF$nDep > 0L)
+  rg <- 1L:nrow(pckDF)
+  for (i in w) { #i <- w[1L]
     pck <- pckDF$Package[i]
     dep <- pckDF$Dep[[i]]
-    w1 <- rev(which(pckDF$Package %in% dep))[1]
+    w1 <- rev(which(pckDF$Package %in% dep))[1L]
     if (!is.na(w1)) {
       w0 <- which(pckDF$Package == pck)
       wRst <- rg[which(!rg %in% c(w1, w0))]
@@ -121,11 +121,11 @@ if (length(w)) {
     kount <- 0L
     while ((kount < 5L)&&(length(w))) {
       for (pck in pckDF$Package[w]) {
-        parallel::parLapply(parClust, w, function(i) { #i <- w[1L]
+        parallel::parLapply(parClust, w, \(i) { #i <- w[1L]
           tst <- try(unloadNamespace(pck), silent = TRUE)
         })
       }
-      parallel::parLapply(parClust, w, function(i) { #i <- w[1L]
+      parallel::parLapply(parClust, w, \(i) { #i <- w[1L]
         pck <- pckDF$Package[i]
         if (pck %in% inst$Package) {
           tst <- try({
@@ -146,7 +146,7 @@ if (length(w)) {
   inst <- as.data.frame(installed.packages())
   Tsts <- setNames(pckDF$Package %in% inst$Package, pckDF$Package)
   w <- which(Tsts)
-  tst2 <- sapply(w, function(i) { #i <- w[1L]
+  tst2 <- sapply(w, \(i) { #i <- w[1L]
     pck <- pckDF$Package[i]
     a <- try(library(pck, character.only = TRUE), silent = TRUE)
     a <- !inherits(a, "try-error")
@@ -166,23 +166,23 @@ if (length(w)) {
   
   # Install packages
   inst <- as.data.frame(installed.packages())
-  pckDF$goAhead <- sapply(pckDF$Dep, function(x) {
+  pckDF$goAhead <- sapply(pckDF$Dep, \(x) {
     x <- x[which(x %in% pckDF$Package)]
-    sum(!x %in% inst$Package) == 0
+    sum(!x %in% inst$Package) == 0L
   })
   pckDF$Installed <- pckDF$Package %in% inst$Package
-  #i <- 1
-  kount <- 0
-  wNO <- which((pckDF$goAhead)&(!pckDF$Installed))
+  #i <- 1L
+  kount <- 0L
+  wNO <- which(pckDF$goAhead & (!pckDF$Installed))
   if (!exists("wNO2")) { wNO2 <- NA }
   while ((length(wNO))&&(!identical(wNO, wNO2))) {
     #wNO_ord <- wNO <- which(!pckDF$Installed)
-    wNO <- which((pckDF$goAhead)&(!pckDF$Installed))
+    wNO <- which(pckDF$goAhead & (!pckDF$Installed))
     #pckDF$Package[wNO]
     #if (i == -1) { wNO_ord <- rev(wNO_ord) } # In case package installation is important
     clusterExport(parClust, list("pckDF", "wNO"), envir = environment())
     A <- parallel::parLapply(parClust, wNO#_ord
-                             , function(i) { #i <- wNO[1] #i <- wNO[2]
+                             , \(i) { #i <- wNO[1L] #i <- wNO[2L]
                                pck <- pckDF$Package[i]
                                vers <- pckDF$version[i]
                                orig <- pckDF$Origin[i]
@@ -245,9 +245,9 @@ if (length(w)) {
     #
     inst <- as.data.frame(installed.packages())
     pckDF$Installed <- pckDF$Package %in% inst$Package
-    pckDF$goAhead <- sapply(pckDF$Dep, function(x) {
+    pckDF$goAhead <- sapply(pckDF$Dep, \(x) {
       x <- x[which(x %in% pckDF$Package)]
-      sum(!x %in% inst$Package) == 0
+      sum(!x %in% inst$Package) == 0L
     })
     wNO2 <- which((pckDF$goAhead)&(!pckDF$Installed))
     solved <- pckDF$Package[wNO]
@@ -258,7 +258,7 @@ if (length(w)) {
     }
     print(paste0(sum(!pckDF$Installed), " packages remaining..."))
     #i <- -i
-    kount <- kount + 1
+    kount <- kount + 1L
     print(paste0("Current loop count = ", kount))
     print("")
   }

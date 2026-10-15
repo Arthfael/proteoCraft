@@ -32,7 +32,7 @@ dFls2$execLog <- parLapply(parClust, dFls2$File, function(dFl) { #dFl <- dDrs[1]
 dFls2$execLog_ok <- lengths(dFls2$execLog) == 1L
 w <- which(dFls2$execLog_ok)
 dFls2$startPress <- NA_real_
-dFls2$startPress[w] <- parSapply(parClust, dFls2$execLog[w], function(lgFl) { #lgFl <- dFls2$execLog[w[1]]
+dFls2$startPress[w] <- parSapply(parClust, dFls2$execLog[w], function(lgFl) { #lgFl <- dFls2$execLog[w[1L]]
   lg <- readr::read_lines(unlist(lgFl))
   writeClipboard(lg)
   #... now I need to figure out which pressure to extract
@@ -54,7 +54,7 @@ if (MSConvertInst) {
     
     MSConvertVers <- as.data.frame(t(sapply(strsplit(gsub(".*/ProteoWizard ", "", MSConvertDirs), "\\."), unlist)))
     MSConvertVers <- MSConvertVers[order(MSConvertVers$V1, MSConvertVers$V2, MSConvertVers$V3, MSConvertVers$V4, decreasing = TRUE),]
-    MSConvertVers <- MSConvertVers[1,]
+    MSConvertVers <- MSConvertVers[1L,]
     MSConvertDir <- paste0("C:/Program Files/ProteoWizard/ProteoWizard ", paste(MSConvertVers, collapse = "."))
     deer$MSConvertDir <- MSConvertDir
   }
@@ -67,8 +67,8 @@ cmd <- paste0("\"", deer$MSConvertDir, "/msconvert.exe\" -f \"", wd, "/tmp_MS_fi
 system(cmd)
 unlink("tmp_MS_files.txt")
 # Step 2 - extract pressure profile from mzMLs
-mzMLs <- gsub("\\.raw$", ".mzML", fls, ignore.case = TRUE)
-#tst <- grabMzmlData(mzMLs[1], "everything")
+mzMLs <- sub("\\.d$", ".mzML", fls, ignore.case = TRUE)
+#tst <- grabMzmlData(mzMLs[1L], "everything")
 #View(tst$metadata)
 pressScript <- paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads/mzML_pressure_to_csv.py")
 if (!file.exists(pressScript)) {
@@ -94,9 +94,9 @@ press$`Raw file` <- factor(press$`Raw file`, levels = fls)
 press$`Raw file name` <- factor(press$`Raw file name`, levels = basename(fls))
 offset <- max(press$Pressure)/3
 nc <- nchar(floor(offset))
-offset <- ceiling(offset/10^(nc-1))*10^(nc-1)
+offset <- ceiling(offset/10L^(nc-1))*10^(nc-1)
 press$Press <- press$Pressure + offset*(match(press$`Raw file`, fls)-1)
 plot <- ggplot(press, aes(x = `Retention time`, y = Press, colour = `Raw file name`)) +
   geom_line(aes(group = `Raw file name`)) +
   theme_bw() #+ facet_grid(`Raw file name`~.)
-poplot(plot, 12, 22)
+poplot(plot, 12L, 22L)

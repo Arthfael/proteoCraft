@@ -1,7 +1,7 @@
 #' grsep
 #'
 #' @description 
-#' A wrapper function for grep/grepl/gsub to search IDs in a separated characters vector listing a set of IDs.
+#' A wrapper function for grep/grepl/gsub to search IDs in a separated characters vector listing a set of IDs.\cr
 #' N.B.: Other modes could easily be added to the code without major rewrites of this or other scripts using it.
 #' 
 #' @param pattern The IDs to search for.
@@ -17,21 +17,24 @@
 #' @param invert The base parameter (default = FALSE)
 #' 
 #' @examples
-#' tst <- grsep(c("MYFAVOURITEPROTEINSACCESSION", "ALSOTHISONE", "ANDHERESANOTHERONEFORGOODMEASURE"), x = PG$"Protein IDs")
+#' tst <- grsep(c("MYFAVOURITEPROTEINSACCESSION",
+#'                "ALSOTHISONE",
+#'                "ANDHERESANOTHERONEFORGOODMEASURE"),
+#'              x = PG$"Protein IDs")
 #' 
 #' @export
 
-grsep <- function (pattern,
-                   replacement = "",
-                   x,
-                   sep = ";", 
-                   mode = "grep",
-                   ignore.case = FALSE,
-                   perl = FALSE,
-                   value = FALSE, 
-                   fixed = FALSE,
-                   useBytes = FALSE,
-                   invert = FALSE) {
+grsep <- function(pattern,
+                  replacement = "",
+                  x,
+                  sep = ";", 
+                  mode = "grep",
+                  ignore.case = FALSE,
+                  perl = FALSE,
+                  value = FALSE, 
+                  fixed = FALSE,
+                  useBytes = FALSE,
+                  invert = FALSE) {
   stopifnot(mode %in% c("grep", "grepl", "gsub"))
   x <- paste0(sep, x, sep)
   pattern <- paste(paste0(sep, pattern, sep), collapse = "|")

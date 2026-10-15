@@ -34,13 +34,13 @@ shinyFDInput <- function(root,
                          l,
                          useIcon = FALSE,
                          width = "15px") {
-  stopifnot(l > 0)
+  stopifnot(l > 0L)
   rg <- seq_len(l)
   ids <- paste0(root, "___", as.character(rg), "___FD")
-  if ((length(width) != 1)||(is.na(width))||(is.null(width))) {
-    width <- paste0(15, "px")
+  if ((length(width) != 1L) || is.na(width) || is.null(width)) {
+    width <- "15px"
   }
-  inputs <- vapply(rg, function(i) {
+  inputs <- vapply(rg, \(i) {
     as.character(shinyWidgets::actionBttn(ids[i],
                                           "",
                                           shiny::icon("arrow-down"),

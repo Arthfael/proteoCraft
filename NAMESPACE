@@ -7,12 +7,11 @@ export(.FP2MQ_modSeqWrkr2)
 export(.FP2MQ_modSeqWrkr3)
 export(.FP2MQ_modSeqWrkr4)
 export(.FP2MQ_modSeqWrkr5)
-export(.Format.DB_worker)
-export(.PG_assemble)
 export(.SK2MQ_modSeqWrkr1)
 export(.SK2MQ_modSeqWrkr2)
 export(.SK2MQ_tmpModsWrkr)
 export(.bind_worker)
+export(.commAnd)
 export(.ggSave_worker)
 export(.labelEdit_worker)
 export(.plot_Rank_OR_Prof)
@@ -26,10 +25,6 @@ export(Av_SE_fun)
 export(Configure)
 export(Coverage)
 export(DIANN_to_MQ)
-export(DIANN_to_MQ_server1)
-export(DIANN_to_MQ_server2)
-export(DIANN_to_MQ_ui1)
-export(DIANN_to_MQ_ui2)
 export(Data_Impute2)
 export(DefArg)
 export(DensPlot)
@@ -74,7 +69,6 @@ export(grsep2)
 export(gsub_Rep)
 export(hclust_to_seg)
 export(insertElems)
-export(is.all.good)
 export(listMelt)
 export(loadFun)
 export(load_Bckp)
@@ -109,3 +103,45 @@ export(shinyTextInput)
 export(topattern)
 export(writeFasta)
 import(data.table)
+importFrom(grDevices,
+  dev.list,
+  dev.off,
+  graphics.off,
+  rainbow
+)
+importFrom(graphics,layout)
+importFrom(methods,
+  as,
+  getFunction
+)
+importFrom(stats,
+  aggregate,
+  as.dendrogram,
+  as.formula,
+  dist,
+  hclust,
+  lm.fit,
+  mad,
+  median,
+  p.adjust,
+  prcomp,
+  pt,
+  qnorm,
+  qt,
+  sd,
+  setNames,
+  time,
+  weighted.mean
+)
+importFrom(utils,
+  capture.output,
+  data,
+  installed.packages,
+  object.size,
+  packageVersion,
+  read.csv,
+  read.delim,
+  sessionInfo,
+  write.csv,
+  write.table
+)

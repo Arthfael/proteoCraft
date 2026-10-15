@@ -1,7 +1,19 @@
 #### Venn diagrams
-library(venn)
+setwd(wd)
 library(ggplot2)
-library(openxlsx2)
+library(ggpolypath)
+library(venn)
+library(plotly)
+library(htmlwidgets)
+#
+if (!exists("plotly_Venn")) { plotly_Venn <- list() }
+#
+HdrStlVenn <- openxlsx2::create_cell_style(num_fmt_id = "General",
+                                           horizontal = "left",
+                                           vertical = "bottom",
+                                           text_rotation = 60,
+                                           wrap_text = TRUE)
+#
 # cleanNms2 function specifically designed to clean names for Venn diagrams
 cleanNms2 %<o% function(names,
                         groups = VPAL, # Must match the type of aggregate of names
@@ -27,13 +39,6 @@ cleanNms2 %<o% function(names,
 vennlev <- c("up", "down")
 cat("Venn diagrams\n")
 #
-if (!exists("plotly_Venn")) { plotly_Venn <- list() }
-#
-HdrStlVenn <- openxlsx2::create_cell_style(num_fmt_id = "General",
-                                           horizontal = "left",
-                                           vertical = "bottom",
-                                           text_rotation = 60,
-                                           wrap_text = TRUE)
 Mod2Venn <- c()
 scrptMtch <- match(scrptTypeFull,
                    c("withReps_PTMs_only",
@@ -74,7 +79,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
       Sg <- Exp.map[match(Si, Exp.map$Ref.Sample.Aggregate), VPAL$column]
       colIi <- setNames(colIi, Si)
       colIg <- setNames(colIg, uSg)
-      colCi <- gsub(".* - ", "Evidences count - ", colIi)
+      colCi <- sub(".* - ", "Evidences count - ", colIi)
       tmpIi <- myData[, colIi]
       tmpCi <- as.matrix(myData[, colCi])
       Wi <- which(tmpCi == 0L, arr.ind = TRUE)
@@ -95,7 +100,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
     # Draft alt. code for pep
     #myData <- pep
     #myRef <- grep("^Mean [^ ]+ log10\\(", colnames(myData), value = TRUE)
-    #myRef <- paste0(unique(gsub(" - .*", "", myRef)), " - ")
+    #myRef <- paste0(unique(sub(" - .*", "", myRef)), " - ")
     #myRef <- myRef[length(myRef)]
     #idKol <- "Modified sequence"
     #infoKol <- "Proteins"
@@ -110,7 +115,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
     vennRoot <- paste0(Ptm, " ")
     myData <- PTMs_pep[[Ptm]]
     myRef <- grep("^Mean ([^ ]+ )?log10\\(", colnames(myData), value = TRUE)
-    myRef <- paste0(unique(gsub(" - .*", "", myRef)), " - ")
+    myRef <- paste0(unique(sub(" - .*", "", myRef)), " - ")
     myRef <- myRef[length(myRef)]
     infoKol <- "Proteins"
     idKol <- "Modified sequence"
@@ -232,7 +237,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
         VennExp <- names(comp_list)[w]
         lV <- length(VennExp)
         OK <- lV > 1L
-        ttl <- gsub("^g", "G", paste0(vennRoot, "t-tests Venn diagram", grpTxt2, levTxt2))
+        ttl <- sub("^g", "G", paste0(vennRoot, "t-tests Venn diagram", grpTxt2, levTxt2))
         if (lV > VennMx) {
           msg <- paste0("Too many groups, select at least 2 and up to ", VennMx,
                         " to include in Venn diagram ", ttl)
@@ -428,7 +433,7 @@ for (nm in names(plotly_Venn)) { #nm <- names(plotly_Venn)[1L]
   p <- plotly::plotly_build(plotly_Venn[[nm]])
   p$x$layout$xaxis$autorange <- TRUE
   p$x$layout$yaxis$autorange <- TRUE
-  p <- htmlwidgets::onRender(p, global_autorange)
+  p <- htmlwidgets::onRender(p, jsFun$global_auto_range)
   plotly_Venn[[nm]] <- plotly::config(p,
                                       modeBarButtonsToRemove = c("select2d", "lasso2d"))
 }

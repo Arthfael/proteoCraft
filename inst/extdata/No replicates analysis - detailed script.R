@@ -60,7 +60,6 @@ source(Src)
 #ReUseAnsw %<o% FALSE
 scrptType %<o% "noReps"
 scrptTypeFull %<o% "noReps_PG_and_PTMs"
-ExcelMax %<o% 32767L
 
 
 # Parameters used by the start analysis script:
@@ -75,13 +74,13 @@ if(!exists("cran_req")) { cran_req <- "pak" }
 cran_req %<o% cran_req
 if(!exists("bioc_req")) { bioc_req <- c() } 
 bioc_req %<o% bioc_req
-cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT", "shinyBS", "stringr",
-                     "gplots", "ggplot2", "ggpubr", "reshape", "reshape2", "compiler", "stats", "rgl", "ggrepel", "rstudioapi", "gtools", "minpack.lm",
-                     "parallel", "openxlsx", "openxlsx2", "openssl", "plotly", "Peptides", "venn", "ggdendro", "ggpubr", "colorspace", "ggnewscale",
-                     "viridis", "factoextra", "NbClust", "gridExtra", "svDialogs", "htmlwidgets", "magrittr", "tibble", "fs", "officer", "snow",
-                     "imputeLCMD", "ggplotify", "cowplot", "plyr", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders", "jpeg", "stringi",
+cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT",
+                     "gplots", "ggplot2", "ggpubr", "reshape", "reshape2", "compiler", "stats", "ggrepel", "rstudioapi", "gtools", "minpack.lm",
+                     "parallel", "openxlsx", "openxlsx2", "plotly", "Peptides", "venn", "ggdendro", "ggpubr", "colorspace", "ggnewscale",
+                     "viridis", "factoextra", "NbClust", "svDialogs", "htmlwidgets", "magrittr", "fs", "officer", "snow",
+                     "imputeLCMD", "ggplotify", "plyr", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders", "jpeg", "stringi",
                      "readr", "ssh", "taxize", "arrow", "iq", "Rtsne", "svglite"))
-bioc_req <- unique(c(bioc_req, "UniProt.ws", "pcaMethods", "impute", "GO.db", "topGO", "pcaMethods",
+bioc_req <- unique(c(bioc_req, "UniProt.ws", "GO.db", "topGO", "pcaMethods",
                      "limpa", "QFeatures"))
 inst <- as.data.frame(installed.packages())
 for (pack in cran_req) {
@@ -223,10 +222,11 @@ if (LabelType == "LFQ") {
   int.cols["Original"] <- int.col
 }
 
+IsBioID %<o% FALSE
 if (WorkFlow == "Pull-down") {
-  IsBioID %<o% c(TRUE, FALSE)[match(dlg_message("Is this a BioID (and variants) experiment?", "yesno")$res, c("yes", "no"))]
+  IsBioID <- c(TRUE, FALSE)[match(dlg_message("Is this a BioID (and variants) experiment?", "yesno")$res, c("yes", "no"))]
   if (IsBioID) { AnalysisParam$"Type - advanced" <- "BioID" }
-} else { IsBioID %<o% FALSE }
+}
 IsBioID2 %<o% FALSE
 
 #### Code chunk - Load and process search database(s)
@@ -309,7 +309,7 @@ if (PTMriched) {
     colnames(tmp) <- c("Raw file", ptm, "Count")
     tmp[[ptm]] <- c("-", "+")[tmp[[ptm]] + 1L]
     tmp[[ptm]] <- factor(tmp[[ptm]], levels = c("-", "+"))
-    tmp$"Raw file" <- gsub(".*/|\\.[^\\.]+$", "", tmp$"Raw file")
+    tmp$"Raw file" <- gsub(".*/|\\.[^.]+$", "", tmp$"Raw file")
     plot <- ggplot(tmp) + geom_bar(aes(x = `Raw file`, y = Count, fill = .data[[ptm]]), stat = "identity") +
       scale_fill_viridis(discrete = TRUE, option = "H", begin = 0.25, end = 0.8) + ggtitle(ttl) + 
       theme_bw() + theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1))
@@ -322,7 +322,7 @@ if (PTMriched) {
       res <- c()
       fm <- FracMap[FracMap$`Parent sample` == exp,]
       tst <- unique(fm$`PTM-enriched`[fm$`Parent sample` == exp])
-      if ((ptm %in% tst)&&(length(tst) > 1L)) {
+      if ((ptm %in% tst) && (length(tst) > 1L)) {
         # We need to filter out peptides with the mark from all non-enriched samples
         smpls1 <- fm$`Raw file`[is.na(fm$`PTM-enriched`) | (fm$`PTM-enriched` != ptm)] # Non-enriched/flow through samples
         smpls2 <- fm$`Raw file`[fm$`PTM-enriched` == ptm] # Enriched samples
@@ -357,7 +357,7 @@ NegFilt %<o% (sum(SamplesMap$`Negative Filter`) > 0L)
 RemovZ1 %<o% FALSE
 w1 <- which(ev$Charge == 1L)
 wHt1 <- which(ev$Charge > 1L)
-if ((RemovZ1)&&(length(w1))) {
+if (RemovZ1 && length(w1)) {
   cat("Removing the following presumably bogus identifications with Z=1:\n",
       paste(unique(ev$`Modified sequence`[w1]), collapse = "\n"))
   ev <- ev[wHt1,]
@@ -372,7 +372,7 @@ if (l2) {
   nullEv <- ev[w2,]
   ev <- ev[w1,]
 }
-w1 <- which((is.na(ev$Reverse)) | (ev$Reverse != "+"))
+w1 <- which(is.na(ev$Reverse) | (ev$Reverse != "+"))
 w2 <- setdiff(1L:nrow(ev), w1)
 l2 <- length(w2)
 if (l2) {
@@ -417,7 +417,7 @@ Src <- paste0(libPath, "/extdata/Sources/noRep_pepQuant.R")
 source(Src)
 
 #### Code chunk - optionally impute missing expression values
-if ((length(Exp) > 1L)&&(Impute)) {
+if ((length(Exp) > 1L) && Impute) {
   kol <- grep(topattern(int.col), colnames(pep), value = TRUE)
   tst <- sum(!is.finite(log10(unlist(pep[, kol]))))
   if (length(tst)) {
@@ -429,7 +429,7 @@ if ((length(Exp) > 1L)&&(Impute)) {
     Min <- min(unlist(temp[w2]))
     SD <- sd(unlist(temp[w2]))
     temp[w1] <- rnorm(nrow(w1), Min, SD/5)
-    kol2 <- gsub(topattern(int.col), paste0("Imput. ", int.cols["Original"]), g)
+    kol2 <- sub(topattern(int.col), paste0("Imput. ", int.cols["Original"]), g)
     colnames(temp) <- kol2
     temp <- 10L^temp
     temp[w2] <- pep[, g][w2]
@@ -463,7 +463,7 @@ form <- ".~Sample"
 if (PTMriched) {
   kol <- c(kol, EnrichedPTMs)
   kol2 <- c(kol2, EnrichedPTMs)
-  form <- gsub("^\\.", "PTMs", form)
+  form <- sub("^\\.", "PTMs", form)
 }
 form <- as.formula(form)
 temp <- pep[, kol]
@@ -541,8 +541,8 @@ if (length(Exp) > 1L) {
     return(setNames(c(x, paste0("Median = ", round(median(x1), 3L)), paste0("S.D. = ", round(sd(x1), 3L))),
                     c("Comparison", "Median", "SD")))
   })))
-  temp3$X <- gsub(" \\(X\\).+", "", temp3$Comparison)
-  temp3$Y <- gsub(".+\\(X\\) vs ", "", gsub(" \\(Y\\)$", "", temp3$Comparison))
+  temp3$X <- sub(" \\(X\\).+", "", temp3$Comparison)
+  temp3$Y <- sub(".+\\(X\\) vs ", "", sub(" \\(Y\\)$", "", temp3$Comparison))
   temp3$X <- factor(temp3$X, levels = Exp)
   temp3$Y <- factor(temp3$Y, levels = Exp)
   temp3$R <- vapply(strsplit(gsub(" \\([XY]\\)", "", temp3$Comparison), " vs "), \(x) {
@@ -642,7 +642,7 @@ if (MakeRatios) {
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   temp <- pep[, c("Modified sequence", grep(topattern(paste0(rat.col, " - ")), colnames(pep), value = TRUE))]
   temp <- dfMelt(temp, id.vars = "Modified sequence")
-  temp$Sample <- gsub(topattern(paste0(rat.col, " - ")) , "", temp$variable)
+  temp$Sample <- sub(topattern(paste0(rat.col, " - ")) , "", temp$variable)
   temp$Sample <- factor(temp$Sample, levels = Exp)
   temp <- temp[is.finite(temp$value),]
   ttl <- "Ratios density plot - Peptides level"
@@ -721,9 +721,9 @@ if (tstFllID) {
 source(parSrc)
 clusterExport(parClust, exports, envir = environment())
 for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
-  if (i == "No Isoforms") { j <- i } else { j <- gsub("s$", "", i) }
+  j <- if (i == "No Isoforms") { i } else { sub("s$", "", i) }
   if (!j %in% colnames(db)) {
-    j <- paste0(gsub("s$", "", i), c(" ID", " IDs", ""))
+    j <- paste0(sub("s$", "", i), c(" ID", " IDs", ""))
     w <- which(j %in% colnames(db))
     if (length(w)) { j <- j[w[1L]] } else {
       warning(paste0("No near matching column name found for \"", i, "\" in the protein data base table."))
@@ -824,7 +824,7 @@ if (!"Sequence coverage [%]" %in% colnames(PG)) {
     Coverage(x[[1L]], x[[2L]])
   }), 1L)
 }
-CreateMSMSKol %<o% (("MS/MS IDs" %in% colnames(ev))&&(class(ev$"MS/MS IDs") %in% c("integer", "character")))
+CreateMSMSKol %<o% (("MS/MS IDs" %in% colnames(ev)) && (sum(c("integer", "character") %in% class(ev$"MS/MS IDs"))))
 if (CreateMSMSKol) {
   # Somehow there are no MSMS IDs for DIA, but this may be a late tables writing bug.
   ev$temp <- parLapply(parClust, strsplit(as.character(ev$"MS/MS IDs"), ";"), as.integer)
@@ -1027,7 +1027,7 @@ source(quntSrc)
 
 #### Code chunk - Re-normalize protein group expression values
 # Normalize (Levenberg-Marquardt)
-if ((length(Exp) > 1L)&&(NormalizePG)) {
+if ((length(Exp) > 1L) && NormalizePG) {
   g <- grep(topattern(PG.int.col), colnames(PG), value = TRUE)
   temp <- PG[, c("id", g)]
   m <- apply(temp[, g], 2L, \(x) { median(x[is.finite(x)]) })
@@ -1035,15 +1035,15 @@ if ((length(Exp) > 1L)&&(NormalizePG)) {
   M <- median(M[is.finite(M)])
   temp[, g] <- sweep(temp[, g], 2L, m, "-") + M
   temp <- AdvNorm.IL(temp[, c("id", g)], "id", exprs.col = g, exprs.log = TRUE)
-  PG[, gsub(topattern(PG.int.col), paste0("Norm. ", PG.int.cols["Original"]), g)] <- temp[, paste0("AdvNorm.", g)]
+  PG[, sub(topattern(PG.int.col), paste0("Norm. ", PG.int.cols["Original"]), g)] <- temp[, paste0("AdvNorm.", g)]
   PG.int.cols["Normalized"] <- PG.int.col <- paste0("Norm. ", PG.int.cols["Original"])
 }
 
 # Average expression columns:
 if (length(Exp) > 1L) {
   for (i in PG.int.cols) {
-    PG[[paste0("Mean ", gsub(" - $", "", i))]] <- apply(PG[, grep(topattern(i), colnames(PG), value = TRUE)],
-                                                        1L, mean, na.rm = TRUE)
+    PG[[paste0("Mean ", sub(" - $", "", i))]] <- apply(PG[, grep(topattern(i), colnames(PG), value = TRUE)],
+                                                       1L, mean, na.rm = TRUE)
   }
 }
 
@@ -1059,9 +1059,6 @@ if (MakeRatios) {
 }
 
 #### Code chunk - Prepare Annotations and (if applicable) GO terms
-# NB: I used to get functional annotations for all proteins in the protein group.
-#     However we are now - and I think with reason - only using annotations from the leading protein(s)!
-setwd(wd)
 Src <- paste0(libPath, "/extdata/Sources/Annotate_me.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
@@ -1138,8 +1135,8 @@ if (length(Exp) > 1L) {
              paste0("S.D. = ", round(sd(x2), 3L)),
              paste0("R = ", round(cor(x1$"log10(X LFQ)", x1$"log10(Y LFQ)"), 3L))))
   })))
-  temp$Comparison <- gsub(" vs ", "\nvs\n", temp$Comparison)
-  temp2$Comparison <- gsub(" vs ", "\nvs\n", temp2$Comparison)
+  temp$Comparison <- sub(" vs ", "\nvs\n", temp$Comparison)
+  temp2$Comparison <- sub(" vs ", "\nvs\n", temp2$Comparison)
   temp$Type <- factor(temp$Type, levels = names(PG.int.cols))
   temp2$Type <- factor(temp2$Type, levels = names(PG.int.cols))
   temp$X <- factor(temp$X, levels = Exp)
@@ -1208,13 +1205,13 @@ temp <- PG[, c("Common Name (short)", as.character(sapply(PG.int.cols, \(x) { pa
 temp <- reshape::melt(temp, id.vars = "Common Name (short)")
 colnames(temp)[colnames(temp) == "value"] <- "log10(Intensity)"
 if (length(Exp) > 1L) {
-  temp2 <- PG[, c("Common Name (short)", paste0("Mean ", gsub(" - $", "", PG.int.cols)))]
+  temp2 <- PG[, c("Common Name (short)", paste0("Mean ", sub(" - $", "", PG.int.cols)))]
   temp2 <- dfMelt(temp2, id.vars = "Common Name (short)")
   temp$"Mean log10(Intensity)" <- temp2$value
 }
-temp$Experiment <- gsub(paste0(".*", topattern(PG.int.cols["Original"], start = FALSE)), "", temp$variable)
+temp$Experiment <- sub(paste0(".*", topattern(PG.int.cols["Original"], start = FALSE)), "", temp$variable)
 temp$Experiment <- factor(temp$Experiment, levels = SamplesMap$Experiment)
-temp$Type <- gsub(paste0(" ?", topattern(PG.int.cols["Original"], start = FALSE), ".*$"), "", temp$variable)
+temp$Type <- sub(paste0(" ?", topattern(PG.int.cols["Original"], start = FALSE), ".*$"), "", temp$variable)
 temp$Type[temp$Type == ""] <- "Orig."
 temp$Type <- paste0("log10(", tolower(temp$Type), " LFQ)")
 temp$Type <- factor(temp$Type, levels = paste0("log10(", c("orig", "imput", "norm"), ". LFQ)"))
@@ -1287,7 +1284,7 @@ if (length(M)) {
   temp2 <- temp2[temp2$"+" == 1L,]
   if (globalGO) {
     temp2$`GO term` <- GO_terms$Term[match(temp2$`GO term`, GO_terms$ID)]
-    temp2$`GO term` <- gsub("\\]$", "", gsub(" \\[", "\n",  temp2$`GO term`))
+    temp2$`GO term` <- sub("\\]$", "", gsub(" \\[", "\n",  temp2$`GO term`))
   }
   ttl2 <- "LFQ density plot - PGs level, GO terms"
   plot3 <- ggplot(temp2) + geom_density(stat = "density", aes(x = `log10(Intensity)`, fill = `GO term`),
@@ -1384,7 +1381,7 @@ if (MakeRatios) {
     FC_Smpls[[grp]] <- list(Numerator = smpl1, Denominator = smpl0)
   }
   #g <- grep(topattern(PG.rat.col), colnames(PG), value = TRUE)
-  #test <- setNames(vapply(g, \(x) { sum(is.finite(PG[[x]])) }, 1L), gsub(topattern(PG.rat.col), "", g))
+  #test <- setNames(vapply(g, \(x) { sum(is.finite(PG[[x]])) }, 1L), sub(topattern(PG.rat.col), "", g))
   #print(test)
   #
   # Ratios distribution:
@@ -1394,9 +1391,9 @@ if (MakeRatios) {
   }))))]
   temp <- reshape::melt(temp, id.vars = "Common Name (short)")
   colnames(temp)[colnames(temp) == "value"] <- "log2(Ratio)"
-  temp$Experiment <- gsub(paste0(".*", topattern(PG.rat.cols["Original"], start = FALSE)), "", temp$variable)
+  temp$Experiment <- sub(paste0(".*", topattern(PG.rat.cols["Original"], start = FALSE)), "", temp$variable)
   temp$Experiment <- factor(temp$Experiment, levels = SamplesMap$Experiment)
-  temp$Type <- gsub(paste0(" ?", topattern(PG.rat.cols["Original"], start = FALSE), ".*$"), "", temp$variable)
+  temp$Type <- sub(paste0(" ?", topattern(PG.rat.cols["Original"], start = FALSE), ".*$"), "", temp$variable)
   temp$Type[temp$Type == ""] <- "Orig."
   temp$Type <- paste0("log2(", tolower(temp$Type), " ratio)")
   temp$Type <- factor(temp$Type, levels = paste0("log2(", c("orig", "norm", "imput"), ". ratio)"))
@@ -1446,7 +1443,7 @@ if (MakeRatios) {
       xp0 <- SmplMp$Experiment[w0]
       for (x in w1) { #x <- w1[1L]
         xp1 <- SmplMp$Experiment[x]
-        wonly <- which(is.finite(PG[[paste0(ref, xp1)]])&(!is.finite(PG[[paste0(ref, xp0)]])))
+        wonly <- which(is.finite(PG[[paste0(ref, xp1)]]) & (!is.finite(PG[[paste0(ref, xp0)]])))
         PG[[paste0("Regulated - ", xp1)]] <- ""
         if (RatiosThresh_2sided) {
           wup <- which(PG[[paste0(PG.rat.col, xp1)]] >= RatiosThresh)
@@ -1477,7 +1474,7 @@ if (MakeRatios) {
       PTMs_FC_Smpls[[ptm]] <- list()
       PTM_normalize[[ptm]] <- TRUE
       ptmpep <- pep[pep[[ptm]],]
-      a <- unlist(strsplit(gsub("\\)$", "", ptm), "\\("))
+      a <- unlist(strsplit(sub("\\)$", "", ptm), "\\("))
       if (length(a) > 1L) {
         Ptm <- paste0(toupper(substr(a[1L], 1L, 1L)), substr(a[1L], 2L, nchar(ptm)), "(", a[2L], ")")
       } else {
@@ -1567,14 +1564,14 @@ if (MakeRatios) {
       ptmpep$tmp2 <- NULL
       ptmpep$Name <- ""
       w <- which(ptmpep$"Leading proteins" != "")
-      ptmpep$Name[w] <- vapply(strsplit(gsub("[/,;].+$", "", ptmpep[w, paste0(Ptm, "-site(s)")]), " "), \(x) {
+      ptmpep$Name[w] <- vapply(strsplit(sub("[/,;].+$", "", ptmpep[w, paste0(Ptm, "-site(s)")]), " "), \(x) {
         paste0(x[[1L]], " ", db$"Common Name"[match(x[[2L]], db$"Protein ID")])
       }, "")
       ptmpep$Name[ptmpep$Name == ""] <- paste0("Unknown ", ptm, "-modified peptide #", seq_along(which(ptmpep$Name == "")))
       #View(ptmpep[,c("Match(es)", "Modified sequence", "Code", paste0(Ptm, "-site(s)"))])
       if (grepl("^[Pp]hospho( \\([A-Z]+\\))?$", ptm)) {
-        p_col <- paste0(gsub(" |\\(|\\)", ".", ptm), ".Probabilities")
-        scd_col <- paste0(gsub(" |\\(|\\)", ".", ptm), ".Score.Diffs")
+        p_col <- paste0(gsub("[ ()]", ".", ptm), ".Probabilities")
+        scd_col <- paste0(gsub("[ ()]", ".", ptm), ".Score.Diffs")
         if (sum(c(p_col, scd_col) %in% colnames(ptmpep)) == 2L) {
           temp <- try(phos_QC(ptmpep, P_col = p_col, ScD_col = scd_col), silent = TRUE)
           if (inherits(temp, "try-error")) {
@@ -1587,7 +1584,7 @@ if (MakeRatios) {
       if (PTM_normalize[[ptm]]) {
         # Step 1: normalize ratios:
         a <- grep(topattern(PTMs_ratRf[PTMs_ratNm0]), colnames(ptmpep), value = TRUE)
-        a1 <- gsub(topattern(paste0(PTMs_ratRf[PTMs_ratNm0], " - ")), PG.rat.col, a)
+        a1 <- sub(topattern(paste0(PTMs_ratRf[PTMs_ratNm0], " - ")), PG.rat.col, a)
         stopifnot(sum(!a1 %in% colnames(PG)) == 0L)
         temp <- Isapply(strsplit(ptmpep$"Protein group IDs", ";"), \(x) { #x <- strsplit(ptmpep$"Protein group IDs", ";")[1L]
           x <- unlist(x)
@@ -1664,7 +1661,7 @@ if (MakeRatios) {
           r1 <- ptmpep[[paste0(Rat, " - ", x)]]
           if (RatiosThresh_2sided) { r1 <- abs(r1) }
           w <- which(is.finite(e1) & ((r1 >= RatiosThresh) | (!is.finite(e0))))
-          if ((NegFilt)&&(length(nf))) { w <- w[!nftst[w]] }
+          if (NegFilt && length(nf)) { w <- w[!nftst[w]] }
           return(w)
         }), smpl1))
         PTMs_FC_Smpls[[ptm]][[grp]] <- list(Numerator = smpl1, Denominator = smpl0)
@@ -1684,7 +1681,7 @@ if (MakeRatios) {
           xp0 <- SmplMp$Experiment[w0]
           for (x in w1) { #x <- w1[1L]
             xp1 <- SmplMp$Experiment[x]
-            wonly <- which(is.finite(ptmpep[[paste0(Int, " - ", xp1)]])&(!is.finite(ptmpep[[paste0(Int, " - ", xp0)]])))
+            wonly <- which(is.finite(ptmpep[[paste0(Int, " - ", xp1)]]) & (!is.finite(ptmpep[[paste0(Int, " - ", xp0)]])))
             PG[[paste0("Regulated - ", xp1)]] <- ""
             if (RatiosThresh_2sided) {
               wup <- which(ptmpep[[paste0(Rat, " - ", xp1)]] >= RatiosThresh)
@@ -1705,9 +1702,9 @@ if (MakeRatios) {
       })))]
       temp <- dfMelt(temp, id.vars = "Code")
       colnames(temp)[colnames(temp) == "value"] <- "log2(Ratio)"
-      temp$Experiment <- gsub(paste0(".*", topattern(paste0(PTMs_ratRf["Original"], " - "), start = FALSE)), "", temp$variable)
+      temp$Experiment <- sub(paste0(".*", topattern(paste0(PTMs_ratRf["Original"], " - "), start = FALSE)), "", temp$variable)
       temp$Experiment <- factor(temp$Experiment, levels = SamplesMap$Experiment)
-      temp$Type <- gsub(paste0(" ?", topattern(PTMs_ratRf["Original"], start = FALSE), ".*$"), "", temp$variable)
+      temp$Type <- sub(paste0(" ?", topattern(PTMs_ratRf["Original"], start = FALSE), ".*$"), "", temp$variable)
       temp$Type[temp$Type == ""] <- "Orig."
       temp$Type <- paste0("log2(", tolower(temp$Type), " ratio)")
       temp$Type <- factor(temp$Type, levels = paste0("log2(", c("orig", "norm", "imput", "renorm"), ". ratio)"))
@@ -1759,9 +1756,9 @@ if (IsBioID2) {
 #### Code chunk - Proteomic ruler
 if (protrul) {
   ref <- rev(setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
-  if (length(Exp) > 1L) { ref <- c(ref, paste0("Mean ", gsub(" - $", "", ref))) }
+  if (length(Exp) > 1L) { ref <- c(ref, paste0("Mean ", sub(" - $", "", ref))) }
   temp <- try(Prot.Ruler(PG, db, ref, NuclL = ProtRulNuclL), silent = TRUE)
-  if ((!inherits(temp, "try-error"))&&(!is.logical(temp))) {
+  if ((!inherits(temp, "try-error")) && (!is.logical(temp))) {
     PG <- temp$Protein.groups
     db <- temp$Database
   } else { protrul <- FALSE }
@@ -1787,7 +1784,7 @@ QC_plotLys[names(tmp$plotLy)] <- tmp$plotLy
 # Plot of contamination levels per sample
 tmp <- ev[, c("Proteins", "Intensity", "Experiment")]
 tmp2 <- listMelt(strsplit(tmp$Proteins, ";"), 1L:nrow(tmp), c("Protein", "Row"))
-m <- match(gsub("^CON__", "", tmp2$Protein), gsub("^CON__", "", db$`Protein ID`))
+m <- match(sub("^CON__", "", tmp2$Protein), sub("^CON__", "", db$`Protein ID`))
 w <- which(!is.na(m))
 tmp2 <- tmp2[w,]; m <- m[w]
 # For our purpose here we must match contaminant proteins.
@@ -1874,13 +1871,15 @@ saveFun(GO_plot_ly, GO_plot_ly_fl)
 rm(GO_plot_ly)
 
 #### Code chunk - Venn diagrams
-vennTst <- try({
-  Src <- paste0(libPath, "/extdata/Sources/noRep_Venn.R")
-  #rstudioapi::documentOpen(Src)
-  source(Src)
-}, silent = TRUE)
-if (inherits(vennTst, "try-error")) {
-  warning("Venn diagrams failed ---> investigate!")
+if (pkgsCheck["Venn"]) {
+  vennTst <- try({
+    Src <- paste0(libPath, "/extdata/Sources/noRep_Venn.R")
+    #rstudioapi::documentOpen(Src)
+    source(Src)
+  }, silent = TRUE)
+  if (inherits(vennTst, "try-error")) {
+    warning("Venn diagrams failed ---> investigate!")
+  }
 }
 
 #### Code chunk - Dimensionality reduction plots
@@ -1888,7 +1887,7 @@ if (inherits(vennTst, "try-error")) {
 if (length(Exp) > 2L) {
   setwd(wd); suppressWarnings(dir.create("PCA plots"))
   temp <- PG[, grep(topattern(PG.int.col), colnames(PG), value = TRUE)]
-  colnames(temp) <- gsub(topattern(PG.int.col), "", colnames(temp))
+  colnames(temp) <- sub(topattern(PG.int.col), "", colnames(temp))
   ## Impute data
   ## Here we have no way to decide between MAR/MCAR/MNAR,
   ## so we will instead replace every missing value with a random value drawn from a gaussian distribution of reduced m and sd
@@ -1901,7 +1900,7 @@ if (length(Exp) > 2L) {
     temp2 <- rnorm(length(w), m-3, sd/2)
     temp[w, i] <- temp2
   }
-  nrm <- PG[[paste0("Mean ", gsub(" - $", "", PG.int.col))]]
+  nrm <- PG[[paste0("Mean ", sub(" - $", "", PG.int.col))]]
   w <- which(is.finite(nrm))
   temp <- sweep(temp[w,], 1L, nrm[w], "-")
   rownames(temp) <- PG$"Leading protein IDs"[w]
@@ -1976,8 +1975,9 @@ if (length(Exp) > 2L) {
       coord_fixed() + ggtitle(ttl, subtitle = pv) +
       theme_bw() + guides(alpha = "none", shape = "none") +
       scale_color_gradientn(colors = hcl.colors(length(Exp)), breaks = breaks, labels = labels, guide = "legend")
-    if ((prot.list.Cond)&&(length(g1)))
-      plot <- plot + geom_point(data = scores2, colour = "red", shape = 2L, aes(x = PC1, y = PC2, text = `Protein group`))
+    if (prot.list.Cond && length(g1)) {
+      plot <- plot + geom_point(data = scores2, colour = "red", shape = 2L, aes(x = PC1, y = PC2, text = `Protein group`))      
+    }
   }
   suppressMessages({
     ggsave(paste0(wd, "/PCA plots/", ttl, ".svg"), plot, dpi = 150L)
@@ -1990,7 +1990,7 @@ if (length(Exp) > 2L) {
             type = "scatter3d", mode = "markers", showlegend = FALSE, marker = list(size = 1L))
   }
   plot_lyPCAProt <- layout(plot_lyPCAProt, title = ttl)
-  if ((prot.list.Cond)&&(length(g1))) {
+  if (prot.list.Cond && length(g1)) {
     scores3 <- scores2
     scores3$"Protein group" <- gsub(" - | ?, ?", "<br>", scores3$"Protein group")
     plot_lyPCAProt <- if ("PC3" %in% colnames(scores)) {
@@ -2010,7 +2010,7 @@ if (length(Exp) > 2L) {
   setwd(wd)
   if (!inherits(tst, "try-error")) { system(paste0("open \"", wd, "/PCA plots/", ttl, ".html")) }
   #plot <- plot + geom_text_repel(data = scores, aes(x = PC1, y = PC2, label = `Protein group`, alpha = Alpha), size = 2.5)
-  if ((prot.list.Cond)&&(length(g1))) {
+  if (prot.list.Cond && length(g1)) {
     plot <- plot + geom_text_repel(data = scores2, colour = "red", size = 2.5,
                                    aes(x = PC1, y = PC2, label = `Protein group`))
   }
@@ -2106,7 +2106,7 @@ source(xlSrc)
 #xl_open(repFl)
 
 # Save special quantitative table for proteins of interest
-if ((length(Exp) > 1L)&&(prot.list.Cond)) {
+if ((length(Exp) > 1L) && prot.list.Cond) {
   dir <- paste0(wd, "/Proteins of interest")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   w <- grsep2(prot.list, PG$"Leading protein IDs")
@@ -2114,7 +2114,7 @@ if ((length(Exp) > 1L)&&(prot.list.Cond)) {
     kols <- grep(topattern(PG.int.col), colnames(PG), value = TRUE)
     temp <- PG[w, c("Label", "Peptide IDs", kols)]
     for (kol in kols) {
-      kol2 <- gsub(" log10\\(", " ", gsub("\\) - ", " - ", kol))
+      kol2 <- sub(" log10\\(", " ", sub("\\) - ", " - ", kol))
       temp[[kol2]] <- suppressWarnings(10L^temp[[kol]])
       temp[!is.finite(temp[[kol2]]), kol] <- NA_real_
       temp[[kol]] <- NULL
@@ -2125,7 +2125,7 @@ if ((length(Exp) > 1L)&&(prot.list.Cond)) {
 }
 
 #### Code chunk - Heatmap(s) of peptides mapping to proteins of interest
-if ((length(Exp) > 1L)&&(!is.null(prot.list))&&(length(prot.list))) {
+if ((length(Exp) > 1L) && (!is.null(prot.list)) && length(prot.list)) {
   dir <- paste0(wd, "/Heatmaps")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   ref <- int.cols[which(names(int.cols) == "Imputed")-1L]
@@ -2149,7 +2149,7 @@ if ((length(Exp) > 1L)&&(!is.null(prot.list))&&(length(prot.list))) {
         temp <- temp[w,]
       }
       if (nrow(temp)) {
-        colnames(temp) <- gsub(topattern(paste0(ref, " - ")), "", colnames(temp))
+        colnames(temp) <- sub(topattern(paste0(ref, " - ")), "", colnames(temp))
         # Create heatmap
         temp <- temp[, c("Modified sequence", Exp)]
         tst <- apply(temp[, Exp, drop = FALSE], 1L, \(x) { mean(x[x > 0]) })
@@ -2217,9 +2217,11 @@ if ((length(Exp) > 1L)&&(!is.null(prot.list))&&(length(prot.list))) {
 }
 
 #### Code chunk - peptide tables for visualizing the coverage of proteins of interest in 3D
-Src <- paste0(libPath, "/extdata/Sources/3d_Cov.R")
-#rstudioapi::documentOpen(xlSrc)
-source(Src)
+if (pkgsCheck["3d_Cov"]) {
+  Src <- paste0(libPath, "/extdata/Sources/3d_Cov.R")
+  #rstudioapi::documentOpen(Src)
+  source(Src)
+}
 
 # Save parameters
 temp <- data.frame(Parameter = names(AnalysisParam),
@@ -2244,24 +2246,15 @@ dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 write.csv(temp, paste0(dir, "/Modifications.csv"), row.names = FALSE)
 
-# Finalize reports
-#
-MatMetCalls$Texts$DatAnalysis <- c(MatMetCalls$Texts$DatAnalysis, DatAnalysisTxt)
-for (i in seq_along(MatMetCalls$Texts$DatAnalysis)) {
-  MatMetCalls$Calls <- append(MatMetCalls$Calls,
-                              paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$DatAnalysis[", i,"], prop = WrdFrmt$",
-                                     c("Body", "Template_text")[(MatMetCalls$Texts$DatAnalysis[i] == "TEMPLATE")+1L],
-                                     "_text), fp_p = WrdFrmt$just))"))
-}
-MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style = \"Normal\")")
-#
-
 # Write SDRF file in case you want to submit to PRIDE
 Src <- paste0(libPath, "/extdata/Sources/SDRF_4_PRIDE.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
 # Write final HTML report and materials and methods template file
+Src <- paste0(libPath, "/extdata/Sources/HTML_report_Fun.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
 Src <- paste0(libPath, "/extdata/Sources/HTML_report_Main.R")
 #rstudioapi::documentOpen(Src)
 source(Src)

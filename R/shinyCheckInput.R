@@ -20,10 +20,10 @@
 shinyCheckInput <- function(startVal,
                             root = "check") {
   l <- length(startVal)
-  stopifnot(l > 0)
+  stopifnot(l > 0L)
   rg <- seq_len(l)
   ids <- paste0(root, "___", as.character(rg))
-  inputs <- vapply(rg, function(i) {
+  inputs <- vapply(rg, \(i) {
     as.character(shiny::checkboxInput(ids[i],
                                       NULL,
                                       as.logical(startVal[i])))

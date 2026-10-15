@@ -168,7 +168,7 @@ if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
       req(ggProfLy[[QUANTTYPE()]])
       req(PROFPROT())
       myProfPlot <- ggProfLy[[QUANTTYPE()]]
-      ggCall <- gsub(", +alpha += +[^\\)]+\\)", ")", myProfPlot$ggCall)
+      ggCall <- gsub(", +alpha += +[^)]+\\)", ")", myProfPlot$ggCall)
       plCall <- myProfPlot$plCall
       profData <- myProfPlot$data
       srchCol <- c("Protein IDs", "Proteins")[grepl("^peptides ", QUANTTYPE())+1L]
@@ -177,7 +177,7 @@ if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
       yKol <- myProfPlot$data2$yCol
       colKol <- myProfPlot$data2$color
       txt4Kol <- myProfPlot$data2$labCol
-      w <- grsep(gsub(" - .*", "", PROFPROT()), x = profData[[srchCol]])
+      w <- grsep(sub(" - .*", "", PROFPROT()), x = profData[[srchCol]])
       req(w)
       profData <- profData[w,]
       ttl <- myProfPlot$Ttl

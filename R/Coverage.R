@@ -37,21 +37,17 @@
 #' @param I_eq_L Should we consider I and L identical? Currently, by default, TRUE for both DIA and DDA: see https://github.com/vdemichev/DiaNN/discussions/1631
 #' 
 #' @returns
-#' The function only returns something in these conditions:
+#' The function only returns something in these conditions:\cr
 #'  - If mode is "Coverage", the coverage of proteins by peptides.\cr
 #'  - If mode is "XML", Excel-compatible xml-formatted sequence coverage strings.\cr
-#'  - If mode is "Align2" and a plotly html plot is saved, it is returned.\cr
+#'  - If mode is "Align2" and a plotly html plot is saved, it is returned.
 #' 
 #' @examples
-#' proteins <- "MNTTDCFIALVQAIREIKALFLSRTTGKMELTLYNGEKKTFYSRPNNHDNCWLNAILQLFRYVEEPFFDWVYSSPENLTLEAIKQLEDLTGLELHEGGPPALVIWNIKHLLHTGIGTASRPSEVCMVDGTDMCLADFHAGIFLKGQEHAVFACVTSNGWYAIDDEDFYPWTPDPSDVLVFVPYDQEPLNGEWKAKVQRKLKGAGQSSPATGSQNQSGNTMHMDIVSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITLGMDELYKGPHHHHHHTEYKPTVRLATRDDVPRAVRTLAAAFADYPATRHTVDPDRHIERVTELQELFLTRVGLDIGKVWVADDGPAVAVWTTPESVEAGAVFAEIGPRMAELSGSRLAAQQQMEGLLAPHRPKEPAWFLATVGVSPDHQGKGLGSAVVLPGVEAAERAGVPAFLETSAPRNLPFYERLGFTVTADVEVPEGPRTWCMTRKPGATRVTELLYRMKRAETYCPRPLLAIHPTEARHKQKIVAPVKQTLNFDLLKLAGDVESNPGPFFFSDVRSNFSKLVETINQMQEDMSTKHGPDFNRLVSAFEELAIGVKAIRTGLDEAKPWYKLIKLLSRLSCMAAVAARSKDPVLVAIMLADTGLEILDSTFVVKKISDSLSSLFHVPAPVFSFGAPVLLAGLVKVASSFFRSTPEDLERAEKQLKARDINDIFAILKNGEWLVKLILAIRDWIKAWIASEEKFVTMTDLVPGILEKQRDLNDPSKYKEAKEWLDNARQACLKSGNVHIANLCKVVAPAPSKSRPEPVVVCLRGKSGQGKSFLANVLAQAISTHFTGRIDSVWYCPPDPDHFDGYNQQTVVVMDDLGQNPDGKDFKYFAQMVSTTGFIPPMASLEDKGKPFNSKVIIATTNLYSGFTPRTMVCPDALNRRFHFDIDVSAKDGYKINSKLDIIKALEDTHANPVAMFQYDCALLNGMAVEMKRMQQDMFKPQPPLQNVYQLVQEVIDRVELHEKVSSHPIFKQISIPSQKSVLYFLIEKGQHEAAIEFFEGMVHDSIKEELRPLIQQTSFVKRAFKRLKENFEIVALCLTLLANIVIMIRETRKRQKMVDDAVNEYIEKANITTDDKTLDEAEKSPLETSGASTVGFRERTLPGQKACDDVNSEPAQPVEEQPQAEGPYAGPLERQKPLKVRAKLPQQEGPYAGPMERQKPLKVKAKAPVVKEGPYEGPVKKPVALKVKAKNLIVTESGAPPTDLQKMVMGNTKPVELILDGKTVAICCATGVFGTAYLVPRHLFAEKYDKIMVDGRAMTDSDYRVFEFEIKVKGQDMLSDAALMVLHRGNRVRDITKHFRDTARMKKGTPVVGVINNADVGRLIFSGEALTYKDIVVCMDGDTMPGLFAYRAATKAGYCGGAVLAKDGADTFIVGTHSAGGNGVGYCSCVSRSMLLKMKAHIDPEPHHEGLIVDTRDVEERVHVMRKTKLAPTVAHGVFNPEFGPAALSNKDPRLNEGVVLDEVIFSKHKGDTKMSEEDKALFRRCAADYASRLHSVLGTANAPLSIYEAIKGVDGLDAMEPDTAPGLPWALQGKRRGALIDFENGTVGPEVEAALKLMEKREYKFVCQTFLKDEIRPLEKVRAGKTRIVDVLPVEHILYTRMMIGRFCAQMHSNNGPQIGSAVGCNPDVDWQRFGTHFAQYRNVWDVDYSAFDANHCSDAMNIMFEEVFRTEFGFHPNAEWILKTLVNTEHAYENKRITVGGGMPSGCSATSIINTILNNIYVLYALRRHYEGVELDTYTMISYGDDIVVASDYDLDFEALKPHFKSLGQTITPADKSDKGFVLGHSITDVTFLKRHFHMDYGTGFYKPVMASKTLEAILSFARRGTIQEKLISVAGLAVHSGPDEYRRLFEPFQGLFEIPSYRSLYLRWVNAVCGDA"
-#' #  OR...
-#' proteins <- c(proteins, "MNTTDCFIALVQAIREIKALFLSRTTGKMELTLYNGEKKTFYSRPNNHDNCWLNAILQLFRYVEEPFFDWVYSSPENLTLEAIKQLEDLTGLELHEGGPPALVIWNIKHLLHTGIGTASRPSEVCMVDGTDMCLADFHAGIFLKGQEHAVFACVTSNGWYAIDDEDFYPWTPDPSDVLVFVPYDQEPLNGEWKAKVQRKLK", "PFFFSDVRSNFSKLVETINQMQEDMSTKHGPDFNRLVSAFEELAIGVKAIRTGLDEAKPWYKLIKLLSRLSCMAAVAARSKDPVLVAIMLADTGLEILDSTFVVKKISDSLSSLFHVPAPVFSFGAPVLLAGLVKVASSFFRSTPEDLERAEKQ")
-#' names(proteins) <- c("polyprotein", "Lpro", "2B")
-#' peptides <- c("ACDDVNSEPAQPVEEQPQAE","ACDDVNSEPAQPVEEQPQAEGPYAGPLER","ACDDVNSEPAQPVEEQPQAEGPYAGPLERQK","AGVPAFLETSAPR","AHIDPEPHHE","AHIDPEPHHEGLIVDTR","AIRTGLDEAK","AIRTGLDEAKPWYK","ALEDTHANPVAMFQYDCALLNGMAVEMK","ALFLSRTTGK","ALFLSRTTGKMELTLYNGEK","AMTDSDYR","AMTDSDYRVFEFEIK","ANITTDDK","ANITTDDKTLDEAEK","ARDINDIFAILK","AWIASEEK","DEIRPLEK","DIVVCMDGDTMPGLFAYR","DIVVCMDGDTMPGLFAYRAATK","DLNDPSK","DPRLNEGVVLDEVIFSK","EDGNILGHK","EELRPLIQQTSFVK","EGPYEGPVK","EPAWFLATVGVSPDHQGK","ERTLPGQK","EWLDNAR","EWLDNARQACLK","FEGDTLVNR","FEGDTLVNRIELK","FGTHFAQYR","FHFDIDVSAK","FHFDIDVSAKDGYK","FSVSGEGEGDATYGK","FSVSGEGEGDATYGKLTLK","FVCQTFLK","FVTMTDLVPGILEK","FVTMTDLVPGILEKQR","FVTMTDLVPGILEKQRDLNDPSK","GALIDFENGTVGPEVEAALK","GEELFTGVVPILVELDGDVNGHK","GFVLGHSITDVTFLK","GIDFKEDGNILGHK","GLGSAVVLPGVEAAER","GLIVDTRDVEER","GLIVDTRDVEERVHVMRK","GQDMLSDAALMVLHR","GQDMLSDAALMVLHRGNRVRDITK","GQHEAAIEFFEGMVHDSIK","GTPVVGVINNADVGR","GTPVVGVINNADVGRLIFSGEALTYK","GVDGLDAMEPDTAPGLPWALQGK","HGPDFNR","HLLHTGIGTASR","HTVDPDR","HTVDPDRHIER","IMVDGRAMTDSDYRVFEFEIK","INSKLDIIK","ISIPSQK","IVDVLPVEHILYTR","KGTPVVGVINNADVGR","KGTPVVGVINNADVGRLIFSGEALTYK","LAAQQQMEGLLAPHRPK","LAGDVESNPGPFFFSDVR","LAGDVESNPGPFFFSDVRSNFSK","LAPTVAHGVFNPEFGPAALSNK","LAPTVAHGVFNPEFGPAALSNKDPR","LEYNYNSHNVYIMADK","LGFTVTADVEVPEGPR","LHSVLGTANAPLSIYEAIK","LIFSGEALTYK","LISVAGLAVHSGPDEYR","LISVAGLAVHSGPDEYRR","LNEGVVLDEVIFSK","LPQQEGPYAGPMER","LPQQEGPYAGPMERQK","LSCMAAVAAR","LVETINQMQEDMSTK","LVSAFEELAIGVK","MAELSGSR","MELTLYNGEK","MELTLYNGEKK","MVDDAVNEYIEK","MVDDAVNEYIEKANITTDDK","MVMGNTKPVELILDGK","NLIVTESGAPPTDLQK","NLPFYER","PFFFSDVR","PFFFSDVRSNFSK","PLIQQTSFVK","PLLAIHPTEAR","PVELILDGK","QISIPSQK","QRDLNDPSK","QRDLNDPSKYK","RAETYCPRPLLAIHPTEARHK","RFHFDIDVSAK","RFHFDIDVSAKDGYK","RHFHMDYGTGFYK","RHFHMDYGTGFYKPVMASK","RQKMVDDAVNEYIEK","RRGALIDFENGTVGPEVEAALK","SAMPEGYVQER","SAMPEGYVQERTIFFK","SGAPPTDLQK","SGNVHIANLCK","SLGQTITPADK","SLGQTITPADKSDK","SNFSKLVETINQMQEDMSTK","SPLETSGASTVGFR","SPLETSGASTVGFRER","SPLETSGASTVGFRERTLPGQK","SRPEPVVVCLR","SRPEPVVVCLRGK","STPEDLER","STPEDLERAEK","STPEDLERAEKQ","SVLYFLIEK","TEFGFHPNAEWILK","TGLDEAK","TGLDEAKPWYK","TGLDEAKPWYKLIK","TIFFKDDGNYK","TLAAAFADYPATR","TLDEAEK","TLDEAEKSPLETSGASTVGFR","TLDEAEKSPLETSGASTVGFRERTLPGQK","TLEAILSFAR","TLEAILSFARRGTIQEK","TLVNTEHAYENK","TLVNTEHAYENKR","TMVCPDALNR","TRIVDVLPVEHILYTR","VASSFFR","VASSFFRSTPEDLER","VASSFFRSTPEDLERAEK","VASSFFRSTPEDLERAEKQ","VFEFEIK","VGLDIGK","VIIATTNLYSGFTPR","VSSHPIFK","VSSHPIFKQ","VTELLYR","VTELQELFLTR","VVAPAPSK","YFAQMVSTTGFIPPMASLEDK")
-#' Coverage(proteins, peptides, "Coverage")
-#' Coverage(proteins, peptides, "Align", TRUE, c(TRUE,TRUE,TRUE), 30)
-#' Coverage(proteins, peptides, "Align", TRUE, c(TRUE,TRUE,TRUE), 60)
-#' Coverage(proteins, peptides, "Align2", TRUE, c(TRUE,TRUE,TRUE), 60)
+#' data(FMDV_Lpro, package = "proteoCraft")
+#' Coverage(FMDV_Lpro$sequence, FMDV_Lpro$peptides, "Coverage")
+#' Coverage(FMDV_Lpro$sequence, FMDV_Lpro$peptides, "Align", TRUE, c(TRUE, TRUE, TRUE), 30L)
+#' Coverage(FMDV_Lpro$sequence, FMDV_Lpro$peptides, "Align", TRUE, c(TRUE, TRUE, TRUE), 60L)
+#' Coverage(FMDV_Lpro$sequence, FMDV_Lpro$peptides, "Align2", TRUE, c(TRUE, TRUE, TRUE), 60L)
 #' 
 #' @export
 
@@ -166,10 +162,10 @@ Coverage <- function(proteins,
       w <- grepl("\\.", save.path)
       if (length(w)) {
         xt <- tolower(sub(".*\\.", "", bsNm[w])) # reasonable assumption: no double extensions
-        w2 <- w[which(xt %in% allExt)]
+        w2 <- w[xt %in% allExt]
         if (length(w2)) {
           warning("Do not provide extensions as part of the save.path argument, but using the save argument!")
-          save.path[w2] <- sub("\\.[^\\.]+$", "", save.path[w2])
+          save.path[w2] <- sub("\\.[^.]+$", "", save.path[w2])
         }
       }
       filesTbl$Path <- lapply(save.path, \(pth) { paste0(pth, ".", save) })
@@ -206,16 +202,16 @@ Coverage <- function(proteins,
     maxInt2 <- round(maxInt, 1L-l)
     while (maxInt2 < maxInt) { maxInt2 <- maxInt2 + 10L^(l-1L) }
     brks <- sort(unique(c(c(0L:4L)*(maxInt2/4), maxInt)))
-    #brks <- brks[which(brks <= maxInt)]
+    #brks <- brks[brks <= maxInt]
     brkstxt <- as.character(brks)
     w <- which(brkstxt == as.character(maxInt))
     brkstxt[w] <- paste0(" ---> max. int.: ", brkstxt[w])
   }
   peptides <- data.frame(Original.seq = peptidesOrig,
                          Match.seq = peptides,
-                         Sequence = gsub("\\([^\\)]+\\)", "", peptides),
+                         Sequence = gsub("\\([^)]+\\)", "", peptides),
                          id = 1L:length(peptides),
-                         stripped.Original.seq = gsub("\\([^\\)]+\\)", "", peptidesOrig))
+                         stripped.Original.seq = gsub("\\([^)]+\\)", "", peptidesOrig))
   if (!is.null(intensities)) { peptides$Intensity <- intensities }
   peptides$Length <- nchar(peptides$Sequence)
   seq <- unique(peptides$Sequence)
@@ -355,7 +351,7 @@ Coverage <- function(proteins,
       matches <- lapply(nmz, \(n) { #n <- nmz[1L]
         peptides[[paste0("Matches_", n)]] <- lapply(peptides$Sequence, \(x) { #x <- peptides$Sequence[1L]
           x <- poZ2[[match(x, poZ2$Seq), n]]
-          return(x[which(!is.na(x))])
+          return(x[!is.na(x)])
         })
         tst <- which(lengths(peptides[[paste0("Matches_", n)]]) > 0L)
         if (!length(tst)) { return() }
@@ -404,13 +400,13 @@ Coverage <- function(proteins,
                                                  Nterm = FALSE,
                                                  Cterm = FALSE))
             colnames(temp2) <- c("A", "B")
-            temp2$B[which(temp2$B != "")] <- paste0("(", temp2$B[which(temp2$B != "")], ")")
-            temp2$A[which(temp2$A == "_")] <- ""
+            temp2$B[temp2$B != ""] <- paste0("(", temp2$B[temp2$B != ""], ")")
+            temp2$A[temp2$A == "_"] <- ""
             rrange <- cumsum(temp$Length)+1L
             temp$Match.seq <- vapply(1L:nr, \(x) {
               paste(apply(temp2[c(1L, rrange+1L)[x]:rrange[x], , drop = FALSE], 1L, paste, collapse = ""), collapse = "")
             }, "")
-            temp$Sequence <- gsub("\\([^\\)]+\\)", "", temp$Match.seq)
+            temp$Sequence <- gsub("\\([^)]+\\)", "", temp$Match.seq)
             temp$End <- cumsum(temp$Length)
             temp$Start <- c(0L, temp$End[1L:(nr-1L)]) + 1L
             temp$stripOrig <- substr(temp$stripOrig, temp$Start, temp$End)
@@ -522,27 +518,26 @@ Coverage <- function(proteins,
         align.temp$Amino_acid <- NULL
         #
         if (Mode == "Align2") {
-          library(colorspace)
-          contrast_color <- \(col, target_chroma = 80) { # From chatGPT
+          contrast_color <- \(col, target_chroma = 80L) { # From chatGPT
             # Convert names and hex to hex
-            col <- grDevices::rgb(t(grDevices::col2rgb(col)), maxColorValue = 255)
+            col <- grDevices::rgb(t(grDevices::col2rgb(col)),
+                                  maxColorValue = 255L)
             # Convert to HCL
-            hcl <- as(hex2RGB(col), "polarLUV")
+            hcl <- as(colorspace::hex2RGB(col), "polarLUV")
             cc <- hcl@coords
-            H <- (cc[, "H"] + 180) %% 360
+            H <- (cc[, "H"] + 180L) %% 360L
             C <- cc[, "C"]
             L <- cc[, "L"]
             # Flip luminance
-            L <- 100 - L
+            L <- 100L - L
             # Ensure sufficient chroma
             C <- pmax(C, target_chroma)
             # Reduce chroma until the colour is in gamut
             repeat {
-              out <- polarLUV(L = L, C = C, H = H)
-            ok <- is.na(hex(out)) == FALSE
-              if (all(ok))
-                break
-            C[!ok] <- C[!ok] * 0.95
+              out <- colorspace::polarLUV(L = L, C = C, H = H)
+              ok <- is.na(hex(out)) == FALSE
+              if (all(ok)) { break }
+              C[!ok] <- C[!ok] * 0.95
             }
             hex(out)
           }
@@ -644,10 +639,10 @@ Coverage <- function(proteins,
             aggregate(matches$ID[wm], list(matches$ID[wm]), length)
           }), nmz)
           dotstest <- do.call(rbind, dotstest)
-          dotstest <- dotstest[which(dotstest$x > 1L),]
+          dotstest <- dotstest[dotstest$x > 1L,]
           if (nrow(dotstest)) {
             dotstest$dots <- lapply(dotstest$Group.1, \(x) { #x <- dotstest$Group.1
-              x <- matches[which(matches$ID == x),]
+              x <- matches[matches$ID == x,]
               rng1 <- 1L:(nrow(x)-1L)
               rng2 <- rng1+1
               return(rbind(data.frame(Y1 = x$Y1[rng1],
@@ -741,7 +736,7 @@ Coverage <- function(proteins,
           n <- min(c(2, l))
           maxInt2 <- ceiling(as.numeric(substr(as.character(maxInt), 1L, n))/(10L^(n-1L)))*(10L^(l-1L))
           brks <- sort(unique(c(c(0L:4L)*(maxInt2/4), maxInt)))
-          #brks <- brks[which(brks <= maxInt)]
+          #brks <- brks[brks <= maxInt]
           brkstxt <- as.character(brks)
           w <- which(brkstxt == as.character(maxInt))
           brkstxt[w] <- paste0(" ---> max. int.: ", brkstxt[w])
@@ -760,8 +755,8 @@ Coverage <- function(proteins,
           wAA <- which(align.temp2$AA %in% AA)
           yxRat <- 1
           yxRat2 <- 3
-          wFnd <- wAA[which((!is.na(align.temp2$Intensity[wAA]))
-                            &(align.temp2$Legend[wAA] == "found"))]
+          wFnd <- wAA[(!is.na(align.temp2$Intensity[wAA])) &
+                        (align.temp2$Legend[wAA] == "found")]
           covPlot <- ggplot2::ggplot(align.temp2) +
             ggplot2::coord_fixed(yxRat) +
             ggplot2::geom_text(ggplot2::aes(label = AA, x = X, y = Y, fontface = Face, hjust = Hjust),
@@ -913,7 +908,9 @@ Coverage <- function(proteins,
             #htmlwidgets::saveWidget(covPlotLy, svpth, selfcontained = TRUE)
             setwd(wd0)
           } else {
-            if (ext == "svg") { library(svglite) }
+            if (ext == "svg") {
+              requireNamespace("svglite")
+            }
             ggplot2::ggsave(svpth, covPlot2,
                             dpi = 300L,
                             width = wdth,
@@ -930,7 +927,7 @@ Coverage <- function(proteins,
       XML_Cov <- lapply(1L:length(tst), \(x) { #x <- 1L
         x <- align.temp[(tst[x]+2L):(c(tst, nrow(align.temp)+1L)[x+1L]-1L),
                         c("Amino_acid", "Legend")]
-        x <- x[which(x$Amino_acid != ""),]
+        x <- x[x$Amino_acid != "",]
         u <- unique(x$Legend)
         w <- c(0L, which(vapply(1L:(nrow(x)-1L), \(y) {
           x$Legend[y] != x$Legend[y+1L] # These are the ends of each stretch

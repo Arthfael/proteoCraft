@@ -1,9 +1,13 @@
 #' DensPlot
 #'
 #' @description
-#' Just a small wrapper function for density plots, because I am tired of always typing the same stuff.
+#' Just a small wrapper function for density plots, because I was tired of always typing the same stuff...\cr
+#' except I ended up not using it.\cr
+#' ...\cr
+#' Typical...\cr
+#' Candidate for deletion...
 #' 
-#' @param data The dataframe that contains the values.
+#' @param data The data.frame that contains the values.
 #' @param X The name of the column of values whose density distribution is to be displayed.
 #' @param Series The name of the column that maps values to series.
 #' @param Col The series' colours. If there are more than one, must be a vector of colour names, named as series names, of the same length as the number of series. If unprovided default ggplot2 colours will be used instead.
@@ -35,7 +39,7 @@ DensPlot <- function(data,
                      title = "Density plot",
                      save = FALSE,
                      return = FALSE) {
-  if (is.logical(log)&&log) {
+  if (is.logical(log) && log) {
     log <- 10L
   }
   if (!is.logical(log)) {
@@ -67,16 +71,11 @@ DensPlot <- function(data,
     t <- gsub("/|:|\\*|\\?|<|>|\\|", "-", title)
     save <- unique(sub("^jpg$", "jpeg", sub("^\\.", "", tolower(save))))
     for (s in save) {
-      if (s %in% c("jpeg", "tiff", "png", "bmp")) {
-        ggplot2::ggsave(filename = paste0(t, ".", s),
-                        plot = plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-      } else {
-        ggplot2::ggsave(filename = paste0(t, ".", s), plot = plot)
-      }
+      ggplot2::ggsave(filename = paste0(t, ".", s),
+                      plot = plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     }
   }
   if (return) {
-    plot <- ggplotify::as.ggplot(ggplotify::as.grob(plot))
-    return(plot)
+    return(plotEval(plot))
   }
 }

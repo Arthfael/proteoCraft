@@ -54,8 +54,8 @@ Volc.plot_2(
 \item{col_return}{FALSE by default. Should a column of significance be added to the output?}
 }
 \description{
-Another function for volcano plots, meant to be simpler than the main, awfully complex volcano.plot() function.
-This has not been used for a long time so may prove unreliable.
+Another function for volcano plots, meant to be simpler than the main, awfully complex volcano.plot() function.\cr
+This has not been used for a long time so may prove unreliable.\cr
 Candidate for deletion.
 }
 \examples{

@@ -205,7 +205,10 @@ Volcano.plot(
 \item{show.labels}{Currently unused (deprecated).}
 }
 \value{
-A list with at least one element ("Thresholds"). If return == TRUE, the Protein_groups_file - which may contain additional Regulated columns. If return.plot == TRUE, the evaluated ggplots. If plotly == TRUE, the plotly plots.
+A list with at least one element ("Thresholds").\cr
+If return == TRUE, the Protein_groups_file - which may contain additional Regulated columns.\cr
+If return.plot == TRUE, the evaluated ggplots.\cr
+If plotly == TRUE, the plotly plots.
 }
 \description{
 A function to create volcano plots.

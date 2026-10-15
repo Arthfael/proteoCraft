@@ -1,16 +1,16 @@
 #' Digest
 #'
 #' @description
-#' A function to digest unmodified protein Sequence into peptides.
-#' 
-#' Will by default allow for loss of N-terminal methionine.
-#' Default parameters digest like trypsin.
-#' Proline after the R or K is assumed to block some but not all cleavages, hence both missed and cleaved peptides are included.
-#' 
-#' Uses parallel processing by default for now.
-#' Still needs some speed boosts. The whole thing should be parallelized in one big go, as opposed to by bits.
-#' The regex approach currently used may not be ideal. It provided a small speed bump when introduced to replace list-based approaches, but may more less safe.
-#' 
+#' A function to digest unmodified protein Sequence into peptides.\cr
+#' \cr
+#' Will by default allow for loss of N-terminal methionine.\cr
+#' Default parameters digest like trypsin.\cr
+#' Proline after the R or K is assumed to block some but not all cleavages, hence both missed and cleaved peptides are included.\cr
+#' \cr
+#' Uses parallel processing by default for now.\cr
+#' Still needs some speed boosts. The whole thing should be parallelized in one big go, as opposed to by bits.\cr
+#' The regex approach currently used may not be ideal. It provided a small speed bump when introduced to replace list-based approaches, but may more less safe.\cr
+#' \cr
 #' Used by ProtMatch, but not by the much faster/better ProtMatch2.
 #' 
 #' @param Seq The character vector of protein Sequence(s) to digest.
@@ -72,9 +72,7 @@ Digest <- function(Seq,
     names(Seq) <- paste0("Protein ", seq_along(Seq))
   }
   if ((length(Seq) > parThresh) && (missed || length(loose.avoid))) {
-    usePar <- require(parallel)
     if (usePar) {
-      #
       # Create cluster
       stopCl <- FALSE
       if (is.null(cl) || (!inherits(cl, "cluster"))) {
@@ -96,16 +94,16 @@ Digest <- function(Seq,
   }
   RemoveNtermMet <- tolower(RemoveNtermMet)
   strict.avoid <- toupper(strict.avoid)
-  strict.avoid <- strict.avoid[which(strict.avoid != "")]
+  strict.avoid <- strict.avoid[strict.avoid != ""]
   loose.avoid <- toupper(loose.avoid)
-  loose.avoid <- loose.avoid[which(loose.avoid != "")]
+  loose.avoid <- loose.avoid[loose.avoid != ""]
   l <- which(strict.avoid %in% loose.avoid)
   if (length(l)) {
     warning("There is overlap between which patterns to avoid strictly vs loosely, we will be conservative and set those to loose!")
-    strict.avoid <- strict.avoid[which(!strict.avoid %in% loose.avoid)]
+    strict.avoid <- strict.avoid[!strict.avoid %in% loose.avoid]
   }
-  SEQ <- toupper(gsub("\\*.*", "", Seq)) # Remove stop codons (*)
-  SEQ <- SEQ[which(nchar(SEQ) > 0L)]
+  SEQ <- toupper(sub("\\*.*", "", Seq)) # Remove stop codons (*)
+  SEQ <- SEQ[nchar(SEQ) > 0L]
   # The little alchemy below is to deal with cases where input sequences include duplicates of the same accession
   lSEQ <- length(SEQ)
   SEQ <- data.table::data.table(SEQ = SEQ, Name = names(SEQ))
@@ -155,9 +153,7 @@ Digest <- function(Seq,
         w <- which(test > 0L)
         l <- length(w)
         if (l > 1L) {
-          w <- if (l > 100L) { paste0(paste(w[1L:100L], collapse = ", "), "...") } else {
-            paste0(paste(w[1L:(l-1L)], collapse = ", "), " and ", w[l])
-          }
+          w <- .commAnd(w, maxN = 100L)
         }
         msg <- paste0("There are illegal characters in input Sequence", c("", "s")[(l > 1L)+1L], " number ", w, "!")
       } else { msg <- "There are illegal characters in the input Sequence!" }
@@ -185,10 +181,10 @@ Digest <- function(Seq,
       gPr <- grep("^M[GASCPTV]P", Sq)
       # Identify N-terminal Methionines which should be systematically removed
       gSmll <- grep("^M[GASCP]", Sq)
-      gSmll <- gSmll[which(!gSmll %in% gPr)] # Apply proline block
+      gSmll <- gSmll[!gSmll %in% gPr] # Apply proline block
       # Identify ambiguous cases
       gAmb <- grep("^M[VT]", Sq)
-      gAmb <- gAmb[which(!gAmb %in% gPr)] # Apply proline block
+      gAmb <- gAmb[!gAmb %in% gPr] # Apply proline block
       # Apply
       Sq[gSmll] <- sub("^M", "", Sq[gSmll])
       Sq[gAmb] <- paste0("@", Sq[gAmb])
@@ -272,8 +268,8 @@ Digest <- function(Seq,
                  sub("^@M", "", x)))
       })
     }
-    Rs <- lapply(Rs, \(x) { unique(x[which(nchar(x) >= min)]) }) # Filter for min and remove rare duplicates
-    if (max) { Rs <- lapply(Rs, \(x) { x[which(nchar(x) <= max)] }) } # Optional: filter for max
+    Rs <- lapply(Rs, \(x) { unique(x[nchar(x) >= min]) }) # Filter for min and remove rare duplicates
+    if (max) { Rs <- lapply(Rs, \(x) { x[nchar(x) <= max] }) } # Optional: filter for max
     #tst <- unique(gsub("[A-Z]", "", unlist(Rs)))
     if (cllpsTst) { Rs <- vapply(Rs, paste, "", collapse = cllps) }
     names(Rs) <- nmsSq

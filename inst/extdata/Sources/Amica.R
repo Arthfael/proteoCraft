@@ -61,7 +61,7 @@ if (Param$Amica) {
     tst <- apply(AmicTbl[, grep("^AveExpr_", colnames(AmicTbl), value = TRUE), drop = FALSE], 1L, \(x) {
       sum(is.finite(x))
     }) > 0L
-    AmicTbl$quantified <- c("", "+")[((AmicTbl$razorUniqueCount >= 2L)&(tst))+1L]
+    AmicTbl$quantified <- c("", "+")[((AmicTbl$razorUniqueCount >= 2L) & tst)+1L]
     AmicTbl <- AmicTbl[AmicTbl$quantified == "+",]
     dir <- paste0(wd, "/Amica")
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }

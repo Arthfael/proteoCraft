@@ -121,9 +121,7 @@ if (LocAnalysis) {
     # NB: Ratios are not re-scaled...
     # and anyway, the ratios should be done within groups which should correspond to the correct proportions 
   }
-  l <- length(DatAnalysisTxt)
-  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                              " Expression values were re-scaled per fraction to reflect total original protein amount.")
+  DatAnalysisTxt$subCellResc <- "To approximate expected protein profiles across total sub-cellular fractions, each fraction's expression values were divided by loaded sample volume and multiplied by total collected fraction volume."
   # Visualize
   dir <- paste0(wd, "/Workflow control/Re-scaling/")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }

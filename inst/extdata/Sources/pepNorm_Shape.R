@@ -1,6 +1,10 @@
 
 # These normalisations are more like corrections: they will change the shape of the vector
 #
+library(ggplot2)
+library(ggnewscale)
+library(viridis)
+#
 if (!"Clean_name" %in% colnames(Exp.map)) {
   Exp.map$Clean_name <- cleanNms(Exp.map$Ref.Sample.Aggregate)
 }
@@ -14,20 +18,15 @@ txt2 <- ""
 normMeth <- normSequence[[nrmStp]]$Method #normMeth <- "LOESS" #normMeth <- "VSN"
 packs <- c()
 if (normMeth == "VSN") {
-  cran_req <- union(cran_req, "hexbin")
-  bioc_req <- union(bioc_req, "vsn")
-  packs <- union(packs, c("hexbin", "vsn"))
+  library(hexbin)
+  library(vsn)
 }
 if (normMeth == "LOESS") {
-  bioc_req <- union(bioc_req, "affy")
-  packs <- union(packs, "affy")
+  library(affy)
 }
 if (normMeth == "GAM") {
-  cran_req <- union(cran_req, "mgcv")
-  packs <- union(packs, "mgcv")
+  library(mgcv)
 }
-for (p in packs) { if (!require(p, character.only = TRUE, quietly = TRUE)) { pak::pak(p) } }
-for (p in packs) { require(p, character.only = TRUE) }
 #
 shpDr <- paste0(nrmDr, "/Step ", nrmStp, " - ", normMeth)
 if (!dir.exists(shpDr)) { dir.create(shpDr, recursive = TRUE) }
@@ -82,16 +81,16 @@ tstNorm <- try({
         n <- min(c(max(c(3L,
                          round(length(unique(A))/100))),
                    10L))
-        fit <- mgcv::gam(M ~ s(A, bs = "cs", k = n),
+        fit <- mgcv::gam(M ~ mgcv::s(A, bs = "cs", k = n),
                          method = "REML")
         # NB:
         # consider replacing with
         #   fit <- mgcv::bam(M ~ s(A, bs = "cs"), method = "fREML")
         # or
         #   fit <- mgcv::bam(M ~ s(A, bs = "cs"), method = "fREML", discrete = TRUE)
-        # as alternatives if gam() takes too long.
+        # as alternatives if mgcv::gam() takes too long.
         #
-        trend <- predict(fit, newdata = data.frame(A = A))
+        trend <- stats::predict(fit, newdata = data.frame(A = A))
         res[w] <- dat_[w, smpl] - trend # ... then add corrected data in the right place
         return(res)
       }), currSamples)
@@ -259,7 +258,8 @@ if (!inherits(tstNorm, "try-error")) {
       gradient = "linear",
       direction = "bottom"
     ),
-    extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+    extendShinyjs(text = jsFun$toggle_full_screen,
+                  functions = c("toggleFullScreen")),
     tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
     titlePanel(tag("u", appNm),
                appNm),

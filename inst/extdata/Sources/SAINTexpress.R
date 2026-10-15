@@ -10,16 +10,10 @@ if (saintExprs) {
   SaintEx <- paste0(SaintDir, "/Precompiled_binaries/Windows64/SAINTexpress-int.exe")
   if (!file.exists(SaintEx)) {
     url <- paste0("https://download.sourceforge.net/saint-apms/", SAINTvers, ".tar.gz")
-    packs <- c("curl")
-    for (pack in packs) {
-      if (!suppressMessages(require(pack, character.only = TRUE))) { install.packages(pack, update = FALSE) }
-      require(pack, character.only = TRUE)
-    }
-    cran_req <- unique(c(cran_req, packs))
     destFl <- paste0(SaintRoot, "/", SAINTvers, ".tar.gz")
     kount <- 0L
-    while ((!kount)||((kount < 5L)&&(inherits(tst, "try-error")))) {
-      tst <- try(download.file(url, destFl), silent = TRUE)
+    while ((!kount) || ((kount < 5L) && inherits(tst, "try-error"))) {
+      tst <- try(utils::download.file(url, destFl), silent = TRUE)
       kount <- kount+1L
     }
     if (inherits(tst, "try-error")) { saintExprs <- FALSE } else {
@@ -86,7 +80,7 @@ if (saintExprs) {
   }
   Prey$Sequence <- NULL
   Prey <- Prey[, c("Protein", "Length", "Gene")]
-  w <- which((is.na(Prey$Gene))|(Prey$Gene == ""))
+  w <- which(is.na(Prey$Gene) | (Prey$Gene == ""))
   l <- length(w)
   if (l) { Prey$Gene[w] <- paste0("Dummy_Gene", seq_len(l)) }
   #
@@ -129,7 +123,7 @@ if (saintExprs) {
                        Indicator = Indiq[em$Reference+1L])
     #Bait <- Bait[(!is.na(Bait$Bait)) & (Bait$Bait %in% Prey$Protein),]
     Bait$Bait[is.na(Bait$Bait) | (!Bait$Bait %in% Prey$Protein)] <- "CONTROL"
-    # if (("CONTROL" %in% Bait$Bait)&&(!"CONTROL" %in% Prey$Protein)) {
+    # if (("CONTROL" %in% Bait$Bait) && (!"CONTROL" %in% Prey$Protein)) {
     #   # Add a dummy CONTROL protein if any co-IPs do not have a bait (typically IP- isotype controls)
     #   Prey <- rbind(Prey,
     #                 data.frame(Protein = "CONTROL",
@@ -453,9 +447,8 @@ if (saintExprs) {
                        row.names = FALSE, sep = "\t", na = "NA")
     #
     # Mat-meth text
-    l <- length(DatAnalysisTxt)
-    DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                                " Data was also tested with the SAINTexpress algorithm - which directly outputs FDR values - using GO annotations as boosting information.")
+    DatAnalysisTxt$SAINTexpress <- paste0("Proteins were also tested for enrichment with the SAINTexpress algorithm",
+                                          c("", " using GO annotations as boosting information")[Annotate+1L], ".")
     #
   }
   # "Master, don't forget the Athenians!"
@@ -465,7 +458,7 @@ if (saintExprs) {
   # url <- paste0("https://download.sourceforge.net/saint-apms/", SAINTqVers, ".tar.gz")
   # destFl <- paste0(SaintRoot, "/", SAINTqVers, ".tar.gz")
   # kount <- 0L
-  # while ((!kount)||((kount < 5L)&&(inherits(tst, "try-error")))) {
+  # while ((!kount) || ((kount < 5L) && (inherits(tst, "try-error")))) {
   #   tst <- try(download.file(url, destFl), silent = TRUE)
   #   kount <- kount+1L
   # }

@@ -7,6 +7,7 @@
 # This seemed to be a problem of lazy evaluation of formulas.
 # To avoid the issue, do not use the "~column" formula notation but instead the "data$column" notation when mapping variables to columns in the data of each trace.
 #
+library(viridisLite)
 drawPlotly <- TRUE
 if ((!exists("plotLeatMaps")) || (!inherits(plotLeatMaps, "list"))) { plotLeatMaps <- list() }
 if ((!exists("heatMaps")) || (!inherits(heatMaps, "list"))) { heatMaps <- list() }
@@ -815,7 +816,7 @@ if (clustHtMp) {
           # Final edits to the plot
           plotleatmap$x$layout$xaxis$autorange <- TRUE
           plotleatmap$x$layout$yaxis$autorange <- TRUE
-          plotleatmap <- htmlwidgets::onRender(plotleatmap, global_autorange)
+          plotleatmap <- htmlwidgets::onRender(plotleatmap, jsFun$global_auto_range)
           plotleatmap <- plotly::config(plotleatmap,
                                         modeBarButtonsToRemove = c("select2d", "lasso2d"))
           plotleatmap <- plotly::plotly_build(plotleatmap)

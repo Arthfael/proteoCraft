@@ -1,8 +1,8 @@
 #' Volc.plot_2
 #'
 #' @description 
-#' Another function for volcano plots, meant to be simpler than the main, awfully complex volcano.plot() function.
-#' This has not been used for a long time so may prove unreliable.
+#' Another function for volcano plots, meant to be simpler than the main, awfully complex volcano.plot() function.\cr
+#' This has not been used for a long time so may prove unreliable.\cr
 #' Candidate for deletion.
 #' 
 #' @param data The dataframe that contains the values.
@@ -52,12 +52,12 @@ Volc.plot_2 <- function(data,
   if (!is.null(v.lines)) {
     a <- v.lines
     if (!is.null(v.lines_min)) { a <- max(a, v.lines_min) }
-    tmp$Colour[which(tmp$X > log2(a))] <- "Increased"
-    tmp$Colour[which(tmp$X < -log2(a))] <- "Decreased" 
+    tmp$Colour[tmp$X > log2(a)] <- "Increased"
+    tmp$Colour[tmp$X < -log2(a)] <- "Decreased" 
   }
   h.lines <- sort(unlist(h.lines), decreasing = FALSE)
-  tmp$Colour[which(tmp$Y < -log10(max(h.lines)))] <- ""
-  tmp$Names[which(tmp$Colour == "")] <- ""
+  tmp$Colour[tmp$Y < -log10(max(h.lines))] <- ""
+  tmp$Names[tmp$Colour == ""] <- ""
   myColors <- c("red","blue","black")
   names(myColors) <- c("Increased","Decreased","")
   colScale <- ggplot2::scale_colour_manual(name = "colour", values = myColors)
@@ -69,9 +69,9 @@ Volc.plot_2 <- function(data,
   if ((!is.null(displ.limit)) && displ.limit) {
     if (length(test) > displ.limit) {
       a <- abs(tmp$X)
-      a[which(tmp$Names == "")] <- 0
+      a[tmp$Names == ""] <- 0
       b <- length(a) + 1L - rank(a, ties.method = "average")
-      tmp$Names[which(b > displ.limit)] <- ""
+      tmp$Names[b > displ.limit] <- ""
     }
   }
   plot1 <- ggplot2::ggplot(tmp)
@@ -109,7 +109,7 @@ Volc.plot_2 <- function(data,
         ggplot2::geom_vline(xintercept = log2(v.lines_min), color = "darkred")
     }
   }
-  h.lines <- h.lines[which(is.finite(h.lines))]
+  h.lines <- h.lines[is.finite(h.lines)]
   if (length(h.lines)) {
     for (i in 1L:length(h.lines)) {
       plot1 <- plot1 +
@@ -141,8 +141,8 @@ Volc.plot_2 <- function(data,
       }
     }
   }
-  plot1 <- ggplotify::as.ggplot(ggplotify::as.grob(plot1))
-  plot2 <- ggplotify::as.ggplot(ggplotify::as.grob(plot2))
+  plot1 <- plotEval(plot1)
+  plot2 <- plotEval(plot2)
   res <- list("Volcano plot" = plot1,
               "Labelled volcano plot" = plot2)
   if (col_return) {

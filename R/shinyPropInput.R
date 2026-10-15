@@ -23,15 +23,15 @@ shinyPropInput <- function(startVal,
                            width = "300px",
                            root = "Proportion") {
   l <- length(startVal)
-  stopifnot(l > 0)
+  stopifnot(l > 0L)
   # Pre-process values
   startVal <- suppressWarnings(as.numeric(startVal))
-  startVal[which(is.na(startVal))] <- 1
-  startVal[which(startVal > 1)] <- 1
-  startVal[which(startVal < 0)] <- 0
+  startVal[is.na(startVal)] <- 1
+  startVal[startVal > 1] <- 1
+  startVal[startVal < 0] <- 0
   rg <- seq_len(l)
   ids <- paste0(root, "___", as.character(rg))
-  inputs <- vapply(rg, function(i) {
+  inputs <- vapply(rg, \(i) {
     as.character(shiny::numericInput(ids[i],
                                      "",
                                      startVal[i],

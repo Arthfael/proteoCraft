@@ -4,9 +4,10 @@
 #' Converts a diaNN PSMs table to a MaxQuant evidence.txt-like table.
 #' As with the other functions of this type, the idea is not to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.
 #' 
-#' The output is a list of 3 items:
-#' - Evidence: a data.frame similar to the evidence.txt table MaxQuant creates
-#' - PTMs: a modifications table
+#' @returns
+#' A list of 3 items:\cr
+#' - Evidence: a data.frame similar to the evidence.txt table MaxQuant creates\cr
+#' - PTMs: a modifications table\cr
 #' - QuantUMS: was QuantUMS quantification on?
 #' 
 #' Surprisingly, the diaNN PSMs table does not include MZ values! Is there a way to do this by adding a command line argument?
@@ -48,7 +49,7 @@ DIANN_to_MQ <- function(DIANN_fl,
                         digPattern = "KR",
                         log_Fl#,
                         #useQuantUMS
-                        ) {
+) {
   TESTING <- FALSE
   #DefArg(DIANN_to_MQ);TESTING <- TRUE; cl <- parClust
   #DIANN_fl <- PSMsFls
@@ -94,8 +95,8 @@ DIANN_to_MQ <- function(DIANN_fl,
   UniMod <- UniMod[grep("^[A-Z][a-z]{2}->[A-Z][a-z]{2} substitution$", UniMod$Description, invert = TRUE),]
   # - deltas
   g <- grepl("^Delta:", UniMod$Name)
-  UniMod_D <- UniMod[which(g),]
-  UniMod <- UniMod[which(!g),]
+  UniMod_D <- UniMod[g,]
+  UniMod <- UniMod[!g,]
   #
   # Read PSMs (report file)
   wTsv <- grep("\\.tsv$", DIANN_fl)
@@ -128,13 +129,13 @@ DIANN_to_MQ <- function(DIANN_fl,
   lX <- nrow(DIANN)-length(w) 
   if (lX) {
     u <- unique(unlist(strsplit(DIANN$Stripped.Sequence, "")))
-    u <- paste(u[which(!u %in% AA)], collapse = "-")
+    u <- paste(u[!u %in% AA], collapse = "-")
     warning(paste0("Removing ", lX, " peptide", c("", "s")[(lX > 1L)+1L], " with unknown amino acids ", u, "!"))
     DIANN <- DIANN[w,]
   }
   #
   if (misFun(log_Fl)) {
-    log_Fl <- unique(sub("\\.((tsv)|(parquet))$", ".log.txt", DIANN_fl))
+    log_Fl <- unique(sub("\\.(tsv|parquet)$", ".log.txt", DIANN_fl))
   }
   if (file.exists(log_Fl)) { 
     log <- readr::read_lines(log_Fl)
@@ -149,17 +150,17 @@ DIANN_to_MQ <- function(DIANN_fl,
       if (file.exists(log_Fl)) {
         DIANNLib_fl <- gsub(".+\\] Saving the library to |\\.speclib$", "", grep("\\] Saving the library to ", log, value = TRUE))
         x <- sub("^lib ", "", grep("^lib ", diannCall, value = TRUE))
-        x <- x[which(nchar(x) > 0L)]
+        x <- x[nchar(x) > 0L]
         if (length(x)) { diannCall <- c(diannCall, x) }
         DIANNLib_fl <- gsub("\\\\", "/", DIANNLib_fl)
-        DIANNLib_fl <- unique(DIANNLib_fl[which(DIANNLib_fl != "")])
+        DIANNLib_fl <- unique(DIANNLib_fl[DIANNLib_fl != ""])
         DIANNLib_fl <- unique(c(DIANNLib_fl, sub("\\.skyline$", "", DIANNLib_fl)))
         if (length(DIANNLib_fl)) {
           if (sum(dirname(DIANNLib_fl) != dirname(DIANN_fl))) {
             DIANNLib_fl <- c(DIANNLib_fl, paste0(dirname(DIANN_fl), "/", basename(DIANNLib_fl)))
           }
           DIANNLib_fl <- as.character(sapply(DIANNLib_fl, \(x) { paste0(x, c(".tsv", ".parquet", "")) }))
-          DIANNLib_fl <- DIANNLib_fl[which(file.exists(DIANNLib_fl))]
+          DIANNLib_fl <- DIANNLib_fl[file.exists(DIANNLib_fl)]
           if (length(DIANNLib_fl)) {
             DIANNLib_fl <- DIANNLib_fl[1L]
             if (grepl("\\parquet$", DIANNLib_fl)) {
@@ -203,7 +204,7 @@ DIANN_to_MQ <- function(DIANN_fl,
               file.exists(log_Fl))
     tst <- aggregate(DIANN$Run, list(DIANN$Run.Index), unique)
     fls <- gsub("(\\\\)+", "/", sub("^f ", "", grep("^f ", diannCall, value = TRUE)))
-    flNms <- gsub(".*/|\\.[^\\.]+$", "", fls)
+    flNms <- gsub(".*/|\\.[^.]+$", "", fls)
     tst$x2 <- flNms[tst$Group.1 + 1L]
     stopifnot(sum(tst$x != tst$x2) == 0L)
     tst$File <- fls[tst$Group.1 + 1L]
@@ -211,7 +212,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   }
   kol <- c("Run", "File.Name", "Protein.Ids", "Protein.Names", "Proteotypic", "Genes",
            "Stripped.Sequence", "Modified.Sequence", "Precursor.Charge", "PEP")
-  #print(kol[which(!kol %in% colnames(DIANN))])
+  #print(setdiff(kol, colnames(DIANN)))
   stopifnot(sum(!kol %in% colnames(DIANN)) == 0L)
   EV <- data.frame("Raw file" = DIANN$Run,
                    "Raw file path" = DIANN$File.Name,
@@ -233,7 +234,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   if ("First.Protein.Description" %in% colnames(DIANN)) {
     EV$"First protein name" <- DIANN$First.Protein.Description
   } #else {
-    #cat("   (Column \"First.Protein.Description\" not found, no column of human-readable names generated...)\n")
+  #cat("   (Column \"First.Protein.Description\" not found, no column of human-readable names generated...)\n")
   #}
   # Process modifications
   wMod <- grep("\\(", EV$`Modified sequence`)
@@ -257,8 +258,8 @@ DIANN_to_MQ <- function(DIANN_fl,
   if (modsType == "No idea") {
     screenRes <- rpanel::rp.screenresolution()
     if (shinyOpt == "popup") {
-      run_App1 <- "print(shiny::shinyApp(DIANN_to_MQ_ui1(tstMap), DIANN_to_MQ_server1, options = list(height = screenRes$height, width = screenRes$width)))"
-      run_App2 <- "print(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))"
+      run_App1 <- "print(shiny::shinyApp(.DIANN_to_MQ_ui1(tstMap), .DIANN_to_MQ_server1, options = list(height = screenRes$height, width = screenRes$width)))"
+      run_App2 <- "print(shiny::shinyApp(.DIANN_to_MQ_ui2, .DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))"
     }
     if (shinyOpt %in% c("dialog", "pane")) {
       if (shinyOpt == "pane") {
@@ -267,12 +268,12 @@ DIANN_to_MQ <- function(DIANN_fl,
       if (shinyOpt == "dialog") {
         myViewer <- shiny::dialogViewer("Viewer", width = screenRes$width, height = screenRes$height)
       }
-      run_App1 <- "shiny::runGadget(shiny::shinyApp(DIANN_to_MQ_ui1(tstMap), DIANN_to_MQ_server1, options = list(height = screenRes$height, width = screenRes$width)), viewer = myViewer, stopOnCancel = FALSE)"
-      run_App2 <- "shiny::runGadget(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)), viewer = myViewer, stopOnCancel = FALSE)"
+      run_App1 <- "shiny::runGadget(shiny::shinyApp(.DIANN_to_MQ_ui1(tstMap), .DIANN_to_MQ_server1, options = list(height = screenRes$height, width = screenRes$width)), viewer = myViewer, stopOnCancel = FALSE)"
+      run_App2 <- "shiny::runGadget(shiny::shinyApp(.DIANN_to_MQ_ui2, .DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)), viewer = myViewer, stopOnCancel = FALSE)"
     }
     if (shinyOpt == "browser") {
-      run_App1 <- "print(shiny::shinyApp(DIANN_to_MQ_ui1(tstMap), DIANN_to_MQ_server1, options = list(height = \"100%\", width = \"100%\", launch.browser = TRUE)))"
-      run_App2 <- "print(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = \"100%\", width = \"100%\", launch.browser = TRUE)))"
+      run_App1 <- "print(shiny::shinyApp(.DIANN_to_MQ_ui1(tstMap), .DIANN_to_MQ_server1, options = list(height = \"100%\", width = \"100%\", launch.browser = TRUE)))"
+      run_App2 <- "print(shiny::shinyApp(.DIANN_to_MQ_ui2, .DIANN_to_MQ_server2, options = list(height = \"100%\", width = \"100%\", launch.browser = TRUE)))"
     }
     if (!"m/z" %in% colnames(EV)) {
       msg <- "This DIANN run was searched with a library with non standard PTMs.\nCurrently to make sense of this we need PSM m/z, but these are not written by DiaNN, and they could not be obtained from the library since it could not be found..."
@@ -375,7 +376,7 @@ DIANN_to_MQ <- function(DIANN_fl,
         if (length(opt) >= 1L) {
           dflt <- opt[1L]
           m <- match(commonPTMs, opt)
-          m <- m[which(!is.na(m))]
+          m <- m[!is.na(m)]
           if (length(m)) { dflt <- opt[m[1L]] }
         } else { dflt <- Mods$tag[i] }
         return(dflt)
@@ -386,7 +387,7 @@ DIANN_to_MQ <- function(DIANN_fl,
       con <- file(fl, "r+")
       serialize(Mods, con)
       suppressWarnings(suppressMessages(try(close(con), silent = TRUE))) # Only necessary in function mode
-      #run_App2 <- "print(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))"
+      #run_App2 <- "print(shiny::shinyApp(.DIANN_to_MQ_ui2, .DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))"
       g <- shiny:::.globals
       g$appState <- NULL
       eval(parse(text = run_App2))
@@ -421,7 +422,7 @@ DIANN_to_MQ <- function(DIANN_fl,
     allPTMs$UniMod <- NA
   }
   allPTMs$Type <- "Variable"
-  allPTMs$Type[which(allPTMs$"Full name" %in% Fixed.mods)] <- "Fixed"
+  allPTMs$Type[allPTMs$"Full name" %in% Fixed.mods] <- "Fixed"
   allPTMs$Mark <- tolower(substr(allPTMs$"Full name", 1L, 2L))  
   ## Identify affected Amino Acids
   if (modsType == "UniMod") {
@@ -458,8 +459,8 @@ DIANN_to_MQ <- function(DIANN_fl,
     w <- which(allPTMs$Position == "Protein C-term")
     if (length(w)) { allPTMs$Site[w] <- "^]" }
     allPTMs$Site_long <- lapply(strsplit(gsub("\\^", "", lapply(allPTMs$Site, paste, collapse = "")), ""), \(x) {
-      x[which(x %in% c("[", "n"))] <- "N-term"
-      x[which(x %in% c("]", "c"))] <- "C-term"
+      x[x %in% c("[", "n")] <- "N-term"
+      x[x %in% c("]", "c")] <- "C-term"
       return(x)
     })
   }
@@ -474,9 +475,9 @@ DIANN_to_MQ <- function(DIANN_fl,
       #i <- W[1L]
       w <- which(allPTMs$Mark == tstMark$Group.1[i])
       m <- allPTMs[w,]
-      m$AA[which(lengths(m$AA) == 0L)] <- "X"
+      m$AA[lengths(m$AA) == 0L] <- "X"
       r <- if ("Acetyl" %in% m$"Full name") { which(m$"Full name" == "Acetyl") } else { 1L }
-      s <- c(1L:nrow(m)); s <- s[which(s != r)]
+      s <- c(1L:nrow(m)); s <- s[s != r]
       test <- apply(m[s, c("AA", "Mark")], 1L, \(x) { paste0(tolower(x[[1L]]), substr(x[[2L]], 1L, 1L))[1L] })
       w0 <- which(!test %in% allPTMs$Mark)
       if (length(w0)) {
@@ -581,7 +582,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   tempMod1 <- gsub("[_|\\)][A-Z]*[_|\\(]", ",", uMdSq)
   tempMod2 <- strsplit(tempMod1, ",")
   parallel::clusterExport(cl, "Fixed.mods", envir = environment())
-  f0 <- \(x) { x[which(!x %in% c("", Fixed.mods))] }
+  f0 <- \(x) { x[!x %in% c("", Fixed.mods)] }
   environment(f0) <- .GlobalEnv
   tempMod2 <- parallel::parLapply(cl, tempMod2, f0)
   if (modsType == "No idea") {
@@ -607,8 +608,8 @@ DIANN_to_MQ <- function(DIANN_fl,
   #cat("   Calculating theoretical m/z values...\n")
   parallel::clusterExport(cl, "allPTMs", envir = environment())
   f0 <- \(x) {
-    x <- x[which(x != "")]
-    # x <- x[which(x != "UniMod:4")] # Don't filter out carbamidomethyl! Yes, by default Peptides::mz() can deal with it,
+    x <- x[x != ""]
+    # x <- x[x != "UniMod:4"] # Don't filter out carbamidomethyl! Yes, by default Peptides::mz() can deal with it,
     # but what if we use another? Since we are writing all PTM, including variable, in DiaNN, best to just calculate all from there!
     return(sum(allPTMs$"Mass shift"[match(x, paste0("UniMod:", allPTMs$UniMod))])) # No na.rm = TRUE: if we fail to calculate, I want to see it
   }
@@ -648,8 +649,9 @@ DIANN_to_MQ <- function(DIANN_fl,
   #
   if (PG.Genes) {
     EV$"Leading proteins" <- DIANN$Protein.Group # (Will be removed later anyway in the classic workflow, since we perform protein inference again)
-    kol <- c("PG.Quantity", "PG.Normalised", "PG.MaxLFQ", "Genes.Quantity", "Genes.Normalised", "Genes.MaxLFQ", "Genes.MaxLFQ.Unique")
-    kol <- kol[which(kol %in% colnames(DIANN))]
+    kol <- intersect(c("PG.Quantity", "PG.Normalised", "PG.MaxLFQ", "Genes.Quantity", "Genes.Normalised",
+                       "Genes.MaxLFQ", "Genes.MaxLFQ.Unique"),
+                     colnames(DIANN))
     EV[, sub(" Normalised$", " Normalised quantity", gsub("\\.", " ", kol))] <- DIANN[, kol]
     kol <- c("Protein.Q.Value", "PG.Q.Value", "Global.PG.Q.Value", "GG.Q.Value")
     EV[, sub(" Q Value$", " q-value", gsub("\\.", " ", kol))] <- DIANN[, kol]
@@ -687,8 +689,8 @@ DIANN_to_MQ <- function(DIANN_fl,
   } else {
     EV$Intensity <- EV$"MS1 Area"
   }
-  IntColz <- c("Fragment.Quant.Corrected", "Fragment.Quant.Raw")
-  IntColz <- IntColz[which(IntColz %in% colnames(DIANN))]
+  IntColz <- intersect(c("Fragment.Quant.Corrected", "Fragment.Quant.Raw"),
+                       colnames(DIANN))
   if (length(IntColz)) {
     EV$"MS2 intensities" <- DIANN[[IntColz[1L]]]
   }
@@ -726,12 +728,12 @@ DIANN_to_MQ <- function(DIANN_fl,
   }
   # Optional: filter by delta score
   if (("Delta score" %in% colnames(EV))&&(!is.na(Min.Delta.Score))) {
-    EV <- EV[which(EV$"Delta score" > Min.Delta.Score),]
+    EV <- EV[EV$"Delta score" > Min.Delta.Score,]
   }
   #
   EV$id <- NULL
   EV <- cbind(data.frame(id = 1L:nrow(EV)),
-                         EV)
+              EV)
   Res <- list(Evidence = EV,
               PTMs = allPTMs,
               QuantUMS = useQuantUMS)

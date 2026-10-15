@@ -58,9 +58,9 @@ if (globalGO) {
     w <- which(vapply(colnames(temp), \(x) { is.character(temp[[x]]) }, TRUE))
     if (length(w)) {
       for (i in w) { #i <- w[1L]
-        w1 <- which(nchar(temp[[colnames(temp)[i]]]) > ExcelMax)
+        w1 <- which(nchar(temp[[colnames(temp)[i]]]) > xl_maxChar)
         if (length(w1)) {
-          temp[[colnames(temp)[i]]][w1] <- paste0(substr(temp[[colnames(temp)[i]]][w1], 1L, ExcelMax-3L), "...")
+          temp[[colnames(temp)[i]]][w1] <- paste0(substr(temp[[colnames(temp)[i]]][w1], 1L, xl_maxChar-3L), "...")
         }
       }
     }
@@ -178,9 +178,9 @@ if (globalGO) {
         w <- which(vapply(colnames(temp), \(x) { is.character(temp[[x]]) }, TRUE))
         if (length(w)) {
           for (i in w) { #i <- w[1L]
-            w1 <- which(nchar(temp[[colnames(temp)[i]]]) > ExcelMax)
+            w1 <- which(nchar(temp[[colnames(temp)[i]]]) > xl_maxChar)
             if (length(w1)) {
-              temp[[colnames(temp)[i]]][w1] <- paste0(substr(temp[[colnames(temp)[i]]][w1], 1L, ExcelMax-3L), "...")
+              temp[[colnames(temp)[i]]][w1] <- paste0(substr(temp[[colnames(temp)[i]]][w1], 1L, xl_maxChar-3L), "...")
             }
           }
         }
@@ -279,9 +279,9 @@ if (globalGO) {
             w <- which(vapply(colnames(temp), \(x) { is.character(temp[[x]]) }, TRUE))
             if (length(w)) {
               for (i in w) { #i <- w[1L]
-                w1 <- which(nchar(temp[[colnames(temp)[i]]]) > ExcelMax)
+                w1 <- which(nchar(temp[[colnames(temp)[i]]]) > xl_maxChar)
                 if (length(w1)) {
-                  temp[[colnames(temp)[i]]][w1] <- paste0(substr(temp[[colnames(temp)[i]]][w1], 1L, ExcelMax-3L), "...")
+                  temp[[colnames(temp)[i]]][w1] <- paste0(substr(temp[[colnames(temp)[i]]][w1], 1L, xl_maxChar-3L), "...")
                 }
               }
             }

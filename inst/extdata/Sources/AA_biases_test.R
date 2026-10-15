@@ -21,7 +21,7 @@ suppressMessages({
 plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
 plotLy$x$layout$xaxis$autorange <- TRUE
 plotLy$x$layout$yaxis$autorange <- TRUE
-plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
 plotLy <- plotly::config(plotLy,
                          modeBarButtonsToRemove = c("select2d", "lasso2d"))
 plotLy <- plotly::plotly_build(plotLy)

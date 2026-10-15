@@ -36,15 +36,15 @@ FP_to_MQ(
 \item{OpenSearch}{Is it an open search? If TRUE, will also ignore Open Search-type columns even if they are present. If TRUE, will try to detect and process them - but this is probably still a bit buggy.}
 }
 \value{
-A list of (at least) 4 items:
-- "Evidence": a PSMs table similar (nor identical!) to the evidence table MaxQuant creates
-- "PTMs": a modifications table
-- "FracMap": a map of the different MS raw files and their relationship to Experiments
+A list of (at least) 4 items:\cr
+- "Evidence": a PSMs table similar (nor identical!) to the evidence table MaxQuant creates\cr
+- "PTMs": a modifications table\cr
+- "FracMap": a map of the different MS raw files and their relationship to Experiments\cr
 - "WorkFlow": the FragPipe workflow
 }
 \description{
-Reads FragPipe's workflow and manifest files
-From them, detects and parses psm.tsv tables (one per Experiment) to a single MaxQuant evidence.txt-like table.
+Reads FragPipe's workflow and manifest files.\cr
+From them, detects and parses psm.tsv tables (one per Experiment) to a single MaxQuant evidence.txt-like table.\cr
 As with the other functions of this type, the idea is not to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.
 }
 \examples{

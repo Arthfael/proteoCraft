@@ -41,18 +41,19 @@ DIANN_to_MQ(
 
 \item{log_Fl}{If missing, the function will try to detect the log file based on the name of the report - but this may fail!}
 }
-\description{
-Converts a diaNN PSMs table to a MaxQuant evidence.txt-like table.
-As with the other functions of this type, the idea is not to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.
-
-The output is a list of 3 items:
-- Evidence: a data.frame similar to the evidence.txt table MaxQuant creates
-- PTMs: a modifications table
+\value{
+A list of 3 items:\cr
+- Evidence: a data.frame similar to the evidence.txt table MaxQuant creates\cr
+- PTMs: a modifications table\cr
 - QuantUMS: was QuantUMS quantification on?
 
 Surprisingly, the diaNN PSMs table does not include MZ values! Is there a way to do this by adding a command line argument?
 For now they are either detected from the library file (same folder) or computed.
 Cysteine alkylation is assumed to be Carbamidomethyl
+}
+\description{
+Converts a diaNN PSMs table to a MaxQuant evidence.txt-like table.
+As with the other functions of this type, the idea is not to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.
 }
 \examples{
 DIANN_fl <- rstudioapi::selectFile()

@@ -37,7 +37,7 @@ for (pck in cran_req) { library(pck, character.only = TRUE) }
 # - proteoCraft: check version installed
 if (!require("proteoCraft")) { pak::pak("arthfael/proteoCraft") }
 packVers <- unlist(strsplit(as.character(packageVersion("proteoCraft")), "\\."))
-packVersTst <- (packVers[[1L]] >= 2L)&(((packVers[[2L]] == 2L)&(packVers[[3L]] >= 1L))|((packVers[[2L]] > 2L)))
+packVersTst <- (packVers[[1L]] >= 2L) & (((packVers[[2L]] == 2L) & (packVers[[3L]] >= 1L)) | ((packVers[[2L]] > 2L)))
 if (!packVersTst) {
   msg <- paste0("This version of the script requires proteoCraft v2.2.1 or higher, but v", paste(packVers, collapse = "."))
   # To upgrade:
@@ -211,7 +211,7 @@ while (!areWeGood) {
       if (myChoice == opt[1L]) { fls <- c() }
     }
     l <- length(fls)
-    if ((!l)||(myChoice == opt[3L])) {
+    if ((!l) || (myChoice == opt[3L])) {
       wd <- rstudioapi::selectDirectory(path = dflt)
       #wd <- unique(dirname(fls))
       #filt <- matrix(data = c("Thermo raw file", "*.raw;*.RAW"), ncol = 2, dimnames = list("raw file"))
@@ -329,7 +329,8 @@ while (!areWeGood) {
     appNm <- paste0(dtstNm, " - Experimental Factors")
     ui <- fluidPage(
       useShinyjs(),
-      extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+      extendShinyjs(text = jsFun$toggle_full_screen,
+                    functions = c("toggleFullScreen")),
       titlePanel(tag("u", "Experimental structure editor"),
                  appNm),
       h2(dtstNm), 
@@ -562,7 +563,7 @@ while (!areWeGood) {
         msg <- " "
         Facts <- gsub("[^A-Z,a-z,0-9]", "\\.", unlist(strsplit(input$nuFact, " +")))
         sapply(Facts, \(Fact) {
-          #if ((nchar(Fact) < 3)||(grepl("^[0-9]", Fact))||(substr(Fact, 1L, 3L) %in% substr(FACT(), 1L, 3L))) {
+          #if ((nchar(Fact) < 3L) || grepl("^[0-9]", Fact) || (substr(Fact, 1L, 3L) %in% substr(FACT(), 1L, 3L))) {
           #  msg <- "Invalid Factor name! Must be at least 3 characters long and start with a capital letter! The first 3 characters must be unique to this Factor!"
           #} else {
           #Fact <- paste0(toupper(substr(Fact, 1L, 1L)), tolower(substr(Fact, 2L, nchar(Fact))))
@@ -623,7 +624,7 @@ while (!areWeGood) {
       observeEvent(input$rmvFactor, {
         msg <- " "
         tmp <- gsub("[^A-Z,a-z,0-9]", "\\.", input$nuFact)
-        if ((nchar(tmp) < 3L)||(grepl("^[0-9]", tmp))) {
+        if ((nchar(tmp) < 3L) || grepl("^[0-9]", tmp)) {
           msg <- "Invalid Factor name! Must be at least 3 characters long and start with a capital letter!"
         } else {
           #tmp <- paste0(toupper(substr(tmp, 1L, 1L)), tolower(substr(tmp, 2L, nchar(tmp))))
@@ -797,7 +798,7 @@ while (!areWeGood) {
          names = colnames(xpDat)[x[[2L]]+1L])
   })
   oTHerz <- which(colnames(xpDat) != "Parent sample")
-  g <- grep("___((FD)|(INCR))$", colnames(xpDat))
+  g <- grep("___(FD|INCR)$", colnames(xpDat))
   colnames(xpDat)[g] <- "" 
   edith <- list(target = "column",
                 disable = list(columns = c(0L, match(Fact1, colnames(xpDat))-1)))
@@ -811,7 +812,8 @@ while (!areWeGood) {
   if (exists("ExpData3")) { rm(ExpData3) }
   ui <- fluidPage(
     useShinyjs(),
-    extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+    extendShinyjs(text = jsFun$toggle_full_screen,
+                  functions = c("toggleFullScreen")),
     # Dummy, hidden div to load arrow-down icon
     tags$div(
       class = "container",
@@ -935,7 +937,7 @@ while (!areWeGood) {
     session$onSessionEnded(\() { stopApp() })
   }
   runKount <- 0L
-  while ((!runKount)||(!exists("ExpData3"))) {
+  while ((!runKount) || (!exists("ExpData3"))) {
     g <- shiny:::.globals
     g$appState <- NULL
     eval(parse(text = run_App))
@@ -1008,7 +1010,7 @@ mzMLs <- gsub("\\.raw$", ".mzML", slctFls, ignore.case = TRUE)
 pressFls <- gsub("\\.mzML$", ".csv", mzMLs)
 clusterExport(parClust, list("slctFls", "mzMLs", "pressFls"), envir = environment())
 #w <- 1L:length(mzMLs)
-w <- which((!file.exists(mzMLs))|(base::file.size(mzMLs) <= 2000))
+w <- which((!file.exists(mzMLs)) | (base::file.size(mzMLs) <= 2000))
 if (length(w)) {
   if (tolower(Convert_mode) == "thermorawfileparser") { # Mode 1: using ThermoRawFileParser
     clusterExport(parClust, list("wd", "deer", "zlib", "PeakPicking"), envir = environment())
@@ -1248,7 +1250,7 @@ flsOrd <- ExpMap$`MS raw file`[match(flsOrd0, ExpMap$`MS raw file name`)]
 ExpMap2 <- ExpMap
 for (k in colnames(ExpMap2)) {
   ExpMap2[[k]] <- as.character(ExpMap2[[k]])
-  w <- which((is.na(ExpMap2[[k]]))|(ExpMap2[[k]] == "NA"))
+  w <- which(is.na(ExpMap2[[k]]) | (ExpMap2[[k]] == "NA"))
   ExpMap2[w, k] <- "_"
   if (k == "MS raw file name") {
     ExpMap2[[k]] <- factor(ExpMap2[[k]], levels = flsOrd0)
@@ -1611,7 +1613,7 @@ peakXtract <- \(fileName, # File name
       }, silent = TRUE)
     }
   }
-  if ((length(qnt) != 1L)||(is.null(qnt))) {
+  if ((length(qnt) != 1L) || is.null(qnt)) {
     warning(paste0(x, ": something unexpected happened, investigate!"))
     qnt <- NA
   } # Should never happen
@@ -1681,9 +1683,9 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1L] #nm <- names(allChrom
               #
               # Create formula for facet_grid:
               em01 <- if (is.na(prot)) {
-                ExpMap2[which((is.na(ExpMap2$Protein))|(ExpMap2$Role %in% c("Standard", "Buffer_control", "Tag_control"))),]
+                ExpMap2[which(is.na(ExpMap2$Protein) | (ExpMap2$Role %in% c("Standard", "Buffer_control", "Tag_control"))),]
               } else {
-                ExpMap2[which((ExpMap2$Protein == prot)|(ExpMap2$Role %in% c("Standard", "Buffer_control", "Tag_control"))),]
+                ExpMap2[which((ExpMap2$Protein == prot) | (ExpMap2$Role %in% c("Standard", "Buffer_control", "Tag_control"))),]
               }
               em1 <- em01[which(!em01$Role %in% c("Standard", "Buffer_control")),]
               Factors3 <- Factors[which(!Factors %in% c("Replicate", "Samples_group"))] # Not using Samples_group because we replace it with Samples_group2!!!

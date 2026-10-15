@@ -56,7 +56,7 @@ if (exists("targDir") && (!is.null(targDir)) && dir.exists(targDir)) {
   dflt <- targDir
 } else {
   dflt <- c("D:/Data/Projects", "...Search_Folder", "C:/", getwd())
-  dflt <- dflt[which(dir.exists(dflt))[1L]]
+  dflt <- dflt[dir.exists(dflt)][1L]
 }
 #
 nrmPath4PS <- \(Path) {
@@ -121,14 +121,14 @@ if (!is.null(targDir)) {
       # Adapted from https://stackoverflow.com/questions/32200879/how-to-get-disk-space-of-windows-machine-with-r
       disks <- system("wmic logicaldisk get size,freespace,caption", inter = TRUE)
       disks <- strsplit(disks[1L:(length(disks)-1L)], " +")
-      disks <- disks[which(lengths(disks) == 4L)]
+      disks <- disks[lengths(disks) == 4L]
       k <- unlist(disks[1L])
       disks <- as.data.frame(t(sapply(disks[2L:length(disks)], \(x) { x[1L:3L] })))
       colnames(disks) <- k[1L:3L]
       rownames(disks) <- NULL
       disks$FreeSpace <- as.numeric(as.character(disks$FreeSpace))
       disks$Size <- as.numeric(disks$Size)
-      disks$FreeSpace[which(disks$Caption == "B:")] <- Inf # Hack because archive space is not being properly read and we will always have enough space there
+      disks$FreeSpace[disks$Caption == "B:"] <- Inf # Hack because archive space is not being properly read and we will always have enough space there
       FrSp <- as.numeric(disks$FreeSpace[match(gsub("/.*", "", DestDir), disks$Caption)])
       #
       pat <- gsub("/+", "/", paste0(rootDir, "/", parDir, "/"))
@@ -157,7 +157,7 @@ if (!is.null(targDir)) {
         FilesDF$py_diAID <- grepl("/Optimization_plot_A1_ *[0-9]+\\.[0-9]+_A2_ *[0-9]+\\.[0-9]+_B1_ *[0-9]+\\.[0-9]+_B2_ *[0-9]+\\.[0-9]+_result_ *[0-9]+\\.[0-9]+\\.png",
                                   FilesDF$Files)
         if (sum(FilesDF$py_diAID)) {
-          FilesDF$New[which(FilesDF$py_diAID)] <- parSapply(parClust, FilesDF$Files[which(FilesDF$py_diAID)], \(x) {
+          FilesDF$New[FilesDF$py_diAID] <- parSapply(parClust, FilesDF$Files[FilesDF$py_diAID], \(x) {
             #x <- FilesDF$Files[py_diAID[1L]]
             x <- unlist(strsplit(x, "/"))
             dr <- paste(x[1L:(length(x)-1L)], collapse = "/")
@@ -175,9 +175,9 @@ if (!is.null(targDir)) {
         FilesDF$NewHash <- "Blah!" # The two hashes' dummy values should be different!!!
         dstDirs <- unique(dirname(FilesDF$New))
         for (dstDir in dstDirs) { if (!dir.exists(dstDir)) { dir.create(dstDir, recursive = TRUE) } }
-        FilesDF <- FilesDF[which(!is.na(FilesDF$size)),] # Exclude some system files if at root of drive
+        FilesDF <- FilesDF[!is.na(FilesDF$size),] # Exclude some system files if at root of drive
         FilesDF$Invoice <- grepl("\\.raw$|\\.d", FilesDF$Files, ignore.case = TRUE) # Files to invoice
-        FilesDF$IsINI <- gsub(".*\\.", "", FilesDF$Files) == "ini"
+        FilesDF$IsINI <- sub(".*\\.", "", FilesDF$Files) == "ini"
         #
         #
         # Decide whether to invoice and if so, which files to use to calculate MS time
@@ -211,10 +211,10 @@ if (!is.null(targDir)) {
           # pressScript2 <- paste0(DestDir, "/pressScript.py")
           # write(tmp, pressScript2)
           # # 2 - Convert files to mzML
-          # rawFiles <- FilesDF$Files[which(FilesDF$ThermoRaw)]
-          # mzMLs <- gsub("\\.raw$", ".mzML", rawFiles, ignore.case = TRUE)
+          # rawFiles <- FilesDF$Files[FilesDF$ThermoRaw]
+          # mzMLs <- sub("\\.raw$", ".mzML", rawFiles, ignore.case = TRUE)
           # wDel <- which(!file.exists(mzMLs))
-          # pressFls <- gsub("\\.mzML$", ".csv", mzMLs)
+          # pressFls <- sub("\\.mzML$", ".csv", mzMLs)
           # w <- which(!file.exists(mzMLs))
           # if (length(w)) {
           #   # Convert to mzML
@@ -223,7 +223,7 @@ if (!is.null(targDir)) {
           #                                              list.dirs(paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads"), full.names = TRUE, recursive = FALSE)),
           #                    value = TRUE)
           #   tst <- vapply(ParsDirs, \(x) { "ThermoRawFileParser.exe" %in% list.files(x) }, TRUE)
-          #   ParsDirs <- ParsDirs[which(tst)]
+          #   ParsDirs <- ParsDirs[tst]
           #   if (!length(ParsDirs)) {
           #     url <- "https://github.com/compomics/ThermoRawFileParser/releases/download/v1.4.4/ThermoRawFileParser1.4.4.zip"
           #     require(curl)
@@ -235,7 +235,7 @@ if (!is.null(targDir)) {
           #   }
           #   if (length(ParsDirs) > 1L) {
           #     tst <- vapply(ParsDirs, \(x) { file.info(x)$ctime }, 1)
-          #     ParsDirs <- ParsDirs[which(tst == max(tst))[1L]]
+          #     ParsDirs <- ParsDirs[tst == max(tst)][1L]
           #   }
           #   deer$ParsDir <- ParsDirs
           #   MSConvertInst <- ("C:/Program Files/ProteoWizard"%in% list.dirs("C:/Program Files", recursive = FALSE))
@@ -308,14 +308,14 @@ if (!is.null(targDir)) {
           
         }
         if (isBruker) {
-          dDrs <- unique(grep("[^/]+\\.d$", dirname(FilesDF$Files[which(FilesDF$BrukerD)]), value = TRUE))
+          dDrs <- unique(grep("[^/]+\\.d$", dirname(FilesDF$Files[FilesDF$BrukerD]), value = TRUE))
           tst <- parSapply(parClust, dDrs, \(dr) {
             length(grep("/[0-9]+\\.m$", list.dirs(dr))) == 1L
             # If not specific enough, add more tests:
             # Our d folders typically always contain the same files, but which specifically?
             # Can we trust that these will always be there, or are some only present with some options?
           })
-          dDrs <- dDrs[which(tst)]
+          dDrs <- dDrs[tst]
         }
         isMS <- isThermo+isBruker
         if (isMS == 2L) {
@@ -351,7 +351,7 @@ if (!is.null(targDir)) {
               w <- which(FilesDF$Files %in% Fls2Chrg$Files)
               FilesDF$TimeDiff <- NA_real_
               FilesDF$TimeDiff[w] <- difftime(FilesDF$flsMdTm[w], FilesDF$flsCrTm[w], units = "hours")
-              wNeg <- w[which(FilesDF$TimeDiff[w] < 0)]
+              wNeg <- w[FilesDF$TimeDiff[w] < 0]
               lNeg <- length(wNeg)
               if (lNeg) {
                 warning(paste0(lNeg, " files have negative net run time (i.e. file modified date is earlier than file created date!) -> investigate!\nSetting those values to 0!"))
@@ -394,13 +394,13 @@ if (!is.null(targDir)) {
               pat <- topattern(gsub("/+", "/", paste0(rootDir, "/", parDir, "/")))
               tst <- lapply(dDrs, \(dFl) { #dFl <- dDrs[1L]
                 sbdr <- grep("\\.m$", list.dirs(dFl), invert = TRUE, value = TRUE)
-                sbdr <- sbdr[which(sbdr != dFl)]
+                sbdr <- sbdr[sbdr != dFl]
                 lgFl <- grep("execution-log", list.files(sbdr, full.names = TRUE), value = TRUE)
                 if (length(lgFl) != 1L) {
                   if (length(lgFl) > 1L) { res <- list(outcome = FALSE) } else {
                     nuFl <- gsub(pat, paste0(DestDir, "/", parDir, "/"), dFl)
                     sbdr <- grep("\\.m$", list.dirs(nuFl), invert = TRUE, value = TRUE)
-                    sbdr <- sbdr[which(sbdr != nuFl)]
+                    sbdr <- sbdr[sbdr != nuFl]
                     lgFl <- grep("execution-log", list.files(sbdr, full.names = TRUE), value = TRUE)
                     res <- if (length(lgFl) != 1L) { list(outcome = FALSE) } else { list(outcome = TRUE, file = lgFl) }
                   }
@@ -424,7 +424,7 @@ if (!is.null(targDir)) {
                   if (!length(stp)) { res <- list(outcome = FALSE) } else {
                     stp <- unlist(strsplit(gsub("\t.*", "", stp), " - "))[2L]
                     if (!grep("^000\\.", stp)) { stop("This doesn't (yet) support methods this long!") }
-                    tm <- unlist(strsplit(gsub("^000\\.", "", stp), ":"))
+                    tm <- unlist(strsplit(sub("^000\\.", "", stp), ":"))
                     res <- list(outcome = TRUE, value = sum(as.numeric(tm) * c(1, 1/60, 1/3600)))
                   }
                   return(res)
@@ -509,12 +509,12 @@ if (!is.null(targDir)) {
             }
             cat(" - Destination files...\n")
             FilesDF$NewHash[wExst] <- parSapply(parClust, FilesDF$New[wExst], HashFun)
-            BdHsh <- (is.na(FilesDF$NewHash[wExst]))|(FilesDF$Hash[wExst] != FilesDF$NewHash[wExst])
-            BdHsh[which(is.na(BdHsh))] <- TRUE
+            BdHsh <- is.na(FilesDF$NewHash[wExst]) | (FilesDF$Hash[wExst] != FilesDF$NewHash[wExst])
+            BdHsh[is.na(BdHsh)] <- TRUE
             tstBdHsh <- (sum(BdHsh) > 0L) + 1L
             cat(paste0(" -> Result: ", c("no ", "")[tstBdHsh], "discrepancies found, ", c("ignor", "overwrit")[tstBdHsh], "ing overlapping files.\n"))
             SzOk <- FilesDF$NewSize[wExst] == FilesDF$size[wExst]
-            FilesDF$Copy[wExst] <- (!SzOk)|(BdHsh)
+            FilesDF$Copy[wExst] <- (!SzOk) | BdHsh
             cat("\n")
           }
           kount <- 0L # Attempts
@@ -522,16 +522,16 @@ if (!is.null(targDir)) {
           FilesDF$Copied <- FALSE
           #cat(msgRoot)
           wC <- which(FilesDF$Copy) # Initiate
-          while ((CopyFls)&&(kount < MaxAttempts)) {
+          while (CopyFls && (kount < MaxAttempts)) {
             kount <- kount+1L
             cat(paste0("Copying attempt #", kount, "\n"))
-            wC <- wC[which((!FilesDF$Copied[wC])
-                           |(!FilesDF$NewExists[wC])
-                           |((FilesDF$NewHash[wC] == "Blah!")|(is.na(FilesDF$NewHash[wC])))
-                           |((!is.na(FilesDF$NewSize[wC]))&(FilesDF$size[wC] != FilesDF$NewSize[wC]))
-                           |(is.na(FilesDF$NewHash[wC]))
-                           |(is.na(FilesDF$Hash[wC]))
-                           |((!is.na(FilesDF$NewHash[wC]))&(!is.na(FilesDF$Hash[wC]))&(FilesDF$Hash[wC] != FilesDF$NewHash[wC])))]
+            wC <- wC[(!FilesDF$Copied[wC])
+                     | (!FilesDF$NewExists[wC])
+                     | ((FilesDF$NewHash[wC] == "Blah!") | is.na(FilesDF$NewHash[wC]))
+                     | ((!is.na(FilesDF$NewSize[wC])) & (FilesDF$size[wC] != FilesDF$NewSize[wC]))
+                     | is.na(FilesDF$NewHash[wC])
+                     | is.na(FilesDF$Hash[wC])
+                     | ((!is.na(FilesDF$NewHash[wC])) & (!is.na(FilesDF$Hash[wC])) & (FilesDF$Hash[wC] != FilesDF$NewHash[wC]))]
             # Check for space
             if (sum(FilesDF$size[wC], na.rm = TRUE) > FrSp) { 
               msg <- "Insufficient free space in target volume! Copy anyway? (only do this for network resources which may not report free space correctly)"
@@ -539,7 +539,7 @@ if (!is.null(targDir)) {
             }
             if (CopyFls) {
               # Calculate original hash
-              wBlh <- wC[which(FilesDF$Hash[wC] == "Bleh!")]
+              wBlh <- wC[FilesDF$Hash[wC] == "Bleh!"]
               if (length(wBlh)) {
                 cat(" - Calculating original file hashes...\n")
                 FilesDF$Hash[wBlh] <- parSapply(parClust, FilesDF$Files[wBlh], HashFun)
@@ -575,11 +575,11 @@ if (!is.null(targDir)) {
               # Solution: try copying this file individually.
               if (length(wN)) {
                 TRYFIX <- TRUE
-                while ((length(wN))&&(TRYFIX)) {
+                while (length(wN) && TRYFIX) {
                   tst <- try(file.copy(Fls_wC[wN[1L]], nuFls_wC[wN[1L]], overwrite = TRUE, recursive = TRUE), silent = TRUE)
                   if (!inherits(tst, "try-error")) {
                     FilesDF$NewExists[wC[wN[1L]]] <- file.exists(FilesDF$New[wC[wN[1L]]])
-                    wN <- wN[which(wN != wN[1L])]
+                    wN <- wN[wN != wN[1L]]
                     if (length(wN)) {
                       tst <- try(parSapply(parClust, wN, \(x) {
                         fs::file_copy(Fls_wC[wC[x]], nuFls_wC[wC[x]], overwrite = TRUE)
@@ -596,24 +596,24 @@ if (!is.null(targDir)) {
               # - the file exists
               # - its size is correct
               # - its hash is correct
-              wExst <- wC[which(FilesDF$NewExists[wC])] # Normally wExst should be identical to wC
+              wExst <- wC[FilesDF$NewExists[wC]] # Normally wExst should be identical to wC
               FilesDF$NewSize[wExst] <- base::file.size(FilesDF$New[wExst])
               cat(" - Calculating cloned file hashes...\n")
               FilesDF$NewHash[wExst] <- parSapply(parClust, FilesDF$New[wExst], HashFun)
-              BdHsh <- (is.na(FilesDF$NewHash[wExst]))|(FilesDF$Hash[wExst] != FilesDF$NewHash[wExst])
-              BdHsh[which(is.na(BdHsh))] <- TRUE
+              BdHsh <- is.na(FilesDF$NewHash[wExst]) | (FilesDF$Hash[wExst] != FilesDF$NewHash[wExst])
+              BdHsh[is.na(BdHsh)] <- TRUE
               tstBdHsh <- (sum(BdHsh) > 0L) + 1L
               if (tstBdHsh == 2L) {
                 cat("   checking discrepancies...\n")
-                wBdHsh <- wExst[which(BdHsh)]
+                wBdHsh <- wExst[BdHsh]
                 FilesDF$size[wBdHsh] <- base::file.size(FilesDF$Files[wBdHsh])
                 FilesDF$Hash[wBdHsh] <- parSapply(parClust, FilesDF$Files[wBdHsh], HashFun)
-                BdHsh <- (is.na(FilesDF$NewHash[wExst]))|(FilesDF$Hash[wExst] != FilesDF$NewHash[wExst])
-                BdHsh[which(is.na(BdHsh))] <- TRUE
+                BdHsh <- is.na(FilesDF$NewHash[wExst]) | (FilesDF$Hash[wExst] != FilesDF$NewHash[wExst])
+                BdHsh[is.na(BdHsh)] <- TRUE
                 tstBdHsh <- (sum(BdHsh) > 0L) + 1L
-                wC <- unique(c(wC[which(!wC %in% wExst)],
-                               wExst[which((FilesDF$size[wExst] != FilesDF$NewSize[wExst])
-                                           |BdHsh)]))
+                wC <- unique(c(wC[!wC %in% wExst],
+                               wExst[(FilesDF$size[wExst] != FilesDF$NewSize[wExst])
+                                     | BdHsh]))
                 if (tstBdHsh == 2L) {
                   cat(paste0(" -> Result: ", sum(BdHsh), " confirmed issue, cloning attempt #", kount,
                              " was unsuccessful.\n   Is it possible that the input files are actually still being modified?\n"))
@@ -623,9 +623,9 @@ if (!is.null(targDir)) {
                              ".\nHowever, original file hashes needed re-calculating, indicating that they were modified since the script was starting. Are you exploring the files (e.g. in Bruker's Data Analysis software)? If not, check again whether data acquisition is not still ongoing in the folder!\n"))
                 }
               } else {
-                wC <- unique(c(wC[which(!wC %in% wExst)],
-                               wExst[which((FilesDF$size[wExst] != FilesDF$NewSize[wExst])
-                                           |BdHsh)]))
+                wC <- unique(c(wC[!wC %in% wExst],
+                               wExst[(FilesDF$size[wExst] != FilesDF$NewSize[wExst])
+                                     | BdHsh]))
                 CopyFls <- FALSE
                 cat(paste0(" -> Result: no discrepancies found, cloning was successful", c("", paste0(" after ", kount, " attempts"))[(kount > 1L) + 1L], ".\n"))
               }
@@ -636,7 +636,7 @@ if (!is.null(targDir)) {
                     sum(FilesDF$size != FilesDF$NewSize) == 0L, # Do they have the expected size?
                     sum(is.na(FilesDF$NewHash)) == 0L, # Do we have a hash for all of those new files?
                     sum(FilesDF$Hash != FilesDF$NewHash) == 0L) # And are those valid hashes?
-          tsts[which(is.na(tsts))] <- FALSE # Fix NAs: they are failures!
+          tsts[is.na(tsts)] <- FALSE # Fix NAs: they are failures!
           if (!sum(!tsts)) { # Are all tests successes?
             FilesDF$nuFlsCrTm <- parSapply(parClust, FilesDF$New, \(fl) { file.info(fl)$ctime })
             FilesDF$nuFlsMdTm <- parSapply(parClust, FilesDF$New, \(fl) { file.info(fl)$mtime })
@@ -645,7 +645,7 @@ if (!is.null(targDir)) {
             # - Data is currently mostly being transferred to the archive... where we do not want to modify it once written. Does this count as a modification?
             # - Invoicing (for which we are using instrument time) - is now being done on original files in most cases.
             if (adjstTimes) {
-              wJ <- which((!FilesDF$IsINI)&(FilesDF$Copy))
+              wJ <- which((!FilesDF$IsINI) & FilesDF$Copy)
               if (length(wJ)) {
                 # Get time created and modified
                 wCr <- which(FilesDF$nuFlsCrTm[wJ] != FilesDF$flsCrTm[wJ]) # Indices of wJ
@@ -705,16 +705,16 @@ if (!is.null(targDir)) {
                 # Filter to only keep files to remove
                 rawFls2Rmv <- dDrs2Rmv <- c()
                 if (isThermo) {
-                  rawFls2Rmv <- FilesDF$Files[which((FilesDF$NewExists)
-                                                    &(FilesDF$size == FilesDF$NewSize)
-                                                    &(FilesDF$NewHash == FilesDF$Hash)
-                                                    &(FilesDF$ThermoRaw))]
+                  rawFls2Rmv <- FilesDF$Files[FilesDF$NewExists
+                                              & (FilesDF$size == FilesDF$NewSize)
+                                              & (FilesDF$NewHash == FilesDF$Hash)
+                                              & FilesDF$ThermoRaw]
                 }
                 if (isBruker) {
-                  dDrs2Rmv <- FilesDF$Files[which((FilesDF$NewExists)
-                                                  &(FilesDF$size == FilesDF$NewSize)
-                                                  &(FilesDF$NewHash == FilesDF$Hash)
-                                                  &(FilesDF$BrukerD))]
+                  dDrs2Rmv <- FilesDF$Files[FilesDF$NewExists
+                                            & (FilesDF$size == FilesDF$NewSize)
+                                            & (FilesDF$NewHash == FilesDF$Hash)
+                                            & FilesDF$BrukerD]
                   dDrs2Rmv <- unique(grep("[^/]+\\.d$", dirname(dDrs2Rmv), value = TRUE))
                 }
                 Fls2Rmv <- c(rawFls2Rmv, dDrs2Rmv)
@@ -745,9 +745,9 @@ if (!is.null(targDir)) {
                             paste0(" - ", Fls2Rmv),
                             "")
                   if (sum(!RmvTsts)) {
-                    Log2 <- c(Log2, "However, deletion failed for the following files:", paste0(" - ", Fls2Rmv[which(!RmvTsts)]), "")
+                    Log2 <- c(Log2, "However, deletion failed for the following files:", paste0(" - ", Fls2Rmv[!RmvTsts]), "")
                   }
-                  if ((Invoicing)&&(length(Fls2Rmv))) {
+                  if (Invoicing && length(Fls2Rmv)) {
                     Log2 <- c(Log2, paste0("Selected instrument run time to charge: ", ceiling(sum(TimeDiff)*10)/10, " h"), "")
                   }
                   Log2Fl <- paste0(targDir, "/MS files deletion log_", gsub("[^0-9]", "", logTm), ".txt")

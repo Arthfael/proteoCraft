@@ -63,7 +63,8 @@ ui <- fluidPage(
     gradient = "linear",
     direction = "bottom"
   ),
-  extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+  extendShinyjs(text = jsFun$toggle_full_screen,
+                functions = c("toggleFullScreen")),
   titlePanel(tag("u", "Experimental Factors editor"),
              appNm),
   h2(dtstNm), 

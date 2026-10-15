@@ -118,12 +118,12 @@ if (goAhead) {
   }))
   idMtch <- match(pidTab$ID, tmpDB$"Protein ID")
   pidTab$Seq <- tmpDB$Sequence[idMtch]
-  pidTab$nm1 <- gsub("\\*", "STAR", gsub("/", "-", gsub(" - $", "", pidTab$ID)))
-  nm2 <- gsub("\\*", "STAR", gsub("/", "-", gsub(" - $", "", tmpDB$"Common Name"[idMtch])))
+  pidTab$nm1 <- gsub("\\*", "STAR", gsub("/", "-", sub(" - $", "", pidTab$ID)))
+  nm2 <- gsub("\\*", "STAR", gsub("/", "-", sub(" - $", "", tmpDB$"Common Name"[idMtch])))
   pidTab$nm <- ifelse(pidTab$nm1 != nm2, paste0(pidTab$nm1, "_", nm2), pidTab$nm1)
   wLong <- which(nchar(pidTab$nm) > nCharLim)
-  pidTab$nm[wLong] <- paste0(gsub(" +$", "", substr(pidTab$nm[wLong], 1L, nCharLim-3L)), "...")
-  pidTab$dirNm <- gsub(":", "_", gsub("\\.\\.\\.$", "", pidTab$nm))
+  pidTab$nm[wLong] <- paste0(sub(" +$", "", substr(pidTab$nm[wLong], 1L, nCharLim-3L)), "...")
+  pidTab$dirNm <- gsub(":", "_", sub("\\.\\.\\.$", "", pidTab$nm))
   pidTab$key <- paste0("pid", seq_len(nrow(pidTab)))
   pidTab$dirInt <- paste0(wd, "/Protein plots/", pidTab$dirNm, "/Coverage/Intensity")
   pidTab$dirPEP <- paste0(wd, "/Protein plots/", pidTab$dirNm, "/Coverage/PEP")
@@ -303,7 +303,7 @@ if (goAhead) {
         temp3[, c("A", "B")] <- Isapply(strsplit(temp3$Comparison, " vs "), unlist)
         temp2 <- temp2[order(temp2$Comparison),]
         temp3 <- temp3[order(temp3$Comparison),]
-        temp2$Sequence <- gsub("\\([^\\)]+\\)|_", "", temp2$"Modified sequence")
+        temp2$Sequence <- gsub("\\([^)]+\\)|_", "", temp2$"Modified sequence")
         temp2$"C-terminal extent" <- temp2$Match + nchar(temp2$Sequence) - 1L
         temp2$"log2(A/B)" <- (temp2$"log10(LFQ, A)" - temp2$"log10(LFQ, B)")/log10(2L)
         temp2$"avg. log10(intensity)" <- apply(temp2[, c("log10(LFQ, A)", "log10(LFQ, B)")], 1L, \(x){
@@ -418,8 +418,8 @@ if (goAhead) {
     temp2 <- d$temp2
     P <- d$P; nm <- d$nm; nm1 <- d$nm1
     tstInf <- d$tstInf; tstInfA <- d$tstInfA; tstInfB <- d$tstInfB; logFC_rng <- d$logFC_rng
-    temp2$A <- paste0("A = ", gsub(" \\(A\\)$", "", temp2$A))
-    temp2$B <- paste0("B = ", gsub(" \\(B\\)$", "", temp2$B))
+    temp2$A <- paste0("A = ", sub(" \\(A\\)$", "", temp2$A))
+    temp2$B <- paste0("B = ", sub(" \\(B\\)$", "", temp2$B))
     seqL <- nchar(P)
     Aext <- seqL
     Bext <- max(temp2$`log2(A/B)`) - min(temp2$`log2(A/B)`) + 1L
@@ -539,7 +539,7 @@ if (goAhead) {
     }
     plotLY$x$layout$xaxis$autorange <- TRUE
     plotLY$x$layout$yaxis$autorange <- TRUE
-    plotLY <- htmlwidgets::onRender(plotLY, global_autorange)
+    plotLY <- htmlwidgets::onRender(plotLY, jsFun$global_auto_range)
     plotLY <- plotly::config(plotLY, modeBarButtonsToRemove = c("select2d", "lasso2d"))
     plotLY <- plotly::plotly_build(plotLY)
     ttl_ <- gsub(":|\\*|\\?|<|>|\\||/", "-", paste0("Ratio plot - ", nm))
@@ -568,7 +568,7 @@ if (goAhead) {
     fn <- get(f); environment(fn) <- .GlobalEnv; assign(f, fn)
   }
   clusterExport(parClust, c("plotCfg", "prepPlotData", "plotCov", "plotCorr", "plotRatio", "runPlotTask",
-                            "Coverage", "listMelt", "global_autorange", "Exp", "topattern",
+                            "Coverage", "listMelt", "jsFun", "Exp", "topattern",
                             "annot_to_tabl", "poplot", "wd"),
                 envir = environment())
   if (scrptType == "withReps") {

@@ -153,7 +153,7 @@ if (lNorm) {
     tmp <- plotly::plotly_build(tmp)
     tmp$x$layout$xaxis$autorange <- TRUE
     tmp$x$layout$yaxis$autorange <- TRUE
-    tmp <- htmlwidgets::onRender(tmp, global_autorange)
+    tmp <- htmlwidgets::onRender(tmp, jsFun$global_auto_range)
     tmp <- plotly::config(tmp,
                           modeBarButtonsToRemove = c("select2d", "lasso2d"))
     dimRedPlotLy$peptides$"Samples PCA_norm" <- tmp

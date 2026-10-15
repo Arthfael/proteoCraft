@@ -31,15 +31,16 @@ PD_to_MQ(
 
 \item{MaxRank}{Will only accept search engine ranks lower or equal to the value of this parameter (default = 1)}
 }
+\value{
+A list of two items:\cr
+- an evidence table similar to the one MaxQuant creates ("Evidences")\cr
+- a modifications table ("PTMs")
+}
 \description{
 Converts a Proteome Discoverer PSMs table to a MaxQuant evidence.txt-like table.
 As with the other functions of this type, the idea is not to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.
 
 Has not been updated for a long time, and is probably in need of a refresh!
-
-The output is a list of two items:
-- an evidence table similar to the one MaxQuant creates ("Evidences")
-- a modifications table ("PTMs")
 }
 \examples{
 temp <- PD_to_MQ(PD)

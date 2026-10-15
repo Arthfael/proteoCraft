@@ -39,7 +39,8 @@ if ("Target" %in% colnames(Exp.map)) {
     }))
     ui <- fluidPage(
       useShinyjs(),
-      extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+      extendShinyjs(text = jsFun$toggle_full_screen,
+                    functions = c("toggleFullScreen")),
       titlePanel(tag("u", "Map pull-down baits to protein Accessions"),
                  appNm),
       br(),

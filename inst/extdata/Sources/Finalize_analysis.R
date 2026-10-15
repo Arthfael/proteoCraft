@@ -13,9 +13,9 @@ writeLines(capture.output(sessionInfo()), paste0(dir, "/sessionInfo.txt"))
 # Copy script itself and guide to the results there:
 #file.copy(system.file("extdata", "Regulation analysis - master script.R", package = "proteoCraft"), wd, overwrite = TRUE)
 if (dirname(ScriptPath) != wd) { file.copy(ScriptPath, wd, overwrite = TRUE) }
-file.copy(system.file("extdata", paste0("Guide to the Results (", c("", "no ")[match(scrptType,
-                                                                                     c("withReps", "noReps"))],
-                                        "replicates).docx"), package = "proteoCraft"), wd, overwrite = TRUE)
+file.copy(system.file("extdata", paste0("Guide_to_the_Results_", c("", "no ")[match(scrptType,
+                                                                                    c("withReps", "noReps"))],
+                                        "Rep.docx"), package = "proteoCraft"), wd, overwrite = TRUE)
 
 ## Copy final results to the delivery folder
 RPath %<o% as.data.frame(library()$results)
@@ -157,14 +157,9 @@ if (ok2Deliver) {
   g <- grep("^3(\\.[0-9]+)?_", list.dirs(outDir, FALSE, FALSE), value = TRUE)
   kount <- length(g)
   procDir %<o% paste0(outDir, "/3.", kount, "_Post_processing_", Sys.Date())
-  #unloadNamespace("devtools")
-  #unloadNamespace("usethis")
-  #unloadNamespace("fs")
-  # pak::pak("r-lib/fs")
-  # compared with install.packages() and devtools::install_github()
   # - 3c) temporarily move .RDS files out of the way
-  tmpRDS <- grep("\\.RDS$", list.files(wd, full.names = TRUE), value = TRUE) # Move all RDS files out of the way for now
-  tmpRDS <- grep("/Backup\\.RDS$", tmpRDS, value = TRUE, invert = TRUE) # We do want to export the final Backup.RDS file: it is large, but useful to have
+  tmpRDS <- grep("\\.RDS$", list.files(wd, full.names = TRUE), value = TRUE, ignore.case = TRUE) # Move all RDS files out of the way for now
+  tmpRDS <- grep("/Backup\\.RDS$", tmpRDS, value = TRUE, invert = TRUE, ignore.case = TRUE) # We do want to export the final Backup.RDS file: it is large, but useful to have
   tmpRDS2 <- gsub(topattern(wd), projDir, tmpRDS)
   if (length(tmpRDS)) {
     fs::file_move(tmpRDS, tmpRDS2)
@@ -217,9 +212,6 @@ setwd(wd); saveImgFun(BckUpFl) # Leave an ultimate backup in the temporary folde
 
 # Also save a citations report
 if (dataDeliveryOk) { setwd(procDir) } else { setwd(wd) }
-if (!require(grateful)) {
-  pak::pkg_install("grateful")
-}
 invisible(suppressMessages({
   a <- captureOutput(grateful::cite_packages(out.dir = ".", pkgs = "Session", quiet = TRUE))
 })) # This thing won't shut up!

@@ -10,8 +10,8 @@
 #' @param modcol The name of the modifications column. Only used if the file is actually in the old MaxQuant format. Default = "Modifications"
 #' 
 #' @returns
-#' A list of two objects:
-#' - Peptides: the peptides table with (where applicable) modified sequence in 2-letters format
+#' A list of two objects:\cr
+#' - Peptides: the peptides table with (where applicable) modified sequence in 2-letters format\cr
 #' - PTMs: a modifications table
 #' 
 #' @examples
@@ -46,21 +46,21 @@ cor_mod_seq <- function(Pep,
       w1 <- match(modseqcol, colnames(Pep))
       w2 <- match(paste0(modseqcol, "_verbose"), colnames(Pep))
       w0 <- which(!colnames(Pep) %in% c(modseqcol, paste0(modseqcol, "_verbose")))
-      w0l <- w0[which(w0 < w1)]
-      w0h <- w0[which(w0 > w1)]
+      w0l <- w0[w0 < w1]
+      w0h <- w0[w0 > w1]
       tmPep <- if (length(w0l) > 0L) { Pep[, colnames(Pep)[c(w0l, w1, w2)]] } else { Pep[, colnames(Pep)[c(w1, w2)]] }
       if (length(w0h) > 0L) { tmPep[, colnames(Pep[w0h])] <- Pep[, colnames(Pep[w0h])] }
       Pep <- tmPep
-      seq2 <- strsplit(gsub("[^\\(\\)]", "", uMdSeq), "")
+      seq2 <- strsplit(gsub("[^()]", "", uMdSeq), "")
       seq2 <- lapply(seq2, \(x) { #x <- seq2[[1L]]
         l <- length(x)
-        tst1 <- vapply(1L:l, \(y) { length(which(x[1L:y] == "(")) }, 1L)
-        tst2 <- vapply(1L:l, \(y) { length(which(x[1L:y] == ")")) }, 1L)
+        tst1 <- vapply(1L:l, \(y) { sum(x[1L:y] == "(") }, 1L)
+        tst2 <- vapply(1L:l, \(y) { sum(x[1L:y] == ")") }, 1L)
         ends <- which(tst2-tst1 == 0)
         starts <- 1L
         if (length(ends) > 1L) { starts <- c(starts, ends[1L:(length(ends)-1L)]+1L) }
-        x[which((x == "("))] <- "_[_"
-        x[which((x == ")"))] <- "_]_"
+        x[x == "("] <- "_[_"
+        x[x == ")"] <- "_]_"
         x[starts] <- "("
         x[ends] <- ")"
         return(x)
@@ -98,7 +98,7 @@ cor_mod_seq <- function(Pep,
       }
     } else {
       message("No need to convert modified sequences as they are already in the old format, skipping.")
-      mods <- data.frame(`Full name` = sort(unique(gsub("[0-9]+ ", "", unlist(strsplit(unique(Pep[which(Pep[[modcol]] != "Unmodified"), modcol]), ","))))),
+      mods <- data.frame(`Full name` = sort(unique(gsub("[0-9]+ ", "", unlist(strsplit(unique(Pep[Pep[[modcol]] != "Unmodified", modcol]), ","))))),
                          check.names = FALSE)
       mods$Type <- "Variable"
       mods$Mark <- tolower(substr(mods$"Full name", 1L, 2L))
@@ -130,9 +130,9 @@ cor_mod_seq <- function(Pep,
         #i <- W[1L]
         w <- which(mods$Mark == test$Group.1[i])
         m <- mods[w,]
-        m$AA[which(lengths(m$AA) == 0L)] <- "X"
+        m$AA[lengths(m$AA) == 0L] <- "X"
         r <- if ("Acetyl (Protein N-term)" %in% m$"Full name") { which(m$"Full name" == "Acetyl (Protein N-term)") } else { 1L }
-        s <- c(1L:nrow(m)); s <- s[which(s != r)]
+        s <- c(1L:nrow(m)); s <- s[s != r]
         test <- apply(m[s, c("AA", "Mark")], 1L, \(x) { paste0(tolower(x[[1L]]), substr(x[[2L]], 1L, 1L)) })
         w1 <- which(!test %in% mods$Mark)
         m$Mark[s][w1] <- test

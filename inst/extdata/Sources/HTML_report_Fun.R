@@ -27,7 +27,7 @@ fix_plotly_sizing <- \(x, px_height = 700L, depth = 0L) {
   if (inherits(x, "plotly")) {
     x$x$layout$xaxis$autorange <- TRUE
     x$x$layout$yaxis$autorange <- TRUE
-    x <- htmlwidgets::onRender(x, global_autorange)
+    x <- htmlwidgets::onRender(x, jsFun$global_auto_range)
     x$sizingPolicy$browser$fill <- FALSE   # stop depending on a flex ancestor for height
     x$height <- px_height                  # fixed pixel height, independent of CSS context
     return(plotly::config(x, modeBarButtonsToRemove = c("select2d", "lasso2d")))
@@ -37,7 +37,7 @@ fix_plotly_sizing <- \(x, px_height = 700L, depth = 0L) {
 }
 
 logoFl <- list.files(homePath,
-                     "^logo\\.((gif)|(tiff?)|(jpe?g)|(png))$", full.names = TRUE)[1L]
+                     "^logo\\.(gif|tiff?|jpe?g|png)$", full.names = TRUE)[1L]
 report_header <- tags$header(
   fluidRow(if (length(logoFl)) {
     column(2L,
@@ -103,7 +103,7 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   pgTest <- (tab == "Protein groups")
   df <- dat[[tab]]
   tmp <- grep("\n", colnames(df), value = TRUE)
-  tmp2 <- gsub(".*\n", "", sub(" /\n.*", "", tmp))
+  tmp2 <- sub(".*\n", "", sub(" /\n.*", "", tmp))
   smplCols_lst <- setNames(lapply(grps, \(xp) {
     tmp[tmp2 %in% #c(
           xp#, exp[[xp]])
@@ -130,7 +130,7 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
     intRoot <- "int" # Presumably...
   }
   #
-  xprCols <- grep(paste0("log10\\(([^\\)]+ )?", intRoot, "\\.\\) "), colnames(df), value = TRUE)
+  xprCols <- grep(paste0("log10\\(([^)]+ )?", intRoot, "\\.\\) "), colnames(df), value = TRUE)
   fullIntRoot <- rev(paste0(vapply(strsplit(xprCols, "\n"), `[[`, "", 1L), "\n"))[1L]
   smpls <- unlist(exp[grps])
   smpls_and_grps <- unlist(lapply(grps, \(grp) { c(grp, exp[[grp]]) }))
@@ -208,7 +208,7 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   xprRng <- range(df[, xprCols], na.rm = TRUE)
   #
   # Filter now to only return regulated proteins
-  rg <- grep("^((up)|(down)),|specific", df[[repDecCol]])
+  rg <- grep("^(up|down),|specific", df[[repDecCol]])
   if (!length(rg)) {
     if (missing(regMsg)) { regMsg <- paste0("No significant ", tolower(gsub("^All|s$", "", tab)), " to show...") }
     return(div(em(HTML(regMsg)),
@@ -327,13 +327,13 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   df <- DT::formatRound(df, c("PEP", quantCols), digits = 5L)
   df <- DT::formatStyle(df, "PEP",
                         backgroundColor = DT::styleInterval(10L^-seq(10, 0, length.out = 99L),
-                                                            colorRampPalette(rev(ColScaleList$PEP))(100L)))
+                                                            colorRampPalette(rev(xl_colScales$PEP))(100L)))
   df <- DT::formatStyle(df, xprCols,
                         backgroundColor = DT::styleInterval(seq(xprRng[1L], xprRng[2L], length.out = 99L),
-                                                            colorRampPalette(ColScaleList$`Individual Expr`)(100L)))
+                                                            colorRampPalette(xl_colScales$`Individual Expr`)(100L)))
   df <- DT::formatStyle(df, ratCol,
                         backgroundColor = DT::styleInterval(seq(ratRng[1L], ratRng[2L], length.out = 99L),
-                                                            colorRampPalette(ColScaleList$`Summary Ratios`)(100L)))
+                                                            colorRampPalette(xl_colScales$`Summary Ratios`)(100L)))
   return(tags$div(df,
                   style = paste0("background: #ffffff;")))
 }
@@ -555,14 +555,14 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
   df <- DT::formatRound(df, c("PEP", quantCols), digits = 5L)
   df <- DT::formatStyle(df, "PEP",
                         backgroundColor = DT::styleInterval(10L^-seq(10, 0, length.out = 99L),
-                                                            colorRampPalette(rev(ColScaleList$PEP))(100L)))
+                                                            colorRampPalette(rev(xl_colScales$PEP))(100L)))
   df <- DT::formatStyle(df, xprCols,
                         backgroundColor = DT::styleInterval(seq(xprRng[1L], xprRng[2L], length.out = 99L),
-                                                            colorRampPalette(ColScaleList$`Individual Expr`)(100L)))
+                                                            colorRampPalette(xl_colScales$`Individual Expr`)(100L)))
   if (useRat) {
     df <- DT::formatStyle(df, ratCols,
                           backgroundColor = DT::styleInterval(seq(ratRng[1L], ratRng[2L], length.out = 99L),
-                                                              colorRampPalette(ColScaleList$`Individual Ratios`)(100L)))
+                                                              colorRampPalette(xl_colScales$`Individual Ratios`)(100L)))
   }
   return(tags$div(df,
                   style = paste0("background: #ffffff;")))

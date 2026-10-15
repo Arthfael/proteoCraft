@@ -55,7 +55,7 @@ Data_Impute2 <- function(quant_data,
   imputed_data <- quant_data
   # If necessary log-transform
   if (!is.log) { imputed_data <- log10(imputed_data) }
-  for (kk in kol) { imputed_data[which(!is.finite(imputed_data[, kk])), kk] <- NA_real_ }
+  for (kk in kol) { imputed_data[!is.finite(imputed_data[, kk]), kk] <- NA_real_ }
   wNA <- which(is.na(imputed_data), arr.ind = TRUE)
   if (!is.log) {
     wOK <- which(!is.na(imputed_data), arr.ind = TRUE)
@@ -72,8 +72,8 @@ Data_Impute2 <- function(quant_data,
       NAs_in_Grp <- rowSums(is.na(imputed_data[, m, drop = FALSE]))
       #aggregate(NAs_in_Grp, list(NAs_in_Grp), length)
       #w <- which(NAs_in_Grp < length(m))
-      #w1 <- which((NAs_in_Grp < length(m))&(NAs_in_Grp >= 1))
-      #w2 <- which((NAs_in_Grp < length(m))&(NAs_in_Grp >= 2))
+      #w1 <- which((NAs_in_Grp < length(m)) & (NAs_in_Grp >= 1))
+      #w2 <- which((NAs_in_Grp < length(m)) & (NAs_in_Grp >= 2))
       w <- which((NAs_in_Grp < length(m))&(NAs_in_Grp >= min_misses))
       if (length(w)) {
         ms <- imputeLCMD::model.Selector(imputed_data[w, m, drop = FALSE])

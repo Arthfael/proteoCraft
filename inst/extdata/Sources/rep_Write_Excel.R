@@ -24,7 +24,7 @@ intNms <- \(nms, topLvl = FALSE, type = "PG", newLine = FALSE) {
     if (nm %in% c("Original", "Intensity", "Expression", "Original int.", "Intensity int.", "Expression int.")) {
       nm <- c(c("int.", "expr.")[m], root)[mode]
     } else {
-      nmTst <- tolower(gsub("-|\\.", "", nm))
+      nmTst <- tolower(gsub("[-.]", "", nm))
       nm <- if (grepl("norm", nmTst)) {
         sub("norm.*", "norm", nmTst)
       } else { tolower(substr(nm, 1L, min(c(3L, nchar(nm))))) }
@@ -41,7 +41,7 @@ ratNms <- \(nms, topLvl = FALSE, newLine = FALSE) {
     if (nm %in% c("Original", "Ratios", "Original rat.", "Ratios rat.")) {
       nm <- c("rat.", "Ratio")[mode]
     } else {
-      nmTst <- tolower(gsub("-|\\.", "", nm))
+      nmTst <- tolower(gsub("[-.]", "", nm))
       nm <- if (grepl("norm", nmTst)) {
         sub("norm.*", "norm", nmTst)
       } else { tolower(substr(nm, 1L, min(c(3L, nchar(nm))))) }
@@ -66,7 +66,7 @@ for (nm in names(Prot.Rat.Root)) { #nm <- names(Prot.Rat.Root)[1L]
   rpl <- ratNms(nm)
   Styles[[paste0(rpl, ", avg.")]] <- "Summary Ratios"
 }
-fl <- system.file("extdata", "Report - column names - with replicates.xlsx", package = "proteoCraft")
+fl <- system.file("extdata", "Report_column_names_Rep.xlsx", package = "proteoCraft")
 styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[, 1L]
 WorkBook <- wb_load(fl)
 repFl %<o% paste0(wd, "/Tables/Report_", dtstNm, ".xlsx")
@@ -121,7 +121,7 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   klnms <- KolNames
   KolNames <- sub("Peptides?", "Pep.", KolNames)
   KolNames <- sub("Evidences?", "PSMs", KolNames)
-  KolNames <- sub("Spectr((al)|(um))", "Spec.", KolNames)
+  KolNames <- sub("Spectr(al|um)", "Spec.", KolNames)
   #KolNames <- sub("Razor", "Raz.", KolNames)
   KolNames <- sub("Unique", "Uniq.", KolNames)
   KolNames <- sub("MS/MS", "MS2", KolNames)
@@ -147,8 +147,8 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   }
   #
   if (F.test) {
-    wF <- grep("mod\\. F[-\\.]?test:? +", KolNames)
-    KolNames[wF] <- sub("mod\\. F[-\\.]?test:? +", "F-test ", KolNames[wF]) # Shorter F-test tag
+    wF <- grep("mod\\. F[-.]?test:? +", KolNames)
+    KolNames[wF] <- sub("mod\\. F[-.]?test:? +", "F-test ", KolNames[wF]) # Shorter F-test tag
   }
   KolNames <- sub("^///NL///", "", sub(" *-log10.*Pvalue\\)", "///NL///-log10 pval.", KolNames))
   KolNames <- sub("^///NL///", "", sub(" *Pvalue", "///NL///pval.", KolNames))
@@ -156,7 +156,7 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
   gSg <- grep("Significant-", KolNames)
   KolNames[gSg] <- sub("^ +", "", sub(" *Significant-", " ", KolNames[gSg]))
   #
-  KolNames <- sub("^Cluster \\([^\\)]+\\)", "Clust.", KolNames)
+  KolNames <- sub("^Cluster \\([^)]+\\)", "Clust.", KolNames)
   #
   KntKol <- paste0(AA, " Count")
   wI <- which(KolNames %in% KntKol)
@@ -292,11 +292,11 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
       }
       quantCols[names(ratRf)] <- ratCols
     }
-    regcol <- grep("^((Enriched)|(Regulated)) - ", colnames(tempData), value = TRUE)
+    regcol <- grep("^(Enriched|Regulated) - ", colnames(tempData), value = TRUE)
     signcol <- grep("^Significant-FDR=[1-9][0-9]*\\.*[0-9]*% - ", colnames(tempData), value = TRUE)
     signcol <- grep(" - Analysis_[0-9]+", signcol, invert = TRUE, value = TRUE)
     quantcol <- unlist(quantCols)
-    PepColList %<o% c("gel", "quantcol", "signcol", "regcol") # These are any column for which we want to gsub "___" to " "
+    PepColList <- c("gel", "quantcol", "signcol", "regcol") # These are any column for which we want to gsub "___" to " "
     if (!is.null(ratRf)) {
       PepColList <- union(PepColList, "grl")
     }
@@ -347,7 +347,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     }
     if ((ii > 1L) && F.test) {
       tempPepF <- PTMs_F_test_data[[Ptm]]
-      tempPepF <- tempPepF[, which(!colnames(tempPepF) %in% c(Param$Plot.labels, "Rel. log10(Peptides count)", "Av. log10 abundance"))]
+      tempPepF <- tempPepF[, setdiff(colnames(tempPepF), c(Param$Plot.labels, "Rel. log10(Peptides count)", "Av. log10 abundance"))]
       colnames(tempPepF) <- cleanNms(colnames(tempPepF), start = FALSE)
       #mnratcolF %<o% grep("Mean log2\\(Ratio\\) - ", colnames(tempPepF), value = TRUE)
       #m <- match(mnratcolF, colnames(tempPepF))
@@ -475,7 +475,7 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl, locTbl = SubCel
   klnms <- KolNames
   KolNames <- sub("Peptides?", "Pep.", KolNames)
   KolNames <- sub("Evidences?", "PSMs", KolNames)
-  KolNames <- sub("Spectr((al)|(um))", "Spec.", KolNames)
+  KolNames <- sub("Spectr(al|um)", "Spec.", KolNames)
   KolNames <- sub("Razor", "Raz.", KolNames)
   KolNames <- sub("Unique", "Uniq.", KolNames)
   KolNames <- sub("MS/MS", "MS2", KolNames)
@@ -507,8 +507,8 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl, locTbl = SubCel
     }
   }
   if (F.test) {
-    wF <- grep("mod\\. F[-\\.]?test:? +", KolNames)
-    KolNames[wF] <- sub("mod\\. F[-\\.]?test:? +", "F-test ", KolNames[wF]) # Shorter F-test tag
+    wF <- grep("mod\\. F[-.]?test:? +", KolNames)
+    KolNames[wF] <- sub("mod\\. F[-.]?test:? +", "F-test ", KolNames[wF]) # Shorter F-test tag
   }
   KolNames <- sub("^///NL///", "", sub(" *-log10.*Pvalue\\)", "///NL///-log10 pval.", KolNames))
   KolNames <- sub("^///NL///", "", sub(" *Pvalue", "///NL///pval.", KolNames))
@@ -522,7 +522,7 @@ KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl, locTbl = SubCel
   KolNames[match("Sequence coverage [%]", KolNames)] <- "All peptides"
   KolNames[match("Uniq. + razor sequence coverage [%]", KolNames)] <- "Unique + razor"
   KolNames[match("Uniq. sequence coverage [%]", KolNames)] <- "Unique"
-  KolNames <- sub("^Cluster \\([^\\)]+\\)", "Clust.", KolNames)
+  KolNames <- sub("^Cluster \\([^)]+\\)", "Clust.", KolNames)
   KolNames <- sub(" \\[GO:", " ///NL///[GO:", KolNames)
   #
   KolNames <- replFun(KolNames)
@@ -585,8 +585,8 @@ specidcol2 <- grep("[Ss]pectrum IDs - ", pepevspeccol, value = TRUE)
 pepevspeccol <- c(pepcountcol1, pepcountcol2, pepidcol1, pepidcol2,
                   evcountcol1, evcountcol2, evidcol1, evidcol2,
                   speccountcol1, speccountcol2, specidcol1, specidcol2)
-pepevspeccola <- grep("((([Ss]pectral|[Pp]eptides|[Ee]vidences) count)|(([Ss]pectrum|[Pp]eptide|[Ee]vidence) IDs))$", pepevspeccol, value = TRUE)
-pepevspeccolb <- grep("((([Ss]pectral|[Pp]eptides|[Ee]vidences) count)|(([Ss]pectrum|[Pp]eptide|[Ee]vidence) IDs)) - ", pepevspeccol, value = TRUE)
+pepevspeccola <- grep("(([Ss]pectral|[Pp]eptides|[Ee]vidences) count|([Ss]pectrum|[Pp]eptide|[Ee]vidence) IDs)$", pepevspeccol, value = TRUE)
+pepevspeccolb <- grep("(([Ss]pectral|[Pp]eptides|[Ee]vidences) count|([Ss]pectrum|[Pp]eptide|[Ee]vidence) IDs) - ", pepevspeccol, value = TRUE)
 kol <- c(CoreCol, "In list", CoreCol2, pepevspeccol)
 intRf <- Prot.Expr.Root
 names(intRf) <- paste0(names(intRf), " int.")
@@ -612,12 +612,12 @@ if (quantAlgo == "limpa") {
     for (i in g) { #i <- g[1L]
       colIg <- grep("^Mean ", quantCols[[i]], value = TRUE)
       colIi <- grep("^Mean ", quantCols[[i]], value = TRUE, invert = TRUE)
-      Si <- gsub(".* - ", "", colIi)
-      uSg <- gsub(".* - ", "", colIg) # not an error
+      Si <- sub(".* - ", "", colIi)
+      uSg <- sub(".* - ", "", colIg) # not an error
       Sg <- Exp.map[match(Si, Exp.map$Ref.Sample.Aggregate), VPAL$column]
       colIi <- setNames(colIi, Si)
       colIg <- setNames(colIg, uSg)
-      colCi <- gsub(".* - ", "Evidences count - ", colIi)
+      colCi <- sub(".* - ", "Evidences count - ", colIi)
       tmpIi <- tempData[, colIi]
       tmpCi <- as.matrix(tempData[, colCi])
       Wi <- which(tmpCi == 0L, arr.ind = TRUE)
@@ -666,7 +666,7 @@ if (protrul) {
   quantCols[["Proteomic ruler"]] <- tmp
 }
 pvalcol <- grep(topattern(pvalue.col[pvalue.use]), colnames(tempData), value = TRUE)
-regcol <- grep("^((Enriched)|(Regulated)) - ", colnames(tempData), value = TRUE)
+regcol <- grep("^(Enriched|Regulated) - ", colnames(tempData), value = TRUE)
 signcol <- grep("^Significant-FDR=[1-9][0-9]*\\.*[0-9]*% - ", colnames(tempData), value = TRUE)
 signcol <- grep(" - Analysis_[0-9]+", signcol, invert = TRUE, value = TRUE)
 covcol <- c(#xmlCovCol,
@@ -719,7 +719,7 @@ tempData <- tempData[, kol]
 #
 if (F.test) {
   tmpPGf <- F_test_data
-  tmpPGf <- tmpPGf[, which(!colnames(tmpPGf) %in% c(Param$Plot.labels, "Rel. log10(Peptides count)", "Av. log10 abundance"))]
+  tmpPGf <- tmpPGf[, setdiff(colnames(tmpPGf), c(Param$Plot.labels, "Rel. log10(Peptides count)", "Av. log10 abundance"))]
   colnames(tmpPGf) <- cleanNms(colnames(tmpPGf), start = FALSE)
   #mnratcolF %<o% grep("Mean log2\\(Ratio\\) - ", colnames(tmpPGf), value = TRUE)
   #m <- match(mnratcolF, colnames(tmpPGf))

@@ -31,7 +31,7 @@ MQ.load <- function(ev = TRUE, ev.name = "ev", ev.file.name = "evidence.txt",
                     prot = TRUE, prot.name = "PG", prot.file.name = "proteinGroups.txt",
                     sub = FALSE, assign = TRUE, envir = .GlobalEnv, return = FALSE, check.names = FALSE) {
   #DefArg(MQ.load)
-  if (sum(c(assign, return)) == 0) {
+  if (!sum(c(assign, return))) {
     stop("Since both \"assign\" and \"return\" are set to FALSE, there is nothing for me to do!")
   }
   # When I have time, I can rewrite this so the data.frame below is used to avoid repeating so much code:
@@ -40,53 +40,53 @@ MQ.load <- function(ev = TRUE, ev.name = "ev", ev.file.name = "evidence.txt",
   #                 n3 = c("evidences", "peptides", "protein groups"))
   #
   # Check or process names
-  if ((is.logical(sub))&&(sub)) {
+  if (is.logical(sub) && sub) {
     a <- list.files(getwd(), recursive = TRUE, include.dirs = TRUE)
     if (ev) {
       ev.file.name <- grep(paste(paste0(c("^", "/"), gsub("\\.", "\\\\.", ev.file.name)), collapse = "|"), a, value = TRUE)
       l <- length(ev.file.name)
-      if (l != 1) {
+      if (l != 1L) {
         ev <- FALSE
         warning(c("I could not find any file with that name, skipping loading evidences!",
-               "I can only load a single evidence file at a time, skipping loading evidences!")[which(c(l == 0, l > 1))])
+                  "I can only load a single evidence file at a time, skipping loading evidences!")[(l > 1L)+1L])
       }
     }
     if (pep) {
       pep.file.name <- grep(paste(paste0(c("^", "/"), gsub("\\.", "\\\\.", pep.file.name)), collapse = "|"), a, value = TRUE)
       
       l <- length(pep.file.name)
-      if (l != 1) {
+      if (l != 1L) {
         pep <- FALSE
         warning(c("I could not find any file with that name, skipping loading peptides!",
-               "I can only load a single peptides file at a time, skipping loading peptides!")[which(c(l == 0, l > 1))])
+               "I can only load a single peptides file at a time, skipping loading peptides!")[(l > 1L)+1L])
       }
     }
     if (prot) {
       prot.file.name <- grep(paste(paste0(c("^", "/"), gsub("\\.", "\\\\.", prot.file.name)), collapse = "|"), a, value = TRUE)
       l <- length(prot.file.name)
-      if (l != 1) {
+      if (l != 1L) {
         pep <- FALSE
         warning(c("I could not find any file with that name, skipping loading protein groups!",
-               "I can only load a single protein groups file at a time, skipping loading protein groups!")[which(c(l == 0, l > 1))])
+               "I can only load a single protein groups file at a time, skipping loading protein groups!")[(l > 1L)+1L])
       }
     }
   } else {
     if (ev) {
-      if ((!is.logical(sub))||(sub)) { ev.file.name <- gsub("//","/", paste(sub, ev.file.name, sep = "/")) }
+      if ((!is.logical(sub)) || sub) { ev.file.name <- gsub("//","/", paste(sub, ev.file.name, sep = "/")) }
       if (!file.exists(ev.file.name)) {
         warning("I could not find any file with that name, skipping loading evidences!")
         ev <- FALSE
       }
     }
     if (pep) {
-      if ((!is.logical(sub))||(sub)) { pep.file.name <- gsub("//","/", paste(sub, pep.file.name, sep = "/")) }
+      if ((!is.logical(sub)) || sub) { pep.file.name <- gsub("//","/", paste(sub, pep.file.name, sep = "/")) }
       if (!file.exists(pep.file.name)) {
         warning("I could not find any file with that name, skipping loading peptides!")
         pep <- FALSE
       }
     }
     if (prot) {
-      if ((!is.logical(sub))||(sub)) { prot.file.name <- gsub("//","/",paste(sub, prot.file.name, sep = "/")) }
+      if ((!is.logical(sub)) || sub) { prot.file.name <- gsub("//","/",paste(sub, prot.file.name, sep = "/")) }
       if (!file.exists(prot.file.name)) {
         warning("I could not find any file with that name, skipping loading protein groups!")
         prot <- FALSE

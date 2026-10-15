@@ -40,7 +40,7 @@ if (dataType == "modPeptides") {
 }
 datMatch <- match(row.names(dimRedDat), nameCol)
 filt <- which((apply(dimRedDat[, kol], 1L, \(x) { sum(is.finite(x)) }) == ncol(dimRedDat))
-              &((is.na(contCol[datMatch]))|(contCol[datMatch] != "+")))
+              & (is.na(contCol[datMatch]) | (contCol[datMatch] != "+")))
 #
 dimRed_fl %<o% paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS")
 if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
@@ -133,7 +133,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                              uirevision = TRUE)
     plot_lyPCAProt$x$layout$xaxis$autorange <- TRUE
     plot_lyPCAProt$x$layout$yaxis$autorange <- TRUE
-    plot_lyPCAProt <- htmlwidgets::onRender(plot_lyPCAProt, global_autorange)
+    plot_lyPCAProt <- htmlwidgets::onRender(plot_lyPCAProt, jsFun$global_auto_range)
     plot_lyPCAProt <- plotly::config(plot_lyPCAProt,
                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
     plot_lyPCAProt <- plotly::plotly_build(plot_lyPCAProt)
@@ -212,7 +212,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         tmp <- lapply(g, \(x) {
           y <- gsub_Rep("^Anti-specific: .*", "down",
                    gsub_Rep("^Specific: .*", "up",
-                            gsub_Rep("^((non significant)|(too small FC))$", " ",
+                            gsub_Rep("^(non significant|too small FC)$", " ",
                                      gsub_Rep(", FDR = .+", "", PG[datMatch, x]))))
           y[y == ""] <- " "
           return(y)
@@ -229,7 +229,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         tmp <- lapply(g, \(x) {
           y <- gsub_Rep("^Anti-specific: .*", "down",
                         gsub_Rep("^Specific: .*", "up",
-                                 gsub_Rep("^((non significant)|(too small FC))$", " ",
+                                 gsub_Rep("^(non significant|too small FC)$", " ",
                                           gsub_Rep(", FDR = .+", "", PG[datMatch, x]))))
           y[y == ""] <- " "
           return(y)
@@ -362,7 +362,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                               uirevision = TRUE)
     plot_lyPCAProt2$x$layout$xaxis$autorange <- TRUE
     plot_lyPCAProt2$x$layout$yaxis$autorange <- TRUE
-    plot_lyPCAProt2 <- htmlwidgets::onRender(plot_lyPCAProt2, global_autorange)
+    plot_lyPCAProt2 <- htmlwidgets::onRender(plot_lyPCAProt2, jsFun$global_auto_range)
     plot_lyPCAProt2 <- plotly::config(plot_lyPCAProt2,
                                       modeBarButtonsToRemove = c("select2d", "lasso2d"))
     plot_lyPCAProt2 <- plotly::plotly_build(plot_lyPCAProt2)
@@ -375,194 +375,194 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     #system(paste0("open \"", myLittleRed_dir, "/", ttl, ".html"))
     # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
     #
-    cat("t-SNE plots, by protein group\n")
-    cran_req <- unique(c(cran_req, "Rtsne"))
-    if (!require("Rtsne", quietly = TRUE)) { install.packages("Rtsne") }
-    require(Rtsne)
-    tsne <- try(Rtsne(dimRedDat, dims = 3L, perplexity = 30L, verbose = TRUE, max_iter = 500L), silent = TRUE)
-    myLittleRed_dir <- paste0(wd, "/Dimensionality red. plots/t-SNE")
-    if (!dir.exists(myLittleRed_dir)) { dir.create(myLittleRed_dir, recursive = TRUE) }
-    dirlist <- union(dirlist, myLittleRed_dir)
-    if (!inherits(tsne, "try-error")) {
-      scores2 <- as.data.frame(tsne$Y)[, 1L:3L]
-      rownames(scores2) <- rownames(dimRedDat)
-      colnames(scores2) <- c("t-SNE Y1", "t-SNE Y2", "t-SNE Y3")
-      kol2 <- c("Protein group", "Av. log10 abundance", "Classifier", "Size")
-      m21 <- match(rownames(scores2), rownames(scores))
-      scores2[, kol2] <- scores[m21, kol2]
-      wBoring2 <- which(scores2$Classifier == nullVal)
-      wComp2 <- which(scores2$Classifier %in% compVal)
-      wReg2 <- which(scores2$Classifier %in% regVal)
-      ttl2 <- "t-SNE plot - Protein groups (PG-level)"
-      plot <- ggplot(scores2[wBoring2,], aes(x = `t-SNE Y1`, y = `t-SNE Y2`, colour = Classifier, size = Size)) +
-        geom_scattermore(shape = 16L)
-      if (length(wComp2)) {
-        plot <- plot + geom_point(data = scores2[wComp2,], shape = 17L)
-      }
-      if (length(wReg2)) {
-        plot <- plot + geom_point(data = scores2[wReg2,], shape = 15L) +
-          geom_text_repel(data = scores2[wReg2,], aes(label = `Protein group`))
-      }
-      plot <- plot +  colScale +
-        geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
-        geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
-        scale_alpha_identity() + scale_size_identity() +
-        ggtitle(ttl2, subtitle = pv) + theme_bw() +
-        guides(alpha = "none", size = "none", colour = guide_legend(title = gsub("/", "/\n", ClassNm)))
-      #poplot(plot, 12, 22)
-      suppressMessages({
-        ggsave(paste0(myLittleRed_dir, "/", ttl2, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-      })
-      #
-      # Plotly
-      tst3D <- ("t-SNE Y3" %in% colnames(scores2))
-      base_args2 <- base_args
-      base_args2$x <- ~`t-SNE Y1`
-      base_args2$y <- ~`t-SNE Y2`
-      if (tst3D) {
-        base_args2$type <- "scatter3d"
-        base_args2$z <- ~`t-SNE Y3`
-      } else {
-        base_args2$z <- NULL
-      }
-      plot_lytSNE <- plot_ly()
-      for (val in allVal) { #val <- allVal[1L]
-        myCat <- val2Cat[val]
-        sz <- catsEyes[myCat]*1.5
-        if (val == nullVal) { subDat <- scores2 } else {
-          subDat <- scores2[scores2$Classifier == val,]
-          sz <- sz*3L
+    if (requireNamespace("Rtsne")) { #... equivalent to if (pkgsCheck["Rtsne"]) { ... }
+      cat("t-SNE plots, by protein group\n")
+      cran_req <- union(cran_req, "Rtsne")
+      tsne <- try(Rtsne(dimRedDat, dims = 3L, perplexity = 30L, verbose = TRUE, max_iter = 500L), silent = TRUE)
+      myLittleRed_dir <- paste0(wd, "/Dimensionality red. plots/t-SNE")
+      if (!dir.exists(myLittleRed_dir)) { dir.create(myLittleRed_dir, recursive = TRUE) }
+      dirlist <- union(dirlist, myLittleRed_dir)
+      if (!inherits(tsne, "try-error")) {
+        scores2 <- as.data.frame(tsne$Y)[, 1L:3L]
+        rownames(scores2) <- rownames(dimRedDat)
+        colnames(scores2) <- c("t-SNE Y1", "t-SNE Y2", "t-SNE Y3")
+        kol2 <- c("Protein group", "Av. log10 abundance", "Classifier", "Size")
+        m21 <- match(rownames(scores2), rownames(scores))
+        scores2[, kol2] <- scores[m21, kol2]
+        wBoring2 <- which(scores2$Classifier == nullVal)
+        wComp2 <- which(scores2$Classifier %in% compVal)
+        wReg2 <- which(scores2$Classifier %in% regVal)
+        ttl2 <- "t-SNE plot - Protein groups (PG-level)"
+        plot <- ggplot(scores2[wBoring2,], aes(x = `t-SNE Y1`, y = `t-SNE Y2`, colour = Classifier, size = Size)) +
+          geom_scattermore(shape = 16L)
+        if (length(wComp2)) {
+          plot <- plot + geom_point(data = scores2[wComp2,], shape = 17L)
         }
-        args <- base_args2
-        args$name <- val
-        args$marker <- list(size = sz,
-                            color = PL_colScale[val],
-                            symbol = PL_symbolScale[myCat])
-        plot_lytSNE <- do.call(add_trace, c(list(plot_lytSNE, data = subDat), args))
-      }
-      # Dummy layer to avoid random re-zooms
-      xr <- range(scores2$`t-SNE Y1`)
-      yr <- range(scores2$`t-SNE Y2`)
-      zr <- if (tst3D) { range(scores2$`t-SNE Y3`) } else { NULL }
-      plot_lytSNE <- add_trace(plot_lytSNE,
-                               x = xr, y = yr, z = zr,
-                               type = base_args2$type,
-                               mode = "markers",
-                               marker = list(size = 0.0001, color = "rgba(0,0,0,0)"),
-                               name = "_bbox_",
-                               showlegend = FALSE,
-                               visible = TRUE)
-      #
-      plot_lytSNE <- layout(plot_lytSNE, title = ttl2,
-                            uirevision = TRUE)
-      plot_lytSNE$x$layout$xaxis$autorange <- TRUE
-      plot_lytSNE$x$layout$yaxis$autorange <- TRUE
-      plot_lytSNE <- htmlwidgets::onRender(plot_lytSNE, global_autorange)
-      plot_lytSNE <- plotly::config(plot_lytSNE,
-                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
-      plot_lytSNE <- plotly::plotly_build(plot_lytSNE)
-      #plot_lytSNE <- plotly::partial_bundle(plot_lytSNE)
-      dimRedPlotLy[[dataType]][["t-SNE"]] <- plot_lytSNE
-      setwd(myLittleRed_dir)
-      htmlwidgets::saveWidget(plotly::partial_bundle(plot_lytSNE), paste0(myLittleRed_dir, "/", ttl2, ".html"))
-      #htmlwidgets::saveWidget(plot_lytSNE, paste0(myLittleRed_dir, "/", ttl2, ".html"))
-      setwd(wd)
-      #system(paste0("open \"", myLittleRed_dir, "/", ttl2, ".html"))
-    } else { warning(tsne) }
+        if (length(wReg2)) {
+          plot <- plot + geom_point(data = scores2[wReg2,], shape = 15L) +
+            geom_text_repel(data = scores2[wReg2,], aes(label = `Protein group`))
+        }
+        plot <- plot +  colScale +
+          geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
+          geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
+          scale_alpha_identity() + scale_size_identity() +
+          ggtitle(ttl2, subtitle = pv) + theme_bw() +
+          guides(alpha = "none", size = "none", colour = guide_legend(title = gsub("/", "/\n", ClassNm)))
+        #poplot(plot, 12, 22)
+        suppressMessages({
+          ggsave(paste0(myLittleRed_dir, "/", ttl2, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+        })
+        #
+        # Plotly
+        tst3D <- ("t-SNE Y3" %in% colnames(scores2))
+        base_args2 <- base_args
+        base_args2$x <- ~`t-SNE Y1`
+        base_args2$y <- ~`t-SNE Y2`
+        if (tst3D) {
+          base_args2$type <- "scatter3d"
+          base_args2$z <- ~`t-SNE Y3`
+        } else {
+          base_args2$z <- NULL
+        }
+        plot_lytSNE <- plot_ly()
+        for (val in allVal) { #val <- allVal[1L]
+          myCat <- val2Cat[val]
+          sz <- catsEyes[myCat]*1.5
+          if (val == nullVal) { subDat <- scores2 } else {
+            subDat <- scores2[scores2$Classifier == val,]
+            sz <- sz*3L
+          }
+          args <- base_args2
+          args$name <- val
+          args$marker <- list(size = sz,
+                              color = PL_colScale[val],
+                              symbol = PL_symbolScale[myCat])
+          plot_lytSNE <- do.call(add_trace, c(list(plot_lytSNE, data = subDat), args))
+        }
+        # Dummy layer to avoid random re-zooms
+        xr <- range(scores2$`t-SNE Y1`)
+        yr <- range(scores2$`t-SNE Y2`)
+        zr <- if (tst3D) { range(scores2$`t-SNE Y3`) } else { NULL }
+        plot_lytSNE <- add_trace(plot_lytSNE,
+                                 x = xr, y = yr, z = zr,
+                                 type = base_args2$type,
+                                 mode = "markers",
+                                 marker = list(size = 0.0001, color = "rgba(0,0,0,0)"),
+                                 name = "_bbox_",
+                                 showlegend = FALSE,
+                                 visible = TRUE)
+        #
+        plot_lytSNE <- layout(plot_lytSNE, title = ttl2,
+                              uirevision = TRUE)
+        plot_lytSNE$x$layout$xaxis$autorange <- TRUE
+        plot_lytSNE$x$layout$yaxis$autorange <- TRUE
+        plot_lytSNE <- htmlwidgets::onRender(plot_lytSNE, jsFun$global_auto_range)
+        plot_lytSNE <- plotly::config(plot_lytSNE,
+                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
+        plot_lytSNE <- plotly::plotly_build(plot_lytSNE)
+        #plot_lytSNE <- plotly::partial_bundle(plot_lytSNE)
+        dimRedPlotLy[[dataType]][["t-SNE"]] <- plot_lytSNE
+        setwd(myLittleRed_dir)
+        htmlwidgets::saveWidget(plotly::partial_bundle(plot_lytSNE), paste0(myLittleRed_dir, "/", ttl2, ".html"))
+        #htmlwidgets::saveWidget(plot_lytSNE, paste0(myLittleRed_dir, "/", ttl2, ".html"))
+        setwd(wd)
+        #system(paste0("open \"", myLittleRed_dir, "/", ttl2, ".html"))
+      } else { warning(tsne) } 
+    }
     #
-    cat("UMAP plots, by protein group\n")
-    cran_req <- unique(c(cran_req, "umap"))
-    if (!require("umap", quietly = TRUE)) { install.packages("umap") }
-    require(umap)
-    UMAP <- try(umap(dimRedDat, n_components = 3L), silent = TRUE)
-    myLittleRed_dir <- paste0(wd, "/Dimensionality red. plots/UMAP")
-    if (!dir.exists(myLittleRed_dir)) { dir.create(myLittleRed_dir, recursive = TRUE) }
-    dirlist <- union(dirlist, myLittleRed_dir)
-    if (!inherits(UMAP, "try-error")) {
-      UMAPlayout <- data.frame(UMAP$layout)
-      rownames(UMAPlayout) <- rownames(dimRedDat)
-      kol3 <- c("Protein group", "Av. log10 abundance", "Classifier", "Size")
-      m31 <- match(rownames(UMAPlayout), rownames(scores))
-      UMAPlayout[, kol3] <- scores[m31, kol3]
-      wBoring3 <- which(UMAPlayout$Classifier == nullVal)
-      wComp3 <- which(UMAPlayout$Classifier %in% compVal)
-      wReg3 <- which(UMAPlayout$Classifier %in% regVal)
-      ttl3 <- "UMAP plot - Protein groups (PG-level)"
-      plot <- ggplot(UMAPlayout[wBoring3,], aes(x = X1, y = X2, colour = Classifier, size = Size)) +
-        geom_scattermore(shape = 16L)
-      if (length(wComp3)) {
-        plot <- plot + geom_point(data = UMAPlayout[wComp3,], shape = 17L)
-      }
-      if (length(wReg3)) {
-        plot <- plot + geom_point(data = UMAPlayout[wReg3,], shape = 15L) +
-          geom_text_repel(data = UMAPlayout[wReg3,], aes(label = `Protein group`))
-      }
-      plot <- plot +  colScale +
-        geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
-        geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
-        scale_alpha_identity() + scale_size_identity() +
-        ggtitle(ttl3, subtitle = pv) + theme_bw() +
-        guides(alpha = "none", size = "none", colour = guide_legend(title = gsub("/", "/\n", ClassNm)))
-      #poplot(plot, 12L, 22L)
-      suppressMessages({
-        ggsave(paste0(myLittleRed_dir, "/", ttl3, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-      })
-      #
-      # Plotly
-      tst3D <- ("X3" %in% colnames(UMAPlayout))
-      base_args3 <- base_args
-      base_args3$x <- ~X1
-      base_args3$y <- ~X2
-      if (tst3D) {
-        base_args3$type <- "scatter3d"
-        base_args3$z <- ~X3
-      } else {
-        base_args3$z <- NULL
-      }
-      plot_lyUMAP <- plot_ly()
-      for (val in allVal) { #val <- allVal[1L]
-        myCat <- val2Cat[val]
-        sz <- catsEyes[myCat]*1.5
-        if (val == nullVal) { subDat <- UMAPlayout } else {
-          subDat <- UMAPlayout[UMAPlayout$Classifier == val,]
-          sz <- sz*3L
+    if (requireNamespace("umap")) { #... equivalent to if (pkgsCheck["UMAP"]) { ... }
+      cat("UMAP plots, by protein group\n")
+      cran_req <- union(cran_req, "umap")
+      UMAP <- try(umap(dimRedDat, n_components = 3L), silent = TRUE)
+      myLittleRed_dir <- paste0(wd, "/Dimensionality red. plots/UMAP")
+      if (!dir.exists(myLittleRed_dir)) { dir.create(myLittleRed_dir, recursive = TRUE) }
+      dirlist <- union(dirlist, myLittleRed_dir)
+      if (!inherits(UMAP, "try-error")) {
+        UMAPlayout <- data.frame(UMAP$layout)
+        rownames(UMAPlayout) <- rownames(dimRedDat)
+        kol3 <- c("Protein group", "Av. log10 abundance", "Classifier", "Size")
+        m31 <- match(rownames(UMAPlayout), rownames(scores))
+        UMAPlayout[, kol3] <- scores[m31, kol3]
+        wBoring3 <- which(UMAPlayout$Classifier == nullVal)
+        wComp3 <- which(UMAPlayout$Classifier %in% compVal)
+        wReg3 <- which(UMAPlayout$Classifier %in% regVal)
+        ttl3 <- "UMAP plot - Protein groups (PG-level)"
+        plot <- ggplot(UMAPlayout[wBoring3,], aes(x = X1, y = X2, colour = Classifier, size = Size)) +
+          geom_scattermore(shape = 16L)
+        if (length(wComp3)) {
+          plot <- plot + geom_point(data = UMAPlayout[wComp3,], shape = 17L)
         }
-        args <- base_args3
-        args$name <- val
-        args$marker <- list(size = sz,
-                            color = PL_colScale[val],
-                            symbol = PL_symbolScale[myCat])
-        plot_lyUMAP <- do.call(add_trace, c(list(plot_lyUMAP, data = subDat), args))
-      }
-      # Dummy layer to avoid random re-zooms
-      xr <- range(UMAPlayout$X1)
-      yr <- range(UMAPlayout$X2)
-      zr <- if (tst3D) { range(UMAPlayout$X3) } else { NULL }
-      plot_lyUMAP <- add_trace(plot_lyUMAP,
-                               x = xr, y = yr, z = zr,
-                               type = base_args3$type,
-                               mode = "markers",
-                               marker = list(size = 0.0001, color = "rgba(0,0,0,0)"),
-                               name = "_bbox_",
-                               showlegend = FALSE,
-                               visible = TRUE)
-      #
-      plot_lyUMAP <- layout(plot_lyUMAP, title = ttl3,
-                            uirevision = TRUE)
-      plot_lyUMAP$x$layout$xaxis$autorange <- TRUE
-      plot_lyUMAP$x$layout$yaxis$autorange <- TRUE
-      plot_lyUMAP <- htmlwidgets::onRender(plot_lyUMAP, global_autorange)
-      plot_lyUMAP <- plotly::config(plot_lyUMAP,
-                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
-      plot_lyUMAP <- plotly::plotly_build(plot_lyUMAP)
-      #plot_lyUMAP <- plotly::partial_bundle(plot_lyUMAP)
-      dimRedPlotLy[[dataType]][["UMAP"]] <- plot_lyUMAP
-      setwd(myLittleRed_dir)
-      htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyUMAP), paste0(myLittleRed_dir, "/", ttl3, ".html"))
-      #htmlwidgets::saveWidget(plot_lyUMAP, paste0(myLittleRed_dir, "/", ttl3, ".html"))
-      setwd(wd)
-      #system(paste0("open \"", myLittleRed_dir, "/", ttl3, ".html"))
-    } else { warning(umap) }
+        if (length(wReg3)) {
+          plot <- plot + geom_point(data = UMAPlayout[wReg3,], shape = 15L) +
+            geom_text_repel(data = UMAPlayout[wReg3,], aes(label = `Protein group`))
+        }
+        plot <- plot +  colScale +
+          geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
+          geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
+          scale_alpha_identity() + scale_size_identity() +
+          ggtitle(ttl3, subtitle = pv) + theme_bw() +
+          guides(alpha = "none", size = "none", colour = guide_legend(title = gsub("/", "/\n", ClassNm)))
+        #poplot(plot, 12L, 22L)
+        suppressMessages({
+          ggsave(paste0(myLittleRed_dir, "/", ttl3, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+        })
+        #
+        # Plotly
+        tst3D <- ("X3" %in% colnames(UMAPlayout))
+        base_args3 <- base_args
+        base_args3$x <- ~X1
+        base_args3$y <- ~X2
+        if (tst3D) {
+          base_args3$type <- "scatter3d"
+          base_args3$z <- ~X3
+        } else {
+          base_args3$z <- NULL
+        }
+        plot_lyUMAP <- plot_ly()
+        for (val in allVal) { #val <- allVal[1L]
+          myCat <- val2Cat[val]
+          sz <- catsEyes[myCat]*1.5
+          if (val == nullVal) { subDat <- UMAPlayout } else {
+            subDat <- UMAPlayout[UMAPlayout$Classifier == val,]
+            sz <- sz*3L
+          }
+          args <- base_args3
+          args$name <- val
+          args$marker <- list(size = sz,
+                              color = PL_colScale[val],
+                              symbol = PL_symbolScale[myCat])
+          plot_lyUMAP <- do.call(add_trace, c(list(plot_lyUMAP, data = subDat), args))
+        }
+        # Dummy layer to avoid random re-zooms
+        xr <- range(UMAPlayout$X1)
+        yr <- range(UMAPlayout$X2)
+        zr <- if (tst3D) { range(UMAPlayout$X3) } else { NULL }
+        plot_lyUMAP <- add_trace(plot_lyUMAP,
+                                 x = xr, y = yr, z = zr,
+                                 type = base_args3$type,
+                                 mode = "markers",
+                                 marker = list(size = 0.0001, color = "rgba(0,0,0,0)"),
+                                 name = "_bbox_",
+                                 showlegend = FALSE,
+                                 visible = TRUE)
+        #
+        plot_lyUMAP <- layout(plot_lyUMAP, title = ttl3,
+                              uirevision = TRUE)
+        plot_lyUMAP$x$layout$xaxis$autorange <- TRUE
+        plot_lyUMAP$x$layout$yaxis$autorange <- TRUE
+        plot_lyUMAP <- htmlwidgets::onRender(plot_lyUMAP, jsFun$global_auto_range)
+        plot_lyUMAP <- plotly::config(plot_lyUMAP,
+                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
+        plot_lyUMAP <- plotly::plotly_build(plot_lyUMAP)
+        #plot_lyUMAP <- plotly::partial_bundle(plot_lyUMAP)
+        dimRedPlotLy[[dataType]][["UMAP"]] <- plot_lyUMAP
+        setwd(myLittleRed_dir)
+        htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyUMAP), paste0(myLittleRed_dir, "/", ttl3, ".html"))
+        #htmlwidgets::saveWidget(plot_lyUMAP, paste0(myLittleRed_dir, "/", ttl3, ".html"))
+        setwd(wd)
+        #system(paste0("open \"", myLittleRed_dir, "/", ttl3, ".html"))
+      } else { warning(umap) }
+    }
   }
   saveFun(dimRedPlotLy, file = dimRed_fl)
 } else { warning(paste0("Not enough observations to create ", insert, "-level dimensionality reduction plots!")) }

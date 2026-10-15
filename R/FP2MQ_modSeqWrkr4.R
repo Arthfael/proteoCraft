@@ -9,10 +9,10 @@
 
 .FP2MQ_modSeqWrkr4 <- function(x,
                                mods) {
-  #x <- tmp[1,]
+  #x <- tmp[1L,]
   x1 <- unlist(x[[1L]])
   x2 <- unlist(x[[2L]])
-  x1 <- x1[which(x1 != "!m")]
+  x1 <- x1[x1 != "!m"]
   if (length(x1)) {
     mds <- stats::aggregate(x1, list(x1), length)
     mds$Group.1 <- mods$"Full name"[match(mds$Group.1, mods$Mark)]

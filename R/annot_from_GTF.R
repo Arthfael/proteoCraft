@@ -37,7 +37,7 @@ annot_from_GTF <- \(file,
     tst <- setNames(c(grepl("\\.gtf$", file), grepl("\\.gff$", file)),
                     allModes)
     stopifnot(sum(tst) == 1L)
-    mode <- names(tst)[which(tst)]
+    mode <- names(tst)[tst]
   }
   txt <- readr::read_lines(file)
   txt <- grep("^#", txt, invert = TRUE, value = TRUE)
@@ -45,7 +45,7 @@ annot_from_GTF <- \(file,
   colnames(dat) <- c("seqname", "source", "feature", "start", "end", "score", "strand", "frame", "attribute")
   rownames(dat) <- NULL
   if (CDS_only) {
-    dat <- dat[which(dat$feature == "CDS"),]
+    dat <- dat[dat$feature == "CDS",]
   }
   if (mode == "GTF") {
     tmp <- strsplit(sub("\"$", "", dat$attribute), "\"; *")
@@ -71,11 +71,11 @@ annot_from_GTF <- \(file,
   if (!"protein_id" %in% colnames(tmp)) { return() }
   tmp$Accession <- tmp$protein_id
   tmp$protein_id <- NULL
-  goKol1 <- c("go_component", "go_function", "go_process")
-  goKol1 <- goKol1[which(goKol1 %in% colnames(tmp))]
-  kol <- c("product", #"Ontology_term",
-           goKol1)
-  kol <- kol[which(kol %in% colnames(tmp))]
+  goKol1 <- intersect(c("go_component", "go_function", "go_process"),
+                      colnames(tmp))
+  kol <- intersect(c("product", #"Ontology_term",
+                     goKol1),
+                   colnames(tmp))
   # Sometimes we have nothing to work with...
   if (!length(kol)) { return() }
   # ... but usually we should've something
@@ -86,7 +86,7 @@ annot_from_GTF <- \(file,
     tmp[[k]] <- gsub("\\|", " [GO:", gsub("\\|\\|.*", "]", tmp[[k]]))
   }
   tmp2 <- reshape::melt(tmp[, c("Accession", goKol1)], id.vars = "Accession")
-  tmp2 <- tmp2[which(!is.na(tmp2$value)),]
+  tmp2 <- tmp2[!is.na(tmp2$value),]
   tmp2$"GO-ID" <- gsub(".* \\[", "", sub("\\]$", "", tmp2$value))
   tst <- setdiff(unique(sub("^GO:[0-9]{7}$", "", tmp2$"GO-ID")), "")
   stopifnot(length(tst) == 0L) # Again, error would indicate false parsing assumptions

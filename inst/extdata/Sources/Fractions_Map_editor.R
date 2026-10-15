@@ -88,7 +88,7 @@ wTest0 <- setNames(vapply(colnames(FracMap2a), \(k) { #k <- colnames(FracMap2a)[
   x <- if (is.na(x)) { 15L } else { max(c(ceiling(x/10)*10, 30)) }
   return(as.integer(x))
 }, 1L), colnames(FracMap2a))
-FracMap2 <- FracMap2a[, which(colnames(FracMap2a) != "Exp_Backup")]
+FracMap2 <- FracMap2a[, setdiff(colnames(FracMap2a), "Exp_Backup")]
 FracMap2$Use <- shinyCheckInput(FracMap2a$Use,
                                 "Use")
 FracMap2[[parKol2]] <- shinyTextInput(FracMap[[parKol]],
@@ -126,7 +126,7 @@ for (k0 in kol0) { #k0 <- parKol #k0 <-  "Isobaric.set"
   ALLFDIDS <- c(ALLFDIDS, paste0(k1, "___", chRws, "___FD"))
   kol <- c(kol, k1, fdNm)
 }
-kol <- grep("^MQ[ \\.]Exp", kol, value = TRUE, invert = TRUE)
+kol <- grep("^MQ[ .]Exp", kol, value = TRUE, invert = TRUE)
 FracMap2 <- FracMap2[, kol]
 wTest1 <- sapply(colnames(FracMap2), \(k1) { #k1 <- colnames(FracMap2)[1L] #k1 <- "IsobaricSet"
   if (k1 %in% names(wTest0)) {
@@ -149,7 +149,7 @@ wTest1 <- apply(wTest1, 1L, \(x) {
        names = colnames(FracMap2)[x[[2L]]+1L])
 })
 #
-g <- grep("___((FD)|(INCR))$", colnames(FracMap2))
+g <- grep("___(FD|INCR)$", colnames(FracMap2))
 colnames(FracMap2)[g] <- ""
 #
 kN <- c("Raw files name", "Parameter group", "PTMs")
@@ -169,7 +169,8 @@ ui <- fluidPage(
     gradient = "linear",
     direction = "bottom"
   ),
-  extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+  extendShinyjs(text = jsFun$toggle_full_screen,
+                functions = c("toggleFullScreen")),
   # Dummy, hidden div to load arrow-down icon
   # tags$div(
   #   class = "container",

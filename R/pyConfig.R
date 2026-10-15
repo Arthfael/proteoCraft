@@ -28,7 +28,7 @@
       x <- grep("/Scripts$", x, value = TRUE)
       return(x)
     })
-    py_list <- py_list[which(lengths(py_list) >= 1L)]
+    py_list <- py_list[lengths(py_list) >= 1L]
   }
   if (!length(py_list)) { return(FALSE) }
   all_pyScrptPaths <- unlist(py_list)

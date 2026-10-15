@@ -42,7 +42,11 @@ FDR(
 \item{FDRs_as_is}{Logical, FALSE by default. If TRUE, turns off automated check for FDR scale (percentage vs 0-1 range).}
 }
 \value{
-A list with 3 elements ("Significance vector", "Thresholds" and "Adj. P-values") or, if SIMPLIFY = TRUE and sum(returns) == 1, the single element of the list to return.
+Either a list of up to elements:\cr
+- "Significance vector"\cr
+- "Thresholds"\cr
+- "Adj. P-values"\cr
+or, if SIMPLIFY = TRUE and sum(returns) == 1, the single element of the list to return.
 }
 \description{
 A function to calculate FDR thresholds and assess P-value significance.

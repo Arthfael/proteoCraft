@@ -12,10 +12,10 @@
 
 Av_SE_fun <- function(vect) {
   res <- as.numeric(vect)
-  res <- res[which(is.finite(res))]
+  res <- res[is.finite(res)]
   l <- length(res)
   if (l) { res <- c(mean(res), sd(res)/sqrt(l)) } else {
-    res <- unique(vect[which(!is.na(vect))])
+    res <- unique(vect[!is.na(vect)])
     res <- if (l == 1L) { c(res, NA) } else { c(NA, NA) }
   }
   return(res)

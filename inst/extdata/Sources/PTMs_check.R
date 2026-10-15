@@ -48,11 +48,12 @@ if (length(tstEnrich)) {
       tst <- tst[tst$Sample %in% unlist(Exp.map$MQ.Exp),]
       #which(vapply(Exp.map$MQ.Exp, \(y) { x %in% unlist(y) }, TRUE))
       tst2 <- dfMelt(tst, id.vars = intersect(c("Search", "MS_file", Mod, "Sample"), colnames(tst)))
-      colnames(tst2) <- gsub("\\(|\\)|\\[|\\]", "", gsub(" ", "_", colnames(tst2)))
+      pat1 <- "\\(|\\)|\\[|\\]"
+      colnames(tst2) <- gsub(pat1, "", gsub(" ", "_", colnames(tst2)))
       frml <- if (inclSearch) {
-        as.formula(paste0("MS_file + Search ~  `", gsub("\\(|\\)|\\[|\\]", "", gsub(" ", "_", Mod)), "`"))
+        as.formula(paste0("MS_file + Search ~  `", gsub(pat1, "", gsub(" ", "_", Mod)), "`"))
       } else {
-        as.formula(paste0("MS_file ~ `", gsub("\\(|\\)|\\[|\\]", "", gsub(" ", "_", Mod)), "`"))
+        as.formula(paste0("MS_file ~ `", gsub(pat1, "", gsub(" ", "_", Mod)), "`"))
       }
       tst2 <- cast(tst2, frml, fun.aggregate = sum)
       kN <- paste0("Non-", Mod, "-modified")
@@ -176,7 +177,7 @@ suppressMessages({
 plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y", "fill"))
 plotLy$x$layout$xaxis$autorange <- TRUE
 plotLy$x$layout$yaxis$autorange <- TRUE
-plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
 plotLy <- plotly::config(plotLy,
                          modeBarButtonsToRemove = c("select2d", "lasso2d"))
 plotLy <- plotly::plotly_build(plotLy)

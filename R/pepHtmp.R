@@ -54,12 +54,12 @@ pepHtmp <- function(intProt = prot.list_pep,
   if (!dir.exists(dstDir)) { dir.create(dstDir, recursive = TRUE) }
   if (exists("dirlist")) { assign("dirlist", unique(c(dirlist, dstDir)), envir = .GlobalEnv) }
   #
-  g <- paste0(ref, RSA$values)
-  g <- g[which(g %in% colnames(Pep))]
+  g <- intersect(paste0(ref, RSA$values),
+                 colnames(Pep))
   g1 <- as.data.frame(t(as.data.frame(strsplit(sub(topattern(ref), "", g), "___"))))
   colnames(g1) <- RSA$names
   g1$Col <- g
-  test <- RSA$names[which(RSA$names != "Replicate")]
+  test <- setdiff(RSA$names, "Replicate")
   for (i in rev(test)) { g1 <- g1[order(g1[[i]]),] }
   g <- g1$Col
   g1 <- sub(topattern(ref), "", g)
@@ -108,7 +108,7 @@ pepHtmp <- function(intProt = prot.list_pep,
     f0 <- \(x) { #x <- tempDat[1,]
       plp <- unlist(x[[1L]])
       meth <- x[[2L]]
-      Plp <- paste(DB[which(DB$"Protein ID" == plp),
+      Plp <- paste(DB[DB$"Protein ID" == plp,
                       c("Common Name", "Protein ID")], collapse = " - ")
       grs <- proteoCraft::grsep2(plp, tmpPep$Proteins)
       if (length(grs)) {

@@ -6,8 +6,9 @@
 #' 
 #' Has not been updated for a long time, and is probably in need of a refresh!
 #' 
-#' The output is a list of two items:
-#' - an evidence table similar to the one MaxQuant creates ("Evidences")
+#' @returns
+#' A list of two items:\cr
+#' - an evidence table similar to the one MaxQuant creates ("Evidences")\cr
 #' - a modifications table ("PTMs")
 #' 
 #' @param PD A PSMs table from Proteome Discover imported as a data frame.
@@ -38,7 +39,7 @@ PD_to_MQ <- function(PD,
   if (Isobaric) {
     stopifnot(Label %in% c("TMT0plex", "TMTpro0plex", "TMT2plex", "TMT6to11plex", "TMTpro16plex", "iodoTMT0plex", "iodoTMT6plex", "aminoxyTMT0plex", "aminoxyTMT6plex", "iTRAQ4plex", "iTRAQ8plex"))
     LabelKlass <- c("TMT", "iodoTMT", "iTRAQ")
-    LabelKlass <- LabelKlass[which(vapply(LabelKlass, \(x) { grepl(topattern(x), Label) }, TRUE))]
+    LabelKlass <- LabelKlass[vapply(LabelKlass, \(x) { grepl(topattern(x), Label) }, TRUE)]
     # NB: the different iTRAQ channels are only isobaric at a lower resolution than for TMT:
     # In two given TMTs channels, including 10-11plex, while isotopologues are used for encoding channels,
     # the total number of isotopes of each atom is the same. Thus TMT is truly isobaric.
@@ -48,9 +49,9 @@ PD_to_MQ <- function(PD,
                             c("TMT0plex", "TMT2plex", "TMT6to11plex", "iodoTMT0plex", "iodoTMT6plex", "aminoxyTMT0plex", "aminoxyTMT6plex", "iTRAQ4plex", "iTRAQ8plex"))
     
     if (! Label %in% names(LabelMasses)) { stop(paste0("Label ", Label, " is currently not supported... but it should be!")) }
-    LabelMass <- LabelMasses[which(names(LabelMasses) == Label)]
+    LabelMass <- LabelMasses[names(LabelMasses) == Label]
   }
-  if (filter) { PD <- PD[which(PD$"PSM Ambiguity" != "Rejected"),] }
+  if (filter) { PD <- PD[PD$"PSM Ambiguity" != "Rejected",] }
   EV <- data.frame(Sequence = toupper(gsub("^\\[.+\\]\\.|\\.\\[.+\\]$", "", PD$"Annotated Sequence")))
   EV$Length <- nchar(EV$Sequence)
   test <- gsub(paste(AA, collapse = "|"), "", EV$Sequence)
@@ -77,7 +78,7 @@ PD_to_MQ <- function(PD,
   })
   Modifs <- data.frame(`Full name` = unique(unlist(strsplit(PD$temp_mod, ";"))), check.names = FALSE)
   Modifs$Type <- "Variable"
-  Modifs$Type[which(Modifs$"Full name" %in% Fixed.mods)] <- "Fixed"
+  Modifs$Type[Modifs$"Full name" %in% Fixed.mods] <- "Fixed"
   Modifs$Mark <- tolower(substr(Modifs$"Full name", 1L, 2L))
   ## Identify affected Amino Acids
   temp <- data.frame(mod = unlist(strsplit(PD$temp_mod, ";")),
@@ -97,9 +98,9 @@ PD_to_MQ <- function(PD,
       #i <- W[1L]
       w <- which(Modifs$Mark == test$Group.1[i])
       m <- Modifs[w,]
-      m$AA[which(lengths(m$AA) == 0L)] <- "X"
+      m$AA[lengths(m$AA) == 0L] <- "X"
       r <- if ("Acetyl" %in% m$"Full name") { which(m$"Full name" == "Acetyl") } else { 1L }
-      s <- c(1L:nrow(m)); s <- s[which(s != r)]
+      s <- c(1L:nrow(m)); s <- s[s != r]
       test <- apply(m[s, c("AA", "Mark")], 1L, \(x) { paste0(tolower(x[[1L]]), substr(x[[2L]], 1L, 1L)) })
       w1 <- which(!test %in% Modifs$Mark)
       m$Mark[s][w1] <- test
@@ -114,7 +115,7 @@ PD_to_MQ <- function(PD,
         taken <- unique(c(Modifs$Mark, m$Mark))
         for (j in s) {
           tst <- paste0(tolower(m$AA[s]), char[kount])
-          while (((tst) %in% taken)&&(kount < length(char))) {
+          while (((tst) %in% taken) && (kount < length(char))) {
             kount <- kount+1L
             tst <- paste0(tolower(m$AA[s]), char[kount])
           }
@@ -132,9 +133,9 @@ PD_to_MQ <- function(PD,
   EV$Modifications <- "Unmodified"
   EV$"Modified sequence" <- paste0("_", EV$Sequence, "_")
   temp <- strsplit(PD$temp_mod, ";")
-  w <- which(vapply(temp, \(x) { length(x[which(!x %in% Fixed.mods)]) }, 1L) > 0L)
+  w <- which(vapply(temp, \(x) { sum(!x %in% Fixed.mods) }, 1L) > 0L)
   EV$Modifications[w] <- vapply(temp[w], \(x) {
-    x <- x[which(! x %in% Fixed.mods)]
+    x <- x[!x %in% Fixed.mods]
     x <- aggregate(x, list(x), length)
     x <- x[order(x$Group.1), 2L:1L]
     x <- apply(x, 1L, \(y) { sub("^1 ", "", paste(y, collapse = " ")) } )
@@ -150,29 +151,30 @@ PD_to_MQ <- function(PD,
     sq$pos <- 0L:(nrow(sq)-1L)
     sq$mod <- vector("list", nrow(sq))
     md <- unlist(x[1L]); wh <- unlist(x[2L])
-    wh <- wh[which(!md %in% Fixed.mods)];md <- md[which(!md %in% Fixed.mods)]
+    wh <- wh[!md %in% Fixed.mods];md <- md[!md %in% Fixed.mods]
     if (sum(c("N-Term", "N-Term[Prot]") %in% wh)) {
-      sq$mod[1L] <- list(md[which(wh %in% c("N-Term", "N-Term[Prot]"))])
+      sq$mod[1L] <- list(md[wh %in% c("N-Term", "N-Term[Prot]")])
     }
     if (sum(c("C-Term", "C-Term[Prot]") %in% wh)) {
-      list(sq$mod[nrow(sq)] <- md[which(wh %in% c("C-Term", "C-Term[Prot]"))])
+      list(sq$mod[nrow(sq)] <- md[wh %in% c("C-Term", "C-Term[Prot]")])
     }
-    md <- md[which(!wh %in% c("N-Term", "N-Term[Prot]", "C-Term", "C-Term[Prot]"))]
-    wh <- wh[which(!wh %in% c("N-Term", "N-Term[Prot]", "C-Term", "C-Term[Prot]"))]
+    md <- md[!wh %in% c("N-Term", "N-Term[Prot]", "C-Term", "C-Term[Prot]")]
+    wh <- wh[!wh %in% c("N-Term", "N-Term[Prot]", "C-Term", "C-Term[Prot]")]
     if (length(md)) {
       wh <- Isapply(1L:length(wh), \(y) { c(substr(wh[y], 1L, 1L), substr(wh[y], 2L, nchar(wh[y]))) })
       wh[, 2L] <- as.numeric(wh[, 2L])
       test <- sum(apply(wh, 1L, \(y) { sq$seq[as.numeric(y[[2L]])+1L] != y[[1L]] })) == 0L
       if (test) {
         md <- aggregate(md, list(wh[, 2L]), sort)
-        sq$mod[which(sq$pos %in% md[, 1L])] <- md[match(sq$pos[which(sq$pos %in% md[, 1L])], md[, 1L]), 2L]
+        wPosinMd <- which(sq$pos %in% md[, 1L])
+        sq$mod[wPosinMd] <- md[match(sq$pos[wPosinMd], md[, 1L]), 2L]
       } else { stop("Amino acids and positions do not match!") }
     }
     wh2 <- which(lengths(sq$mod) > 0L)
     sq$mod[wh2] <- vapply(sq$mod[wh2], \(y) {
       return(paste0("(", paste(Modifs$Mark[match(unlist(y), Modifs$"Full name")], collapse = ","), ")"))
     }, "")
-    sq$mod[which(vapply(sq$mod, is.null, TRUE))] <- ""
+    sq$mod[vapply(sq$mod, is.null, TRUE)] <- ""
     return(paste(do.call(paste, c(sq[, c("seq", "mod")], sep = "")), collapse = ""))
   })
   EV$"Leading proteins" <- gsub("; ", ";", PD$"Master Protein Accessions")
@@ -199,7 +201,7 @@ PD_to_MQ <- function(PD,
     if (max(taest) < nrow(PD)) { warning("There may be peptides with only partial isobaric labelling!") }
     w <- which(taest == max(taest))
     if (length(w) > 1L) { stop("No idea what's happening here!") } else {
-      LabelDetails <- names(taest[which(taest == max(taest))])
+      LabelDetails <- names(taest[taest == max(taest)])
       NIsobar <- IsoTaest[,w]
       EV$"m/z" <- PD$"m/z [Da]"-LabelMass*(NIsobar)/EV$Charge
     }
@@ -226,22 +228,22 @@ PD_to_MQ <- function(PD,
   if (Isobaric) {
     g <- grep("^[0-9]+[N,C]?$", colnames(PD), value = TRUE)
     if (sum(c("131", "131N") %in% g) == 2L) {
-      l <- length(which((!is.na(PD$"131"))&(!is.na(PD$"131N"))))
+      l <- length(which((!is.na(PD$"131")) & (!is.na(PD$"131N"))))
       if (l > 0) {
         warning("Channels named 131 and 131N are both present, and have non-NA values for the same PSMs, so will not be conflated.")
       } else {
         warning("Channels named 131 and 131N are both present and will be conflated.")
-        w <- which((!is.na(PD$"131"))&(is.na(PD$"131N")))
+        w <- which((!is.na(PD$"131")) & is.na(PD$"131N"))
         PD$"131N"[w] <- PD$"131"[w]
         PD$"131" <- NULL
-        g <- g[which(g != "131")]
+        g <- g[g != "131"]
       }
     }
     g1 <- paste0("Reporter intensity ", (0L:(length(g)-1L)))
     EV[,g1] <- PD[, g]
     for (i in g1) {
       EV[[i]] <- as.numeric(EV[[i]])
-      EV[which(is.na(EV[[i]])),i] <- 0L
+      EV[is.na(EV[[i]]),i] <- 0L
     }
     if (is.null(Abs.quant.col)) {
       EV$Intensity <- rowSums(EV[, paste0("Reporter intensity ", (0L:(length(g)-1L)))])
@@ -262,10 +264,10 @@ PD_to_MQ <- function(PD,
     EV$"Search Engine Rank" <- PD$"Search Engine Rank"
     t2 <- EV$"Search Engine Rank" <= MaxRank
   } else { t2 <- rep(TRUE, nrow(EV)) }
-  EV <- EV[which(t1 & t2),]
-  PD <- PD[which(t1 & t2),]
+  EV <- EV[t1 & t2,]
+  PD <- PD[t1 & t2,]
   # Sometimes several search engines were used; are they creating duplicates?
-  if (("Identifying Node" %in% colnames(PD))&&(length(unique(PD$"Identifying Node")) > 1L)) {
+  if (("Identifying Node" %in% colnames(PD)) && (length(unique(PD$"Identifying Node")) > 1L)) {
     EV$"Search Engine" <- PD$"Identifying Node"
     EV$test <- do.call(paste, c(EV[, c("Modified sequence", "Charge", "Retention time", "Raw file", "MS/MS scan number")], sep = "_-_"))
     evtemp <- data.frame(test = unique(EV$test))
@@ -277,9 +279,9 @@ PD_to_MQ <- function(PD,
     if (length(w)) {
       l <- length(which(evtemp$Spectrum %in% test$Group.1[w]))
       warning(paste0("Removing ", l, " conflicting PSMs!"))
-      evtemp <- evtemp[which(evtemp$Spectrum %in% test$Group.1[which(test$x == 1L)]),]
+      evtemp <- evtemp[evtemp$Spectrum %in% test$Group.1[test$x == 1L],]
     }
-    col <- colnames(EV)[which(!colnames(EV) %in% colnames(evtemp))]
+    col <- setdiff(colnames(EV), colnames(evtemp))
     test <- aggregate(EV[,col], list(EV$test), \(x) { length(unique(x)) })
     test2 <- apply(test[,col], 2L, max, na.rm = TRUE)
     w <- which(test2 == 1L)
@@ -287,7 +289,7 @@ PD_to_MQ <- function(PD,
     evtemp[, col[w]] <- test[match(evtemp$test, test$Group.1), col[w]]
     test <- aggregate(EV$"Search Engine", list(EV$test), \(x) { paste(sort(unique(x)), collapse = ";") })
     evtemp$"Search Engine" <- test$x[match(evtemp$test, test$Group.1)]
-    w <- which((test2 != 1L)&(col != "Search Engine"))
+    w <- which((test2 != 1L) & (col != "Search Engine"))
     if ("PEP" %in% col[w]) {
       test <- aggregate(EV$PEP, list(EV$test), mean, na.rm = TRUE)
       evtemp$PEP <- test$x[match(evtemp$test, test$Group.1)]
@@ -298,7 +300,7 @@ PD_to_MQ <- function(PD,
       test <- aggregate(test$value, list(test$L1), \(x) { paste(sort(unique(x)), collapse = ";") })
       evtemp$Proteins <- test$x[match(evtemp$test, test$Group.1)]
     }
-    col <- col[w][which(!col[w] %in% c("PEP", "Proteins"))]
+    col <- setdiff(col[w], c("PEP", "Proteins"))
     test3 <- sapply(col, \(x) { class(EV[[x]]) })
     w1 <- which(test3 %in% c("numeric", "double", "integer", "integer64"))
     w2 <- which(test3 == "character")

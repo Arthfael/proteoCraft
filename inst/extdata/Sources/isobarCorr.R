@@ -3,13 +3,9 @@ if ((LabelType == "Isobaric")&&
     ("Label.Purities.file" %in% colnames(Param))&&
     (!Param$Label.Purities.file %in% c("", " ", "NA", NA))&&
     (file.exists(Param$Label.Purities.file))) {
-  if (!require("matlib", quietly = TRUE)) { install.packages("matlib") }
-  cran_req <- c(cran_req, "matlib")
   Iso.purity <- read.csv(Param$Label.Purities.file)
   cat(paste0("Correcting ", evNm, " reporter intensities for labels purity.\n"))
-  l <- length(DatAnalysisTxt)
-  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                              " Reporter intensities were corrected for ", IsobarLab, " label purity factors.")
+  DatAnalysisTxt$IsobarCorr <- paste0("Reporter intensities were corrected for ", IsobarLab, " label purity factors.")
   if (colnames(Iso.purity)[1L] == "New.format") {
     Iso.purity <- read.csv(Param$Label.Purities.file, check.names = FALSE)
     Iso.purity <- Iso.purity[, 2L:ncol(Iso.purity)]
@@ -50,20 +46,14 @@ if ((LabelType == "Isobaric")&&
           }, 1L) == length(lb))
           A <- A[(1L:length(lb))+w-1L,]
           source(parSrc)
-          exports <- list("A", "e", "kol")
-          clusterExport(parClust, exports, envir = environment())
-          invisible(clusterCall(parClust, \() {
-            library(matlib)
-            library(proteoCraft)
-            return()
-          }))
-          temp <- as.data.frame(t(parApply(parClust, e[,kol], 1L, \(x) {
+          clusterExport(parClust, list("A", "e", "kol"), envir = environment())
+          temp <- as.data.frame(t(parApply(parClust, e[, kol], 1L, \(x) {
             b <- as.numeric(x)
             b[!is.finite(b)] <- 0
             sb <- sum(b)
             if (sb > 0) {
-              #showEqn(round(A, 3), b)
-              #res <- as.numeric(gsub(".+= +", "", Solve(A, b))) # I stopped using this since it seems to return approximations sometimes
+              #matlib::showEqn(round(A, 3), b)
+              #res <- as.numeric(gsub(".+= +", "", matlib::Solve(A, b))) # I stopped using this since it seems to return approximations sometimes
               res <- solve(A, b)
               # There are cases where we will get negative values which we will have to truncate:
               res[res < 0] <- 0
@@ -127,18 +117,15 @@ if ((LabelType == "Isobaric")&&
               A[kount, colnames(fact)] <- fact
             }
           }
-          A <- as.matrix(A[,3:(length(lb)+2)])
-          exports <- list("A", "e", "kol")
-          clusterExport(parClust, exports, envir = environment())
-          clusterCall(parClust, \() library(matlib))
-          clusterCall(parClust, \() library(proteoCraft))
+          A <- as.matrix(A[, 3L:(length(lb)+2L)])
+          clusterExport(parClust, list("A", "e", "kol"), envir = environment())
           temp <- as.data.frame(t(parApply(parClust, e[, kol], 1L, \(x) {
             b <- as.numeric(x)
             b[!is.finite(b)] <- 0
             sb <- sum(b)
             if (sb > 0) {
-              #showEqn(round(A, 3), b)
-              #res <- as.numeric(gsub(".+= +", "", Solve(A, b))) # I stopped using this since it seems to return approximations sometimes
+              #matlib::showEqn(round(A, 3), b)
+              #res <- as.numeric(gsub(".+= +", "", matlib::Solve(A, b))) # I stopped using this since it seems to return approximations sometimes
               res <- solve(A, b)
               # There are cases where we will get negative values which we will have to truncate:
               res[res < 0] <- 0

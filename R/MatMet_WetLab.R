@@ -1,16 +1,16 @@
 #' MatMet_WetLab
 #'
 #' @description
-#' A function to handle writing the wet-lab part of Materials & Methods, interactively asking relevant questions as it moves down the decision tree.
-#' Very much a Rube Goldberg engine, which is fine. Just remember that it creates a WIP which should be checked/corrected before publication!
-#' 
+#' A function to handle writing the wet-lab part of Materials & Methods, interactively asking relevant questions as it moves down the decision tree.\cr
+#' Very much a Rube Goldberg engine, which is fine. Just remember that it creates a WIP which should be checked/corrected before publication!\cr
+#' \cr
 #' !!! When editing function, always save with UTF-8 encoding!!!
 
 #' @param File2Reload Optional file to reload the text from so you do not have to rewrite the whole thing. Default = "Materials and methods_WIP.docx".
 #' @param exp.map The experiments map.
 #' @param exp.map.col Name of the column in exp.map which contains biological sample names. Default = "MQ.Exp".
 #' @param Label Were the samples labelled isobarically ("TMT", "TMTPRO" or "ITRAQ"), with "SILAC", or label-free ("LFQ")? This is only relevant for isobaric labels (otherwise ignored) because a) this affects the choice of iST kit, and b) the labelling procedure will then be reported in the samples processing.
-#' @param Columns Path to a table of LC columns to pick from.
+#' @param Columns Path to a table of LC columns to pick from. Default = "default" (path where we save column definitions by default)
 #'
 #' @examples
 #' if (LabelType == "LFQ") { MatMet_Text1 <- MatMet_WetLab() }
@@ -24,14 +24,14 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                           Label = "LFQ",
                           Columns = "default") {
   TESTING <- FALSE
-  #rm(list = ls()[which(!ls() %in% c("wd", "Exp.map"))])
+  #rm(list = setdiff(ls(), c(.obj, "wd", "Exp.map")))
   #Exp.map = SamplesMap
   #DefArg(MatMet_WetLab); TESTING <- TRUE
   #
   if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-    misFun <- function(x) { return(!exists(deparse(substitute(x)))) }
+    misFun <- \(x) { return(!exists(deparse(substitute(x)))) }
   } else { misFun <- missing }
   #
   if (!misFun(Label)) { Label <- toupper(gsub("-", "", Label)) }
@@ -49,31 +49,34 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                "Description",
                "P/N",
                "Function")
-  colTst <- (Columns != "default")&(file.exists(Columns))
   libPath <- as.data.frame(library()$results)
   libPath <- normalizePath(libPath$LibPath[match("proteoCraft", libPath$Package)], winslash = "/")
-  proteoPath <- paste0(libPath, "/proteoCraft")
-  myPath <- pkgPath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
-  if (!colTst) {
-    dfltLocFl <- paste0(pkgPath, "/Default_locations.xlsx")
+  pkgPath <- paste0(libPath, "/proteoCraft")
+  docPath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+  Columns2 <- paste0(docPath, "/LC_columns.xlsx")
+  if ((Columns != "default") && (!file.exists(Columns))) {
+    warning("Columns definition file provided not found, reverting to default!")
+    Columns <- "default"
+  }
+  if (Columns == "default") {
+    altColFls <- c()
+    dfltLocFl <- paste0(docPath, "/Default_locations.xlsx")
     if (file.exists(dfltLocFl)) {
       dfltLoc <- openxlsx2::read_xlsx(dfltLocFl)
       tmpPath <- dfltLoc$Path[match("Temporary folder", dfltLoc$Folder)]
-      myPath <- tmpPath
-      Columns <- paste0(tmpPath, "/LC_columns.xlsx")
-    } else {
-      Columns <- paste0(pkgPath, "/LC_columns.xlsx")
+      altColFls <- c(altColFls, paste0(tmpPath, "/LC_columns.xlsx"))
     }
-    if (!file.exists(Columns)) {
-      Columns <- paste0(proteoPath, "/extdata/LC_columns.xlsx")
-    }
+    altColFls <- c(Columns2,
+                   altColFls,
+                   paste0(pkgPath, "/extdata/LC_columns.xlsx"))
+    Columns <- altColFls[file.exists(altColFls)][1L]
   }
   Columns2 <- paste0(myPath, "/LC_columns.xlsx")
-  colTst <- file.exists(Columns)
-  if (colTst) {
+  colTst2 <- file.exists(Columns2)
+  if (file.exists(Columns)) {
     allKolumns <- openxlsx2::read_xlsx(Columns)
   } else {
-    # Should never happen now that we distribute "LC_columns.xlsx" with the package
+    # Should never happen now that we distribute "LC_columns.xlsx" with the package - this is old code
     Kolumns <- c("EasySpray C18 column (2 µm particle size, 75 µm ID x 50 cm length, ThermoFisher Scientific P/N ES903)",
                  "200 cm C18 µPAC column (micro-Pillar Array Column, PharmaFluidics P/N 5525031518210B)",
                  "50 cm C18 µPAC GEN2 column (2nd generation micro-Pillar Array Column, PharmaFluidics P/N COL-nano050G2B)")
@@ -92,8 +95,9 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                              Description = "",
                              check.names = FALSE)
   }
+  allKolumns <- allKolumns[which(nchar(allKolumns$Name) > 0L),]
   if (!"Description" %in% colnames(allKolumns)) { allKolumns$Description <- "" }
-  kolDescr <- function(Colonnes) {
+  kolDescr <- \(Colonnes) {
     apply(Colonnes[, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N"), drop = FALSE],
           1L, \(x) {
       #x <- Colonnes[1, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N")]
@@ -119,14 +123,14 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
       return(res)
     })
   }
-  #w <- which((nchar(allKolumns$Description) == 0L)|(is.na(allKolumns$Description)))
+  #w <- which((nchar(allKolumns$Description) == 0L) | is.na(allKolumns$Description))
   w <- 1L:nrow(allKolumns)
   allKolumns$Description[w] <- kolDescr(allKolumns[w,])
-  Kolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Fractionation")],
-                      "Add new..."))
-  preKolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Trap")], "None (direct injection)",
-                         "Add new..."))
-  AddKolKount  <- 0L
+  Kolumns <- union(allKolumns$Description[allKolumns$Function == "Fractionation"],
+                   "Add new...")
+  # preKolumns <- union(allKolumns$Description[allKolumns$Function == "Trap"],
+  #                     c("None (direct injection)", "Add new..."))
+  # AddKolKount  <- 0L # Only needed in MatMet_LCMS, where we may add columns or pre-columns more than once
   #View(allKolumns)
   #
   if (!missing(exp.map)) {
@@ -147,7 +151,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
   }
   moult <- (moult>1L)+1L
   reuseMatMeth <- FALSE
-  if ((!is.null(File2Reload))&&(file.exists(File2Reload))) {
+  if ((!is.null(File2Reload)) && file.exists(File2Reload)) {
     if (dirname(File2Reload) == ".") { File2Reload <- paste0(getwd(), "/", File2Reload) }
     reuseMatMeth <- TRUE
     MatMetTxt <- officer::read_docx(File2Reload)
@@ -168,7 +172,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
       PreOmics <- grepl("iST", SPMeth)
       onBeads <- grepl("( |-)beads?( |\\.)?", SPMeth) # The SP3 kit is not compatible with other on-beads digest
       if (grepl("SP3", SPMeth)) { SP3 <- TRUE } else {
-        if ((PreOmics)&&(!onBeads)) {
+        if (PreOmics && (!onBeads)) {
           msg <- "Did you use the SP3 add-on kit?"
           SP3 <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res,
                                       c("yes", "no"))]
@@ -188,6 +192,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                              30L)$res
         ReductTmp <- svDialogs::dlg_input("Enter the temperature (°C) at which the samples were reduced:",
                                           95L)$res
+        data(Alkylating_agents, package = "proteoCraft")
         Alk <- svDialogs::dlg_list(c(alkTbl$Full_name, "Other"),
                                    alkTbl$Full_name[1L], title = "Which alkylating agent was used?")$res
         if (Alk == "Other") {
@@ -258,7 +263,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                                         title = "Select the precise labelling method used:")$res
         LablMeth <- paste0(LablMeth, " (", c(rep("ThermoFisher Scientific", 2L), "Sciex")[match(Label, c("TMT", "TMTPRO", "ITRAQ"))], ")")
       }
-      test <- (Label %in% c("TMT", "TMTPRO", "ITRAQ"))&(grepl("iST kit", SPMeth))
+      test <- (Label %in% c("TMT", "TMTPRO", "ITRAQ")) & grepl("iST kit", SPMeth)
       while (test) {
         msg <- paste0("The classic iST kit is not compatible with ", Label, " labelling, did you mean to select an iST-NHS variant instead?")
         tst1 <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res,
@@ -268,7 +273,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
           SPMeth <- svDialogs::dlg_list(samplprep,
                                         title = "Select the sample processing method used:")$res
         } else { stop() }
-        test <- (Label %in% c("TMT", "TMTPRO", "ITRAQ"))&(grepl("iST kit", SPMeth))
+        test <- (Label %in% c("TMT", "TMTPRO", "ITRAQ")) & grepl("iST kit", SPMeth)
       }
       EnrichMethods <- c("Not enriched",
                          "Phospho-enrichment (Ti-IMAC)",
@@ -310,9 +315,9 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
             }
           } else { FracSource <- "sample" }
           msg <- paste0("How many fractions were run per sample?")
-          def <- c(3L, 12L, 8L)[match(FracMeth, FracMethods[2L:4L])] + 1L*((FracMeth != FracMethods[3L])&(Label %in% c("TMT", "TMTPRO")))
+          def <- c(3L, 12L, 8L)[match(FracMeth, FracMethods[2L:4L])] + 1L*((FracMeth != FracMethods[3L]) & (Label %in% c("TMT", "TMTPRO")))
           NFrac <- suppressWarnings(as.integer(svDialogs::dlg_input(msg, def)$res))
-          while ((is.na(NFrac))|(NFrac <= 0L)) {
+          while (is.na(NFrac) | (NFrac <= 0L)) {
             NFrac <- suppressWarnings(as.integer(svDialogs::dlg_input(msg, def)$res))
           }
           if (FracMeth == FracMethods[3L]) {
@@ -320,7 +325,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                                            title = paste0("Which column was used for offline fractionation?"))$res
             if (FracCol == "Add new...") {
               colCharDf <- data.frame(Description = "Fractionation")
-              for (kk in colChar[which(colChar != "Function")]) {
+              for (kk in setdiff(colChar, "Function")) {
                 colCharDf[[kk]] <- svDialogs::dlg_input(paste0("Enter value for field \"", kk, "\""), "")$res
               }
               FracCol <- colCharDf$Name
@@ -329,20 +334,31 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
               tst <- apply(allKolumns, 1L, paste, collapse = "|")
               tst <- aggregate(1L:length(tst), list(tst), min)
               allKolumns <- allKolumns[sort(tst$x),]
-              require(openxlsx)
-              Head <- createStyle(textDecoration = c("bold", "underline"))
-              wb <- createWorkbook()
-              addWorksheet(wb, "Sheet1")
-              writeData(wb, "Sheet1", allKolumns, 1L, 1L)
-              addStyle(wb, "Sheet1", Head, 1L, 1L:ncol(allKolumns))
-              tst <- sapply(1L:ncol(allKolumns), \(x) {
-                x1 <- ceiling(nchar(colnames(allKolumns)[x])*1.2)
-                x2 <- ceiling(nchar(allKolumns[[x]])*1.2)
-                return(max(c(x1, min(c(60L, x2), na.rm = TRUE))))
-              })
-              setColWidths(wb, "Sheet1", 1L:ncol(allKolumns), tst)
-              try(saveWorkbook(wb, Columns2, TRUE), silent = TRUE) # We do not want the function to fail if this fails, it isn't worth the trouble
-              #openwd(dirname(Columns2))
+              #
+              # Save workbook
+              nr <- nrow(allKolumns)
+              nc <- ncol(allKolumns)
+              wb <- openxlsx2::wb_workbook()
+              wb <- openxlsx2::wb_add_worksheet(wb, "Columns")
+              wb <- openxlsx2::wb_add_data_table(wb, "Columns", allKolumns, table_style = "TableStyleMedium5", na.strings = "")
+              wb <- openxlsx2::wb_add_font(wb, "Columns",
+                                           openxlsx2::wb_dims(1L, 1L:nc),
+                                           size = 9L, bold = TRUE, underline = "single")
+              wb <- openxlsx2::wb_add_font(wb, "Columns",
+                                           openxlsx2::wb_dims(1L+(1L:nr), 1L:nc),
+                                           size = 8L)
+              tst <- vapply(1L:nc, \(x) {
+                k <- colnames(allKolumns)[x]
+                x1 <- nchar(k)*0.75
+                x2 <- suppressWarnings(nchar(allKolumns[[x]]))*0.75
+                if (x > 1L) {
+                  x2 <- min(c(60L, x2), na.rm = TRUE)
+                }
+                return(round(max(c(x1, x2), na.rm = TRUE), 1L))
+              }, 1)
+              wb <- openxlsx2::wb_set_col_widths(wb, "Columns", 1L:nc, tst)
+              try(openxlsx2::wb_save(wb, Columns2, TRUE), silent = TRUE) # We do not want the function to fail if this fails, it isn't worth the trouble
+              #openxlsx2::xl_open(Columns2)
             }
             FracCol <- paste0("a", c("", "n")[(tolower(substr(FracCol, 1L, 1L)) %in% c("a", "e", "i", "o", "u"))+1L], " ", FracCol)
             FracMPA <- svDialogs::dlg_input("Enter the composition of solvent A?",
@@ -358,7 +374,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
             if (round(tst) == tst) {
               if (tst >= 2L) {
                 if (tst %% 2L == 0L) {
-                  Klps <- function(range) {
+                  Klps <- \(range) {
                     Mn <- min(range)
                     Mx <- max(range)
                     if (Mn == Mx) { return(as.character(Mn)) } else {
@@ -459,9 +475,9 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                       " vacuum dried.")
       } else { if (PreOmics) { Txt <- sub("\\.$", paste0(" and ", c("the ", "")[moult], "cleaned-up sample", c(" was", "s were")[moult], " vacuum dried."), Txt) } }
       # Add fractionation/enrichment text
-      if ((PreOmics)||(SPMeth %in% c("EnrichSepPak", "FASP"))) { # Excluding in-gel digest because we do not fractionate after digest for these (but we may enrich)
+      if (PreOmics || (SPMeth %in% c("EnrichSepPak", "FASP"))) { # Excluding in-gel digest because we do not fractionate after digest for these (but we may enrich)
         N2 <- 1L
-        if ((Enrich)&&(Frac)&&(FracSource == "whole sample")) {
+        if (Enrich && Frac && (FracSource == "whole sample")) {
           Txt <- paste0(Txt, " ", EnrichPerc, " of ", c("the", "each")[moult], " sample was used for ", EnrichMeth, ", while the rest was fractionated into ", NFrac,
                         " fractions using ", FracMeth, ".")
           if (FracMeth == FracMethods[3L]) {
@@ -488,9 +504,9 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
           }
         }
         moult2 <- (N2>1L)+1L
-        if (SepPak||EnrichSepPak) {
+        if (SepPak || EnrichSepPak) {
           tmp <- c("enriched fraction", "flow-through", c("sample", "RP fraction")[Frac+1L])[which(c(EnrichSepPak, EnrichSepPak, SepPak))]; l <- length(tmp)
-          if (l > 1L) { tmp <- paste0(paste(tmp[1L:(l-1L)], collapse = ", "), " and ", tmp[l]) }
+          tmp <- .commAnd(tmp)
           Txt <- paste0(Txt, " ", c("The", "Each")[moult2], " ", tmp, " ", c("was", "were")[moult2], " desalted using Sep-Pak tC18 plates (Waters).")
         }
         homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
@@ -506,7 +522,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                     "5% FA (Formic Acid)")
           write(opt1, fl1)
         }
-        opt <- unique(c(opt1, "Other..."))
+        opt <- union(opt1, "Other...")
         m <- max(250L, nchar(opt))
         opt <- sapply(opt, \(x) { paste(c(x, rep(" ", m-nchar(x))), collapse = "") })
         loadBuf <- svDialogs::dlg_list(opt, opt[1L], "Which LCMS loading buffer were the samples re-dissolved in?")$res

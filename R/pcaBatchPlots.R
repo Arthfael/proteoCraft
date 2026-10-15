@@ -84,7 +84,7 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
   scores0$Batch <- whichBatch
   #
   pv0 <- round(100*(pc0$sdev)^2L / sum(pc0$sdev^2L), 0L)
-  pv0 <- pv0[which(pv0 > 0)]
+  pv0 <- pv0[pv0 > 0]
   pv0_ <- paste0(root, ": ", paste(vapply(1L:length(pv0), \(x) {
     paste0("PC", x, ": ", pv0[x], "%")
   }, ""), collapse = ", "))
@@ -111,7 +111,7 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
     datAv0 <- setNames(lapply(grps$x, \(x) {
       apply(scores0[match(x, scores0$Sample), kol, drop = FALSE],
             2L, \(y) {
-              mean(y[which(is.finite(y))])
+              mean(y[is.finite(y)])
             })
     }), grps$Group.1)
     datAv0 <- do.call(rbind, c(datAv0))

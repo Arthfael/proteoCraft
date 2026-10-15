@@ -55,11 +55,11 @@ for (grp in Grps) { #grp <- VPAL$values[1L]
 }
 # This chunk is because of Titin. You know who you are, you bad Excel-breaking protein! 
 tst <- setNames(lapply(xmlCovCol, \(x) {
-  w <- setNames(which(parSapply(parClust, substr(PG[[x]], 1L, ExcelMax), \(y) {
+  w <- setNames(which(parSapply(parClust, substr(PG[[x]], 1L, xl_maxChar), \(y) {
     inherits(try(openxlsx2::as_xml(y), silent = TRUE), "try-error")
   })), NULL)
 }), cleanNms(xmlCovCol, start = FALSE))
-sapply(tst, length)
+sapply(tEst, length)
 tmp <- fmt_txt("This sequence is too long to display in an Excel cell!",
                bold = TRUE, italic = TRUE, color = wb_colour("red"))
 for (kol in xmlCovCol) { #kol <- xmlCovCol[1L]

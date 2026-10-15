@@ -1,13 +1,12 @@
 #' Pepper_ProcessData
 #'
 #' @description
-#' A function to take an ev data.frame and convert it to a Pepper-compatible table. This can then be one-hot encoded for the purpose
-#' of training a model on it, or a pre-trained model can be applied to it.
-#' 
-#' 
-#' Note:
-#' An issue may be silent fixed modifications (TMT, cysteine alkylations) in MaxQuant. The final model should thus specify
-#' what type of data it is suitable for.
+#' A function to take an ev data.frame and convert it to a Pepper-compatible table.\cr
+#' This can then be one-hot encoded for the purpose of training a model on it, or a pre-trained model can be applied to it.\cr
+#' \cr
+#' Note:\cr
+#' An issue may be silent fixed modifications (TMT, cysteine alkylations) in MaxQuant.\cr
+#'  The final model should thus specify what type of data it is suitable for.
 #' 
 #' @param Ev The evidences (PSMs) data frame.
 #' @param Modifs Modifications table as output by DIANN_to_MQ, FP_to_MQ, PD_to_MQ... Should ideally contain a "Mass shift" column, but for MQ workflows this will be usually missing: two additional arguments are provided to deal with those cases: SearchSoft and MQFold.
@@ -55,7 +54,7 @@ Pepper_ProcessData <- function(Ev,
     } else {
       if (SearchSoft == "MAXQUANT") {
         modFls <- paste0(MQFold, "/bin/conf/modifications", c("", ".local"), ".xml")
-        modFls <- modFls[which(file.exists(modFls))]
+        modFls <- modFls[file.exists(modFls)]
         modFls <- lapply(modFls, \(modFl) { #modFl <- modFls[1L]
           xml_lst <- as_list(xml2::read_xml(modFl))
           xml_lst <- xml_lst[[1L]]
@@ -99,7 +98,7 @@ Pepper_ProcessData <- function(Ev,
     tst2 <- data.table::data.table(tmpPpId = tmpPpId, Seq = tempEv$Sequence)
     tst2 <- tst2[, list(x = length(unique(tmpPpId))), by = list(Group.1 = Seq)]
     tst2 <- as.data.frame(tst2)
-    w2 <- which(tempEv$Sequence %in% tst2$Group.1[which(tst2$x == 1L)])
+    w2 <- which(tempEv$Sequence %in% tst2$Group.1[tst2$x == 1L])
     tempEv <- tempEv[w2,]
   }
   # 3 - We do not want any missed cleavages
@@ -123,7 +122,7 @@ Pepper_ProcessData <- function(Ev,
   # 4 - We want to exclude peptides with no siblings
   if (filter) {
     tst <- aggregate(tempEv2$ID, list(tempEv2$Protein), \(x) { length(unique(x)) })
-    tempEv2 <- tempEv2[which(tempEv2$Protein %in% tst$Group.1[which(tst$x > 1L)]),]
+    tempEv2 <- tempEv2[tempEv2$Protein %in% tst$Group.1[tst$x > 1L],]
   }
   #
   #grep(";", tempEv2$Gene)
@@ -131,8 +130,8 @@ Pepper_ProcessData <- function(Ev,
   # Intensities
   Samples <- unique(experiments.map[[experiments.map_Sample.col]])
   tempEv3 <- data.table::data.table(tempEv[, c(Ev_Sample.col, "UniqID", intCol)])
-  colnames(tempEv3)[which(colnames(tempEv3) == Ev_Sample.col)] <- "Sample"
-  tempEv3 <- tempEv3[which(!is.na(tempEv3$Sample)),]
+  colnames(tempEv3)[colnames(tempEv3) == Ev_Sample.col] <- "Sample"
+  tempEv3 <- tempEv3[!is.na(tempEv3$Sample),]
   tempEv3 <- dcast(tempEv3, UniqID ~ Sample, value.var = intCol, fun.aggregate = sum, na.rm = TRUE)
   tempEv3 <- as.data.frame(tempEv3)
   tempEv2[, Samples] <- tempEv3[match(tempEv2$ID, tempEv3$UniqID), Samples]
@@ -152,14 +151,14 @@ Pepper_ProcessData <- function(Ev,
     w2 <- which(!x %in% c(AA, ""))
     ms <- Modifs$`Mass shift`[match(x[w2], Modifs$Mark)]
     res <- data.frame(AA = x, mod = "")
-    w3 <- sapply(w2, \(y) { max(w1[which(w1 < y)]) })
+    w3 <- sapply(w2, \(y) { max(w1[w1 < y]) })
     tst <- aggregate(ms, list(w3), sum)
-    tst <- tst[which(tst$x > 0L),]
+    tst <- tst[tst$x > 0L,]
     w4 <- which(tst$x > 0L)
     tst$x <- as.character(round(tst$x, 3L))
     tst$x[w4] <- paste0("+", tst$x[w4])
     res$mod[tst$Group.1] <- tst$x
-    res <- res[which(!res$AA %in% Modifs$Mark),]
+    res <- res[!res$AA %in% Modifs$Mark,]
     if (nrow(res)) { res <- do.call(paste, c(res, sep = "")) }
     res <- paste(res, collapse = "")
     return(res)

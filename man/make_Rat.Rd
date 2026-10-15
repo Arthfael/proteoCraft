@@ -39,8 +39,8 @@ make_Rat(
 \item{verbose}{Logical, default = FALSE}
 }
 \value{
-A list of two objects:
- - Ratios_to_Refs: map of ratios to references,
+A list of two objects:\cr
+ - Ratios_to_Refs: map of ratios to references,\cr
  - Data: data supplemented with new ratios and intensities columns
 }
 \description{

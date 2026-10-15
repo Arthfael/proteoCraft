@@ -78,12 +78,7 @@ cat(" -> Statistical tests\n")
 #      - a classic limma moderated t-test
 #      - the DEqMS-corrected version
 #
-bioc_req <- unique(c(bioc_req, "DEqMS"))
-biocInstall("DEqMS")
-cran_req <- unique(c(cran_req, "matrixStats"))
-if (!require(matrixStats, quietly = TRUE)) { pak::pak("matrixStats") }
-library(matrixStats)
-rg <- 1L:((dataType == "PG") + 1L)
+rg <- 1L:((pkgsCheck["DEqMS"] & (dataType == "PG")) + 1L)
 TESTs <- c("limma", "DEqMS")[rg]
 if ((dataType == "PG") && (!exists("quantData_list"))) { loadFun(myQuantBckpFl) }
 limpaTest <- (dataType == "PG") && ("EList_obj" %in% names(quantData_list))
@@ -212,11 +207,11 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       }
     }
   }
-  if (deqmsMode) {
-    # DEqMS:
-    # This is meant as en extension to limma to account "for variance dependence on the number of quantified peptides or PSMs
+  if (deqmsMode && requireNamespace("DEqMS")) {
+    # DEqMS is meant as en extension to limma to account "for variance dependence on the number of quantified peptides or PSMs
     # for statistical testing of differential protein expression."
     # https://www.bioconductor.org/packages/devel/bioc/vignettes/DEqMS/inst/doc/DEqMS-package-vignette.html#overview-of-deqms
+    library(DEqMS)
     if (dataType == "PG") {
       countCol <- grep("^Evidences count - ", colnames(myData), value = TRUE)
     }
@@ -225,7 +220,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       countCol <- gsub("^Evidence IDs - ", "Evidences count - ", idCol)
       myData[, countCol] <- sapply(idCol, \(k) { lengths(strsplit(myData[[k]], ";")) })
     }
-    psm.counts <- data.frame(count = rowMins(as.matrix(myData[, countCol])))
+    psm.counts <- data.frame(count = matrixStats::rowMins(as.matrix(myData[, countCol]), na.rm = TRUE))
     rownames(psm.counts) <- myData[[namesCol]]
     psm.counts$count[is.na(psm.counts$count)] <- 0L
     psm.counts$count <- psm.counts$count+1L # Pseudo-counts, to allow for PGs with 0 PSMs
@@ -236,14 +231,14 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
     w <- which(rownames(fit2$coefficients) %in% rownames(psm.counts))
     m <- match(rownames(fit2$coefficients)[w], rownames(psm.counts))
     fit2$count[w] <- psm.counts$count[m]
-    fit3 <- try(spectraCounteBayes(fit2), silent = TRUE)
+    fit3 <- try(DEqMS::spectraCounteBayes(fit2), silent = TRUE)
     if (!inherits(fit3, "try-error")) {
       # Variance plot
       tst <- try({
         ttl <- paste0(insrt, " variance plot")
         fl <- paste0(ohDeer, "/", ttl)
         jpeg(file = paste0(fl, ".jpeg"), width = 400L, height = 350L)
-        VarianceBoxplot(fit3, n = max(psm.counts), main = ttl, xlab = "PSM count")
+        DEqMS::VarianceBoxplot(fit3, n = max(psm.counts), main = ttl, xlab = "PSM count")
         dev.off()
       }, silent = TRUE)
       #
@@ -253,7 +248,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       kols2 <- paste0(pRoot, colnames(contrMatr))
       for (i in 1L:ncol(contrMatr)) { #i <- 1L
         contrNm <- colnames(contrMatr)[i]
-        DEqMS.results <- outputResult(fit3, coef_col = i)
+        DEqMS.results <- DEqMS::outputResult(fit3, coef_col = i)
         kol1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", pRoot)), contrNm)
         kol2 <- paste0(pRoot, contrNm)
         myData[[kol1]] <- NA_real_
@@ -269,9 +264,7 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
 
 # msqrob2
 if (((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) || (dataType %in% c("peptides", "modPeptides"))) {
-  if (!require(msqrob2)) { pak::pak("msqrob2") }
   library(msqrob2)
-  if (!require(ExploreModelMatrix)) { pak::pak("ExploreModelMatrix") }
   library(ExploreModelMatrix)
   cat("   - MSqRob test\n")
   #
@@ -579,50 +572,51 @@ if (length(whSingle)) {
   #summary(tmpTsts_)
   #
   # - Reproducibility-Optimized Test Statistic (ROTS)
-  cat("   - ROTS tests\n")
-  bioc_req <- union(bioc_req, "ROTS")
-  if (!require(ROTS)) { pak::pak("ROTS") }
-  library(ROTS)
-  if (!exists("ROTS_res")) {
-    if (file.exists(ROTS_res_fl)) {
-      loadFun(ROTS_res_fl)
-    } else {
-      ROTS_res <- list()
+  if (requireNamespace("ROTS")) { #... equivalent to if (pkgsCheck["ROTS"]) { ... }
+    bioc_req <- union(bioc_req, "ROTS")
+    library(ROTS)
+    cat("   - ROTS tests\n")
+    if (!exists("ROTS_res")) {
+      if (file.exists(ROTS_res_fl)) {
+        loadFun(ROTS_res_fl)
+      } else {
+        ROTS_res <- list()
+      }
     }
-  }
-  clusterExport(parClust, list("myContrasts", "mySeed", "intRef"), envir = environment())
-  # Can't believe the below wasn't parallelized yet!!!
-  # In fact, it's so slow it should probably become parameter-dependent!
-  ROTS_tmp <- try(setNames(parLapply(parClust, whSingle, \(i) { #i <- 1L #i <- 2L #i <- 3L
-    # Get two groups from the contrast
-    A_ <- myContrasts$A_samples[[i]]
-    B_ <- myContrasts$B_samples[[i]]
-    groups <- c(rep(0L, length(A_)), rep(1L, length(B_)))
-    A_k <- paste0(intRef, A_)
-    B_k <- paste0(intRef, B_)
-    tst <- as.data.frame(sapply(list(A = A_k,
-                                     B = B_k), \(kol) {
-                                       apply(tmpData[, kol], 1L, \(x) { sum(is.finite(x)) }) >= 2L
-                                     }))
-    w <- which(rowSums(tst) == 2L)
-    return(ROTS::ROTS(data = tmpData[w, c(A_k, B_k)]/log10(2L),
-                      groups = groups,
-                      B = 500L,
-                      K = 500L,
-                      seed = mySeed))
-  }), myContrasts$Contrast[whSingle]), silent = TRUE)
-  if (!inherits(ROTS_tmp, "try-error")) {
-    #View(ROTS_tmp[[myContrasts$Contrast[whSingle[1L]]]])
-    root <- sub(" -log10\\(", " ", sub("\\) - $", " - ", rotsRoot))
-    myData[, paste0(root, myContrasts$Contrast[whSingle])] <- NA_real_
-    myData[, paste0(rotsRoot, myContrasts$Contrast[whSingle])] <- NA_real_
-    for (contr in myContrasts$Contrast[whSingle]) { #contr <- myContrasts$Contrast[whSingle[1L]]
-      w <- which(myData[[namesCol]] %in% rownames(ROTS_tmp[[contr]]$data))
-      myData[w, paste0(root, contr)] <- ROTS_tmp[[contr]]$pvalue[match(myData[w, namesCol],
-                                                                       rownames(ROTS_tmp[[contr]]$data))]
-      myData[w, paste0(rotsRoot, contr)] <- -log10(myData[w, paste0(root, contr)])
-    }
-    ROTS_res[[dataType]] <- ROTS_tmp
+    clusterExport(parClust, list("myContrasts", "mySeed", "intRef"), envir = environment())
+    # Can't believe the below wasn't parallelized yet!!!
+    # In fact, it's so slow it should probably become parameter-dependent!
+    ROTS_tmp <- try(setNames(parLapply(parClust, whSingle, \(i) { #i <- 1L #i <- 2L #i <- 3L
+      # Get two groups from the contrast
+      A_ <- myContrasts$A_samples[[i]]
+      B_ <- myContrasts$B_samples[[i]]
+      groups <- c(rep(0L, length(A_)), rep(1L, length(B_)))
+      A_k <- paste0(intRef, A_)
+      B_k <- paste0(intRef, B_)
+      tst <- as.data.frame(sapply(list(A = A_k,
+                                       B = B_k), \(kol) {
+                                         apply(tmpData[, kol], 1L, \(x) { sum(is.finite(x)) }) >= 2L
+                                       }))
+      w <- which(rowSums(tst) == 2L)
+      return(ROTS::ROTS(data = tmpData[w, c(A_k, B_k)]/log10(2L),
+                        groups = groups,
+                        B = 500L,
+                        K = 500L,
+                        seed = mySeed))
+    }), myContrasts$Contrast[whSingle]), silent = TRUE)
+    if (!inherits(ROTS_tmp, "try-error")) {
+      #View(ROTS_tmp[[myContrasts$Contrast[whSingle[1L]]]])
+      root <- sub(" -log10\\(", " ", sub("\\) - $", " - ", rotsRoot))
+      myData[, paste0(root, myContrasts$Contrast[whSingle])] <- NA_real_
+      myData[, paste0(rotsRoot, myContrasts$Contrast[whSingle])] <- NA_real_
+      for (contr in myContrasts$Contrast[whSingle]) { #contr <- myContrasts$Contrast[whSingle[1L]]
+        w <- which(myData[[namesCol]] %in% rownames(ROTS_tmp[[contr]]$data))
+        myData[w, paste0(root, contr)] <- ROTS_tmp[[contr]]$pvalue[match(myData[w, namesCol],
+                                                                         rownames(ROTS_tmp[[contr]]$data))]
+        myData[w, paste0(rotsRoot, contr)] <- -log10(myData[w, paste0(root, contr)])
+      }
+      ROTS_res[[dataType]] <- ROTS_tmp
+    } 
   }
   #
   #
@@ -631,161 +625,163 @@ if (length(whSingle)) {
   # It should not be too different from the ones we get from t- or F-tests
   # (although calculation details may vary, and siggenes does not appear to support one-tail tests).
   #
-  tmpData2 <- as.matrix(tmpData)
-  tmpData2[which(!is.finite(tmpData2), arr.ind = TRUE)] <- NA_real_
-  tmpData2[which(is.nan(tmpData2), arr.ind = TRUE)] <- NA_real_
-  tmpData2 <- as.data.frame(tmpData2)
-  # Careful: siggenes truncates names at 50 characters!!!
-  # So we will just create artificial short names
-  rownames(tmpData2) <- paste0(namesRoot, as.character(1L:nrow(tmpData2)))
-  require(siggenes)
-  clusterExport(parClust, list("samDir", "ebamDir"), envir = environment())
-  invisible(clusterCall(parClust, \() {
+  if (requireNamespace("siggenes")) { #... equivalent to if (pkgsCheck["SAM_EBAM"]) { ... }
+    tmpData2 <- as.matrix(tmpData)
+    tmpData2[which(!is.finite(tmpData2), arr.ind = TRUE)] <- NA_real_
+    tmpData2[which(is.nan(tmpData2), arr.ind = TRUE)] <- NA_real_
+    tmpData2 <- as.data.frame(tmpData2)
+    # Careful: siggenes truncates names at 50 characters!!!
+    # So we will just create artificial short names
+    rownames(tmpData2) <- paste0(namesRoot, as.character(1L:nrow(tmpData2)))
     library(siggenes)
-    return()
-  }))
-  if (exists("samThresh")) { rm(samThresh) }
-  for (taest in c("SAM", "EBAM")) { #taest <- "SAM" #taest <- "EBAM"
-    cat(paste0("   - ", taest, " test\n"))
-    tstTst <- try({
-      tmp <- lapply(whSingle, \(x) { #x <- whSingle[1L]
-        nm <- myContrasts$Contrast[x]
-        em <- expMap
-        em <- em[order(em$Replicate_._),]
-        em <- em[c(which(em[[VPAL$limmaCol]] %in% myContrasts$B[[x]]),
-                   which(em[[VPAL$limmaCol]] %in% myContrasts$A[[x]])),]
-        # Important because siggenes assumes replicates start at 1!
-        u <- unique(em$Replicate_._)
-        em$Replicate <- match(em$Replicate_._, u)
-        #
-        wA <- which(em[[VPAL$limmaCol]] %in% myContrasts$A[[x]])
-        wB <- which(em[[VPAL$limmaCol]] %in% myContrasts$B[[x]])
-        A_ <- rownames(em)[wA]
-        B_ <- rownames(em)[wB]
-        A_k <- paste0(intRef, A_)
-        B_k <- paste0(intRef, B_)
-        tmpData3 <- tmpData2[, c(B_k, A_k)]
-        tst <- parApply(parClust, tmpData3, 1L, \(x) { sum(is.finite(x)) })
-        # Create filter for missing values appropriate for the current test:
-        if (taest == "SAM") {
-          wh <- which(tst > 1L)
-        }
-        if (taest == "EBAM") {
-          wh <- which(tst == ncol(tmpData3))
-        }
-        # Test
-        if (length(wh)) {
-          if (Nested) {
-            clss <- c(-em$Replicate[wB],
-                      em$Replicate[wA])
-          } else {
-            clss <- ifelse(1L:nrow(em) %in% wB, 0L, 1L)
-          }
+    clusterExport(parClust, list("samDir", "ebamDir"), envir = environment())
+    invisible(clusterCall(parClust, \() {
+      library(siggenes)
+      return()
+    }))
+    if (exists("samThresh")) { rm(samThresh) }
+    for (taest in c("SAM", "EBAM")) { #taest <- "SAM" #taest <- "EBAM"
+      cat(paste0("   - ", taest, " test\n"))
+      tstTst <- try({
+        tmp <- lapply(whSingle, \(x) { #x <- whSingle[1L]
+          nm <- myContrasts$Contrast[x]
+          em <- expMap
+          em <- em[order(em$Replicate_._),]
+          em <- em[c(which(em[[VPAL$limmaCol]] %in% myContrasts$B[[x]]),
+                     which(em[[VPAL$limmaCol]] %in% myContrasts$A[[x]])),]
+          # Important because siggenes assumes replicates start at 1!
+          u <- unique(em$Replicate_._)
+          em$Replicate <- match(em$Replicate_._, u)
+          #
+          wA <- which(em[[VPAL$limmaCol]] %in% myContrasts$A[[x]])
+          wB <- which(em[[VPAL$limmaCol]] %in% myContrasts$B[[x]])
+          A_ <- rownames(em)[wA]
+          B_ <- rownames(em)[wB]
+          A_k <- paste0(intRef, A_)
+          B_k <- paste0(intRef, B_)
+          tmpData3 <- tmpData2[, c(B_k, A_k)]
+          tst <- parApply(parClust, tmpData3, 1L, \(x) { sum(is.finite(x)) })
+          # Create filter for missing values appropriate for the current test:
           if (taest == "SAM") {
-            samK <- paste0(samRoots, nm)
-            msg <- capture.output({
-              tmpSIGGENES <- siggenes::sam(tmpData3[wh,], clss, method = "d.stat", s.alpha = seq(0, 1, 0.01)#, gene.names = rownames(tmpData3)[wh]
-                                           , control = samControl(delta = (1:1000)/1000) # Because I like overkill
-                                           , rand = mySeed)
-            })
-            #print(tmpSIGGENES)
-            #summary(tmpSIGGENES)
-            # NB: The current siggenes vignette has a typo: obviously FDR isn't equal to p0*False/FDR but to p0*False/Called
-            s0 <- if ("s0" %in% slotNames(tmpSIGGENES)) { slot(tmpSIGGENES, "s0") } else { numeric(0) }
-            #si <- median(apply(tmpData3[wh,], 1L, sd, na.rm = TRUE))
-            nr <- nrow(myData)
-            RES <- data.frame(A = rep(NA, nr),
-                              B = rep(NA, nr),
-                              C = rep(NA, nr)#,
-                              #D = rep(NA, nr)
-            )
-            colnames(RES) <- samK
-            RES[wh, samK[1L]] <- tmpSIGGENES@p.value
-            RES[wh, samK[2L]] <- -log10(tmpSIGGENES@p.value)
+            wh <- which(tst > 1L)
           }
           if (taest == "EBAM") {
-            ebamK <- paste0(ebamRoot, nm)
-            msg <- capture.output({ a0 <- find.a0(tmpData3[wh,], clss) })
-            tmpSIGGENES <- siggenes::ebam(a0, delta = 1-BH.FDR, rand = mySeed)
-            #print(tmpSIGGENES)
-            #summary(tmpSIGGENES)
+            wh <- which(tst == ncol(tmpData3))
           }
-          clusterExport(parClust, c("nm", "tmpSIGGENES", "taest"), envir = environment())
-          tmpSig <- setNames(parLapply(parClust, BH.FDR, \(f) { #f <- BH.FDR[1L]
-            d <- siggenes::findDelta(tmpSIGGENES, fdr = f, prec = 10)
-            if (!is.null(d)) {
-              if (is.numeric(d)) {
-                d <- data.frame(Delta = d["Delta"],
-                                Called = d["Called"],
-                                FDR = d["FDR"])
-              } else {
-                d <- as.data.frame(d)
-              }
-              dr <- c(samDir, ebamDir)[match(taest, c("SAM", "EBAM"))]
-              XLfun <- eval(parse(text = paste0("siggenes::", tolower(taest), "2excel")), envir = .GlobalEnv)
-              dlt <- max(d$Delta[d$FDR <= f])
-              if (!length(dlt)) {
-                warning(paste0(taest, ": poor Delta estimate for group ", nm, " at ", 100*f, "% FDR"))
-                dlt <- 0
-              }
-              XLfun(tmpSIGGENES, dlt, paste0(dr, "/", taest, " - ", nm, ", ", f, " FDR.csv"), what = "both")
-              jpeg(filename = paste0(dr, "/Delta plot - ", nm, ", ", f, " FDR.jpeg"))
-              plot(tmpSIGGENES, dlt)
-              dev.off()
-              res <- siggenes::list.siggenes(tmpSIGGENES, dlt)
-              res <- list(Delta.est = d,
-                          Delta = dlt,
-                          Result = res)
+          # Test
+          if (length(wh)) {
+            if (Nested) {
+              clss <- c(-em$Replicate[wB],
+                        em$Replicate[wA])
             } else {
-              res <- list(Delta.est = NA,
-                          Delta = NA,
-                          Result = c())
+              clss <- ifelse(1L:nrow(em) %in% wB, 0L, 1L)
             }
-            return(res)
-          }), paste0(as.character(BH.FDR), "FDR"))
-          tmpSig2 <- as.data.frame(sapply(names(tmpSig), \(f) { #f <- names(tmpSig)[1L]
-            x <- tmpSig[[f]]$Result
-            y <- rep("", nrow(myData))
-            if (length(x)) {
-              m <- match(x, rownames(tmpData3))  
-              y[m] <- "+"
+            if (taest == "SAM") {
+              samK <- paste0(samRoots, nm)
+              msg <- capture.output({
+                tmpSIGGENES <- siggenes::sam(tmpData3[wh,], clss, method = "d.stat", s.alpha = seq(0, 1, 0.01)#, gene.names = rownames(tmpData3)[wh]
+                                             , control = siggenes::samControl(delta = (1L:1000L)/1000) # Because I like overkill
+                                             , rand = mySeed)
+              })
+              #print(tmpSIGGENES)
+              #summary(tmpSIGGENES)
+              # NB: The current siggenes vignette has a typo: obviously FDR isn't equal to p0*False/FDR but to p0*False/Called
+              s0 <- if ("s0" %in% slotNames(tmpSIGGENES)) { slot(tmpSIGGENES, "s0") } else { numeric(0) }
+              #si <- median(apply(tmpData3[wh,], 1L, sd, na.rm = TRUE))
+              nr <- nrow(myData)
+              RES <- data.frame(A = rep(NA, nr),
+                                B = rep(NA, nr),
+                                C = rep(NA, nr)#,
+                                #D = rep(NA, nr)
+              )
+              colnames(RES) <- samK
+              RES[wh, samK[1L]] <- tmpSIGGENES@p.value
+              RES[wh, samK[2L]] <- -log10(tmpSIGGENES@p.value)
             }
-            return(y)
-          }))
-          tmpSig3 <- do.call(paste, c(tmpSig2, sep = "/"))
-          tmpSig2[[namesCol]] <- myData[[namesCol]]
-          D <- sapply(names(tmpSig), \(f) { tmpSig[[f]]$Delta })
-          dF <- sapply(names(tmpSig), \(f) { tmpSig[[f]]$Delta.FDR })
-          D <- data.frame(d = setNames(D, NULL),
-                          FDR = as.numeric(gsub("FDR$", "", names(D))))
-          D <- aggregate(D$FDR, list(D$d), max)
-          colnames(D) <- c("D", "FDR")
-          #unique(tmpSig3)
-          if (taest == "SAM") {
-            RES[[samK[3L]]] <- tmpSig3
-            RES <- list(Val = RES,
-                        siggenesOut = tmpSIGGENES,
-                        decision = tmpSig2,
-                        S0 = s0,
-                        #Si = si,
-                        d = D,
-                        degFr = length(c(B_, A_))-2L)
+            if (taest == "EBAM") {
+              ebamK <- paste0(ebamRoot, nm)
+              msg <- capture.output({ a0 <- siggenes::find.a0(tmpData3[wh,], clss) })
+              tmpSIGGENES <- siggenes::ebam(a0, delta = 1-BH.FDR, rand = mySeed)
+              #print(tmpSIGGENES)
+              #summary(tmpSIGGENES)
+            }
+            clusterExport(parClust, c("nm", "tmpSIGGENES", "taest"), envir = environment())
+            tmpSig <- setNames(parLapply(parClust, BH.FDR, \(f) { #f <- BH.FDR[1L]
+              d <- siggenes::findDelta(tmpSIGGENES, fdr = f, prec = 10)
+              if (!is.null(d)) {
+                if (is.numeric(d)) {
+                  d <- data.frame(Delta = d["Delta"],
+                                  Called = d["Called"],
+                                  FDR = d["FDR"])
+                } else {
+                  d <- as.data.frame(d)
+                }
+                dr <- c(samDir, ebamDir)[match(taest, c("SAM", "EBAM"))]
+                XLfun <- eval(parse(text = paste0("siggenes::", tolower(taest), "2excel")), envir = .GlobalEnv)
+                dlt <- max(d$Delta[d$FDR <= f])
+                if (!length(dlt)) {
+                  warning(paste0(taest, ": poor Delta estimate for group ", nm, " at ", 100*f, "% FDR"))
+                  dlt <- 0
+                }
+                XLfun(tmpSIGGENES, dlt, paste0(dr, "/", taest, " - ", nm, ", ", f, " FDR.csv"), what = "both")
+                jpeg(filename = paste0(dr, "/Delta plot - ", nm, ", ", f, " FDR.jpeg"))
+                plot(tmpSIGGENES, dlt)
+                dev.off()
+                res <- siggenes::list.siggenes(tmpSIGGENES, dlt)
+                res <- list(Delta.est = d,
+                            Delta = dlt,
+                            Result = res)
+              } else {
+                res <- list(Delta.est = NA,
+                            Delta = NA,
+                            Result = c())
+              }
+              return(res)
+            }), paste0(as.character(BH.FDR), "FDR"))
+            tmpSig2 <- as.data.frame(sapply(names(tmpSig), \(f) { #f <- names(tmpSig)[1L]
+              x <- tmpSig[[f]]$Result
+              y <- rep("", nrow(myData))
+              if (length(x)) {
+                m <- match(x, rownames(tmpData3))  
+                y[m] <- "+"
+              }
+              return(y)
+            }))
+            tmpSig3 <- do.call(paste, c(tmpSig2, sep = "/"))
+            tmpSig2[[namesCol]] <- myData[[namesCol]]
+            D <- sapply(names(tmpSig), \(f) { tmpSig[[f]]$Delta })
+            dF <- sapply(names(tmpSig), \(f) { tmpSig[[f]]$Delta.FDR })
+            D <- data.frame(d = setNames(D, NULL),
+                            FDR = as.numeric(gsub("FDR$", "", names(D))))
+            D <- aggregate(D$FDR, list(D$d), max)
+            colnames(D) <- c("D", "FDR")
+            #unique(tmpSig3)
+            if (taest == "SAM") {
+              RES[[samK[3L]]] <- tmpSig3
+              RES <- list(Val = RES,
+                          siggenesOut = tmpSIGGENES,
+                          decision = tmpSig2,
+                          S0 = s0,
+                          #Si = si,
+                          d = D,
+                          degFr = length(c(B_, A_))-2L)
+            }
+            if (taest == "EBAM") {
+              RES <- data.frame(tmpSig3)
+              colnames(RES) <- ebamK
+              RES <- list(Val = RES)
+            }
           }
-          if (taest == "EBAM") {
-            RES <- data.frame(tmpSig3)
-            colnames(RES) <- ebamK
-            RES <- list(Val = RES)
-          }
+          return(RES)
+        })
+      }, silent = TRUE)
+      if (!inherits(tstTst, "try-error")) {
+        tmp <- do.call(cbind, lapply(tstTst, \(x) { x$Val }))
+        myData[, colnames(tmp)] <- tmp
+        if (taest == "SAM") {
+          samThresh <- setNames(lapply(tstTst, \(x) { x[c("siggenesOut", "decision", "S0", #"Si",
+                                                          "d", "degFr")] }), myContrasts$Contrast)
         }
-        return(RES)
-      })
-    }, silent = TRUE)
-    if (!inherits(tstTst, "try-error")) {
-      tmp <- do.call(cbind, lapply(tstTst, \(x) { x$Val }))
-      myData[, colnames(tmp)] <- tmp
-      if (taest == "SAM") {
-        samThresh <- setNames(lapply(tstTst, \(x) { x[c("siggenesOut", "decision", "S0", #"Si",
-                                                        "d", "degFr")] }), myContrasts$Contrast)
       }
     }
   }

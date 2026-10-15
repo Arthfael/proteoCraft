@@ -16,10 +16,10 @@
                    Mod = "")
   ptms <- x[[2L]]
   if (is.data.frame(ptms)) {
-    stopifnot(sum(rs$Seq[ptms$Position + 1L] != ptms$Site) == 0)
+    stopifnot(sum(rs$Seq[ptms$Position + 1L] != ptms$Site) == 0L)
     rs$Mod[ptms$Position + 1L] <- ptms$"Full name"
     tmp2 <- c(rs$Mod[1L], rs$Mod[2L])
-    tmp2 <- tmp2[which(tmp2 != "")]
+    tmp2 <- tmp2[tmp2 != ""]
     if (length(tmp2)) {
       tmp2 <- stats::aggregate(tmp2,
                                list(tmp2),
@@ -41,7 +41,7 @@
   if (OpenSearch) {
     obsptms <- unlist(x[[3L]])
     if (length(obsptms)) {
-      obsptms <- obsptms[which(obsptms != "")]
+      obsptms <- obsptms[obsptms != ""]
       rs$Mod[l+1L] <- sub("^,", "", paste(c(rs$Mod[l+1L], obsptms), collapse = ","))
     }
   }

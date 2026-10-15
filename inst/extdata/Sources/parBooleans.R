@@ -7,7 +7,7 @@ validLogicPar %<o% \(x,
   val <- get(x, .GlobalEnv)
   if (!is.logical(val)) { return(FALSE) }
   l <- length(val)
-  if ((length_1)&&(l > 1L)) { return(FALSE) }
+  if (length_1 && (l > 1L)) { return(FALSE) }
   if (noNAs) {
     tst <- sum(is.na(val))
     if (tst) { return(FALSE) }
@@ -23,7 +23,7 @@ validIntegPar %<o% \(x,
   val <- get(x, .GlobalEnv)
   if (!inherits(val, c("integer", "numeric"))) { return(FALSE) }
   l <- length(val)
-  if ((length_1)&&(l > 1L)) { return(FALSE) }
+  if (length_1 && (l > 1L)) { return(FALSE) }
   if (noNAs) {
     tst <- sum(is.na(val))
     if (tst) { return(FALSE) }
@@ -31,7 +31,7 @@ validIntegPar %<o% \(x,
   if (max(val) > 10L^18L) {
     stop("Nope, not having it. Go read on integers and floating point arithmetic then come back here!")
   }
-  return(sum((is.na(val))|(val >= min)) == l)
+  return(sum(is.na(val) | (val >= min)) == l)
 }
 validNumPar %<o% \(x,
                    filtExpr = "",
@@ -42,7 +42,7 @@ validNumPar %<o% \(x,
   val <- get(x, .GlobalEnv)
   if (!is.numeric(val)) { return(FALSE) }
   l <- length(val)
-  if ((length_1)&&(l > 1L)) { return(FALSE) }
+  if (length_1 && (l > 1L)) { return(FALSE) }
   if (noNAs) {
     tst <- sum(is.na(val))
     if (tst) { return(FALSE) }
@@ -56,7 +56,7 @@ validNumPar %<o% \(x,
     tst <- sum(!tst)
     if (!tst) { return(FALSE) }
   }
-  return(sum((is.na(val))|(val >= min)) == l)
+  return(sum(is.na(val) | (val >= min)) == l)
 }
 validCharPar %<o% \(x,
                     filt,
@@ -68,7 +68,7 @@ validCharPar %<o% \(x,
   val <- get(x, .GlobalEnv)
   if (!is.character(val)) { return(FALSE) }
   l <- length(val)
-  if ((length_1)&&(l > 1L)) { return(FALSE) }
+  if (length_1 && (l > 1L)) { return(FALSE) }
   if (noNAs) {
     tst <- sum(is.na(val))
     if (tst) { return(FALSE) }

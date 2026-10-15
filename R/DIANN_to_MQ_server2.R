@@ -1,11 +1,15 @@
-#' DIANN_to_MQ_server2
+#' .DIANN_to_MQ_server2
 #'
 #' @description 
 #' Server for app used to update PTM marks.
 #' 
-#' @export
+#' @param input The server function input, cf. https://shiny.posit.co/r/getstarted/shiny-basics
+#' @param output The server function's output, cf. https://shiny.posit.co/r/getstarted/shiny-basics
+#' @param session Shiny session.
 
-DIANN_to_MQ_server2 <- function(input, output, session) {
+.DIANN_to_MQ_server2 <- function(input,
+                                 output,
+                                 session) {
   homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
   fl <- paste0(homePath, "/tmpMods.tmp") # We will use the same name always because we couldn't pass its name to the server.
   # Not being able to pass in-function (not global scope) variables to the server, despite it being instantiated within the function,
@@ -25,16 +29,16 @@ DIANN_to_MQ_server2 <- function(input, output, session) {
       lst <- list()
       pick <- c()
       if (nr) {
-        lst <- lapply(1:nr, function(i) {
-          pick[i] <- length(ModTbl$Options2[[i]]) >= 1
+        lst <- lapply(1L:nr, \(i) {
+          pick[i] <- length(ModTbl$Options2[[i]]) >= 1L
           shiny::fluidRow(
-            shiny::column(3,
+            shiny::column(3L,
                           shiny::h5(shiny::strong(ModTbl$tag[i]))),
-            shiny::column(4,
+            shiny::column(4L,
                           shiny::textInput(paste0(ModTbl$Name[i], "_free"),
                                            NULL,
                                            ModTbl$Match[i])),
-            shiny::column(4,
+            shiny::column(4L,
                           if (pick[i]) {
                             #cat(ModTbl$Name[i], "\n")
                             shinyWidgets::pickerInput(ModTbl$Name[i],
@@ -51,7 +55,7 @@ DIANN_to_MQ_server2 <- function(input, output, session) {
                           }
             )
             #,
-            # shiny::column(1,
+            # shiny::column(1L,
             #               shiny::actionButton(paste0(ModTbl$Name[i], "_ok"), "ok"))
           )
         })
@@ -59,14 +63,14 @@ DIANN_to_MQ_server2 <- function(input, output, session) {
       return(lst)
     })
     #
-    sapply(1:nr, function(i) {
+    sapply(1L:nr, \(i) {
       id <- ModTbl$Name[i]
       id2 <- paste0(id, "_free")
-      if (length(ModTbl$Options2[[i]]) >= 1) {
+      if (length(ModTbl$Options2[[i]]) >= 1L) {
         shiny::observeEvent(input[[id]], {
           x <- as.character(input[[id]])
           #x <- UniMod2$Id[match(as.character(x), UniMod2$Id)] # In case of weird data conversion shenanigans
-          if ((!is.na(x))&&(nchar(x))) {
+          if ((!is.na(x)) && nchar(x)) {
             shiny::updateTextInput(session,
                                    paste0(id, "_free"),
                                    NULL,
@@ -81,7 +85,7 @@ DIANN_to_MQ_server2 <- function(input, output, session) {
       }
       shiny::observeEvent(input[[id2]], {
         x <- as.character(input[[id2]])
-        if ((!is.na(x))&&(nchar(x))) {
+        if ((!is.na(x)) && nchar(x)) {
           ModTbl$Match[i] <<- x
         }
       })
@@ -97,10 +101,10 @@ DIANN_to_MQ_server2 <- function(input, output, session) {
       # })
     })
     shiny::observeEvent(input$aaRemove, {
-      sapply(1:nr, function(i) {
+      sapply(1L:nr, \(i) {
         id2 <- paste0(ModTbl$Name[i], "_free")
         x <- gsub(":.*", "", as.character(input[[id2]]))
-        if ((!is.na(x))&&(nchar(x))) {
+        if ((!is.na(x)) && nchar(x)) {
           shiny::updateTextInput(session,
                                  id2,
                                  NULL,
@@ -129,7 +133,7 @@ DIANN_to_MQ_server2 <- function(input, output, session) {
   #   }, silent = TRUE))) # Only necessary in function mode
   #   shiny::stopApp()
   # })
-  session$onSessionEnded(function() {
+  session$onSessionEnded(\() {
     suppressWarnings(suppressMessages(try({
       ModTbl$Name <- rownames(ModTbl)
       #Mods <<- ModTbl

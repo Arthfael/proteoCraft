@@ -42,10 +42,10 @@ make_RefRat <- function(data = pep,
   mode <- as.character(mode)
   stopifnot(mode %in% c("1", "2"))
   isLog <- TRUE
-  if ((!is.numeric(logInt))||(logInt <= 0)) {
+  if ((!is.numeric(logInt)) || (logInt <= 0)) {
     isLog <- FALSE
   }
-  if ((!is.numeric(logRat))||(logRat <= 0)) {
+  if ((!is.numeric(logRat)) || (logRat <= 0)) {
     warning("Invalid \"logRat\" argument, must be valid log base!")
     logRat <- 2L
   }
@@ -61,34 +61,34 @@ make_RefRat <- function(data = pep,
   #
   if (mode == "1") {
     # Here we are measuring intrinsic variability by comparing intra-sample group variation for control/reference sample group(s) only
-    RES <- setNames(lapply(rGrp$values, function(x) { #x <- rGrp$values[1]
+    RES <- setNames(lapply(rGrp$values, \(x) { #x <- rGrp$values[1L]
       if (rat.con.grps == "Ratio groups") {
-        x1 <- unique(experiment.map[which(experiment.map[[rGrp$column]] == x), rrGrp$column])
+        x1 <- unique(experiment.map[experiment.map[[rGrp$column]] == x, rrGrp$column])
       }
       if (rat.con.grps == "Experiments") {
-        x1 <- unique(experiment.map$Experiment[which(experiment.map[[rGrp$column]] == x)])
-        x1 <- unique(experiment.map[which(experiment.map$Experiment == x1), rrGrp$column])
+        x1 <- unique(experiment.map$Experiment[experiment.map[[rGrp$column]] == x])
+        x1 <- unique(experiment.map[experiment.map$Experiment == x1, rrGrp$column])
       }
       if (rat.con.grps == "Whole dataset") {
         x1 <- unique(experiment.map[[rrGrp$column]])
       }
       xr1 <- paste0(int.root, x1, ".REF")
-      xr1 <- xr1[which(xr1 %in% colnames(data))]
+      xr1 <- xr1[xr1 %in% colnames(data)]
       if (length(xr1) > 1L) {
         perm <- gtools::permutations(length(xr1), 2L, xr1)
         tmp <- if (isLog) {
-          apply(perm, 1L, function(y) { (data[[y[[1L]]]]-data[[y[[2L]]]])/base::log(logRat, logInt) })
+          apply(perm, 1L, \(y) { (data[[y[[1L]]]]-data[[y[[2L]]]])/base::log(logRat, logInt) })
         } else {
-          apply(perm, 1L, function(y) { base::log(data[[y[[1L]]]]/data[[y[[2L]]]], logRat) })
+          apply(perm, 1L, \(y) { base::log(data[[y[[1L]]]]/data[[y[[2L]]]], logRat) })
         }
       } else {
-        x2 <- unique(experiment.map[which((experiment.map[[rGrp$column]] == x)&(experiment.map$Reference)),
+        x2 <- unique(experiment.map[(experiment.map[[rGrp$column]] == x) & experiment.map$Reference,
                                     experiment.map_col])
         xr2 <- paste0(int.root, x2)
         tmp <- if (isLog) {
-          sapply(xr2, function(y) { (data[[y]]-data[[xr1]])/base::log(logRat, logInt) })
+          sapply(xr2, \(y) { (data[[y]]-data[[xr1]])/base::log(logRat, logInt) })
         } else {
-          sapply(xr2, function(y) { base::log(data[[y]]/data[[xr1]], logRat) })
+          sapply(xr2, \(y) { base::log(data[[y]]/data[[xr1]], logRat) })
         }
       }
       tmp <- as.data.frame(tmp)
@@ -99,26 +99,26 @@ make_RefRat <- function(data = pep,
   if (mode == "2") {
     # Here we are measuring intrinsic variability by comparing intra-sample group variation (replicate to replicate of the same stuff) for all sample groups,
     # not just control/reference sample group(s)!
-    RES <- setNames(lapply(rGrp$values, function(rtGrp) { #rtGrp <- rGrp$values[1L]
+    RES <- setNames(lapply(rGrp$values, \(rtGrp) { #rtGrp <- rGrp$values[1L]
       if (rat.con.grps == "Ratio groups") {
-        em <- experiment.map[which(experiment.map[[rGrp$column]] == rtGrp),]
+        em <- experiment.map[experiment.map[[rGrp$column]] == rtGrp,]
       }
       if (rat.con.grps == "Experiments") {
-        xp <- unique(experiment.map$Experiment[which(experiment.map[[rGrp$column]] == rtGrp)])
-        em <- experiment.map[which(experiment.map$Experiment == xp),]
+        xp <- unique(experiment.map$Experiment[experiment.map[[rGrp$column]] == rtGrp])
+        em <- experiment.map[experiment.map$Experiment == xp,]
       }
       if (rat.con.grps == "Whole dataset") {
         em <- experiment.map
       }
       grps <- unique(em[[smplsGrp$column]])
-      x <- setNames(lapply(grps, function(grp) {  #grp <- grps[1]
-        y <- unique(em[which(em[[smplsGrp$column]] == grp),
+      x <- setNames(lapply(grps, \(grp) {  #grp <- grps[1]
+        y <- unique(em[em[[smplsGrp$column]] == grp,
                        experiment.map_col])
         y <- paste0(int.root, y)
-        y <- y[which(y %in% colnames(data))]
+        y <- y[y %in% colnames(data)]
         if (length(y)) {
           y <- gtools::permutations(length(y), 2L, y) # Important to use permutations and not combinations since we want symmetry!
-          y <- apply(y, 1L, function(z) {
+          y <- apply(y, 1L, \(z) {
             if (isLog) {
               z <- (data[[z[[1L]]]]-data[[z[[2L]]]])/base::log(logRat, logInt)
             } else {
@@ -130,18 +130,18 @@ make_RefRat <- function(data = pep,
         } else { y <- list(Outcome = FALSE) }
         return(y)
       }), grps)
-      x <- x[which(vapply(x, function(y) { y$Outcome }, TRUE))]
+      x <- x[vapply(x, \(y) { y$Outcome }, TRUE)]
       if (length(x)) {
-        x <- lapply(x, function(y) { y$Res })
+        x <- lapply(x, \(y) { y$Res })
         x <- as.data.frame(x)
         colnames(x) <- paste0(rat.root, rtGrp, "_REF.to.REF_", 1:ncol(x))
         x <- list(Outcome = TRUE, Res = x)
       } else { x <- list(Outcome = FALSE) }
       return(x)
     }), rGrp$values)
-    w <- which(vapply(RES, function(x) { x$Outcome }, TRUE))
+    w <- which(vapply(RES, \(x) { x$Outcome }, TRUE))
     if (length(w)) {
-      RES <- lapply(RES[w], function(x) { x$Res })
+      RES <- lapply(RES[w], \(x) { x$Res })
     }
   }
   L <- length(RES)

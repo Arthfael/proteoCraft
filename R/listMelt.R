@@ -50,8 +50,8 @@ listMelt <- function(List,
   Names <- Names[w] # Do NOT forget that filter!
   colnames(List) <- c(ColNames[1L], "ind")
   List$ind <- as.integer(List$ind)
-  List[[ColNames[2]]] <- Names[List$ind]
-  if (toInt) { List[[ColNames[2]]] <- as.integer(List[[ColNames[2]]]) }
+  List[[ColNames[2L]]] <- Names[List$ind]
+  if (toInt) { List[[ColNames[2L]]] <- as.integer(List[[ColNames[2L]]]) }
   List$ind <- NULL
   return(List)
 }

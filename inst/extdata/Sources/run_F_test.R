@@ -8,9 +8,6 @@
 # - Use ODP instead of limma F-test
 # - Use DEqMS for both F-test and t-test here, if it has already been selected as the test for t-tests
 
-if (!require(limma)) { pak::pak("limma") }
-library(limma)
-
 # Check our parent cluster
 source(parSrc)
 
@@ -137,11 +134,11 @@ if (limpaMode) {
   #View(NA_Filt[grsep(prot.list, x = PG$`Leading protein IDs`), , drop = FALSE])
   NA_Filt <- which(rowSums(NA_Filt) >= 1L)
   #
-  voomFit <- voomaLmFit(tmpVal[NA_Filt, ], designMatr, keep.EList = TRUE)
+  voomFit <- limma::voomaLmFit(tmpVal[NA_Filt, ], designMatr, keep.EList = TRUE)
   voomFit$genes <- myData[NA_Filt, namesCol] # For convenience
 }
-voomFit <- contrasts.fit(voomFit, contrMatr)
-voomFit <- eBayes(voomFit)
+voomFit <- limma::contrasts.fit(voomFit, contrMatr)
+voomFit <- limma::eBayes(voomFit)
 F_Root1 <- sub(" -log10\\(", " ", sub("\\)$", "", F_Root))
 if (limpaMode) {
   my_F_Data <- myData$genes

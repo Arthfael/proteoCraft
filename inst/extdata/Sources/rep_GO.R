@@ -62,7 +62,7 @@ if (Annotate && (enrichGO || globalGO)) {
             reg <- set_colnames(reshape::melt(reg), c("Name", "Bleh", "For"))
             reg$Bleh <- NULL
             fcr <- c(Prot.Rat.Root, Prot.Rat.Root, paste0("Mean ", SSD.Root, "log2(FC) - "), "log2(FC) - ")[tt]
-            reg$ParentFC <- gsub(paste0(".*Re", c(rep("gulated", 2L), "-localized", "gulated")[tt], " - "), fcr, reg$Name)
+            reg$ParentFC <- sub(paste0(".*Re", c(rep("gulated", 2L), "-localized", "gulated")[tt], " - "), fcr, reg$Name)
             reg$FCname <- paste0(fcr, reg$For)
             tmpdat <- get(c("PG", "F_test_data", "PG", "allSAINTs")[tt])
             UF <- unique(reg$For)
@@ -214,9 +214,9 @@ if (Annotate && (enrichGO || globalGO)) {
               w <- which(vapply(colnames(temp), \(x) { is.character(temp[[x]]) }, TRUE))
               if (length(w)) {
                 for (i in w) { #i <- w[1L]
-                  w1 <- which(nchar(temp[[colnames(temp)[i]]]) > ExcelMax)
+                  w1 <- which(nchar(temp[[colnames(temp)[i]]]) > xl_maxChar)
                   if (length(w1)) {
-                    temp[[colnames(temp)[i]]][w1] <- paste0(substr(temp[[colnames(temp)[i]]][w1], 1L, ExcelMax-3L), "...")
+                    temp[[colnames(temp)[i]]][w1] <- paste0(substr(temp[[colnames(temp)[i]]][w1], 1L, xl_maxChar-3L), "...")
                   }
                 }
               }
@@ -273,7 +273,7 @@ if (Annotate && (enrichGO || globalGO)) {
                           na.rm = TRUE)
                     }, 1L)
                   }
-                  names(W) <- cleanNms(gsub(" [0-9]+%$", "", names(W)))
+                  names(W) <- cleanNms(sub(" [0-9]+%$", "", names(W)))
                   tst <- lengths(strsplit(names(W), " - "))
                   tst <- (min(tst) > 1L) & (length(unique(tst)) == 1L)
                   if (tst) {
@@ -347,8 +347,11 @@ if (Annotate && (enrichGO || globalGO)) {
       GO_terms <- goRES$All_GO_terms
     }
   }
-  l <- length(DatAnalysisTxt)
-  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                              " GO terms enrichment analysis was performed, comparing for each test regulated against observed protein groups, using topGO",
-                              c("", " and ClueGO")[runClueGO+1L], ".")
+  if (dataType == "PG") {
+    DatAnalysisTxt$GO <- paste0("GO terms enrichment analysis was performed with topGO",
+                                c("", " and ClueGO (Cytoscape)")[runClueGO+1L], ", comparing for each contrast ",
+                                c("differentially expressed",
+                                  "up-regulated")[(sum(myContrasts$`Up-only`) == nrow(myContrasts)) + 1L],
+                                " against observed protein groups.")
+  }
 }

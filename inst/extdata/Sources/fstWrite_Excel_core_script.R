@@ -1,12 +1,13 @@
 
 # Filter for cases where number of characters is more than the Excel limit:
 ## Should only ever be character columns (lists of spectra IDs, sequences...)
+data(XL_formatting, package = "proteoCraft")
 w <- which(sapply(colnames(tempData), \(x) { class(tempData[[x]]) }) == "character")
 if (length(w)) {
   for (i in w) { #i <- w[1L]
-    w1 <- which(nchar(tempData[[colnames(tempData)[i]]]) > ExcelMax)
+    w1 <- which(nchar(tempData[[colnames(tempData)[i]]]) > xl_maxChar)
     if (length(w1)) {
-      tempData[[colnames(tempData)[i]]][w1] <- paste0(substr(tempData[[colnames(tempData)[i]]][w1], 1L, ExcelMax-3L), "...")
+      tempData[[colnames(tempData)[i]]][w1] <- paste0(substr(tempData[[colnames(tempData)[i]]][w1], 1L, xl_maxChar-3L), "...")
     }
   }
 }
@@ -219,14 +220,14 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
                              , colRg)
   WorkBook <- openxlsx2::wb_add_cell_style(WorkBook, sheetnm, dims, vertical = "center")
   #a1 <- WorkBook$worksheets[[3L]]$sheet_data$cc; a2 <- WorkBook$worksheets[[3L]]$sheet_data$cc; length(unique(a1$c_s)); length(unique(a2$c_s))
-  colWdth <- setNames(vapply(strsplit(colnames(myData), "///((NL)|(VS))///"), \(x) { #x <- strsplit(colnames(myData)[35L], "///((NL)|(VS))///")
+  colWdth <- setNames(vapply(strsplit(colnames(myData), "///(NL|VS)///"), \(x) { #x <- strsplit(colnames(myData)[35L], "///(NL|VS)///")
     x <- unlist(x)
     x <- max(vapply(strsplit(x, ""), \(y) {
       length(y) + sum(y %in% LETTERS)
     }, 1L)) + 4L
     max(c(5L, min(c(35L, x))))
   }, 1L), colnames(myData))
-  colHgth <- (max(vapply(strsplit(colnames(myData), "///((NL)|(VS))///"), length, 1L))+0.5)*15.75
+  colHgth <- (max(vapply(strsplit(colnames(myData), "///(NL|VS)///"), length, 1L))+0.5)*15.75
   WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, 1L:length(colWdth), colWdth)
   #
   w <- which(xlTabs[[sheetnm]] %in% xmlCovCol)
@@ -344,34 +345,34 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
                                      , colRng)
           dims2 <- openxlsx2::wb_dims(tblRws[1L]:(tblRws[1L]+1L), colRng)
           stlNm <- CS2[[mn]]$Style
-          if (stlNm %in% names(DecoList)) {
-            deco <- DecoList[[stlNm]]
+          if (stlNm %in% names(xl_cellDeco)) {
+            deco <- xl_cellDeco[[stlNm]]
             WorkBook <- openxlsx2::wb_add_font(WorkBook, sheetnm, dims,
                                                italic = c("", "true")[("italic" %in% deco)+1L],
                                                bold = c("", "true")[("bold" %in% deco)+1L])
           }
-          if (stlNm %in% names(SignifList)) {
-            signi <- SignifList[[stlNm]]
+          if (stlNm %in% names(xl_nDigits)) {
+            signi <- xl_nDigits[[stlNm]]
             WorkBook <- openxlsx2::wb_add_numfmt(WorkBook, sheetnm, dims,
                                                  paste(c("0.", rep("0", signi)), collapse = ""))
           }
-          if (stlNm %in% names(ColScaleList)) {
-            condFrmt <- ColScaleList[[stlNm]]
+          if (stlNm %in% names(xl_colScales)) {
+            condFrmt <- xl_colScales[[stlNm]]
             WorkBook <- openxlsx2::wb_add_conditional_formatting(WorkBook, sheetnm, dims,
                                                                  type = "colorScale", style = condFrmt)
             #WorkBook <- openxlsx2::wb_add_font(WorkBook, sheetnm, dims, color = openxlsx2::wb_color(hex = "FF000000"))
           }
-          if (stlNm %in% names(ColList)) {
-            clr <- ColList[[stlNm]]
+          if (stlNm %in% names(xl_cellCol)) {
+            clr <- xl_cellCol[[stlNm]]
             WorkBook <- openxlsx2::wb_add_font(WorkBook, sheetnm, dims,
                                                color = openxlsx2::wb_color(hex = "white"))
           }
-          if (stlNm %in% names(HAlignList)) {
-            hal <- HAlignList[[stlNm]]
+          if (stlNm %in% names(xl_cellAlign)) {
+            hal <- xl_cellAlign[[stlNm]]
             WorkBook <- openxlsx2::wb_add_cell_style(WorkBook, sheetnm, dims, horizontal = hal)
           }
-          if (stlNm %in% names(ContainsList)) {
-            cntn <- ContainsList[[stlNm]]
+          if (stlNm %in% names(xl_cellContains)) {
+            cntn <- xl_cellContains[[stlNm]]
             stl <- capture.output(cntn$style)
             deco <- tolower(gsub(".* ", "", gsub(" *$", "", grep("Font decoration", stl, value = TRUE))))
             cntnFrt <- gsub(".* ", "", gsub(" *$", "", grep("Font colour", stl, value = TRUE)))
@@ -553,7 +554,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   #tst <- Isapply(strsplit(gsub("/><", "/>___CUTHERE___<", tstXML), "___CUTHERE___"), unlist)
   #l <- apply(tst, 2L, \(x) { length(unique(x)) })
   #(all but the first should be same)
-  #tst2 <- tst[, which(l > 1L)]
+  #tst2 <- tst[, l > 1L]
   #tst2
   #grep("ref=", a, value = TRUE) # Only the range in the first need be encoded
   xml <- gsub("ref=\"[A-Z]+[0-9]+:[A-Z]+[0-9]+\"", paste0("ref=\"", tblDims, "\""), xml)

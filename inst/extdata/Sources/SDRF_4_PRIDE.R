@@ -230,7 +230,8 @@ uiA <- fluidPage(
     gradient = "linear",
     direction = "bottom"
   ),
-  shinyjs::extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+  shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                         functions = c("toggleFullScreen")),
   titlePanel(tag("u", "SDRF editor"),
              appNm),
   h2(dtstNm),
@@ -453,11 +454,11 @@ serverA <- \(input, output, session) {
   updtDevStgs <- \(reactive = TRUE) {
     myOrg <- if (reactive) { ORGA() } else { mainOrg }
     devOnt <- devOntVal <- NA_character_
-    if (grepl("^D((\\.)|(anio))[ _\\-\\.]?rerio", myOrg)) { devOnt <- "Zebrafish" }
-    if (grepl("^D((\\.)|(rosophila))[ _\\-\\.]?melanogaster", myOrg)) { devOnt <- "Fly" }
-    if (grepl("^M((\\.)|(us))[ _\\-\\.]?musculus", myOrg)) { devOnt <- "Mouse" }
-    if (grepl("^H((\\.)|(omo))[ _\\-\\.]?sapiens", myOrg)) { devOnt <- "Human" }
-    if (grepl("^C((\\.)|(aenorhabditis))[ _\\-\\.]?elegans", myOrg)) { devOnt <- "Worms" }
+    if (grepl("^D(\\.|anio)[- _.]?rerio", myOrg)) { devOnt <- "Zebrafish" }
+    if (grepl("^D(\\.|rosophila)[- _.]?melanogaster", myOrg)) { devOnt <- "Fly" }
+    if (grepl("^M(\\.|us)[- _.]?musculus", myOrg)) { devOnt <- "Mouse" }
+    if (grepl("^H(\\.|omo)[- _.]?sapiens", myOrg)) { devOnt <- "Human" }
+    if (grepl("^C(\\.|aenorhabditis)[- _.]?elegans", myOrg)) { devOnt <- "Worms" }
     if (!is.na(devOnt)) {
       fl <- paste0(homePath, "/DevStages_", devOnt, ".csv")
       if (file.exists(fl)) {
@@ -634,7 +635,7 @@ serverA <- \(input, output, session) {
     stopApp()
   })
 }
-appTxtA <- gsub("myApp", "myAppA", gsub("\\(ui", "(uiA", gsub(", server", ", serverA", run_App)))
+appTxtA <- sub("myApp", "myAppA", sub("\\(ui", "(uiA", sub(", server", ", serverA", run_App)))
 runKount <- 0L
 while ((!runKount) || (!exists("appRunTest"))) {
   eval(parse(text = appTxtA), envir = .GlobalEnv)
@@ -672,7 +673,7 @@ if (reload_SDRF) {
   reload_SDRF <- (nrow(SDRF) >= nrow(Frac.map2)) && ("comment[data file]" %in% colnames(SDRF))
 }
 if (reload_SDRF) {
-  tmp <- gsub(".*/", "", Frac.map2$`Raw file`)
+  tmp <- sub(".*/", "", Frac.map2$`Raw file`)
   g <- grep("\\.d$", tmp)
   if (length(g)) {
     tmp[g] <- paste0(tmp[g], ".zip")
@@ -752,7 +753,7 @@ if (!reload_SDRF) {
 if (!"assay name" %in% colnames(SDRF)) { SDRF$"assay name" <- paste0("Run ",  1L:nrow(SDRF)) }
 if (!"technology type" %in% colnames(SDRF)) { SDRF$"technology type" <- "proteomic profiling by mass spectrometry" }
 if (!"comment[data file]" %in% colnames(SDRF)) {
-  SDRF$"comment[data file]" <- gsub(".*/", "", Frac.map2$`Raw file`)
+  SDRF$"comment[data file]" <- sub(".*/", "", Frac.map2$`Raw file`)
   g <- grep("\\.d$", SDRF$"comment[data file]")
   if (length(g)) {
     SDRF$"comment[data file]"[g] <- paste0(SDRF$"comment[data file]"[g], ".zip")
@@ -862,7 +863,7 @@ if (idsL) {
         if (k == "Fraction") { k1 <- "comment[fraction identifier]" }
         if (k1 %in% colnames(SDRF)) {
           x <- if (k == "MS raw file") {
-            max(nchar(c(k, gsub(".*/", "", SDRF[[k1]]))))*8L + 6L
+            max(nchar(c(k, sub(".*/", "", SDRF[[k1]]))))*8L + 6L
           } else {
             max(nchar(c(k, SDRF[[k1]])))*8L + 6L
           }
@@ -882,7 +883,7 @@ if (idsL) {
          targets = x2,
          names = colnames(SDRF2)[x2+1L])
   })
-  g <- grep("___((FD)|(INCR))$", colnames(SDRF2))
+  g <- grep("___(FD|INCR)$", colnames(SDRF2))
   colnames(SDRF2)[g] <- ""
   appNm <- paste0(dtstNm, " - SDRF editor")
   uiB <- fluidPage(
@@ -893,7 +894,8 @@ if (idsL) {
       gradient = "linear",
       direction = "bottom"
     ),
-    extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+    extendShinyjs(text = jsFun$toggle_full_screen,
+                  functions = c("toggleFullScreen")),
     #Dummy, hidden div to load arrow-down icon
     # tags$div(
     #   class = "container",
@@ -982,7 +984,7 @@ Shiny.bindAll(table.table().node());"))
     session$onSessionEnded(\() { stopApp() })
   }
   if (exists("SDRF3")) { rm(SDRF3) }
-  appTxtB <- gsub("myApp", "myAppB", gsub("\\(ui", "(uiB", gsub(", server", ", serverB", run_App)))
+  appTxtB <- sub("myApp", "myAppB", sub("\\(ui", "(uiB", sub(", server", ", serverB", run_App)))
   runKount <- 0L
   while ((!runKount) || (!exists("appRunTest"))) {
     eval(parse(text = appTxtB), envir = .GlobalEnv)

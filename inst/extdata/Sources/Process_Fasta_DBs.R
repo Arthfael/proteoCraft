@@ -17,10 +17,10 @@ pathAbbr <- \(paths) {
   l1 <- length(wOK)
   res <- rep("", l)
   if (!l1) { return(res) }
-  res[wOK] <- gsub(".*/", "", paths[wOK])
+  res[wOK] <- sub(".*/", "", paths[wOK])
   l2 <- length(unique(res[wOK]))
   if ((l1 == 1L) || (l1 == l2)) { return(res) }
-  tst <- strsplit(gsub("/[^/]+$", "", paths[wOK]), "/")
+  tst <- strsplit(sub("/[^/]+$", "", paths[wOK]), "/")
   l <- lengths(tst)
   m <- min(l)
   tst2 <- vapply(1L:m, \(i) {
@@ -49,8 +49,9 @@ fastasTbl$Contaminant[is.na(fastasTbl$Contaminant)] <- FALSE
 fastasTbl$Loc <- c("Local", "Cluster")[grepl("^/+nfs/", fastasTbl$Dir)+1L]
 fastasTbl$Exists <- file.exists(fastasTbl$Full)
 fastasTbl$ExistsHere <- file.exists(paste0(wd, "/", fastasTbl$Name))
-fastasTbl$TXT <- gsub("\\.fa((s(ta(\\.fas)?)?)|(a))?$", ".txt", fastasTbl$Full) # Should catch .fasta, .fa, .faa, .fas, .fasta.fas
-fastasTbl$TXTHere <- paste0(wd, "/", gsub("\\.fa((s(ta(\\.fas)?)?)|(a))?$", ".txt", fastasTbl$Name))
+fasPat <- "\\.fa(s(ta(\\.fas)?)?|a)?$"
+fastasTbl$TXT <- sub(fasPat, ".txt", fastasTbl$Full) # Should catch .fasta, .fa, .faa, .fas, .fasta.fas
+fastasTbl$TXTHere <- paste0(wd, "/", sub(fasPat, ".txt", fastasTbl$Name))
 fastasTbl$TXTExists <- grepl("\\.txt$", fastasTbl$TXT) & file.exists(fastasTbl$TXT)
 fastasTbl$TXTExistsHere <- grepl("\\.txt$", fastasTbl$TXTHere) & file.exists(fastasTbl$TXTHere)
 w1 <- which((fastasTbl$ExistsHere) & (fastasTbl$Loc == "Cluster")) # Conflict between here and cluster
@@ -119,7 +120,7 @@ if (length(w2)) {
   dfltDr <- wd
   for (i in w2) { #i <- 1L
     tmp <- selectFile(paste0("Select missing fasta ", fastasTbl$Name[i]), path = wd)
-    tmp <- gsub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), tmp)
+    tmp <- sub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), tmp)
     fastasTbl$Dir[i] <- dfltDr <- dirname(tmp)
     fastasTbl$Full[i] <- tmp
     fastasTbl$Name[i] <- basename(tmp)
@@ -173,7 +174,7 @@ if (length(w4)) {
       dfltDr <- wd
       for (i in w4n) { #i <- 1L
         tmp <- selectFile(paste0("Select missing fasta ", fastasTbl$Name[i]), path = wd)
-        tmp <- gsub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), tmp)
+        tmp <- sub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), tmp)
         fastasTbl$Dir[i] <- dfltDr <- dirname(tmp)
         fastasTbl$Full[i] <- tmp
         fastasTbl$Name[i] <- basename(tmp)
@@ -235,18 +236,18 @@ fastasTbl$Headers[whFnd] <- lapply(fastasTbl$Data[whFnd], \(x) { grep("^>", x, v
 fastasTbl$Type[whFnd] <- vapply(fastasTbl$Headers[whFnd], \(x) { #x <- fastasTbl$Headers[whFnd[1L]]
   x <- unlist(x)[1L]
   # Note: the , in {2,} below is a concession to Bella who always, always, uses more than two characters here.
-  res <- if (grepl("^>(rev_)?[a-z]{2,}\\|[^\\|]+\\|[^ ]+ ?", x)) { "UniprotKB" } else {
+  res <- if (grepl("^>(rev_)?[a-z]{2,}\\|[^|]+\\|[^ ]+ ?", x)) { "UniprotKB" } else {
     if (grepl("^>(rev_)?AT1", x)) { "TAIR" } else { c("unknown", "NCBI")[grepl("^>(rev_)?[WYN]P_", x) + 1L] }
   }
   return(res)
 }, "")
 fastasTbl$Species[whFnd] <- vapply(fastasTbl$Headers[whFnd], \(hdrs) { #hdrs <- fastasTbl$Headers[whFnd[1L]]
   hdrs <- unlist(hdrs)
-  orgpat <- c(" +OS=", "\\[[^\\[]+\\]")
+  orgpat <- c(" +OS=", "\\[[^[]+\\]")
   tst <- vapply(orgpat, \(x) { length(grep(x, hdrs)) }, 1L)
   tst <- which(tst == max(tst))[1L]
   if (tst == 1L) { pat <- "^.* +OS=| +[A-Z]{2}=.+$" }
-  if (tst == 2L) { pat <- "^[^\\[]+\\[|\\].*$" }
+  if (tst == 2L) { pat <- "^[^[]+\\[|\\].*$" }
   g <- grep(pat, hdrs)
   hdrs <- gsub(pat, "", hdrs[g])
   hdrs <- hdrs[nchar(hdrs) > 0L]
@@ -278,13 +279,13 @@ if (!"Reverse regex" %in% colnames(fastasTbl)) { fastasTbl$"Reverse regex" <- "^
 #     mode <- "CUSTOM"
 #   }
 #   PAT2 <- "^>([^ ]*)"
-#   if (mode %in% c("UNIPROT", "UNIPROTKB", "SWISSPROT", "TREMBL")) { PAT1 <- "^>[a-z]{2}\\|([^\\|]*)" }
+#   if (mode %in% c("UNIPROT", "UNIPROTKB", "SWISSPROT", "TREMBL")) { PAT1 <- "^>[a-z]{2}\\|([^|]*)" }
 #   # Ensembl-/RefSeq-RNA/NCBI specific behaviour
 #   if (mode %in% c("ENSEMBL", "REFSEQRNA", "REFSEQPROTEIN", "NCBI")) { PAT1 <- PAT2 }
 #   # RefSeq-Protein specific behaviour
-#   if (mode == "REFSEQPROTEIN") { PAT1 <- "^>gi\\|[0-9]+\\|[a-z]+\\|([^ ]+(?![ \\|])[^ \\|])" }
+#   if (mode == "REFSEQPROTEIN") { PAT1 <- "^>gi\\|[0-9]+\\|[a-z]+\\|([^ ]+(?![ |])[^ |])" }
 #   # RefSeq-CDS specific behaviour
-#   if (mode == "REFSEQCDS") { PAT1 <- "^>.*\\[protein=([^\\]]+)\\]" }
+#   if (mode == "REFSEQCDS") { PAT1 <- "^>.*\\[protein=([^]]+)\\]" }
 #   x1 <- lapply(x, \(y) {
 #     z <- regexpr(PAT1, y, perl = TRUE)
 #     return(substr(y,  attributes(z)$capture.start, attributes(z)$capture.start + attributes(z)$capture.length - 1L))
@@ -304,7 +305,7 @@ if (!"Reverse regex" %in% colnames(fastasTbl)) { fastasTbl$"Reverse regex" <- "^
 locFl <- paste0(homePath, "/Default_locations.xlsx")
 dfltLocs <- openxlsx2::read_xlsx(locFl)
 annotDir <- fastasDir <- dfltLocs$Path[match("Fasta files", dfltLocs$Folder)]
-annotDflt <- paste0(fastasDir, "/.+\\.((txt)|(gtf)|(gff))$")
+annotDflt <- paste0(fastasDir, "/.+\\.(txt|gtf|gff)$")
 annotOpt <- setNames(c("txt", "gtf", "gff"),
                      c("UniProtKB .txt", "NCBI .gtf", "NCBI .gff"))
 AnnotFls <- if ((!exists("AnnotFls")) || (!is.character(AnnotFls))) { c() } else {
@@ -319,7 +320,7 @@ nr0 <- length(AnnotFls)
 updt_Type1 <- \(file) {
   vapply(file, \(fl) {
     if (!nchar(fl)) { return(NA) }
-    x <- tolower(gsub(".*\\.", "", fl))
+    x <- tolower(sub(".*\\.", "", fl))
     if (!x %in% annotOpt) {
       #warning("Unrecognized file extension!")
       return(NA)
@@ -370,7 +371,8 @@ ui <- fluidPage(
     gradient = "linear",
     direction = "bottom"
   ),
-  extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+  extendShinyjs(text = jsFun$toggle_full_screen,
+                functions = c("toggleFullScreen")),
   tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
   titlePanel(tag("u", "Fasta databases"),
              appNm),
@@ -653,7 +655,7 @@ if (length(w)) {
                                              "\" (ignore contaminants; write \"mixed\" if not single species)?"))$res
   }
 }
-Sp <- gsub(" *[\\(|\\[].*", "", fastasTbl$Species)
+Sp <- gsub(" *[(|[].*", "", fastasTbl$Species)
 pack <- "myTAI"
 if (!require(pack, character.only = TRUE)) {
   try(pak::pkg_install("drostlab/myTAI", ask = FALSE, upgrade = TRUE, dependencies = TRUE), silent = TRUE) 
@@ -874,7 +876,7 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
         tst <- plyr::rbind.fill(tst)
         contDB <- plyr::rbind.fill(tst,
                                    contDB[!contDB$`Full ID` %in% tst$`Protein ID`,])
-        w1 <- which(grepl("^>(sp)|(tr)\\|", contDB$Header))
+        w1 <- which(grepl("^>(sp|tr)\\|", contDB$Header))
         org <- unique(contDB$Organism_Full[w1])
         library(UniProt.ws)
         txIDs <- setNames(lapply(org, \(x) { c() }), org)
@@ -898,7 +900,7 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
         txIDs <- Taxonomies[vapply(Taxonomies, \(x) { is.data.frame(x) }, TRUE)]
         txIDs <- vapply(txIDs, \(x) { as.character(x$id[x$rank == "species"]) }, "")
         kount <- 0L
-        w2 <- grep("^>(sp)|(tr)\\|", contDB$Header, invert = TRUE)
+        w2 <- grep("^>(sp|tr)\\|", contDB$Header, invert = TRUE)
         while (length(w2) && (kount < length(txIDs))) {
           kount <- kount + 1L
           sp <- gsub(" ", "+", txIDs[kount])
@@ -912,14 +914,14 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
             if (length(wY)) {
               contDB <- plyr::rbind.fill(contDB[!contDB$Sequence %in% tmp2$Sequence,],
                                          tmp2[wY,])
-              w2 <- grep("^>(sp)|(tr)\\|", contDB$Header, invert = TRUE)
+              w2 <- grep("^>(sp|tr)\\|", contDB$Header, invert = TRUE)
             }
           }
         }
-        contDB <- contDB[grep("^>(sp)|(tr)\\|", contDB$Header),] # We do not want anything unusable
+        contDB <- contDB[grep("^>(sp|tr)\\|", contDB$Header),] # We do not want anything unusable
         contDB$Organism_Full <- "Contaminant"
         contDB$Organism <- "Contaminant"
-        contDB$"Protein ID" <- paste0("CON__", gsub("^CON__", "", contDB$"Protein ID"))
+        contDB$"Protein ID" <- paste0("CON__", sub("^CON__", "", contDB$"Protein ID"))
         contDB$"Potential contaminant" <- "+"
         write.csv(contDB, contCsv, row.names = FALSE) 
       }
@@ -930,7 +932,7 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
   db$"Potential contaminant"[w] <- "+"
   for (kol in c("Organism", "Organism_Full")) { if (!kol %in% colnames(db)) { db[[kol]] <- NA_character_ } }
   db[w, c("Organism", "Organism_Full")] <- "Contaminant"
-  db$"Protein ID"[w] <- paste0("CON__", gsub("^CON__", "", db$"Protein ID"[w]))
+  db$"Protein ID"[w] <- paste0("CON__", sub("^CON__", "", db$"Protein ID"[w]))
   contDB %<o% contDB[!contDB$Sequence %in% db$Sequence,]
   if (nrow(contDB)) {
     contDB$"Potential contaminant" <- "+"

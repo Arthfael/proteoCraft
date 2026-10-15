@@ -1,10 +1,10 @@
 #' protQuant
-#' We are shifting to running this code as a source now because the parallelisation within function as often was erratic.
+#' We are shifting to running this code as a source now because the parallelisation within function as often was erratic.\cr
 #' However, this should be kept even once fully "retired" in scripts as the source currently still uses this function's default arguments!
 #'
 #' @description
-#' A function to calculate estimated protein group Expression (inter-protein group quantitation vectors) from individual peptide values.
-#' For legacy reasons, the function can also output Ratios.
+#' A function to calculate estimated protein group Expression (inter-protein group quantitation vectors) from individual peptide values.\cr
+#' For legacy reasons, the function can also output Ratios.\cr
 #' The input is assumed to already be normalized!\cr
 #' 
 #' 
@@ -103,10 +103,10 @@
 #'\cr
 #' 
 #' @returns
-#' A list:
-#'  - "Data": output quantitative data.
-#'  - "EList_obj": EList object, only present if LFQ_algo or reScaling = "limpa"
-#'  - "QFeatures_obj": QFeatures object, only present if LFQ_algo or reScaling  = "QFeatures"
+#' A list:\cr
+#'  - "Data": output quantitative data.\cr
+#'  - "EList_obj": EList object, only present if LFQ_algo or reScaling = "limpa"\cr
+#'  - "QFeatures_obj": QFeatures object, only present if LFQ_algo or reScaling  = "QFeatures"\cr
 #'  - "MSstats": list created by MSstats::dataProcess() 
 #' 
 #' @examples
@@ -204,11 +204,11 @@ protQuant <- function(Prot,
   algoSyn <- data.frame(ALGO = c("LM", "IQ", "LIMPA", "QFEATURES", "QFEATURES", "MSSTATS"),
                         SYNONYM = c(NA_character_, "MAXLFQ", "DPCQUANT", "MSQROB", "MSQROB2", NA_character_))
   #
-  LFQ_algo <- gsub(" -_\\.", "", LFQ_algo)
+  LFQ_algo <- gsub("[-_ .]", "", LFQ_algo)
   if (misFun(alsoRun)) { alsoRun <- c() }
-  alsoRun <- gsub(" -_\\.", "", alsoRun)
+  alsoRun <- gsub("[-_ .]", "", alsoRun)
   if (misFun(reScaling)) { reScaling <- "skip" }
-  reScaling <- gsub(" ", "", reScaling) # NB: including "-_\\." would be too dangerous, because reScaling also takes function names!
+  reScaling <- gsub(" ", "", reScaling)
   skip_reScaling <- reScaling == "skip"
   LFQ_ALGO <- toupper(LFQ_algo)
   if (LFQ_ALGO %in% algoSyn$SYNONYM) { LFQ_ALGO <- algoSyn$ALGO[match(LFQ_ALGO, algoSyn$SYNONYM)] }
@@ -422,7 +422,7 @@ protQuant <- function(Prot,
     if (Priority == "rat") { stopifnot(length(Pep.Ratios.Nms) > 0L) }
   }
   #
-  Pep$Unmod_Seq <- if ("Sequence" %in% colnames(Pep)) { Pep$Sequence } else { gsub("^_|_$|\\([^\\)]+\\)", "", Pep[[mod_Seq]]) }
+  Pep$Unmod_Seq <- if ("Sequence" %in% colnames(Pep)) { Pep$Sequence } else { gsub("^_|_$|\\([^)]+\\)", "", Pep[[mod_Seq]]) }
   #
   #
   # Make temporary protein-to-peptide list
@@ -474,7 +474,7 @@ protQuant <- function(Prot,
       # For protein N-terminal peptides, we remove them later for those proteins for which the peptide is N-terminal!!!
       #
       wh_A <- grep("^[NC]term", wh, invert = TRUE, value = TRUE) #anywhere
-      wh_A <- wh_A[which(wh_A != "")]
+      wh_A <- wh_A[wh_A != ""]
       wh_N_trm <- grep("^Nterm$", wh, value = TRUE) # N-terminus, any
       wh_N_trm_sp <- grep("^Nterm_", wh, value = TRUE) # N-terminus, specific
       wh_C_trm <- grep("^Cterm$", wh, value = TRUE) # C-terminus, any
@@ -522,8 +522,8 @@ protQuant <- function(Prot,
       fltKol <- "Unmod_Seq"
     }
     tst <- nchar(mods_to_Exclude$Pattern)
-    mods_to_Exclude$Pattern[which(tst == 0L)] <- NA_character_
-    pat <- paste0(mods_to_Exclude$Pattern[which(tst > 0L)], collapse = "|")
+    mods_to_Exclude$Pattern[tt == 0L] <- NA_character_
+    pat <- paste0(mods_to_Exclude$Pattern[tst > 0L], collapse = "|")
     if (nchar(pat)) {
       g <- grep(pat, Pep[[fltKol]])
       modTst[g] <- FALSE
@@ -541,25 +541,25 @@ protQuant <- function(Prot,
     }
   }
   #
-  Pep <- Pep[which(modTst),]
+  Pep <- Pep[modTst,]
   #
   # Filter temp.list based on filtered peptides
   quant_pep_IDsA <- listMelt(quant_pep_IDs, ColNames = c("pep", "PG"))
-  quant_pep_IDsA <- quant_pep_IDsA[which(quant_pep_IDsA$pep %in% Pep[[pep_IDs]]),]
+  quant_pep_IDsA <- quant_pep_IDsA[quant_pep_IDsA$pep %in% Pep[[pep_IDs]],]
   #length(unique(quant_pep_IDsA$pep)) == nrow(Pep)
   #
   # Now deal with filtering protein-N-terminal mods:
   if ((!misFun(mods_to_Exclude)) && nrow(mods_to_Exclude)) {
-    Mods2XclTerm <- mods_to_Exclude[which(mods_to_Exclude$"Exclude protein specific"),]
+    Mods2XclTerm <- mods_to_Exclude[mods_to_Exclude$"Exclude protein specific",]
     nrTrm <- nrow(Mods2XclTerm)
     if (nrTrm) {
       Mods2XclTerm$Pattern <- apply(Mods2XclTerm[, c("Mark", "Where")], 1L, \(x) { #x <- Mods2XclTerm[1, c("Mark", "Where")]
         mrk <- x[[1L]]
         wh <- unlist(x[[2L]])
-        wh_prt_N_trm <- wh[which(wh == "protNterm")] # protein N-terminus, any
+        wh_prt_N_trm <- wh[wh == "protNterm"] # protein N-terminus, any
         wh_prt_N_trm_sp <- grep(#"^protNterm_" # (removed the opening "^" in case we have several patterns in one mod)
           "protNterm_", wh, value = TRUE) # protein N-terminus, specific
-        wh_prt_C_trm <- wh[which(wh == "protCterm")] # protein C-terminus, any
+        wh_prt_C_trm <- wh[wh == "protCterm"] # protein C-terminus, any
         wh_prt_C_trm_sp <- grep(#"^protCterm_" # (removed the opening "^" in case we have several patterns in one mod)
           "protCterm_", wh, value = TRUE) # protein C-terminus, specific
         res <- c()
@@ -587,7 +587,7 @@ protQuant <- function(Prot,
         res <- unique(res)
         return(paste(res, collapse = "|"))
       })
-      Mods2XclTerm <- Mods2XclTerm[which(nchar(Mods2XclTerm$Pattern) > 0L),]
+      Mods2XclTerm <- Mods2XclTerm[nchar(Mods2XclTerm$Pattern) > 0L,]
       nrTrm <- nrow(Mods2XclTerm)
     }
     if (nrTrm) {
@@ -603,7 +603,7 @@ protQuant <- function(Prot,
         pat <- paste(Mods2XclTerm$Pattern[i], collapse = "|")
         gy <- grep(pat, Pep[[mod_Seq]])
         if (length(gy)) {
-          quant_pep_IDsB <- quant_pep_IDsA[which(quant_pep_IDsA$pep %in% Pep[gy, pep_IDs]),]
+          quant_pep_IDsB <- quant_pep_IDsA[quant_pep_IDsA$pep %in% Pep[gy, pep_IDs],]
           if (grepl("protNterm", Mods2XclTerm$Where[i])) {
             quant_pep_IDsB$Pep_1b <- quant_pep_IDsB$Pep_1a <- substr(quant_pep_IDsB$PG_seq, 1L, quant_pep_IDsB$L)
             w1M <- grep("^M", quant_pep_IDsB$PG_seq) # Allow for N-term methionine loss!
@@ -614,7 +614,7 @@ protQuant <- function(Prot,
             quant_pep_IDsB$Pep_2 <- substr(quant_pep_IDsB$PG_seq, quant_pep_IDsB$PG_L-quant_pep_IDsB$L+1L, quant_pep_IDsB$PG_L)
             quant_pep_IDsB$OK <- quant_pep_IDsB$Seq != quant_pep_IDsB$Pep_2
           }
-          modTst2[which(quant_pep_IDsA$pep %in% quant_pep_IDsB$pep[which(!quant_pep_IDsB$OK)])] <- FALSE
+          modTst2[quant_pep_IDsA$pep %in% quant_pep_IDsB$pep[!quant_pep_IDsB$OK]] <- FALSE
         }
       }
       g <- which(!modTst2)
@@ -627,8 +627,8 @@ protQuant <- function(Prot,
           g <- which(quant_pep_IDsA$pep %in% Pep[w, pep_IDs])
           modTst2[g] <- FALSE
         }
-        quant_pep_IDsA <- quant_pep_IDsA[which(modTst2),]
-        Pep <- Pep[which(Pep[[pep_IDs]] %in% quant_pep_IDsA$pep),]
+        quant_pep_IDsA <- quant_pep_IDsA[modTst2,]
+        Pep <- Pep[Pep[[pep_IDs]] %in% quant_pep_IDsA$pep,]
       }
     }
   }
@@ -687,15 +687,15 @@ protQuant <- function(Prot,
   tmp1 <- data.table::as.data.table(Pep[, c(pep_IDs, Pep.Intens.Nms), drop = FALSE])
   tmp1 <- data.table::melt(tmp1, id.vars = pep_IDs)
   colnames(tmp1)[1L] <- "pepID"
-  tmp1 <- tmp1[which(is.finite(tmp1$value)),]
+  tmp1 <- tmp1[is.finite(tmp1$value),]
   tmp1 <- tmp1[, .(value = mean(value)), by = .(pepID = pepID)]
   Pep$avgPepInt <- tmp1$value[match(Pep[[pep_IDs]], tmp1$pepID)]
   #
   # If N_unique > 0: update list of peptides to use for quantitation
   if (N_unique) {
     quant_pep_IDsU <- listMelt(strsplit(Prot[[pg_PepIDs_unique]], ";"), Prot$temp_IDs, c("pep", "PG"))
-    quant_pep_IDsU <- quant_pep_IDsU[which(quant_pep_IDsU$pep %in% quant_pep_IDsA$pep),]
-    quant_pep_IDsA <- quant_pep_IDsA[which(!quant_pep_IDsA$pep %in% quant_pep_IDsU$pep),]
+    quant_pep_IDsU <- quant_pep_IDsU[quant_pep_IDsU$pep %in% quant_pep_IDsA$pep,]
+    quant_pep_IDsA <- quant_pep_IDsA[!quant_pep_IDsA$pep %in% quant_pep_IDsU$pep,]
   }
   quant_pep_IDsA <- data.table::as.data.table(quant_pep_IDsA[, c("pep", "PG")])
   nms <- Prot$temp_IDs
@@ -795,7 +795,7 @@ protQuant <- function(Prot,
   nuOrd <- order(ord$NewOrd)
   quant_pep_IDs <- quant_pep_IDs[nuOrd]
   #
-  Pep <- Pep[which(Pep[[pep_IDs]] %in% unlist(quant_pep_IDs)),] # Update Pep (is this necessary?)
+  Pep <- Pep[Pep[[pep_IDs]] %in% unlist(quant_pep_IDs),] # Update Pep (is this necessary?)
   #
   # Get summary method:
   if (misFun(Weights)) {
@@ -818,8 +818,8 @@ protQuant <- function(Prot,
     tmp <- data.table::data.table(pepInt_log^Pep[, Pep.Intens.Nms, drop = FALSE])
     tmp$pepID <- Pep[[pep_IDs]]
     tmp <- data.table::melt(tmp, id.vars = "pepID")
-    tmp <- tmp[which(is.finite(tmp$value)),]
-    tmp <- tmp[which(tmp$value > 0),]
+    tmp <- tmp[is.finite(tmp$value),]
+    tmp <- tmp[tmp$value > 0,]
     tmp <- tmp[, .(value = mean(value)), by = .(pepID)]
     Pep$useIntWeights <- tmp$value[match(Pep[[pep_IDs]], tmp$pepID)]
     Pep[[Weights]] <- Pep[[Weights]]*Pep$useIntWeights # Update weights and method
@@ -837,12 +837,12 @@ protQuant <- function(Prot,
   # than the ratio of peak intensities.
   if (Priority == "rat") {
     tmpPep <- Pep[, c(pep_IDs, Weights, Pep.Ratios.Nms, Pep.Intens.Nms)]
-    intSums <- rowSums(10^tmpPep[, Pep.Intens.Nms], na.rm = TRUE)
+    intSums <- rowSums(10L^tmpPep[, Pep.Intens.Nms], na.rm = TRUE)
     ratGroups$samples <- lapply(ratGroups$values, \(x) {
-      expMap[which(expMap[[ratGroups$column]] == x), expMap_Samples_col]
+      expMap[expMap[[ratGroups$column]] == x, expMap_Samples_col]
     })
     ratGroups$refSamples <- lapply(ratGroups$values, \(x) {
-      expMap[which((expMap[[ratGroups$column]] == x)&(expMap$Reference)), expMap_Samples_col]
+      expMap[(expMap[[ratGroups$column]] == x) & expMap$Reference, expMap_Samples_col]
     })
     ratGroups$newInt <- lapply(1L:length(ratGroups$values), \(x) { #x <- 1L
       allIntCol <- paste0(pepInt_Root, ratGroups$samples[[x]])
@@ -865,7 +865,7 @@ protQuant <- function(Prot,
     })
     newInt <- do.call(cbind, ratGroups$newInt)
     tmpPep[, colnames(newInt)] <- newInt
-    tmpPep <- tmpPep[, which(!colnames(tmpPep) %in% Pep.Ratios.Nms)]
+    tmpPep <- tmpPep[, !colnames(tmpPep) %in% Pep.Ratios.Nms]
   } else {
     tmpPep <- Pep[, c(pep_IDs, Weights, Pep.Intens.Nms)]
   }
@@ -963,7 +963,7 @@ protQuant <- function(Prot,
       w <- which(colnames(tmp4) %in% Pep.Intens.Nms)
       colnames(tmp4)[w] <- sub(topattern(pepInt_Root), "", colnames(tmp4)[w])
       tmp4 <- melt(tmp4, id.vars = c("pepID", "PG"))
-      tmp4 <- tmp4[which(!is.na(tmp4$value)),]
+      tmp4 <- tmp4[!is.na(tmp4$value),]
       tmp4 <- list(protein_list = tmp4$PG,
                    sample_list = tmp4$variable,
                    id = tmp4$pepID,
@@ -1079,7 +1079,7 @@ protQuant <- function(Prot,
   #                           rep("QFeatures", nr)))
   # })
   # tst <- do.call(rbind, tst)
-  # tst <- tst[which((!is.na(tst$X))&(!is.na(tst$Y))),]
+  # tst <- tst[(!is.na(tst$X)) & (!is.na(tst$Y)),]
   # tst$X_method <- factor(tst$X_method, levels = c("LM", "iq", "limpa", "QFeatures"))
   # tst$Y_method <- factor(tst$Y_method, levels = c("LM", "iq", "limpa", "QFeatures"))
   # plot <- ggplot(tst) +
@@ -1100,8 +1100,8 @@ protQuant <- function(Prot,
   #   if (Nested) {
   #     rep <- unique(em$Replicate[c(w1, w0)])
   #     res <- lapply(rep, \(r) { #r <- 1L
-  #       w1_ <- w1[which(em$Replicate[w1] == r)]
-  #       w0_ <- w0[which(em$Replicate[w0] == r)]
+  #       w1_ <- w1[em$Replicate[w1] == r]
+  #       w0_ <- w0[em$Replicate[w0] == r]
   #       if ((length(w1_) != 1L) || (length(w0_) != 1L)) { return() }
   #       smpl1_ <- em[w1_, expMap_Samples_col]
   #       smpl0_ <- em[w0_, expMap_Samples_col]
@@ -1142,7 +1142,7 @@ protQuant <- function(Prot,
   #                           rep("MSstats", nr)))
   # })
   # tst <- do.call(rbind, tst)
-  # tst <- tst[which((!is.na(tst$X))&(!is.na(tst$Y))),]
+  # tst <- tst[(!is.na(tst$X)) & (!is.na(tst$Y)),]
   # tst$X_method <- factor(tst$X_method, levels = c("LM", "iq", "limpa", "QFeatures", "MSstats"))
   # tst$Y_method <- factor(tst$Y_method, levels = c("LM", "iq", "limpa", "QFeatures", "MSstats"))
   # plot <- ggplot(tst) +
@@ -1177,7 +1177,7 @@ protQuant <- function(Prot,
         rescVal$Rank <- as.integer(stats::ave(rescVal$PG, rescVal$PG, FUN = seq_along)) # (thanks chatGPT...)
       }
       if (is.finite(reSc_topN)) {
-        rescVal <- rescVal[which(rescVal$Rank <= reSc_topN),]
+        rescVal <- rescVal[rescVal$Rank <= reSc_topN,]
       }
       rescVal <- data.table::as.data.table(rescVal)
       if (reSc_is_topN && topN_correct) {

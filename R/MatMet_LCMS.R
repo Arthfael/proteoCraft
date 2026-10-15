@@ -1,9 +1,9 @@
 #' MatMet_LCMS
 #'
 #' @description
-#' A function to write the LC-MS part of Materials & Methods, pulling information from the methods file.
-#' 
-#' Note to self:
+#' A function to write the LC-MS part of Materials & Methods, pulling information from the methods file.\cr
+#' \cr
+#' Note to self:\cr
 #' !!! When editing function, always save with UTF-8 encoding!!!
 #' 
 #' @param RawFiles The raw files from which to attempt to extract the method.
@@ -14,14 +14,15 @@
 #' @param N.clust A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
+#' @param DIATxt_verbose Logical, default = FALSE. If TRUE, for Bruker files the DIA isolation windows table is written into the text as a horrendously clumsy chunk of text. This is not really necessary, because anyway the scheme can be extracted from the files by anyone with a modicum of skill.
 #' 
 #' @details
 #' Only tested on Bruker timsTOF HT with nanoElute 2 and Thermo Q-Exactive HT with Ultimate 3000 or Vanquish, so will probably fail on different machines from the same vendors, and obviously also on machines from other vendors.
 #' 
 #' @returns
-#' A list with two entries:
-#' - "Text": the text for each LCMS method
-#' - "Instruments": all LC and MS instrument models.
+#' A list with two entries:\cr
+#' - "Text": the text for each LCMS method\cr
+#' - "Instruments": all LC and MS instrument models
 #' 
 #' @examples
 #' MatMet_Text_list <- MatMet_LCMS()
@@ -35,15 +36,16 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                         Columns = "default",
                         N.clust,
                         N.reserved = 1L,
-                        cl) {
+                        cl,
+                        DIATxt_verbose = FALSE) {
   TESTING <- FALSE
-  #DefArg(MatMet_LCMS);TESTING <- TRUE
+  #DefArg(MatMet_LCMS);TESTING <- TRUE;cl = parClust
   #RawFiles <- rawFiles <-...
   #
   misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-    function(x) { return(!exists(deparse(substitute(x)))) }
+    \(x) { return(!exists(deparse(substitute(x)))) }
   } else { missing }
   #
   # Create cluster
@@ -79,32 +81,34 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                "Description",
                "P/N",
                "Function")
-  colTst <- (Columns != "default")&(file.exists(Columns))
   libPath <- as.data.frame(library()$results)
   libPath <- normalizePath(libPath$LibPath[match("proteoCraft", libPath$Package)], winslash = "/")
-  proteoPath <- paste0(libPath, "/proteoCraft")
-  myPath <- pkgPath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
-  if (!colTst) {
-    Columns <- paste0(pkgPath, "/LC_columns.xlsx")
-    if (!file.exists(Columns)) {
-      dfltLocFl <- paste0(pkgPath, "/Default_locations.xlsx")
+  pkgPath <- paste0(libPath, "/proteoCraft")
+  docPath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+  Columns2 <- paste0(docPath, "/LC_columns.xlsx")
+  if ((Columns != "default") && (!file.exists(Columns))) {
+    warning("Columns definition file provided not found, reverting to default!")
+    Columns <- "default"
+  }
+  if (Columns == "default") {
+    altColFls <- c()
+    dfltLocFl <- paste0(docPath, "/Default_locations.xlsx")
+    if (file.exists(dfltLocFl)) {
       dfltLoc <- openxlsx2::read_xlsx(dfltLocFl)
       tmpPath <- dfltLoc$Path[match("Temporary folder", dfltLoc$Folder)]
-      myPath <- tmpPath
-      Columns <- paste0(tmpPath, "/LC_columns.xlsx")
+      altColFls <- c(altColFls, paste0(tmpPath, "/LC_columns.xlsx"))
     }
-    if (!file.exists(Columns)) {
-      Columns <- paste0(proteoPath, "/extdata/LC_columns.xlsx")
-    }
+    altColFls <- c(Columns2,
+                   altColFls,
+                   paste0(pkgPath, "/extdata/LC_columns.xlsx"))
+    Columns <- altColFls[file.exists(altColFls)][1L]
   }
   Columns2 <- paste0(myPath, "/LC_columns.xlsx")
-  #cat(Columns, "\n")
-  #cat(Columns2, "\n")
-  colTst <- file.exists(Columns)
-  if (colTst) {
+  colTst2 <- file.exists(Columns2)
+  if (file.exists(Columns)) {
     allKolumns <- openxlsx2::read_xlsx(Columns)
   } else {
-    # Should never happen now that we distribute "LC_columns.xlsx" with the package
+    # Should never happen now that we distribute "LC_columns.xlsx" with the package - this is old code
     Kolumns <- c("EasySpray C18 column (2 µm particle size, 75 µm ID x 50 cm length, ThermoFisher Scientific P/N ES903)",
                  "200 cm C18 µPAC column (micro-Pillar Array Column, PharmaFluidics P/N 5525031518210B)",
                  "50 cm C18 µPAC GEN2 column (2nd generation micro-Pillar Array Column, PharmaFluidics P/N COL-nano050G2B)")
@@ -123,19 +127,20 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                              Description = "",
                              check.names = FALSE)
   }
+  allKolumns <- allKolumns[which(nchar(allKolumns$Name) > 0L),]
   if (!"Description" %in% colnames(allKolumns)) { allKolumns$Description <- "" }
-  kolDescr <- function(Colonnes) {
+  kolDescr <- \(Colonnes) {
     apply(Colonnes[, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N"),
                    drop = FALSE], 1L, \(x) {
       #x <- Colonnes[1, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N")]
       x <- gsub("^ +| +$", "", as.character(unlist(x)))
       dimz <- c(x[3L], x[4L])
       w <- which(!is.na(dimz))
-      dimzTst <- length(w) > 0
-      dimz <- if (dimzTst) { paste(paste0(gsub("\\.0+$", "", dimz), c(" cm", " µm ID"))[w], collapse = " * ") } else { NA }
+      dimzTst <- length(w) > 0L
+      dimz <- if (dimzTst) { paste(paste0(sub("\\.0+$", "", dimz), c(" cm", " µm ID"))[w], collapse = " * ") } else { NA }
       pn <- c(x[6L], x[7L])
       w <- which(!is.na(pn))
-      pnTst <- length(w) > 0
+      pnTst <- length(w) > 0L
       pn <- if (pnTst) { paste(paste0(c("", "P/N "), pn)[w], collapse = " ") } else { NA }
       pnTst <- !is.na(x[7L])
       if (pnTst) { x[7L] <- paste0("P/N ", x[7L]) }
@@ -148,11 +153,13 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       return(res)
     })
   }
-  #w <- which((nchar(allKolumns$Description) == 0)|(is.na(allKolumns$Description)))
+  #w <- which((nchar(allKolumns$Description) == 0L) | is.na(allKolumns$Description))
   w <- 1L:nrow(allKolumns)
   allKolumns$Description[w] <- kolDescr(allKolumns[w,])
-  Kolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Analytical")], "None (direct infusion)", "Add new..."))
-  preKolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Trap")],  "None (direct injection)", "Add new..."))
+  Kolumns <- union(allKolumns$Description[allKolumns$Function == "Analytical"],
+                   c("None (direct infusion)", "Add new..."))
+  preKolumns <- union(allKolumns$Description[allKolumns$Function == "Trap"],
+                      c("None (direct injection)", "Add new..."))
   AddKolKount  <- 0L
   #View(allKolumns)
   #
@@ -169,7 +176,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
   if (length(w)) {
     l <- (length(w)>1)+1
     warning(paste0(c("One", "Some")[l]," MS file", c("'s", "s'")[l], " extension", c("", "s")[l], " could not be detected, skipping:", paste("\n -> ", MethodsTbl$Raw.file[w], collapse = ""), "\n"))
-    MethodsTbl <- MethodsTbl[which(!is.na(MethodsTbl$Ext)),]
+    MethodsTbl <- MethodsTbl[!is.na(MethodsTbl$Ext),]
   }
   # For now only Thermo raw files and Bruker d files (folders) are supported
   w <- which(!tolower(MethodsTbl$Ext) %in% c("d", "raw"))
@@ -177,7 +184,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     l <- (length(w)>1L)+1L
     warning(paste0("Only Thermo .raw or Bruker .d MS files are supported, skipping file", c("", "s")[l], ":",
                    paste("\n -> ", MethodsTbl$Raw.file[w], collapse = ""), "\n"))
-    MethodsTbl <- MethodsTbl[which(MethodsTbl$Ext %in% c("d", "raw")),]
+    MethodsTbl <- MethodsTbl[MethodsTbl$Ext %in% c("d", "raw"),]
   }
   #
   Ext <- unique(MethodsTbl$Ext)
@@ -189,21 +196,19 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                          MS = c())
   # Bruker .d folders
   if ("d" %in% tolower(Ext)) {
-    library(XML)
-    library(RSQLite)
     ADflt <- "MS-grade H₂O + 0.1% formic acid"
     BDflt <- "100% acetonitrile + 0.1% formic acid"
-    BrMeth <- MethodsTbl[which(tolower(MethodsTbl$Ext) == "d"),]
+    BrMeth <- MethodsTbl[tolower(MethodsTbl$Ext) == "d",]
     BrMeth$FlInfo <- paste0(BrMeth$Raw.file, "/SampleInfo.xml")
     w <- which(file.exists(BrMeth$FlInfo))
     BrMeth[, c("LC_method_fl", "MS_method_fl")] <- NA_character_
     BrMeth[w, c("LC_method_fl", "MS_method_fl")] <- as.data.frame(t(as.data.frame(sapply(BrMeth$FlInfo[w], \(fl) {
       #fl <- BrMeth$FlInfo[w][1L]
-      x <- xmlToList(fl)
+      x <- XML::xmlToList(fl)
       res <- if (".attrs" %in% names(x$Sample)) { c(x$Sample$.attrs["Method"], x$Sample$.attrs["MS_Method"]) } else {
         c(x$Sample["Method"], x$Sample["MS_Method"])
       }
-      return(gsub("\\?.+", "", gsub("\\\\", "/", res)))
+      return(sub("\\?.+", "", gsub("\\\\", "/", res)))
     }))))
     # I dislike .d files because they are folders...
     # ... but...
@@ -227,12 +232,13 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                           Column = NA, Trap = NA, SolvA = NA, SolvB = NA)
     uBrMeth$Method <- tmp
     BrMeth$MethodID <- sapply(BrMeth$LCMS_method_fls, \(x) {
-      uBrMeth$MethodID[which(vapply(uBrMeth$Method, \(y) { identical(x, y) }, TRUE))]
+      uBrMeth$MethodID[vapply(uBrMeth$Method, \(y) { identical(x, y) }, TRUE)]
     })
     if (length(tmp) > 1L) {
-      tmp2 <- paste(sapply(uBrMeth$MethodID, \(x) { paste(c(paste0(" - ", x, " files:"),
-                                                            paste0("   > ", BrMeth$Raw.file[which(BrMeth$MethodID == x)])), collapse = "\n") }),
-                   collapse = "\n\n")
+      tmp2 <- paste(sapply(uBrMeth$MethodID, \(x) {
+        paste(c(paste0(" - ", x, " files:"),
+                paste0("   > ", BrMeth$Raw.file[BrMeth$MethodID == x])), collapse = "\n")
+      }), collapse = "\n\n")
       msg <- paste0(length(tmp), " different Bruker LC-MS/MS acquisition methods detected:\n\n", tmp2, "\n")
       cat(msg)
     }
@@ -257,45 +263,62 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     uBrMeth$MS_method <- BrMeth$MS_method[w][match(uBrMeth$MethodID, BrMeth$MethodID[w])]
     uBrMeth$MS_meth <- NA
     w2 <- which(!is.na(uBrMeth$MS_method))
-    uBrMeth$MS_meth[w2] <- lapply(uBrMeth$MS_method[w2], \(fl) { #fl <- uBrMeth$MS_method[w2][1L]
+    uBrMeth$MS_meth[w2] <- parLapply(cl, uBrMeth$MS_method[w2], \(fl) { #fl <- uBrMeth$MS_method[w2][1L]
       #x <- readr::read_lines(fl)
       #x[1L:100L]
-      SQltTDF <- dbConnect(drv = RSQLite::SQLite(), dbname = fl)
-      #nms <- dbListTables(SQltTDF)
-      #Obj <- setNames(lapply(nms, \(nm) { suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", nm, "'"))) }), nms)
+      SQltTDF <- RSQLite::dbConnect(drv = RSQLite::SQLite(),
+                                    dbname = fl)
+      #nms <- DBI::dbListTables(SQltTDF)
+      #Obj <- setNames(lapply(nms, \(nm) { suppressWarnings(DBI::dbGetQuery(SQltTDF,
+      #                                                                     statement = paste0("SELECT * FROM '", nm, "'"))) }), nms)
       #for (nm in nms) { if (nrow(Obj[[nm]])) { Obj[[nm]] <- cbind(rep(nm, nrow(Obj[[nm]])), Obj[[nm]]); colnames(Obj[[nm]])[1L] <- "Table_name" } }
       #for (nm in nms) { if (nrow(Obj[[nm]])) { View(Obj[[nm]]) } }
-      GlobMetDat <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "GlobalMetadata", "'")))
-      PropsDat <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "Properties", "'")))
-      PropsDefDat <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "PropertyDefinitions", "'")))
-      FrmDat <- try(suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "PasefFrameMsMsInfo", "'"))), silent = TRUE)
+      GlobMetDat <- suppressWarnings(DBI::dbGetQuery(SQltTDF,
+                                                     statement = paste0("SELECT * FROM '", "GlobalMetadata", "'")))
+      PropsDat <- suppressWarnings(DBI::dbGetQuery(SQltTDF,
+                                                   statement = paste0("SELECT * FROM '", "Properties", "'")))
+      PropsDefDat <- suppressWarnings(DBI::dbGetQuery(SQltTDF,
+                                                      statement = paste0("SELECT * FROM '", "PropertyDefinitions", "'")))
+      FrmDat <- try(suppressWarnings(DBI::dbGetQuery(SQltTDF,
+                                                     statement = paste0("SELECT * FROM '", "PasefFrameMsMsInfo", "'"))),
+                    silent = TRUE)
       if (inherits(FrmDat, "try-error")) { FrmDat <- NA }
-      DIADat1 <- try(suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "DiaFrameMsMsWindows", "'"))), silent = TRUE)
+      DIADat1 <- try(suppressWarnings(DBI::dbGetQuery(SQltTDF,
+                                                      statement = paste0("SELECT * FROM '", "DiaFrameMsMsWindows", "'"))),
+                     silent = TRUE)
       if (inherits(DIADat1, "try-error")) { DIADat1 <- NA } else {
         DIADat1$CollisionEnergy <- signif(DIADat1$CollisionEnergy, 2L) # Do we really need more precision?!?!
       }
-      #DIADat2 <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "DiaFrameMsMsInfo", "'")))
-      #DIADat3 <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "DiaFrameMsMsWindowGroups", "'")))
-      PRMDat <- try(suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "PrmFrameMsMsInfo", "'"))), silent = TRUE)
+      #DIADat2 <- suppressWarnings(DBI::dbGetQuery(SQltTDF,
+      #                                            statement = paste0("SELECT * FROM '", "DiaFrameMsMsInfo", "'")))
+      #DIADat3 <- suppressWarnings(DBI::dbGetQuery(SQltTDF,
+      #                                            statement = paste0("SELECT * FROM '", "DiaFrameMsMsWindowGroups", "'")))
+      PRMDat <- try(suppressWarnings(DBI::dbGetQuery(SQltTDF,
+                                                     statement = paste0("SELECT * FROM '", "PrmFrameMsMsInfo", "'"))), silent = TRUE)
       if (inherits(PRMDat, "try-error")) { PRMDat <- NA }
-      dbDisconnect(SQltTDF)
+      DBI::dbDisconnect(SQltTDF)
       return(list(Method = list(Global = GlobMetDat,
                                 Properties = PropsDat,
                                 Definitions = PropsDefDat,
                                 Frames = FrmDat,
                                 DIA = DIADat1,
                                 PRM = PRMDat),
-                  Name = GlobMetDat$Value[which(GlobMetDat$Key == "MethodName")]))
+                  Name = GlobMetDat$Value[GlobMetDat$Key == "MethodName"]))
     })
     # Put them together
     uBrMeth$Method <- apply(uBrMeth[, c("LC_meth", "MS_meth")], 1L, \(x) {
       list(LC = x[[1L]],
            MS = x[[2L]]) })
     # Parse them and create text
-    uBrMeth$Samples <- lapply(uBrMeth$MethodID, \(x) { BrMeth$Raw.file[which(BrMeth$MethodID == x)] })
-    uBrMeth$NANO <- gsub(" +", " ", gsub("Bruker *", "", gsub("\t.*", "",
-                                                              vapply(uBrMeth$Method, \(x) { x$LC$HyStarMethodData$ModuleName }, "")
-                                                              ), ignore.case = TRUE))
+    uBrMeth$Samples <- lapply(uBrMeth$MethodID, \(x) { BrMeth$Raw.file[BrMeth$MethodID == x] })
+    uBrMeth$NANO <- gsub(" +", " ",
+                         gsub("Bruker *", "",
+                              sub("\t.*", "",
+                                  vapply(uBrMeth$Method, \(x) { #x <- uBrMeth$Method[1L]
+                                    if (is.null(x$LC$HyStarMethodData$ModuleName)) { return(NA_character_) }
+                                    x$LC$HyStarMethodData$ModuleName
+                                  }, "")),
+                              ignore.case = TRUE))
     w <- which(uBrMeth$NANO == "nanoElute")
     uBrMeth$Root <- apply(uBrMeth[, c("MethodID", "NANO")], 1L, paste, collapse = " - ")
     opt <- paste0(1L:2L, paste(rep(" ", 200L), collapse = ""))
@@ -307,29 +330,41 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                                                    as.character(1L:2L))]
     }
     uBrMeth$Root <- apply(uBrMeth[, c("MethodID", "NANO")], 1L, paste, collapse = " - ")
-    uBrMeth$Column <- vapply(uBrMeth$Method, \(x) { x$LC$ModuleMethodData$Method$SeparatorName }, "")
-    uBrMeth$usesTrap <- as.logical(toupper(vapply(uBrMeth$Method, \(x) { x$LC$ModuleMethodData$Method$UsesTrapColumn }, "")))
+    uBrMeth$Column <- vapply(uBrMeth$Method, \(x) {
+      a <- x$LC$ModuleMethodData$Method$SeparatorName
+      if (is.null(a)) { return(NA_character_) }
+      a
+    }, "")
+    uBrMeth$usesTrap <- as.logical(toupper(vapply(uBrMeth$Method, \(x) {
+      a <- x$LC$ModuleMethodData$Method$UsesTrapColumn
+      if (is.null(a)) { return(NA_character_) }
+      a
+    }, "")))
     w <- which(uBrMeth$usesTrap)
     uBrMeth$Trap[w] <- vapply(uBrMeth$Method[w], \(x) { x$LC$ModuleMethodData$Method$TrapName }, "")
-    uBrMeth$OvenT <- sapply(uBrMeth$Method, \(x) {
-      c(NA, x$LC$ModuleMethodData$Method$OvenTemperature)[as.logical(toupper(x$LC$ModuleMethodData$Method$IsSetTemperature))+1L]
-    })
+    uBrMeth$OvenT <- vapply(uBrMeth$Method, \(x) { #x <- uBrMeth$Method[1L]
+      a <- x$LC$ModuleMethodData$Method$IsSetTemperature
+      if (is.null(a)) { return(NA_character_) }
+      c(NA_character_,
+        x$LC$ModuleMethodData$Method$OvenTemperature)[as.logical(toupper(a))+1L]
+    }, "")
     uBrMeth$Gradient <- lapply(uBrMeth$Method, \(x) {
-      nm <- names(x$LC$ModuleMethodData$Method$Gradient)
-      grd <- sapply(1L:length(nm), \(y) { x$LC$ModuleMethodData$Method$Gradient[[y]] })
+      x <- x$LC$ModuleMethodData$Method$Gradient
+      nm <- names(x)
+      grd <- sapply(1L:length(nm), \(y) { x[[y]] })
       grd <- t(as.data.frame(grd))
       rownames(grd) <- NULL
       return(grd)
     })
     uBrMeth$Flow <- sapply(uBrMeth$Method, \(x) { x$LC$HyStarMethodData$MainFlow })
     uBrMeth$RunTime <- sapply(uBrMeth$Method, \(x) { x$LC$HyStarMethodData$NoStandardMethodData })
-    for (i in 1L:nrow(uBrMeth)) {
+    for (i in which(!is.na(uBrMeth$Column))) {
       kol <- paste0("\" ", uBrMeth$Column[i], " \"")
-      kol <- svDialogs::dlg_list(unique(c(kol, Kolumns)), kol,
+      kol <- svDialogs::dlg_list(union(kol, Kolumns), kol,
                                  title = paste0(uBrMeth$Root[i], " - select column used:"))$res
       if (kol == "Add new...") {
         colCharDf <- data.frame(Description = "Analytical")
-        for (kk in colChar[which(colChar != "Function")]) {
+        for (kk in setdiff(colChar, "Function")) {
           colCharDf[[kk]] <- svDialogs::dlg_input(paste0("Enter value for field \"", kk, "\""), "")$res
         }
         kol <- colCharDf$Name
@@ -338,20 +373,21 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         tst <- apply(allKolumns, 1L, paste, collapse = "|")
         tst <- aggregate(1L:length(tst), list(tst), min)
         allKolumns <- allKolumns[sort(tst$x),]
-        Kolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Analytical")],
-                            "None (direct infusion)",
-                            "Add new..."))
+        Kolumns <- union(allKolumns$Description[allKolumns$Function == "Analytical"],
+                         c("None (direct infusion)", "Add new..."))
         AddKolKount <- AddKolKount + 1L
         kol <- tmp$Description
       }
       uBrMeth$Column[i] <- kol
+    }
+    for (i in which(!is.na(uBrMeth$Trap))) {
       if (uBrMeth$usesTrap[i]) {
         kol <- paste0("\" ", uBrMeth$Trap[i], " \"")
-        kol <- svDialogs::dlg_list(unique(c(kol, preKolumns)), kol,
+        kol <- svDialogs::dlg_list(union(kol, preKolumns), kol,
                                    title = paste0(uBrMeth$Root[i],  " - select trap used:"))$res
         if (kol == "Add new...") {
           colCharDf <- data.frame(Description = "Trap")
-          for (kk in colChar[which(colChar != "Function")]) {
+          for (kk in setdiff(colChar, "Function")) {
             colCharDf[[kk]] <- svDialogs::dlg_input(paste0("Enter value for field \"", kk, "\""), "")$res
           }
           kol <- colCharDf$Name
@@ -360,9 +396,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
           tst <- apply(allKolumns, 1L, paste, collapse = "|")
           tst <- aggregate(1L:length(tst), list(tst), min)
           allKolumns <- allKolumns[sort(tst$x),]
-          preKolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Trap")],
-                                 "None (direct injection)",
-                                 "Add new..."))
+          preKolumns <- union(allKolumns$Description[allKolumns$Function == "Trap"],
+                              c("None (direct injection)", "Add new..."))
           AddKolKount <- AddKolKount + 1L
           kol <- tmp$Description
         }
@@ -375,14 +410,16 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                                                  BDflt)$res
       }
     }
-    uBrMeth$Par <- lapply(uBrMeth$Method, \(x) {
-      nm <- names(x$LC$ModuleMethodData$Metho$AdvancedSettings$Parameters)
-      pr <- sapply(1L:length(nm), \(y) { x$LC$ModuleMethodData$Metho$AdvancedSettings$Parameters[[y]] })
+    uBrMeth$Par <- lapply(uBrMeth$Method, \(x) { #x <- uBrMeth$Method[1L]
+      a <- x$LC$ModuleMethodData$Metho$AdvancedSettings$Parameters
+      if (is.null(a)) { return(NA) }
+      nm <- names(a)
+      pr <- sapply(1L:length(nm), \(y) { a[[y]] })
       colnames(pr) <- pr[1L,]
       pr <- pr[2L:nrow(pr),]
       return(as.data.frame(pr))
     })
-    uBrMeth <- uBrMeth[which(!is.na(uBrMeth$MS_meth)),]
+    uBrMeth <- uBrMeth[!is.na(uBrMeth$MS_meth),]
     uBrMeth$MS_method_parsed <- lapply(uBrMeth$MS_meth, \(x) { #x <- uBrMeth$MS_meth[1L]
       fl <- paste0(getwd(), "/", x$Name)
       GlobMetDat <- x$Method$Global
@@ -391,20 +428,20 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       FrmDat <- x$Method$Frames
       DIADat1 <- x$Method$DIA
       PRMDat <- x$Method$PRM
-      INSTR <- GlobMetDat$Value[which(GlobMetDat$Key == "InstrumentName")]
-      INSTRMAKER <- GlobMetDat$Value[which(GlobMetDat$Key == "InstrumentVendor")]
+      INSTR <- GlobMetDat$Value[GlobMetDat$Key == "InstrumentName"]
+      INSTRMAKER <- GlobMetDat$Value[GlobMetDat$Key == "InstrumentVendor"]
       if (INSTRMAKER == "Bruker") { INSTRMAKER <- "Bruker Daltonics"}
       #View(GlobMetDat)
       #View(PropsDat)
       PropsDat$Property <- PropsDefDat$PermanentName[match(PropsDat$Property, PropsDefDat$Id)]
       #View(PropsDefDat)
       #View(FrmDat)
-      MssRng <- gsub("\\.$", "", gsub("0+$", "", GlobMetDat$Value[match(c("MzAcqRangeLower", "MzAcqRangeUpper"), GlobMetDat$Key)]))
-      MobRng <- gsub("\\.$", "", gsub("0+$", "", GlobMetDat$Value[match(c("OneOverK0AcqRangeLower", "OneOverK0AcqRangeUpper"), GlobMetDat$Key)]))
+      MssRng <- sub("\\.$", "", sub("0+$", "", GlobMetDat$Value[match(c("MzAcqRangeLower", "MzAcqRangeUpper"), GlobMetDat$Key)]))
+      MobRng <- sub("\\.$", "", sub("0+$", "", GlobMetDat$Value[match(c("OneOverK0AcqRangeLower", "OneOverK0AcqRangeUpper"), GlobMetDat$Key)]))
       if (!is.logical(FrmDat)) {
         isoWdths <- data.frame(Width = c(min(FrmDat$IsolationWidth), max(FrmDat$IsolationWidth)))
-        isoWdths$MZ <- round(c(max(FrmDat$IsolationMz[which(FrmDat$IsolationWidth == isoWdths$Width[1L])]),
-                               min(FrmDat$IsolationMz[which(FrmDat$IsolationWidth == isoWdths$Width[2L])])))
+        isoWdths$MZ <- round(c(max(FrmDat$IsolationMz[FrmDat$IsolationWidth == isoWdths$Width[1L]]),
+                               min(FrmDat$IsolationMz[FrmDat$IsolationWidth == isoWdths$Width[2L]])))
         CEs <- data.frame(CE = round(c(min(FrmDat$CollisionEnergy), max(FrmDat$CollisionEnergy))),
                           IM = as.numeric(MobRng))
         #require(ggplot2)
@@ -426,7 +463,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                  "MSMS_Pasef_IntensityThreshold", "MSMS_Pasef_Scheduler_TargetIntensity",
                  "MSMS_Pasef_ExclusionReleaseTime", "MSMS_Pasef_ExclusionReconsiderActive", "MSMS_Pasef_ExclusionReconsiderRatio",
                  "MSMS_Pasef_ExclusionWindowMassWidth", "MSMS_Pasef_ExclusionWindow1PerK0Width")
-      PropsDF <- PropsDat[which(PropsDat$Property %in% props),]
+      PropsDF <- PropsDat[PropsDat$Property %in% props,]
       PropsDF$Frame <- as.integer(PropsDF$Frame)
       PropsDF <- aggregate(PropsDF$Frame, list(PropsDF$Property, PropsDF$Value), \(x) { paste0(min(x), "-", max(x)) })
       colnames(PropsDF) <- c("Property", "Value", "Frames")
@@ -441,14 +478,14 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       })
       PropsDF$Value <- as.character(PropsDF$Value)
       PropsDF$Value[w] <- apply(PropsDF[w, c("Value", "Explanation")], 1L, \(x) { x[[2L]][match(x[[1L]], x[[2L]][, 1L]), 2L] })
-      g <- lapply(c("Minimum", "Maximum"), \(x) { gsub(paste0(" ", x, "$"), "", grep(paste0(" ", x, "$"), PropsDF$Name, value = TRUE)) })
+      g <- lapply(c("Minimum", "Maximum"), \(x) { sub(paste0(" ", x, "$"), "", grep(paste0(" ", x, "$"), PropsDF$Name, value = TRUE)) })
       u <- unique(unlist(g))
-      u <- u[which(sapply(u, \(x) { x %in% g[[1L]] & x %in% g[[2L]] }))]
+      u <- u[vapply(u, \(x) { (x %in% g[[1L]]) & (x %in% g[[2L]]) }, TRUE)]
       if (length(u)) {
-        tmp <- PropsDF[which(PropsDF$Name == paste0(u, " Minimum")),]
-        tmp$Name <- gsub(" Minimum$", "", tmp$Name)
+        tmp <- PropsDF[PropsDF$Name == paste0(u, " Minimum"),]
+        tmp$Name <- sub(" Minimum$", "", tmp$Name)
         tmp$Value <- apply(tmp[, c("Value", "Name", "Frames")], 1L, \(x) {
-          paste0(x[[1L]], "-", PropsDF$Value[which((PropsDF$Name == paste0(x[[2L]], " Maximum"))&(PropsDF$Frames == x[[3L]]))])
+          paste0(x[[1L]], "-", PropsDF$Value[(PropsDF$Name == paste0(x[[2L]], " Maximum")) & (PropsDF$Frames == x[[3L]])])
         })
         tmp$Property <- gsub(".Minimum", "", tmp$Property)
         for (v in u) {
@@ -469,9 +506,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         l <- length(x[[2L]])
         res <- NA_character_
         if (l > 1L) {
-          x[[2L]] <- paste0(paste(x[[2L]][1L:(l-1L)], collapse = ", "), " and ", x[[2L]][l])
-          x[[4L]] <- paste0("(frame groups ",  paste(x[[4L]][1L:(l-1L)], collapse = ", "), " and ",
-                            x[[4L]][l], ", resp.)")
+          x[[2L]] <- .commAnd(x[[2L]])
+          x[[4L]] <- paste0("(frame groups ", .commAnd(x[[4L]]), ", resp.)")
         } else {
           if ((x[[1L]] == "PASEF Current Intens/Previous Intens") && (x[[2L]] == "Off")) { res <- "" }
         }
@@ -482,24 +518,24 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         }
         return(res)
       })
-      PropsDF2$Text <- gsub("^ims cycle |^pasef |^set ", "", PropsDF2$Text)
-      PropsDF2$Text <- gsub("^number of ", "", PropsDF2$Text)
-      PropsDF2$Text <- gsub("prepulsestorage ", "pre-pulse storage ", PropsDF2$Text)
-      PropsDF2$Text <- gsub("current intens/previous intens ", "current/previous intensity ratio ", PropsDF2$Text)
-      PropsDF2$Text <- gsub("= Off$", "= off", gsub("= On$", "= on", PropsDF2$Text))
-      PropsDF2$Text <- gsub("= Off$", "= off", gsub("= On$", "= on", PropsDF2$Text))
+      PropsDF2$Text <- sub("^(ims cycle|pasef|set) ", "", PropsDF2$Text)
+      PropsDF2$Text <- sub("^number of ", "", PropsDF2$Text)
+      PropsDF2$Text <- sub("prepulsestorage ", "pre-pulse storage ", PropsDF2$Text)
+      PropsDF2$Text <- sub("current intens/previous intens ", "current/previous intensity ratio ", PropsDF2$Text)
+      PropsDF2$Text <- sub("= Off$", "= off", sub("= On$", "= on", PropsDF2$Text))
+      PropsDF2$Text <- sub("= Off$", "= off", sub("= On$", "= on", PropsDF2$Text))
       Types <- "TIMS"
-      if (grepl("PASEF", PropsDF2$Text[which(PropsDF2$Name == "Scan Mode")], ignore.case = TRUE)) { Types <- c(Types, "PASEF") }
-      Txt <- paste(sapply(Types, \(x) {
-        paste0(x, " parameters: ", paste0(PropsDF2$Text[which(PropsDF2$Group == x)], collapse = ", "))
-      }), collapse = "; ")
-      Txt <- paste0(paste(PropsDF2$Text[which(!PropsDF2$Group %in% Types)], collapse = ", "), "; ", Txt)
+      if (grepl("PASEF", PropsDF2$Text[PropsDF2$Name == "Scan Mode"], ignore.case = TRUE)) { Types <- c(Types, "PASEF") }
+      Txt <- paste(vapply(Types, \(x) {
+        paste0(x, " parameters: ", paste0(PropsDF2$Text[PropsDF2$Group == x], collapse = ", "))
+      }, ""), collapse = "; ")
+      Txt <- paste0(paste(PropsDF2$Text[!PropsDF2$Group %in% Types], collapse = ", "), "; ", Txt)
       if (length(AuF) > 1L) {
         AuF <- apply(data.frame(N = 1L:length(AuF), Fr = AuF), 1L, paste, collapse = " = ")
         Txt <- paste0("Frame ranges: ", AuF, "; ", Txt)
       }
-      DIAtst <- grepl("dia", PropsDF2$Text[which(PropsDF2$Name == "Scan Mode")], ignore.case = TRUE)
-      PRMtst <- grepl("prm", PropsDF2$Text[which(PropsDF2$Name == "Scan Mode")], ignore.case = TRUE)
+      DIAtst <- grepl("dia", PropsDF2$Text[PropsDF2$Name == "Scan Mode"], ignore.case = TRUE)
+      PRMtst <- grepl("prm", PropsDF2$Text[PropsDF2$Name == "Scan Mode"], ignore.case = TRUE)
       if ((!DIAtst) && is.logical(FrmDat) && is.na(FrmDat)) {
         Txt <- paste0("Isolation: ", isoWdths$Width[1L], " Th for target precursors up to ",
                       isoWdths$MZ[1L], " Th, then linear increase up to a maximum of ",
@@ -509,26 +545,30 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       Txt <- paste0("MS method: M/Z range = ", paste(MssRng, collapse = "-"), " Th, ion mobility range = ", paste(MobRng, collapse = "-"), " 1/K0; ", Txt, ".")
       Txt <- gsub("cm2", "cm²", Txt)
       if (DIAtst) {
-        DIAfl <- gsub("\\.m$", " - DIA_windows.csv", fl)
+        DIAfl <- sub("\\.m$", " - DIA_windows.csv", fl)
         cat("Writing DIA windows to", DIAfl, "\n")
         write.csv(DIADat1, DIAfl, row.names = FALSE)
         #plot <- ggplot(DIADat1, aes(xmin = IsolationMz-IsolationWidth/2, xmax = IsolationMz+IsolationWidth/2,
         #                            ymin = ScanNumBegin, ymax = ScanNumEnd, colour = WindowGroup)) + theme_bw() +
         #  geom_rect(alpha = 0.1) + scale_y_reverse() + xlab("M/Z") + ylab("Scan number")
         #poplot(plot)
-        tmp1 <- paste0("scan ranges: ", paste(apply(DIADat1[, c("ScanNumBegin", "ScanNumEnd")], 1L, paste, collapse = "-"), collapse = "/"))
-        tmp2 <- paste0("isolation M/Z: ", paste(round(DIADat1$IsolationMz, 3L), collapse = "/")) # That is already wayyyyyy more precise than we need!!!
-        tmp3 <- paste0("collision energy: ", paste(DIADat1$CollisionEnergy, collapse = "/"))
-        if (length(unique(DIADat1$IsolationWidth)) == 1L) {
-          DIATxt <- paste0("DIA windows scheme: fixed width = ", unique(DIADat1$IsolationWidth), ", ", tmp1, ", ", tmp2, ", ", tmp3, ".")
+        if (DIATxt_verbose) {
+          tmp1 <- paste0("scan ranges: ", paste(apply(DIADat1[, c("ScanNumBegin", "ScanNumEnd")], 1L, paste, collapse = "-"), collapse = "/"))
+          tmp2 <- paste0("isolation M/Z: ", paste(round(DIADat1$IsolationMz, 3L), collapse = "/")) # That is already wayyyyyy more precise than we need!!!
+          tmp3 <- paste0("collision energy: ", paste(DIADat1$CollisionEnergy, collapse = "/"))
+          if (length(unique(DIADat1$IsolationWidth)) == 1L) {
+            DIATxt <- paste0("DIA windows scheme: fixed width = ", unique(DIADat1$IsolationWidth), ", ", tmp1, ", ", tmp2, ", ", tmp3, ".")
+          } else {
+            tmp4 <- paste0("isolation width: ", paste(DIADat1$IsolationWidth, collapse = "/"))
+            DIATxt <- paste0("DIA windows scheme: ", tmp1, ", ", tmp2, ", ", tmp4, ", ", tmp3, ".")
+          }
         } else {
-          tmp4 <- paste0("isolation width: ", paste(DIADat1$IsolationWidth, collapse = "/"))
-          DIATxt <- paste0("DIA windows scheme: ", tmp1, ", ", tmp2, ", ", tmp4, ", ", tmp3, ".")
+          DIATxt <- "The precise DIA windows scheme is available on request (or may alternatively be extracted from the files)."
         }
         Txt <- paste0(Txt, " ", DIATxt)
       } else { DIADat1 <- DIAfl <- NA }
       if (PRMtst) {
-        PRMfl <- gsub("\\.m$", " - PRM_inclusion_list.csv", fl)
+        PRMfl <- sub("\\.m$", " - PRM_inclusion_list.csv", fl)
         cat("Writing PRM inclusion list to", PRMfl, "\n")
         write.csv(PRMDat, PRMfl, row.names = FALSE)
         Txt <- paste0(Txt, " PRM INCLUSION LIST EXPORTED AT \"", PRMfl, "\"")
@@ -576,9 +616,9 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       GRADLENGTH <- max(Grad$Time)
       Grad.Baseline <- min(Grad$Mix)
       Grad.Plateau <- max(Grad$Mix)
-      Grad.PlateauL <- round(Grad$Time[rev(which(Grad$Mix == Grad.Plateau))[1L]] - Grad$Time[which(Grad$Mix == Grad.Plateau)[1L]], 0)
-      GradStrt <- Grad$Time[which(Grad$Mix == Grad.Baseline)[1L]]
-      tmp1 <- Grad$Time[which(Grad$Mix == Grad.Plateau)[1L]]
+      Grad.PlateauL <- round(Grad$Time[rev(which(Grad$Mix == Grad.Plateau))[1L]] - Grad$Time[Grad$Mix == Grad.Plateau][1L], 0)
+      GradStrt <- Grad$Time[Grad$Mix == Grad.Baseline][1L]
+      tmp1 <- Grad$Time[Grad$Mix == Grad.Plateau][1L]
       tmp0 <- Grad$Time[which(Grad$Time == tmp1)-1L]
       GradEnd <- c(tmp0, tmp1)[(tmp1 - tmp0 > 1L)+1L]
       GRADLENGTH <- GradEnd-GradStrt
@@ -647,18 +687,18 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     #cat(brLCMS_txt)
     #
     # Correct a Denglish error
-    brLCMS_txt <- gsub(" enable high sensitivity modus ", " enable high sensitivity mode ", brLCMS_txt)
+    brLCMS_txt <- sub(" enable high sensitivity modus ", " enable high sensitivity mode ", brLCMS_txt)
     #
     # # Vector of material and methods text for each LC/MS method
     all_LCMS_txts <- c(all_LCMS_txts, brLCMS_txt)
     #
-    all_LCMS_instr$LC <- unique(c(all_LCMS_instr$LC, uBrMeth$LC))
-    all_LCMS_instr$MS <- unique(c(all_LCMS_instr$MS, uBrMeth$MS))
+    all_LCMS_instr$LC <- union(all_LCMS_instr$LC, uBrMeth$LC)
+    all_LCMS_instr$MS <- union(all_LCMS_instr$MS, uBrMeth$MS)
   }
   if ("raw" %in% tolower(Ext)) {
-    rawMeth <- MethodsTbl[which(tolower(MethodsTbl$Ext) == "raw"),]
-    rawMeth$Method <- gsub("\\.[^\\.]+$", ".methods.txt", rawMeth$Raw.file)
-    rawMeth$Exists <- file.exists(gsub("\\.[^\\.]+$", ".raw", rawMeth$Raw.file)) # Because the file could be another format
+    rawMeth <- MethodsTbl[tolower(MethodsTbl$Ext) == "raw",]
+    rawMeth$Method <- sub("\\.[^.]+$", ".methods.txt", rawMeth$Raw.file)
+    rawMeth$Exists <- file.exists(sub("\\.[^.]+$", ".raw", rawMeth$Raw.file)) # Because the file could be another format
     rawMeth$Method.exists <- file.exists(rawMeth$Method)
     w <- which(!rawMeth$Exists)
     if (length(w)) {
@@ -666,9 +706,9 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       wRY <- w[grep(RootPat, rawMeth$Folder[w])]
       wRN <- w[grep(RootPat, rawMeth$Folder[w], invert = TRUE)]
       if (length(wRY)) {
-        rawMeth$Folder[wRY] <- gsub(RootPat, ArchiveRoot, rawMeth$Folder[wRY])
-        rawMeth$Method[wRY] <- gsub(RootPat, ArchiveRoot, rawMeth$Method[wRY])
-        rawMeth$Raw.file[wRY] <- gsub(RootPat, ArchiveRoot, rawMeth$Raw.file[wRY])
+        rawMeth$Folder[wRY] <- sub(RootPat, ArchiveRoot, rawMeth$Folder[wRY])
+        rawMeth$Method[wRY] <- sub(RootPat, ArchiveRoot, rawMeth$Method[wRY])
+        rawMeth$Raw.file[wRY] <- sub(RootPat, ArchiveRoot, rawMeth$Raw.file[wRY])
       }
       if (length(wRN)) {
         rawMeth$Folder[wRN] <- ArchiveRoot
@@ -679,7 +719,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       rawMeth$Method.exists[w] <- file.exists(rawMeth$Method[w])
     }
     w1 <- which(rawMeth$Method.exists)
-    w2 <- which((!rawMeth$Method.exists)&(rawMeth$Exists))
+    w2 <- which((!rawMeth$Method.exists) & rawMeth$Exists)
     if (length(c(w1, w2))) {
       if (length(w2)) {
         ScanHdsMnTst <- FALSE
@@ -705,26 +745,26 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
           }
           environment(f0) <- .GlobalEnv
           tst2 <- parallel::parSapply(cl, rawMeth$Raw.file[w2], f0)
-          w2 <- w2[which(!tst2)]
+          w2 <- w2[!tst2]
         }
       }
       w <- unique(order(c(w1, w2)))
-      f0 <- function(methfl) { #methfl <- rawMeth$Method[w][1L]
+      f0 <- \(methfl) { #methfl <- rawMeth$Method[w][1L]
         con <- file(methfl, encoding = "UTF-16")
         xmeth <- readLines(con, skipNul = TRUE, encoding = "UTF-8")
         return(list(xmeth))
       }
       environment(f0) <- .GlobalEnv
       methods <- setNames(parallel::parSapply(cl, rawMeth$Method[w], f0), rawMeth$Raw.file[w])
-      tmp <- sapply(methods, paste, collapse = "___")
+      tmp <- vapply(methods, paste, "", collapse = "___")
       tst <- aggregate(1L:length(methods), list(tmp), list)
-      tst$Raws <- lapply(tst$Group.1, \(x) { names(tmp)[which(tmp == x)] })
+      tst$Raws <- lapply(tst$Group.1, \(x) { names(tmp)[tmp == x] })
       ThRoots <- "Thermo"
       if (nrow(tst) > 1L) {
         ThRoots <- paste0(ThRoots, " meth#", 1L:nrow(tst))
-        tmp <- paste(sapply(1L:nrow(tst), \(x) { paste(c(paste0(" - ", ThRoots[x], " files:"),
-                                                                    paste0("   > ", tst$Raws[[x]])), collapse = "\n") }),
-                     collapse = "\n\n")
+        tmp <- paste(sapply(1L:nrow(tst), \(x) {
+          paste(c(paste0(" - ", ThRoots[x], " files:"), paste0("   > ", tst$Raws[[x]])), collapse = "\n")
+        }), collapse = "\n\n")
         msg <- paste0(nrow(tst), " different Thermo LC-MS/MS acquisition methods detected:\n\n", tmp, "\n")
         cat(msg)
       }
@@ -733,7 +773,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         LC_txt <- MS_txt <- "TEMPLATE"
         MSok <- LCok <- FALSE
         TXT <- c()
-        #View(data.frame(Method = meth[which(meth != "")]))
+        #View(data.frame(Method = meth[meth != ""]))
         meth <- meths[[i_meth]]
         if (length(meth) && sum(nchar(meth))) {
           g <- grep("Method 1 is ", meth)
@@ -755,7 +795,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
               GradBPat <- "Neo\\.PumpModule\\.Pump\\.%B\\.Value"
             }
             g <- grep(" *\\[min\\]", lcMeth)
-            RnLns <- gsub(" *\\[min\\].*", "", lcMeth[g])
+            RnLns <- sub(" *\\[min\\].*", "", lcMeth[g])
             w <- which(!is.na(suppressWarnings(as.numeric(RnLns))))
             RnLns <- as.numeric(RnLns[w]) ; g <- g[w]
             RnStrtLn <- min(RnLns)
@@ -773,7 +813,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
               suppressWarnings(as.numeric(gsub(paste0(" *", GradBPat, ": * | *\\[.+$"), "",
                                                grep(paste0(" *", GradBPat, ": *"), x, value = TRUE))))
             })
-            Grad <- Grad[which(sapply(Grad$Flow.Nominal, length) == 1L),]
+            Grad <- Grad[lengths(Grad$Flow.Nominal) == 1L,]
             Grad$Flow.Nominal <- as.numeric(Grad$Flow.Nominal)
             Grad$B.Value <- as.numeric(Grad$B.Value)
             Grad <- aggregate(Grad[, c("Flow.Nominal", "B.Value")], list(Grad$Time), unique)
@@ -795,14 +835,14 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
               tmp$Description <- kolDescr(tmp)
               k <- setdiff(colnames(allKolumns), colnames(tmp))
               tmp[, k] <- NA
-              tmp[1L, which(tmp[1L,] == "NA")] <- NA
+              tmp[1L, tmp[1L,] == "NA"] <- NA
               allKolumns <- rbind(allKolumns, tmp)
               rownames(allKolumns) <- NULL
               tst <- apply(allKolumns, 1L, paste, collapse = "|")
               tst <- aggregate(1L:length(tst), list(tst), min)
               allKolumns <- allKolumns[sort(tst$x),]
-              Kolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Analytical")],
-                                  "None (direct infusion)", "Add new..."))
+              Kolumns <- union(allKolumns$Description[allKolumns$Function == "Analytical"],
+                               c("None (direct infusion)", "Add new..."))
               AddKolKount <- AddKolKount + 1L
               kol <- tmp$Description
             }
@@ -827,8 +867,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                 tst <- apply(allKolumns, 1L, paste, collapse = "|")
                 tst <- aggregate(1L:length(tst), list(tst), min)
                 allKolumns <- allKolumns[sort(tst$x),]
-                preKolumns <- unique(c(allKolumns$Description[which(allKolumns$Function == "Trap")],
-                                       "None (direct injection)", "Add new..."))
+                preKolumns <- union(allKolumns$Description[allKolumns$Function == "Trap"],
+                                    c("None (direct injection)", "Add new..."))
                 AddKolKount <- AddKolKount + 1L
                 kol <- tmp$Description
               }
@@ -843,9 +883,9 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
               stopifnot(length(FLOWVALUE) == 1L) # Unexpected situation, currently un-handled
               Grad.Baseline <- min(Grad$B.Value)
               Grad.Plateau <- max(Grad$B.Value)
-              Grad.PlateauL <- round(Grad$Time[rev(which(Grad$B.Value == Grad.Plateau))[1L]] - Grad$Time[which(Grad$B.Value == Grad.Plateau)[1L]], 0)
-              GradStrt <- Grad$Time[which(Grad$B.Value == Grad.Baseline)[1L]]
-              tmp1 <- Grad$Time[which(Grad$B.Value == Grad.Plateau)[1L]]
+              Grad.PlateauL <- round(Grad$Time[rev(which(Grad$B.Value == Grad.Plateau))[1L]] - Grad$Time[Grad$B.Value == Grad.Plateau][1L], 0L)
+              GradStrt <- Grad$Time[Grad$B.Value == Grad.Baseline][1L]
+              tmp1 <- Grad$Time[Grad$B.Value == Grad.Plateau][1L]
               tmp0 <- Grad$Time[which(Grad$Time == tmp1)-1L]
               GradEnd <- c(tmp0, tmp1)[(tmp1 - tmp0 > 1)+1L]
               GRADLENGTH <- GradEnd-GradStrt
@@ -875,7 +915,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
               warning("Message from function:\nThis LC-MS method seems to combine both DDA and DIA scans, I cannot make sense of it in my current code.\nPlease rewrite me!")
             }
             if (sum(DIAtst) == 1L) {
-              MS2Type <- c("dd-MS² / dd-SIM", "DIA")[which(DIAtst)]
+              MS2Type <- c("dd-MS² / dd-SIM", "DIA")[DIAtst]
               MS2 <- data.frame(Start = which(msMeth2 == MS2Type)[1L],
                                 End = which(msMeth2 == "                                     Setup")-2L)
               MS1$End <- MS2$Start-2L
@@ -928,13 +968,14 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                 EXCLZ <- "excluding"
                 if (tst1) {
                   #EXCLZ <- paste0(EXCLZ, " unassigned charges, charges ")
-                  ExclZ <- ExclZ[which(ExclZ != "unassigned")]
+                  ExclZ <- setdiff(ExclZ, "unassigned")
                 }
-                ExclZ[which(nchar(ExclZ) == 1L)] <- paste0(ExclZ[which(nchar(ExclZ) == 1L)], POL)
+                wNC1 <- which(nchar(ExclZ) == 1L)
+                ExclZ[wNC1] <- paste0(ExclZ[wNC1], POL)
                 tst2 <- (length(grep("^>", ExclZ)) == 1L) && (grep("^>", ExclZ) == length(ExclZ))
                 if (tst2) { ExclZ <- ExclZ[1L:(length(ExclZ)-1L)] }
                 if (length(ExclZ) > 1L) { ExclZ <- c(paste(ExclZ[1L:(length(ExclZ)-1L)], collapse = ", "), ExclZ[length(ExclZ)]) }
-                ExclZ <- paste(ExclZ, collapse = c(" and ", ", ")[(tst1|tst2)+1L])
+                ExclZ <- paste(ExclZ, collapse = c(" and ", ", ")[(tst1 | tst2)+1L])
                 EXCLZ <- paste0("excluding charges ", ExclZ)
                 if (tst1 || tst2) {
                   EXCLZ <- if (tst1+tst2) { paste0(EXCLZ, " and higher or unassigned,") } else {
@@ -962,14 +1003,14 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                 InclHdr <- msMeth2[InclStrt]
                 InclUnit <- msMeth2[InclStrt+1L]
                 InclMn <- InclStrt+2L
-                InclRg <- grep(" *[0-9]+\\.*[0-9]* +((Posi)|(Nega))tive +", msMeth2[InclMn:length(msMeth2)]) + InclMn - 1L
-                InclMx <- max(InclRg[which(sapply(InclRg, \(x) {
-                  sum(!InclMn:x %in% InclRg) == 0L
-                }))])
+                InclRg <- grep(" *[0-9]+\\.*[0-9]* +(Posi|Nega)tive +", msMeth2[InclMn:length(msMeth2)]) + InclMn - 1L
+                InclMx <- max(InclRg[vapply(InclRg, \(x) {
+                  sum(!InclMn:x %in% InclRg)
+                }, 1L) == 0L])
                 InclWind <- msMeth2[InclMn:InclMx]
                 brks <- unlist(strsplit(InclHdr, ""))
                 l <- length(brks)
-                brks <- which(vapply(2L:l, \(x) { (brks[x] == " ")&(brks[x-1] != " ") }, TRUE))
+                brks <- which(vapply(2L:l, \(x) { (brks[x] == " ") & (brks[x-1L] != " ") }, TRUE))
                 brks <- c(0L, brks)
                 l <- length(brks)
                 InclWind <- as.data.frame(sapply(2L:l, \(x) {
@@ -1015,8 +1056,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
             } else { LC_txt <- paste0(LC_txt, " by direct infusion.") }
           }
           if (MSok) {
-            MS_txt <- paste0("Mass spectra were acquired in positive mode with a Data ", c("D", "Ind")[which(DIAtst)], "ependent Acquisition (D",
-                             c("D", "I")[which(DIAtst)], "A) method: chromatographic peak width = ",
+            MS_txt <- paste0("Mass spectra were acquired in positive mode with a Data ", c("D", "Ind")[DIAtst], "ependent Acquisition (D",
+                             c("D", "I")[DIAtst], "A) method: chromatographic peak width = ",
                              "FWHM ", FWHM, " s, ",
                              "MS1 parameters: ")
             if (!is.na(SPECTTYPE["MS1"])) { MS_txt <- paste0(MS_txt, SPECTTYPE["MS1"], " mode, ") }
@@ -1069,8 +1110,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       })
       thMeth_LC <- vapply(thMeth, \(x) { x$LC }, "")
       thMeth_MS <- vapply(thMeth, \(x) { x$MS }, "")
-      all_LCMS_instr$LC <- unique(c(all_LCMS_instr$LC, thMeth_LC))
-      all_LCMS_instr$MS <- unique(c(all_LCMS_instr$MS, thMeth_MS))
+      all_LCMS_instr$LC <- union(all_LCMS_instr$LC, thMeth_LC)
+      all_LCMS_instr$MS <- union(all_LCMS_instr$MS, thMeth_MS)
       thLCMS_txt <- lapply(thMeth, \(x) { x$Method })
       thLCMS_txt <- do.call(rbind, thLCMS_txt)
       tmp <- thLCMS_txt[, c("LC_txt", "MS_txt")]
@@ -1121,20 +1162,30 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     all_LCMS_txts <- c(all_LCMS_txts, thLCMS_txt)
   }
   if (AddKolKount) {
-    require(openxlsx)
-    Head <- createStyle(textDecoration = c("bold", "underline"))
-    wb <- createWorkbook()
-    addWorksheet(wb, "Sheet1")
-    writeData(wb, "Sheet1", allKolumns, 1L, 1L)
-    addStyle(wb, "Sheet1", Head, 1L, 1L:ncol(allKolumns))
-    tst <- vapply(1L:ncol(allKolumns), \(x) {
-      x1 <- ceiling(nchar(colnames(allKolumns)[x])*1.2)
-      x2 <- ceiling(nchar(allKolumns[[x]])*1.2)
-      return(max(c(x1, min(c(60L, x2), na.rm = TRUE))))
-    }, 1L)
-    setColWidths(wb, "Sheet1", 1L:ncol(allKolumns), tst)
-    try(saveWorkbook(wb, Columns2, TRUE), silent = TRUE) # We do not want the function to fail if this fails, it isn't worth the trouble
-    #openwd(dirname(Columns2))
+    # Save workbook
+    nr <- nrow(allKolumns)
+    nc <- ncol(allKolumns)
+    wb <- openxlsx2::wb_workbook()
+    wb <- openxlsx2::wb_add_worksheet(wb, "Columns")
+    wb <- openxlsx2::wb_add_data_table(wb, "Columns", allKolumns, table_style = "TableStyleMedium5", na.strings = "")
+    wb <- openxlsx2::wb_add_font(wb, "Columns",
+                                 openxlsx2::wb_dims(1L, 1L:nc),
+                                 size = 9L, bold = TRUE, underline = "single")
+    wb <- openxlsx2::wb_add_font(wb, "Columns",
+                                 openxlsx2::wb_dims(1L+(1L:nr), 1L:nc),
+                                 size = 8L)
+    tst <- vapply(1L:nc, \(x) {
+      k <- colnames(allKolumns)[x]
+      x1 <- nchar(k)*0.75
+      x2 <- suppressWarnings(nchar(allKolumns[[x]]))*0.75
+      if (x > 1L) {
+        x2 <- min(c(60L, x2), na.rm = TRUE)
+      }
+      return(round(max(c(x1, x2), na.rm = TRUE), 1L))
+    }, 1)
+    wb <- openxlsx2::wb_set_col_widths(wb, "Columns", 1L:nc, tst)
+    try(openxlsx2::wb_save(wb, Columns2, TRUE), silent = TRUE) # We do not want the function to fail if this fails, it isn't worth the trouble
+    #openxlsx2::xl_open(Columns2)
   }
   #
   if (stopCl) { parallel::stopCluster(cl) }

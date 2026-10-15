@@ -16,11 +16,9 @@
 load_Context <- function(record,
                          startDir,
                          clean = FALSE) {
-  if (clean) { rm(list = ls(), envir = .GlobalEnv) }
-  library(proteoCraft)
   TESTING <- FALSE
-  #DefArg(load_Bckp)
-  #TESTING <- TRUE
+  #DefArg(load_Bckp); TESTING <- TRUE
+  if (clean) { rm(list = setdiff(ls(), c("TESTING", "clean")), envir = .GlobalEnv) }
   misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
@@ -30,7 +28,7 @@ load_Context <- function(record,
   #
   if (misFun(record)) {
     if (misFun(startDir)) {
-      if (exists("wd") && is.character(wd) && dir.exists(wd)) {
+      if (exists("wd") && is.character(wd) && (length(wd) == 1L) && dir.exists(wd)) {
         defltdir <- wd
       } else {
         homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
@@ -44,14 +42,21 @@ load_Context <- function(record,
                                      filter = "Text file (*.txt)")
   }
   record <- readr::read_lines(record)
-  assign("dtstNm", sub("^ *-> *", "", record[grep("^Dataset name:", record)+1L]), envir = .GlobalEnv)
-  assign("inDirs", sub("^ *-> *", "", record[grep("^Input directory:", record)+1L]), envir = .GlobalEnv)
-  assign("outdir", sub("^ *-> *", "", record[grep("^Final output directory:", record)+1L]), envir = .GlobalEnv)
+  assign("dtstNm", sub("^ *-> *", "", record[grep("^Dataset(/project)? name:", record)+1L]), envir = .GlobalEnv)
+  gI1 <- grep("^Input director(y|(ies)):", record)+1L
+  gI2 <- grep("^ *-> *", record, invert = TRUE)
+  gI2 <- min(gI2[gI2 > gI1])-1L
+  assign("inDirs", sub("^ *-> *", "", record[gI1:gI2]), envir = .GlobalEnv)
+  gO <- grep("^Final output directory:", record)
+  if (length(gO)) {
+    assign("outdir", sub("^ *-> *", "", record[gO+1L]), envir = .GlobalEnv)
+  }
   assign("wd", sub("^ *-> *", "", record[grep("^Temporary work directory:", record)+1L]), envir = .GlobalEnv)
   if (!dir.exists(wd)) { dir.create(wd, recursive = TRUE) }
   lapply(inDirs, \(indir) {
     if (!dir.exists(indir)) { warning(paste0("Input directory \"", indir, "\" does not exist!")) }
   })
   setwd(wd)
-  assign(".obj", c(".obj", "dtstNm", "inDirs", "outdir", "wd"), envir = .GlobalEnv)
+  assign(".obj", c(".obj", intersect(c("dtstNm", "inDirs", "outdir", "wd"), ls(envir = .GlobalEnv))),
+         envir = .GlobalEnv)
 }

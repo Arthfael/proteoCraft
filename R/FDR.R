@@ -22,7 +22,11 @@
 #' Can also perform the Benjamini-Yekutieli procedure - when under positive dependence assumptions.
 #' 
 #' @returns
-#' A list with 3 elements ("Significance vector", "Thresholds" and "Adj. P-values") or, if SIMPLIFY = TRUE and sum(returns) == 1, the single element of the list to return.
+#' Either a list of up to elements:\cr
+#' - "Significance vector"\cr
+#' - "Thresholds"\cr
+#' - "Adj. P-values"\cr
+#' or, if SIMPLIFY = TRUE and sum(returns) == 1, the single element of the list to return.
 #' 
 #' @examples
 #' temp <- FDR(data = PG,
@@ -61,7 +65,7 @@ FDR <- function(data,
   reqFDR <- sum(returns[1L:2L])
   if (reqFDR) {
     suppressWarnings(fdr <- as.numeric(fdr) )
-    fdr <- fdr[which(!is.na(fdr))]
+    fdr <- fdr[!is.na(fdr)]
     lFDR <- length(fdr)
     stopifnot(lFDR > 0L,
               sum(fdr <= 0) == 0L)
@@ -149,7 +153,7 @@ FDR <- function(data,
         names(thresh)[j] <- paste0("Threshold-FDR=", fdr[j]*100, end)
         signifKols[j] <- signifKol <- paste0("Significant-FDR=", fdr[j]*100, end)
         P[[signifKol]] <- ""
-        P[which(P$Rank <= BH.rank[[fdrKol]]),
+        P[P$Rank <= BH.rank[[fdrKol]],
           signifKol] <- "+"
       }
     }

@@ -21,6 +21,7 @@
 #' @param intCol Which intensity column to use? Default = "Intensity"
 #' 
 #' @import data.table
+#' 
 #' @export
 
 Pepper_TrainingData <- function(Ev,

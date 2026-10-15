@@ -19,13 +19,13 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #     m <- median(m[is.finite(m)])
 #     #m <- mlv(pep[is.finite(pep[[k]]), k], method = "Parzen")[1L]
 #     pep[w, paste0("norm. ", k)] <- pep[w, k]-m
-#     Norm.log2.Pep.Ratios[paste0(nrmgrp, " - ", gsub(topattern(pep.ratios.ref[1L]), "", k))] <- m
+#     Norm.log2.Pep.Ratios[paste0(nrmgrp, " - ", sub(topattern(pep.ratios.ref[1L]), "", k))] <- m
 #   }
 # }
 # pep.ratios.ref <- unique(c(pep.ratios.ref, paste0("norm. ", pep.ratios.ref[1L])))
 # # Step 2
 # # Optional advanced normalisation:
-# if (("Adv.Norma.Pep.Ratio" %in% colnames(Param))&&(Param$Adv.Norma.Pep.Ratio != FALSE)) {
+# if (("Adv.Norma.Pep.Ratio" %in% colnames(Param)) && (Param$Adv.Norma.Pep.Ratio != FALSE)) {
 #   if (Param$Adv.Norma.Pep.Ratio.Type == "C") {
 #     k <- Adv.Norma.Pep.Ratio.Type.Group$column
 #     test <- vapply(Adv.Norma.Pep.Ratio.Type.Group$values, \(i) { #i <- Adv.Norma.Pep.Ratio.Type.Group$values[1L]
@@ -48,7 +48,7 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #                       Adv.Norma.Pep.Ratio.Type.Group$names)
 #         temp <- lapply(Adv.Norma.Pep.Ratio.Type.Group$names, \(x) {
 #           if (j[[x]] == "NA") {
-#             return(which((is.na(Exp.map[[x]]))|(Exp.map[[x]] == j[[x]])))
+#             return(which(is.na(Exp.map[[x]]) | (Exp.map[[x]] == j[[x]])))
 #           }
 #           return(which(Exp.map[[x]] == j[[x]]))
 #         })
@@ -66,11 +66,11 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #       }
 #       if (length(kol) > 1L) {
 #         temp2 <- temp <- pep[, c("Modified sequence", kol)]
-#         colnames(temp2) <- gsub("^AdvNorm\\.norm\\.", "AdvNorm. ", colnames(temp2))
+#         colnames(temp2) <- sub("^AdvNorm\\.norm\\.", "AdvNorm. ", colnames(temp2))
 #         for (nrmgrp in unique(pep$`Normalisation group`)) {
 #           w <- which(pep$`Normalisation group` == nrmgrp)
 #           tmp <- AdvNorm.IL(temp[w,], "Modified sequence", kol, TRUE, 5L)
-#           colnames(tmp) <- gsub("^AdvNorm\\.norm\\.", "AdvNorm. ", colnames(tmp))
+#           colnames(tmp) <- sub("^AdvNorm\\.norm\\.", "AdvNorm. ", colnames(tmp))
 #           temp2[w, colnames(tmp)] <- tmp[, colnames(tmp)]
 #         }
 #         #cat("Advanced peptides ratio normalisation done for samples group", x, "\n")
@@ -93,7 +93,7 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #                   unlist(Aggregate.map$Characteristics[Aggregate.map$Aggregate.Name == Ratios.Plot.split$aggregate]))
 #     k <- lapply(names(j), \(x) {
 #       if (j[[x]] == "NA") {
-#         return(which((is.na(Exp.map[[x]]))|(Exp.map[[x]] == j[[x]])))
+#         return(which(is.na(Exp.map[[x]]) | (Exp.map[[x]] == j[[x]])))
 #       }
 #       return(which(Exp.map[[x]] == j[[x]]))
 #     })
@@ -139,7 +139,7 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #         scale_fill_viridis_d(begin = 0.25) +
 #         facet_grid(. ~ Norm, scales = "free", space = "free") +
 #         ggtitle(ttl)
-#       if (length(unique(temp$Wrap)) > 1) { plot <- plot + facet_wrap(~Wrap) }
+#       if (length(unique(temp$Wrap)) > 1L) { plot <- plot + facet_wrap(~Wrap) }
 #       print(plot) # This type of QC plot does not need to pop up, the side panel is fine
 #       suppressMessages({
 #         ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".svg"), plot,
@@ -178,8 +178,7 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #       ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".svg"), plot,
 #              dpi = 300L, width = 10L, height = 10L, units = "in")
 #     })
-#     l <- length(DatAnalysisTxt)
-#     DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l], " Peptide ratios were then re-normalized.")
+#     DatAnalysisTxt$pepRatNorm <- "Peptide ratios were then re-normalized."
 #   } else { warning("Nothing to plot for Reference-to-Reference ratios!") }
 # }
 

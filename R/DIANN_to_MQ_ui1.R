@@ -1,11 +1,11 @@
-#' DIANN_to_MQ_ui1
+#' .DIANN_to_MQ_ui1
 #'
 #' @description 
 #' Function to return UI for app used to deciding whether to update PTM marks.
 #' 
-#' @export
+#' @param dflt Default value for the radio button.
 
-DIANN_to_MQ_ui1 <- function(dflt = tstMap) {
+.DIANN_to_MQ_ui1 <- function(dflt = tstMap) {
   if (!dflt %in% c("yes", "no")) { dlft <- "yes" }
   return(shiny::shinyUI(shiny::fluidPage(
     shinyjs::useShinyjs(),
@@ -15,9 +15,7 @@ DIANN_to_MQ_ui1 <- function(dflt = tstMap) {
       gradient = "linear",
       direction = "bottom"
     ),
-    shinyjs::extendShinyjs(text = paste(readLines(system.file("extdata",
-                                                              "jsToggleFS.txt", package = "proteoCraft")),
-                                        collapse = "\n"),
+    shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
                            functions = c("toggleFullScreen")),
     shiny::titlePanel(""),
     shiny::mainPanel(shiny::br(),

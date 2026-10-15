@@ -3,7 +3,7 @@
 \name{protQuant}
 \alias{protQuant}
 \title{protQuant
-We are shifting to running this code as a source now because the parallelisation within function as often was erratic.
+We are shifting to running this code as a source now because the parallelisation within function as often was erratic.\cr
 However, this should be kept even once fully "retired" in scripts as the source currently still uses this function's default arguments!}
 \usage{
 protQuant(
@@ -182,15 +182,15 @@ NB on re-scaling:\cr
 \cr}
 }
 \value{
-A list:
- - "Data": output quantitative data.
- - "EList_obj": EList object, only present if LFQ_algo or reScaling = "limpa"
- - "QFeatures_obj": QFeatures object, only present if LFQ_algo or reScaling  = "QFeatures"
+A list:\cr
+ - "Data": output quantitative data.\cr
+ - "EList_obj": EList object, only present if LFQ_algo or reScaling = "limpa"\cr
+ - "QFeatures_obj": QFeatures object, only present if LFQ_algo or reScaling  = "QFeatures"\cr
  - "MSstats": list created by MSstats::dataProcess()
 }
 \description{
-A function to calculate estimated protein group Expression (inter-protein group quantitation vectors) from individual peptide values.
-For legacy reasons, the function can also output Ratios.
+A function to calculate estimated protein group Expression (inter-protein group quantitation vectors) from individual peptide values.\cr
+For legacy reasons, the function can also output Ratios.\cr
 The input is assumed to already be normalized!\cr
 }
 \examples{

@@ -369,7 +369,7 @@ if (!skipRatios) {
   if (Priority == "rat") { stopifnot(length(Pep.Ratios.Nms) > 0L) }
 }
 #
-Pep$Unmod_Seq <- if ("Sequence" %in% colnames(Pep)) { Pep$Sequence } else { gsub("^_|_$|\\([^\\)]+\\)", "", Pep[[mod_Seq]]) }
+Pep$Unmod_Seq <- if ("Sequence" %in% colnames(Pep)) { Pep$Sequence } else { gsub("^_|_$|\\([^)]+\\)", "", Pep[[mod_Seq]]) }
 #
 #
 # Make temporary protein-to-peptide list

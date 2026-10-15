@@ -23,7 +23,7 @@ nr <- nrow(FracMap)
 rws <- seq_len(nr)
 chRws <- as.character(rws)
 # Original table column widths
-wTest0 <- setNames(vapply(colnames(FracMap), \(k) { #k <- colnames(FracMap)[1]
+wTest0 <- setNames(vapply(colnames(FracMap), \(k) { #k <- colnames(FracMap)[1L]
   tmp <- FracMap[[k]]
   if (is.logical(tmp)) { tmp <- as.integer(tmp) }
   tmp <- as.character(tmp)
@@ -73,7 +73,8 @@ ui <- shinyUI(fluidPage(titlePanel(tag("u", FracMapNm),
                           gradient = "linear",
                           direction = "bottom"
                         ),
-                        extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+                        extendShinyjs(text = jsFun$toggle_full_screen,
+                                      functions = c("toggleFullScreen")),
                         mainPanel(
                           withSpinner(DT::DTOutput("myFracMap", width = wTest2)),
                           br(),

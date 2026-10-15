@@ -28,10 +28,10 @@ if (runPepper) {
   trainParam <- sapply(args, \(arg) {
     sapply(seq_along(g), \(x) {
       h <- grep(paste0("--", arg), trainParam)
-      h <- gsub(paste0(".*'--", arg, "' +"), "", trainParam[intersect(h %in% g[x]:c(g, l)[x+1L])])
+      h <- sub(paste0(".*'--", arg, "' +"), "", trainParam[intersect(h %in% g[x]:c(g, l)[x+1L])])
       pat1 <- paste0("^", substr(h, 1L, 1L))
       pat2 <- paste0(substr(h, 1L, 1L), ".*$")
-      h <- gsub(pat2, "", gsub(pat1, "", h))
+      h <- sub(pat2, "", sub(pat1, "", h))
       return(h)
     })
   })
@@ -107,7 +107,7 @@ if (runPepper) {
     kount <- kount + 1L
   }
   Step1Tries <- L # Update it if we got any bonus tests
-  GrdSrch <- as.data.frame(t(sapply(strsplit(gsub("\\.tsv$", "", GrdSrchFls), "_"), \(x) {
+  GrdSrch <- as.data.frame(t(sapply(strsplit(sub("\\.tsv$", "", GrdSrchFls), "_"), \(x) {
     x <- unlist(x)
     x <- suppressWarnings(as.numeric(x))
     x <- x[!is.na(x)]
@@ -140,7 +140,7 @@ if (runPepper) {
     N <- Step1Tries + Step2Tries - L
     kount <- kount + 1L
   }
-  GrdSrch <- as.data.frame(t(sapply(strsplit(gsub("\\.tsv$", "", GrdSrchFls), "_"), \(x) {
+  GrdSrch <- as.data.frame(t(sapply(strsplit(sub("\\.tsv$", "", GrdSrchFls), "_"), \(x) {
     x <- unlist(x)
     x <- suppressWarnings(as.numeric(x))
     x <- x[!is.na(x)]
@@ -196,11 +196,11 @@ if (runPepper) {
   if (length(G)) {
     for (g in G) { #g <- G[1L]
       tmp <- TrCoeff[g]
-      arg <- gsub("\'.*", "", gsub(paste0(basePat, "\'--"), "", tmp))
+      arg <- sub("\'.*", "", sub(paste0(basePat, "\'--"), "", tmp))
       stopifnot(nchar(arg) > 0L)
-      val <- unlist(strsplit(tmp, "[,\\(] *default *= *"))
+      val <- unlist(strsplit(tmp, "[,(] *default *= *"))
       if (!length(val) == 2L) { stop(paste0("No default for argument ", arg, "! Give me a hand here, human!")) }
-      val <- gsub(" *[,\\)].*", "", val[2L])
+      val <- sub(" *[,)].*", "", val[2L])
       if (tst1) {
         if (tst2) { TrCoeff[g] <- paste0(arg, " = float(", val, ")") } else {
           TrCoeff[g] <- paste0(arg, " = int(", val, ")")
@@ -318,11 +318,11 @@ if (runPepper) {
   if (length(G)) {
     for (g in G) { #g <- G[1L]
       tmp <- TrsfrCoeff[g]
-      arg <- gsub("\'.*", "", gsub(paste0(basePat, "\'--"), "", tmp))
+      arg <- sub("\'.*", "", sub(paste0(basePat, "\'--"), "", tmp))
       stopifnot(nchar(arg) > 0L)
-      val <- unlist(strsplit(tmp, "[,\\(] *default *= *"))
+      val <- unlist(strsplit(tmp, "[,(] *default *= *"))
       if (!length(val) == 2L) { stop(paste0("No default for argument ", arg, "! Give me a hand here, human!")) }
-      val <- gsub(" *[,\\)].*", "", val[2L])
+      val <- sub(" *[,)].*", "", val[2L])
       if (tst1) {
         if (tst2) { TrsfrCoeff[g] <- paste0(arg, " = float(", val, ")") } else {
           TrsfrCoeff[g] <- paste0(arg, " = int(", val, ")")
@@ -374,7 +374,7 @@ if (runPepper) {
   # Adj. int. = int. / coeff!!!
   tmp <- read.delim(coeffFl)
   colnames(tmp) <- c("ID", "Pepper coefficient")
-  tmp$ID <- as.integer(gsub("^id_", "", tmp$ID))
+  tmp$ID <- as.integer(sub("^id_", "", tmp$ID))
   tmp$ModSeq <- ev$"Modified sequence"[match(tmp$ID, ev$id)]
   #
   ttl <- "Pepper - distribution of coefficients"

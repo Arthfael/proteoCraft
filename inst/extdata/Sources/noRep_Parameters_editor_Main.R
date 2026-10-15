@@ -6,6 +6,11 @@ require(shinyjs)
 require(shinyBS)
 require(htmlwidgets)
 #
+# Check whether packages necessary for optional analyses are installed
+Src <- paste0(libPath, "/extdata/Sources/optPkgs_check.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
+#
 Exp %<o% unique(SamplesMap$Experiment)
 nSmpls <- length(Exp)
 moreThan1Exp %<o% (length(Exp) > 1L)
@@ -23,7 +28,7 @@ source(Src)
 # Species
 SpeciesTst %<o% "Unspecified"
 if ("Taxonomy" %in% colnames(db)) {
-  SpeciesTst <- unique(db$Taxonomy[gsub(" *(\\(|\\[).*", "", db[[dbOrgKol]]) == mainOrg])
+  SpeciesTst <- unique(db$Taxonomy[sub(" *[([].*", "", db[[dbOrgKol]]) == mainOrg])
   SpeciesTst <- SpeciesTst[as.character(SpeciesTst) != "NA"][1L]
 }
 if ("Kingdom" %in% colnames(db)) {
@@ -59,7 +64,7 @@ if ("PTMs to exclude from quantitation" %in% names(AnalysisParam)) {
 ptmDflt2 <- paste(grep("^[Pp]hospho", Modifs$`Full name`, value = TRUE), collapse = ";")
 #
 klustChoices %<o% c("K-means", "hierarchical")
-KlustMeth %<o% 1 # Changed from 2
+KlustMeth %<o% 1L # Changed from 2L
 #
 if (Annotate) {
   allGO <- unique(unlist(strsplit(db$GO[!is.na(db$GO)], ";")))
@@ -76,7 +81,7 @@ pr <- c("Norma.Ev.Intens", "Norma.Pep.Intens", "Adv.Norma.Pep.Intens", "Norma.Pr
         "Adv.Norma.Prot.Intens", "Adv.Norma.Ev.Intens",
         "Norma.Pep.Ratio", "Adv.Norma.Pep.Ratio", "Norma.Prot.Ratio.to.Biot")
 prDflt <- setNames(rep(TRUE, length(pr)), pr)
-prDflt["Adv.Norma.Ev.Intens"] <- (length(unique(FracMap$Fraction)) > 1L)|
+prDflt["Adv.Norma.Ev.Intens"] <- (length(unique(FracMap$Fraction)) > 1L) |
   (length(unique(FracMap$`PTM-enriched`)) > 1L)
 prDflt[c("Norma.Pep.Ratio", "Adv.Norma.Pep.Ratio", "Norma.Prot.Ratio.to.Biot")] <- FALSE
 for (p in pr) { #p <- pr[1L]
@@ -207,7 +212,7 @@ reScMsg <- function(Rescale, Quant) {
   return("???... WHAT?!")
 }
 if (!validLogicPar("reScale")) {
-  reScale <- (quantAlgo != reScAlgo)|(quantAlgo == "LM")
+  reScale <- (quantAlgo != reScAlgo) | (quantAlgo == "LM")
 }
 # Top-N
 if ((!validIntegPar("topN")) && ("topN" %in% names(AnalysisParam))) {
@@ -404,7 +409,7 @@ if ("Proteins list: remove match-between-runs" %in% names(AnalysisParam)) {
 }
 AnalysisParam$"Proteins list: remove match-between-runs" <- removeMBR
 #
-NormalizePG %<o% ((WorkFlow != "Band ID")&(moreThan1Exp))
+NormalizePG %<o% ((WorkFlow != "Band ID") & moreThan1Exp)
 if ("NormalizePG" %in% names(AnalysisParam)) {
   NormalizePG <- as.logical(AnalysisParam$NormalizePG)
   if (is.na(NormalizePG) || is.null(NormalizePG) || (!moreThan1Exp)) { NormalizePG <- moreThan1Exp }
@@ -450,7 +455,7 @@ Venn_Obs <- moreThan1Exp # No matter the parameters, if there is only one sample
 Venn_Obs <- as.logical(Venn_Obs)
 if (is.na(Venn_Obs) || is.null(Venn_Obs)) { Venn_Obs <- FALSE }
 AnalysisParam$"Venn diagrams: observed" <- Venn_Obs
-Venn_Obs %<o% Venn_Obs
+Venn_Obs <- Venn_Obs & pkgsCheck["Venn"]
 #
 # Some default parameters which nicely follow the same structure
 myPar <- c("Pepper", "GSEA", "ProfPlots", "RankAbundPlots", "ClueGO")
@@ -473,7 +478,7 @@ for (parI in myPar) {
     parOK <- (length(tmpPar) == 1L) && is.logical(tmpPar) && (!is.na(tmpPar))
   }
   if (parOK) { par_dflt <- tmpPar }
-  # Backup value
+  # Backup value in case the previous operations failed somehow
   if (is.na(par_dflt)) { par_dflt <- par_dflt2 }
   #
   if (!parOK) { assign(parNm, par_dflt) }
@@ -494,7 +499,8 @@ make_ui <- function() {
     tags$head(tags$style(".inner.open {
             overflow-y: hidden !important;
         }")),
-    extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+    extendShinyjs(text = jsFun$toggle_full_screen,
+                  functions = c("toggleFullScreen")),
     titlePanel(tag("u", "Parameters"),
                appNm),
     h2(dtstNm), 
@@ -632,12 +638,12 @@ make_ui <- function() {
                             klustChoices,
                             klustChoices[1L], TRUE, "100%"))
       },
-      if (Annotate) {
+      if (Annotate && pkgsCheck["GSEA"]) {
         column(2L,
                checkboxInput("runGSEA", "Run Gene Set Enrichment Analysis (GSEA)?", runGSEA, "100%"))
       }
     ),
-    if (moreThan1Exp) {
+    if (moreThan1Exp && pkgsCheck["Venn"]) {
       checkboxInput("Venn_Obs", "Draw Venn diagrams?", Venn_Obs, "100%")
     },
     br(),
@@ -969,13 +975,15 @@ server1 <- function(input, output, session) {
   #   PARAM(Par)
   # })
   # GSEA
-  observeEvent(input$runGSEA, {
-    runGSEA <- as.logical(input$runGSEA)
-    assign("runGSEA", runGSEA, envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$runGSEA <- runGSEA
-    PARAM(Par)
-  })
+  if (Annotate && pkgsCheck["GSEA"]) {
+    observeEvent(input$runGSEA, {
+      runGSEA <- as.logical(input$runGSEA)
+      assign("runGSEA", runGSEA, envir = .GlobalEnv)
+      Par <- PARAM()
+      Par$runGSEA <- runGSEA
+      PARAM(Par)
+    })
+  }
   # Profile plots
   observeEvent(input$runProfPlots, {
     runProfPlots <- as.logical(input$runProfPlots)
@@ -1064,13 +1072,15 @@ server1 <- function(input, output, session) {
     })
   }
   #
-  observeEvent(input$Venn_Obs, {
-    Venn_Obs <- as.logical(input$Venn_Obs)
-    assign("Venn_Obs", Venn_Obs, envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$"Venn diagrams: observed" <- Venn_Obs
-    PARAM(Par)
-  })
+  if (moreThan1Exp && pkgsCheck["Venn"]) {
+    observeEvent(input$Venn_Obs, {
+      Venn_Obs <- as.logical(input$Venn_Obs)
+      assign("Venn_Obs", Venn_Obs, envir = .GlobalEnv)
+      Par <- PARAM()
+      Par$"Venn diagrams: observed" <- Venn_Obs
+      PARAM(Par)
+    })
+  }
   # PTMs to use for PG Quant
   observeEvent(input$PTMsQuant, {
     m4Quant(Modifs$Mark[match(unlist(input$PTMsQuant), Modifs$`Full name`)])
@@ -1133,7 +1143,7 @@ server1 <- function(input, output, session) {
   #observeEvent(input$cancel, { stopApp() })
   session$onSessionEnded(function() { stopApp() })
 }
-appTxt1 <- gsub("myApp", "myApp1", gsub("\\(ui", "(ui1", gsub(", server", ", server1", run_App)))
+appTxt1 <- sub("myApp", "myApp1", sub("\\(ui", "(ui1", sub(", server", ", server1", run_App)))
 runKount <- 0L
 while ((!runKount) || (!exists("appRunTest"))) {
   ui1 <- make_ui() # Update ui with new values
@@ -1182,7 +1192,7 @@ if (prot.list.Cond) {
 if (runClueGO && (!enrichGO)) { runClueGO <- FALSE }
 #
 custPGs_file %<o% AnalysisParam$Custom.PGs
-custPGsTst <- (!is.na(custPGs_file))&(file.exists(custPGs_file))
+custPGsTst <- (!is.na(custPGs_file)) & file.exists(custPGs_file)
 if (custPGsTst) {
   if (dirname(custPGs_file) != wd) {
     file.copy(custPGs_file, wd)
@@ -1212,6 +1222,37 @@ AnalysisParam$"Venn diagrams: regulated (down)" <- Venn_Ratios & RatiosThresh_2s
 #
 AnalysisParam$"PTMs eligible for quantitation" <- Mod4Quant
 AnalysisParam$"PTMs to exclude from quantitation" <- Mod2Xclud
+
+# Override any optional analysis for which the package check was failed, independent of which value parameters may have
+# - Rerun package checks just in case
+pkgsCheck <- (vapply(opt_Pkgs, \(pkgs) {
+  sum(!vapply(pkgs, \(pkg) { requireNamespace(pkg) }, TRUE))
+}, 1L) == 0L)
+# - Then apply overrides if necessary
+if(!pkgsCheck["topGO"]) {
+  if (GOenrich) { warning("Turning off topGO-based GO enrichment:\n -> some necesary packages are missing") }
+  if (globalGO) { warning("Turning off topGO-based GO enrichment:\n -> some necesary packages are missing") }
+  GOenrich <- FALSE
+  globalGO <- FALSE
+}
+if ((!CytoScape) || (!pkgsCheck["ClueGO"])) {
+  if (runClueGO) {
+    msg <- "Turning off clueGO:\n"
+    if (!CytoScape) { msg <- paste0(, " -> Cytoscape is missing") }
+    if (!pkgsCheck["ClueGO"]) { msg <- paste0(, " -> some necesary packages are missing") }
+  }
+  runClueGO <- FALSE
+}
+if (!pkgsCheck["GSEA"]) {
+  if (runGSEA) { warning("Turning off GSEA:\n -> some necesary packages are missing") }
+  runGSEA <- FALSE
+}
+if (!pkgsCheck["WGCNA"]) {
+  if (runWGCNA) { warning("Turning off WGCNA:\n -> some necesary packages are missing") }
+  runWGCNA <- FALSE
+}
+# runSTRINGdb %<o% pkgsCheck["STRINGdb"] # Not currently implemented in this workflow
+# pkgsCheck["Venn"] is being handled differently - see above (it bypasses/hides the parameter)
 
 # Experiments
 SamplesMapPath %<o% paste0(wd, "/SamplesMap.csv")

@@ -12,7 +12,8 @@ MatMet_LCMS(
   Columns = "default",
   N.clust,
   N.reserved = 1L,
-  cl
+  cl,
+  DIATxt_verbose = FALSE
 )
 }
 \arguments{
@@ -31,16 +32,18 @@ MatMet_LCMS(
 \item{N.reserved}{Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.}
 
 \item{cl}{Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!}
+
+\item{DIATxt_verbose}{Logical, default = FALSE. If TRUE, for Bruker files the DIA isolation windows table is written into the text as a horrendously clumsy chunk of text. This is not really necessary, because anyway the scheme can be extracted from the files by anyone with a modicum of skill.}
 }
 \value{
-A list with two entries:
-- "Text": the text for each LCMS method
-- "Instruments": all LC and MS instrument models.
+A list with two entries:\cr
+- "Text": the text for each LCMS method\cr
+- "Instruments": all LC and MS instrument models
 }
 \description{
-A function to write the LC-MS part of Materials & Methods, pulling information from the methods file.
-
-Note to self:
+A function to write the LC-MS part of Materials & Methods, pulling information from the methods file.\cr
+\cr
+Note to self:\cr
 !!! When editing function, always save with UTF-8 encoding!!!
 }
 \details{

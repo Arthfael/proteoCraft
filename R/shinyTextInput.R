@@ -23,10 +23,10 @@ shinyTextInput <- function(startVal,
                            root,
                            width) {
   l <- length(startVal)
-  stopifnot(l > 0)
+  stopifnot(l > 0L)
   rg <- seq_len(l)
   ids <- paste0(root, "___", as.character(rg))
-  inputs <- vapply(rg, function(i) {
+  inputs <- vapply(rg, \(i) {
     as.character(shiny::textInput(ids[i],
                                   "",
                                   startVal[i],

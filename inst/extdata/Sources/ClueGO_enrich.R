@@ -58,7 +58,7 @@ if (clueGOahead) {
           tmpDat <- parentData[myFlt,]
         }
         if ("Potential contaminant" %in% colnames(tmpDat)) {
-          w <- which((is.na(tmpDat$"Potential contaminant"))|(tmpDat$"Potential contaminant" != "+"))
+          w <- which(is.na(tmpDat$"Potential contaminant") | (tmpDat$"Potential contaminant" != "+"))
           tmpDat <- tmpDat[w,]
         }
         if (ii == 1L) {
@@ -68,7 +68,7 @@ if (clueGOahead) {
           IDs_lst <- unique(unlist(strsplit(tmpDat[, parentCol], ";"))) # inherited from GO_enrich.R, which should always be run before!
         }
         #
-        IDs_lst <- grep("^((cRAP)|(CON__))", IDs_lst, value = TRUE, invert = TRUE)
+        IDs_lst <- grep("^(cRAP|CON__)", IDs_lst, value = TRUE, invert = TRUE)
         IDs_lst <- IDs_lst[IDs_lst != "NA"]
         #writeClipboard(IDs_lst)
         if (ii == 1L) {
@@ -145,7 +145,7 @@ if (clueGOahead) {
           rqst <- paste(cytoscp_URL, "networks", currNtwrk_SUID, "views", paste0("first.", imgType), sep = "/")
           response <- httr::GET(rqst)
           if (httr::http_status(response)$category != "Success") { Sys.sleep(2L) }
-          imgFl <- gsub("\\.cx$", paste0("_", names(visStyles)[j], ".", imgType), cxFl)
+          imgFl <- sub("\\.cx$", paste0("_", names(visStyles)[j], ".", imgType), cxFl)
           writeBin(httr::content(response, encode = "raw"), imgFl)
           # Adjust svg's default display size - (not sure this works)
           a <- readLines(imgFl)

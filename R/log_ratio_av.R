@@ -12,9 +12,9 @@
 
 log_ratio_av <- function(x) {
   x1 <- as.numeric(unlist(x))
-  x1 <- x1[which(is.finite(x1))]
+  x1 <- x1[is.finite(x1)]
   if (length(x1)) { x1 <- mean(x1) } else {
-    x1 <- unique(x[which(!is.na(x))])
+    x1 <- unique(x[!is.na(x)])
     if (length(x1) != 1L) { x1 <- NA_real_ }
   }
   return(x1)

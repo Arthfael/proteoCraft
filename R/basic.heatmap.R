@@ -137,10 +137,10 @@ basic.heatmap <- function(matr,
                  value = as.vector(matr2)) # Complicated, but works nicely and avoids warnings
   colnames(matr3) <- c("Row", "Column", "value")
   lim <- as.numeric(matr3$value)
-  lim <- ceiling(max(abs(lim[which(is.finite(lim))])))
-  matr3$value[which((!is.finite(matr3$value)) & (matr3$value < 0))] <- -lim
-  matr3$value[which((!is.finite(matr3$value)) & (matr3$value > 0))] <- lim
-  matr3$value[which(is.na(matr3$value))] <- NA_real_
+  lim <- ceiling(max(abs(lim[is.finite(lim)])))
+  matr3$value[(!is.finite(matr3$value)) & (matr3$value < 0)] <- -lim
+  matr3$value[(!is.finite(matr3$value)) & (matr3$value > 0)] <- lim
+  matr3$value[is.na(matr3$value)] <- NA_real_
   matr3$Y <- Nrow:1L
   matr3$X <- as.numeric(sapply(1L:Ncol, \(x) { rep(x, Nrow) })) + h.Marg[1L]
   ttlX <- (h.Marg[1L] + 1L)/2
@@ -154,7 +154,7 @@ basic.heatmap <- function(matr,
   #                                           limits = c(min(colDF$RangeVal), max(colDF$RangeVal)),
   #                                           na.value = na.colour)
   #
-  if (normRows) { colnames(matr3)[which(colnames(matr3) == "value")] <- "normValue" }
+  if (normRows) { colnames(matr3)[colnames(matr3) == "value"] <- "normValue" }
   plot <- ggplot2::ggplot(matr3)
   # Cells
   plot <- if (normRows) {

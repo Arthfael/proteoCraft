@@ -19,12 +19,12 @@
 abbrOrg <- function(x,
                     sep = ";") { #x <- tstOrg2
   x <- strsplit(x, sep)
-  return(vapply(x, \(y) { #y <- x[[1]]
-    y <- strsplit(gsub(" *\\([^\\)]*\\)", "", y), "")
+  return(vapply(x, \(y) { #y <- x[[1l]]
+    y <- strsplit(gsub(" *\\([^)]*\\)", "", y), "")
     y <- vapply(y, \(z) { #z <- y[[1]]
       g1 <- grep("[A-Z]", z)
       g2 <- grep("[a-z]", z)
-      w1 <- g2[which((g2-1L) %in% g1)]
+      w1 <- g2[(g2-1L) %in% g1]
       z[w1] <- "."
       gsub("\\.[^ ]+", ".", paste(z, collapse = ""))
     }, "")

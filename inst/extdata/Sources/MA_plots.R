@@ -217,7 +217,7 @@ for (grp in grps) { #grp <- grps[1L]
       ggsave(paste0(fl, ".svg"), plot, width = 10L, units = "in")
       return(fl)
     })
-    # You could then visualize those individually in the parameters app as opposed to seeing a very zoomed out facet plot
+    # You could then visualize those individually in the parameters app as opposed to seeing a very zoomed-out facet plot
     plot$data <- tmpDat
     plot <- if (length(wrpKl) == 1L) {
       plot + facet_wrap(as.formula(paste0(" ~ ", wrpKl2)), drop = TRUE)

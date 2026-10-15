@@ -14,7 +14,7 @@ saveImgFun(file, N.clust, N.reserved = 1L)
 \item{N.reserved}{Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.}
 }
 \description{
-Function to save all objects in the environment quickly.
+Function to save all objects in the environment quickly.\cr
 The backend used is qs2::qs_savem under Windows and fastSave::save.lbzip2 under Linux.
 }
 \examples{

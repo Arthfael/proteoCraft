@@ -103,7 +103,8 @@ if (length(Iso) <= 1L) {
       gradient = "linear",
       direction = "bottom"
     ),
-    extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+    extendShinyjs(text = jsFun$toggle_full_screen,
+                  functions = c("toggleFullScreen")),
     tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
     titlePanel(tag("u", appNm),
                appNm),
@@ -300,7 +301,8 @@ Shiny.bindAll(table.table().node());"))
       gradient = "linear",
       direction = "bottom"
     ),
-    extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+    extendShinyjs(text = jsFun$toggle_full_screen,
+                  functions = c("toggleFullScreen")),
     tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
     titlePanel(tag("u", appNm),
                appNm),

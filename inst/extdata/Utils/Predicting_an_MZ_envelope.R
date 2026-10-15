@@ -1,9 +1,9 @@
 # This may evolve into a full function
-require(reshape2)
-require(gtools)
-require(ggplot2)
-require(svDialogs)
-require(proteoCraft)
+library(reshape2)
+library(gtools)
+library(ggplot2)
+library(svDialogs)
+library(proteoCraft)
 
 RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
@@ -24,7 +24,7 @@ Seq <- "MGNIFANLFKGLFGKKEMRILMVGLDAAGKTTILYKLKLGEIVTTIPTIGFNVETVEYKNISFTVWDVGGQD
 # Add to this table each time I need a new element
 # e.g.:
 temp <- c("F", "18.9984031629_1")
-if (!temp[1] %in% IsotopeProbs$Atom) {
+if (!temp[1L] %in% IsotopeProbs$Atom) {
   L <- length(temp)
   Nc <- ncol(IsotopeProbs)
   if (L < Nc) { temp <- c(temp, rep("", Nc-L)) }
@@ -52,45 +52,37 @@ AACounts <- AACounts[order(AACounts$AA),]
 AACounts
 
 # Choose type of mass:
-alkTbl <- data.frame(Alk = c("IAM", "NEM", "CAM", "MMTS", "iST_NHS"),
-                     Full_name = c("Iodoacetamide", "N-Ethylmaleimide", "Chloroacetamide", "Methyl methanethiosulfonate", "Proprietory alkylating agent from iST-NHS kit"),
-                     C = c(2, 6, 2, 1, 6),
-                     H = c(3, 7, 3, 2, 11),
-                     N = c(1, 1, 1, 0, 1),
-                     O = c(1, 2, 1, 0, 1),
-                     S = c(0, 0, 0, 1, 0))
-
 Native <- FALSE
 Alkylator <- FALSE
-nCfree <- 0
+nCfree <- 0L
 if (grepl("C", Seq)) {
   msg <- "Is the protein denatured?"
   Native <- !c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
   if (Native) {
     nC <- AACounts$Count[match("C", AACounts$AA)]
-    if (nC > 1) {
+    if (nC > 1L) {
       nIntra2Smax <- floor(nC/2)
       msg <- paste0("There are ", nC, " cysteines in the protein, how many intra-molecular disulfide bonds (1-",
                     nIntra2Smax, ") do you expect?")
       nIntra2S <- as.integer(dlg_input(msg, n2Smax)$res)
-      while((!is.integer(nIntra2S))||(!nIntra2S %in% 1:n2Smax)) { nIntra2S <- as.integer(dlg_input(msg, nIntra2Smax)$res) }
-    } else { nIntra2S <- 0 }
+      while((!is.integer(nIntra2S))||(!nIntra2S %in% 1L:n2Smax)) { nIntra2S <- as.integer(dlg_input(msg, nIntra2Smax)$res) }
+    } else { nIntra2S <- 0L }
     nCfree <- nC-2*nIntra2S
     if (nCfree) {
-      msg <- paste0("There ", c("is", "are still")[(nC > 1)+1], " " , nCfree, " free cysteine", c("", "s")[(nC > 1)+1],
+      msg <- paste0("There ", c("is", "are still")[(nC > 1L)+1L], " " , nCfree, " free cysteine", c("", "s")[(nC > 1L)+1L],
                     " in the protein, how many inter-molecular disulfide bonds (0-", nCfree, ") do you expect?")
-      nInter2S <- as.integer(dlg_input(msg, 0)$res)
-      while((!is.integer(nInter2S))||(!nInter2S %in% 0:nCfree)) { nInter2S <- as.integer(dlg_input(msg, 0)$res) }
-    } else { nInter2S <- 0 }
-    nCfree  <- nC-2*nIntra2S-nInter2S
+      nInter2S <- as.integer(dlg_input(msg, 0L)$res)
+      while((!is.integer(nInter2S))||(!nInter2S %in% 0:nCfree)) { nInter2S <- as.integer(dlg_input(msg, 0L)$res) }
+    } else { nInter2S <- 0L }
+    nCfree  <- nC-2L*nIntra2S-nInter2S
   } else { nCfree <- nC }
   if (nCfree) {
     msg <- paste0("Did you alkylate the protein?\n - 0: no",
-                  paste0("\n - ", 1:nrow(alkTbl), ": ", alkTbl$Full_name, collapse = ""), "\n")
-    defAlk <- c(match("iodoacetamide", tolower(alkTbl$Full_name)), 0)[Native+1]
+                  paste0("\n - ", 1L:nrow(alkTbl), ": ", alkTbl$Full_name, collapse = ""), "\n")
+    defAlk <- c(match("iodoacetamide", tolower(alkTbl$Full_name)), 0)[Native+1L]
     whichalk <- as.integer(dlg_input(msg, defAlk)$res)
-    while ((!is.integer(whichalk))||(!whichalk %in% 0:nrow(alkTbl))) { whichalk <- as.integer(dlg_input(msg, defAlk)$res) }
-    if (whichalk > 0) { Alkylator <- alkTbl$Alk[whichalk] } else { Alkylator <- FALSE }
+    while ((!is.integer(whichalk))||(!whichalk %in% 0L:nrow(alkTbl))) { whichalk <- as.integer(dlg_input(msg, defAlk)$res) }
+    if (whichalk > 0L) { Alkylator <- alkTbl$Alk[whichalk] } else { Alkylator <- FALSE }
   } else { Alkylator <- FALSE }
 }
 
@@ -98,11 +90,11 @@ if (grepl("C", Seq)) {
 # Up to now I have always used IAA as an abbreviation for Iodoacetamide.
 # However, I should use IAM instead, as it seems Iodoacetic acid is often meant under IAA.
 # Calculate elemental formula
-ProtFormula <- function(seq, collapse = TRUE, freeCyst = nCfree, alkylated = Alkylator, alktbl = alkTbl) {
+ProtFormula <- \(seq, collapse = TRUE, freeCyst = nCfree, alkylated = Alkylator, alktbl = alkTbl) {
   seq <- unlist(strsplit(toupper(seq), ""))
   wC1 <- which(seq == "C")
   freeCyst <- as.integer(freeCyst)
-  if ((is.na(freeCyst))||(freeCyst < 0)) {
+  if (is.na(freeCyst) || (freeCyst < 0)) {
     warning("Ignoring invalid \"freeCyst\" argument!")
     freeCyst <- 0
   }
@@ -122,19 +114,19 @@ ProtFormula <- function(seq, collapse = TRUE, freeCyst = nCfree, alkylated = Alk
   colnames(oxC) <- c("AA", "Name", "State", "Tag")
   for (atm in atms) {
     oxC[[atm]] <- Tbl[wC, atm]
-    if (atm == "H") { oxC[[atm]] <- oxC[[atm]]-1 }
+    if (atm == "H") { oxC[[atm]] <- oxC[[atm]]-1L }
   }
-  oxC$"Monoisotopic mass" <- sapply(1:nrow(oxC), function(x) {
+  oxC$"Monoisotopic mass" <- sapply(1L:nrow(oxC), \(x) {
     sum(oxC[x, atms]*atmsMonoMasses)
   })
-  oxC$"Residue monoisotopic mass" <- oxC$"Monoisotopic mass" - sum(c(2, 1)*atmsMonoMasses[c("H", "O")])
+  oxC$"Residue monoisotopic mass" <- oxC$"Monoisotopic mass" - sum(c(2L, 1L)*atmsMonoMasses[c("H", "O")])
   Tbl <- rbind(Tbl, oxC)
-  alk <- (!is.logical(alkylated))&&(!is.na(alkylated))&&(nchar(as.character(alkylated)) > 0)
-  if ((nCfree < nC)&&(alk)) {
+  alk <- (!is.logical(alkylated)) && (!is.na(alkylated)) && nchar(as.character(alkylated))
+  if ((nCfree < nC) && alk) {
     warning("Did you really alkylate but did not reduce? Ignoring alkylations.")
     alk <- FALSE
   }
-  if ((alk)&&(!alkylated %in% alktbl$Alk)) {
+  if (alk && (!alkylated %in% alktbl$Alk)) {
     warning(paste0("\"", alkylated, "\" is not recognized as a valid alkylation and will be ignored!"))
     alk <- FALSE
   }
@@ -146,7 +138,7 @@ ProtFormula <- function(seq, collapse = TRUE, freeCyst = nCfree, alkylated = Alk
       alkC[[atm]] <- Tbl[wC, atm]
       if (atm %in% colnames(alkTbl)) { alkC[[atm]] <- alkC[[atm]] + alkTbl[mAlk, atm] }
     }
-    alkC$"Monoisotopic mass" <- sapply(1:nrow(alkC), function(x) {
+    alkC$"Monoisotopic mass" <- sapply(1L:nrow(alkC), \(x) {
       sum(alkC[x, atms]*atmsMonoMasses)
     })
     alkC$"Residue monoisotopic mass" <- alkC$"Monoisotopic mass" - sum(c(2, 1)*atmsMonoMasses[c("H", "O")])
@@ -156,45 +148,45 @@ ProtFormula <- function(seq, collapse = TRUE, freeCyst = nCfree, alkylated = Alk
   if (length(w)) { warning("Bypassing some un-recognised amino acids!") }
   seq <- seq[which(seq %in% Tbl$AA)]
   wC2 <- which(seq == "C")
-  if (freeCyst) { seq[wC2[1:freeCyst]] <- "C(ox)" }
+  if (freeCyst) { seq[wC2[1L:freeCyst]] <- "C(ox)" }
   wC2 <- which(seq == "C")
   if (alk) { seq[wC2] <- "C(alk)" }
   seq <- aggregate(seq, list(seq), length)
   colnames(seq) <- c("AA", "Count")
-  for (atm in atms) { seq[[atm]] <- sapply(seq$AA, function(aa) { Tbl[match(aa, Tbl$Tag), atm] })*seq$Count }
+  for (atm in atms) { seq[[atm]] <- sapply(seq$AA, \(aa) { Tbl[match(aa, Tbl$Tag), atm] })*seq$Count }
   seq2 <- data.frame(Element = atms, Count = colSums(seq[, atms]))
   w <- which(atms %in% seq2$Element)
   seq2 <- seq2[match(atms[w], seq2$Element),]
   # Effect of peptide bonds:
-  seq2$Count[which(seq2$Element == "O")] <- seq2$Count[which(seq2$Element == "O")]-(L-1)
-  seq2$Count[which(seq2$Element == "H")] <- seq2$Count[which(seq2$Element == "H")]-(L-1)*2
-  stopifnot(min(seq2$Count) >= 0)
+  seq2$Count[which(seq2$Element == "O")] <- seq2$Count[which(seq2$Element == "O")]-(L-1L)
+  seq2$Count[which(seq2$Element == "H")] <- seq2$Count[which(seq2$Element == "H")]-(L-1L)*2L
+  stopifnot(min(seq2$Count) >= 0L)
   #
   if (collapse) {
     seq2$Count <- as.character(seq2$Count)
-    seq2 <- paste(apply(seq2, 1, paste, collapse = ""), collapse = "")
+    seq2 <- paste(apply(seq2, 1L, paste, collapse = ""), collapse = "")
   }
   return(seq2)
 }
 Form <- ProtFormula(Seq, collapse = FALSE)
 # Check monoisotopic mass
-MonoIsoMass <- sum(apply(Form, 1, function(x) {
-  as.numeric(gsub("_.+", "", IsotopeProbs$Monoisotopic[match(x[[1]], IsotopeProbs$Atom)]))*as.numeric(x[[2]])
+MonoIsoMass <- sum(apply(Form, 1L, \(x) {
+  as.numeric(gsub("_.+", "", IsotopeProbs$Monoisotopic[match(x[[1L]], IsotopeProbs$Atom)]))*as.numeric(x[[2L]])
 }))
 MonoIsoMass
 
 # Parse isotopic frequencies table
-ParseElementProbs <- function(IsoProbs, ProbThresh = 0) {
-  setNames(lapply(1:nrow(IsoProbs), function(x) {
-    x <- unlist(IsoProbs[x, 2:ncol(IsoProbs)])
+ParseElementProbs <- \(IsoProbs, ProbThresh = 0) {
+  setNames(lapply(1L:nrow(IsoProbs), \(x) {
+    x <- unlist(IsoProbs[x, 2L:ncol(IsoProbs)])
     w <- which(x != "")
     x <- x[w]
     x <- as.data.frame(strsplit(x, "_"))
-    for (i in 1:ncol(x)) { x[[i]] <- as.numeric(x[[i]]) }
+    for (i in 1L:ncol(x)) { x[[i]] <- as.numeric(x[[i]]) }
     colnames(x) <- colnames(IsoProbs)[w+1]
-    x <- x[, which(x[2,] >= ProbThresh), drop = FALSE]
-    x <- x[, order(unlist(x[1,]), decreasing = FALSE), drop = FALSE]
-    x[2,] <- x[2,]*1/sum(x[2,])
+    x <- x[, which(x[2L,] >= ProbThresh), drop = FALSE]
+    x <- x[, order(unlist(x[1L,]), decreasing = FALSE), drop = FALSE]
+    x[2L,] <- x[2L,]*1/sum(x[2L,])
     return(x)
   }), IsoProbs$Atom)
 }
@@ -203,93 +195,93 @@ atProbs <- AtomProbs[which(names(AtomProbs) %in% Form$Element)]
 
 # Calculate isotopic mass envelope
 MaxN <- Inf
-ProbThresh <- 10^-8
+ProbThresh <- 10^-8L
 # For simplicity only considering cases which are more probable than the above threshold
 # This allows me to use very inefficient code, because the mathematically correct.
-Masses <- setNames(lapply(Form$Element, function(x) { #x <- Form$Element[1]
+Masses <- setNames(lapply(Form$Element, \(x) { #x <- Form$Element[1L]
   AtPs <- atProbs[[x]]
   N <- Form$Count[match(x, Form$Element)]
-  K <- max(c(min(c(ncol(AtPs), MaxN)), 1))
+  K <- max(c(min(c(ncol(AtPs), MaxN)), 1L))
   # Mathematically correct code:
   Crazy <- FALSE
   if (Crazy) {
     masses <- combinations(K, N, repeats.allowed = TRUE)
-    masses <- as.data.frame(t(apply(masses, 1, function(x) {
-      sapply(1:K, function(y) { sum(x == y)} )
+    masses <- as.data.frame(t(apply(masses, 1L, \(x) {
+      sapply(1L:K, \(y) { sum(x == y)} )
     })))
-    colnames(masses) <- paste0("N", as.numeric(1:K))
-    masses$Mass <- apply(masses[, paste0("N", as.numeric(1:K))], 1, function(x) { sum(unlist(x)*AtPs[1,]) })
+    colnames(masses) <- paste0("N", as.numeric(1L:K))
+    masses$Mass <- apply(masses[, paste0("N", as.numeric(1L:K))], 1L, \(x) { sum(unlist(x)*AtPs[1,]) })
     masses <- masses[order(masses$Mass, decreasing = FALSE),]
-    masses$Probability <- apply(masses[, paste0("N", as.numeric(1:K))], 1, function(x) {
-      #x <- masses[4, paste0("N", as.numeric(1:K))]
+    masses$Probability <- apply(masses[, paste0("N", as.numeric(1L:K))], 1, \(x) {
+      #x <- masses[4, paste0("N", as.numeric(1L:K))]
       x <- unlist(x)
-      Ncum <- N-c(0, cumsum(x)[1:(length(x)-1)])
-      prod(choose(Ncum, x)*(AtPs[2,]^x))
+      Ncum <- N-c(0, cumsum(x)[1L:(length(x)-1L)])
+      prod(choose(Ncum, x)*(AtPs[2L,]^x))
     })
     #sum(masses$Probability)
   }
   # ... but this fails for computational reasons.
   # Heuristic:
   masses <- data.frame(N1 = N)
-  if (K > 1) {
-    for (i in 2:K) { #i <- 2
+  if (K > 1L) {
+    for (i in 2L:K) { #i <- 2
       masses[[paste0("N", as.character(i))]] <- 0
       masses2 <- masses
-      p <- AtPs[2,i]
+      p <- AtPs[2L, i]
       k <- 1; p0 <- p
       while (p0 > ProbThresh) { k <- k+1; p0 <- p0*p }
-      for (j in 1:k) { #j <- 1
+      for (j in 1L:k) { #j <- 1
         tmp <- combinations(i-1, j, repeats.allowed = TRUE)
-        tmp <- as.data.frame(t(apply(tmp, 1, function(x) { sapply(1:(i-1), function(y) { sum(x == y) }) })))
+        tmp <- as.data.frame(t(apply(tmp, 1L, \(x) { sapply(1L:(i-1L), \(y) { sum(x == y) }) })))
         tmp <- as.data.frame(cbind(-tmp, j))
         colnames(tmp) <- colnames(masses)
-        tmp2 <- data.frame(Row1 = rep(1:nrow(masses), nrow(tmp)))
-        tmp2$Row2 <- as.numeric(sapply(1:nrow(tmp), function(x) { rep(x, nrow(masses)) }))
+        tmp2 <- data.frame(Row1 = rep(1L:nrow(masses), nrow(tmp)))
+        tmp2$Row2 <- as.numeric(sapply(1L:nrow(tmp), \(x) { rep(x, nrow(masses)) }))
         tmp2 <- masses[tmp2$Row1,]+tmp[tmp2$Row2,]
-        tmp2 <- tmp2[which(apply(tmp2, 1, min) >= 0),]
+        tmp2 <- tmp2[which(apply(tmp2, 1L, min) >= 0),]
         colnames(tmp2) <- colnames(masses)
         stopifnot(rowSums(tmp2) == N)
         masses2 <- rbind(masses2, tmp2)
         masses2 <- masses2[which(masses2[[paste0("N", as.character(i))]] > 0),]
       }
       masses <- rbind(masses, masses2)
-      tst <- apply(masses, 1, paste, collapse = "_")
-      tst <- aggregate(1:nrow(masses), list(tst), min)
+      tst <- apply(masses, 1L, paste, collapse = "_")
+      tst <- aggregate(1L:nrow(masses), list(tst), min)
       masses <- masses[tst$x,]
       stopifnot(rowSums(masses) == N)
     }
-    masses$Mass <- apply(masses[, paste0("N", as.numeric(1:K))], 1, function(x) { sum(unlist(x)*AtPs[1,]) })
+    masses$Mass <- apply(masses[, paste0("N", as.numeric(1L:K))], 1L, \(x) { sum(unlist(x)*AtPs[1L,]) })
     masses <- masses[order(masses$Mass, decreasing = FALSE),]
-    masses$Probability <- apply(masses[, paste0("N", as.numeric(1:K))], 1, function(x) {
-      #x <- masses[4, paste0("N", as.numeric(1:K))]
+    masses$Probability <- apply(masses[, paste0("N", as.numeric(1L:K))], 1L, \(x) {
+      #x <- masses[4, paste0("N", as.numeric(1L:K))]
       x <- unlist(x)
-      Ncum <- N-c(0, cumsum(x)[1:(length(x)-1)])
-      prod(choose(Ncum, x)*(AtPs[2,]^x))
+      Ncum <- N-c(0, cumsum(x)[1L:(length(x)-1L)])
+      prod(choose(Ncum, x)*(AtPs[2L,]^x))
     })
     masses$Probability <- masses$Probability/sum(masses$Probability)
     #sum(masses$Probability)
     masses <- masses[, c("Mass", "Probability"), drop = FALSE]
   } else {
-    mass <- data.frame(Mass = AtPs[1,1], Probability = 1)
+    mass <- data.frame(Mass = AtPs[1L, 1L], Probability = 1)
   }
 }), Form$Element)
-Envelope <- Masses[[1]]
-if (length(Masses) > 1) {
-  for (i in 2:length(Masses)) {
+Envelope <- Masses[[1L]]
+if (length(Masses) > 1L) {
+  for (i in 2L:length(Masses)) {
     nr1 <- nrow(Envelope)
     nr2 <- nrow(Masses[[i]])
-    temp <- rep(1:nr1, nr2)
+    temp <- rep(1L:nr1, nr2)
     Envelope <- Envelope[temp,]
-    for (j in 1:nr2) {
-      rg <- (1:nr1)+(nr1*(j-1))
+    for (j in 1L:nr2) {
+      rg <- (1L:nr1)+(nr1*(j-1))
       Envelope$Mass[rg] <- Envelope$Mass[rg]+Masses[[i]]$Mass[j]
       Envelope$Probability[rg] <- Envelope$Probability[rg]*Masses[[i]]$Probability[j]
     }
   }  
 }
-Envelope$Intensity <- Envelope$Probability*10^6
+Envelope$Intensity <- Envelope$Probability*10L^6L
 Res <- 0.01
-Round <- -log10(signif(Res, 1))
+Round <- -log10(signif(Res, 1L))
 Envelope$"Rounded_Mass" <- round(Envelope$Mass, Round)
 Envelope2 <- aggregate(Envelope$Probability, list(Envelope$"Rounded_Mass"), mean)
 colnames(Envelope2) <- c("Mass", "Density")
@@ -304,8 +296,8 @@ Envelope2 <- Envelope2[order(Envelope2$Mass, decreasing = FALSE),]
 ttl <- "Mass envelope"
 plot <- ggplot(Envelope2) +
   geom_path(aes(x = Mass, y = Density), size = 0.1) + theme_bw() + ggtitle(ttl)
-poplot(plot, 12, 20)
-ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300)
+poplot(plot, 12L, 22L)
+ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300L)
 
 # This would be the part to incorporate variable modifications, allowing for a range of incorporation rates.
 # Example: incorporate Fluorine (F has a single main isotope. Yes! Why is this not always so simple?)
@@ -313,32 +305,32 @@ Envelopes <- Envelope
 IncorpFl <- FALSE # Eventually should be rewritten to accept a generic PTM (or multiple ones?)
 if (IncorpFl) {
   nW <- nchar(Seq) - nchar(gsub("W", "", Seq))
-  temp <- setNames(lapply(0:nW, function(x) {
+  temp <- setNames(lapply(0L:nW, \(x) {
     env <- Envelope
     env$Mass <- env$Mass + AtomProbs$F[1,1]*x
     env$Fluorines <- x
     return(env)
-  }), paste0("F", 0:nW))
-  Envelopes <- temp[[paste0("F", 0)]]
-  for (i in 1:nW) { Envelopes <- rbind(Envelopes, temp[[paste0("F", i)]]) }
+  }), paste0("F", 0L:nW))
+  Envelopes <- temp[["F0"]]
+  for (i in 1L:nW) { Envelopes <- rbind(Envelopes, temp[[paste0("F", i)]]) }
   # Effect of Fluorine incorporation:
-  IncRate <- (0:10)/10
-  AllEnvs <- data.frame(Row = rep(1:nrow(Envelopes), length(IncRate)))
-  AllEnvs$IncRate <- as.numeric(sapply(IncRate, function(x) { rep(x, nrow(Envelopes))}))
+  IncRate <- (0L:10L)/10
+  AllEnvs <- data.frame(Row = rep(1L:nrow(Envelopes), length(IncRate)))
+  AllEnvs$IncRate <- as.numeric(sapply(IncRate, \(x) { rep(x, nrow(Envelopes))}))
   AllEnvs[, colnames(Envelopes)] <- Envelopes[AllEnvs$Row,]
   AllEnvs$Probability <- AllEnvs$Probability*dbinom(AllEnvs$Fluorines, nW, AllEnvs$IncRate)
-  AllEnvs$Intensity <- AllEnvs$Probability*10^6
+  AllEnvs$Intensity <- AllEnvs$Probability*10L^6L
   #
   AllEnvs2 <- aggregate(AllEnvs$Probability, list(AllEnvs$"Rounded_Mass", AllEnvs$Fluorines, AllEnvs$IncRate), sum)
   colnames(AllEnvs2) <- c("Mass", "Fluorines", "Incorporation Rate", "Density")
-  AllEnvs2$Fluorines <- factor(AllEnvs2$Fluorines, levels = nW:0)
+  AllEnvs2$Fluorines <- factor(AllEnvs2$Fluorines, levels = nW:0L)
   AllEnvs2$"Incorporation Rate" <- factor(AllEnvs2$"Incorporation Rate", levels = IncRate)
   ttl <- "Mass envelope with effect of Fluorine incorporation"
   plot <- ggplot(AllEnvs2) +
     geom_bar(stat = "identity", aes(x = Mass, y = Density, fill = Fluorines), width = Res,#position = "stack"
     ) + facet_grid(`Incorporation Rate`~.) + theme_bw() + ggtitle(ttl)
-  poplot(plot, 12, 20)
-  ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300)
+  poplot(plot, 12L, 22L)
+  ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300L)
 } else {
   AllEnvs <- Envelopes
 }
@@ -348,41 +340,41 @@ if (IncorpFl) {
 # The lowest observed charge was 25+ for denatured Tet, 9+ for native ARF1
 # The most intense observed charge was 51+ for denatured Tet, 19-21 for native ARF1
 msg <- "Enter the most intense observed charge state:"
-Zmean <- as.integer(dlg_input(msg, c(50, 20)[Native+1])$res)
-while ((!is.integer(Zmean))||(is.na(Zmean))) { Zmean <- dlg_input(msg, c(50, 20)[Native+1])$res }
+Zmean <- as.integer(dlg_input(msg, c(50L, 20L)[Native+1L])$res)
+while ((!is.integer(Zmean))||(is.na(Zmean))) { Zmean <- dlg_input(msg, c(50L, 20L)[Native+1L])$res }
 msg <- "Enter the width of the observed charge states envelope (= Zmax - Zmin):"
-Zwidth <- as.integer(dlg_input(msg, c(50, 20)[Native+1])$res)
-while ((!is.integer(Zwidth))||(is.na(Zwidth))) { Zwidth <- dlg_input(msg, c(50, 20)[Native+1])$res }
+Zwidth <- as.integer(dlg_input(msg, c(50, 20)[Native+1L])$res)
+while ((!is.integer(Zwidth))||(is.na(Zwidth))) { Zwidth <- dlg_input(msg, c(50L, 20L)[Native+1L])$res }
 Zmin <- Zmean - ceiling(Zwidth/2)
 Zmax <- Zmean + floor(Zwidth/2)
 ZPr <- data.frame(Z = Zmin:Zmax, Probability = dnorm(Zmin:Zmax, Zmean, (Zwidth)/6))
 ttl <- "Simulated charge distribution"
 plot <- ggplot(ZPr) + geom_bar(stat = "identity", aes(x = Z, y = Probability)) + theme_bw() + ggtitle(ttl) 
-poplot(plot, 12, 20)
-ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300)
+poplot(plot, 12L, 22L)
+ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300L)
 ZPr <- ZPr[which(ZPr$Probability >= ProbThresh),]
 ZPr$Probability <- ZPr$Probability/sum(ZPr$Probability)
-MZs <- data.frame(Row = rep(1:nrow(AllEnvs), nrow(ZPr)))
+MZs <- data.frame(Row = rep(1L:nrow(AllEnvs), nrow(ZPr)))
 k <- colnames(AllEnvs)
 k <- k[which(k != "Row")]
 MZs[, k] <- AllEnvs[,k]
-MZs$Z <- as.integer(sapply(ZPr$Z, function(x) { rep(x, nrow(AllEnvs)) }))
+MZs$Z <- as.integer(sapply(ZPr$Z, \(x) { rep(x, nrow(AllEnvs)) }))
 MZs$"M/Z" <- (MZs$Mass + 1.0078250319*MZs$Z)/MZs$Z
 MZs$Intensity <- MZs$Intensity*ZPr$Probability[match(MZs$Z, ZPr$Z)]
-MZs$Probability <- MZs$Intensity/(10^6)
+MZs$Probability <- MZs$Intensity/(10L^6L)
 MZs <- MZs[which(MZs$Probability > 0),]
 min(MZs$Probability)
 max(MZs$Probability)
 
 Res <- 0.1
-Round <- -log10(signif(Res, 1))
+Round <- -log10(signif(Res, 1L))
 MZs$"Rounded_M/Z" <- round(MZs$"M/Z", Round)
 aggrlist <- list(MZs$"Rounded_M/Z")
 if (IncorpFl) {
   aggrlist <- list(MZs$"Rounded_M/Z", MZs$Fluorines, MZs$IncRate)
 }
 MZs2 <- aggregate(MZs$Intensity, aggrlist, mean)
-colnames(MZs2)[1] <- "M/Z"
+colnames(MZs2)[1L] <- "M/Z"
 colnames(MZs2)[which(colnames(MZs2) == "x")] <- "Intensity"
 MZs2 <- MZs2[which(MZs2$Intensity > 0),]
 MZmin <- min(MZs2$`M/Z`)
@@ -391,11 +383,11 @@ rg <- ((MZmin/Res):(MZmax/Res))*Res
 #MZs2Bckp <- MZs2
 #MZs2 <- MZs2Bckp
 #print(nrow(MZs2))
-wLst <- list("Global" = 1:nrow(MZs2))
+wLst <- list("Global" = 1L:nrow(MZs2))
 if (IncorpFl) {
   wLst <- list()
-  for (i in IncRate) { #i <- IncRate[1]
-    for (f in 0:nW) { #f <- 0
+  for (i in IncRate) { #i <- IncRate[1L]
+    for (f in 0L:nW) { #f <- 0L
       wLst[[paste0(i, " ", f)]] <- which((MZs2$`Incorporation Rate` == i)&(MZs2$Fluorines == f))
     }
   }
@@ -412,7 +404,7 @@ for (wNm in names(wLst)) {
       temp$"Incorporation Rate" <- i
     }
     MZs2 <- rbind(MZs2, temp)
-    w2 <- 1:nrow(MZs2)
+    w2 <- 1L:nrow(MZs2)
     if  (IncorpFl) {
       w2 <- which((MZs2$`Incorporation Rate` == i)&(MZs2$Fluorines == f))
     }
@@ -422,7 +414,7 @@ for (wNm in names(wLst)) {
 }
 ttl <- "M/Z envelope"
 if (IncorpFl) {
-  MZs2$Fluorines <- factor(MZs2$Fluorines, levels = 0:nW)
+  MZs2$Fluorines <- factor(MZs2$Fluorines, levels = 0L:nW)
   MZs2$"Incorporation Rate" <- factor(MZs2$"Incorporation Rate", levels = IncRate)
   MZs2 <- MZs2[order(MZs2$Fluorines, MZs2$`Incorporation Rate`, decreasing = FALSE),]
   ttl <- paste0(ttl, " with effect of Fluorine incorporation")
@@ -439,5 +431,5 @@ if (IncorpFl) {
     facet_grid(`Incorporation Rate`~Fluorines)
 }
 plot <- plot + theme_bw() + ggtitle(ttl)
-poplot(plot, 12, 20)
-ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300)
+poplot(plot, 12L, 22L)
+ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300L)

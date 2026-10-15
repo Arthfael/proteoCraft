@@ -4,7 +4,7 @@
 \alias{.labelEdit_worker}
 \title{.labelEdit_worker}
 \usage{
-.labelEdit_worker(x, colchar = 25)
+.labelEdit_worker(x, colchar = 25L)
 }
 \arguments{
 \item{x}{Character label split at spaces}

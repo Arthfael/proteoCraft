@@ -45,7 +45,7 @@ if (file.exists(FracMapPath)) {
       w2 <- which(Frac.map[[k]] %in% ev$"Raw file"[w])
       if (length(w2)) {
         m <- match(Frac.map[w2, k], ev$"Raw file")
-        tst2 <- gsub(".*/|\\.[^\\.]+$", "", Frac.map$"Raw file"[w2]) == gsub(".*/|\\.[^\\.]+$", "", ev$"Raw file path"[m])
+        tst2 <- gsub(".*/|\\.[^.]+$", "", Frac.map$"Raw file"[w2]) == gsub(".*/|\\.[^.]+$", "", ev$"Raw file path"[m])
         stopifnot(sum(is.na(tst2)) == 0L, sum(!tst2) == 0L)
         Frac.map$"Raw file"[w2] <- ev$"Raw file path"[m]
         ev2fr %<o% match(ev$"Raw file path", Frac.map$"Raw file")

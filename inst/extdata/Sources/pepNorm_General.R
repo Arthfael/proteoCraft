@@ -1,13 +1,6 @@
 
 # Classic normalisations which just shift each vector to match a given level
 #
-# if (normSequence[[nrmStp]]$Method == "mode") {
-#   pack <- "modeest"
-#   cran_req <- unique(c(cran_req, pack))
-#   if (!require(pack, character.only = TRUE, quietly = TRUE)) { pak::pak(pack) }
-#   require(pack, character.only = TRUE)
-# }
-#
 # Create averaging function
 if ("funCall" %in% names(normSequence[[prevStp]])) { eval(parse(text = normSequence[[prevStp]]$funCall)) }
 #

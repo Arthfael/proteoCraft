@@ -11,8 +11,8 @@
 #' One more thing to do...)
 #' 
 #' @param Samples The vector of sample names, or of column names containing sample names. Each name should be made of "___"-aggregated factor levels.
-#' @param Experiment The Experiment object.
-#' @param sep Expected separator. Default = "___". NB: avoid too simple separators which may be used as also parts of factor level names, otherwise weird things may happen.
+#' @param Experiment The Experiment object. Dropped from the left-hand side of names if provided as a length 1 vector (i.e., as in most cases, we are dealing with a single experiment at a time). If missing and exists("Exp") is TRUE, Exp is assumed to be the expected value, so set to NULL to override this behaviour! 
+#' @param sep Expected separator. Default = "___", used throughout the replicates workflows. NB: avoid too simple separators which may be used as also parts of factor level names, otherwise weird things may happen.
 #' @param rep Replacement, user-friendlier separator. Default = " "
 #' @param start Default = TRUE, which means the pattern will require a match to the start of the string.
 #' @param end Default = FALSE. Set to TRUE for the pattern to require a match to the end of the string.
@@ -20,12 +20,15 @@
 #' @export
 
 cleanNms <- function(Samples,
-                     Experiment = Exp,
+                     Experiment,
                      sep = "___",
                      rep = " ",
                      start = TRUE,
                      end = FALSE) {
   #DefArg(cleanNms)
+  if (missing(Experiment)) {
+    Experiment <- if (exists("Exp", envir = .GlobalEnv)) { Exp } else { NULL }
+  }
   if ((!is.null(Experiment)) && (length(Experiment) == 1L)) {
     Samples <- sub(topattern(paste0(Experiment, sep),
                    start = start,

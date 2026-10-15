@@ -65,43 +65,13 @@ MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style
 MatMetCalls$Texts$DatAnalysis <- MatMet_Search
 #
 # 4) Post-processing
-DatAnalysisTxt %<o% {
-  if (length(SearchSoft) == 1L) {
+if ((!exists("DatAnalysisTxt")) || (!inherits(DatAnalysisTxt, "list"))) { DatAnalysisTxt %<o% list() }
+DatAnalysisTxt$Start <- if (length(SearchSoft) == 1L) {
     paste0(names(SearchSoft), "'s output was re-processed using in-house R scripts, starting from the ",
            c("evidence.txt", "main report", "psm.tsv")[match(SearchSoft, SearchSoftware)],
            " table", c("", "s")[(length(PSMsFls)>1L)+1L], ".")
   } else {
     "The output PSMs tables from individual search engines were converted to similar formats and combined, then re-processed using in-house R scripts."
   }
-}
 MatMetCalls$Calls <- append(MatMetCalls$Calls,
                             "body_add_fpar(MatMet, fpar(ftext(\"Data analysis\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))")
-# For the scripts with reps we will expand this later, during subsequent parts of the script...
-# if (scrptType == "noReps") {
-#   # ... but for the no-reps script this is done in one block here:
-#   DatAnalysisTxt <- paste0(DatAnalysisTxt,
-#                            c("", " Peptide-to-protein assignments were checked, then")[Update_Prot_matches+1L],
-#                            paste0(" Protein Groups were assembled and quantified using an algorithm which: ",
-#                                   "i) computes a mean protein group-level profile across samples using individual, normalized peptidoform profiles (\"relative quantitation\" step), then ",
-#                                   "ii) following the best-flyer hypothesis, normalizes this profile to the mean intensity level of the most intense peptidoform (\"unscaled absolute quantitation\" step).",
-#                                   c(" Only unique peptidoforms were used.",
-#                                     " Only unique and razor peptidoforms were used.",
-#                                     "")[match(Pep4Quant, Pep4QuantOpt)], collapse = " "))
-#   if (nrow(Mod2Xclud)) {
-#     tmp <- Modifs$`Full name`[match(Mod2Xclud$Mark, Modifs$Mark)]
-#     DatAnalysisTxt <- paste0(DatAnalysisTxt, " ", tmp, "-peptidoforms and their unmodified counterparts were excluded from the calculations.")
-#   }
-#   DatAnalysisTxt <- paste0(DatAnalysisTxt,
-#                            c("", " Protein group-level quantitative values were normalized using the Levenberg-Marquardt procedure.")[NormalizePG+1L])
-#   MatMetCalls$Texts$DatAnalysis <- c(MatMetCalls$Texts$DatAnalysis, DatAnalysisTxt)
-#   L <- length(MatMetCalls$Texts$DatAnalysis)
-#   for (i in 1L:length(MatMetCalls$Texts$DatAnalysis)) {
-#     MatMetCalls$Calls <- append(MatMetCalls$Calls,
-#                                 paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$DatAnalysis[", i,
-#                                        "], prop = WrdFrmt$",
-#                                        c("Body", "Template_text")[(MatMetCalls$Texts$DatAnalysis[i] == "TEMPLATE")+1L],
-#                                        "_text), fp_p = WrdFrmt$just))"))
-#   }
-#   MatMetCalls$Calls <- append(MatMetCalls$Calls,
-#                               "body_add_par(MatMet, \"\", style = \"Normal\")")
-# } # For reps, this is done later

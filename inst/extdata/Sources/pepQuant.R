@@ -182,7 +182,7 @@ plot_lyPCA <- if ("PC3" %in% colnames(scores1)) {
 plot_lyPCA <- plotly::layout(plot_lyPCA, title = ttl)
 plot_lyPCA$x$layout$xaxis$autorange <- TRUE
 plot_lyPCA$x$layout$yaxis$autorange <- TRUE
-plot_lyPCA <- htmlwidgets::onRender(plot_lyPCA, global_autorange)
+plot_lyPCA <- htmlwidgets::onRender(plot_lyPCA, jsFun$global_auto_range)
 plot_lyPCA <- plotly::config(plot_lyPCA,
                       modeBarButtonsToRemove = c("select2d", "lasso2d"))
 plot_lyPCA <- plotly::plotly_build(plot_lyPCA)

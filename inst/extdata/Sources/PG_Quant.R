@@ -276,7 +276,7 @@ saveFun(quantData_list, file = myQuantBckpFl)
 #loadFun(myQuantBckpFl)
 
 if (!exists("writeMatMeth")) { writeMatMeth <- TRUE }
-if (writeMatMeth) {
+if (writeMatMeth && (!post_ReNorm_reRun)) {
   opt <- setNames(c("limpa's dpcQuant function",
                     paste0("an in-house MaxLFQ-like algorithm which computes a protein group-level profile across samples as the weighted mean of individual, normalized peptidoform profiles (weights = ",
                            weightsInsrt, ")"),
@@ -319,8 +319,7 @@ if (writeMatMeth) {
       insrt <- paste0(insrt, "to the result of summarizing each protein group's peptides with the ", reScAlgo, " function.")
     }
   }
-  l <- length(DatAnalysisTxt)
-  DatAnalysisTxt[l] <- gsub("\\.$", insrt, DatAnalysisTxt[l])
+  DatAnalysisTxt$PG_quant <- insrt
 }
 
 quantData <- quantData_list$Data

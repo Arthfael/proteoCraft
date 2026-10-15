@@ -20,19 +20,19 @@ Format_Mod_Pep <- function(x) {
   x2 <- gsub("^_|_$", "", x1)
   for (aa in AA) { x2 <- gsub(aa, paste0("-", aa, "-"), x2) }
   x2 <- strsplit(x2, "-+")
-  y <- unique(unlist(x2))
-  y <- y[which(!y %in% AA)]
-  y <- unique(unlist(strsplit(gsub("\\(", "-(", gsub("\\)", ")-", y)), "-")))
-  y <- y[which(y != "")]
+  y <- setdiff(unique(unlist(x2)),
+               AA)
+  y <- setdiff(unique(unlist(strsplit(gsub("\\(", "-(", gsub("\\)", ")-", y)), "-"))),
+               "")
   g <- grepl("^\\([^A-Z]{2}\\)$", y)
   n <- nchar(y)
-  w <- which(nchar(y[which(!g)]) > 1L)
+  w <- which(nchar(y[!g]) > 1L)
   if (length(w)) {
     warning("Check your sequences, there are abnormal series of characters!\nWe expect to only see:\n- left- and right- terminal \"_\"\n- capital letters for amino acids\n- modification \"Mod\" indicated by either \"(mo)\" or \"m\" - the aim of this function being to correct the former to the latter!")
   }
-  mod <- data.frame(Full = y[which(g)])
+  mod <- data.frame(Full = y[g])
   mod$Short <- substr(mod$Full, 2L, 2L)
-  mod$Short[which(! mod$Short %in% y)] <- NA
+  mod$Short[!mod$Short %in% y] <- NA
   if (length(which(!y %in% unlist(mod)))) { warning("Something went awry!") }
   mod$Specificity <- NA
   W <- which(!is.na(mod$Short))

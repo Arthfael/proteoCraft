@@ -1,7 +1,7 @@
 #' MQ.summary
 #'
 #' @description 
-#' A function to summarize the data from an MS experiment. Originally limited to MaxQuant searches, hence the name.
+#' A function to summarize the data from an MS experiment. Originally limited to MaxQuant searches, hence the name.\cr
 #' Now also works partially for the output of DIA-NN if converted to MaxQuant-like format.
 #' 
 #' @param wd Working directory. Automatically set to local if left empty.
@@ -26,7 +26,10 @@
 #' 
 #' @export
 
-MQ.summary <- function(wd, ev, pg, filter = FALSE,
+MQ.summary <- function(wd,
+                       ev,
+                       pg,
+                       filter = FALSE,
                        mods = setNames(c("ox", "ac", "de", "gl", "ph"),
                                        c("Oxidation (M)", "Acetyl (Protein N-term)", "Deamidation (NQ)", "Gln->pyro-Glu", "Phospho (STY)")),
                        raw.files,
@@ -37,7 +40,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                        N.clust,
                        N.reserved = 1L,
                        cl,
-                       MQtxt = inDirs[which(SearchSoft == "MAXQUANT")]) {
+                       MQtxt = inDirs[SearchSoft == "MAXQUANT"]) {
   TESTING <- FALSE
   #DefArg(MQ.summary); TESTING <- TRUE
   #pg = PG; mods = setNames(Modifs$Mark, Modifs$"Full name"); raw.files = rawFiles; sc = sc
@@ -50,7 +53,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
   #
   tstCl <- stopCl <- misFun(cl)
   if (!misFun(MQtxt)) {
-    MQtxt <- MQtxt[which(dir.exists(MQtxt))]
+    MQtxt <- MQtxt[dir.exists(MQtxt)]
     if (!length(MQtxt)) { MQtxt <- getwd() }
   } else { MQtxt <- getwd() }
   wd0 <- getwd()
@@ -71,13 +74,13 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     pg <- MQ.load(return = TRUE, assign = FALSE, ev = FALSE, pep = FALSE)$protein.groups
   }
   if (filter) {
-    W <- colnames(ev)[which(toupper(colnames(ev)) %in% c("CONTAMINANT", "POTENTIAL.CONTAMINANT"))]
-    for (w in W) { ev <- ev[which((ev[[w]] != "+") | is.na(ev[[w]])),] }
-    ev <- ev[which((ev$Reverse != "+") | is.na(ev$Reverse)),]
-    ev <- ev[which(is.finite(ev$Intensity) & (ev$Intensity > 0)),]
-    W <- colnames(pg)[which(toupper(colnames(pg)) %in% c("CONTAMINANT", "POTENTIAL CONTAMINANT"))]
-    for (w in W) { pg <- pg[which((pg[[w]] != "+") | is.na(pg[[w]])),] }
-    pg <- pg[which(pg$id %in% unique(unlist(strsplit(ev$"Protein group IDs", ";")))),]
+    W <- colnames(ev)[toupper(colnames(ev)) %in% c("CONTAMINANT", "POTENTIAL.CONTAMINANT")]
+    for (w in W) { ev <- ev[(ev[[w]] != "+") | is.na(ev[[w]]),] }
+    ev <- ev[(ev$Reverse != "+") | is.na(ev$Reverse),]
+    ev <- ev[is.finite(ev$Intensity) & (ev$Intensity > 0),]
+    W <- colnames(pg)[toupper(colnames(pg)) %in% c("CONTAMINANT", "POTENTIAL CONTAMINANT")]
+    for (w in W) { pg <- pg[(pg[[w]] != "+") | is.na(pg[[w]]),] }
+    pg <- pg[pg$id %in% unique(unlist(strsplit(ev$"Protein group IDs", ";"))),]
   }
   Res <- data.frame(Sample = "Whole dataset",
                     PSMs = nrow(ev),
@@ -99,7 +102,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     }
   }
   if ("Raw file" %in% colnames(ev)) {
-    Raw <- data.frame("Raw file" = sub("\\.((raw)|(mzX?ML)|(d)|(dia))$", "", basename(raw.files)),
+    Raw <- data.frame("Raw file" = sub("\\.(raw|mzX?ML|d|dia)$", "", basename(raw.files)),
                       "Directory" = dirname(raw.files),
                       "Path" = raw.files,
                       "Extension" = vapply(strsplit(raw.files, "\\."), \(x) { rev(unlist(x))[1L] }, ""),
@@ -107,7 +110,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                       check.names = FALSE)
     if (length(which(!Raw$Exists))) {
       warning(paste0("Could not find the following raw files:\n",
-                     paste(paste0(" - ", Raw$Path[which(!Raw$Exists)]), collapse = "\n")))
+                     paste(paste0(" - ", Raw$Path[!Raw$Exists]), collapse = "\n")))
       #Raw$Path <- NULL
     }
     # Use of file name, with or without extension, or full path, is inconsistent. remediate this:
@@ -125,7 +128,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       if (w == 3L) { rawFls <- paste0(rawFls, ".", Raw$Extension) }
     } else {
       raw <- unique(ev$"Raw file")
-      Raw <- data.frame("Raw file" = sub("\\.((raw)|(mzX?ML)|(d)|(dia))$", "", basename(raw)),
+      Raw <- data.frame("Raw file" = sub("\\.(raw|mzX?ML|d|dia)$", "", basename(raw)),
                         "Directory" = dirname(raw),
                         "Path" = raw,
                         "Extension" = vapply(strsplit(raw, "\\."), \(x) { rev(unlist(x))[1L] }, ""),
@@ -135,8 +138,8 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     rawFls <- factor(rawFls, levels = unique(rawFls))
     for (r in as.character(rawFls)) {# r <- as.character(rawFls)[1L]
       Res <- rbind(Res, rep(NA, ncol(Res)))
-      e <- ev[which(ev$"Raw file" == r),]
-      p <- pg[which(pg$id %in% unlist(strsplit(e$"Protein group IDs", ";"))),]
+      e <- ev[ev$"Raw file" == r,]
+      p <- pg[pg$id %in% unlist(strsplit(e$"Protein group IDs", ";")),]
       n <- nrow(Res)
       Res$Sample[n] <- r
       Res$PSMs[n] <- nrow(e)
@@ -160,35 +163,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
   } else { stop("Expecting a \"Raw file\" column in the PSMs file!!!") }
   if (plot) {
     plotLy_lst <- list()
-    global_autorange <- "function(el, x) {
-  var gd = el;
-  function globalRange(axisPrefix) {
-    var axes = Object.keys(gd._fullLayout).filter(function(k) {
-      return k.match(new RegExp('^' + axisPrefix + 'axis[0-9]*$'));
-    });
-    if (axes.length <= 1)
-      return;
-    var minVal = Infinity;
-    var maxVal = -Infinity;
-    axes.forEach(function(name) {
-      var axis = gd._fullLayout[name];
-      if (axis && axis.range) {
-        minVal = Math.min(minVal, axis.range[0], axis.range[1]);
-        maxVal = Math.max(maxVal, axis.range[0], axis.range[1]);
-      }
-    });
-    if (isFinite(minVal) && isFinite(maxVal)) {
-      axes.forEach(function(name) {
-        Plotly.relayout(gd, name + '.range', [minVal, maxVal]);
-      });
-    }
-  }
-  globalRange('x');
-  globalRange('y');
-}"
-    tstVir <- require(viridis)
+    tstVir <- requireNamespace("viridis")
     # Plot - Peptides composition
-    temp <- Res[which(!Res$Sample %in% c("Whole dataset", "")), which(!grepl("%", colnames(Res)))]
+    temp <- Res[!Res$Sample %in% c("Whole dataset", ""), !grepl("%", colnames(Res))]
     if (nrow(temp)) {
       temp$Proteins <- NULL; temp$"Protein groups" <- NULL
       temp <- dfMelt(temp, id.vars = "Sample", ColNames = c("Sample", "Type", "Count"))
@@ -202,7 +179,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       }
       temp$Type <- apply(cbind(grepl("PSMs", temp$Type, ignore.case = TRUE),
                                grepl("peptides", temp$Type, ignore.case = TRUE)),
-                             1L, \(x) { c("PSMs", "Peptides")[which(unlist(x))] })
+                             1L, \(x) { c("PSMs", "Peptides")[unlist(x)] })
       temp$Sample <- factor(temp$Sample, levels = levels(rawFls))
     }
     if (length(levels(rawFls)) > sc) {
@@ -216,7 +193,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     if (nrow(temp)) {
       for (i in iters) { #i <- 1L
         ttl <- if (length(iters) == 1L) { "Peptides composition" } else { paste0("Peptides composition - ", i) }
-        tmp <- temp[which(temp$iter == i),]
+        tmp <- temp[temp$iter == i,]
         plot <- if (UseMods) {
           ggplot2::ggplot(tmp) +
             ggplot2::geom_col(ggplot2::aes(x = Sample, y = Count, fill = Modification),
@@ -244,7 +221,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               margin = list(r = 120L))
             plotLy$x$layout$xaxis$autorange <- TRUE
             plotLy$x$layout$yaxis$autorange <- TRUE
-            plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+            plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
             plotLy <- plotly::config(plotLy,
                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
             plotLy <- plotly::plotly_build(plotLy)
@@ -253,6 +230,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
             #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
           } else {
+            if (s == "svg") { requireNamespace("svglite") }
             ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
           }
         } }
@@ -264,19 +242,20 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     if (length(g)) {
       temp <- dfMelt(pg[, g])
       temp$Sample <- sub("^Sequence coverage \\[%\\]( - )?", "", temp$variable)
-      temp$Sample[which(temp$Sample == "")] <- "Global"
+      temp$Sample[temp$Sample == ""] <- "Global"
       temp$Sample <- gsub("___", " ", temp$Sample)
       temp <- aggregate(temp$value, list(round(temp$value), temp$Sample), length)
       colnames(temp) <- c("Sequence coverage [%]", "Sample", "Count")
-      temp <- temp[which(!is.na(temp$"Sequence coverage [%]")),]
-      temp <- temp[which(temp$"Sequence coverage [%]" > 0),]
+      temp <- temp[!is.na(temp$"Sequence coverage [%]"),]
+      temp <- temp[temp$"Sequence coverage [%]" > 0,]
       meds <- aggregate(temp$"Sequence coverage [%]", list(temp$Sample), median)
       colnames(meds) <- c("Sample", "Median")
       meds$Label <- paste0("Median =\n", signif(meds$Median, 3L), "%")
       ttl <- "Sequence coverage"
       sttl <- "(1st protein in group)"
       lev <- unique(temp$Sample)
-      lev <- c(lev[which(lev == "Global")], lev[which(lev != "Global")])
+      lev <- c(intersect(lev, "Global"),
+               setdiff(lev, "Global"))
       temp$Sample <- factor(temp$Sample, levels = lev)
       meds$Sample <- factor(meds$Sample, levels = lev)
       plot <- ggplot2::ggplot(temp) +
@@ -299,7 +278,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
           plotLy$x$layout$xaxis$autorange <- TRUE
           plotLy$x$layout$yaxis$autorange <- TRUE
-          plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+          plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
           plotLy <- plotly::config(plotLy,
                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
           plotLy <- plotly::plotly_build(plotLy)
@@ -308,6 +287,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
           #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
         } else {
+          if (s == "svg") { requireNamespace("svglite") }
           ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
       } }
@@ -328,9 +308,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       }
       temp <- dfMelt(temp, id.vars = "Raw file")
       temp$`Raw file` <- factor(temp$`Raw file`, levels = rawFls)
-      colnames(temp)[which(colnames(temp) == "variable")] <- "Missed cleavages"
-      colnames(temp)[which(colnames(temp) == "value")] <- "Number of identifications"
-      temp <- temp[which(!is.na(temp$"Number of identifications")),]
+      colnames(temp)[match("variable", colnames(temp))] <- "Missed cleavages"
+      colnames(temp)[match("value", colnames(temp))] <- "Number of identifications"
+      temp <- temp[!is.na(temp$"Number of identifications"),]
       plot <- ggplot2::ggplot(temp) +
         ggplot2::geom_bar(stat = "identity",
                           ggplot2::aes(x = `Missed cleavages`, y = `Number of identifications`,
@@ -346,7 +326,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
           plotLy$x$layout$xaxis$autorange <- TRUE
           plotLy$x$layout$yaxis$autorange <- TRUE
-          plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+          plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
           plotLy <- plotly::config(plotLy,
                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
           plotLy <- plotly::plotly_build(plotLy)
@@ -355,6 +335,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
           #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
         } else {
+          if (s == "svg") { requireNamespace("svglite") }
           ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
       } }
@@ -366,7 +347,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       if (length(iters) > 1L) { ttl <- paste0(basettl, " - ", i) }
       w <- which(ev$iter == i)
       e <- ev[w,]
-      temp <- data.frame("Raw file" = as.character(rawFls[which(rawFls %in% e$`Raw file`)]), check.names = FALSE)
+      temp <- data.frame("Raw file" = as.character(rawFls[rawFls %in% e$`Raw file`]), check.names = FALSE)
       for (n in min(e$Length):max(e$Length)) {
         w2 <- which(e$Length == n)
         if (length(w2)) {
@@ -376,9 +357,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       }
       temp <- dfMelt(temp, id.vars = "Raw file")
       temp$`Raw file` <- factor(temp$`Raw file`, levels = rawFls)
-      colnames(temp)[which(colnames(temp) == "variable")] <- "Length"
-      colnames(temp)[which(colnames(temp) == "value")] <- "Number of peptides"
-      temp <- temp[which(!is.na(temp$"Number of peptides")),]
+      colnames(temp)[match("variable", colnames(temp))] <- "Length"
+      colnames(temp)[match("value", colnames(temp))] <- "Number of peptides"
+      temp <- temp[!is.na(temp$"Number of peptides"),]
       plot <- ggplot2::ggplot(temp) +
         ggplot2::geom_bar(stat = "identity",
                           ggplot2::aes(x = Length, y = `Number of peptides`, fill = Length,
@@ -395,7 +376,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
           plotLy$x$layout$xaxis$autorange <- TRUE
           plotLy$x$layout$yaxis$autorange <- TRUE
-          plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+          plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
           plotLy <- plotly::config(plotLy,
                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
           plotLy <- plotly::plotly_build(plotLy)
@@ -404,6 +385,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
           #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
         } else {
+          if (s == "svg") { requireNamespace("svglite") }
           ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
       } }
@@ -411,7 +393,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
     }
     # Plot - TIC and Base peak
     if ("Path" %in% colnames(Raw)) {
-      we <- which(file.exists(sub("\\.[^\\.]+$", ".raw", Raw$Path)))
+      we <- which(file.exists(sub("\\.[^.]+$", ".raw", Raw$Path)))
       if (length(we)) {
         #
         # Create cluster
@@ -432,16 +414,9 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         }
         N.clust <- length(cl)
         #
-        if (!suppressWarnings(require(rawrr))) {
-          pak::pkg_install("rawrr", ask = FALSE)
-          #install.packages('http://fgcz-ms.uzh.ch/~cpanse/rawrr_0.2.1.tar.gz', repo = NULL)
-          #rawrr::installRawFileReaderDLLs(sourceUrl = rawrr::.thermofisherlsmsUrl()) # Deprecated
-          rawrr::installRawrrExe()
-        }
         chromtypes <- setNames(c("tic", "bpc"),
                                c("TIC", "Base peak"))
         parallel::clusterExport(cl, exports, envir = environment())
-        #invisible(parallel::clusterCall(cl, \() { library(rawrr); return() }))
         f0 <- .bind_worker(.summaryWrkr1,
                            list(we = we,
                                 Raw = Raw,
@@ -519,7 +494,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                   plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
                   plotLy$x$layout$xaxis$autorange <- TRUE
                   plotLy$x$layout$yaxis$autorange <- TRUE
-                  plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+                  plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
                   plotLy <- plotly::config(plotLy,
                                            modeBarButtonsToRemove = c("select2d", "lasso2d"))
                   plotLy <- plotly::plotly_build(plotLy)
@@ -528,6 +503,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                   htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
                   #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
                 } else {
+                  if (s == "svg") { requireNamespace("svglite") }
                   ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
                 }
               } }
@@ -556,7 +532,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
       if ((is.data.frame(msms))&&(nrow(msms))) {
         msmsOK <- TRUE
         msms$"Raw file" <- factor(msms$"Raw file", levels = levels(rawFls))
-        msms <- msms[which(!is.na(msms$"Raw file")),]
+        msms <- msms[!is.na(msms$"Raw file"),]
         msms <- msms[order(msms$"Retention time", decreasing = FALSE),]
         msms <- msms[order(msms$"Raw file"),]
         msms$Unique_scan <- gsub("___ +", "___", do.call(paste, c(msms[, c("Raw file", "Scan number")], sep = "___")))
@@ -583,7 +559,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           if (nb > 20L) {
             lev <- levels(msms$"Retention time bin")
             l <- length(lev)
-            lev <- lev[which(((1L:l) %% 5L) == 0L)]
+            lev <- lev[((1L:l) %% 5L) == 0L]
             plot <- plot + ggplot2::scale_x_discrete(breaks = lev)
           }
           poplot(plot, 12L, 22L)
@@ -593,7 +569,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
               plotLy$x$layout$xaxis$autorange <- TRUE
               plotLy$x$layout$yaxis$autorange <- TRUE
-              plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+              plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
               plotLy <- plotly::config(plotLy,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
               plotLy <- plotly::plotly_build(plotLy)
@@ -602,6 +578,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
               #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
+              if (s == "svg") { requireNamespace("svglite") }
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
           } }
@@ -628,11 +605,11 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         msmsScans <- msmsScans[order(msmsScans$"Raw file"),]
         msmsScans$Unique_scan <- gsub("___ +", "___", do.call(paste, c(msmsScans[, c("Raw file", "Scan number")], sep = "___")))
         if (msmsOK) {
-          msmsScans$Identified <- c("-", "+")[msmsScans$Unique_scan %in% msms$Unique_scan+1]
+          msmsScans$Identified <- c("-", "+")[(msmsScans$Unique_scan %in% msms$Unique_scan)+1L]
         }
         msmsScans$Identified <- factor(msmsScans$Identified, levels = c("-", "+"))
         msmsScans$"Raw file" <- factor(msmsScans$"Raw file", levels = levels(rawFls))
-        msmsScans <- msmsScans[which(!is.na(msmsScans$`Raw file`)),]
+        msmsScans <- msmsScans[!is.na(msmsScans$`Raw file`),]
         msmsScans$"Retention time bin" <- as.factor(floor(msmsScans$"Retention time"))
         bw <- (max(msmsScans$"Retention time")-min(msmsScans$"Retention time"))/nb
         if (length(levels(rawFls)) > sc) {
@@ -648,7 +625,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
           if (length(iters) > 1L) { ttl <- paste0(basettl, " - ", i) }
           myColors <- setNames(c("grey", "red"), c("-", "+"))
           fillScale <- ggplot2::scale_fill_manual(name = "Identified", values = myColors)
-          plot <- ggplot2::ggplot(msmsScans[which(msmsScans$iter == i),]) +
+          plot <- ggplot2::ggplot(msmsScans[msmsScans$iter == i,]) +
             ggplot2::geom_histogram(ggplot2::aes(x = `Retention time`, fill = Identified),
                                     binwidth = bw) +
             ggplot2::facet_wrap(~`Raw file`) + ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
@@ -660,7 +637,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               plotLy <- plotly::ggplotly(plot, tooltip = c("x", "fill"))
               plotLy$x$layout$xaxis$autorange <- TRUE
               plotLy$x$layout$yaxis$autorange <- TRUE
-              plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+              plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
               plotLy <- plotly::config(plotLy,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
               plotLy <- plotly::plotly_build(plotLy)
@@ -669,6 +646,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
               #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
+              if (s == "svg") { requireNamespace("svglite") }
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
           } }
@@ -678,22 +656,22 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         temp <- data.frame(Retention.time = c(min(msmsScans$"Retention time")+bw*c(1L:(nb-1L)), max(msmsScans$"Retention time")))
         # (NB on above: I have to do it that way to avoid an issue with rounding numbers.)
         for (r in sort(unique(msmsScans$"Raw file"))) { #r <- sort(unique(msmsScans$"Raw file"))[1L]
-          m <- msmsScans[which(msmsScans$"Raw file" == r),]
+          m <- msmsScans[msmsScans$"Raw file" == r,]
           w1 <- which(m$Identified == "-")
           w2 <- which(m$Identified == "+")
           temp[[paste0(r, "___Intensity_Not.identified")]] <- NA_real_
           temp[[paste0(r, "___Intensity_Identified")]] <- NA_real_
           if (length(w1)) {
-            tst1 <- vapply(m$"Retention time"[w1], \(x) { temp$Retention.time[which(temp$Retention.time >= x)[1L]] }, 1)
+            tst1 <- vapply(m$"Retention time"[w1], \(x) { temp$Retention.time[temp$Retention.time >= x][1L] }, 1)
             temp1 <- aggregate(m$"Precursor intensity"[w1]/m$"Precursor apex fraction"[w1], list(tst1),
-                               \(x) { sum(x[which(is.finite(x))]) })
+                               \(x) { sum(x[is.finite(x)]) })
             w1 <- which(temp$Retention.time %in% temp1$Group.1)
             temp[w1, paste0(r, "___Intensity_Not.identified")] <- temp1$x[match(temp$Retention.time[w1], temp1$Group.1)]
           }
           if (length(w2)) {
-            tst2 <- vapply(m$"Retention time"[w2], \(x) { temp$Retention.time[which(temp$Retention.time >= x)[1L]] }, 1)
+            tst2 <- vapply(m$"Retention time"[w2], \(x) { temp$Retention.time[temp$Retention.time >= x][1L] }, 1)
             temp2 <- aggregate(m$"Precursor intensity"[w2]/m$"Precursor apex fraction"[w2], list(tst2),
-                               \(x) { sum(x[which(is.finite(x))]) })
+                               \(x) { sum(x[is.finite(x)]) })
             w2 <- which(temp$Retention.time %in% temp2$Group.1)
             temp[w2, paste0(r, "___Intensity_Identified")] <- temp2$x[match(temp$Retention.time[w2], temp2$Group.1)]
           }
@@ -703,7 +681,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         temp$variable <- gsub(".+___", "", temp$variable) 
         temp$Identified <- c("-", "+")[match(temp$variable, c("Intensity_Not.identified", "Intensity_Identified"))]
         temp$Identified <- factor(temp$Identified, levels = c("-", "+"))
-        colnames(temp)[which(colnames(temp) == "value")] <- "Intensity"
+        colnames(temp)[match("value", colnames(temp))] <- "Intensity"
         colnames(temp) <- gsub("\\.", " ", colnames(temp))
         if (length(levels(rawFls)) > sc) {
           temp$iter <- Raw$iter[match(temp$"Raw file", Raw$"Raw file")]
@@ -729,7 +707,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y", "fill"))
               plotLy$x$layout$xaxis$autorange <- TRUE
               plotLy$x$layout$yaxis$autorange <- TRUE
-              plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+              plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
               plotLy <- plotly::config(plotLy,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
               plotLy <- plotly::plotly_build(plotLy)
@@ -738,7 +716,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
               #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
-              if (s == "svg") { require(svglite) }
+              if (s == "svg") { requireNamespace("svglite") }
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
           } }
@@ -751,7 +729,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
         for (i in iters) { #i <- 1L
           basettl <- ttl <- "Number of MSMS per duty cycle"
           if (length(iters) > 1L) { ttl <- paste0(basettl, " - ", i) }
-          plot <- ggplot2::ggplot(msmsScans[which((msmsScans$iter == i)&(tst)),]) +
+          plot <- ggplot2::ggplot(msmsScans[(msmsScans$iter == i) & tst,]) +
             ggplot2::geom_bar(ggplot2::aes(x = `Scan event number`,
                                            fill = `Scan event number`)) +
             ggplot2::facet_wrap(~`Raw file`) + ggplot2::ggtitle(ttl) + ggplot2::theme_bw()
@@ -765,7 +743,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               plotLy <- plotly::ggplotly(plot, tooltip = c("x", "fill"))
               plotLy$x$layout$xaxis$autorange <- TRUE
               plotLy$x$layout$yaxis$autorange <- TRUE
-              plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+              plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
               plotLy <- plotly::config(plotLy,
                                        modeBarButtonsToRemove = c("select2d", "lasso2d"))
               plotLy <- plotly::plotly_build(plotLy)
@@ -774,7 +752,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
               #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
-              if (s == "svg") { require(svglite) }
+              if (s == "svg") { requireNamespace("svglite") }
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
           } }
@@ -787,7 +765,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             for (i in iters) { #i <- 1L
               basettl <- ttl <- "AGC fill"
               if (length(iters) > 1) { ttl <- paste0(basettl, " - ", i) }
-              plot <- ggplot2::ggplot(msmsScans[which(msmsScans$iter == i),]) +
+              plot <- ggplot2::ggplot(msmsScans[msmsScans$iter == i,]) +
                 ggplot2::geom_boxplot(ggplot2::aes(x = `Retention time bin`, y = `AGC Fill`),
                                       fill = "purple", outlier.size = 0.1) +
                 ggplot2::ylab(basettl) + ggplot2::facet_wrap(~`Raw file`) +
@@ -799,7 +777,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
               if (nb > 20L) {
                 lev <- levels(msmsScans$"Retention time bin")
                 l <- length(lev)
-                lev <- lev[which(((1L:l) %% 5L) == 0L)]
+                lev <- lev[((1L:l) %% 5L) == 0L]
                 plot <- plot + ggplot2::scale_x_discrete(breaks = lev)
               }
               poplot(plot, 12L, 22L)
@@ -809,7 +787,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                   plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
                   plotLy$x$layout$xaxis$autorange <- TRUE
                   plotLy$x$layout$yaxis$autorange <- TRUE
-                  plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+                  plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
                   plotLy <- plotly::config(plotLy,
                                            modeBarButtonsToRemove = c("select2d", "lasso2d"))
                   plotLy <- plotly::plotly_build(plotLy)
@@ -818,6 +796,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
                   htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
                   #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
                 } else {
+                  if (s == "svg") { requireNamespace("svglite") }
                   ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
                 }
               } }
@@ -867,7 +846,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y"))
             plotLy$x$layout$xaxis$autorange <- TRUE
             plotLy$x$layout$yaxis$autorange <- TRUE
-            plotLy <- htmlwidgets::onRender(plotLy, global_autorange)
+            plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
             plotLy <- plotly::config(plotLy,
                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
             plotLy <- plotly::plotly_build(plotLy)
@@ -876,6 +855,7 @@ MQ.summary <- function(wd, ev, pg, filter = FALSE,
             htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
             #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
           } else {
+            if (s == "svg") { requireNamespace("svglite") }
             ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
           }
         } }

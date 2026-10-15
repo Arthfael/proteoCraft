@@ -54,7 +54,7 @@ insertElems <- function(vect, pos, elems, warn = FALSE) {
   if (lPos) {
     pos <- pos+c(1L:lPos)
     res[pos] <- elems
-    res[which(is.na(res))] <- vect
+    res[is.na(res)] <- vect
   }
   if (pos0) { res <- c(elem0, res) }
   if (konvert) { res <- f(res) }

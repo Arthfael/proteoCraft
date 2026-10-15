@@ -9,8 +9,8 @@ Format.DB(
   mode = "UniProt",
   in.env = FALSE,
   Full.ID.rule = "^>([^ ]*)",
-  Protein.ID.rule = "^>(?:[a-z]{2}\\\\|)?([^\\\\| ]+)",
-  Name.rule = "^>(?:[a-z]{2}\\\\|[^\\\\|]+\\\\|)?([^ ]*)",
+  Protein.ID.rule = "^>(?:[a-z]{2}\\\\|)?([^| ]+)",
+  Name.rule = "^>(?:[a-z]{2}\\\\|[^|]+\\\\|)?([^ ]*)",
   Unique = TRUE,
   IDs_only = FALSE,
   parallel = FALSE,
@@ -30,11 +30,11 @@ Format.DB(
 
 \item{in.env}{If TRUE, the function will attempt processing the character string in one of two ways: a) if it recognizes the character string as a Fasta file, it will directly process it; else, it will treat it as the name of a Fasta file already in the environment. If set to FALSE (default), it will attempt to load the file from the work directory.}
 
-\item{Full.ID.rule}{Regex rule used to parse the header and extract the full ID. Only used if operating in custom mode. Default is "^>([^ ]*)" (UniProt).}
+\item{Full.ID.rule}{Regex rule used to parse the header and extract the full ID. Only used if operating in custom mode. Default is \code{"^>([^ ]*)"} (UniProtKB).}
 
-\item{Protein.ID.rule}{Regex rule used to parse the header and extract protein ID. Only used if operating in custom mode. Default is "^>[a-z]{2}\\|([^\\|]*)" (UniProt).}
+\item{Protein.ID.rule}{Regex rule used to parse the header and extract protein ID. Only used if operating in custom mode. Default is \code{"^>(?:[a-z]{2}\\|)?([^| ]+)"} (UniProtKB).}
 
-\item{Name.rule}{Regex rule used to parse the header and extract the protein name. Only used if operating in custom mode. Default is "^>[a-z]{2}\\|[^\\|]*\\|([^ ]*)" (UniProt).}
+\item{Name.rule}{Regex rule used to parse the header and extract the protein name. Only used if operating in custom mode. Default is \code{"^>(?:[a-z]{2}\\|[^|]+\\|)?([^ ]*)"} (UniProtKB).}
 
 \item{Unique}{If TRUE (default), will filter fasta to provide only one accession per sequence. (This may mean that only 1 gene will be retained where several encode the exact same protein, but reducing redundancy is good for FDR.)}
 
@@ -57,16 +57,19 @@ Format.DB(
 \item{verbose}{Logical (FALSE by default).}
 }
 \value{
-A data frame of parsed annotations.
+The fasta parsed as a data.frame with one row per entry.
 }
 \description{
-A function to load Fasta databases from the work directory or the environment and format them into a data frame.
-Depending on the mode you select, specific regex rules are applied to the header to extract information.
+A function to load Fasta databases from the work directory or the environment and format them into a data frame.\cr
+Depending on the mode you select, specific regex rules are applied to the header to extract information.\cr
 Additionally, three rules can be custom specified by the arguments.
 }
 \examples{
+\dontrun{
 db <- Format.DB(file = "Search database.FASTA", in.env = TRUE, species = "HUMAN")
-db <- Format.DB(file = "Search database2.FASTA", in.env = FALSE, species = "RAT;MOUSE")
-CDS <- Format.DB(list.files()[grep(".*\\\\.CDS\\\\..*\\\\.FASTA$", toupper(list.files()))], mode = "ensembl")
+CDS <- Format.DB(list.files(pattern = ".*\\\\.CDS\\\\..*\\\\.FASTA$",
+                            ignore.case = TRUE, full.names = TRUE),
+                 mode = "ensembl")
+}
 
 }

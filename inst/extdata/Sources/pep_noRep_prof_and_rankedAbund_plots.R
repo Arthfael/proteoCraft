@@ -185,7 +185,7 @@ if (plotPepProf) {
       plot_ly <- plotly::ggplotly(plot, tooltip = c("Peptide_ID", "text"))
       plot_ly$x$layout$xaxis$autorange <- TRUE
       plot_ly$x$layout$yaxis$autorange <- TRUE
-      plot_ly <- htmlwidgets::onRender(plot_ly, global_autorange)
+      plot_ly <- htmlwidgets::onRender(plot_ly, jsFun$global_auto_range)
       plot_ly <- plotly::config(plot_ly,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
       plot_ly <- plotly::plotly_build(plot_ly)
@@ -286,7 +286,7 @@ if (plotPepProf) {
         plot_ly <- plotly::ggplotly(plot, tooltip = c("Peptide_ID", "text")) # Super slowwwwww
         plot_ly$x$layout$xaxis$autorange <- TRUE
         plot_ly$x$layout$yaxis$autorange <- TRUE
-        plot_ly <- htmlwidgets::onRender(plot_ly, global_autorange)
+        plot_ly <- htmlwidgets::onRender(plot_ly, jsFun$global_auto_range)
         plot_ly <- plotly::config(plot_ly,
                                   modeBarButtonsToRemove = c("select2d", "lasso2d"))
         plot_ly <- plotly::plotly_build(plot_ly)

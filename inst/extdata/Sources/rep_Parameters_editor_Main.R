@@ -6,6 +6,11 @@ require(shinyjs)
 require(shinyBS)
 require(htmlwidgets)
 #
+# Check whether packages necessary for optional analyses are installed
+Src <- paste0(libPath, "/extdata/Sources/optPkgs_check.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
+#
 #
 #
 moreThan1Exp %<o% TRUE
@@ -23,7 +28,7 @@ source(Src)
 # Species
 SpeciesTst %<o% "Unspecified"
 if ("Taxonomy" %in% colnames(db)) {
-  SpeciesTst <- unique(db$Taxonomy[gsub(" *(\\(|\\[).*", "", db[[dbOrgKol]]) == mainOrg])
+  SpeciesTst <- unique(db$Taxonomy[sub(" *[([].*", "", db[[dbOrgKol]]) == mainOrg])
   SpeciesTst <- SpeciesTst[as.character(SpeciesTst) != "NA"][1L]
 }
 if ("Kingdom" %in% colnames(db)) {
@@ -178,7 +183,7 @@ if ((length(tmp) == 1L) && (tmp == "AUTOFACT")) {
   Param$Volcano.plots.Aggregate.Level <- paste(substr(setdiff(Factors, "Replicate"), 1L, 3L), collapse = ";")
 }
 klustChoices %<o% c("K-means", "hierarchical")
-KlustMeth %<o% 1L # Changed from 2
+KlustMeth %<o% 1L # Changed from 2L
 #
 if ((!validLogicPar("saintExprs")) && ("saintExprs" %in% colnames(Param))) {
   tmp1 <- as.logical(Param$saintExprs)
@@ -232,7 +237,7 @@ pr <- c("Norma.Ev.Intens", "Norma.Pep.Intens", "Adv.Norma.Pep.Intens", "Norma.Pr
         #"Norma.Pep.Ratio", "Adv.Norma.Pep.Ratio",
         "Norma.Prot.Ratio.to.Biot")
 prDflt <- setNames(rep(TRUE, length(pr)), pr)
-prDflt["Adv.Norma.Ev.Intens"] <- (length(unique(FracMap$Fraction)) > 1L)|
+prDflt["Adv.Norma.Ev.Intens"] <- (length(unique(FracMap$Fraction)) > 1L) |
   (length(unique(FracMap$`PTM-enriched`)) > 1L)
 prDflt[c(#"Norma.Pep.Ratio", "Adv.Norma.Pep.Ratio",
   "Norma.Prot.Ratio.to.Biot")] <- FALSE
@@ -377,7 +382,7 @@ reScMsg <- \(Rescale, Quant) {
   return("???... WHAT?!")
 }
 if (!validLogicPar("reScale")) {
-  reScale <- (quantAlgo != reScAlgo)|(quantAlgo == "LM")
+  reScale <- (quantAlgo != reScAlgo) | (quantAlgo == "LM")
 }
 # Top-N
 if ((!validIntegPar("topN")) && ("topN" %in% colnames(Param))) {
@@ -752,7 +757,6 @@ for (parI in myPar) {
                              TRUE,
                              FALSE,
                              nrow(Exp.map) >= 15L)[match(parI, myPar)]
-  
   # Level 1 default: defined by Param
   if (parNm %in% colnames(Param)) {
     par_dflt <- as.logical(Param[[parNm]])
@@ -764,7 +768,7 @@ for (parI in myPar) {
     parOK <- (length(tmpPar) == 1L) && is.logical(tmpPar) && (!is.na(tmpPar))
   }
   if (parOK) { par_dflt <- tmpPar }
-  # Backup value
+  # Backup value in case the previous operations failed somehow
   if (is.na(par_dflt)) { par_dflt <- par_dflt2 }
   #
   if (!parOK) { assign(parNm, par_dflt) }
@@ -807,8 +811,8 @@ wMp <- c(which(colnames(Param) == coreNms[1L]),
          which(colnames(Param) == coreNms[4L]),
          which(colnames(Param) == coreNms[5L]),
          which(colnames(Param) == coreNms[6L]),
-         which((Param[1L,] == "MAP2FACTS")&(!colnames(Param) %in% c(coreNms, "Batch.correction" # (for backwards compatibility; different from "Batch.effect")
-         ))))
+         which((Param[1L,] == "MAP2FACTS") &
+                 (!colnames(Param) %in% c(coreNms, "Batch.correction")))) # (for backwards compatibility; different from "Batch.effect")
 lstFct <- list()
 dfltFct <- list()
 factOpt2 <- setdiff(Factors, "Replicate")
@@ -848,10 +852,7 @@ for (w in wMp) { #w <- wMp[3L] #w <- wMp[5L] #w <- wMp[6L]
   w <- which(!dflt %in% Opt)
   l <- length(w)
   if (l) {
-    rmvOptTxt <- paste0("\"", dflt[w], "\"")
-    if (l > 1L) {
-      rmvOptTxt <- paste0(paste(rmvOptTxt[1L:(l-1L)], collapse = ", "), " and ", rmvtxt[l])
-    }
+    rmvOptTxt <- .commAnd(paste0("\"", dflt[w], "\""))
     warning(paste0("Factor", c("", "s")[(l > 1L)+1L], " ",
                    rmvOptTxt, " ha", c("s", "ve")[(l > 1L)+1L],
                    " special meaning and cannot be used to define ", myFct))
@@ -983,7 +984,8 @@ make_ui1 <- \() {
 #PTMstats .checkbox input {
   margin-top: 0 !important;
 }"))),
-    extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+    extendShinyjs(text = jsFun$toggle_full_screen,
+                  functions = c("toggleFullScreen")),
     titlePanel(tag("u", "Parameters"),
                #em(appNm)), # Doesn't work =(
                appNm),
@@ -1205,12 +1207,18 @@ make_ui1 <- \() {
                         checkboxInput("runProfPlots", "Draw protein profile plots?",
                                       runProfPlots, "100%"),
                         checkboxInput("runRankAbundPlots", "Draw protein ranked abundance plots?",
-                                      runRankAbundPlots, "100%")),
+                                      runRankAbundPlots, "100%"),
+                        br()),
                  column(2L,
-                        checkboxInput("runGSEA", "Run Gene Set Enrichment Analysis (GSEA)?",
-                                      runGSEA, "100%"),
-                        checkboxInput("runWGCNA", "Run Weighted Gene Correlation Network Analysis (WGCNA)?",
-                                      runWGCNA, "100%")))
+                        if (pkgsCheck["GSEA"]) {
+                          checkboxInput("runGSEA", "Run Gene Set Enrichment Analysis (GSEA)?",
+                                        runGSEA, "100%")
+                        },
+                        if (pkgsCheck["WGCNA"]) {
+                          checkboxInput("runWGCNA", "Run Weighted Gene Correlation Network Analysis (WGCNA)?",
+                                        runWGCNA, "100%")
+                        },
+                        br()))
       )
     },
     tags$hr(style = "border-color: black;"),
@@ -1909,13 +1917,15 @@ server1 <- \(input, output, session) {
     PARAM(Par)
   })
   # GSEA
-  observeEvent(input$runGSEA, {
-    runGSEA <- as.logical(input$runGSEA)
-    assign("runGSEA", runGSEA, envir = .GlobalEnv)
-    Par <- PARAM()
-    Par$runGSEA <- runGSEA
-    PARAM(Par)
-  })
+  if (pkgsCheck["GSEA"]) {
+    observeEvent(input$runGSEA, {
+      runGSEA <- as.logical(input$runGSEA)
+      assign("runGSEA", runGSEA, envir = .GlobalEnv)
+      Par <- PARAM()
+      Par$runGSEA <- runGSEA
+      PARAM(Par)
+    })
+  }
   # Profile plots
   observeEvent(input$runProfPlots, {
     runProfPlots <- as.logical(input$runProfPlots)
@@ -2355,10 +2365,12 @@ if (exists("appRunTest")) { rm(appRunTest) }
 appTxt1 <- sub("myApp", "myApp1", sub("\\(ui", "(ui1", sub(", server", ", server1", run_App)))
 runKount <- 0L
 while ((!runKount) || (!exists("appRunTest"))) {
+  g <- shiny:::.globals
+  g$appState <- NULL
   ui1 <- make_ui1() # Update ui with current values
   eval(parse(text = appTxt1), envir = .GlobalEnv)
-  runKount <- runKount+1L
   shinyCleanup()
+  runKount <- runKount+1L
 }
 rm(list = ls(pattern = "^\\.shiny"))
 shiny::stopApp()
@@ -2381,9 +2393,9 @@ Param$Ratios.Plot.colour <- tmp[min(c(2, length(tmp)))]
 #   Param$Ratios.Contamination.Rates <- Param$Ratios.Contamination.Rates/100
 # }
 # Apply defaults to non-UI parameters
-g <- grep("^TF_((TRUE)|(FALSE))$", Param[1L,])
+g <- grep("^TF_(TRUE|FALSE)$", Param[1L,])
 for (w in g) { Param[[w]] <- as.logical(sub("^TF_", "", Param[[w]])) }
-g <- grep("^((TRUE)|(FALSE))$", Param[1L,])
+g <- grep("^(TRUE|FALSE)$", Param[1L,])
 for (w in g) { Param[[w]] <- as.logical(Param[[w]]) }
 #}
 enrichGO %<o% (("GO.enrichment" %in% colnames(Param)) && is.logical(Param$GO.enrichment) && Param$GO.enrichment)
@@ -2404,12 +2416,12 @@ Param$Ratios.Ref.Groups <- if (Nested) {
 } else { Param$Ratios.Groups }
 #
 # Defaults in case we missed a parameter
-g <- grep("^TF_((TRUE)|(FALSE))$", Param[1L,])
+g <- grep("^TF_(TRUE|FALSE)$", Param[1L,])
 if (length(g)) {
   Param[1L, g] <- sub("^TF_", "",  Param[1L, g])
   Param[, g] <- as.logical(Param[, g])
 }
-w <- grep("^ *((TRUE)|(FALSE)) *$", Param[1L,], ignore.case = TRUE)
+w <- grep("^ *(TRUE|FALSE) *$", Param[1L,], ignore.case = TRUE)
 if (length(w)) {
   Param[1L, w] <- gsub(" ", "", toupper(Param[1L, w]))
   Param[, w] <- as.logical(Param[, w])
@@ -2432,15 +2444,15 @@ if (lVar) {
       w2c <- which(x2 == "C-term")
       w2i <- which(!x2 %in% c("N-term","C-term"))
       if (length(w2n)) {
-        pat <- c(pat, paste0("^_[A-Z]?\\(([^A-Z\\),]{2},)*", x1, "(,[^A-Z\\),]{2})*\\)"))
+        pat <- c(pat, paste0("^_[A-Z]?\\(([^A-Z),]{2},)*", x1, "(,[^A-Z),]{2})*\\)"))
       }
       if (length(w2c)) {
-        pat <- c(pat, paste0("\\(([^A-Z\\),]{2},)*", x1, "(,[^A-Z\\),]{2})*\\)_$"))
+        pat <- c(pat, paste0("\\(([^A-Z),]{2},)*", x1, "(,[^A-Z),]{2})*\\)_$"))
       }
       if (length(w2i)) {
         i <- x2[w2i]
         if (collapse && (length(w2i) > 1L)) { i <- paste0("[", paste(i, collapse = ""), "]") }
-        pat <- c(pat, paste0(i, "\\(([^A-Z\\),]{2},)*", x1, "(,[^A-Z\\),]{2})*\\)"))
+        pat <- c(pat, paste0(i, "\\(([^A-Z),]{2},)*", x1, "(,[^A-Z),]{2})*\\)"))
       }
       if (collapse) { pat <- paste(pat, collapse = "|") }
       return(pat)
@@ -2450,6 +2462,37 @@ if (lVar) {
     PTMstats$pattern <- vapply(1L:nrow(PTMstats), patFun, "", TRUE)
   }
 }
+
+# Override any optional analysis for which the package check was failed, independent of which value parameters may have
+# - Rerun package checks just in case
+pkgsCheck <- (vapply(opt_Pkgs, \(pkgs) {
+  sum(!vapply(pkgs, \(pkg) { requireNamespace(pkg) }, TRUE))
+}, 1L) == 0L)
+# - Then apply overrides if necessary
+if(!pkgsCheck["topGO"]) {
+  if (GOenrich) { warning("Turning off topGO-based GO enrichment:\n -> some necesary packages are missing") }
+  if (globalGO) { warning("Turning off topGO-based GO enrichment:\n -> some necesary packages are missing") }
+  GOenrich <- FALSE
+  globalGO <- FALSE
+}
+if ((!CytoScape) || (!pkgsCheck["ClueGO"])) {
+  if (runClueGO) {
+    msg <- "Turning off clueGO:\n"
+    if (!CytoScape) { msg <- paste0(, " -> Cytoscape is missing") }
+    if (!pkgsCheck["ClueGO"]) { msg <- paste0(, " -> some necesary packages are missing") }
+  }
+  runClueGO <- FALSE
+}
+if (!pkgsCheck["GSEA"]) {
+  if (runGSEA) { warning("Turning off GSEA:\n -> some necesary packages are missing") }
+  runGSEA <- FALSE
+}
+if (!pkgsCheck["WGCNA"]) {
+  if (runWGCNA) { warning("Turning off WGCNA:\n -> some necesary packages are missing") }
+  runWGCNA <- FALSE
+}
+runSTRINGdb %<o% pkgsCheck["STRINGdb"] # Not currently implemented in this workflow
+# pkgsCheck["Venn"] is being handled differently - for now not through a parameter but directly in the main script's body
 
 # Create sub-directories vector:
 # (this should go...)
@@ -2625,7 +2668,7 @@ write(tmp, paste0(wd, "/Concatenated search database.fasta"))
 # Applied later at protein groups level.
 # Any protein not in the filter sees its quantitative values set to 0.
 #
-DiscFilt %<o% ((!is.na(Param$TrueDisc_filter))&(Param$TrueDisc_filter != "")&(file.exists(Param$TrueDisc_filter)))
+DiscFilt %<o% ((!is.na(Param$TrueDisc_filter)) & (Param$TrueDisc_filter != "") & file.exists(Param$TrueDisc_filter))
 if (DiscFilt) {
   DiscFiltFl %<o% Param$TrueDisc_filter
   DiscFiltTbl %<o% read.csv(DiscFiltFl, check.names = FALSE)
@@ -2658,7 +2701,7 @@ if (DiscFilt) {
 # 2) Optional "CRAPome" filter
 # For pull downs mostly.
 # Provides a vector of accessions. Any protein group with one protein in this filter will be marked as a contaminant.
-CRAPome %<o% ((!is.na(Param$CRAPome_file))&(Param$CRAPome_file != "")&(file.exists(Param$CRAPome_file)))
+CRAPome %<o% ((!is.na(Param$CRAPome_file)) & (Param$CRAPome_file != "") & file.exists(Param$CRAPome_file))
 if (CRAPome) {
   CRAPomeFl %<o% Param$CRAPome_file
   CRAPomeProteins %<o% read.csv(CRAPomeFl, check.names = FALSE)

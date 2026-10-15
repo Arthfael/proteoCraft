@@ -1,7 +1,7 @@
 #' saveImgFun
 #'
 #' @description
-#' Function to save all objects in the environment quickly.
+#' Function to save all objects in the environment quickly.\cr
 #' The backend used is qs2::qs_savem under Windows and fastSave::save.lbzip2 under Linux.
 #' 
 #' @param file The path/file to save to.
@@ -39,9 +39,9 @@ saveImgFun <- function(file,
   obj <- base::ls(envir = .GlobalEnv)
   if (exists(".obj", envir = .GlobalEnv)) {
     obj <- unique(c(".obj", obj))
-    obj <- obj[which(sapply(obj, exists, envir = .GlobalEnv))]
+    obj <- obj[vapply(obj, exists, TRUE, envir = .GlobalEnv)]
   }
-  obj <- grep("^[A-Za-z\\.][A-Za-z\\.0-9_]*$", obj, value = TRUE)
+  obj <- grep("^[A-Za-z.][A-Za-z.0-9_]*$", obj, value = TRUE)
   # Very important:
   # If you get the `Error in xml_ns.xml_document(x) : external pointer is not valid` error when reloading,
   # then you are presumably saving objects which should not be: some object classes are connections and not meant to be reloaded!
@@ -49,13 +49,13 @@ saveImgFun <- function(file,
   # Check saving some only of the objects in obj until you identify which one is causing the issue,
   # then add its class to the vector below of excluded classes which should not be saved.
   # 
-  obj <- obj[which(vapply(obj, \(x) {
+  obj <- obj[vapply(obj, \(x) {
     inherits(get(x),
                  c("cluster", # e.g. parClust
                  "connection", # any connection
                  "rdocx") # created by package officer
     )
-  }, 1L) == 0L)]
+  }, 1L) == 0L]
   #
   # Alternate way to using do.call:
   # cmd <- paste0("qs2::qs_savem(",

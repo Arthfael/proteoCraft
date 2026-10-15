@@ -13,8 +13,8 @@
 #' @param numeric_data Is the data numeric? Default = FALSE
 #' 
 #' @returns
-#' A named list, with for each modified peptide a data.frame with 2 columns:
-#'  - "Sequence" = amino acid
+#' A named list, with for each modified peptide a data.frame with 2 columns:\cr
+#'  - "Sequence" = amino acid\cr
 #'  - "Annotations" = PTM at this position
 #' 
 #' @export
@@ -78,7 +78,7 @@ annot_to_tabl <- function(x,
     if (length(y)) {
       left <- which(y == start); ll <- length(left)
       right <- which(y == end); lr <- length(right)
-      if(ll != lr) { stop(paste(c("The data appears to be corrupt! ", y), collapse = "")) }
+      if (ll != lr) { stop(paste(c("The data appears to be corrupt! ", y), collapse = "")) }
       temp <- data.frame(Sequence = y, Annotations = "")
       if (ll) {
         range <- sapply(c(1L:ll), \(z) { list(left[z]:right[z]) })
@@ -98,7 +98,7 @@ annot_to_tabl <- function(x,
           temp1[[paste0("A", i)]] <- temp$Annotations[(w[i-1L]+1L):(w[i]-1L)]
         }
         temp1$Annotations <- rowMeans(temp1[, paste0("A", as.character(1L:lw))], na.rm = TRUE)
-        temp1$Annotations[which(!is.finite(temp1$Annotations))] <- NA
+        temp1$Annotations[!is.finite(temp1$Annotations)] <- NA
         temp <- temp1[, c("Sequence", "Annotations")]
       }
       temp$Names <- ""

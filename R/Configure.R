@@ -35,7 +35,7 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
   }
   KolDef1 <- paste0(proteoPath, "/extdata/LC_columns.xlsx")
   KolDef2 <- paste0(homePath, "/LC_columns.xlsx")
-  if ((file.exists(KolDef1)) && (!file.exists(KolDef2))) {
+  if (file.exists(KolDef1) && (!file.exists(KolDef2))) {
     tst <- try(file.copy(KolDef1, homePath, overwrite = FALSE), silent = TRUE)
     print(tst)
     if (file.exists(KolDef2)) { cat(" - Created default LC columns .xlsx table in HOME...\n") }
@@ -44,29 +44,32 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
   }
   locDirsFl1 <- paste0(proteoPath, "/extdata/Default_locations.xlsx")
   locDirsFl2 <- paste0(homePath, "/Default_locations.xlsx")
-  writeDefltLoc <- function(locFile = locDirsFl2, dirTbl = locDirs) {
-    wb <- openxlsx::createWorkbook()
-    openxlsx::addWorksheet(wb, "Default_folders")
-    openxlsx::writeData(wb, "Default_folders", dirTbl)
-    openxlsx::addStyle(wb, "Default_folders",
-                       openxlsx::createStyle(textDecoration = c("bold", "underline")),
-                       1L,
-                       1L:ncol(dirTbl),
-                       stack = TRUE)
-    openxlsx::addStyle(wb, "Default_folders",
-                       openxlsx::createStyle(fontName = "Consolas", textDecoration = "italic"),
-                       1L:nrow(dirTbl) + 1L,
-                       match("Path", colnames(dirTbl)), stack = TRUE)
-    openxlsx::addStyle(wb, "Default_folders", openxlsx::createStyle(textDecoration = "italic"), 
-                       1L:nrow(dirTbl) + 1L, match("Help", colnames(dirTbl)), 
-                       stack = TRUE)
-    openxlsx::setColWidths(wb,
-                           "Default_folders",
-                           match(c("Folder", "Path", "Help"), colnames(dirTbl)),
-                           c(25L, 60L, 150L))
-    openxlsx::saveWorkbook(wb, locFile, overwrite = TRUE)
+  writeDefltLoc <- \(locFile = locDirsFl2, dirTbl = locDirs) {
+    wb <- openxlsx2::wb_workbook()
+    wb <- openxlsx2::wb_add_worksheet(wb, "Default_folders")
+    nr <- nrow(dirTbl)
+    nc <- ncol(dirTbl)
+    wb <- openxlsx2::wb_add_data_table(wb, "Default_folders",
+                                       dirTbl, table_style = "TableStyleMedium5")
+    wb <- openxlsx2::wb_add_font(wb, "Default_folders",
+                                 openxlsx2::wb_dims(1L, 1L:nc),
+                                 bold = TRUE, underline = "single")
+    wb <- openxlsx2::wb_add_font(wb, "Default_folders",
+                                 openxlsx2::wb_dims(1L:nr + 1L, match("Path", colnames(dirTbl))),
+                                 name = "Consolas", italic = TRUE)
+    wb <- openxlsx2::wb_add_font(wb, "Default_folders",
+                                 openxlsx2::wb_dims(1L:nr + 1L, match("Help", colnames(dirTbl))),
+                                 italic = TRUE)
+    wb <- openxlsx2::wb_add_cell_style(wb, "Default_folders",
+                                       openxlsx2::wb_dims(1L:(nr+1L), 1L:nc),
+                                       horizontal = "left", vertical = "top", wrap_text = TRUE)
+    wb <- openxlsx2::wb_set_col_widths(wb, "Default_folders",
+                                       match(c("Folder", "Path", "Help"), colnames(dirTbl)),
+                                       c(25L, 60L, 150L))
+    openxlsx2::wb_save(wb, locFile2, TRUE)
+    #openxlsx2::xl_open(locFile)
   }
-  if ((file.exists(locDirsFl1))&&(!file.exists(locDirsFl2))) {
+  if (file.exists(locDirsFl1) && (!file.exists(locDirsFl2))) {
     tst <- try(file.copy(locDirsFl1, homePath, overwrite = FALSE), silent = TRUE)
     print(tst)
     if (file.exists(locDirsFl2)) {
@@ -84,8 +87,8 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
     } else { cat(".\n") }
   }
   locDirs <- openxlsx2::read_xlsx(locDirsFl2)
-  locDirs <- locDirs[which(!is.na(locDirs$Folder)), ]
-  w <- which((locDirs$Path == "")|(!file.exists(locDirs$Path)))
+  locDirs <- locDirs[!is.na(locDirs$Folder), ]
+  w <- which((locDirs$Path == "") | (!file.exists(locDirs$Path)))
   if (length(w)) {
     for (i in w) {
       locDirs$Path[i] <- if (locDirs$Folder[i] == "Python") {
@@ -109,8 +112,8 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
     opt0 <- readr::read_lines(fl0)
     opt1 <- readr::read_lines(fl1)
     opt1 <- unique(c(opt1, opt0))
-    opt1 <- opt1[which(nchar(opt1) > 0L)]
-    opt1 <- opt1[which(!is.na(opt1))]
+    opt1 <- opt1[nchar(opt1) > 0L]
+    opt1 <- opt1[!is.na(opt1)]
     write(opt1, fl1)
   } else {
     try(file.copy(fl0, homePath, overwrite = FALSE), silent = TRUE)
@@ -148,11 +151,11 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
               "DevStages_Human", "DevStages_Worms")
   ontFls <- setNames(paste0(homePath, "/", ontFls, ".csv"),
                      ontFls)
-  if ((sum(!file.exists(ontFls)))||(updateOntologies)) {
-    if (!require(rols, quietly = TRUE)) { pak::pak("rols") }
-    require(rols)
-    if (updateOntologies) { cat("Updating ontology files...\n") }
-    get_all_terms <- function(ontology, size = 500L) {
+  if (sum(!file.exists(ontFls)) || updateOntologies) {
+    if (updateOntologies) { cat(" - Updating ontology files...\n") } else {
+      cat(" - Downloading ontology files...\n")
+    }
+    get_all_terms <- \(ontology, size = 500L) {
       all_terms <- list()
       page <- 0L
       repeat {
@@ -163,13 +166,13 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
         terms <- dat$`_embedded`$terms
         if (!length(terms)) 
           break
-        w <- which(vapply(colnames(terms), function(x) { is.data.frame(terms[[x]]) }, TRUE))
+        w <- which(vapply(colnames(terms), \(x) { is.data.frame(terms[[x]]) }, TRUE))
         while (length(w)) {
-          b <- lapply(w, function(i) { terms[[i]] })
+          b <- lapply(w, \(i) { terms[[i]] })
           b <- do.call(cbind, b)
           terms <- terms[, -w]
           terms[, colnames(b)] <- b
-          w <- which(vapply(colnames(terms), function(x) { is.data.frame(terms[[x]]) }, TRUE))
+          w <- which(vapply(colnames(terms), \(x) { is.data.frame(terms[[x]]) }, TRUE))
         }
         page <- page + 1L
         all_terms[[page]] <- terms
@@ -181,43 +184,42 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
     for (i in 1L:nrow(ontoDF)) { #i <- 1L
       fl <- ontFls[ontoDF$Name[i]]
       #print(fl)
-      if ((!file.exists(fl))||(updateOntologies)) {
+      if ((!file.exists(fl)) || updateOntologies) {
         my_terms <- get_all_terms(ontoDF$Term[i], size = 1000L)
         my_terms <- my_terms[, c("label", "description", "synonyms", "iri", "short_form")]
-        w <- which(vapply(colnames(my_terms), function(x) { inherits(my_terms[[x]], "list") }, TRUE))
-        if (length(w)) { for (i in w) { my_terms[[i]] <- vapply(my_terms[[i]], function(x) { c(unlist(x), "")[1L] }, "") } }
+        w <- which(vapply(colnames(my_terms), \(x) { inherits(my_terms[[x]], "list") }, TRUE))
+        if (length(w)) { for (i in w) { my_terms[[i]] <- vapply(my_terms[[i]], \(x) { c(unlist(x), "")[1L] }, "") } }
         data.table::fwrite(my_terms, fl, row.names = FALSE)
         rm(fl)
       }
     }
-    if ((!file.exists(ontFls["MS_quant_meth"]))||
-        (!file.exists(ontFls["MS_label_meth"]))||
-        (!file.exists(ontFls["MS_acq_meth"]))||
-        (updateOntologies)) {
+    if ((!file.exists(ontFls["MS_quant_meth"])) ||
+        (!file.exists(ontFls["MS_label_meth"])) ||
+        (!file.exists(ontFls["MS_acq_meth"])) ||
+        updateOntologies) {
       pride <- rols::olsOntology("pride")
-      prideTrms <- rols::olsTerms(pride)
-      prideDigDeep <- function(x, myTrms) {
+      #prideTrms <- rols::olsTerms(pride) # No point! We can access single terms much faster - and getting the whole mess takes ~ 10 min!!!
+      prideDigDeep <- \(x, myTrms) {
         trm_x <- myTrms[[x]]
         trms_x <- rols::children(trm_x)
         rsx <- data.frame(ID = trm_x@obo_id,
                           Name = trm_x@label, 
                           Description = paste(unlist(trm_x@description), collapse = "; "))
-        if ((!is.null(trms_x))&&(length(trms_x))) {
-          rsi <- lapply(1L:length(trms_x), function(i) {
+        if ((!is.null(trms_x)) && length(trms_x)) {
+          rsi <- lapply(1L:length(trms_x), \(i) {
             trm_i <- trms_x[[i]]
             trms_ij <- rols::children(trm_i)
             rs_i <- data.frame(ID = trm_i@obo_id, Name = trm_i@label, 
                                Description = paste(unlist(trm_i@description), collapse = "; "))
-            if ((!is.null(trms_ij)) && (length(trms_ij))) {
-              rs_j <- lapply(1L:length(trms_ij), function(j) {
+            if ((!is.null(trms_ij)) && length(trms_ij)) {
+              rs_j <- lapply(1L:length(trms_ij), \(j) {
                 trm_j <- trms_ij[[j]]
                 trms_ijk <- rols::children(trm_j)
                 rs_j <- data.frame(ID = trm_j@obo_id, 
                                    Name = trm_j@label,
                                    Description = paste(unlist(trm_j@description), collapse = "; "))
-                if ((!is.null(trms_ijk)) && (length(trms_ijk))) {
-                  rs_k <- lapply(1L:length(trms_ijk), 
-                                 function(k) {
+                if ((!is.null(trms_ijk)) && length(trms_ijk)) {
+                  rs_k <- lapply(1L:length(trms_ijk), \(k) {
                                    trm_k <- trms_ijk[[k]]
                                    data.frame(ID = trm_k@obo_id, 
                                               Name = trm_k@label,
@@ -238,86 +240,92 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
         }
         return(rsx)
       }
-      # Labelling methods
-      labMeth <- prideTrms[["PRIDE:0000514"]]
+      # Labeling methods
+      #labMeth <- prideTrms[["PRIDE:0000514"]]
+      labMeth <- rols::olsTerm(pride, "PRIDE:0000514")
       labMethChildren <- rols::children(labMeth)
-      labMethChildren <- setNames(labMethChildren@x, vapply(labMethChildren@x, function(x) { x@label }, ""))
+      labMethChildren <- setNames(labMethChildren@x, vapply(labMethChildren@x, \(x) { x@label }, ""))
       labMethChildren <- lapply(1L:length(labMethChildren), prideDigDeep, 
                                 myTrms = labMethChildren)
       labMethChildren <- do.call(rbind, labMethChildren)
-      labMethChildren <- aggregate(1L:nrow(labMethChildren), list(labMethChildren$Name), function(x) {
+      labMethChildren <- aggregate(1L:nrow(labMethChildren), list(labMethChildren$Name), \(x) {
         data.frame(ID = labMethChildren$ID[x[1L]],
                    Description = labMethChildren$Description[x[1L]])
       })
       colnames(labMethChildren)[1L] <- "Name"
       labMethChildren[, c("ID", "Description")] <- do.call(rbind, labMethChildren$x)
       labMethChildren$x <- NULL
-      if ((!file.exists(ontFls["MS_label_meth"]))||(updateOntologies)) {
+      if ((!file.exists(ontFls["MS_label_meth"])) || updateOntologies) {
         write.csv(labMethChildren,
                   ontFls["MS_label_meth"], 
                   row.names = FALSE)
       }
       # Quantification methods
-      quantMeth <- prideTrms[["PRIDE:0000309"]]
+      #quantMeth <- prideTrms[["PRIDE:0000309"]]
+      quantMeth <- rols::olsTerm(pride, "PRIDE:0000309")
       quantMethChildren <- rols::children(quantMeth)
-      quantMethChildren <- setNames(quantMethChildren@x, vapply(quantMethChildren@x, function(x) { x@label }, ""))
+      quantMethChildren <- setNames(quantMethChildren@x, vapply(quantMethChildren@x, \(x) { x@label }, ""))
       quantMethChildren <- lapply(1L:length(quantMethChildren), prideDigDeep, 
                                   myTrms = quantMethChildren)
       quantMethChildren <- do.call(rbind, quantMethChildren)
-      quantMethChildren <- aggregate(1L:nrow(quantMethChildren), list(quantMethChildren$Name), function(x) {
+      quantMethChildren <- aggregate(1L:nrow(quantMethChildren), list(quantMethChildren$Name), \(x) {
         data.frame(ID = quantMethChildren$ID[x[1L]],
                    Description = quantMethChildren$Description[x[1L]])
       })
       colnames(quantMethChildren)[1L] <- "Name"
       quantMethChildren[, c("ID", "Description")] <- do.call(rbind, quantMethChildren$x)
       quantMethChildren$x <- NULL
-      #quantMethChildren <- quantMethChildren[which(!quantMethChildren$ID %in% labMethChildren$ID),]
+      #quantMethChildren <- quantMethChildren[!quantMethChildren$ID %in% labMethChildren$ID,]
       # (there is overlap with the labelling method term, not sure whether we should segregate them or not)
-      if ((!file.exists(ontFls["MS_quant_meth"]))||(updateOntologies)) {
+      if ((!file.exists(ontFls["MS_quant_meth"])) || updateOntologies) {
         write.csv(quantMethChildren,
                   ontFls["MS_quant_meth"], 
                   row.names = FALSE)
       }
       # Quantification methods
-      acqMeth <- prideTrms[["PRIDE:0000659"]]
+      #acqMeth <- prideTrms[["PRIDE:0000659"]]
+      acqMeth <- rols::olsTerm(pride, "PRIDE:0000659")
       acqMethChildren <- rols::children(acqMeth)
-      acqMethChildren <- setNames(acqMethChildren@x, vapply(acqMethChildren@x, function(x) { x@label }, ""))
+      acqMethChildren <- setNames(acqMethChildren@x, vapply(acqMethChildren@x, \(x) { x@label }, ""))
       acqMethChildren <- lapply(1L:length(acqMethChildren), prideDigDeep, 
                                 myTrms = acqMethChildren)
       acqMethChildren <- do.call(rbind, acqMethChildren)
-      acqMethChildren <- aggregate(1L:nrow(acqMethChildren), list(acqMethChildren$Name), function(x) {
+      acqMethChildren <- aggregate(1L:nrow(acqMethChildren), list(acqMethChildren$Name), \(x) {
         data.frame(ID = acqMethChildren$ID[x[1L]],
                    Description = acqMethChildren$Description[x[1L]])
       })
       colnames(acqMethChildren)[1L] <- "Name"
       acqMethChildren[, c("ID", "Description")] <- do.call(rbind, acqMethChildren$x)
       acqMethChildren$x <- NULL
-      if ((!file.exists(ontFls["MS_acq_meth"]))||(updateOntologies)) {
+      if ((!file.exists(ontFls["MS_acq_meth"])) || updateOntologies) {
         write.csv(acqMethChildren,
                   ontFls["MS_acq_meth"], 
                   row.names = FALSE)
       }
     }
-    if ((!file.exists(ontFls["MS_models"]))||(updateOntologies)) {
+    if ((!file.exists(ontFls["MS_models"])) || updateOntologies) {
       MS_onto <- rols::olsOntology("ms")
-      MS_trms <- rols::olsTerms(MS_onto)
-      instrMod <- MS_trms[["MS:1000031"]]
+      #MS_trms <- rols::olsTerms(MS_onto)
+      #instrMod <- MS_trms[["MS:1000031"]]
+      instrMod2 <- rols::olsTerm(MS_onto, "MS:1000031")
       vendors <- rols::children(instrMod)
-      vendorsLab <- lapply(vendors@x, function(x) {
+      vendorsLab <- lapply(vendors@x, \(x) {
         x@label
       })
-      vendorsInstr <- lapply(1L:length(vendorsLab), function(x) { #x <- 1L
-        trm <- MS_trms[[names(vendorsLab)[[x]]]]
+      vendorsInstr <- lapply(1L:length(vendorsLab), \(x) { #x <- 1L
+        #trm <- MS_trms[[names(vendorsLab)[[x]]]]
+        trm <- rols::olsTerm(MS_onto, names(vendorsLab)[[x]])
         models <- rols::children(trm)
         if (is.null(models)) { return(NULL) }
-        rs <- vapply(models@x, function(y) {
+        rs <- vapply(models@x, \(y) {
           y@label
         }, "")
-        rs2 <- setNames(lapply(1L:length(rs), function(y) {
+        rs2 <- setNames(lapply(1L:length(rs), \(y) {
           try({
-            trm2 <- MS_trms[[names(rs)[y]]]
+            #trm2 <- MS_trms[[names(rs)[y]]]
+            trm2 <- rols::olsTerm(MS_onto, names(rs)[y])
             mods <- rols::children(trm2)
-            mods <- vapply(mods@x, function(z) {
+            mods <- vapply(mods@x, \(z) {
               z@label
             }, "")
           }, silent = TRUE)
@@ -340,20 +348,17 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
       rownames(vendorsInstr) <- NULL
       write.csv(vendorsInstr, ontFls["MS_models"], row.names = FALSE)
     }
-    devStgFun <- function(Ontology, parentTerm, fileName) {
+    devStgFun <- \(Ontology, parentTerm, fileName) {
       #Ontology = "mmusdv"; parentTerm = "MmusDv_0000000"
       onto <- rols::olsOntology(Ontology)
       trms <- rols::olsTerm(onto, parentTerm)
       dvStgs <- rols::children(trms)
-      dvStgs <- setNames(dvStgs@x, vapply(dvStgs@x, 
-                                          function(x) {
-                                            x@label
-                                          }, ""))
-      dvStgsa <- lapply(1L:length(dvStgs), function(x) {
+      dvStgs <- setNames(dvStgs@x, vapply(dvStgs@x, \(x) { x@label }, ""))
+      dvStgsa <- lapply(1L:length(dvStgs), \(x) {
         trm <- dvStgs[[x]]
         trms <- rols::children(trm)
-        if ((!is.null(trms)) && (length(trms))) {
-          rs <- lapply(1L:length(trms), function(i) {
+        if ((!is.null(trms)) && length(trms)) {
+          rs <- lapply(1L:length(trms), \(i) {
             trm <- trms[[i]]
             rsi <- data.frame(ID = trm@obo_id, Name = trm@label, 
                               Description = paste(unlist(trm@description), collapse = "; "))
@@ -374,7 +379,7 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
                           Term = c("FBdv_00005259", "ZFS_0100000", "MmusDv_0000000", "HsapDv_0000000", "WBls_0000075"),
                           FileName = paste0("DevStages_", c("Fly", "Zebrafish", "Mouse", "Human", "Worms")))
     ontoDF2$File <- ontFls[ontoDF2$FileName]
-    ontoDF2$Do <- (!file.exists(ontoDF2$File))|(updateOntologies)
+    ontoDF2$Do <- (!file.exists(ontoDF2$File)) | updateOntologies
     w <- which(ontoDF2$Do)
     if (length(w)) {
       for (i in w) {

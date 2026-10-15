@@ -1,8 +1,7 @@
 # Load PSMs
 source(parSrc)
 #
-if (!require(PTMods, quietly = TRUE)) { pak::pak("rformassspectrometry/PTMods") }
-require(PTMods)
+library(PTMods)
 data(modifications, package = "PTMods")
 UniMod <- modifications
 rm(modifications)
@@ -35,8 +34,6 @@ dbDir <- locDirs$Path[match("Fasta files", locDirs$Folder)]
 # We need a safe way to look for files/folders, but without spending a lifetime looking.
 # Enter, this function:
 # (courtesy of chatGPT, because that's really not the type of commands I am familiar with)
-if (!require(processx)) { pak::pak("processx") }
-library(processx)
 safe_listFls %<o% \(path,
                     type = "files",
                     timeout = 10L) {
@@ -96,7 +93,7 @@ safe_listFls %<o% \(path,
 
 # Now to loading us some PSMs!
 # Process sequentially all input directories
-for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
+for (dir_i in 1L:l_inDirs) { #dir_i <- 1L #dir_i <- 2L
   cat(paste0("\n -> Processing input folder",
              c("", paste0(" #", dir_i))[(l_inDirs > 1L)+1L],
              ":\n\t", inDirs[dir_i], "\n"))
@@ -106,7 +103,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
   if (SearchSoft[dir_i] == "MAXQUANT") {
     mqparFl_i <- c()
     if (grepl("/combined/txt$", inDirs[dir_i])) {
-      mqparFl_i <- list.files(gsub("/txt$", "", inDirs[dir_i]), "\\.xml$", full.names = TRUE)
+      mqparFl_i <- list.files(sub("/txt$", "", inDirs[dir_i]), "\\.xml$", full.names = TRUE)
     }
     if (grepl("/combined$", inDirs[dir_i])) {
       mqparFl_i <- list.files(inDirs[dir_i], "\\.xml$", full.names = TRUE)
@@ -115,18 +112,18 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       cat(" - MaxQuant mqpar.xml file detected automatically\n")
     } else {
       mqparFl_i <- rstudioapi::selectFile(paste0(inDirs[dir_i], ": select MaxQuant mqpar.xml file"),
-                                          path = paste0(gsub("/txt[^/]*$", "", inDirs[dir_i]), "/*.xml"),
+                                          path = paste0(sub("/txt[^/]*$", "", inDirs[dir_i]), "/*.xml"),
                                           filter = "XML file (*.xml)")
     }
     #
     cat(paste0(" -> mqpar.xml file: ", mqparFl_i, "\n"))
     mqpar_i <- readr::read_lines(mqparFl_i)
     fastas_i <- gsub(" *</?fastaFilePath> *", "", grep("<fastaFilePath>", mqpar_i, value = TRUE))
-    fastas_i <- unlist(strsplit(gsub("\\\\", "/", gsub("^Fasta file\t", "", fastas_i)), ";"))
+    fastas_i <- unlist(strsplit(gsub("\\\\", "/", sub("^Fasta file\t", "", fastas_i)), ";"))
     mqVers_i <- gsub(" *</?maxQuantVersion> *", "", grep("<maxQuantVersion>", mqpar_i, value = TRUE))
     mqFold_i <- paste0("C:/MaxQuant/MaxQuant_", c("", "v"), mqVers_i)
     mqFold_i <- mqFold_i[dir.exists(mqFold_i)]
-    dr <- gsub("\\\\", "/", gsub(" *</?fixed((Combined)|(Search))Folder> *", "", grep("<fixed((Combined)|(Search))Folder>", mqpar_i, value = TRUE)))
+    dr <- gsub("\\\\", "/", gsub(" *</?fixed(Combined|Search)Folder> *", "", grep("<fixed(Combined|Search)Folder>", mqpar_i, value = TRUE)))
     if ((length(dr) != 1L) || (dr == "")) { dr <- inDirs[dir_i] }
     psmFls_i <- paste0(dr, c("", "/txt", "/combined/txt"), "/evidence.txt")
     psmFls_i <- psmFls_i[file.exists(psmFls_i)]
@@ -144,16 +141,16 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     # Raw files
     g1 <- grep("</?filePaths>", mqpar_i)
     rawFiles_i <- gsub("\\\\", "/", gsub(" *</?string> *", "", mqpar_i[(g1[1L]+1L):(g1[2L]-1L)]))
-    rawFiles_i_ext <- gsub(".*\\.", "", rawFiles_i)
+    rawFiles_i_ext <- sub(".*\\.", "", rawFiles_i)
     wNtFnd <- which(!file.exists(rawFiles_i))
     updtFls <- FALSE
     if (ProcessedByUs && length(wNtFnd)) {
       msg <- paste0(" - ", c("Some", "All")[(length(wNtFnd) == length(rawFiles_i))+1L], " MS files are missing at the expected location.\n")
-      tbl <- data.frame(path = rawFiles_i[wNtFnd], file = gsub(".*/", "", rawFiles_i[wNtFnd]), ext = rawFiles_i_ext[wNtFnd])
+      tbl <- data.frame(path = rawFiles_i[wNtFnd], file = sub(".*/", "", rawFiles_i[wNtFnd]), ext = rawFiles_i_ext[wNtFnd])
       dirs <- unique(unlist(lapply(unique(c(inDirs[dir_i], dirname(mqparFl_i))), \(dir) {
         dir <- c(dir, dirname(dir))
         return(c(dir,
-                 gsub(".*/", paste0(archDir, "/"), dir[1L:2L]),
+                 sub(".*/", paste0(archDir, "/"), dir[1L:2L]),
                  archDir))
       })))
       dirs <- dirs[dir.exists(dirs)]
@@ -166,9 +163,9 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         dirFls <- setNames(lapply(dirs, safe_listFls), dirs)
         dirDFls <- setNames(lapply(dirs, \(dr) { grep("\\.d$", safe_listFls(dr, "dir"), value = TRUE) }), dirs)
         dirFls2 <- setNames(lapply(names(dirFls), \(nm) { basename(dirFls[[nm]]) }), dirs)
-        dirDFls2 <- setNames(lapply(names(dirDFls), \(nm) { gsub(".*/", "", dirDFls[[nm]]) }), dirs)
+        dirDFls2 <- setNames(lapply(names(dirDFls), \(nm) { sub(".*/", "", dirDFls[[nm]]) }), dirs)
         for (dir in dirs) {
-          tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1L, \(x) { #x <- tbl[1, c("file", "ext")]
+          tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1L, \(x) { #x <- tbl[1L, c("file", "ext")]
             rs <- NA_character_
             if (x[[2L]] == "d") {
               m <- match(x[[1L]], dirDFls2[[dir]])
@@ -209,7 +206,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         newDir <- rstudioapi::selectDirectory(msg2, path = archDir)
         if (!is.null(newDir)) {
           newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
-          newFlsTst <- gsub(".*/", "", newFls)
+          newFlsTst <- sub(".*/", "", newFls)
           wNA <- which(is.na(tbl$nuLoc))
           tst <- setNames(lapply(tbl$file[wNA], \(fl) { #fl <- tbl$file[wNA[1L]]
             x <- newFls[newFlsTst == fl]
@@ -259,9 +256,9 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         }
       }
     }
-    #rawFiles_i_2 <- gsub(".*[\\\\/]|\\.((raw)|(mzX?ML)|(d))$", "", rawFiles_i, ignore.case = TRUE)
+    #rawFiles_i_2 <- gsub(".*[\\\\/]|\\.(raw|mzX?ML|d)$", "", rawFiles_i, ignore.case = TRUE)
     rawFiles_i_2 <- unique(ev_i$"Raw file") # For MaxQuant only!
-    tmp <- gsub(".*/|\\.((raw)|(mzX?ML)|(d))$", "", rawFiles_i, ignore.case = TRUE)
+    tmp <- gsub(".*/|\\.(raw|mzX?ML|d)$", "", rawFiles_i, ignore.case = TRUE)
     stopifnot(sum(!rawFiles_i_2 %in% tmp) == 0L)
     rawFiles_i_2 <- tmp
     # We also need a full path column!
@@ -281,7 +278,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     g2 <- gsub(" *</?string> *", "", mqpar_i[(g2[1L]+1L):(g2[2L]-1L)])
     if (!sum(g2 != "")) { g2[g2 == ""] <- "Exp1" }
     g3 <- grep("</?fractions>", mqpar_i)
-    g3 <- as.integer(gsub("^32767$", "1", gsub(" *</?short> *", "", mqpar_i[(g3[1L]+1L):(g3[2L]-1L)])))
+    g3 <- as.integer(sub("^32767$", "1", gsub(" *</?short> *", "", mqpar_i[(g3[1L]+1L):(g3[2L]-1L)])))
     g4 <- grep("</?ptms>", mqpar_i)
     g4 <- as.logical(toupper(gsub(" *</?boolean> *", "", mqpar_i[(g4[1L]+1L):(g4[2L]-1L)])))
     g5 <- grep("</?paramGroupIndices>", mqpar_i)
@@ -313,14 +310,14 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     if ((scrptType == "noReps") && (labelType_i != "LFQ")) { stop("Currently, this workflow only supports LFQ experiments!") }
     if (labelType_i == "Isobaric") { # Currently used only with Reps
       fracMap_i$Isobaric.set <- c(as.character(1), "?")[(nrow(fracMap_i) > 1L)+1L]
-      lab <- gsub(" *</?((inter)|(termi))nalLabel> *", "", grep("<((inter)|(termi))nalLabel>", mqpar_i, value = TRUE))
-      lab <- unique(gsub("-((Nter)|(Lys))", "-", lab))
+      lab <- gsub(" *</?(inter|termi)nalLabel> *", "", grep("<(inter|termi)nalLabel>", mqpar_i, value = TRUE))
+      lab <- unique(gsub("-(Nter|Lys)", "-", lab))
       isobarLabDet_i <- gsub(".*-", "", lab)
       isobarLabPrec_i <- unique(gsub("-.*", "", lab))
-      isobarLab_i <- gsub("[0-9]*plex$", "", isobarLabPrec_i)
+      isobarLab_i <- sub("[0-9]*plex$", "", isobarLabPrec_i)
       kol <- grep("^Reporter intensity [0-9]+$", colnames(ev_i), value = TRUE)
       stopifnot(length(kol) > 0L)
-      val <- as.integer(gsub("^Reporter intensity ", "", kol))
+      val <- as.integer(sub("^Reporter intensity ", "", kol))
       assign(isobarLab_i, val)
     } else {
       fracMap_i$"Parent sample" <- fracMap_i$MQ.Exp
@@ -328,7 +325,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       fracMap_i <- fracMap_i[, c("Parent sample", k)]
     }
     #
-    minPepSz_i <- as.integer(gsub(" *</?min((PepLen)|(PeptideLength))> *", "", grep(" *</?min((PepLen)|(PeptideLength))> *", mqpar_i, value = TRUE)))
+    minPepSz_i <- as.integer(gsub(" *</?min(PepLen|PeptideLength)> *", "", grep(" *</?min(PepLen|PeptideLength)> *", mqpar_i, value = TRUE)))
     missed_i <- as.integer(gsub(" *</?maxMissedCleavages> *", "", grep(" *</?maxMissedCleavages> *", mqpar_i, value = TRUE)))
     #
     # MatMet text template
@@ -358,16 +355,16 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       txt <- if (length(FxMdC) == 1L) {
         paste0("Fixed cysteine modification was set to ", FxMdC, ".")
       } else {
-        paste0(paste(FxMdC[1L:(lFxMdC-1L)], collapse = ", "), " and ", rev(FxMdC)[1L], " were included as fixed cysteine modifications.")
+        paste0(.commAnd(FxMdC), " were included as fixed cysteine modifications.")
       }
       searchTxt_i <- paste0(searchTxt_i, " ", txt)
     }
     lFxMd <- length(FxMd)
     if (lFxMd) {
       txt <- if (lFxMd == 1L) {
-        paste0("An additional fixed modifications, ", FxMd, ", was also included.")
+        paste0("An additional fixed modification, ", FxMd, ", was also included.")
       } else {
-        paste0("In addition, ", paste(FxMd[1L:(lFxMd-1L)], collapse = ", "), " and ", rev(FxMd)[1L], " were included as fixed modifications.")
+        paste0("In addition, ", .commAnd(FxMd), " were also included as fixed modifications.")
       }
       searchTxt_i <- paste0(searchTxt_i, " ", txt)
     }
@@ -376,7 +373,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       txt <- if (lVarMd == 1L) {
         paste0(VarMd, " was set as variable modification.")
       } else {
-        paste0("Variable modifications were set to ", paste(VarMd[1L:(lVarMd-1L)], collapse = ", "), " and ", rev(VarMd)[1L], ".")
+        paste0("Variable modifications were set to ", .commAnd(VarMd), ".")
       }
       searchTxt_i <- paste0(searchTxt_i, " ", txt)
     }
@@ -385,23 +382,22 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     n <- which(!tsts); ln <- length(n)
     if (ly) {
       txt <- if (ly == 1L) { paste0(names(tsts)[y], " was set to active") } else {
-        paste0(paste(names(tsts)[y[1L:(ly-1L)]], collapse = ", "), " and ", names(tsts)[y[ly]], " were set to active")
+        paste0(.commAnd(names(tsts)[y]), " were set to active")
       }
       if (ln) {
         txt <- if (ln == 1L) { paste0(txt, ", while ", names(tsts)[n], " was turned off.") } else {
-          paste0(txt, ", while ", paste(names(tsts)[n[1L:(ln-1L)]], collapse = ", "), " and ", names(tsts)[n[ln]], " were turned off.")
+          paste0(txt, ", while ", .commAnd(names(tsts)[n]), " were turned off.")
         }
       } else { txt <- paste0(txt, ".") }
     } else {
-      txt <- paste0(paste(names(tsts)[n[1L:(ln-1L)]], collapse = ", "), " and ", names(tsts)[n[ln]], " were all turned off.")
+      txt <- paste0(.commAnd(names(tsts)[n]), " were all turned off.")
     }
     searchTxt_i <- paste0(searchTxt_i, " ", txt)
     tst <- unique(FDRs)
     lf <- length(FDRs)
-    nms <- gsub("Fdr$", "s", names(FDRs))
+    nms <- sub("Fdr$", "s", names(FDRs))
     txt <- if (length(tst) == 1L) { paste0("All FDRs were set to ", tst*100, "%.") } else {
-      paste0("FDRs were set to: ", paste(paste0(FDRs[1L:(lf-1L)]*100, "% (", nms[1L:(lf-1L)], ")"), collapse = ", "),
-             " and ", paste0(FDRs[lf]*100, "% (", nms[lf], ")"), ".")
+      paste0("FDRs were set to: ", .commAnd(paste0(FDRs*100, "% (", nms)), ".")
     }
     searchTxt_i <- paste0(searchTxt_i, " ", txt)
     #
@@ -460,16 +456,16 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     tstParquet <- grepl("\\.parquet$", psmFls_i)
     tstTSV <- grepl("\\.tsv$", psmFls_i)
     if (tstParquet) {
-      psmFls_i <- c(gsub("\\.parquet$", ".tsv", psmFls_i),
+      psmFls_i <- c(sub("\\.parquet$", ".tsv", psmFls_i),
                     psmFls_i)
     }
     if (tstTSV) {
       psmFls_i <- c(psmFls_i,
-                    gsub("\\.tsv$", ".parquet", psmFls_i))
+                    sub("\\.tsv$", ".parquet", psmFls_i))
     }
     w <- which(file.exists(psmFls_i))
     if (!length(w)) {
-      psmFls_i <- paste0(diaNN_logFlDir_i, gsub(".*/", "/", psmFls_i))
+      psmFls_i <- paste0(diaNN_logFlDir_i, sub(".*/", "/", psmFls_i))
       w <- which(file.exists(psmFls_i))
       if (length(w)) {
         cat(" - The DiaNN output folder has been renamed or moved since the search was run, but the PSMs report could be located automatically.\n")
@@ -485,7 +481,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     l <- length(psmFls_i)
     stopifnot(l > 0L)
     #
-    fastas_i <- gsub("^\"|\"$", "", gsub("\\\\", "/", gsub("^fasta ", "", grep("^fasta ", Args, value = TRUE))))
+    fastas_i <- gsub("^\"|\"$", "", gsub("\\\\", "/", sub("^fasta ", "", grep("^fasta ", Args, value = TRUE))))
     if (!length(fastas_i)) { # In the case of DiaNN, sometimes there is no fasta, only a library!
       msg <- "Select fasta file(s) used to create the library, or a compatible fasta file"
       dflt <- paste0(wd, "/*.fasta")
@@ -496,8 +492,8 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     w <- which(!file.exists(fastas_i))
     if (length(w)) {
       for (x in w) {
-        if (gsub("/[^/]+$", "", fastas_i[x]) == diaNN_logFlDir_i) {
-          tmp <- paste0(diaNN_logFlDir_i, gsub(".*/", "/", fastas_i[x]))
+        if (sub("/[^/]+$", "", fastas_i[x]) == diaNN_logFlDir_i) {
+          tmp <- paste0(diaNN_logFlDir_i, sub(".*/", "/", fastas_i[x]))
           if (file.exists(tmp)) {
             warning(paste0(" - ", "Fasta file ", fastas_i[x], " has been relocated since DiaNN was run, but could be located automatically."))
             fastas_i[x] <- tmp
@@ -506,29 +502,29 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       }
     }
     tmp <- unlist(strsplit(diannCall_i, " +--"))
-    rawFiles_i <- unique(gsub("^\"|\"$", "", gsub("\\\\", "/", gsub("^f +", "", grep("^f +", tmp, value = TRUE))))) # Raw files existence is not critical for the script!
+    rawFiles_i <- unique(gsub("^\"|\"$", "", gsub("\\\\", "/", sub("^f +", "", grep("^f +", tmp, value = TRUE))))) # Raw files existence is not critical for the script!
     if (!length(rawFiles_i)) {
       # This is the case where a list of files was provided as argument - usually by FP
-      tmp <- gsub("\\\\", "/", gsub("^cfg +", "",  grep("^cfg +", Args, value = TRUE)))
-      tmp <- gsub("-- $", "", tmp) # Don't ask me why this is required...
-      if (!file.exists(tmp)) { tmp <- paste0(diaNN_logFlDir_i, gsub(".*/", "/", tmp)) }
-      if (!file.exists(tmp)) { tmp <- paste0(gsub("/[^/]+$", "", diaNN_logFlDir_i), gsub(".*/", "/", tmp)) } # The DiaNN-run-through-FragPipe case
+      tmp <- gsub("\\\\", "/", sub("^cfg +", "",  grep("^cfg +", Args, value = TRUE)))
+      tmp <- sub("-- $", "", tmp) # Don't ask me why this is required...
+      if (!file.exists(tmp)) { tmp <- paste0(diaNN_logFlDir_i, sub(".*/", "/", tmp)) }
+      if (!file.exists(tmp)) { tmp <- paste0(sub("/[^/]+$", "", diaNN_logFlDir_i), sub(".*/", "/", tmp)) } # The DiaNN-run-through-FragPipe case
       if (file.exists(tmp)) {
-        rawFiles_i <- gsub("^ *--f +", "", grep("^ *--f +", readr::read_lines(tmp), value = TRUE))
+        rawFiles_i <- sub("^ *--f +", "", grep("^ *--f +", readr::read_lines(tmp), value = TRUE))
       }
     }
     rawFiles_i <- grep("\\.exe$", rawFiles_i, value = TRUE, invert = TRUE) # Yes, that happened!
     rawFiles_i <- gsub("^ *[\"'] *| *[\"'] *$", "", rawFiles_i)
-    rawFiles_i_ext <- gsub(".*\\.", "", rawFiles_i)
+    rawFiles_i_ext <- sub(".*\\.", "", rawFiles_i)
     wNtFnd <- which(!file.exists(rawFiles_i))
     updtFls <- FALSE
     if (ProcessedByUs && length(wNtFnd)) {
       msg <- paste0(" - ", c("Some", "All")[(length(wNtFnd) == length(rawFiles_i))+1L], " MS files are missing at the expected location.\n")
-      tbl <- data.frame(path = rawFiles_i[wNtFnd], file = gsub(".*/", "", rawFiles_i[wNtFnd]), ext = rawFiles_i_ext[wNtFnd])
+      tbl <- data.frame(path = rawFiles_i[wNtFnd], file = sub(".*/", "", rawFiles_i[wNtFnd]), ext = rawFiles_i_ext[wNtFnd])
       dirs <- unique(unlist(lapply(unique(c(inDirs[dir_i], diaNN_logFlDir_i)), \(dir) {
         dir <- c(dir, dirname(dir))
         return(c(dir,
-                 gsub(".*/", paste0(archDir, "/"), dir[1L:2L]),
+                 sub(".*/", paste0(archDir, "/"), dir[1L:2L]),
                  archDir))
       })))
       dirs <- dirs[dir.exists(dirs)]
@@ -541,7 +537,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         dirFls <- setNames(lapply(dirs, safe_listFls), dirs)
         dirDFls <- setNames(lapply(dirs, \(dr) { grep("\\.d$", safe_listFls(dr, "dir"), value = TRUE) }), dirs)
         dirFls2 <- setNames(lapply(names(dirFls), \(nm) { basename(dirFls[[nm]]) }), dirs)
-        dirDFls2 <- setNames(lapply(names(dirDFls), \(nm) { gsub(".*/", "", dirDFls[[nm]]) }), dirs)
+        dirDFls2 <- setNames(lapply(names(dirDFls), \(nm) { sub(".*/", "", dirDFls[[nm]]) }), dirs)
         for (dir in dirs) {
           tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1L, \(x) { #x <- tbl[1, c("file", "ext")]
             rs <- NA_character_
@@ -584,7 +580,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         newDir <- rstudioapi::selectDirectory(msg2, path = archDir)
         if (!is.null(newDir)) {
           newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
-          newFlsTst <- gsub(".*/", "", newFls)
+          newFlsTst <- sub(".*/", "", newFls)
           wNA <- which(is.na(tbl$nuLoc))
           tst <- setNames(lapply(tbl$file[wNA], \(fl) { #fl <- tbl$file[wNA[1L]]
             x <- newFls[newFlsTst == fl]
@@ -672,7 +668,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     mods_i <- ev_DIANN2MQ$PTMs
     ev_i$"Raw file path" <- gsub_Rep("\\\\", "/", ev_i$"Raw file path")
     rawFiles_i <- unique(ev_i$"Raw file path")
-    rawFiles_i_2 <- gsub(".*/|\\.((raw)|(mzX?ML)|(d))$", "", rawFiles_i, ignore.case = TRUE)
+    rawFiles_i_2 <- gsub(".*/|\\.(raw|mzX?ML|d)$", "", rawFiles_i, ignore.case = TRUE)
     fracMap_i <- data.frame("Raw file" = rawFiles_i,
                             "Raw files name" = rawFiles_i_2,
                             "Parent sample" = rawFiles_i_2,
@@ -748,7 +744,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     }
     # Note that it is possible that a modification was searched but not found (so is present in VarMd but not mods_i)
     MBR <- grepl("--reanaly[s,z]e", diannCall_i)+1L
-    Libraries <- gsub("^lib +", "", grep("^lib", diannCall_i2, value = TRUE))
+    Libraries <- sub("^lib +", "", grep("^lib", diannCall_i2, value = TRUE))
     nL <- length(Libraries)
     LibFree <- (nL == 0L)+1L
     searchTxt_i <- paste0(c("The r", "R")[moult], "aw file", c(" was", "s were")[moult], " searched in DiaNN")
@@ -763,15 +759,15 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       txt <- if (length(FxMdC) == 1L) {
         paste0("Fixed cysteine modification was set to ", FxMdC, ".")
       } else {
-        paste0(paste(FxMdC[1L:(length(FxMdC)-1L)], collapse = ", "), " and ", rev(FxMdC)[1L], " were included as fixed cysteine modifications.")
+        paste0(.commAnd(FxMdC), " were included as fixed cysteine modifications.")
       }
       searchTxt_i <- paste0(searchTxt_i, " ", txt)
     }
     if (length(FxMd)) {
       txt <- if (length(FxMd) == 1L) {
-        paste0("An additional fixed modifications, ", FxMd, ", was also included.")
+        paste0("An additional fixed modification, ", FxMd, ", was also included.")
       } else {
-        paste0("In addition, ", paste(FxMd[1L:(length(FxMd)-1L)], collapse = ", "), " and ", rev(FxMd)[1L], " were included as fixed modifications.")
+        paste0("In addition, ", .commAnd(FxMd), " were also included as fixed modifications.")
       }
       searchTxt_i <- paste0(searchTxt_i, " ", txt)
     }
@@ -779,7 +775,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       txt <- if (nrow(VarMd) == 1L) {
         paste0(VarMd$Text, " was set as variable modification.")
       } else {
-        paste0("Variable modifications were set to ", paste(VarMd$Text[1L:(nrow(VarMd)-1L)], collapse = ", "), " and ", rev(VarMd$Text)[1L], ".")
+        paste0("Variable modifications were set to ", .commAnd(VarMd$Text), ".")
       }
       searchTxt_i <- paste0(searchTxt_i, " ", txt)
     }
@@ -862,16 +858,16 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       isobarLabDet_i <- unique(fpTMT_annot_i$channel)
     }
     rawFiles_i <- fpManifest_i$Path
-    rawFiles_i_ext <- gsub(".*\\.", "", rawFiles_i)
+    rawFiles_i_ext <- sub(".*\\.", "", rawFiles_i)
     wNtFnd <- which(!file.exists(rawFiles_i))
     updtFls <- FALSE
     if (ProcessedByUs && length(wNtFnd)) {
       msg <- paste0(" - ", c("Some", "All")[(length(wNtFnd) == length(rawFiles_i))+1L], " MS files are missing at the expected location.\n")
-      tbl <- data.frame(path = rawFiles_i[wNtFnd], file = gsub(".*/", "", rawFiles_i[wNtFnd]), ext = rawFiles_i_ext[wNtFnd])
+      tbl <- data.frame(path = rawFiles_i[wNtFnd], file = sub(".*/", "", rawFiles_i[wNtFnd]), ext = rawFiles_i_ext[wNtFnd])
       dirs <- unique(unlist(lapply(unique(c(inDirs[dir_i], fpManifest_i$Path)), \(dir) {
         dir <- c(dir, dirname(dir))
         return(c(dir,
-                 gsub(".*/", paste0(archDir, "/"), dir[1L:2L]),
+                 sub(".*/", paste0(archDir, "/"), dir[1L:2L]),
                  archDir))
       })))
       dirs <- dirs[dir.exists(dirs)]
@@ -884,7 +880,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         dirFls <- setNames(lapply(dirs, safe_listFls), dirs)
         dirDFls <- setNames(lapply(dirs, \(dr) { grep("\\.d$", safe_listFls(dr, "dir"), value = TRUE) }), dirs)
         dirFls2 <- setNames(lapply(names(dirFls), \(nm) { basename(dirFls[[nm]]) }), dirs)
-        dirDFls2 <- setNames(lapply(names(dirDFls), \(nm) { gsub(".*/", "", dirDFls[[nm]]) }), dirs)
+        dirDFls2 <- setNames(lapply(names(dirDFls), \(nm) { sub(".*/", "", dirDFls[[nm]]) }), dirs)
         for (dir in dirs) {
           tbl[[dir]] <- apply(tbl[, c("file", "ext")], 1L, \(x) { #x <- tbl[1, c("file", "ext")]
             rs <- NA_character_
@@ -927,7 +923,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         newDir <- rstudioapi::selectDirectory(msg2, path = archDir)
         if (!is.null(newDir)) {
           newFls <- list.files(newDir, full.names = TRUE, include.dirs = TRUE, recursive = TRUE)
-          newFlsTst <- gsub(".*/", "", newFls)
+          newFlsTst <- sub(".*/", "", newFls)
           wNA <- which(is.na(tbl$nuLoc))
           tst <- setNames(lapply(tbl$file[wNA], \(fl) { #fl <- tbl$file[wNA[1L]]
             x <- newFls[newFlsTst == fl]
@@ -988,8 +984,8 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       ev_i$"Raw file path"[w2] <- m$L1[match(w2, m$value)]
     }
     rawFiles_i <- unique(ev_i$`Raw file path`)
-    rawFiles_i_2 <- gsub(".*[\\\\/]|\\.((raw)|(mzX?ML)|(d))$", "", basename(rawFiles_i), ignore.case = TRUE)
-    fastas_i <- gsub("^database\\.db-path=", "", grep("^database\\.db-path=", fpWorkflow_i, value = TRUE))
+    rawFiles_i_2 <- gsub(".*[\\\\/]|\\.(raw|mzX?ML|d)$", "", basename(rawFiles_i), ignore.case = TRUE)
+    fastas_i <- sub("^database\\.db-path=", "", grep("^database\\.db-path=", fpWorkflow_i, value = TRUE))
     fastas_i <- gsub("\\\\", "", gsub("\\\\\\\\", "/", fastas_i))
     psmFls_i <- gsub("/+", "/", paste0(inDirs[dir_i], "/", fpManifest_i$Samples, "/psm.tsv"))
     samples_i <- fpManifest_i$Samples
@@ -1012,7 +1008,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     #
     # MatMet text template
     moult <- (length(rawFiles_i_2) > 1L)+1L
-    FxMdTbl <- gsub(topattern("msfragger.table.fix-mods="), "", grep(topattern("msfragger.table.fix-mods="), fpWorkflow_i, value = TRUE))
+    FxMdTbl <- sub(topattern("msfragger.table.fix-mods="), "", grep(topattern("msfragger.table.fix-mods="), fpWorkflow_i, value = TRUE))
     FxMdTbl <- unlist(strsplit(FxMdTbl, ";"))
     FxMdTbl <- Isapply(strsplit(FxMdTbl, ","), unlist)
     colnames(FxMdTbl) <- c("Shift", "Site", "Enabled", "MaxOccurences")
@@ -1030,7 +1026,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     FxMdTbl$Name <- apply(FxMdTbl[, c("Shift", "AAName")], 1L, \(x) { paste0(x[[1L]], " (", x[[2L]], ")") })
     FxMdC <- FxMdTbl$Name[FxMdTbl$AA == "C"]
     FxMd <- FxMdTbl$Name[FxMdTbl$AA != "C"]
-    VarMd <- gsub(topattern("msfragger.table.var-mods="), "", grep(topattern("msfragger.table.var-mods="), fpWorkflow_i, value = TRUE))
+    VarMd <- sub(topattern("msfragger.table.var-mods="), "", grep(topattern("msfragger.table.var-mods="), fpWorkflow_i, value = TRUE))
     VarMd <- unlist(strsplit(VarMd, ";"))
     VarMd <- Isapply(strsplit(VarMd, ","), unlist)
     colnames(VarMd) <- c("Shift", "Site", "Enabled", "MaxOccurences")
@@ -1059,25 +1055,43 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     #
     # FragPipe is very versatile... which will not make this easy...
     # Unfortunately, the workflow file does not appear to store the type of Workflow which was preselected in the 2nd tab.
-    Ump <- as.logical(toupper(gsub(topattern("diaumpire.run-diaumpire="), "", grep(topattern("diaumpire.run-diaumpire="), fpWorkflow_i, value = TRUE))))
-    Diane <- as.logical(toupper(gsub(topattern("diann.run-dia-nn="), "", grep(topattern("diann.run-dia-nn="), fpWorkflow_i, value = TRUE))))
+    myPat <- c(Ump = "diaumpire.run-diaumpire=",
+               Diane = "diann.run-dia-nn=",
+               PrTolUp = "msfragger.precursor_mass_upper=",
+               PrTolDwn = "msfragger.precursor_mass_lower=",
+               Chris = "crystalc.run-crystalc=",
+               Moses = "peptide-prophet.run-peptide-prophet=",
+               Illy = "percolator.run-percolator=",
+               Maud = "ptmprophet.run-ptmprophet=",
+               Camus = "phi-report.run-report=",
+               CamusPar = "phi-report.filter=",
+               David = "ptmshepherd.run-shepherd=",
+               Kant = "quantitation.run-label-free-quant=",
+               Jon = "ionquant.run-ionquant=",
+               Matt = "ionquant.mbr=",
+               Fritz = "freequant.run-freequant=",
+               Timothy = "tmtintegrator.run-tmtintegrator=",
+               Libby = "diann.library=")
+    myPat <- vapply(myPat, topattern, "")
+    Ump <- as.logical(toupper(sub(myPat["Ump"], "", grep(myPat["Ump"], fpWorkflow_i, value = TRUE))))
+    Diane <- as.logical(toupper(sub(myPat["Diane"], "", grep(myPat["Diane"], fpWorkflow_i, value = TRUE))))
     isDIA_i <- Diane|Ump # I think theoretically you could use either without the other... although probably for any DIA dataset you will use DiaNN
-    #stopifnot(((Param$Label == "DIA") & isDIA)|((Param$Label != "DIA") & (!isDIA))) # Sanity check
+    #stopifnot(((Param$Label == "DIA") & isDIA) | ((Param$Label != "DIA") & (!isDIA))) # Sanity check
     # OpenSearch is indirectly identified as cases where unusually high values for tolerances are used
-    PrTolUp <- gsub(topattern("msfragger.precursor_mass_upper="), "", grep(topattern("msfragger.precursor_mass_upper="), fpWorkflow_i, value = TRUE))
-    PrTolDwn <- gsub(topattern("msfragger.precursor_mass_lower="), "", grep(topattern("msfragger.precursor_mass_lower="), fpWorkflow_i, value = TRUE))
+    PrTolUp <- sub(myPat["PrTolUp"], "", grep(myPat["PrTolUp"], fpWorkflow_i, value = TRUE))
+    PrTolDwn <- sub(myPat["PrTolDwn"], "", grep(myPat["PrTolDwn"], fpWorkflow_i, value = TRUE))
     # Validations
-    Chris <- as.logical(toupper(gsub(topattern("crystalc.run-crystalc="), "", grep(topattern("crystalc.run-crystalc="), fpWorkflow_i, value = TRUE))))
-    Moses <- as.logical(toupper(gsub(topattern("peptide-prophet.run-peptide-prophet="), "", grep(topattern("peptide-prophet.run-peptide-prophet="), fpWorkflow_i, value = TRUE))))
-    Illy <- as.logical(toupper(gsub(topattern("percolator.run-percolator="), "", grep(topattern("percolator.run-percolator="), fpWorkflow_i, value = TRUE))))
-    Maud <- as.logical(toupper(gsub(topattern("ptmprophet.run-ptmprophet="), "", grep(topattern("ptmprophet.run-ptmprophet="), fpWorkflow_i, value = TRUE))))
-    Camus <- as.logical(toupper(gsub(topattern("phi-report.run-report="), "", grep(topattern("phi-report.run-report="), fpWorkflow_i, value = TRUE))))
-    David <- as.logical(toupper(gsub(topattern("ptmshepherd.run-shepherd="), "", grep(topattern("ptmshepherd.run-shepherd="), fpWorkflow_i, value = TRUE))))
-    Kant <- as.logical(toupper(gsub(topattern("quantitation.run-label-free-quant="), "", grep(topattern("quantitation.run-label-free-quant="), fpWorkflow_i, value = TRUE))))
-    Jon <- as.logical(toupper(gsub(topattern("ionquant.run-ionquant="), "", grep(topattern("ionquant.run-ionquant="), fpWorkflow_i, value = TRUE))))
-    Matt <- as.logical(as.numeric(gsub(topattern("ionquant.mbr="), "", grep(topattern("ionquant.mbr="), fpWorkflow_i, value = TRUE))))
-    Fritz <- as.logical(toupper(gsub(topattern("freequant.run-freequant="), "", grep(topattern("freequant.run-freequant="), fpWorkflow_i, value = TRUE))))
-    Timothy <- as.logical(toupper(gsub(topattern("tmtintegrator.run-tmtintegrator="), "", grep(topattern("tmtintegrator.run-tmtintegrator="), fpWorkflow_i, value = TRUE))))
+    Chris <- as.logical(toupper(sub(myPat["Chris"], "", grep(myPat["Chris"], fpWorkflow_i, value = TRUE))))
+    Moses <- as.logical(toupper(sub(myPat["Moses"], "", grep(myPat["Moses"], fpWorkflow_i, value = TRUE))))
+    Illy <- as.logical(toupper(sub(myPat["Illy"], "", grep(myPat["Illy"], fpWorkflow_i, value = TRUE))))
+    Maud <- as.logical(toupper(sub(myPat["Maud"], "", grep(myPat["Maud"], fpWorkflow_i, value = TRUE))))
+    Camus <- as.logical(toupper(sub(myPat["Camus"], "", grep(myPat["Camus"], fpWorkflow_i, value = TRUE))))
+    David <- as.logical(toupper(sub(myPat["David"], "", grep(myPat["David"], fpWorkflow_i, value = TRUE))))
+    Kant <- as.logical(toupper(sub(myPat["Kant"], "", grep(myPat["Kant"], fpWorkflow_i, value = TRUE))))
+    Jon <- as.logical(toupper(sub(myPat["Jon"], "", grep(myPat["Jon"], fpWorkflow_i, value = TRUE))))
+    Matt <- as.logical(as.numeric(sub(myPat["Matt"], "", grep(myPat["Matt"], fpWorkflow_i, value = TRUE))))
+    Fritz <- as.logical(toupper(sub(myPat["Fritz"], "", grep(myPat["Fritz"], fpWorkflow_i, value = TRUE))))
+    Timothy <- as.logical(toupper(sub(myPat["Timothy"], "", grep(myPat["Timothy"], fpWorkflow_i, value = TRUE))))
     # (I know, this is really bad, but I was tired, ok!)
     #
     searchTxt_i <- paste0(c("The r", "R")[moult], "aw file", c(" was", "s were")[moult], " searched in FragPipe")
@@ -1086,25 +1100,25 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     }
     searchTxt_i <- paste0(searchTxt_i, " against TEMPLATELIBTEXT")
     if (Ump == 1L) {
-      searchTxt_i <- gsub("\\.$",
-                          " As a preliminary step, the DIAUmpire module was run to extract pseudo-MS/MS spectra from DIA spectra files.",
-                          searchTxt_i)
+      searchTxt_i <- sub("\\.$",
+                         " As a preliminary step, the DIAUmpire module was run to extract pseudo-MS/MS spectra from DIA spectra files.",
+                         searchTxt_i)
     }
     lFxMdC <- length(FxMdC)
     if (lFxMdC) {
       txt <- if (lFxMdC == 1L) {
         paste0("Fixed cysteine modification was set to ", FxMdC, ".")
       } else {
-        paste0(paste(FxMdC[1L:(lFxMdC-1L)], collapse = ", "), " and ", rev(FxMdC)[1L], " were included as fixed cysteine modifications.")
+        paste0(.commAnd(FxMdC), " were included as fixed cysteine modifications.")
       }
       searchTxt_i <- paste0(searchTxt_i, " ", txt)
     }
     lFxMd <- length(FxMd)
     if (lFxMd) {
       txt <- if (lFxMd == 1L) {
-        paste0("An additional fixed modifications, ", FxMd, ", was also included.")
+        paste0("An additional fixed modification, ", FxMd, ", was also included.")
       } else {
-        paste0("In addition, ", paste(FxMd[1L:(lFxMd-1L)], collapse = ", "), " and ", rev(FxMd)[1L], " were included as fixed modifications.")
+        paste0("In addition, ", .commAnd(FxMd), " were also included as fixed modifications.")
       }
       searchTxt_i <- paste0(searchTxt_i, " ", txt)
     }
@@ -1113,7 +1127,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
       txt <- if (nVarMd == 1L) {
         paste0(VarMd$Text, " was set as variable modification.")
       } else {
-        paste0("Variable modifications were set to ", paste(VarMd$Text[1L:(nVarMd-1L)], collapse = ", "), " and ", rev(VarMd$Text)[1L], ".")
+        paste0("Variable modifications were set to ", .commAnd(VarMd$Text), ".")
       }
       searchTxt_i <- paste0(searchTxt_i, " ", txt)
     }
@@ -1131,14 +1145,14 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     l <- length(w)
     if (l) {
       txt <- c("Crystal-C", "PeptideProphet", "Percolator")[w]
-      if (l > 1L) { txt <- paste0(paste(txt[1L:(l-1L)], collapse = ", "), " and ", txt[l]) }
+      if (l > 1L) { txt <- .commAnd(txt) }
       searchTxt_i <- paste0(searchTxt_i, " Peptide identifications were validated using ", txt, ".")
-      if (Maud) { searchTxt_i <- gsub("\\.$", ", and", searchTxt_i) }
+      if (Maud) { searchTxt_i <- sub("\\.$", ", and", searchTxt_i) }
     }
     if (Maud) { searchTxt_i <- paste0(searchTxt_i, " PTM sites", c(" were", "")[(l > 0L) + 1L], " localized using PTMProphet.") }
     # FDR levels
     if (Camus) {
-      CamusPar <- toupper(gsub(topattern("phi-report.filter="), "", grep(topattern("phi-report.filter="), fpWorkflow_i, value = TRUE)))
+      CamusPar <- toupper(sub(myPat["CamusPar"], "", grep(myPat["CamusPar"], fpWorkflow_i, value = TRUE)))
       CamusPar <- unlist(strsplit(CamusPar, "--"))
       CamusPar <- CamusPar[2L:length(CamusPar)]
       CamusPar <- data.frame(Par = CamusPar)
@@ -1153,8 +1167,8 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
         ind <- (l>1L)+1L
         if (l > 1L) {
           rg <- 1L:(l-1L)
-          txt1 <- paste0(paste(txt1[rg], collapse = ", "), " and ", txt1[l])
-          txt2 <- paste0(paste(txt2[rg], collapse = ", "), " and ", txt2[l])
+          txt1 <- .commAnd(txt1)
+          txt2 <- .commAnd(txt2)
         }
         searchTxt_i <- paste0(searchTxt_i, " Results were filtered in Philosopher at ", txt1, " level", c("", "s")[ind],
                               " at FDR", c("", "s")[ind], " ", txt2, "%", c("", ", respectively")[ind], ".")
@@ -1162,7 +1176,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     }
     # PTM Shepherd
     if (David) {
-      searchTxt_i <- gsub("\\.$", ", then PTM_Shepperd was run to localize Open search identified mass shifts." , searchTxt_i)
+      searchTxt_i <- sub("\\.$", ", then PTM_Shepperd was run to localize Open search identified mass shifts." , searchTxt_i)
       # Basic for now, of course eventually this should be expended.
     }
     # MS1 Quant
@@ -1177,7 +1191,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1 #dir_i <- 2
     if (Timothy) { searchTxt_i <- paste0(searchTxt_i, " MS2 reporter intensities were measured using TMT-integrator.") }
     # DiaNN
     if (Diane) {
-      Libby <- gsub(topattern("diann.library="), "", grep(topattern("diann.library="), fpWorkflow_i, value = TRUE))
+      Libby <- sub(myPat["Libby"], "", grep(myPat["Libby"], fpWorkflow_i, value = TRUE))
       Libby <- gsub("\\\\", "", gsub("\\\\\\\\", "/", Libby))
       searchTxt_i <- paste0(searchTxt_i, " DIA quantitation was performed using DiaNN ",
                             c("in library-free mode",
@@ -1282,7 +1296,7 @@ if (!sum(!kol1 %in% colnames(tst))) {
 
 #  - MatMet text templates
 MatMet_Search %<o% setNames(lapply(1L:l_inDirs, \(x) {
-  paste0(c("", paste0("Search #", x, " = '", gsub(".*/", "", inDirs[x]), "':\n"))[(l_inDirs > 1L)+1L],
+  paste0(c("", paste0("Search #", x, " = '", sub(".*/", "", inDirs[x]), "':\n"))[(l_inDirs > 1L)+1L],
          searchOutputs[[x]]$MatMet_txt)
 }), inDirs)
 # These will need to be updated later
@@ -1376,7 +1390,7 @@ QuantUMS %<o% setNames(vapply(searchOutputs, \(x) {
 }, TRUE), inDirs)
 #  - PSMs: 
 ev %<o% do.call(plyr::rbind.fill, lapply(searchOutputs, \(x) { x$ev }));ev$id <- 1L:nrow(ev) ### THE 2ND PART IS SO IMPORTANT I AM PUTTING THEM ON 1 ROW
-ev$`Raw file` <- gsub("\\.[^\\.]+$", "", gsub(".*/", "", ev$`Raw file path`)) # Can be a useful last check
+ev$`Raw file` <- sub("\\.[^.]+$", "", sub(".*/", "", ev$`Raw file path`)) # Can be a useful last check
 #tstEvs <- do.call(plyr::rbind.fill, lapply(searchOutputs, \(x) { x$ev[1L:10,] }));View(tstEvs)
 
 if (exists("FracMap_reloaded")) {

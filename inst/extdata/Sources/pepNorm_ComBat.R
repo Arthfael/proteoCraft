@@ -6,10 +6,7 @@ wAG2 <- wAG1
 Outcome <- TRUE
 txt2 <- ""
 #
-pack <- "sva"
-bioc_req <- unique(c(bioc_req, pack))
-if (!require(pack, character.only = TRUE, quietly = TRUE)) { pak::pak(p) }
-require(pack, character.only = TRUE)
+library(sva)
 #
 btchDir <- paste0(nrmDr, "/Step ", nrmStp, " - Batch corr.")
 if (!dir.exists(btchDir)) { dir.create(btchDir, recursive = TRUE) }
@@ -50,10 +47,10 @@ for (lGrp in NormGrps$Group) { #lGrp <- NormGrps$Group[1L] # Longitudinal group 
     # not transversal groups (comparison/ratio groups).
     # Indeed, batches will often intersect with the latter
     btchs <- Exp.map[smplsMtch, myBatch2]
-    tmpDat2Imp[w, currSamples] <- ComBat(tmpDat1Imp[w,],
-                                         btchs,
-                                         mdlMtr,
-                                         par.prior = TRUE)
+    tmpDat2Imp[w, currSamples] <- sva::ComBat(tmpDat1Imp[w,],
+                                              btchs,
+                                              mdlMtr,
+                                              par.prior = TRUE)
   }
   
 }
@@ -119,7 +116,8 @@ ui <- fluidPage(
     gradient = "linear",
     direction = "bottom"
   ),
-  extendShinyjs(text = jsToggleFS, functions = c("toggleFullScreen")),
+  extendShinyjs(text = jsFun$toggle_full_screen,
+                functions = c("toggleFullScreen")),
   tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
   titlePanel(tag("u", appNm),
              appNm),
@@ -177,7 +175,7 @@ server <- \(input, output, session) {
   session$onSessionEnded(\() { stopApp() })
 }
 runKount <- 0L
-while ((!runKount)||(!exists("IHAVERUN"))) {
+while ((!runKount) || (!exists("IHAVERUN"))) {
   g <- shiny:::.globals
   g$appState <- NULL
   eval(parse(text = run_App), envir = .GlobalEnv)

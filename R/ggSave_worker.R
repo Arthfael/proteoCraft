@@ -13,14 +13,13 @@
 .ggSave_worker <- function(x) {
   # Even though the plot is evaluated, we must load ggrepel explicitly on the cluster,
   # otherwise the plot is saved without the ggrepel labels!
-  require(ggrepel)
+  requireNamespace("ggrepel")
   suppressMessages({
     ggplot2::ggsave(paste0(x$Path, "/", x$Ttl, ".", x$Ext),
                     x$Plot,
                     dpi = 300L,
                     width = 10L,
                     height = 10L,
-                    
                     units = "in")
   })
 }

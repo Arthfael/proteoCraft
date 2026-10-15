@@ -66,9 +66,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
   }
   #
   # Edit materials and methods text
-  tmp <- PTMs
-  lT <- length(tmp)
-  if (lT > 1L) { tmp <- paste0(paste(tmp[seq_len(lT-1L)], collapse = ", "), " and ", tmp[lT]) }
+  tmp <- .commAnd(PTMs)
   tmp2 <- setNames(sapply(PTMs, \(Ptm) {
     PTM_normalize[[Ptm]]
   }), PTMs)
@@ -83,10 +81,9 @@ if (exists("PTMstats") && nrow(PTMstats)) {
       tmp2 <- ", normalizing values to correct for parent protein group(s) fold change."
     } else { tmp2 <- "." }
   }
-  l <- length(DatAnalysisTxt)
-  DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l], " Statistical analysis was performed for ",
-                              c("", "PTMs ")[(lT > 1L)+1L], tmp,
-                              "-modified peptides as for protein groups", tmp2)
+  DatAnalysisTxt$modPep <- paste0("Statistical analysis was performed for ",
+                                  c("", "PTMs ")[(lT > 1L)+1L], tmp,
+                                  "-modified peptides as for protein groups", tmp2)
   #
   ptmNms <- setNames(vapply(PTMs, \(ptm) { #ptm <- PTMs[1L]
     a <- unlist(strsplit(sub("\\)$", "", ptm), "\\("))
@@ -125,8 +122,8 @@ if (exists("PTMstats") && nrow(PTMstats)) {
   }
   ptms.ref %<o% c("Original" = paste0("log10(",
                                       sub(" - $", ") - ",
-                                          gsub("Evidence intensities", "PSMs. int.",
-                                               pep.ref[length(pep.ref)]))))
+                                          sub("Evidence intensities", "PSMs. int.",
+                                              pep.ref[length(pep.ref)]))))
   # ptms.ratios.ref %<o% setNames(pep.ratios.ref[length(pep.ratios.ref)],
   #                               "Original")
   for (ptm in PTMs) { #ptm <- PTMs[1L]
@@ -241,7 +238,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
     ptmpep$tmp2 <- NULL
     ptmpep$Name <- ""
     w <- which(ptmpep[[myIDcol]] != "")
-    temp2 <- as.data.frame(t(sapply(strsplit(gsub("[/,;].+$", "", ptmpep[w, paste0(Ptm, "-site(s)")]), " "), unlist)))
+    temp2 <- as.data.frame(t(sapply(strsplit(sub("[/,;].+$", "", ptmpep[w, paste0(Ptm, "-site(s)")]), " "), unlist)))
     colnames(temp2) <- c("Site", "Protein")
     temp2$Protein <- db$"Common Name"[match(temp2$Protein, db$"Protein ID")]
     temp2$ModSeq <- gsub("^_|_$", "", ptmpep$`Modified sequence`[w])
@@ -263,7 +260,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
     ref <- pep.ref[length(pep.ref)]
     kols <- grep(topattern(ref), colnames(ptmpep), value = TRUE)
     for (kol in kols) {
-      smpl <- gsub(topattern(ref), "", kol)
+      smpl <- sub(topattern(ref), "", kol)
       ptmpep[[paste0(ptms.ref, smpl)]] <- log10(ptmpep[[kol]])
       ptmpep[[kol]] <- NULL
     }
@@ -443,7 +440,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
     cat(" ->", ptm, "t-tests volcano plots\n")
     #k1 <- grep(topattern(paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)])), colnames(ptmpep), value = TRUE)
     #df1 <- ptmpep[, k1]
-    #subDr <- gsub(topattern(wd), "", modDirs[2L])
+    #subDr <- sub(topattern(wd), "", modDirs[2L])
     subDr <- modDirs[2L]
     if (useSAM) {
       # In this case, we bypass the original decision and base it off SAM even though we plot Student's P-values
@@ -544,7 +541,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
     # Create t-test filters:
     ## These can then be used for further steps down the line, such as volcano plots, etc...
     g <- grep("^Regulated - ", colnames(ptmpep), value = TRUE)
-    g1 <- gsub("^Regulated - ", "", g)
+    g1 <- sub("^Regulated - ", "", g)
     up <- grep("^up|^Specific", unique(unlist(ptmpep[, g])), value = TRUE)
     down <- grep("^down|^Anti-specific", unique(unlist(ptmpep[, g])), value = TRUE) # The "anti-specific" part will only become relevant if in future I disconnect symmetry and/or adding specific tags from pull-down experiments
     PTMs_Reg_filters[[Ptm]] <- list()
@@ -609,8 +606,9 @@ if (exists("PTMstats") && nrow(PTMstats)) {
         myDir <- modDirs[3L]
         #
         # Create F-test filters:
-        g <- grep("^mod\\. F-test Regulated - ", colnames(PTMs_F_test_data[[Ptm]]), value = TRUE)
-        g1 <- gsub("^mod\\. F-test Regulated - ", "", g)
+        pat <- topattern("mod. F-test Regulated - ")
+        g <- grep(pat, colnames(PTMs_F_test_data[[Ptm]]), value = TRUE)
+        g1 <- sub(pat, "", g)
         PTMs_Reg_filters[[Ptm]]$"F-tests" <- list()
         if ("con" %in% filter_types) {
           PTMs_Reg_filters[[Ptm]]$"F-tests"$"By condition" <- list()
@@ -629,7 +627,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
           g2$Ref <- ""
           w <- grep(" VS ", g2$Condition)
           if (length(w)) {
-            g2$tmp[w] <- sapply(strsplit(gsub("\\)$", "", g2$Condition[w]), split = " VS "), \(x) { x[[2L]] })
+            g2$tmp[w] <- sapply(strsplit(sub("\\)$", "", g2$Condition[w]), split = " VS "), \(x) { x[[2L]] })
             g2$Ref[w] <- apply(g2[w, c("Group", "Analysis", "tmp")], 1L, \(x) {
               paste0(x[[1L]], " - ", x[[2L]], ", ref: ", x[[3L]])
             })
@@ -735,8 +733,8 @@ if (exists("PTMstats") && nrow(PTMstats)) {
     g <- g[w]; grps <- grps[w]
     temp <- ptmpep[, g]
     rownames(temp) <- gsub("\n", " ", ptmpep$Name)
-    kol <- gsub(topattern(ptmRf), "", g)
-    colnames(temp) <- gsub(topattern(ptmRf), "", colnames(temp))
+    kol <- sub(topattern(ptmRf), "", g)
+    colnames(temp) <- sub(topattern(ptmRf), "", colnames(temp))
     kol <- cleanNms(kol)
     colnames(temp) <- cleanNms(colnames(temp))
     w <- which(!is.finite(as.matrix(temp)), arr.ind = TRUE)
@@ -888,7 +886,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
               # PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]] <- paste0("Mean ", c(ptms.ratios.ref[length(ptms.ratios.ref)],
               #                                                           "log2(Ratio) - ")[tt])
               PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]] <- ptms.ratios.ref
-              reg$ParentFC <- gsub(".*Regulated - ", PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]], reg$Name)
+              reg$ParentFC <- sub(".*Regulated - ", PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]], reg$Name)
               reg$FCname <- paste0(PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]], reg$For)
               tmpdat[, Kol] <- ptmpep[, Kol]
               #tmpdat <- get(c("ptmpep", "PTMs_F_test_data[[Ptm]]", "ptmpep", "PTMs_allSAINTs")[tt]) # PTMs_allSAINTs doesn't exist... yet
@@ -1012,9 +1010,9 @@ if (exists("PTMstats") && nrow(PTMstats)) {
                 w <- which(vapply(colnames(temp), \(x) { is.character(temp[[x]]) }, TRUE))
                 if (length(w)) {
                   for (i in w) { #i <- w[1L]
-                    w1 <- which(nchar(temp[[colnames(temp)[i]]]) > ExcelMax)
+                    w1 <- which(nchar(temp[[colnames(temp)[i]]]) > xl_maxChar)
                     if (length(w1)) {
-                      temp[[colnames(temp)[i]]][w1] <- paste0(substr(temp[[colnames(temp)[i]]][w1], 1L, ExcelMax-3L), "...")
+                      temp[[colnames(temp)[i]]][w1] <- paste0(substr(temp[[colnames(temp)[i]]][w1], 1L, xl_maxChar-3L), "...")
                     }
                   }
                 }
@@ -1072,7 +1070,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
                             na.rm = TRUE)
                       })
                     }
-                    names(W) <- cleanNms(gsub(" [0-9]+%$", "", names(W)))
+                    names(W) <- cleanNms(sub(" [0-9]+%$", "", names(W)))
                     tst <- sapply(strsplit(names(W), " - "), length)
                     tst <- (min(tst) > 1L) & (length(unique(tst)) == 1L)
                     if (tst) {
@@ -1136,7 +1134,7 @@ if (CytoScape) {
   tst <- try({
     invisible({
       RCy3::closeSession(save.before.closing = FALSE)
-      cmd <- paste0("taskkill/im \"", gsub(".+/", "", CytoScVrs), "\" /f")
+      cmd <- paste0("taskkill/im \"", sub(".+/", "", CytoScVrs), "\" /f")
       #cat(cmd)
       shell(cmd)
     })

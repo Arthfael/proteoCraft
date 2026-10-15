@@ -1,16 +1,16 @@
 #' Format.DB
 #'
 #' @description 
-#' A function to load Fasta databases from the work directory or the environment and format them into a data frame.
-#' Depending on the mode you select, specific regex rules are applied to the header to extract information.
+#' A function to load Fasta databases from the work directory or the environment and format them into a data frame.\cr
+#' Depending on the mode you select, specific regex rules are applied to the header to extract information.\cr
 #' Additionally, three rules can be custom specified by the arguments.
 #' 
 #' @param file Name (as character) of the Fasta file.
 #' @param mode One of "Uniprot", "Ensembl", "RefSeq-RNA", "RefSeq-Protein", "RefSeq-CDS", "NCBI", "TAIR" or "custom" (synonym: "unknown").
 #' @param in.env If TRUE, the function will attempt processing the character string in one of two ways: a) if it recognizes the character string as a Fasta file, it will directly process it; else, it will treat it as the name of a Fasta file already in the environment. If set to FALSE (default), it will attempt to load the file from the work directory.
-#' @param Full.ID.rule Regex rule used to parse the header and extract the full ID. Only used if operating in custom mode. Default is "^>([^ ]*)" (UniProt).
-#' @param Protein.ID.rule Regex rule used to parse the header and extract protein ID. Only used if operating in custom mode. Default is "^>[a-z]{2}\\|([^\\|]*)" (UniProt).
-#' @param Name.rule Regex rule used to parse the header and extract the protein name. Only used if operating in custom mode. Default is "^>[a-z]{2}\\|[^\\|]*\\|([^ ]*)" (UniProt).
+#' @param Full.ID.rule Regex rule used to parse the header and extract the full ID. Only used if operating in custom mode. Default is \code{"^>([^ ]*)"} (UniProtKB).
+#' @param Protein.ID.rule Regex rule used to parse the header and extract protein ID. Only used if operating in custom mode. Default is \code{"^>(?:[a-z]{2}\\|)?([^| ]+)"} (UniProtKB).
+#' @param Name.rule Regex rule used to parse the header and extract the protein name. Only used if operating in custom mode. Default is \code{"^>(?:[a-z]{2}\\|[^|]+\\|)?([^ ]*)"} (UniProtKB).
 #' @param Unique If TRUE (default), will filter fasta to provide only one accession per sequence. (This may mean that only 1 gene will be retained where several encode the exact same protein, but reducing redundancy is good for FDR.)
 #' @param IDs_only Allows extracting just the IDs (default = FALSE). Used internally only. Ignores Unique!
 #' @param parallel Default = FALSE; if TRUE, uses parallel processing and the next few arguments.
@@ -23,12 +23,15 @@
 #' @param verbose Logical (FALSE by default).
 #' 
 #' @returns
-#' A data frame of parsed annotations.
+#' The fasta parsed as a data.frame with one row per entry.
 #' 
 #' @examples
+#' \dontrun{
 #' db <- Format.DB(file = "Search database.FASTA", in.env = TRUE, species = "HUMAN")
-#' db <- Format.DB(file = "Search database2.FASTA", in.env = FALSE, species = "RAT;MOUSE")
-#' CDS <- Format.DB(list.files()[grep(".*\\.CDS\\..*\\.FASTA$", toupper(list.files()))], mode = "ensembl")
+#' CDS <- Format.DB(list.files(pattern = ".*\\.CDS\\..*\\.FASTA$",
+#'                             ignore.case = TRUE, full.names = TRUE),
+#'                  mode = "ensembl")
+#'}
 #' 
 #' @export
 
@@ -36,11 +39,11 @@ Format.DB <- function(file,
                       mode = "UniProt",
                       in.env = FALSE,
                       Full.ID.rule = "^>([^ ]*)",
-                      #Protein.ID.rule = "^>[a-z]{2}\\|([^\\|]+)",
-                      Protein.ID.rule = "^>(?:[a-z]{2}\\|)?([^\\| ]+)",
-                      #Name.rule = "^>[a-z]{2}\\|[^\\|]+\\|([^ ]*)", 
+                      #Protein.ID.rule = "^>[a-z]{2}\\|([^|]+)",
+                      Protein.ID.rule = "^>(?:[a-z]{2}\\|)?([^| ]+)",
+                      #Name.rule = "^>[a-z]{2}\\|[^|]+\\|([^ ]*)", 
                       #Name.rule = "^>[^ ]+ ([^ ]*)", 
-                      Name.rule = "^>(?:[a-z]{2}\\|[^\\|]+\\|)?([^ ]*)", 
+                      Name.rule = "^>(?:[a-z]{2}\\|[^|]+\\|)?([^ ]*)", 
                       Unique = TRUE,
                       IDs_only = FALSE,
                       parallel = FALSE,
@@ -115,18 +118,18 @@ Format.DB <- function(file,
   }
   if (MODE == "REFSEQPROTEIN") {
     Roolz$"Full ID" <- "^>([^ ]*)"
-    Roolz$"Protein ID" <- "^>gi\\|[0-9]+\\|[a-z]+\\|([^ ]+(?![ \\|])[^ \\|])"
-    Roolz$Name <- "^>gi\\|[0-9]+\\|[a-z]+\\|[^ ]+ ([^\\[]+(?! \\[))"
-    Roolz$Organism <- "^>gi\\|[0-9]+\\|[a-z]+\\|[^\\[]+\\[([^\\]]+)\\]"
+    Roolz$"Protein ID" <- "^>gi\\|[0-9]+\\|[a-z]+\\|([^ ]+(?![ |])[^ |])"
+    Roolz$Name <- "^>gi\\|[0-9]+\\|[a-z]+\\|[^ ]+ ([^[]+(?! \\[))"
+    Roolz$Organism <- "^>gi\\|[0-9]+\\|[a-z]+\\|[^[]+\\[([^]]+)\\]"
     nms.list <- c("Full Name", "Protein ID", "No Isoforms", 
                   "Full ID")
   }
   if (MODE == "REFSEQCDS") {
     Roolz$"Full ID" <- "^>([^ ]*)"
     Roolz$Name <- NULL
-    Roolz$Protein <- "^>.*\\[protein=([^\\]]+)\\]"
-    Roolz$"Protein ID" <- "^>.*\\[protein_id=([^\\]]+)\\]"
-    Roolz$Gene <- "^>.*\\[gene=([^\\]]+)\\]"
+    Roolz$Protein <- "^>.*\\[protein=([^]]+)\\]"
+    Roolz$"Protein ID" <- "^>.*\\[protein_id=([^]]+)\\]"
+    Roolz$Gene <- "^>.*\\[gene=([^]]+)\\]"
     nms.list <- c("Name", "Full ID", "Protein", "Protein ID", 
                   "No Isoforms", "Gene", "Gene ID")
   }
@@ -134,9 +137,9 @@ Format.DB <- function(file,
     Roolz$"Full ID" <- "^>([^ ]*)"
     Roolz$"Protein ID" <- "^>([^ ]*)"
     Roolz$Name <- "^>[^ ]+ *(.+) \\["
-    Roolz$GenBank <- "^>.*(gb\\|[^\\|]+)"
-    Roolz$"Gene ID" <- "^>(gi\\|[^\\|]+)"
-    Roolz$Organism <- "^>.*\\[([^\\]]+)\\]"
+    Roolz$GenBank <- "^>.*(gb\\|[^|]+)"
+    Roolz$"Gene ID" <- "^>(gi\\|[^|]+)"
+    Roolz$Organism <- "^>.*\\[([^]]+)\\]"
     nms.list <- c("Name", "GenBank", "Gene ID", "Protein ID", 
                   "No Isoforms")
   }
@@ -146,7 +149,7 @@ Format.DB <- function(file,
   }
   if (parallel) {
     stopCl <- FALSE
-    if ((is.null(cl))||(!inherits(cl, "cluster"))) {
+    if (is.null(cl) || (!inherits(cl, "cluster"))) {
       dc <- parallel::detectCores()
       if (misFun(N.reserved)) { N.reserved <- 1L }
       nMax <- max(c(dc - N.reserved, 1L))
@@ -207,7 +210,7 @@ Format.DB <- function(file,
   # Backup code in case we do not have an Organism column yet
   if (!"Organism" %in% colnames(res)) {
     # Not clean but a last resort cheat - this is likely to go wrong often
-    res$Organism <- gsub("_", " ", unlist(strsplit(gsub(".*/", "", file), "\\."))[1L])
+    res$Organism <- gsub("_", " ", unlist(strsplit(sub(".*/", "", file), "\\."))[1L])
   }
   #
   # Check unicity of sequences
@@ -224,7 +227,7 @@ Format.DB <- function(file,
   #
   # Deal with rev
   if (revTest) {
-    if ((!is.logical(revDrop))||(length(revDrop) != 1L)||(is.na(revDrop))) { revDrop <- TRUE }
+    if ((!is.logical(revDrop)) || (length(revDrop) != 1L) || is.na(revDrop)) { revDrop <- TRUE }
     if (revDrop) { # Either remove rev entries...
       gN <- grep(paste0("^>", revString), res$Header, invert = TRUE)
       res <- res[gN,]
@@ -244,7 +247,7 @@ Format.DB <- function(file,
   #i <- 1L
   #i <- i+1L
   #IDsCheck$Group.1[i]
-  #res$Sequence[which(res$`Protein ID` == IDsCheck$Group.1[i])]
+  #res$Sequence[res$`Protein ID` == IDsCheck$Group.1[i]]
   IDsCheck <- IDsCheck[order(IDsCheck$x, decreasing = TRUE),]
   # print(IDsCheck[1:5,])
   if (max(IDsCheck$x) > 1L) {

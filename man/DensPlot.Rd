@@ -20,7 +20,7 @@ DensPlot(
 )
 }
 \arguments{
-\item{data}{The dataframe that contains the values.}
+\item{data}{The data.frame that contains the values.}
 
 \item{X}{The name of the column of values whose density distribution is to be displayed.}
 
@@ -45,7 +45,11 @@ DensPlot(
 \item{return}{Should we return the plot? Default = FALSE.}
 }
 \description{
-Just a small wrapper function for density plots, because I am tired of always typing the same stuff.
+Just a small wrapper function for density plots, because I was tired of always typing the same stuff...\cr
+except I ended up not using it.\cr
+...\cr
+Typical...\cr
+Candidate for deletion...
 }
 \examples{
 Kolours <- colorRampPalette(c("blue", "red"))(length(unique(ev$Raw.file)))

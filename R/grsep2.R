@@ -1,9 +1,9 @@
 #' grsep2
 #'
 #' @description 
-#' A function to look for IDs in a separated character list.
-#' Unlike "grsep", it is not a wrapper for "grep/grepl". Unlike it, it should not break for large number of IDs.
-#' Also unlike grsep it does not have "gsub-like" capabilities (yet?)
+#' A function to look for IDs in a separated character list.\cr
+#' Unlike "grsep", it is not a wrapper for "grep/grepl". Unlike it, it should not break for large number of IDs.\cr
+#' Also unlike grsep it does not have "gsub-like" capabilities (yet?)\cr
 #' This function is based on fast lists manipulation; it is significantly faster than grsep on large vectors, but can be slower on smaller ones.
 #' 
 #' @param IDs The IDs to search for.
@@ -14,7 +14,10 @@
 #' @param invert The base parameter (default = FALSE)
 #' 
 #' @examples
-#' tst <- grsep(c("MYFAVOURITEPROTEINSACCESSION", "ALSOTHISONE", "ANDHERESANOTHERONEFORGOODMEASURE"), PG$"Protein IDs")
+#' tst <- grsep(c("MYFAVOURITEPROTEINSACCESSION",
+#'                "ALSOTHISONE",
+#'                "ANDHERESANOTHERONEFORGOODMEASURE"),
+#'              PG$"Protein IDs")
 #' 
 #' @export
 
@@ -43,8 +46,8 @@ grsep2 <- function(IDs,
     IDs <- tolower(IDs)
     temp$value <- tolower(temp$value)
   }
-  res <- sort(as.numeric(unique(temp$L1[which(temp$value %in% IDs)])))
-  if (invert) { res <- Wh[which(!Wh %in% res)] }
+  res <- sort(as.numeric(unique(temp$L1[temp$value %in% IDs])))
+  if (invert) { res <- setdiff(Wh, res) }
   if (value) { res <- x[res] }
   return(res)
 }

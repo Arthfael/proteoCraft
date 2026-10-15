@@ -36,11 +36,11 @@ DefArg <- function(FUN,
   if (is.character(FUN)) { FUN <- eval(parse(text = FUN)) }
   args <- formals(FUN)
   if (remove_NULLs) {
-    args <- args[which(!vapply(args, is.null, TRUE))]
+    args <- args[!vapply(args, is.null, TRUE)]
   }
-  args <- args[which(!vapply(args, \(x) {
-    (inherits(x, "name"))&&(length(x) == 1L)&&(as.character(x) == "")
-  }, TRUE))]
+  args <- args[!vapply(args, \(x) {
+    inherits(x, "name") && (length(x) == 1L) && (as.character(x) == "")
+  }, TRUE)]
   args <- lapply(args, \(x) { try(eval(x), silent = TRUE) })
   invisible({
     silent <- as.logical(silent)[1L]

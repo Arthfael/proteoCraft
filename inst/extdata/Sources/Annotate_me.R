@@ -1,17 +1,27 @@
-# Annotate the protein groups table
+# Annotate our data
+setwd(wd)
 if (!Annotate) { globalGO <- FALSE }
-p <- strsplit(PG$"Leading protein IDs", ";") #Here taking just the minimum set of protein IDs to explain the observed dataset.
-db$Observed <- db$"Protein ID" %in% unique(unlist(p))
+p <- unique(unlist(strsplit(pep$Proteins, ";"))) #Here taking just the minimum set of protein IDs to explain the observed dataset.
+db$Observed <- db$"Protein ID" %in% p
 if (globalGO) {
+  if (scrptTypeFull == "withReps_PTMs_only") {
+    myData <- PG
+    myCol <- "Leading protein IDs"
+    # NB: I used to get functional annotations for all proteins in the protein group.
+    #     However we are now - and I think with reason - only using annotations from the leading protein(s)!
+  } else {
+    myData <- pep
+    myCol <- "Proteins"
+  }
   #
   Src <- paste0(libPath, "/extdata/Sources/GO_prepare.R")
   #rstudioapi::documentOpen(Src)
   source(Src)
   #
-  temp <- listMelt(strsplit(PG$"Leading protein IDs", ";"), PG$id, c("Accession", "id"))
+  temp <- listMelt(strsplit(myData[[myCol]], ";"), myData$id, c("Accession", "id"))
   kol <- intersect(annot.col, colnames(db))
   if ("Taxonomy" %in% kol) { # Taxonomy can be dealt with differently
-    PG$Taxonomy <- db$Taxonomy[match(gsub(";.*", "", PG$`Leading protein IDs`), db$`Protein ID`)]
+    myData$Taxonomy <- db$Taxonomy[match(sub(";.*", "", myData[[myCol]]), db$`Protein ID`)]
   }
   kol2 <- setdiff(annot.col, "Taxonomy")
   kol2 <- intersect(kol2, colnames(db))
@@ -52,14 +62,18 @@ if (globalGO) {
   tst3b$N_IDs <- lengths(tst3b$ID)
   stopifnot(max(tst3b$N_IDs) == 1L)
   #
-  PG[, kol2] <- ""
-  w <- which(PG$id %in% temp$Group.1)
-  PG[w, kol2] <- temp[match(PG$id[w], temp$Group.1), kol2]
+  myData[, kol2] <- ""
+  w <- which(myData$id %in% temp$Group.1)
+  myData[w, kol2] <- temp[match(myData$id[w], temp$Group.1), kol2]
   #
-  # Also peptides (minor approximation: use first protein group)
-  pep[, kol] <- PG[match(as.integer(gsub(";.*", "", pep$`Protein group ID`)), PG$id), kol]
-  #
-  PG$Ontology <- NULL # Temporary fix for now, this column is broken
+  myData$Ontology <- NULL # Temporary fix for now, this column is broken
+  if (scrptTypeFull != "withReps_PTMs_only") {
+    pep <- myData
+  } else {
+    PG <- myData
+    # Also peptides (minor approximation: use first protein group)
+    pep[, kol] <- PG[match(as.integer(sub(";.*", "", pep$`Protein group ID`)), PG$id), kol]
+  }
   #
   stopCluster(parClust)
   source(parSrc)

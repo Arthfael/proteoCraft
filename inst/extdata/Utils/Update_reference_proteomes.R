@@ -28,7 +28,7 @@ orgDirs <- setdiff(orgDirs, c("_combine", "Contaminants"))
 orgDirs <- grep("[Cc]ontaminants", orgDirs, invert = TRUE, value = TRUE)
 Orgs <- orgDirs
 Orgs <- gsub("_aka_.*", "", Orgs)
-Orgs <- gsub("\\([^\\)]+\\)*", "", Orgs)
+Orgs <- gsub("\\([^)]+\\)*", "", Orgs)
 orgDirs <- setNames(orgDirs, Orgs)
 if (length(Orgs) != length(unique(Orgs))) {
   warning("It looks like you have multiple folders for the same organism!")
@@ -40,7 +40,7 @@ pack <- "myTAI"
 if (!require(pack, character.only = TRUE)) {
   try(pak::pkg_install("drostlab/myTAI", ask = FALSE, upgrade = TRUE, dependencies = TRUE), silent = TRUE) 
 }
-if ((!require(pack, character.only = TRUE))||(!exists("taxonomy"))||(!is.function(taxonomy))) {
+if ((!require(pack, character.only = TRUE)) || (!exists("taxonomy")) || (!is.function(taxonomy))) {
   Src2 <- paste0(libPath, "/extdata/Sources/taxonomy.R")
   source(Src2)
 }
@@ -51,7 +51,7 @@ taxTst <- try(setNames(lapply(Orgs, \(x) {
 }), Orgs), silent = TRUE)
 if (inherits(taxTst, "try-error")) {
   kount <- 0L
-  while ((kount < 20L)&&(inherits(taxTst, "try-error"))) {
+  while ((kount < 20L) && inherits(taxTst, "try-error")) {
     taxTst <- try(setNames(lapply(Orgs, \(x) {
       suppressMessages(taxonomy(organism = x, db = "ncbi", output = "classification"))
     }), Orgs), silent = TRUE)
@@ -60,7 +60,7 @@ if (inherits(taxTst, "try-error")) {
 }
 stopifnot(!inherits(taxTst, "try-error"))
 tst <- sapply(taxTst, ncol)
-Orgs <- names(taxTst)[which(tst == 3)] # Failures are data.frames with 1 column only!
+Orgs <- names(taxTst)[which(tst == 3L)] # Failures are data.frames with 1 column only!
 taxTst <- taxTst[Orgs]
 stopifnot(length(Orgs) > 0L)
 domainS <- setNames(vapply(taxTst, \(x) { x$name[match("domain", x$rank)] }, ""), Orgs)
@@ -98,7 +98,7 @@ up_org_IDs <- setNames(lapply(1L:length(Orgs), \(i) { #i <- 1L #i <- 12L #i <- 1
   return(a)
 }), Orgs)
 up_org_IDs <- up_org_IDs[which(vapply(up_org_IDs, \(x) {
-  (is.data.frame(x))&&(nrow(x) > 0L)
+  is.data.frame(x) && (nrow(x) > 0L)
 }, TRUE))]
 up_org_IDs <- do.call(plyr::rbind.fill, up_org_IDs)
 nopeOrgs <- Orgs[which(!Orgs %in% up_org_IDs$Organism)]
@@ -118,12 +118,12 @@ dstFls <- setNames(paste0(dbDir, "/", orgDirs[allOrgs], "/", allOrgs, "_UP_", to
                    allOrgs)
 stopifnot(sum(!dir.exists(dirname(dstFls))) == 0L)
 # Annotation txt files
-txt_Urls_Orgs <- gsub("\\.fasta.gz$", ".dat.gz",  Urls_Orgs)
+txt_Urls_Orgs <- sub("\\.fasta.gz$", ".dat.gz",  Urls_Orgs)
 txt_Urls_nopeOrgs <- paste0("https://rest.uniprot.org/uniprotkb/stream?download=true&format=txt&query=%28%28taxonomy_id%3A",
                             nopeOrgs_taxIDs, "%29%29")
 txt_Urls <- setNames(URLencode(c(txt_Urls_Orgs, txt_Urls_nopeOrgs)), allOrgs)
-txt_dstFls <- c(gsub("\\.fasta.gz$", ".txt.gz",  dstFls[Orgs]),
-                gsub("\\.fasta.gz$", ".txt",  dstFls[nopeOrgs]))
+txt_dstFls <- c(sub("\\.fasta.gz$", ".txt.gz",  dstFls[Orgs]),
+                sub("\\.fasta.gz$", ".txt",  dstFls[nopeOrgs]))
 #
 #unlink(dstFls)
 wY <- which(file.exists(dstFls))
@@ -148,7 +148,7 @@ msgs <- c("but I'm a hopeful little script and I'm not giving up...",
           "it will all end well, right? Right...?",
           "the grind is real... one last try...",
           "and I'm too tired of this **** to go on trying, so download your stoopid files yourself!\n")
-while ((lN)&&(kount < 5L)) {
+while (lN && (kount < 5L)) {
   dlTst2 <- parLapply(parClust, wN, \(i) { #i <- wN[1L]
     rs <- try(curl::curl_download(Urls[i], dstFls[i], mode = "w"), silent = TRUE)
     rs <- if (inherits(rs, "try-error")) { list(Outcome = FALSE) } else { list(Outcome = TRUE, Res = rs) }
@@ -163,8 +163,8 @@ if (length(wN)) {
   warning(paste(sapply(wN, \(x) { paste0("  -> ", allOrgs[x], " = ", Urls[x], "\n") }), collapse = ""))
 }
 wY <- which(file.exists(dstFls))
-fastaFls <- gsub("\\.fasta.gz$", ".fasta", dstFls)
-nuFastaFls <- gsub("\\.fasta$", "_noDupl_cont.fasta", fastaFls)
+fastaFls <- sub("\\.fasta.gz$", ".fasta", dstFls)
+nuFastaFls <- sub("\\.fasta$", "_noDupl_cont.fasta", fastaFls)
 if (length(wY)) {
   cat("Post-processing files (removing duplicates, adding contaminants)\n")
   clusterExport(parClust, list("dstFls", "allOrgs", "dbDir"), envir = environment())
@@ -211,7 +211,7 @@ wN <- which(!file.exists(txt_dstFls))
 lN <- length(wN)
 if (lN) {
   warning(paste0(lN, " downloads failed, trying alternate approach..."))
-  kount <- 0
+  kount <- 0L
   clusterExport(parClust, list("txt_Urls", "txt_dstFls"), envir = environment())
   msgs <- c("but I'm a hopeful little script and I'm not giving up...",
             "but I know I will make it",
@@ -219,7 +219,7 @@ if (lN) {
             "the grind is real... one last try...",
             "and I'm too tired of this **** to go on trying, so download your stoopid files yourself!\n")
 }
-while ((lN)&&(kount < 5)) {
+while (lN && (kount < 5L)) {
   dlTst2 <- parLapply(parClust, wN, \(i) { #i <- wN[1L]
     rs <- try(curl::curl_download(txt_Urls[i], txt_dstFls[i], mode = "w"), silent = TRUE)
     rs <- if (inherits(rs, "try-error")) { list(Outcome = FALSE) } else { list(Outcome = TRUE, Res = rs)
@@ -228,14 +228,14 @@ while ((lN)&&(kount < 5)) {
   })
   wN <- which(!file.exists(txt_dstFls))
   lN <- length(wN)
-  kount <- kount + 1
+  kount <- kount + 1L
   if (lN) { warning(paste0(lN, " downloads failed again, ", msgs[kount], "\n")) }
 }
 if (length(wN)) {
   warning(paste(sapply(wN, \(x) { paste0("  -> ", allOrgs[x], " = ", txt_Urls[x], "\n") }), collapse = ""))
 }
 wY <- which(file.exists(txt_dstFls))
-txt_origFls <- gsub("\\.txt.gz$", ".txt", txt_dstFls)
+txt_origFls <- sub("\\.txt.gz$", ".txt", txt_dstFls)
 clusterExport(parClust, list("txt_dstFls", "txt_origFls"), envir = environment())
 tst <- parSapply(parClust, wY, \(i) { #i <- wY[1L] #i <- wY[7L]
   txt_origFl <- txt_origFls[i]

@@ -19,7 +19,7 @@ MQ.summary(
   N.clust,
   N.reserved = 1L,
   cl,
-  MQtxt = inDirs[which(SearchSoft == "MAXQUANT")]
+  MQtxt = inDirs[SearchSoft == "MAXQUANT"]
 )
 }
 \arguments{
@@ -50,7 +50,7 @@ MQ.summary(
 \item{MQtxt}{For MaxQuant only: the directory in which to search for MaxQuant evidence.txt, msms.txt and msmsScans.txt files.}
 }
 \description{
-A function to summarize the data from an MS experiment. Originally limited to MaxQuant searches, hence the name.
+A function to summarize the data from an MS experiment. Originally limited to MaxQuant searches, hence the name.\cr
 Now also works partially for the output of DIA-NN if converted to MaxQuant-like format.
 }
 \examples{

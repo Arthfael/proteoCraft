@@ -20,7 +20,7 @@ colWdths[2L] <- tmp
 # For now we are only going for those in Summary plots
 # Automated detection was including way too many images, we need to rewrite this in a more structured, directed manner!
 fls <- c(list.files(paste0(wd, "/Summary plots"), "\\.svg$", full.names = TRUE, recursive = TRUE)#,
-         # grep(" VS |/((Step [0-9]+)|(MA plot)) - ", list.files(paste0(wd, "/Workflow control"), "\\.svg$", full.names = TRUE, recursive = TRUE),
+         # grep(" VS |/(Step [0-9]+|MA plot) - ", list.files(paste0(wd, "/Workflow control"), "\\.svg$", full.names = TRUE, recursive = TRUE),
          #      value = TRUE, invert = TRUE)
          )
 nImgs <- length(fls)
@@ -165,7 +165,7 @@ xmlFls <- list.files(dr, "\\.xml$", recursive = TRUE, full.names = TRUE)
 xmlDat <- setNames(lapply(xmlFls, readLines, encoding = "UTF-8"),
                    xmlFls)
 w1 <- which(vapply(xmlFls, \(fl) {
-  any(grepl("///((VS)|(NL))///", xmlDat[[fl]]))
+  any(grepl("///(VS|NL)///", xmlDat[[fl]]))
 }, TRUE))
 w2 <- which(xmlFls %in% paste0(dr, "/xl/worksheets/sheet", as.character(which(!sheetVis)), ".xml"))
 w <- union(w1, w2)

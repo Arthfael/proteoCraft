@@ -42,10 +42,13 @@ grsep(
 \item{invert}{The base parameter (default = FALSE)}
 }
 \description{
-A wrapper function for grep/grepl/gsub to search IDs in a separated characters vector listing a set of IDs.
+A wrapper function for grep/grepl/gsub to search IDs in a separated characters vector listing a set of IDs.\cr
 N.B.: Other modes could easily be added to the code without major rewrites of this or other scripts using it.
 }
 \examples{
-tst <- grsep(c("MYFAVOURITEPROTEINSACCESSION", "ALSOTHISONE", "ANDHERESANOTHERONEFORGOODMEASURE"), x = PG$"Protein IDs")
+tst <- grsep(c("MYFAVOURITEPROTEINSACCESSION",
+               "ALSOTHISONE",
+               "ANDHERESANOTHERONEFORGOODMEASURE"),
+             x = PG$"Protein IDs")
 
 }

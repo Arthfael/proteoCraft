@@ -21,7 +21,7 @@ if (GSEAmode == "standard") {
     if (scrptType == "withReps") { ratRef <- ptms.ratios.ref }
     if (scrptType == "noReps") { ratRef <- PTMs_ratRf[length(PTMs_ratRf)] }
     idCol <- "Protein"
-    myData$Protein <- gsub(";.*", "", myData$Proteins)
+    myData$Protein <- sub(";.*", "", myData$Proteins)
     ohDeer <- paste0(wd, "/Reg. analysis/", ptm, "/GSEA")
   }
   if (dataType == "PG") {
@@ -94,7 +94,7 @@ if (isOK) {
                             name = GO_terms$Term)
   } else {
     # Or we will have to get an annotations package (currently 20 organisms are supported)
-    if ((!exists("Org"))||(!is.data.frame(Org))||(nrow(Org) != 1L)) {
+    if ((!exists("Org")) || (!is.data.frame(Org)) || (nrow(Org) != 1L)) {
       kol <- intersect(c("Organism_Full", "Organism"), colnames(db))
       tst <- sapply(kol, \(x) { length(unique(db[!as.character(db[[x]]) %in% c("", "NA"), x])) })
       kol <- kol[order(tst, decreasing = TRUE)][1L]
@@ -165,20 +165,21 @@ if (isOK) {
     #myOrgAnnot <- hub[db$`Protein ID`]
     if (isOK) {
       orgDBpkg <- orgDBs$db[match(organism, orgDBs$Full)]
-      packs2 <- c("AnnotationDbi", orgDBpkg)
-      for (pck in packs2) {
-        if (!require(pck, character.only = TRUE)) {
-          pak::pak(pck, upgrade = FALSE, ask = FALSE)
-        }
+      if (!requireNamespace(orgDBpkg)) {
+        opt <- c("Yes                                                                                                                                  ",
+                 "No                                                                                                                                   ")
+        installMe <- c(TRUE, FALSE)[match(dlg_list(opt, opt[1L],
+                                                   title = paste0("Install missing annotation package \"", orgDBpkg,
+                                                                  "\" for organism \"", organism, "\"?"))$res, opt)]
+        if (installMe) { pak::pak(orgDBpkg) }
       }
-      for (pck in packs2) {
-        library(pck, character.only = TRUE)
-      }
-      packs <- union(packs, packs2)
+      library(AnnotationDbi)
+      library(orgDBpkg, character.only = TRUE)
+      packs <- union(packs, c("AnnotationDbi", orgDBpkg))
       eval(parse(text = paste0("myKeys <- keytypes(", orgDBpkg, ")")))
       if (!"UNIPROT" %in% myKeys) {
-        if ((organism == "Arabidopsis thaliana")&&("TAIR" %in% colnames(db))) {
-          myData$TAIR <- gsub(";.*", "", db$TAIR[match(gsub(";.*", "", myData[[idCol]]), db$`Protein ID`)])
+        if ((organism == "Arabidopsis thaliana") && ("TAIR" %in% colnames(db))) {
+          myData$TAIR <- sub(";.*", "", db$TAIR[match(sub(";.*", "", myData[[idCol]]), db$`Protein ID`)])
           keyType <- idCol <- "TAIR"
         } else { isOK <- FALSE }
       }
@@ -187,11 +188,6 @@ if (isOK) {
 }
 if (isOK) {
   packs3 <- c("GO.db", "clusterProfiler", "BiocParallel", "pathview", "enrichplot", "DOSE")
-  for (pck in packs3) {
-    if (!require(pck, character.only = TRUE)) {
-      pak::pak(pck, upgrade = FALSE, ask = FALSE)
-    }
-  }
   for (pck in packs3) {
     library(pck, character.only = TRUE)
   }
@@ -272,7 +268,7 @@ if (isOK) {
   # Rename
   names(gses) <- rankCol
   if (GSEAmode == "standard") {
-    names(gses) <- cleanNms(gsub(topattern(ratRef), "", names(gses)))
+    names(gses) <- cleanNms(sub(topattern(ratRef), "", names(gses)))
   }
   #
   unlink(rdsFls[1L])
@@ -328,7 +324,7 @@ if (isOK) {
         }
         plotL$x$layout$xaxis$autorange <- TRUE
         plotL$x$layout$yaxis$autorange <- TRUE
-        plotL <- htmlwidgets::onRender(plotL, global_autorange)
+        plotL <- htmlwidgets::onRender(plotL, jsFun$global_auto_range)
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
         plotL <- plotly::plotly_build(plotL)
@@ -387,7 +383,7 @@ if (isOK) {
         }
         plotL$x$layout$xaxis$autorange <- TRUE
         plotL$x$layout$yaxis$autorange <- TRUE
-        plotL <- htmlwidgets::onRender(plotL, global_autorange)
+        plotL <- htmlwidgets::onRender(plotL, jsFun$global_auto_range)
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
         plotL <- plotly::plotly_build(plotL)
@@ -490,7 +486,7 @@ if (isOK) {
         #
         plotL$x$layout$xaxis$autorange <- TRUE
         plotL$x$layout$yaxis$autorange <- TRUE
-        plotL <- htmlwidgets::onRender(plotL, global_autorange)
+        plotL <- htmlwidgets::onRender(plotL, jsFun$global_auto_range)
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
         plotL <- plotly::plotly_build(plotL)
@@ -534,7 +530,7 @@ if (isOK) {
         #
         plotL$x$layout$xaxis$autorange <- TRUE
         plotL$x$layout$yaxis$autorange <- TRUE
-        plotL <- htmlwidgets::onRender(plotL, global_autorange)
+        plotL <- htmlwidgets::onRender(plotL, jsFun$global_auto_range)
         plotL <- plotly::config(plotL,
                                 modeBarButtonsToRemove = c("select2d", "lasso2d"))
         plotL <- plotly::plotly_build(plotL)
@@ -560,7 +556,7 @@ if (isOK) {
                         type = unlist(lapply(c("dotplot", "enrichment", "net", "ridge"), \(x) {  rep(x, length(gses)) })))
   clusterExport(parClust, list("GSEA_dotplotFun", "GSEA_enrichFun", "GSEA_netFun", "GSEA_ridgeFun",
                                "GSEA_plotFun", "plotsDF", "nmRoots", "ohDeer",
-                               "global_autorange"), envir = environment())
+                               "jsFun"), envir = environment())
   readr::write_rds(gses, rdsFls[4L])
   if (!"Label" %in% colnames(db)) {
     db$Label <- do.call(paste, c(db[, c("Common Name", "Protein ID")], sep = "\n"))
@@ -620,10 +616,8 @@ if (isOK) {
     GSEA_plotly[[GSEAmode]][[dataType2]][[nmRoots[4L]]] <- setNames(temp[w], plotsDF$GSE[w])
   }
   #
-  if (exists("DatAnalysisTxt") && (GSEAmode == "standard")) {
-    l <- length(DatAnalysisTxt)
-    DatAnalysisTxt[l] <- paste0(DatAnalysisTxt[l],
-                                " Gene Set Enrichment Analysis was run using clusterProfiler.")
+  if (exists("DatAnalysisTxt") && inherits(DatAnalysisTxt, "list") && (GSEAmode == "standard")) {
+    DatAnalysisTxt$GSEA <- "Gene Set Enrichment Analysis was run using clusterProfiler."
   }
   # See https://learn.gencore.bio.nyu.edu/rna-seq-analysis/gene-set-enrichment-analysis/ for more
   #

@@ -37,7 +37,6 @@ GO_map <- function(DB,
   TESTING <- FALSE
   #DefArg(GO_map);DB <- db; TESTING <- TRUE
   misFun <- if (TESTING) {
-    tm1 <<- Sys.time()
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
     \(x) { return(!exists(deparse(substitute(x)))) }
@@ -70,23 +69,23 @@ GO_map <- function(DB,
   if (method == "TOPGO") {
     #a0 <- Sys.time()
     temp <- listMelt(strsplit(DB$"GO-ID", ";"), DB[[db_ID_col]])
-    temp <- temp[which(!is.na(temp$L1)),]
+    temp <- temp[!is.na(temp$L1),]
     temp <- listMelt(strsplit(temp$L1, ";"), temp$value)
-    temp <- temp[which(!is.na(temp$L1)),]
-    temp <- temp[which(!is.na(temp$value)),]
-    temp <- temp[which(temp$L1 != ""),]
-    temp <- temp[which(temp$value != ""),]
+    temp <- temp[!is.na(temp$L1),]
+    temp <- temp[!is.na(temp$value),]
+    temp <- temp[temp$L1 != "",]
+    temp <- temp[temp$value != "",]
     Pr <- unique(temp$value)
     Pr2GO <- aggregate(temp$L1, list(temp$value), c)
     Pr2GO <- setNames(Pr2GO$x, Pr2GO$Group.1)
-    Pr2GO <- Pr2GO[which(sapply(Pr2GO, length) > 0)]
+    Pr2GO <- Pr2GO[lengths(Pr2GO) > 0]
     Prs2GO <- list(BP = topGO::annFUN.gene2GO("BP", names(Pr2GO), Pr2GO),
                    CC = topGO::annFUN.gene2GO("CC", names(Pr2GO), Pr2GO),
                    MF = topGO::annFUN.gene2GO("MF", names(Pr2GO), Pr2GO))
     # (Alternate way to do it, but results will be identical)
     #GO2Pr <- aggregate(temp$value, list(temp$L1), c)
     #GO2Pr <- setNames(GO2Pr$x, GO2Pr$Group.1)
-    #GO2Pr <- GO2Pr[which(sapply(GO2Pr, length) > 0L)]
+    #GO2Pr <- GO2Pr[lengths(GO2Pr) > 0L]
     #GO2Prs <- list(BP = topGO::annFUN.GO2genes("BP", names(Pr2GO), GO2Pr),
     #               CC = topGO::annFUN.GO2genes("CC", names(Pr2GO), GO2Pr),
     #               MF = topGO::annFUN.GO2genes("MF", names(Pr2GO), GO2Pr))
@@ -102,7 +101,7 @@ GO_map <- function(DB,
     #tst2 <- sapply(GO2Prs2, paste, collapse = ";")
     #stopifnot(sum(tst1 != tst2) == 0) # Check that they are identical
     # Check proteins which are not represented: they should all be from entries in the database which are devoid of GO annotation
-    misses <- Pr[which(!Pr %in% unlist(Prs2GO2))]
+    misses <- Pr[!Pr %in% unlist(Prs2GO2)]
     if (length(misses)) {
       tst <- !DB$"GO-ID"[grsep(misses, x = DB$`Protein ID`)] %in% c("", NA)
       if (sum(tst)) { warning("Investigate: a few proteins were missed!") }
@@ -110,7 +109,7 @@ GO_map <- function(DB,
     # Now check GO terms - some are inexplicably missing: deal with them!
     tst1 <- names(Prs2GO2) # All GO terms mapped
     tst2 <- unique(temp$L1) # All available GO terms
-    tst2N <- tst2[which(!tst2 %in% tst1)]
+    tst2N <- tst2[!tst2 %in% tst1]
     w <- which(temp$L1 %in% tst2N)
     if (length(w)) {
       temp2 <- aggregate(temp$value[w], list(temp$L1[w]), \(x) { list(unique(x)) })
@@ -126,8 +125,8 @@ GO_map <- function(DB,
       #ta1 <- Sys.time()
       #temp <- melt(Prs2GO2)
       #temp$Gene <- DB[match(temp$value, DB[[db_ID_col]]), db_Gene_col]
-      #temp <- temp[which(!is.na(temp$Gene)),]
-      #temp <- temp[which(temp$Gene != ""),]
+      #temp <- temp[!is.na(temp$Gene),]
+      #temp <- temp[temp$Gene != "",]
       #temp <- listMelt(strsplit(temp$Gene, ";"), temp$L1)
       #temp <- aggregate(temp$value, list(temp$L1), unique)
       #Gns2GO2 <- setNames(temp$x, temp$Group.1)
@@ -161,8 +160,8 @@ GO_map <- function(DB,
       nm <- c("Protein", "Gene")[kl]
       w <- which(nchar(DB[[kol]]) > 0L)
       temp <- magrittr::set_colnames(listMelt(strsplit(DB[w, kol], ";"), DB$"GO-ID"[w]), c(nm, "GO"))
-      temp <- temp[which(!is.na(temp$GO)),]
-      temp <- temp[which(nchar(temp$GO) > 0L),]
+      temp <- temp[!is.na(temp$GO),]
+      temp <- temp[nchar(temp$GO) > 0L,]
       temp <- listMelt(strsplit(temp$GO, ";"), temp[[nm]])
       temp <- magrittr::set_colnames(aggregate(temp$L1, list(temp$value), \(x) {
         paste(sort(unique(unlist(x))), collapse = ";")
@@ -175,7 +174,7 @@ GO_map <- function(DB,
         temp2 <- rbind(temp2,
                        data.frame(value = GO.terms$ID, L1 = GO.terms$ID))
         temp2[[nm]] <- temp[match(temp2$value, temp$GO), nm]
-        temp2 <- temp2[which(!is.na(temp2[[nm]])),]
+        temp2 <- temp2[!is.na(temp2[[nm]]),]
         temp2[[nm]] <- strsplit(temp2[[nm]], ";")
         temp2 <- magrittr::set_colnames(listMelt(temp2[[nm]], temp2$L1), c(nm, "GO"))
         temp2 <- magrittr::set_colnames(aggregate(temp2[[nm]], list(temp2$GO), \(x) {
@@ -194,8 +193,6 @@ GO_map <- function(DB,
     if (GenTst) { GO.terms$Genes <- GO.mappings$Gene$Gene[match(GO.terms$ID, GO.mappings$Gene$GO)] }
     Res$GO.terms <- GO.terms
   }
-  if (TESTING) { tm2 <<- Sys.time() }
-  #
   if (stopCl) { parallel::stopCluster(cl) }
   return(Res)
 }

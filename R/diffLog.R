@@ -31,6 +31,6 @@ diffLog <- function(p,
     )
   })
   res <- unlist(res)
-  res <- res[which(is.finite(res))]
+  res <- res[is.finite(res)]
   return(res)
 }

@@ -34,7 +34,7 @@ topattern <- function(x,
             is.logical(end))
   if (is.na(start)) { start <- TRUE }
   if (is.na(end)) { start <- FALSE }
-  if ((is.logical(collapse))&&(is.na(collapse)||collapse)) { collapse <- "|" }
+  if (is.logical(collapse) &&(is.na(collapse) || collapse)) { collapse <- "|" }
   #
   x <- gsub("\\\\", "\\\\\\\\", as.character(x)) # Should be first so as not to escape escape signs!
   x <- gsub("\\.", "\\\\.", x)

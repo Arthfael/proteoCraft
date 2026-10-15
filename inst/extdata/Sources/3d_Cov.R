@@ -2,7 +2,7 @@
 if ((!is.null(prot.list))&&(length(prot.list))) {
   nCharLim <- 25
   # From https://stackoverflow.com/questions/52911812/check-if-url-exists-in-r
-  valid_url <- function(url_in, t = 2L){
+  valid_url <- \(url_in, t = 2L){
     con <- url(url_in)
     check <- suppressWarnings(try(open.connection(con, open = "rt", timeout = t), silent = TRUE)[1L])
     suppressWarnings(try(close.connection(con), silent = TRUE))
@@ -11,16 +11,14 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
   # Mods and their mass shifts
   SCV_PTMs <- TRUE
   if ((!"Mass shift" %in% colnames(Modifs))||(sum(is.na(Modifs$`Mass shift`)))) {
-    if ("UniMod" %in% colnames(Modifs)) {
-      if (!require("PTMods", quietly = TRUE)) { pak::pak("rformassspectrometry/PTMods") }
-      require(PTMods)
+    if (("UniMod" %in% colnames(Modifs)) && requireNamespace("PTMods")) {
       data(modifications, package = "PTMods")
       UniMod <- modifications
       rm(modifications)
       Modifs$"Mass shift" <- UniMod$MonoMass[match(as.integer(sub("^UniMod:", "", Modifs$UniMod)), UniMod$UnimodId)]
     } else {
       kols <- c("Mass delta", "Delta mass")
-      w <- which(vapply(kols, \(k) { (k %in% colnames(Modifs))&&(is.numeric(Modifs[[k]])) }, TRUE))
+      w <- which(vapply(kols, \(k) { (k %in% colnames(Modifs)) && is.numeric(Modifs[[k]]) }, TRUE))
       if (length(w)) {
         Modifs$"Mass shift" <- Modifs[[kols[w]]]
       } else {
@@ -59,7 +57,7 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
       nm2 <- gsub("\\*", "STAR", gsub("/", "-", gsub(" - $", "", tmpDB$"Common Name"[idMtch])))
       if (nm1 != nm2) { nm <- paste0(nm, "_", nm2) }
       if (nchar(nm) > nCharLim) { nm <- paste0(gsub(" +$", "", substr(nm, 1L, nCharLim-3L)), "...") }
-      nm2 <- gsub(":", "_", gsub("\\.\\.\\.$", "", nm))
+      nm2 <- gsub(":", "_", sub("\\.\\.\\.$", "", nm))
       dir <- paste0(wd, "/Protein plots/", nm2, "/Coverage")
       if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
       #

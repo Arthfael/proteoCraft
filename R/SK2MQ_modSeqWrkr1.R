@@ -12,10 +12,10 @@
   #x <- temp1[[1]]
   x1 <- x2 <- unlist(x)
   l <- length(x1)
-  rg <- c(1:((l-1)/2))*2
-  nc <- nchar(x1[rg-1])
-  aa <- substr(x1[rg-1], nc, nc)
-  if (nc[1] == 1) { aa[1] <- substr(x1[3], 1, 1) }
+  rg <- c(1L:((l-1L)/2L))*2L
+  nc <- nchar(x1[rg-1L])
+  aa <- substr(x1[rg-1L], nc, nc)
+  if (nc[1L] == 1L) { aa[1L] <- substr(x1[3L], 1L, 1L) }
   m <- match(x1[rg], tempMods$Old)
   x1[rg] <- paste0("(", tempMods$Mark[m], ")")
   x2[rg] <- paste0("(", tempMods$Name[m], ")")

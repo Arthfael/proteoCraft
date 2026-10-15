@@ -7,8 +7,9 @@
 #' This will evolve as the Mann lab update https://alphadia.readthedocs.io/en/latest/methods/output-format.html
 #' which as of 2025/07/16 is incomplete.
 #' 
-#' The output is a list of 2 items:
-#' - Evidence: a data.frame similar to the evidence.txt table MaxQuant creates
+#' @returns
+#' A list of 2 items:\cr
+#' - Evidence: a data.frame similar to the evidence.txt table MaxQuant creates\cr
 #' - PTMs: a modifications table
 #' 
 #' @param alphaDIA_fl External alphaDIA precursors.tsv file.
@@ -75,11 +76,11 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   UniMod <- UniMod[grep("^[A-Z][a-z]{2}->[A-Z][a-z]{2} substitution$", UniMod$Description, invert = TRUE),]
   # - deltas
   g <- grepl("^Delta:", UniMod$Name)
-  UniMod_D <- UniMod[which(g),]
-  UniMod <- UniMod[which(!g),]
+  UniMod_D <- UniMod[g,]
+  UniMod <- UniMod[!g,]
   #
   # Read PSMs ("precursors" file)
-  xt <- gsub(".*\\.", "", alphaDIA_fl)
+  xt <- sub(".*\\.", "", alphaDIA_fl)
   if (xt == "tsv") {
     alphaDIA <- data.table::fread(alphaDIA_fl, integer64 = "numeric", check.names = FALSE, data.table = FALSE)
   }
@@ -94,7 +95,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   lX <- nrow(alphaDIA)-length(w) 
   if (lX) {
     u <- unique(unlist(strsplit(alphaDIA$sequence, "")))
-    u <- paste(u[which(!u %in% AA)], collapse = "-")
+    u <- paste(u[!u %in% AA], collapse = "-")
     warning(paste0("Removing ", lX, " peptide", c("", "s")[(lX > 1L)+1L], " with unknown amino acids ", u, "!"))
     alphaDIA <- alphaDIA[w,]
   }
@@ -105,10 +106,10 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
     log <- readr::read_lines(log_Fl)
     gP <- grep("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: +├──", log) # All parameter groups
     gA <- grep("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: +├──raw_paths:", log)
-    gB <- vapply(gA, \(x) { min(gP[which(gP > x)]) }, 1L)
+    gB <- vapply(gA, \(x) { min(gP[gP > x]) }, 1L)
     g0 <- unlist(lapply(1L:length(gA), \(x) { (gA[x]+1L):(gB[x]-1L) }))
-    rwFlPths <- gsub("\\\\", "/", unique(gsub(" +\\[.*", "", gsub("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: │   \033\\[[^ ]+ +", "", log[g0]))))
-    rwFls <- gsub(".*/|\\.[^\\.]+$", "", rwFlPths)
+    rwFlPths <- gsub("\\\\", "/", unique(sub(" +\\[.*", "", gsub("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: │   \033\\[[^ ]+ +", "", log[g0]))))
+    rwFls <- gsub(".*/|\\.[^.]+$", "", rwFlPths)
   } else {
     msg <- "   log.txt file missing"
     rwFls <- unique(alphaDIA$run)
@@ -141,7 +142,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   #w <- which(alphaDIA$pg != alphaDIA$genes)
   #length(w)
   kol <- c("run", "pg", "sequence", "charge", "proba")
-  #print(kol[which(!kol %in% colnames(alphaDIA))])
+  #print(setdiff(kol, colnames(alphaDIA)))
   stopifnot(sum(!kol %in% colnames(alphaDIA)) == 0L)
   EV <- data.frame("Raw file" = alphaDIA$run,
                    "Raw file path" = rwFlPths[match(alphaDIA$run, rwFls)],
@@ -200,9 +201,9 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
       #i <- W[1L]
       w <- which(allPTMs$Mark == tstMark$Group.1[i])
       m <- allPTMs[w,]
-      m$AA[which(lengths(m$AA) == 0L)] <- "X"
+      m$AA[lengths(m$AA) == 0L] <- "X"
       r <- if ("Acetyl" %in% m$"Full name") { which(m$"Full name" == "Acetyl") } else { 1L }
-      s <- c(1L:nrow(m)); s <- s[which(s != r)]
+      s <- c(1L:nrow(m)); s <- s[s != r]
       test <- apply(m[s, c("AA", "Mark")], 1L, \(x) { paste0(tolower(x[[1L]]), substr(x[[2L]], 1L, 1L))[1L] })
       w0 <- which(!test %in% allPTMs$Mark)
       if (length(w0)) {

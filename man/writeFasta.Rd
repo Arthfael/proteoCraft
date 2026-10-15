@@ -27,10 +27,10 @@ writeFasta(
 \item{rowLength}{Purely cosmetic argument: how many amino acids should be written per row (default = 60)? If not a valid, positive integer greater than 1, this is ignored and sequences are written on a single row.}
 }
 \description{
-A function to write a data table of protein sequences, parsed from a fasta by Format.DB, as a fasta.
-The fasta is:
- - written down if a destination file is provided using destFl,
- - or, if newFl is TRUE, a modal dialog is opened to interactively choose it.
+A function to write a data table of protein sequences, parsed from a fasta by Format.DB, as a fasta.\cr
+The fasta is:\cr
+ - written down if a destination file is provided using destFl,\cr
+ - or, if newFl is TRUE, a modal dialog is opened to interactively choose it.\cr
  - The fasta can also optionally be returned as a character string.
 }
 \examples{

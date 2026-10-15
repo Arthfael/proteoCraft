@@ -1,8 +1,8 @@
 #' FP_to_MQ
 #'
 #' @description 
-#' Reads FragPipe's workflow and manifest files
-#' From them, detects and parses psm.tsv tables (one per Experiment) to a single MaxQuant evidence.txt-like table.
+#' Reads FragPipe's workflow and manifest files.\cr
+#' From them, detects and parses psm.tsv tables (one per Experiment) to a single MaxQuant evidence.txt-like table.\cr
 #' As with the other functions of this type, the idea is not to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.
 #' 
 #' @param FP_Workflow Fragpipe workflow. Parsed to identify FragPipe's output directory, search parameters, incl. modifications.
@@ -16,10 +16,10 @@
 #' @param OpenSearch Is it an open search? If TRUE, will also ignore Open Search-type columns even if they are present. If TRUE, will try to detect and process them - but this is probably still a bit buggy.
 #' 
 #' @returns
-#' A list of (at least) 4 items:
-#' - "Evidence": a PSMs table similar (nor identical!) to the evidence table MaxQuant creates
-#' - "PTMs": a modifications table
-#' - "FracMap": a map of the different MS raw files and their relationship to Experiments
+#' A list of (at least) 4 items:\cr
+#' - "Evidence": a PSMs table similar (nor identical!) to the evidence table MaxQuant creates\cr
+#' - "PTMs": a modifications table\cr
+#' - "FracMap": a map of the different MS raw files and their relationship to Experiments\cr
 #' - "WorkFlow": the FragPipe workflow
 #' 
 #' @examples
@@ -117,14 +117,14 @@ FP_to_MQ <- function(FP_Workflow,
       stop(paste0("This is a TMT dataset but file \"", TMTtblFl, "\" could not be found in the results folder!"))
     }
     TMTtbl <- read.delim(TMTtblFl, check.names = FALSE)
-    TMTtbl$plex[which(is.na(TMTtbl$plex))] <- TMTplex
+    TMTtbl$plex[is.na(TMTtbl$plex)] <- TMTplex
     Channels <- c(126L, unlist(lapply(127L:134L, \(x) { paste0(as.character(x), c("N", "C")) })), "135N")
     TMTtbl$channel_code <- match(TMTtbl$channel, Channels) - 1L
     tmtKols <- as.character(TMTtbl$sample)
   }
   #
   # Parse FragPipe's samples manifest
-  if ((!TESTING)&&((missing("FP_Manifest"))||(!file.exists(FP_Manifest)))) {
+  if ((!TESTING) && (missing("FP_Manifest") || (!file.exists(FP_Manifest)))) {
     stop("Invalid parameter \"FP_Manifest\": file not found!")
   }
   FP_Mnfst <- suppressWarnings(read.delim(FP_Manifest, header = FALSE))
@@ -136,21 +136,21 @@ FP_to_MQ <- function(FP_Workflow,
   #  warning("Raw files could not be located, keeping only file names without full path!")
   #  FP_Mnfst$Path <- gsub(".+/", "", FP_Mnfst$Path)
   #}
-  FP_Mnfst$"File name" <- gsub(".+/|\\.((raw)|(mz(X?ML|BIN))|(mgf)|(d))$", "", FP_Mnfst$Path)
-  FP_Mnfst$Experiment[which(is.na(FP_Mnfst$Experiment))] <- ""
+  FP_Mnfst$"File name" <- gsub(".+/|\\.(raw|mz(X?ML|BIN)|mgf|d)$", "", FP_Mnfst$Path)
+  FP_Mnfst$Experiment[is.na(FP_Mnfst$Experiment)] <- ""
   Exp <- Samples <- FP_Mnfst$Experiment
   Rep <- FP_Mnfst$Replicate
-  if (length(Rep[which(!is.na(Rep))])) {
+  if (length(Rep[!is.na(Rep)])) {
     Samples <- data.frame(Exp = Exp, Rep = Rep)
     # Rep seems to be duplicated somehow, but only sometimes... Why oh why!!!
     Samples1 <- apply(Samples, 1L, \(x) {
       x <- c(x[[1L]], x[[2L]])
-      x <- x[which(!is.na(x))]
+      x <- x[!is.na(x)]
       return(paste(x, collapse = "_"))
     })
     Samples2 <- apply(Samples, 1L, \(x) {
       x <- c(x[[1L]], x[[2L]], x[[2L]])
-      x <- x[which(!is.na(x))]
+      x <- x[!is.na(x)]
       return(paste(x, collapse = "_"))
     })
     tst1 <- sum(dir.exists(paste0(FP_Dir, "/", Samples1))) == length(Samples1)
@@ -172,12 +172,12 @@ FP_to_MQ <- function(FP_Workflow,
     #plur <- c("", "s")[(l > 1)+1]
     #warning(paste0("The \"psm.tsv\" file", plur, " for sample", plur, " ", SamplesNo,
     #               " could not be found, skipping missing sample", plur, "!"))
-    FP_PSMs <- FP_PSMs[which(tst)]
-    #FP_Fas <- FP_Fas[which(tst)]
-    Samples <- Samples[which(tst)]
-    FP_Mnfst2 <- FP_Mnfst2[which(tst),]
-    Exp <- Exp[which(Exp %in% FP_Mnfst2$Experiment)]
-    Rep <- Rep[which(Rep %in% FP_Mnfst2$Replicate)]
+    FP_PSMs <- FP_PSMs[tst]
+    #FP_Fas <- FP_Fas[tst]
+    Samples <- Samples[tst]
+    FP_Mnfst2 <- FP_Mnfst2[tst,]
+    Exp <- Exp[Exp %in% FP_Mnfst2$Experiment]
+    Rep <- Rep[Rep %in% FP_Mnfst2$Replicate]
   }
   isWellBehaved <- TRUE
   if (!length(FP_PSMs)) {
@@ -191,17 +191,18 @@ FP_to_MQ <- function(FP_Workflow,
   #tst <- file.exists(FP_Fas)
   #w <- which(!tst); l <- length(w)
   #if (l) {
-  #  SamplesNo <- unique(SamplesNo[w]); l <- length(SamplesNo)
-  #  if (l > 1L) { SamplesNo <- paste0(paste(SamplesNo[1L:(l-1L)], collapse = ", "), " and ", SamplesNo[l]) }
+  #  SamplesNo <- unique(SamplesNo[w])
+  #  l <- length(SamplesNo)
+  #  SamplesNo <- .commAnd(SamplesNo)
   #  plur <- c("", "s")[(l > 1L)+1L]
   #  warning(paste0("The \"protein.fas\" file", plur, " for sample", plur, " ", SamplesNo,
   #                 " could not be found, skipping missing sample", plur, "!"))
-  #  FP_PSMs <- FP_PSMs[which(tst)]
-  #  FP_Fas <- FP_Fas[which(tst)]
-  #  Samples <- Samples[which(tst)]
-  #  FP_Mnfst <- FP_Mnfst[which(tst),]
-  #  Exp <- Exp[which(Exp %in% FP_Mnfst$Experiment)]
-  #  Rep <- Rep[which(Rep %in% FP_Mnfst$Replicate)]
+  #  FP_PSMs <- FP_PSMs[tst]
+  #  FP_Fas <- FP_Fas[tst]
+  #  Samples <- Samples[tst]
+  #  FP_Mnfst <- FP_Mnfst[tst,]
+  #  Exp <- Exp[Exp %in% FP_Mnfst$Experiment]
+  #  Rep <- Rep[Rep %in% FP_Mnfst$Replicate]
   #}
   # Update values
   Exp <- unique(Exp)
@@ -240,12 +241,12 @@ FP_to_MQ <- function(FP_Workflow,
   # Remove:
   # - substitutions
   gS <- grepl("^[A-Z][a-z]{2}->[A-Z][a-z]{2} substitution$", UniMod$Description)
-  UniMod_S <- UniMod[which(gS),]
-  UniMod <- UniMod[which(!gS),]
+  UniMod_S <- UniMod[gS,]
+  UniMod <- UniMod[!gS,]
   # - deltas
   gD <- grepl("^Delta:", UniMod$Name)
-  UniMod_D <- UniMod[which(gD),]
-  UniMod <- UniMod[which(!gD),]
+  UniMod_D <- UniMod[gD,]
+  UniMod <- UniMod[!gD,]
   # For now these are removed as they are normally not expected.
   # However, we can keep them aside in case there is no match to main UniMod (not implemented currently).
   #
@@ -261,10 +262,10 @@ FP_to_MQ <- function(FP_Workflow,
                        "Max occurences" = x4,
                        "Type" = c("Variable", "Fixed")[fixInd],
                        check.names = FALSE)
-    mods <- mods[which(mods$"Mass delta" != 0),]
-    mods <- mods[which(mods$Enabled),]
+    mods <- mods[mods$"Mass delta" != 0,]
+    mods <- mods[mods$Enabled,]
     mods$Enabled <- NULL
-    mods$Site <- gsub(" ?\\([^\\)]+\\)", "", mods$Site) # Why do I need this again?
+    mods$Site <- gsub(" ?\\([^)]+\\)", "", mods$Site) # Why do I need this again?
     mods$ID <- paste0(c("var", "fix")[fixInd], 1L:nrow(mods))
     tmp <- lapply(strsplit(mods$Site, ""), \(x) { #x <- strsplit(mods$Site, "")[4L]
       x <- unlist(x)
@@ -295,10 +296,10 @@ FP_to_MQ <- function(FP_Workflow,
     mods$Site <- tmp$value
     #
     # This bit I think was just for varmods...
-    mods$Site[which(mods$Site == "N-Term Peptide")] <- "n^"
-    mods$Site[which(mods$Site == "C-Term Peptide")] <- "^c"
-    mods$Site[which(mods$Site == "N-Term Protein")] <- "[^"
-    mods$Site[which(mods$Site == "C-Term Protein")] <- "]^"
+    mods$Site[mods$Site == "N-Term Peptide"] <- "n^"
+    mods$Site[mods$Site == "C-Term Peptide"] <- "^c"
+    mods$Site[mods$Site == "N-Term Protein"] <- "[^"
+    mods$Site[mods$Site == "C-Term Protein"] <- "]^"
     #
     mods <- mods[grep("^site_[0-9]+$", mods$Site, invert = TRUE),]
     return(mods)
@@ -319,25 +320,25 @@ FP_to_MQ <- function(FP_Workflow,
   # - Combine
   Modifs <- plyr::rbind.fill(Modifs)
   tst <- vapply(strsplit(Modifs$Site, ""), \(x) {
-    x <- x[which(x != " ")]
+    x <- x[x != " "]
     sum(!x %in% c("[", "n", "^", "c", "]", AA)) == 0L
   }, TRUE)
   if (sum(!tst)) {
     warning("Unexpected result when parsing FragPipe's modification sites, investigate!")
   }
-  Modifs <- Modifs[which(tst),]
+  Modifs <- Modifs[tst,]
   Modifs$Position <- "Anywhere"
   Modifs$Position[grep("^\\[", Modifs$Site)] <- "Protein N-term"
   Modifs$Position[grep("^n", Modifs$Site)] <- "Any N-term"
   Modifs$Position[grep("^\\]", Modifs$Site)] <- "Protein C-term"
   Modifs$Position[grep("^c", Modifs$Site)] <- "Any C-term"
   Modifs$Site_long <- Modifs$Site
-  Modifs$Site_long[which(Modifs$Site_long == "[^")] <- "P-N-term"
-  Modifs$Site_long[which(Modifs$Site_long == "]^")] <- "P-C-term"
+  Modifs$Site_long[Modifs$Site_long == "[^"] <- "P-N-term"
+  Modifs$Site_long[Modifs$Site_long == "]^"] <- "P-C-term"
   Modifs$Site_long[grep("^n", Modifs$Site_long)] <- "N-term"
   Modifs$Site_long[grep("^c", Modifs$Site_long)] <- "C-term"
   Modifs$AA <- gsub("\\[|\\]|\\^|n|c", "", Modifs$Site)
-  Modifs$AA[which(Modifs$AA == "*")] <- ""
+  Modifs$AA[Modifs$AA == "*"] <- ""
   w <- which(Modifs$AA != "")
   Modifs$Site_long[w] <- Modifs$AA[w] # Restore AA specificity
   Modifs$"Mass precision" <- nchar(gsub(".*\\.|0+$", "", Modifs$"Mass delta"))
@@ -358,25 +359,25 @@ FP_to_MQ <- function(FP_Workflow,
                &(UniMod$Site %in% sites)
                &(UniMod$Position == pos))
     # if (!length(w)) {
-    #   w <- which((abs(round(UniMod$MonoMass+1.007276, prec) - round(as.numeric(dMass), prec)) <= 10^(1-prec))
+    #   w <- which((abs(round(UniMod$MonoMass+1.007276, prec) - round(as.numeric(dMass), prec)) <= 10L^(1-prec))
     #              &(UniMod$Site %in% sites)
     #              &(UniMod$Position == pos))
     # }
     if (length(w)) {
-      #if (length(unique(UniMod$Description[w])) != 1) {
+      #if (length(unique(UniMod$Description[w])) != 1L) {
       #  print(x)
       #  View(UniMod[w,])
       #  res <- NA
       #}
       res <- UniMod[w, c("UnimodId", "Site", "Position")]
       res$Position <- as.character(res$Position)
-      res$Position[which(res$Position == "Anywhere")] <- ""
-      res$Site[which(res$Site %in% paste0(c("N", "C"), "-term"))] <- ""
-      w <- which((res$Position != "")&(res$Site != ""))
+      res$Position[res$Position == "Anywhere"] <- ""
+      res$Site[res$Site %in% paste0(c("N", "C"), "-term")] <- ""
+      w <- which((res$Position != "") & (res$Site != ""))
       if (length(w)) {
         res$Site[w] <- sub("^ ", "", paste0(apply(res[w, c("Site", "Position")], 1L, paste, collapse = " ("), ")"))
       }
-      w <- which((res$Position != "")&(res$Site == ""))
+      w <- which((res$Position != "") & (res$Site == ""))
       if (length(w)) { res$Site[w] <- res$Position[w] }
       res <- aggregate(res$Site, list(res$UnimodId), list)
       colnames(res) <- c("UniMod", "Site_long")
@@ -401,7 +402,7 @@ FP_to_MQ <- function(FP_Workflow,
     tmp2$"Full name"[w] <- paste0("Unknown", 1L:length(w), "_", c("", "+")[(tmp2$`Mass delta`[w] > 0) + 1L],
                                   tmp2$`Mass delta`[w])
   }
-  kol <- colnames(tmp2)[which(!colnames(tmp2) %in% c("tmpRow", "Row", "Mass delta", "Full name"))]
+  kol <- setdiff(colnames(tmp2), c("tmpRow", "Row", "Mass delta", "Full name"))
   tmp2 <- aggregate(tmp2[, kol], list(tmp2$"Mass delta", tmp2$"Full name"), list)
   colnames(tmp2)[1L:2L] <- c("Mass delta", "Full name")
   tmp2$"Max occurences" <- vapply(tmp2$"Max occurences", max, 1L)
@@ -429,7 +430,7 @@ FP_to_MQ <- function(FP_Workflow,
       if (length(unique(labelTst)) == length(labelTst)) {
         Modifs$Mark[w] <- labelTst
       } else {
-        m$AA[which(lengths(m$AA) == 0L)] <- "X"
+        m$AA[lengths(m$AA) == 0L] <- "X"
         r <- { if ("Acetyl" %in% m$"Full name") { which(m$"Full name" == "Acetyl") } else { 1L } } # r is the one we will keep without changing it
         s <- setdiff(1L:nrow(m), r)
         tst <- lapply(s, \(x) {
@@ -437,12 +438,12 @@ FP_to_MQ <- function(FP_Workflow,
         })
         tst <- lapply(1L:length(tst), \(x) {
           rs <- tst[[x]]
-          rs[which(!rs %in% Modifs$Mark)]
+          rs[!rs %in% Modifs$Mark]
         })
         l <- length(tst)
         if (l > 1L) {
           for (i in 2L:l) {
-            tst[[i]] <- tst[[i]][which(!tst[[i]] %in% unlist(tst[1L:(i - 1L)]))]
+            tst[[i]] <- tst[[i]][!tst[[i]] %in% unlist(tst[1L:(i - 1L)])]
           }
         }
         tst <- vapply(tst, \(x) {
@@ -450,7 +451,7 @@ FP_to_MQ <- function(FP_Workflow,
           x <- { if (length(x)) { x[1L] } else { "That didnae work, did it?" } }
           return(x)
         }, "")
-        tst2 <- ((tst %in% Modifs$Mark)|(tst == "That didnae work, did it?"))
+        tst2 <- ((tst %in% Modifs$Mark) | (tst == "That didnae work, did it?"))
         w2 <- which(!tst2)
         m$Mark[s][w2] <- tst[w2]
         w1 <- which(tst2)
@@ -463,7 +464,7 @@ FP_to_MQ <- function(FP_Workflow,
           taken <- unique(c(Modifs$Mark, m$Mark))
           for (j in s1) {
             tst <- paste0(tolower(m$AA[s1]), char[kount])
-            while (((tst) %in% taken)&&(kount < length(char))) {
+            while ((tst %in% taken) && (kount < length(char))) {
               kount <- kount + 1L
               tst <- paste0(tolower(m$AA[s1]), char[kount])
             }
@@ -540,19 +541,19 @@ FP_to_MQ <- function(FP_Workflow,
     PSMs$PSMs_file <- FP_Mnfst$FP_PSMs[PSMs2Mnsfst]
   }
   # Check formats
-  kols <- c("Charge", "Number of Enzymatic Termini", "Number of Missed Cleavages", "Protein Start", "Protein End")
-  kols <- kols[which(kols %in% colnames(PSMs))]
+  kols <- intersect(c("Charge", "Number of Enzymatic Termini", "Number of Missed Cleavages", "Protein Start", "Protein End"),
+                    colnames(PSMs))
   for (kol in kols) { PSMs[[kol]] <- as.integer(PSMs[[kol]]) }
-  kols <- c("Retention", "Observed Mass", "Calibrated Observed Mass", 
-            "Observed M/Z", "Calibrated Observed M/Z", "Calculated Peptide Mass", 
-            "Calculated M/Z", "Delta Mass", "Expectation", "Hyperscore", 
-            "Nextscore", "PeptideProphet Probability", "Intensity", 
-            "Best Score with Delta Mass", "Best Score without Delta Mass")
-  kols <- kols[which(kols %in% colnames(PSMs))]
+  kols <- intersect(c("Retention", "Observed Mass", "Calibrated Observed Mass", 
+                      "Observed M/Z", "Calibrated Observed M/Z", "Calculated Peptide Mass", 
+                      "Calculated M/Z", "Delta Mass", "Expectation", "Hyperscore", 
+                      "Nextscore", "PeptideProphet Probability", "Intensity", 
+                      "Best Score with Delta Mass", "Best Score without Delta Mass"),
+                    colnames(PSMs))
   if (FailIfNoQuant &&
       ((!"Intensity" %in% kols) ||
        (!sum(is.finite(PSMs$Intensity))) ||
-       (!sum(PSMs$Intensity[which(is.finite(PSMs$Intensity))])))) {
+       (!sum(PSMs$Intensity[is.finite(PSMs$Intensity)])))) {
     if (isTMT) {
       warning("No MS1 quantitative information identified in PSMs table! Using sum of reporter intensities!")
       PSMs$Intensity <- rowSums(PSMs[, tmtKols, drop = FALSE], na.rm = TRUE)
@@ -581,15 +582,15 @@ FP_to_MQ <- function(FP_Workflow,
                        PeakApex = NA_real_,
                        check.names = FALSE)
     #tmp4 <- tmp4[grep("^Unannotated mass-shift |^Unidentified modification of ", tmp4$Full, invert = TRUE),]
-    #tmp4 <- tmp4[grep("^((First)|(Second)|(Third)) isotopic peak|^Isotopic peak error$", tmp4$Full, invert = TRUE),]
+    #tmp4 <- tmp4[grep("^(First|Second|Third) isotopic peak|^Isotopic peak error$", tmp4$Full, invert = TRUE),]
     g <- grep("Theoretical: ", tmp4$Full)
     tmp4$"Mass delta"[g] <- as.numeric(sub("(, .+)?\\)$", "", gsub(".+Theoretical: ", "", tmp4$Full[g])))
     g <- grep("PeakApex: ", tmp4$Full)
     tmp4$PeakApex[g] <- as.numeric(sub("(, .+)?\\)$", "", gsub(".+PeakApex: ", "", tmp4$Full[g])))
-    tmp4$"Full name" <- gsub(" \\(((Theoretical)|(PeakApex)): .+", "", tmp4$Full)
+    tmp4$"Full name" <- gsub(" \\((Theoretical|PeakApex): .+", "", tmp4$Full)
     w <- which(is.na(tmp4$"Mass delta"))
     tmp4$"Mass delta"[w] <- tmp4$PeakApex[w] 
-    w <- which((is.na(tmp4$"Mass delta"))&(tmp4$"Full name" %in% UniMod$Description))
+    w <- which(is.na(tmp4$"Mass delta") & (tmp4$"Full name" %in% UniMod$Description))
     tmp4$"Mass delta"[w] <- UniMod$MonoMass[match(tmp4$"Full name"[w], UniMod$Description)]
     tmp4$UniMod <- UniMod$UnimodId[match(tmp4$"Full name", UniMod$Description)]
     tmp4$Position <- "Unknown"
@@ -616,25 +617,25 @@ FP_to_MQ <- function(FP_Workflow,
   # Create MQ-like data.frame
   kol <- c("Spectrum File", "Peptide", "Modified Peptide", "Charge", "Hyperscore",
            "Spectrum", "Intensity", "Retention", "Protein")
-  #print(kol[which(!kol %in% colnames(PSMs))])
+  #print(setdiff(kol, colnames(PSMs)))
   stopifnot(sum(!kol %in% colnames(PSMs)) == 0L)
   EV <- data.frame(Sequence = PSMs$Peptide,
                    Length = nchar(PSMs$Peptide), 
                    Charge = PSMs$Charge,
                    Intensity = PSMs$Intensity)
   #
-  pKol <- c("PeptideProphet Probability", "Probability")
-  pKol <- pKol[which(pKol %in% colnames(PSMs))[1L]]
+  pKol <- intersect(c("PeptideProphet Probability", "Probability"),
+                    colnames(PSMs))[1L]
   if (!length(pKol)) { stop("No PSMs quality column detected!") } else {
     EV$PEP <- 1 - PSMs[[pKol]]
   }
   a1 <- PSMs$Protein
   a2 <- PSMs$"Mapped Proteins"
   if (UniProtIDs) {
-    a1 <- strsplit(gsub("^[a-z]{2}\\||\\|[^\\|]+$", "",
-                        gsub("\\|[^\\|]+;[a-z]{2}\\|", ";", gsub(", ", ";", a1))), ";")
-    a2 <- strsplit(gsub("^[a-z]{2}\\||\\|[^\\|]+$", "",
-                        gsub("\\|[^\\|]+;[a-z]{2}\\|", ";", gsub(", ", ";", a2))), ";")
+    a1 <- strsplit(gsub("^[a-z]{2}\\||\\|[^|]+$", "",
+                        gsub("\\|[^|]+;[a-z]{2}\\|", ";", gsub(", ", ";", a1))), ";")
+    a2 <- strsplit(gsub("^[a-z]{2}\\||\\|[^|]+$", "",
+                        gsub("\\|[^|]+;[a-z]{2}\\|", ";", gsub(", ", ";", a2))), ";")
   }
   tmp <- cbind(a1, a2)
   f0 <- \(x) { paste(sort(unique(unlist(x))), collapse = ";") }
@@ -651,7 +652,7 @@ FP_to_MQ <- function(FP_Workflow,
     EV$"Raw file" <- gsub_Rep("^(.*/)?interact-", "",
                               gsub_Rep("\\\\", "/",
                                        gsub_Rep("(\\.mod)?\\.pep\\.xml$", ".d", PSMs$`Spectrum File`)))
-    EV$"Raw file" <- gsub_Rep(".+/|\\.((raw)|(mz(X?ML|BIN))|(mgf)|(d))$", "", EV$"Raw file")
+    EV$"Raw file" <- gsub_Rep(".+/|\\.(raw|mz(X?ML|BIN)|mgf|d)$", "", EV$"Raw file")
     u <- unique(EV$"Raw file")
     w <- lapply(FP_Mnfst$`File name`, \(x) { which(u == x) })
     l <- lengths(w)
@@ -660,13 +661,13 @@ FP_to_MQ <- function(FP_Workflow,
   } else {
     EV$Experiment <- FP_Mnfst$Experiment[PSMs2Mnsfst]
     EV$"Raw file path" <- FP_Mnfst$Path[PSMs2Mnsfst]
-    EV$"Raw file" <- gsub_Rep(".+/|\\.((raw)|(mz(X?ML|BIN))|(mgf)|(d))$", "", EV$"Raw file path")
+    EV$"Raw file" <- gsub_Rep(".+/|\\.(raw|mz(X?ML|BIN)|mgf|d)$", "", EV$"Raw file path")
   }
   # Modified sequence
   EV$"Modified sequence_verbose" <- EV$"Modified sequence" <- paste0("_", EV$Sequence, "_")
   wMdSq <- wMdSq2 <- which(PSMs$`Assigned Modifications` != "")
   if (OpenSearch) {
-    wMdSq2 <- which((PSMs$`Assigned Modifications` != "")|(PSMs$`Observed Modifications` != ""))
+    wMdSq2 <- which((PSMs$`Assigned Modifications` != "") | (PSMs$`Observed Modifications` != ""))
   }
   if (length(wMdSq2)) {
     a1 <- strsplit(PSMs$Peptide[wMdSq2], "")
@@ -676,15 +677,15 @@ FP_to_MQ <- function(FP_Workflow,
                        list(tmp = tmp,
                             Modifs = Modifs,
                             aaPat = aaPat))
-    a2[which(wMdSq2 %in% wMdSq)] <- parallel::parLapply(cl, 
-                                                        tmp,
-                                                        f0,
-                                                        mods = Modifs,
-                                                        pat = aaPat)
+    a2[wMdSq2 %in% wMdSq] <- parallel::parLapply(cl, 
+                                                 tmp,
+                                                 f0,
+                                                 mods = Modifs,
+                                                 pat = aaPat)
     tmp <- cbind(a1, a2)
     if (OpenSearch) {
       a3 <- sub("^Mod[0-9]+: ", "", gsub(", Mod[0-9]+: ", ";", gsub("; .+", "", PSMs$"Observed Modifications"[wMdSq2])))
-      a3 <- sub(" \\([^\\)]+\\)$", "", gsub(" \\([^\\)]+\\), ", ", ", a3)) 
+      a3 <- sub(" \\([^)]+\\)$", "", gsub(" \\([^)]+\\), ", ", ", a3)) 
       a3 <- gsub(" ", "_", gsub(",", ".", gsub("\\(", "{", gsub("\\)", "}", a3))))
       a3 <- strsplit(a3, ";")
       stopifnot(sum(!unique(unlist(a3)) %in% Modifs$"Full name") == 0L)
@@ -706,7 +707,7 @@ FP_to_MQ <- function(FP_Workflow,
     #
     #tst <- unique(unlist(strsplit(gsub("(_|\\))[A-Z]+(_|\\()", "_", EV$"Modified sequence_verbose"), "\\)_$|_|,")))
     #tst <- grep("^[A-Z]+$", tst, value = TRUE, invert = TRUE)
-    #tst <- sub("^[0-9]+ ", "", tst[which(tst != "")])
+    #tst <- sub("^[0-9]+ ", "", tst[tst != ""])
     #sum(!tst %in% Modifs$"Full name")
     tmp <- strsplit(EV$"Modified sequence_verbose"[wMdSq2], "\\(|\\)")
     f0 <- .bind_worker(.FP2MQ_modSeqWrkr3,
@@ -721,7 +722,7 @@ FP_to_MQ <- function(FP_Workflow,
   # For now a corrective rather than a fix until I can identify the issue. Should trigger an error if the vector has the wrong length.
   EV$Modifications <- "Unmodified"
   a1 <- strsplit(gsub(paste0("_|\\)|", aaPat), "", EV$"Modified sequence"[wMdSq2]), "\\(")
-  f0 <- \(x) { x[which(x != "")] }
+  f0 <- \(x) { x[x != ""] }
   f0 <- .bind_worker(f0,
                      list(a1 = a1))
   tmp <- a1 <- parallel::parLapply(cl,
@@ -793,7 +794,7 @@ FP_to_MQ <- function(FP_Workflow,
   # Conclusion:
   # - V2 is a scan number
   # - After checking, I can confirm that V4 is charge 
-  EV$"MS/MS scan number" <- as.numeric(gsub("^[^\\.]+\\.|\\..+", "", PSMs$Spectrum))
+  EV$"MS/MS scan number" <- as.numeric(gsub("^[^.]+\\.|\\..+", "", PSMs$Spectrum))
   # Unfortunately, at least for DIA data these are pseudo-MS/MS spectrum numbers generated
   # by DIA-Umpire or DIA-Tracer.
   # They cannot be matched to those in the DiaNN report, if DiaNN was used for quantitation.
@@ -807,7 +808,7 @@ FP_to_MQ <- function(FP_Workflow,
   EV$"Potential contaminant" <- "" # This can be fixed later
   EV$Reverse <- "" # This can be fixed later
   # Optional: filter by delta score
-  EV <- EV[which(EV$`Delta score` > Min.Delta.Score),]
+  EV <- EV[EV$`Delta score` > Min.Delta.Score,]
   #
   EV$id <- NULL
   EV <- cbind(data.frame(id = 1L:nrow(EV)), EV)
