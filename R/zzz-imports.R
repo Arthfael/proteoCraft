@@ -128,6 +128,18 @@
   igraph::ends
   knitr::image_uri
   later::later
+  limma::makeContrasts
+  limma::duplicateCorrelation
+  limma::lmFit
+  limma::contrasts.fit
+  limma::eBayes
+  limma::decideTests
+  limma::vennCounts
+  limma::qqt
+  limma::plotMD
+  limma::topGO
+  limma::normalizeCyclicLoess
+  limma::voomaLmFit
   lubridate::union
   lubridate::setdiff
   lubridate::intersect
@@ -311,4 +323,10 @@
   UniProt.ws::UniProt.ws
   viridisLite::turbo
   viridisLite::viridis
+  vsn::nrow
+  vsn::ncol
+  vsn::justvsn
+  vsn::meanSdPlot
+  vsn::exprs
+  vsn::predict
 }
