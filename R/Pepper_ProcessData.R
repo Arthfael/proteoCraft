@@ -96,7 +96,7 @@ Pepper_ProcessData <- function(Ev,
   # 2 - We also only want primary sequences existing in 1 single modification*charge state
   if (filter) {
     tst2 <- data.table::data.table(tmpPpId = tmpPpId, Seq = tempEv$Sequence)
-    tst2 <- tst2[, list(x = length(unique(tmpPpId))), by = list(Group.1 = Seq)]
+    tst2 <- tst2[, .(x = length(unique(tmpPpId))), by = .(Group.1 = Seq)]
     tst2 <- as.data.frame(tst2)
     w2 <- which(tempEv$Sequence %in% tst2$Group.1[tst2$x == 1L])
     tempEv <- tempEv[w2,]

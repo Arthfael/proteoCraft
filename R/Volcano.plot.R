@@ -347,22 +347,22 @@ Volcano.plot <- function(Prot,
       nchar(parameters$Plot.threshold.colours) &&
       nchar(parameters$Plot.areas.colours)) {
     dfltPM <- try({
-      a1 <- set_colnames(as.data.frame(Isapply(strsplit(unlist(strsplit(parameters$Plot.metrics, "; *")), ": *"), unlist)),
-                         c("Axis", "Name"))
+      a1 <- as.data.frame(Isapply(strsplit(unlist(strsplit(parameters$Plot.metrics, "; *")), ": *"), unlist))
+      colnames(a1) <- c("Axis", "Name")
       Plot.metrics <- as.data.frame(strsplit(unlist(strsplit(parameters$Plot.threshold.metrics, "; *")), ": *"))
       Plot.metrics <- as.data.frame(t(Plot.metrics)) 
       rownames(Plot.metrics) <- NULL
       colnames(Plot.metrics) <- c("Levels", "Axis")
       Plot.metrics$Root <- c(X.root, Y.root)[match(Plot.metrics$Axis, a1$Axis)]
-      a2 <- set_colnames(as.data.frame(t(sapply(strsplit(unlist(strsplit(parameters$Plot.threshold.values, "; *")), ": *"), unlist))),
-                         c("Direction", "Text.value"))
+      a2 <- as.data.frame(t(sapply(strsplit(unlist(strsplit(parameters$Plot.threshold.values, "; *")), ": *"), unlist)))
+      colnames(a2) <- c("Direction", "Text.value")
       Plot.metrics$Text.value <- a2$Text.value[match(Plot.metrics$Levels, a2$Direction)]
       Plot.metrics$Value <- vapply(Plot.metrics$Text.value, \(x) { eval(parse(text = x)) }, 1)
-      a3 <- set_colnames(as.data.frame(t(sapply(strsplit(unlist(strsplit(parameters$Plot.threshold.tests, "; *")), ": *"), unlist))),
-                         c("Direction", "Test"))
+      a3 <- as.data.frame(t(sapply(strsplit(unlist(strsplit(parameters$Plot.threshold.tests, "; *")), ": *"), unlist)))
+      colnames(a3) <- c("Direction", "Test")
       Plot.metrics$Test <- a3$Test[match(Plot.metrics$Levels, a3$Direction)]
-      a4 <- set_colnames(as.data.frame(t(sapply(strsplit(unlist(strsplit(parameters$Plot.threshold.colours, "; *")), ": *"), unlist))),
-                         c("Direction", "Colour"))
+      a4 <- as.data.frame(t(sapply(strsplit(unlist(strsplit(parameters$Plot.threshold.colours, "; *")), ": *"), unlist)))
+      colnames(a4) <- c("Direction", "Colour")
       Plot.metrics$Colour <- a4$Colour[match(Plot.metrics$Levels, a4$Direction)]
       a5 <- unlist(strsplit(parameters$Plot.areas.colours, "; *"))
       a5 <- as.data.frame(strsplit(a5, "[_:] *"))

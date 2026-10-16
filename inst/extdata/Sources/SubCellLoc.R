@@ -393,7 +393,8 @@ Example: \"GO:0031012;2\"
       if (length(w)) { a <- a[w] }
       test[[a[1L]]] <- factor(test[[a[1L]]], levels = sort(unique(test[[a[1L]]])))
       test <- test[is.finite(test$value),]
-      test2 <- set_colnames(aggregate(test$value, list(test$variable), median), c("variable", "value"))
+      test2 <- aggregate(test$value, list(test$variable), median)
+      colnames(test2) <- c("variable", "value")
       test2[, a] <- test[match(test2$variable, test$variable), a]
       MinMax <- c(min(test$value), max(test$value))
       nbinz <- ceiling((MinMax[2L]-MinMax[1L])/0.1)

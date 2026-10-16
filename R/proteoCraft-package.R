@@ -1,7 +1,7 @@
 #' proteoCraft: Proteomics Data Analysis
 #'
-#' Scripts and functions for processing, normalizing, quantifying and statistically analyzing proteomics data, starting from PSMs level.
-#'
+#' Scripts and functions for processing, normalizing, quantifying and statistically analyzing proteomics data, starting from PSMs level.\cr
+#' N.B.: Despite devtools::check()'s repeated urgings, it would be a mistake to add @@importFrom base sequence here as this would prevent the package from installing!
 #'
 #' @keywords internal
 #' @importFrom grDevices dev.list dev.off graphics.off rainbow

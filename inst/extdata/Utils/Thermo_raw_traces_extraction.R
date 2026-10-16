@@ -36,7 +36,7 @@ eval(parXprs, .GlobalEnv)
 cleanRawNm <- \(rawFileNm) { gsub("\\.raw$", "", rawFileNm, ignore.case = TRUE) }
 environment(cleanRawNm) <- .GlobalEnv
 clusterExport(parClust, "cleanRawNm", envir = environment())
-listMelt <- function (List, Names = NULL, ColNames = c("value", "L1")) {
+listMelt <- \(List, Names = NULL, ColNames = c("value", "L1")) {
   List <- setNames(List, 1L:length(List))
   List <- stack(List)
   if (!is.null(Names)) {
@@ -78,7 +78,7 @@ tst <- try({
     }
     # 
     require(rawrr)
-    yesRawFileReaderLicenseIsAccepted <- function () {
+    yesRawFileReaderLicenseIsAccepted <- \() {
       licenseFile <- file.path(system.file(package = "rawrr"), 
                                "rawrrassembly", "RawFileReaderLicense.txt")
       stopifnot(file.exists(licenseFile))
@@ -102,7 +102,7 @@ tst <- try({
       msg <- "Yes, we accept Thermo's License agreement, get on with it!"
       cat(msg, "\n")
     }
-    installRawFileReaderDLLsNoAcpt <- function (sourceUrl = .thermofisherlsmsUrl(), ...) {
+    installRawFileReaderDLLsNoAcpt <- \(sourceUrl = .thermofisherlsmsUrl(), ...) {
       rawfileReaderDLLsPath <- rawrrAssemblyPath()
       if (isTRUE(dir.exists(rawfileReaderDLLsPath))) {
         msg <- sprintf("removing files in directory '%s'", rawfileReaderDLLsPath)
@@ -452,10 +452,10 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1L]
   if (nm == "Pressure") {
     tmp <- as.data.table(allChroms[[nm]])
     tmp$Bin <- round(as.numeric(tmp$`Retention time`, 1))
-    tmp <- tmp[, list(Pressure = mean(Pressure)),
-               by = list(`Raw file` = `Raw file`,
-                         `Raw file name` = `Raw file name`,
-                         `Retention time` = Bin)]
+    tmp <- tmp[, .(Pressure = mean(Pressure)),
+               by = .(`Raw file` = `Raw file`,
+                      `Raw file name` = `Raw file name`,
+                      `Retention time` = Bin)]
     allChroms[[nm]] <- as.data.frame(tmp)
   }
 }

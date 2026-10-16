@@ -36,14 +36,11 @@ if (length(Orgs) != length(unique(Orgs))) {
 if (interactive()) {
   Orgs <- svDialogs::dlg_list(Orgs, Orgs, TRUE, "Select species to update")$res
 }
-pack <- "myTAI"
-if (!require(pack, character.only = TRUE)) {
-  try(pak::pkg_install("drostlab/myTAI", ask = FALSE, upgrade = TRUE, dependencies = TRUE), silent = TRUE) 
-}
-if ((!require(pack, character.only = TRUE)) || (!exists("taxonomy")) || (!is.function(taxonomy))) {
-  Src2 <- paste0(libPath, "/extdata/Sources/taxonomy.R")
-  source(Src2)
-}
+#
+# I used to depend on function taxonomy from package myTAI... but it has been retired, although it still works.
+# Thus, I am redistributing it (barely modified: I dropped the dplyr dependency) so I can save my old code
+source(paste0(libPath, "/extdata/Sources/taxonomy.R"))
+#
 # Map taxonomy
 cat("Mapping species names to taxIDs...\n")
 taxTst <- try(setNames(lapply(Orgs, \(x) {

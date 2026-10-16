@@ -148,9 +148,9 @@ for (i in 1L:nrow(tmp)) {
 if (Param$Norma.Ev.Intens) {
   cat(paste(c(evNm, "s-level normalisations:\n", rep("-", nchar(evNm)), "-----------------------\n"), collapse = ""), "\n")
   #
-  Norma.Ev.Intens.Groups %<o% set_colnames(aggregate(ev$"Normalisation group + Fraction",
-                                                     list(ev$"Raw file path"), unique),
-                                           c("Raw file", "Groups"))
+  Norma.Ev.Intens.Groups %<o% aggregate(ev$"Normalisation group + Fraction",
+                                        list(ev$"Raw file path"), unique)
+  colnames(Norma.Ev.Intens.Groups) <- c("Raw file", "Groups")
   tst <- aggregate(Norma.Ev.Intens.Groups$"Raw file", list(Norma.Ev.Intens.Groups$Groups), length)
   w <- which(tst$x > 1L)
   #tst <- aggregate(Norma.Ev.Intens.Groups$"Raw file", list(Norma.Ev.Intens.Groups$Groups), list)
@@ -198,10 +198,10 @@ if (Param$Norma.Ev.Intens) {
         r <- Norma.Ev.Intens.Groups$"Raw file"[Norma.Ev.Intens.Groups$Groups == grp]
         wg <- which(ev$"Raw file path" %in% r)
         tmp <- data.table(Uniq = ev$`Unique State`[wg], Grp = ev[wg, Grps2Kol], Int = ev[wg, ev.col["Normalisation"]])
-        tmp <- tmp[, list(x = sum(Int, na.rm = TRUE)), keyby = list(Group.1 = Uniq, Group.2 = Grp)]
+        tmp <- tmp[, .(x = sum(Int, na.rm = TRUE)), keyby = .(Group.1 = Uniq, Group.2 = Grp)]
         tmp <- as.data.frame(tmp)
         tmp <- suppressMessages(reshape2::dcast(tmp, Group.1~Group.2))
-        colnames(tmp) <- c("Unique State", paste0("Grp", colnames(tmp)[2:ncol(tmp)]))
+        colnames(tmp) <- c("Unique State", paste0("Grp", colnames(tmp)[2L:ncol(tmp)]))
         kol <- paste0("Grp", Grps2)
         w <- which(kol %in% colnames(tmp))
         kol <- kol[w] 
@@ -260,7 +260,6 @@ if (Param$Norma.Ev.Intens) {
         AdvNorm.Ev.RepIntens %<o% data.frame(Group = Iso)
         tmpEv <- ev[, c("Isobaric.set", "Unique State", k0)]
         tmpEv$Fraction <- if ("Fraction" %in% colnames(ev)) { ev$Fraction } else { 1L }
-        clusterCall(parClust, \() library(proteoCraft))
         m4 <- tstRI <- list()
         cat("     Estimating normalisation factors within...\n")
         for (i in Iso) { #i <- Iso[1L]
@@ -268,7 +267,7 @@ if (Param$Norma.Ev.Intens) {
           wi <- which(tmpEv$Isobaric.set == i)
           #View(tmpEv[wi, k0])
           tmp <- as.data.table(tmpEv[wi, c("Unique State", "Fraction", k0)])
-          tmp <- tmp[, lapply(.SD, sum, na.rm = TRUE), keyby = list(`Unique State` = `Unique State`, Fraction = Fraction)]
+          tmp <- tmp[, lapply(.SD, sum, na.rm = TRUE), keyby = .(`Unique State` = `Unique State`, Fraction = Fraction)]
           tmp <- as.data.frame(tmp)
           Fr <- unique(tmp$Fraction)
           clusterExport(parClust, list("tmp", "k0", "Fr", "AdvNorm.IL"), envir = environment())
@@ -469,17 +468,19 @@ if (LabelType == "Isobaric") {
       return(res)
     }, "")
   })
-  tst2 <- set_rownames(sapply(MQ.Exp, \(x) {
+  tst2 <- sapply(MQ.Exp, \(x) {
     vapply(kol, \(y) {
       sum(ev[ev$MQ.Exp == x, y] > 0L)
     }, 1)
-  }), rownames(tst1))
-  tst3 <- set_rownames(sapply(MQ.Exp, \(x) {
+  })
+  rownames(tst2) <- rownames(tst1)
+  tst3 <- apply(MQ.Exp, \(x) {
     vapply(kol, \(y) {
       rs <- log10(ev[ev$MQ.Exp == x, y])
       round(median(rs[is.finite(rs)]), 2L)
     }, 1)
-  }), rownames(tst1))
+  })
+  rownames(tst3) <- rownames(tst1)
   tst <- rbind(rep("", length(MQ.Exp)),
                c("Samples", rep("", length(MQ.Exp)-1)),
                colnames(tst1),

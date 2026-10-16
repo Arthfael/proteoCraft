@@ -9,8 +9,8 @@ if (Param$Ratios.Thresholds == "Absolute log2 FC threshold") {
   plotMetr <- as.data.frame(t(plotMetr)) 
   rownames(plotMetr) <- NULL
   colnames(plotMetr) <- c("Levels", "Axis")
-  a2 <- set_colnames(as.data.frame(t(sapply(strsplit(unlist(strsplit(Param$Plot.threshold.values, split = "; *")), split = ": *"), unlist))),
-                     c("Direction", "Text.value"))
+  a2 <- as.data.frame(t(sapply(strsplit(unlist(strsplit(Param$Plot.threshold.values, split = "; *")), split = ": *"), unlist)))
+  colnames(a2) <- c("Direction", "Text.value")
   plotMetr$Text.value <- a2$Text.value[match(plotMetr$Levels, a2$Direction)]
   w <- which(plotMetr$Axis == "X")
   m <- w[match(c("down", "up"), plotMetr$Levels[w])]

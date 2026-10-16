@@ -380,10 +380,14 @@ if (dataType %in% c("modPeptides", "PG")) {
   ratKol <- paste0(ratRef, myContrasts$Contrast)
   if (dataType == "PG") {
     if (!exists("quantData_list")) { loadFun(myQuantBckpFl) }
-    logFCs <- list(make_Rat2 = set_colnames(quantData_list$Data[, ratKol, drop = FALSE], myContrasts$Contrast))
+    logFCs <- quantData_list$Data[, ratKol, drop = FALSE]
+    colnames(logFCs) <- myContrasts$Contrast
+    logFCs <- list(make_Rat2 = logFCs)
   }
   if (dataType == c("modPeptides")) {
-    logFCs <- list(make_Rat2 = set_colnames(ptmpep[, ratKol, drop = FALSE], myContrasts$Contrast))
+    logFCs <- ptmpep[, ratKol, drop = FALSE]
+    colnames(logFCs) <- myContrasts$Contrast
+    logFCs <- list(make_Rat2 = logFCs)
   }
   nmsConv <- data.frame(Name = c("limma", "DEqMS", "limpa->limma",  "limpa->DEqMS", "QFeatures", "ROTS", "MSstats"),
                         P.values.type = c("Moderated", "DEqMS", "Moderated", "DEqMS", "MSqRob", "ROTS", "MSstats"))

@@ -695,8 +695,8 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1L #dir_i <- 2L
     FxMdC <- paste0(toupper(substr(FxMdC, 1L, 1L)), substr(FxMdC, 2L, nchar(FxMdC)))
     VarMd <- sub("^Modification ", "", sub(" will be considered as variable$", "", grep(" will be considered as variable$", diannLog_i, value = TRUE)))
     if (length(VarMd)) {
-      VarMd <- set_colnames(Isapply(strsplit(VarMd, " with mass delta | at "), unlist),
-                            c("UniMod", "Delta mass", "AA"))
+      VarMd <- Isapply(strsplit(VarMd, " with mass delta | at "), unlist)
+      colnames(VarMd) <- c("UniMod", "Delta mass", "AA")
       VarMd$UniMod <- sub("^Uni[Mm]od:?", "", VarMd$UniMod)
       VarMd$AA <- lapply(strsplit(VarMd$AA, ""), \(aa) {
         w <- which(aa == "*")
@@ -710,8 +710,8 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1L #dir_i <- 2L
       })
       tmp <- listMelt(VarMd$AA, ColNames = c("AA", "row"))
       tmp[, c("UniMod", "Delta mass")] <- VarMd[tmp$row, c("UniMod", "Delta mass")]
-      VarMd <- set_colnames(aggregate(tmp$AA, list(tmp$UniMod, tmp$`Delta mass`), list),
-                            c("UniMod", "Delta mass", "AA"))
+      VarMd <- aggregate(tmp$AA, list(tmp$UniMod, tmp$`Delta mass`), list)
+      colnames(VarMd) <- c("UniMod", "Delta mass", "AA")
       VarMd$Type <- "Variable"
       VarMd$"Full name" <- apply(VarMd[, c("UniMod", "Delta mass")], 1L, \(x) { #x <- VarMd[1, c("UniMod", "Delta mass")]
         unique(UniMod$Name[(UniMod$UnimodId == x[[1L]]) & (round((UniMod$MonoMass == x[[2L]])*2L)/2 == 0L)])

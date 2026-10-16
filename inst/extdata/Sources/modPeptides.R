@@ -881,7 +881,8 @@ if (exists("PTMstats") && nrow(PTMstats)) {
               for (kol in Kol) { tmpdat[, kol] <- ptmpep[, kol] }
               flt <- flt[order(names(flt))]
               reg <- setNames(lapply(flt, \(x) { list(x$Columns) }), names(flt))
-              reg <- set_colnames(reshape2::melt(reg), c("Name", "Bleh", "For"))
+              reg <- reshape2::melt(reg)
+              colnames(reg) <- c("Name", "Bleh", "For")
               reg$Bleh <- NULL
               # PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]] <- paste0("Mean ", c(ptms.ratios.ref[length(ptms.ratios.ref)],
               #                                                           "log2(Ratio) - ")[tt])

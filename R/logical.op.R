@@ -3,17 +3,20 @@
 #' @description 
 #' A function to call logical operators by name.
 #' 
-#' @param name Name of the operator.
 #' @param x Left-hand side term.
+#' @param test Operator used to test; we for now support "==", "!=", "<", "<=", ">" and ">=" (as well as some reasonable aliases, such as "equal", "EQUAL", "EQUALS"...)
 #' @param y Right-hand side term.
-#' @param ties Logical: are ties accepted?
+#' @param ties Logical (default = TRUE), set it to FALSE to reject ties. Ignored if you set test to "<=" or ">=" - which then take priority.
 #' 
 #' @examples
 #' logical.op("equals", x = 1, y = 2)
 #' 
 #' @export
 
-logical.op <- function(x, test, y, ties = TRUE) {
+logical.op <- function(x,
+                       test,
+                       y,
+                       ties = TRUE) {
   lX <- length(x)
   lY <- length(y)
   if (!lX) { stop("x must be a vector of non-null length!") }

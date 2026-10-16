@@ -656,14 +656,11 @@ if (length(w)) {
   }
 }
 Sp <- gsub(" *[(|[].*", "", fastasTbl$Species)
-pack <- "myTAI"
-if (!require(pack, character.only = TRUE)) {
-  try(pak::pkg_install("drostlab/myTAI", ask = FALSE, upgrade = TRUE, dependencies = TRUE), silent = TRUE) 
-}
-if (!require(pack, character.only = TRUE)) {
-  Src2 <- paste0(libPath, "/extdata/Sources/taxonomy.R")
-  source(Src2)
-}
+#
+# I used to depend on function taxonomy from package myTAI... but it has been retired, although it still works.
+# Thus, I am redistributing it (barely modified: I dropped the dplyr dependency) so I can save my old code
+source(paste0(libPath, "/extdata/Sources/taxonomy.R"))
+#
 tst %<o% try(setNames(lapply(Sp, \(x) {
   suppressMessages(taxonomy(organism = x, db = "ncbi", output = "classification"))
 }), Sp), silent = TRUE)
@@ -788,7 +785,7 @@ wInt <- which(db$"Protein of interest")
 wRst <- which(!db$"Protein of interest")
 db <- db[c(wInt, wRst),]
 tst <- data.table::data.table(Row = 1L:nrow(db), Seq = db$Sequence)
-tst <- tst[, list(Row = min(Row)), by = list(Seq)]
+tst <- tst[, .(Row = min(Row)), by = .(Seq)]
 n <- nrow(db)-nrow(tst)
 if (n) {
   cat("(Removing", n, "redundant protein sequences from the", c("", "combined")[(length(dbs) > 1L)+1L], "database.)\n")
@@ -805,7 +802,7 @@ if (scrptType == "noReps") { AnalysisParam$fastasTbl <- list(fastasTbl$Full) }
 
 # Filter for repeats, mark as contaminants
 tmp <- as.data.table(db[, c("Potential contaminant", "Protein ID")])
-tst <- tmp[, list(x = c(`Potential contaminant`)), by = list(Group.1 = `Protein ID`)]
+tst <- tmp[, .(x = c(`Potential contaminant`)), by = .(Group.1 = `Protein ID`)]
 tst <- as.data.frame(tst)
 u <- tst$Group.1
 tst$L <- lengths(tst$x)
@@ -884,8 +881,9 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
         if (length(w)) { txIDs[w] <- Taxonomies[w] }
         w <- which(!org %in% names(Taxonomies))
         if (length(w)) {
+          clusterExport(parClust, "taxonomy", envir = environment())
           txIDs[w] <- setNames(parLapply(parClust, org[w], \(x) {
-            tst <- try(myTAI::taxonomy(organism = x, db = "ncbi", output = "classification"), silent = TRUE)
+            tst <- try(taxonomy(organism = x, db = "ncbi", output = "classification"), silent = TRUE)
             rs <- if (inherits(rs, "try-error")) { list(Outcome = FALSE) } else {
               list(Outcome = TRUE,
                    Res = tst) 

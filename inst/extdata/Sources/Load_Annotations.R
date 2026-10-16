@@ -24,7 +24,7 @@ if (Annotate) {
     }
     return(x)
   })
-  Parsed_annotations <- dplyr::bind_rows(Parsed_annotations_lst)
+  Parsed_annotations <- plyr::rbind.fill(Parsed_annotations_lst)
 }
 Annotate %<o% (exists("Parsed_annotations") &&
                  is.data.frame(Parsed_annotations) &&
@@ -49,11 +49,13 @@ if (Annotate) {
                    wAnnot,
                    c("name", "row"))[, c("row", "name")]
   # Match GO name/IDs to Parsed_annotations row(s)
-  tst2 <- magrittr::set_colnames(aggregate(tst1$row, list(tst1$name), list), c("name", "rows"))
+  tst2 <- aggregate(tst1$row, list(tst1$name), list)
+  colnames(tst2) <- c("name", "rows")
   tst2$ID <- gsub(".*\\[|\\]$", "", tst2$name)
   tst1$ID <- tst2$ID[match(tst1$name, tst2$name)]
   # Match GO IDs to their name(s)
-  tst3 <- magrittr::set_colnames(aggregate(tst2$name, list(tst2$ID), unique), c("ID", "names"))
+  tst3 <- aggregate(tst2$name, list(tst2$ID), unique)
+  colnames(tst3) <- c("ID", "names")
   tst3$L <- lengths(tst3$names)
   wDegen <- which(tst3$L > 1L)
   if (length(wDegen)) { # Indicates degeneracy and the need to fix names
@@ -68,21 +70,23 @@ if (Annotate) {
     tst2$name <- tst2$name_from_3
     tst2$name_from_3 <- NULL
     #
-    #tst3b <- magrittr::set_colnames(aggregate(tst2$name, list(tst2$ID), unique), c("ID", "names"))
+    #tst3b <- aggregate(tst2$name, list(tst2$ID), unique)
+    #colnames(tst3b) <- c("ID", "names")
     #tst3b$L <- lengths(tst3b$names)
     #max(tst3b$L) # Should be 1 now
     #
     # Apply new names to tst1
     w2 <- which(tst1$ID %in% tst2$ID)
     tst1$name[w2] <- tst2$name[match(tst1$ID[w2], tst2$ID)]
-    #tst3c <- magrittr::set_colnames(aggregate(tst1$name, list(tst1$ID), unique), c("ID", "names"))
+    #tst3c <- aggregate(tst1$name, list(tst1$ID), unique)
+    #colnames(tst3c) <- c("ID", "names")
     #tst3c$L <- lengths(tst3c$names)
     #max(tst3c$L) # Should be 1 now
     #
     tst1 <- as.data.table(tst1)
-    tst1 <- tst1[, list(GO = paste(name, collapse = ";"),
-                        ID = paste(ID, collapse = ";")),
-                 by = list(row = tst1$row)]
+    tst1 <- tst1[, .(GO = paste(name, collapse = ";"),
+                     ID = paste(ID, collapse = ";")),
+                 by = .(row = tst1$row)]
     tst1 <- as.data.frame(tst1)
     # Check results
     a1 <- unlist(strsplit(tst1$ID, ";"))
@@ -98,7 +102,7 @@ if (Annotate) {
   tst1 <- unlist(strsplit(Parsed_annotations$`GO-ID`, ";"))
   tst2 <- unlist(strsplit(Parsed_annotations$GO, ";"))
   tst3 <- data.table(ID = tst1, Name = tst2)
-  tst3 <- tst3[, list(Name = list(unique(Name))), by = list(ID = ID)]
+  tst3 <- tst3[, list(Name = .(unique(Name))), by = .(ID = ID)]
   tst3 <- as.data.frame(tst3)
   tst3$N_names <- lengths(tst3$Name)
   #max(tst3$N_names)
@@ -142,7 +146,7 @@ if (Annotate) {
 if (Annotate) {
   tst2 <- unlist(strsplit(db$GO, ";"))
   tst3 <- data.table(ID = tst1, Name = tst2)
-  tst3 <- tst3[, list(Name = list(unique(Name))), by = list(ID = ID)]
+  tst3 <- tst3[, .(Name = list(unique(Name))), by = .(ID = ID)]
   tst3 <- as.data.frame(tst3)
   tst3$N_names <- lengths(tst3$Name)
   #max(tst3$N_names)
@@ -159,7 +163,7 @@ if (Annotate) {
   tst1 <- unlist(strsplit(db$`GO-ID`, ";"))
   tst2 <- unlist(strsplit(db$GO, ";"))
   tst3 <- data.table(A1 = tst1, A2 = tst2)
-  tst3 <- tst3[, list(x = unique(A2)), by = list(Group.1 = A1)]
+  tst3 <- tst3[, .(x = unique(A2)), by = .(Group.1 = A1)]
   tst3 <- as.data.frame(tst3)
   #View(tst3[lengths(tst3$x) > 1L,])
   #View(tst3[lengths(tst3$x) == 0L,])

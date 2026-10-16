@@ -29,7 +29,9 @@ basic.heatmap(
 \arguments{
 \item{matr}{The data frame or matrix to plot. If it has rownames or colnames, these will be displayed.}
 
-\item{title}{The title of the graph.}
+\item{title}{The title of the plot.}
+
+\item{subtitle}{Subtitle of the plot.}
 
 \item{normRows}{Default = FALSE. If TRUE, the data is re-normalized by row.}
 

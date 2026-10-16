@@ -3,7 +3,6 @@ options(stringsAsFactors = FALSE)
 require(proteoCraft)
 require(rstudioapi)
 require(reshape2)
-require(magrittr)
 require(openxlsx)
 
 wrkDr <- dirname(rstudioapi::getActiveDocumentContext()$path)

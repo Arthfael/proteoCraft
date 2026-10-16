@@ -457,7 +457,9 @@ Exp.map2$tempName <- NULL
 Exp.map <- Exp.map2
 kl <- c("Level", "Count")
 tst <- setNames(lapply(Factors, \(Fact) {
-  magrittr::set_colnames(aggregate(Exp.map[[Fact]], list(Exp.map[[Fact]]), length), kl)
+  x <- aggregate(Exp.map[[Fact]], list(Exp.map[[Fact]]), length)
+  colnames(x) <- kl
+  return(x)
 }), Factors)
 tst <- lapply(Factors, \(x) { #x <- 1 #x <- 2
   dat <- tst[[x]]

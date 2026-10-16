@@ -4,23 +4,23 @@
 \alias{DefArg}
 \title{DefArg}
 \usage{
-DefArg(FUN, remove_NULLs = TRUE, silent = TRUE, noError = TRUE)
+DefArg(FUN, remove_NULLs = TRUE, silent = TRUE)
 }
 \arguments{
 \item{FUN}{name of the function; can be entered as the function object or as its name (character).}
 
-\item{remove_NULLs}{Should arguments with default value "NULL" be excluded?\cr}
+\item{remove_NULLs}{Should arguments with default value "NULL" be excluded?}
 
-\item{silent}{Logical, default = TRUE. If FALSE, the values of the assigned arguments is printed.\cr}
+\item{silent}{Logical, default = TRUE. If FALSE, the values of the assigned arguments is printed.}
 }
 \value{
 By default the function returns nothing. If silent = FALSE, it returns a named list where each item corresponds to the default value of an argument.
 }
 \description{
-Call this function for any function you want to troubleshoot.
-This will create default values of the function's parameters in the main environment to allow easy debugging.
-
-I used to have an in-house solution for this, but it was slightly buggy.
+Call this function for any function you want to troubleshoot.\cr
+This will create default values of the function's parameters in the main environment to allow easy debugging.\cr
+\cr
+I used to have an in-house solution for this, but it was slightly buggy.\cr
 This is based on more standard R code and is more reliable.
 }
 \details{

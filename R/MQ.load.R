@@ -26,10 +26,19 @@
 #' 
 #' @export
 
-MQ.load <- function(ev = TRUE, ev.name = "ev", ev.file.name = "evidence.txt",
-                    pep = TRUE, pep.name = "pep", pep.file.name = "peptides.txt",
-                    prot = TRUE, prot.name = "PG", prot.file.name = "proteinGroups.txt",
-                    sub = FALSE, assign = TRUE, envir = .GlobalEnv, return = FALSE, check.names = FALSE) {
+MQ.load <- function(ev = TRUE,
+                    ev.name = "ev",
+                    ev.file.name = "evidence.txt",
+                    pep = TRUE,
+                    pep.name = "pep",
+                    pep.file.name = "peptides.txt",
+                    prot = TRUE,
+                    prot.name = "PG",
+                    prot.file.name = "proteinGroups.txt",
+                    sub = FALSE,
+                    assign = TRUE,
+                    return = FALSE,
+                    check.names = FALSE) {
   #DefArg(MQ.load)
   if (!sum(c(assign, return))) {
     stop("Since both \"assign\" and \"return\" are set to FALSE, there is nothing for me to do!")

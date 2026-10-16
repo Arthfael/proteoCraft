@@ -14,7 +14,9 @@ multiplot(
 )
 }
 \arguments{
-\item{plotlist}{The plots to plot. Duh!}
+\item{...}{Any number of plots.}
+
+\item{plotlist}{A list of plots.}
 
 \item{cols}{Number of columns. The number of rows will be inferred from this.}
 

@@ -69,7 +69,7 @@ bioc_req %<o% bioc_req
 cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT",
                      "gplots", "ggplot2", "ggpubr", "reshape", "reshape2", "compiler", "stats", "ggrepel", "rstudioapi", "gtools", "minpack.lm",
                      "parallel", "openxlsx", "openxlsx2", "plotly", "Peptides", "venn", "ggdendro", "ggpubr", "colorspace", "ggnewscale",
-                     "viridis", "factoextra", "NbClust", "svDialogs", "htmlwidgets", "magrittr", "fs", "officer", "snow",
+                     "viridis", "factoextra", "NbClust", "svDialogs", "htmlwidgets", "fs", "officer", "snow",
                      "imputeLCMD", "ggplotify", "plyr", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders", "jpeg", "stringi",
                      "readr", "ssh", "taxize", "arrow", "iq", "Rtsne", "svglite"))
 bioc_req <- unique(c(bioc_req, "UniProt.ws", "GO.db", "topGO", "pcaMethods",
@@ -77,17 +77,12 @@ bioc_req <- unique(c(bioc_req, "UniProt.ws", "GO.db", "topGO", "pcaMethods",
 inst <- as.data.frame(installed.packages())
 for (pack in cran_req) {
   if (!pack %in% inst$Package) {
-    if (pack %in% c("pak", #"shiny",
-                    "uchardet", #"openxlsx2",
-                    "taxize")) {
+    if (pack %in% c("pak", "uchardet", "taxize")) {
       # Exceptions where for now we want a specific version to be installed,
       # or have to help the installer so it finds the right location
       if (pack == "pak") {
-        install.packages("pak")
+        install.packages("pak", dependencies = TRUE)
       }
-      # if (pack == "shiny") { # Should be fixed now
-      #   install.packages("https://cran.r-project.org/src/contrib/Archive/shiny/shiny_1.7.5.tar.gz")
-      # }
       if (pack == "uchardet") {
         url <- "https://cran.r-project.org/src/contrib/Archive/uchardet/uchardet_1.1.1.tar.gz"
         destfile <- "uchardet_1.1.1.tar.gz"
@@ -96,19 +91,20 @@ for (pack in cran_req) {
         install.packages(destfile)
         unlink(destfile)
       }
-      # if (pack == "openxlsx2") {
-      #   pak::pkg_install("JanMarvin/openxlsx2@v1.10", ask = FALSE) # ... until I can figure out what is happening...
-      # }
-      # if (pack == "myTAI") {
-      #   pak::pkg_install("drostlab/myTAI@v0.9.3", ask = FALSE)
-      # }
       if (pack == "taxize") {
-        pak::pkg_install("ropensci/bold", ask = FALSE)
-        pak::pkg_install("ropensci/taxize", ask = FALSE)
+        pak::pak("ropensci/bold", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
+        pak::pak("ropensci/taxize", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
       }
     } else {
-      pak::pkg_install(pack, ask = FALSE)
-      #install.packages(pack)
+      tst <- try(pak::pak(pack, ask = FALSE, upgrade = TRUE, dependencies = TRUE), silent = TRUE)
+      if (inherits(tst, "try-error")) {
+        tst <- try(install.packages(pack, dependencies = TRUE), silent = TRUE)
+      }
+      if (inherits(tst, "try-error")) {
+        warning(paste0("Package ", pack, " wasn't installed properly, skipping..."))
+        cran_req <- setdiff(cran_req, pack)
+        bioc_req <- setdiff(bioc_req, pack)
+      }
     }
     inst <- as.data.frame(installed.packages())
   }
@@ -117,7 +113,16 @@ for (pack in cran_req) {
 biocInstall %<o% function(pack, load = TRUE) {
   inst <- as.data.frame(installed.packages())
   if (!pack %in% inst$Package) {
-    pak::pkg_install(pack, ask = FALSE)
+    tst <- try(pak::pak(pack, ask = FALSE, upgrade = TRUE, dependencies = TRUE), silent = TRUE)
+    if (inherits(tst, "try-error")) {
+      tst <- try(pak::pak(pack, ask = FALSE, upgrade = TRUE, dependencies = FALSE), silent = TRUE)
+    }
+    if (inherits(tst, "try-error")) {
+      tst <- try(pak::pak(pack, ask = FALSE, upgrade = FALSE, dependencies = FALSE), silent = TRUE)
+    }
+    if (inherits(tst, "try-error")) {
+      stop(tst)
+    }
   }
   if (load) { library(pack, character.only = TRUE) }
 }
@@ -279,7 +284,7 @@ if (length(w) == 2L) {
 }
 temp2 <- as.data.table(listMelt(strsplit(ev$Proteins, ";"), 1L:nrow(ev)))
 temp2$Gene <- temp[match(temp2$value, db$`Protein ID`)]
-temp2 <- temp2[, list(Genes = paste(Gene, collapse = ";")), keyby = list(id = L1)]
+temp2 <- temp2[, .(Genes = paste(Gene, collapse = ";")), keyby = .(id = L1)]
 temp2 <- as.data.frame(temp2)
 ev$"Gene names" <- temp2$Genes[match(ev$id, temp2$id)]
 
@@ -690,7 +695,7 @@ if (!"Protein group IDs" %in% colnames(ev)) {
   temp <- listMelt(strsplit(PG$`Evidence IDs`, ";"), PG$id)
   temp <- temp[order(temp$L1, decreasing = FALSE),]
   temp <- data.table(value = temp$value, L1 = temp$L1)
-  temp <- temp[, list(x = paste(L1, collapse = ";")), by = list(Group.1 = value)]
+  temp <- temp[, .(x = paste(L1, collapse = ";")), by = .(Group.1 = value)]
   temp <- as.data.frame(temp)
   temp$Group.1 <- as.integer(temp$Group.1)
   ev$"Protein group IDs" <- temp$x[match(ev$id, temp$Group.1)]
@@ -1530,7 +1535,8 @@ if (MakeRatios) {
           names(matches) <- q
           matches <- matches[lengths(matches) > 0L]
           if (length(matches)) {
-            matches <- set_colnames(reshape::melt(matches), c("Match", "Protein"))
+            matches <- reshape::melt(matches)
+            colnames(matches) <- c("Match", "Protein")
             matches <- aggregate(matches$Protein, list(matches$Match), paste, collapse = ";")
             colnames(matches) <- c("Match", "Proteins")
             w <- which(m$Test)
@@ -1589,9 +1595,9 @@ if (MakeRatios) {
         # Step 2: adjust expression values to reflect the re-normalized ratios:
         # Intensities are not logged (for peptides) so we need to delog ratios and work in multiplicative, not additive, mode 
         PTMs_intRf["Re-normalized"] <- "ReNorm. int."
-        temp <- set_colnames(data.frame(matrix(rep(0L, nrow(ptmpep)*length(Exp)),
-                                               ncol = length(Exp))),
-                             paste0(PTMs_intRf["Re-normalized"], " - ", Exp))
+        temp <- data.frame(matrix(rep(0L, nrow(ptmpep)*length(Exp)),
+                                  ncol = length(Exp)))
+        colnames(temp) <- paste0(PTMs_intRf["Re-normalized"], " - ", Exp)
         for (grp in rat.grps) { #grp <- rat.grps[1L]
           e <- SamplesMap[SamplesMap$`Ratios group` == grp,]
           smpls0 <- e$Experiment[e$Reference %in% c("TRUE", TRUE)]
@@ -1785,12 +1791,12 @@ if (tstOrg) {
   tmp2$Organism <- db[m, dbOrgKol]
   tmp2 <- as.data.table(tmp2)
   f0 <- \(x) { c("Target", "Contaminant")[("Contaminant" %in% x) + 1L] }
-  tmp2 <- tmp2[, list(x = f0(Organism)), by = list(Group.1 = Row)]
+  tmp2 <- tmp2[, .(x = f0(Organism)), by = .(Group.1 = Row)]
   tmp2 <- as.data.frame(tmp2)
 } else {
   tmp2 <- as.data.table(tmp2)
   f0 <- \(x) { c("Target", "Contaminant")[("+" %in% x) + 1L] }
-  tmp2 <- tmp2[, list(x = f0(Cont)), by = list(Group.1 = Row)]
+  tmp2 <- tmp2[, .(x = f0(Cont)), by = .(Group.1 = Row)]
   tmp2 <- as.data.frame(tmp2)
 }
 tmp$Organism <- tmp2$x[match(1L:nrow(tmp), tmp2$Group.1)]
@@ -2146,8 +2152,7 @@ if ((length(Exp) > 1L) && (!is.null(prot.list)) && length(prot.list)) {
         temp <- temp[, c("Modified sequence", Exp)]
         tst <- apply(temp[, Exp, drop = FALSE], 1L, \(x) { mean(x[x > 0]) })
         temp[, Exp] <- sweep(temp[, Exp, drop = FALSE], 1L, tst, "/")
-        temp2 <- set_colnames(dfMelt(temp, id.vars = "Modified sequence"),
-                              c("Modified sequence", "Sample", "value"))
+        temp2 <- dfMelt(temp, c("Modified sequence", "Sample", "value"), "Modified sequence")
         temp2$"Modified sequence" <- gsub("^_|_$", "", temp2$"Modified sequence")
         temp2$Sample <- as.character(temp2$Sample)
         temp2$value <- suppressWarnings(log2(temp2$value))+StdWdth/2

@@ -150,10 +150,10 @@ if (CustPG) {
       warning("Some protein IDs seem dodgy, we will remove them but you should check what happened.")
       temp <- temp[w,]
     }
-    prot2 <- magrittr::set_colnames(aggregate(temp$pep.id, list(temp$Protein),
-                                              paste,
-                                              collapse = ";"),
-                                    c("Protein", "pep.ids"))
+    prot2 <- aggregate(temp$pep.id, list(temp$Protein),
+                       paste,
+                       collapse = ";")
+    colnames(prot2) <- c("Protein", "pep.ids")
     prot2$.pep.ids <- lapply(strsplit(prot2$pep.ids, ";"), as.integer)
     # Sort by N of peptides
     prot2$"Peptides count" <- lengths(prot2$.pep.ids)
@@ -172,11 +172,11 @@ if (CustPG) {
     seq2$.Proteins <- strsplit(seq2$Proteins, ";")
     seq2$.Prot.ids <- lapply(seq2$.Proteins, \(x) { prot2$Prot.id[match(unlist(x), prot2$Protein)] })
     temp <- listMelt(Custom_PGs$.pep.ids, Custom_PGs$temp.pg.id, c("pep.id", "temp.pg.id"))
-    temp <- magrittr::set_colnames(aggregate(temp$temp.pg.id,
-                                             list(temp$pep.id),
-                                             paste,
-                                             collapse = ";"),
-                                   c("pep.id", "temp.pg.ids"))
+    temp <- aggregate(temp$temp.pg.id,
+                      list(temp$pep.id),
+                      paste,
+                      collapse = ";")
+    colnames(temp) <- c("pep.id", "temp.pg.ids")
     seq2$temp.pg.ids <- temp$temp.pg.ids[match(seq2$id, temp$pep.id)]
     seq2$.temp.pg.ids <- strsplit(seq2$temp.pg.ids, ";")
     w1 <- which(Custom_PGs$`Peptides count` > 0L)
@@ -200,11 +200,11 @@ if (length(w) != nrow(temp)) {
   warning("Some protein IDs seem dodgy, we will remove them but you should check what happened.")
   temp <- temp[w,]
 }
-prot <- magrittr::set_colnames(aggregate(temp$pep.id,
-                                         list(temp$Protein),
-                                         paste,
-                                         collapse = ";"),
-                               c("Protein", "pep.ids"))
+prot <- aggregate(temp$pep.id,
+                  list(temp$Protein),
+                  paste,
+                  collapse = ";")
+colnames(prot) <- c("Protein", "pep.ids")
 # data.table rewrite of above is actually slightly slower
 # tmp1 <- data.table::data.table(pep.id = temp$pep.id,
 #                                Protein = temp$Protein)
@@ -391,11 +391,11 @@ cat(" - Creating temporary protein groups.\n")
 pg <- prot
 if (CustPG) { pg <- pg[!pg$Prot.id %in% prot2$Prot.id,] }
 pg <- pg[pg$Is.Leading, c("Protein", "Prot.id", "pep.ids")]
-pg <- magrittr::set_colnames(aggregate(pg[,c("Protein", "Prot.id")],
-                                       list(pg$pep.ids),
-                                       paste,
-                                       collapse = ";"),
-                             c("Peptide IDs", "Leading protein IDs", "lead.protein.ids"))
+pg <- aggregate(pg[,c("Protein", "Prot.id")],
+                list(pg$pep.ids),
+                paste,
+                collapse = ";")
+colnames(pg) <- c("Peptide IDs", "Leading protein IDs", "lead.protein.ids")
 pg$temp.pg.id <- as.character(1L:nrow(pg) + pgoffset)
 pg$.pep.ids <- lapply(strsplit(pg$"Peptide IDs", ";"), as.integer)
 pg$"Peptides count" <- lengths(pg$.pep.ids)
@@ -598,9 +598,11 @@ if (length(W)) {
     # NB: presumably n = 2 is impossible, if we did our job correctly defining Leading proteins above.
     if (n < 2L) { warning("   Check code: I expected at least 3, not 2 or less, overlapping groups here.") } # Always good to check that code is not buggy.
     # Table of peptides and PGs
-    peptopg <- magrittr::set_rownames(magrittr::set_colnames(as.data.frame(sapply(overlappers, \(x) {
+    peptopg <- as.data.frame(sapply(overlappers, \(x) {
       P %in% unlist(pg$.pep.ids[x])
-    })), overlappers), P)
+    }))
+    rownames(peptopg) <- P
+    colnames(peptopg) <- overlappers
     # Heuristic: we will sort protein groups by number of peptides then PEP and remove those which do not increase coverage
     peep <- setNames(pg$PEP[overlappers], overlappers) # PEP is used to tie-break protein groups of equal ranking
     peep[is.na(peep)] <- 1
@@ -758,9 +760,10 @@ pg$temp.pg.id <- NULL
 # Unique peptides: peptides unique to a protein group
 cat(" - Identifying unique peptides.\n")
 temp <- seq[!grepl(";", seq$"Protein group IDs"), c("id", "Protein group IDs")]
-temp <- magrittr::set_colnames(aggregate(temp$id, list(temp$"Protein group IDs"), \(x) {
+temp <- aggregate(temp$id, list(temp$"Protein group IDs"), \(x) {
   x
-}), c("id", "pep.ids"))
+})
+colnames(temp) <- c("id", "pep.ids")
 pg$.unique.pep.ids <- list(NULL)
 w <- which(pg$id %in% temp$id)
 pg$.unique.pep.ids[w] <- temp$pep.ids[match(pg$id[w], temp$id)]
@@ -1145,10 +1148,10 @@ if (!misFun(Ev)) {
     temp <- aggregate(Ev$"MS/MS count", list(Ev$"Modified sequence"), sum)
     seq$"MS/MS count" <- temp$x[match(seq$"Modified sequence", temp$Group.1)]
     temp <- listMelt(seq$.Protein.group.IDs, seq$"MS/MS count", c("Protein group IDs", "MS/MS count"))
-    temp <- magrittr::set_colnames(aggregate(as.integer(temp$"MS/MS count"),
-                                             list(temp$"Protein group IDs"),
-                                             sum),
-                                   c("Protein group IDs", "MS/MS count"))
+    temp <- aggregate(as.integer(temp$"MS/MS count"),
+                      list(temp$"Protein group IDs"),
+                      sum)
+    colnames(temp) <- c("Protein group IDs", "MS/MS count")
     pg$"MS/MS count" <- temp$"MS/MS count"[match(pg$id, temp$"Protein group IDs")]
   }
   # Note:

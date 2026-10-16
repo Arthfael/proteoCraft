@@ -63,17 +63,17 @@ dig1DF <- listMelt(dig1, ColNames = c("Seq", "ID"))
 dig2DF <- listMelt(dig2, ColNames = c("Seq", "ID"))
 dig2DF <- dig2DF[which(dig2DF$Seq %in% dig1DF$Seq),]
 dig2DF <- as.data.table(dig2DF)
-dig2DF <- dig2DF[, list(ID = list(unique(ID))), by = list(Seq = Seq)]
+dig2DF <- dig2DF[, .(ID = list(unique(ID))), by = .(Seq = Seq)]
 dig2DF <- as.data.frame(dig2DF)
 dig1DF$Candidates <- dig2DF$ID[match(dig1DF$Seq, dig2DF$Seq)]
 dig1DF <- listMelt(setNames(dig1DF$Candidates, dig1DF$ID), ColNames =  c("ID2", "ID1"))
 # dig1DF <- as.data.table(dig1DF)
-# dig1DF <- dig1DF[, list(ID2 = list(unique(ID2))), by = list(ID1 = ID1)]
+# dig1DF <- dig1DF[, .(ID2 = list(unique(ID2))), by = .(ID1 = ID1)]
 # dig1DF <- as.data.frame(dig1DF)
 dig1DF$ID1_Seq <- db1$Sequence[match(dig1DF$ID1, db1$`Protein ID`)]
 #dig1DF$ID2_Seq <- lapply(dig1DF$ID2, \(x) { db2$Sequence[match(x, db2$`Protein ID`)] })
 dig1DF$ID2_Seq <- db2$Sequence[match(dig1DF$ID2, db2$`Protein ID`)]
-# dig1DFLst <- apply(dig1DF[, c("ID1", "ID2", "ID1_Seq", "ID2_Seq")], 1, \(x) {
+# dig1DFLst <- apply(dig1DF[, c("ID1", "ID2", "ID1_Seq", "ID2_Seq")], 1L, \(x) {
 #   nms <- unlist(x[1:2])
 #   seq <- unlist(x[3:4])
 #   setNames(seq, nms)
@@ -170,7 +170,7 @@ bestMatch$Header <- paste0(bestMatch$Header, " PE=4 SV=1")
 #bestMatch$Header[1:10]
 
 wY <- which(db1$`Protein ID` %in% bestMatch$ID)
-wN <- which((!db1$`Protein ID` %in% bestMatch$ID)&(!db1$Sequence %in% db2$Sequence))
+wN <- which((!db1$`Protein ID` %in% bestMatch$ID) & (!db1$Sequence %in% db2$Sequence))
 db1$Header[wY] <- bestMatch$Header[match(db1$`Protein ID`[wY], bestMatch$ID)]
 db1$Header[wN] <- paste0(">mp|", toupper(db1$`Protein ID`[wN]), "|", toupper(db1$`Protein ID`[wN]), "_MARPO unknown protein OS=Marchantia polymorpha subsp. ruderalis OX=1480154 GN=",
                          db1$`Protein ID`[wN], " PE=4 SV=1")

@@ -36,7 +36,7 @@ make_RefRat(
 
 \item{logInt}{Set to 0 or FALSE if input peptide intensities are linear scale. If the data is already log scale, set to the relevant scale's base. Default = FALSE}
 
-\item{log.Ratios}{Set to 0 or FALSE if input peptide ratios are linear scale. If the data is already log scale, set to the relevant scale's base. Default = 2}
+\item{logRat}{Set to 0 or FALSE if input peptide ratios are linear scale. If the data is already log scale, set to the relevant scale's base. Default = 2}
 }
 \value{
 Reference sample-to-sample log fold changes.

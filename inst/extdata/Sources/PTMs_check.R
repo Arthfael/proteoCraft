@@ -22,12 +22,12 @@ if (length(tstEnrich)) {
                             MS_file = ev$"Raw file path",
                             Search = match(ev$Search_ID, uSrch),
                             temp = 1L)
-          tst <- tst[, list(Count = sum(temp)), by = list(Search = Search, MS_file = MS_file, Mod = Mod)]
+          tst <- tst[, .(Count = sum(temp)), by = .(Search = Search, MS_file = MS_file, Mod = Mod)]
         } else {
           tst <- data.table(Mod = ev[[Mod]],
                             MS_file = ev$"Raw file path",
                             temp = 1L)
-          tst <- tst[, list(Count = sum(temp)), by = list(MS_file = MS_file, Mod = Mod)]
+          tst <- tst[, .(Count = sum(temp)), by = .(MS_file = MS_file, Mod = Mod)]
         }
         tst <- as.data.frame(tst)
         Root <- "PSM"
@@ -36,7 +36,7 @@ if (length(tstEnrich)) {
         tst <- data.table(Mod = ev[[Mod]],
                           MS_file = ev$"Raw file path",
                           ModSeq = ev$`Modified sequence`)
-        tst <- tst[, list(Count = length(unique(ModSeq))), by = list(MS_file = MS_file, Mod = Mod)]
+        tst <- tst[, .(Count = length(unique(ModSeq))), by = .(MS_file = MS_file, Mod = Mod)]
         tst <- as.data.frame(tst)
         Root <- "peptidoform"
       }
@@ -140,12 +140,12 @@ if (tstOrg) {
   tmp2$Organism <- db[m, dbOrgKol]
   tmp2 <- as.data.table(tmp2)
   f0 <- \(x) { c("Target", "Contaminant")[("Contaminant" %in% x)+1L] }
-  tmp2 <- tmp2[, list(x = f0(Organism)), by = list(Group.1 = Row)]
+  tmp2 <- tmp2[, .(x = f0(Organism)), by = .(Group.1 = Row)]
   tmp2 <- as.data.frame(tmp2)
 } else {
   tmp2 <- as.data.table(tmp2)
   f0 <- \(x) { c("Target", "Contaminant")[("+" %in% x)+1L] }
-  tmp2 <- tmp2[, list(x = f0(Cont)), by = list(Group.1 = Row)]
+  tmp2 <- tmp2[, .(x = f0(Cont)), by = .(Group.1 = Row)]
   tmp2 <- as.data.frame(tmp2)
 }
 tmp$Organism <- tmp2$x[match(1L:nrow(tmp), tmp2$Group.1)]

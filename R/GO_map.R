@@ -159,13 +159,14 @@ GO_map <- function(DB,
       kol <- get(c("db_ID_col", "db_Gene_col")[kl])
       nm <- c("Protein", "Gene")[kl]
       w <- which(nchar(DB[[kol]]) > 0L)
-      temp <- magrittr::set_colnames(listMelt(strsplit(DB[w, kol], ";"), DB$"GO-ID"[w]), c(nm, "GO"))
+      temp <- listMelt(strsplit(DB[w, kol], ";"), DB$"GO-ID"[w], c(nm, "GO"))
       temp <- temp[!is.na(temp$GO),]
       temp <- temp[nchar(temp$GO) > 0L,]
       temp <- listMelt(strsplit(temp$GO, ";"), temp[[nm]])
-      temp <- magrittr::set_colnames(aggregate(temp$L1, list(temp$value), \(x) {
+      temp <- aggregate(temp$L1, list(temp$value), \(x) {
         paste(sort(unique(unlist(x))), collapse = ";")
-      }), c("GO", nm))
+      })
+      colnames(temp) <- c("GO", nm)
       #2. Optional: also proteins annotated with an offspring term in DB
       if (OffspringCounts) {
         w <- which(sapply(GO.terms$Offspring, length) > 0L)
@@ -176,10 +177,11 @@ GO_map <- function(DB,
         temp2[[nm]] <- temp[match(temp2$value, temp$GO), nm]
         temp2 <- temp2[!is.na(temp2[[nm]]),]
         temp2[[nm]] <- strsplit(temp2[[nm]], ";")
-        temp2 <- magrittr::set_colnames(listMelt(temp2[[nm]], temp2$L1), c(nm, "GO"))
-        temp2 <- magrittr::set_colnames(aggregate(temp2[[nm]], list(temp2$GO), \(x) {
+        temp2 <- listMelt(temp2[[nm]], temp2$L1, c(nm, "GO"))
+        temp2 <- aggregate(temp2[[nm]], list(temp2$GO), \(x) {
           paste(sort(unique(unlist(x))), collapse = ";")
-        }), c("GO", nm))
+        })
+        colnames(temp2) <- c("GO", nm)
         temp <- temp2; rm(temp2)
       }
       GO.mappings[[nm]] <- temp

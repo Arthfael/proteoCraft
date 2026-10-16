@@ -94,7 +94,7 @@ tmp4 <- setNames(parLapply(parClust, smpls, \(smpl) { #smpl <- smpls[1L]
                          Intensity = tmp[w2, ev.col[length(ev.col)]])
       tmp2$Intensity[!is.finite(tmp2$Intensity)] <- NA_real_
     }
-    tmp2 <- tmp2[, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
+    tmp2 <- tmp2[, .(Intensity = sum(Intensity, na.rm = TRUE)), by = .(mod)]
     tmp2 <- as.data.frame(tmp2)
   }
   return(tmp2)

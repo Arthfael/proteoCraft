@@ -56,8 +56,8 @@ if ("PTMs eligible for quantitation" %in% names(AnalysisParam)) {
   Mod4Quant <- AnalysisParam$"PTMs eligible for quantitation"
 }
 ptmDflt1 <- Modifs$`Full name`[match(Mod4Quant, Modifs$Mark)]
-Mod2Xclud %<o% set_colnames(Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")],
-                            c("Mark", "Where"))
+Mod2Xclud %<o% Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")]
+colnames(Mod2Xclud) <- c("Mark", "Where")
 if ("PTMs to exclude from quantitation" %in% names(AnalysisParam)) {
   Mod2Xclud <- AnalysisParam$"PTMs to exclude from quantitation"
 }
@@ -141,8 +141,6 @@ if ("Prot.Quant.Mod.Excl" %in% names(AnalysisParam)) {
   Mod4Quant <- setdiff(Mod4Quant, unlist(strsplit(AnalysisParam$Prot.Quant.Mod.Excl, ";")))
 }
 ptmDflt1 <- Modifs$`Full name`[match(Mod4Quant, Modifs$Mark)]
-Mod2Xclud %<o% set_colnames(Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")],
-                            c("Mark", "Where"))
 #
 allQuantAlgos %<o% data.frame(Algorithm = c("limpa",
                                             "LM",
@@ -895,8 +893,9 @@ server1 <- function(input, output, session) {
   observeEvent(input$PTMsQuant, {
     assign("ptmDflt1", input$PTMsQuant, envir = .GlobalEnv)
     m4Quant(Modifs$Mark[match(unlist(input$PTMsQuant), Modifs$`Full name`)])
-    m2Xclud(set_colnames(Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")],
-                         c("Mark", "Where")))
+    tmp <- Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")]
+    colnames(tmp) <- c("Mark", "Where")
+    m2Xclud(tmp)
   }, ignoreNULL = FALSE)
   #   - Number of samples in which observed
   observeEvent(input$PepFoundInAtLeast, {
@@ -1084,8 +1083,9 @@ server1 <- function(input, output, session) {
   # PTMs to use for PG Quant
   observeEvent(input$PTMsQuant, {
     m4Quant(Modifs$Mark[match(unlist(input$PTMsQuant), Modifs$`Full name`)])
-    m2Xclud(set_colnames(Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")],
-                         c("Mark", "Where")))
+    tmp <- Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")]
+    colnames(tmp) <- c("Mark", "Where")
+    m2Xclud(tmp)
   }, ignoreNULL = FALSE)
   # PTMs to write a tab for
   observeEvent(input$Mod2Write, {

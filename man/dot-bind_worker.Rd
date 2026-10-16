@@ -11,7 +11,7 @@
 
 \item{data}{Named list of variables used by the function; this should include:\cr - the function's argument,\cr - any other package function called by fun's own code using fun() instead of pkg::fun() syntax (usually this would exclusively include other proteoCraft functions such as dfMelt, listMelt etc...)}
 
-\item{envir}{Environment in which to bind.}
+\item{parent}{Environment in which to bind.}
 }
 \description{
 Worker function to bind variables to the environment of a function which is to be run in parallel within a larger function.

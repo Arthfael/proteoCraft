@@ -1,12 +1,11 @@
 #' .summaryWrkr2
 #' 
+#' @description
 #' Worker function used by MQ_summary().
 #'
 #' @param x Raw file
 #' @param tempDat Temp data.
 #' @param size Type of chromatogram to export.
-#' 
-#' @export
 
 .summaryWrkr2 <- function(x,
                           tempDat,

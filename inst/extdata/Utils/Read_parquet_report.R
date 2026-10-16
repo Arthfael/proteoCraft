@@ -7,7 +7,7 @@
 # 1/ Make sure arrow is installed
 # Modify this if you do want to use pak as a package manager... (Though why would you? It's vastly superior to anything base R has to offer!)
 if (!require(pak)) { install.packages("pak") }
-if (!require(arrow)) { pak::pkg_install("arrow") }
+if (!require(arrow)) { pak::pak("arrow") }
 library(arrow)
 
 # 2/ Select target directory
@@ -24,7 +24,7 @@ data <- arrow::read_parquet(parquetFl)
 # 5/ Optional: save as .tsv
 tsvFl <- paste0(wd, "/report.tsv")
 if (!file.exists(tsvFl)) {
-  if (!require(data.table)) { pak::pkg_install("data.table") }
+  if (!require(data.table)) { pak::pak("data.table") }
   data.table::fwrite(data, tsvFl, sep = "\t", row.names = FALSE, na = "NA")
 }
 

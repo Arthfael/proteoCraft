@@ -40,8 +40,6 @@ LFQ.lm(
 - 1 (default), to the median intensity of the highest median intensity peptide,\cr
 - 2 (former default), to the highest original single intensity value,\cr
 - 0, to the profile's own median intensity.\cr}
-
-\item{Intensity.weights}{default = FALSE; if TRUE, will take into account individual peptide intensities when calculating average profile if "Summary.method" is either mean "mean" or "weighted.mean" (thus, it will actually be a weighted mean regardless).}
 }
 \value{
 The summarized numeric quantitative vector.

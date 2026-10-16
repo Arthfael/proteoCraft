@@ -308,8 +308,8 @@ if ("Prot.Quant.Mod.Excl" %in% colnames(Param)) {
   Mod4Quant <- setdiff(Mod4Quant, unlist(strsplit(Param$Prot.Quant.Mod.Excl, ";")))
 }
 ptmDflt1 <- Modifs$`Full name`[match(Mod4Quant, Modifs$Mark)]
-Mod2Xclud %<o% set_colnames(Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")],
-                            c("Mark", "Where"))
+Mod2Xclud %<o% Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")]
+colnames(Mod2Xclud) <- c("Mark", "Where")
 #
 allQuantAlgos %<o% data.frame(Algorithm = c("limpa",
                                             "LM",
@@ -1837,8 +1837,9 @@ server1 <- \(input, output, session) {
     ptmDflt1 <- input$PTMsQuant
     assign("ptmDflt1", ptmDflt1, envir = .GlobalEnv)
     m4Quant(Modifs$Mark[match(unlist(input$PTMsQuant), Modifs$`Full name`)])
-    m2Xclud(set_colnames(Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")],
-                         c("Mark", "Where")))
+    tmp <- Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")]
+    colnames(tmp) <- c("Mark", "Where")
+    m2Xclud(tmp)
   }, ignoreNULL = FALSE)
   #   - Number of samples in which observed
   observeEvent(input$PepFoundInAtLeast, {

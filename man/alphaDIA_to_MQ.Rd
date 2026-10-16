@@ -24,7 +24,7 @@ alphaDIA_to_MQ(
 
 \item{cl}{Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!}
 
-\item{shinyOpt}{One of "popup" (default), "pane", "dialog", or "browser".}
+\item{digPattern}{Digestion pattern (regex) of the enzyme used during sample preparation, default = "[KR]" i.e. K or R (trypsin).}
 }
 \value{
 A list of 2 items:\cr

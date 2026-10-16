@@ -69,7 +69,7 @@ bioc_req %<o% bioc_req
 cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT",
                      "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "ggrepel", "rstudioapi", "modeest",
                      "minpack.lm", "snow", "viridis", "imputeLCMD", "parallel", "coin", "openxlsx", "openxlsx2", "plotly",
-                     "Peptides", "xml2", "statmod", "ggpolypath", "venn", "svDialogs", "htmlwidgets", "magrittr",
+                     "Peptides", "xml2", "statmod", "ggpolypath", "venn", "svDialogs", "htmlwidgets",
                      "officer", "hexbin", "igraph", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
                      "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "ssh", "taxize", "arrow", "PTMods",
                      "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "Rtsne", "DEP", "svglite"))

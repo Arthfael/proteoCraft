@@ -20,7 +20,8 @@ Param.load <- function(file = "Parameters.csv", filter.deprecated = TRUE, WD_det
     if (ext == "txt") { Param <- read.delim(file, header = FALSE) } else { stop("I only accept txt or csv files") }
   }
   prm <- as.data.frame(matrix(Param[[2L]], nrow = 1L))
-  Param <- magrittr::set_colnames(prm, Param[[1L]])
+  colnames(prm) <- Param[[1L]]
+  Param <- prm; rm(prm)
   if (filter.deprecated) { Param <- Param[,which(!grepl("^deprecated", Param[1L,], ignore.case = TRUE)), drop = FALSE] }
   Param[, which(Param[1L,] == "T")] <- TRUE
   Param[, which(Param[1L,] == "F")] <- FALSE

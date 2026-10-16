@@ -35,6 +35,8 @@ MQ.summary(
 
 \item{raw.files}{Vector of full raw file paths, sorted in the order you will want to use.}
 
+\item{subfolder}{Name of the subfolder relative to the current work directory where the plots will be saved, default = "Summary plots"}
+
 \item{plot}{Should we create plot?}
 
 \item{save}{Set this to a vector of acceptable file extensions to save the graph to the corresponding file format, or to FALSE if you do not want to save it. Default = c("svg", "html")}

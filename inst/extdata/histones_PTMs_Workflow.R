@@ -523,7 +523,7 @@ if (lw) {
 # different peptidoforms.
 # Note: this can only work in DDA mode!
 # tmp <- as.data.table(ev[, c("Scan_ID_MZ", "Modified sequence_verbose")])
-# tmp <- tmp[, list(ModSeq = list(`Modified sequence_verbose`)), by = list(Scan_ID_MZ = Scan_ID_MZ)]
+# tmp <- tmp[, .(ModSeq = list(`Modified sequence_verbose`)), by = .(Scan_ID_MZ = Scan_ID_MZ)]
 # tmp <- as.data.frame(tmp)
 # tmp$L <- lengths(tmp$ModSeq)
 # mx <- max(tmp$L)
@@ -537,11 +537,12 @@ if (lw) {
 #   kol <- c("Scan_ID", "Modified sequence_verbose", "Theoretical m/z", "m/z", "Score", "PEP")
 #   stopifnot(sum(!kol %in% colnames(ev)) == 0L)
 #   tmp2 <- as.data.table(ev[wAmbig, kol])
-#   tmp2 <- tmp2[, list(Score = list(Score),
-#                       PEP = list(PEP),
-#                       `m/z` = list(`m/z`),
-#                       `theor m/z` = list(`Theoretical m/z`),
-#                       ModSeq = list(`Modified sequence_verbose`)), by = list(Scan_ID = Scan_ID)]
+#   tmp2 <- tmp2[, .(Score = list(Score),
+#                    PEP = list(PEP),
+#                    `m/z` = list(`m/z`),
+#                    `theor m/z` = list(`Theoretical m/z`),
+#                    ModSeq = list(`Modified sequence_verbose`)),
+#                by = .(Scan_ID = Scan_ID)]
 #   tmp2 <- as.data.frame(tmp2)
 #   tmp2$BestModSeq <- sapply(1L:nrow(tmp2), \(x) {
 #     Sc <- unlist(tmp2$Score[x])
@@ -930,7 +931,7 @@ tmp <- strsplit(ev$Proteins, ";")
 tmp <- listMelt(tmp, 1L:nrow(ev), c("ID", "row"))
 tmp <- tmp[tmp$ID %in% histDB$`Protein ID`,]
 tmp <- data.table::as.data.table(tmp)
-tmp <- tmp[, list(IDs = list(ID)), by = list(row = row)]
+tmp <- tmp[, .(IDs = list(ID)), by = .(row = row)]
 tmp <- as.data.frame(tmp)
 tmp$IDs <- parSapply(parClust, tmp$IDs, paste, collapse = ";")
 ev$"Histone(s)" <- ""
@@ -1177,7 +1178,7 @@ tmp4 <- setNames(parLapply(parClust, allSamples, \(smpl) { #smpl <- allSamples[1
                        Intensity = tmp[w, "Intensity"])
     tmp2$Intensity[!is.finite(tmp2$Intensity)] <- NA_real_
     tmp2$Intensity[tmp2$Intensity <= 0] <- NA_real_
-    tmp2 <- tmp2[, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
+    tmp2 <- tmp2[, .(Intensity = sum(Intensity, na.rm = TRUE)), by = .(mod)]
     tmp2 <- as.data.frame(tmp2)
   }
   return(tmp2)
@@ -2105,7 +2106,9 @@ if (length(Exp) > 1L) {
     plotLeatMaps[[normType]] <- list()
     for (flt in names(Filter)) {
       fltInsrt <- c("", " Histones only")[match(flt, names(Filter))]
-      temp <- magrittr::set_rownames(magrittr::set_colnames(pep[Filter[[flt]], kol], allSamples), pep$Label[Filter[[flt]]])
+      temp <- pep[Filter[[flt]], kol]
+      rownames(temp) <- pep$Label[Filter[[flt]]]
+      colnames(temp) <- allSamples
       temp <- log10(temp)
       Gr <- xMap$Comparison_group
       Gr <- setNames(match(Gr, unique(Gr)), Gr)
@@ -2309,7 +2312,8 @@ if (length(Exp) > 1L) {
       hlabs$label2[w] <- paste0(substr(hlabs$label2[w], 1L, MaxChar-3L), "...")
       # Create heatmap
       temp$Rowname <- row.names(temp)
-      temp2 <- magrittr::set_colnames(reshape2::melt(temp, id.vars = "Rowname"), c("Label", "Sample", "value"))
+      temp2 <- reshape2::melt(temp, id.vars = "Rowname")
+      colnames(temp2) <- c("Label", "Sample", "value")
       temp2$Label <- as.character(temp2$Label)
       temp2$Sample <- as.character(temp2$Sample)
       temp2$Xmax <- match(temp2$Label, hlabs$label) # Explicitly should be the case now!

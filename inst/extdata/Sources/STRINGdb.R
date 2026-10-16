@@ -122,11 +122,13 @@ if (length(WhTsts) && length(allProteins_mapped)) {
                             # but for this I need to rewrite filters!!!!!
                             check.names = FALSE)
           
-          reg2 <- set_colnames(listMelt(strsplit(reg$"Leading protein IDs", ";"), 1L:nrow(reg)), c("ID", "Row"))
+          reg2 <- listMelt(strsplit(reg$"Leading protein IDs", ";"), 1L:nrow(reg), c("ID", "Row"))
           reg2$logFC <- reg$logFC[reg2$Row]
           reg2$"PG id" <- reg$"PG id"[reg2$Row]
-          reg3 <- set_colnames(aggregate(reg2$logFC, list(reg2$ID), mean, na.rm = TRUE), c("ID", "logFC"))
-          reg2 <- set_colnames(aggregate(reg2$"PG id", list(reg2$ID), unique), c("ID", "PG id")) # Should be only one value since we are using Leading protein IDs, which are unique
+          reg3 <- aggregate(reg2$logFC, list(reg2$ID), mean, na.rm = TRUE)
+          colnames(reg3) <- c("ID", "logFC")
+          reg2 <- aggregate(reg2$"PG id", list(reg2$ID), unique) # Should be only one value since we are using Leading protein IDs, which are unique
+          colnames(reg2) <- c("ID", "PG id")
           reg2$logFC <- reg3$logFC[match(reg2$ID, reg3$ID)]
           reg2$Gene <- db$Gene[match(reg2$ID, db$`Protein ID`)]
         }

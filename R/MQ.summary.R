@@ -17,7 +17,8 @@
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
 #' @param MQtxt For MaxQuant only: the directory in which to search for MaxQuant evidence.txt, msms.txt and msmsScans.txt files.
-#' 
+#' @param subfolder Name of the subfolder relative to the current work directory where the plots will be saved, default = "Summary plots"
+#'
 #' @examples
 #' ## To load data from local directory and filter it:
 #' MQ.summary(filter = TRUE)
@@ -218,10 +219,10 @@ MQ.summary <- function(wd,
         if (sv) { for (s in save) {
           if (s == "html") {
             plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y", "fill"))
-            plotLy <- layout(plotLy,
-              legend = list(x = 1.05,
-                            y = 1),
-              margin = list(r = 120L))
+            plotLy <- plotly::layout(plotLy,
+                                     legend = list(x = 1.05,
+                                                   y = 1),
+                                     margin = list(r = 120L))
             plotLy$x$layout$xaxis$autorange <- TRUE
             plotLy$x$layout$yaxis$autorange <- TRUE
             plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)

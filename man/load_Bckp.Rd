@@ -7,13 +7,13 @@
 load_Bckp(backup, startDir, clean = TRUE, loadPack = TRUE)
 }
 \arguments{
+\item{backup}{The backup file to reload. If missing, opens a popup selection window.}
+
 \item{startDir}{Here you can specify the directory in which the selection window will start.}
 
 \item{clean}{If set to TRUE (default), will first remove all objects existing in the current environment.}
 
 \item{loadPack}{Should we load packages? Default = TRUE}
-
-\item{bckp}{The backup file to reload. If missing, opens a popup selection window.}
 }
 \description{
 This function:

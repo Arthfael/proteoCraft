@@ -12,7 +12,7 @@
 #' @param mode One of 1 or 2
 #' @param parameters The experiment's parameters file. Default = Param
 #' @param logInt Set to 0 or FALSE if input peptide intensities are linear scale. If the data is already log scale, set to the relevant scale's base. Default = FALSE
-#' @param log.Ratios Set to 0 or FALSE if input peptide ratios are linear scale. If the data is already log scale, set to the relevant scale's base. Default = 2
+#' @param logRat Set to 0 or FALSE if input peptide ratios are linear scale. If the data is already log scale, set to the relevant scale's base. Default = 2
 #'
 #' @details
 #' This function can be used as a logFC-level filter for DEPs - after statistical analysis.

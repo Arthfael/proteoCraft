@@ -1,15 +1,15 @@
 #' DefArg
 #'
 #' @description 
-#' Call this function for any function you want to troubleshoot.
-#' This will create default values of the function's parameters in the main environment to allow easy debugging.
-#'
-#' I used to have an in-house solution for this, but it was slightly buggy.
-#' This is based on more standard R code and is more reliable. 
+#' Call this function for any function you want to troubleshoot.\cr
+#' This will create default values of the function's parameters in the main environment to allow easy debugging.\cr
+#' \cr
+#' I used to have an in-house solution for this, but it was slightly buggy.\cr
+#' This is based on more standard R code and is more reliable.
 #' 
 #' @param FUN name of the function; can be entered as the function object or as its name (character). 
-#' @param remove_NULLs Should arguments with default value "NULL" be excluded?\cr
-#' @param silent Logical, default = TRUE. If FALSE, the values of the assigned arguments is printed.\cr
+#' @param remove_NULLs Should arguments with default value "NULL" be excluded?
+#' @param silent Logical, default = TRUE. If FALSE, the values of the assigned arguments is printed.
 #' 
 #' @details
 #' Call this function as the first step of testing/troubleshooting the code of any function.
@@ -25,8 +25,7 @@
 
 DefArg <- function(FUN,
                    remove_NULLs = TRUE,
-                   silent = TRUE,
-                   noError = TRUE) {
+                   silent = TRUE) {
   #DefArg(DefArg)
   #DefArg(annot_to_tabl)
   #DefArg(PG_assemble)

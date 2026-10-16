@@ -70,7 +70,8 @@ if (dataType == "PG") {
 # -------------
 w <- which((apply(myData[, clustXprsKol, drop = FALSE], 1L, \(x) { sum(!is.na(x)) }) > 0L)
            & (is.na(myData$`Potential contaminant`) | (myData$`Potential contaminant` != "+")))
-myData <- set_colnames(myData[w, clustXprsKol, drop = FALSE], map$Samples)
+myData <- myData[w, clustXprsKol, drop = FALSE]
+colnames(myData) <- map$Samples
 
 filt <- rownames(myData)[apply(myData[, map$Samples, drop = FALSE], 1L, \(x) { sum(is.finite(x)) }) > 0L]
 clustFilt[[dataType]] <- filt

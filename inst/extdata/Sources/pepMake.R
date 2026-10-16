@@ -59,8 +59,8 @@ tmp4 <- setNames(parLapply(parClust, myGrps, \(i) { #i <- myGrps[1L] #i <- myGrp
                              keyby = .(ModSeq = mod)])
   return(tmp3)
 }), myGrps)
-pep %<o% magrittr::set_colnames(tmp4[["ALLMYSAMPLESTUDUDUDUMMMDADA"]],
-                                c("Modified sequence", "Evidence IDs"))
+pep %<o% tmp4[["ALLMYSAMPLESTUDUDUDUMMMDADA"]]
+colnames(pep) <- c("Modified sequence", "Evidence IDs")
 for (i in myGrps[2L:length(myGrps)]) { #i <- myGrps[2L]
   tmp <- tmp4[[i]]
   ki <- paste0("Evidence IDs - ", i)
@@ -75,7 +75,7 @@ if ("Modified sequence_verbose" %in% colnames(ev)) {
 pep$Sequence <- ev$Sequence[rvmtch2]
 pep$Proteins <- ev$Proteins[rvmtch2]
 tmp <- data.table(mod = ev$"Modified sequence", PEP = ev$PEP)
-tmp <- as.data.frame(tmp[, list(PEP = min(PEP, na.rm = TRUE)), by = list(mod)])
+tmp <- as.data.frame(tmp[, .(PEP = min(PEP, na.rm = TRUE)), by = .(mod)])
 pep$PEP <- tmp$PEP[match(pep$"Modified sequence", tmp$mod)]
 mtch <- match(ev$Sequence, pep$Sequence)
 mtch2 <- match(ev$"Modified sequence", pep$"Modified sequence")
@@ -101,11 +101,11 @@ tmp <- data.table(mod = ev$"Modified sequence", Intensity = ev$Intensity)
 tmp$Intensity[!is.finite(tmp$Intensity)] <- NA_real_
 w2 <- which(ev[[mtchCol]] %in% unique(unlist(tmp_EM[tmp_EM$Use, mtchCol])))
 tmp2 <- copy(tmp)
-tmp2 <- tmp2[w2, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
+tmp2 <- tmp2[w2, .(Intensity = sum(Intensity, na.rm = TRUE)), by = .(mod)]
 pep$Intensity <- tmp2$Intensity[match(pep$"Modified sequence", tmp2$mod)]
 if ((sum(!tmp_EM$Use))||(length(unique(ev[[mtchCol]])) > length(unique(unlist(tmp_EM[[mtchCol]]))))) {
   tmp3 <- copy(tmp)
-  tmp3 <- tmp3[, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(mod)]
+  tmp3 <- tmp3[, .(Intensity = sum(Intensity, na.rm = TRUE)), by = .(mod)]
   pep$"Intensity (all samples including unused)" <- tmp3$Intensity[match(pep$"Modified sequence", tmp3$mod)]
 }
 ev$"Peptide ID" <- pep$id[mtch2]
@@ -196,7 +196,7 @@ if (exists("scrptType")) {
   }
   if ("Quantity Quality" %in% colnames(ev)) { # DiaNN specific:
     tmp <- data.table(Qual = ev$"Quantity Quality", ModSeq = ev$"Modified sequence")
-    tmp <- tmp[, list(Qual= mean(Qual)), by = list(ModSeq)]
+    tmp <- tmp[, .(Qual= mean(Qual)), by = .(ModSeq)]
     tmp <- as.data.frame(tmp)
     pep$"Quantity Quality" <- tmp$Qual[match(pep$"Modified sequence", tmp$ModSeq)]
   }

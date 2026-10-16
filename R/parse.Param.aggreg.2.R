@@ -14,7 +14,7 @@
 #' @param aggregates The annotations (basic aggregate building blocks) as a named vector. Default: Aggregates
 #' @param map The reference aggregates map. All existing aggregates in this map must exist. Default: Aggregate.map
 #' @param aggr.list The list of aggregates. Default: Aggregate.list
-#' @param parsed.param.nm The name of the parsed parameter variable to create. If not specified, defaults to param.nm
+#' @param param.list.nm The name of the parsed parameter variable to create. If not specified, defaults to param.nm
 #' @param obj.list.nm The name of the list of objects to never purge from the global environment. Default = ".obj"
 #' @param checkExp Logical, default = FALSE. Should we check the Experiment object, dropping it if it has only 1 level?
 #' @param experiment Experiment factor object. Allows for dropping Exp if its length is one. Default = "Exp"

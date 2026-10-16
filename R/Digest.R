@@ -107,7 +107,7 @@ Digest <- function(Seq,
   # The little alchemy below is to deal with cases where input sequences include duplicates of the same accession
   lSEQ <- length(SEQ)
   SEQ <- data.table::data.table(SEQ = SEQ, Name = names(SEQ))
-  SEQ <- SEQ[, list(x = list(SEQ)), by = list(Group.1 = Name)]
+  SEQ <- SEQ[, .(x = list(SEQ)), by = .(Group.1 = Name)]
   SEQ <- as.data.frame(SEQ)
   lsSq <- lengths(SEQ$x)
   stopifnot(min(lsSq) == 1L,
@@ -255,8 +255,8 @@ Digest <- function(Seq,
           # Collapsing seems actually more efficient here - the vectors end up shorter
         }, "")
         temp <- data.table::as.data.table(temp)
-        temp <- temp[, list(x = paste(value, collapse = ";")),
-                     by = list(Group.1 = L1)]
+        temp <- temp[, .(x = paste(value, collapse = ";")),
+                     by = .(Group.1 = L1)]
         temp <- setNames(strsplit(temp$x, ";"), temp$Group.1)
         w <- which(names(Rs) %in% names(temp))
         Rs[w] <- mapply(c, Rs[w], temp, SIMPLIFY = FALSE) # Contatenate

@@ -69,7 +69,8 @@ if (saintExprs) {
   #
   # Prey and GO tables are not Target specific
   mtch <- listMelt(strsplit(PG$"Leading protein IDs", ";"), PG$id, c("Protein", "PG id"))
-  mtch <- set_colnames(aggregate(mtch$`PG id`, list(mtch$Protein), unique), c("Protein", "PG ids"))
+  mtch <- aggregate(mtch$`PG id`, list(mtch$Protein), unique)
+  colnames(mtch) <- c("Protein", "PG ids")
   Prey <- data.frame(Protein = mtch$Protein)
   Prey[, c("Sequence", "Gene")] <- db[match(gsub("^CON__", "", Prey$Protein), gsub("^CON__", "", db$`Protein ID`)),
                                       c("Sequence", "Gene")]

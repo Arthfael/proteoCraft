@@ -9,11 +9,11 @@ logical.op(x, test, y, ties = TRUE)
 \arguments{
 \item{x}{Left-hand side term.}
 
+\item{test}{Operator used to test; we for now support "==", "!=", "<", "<=", ">" and ">=" (as well as some reasonable aliases, such as "equal", "EQUAL", "EQUALS"...)}
+
 \item{y}{Right-hand side term.}
 
-\item{ties}{Logical: are ties accepted?}
-
-\item{name}{Name of the operator.}
+\item{ties}{Logical (default = TRUE), set it to FALSE to reject ties. Ignored if you set test to "<=" or ">=" - which then take priority.}
 }
 \description{
 A function to call logical operators by name.

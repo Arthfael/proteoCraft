@@ -22,7 +22,8 @@
 #' 
 #' @export
 
-Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
+Configure <- function(updateOntologies = FALSE) {
+  #updateOntologies = TRUE
   libPath <- as.data.frame(library()$results)
   libPath <- normalizePath(libPath$LibPath[match("proteoCraft", libPath$Package)], winslash = "/")
   proteoPath <- paste0(libPath, "/proteoCraft")

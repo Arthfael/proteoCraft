@@ -16,7 +16,6 @@ MQ.load(
   prot.file.name = "proteinGroups.txt",
   sub = FALSE,
   assign = TRUE,
-  envir = .GlobalEnv,
   return = FALSE,
   check.names = FALSE
 )

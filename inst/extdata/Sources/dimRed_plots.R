@@ -217,8 +217,8 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
           y[y == ""] <- " "
           return(y)
         })
-        tmp <- do.call(cbind, tmp)
-        tmp <- set_colnames(as.data.frame(tmp), ClassNm)
+        tmp <- as.data.frame(do.call(cbind, tmp))
+        colnames(tmp) <- ClassNm
         ClassNm <- paste(ClassNm, collapse = " / ")
         tmp <- do.call(paste, c(tmp, sep = " / "))
         gcl <- grep("^ (/ )+$", tmp, invert = TRUE)

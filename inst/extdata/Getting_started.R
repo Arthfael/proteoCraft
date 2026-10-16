@@ -56,5 +56,3 @@ wrkflwSrc %<o% paste0(homePath, "/", WrkFlwsTbl$Script[match(myWrkFlw, WrkFlwsTb
 #rstudioapi::documentOpen(wrkflwSrc) # Inspect current workflow script
 #rstudioapi::documentOpen(Src) # In case a specific sub-source throws an error
 source(wrkflwSrc)
-
-

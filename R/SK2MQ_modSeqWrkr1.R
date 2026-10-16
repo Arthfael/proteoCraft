@@ -1,15 +1,14 @@
 #' .SK2MQ_modSeqWrkr1
 #' 
+#' @description
 #' Worker function used by Skyline_to_MQ().
 #'
 #' @param x Temporary modified sequence
 #' @param tempMods Temporary modifications table
-#' 
-#' @export
 
 .SK2MQ_modSeqWrkr1 <- function(x,
                                tempMods) {
-  #x <- temp1[[1]]
+  #x <- temp1[[1L]]
   x1 <- x2 <- unlist(x)
   l <- length(x1)
   rg <- c(1L:((l-1L)/2L))*2L

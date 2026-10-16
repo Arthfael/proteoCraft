@@ -1161,10 +1161,10 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1L]
   if (nm == "Pressure") { #nm <- "Pressure"
     tmp <- as.data.table(allChroms[[nm]])
     tmp$Bin <- round(as.numeric(tmp$`Retention time`, 1))
-    tmp <- tmp[, list(Pressure = mean(Pressure)),
-               by = list(`Raw file` = `Raw file`,
-                         `Raw file name` = `Raw file name`,
-                         `Retention time` = Bin)]
+    tmp <- tmp[, .(Pressure = mean(Pressure)),
+               by = .(`Raw file` = `Raw file`,
+                      `Raw file name` = `Raw file name`,
+                      `Retention time` = Bin)]
     allChroms[[nm]] <- as.data.frame(tmp)
   }
 }
@@ -1405,8 +1405,8 @@ peakXtract <- \(fileName, # File name
         chr$"Retention time bin" <- round(chr$"Retention time"*60/binSz)
         chrSmooth <- data.table(chr[, c("Retention time bin", "Intensity")])
         chrSmooth <- chrSmooth[,
-                               list(Intensity = mean(Intensity)),
-                               by = list(`Retention time` = `Retention time bin`)]
+                               .(Intensity = mean(Intensity)),
+                               by = .(`Retention time` = `Retention time bin`)]
         chrSmooth <- as.data.frame(chrSmooth)
         # - Find rough extent of smoothed peak using bins
         #   Assumption: the peak will be the single local maximum in the given range (we are only doing this in narrow ranges)

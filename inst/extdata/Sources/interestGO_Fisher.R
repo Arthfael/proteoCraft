@@ -73,7 +73,7 @@ if (length(GO.tabs)) {
   #
   #
   Mappings <- data.table(dbGO)
-  Mappings <- Mappings[, list(GO = list(unique(GO))), by = list(Protein = Protein)]
+  Mappings <- Mappings[, .(GO = list(unique(GO))), by = .(Protein = Protein)]
   Mappings <- as.data.frame(Mappings)
   Mappings <- setNames(Mappings$GO, Mappings$Protein)
   allProt <- setNames(seq_along(Mappings), names(Mappings))

@@ -421,7 +421,7 @@ if (runPepper) {
     w <- which(tmp2[, Exp] == 0, arr.ind = TRUE)
     tmp2[, Exp][w] <- NA
     tmp2 <- as.data.table(tmp2)
-    call2 <- paste0("tmp2 <- tmp2[, list(", call, "), by = list(Proteins = Proteins)]")
+    call2 <- paste0("tmp2 <- tmp2[, .(", call, "), by = .(Proteins = Proteins)]")
     eval(parse(text = call2), envir = .GlobalEnv)
     tmp2 <- as.data.frame(tmp2)
     assign(names(obj)[i], tmp2)

@@ -112,14 +112,11 @@ if (clueGOahead) {
       msg <- response$message
       tst <- try(writeLines(httr::content(response, encoding = "UTF-8"), logFl), silent = TRUE)
       if (!inherits(tst, "try-error")) {
-        #print(httr::content(response, encode = "text"))
-        #
         # Get network id (SUID) (CyRest function from Cytoscape)
         rqst <- paste(cytoscp_URL, "networks/currentNetwork", sep = "/")
         response <- httr::GET(rqst)
         if (httr::http_status(response)$category != "Success") { Sys.sleep(2L) }
         currNtwrk_SUID <- httr::content(response, encode = "json")$data$networkSUID
-        #print(currNtwrk_SUID)
         #
         # Fit the first available Network View  to the current window.
         rqst <- paste(cytoscp_URL, "apply/fit", currNtwrk_SUID, sep = "/")

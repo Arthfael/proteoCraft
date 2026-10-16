@@ -1,12 +1,11 @@
 #' .FP2MQ_modSeqWrkr1
 #' 
+#' @description
 #' Worker function used by FP_to_MQ().
 #'
 #' @param x List, comma-split assigned modifications column from FragPipe.
 #' @param mods Modifications table.
 #' @param pat Regex for amino acids.
-#' 
-#' @export
 
 .FP2MQ_modSeqWrkr1 <- function(x,
                                mods,

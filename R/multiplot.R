@@ -5,7 +5,8 @@
 #' http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)
 #' Currently unused, thus candidate for deletion.
 #' 
-#' @param plotlist The plots to plot. Duh!
+#' @param ... Any number of plots.
+#' @param plotlist A list of plots.
 #' @param cols Number of columns. The number of rows will be inferred from this.
 #' @param layout A layout matrix. Usually assumed to be null so created by the function.
 #' @param save FALSE by default. Set to format you want pictures saved as.

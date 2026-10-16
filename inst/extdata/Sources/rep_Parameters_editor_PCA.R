@@ -52,8 +52,8 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
     colnames(data2) <- kol2
     data2$Group <- tmp
     data2$MQ.Exp <- ev$MQ.Exp[w]
-    data2 <- data2[, lapply(.SD, sum, na.rm = TRUE), keyby = list(Group = Group,
-                                                                  MQ.Exp = MQ.Exp)]
+    data2 <- data2[, lapply(.SD, sum, na.rm = TRUE), keyby = .(Group = Group,
+                                                               MQ.Exp = MQ.Exp)]
     colnames(data2) <- c("Group", "MQ.Exp", kol2)
     data2 <- as.data.frame(data2)
     data2 <- melt(data2, id.vars = c("Group", "MQ.Exp"))

@@ -33,13 +33,13 @@ parse.Param.aggreg.2(
 
 \item{aggr.list}{The list of aggregates. Default: Aggregate.list}
 
+\item{param.list.nm}{The name of the parsed parameter variable to create. If not specified, defaults to param.nm}
+
 \item{obj.list.nm}{The name of the list of objects to never purge from the global environment. Default = ".obj"}
 
 \item{checkExp}{Logical, default = FALSE. Should we check the Experiment object, dropping it if it has only 1 level?}
 
 \item{experiment}{Experiment factor object. Allows for dropping Exp if its length is one. Default = "Exp"}
-
-\item{parsed.param.nm}{The name of the parsed parameter variable to create. If not specified, defaults to param.nm}
 }
 \value{
 Does not return anything. For a version returning something, use parse.Param.aggreg()

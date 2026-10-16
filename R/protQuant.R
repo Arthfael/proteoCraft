@@ -707,13 +707,13 @@ protQuant <- function(Prot,
     # - Uniques
     quant_pep_IDsU$int <- Pep$avgPepInt[match(quant_pep_IDsU$pep, Pep[[pep_IDs]])]
     quant_pep_IDsU <- quant_pep_IDsU[order(quant_pep_IDsU$int, decreasing = TRUE),]
-    quant_pep_IDsU <- quant_pep_IDsU[, list(pep = list(pep)), by = list(PG = PG)]
+    quant_pep_IDsU <- quant_pep_IDsU[, .(pep = list(pep)), by = .(PG = PG)]
     quant_pep_IDsU <- setNames(quant_pep_IDsU$pep, quant_pep_IDsU$PG)
     # - Rest
     quant_pep_IDsA$int <- Pep$avgPepInt[match(quant_pep_IDsA$pep, Pep[[pep_IDs]])]
     quant_pep_IDsA <- quant_pep_IDsA[order(quant_pep_IDsA$int, decreasing = TRUE),]
   }
-  quant_pep_IDsA <- quant_pep_IDsA[, list(pep = list(pep)), by = list(PG = PG)]
+  quant_pep_IDsA <- quant_pep_IDsA[, .(pep = list(pep)), by = .(PG = PG)]
   quant_pep_IDsA <- setNames(quant_pep_IDsA$pep, quant_pep_IDsA$PG)
   if (N_unique) {
     # Re-add missing PGs and re-order
@@ -877,7 +877,7 @@ protQuant <- function(Prot,
   quant_pep_IDs2$mtch <- match(quant_pep_IDs2$id, tmpPep[[pep_IDs]])
   quant_pep_IDs2 <- quant_pep_IDs2[order(quant_pep_IDs2$mtch, decreasing = FALSE),]
   quant_pep_IDs2 <- data.table::as.data.table(quant_pep_IDs2)
-  quant_pep_IDs2 <- quant_pep_IDs2[, list(IDs = list(id)), by = list(PG = PG)]
+  quant_pep_IDs2 <- quant_pep_IDs2[, .(IDs = list(id)), by = .(PG = PG)]
   quant_pep_IDs2 <- setNames(quant_pep_IDs2$IDs, quant_pep_IDs2$PG)
   quant_pep_IDs[names(quant_pep_IDs2)] <- quant_pep_IDs2[names(quant_pep_IDs2)] # There are some empty entries in quant_pep_IDs: proteins with no peptides eligible for quant
   rm(quant_pep_IDs2)

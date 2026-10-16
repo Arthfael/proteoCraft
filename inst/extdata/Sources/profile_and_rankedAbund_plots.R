@@ -252,8 +252,8 @@ if (runRankAbundPlots || runProfPlots) {
   # Custom colors
   myPG2 <- data.table(Category = myPG$Category,
                       PG = myPG$`Protein Group`)
-  myPG2 <- myPG2[, list(x = unique(Category)),
-                 by = list(Group.1 = PG)]
+  myPG2 <- myPG2[, .(x = unique(Category)),
+                 by = .(Group.1 = PG)]
   myPG2 <- as.data.frame(myPG2)
   myPG2$Protein_group <- "darkgrey"
   w <- which(myPG2$x == "Contaminant")
@@ -267,8 +267,8 @@ if (runRankAbundPlots || runProfPlots) {
   #
   myPep2 <- data.table(Category = myPep$Category,
                        Pep = myPep$`Modified sequence`)
-  myPep2 <- myPep2[, list(x = unique(Category)),
-                   by = list(Group.1 = Pep)]
+  myPep2 <- myPep2[, .(x = unique(Category)),
+                   by = .(Group.1 = Pep)]
   myPep2 <- as.data.frame(myPep2)
   myPep2$Peptidoform <- "darkgrey"
   w <- which(myPep2$x == "Contaminant")

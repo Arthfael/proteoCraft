@@ -1,11 +1,10 @@
 #' .FP2MQ_modSeqWrkr5
 #' 
+#' @description
 #' Worker function used by FP_to_MQ().
 #'
 #' @param x Temp data, see FP_to_MQ code...
 #' @param mods Modifications table.
-#' 
-#' @export
 
 .FP2MQ_modSeqWrkr5 <- function(x,
                                mods) {

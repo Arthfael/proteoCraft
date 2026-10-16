@@ -8,7 +8,7 @@
 #'  - loads all necessary packages and
 #'  - (if necessary) re-creates the original parallel cluster.
 #' 
-#' @param bckp The backup file to reload. If missing, opens a popup selection window.
+#' @param backup The backup file to reload. If missing, opens a popup selection window.
 #' @param startDir Here you can specify the directory in which the selection window will start.
 #' @param clean If set to TRUE (default), will first remove all objects existing in the current environment.
 #' @param loadPack Should we load packages? Default = TRUE

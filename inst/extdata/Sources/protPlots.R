@@ -97,7 +97,6 @@ if (goAhead) {
   invisible(clusterCall(parClust, \() {
     library(Peptides)
     library(proteoCraft)
-    library(magrittr)
     library(ggplot2)
     library(plotly)
     library(htmlwidgets)
@@ -194,13 +193,14 @@ if (goAhead) {
       e <- TMP[wh,]
       wh <- which(is.finite(log10(e$Intensity)))
       if (!length(wh)) { return(NA) }
-      res <- set_colnames(aggregate(e$Intensity[wh], list(e$"Modified sequence"[wh]), sum),
-                          c("Modified sequence", "Intensity"))
-      e <- set_colnames(aggregate(e$PEP[wh], list(e$"Modified sequence"[wh]), \(x) {
+      res <- aggregate(e$Intensity[wh], list(e$"Modified sequence"[wh]), sum)
+      colnames(res) <- c("Modified sequence", "Intensity")
+      e <- aggregate(e$PEP[wh], list(e$"Modified sequence"[wh]), \(x) {
         x <- x[is.finite(x)]
         if (!length(x)) { return(NA) }
         return(max(x))
-      }), c("Modified sequence", "PEP"))
+      })
+      colnames(e) <- c("Modified sequence", "PEP")
       res$PEP <- e$PEP; rm(e)
       res$"log10(Intensity)" <- log10(res$Intensity)
       res$Intensity <- NULL

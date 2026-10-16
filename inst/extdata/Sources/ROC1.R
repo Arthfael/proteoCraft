@@ -20,11 +20,11 @@ if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
   dirlist <- unique(c(dirlist, dir))
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   tmp <- data.table(Proteins = ev$Proteins, Sequence = ev$Sequence)
-  tmp <- tmp[, list(Proteins = unique(Proteins)), by = list(Sequence = Sequence)]
+  tmp <- tmp[, .(Proteins = unique(Proteins)), by = .(Sequence = Sequence)]
   tmp <- as.data.frame(tmp)
   tmp <- listMelt(strsplit(tmp$Proteins, ";"), tmp$Sequence, c("Protein", "Sequence"))
   tmp2 <- data.table(Intensity = ev$Intensity, Sequence = ev$Sequence)
-  tmp2 <- tmp2[, list(Intensity = sum(Intensity, na.rm = TRUE)), by = list(Sequence = Sequence)]
+  tmp2 <- tmp2[, .(Intensity = sum(Intensity, na.rm = TRUE)), by = .(Sequence = Sequence)]
   tmp2 <- as.data.frame(tmp2)
   tmp2 <- tmp2[tmp2$Intensity > 0,]
   tmp2$Predictor <- log10(tmp2$Intensity)

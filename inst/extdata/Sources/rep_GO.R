@@ -59,7 +59,8 @@ if (Annotate && (enrichGO || globalGO)) {
           }
           if (length(flt)) {
             reg <- setNames(lapply(flt, \(x) { list(x$Columns) }), names(flt))
-            reg <- set_colnames(reshape::melt(reg), c("Name", "Bleh", "For"))
+            reg <- reshape::melt(reg)
+            colnames(reg) <- c("Name", "Bleh", "For")
             reg$Bleh <- NULL
             fcr <- c(Prot.Rat.Root, Prot.Rat.Root, paste0("Mean ", SSD.Root, "log2(FC) - "), "log2(FC) - ")[tt]
             reg$ParentFC <- sub(paste0(".*Re", c(rep("gulated", 2L), "-localized", "gulated")[tt], " - "), fcr, reg$Name)

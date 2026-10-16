@@ -1,4 +1,6 @@
-#' From myTAI because the CRAN version is gone and the function is not present on the current github version. 
+#' From myTAI because the CRAN version is gone and the function is not present on the current github version.\cr
+#' Only barely rewritten to drop the dplyr requirement - one fewer package!
+#' 
 #' @title Retrieving Taxonomic Information of a Query Organism
 #' @description This function takes the scientific name of a query organism
 #' and returns selected output formats of taxonomic information for the corresponding organism.
@@ -10,7 +12,6 @@
 #' the customized retrieval of taxonomic information for a query organism. 
 #' 
 #' The following data bases can be selected to retrieve taxonomic information:
-#' 
 #' \itemize{
 #' \item \code{db = "itis"} : Integrated Taxonomic Information Service
 #' \item \code{db = "ncbi"} : National Center for Biotechnology Information
@@ -60,36 +61,30 @@
 #' https://github.com/ropensci/taxize
 #' @export
 
-taxonomy <- function(organism, db = "ncbi", output = "classification"){
-  
-  if (!is.element(output,c("classification","taxid","children")))
-    stop ("The output '",output,"' is not supported by this function.")
-  
-  if (!is.element(db,c("ncbi","itis")))
-    stop ("Database '",db,"' is not supported by this function.")
-  
+taxonomy <- function(organism,
+                     db = "ncbi",
+                     output = "classification") {
+  #organism<- "Homo sapiens"; db = "ncbi"; output = "classification"
+  if (!is.element(output, c("classification", "taxid", "children"))) {
+    stop ("The output '", output,"' is not supported by this function.")
+  }
+  if (!is.element(db, c("ncbi","itis"))) {
+    stop ("Database '", db, "' is not supported by this function.")
+  }
   name <- id <- NULL
-  
-  if (db == "ncbi")
-    tax_hierarchy <- as.data.frame(taxize::classification(taxize::get_uid(organism), db = "ncbi")[[1]])
-  
-  else if (db == "itis")    
-    tax_hierarchy <- as.data.frame(taxize::classification(taxize::get_tsn(organism), db = "itis")[[1]])
-  
+  if (db == "ncbi") {
+    tax_hierarchy <- as.data.frame(taxize::classification(taxize::get_uid(organism), db = "ncbi")[[1L]])
+  } else if (db == "itis")     {
+    tax_hierarchy <- as.data.frame(taxize::classification(taxize::get_tsn(organism), db = "itis")[[1L]])
+  }
   # tryCatch({colnames(tax_hierarchy) <- c("name","rank","id")},stop("The connection to ",db," did not work properly. Please check your internet connection or maybe the API did change.", call. = FALSE))
-  
-  if(output == "classification"){
-    
+  if (output == "classification") {
     return(tax_hierarchy)
   }
-  
-  if(output == "taxid"){
-    
-    return(dplyr::select(dplyr::filter(tax_hierarchy, name == organism),id))
+  if (output == "taxid") {
+    return(tax_hierarchy[tax_hierarchy$name == organism, "id", drop = FALSE])
   }
-  
-  if(output == "children"){
-    
-    return(as.data.frame(taxize::children(organism, db = db)[[1]]))
-  } 
+  if (output == "children") {
+    return(as.data.frame(taxize::children(organism, db = db)[[1L]]))
+  }
 }

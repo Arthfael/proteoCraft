@@ -4,7 +4,8 @@
 #' A function to create a simple heatmap of a data frame.
 #' 
 #' @param matr The data frame or matrix to plot. If it has rownames or colnames, these will be displayed.
-#' @param title The title of the graph.
+#' @param title The title of the plot.
+#' @param subtitle Subtitle of the plot.
 #' @param size The character size. Default = 2.5, you may want to reduce it for large proteins.
 #' @param h.margins Optional: size of the horizontal margins. Default = c(5, 10)
 #' @param v.margin Optional: size of the upper margin. Default = 3

@@ -9,7 +9,6 @@
 #' @param IntensCol Names of the quantitative columns in InputTabl
 #' @param Summary.method The summary method used for ratios (the Levenberg-Marquardt algorithm is used for intensities). One of "mean", "median", or "weighted.mean". May be passed as function or function name, but be careful: if passed as a function, and it is a "renamed" weighted.mean function, then the weights will be ignored (we test by name).
 #' @param Summary.weights If a "weighted.mean" summary method is chosen, then a vector of weights must be provided. This should be the name of a column of the peptides table
-#' @param Intensity.weights default = FALSE; if TRUE, will take into account individual peptide intensities when calculating average profile if "Summary.method" is either mean "mean" or "weighted.mean" (thus, it will actually be a weighted mean regardless). 
 #' @param Min.N How many peptides should at least be present? Should be at the very least 1 (default = 2).
 #' @param Max.N How many peptides can we use at most for the Levenberg-Marquardt procedure? Using too many peptides can be an issue, e.g. with huge proteins like Titin. Default = 50. The most intense peptides will be selected.
 #' @param Is.log Are input intensities log-transformed? TRUE by default.

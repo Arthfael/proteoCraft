@@ -113,7 +113,8 @@ if (file.exists(FracMapPath)) {
       kol <- c(kol, Isobaric.set)
     } else { stop("There are several Isobaric sets in Exp.map, yet Fractions map is missing!") }
   }
-  Frac.map %<o% set_colnames(aggregate(ev[, kol], list(ev$"Raw file path"), unique), c("Raw file", kol))
+  Frac.map %<o% aggregate(ev[, kol], list(ev$"Raw file path"), unique)
+  colnames(Frac.map) <- c("Raw file", kol)
 }
 # Filter
 Exp.map$Use <- as.logical(Exp.map$Use)

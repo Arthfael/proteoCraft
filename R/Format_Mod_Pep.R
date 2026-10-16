@@ -1,9 +1,9 @@
 #' Format_Mod_Pep
 #'
 #' @description 
-#' A function to correct the evidences table's Modified sequence file, because since MaxQuant 1.6.?.? a new format is being used which prevents my previous scripts from working.
-#' Will output the corrected modified sequences as well as a modifications table for inspection.
-#' This is a duplicate, currently unused, instead I use the more current cor_mod_seq: I appear to have created 2 functions for the same purpose.
+#' A function to correct the evidences table's Modified sequence file, because since MaxQuant 1.6.?.? a new format is being used which prevents my previous scripts from working.\cr
+#' Will output the corrected modified sequences as well as a modifications table for inspection.\cr
+#' This is a duplicate, currently unused, instead I use the more current cor_mod_seq: I appear to have created 2 functions for the same purpose.\cr
 #' Candidate for deletion.
 #'
 #' @param x The Modified sequences from the evidence file.

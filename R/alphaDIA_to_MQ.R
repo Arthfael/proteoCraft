@@ -17,7 +17,7 @@
 #' @param N.clust A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
-#' @param shinyOpt One of "popup" (default), "pane", "dialog", or "browser".
+#' @param digPattern Digestion pattern (regex) of the enzyme used during sample preparation, default = "[KR]" i.e. K or R (trypsin).
 #' 
 #' @examples
 #' alphaDIA_fl <- rstudioapi::selectFile()
@@ -331,12 +331,11 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   #
   EV$Type <- "LIB-DIA" # This may need to change if important.
   #
-  digPat <- paste(c("[", digPattern, "]"), collapse = "")
-  tmp <- gsub(paste0(digPat, "$"), "", EV$Sequence)
+  tmp <- sub(paste0(digPat, "$"), "", EV$Sequence)
   EV$"Missed cleavages" <- nchar(tmp) - nchar(gsub(digPat, "", tmp))
   EV$"Potential contaminant" <- ""
   #
-  EV$Search_ID <- if ("Search_ID" %in% colnames(alphaDIA)) { # Keeping this for now eventhough we do not have such a script for alphaDIA yet 
+  EV$Search_ID <- if ("Search_ID" %in% colnames(alphaDIA)) { # Keeping this for now even though we do not have such a script for alphaDIA yet 
     alphaDIA$PSMs_file # In cases where the input is a hybrid report created by the merging script in .../Utils
   } else {
     sort(alphaDIA_fl, decreasing = TRUE)[1L] # Provide default: there can be one or 2 files, the .tsv or .parquet, we want just one (ideally the .tsv)

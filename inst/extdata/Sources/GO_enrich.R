@@ -424,7 +424,7 @@ if (NoOnt + NoOffspr) {
       Offspr <- AnnotationDbi::toTable(Offspr)
       colnames(Offspr) <- c("Offspring", "Parent")
       Offspr <- data.table::as.data.table(Offspr)
-      Offspr <- Offspr[, list(Offspring = list(Offspring)), by = list(Parent = Parent)]
+      Offspr <- Offspr[, .(Offspring = list(Offspring)), by = .(Parent = Parent)]
       Offspr <- as.data.frame(Offspr)
       GO.terms$Offspring[w] <- Offspr$Offspring[match(GO.terms$ID[w], Offspr$Parent)]
     }
@@ -495,7 +495,7 @@ w <- which(nchar(GO.mappings$Protein$Protein) > 0L)
 Mappings2 <- listMelt(strsplit(GO.mappings$Protein$Protein[w], ";"), GO.mappings$Protein$GO[w])
 Mappings2 <- Mappings2[Mappings2$value %in% unlist(strsplit(parentData[[parentCol]], ";")),]
 Mappings2 <- data.table::data.table(L1 = Mappings2$L1, value = Mappings2$value)
-Mappings2 <- Mappings2[, list(GO = list(unique(L1))), by = list(Protein = value)]
+Mappings2 <- Mappings2[, .(GO = list(unique(L1))), by = .(Protein = value)]
 Mappings2 <- as.data.frame(Mappings2)
 Mappings <- setNames(Mappings2$GO, Mappings2$Protein)
 # Note: those mappings should be used in priority over the ones provided in Prot and DB,
@@ -748,7 +748,7 @@ if (length(wFltL)) {
             Offspr <- toTable(Offspr)
             colnames(Offspr) <- c("Offspring", "Parent")
             Offspr <- data.table::as.data.table(Offspr)
-            Offspr <- Offspr[, list(Offspring = list(Offspring)), by = list(Parent = Parent)]
+            Offspr <- Offspr[, .(Offspring = list(Offspring)), by = .(Parent = Parent)]
             Offspr <- as.data.frame(Offspr)
             tmpGO.terms$Offspring[wo] <- Offspr$Offspring[match(tmpGO.terms$ID[wo], Offspr$Parent)]
             tmpGO.terms$Term[wo] <- annotate::getGOTerm(tmpGO.terms$ID[wo])[[ont]]

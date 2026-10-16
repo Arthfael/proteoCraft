@@ -1,10 +1,9 @@
 #' .SK2MQ_tmpModsWrkr
 #' 
+#' @description
 #' Worker function used by Skyline_to_MQ().
 #'
 #' @param x Modified sequence.
-#' 
-#' @export
 
 .SK2MQ_tmpModsWrkr <- function(x) {
   #x <- tmp$ModSeq[1L]

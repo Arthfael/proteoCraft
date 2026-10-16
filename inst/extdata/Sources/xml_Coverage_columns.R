@@ -22,7 +22,7 @@ for (grp in Grps) { #grp <- VPAL$values[1L]
   tmp <- listMelt(temp1$`Peptide IDs`, 1L:nrow(temp1))
   tmp <- data.table(Row = as.integer(tmp$L1), pepID = tmp$value)
   tmp$Seq <- pep$Sequence[match(tmp$pepID, pep$id)]
-  tmp <- tmp[, list(Seq = list(Seq)), keyby = list(Row)]
+  tmp <- tmp[, .(Seq = list(Seq)), keyby = .(Row)]
   tmp <- as.data.frame(tmp)
   temp1$PepSeq <- tmp$Seq[match(1L:nrow(temp1), tmp$Row)]
   tmpLs[[grp]] <- temp1

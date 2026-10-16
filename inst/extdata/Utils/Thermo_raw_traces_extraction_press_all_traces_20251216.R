@@ -17,7 +17,7 @@ rm(list = ls()[!ls() %in% c("fls")])
 
 # Create cluster
 if (exists("parClust")) { try(stopCluster(parClust), silent = TRUE) } # A fresh start if re-running
-N.clust <- detectCores()-1
+N.clust <- detectCores()-1L
 a <- 1
 tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
 if (inherits(tst, "try-error")) {
@@ -26,21 +26,21 @@ if (inherits(tst, "try-error")) {
 }
 
 # Some useful functions
-cleanRawNm <- function(rawFileNm) { gsub("\\.raw$", "", rawFileNm, ignore.case = TRUE) }
+cleanRawNm <- \(rawFileNm) { gsub("\\.raw$", "", rawFileNm, ignore.case = TRUE) }
 environment(cleanRawNm) <- .GlobalEnv
 clusterExport(parClust, "cleanRawNm", envir = environment())
-listMelt <- function (List, Names = NULL, ColNames = c("value", "L1")) {
-  List <- setNames(List, 1:length(List))
+listMelt <- \(List, Names = NULL, ColNames = c("value", "L1")) {
+  List <- setNames(List, 1L:length(List))
   List <- stack(List)
   if (!is.null(Names)) {
-    colnames(List) <- c(ColNames[1], "ind")
+    colnames(List) <- c(ColNames[1L], "ind")
     List$ind <- as.integer(List$ind)
-    List[[ColNames[2]]] <- Names[List$ind]
+    List[[ColNames[2L]]] <- Names[List$ind]
     List$ind <- NULL
   }
   else {
     colnames(List) <- ColNames
-    List[[ColNames[2]]] <- as.integer(List[[ColNames[2]]])
+    List[[ColNames[2L]]] <- as.integer(List[[ColNames[2L]]])
   }
   return(List)
 }
@@ -51,7 +51,7 @@ rawrrVers <- c("github",
                "bioc_1.11.14")
 tst <- try({
   if (!require(rawrr, quietly = TRUE)) {
-    rawrrVers <- dlg_list(rawrrVers, rawrrVers[3], title = "Select which rawrr version should be installed")$res
+    rawrrVers <- dlg_list(rawrrVers, rawrrVers[3L], title = "Select which rawrr version should be installed")$res
     if (rawrrVers == "github") {
       if(!require(devtools)) { install.packages("devtools") }
       devtools::install_github("cpanse/rawrr")
@@ -71,7 +71,7 @@ tst <- try({
     }
     # 
     require(rawrr)
-    yesRawFileReaderLicenseIsAccepted <- function () {
+    yesRawFileReaderLicenseIsAccepted <- \() {
       licenseFile <- file.path(system.file(package = "rawrr"), 
                                "rawrrassembly", "RawFileReaderLicense.txt")
       stopifnot(file.exists(licenseFile))
@@ -95,7 +95,7 @@ tst <- try({
       msg <- "Yes, we accept Thermo's License agreement, get on with it!"
       cat(msg, "\n")
     }
-    installRawFileReaderDLLsNoAcpt <- function (sourceUrl = .thermofisherlsmsUrl(), ...) {
+    installRawFileReaderDLLsNoAcpt <- \(sourceUrl = .thermofisherlsmsUrl(), ...) {
       rawfileReaderDLLsPath <- rawrrAssemblyPath()
       if (isTRUE(dir.exists(rawfileReaderDLLsPath))) {
         msg <- sprintf("removing files in directory '%s'", rawfileReaderDLLsPath)
@@ -108,8 +108,8 @@ tst <- try({
       #
       stopifnot(yesRawFileReaderLicenseIsAccepted())
       .rawfileReaderDLLs <- getAnywhere(.rawfileReaderDLLs)
-      .rawfileReaderDLLs <- .rawfileReaderDLLs$objs[[1]]
-      rv <- vapply(.rawfileReaderDLLs(), function(dll) {
+      .rawfileReaderDLLs <- .rawfileReaderDLLs$objs[[1L]]
+      rv <- vapply(.rawfileReaderDLLs(), \(dll) {
         destfile <- file.path(rawfileReaderDLLsPath, dll)
         download.file(file.path(sourceUrl, dll), destfile = destfile, 
                       mode = "wb", ...)
@@ -126,7 +126,7 @@ tst <- try({
 getInt <- !inherits(tst, "try-error")
 #
 if (getInt) {
-  ticFun <- function(fl) { #fl <- fls[1]
+  ticFun <- \(fl) { #fl <- fls[1L]
     x <- try(readChromatogram(fl, type = "tic"), silent = TRUE)
     if (!inherits(x, "try-error")) {
       res <- list(Outcome = TRUE,
@@ -139,7 +139,7 @@ if (getInt) {
                          Error = x) }
     return(res)
   }
-  bpcFun <- function(fl) { #fl <- fls[1]
+  bpcFun <- \(fl) { #fl <- fls[1L]
     x <- try(readChromatogram(fl, type = "bpc"), silent = TRUE)
     if (!inherits(x, "try-error")) {
       res <- list(Outcome = TRUE,
@@ -152,7 +152,7 @@ if (getInt) {
                          Error = x) }
     return(res)
   }
-  xicFun <- function(fl, mass, tol, filter) { #fl <- fls[1L]
+  xicFun <- \(fl, mass, tol, filter) { #fl <- fls[1L]
     x <- try(readChromatogram(fl, type = "xic", mass, tol, filter), silent = TRUE)
     if (!inherits(x, "try-error")) {
       res <- list(Outcome = TRUE,
@@ -186,18 +186,18 @@ if (l) {
   msg <- paste0(l, " input Raw files already present in environment from a previous run:")
   opt <- c("Remove them                                                                                                             ",
            "Reprocess them                                                                                                          ")
-  startFresh <- c(TRUE, FALSE)[match(dlg_list(opt, opt[1], title = msg)$res, opt)]
+  startFresh <- c(TRUE, FALSE)[match(dlg_list(opt, opt[1L], title = msg)$res, opt)]
   if (startFresh) { fls <- c() }
 }
 l <- length(fls)
 if (!l) {
-  filt <- matrix(data = c("Thermo raw file", "*.raw;*.RAW"), ncol = 2,
+  filt <- matrix(data = c("Thermo raw file", "*.raw;*.RAW"), ncol = 2L,
                  dimnames = list("raw file"))
   #fls <- "B:/archive/lsfgrp/MS/Acquired data/frimlgrp/LCMS_JiFrATeplova1_m"
   fls <- normalizePath(choose.files(paste0(dflt, "/*.raw"), filters = filt), winslash = "/")
   fls <- fls[order(file.info(fls)$mtime, decreasing = FALSE)]
   if (getInt) {
-    tst <- parSapply(parClust, fls, function(fl) {
+    tst <- parSapply(parClust, fls, \(fl) {
       rawrr::readFileHeader(fl)$`Creation date`
     }) # Get created time directly from raw file!
     tst <- as.POSIXct.default(tst, tz = Sys.timezone(), format = "%d/%m/%Y %H:%M:%S")
@@ -232,13 +232,13 @@ if (!length(ParsDirs)) {
   if (!dir.exists(ParsDirs)) { dir.create(ParsDirs, recursive = TRUE) }
   unzip(dstfl, exdir = ParsDirs)
 }
-if (length(ParsDirs) > 1) {
-  w <- which(vapply(ParsDirs, function(x) { "ThermoRawFileParser.exe" %in% list.files(x) }, TRUE))
+if (length(ParsDirs) > 1L) {
+  w <- which(vapply(ParsDirs, \(x) { "ThermoRawFileParser.exe" %in% list.files(x) }, TRUE))
   ParsDirs <- ParsDirs[w]
 }
-if (length(ParsDirs) > 1) {
-  tst <- sapply(ParsDirs, function(x) { file.info(x)$ctime })
-  ParsDirs <- ParsDirs[which(tst == max(tst))[1]]
+if (length(ParsDirs) > 1L) {
+  tst <- sapply(ParsDirs, \(x) { file.info(x)$ctime })
+  ParsDirs <- ParsDirs[which(tst == max(tst))[1L]]
 }
 deer$ParsDir <- ParsDirs
 MSConvertInst <- ("C:/Program Files/ProteoWizard"%in% list.dirs("C:/Program Files", recursive = FALSE))
@@ -246,7 +246,7 @@ if (!MSConvertInst) {
   tst <- grep("ProteoWizard ", list.dirs("C:/Users/Thermo/AppData/Local/Apps", full.names = FALSE), value = TRUE)
   if (length(tst)) {
     MSConvertInst <- TRUE
-    MSConvertDir <- paste0("C:/Users/Thermo/AppData/Local/Apps/", tst[1])
+    MSConvertDir <- paste0("C:/Users/Thermo/AppData/Local/Apps/", tst[1L])
     deer$MSConvertDir <- MSConvertDir
   }
 } else {
@@ -258,7 +258,7 @@ if (!MSConvertInst) {
     #                  "C:/Program Files/ProteoWizard/ProteoWizard 3.0.22317.1e024d4")
     MSConvertVers <- as.data.frame(t(sapply(strsplit(gsub(".*/ProteoWizard ", "", MSConvertDirs), "\\."), unlist)))
     MSConvertVers <- MSConvertVers[order(MSConvertVers$V1, MSConvertVers$V2, MSConvertVers$V3, MSConvertVers$V4, decreasing = TRUE),]
-    MSConvertVers <- MSConvertVers[1,]
+    MSConvertVers <- MSConvertVers[1L,]
     MSConvertDir <- paste0("C:/Program Files/ProteoWizard/ProteoWizard ", paste(MSConvertVers, collapse = "."))
     deer$MSConvertDir <- MSConvertDir
   }
@@ -273,10 +273,10 @@ w <- which((!file.exists(mzMLs)) | (file.size(mzMLs) <= 2000))
 if (length(w)) {
   if (tolower(Convert_mode) == "thermorawfileparser") { # Mode 1: using ThermoRawFileParser
     clusterExport(parClust, list("deer", "zlib", "PeakPicking"), envir = environment())
-    tst <- parSapply(parClust, w, function(i) { #i <- w[1]
+    tst <- parSapply(parClust, w, \(i) { #i <- w[1L]
       cmd <- paste0("\"", deer$ParsDir, "/ThermoRawFileParser.exe\" -i=\"",
                     fls[i], "\" -b=\"", gsub(".*/", paste0(wd, "/"), mzMLs[i]), "\" -f=2 -a",
-                    c(" -z", "")[zlib+1], c(" -p", "")[PeakPicking+1])
+                    c(" -z", "")[zlib+1L], c(" -p", "")[PeakPicking+1L])
       write(cmd, paste0(wd, "/tmp", i, ".bat"))
       cmd2 <- paste0("\"", wd, "/tmp", i, ".bat\"") # I have to go through an intermediate batch file to run cmd,
       # because it is one of those which works in Windows command line but not when passed to system() or shell() in R.
@@ -299,10 +299,10 @@ if (length(w)) {
 
 # Files range
 nFls <- length(fls)
-sz <- 24
+sz <- 24L
 N <- ceiling(nFls/sz)
-Ranges <- lapply(1:N, function(x) {
-  x <- (1:sz)+(x-1)*sz
+Ranges <- lapply(1L:N, \(x) {
+  x <- (1L:sz)+(x-1)*sz
   x[which(x <= nFls)]
 })
 
@@ -310,10 +310,10 @@ Ranges <- lapply(1:N, function(x) {
 # The R functions here are based on the Python script at
 # https://gist.githubusercontent.com/caetera/0921b33f0c6201a538436906cc965fff/raw/d1af134fe228ce6a23be3e5bc3c49d20a8447ab2/mzML_pressure_to_csv.py
 # translated to R with sypport from chagPT:
-mzML_scan <- function(file # mzML file
-                      ,
-                      ont = "MS:1003019" # Which ontology to scan for, the default defines pressure
-                      ) {
+mzML_scan <- \(file # mzML file
+               ,
+               ont = "MS:1003019" # Which ontology to scan for, the default defines pressure
+               ) {
   library(xml2)
   # parse mzML
   doc <- xml2::read_xml(file)
@@ -330,17 +330,15 @@ mzML_scan <- function(file # mzML file
   xpath_chrom <- paste0(".//mzml:chromatogram[mzml:cvParam[@accession='", ont, "']]")
   chroms <- xml2::xml_find_all(doc, xpath_chrom, ns)
   # XPath: chromatograms containing a cvParam with accession MS:1003019
-  xpath <- paste0(".//", names(ns)[1], ":chromatogram[", names(ns)[1], ":cvParam[@accession='", ont, "']]")
+  xpath <- paste0(".//", names(ns)[1L], ":chromatogram[", names(ns)[1L], ":cvParam[@accession='", ont, "']]")
   ontChroms <- xml2::xml_find_all(doc, xpath, ns = ns)
   ids <- xml2::xml_attr(ontChroms, "id")
   return(ids)
 }
-mzML_getChrom <- function(file # mzML file
-                          ,
-                          chroms # Chromatograms to extract. If missing, all chromatograms matching the ontology are extracted.
-                          ,
-                          ont = "MS:1003019" # Which ontology to scan for, the default defines pressure
-                          ) {
+mzML_getChrom <- \(file, # mzML file
+                   chroms, # Chromatograms to extract. If missing, all chromatograms matching the ontology are extracted.
+                   ont = "MS:1003019" # Which ontology to scan for, the default defines pressure
+                   ) {
   library(xml2)
   library(base64enc)
   # parse mzML
@@ -361,7 +359,7 @@ mzML_getChrom <- function(file # mzML file
   if (!missing(chroms)) {
     ontChroms <- ontChroms[match(chroms, ids)]
   }
-  Res <- lapply(ontChroms, function(Crom) { #Crom <- chroms[1]
+  Res <- lapply(ontChroms, \(Crom) { #Crom <- chroms[1L]
     Crom_id <- xml2::xml_attr(Crom, "id")
     # find binary arrays for this chromatogram
     arrays <- xml2::xml_find_all(Crom, "mzml:binaryDataArrayList/mzml:binaryDataArray", ns)
@@ -376,14 +374,14 @@ mzML_getChrom <- function(file # mzML file
       compression <- NULL
       size <- NULL
       for (p in params) {
-        name_parts <- strsplit(xml2::xml_attr(p, "name"), " ")[[1]]
+        name_parts <- strsplit(xml2::xml_attr(p, "name"), " ")[[1L]]
         last <- tail(name_parts, 1)
         if (last == "array") {
-          kind <- name_parts[1]
+          kind <- name_parts[1L]
         } else if (last == "compression") {
-          compression <- name_parts[1]
+          compression <- name_parts[1L]
         } else if (last == "float") {
-          size <- name_parts[1]
+          size <- name_parts[1L]
         }
       }
       if (is.null(kind)) { stop("Array kind is not set") }
@@ -410,25 +408,25 @@ mzML_getChrom <- function(file # mzML file
     return(rs)
   })
   names(Res) <- chroms
-  #View(Res[[1]])
+  #View(Res[[1L]])
   return(Res)
 }
 clusterExport(parClust, list("mzML_scan", "mzML_getChrom", "mzMLs"), envir = environment())
 allPressChrom <- parLapply(parClust, mzMLs, mzML_scan)
 whichPressChrom <- allPressChrom <- unique(unlist(allPressChrom))
-whichPressChromDum <- vapply(whichPressChrom, function(x) {
-  paste(c(x, rep(" ", 250-nchar(x))), collapse = "")
+whichPressChromDum <- vapply(whichPressChrom, \(x) {
+  paste(c(x, rep(" ", 250L-nchar(x))), collapse = "")
 }, "")
-if (length(whichPressChrom) > 1) {
-  whichPressChromDum <- dlg_list(whichPressChromDum, whichPressChromDum[1], title = "Select pressure chromatogram(s) to extract", multiple = TRUE)$res
+if (length(whichPressChrom) > 1L) {
+  whichPressChromDum <- dlg_list(whichPressChromDum, whichPressChromDum[1L], title = "Select pressure chromatogram(s) to extract", multiple = TRUE)$res
   whichPressChrom <- gsub(" +$", "", whichPressChromDum)
 }
 if (length(whichPressChrom)) {
   myPressChrom <- parLapply(parClust, mzMLs, mzML_getChrom, chroms = whichPressChrom)
   names(myPressChrom) <- mzMLs
 }
-pressChrom <- setNames(lapply(whichPressChrom, function(Crom) { #Crom <- whichPressChrom[1]
-  a <- setNames(lapply(1:length(fls), function(i) { #i <- 1
+pressChrom <- setNames(lapply(whichPressChrom, \(Crom) { #Crom <- whichPressChrom[1L]
+  a <- setNames(lapply(1L:length(fls), \(i) { #i <- 1L
     mzML <- mzMLs[i]
     fl <- fls[i]
     x <- myPressChrom[[mzML]][[Crom]]
@@ -443,68 +441,68 @@ allChroms <- list(Pressure = pressChrom)
 #chromtypes <- setNames(c("tic", "bpc", "xic"), c("TIC", "Base peak", "XIC"))
 if (getInt) {
   tol <- as.numeric(dlg_input("Enter mass tolerance (ppm)", 20)$res)
-  clusterCall(parClust, function() library(rawrr))
-  MS2s <- parLapply(parClust, fls, function(fl) { #fl <- fls[1]
+  clusterCall(parClust, \() library(rawrr))
+  MS2s <- parLapply(parClust, fls, \(fl) { #fl <- fls[1L]
     x <- rawrr::readIndex(fl)
     x <- x[which(x$MSOrder == "Ms2"),]
     return(unique(gsub("@.*", "", unique(x$scanType))))
   })
   ms2s <- unique(unlist(MS2s))
-  if (length(ms2s) == 1) {
+  if (length(ms2s) == 1L) {
     cat(paste0("Single MS2 filter detected:\"", ms2s, "\"\n"))
   } else {
-    tmp <- sapply(ms2s, function(x) { paste(c(x, rep(" ", 200-nchar(x))), collapse = "") })
-    tmp <- dlg_list(tmp, tmp[1], TRUE, "Select filter(s) for which you want to get an XIC")$res
+    tmp <- sapply(ms2s, \(x) { paste(c(x, rep(" ", 200L-nchar(x))), collapse = "") })
+    tmp <- dlg_list(tmp, tmp[1L], TRUE, "Select filter(s) for which you want to get an XIC")$res
     ms2s <- gsub(" *$", "", tmp)
   }
-  masses <- setNames(lapply(ms2s, function(ms2) { #ms2 <- ms2s[1]
+  masses <- setNames(lapply(ms2s, \(ms2) { #ms2 <- ms2s[1L]
     msg <- paste0(ms2, " XIC: enter M/Z to extract (if multiple M/Zs, separate them with \" \")")
     mass <- as.numeric(unlist(strsplit(dlg_input(msg, 134.0472)$res, " ")))
     return(mass[which(!is.na(mass))])
   }), ms2s)
   # TIC
   tic <- setNames(parLapply(parClust, fls, ticFun), fls)
-  w <- sapply(tic, function(x) { x$Outcome })
-  tic <- lapply(tic[w], function(x) { x$Output })
+  w <- sapply(tic, \(x) { x$Outcome })
+  tic <- lapply(tic[w], \(x) { x$Output })
   if (length(tic)) { allChroms$TIC <- tic }
   # BPC
   bpc <- setNames(parLapply(parClust, fls, bpcFun), fls)
-  w <- sapply(bpc, function(x) { x$Outcome })
-  bpc <- lapply(bpc[w], function(x) { x$Output })
+  w <- sapply(bpc, \(x) { x$Outcome })
+  bpc <- lapply(bpc[w], \(x) { x$Output })
   if (length(bpc)) { allChroms$BPC <- bpc }
   # XICs
   clusterExport(parClust, list("ms2s", "tol", "masses", "xicFun"), envir = environment())
   fltms2 <- listMelt(masses, names(masses))
   clusterExport(parClust, list("tol", "xicFun"), envir = environment())
   xicNms <- do.call(paste, c(fltms2, sep = " for "))
-  xic <- setNames(apply(fltms2, 1, function(x) {
-    mass <- x[[1]]
-    ms2 <- x[[2]]
+  xic <- setNames(apply(fltms2, 1L, \(x) {
+    mass <- x[[1L]]
+    ms2 <- x[[2L]]
     clusterExport(parClust, list("ms2", "mass"), envir = environment())
-    setNames(parLapply(parClust, fls, function(fl) { xicFun(fl, mass, tol, ms2) }), fls)
+    setNames(parLapply(parClust, fls, \(fl) { xicFun(fl, mass, tol, ms2) }), fls)
   }), xicNms)
-  w <- setNames(lapply(xicNms, function(x) { #x <- names(xic)[1]
-    which(sapply(xic[[x]], function(y) { y$Outcome }))
+  w <- setNames(lapply(xicNms, \(x) { #x <- names(xic)[1L]
+    which(sapply(xic[[x]], \(y) { y$Outcome }))
   }), xicNms)
-  xic <- setNames(lapply(xicNms, function(x) { #x <- names(xic)[1]
-    setNames(lapply(fls[w[[x]]], function(fl) { xic[[x]][[fl]]$Output }), fls[w[[x]]])
+  xic <- setNames(lapply(xicNms, \(x) { #x <- names(xic)[1L]
+    setNames(lapply(fls[w[[x]]], \(fl) { xic[[x]][[fl]]$Output }), fls[w[[x]]])
   }), xicNms)
-  w <- which(setNames(lapply(xicNms, length), xicNms) > 0)
+  w <- which(setNames(lapply(xicNms, length), xicNms) > 0L)
   xic <- xic[w]
   for (nm in names(xic)) { allChroms[[nm]] <- xic[[nm]] }
 }
 #
-for (nm in names(allChroms)) { #nm <- names(allChroms)[1]
+for (nm in names(allChroms)) { #nm <- names(allChroms)[1L]
   if (nm == "Pressure") { #nm <- "Pressure"
     nms2 <- names(allChroms[[nm]])
-    allChroms[[nm]] <- setNames(lapply(nms2, function(nm2) { #nm2 <- nms2[1]
-      temp <- lapply(fls, function(fl) { #fl <- fls[1]
+    allChroms[[nm]] <- setNames(lapply(nms2, \(nm2) { #nm2 <- nms2[1L]
+      temp <- lapply(fls, \(fl) { #fl <- fls[1L]
         tmp <- as.data.table(allChroms[[nm]][[nm2]][[fl]])
-        tmp$Bin <- round(tmp$`Retention time`, 1)
-        tmp <- tmp[, list(Pressure = mean(Pressure)),
-                   by = list(`Raw file` = `Raw file`,
-                             `Raw file name` = `Raw file name`,
-                             `Retention time` = Bin)]
+        tmp$Bin <- round(tmp$`Retention time`, 1L)
+        tmp <- tmp[, .(Pressure = mean(Pressure)),
+                   by = .(`Raw file` = `Raw file`,
+                          `Raw file name` = `Raw file name`,
+                          `Retention time` = Bin)]
         return(tmp)
       })
       temp <- do.call(rbind, temp)
@@ -517,9 +515,9 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1]
   }
 }
 #
-fullRTRange <- unlist(lapply(names(allChroms), function(nm) {
+fullRTRange <- unlist(lapply(names(allChroms), \(nm) {
   if (nm == "Pressure") {
-    return(unlist(lapply(allChroms[[nm]], function(x) {
+    return(unlist(lapply(allChroms[[nm]], \(x) {
       x$`Retention time`
     })))
   }
@@ -528,7 +526,7 @@ fullRTRange <- unlist(lapply(names(allChroms), function(nm) {
 fullRTRange <- c(min(fullRTRange), max(fullRTRange))
 getRTRange <- TRUE; kount <- 1L
 while (getRTRange) {
-  for (nm in names(allChroms)) { #nm <- names(allChroms)[1] #nm <- names(allChroms)[2]
+  for (nm in names(allChroms)) { #nm <- names(allChroms)[1L] #nm <- names(allChroms)[2L]
     if (is.data.frame(allChroms[[nm]])) {
       tmpDat <- list()
       tmpDat[[nm]] <- allChroms[[nm]]
@@ -536,7 +534,7 @@ while (getRTRange) {
     if (inherits(allChroms[[nm]], "list")) {
       tmpDat <- allChroms[[nm]]
     }
-    for (nm2 in names(tmpDat)) { #nm2 <- names(tmpDat)[1]
+    for (nm2 in names(tmpDat)) { #nm2 <- names(tmpDat)[1L]
       x <- tmpDat[[nm2]]
       if (kount > 1L) {
         x <- x[which((x$`Retention time` >= RTRange[1L])&(x$`Retention time` <= RTRange[2L])),]
@@ -557,9 +555,9 @@ while (getRTRange) {
         x$`Raw file name` <- factor(x$`Raw file name`, levels = cleanRawNm(basename(fls)))
         #offset <- max(x$Int)/3
         #nc <- nchar(floor(offset))
-        #offset <- ceiling(offset/10^(nc-1))*10^(nc-1)
-        #if (!is.finite(offset)) { offset <- 0 }
-        #x$Int <- x[[Ykol]] + offset*(match(x$`Raw file`, fls)-1)
+        #offset <- ceiling(offset/10L^(nc-1))*10L^(nc-1)
+        #if (!is.finite(offset)) { offset <- 0L }
+        #x$Int <- x[[Ykol]] + offset*(match(x$`Raw file`, fls)-1L)
         #unique(x$`Raw file`)
         #
         for (i in 1L:length(Ranges)) { #i <- 1L
@@ -608,18 +606,18 @@ while (getRTRange) {
       RTRange <- sort(RTRange)
       if (RTRange[1L] < fullRTRange[1L]) {
         warning("Too low RT range!")
-        RTRange[1] <- fullRTRange[1]
+        RTRange[1L] <- fullRTRange[1L]
       }
-      if (RTRange[2] > fullRTRange[2]) {
+      if (RTRange[2L] > fullRTRange[2L]) {
         warning("Too high RT range!")
-        RTRange[2] <- fullRTRange[2]
+        RTRange[2L] <- fullRTRange[2L]
       }
     }
   }
 }
 #nms <- names(allChroms)[which(names(allChroms) != "Pressure")] # No need to write pressure, we have it already
 nms <- names(allChroms) # Actually let's write it, it's spread over different files
-sapply(nms, function(nm) { #nm <- "BPC"
+sapply(nms, \(nm) { #nm <- "BPC"
   nm2 <- paste0(nm, ".csv")
   if (!nm %in% c("TIC", "BPC", "Pressure")) { nm2 <- paste0("XIC ", nm2) }
   x <- allChroms[[nm]]

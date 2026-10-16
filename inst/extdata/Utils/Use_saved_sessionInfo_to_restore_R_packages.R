@@ -13,7 +13,7 @@
 # Other repositories are currently not supported
 # There will be some exceptions which we will just make sure we have installed/loaded from the beginning, regardless of version!
 install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/stable/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))
-pak::pkg_install("rstudioapi")
+pak::pak("rstudioapi")
 
 # These packages are either base or exceptions which this code needs to work and for which we will use whichever version we have:
 except <- c("parallel", "snow", "rstudioapi", "BiocManager", "pak")
@@ -214,12 +214,12 @@ if (length(w)) {
                                    retry <- !pck %in% inst$Package
                                  }
                                  if (retry) {
-                                   a <- try(pak::pkg_install(pck), silent = TRUE)
+                                   a <- try(pak::pak(pck), silent = TRUE)
                                  }
                                  # if (orig == "CRAN") {
                                  #   if (is.na(vers)) {
                                  #     #a <- try(utils::install.packages(pck, repos = "https://cran.wu.ac.at"), silent = TRUE) # Somehow the explicit mirror is only required within the parallel call
-                                 #     a <- try(pak::pkg_install(pck), silent = TRUE)
+                                 #     a <- try(pak::pak(pck), silent = TRUE)
                                  #   } else {
                                  #     a <- try(devtools::install_version(pck, vers, force = TRUE, upgrade = "never"), silent = TRUE)
                                  #     if (inherits(a, "try-error")) { a <- try(utils::install.packages(pck, repos = "https://cran.wu.ac.at"), silent = TRUE) }
