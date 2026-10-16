@@ -658,7 +658,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1L #dir_i <- 2L
       wL <- which(lTst > 0L)
       if (length(wL)) {
         m <- listMelt(m[wL], rawFiles_i_nu[w[wL]])
-        stopifnot(length(which(is.na(m$L1))) == 0L)
+        stopifnot(sum(is.na(m$L1)) == 0L)
         w2 <- which(ev_i$`Raw file path` %in% rawFiles_i[w])
         m2 <- match(w2, m$value)
         stopifnot(sum(is.na(m2)) == 0L)
@@ -977,10 +977,10 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1L #dir_i <- 2L
       w <- which(rawFiles_i != rawFiles_i_nu)
       m <- lapply(rawFiles_i[w], \(fl) { which(ev_i$`Raw file path` == fl) })
       m <- listMelt(m, rawFiles_i_nu[w])
-      stopifnot(length(which(is.na(m$L1))) == 0L)
+      stopifnot(sum(is.na(m$L1)) == 0L)
       w2 <- which(ev_i$`Raw file path` %in% rawFiles_i[w])
       m2 <- match(w2, m$value)
-      stopifnot(length(which(is.na(m2))) == 0L)
+      stopifnot(sum(is.na(m2)) == 0L)
       ev_i$"Raw file path"[w2] <- m$L1[match(w2, m$value)]
     }
     rawFiles_i <- unique(ev_i$`Raw file path`)

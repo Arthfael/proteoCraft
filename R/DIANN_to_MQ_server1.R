@@ -10,7 +10,7 @@
 .DIANN_to_MQ_server1 <- function(input,
                                  output,
                                  session) {
-  REMAP <- reactiveVal(tstMap)
+  REMAP <- shiny::reactiveVal(get("tstMap", parent.frame()))
   output$PTMs <- shiny::renderUI({
     lst <- list()
     for (i in mrks) {

@@ -24,7 +24,7 @@ ProtFormula <- function(Seq, collapse = TRUE, reduced = TRUE, alkylated = "IAM")
     warning("Did you really alkylate but did not reduce? Ignoring alkylations.")
     alk <- FALSE
   }
-  data(Alkylating_agents, package = "proteoCraft")
+  #utils::data(Alkylating_agents, package = "proteoCraft", envir = environment())
   if ((alk)&&(alkylated %in% alkTbl$AA)) {
     warning(paste0("\"", alkylated, "\" is not recognized as a valid alkylation and will be ignored!"))
   }

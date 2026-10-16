@@ -33,7 +33,7 @@ Format_Mod_Pep <- function(x) {
   mod <- data.frame(Full = y[g])
   mod$Short <- substr(mod$Full, 2L, 2L)
   mod$Short[!mod$Short %in% y] <- NA
-  if (length(which(!y %in% unlist(mod)))) { warning("Something went awry!") }
+  if (sum(!y %in% unlist(mod))) { warning("Something went awry!") }
   mod$Specificity <- NA
   W <- which(!is.na(mod$Short))
   xtemp <- x1

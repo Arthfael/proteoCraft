@@ -21,15 +21,7 @@ RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winsl
 libPath %<o% paste0(RPath, "/proteoCraft")
 homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
 
-fls <- paste0(homePath, "/", c(#"Regulation analysis - master script.R",
-  "Regulation analysis - detailed script.R",
-  "Regulation analysis - detailed script_pepOnly.R",
-  "No replicates analysis - detailed script.R",
-  "Reload_renv_from_lock_file.R",
-  "Default_locations.xlsx",
-  "LC_columns.xlsx"))
-tst <- sum(!file.exists(fls))
-if (tst) { proteoCraft::Configure() }
+proteoCraft::Configure()
 xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
 locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
 locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
@@ -2120,7 +2112,7 @@ if (pkgsCheck["3d_Cov"]) {
 # if (IsPullDown) {
 #   g <- paste0("Regulated - ", unique(Exp.map[!Exp.map$Reference, VPAL$column]))
 #   test <- apply(PG[, g, drop = FALSE], 1L, \(x) {
-#     length(which(!x %in% c("", NA, "NA", "non significant", "too small FC")))
+#     sum(!x %in% c("", NA, "NA", "non significant", "too small FC"))
 #   })
 #   prot <- unique(c(prot.list, unlist(strsplit(PG$"Leading protein IDs"[test > 0L], ";"))))
 #   if ((!is.null(prot.list_pep)) && (length(prot.list_pep)) { prot <- unique(c(prot, prot.list_pep)) }
@@ -2131,7 +2123,7 @@ if (pkgsCheck["3d_Cov"]) {
 #     for (i in prot) {
 #       temp <- ev[grsep2(i, ev$"Leading proteins"),]
 #       temp <- sapply(unique(ev$Type), \(x) {
-#         vapply(unique(ev$"Raw file"), \(y) { length(which((temp$Type == x) & (temp$"Raw file" == y))) }, 1L)
+#         vapply(unique(ev$"Raw file"), \(y) { sum((temp$Type == x) & (temp$"Raw file" == y)) }, 1L)
 #       })
 #       write.csv(temp, paste0(dir, "/Ev table - ", i, ".csv"))
 #     }

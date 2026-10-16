@@ -68,7 +68,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   }
   N.clust <- length(cl)
   #
-  data(modifications, package = "PTMods")
+  utils::data(modifications, package = "PTMods", envir = environment())
   UniMod <- modifications
   rm(modifications)
   # Remove:
@@ -104,11 +104,11 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   log_Fl <- paste0(dirname(alphaDIA_fl), "/log.txt")
   if (file.exists(log_Fl)) { 
     log <- readr::read_lines(log_Fl)
-    gP <- grep("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: +├──", log) # All parameter groups
-    gA <- grep("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: +├──raw_paths:", log)
+    gP <- grep("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: +\u{251c}\u{2500}\u{2500}", log) # All parameter groups
+    gA <- grep("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: +\u{251c}\u{2500}\u{2500}raw_paths:", log)
     gB <- vapply(gA, \(x) { min(gP[gP > x]) }, 1L)
     g0 <- unlist(lapply(1L:length(gA), \(x) { (gA[x]+1L):(gB[x]-1L) }))
-    rwFlPths <- gsub("\\\\", "/", unique(sub(" +\\[.*", "", gsub("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: │   \033\\[[^ ]+ +", "", log[g0]))))
+    rwFlPths <- gsub("\\\\", "/", unique(sub(" +\\[.*", "", gsub("^[0-9]+:[0-9]+:[0-9]+(\\.[0-9]+)? +INFO: \u{2502}   \u{001b}\\[[^ ]+ +", "", log[g0]))))
     rwFls <- gsub(".*/|\\.[^.]+$", "", rwFlPths)
   } else {
     msg <- "   log.txt file missing"

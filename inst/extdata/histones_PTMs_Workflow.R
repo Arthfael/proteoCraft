@@ -36,15 +36,7 @@ RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winsl
 libPath %<o% paste0(RPath, "/proteoCraft")
 homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
 parSrc %<o% paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
-fls <- paste0(homePath, "/", c(#"Regulation analysis - master script.R",
-  "Regulation analysis - detailed script.R",
-  "Regulation analysis - detailed script_pepOnly.R",
-  "No replicates analysis - detailed script.R",
-  "Reload_renv_from_lock_file.R",
-  "Default_locations.xlsx",
-  "LC_columns.xlsx"))
-tst <- sum(!file.exists(fls))
-if (tst) { Configure() }
+Configure()
 xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
 
 # Boolean functions to check parameter values

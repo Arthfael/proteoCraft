@@ -37,9 +37,9 @@ avail2 <- as.data.frame(available.packages(repos = BiocManager::repositories()[1
 avail2$Origin <- "Bioc"
 avail <- rbind(avail, avail2)
 avail$Dep <- gsub(" *\\([^)]+\\)", "", avail$Depends)
-avail$Dep <- gsub("^R$", "", gsub("^R, |^R,\n", "", avail$Dep))
+avail$Dep <- sub("^R$", "", gsub("^R, |^R,\n", "", avail$Dep))
 avail$Dep <- strsplit(avail$Dep, ",[ \n]")
-avail$Dep <- sapply(avail$Dep, \(x) { x[which(!is.na(x))] })
+avail$Dep <- sapply(avail$Dep, \(x) { x[!is.na(x)] })
 avail$nDep <- sapply(avail$Dep, length)
 except <- unique(c(except, unlist(avail$Dep[match(except, avail$Package)])))
 
@@ -52,19 +52,19 @@ for (pck in except) {
   library(pck, character.only = TRUE)
 }
 
-pcksFull <- sessInf[which(sessInf == "other attached packages:"):length(sessInf)]
+pcksFull <- sessInf[match("other attached packages:", sessInf):length(sessInf)]
 pcksFull <- grep("\\[[0-9]+\\]", pcksFull, value = TRUE)
 pcksFull <- unlist(strsplit(gsub(" *\\[[0-9]+\\] *", "", pcksFull), " +"))
 proteoCraft_Vers <- grep("^proteoCraft_?", pcksFull, value = TRUE)
 aRmel_Vers <- grep("^aRmel_?", pcksFull, value = TRUE) # Old name
-stopifnot(length(c(proteoCraft_Vers, aRmel_Vers)) > 0)
+stopifnot(length(c(proteoCraft_Vers, aRmel_Vers)) > 0L)
 pcksFull <- grep("^(proteoCraft|aRmel)_?", pcksFull, value = TRUE, invert = TRUE)
 if (exists("except")) {
   for (pck in except) {
     pcksFull <- grep(paste0("^", pck, "_?"), pcksFull, value = TRUE, invert = TRUE)
   }
 }
-pckDF <- data.frame(Package = gsub("_.*", "", pcksFull),
+pckDF <- data.frame(Package = sub("_.*", "", pcksFull),
                     version = NA)
 
 w <- grep("_", pcksFull)
@@ -96,9 +96,9 @@ if (length(w)) {
     w1 <- rev(which(pckDF$Package %in% dep))[1L]
     if (!is.na(w1)) {
       w0 <- which(pckDF$Package == pck)
-      wRst <- rg[which(!rg %in% c(w1, w0))]
-      wAbove <- wRst[which(wRst < w1)]
-      wBelow <- wRst[which(wRst > w1)]
+      wRst <- rg[!rg %in% c(w1, w0)]
+      wAbove <- wRst[wRst < w1]
+      wBelow <- wRst[wRst > w1]
       ord <- c(wAbove, w1, w0, wBelow)
       stopifnot(length(ord) == nrow(pckDF))
       pckDF <- pckDF[ord,]
@@ -119,7 +119,7 @@ if (length(w)) {
   w <- which(pckDF$Package %in% inst$Package)
   if (length(w)) {
     kount <- 0L
-    while ((kount < 5L)&&(length(w))) {
+    while ((kount < 5L) && length(w)) {
       for (pck in pckDF$Package[w]) {
         parallel::parLapply(parClust, w, \(i) { #i <- w[1L]
           tst <- try(unloadNamespace(pck), silent = TRUE)
@@ -161,13 +161,13 @@ if (length(w)) {
     }
     return(a)
   })
-  print(length(which(!tst2)))
-  Tsts[w[which(!tst2)]] <- FALSE
+  print(sum(!tst2))
+  Tsts[w[!tst2]] <- FALSE
   
   # Install packages
   inst <- as.data.frame(installed.packages())
   pckDF$goAhead <- sapply(pckDF$Dep, \(x) {
-    x <- x[which(x %in% pckDF$Package)]
+    x <- x[x %in% pckDF$Package]
     sum(!x %in% inst$Package) == 0L
   })
   pckDF$Installed <- pckDF$Package %in% inst$Package
@@ -175,7 +175,7 @@ if (length(w)) {
   kount <- 0L
   wNO <- which(pckDF$goAhead & (!pckDF$Installed))
   if (!exists("wNO2")) { wNO2 <- NA }
-  while ((length(wNO))&&(!identical(wNO, wNO2))) {
+  while (length(wNO) && (!identical(wNO, wNO2))) {
     #wNO_ord <- wNO <- which(!pckDF$Installed)
     wNO <- which(pckDF$goAhead & (!pckDF$Installed))
     #pckDF$Package[wNO]
@@ -192,12 +192,12 @@ if (length(w)) {
                                  retry <- TRUE
                                }
                                dep <- pckDF$Dep[[i]]
-                               dep <- dep[which(!is.na(dep))]
-                               dep <- dep[which(dep %in% pckDF$Package)]
+                               dep <- dep[!is.na(dep)]
+                               dep <- dep[dep %in% pckDF$Package]
                                inst <- as.data.frame(installed.packages())
                                ok <- sum(!dep %in% inst$Package) == 0L
                                if (ok) {
-                                 retry <- !((orig == "CRAN")&(!is.na(vers)))
+                                 retry <- !((orig == "CRAN") & (!is.na(vers)))
                                  if (!retry) {
                                    url <- paste0("https://cran.r-project.org/src/contrib/Archive/", pck, "/", pck, "_", vers, ".tar.gz")
                                    a <- try(install.packages(url, repos = NULL, type = "source"), silent = TRUE)
@@ -223,7 +223,7 @@ if (length(w)) {
                                  #   } else {
                                  #     a <- try(devtools::install_version(pck, vers, force = TRUE, upgrade = "never"), silent = TRUE)
                                  #     if (inherits(a, "try-error")) { a <- try(utils::install.packages(pck, repos = "https://cran.wu.ac.at"), silent = TRUE) }
-                                 #     if (inherits(a, "try-error"))&&(retry)) { orig <- "Bioc" }
+                                 #     if (inherits(a, "try-error") && retry) { orig <- "Bioc" }
                                  #     inst <- as.data.frame(installed.packages())
                                  #     if (!pck %in% inst$Package) {
                                  #       # In case we wrongly predicted where we can find a package
@@ -246,12 +246,12 @@ if (length(w)) {
     inst <- as.data.frame(installed.packages())
     pckDF$Installed <- pckDF$Package %in% inst$Package
     pckDF$goAhead <- sapply(pckDF$Dep, \(x) {
-      x <- x[which(x %in% pckDF$Package)]
+      x <- x[x %in% pckDF$Package]
       sum(!x %in% inst$Package) == 0L
     })
-    wNO2 <- which((pckDF$goAhead)&(!pckDF$Installed))
+    wNO2 <- which(pckDF$goAhead & (!pckDF$Installed))
     solved <- pckDF$Package[wNO]
-    solved <- solved[which(!solved %in% pckDF$Package[wNO2])]
+    solved <- solved[!solved %in% pckDF$Package[wNO2]]
     if (length(solved)) {
       print("Resolved the following packages:")
       print(solved)
@@ -269,7 +269,7 @@ if (length(w)) {
   # Hard fix for uchardet - as always
   pck <- "uchardet"
   m <- match(pck, pckDF$Package)
-  if ((!is.na(m))&&(!pckDF$Installed[m])&&(!require(pck, character.only = TRUE, quietly = TRUE))) {
+  if ((!is.na(m)) && (!pckDF$Installed[m]) && (!require(pck, character.only = TRUE, quietly = TRUE))) {
     vers <- pckDF$version[m]
     url <- paste0("https://cran.r-project.org/src/contrib/Archive/uchardet/uchardet_", vers, ".tar.gz")
     destfile <- paste0("uchardet_", vers, ".tar.gz")
@@ -314,7 +314,7 @@ if (length(proteoCraft_Vers)) {
 # }
 
 # Also setwd to expected work directory
-wd <- gsub("/Workflow control/?$", "", dirname(sessInfFl))
+wd <- sub("/Workflow control/?$", "", dirname(sessInfFl))
 setwd(wd)
 
 # Now load a backup - which may not be the one - if any - available in wd!

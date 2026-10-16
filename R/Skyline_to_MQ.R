@@ -71,7 +71,7 @@ Skyline_to_MQ <- function(Skyline_fl,
   shinyOpt <- tolower(shinyOpt)
   if (!shinyOpt %in% c("popup", "dialog", "pane", "browser")) { shinyOpt <- "popup" }
   #
-  data(modifications, package = "PTMods")
+  utils::data(modifications, package = "PTMods", envir = environment())
   UniMod <- modifications
   rm(modifications)
   # Remove:

@@ -193,7 +193,7 @@ PD_to_MQ <- function(PD,
   if (!Isobaric) { EV$"m/z" <- PD$"m/z [Da]" } else {
     ## Fix masses to the MQ format (isobaric tag mass removed)
     IsoTaest <- as.data.frame(sapply(unique(unlist(strsplit(PD$temp_mod, ";"))), \(m) {
-      vapply(strsplit(PD$temp_mod, ";"), \(x) { length(which(unlist(x) == m)) }, 1L)
+      vapply(strsplit(PD$temp_mod, ";"), \(x) { sum(unlist(x) == m) }, 1L)
     }))
     KTaest <- nchar(EV$Sequence)-nchar(gsub("K", "", EV$Sequence))+1L
     taest <- sweep(IsoTaest, 1L, KTaest, "-")
@@ -228,8 +228,8 @@ PD_to_MQ <- function(PD,
   if (Isobaric) {
     g <- grep("^[0-9]+[N,C]?$", colnames(PD), value = TRUE)
     if (sum(c("131", "131N") %in% g) == 2L) {
-      l <- length(which((!is.na(PD$"131")) & (!is.na(PD$"131N"))))
-      if (l > 0) {
+      l <- sum((!is.na(PD$"131")) & (!is.na(PD$"131N")))
+      if (l > 0L) {
         warning("Channels named 131 and 131N are both present, and have non-NA values for the same PSMs, so will not be conflated.")
       } else {
         warning("Channels named 131 and 131N are both present and will be conflated.")
@@ -277,7 +277,7 @@ PD_to_MQ <- function(PD,
     test <- aggregate(evtemp$Identification, list(evtemp$Spectrum), length)
     w <- which(test$x > 1L)
     if (length(w)) {
-      l <- length(which(evtemp$Spectrum %in% test$Group.1[w]))
+      l <- sum(evtemp$Spectrum %in% test$Group.1[w])
       warning(paste0("Removing ", l, " conflicting PSMs!"))
       evtemp <- evtemp[evtemp$Spectrum %in% test$Group.1[test$x == 1L],]
     }

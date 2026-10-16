@@ -20,7 +20,7 @@ if (LabelType == "LFQ") {
     temp <- ev[, ev.col["Original"], drop = FALSE]
     test <- parApply(parClust, temp, 1L, \(x) { sum(x[is.finite(x)]) })
   }
-  l <- length(which(test == 0))
+  l <- sum(test == 0)
   if (l) {
     cat(paste0("Removing ", l, " (", signif(100*l/nrow(ev), 2L), "%) PSMs with invalid expression values!\n"))
     w <- which(test > 0)

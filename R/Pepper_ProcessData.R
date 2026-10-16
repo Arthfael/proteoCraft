@@ -47,7 +47,7 @@ Pepper_ProcessData <- function(Ev,
   #
   if (!"Mass shift" %in% colnames(Modifs)) {
     if ("UniMod" %in% colnames(Modifs)) {
-      data(modifications, package = "PTMods")
+      utils::data(modifications, package = "PTMods", envir = environment())
       UniMod <- modifications
       rm(modifications)
       Modifs$"Mass shift" <- UniMod$MonoMass[match(Modifs$UniMod, UniMod$UnimodId)]

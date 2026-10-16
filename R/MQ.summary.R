@@ -66,6 +66,9 @@ MQ.summary <- function(wd,
   if (!dir.exists(WD)) { dir.create(WD) }
   sv <- (length(save) > 1L) || ((length(save) == 1L) && (!toupper(as.character(save)) %in% c("FALSE", "NaN", "NA")))
   if (sv) { save <- unique(sub("^jpg$", "jpeg", sub("^\\.", "", tolower(save)))) }
+  if ("svg" %in% save) {
+    requireNamespace("svglite")
+  }
   if (misFun(ev)) {
     ev <- MQ.load(return = TRUE, assign = FALSE, pep = FALSE, prot = FALSE)$evidences
   }
@@ -88,7 +91,7 @@ MQ.summary <- function(wd,
                     "Protein groups" = nrow(pg),
                     check.names = FALSE)
   if ("Leading Protein IDs" %in% colnames(pg)) { Res$Proteins <- length(unique(unlist(strsplit(pg$"Leading Protein IDs", ";")))) }
-  UseMods <- ((!is.null(mods))&&(length(mods)))
+  UseMods <- (!is.null(mods)) && length(mods)
   if (UseMods) {
     if (is.null(names(mods))) { names(mods) <- mods }
     for (i in 1L:length(mods)) {
@@ -108,7 +111,7 @@ MQ.summary <- function(wd,
                       "Extension" = vapply(strsplit(raw.files, "\\."), \(x) { rev(unlist(x))[1L] }, ""),
                       "Exists" = file.exists(raw.files),
                       check.names = FALSE)
-    if (length(which(!Raw$Exists))) {
+    if (sum(!Raw$Exists)) {
       warning(paste0("Could not find the following raw files:\n",
                      paste(paste0(" - ", Raw$Path[!Raw$Exists]), collapse = "\n")))
       #Raw$Path <- NULL
@@ -230,7 +233,6 @@ MQ.summary <- function(wd,
             htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
             #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
           } else {
-            if (s == "svg") { requireNamespace("svglite") }
             ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
           }
         } }
@@ -287,7 +289,6 @@ MQ.summary <- function(wd,
           htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
           #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
         } else {
-          if (s == "svg") { requireNamespace("svglite") }
           ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
       } }
@@ -335,7 +336,6 @@ MQ.summary <- function(wd,
           htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
           #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
         } else {
-          if (s == "svg") { requireNamespace("svglite") }
           ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
       } }
@@ -385,7 +385,6 @@ MQ.summary <- function(wd,
           htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
           #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
         } else {
-          if (s == "svg") { requireNamespace("svglite") }
           ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
         }
       } }
@@ -456,7 +455,7 @@ MQ.summary <- function(wd,
                                        size = winsz)
             tmp <- do.call(rbind, tmp)
             temp$tst <- tmp$tst[match(1L:nrow(temp), tmp$Wh)]
-            temp$tst <- (temp$tst)&(temp$Intensity > max(temp$Intensity)/10)
+            temp$tst <- temp$tst & (temp$Intensity > max(temp$Intensity)/10)
             yscl <- max(temp$Intensity)
             if (length(levels(rawFls)) > sc) {
               temp$iter <- Raw$iter[match(temp$"Raw file path", Raw$Path)]
@@ -503,7 +502,6 @@ MQ.summary <- function(wd,
                   htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
                   #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
                 } else {
-                  if (s == "svg") { requireNamespace("svglite") }
                   ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
                 }
               } }
@@ -529,7 +527,7 @@ MQ.summary <- function(wd,
         return(rs)
       })
       msms <- plyr::rbind.fill(msms)
-      if ((is.data.frame(msms))&&(nrow(msms))) {
+      if (is.data.frame(msms) && nrow(msms)) {
         msmsOK <- TRUE
         msms$"Raw file" <- factor(msms$"Raw file", levels = levels(rawFls))
         msms <- msms[!is.na(msms$"Raw file"),]
@@ -540,7 +538,7 @@ MQ.summary <- function(wd,
         if (length(levels(rawFls)) > sc) {
           msms$iter <- Raw$iter[match(msms$"Raw file", Raw$"Raw file")]
           w <- which(is.na(msms$iter))
-          if ((length(w))&&("Raw file path" %in% names(msms))) {
+          if (length(w) && ("Raw file path" %in% names(msms))) {
             msms$iter[w] <- Raw$iter[match(msms$"Raw file path"[w], Raw$"Raw file")]
           }
         } else { msms$iter <- 1L }
@@ -578,7 +576,6 @@ MQ.summary <- function(wd,
               htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
               #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
-              if (s == "svg") { requireNamespace("svglite") }
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
           } }
@@ -600,7 +597,7 @@ MQ.summary <- function(wd,
         return(rs)
       })
       msmsScans <- plyr::rbind.fill(msmsScans)
-      if ((is.data.frame(msmsScans))&&(nrow(msmsScans))) {
+      if (is.data.frame(msmsScans) && nrow(msmsScans)) {
         msmsScans <- msmsScans[order(msmsScans$"Retention time", decreasing = FALSE),]
         msmsScans <- msmsScans[order(msmsScans$"Raw file"),]
         msmsScans$Unique_scan <- gsub("___ +", "___", do.call(paste, c(msmsScans[, c("Raw file", "Scan number")], sep = "___")))
@@ -615,7 +612,7 @@ MQ.summary <- function(wd,
         if (length(levels(rawFls)) > sc) {
           msmsScans$iter <- Raw$iter[match(msmsScans$"Raw file", Raw$"Raw file")]
           w <- which(is.na(msmsScans$iter))
-          if ((length(w))&&("Raw file path" %in% names(msmsScans))) {
+          if (length(w) && ("Raw file path" %in% names(msmsScans))) {
             msmsScans$iter[w] <- Raw$iter[match(msmsScans$"Raw file path"[w], Raw$"Raw file")]
           }
         } else { msmsScans$iter <- 1L }
@@ -646,7 +643,6 @@ MQ.summary <- function(wd,
               htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
               #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
-              if (s == "svg") { requireNamespace("svglite") }
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
           } }
@@ -716,7 +712,6 @@ MQ.summary <- function(wd,
               htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
               #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
-              if (s == "svg") { requireNamespace("svglite") }
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
           } }
@@ -752,7 +747,6 @@ MQ.summary <- function(wd,
               htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
               #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
-              if (s == "svg") { requireNamespace("svglite") }
               ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
             }
           } }
@@ -796,7 +790,6 @@ MQ.summary <- function(wd,
                   htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
                   #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
                 } else {
-                  if (s == "svg") { requireNamespace("svglite") }
                   ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
                 }
               } }
@@ -819,7 +812,7 @@ MQ.summary <- function(wd,
         return(rs)
       })
       ev2 <- plyr::rbind.fill(ev2)
-      if ((is.data.frame(ev2))&&(nrow(ev2))) {
+      if (is.data.frame(ev2) && nrow(ev2)) {
         ev2$"Raw file" <- factor(ev2$"Raw file", levels = levels(rawFls))
         ev2$Class <- "Sample"
         w1 <- which(ev2$Reverse == "+")
@@ -855,7 +848,6 @@ MQ.summary <- function(wd,
             htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
             #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
           } else {
-            if (s == "svg") { requireNamespace("svglite") }
             ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
           }
         } }

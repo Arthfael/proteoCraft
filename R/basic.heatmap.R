@@ -263,7 +263,7 @@ basic.heatmap <- function(matr,
   save <- unique(sub("^jpg$", "jpeg", sub("^\\.", "", tolower(as.character(save)))))
   save <- setdiff(save, "false")
   if (length(save)) {
-    if ("svg" %in% save) { require(svglite) }
+    if ("svg" %in% save) { requireNamespace("svglite") }
     if (!dir.exists(folder)) { dir.create(folder, recursive = TRUE) }
     folder <- normalizePath(folder, winslash = "/")
     ttl <- title

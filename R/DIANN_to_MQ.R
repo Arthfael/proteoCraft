@@ -87,7 +87,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   }
   N.clust <- length(cl)
   #
-  data(modifications, package = "PTMods")
+  utils::data(modifications, package = "PTMods", envir = environment())
   UniMod <- modifications
   rm(modifications)
   # Remove:

@@ -674,7 +674,7 @@ if (length(W)) {
     #    r <- r+1L
     #    Com <- gtools::combinations(n = lr, r = r, v = removables)
     #    tst <- apply(Com, 1L, \(x) { sum(!P %in% unique(c(cp, unlist(pg$.pep.ids[unlist(x)])))) }) == 0L
-    #    if (length(which(tst))) { done <- TRUE }
+    #    if (sum(tst)) { done <- TRUE }
     #  }
     #  if (r == lr) { stop("Something went wrong!") }
     #  keepers <- sort(c(core, unique(as.integer(Com[tst,]))))

@@ -118,8 +118,11 @@ Configure <- function(updateOntologies = FALSE) { #updateOntologies = TRUE
   } else {
     try(file.copy(fl0, homePath, overwrite = FALSE), silent = TRUE)
   }
-  scrpts2 <- c("Regulation analysis - detailed script", "Regulation analysis - detailed script_pepOnly", 
-               "No replicates analysis - detailed script", "Histones_analysis_-_DiaNN_FragPipe_Skyline_or_alphaDIA_input", 
+  scrpts2 <- c("Getting_started",
+               "PG_modPep_regulation_Rep_Workflow",
+               "PG_modPep_regulation_noRep_Workflow",
+               "pep_regulation_Rep_Worfklow",
+               "histones_PTMs_Workflow", 
                "Reload_renv_from_lock_file")
   extDr1 <- paste0(proteoPath, "/extdata")
   fls <- paste0(extDr1, "/", scrpts2, ".R")

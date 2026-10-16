@@ -806,14 +806,14 @@ Volcano.plot <- function(Prot,
         indDat <- sweep(sweep(indDat, 1L, m, "-"), 1L, sd, "/")
       }
       indRng <- range(indDat, na.rm = TRUE)
-      data(XL_formatting, package = "proteoCraft")
-      if (exists("xl_colScales")) {
+      #utils::data(XL_formatting, package = "proteoCraft", envir = environment())
+      #if (exists("xl_colScales")) {
         lowColor <- xl_colScales$`Individual Expr`[1L]
         highColor <- xl_colScales$`Individual Expr`[2L]
-      } else {
-        lowColor <- "red"
-        highColor <- "green"
-      }
+      #} else {
+      #  lowColor <- "red"
+      #  highColor <- "green"
+      #}
       indPal <- scales::col_numeric(palette = c(lowColor, highColor),
                                     domain = indRng)
       indColDat <- matrix(paste0("<span style=\"color:", indPal(as.matrix(indDat)), "\">&#9632;</span>"), ncol = ncol(indDat))

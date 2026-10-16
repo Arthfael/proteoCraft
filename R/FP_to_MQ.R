@@ -212,7 +212,7 @@ FP_to_MQ <- function(FP_Workflow,
   #
   # Process PTMs
   # - Load and post-process UniMod object
-  data(modifications, package = "PTMods")
+  utils::data(modifications, package = "PTMods", envir = environment())
   UniMod <- modifications
   rm(modifications)
   # As of early 2023 this package did not have the whole of Unimod,
@@ -567,7 +567,7 @@ FP_to_MQ <- function(FP_Workflow,
     OpenSearch <- ("Observed Modifications" %in% colnames(PSMs))
   }
   if (OpenSearch) {
-    OpenSearch <- length(which(!is.na(PSMs$`Observed Modifications`))) > 0L
+    OpenSearch <- sum(!is.na(PSMs$`Observed Modifications`)) > 0L
   }
   if (OpenSearch) {
     Modifs$"Type of search" <- "Closed"
@@ -778,7 +778,7 @@ FP_to_MQ <- function(FP_Workflow,
   EV$Expectation <- PSMs$Expectation
   #
   #tst <- as.data.frame(t(sapply(strsplit(PSMs$Spectrum, "\\."), unlist)))
-  #length(which(tst$V2 != tst$V3)) == 0L
+  #sum(tst$V2 != tst$V3) == 0L
   #tst$V3 <- NULL
   #tst$V2 <- as.numeric(tst$V2)
   #tst$V4 <- as.numeric(tst$V4)

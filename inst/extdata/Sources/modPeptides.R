@@ -566,26 +566,26 @@ if (exists("PTMstats") && nrow(PTMstats)) {
         w <- which(g2$Ref == i)
         PTMs_Reg_filters[[Ptm]]$"t-tests"$"By reference"[[i]] <- list(Columns = g[w],
                                                                       Filter_up = sort(which(apply(ptmpep[, g[w], drop = FALSE], 1L, \(x) {
-                                                                        length(which(x %in% up))
+                                                                        sum(x %in% up)
                                                                       }) > 0L)),
                                                                       Filter_down = sort(which(apply(ptmpep[, g[w], drop = FALSE], 1L, \(x) {
-                                                                        length(which(x %in% down))
+                                                                        sum(x %in% down)
                                                                       }) > 0L)),
                                                                       Filter = sort(which(apply(ptmpep[, g[w], drop = FALSE], 1L, \(x) {
-                                                                        length(which(x %in% c(up, down)))
+                                                                        sum(x %in% c(up, down))
                                                                       }) > 0L)))
       }
     }
     if (sum(c("dat", "dat2") %in% filter_types)) {
       PTMs_Reg_filters[[Ptm]]$"t-tests"$"Whole dataset" <- list(Columns = g,
                                                                 Filter_up = sort(which(apply(ptmpep[, g, drop = FALSE], 1L, \(x) {
-                                                                  length(which(x %in% up))
+                                                                  sum(x %in% up)
                                                                 }) > 0L)),
                                                                 Filter_down = sort(which(apply(ptmpep[, g, drop = FALSE], 1L, \(x) {
-                                                                  length(which(x %in% down))
+                                                                  sum(x %in% down)
                                                                 }) > 0L)),
                                                                 Filter = sort(which(apply(ptmpep[, g, drop = FALSE], 1L, \(x) {
-                                                                  length(which(x %in% c(up, down)))
+                                                                  sum(x %in% c(up, down))
                                                                 }) > 0L)))
     }
     if (exists("F.test") && F.test) {
@@ -645,13 +645,13 @@ if (exists("PTMstats") && nrow(PTMstats)) {
             w <- which(g2$Ref == i)
             PTMs_Reg_filters[[Ptm]]$"F-tests"$"By reference"[[i]] <- list(Columns = g[w],
                                                                           Filter_up = sort(which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
-                                                                            length(which(x %in% up))
+                                                                            sum(x %in% up)
                                                                           }) > 0L)),
                                                                           Filter_down = sort(which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
-                                                                            length(which(x %in% down))
+                                                                            sum(x %in% down)
                                                                           }) > 0L)),
                                                                           Filter = sort(which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
-                                                                            length(which(x %in% c(up, down)))
+                                                                            sum(x %in% c(up, down))
                                                                           }) > 0L)))
           }
         }
@@ -664,26 +664,26 @@ if (exists("PTMstats") && nrow(PTMstats)) {
             w <- which(g2$Group_Analysis == i)
             PTMs_Reg_filters[[Ptm]]$"F-tests"$"By analysis"[[i]] <- list(Columns = g[w],
                                                                          Filter_up = sort(which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
-                                                                           length(which(x %in% up))
+                                                                           sum(x %in% up)
                                                                          }) > 0L)),
                                                                          Filter_down = sort(which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
-                                                                           length(which(x %in% down))
+                                                                           sum(x %in% down)
                                                                          }) > 0L)),
                                                                          Filter = sort(which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
-                                                                           length(which(x %in% c(up, down)))
+                                                                           sum(x %in% c(up, down))
                                                                          }) > 0L)))
           }
         }
         if ("dat2" %in% filter_types) {
           PTMs_Reg_filters[[Ptm]]$"F-tests"$"Whole dataset" <- list(Columns = g,
                                                                     Filter_up = sort(which(apply(PTMs_F_test_data[[Ptm]][, g, drop = FALSE], 1L, \(x) {
-                                                                      length(which(x %in% up))
+                                                                      sum(x %in% up)
                                                                     }) > 0L)),
                                                                     Filter_down = sort(which(apply(PTMs_F_test_data[[Ptm]][, g, drop = FALSE], 1L, \(x) {
-                                                                      length(which(x %in% down))
+                                                                      sum(x %in% down)
                                                                     }) > 0L)),
                                                                     Filter = sort(which(apply(PTMs_F_test_data[[Ptm]][, g, drop = FALSE], 1L, \(x) {
-                                                                      length(which(x %in% c(up, down)))
+                                                                      sum(x %in% c(up, down))
                                                                     }) > 0L)))
         }
       } else { warning("The F-test did not generate any plots! Investigate!") }

@@ -73,9 +73,9 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                "Class",
                "Vendor",
                "Length (cm)",
-               "ID (µm)",
-               "Particles size (µm)",
-               "Pore size (Å)",
+               "ID (\u{00b5}m)",
+               "Particles size (\u{00b5}m)",
+               "Pore size (\u{00c5})",
                "Material",
                "Type",
                "Description",
@@ -109,19 +109,19 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     allKolumns <- openxlsx2::read_xlsx(Columns)
   } else {
     # Should never happen now that we distribute "LC_columns.xlsx" with the package - this is old code
-    Kolumns <- c("EasySpray C18 column (2 µm particle size, 75 µm ID x 50 cm length, ThermoFisher Scientific P/N ES903)",
-                 "200 cm C18 µPAC column (micro-Pillar Array Column, PharmaFluidics P/N 5525031518210B)",
-                 "50 cm C18 µPAC GEN2 column (2nd generation micro-Pillar Array Column, PharmaFluidics P/N COL-nano050G2B)")
-    preKolumns <- c("Acclaim PepMap C18 pre-column (5 µm particle size, 0.3 mm ID x 5 mm length, ThermoFisher Scientific P/N 160454)",
-                    "C18 µPAC trapping-column (PharmaFluidics P/N 55250200018001)")
+    Kolumns <- c("EasySpray C18 column (2 \u{00b5}m particle size, 75 \u{00b5}m ID x 50 cm length, ThermoFisher Scientific P/N ES903)",
+                 "200 cm C18 \u{00b5}PAC column (micro-Pillar Array Column, PharmaFluidics P/N 5525031518210B)",
+                 "50 cm C18 \u{00b5}PAC GEN2 column (2nd generation micro-Pillar Array Column, PharmaFluidics P/N COL-nano050G2B)")
+    preKolumns <- c("Acclaim PepMap C18 pre-column (5 \u{00b5}m particle size, 0.3 mm ID x 5 mm length, ThermoFisher Scientific P/N 160454)",
+                    "C18 \u{00b5}PAC trapping-column (PharmaFluidics P/N 55250200018001)")
     allKolumns <- data.frame(Name = c(Kolumns, preKolumns),
                              Class = c(Kolumns, preKolumns),
                              Material = "C18",
                              "Vendor" = c("ThermoFisher Scientific", "PharmaFluidics", "PharmaFluidics", "ThermoFisher Scientific", "PharmaFluidics"),
                              "Length (cm)" = c(50, 200, 50, 0.5, NA),
-                             "ID (µm)" = c(75, NA, NA, 300, NA),
-                             "Particles size (µm)" = c(2, NA, NA, 5, NA),
-                             "Pore size (Å)" = NA,
+                             "ID (\u{00b5}m)" = c(75, NA, NA, 300, NA),
+                             "Particles size (\u{00b5}m)" = c(2, NA, NA, 5, NA),
+                             "Pore size (\u{00c5})" = NA,
                              "P/N" = c("ES903", "5525031518210B", "COL-nano050G2B", "160454", "55250200018001"),
                              Type = c("Analytical", "Analytical", "Analytical", "Trap",  "Trap"),
                              Description = "",
@@ -130,14 +130,14 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
   allKolumns <- allKolumns[which(nchar(allKolumns$Name) > 0L),]
   if (!"Description" %in% colnames(allKolumns)) { allKolumns$Description <- "" }
   kolDescr <- \(Colonnes) {
-    apply(Colonnes[, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N"),
+    apply(Colonnes[, c("Name", "Material", "Length (cm)", "ID (\u{00b5}m)", "Particles size (\u{00b5}m)", "Vendor", "P/N"),
                    drop = FALSE], 1L, \(x) {
-      #x <- Colonnes[1, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N")]
+      #x <- Colonnes[1, c("Name", "Material", "Length (cm)", "ID (\u{00b5}m)", "Particles size (\u{00b5}m)", "Vendor", "P/N")]
       x <- gsub("^ +| +$", "", as.character(unlist(x)))
       dimz <- c(x[3L], x[4L])
       w <- which(!is.na(dimz))
       dimzTst <- length(w) > 0L
-      dimz <- if (dimzTst) { paste(paste0(sub("\\.0+$", "", dimz), c(" cm", " µm ID"))[w], collapse = " * ") } else { NA }
+      dimz <- if (dimzTst) { paste(paste0(sub("\\.0+$", "", dimz), c(" cm", " \u{00b5}m ID"))[w], collapse = " * ") } else { NA }
       pn <- c(x[6L], x[7L])
       w <- which(!is.na(pn))
       pnTst <- length(w) > 0L
@@ -147,7 +147,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       prtcls <- c(x[5L], x[2L])
       w <- which(!is.na(prtcls))
       prtclsTst <- length(w) > 0L
-      prtcls <- if (prtclsTst) { paste(paste0(prtcls, c(" µm", "-coated particles"))[w], collapse = " ") } else { NA }
+      prtcls <- if (prtclsTst) { paste(paste0(prtcls, c(" \u{00b5}m", "-coated particles"))[w], collapse = " ") } else { NA }
       res <- paste0(x[1L], " column (", paste(c(prtcls, dimz, pn)[which(c(prtclsTst, dimzTst, pnTst))], collapse = ", "), ")")
       res <- gsub("column column", "column", res, ignore.case = TRUE)
       return(res)
@@ -196,7 +196,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                          MS = c())
   # Bruker .d folders
   if ("d" %in% tolower(Ext)) {
-    ADflt <- "MS-grade H₂O + 0.1% formic acid"
+    ADflt <- "MS-grade H\u{2082}O + 0.1% formic acid"
     BDflt <- "100% acetonitrile + 0.1% formic acid"
     BrMeth <- MethodsTbl[tolower(MethodsTbl$Ext) == "d",]
     BrMeth$FlInfo <- paste0(BrMeth$Raw.file, "/SampleInfo.xml")
@@ -543,7 +543,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                       Txt)
       }
       Txt <- paste0("MS method: M/Z range = ", paste(MssRng, collapse = "-"), " Th, ion mobility range = ", paste(MobRng, collapse = "-"), " 1/K0; ", Txt, ".")
-      Txt <- gsub("cm2", "cm²", Txt)
+      Txt <- gsub("cm2", "cm\u{00b2}", Txt)
       if (DIAtst) {
         DIAfl <- sub("\\.m$", " - DIA_windows.csv", fl)
         cat("Writing DIA windows to", DIAfl, "\n")
@@ -632,7 +632,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         LC_txt <- if (USESTRAP) {
           paste0(LC_txt, ", concentrated over a", c("", "n")[tstPreCol+1L], " ", PRECOLUMN, ", then ")
         } else { paste0(LC_txt, ". ", c("The s", "S")[Moult2+1L], "ample", c(" was", "s were")[Moult2+1L], " ") }
-        LC_txt <- paste0(LC_txt, "bound to a", c("", "n")[tstCol+1L], " ", COLUMN, " heated at ", ovenTEMP, "°C and eluted over the following ", GRADLENGTH,
+        LC_txt <- paste0(LC_txt, "bound to a", c("", "n")[tstCol+1L], " ", COLUMN, " heated at ", ovenTEMP, "\u{00b0}C and eluted over the following ", GRADLENGTH,
                          " min gradient: solvent A, ", SolvA, "; ", "solvent B, ", SolvB, "; ",
                          "constant ", FLOWVALUE, " nL/min flow; ",
                          "B percentage: ", Grad, ".")
@@ -781,8 +781,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
           msMeth <- meth[g:length(meth)]
           INSTR <- sub("^ +Method of ", "", msMeth[3L])
           NANO <- gsub(" +", " ", gsub("Thermo", "", gsub("_", " ", gsub("^Instrument: | on .*", "", grep("^Instrument: ", lcMeth, value = TRUE, ignore.case = TRUE))), ignore.case = TRUE))
-          ADflt <- "MS-grade H₂O + 0.1% formic acid"
-          BDflt <- "80% acetonitrile in H₂O + 0.08% formic acid"
+          ADflt <- "MS-grade H\u{2082}O + 0.1% formic acid"
+          BDflt <- "80% acetonitrile in H\u{2082}O + 0.08% formic acid"
           if (NANO %in% c("RSLC Nano", "Vanquish NEO")) {
             NANOMAKER <- "ThermoFisher Scientific"
             if (NANO == "RSLC Nano") {
@@ -830,7 +830,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
               if (l < 7L) { kol <- c(kol, rep(NA, 7L-l)) }
               kol <- kol[1L:7L]
               tmp <- as.data.frame(t(as.data.frame(kol)))
-              colnames(tmp) <- c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N")
+              colnames(tmp) <- c("Name", "Material", "Length (cm)", "ID (\u{00b5}m)", "Particles size (\u{00b5}m)", "Vendor", "P/N")
               tmp$Function <- "Analytical"
               tmp$Description <- kolDescr(tmp)
               k <- setdiff(colnames(allKolumns), colnames(tmp))
@@ -857,7 +857,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                 kol <- svDialogs::dlg_input("Fill in new trap's characteristics (\"|\"-separated):",
                                             colChar)$res
                 tmp <- as.data.frame(t(as.data.frame(unlist(strsplit(kol, " *\\| *")))))
-                colnames(tmp) <- c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N")
+                colnames(tmp) <- c("Name", "Material", "Length (cm)", "ID (\u{00b5}m)", "Particles size (\u{00b5}m)", "Vendor", "P/N")
                 tmp$Function <- "Trap"
                 k <- setdiff(colnames(allKolumns), colnames(tmp))
                 tmp[, k] <- NA
@@ -907,7 +907,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
             FWHM <- gsub("^ *Chrom\\. peak width \\(FWHM\\) *| *s *$", "", grep("Chrom\\. peak width \\(FWHM\\)", msMeth, value = TRUE))
             msMeth2 <- msMeth[grep(" +Experiments?$", msMeth)[1L]:length(msMeth)]
             MS1 <- data.frame(Start = grep("FULL MS*", msMeth2))
-            DIAtst <- c("dd-MS² / dd-SIM", "DIA") %in% msMeth2
+            DIAtst <- c("dd-MS\u{00b2} / dd-SIM", "DIA") %in% msMeth2
             if (!sum(DIAtst)) {
               warning("Message from function:\nSorry, I can currently only deal with DDA or DIA methods.")
             }
@@ -915,7 +915,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
               warning("Message from function:\nThis LC-MS method seems to combine both DDA and DIA scans, I cannot make sense of it in my current code.\nPlease rewrite me!")
             }
             if (sum(DIAtst) == 1L) {
-              MS2Type <- c("dd-MS² / dd-SIM", "DIA")[DIAtst]
+              MS2Type <- c("dd-MS\u{00b2} / dd-SIM", "DIA")[DIAtst]
               MS2 <- data.frame(Start = which(msMeth2 == MS2Type)[1L],
                                 End = which(msMeth2 == "                                     Setup")-2L)
               MS1$End <- MS2$Start-2L

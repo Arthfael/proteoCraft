@@ -46,11 +46,11 @@ require(svDialogs)
 WrkFlwsTbl <- data.frame(Name = c("Protein Groups - with replicates",
                                   "Protein Groups - no replicates",
                                   "Modified peptidoforms - with replicates",
-                                  "Histone tails"),
-                         Script = c("Regulation analysis - detailed script",
-                                    "No replicates analysis - detailed script",
-                                    "Regulation analysis - detailed script_pepOnly",
-                                    "Histones_analysis_-_DiaNN_FragPipe_Skyline_or_alphaDIA_input"))
+                                  "Histone tails PTM analysis"),
+                         Script = c("PG_modPep_regulation_Rep_Workflow",
+                                    "PG_modPep_regulation_noRep_Worfklow",
+                                    "pep_regulation_Rep_Worfklow",
+                                    "histones_PTMs_Workflow"))
 myWrkFlw %<o% dlg_list(WrkFlwsTbl$Name, WrkFlwsTbl$Name[1L], title = "Choose analysis workflow")$res
 wrkflwSrc %<o% paste0(homePath, "/", WrkFlwsTbl$Script[match(myWrkFlw, WrkFlwsTbl$Name)], ".R")
 #rstudioapi::documentOpen(wrkflwSrc) # Inspect current workflow script

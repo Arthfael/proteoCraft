@@ -11,7 +11,6 @@ if (scrptType == "withReps") { dirlist <- unique(c(dirlist, dir)) }
 writeLines(capture.output(sessionInfo()), paste0(dir, "/sessionInfo.txt"))
 
 # Copy script itself and guide to the results there:
-#file.copy(system.file("extdata", "Regulation analysis - master script.R", package = "proteoCraft"), wd, overwrite = TRUE)
 if (dirname(ScriptPath) != wd) { file.copy(ScriptPath, wd, overwrite = TRUE) }
 file.copy(system.file("extdata", paste0("Guide_to_the_Results_", c("", "no ")[match(scrptType,
                                                                                     c("withReps", "noReps"))],

@@ -52,7 +52,7 @@ pepHtmp <- function(intProt = prot.list_pep,
     ttlRoot <- "Peptides log2 heatmap"
   }
   if (!dir.exists(dstDir)) { dir.create(dstDir, recursive = TRUE) }
-  if (exists("dirlist")) { assign("dirlist", unique(c(dirlist, dstDir)), envir = .GlobalEnv) }
+  if (exists("dirlist")) { assign("dirlist", union(dirlist, dstDir), envir = .GlobalEnv) }
   #
   g <- intersect(paste0(ref, RSA$values),
                  colnames(Pep))

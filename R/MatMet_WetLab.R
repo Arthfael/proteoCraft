@@ -41,9 +41,9 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                "Class",
                "Vendor",
                "Length (cm)",
-               "ID (µm)",
-               "Particles size (µm)",
-               "Pore size (Å)",
+               "ID (\u{00b5}m)",
+               "Particles size (\u{00b5}m)",
+               "Pore size (\u{00c5})",
                "Material",
                "Type",
                "Description",
@@ -77,19 +77,19 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
     allKolumns <- openxlsx2::read_xlsx(Columns)
   } else {
     # Should never happen now that we distribute "LC_columns.xlsx" with the package - this is old code
-    Kolumns <- c("EasySpray C18 column (2 µm particle size, 75 µm ID x 50 cm length, ThermoFisher Scientific P/N ES903)",
-                 "200 cm C18 µPAC column (micro-Pillar Array Column, PharmaFluidics P/N 5525031518210B)",
-                 "50 cm C18 µPAC GEN2 column (2nd generation micro-Pillar Array Column, PharmaFluidics P/N COL-nano050G2B)")
-    preKolumns <- c("Acclaim PepMap C18 pre-column (5 µm particle size, 0.3 mm ID x 5 mm length, ThermoFisher Scientific P/N 160454)",
-                    "C18 µPAC trapping-column (PharmaFluidics P/N 55250200018001)")
+    Kolumns <- c("EasySpray C18 column (2 \u{00b5}m particle size, 75 \u{00b5}m ID x 50 cm length, ThermoFisher Scientific P/N ES903)",
+                 "200 cm C18 \u{00b5}PAC column (micro-Pillar Array Column, PharmaFluidics P/N 5525031518210B)",
+                 "50 cm C18 \u{00b5}PAC GEN2 column (2nd generation micro-Pillar Array Column, PharmaFluidics P/N COL-nano050G2B)")
+    preKolumns <- c("Acclaim PepMap C18 pre-column (5 \u{00b5}m particle size, 0.3 mm ID x 5 mm length, ThermoFisher Scientific P/N 160454)",
+                    "C18 \u{00b5}PAC trapping-column (PharmaFluidics P/N 55250200018001)")
     allKolumns <- data.frame(Name = c(Kolumns, preKolumns),
                              Class = c(Kolumns, preKolumns),
                              Material = "C18",
                              "Vendor" = c("ThermoFisher Scientific", "PharmaFluidics", "PharmaFluidics", "ThermoFisher Scientific", "PharmaFluidics"),
                              "Length (cm)" = c(50, 200, 50, 0.5, NA),
-                             "ID (µm)" = c(75L, NA, NA, 300L, NA),
-                             "Particles size (µm)" = c(2, NA, NA, 5L, NA),
-                             "Pore size (Å)" = NA,
+                             "ID (\u{00b5}m)" = c(75L, NA, NA, 300L, NA),
+                             "Particles size (\u{00b5}m)" = c(2, NA, NA, 5L, NA),
+                             "Pore size (\u{00c5})" = NA,
                              "P/N" = c("ES903", "5525031518210B", "COL-nano050G2B", "160454", "55250200018001"),
                              Type = c("Analytical", "Analytical", "Analytical", "Trap",  "Trap"),
                              Description = "",
@@ -98,14 +98,14 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
   allKolumns <- allKolumns[which(nchar(allKolumns$Name) > 0L),]
   if (!"Description" %in% colnames(allKolumns)) { allKolumns$Description <- "" }
   kolDescr <- \(Colonnes) {
-    apply(Colonnes[, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N"), drop = FALSE],
+    apply(Colonnes[, c("Name", "Material", "Length (cm)", "ID (\u{00b5}m)", "Particles size (\u{00b5}m)", "Vendor", "P/N"), drop = FALSE],
           1L, \(x) {
-      #x <- Colonnes[1, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N")]
+      #x <- Colonnes[1, c("Name", "Material", "Length (cm)", "ID (\u{00b5}m)", "Particles size (\u{00b5}m)", "Vendor", "P/N")]
       x <- gsub("^ +| +$", "", as.character(unlist(x)))
       dimz <- c(x[3L], x[4L])
       w <- which(!is.na(dimz))
       dimzTst <- length(w) > 0L
-      dimz <- if (dimzTst) { paste(paste0(sub("\\.0+$", "", dimz), c(" cm", " µm ID"))[w], collapse = " * ") } else { NA_character_ }
+      dimz <- if (dimzTst) { paste(paste0(sub("\\.0+$", "", dimz), c(" cm", " \u{00b5}m ID"))[w], collapse = " * ") } else { NA_character_ }
       pn <- c(x[6L], x[7L])
       w <- which(!is.na(pn))
       pnTst <- length(w) > 0L
@@ -116,7 +116,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
       w <- which(!is.na(prtcls))
       prtclsTst <- length(w) > 0L
       prtcls <- if (prtclsTst) {
-        paste(paste0(prtcls, c(" µm", "-coated particles"))[w], collapse = " ")
+        paste(paste0(prtcls, c(" \u{00b5}m", "-coated particles"))[w], collapse = " ")
       } else { NA_character_ }
       res <- paste0(x[1L], " column (", paste(c(prtcls, dimz, pn)[which(c(prtclsTst, dimzTst, pnTst))], collapse = ", "), ")")
       res <- gsub("column column", "column", res, ignore.case = TRUE)
@@ -183,16 +183,16 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                                          50L)$res
       }
       if (!PreOmics) {
-        Reduct <- svDialogs::dlg_list(c("TCEP", "DTT", "β-Mercaptoethanol", "Other"), "TCEP",
+        Reduct <- svDialogs::dlg_list(c("TCEP", "DTT", "\u{03b2}-Mercaptoethanol", "Other"), "TCEP",
                                       title = "How were the samples reduced?")$res
         if (Reduct == "Other") { Reduct <- svDialogs::dlg_input("Enter the name of the reducing agent used:")$res }
         ReductC <- svDialogs::dlg_input("Enter the concentration of the reducing agent used:",
                                         "25 mM")$res
         ReductT <- svDialogs::dlg_input("Enter the time (min) for which the samples were reduced:",
                              30L)$res
-        ReductTmp <- svDialogs::dlg_input("Enter the temperature (°C) at which the samples were reduced:",
+        ReductTmp <- svDialogs::dlg_input("Enter the temperature (\u{00b0}C) at which the samples were reduced:",
                                           95L)$res
-        data(Alkylating_agents, package = "proteoCraft")
+        #utils::data(Alkylating_agents, package = "proteoCraft", envir = environment())
         Alk <- svDialogs::dlg_list(c(alkTbl$Full_name, "Other"),
                                    alkTbl$Full_name[1L], title = "Which alkylating agent was used?")$res
         if (Alk == "Other") {
@@ -228,7 +228,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                                            "yes, manufacturer's protocol",
                                            "no"),
                               title = "Were the samples destained?")$res
-          DestainMethDflt <- "destained by washing x3 in destaining buffer (900 µL 50% acetonitrile = ACN, 50 mM triethylammonium bicarbonate = TEAB) for 15 min with shaking"
+          DestainMethDflt <- "destained by washing x3 in destaining buffer (900 \u{00b5}L 50% acetonitrile = ACN, 50 mM triethylammonium bicarbonate = TEAB) for 15 min with shaking"
           if (Destain == "yes, our standard protocol") {
             DestainMeth <- DestainMethDflt
           }
@@ -420,13 +420,13 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
       if (SPMeth == "in-gel digest") {
         tst <- (DestainMeth == "")+1L
         Txt <- paste0(c("The", "All")[moult], " sample",  c(" was", "s were")[moult], " processed by ", SPMeth,
-                      ". Briefly, ", c("the ", "")[moult], "gel band",  c(" was", "s were")[moult], " cut into roughly 1 mm side cubes, washed x1 in dH₂O", DestainMeth,
-                      ", de-hydrated in 900 µL 100% ", c("", "acetonitrile (")[tst], "ACN", c("", ")")[tst], " with shaking for 10 min then removal of all liquid,",
+                      ". Briefly, ", c("the ", "")[moult], "gel band",  c(" was", "s were")[moult], " cut into roughly 1 mm side cubes, washed x1 in dH\u{2082}O", DestainMeth,
+                      ", de-hydrated in 900 \u{00b5}L 100% ", c("", "acetonitrile (")[tst], "ACN", c("", ")")[tst], " with shaking for 10 min then removal of all liquid,",
                       " then reduced by incubation in ", ReductC, " ", Reduct, " in 100 mM ", c("", "triethylammonium bicarbonate (")[tst], "TEAB", c("", ")")[tst], " at ",
-                      ReductTmp, "°C for ", ReductT, " min, de-hydrated again, then alkylated with ", AlkC, " ", Alk, " in 100 mM TEAB for ", AlkT, " min in the dark. The sample",
-                      c(" was", "s were")[moult], " dehydrated again, then ", Dig, "-digested at 37°C ", c("for ", "")[(DigT == "overnight")+1L], DigT, ".",
-                      " Digestion was stopped by addition of 100 µL 1% trifluoroacetic acid and incubation at 37°C for 1h with shaking.",
-                      " Peptides were extracted in three steps, by incubating the gel bands successively in 100 µL 25% ACN, 100 µL 100% ACN, and 500 µL 100% ACN, each time for 1h at 37°C with shaking, collecting and pooling the supernatant after each step. ",
+                      ReductTmp, "\u{00b0}C for ", ReductT, " min, de-hydrated again, then alkylated with ", AlkC, " ", Alk, " in 100 mM TEAB for ", AlkT, " min in the dark. The sample",
+                      c(" was", "s were")[moult], " dehydrated again, then ", Dig, "-digested at 37\u{00b0}C ", c("for ", "")[(DigT == "overnight")+1L], DigT, ".",
+                      " Digestion was stopped by addition of 100 \u{00b5}L 1% trifluoroacetic acid and incubation at 37\u{00b0}C for 1h with shaking.",
+                      " Peptides were extracted in three steps, by incubating the gel bands successively in 100 \u{00b5}L 25% ACN, 100 \u{00b5}L 100% ACN, and 500 \u{00b5}L 100% ACN, each time for 1h at 37\u{00b0}C with shaking, collecting and pooling the supernatant after each step. ",
                       c("The p", "P")[moult], "eptide supernatant",  c(" was", "s were")[moult])
         if (Enrich) {
           Txt <- paste0(Txt, " subjected to ", EnrichMeth, " then flow-through and enriched fraction were ",
@@ -436,16 +436,16 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
       }
       if (SPMeth == "FASP") {
         Txt <- paste0(c("The", "All")[moult], " sample",c(" was", "s were")[moult], " processed by Filter-Aided Sample Preparation (", SPMeth, "). ",
-                      c("The ", "Each")[moult], " sample was re-dissolved in 100 µL lysis buffer (4% SDS, 150 mM NaCl, 100 mM Tris HCl pH 7.4, 25 mM TCEP, 10% glycerol)",
-                      " and denatured and reduced by incubation at ", ReductTmp, "°C for ", ReductT, " min,",
+                      c("The ", "Each")[moult], " sample was re-dissolved in 100 \u{00b5}L lysis buffer (4% SDS, 150 mM NaCl, 100 mM Tris HCl pH 7.4, 25 mM TCEP, 10% glycerol)",
+                      " and denatured and reduced by incubation at ", ReductTmp, "\u{00b0}C for ", ReductT, " min,",
                       " then allowed to cool down, sonicated with a probe sonicator to shear DNA and cleared by spinning for 10 min at 14,000 g.",
-                      " 100 µL of UA buffer (8 M urea in 100 mM triethylammonium bicarbonate = TEAB) was loaded onto a 30,000 MWCO Vivacon 500 Hydrosart spin filter unit to pre-wash it.",
-                      " At each step, liquid was pushed through the filter by spinning for 5 min at 14,000 g for every 100 µL of liquid (these times are indicative, and may need to be extended if necessary, especially for concentrated samples).",
-                      " The sample supernatant was loaded onto the filter unit, spun, then washed x2 with 300 µL UA buffer and alkylated by incubation for ", AlkT, " min in the dark with ", AlkC, " ", Alk, " in UA buffer.",
-                      " After spinning, the filter was washed again in 300 µL UA buffer, then x3 in 100 mM TEAB. The filter unit was transferred to a fresh, protein LoBind collection tube, and 1 µg ", Dig, " in 40 µL in 100 mM TEAB added.",
-                      " The assembly was sealed with parafilm and incubated at 37°C ", c("for ", "")[(DigT == "overnight")+1L], DigT, ".",
-                      " The filter was spun for 10 min, and peptides were successively washed away from the filter by addition of 50 µL 100 mM TEAB, then 500 mM NaCl, each time with 10 min spinning.",
-                      " Pooled eluted peptides were acidified by addition of 15 µL 1% trifluoroacetic acid",
+                      " 100 \u{00b5}L of UA buffer (8 M urea in 100 mM triethylammonium bicarbonate = TEAB) was loaded onto a 30,000 MWCO Vivacon 500 Hydrosart spin filter unit to pre-wash it.",
+                      " At each step, liquid was pushed through the filter by spinning for 5 min at 14,000 g for every 100 \u{00b5}L of liquid (these times are indicative, and may need to be extended if necessary, especially for concentrated samples).",
+                      " The sample supernatant was loaded onto the filter unit, spun, then washed x2 with 300 \u{00b5}L UA buffer and alkylated by incubation for ", AlkT, " min in the dark with ", AlkC, " ", Alk, " in UA buffer.",
+                      " After spinning, the filter was washed again in 300 \u{00b5}L UA buffer, then x3 in 100 mM TEAB. The filter unit was transferred to a fresh, protein LoBind collection tube, and 1 \u{00b5}g ", Dig, " in 40 \u{00b5}L in 100 mM TEAB added.",
+                      " The assembly was sealed with parafilm and incubated at 37\u{00b0}C ", c("for ", "")[(DigT == "overnight")+1L], DigT, ".",
+                      " The filter was spun for 10 min, and peptides were successively washed away from the filter by addition of 50 \u{00b5}L 100 mM TEAB, then 500 mM NaCl, each time with 10 min spinning.",
+                      " Pooled eluted peptides were acidified by addition of 15 \u{00b5}L 1% trifluoroacetic acid",
                       c("", ", desalted using Sep-Pak tC18 plates (Waters)")[SepPak+1L],
                       " and vacuum dried.")
       }
@@ -454,14 +454,14 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                                                              c("yes", "no"))] }
         if (LysC) { LysCT <- svDialogs::dlg_input("For how long (h)?", 4L)$res }
         Txt <- paste0("Paramagnetic beads-bound sample",c(" was", "s were")[moult], " digested directly on beads. ",
-                      " Beads were re-suspended in 2x beads volume (~40-80 µL) 100 mM triethylammonium bicarbonate (TEAB).")
-        if (LysC) { Txt <- sub("\\.$", paste0(" and pre-digested with LysC (Promega; 400 ng per sample, ", LysCT, " h at 37°C)."), Txt) }
+                      " Beads were re-suspended in 2x beads volume (~40-80 \u{00b5}L) 100 mM triethylammonium bicarbonate (TEAB).")
+        if (LysC) { Txt <- sub("\\.$", paste0(" and pre-digested with LysC (Promega; 400 ng per sample, ", LysCT, " h at 37\u{00b0}C)."), Txt) }
         Txt <- paste0(Txt,
                       " Beads were captured with a magnetic concentrator and the supernatant collected into a fresh protein LoBind tube.",
-                      " Proteins on the beads were reduced in 250 µL 100 mM TEAB, ", ReductC, " ", Reduct, " for ", ReductT,  " min at ", ReductTmp, "°C with shaking,",
-                      " then alkylated at room temperature in the dark in 250 µL 100 mM TEAB, ", AlkC, " ", Alk, "for ", AlkT, " min.",
-                      " After removing the supernatant, samples were digested with 1 µg ", Dig, " at 37°C ", c("for ", "")[(DigT == "overnight")+1L], DigT, ".",
-                      " Digestion was stopped by addition of 10 µL 10% TFA, the digest was collected",
+                      " Proteins on the beads were reduced in 250 \u{00b5}L 100 mM TEAB, ", ReductC, " ", Reduct, " for ", ReductT,  " min at ", ReductTmp, "\u{00b0}C with shaking,",
+                      " then alkylated at room temperature in the dark in 250 \u{00b5}L 100 mM TEAB, ", AlkC, " ", Alk, "for ", AlkT, " min.",
+                      " After removing the supernatant, samples were digested with 1 \u{00b5}g ", Dig, " at 37\u{00b0}C ", c("for ", "")[(DigT == "overnight")+1L], DigT, ".",
+                      " Digestion was stopped by addition of 10 \u{00b5}L 10% TFA, the digest was collected",
                       c("", ", pooled with the LysC pre-digest")[LysC+1L],
                       c("", ", desalted using Sep-Pak tC18 plates (Waters)")[SepPak+1L],
                       " and vacuum dried.")
@@ -514,8 +514,8 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
         if (file.exists(fl1)) {
           opt1 <- readr::read_lines(fl1)
         } else {
-          opt1 <- c("a 9:1 mix of the iST kit's LC-LOAD buffer and 1.5% w/v N-Dodecyl-β-D-maltoside (DDM, 0.15% final)",
-                    "a 9:1 mix of the iST kit's LC-LOAD buffer and 0.15% w/v N-Dodecyl-β-D-maltoside (DDM, 0.015% final)",
+          opt1 <- c("a 9:1 mix of the iST kit's LC-LOAD buffer and 1.5% w/v N-Dodecyl-\u{03b2}-D-maltoside (DDM, 0.15% final)",
+                    "a 9:1 mix of the iST kit's LC-LOAD buffer and 0.15% w/v N-Dodecyl-\u{03b2}-D-maltoside (DDM, 0.015% final)",
                     "the iST kit's LC LOAD buffer",
                     "1% TFA (Trifluoroacetic Acid)",
                     "1% FA (Formic Acid)",
