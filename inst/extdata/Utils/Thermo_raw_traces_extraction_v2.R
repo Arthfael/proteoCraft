@@ -1315,24 +1315,24 @@ propFlt <- \(x,
   if (average) { x <- mean(x) }
   return(x)
 }
-peakXtract <- \(fileName, # File name
+peakXtract <- \(file_name, # File name
                 data = chr,
                 WIP = FALSE, # Work-in-Progress? If so we will be plotting stuff to check behaviour
                 binSz = 10L, # Default RT bin size (s)
                 targRg,
-                bgMode = "loess") { #fileName <- f[1L] #fileName <- f[2L] #fileName <- f[3L] #fileName <- f[4L] #fileName <- f[5L] #fileName <- f[6L]
+                bgMode = "loess") { #file_name <- f[1L] #file_name <- f[2L] #file_name <- f[3L] #file_name <- f[4L] #file_name <- f[5L] #file_name <- f[6L]
   rtPrec <- 0.01/60 # 10 ms
-  #fileName <- "B:/group/lsfgrp/Mass_Spec/Acquired_data_v2/frimlgrp/LCMS_JiFrATeplova13_m/blank.raw"
+  #file_name <- "B:/group/lsfgrp/Mass_Spec/Acquired_data_v2/frimlgrp/LCMS_JiFrATeplova13_m/blank.raw"
   #WIP <- FALSE
   #WIP <- TRUE
   #
-  flNm2 <- ExpMap$`MS raw file name`[match(fileName, ExpMap$`MS raw file`)]
+  flNm2 <- ExpMap$`MS raw file name`[match(file_name, ExpMap$`MS raw file`)]
   # Default outputs
   qnt <- 0
   peakXtrFine <- setNames(rep(NA, 3L),
                           c("Start", "Apex", "End"))
   #
-  w <- which(RTchrm01$`Raw file` == fileName)
+  w <- which(RTchrm01$`Raw file` == file_name)
   if (length(w)) {
     chr <- RTchrm01[w,]
     chr <- chr[which((chr$`Retention time` > RTlim$Start)&(chr$`Retention time` < RTlim$End)),]
