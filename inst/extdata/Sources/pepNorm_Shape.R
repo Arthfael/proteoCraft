@@ -17,16 +17,15 @@ txt2 <- ""
 #
 normMeth <- normSequence[[nrmStp]]$Method #normMeth <- "LOESS" #normMeth <- "VSN"
 packs <- c()
-if (normMeth == "VSN") {
-  library(hexbin)
-  library(vsn)
-}
-if (normMeth == "LOESS") {
-  library(affy)
-}
-if (normMeth == "GAM") {
-  library(mgcv)
-}
+# if (normMeth == "VSN") {
+#   library(vsn)
+# }
+# if (normMeth == "LOESS") {
+#   library(limma)
+# }
+# if (normMeth == "GAM") {
+#   library(mgcv)
+# }
 #
 shpDr <- paste0(nrmDr, "/Step ", nrmStp, " - ", normMeth)
 if (!dir.exists(shpDr)) { dir.create(shpDr, recursive = TRUE) }
@@ -63,7 +62,7 @@ tstNorm <- try({
       readr::write_rds(xprtDat, tmpFl)
       clusterExport(parClust, list("tmpFl", "currSamples"), envir = environment())
       invisible(clusterCall(parClust, \() {
-        library(mgcv)
+        #library(mgcv)
         xprtDat <- readr::read_rds(tmpFl)
         assign("dat_", xprtDat$dat, envir = .GlobalEnv)
         assign("A_", xprtDat$A, envir = .GlobalEnv)

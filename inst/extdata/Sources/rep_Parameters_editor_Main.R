@@ -2525,9 +2525,10 @@ if ("Prot.list_separate.plots" %in% colnames(Param)) {
 if (Param$GO.terms.for.proteins.of.interest) {
   tmpGO <- unlist(strsplit(Param$GO.tabs, ";"))
   GO_prot.list <- list()
+  GO.db_env <- as.environment(getNamespace("GO.db"))
   GO_prot.list$Offspring <- lapply(tmpGO, \(x) {
-    ont <- Ontology(x)
-    x <- c(x, get(paste0("GO", ont, "OFFSPRING"))[[x]])
+    ont <- BiocGenerics::Ontology(x)
+    x <- c(x, get(paste0("GO", ont, "OFFSPRING"), envir = GO.db_env)[[x]])
     x <- x[!is.na(x)]
     return(x)
   })
