@@ -418,7 +418,7 @@ if (NoOnt + NoOffspr) {
       GO.terms$Ontology[w] <- ont
     } else { w <- which(GO.terms$Ontology == ont) }
     if (NoOffspr) {
-      Offspr <- get(paste0("GO.db::GO", ont, "OFFSPRING"))
+      Offspr <- get(paste0("GO", ont, "OFFSPRING"), envir = as.environment(getNamespace("GO.db")))
       # Finally I managed to rewrite the tedious topGO code much faster,
       # and without even using parallel!!!
       Offspr <- AnnotationDbi::toTable(Offspr)
@@ -745,7 +745,7 @@ if (length(wFltL)) {
           wo <- which(annotate::filterGOByOntology(tmpGO.terms$ID, ont))
           if (length(wo)) {
             Offspr <- get(paste0("GO", ont, "OFFSPRING"))
-            Offspr <- toTable(Offspr)
+            Offspr <- BiocGenerics::toTable(Offspr)
             colnames(Offspr) <- c("Offspring", "Parent")
             Offspr <- data.table::as.data.table(Offspr)
             Offspr <- Offspr[, .(Offspring = list(Offspring)), by = .(Parent = Parent)]

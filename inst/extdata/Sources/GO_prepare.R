@@ -29,14 +29,14 @@ if (Annotate) {
     }
     GO_terms$Offspring <- list(NA_character_)
     for (ont in Ontologies) { #ont <- Ontologies[1L]
-      wo <- which(filterGOByOntology(GO_terms$ID, ont))
+      wo <- which(annotate::filterGOByOntology(GO_terms$ID, ont))
       if (length(wo)) {
         #cat(paste0("Getting offspring for ", length(wo), " ", ont, " terms...\n"))
         GO_terms$Ontology[wo] <- ont
-        Offspr <- get(paste0("GO", ont, "OFFSPRING"))
+        Offspr <- get(paste0("GO", ont, "OFFSPRING"), envir = as.environment(getNamespace("GO.db")))
         # Finally I managed to rewrite the tedious topGO code much faster,
         # and without even using parallel!!!
-        Offspr <- toTable(Offspr)
+        Offspr <- BiocGenerics::toTable(Offspr)
         colnames(Offspr) <- c("Offspring", "Parent")
         Offspr <- as.data.table(Offspr)
         Offspr <- Offspr[, .(Offspring = list(Offspring)), by = .(Parent = Parent)]

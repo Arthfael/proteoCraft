@@ -52,7 +52,7 @@ report_header <- tags$header(
          br(),
          "Date: ", em(Sys.Date()),
          br(),
-         "Package: ", em(paste0("proteoCraft v", package.version("proteoCraft"))),
+         "Package: ", em(paste0("proteoCraft v", Biobase::package.version("proteoCraft"))),
          br(),
          br())),
   style = "background: linear-gradient(to right, #e8f1ff, #ffffff); padding: 1rem; margin-bottom: 1rem;")
