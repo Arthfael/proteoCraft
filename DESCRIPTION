@@ -58,7 +58,6 @@ Imports:
     limma,
     limpa,
     lubridate,
-    magrittr,
     MASS,
     matrixStats,
     methods,
