@@ -9,15 +9,13 @@
   affy::exprs
   affy::featureNames
   affy::mm
-  annotate::Ontology
   annotate::filterGOByOntology
   annotate::getGOTerm
+  annotate::Ontology
   annotate::organism
-  annotate::fileName
-  base64enc::base64encode
   base64enc::base64decode
-  Biobase::dims
   Biobase::Aggregate
+  Biobase::dims
   Biobase::package.version
   Biobase::content
   Biobase::exprs
@@ -26,8 +24,8 @@
   Biobase::description
   Biobase::fData
   Biobase::rowMax
-  BiocManager::install
   BiocManager::version
+  BiocManager::install
   BiocManager::repositories
   Biostrings::match
   Biostrings::as.data.frame
@@ -40,20 +38,20 @@
   Biostrings::intersect
   Biostrings::sort
   Biostrings::as.matrix
-  Biostrings::substring
-  Biostrings::start
-  Biostrings::end
-  Biostrings::collapse
-  Biostrings::summary
   Biostrings::as.list
   Biostrings::toString
+  Biostrings::substring
+  Biostrings::start
   Biostrings::width
+  Biostrings::summary
   Biostrings::tail
+  Biostrings::collapse
+  Biostrings::end
   Biostrings::AAStringSetList
   Biostrings::rank
+  bslib::navset_tab
   bslib::page_fluid
   bslib::page
-  bslib::navset_tab
   camprotR::download_ccp_crap
   cluster::clusGap
   coin::size
@@ -77,17 +75,15 @@
   ExploreModelMatrix::ExploreModelMatrix
   factoextra::fviz_gap_stat
   fs::file_copy
-  fs::path
   fs::dir_copy
   fs::file_move
-  fs::dir_delete
+  fs::path
   ggh4x::facet_nested
   grateful::cite_packages
   gridExtra::arrangeGrob
   gridExtra::grid.arrange
   hexbin::plot
   hexbin::summary
-  hexbin::hexbin
   htmltools::a
   htmltools::tags
   htmltools::HTML
@@ -95,24 +91,24 @@
   htmltools::br
   htmltools::h4
   htmltools::h5
+  htmltools::p
   htmltools::em
+  htmltools::h2
+  htmltools::h3
   htmltools::strong
   htmltools::span
-  htmltools::p
-  htmltools::browsable
-  htmltools::save_html
-  htmltools::h2
-  htmltools::h1
-  htmltools::h3
   htmltools::htmlEscape
   htmltools::div
   htmltools::tagList
+  htmltools::browsable
+  htmltools::save_html
+  htmltools::h1
   htmltools::h6
   igraph::union
-  igraph::path
-  igraph::blocks
   igraph::.data
+  igraph::blocks
   igraph::graph
+  igraph::path
   igraph::groups
   igraph::simplify
   igraph::graph_from_data_frame
@@ -128,29 +124,34 @@
   igraph::ends
   knitr::image_uri
   later::later
+  limma::makeContrasts
+  limma::duplicateCorrelation
+  limma::lmFit
+  limma::contrasts.fit
+  limma::eBayes
+  limma::decideTests
+  limma::vennCounts
+  limma::topGO
+  limma::normalizeCyclicLoess
+  limma::voomaLmFit
+  limma::qqt
+  limma::plotMD
   lubridate::union
   lubridate::setdiff
   lubridate::intersect
   lubridate::date
   lubridate::today
-  lubridate::now
-  lubridate::Date
-  lubridate::parse_date_time
   lubridate::origin
   lubridate::ms
   lubridate::second
   lubridate::ym
-  magrittr::mod
-  magrittr::set_rownames
-  magrittr::set_colnames
-  magrittr::set_names
   MASS::kde2d
   MASS::fitdistr
   matrixStats::rowMins
-  methods::slotNames
-  methods::slot
   methods::new
   methods::getFunction
+  methods::slotNames
+  methods::slot
   methods::as
   mgcv::s
   mgcv::t2
@@ -161,9 +162,8 @@
   modeest::mlv
   MSnbase::t
   MSnbase::plot
-  MSnbase::metadata
-  MSnbase::split
   MSnbase::header
+  MSnbase::split
   MSnbase::width
   MSnbase::topN
   MSnbase::MAplot
@@ -178,7 +178,6 @@
   MSnbase::scale
   MSnbase::mz
   MSnbase::tic
-  MSnbase::fileName
   MSnbase::clean
   msqrob2::msqrob
   msqrob2::hypothesisTest
@@ -194,13 +193,13 @@
   png::readPNG
   prideR::as.data.frame
   prideR::plot
-  prideR::file.size
   prideR::modifications
   prideR::title
   prideR::id
   prideR::results
   prideR::get.ProjectSummary
   prideR::accession
+  prideR::file.size
   pROC::var
   pROC::roc
   pROC::ggroc
@@ -229,12 +228,12 @@
   pRoloc::pRolocmarkers
   pwalign::nchar
   pwalign::as.matrix
-  pwalign::start
-  pwalign::end
-  pwalign::summary
   pwalign::toString
   pwalign::type
+  pwalign::start
   pwalign::width
+  pwalign::summary
+  pwalign::end
   pwalign::pairwiseAlignment
   pwalign::pattern
   qvalue::pi0est
@@ -271,12 +270,10 @@
   scattermore::scattermore
   shinyBS::bsTooltip
   shinycssloaders::withSpinner
-  shinyFiles::getVolumes
   shinyFiles::shinyFilesButton
-  shinyFiles::shinyDirButton
   shinyFiles::shinyFileChoose
+  shinyFiles::getVolumes
   shinyFiles::parseFilePaths
-  shinyFiles::shinyDirChoose
   snow::clusterExport
   snow::parSapply
   snow::parLapply
@@ -303,12 +300,17 @@
   taxize::children
   TeachingDemos::char2seed
   TeachingDemos::dots
-  tools::md5sum
-  tools::file_ext
   tools::R
+  tools::md5sum
   truncdist::dtrunc
   UniProt.ws::keys
   UniProt.ws::UniProt.ws
   viridisLite::turbo
   viridisLite::viridis
+  vsn::nrow
+  vsn::ncol
+  vsn::justvsn
+  vsn::meanSdPlot
+  vsn::exprs
+  vsn::predict
 }

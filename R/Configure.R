@@ -352,7 +352,7 @@ Configure <- function(updateOntologies = FALSE) {
       rownames(vendorsInstr) <- NULL
       write.csv(vendorsInstr, ontFls["MS_models"], row.names = FALSE)
     }
-    devStgFun <- \(Ontology, parentTerm, fileName) {
+    devStgFun <- \(Ontology, parentTerm, file_name) {
       #Ontology = "mmusdv"; parentTerm = "MmusDv_0000000"
       onto <- rols::olsOntology(Ontology)
       trms <- rols::olsTerm(onto, parentTerm)
@@ -376,7 +376,7 @@ Configure <- function(updateOntologies = FALSE) {
         return(rs)
       })
       dvStgsa <- do.call(rbind, dvStgsa)
-      write.csv(dvStgsa, ontFls[[fileName]], row.names = FALSE)
+      write.csv(dvStgsa, ontFls[[file_name]], row.names = FALSE)
       return()
     }
     ontoDF2 <- data.frame(Ontology = c("fbdv", "zfs", "mmusdv", "hsapdv", "wbls"),

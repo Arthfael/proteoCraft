@@ -134,7 +134,7 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
       scores1$Batch <- factor(scores1$Batch)
       xLab <- paste0("PC1 = ", pv0[1L], "%")
       yLab <- paste0("PC2 = ", pv0[2L], "%")
-      plot <- ggplot2::ggplot(scores1, aes(x = PC1, y = PC2, color = Batch)) +
+      plot <- ggplot2::ggplot(scores1, ggplot2::aes(x = PC1, y = PC2, color = Batch)) +
         ggplot2::geom_point(ggplot2::aes(shape = Type)) +
         ggpubr::stat_conf_ellipse(aes(fill = Batch),
                                   alpha = 0.2, geom = "polygon", show.legend = FALSE) +

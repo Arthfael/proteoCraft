@@ -7,7 +7,7 @@
 #' @param Priority If set to "int", ratios calculated will reflect the real ratios of intensities. If set to "rat", intensities will be recalculated to reflect ratios.
 #' @param int.log Input intensities log scale, default = 10
 #' @param rat.log Input ratios log scale, default = 2
-#' @param refGroups Aggregate defining ratio groups.
+#' @param refGroups Factors aggregate defining ratio groups.
 #' @param experiment.map Experiment map.
 #' @param experiment.map_col Name of the sample column in the experiment map.
 #' @param int.root Root of intensity column names.
@@ -110,7 +110,7 @@ make_Rat <- function(myData = pep,
   # If the reference is an average, we will also calculate individual ref ratios to it;
   # this will be useful further down the line.
   tmpRes <- lapply(refGroups$values, \(i) { #i <- refGroups$values[1L]
-    j <- set_names(unlist(strsplit(i, "___")), refGroups$names)
+    j <- setNames(unlist(strsplit(i, "___")), refGroups$names)
     temp <- lapply(refGroups$names, \(x) {
       if (j[[x]] == "NA") {
         return(which(is.na(experiment.map[[x]]) | (experiment.map[[x]] == j[[x]])))
