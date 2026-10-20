@@ -69,7 +69,7 @@ bioc_req %<o% bioc_req
 cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT",
                      "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "ggrepel", "rstudioapi", "modeest",
                      "minpack.lm", "snow", "viridis", "imputeLCMD", "parallel", "coin", "openxlsx", "openxlsx2", "plotly",
-                     "Peptides", "xml2", "statmod", "ggpolypath", "venn", "svDialogs", "htmlwidgets",
+                     "Peptides", "xml2", "statmod", "ggpolypath", "venn", "svDialogs", "htmlwidgets", "magrittr",
                      "officer", "hexbin", "igraph", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
                      "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "ssh", "taxize", "arrow", "PTMods",
                      "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "iq", "Rtsne", "DEP", "svglite"))
@@ -134,7 +134,6 @@ for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
 
 # Run local scripts at startup - keep this after loading the backup!
 locScrptSrc %<o% paste0(libPath, "/extdata/Sources/runLocScrpts.R")
-#rstudioapi::documentOpen(locScrptSrc)
 source(locScrptSrc)
 
 # Set Shiny options, load functions for creating a Word report, create Excel styles
@@ -965,8 +964,7 @@ w <- which(vapply(a, \(x) { length(unique(test[[x]])) }, 1L) > 1L)
 if (length(w)) { a <- a[w] }
 test[[a[1L]]] <- factor(test[[a[1L]]], levels = sort(unique(test[[a[1L]]])))
 test <- test[is.finite(test$value),]
-test2 <- aggregate(test$value, list(test$variable), median)
-colnames(test2) <- c("variable", "value")
+test2 <- set_colnames(aggregate(test$value, list(test$variable), median), c("variable", "value"))
 test2[, a] <- test[match(test2$variable, test$variable), a]
 MinMax <- c(min(test$value), max(test$value))
 nbinz <- ceiling((MinMax[2L]-MinMax[1L])/0.1)
@@ -1016,8 +1014,7 @@ test$Contrast <- gsub_Rep(" - ", " -\n", as.character(test$variable))
 allContr <- unique(test$Contrast)
 test$Contrast <- factor(test$Contrast, levels = allContr)
 test <- test[is.finite(test$value),]
-test2 <- aggregate(test$value, list(test$Contrast), median)
-colnames(test2) <- c("Contrast", "value")
+test2 <- set_colnames(aggregate(test$value, list(test$Contrast), median), c("Contrast", "value"))
 MinMax <- c(min(test$value), max(test$value))
 nbinz <- ceiling((MinMax[2L]-MinMax[1L])/0.1)
 binz <- c(0L:nbinz)/nbinz
@@ -1976,9 +1973,10 @@ if (GO_filt) {
 }
 if (GO_filt) {
   tmp <- listMelt(strsplit(PG$`GO-ID`, ";"), 1L:nrow(PG), c("Term", "Row"))
+  GO.db_env <- as.environment(getNamespace("GO.db"))
   Offspring <- setNames(lapply(GO_PG_col, \(x) { #x <- "GO:0009725"
-    ont <- Ontology(x)
-    x <- c(x, get(paste0("GO", ont, "OFFSPRING"))[[x]])
+    ont <- BiocGenerics::Ontology(x)
+    x <- c(x, get(paste0("GO", ont, "OFFSPRING"), envir = GO.db_env)[[x]])
     x <- x[!is.na(x)]
     return(x)
   }), GO_PG_col)
