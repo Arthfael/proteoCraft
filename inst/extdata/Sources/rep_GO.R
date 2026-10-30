@@ -40,7 +40,7 @@ if (Annotate && (enrichGO || globalGO)) {
       filt <- Reg_filters[[tstrt]]
       #By <- c("By condition", "By reference", "By analysis", "Whole dataset")
       By <- "By condition"
-      By <- intersect(By, names(filt))
+      By <- base::intersect(By, names(filt))
       if (length(By)) {
         for (bee in By) { #bee <- By[1L]
           flt <- filt[[bee]]
@@ -48,7 +48,7 @@ if (Annotate && (enrichGO || globalGO)) {
           tstbee <- paste0(tstrt, "_", tolower(bee))
           if (length(flt)) {
             flt <- if (tt %in% 1L:2L) {
-              flt[intersect(myContrasts$Contrast[!myContrasts$isDouble], names(flt))]
+              flt[base::intersect(myContrasts$Contrast[!myContrasts$isDouble], names(flt))]
             } else {
               if (tt == 4L) {
                 flt[myContrasts$Contrast[(!myContrasts$isDouble) & myContrasts$`Up-only`]]
@@ -58,10 +58,8 @@ if (Annotate && (enrichGO || globalGO)) {
             }
           }
           if (length(flt)) {
-            reg <- setNames(lapply(flt, \(x) { list(x$Columns) }), names(flt))
-            reg <- reshape::melt(reg)
-            colnames(reg) <- c("Name", "Bleh", "For")
-            reg$Bleh <- NULL
+            reg <- lapply(flt, \(x) { x$Columns })
+            reg <- listMelt(reg, names(flt), c("Name", "For"))
             fcr <- c(Prot.Rat.Root, Prot.Rat.Root, paste0("Mean ", SSD.Root, "log2(FC) - "), "log2(FC) - ")[tt]
             reg$ParentFC <- sub(paste0(".*Re", c(rep("gulated", 2L), "-localized", "gulated")[tt], " - "), fcr, reg$Name)
             reg$FCname <- paste0(fcr, reg$For)
@@ -80,8 +78,8 @@ if (Annotate && (enrichGO || globalGO)) {
             if (tt %in% 1L:3L) {
               Kol2Add <- c("Leading protein IDs", "Protein IDs", "id", "Protein names", "No Isoforms", "Names", "Genes",
                            "Common Names", Param$Plot.labels, "GO", "GO-ID", "Potential contaminant")
-              Kol2Add <- intersect(Kol2Add, colnames(PG))
-              Kol2Add2 <- setdiff(Kol2Add, colnames(tmpdat))
+              Kol2Add <- base::intersect(Kol2Add, colnames(PG))
+              Kol2Add2 <- base::setdiff(Kol2Add, colnames(tmpdat))
               if (length(Kol2Add2)) {
                 if (tt == 3L) { warning("This hasn't been tested for Localisation Analysis yet!") }
                 tmpdat[, Kol2Add2] <- PG[match(tmpdat$Protein, PG$`Protein IDs`), Kol2Add2]
@@ -134,7 +132,7 @@ if (Annotate && (enrichGO || globalGO)) {
               }
             }
             if ((length(Ref.Filt) > 1L) || (!is.na(Ref.Filt))) {
-              flt <- setNames(lapply(names(flt), \(x) { intersect(flt[[x]], Ref.Filt[[x]]) }),
+              flt <- setNames(lapply(names(flt), \(x) { base::intersect(flt[[x]], Ref.Filt[[x]]) }),
                               names(flt))
             }
             # Also save the reference filters 
@@ -200,8 +198,8 @@ if (Annotate && (enrichGO || globalGO)) {
               lf <- grep("^logFC", colnames(temp), value = TRUE)
               si <- grep("^Significance", colnames(temp), value = TRUE)
               #lp <- grep("^Leading protein IDs", colnames(temp), value = TRUE)
-              #kl <- setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, lp))
-              kl <- setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, pr))
+              #kl <- base::setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, lp))
+              kl <- base::setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, pr))
               #temp <- temp[, c(kl, si, gn, pg, lp, kn, pv, zs, lf)]
               temp <- temp[, c(kl, si, gn, pg, pr, kn, pv, zs, lf)]
               w <- apply(temp[, pv, drop = FALSE], 1L, sum, na.rm = TRUE) > 0L
@@ -221,33 +219,47 @@ if (Annotate && (enrichGO || globalGO)) {
                   }
                 }
               }
-              require(openxlsx)
-              HdrStl <- createStyle(textDecoration = "bold", halign = "center", valign = "center", wrapText = TRUE,
-                                    numFmt = "TEXT", fontSize = 12L)
-              wb <- createWorkbook()
+              #
+              wb <- openxlsx2::wb_workbook()
               kount <- 0L
-              for (ont in names(Ontologies)) { #ont <- names(Ontologies)[1L]
-                w <- which(temp$Ontology == Ontologies[ont])
-                if (length(w)) {
-                  kount <- kount + 1L
-                  addWorksheet(wb, ont)
-                  writeData(wb, ont, temp[w,])
-                  setRowHeights(wb, ont, 1L, 60L)
-                  setColWidths(wb, ont, 1L:ncol(temp), 12L)
-                  setColWidths(wb, ont, which(colnames(temp) == "Term"), 45L)
-                  setColWidths(wb, ont, which(colnames(temp) %in% gn), 20L)
-                  setColWidths(wb, ont, which(colnames(temp) %in% pr), 20L)
-                  setColWidths(wb, ont, which(colnames(temp) %in% pg), 20L)
-                  addStyle(wb, ont, HdrStl, 1L, 1L:ncol(temp))
-                  addStyle(wb, ont, createStyle(numFmt = "0"), 2L:(length(w)+1L),
-                           which(colnames(temp) %in% kn), gridExpand = TRUE)
-                  addStyle(wb, ont, createStyle(numFmt = "0.000"), 2L:(length(w)+1L),
-                           which(colnames(temp) %in% c(zs, lf, pv)), gridExpand = TRUE)
+              setW <- \(wb, sheet, cols, width) {
+                if (length(cols)) {
+                  wb <- openxlsx2::wb_set_col_widths(wb, sheet, cols = cols, widths = width)
                 }
+                invisible(wb)
+              }
+              for (ont in names(Ontologies)) { #ont <- names(Ontologies)[1L]
+                  wb <- openxlsx2::wb_add_worksheet(wb, ont)
+                  wb <- openxlsx2::wb_add_data(wb, ont, temp[w, ])
+                  wb <- openxlsx2::wb_set_row_heights(wb, ont, 1L, 60L)
+                  wb <- openxlsx2::wb_set_col_widths(wb, ont, seq_len(ncol(temp)), 12L)
+                  wb <- setW(wb, ont, match("Term", colnames(temp)), 45L)
+                  wb <- setW(wb, ont, which(colnames(temp) %in% gn), 20L)
+                  wb <- setW(wb, ont, which(colnames(temp) %in% pr), 20L)
+                  wb <- setW(wb, ont, which(colnames(temp) %in% pp), 20L)
+                  # header style
+                  hdr <- openxlsx2::wb_dims(rows = 1L, cols = seq_len(ncol(temp)))
+                  wb <- openxlsx2::wb_add_numfmt(wb, ont, dims = hdr, numfmt = "@")
+                  wb <- openxlsx2::wb_add_font(wb, ont, dims = hdr, bold = TRUE, size = 12)
+                  wb <- openxlsx2::wb_add_cell_style(wb, ont, dims = hdr, horizontal = "center",
+                                                     vertical = "center", wrap_text = TRUE)
+                  # number formats for data rows
+                  rws <- 2L:(length(w) + 1L)
+                  cI  <- which(colnames(temp) %in% kn)
+                  cD  <- which(colnames(temp) %in% c(zs, lf, pv))
+                  if (length(cI)) {
+                    wb <- openxlsx2::wb_add_numfmt(wb, ont, dims = openxlsx2::wb_dims(rows = rws, cols = cI),
+                                                   numfmt = "0")
+                  }
+                  if (length(cD)) {
+                    wb <- openxlsx2::wb_add_numfmt(wb, ont, dims = openxlsx2::wb_dims(rows = rws, cols = cD),
+                                                   numfmt = "0.000")
+                  }
               }
               if (kount) {
-                saveWorkbook(wb, paste0(myDir, "/GO terms - ", tstbee, ".xlsx"), overwrite = TRUE)
-                #openXL(paste0(myDir, "/GO terms - ", tstbee, ".xlsx"))
+                xl_fl <- paste0(myDir, "/GO terms - ", tstbee, ".xlsx")
+                openxlsx2::wb_save(wb, xl_fl, overwrite = TRUE)
+                #openxlsx2::xl_open(xl_fl)
                 Kol2 <- grep(paste0("^Significance - .+", " ", max(BH.FDR)*100L, "%"),
                              colnames(Reg_GO_terms[[tstbee]]), value = TRUE)
                 if (length(Kol2)) {

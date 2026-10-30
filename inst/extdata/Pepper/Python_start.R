@@ -3,12 +3,13 @@ library(proteoCraft)
 
 # Set up virtual environment using reticulate
 #Sys.setenv(RETICULATE_PYTHON = "C:\\Program Files\\")
-library(reticulate) # Note! We use reticulate mostly for a few convenient functions,
+
+# Note! We use reticulate mostly for a few convenient functions,
 # but after that we run Python through command line!
 # Using reticulate has these issues:
-#   - For us at least it fails in some cases where command line works.
-#   - One cannot deactivate a virtualenv through reticulate the way it can be done through command line.
-#   - Also it does not seem possible with it to pass arguments to a python script (at least easily).
+#   - For me at least it fails in some cases where command line works.
+#   - I have yet to figure out how to deactivate a virtualenv through reticulate the way it can be done through command line.
+#   - Also it is hard (or not doable?) with reticulate to pass arguments to a python script
 
 pyEnv <- "Bleh" # Virtual environment
 pyPacks <- c("numpy",
@@ -85,7 +86,7 @@ if ("Python" %in% locDirs$Folder) {
       while ((!k) || inherits(tst, "try-error")) {
         k <- k+1L
         pyPath <- pyPaths$executable_path[k]
-        tst <- try(use_python(pyPath), silent = TRUE) # Wrapped in try
+        tst <- try(reticulate::use_python(pyPath), silent = TRUE) # Wrapped in try
       }
       pyFound <- k <= nrow(pyPaths)
     }

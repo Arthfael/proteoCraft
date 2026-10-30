@@ -44,15 +44,15 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   # to simplify environment-related debugging.
   # Do not change that!
   # Here, use Mods, elsewhere Modifs (or anything else).
-  if (TESTING) {
+  misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
-    misFun <- \(x) { return(!exists(deparse(substitute(x)))) }
-  } else { misFun <- missing }
+    \(x) { return(!exists(deparse(substitute(x)))) }
+  } else { missing }
   #
   # Create cluster
   stopCl <- FALSE
-  if ((is.null(cl))||(!inherits(cl, "cluster"))) {
+  if (is.null(cl) || (!inherits(cl, "cluster"))) {
     dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1L }
     nMax <- max(c(dc - N.reserved, 1L))
@@ -129,9 +129,10 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   # Quick check: it looks like "proba" is a PEP-like value:
   # High log(score) means high -log10(PEP)
   # Thus, for now we will treat it as such... until a guide is released or we are proven wrong.
-  # require(ggplot2)
-  # plot <- ggplot(alphaDIA) + geom_point(aes(x = base::log(score), y = -log10(proba))) + theme_bw() +
-  #   facet_wrap(~run)
+  # plot <- ggplot2::ggplot(alphaDIA) +
+  #   ggplot2::geom_point(ggplot2::aes(x = base::log(score), y = -log10(proba))) +
+  #   ggplot2::theme_bw() +
+  #   ggplot2::facet_wrap(~run)
   # poplot(plot)
   #
   # Create MQ-like table
@@ -142,7 +143,7 @@ alphaDIA_to_MQ <- function(alphaDIA_fl,
   #w <- which(alphaDIA$pg != alphaDIA$genes)
   #length(w)
   kol <- c("run", "pg", "sequence", "charge", "proba")
-  #print(setdiff(kol, colnames(alphaDIA)))
+  #print(base::setdiff(kol, colnames(alphaDIA)))
   stopifnot(sum(!kol %in% colnames(alphaDIA)) == 0L)
   EV <- data.frame("Raw file" = alphaDIA$run,
                    "Raw file path" = rwFlPths[match(alphaDIA$run, rwFls)],

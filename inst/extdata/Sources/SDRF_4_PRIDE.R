@@ -9,12 +9,6 @@
 # Check the specs of the SDRF format here:
 # https://github.com/bigbio/proteomics-sample-metadata/blob/master/sdrf-proteomics/README.adoc
 
-require(shiny)
-require(shinyWidgets)
-require(shinyjs)
-require(shinycssloaders)
-require(DT)
-require(proteoCraft)
 if (!exists("homePath")) {
   homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
 }
@@ -84,7 +78,7 @@ if (tstOrg) {
   mainOrg <- "[UNKNOWN_ORGANISM]"
 }
 if (!nchar(mainOrg)) {
-  mainOrg <- dlg_input("Enter the species of the samples")$res
+  mainOrg <- svDialogs::dlg_input("Enter the species of the samples")$res
 }
 dbOrgKol %<o% dbOrgKol
 tstOrg %<o% tstOrg
@@ -124,7 +118,7 @@ if (isFnd["Cell_types"]) {
   } else {
     myCellType2 <- myCellType
   }
-  availCellTypes <- c(myCellType, setdiff(availCellTypes, myCellType))
+  availCellTypes <- c(myCellType, base::setdiff(availCellTypes, myCellType))
 }
 if (isFnd["Tissues"]) {
   tmp <- data.table::fread(ontoFls$File[match("Tissues", ontoFls$Name)])
@@ -136,7 +130,7 @@ if (isFnd["Tissues"]) {
   } else {
     myTissue2 <- myTissue
   }
-  availTissues <- c(myTissue, setdiff(availTissues, myTissue))
+  availTissues <- c(myTissue, base::setdiff(availTissues, myTissue))
 }
 if (isFnd["Modifications"]) {
   tmp <- data.table::fread(ontoFls$File[match("Modifications", ontoFls$Name)])
@@ -148,7 +142,7 @@ if (isFnd["Modifications"]) {
   } else {
     myPTMs2 <- myPTMs
   }
-  availMods <- c(myPTMs, setdiff(availMods, myPTMs))
+  availMods <- c(myPTMs, base::setdiff(availMods, myPTMs))
 }
 if (isFnd["Diseases"]) {
   tmp <- data.table::fread(ontoFls$File[match("Diseases", ontoFls$Name)])
@@ -160,7 +154,7 @@ if (isFnd["Diseases"]) {
   } else {
     myDisease2 <- myDisease
   }
-  availDiseases <- c(myDisease, setdiff(availDiseases, myDisease))
+  availDiseases <- c(myDisease, base::setdiff(availDiseases, myDisease))
 }
 if (isFnd["MS_models"]) {
   availInstrDF <- data.table::fread(ontoFls$File[match("MS_models", ontoFls$Name)])
@@ -177,12 +171,12 @@ if (isFnd["MS_models"]) {
   }
   if ((!exists("myMSInstr")) || (!is.character(myMSInstr)) || sum(!myMSInstr %in% availInstr)) {
     if (exists("LCMS_instr") && inherits(LCMS_instr, "list") && ("MS" %in% names(LCMS_instr))) {
-      myMSInstr <- intersect(availInstr, LCMS_instr$MS)
+      myMSInstr <- base::intersect(availInstr, LCMS_instr$MS)
     }
   }
   myMSInstr2 <- myMSInstr
   if (!length(myMSInstr2)) { myMSInstr2 <- "not available" }
-  availInstr <- c(myMSInstr, setdiff(availInstr, myMSInstr))
+  availInstr <- c(myMSInstr, base::setdiff(availInstr, myMSInstr))
 }
 if (isFnd["MS_acq_meth"]) {
   tmp <- data.table::fread(ontoFls$File[match("MS_acq_meth", ontoFls$Name)])
@@ -194,7 +188,7 @@ if (isFnd["MS_acq_meth"]) {
   } else {
     myAcqMeth2 <- myAcqMeth
   }
-  availAcqMeth <- c(myAcqMeth, setdiff(availAcqMeth, myAcqMeth))
+  availAcqMeth <- c(myAcqMeth, base::setdiff(availAcqMeth, myAcqMeth))
 }
 if (isFnd["MS_quant_meth"]) {
   tmp <- data.table::fread(ontoFls$File[match("MS_quant_meth", ontoFls$Name)])
@@ -206,7 +200,7 @@ if (isFnd["MS_quant_meth"]) {
   } else {
     myQuantMeth2 <- myQuantMeth
   }
-  availQuantMeth <- c(myQuantMeth, setdiff(availQuantMeth, myQuantMeth))
+  availQuantMeth <- c(myQuantMeth, base::setdiff(availQuantMeth, myQuantMeth))
 }
 if (isFnd["MS_label_meth"]) {
   tmp <- data.table::fread(ontoFls$File[match("MS_label_meth", ontoFls$Name)])
@@ -218,208 +212,207 @@ if (isFnd["MS_label_meth"]) {
   } else {
     myLabelMeth2 <- myLabelMeth
   }
-  availLabelMeth <- c(myLabelMeth, setdiff(availLabelMeth, myLabelMeth))
+  availLabelMeth <- c(myLabelMeth, base::setdiff(availLabelMeth, myLabelMeth))
 }
 myDS1 <- NULL
 myDS2 <- ""
 appNm <- paste0(dtstNm, " - SDRF editor")
-uiA <- fluidPage(
+uiA <- shiny::fluidPage(
   shinyjs::useShinyjs(),
   shinyWidgets::setBackgroundColor(
     color = "#E6F7F4",
     gradient = "linear",
-    direction = "bottom"
-  ),
+    direction = "bottom"),
   shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
                          functions = c("toggleFullScreen")),
-  titlePanel(tag("u", "SDRF editor"),
-             appNm),
-  h2(dtstNm),
-  h5("An SDRF file is a controlled vocabulary map of MS runs to biological samples, and can be requested when uploading a dataset to public repositories such as https://www.ebi.ac.uk/pride/"),
+  shiny::titlePanel(shiny::tag("u", "SDRF editor"),
+                    appNm),
+  shiny::h2(dtstNm),
+  shiny::h5("An SDRF file is a controlled vocabulary map of MS runs to biological samples, and can be requested when uploading a dataset to public repositories such as https://www.ebi.ac.uk/pride/"),
   if (!tstOrg) {
-    fluidRow(column(4L,
-                    tags$hr(style = "border-color: black;"),
-                    textInput("Organism",
-                              "Enter parent organism (ontology = https://www.ebi.ac.uk/ols4/ontologies/NCBITaxon)",
-                              "Homo sapiens"),
-                    br()))
+    shiny::fluidRow(shiny::column(4L,
+                                  shiny::tags$hr(style = "border-color: black;"),
+                                  shiny::textInput("Organism",
+                                                   "Enter parent organism (ontology = https://www.ebi.ac.uk/ols4/ontologies/NCBITaxon)",
+                                                   "Homo sapiens"),
+                                  shiny::br()))
   },
-  tags$hr(style = "border-color: black;"),
-  br(),
-  fluidRow(
+  shiny::tags$hr(style = "border-color: black;"),
+  shiny::br(),
+  shiny::fluidRow(
     if (isFnd["Cell_types"]) {
-      column(4L,
-             shinyWidgets::pickerInput("Cell_type",
-                                       paste0("Select", cellTypeTxt),
-                                       availCellTypes,
-                                       myCellType,
-                                       TRUE,
-                                       shinyWidgets::pickerOptions(title = "Search me",
-                                                                   `live-search` = TRUE,
-                                                                   actionsBox = TRUE,
-                                                                   deselectAllText = "Clear search",
-                                                                   showTick = TRUE)),
-             br())
+      shiny::column(4L,
+                    shinyWidgets::pickerInput("Cell_type",
+                                              paste0("Select", cellTypeTxt),
+                                              availCellTypes,
+                                              myCellType,
+                                              TRUE,
+                                              shinyWidgets::pickerOptions(title = "Search me",
+                                                                          `live-search` = TRUE,
+                                                                          actionsBox = TRUE,
+                                                                          deselectAllText = "Clear search",
+                                                                          showTick = TRUE)),
+                    shiny::br())
     } else {
-      column(4L,
-             textInput("Cell_type",
-                       paste0("Input", cellTypeTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/CL)"),
-                       myCellType2),
-             br())
+      shiny::column(4L,
+                    shiny::textInput("Cell_type",
+                                     paste0("Input", cellTypeTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/CL)"),
+                                     myCellType2),
+                    shiny::br())
     },
     if (isFnd["Tissues"]) {
-      column(4L,
-             shinyWidgets::pickerInput("Tissue_type",
-                                       paste0("Select", tissueTxt),
-                                       availTissues,
-                                       myTissue,
-                                       TRUE,
-                                       shinyWidgets::pickerOptions(title = "Search me",
-                                                                   `live-search` = TRUE,
-                                                                   actionsBox = TRUE,
-                                                                   deselectAllText = "Clear search",
-                                                                   showTick = TRUE)),
-             br())
+      shiny::column(4L,
+                    shinyWidgets::pickerInput("Tissue_type",
+                                              paste0("Select", tissueTxt),
+                                              availTissues,
+                                              myTissue,
+                                              TRUE,
+                                              shinyWidgets::pickerOptions(title = "Search me",
+                                                                          `live-search` = TRUE,
+                                                                          actionsBox = TRUE,
+                                                                          deselectAllText = "Clear search",
+                                                                          showTick = TRUE)),
+                    shiny::br())
     } else {
-      column(4L,
-             textInput("Tissue_type",
-                       paste0("Input", tissueTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/BTO)"),
-                       myTissue2),
-             br())
+      shiny::column(4L,
+                    shiny::textInput("Tissue_type",
+                                     paste0("Input", tissueTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/BTO)"),
+                                     myTissue2),
+                    shiny::br())
     },
     if (isFnd["Diseases"]) {
-      column(4L,
-             shinyWidgets::pickerInput("Diseases",
-                                       paste0("Select", diseasesTxt),
-                                       availDiseases,
-                                       myDisease,
-                                       TRUE,
-                                       shinyWidgets::pickerOptions(title = "Search me",
-                                                                   `live-search` = TRUE,
-                                                                   actionsBox = TRUE,
-                                                                   deselectAllText = "Clear search",
-                                                                   showTick = TRUE)),
-             br())
+      shiny::column(4L,
+                    shinyWidgets::pickerInput("Diseases",
+                                              paste0("Select", diseasesTxt),
+                                              availDiseases,
+                                              myDisease,
+                                              TRUE,
+                                              shinyWidgets::pickerOptions(title = "Search me",
+                                                                          `live-search` = TRUE,
+                                                                          actionsBox = TRUE,
+                                                                          deselectAllText = "Clear search",
+                                                                          showTick = TRUE)),
+                    shiny::br())
     } else {
-      column(4L,
-             textInput("Diseases",
-                       paste0("Input", diseasesTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/DOID)"),
-                       myDisease2),
-             br())
+      shiny::column(4L,
+                    shiny::textInput("Diseases",
+                                     paste0("Input", diseasesTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/DOID)"),
+                                     myDisease2),
+                    shiny::br())
     },
   ),
-  tags$hr(style = "border-color: black;"),
-  strong("Developmental stage(s)"),
-  uiOutput("myDevStages"),
-  br(),
-  tags$hr(style = "border-color: black;"),
-  br(),
-  fluidRow(
-    column(2L,
-           if (isFnd["MS_models"]) {
-             shinyWidgets::pickerInput("Vendor",
-                                       "Select instrument vendor(s)",
-                                       availMSVend,
-                                       myVendor,
-                                       TRUE,
-                                       shinyWidgets::pickerOptions(title = "Search me",
-                                                                   `live-search` = TRUE,
-                                                                   actionsBox = TRUE,
-                                                                   deselectAllText = "Clear search",
-                                                                   showTick = TRUE))
-           },
-           uiOutput("myMS_instr"),
-           br()),
+  shiny::tags$hr(style = "border-color: black;"),
+  shiny::strong("Developmental stage(s)"),
+  shiny::uiOutput("myDevStages"),
+  shiny::br(),
+  shiny::tags$hr(style = "border-color: black;"),
+  shiny::br(),
+  shiny::fluidRow(
+    shiny::column(2L,
+                  if (isFnd["MS_models"]) {
+                    shinyWidgets::pickerInput("Vendor",
+                                              "Select instrument vendor(s)",
+                                              availMSVend,
+                                              myVendor,
+                                              TRUE,
+                                              shinyWidgets::pickerOptions(title = "Search me",
+                                                                          `live-search` = TRUE,
+                                                                          actionsBox = TRUE,
+                                                                          deselectAllText = "Clear search",
+                                                                          showTick = TRUE))
+                  },
+                  shiny::uiOutput("myMS_instr"),
+                  shiny::br()),
     if (isFnd["MS_acq_meth"]) {
-      column(2L,
-             shinyWidgets::pickerInput("MS_acq_meth",
-                                       paste0("Select", acqMethTxt),
-                                       availAcqMeth,
-                                       myAcqMeth,
-                                       TRUE,
-                                       shinyWidgets::pickerOptions(title = "Search me",
-                                                                   `live-search` = TRUE,
-                                                                   actionsBox = TRUE,
-                                                                   deselectAllText = "Clear search",
-                                                                   showTick = TRUE)),
-             br())
+      shiny::column(2L,
+                    shinyWidgets::pickerInput("MS_acq_meth",
+                                              paste0("Select", acqMethTxt),
+                                              availAcqMeth,
+                                              myAcqMeth,
+                                              TRUE,
+                                              shinyWidgets::pickerOptions(title = "Search me",
+                                                                          `live-search` = TRUE,
+                                                                          actionsBox = TRUE,
+                                                                          deselectAllText = "Clear search",
+                                                                          showTick = TRUE)),
+                    shiny::br())
     } else {
-      column(2L,
-             textInput("MS_acq_meth",
-                       paste0("Input", acqMethTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/pride)"),
-                       myAcqMeth2),
-             br())
+      shiny::column(2L,
+                    shiny::textInput("MS_acq_meth",
+                                     paste0("Input", acqMethTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/pride)"),
+                                     myAcqMeth2),
+                    shiny::br())
     },
     if (isFnd["MS_quant_meth"]) {
-      column(2L,
-             shinyWidgets::pickerInput("MS_quant_meth",
-                                       paste0("Select", quantMethTxt),
-                                       availQuantMeth,
-                                       myQuantMeth,
-                                       TRUE,
-                                       shinyWidgets::pickerOptions(title = "Search me",
-                                                                   `live-search` = TRUE,
-                                                                   actionsBox = TRUE,
-                                                                   deselectAllText = "Clear search",
-                                                                   showTick = TRUE)),
-             br())
+      shiny::column(2L,
+                    shinyWidgets::pickerInput("MS_quant_meth",
+                                              paste0("Select", quantMethTxt),
+                                              availQuantMeth,
+                                              myQuantMeth,
+                                              TRUE,
+                                              shinyWidgets::pickerOptions(title = "Search me",
+                                                                          `live-search` = TRUE,
+                                                                          actionsBox = TRUE,
+                                                                          deselectAllText = "Clear search",
+                                                                          showTick = TRUE)),
+                    shiny::br())
     } else {
-      column(2L,
-             textInput("MS_quant_meth",
-                       paste0("Input", quantMethTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/pride)"),
-                       myQuantMeth2),
-             br())
+      shiny::column(2L,
+                    shiny::textInput("MS_quant_meth",
+                                     paste0("Input", quantMethTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/pride)"),
+                                     myQuantMeth2),
+                    shiny::br())
     },
     if (isFnd["MS_label_meth"]) {
-      column(2L,
-             shinyWidgets::pickerInput("MS_label_meth",
-                                       paste0("Select", labelMethTxt),
-                                       availLabelMeth,
-                                       myLabelMeth,
-                                       TRUE,
-                                       shinyWidgets::pickerOptions(title = "Search me",
-                                                                   `live-search` = TRUE,
-                                                                   actionsBox = TRUE,
-                                                                   deselectAllText = "Clear search",
-                                                                   showTick = TRUE)),
-             br())
+      shiny::column(2L,
+                    shinyWidgets::pickerInput("MS_label_meth",
+                                              paste0("Select", labelMethTxt),
+                                              availLabelMeth,
+                                              myLabelMeth,
+                                              TRUE,
+                                              shinyWidgets::pickerOptions(title = "Search me",
+                                                                          `live-search` = TRUE,
+                                                                          actionsBox = TRUE,
+                                                                          deselectAllText = "Clear search",
+                                                                          showTick = TRUE)),
+                    shiny::br())
     } else {
-      column(2L,
-             textInput("MS_label_meth",
-                       paste0("Input", labelMethTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/pride)"),
-                       myLabelMeth2),
-             br())
+      shiny::column(2L,
+                    shiny::textInput("MS_label_meth",
+                                     paste0("Input", labelMethTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/pride)"),
+                                     myLabelMeth2),
+                    shiny::br())
     },
     if (isFnd["Modifications"]) {
-      column(2L,
-             shinyWidgets::pickerInput("Modifications",
-                                       paste0("Select", modsTxt),
-                                       availMods,
-                                       myPTMs,
-                                       TRUE,
-                                       shinyWidgets::pickerOptions(title = "Search me",
-                                                                   `live-search` = TRUE,
-                                                                   actionsBox = TRUE,
-                                                                   deselectAllText = "Clear search",
-                                                                   showTick = TRUE)),
-             br())
+      shiny::column(2L,
+                    shinyWidgets::pickerInput("Modifications",
+                                              paste0("Select", modsTxt),
+                                              availMods,
+                                              myPTMs,
+                                              TRUE,
+                                              shinyWidgets::pickerOptions(title = "Search me",
+                                                                          `live-search` = TRUE,
+                                                                          actionsBox = TRUE,
+                                                                          deselectAllText = "Clear search",
+                                                                          showTick = TRUE)),
+                    shiny::br())
     } else {
-      column(2L,
-             textInput("Modifications",
-                       paste0("Input", modsTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/MOD)"),
-                       myPTMs2),
-             br())
+      shiny::column(2L,
+                    shiny::textInput("Modifications",
+                                     paste0("Input", modsTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/MOD)"),
+                                     myPTMs2),
+                    shiny::br())
     },
   ),
   shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-  br(),
-  br()
+  shiny::br(),
+  shiny::br()
 )
 serverA <- \(input, output, session) {
-  VENDOR <- reactiveVal(myVendor)
-  MSINSTR <- reactiveVal(myMSInstr)
+  VENDOR <- shiny::reactiveVal(myVendor)
+  MSINSTR <- shiny::reactiveVal(myMSInstr)
   if (!tstOrg) {
-    ORGA <- reactiveVal(mainOrg)
+    ORGA <- shiny::reactiveVal(mainOrg)
   }
   # MS instrument update function
   updtMSInstr <- \(reactive = TRUE) {
@@ -431,8 +424,8 @@ serverA <- \(input, output, session) {
       myInstr <- myMSInstr
     }
     availMS <- unlist(Vendors2Instr$Instruments[match(myVend, Vendors2Instr$Vendor)])
-    myInstr <- intersect(myInstr, availMS)
-    renderUI(
+    myInstr <- base::intersect(myInstr, availMS)
+    shiny::renderUI(
       if (isFnd["MS_models"]) {
         shinyWidgets::pickerInput("MS_instr",
                                   paste0("Select", MSInstrTxt),
@@ -445,9 +438,9 @@ serverA <- \(input, output, session) {
                                                               deselectAllText = "Clear search",
                                                               showTick = TRUE))
       } else {
-        textInput("MS_instr",
-                  paste0("Input", MSInstrTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/ms/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FMS_1000031)"),
-                  myMSInstr2)
+        shiny::textInput("MS_instr",
+                         paste0("Input", MSInstrTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/ms/classes/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FMS_1000031)"),
+                         myMSInstr2)
       }
     )
   }
@@ -466,41 +459,41 @@ serverA <- \(input, output, session) {
         opt <- dvStgDF$Name
         if (exists("myDevStages")) {
           myDevStages <- unique(myDevStages)
-          myDS1 <- intersect(myDevStages, opt)
-          myDS2 <- paste(setdiff(myDevStages, opt), collapse = "|")
+          myDS1 <- base::intersect(myDevStages, opt)
+          myDS2 <- paste(base::setdiff(myDevStages, opt), collapse = "|")
         }
       }
     }
-    renderUI(list(list(fluidRow(
-      column(1L),
+    renderUI(list(list(shiny::fluidRow(
+      shiny::column(1L),
       if (!is.na(devOnt)) {
-        column(2L,
-               shinyWidgets::pickerInput("devStages1",
-                                         "Select stage(s)...",
-                                         opt,
-                                         myDS1,
-                                         TRUE,
-                                         shinyWidgets::pickerOptions(title = "Search me",
-                                                                     `live-search` = TRUE,
-                                                                     actionsBox = TRUE,
-                                                                     deselectAllText = "Clear search",
-                                                                     showTick = TRUE)),
-               br())
+        shiny::column(2L,
+                      shinyWidgets::pickerInput("devStages1",
+                                                "Select stage(s)...",
+                                                opt,
+                                                myDS1,
+                                                TRUE,
+                                                shinyWidgets::pickerOptions(title = "Search me",
+                                                                            `live-search` = TRUE,
+                                                                            actionsBox = TRUE,
+                                                                            deselectAllText = "Clear search",
+                                                                            showTick = TRUE)),
+                      shiny::br())
       },
-      column(6L,
-             textInput("devStages2",
-                       paste0("... or manually enter stage(s), separating multiple entries with '|'"),
-                       myDS2,
-                       "100%"))
+      shiny::column(6L,
+                    shiny::textInput("devStages2",
+                                     paste0("... or manually enter stage(s), separating multiple entries with '|'"),
+                                     myDS2,
+                                     "100%"))
     ))))
   }
   output$myMS_instr <- updtMSInstr(FALSE)
   output$myDevStages <- updtDevStgs(FALSE)
   if (isFnd["Cell_types"]) {
-    observeEvent(input$Cell_type, {
+    shiny::observeEvent(input$Cell_type, {
       cltp <- unique(input$Cell_type)
-      tmp <- c(cltp, setdiff(availCellTypes, cltp))
-      shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
+      tmp <- c(cltp, base::setdiff(availCellTypes, cltp))
+      shinyWidgets::updatePickerInput(shiny::getDefaultReactiveDomain(),
                                       "Cell_type",
                                       paste0("Select", cellTypeTxt),
                                       cltp,
@@ -508,10 +501,10 @@ serverA <- \(input, output, session) {
     })
   }
   if (isFnd["Tissues"]) {
-    observeEvent(input$Tissue_type, {
+    shiny::observeEvent(input$Tissue_type, {
       tstp <- unique(input$Tissue_type)
-      tmp <- c(tstp, setdiff(availTissues, tstp))
-      shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
+      tmp <- c(tstp, base::setdiff(availTissues, tstp))
+      shinyWidgets::updatePickerInput(shiny::getDefaultReactiveDomain(),
                                       "Tissue_type",
                                       paste0("Select", tissueTxt),
                                       tstp,
@@ -519,10 +512,10 @@ serverA <- \(input, output, session) {
     })
   }
   if (isFnd["Modifications"]) {
-    observeEvent(input$Modifications, {
+    shiny::observeEvent(input$Modifications, {
       mds <- unique(input$Modifications)
-      tmp <- c(mds, setdiff(availMods, mds))
-      shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
+      tmp <- c(mds, base::setdiff(availMods, mds))
+      shinyWidgets::updatePickerInput(shiny::getDefaultReactiveDomain(),
                                       "Modifications",
                                       paste0("Select", modsTxt),
                                       mds,
@@ -530,10 +523,10 @@ serverA <- \(input, output, session) {
     })
   }
   if (isFnd["Diseases"]) {
-    observeEvent(input$Diseases, {
+    shiny::observeEvent(input$Diseases, {
       dis <- unique(input$Diseases)
-      tmp <- c(dis, setdiff(availDiseases, dis))
-      shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
+      tmp <- c(dis, base::setdiff(availDiseases, dis))
+      shinyWidgets::updatePickerInput(shiny::getDefaultReactiveDomain(),
                                       "Diseases",
                                       paste0("Select", diseasesTxt),
                                       dis,
@@ -541,16 +534,16 @@ serverA <- \(input, output, session) {
     })
   }
   if (isFnd["MS_models"]) {
-    observeEvent(input$Vendor, {
+    shiny::observeEvent(input$Vendor, {
       vnd <- unique(input$Vendor)
       tmp <- if ("All vendors" %in% vnd) {
         vnd <- availMSVend
       } else {
-        c(vnd, setdiff(availMSVend, vnd))
+        c(vnd, base::setdiff(availMSVend, vnd))
       }
       VENDOR(vnd)
       if (isFnd["MS_models"]) {
-        shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
+        shinyWidgets::updatePickerInput(shiny::getDefaultReactiveDomain(),
                                         "Vendor",
                                         "Select instrument vendor(s)",
                                         vnd,
@@ -560,12 +553,12 @@ serverA <- \(input, output, session) {
       output$myMS_instr <- updtMSInstr()
     })
   }
-  observeEvent(input$MS_instr, {
+  shiny::observeEvent(input$MS_instr, {
     instr <- unique(input$MS_instr)
     MSINSTR(instr)
     if (isFnd["MS_models"]) {
-      tmp <- c(instr, setdiff(availInstr, instr))
-      shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
+      tmp <- c(instr, base::setdiff(availInstr, instr))
+      shinyWidgets::updatePickerInput(shiny::getDefaultReactiveDomain(),
                                       "MS_instr",
                                       paste0("Select", MSInstrTxt),
                                       instr,
@@ -573,10 +566,10 @@ serverA <- \(input, output, session) {
     }
   })
   if (isFnd["MS_acq_meth"]) {
-    observeEvent(input$MS_acq_meth, {
+    shiny::observeEvent(input$MS_acq_meth, {
       acqmtd <- unique(input$MS_acq_meth)
-      tmp <- c(acqmtd, setdiff(availAcqMeth, acqmtd))
-      shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
+      tmp <- c(acqmtd, base::setdiff(availAcqMeth, acqmtd))
+      shinyWidgets::updatePickerInput(shiny::getDefaultReactiveDomain(),
                                       "MS_acq_meth",
                                       paste0("Select", acqMethTxt),
                                       acqmtd,
@@ -584,10 +577,10 @@ serverA <- \(input, output, session) {
     })
   }
   if (isFnd["MS_quant_meth"]) {
-    observeEvent(input$MS_quant_meth, {
+    shiny::observeEvent(input$MS_quant_meth, {
       qtmtd <- unique(input$MS_quant_meth)
-      tmp <- c(qtmtd, setdiff(availQuantMeth, qtmtd))
-      shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
+      tmp <- c(qtmtd, base::setdiff(availQuantMeth, qtmtd))
+      shinyWidgets::updatePickerInput(shiny::getDefaultReactiveDomain(),
                                       "MS_quant_meth",
                                       paste0("Select", quantMethTxt),
                                       qtmtd,
@@ -595,10 +588,10 @@ serverA <- \(input, output, session) {
     })
   }
   if (isFnd["MS_label_meth"]) {
-    observeEvent(input$MS_label_meth, {
+    shiny::observeEvent(input$MS_label_meth, {
       lblmtd <- unique(input$MS_label_meth)
-      tmp <- c(lblmtd, setdiff(availLabelMeth, lblmtd))
-      shinyWidgets::updatePickerInput(getDefaultReactiveDomain(),
+      tmp <- c(lblmtd, base::setdiff(availLabelMeth, lblmtd))
+      shinyWidgets::updatePickerInput(shiny::getDefaultReactiveDomain(),
                                       "MS_label_meth",
                                       paste0("Select", labelMethTxt),
                                       lblmtd,
@@ -606,14 +599,14 @@ serverA <- \(input, output, session) {
     })
   }
   if (!tstOrg) {
-    observeEvent(input$Organism, {
+    shiny::observeEvent(input$Organism, {
       ORGA(input$Organism)
       output$myDevStages <- updtDevStgs()
     })
   }
   #
   # Save
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     if (!tstOrg) {
       assign("mainOrg", unique(input$Organism), envir = .GlobalEnv)
     }
@@ -632,18 +625,20 @@ serverA <- \(input, output, session) {
     assign("myLabelMeth", unique(input$MS_label_meth), envir = .GlobalEnv)
     assign("myPTMs", unique(input$Modifications), envir = .GlobalEnv)
     assign("appRunTest", TRUE, envir = .GlobalEnv)
-    stopApp()
+    shiny::stopApp()
   })
 }
 appTxtA <- sub("myApp", "myAppA", sub("\\(ui", "(uiA", sub(", server", ", serverA", run_App)))
 runKount <- 0L
 while ((!runKount) || (!exists("appRunTest"))) {
+  g <- shiny:::.globals
+  g$appState <- NULL
   eval(parse(text = appTxtA), envir = .GlobalEnv)
   shinyCleanup()
   runKount <- runKount+1L
 }
 # Update myVendor
-tmpVnd <- setdiff(availMSVend, "All vendors")
+tmpVnd <- base::setdiff(availMSVend, "All vendors")
 myVendor <- tmpVnd[vapply(tmpVnd, \(x) {
   w <- which(availInstrDF$Vendor == x)
   sum(myMSInstr %in% availInstrDF$Instrument[w])
@@ -688,20 +683,20 @@ if (reload_SDRF) {
   }
 }
 #
-Frac.map2 <- Frac.map2[, setdiff(colnames(Frac.map2), c("Raw file", "Search", "Unique.Frac.ID"))] # For now - if we start supporting different enzymes this may have to change
+Frac.map2 <- Frac.map2[, base::setdiff(colnames(Frac.map2), c("Raw file", "Search", "Unique.Frac.ID"))] # For now - if we start supporting different enzymes this may have to change
 #View(Frac.map2)
 # I sometimes have set different fraction numbers to the same file in different searches
 # This will not do here:
-tst <- do.call(paste, c(Frac.map2[, setdiff(colnames(Frac.map2), c("Fraction", "PTM-enriched"))], sep = " | "))
+tst <- do.call(paste, c(Frac.map2[, base::setdiff(colnames(Frac.map2), c("Fraction", "PTM-enriched"))], sep = " | "))
 tst <- aggregate(1L:length(tst), list(tst), min)
 tst <- tst[order(tst$x),]
 Frac.map2 <- Frac.map2[tst$x,]
 nr <- nrow(Frac.map2)
 if (scrptType == "withReps") {
   if (LabelType == "LFQ") {
-    myKol <- setdiff(colnames(Exp.map), names(Aggregate.list))
-    myKol <- setdiff(myKol, c("Fractions", "Reference", "MQ.Exp", "Sample.name", "Use", "Ref.Sample.Aggregate"))
-    if (length(unique(Exp.map$Experiment)) == 1L) { myKol <- setdiff(myKol, "Experiment") }
+    myKol <- base::setdiff(colnames(Exp.map), names(Aggregate.list))
+    myKol <- base::setdiff(myKol, c("Fractions", "Reference", "MQ.Exp", "Sample.name", "Use", "Ref.Sample.Aggregate"))
+    if (length(unique(Exp.map$Experiment)) == 1L) { myKol <- base::setdiff(myKol, "Experiment") }
     tmp <- listMelt(Exp.map$MQ.Exp, 1L:nrow(Exp.map))
     tmp[, myKol] <- Exp.map[tmp$L1, myKol]
     Frac.map2[, myKol] <- tmp[match(Frac.map2$MQ.Exp, tmp$value), myKol]
@@ -715,11 +710,11 @@ if (scrptType == "withReps") {
     tmp$FracRow <- 1L:nrow(tmp)
     tmp <- listMelt(tmp$ExpRow, tmp$FracRow, c("ExpRow", "FracRow"))
     k <- colnames(Frac.map2)
-    k <- setdiff(k, c("Use", "MQ.Exp"))
+    k <- base::setdiff(k, c("Use", "MQ.Exp"))
     tmp[, k] <- Frac.map2[tmp$FracRow, k]
     k <- colnames(Exp.map)
     k <- grep("^([A-Z][a-z]{2}){2,}$", k, value = TRUE, invert = TRUE)
-    k <- setdiff(k, c("Fractions", "Ref.Sample.Aggregate", "Use", "MQ.Exp"))
+    k <- base::setdiff(k, c("Fractions", "Ref.Sample.Aggregate", "Use", "MQ.Exp"))
     tmp[, k] <- Exp.map[tmp$ExpRow, k]
     tmp$FracRow <- NULL
     tmp$ExpRow <- NULL
@@ -733,7 +728,7 @@ if (scrptType == "withReps") {
 }
 if (scrptType == "noReps") {
   myKol <- colnames(SamplesMap)
-  myKol <- setdiff(myKol, c("Fractions", "Reference", "MQ.Exp", "Sample.name", "Use"))
+  myKol <- base::setdiff(myKol, c("Fractions", "Reference", "MQ.Exp", "Sample.name", "Use"))
   myKol <- grep("__$", myKol, value = TRUE, invert = TRUE)
   tmp <- listMelt(SamplesMap$Experiment, 1L:nrow(SamplesMap))
   tmp[, myKol] <- SamplesMap[tmp$L1, myKol]
@@ -812,7 +807,7 @@ myOntDF$Candidate_col <- lapply(1L:nrow(myOntDF), \(i) { #i <- 8L
                          gsub(" ", "_", candKols),
                          gsub(" ", "-", candKols)))
     candKols <- c(candKols, toupper(candKols), tolower(candKols))
-    candKols <- intersect(candKols, colnames(Frac.map2))
+    candKols <- base::intersect(candKols, colnames(Frac.map2))
   }
   if (length(candKols)) {
     candKols <- candKols[vapply(candKols, \(k) { #k <- candKols[1L]
@@ -839,7 +834,7 @@ for (i in wNotNA) { #i <- wNotNA[1L]
         strtVal <- Frac.map2[[myOntDF$Candidate_col[[i]]]]
       }
     }
-    strtVal <- intersect(strtVal, myOntVal)
+    strtVal <- base::intersect(strtVal, myOntVal)
     if (length(strtVal) != nr) { strtVal <- rep(myOntVal[1L], nr) }
     SDRF2[[nm]] <- shinySelectInput(strtVal,
                                     nm,
@@ -897,10 +892,10 @@ if (idsL) {
     extendShinyjs(text = jsFun$toggle_full_screen,
                   functions = c("toggleFullScreen")),
     #Dummy, hidden div to load arrow-down icon
-    # tags$div(
+    # shiny::tags$div(
     #   class = "container",
     #   style = "display: none;",
-    #   tags$div(
+    #   shiny::tags$div(
     #     style = "margin-top: 50xp;",
     #     actionButton(
     #       "add_thing",
@@ -910,14 +905,14 @@ if (idsL) {
     #     )
     #   )
     # ),
-    tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-    titlePanel(tag("u", "SDRF editor"),
-               appNm),
-    h2(dtstNm), 
-    h3("Assign controlled vocabulary descriptors to MS runs."),
-    br(),
-    actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-    withSpinner(DT::DTOutput("SDRF_tbl", width = wTest2))
+    shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+    shiny::titlePanel(shiny::tag("u", "SDRF editor"),
+                      appNm),
+    shiny::h2(dtstNm), 
+    shiny::h3("Assign controlled vocabulary descriptors to MS runs."),
+    shiny::br(),
+    shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
+    shinycssloaders::withSpinner(DT::DTOutput("SDRF_tbl", width = wTest2))
   )
   serverB <- \(input, output, session) {
     # Initialize output table
@@ -938,7 +933,7 @@ if (idsL) {
                                                    columnDefs = wTest1,
                                                    scrollX = FALSE),
                                     # the callback is essential to capture the inputs in each row
-                                    callback = JS("table.rows().every(function(i, tab, row) {
+                                    callback = shinyWidgets::JS("table.rows().every(function(i, tab, row) {
   var $this = $(this.node());
   $this.attr('id', this.data()[0]);
   $this.addClass('shiny-input-container');
@@ -954,22 +949,26 @@ Shiny.bindAll(table.table().node());"))
       fct <- tmp[[1L]]
       i <- as.integer(tmp[[2L]])
       if (i < nr) {
-        observeEvent(input[[id2]],
-                     {
-                       x <- input[[id1]]
-                       myOntVal <- get(paste0("my", fct, "2"))
-                       tp <- typeof(myOntVal)
-                       if (typeof(x) != tp) { x <- get(paste0("as.", tp))(x) }
-                       for (k in (i+1L):nr) {
-                         idK <- paste0(fct, "___", as.character(k))
-                         updateSelectInput(getDefaultReactiveDomain(), idK, NULL, myOntVal, x)
-                       }
-                     })
+        shiny::observeEvent(input[[id2]],
+                            {
+                              x <- input[[id1]]
+                              myOntVal <- get(paste0("my", fct, "2"))
+                              tp <- typeof(myOntVal)
+                              if (typeof(x) != tp) { x <- get(paste0("as.", tp))(x) }
+                              for (k in (i+1L):nr) {
+                                idK <- paste0(fct, "___", as.character(k))
+                                shiny::updateSelectInput(shiny::getDefaultReactiveDomain(),
+                                                         idK,
+                                                         NULL,
+                                                         myOntVal,
+                                                         x)
+                              }
+                            })
         
       }
     })
     # Save
-    observeEvent(input$saveBtn, {
+    shiny::observeEvent(input$saveBtn, {
       for (ont in editOnts) {
         typ <- typeof(get(paste0("my", ont, "2")))
         as.Fun <- get(paste0("as.", typ))
@@ -978,16 +977,19 @@ Shiny.bindAll(table.table().node());"))
         })
       }
       assign("SDRF3", SDRF3, envir = .GlobalEnv)
-      stopApp()
+      shiny::stopApp()
     })
-    #observeEvent(input$cancel, { stopApp() })
-    session$onSessionEnded(\() { stopApp() })
+    #shiny::observeEvent(input$cancel, { shiny::stopApp() })
+    session$onSessionEnded(\() { shiny::stopApp() })
   }
   if (exists("SDRF3")) { rm(SDRF3) }
   appTxtB <- sub("myApp", "myAppB", sub("\\(ui", "(uiB", sub(", server", ", serverB", run_App)))
   runKount <- 0L
   while ((!runKount) || (!exists("appRunTest"))) {
+    g <- shiny:::.globals
+    g$appState <- NULL
     eval(parse(text = appTxtB), envir = .GlobalEnv)
+    shinyCleanup()
     runKount <- runKount+1L
   }
   SDRF[, myOntDF$Column[match(editOnts, myOntDF$Name)]] <- SDRF3[, editOnts]
@@ -1031,7 +1033,7 @@ eval(writeExprs)
 while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) { # We only want this to happen if the file is locked for editing
   eval(writeExprs)
 }
-#openxlsx::openXL(sdrfPth)
+#openxlsx2::xl_open(sdrfPth)
 #
 if (pyTest) {
   cat("Validating SDRF file...\n")

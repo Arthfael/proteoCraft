@@ -402,7 +402,7 @@ FP_to_MQ <- function(FP_Workflow,
     tmp2$"Full name"[w] <- paste0("Unknown", 1L:length(w), "_", c("", "+")[(tmp2$`Mass delta`[w] > 0) + 1L],
                                   tmp2$`Mass delta`[w])
   }
-  kol <- setdiff(colnames(tmp2), c("tmpRow", "Row", "Mass delta", "Full name"))
+  kol <- base::setdiff(colnames(tmp2), c("tmpRow", "Row", "Mass delta", "Full name"))
   tmp2 <- aggregate(tmp2[, kol], list(tmp2$"Mass delta", tmp2$"Full name"), list)
   colnames(tmp2)[1L:2L] <- c("Mass delta", "Full name")
   tmp2$"Max occurences" <- vapply(tmp2$"Max occurences", max, 1L)
@@ -432,7 +432,7 @@ FP_to_MQ <- function(FP_Workflow,
       } else {
         m$AA[lengths(m$AA) == 0L] <- "X"
         r <- { if ("Acetyl" %in% m$"Full name") { which(m$"Full name" == "Acetyl") } else { 1L } } # r is the one we will keep without changing it
-        s <- setdiff(1L:nrow(m), r)
+        s <- base::setdiff(1L:nrow(m), r)
         tst <- lapply(s, \(x) {
           paste0(tolower(m$AA[[x]]), substr(m$Mark[[x]], 1L, 1L))
         })
@@ -541,15 +541,16 @@ FP_to_MQ <- function(FP_Workflow,
     PSMs$PSMs_file <- FP_Mnfst$FP_PSMs[PSMs2Mnsfst]
   }
   # Check formats
-  kols <- intersect(c("Charge", "Number of Enzymatic Termini", "Number of Missed Cleavages", "Protein Start", "Protein End"),
-                    colnames(PSMs))
+  kols <- base::intersect(c("Charge", "Number of Enzymatic Termini", "Number of Missed Cleavages",
+                            "Protein Start", "Protein End"),
+                          colnames(PSMs))
   for (kol in kols) { PSMs[[kol]] <- as.integer(PSMs[[kol]]) }
-  kols <- intersect(c("Retention", "Observed Mass", "Calibrated Observed Mass", 
-                      "Observed M/Z", "Calibrated Observed M/Z", "Calculated Peptide Mass", 
-                      "Calculated M/Z", "Delta Mass", "Expectation", "Hyperscore", 
-                      "Nextscore", "PeptideProphet Probability", "Intensity", 
-                      "Best Score with Delta Mass", "Best Score without Delta Mass"),
-                    colnames(PSMs))
+  kols <- base::intersect(c("Retention", "Observed Mass", "Calibrated Observed Mass", 
+                            "Observed M/Z", "Calibrated Observed M/Z", "Calculated Peptide Mass", 
+                            "Calculated M/Z", "Delta Mass", "Expectation", "Hyperscore", 
+                            "Nextscore", "PeptideProphet Probability", "Intensity", 
+                            "Best Score with Delta Mass", "Best Score without Delta Mass"),
+                          colnames(PSMs))
   if (FailIfNoQuant &&
       ((!"Intensity" %in% kols) ||
        (!sum(is.finite(PSMs$Intensity))) ||
@@ -617,15 +618,15 @@ FP_to_MQ <- function(FP_Workflow,
   # Create MQ-like data.frame
   kol <- c("Spectrum File", "Peptide", "Modified Peptide", "Charge", "Hyperscore",
            "Spectrum", "Intensity", "Retention", "Protein")
-  #print(setdiff(kol, colnames(PSMs)))
+  #print(base::setdiff(kol, colnames(PSMs)))
   stopifnot(sum(!kol %in% colnames(PSMs)) == 0L)
   EV <- data.frame(Sequence = PSMs$Peptide,
                    Length = nchar(PSMs$Peptide), 
                    Charge = PSMs$Charge,
                    Intensity = PSMs$Intensity)
   #
-  pKol <- intersect(c("PeptideProphet Probability", "Probability"),
-                    colnames(PSMs))[1L]
+  pKol <- base::intersect(c("PeptideProphet Probability", "Probability"),
+                          colnames(PSMs))[1L]
   if (!length(pKol)) { stop("No PSMs quality column detected!") } else {
     EV$PEP <- 1 - PSMs[[pKol]]
   }

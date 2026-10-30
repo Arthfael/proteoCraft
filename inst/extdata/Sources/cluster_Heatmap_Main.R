@@ -7,13 +7,12 @@
 # This seemed to be a problem of lazy evaluation of formulas.
 # To avoid the issue, do not use the "~column" formula notation but instead the "data$column" notation when mapping variables to columns in the data of each trace.
 #
-library(viridisLite)
 drawPlotly <- TRUE
 if ((!exists("plotLeatMaps")) || (!inherits(plotLeatMaps, "list"))) { plotLeatMaps <- list() }
 if ((!exists("heatMaps")) || (!inherits(heatMaps, "list"))) { heatMaps <- list() }
 if (!exists("clustDat")) {
   if (exists("clustDat_fl") && file.exists(clustDat_fl)) {
-    loadImg(clustDat_fl)
+    loadFun(clustDat_fl)
   } else {
     Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
     #rstudioapi::documentOpen(Src)
@@ -22,10 +21,10 @@ if (!exists("clustDat")) {
 }
 #drawPlotly <- FALSE
 if (clustHtMp) {
-  datNm <- intersect(c("ComBat",
-                       "Filtered", # only for PG - because of limpa
-                       "Original"),
-                    names(clustDat[[dataType]]))[1L]
+  datNm <- base::intersect(c("ComBat",
+                             "Filtered", # only for PG - because of limpa
+                             "Original"),
+                           names(clustDat[[dataType]]))[1L]
   #
   myClustData <- clustDat[[dataType]][[datNm]]
   myClustDataImp <- clustDat[[dataType]]$Positions_imputed
@@ -54,7 +53,7 @@ if (clustHtMp) {
   verbose <- FALSE
   if (!dir.exists(clustDir)) { dir.create(clustDir, recursive = TRUE) }
   if (scrptType == "withReps") {
-    dirlist <- union(dirlist, clustDir)
+    dirlist <- base::union(dirlist, clustDir)
     #
     I <- list(Global = mySmpls)
     # Cluster groups based on Ratios-, GO enrichment- or Normalisation groups
@@ -244,16 +243,16 @@ if (clustHtMp) {
               vplot$layers[[g2]] <- NULL
             }
             vplot <- vplot +
-              geom_vline(xintercept = tst2[1L]+1L, colour = "red", linetype = "dashed") +
-              geom_vline(xintercept = NGr, colour = "orange", linetype = "dashed") +
-              geom_text(label = "opt. N. of sample clust.", x = tst2[1L]+1-0.2, y = yLow+yScl*0.1,
-                        colour = "red", angle = 90, hjust = 1) +
-              geom_text(label = "N. of sample groups", x = NGr+0.2, y = yLow+yScl*0.1,
-                        colour = "orange", angle = 90, hjust = 1) +
-              theme_bw() + ggtitle(vnm)
+              ggplot2::geom_vline(xintercept = tst2[1L]+1L, colour = "red", linetype = "dashed") +
+              ggplot2::geom_vline(xintercept = NGr, colour = "orange", linetype = "dashed") +
+              ggplot2::geom_text(label = "opt. N. of sample clust.", x = tst2[1L]+1-0.2, y = yLow+yScl*0.1,
+                                 colour = "red", angle = 90, hjust = 1) +
+              ggplot2::geom_text(label = "N. of sample groups", x = NGr+0.2, y = yLow+yScl*0.1,
+                                 colour = "orange", angle = 90, hjust = 1) +
+              ggplot2::theme_bw() + ggplot2::ggtitle(vnm)
             #poplot(vplot)
             suppressMessages({
-              ggsave(paste0(clustDir, "/", vnm, normTypeInsrt, ".svg"), vplot, dpi = 150L)
+              ggplot2::ggsave(paste0(clustDir, "/", vnm, normTypeInsrt, ".svg"), vplot, dpi = 150L)
             })
           }
           NVClust[[clustNm]] <- max(min(c(floor(ncol(temp2)/2), c(NGr, 2L))))
@@ -270,23 +269,23 @@ if (clustHtMp) {
           # Apply the same method for optimization for any clustering method
           # Number of cluster should not depend on method
           source(parSrc)
-          clusterExport(parClust, list("temp3", "Straps"), envir = environment())
+          parallel::clusterExport(parClust, list("temp3", "Straps"), envir = environment())
           HClust_rg <- 2L:MaxHClust
-          tst <- setNames(parLapply(parClust, HClust_rg, \(kl) { #kl <- 2L
-            try(kmeans(temp3, kl, nstart = Straps)$tot.withinss, silent = TRUE)
+          tst <- setNames(parallel::parLapply(parClust, HClust_rg, \(kl) { #kl <- 2L
+            try(stats::kmeans(temp3, kl, nstart = Straps)$tot.withinss, silent = TRUE)
           }), HClust_rg)
           tst <- tst[vapply(tst, \(x) { !inherits(x, "try-error") }, TRUE)]
-          tst <- setNames(as.numeric(tst)/kmeans(temp3, 1L, nstart = 1L)$tot.withinss, names(tst))
+          tst <- setNames(as.numeric(tst)/stats::kmeans(temp3, 1L, nstart = 1L)$tot.withinss, names(tst))
           yScl2 <- max(tst)
           tst2 <- data.frame("Number of clusters k" = as.integer(names(tst)),
                              "[tot WSS (k)]/[tot WSS (1)]" = tst,
                              check.names = FALSE)
-          tst <- parLapply(parClust, HClust_rg, \(kl) {
-            try(kmeans(temp3, kl, nstart = Straps)$tot.withinss, silent = TRUE)
+          tst <- parallel::parLapply(parClust, HClust_rg, \(kl) {
+            try(stats::kmeans(temp3, kl, nstart = Straps)$tot.withinss, silent = TRUE)
           })
           w <- which(vapply(tst, \(x) { !inherits(x, "try-error") }, TRUE))
           tst <- vapply(tst[w], \(x) { x }, 1)
-          tst <- tst/kmeans(temp3, 1L, nstart = 1L)$tot.withinss
+          tst <- tst/stats::kmeans(temp3, 1L, nstart = 1L)$tot.withinss
           yScl2 <- max(tst)
           tst2 <- data.frame("Number of clusters k" = HClust_rg[w],
                              "[tot WSS (k)]/[tot WSS (1)]" = tst,
@@ -315,54 +314,58 @@ if (clustHtMp) {
           yMax <- max(c(tst2$Y1, tst2$Y2))
           yScl <- yMax-yMin
           if (verbose) {
-            hplot <- ggplot(tst2) +
-              geom_segment(x = tst2$X2[w], y = tst2$Y2[w],
-                           xend = tst2$X1[w], yend = tst2$Y1[w], color = "grey", linetype = "dotted") +
-              geom_point(aes(x = X1, y = Y1, size = Size), color = "blue") +
-              geom_point(aes(x = X2, y = Y2, size = Size), color = "red") +
-              geom_text(x = xScl*0.98+xMin, y = yMin+yScl*0.98, color = "blue", label = "ratio of tot. WSS", hjust = 1) +
-              geom_text(x = xScl*0.98+xMin, y = yMin+yScl*0.962, color = "red", label = "ratio of tot. WSS, -pi/4 rotation", hjust = 1) +
-              geom_hline(yintercept = tst2$Y2[w], color = "red", linetype = "dashed") +
-              geom_vline(xintercept = tst2$X1[w], color = "deepskyblue", linetype = "dashed") +
-              geom_text(x = xMin+0.01*xScl, y = tst2$Y2[w]+0.02*yScl, color = "red", label = "Elbow", hjust = 0) +
-              geom_text(x = tst2$X1[w]-0.02*xScl, y = yScl*0.9, angle = 90, color = "deepskyblue",
-                        label = paste0("Optimal = ", tst2$`Number of clusters k`[w], " clusters"), hjust = 1) +
-              ggtitle(hnm) + scale_size_identity() + theme_bw() +
-              theme(legend.position = "none") + ylab("Normalised total Within-clusters vs Total Sum of Squares")
+            hplot <- ggplot2::ggplot(tst2) +
+              ggplot2::geom_segment(x = tst2$X2[w], y = tst2$Y2[w],
+                                    xend = tst2$X1[w], yend = tst2$Y1[w], color = "grey", linetype = "dotted") +
+              ggplot2::geom_point(ggplot2::aes(x = X1, y = Y1, size = Size), color = "blue") +
+              ggplot2::geom_point(ggplot2::aes(x = X2, y = Y2, size = Size), color = "red") +
+              ggplot2::geom_text(x = xScl*0.98+xMin, y = yMin+yScl*0.98, color = "blue",
+                                 label = "ratio of tot. WSS", hjust = 1) +
+              ggplot2::geom_text(x = xScl*0.98+xMin, y = yMin+yScl*0.962, color = "red",
+                                 label = "ratio of tot. WSS, -pi/4 rotation", hjust = 1) +
+              ggplot2::geom_hline(yintercept = tst2$Y2[w], color = "red", linetype = "dashed") +
+              ggplot2::geom_vline(xintercept = tst2$X1[w], color = "deepskyblue", linetype = "dashed") +
+              ggplot2::geom_text(x = xMin+0.01*xScl, y = tst2$Y2[w]+0.02*yScl, color = "red",
+                                 label = "Elbow", hjust = 0) +
+              ggplot2::geom_text(x = tst2$X1[w]-0.02*xScl, y = yScl*0.9, angle = 90, color = "deepskyblue",
+                                 label = paste0("Optimal = ", tst2$`Number of clusters k`[w], " clusters"), hjust = 1) +
+              ggplot2::ggtitle(hnm) + ggplot2::scale_size_identity() + ggplot2::theme_bw() +
+              ggplot2::theme(legend.position = "none") +
+              ggplot2::ylab("Normalised total Within-clusters vs Total Sum of Squares")
             #poplot(hplot)
             suppressMessages({
-              ggsave(paste0(clustDir, "/", hnm, normTypeInsrt, ".svg"), hplot, dpi = 150L)
+              ggplot2::ggsave(paste0(clustDir, "/", hnm, normTypeInsrt, ".svg"), hplot, dpi = 150L)
             })
           }
         }
         # Apply cutoffs
         if (KlustMeth == 1L) {
-          #HClusters[[clustNm]] <- kmeans(temp3, NHClust[[clustNm]], 100)$cluster
+          #HClusters[[clustNm]] <- stats::kmeans(temp3, NHClust[[clustNm]], 100)$cluster
           if (normType != "None") { # If normType == "None", we inherit this from "Norm. by row"
-            clsTst <- try({ HClusters[[i]] <- kmeans(temp3, NHClust[[i]], 100L)$cluster }, silent = TRUE)
+            clsTst <- try({ HClusters[[i]] <- stats::kmeans(temp3, NHClust[[i]], 100L)$cluster }, silent = TRUE)
             while (inherits(clsTst, "try-error") && (NHClust[[i]] > 2L)) {
               NHClust[[i]] <- NHClust[[i]] - 1L
-              clsTst <- try({ HClusters[[i]] <- kmeans(temp3, NHClust[[i]], 100L)$cluster }, silent = TRUE)
+              clsTst <- try({ HClusters[[i]] <- stats::kmeans(temp3, NHClust[[i]], 100L)$cluster }, silent = TRUE)
             }
           }
-          VClusters[[clustNm]] <- kmeans(t(temp3), NVClust[[clustNm]], 100L)$cluster
+          VClusters[[clustNm]] <- stats::kmeans(t(temp3), NVClust[[clustNm]], 100L)$cluster
         }
         if (KlustMeth == 2L) {
-          #HClusters[[clustNm]] <- cutree(h_clust, NHClust[[clustNm]])
+          #HClusters[[clustNm]] <- stats::cutree(h_clust, NHClust[[clustNm]])
           if (normType != "None") { # If normType == "None", we inherit this from "Norm. by row"
-            clsTst <- try({ HClusters[[i]] <- cutree(h_clust, NHClust[[i]]) }, silent = TRUE)
+            clsTst <- try({ HClusters[[i]] <- stats::cutree(h_clust, NHClust[[i]]) }, silent = TRUE)
             while (inherits(clsTst, "try-error") && (NHClust[[i]] > 2L)) {
               NHClust[[i]] <- NHClust[[i]] - 1L
-              clsTst <- try({ HClusters[[i]] <- cutree(h_clust, NHClust[[i]]) }, silent = TRUE)
+              clsTst <- try({ HClusters[[i]] <- stats::cutree(h_clust, NHClust[[i]]) }, silent = TRUE)
             }
           }
-          VClusters[[clustNm]] <- cutree(v_clust, NVClust[[clustNm]])
+          VClusters[[clustNm]] <- stats::cutree(v_clust, NVClust[[clustNm]])
         }
         KlKol <- paste0(KlustRoot, i)
         if ((clustMode == "standard") && (normType == "Norm. by row")) {
           # We use clusters only from normalised by row,
           # because we want to see the effect of relative expression
-          KlustKols <- union(KlustKols, KlKol)
+          KlustKols <- base::union(KlustKols, KlKol)
           #PG[[KlKol]] <- HClusters[[clustNm]][match(PG$Label, names(HClusters[[clustNm]]))]
           PG[[KlKol]] <- HClusters[[i]][match(PG$Label, names(HClusters[[i]]))]
         }
@@ -455,10 +458,10 @@ if (clustHtMp) {
         wH <- round(c(1L:NHClust[[i]])*MaxHClust/NHClust[[i]])
         vClScl <- setNames(VClustScl[wV], seq_along(wV))
         hClScl <- setNames(HClustScl[wH], seq_along(wH))
-        VcolScale <- scale_color_manual(name = "Samples cluster", values = vClScl)
-        VfillScale <- scale_fill_manual(name = "Samples cluster", values = vClScl)
-        HcolScale <- scale_color_manual(name = "Protein groups cluster", values = hClScl)
-        HfillScale <- scale_fill_manual(name = "Protein groups cluster", values = hClScl)
+        VcolScale <- ggplot2::scale_color_manual(name = "Samples cluster", values = vClScl)
+        VfillScale <- ggplot2::scale_fill_manual(name = "Samples cluster", values = vClScl)
+        HcolScale <- ggplot2::scale_color_manual(name = "Protein groups cluster", values = hClScl)
+        HfillScale <- ggplot2::scale_fill_manual(name = "Protein groups cluster", values = hClScl)
         # Create heatmap plot
         Ylim <- c(-10, max(c(max(h_Seg$y) + Height*0.6), 20))
         #
@@ -551,70 +554,80 @@ if (clustHtMp) {
         yScale <- Ylim[2L]-Ylim[1L]
         #
         # Create heatmap
-        heatmap.plot <- ggplot(temp2a[w2a,]) +
-          geom_rect(aes(xmin = Xmin, xmax = Xmin+1, ymin = Ymin, ymax = Ymin+1, fill = value, text = Label)) +
-          geom_rect(data = temp2a[w2b,],
-                    aes(xmin = Xmin, xmax = Xmin+sclWdth, ymin = Ymin, ymax = Ymin+Height*0.05, fill = value)) +
-          theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-                axis.text.y = element_blank(), axis.ticks.y = element_blank(), 
-                panel.background = element_rect(fill = "transparent", color = NA),
-                plot.margin = margin(0, 0, 0, 0, "cm")) +
-          #scale_fill_gradient2(low = "darkblue", mid = "lightgrey", high = "darkred") +
-          scale_fill_viridis(option = "D") +
-          xlab(NULL) + ylab(NULL) + theme(legend.position = "none") +
-          xlim(Xlim[1L], Xlim[2L]) + ylim(Ylim[1L], Ylim[2L])
-        #poplot(heatmap.plot, 12, 20)
+        heatmap.plot <- ggplot2::ggplot(temp2a[w2a,]) +
+          ggplot2::geom_rect(ggplot2::aes(xmin = Xmin, xmax = Xmin+1, ymin = Ymin, ymax = Ymin+1,
+                                          fill = value, text = Label)) +
+          ggplot2::geom_rect(data = temp2a[w2b,],
+                             ggplot2::aes(xmin = Xmin, xmax = Xmin+sclWdth, ymin = Ymin, ymax = Ymin+Height*0.05,
+                                          fill = value)) +
+          ggplot2::theme(axis.text.x = ggplot2::element_blank(), axis.ticks.x = ggplot2::element_blank(), 
+                         axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank(), 
+                         panel.background = ggplot2::element_rect(fill = "transparent", color = NA),
+                         plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"),
+                         legend.position = "none") +
+          #ggplot2::scale_fill_gradient2(low = "darkblue", mid = "lightgrey", high = "darkred") +
+          viridis::scale_fill_viridis(option = "D") +
+          ggplot2::xlab(NULL) + ggplot2::ylab(NULL) +
+          ggplot2::xlim(Xlim[1L], Xlim[2L]) + ggplot2::ylim(Ylim[1L], Ylim[2L])
+        #poplot(heatmap.plot, 12L, 22L)
         # heatmap.plot <- heatmap.plot + 
-        #   geom_text(data = temp2a[temp2a$Xmin == min(temp2$Xmin),],
-        #             aes(x = Xmin, y = Ymin, label = Sample))
+        #   ggplot2::geom_text(data = temp2a[temp2a$Xmin == min(temp2$Xmin),],
+        #                      ggplot2::aes(x = Xmin, y = Ymin, label = Sample))
         # Title, axis labels, colour scale annotations
         #
         # Add labels and dendrograms:
         # - Title, scale, chi-squared test
         heatmap.plot <- heatmap.plot +
-          new_scale("size") + scale_size_identity() +
-          geom_text(data = GrLab, aes(label = label, x = x, y = y, angle = angle, size = size,
-                                      fontface = fontface),
-                    color = "black", hjust = 0.5)
-        #poplot(heatmap.plot, 12, 20)
+          ggnewscale::new_scale("size") + ggplot2::scale_size_identity() +
+          ggplot2::geom_text(data = GrLab,
+                             ggplot2::aes(label = label, x = x, y = y, angle = angle,
+                                          size = size, fontface = fontface),
+                             color = "black", hjust = 0.5)
+        #poplot(heatmap.plot, 12L, 22L)
         # - Clusters
         clustDF <- h_labs[, c("x", "Cluster", "label")]
         #w <- which(!temp2a$Label[w2a] %in% clustDF$label)
         heatmap.plot <- heatmap.plot +
-          new_scale_fill() + HfillScale +
-          geom_rect(data = clustDF, ymin = -0.75, ymax = -0.25,
-                    aes(xmin = x-1, xmax = x, fill = Cluster, text = Cluster))
+          ggnewscale::new_scale_fill() + HfillScale +
+          ggplot2::geom_rect(data = clustDF, ymin = -0.75, ymax = -0.25,
+                             ggplot2::aes(xmin = x-1, xmax = x, fill = Cluster, text = Cluster))
         #
-        #poplot(heatmap.plot, 12, 20)
+        #poplot(heatmap.plot, 12L, 22L)
         # - Horizontal dendrogram and protein names
         heatmap.plot <- heatmap.plot +
-          geom_segment(data = h_Seg, linewidth = 0.25,
-                       aes(x = x, y = y+yPadUp, xend = xend, yend = yend+yPadUp)) +
-          geom_text(data = h_labs, aes(x = x-0.5, label = label2, colour = Cluster),
-                    y = Height+0.05, angle = 90, cex = sqrt(yPadUp)*1.5, hjust = 0, vjust = 0)
+          ggplot2::geom_segment(data = h_Seg, linewidth = 0.25,
+                                ggplot2::aes(x = x, y = y+yPadUp, xend = xend, yend = yend+yPadUp)) +
+          ggplot2::geom_text(data = h_labs,
+                             ggplot2::aes(x = x-0.5, label = label2, colour = Cluster),
+                             y = Height+0.05, angle = 90, cex = sqrt(yPadUp)*1.5, hjust = 0, vjust = 0)
         if (nrow(h_labs) < 250L) {
           h_labs$label3 <- gsub(" - .*", "", h_labs$label)
           heatmap.plot <- heatmap.plot +
-            geom_text(data = h_labs, aes(x = x-0.3, label = label3, colour = Cluster),
-                      y = Height+0.05, angle = 90, cex = sqrt(yPadUp)*0.9, hjust = 0, vjust = 0)
+            ggplot2::geom_text(data = h_labs,
+                               ggplot2::aes(x = x-0.3, label = label3, colour = Cluster),
+                               y = Height+0.05, angle = 90, cex = sqrt(yPadUp)*0.9, hjust = 0, vjust = 0)
         }
         # - Vertical dendrogram and sample names
         heatmap.plot <- heatmap.plot +
-          new_scale_color() + VcolScale +
-          geom_segment(data = v_Seg, linewidth = 0.25,
-                       aes(x = x, y = y - 0.5, xend = xend, yend = yend - 0.5)) +
-          geom_text(data = v_labs, aes(y = y - 0.5, label = label, colour = Cluster),
-                    x = -xScale/250, hjust = 1, vjust = 0.5, cex = 2.2)
+          ggnewscale::new_scale_color() + VcolScale +
+          ggplot2::geom_segment(data = v_Seg, linewidth = 0.25,
+                                ggplot2::aes(x = x, y = y - 0.5, xend = xend, yend = yend - 0.5)) +
+          ggplot2::geom_text(data = v_labs,
+                             ggplot2::aes(y = y - 0.5, label = label, colour = Cluster),
+                             x = -xScale/250, hjust = 1, vjust = 0.5, cex = 2.2)
         # - Proteins of interest
         if (prot.list.marks) {
           heatmap.plot <- heatmap.plot +
-            geom_point(data = temp2c, aes(x = Xmin+0.5), y = -0.5, colour = "red", fill = "red", shape = 17) +
-            geom_text(data = temp2c, aes(x = Xmin+0.5, label = label2),
-                      y = -1, colour = "red", angle = -60, hjust = 0, cex = 2)
+            ggplot2::geom_point(data = temp2c,
+                                ggplot2::aes(x = Xmin+0.5), y = -0.5, colour = "red", fill = "red", shape = 17) +
+            ggplot2::geom_text(data = temp2c,
+                               ggplot2::aes(x = Xmin+0.5, label = label2),
+                               y = -1, colour = "red", angle = -60, hjust = 0, cex = 2)
         }
         # - Subcellular markers
         addSCmarks <- FALSE
         if (("Compartment marker" %in% colnames(PG)) && (sum(PG$"Compartment marker" != ""))) {
+          requireNamespace("data.table")
           temp2m <- as.data.table(temp2[, c("Leading protein IDs", "Ymin", "Xmin")])
           temp2m <- temp2m[,
                            .(Xmin = min(Xmin, na.rm = TRUE),
@@ -628,14 +641,15 @@ if (clustHtMp) {
           addSCmarks <- nrow(temp2m)
           if (addSCmarks) {
             heatmap.plot <- heatmap.plot +
-              new_scale_fill() +
-              #scale_fill_viridis("turbo", discrete = TRUE) +
-              scale_color_manual(values = markColors) +
-              geom_rect(data = temp2m, aes(xmin = Xmin, xmax = Xmin+1, fill = `Compartment marker`),
-                        ymin = -1.7, ymax = -1.3)
+              ggnewscale::new_scale_fill() +
+              #viridis::scale_fill_viridis("turbo", discrete = TRUE) +
+              ggplot2::scale_color_manual(values = markColors) +
+              ggplot2::geom_rect(data = temp2m,
+                                 ggplot2::aes(xmin = Xmin, xmax = Xmin+1, fill = `Compartment marker`),
+                                 ymin = -1.7, ymax = -1.3)
           }
         }
-        #poplot(heatmap.plot, 12, 20)
+        #poplot(heatmap.plot, 12L, 22L)
         #
         # Export evaluated version for later parallel saving
         evalPlot <- plotEval(heatmap.plot)
@@ -655,9 +669,9 @@ if (clustHtMp) {
           tempLy <- temp2a[w2a,]
           tempLy$Sample <- factor(tempLy$Sample, levels = smpls)
           ##tempLy$Ymin <- tempLy$Ymin+0.5
-          plotleatmap <- plot_ly(data = data.frame(tempLy), # trick to force inclusion of the data
-                                 x = tempLy$Xmin, y = tempLy$Ymin, z = tempLy$value, type = "heatmap",
-                                 hovertext = tempLy$Label, hoverinfo = "text")
+          plotleatmap <- plotly::plot_ly(data = data.frame(tempLy), # trick to force inclusion of the data
+                                         x = tempLy$Xmin, y = tempLy$Ymin, z = tempLy$value, type = "heatmap",
+                                         hovertext = tempLy$Label, hoverinfo = "text")
           # I cannot find a way to remove tick marks!!!!!
           # Vertical dendrogram
           plLyV <- v_Seg
@@ -665,37 +679,37 @@ if (clustHtMp) {
           ##plLyV$xend <- -Width*0.2-plLyV$xend
           plLyV$y <- plLyV$y-1
           plLyV$yend <- plLyV$yend-1
-          plotleatmap <- add_segments(plotleatmap, data = plLyV,
-                                      x = plLyV$x, xend = plLyV$xend, y = plLyV$y, yend = plLyV$yend,
-                                      inherit = FALSE, color = I("black"),
-                                      showlegend = FALSE, hoverinfo = "none")
+          plotleatmap <- plotly::add_segments(plotleatmap, data = plLyV,
+                                              x = plLyV$x, xend = plLyV$xend, y = plLyV$y, yend = plLyV$yend,
+                                              inherit = FALSE, color = I("black"),
+                                              showlegend = FALSE, hoverinfo = "none")
           # Horizontal dendrogram
           plLyH <- h_Seg
           ##plLyH$x <- plLyH$x-0.5
           ##plLyH$xend <- plLyH$xend-0.5
           plLyH$y <- plLyH$y - hnch - 1.5
           plLyH$yend <- plLyH$yend - hnch - 1.5
-          plotleatmap <- add_segments(plotleatmap, data = plLyH,
-                                      x = plLyH$x-0.5, xend = plLyH$xend-0.5, y = plLyH$y, yend = plLyH$yend,
-                                      inherit = FALSE, color = I("black"),
-                                      showlegend = FALSE, hoverinfo = "none")
+          plotleatmap <- plotly::add_segments(plotleatmap, data = plLyH,
+                                              x = plLyH$x-0.5, xend = plLyH$xend-0.5, y = plLyH$y, yend = plLyH$yend,
+                                              inherit = FALSE, color = I("black"),
+                                              showlegend = FALSE, hoverinfo = "none")
           # Sample labels
           v_labs2 <- v_labs
           colnames(v_labs2)[colnames(v_labs2) == "label"] <- "Sample"
           gap <- abs(max(plLyV$x))
-          plotleatmap <- layout(plotleatmap,
-                                shapes = list(list(
-                                  type = "rect",
-                                  fillcolor = "grey",
-                                  line = list(color = "darkgrey"),
-                                  opacity = 0.3,
-                                  x0 = -gap+0.01,
-                                  x1 = -0.51,
-                                  xref = "x",
-                                  y0 = -0.5,
-                                  y1 = max(v_labs2$y)-0.5,
-                                  yref = "y"
-                                )))
+          plotleatmap <- plotly::layout(plotleatmap,
+                                        shapes = list(list(
+                                          type = "rect",
+                                          fillcolor = "grey",
+                                          line = list(color = "darkgrey"),
+                                          opacity = 0.3,
+                                          x0 = -gap+0.01,
+                                          x1 = -0.51,
+                                          xref = "x",
+                                          y0 = -0.5,
+                                          y1 = max(v_labs2$y)-0.5,
+                                          yref = "y"
+                                        )))
           if (scrptType == "withReps") {
             allPal <- c("magma", "inferno", "plasma", "rocket", "turbo", "mako", "cividis")
             nPal <- length(allPal)
@@ -728,38 +742,38 @@ if (clustHtMp) {
               # Sanity checks (print a small table to debug)
               # print(vtmp[, c("Sample", fct, ".vals_for_hover", ".col_for_plot")])
               plotleatmap <- suppressWarnings(
-                add_markers(plotleatmap,
-                            data = data.frame(vtmp), # trick to force inclusion of the data
-                            x = fctNms$x[j],
-                            y = vtmp$y - 1,
-                            inherit = FALSE,
-                            showlegend = FALSE,
-                            text = vtmp$.vals_for_hover,      # hover text bound to data rows
-                            hoverinfo = "text",
-                            name = fct,
-                            marker = list(color = vtmp$.col_for_plot, # explicit vector aligned to vtmp rows
-                                          size = 10, showscale = FALSE))
+                plotly::add_markers(plotleatmap,
+                                    data = data.frame(vtmp), # trick to force inclusion of the data
+                                    x = fctNms$x[j],
+                                    y = vtmp$y - 1,
+                                    inherit = FALSE,
+                                    showlegend = FALSE,
+                                    text = vtmp$.vals_for_hover,      # hover text bound to data rows
+                                    hoverinfo = "text",
+                                    name = fct,
+                                    marker = list(color = vtmp$.col_for_plot, # explicit vector aligned to vtmp rows
+                                                  size = 10, showscale = FALSE))
               )
             }
             mxY <- max(v_labs2$y)
-            plotleatmap <- layout(plotleatmap,
-                                  annotations = lapply(seq_len(nrow(fctNms)), \(j) {
-                                    list(x = fctNms$x[j]-0.5,
-                                         y = mxY-0.5,
-                                         text = fctNms$Factor[j],
-                                         textangle = -60,
-                                         showarrow = FALSE,
-                                         xanchor = "left",
-                                         yanchor = "bottom")
-                                  }))
+            plotleatmap <- plotly::layout(plotleatmap,
+                                          annotations = lapply(seq_len(nrow(fctNms)), \(j) {
+                                            list(x = fctNms$x[j]-0.5,
+                                                 y = mxY-0.5,
+                                                 text = fctNms$Factor[j],
+                                                 textangle = -60,
+                                                 showarrow = FALSE,
+                                                 xanchor = "left",
+                                                 yanchor = "bottom")
+                                          }))
           }
           if (scrptType == "noReps") {
-            plotleatmap <- add_trace(plotleatmap,
-                                     data = data.frame(v_labs2), # trick to force inclusion of the data
-                                     y = v_labs2$y-1, x = -gap/10, text = v_labs2$Sample,
-                                     color = I("black"), inherit = FALSE, type = "scatter",
-                                     mode = "text", showlegend = FALSE,
-                                     textposition = "middle left") # ... which means what I would take to be middle right...
+            plotleatmap <- plotly::add_trace(plotleatmap,
+                                             data = data.frame(v_labs2), # trick to force inclusion of the data
+                                             y = v_labs2$y-1, x = -gap/10, text = v_labs2$Sample,
+                                             color = I("black"), inherit = FALSE, type = "scatter",
+                                             mode = "text", showlegend = FALSE,
+                                             textposition = "middle left") # ... which means what I would take to be middle right...
           }
           # Cluster segments
           # uCl <- unique(clustDF$Cluster)
@@ -769,49 +783,49 @@ if (clustHtMp) {
           #   xs <- c(clustDF$x[j]-1.5, clustDF$x[j]-0.5, clustDF$x[j]-0.5, clustDF$x[j]-1.5, clustDF$x[j]-1.5)
           #   ys <- c(-1.5, -1.5, -1, -1, -1.5)
           #   lbl <- rep(clustDF$Cluster[j], length(xs))
-          #   plotleatmap <- add_trace(plotleatmap, x = xs, y = ys, type = "scatter", mode = "lines",
-          #                            fill = "toself", fillcolor = clustDF$Col[j],
-          #                            line = list(width = 0, color = clustDF$Col[j]),
-          #                            text = clustDF$Cluster[j],
-          #                            hovertemplate = paste0(clustDF$Cluster[j], "<extra></extra>"),
-          #                            hoverinfo = "skip", hovertext = clustDF$Cluster[j],
-          #                            showlegend = FALSE, inherit = FALSE)
+          #   plotleatmap <- plotly::add_trace(plotleatmap, x = xs, y = ys, type = "scatter", mode = "lines",
+          #                                    fill = "toself", fillcolor = clustDF$Col[j],
+          #                                    line = list(width = 0, color = clustDF$Col[j]),
+          #                                    text = clustDF$Cluster[j],
+          #                                    hovertemplate = paste0(clustDF$Cluster[j], "<extra></extra>"),
+          #                                    hoverinfo = "skip", hovertext = clustDF$Cluster[j],
+          #                                    showlegend = FALSE, inherit = FALSE)
           # }
-          plotleatmap <- add_trace(plotleatmap,
-                                   data = data.frame(clustDF), # trick to force inclusion of the data
-                                   x = clustDF$x-1,
-                                   y = -1.5, inherit = FALSE, showlegend = FALSE,
-                                   hovertext = clustDF$Cluster, hoverinfo = "text",
-                                   type = "scatter", mode = "text",
-                                   color = clustDF$Cluster,
-                                   marker = list(size = 5, showscale = FALSE))
+          plotleatmap <- plotly::add_trace(plotleatmap,
+                                           data = data.frame(clustDF), # trick to force inclusion of the data
+                                           x = clustDF$x-1,
+                                           y = -1.5, inherit = FALSE, showlegend = FALSE,
+                                           hovertext = clustDF$Cluster, hoverinfo = "text",
+                                           type = "scatter", mode = "text",
+                                           color = clustDF$Cluster,
+                                           marker = list(size = 5, showscale = FALSE))
           # Layout
-          plotleatmap <- layout(plotleatmap, title = nm,
-                                xaxis = list(title = "Protein groups",
-                                             tickmode = "array", tickvals = NULL, showticklabels = FALSE,
-                                             showgrid = FALSE, zeroline = FALSE),
-                                yaxis = list(title = "Samples",
-                                             tickmode = "array", tickvals = NULL, showticklabels = FALSE,
-                                             showgrid = FALSE, zeroline = FALSE))
+          plotleatmap <- plotly::layout(plotleatmap, title = nm,
+                                        xaxis = list(title = "Protein groups",
+                                                     tickmode = "array", tickvals = NULL, showticklabels = FALSE,
+                                                     showgrid = FALSE, zeroline = FALSE),
+                                        yaxis = list(title = "Samples",
+                                                     tickmode = "array", tickvals = NULL, showticklabels = FALSE,
+                                                     showgrid = FALSE, zeroline = FALSE))
           if (prot.list.marks) {
-            plotleatmap <- add_trace(plotleatmap,
-                                     data = data.frame(temp2c), # trick to force inclusion of the data
-                                     x = temp2c$Xmin, y = -1L,
-                                     text = temp2c$Label, color = "red", inherit = FALSE,
-                                     type = "scatter", mode = "markers", showlegend = FALSE,
-                                     marker = list(size = 5L, showscale = FALSE))
+            plotleatmap <- plotly::add_trace(plotleatmap,
+                                             data = data.frame(temp2c), # trick to force inclusion of the data
+                                             x = temp2c$Xmin, y = -1L,
+                                             text = temp2c$Label, color = "red", inherit = FALSE,
+                                             type = "scatter", mode = "markers", showlegend = FALSE,
+                                             marker = list(size = 5L, showscale = FALSE))
           }
           if (addSCmarks) {
             temp2m$.markCol <- markColors[temp2m$`Compartment marker`]
             temp2m$.size <- 5L
-            plotleatmap <- add_trace(plotleatmap,
-                                     data = data.frame(temp2m), # trick to force inclusion of the data
-                                     x = temp2m$Xmin, y = -2L,
-                                     text = temp2m$`Compartment marker`,
-                                     inherit = FALSE,
-                                     type = "scatter", mode = "markers", showlegend = FALSE,
-                                     marker = list(color = temp2m$.markCol,
-                                                   size = temp2m$.size, showscale = FALSE, showlegend = FALSE))
+            plotleatmap <- plotly::add_trace(plotleatmap,
+                                             data = data.frame(temp2m), # trick to force inclusion of the data
+                                             x = temp2m$Xmin, y = -2L,
+                                             text = temp2m$`Compartment marker`,
+                                             inherit = FALSE,
+                                             type = "scatter", mode = "markers", showlegend = FALSE,
+                                             marker = list(color = temp2m$.markCol,
+                                                           size = temp2m$.size, showscale = FALSE, showlegend = FALSE))
           }
           # Final edits to the plot
           plotleatmap$x$layout$xaxis$autorange <- TRUE
@@ -832,38 +846,39 @@ if (clustHtMp) {
   }
   #
   # Save ggplots
-  invisible(parLapply(parClust, heatMaps, \(x) {
+  source(parSrc)
+  invisible(parallel::parLapply(parClust, heatMaps, \(x) {
     ggplot2::ggsave(x$Ttl, x$Plot, width = x$Width, height = x$Height, units = x$Units)
     return()
   }))
   #
   #if (clustMode == "standard") {
-    saveFun(plotLeatMaps, file = paste0(clustDir, "/HeatMaps.RDS"))
-    # Save plotly plots
-    dr <- clustDir
-    myPlotLys <- list()
-    for (nm in names(plotLeatMaps)) {
-      myPlotLys[paste0(nm, " - ", names(plotLeatMaps[[nm]]))] <- plotLeatMaps[[nm]]
-    }
-    Src <- paste0(libPath, "/extdata/Sources/save_Plotlys.R")
-    #rstudioapi::documentOpen(Src)
-    source(Src)
+  saveFun(plotLeatMaps, file = paste0(clustDir, "/HeatMaps.RDS"))
+  # Save plotly plots
+  dr <- clustDir
+  myPlotLys <- list()
+  for (nm in names(plotLeatMaps)) {
+    myPlotLys[paste0(nm, " - ", names(plotLeatMaps[[nm]]))] <- plotLeatMaps[[nm]]
+  }
+  Src <- paste0(libPath, "/extdata/Sources/save_Plotlys.R")
+  #rstudioapi::documentOpen(Src)
+  source(Src)
   #}
   #
   if (length(heatMaps)) {
-    kol <- intersect(c("Leading protein IDs", "Protein names", "Genes", "Mol. weight [kDa]"),
-                     colnames(PG))
+    kol <- base::intersect(c("Leading protein IDs", "Protein names", "Genes", "Mol. weight [kDa]"),
+                           colnames(PG))
     temp <- PG[, c(kol, KlustKols)]
     flPath <- paste0(clustDir, "/Protein Groups and Clusters.csv")
     tst <- try(write.csv(temp, file = flPath, row.names = FALSE), silent = TRUE)
     while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
-      dlg_message(paste0("File \"", flPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+      svDialogs::dlg_message(paste0("File \"", flPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
       tst <- try(write.csv(temp, file = flPath, row.names = FALSE), silent = TRUE)
     }
   } else {
     unlink(clustDir)
     if (scrptType == "withReps") {
-      dirlist <- setdiff(dirlist, clustDir)
+      dirlist <- base::setdiff(dirlist, clustDir)
     }
   }
 }

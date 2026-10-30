@@ -38,7 +38,7 @@
 #' exists("b")
 #' a
 #' b
-#' rm(list = setdiff(ls(), .obj))
+#' rm(list = base::setdiff(ls(), .obj))
 #' a
 #' b
 #' .obj
@@ -51,5 +51,5 @@
   if (!exists(".obj", envir = .GlobalEnv)) {
     assign(".obj", c(".obj", "%<o%", "%<c%"), envir = .GlobalEnv)
   }
-  assign(".obj", unique(c(nm, .obj)), envir = .GlobalEnv)
+  assign(".obj", base::union(nm, .obj), envir = .GlobalEnv)
 }

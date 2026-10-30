@@ -1,15 +1,13 @@
 # Filter a Fasta with the results from a 1st unfiltered DIA-NN search, then predict a library from it.
 # NB: Un-necessary for FragPipe: that fasta is automatically saved in the during the search!
 
-require(reshape2)
-require(svDialogs)
-require(proteoCraft)
+library(proteoCraft)
 wd <- "...Search_Folder"
 
 Inputs <- c("DIA-NN", "FragPipe")
-Input <- dlg_list(Inputs, Inputs[1L], title = "Which software search was used?")$res
+Input <- svDialogs::dlg_list(Inputs, Inputs[1L], title = "Which software search was used?")$res
 Modes <- c("Write output fasta", "Just get a report on number of PSMs/proteins (no)")
-Mode <- dlg_list(Modes, Modes[1L], title = "What do you want to do?")$res
+Mode <- svDialogs::dlg_list(Modes, Modes[1L], title = "What do you want to do?")$res
 # DIA-NN
 if (Input == Inputs[1L]) {
   # Detect DIA-NN exe
@@ -83,7 +81,7 @@ if (Input == Inputs[1L]) {
         fasta2[(1L:nrow(dbFlt))*3L-2L] <- dbFlt$Header
         fasta2[(1L:nrow(dbFlt))*3L-L1] <- dbFlt$Sequence
         nm <- grep("cRAPome", basename(FastaFl), invert = TRUE, value = TRUE)
-        nm <- dlg_input("Enter a file name for the new fasta database:", sub("\\.fas(ta(\\.fas)?)?$", "_filt", nm))$res
+        nm <- svDialogs::dlg_input("Enter a file name for the new fasta database:", sub("\\.fas(ta(\\.fas)?)?$", "_filt", nm))$res
         write(fasta2, paste0(wd, "/", nm, ".fasta"))
         cat(paste0("Filtered fasta saved to \"", wd, "/", nm, ".fasta\"\nIf using in DIA-NN, do not forget to add contaminants again!"))
         #
@@ -101,8 +99,8 @@ if (Input == Inputs[1L]) {
         cmd <- c(DIANNexe, DIANNargs2)
         cmd <- paste(cmd, collapse = " ")
         #cat(cmd)
-        Run <- c(TRUE, FALSE)[match(dlg_message("Do you want to run the DIA-NN command now?\nThis will create a library from the filtered fasta.",
-                                                "yesno")$res, c("yes", "no"))]
+        Run <- c(TRUE, FALSE)[match(svDialogs::dlg_message("Do you want to run the DIA-NN command now?\nThis will create a library from the filtered fasta.",
+                                                           "yesno")$res, c("yes", "no"))]
         if (Run) { system(cmd) }
       }
     }
@@ -203,7 +201,7 @@ if (Input == Inputs[2L]) {
   cat(paste0("FragPipe identified ", nrow(PSMs), " PSMs covering ", nrow(dbFlt), " proteins\n"))
   if (Mode == Modes[1L]) {
     nm <- grep("cRAPome", basename(FastaFl), invert = TRUE, value = TRUE)
-    nm <- dlg_input("Enter a file name for the new fasta database:", sub("\\.fas(ta(\\.fas)?)?$", "_filt", nm))$res
+    nm <- svDialogs::dlg_input("Enter a file name for the new fasta database:", sub("\\.fas(ta(\\.fas)?)?$", "_filt", nm))$res
     write(fasta2, paste0(wd, "/", nm, ".fasta"))
     cat(paste0("Filtered fasta saved to \"", wd, "/", nm, ".fasta\"\nIf using in FragPipe, do not forget to add contaminants and decoys again!"))
   }

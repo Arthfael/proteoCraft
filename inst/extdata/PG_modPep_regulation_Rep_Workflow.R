@@ -3,7 +3,7 @@ if (!interactive()) { stop("This script should only be run within an interactive
 options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
 options(svDialogs.rstudio = TRUE)
-#rm(list = setdiff(ls(), c("dtstNm", "wd", "inDirs", "outDir")))
+#rm(list = base::setdiff(ls(), c("dtstNm", "wd", "inDirs", "outDir")))
 closeAllConnections()
 
 ## Load proteoCraft
@@ -68,8 +68,8 @@ if(!exists("bioc_req")) { bioc_req <- c() }
 bioc_req %<o% bioc_req
 cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT",
                      "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "ggrepel", "rstudioapi", "modeest",
-                     "minpack.lm", "snow", "viridis", "imputeLCMD", "parallel", "coin", "openxlsx", "openxlsx2", "plotly",
-                     "Peptides", "xml2", "statmod", "ggpolypath", "venn", "svDialogs", "htmlwidgets",
+                     "minpack.lm", "snow", "viridis", "imputeLCMD", "parallel", "coin", "openxlsx2", "plotly",
+                     "Peptides", "xml2", "statmod", "ggpolypath", "venn", "svDialogs", "htmlwidgets", "magrittr",
                      "officer", "hexbin", "igraph", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
                      "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "ssh", "taxize", "arrow", "PTMods",
                      "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "iq", "Rtsne", "DEP", "svglite"))
@@ -106,8 +106,8 @@ for (pack in cran_req) {
       }
       if (inherits(tst, "try-error")) {
         warning(paste0("Package ", pack, " wasn't installed properly, skipping..."))
-        cran_req <- setdiff(cran_req, pack)
-        bioc_req <- setdiff(bioc_req, pack)
+        cran_req <- base::setdiff(cran_req, pack)
+        bioc_req <- base::setdiff(bioc_req, pack)
       }
     }
     inst <- as.data.frame(installed.packages())
@@ -134,7 +134,6 @@ for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
 
 # Run local scripts at startup - keep this after loading the backup!
 locScrptSrc %<o% paste0(libPath, "/extdata/Sources/runLocScrpts.R")
-#rstudioapi::documentOpen(locScrptSrc)
 source(locScrptSrc)
 
 # Set Shiny options, load functions for creating a Word report, create Excel styles
@@ -155,7 +154,7 @@ Answers from a previous run could be found in the analysis folder, do you want t
   if (is.na(ReUseAnsw)) { ReUseAnsw <- FALSE }
 }
 if (ReUseAnsw) {
-  load("All_decisions.RData")
+  base::load("All_decisions.RData")
   AllAnsw <- AllAnsw
 }
 if (!exists("AllAnsw")) {
@@ -163,11 +162,6 @@ if (!exists("AllAnsw")) {
   AllAnsw$Value <- list("Value of the answer")
 }
 AllAnsw %<o% AllAnsw
-
-# Update the proteoCraft package?
-# msg <- "Should we update the proteoCraft package?"
-# updt_proteoCraft %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
-updt_proteoCraft %<o% FALSE
 
 # Define input, output, project folder etc...
 Src <- paste0(libPath, "/extdata/Sources/Start_analysis.R")
@@ -181,7 +175,7 @@ setwd(wd)
 # Log the current analysis:
 dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- union(dirlist, dir)
+dirlist <- base::union(dirlist, dir)
 start_date %<o% gsub(":", "-", gsub(" ", "_", Sys.time()))
 if (! paste0(wd, "/Workflow control/Data_analysis_log_", start_date, ".txt") %in% list.files()) {
   write(c(paste0("Data_analysis_log_", start_date), "__________________________", ""),
@@ -335,7 +329,7 @@ Src <- paste0(libPath, "/extdata/Sources/filtPSMs.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
-rm(list = setdiff(ls(), .obj))
+rm(list = base::setdiff(ls(), .obj))
 
 # Test for amino acid biases:
 Src <- paste0(libPath, "/extdata/Sources/AA_biases_test.R")
@@ -450,7 +444,7 @@ Src <- paste0(libPath, "/extdata/Sources/pepNorm_VarPlot.R")
 source(Src)
 #View(pep[, grep(topattern(pep.ref[length(pep.ref)]), colnames(pep), value = TRUE)]) # Check final data visually
 
-rm(list = setdiff(ls(), .obj))
+rm(list = base::setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 
 # Calculate peptide ratios - currently off
@@ -545,7 +539,7 @@ warning("(TO DO: add a 'split-by-taxonomy?' parameter!)")
 # Check those rare proteins IDs which are not in the search DB (should be contaminants)
 tst <- unlist(strsplit(pep$Proteins, ";"))
 if (length(tst)) {
-  cat(paste0("These protein accessions in peptides are not in the database: ", paste(setdiff(tst, db$`Protein ID`), collapse = " - "), "\n"))
+  cat(paste0("These protein accessions in peptides are not in the database: ", paste(base::setdiff(tst, db$`Protein ID`), collapse = " - "), "\n"))
 }
 
 # Basic fix, because I do not like the way I was doing Quality filters up to now
@@ -567,8 +561,8 @@ source(parSrc)
 tmp1 <- strsplit(pep$Proteins, ";")
 tmp2 <- db[db$"Protein ID" %in% unlist(tmp1), c("Protein ID", "Gene", "Name", "Common Name")]
 exports <- list("tmp1", "tmp2")
-clusterExport(parClust, "tmp2", envir = environment())
-tmp <- parSapply(parClust, tmp1, \(x) {
+parallel::clusterExport(parClust, "tmp2", envir = environment())
+tmp <- parallel::parSapply(parClust, tmp1, \(x) {
   m <- match(unlist(x), tmp2$"Protein ID")
   x1 <- tmp2$Gene[m]
   x2 <- tmp2$Name[m]
@@ -585,7 +579,7 @@ kol <- c("Leading proteins", "Leading razor proteins", "Gene names", "Protein na
          "Protein names (all)", "Common protein names", "Protein group IDs")
 ev[, kol] <- pep[match(ev$"Modified sequence", pep$"Modified sequence"), kol]
 
-rm(list = setdiff(ls(), .obj))
+rm(list = base::setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 
 # Some more columns
@@ -598,7 +592,7 @@ if (tstFllID) {
   exports <- append(exports, "tmp3")
 }
 source(parSrc)
-clusterExport(parClust, exports, envir = environment())
+parallel::clusterExport(parClust, exports, envir = environment())
 for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
   j <- if (i == "No Isoforms") { i } else { sub("s$", "", i) }
   if (!j %in% colnames(db)) {
@@ -611,8 +605,8 @@ for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
   if (length(j) == 1L) {
     tmp4 <- db[[j]]
     exports <- list("i", "tmp4")
-    clusterExport(parClust, exports, envir = environment())
-    PG[[i]] <- parSapply(parClust, tmp, \(x) {
+    parallel::clusterExport(parClust, exports, envir = environment())
+    PG[[i]] <- parallel::parSapply(parClust, tmp, \(x) {
       x <- unlist(x)
       m1 <- match(x, tmp2)
       if (tstFllID) {
@@ -628,7 +622,7 @@ for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
       x[x %in% c("", " ", "NA", NA)] <- ""
       if (!length(x)) { x <- "" }
       if (i == "Genes") { x <- unique(x) }
-      x <- setdiff(x, "")
+      x <- base::setdiff(x, "")
       x <- paste(x, collapse = ";")
       return(x)
     })
@@ -643,7 +637,7 @@ if (length(w) == 2L) {
   PG$Genes <- apply(temp, 1L, \(x) { paste(sort(unique(unlist(x))), collapse = ";") })
   PG$"Gene names" <- NULL
 } else { if (length(w) == 1L) { colnames(PG)[colnames(PG) %in% genkol] <- "Genes" } }
-invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
+invisible(parallel::clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 #
 # If Arabidopsis:
 if (("ARATH" %in% db$Organism) || (3702L %in% db$TaxID)) {
@@ -664,7 +658,7 @@ if (("ARATH" %in% db$Organism) || (3702L %in% db$TaxID)) {
     tmp4$TAIR <- strsplit(tmp4$TAIR, ";")
     tmp4$TAIR_v2 <- strsplit(tmp4$TAIR_v2, ";")
     tmp4 <- apply(tmp4, 1L, unique)
-    tmp4 <- parSapply(parClust, tmp4, \(x) { paste(unlist(x), collapse = ";") })
+    tmp4 <- parallel::parSapply(parClust, tmp4, \(x) { paste(unlist(x), collapse = ";") })
     db$TAIR[w] <- tmp4
     w <- which(db$TAIR == "")
     db$TAIR[w] <- db$TAIR_v2[w]
@@ -714,7 +708,7 @@ PG$"Sequence (1st accession)" <- db$Sequence[m]
 
 # Number of spectra, PSMs and peptides per sample:
 source(parSrc)
-invisible(clusterCall(parClust, \() {
+invisible(parallel::clusterCall(parClust, \() {
   library(proteoCraft)
   library(reshape)
   library(data.table)
@@ -732,15 +726,15 @@ temp_PG$Pep <- tmp$Seq[match(PG$id, tmp$PG)]
 temp_PG$Seq <- db$Sequence[match(temp_PG$Accession1, db$"Protein ID")]
 exports <- if (!"Sequence coverage [%]" %in% colnames(PG)) {
   exports <- list("Coverage")
-  clusterExport(parClust, exports, envir = environment())
-  PG$"Sequence coverage [%]" <- round(100*parApply(parClust, temp_PG[, c("Seq", "Pep")], 1L, \(x) {
+  parallel::clusterExport(parClust, exports, envir = environment())
+  PG$"Sequence coverage [%]" <- round(100*parallel::parApply(parClust, temp_PG[, c("Seq", "Pep")], 1L, \(x) {
     Coverage(x[[1L]], x[[2L]])
   }), 1L)
 }
 CreateMSMSKol %<o% (("MS/MS IDs" %in% colnames(ev)) && sum(c("integer", "character") %in% class(ev$"MS/MS IDs")))
 if (CreateMSMSKol) {
   # There appear to be no MSMS IDs for DIA in MaxQuant.
-  ev$temp <- parLapply(parClust, strsplit(as.character(ev$"MS/MS IDs"), ";"), as.integer)
+  ev$temp <- parallel::parLapply(parClust, strsplit(as.character(ev$"MS/MS IDs"), ";"), as.integer)
   #PG[, paste0("Spectr", c("al count", "um IDs"))]
   temp <- listMelt(lapply(strsplit(PG$`Evidence IDs`, ";"), as.integer), PG$id, c("Ev_id", "PG_id"))
   temp$MSMSIDs <- ev$temp[match(temp$Ev_id, ev$id)]
@@ -758,7 +752,7 @@ if (CreateMSMSKol) {
 temp_ev <- ev[, c("id", "MQ.Exp", "Protein group IDs", "Peptide ID")]
 if (CreateMSMSKol) { temp_ev$"MS/MS IDs" <- ev$"MS/MS IDs" }
 temp_pep <- pep[, c("id", "Sequence")]
-clusterExport(parClust, exports, envir = environment())
+parallel::clusterExport(parClust, exports, envir = environment())
 Samplez <- list(Sample = c(), Group = c())
 MQ_Exp <- list()
 for (gr in VPAL$values) { #gr <- VPAL$values[1L]
@@ -780,8 +774,8 @@ readr::write_rds(temp_pep, tmpFl2)
 readr::write_rds(temp_PG, tmpFl3)
 exports <- list("Exp.map", "tmpFl1", "tmpFl2", "tmpFl3", "IsBioID2", "MQ_Exp", "Samplez", "Modifs", "CreateMSMSKol")
 if (IsBioID2) { exports <- append(exports, "wbiot") }
-clusterExport(parClust, exports, envir = environment())
-invisible(clusterCall(parClust, \() {
+parallel::clusterExport(parClust, exports, envir = environment())
+invisible(parallel::clusterCall(parClust, \() {
   temp_ev <- readr::read_rds(tmpFl1)
   temp_pep <- readr::read_rds(tmpFl2)
   temp_PG <- readr::read_rds(tmpFl3)
@@ -792,7 +786,7 @@ invisible(clusterCall(parClust, \() {
 unlink(tmpFl1)
 unlink(tmpFl2)
 unlink(tmpFl3)
-temp <- parApply(parClust, Samplez, 1L, \(Smpl) { #Smpl <- unlist(Samplez[1,])
+temp <- parallel::parApply(parClust, Samplez, 1L, \(Smpl) { #Smpl <- unlist(Samplez[1,])
   smpl <- Smpl[[1L]]
   gr <- Smpl[[2L]]
   res <- temp_PG[, "id", drop = FALSE]
@@ -867,7 +861,7 @@ temp <- parApply(parClust, Samplez, 1L, \(Smpl) { #Smpl <- unlist(Samplez[1,])
       kolBp <- grep("^Biot\\. peptide", kolB, value = TRUE)
       if (CreateMSMSKol) {
         kolBs <- grep("^Biot\\. spectr", kolB, value = TRUE)
-        kolB <- setdiff(kolB, kolBs); rm(kolBs) #I don't think we need those columns now... too many is too many
+        kolB <- base::setdiff(kolB, kolBs); rm(kolBs) #I don't think we need those columns now... too many is too many
       }
       kolBk <- grep(" count - ", kolB, value = TRUE)
       kolBi <- grep(" IDs - ", kolB, value = TRUE)
@@ -900,7 +894,7 @@ temp <- parApply(parClust, Samplez, 1L, \(Smpl) { #Smpl <- unlist(Samplez[1,])
 })
 temp <- do.call(cbind, temp)
 PG[, colnames(temp)] <- temp
-invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
+invisible(parallel::clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 #View(PG[, grep("^Spectr|^Peptide|^Evidence", colnames(PG))])
 
 # CRAPome
@@ -965,8 +959,7 @@ w <- which(vapply(a, \(x) { length(unique(test[[x]])) }, 1L) > 1L)
 if (length(w)) { a <- a[w] }
 test[[a[1L]]] <- factor(test[[a[1L]]], levels = sort(unique(test[[a[1L]]])))
 test <- test[is.finite(test$value),]
-test2 <- aggregate(test$value, list(test$variable), median)
-colnames(test2) <- c("variable", "value")
+test2 <- set_colnames(aggregate(test$value, list(test$variable), median), c("variable", "value"))
 test2[, a] <- test[match(test2$variable, test$variable), a]
 MinMax <- c(min(test$value), max(test$value))
 nbinz <- ceiling((MinMax[2L]-MinMax[1L])/0.1)
@@ -986,22 +979,26 @@ testI[, a] <- test[match(testI$variable, test$variable), a]
 testI$variable <- cleanNms(testI$variable)
 dir <- paste0(wd, "/Workflow control/Protein groups/Expression")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- union(dirlist, dir)
+dirlist <- base::union(dirlist, dir)
 ttl <- "Protein groups - distribution of Expression values"
-plot <- ggplot(testI) +
-  geom_area(aes(x = `log10(Expression)`, y = value, fill = variable, group = variable,
-                colour = variable), alpha = 0.25) +
-  scale_color_viridis_d(begin = 0.25) +
-  scale_fill_viridis_d(begin = 0.25) +
-  geom_vline(data = test2, aes(xintercept = value), linetype = "dashed", color = "grey") +
-  ggtitle(ttl) + theme_bw() + theme(legend.position = "none", strip.text.y = element_text(angle = 0)) +
-  scale_y_continuous(limits = c(0, max(testI$value)*1.1), expand = c(0L, 0L))
-plot <- if (length(a) == 1L) { plot + facet_wrap(as.formula(paste0("~", a))) } else {
-  plot + facet_grid(as.formula(paste0(a[1L], "~", paste(a[2L:length(a)], collapse = "+"))))
+plot <- ggplot2::ggplot(testI) +
+  ggplot2::geom_area(ggplot2::aes(x = `log10(Expression)`, y = value, fill = variable,
+                                  group = variable, colour = variable), alpha = 0.25) +
+  ggplot2::scale_color_viridis_d(begin = 0.25) +
+  ggplot2::scale_fill_viridis_d(begin = 0.25) +
+  ggplot2::geom_vline(data = test2, ggplot2::aes(xintercept = value),
+                      linetype = "dashed", color = "grey") +
+  ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
+  ggplot2::theme(legend.position = "none",
+                 strip.text.y = ggplot2::element_text(angle = 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, max(testI$value)*1.1), expand = c(0L, 0L))
+plot <- if (length(a) == 1L) { plot + ggplot2::facet_wrap(as.formula(paste0("~", a))) } else {
+  plot + ggplot2::facet_grid(as.formula(paste0(a[1L], "~", paste(a[2L:length(a)], collapse = "+"))))
 }
 print(plot) # This type of QC plot does not need to pop up, the side panel is fine
 suppressMessages({
-  ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
+  ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                  dpi = 150L, width = 10L, height = 10L, units = "in")
 })
 #
 # Test ratio values:
@@ -1016,8 +1013,7 @@ test$Contrast <- gsub_Rep(" - ", " -\n", as.character(test$variable))
 allContr <- unique(test$Contrast)
 test$Contrast <- factor(test$Contrast, levels = allContr)
 test <- test[is.finite(test$value),]
-test2 <- aggregate(test$value, list(test$Contrast), median)
-colnames(test2) <- c("Contrast", "value")
+test2 <- set_colnames(aggregate(test$value, list(test$Contrast), median), c("Contrast", "value"))
 MinMax <- c(min(test$value), max(test$value))
 nbinz <- ceiling((MinMax[2L]-MinMax[1L])/0.1)
 binz <- c(0L:nbinz)/nbinz
@@ -1035,19 +1031,25 @@ testR <- dfMelt(testR, id.vars = "log2FC")
 colnames(testR)[colnames(testR) == "variable"] <- "Contrast"
 dir <- paste0(wd, "/Workflow control/Protein groups/Expression")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- union(dirlist, dir)
+dirlist <- base::union(dirlist, dir)
 ttl <- "Protein groups - distribution of Ratios"
-plot <- ggplot(testR) +
-  geom_area(aes(x = log2FC, y = value, fill = Contrast, group = Contrast,
-                colour = Contrast), alpha = 0.25) +
-  scale_color_viridis(begin = 0.25, discrete = TRUE, option = "D") +
-  scale_fill_viridis(begin = 0.25, discrete = TRUE, option = "D") +
-  geom_vline(data = test2, aes(xintercept = value), linetype = "dashed", color = "grey") +
-  ggtitle(ttl) + theme_bw() + theme(legend.position = "none", strip.text.y = element_text(angle = 0)) +
-  scale_y_continuous(limits = c(0, max(testR$value)*1.1), expand = c(0L, 0L)) + facet_wrap(~Contrast)
+plot <- ggplot2::ggplot(testR) +
+  ggplot2::geom_area(ggplot2::aes(x = log2FC, y = value, fill = Contrast,
+                                  group = Contrast, colour = Contrast), alpha = 0.25) +
+  viridis::scale_color_viridis(begin = 0.25, discrete = TRUE, option = "D") +
+  viridis::scale_fill_viridis(begin = 0.25, discrete = TRUE, option = "D") +
+  ggplot2::geom_vline(data = test2, ggplot2::aes(xintercept = value),
+                      linetype = "dashed", color = "grey") +
+  ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
+  ggplot2::theme(legend.position = "none",
+                 strip.text.y = ggplot2::element_text(angle = 0)) +
+  ggplot2::scale_y_continuous(limits = c(0, max(testR$value)*1.1),
+                              expand = c(0L, 0L)) +
+  ggplot2::facet_wrap(~Contrast)
 print(plot) # This type of QC plot does not need to pop up, the side panel is fine
 suppressMessages({
-  ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
+  ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                  dpi = 150L, width = 10L, height = 10L, units = "in")
 })
 
 # Code chunk - Add quant data to PG:
@@ -1055,7 +1057,7 @@ PG <- PG[, !colnames(PG) %in% colnames(quantData)]
 PG[, colnames(quantData)] <- quantData
 if (Param$Prot.Only.with.Quant) {
   colnames(quantData)
-  test1 <- apply(quantData[,grep(topattern(Prot.Expr.Root), colnames(quantData), value = TRUE)],
+  test1 <- apply(quantData[, grep(topattern(Prot.Expr.Root), colnames(quantData), value = TRUE)],
                  1L, \(x) { sum(is.finite(x)) })
   a <- grep(topattern(Prot.Rat.Root), colnames(quantData), value = TRUE)
   a <- a[!grepl(": SD$|: -log10\\(peptides Pvalue\\)$", a)]
@@ -1095,16 +1097,16 @@ for (grp in VPAL$values) { #grp <- VPAL$values[1L] #grp <- VPAL$values[3L]
   em <- Exp.map[Exp.map[[VPAL$column]] == grp,]
   # PG
   kol <- paste0(Prot.Expr.Root, em$Ref.Sample.Aggregate)
-  kol <- intersect(kol, colnames(PG))
+  kol <- base::intersect(kol, colnames(PG))
   if (length(kol)) {
-    tmp <- as.data.frame(t(parApply(parClust, PG[, kol, drop = FALSE], 1L, Av_SE_fun)))
+    tmp <- as.data.frame(t(parallel::parApply(parClust, PG[, kol, drop = FALSE], 1L, Av_SE_fun)))
     PG[[paste0("Mean ", Prot.Expr.Root, grp)]]  <- tmp[, 1L]
   }
   # Pep
   kol <- paste0(pep.ref[length(pep.ref)], em$Ref.Sample.Aggregate)
-  kol <- intersect(kol, colnames(pep))
+  kol <- base::intersect(kol, colnames(pep))
   if (length(kol)) {
-    tmp <- as.data.frame(t(parApply(parClust, log10(pep[, kol, drop = FALSE]), 1L, Av_SE_fun)))
+    tmp <- as.data.frame(t(parallel::parApply(parClust, log10(pep[, kol, drop = FALSE]), 1L, Av_SE_fun)))
     pep[[paste0("Mean ", pep.ref[length(pep.ref)], grp)]]  <- 10L^tmp[, 1L]
   }
 }
@@ -1130,7 +1132,7 @@ if (useSAM) {
     stopifnot(FCkol %in% names(PG))
     regKol <- paste0("Regulated - ", i)
     PG[[regKol]] <- "non significant"
-    fdrs <- as.numeric(sub("FDR$", "", setdiff(colnames(dec), mKol)))
+    fdrs <- as.numeric(sub("FDR$", "", base::setdiff(colnames(dec), mKol)))
     fdrs <- sort(fdrs, decreasing = TRUE)
     for (f in fdrs) { #f <- fdrs[1L]
       w <- which(PG[[mKol]] %in% dec[dec[[paste0(f, "FDR")]] == "+", mKol])
@@ -1142,7 +1144,7 @@ if (useSAM) {
   }
 }
 #
-rm(list = setdiff(ls(), .obj))
+rm(list = base::setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 
 #### Code chunk - Prepare Annotations and (if applicable) GO terms
@@ -1155,8 +1157,8 @@ Src <- paste0(libPath, "/extdata/Sources/SubCellMark.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
-rm(list = setdiff(ls(), .obj))
-invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
+rm(list = base::setdiff(ls(), .obj))
+invisible(parallel::clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 Script <- readr::read_lines(ScriptPath)
 
 #### Code chunk - ROC analysis
@@ -1374,7 +1376,6 @@ PG[, g] <- tempVP$Protein_groups_file[, g]
 
 # Also calculate Q-values - for now, the plot is created but not saved!
 if (("Q.values" %in% colnames(Param)) && is.logical(Param$Q.values) && Param$Q.values) {
-  library(qvalue)
   pkol <- grep(topattern(pvalue.col[pvalue.use]), colnames(PG), value = TRUE)
   if (length(pkol)) {
     cat("Calculating Q-values...\n")
@@ -1482,15 +1483,15 @@ Reg_filters %<o% list()
 filter_types %<o% tolower(unlist(strsplit(Param$Filters.type, ";")))
 filter_types[grep("^dat.+2$", filter_types, invert = TRUE)] <- substr(filter_types[!grepl("^dat.+2$", filter_types)], 1L, 3L)
 filter_types[grep("^dat.+2$", filter_types)] <- "dat2"
-filter_types <- union("con", filter_types)
+filter_types <- base::union("con", filter_types)
 if ("ref" %in% filter_types) {
   if (Nested) {
     warning("Grouping filter by reference is not feasible if replicates are paired!")
-    filter_types <- setdiff(filter_types, "ref")
+    filter_types <- base::setdiff(filter_types, "ref")
   } else {
     if (sum(vapply(RG$names, \(x) { !x %in% RSA$names }, TRUE))) {
       warning("Grouping filter by reference is not feasible if the factors used for \"RG\" are not included in those used for \"RRG\"!")
-      filter_types <- setdiff(filter_types, "ref")
+      filter_types <- base::setdiff(filter_types, "ref")
     }
   }
 }
@@ -1503,9 +1504,9 @@ if ("con" %in% filter_types) {
   Reg_filters$"t-tests"$"By condition" <- list()
   for (i in seq_along(g)) {
     Reg_filters$"t-tests"$"By condition"[[g1[i]]] <- list(Columns = g[i],
-                                                          Filter_up = sort(which(PG[[g[i]]] %in% up)),
-                                                          Filter_down = sort(which(PG[[g[i]]] %in% down)),
-                                                          Filter = sort(which(PG[[g[i]]] %in% c(up, down))))
+                                                          Filter_up = which(PG[[g[i]]] %in% up),
+                                                          Filter_down = which(PG[[g[i]]] %in% down),
+                                                          Filter = which(PG[[g[i]]] %in% c(up, down)))
   }
 }
 if ("ref" %in% filter_types) {
@@ -1520,28 +1521,28 @@ if ("ref" %in% filter_types) {
     u <- grep("^up|^Specific", unique(as.character(PG[, g[w]])), value = TRUE)
     d <- grep("^down", unique(as.character(PG[, g[w]])), value = TRUE)
     Reg_filters$"t-tests"$"By reference"[[i]] <- list(Columns = g[w],
-                                                      Filter_up = sort(which(apply(PG[, g[w], drop = FALSE], 1L, \(x) {
+                                                      Filter_up = which(apply(PG[, g[w], drop = FALSE], 1L, \(x) {
                                                         sum(x %in% up)
-                                                      }) > 0L)),
-                                                      Filter_down = sort(which(apply(PG[, g[w], drop = FALSE], 1L, \(x) {
+                                                      }) > 0L),
+                                                      Filter_down = which(apply(PG[, g[w], drop = FALSE], 1L, \(x) {
                                                         sum(x %in% down)
-                                                      }) > 0L)),
-                                                      Filter = sort(which(apply(PG[, g[w], drop = FALSE], 1L, \(x) {
+                                                      }) > 0L),
+                                                      Filter = which(apply(PG[, g[w], drop = FALSE], 1L, \(x) {
                                                         sum(x %in% c(up, down))
-                                                      }) > 0L)))
+                                                      }) > 0L))
   }
 }
 if (sum(c("dat", "dat2") %in% filter_types)) {
   Reg_filters$"t-tests"$"Whole dataset" <- list(Columns = g,
-                                                Filter_up = sort(which(apply(PG[, g, drop = FALSE], 1L, \(x) {
+                                                Filter_up = which(apply(PG[, g, drop = FALSE], 1L, \(x) {
                                                   sum(x %in% up)
-                                                }) > 0L)),
-                                                Filter_down = sort(which(apply(PG[, g, drop = FALSE], 1L, \(x) {
+                                                }) > 0L),
+                                                Filter_down = which(apply(PG[, g, drop = FALSE], 1L, \(x) {
                                                   sum(x %in% down)
-                                                }) > 0L)),
-                                                Filter = sort(which(apply(PG[, g, drop = FALSE], 1L, \(x) {
+                                                }) > 0L),
+                                                Filter = which(apply(PG[, g, drop = FALSE], 1L, \(x) {
                                                   sum(x %in% c(up, down))
-                                                }) > 0L)))
+                                                }) > 0L))
 }
 #
 # Z-scored clustering heatmaps of regulated proteins
@@ -1569,7 +1570,7 @@ if (("F.test" %in% colnames(Param)) && is.logical(Param$F.test) && (length(Param
 if (F.test) {
   dir <- paste0(wd, "/Reg. analysis/F-tests")
   for (d in dir) { if (!dir.exists(d)) { dir.create(d, recursive = TRUE) }}
-  dirlist <- union(dirlist, dir)
+  dirlist <- base::union(dirlist, dir)
   cat("Running F-test\n")
   #
   if (("F.test_within" %in% colnames(Param)) && (Param$F.test_within != "")) {
@@ -1605,22 +1606,22 @@ if (F.test) {
       Reg_filters$"F-tests"$"By condition" <- list()
       for (i in seq_along(g)) { #i <- 1L
         Reg_filters$"F-tests"$"By condition"[[g1[i]]] <- list(Columns = g[i],
-                                                              Filter_up = sort(which(F_test_data[[g[i]]] %in% up)),
-                                                              Filter_down = sort(which(F_test_data[[g[i]]] %in% down)),
-                                                              Filter = sort(which(F_test_data[[g[i]]] %in% c(up, down))))
+                                                              Filter_up = which(F_test_data[[g[i]]] %in% up),
+                                                              Filter_down = which(F_test_data[[g[i]]] %in% down),
+                                                              Filter = which(F_test_data[[g[i]]] %in% c(up, down)))
       }
     }
     if ("dat2" %in% filter_types) {
       Reg_filters$"F-tests"$"Whole dataset" <- list(Columns = g,
-                                                    Filter_up = sort(which(apply(F_test_data[, g, drop = FALSE], 1L, \(x) {
+                                                    Filter_up = which(apply(F_test_data[, g, drop = FALSE], 1L, \(x) {
                                                       sum(x %in% up)
-                                                    }) > 0L)),
-                                                    Filter_down = sort(which(apply(F_test_data[, g, drop = FALSE], 1L, \(x) {
+                                                    }) > 0L),
+                                                    Filter_down = which(apply(F_test_data[, g, drop = FALSE], 1L, \(x) {
                                                       sum(x %in% down)
-                                                    }) > 0L)),
-                                                    Filter = sort(which(apply(F_test_data[, g, drop = FALSE], 1L, \(x) {
+                                                    }) > 0L),
+                                                    Filter = which(apply(F_test_data[, g, drop = FALSE], 1L, \(x) {
                                                       sum(x %in% c(up, down))
-                                                    }) > 0L)))
+                                                    }) > 0L))
     }
     if (("Q.values" %in% colnames(Param)) && Param$Q.values) {
       library(qvalue)
@@ -1711,10 +1712,10 @@ for (tt in WhTsts) { #tt <- WhTsts[1L]
   stopifnot(!is.na(tstrt))
   dir <- paste0(wd, "/Reg. analysis/", tstrt)
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- union(dirlist, dir)
+  dirlist <- base::union(dirlist, dir)
   filt <- Reg_filters[[tstrt]]
   By <- c("By condition", "By reference", "By analysis")
-  By <- intersect(By, names(filt))
+  By <- base::intersect(By, names(filt))
   if (length(By)) {
     for (bee in By) { #bee <- By[1L]
       flt <- filt[[bee]]
@@ -1808,7 +1809,7 @@ if (exists("Tim")) {
   cat("Time profile plots\n")
   dir <- paste0(wd, "/Time profile plots")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- union(dirlist, dir)
+  dirlist <- base::union(dirlist, dir)
   r <- paste0("Mean ", Prot.Rat.Root)
   p <- pvalue.col[pvalue.use]
   a <- gsub("Tim", "", VPAL$aggregate)
@@ -1818,7 +1819,7 @@ if (exists("Tim")) {
   o1 <- VPAL$names
   A1 <- get(a1)
   ylim <- paste0(r, A1)
-  ylim <- intersect(ylim, colnames(PG))
+  ylim <- base::intersect(ylim, colnames(PG))
   m <- unlist(PG[, ylim])
   ylim <- max(m[is.finite(m)])*1.05
   temp <- list()
@@ -1842,9 +1843,9 @@ if (exists("Tim")) {
         if (!length(t1)) { cat("   There is no valid data for aggregate", i, "\n")
         } else { cat("   There is only a single time point for aggregate", i, "\n") }
       } else {
-        test <- apply(PG[,c(t1, t2)], 1L, \(x) { sum(is.finite(x)) == length(tp)*2L })
+        test <- apply(PG[, c(t1, t2)], 1L, \(x) { sum(is.finite(x)) == length(tp)*2L })
         col <- c("Protein IDs", "Names", "ID")
-        col <- intersect(col, colnames(PG))
+        col <- base::intersect(col, colnames(PG))
         temp1 <- PG[test, c(col, Param$Plot.labels, t1)]
         temp1$IDs <- as.character(1L:nrow(temp1))
         temp2 <- PG[test, c(col, Param$Plot.labels, t2)]
@@ -1880,14 +1881,15 @@ if (exists("Tim")) {
     tmp$"Time point" <- factor(tmp$"Time point", levels = as.character(sort(as.numeric(unique(tmp$"Time point")))))
     levels(tmp$`Time point`) <- sort(as.numeric(levels(tmp$`Time point`)))
     ttl <- paste0("Global time profile - ", tp2)
-    plot <- ggplot(tmp) +
-      geom_line(aes(x = `Time point`, y = `log2(Ratio)`, group = IDs, color = IDs)) +
-      scale_color_viridis_d(begin = 0.25) +
-      ggtitle(ttl) + guides(color = "none", group = "none") +
-      facet_wrap(~Aggregate) +
-      ylim(c(-ylim, ylim)) + theme_bw()
+    plot <- ggplot2::ggplot(tmp) +
+      ggplot2::geom_line(ggplot2::aes(x = `Time point`, y = `log2(Ratio)`, group = IDs, color = IDs)) +
+      ggplot2::scale_color_viridis_d(begin = 0.25) +
+      ggplot2::ggtitle(ttl) + ggplot2::guides(color = "none", group = "none") +
+      ggplot2::facet_wrap(~Aggregate) +
+      ggplot2::ylim(c(-ylim, ylim)) + ggplot2::theme_bw()
     suppressMessages({
-      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 600L, width = 10L, height = 10L, units = "in")
+      ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                      dpi = 600L, width = 10L, height = 10L, units = "in")
     })
     if (create_plotly) {
       #test <- aggregate(tmp$`log2(Ratio)`, list(tmp$IDs), \(x) { sum(is.finite(x)) == length(Tim)-1L })
@@ -1897,14 +1899,16 @@ if (exists("Tim")) {
       tmp2 <- tmp2[order(tmp2$x, decreasing = TRUE),]
       tmp2 <- tmp2$Group.1[1L:min(c(1000L, nrow(tmp2)))]
       tmp2 <- tmp[tmp$IDs %in% tmp2,]
-      plot <- ggplot(tmp2) +
-        geom_line(aes(x = `Time point`, y = `log2(Ratio)`, group = IDs, color = IDs, text = Label)) +
-        scale_color_viridis_d(begin = 0.25) +
-        ggtitle(ttl) + guides(color = "none", group = "none") +
-        facet_wrap(~Aggregate) + ylim(c(-ylim, ylim)) + theme_bw()
-      plot.ly <- ggplotly(plot, tooltip = "text")
-      plot.ly <- plotly_build(plot.ly)
-      saveWidget(plot.ly, paste0(dir, "/", ttl, ".html"))
+      plot <- ggplot2::ggplot(tmp2) +
+        ggplot2::geom_line(ggplot2::aes(x = `Time point`, y = `log2(Ratio)`,
+                                        group = IDs, color = IDs, text = Label)) +
+        ggplot2::scale_color_viridis_d(begin = 0.25) +
+        ggplot2::ggtitle(ttl) + ggplot2::guides(color = "none", group = "none") +
+        ggplot2::facet_wrap(~Aggregate) + ggplot2::ylim(c(-ylim, ylim)) +
+        ggplot2::theme_bw()
+      plot.ly <- plotly::ggplotly(plot, tooltip = "text")
+      plot.ly <- plotly::plotly_build(plot.ly)
+      htmlwidgets::saveWidget(plot.ly, paste0(dir, "/", ttl, ".html"))
       system(paste0("open \"", dir, "/", ttl, ".html"))
     } else { poplot(plot) }
   }
@@ -1957,7 +1961,7 @@ Src <- paste0(libPath, "/extdata/Sources/rep_Summary.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
-rm(list = setdiff(ls(), .obj))
+rm(list = base::setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 
 #### Code chunk - XML coverage columns
@@ -1971,14 +1975,15 @@ GO_PG_col %<o% unique(unlist(strsplit(Param$GO.tabs, ";")))
 GO_filt %<o% (length(GO_PG_col) > 0L)
 if (GO_filt) {
   if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) { loadFun("GO_terms.RDS") }
-  GO_PG_col <- intersect(GO_PG_col, GO_terms$ID)
+  GO_PG_col <- base::intersect(GO_PG_col, GO_terms$ID)
   GO_filt <- length(GO_PG_col) > 0L
 }
 if (GO_filt) {
   tmp <- listMelt(strsplit(PG$`GO-ID`, ";"), 1L:nrow(PG), c("Term", "Row"))
+  GO.db_env <- as.environment(getNamespace("GO.db"))
   Offspring <- setNames(lapply(GO_PG_col, \(x) { #x <- "GO:0009725"
-    ont <- Ontology(x)
-    x <- c(x, get(paste0("GO", ont, "OFFSPRING"))[[x]])
+    ont <- BiocGenerics::Ontology(x)
+    x <- c(x, get(paste0("GO", ont, "OFFSPRING"), envir = GO.db_env)[[x]])
     x <- x[!is.na(x)]
     return(x)
   }), GO_PG_col)
@@ -1992,7 +1997,7 @@ if (GO_filt) {
                                                  collapse = ""),
                               "\n\n")
     cat(msg)
-    GO_PG_col <- intersect(GO_PG_col, tmp$Term)
+    GO_PG_col <- base::intersect(GO_PG_col, tmp$Term)
   }
   if (length(GO_PG_col)) {
     GO_PG_col2 %<o% setNames(GO_terms$Term[match(GO_PG_col, GO_terms$ID)],
@@ -2023,9 +2028,9 @@ source(bckpSrc)
 ## PSMs
 dir <- paste0(wd, "/Tables")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- union(dirlist, dir)
+dirlist <- base::union(dirlist, dir)
 w <- which(vapply(colnames(ev), \(x) { inherits(ev[[x]], "list") }, TRUE))
-if (length(w)) { for (i in w) { ev[[i]] <- parSapply(parClust, ev[[i]], paste, collapse = ";") } }
+if (length(w)) { for (i in w) { ev[[i]] <- parallel::parSapply(parClust, ev[[i]], paste, collapse = ";") } }
 data.table::fwrite(ev, paste0(dir, "/evidence.tsv"), sep = "\t", row.names = FALSE, na = "NA")
 #
 ## Main peptidoforms- and protein groups-level, multi-tabs report
@@ -2034,7 +2039,7 @@ xlSrc <- paste0(libPath, "/extdata/Sources/rep_Write_Excel.R")
 source(xlSrc)
 #xl_open(repFl)
 
-rm(list = setdiff(ls(), .obj))
+rm(list = base::setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 source(parSrc)
 
@@ -2061,7 +2066,7 @@ if (pkgsCheck["Venn"]) {
 }
 
 #### Code chunk - Coverage maps, XICs and heatmaps for proteins of interest
-protlspep <- union(prot.list, prot.list_pep)
+protlspep <- base::union(prot.list, prot.list_pep)
 if (length(protlspep)) {
   test <- vapply(protlspep, \(i) { length(grsep2(i, PG$"Leading protein IDs")) }, 1L)
   if (0L %in% test) {
@@ -2095,7 +2100,7 @@ if (length(protlspep)) {
           dir,
           cl = parClust)
 }
-invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
+invisible(parallel::clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 
 #### Code chunk - Create STRINGdb graph(s) and Cytoscape networks for regulated proteins
 if (runSTRINGdb) {
@@ -2117,12 +2122,12 @@ if (pkgsCheck["3d_Cov"]) {
 #   test <- apply(PG[, g, drop = FALSE], 1L, \(x) {
 #     sum(!x %in% c("", NA, "NA", "non significant", "too small FC"))
 #   })
-#   prot <- unique(c(prot.list, unlist(strsplit(PG$"Leading protein IDs"[test > 0L], ";"))))
-#   if ((!is.null(prot.list_pep)) && (length(prot.list_pep)) { prot <- unique(c(prot, prot.list_pep)) }
+#   prot <- base::union(prot.list, unlist(strsplit(PG$"Leading protein IDs"[test > 0L], ";")))
+#   if ((!is.null(prot.list_pep)) && (length(prot.list_pep)) { prot <- base::union(prot, prot.list_pep) }
 #   if (length(prot)) {
 #     dir <- paste0(wd, "/Evidences type tables")
 #     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-#     dirlist <- unique(c(dirlist, dir))
+#     dirlist <- base::union(dirlist, dir)
 #     for (i in prot) {
 #       temp <- ev[grsep2(i, ev$"Leading proteins"),]
 #       temp <- sapply(unique(ev$Type), \(x) {
@@ -2141,7 +2146,7 @@ dirlist <- dirlist[order(nchar(dirlist), decreasing = TRUE)]
 for (dir in dirlist) { #d <- dirlist[1L]
   if (!length(list.files(dir))) {
     unlink(dir, recursive = TRUE)
-    dirlist <- setdiff(dirlist, dir)
+    dirlist <- base::setdiff(dirlist, dir)
   }
 }
 # Save decisions - should this go?

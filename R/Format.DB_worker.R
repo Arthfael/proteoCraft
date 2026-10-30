@@ -74,10 +74,10 @@
         x <- unlist(strsplit(x1, paste0("_", x2, " ?")))
         if (length(x) == 2L) { return(x[2L]) } else { return("") }
       }, "")
-      a <- grep("^[I,i]soform [a-z,A-Z,0-9]+ of ", temp1$"Common Name")
+      a <- grep("^[I,i]soform [a-zA-Z0-9]+ of ", temp1$"Common Name")
       if (length(a)) {
         a1 <- temp1$"Common Name"[a]
-        b1 <- sub("^[I,i]soform [a-z,A-Z,0-9]+ of ", "", a1)
+        b1 <- sub("^[I,i]soform [a-zA-Z0-9]+ of ", "", a1)
         c1 <- nchar(a1)
         c2 <- nchar(b1)
         b2 <- vapply(1L:length(a), \(x) {
@@ -123,7 +123,7 @@
               return(c(x[1L], paste(x[2L:length(x)], collapse = " ")))
             })
           } else { temp1[a, u] <- vapply(b, \(x) { rev(unlist(x))[1L] }, "") }
-        } else { if (tt == "isoform") { nms.list <- setdiff(nms.list, "No Isoforms") }}
+        } else { if (tt == "isoform") { nms.list <- base::setdiff(nms.list, "No Isoforms") }}
       }
     }
     if (mode == "REFSEQCDS") {
@@ -145,7 +145,7 @@
       }, "")
       # We want to fill important columns with any value, if none is available
       w <- which(temp1$"Common Name" %in% c("", " ", "NA", NA))
-      tmpkol <- intersect(nms.list, colnames(temp1))
+      tmpkol <- base::intersect(nms.list, colnames(temp1))
       if (length(w) && length(tmpkol)) {
         f0 <- \(x) {
           tt <- which(!x %in% c("", " ", "NA", NA))
@@ -163,6 +163,6 @@
     temp1$Sequence <- sub("\\*$", "", temp1$Sequence) # Required for some types of databases, such as TAIR
     temp1$Sequence <- stats::setNames(temp1$Sequence, temp1$"Protein ID")
   } else { temp1 <- temp1$"Protein ID" }
-  #rm(list = setdiff(ls(), "temp1"))
+  #rm(list = base::setdiff(ls(), "temp1"))
   return(temp1)
 }

@@ -1,17 +1,7 @@
-#
-library(svDialogs)
-library(data.table)
-library(parallel)
-nClst <- detectCores()-1L
+# Pepper - script to train a model
 
 # Create parallel processing cluster
-a <- 1
-tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-if (inherits(tst, "try-error")) {
-  try(stopCluster(parClust), silent = TRUE)
-  parClust <- makeCluster(nClst, type = "SOCK")
-}
-try(setDTthreads(threads = nClst), silent = TRUE)
+source(parSrc)
 
 # Peptide directory
 homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
@@ -51,7 +41,7 @@ evFl <- rstudioapi::selectFile("Select PSMs tsv file, as saved by one of our dat
                                filter = "PSMs tsv file (*.tsv)")
 dtst <- gsub("/Tables$", "", dirname(evFl))
 dtstnm <- gsub(".*/", "", dtst)
-dtstnm <- dlg_input("Enter a name for this dataset", dtstnm)$res
+dtstnm <- svDialogs::dlg_input("Enter a name for this dataset", dtstnm)$res
 msg <- "Select experiment/samples .csv map"
 #mapFl <- normalizePath(choose.files(paste0(dtst, "/Experiment map.csv"), msg), winslash = "/")
 mapFl <- rstudioapi::selectFile(msg,
@@ -74,7 +64,7 @@ if ("Ref.Sample.Aggregate" %in% colnames(smplsMap)) {
     ev$RSA <- tmp$L1[match(ev$MQ.Exp, tmp$value)]
   }
 } else {
-  smplKol2 <- dlg_list(colnames(smplsMap), title = "Select parent samples column")$res
+  smplKol2 <- svDialogs::dlg_list(colnames(smplsMap), title = "Select parent samples column")$res
   cat(paste0("Samples:\n - ", paste0(unique(smplsMap[[smplKol2]]), collapse = "\n - "), "\n"))
   w <- which(ev[1L,] %in% smplsMap[[smplKol2]])
   stopifnot(length(w) > 0L)
@@ -83,7 +73,8 @@ if ("Ref.Sample.Aggregate" %in% colnames(smplsMap)) {
     smplKol <- if (smplKol2 %in% colnames(ev)[w]) {
       smplKol2
     } else {
-      dlg_list(colnames(ev)[w], title = "I'm not sure which column to use for samples in the evidence file, could you clarify for me?")$res
+      svDialogs::dlg_list(colnames(ev)[w],
+                          title = "I'm not sure which column to use for samples in the PSMs file, could you clarify for me?")$res
     }
   }
 }
@@ -128,8 +119,8 @@ GrdSrchFls <- list.files(tuneDir, "Gridsearch_Results_", full.names = TRUE)
 if (length(GrdSrchFls)) {
   opt <- setNames(c(FALSE, TRUE), c("No                                                                                                                                              ",
                                     "Yes                                                                                                                                             "))
-  CleanUp <- opt[dlg_list(names(opt), names(opt)[1L],
-                          title = paste0(dtstnm, ": shall we start from scratch hyperparameter tuning?"))$res]
+  CleanUp <- opt[svDialogs::dlg_list(names(opt), names(opt)[1L],
+                                     title = paste0(dtstnm, ": shall we start from scratch hyperparameter tuning?"))$res]
   names(CleanUp) <- NULL
 }
 # NB: This code is written in a way that it will always sample Step1Tries + Step2Tries parameter combinations.
@@ -144,10 +135,11 @@ source(HypTunSrc)
 L <- length(GrdSrchFls)
 N <- Step1Tries - L
 kount <- 0L
-while ((N > 0L)&&(kount < N+1L)) {
-  clusterExport(parClust, "cmd", envir = environment())
+while ((N > 0L) && (kount < N+1L)) {
+  source(parSrc)
+  parallel::clusterExport(parClust, "cmd", envir = environment())
   # Below, we are never running less tests than the number of cores, so we do not waste a round on a few tests.
-  tst <- parSapply(parClust, 1L:max(c(nClst, N)), \(x) {
+  tst <- parallel::parSapply(parClust, 1L:max(c(N.clust, N)), \(x) {
     try(system(cmd), silent = TRUE)
   })
   GrdSrchFls <- list.files(tuneDir, "Gridsearch_Results_", full.names = TRUE)
@@ -178,10 +170,11 @@ source(HypTunSrc)
 L <- length(GrdSrchFls)
 N <- Step1Tries + Step2Tries - L
 kount <- 0L
-while ((N > 0L)&&(kount < N+1L)) {
-  clusterExport(parClust, "cmd", envir = environment())
+while ((N > 0L) && (kount < N+1L)) {
+  source(parSrc)
+  parallel::clusterExport(parClust, "cmd", envir = environment())
   # Below, we are never running less tests than the number of cores, so we do not waste a round on a few tests.
-  tst <- parSapply(parClust, 1L:max(c(nClst, N)), \(x) {
+  tst <- parallel::parSapply(parClust, 1L:max(c(N.clust, N)), \(x) {
     try(system(cmd), silent = TRUE)
   })
   GrdSrchFls <- list.files(tuneDir, "Gridsearch_Results_", full.names = TRUE)
@@ -308,10 +301,9 @@ if (Outcome) { cat("Success!!!\n") } else { cat("Failure!!!!!\n") }
 py_clear_last_error()
 
 # Store for later use
-saveModel <- c(TRUE, FALSE)[match(dlg_message("Should we store this model for later use?", "yesno")$res, c("yes", "no"))]
+saveModel <- c(TRUE, FALSE)[match(svDialogs::dlg_message("Should we store this model for later use?", "yesno")$res,
+                                  c("yes", "no"))]
 if (saveModel) {
-  library(shiny)
-  library(DT)
   modDir <- paste0(homePath, "/Pepper_models")
   if (!dir.exists(modDir)) { dir.create(modDir, recursive = TRUE) }
   file.copy(modlFl, modDir)

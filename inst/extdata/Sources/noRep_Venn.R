@@ -1,10 +1,6 @@
 #### Venn diagrams (no-replicates workflow version)
 setwd(wd)
-library(ggplot2)
-library(ggpolypath)
-library(venn)
-library(plotly)
-library(htmlwidgets)
+#requireNamespace("ggpolypath")
 #
 if (!exists("plotly_Venn")) { plotly_Venn <- list() }
 #
@@ -42,7 +38,8 @@ if (Venn_Obs) {
         if (length(Grps) > 1L) { msg <- paste0("Ratios group ", grp, ": ", msg) }
         tst <- !sm$Reference[match(VennExp, sm$Experiment)]
         tmp <- setNames(vapply(VennExp, \(x) { paste(c(x, rep(" ", 200L-nchar(x))), collapse = "") }, ""), VennExp)
-        VennExp <- names(tmp)[match(dlg_list(tmp, tmp[which(tst)[1L:min(c(sum(tst, VennMx)))]], TRUE, msg)$res, tmp)]
+        VennExp <- names(tmp)[match(svDialogs::dlg_list(tmp, tmp[which(tst)[1L:min(c(sum(tst, VennMx)))]],
+                                                        TRUE, msg)$res, tmp)]
         if (length(VennExp) < 2L) {
           msg <- "Skipping per-sample observations Venn diagrams"
           if (length(Grps) > 1L) { msg <- paste0(msg, " for ratios group ", grp) }
@@ -71,24 +68,23 @@ if (Venn_Obs) {
       AnalysisParam$"Venn diagram (LFC) - samples" <- list(VennExp)
       plot <- venn::venn(test, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)
       subTtl <- "Global, LFQ"
-      plot <- plot + ggtitle("Venn diagram", subtitle = subTtl) +
-        theme(plot.title = element_text(size = 15L), plot.subtitle = element_text(size = 10L))
+      plot <- plot + ggplot2::ggtitle("Venn diagram", subtitle = subTtl) +
+        ggplot2::theme(plot.title = ggplot2::element_text(size = 15L),
+                       plot.subtitle = ggplot2::element_text(size = 10L))
       plot@layers$geom_path <- NULL
-      plotLy <- ggplotly(plot, tooltip = "label")
+      plotLy <- plotly::ggplotly(plot, tooltip = "label")
       plotLy$x$layout$xaxis$autorange <- TRUE
       plotLy$x$layout$yaxis$autorange <- TRUE
       plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
       plotLy <- plotly::config(plotLy,
                                modeBarButtonsToRemove = c("select2d", "lasso2d"))
-      plotLy <- plotly::plotly_build(plotLy)
-      plotly_Venn[[subTtl]] <- plotLy
+      plotly_Venn[[subTtl]] <- plotly::plotly_build(plotLy)
       poplot(plot)
       suppressMessages({
-        ggsave(paste0(VennDir, "/", ttl, ".svg"), plot, dpi = 150L)
+        ggplot2::ggsave(paste0(VennDir, "/", ttl, ".svg"), plot, dpi = 150L)
       })
       #system(paste0("open \"", VennDir, "/", ttl, ".jpg", "\""))
       wbKount <- wbKount+1L
-      if (SheetNm %in% names(wb)) { removeWorksheet(wb, SheetNm) }
       if (SheetNm %in% wb_get_sheet_names(wb)) { wb <- openxlsx2::wb_remove_worksheet(wb, SheetNm) }
       wb <- openxlsx2::wb_add_worksheet(wb, SheetNm)
       l <- length(test)
@@ -133,7 +129,7 @@ if (Venn_Ratios) {
         msg <- paste0("Too many samples, select at least 2 and up to ", VennMx,
                       " to include in the Venn diagram (comma-separated):")
         if (length(Grps) > 1L) { msg <- paste0("Ratios group ", grp, ": ", msg) }
-        VennExp <- dlg_list(VennExp, VennExp[1L:VennMx], TRUE, msg)$res
+        VennExp <- svDialogs::dlg_list(VennExp, VennExp[1L:VennMx], TRUE, msg)$res
         if (length(VennExp) < 2L) {
           msg <- "Skipping ratios Venn diagrams"
           if (length(Grps) > 1L) { msg <- paste0(msg, " for ratios group ", grp) }
@@ -183,20 +179,20 @@ if (Venn_Ratios) {
           if (length(w) > 1L) {
             flt <- flt[w]
             plot <- venn(flt, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)
-            plot <- plot + ggtitle("Venn diagram", subtitle = subTtl) +
-              theme(plot.title = element_text(size = 15L), plot.subtitle = element_text(size = 10L))
+            plot <- plot + ggplot2::ggtitle("Venn diagram", subtitle = subTtl) +
+              ggplot2::theme(plot.title = ggplot2::element_text(size = 15L),
+                             plot.subtitle = ggplot2::element_text(size = 10L))
             plot@layers$geom_path <- NULL
-            plotLy <- ggplotly(plot, tooltip = "label")
+            plotLy <- plotly::ggplotly(plot, tooltip = "label")
             plotLy$x$layout$xaxis$autorange <- TRUE
             plotLy$x$layout$yaxis$autorange <- TRUE
             plotLy <- htmlwidgets::onRender(plotLy, jsFun$global_auto_range)
             plotLy <- plotly::config(plotLy,
                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
-            plotLy <- plotly::plotly_build(plotLy)
-            plotly_Venn[[subTtl]] <- plotLy
+            plotly_Venn[[subTtl]] <- plotly::plotly_build(plotLy)
             poplot(plot)
             suppressMessages({
-              ggsave(paste0(VennDir, "/", ttl, ".svg"), plot, dpi = 150L)
+              ggplot2::ggsave(paste0(VennDir, "/", ttl, ".svg"), plot, dpi = 150L)
             })
             #system(paste0("open \"", VennDir, "/", ttl, ".jpg", "\""))
             wbKount <- wbKount+1L

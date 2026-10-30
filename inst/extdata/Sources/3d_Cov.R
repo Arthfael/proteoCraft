@@ -12,7 +12,7 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
   SCV_PTMs <- TRUE
   if ((!"Mass shift" %in% colnames(Modifs))||(sum(is.na(Modifs$`Mass shift`)))) {
     if (("UniMod" %in% colnames(Modifs)) && requireNamespace("PTMods")) {
-      data(modifications, package = "PTMods")
+      utils::data(modifications, package = "PTMods")
       UniMod <- modifications
       rm(modifications)
       Modifs$"Mass shift" <- UniMod$MonoMass[match(as.integer(sub("^UniMod:", "", Modifs$UniMod)), UniMod$UnimodId)]
@@ -45,12 +45,12 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
     g2 <- grsep2(prot.list, db$`Protein ID`)
     tmpDB <- db[g2, c("Protein ID", "Common Name", "Sequence", "PDB")]
     source(parSrc)
-    clusterExport(parClust,
-                  list("grsep", "grsep2", "listMelt", "cov3D", "annot_to_tabl", "topattern", "cleanNms", "Exp",
-                       "prVect", "intVect", "wd", "PDB_in_DB", "SCV_PTMs", "tmpDB", "Modifs", "valid_url", "modSq",
-                       "AA_table", "AA", "nCharLim"),
-                  envir = environment())
-    tst3D <- parSapply(parClust, prot.list, \(plp) { #plp <- prot.list[1L]
+    parallel::clusterExport(parClust,
+                            list("grsep", "grsep2", "listMelt", "cov3D", "annot_to_tabl", "topattern", "cleanNms", "Exp",
+                                 "prVect", "intVect", "wd", "PDB_in_DB", "SCV_PTMs", "tmpDB", "Modifs", "valid_url", "modSq",
+                                 "AA_table", "AA", "nCharLim"),
+                            envir = environment())
+    tst3D <- parallel::parSapply(parClust, prot.list, \(plp) { #plp <- prot.list[1L]
       #
       idMtch <- match(plp, tmpDB$"Protein ID")
       nm <- nm1 <- gsub("\\*", "STAR", gsub("/", "-", gsub(" - $", "", plp)))
@@ -70,14 +70,14 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
       # PDB: we get PDB IDs from parsing the txt file
       if (PDB_in_DB) {
         tmp <- unlist(strsplit(tmpDB[match(plp, tmpDB$"Protein ID"), "PDB"], ";"))
-        tmp <- setdiff(tmp, "")
+        tmp <- base::setdiff(tmp, "")
         if (length(tmp)) {
           for (i in tmp) {
             fl <- paste0(dir, "/PDB-", i, ".pdb")
             url <- paste0("https://files.rcsb.org/download/", i, ".pdb")
             tst <- try(utils::download.file(url, fl), silent = TRUE)
             if (!inherits(tst, " try-error")) {
-              pdbFls <- union(pdbFls, fl)
+              pdbFls <- base::union(pdbFls, fl)
             }
           }
         }
@@ -102,7 +102,7 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
         lapply(names(alphURLs), \(x) {
           utils::download.file(alphURLs[x], x)
         })
-        pdbFls <- union(pdbFls, names(alphURLs))
+        pdbFls <- base::union(pdbFls, names(alphURLs))
       }
       if (!length(pdbFls)) { return(FALSE) }
       # We have found at least one model which can be used to visualize coverage

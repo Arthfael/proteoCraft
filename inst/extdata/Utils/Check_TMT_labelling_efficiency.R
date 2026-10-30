@@ -1,9 +1,7 @@
 options(stringsAsFactors = FALSE)
 library(proteoCraft)
-library(ggplot2)
-library(rstudioapi)
 
-wd <- selectDirectory(path = "D:\\groups_temp")
+wd <- rstudioapi::selectDirectory(path = "D:\\groups_temp")
 setwd(wd)
 MQ.load()
 
@@ -42,11 +40,12 @@ Comp$"TMT (log10)" <- log10(Comp$TMT)
 Comp$"Unlabelled (log10)" <- log10(Comp$Unlabelled)
 w <- which(apply(Comp[, c("TMT (log10)", "Unlabelled (log10)")], 1L, \(x) { sum(is.finite(x)) }) == 2L)
 
-linearMod <- lm(`TMT (log10)` ~ `Unlabelled (log10)`, data =  Comp)
+linearMod <- stats::lm(`TMT (log10)` ~ `Unlabelled (log10)`, data =  Comp)
 print(linearMod)
 
-plot <- ggplot(Comp[w,]) + geom_point(aes(x = log10(Unlabelled), y = log10(TMT))) +
-  geom_abline(slope = linearMod$coefficients[[2L]], intercept = linearMod$coefficients[[1L]], colour = "red") +
-  theme_bw()
+plot <- ggplot2::ggplot(Comp[w,]) +
+  ggplot2::geom_point(ggplot2::aes(x = log10(Unlabelled), y = log10(TMT))) +
+  ggplot2::geom_abline(slope = linearMod$coefficients[[2L]],
+                       intercept = linearMod$coefficients[[1L]], colour = "red") +
+  ggplot2::theme_bw()
 poplot(plot)
-

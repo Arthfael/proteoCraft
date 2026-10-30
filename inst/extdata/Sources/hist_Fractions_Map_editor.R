@@ -27,22 +27,22 @@ if (!reLoad) {
 }
 dfltFact <- c()
 if (exists("myFact") && length(myFact) && is.character(myFact)) {
-  dfltFact <- union(dfltFact, myFact)
+  dfltFact <- base::union(dfltFact, myFact)
 }
 kol <- colnames(smplsMap)
-kol <- setdiff(kol, c(dfltKol, "Use", "Sample name"))
+kol <- base::setdiff(kol, c(dfltKol, "Use", "Sample name"))
 if (length(kol)) {
-  dfltFact <- union(dfltFact, kol)
+  dfltFact <- base::union(dfltFact, kol)
 }
 if (!length(dfltFact)) {
   dfltFact <- c("Fact1", "Fact2")
 }
 dfltFact <- paste(dfltFact, collapse = " / ")
-myFact <- dlg_input("Enter name of columns you would like to add to the table (in addition to Sample, Replicate and Group; use \" / \" as separator)",
-                    dfltFact)$res
+myFact <- svDialogs::dlg_input("Enter name of columns you would like to add to the table (in addition to Sample, Replicate and Group; use \" / \" as separator)",
+                               dfltFact)$res
 myFact <- unlist(strsplit(myFact, " +/ +"))
 myFact <- unique(myFact)
-myFact <- setdiff(myFact, c("", dfltKol, "Use", "Sample name"))
+myFact <- base::setdiff(myFact, c("", dfltKol, "Use", "Sample name"))
 
 if (!"Sample name" %in% colnames(smplsMap)) {
   smplsMap$"Sample name" <- smplsMap$Sample
@@ -128,43 +128,43 @@ g <- grep("___(FD|INCR)$", colnames(smplsMap2))
 colnames(smplsMap2)[g] <- ""
 #
 if (exists("appRunTest")) { rm(appRunTest) }
-ui <- fluidPage(useShinyjs(),
-                setBackgroundColor( # Doesn't work
-                  color = c(#"#F8F8FF",
-                    "#E5EDE1"),
-                  gradient = "linear",
-                  direction = "bottom"
-                ),
-                extendShinyjs(text = jsFun$toggle_full_screen,
-                              functions = c("toggleFullScreen")),
-                tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-                titlePanel(tag("u", "Samples map"),
-                           appNm),
-                br(),
-                h5("Edit the relationship between different samples, defining sample groups with replicate numbers, then click \"Save\"."),
-                br(),
-                actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-                br(),
-                DTOutput("smplsMap2"),
-                br(),
-                #plotlyOutput("PCA", height = paste0(screenRes$width*0.4, "px")),
-                br())
+ui <- shiny::fluidPage(
+  shinyjs::useShinyjs(),
+  shinyWidgets::setBackgroundColor( # Doesn't work
+    color = c(#"#F8F8FF",
+      "#E5EDE1"),
+    gradient = "linear",
+    direction = "bottom"),
+  shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                         functions = c("toggleFullScreen")),
+  shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+  shiny::titlePanel(shiny::tag("u", "Samples map"),
+                    appNm),
+  shiny::br(),
+  shiny::h5("Edit the relationship between different samples, defining sample groups with replicate numbers, then click \"Save\"."),
+  shiny::br(),
+  shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
+  shiny::br(),
+  DT::DTOutput("smplsMap2"),
+  shiny::br(),
+  #shiny::plotlyOutput("PCA", height = paste0(screenRes$width*0.4, "px")),
+  shiny::br())
 server <- \(input, output, session) {
   smplsMap3 <- smplsMap
-  output$smplsMap2 <- renderDT({ smplsMap2 },
-                               FALSE,
-                               escape = FALSE,
-                               class = "compact",
-                               selection = "none",
-                               editable = FALSE,
-                               rownames = FALSE,
-                               options = list(dom = "t",
-                                              paging = FALSE,
-                                              ordering = FALSE,
-                                              autoWidth = TRUE,
-                                              columnDefs = wTest1,
-                                              scrollX = FALSE),
-                               callback = JS("table.rows().every(function(i, tab, row) {
+  output$smplsMap2 <- DT::renderDT({ smplsMap2 },
+                                   FALSE,
+                                   escape = FALSE,
+                                   class = "compact",
+                                   selection = "none",
+                                   editable = FALSE,
+                                   rownames = FALSE,
+                                   options = list(dom = "t",
+                                                  paging = FALSE,
+                                                  ordering = FALSE,
+                                                  autoWidth = TRUE,
+                                                  columnDefs = wTest1,
+                                                  scrollX = FALSE),
+                                   callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
         var $this = $(this.node());
         $this.attr('id', this.data()[0]);
         $this.addClass('shiny-input-container');
@@ -179,18 +179,18 @@ server <- \(input, output, session) {
     fct <- tmp[[1L]]
     i <- as.integer(tmp[[2L]])
     if (i < nr) {
-      observeEvent(input[[id2]], {
+      shiny::observeEvent(input[[id2]], {
         x <- input[[id1]]
         for (k in (i+1L):nr) {
           idK <- paste0(fct, "___", as.character(k))
           if (fct %in% c("Group", myFact)) {
-            updateTextInput(session, idK, NULL, x)
+            shiny::updateTextInput(session, idK, NULL, x)
           }
           if (fct == "Replicate") {
-            updateNumericInput(session, idK, NULL, x, 1L, Inf, 1L)
+            shiny::updateNumericInput(session, idK, NULL, x, 1L, Inf, 1L)
           }
           if (fct == "Use") {
-            updateCheckboxInput(session, idK, NULL, as.logical(x))
+            shiny::updateCheckboxInput(session, idK, NULL, as.logical(x))
           }
         }
       })
@@ -202,7 +202,7 @@ server <- \(input, output, session) {
       iChr <- as.character(i)
       id1 <- paste0("Replicate___", iChr)
       id2 <- paste0("Replicate___", iChr, "___INCR")
-      observeEvent(input[[id2]], {
+      shiny::observeEvent(input[[id2]], {
         x <- input[[id1]]
         rplRg <- (i+1L):nr
         l <- length(rplRg)
@@ -211,13 +211,13 @@ server <- \(input, output, session) {
         for (k in rplRg) {
           y <- rplVal[k-i]
           idK <- paste0("Replicate___", as.character(k))
-          updateSelectInput(session, idK, NULL, 1L:nRep, y)
+          shiny::updateSelectInput(session, idK, NULL, 1L:nRep, y)
         }
       })
     }
   })
-  #output$PCA <- renderPlotly(plot_lyPCA)
-  observeEvent(input$saveBtn, {
+  #output$PCA <- shiny::renderPlotly(plot_lyPCA)
+  shiny::observeEvent(input$saveBtn, {
     kls <- c("Sample name", "Group", myFact, "Replicate", "Use")
     for (kl in kls) {
       smplsMap3[[kl]] <- sapply(rws, \(i) {
@@ -233,10 +233,10 @@ server <- \(input, output, session) {
     assign("smplsMap3", smplsMap3, envir = .GlobalEnv)
     #
     assign("appRunTest", TRUE, envir = .GlobalEnv)
-    stopApp()
+    shiny::stopApp()
   })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(\() { stopApp() })
+  #shiny::observeEvent(input$cancel, { shiny::stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
 }
 runKount <- 0L
 while ((!runKount) || (!exists("appRunTest"))) {
@@ -257,7 +257,7 @@ w <- which(tst == "list")
 if (length(w)) { for (i in w) { smplsMap3[[i]] <- vapply(smplsMap3[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(tmpTbl, file = smplsMapFl, row.names = FALSE, quote = TRUE), silent = TRUE)
 while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
-  dlg_message(paste0("File \"", smplsMapFl, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+  svDialogs::dlg_message(paste0("File \"", smplsMapFl, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmpTbl, file = smplsMapFl, row.names = FALSE, quote = TRUE), silent = TRUE)
 }
 #############################################

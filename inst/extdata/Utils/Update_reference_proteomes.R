@@ -6,25 +6,24 @@
 ###############################################################################################################
 
 # You could add new species simply by adding a new empty folder named after them and running this script
-require(parallel)
 RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 libPath <- paste0(RPath, "/proteoCraft")
 
 today <- gsub("-", "", as.character(Sys.Date()))
 # Create parallel processing cluster
-N.clust <- detectCores()-1L
+N.clust <- parallel::detectCores()-1L
 a <- 1
-tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
+tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)
 if (inherits(tst, "try-error")) {
-  try(stopCluster(parClust), silent = TRUE)
-  parClust <- makeCluster(N.clust, type = "SOCK")
+  try(parallel::stopCluster(parClust), silent = TRUE)
+  parClust <- parallel::makeCluster(N.clust, type = "SOCK")
 }
 dbDir <- "D:/Fasta_databases"
 stopifnot(dir.exists(dbDir))
 orgDirs <- grep("/", list.dirs(dbDir, full.names = FALSE), invert = TRUE, value = TRUE)
 orgDirs <- orgDirs[which(nchar(orgDirs) > 0L)]
-orgDirs <- setdiff(orgDirs, c("_combine", "Contaminants"))
+orgDirs <- base::setdiff(orgDirs, c("_combine", "Contaminants"))
 orgDirs <- grep("[Cc]ontaminants", orgDirs, invert = TRUE, value = TRUE)
 Orgs <- orgDirs
 Orgs <- gsub("_aka_.*", "", Orgs)
@@ -68,7 +67,7 @@ taxLins <- setNames(vapply(taxTst, \(x) { paste(x$name, collapse = ", ") }, ""),
 # We need some additional id which I could not get from taxonomy()
 taxURLs <- paste0("https://rest.uniprot.org/proteomes/stream?&query=reference:true+taxonomy_id:", taxIDs,
                   "&fields=upid,lineage,organism_id&format=tsv")
-taxURLs <- URLencode(taxURLs)
+taxURLs <- utils::URLencode(taxURLs)
 up_org_IDs <- setNames(lapply(1L:length(Orgs), \(i) { #i <- 1L #i <- 12L #i <- 17L
   #print(Orgs[i])
   url <- taxURLs[i]
@@ -139,14 +138,14 @@ wN <- which(!file.exists(dstFls))
 lN <- length(wN)
 if (lN) { warning(paste0(lN, " downloads failed, trying alternate approach...")) }
 kount <- 0L
-clusterExport(parClust, list("Urls", "dstFls"), envir = environment())
+parallel::clusterExport(parClust, list("Urls", "dstFls"), envir = environment())
 msgs <- c("but I'm a hopeful little script and I'm not giving up...",
           "but I know I will make it",
           "it will all end well, right? Right...?",
           "the grind is real... one last try...",
           "and I'm too tired of this **** to go on trying, so download your stoopid files yourself!\n")
 while (lN && (kount < 5L)) {
-  dlTst2 <- parLapply(parClust, wN, \(i) { #i <- wN[1L]
+  dlTst2 <- parallel::parLapply(parClust, wN, \(i) { #i <- wN[1L]
     rs <- try(curl::curl_download(Urls[i], dstFls[i], mode = "w"), silent = TRUE)
     rs <- if (inherits(rs, "try-error")) { list(Outcome = FALSE) } else { list(Outcome = TRUE, Res = rs) }
     return(rs)
@@ -164,7 +163,7 @@ fastaFls <- sub("\\.fasta.gz$", ".fasta", dstFls)
 nuFastaFls <- sub("\\.fasta$", "_noDupl_cont.fasta", fastaFls)
 if (length(wY)) {
   cat("Post-processing files (removing duplicates, adding contaminants)\n")
-  clusterExport(parClust, list("dstFls", "allOrgs", "dbDir"), envir = environment())
+  parallel::clusterExport(parClust, list("dstFls", "allOrgs", "dbDir"), envir = environment())
   lapply(wY, \(i) { #i <- wY[1L] #i <- wY[9L] # Do not parallelize here, this is sourcing a parallel script!
     fastaFl <- fastaFls[i]
     if (file.exists(dstFls[i])) {
@@ -209,7 +208,7 @@ lN <- length(wN)
 if (lN) {
   warning(paste0(lN, " downloads failed, trying alternate approach..."))
   kount <- 0L
-  clusterExport(parClust, list("txt_Urls", "txt_dstFls"), envir = environment())
+  parallel::clusterExport(parClust, list("txt_Urls", "txt_dstFls"), envir = environment())
   msgs <- c("but I'm a hopeful little script and I'm not giving up...",
             "but I know I will make it",
             "it will all end well, right? Right...?",
@@ -217,7 +216,7 @@ if (lN) {
             "and I'm too tired of this **** to go on trying, so download your stoopid files yourself!\n")
 }
 while (lN && (kount < 5L)) {
-  dlTst2 <- parLapply(parClust, wN, \(i) { #i <- wN[1L]
+  dlTst2 <- parallel::parLapply(parClust, wN, \(i) { #i <- wN[1L]
     rs <- try(curl::curl_download(txt_Urls[i], txt_dstFls[i], mode = "w"), silent = TRUE)
     rs <- if (inherits(rs, "try-error")) { list(Outcome = FALSE) } else { list(Outcome = TRUE, Res = rs)
     }
@@ -233,8 +232,8 @@ if (length(wN)) {
 }
 wY <- which(file.exists(txt_dstFls))
 txt_origFls <- sub("\\.txt.gz$", ".txt", txt_dstFls)
-clusterExport(parClust, list("txt_dstFls", "txt_origFls"), envir = environment())
-tst <- parSapply(parClust, wY, \(i) { #i <- wY[1L] #i <- wY[7L]
+parallel::clusterExport(parClust, list("txt_dstFls", "txt_origFls"), envir = environment())
+tst <- parallel::parSapply(parClust, wY, \(i) { #i <- wY[1L] #i <- wY[7L]
   txt_origFl <- txt_origFls[i]
   if (!file.exists(txt_dstFls[i])) { return(NA) }
   if (file.exists(txt_origFl)) { unlink(txt_origFl) }

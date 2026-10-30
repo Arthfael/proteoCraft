@@ -1,7 +1,7 @@
 # Ranked abudance and profile plots at peptides level
-# This chunk has been vastly improved, and the others should be improved on the same model!!! 
+#
 source(parSrc)
-clusterExport(parClust, "abbrFun", envir = environment())
+parallel::clusterExport(parClust, "abbrFun", envir = environment())
 plotPepProf %<o% runProfPlots # For now, should come under control of a parameter eventually
 if (plotPepProf) {
   #
@@ -82,12 +82,12 @@ if (plotPepProf) {
   plotsDF$root[g] <- "log10(Int.) - "
   temp_pep$Sample <- gsub_Rep(".* - ", "", temp_pep$variable)
   lev <- c("In list", "+", tstOrg2, "-", "Contaminant")
-  lev <- intersect(lev, unique(temp_pep$Category))
+  lev <- base::intersect(lev, unique(temp_pep$Category))
   temp_pep$Category <- factor(temp_pep$Category, levels = lev)
   #
   # Serialize data
   tmp <- aggregate(1L:nrow(temp_pep), list(temp_pep$Sample), list)
-  sapply(Exp, \(exp) { #exp <- Exp[1L]
+  lapply(Exp, \(exp) { #exp <- Exp[1L]
     readr::write_rds(temp_pep[tmp$x[[tmp$Group.1 == exp]],], paste0(wd, "/tmp_", exp, ".RDS"))
   })
   #
@@ -105,22 +105,22 @@ if (plotPepProf) {
     #myColorsB[["potential contaminant"]] <- myColors[["potential contaminant"]] <- "grey"
   #}
   #myColorsB[[c("+", "In list")[(lOrg > 0L)+1L]]] <- myColors[[c("+", "In list")[(lOrg > 0L)+1L]]] <- "red"
-  #colScale <- scale_colour_manual(name = "Category", values = myColors)
-  #colScaleB <- scale_colour_manual(name = "Category", values = myColorsB)
-  #fillScale <- scale_fill_manual(name = "Category", values = myColors)
-  #colScale2 <- scale_colour_manual(name = "In list", values = myColors2)
-  #fillScale2 <- scale_fill_manual(name = "In list", values = myColors2)
+  #colScale <- ggplot2::scale_colour_manual(name = "Category", values = myColors)
+  #colScaleB <- ggplot2::scale_colour_manual(name = "Category", values = myColorsB)
+  #fillScale <- ggplot2::scale_fill_manual(name = "Category", values = myColors)
+  #colScale2 <- ggplot2::scale_colour_manual(name = "In list", values = myColors2)
+  #fillScale2 <- ggplot2::scale_fill_manual(name = "In list", values = myColors2)
   #
-  clusterExport(parClust, list("plotsDF", "tstOrg2", "wd", "MainDir", #"myColorsB",
+  parallel::clusterExport(parClust,
+                          list("plotsDF", "tstOrg2", "wd", "MainDir", #"myColorsB",
                                "myColors2", "colScale", #"colScaleB",
                                "colScale2", "fillScale", "fillScale2"), envir = environment())
   cat("Plotting peptide ranked abundance plots\n")
-  invisible(clusterCall(parClust, \() {
-    library(ggplot2)
+  invisible(parallel::clusterCall(parClust, \() {
     assign("lOrg", length(tstOrg2), .GlobalEnv)
     return()
   }))
-  pepSortTst <- parLapply(parClust, 1L:nrow(plotsDF), \(ii) { #ii <- 1L
+  pepSortTst <- parallel::parLapply(parClust, 1L:nrow(plotsDF), \(ii) { #ii <- 1L
     exp <- plotsDF$Exp[ii]
     pepQuantType <- plotsDF$Type[ii]
     plotMode <- plotsDF$Mode[ii]
@@ -153,7 +153,7 @@ if (plotPepProf) {
     intmax <- ceiling(max(temp$Y))
     intscale <- intmax-intmin
     xmax <- nr*18/15
-    ttl <- paste0("Peptide ", gsub(" - $", "", root), " ranked abundance plots - ", exp)
+    ttl <- paste0("Peptide ", sub(" - $", "", root), " ranked abundance plots - ", exp)
     if (plotMode == "All") {
       catnm <- "Category"
       filt <- 1L:nr
@@ -165,20 +165,21 @@ if (plotPepProf) {
     }
     temp$y <- temp$Y + intmax*0.01
     flPath <- paste0(SubDir, "/", ttl, ".", fileType)
-    plot <- ggplot(temp) +
-      geom_bar(stat = "identity",
-               aes(x = Peptide_ID, y = Y, fill = .data[[catnm]], text = Value)) +
-      annotate("text", nr/2, intmax*1.2+intscale*0.04, label = paste0(length(unique(temp$id)), " peptidoforms"),
-               hjust = 0.5) + theme_bw() + ggtitle(ttl) + ylab(kolnm) + 
-      coord_cartesian(xlim = c(1, xmax),
-                      ylim = c(intmin, intmax*1.2+intscale*0.05)) +
-      theme(panel.border = element_blank(),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            axis.line = element_line(colour = "black"),
-            axis.text.x = element_blank(),
-            axis.ticks = element_blank(),
-            plot.margin = margin(r = 100L))
+    plot <- ggplot2::ggplot(temp) +
+      ggplot2::geom_bar(stat = "identity",
+                        ggplot2::aes(x = Peptide_ID, y = Y, fill = .data[[catnm]], text = Value)) +
+      ggplot2::annotate("text", nr/2, intmax*1.2+intscale*0.04, hjust = 0.5,
+                        label = paste0(length(unique(temp$id)), " peptidoforms")) +
+      ggplot2::theme_bw() + ggplot2::ggtitle(ttl) + ggplot2::ylab(kolnm) + 
+      ggplot2::coord_cartesian(xlim = c(1, xmax),
+                               ylim = c(intmin, intmax*1.2+intscale*0.05)) +
+      ggplot2::theme(panel.border = ggplot2::element_blank(),
+                     panel.grid.major = ggplot2::element_blank(),
+                     panel.grid.minor = ggplot2::element_blank(),
+                     axis.line = ggplot2::element_line(colour = "black"),
+                     axis.text.x = ggplot2::element_blank(),
+                     axis.ticks = ggplot2::element_blank(),
+                     plot.margin = ggplot2::margin(r = 100L))
     if (plotMode == "All") { plot <- plot + colScale + fillScale }
     if (plotMode == "List") { plot <- plot + colScale2 + fillScale2 }
     if (fileType == "html") {
@@ -197,11 +198,11 @@ if (plotPepProf) {
       setwd(wd)
     } else {
       plot <- plot +
-        geom_text(data = temp[filt,], angle = 45, hjust = 0, cex = 3.5, show.legend = FALSE,
-                  aes(Peptide_ID, y, colour = .data[[catnm]], label = `Peptide ID`))
+        ggplot2::geom_text(data = temp[filt,], angle = 45, hjust = 0, cex = 3.5, show.legend = FALSE,
+                           ggplot2::aes(Peptide_ID, y, colour = .data[[catnm]], label = `Peptide ID`))
       #poplot(plot, 12L, 22L)
       suppressMessages({
-        ggsave(filename = flPath, plot, dpi = 600L, width = 30L, height = 10L, units = "in")
+        ggplot2::ggsave(filename = flPath, plot, dpi = 600L, width = 30L, height = 10L, units = "in")
       })
     }
   })
@@ -216,10 +217,10 @@ if (plotPepProf) {
     plotsDF2 <- plotsDF2[tst$x,]
     # temp_pep is all the data we need
     MainDir <- paste0(wd, "/Profile plots")
-    clusterExport(parClust, list("plotsDF2", "MainDir", "tstOrg2"), envir = environment())
+    parallel::clusterExport(parClust, list("plotsDF2", "MainDir", "tstOrg2"), envir = environment())
     readr::write_rds(temp_pep, paste0(wd, "/tmp.RDS"))
     cat("Plotting peptide profile plots\n")
-    pepProfTst <- parLapply(parClust, 1L:nrow(plotsDF2), \(ii) { #ii <- 1L
+    pepProfTst <- parallel::parLapply(parClust, 1L:nrow(plotsDF2), \(ii) { #ii <- 1L
       pepQuantType <- plotsDF2$Type[ii]
       plotMode <- plotsDF2$Mode[ii]
       kolnm <- plotsDF2$kolnm[ii]
@@ -232,7 +233,7 @@ if (plotPepProf) {
       SubDir <- paste0(MainDir, "/Peptide ", pepQuantType)
       if (!dir.exists(SubDir)) { dir.create(SubDir, recursive = TRUE) }
       #
-      ttl <- paste0("Peptides ", gsub(" - $", "", root), " profiles")
+      ttl <- paste0("Peptides ", sub(" - $", "", root), " profiles")
       if (plotMode == "All") {
         lev <- levels(temp$Category)
         w <- which(!lev %in% c("In list", "Contaminant"))
@@ -268,18 +269,19 @@ if (plotPepProf) {
       } else {
         temp
       }
-      plot <- ggplot(dat, aes(text1 = Peptide_ID, text2 = Value)) +
-        geom_line(aes(x = Sample, y = Y, group = id, color = id), alpha = 0.1, show.legend = FALSE) +
-        geom_point(aes(x = Sample, y = Y, size = DotSize, color = id)) +
-        ggtitle(ttl) + ylab(kolnm) +
-        theme_bw() + facet_grid(frm) +
-        scale_size_identity(guide = "none") +
-        scale_linetype_identity(guide = "none") +
-        theme(legend.position = "none",
-              axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
-              strip.text = element_text(face = "bold", size = 8, lineheight = 0.8, angle = Ngl),
-              strip.background = element_rect(fill = "lightblue", colour = "black", linewidth = 1L)) +
-        scale_alpha_identity(guide = "none") +
+      plot <- ggplot2::ggplot(dat, ggplot2::aes(text1 = Peptide_ID, text2 = Value)) +
+        ggplot2::geom_line(ggplot2::aes(x = Sample, y = Y, group = id, color = id),
+                           alpha = 0.1, show.legend = FALSE) +
+        ggplot2::geom_point(ggplot2::aes(x = Sample, y = Y, size = DotSize, color = id)) +
+        ggplot2::ggtitle(ttl) + ggplot2::ylab(kolnm) +
+        ggplot2::theme_bw() + ggplot2::facet_grid(frm) +
+        ggplot2::scale_size_identity(guide = "none") +
+        ggplot2::scale_linetype_identity(guide = "none") +
+        ggplot2::theme(legend.position = "none",
+              axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust = 1),
+              strip.text = ggplot2::element_text(face = "bold", size = 8, lineheight = 0.8, angle = Ngl),
+              strip.background = ggplot2::element_rect(fill = "lightblue", colour = "black", linewidth = 1L)) +
+        ggplot2::scale_alpha_identity(guide = "none") +
         viridis::scale_color_viridis(option = "D")
       #poplot(plot, 12L, 22L)
       if (fileType == "html") {
@@ -299,11 +301,11 @@ if (plotPepProf) {
         setwd(wd)
       } else {
         plot <- plot +
-          geom_text(data = dat[wTxt,], aes(label = `Peptide ID`, x = Sample, y = Y, alpha = Alpha, color = id),
-                    hjust = 0, cex = 2L)
+          ggplot2::geom_text(data = dat[wTxt,], hjust = 0, cex = 2L,
+                             ggplot2::aes(label = `Peptide ID`, x = Sample, y = Y, alpha = Alpha, color = id))
         #poplot(plot, 12L, 22L)
         suppressMessages({
-          ggsave(filename = flPath, plot, dpi = 600L, width = 30L, height = 10L, units = "in")
+          ggplot2::ggsave(filename = flPath, plot, dpi = 600L, width = 30L, height = 10L, units = "in")
         })
       }
     })
@@ -311,4 +313,4 @@ if (plotPepProf) {
   }
   pep$temp <- NULL
 }
-invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
+invisible(parallel::clusterCall(parClust, \(x) { rm(list = ls());gc() }))

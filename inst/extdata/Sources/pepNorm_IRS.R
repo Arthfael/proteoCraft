@@ -4,6 +4,7 @@ wAG2 <- wAG1
 Outcome <- TRUE
 txt2 <- ""
 #
+source(parSrc)
 if (length(Iso) <= 1L) {
   if (length(Iso) == 1L) {
     warning("Skipping IRS normalisation: there is only 1 Isobarically labelled sample (aka \"Isobaric Set\")")
@@ -13,7 +14,7 @@ if (length(Iso) <= 1L) {
   if (!dir.exists(irsDr)) { dir.create(irsDr, recursive = TRUE) }
   dirlist <- unique(c(dirlist, irsDr))
   #
-  currSamples <- intersect(allSamples, colnames(tmpDat1))
+  currSamples <- base::intersect(allSamples, colnames(tmpDat1))
   m <- match(currSamples, Exp.map$Ref.Sample.Aggregate)
   design <- data.frame(Sample = currSamples,
                        Iso = Exp.map$Isobaric.set[m],
@@ -30,7 +31,7 @@ if (length(Iso) <= 1L) {
   if (file.exists("IsoMap")) {
     reLoad <- TRUE
     if (exists("IsoMap")) {
-      reLoad <- c(TRUE, FALSE)[match(dlg_message("Reload Isobaric sets map from disk?\n(you will still be able to edit it)", "yesno")$res, c("yes", "no"))]
+      reLoad <- c(TRUE, FALSE)[match(svDialogs::dlg_message("Reload Isobaric sets map from disk?\n(you will still be able to edit it)", "yesno")$res, c("yes", "no"))]
     }
     if (reLoad) {
       IsoMap <- read.csv(IsoMapPath, check.names = FALSE)
@@ -52,7 +53,7 @@ if (length(Iso) <= 1L) {
         tst3 <- aggregate(Exp.map$"Isobaric label details", list(Exp.map$Isobaric.set), list)
         tst3 <- sum(vapply(IsoMap$Set, \(i) {
           x <- IsoMap$"Reference channel(s)"[[i]]
-          x <- setdiff(x, "")
+          x <- base::setdiff(x, "")
           sum(!x %in% tst3$x[[i]])
         }, 1L) > 0L)
       }
@@ -95,30 +96,29 @@ if (length(Iso) <= 1L) {
   })
   appNm <- "IRS reference channels"
   if (exists("IHAVERUN")) { rm(IHAVERUN) }
-  ui <- fluidPage(
-    useShinyjs(),
-    setBackgroundColor( # Doesn't work
+  ui <- shiny::fluidPage(
+    shinyjs::useShinyjs(),
+    shinyWidgets::setBackgroundColor( # Doesn't work
       color = c(#"#F8F8FF",
         "#F2E4F5"),
       gradient = "linear",
-      direction = "bottom"
-    ),
-    extendShinyjs(text = jsFun$toggle_full_screen,
+      direction = "bottom"),
+    shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
                   functions = c("toggleFullScreen")),
-    tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-    titlePanel(tag("u", appNm),
+    shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+    shiny::titlePanel(shiny::tag("u", appNm),
                appNm),
-    br(),
-    fluidRow(column(5L,
-                    actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-                    h5(HTML("Select 1 reference channel per Isobaric set for Internal Reference Scaling normalisation")),
-                    h5(HTML("We define an \"Isobaric set\" as a combined sample made up of pooled samples individually labelled isobarically.")),
-                    h5(HTML("If no reference channel was included, select all (or any you want to average as your reference for that set) to simulate a reference!")),
-                    withSpinner(DT::DTOutput("IsoMap", width = wTest2)))),
-    br(),
-    br()
+    shiny::br(),
+    shiny::fluidRow(shiny::column(5L,
+                                  shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+                                  shiny::h5(shiny::HTML("Select 1 reference channel per Isobaric set for Internal Reference Scaling normalisation")),
+                    shiny::h5(shiny::HTML("We define an \"Isobaric set\" as a combined sample made up of pooled samples individually labelled isobarically.")),
+                    shiny::h5(shiny::HTML("If no reference channel was included, select all (or any you want to average as your reference for that set) to simulate a reference!")),
+                    shinycssloaders::withSpinner(DT::DTOutput("IsoMap", width = wTest2)))),
+    shiny::br(),
+    shiny::br()
   )
-  server <- function(input, output, session) {
+  server <- \(input, output, session) {
     # Initialize output table
     IsoMap3 <- IsoMap # Output table
     #
@@ -137,7 +137,7 @@ if (length(Iso) <= 1L) {
                                                  columnDefs = wTest1,
                                                  scrollX = FALSE),
                                   # the callback is essential to capture the inputs in each row
-                                  callback = JS("table.rows().every(function(i, tab, row) {
+                                  callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
   var $this = $(this.node());
   $this.attr('id', this.data()[0]);
   $this.addClass('shiny-input-container');
@@ -146,17 +146,17 @@ Shiny.unbindAll(table.table().node());
 Shiny.bindAll(table.table().node());"))
     #
     # Save
-    observeEvent(input$saveBtn, {
+    shiny::observeEvent(input$saveBtn, {
       IsoMap3$"Reference channel(s)" <- sapply(rws, \(i) {
         id <- paste0("ID___", as.character(i))
         return(input[[id]])
       })
       assign("IsoMap3", IsoMap3, envir = .GlobalEnv)
       assign("IHAVERUN", TRUE, .GlobalEnv)
-      stopApp()
+      shiny::stopApp()
     })
-    #observeEvent(input$cancel, { stopApp() })
-    session$onSessionEnded(function() { stopApp() })
+    #shiny::observeEvent(input$cancel, { shiny::stopApp() })
+    session$onSessionEnded(\() { shiny::stopApp() })
   }
   runKount <- 0L
   while ((!runKount) || (!exists("IHAVERUN"))) {
@@ -171,7 +171,8 @@ Shiny.bindAll(table.table().node());"))
   if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
   tst <- try(write.csv(tmpTbl, file = IsoMapPath, row.names = FALSE), silent = TRUE)
   while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
-    dlg_message(paste0("File \"", IsoMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+    svDialogs::dlg_message(paste0("File \"", IsoMapPath,
+                                  "\" appears to be locked for editing, close the file then click ok..."), "ok")
     tst <- try(write.csv(tmpTbl, file = IsoMapPath, row.names = FALSE), silent = TRUE)
   }
   #
@@ -195,19 +196,19 @@ Shiny.bindAll(table.table().node());"))
   }), setNms)
   # Either intensity from IRS channel, or failing that log10 row means for the group
   irsRowMeans <- setNames(lapply(setNms, \(nm) {
-    x <-  if (nm %in% mixedSets) {
+    x <- if (nm %in% mixedSets) {
       tmpDat1Imp[, Exp.map$Ref.Sample.Aggregate[mixed[mixedSets == nm]], drop = FALSE]
     } else {
       tmpDat1Imp[, irsSamples[[nm]]]
     }
-    #log10(parApply(parClust, tmpDat1Imp[, x], 1L, \(y) { sum(10L^y[is.finite(y)]) }))
-    #parApply(parClust, tmpDat1Imp[, x], 1L, \(y) { sum(y[is.finite(y)]) })
-    x <- parApply(parClust, x, 1L, \(y) { mean(y[is.finite(y)]) })
+    #log10(parallel::parApply(parClust, tmpDat1Imp[, x], 1L, \(y) { sum(10L^y[is.finite(y)]) }))
+    #parallel::parApply(parClust, tmpDat1Imp[, x], 1L, \(y) { sum(y[is.finite(y)]) })
+    x <- parallel::parApply(parClust, x, 1L, \(y) { mean(y[is.finite(y)]) })
     return(x)
   }), setNms)
   #View(do.call(cbind, irsRowMeans))
   # log10 geometric mean
-  allMeans <- parApply(parClust, tmpDat1Imp[, currSamples], 1L, \(x) {
+  allMeans <- parallel::parApply(parClust, tmpDat1Imp[, currSamples], 1L, \(x) {
     #log10(mean(10L^x[is.finite(x)]))
     mean(x[is.finite(x)])
   })
@@ -232,7 +233,7 @@ Shiny.bindAll(table.table().node());"))
   tmpDat2 <- tmpDat2[, colnames(tmpDat2Imp)]
   #
   wAG2 <- wAG1
-  #wAGstrict <- which(parApply(parClust, tmpDat2, 1L, \(x) { sum(is.finite(x)) }) == length(currSamples))
+  #wAGstrict <- which(parallel::parApply(parClust, tmpDat2, 1L, \(x) { sum(is.finite(x)) }) == length(currSamples))
   # Plot
   map <- Exp.map[, c("Ref.Sample.Aggregate", "Isobaric.set")]
   w1 <- which(colnames(tmpDat1Imp) %in% map$Ref.Sample.Aggregate) # Should be all
@@ -293,51 +294,48 @@ Shiny.bindAll(table.table().node());"))
                                  check.names = FALSE))
   }
   if (exists("IHAVERUN")) { rm(IHAVERUN) }
-  ui <- fluidPage(
-    useShinyjs(),
-    setBackgroundColor( # Doesn't work
+  ui <- shiny::fluidPage(
+    shinyjs::useShinyjs(),
+    shinyWidgets::setBackgroundColor( # Doesn't work
       color = c(#"#F8F8FF",
         "#EDE1F0"),
       gradient = "linear",
-      direction = "bottom"
-    ),
-    extendShinyjs(text = jsFun$toggle_full_screen,
+      direction = "bottom"),
+    shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
                   functions = c("toggleFullScreen")),
-    tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-    titlePanel(tag("u", appNm),
+    shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+    shiny::titlePanel(shiny::tag("u", appNm),
                appNm),
-    br(),
-    fluidRow(column(12L,
-                    checkboxInput("KeepIRSRes", msg, KeepIRSRes),
-                    actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-                    h4("Recommended criteria:"),
-                    h5(HTML(paste0("&nbsp;Does the original grouping follow known ", IsobarLab, " sets (it usually does)?"))),
-                    h5(HTML(paste0("&nbsp;&nbsp;-> If yes: accept the correction if it removes the original grouping by ", IsobarLab, " sets."))),
-                    h5(HTML(paste0("&nbsp;&nbsp;-> If no: you can reject the correction, congratulations: you were lucky, this time there was no ",
+    shiny::br(),
+    shiny::fluidRow(shiny::column(12L,
+                                  shiny::checkboxInput("KeepIRSRes", msg, KeepIRSRes),
+                                  shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
+                                  shiny::h4("Recommended criteria:"),
+                                  shiny::h5(shiny::HTML(paste0("&nbsp;Does the original grouping follow known ", IsobarLab, " sets (it usually does)?"))),
+                                  shiny::h5(shiny::HTML(paste0("&nbsp;&nbsp;-> If yes: accept the correction if it removes the original grouping by ", IsobarLab, " sets."))),
+                                  shiny::h5(shiny::HTML(paste0("&nbsp;&nbsp;-> If no: you can reject the correction, congratulations: you were lucky, this time there was no ",
                                    IsobarLab, " set-related batch effect."))),
-                    withSpinner(DTOutput("PCs"))),
-             br(),
-             fluidRow(column(5L, withSpinner(plotlyOutput("Before", height = "600px"))),
-                      column(5L, withSpinner(plotlyOutput("After", height = "600px"))))),
-    br(),
-    br()
+                                  shinycssloaders::withSpinner(DT::DTOutput("PCs"))),
+                    shiny::br(),
+                    shiny::fluidRow(shiny::column(5L, shinycssloaders::withSpinner(shiny::plotlyOutput("Before", height = "600px"))),
+                                    shiny::column(5L, shinycssloaders::withSpinner(shiny::plotlyOutput("After", height = "600px"))))),
+    shiny::br(),
+    shiny::br()
   )
-  server <- function(input, output, session) {
-    output$Before <- renderPlotly(PCAlyLst[[prev]]$Isobaric.set)
-    output$After <- renderPlotly(PCAlyLst[[curr]]$Isobaric.set)
-    output$PCs <- renderDT({ PCs },
+  server <- \(input, output, session) {
+    output$Before <- shiny::renderPlotly(PCAlyLst[[prev]]$Isobaric.set)
+    output$After <- shiny::renderPlotly(PCAlyLst[[curr]]$Isobaric.set)
+    output$PCs <- DT::renderDT({ PCs },
                            FALSE,
                            escape = FALSE,
                            class = "compact",
                            selection = "none",
                            editable = FALSE,
                            rownames = FALSE,
-                           options = list(
-                             dom = 't',
+                           options = list(dom = 't',
                              paging = FALSE,
-                             ordering = FALSE
-                           ),
-      #                      callback = JS("table.rows().every(function(i, tab, row) {
+                             ordering = FALSE),
+      #                      callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
       #   var $this = $(this.node());
       #   $this.attr('id', this.data()[0]);
       #   $this.addClass('shiny-input-container');
@@ -345,16 +343,16 @@ Shiny.bindAll(table.table().node());"))
       # Shiny.unbindAll(table.table().node());
       # Shiny.bindAll(table.table().node());")
       )
-    observeEvent(input[["KeepIRSRes"]], {
+    shiny::observeEvent(input[["KeepIRSRes"]], {
       assign("KeepIRSRes", as.logical(input[["KeepIRSRes"]]), envir = .GlobalEnv)
     })
-    observeEvent(input$saveBtn, {
+    shiny::observeEvent(input$saveBtn, {
       assign("KeepIRSRes", as.logical(input[["KeepIRSRes"]]), envir = .GlobalEnv)
       assign("IHAVERUN", TRUE, .GlobalEnv)
-      stopApp()
+      shiny::stopApp()
     })
-    #observeEvent(input$cancel, { stopApp() })
-    session$onSessionEnded(function() { stopApp() })
+    #shiny::observeEvent(input$cancel, { shiny::stopApp() })
+    session$onSessionEnded(\() { shiny::stopApp() })
   }
   runKount <- 0L
   while ((!runKount) || (!exists("IHAVERUN"))) {

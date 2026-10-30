@@ -17,8 +17,9 @@ listMelt(List, Names, ColNames = c("value", "L1"))
 A data.frame with two columns. The default column names are "value" and "L1" as in classic melt(). The column order is inverted, i.e. "value" then "L1" - a stupid oversight, unfortunately changing this would be difficult now.
 }
 \description{
-Wrapper function for utils::stack(), allowing much faster and efficient melting of simple lists, i.e. lists where each element is a 1-dimension vector.
-This won't work on more complex lists!!!
+Wrapper function for utils::stack(), allowing much faster and efficient melting of simple lists, i.e. lists where each element is a 1-dimension vector.\cr
+This won't work on more complex lists. Or at least it will work, but unlike reshape::melt it will only an L1 column, with the names of the 1st (top) level list.\cr
+Should be fairly easy to turn into a full melt function by recursive calls to itself if the input is a list of lists.\cr
 }
 \details{
 This function allows much faster melting than reshape::melt.list(). However, it may only be used on "simple" lists, that is, lists where each element is a vector.

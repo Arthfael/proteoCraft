@@ -56,7 +56,7 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
   if (nchar(intRoot)) {
     kol <- paste0(intRoot, kol)
   }
-  kol <- intersect(kol, colnames(dat))
+  kol <- base::intersect(kol, colnames(dat))
   dat <- dat[, kol]
   if (nchar(intRoot)) {
     colnames(dat) <- sub(topattern(intRoot), "", colnames(dat))
@@ -136,14 +136,14 @@ pcaBatchPlots <- function(dat, # Expected to be log-transformed!
       yLab <- paste0("PC2 = ", pv0[2L], "%")
       plot <- ggplot2::ggplot(scores1, ggplot2::aes(x = PC1, y = PC2, color = Batch)) +
         ggplot2::geom_point(ggplot2::aes(shape = Type)) +
-        ggpubr::stat_conf_ellipse(aes(fill = Batch),
+        ggpubr::stat_conf_ellipse(ggplot2::aes(fill = Batch),
                                   alpha = 0.2, geom = "polygon", show.legend = FALSE) +
         ggplot2::coord_fixed() + ggplot2::theme_bw() +
         ggplot2::xlab(xLab) + ggplot2::ylab(yLab) +
         ggplot2::geom_hline(yintercept = 0, colour = "black") +
         ggplot2::geom_vline(xintercept = 0, colour = "black") +
         ggplot2::ggtitle(nm1#, subtitle = pv0_
-                         ) +
+        ) +
         ggplot2::scale_color_viridis_d(option = "D") +
         ggrepel::geom_text_repel(ggplot2::aes(label = Sample),
                                  size = 2.5, show.legend = FALSE)

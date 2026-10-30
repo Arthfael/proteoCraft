@@ -22,7 +22,7 @@ load_Bckp <- function(backup,
   # Cleanup workspace here
   TESTING <- FALSE
   #DefArg(load_Bckp);TESTING <- TRUE
-  if (clean) { suppressWarnings(rm(list = setdiff(ls(), c("TESTING", "clean", "loadPack")), envir = .GlobalEnv)) }
+  if (clean) { suppressWarnings(rm(list = base::setdiff(ls(), c("TESTING", "clean", "loadPack")), envir = .GlobalEnv)) }
   misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package
@@ -44,7 +44,7 @@ load_Bckp <- function(backup,
       if (wd_test()) {
         defltdir <- wd
       } else {
-        dlft <- openxlsx::read.xlsx(paste0(homePath, "/Default_locations.xlsx"))
+        dlft <- openxlsx2::read_xlsx(paste0(homePath, "/Default_locations.xlsx"))
         defltdir <- dlft$Path[match("Temporary folder", dlft$Folder)]
       }
     } else { defltdir <- startDir }
@@ -78,7 +78,7 @@ load_Bckp <- function(backup,
   }
   assign("backupFile", bckp, envir = .GlobalEnv)
   if (!exists(".obj")) { .obj %<o% ".obj"  }
-  assign(".obj", union(.obj, "backupFile"), envir = .GlobalEnv) # Exception: this one we keep always at the far end!
+  assign(".obj", base::union(.obj, "backupFile"), envir = .GlobalEnv) # Exception: this one we keep always at the far end!
   #
   if ((!exists("wd")) || (!wd_test())) {
     if (!wdExisted) {
@@ -111,15 +111,13 @@ load_Bckp <- function(backup,
   if (loadPack) {
     if (exists("cran_req")) {
       for (pack in cran_req) {
-        loadTst <- try({ library(pack, character.only = TRUE) }, silent = TRUE)
-        if (inherits(loadTst, "try-error")) { warning(loadTst) }
+        if (!requireNamespace(pack)) { warning(loadTst) }
       }
-      if ("data.table" %in% cran_req) { setDTthreads(threads = maxCores) }
+      if ("data.table" %in% cran_req) { data.table::setDTthreads(threads = maxCores) }
     }
     if (exists("bioc_req")) {
       for (pack in bioc_req) {
-        loadTst <- try({ library(pack, character.only = TRUE) }, silent = TRUE)
-        if (inherits(loadTst, "try-error")) { warning(loadTst) }
+        if (!requireNamespace(pack)) { warning(loadTst) }
       }
     }
     library(proteoCraft)

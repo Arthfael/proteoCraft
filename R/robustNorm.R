@@ -86,7 +86,7 @@ robustNorm <- function(df,
     # Robust scale estimate (MAD)
     r <- as.vector(residuals)
     r <- r[is.finite(r)]
-    sigma <- mad(r, na.rm = TRUE)
+    sigma <- stats::mad(r, na.rm = TRUE)
     if ((!is.finite(sigma)) || (sigma == 0L)) { sigma <- 1 }
     # Standardized residuals
     r_std <- residuals/sigma

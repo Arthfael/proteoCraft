@@ -1,15 +1,11 @@
 ### A sourced script to edit the Experiment map (table defining experimental structure)
 #
-library(shiny)
-library(shinyjs)
-library(DT)
-#
-expKl <- intersect(c("MQ.Exp", "Parent sample"), colnames(FracMap))[1L]
+expKl <- base::intersect(c("MQ.Exp", "Parent sample"), colnames(FracMap))[1L]
 
-Factors2 %<o% setdiff(Factors, c("Experiment",
-                                 "Replicate",
-                                 "Isobaric.set",
-                                 "Time.point"))
+Factors2 %<o% base::setdiff(Factors, c("Experiment",
+                                       "Replicate",
+                                       "Isobaric.set",
+                                       "Time.point"))
 #
 labelMode <- match(LabelType, c("LFQ", "Isobaric"))
 if (exists("Exp.map") && nrow(Exp.map)) {
@@ -69,7 +65,7 @@ w <- which(tst == "list")
 if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(tmpTbl, file = ExpMapPath), silent = TRUE)
 while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
-  dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+  svDialogs::dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmpTbl, file = ExpMapPath), silent = TRUE)
 }
 ExpMap <- ExpMap[vapply(ExpMap$MQ.Exp, \(x) { sum(x %in% FracMap[[expKl]]) > 0L }, TRUE),]
@@ -97,7 +93,7 @@ tst <- lengths(FactorsLevels)
 Fact1 <- Factors[tst == 1L]
 Fact2 <- Factors[tst > 1L]
 Others <- c("MQ.Exp", "Sample name")
-Others <- intersect(Others, colnames(ExpData))
+Others <- base::intersect(Others, colnames(ExpData))
 nr <- nrow(ExpData)
 rws <- seq_len(nr)
 charRws <- as.character(rws)
@@ -116,7 +112,7 @@ dflt_Rpl[dflt_Rpl == 0L] <- L
 dflt_Rpl <- FactorsLevels[["Replicate"]][dflt_Rpl] # Easy template
 k1 <- c("MQ.Exp", "Experiment", "Replicate")
 k2 <- colnames(ExpData)
-k2 <- setdiff(k2, c(k1, "Sample name", "Use"))
+k2 <- base::setdiff(k2, c(k1, "Sample name", "Use"))
 ExpData <- ExpData[vapply(ExpData$MQ.Exp, \(x) { sum(x %in% MQ.Exp) }, 1L) > 0L, ]
 # Test order
 tst <- suppressWarnings(as.integer(substr(ExpData$MQ.Exp, 1L, 1L)))
@@ -158,8 +154,8 @@ myKol <- c(Others, "Sample name")
 if (LabelType == "Isobaric") {
   myKol <- c(myKol, "Isobaric label", "Isobaric label details")
 }
-myKol <- union(myKol, c(Factors, "Sample name"))
-myKol2 <- union("Parent sample", myKol)
+myKol <- base::union(myKol, c(Factors, "Sample name"))
+myKol2 <- base::union("Parent sample", myKol)
 ExpData2 <- ExpData[, myKol2]
 kol <- c()
 for (fct in Fact2) { #fct <- Fact2[1L]
@@ -192,7 +188,7 @@ if (LocAnalysis) {
 }
 idsL <- length(ALLIDS)
 smplWdth <- paste0(as.character(max(nchar(ExpData2$"Parent sample"))*10L), "px")
-kol2 <- setdiff(colnames(ExpData2), c(kol, "Use", "Sample name"))
+kol2 <- base::setdiff(colnames(ExpData2), c(kol, "Use", "Sample name"))
 ExpData2$Use <- shinyCheckInput(ExpData$Use,
                                 "Use")
 ExpData2$Use___FD <- shinyFDInput("Use", nr, TRUE)
@@ -217,14 +213,14 @@ g <- grep("___(FD|INCR)$", colnames(ExpData2))
 colnames(ExpData2)[g] <- ""
 #
 facLevels2 <- lapply(FactorsLevels, \(x) {
-  unique(c(x, NA))
+  base::union(x, NA)
 })
 facLevels2$Use <- c(TRUE, FALSE)
 #
 edith <- list(target = "column",
               disable = list(columns = c(0L, match(Fact1, colnames(ExpData2))-1)))
 tmp <- c(0L:(ncol(ExpData2)-1L))
-tmp <- setdiff(tmp, edith$disable$columns)
+tmp <- base::setdiff(tmp, edith$disable$columns)
 edith$enable <- list(columns = tmp)
 isoMsg <- ""
 if (LabelType == "Isobaric") {
@@ -234,43 +230,43 @@ if (LabelType == "Isobaric") {
 ExpData2$MQ.Exp <- vapply(ExpData2$MQ.Exp, paste, "", collapse = ";")
 #
 appNm <- paste0(dtstNm, " - Exp. map")
-ui <- fluidPage(
-  useShinyjs(),
-  setBackgroundColor( # Doesn't work
+ui <- shiny::fluidPage(
+  shinyjs::useShinyjs(),
+  shinyWidgets::setBackgroundColor( # Doesn't work
     color = c(#"#F8F8FF",
       "#EBEFF7"),
     gradient = "linear",
     direction = "bottom"
   ),
-  extendShinyjs(text = jsFun$toggle_full_screen,
-                functions = c("toggleFullScreen")),
+  shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                         functions = c("toggleFullScreen")),
   # Dummy, hidden div to load arrow-down icon
-  # tags$div(
+  # shiny::tags$div(
   #   class = "container",
   #   style = "display: none;",
-  #   tags$div(
+  #   shiny::tags$div(
   #     style = "margin-top: 50xp;",
-  #     actionButton(
+  #     shiny::actionButton(
   #       "add_thing",
   #       label = "do it",
   #       class = "btn-success",
-  #       icon = icon("arrow-down")
+  #       icon = shiny::icon("arrow-down")
   #     )
   #   )
   # ),
   #
-  tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-  titlePanel(tag("u", ExpMapNm),
-             appNm),
-  h2(dtstNm), 
-  h3("Define the relationship between biological samples and experimental factors."),
-  br(),
-  h4(em(tags$div("\"Parent sample\" is equivalent with \"Experiments\" in the sense of MaxQuant's \"Raw data\" or FragPipe's \"Workflow\" tabs.", tags$br(),
-                 "Note that this is different from the meaning of \"Experiment\" we use here (that of a group of samples to process together and compare to each other)."))),
-  h4(strong(em(isoMsg, style = "color:red", .noWS = "outside"))),
-  br(),
-  actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-  withSpinner(DT::DTOutput("ExpTbl", width = wTest2))
+  shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+  shiny::titlePanel(shiny::tag("u", ExpMapNm),
+                    appNm),
+  shiny::h2(dtstNm), 
+  shiny::h3("Define the relationship between biological samples and experimental factors."),
+  shiny::br(),
+  shiny::h4(shiny::em(shiny::tags$div("\"Parent sample\" is equivalent with \"Experiments\" in the sense of MaxQuant's \"Raw data\" or FragPipe's \"Workflow\" tabs.", shiny::br(),
+                                      "Note that this is different from the meaning of \"Experiment\" we use here (that of a group of samples to process together and compare to each other)."))),
+  shiny::h4(shiny::strong(shiny::em(isoMsg, style = "color:red", .noWS = "outside"))),
+  shiny::br(),
+  shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
+  shinycssloaders::withSpinner(DT::DTOutput("ExpTbl", width = wTest2))
 )
 if (exists("ExpData3")) { rm(ExpData3) }
 server <- \(input, output, session) {
@@ -292,7 +288,7 @@ server <- \(input, output, session) {
                                                columnDefs = wTest1,
                                                scrollX = FALSE),
                                 # the callback is essential to capture the inputs in each row
-                                callback = JS("table.rows().every(function(i, tab, row) {
+                                callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
   var $this = $(this.node());
   $this.attr('id', this.data()[0]);
   $this.addClass('shiny-input-container');
@@ -308,26 +304,26 @@ Shiny.bindAll(table.table().node());"))
     fct <- tmp[[1L]]
     i <- as.integer(tmp[[2L]])
     if (i < nr) {
-      observeEvent(input[[id2]],
-                   {
-                     x <- input[[id1]]
-                     # if (fct %in% names(facLevels2)) {
-                     #   tp <- typeof(facLevels2[[fct]])
-                     #   if (typeof(x) != tp) { x <- get(paste0("as.", tp))(x) }
-                     # }
-                     for (k in (i+1L):nr) {
-                       idK <- paste0(fct, "___", as.character(k))
-                       if (fct == "Use") {
-                         updateCheckboxInput(session, idK, NULL, x)
-                       } else {
-                         if (fct == "Proportion") {
-                           updateNumericInput(session, idK, NULL, x, 0, 1, 0.001)
-                         } else {
-                           updateSelectInput(session, idK, NULL, facLevels2[[fct]], x)
-                         }
-                       }
-                     }
-                   })
+      shiny::observeEvent(input[[id2]],
+                          {
+                            x <- input[[id1]]
+                            # if (fct %in% names(facLevels2)) {
+                            #   tp <- typeof(facLevels2[[fct]])
+                            #   if (typeof(x) != tp) { x <- get(paste0("as.", tp))(x) }
+                            # }
+                            for (k in (i+1L):nr) {
+                              idK <- paste0(fct, "___", as.character(k))
+                              if (fct == "Use") {
+                                updateCheckboxInput(session, idK, NULL, x)
+                              } else {
+                                if (fct == "Proportion") {
+                                  shiny::updateNumericInput(session, idK, NULL, x, 0, 1, 0.001)
+                                } else {
+                                  shiny::updateSelectInput(session, idK, NULL, facLevels2[[fct]], x)
+                                }
+                              }
+                            }
+                          })
     }
   })
   # Incremental fill-down for replicates
@@ -336,27 +332,27 @@ Shiny.bindAll(table.table().node());"))
       chI <- as.character(i)
       id1 <- paste0("Replicate___", chI)
       id2 <- paste0("Replicate___", chI, "___INCR")
-      observeEvent(input[[id2]],
-                   {
-                     x <- input[[id1]]
-                     #tp <- typeof(facLevels2[[fct]])
-                     #if (typeof(x) != tp) { x <- get(paste0("as.", tp))(x) }
-                     rplRg <- (i+1):nr
-                     l <- length(rplRg)
-                     m <- match(x, dflt_Rpl)+1L
-                     rplVal <- dflt_Rpl[m:(m+l-1L)]
-                     for (k in rplRg) {
-                       y <- rplVal[k-i]
-                       idK <- paste0("Replicate___", as.character(k))
-                       updateSelectInput(session, idK, NULL, facLevels2[["Replicate"]], y)
-                     }
-                     
-                   }
+      shiny::observeEvent(input[[id2]],
+                          {
+                            x <- input[[id1]]
+                            #tp <- typeof(facLevels2[[fct]])
+                            #if (typeof(x) != tp) { x <- get(paste0("as.", tp))(x) }
+                            rplRg <- (i+1):nr
+                            l <- length(rplRg)
+                            m <- match(x, dflt_Rpl)+1L
+                            rplVal <- dflt_Rpl[m:(m+l-1L)]
+                            for (k in rplRg) {
+                              y <- rplVal[k-i]
+                              idK <- paste0("Replicate___", as.character(k))
+                              shiny::updateSelectInput(session, idK, NULL, facLevels2[["Replicate"]], y)
+                            }
+                            
+                          }
       )
     }
   })
   # Manual cell edit (sample names)
-  observeEvent(input$ExpTbl_cell_edit, {
+  shiny::observeEvent(input$ExpTbl_cell_edit, {
     kl <- colnames(ExpData2)[input$ExpTbl_cell_edit$col+1]
     if (kl %in% colnames(ExpData3)) {
       ExpData3[input$ExpTbl_cell_edit$row,
@@ -366,7 +362,7 @@ Shiny.bindAll(table.table().node());"))
     }
   })
   # Save
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     kls <- c(Fact2, "Use")
     if (LocAnalysis) { kls <- c(kls, "Proportion") }
     for (kl in kls) {
@@ -388,10 +384,10 @@ Shiny.bindAll(table.table().node());"))
     ExpData3$"Sample name" <- ExpData2$"Sample name"
     ExpData3$MQ.Exp <- ExpData2$MQ.Exp
     assign("ExpData3", ExpData3, envir = .GlobalEnv)
-    stopApp()
+    shiny::stopApp()
   })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(\() { stopApp() })
+  #shiny::observeEvent(input$cancel, { shiny::stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
 }
 runKount <- 0L
 while ((!runKount) || (!exists("ExpData3"))) {
@@ -420,7 +416,7 @@ w <- which(vapply(colnames(tmpTbl), \(x) { inherits(tmpTbl[[x]], "list") }, TRUE
 if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(tmpTbl, file = ExpMapPath), silent = TRUE)
 while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
-  dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+  svDialogs::dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmpTbl, file = ExpMapPath), silent = TRUE)
 }
 #
@@ -432,8 +428,8 @@ kol1 <- c("MQ.Exp", "Parent sample", "Sample name", "Use")
 if (LabelType == "Isobaric") {
   kol1 <- unique(c(kol1, "Isobaric label", "Isobaric label details"))
 }
-kol2 <- intersect(c("Fractions", "Proportion", Factors),
-                  colnames(Exp.map))
+kol2 <- base::intersect(c("Fractions", "Proportion", Factors),
+                        colnames(Exp.map))
 Exp.map2 <- aggregate(Exp.map[, kol1],
                       lapply(kol2, \(k) {
                         x <- Exp.map[[k]]
@@ -499,4 +495,4 @@ msg2 <- msg <- paste(c("Check the number of samples per factor level below. Is e
 #   msg2 <- paste0(substr(msg, 1L, 996L), "...")
 # }
 cat(" Check message in popup box before proceeding...\n")
-tstXpMp <- c(TRUE, FALSE)[match(dlg_message(msg2, "yesno", rstudio = TRUE)$res, c("yes", "no"))]
+tstXpMp <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg2, "yesno", rstudio = TRUE)$res, c("yes", "no"))]

@@ -62,7 +62,7 @@ parse.Param.aggreg.2 <- function(param.nm,
     paramValue <- Param_filter(paramValue, filt)
   }
   paramValue <- unlist(strsplit(paramValue, ";"))
-  if ((checkExp)&&(length(experiment) == 1L)) { paramValue <- setdiff(paramValue, "Exp") }
+  if ((checkExp)&&(length(experiment) == 1L)) { paramValue <- base::setdiff(paramValue, "Exp") }
   m <- match(paramValue, names(aggregates))
   if ((!length(m))||(sum(is.na(m)))) { stop("Invalid parameter value!") }
   aggr <- aggregates[m]
@@ -73,14 +73,14 @@ parse.Param.aggreg.2 <- function(param.nm,
   val <- aggr.list[[aggr]]
   nms2 <- nms <- unlist(map$Characteristics[map$Aggregate.Name == aggr])
   kol <- if (length(nms) == 1L) { nms } else { aggr }
-  if (length(experiment) == 1L) { nms2 <- setdiff(nms2, "Experiment") }
+  if (length(experiment) == 1L) { nms2 <- base::setdiff(nms2, "Experiment") }
   res <- list(aggregate = aggr,
               values = val,
               names = nms,
               column = kol,
               limmaCol = paste(paste0(nms2, "_._"), collapse = "_"))
   assign(dest, res, .GlobalEnv)
-  assign(param.list.nm, union(get(param.list.nm, .GlobalEnv), dest), .GlobalEnv)
-  assign(obj.list.nm, union(dest, get(obj.list.nm, .GlobalEnv)), .GlobalEnv)
+  assign(param.list.nm, base::union(get(param.list.nm, .GlobalEnv), dest), .GlobalEnv)
+  assign(obj.list.nm, base::union(dest, get(obj.list.nm, .GlobalEnv)), .GlobalEnv)
   return()
 }

@@ -2,14 +2,14 @@
 #ev %<o% do.call(plyr::rbind.fill, lapply(searchOutputs, \(x) { x$ev })); ev$id <- 1L:nrow(ev)
 Exp.map$Use <- as.logical(Exp.map$Use)
 #MQ.Exp %<o% sort(unique(FracMap$MQ.Exp))
-MQ.Exp <- intersect(MQ.Exp, unique(unlist(Exp.map$MQ.Exp[Exp.map$Use])))
+MQ.Exp <- base::intersect(MQ.Exp, unique(unlist(Exp.map$MQ.Exp[Exp.map$Use])))
 if (file.exists(FracMapPath)) {
   Frac.map %<o% read.csv(FracMapPath, check.names = FALSE)
   if (("Parent sample" %in% colnames(Frac.map))&&(!"MQ.Exp" %in% colnames(Frac.map))) {
     Frac.map$MQ.Exp <- Frac.map$"Parent sample"
   }
   Frac.map <- Frac.map[Frac.map$Use,]
-  MQ.Exp <- intersect(MQ.Exp, unique(unlist(Frac.map$MQ.Exp[Frac.map$Use])))
+  MQ.Exp <- base::intersect(MQ.Exp, unique(unlist(Frac.map$MQ.Exp[Frac.map$Use])))
   Exp.map <- Exp.map[vapply(Exp.map$MQ.Exp, \(x) { sum(x %in% MQ.Exp) }, 1L) > 0L,]
   Frac.map <- Frac.map[Frac.map$MQ.Exp %in% MQ.Exp,]
   m <- match(ev$`Raw file`, rawFiles2)
@@ -79,7 +79,7 @@ if (file.exists(FracMapPath)) {
     } else { ev$Isobaric.set <- Frac.map$Isobaric.set[ev2fr] }
   }
   # Filter for ones to keep
-  MQ.Exp <- intersect(MQ.Exp, Frac.map$MQ.Exp)
+  MQ.Exp <- base::intersect(MQ.Exp, Frac.map$MQ.Exp)
   Exp.map <- Exp.map[vapply(Exp.map$MQ.Exp, \(x) { sum(x %in% MQ.Exp) }, 1L) > 0L,]
   Frac.map$Fraction <- as.numeric(gsub("^ | $", "", Frac.map$Fraction))
   ev <- ev[ev$MQ.Exp %in% MQ.Exp,]

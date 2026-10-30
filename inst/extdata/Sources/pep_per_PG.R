@@ -3,13 +3,13 @@ tmp <- aggregate(PG$id, list(PG$`Peptides count`), length) # Faster than data.ta
 colnames(tmp) <- c("Peptides count", "Protein groups")
 pal <- colorRampPalette(c("brown", "yellow"))(max(tmp$"Peptides count")-1L)
 tmp$Colour <- c("blue", pal)[tmp$`Peptides count`]
-tmp2 <- summary(PG$`Peptides count`)
+tmp2 <- base::summary(PG$`Peptides count`)
 tmp2 <- data.frame(Variable = c("Protein groups", "Protein groups with 2+ peptidoforms", "", names(tmp2)),
                    Value = c(as.character(c(nrow(PG), sum(PG$"Peptides count" >= 2L))),
                              "",
                              as.character(signif(as.numeric(tmp2), 3L))))
 tmp2$Txt <- apply(tmp2[, c("Variable", "Value")], 1L, \(x) {
-  x <- setdiff(x, "")
+  x <- base::setdiff(x, "")
   x <- if (length(x)) { paste(x, collapse = ": ") } else { "" }
   return(x)
 })
@@ -35,7 +35,7 @@ plot <- ggplot2::ggplot(tmp) +
 # ggplot2::coord_trans(x = "log10", y = "log10")
 poplot(plot, 12L, 22L) # This type of QC plot does not need to pop up, the side panel is fine
 qcDir <- paste0(wd, "/Summary plots")
-if (scrptType == "withReps") { dirlist <- union(dirlist, qcDir) }
+if (scrptType == "withReps") { dirlist <- base::union(dirlist, qcDir) }
 if (!dir.exists(qcDir)) { dir.create(qcDir, recursive = TRUE) }
 suppressMessages({
   ggplot2::ggsave(paste0(qcDir, "/", ttl, ".svg"), plot, dpi = 300L)

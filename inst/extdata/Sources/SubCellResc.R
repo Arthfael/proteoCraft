@@ -51,6 +51,7 @@ if (LocAnalysis) {
       tmp2[wb, kol2c] <- tmp2a[wa[match(tmp2$"Modified sequence"[wb], tmp2a$Group.1[wa])], kol2b[w]]
     }
   } else {
+    requireNamespace("data.table")
     tmp2a <- as.data.table(ev[, kol2])
     colnames(tmp2a)[colnames(tmp2a) == ev.col["Original"]] <- "Int"
     tmp2a <- tmp2a[, .(x = sum(Int)),
@@ -81,7 +82,7 @@ if (LocAnalysis) {
   colnames(BefAft) <- RSA$values[WhInColNms]
   BefAft <- vapply(VPAL$values, \(x) {
     x <- Exp.map$Ref.Sample.Aggregate[Exp.map[[VPAL$column]] == x]
-    x <- intersect(x, RSA$values[WhInColNms])
+    x <- base::intersect(x, RSA$values[WhInColNms])
     x <- median(unlist(BefAft[, x]), na.rm = TRUE)
     return(x)
   }, 1)
@@ -155,18 +156,20 @@ if (LocAnalysis) {
     tst2$Group <- cleanNms(tst2$Group)
     tst2$Type <- factor(tst2$Type, levels = gsub(" - $", "", c(rt1, rt2)))
     tst[, colnames(tst2)] <- tst2[match(tst$variable, tst2$variable), colnames(tst2)]
-    plot <- ggplot(tst) +
-      geom_violin(aes(x = Sample, y = value, colour = Group, fill = Group), alpha = 0.25) +
-      geom_boxplot(aes(x = Sample, y = value, colour = Group, fill = Group), alpha = 0.5) +
-      scale_color_viridis(begin = 0.25, discrete = TRUE, option = "C") +
-      scale_fill_viridis(begin = 0.25, discrete = TRUE, option = "C") +
-      facet_grid(Type~.) + theme_bw() + ggtitle(ttl) +
-      theme(axis.text.x = element_text(angle = 90L, vjust = 0.5, hjust = 1))
+    plot <- ggplot2::ggplot(tst) +
+      ggplot2::geom_violin(ggplot2::aes(x = Sample, y = value, colour = Group, fill = Group),
+                           alpha = 0.25) +
+      ggplot2::geom_boxplot(ggplot2::aes(x = Sample, y = value, colour = Group, fill = Group),
+                            alpha = 0.5) +
+      viridis::scale_color_viridis(begin = 0.25, discrete = TRUE, option = "C") +
+      viridis::scale_fill_viridis(begin = 0.25, discrete = TRUE, option = "C") +
+      ggplot2::facet_grid(Type~.) + ggplot2::theme_bw() + ggplot2::ggtitle(ttl) +
+      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90L, vjust = 0.5, hjust = 1))
     if (i == 2L) {
       print(plot) # This type of QC plot does not need to pop up, the side panel is fine
     }
     suppressMessages({
-      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     })
   }
 }

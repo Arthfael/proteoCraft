@@ -1,5 +1,5 @@
 # Peptides: create pep object
-require(data.table)
+requireNamespace("data.table")
 source(parSrc)
 if (exists("scrptType")) {
   mtchCol <- "MQ.Exp"
@@ -26,11 +26,10 @@ tmpFl1 <- tempfile(fileext = ".RDS")
 tmpFl2 <- tempfile(fileext = ".RDS")
 xprts <- list("tmpFl1", "tmpFl2", "mtchCol")
 if (exists("scrptType")) { xprts <- append(xprts, "scrptType") }
-clusterExport(parClust, xprts, envir = environment())
+parallel::clusterExport(parClust, xprts, envir = environment())
 readr::write_rds(tmp_EM, tmpFl1)
 readr::write_rds(tmp2, tmpFl2)
-invisible(clusterCall(parClust, \() {
-  library(data.table)
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp_EM", readr::read_rds(tmpFl1), envir = .GlobalEnv)
   assign("tmp2", readr::read_rds(tmpFl2), envir = .GlobalEnv)
   return()
@@ -49,7 +48,7 @@ if (exists("scrptType")) {
   Smpls <- unique(ev$`Raw file`)
   myGrps <- c(myGrps, Smpls)
 }
-tmp4 <- setNames(parLapply(parClust, myGrps, \(i) { #i <- myGrps[1L] #i <- myGrps[2L]
+tmp4 <- setNames(parallel::parLapply(parClust, myGrps, \(i) { #i <- myGrps[1L] #i <- myGrps[2L]
   tmp3 <- data.table::copy(tmp2) # Because of how data.tables work! No idea how that plays with clusters...
   if (i != "ALLMYSAMPLESTUDUDUDUMMMDADA") {
     mqe <- unique(unlist(tmp_EM[tmp_EM$Parent_sample == i, mtchCol]))
@@ -81,8 +80,8 @@ mtch <- match(ev$Sequence, pep$Sequence)
 mtch2 <- match(ev$"Modified sequence", pep$"Modified sequence")
 # Amino Acid counts
 sq <- pep$Sequence
-clusterExport(parClust, "sq", envir = environment())
-tmp <- parSapply(parClust, proteoCraft::AA, \(aa) {
+parallel::clusterExport(parClust, "sq", envir = environment())
+tmp <- parallel::parSapply(parClust, proteoCraft::AA, \(aa) {
   nchar(sq) - nchar(gsub(aa, "", sq))
 })
 colnames(tmp) <- paste0(colnames(tmp), " Count")
@@ -103,7 +102,7 @@ w2 <- which(ev[[mtchCol]] %in% unique(unlist(tmp_EM[tmp_EM$Use, mtchCol])))
 tmp2 <- copy(tmp)
 tmp2 <- tmp2[w2, .(Intensity = sum(Intensity, na.rm = TRUE)), by = .(mod)]
 pep$Intensity <- tmp2$Intensity[match(pep$"Modified sequence", tmp2$mod)]
-if ((sum(!tmp_EM$Use))||(length(unique(ev[[mtchCol]])) > length(unique(unlist(tmp_EM[[mtchCol]]))))) {
+if (sum(!tmp_EM$Use) || (length(unique(ev[[mtchCol]])) > length(unique(unlist(tmp_EM[[mtchCol]]))))) {
   tmp3 <- copy(tmp)
   tmp3 <- tmp3[, .(Intensity = sum(Intensity, na.rm = TRUE)), by = .(mod)]
   pep$"Intensity (all samples including unused)" <- tmp3$Intensity[match(pep$"Modified sequence", tmp3$mod)]
@@ -128,17 +127,19 @@ if (exists("Modifs")) {
         temp <- ev[, c("Modified sequence", j1, "PEP")]
         temp <- temp[temp[[j1]] != "",]
         a0 <- unique(temp$"Modified sequence")
-        clusterExport(parClust, list("temp", "j1"), envir = environment())
-        b1 <- parLapply(parClust, a0, \(x) { temp[temp$"Modified sequence" == x, j1] })
-        b2 <- parLapply(parClust, a0, \(x) { temp$PEP[temp$"Modified sequence" == x] })
+        parallel::clusterExport(parClust, list("temp", "j1"), envir = environment())
+        b1 <- parallel::parLapply(parClust, a0, \(x) { temp[temp$"Modified sequence" == x, j1] })
+        b2 <- parallel::parLapply(parClust, a0, \(x) { temp$PEP[temp$"Modified sequence" == x] })
         l <- vapply(b1, \(x) { length(unique(x)) }, 1L)
         wb <- which(l == 1L)
         if (length(wb)) { b1[wb] <- sapply(b1[wb], \(x) { unique(x) }) } 
         wb <- which(l > 1L)
         if (length(wb)) {
           temp1 <- cbind(b1[wb], b2[wb])
-          clusterExport(parClust, list("temp1", "annot_to_tabl", "Isapply", "insertElems", "AA"), envir = environment())
-          b1[wb] <- parApply(parClust, temp1, 1L, \(x) {
+          parallel::clusterExport(parClust,
+                                  list("temp1", "annot_to_tabl", "Isapply", "insertElems", "AA"),
+                                  envir = environment())
+          b1[wb] <- parallel::parApply(parClust, temp1, 1L, \(x) {
             p <- 1L-x[[2L]]
             p <- p/sum(p)
             x <- x[[1L]]
@@ -152,15 +153,14 @@ if (exists("Modifs")) {
             an[n] <- NA
             n <- which(!is.na(an))
             an <- paste0("(", round(an[n], 3L), ")")
-            x <- paste(insertElems(s, n-1L, an), collapse = "")
-            return(x)
+            paste(insertElems(s, n-1L, an), collapse = "")
           })
         }
         b2 <- unlist(b1)
         if (length(b2) != length(b1)) { stop("Something went awry!") }
         pep[[j1]] <- ""
         wp <- which(pep$"Modified sequence" %in% a)
-        pep[wp,j1] <- b2[match(pep$"Modified sequence"[wp], a)]
+        pep[wp, j1] <- b2[match(pep$"Modified sequence"[wp], a)]
       }
       j1 <- paste0(j, " site IDs")
       pep[[j1]] <- NA

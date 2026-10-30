@@ -1,7 +1,4 @@
 # XML coverage columns
-require(openxlsx2)
-source(parSrc)
-require(proteoCraft)
 
 xmlCovCol %<o% c()
 frstProt <- gsub(";.*", "", PG$"Leading protein IDs")
@@ -20,6 +17,7 @@ for (grp in Grps) { #grp <- VPAL$values[1L]
   temp1$Sequence <- db$Sequence[match(temp1$Accession, db$"Protein ID")]
   temp1$"Peptide IDs" <- strsplit(temp1$"Peptide IDs", ";")
   tmp <- listMelt(temp1$`Peptide IDs`, 1L:nrow(temp1))
+  requireNamespace("data.table")
   tmp <- data.table(Row = as.integer(tmp$L1), pepID = tmp$value)
   tmp$Seq <- pep$Sequence[match(tmp$pepID, pep$id)]
   tmp <- tmp[, .(Seq = list(Seq)), keyby = .(Row)]
@@ -29,10 +27,9 @@ for (grp in Grps) { #grp <- VPAL$values[1L]
 }
 tmpLs <- plyr::rbind.fill(tmpLs)
 tmpLs <- tmpLs[, c("Sequence", "PepSeq")]
-require(openxlsx2)
-#clusterExport(parClust, "Coverage", envir = environment())
-clusterCall(parClust, \() library(openxlsx2))
-res <- parApply(parClust, tmpLs[, c("Sequence", "PepSeq")], 1L, \(x) { #x <- tmpLs[1L, c("Sequence", "PepSeq")]
+source(parSrc)
+#parallel::clusterExport(parClust, "Coverage", envir = environment())
+res <- parallel::parApply(parClust, tmpLs[, c("Sequence", "PepSeq")], 1L, \(x) { #x <- tmpLs[1L, c("Sequence", "PepSeq")]
   prsq <- x[[1L]]
   ppsq <- x[[2L]]
   if (!is.na(prsq)) {
@@ -54,8 +51,9 @@ for (grp in Grps) { #grp <- VPAL$values[1L]
   PG[[kol]] <- res[(1L:n)+(n*(match(grp, Grps)-1L))]
 }
 # This chunk is because of Titin. You know who you are, you bad Excel-breaking protein! 
+source(parSrc)
 tst <- setNames(lapply(xmlCovCol, \(x) {
-  w <- setNames(which(parSapply(parClust, substr(PG[[x]], 1L, xl_maxChar), \(y) {
+  w <- setNames(which(parallel::parSapply(parClust, substr(PG[[x]], 1L, xl_maxChar), \(y) {
     inherits(try(openxlsx2::as_xml(y), silent = TRUE), "try-error")
   })), NULL)
 }), cleanNms(xmlCovCol, start = FALSE))

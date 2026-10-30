@@ -33,11 +33,13 @@ tmp$Group.1 <- unlist(tmp$Group.1)
 tmp <- aggregate(tmp$Group.1, list(tmp$x), length)
 pgsrep$"Number of peptides" <- tmp$x[match(pgsrep$Protein.Group, tmp$Group.1)]
 sum(pgsrep$`Number of peptides` > 1L)
-summary(pgsrep$`Number of peptides`)
+base::summary(pgsrep$`Number of peptides`)
 pgsrep$Protein.Names[which(pgsrep$`Number of peptides` == max(pgsrep$`Number of peptides`))]
 write.table(pgsrep, gsub("\\.tsv$", "_PepNb.tsv", pgsrepFl), sep = "\t", quote = FALSE, row.names = FALSE)
 
 #
-plot <- ggplot(pgsrep) + geom_histogram(aes(x = `Number of peptides`, fill = `Number of peptides`, group = `Number of peptides`), binwidth = 1L) + theme_bw() +
-  scale_fill_viridis_c()
+plot <- ggplot2::ggplot(pgsrep) +
+  ggplot2::geom_histogram(ggplot2::aes(x = `Number of peptides`, fill = `Number of peptides`, group = `Number of peptides`),
+                          binwidth = 1L) +
+  ggplot2::theme_bw() + ggplot2::scale_fill_viridis_c()
 poplot(plot)

@@ -4,7 +4,7 @@ AA_biases %<o% AA_bias(Ev = ev, DB = db)
 write.csv(AA_biases, paste0(wd, "/Workflow control/AA_biases.csv"), row.names = FALSE)
 qcDir <- paste0(wd, "/Summary plots")
 if (!dir.exists(qcDir)) { dir.create(qcDir, recursive = TRUE) }
-if (scrptType == "withReps") { dirlist <- union(dirlist, qcDir) }
+if (scrptType == "withReps") { dirlist <- base::union(dirlist, qcDir) }
 ttl <- "Amino acid observational biases"
 plot <- ggplot2::ggplot(AA_biases) +
   ggplot2::geom_col(ggplot2::aes(x = AA, y = log2(Ratio), fill = AA)) +

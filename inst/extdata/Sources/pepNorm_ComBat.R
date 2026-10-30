@@ -6,15 +6,13 @@ wAG2 <- wAG1
 Outcome <- TRUE
 txt2 <- ""
 #
-library(sva)
-#
 btchDir <- paste0(nrmDr, "/Step ", nrmStp, " - Batch corr.")
 if (!dir.exists(btchDir)) { dir.create(btchDir, recursive = TRUE) }
-dirlist <- unique(c(dirlist, btchDir))
+dirlist <- base::union(dirlist, btchDir)
 #
 # Let's do some imputation:
 # (remember to remove those afterwards!)
-currSamples <- intersect(allSamples, colnames(tmpDat1))
+currSamples <- base::intersect(allSamples, colnames(tmpDat1))
 smplsMtch <- match(currSamples, Exp.map$Ref.Sample.Aggregate)
 ImpGrps <- Exp.map[smplsMtch,
                    VPAL$column]
@@ -31,7 +29,7 @@ if (length(myBatch) > 1L) {
 # Hence why the "~1" model should be avoided. We now pre-make the ComBat model matrix in advance. Important: it cannot be based on a formula with ~ 0  intercept, otherwise ComBat will fail!
 #mdlMtr <- model.matrix(~1, data = Exp.map[match(currSamples, Exp.map$Ref.Sample.Aggregate),]) # Old code for reference, do NOT use!
 tmpForm <- paste0("~ ", VPAL$limmaCol)
-batchCorr_designMatr <- model.matrix(as.formula(tmpForm), data = expMap)
+batchCorr_designMatr <- stats::model.matrix(as.formula(tmpForm), data = expMap)
 m <- match(gsub("___", "_", as.character(expMap[smplsMtch, RSA$limmaCol])), row.names(designMatr)) # same rows as batchCorr_designMatr
 mdlMtr <- batchCorr_designMatr[m,]
 #
@@ -86,9 +84,9 @@ msg <- if (myBatch3 == "Batch") {
 } else {
   paste0("Accept ComBat correction of ", myBatch3, "-associated batch effect? (untick to cancel correction)")
 }
-corrTst <- t.test(unlist(tmpDat2Imp[wAG1, currSamples]),
-                  unlist(tmpDat1Imp[wAG1, currSamples]),
-                  paired = TRUE)
+corrTst <- stats::t.test(unlist(tmpDat2Imp[wAG1, currSamples]),
+                         unlist(tmpDat1Imp[wAG1, currSamples]),
+                         paired = TRUE)
 if ("Decision" %in% (normSequence[[nrmStp]])) {
   KeepComBatRes <- normSequence[[nrmStp]]$Decision
 }
@@ -108,54 +106,54 @@ if (l2 < l) {
                                check.names = FALSE))
 }
 if (exists("IHAVERUN")) { rm(IHAVERUN) }
-ui <- fluidPage(
-  useShinyjs(),
-  setBackgroundColor( # Doesn't work
+ui <- shiny::fluidPage(
+  shinyjs::useShinyjs(),
+  shinyWidgets::setBackgroundColor( # Doesn't work
     color = c(#"#F8F8FF",
       "#EEFAE6"),
     gradient = "linear",
     direction = "bottom"
   ),
-  extendShinyjs(text = jsFun$toggle_full_screen,
-                functions = c("toggleFullScreen")),
-  tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-  titlePanel(tag("u", appNm),
-             appNm),
-  br(),
-  fluidRow(column(5L,
-                  checkboxInput("KeepResults", msg, KeepComBatRes),
-                  actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-                  h4("Recommended criteria:"),
-                  h5(HTML("&nbsp;Does the original grouping follow known batches?")),
-                  h5(HTML("&nbsp;&nbsp;-> If no: only accept the correction if it improves the apparent grouping of expected sample groups.")),
-                  h5(HTML("&nbsp;&nbsp;-> If yes: accept the correction if...")),
-                  h5(HTML("&nbsp;&nbsp;&nbsp;- ... it removes the original grouping by batches...")),
-                  h5(HTML("&nbsp;&nbsp;&nbsp;- ... or it improves the apparent grouping of expected sample groups.")),
-                  withSpinner(DTOutput("PCs")))),
-  br(),
-  fluidRow(column(6L,
-                  withSpinner(plotlyOutput("Before", height = "600px"))),
-           column(6L,
-                  withSpinner(plotlyOutput("After", height = "600px")))),
-  br(),
-  br()
+  shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                         functions = c("toggleFullScreen")),
+  shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+  shiny::titlePanel(shiny::tag("u", appNm),
+                    appNm),
+  shiny::br(),
+  shiny::fluidRow(shiny::column(5L,
+                                shiny::checkboxInput("KeepResults", msg, KeepComBatRes),
+                                shiny::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
+                                shiny::h4("Recommended criteria:"),
+                                shiny::h5(shiny::HTML("&nbsp;Does the original grouping follow known batches?")),
+                                shiny::h5(shiny::HTML("&nbsp;&nbsp;-> If no: only accept the correction if it improves the apparent grouping of expected sample groups.")),
+                                shiny::h5(shiny::HTML("&nbsp;&nbsp;-> If yes: accept the correction if...")),
+                                shiny::h5(shiny::HTML("&nbsp;&nbsp;&nbsp;- ... it removes the original grouping by batches...")),
+                                shiny::h5(shiny::HTML("&nbsp;&nbsp;&nbsp;- ... or it improves the apparent grouping of expected sample groups.")),
+                                shinycssloaders::withSpinner(DT::DTOutput("PCs")))),
+  shiny::br(),
+  shiny::fluidRow(shiny::column(6L,
+                  shinycssloaders::withSpinner(shiny::plotlyOutput("Before", height = "600px"))),
+                  shiny::column(6L,
+                  shinycssloaders::withSpinner(shiny::plotlyOutput("After", height = "600px")))),
+  shiny::br(),
+  shiny::br()
 )
 server <- \(input, output, session) {
-  output$Before <- renderPlotly(PCAlyLst[["original"]][[myBatch2]])
-  output$After <- renderPlotly(PCAlyLst[[myBatch2]][[myBatch2]])
-  output$PCs <- renderDT({ PCs },
-                         FALSE,
-                         escape = FALSE,
-                         class = "compact",
-                         selection = "none",
-                         editable = FALSE,
-                         rownames = FALSE,
-                         options = list(
-                           dom = 't',
-                           paging = FALSE,
-                           ordering = FALSE
-                         ),
-      #                    callback = JS("table.rows().every(function(i, tab, row) {
+  output$Before <- shiny::renderPlotly(PCAlyLst[["original"]][[myBatch2]])
+  output$After <- shiny::renderPlotly(PCAlyLst[[myBatch2]][[myBatch2]])
+  output$PCs <- DT::renderDT({ PCs },
+                             FALSE,
+                             escape = FALSE,
+                             class = "compact",
+                             selection = "none",
+                             editable = FALSE,
+                             rownames = FALSE,
+                             options = list(
+                               dom = 't',
+                               paging = FALSE,
+                               ordering = FALSE
+                             ),
+      #                        callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
       #   var $this = $(this.node());
       #   $this.attr('id', this.data()[0]);
       #   $this.addClass('shiny-input-container');
@@ -163,16 +161,16 @@ server <- \(input, output, session) {
       # Shiny.unbindAll(table.table().node());
       # Shiny.bindAll(table.table().node());")
       )
-  observeEvent(input[["KeepResults"]], {
+  shiny::observeEvent(input[["KeepResults"]], {
     assign("KeepComBatRes", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
   })
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     assign("KeepComBatRes", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
     assign("IHAVERUN", TRUE, .GlobalEnv)
-    stopApp()
+    shiny::stopApp()
   })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(\() { stopApp() })
+  #shiny::observeEvent(input$cancel, { shiny::stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
 }
 runKount <- 0L
 while ((!runKount) || (!exists("IHAVERUN"))) {
@@ -182,7 +180,7 @@ while ((!runKount) || (!exists("IHAVERUN"))) {
   shinyCleanup()
   runKount <- runKount+1L
 }
-msg <- paste0(" -> correction of ", myBatch3, "-associated batch effect ", c("rejec", "accep")[KeepComBatRes+1], "ted.\n")
+msg <- paste0(" -> correction of ", myBatch3, "-associated batch effect ", c("rejec", "accep")[KeepComBatRes+1L], "ted.\n")
 if (KeepComBatRes) {
   txt2 <- paste0("corrected against the ", myBatch3, "-associated batch effect")
 }

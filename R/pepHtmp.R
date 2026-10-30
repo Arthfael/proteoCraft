@@ -52,14 +52,14 @@ pepHtmp <- function(intProt = prot.list_pep,
     ttlRoot <- "Peptides log2 heatmap"
   }
   if (!dir.exists(dstDir)) { dir.create(dstDir, recursive = TRUE) }
-  if (exists("dirlist")) { assign("dirlist", union(dirlist, dstDir), envir = .GlobalEnv) }
+  if (exists("dirlist")) { assign("dirlist", base::union(dirlist, dstDir), envir = .GlobalEnv) }
   #
-  g <- intersect(paste0(ref, RSA$values),
-                 colnames(Pep))
+  g <- base::intersect(paste0(ref, RSA$values),
+                       colnames(Pep))
   g1 <- as.data.frame(t(as.data.frame(strsplit(sub(topattern(ref), "", g), "___"))))
   colnames(g1) <- RSA$names
   g1$Col <- g
-  test <- setdiff(RSA$names, "Replicate")
+  test <- base::setdiff(RSA$names, "Replicate")
   for (i in rev(test)) { g1 <- g1[order(g1[[i]]),] }
   g <- g1$Col
   g1 <- sub(topattern(ref), "", g)

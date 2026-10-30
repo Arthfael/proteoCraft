@@ -1,8 +1,4 @@
 require(proteoCraft)
-require(svDialogs)
-require(shiny)
-require(shinyWidgets)
-require(shinyjs)
 
 msg <- "Select fasta file"
 #fastaFl <- normalizePath(choose.files("D:/Fasta_databases/*.fa", msg, FALSE), winslash = "/")
@@ -12,14 +8,16 @@ fastaFl <- rstudioapi::selectFile(msg,
 wd <- dirname(fastaFl)
 setwd(wd)
 Sources <- c("UniProtKB", "Ensembl", "RefSeq-RNA", "RefSeq-Protein", "RefSeq-CDS", "NCBI", "TAIR", "custom")
-dbSource <- dlg_list(Sources, Sources[1], title = "Where is the Fasta file from?")$res
+dbSource <- svDialogs::dlg_list(Sources, Sources[1L], title = "Where is the Fasta file from?")$res
 db <- Format.DB(fastaFl, dbSource)
 db <- db[grep("^>rev_", db$Header, invert = TRUE),]
-contRmv <- c(TRUE, FALSE)[match(dlg_message("Remove contaminant entries (\"CON__...\")?", "yesno")$res, c("yes", "no"))]
+contRmv <- c(TRUE, FALSE)[match(svDialogs::dlg_message("Remove contaminant entries (\"CON__...\")?", "yesno")$res,
+                                c("yes", "no"))]
 if (contRmv) {
   db <- db[grep("^CON__", db$"Protein ID", invert = TRUE),]
 }
-frgRmv <- c(TRUE, FALSE)[match(dlg_message("Remove incomplete (\"Fragment\") entries?", "yesno")$res, c("yes", "no"))]
+frgRmv <- c(TRUE, FALSE)[match(svDialogs::dlg_message("Remove incomplete (\"Fragment\") entries?", "yesno")$res,
+                               c("yes", "no"))]
 if (frgRmv) {
   db <- db[grep("\\(Fragment\\)", db$Header, invert = TRUE),]
 }
@@ -27,64 +25,64 @@ if (frgRmv) {
 dbOrd <- 1L:nrow(db)
 protDeflt <- NULL
 protHeads <- sub("^>", "", db$Header[dbOrd])
-ui <- fluidPage(
+ui <- shiny::fluidPage(
   shinyjs::useShinyjs(),
-  titlePanel("Select proteins to extract and write into a smaller fasta", "Proteins of interest"),
-  pickerInput("IntProt", NULL, protHeads, protDeflt, TRUE,
-              pickerOptions(title = "Search me",
-                            `live-search` = TRUE,
-                            actionsBox = TRUE,
-                            deselectAllText = "Clear search")),
-  br(),
-  textInput("Destination", "Destination file name", "Proteins_of_interest.fasta", "600px"),
-  checkboxInput("Overwrite", "Overwrite conflicts?", FALSE),
-  br(),
-  actionButton("saveBtn", "Save"),
-  span(uiOutput("Msg"), style = "color:red"),
-  br()
+  shiny::titlePanel("Select proteins to extract and write into a smaller fasta", "Proteins of interest"),
+  shinyWidgets::pickerInput("IntProt", NULL, protHeads, protDeflt, TRUE,
+                            shinyWidgets::pickerOptions(title = "Search me",
+                                                        `live-search` = TRUE,
+                                                        actionsBox = TRUE,
+                                                        deselectAllText = "Clear search")),
+  shiny::br(),
+  shiny::textInput("Destination", "Destination file name", "Proteins_of_interest.fasta", "600px"),
+  shiny::checkboxInput("Overwrite", "Overwrite conflicts?", FALSE),
+  shiny::br(),
+  shiny::actionButton("saveBtn", "Save"),
+  shiny::span(shiny::uiOutput("Msg"), style = "color:red"),
+  shiny::br()
 )
 server <- \(input, output, session) {
   # Proteins of interest
-  output$Msg <- renderUI({ em(" ") })
-  observeEvent(input$IntProt, {
+  output$Msg <- shiny::renderUI({ shiny::em(" ") })
+  shiny::observeEvent(input$IntProt, {
     assign("Prot.list", db$`Protein ID`[dbOrd][match(input$IntProt, protHeads)], envir = .GlogbalEnv)
   })
-  observeEvent(input$Destination, {
+  shiny::observeEvent(input$Destination, {
     if (nchar(input$Destination)) {
       if (input$Overwrite || (!file.exists(paste0(wd, "/", input$Destination)))) {
         shinyjs::enable("saveBtn")
-        output$Msg <- renderUI({ em(" ") })
+        output$Msg <- shiny::renderUI({ shiny::em(" ") })
       }
       if ((!input$Overwrite) && file.exists(paste0(wd, "/", input$Destination))) {
         shinyjs::disable("saveBtn")
-        output$Msg <- renderUI({ em("File already exist! Change file name or tick overwrite!") })
+        output$Msg <- shiny::renderUI({ shiny::em("File already exist! Change file name or tick overwrite!") })
       }
     }
     if (!nchar(input$Destination)) {
       shinyjs::disable("saveBtn")
-      output$Msg <- renderUI({ em("Enter a valid file name!") })
+      output$Msg <- shiny::renderUI({ shiny::em("Enter a valid file name!") })
     }
   })
-  observeEvent(input$Overwrite, {
+  shiny::observeEvent(input$Overwrite, {
     if (input$Overwrite && nchar(input$Destination)) {
       shinyjs::enable("saveBtn")
-      output$Msg <- renderUI({ em(" ") })
+      output$Msg <- shiny::renderUI({ shiny::em(" ") })
     }
     if ((!input$Overwrite) && file.exists(paste0(wd, "/", input$Destination))) {
       shinyjs::disable("saveBtn")
-      output$Msg <- renderUI({ em("File already exist! Change file name or tick overwrite!") })
+      output$Msg <- shiny::renderUI({ shiny::em("File already exist! Change file name or tick overwrite!") })
     }
   })
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     assign("flNm", input$Destination, envir = .GlogbalEnv)
     dbFilt <- db[match(Prot.list, db$`Protein ID`),]
     msg <- apply(dbFilt[, c("Protein ID", "Common Name")], 1L, paste, collapse = " = ")
     msg <- paste0("\nProteins selected:\n", paste0(" - ", msg, collapse = "\n"), "\n")
     cat(msg)
     writeFasta(dbFilt, paste0(wd, "/", flNm))
-    stopApp()
+    shiny::stopApp()
   })
-  session$onSessionEnded(\() { stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
 }
-print(shinyApp(ui, server, options = list(launch.browser = TRUE)))
+print(shiny::shinyApp(ui, server, options = list(launch.browser = TRUE)))
 openwd()

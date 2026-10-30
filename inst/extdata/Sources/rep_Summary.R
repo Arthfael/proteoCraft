@@ -36,6 +36,6 @@ if ("MQ.Exp" %in% colnames(Frac.map)) {
   Exp_summary$"Biological sample" <- Frac.map$MQ.Exp[match(Exp_summary$Sample, Frac.map$"Raw file")]
 }
 Exp_summary$"Biological sample"[1L] <- "All samples"
-Exp_summary <- Exp_summary[, union(c("Sample", "Biological sample"), colnames(Exp_summary))]
+Exp_summary <- Exp_summary[, base::union(c("Sample", "Biological sample"), colnames(Exp_summary))]
 write.csv(Exp_summary, paste0(wd, "/Workflow control/Summary.csv"), row.names = FALSE)
 #Exp_summary <- read.csv(paste0(wd, "/Workflow control/Summary.csv"), check.names = FALSE)

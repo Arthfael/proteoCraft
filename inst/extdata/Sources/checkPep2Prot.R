@@ -42,8 +42,8 @@ if (Update_Prot_matches) {
     tmpE <- strsplit(tmpE, ";")
     tmpP <- strsplit(tmpP, ";")
     f0 <- \(x) { paste(sort(x), collapse = ";") }
-    tst1 <- parSapply(parClust, tmpE, f0)
-    tst2 <- parSapply(parClust, tmpP, f0)
+    tst1 <- parallel::parSapply(parClust, tmpE, f0)
+    tst2 <- parallel::parSapply(parClust, tmpP, f0)
     wN <- which(tst1 != tst2)
     ViewTst <- FALSE
     if (length(wN) && ViewTst) {
@@ -89,10 +89,10 @@ Discrepancies with the original search engine matches can have several causes:
     saveFun(evmatch, file = paste0(wd, "/evmatch.RDS"))
   }
 } else {
-  kol <- intersect(c("Leading proteins", "Proteins"), colnames(ev))
+  kol <- base::intersect(c("Leading proteins", "Proteins"), colnames(ev))
   tmp <- ev[, kol, drop = FALSE]
   for (k in kol) { tmp[[k]] <- strsplit(tmp[[k]], ";") }
-  ev$Proteins <- parApply(parClust, tmp, 1L, \(x) {
+  ev$Proteins <- parallel::parApply(parClust, tmp, 1L, \(x) {
     paste(unique(unlist(x)), collapse = ";")
   })
 }
@@ -116,18 +116,19 @@ if (l) {
   source(parSrc) # Check cluster for corruption!
   readr::write_rds(tmpEV, paste0(wd, "/tmpEV.RDS"))
   readr::write_rds(tmpDB, paste0(wd, "/tmpDB.RDS"))
-  clusterExport(parClust, "wd", envir = environment())
-  invisible(clusterCall(parClust, \() {
-    tmpEV <<- readr::read_rds(paste0(wd, "/tmpEV.RDS"))
-    tmpDB <<- readr::read_rds(paste0(wd, "/tmpDB.RDS"))
+  parallel::clusterExport(parClust, "wd", envir = environment())
+  invisible(parallel::clusterCall(parClust, \() {
+    assign("tmpEV", readr::read_rds(paste0(wd, "/tmpEV.RDS")), envir = .GlobalEnv)
+    assign("tmpDB", readr::read_rds(paste0(wd, "/tmpDB.RDS")), envir = .GlobalEnv)
     return()
   }))
-  tmpEV$Proteins <- parSapply(parClust, 1L:nrow(tmpEV), \(x) {
+  tmpEV$Proteins <- parallel::parSapply(parClust, 1L:nrow(tmpEV), \(x) {
     paste(tmpDB$"Protein ID"[grep(tmpEV$Seq2[x], tmpDB$Sequence)], collapse = ";")
   })
-  invisible(clusterCall(parClust, \() {
+  invisible(parallel::clusterCall(parClust, \() {
     rm(tmpEV)
     rm(tmpDB)
+    gc()
     return()
   }))
   unlink("tmpEV.RDS")

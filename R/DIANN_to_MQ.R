@@ -212,7 +212,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   }
   kol <- c("Run", "File.Name", "Protein.Ids", "Protein.Names", "Proteotypic", "Genes",
            "Stripped.Sequence", "Modified.Sequence", "Precursor.Charge", "PEP")
-  #print(setdiff(kol, colnames(DIANN)))
+  #print(base::setdiff(kol, colnames(DIANN)))
   stopifnot(sum(!kol %in% colnames(DIANN)) == 0L)
   EV <- data.frame("Raw file" = DIANN$Run,
                    "Raw file path" = DIANN$File.Name,
@@ -295,7 +295,7 @@ DIANN_to_MQ <- function(DIANN_fl,
       msg <- paste0("Non-classical PTMs marks detected (e.g. \"", sort(comps)[1L], "\")...")
       opt <- c("Keep them as they are                                                                                                                 ",
                "Manually map each to a more convenient mark                                                                                           ")
-      tstMap <- c(FALSE, TRUE)[match(dlg_list(opt, opt[1L], title = msg)$res, opt)]
+      tstMap <- c(FALSE, TRUE)[match(svDialogs::dlg_list(opt, opt[1L], title = msg)$res, opt)]
     }
     if (tstMap) {
       # Here we will want to make sense of those mods
@@ -386,7 +386,7 @@ DIANN_to_MQ <- function(DIANN_fl,
       file.create(fl)
       con <- file(fl, "r+")
       serialize(Mods, con)
-      suppressWarnings(suppressMessages(try(close(con), silent = TRUE))) # Only necessary in function mode
+      suppressWarnings(suppressMessages(try(base::close(con), silent = TRUE))) # Only necessary in function mode
       #run_App2 <- "print(shiny::shinyApp(.DIANN_to_MQ_ui2, .DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))"
       g <- shiny:::.globals
       g$appState <- NULL
@@ -394,7 +394,7 @@ DIANN_to_MQ <- function(DIANN_fl,
       shinyCleanup()
       con <- file(fl, "r")
       Mods <- unserialize(con)
-      suppressWarnings(suppressMessages(try(close(con), silent = TRUE))) # Only necessary in function mode
+      suppressWarnings(suppressMessages(try(base::close(con), silent = TRUE))) # Only necessary in function mode
       unlink(fl)
       #
       allPTMs <- aggregate(Mods$DM, list(Mods$Match), \(x) {
@@ -649,9 +649,9 @@ DIANN_to_MQ <- function(DIANN_fl,
   #
   if (PG.Genes) {
     EV$"Leading proteins" <- DIANN$Protein.Group # (Will be removed later anyway in the classic workflow, since we perform protein inference again)
-    kol <- intersect(c("PG.Quantity", "PG.Normalised", "PG.MaxLFQ", "Genes.Quantity", "Genes.Normalised",
-                       "Genes.MaxLFQ", "Genes.MaxLFQ.Unique"),
-                     colnames(DIANN))
+    kol <- base::intersect(c("PG.Quantity", "PG.Normalised", "PG.MaxLFQ", "Genes.Quantity",
+                             "Genes.Normalised", "Genes.MaxLFQ", "Genes.MaxLFQ.Unique"),
+                           colnames(DIANN))
     EV[, sub(" Normalised$", " Normalised quantity", gsub("\\.", " ", kol))] <- DIANN[, kol]
     kol <- c("Protein.Q.Value", "PG.Q.Value", "Global.PG.Q.Value", "GG.Q.Value")
     EV[, sub(" Q Value$", " q-value", gsub("\\.", " ", kol))] <- DIANN[, kol]
@@ -668,7 +668,7 @@ DIANN_to_MQ <- function(DIANN_fl,
            "Peptidoform.Q.Value", "Global.Peptidoform.Q.Value", "Lib.Peptidoform.Q.Value", "PTM.Site.Confidence", "Site.Occupancy.Probabilities",
            "Protein.Sites", "Lib.PTM.Site.Confidence"
   )
-  kol <- intersect(kol, colnames(DIANN))
+  kol <- base::intersect(kol, colnames(DIANN))
   EV[, gsub("Ms1", "MS1", gsub("\\.", " ", kol))] <- DIANN[, kol]
   #
   # Quantitative values
@@ -689,8 +689,8 @@ DIANN_to_MQ <- function(DIANN_fl,
   } else {
     EV$Intensity <- EV$"MS1 Area"
   }
-  IntColz <- intersect(c("Fragment.Quant.Corrected", "Fragment.Quant.Raw"),
-                       colnames(DIANN))
+  IntColz <- base::intersect(c("Fragment.Quant.Corrected", "Fragment.Quant.Raw"),
+                             colnames(DIANN))
   if (length(IntColz)) {
     EV$"MS2 intensities" <- DIANN[[IntColz[1L]]]
   }

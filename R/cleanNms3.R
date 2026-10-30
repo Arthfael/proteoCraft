@@ -33,7 +33,7 @@ cleanNms3 <- function(names,
   #names <- filtersDF$Name
   #
   nmsBckp <- names
-  tstA <- aggregate(1:length(nmsBckp), list(nmsBckp), c)
+  tstA <- aggregate(1L:length(nmsBckp), list(nmsBckp), c)
   g <-  grep("___", names) # Names to fix are the ones where the triad "___" occurs
   # We need to protect the ") - (" from double contrasts, as it is the only allowed occurrence of a space in the names we want to correct:
   # But unfortunately not all occurrences of ") - (" are double contrasts, only ever the last
@@ -63,7 +63,7 @@ cleanNms3 <- function(names,
   #
   # Also deal with double contrast names
   names2Fix <- strsplit(gsub("^\\(|\\)$", "", names2Fix), "<-VERSUS->")
-  iNms <- 1:length(names2Fix)
+  iNms <- 1L:length(names2Fix)
   names2Fix_map <- listMelt(names2Fix, iNms)
   names2Fix2 <- unique(names2Fix_map$value)
   #
@@ -82,8 +82,8 @@ cleanNms3 <- function(names,
       w <- tst[[1L]]
       k <- names(tst)
       k <- aggregate.map$Characteristics[[match(k, aggregate.map$Aggregate.Name)]]
-      k <- setdiff(k, Aggr[w1])
-      k <- intersect(RSA$names, k) # for order
+      k <- base::setdiff(k, Aggr[w1])
+      k <- base::intersect(RSA$names, k) # for order
       return(unique(do.call(paste, c(experiments.map[w, k, drop = FALSE], sep = rep))))
     }, "")
   }

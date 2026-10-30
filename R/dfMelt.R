@@ -35,7 +35,7 @@ dfMelt <- function(df,
     l_IDvars <- length(id.vars)
     stopifnot(sum(!id.vars %in% colnames(df)) == 0L)
     ids <- df[, id.vars, drop = FALSE]
-    df <- df[, setdiff(colnames(df), id.vars), drop = FALSE]
+    df <- df[, base::setdiff(colnames(df), id.vars), drop = FALSE]
     if (missing(ColNames)) {
       ColNames <- c(id.vars, ColNames)
     } else { stopifnot(length(ColNames) == 2L + l_IDvars) }

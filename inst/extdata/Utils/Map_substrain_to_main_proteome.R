@@ -1,6 +1,7 @@
 # This script 
-require(pwalign)
-require(proteoCraft)
+requireNamespace("data.table")
+requireNamespace("proteoCraft")
+
 wd <- "D:/Fasta_databases/Marchantia_polymorpha"
 setwd(wd)
 RPath <- as.data.frame(library()$results)
@@ -26,7 +27,7 @@ stopifnot(length(unique(db1$Sequence)) == nrow(db1),
 seq <- unique(db1$Sequence)
 if (length(seq) < nrow(db1)) {
   wY <- match(seq, db1$Sequence)
-  wN <- setdiff(1L:nrow(db1), wY)
+  wN <- base::setdiff(1L:nrow(db1), wY)
   lN <- length(wN)
   cat(paste0(lN, " duplicate sequence", c(" was", "s were")[(lN > 1L)+1L], " removed.\n"))
   temp1 <- db1[wY, , drop = FALSE]
@@ -35,7 +36,7 @@ if (length(seq) < nrow(db1)) {
 tst <- gsub(paste(AA, collapse = "|"), "", db1$Sequence)
 #max(nchar(tst))
 #unique(tst)
-db1 <- db1[which(nchar(tst) == 0L),]
+db1 <- db1[nchar(tst) == 0L,]
 stopifnot(length(unique(db1$`Protein ID`)) == nrow(db1))
 
 wY <- which(db1$Sequence %in% db2$Sequence)
@@ -51,8 +52,6 @@ db1[wY, ] <- tmp
 #View(db1[wN,])
 stopifnot(length(unique(db1$`Protein ID`)) == nrow(db1))
 
-library(data.table)
-
 # We want to find likely hits, but this will be difficult knowing that there are a lot of sequences to search
 # Faster euristic:
 # - Digest sequences
@@ -61,7 +60,7 @@ dig1 <- Digest(setNames(db1$Sequence[wN], db1$`Protein ID`[wN]), cl = parClust)
 dig2 <- Digest(setNames(db2$Sequence, db2$`Protein ID`), cl = parClust)
 dig1DF <- listMelt(dig1, ColNames = c("Seq", "ID"))
 dig2DF <- listMelt(dig2, ColNames = c("Seq", "ID"))
-dig2DF <- dig2DF[which(dig2DF$Seq %in% dig1DF$Seq),]
+dig2DF <- dig2DF[dig2DF$Seq %in% dig1DF$Seq,]
 dig2DF <- as.data.table(dig2DF)
 dig2DF <- dig2DF[, .(ID = list(unique(ID))), by = .(Seq = Seq)]
 dig2DF <- as.data.frame(dig2DF)
@@ -74,8 +73,8 @@ dig1DF$ID1_Seq <- db1$Sequence[match(dig1DF$ID1, db1$`Protein ID`)]
 #dig1DF$ID2_Seq <- lapply(dig1DF$ID2, \(x) { db2$Sequence[match(x, db2$`Protein ID`)] })
 dig1DF$ID2_Seq <- db2$Sequence[match(dig1DF$ID2, db2$`Protein ID`)]
 # dig1DFLst <- apply(dig1DF[, c("ID1", "ID2", "ID1_Seq", "ID2_Seq")], 1L, \(x) {
-#   nms <- unlist(x[1:2])
-#   seq <- unlist(x[3:4])
+#   nms <- unlist(x[1L:2L])
+#   seq <- unlist(x[3L:4L])
 #   setNames(seq, nms)
 # })
 selfAlign <- rbind(as.data.frame(aggregate(dig1DF$ID1_Seq, list(dig1DF$ID1), unique)),
@@ -84,7 +83,7 @@ colnames(selfAlign) <- c("ID", "Sequence")
 dig1DF$ID1_Seq <- Biostrings::AAStringSetList(as.list(dig1DF$ID1_Seq))
 dig1DF$ID2_Seq <- Biostrings::AAStringSetList(as.list(dig1DF$ID2_Seq))
 selfAlign$Seq <- Biostrings::AAStringSetList(as.list(selfAlign$Sequence))
-clusterEvalQ(parClust, { # Prevent nested parallelism (otherwise protr crashes or the computer becomes very, very sad - and slow!)
+parallel::clusterEvalQ(parClust, { # Prevent nested parallelism (otherwise protr crashes or the computer becomes very, very sad - and slow!)
   options(mc.cores = 1L)
   Sys.setenv(
     OMP_NUM_THREADS = 1L,
@@ -95,13 +94,13 @@ clusterEvalQ(parClust, { # Prevent nested parallelism (otherwise protr crashes o
   )
 })
 tmpFl <- tempfile(".rds")
-clusterExport(parClust, "tmpFl", envir = environment())
+parallel::clusterExport(parClust, "tmpFl", envir = environment())
 readr::write_rds(dig1DF, tmpFl)
-clusterCall(parClust, \(x) {
-  dig1DF <<- readr::read_rds(tmpFl)
-  return(NULL)
-})
-dig1DF$"Similarity score" <- parSapply(parClust, 1L:nrow(dig1DF), \(x) { #x <- 1L
+invisible(parallel::clusterCall(parClust, \(x) {
+  assign("dig1DF", readr::read_rds(tmpFl), envir = .GlobalEnv)
+  return()
+}))
+dig1DF$"Similarity score" <- parallel::parSapply(parClust, 1L:nrow(dig1DF), \(x) { #x <- 1L
   pwalign::pairwiseAlignment(dig1DF$ID1_Seq[[x]],
                              dig1DF$ID2_Seq[[x]],
                              substitutionMatrix = "BLOSUM62",
@@ -110,12 +109,12 @@ dig1DF$"Similarity score" <- parSapply(parClust, 1L:nrow(dig1DF), \(x) { #x <- 1
                              scoreOnly = TRUE)
 })
 readr::write_rds(selfAlign, tmpFl)
-clusterCall(parClust, \(x) {
+parallel::clusterCall(parClust, \(x) {
   assign("selfAlign", readr::read_rds(tmpFl), envir = .GlobalEnv)
-  return(NULL)
+  return()
 })
 tmpFl <- unlink(tmpFl)
-selfAlign$"Self similarity score" <- parSapply(parClust, 1L:nrow(selfAlign), \(x) { #x <- 1L
+selfAlign$"Self similarity score" <- parallel::parSapply(parClust, 1L:nrow(selfAlign), \(x) { #x <- 1L
   pwalign::pairwiseAlignment(selfAlign$Seq[[x]],
                              selfAlign$Seq[[x]],
                              substitutionMatrix = "BLOSUM62",
@@ -123,7 +122,7 @@ selfAlign$"Self similarity score" <- parSapply(parClust, 1L:nrow(selfAlign), \(x
                              gapExtension = 0.5,
                              scoreOnly = TRUE)
 })
-stopCluster(parClust)
+parallel::stopCluster(parClust)
 # Below: if parallelizing this you will need to re-export the objects, because the score columns do not exist in the versions currently stored on the cluster!
 dig1DF$"Normalised similarity score" <- vapply(1L:nrow(dig1DF), \(x) { #x <- 1L
   sc <- dig1DF$`Similarity score`[x]
@@ -134,7 +133,7 @@ dig1DF$"Normalised similarity score" <- vapply(1L:nrow(dig1DF), \(x) { #x <- 1L
   return(sc/sqrt(slfSc1*slfSc2))
 }, 1)
 bestMatch <- aggregate(1L:nrow(dig1DF), list(dig1DF$ID1), \(x) {
-  x[which.max(dig1DF$"Normalised similarity score"[x])]
+  x[base::which.max(dig1DF$"Normalised similarity score"[x])]
 })
 colnames(bestMatch) <- c("ID", "best match row")
 bestMatch$"best match" <- dig1DF$ID2[bestMatch$`best match row`]
@@ -146,11 +145,11 @@ bestMatch$"best match score" <- dig1DF$`Normalised similarity score`[bestMatch$`
 # - 0.3–0.45  | weak similarity (peptide collision possible) |
 # - < 0.3     | probably unrelated
 bestMatch$Decision <- "unrelated"
-bestMatch$Decision[which(bestMatch$`best match score` >= 0.3)] <- "similar"
-bestMatch$Decision[which(bestMatch$`best match score` >= 0.45)] <- "homolog"
-bestMatch$Decision[which(bestMatch$`best match score` >= 0.6)] <- "same gene"
-bestMatch$Decision[which(bestMatch$`best match score` >= 0.8)] <- "isoform"
-bestMatch$Decision[which(bestMatch$`best match score` == 1)] <- "same protein" # (shouldn't be here, we have excluded identical sequences)
+bestMatch$Decision[bestMatch$`best match score` >= 0.3] <- "similar"
+bestMatch$Decision[bestMatch$`best match score` >= 0.45] <- "homolog"
+bestMatch$Decision[bestMatch$`best match score` >= 0.6] <- "same gene"
+bestMatch$Decision[bestMatch$`best match score` >= 0.8] <- "isoform"
+bestMatch$Decision[bestMatch$`best match score` == 1] <- "same protein" # (shouldn't be here, we have excluded identical sequences)
 w0 <- which(bestMatch$Decision == "unrelated")
 w1 <- which(bestMatch$Decision == "isoform")
 w2 <- which(bestMatch$Decision == "same gene")

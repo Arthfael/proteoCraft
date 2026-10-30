@@ -1,6 +1,12 @@
 # This script asks the user whether to install optional packages and, if necessary, update them and their dependencies,
 # so that optional analyses may be run.
 optPkgs_opt <- listMelt(.optPkgs)
+if (scrptType == "noReps") {
+  optPkgs_opt <- optPkgs_opt[!optPkgs_opt$value %in% c("DEqMS", "ROTS", "siggenes", "WGCNA"),]
+}
+if (scrptType == "withReps") {
+  optPkgs_opt <- optPkgs_opt[!optPkgs_opt$value %in% c("reticulate"),] #... until we add Pepper to the Reps workflows...
+}
 optPkgs_opt <- aggregate(optPkgs_opt$L1, list(optPkgs_opt$value), .commAnd, sort = TRUE, unique = TRUE)
 colnames(optPkgs_opt) <- c("Package", "Analysis")
 optPkgs_opt$nc <- nchar(optPkgs_opt$Package)

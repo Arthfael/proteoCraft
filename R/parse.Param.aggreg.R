@@ -38,7 +38,7 @@ parse.Param.aggreg <- function(parameter,
     return()
   }
   paramValue <- unlist(strsplit(parameter, ";"))
-  if ((checkExp)&&(length(experiment) == 1L)) { paramValue <- setdiff(myPar, "Exp") }
+  if ((checkExp)&&(length(experiment) == 1L)) { paramValue <- base::setdiff(myPar, "Exp") }
   m <- match(paramValue, names(aggregates))
   if ((!length(m))||(sum(is.na(m)))) { stop("Invalid parameter value!") }
   aggr <- aggregates[m]
@@ -49,7 +49,7 @@ parse.Param.aggreg <- function(parameter,
   val <- aggr.list[[aggr]]
   nms2 <- nms <- unlist(map$Characteristics[map$Aggregate.Name == aggr])
   kol <- if (length(nms) == 1L) { nms } else { aggr }
-  if (length(experiment) == 1L) { nms2 <- setdiff(nms2, "Experiment") }
+  if (length(experiment) == 1L) { nms2 <- base::setdiff(nms2, "Experiment") }
   res <- list(aggregate = aggr,
               values = val,
               names = nms,

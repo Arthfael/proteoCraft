@@ -48,10 +48,10 @@ if (dataType == "modPeptides") {
   plotlyLab = c(PepLabKol, paste0(Ptm, "-site"))
   Size <- "Rel. av. log10 abundance"
   Alpha <- "-log10(PEP)"
-  labCol <- intersect(labCol, colnames(dat0))
+  labCol <- base::intersect(labCol, colnames(dat0))
   allKol <- unique(c("id", idCol, namesCol, "Genes", Size, Alpha, plotlyLab,
                      "Potential contaminant", labCol, mtchCol))
-  allKol <- intersect(allKol, colnames(dat0))
+  allKol <- base::intersect(allKol, colnames(dat0))
   myData$"-log10(PEP)" <- -log10(myData$PEP)
   volcName <- paste0(ptm, " F-test")
 }
@@ -65,10 +65,10 @@ if (dataType == "PG") {
   plotlyLab <- PrLabKol
   Size <- "Rel. av. log10 abundance"
   Alpha <- "Rel. log10(Peptides count)"
-  labCol <- intersect(labCol, colnames(dat0))
+  labCol <- base::intersect(labCol, colnames(dat0))
   allKol <- unique(c("id", idCol, namesCol, "Genes", Size, Alpha, plotlyLab,
                      "Potential contaminant", labCol, mtchCol))
-  allKol <- intersect(allKol, colnames(dat0))
+  allKol <- base::intersect(allKol, colnames(dat0))
   namesRoot <- "PG"
   runLoc <- FALSE
   ohDeer <- paste0(wd, "/Reg. analysis/F-tests")
@@ -110,13 +110,13 @@ if (lfcThr != 0L) {
 
 # Step 1 - run F-test
 # -------------------
-# NB: voomaLmFit() already includes a duplicateCorrelation() step
+# NB: limma::voomaLmFit() already includes a limma::duplicateCorrelation() step
 if (limpaMode) {
   voomFit <- limpa::dpcDE(myData, designMatr, keep.EList = TRUE)
   NA_Filt <- 1L:nrow(myData)
 } else {
   kol <- paste0(intRef2, rownames(expMap))
-  kol <- intersect(kol, colnames(myData))
+  kol <- base::intersect(kol, colnames(myData))
   tmpVal <- myData[, kol]
   colnames(tmpVal) <- sub(topattern(intRef2), "", colnames(tmpVal))
   # We keep any row with 2+ non-missing values per samples group for at least one contrast of interest 
@@ -190,16 +190,19 @@ tmp_ <- dfMelt(tmp, c("Contrast", "P-val"))
 tmp_$Contrast <- gsub_Rep(" - ", "\n- ", gsub_Rep(topattern(paste0(F_Root1, " - ")), "", tmp_$Contrast))
 tmp_$Contrast[tmp_$Contrast == F_Root1] <- "F-test"
 tmp_$Contrast <- factor(tmp_$Contrast, levels = c("F-test", gsub(" - ", "\n- ", myContrasts$Contrast)))
-plot <- ggplot(tmp_) + geom_histogram(aes(x = `P-val`, fill = Contrast), bins = 100L) +
-  scale_fill_viridis(discrete = TRUE) + theme_bw() + facet_grid(Contrast~.) +
-  theme(strip.text.y = element_text(angle = 0))
+plot <- ggplot2::ggplot(tmp_) +
+  ggplot2::geom_histogram(ggplot2::aes(x = `P-val`, fill = Contrast),
+                          bins = 100L) +
+  viridis::scale_fill_viridis(discrete = TRUE) +
+  ggplot2::theme_bw() + ggplot2::facet_grid(Contrast~.) +
+  ggplot2::theme(strip.text.y = ggplot2::element_text(angle = 0))
 poplot(plot, 12L, 22L)
 suppressWarnings({
-  ggsave(paste0(ohDeer, "/ANOVA P values histogram.svg"), plot, dpi = 150L)
+  ggplot2::ggsave(paste0(ohDeer, "/ANOVA P values histogram.svg"), plot, dpi = 150L)
 })
 globalFDR <- TRUE
 if (globalFDR) {
-  tmp2 <- melt(tmp)
+  tmp2 <- dfMelt(tmp)
   tmp3 <- FDR(tmp2,
               pvalue_col = "value",
               fdr = BH.FDR_F,
@@ -215,14 +218,14 @@ if (globalFDR) {
 } else {
   tmpFl <- tempfile(fileext = ".rds")
   readr::write_rds(tmp, tmpFl)
-  clusterExport(parClust, list("F_Root1", "BH.FDR_F", "tmpFl", "FDR"))
-  invisible(clusterCall(parClust, \() {
+  parallel::clusterExport(parClust, list("F_Root1", "BH.FDR_F", "tmpFl", "FDR"))
+  invisible(parallel::clusterCall(parClust, \() {
     tmp <- readr::read_rds(tmpFl)
     assign("tmp", tmp, .GlobalEnv)
     return()
   }))
   unlink(tmpFl)
-  F_fdr[myContrasts$Contrast] <- parLapply(parClust, myContrasts$Contrast, \(i) { #i <- myContrasts$Contrast[1L]
+  F_fdr[myContrasts$Contrast] <- parallel::parLapply(parClust, myContrasts$Contrast, \(i) { #i <- myContrasts$Contrast[1L]
     F_pv_i <- paste0(F_Root1, " - ", i)
     return(FDR(tmp,
                pvalue_col = F_pv_i,
@@ -269,7 +272,7 @@ for (fdr in BH.FDR_F) { #fdr <- BH.FDR_F[1L]
   }
 }
 #View(my_F_Data)
-kol <- setdiff(allKol, colnames(my_F_Data))
+kol <- base::setdiff(allKol, colnames(my_F_Data))
 if (length(kol)) { my_F_Data[, kol] <- myData[, kol] }
 #
 # Volcano plots
@@ -293,7 +296,7 @@ volcPlot_args2$cl <- parClust
 #DefArg(Volcano.plot);TESTING <- TRUE
 #invisible(lapply(names(volcPlot_args2), \(x) { assign(x, volcPlot_args2[[x]], envir = .GlobalEnv); return() }))
 F_volc <- do.call(Volcano.plot, volcPlot_args2)
-stopCluster(parClust)
+parallel::stopCluster(parClust)
 source(parSrc)
 #
 if (!exists("volcPlotly_fl")) { volcPlotly_fl %<o% paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
@@ -334,7 +337,7 @@ if (absTst || fdrTst) {
     colnames(fdrThresh)[colnames(fdrThresh) == "fdr.col.down"] <- "Colour (down)"
     colnames(fdrThresh)[colnames(fdrThresh) == "fdr.col.line"] <- "Colour (line)"
     if ("Test" %in% colnames(fdrThresh)) {
-      fdrThresh <- fdrThresh[, union("Test", colnames(fdrThresh))]
+      fdrThresh <- fdrThresh[, base::union("Test", colnames(fdrThresh))]
     }
   }
   wb <- wb_workbook()
@@ -412,13 +415,14 @@ if (F_Root %in% colnames(myData)) {
   temp <- myData[[F_Root1]]
   temp <- data.frame(value = temp[is.finite(temp)])
   ttl <- "Histogram: F-test moderated Pvalue"
-  plot <- ggplot(temp, aes(x = value)) +
-    geom_histogram(bins = nbin, colour = "black", alpha = 0.25, fill = "green") +
-    guides(fill = "none") + theme_bw() + ggtitle(ttl)
+  plot <- ggplot2::ggplot(temp,
+                          ggplot2::aes(x = value)) +
+    ggplot2::geom_histogram(bins = nbin, colour = "black", alpha = 0.25, fill = "green") +
+    ggplot2::guides(fill = "none") + ggplot2::theme_bw() + ggplot2::ggtitle(ttl)
   #poplot(plot, 12L, 22L)
   ttla <- gsub(": ?", " - ", ttl)
   suppressMessages({
-    ggsave(paste0(ohDeer, "/", ttla, ".svg"), plot, dpi = 300L)
+    ggplot2::ggsave(paste0(ohDeer, "/", ttla, ".svg"), plot, dpi = 300L)
   })
 }
 # Cleanup

@@ -1,6 +1,6 @@
 ### Check P-values
 #
-print_gg %<o% function(p) { # Works for both ggplot and gtable
+print_gg %<o% \(p) { # Works for both ggplot and gtable
   grid::grid.newpage()
   grid::grid.draw(
     if (inherits(p, "ggplot")) { ggplot2::ggplot_gtable(ggplot2::ggplot_build(p)) } else { p } # already a gtable
@@ -47,7 +47,7 @@ if (dataType == "PG") {
   appTtl <- "PG - type of P-values"
 }
 if (!dir.exists(pvalDir)) { dir.create(pvalDir, recursive = TRUE) }
-dirlist <- union(dirlist, pvalDir)
+dirlist <- base::union(dirlist, pvalDir)
 #
 if ((dataType == "modPeptides") && (Ptm %in% names(PTMs_PVal_col))) {
   my_PVal_Col <- PTMs_PVal_col[[Ptm]]
@@ -83,7 +83,7 @@ temp$Contr <- gsub_Rep(" - ", "\n- ", temp$Contrast)
 tmpContr <- gsub(" - ", "\n- ", myContrasts$Contrast)
 temp$Contr <- factor(temp$Contr, levels = tmpContr)
 temp$Contrast <- factor(temp$Contrast, levels = myContrasts$Contrast)
-kol <- setdiff(colnames(temp), c(entityCol, "Contrast", "Contr", "In_list"))
+kol <- base::setdiff(colnames(temp), c(entityCol, "Contrast", "Contr", "In_list"))
 temp <- temp[rowSums(temp[, kol], na.rm = TRUE) > 0,]
 Comb <- gtools::combinations(length(kol), 2L, kol)
 tmpFl <- tempfile(fileext = ".rds")
@@ -91,25 +91,21 @@ readr::write_rds(temp, tmpFl)
 nr <- nrow(myContrasts)
 #
 source(parSrc)
-clusterExport(parClust, list("Comb", "tmpFl", "pvalDir", "my_PVal_Col", "gsub_Rep",
-                             "plotEval", "slim_plotly", "entityCol", "my_PVal_Col", "nr"),
-              envir = environment())
-invisible(clusterCall(parClust, \() {
-  require(ggplot2)
-  require(viridis)
-  require(scattermore)
-  require(plotly)
+parallel::clusterExport(parClust, list("Comb", "tmpFl", "pvalDir", "my_PVal_Col", "gsub_Rep",
+                                       "plotEval", "slim_plotly", "entityCol", "my_PVal_Col", "nr"),
+                        envir = environment())
+invisible(parallel::clusterCall(parClust, \() {
   temp <- readr::read_rds(tmpFl)
   assign("temp", temp, envir = .GlobalEnv)
   return()
 }))
 unlink(tmpFl)
-plotsList1 <- parLapply(parClust, 1L:nrow(Comb), \(i) { #i <- 1L
+plotsList1 <- parallel::parLapply(parClust, 1L:nrow(Comb), \(i) { #i <- 1L
   X <- Comb[i, 1L]
   Y <- Comb[i, 2L]
   X2 <- names(my_PVal_Col)[match(paste0(X, " - "), my_PVal_Col)]
   Y2 <- names(my_PVal_Col)[match(paste0(Y, " - "), my_PVal_Col)]
-  kol <- intersect(c(X, Y, entityCol, "Contrast", "Contr", "In_list"), colnames(temp))
+  kol <- base::intersect(c(X, Y, entityCol, "Contrast", "Contr", "In_list"), colnames(temp))
   dat <- temp[, kol]
   colnames(dat)[1L:2L] <- c("X", "Y")
   dat$"P-value, X axis" <- gsub_Rep(" -log10\\(Pvalue\\)$", "", Comb[i, 1L])
@@ -130,36 +126,38 @@ plotsList1 <- parLapply(parClust, 1L:nrow(Comb), \(i) { #i <- 1L
     aes_$shape = rlang::expr(.data[[!!"In_list"]])
   }
   args_ <- list(data = dat,
-                mapping = do.call(aes, aes_))
-  plot1 <- do.call(ggplot, args_)
+                mapping = do.call(ggplot2::aes, aes_))
+  plot1 <- do.call(ggplot2::ggplot, args_)
   plot1 <- plot1 +
-    scale_color_viridis(begin = 0.4, end = 0.8, discrete = TRUE, option = "F") +
-    #facet_grid(`P-value, Y axis`~Contrast+`P-value, X axis`) + # This was for when we saved all as one plot outside the parLapply
-    #facet_grid(Contrast~`P-value, Y axis`) +
-    facet_grid(Contr~., scales = "fixed") +
-    geom_abline(intercept = 0, slope = 1, linetype = "dashed", linewidth = 0.25) +
-    coord_fixed(xlim = myLim,
-                ylim = myLim) +
-    ggtitle(ttl1a) + theme_bw() +
-    scale_x_continuous(expand = c(0L, 0L)) +
-    scale_y_continuous(expand = c(0L, 0L)) +
-    xlab(uX) + ylab(uY)
+    viridis::scale_color_viridis(begin = 0.4, end = 0.8, discrete = TRUE, option = "F") +
+    #ggplot2::facet_grid(`P-value, Y axis`~Contrast+`P-value, X axis`) + # This was for when we saved all as one plot outside the parallel::parLapply
+    #ggplot2::facet_grid(Contrast~`P-value, Y axis`) +
+    ggplot2::facet_grid(Contr~., scales = "fixed") +
+    ggplot2::geom_abline(intercept = 0, slope = 1, linetype = "dashed", linewidth = 0.25) +
+    ggplot2::coord_fixed(xlim = myLim,
+                         ylim = myLim) +
+    ggplot2::ggtitle(ttl1a) + ggplot2::theme_bw() +
+    ggplot2::scale_x_continuous(expand = c(0L, 0L)) +
+    ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
+    ggplot2::xlab(uX) + ggplot2::ylab(uY)
   #poplot(plot1)
-  plot1ly <- ggplotly(plot1 + geom_point(size = 0.33) +
-                        theme(strip.background = element_blank(),
-                              strip.text = element_blank()),
-                      tooltip = c("text", "X", "Y", "Contrast"),
-                      width = 700L,
-                      height = 100L+400L*nr)
+  plot1ly <- plotly::ggplotly({
+    plot1 + ggplot2::geom_point(size = 0.33) +
+      ggplot2::theme(strip.background = ggplot2::element_blank(),
+                     strip.text = ggplot2::element_blank())
+  },
+  tooltip = c("text", "X", "Y", "Contrast"),
+  width = 700L,
+  height = 100L+400L*nr)
   plot1 <- plot1 +
-    geom_scattermore(pixels = c(1024L, 1024L), pointsize = 3.2) +
-    theme(strip.text.y = element_text(angle = 0))
+    scattermore::geom_scattermore(pixels = c(1024L, 1024L), pointsize = 3.2) +
+    ggplot2::theme(strip.text.y = ggplot2::element_text(angle = 0))
   Img1 <- paste0(pvalDir, "/", gsub(":", " - ", ttl1))
   w1 <- 5
   h1 <- w1*(length(unique(dat$Contrast)) + 0.5)/3
   suppressMessages({
-    ggsave(paste0(Img1, ".svg"), plot1, dpi = 150L, width = w1,# height = h1,
-           units = "in")
+    ggplot2::ggsave(paste0(Img1, ".svg"), plot1, dpi = 150L, width = w1,# height = h1,
+                    units = "in")
   })
   #system(paste0("open \"", Img1, ".svg\""))
   lst <- list(Plot = ggplot2::ggplot_gtable(ggplot2::ggplot_build(plot1)), # to print these use print_gg()
@@ -167,7 +165,7 @@ plotsList1 <- parLapply(parClust, 1L:nrow(Comb), \(i) { #i <- 1L
               Title = ttl1)
   return(lst)
 })
-invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
+invisible(parallel::clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 # i <- 1L
 #print_gg(plotsList1[[i]]$Plot)
 #vapply(plotsList, \(x) { x$Title }, "")
@@ -235,38 +233,40 @@ pwrAnnot$Contrast <- factor(temp$Contrast[1L], levels = tmpContr)
 nmbrAnnot$Contrast <- factor(temp$Contrast[1L], levels = tmpContr)
 ttl2 <- "P-values histogram"
 mx <- max(temp$Frequency)
-plot2 <- ggplot(temp) +
-  geom_rect(position = "identity",
-            aes(xmin = (Bin-1L)/nbin, xmax = Bin/nbin, ymax = Frequency, fill = `P-value type`),
-            ymin = 0, alpha = 0.5) +
-  geom_text(data = pwrAnnot, label = "5% pVal pwr. est. =",
-            x = 0.01, y = mx*0.6, hjust = 0, vjust = 0, color = "red", size = 4) +
-  geom_text(data = pwrAnnot, aes(label = `power estimate`),
-            x = 0.9, y = mx*0.6, hjust = 1, vjust = 0, color = "red", size = 5) +
-  geom_text(data = nmbrAnnot, label = "N. of tests =",
-            x = 0.01, y = mx*0.3, hjust = 0, vjust = 0, color = "red", size = 4) +
-  geom_text(data = nmbrAnnot, aes(label = `number of data points`),
-            x = 0.9, y = mx*0.3, hjust = 1, vjust = 0, color = "red", size = 5) +
-  scale_fill_viridis(begin = 0.4, end = 0.8, discrete = TRUE, option = "G") +
-  scale_x_continuous(expand = c(0L, 0L), limits = c(0, 1)) +
-  scale_y_continuous(expand = c(0L, 0L)) +
-  facet_grid(`P-value type`~Contrast) + ggtitle(ttl2) + theme_bw() +
-  theme(strip.text.y = element_text(angle = -90, size = 12L),
-        strip.text.x = element_text(size = 12L),
-        axis.text = element_text(size = 10L))
+plot2 <- ggplot2::ggplot(temp) +
+  ggplot2::geom_rect(position = "identity",
+                     ggplot2::aes(xmin = (Bin-1L)/nbin, xmax = Bin/nbin, ymax = Frequency, fill = `P-value type`),
+                     ymin = 0, alpha = 0.5) +
+  ggplot2::geom_text(data = pwrAnnot, label = "5% pVal pwr. est. =",
+                     x = 0.01, y = mx*0.6, hjust = 0, vjust = 0, color = "red", size = 4) +
+  ggplot2::geom_text(data = pwrAnnot,
+                     ggplot2::aes(label = `power estimate`),
+                     x = 0.9, y = mx*0.6, hjust = 1, vjust = 0, color = "red", size = 5) +
+  ggplot2::geom_text(data = nmbrAnnot, label = "N. of tests =",
+                     x = 0.01, y = mx*0.3, hjust = 0, vjust = 0, color = "red", size = 4) +
+  ggplot2::geom_text(data = nmbrAnnot,
+                     ggplot2::aes(label = `number of data points`),
+                     x = 0.9, y = mx*0.3, hjust = 1, vjust = 0, color = "red", size = 5) +
+  viridis::scale_fill_viridis(begin = 0.4, end = 0.8, discrete = TRUE, option = "G") +
+  ggplot2::scale_x_continuous(expand = c(0L, 0L), limits = c(0, 1)) +
+  ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
+  ggplot2::facet_grid(`P-value type`~Contrast) + ggplot2::ggtitle(ttl2) + ggplot2::theme_bw() +
+  ggplot2::theme(strip.text.y = ggplot2::element_text(angle = -90, size = 12L),
+                 strip.text.x = ggplot2::element_text(size = 12L),
+                 axis.text = ggplot2::element_text(size = 10L))
 #poplot(plot2, 12L, 22L)
 Img2 <- paste0(pvalDir, "/", ttl2)
 w2 <- ((length(whSingle)+1L)*1.25)*2
 h2 <- ((length(my_PVal_Col)+0.2)*1.25)*2
 suppressMessages({
-  ggsave(paste0(Img2, ".svg"), plot2, dpi = 150L, width = w2, height = h2, units = "in")
+  ggplot2::ggsave(paste0(Img2, ".svg"), plot2, dpi = 150L, width = w2, height = h2, units = "in")
 })
 #system(paste0("open \"", Img2, ".svg\""))
 #
-plot2ly <- ggplotly(plot2)
-plot2ly <- layout(plot2ly,
-                  xaxis = list(range = list(0L, 1L)),
-                  showlegend = FALSE)
+plot2ly <- plotly::ggplotly(plot2)
+plot2ly <- plotly::layout(plot2ly,
+                          xaxis = list(range = list(0L, 1L)),
+                          showlegend = FALSE)
 plot2 <- ggplot2::ggplot_gtable(ggplot2::ggplot_build(plot2))
 plotsList2 <- list(list(Title = ttl2,
                         Plot = plot2,
@@ -277,10 +277,10 @@ Imgs1 <- Imgs1[Imgs1 != Img2]
 IMGS <- c(Img2, Imgs1)
 plotsList <- append(plotsList2, plotsList1)
 imgNmsEdit <- \(nm) {
-  gsub(" t-test|'s", "",
-       gsub("Moderated", "Mod.",
-            gsub("Permutations", "Perm.",
-                 gsub(".*/P-values scatter plot - |\\.svg", "", nm))))
+  sub(" t-test|'s", "",
+      sub("Moderated", "Mod.",
+          sub("Permutations", "Perm.",
+              sub(".*/P-values scatter plot - |\\.svg", "", nm))))
 }
 Imgs1Nms <- imgNmsEdit(Imgs1)
 names(plotsList) <- c("Histogram", Imgs1Nms)
@@ -298,64 +298,64 @@ if (!sum(pval_Use)) { pval_Use["Moderated"] <- TRUE }
 if (!sum(pval_Use)) { pval_Use[1L] <- TRUE }
 #
 tmpNm <- imgNmsEdit(names(my_PVal_Col)[pval_Use])
-dfltImg <- union(grep(topattern(tmpNm), Imgs1Nms, value = TRUE),
-                 grep(topattern(tmpNm, FALSE, TRUE), Imgs1Nms, value = TRUE))[1L]
-ui <- fluidPage(
-  useShinyjs(),
-  setBackgroundColor( # Doesn't work
+dfltImg <- base::union(grep(topattern(tmpNm), Imgs1Nms, value = TRUE),
+                       grep(topattern(tmpNm, FALSE, TRUE), Imgs1Nms, value = TRUE))[1L]
+ui <- shiny::fluidPage(
+  shinyjs::useShinyjs(),
+  shinyWidgets::setBackgroundColor( # Doesn't work
     color = c(#"#F8F8FF",
       "#F1FDFF"),
     gradient = "linear",
     direction = "bottom"
   ),
-  extendShinyjs(text = jsFun$toggle_full_screen,
-                functions = c("toggleFullScreen")),
-  titlePanel(tag("u", appTtl),
-             appNm),
-  br(),
+  shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                         functions = c("toggleFullScreen")),
+  shiny::titlePanel(shiny::tag("u", appTtl),
+                    appNm),
+  shiny::br(),
   #
-  fluidRow(column(2L,
-                  selectInput("PVal", msg, names(my_PVal_Col), names(my_PVal_Col)[pval_Use])),
-           column(2L,
-                  actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"))),
-  br(),
-  fluidRow(column(5L,
-                  selectInput("XY",
-                              "Select comparison to display...",
-                              Imgs1Nms,
-                              dfltImg),
-                  withSpinner(plotlyOutput("Img1", inline = TRUE))),
-           column(7L,
-                  withSpinner(plotOutput("Img2", inline = TRUE)))),
-  br(),
-  br()
+  shiny::fluidRow(shiny::column(2L,
+                                shiny::selectInput("PVal", msg, names(my_PVal_Col), names(my_PVal_Col)[pval_Use])),
+                  shiny::column(2L,
+                                shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"))),
+  shiny::br(),
+  shiny::fluidRow(shiny::column(5L,
+                                shiny::selectInput("XY",
+                                                   "Select comparison to display...",
+                                                   Imgs1Nms,
+                                                   dfltImg),
+                                shinycssloaders::withSpinner(shiny::plotlyOutput("Img1", inline = TRUE))),
+                  shiny::column(7L,
+                                shinycssloaders::withSpinner(shiny::plotOutput("Img2", inline = TRUE)))),
+  shiny::br(),
+  shiny::br()
 )
 #h0 <- paste0(round(screenRes$height*0.35), "px")
 if (exists("appRunTst")) { rm(appRunTst) }
 server <- \(input, output, session) {
-  myIMG1 <- reactiveVal(1L)
+  myIMG1 <- shiny::reactiveVal(1L)
   updtIMG1 <- \(reactive = TRUE) {
     i <- if (reactive) { myIMG1() } else { 1L }
-    renderPlotly({ plotsList[[i+1L]]$Plotly })
+    shiny::renderPlotly({ plotsList[[i+1L]]$Plotly })
   }
   output$Img1 <- updtIMG1(FALSE)
-  output$Img2 <- renderPlot({ print_gg(plotsList$Histogram$Plot) },
-                            height = 50L+200L*length(my_PVal_Col),
-                            width = 50L+200L*(nrow(myContrasts)+1L))
-  observeEvent(input$PVal, {
+  output$Img2 <- shiny::renderPlot({ print_gg(plotsList$Histogram$Plot) },
+                                   height = 50L+200L*length(my_PVal_Col),
+                                   width = 50L+200L*(nrow(myContrasts)+1L))
+  shiny::observeEvent(input$PVal, {
     assign("my_PVal_Use", setNames(names(my_PVal_Col) == input$PVal, names(my_PVal_Col)), envir = .GlobalEnv)
   }, ignoreInit = FALSE)
-  observeEvent(input$XY, {
+  shiny::observeEvent(input$XY, {
     i <- match(input$XY, Imgs1Nms)
     myIMG1(i)
     output$Img1 <- updtIMG1()
   }, ignoreInit = FALSE)
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     stopApp()
     assign("appRunTst", TRUE, envir = .GlobalEnv)
   })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+  #observeEvent(input$cancel, { shiny::stopApp() })
+  session$onSessionEnded(function() { shiny::stopApp() })
 }
 runKount <- 0L
 while ((!runKount) || (!exists("appRunTst"))) {
@@ -444,7 +444,7 @@ if (dataType %in% c("modPeptides", "PG")) {
   #vapply(logFCs, ncol, 1L)
   # To check the distribution of logFCs (they should be different but still roughly similar)
   tst <- lapply(names(logFCs), \(nm) {
-    x <- melt(logFCs[[nm]])
+    x <- reshape::melt(logFCs[[nm]])
     x$Type <- nm
     return(x)
   })
@@ -454,13 +454,13 @@ if (dataType %in% c("modPeptides", "PG")) {
   tst$Contrast <- factor(tst$Contrast, levels = myContrasts$Contrast)
   tst$Type <- factor(tst$Type, levels = names(logFCs))
   ttl <- "Distribution of logFCs"
-  plot <- ggplot(tst) +
-    ggtitle(ttl) +
-    geom_density(aes(x = logFC, color = Type)) +
-    facet_grid(Type~Contrast) +
-    theme_bw()
+  plot <- ggplot2::ggplot(tst) +
+    ggplot2::ggtitle(ttl) +
+    ggplot2::geom_density(ggplot2::aes(x = logFC, color = Type)) +
+    ggplot2::facet_grid(Type~Contrast) +
+    ggplot2::theme_bw()
   #poplot(plot, 12L, 22L)
-  ggsave(paste0(pvalDir, "/", ttl, ".svg"), plot, dpi = 100L)
+  ggplot2::ggsave(paste0(pvalDir, "/", ttl, ".svg"), plot, dpi = 100L)
   if (Param$P.values.type %in% nmsConv$P.values.type) {
     nm <- nmsConv$Name[match(Param$P.values.type, nmsConv$P.values.type)]
     myData <- myData[, which(!colnames(myData) %in% ratKol)]

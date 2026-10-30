@@ -281,7 +281,7 @@ PD_to_MQ <- function(PD,
       warning(paste0("Removing ", l, " conflicting PSMs!"))
       evtemp <- evtemp[evtemp$Spectrum %in% test$Group.1[test$x == 1L],]
     }
-    col <- setdiff(colnames(EV), colnames(evtemp))
+    col <- base::setdiff(colnames(EV), colnames(evtemp))
     test <- aggregate(EV[,col], list(EV$test), \(x) { length(unique(x)) })
     test2 <- apply(test[,col], 2L, max, na.rm = TRUE)
     w <- which(test2 == 1L)
@@ -300,7 +300,7 @@ PD_to_MQ <- function(PD,
       test <- aggregate(test$value, list(test$L1), \(x) { paste(sort(unique(x)), collapse = ";") })
       evtemp$Proteins <- test$x[match(evtemp$test, test$Group.1)]
     }
-    col <- setdiff(col[w], c("PEP", "Proteins"))
+    col <- base::setdiff(col[w], c("PEP", "Proteins"))
     test3 <- sapply(col, \(x) { class(EV[[x]]) })
     w1 <- which(test3 %in% c("numeric", "double", "integer", "integer64"))
     w2 <- which(test3 == "character")

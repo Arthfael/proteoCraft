@@ -1,10 +1,6 @@
 
 # These normalisations are more like corrections: they will change the shape of the vector
 #
-library(ggplot2)
-library(ggnewscale)
-library(viridis)
-#
 if (!"Clean_name" %in% colnames(Exp.map)) {
   Exp.map$Clean_name <- cleanNms(Exp.map$Ref.Sample.Aggregate)
 }
@@ -17,28 +13,16 @@ txt2 <- ""
 #
 normMeth <- normSequence[[nrmStp]]$Method #normMeth <- "LOESS" #normMeth <- "VSN"
 packs <- c()
-if (normMeth == "VSN") {
-  library(hexbin)
-  library(vsn)
-}
-if (normMeth == "LOESS") {
-  library(affy)
-}
-if (normMeth == "GAM") {
-  library(mgcv)
-}
-#
 shpDr <- paste0(nrmDr, "/Step ", nrmStp, " - ", normMeth)
 if (!dir.exists(shpDr)) { dir.create(shpDr, recursive = TRUE) }
-dirlist <- unique(c(dirlist, shpDr))
+dirlist <- base::union(dirlist, shpDr)
 #
-currSamples <- intersect(allSamples, colnames(tmpDat1))
-A <- parApply(parClust, tmpDat1[wAG1, currSamples], 1L, \(x) { mean(x[is.finite(x)]) })
+currSamples <- base::intersect(allSamples, colnames(tmpDat1))
+A <- parallel::parApply(parClust, tmpDat1[wAG1, currSamples], 1L, \(x) { mean(x[is.finite(x)]) })
 #
 tmpDat2 <- tmpDat1[, currSamples]*NA_real_
 #
 # Apply correction per peptides normalisation group
-#library(ggpubr)
 tstNorm <- try({
   for (lGrp in NormGrps$Group) { #lGrp <- NormGrps$Group[1]
     grpMtch <- match(NormGrps$IDs[[match(lGrp, NormGrps$Group)]],
@@ -61,9 +45,8 @@ tstNorm <- try({
                       M = as.data.frame(M))
       tmpFl <- tempfile(fileext = ".RDS")
       readr::write_rds(xprtDat, tmpFl)
-      clusterExport(parClust, list("tmpFl", "currSamples"), envir = environment())
-      invisible(clusterCall(parClust, \() {
-        library(mgcv)
+      parallel::clusterExport(parClust, list("tmpFl", "currSamples"), envir = environment())
+      invisible(parallel::clusterCall(parClust, \() {
         xprtDat <- readr::read_rds(tmpFl)
         assign("dat_", xprtDat$dat, envir = .GlobalEnv)
         assign("A_", xprtDat$A, envir = .GlobalEnv)
@@ -71,7 +54,7 @@ tstNorm <- try({
         return()
       }))
       unlink(tmpFl)
-      tmpDat1b <- setNames(parLapply(parClust, currSamples, \(smpl) { #smpl <- currSamples[1L]
+      tmpDat1b <- setNames(parallel::parLapply(parClust, currSamples, \(smpl) { #smpl <- currSamples[1L]
         A <- A_[[smpl]]
         M <- M_[[smpl]]
         res <- A * NA_real_ # Safety: start from pure NAs...
@@ -102,14 +85,14 @@ tstNorm <- try({
       sd1 <- vsn::meanSdPlot(as.matrix(tmpDat1[grpMtch, currSamples]), plot = FALSE)$gg
       sd2 <- vsn::meanSdPlot(as.matrix(tmpDat1b), plot = FALSE)$gg
       # - harmonize scales
-      b1 <- ggplot_build(sd1)
-      b2 <- ggplot_build(sd2)
+      b1 <- ggplot2::ggplot_build(sd1)
+      b2 <- ggplot2::ggplot_build(sd2)
       xLm <- c(b1$data[[1L]]$x, b2$data[[1L]]$x)
       yLm <- c(b1$data[[1L]]$y, b2$data[[1L]]$y)
-      xLm <- xlim(min(xLm, na.rm = TRUE),
-                  max(xLm, na.rm = TRUE))
-      yLm <- ylim(min(yLm, na.rm = TRUE),
-                  max(yLm, na.rm = TRUE))
+      xLm <- ggplot2::xlim(min(xLm, na.rm = TRUE),
+                           max(xLm, na.rm = TRUE))
+      yLm <- ggplot2::ylim(min(yLm, na.rm = TRUE),
+                           max(yLm, na.rm = TRUE))
       sd1 <- sd1 + xLm + yLm
       sd2 <- sd2 + xLm + yLm
       # - save plots
@@ -118,11 +101,11 @@ tstNorm <- try({
       SDttlB <- SDttlA <- SDttl
       SDttlA <- paste0(SDttlA, "_before")
       SDttlB <- paste0(SDttlB, "_after")
-      SDplotA <- sd1 + theme_bw() + ggtitle(SDttl, subtitle = "Before")
-      SDplotB <- sd2 + theme_bw() + ggtitle("", subtitle = "After")
+      SDplotA <- sd1 + ggplot2::theme_bw() + ggplot2::ggtitle(SDttl, subtitle = "Before")
+      SDplotB <- sd2 + ggplot2::theme_bw() + ggplot2::ggtitle("", subtitle = "After")
       SDplot <- ggpubr::ggarrange(SDplotA, SDplotB, ncol = 2L, nrow = 1L)
       #poplot(SDplot, 6L, 12L)
-      ggsave(paste0(shpDr, "/", SDttl, ".svg"), SDplot, dpi = 75L, width = 12L, height = 6L, units = "in")
+      ggplot2::ggsave(paste0(shpDr, "/", SDttl, ".svg"), SDplot, dpi = 75L, width = 12L, height = 6L, units = "in")
     }
   }
 }, silent = TRUE)
@@ -158,7 +141,7 @@ if (!inherits(tstNorm, "try-error")) {
       paste0("Median: ", round(median(filtFun(tmpDat$"M (mean log2 FC)"[tmpDat$Sample == x])), 3L))
     }, "")
     annot_$IQR <- vapply(annot_$Sample, \(x) {
-      paste0("IQR: ", round(IQR(filtFun(tmpDat$"M (mean log2 FC)"[tmpDat$Sample == x])), 3L))
+      paste0("IQR: ", round(stats::IQR(filtFun(tmpDat$"M (mean log2 FC)"[tmpDat$Sample == x])), 3L))
     }, "")
     annot_$Amax <- max(filtFun(tmpDat$"A (mean log10 Intensity)"))*1.1
     annot_$Amin <- min(filtFun(tmpDat$"A (mean log10 Intensity)"))*1.1
@@ -181,9 +164,12 @@ if (!inherits(tstNorm, "try-error")) {
   annotB <- tmpAB[[2L]]$annot
   annotA_ <- tmpAB[[1L]]$annot_
   annotB_ <- tmpAB[[2L]]$annot_
-  ylim <- max(c(abs(c(annotA_$Mmax, annotA_$Mmin, annotB_$Mmax, annotB_$Mmin,
-                      (annotA_$Amax-annotA_$Amin)/4,
-                      (annotB$Amax-annotB$Amin)/4))))
+  ylim <- max(abs(c(annotA_$Mmax,
+                    annotA_$Mmin,
+                    annotB_$Mmax,
+                    annotB_$Mmin,
+                    (annotA_$Amax-annotA_$Amin)/4,
+                    (annotB$Amax-annotB$Amin)/4)))
   annotA$Y <- annotB$Y <- ylim*0.9
   annotA$Y[grep("^IQR: ", annotA$Label)] <- annotB$Y[grep("^IQR: ", annotA$Label)] <- -ylim*0.9
   annotAB <- rbind(annotA, annotB)
@@ -191,49 +177,49 @@ if (!inherits(tstNorm, "try-error")) {
   # showing how the data is shifted by the transformation? 
   MAttl <- paste0(normMeth, " correction")
   MAfl <- paste0(shpDr, "/", MAttl)
-  MAplot <- ggplot(datAB[1L:5L,]) +
-    ggtitle(MAttl) +
-    facet_grid(Replicate + state ~ Sample_group) + coord_fixed(0.05) + theme_bw() +
-    geom_hex(aes(x = `A (mean log10 Intensity)`, y = `M (mean log2 FC)`, fill = state), linewidth = 1L, alpha = 1, bins = 100L) +
-    geom_hline(yintercept = 0, colour = "grey") +
-    scale_fill_viridis(begin = 0.25, end = 0.75, discrete = TRUE, option = "H") +
-    theme(legend.position = "bottom",
-          plot.margin = margin(0L, 0L, 0L, 0L)) +
-    new_scale_color()
-  #poplot(MAplot, 12L, 22L)
-  MAplot <- if (normMeth == "LOESS") {
-    MAplot +
-      geom_smooth(aes(x = `A (mean log10 Intensity)`, y = `M (mean log2 FC)`, color = "LOESS", linetype = "LOESS"),
-                  method = "loess", formula = y ~ x, se = FALSE)
+  MA_plot <- ggplot2::ggplot(datAB[1L:5L,]) +
+    ggplot2::ggtitle(MAttl) +
+    ggplot2::facet_grid(Replicate + state ~ Sample_group) + ggplot2::coord_fixed(0.05) + ggplot2::theme_bw() +
+    ggplot2::geom_hex(ggplot2::aes(x = `A (mean log10 Intensity)`, y = `M (mean log2 FC)`, fill = state), linewidth = 1L, alpha = 1, bins = 100L) +
+    ggplot2::geom_hline(yintercept = 0, colour = "grey") +
+    viridis::scale_fill_viridis(begin = 0.25, end = 0.75, discrete = TRUE, option = "H") +
+    ggplot2::theme(legend.position = "bottom",
+                   plot.margin = ggplot2::margin(0L, 0L, 0L, 0L)) +
+    ggnewscale::new_scale_color()
+  #poplot(MA_plot, 12L, 22L)
+  MA_plot <- if (normMeth == "LOESS") {
+    MA_plot +
+      ggplot2::geom_smooth(ggplot2::aes(x = `A (mean log10 Intensity)`, y = `M (mean log2 FC)`, color = "LOESS", linetype = "LOESS"),
+                           method = "loess", formula = y ~ x, se = FALSE)
   } else {
-    MAplot +
-      geom_smooth(aes(x = `A (mean log10 Intensity)`, y = `M (mean log2 FC)`, color = "GAM", linetype = "GAM"),
-                  method = "gam", formula = y ~ s(x, bs = "cs"))
+    MA_plot +
+      ggplot2::geom_smooth(ggplot2::aes(x = `A (mean log10 Intensity)`, y = `M (mean log2 FC)`, color = "GAM", linetype = "GAM"),
+                           method = "gam", formula = y ~ s(x, bs = "cs"))
   }
-  MAplot <- MAplot +
-    scale_color_manual(name = "Method", values = c(LOESS = "green", GAM = "magenta")) +
-    scale_linetype_manual(name = "Method", values = c(LOESS = "dotted", GAM = "dashed"))
+  MA_plot <- MA_plot +
+    ggplot2::scale_color_manual(name = "Method", values = c(LOESS = "green", GAM = "magenta")) +
+    ggplot2::scale_linetype_manual(name = "Method", values = c(LOESS = "dotted", GAM = "dashed"))
   #
   tmpFl <- tempfile(fileext = ".RDS")
   readr::write_rds(datAB, tmpFl)
-  clusterExport(parClust,
-                list("MAplot", "tmpFl", "MAttl", "MAfl", "annotAB"),
-                envir = environment())
-  invisible(clusterCall(parClust, \() {
+  parallel::clusterExport(parClust,
+                          list("MA_plot", "tmpFl", "MAttl", "MAfl", "annotAB"),
+                          envir = environment())
+  invisible(parallel::clusterCall(parClust, \() {
     assign("datAB", readr::read_rds(tmpFl), envir = .GlobalEnv)
     return()
   }))
   unlink(tmpFl)
-  tmpMAplotFls <- setNames(parSapply(parClust, levels(datAB$Sample), \(smpl) { #smpl <- levels(datAB$Sample)[1L] 
+  tmp_MA_plot_fls <- setNames(parallel::parSapply(parClust, levels(datAB$Sample), \(smpl) { #smpl <- levels(datAB$Sample)[1L] 
     dat <- datAB[datAB$Sample == smpl,]
     ann <- annotAB[annotAB$Sample == smpl,]
-    MAplot$data <- dat
+    MA_plot$data <- dat
     ttl <- paste0(MAttl, " - ", smpl)
-    MAplot <- MAplot + ggplot2::ggtitle(ttl) +
+    MA_plot <- MA_plot + ggplot2::ggtitle(ttl) +
       ggplot2::geom_text(data = ann, ggplot2::aes(x = Amax, y = Y, label = Label), hjust = 1, size = 3L)
-    #proteoCraft::poplot(MAplot, 12L, 22L)
+    #proteoCraft::poplot(MA_plot, 12L, 22L)
     fl <- paste0(MAfl, " - ", smpl)
-    ggplot2::ggsave(paste0(fl, ".svg"), MAplot, width = 10L, units = "in")
+    ggplot2::ggsave(paste0(fl, ".svg"), MA_plot, width = 10L, units = "in")
     return(fl)
   }), levels(datAB$Sample))
   #
@@ -246,65 +232,65 @@ if (!inherits(tstNorm, "try-error")) {
     KeepShapeCorrRes <- TRUE # Default: keep results only if data is very significantly different
   }
   if (exists("IHAVERUN")) { rm(IHAVERUN) }
-  ui <- fluidPage(
-    tags$head(
-      tags$style(HTML("#MAplots img { min-width: 95%; height: auto; }")),
-      tags$style(HTML("#SDplots img { min-width: 95%; height: auto; }"))
+  ui <- shiny::fluidPage(
+    shiny::tags$head(
+      shiny::tags$style(shiny::HTML("#MA_plots img { min-width: 95%; height: auto; }")),
+      shiny::tags$style(shiny::HTML("#SDplots img { min-width: 95%; height: auto; }"))
     ),
-    useShinyjs(),
-    setBackgroundColor( # Doesn't work
+    shinyjs::useShinyjs(),
+    shinyWidgets::setBackgroundColor( # Doesn't work
       color = c(#"#F8F8FF",
         "#E9F2F7"),
       gradient = "linear",
       direction = "bottom"
     ),
-    extendShinyjs(text = jsFun$toggle_full_screen,
-                  functions = c("toggleFullScreen")),
-    tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-    titlePanel(tag("u", appNm),
-               appNm),
-    br(),
-    fluidRow(column(5L,
-                    checkboxInput("KeepResults", msg, KeepShapeCorrRes),
-                    actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-                    h4("Recommended criteria:"),
-                    h5(HTML("&nbsp;Does the original MA plot look like it is skewed?")),
-                    h5(HTML("&nbsp;&nbsp;-> If yes: accept the correction if the correction did remove the skew.")))),
-    br(),
-    fluidRow(column(12L,
-                    selectInput("my_MA_plot", "", names(tmpMAplotFls), names(tmpMAplotFls)[1L]),
-                    imageOutput("MAplot", inline = TRUE)),
-             if (normMeth == "VSN") {
-               fluidRow(column(12L,
-                               imageOutput("SDplots", inline = TRUE)))
-             },
+    shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                           functions = c("toggleFullScreen")),
+    shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+    shiny::titlePanel(shiny::tag("u", appNm),
+                      appNm),
+    shiny::br(),
+    shiny::fluidRow(shiny::column(5L,
+                                  shiny::checkboxInput("KeepResults", msg, KeepShapeCorrRes),
+                                  shiny::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
+                                  shiny::h4("Recommended criteria:"),
+                                  shiny::h5(shiny::HTML("&nbsp;Does the original MA plot look like it is skewed?")),
+                                  shiny::h5(shiny::HTML("&nbsp;&nbsp;-> If yes: accept the correction if the correction did remove the skew.")))),
+    shiny::br(),
+    shiny::fluidRow(shiny::column(12L,
+                                  shiny::selectInput("my_MA_plot", "", names(tmp_MA_plot_fls), names(tmp_MA_plot_fls)[1L]),
+                                  shiny::imageOutput("MA_plot", inline = TRUE)),
+                    if (normMeth == "VSN") {
+                      shiny::fluidRow(shiny::column(12L,
+                                                    shiny::imageOutput("SDplots", inline = TRUE)))
+                    },
     ),
-    br(),
-    br()
+    shiny::br(),
+    shiny::br()
   )
-  server <- function(input, output, session) {
+  server <- \(input, output, session) {
     updtMA <- \(reactive = TRUE) {
-      myMA <- { if (reactive) { input$my_MA_plot } else { names(tmpMAplotFls)[1L] } }
-      renderImage(list(src = paste0(tmpMAplotFls[myMA], ".svg"), # For now any MA plots will do if there are several
-                       contentType = "image/svg+xml",
-                       height = c("700px", "500px")[(normMeth == "VSN")+1L]),
-                  deleteFile = FALSE)
+      myMA <- { if (reactive) { input$my_MA_plot } else { names(tmp_MA_plot_fls)[1L] } }
+      shiny::renderImage(list(src = paste0(tmp_MA_plot_fls[myMA], ".svg"), # For now any MA plots will do if there are several
+                              contentType = "image/svg+xml",
+                              height = c("700px", "500px")[(normMeth == "VSN")+1L]),
+                         deleteFile = FALSE)
     }
-    output$MAplot <- updtMA(FALSE)
+    output$MA_plot <- updtMA(FALSE)
     #
-    observeEvent(input$my_MA_plot, {
-      output$MAplot <- updtMA()
+    shiny::observeEvent(input$my_MA_plot, {
+      output$MA_plot <- updtMA()
     }, ignoreNULL = FALSE)
     #
     if (normMeth == "VSN") {
-      output$SDplots <- renderPlot(SDplot, height = "500px")
+      output$SDplots <- shiny::renderPlot(SDplot, height = "500px")
     }
-    observeEvent(input$saveBtn, {
+    shiny::observeEvent(input$saveBtn, {
       assign("KeepShapeCorrRes", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
       assign("IHAVERUN", TRUE, .GlobalEnv)
-      stopApp()
+      shiny::stopApp()
     })
-    session$onSessionEnded(function() { stopApp() })
+    session$onSessionEnded(\() { shiny::stopApp() })
   }
   runKount <- 0L
   while ((!runKount) || (!exists("IHAVERUN"))) {

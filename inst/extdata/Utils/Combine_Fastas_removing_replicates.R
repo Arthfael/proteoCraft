@@ -3,16 +3,14 @@
 # This script combines all fastas in the destination folder below, removing any duplicate sequences #
 #                                                                                                   #
 #####################################################################################################
-require(proteoCraft)
 
 # Update the path below as needed:
 wd <- "...My_Dataset/FRAGPIPE_F_theoretical_amount_inj/combine_fasta"
 
-setwd(wd)
+proteoCraft::setwd(wd)
 destFl <- paste0(wd, "/Combined_fasta.fasta") # The destination file
 
 # Create parallel cluster
-require(parallel)
 N.clust <- parallel::detectCores()
 a <- 1
 tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)
@@ -23,12 +21,12 @@ if (inherits(tst, "try-error")) {
 
 # Scan folder for fasta files
 fastaFls <- list.files(wd, "\\.fasta$", full.names = TRUE)
-fastaFls <- fastaFls[which(fastaFls != destFl)]
+fastaFls <- base::setdiff(fastaFls, destFl)
 
-DBs <- parSapply(parClust, fastaFls, readr::read_lines()) # Read files,...
+DBs <- parallel::parSapply(parClust, fastaFls, readr::read_lines()) # Read files,...
 DBs <- unlist(DBs) # ... combine them as one character vector,...
 db <- Format.DB(DBs, in.env = TRUE, cl = parClust) # ... then process them as a data.frame, filtering out repeat sequences in the process.
 # (not the only way to do this, but the fastest to write)
 
 nrow(db) == length(unique(db$Sequence)) # Check that the result contains each sequence only once
-writeFasta(db, destFl) # Write results as fasta
+proteoCraft::writeFasta(db, destFl) # Write results as fasta

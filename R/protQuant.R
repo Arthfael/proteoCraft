@@ -248,10 +248,10 @@ protQuant <- function(Prot,
   #
   #    I considered including MSstats... but:
   #     - MSstats actually does not come with a real protein quantitation algorithm
-  #     - Its dataProcess() function provides log10 values which... are pre-modelling and DO NOT constitute LFQ
+  #     - Its MSstats::dataProcess() function provides log10 values which... are pre-modelling and DO NOT constitute LFQ
   #       (very poor correlation with other methods at both intensity and logFCs level)
   #     - MSstats provides average logFCs per contrast, not per sample... (then again, it is the same for limma or MSqRob)
-  #     - These av. logFCs are based on modelling the data (as part of groupComparison()) and are not consistent with the values provided by dataProcess()
+  #     - These av. logFCs are based on modelling the data (as part of MSstats::groupComparison()) and are not consistent with the values provided by MSstats::dataProcess()
   #    -> it is better to export the list of peptides used here for quantitation from this function,
   #    and then feed it to a standalone MSstats wrapper further down the road (as part of statistical testing).
   #    MSstats would then be best suited for the SAINTexpress treatment, i.e. with its own tab in the report!
@@ -418,7 +418,7 @@ protQuant <- function(Prot,
     } else {
       Pep.Ratios.Nms <- paste0(pepRat_root, mySmpls)
     }
-    Pep.Ratios.Nms <- intersect(Pep.Ratios.Nms, colnames(Pep))
+    Pep.Ratios.Nms <- base::intersect(Pep.Ratios.Nms, colnames(Pep))
     if (Priority == "rat") { stopifnot(length(Pep.Ratios.Nms) > 0L) }
   }
   #
@@ -1082,11 +1082,11 @@ protQuant <- function(Prot,
   # tst <- tst[(!is.na(tst$X)) & (!is.na(tst$Y)),]
   # tst$X_method <- factor(tst$X_method, levels = c("LM", "iq", "limpa", "QFeatures"))
   # tst$Y_method <- factor(tst$Y_method, levels = c("LM", "iq", "limpa", "QFeatures"))
-  # plot <- ggplot(tst) +
-  #   scattermore::geom_scattermore(aes(x = X, y = Y, color = Sample)) +
-  #   facet_grid(Sample~X_method*Y_method) + coord_fixed() +
-  #   theme_bw() + theme(strip.text.y = element_text(angle = 0)) +
-  #   ggtitle("log10 abundances")
+  # plot <- ggplot2::ggplot(tst) +
+  #   scattermore::geom_scattermore(ggplot2::aes(x = X, y = Y, color = Sample)) +
+  #   ggplot2::facet_grid(Sample~X_method*Y_method) + ggplot2::coord_fixed() +
+  #   ggplot2::theme_bw() + ggplot2::theme(strip.text.y = ggplot2::element_text(angle = 0)) +
+  #   ggplot2::ggtitle("log10 abundances")
   # poplot(plot, 12, 22)
   # #
   # em <- expMap
@@ -1145,11 +1145,11 @@ protQuant <- function(Prot,
   # tst <- tst[(!is.na(tst$X)) & (!is.na(tst$Y)),]
   # tst$X_method <- factor(tst$X_method, levels = c("LM", "iq", "limpa", "QFeatures", "MSstats"))
   # tst$Y_method <- factor(tst$Y_method, levels = c("LM", "iq", "limpa", "QFeatures", "MSstats"))
-  # plot <- ggplot(tst) +
-  #   scattermore::geom_scattermore(aes(x = X, y = Y, color = Group)) +
-  #   facet_grid(Group~X_method*Y_method) + coord_fixed() +
-  #   theme_bw() + theme(strip.text.y = element_text(angle = 0)) +
-  #   ggtitle("avg. logFCs")
+  # plot <- ggplot2::ggplot(tst) +
+  #   scattermore::geom_scattermore(ggplot2::aes(x = X, y = Y, color = Group)) +
+  #   ggplot2::facet_grid(Group~X_method*Y_method) + ggplot2::coord_fixed() +
+  #   ggplot2::theme_bw() + ggplot2::theme(strip.text.y = ggplot2::element_text(angle = 0)) +
+  #   ggplot2::ggtitle("avg. logFCs")
   # poplot(plot, 12, 22)
   #######
   # End #

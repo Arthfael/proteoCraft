@@ -1,12 +1,5 @@
-library(proteoCraft)
-#if (!require(R.utils)) { pak::pak("R.utils") }
-#library(R.utils)
-library(proteoCraft)
-
 # Set up virtual environment using reticulate
 #Sys.setenv(RETICULATE_PYTHON = "C:\\Program Files\\")
-if (!require(reticulate)) { pak::pak("reticulate") }
-library(reticulate) # Note! We use reticulate mostly for a few convenient functions,
 # but after that we run Python through command line!
 # Using reticulate has these issues:
 #   - For us at least it fails in some cases where command line works.
@@ -51,18 +44,18 @@ if ("Python" %in% locDirs$Folder) {
     } else { x <- NA_character_ }
     return(x)
   }, "")
-  pyPaths <- py_versions_windows()
+  pyPaths <- reticulate::py_versions_windows()
   pyPaths <- rbind(pyPaths, tmp2)
   pyFound <- FALSE
   if (!nrow(pyPaths)) {
     stop("A valid installation of python is required!")
     # Below:
     # Code for installing python from reticulate... which currently fails!
-    #vers <- rev(grep("-win32$", install_python(list = TRUE), invert = TRUE, value = TRUE))[1]
-    #vers <- rev(grep("-win32$", grep("^3\\.10\\.", install_python(list = TRUE), value = TRUE), invert = TRUE, value = TRUE))[1]
+    #vers <- rev(grep("-win32$", reticulate::install_python(list = TRUE), invert = TRUE, value = TRUE))[1]
+    #vers <- rev(grep("-win32$", grep("^3\\.10\\.", reticulate::install_python(list = TRUE), value = TRUE), invert = TRUE, value = TRUE))[1]
     #vers <- "3.10.5"
     #vers <- "3.10.4"
-    #pyPaths <- install_python(vers, force = TRUE)
+    #pyPaths <- reticulate::install_python(vers, force = TRUE)
     #pyFound <- TRUE
   } else {
     if (nrow(pyPaths) > 1L) {
@@ -71,7 +64,7 @@ if ("Python" %in% locDirs$Folder) {
              which(!pyPaths$type %in% c("PythonCore", "Anaconda")))
       pyPaths <- pyPaths[w,]
       tst <- strsplit(pyPaths$version, "\\.")
-      mx <- max(sapply(tst, length))
+      mx <- max(lengths(tst))
       tst <- as.data.frame(t(sapply(tst, \(x) {
         l <- length(x)
         if (l < mx) { x <- c(x, rep(NA, mx-l)) }
@@ -79,7 +72,7 @@ if ("Python" %in% locDirs$Folder) {
       })))
       pyPaths[, c("V1", "V2", "V3")] <- tst
       # Currently, tensorflow is not supported for Python > 3.10 
-      w <- which((pyPaths$V1 < 3L)|((pyPaths$V1 == 3L)&(pyPaths$V2 <= 10L)))
+      w <- which((pyPaths$V1 < 3L) | ((pyPaths$V1 == 3L) & (pyPaths$V2 <= 10L)))
       pyPaths <- pyPaths[w,]
       if (length(w)) { pyPaths <- pyPaths[order(pyPaths$V1, pyPaths$V2, pyPaths$V3, decreasing = TRUE),] }
     }
@@ -88,7 +81,7 @@ if ("Python" %in% locDirs$Folder) {
       while ((!k) || inherits(tst, "try-error")) {
         k <- k+1L
         pyPath <- pyPaths$executable_path[k]
-        tst <- try(use_python(pyPath), silent = TRUE) # Wrapped in try
+        tst <- try(reticulate::use_python(pyPath), silent = TRUE) # Wrapped in try
       }
       pyFound <- k <= nrow(pyPaths)
     }
@@ -96,7 +89,6 @@ if ("Python" %in% locDirs$Folder) {
   stopifnot(pyFound)
   pyPath <- gsub("\\\\+", "\\\\", pyPath)
 }
-
 
 #
 cmd <- paste0("\"", pyPath, "\" -m pip install --upgrade pip")
@@ -113,14 +105,14 @@ for (pyPack in pyPacks) {
 }
 #
 # Remove virtual environment
-pyEnvPath <- paste0(myHome, gsub("~/", "\\\\Documents\\\\", virtualenv_root()), "\\", pyEnv)
+pyEnvPath <- paste0(myHome, gsub("~/", "\\\\Documents\\\\", reticulate::virtualenv_root()), "\\", pyEnv)
 cmd <- paste0("\"", pyPath, "\" -m virtualenv --python=\"", pyPath,"\" \"", pyEnvPath, "\"")
 cat(cmd)
 system(cmd)
 # Load venv and modules
-#cmd <- paste0(myHome, gsub("~/", "\\\\Documents\\\\", virtualenv_root()), "\\", pyEnv, "\\Scripts\\deactivate.bat")
+#cmd <- paste0(myHome, gsub("~/", "\\\\Documents\\\\", reticulate::virtualenv_root()), "\\", pyEnv, "\\Scripts\\deactivate.bat")
 #system(cmd)
-cmd <- paste0(myHome, gsub("~/", "\\\\Documents\\\\", virtualenv_root()), "\\", pyEnv, "\\Scripts\\activate")
+cmd <- paste0(myHome, gsub("~/", "\\\\Documents\\\\", reticulate::virtualenv_root()), "\\", pyEnv, "\\Scripts\\activate")
 #cat(cmd)
 system(cmd)
 

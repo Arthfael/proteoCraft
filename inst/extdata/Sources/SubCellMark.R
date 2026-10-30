@@ -1,5 +1,4 @@
 if (Annotate) {
-  require(pRoloc)
   # Define subcellular "Markers" useable by various steps of the workflow
   CompGOTerms %<o% setNames(c("GO:0005634", "GO:0005654", "GO:0000785", "GO:0005730", "GO:0005635", "GO:0005737", "GO:0005829",
                               "GO:0005783", "GO:0005794", "GO:0031988", "GO:0005739", "GO:0009536", "GO:0005886"),
@@ -20,7 +19,7 @@ if (Annotate) {
   }
   tstSp <- tolower(unlist(strsplit(tstSp, " ")))
   tstSp <- paste0(substr(tstSp[1L], 1L, 1L), substr(tstSp[2L], 1L, 3L))
-  tst2 <- capture.output(pRolocmarkers())
+  tst2 <- capture.output(pRoloc::pRolocmarkers())
   tst2 <- tst2[2L:length(tst2)]
   l2 <- length(tst2)
   tst2 <- data.frame(Species = tst2[c(1L:(l2/2L))*2L-1L],
@@ -28,7 +27,7 @@ if (Annotate) {
   tst2$SpTag <- gsub("^[^[]+\\[|(\\]|_).*:$", "", tst2$Species)
   useProloc <- (tstSp %in% tst2$SpTag)
   if (useProloc) { # Use pRoloc markers if our species is available in pRoloc...
-    SubCellMark <- pRolocmarkers(tstSp)
+    SubCellMark <- pRoloc::pRolocmarkers(tstSp)
     tst <- data.frame(Comp = SubCellMark,
                       Mark = names(SubCellMark) %in% db$`Protein ID`)
     tst <- aggregate(tst$Mark, list(tst$Comp), sum)
@@ -49,10 +48,11 @@ if (Annotate) {
   SubCellMark %<o% SubCellMark
   #
   # Annotate PG
-  if ((exists("PG"))&&(length(SubCellMark))) {
+  if (exists("PG") && length(SubCellMark)) {
     tst <- listMelt(strsplit(PG$`Leading protein IDs`, ";"), ColNames = c("Accession", "Row"))
     tst <- tst[tst$Accession %in% names(SubCellMark),]
     tst$Comp <- SubCellMark[match(tst$Accession, names(SubCellMark))]
+    requireNamespace("data.table")
     tst <- as.data.table(tst)
     tst <- tst[, .(Comp = list(unique(Comp))), by = .(Row = as.integer(Row))]
     tst <- as.data.frame(tst)

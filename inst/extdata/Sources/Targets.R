@@ -1,10 +1,10 @@
 if ("Target" %in% colnames(Exp.map)) {
   TargetProteins %<o% unique(unlist(strsplit(Exp.map$Target[!is.na(Exp.map$Target)], ";")))
-  TargetProteins <- setdiff(TargetProteins, c("NA", "", "Control"))
+  TargetProteins <- base::setdiff(TargetProteins, c("NA", "", "Control"))
   w <- which(!TargetProteins %in% db$`Protein ID`)
   if (length(w)) {
     targProt <- setNames(rep(NA, length(w)), TargetProteins[w])
-    protHeads3 <- c(protHeads2[intersect(prot.list, names(protHeads2))], "Other")
+    protHeads3 <- c(protHeads2[base::intersect(prot.list, names(protHeads2))], "Other")
     names(protHeads3) <- NULL
     appNm <- paste0(dtstNm, " - Baits")
     dfltProt <- setNames(lapply(w, \(x) {
@@ -18,75 +18,78 @@ if ("Target" %in% colnames(Exp.map)) {
       return(x)
     }), TargetProteins[w])
     tmpList <- list(lapply(TargetProteins[w], \(id) {
-      list(list(br()),
-           fluidRow(column(5L, pickerInput(id,
-                                          id,
-                                          protHeads3,
-                                          dfltProt[[id]],
-                                          inline = TRUE,
-                                          width = "300px",
-                                          options = pickerOptions(title = "Search me",
-                                                                  `live-search` = TRUE,
-                                                                  actionsBox = TRUE,
-                                                                  deselectAllText = "Clear search",
-                                                                  showTick = TRUE))),
-                    column(1L, " or... "),
-                    column(6L, textInput(paste0(id, "_free"),
-                                        "",
-                                        dfltProt2[[id]],
-                                        placeholder = "... enter UniProt accession"))),
-           list(br()))
+      list(list(shiny::br()),
+           shiny::fluidRow(shiny::column(5L,
+                                         shinyWidgets::pickerInput(id,
+                                                                   id,
+                                                                   protHeads3,
+                                                                   dfltProt[[id]],
+                                                                   inline = TRUE,
+                                                                   width = "300px",
+                                                                   options = shinyWidgets::pickerOptions(title = "Search me",
+                                                                                                         `live-search` = TRUE,
+                                                                                                         actionsBox = TRUE,
+                                                                                                         deselectAllText = "Clear search",
+                                                                                                         showTick = TRUE))),
+                           shiny::column(1L,
+                                         " or... "),
+                           shiny::column(6L,
+                                         shiny::textInput(paste0(id, "_free"),
+                                                          "",
+                                                          dfltProt2[[id]],
+                                                          placeholder = "... enter UniProt accession"))),
+           list(shiny::br()))
     }))
-    ui <- fluidPage(
-      useShinyjs(),
-      extendShinyjs(text = jsFun$toggle_full_screen,
-                    functions = c("toggleFullScreen")),
-      titlePanel(tag("u", "Map pull-down baits to protein Accessions"),
-                 appNm),
-      br(),
-      h5("Map Target names to accessions in the search database."),
-      h5(em("(Ignore cases, such as Control/Ctrl/IgGminus/etc... where this is not feasible.)")),
-      withSpinner(uiOutput("Baits")),
-      actionButton("saveBtn", "Save"),
-      br(),
-      br()
+    ui <- shiny::fluidPage(
+      shinyjs::useShinyjs(),
+      shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                             functions = c("toggleFullScreen")),
+      shiny::titlePanel(shiny::tag("u", "Map pull-down baits to protein Accessions"),
+                        appNm),
+      shiny::br(),
+      shiny::h5("Map Target names to accessions in the search database."),
+      shiny::h5(shiny::em("(Ignore cases, such as Control/Ctrl/IgGminus/etc... where this is not feasible.)")),
+      shinycssloaders::withSpinner(shiny::uiOutput("Baits")),
+      shiny::actionButton("saveBtn", "Save"),
+      shiny::br(),
+      shiny::br()
     )
     server <- \(input, output, session) {
-      TARGPROT <- reactiveVal(targProt)
-      output$Baits <- renderUI({ tmpList })
+      TARGPROT <- shiny::reactiveVal(targProt)
+      output$Baits <- shiny::renderUI({ tmpList })
       sapply(TargetProteins[w], \(id) {
         id2 <- paste0(id, "_free")
-        observeEvent(input[[id]],
-                     {
-                       tmp <- TARGPROT()
-                       tmp[id] <- input[[id]]
-                       TARGPROT(tmp)
-                       if (sum(is.na(tmp))) {
-                         shinyjs::disable("saveBtn")
-                       } else {
-                         shinyjs::enable("saveBtn")
-                       }
-                     })
-        observeEvent(input[[id2]],
-                     {
-                       tmp <- TARGPROT()
-                       tmp[id] <- input[[id2]]
-                       TARGPROT(tmp)
-                       if (sum(is.na(tmp))) {
-                         shinyjs::disable("saveBtn")
-                       } else {
-                         shinyjs::enable("saveBtn")
-                       }
-                     })
+        shiny::observeEvent(input[[id]],
+                            {
+                              tmp <- TARGPROT()
+                              tmp[id] <- input[[id]]
+                              TARGPROT(tmp)
+                              if (sum(is.na(tmp))) {
+                                shinyjs::disable("saveBtn")
+                              } else {
+                                shinyjs::enable("saveBtn")
+                              }
+                            })
+        shiny::observeEvent(input[[id2]],
+                            {
+                              tmp <- TARGPROT()
+                              tmp[id] <- input[[id2]]
+                              TARGPROT(tmp)
+                              if (sum(is.na(tmp))) {
+                                shinyjs::disable("saveBtn")
+                              } else {
+                                shinyjs::enable("saveBtn")
+                              }
+                            })
       })
-      observeEvent(input$saveBtn, {
+      shiny::observeEvent(input$saveBtn, {
         sapply(TargetProteins[w], \(id) {
           assign("targProt", TARGPROT(), envir = .GlobalEnv)
         })
-        stopApp()
+        shiny::stopApp()
       })
-      #observeEvent(input$cancel, { stopApp() })
-      session$onSessionEnded(\() { stopApp() })
+      #observeEvent(input$cancel, { shiny::stopApp() })
+      session$onSessionEnded(\() { shiny::stopApp() })
     }
     # Modify App so that any remaining NAs turn off saving/closing the App!
     g <- shiny:::.globals
@@ -110,7 +113,7 @@ if ("Target" %in% colnames(Exp.map)) {
     }
     if (length(w2)) {
       tmp <- targProt[w2]
-      tmp <- setdiff(tmp, "Other")
+      tmp <- base::setdiff(tmp, "Other")
       m <- match(tmp, protHeads2)
       w3 <- which(!is.na(m))
       targProt[w2[w3]] <- names(protHeads2)[m[w3]]

@@ -7,14 +7,7 @@
 #runRankAbundPlots %<o% TRUE
 #runProfPlots %<o% TRUE
 if (runRankAbundPlots || runProfPlots) {
-  library(ggplot2)
-  library(RColorBrewer)
-  #library(colorspace)
-  library(ggplot2)
-  library(plotly)
-  library(AnnotationDbi)
-  library(htmlwidgets)
-  #
+  requireNamespace("data.table")
   # Change this hidden parameter to not trim subspecies tags
   #spLevel <- "subspecies"
   spLevel <- "species"
@@ -40,10 +33,10 @@ if (runRankAbundPlots || runProfPlots) {
   for (dr in c(MainDir, MainDir2)) {
     if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
   }
-  if (scrptType == "withReps") { dirlist <- union(dirlist, c(MainDir, MainDir2)) }
+  if (scrptType == "withReps") { dirlist <- base::union(dirlist, c(MainDir, MainDir2)) }
   for (quantType in QuantTypes) { #quantType <- QuantTypes[1L] #quantType <- "LFQ" #QuantType <- "Coverage"
     subDir <- paste0(MainDir, "/", quantType)
-    if (scrptType == "withReps") { dirlist <- union(dirlist, subDir) }
+    if (scrptType == "withReps") { dirlist <- base::union(dirlist, subDir) }
     if (!dir.exists(subDir)) { dir.create(subDir, recursive = TRUE) }
   }
   #
@@ -52,24 +45,24 @@ if (runRankAbundPlots || runProfPlots) {
   if (prot.list.Cond) {
     if (!"In list" %in% colnames(PG)) { PG$"In list" <- c("", "+")[grsep(prot.list, x = PG$`Protein IDs`, mode = "grepl")+1L] }
     if (!"In list" %in% colnames(pep)) { pep$"In list" <- c("", "+")[grsep(prot.list, x = pep$Proteins, mode = "grepl")+1L] }
-    PG_varkol <- union(PG_varkol, "In list")
-    pep_varkol <- union(pep_varkol, "In list")
+    PG_varkol <- base::union(PG_varkol, "In list")
+    pep_varkol <- base::union(pep_varkol, "In list")
   }
   if ("GO-ID" %in% colnames(PG)) {
-    PG_varkol <- union(PG_varkol, "GO-ID")
+    PG_varkol <- base::union(PG_varkol, "GO-ID")
   }
   klstKol <- c()
   if (exists("KlustKols") && length(KlustKols)) {
     klstKol <- grep(" - Global$", KlustKols, value = TRUE)[1L]
     if (length(klstKol) == 1L) {
-      PG_varkol <-  union(PG_varkol, klstKol)
+      PG_varkol <- base::union(PG_varkol, klstKol)
     } 
   }
   tstOrg2 %<o% c()
   if (tstOrg) {
     tmp1 <- as.data.table(listMelt(setNames(strsplit(PG$`Protein IDs`, ";"), 1L:nrow(PG))))
     tmp2 <- as.data.table(listMelt(setNames(strsplit(pep$Proteins, ";"), 1L:nrow(pep))))
-    tmp <- union(tmp1$value, tmp2$value)
+    tmp <- base::union(tmp1$value, tmp2$value)
     tmp <- data.frame(ID = tmp,
                       Org = db[match(tmp, db$`Protein ID`),
                                dbOrgKol])
@@ -78,7 +71,7 @@ if (runRankAbundPlots || runProfPlots) {
     tmp1$Org <- tmp$Org[match(tmp1$value, tmp$ID)]
     tmp2$Org <- tmp$Org[match(tmp2$value, tmp$ID)]
     f0 <- \(x) {
-      paste(union(Org$Organism, sort(x)), collapse = ";")
+      paste(base::union(Org$Organism, sort(x)), collapse = ";")
     }
     tmp1 <- tmp1[, .(Org = f0(Org)), by = .(row = as.integer(L1))]
     tmp2 <- tmp2[, .(Org = f0(Org)), by = .(row = as.integer(L1))]
@@ -91,12 +84,12 @@ if (runRankAbundPlots || runProfPlots) {
       PG$"Org. label"[PG$`In list` == "+"] <- "In list"
       pep$"Org. label"[pep$`In list` == "+"] <- "In list"
     }
-    PG_varkol <- union(PG_varkol, "Org. label")
-    pep_varkol <- union(pep_varkol, "Org. label")
+    PG_varkol <- base::union(PG_varkol, "Org. label")
+    pep_varkol <- base::union(pep_varkol, "Org. label")
     tstOrg2 <- aggregate(tstOrg2, list(tstOrg2), length)
     tstOrg2 <- tstOrg2[order(tstOrg2$x, decreasing = TRUE),]
     tstOrg2 <- tstOrg2$Group.1[tstOrg2$x > 1L]
-    tstOrg2 <- setdiff(tstOrg2, c("Contaminant", "In list"))
+    tstOrg2 <- base::setdiff(tstOrg2, c("Contaminant", "In list"))
   }
   Org_Nms %<o% abbrOrg(tstOrg2)
   #
@@ -113,11 +106,11 @@ if (runRankAbundPlots || runProfPlots) {
   #myColorsB[[c("+", "In list")[(lOrg > 0)+1L]]] <- myColors[[c("+", "In list")[(lOrg > 0)+1L]]] <- "red"
   myColors["Specific"] <- "purple"
   myColors["In list"] <- "brown"
-  colScale <- scale_colour_manual(name = "Category", values = myColors)
-  #colScaleB <- scale_colour_manual(name = "Category", values = myColorsB)
-  fillScale <- scale_fill_manual(name = "Category", values = myColors)
-  colScale2 <- scale_colour_manual(name = "In list", values = myColors2)
-  fillScale2 <- scale_fill_manual(name = "In list", values = myColors2)
+  colScale <- ggplot2::scale_colour_manual(name = "Category", values = myColors)
+  #colScaleB <- ggplot2::scale_colour_manual(name = "Category", values = myColorsB)
+  fillScale <- ggplot2::scale_fill_manual(name = "Category", values = myColors)
+  colScale2 <- ggplot2::scale_colour_manual(name = "In list", values = myColors2)
+  fillScale2 <- ggplot2::scale_fill_manual(name = "In list", values = myColors2)
   #
   if (scrptType == "withReps") {
     PG_ref <- paste0("Mean ", prtRfRoot)
@@ -128,13 +121,13 @@ if (runRankAbundPlots || runProfPlots) {
     GO_filt %<o% (length(GO_PG_col) > 0L)
     if (GO_filt) {
       if ((!exists("GO_terms")) && file.exists(paste0(wd, "/GO_terms.RDS"))) { loadFun(paste0(wd, "/GO_terms.RDS")) }
-      GO_PG_col <- intersect(GO_PG_col, GO_terms$ID)
+      GO_PG_col <- base::intersect(GO_PG_col, GO_terms$ID)
       GO_filt <- length(GO_PG_col) > 0L
     }
     GO_filter <- GO_PG_col
   }
   if (scrptType == "noReps") {
-    PG_ref <- rev(setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
+    PG_ref <- rev(base::setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
     pep_ref <- paste0(int.cols["Original"], " - ")
     mySamples <- Exp
     if (GO_filt) {
@@ -167,11 +160,11 @@ if (runRankAbundPlots || runProfPlots) {
   if (scrptType == "noReps") {
     # Currently left out for replicates script because there isn't any-more a 1:1 relationship between tests and sample groups!
     PG_regKol <- pep_regKol <- paste0("Regulated - ", mySamples)
-    PG_regKol <- intersect(PG_regKol, colnames(PG))
-    pep_regKol <- intersect(pep_regKol, colnames(pep))
+    PG_regKol <- base::intersect(PG_regKol, colnames(PG))
+    pep_regKol <- base::intersect(pep_regKol, colnames(pep))
   }
   PG_kntKol <- paste0("Peptides count - ", mySamples)
-  PG_kntKol <- intersect(PG_kntKol, colnames(PG))
+  PG_kntKol <- base::intersect(PG_kntKol, colnames(PG))
   myPG <- PG[, c(all_PG_kol, PG_varkol, PG_kntKol)]
   if ((scrptType == "noReps") && length(PG_regKol)) {
     myPG[, PG_regKol] <- PG[, PG_regKol]
@@ -209,18 +202,18 @@ if (runRankAbundPlots || runProfPlots) {
     myPG$Category <- "-"
     myPep$Category <- "-"
   }
-  PG_varkol <- union(PG_varkol, "Category")
-  pep_varkol <- union(pep_varkol, "Category")
+  PG_varkol <- base::union(PG_varkol, "Category")
+  pep_varkol <- base::union(pep_varkol, "Category")
   if (prot.list.Cond) {
     tst <- (lOrg > 0L)+1L
     myPG$Category[myPG$"In list" == "+"] <- c("+", "In list")[tst]
     myPep$Category[myPep$"In list" == "+"] <- c("+", "In list")[tst]
   }
-  lev <- union(c("In list", "+", tstOrg2, "-", "Contaminant"),
-               unique(myPG$Category) # This last bit as a safeguard against hiccups
-               )
-  lev1 <- intersect(lev, unique(myPG$Category))
-  lev2 <- intersect(lev, unique(myPep$Category))
+  lev <- base::union(c("In list", "+", tstOrg2, "-", "Contaminant"),
+                     unique(myPG$Category) # This last bit as a safeguard against hiccups
+                     )
+  lev1 <- base::intersect(lev, unique(myPG$Category))
+  lev2 <- base::intersect(lev, unique(myPep$Category))
   myPG$Category <- factor(myPG$Category, levels = lev1)
   myPep$Category <- factor(myPep$Category, levels = lev2)
   #
@@ -240,9 +233,9 @@ if (runRankAbundPlots || runProfPlots) {
         myPG[[goID]] <- "-"
         wtst <- unique(tmp$row[tmp$GO %in% gofilter])
         myPG[wtst, goID] <- "+"
-        PG_varkol <- union(PG_varkol, goID)
+        PG_varkol <- base::union(PG_varkol, goID)
       } else {
-        myFlt <- setdiff(myFlt, goID) # Not setdiff, it strips names!!!
+        myFlt <- myFlt[which(!myFlt %in% goID)] # Not setdiff, it strips names!!!
       }
     }
     if (length(myFlt)) {
@@ -257,13 +250,13 @@ if (runRankAbundPlots || runProfPlots) {
   myPG2 <- as.data.frame(myPG2)
   myPG2$Protein_group <- "darkgrey"
   w <- which(myPG2$x == "Contaminant")
-  suppressWarnings(myPG2$Protein_group[w] <- brewer.pal(min(c(length(w), 12L)), "Blues"))
+  suppressWarnings(myPG2$Protein_group[w] <- RColorBrewer::brewer.pal(min(c(length(w), 12L)), "Blues"))
   w <- which(myPG2$x %in% tstOrg2)
   myPG2$Protein_group[w] <- rainbow_hcl(length(w))
   w <- which(myPG2$x %in% c("In list",  "+"))
   myPG2$Protein_group[w] <- "red"
   myPG$Protein_group <- myPG2$Protein_group[match(myPG$`Protein Group`, myPG2$Group.1)]
-  PG_varkol <- union(PG_varkol, "Protein_group")
+  PG_varkol <- base::union(PG_varkol, "Protein_group")
   #
   myPep2 <- data.table(Category = myPep$Category,
                        Pep = myPep$`Modified sequence`)
@@ -272,13 +265,13 @@ if (runRankAbundPlots || runProfPlots) {
   myPep2 <- as.data.frame(myPep2)
   myPep2$Peptidoform <- "darkgrey"
   w <- which(myPep2$x == "Contaminant")
-  suppressWarnings(myPep2$Peptidoform[w] <- brewer.pal(min(c(length(w), 12L)), "Blues"))
+  suppressWarnings(myPep2$Peptidoform[w] <- RColorBrewer::brewer.pal(min(c(length(w), 12L)), "Blues"))
   w <- which(myPep2$x %in% tstOrg2)
   myPep2$Peptidoform[w] <- rainbow_hcl(length(w))
   w <- which(myPep2$x %in% c("In list",  "+"))
   myPep2$Peptidoform[w] <- "red"
   myPep$Peptidoform <- myPep2$Peptidoform[match(myPep$`Modified sequence`, myPep2$Group.1)]
-  pep_varkol <- union(pep_varkol, "Peptidoform")
+  pep_varkol <- base::union(pep_varkol, "Peptidoform")
   #
   #
   # Define data frame of plots to draw in parallel:
@@ -303,10 +296,10 @@ if (runRankAbundPlots || runProfPlots) {
   #     PltTst[goID] <- length(w) > 0L
   #     if (PltTst[goID]) {
   #       myPG[[goID]] <- 1L:nrow(myPG) %in% tmp$L1[tmp$value == goID]
-  #       PG_varkol <- union(PG_varkol, goID)
+  #       PG_varkol <- base::union(PG_varkol, goID)
   #     }
   #   }
-  #   PG_varkol <- setdiff(PG_varkol, "GO-ID")
+  #   PG_varkol <- base::setdiff(PG_varkol, "GO-ID")
   # }
   PltTst <- PltTst[PltTst]
   samplesDF1 <- lapply(names(PltTst), \(x) {
@@ -349,26 +342,18 @@ if (runRankAbundPlots || runProfPlots) {
   exports <- c("samplesDF", "tmpFl1", "tmpFl2", "wd", "MainDir", "MainDir2", "PG_varkol", "pep_varkol",
                "WorkFlow", "GO_filt", "runMark", "MakeRatios", "mySamples", "QuantTypes", "QuantTypes_ref", "pepQuantTypes", "pepQuantTypes_ref",
                "colScale", "fillScale", "colScale2", "fillScale2", "Exp", "scrptType", "tstOrg2", "myFlt", "jsFun")
-  if (GO_filt) { exports <- union(exports, "GO_filter") }
-  if (length(myFlt)) { exports <- union(exports, c("CompGOTerms", "myGOcolors")) }
+  if (GO_filt) { exports <- base::union(exports, "GO_filter") }
+  if (length(myFlt)) { exports <- base::union(exports, c("CompGOTerms", "myGOcolors")) }
   exports <- as.list(exports)
-  clusterExport(parClust, exports, envir = environment())
+  parallel::clusterExport(parClust, exports, envir = environment())
   readr::write_rds(myPG, tmpFl1)
   readr::write_rds(myPep, tmpFl2)
-  invisible(clusterCall(parClust, \() {
-    library(ggplot2)
-    library(RColorBrewer)
-    #library(colorspace)
-    library(ggplot2)
-    library(plotly)
-    library(AnnotationDbi)
-    library(htmlwidgets)
-    library(proteoCraft)
+  invisible(parallel::clusterCall(parClust, \() {
     assign("myPG", readr::read_rds(tmpFl1), .GlobalEnv)
     assign("myPep", readr::read_rds(tmpFl2), .GlobalEnv)
     return()
   }))
-  tmPlots <- try(clusterApplyLB(parClust, 1L:nrow(samplesDF), .plot_Rank_OR_Prof), silent = TRUE)
+  tmPlots <- try(parallel::clusterApplyLB(parClust, 1L:nrow(samplesDF), .plot_Rank_OR_Prof), silent = TRUE)
   if (inherits(tmPlots, "try-error")) { stop(paste(c("Error: something's gone wrong:", tmPlots), collapse = "\n")) }
   unlink(tmpFl1)
   unlink(tmpFl2)

@@ -1,18 +1,20 @@
 # Special quality control tab
 repFl2 <- sub("\\.xlsx$", "_TEMP.xlsx", repFl) # Temporary file still with the tags in the header which we will replace with line breaks!
 sheetnm <- "Quality control"
-sheetnmsA <- unique(c(sheetnmsA, sheetnm))
-if (sheetnm %in% wb_get_sheet_names(WorkBook)) { WorkBook <- wb_remove_worksheet(WorkBook, sheetnm) }
-WorkBook <- wb_add_worksheet(WorkBook, sheetnm, grid_lines = FALSE)
-dimsA <- wb_dims(2L, 2L)
-WorkBook <- wb_add_data(WorkBook, sheetnm, "Summary plots and tables", dimsA)
-stl <- wb_get_cell_style(WorkBook, "tmp", wb_dims(match("Header 1", styleNms), 1L))
-if (stl != "") { WorkBook <- wb_set_cell_style(WorkBook, sheetnm, dimsA, stl) }
-WorkBook <- wb_add_cell_style(WorkBook, sheetnm, dimsA, wrap_text = FALSE)
-WorkBook <- wb_set_col_widths(WorkBook, sheetnm, 1L, 5L)
+sheetnmsA <- base::union(sheetnmsA, sheetnm)
+if (sheetnm %in% openxlsx2::wb_get_sheet_names(WorkBook)) {
+  WorkBook <- openxlsx2::wb_remove_worksheet(WorkBook, sheetnm)
+}
+WorkBook <- openxlsx2::wb_add_worksheet(WorkBook, sheetnm, grid_lines = FALSE)
+dimsA <- openxlsx2::wb_dims(2L, 2L)
+WorkBook <- openxlsx2::wb_add_data(WorkBook, sheetnm, "Summary plots and tables", dimsA)
+stl <- openxlsx2::wb_get_cell_style(WorkBook, "tmp", openxlsx2::wb_dims(match("Header 1", styleNms), 1L))
+if (stl != "") { WorkBook <- openxlsx2::wb_set_cell_style(WorkBook, sheetnm, dimsA, stl) }
+WorkBook <- openxlsx2::wb_add_cell_style(WorkBook, sheetnm, dimsA, wrap_text = FALSE)
+WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, 1L, 5L)
 tmp <- ceiling(nchar("Summary plots and tables")/8.43)*8.43+5
-WorkBook <- wb_set_col_widths(WorkBook, sheetnm, 2L, tmp)
-WorkBook <- wb_set_row_heights(WorkBook, sheetnm, 1L, 15L)
+WorkBook <- openxlsx2::wb_set_col_widths(WorkBook, sheetnm, 2L, tmp)
+WorkBook <- openxlsx2::wb_set_row_heights(WorkBook, sheetnm, 1L, 15L)
 colWdths <- rep(8.43, 1000L) # Should be enough, what say you?
 colWdths[1L] <- 5L
 colWdths[2L] <- tmp
@@ -64,45 +66,48 @@ if (nImgs) {
   }, 1L)
   #View(flsTbl[, c("File", "Height", "Width", "Row", "Col")])
   for (i in 1L:nImgs) {
-    WorkBook <- wb_add_image(WorkBook, sheetnm, wb_dims(flsTbl$Row[i],
-                                                        flsTbl$Col[i]),
-                             flsTbl$File[i],
-                             flsTbl$Width_Xl[i],
-                             flsTbl$Height_Xl[i])
+    WorkBook <- openxlsx2::wb_add_image(WorkBook, sheetnm,
+                                        openxlsx2::wb_dims(flsTbl$Row[i],
+                                                           flsTbl$Col[i]),
+                                        flsTbl$File[i],
+                                        flsTbl$Width_Xl[i],
+                                        flsTbl$Height_Xl[i])
   }
   o <- o + max(flsTbl$Row)
 }
 # QC tables
-dms <- wb_dims(2L + o, 2L)
+dms <- openxlsx2::wb_dims(2L + o, 2L)
 if (exists("Exp_summary")) {
-  WorkBook <- wb_add_data_table(WorkBook, sheetnm, Exp_summary,
-                                dms, col_names = TRUE, row_names = FALSE,
-                                table_name = "Experiment_overview",
-                                first_column = TRUE,
-                                banded_rows = TRUE)
+  WorkBook <- openxlsx2::wb_add_data_table(WorkBook, sheetnm, Exp_summary,
+                                           dms, col_names = TRUE, row_names = FALSE,
+                                           table_name = "Experiment_overview",
+                                           first_column = TRUE,
+                                           banded_rows = TRUE)
   XpSum_OS <- nrow(Exp_summary) + 2L 
 } else { XpSum_OS <- 0L }
 if (exists("Modifs")) {
   temp <- Modifs[, c("Full name", "Mark", "Type", "AA")]
   w <- which(vapply(colnames(temp), \(x) { inherits(temp[[x]], "list") }, TRUE))
   if (length(w)) { for (k in colnames(temp)[w]) { temp[[k]] <- vapply(temp[[k]], paste, "", collapse = ", ") } }
-  dms <- wb_dims(2L + XpSum_OS + o, 2L)
-  WorkBook <- wb_add_data_table(WorkBook, sheetnm, temp,
-                                dms, col_names = TRUE, row_names = FALSE,
-                                table_name ="Amino_acid_compositional_biases",
-                                first_column = TRUE, banded_rows = TRUE)
+  dms <- openxlsx2::wb_dims(2L + XpSum_OS + o, 2L)
+  WorkBook <- openxlsx2::wb_add_data_table(WorkBook, sheetnm, temp,
+                                           dms, col_names = TRUE, row_names = FALSE,
+                                           table_name ="Amino_acid_compositional_biases",
+                                           first_column = TRUE, banded_rows = TRUE)
   Mods_OS <- nrow(Modifs) + 2L
 } else { Mods_OS <- 0L }
-dms <- wb_dims(2L + XpSum_OS + Mods_OS + o, 2L)
-WorkBook <- wb_add_data_table(WorkBook, sheetnm, AA_biases,
-                              dms, col_names = TRUE, row_names = FALSE,
-                              table_name ="Modifications", first_column = TRUE, banded_rows = TRUE)
-#wb_save(WorkBook, repFl2);xl_open(repFl2)
+dms <- openxlsx2::wb_dims(2L + XpSum_OS + Mods_OS + o, 2L)
+WorkBook <- openxlsx2::wb_add_data_table(WorkBook, sheetnm, AA_biases,
+                                         dms, col_names = TRUE, row_names = FALSE,
+                                         table_name ="Modifications", first_column = TRUE,
+                                         banded_rows = TRUE)
+#openxlsx2::wb_save(WorkBook, repFl2);openxlsx2::xl_open(repFl2)
 #
-if ("tmp" %in% wb_get_sheet_names(WorkBook)) {
-  WorkBook <- wb_remove_worksheet(WorkBook, "tmp")
+if ("tmp" %in% openxlsx2::wb_get_sheet_names(WorkBook)) {
+  WorkBook <- openxlsx2::wb_remove_worksheet(WorkBook, "tmp")
 }
-tmp <- setNames(wb_get_order(WorkBook), wb_get_sheet_names(WorkBook))
+tmp <- setNames(openxlsx2::wb_get_order(WorkBook),
+                openxlsx2::wb_get_sheet_names(WorkBook))
 mdpptbs <- grep("-mod. pept.$", names(tmp), value = TRUE)
 nms <- c("Protein groups",
          "SAINTexpress",
@@ -111,21 +116,21 @@ nms <- c("Protein groups",
          mdpptbs,
          "Description",
          "Quality control")
-nms <- intersect(nms, names(tmp))
+nms <- base::intersect(nms, names(tmp))
 tmp <- tmp[nms]
 tmp <- tmp[!is.na(tmp)]
 names(tmp) <- NULL
-WorkBook <- wb_set_order(WorkBook, tmp)
+WorkBook <- openxlsx2::wb_set_order(WorkBook, tmp)
 dflt <- c("Protein groups", mdpptbs, "All peptidoforms")
-dflt <- intersect(dflt, nms)[1L]
+dflt <- base::intersect(dflt, nms)[1L]
 # This bit isn't currently working (report asap to Jan!)
 m <- match(dflt, nms)
-WorkBook <- wb_set_selected(WorkBook, m)
-WorkBook <- wb_set_active_sheet(WorkBook, m)
-WorkBook <- wb_set_base_font(WorkBook, 11L, font_name = "Calibri")
+WorkBook <- openxlsx2::wb_set_selected(WorkBook, m)
+WorkBook <- openxlsx2::wb_set_active_sheet(WorkBook, m)
+WorkBook <- openxlsx2::wb_set_base_font(WorkBook, 11L, font_name = "Calibri")
 #
 # This bit is moved here from the HTML_report.R source to save just the information we need for the HTML report later
-report_SheetNms %<o% wb_get_sheet_names(WorkBook)
+report_SheetNms %<o% openxlsx2::wb_get_sheet_names(WorkBook)
 xlDat <- setNames(lapply(names(xlDat), \(x) {
   x <- xlDat[[x]]
   colnames(x) <- gsub("///NL///", "\n", gsub("///VS/// ", "/\n", colnames(x)))
@@ -134,17 +139,16 @@ xlDat <- setNames(lapply(names(xlDat), \(x) {
 saveFun(xlDat, paste0(wd, "/Tables/xlDat.RDS"))
 #
 cat("    ---> writing table...\n")
-wb_save(WorkBook, repFl2)
-#xl_open(repFl2)
+openxlsx2::wb_save(WorkBook, repFl2)
+#openxlsx2::xl_open(repFl2)
 if (nImgs) { unlink(fls2) }
 #
 # Edit .xlsx (for the bits which openxlsx2 cannot handle well at the moment - or rather which I haven't yet figured out how to make it do!)
 # - Unzip
 cat("         final edits...\n")
 dr <- paste0(wd, "/_unzipped")
-unzip(repFl2, exdir = dr)
+utils::unzip(repFl2, exdir = dr)
 # - Introduce new lines in column headers + fix selected and default tabs
-library(xml2)
 main <- paste0(dr, "/xl/workbook.xml")
 doc <- xml2::read_xml(main)
 ns <- xml2::xml_ns(doc)
@@ -168,7 +172,7 @@ w1 <- which(vapply(xmlFls, \(fl) {
   any(grepl("///(VS|NL)///", xmlDat[[fl]]))
 }, TRUE))
 w2 <- which(xmlFls %in% paste0(dr, "/xl/worksheets/sheet", as.character(which(!sheetVis)), ".xml"))
-w <- union(w1, w2)
+w <- base::union(w1, w2)
 nChars <- setNames(vapply(xmlFls[w], \(fl) { nchar(xmlDat[[fl]]) }, 1L), xmlFls[w])
 chunk_size <- 5e7
 # Some of these files are very, very... VERY large, so we want to process by chunks... but we also do not want to miss anything!
@@ -179,9 +183,9 @@ rplFun1 <- \(x) { gsub(pats1[1L], rpls1[1L], gsub(pats1[2L], rpls1[2L], x)) }
 pats2 <- c("tabSelected=\"1\"")
 rpls2 <- c("tabSelected=\"0\"")
 rplFun2 <- \(x) { gsub(pats2[1L], rpls2[1L], x) }
-pat <- paste(union(pats1, pats2), collapse = "|")
-maxL <- max(nchar(union(pats1, pats2)))
-for (fl in xmlFls[w]) { #fl <- xmlFls[w][1L] #fl <- names(nChars)[which.max(nChars)]
+pat <- paste(base::union(pats1, pats2), collapse = "|")
+maxL <- max(nchar(base::union(pats1, pats2)))
+for (fl in xmlFls[w]) { #fl <- xmlFls[w][1L] #fl <- names(nChars)[base::which.max(nChars)]
   cat(fl, "\n")
   tmp <- xmlDat[[fl]]
   nc <- nChars[fl]
@@ -196,7 +200,7 @@ for (fl in xmlFls[w]) { #fl <- xmlFls[w][1L] #fl <- names(nChars)[which.max(nCha
     brksTst <- vapply(brks, \(x) {
       grepl(pat, substr(tmp, x-maxL, x+maxL+1L))
     }, TRUE)
-    rg <- rg[setdiff(seq_len(n), which(brksTst))]
+    rg <- rg[base::setdiff(seq_len(n), which(brksTst))]
     n <- length(rg)
     tst <- data.frame(end = rg)
     tst$start <- c(1L, tst$end[seq_len(n-1L)]+1L)
@@ -213,23 +217,23 @@ for (fl in xmlFls[w]) { #fl <- xmlFls[w][1L] #fl <- names(nChars)[which.max(nCha
   }
   con <- base::file(fl, "wb")
   for (x in tst$dat) {
-    writeChar(enc2utf8(x), con, eos = NULL, useBytes = TRUE)
+    base::writeChar(base::enc2utf8(x), con, eos = NULL, useBytes = TRUE)
   }
-  close(con)
+  base::close(con)
 }
 # Note: it would be faster to concatenate the chunks from all files and process the whole thing together once.
-# Parallelization could also be considered carefully here (e.g. serialize chunks to disk then parLapply over indices using readr::read_rds() to write each the current node)
+# Parallelization could also be considered carefully here (e.g. serialize chunks to disk then parallel::parLapply over indices using readr::read_rds() to write each the current node)
 #
 gc()
-#rm(list = setdiff(ls(), .obj))
-# - Save final report
+#rm(list = base::setdiff(ls(), .obj))
+# Save final report
 setwd(dr)
 fls <- list.files(".", recursive = TRUE, all.files = TRUE)
-zip(zipfile = repFl,
-    files = fls)
+utils::zip(zipfile = repFl,
+           files = fls)
 setwd(wd)
 unlink(repFl2)
-xl_open(repFl)
+openxlsx2::xl_open(repFl)
 cat("        Done!\n")
 shell(paste0("RMDIR /S /Q \"", dr, "\""), mustWork = FALSE)
 rm(WorkBook)

@@ -1,6 +1,8 @@
 ### PCA plot for parameters app
 # Create first PCA to check on sample relationships
 #
+requireNamespace("data.table")
+#
 dimRed_fl %<o% paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS")
 if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
 if (!exists("dimRedPlotLy")) { dimRedPlotLy <- list() }
@@ -37,7 +39,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
     X <- kols[w1[1L]]
     Y <- if (length(w1) > 1L) { kols[w1[2]] } else { kols[w2[2]] }
   }
-  kols <- setdiff(kols, c(X, Y))
+  kols <- base::setdiff(kols, c(X, Y))
   cat("Drawing PSMs-level PCA plot\n")
   dir <- paste0(wd, "/Dimensionality red. plots/PCA")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
@@ -70,7 +72,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
     #data2[, lsKl] <- data[match(data2$Group, tmp), lsKl]
     data <- data2
     kol2 <- colnames(data)
-    kol2 <- setdiff(kol2, "Group")
+    kol2 <- base::setdiff(kol2, "Group")
     impGrps <- rep(1L, length(kol2))
   }
   if (LabelType == "LFQ") {
@@ -114,7 +116,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
         scoresA$Colour <- scoresA$Sample
         colKol <- "colKol"
       } else {
-        tmp <- Exp.map[m, setdiff(Factors, c("Replicate", "Block", "Batch", "Litter")), drop = FALSE]
+        tmp <- Exp.map[m, base::setdiff(Factors, c("Replicate", "Block", "Batch", "Litter")), drop = FALSE]
         tmp <- tmp[, which(vapply(colnames(tmp), \(x) { length(unique(tmp[[x]])) > 1L }, TRUE)), drop = FALSE]
         scoresA$"Sample group" <- do.call(paste, c(tmp, sep = " "))
         tmp <- Exp.map[m, Factors]
@@ -130,35 +132,37 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
       ttl <- "PCA plot - Samples (PSMs-level)"
       xLab <- paste0("PC1 = ", pvA[1L], "%")
       yLab <- paste0("PC2 = ", pvA[2L], "%")
-      plot <- ggplot(scoresA, aes(x = PC1, y = PC2, colour = .data[[colKol]])) +
-        geom_point() +
-        ggpubr::stat_conf_ellipse(aes(fill = .data[[colKol]]),
+      plot <- ggplot2::ggplot(scoresA, ggplot2::aes(x = PC1, y = PC2, colour = .data[[colKol]])) +
+        ggplot2::geom_point() +
+        ggpubr::stat_conf_ellipse(ggplot2::aes(fill = .data[[colKol]]),
                                   alpha = 0.1, geom = "polygon", show.legend = FALSE) +
-        scale_color_viridis_d(begin = 0.25) +
-        coord_fixed() + theme_bw() +
-        xlab(xLab) + ylab(yLab) +
-        geom_hline(yintercept = 0, colour = "black") + geom_vline(xintercept = 0, colour = "black") +
-        ggtitle(ttl#, subtitle = pvA2
-                ) +
-        geom_text_repel(aes(x = PC1, y = PC2, label = Label, colour = .data[[colKol]]),
-                        size = 2.5, show.legend = FALSE)
+        ggplot2::scale_color_viridis_d(begin = 0.25) +
+        ggplot2::coord_fixed() + ggplot2::theme_bw() +
+        ggplot2::xlab(xLab) + ggplot2::ylab(yLab) +
+        ggplot2::geom_hline(yintercept = 0, colour = "black") +
+        ggplot2::geom_vline(xintercept = 0, colour = "black") +
+        ggplot2::ggtitle(ttl#, subtitle = pvA2
+        ) +
+        ggrepel::geom_text_repel(ggplot2::aes(x = PC1, y = PC2, label = Label, colour = .data[[colKol]]),
+                                 size = 2.5, show.legend = FALSE)
       #poplot(plot)
       suppressMessages({
-        ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 20L, height = 20L, units = "in")
+        ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                        dpi = 300L, width = 20L, height = 20L, units = "in")
       })
       Symb <- "circle"
       # Custom color scale
       scoresA$`Samples group` <- factor(scoresA[[colKol]])
       if ("PC3" %in% colnames(scoresA)) {
-        plot_lyPSMsPCA <- plot_ly(scoresA, x = ~PC1, y = ~PC2, z = ~PC3,
-                                  text = ~Label, type = "scatter3d", mode = "markers",
-                                  color = ~`Samples group`, colors = "viridis",
-                                  symbol = I(Symb))
+        plot_lyPSMsPCA <- plotly::plot_ly(scoresA, x = ~PC1, y = ~PC2, z = ~PC3,
+                                          text = ~Label, type = "scatter3d", mode = "markers",
+                                          color = ~`Samples group`, colors = "viridis",
+                                          symbol = I(Symb))
       } else {
-        plot_lyPSMsPCA <- plot_ly(scoresA, x = ~PC1, y = ~PC2,
-                                  text = ~Label, type = "scatter", mode = "markers",
-                                  color = ~`Samples group`, colors = "viridis",
-                                  symbol = I(Symb), hoverinfo = "text")
+        plot_lyPSMsPCA <- plotly::plot_ly(scoresA, x = ~PC1, y = ~PC2,
+                                          text = ~Label, type = "scatter", mode = "markers",
+                                          color = ~`Samples group`, colors = "viridis",
+                                          symbol = I(Symb), hoverinfo = "text")
       }
       plot_lyPSMsPCA <- plotly::layout(plot_lyPSMsPCA, title = ttl)
       plot_lyPSMsPCA$x$layout$xaxis$autorange <- TRUE

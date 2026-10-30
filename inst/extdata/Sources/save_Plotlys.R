@@ -38,11 +38,7 @@ if (l) {
   plot_Ttls <- vapply(myPlotLys, \(x) { x$Ttl }, "")
   plot_Paths <- paste0(gsub("[<>:\"/\\\\|?*]", "_", plot_Ttls), ".html")
   #
-  invisible(parallel::clusterCall(parClust, \() {
-    library(plotly)
-    library(htmlwidgets)
-    library(jsonlite)
-  }))
+  # invisible(parallel::clusterCall(parClust, \() { requireNamespace("jsonlite") }))
   parallel::clusterExport(parClust, list("dr", "plot_Paths", "tmpFls"), envir = environment())
   save_widget_from_def <- \(i) {
     curDir <- getwd() 

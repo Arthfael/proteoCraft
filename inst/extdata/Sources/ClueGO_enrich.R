@@ -133,7 +133,7 @@ if (clueGOahead) {
           #
           # Save network
           if (j == 2L) {
-            exportNetwork(cxFl, "CX", currNtwrk_SUID, cytoscp_URL, TRUE)
+            RCy3::exportNetwork(cxFl, "CX", currNtwrk_SUID, cytoscp_URL, TRUE)
           }
           #
           # Get network graphics (CyRest function from Cytoscape)

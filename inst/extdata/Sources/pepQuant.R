@@ -7,8 +7,6 @@
 # To do:
 # - Add Pearson correlation heatmap amongst those visualizations used to decide whether to remove any outliers, it is very good!
 #
-require(parallel)
-#
 if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
 if (!exists("dimRedPlotLy")) { dimRedPlotLy <- list() }
 if (!"peptides" %in% names(dimRedPlotLy)) { dimRedPlotLy$peptides <- list() }
@@ -42,7 +40,7 @@ if (exists("scrptType")) {
   }
   stopifnot(exists("FracMap"),
             "Samples" %in%  colnames(FracMap))
-  kol <- intersect(c("Group", "Sample", "Replicate"), colnames(FracMap))
+  kol <- base::intersect(c("Group", "Sample", "Replicate"), colnames(FracMap))
   stopifnot(length(kol) > 0L)
   tmp_EM <- FracMap[, kol, drop = FALSE]
   if ((!"Use" %in% colnames(tmp_EM)) || is.logical(tmp_EM$Use) || sum(is.na(tmp_EM$Use)) || (!sum(tmp_EM$Use))) {
@@ -65,14 +63,14 @@ if (LabelType == "LFQ") {
 }
 readr::write_rds(tmp, paste0(wd, "/tmp.RDS"))
 smpls <- unique(tmp_EM[tmp_EM$Use, refCol])
-clusterExport(parClust, exports, envir = environment())
-invisible(clusterCall(parClust, \(x) {
-  library(data.table)
+parallel::clusterExport(parClust, exports, envir = environment())
+invisible(parallel::clusterCall(parClust, \(x) {
+  requireNamespace("data.table")
   assign("tmp", readr::read_rds(paste0(wd, "/tmp.RDS")), envir = .GlobalEnv)
   return()
 }))
 unlink(paste0(wd, "/tmp.RDS"))
-tmp4 <- setNames(parLapply(parClust, smpls, \(smpl) { #smpl <- smpls[1L]
+tmp4 <- setNames(parallel::parLapply(parClust, smpls, \(smpl) { #smpl <- smpls[1L]
   m <- match(smpl, tmp_EM[[refCol]])
   mqe <- unlist(tmp_EM$MQ.Exp[m])
   w2 <- which(tmp$MQ.Exp %in% mqe)
@@ -106,14 +104,14 @@ for (smpl in smpls) { #smpl <- smpls[1L]
   pep[w3, paste0(pep.ref["Original"], smpl)] <- tmp$Intensity[match(pep$"Modified sequence"[w3], tmp$mod)]
 }
 kol <- paste0(pep.ref["Original"], RSA$values)
-kol <- intersect(kol, colnames(pep))
+kol <- base::intersect(kol, colnames(pep))
 data <- pep[, c("Modified sequence", kol)]
 w <- which(rowSums(data[, kol], na.rm = TRUE) > 0)
 data <- data[w,]
 pc1 <- stats::prcomp(t(data[, kol]), scale. = TRUE)
 dir <- paste0(wd, "/Workflow control/Peptides/PCA plot")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-if (exists("dirlist")) { dirlist <- unique(c(dirlist, dir)) } 
+if (exists("dirlist")) { dirlist <- base::union(dirlist, dir) } 
 if (!length(pc1$rotation)) {
   stop("There was only one component to the PCA, something must've gone wrong when generating the peptides table!")
 }
@@ -143,25 +141,22 @@ outlierAnnot_color %<o% "Samples_group"
 ttl <- "PCA plot - Preliminary - peptide level"
 xLab <- paste0("PC1 = ", pv1[1L], "%")
 yLab <- paste0("PC2 = ", pv1[2L], "%")
-require(ggplot2)
-require(ggrepel)
-require(plotly)
-require(htmlwidgets)
-plot <- ggplot(scores1, aes(x = PC1, y = PC2, colour = .data[[outlierAnnot_color]])) +
-  geom_point(aes(shape = .data[[outlierAnnot_shape]])) +
-  ggpubr::stat_conf_ellipse(aes(fill = .data[[outlierAnnot_color]]),
+plot <- ggplot2::ggplot(scores1, ggplot2::aes(x = PC1, y = PC2, colour = .data[[outlierAnnot_color]])) +
+  ggplot2::geom_point(ggplot2::aes(shape = .data[[outlierAnnot_shape]])) +
+  ggpubr::stat_conf_ellipse(ggplot2::aes(fill = .data[[outlierAnnot_color]]),
                             alpha = 0.1, geom = "polygon", show.legend = FALSE) +
-  scale_color_viridis_d() +
-  scale_fill_viridis_d() +
-  coord_fixed() + theme_bw() +
-  xlab(xLab) + ylab(yLab) +
-  geom_hline(yintercept = 0, colour = "black") + geom_vline(xintercept = 0, colour = "black") +
-  ggtitle(ttl#, subtitle = pv1_
-  ) +
-  geom_text_repel(aes(label = Label), size = 3, show.legend = FALSE)
+  ggplot2::scale_color_viridis_d() +
+  ggplot2::scale_fill_viridis_d() +
+  ggplot2::coord_fixed() + ggplot2::theme_bw() +
+  ggplot2::xlab(xLab) + ggplot2::ylab(yLab) +
+  ggplot2::geom_hline(yintercept = 0, colour = "black") +
+  ggplot2::geom_vline(xintercept = 0, colour = "black") +
+  ggplot2::ggtitle(ttl) +
+  ggrepel::geom_text_repel(ggplot2::aes(label = Label), size = 3L, show.legend = FALSE)
 #poplot(plot)
 suppressMessages({
-  ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+  ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                  dpi = 300L, width = 10L, height = 10L, units = "in")
 })
 nReps <- max(as.numeric(Rep))
 Symb <- rep(c("circle", "diamond", "square", "cross", "x"), nReps)[seq_len(nReps)]             
@@ -192,7 +187,7 @@ saveFun(dimRedPlotLy, file = dimRed_fl)
 pcaDir <- paste0(wd, "/Workflow control/Peptides/PCA plot")
 if (!dir.exists(pcaDir)) { dir.create(pcaDir, recursive = TRUE) }
 setwd(pcaDir)
-saveWidget(plotly::partial_bundle(plot_lyPCA), paste0(wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"))
-#saveWidget(plot_lyPCA, paste0(wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"))
+htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyPCA),
+                        paste0(wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"))
 setwd(wd)
 #system(paste0("open \"", wd, "/Workflow control/Peptides/PCA plot/", ttl, ".html"))

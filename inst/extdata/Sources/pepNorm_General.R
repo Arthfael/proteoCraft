@@ -10,7 +10,7 @@ wAG2 <- wAG1
 Outcome <- TRUE
 txt2 <- ""
 #
-currSamples <- intersect(allSamples, colnames(tmpDat1))
+currSamples <- base::intersect(allSamples, colnames(tmpDat1))
 #View(tmpDat1[wAG1, currSamples])
 #
 # NB:
@@ -34,6 +34,7 @@ if (normSequence[[nrmStp]]$Method == "GO terms") {
     tmp$"GO-ID" <- db$"GO-ID"[match(tmp$value, db$`Protein ID`)]
     tmp <- tmp[!is.na(tmp$"GO-ID"),]
     tmp <- listMelt(strsplit(tmp$"GO-ID", ";"), tmp$L1)
+    requireNamespace("data.table")
     tmp <- as.data.table(tmp)
     tmp <- tmp[tmp$value %in% Norma.Prot.Ratio.to.GO,]
     normFlt <- tmpDat1$id[unique(tmp$L1)]
@@ -43,7 +44,7 @@ if (normSequence[[nrmStp]]$Method == "GO terms") {
 }
 if (normSequence[[nrmStp]]$Method == "proteins") {
   Prot.Ratio.ref.Acc %<o% unique(unlist(strsplit(Param$Norma.Prot.Ratio.to.proteins, ";")))
-  Prot.Ratio.ref.Acc <- intersect(Prot.Ratio.ref.Acc, db$"Protein ID")
+  Prot.Ratio.ref.Acc <- base::intersect(Prot.Ratio.ref.Acc, db$"Protein ID")
   if (length(Prot.Ratio.ref.Acc)) {
     tmp <- listMelt(strsplit(tmpDat1$Proteins, ";"), tmpDat1$id)
     tmp <- tmp[tmp$value %in% Prot.Ratio.ref.Acc,]
@@ -76,7 +77,7 @@ if (Outcome) {
       stopifnot(length(grpMtch2) > 0L)
       for (wGrp in RG$values) { #wGrp <- RG$values[1L] # Transversal group (ratios group, i.e. comparison group)
         smpls <- unique(Exp.map$Ref.Sample.Aggregate[Exp.map[[RG$column]] == wGrp])
-        smpls <- intersect(smpls, colnames(tmpDat1))
+        smpls <- base::intersect(smpls, colnames(tmpDat1))
         if (length(smpls)) {
           m2 <- unlist(tmpDat1[grpMtch, smpls])
           m2 <- mean(m2[is.finite(m2)]) # Original group scale

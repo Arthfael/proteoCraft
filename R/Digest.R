@@ -226,7 +226,7 @@ Digest <- function(Seq,
           temp <- setNames(lapply(w, \(x) { #x <- 1L
             vapply(1L:(L[x]-ms), \(p) { paste(Sq[[x]][p:(p+ms)], collapse = "") }, "")
           }), names(Sq)[w])
-          Rs[w] <- mapply(c, Rs[w], temp, SIMPLIFY = FALSE)
+          Rs[w] <- base::mapply(c, Rs[w], temp, SIMPLIFY = FALSE)
         }
       }
     }
@@ -259,7 +259,7 @@ Digest <- function(Seq,
                      by = .(Group.1 = L1)]
         temp <- setNames(strsplit(temp$x, ";"), temp$Group.1)
         w <- which(names(Rs) %in% names(temp))
-        Rs[w] <- mapply(c, Rs[w], temp, SIMPLIFY = FALSE) # Contatenate
+        Rs[w] <- base::mapply(c, Rs[w], temp, SIMPLIFY = FALSE) # Contatenate
       }
     }
     if (RemoveNtermMet %in% c("loose", "predict")) {

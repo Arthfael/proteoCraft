@@ -1,8 +1,6 @@
 ##############################
 # Create output Excel tables #
 ##############################
-require(openxlsx2)
-require(xml2)
 #
 # Version for script without replicates
 #
@@ -14,8 +12,8 @@ require(xml2)
 #   But the one thing I preferred in openxlsx over openxlsx2 was how it dealt with style.
 #   Anyway... 
 #   So. We will. CHEAT!
-#   I have saved a dummy tab with my old openxlsx styles,
-#   which I will load in openxlsx2 to get and copy the styles from.
+#   we will start from an Excel file with a dummy tab containing ready-made styles,
+#   which we will load in openxlsx2 to get and copy the styles from it.
 dxfs_Style_nms <- c()
 intNms <- \(nms, topLvl = FALSE, type = "PG", newLine = FALSE) {
   m <- match(type, c("pep", "PG"))
@@ -86,24 +84,16 @@ if (MakeRatios) {
 }
 fl <- system.file("extdata", "Report_column_names_noRep.xlsx", package = "proteoCraft")
 styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[, 1L]
-# wb <- loadWorkbook(fl)
-# addWorksheet(wb, "tmp")
-# tmpFl <- temp_xlsx()
-#w <- which(vapply(Styles, \(x) { inherits(x, "Style") }, TRUE))
-# styleNms %<o% names(Styles)[w]
-# writeData(wb, "tmp", styleNms)
-# for (i in seq_along(w)) { addStyle(wb, "tmp", Styles[[w[i]]], i, 1L) }
-# saveWorkbook(wb, tmpFl)
-# openXL(tmpFl)
-# WorkBook %<o% wb_load(tmpFl)
-# Styles2 %<o% setNames(w, names(Styles)[w])
-WorkBook <- wb_load(fl)
+#
+WorkBook <- openxlsx2::wb_load(fl)
 repFl %<o% paste0(wd, "/Tables/Report_", dtstNm, ".xlsx")
-WorkBook <- wb_add_data(WorkBook, "Description", dtstNm, wb_dims(2L, 5L))
-WorkBook <- wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"), wb_dims(3L, 5L))
-WorkBook <- wb_add_data(WorkBook, "Description", WhoAmI, wb_dims(4L, 5L))
-tmp <- loadedPackages(TRUE)
-WorkBook <- wb_add_data(WorkBook, "Description", tmp$Version[grep("proteoCraft", tmp$Name)], wb_dims(5L, 5L))
+WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description", dtstNm, openxlsx2::wb_dims(2L, 5L))
+WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description",
+                                   format(Sys.Date(), "%d/%m/%Y"), openxlsx2::wb_dims(3L, 5L))
+WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description", WhoAmI, openxlsx2::wb_dims(4L, 5L))
+tmp <- gtools::loadedPackages(TRUE)
+WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description", tmp$Version[grep("proteoCraft", tmp$Name)],
+                                   openxlsx2::wb_dims(5L, 5L))
 cat(" -> Writing Excel report...\n")
 # Function for editing the header
 KolEdit <- \(KolNames, intTbl = intColsTbl, ratTbl = ratColsTbl) {
@@ -233,7 +223,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
       regcol <- grep("^(Enriched|Regulated) - ", colnames(tempData), value = TRUE)
     }
     aacol <- paste0(AA, " Count")
-    qualFlt <- intersect(QualFilt, colnames(ev))
+    qualFlt <- base::intersect(QualFilt, colnames(ev))
     w <- which(!qualFlt %in% colnames(tempData))
     if (length(w)) {
       tempData[, qualFlt[w]] <- ev[match(tempData$"Modified sequence", ev$"Modified sequence"), qualFlt[w]]
@@ -426,7 +416,7 @@ pepevspeccol <- c("Peptides count",
                   grep("^Biot\\. spectral count - ", colnames(tempData), value = TRUE),
                   "Biot. spectrum IDs",
                   grep("^Biot\\. spectrum IDs - ", colnames(tempData), value = TRUE))
-pepevspeccol <- intersect(pepevspeccol, colnames(tempData))
+pepevspeccol <- base::intersect(pepevspeccol, colnames(tempData))
 pepcountcol1 <- grep("[Pp]eptides count$", pepevspeccol, value = TRUE)
 pepcountcol2 <- grep("[Pp]eptides count - ", pepevspeccol, value = TRUE)
 pepidcol1 <- grep("[Pp]eptide IDs$", pepevspeccol, value = TRUE)
@@ -530,7 +520,7 @@ if (exists("KlustKols") && length(KlustKols)) { kol <- c(kol, KlustKols) }
 qualFlt <- QualFilt
 kol <- unique(c(kol, qualFlt))
 if (Annotate) { kol <- c(kol, annot.col) }
-kol <- unique(intersect(kol, colnames(tempData)))
+kol <- base::intersect(kol, colnames(tempData))
 tempData <- tempData[, kol]
 #
 # Which columns are affected by each style
@@ -587,7 +577,7 @@ if (Annotate) {
   annot.col2 <- sub("_names$", " names", annot.col)
   AnnotTbl$Columns <- list(c("GO", "GO-ID"), c("Taxonomy", "TaxID"), NA, NA, NA, NA, "EMBL", NA)
   for (i in annot) { AnnotTbl$Columns[match(i, AnnotTbl$Name)] <- list(c(i, paste0(i, " names"))) }
-  AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(setdiff(annot.col2, unlist(AnnotTbl$Columns)))
+  AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(base::setdiff(annot.col2, unlist(AnnotTbl$Columns)))
   for (i in 1L:nrow(AnnotTbl)) { ColumnsTbl[[paste0(AnnotTbl$Name[i], " annotations")]] <- AnnotTbl$Columns[[i]] }
 }
 # - PEP
@@ -623,7 +613,7 @@ if (IsBioID2) {
 for (nm in names(intRf)) { #nm <- names(intRf)[1L] #nm <- names(intRf)[2L]
   rpl <- intNms(nm, TRUE)
   kl <- c(paste0("Mean ", sub(" - $", "", intRf[nm])), paste0(intRf[[nm]], Exp))
-  kl <- intersect(kl, ColumnsTbl$Col)
+  kl <- base::intersect(kl, ColumnsTbl$Col)
   ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
 }
 ColumnsTbl$Class[grep("Ruler", ColumnsTbl$Grp)] <- "log10(est. copies/cell)"
@@ -631,7 +621,7 @@ if (MakeRatios) {
   for (nm in names(ratRf)) { #nm <- names(ratRf)[1L]
     rpl <- ratNms(nm, TRUE)
     kl <- c(paste0("Mean ", sub(" - $", "", ratRf[[nm]])), paste0(ratRf[[nm]], Exp))
-    kl <- intersect(kl, ColumnsTbl$Col)
+    kl <- base::intersect(kl, ColumnsTbl$Col)
     ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
   }
   ColumnsTbl$Class[ColumnsTbl$Col %in% regcol] <- "Regulated"

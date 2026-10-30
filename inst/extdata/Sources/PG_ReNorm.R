@@ -11,7 +11,9 @@
 # d) Re-establish the original scale (check that the mean of all values is unchanged after normalization).
 # e) Re-calculate log ratios.
 #
-#rm(list = setdiff(ls(), .obj))
+requireNamespace("data.table")
+#
+#rm(list = base::setdiff(ls(), .obj))
 normPGs <- 0L
 Norma.Prot.Ratio.classic %<o% FALSE
 Norma.Prot.Ratio.to.Biot %<o% FALSE
@@ -40,7 +42,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
     ObjNm <- "Norma.Prot.Ratio.Adv"
     if (ReUseAnsw && (ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
       msg <- "Do you want to apply Levenberg-Marquardt (slow) re-normalisation at protein groups level?"
-      tmp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
+      tmp <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
       if (is.na(tmp)) { tmp <- FALSE }
       ObjNm %<c% tmp
       tmp <- AllAnsw[1L,]
@@ -163,32 +165,40 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
     tst <- normDf
     tst[, RSA$names] <- Exp.map[match(tst$Sample, Exp.map$Ref.Sample.Aggregate), RSA$names]
     nms <- VPAL$names
-    if (length(Exp) == 1L) { nms <- setdiff(nms, "Experiment") }
+    if (length(Exp) == 1L) { nms <- base::setdiff(nms, "Experiment") }
     tst$Samples_group <- do.call(paste, c(tst[, nms, drop = FALSE], sep = " "))
     l <- length(nms)
     if (l > 2L) {
       nms2 <- nms[3L:l]
       tst$Label <- do.call(paste, c(tst[, c(nms2, "Replicate")], sep = " "))
     }
-    plot <- ggplot(tst)
+    plot <- ggplot2::ggplot(tst)
     if (l == 1L) {
-      plot <- plot + geom_point(aes(x = shift_median, y = shift_LM, shape = .data[[nms[1]]], color = Replicate))
+      plot <- plot +
+        ggplot2::geom_point(ggplot2::aes(x = shift_median, y = shift_LM,
+                                         shape = .data[[nms[1]]], color = Replicate))
     } else {
-      plot <- plot + geom_point(aes(x = shift_median, y = shift_LM, shape = .data[[nms[1]]], color = .data[[nms[2]]]))
+      plot <- plot +
+        ggplot2::geom_point(ggplot2::aes(x = shift_median, y = shift_LM,
+                                         shape = .data[[nms[1]]], color = .data[[nms[2]]]))
       plot <- if (l > 2L) {
         nms2 <- nms[3L:l]
         tst$Label <- do.call(paste, c(tst[, c(nms2, "Replicate")], sep = " "))
-        plot + geom_text_repel(aes(x = shift_median, y = shift_LM, label = Label))
+        plot +
+          ggplot2::geom_text_repel(ggplot2::aes(x = shift_median, y = shift_LM,
+                                                label = Label))
       } else {
-        plot + geom_text_repel(aes(x = shift_median, y = shift_LM, label = Replicate))
+        plot +
+          ggplot2::geom_text_repel(ggplot2::aes(x = shift_median, y = shift_LM,
+                                                label = Replicate))
       }
     }
-    plot <- plot + ggtitle("Median normalisation (x) vs Levenberg-Marquardt (y)") +
-      #coord_fixed() +
-      theme_bw()
+    plot <- plot + ggplot2::ggtitle("Median normalisation (x) vs Levenberg-Marquardt (y)") +
+      #ggplot2::coord_fixed() +
+      ggplot2::theme_bw()
     # Note: this plot isn't scaled the same way for x and y, but we should see a correlation
     #poplot(plot)
-    ggsave(paste0(dirPG, "/Effect of LM normalisation.svg"), plot, dpi = 100L)
+    ggplot2::ggsave(paste0(dirPG, "/Effect of LM normalisation.svg"), plot, dpi = 100L)
     #
     # Now propagate effects to peptides
     smplsNorm <- if (Norma.Prot.Ratio.Adv) {
@@ -232,10 +242,10 @@ if (normPGs) {
                     experiment.map = Exp.map,
                     int.root = Prot.Expr.Root,
                     rat.root = Prot.Rat.Root)
-  #summary(tmp1)
-  #summary(tmp2)
-  #summary(tmp1/log2(10))
-  #summary(tmp2/log2(10))
+  #base::summary(tmp1)
+  #base::summary(tmp2)
+  #base::summary(tmp1/log2(10))
+  #base::summary(tmp2/log2(10))
   quantData_norm[, RatKol] <- tmp2[, RatKol]
   # Now check and visualize
   nrmPlots <- list()
@@ -257,23 +267,26 @@ if (normPGs) {
   temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
   temp <- temp[is.finite(temp$value),]
   ttlI1 <- paste0("Protein groups ", ttl, ", expression")
-  intPlot1 <- ggplot(temp) +
-    geom_violin(aes(x = Sample, y = value, colour = Sample, fill = Sample), alpha = 0.25) +
-    geom_boxplot(aes(x = Sample, y = value, colour = Sample, fill = Sample), alpha = 0.5) +
-    scale_color_viridis_d(begin = 0.25) +
-    scale_fill_viridis_d(begin = 0.25) +
-    facet_grid(Norm~.) + ggtitle(ttlI1) +
-    theme_bw() + theme(axis.text.x = element_text(angle = 75, vjust = 1, hjust = 1))
+  intPlot1 <- ggplot2::ggplot(temp) +
+    ggplot2::geom_violin(ggplot2::aes(x = Sample, y = value, colour = Sample, fill = Sample),
+                         alpha = 0.25) +
+    ggplot2::geom_boxplot(ggplot2::aes(x = Sample, y = value, colour = Sample, fill = Sample),
+                          alpha = 0.5) +
+    ggplot2::scale_color_viridis_d(begin = 0.25) +
+    ggplot2::scale_fill_viridis_d(begin = 0.25) +
+    ggplot2::facet_grid(Norm~.) + ggplot2::ggtitle(ttlI1) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 75, vjust = 1, hjust = 1))
   #print(intPlot1)
   nrmPlots[["PG_int"]] <- list(Path = paste0(dirPG, "/", ttlI1),
                                Plot = plotEval(intPlot1),
                                Ext = "svg")
   #suppressMessages({
-  #  ggsave(paste0(dirPG, "/", ttlI1, ".svg"), intPlot1, dpi = 300L)
+  #  ggplot2::ggsave(paste0(dirPG, "/", ttlI1, ".svg"), intPlot1, dpi = 300L)
   #})
   #
   #   - Ratios
-  allContr <- gsub(topattern(Prot.Rat.Root), "", RatKol)
+  allContr <- sub(topattern(Prot.Rat.Root), "", RatKol)
   temp1 <- data.table(quantData[, RatKol])
   colnames(temp1) <- allContr
   temp1 <- dfMelt(temp1)
@@ -291,19 +304,22 @@ if (normPGs) {
   temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
   temp <- temp[is.finite(temp$value),]
   ttlR1 <- paste0("Protein groups ", ttl, ", ratios")
-  ratPlot1 <- ggplot(temp) +
-    geom_violin(aes(x = Contrast, y = value, colour = Contrast, fill = Contrast), alpha = 0.25) +
-    geom_boxplot(aes(x = Contrast, y = value, colour = Contrast, fill = Contrast), alpha = 0.5) +
-    scale_color_viridis_d(begin = 0.25) +
-    scale_fill_viridis_d(begin = 0.25) +
-    facet_grid(Norm~.) + ggtitle(ttlR1) +
-    theme_bw() + theme(axis.text.x = element_text(angle = 75, vjust = 1, hjust = 1))
+  ratPlot1 <- ggplot2::ggplot(temp) +
+    ggplot2::geom_violin(ggplot2::aes(x = Contrast, y = value, colour = Contrast, fill = Contrast),
+                         alpha = 0.25) +
+    ggplot2::geom_boxplot(ggplot2::aes(x = Contrast, y = value, colour = Contrast, fill = Contrast),
+                          alpha = 0.5) +
+    ggplot2::scale_color_viridis_d(begin = 0.25) +
+    ggplot2::scale_fill_viridis_d(begin = 0.25) +
+    ggplot2::facet_grid(Norm~.) + ggplot2::ggtitle(ttlR1) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 75, vjust = 1, hjust = 1))
   #print(ratPlot1)
   nrmPlots[["PG_rat"]] <- list(Path = paste0(dirPG, "/", ttlR1),
                                Plot = plotEval(ratPlot1),
                                Ext = "svg")
   #suppressMessages({
-  #  ggsave(paste0(dirPG, "/", ttlR1, ".svg"), ratPlot1, dpi = 300L)
+  #  ggplot2::ggsave(paste0(dirPG, "/", ttlR1, ".svg"), ratPlot1, dpi = 300L)
   #})
   #
   # - Peptides
@@ -324,19 +340,22 @@ if (normPGs) {
   temp$value <- suppressWarnings(log10(temp$value)) # Peptide intensities are not log-transformed!
   temp <- temp[is.finite(temp$value),]
   ttlI2 <- paste0("Peptides ", ttl, " from PGs, intensity")
-  intPlot2 <- ggplot(temp) +
-    geom_violin(aes(x = Sample, y = value, colour = Sample, fill = Sample), alpha = 0.25) +
-    geom_boxplot(aes(x = Sample, y = value, colour = Sample, fill = Sample), alpha = 0.5) +
-    scale_color_viridis_d(begin = 0.25) +
-    scale_fill_viridis_d(begin = 0.25) +
-    facet_grid(Norm~.) + ggtitle(ttlI2) +
-    theme_bw() + theme(axis.text.x = element_text(angle = 75, vjust = 1, hjust = 1))
+  intPlot2 <- ggplot2::ggplot(temp) +
+    ggplot2::geom_violin(ggplot2::aes(x = Sample, y = value, colour = Sample, fill = Sample),
+                         alpha = 0.25) +
+    ggplot2::geom_boxplot(ggplot2::aes(x = Sample, y = value, colour = Sample, fill = Sample),
+                          alpha = 0.5) +
+    ggplot2::scale_color_viridis_d(begin = 0.25) +
+    ggplot2::scale_fill_viridis_d(begin = 0.25) +
+    ggplot2::facet_grid(Norm~.) + ggplot2::ggtitle(ttlI2) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 75, vjust = 1, hjust = 1))
   #print(intPlot2)
   nrmPlots[["Pep_int"]] <- list(Path = paste0(dirPep, "/", ttlI2),
                                 Plot = plotEval(intPlot2),
                                 Ext = "svg")
   #suppressMessages({
-  #  ggsave(paste0(dirPep, "/", ttlI2, ".svg"), intPlot2, dpi = 300L)
+  #  ggplot2::ggsave(paste0(dirPep, "/", ttlI2, ".svg"), intPlot2, dpi = 300L)
   #})
   #
   # - Peptides ratios
@@ -361,19 +380,22 @@ if (normPGs) {
   temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
   temp <- temp[is.finite(temp$value),]
   ttlR2 <- paste0("Peptides ", ttl, " from PGs, ratios")
-  ratPlot2 <- ggplot(temp) +
-    geom_violin(aes(x = Contrast, y = value, colour = Contrast, fill = Contrast), alpha = 0.25) +
-    geom_boxplot(aes(x = Contrast, y = value, colour = Contrast, fill = Contrast), alpha = 0.5) +
-    scale_color_viridis_d(begin = 0.25) +
-    scale_fill_viridis_d(begin = 0.25) +
-    facet_grid(Norm~.) + ggtitle(ttlR2) +
-    theme_bw() + theme(axis.text.x = element_text(angle = 75, vjust = 1, hjust = 1))
+  ratPlot2 <- ggplot2::ggplot(temp) +
+    ggplot2::geom_violin(ggplot2::aes(x = Contrast, y = value, colour = Contrast, fill = Contrast),
+                         alpha = 0.25) +
+    ggplot2::geom_boxplot(ggplot2::aes(x = Contrast, y = value, colour = Contrast, fill = Contrast),
+                          alpha = 0.5) +
+    ggplot2::scale_color_viridis_d(begin = 0.25) +
+    ggplot2::scale_fill_viridis_d(begin = 0.25) +
+    ggplot2::facet_grid(Norm~.) + ggplot2::ggtitle(ttlR2) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 75, vjust = 1, hjust = 1))
   #print(ratPlot2)
   nrmPlots[["Pep_rat"]] <- list(Path = paste0(dirPep, "/", ttlR2),
                                 Plot = plotEval(ratPlot2),
                                 Ext = "svg")
   #suppressMessages({
-  #  ggsave(paste0(dirPep, "/", ttlR2, ".svg"), ratPlot2, dpi = 300L)
+  #  ggplot2::ggsave(paste0(dirPep, "/", ttlR2, ".svg"), ratPlot2, dpi = 300L)
   #})
   #
   nrmPlots2 <- lapply(nrmPlots, \(x) {
@@ -382,7 +404,8 @@ if (normPGs) {
   })
   nrmPlots <- c(nrmPlots, nrmPlots2)
   # Save plots
-  tst <- parLapply(parClust, nrmPlots, \(x) {
+  source(parSrc)
+  tst <- parallel::parLapply(parClust, nrmPlots, \(x) {
     suppressMessages({
       ggplot2::ggsave(paste0(x$Path, ".", x$Ext), x$Plot, dpi = 300L)
     })
@@ -392,43 +415,51 @@ if (normPGs) {
   msg <- "Accept re-normalisation results?"
   appNm <- paste0(dtstNm, " - PG re-normalisation")
   if (exists("appRunTest")) { rm(appRunTest) }
-  ui <- fluidPage(
-    useShinyjs(),
-    setBackgroundColor( # Doesn't work
+  ui <- shiny::fluidPage(
+    shinyjs::useShinyjs(),
+    shinyWidgets::setBackgroundColor( # Doesn't work
       color = c(#"#F8F8FF",
         "#E1F7E7"),
       gradient = "linear",
-      direction = "bottom"
-    ),
-    extendShinyjs(text = jsFun$toggle_full_screen,
-                  functions = c("toggleFullScreen")),
-    titlePanel(tag("u", "Protein Groups (and peptides) re-normalisation"),
-               appNm),
-    br(),
-    checkboxInput("accept_PG_reNorm", msg, accept_PG_reNorm),
-    actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-    # fluidRow(column(4L, withSpinner(plotOutput("pgIntensities"))),
-    #          column(4L, withSpinner(plotOutput("pgRatios")))),
-    #br(),
-    # fluidRow(column(4L, withSpinner(plotOutput("pepIntensities"))),
-    #          column(4L, withSpinner(plotOutput("pepRatios")))),
-    fluidRow(column(6L, withSpinner(imageOutput("pgIntensities", width = "100%", height = "100%"))),
-             column(6L, withSpinner(imageOutput("pgRatios", width = "100%", height = "100%")))),
-    br(),
-    br(),
-    br(),
-    fluidRow(column(6L, withSpinner(imageOutput("pepIntensities", width = "100%", height = "100%"))),
-             column(6L, withSpinner(imageOutput("pepRatios", width = "100%", height = "100%")))),
-    br(),
-    br()
+      direction = "bottom"),
+    shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                           functions = c("toggleFullScreen")),
+    shiny::titlePanel(shiny::tag("u", "Protein Groups (and peptides) re-normalisation"),
+                      appNm),
+    shiny::br(),
+    shiny::checkboxInput("accept_PG_reNorm", msg, accept_PG_reNorm),
+    shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
+    #shiny::fluidRow(shiny::column(4L, shinycssloaders::withSpinner(shiny::plotOutput("pgIntensities"))),
+    #                shiny::column(4L, shinycssloaders::withSpinner(shiny::plotOutput("pgRatios")))),
+    #shiny::br(),
+    #shiny::fluidRow(shiny::column(4L, shinycssloaders::withSpinner(shiny::plotOutput("pepIntensities"))),
+    #                shiny::column(4L, shinycssloaders::withSpinner(shiny::plotOutput("pepRatios")))),
+    shiny::fluidRow(shiny::column(6L,
+                                  shinycssloaders::withSpinner(shiny::imageOutput("pgIntensities",
+                                                                                  width = "100%", height = "100%"))),
+                    shiny::column(6L,
+                                  shinycssloaders::withSpinner(shiny::imageOutput("pgRatios",
+                                                                                  width = "100%", height = "100%")))),
+    shiny::br(),
+    shiny::br(),
+    shiny::br(),
+    shiny::fluidRow(shiny::column(6L,
+                                  shinycssloaders::withSpinner(shiny::imageOutput("pepIntensities",
+                                                                                  width = "100%", height = "100%"))),
+                    shiny::column(6L,
+                                  shinycssloaders::withSpinner(shiny::imageOutput("pepRatios",
+                                                                                  width = "100%", height = "100%")))),
+    shiny::br(),
+    shiny::br()
   )
   IMGs <- c(paste0(dirPG, "/", c(ttlI1, ttlR1), ".svg"),
             paste0(dirPep, "/", c(ttlI2, ttlR2), ".svg"))
-  # IMGsDims <- as.data.frame(t(parSapply(parClust, IMGs, \(x) { #x <- IMGs[1L]
+  # IMGsDims <- as.data.frame(t(parallel::parSapply(parClust, IMGs, \(x) { #x <- IMGs[1L]
   #   a <- jpeg::readJPEG(x)
   #   setNames(dim(a)[1L:2L], c("height", "width"))
   # })))
-  IMGsDims <- as.data.frame(t(parSapply(parClust, IMGs, \(x) { #x <- IMGs[1L]
+  source(parSrc)
+  IMGsDims <- as.data.frame(t(parallel::parSapply(parClust, IMGs, \(x) { #x <- IMGs[1L]
     a <- xml2::read_xml(x)
     v <- as.numeric(strsplit(xml2::xml_attr(a, "viewBox"), " ")[[1L]])
     setNames(v[3L:4L], c("width", "height"))
@@ -436,41 +467,43 @@ if (normPGs) {
   IMGsDims$height <- screenRes$width*0.35*IMGsDims$height/max(IMGsDims$height)
   IMGsDims$width <- screenRes$width*0.35*IMGsDims$width/max(IMGsDims$width)
   server <- \(input, output, session) {
-    # output$pgIntensities <- renderPlot(intPlot1)
-    # output$pgRatios <- renderPlot(ratPlot1)
-    # output$pepIntensities <- renderPlot(intPlot2)
-    # output$pepRatios <- renderPlot(ratPlot2)
-    output$pgIntensities <- renderImage({
+    # output$pgIntensities <- shiny::renderPlot(intPlot1)
+    # output$pgRatios <- shiny::renderPlot(ratPlot1)
+    # output$pepIntensities <- shiny::renderPlot(intPlot2)
+    # output$pepRatios <- shiny::renderPlot(ratPlot2)
+    output$pgIntensities <- shiny::renderImage({
       list(src = IMGs[1L],
            contentType = "image/svg+xml",
            height = IMGsDims$height[1L],
            width = IMGsDims$width[1L])
     }, deleteFile = FALSE)
-    output$pgRatios <- renderImage({
+    output$pgRatios <- shiny::renderImage({
       list(src = IMGs[2L],
            contentType = "image/svg+xml",
            height = IMGsDims$height[2L],
            width = IMGsDims$width[2L])
     }, deleteFile = FALSE)
-    output$pepIntensities <- renderImage({
+    output$pepIntensities <- shiny::renderImage({
       list(src = IMGs[3L],
            contentType = "image/svg+xml",
            height = IMGsDims$height[3L],
            width = IMGsDims$width[3L])
     }, deleteFile = FALSE)
-    output$pepRatios <- renderImage({
+    output$pepRatios <- shiny::renderImage({
       list(src = IMGs[4L],
            contentType = "image/svg+xml",
            height = IMGsDims$height[4L],
            width = IMGsDims$width[4L])
     }, deleteFile = FALSE)
     #
-    observeEvent(input$accept_PG_reNorm, { assign("accept_PG_reNorm", as.logical(input[["accept_PG_reNorm"]]), envir = .GlobalEnv) })
-    observeEvent(input$saveBtn, {
-      assign("appRunTest", TRUE, envir = .GlobalEnv)
-      stopApp()
+    shiny::observeEvent(input$accept_PG_reNorm, {
+      assign("accept_PG_reNorm", as.logical(input[["accept_PG_reNorm"]]), envir = .GlobalEnv)
     })
-    session$onSessionEnded(\() { stopApp() })
+    shiny::observeEvent(input$saveBtn, {
+      assign("appRunTest", TRUE, envir = .GlobalEnv)
+      shiny::stopApp()
+    })
+    session$onSessionEnded(\() { shiny::stopApp() })
   }
   runKount <- 0L
   while ((!runKount) || (!exists("appRunTest"))) {
@@ -483,13 +516,13 @@ if (normPGs) {
   #
   if (accept_PG_reNorm) {
     pep[, colnames(pepQuantData_norm)] <- pepQuantData_norm
-    #summary(pep[, colnames(pepQuantData_norm)])
+    #base::summary(pep[, colnames(pepQuantData_norm)])
     # if (Param$Ratios.Thresholds == threshMsg) {
     #   pep.Ref.Ratios <- pep.Ref.Ratios.norm
     #   pep[, colnames(pep.Ref.Ratios)] <- pep.Ref.Ratios
     # }
   } else {
-    pep.ref <- pep.ref[setdiff(names(pep.ref), "Back-norm")]
+    pep.ref <- pep.ref[base::setdiff(names(pep.ref), "Back-norm")]
   }
   # We ran one algorithm the first time we sourced quntSrc, but now we rerun it a second time with all algorithms, regardless of whether re-normalisation was accepted or not!
   cat(if (accept_PG_reNorm) {
@@ -500,6 +533,6 @@ if (normPGs) {
   post_ReNorm_reRun <- TRUE
   #rstudioapi::documentOpen(quntSrc)
   source(quntSrc)
-  summary(quantData_list$Data)
+  base::summary(quantData_list$Data)
   #
 }

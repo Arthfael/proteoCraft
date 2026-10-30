@@ -93,11 +93,11 @@ Skyline_to_MQ <- function(Skyline_fl,
   # unmodSeqCol <- "Peptide"
   # modSeqCol <- "Peptide"
   # if (!unmodSeqCol %in% colnames(Skyline)) {
-  #   opt1 <- c(optUnMod, optMod, setdiff(colnames(Skyline), opt))
+  #   opt1 <- c(optUnMod, optMod, base::setdiff(colnames(Skyline), opt))
   #   unmodSeqCol <- svDialogs::dlg_list(opt1, opt1[1L], title = "Select primary peptide sequence column")$res
   # }
   # if (!modSeqCol %in% colnames(Skyline)) {
-  #   opt2 <- c(optMod, optUnMod, setdiff(colnames(Skyline), opt))
+  #   opt2 <- c(optMod, optUnMod, base::setdiff(colnames(Skyline), opt))
   #   modSeqCol <- svDialogs::dlg_list(opt2, opt2[1L], title = "Select modified peptide sequence column")$res
   # }
   #
@@ -133,7 +133,7 @@ Skyline_to_MQ <- function(Skyline_fl,
   lX <- nrow(Skyline)-length(w) 
   if (lX) {
     u <- unique(unlist(strsplit(Skyline[[unmodSeqCol]], "")))
-    u <- paste(setdiff(u, AA), collapse = "-")
+    u <- paste(base::setdiff(u, AA), collapse = "-")
     warning(paste0("Removing ", lX, " peptide", c("", "s")[(lX > 1L)+1L], " with unknown amino acids ", u, "!"))
     Skyline <- Skyline[w,]
   }
@@ -180,7 +180,7 @@ Skyline_to_MQ <- function(Skyline_fl,
     modSeqCol <- "Modified sequence"
   }
   intCols <- c("Total Area MS1", "Area") # The order matters!
-  intCols <- intersect(intCols, colnames(Skyline))
+  intCols <- base::intersect(intCols, colnames(Skyline))
   isTransTable <- (intCols[1L] == "Total Area MS1")
   Skyline$Intensity <- Skyline[[intCols[1L]]]
   intCol <- "Intensity"
@@ -202,18 +202,18 @@ Skyline_to_MQ <- function(Skyline_fl,
                       c("", ",\n`Is Decoy` = unique(`Is Decoy`)")[("Is Decoy" %in% colnames(Skyline))+1L], ")")
     byLstCol <- c("Replicate Name", "File Name", "File Path", unmodSeqCol, modSeqCol, protCol, "Missed Cleavages", "Precursor Charge",
                   "Precursor Mz", "Peptide Retention Time", "Min Start Time", "Max End Time")
-    byLstCol <- intersect(byLstCol, colnames(Skyline))
+    byLstCol <- base::intersect(byLstCol, colnames(Skyline))
     byLst <- paste0("list(", paste0("`", byLstCol, "`", collapse = ", "), ")")
     aggrCall <- paste0("Skyline2 <- Skyline2[, ", aggrLst, ", by = ", byLst, "]")
     aggrCall <- gsub("\n *", " ", aggrCall)
     #cat(aggrCall)         
     eval(parse(text = aggrCall))
-    #k <- setdiff(colnames(Skyline), colnames(Skyline2))
+    #k <- base::setdiff(colnames(Skyline), colnames(Skyline2))
     #print(k)
     Skyline <- Skyline2
   }
   optCols <- c("Missed Cleavages", "Explicit Ion Mobility")
-  #setdiff(colnames(Skyline), c(minCols, fileCols, modSeqCol, intCols, optCols, scoreCols))
+  #base::setdiff(colnames(Skyline), c(minCols, fileCols, modSeqCol, intCols, optCols, scoreCols))
   #
   # Create MQ-like table
   EV <- data.frame("Modified sequence" = paste0("_",
@@ -256,7 +256,7 @@ Skyline_to_MQ <- function(Skyline_fl,
   #
   # Score
   scoreCols <- c("Library Score1", "Library Probability Score") # The order matters slightly
-  scoreCols <- intersect(scoreCols, colnames(Skyline))
+  scoreCols <- base::intersect(scoreCols, colnames(Skyline))
   if (length(scoreCols)) {
     EV$Score <- Skyline[[scoreCols[1L]]]
   }
@@ -400,7 +400,7 @@ Skyline_to_MQ <- function(Skyline_fl,
     file.create(fl)
     con <- file(fl, "r+")
     serialize(Mods, con)
-    suppressWarnings(suppressMessages(try(close(con), silent = TRUE))) # Only necessary in function mode
+    suppressWarnings(suppressMessages(try(base::close(con), silent = TRUE))) # Only necessary in function mode
     #run_App2 <- "print(shiny::shinyApp(DIANN_to_MQ_ui2, DIANN_to_MQ_server2, options = list(height = screenRes$height, width = screenRes$width)))"
     g <- shiny:::.globals
     g$appState <- NULL
@@ -408,7 +408,7 @@ Skyline_to_MQ <- function(Skyline_fl,
     shinyCleanup()
     con <- file(fl, "r")
     Mods <- unserialize(con)
-    suppressWarnings(suppressMessages(try(close(con), silent = TRUE))) # Only necessary in function mode
+    suppressWarnings(suppressMessages(try(base::close(con), silent = TRUE))) # Only necessary in function mode
     unlink(fl)
     allPTMs <- aggregate(Mods$DM, list(Mods$Match), \(x) {
       rg <- c(min(x), max(x))
@@ -474,7 +474,7 @@ Skyline_to_MQ <- function(Skyline_fl,
       m <- allPTMs[w,]
       m$AA[vapply(m$AA, length, 1L) == 0L] <- "X"
       r <- if ("Acetyl" %in% m$"Full name") { which(m$"Full name" == "Acetyl") } else { 1L }
-      s <- setdiff(1L:nrow(m), r)
+      s <- base::setdiff(1L:nrow(m), r)
       test <- apply(m[s, c("AA", "Mark")], 1L, \(x) { paste0(tolower(x[[1L]]), substr(x[[2L]], 1L, 1L))[1L] })
       w0 <- which(!test %in% allPTMs$Mark)
       if (length(w0)) {

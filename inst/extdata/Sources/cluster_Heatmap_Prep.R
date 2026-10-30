@@ -16,7 +16,7 @@ if ((!exists("clustDat")) || (!inherits(clustDat, "list"))) {
 clustDat %<o% clustDat
 if (!exists("clustFilt")) { clustFilt<- list() }
 clustFilt %<o% clustFilt
-if (scrptType == "withReps") { dirlist <- union(dirlist, clustDir) }
+if (scrptType == "withReps") { dirlist <- base::union(dirlist, clustDir) }
 #
 if (scrptType == "withReps") { clustHtMp <- TRUE }
 if (scrptType == "noReps") { clustHtMp <- length(Exp) > 1L }
@@ -82,7 +82,7 @@ clustDat[[dataType]]$Original <- myData
 # Now, if we are using limpa to quantify, and dataType is "PG", we may want to filter out some values which are essentially worst estimates
 # (it's not imputation, but... it's not detection either!)
 if ((dataType == "PG") && (quantAlgo == "limpa")) {
-  psmsCol <- gsub(topattern(rfRoot), "Evidences count - ", clustXprsKol)
+  psmsCol <- sub(topattern(rfRoot), "Evidences count - ", clustXprsKol)
   psmsFlt <- as.matrix(PG[match(rownames(myData), PG$Label), psmsCol])
   w <- which(psmsFlt == 0L, arr.ind = TRUE)
   tmp <- myData
@@ -142,10 +142,10 @@ if ((scrptType == "withReps") && (Param$Batch.effect != "")) { # Here we have re
     btch <- Exp.map[match(map$Ref.Sample.Aggregate, Exp.map$Ref.Sample.Aggregate), Batch.effect$column]
     #btchCorrTst <- try({
       if (dataType == "PG") {
-        tmp <- ComBat(dat = myData,
-                      batch = btch,
-                      mod = mdlMtr,
-                      par.prior = TRUE)
+        tmp <- sva::ComBat(dat = myData,
+                           batch = btch,
+                           mod = mdlMtr,
+                           par.prior = TRUE)
       }
       if (dataType == "peptides") {
         tmp <- lapply(NormGrps$Group, \(lGrp) { #lGrp <- NormGrps$Group[1L] #lGrp <- NormGrps$Group[2L]
@@ -155,10 +155,10 @@ if ((scrptType == "withReps") && (Param$Batch.effect != "")) { # Here we have re
           # For ComBat we only use the longitudinal groups (peptide normalisation group),
           # not the transversal groups (comparison/ratio groups).
           # Indeed, batches will often intersect with the latter
-          rs <- ComBat(dat = myData[w,],
-                       batch = btch,
-                       mod = mdlMtr,
-                       par.prior = TRUE)
+          rs <- sva::ComBat(dat = myData[w,],
+                            batch = btch,
+                            mod = mdlMtr,
+                            par.prior = TRUE)
           rownames(rs) <- rownames(myData)[w]
           return(rs)
         })

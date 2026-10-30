@@ -21,7 +21,7 @@ if (scrptType == "noReps") {
 if (scrptType == "withReps") {
   kol <- lapply(VPAL$values, \(x) {
     x <- paste0(pep.ref["Original"], Exp.map$Ref.Sample.Aggregate[Exp.map[[VPAL$column]] == x])
-    return(intersect(x, colnames(pep)))
+    return(base::intersect(x, colnames(pep)))
   })
   tmpPar <- Param
 }
@@ -35,7 +35,7 @@ if ("PepFoundInAtLeast" %in% names(tmpPar)) {
   }
 }
 PepFoundInAtLeast %<o% PepFoundInAtLeast
-tst <- parApply(parClust, pep[, unlist(kol), drop = FALSE], 1L, \(x) {
+tst <- parallel::parApply(parClust, pep[, unlist(kol), drop = FALSE], 1L, \(x) {
   sum(x[is.finite(x)] > 0)
 })
 Pep2Use %<o% which(tst >= PepFoundInAtLeast)
@@ -55,15 +55,18 @@ if (scrptType == "withReps") {
     PepFoundInAtLeastGrp <- maxAllowed
   }
   tst <- pep[, unlist(kol)]
-  clusterExport(parClust, list("tst", "kol", "PepFoundInAtLeastGrp"), envir = environment())
-  tst <- parSapply(parClust, 1L:nrow(pep), \(x) {
+  parallel::clusterExport(parClust, list("tst", "kol", "PepFoundInAtLeastGrp"), envir = environment())
+  tst <- parallel::parSapply(parClust, 1L:nrow(pep), \(x) {
     x <- max(vapply(kol, \(kl) {
       x <- unlist(tst[x, kl])
       sum(x[is.finite(x)] > 0)
     }, 1L) >= PepFoundInAtLeastGrp)
     return(x)
   }) > 0L
-  invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
+  invisible(parallel::clusterCall(parClust, \(x) {
+    rm(list = ls())
+    gc()
+  }))
   w <- which(!tst)
   Pep2Use[w] <- FALSE
 }
@@ -103,7 +106,7 @@ if (scrptType == "withReps") {
   smplsKol <- "Ref.Sample.Aggregate"
   if (post_ReNorm_reRun) { bckpNm <- paste0(bckpNm, "_reNorm") }
   refNm <- if (post_ReNorm_reRun && accept_PG_reNorm) { "Back-norm" } else {
-    rev(setdiff(names(pep.ref), "Back-norm"))[1L]
+    rev(base::setdiff(names(pep.ref), "Back-norm"))[1L]
   }
   pepInt_col <- pep.ref[refNm]
   cat(paste0("Input peptide intensities = ", refNm, "\n"))
@@ -120,13 +123,13 @@ if (scrptType == "withReps") {
 if (scrptType == "withReps") {
   source(parSrc)
   Kols <- paste0(pepInt_col, smplsMap$Ref.Sample.Aggregate)
-  Kols <- intersect(Kols, colnames(pep))
+  Kols <- base::intersect(Kols, colnames(pep))
   tmp <- pep[, Kols]
-  clusterExport(parClust, list("smplsMap", "VPAL", "pep.ref", "tmp", "pepInt_col"), envir = environment())
-  CVs <- parSapply(parClust, VPAL$values, \(x) { #x <- VPAL$values[1L] #x <- VPAL$values[4L]
+  parallel::clusterExport(parClust, list("smplsMap", "VPAL", "pep.ref", "tmp", "pepInt_col"), envir = environment())
+  CVs <- parallel::parSapply(parClust, VPAL$values, \(x) { #x <- VPAL$values[1L] #x <- VPAL$values[4L]
     smpls <- smplsMap$Ref.Sample.Aggregate[smplsMap[[VPAL$column]] == x]
     kols <- paste0(pepInt_col, smpls)
-    kols <- intersect(kols, colnames(tmp))
+    kols <- base::intersect(kols, colnames(tmp))
     x <- apply(tmp[, kols, drop = FALSE], 1L, \(y) {
       y <- log10(unlist(y))
       y <- y[is.finite(y)]
@@ -148,6 +151,7 @@ if (scrptType == "noReps") {
 if (!exists("QuantUMS")) { QuantUMS <- FALSE }
 if ((length(inDirs) == 1L) && QuantUMS && ("Quantity Quality" %in% colnames(ev))) {  # DiaNN specific:
   if (!"Quantity Quality" %in% colnames(pep)) {
+    requireNamespace("data.table")
     tmp <- data.table(Qual = ev$"Quantity Quality", ModSeq = ev$"Modified sequence")
     tmp <- tmp[, .(Qual= mean(Qual)), by = .(ModSeq)]
     tmp <- as.data.frame(tmp)
@@ -161,25 +165,25 @@ if ((length(inDirs) == 1L) && QuantUMS && ("Quantity Quality" %in% colnames(ev))
     weightsInsrt <- "-log10(PEP * CV * (1 - DiaNN_Quantity_Quality))"
     pep$Weights <- -log10(pep$PEP*pep$CV*(1-pep$"Quantity Quality"))
   }
-  # plot <- ggplot(pep) +
-  #   geom_density(stat = "density", aes(x = PEP), colour = "red")
+  # plot <- ggplot2::ggplot(pep) +
+  #   ggplot2::geom_density(stat = "density", ggplot2::aes(x = PEP), colour = "red")
   # if (scrptType == "withReps") {
   #   plot <- plot +
-  #     geom_density(stat = "density", aes(x = CV), colour = "green")
+  #     ggplot2::geom_density(stat = "density", ggplot2::aes(x = CV), colour = "green")
   # }
   # plot <- plot +
-  #   geom_density(stat = "density", aes(x = 1-`Quantity Quality`), colour = "blue") +
-  #   theme_bw()
+  #   ggplot2::geom_density(stat = "density", ggplot2::aes(x = 1-`Quantity Quality`), colour = "blue") +
+  #   ggplot2::theme_bw()
   # poplot(plot)
-  # plot <- ggplot(pep) +
-  #   geom_density(stat = "density", aes(x = -log10(PEP)), colour = "red")
+  # plot <- ggplot2::ggplot(pep) +
+  #   ggplot2::geom_density(stat = "density", ggplot2::aes(x = -log10(PEP)), colour = "red")
   # if (scrptType == "withReps") {
   #   plot <- plot +
-  #     geom_density(stat = "density", aes(x = -log10(CV)), colour = "green")
+  #     ggplot2::geom_density(stat = "density", ggplot2::aes(x = -log10(CV)), colour = "green")
   # }
   # plot <- plot +
-  #   geom_density(stat = "density", aes(x = -log10(1-`Quantity Quality`)), colour = "blue") +
-  #   theme_bw()
+  #   ggplot2::geom_density(stat = "density", ggplot2::aes(x = -log10(1-`Quantity Quality`)), colour = "blue") +
+  #   ggplot2::theme_bw()
   # poplot(plot, 12L, 22L)
 }
 w <- which(!is.finite(pep$Weights))
@@ -188,7 +192,7 @@ pep$Weights[w] <- min(pep$Weights, na.rm = TRUE)
 m <- max(pep$Weights)
 pep$Weights <- pep$Weights/m
 pep$Weights[pep$Weights < 0.001] <- 0.001
-summary(pep$Weights)
+base::summary(pep$Weights)
 #
 Mod.Excl.is.strict %<o% FALSE
 if ("Prot.Quant.Mod.Excl.is.strict" %in% names(tmpPar)) {
@@ -244,14 +248,14 @@ if ((scrptType == "noReps") && MakeRatios) {
 msg <- if (post_ReNorm_reRun) {  " -> Protein groups re-quantitation from back-normalized peptides...\n"
 } else { " -> Starting protein groups quantitation...\n" }
 cat(msg)
-#stopCluster(parClust)
+#parallel::stopCluster(parClust)
 #loadpack <- TRUE #loadpack <- FALSE
 #source(parSrc)
 quantArgs2 <- quantArgs
 if (post_ReNorm_reRun) {
-  quantArgs2$alsoRun <- union(quantArgs2$alsoRun, c("LM", "iq"))
+  quantArgs2$alsoRun <- base::union(quantArgs2$alsoRun, c("LM", "iq"))
   if (scrptType == "withReps") {
-    quantArgs2$alsoRun <- union(quantArgs2$alsoRun, c("limpa", "QFeatures", "MSstats"))
+    quantArgs2$alsoRun <- base::union(quantArgs2$alsoRun, c("limpa", "QFeatures", "MSstats"))
   }
 }
 quantArgs2$cl <- parClust
@@ -370,5 +374,5 @@ if ((scrptType == "noReps") && Impute) {
   colnames(quantData2)[m2] <- "Peptide IDs used for quantitation - Imputed"
   PG[, colnames(quantData2)] <- quantData2
 }
-rm(list = setdiff(ls(), c(.obj, "")))
+rm(list = base::setdiff(ls(), c(.obj, "")))
 gc()

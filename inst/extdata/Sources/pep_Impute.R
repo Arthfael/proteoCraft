@@ -27,20 +27,24 @@ if (Impute) {
   mnX <- floor(min(plotTmp$Original[is.finite(plotTmp$Original)]) - 1)
   plotTmp$Original[w] <- mnX
   ttl <- "Effect of imputation"
-  plot <- ggplot(plotTmp) + geom_scattermore(aes(x = Original, y = Imputed, color = Sample), pointsize = 2.5) +
-    facet_wrap(~Sample) + theme_bw() + ggtitle(ttl, subtitle = "(non-transformed values)") + coord_fixed() +
-    geom_vline(xintercept = mnX + 0.5, color = "darkred", linetype = "dashed") +
-    geom_text(x = mnX + 0.525, y = mnX + 0.5, label = "<- imputed", size = 3L, color = "darkred", hjust = 0)
+  plot <- ggplot2::ggplot(plotTmp) +
+    scattermore::geom_scattermore(ggplot2::aes(x = Original, y = Imputed, color = Sample),
+                                  pointsize = 2.5) +
+    ggplot2::facet_wrap(~Sample) + ggplot2::theme_bw() +
+    ggplot2::ggtitle(ttl, subtitle = "(non-transformed values)") + ggplot2::coord_fixed() +
+    ggplot2::geom_vline(xintercept = mnX + 0.5, color = "darkred", linetype = "dashed") +
+    ggplot2::geom_text(x = mnX + 0.525, y = mnX + 0.5, label = "<- imputed",
+                       size = 3L, color = "darkred", hjust = 0)
   # TO DO:
   # Add a way to look at number of missed values across sample group, so we can distinguish MNAR from MAR on the plots!
   poplot(plot, 12L, 22L)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L)
+    ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L)
   })
   #
   colnames(temp2) <- gsub(pat, paste0("imput. ", pep.ref["Original"]), colnames(temp2))
   pep[, colnames(temp2)] <- temp2
   pep.ref["Imputation"] <- paste0("imput. ", pep.ref["Original"])
-  rm(list = setdiff(ls(), .obj))
+  rm(list = base::setdiff(ls(), .obj))
   Script <- readr::read_lines(ScriptPath)
 }

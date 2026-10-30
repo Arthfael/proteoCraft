@@ -67,9 +67,9 @@ if (exists("PTMstats") && nrow(PTMstats)) {
   #
   # Edit materials and methods text
   tmp <- .commAnd(PTMs)
-  tmp2 <- setNames(sapply(PTMs, \(Ptm) {
+  tmp2 <- setNames(vapply(PTMs, \(Ptm) {
     PTM_normalize[[Ptm]]
-  }), PTMs)
+  }, TRUE), PTMs)
   tmp2u <- unique(tmp2)
   l2u <- length(tmp2u)
   if ((l2u == 1L) && tmp2u) {
@@ -127,13 +127,12 @@ if (exists("PTMstats") && nrow(PTMstats)) {
   # ptms.ratios.ref %<o% setNames(pep.ratios.ref[length(pep.ratios.ref)],
   #                               "Original")
   for (ptm in PTMs) { #ptm <- PTMs[1L]
-    source(parSrc)
     cat(" -", ptm, "\n")
     modDirs <- c("", "/t-tests")
     if (exists("F.test") && F.test) { modDirs <- c(modDirs, "/F-tests") }
     modDirs <-  paste0(wd, "/Reg. analysis/", ptm, modDirs)
     for (dr in modDirs) { if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }}
-    dirlist <- union(dirlist, modDirs)
+    dirlist <- base::union(dirlist, modDirs)
     #
     Ptm <- ptmNms[ptm]
     g <- ptmsTst[[ptm]]
@@ -161,8 +160,9 @@ if (exists("PTMstats") && nrow(PTMstats)) {
     kol <- c(myIDcol, "ModSeq*")
     temp$`ModSeq*` <- strsplit(temp$`ModSeq*`, "")
     temp2 <- temp[, kol]
-    clusterExport(parClust, list("temp2", "dbsmall", "ptmsh", "listMelt"), envir = environment())
-    temp3 <- parApply(parClust, temp2, 1L, \(x) {
+    source(parSrc)
+    parallel::clusterExport(parClust, list("temp2", "dbsmall", "ptmsh", "listMelt"), envir = environment())
+    temp3 <- parallel::parApply(parClust, temp2, 1L, \(x) {
       #x <- temp[1L, kol]
       #A <- sapply(seq_len(nrow(temp)), \(i) {
       #print(i)
@@ -194,7 +194,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
           M <- M[order(-M$x),]
           M <- M$Group.1[M$x == l]
           # Check that peptides are tryptic:
-          #test <- sapply(M, \(y) {
+          #test <- vapply(M, \(y) {
           #  # r1: on the N-terminal end, is the peptide preceded by K, R or (if starting at position 2, M)?
           #  if (y > 1L) {
           #    r1 <- if (y == 2L) { S[y-1L] %in% c("K", "R", "M") } else { S[y-1L] %in% c("K", "R") }
@@ -202,7 +202,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
           #  # r2: on the C-terminal end, is this a tryptic peptide or the last peptide in the protein?
           #  r2 <- (m1$Seq[l] %in% c("K", "R")) | (y+l-1L == lS)
           #  return(r1+r2 == 2L)
-          #})
+          #}, TRUE)
           #M <- M[test]
           return(M)
         })
@@ -214,10 +214,12 @@ if (exists("PTMstats") && nrow(PTMstats)) {
           colnames(matches) <- c("Match", "Proteins")
           w <- which(m$Test)
           matches$Sites <- sapply(matches$Match, \(y) {
-            y <- paste(sapply(w, \(z) { paste0(m$Mod.seq[z], y+m$Offset[z]) }), collapse = "-")
+            paste(sapply(w, \(z) { paste0(m$Mod.seq[z], y+m$Offset[z]) }), collapse = "-")
           })
-          matches$Match <- apply(matches[, c("Match", "Proteins")], 1L, paste, collapse = " ")
-          matches$Sites <- apply(matches[, c("Sites", "Proteins")], 1L, paste, collapse = " ")
+          # matches$Match <- apply(matches[, c("Match", "Proteins")], 1L, paste, collapse = " ")
+          # matches$Sites <- apply(matches[, c("Sites", "Proteins")], 1L, paste, collapse = " ")
+          matches$Match <- do.call(paste, c(matches[, c("Match", "Proteins")], sep = " "))
+          matches$Sites <- do.call(paste, c(matches[, c("Sites", "Proteins")], sep = " "))
           matches <- apply(matches[, c("Match", "Sites")], 2L, paste, collapse = "/")
         } else { matches <- c(NA, NA) }
       } else { matches <- c(NA, NA) }
@@ -312,12 +314,13 @@ if (exists("PTMstats") && nrow(PTMstats)) {
         prtQuntDat <- tmp
       }
       pep2prot[, kolPG] <- prtQuntDat[, kolPG]
+      requireNamespace("data.table")
       pep2prot <- data.table(pep2prot[, c("row", kolPG)])
       pep2prot <- pep2prot[, lapply(.SD, mean, na.rm = TRUE), by = row, .SDcols = kolPG]
       pep2prot <- as.data.frame(pep2prot)
       # maximum PG fold change should not be too high in most experiments
-      #summary(10^unlist(pep2prot[, kolPG]))   # de-logged
-      #summary(unlist(pep2prot[, kolPG]))      # as log10
+      #base::summary(10L^unlist(pep2prot[, kolPG]))   # de-logged
+      #base::summary(unlist(pep2prot[, kolPG]))      # as log10
       # (refer to PG-level volcano plots to see whether these make sense...)
       ptms.ref["ReNorm."] <- paste0("ReNorm. ", ptms.ref["Original"])
       tmp <- ptmpep[, kolPp1] - pep2prot[, kolPG]
@@ -337,8 +340,8 @@ if (exists("PTMstats") && nrow(PTMstats)) {
                  "Re-normalisation (intensities)",
                  modDirs[1L])
       if (length(prot.list)) {
-        source(parSrc)
         dr <- paste0(modDirs[1L], "/Heatmaps")
+        source(parSrc)
         pepHtmp(prot.list,
                 ptmpep,
                 ptms.ref["Original"],
@@ -347,6 +350,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
                 "original",
                 is.log = TRUE,
                 cl = parClust)
+        source(parSrc)
         pepHtmp(prot.list,
                 ptmpep,
                 ptms.ref["ReNorm."],
@@ -451,7 +455,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
         stopifnot(FCkol %in% names(ptmpep))
         regKol <- paste0("Regulated - ", i)
         ptmpep[[regKol]] <- "non significant"
-        fdrs <- as.numeric(sub("FDR$", "", setdiff(colnames(dec), mKol)))
+        fdrs <- as.numeric(sub("FDR$", "", base::setdiff(colnames(dec), mKol)))
         fdrs <- sort(fdrs, decreasing = TRUE)
         for (f in fdrs) { #f <- fdrs[1L]
           w <- which(ptmpep[[mKol]] %in% dec[dec[[paste0(f, "FDR")]] == "+", mKol])
@@ -462,7 +466,6 @@ if (exists("PTMstats") && nrow(PTMstats)) {
         }
       }
     }
-    stopCluster(parClust)
     source(parSrc)
     volcPlot_args2 <- volcPlot_args
     volcPlot_args2$Prot <- ptmpep
@@ -485,7 +488,6 @@ if (exists("PTMstats") && nrow(PTMstats)) {
     #k2 <- grep(topattern(paste0("Mean ", ptms.ratios.ref[length(ptms.ratios.ref)])), colnames(ptmpep), value = TRUE)
     #df2 <- ptmpep[, k2]
     #pepPlotFun(df1, df2, "Before VS after volc. plot", modDirs[1L], FALSE)
-    stopCluster(parClust)
     source(parSrc)
     #
     if (!exists("volcPlotly_fl")) { volcPlotly_fl %<o% paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
@@ -550,9 +552,9 @@ if (exists("PTMstats") && nrow(PTMstats)) {
       PTMs_Reg_filters[[Ptm]]$"t-tests"$"By condition" <- list()
       for (i in seq_along(g)) {
         PTMs_Reg_filters[[Ptm]]$"t-tests"$"By condition"[[g1[i]]] <- list(Columns = g[i],
-                                                                          Filter_up = sort(which(ptmpep[[g[i]]] %in% up)),
-                                                                          Filter_down = sort(which(ptmpep[[g[i]]] %in% down)),
-                                                                          Filter = sort(which(ptmpep[[g[i]]] %in% c(up, down))))
+                                                                          Filter_up = which(ptmpep[[g[i]]] %in% up),
+                                                                          Filter_down = which(ptmpep[[g[i]]] %in% down),
+                                                                          Filter = which(ptmpep[[g[i]]] %in% c(up, down)))
       }
     }
     if ("ref" %in% filter_types) {
@@ -560,33 +562,33 @@ if (exists("PTMstats") && nrow(PTMstats)) {
       g2 <- as.data.frame(t(as.data.frame(strsplit(g1, "___"))))
       colnames(g2) <- VPAL$names
       tst <- apply(Exp.map[, RRG$names, drop = FALSE], 1L, paste, collapse = "___")
-      tmp <- apply(g2[,RRG$names, drop = FALSE], 1L, paste, collapse = "___")
-      g2$Ref <- sapply(tmp, \(x) { y <- unique(tst[Exp.map$Reference & (tst == x)]) })
+      tmp <- apply(g2[, RRG$names, drop = FALSE], 1L, paste, collapse = "___")
+      g2$Ref <- vapply(tmp, \(x) { unique(tst[Exp.map$Reference & (tst == x)]) }, "")
       for (i in unique(g2$Ref)) {
         w <- which(g2$Ref == i)
         PTMs_Reg_filters[[Ptm]]$"t-tests"$"By reference"[[i]] <- list(Columns = g[w],
-                                                                      Filter_up = sort(which(apply(ptmpep[, g[w], drop = FALSE], 1L, \(x) {
+                                                                      Filter_up = which(apply(ptmpep[, g[w], drop = FALSE], 1L, \(x) {
                                                                         sum(x %in% up)
-                                                                      }) > 0L)),
-                                                                      Filter_down = sort(which(apply(ptmpep[, g[w], drop = FALSE], 1L, \(x) {
+                                                                      }) > 0L),
+                                                                      Filter_down = which(apply(ptmpep[, g[w], drop = FALSE], 1L, \(x) {
                                                                         sum(x %in% down)
-                                                                      }) > 0L)),
-                                                                      Filter = sort(which(apply(ptmpep[, g[w], drop = FALSE], 1L, \(x) {
+                                                                      }) > 0L),
+                                                                      Filter = which(apply(ptmpep[, g[w], drop = FALSE], 1L, \(x) {
                                                                         sum(x %in% c(up, down))
-                                                                      }) > 0L)))
+                                                                      }) > 0L))
       }
     }
     if (sum(c("dat", "dat2") %in% filter_types)) {
       PTMs_Reg_filters[[Ptm]]$"t-tests"$"Whole dataset" <- list(Columns = g,
-                                                                Filter_up = sort(which(apply(ptmpep[, g, drop = FALSE], 1L, \(x) {
+                                                                Filter_up = which(apply(ptmpep[, g, drop = FALSE], 1L, \(x) {
                                                                   sum(x %in% up)
-                                                                }) > 0L)),
-                                                                Filter_down = sort(which(apply(ptmpep[, g, drop = FALSE], 1L, \(x) {
+                                                                }) > 0L),
+                                                                Filter_down = which(apply(ptmpep[, g, drop = FALSE], 1L, \(x) {
                                                                   sum(x %in% down)
-                                                                }) > 0L)),
-                                                                Filter = sort(which(apply(ptmpep[, g, drop = FALSE], 1L, \(x) {
+                                                                }) > 0L),
+                                                                Filter = which(apply(ptmpep[, g, drop = FALSE], 1L, \(x) {
                                                                   sum(x %in% c(up, down))
-                                                                }) > 0L)))
+                                                                }) > 0L))
     }
     if (exists("F.test") && F.test) {
       #kol <- grep(topattern(ptmRf), colnames(ptmpep), value = TRUE)
@@ -614,9 +616,9 @@ if (exists("PTMstats") && nrow(PTMstats)) {
           PTMs_Reg_filters[[Ptm]]$"F-tests"$"By condition" <- list()
           for (i in seq_along(g)) {
             PTMs_Reg_filters[[Ptm]]$"F-tests"$"By condition"[[g1[i]]] <- list(Columns = g[i],
-                                                                              Filter_up = sort(which(PTMs_F_test_data[[Ptm]][[g[i]]] %in% up)),
-                                                                              Filter_down = sort(which(PTMs_F_test_data[[Ptm]][[g[i]]] %in% down)),
-                                                                              Filter = sort(which(PTMs_F_test_data[[Ptm]][[g[i]]] %in% c(up, down))))
+                                                                              Filter_up = which(PTMs_F_test_data[[Ptm]][[g[i]]] %in% up),
+                                                                              Filter_down = which(PTMs_F_test_data[[Ptm]][[g[i]]] %in% down),
+                                                                              Filter = which(PTMs_F_test_data[[Ptm]][[g[i]]] %in% c(up, down)))
           }
         }
         if ("ref" %in% filter_types) {
@@ -627,14 +629,14 @@ if (exists("PTMstats") && nrow(PTMstats)) {
           g2$Ref <- ""
           w <- grep(" VS ", g2$Condition)
           if (length(w)) {
-            g2$tmp[w] <- sapply(strsplit(sub("\\)$", "", g2$Condition[w]), split = " VS "), \(x) { x[[2L]] })
+            g2$tmp[w] <- vapply(strsplit(sub("\\)$", "", g2$Condition[w]), split = " VS "), \(x) { x[[2L]] }, "")
             g2$Ref[w] <- apply(g2[w, c("Group", "Analysis", "tmp")], 1L, \(x) {
               paste0(x[[1L]], " - ", x[[2L]], ", ref: ", x[[3L]])
             })
           }
           w <- which(grepl(" vs ", g2$Condition) & (!grepl(" VS ", g2$Condition)))
           if (length(w)) {
-            g2$tmp[w] <- sapply(strsplit(g2$Condition[w], split = " vs "), \(x) { x[[2L]] })
+            g2$tmp[w] <- vapply(strsplit(g2$Condition[w], split = " vs "), \(x) { x[[2L]] }, "")
             g2$Ref[w] <- apply(g2[w, c("Group", "Analysis", "tmp")], 1L, \(x) {
               paste0(x[[1L]], ", ref: ", x[[2L]])
             })
@@ -644,15 +646,15 @@ if (exists("PTMstats") && nrow(PTMstats)) {
           for (i in unique(g2$Ref)) {
             w <- which(g2$Ref == i)
             PTMs_Reg_filters[[Ptm]]$"F-tests"$"By reference"[[i]] <- list(Columns = g[w],
-                                                                          Filter_up = sort(which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
+                                                                          Filter_up = which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
                                                                             sum(x %in% up)
-                                                                          }) > 0L)),
-                                                                          Filter_down = sort(which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
+                                                                          }) > 0L),
+                                                                          Filter_down = which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
                                                                             sum(x %in% down)
-                                                                          }) > 0L)),
-                                                                          Filter = sort(which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
+                                                                          }) > 0L),
+                                                                          Filter = which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
                                                                             sum(x %in% c(up, down))
-                                                                          }) > 0L)))
+                                                                          }) > 0L))
           }
         }
         if ("dat" %in% filter_types) {
@@ -663,28 +665,28 @@ if (exists("PTMstats") && nrow(PTMstats)) {
           for (i in unique(g2$Group_Analysis)) {
             w <- which(g2$Group_Analysis == i)
             PTMs_Reg_filters[[Ptm]]$"F-tests"$"By analysis"[[i]] <- list(Columns = g[w],
-                                                                         Filter_up = sort(which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
+                                                                         Filter_up = which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
                                                                            sum(x %in% up)
-                                                                         }) > 0L)),
-                                                                         Filter_down = sort(which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
+                                                                         }) > 0L),
+                                                                         Filter_down = which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
                                                                            sum(x %in% down)
-                                                                         }) > 0L)),
-                                                                         Filter = sort(which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
+                                                                         }) > 0L),
+                                                                         Filter = which(apply(PTMs_F_test_data[[Ptm]][, g[w], drop = FALSE], 1L, \(x) {
                                                                            sum(x %in% c(up, down))
-                                                                         }) > 0L)))
+                                                                         }) > 0L))
           }
         }
         if ("dat2" %in% filter_types) {
           PTMs_Reg_filters[[Ptm]]$"F-tests"$"Whole dataset" <- list(Columns = g,
-                                                                    Filter_up = sort(which(apply(PTMs_F_test_data[[Ptm]][, g, drop = FALSE], 1L, \(x) {
+                                                                    Filter_up = which(apply(PTMs_F_test_data[[Ptm]][, g, drop = FALSE], 1L, \(x) {
                                                                       sum(x %in% up)
-                                                                    }) > 0L)),
-                                                                    Filter_down = sort(which(apply(PTMs_F_test_data[[Ptm]][, g, drop = FALSE], 1L, \(x) {
+                                                                    }) > 0L),
+                                                                    Filter_down = which(apply(PTMs_F_test_data[[Ptm]][, g, drop = FALSE], 1L, \(x) {
                                                                       sum(x %in% down)
-                                                                    }) > 0L)),
-                                                                    Filter = sort(which(apply(PTMs_F_test_data[[Ptm]][, g, drop = FALSE], 1L, \(x) {
+                                                                    }) > 0L),
+                                                                    Filter = which(apply(PTMs_F_test_data[[Ptm]][, g, drop = FALSE], 1L, \(x) {
                                                                       sum(x %in% c(up, down))
-                                                                    }) > 0L)))
+                                                                    }) > 0L))
         }
       } else { warning("The F-test did not generate any plots! Investigate!") }
     }
@@ -747,26 +749,25 @@ if (exists("PTMstats") && nrow(PTMstats)) {
     wNA <- which(vapply(kol, \(x) { sum(!is.na(temp[[x]])) == 0L }, TRUE))
     wOKgrp <- which(!kol %in% kol[wNA])
     grps <- grps[wOKgrp]
-    temp <- temp[, setdiff(colnames(temp), kol[wNA])]
-    kol <- setdiff(kol, kol[wNA])
+    temp <- temp[, base::setdiff(colnames(temp), kol[wNA])]
+    kol <- base::setdiff(kol, kol[wNA])
     temp2 <- as.matrix(Data_Impute2(temp, grps)$Imputed_data)
-    hcluster <- hclust(dist(t(temp2)))
-    hdendro <- as.dendrogram(hcluster)
-    hord <- order.dendrogram(hdendro)
+    hcluster <- stats::hclust(dist(t(temp2)))
+    hdendro <- stats::as.dendrogram(hcluster)
+    hord <- stats::order.dendrogram(hdendro)
     hord <- colnames(temp)[hord]
-    vcluster <- hclust(dist(temp2))
-    vdendro <- as.dendrogram(vcluster)
-    vord <- order.dendrogram(vdendro)
+    vcluster <- stats::hclust(dist(temp2))
+    vdendro <- stats::as.dendrogram(vcluster)
+    vord <- stats::order.dendrogram(vdendro)
     vord <- rownames(temp)[vord]
-    require(ggdendro)
-    hdendro.plot <- ggdendrogram(data = hdendro) +
-      theme(axis.text.y = element_text(size = 0.1),
-            plot.margin = margin(0L, 0L, 0L, 0L, "cm"))
-    vdendro.plot <- ggdendrogram(data = vdendro, rotate = TRUE, labels = FALSE, leaf_labels = FALSE) +
-      theme(axis.text.y = element_blank(), axis.text.x = element_blank(),
-            panel.background = element_rect(fill = "transparent", colour = NA), 
-            plot.background = element_rect(fill = "transparent", colour = NA),
-            plot.margin = margin(0L, 0L, 0L, 0L, "cm"))
+    hdendro.plot <- ggdendro::ggdendrogram(data = hdendro) +
+      ggplot2::theme(axis.text.y = ggplot2::element_text(size = 0.1),
+                     plot.margin = ggplot2::margin(0L, 0L, 0L, 0L, "cm"))
+    vdendro.plot <- ggdendro::ggdendrogram(data = vdendro, rotate = TRUE, labels = FALSE, leaf_labels = FALSE) +
+      ggplot2::theme(axis.text.y = ggplot2::element_blank(), axis.text.x = ggplot2::element_blank(),
+                     panel.background = ggplot2::element_rect(fill = "transparent", colour = NA), 
+                     plot.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+                     plot.margin = ggplot2::margin(0L, 0L, 0L, 0L, "cm"))
     # Data wrangling
     temp2 <- dfMelt(temp, c("Sample", "value"))
     temp2$Label <- rownames(temp)
@@ -785,25 +786,26 @@ if (exists("PTMstats") && nrow(PTMstats)) {
     w1 <- which(temp2$Colour == "green")
     w2 <- which((temp2$Xmin == max(temp2$Xmin)) & (temp2$Colour == "green"))
     nm <- paste0("Heatmap\n", Ptm, "-modified peptides")
-    heatmap.plot <- ggplot(temp2) +
-      geom_rect(aes(xmin = Xmin, xmax = Xmin+1, ymin = Ymin, ymax = Ymin+1, fill = value)) +
-      geom_text(data = temp2, aes(y = Ymin+0.5, label = Label2),
+    heatmap.plot <- ggplot2::ggplot(temp2) +
+      ggplot2::geom_rect(ggplot2::aes(xmin = Xmin, xmax = Xmin+1, ymin = Ymin, ymax = Ymin+1, fill = value)) +
+      ggplot2::geom_text(data = temp2, ggplot2::aes(y = Ymin+0.5, label = Label2),
                 x = length(unique(temp2$Sample)), colour = "grey", hjust = 0, vjust = 0.5, size = 2L) +
-      theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-            axis.text.y = element_blank(), axis.ticks.y = element_blank(), 
-            panel.background = element_rect(fill = "transparent", colour = NA),
-            plot.margin = margin(0L, 0L, 0L, 0L, "cm")) +
-      scale_fill_gradient2(low = "darkblue", mid = "lightgrey", high = "darkred") +
-      xlab(NULL) + ylab(NULL)
-    leg <- get_legend(heatmap.plot)
-    heatmap.plot <- heatmap.plot + theme(legend.position = "none")
-    htmp <- arrangeGrob(grobs = list(hdendro.plot, leg, heatmap.plot, vdendro.plot),
-                        widths = c(1L, 2L*Xscale, 1L, 3L), heights = c(3L, 5L),
-                        layout_matrix = rbind(c(NA, 1L, NA, 2L), c(3L, 3L, 3L, 4L)),
-                        padding = 5L)
+      ggplot2::theme(axis.text.x = ggplot2::element_blank(), axis.ticks.x = ggplot2::element_blank(), 
+            axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank(), 
+            panel.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+            plot.margin = ggplot2::margin(0L, 0L, 0L, 0L, "cm")) +
+      ggplot2::scale_fill_gradient2(low = "darkblue", mid = "lightgrey", high = "darkred") +
+      ggplot2::xlab(NULL) + ggplot2::ylab(NULL)
+    leg <- cowplot::get_legend(heatmap.plot)
+    heatmap.plot <- heatmap.plot + ggplot2::theme(legend.position = "none")
+    htmp <- gridExtra::arrangeGrob(grobs = list(hdendro.plot, leg, heatmap.plot, vdendro.plot),
+                                   widths = c(1L, 2L*Xscale, 1L, 3L), heights = c(3L, 5L),
+                                   layout_matrix = rbind(c(NA, 1L, NA, 2L), c(3L, 3L, 3L, 4L)),
+                                   padding = 5L)
     nm <- gsub("\n", " - ", nm)
     suppressMessages({
-      ggsave(paste0(modDirs[1L], "/", nm, ".svg"), htmp, width = 20L, height = 20L, units = "in", dpi = 600L)
+      ggplot2::ggsave(paste0(modDirs[1L], "/", nm, ".svg"), htmp,
+                      width = 20L, height = 20L, units = "in", dpi = 600L)
     })
     #system(paste0("open \"", modDirs[1L], "/", nm, ".svg", "\""))
     #
@@ -816,11 +818,12 @@ if (exists("PTMstats") && nrow(PTMstats)) {
       if ((!exists("GO_terms")) && file.exists(GO_terms_fl)) { loadFun(GO_terms_fl) }
       #
       p <- strsplit(ptmpep$Proteins, ";")
-      test <- sapply(annot.col, \(x) { x %in% colnames(db) })
+      test <- annot.col %in% colnames(db)
       annot.col2 <- annot.col[test]
       tmpDB <- db[db$Observed, c("Protein ID", annot.col2)]
-      clusterExport(parClust, c("tmpDB", "annot.col2"), envir = environment())
-      temp <- parLapply(parClust, p, \(x) {
+      source(parSrc)
+      parallel::clusterExport(parClust, c("tmpDB", "annot.col2"), envir = environment())
+      temp <- parallel::parLapply(parClust, p, \(x) {
         m <- match(x, tmpDB$"Protein ID")
         y <- tmpDB[m, annot.col2]
         if (length(m) > 1L) {
@@ -844,7 +847,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
                       "Leading razor protein", "Gene names", "Protein names", "Gene names (all)",
                       "Protein names (all)", "Weights", "Match(es)", "Code", "Name", annot.col2,
                       "Potential contaminant"))
-      Kol <- intersect(Kol, colnames(ptmpep))
+      Kol <- base::intersect(Kol, colnames(ptmpep))
       PTMs_GO_enrich.dat[[Ptm]] <- list()
       PTMs_GO_enrich.FCRt[[Ptm]] <- list()
       PTMs_GO_enrich.tbl[[Ptm]] <- list()
@@ -858,11 +861,11 @@ if (exists("PTMstats") && nrow(PTMstats)) {
         myDir <- paste0(modDirs[1L], "/GO enrich/", tstrt)
         modDirs <- c(modDirs, myDir)
         if (!dir.exists(myDir)) { dir.create(myDir, recursive = TRUE) }
-        dirlist <- union(dirlist, myDir)
+        dirlist <- base::union(dirlist, myDir)
         filt <- PTMs_Reg_filters[[Ptm]][[tstrt]]
         #By <- c("By condition", "By reference", "By analysis", "Whole dataset")
         By <- "By condition"
-        By <- intersect(By, names(filt))
+        By <- base::intersect(By, names(filt))
         if (length(By)) {
           for (bee in By) { #bee <- By[1L]
             flt <- filt[[bee]]
@@ -872,7 +875,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
               if (tt == 1L) { tmpdat <- ptmpep }
               if (tt == 2L) { tmpdat <- PTMs_F_test_data[[Ptm]] }
               flt <- if (tt %in% 1L:2L) {
-                flt[intersect(myContrasts$Contrast[myContrasts$Secondary == ""], names(flt))]
+                flt[base::intersect(myContrasts$Contrast[myContrasts$Secondary == ""], names(flt))]
               } else {
                 flt[order(names(flt))]
               }
@@ -899,7 +902,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
               })))
               colnames(temPTM) <- paste0(PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]], UF)
               temPTM[, Kol] <- ptmpep[, Kol]
-              #temPTM$"First protein" <- sapply(strsplit(temPTM[[myIDcol]], ";"), \(x) { unlist(x)[1L] })
+              #temPTM$"First protein" <- sub(";.*", "", temPTM[[myIDcol]])
               if (scrptTypeFull == "withReps_PG_and_PTMs") {
                 temp <- listMelt(strsplit(temPTM$`Protein group IDs`, ";"), temPTM$id)
                 temp$Genes <- PG$Genes[match(temp$value, PG$id)]
@@ -933,7 +936,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
                     sum(is.finite(x))
                   }) > 0L)
                   w2 <- flt[[x]] # Required for if we are imputing missing values
-                  return(sort(unique(c(w1, w2))))
+                  return(sort(base::union(w1, w2)))
                 }), names(flt)), silent = TRUE)
                 if (inherits(Pep.Ref.Filt, "try-error")) {
                   warning("Invalid \"GO.enrichment.Ref.Aggr\" argument: multiple references for GO enrichment are only feasible if each enrichment filter maps to a single reference! Skipping...")
@@ -942,7 +945,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
                 }
               }
               if ((length(Pep.Ref.Filt) > 1L) || (!is.na(Pep.Ref.Filt))) {
-                flt <- setNames(lapply(names(flt), \(x) { intersect(flt[[x]], Pep.Ref.Filt[[x]]) }), names(flt))
+                flt <- setNames(lapply(names(flt), \(x) { base::intersect(flt[[x]], Pep.Ref.Filt[[x]]) }), names(flt))
               }
               # Also save the reference filters 
               nms <- names(PTMs_Reg_filters[[Ptm]][[tstrt]][[bee]])
@@ -984,7 +987,8 @@ if (exists("PTMstats") && nrow(PTMstats)) {
                 temp <- PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_terms
                 temp$Mapping <- NULL
                 if ("Offspring" %in% colnames(temp)) {
-                  temp$Offspring <- parSapply(parClust, temp$Offspring, paste, collapse = ";")
+                  source(parSrc)
+                  temp$Offspring <- parallel::parSapply(parClust, temp$Offspring, paste, collapse = ";")
                 }
                 temp$`Protein table row(s)` <- NULL
                 colnames(temp) <- cleanNms(colnames(temp), start = FALSE)
@@ -997,8 +1001,8 @@ if (exists("PTMstats") && nrow(PTMstats)) {
                 lf <- grep("^logFC", colnames(temp), value = TRUE)
                 si <- grep("^Significance", colnames(temp), value = TRUE)
                 #lp <- grep("^Leading protein IDs", colnames(temp), value = TRUE)
-                #kl <- setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pp, lp))
-                kl <- setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pp, pr))
+                #kl <- base::setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pp, lp))
+                kl <- base::setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pp, pr))
                 #temp <- temp[, c(kl, si, gn, pp, lp, kn, pv, zs, lf)]
                 temp <- temp[, c(kl, si, gn, pp, pr, kn, pv, zs, lf)]
                 w <- apply(temp[, pv, drop = FALSE], 1L, \(x) { sum(!is.na(x)) }) > 0L
@@ -1017,39 +1021,59 @@ if (exists("PTMstats") && nrow(PTMstats)) {
                     }
                   }
                 }
-                require(openxlsx)
-                HdrStl <- createStyle(textDecoration = "bold", halign = "center", valign = "center",
-                                      wrapText = TRUE, numFmt = "TEXT", fontSize = 12L)
-                wb <- createWorkbook()
+                #
+                wb <- openxlsx2::wb_workbook()
                 kount <- 0L
-                for (ont in names(Ontologies)) { #ont <- names(Ontologies)[1L]
+                setW <- \(wb, sheet, cols, width) {
+                  if (length(cols)) {
+                    wb <- openxlsx2::wb_set_col_widths(wb, sheet, cols = cols, widths = width)
+                  }
+                  invisible(wb)
+                }
+                for (ont in names(Ontologies)) {
                   w <- which(temp$Ontology == Ontologies[ont])
                   if (length(w)) {
                     kount <- kount + 1L
-                    addWorksheet(wb, ont)
-                    writeData(wb, ont, temp[w,])
-                    setRowHeights(wb, ont, 1L, 60L)
-                    setColWidths(wb, ont, 1L:ncol(temp), 12L)
-                    setColWidths(wb, ont, which(colnames(temp) == "Term"), 45L)
-                    setColWidths(wb, ont, which(colnames(temp) %in% gn), 20L)
-                    setColWidths(wb, ont, which(colnames(temp) %in% pr), 20L)
-                    setColWidths(wb, ont, which(colnames(temp) %in% pp), 20L)
-                    addStyle(wb, ont, HdrStl, 1L, 1L:ncol(temp))
-                    addStyle(wb, ont, createStyle(numFmt = "0"), 2L:(length(w)+1L),
-                             which(colnames(temp) %in% kn), gridExpand = TRUE)
-                    addStyle(wb, ont, createStyle(numFmt = "0.000"), 2L:(length(w)+1L),
-                             which(colnames(temp) %in% c(zs, lf, pv)), gridExpand = TRUE)
+                    wb <- openxlsx2::wb_add_worksheet(wb, ont)
+                    wb <- openxlsx2::wb_add_data(wb, ont, temp[w, ])
+                    wb <- openxlsx2::wb_set_row_heights(wb, ont, 1L, 60L)
+                    wb <- openxlsx2::wb_set_col_widths(wb, ont, seq_len(ncol(temp)), 12L)
+                    wb <- setW(wb, ont, match("Term", colnames(temp)), 45L)
+                    wb <- setW(wb, ont, which(colnames(temp) %in% gn), 20L)
+                    wb <- setW(wb, ont, which(colnames(temp) %in% pr), 20L)
+                    wb <- setW(wb, ont, which(colnames(temp) %in% pp), 20L)
+                    # header style
+                    hdr <- openxlsx2::wb_dims(rows = 1L, cols = seq_len(ncol(temp)))
+                    wb <- openxlsx2::wb_add_numfmt(wb, ont, dims = hdr, numfmt = "@")
+                    wb <- openxlsx2::wb_add_font(wb, ont, dims = hdr, bold = TRUE, size = 12)
+                    wb <- openxlsx2::wb_add_cell_style(wb, ont, dims = hdr, horizontal = "center",
+                                                       vertical = "center", wrap_text = TRUE)
+                    # number formats for data rows
+                    rws <- 2L:(length(w) + 1L)
+                    cI  <- which(colnames(temp) %in% kn)
+                    cD  <- which(colnames(temp) %in% c(zs, lf, pv))
+                    if (length(cI)) {
+                      wb <- openxlsx2::wb_add_numfmt(wb, ont, dims = openxlsx2::wb_dims(rows = rws, cols = cI),
+                                                     numfmt = "0")
+                    }
+                    if (length(cD)) {
+                      wb <- openxlsx2::wb_add_numfmt(wb, ont, dims = openxlsx2::wb_dims(rows = rws, cols = cD),
+                                                     numfmt = "0.000")
+                    }
                   }
                 }
                 if (kount) {
-                  saveWorkbook(wb, paste0(myDir, "/", Ptm, " GO terms - ", tstbee, ".xlsx"), overwrite = TRUE)
+                  xl_fl <- paste0(myDir, "/", Ptm, " GO terms - ", tstbee, ".xlsx")
+                  openxlsx2::wb_save(wb, xl_fl, overwrite = TRUE)
+                  #openxlsx2::xl_open(xl_fl)
                   if (tt == 1L) {
                     Kol2 <- paste0("Significance - ", cleanNms(VPAL$values), " ", max(BH.FDR)*100, "%")
                   }
                   if (tt == 2L) {
-                    Kol2 <- paste0("Significance - ", names(PTMs_Reg_filters[[Ptm]][[tstrt]][[bee]]), " ", max(BH.FDR)*100, "%")
+                    Kol2 <- paste0("Significance - ", names(PTMs_Reg_filters[[Ptm]][[tstrt]][[bee]]), " ",
+                                   max(BH.FDR)*100, "%")
                   }
-                  Kol2 <- intersect(Kol2, colnames(PTMs_Reg_GO_terms[[Ptm]][[tstbee]]))
+                  Kol2 <- base::intersect(Kol2, colnames(PTMs_Reg_GO_terms[[Ptm]][[tstbee]]))
                   if (length(Kol2)) {
                     w <- which(apply(PTMs_Reg_GO_terms[[Ptm]][[tstbee]][, Kol2, drop = FALSE], 1L, \(x) { "+" %in% x }))
                     write.csv(PTMs_Reg_GO_terms[[Ptm]][[tstbee]][w,],
@@ -1065,14 +1089,14 @@ if (exists("PTMstats") && nrow(PTMstats)) {
                     W <- lapply(Kol3, \(x) { which(PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_terms[[x]] == "+") })
                     names(W) <- gsub(paste0("^Significance - | ", max(BH.FDR)*100, "%$"), "", Kol3)
                     temp[myRng, 1L] <- temp[1L, myRng] <- names(W)
-                    for (i in myRng) { #i <- 2
-                      temp[i, myRng] <- sapply(Kol3, \(x) {
+                    for (i in myRng) { #i <- 2L
+                      temp[i, myRng] <- vapply(Kol3, \(x) {
                         sum((PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_terms[[x]] == "+") & (PTMs_GO_Plots[[Ptm]][[tstbee]]$GO_terms[[Kol3[i]]] == "+"),
                             na.rm = TRUE)
-                      })
+                      }, 1L)
                     }
                     names(W) <- cleanNms(sub(" [0-9]+%$", "", names(W)))
-                    tst <- sapply(strsplit(names(W), " - "), length)
+                    tst <- lengths(strsplit(names(W), " - "))
                     tst <- (min(tst) > 1L) & (length(unique(tst)) == 1L)
                     if (tst) {
                       tst <- as.data.frame(t(sapply(strsplit(names(W), " - "), unlist)))
@@ -1128,7 +1152,7 @@ if (Annotate) {
     rm(GO_mappings)
   }
   # otherwise they are also unused further down.
-  .obj <- setdiff(.obj, c("GO_terms", "GO_mappings"))
+  .obj <- base::setdiff(.obj, c("GO_terms", "GO_mappings"))
 }
 if (CytoScape) {
   # Then close Cytoscape:

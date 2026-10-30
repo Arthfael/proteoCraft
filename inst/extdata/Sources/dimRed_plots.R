@@ -9,7 +9,7 @@ Exp.map$RSA_cleaned <- cleanNms(Exp.map$Ref.Sample.Aggregate)
 # This may change.
 if (!exists("clustDat")) {
   if (exists("clustDat_fl") && file.exists(clustDat_fl)) {
-    loadImg(clustDat_fl)
+    loadFun(clustDat_fl)
   } else {
     Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
     #rstudioapi::documentOpen(Src)
@@ -17,8 +17,8 @@ if (!exists("clustDat")) {
   }
 }
 dataType2 <- if (dataType == "modPeptides") { "peptides" } else { dataType }
-nm <- intersect(c("ComBat", "Original"),
-                names(clustDat[[dataType2]]))[1L]
+nm <- base::intersect(c("ComBat", "Original"),
+                      names(clustDat[[dataType2]]))[1L]
 dimRedDat <- clustDat[[dataType2]][[nm]]
 kol <- colnames(dimRedDat)
 if (nm == "ComBat") {
@@ -39,8 +39,8 @@ if (dataType == "modPeptides") {
   insert <- paste0(ptm, "-modified peptides")
 }
 datMatch <- match(row.names(dimRedDat), nameCol)
-filt <- which((apply(dimRedDat[, kol], 1L, \(x) { sum(is.finite(x)) }) == ncol(dimRedDat))
-              & (is.na(contCol[datMatch]) | (contCol[datMatch] != "+")))
+filt <- which((apply(dimRedDat[, kol], 1L, \(x) { sum(is.finite(x)) }) == ncol(dimRedDat)) &
+              (is.na(contCol[datMatch]) | (contCol[datMatch] != "+")))
 #
 dimRed_fl %<o% paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS")
 if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
@@ -70,9 +70,9 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     ttl <- paste0(ptm, " PCA plot - Samples")
   }
   if (!dir.exists(myLittleRed_dir)) { dir.create(myLittleRed_dir, recursive = TRUE) }
-  dirlist <- union(dirlist, myLittleRed_dir)
+  dirlist <- base::union(dirlist, myLittleRed_dir)
   cat(msg, "\n")
-  pc <- prcomp(t(dimRedDat), scale. = TRUE)
+  pc <- stats::prcomp(t(dimRedDat), scale. = TRUE)
   scores <- as.data.frame(pc$x)
   pv <- round(100L*(pc$sdev)^2L / sum(pc$sdev^2L), 0L)
   pv <- pv[pv > 5L]
@@ -94,43 +94,44 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
   if ("PC2" %in% colnames(scores)) {
     xLab <- paste0("PC1 = ", pv[1L], "%")
     yLab <- paste0("PC2 = ", pv[2L], "%")
-    plot <- ggplot(scores, aes(x = PC1, y = PC2)) +
-      geom_point(aes(color = Group)) +
-      ggpubr::stat_conf_ellipse(aes(fill = Group),
+    plot <- ggplot2::ggplot(scores, ggplot2::aes(x = PC1, y = PC2)) +
+      ggplot2::geom_point(ggplot2::aes(color = Group)) +
+      ggpubr::stat_conf_ellipse(ggplot2::aes(fill = Group),
                                 alpha = 0.2, geom = "polygon", show.legend = FALSE) +
-      scale_color_viridis_d(begin = 0.25) +
-      theme_bw() +
-      xlab(xLab) + ylab(yLab) +
-      geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
-      geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
-      ggtitle(ttl#, subtitle = pv_
+      ggplot2::scale_color_viridis_d(begin = 0.25) +
+      ggplot2::theme_bw() +
+      ggplot2::xlab(xLab) + ggplot2::ylab(yLab) +
+      ggplot2::geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
+      ggplot2::geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
+      ggplot2::ggtitle(ttl#, subtitle = pv_
       ) +
-      geom_text_repel(aes(label = Sample), size = 2.5, show.legend = FALSE)
-    plot <- if (substr(form, 1L, 1L) == "~") { plot + facet_wrap(form) } else { plot + facet_grid(form) }
+      ggrepel::geom_text_repel(ggplot2::aes(label = Sample),
+                               size = 2.5, show.legend = FALSE)
+    plot <- if (substr(form, 1L, 1L) == "~") { plot + ggplot2::facet_wrap(form) } else { plot + ggplot2::facet_grid(form) }
     suppressMessages({
-      ggsave(paste0(myLittleRed_dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggplot2::ggsave(paste0(myLittleRed_dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     })
     #
     scores$"Samples group" <- factor(scores$Group)
     Symb <- rep(c("circle", "diamond", "square", "cross", "x"), max(as.numeric(Rep)))[1L:max(as.numeric(Rep))]             
     Symb <- Symb[as.numeric(scores$Replicate)]
     if ("PC3" %in% colnames(scores)) {
-      plot_lyPCAProt <- plot_ly(scores, x = ~PC1, y = ~PC2, z = ~PC3,
-                                color = ~`Samples group`, colors = "viridis",
-                                text = ~Sample, type = "scatter3d", mode = "markers",
-                                symbol = I(Symb))
-      plot_lyPCAProt <- add_trace(plot_lyPCAProt, scores, x = ~PC1, y = ~PC2, z = ~PC3,
-                                  type = "scatter3d", mode = "text", showlegend = FALSE)
+      plot_lyPCAProt <- plotly::plot_ly(scores, x = ~PC1, y = ~PC2, z = ~PC3,
+                                        color = ~`Samples group`, colors = "viridis",
+                                        text = ~Sample, type = "scatter3d", mode = "markers",
+                                        symbol = I(Symb))
+      plot_lyPCAProt <- plotly::add_trace(plot_lyPCAProt, scores, x = ~PC1, y = ~PC2, z = ~PC3,
+                                          type = "scatter3d", mode = "text", showlegend = FALSE)
     } else {
-      plot_lyPCAProt <- plot_ly(scores, x = ~PC1, y = ~PC2,
-                                color = ~`Samples group`, colors = "viridis",
-                                text = ~Sample, type = "scatter", mode = "markers",
-                                symbol = I(Symb))
-      plot_lyPCAProt <- add_trace(plot_lyPCAProt, scores, x = ~PC1, y = ~PC2,
-                                  type = "scatter", mode = "text", showlegend = FALSE)
+      plot_lyPCAProt <- plotly::plot_ly(scores, x = ~PC1, y = ~PC2,
+                                        color = ~`Samples group`, colors = "viridis",
+                                        text = ~Sample, type = "scatter", mode = "markers",
+                                        symbol = I(Symb))
+      plot_lyPCAProt <- plotly::add_trace(plot_lyPCAProt, scores, x = ~PC1, y = ~PC2,
+                                          type = "scatter", mode = "text", showlegend = FALSE)
     }
-    plot_lyPCAProt <- layout(plot_lyPCAProt, title = ttl,
-                             uirevision = TRUE)
+    plot_lyPCAProt <- plotly::layout(plot_lyPCAProt, title = ttl,
+                                     uirevision = TRUE)
     plot_lyPCAProt$x$layout$xaxis$autorange <- TRUE
     plot_lyPCAProt$x$layout$yaxis$autorange <- TRUE
     plot_lyPCAProt <- htmlwidgets::onRender(plot_lyPCAProt, jsFun$global_auto_range)
@@ -153,8 +154,8 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     cat("PCA plots, by protein group\n")
     myLittleRed_dir <- paste0(wd, "/Dimensionality red. plots/PCA")
     if (!dir.exists(myLittleRed_dir)) { dir.create(myLittleRed_dir, recursive = TRUE) }
-    dirlist <- union(dirlist, myLittleRed_dir)
-    pc <- prcomp(dimRedDat, scale. = TRUE)
+    dirlist <- base::union(dirlist, myLittleRed_dir)
+    pc <- stats::prcomp(dimRedDat, scale. = TRUE)
     scores <- as.data.frame(pc$x)
     pv <- round(100L*(pc$sdev)^2L / sum(pc$sdev^2L), 0L)
     pv <- pv[pv >= 5L]
@@ -198,7 +199,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       SubCellMark2 <- setNames(SubCellMark2$x, SubCellMark2$Group.1)
     }
     compVal <- unique(scores$Classifier)
-    compVal <- sort(setdiff(compVal, nullVal))
+    compVal <- sort(base::setdiff(compVal, nullVal))
     allVal <- c(nullVal, compVal)
     #aggregate(scores$Classifier, list(scores$Classifier), length)
     if (!LocAnalysis) { # -> Class based on regulation, supplemented with compartments
@@ -211,9 +212,9 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         ClassNm <- cleanNms(sub("^Regulated - ", "", g))
         tmp <- lapply(g, \(x) {
           y <- gsub_Rep("^Anti-specific: .*", "down",
-                   gsub_Rep("^Specific: .*", "up",
-                            gsub_Rep("^(non significant|too small FC)$", " ",
-                                     gsub_Rep(", FDR = .+", "", PG[datMatch, x]))))
+                        gsub_Rep("^Specific: .*", "up",
+                                 gsub_Rep("^(non significant|too small FC)$", " ",
+                                          gsub_Rep(", FDR = .+", "", PG[datMatch, x]))))
           y[y == ""] <- " "
           return(y)
         })
@@ -236,20 +237,20 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         })
         tmp <- do.call(cbind, tmp)
         tmp <- apply(tmp, 1L, \(x) {
-          x <- setdiff(x, "")
+          x <- base::setdiff(x, "")
           x <- if (length(x)) { "regulated" } else { "" }
         })
         gcl <- which(tmp == "regulated")
         scores$Classifier[gcl] <- tmp[gcl]
       }
       regVal <- unique(tmp[gcl])
-      regVal <- setdiff(regVal, nullVal)
+      regVal <- base::setdiff(regVal, nullVal)
       allVal <- c(allVal, regVal)
     }
     #aggregate(scores$Classifier, list(scores$Classifier), length)
     scores$Classifier <- factor(scores$Classifier, levels = allVal)
     myColors <- setNames(c("grey", rainbow(length(allVal)-1L)), allVal)
-    colScale <- scale_colour_manual(name = "colour", values = myColors)
+    colScale <- ggplot2::scale_colour_manual(name = "colour", values = myColors)
     scores <- rbind(scores[scores$Classifier == nullVal,],
                     scores[scores$Classifier %in% compVal,],
                     scores[scores$Classifier %in% regVal,])
@@ -260,24 +261,24 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     scores$Size[wComp] <- 3.2
     scores$Size[wReg] <- 3.5
     ttl <- "PCA plot - Protein groups (PG-level)"
-    plot <- ggplot(scores[wBoring,], aes(x = PC1, y = PC2, colour = Classifier, size = Size)) +
-      geom_scattermore(shape = 16L)
+    plot <- ggplot2::ggplot(scores[wBoring,], ggplot2::aes(x = PC1, y = PC2, colour = Classifier, size = Size)) +
+      scattermore::geom_scattermore(shape = 16L)
     if (length(wComp)) {
-      plot <- plot + geom_point(data = scores[wComp,], shape = 17L)
+      plot <- plot + ggplot2::geom_point(data = scores[wComp,], shape = 17L)
     }
     if (length(wReg)) {
-      plot <- plot + geom_point(data = scores[wReg,], shape = 15L) +
-        geom_text_repel(data = scores[wReg,], aes(label = `Protein group`), show.legend = FALSE)
+      plot <- plot + ggplot2::geom_point(data = scores[wReg,], shape = 15L) +
+        ggrepel::geom_text_repel(data = scores[wReg,], ggplot2::aes(label = `Protein group`), show.legend = FALSE)
     }
     plot <- plot + colScale +
-      geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
-      geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
-      scale_alpha_identity() + scale_size_identity() +
-      ggtitle(ttl, subtitle = pv) + theme_bw() +
-      guides(alpha = "none", size = "none", colour = guide_legend(title = gsub("/", "/\n", ClassNm)))
+      ggplot2::geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
+      ggplot2::geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
+      ggplot2::scale_alpha_identity() + ggplot2::scale_size_identity() +
+      ggplot2::ggtitle(ttl, subtitle = pv) + ggplot2::theme_bw() +
+      ggplot2::guides(alpha = "none", size = "none", colour = ggplot2::guide_legend(title = gsub("/", "/\n", ClassNm)))
     #poplot(plot, 12L, 22L)
     suppressMessages({
-      ggsave(paste0(myLittleRed_dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggplot2::ggsave(paste0(myLittleRed_dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     })
     #
     # Plotly
@@ -325,12 +326,12 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                       # marker = list(size = 1L,
                       #               sizemode = "area",
                       #               showscale = FALSE)
-                      )
+    )
     if (tst3D) {
       base_args$type <- "scatter3d"
       base_args$z <- ~PC3
     }
-    plot_lyPCAProt2 <- plot_ly()
+    plot_lyPCAProt2 <- plotly::plot_ly()
     for (val in allVal) { #val <- allVal[1L]
       myCat <- val2Cat[val]
       if (is.na(myCat)) { myCat <- 1 } # To be on the safe side!
@@ -343,23 +344,23 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       args$marker <- list(size = sz,
                           color = PL_colScale[val],
                           symbol = PL_symbolScale[myCat])
-      plot_lyPCAProt2 <- do.call(add_trace, c(list(plot_lyPCAProt2, data = subDat), args))
+      plot_lyPCAProt2 <- do.call(plotly::add_trace, c(list(plot_lyPCAProt2, data = subDat), args))
     }
     # Dummy layer to avoid random re-zooms
     xr <- range(scores$PC1)
     yr <- range(scores$PC2)
     zr <- if (tst3D) { range(scores$PC3) } else { NULL }
-    plot_lyPCAProt2 <- add_trace(plot_lyPCAProt2,
-                                 x = xr, y = yr, z = zr,
-                                 type = base_args$type,
-                                 mode = "markers",
-                                 marker = list(size = 0.0001, color = "rgba(0,0,0,0)"),
-                                 name = "_bbox_",
-                                 showlegend = FALSE,
-                                 visible = TRUE)
+    plot_lyPCAProt2 <- plotly::add_trace(plot_lyPCAProt2,
+                                         x = xr, y = yr, z = zr,
+                                         type = base_args$type,
+                                         mode = "markers",
+                                         marker = list(size = 0.0001, color = "rgba(0,0,0,0)"),
+                                         name = "_bbox_",
+                                         showlegend = FALSE,
+                                         visible = TRUE)
     #
-    plot_lyPCAProt2 <- layout(plot_lyPCAProt2, title = ttl,
-                              uirevision = TRUE)
+    plot_lyPCAProt2 <- plotly::layout(plot_lyPCAProt2, title = ttl,
+                                      uirevision = TRUE)
     plot_lyPCAProt2$x$layout$xaxis$autorange <- TRUE
     plot_lyPCAProt2$x$layout$yaxis$autorange <- TRUE
     plot_lyPCAProt2 <- htmlwidgets::onRender(plot_lyPCAProt2, jsFun$global_auto_range)
@@ -377,11 +378,11 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     #
     if (requireNamespace("Rtsne")) { #... equivalent to if (pkgsCheck["Rtsne"]) { ... }
       cat("t-SNE plots, by protein group\n")
-      cran_req <- union(cran_req, "Rtsne")
+      cran_req <- base::union(cran_req, "Rtsne")
       tsne <- try(Rtsne(dimRedDat, dims = 3L, perplexity = 30L, verbose = TRUE, max_iter = 500L), silent = TRUE)
       myLittleRed_dir <- paste0(wd, "/Dimensionality red. plots/t-SNE")
       if (!dir.exists(myLittleRed_dir)) { dir.create(myLittleRed_dir, recursive = TRUE) }
-      dirlist <- union(dirlist, myLittleRed_dir)
+      dirlist <- base::union(dirlist, myLittleRed_dir)
       if (!inherits(tsne, "try-error")) {
         scores2 <- as.data.frame(tsne$Y)[, 1L:3L]
         rownames(scores2) <- rownames(dimRedDat)
@@ -393,24 +394,28 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         wComp2 <- which(scores2$Classifier %in% compVal)
         wReg2 <- which(scores2$Classifier %in% regVal)
         ttl2 <- "t-SNE plot - Protein groups (PG-level)"
-        plot <- ggplot(scores2[wBoring2,], aes(x = `t-SNE Y1`, y = `t-SNE Y2`, colour = Classifier, size = Size)) +
-          geom_scattermore(shape = 16L)
+        plot <- ggplot2::ggplot(scores2[wBoring2,],
+                                ggplot2::aes(x = `t-SNE Y1`, y = `t-SNE Y2`, colour = Classifier, size = Size)) +
+          scattermore::geom_scattermore(shape = 16L)
         if (length(wComp2)) {
-          plot <- plot + geom_point(data = scores2[wComp2,], shape = 17L)
+          plot <- plot + ggplot2::geom_point(data = scores2[wComp2,], shape = 17L)
         }
         if (length(wReg2)) {
-          plot <- plot + geom_point(data = scores2[wReg2,], shape = 15L) +
-            geom_text_repel(data = scores2[wReg2,], aes(label = `Protein group`))
+          plot <- plot + ggplot2::geom_point(data = scores2[wReg2,], shape = 15L) +
+            ggrepel::geom_text_repel(data = scores2[wReg2,],
+                                     ggplot2::aes(label = `Protein group`))
         }
-        plot <- plot +  colScale +
-          geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
-          geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
-          scale_alpha_identity() + scale_size_identity() +
-          ggtitle(ttl2, subtitle = pv) + theme_bw() +
-          guides(alpha = "none", size = "none", colour = guide_legend(title = gsub("/", "/\n", ClassNm)))
-        #poplot(plot, 12, 22)
+        plot <- plot + colScale +
+          ggplot2::geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
+          ggplot2::geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
+          ggplot2::scale_alpha_identity() + ggplot2::scale_size_identity() +
+          ggplot2::ggtitle(ttl2, subtitle = pv) + ggplot2::theme_bw() +
+          ggplot2::guides(alpha = "none", size = "none",
+                          colour = ggplot2::guide_legend(title = gsub("/", "/\n", ClassNm)))
+        #poplot(plot, 12L, 22L)
         suppressMessages({
-          ggsave(paste0(myLittleRed_dir, "/", ttl2, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+          ggplot2::ggsave(paste0(myLittleRed_dir, "/", ttl2, ".svg"), plot,
+                          dpi = 300L, width = 10L, height = 10L, units = "in")
         })
         #
         # Plotly
@@ -424,7 +429,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         } else {
           base_args2$z <- NULL
         }
-        plot_lytSNE <- plot_ly()
+        plot_lytSNE <- plotly::plotly()
         for (val in allVal) { #val <- allVal[1L]
           myCat <- val2Cat[val]
           sz <- catsEyes[myCat]*1.5
@@ -437,23 +442,23 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
           args$marker <- list(size = sz,
                               color = PL_colScale[val],
                               symbol = PL_symbolScale[myCat])
-          plot_lytSNE <- do.call(add_trace, c(list(plot_lytSNE, data = subDat), args))
+          plot_lytSNE <- do.call(plotly::add_trace, c(list(plot_lytSNE, data = subDat), args))
         }
         # Dummy layer to avoid random re-zooms
         xr <- range(scores2$`t-SNE Y1`)
         yr <- range(scores2$`t-SNE Y2`)
         zr <- if (tst3D) { range(scores2$`t-SNE Y3`) } else { NULL }
-        plot_lytSNE <- add_trace(plot_lytSNE,
-                                 x = xr, y = yr, z = zr,
-                                 type = base_args2$type,
-                                 mode = "markers",
-                                 marker = list(size = 0.0001, color = "rgba(0,0,0,0)"),
-                                 name = "_bbox_",
-                                 showlegend = FALSE,
-                                 visible = TRUE)
+        plot_lytSNE <- plotly::add_trace(plot_lytSNE,
+                                         x = xr, y = yr, z = zr,
+                                         type = base_args2$type,
+                                         mode = "markers",
+                                         marker = list(size = 0.0001, color = "rgba(0,0,0,0)"),
+                                         name = "_bbox_",
+                                         showlegend = FALSE,
+                                         visible = TRUE)
         #
-        plot_lytSNE <- layout(plot_lytSNE, title = ttl2,
-                              uirevision = TRUE)
+        plot_lytSNE <- plotly::layout(plot_lytSNE, title = ttl2,
+                                      uirevision = TRUE)
         plot_lytSNE$x$layout$xaxis$autorange <- TRUE
         plot_lytSNE$x$layout$yaxis$autorange <- TRUE
         plot_lytSNE <- htmlwidgets::onRender(plot_lytSNE, jsFun$global_auto_range)
@@ -472,11 +477,11 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     #
     if (requireNamespace("umap")) { #... equivalent to if (pkgsCheck["UMAP"]) { ... }
       cat("UMAP plots, by protein group\n")
-      cran_req <- union(cran_req, "umap")
+      cran_req <- base::union(cran_req, "umap")
       UMAP <- try(umap(dimRedDat, n_components = 3L), silent = TRUE)
       myLittleRed_dir <- paste0(wd, "/Dimensionality red. plots/UMAP")
       if (!dir.exists(myLittleRed_dir)) { dir.create(myLittleRed_dir, recursive = TRUE) }
-      dirlist <- union(dirlist, myLittleRed_dir)
+      dirlist <- base::union(dirlist, myLittleRed_dir)
       if (!inherits(UMAP, "try-error")) {
         UMAPlayout <- data.frame(UMAP$layout)
         rownames(UMAPlayout) <- rownames(dimRedDat)
@@ -487,24 +492,28 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         wComp3 <- which(UMAPlayout$Classifier %in% compVal)
         wReg3 <- which(UMAPlayout$Classifier %in% regVal)
         ttl3 <- "UMAP plot - Protein groups (PG-level)"
-        plot <- ggplot(UMAPlayout[wBoring3,], aes(x = X1, y = X2, colour = Classifier, size = Size)) +
-          geom_scattermore(shape = 16L)
+        plot <- ggplot2::ggplot(UMAPlayout[wBoring3,],
+                                ggplot2::aes(x = X1, y = X2, colour = Classifier, size = Size)) +
+          scattermore::geom_scattermore(shape = 16L)
         if (length(wComp3)) {
-          plot <- plot + geom_point(data = UMAPlayout[wComp3,], shape = 17L)
+          plot <- plot + ggplot2::geom_point(data = UMAPlayout[wComp3,], shape = 17L)
         }
         if (length(wReg3)) {
-          plot <- plot + geom_point(data = UMAPlayout[wReg3,], shape = 15L) +
-            geom_text_repel(data = UMAPlayout[wReg3,], aes(label = `Protein group`))
+          plot <- plot + ggplot2::geom_point(data = UMAPlayout[wReg3,], shape = 15L) +
+            ggrepel::geom_text_repel(data = UMAPlayout[wReg3,],
+                                     ggplot2::aes(label = `Protein group`))
         }
         plot <- plot +  colScale +
-          geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
-          geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
-          scale_alpha_identity() + scale_size_identity() +
-          ggtitle(ttl3, subtitle = pv) + theme_bw() +
-          guides(alpha = "none", size = "none", colour = guide_legend(title = gsub("/", "/\n", ClassNm)))
+          ggplot2::geom_hline(yintercept = 0, colour = "black", alpha = 0.5) +
+          ggplot2::geom_vline(xintercept = 0, colour = "black", alpha = 0.5) +
+          ggplot2::scale_alpha_identity() + ggplot2::scale_size_identity() +
+          ggplot2::ggtitle(ttl3, subtitle = pv) + ggplot2::theme_bw() +
+          ggplot2::guides(alpha = "none", size = "none",
+                          colour = ggplot2::guide_legend(title = gsub("/", "/\n", ClassNm)))
         #poplot(plot, 12L, 22L)
         suppressMessages({
-          ggsave(paste0(myLittleRed_dir, "/", ttl3, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+          ggplot2::ggsave(paste0(myLittleRed_dir, "/", ttl3, ".svg"), plot,
+                          dpi = 300L, width = 10L, height = 10L, units = "in")
         })
         #
         # Plotly
@@ -518,7 +527,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         } else {
           base_args3$z <- NULL
         }
-        plot_lyUMAP <- plot_ly()
+        plot_lyUMAP <- plotly::plot_ly()
         for (val in allVal) { #val <- allVal[1L]
           myCat <- val2Cat[val]
           sz <- catsEyes[myCat]*1.5
@@ -531,23 +540,23 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
           args$marker <- list(size = sz,
                               color = PL_colScale[val],
                               symbol = PL_symbolScale[myCat])
-          plot_lyUMAP <- do.call(add_trace, c(list(plot_lyUMAP, data = subDat), args))
+          plot_lyUMAP <- do.call(plotly::add_trace, c(list(plot_lyUMAP, data = subDat), args))
         }
         # Dummy layer to avoid random re-zooms
         xr <- range(UMAPlayout$X1)
         yr <- range(UMAPlayout$X2)
         zr <- if (tst3D) { range(UMAPlayout$X3) } else { NULL }
-        plot_lyUMAP <- add_trace(plot_lyUMAP,
-                                 x = xr, y = yr, z = zr,
-                                 type = base_args3$type,
-                                 mode = "markers",
-                                 marker = list(size = 0.0001, color = "rgba(0,0,0,0)"),
-                                 name = "_bbox_",
-                                 showlegend = FALSE,
-                                 visible = TRUE)
+        plot_lyUMAP <- plotly::add_trace(plot_lyUMAP,
+                                         x = xr, y = yr, z = zr,
+                                         type = base_args3$type,
+                                         mode = "markers",
+                                         marker = list(size = 0.0001, color = "rgba(0,0,0,0)"),
+                                         name = "_bbox_",
+                                         showlegend = FALSE,
+                                         visible = TRUE)
         #
-        plot_lyUMAP <- layout(plot_lyUMAP, title = ttl3,
-                              uirevision = TRUE)
+        plot_lyUMAP <- plotly::layout(plot_lyUMAP, title = ttl3,
+                                      uirevision = TRUE)
         plot_lyUMAP$x$layout$xaxis$autorange <- TRUE
         plot_lyUMAP$x$layout$yaxis$autorange <- TRUE
         plot_lyUMAP <- htmlwidgets::onRender(plot_lyUMAP, jsFun$global_auto_range)

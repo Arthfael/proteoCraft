@@ -6,7 +6,7 @@ if (CytoScape) {
     rows <- unlist(strsplit(table.text, "\n"))
     header <- t(unlist(strsplit(rows[1L], "\t")))
     if (length(rows) > 1L) {
-      for (i in 2:length(rows)) {
+      for (i in 2L:length(rows)) {
         if (is.null(table)) {
           table <- t(unlist(strsplit(rows[i], "\t")))
         } else {
@@ -32,7 +32,7 @@ if (CytoScape) {
   clueGO_Home3 %<o% paste(clueGO_Home2, clueGO_Vers, sep = "/")
   myPort %<o% 1234L
   myHost %<o% "localhost"
-  cytoscp_URL %<o% paste0("http://", myHost, ":", toString(myPort), "/v1")
+  cytoscp_URL %<o% paste0("http://", myHost, ":", base::toString(myPort), "/v1")
   clueGO_URL %<o% paste(cytoscp_URL, "apps", "cluego", "cluego-manager", sep = "/")
   #### Start up ClueGO
   response <- httr::POST(url = paste(cytoscp_URL, "apps", "cluego", "start-up-cluego", sep = "/"), encode = "json")
@@ -72,12 +72,12 @@ if (CytoScape) {
     msg <- "I could not identify the organism automatically, select organism from this list"
     dlNew <- " -> download new organism..."
     optNms <- c(names(clueGOrgs), dlNew)
-    opt <- setNames(sapply(optNms, \(x) { paste(c(x, rep(" ", 250L-nchar(x))), collapse = "") }), optNms)
-    tmp <- dlg_list(opt, opt[dlNew], title = msg)$res
+    opt <- setNames(vapply(optNms, \(x) { paste(c(x, rep(" ", 250L-nchar(x))), collapse = "") }, ""), optNms)
+    tmp <- svDialogs::dlg_list(opt, opt[dlNew], title = msg)$res
     orgNm <- optNms[match(tmp, opt)]
     if ((length(orgNm) == 1L) && (orgNm == dlNew)) {
       msg <- paste0("Download the new organism in ClueGO from within the CytoScape GUI\n(click on the leftmost blue paw icon)\nthen click \"ok\" to continue.")
-      dlg_message(msg, "ok")
+      svDialogs::dlg_message(msg, "ok")
       rqst <- paste0(clueGO_URL, "/organisms/get-all-organism-info")
       response <- httr::GET(rqst, encode = "json")
       clueGOrgs <- httr::content(response, encode = "json")
@@ -85,8 +85,8 @@ if (CytoScape) {
       if (!length(orgNm)) {
         msg <- "I could not identify the organism automatically, select organism from this list"
         optNms <- names(clueGOrgs)
-        opt <- setNames(sapply(optNms, \(x) { paste(c(x, rep(" ", 250L-nchar(x))), collapse = "") }), optNms)
-        tmp <- dlg_list(opt, opt[dlNew], title = msg)$res
+        opt <- setNames(vapply(optNms, \(x) { paste(c(x, rep(" ", 250L-nchar(x))), collapse = "") }, ""), optNms)
+        tmp <- svDialogs::dlg_list(opt, opt[dlNew], title = msg)$res
         orgNm <- optNms[match(tmp, opt)]
       }
     }

@@ -40,6 +40,6 @@ clustCheck <- function(cl,
   }, TRUE)
   if (!all(ok_struct)) { return(FALSE) }
   pids <- vapply(res, `[[`, 1, "pid")
-  if (anyDuplicated(pids)) { return(FALSE) }
+  if (base::anyDuplicated(pids)) { return(FALSE) }
   return(TRUE)
 }

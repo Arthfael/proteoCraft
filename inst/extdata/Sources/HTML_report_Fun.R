@@ -1,6 +1,6 @@
 # UI functions used by the HTML report
 safe_id <- \(x) { gsub("[: ]", "_", x) }
-myCSS <- tags$style(HTML("table.dataTable td {
+myCSS <- shiny::tags$style(shiny::HTML("table.dataTable td {
   white-space: normal !important;
   vertical-align: top !important;
 }
@@ -32,29 +32,31 @@ fix_plotly_sizing <- \(x, px_height = 700L, depth = 0L) {
     x$height <- px_height                  # fixed pixel height, independent of CSS context
     return(plotly::config(x, modeBarButtonsToRemove = c("select2d", "lasso2d")))
   }
-  if (is.list(x) && identical(class(x), "list")) { return(lapply(x, fix_plotly_sizing, px_height = px_height, depth = depth + 1L)) }
+  if (is.list(x) && identical(class(x), "list")) {
+    return(lapply(x, fix_plotly_sizing, px_height = px_height, depth = depth + 1L))
+  }
   x
 }
 
 logoFl <- list.files(homePath,
                      "^logo\\.(gif|tiff?|jpe?g|png)$", full.names = TRUE)[1L]
-report_header <- tags$header(
-  fluidRow(if (length(logoFl)) {
-    column(2L,
-           tags$img(src = knitr::image_uri(logoFl),
-                    style = "max-width: 100%; height: auto;"))
+report_header <- shiny::tags$header(
+  shiny::fluidRow(if (length(logoFl)) {
+    shiny::column(2L,
+                  shiny::tags$img(src = knitr::image_uri(logoFl),
+                                  style = "max-width: 100%; height: auto;"))
   },
-  column(10L,
-         br(),
-         paste0(dtstNm, " - report"),
-         br(),
-         "Analysis run by: ", em(WhoAmI),
-         br(),
-         "Date: ", em(Sys.Date()),
-         br(),
-         "Package: ", em(paste0("proteoCraft v", package.version("proteoCraft"))),
-         br(),
-         br())),
+  shiny::column(10L,
+                shiny::br(),
+                paste0(dtstNm, " - report"),
+                shiny::br(),
+                "Analysis run by: ", shiny::em(WhoAmI),
+                shiny::br(),
+                "Date: ", shiny::em(Sys.Date()),
+                shiny::br(),
+                "Package: ", shiny::em(paste0("proteoCraft v", Biobase::package.version("proteoCraft"))),
+                shiny::br(),
+                shiny::br())),
   style = "background: linear-gradient(to right, #e8f1ff, #ffffff); padding: 1rem; margin-bottom: 1rem;")
 
 
@@ -65,17 +67,17 @@ make_comment_ui <- \(id,
                      ON = TRUE) {
   if (!id %in% names(values)) { stop("Invalid comment name!") }
   if (shiny) {
-    textAreaInput(inputId = paste0("comment_", safe_id(id)),
-                  label = NULL,
-                  value = values[id],
-                  width = "100%",
-                  height = "150px")
+    shiny::textAreaInput(inputId = paste0("comment_", safe_id(id)),
+                         label = NULL,
+                         value = values[id],
+                         width = "100%",
+                         height = "150px")
   } else {
     style <- if (ON) { "display: block; white-space: pre-wrap; padding: 10px;" } else { "display: none;" }
-    tags$div(class = "comment-box",
-             id = paste0(root, match(id, names(values))),
-             style = style,
-             values[id])
+    shiny::tags$div(class = "comment-box",
+                    id = paste0(root, match(id, names(values))),
+                    style = style,
+                    values[id])
   }
 }
 make_bar <- \(x) {
@@ -114,19 +116,19 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   if (tab %in% c("Protein groups", "All peptidoforms")) {
     if (pgTest) {
       filtCol <- "Protein IDs"
-      coreCols <- union(c("Leading protein IDs", filtCol, "Common Names", "Genes", "Mol. weight [kDa]", "Potential contaminant"), coreCols)
+      coreCols <- base::union(c("Leading protein IDs", filtCol, "Common Names", "Genes", "Mol. weight [kDa]", "Potential contaminant"), coreCols)
       intRoot <- "expr"
     }
     if (tab == "All peptidoforms") {
       filtCol <- "Proteins"
-      coreCols <- union(c("Modified sequence_verbose", #"Sequence",
-                          filtCol), coreCols)
+      coreCols <- base::union(c("Modified sequence_verbose", #"Sequence",
+                                filtCol), coreCols)
       intRoot <- "int"
     }
   } else {
     filtCol <- "Proteins"
-    coreCols <- union(c("Modified sequence_verbose", #"Sequence",
-                        filtCol), coreCols) # Check before use...
+    coreCols <- base::union(c("Modified sequence_verbose", #"Sequence",
+                              filtCol), coreCols) # Check before use...
     intRoot <- "int" # Presumably...
   }
   #
@@ -134,11 +136,11 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   fullIntRoot <- rev(paste0(vapply(strsplit(xprCols, "\n"), `[[`, "", 1L), "\n"))[1L]
   smpls <- unlist(exp[grps])
   smpls_and_grps <- unlist(lapply(grps, \(grp) { c(grp, exp[[grp]]) }))
-  xprCols <- intersect(paste0(fullIntRoot, smpls),
-                       colnames(df))
+  xprCols <- base::intersect(paste0(fullIntRoot, smpls),
+                             colnames(df))
   if (!length(xprCols)) { # In this case we only have an average column
-    xprCols <- intersect(paste0(smpls_and_grps, smpls),
-                         colnames(df))
+    xprCols <- base::intersect(paste0(smpls_and_grps, smpls),
+                               colnames(df))
   }
   repXprCols <- if (length(grps) == 1L) { sub(" *\n$", "", fullIntRoot) } else { xprCols }
   #
@@ -146,7 +148,7 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   stopifnot(length(ratCols) > 0L) # For contrasts we always MUST have a logFC column!
   fullRatRoot <- rev(paste0(vapply(strsplit(ratCols, "\n"), `[[`, "", 1L), "\n"))[1L]
   ratCol <- paste0(fullRatRoot, contr2)
-  ratCol <- repRatCol <- intersect(ratCol, colnames(df)) 
+  ratCol <- repRatCol <- base::intersect(ratCol, colnames(df)) 
   stopifnot(length(ratCol) == 1L) # Again
   #
   PValCol <- paste0(sub(" -log10\\(Pvalue\\) - ", "\n-log10 pval. \n", pvalue.col[pvalue.use]), contr2)
@@ -160,12 +162,12 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
                              sub("^Common Names$", "Common names", coreCols)))),
                  repXprCols, repRatCol, repPValCol, repDecCol)
   if (pgTest) {
-    pepCountCols <- intersect(paste0("Pep. count \n", grps), colnames(df))
-    psmCountCols <- intersect(paste0("PSMs count \n", grps), colnames(df))
-    k <- union(pepCountCols, psmCountCols)
+    pepCountCols <- base::intersect(paste0("Pep. count \n", grps), colnames(df))
+    psmCountCols <- base::intersect(paste0("PSMs count \n", grps), colnames(df))
+    k <- base::union(pepCountCols, psmCountCols)
     if (length(k)) {
-      colNms <- union(colNms, k)
-      repColNms <- if (length(exp) == 1L) { union(repColNms, c("Pep. count", "PSMs count")) } else { union(repColNms, k) }
+      colNms <- base::union(colNms, k)
+      repColNms <- if (length(exp) == 1L) { base::union(repColNms, c("Pep. count", "PSMs count")) } else { base::union(repColNms, k) }
     }
   }
   df <- df[, colNms]
@@ -180,9 +182,9 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   }
   if (!length(flt)) {
     if (missing(filtMsg)) { filtMsg <- paste0("No matching ", sub("^All", "", tab), " to show...") }
-    return(div(em(HTML(filtMsg)),
-               br(),
-               br()))
+    return(shiny::div(shiny::em(shiny::HTML(filtMsg)),
+                      shiny::br(),
+                      shiny::br()))
   }
   df <- df[flt,]
   colnames(df) <- colNms <- repColNms
@@ -211,12 +213,12 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
   rg <- grep("^(up|down),|specific", df[[repDecCol]])
   if (!length(rg)) {
     if (missing(regMsg)) { regMsg <- paste0("No significant ", tolower(gsub("^All|s$", "", tab)), " to show...") }
-    return(div(em(HTML(regMsg)),
-               br(),
-               br()))
+    return(shiny::div(shiny::em(shiny::HTML(regMsg)),
+                      shiny::br(),
+                      shiny::br()))
   }
   df <- df[rg, ]
-  df <- df[, setdiff(colnames(df), repDecCol)]
+  df <- df[, base::setdiff(colnames(df), repDecCol)]
   #
   # Make sure this re-ordering is done after any other data is added from dat to df!
   orderVect <- df[, xprCols]
@@ -234,7 +236,7 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
       suppressWarnings(as.numeric(df[[k]]))
     }), covSortCols)
   }
-  col2 <- setdiff(colnames(df), c("PEP", quantCols))
+  col2 <- base::setdiff(colnames(df), c("PEP", quantCols))
   df[, col2] <- sapply(col2, \(k) {
     if (pgTest && (k %in% covCols)) {
       make_bar(df[[k]])
@@ -307,13 +309,13 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
                                                        c("10", "25", "50", "100", "All")),
                                      autoWidth = FALSE,
                                      columnDefs = columnDefs_all,
-                                     initComplete = JS(sprintf("function(settings, json) {
+                                     initComplete = htmlwidgets::JS(sprintf("function(settings, json) {
   const tips = %s;
   const api = this.api();
   // Sort prefixes longest-first, so more specific matches win
   const entries = Object.entries(tips).sort(([a], [b]) => b.length - a.length);
   api.columns().every(function(i) {
-    const header = api.column(i).header();
+    const header = api.shiny::column(i).header();
     const colName = header.textContent.trim();
     for (const [prefix, helpText] of entries) {
       if (colName.startsWith(prefix)) {
@@ -323,19 +325,19 @@ make_ctrst_tbl_ui <- \(contr, #contr <- myContrasts$Contrast[1L] #contr <- myCon
     }
   });
 }",
-                                                               jsonlite::toJSON(as.list(header_help), auto_unbox = TRUE)))))
+                                                                            jsonlite::toJSON(as.list(header_help), auto_unbox = TRUE)))))
   df <- DT::formatRound(df, c("PEP", quantCols), digits = 5L)
   df <- DT::formatStyle(df, "PEP",
                         backgroundColor = DT::styleInterval(10L^-seq(10, 0, length.out = 99L),
-                                                            colorRampPalette(rev(xl_colScales$PEP))(100L)))
+                                                            grDevices::colorRampPalette(rev(xl_colScales$PEP))(100L)))
   df <- DT::formatStyle(df, xprCols,
                         backgroundColor = DT::styleInterval(seq(xprRng[1L], xprRng[2L], length.out = 99L),
-                                                            colorRampPalette(xl_colScales$`Individual Expr`)(100L)))
+                                                            grDevices::colorRampPalette(xl_colScales$`Individual Expr`)(100L)))
   df <- DT::formatStyle(df, ratCol,
                         backgroundColor = DT::styleInterval(seq(ratRng[1L], ratRng[2L], length.out = 99L),
-                                                            colorRampPalette(xl_colScales$`Summary Ratios`)(100L)))
-  return(tags$div(df,
-                  style = paste0("background: #ffffff;")))
+                                                            grDevices::colorRampPalette(xl_colScales$`Summary Ratios`)(100L)))
+  return(shiny::tags$div(df,
+                         style = paste0("background: #ffffff;")))
 }
 make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
                       tab = "Protein groups", # can also be "All peptidoforms"; we will eventually add "`PTM`-modified", where `PTM` can be any PTM of interest
@@ -360,20 +362,20 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
   if (tab %in% c("Protein groups", "All peptidoforms")) {
     if (pgTest) {
       filtCol <- "Protein IDs"
-      coreCols <- union(c("Leading protein IDs", filtCol, "Common Names", "Genes", "Mol. weight [kDa]", "Potential contaminant"), coreCols)
+      coreCols <- base::union(c("Leading protein IDs", filtCol, "Common Names", "Genes", "Mol. weight [kDa]", "Potential contaminant"), coreCols)
       intRoot <- "expr"
     }
     if (tab == "All peptidoforms") {
       filtCol <- "Proteins"
-      coreCols <- union(c("Modified sequence_verbose", #"Sequence",
-                          filtCol), coreCols)
+      coreCols <- base::union(c("Modified sequence_verbose", #"Sequence",
+                                filtCol), coreCols)
       intRoot <- "int"
     }
   } else {
     stop("TO DO!")
     filtCol <- "Proteins"
-    coreCols <- union(c("Modified sequence_verbose", #"Sequence",
-                        filtCol), coreCols) # Check before use...
+    coreCols <- base::union(c("Modified sequence_verbose", #"Sequence",
+                              filtCol), coreCols) # Check before use...
     intRoot <- "int" # Presumably...
   }
   #
@@ -391,7 +393,7 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
     } else {
       ratCols <- unlist(lapply(exp, \(xp) { grep(topattern(paste0(fullRatRoot, xp, " /\n")), smplCols, value = TRUE) }))
     }
-    repRatCols <- ratCols <- intersect(ratCols, colnames(df))
+    repRatCols <- ratCols <- base::intersect(ratCols, colnames(df))
     useRat <- length(ratCols) > 0L
   }
   #
@@ -406,12 +408,12 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
     repColNms <- c(repColNms, repRatCols)
   }
   if (pgTest) {
-    pepCountCols <- intersect(paste0("Pep. count \n", exp), colnames(df))
-    psmCountCols <- intersect(paste0("PSMs count \n", exp), colnames(df))
-    k <- union(pepCountCols, psmCountCols)
+    pepCountCols <- base::intersect(paste0("Pep. count \n", exp), colnames(df))
+    psmCountCols <- base::intersect(paste0("PSMs count \n", exp), colnames(df))
+    k <- base::union(pepCountCols, psmCountCols)
     if (length(k)) {
-      colNms <- union(colNms, k)
-      repColNms <- if (length(exp) == 1L) { union(repColNms, c("Pep. count", "PSMs count")) } else { union(repColNms, k) }
+      colNms <- base::union(colNms, k)
+      repColNms <- if (length(exp) == 1L) { base::union(repColNms, c("Pep. count", "PSMs count")) } else { base::union(repColNms, k) }
     }
   }
   df <- df[, colNms]
@@ -465,7 +467,7 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
       suppressWarnings(as.numeric(df[[k]]))
     }), covSortCols)
   }
-  col2 <- setdiff(colnames(df), c("PEP", quantCols))
+  col2 <- base::setdiff(colnames(df), c("PEP", quantCols))
   df[, col2] <- sapply(col2, \(k) {
     if (pgTest && (k %in% covCols)) {
       make_bar(df[[k]])
@@ -535,13 +537,13 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
                                                        c("10", "25", "50", "100", "All")),
                                      autoWidth = FALSE,
                                      columnDefs = columnDefs_all,
-                                     initComplete = JS(sprintf("function(settings, json) {
+                                     initComplete = htmlwidgets::JS(sprintf("function(settings, json) {
   const tips = %s;
   const api = this.api();
   // Sort prefixes longest-first, so more specific matches win
   const entries = Object.entries(tips).sort(([a], [b]) => b.length - a.length);
   api.columns().every(function(i) {
-    const header = api.column(i).header();
+    const header = api.shiny::column(i).header();
     const colName = header.textContent.trim();
     for (const [prefix, helpText] of entries) {
       if (colName.startsWith(prefix)) {
@@ -551,21 +553,21 @@ make_smpl_tbl_ui <- \(exp, #exp <- Exp[1L] #exp <- Exp[2L] #exp <- smplGrps[1L]
     }
   });
 }",
-                                                               jsonlite::toJSON(as.list(header_help), auto_unbox = TRUE)))))
+                                                                            jsonlite::toJSON(as.list(header_help), auto_unbox = TRUE)))))
   df <- DT::formatRound(df, c("PEP", quantCols), digits = 5L)
   df <- DT::formatStyle(df, "PEP",
                         backgroundColor = DT::styleInterval(10L^-seq(10, 0, length.out = 99L),
-                                                            colorRampPalette(rev(xl_colScales$PEP))(100L)))
+                                                            grDevices::colorRampPalette(rev(xl_colScales$PEP))(100L)))
   df <- DT::formatStyle(df, xprCols,
                         backgroundColor = DT::styleInterval(seq(xprRng[1L], xprRng[2L], length.out = 99L),
-                                                            colorRampPalette(xl_colScales$`Individual Expr`)(100L)))
+                                                            grDevices::colorRampPalette(xl_colScales$`Individual Expr`)(100L)))
   if (useRat) {
     df <- DT::formatStyle(df, ratCols,
                           backgroundColor = DT::styleInterval(seq(ratRng[1L], ratRng[2L], length.out = 99L),
-                                                              colorRampPalette(xl_colScales$`Individual Ratios`)(100L)))
+                                                              grDevices::colorRampPalette(xl_colScales$`Individual Ratios`)(100L)))
   }
-  return(tags$div(df,
-                  style = paste0("background: #ffffff;")))
+  return(shiny::tags$div(df,
+                         style = paste0("background: #ffffff;")))
 }
 make_prot_tab <- \(dflt = dfltProt,
                    prots = allProt,
@@ -593,28 +595,28 @@ make_prot_tab <- \(dflt = dfltProt,
   ################## ##############
   # Peptides table
   if (shiny) {
-    tagList(tags$div(
+    shiny::tagList(shiny::tags$div(
       if (prot.list.Cond && (length(prots) > 1L)) {
-        tags$div(selectInput("myProtein", "Select protein", prots, dflt),
-                 br())
+        shiny::tags$div(shiny::selectInput("myProtein", "Select protein", prots, dflt),
+                        shiny::br())
       },
-      uiOutput("protComment"),
-      br(),
-      fluidRow(column(6L,
-                      if (length(myExp) > 1L) {
-                        selectInput("mySample", "", myExp, myExp[1L]) 
+      shiny::uiOutput("protComment"),
+      shiny::br(),
+      shiny::fluidRow(shiny::column(6L,
+                                    if (length(myExp) > 1L) {
+                                      shiny::selectInput("mySample", "", myExp, myExp[1L]) 
+                                    },
+                                    shinycssloaders::withSpinner(shiny::plotlyOutput("coverPlot", height = plotHght))),
+                      if (scrptType == "noReps") {
+                        shiny::column(6L,
+                                      shinycssloaders::withSpinner(shiny::plotlyOutput("ratioPlot", height = plotHght)))
                       },
-                      withSpinner(plotlyOutput("coverPlot", height = plotHght))),
-               if (scrptType == "noReps") {
-                 column(6L,
-                        withSpinner(plotlyOutput("ratioPlot", height = plotHght)))
-               },
       ),
-      br(),
-      br(),
-      tags$hr(style = "border-color: black;"),
-      if (tables && peptidoTst) { uiOutput("protPep") },
-      br(),
+      shiny::br(),
+      shiny::br(),
+      shiny::tags$hr(style = "border-color: black;"),
+      if (tables && peptidoTst) { shiny::uiOutput("protPep") },
+      shiny::br(),
       style = paste0("background: ", myCol, ";")))
   } else {
     ## Coverage plots ###################################################
@@ -624,26 +626,26 @@ make_prot_tab <- \(dflt = dfltProt,
       cov_plots <- lapply(1L:nrow(exp2smpl), \(i) {
         exp <- exp2smpl$Sample[i]
         pr <- exp2smpl$Protein[i]
-        tags$div(id = paste0("cov_", pr, "_", exp),
-                 style = paste("width: 100%; display: ",
-                               if ((pr == dflt) && (exp == dfltExp)) { "block" } else { "none" },
-                               ";"),
-                 class = "plot-container",
-                 fix_plotly_sizing(covPlots[[pr]]$logInt[[exp]]))
+        shiny::tags$div(id = paste0("cov_", pr, "_", exp),
+                        style = paste("width: 100%; display: ",
+                                      if ((pr == dflt) && (exp == dfltExp)) { "block" } else { "none" },
+                                      ";"),
+                        class = "plot-container",
+                        fix_plotly_sizing(covPlots[[pr]]$logInt[[exp]]))
       })
     }
     ## Ratio plots ######################################################
     ratio_plots_ui <- NULL
     if (rat_ON) {
-      prots2 <- intersect(prots, names(ratioPlots))
+      prots2 <- base::intersect(prots, names(ratioPlots))
       if (length(prots2)) {
         ratio_plots_ui <- lapply(prots2, \(pr) {
-          tags$div(id = paste0("rat_", pr),
-                   style = paste("width: 100%; display: ",
-                                 if (pr == dflt) { "block" } else { "display" },
-                                 ";"),
-                   class = "plot-container",
-                   fix_plotly_sizing(ratioPlots[[pr]]))
+          shiny::tags$div(id = paste0("rat_", pr),
+                          style = paste("width: 100%; display: ",
+                                        if (pr == dflt) { "block" } else { "display" },
+                                        ";"),
+                          class = "plot-container",
+                          fix_plotly_sizing(ratioPlots[[pr]]))
         })
       }
     }
@@ -661,50 +663,50 @@ make_prot_tab <- \(dflt = dfltProt,
     if (tables && peptidoTst) {
       pepTables <- lapply(prots, \(pr) {
         m <- match(pr, prots)
-        tags$div(id = paste0("pepTable_", m),
-                 style = if (pr == dflt) { "width: 100%; display: block;" } else { "display: none;" },
-                 make_smpl_tbl_ui(tab = "All peptidoforms",
-                                  filt = pr))
+        shiny::tags$div(id = paste0("pepTable_", m),
+                        style = if (pr == dflt) { "width: 100%; display: block;" } else { "display: none;" },
+                        make_smpl_tbl_ui(tab = "All peptidoforms",
+                                         filt = pr))
       })
     }
     ## UI ###############################################################
-    tagList(tags$div(
+    shiny::tagList(shiny::tags$div(
       if (length(prots) > 1L) {
-        fluidRow(column(12L,
-                        make_select_tag("myProtein",
-                                        "",
-                                        "myProtein",
-                                        prots,
-                                        dflt),
-                        br()))
+        shiny::fluidRow(shiny::column(12L,
+                                      make_select_tag("myProtein",
+                                                      "",
+                                                      "myProtein",
+                                                      prots,
+                                                      dflt),
+                                      shiny::br()))
       },
       prComments,
-      br(),
-      fluidRow(column(6L,
-                      if (length(myExp) > 1L) {
-                        make_select_tag("mySample",
-                                        "",
-                                        "mySample",
-                                        myExp,
-                                        myExp[1L])
+      shiny::br(),
+      shiny::fluidRow(shiny::column(6L,
+                                    if (length(myExp) > 1L) {
+                                      make_select_tag("mySample",
+                                                      "",
+                                                      "mySample",
+                                                      myExp,
+                                                      myExp[1L])
+                                    },
+                                    shiny::br(),
+                                    cov_plots),
+                      if (!is.null(ratio_plots_ui)) {
+                        shiny::column(6L, ratio_plots_ui)
                       },
-                      br(),
-                      cov_plots),
-               if (!is.null(ratio_plots_ui)) {
-                 column(6L, ratio_plots_ui)
-               },
       ),
-      br(),
-      br(),
-      tags$hr(style = "border-color: black;"),
+      shiny::br(),
+      shiny::br(),
+      shiny::tags$hr(style = "border-color: black;"),
       if (tables && peptidoTst) { pepTables },
-      tags$script(HTML(paste0("function updateProteinTab() {
+      shiny::tags$script(shiny::HTML(paste0("function updateProteinTab() {
   const protEl = document.getElementById('myProtein');
   const sampleEl = document.getElementById('mySample');
   const singleSample = ",
-                              jsonlite::toJSON(if (length(Exp) == 1L) { myExp[1L] } else { NULL },
-                                               auto_unbox = TRUE),
-                              ";
+                                            jsonlite::toJSON(if (length(Exp) == 1L) { myExp[1L] } else { NULL },
+                                                             auto_unbox = TRUE),
+                                            ";
   // Nothing useful to update if there isn't even a protein
   if (!protEl) {
     return;
@@ -759,7 +761,7 @@ if (myProt) {
   myProt.addEventListener('change', updateProteinTab);
 }
 "))),
-      br(),
+      shiny::br(),
       style = paste0("background: ", myCol, ";")))
   }
 }
@@ -801,7 +803,7 @@ make_summTbl_ui <- \() {
                       #height = hght,
                       height = "auto",
                       fillContainer = FALSE,
-                      options = list(rowCallback = JS(sprintf("function(row, data, displayNum, displayIndex, dataIndex) {
+                      options = list(rowCallback = htmlwidgets::JS(sprintf("function(row, data, displayNum, displayIndex, dataIndex) {
   const tips = %s;
   // With rownames = TRUE, the row name is usually in the first cell
   const rowNameCell = row.cells[0];
@@ -810,7 +812,7 @@ make_summTbl_ui <- \() {
     rowNameCell.setAttribute('title', tips[rowName]);
   }
 }",
-                                                              jsonlite::toJSON(as.list(rowHelp), auto_unbox = TRUE))),
+                                                                           jsonlite::toJSON(as.list(rowHelp), auto_unbox = TRUE))),
                                      scrollX = TRUE,
                                      paging = FALSE,
                                      lengthChange = FALSE,
@@ -818,27 +820,27 @@ make_summTbl_ui <- \() {
                                      dom = "ft",
                                      columnDefs = list(list(width = "160px",
                                                             targets = 1L:ncol(df) - 1L))))
-  return(tags$div(h4(strong(em("Summary table"))),
-                  df,
-                  style = "background: #ffffff; overflow: auto;"))
+  return(shiny::tags$div(shiny::h4(shiny::strong(shiny::em("Summary table"))),
+                         df,
+                         style = "background: #ffffff; overflow: auto;"))
 }
 make_select_tag <- \(id,
                      label,
                      name,
                      values,
                      selected) {
-  tags$div(if (nchar(label)) {
-    tags$label(`for` = id,
-               label)
+  shiny::tags$div(if (nchar(label)) {
+    shiny::tags$label(`for` = id,
+                      label)
   },
-  tags$select(id = id,
-              name = name,
-              `data-default` = selected,
-              lapply(values, \(x) {
-                tags$option(value = x,
-                            selected = if (x == selected) { "selected" } else { NULL },
-                            x)
-              })))
+  shiny::tags$select(id = id,
+                     name = name,
+                     `data-default` = selected,
+                     lapply(values, \(x) {
+                       shiny::tags$option(value = x,
+                                          selected = if (x == selected) { "selected" } else { NULL },
+                                          x)
+                     })))
 }
 make_smpl_tab <- \(exp,
                    shiny = TRUE,
@@ -856,17 +858,17 @@ make_smpl_tab <- \(exp,
   lQ <- length(quant)
   id1 <- paste0("quant_", exp)
   if (shiny) {
-    tagList(tags$div(
-      uiOutput(paste0("cmmnt_", exp_)),
+    shiny::tagList(shiny::tags$div(
+      shiny::uiOutput(paste0("cmmnt_", exp_)),
       if (runRankAbundPlots) {
-        div(selectInput(id1, "", quant, dflt[exp]),
-            withSpinner(plotlyOutput(paste0("quantLy_", exp), height = plotHght)),
-            br())
+        shiny::div(shiny::selectInput(id1, "", quant, dflt[exp]),
+                   shinycssloaders::withSpinner(shiny::plotlyOutput(paste0("quantLy_", exp), height = plotHght)),
+                   shiny::br())
       },
-      br(),
-      tags$hr(style = "border-color: black;"),
+      shiny::br(),
+      shiny::tags$hr(style = "border-color: black;"),
       if (tables) {
-        uiOutput(paste0("PG_table_", exp))
+        shiny::uiOutput(paste0("PG_table_", exp))
       },
       style = paste0("background: ", myCol, ";")))
   } else {
@@ -883,26 +885,26 @@ make_smpl_tab <- \(exp,
                   id1,
                   id2,
                   id2)
-    tagList(tags$div(
+    shiny::tagList(shiny::tags$div(
       make_comment_ui(exp, shiny),
       if (runRankAbundPlots) {
-        div(lapply(1L:lQ, \(i) {
-          tags$div(id = paste0("quant_", exp, "_", as.character(i)),
-                   style = if (quant[i] == dflt[exp]) { "display: block;" } else { "display: none;" },
-                   class = "plot-container",
-                   fix_plotly_sizing(ggQuantLy[[quant[i]]][[exp2]]$plotly))
+        shiny::div(lapply(1L:lQ, \(i) {
+          shiny::tags$div(id = paste0("quant_", exp, "_", as.character(i)),
+                          style = if (quant[i] == dflt[exp]) { "display: block;" } else { "display: none;" },
+                          class = "plot-container",
+                          fix_plotly_sizing(ggQuantLy[[quant[i]]][[exp2]]$plotly))
         }),
-        br(),
+        shiny::br(),
         make_select_tag(id1,
                         "",
                         id1,
                         quant,
                         dflt[exp]),
-        br())
+        shiny::br())
       },
-      br(),
-      tags$hr(style = "border-color: black;"),
-      tags$script(HTML(js)),
+      shiny::br(),
+      shiny::tags$hr(style = "border-color: black;"),
+      shiny::tags$script(shiny::HTML(js)),
       if (tables) {
         make_smpl_tbl_ui(exp)
       },
@@ -944,132 +946,132 @@ make_ctrst_tab <- \(contr,
   slotNm <- if (missing(ptm)) { "PG" } else { ptm }
   cmmntNm <- if (missing(ptm)) { contr} else { paste0(Ptm, ": ", contr) }
   if (shiny) {
-    tagList(tags$div(
-      uiOutput(commentID),
+    shiny::tagList(shiny::tags$div(
+      shiny::uiOutput(commentID),
       if (missing(ptm) && saintXPRS) {
-        div(h3("SAINTexpress"),
-            fluidRow(column(6L,
-                            withSpinner(plotlyOutput(saintIDs[2L], height = "600px"))),
-                     if (enrichGO) {
-                       column(6L,
-                              br(),
-                              br(),
-                              withSpinner(plotlyOutput(saintIDs[3L], height = "600px")))
-                     },
-            ),
-            style = "background: #ffffff;")
+        shiny::div(shiny::h3("SAINTexpress"),
+                   shiny::fluidRow(shiny::column(6L,
+                                                 shinycssloaders::withSpinner(shiny::plotlyOutput(saintIDs[2L], height = "600px"))),
+                                   if (enrichGO) {
+                                     shiny::column(6L,
+                                                   shiny::br(),
+                                                   shiny::br(),
+                                                   shinycssloaders::withSpinner(shiny::plotlyOutput(saintIDs[3L], height = "600px")))
+                                   },
+                   ),
+                   style = "background: #ffffff;")
       } else {
-        div(h3("t-test"),
-            fluidRow(column(6L,
-                            withSpinner(plotlyOutput(volcID, height = "600px"))),
-                     if (enrichGO) {
-                       column(6L,
-                              br(),
-                              br(),
-                              withSpinner(plotlyOutput(goID, height = "600px")))
-                     },
-            ),
-            style = "background: #ffffff;")
+        shiny::div(shiny::h3("t-test"),
+                   shiny::fluidRow(shiny::column(6L,
+                                                 shinycssloaders::withSpinner(shiny::plotlyOutput(volcID, height = "600px"))),
+                                   if (enrichGO) {
+                                     shiny::column(6L,
+                                                   shiny::br(),
+                                                   shiny::br(),
+                                                   shinycssloaders::withSpinner(shiny::plotlyOutput(goID, height = "600px")))
+                                   },
+                   ),
+                   style = "background: #ffffff;")
       },
-      tags$hr(style = "border-color: black;"),
+      shiny::tags$hr(style = "border-color: black;"),
       if (F.test) {
         # Add F-test part here... or maybe dropdown to choose f-/F-test... or drop F-test altogether?
       },
       if (GSEA_tst) {
-        div(
-          div(h3("GSEA"),
-              fluidRow(column(6L,
-                              h5("dot plot"),
-                              withSpinner(plotlyOutput(GSEA_IDs[1L], height = "600px")),
-                              h5("enrichment map"),
-                              withSpinner(plotlyOutput(GSEA_IDs[2L], height = "600px"))),
-                       column(6L,
-                              h5("ridge plot"),
-                              withSpinner(plotlyOutput(GSEA_IDs[3L], height = "600px")),
-                              h5("net plot"),
-                              withSpinner(plotlyOutput(GSEA_IDs[4L], height = "600px")))),
-              style = "background: #ffffff;"),
-          tags$hr(style = "border-color: black;"))
+        shiny::div(
+          shiny::div(shiny::h3("GSEA"),
+                     shiny::fluidRow(shiny::column(6L,
+                                                   shiny::h5("dot plot"),
+                                                   shinycssloaders::withSpinner(shiny::plotlyOutput(GSEA_IDs[1L], height = "600px")),
+                                                   shiny::h5("enrichment map"),
+                                                   shinycssloaders::withSpinner(shiny::plotlyOutput(GSEA_IDs[2L], height = "600px"))),
+                                     shiny::column(6L,
+                                                   shiny::h5("ridge plot"),
+                                                   shinycssloaders::withSpinner(shiny::plotlyOutput(GSEA_IDs[3L], height = "600px")),
+                                                   shiny::h5("net plot"),
+                                                   shinycssloaders::withSpinner(shiny::plotlyOutput(GSEA_IDs[4L], height = "600px")))),
+                     style = "background: #ffffff;"),
+          shiny::tags$hr(style = "border-color: black;"))
       },
       if (tables) {
-        uiOutput(tblID)
+        shiny::uiOutput(tblID)
       },
       style = paste0("background: ", myCol, ";")))
   } else {
     styleOn6 <- "display: block; height: 600px"
     styleOn5 <- "display: block; height: 500px"
-    tagList(tags$div(
+    shiny::tagList(shiny::tags$div(
       make_comment_ui(cmmntNm, shiny),
       if (missing(ptm) && saintXPRS) {
-        div(h3("SAINTexpress"),
-            fluidRow(column(6L,
-                            tags$div(id = saintIDs[2L],
-                                     style = styleOn6,
-                                     class = "plot-container",
-                                     fix_plotly_sizing(volcPlotly$SAINTexpress[[saintIDs[1L]]]$Plot, 600L))),
-                     if (enrichGO && (!is.null(GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar))) {
-                       column(6L,
-                              br(),
-                              br(),
-                              tags$div(id = saintIDs[3L],
-                                       style = styleOn6,
-                                       class = "plot-container",
-                                       fix_plotly_sizing(GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar, 600L)))
-                     },
-            ),
-            style = "background: #ffffff;")
+        shiny::div(shiny::h3("SAINTexpress"),
+                   shiny::fluidRow(shiny::column(6L,
+                                                 shiny::tags$div(id = saintIDs[2L],
+                                                                 style = styleOn6,
+                                                                 class = "plot-container",
+                                                                 fix_plotly_sizing(volcPlotly$SAINTexpress[[saintIDs[1L]]]$Plot, 600L))),
+                                   if (enrichGO && (!is.null(GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar))) {
+                                     shiny::column(6L,
+                                                   shiny::br(),
+                                                   shiny::br(),
+                                                   shiny::tags$div(id = saintIDs[3L],
+                                                                   style = styleOn6,
+                                                                   class = "plot-container",
+                                                                   fix_plotly_sizing(GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar, 600L)))
+                                   },
+                   ),
+                   style = "background: #ffffff;")
       } else {
-        div(h3("t-test"),
-            fluidRow(column(6L,
-                            tags$div(id = volcID,
-                                     style = styleOn6,
-                                     class = "plot-container",
-                                     fix_plotly_sizing(volcPlotly[[volcNm1]][[volcNm2]]$Plot, 600L))),
-                     if (enrichGO && (!is.null(GO_plot_ly[[slotNm]]$"t-test"[[contr]]$Bar))) {
-                       column(6L,
-                              br(),
-                              br(),
-                              tags$div(id = goID,
-                                       style = styleOn6,
-                                       class = "plot-container",
-                                       fix_plotly_sizing(GO_plot_ly[[slotNm]]$"t-test"[[contr]]$Bar, 600L)))
-                     },
-            ),
-            style = "background: #ffffff;")
+        shiny::div(shiny::h3("t-test"),
+                   shiny::fluidRow(shiny::column(6L,
+                                                 shiny::tags$div(id = volcID,
+                                                                 style = styleOn6,
+                                                                 class = "plot-container",
+                                                                 fix_plotly_sizing(volcPlotly[[volcNm1]][[volcNm2]]$Plot, 600L))),
+                                   if (enrichGO && (!is.null(GO_plot_ly[[slotNm]]$"t-test"[[contr]]$Bar))) {
+                                     shiny::column(6L,
+                                                   shiny::br(),
+                                                   shiny::br(),
+                                                   shiny::tags$div(id = goID,
+                                                                   style = styleOn6,
+                                                                   class = "plot-container",
+                                                                   fix_plotly_sizing(GO_plot_ly[[slotNm]]$"t-test"[[contr]]$Bar, 600L)))
+                                   },
+                   ),
+                   style = "background: #ffffff;")
       },
-      tags$hr(style = "border-color: black;"),
+      shiny::tags$hr(style = "border-color: black;"),
       if (F.test) {
         # Add F-test part here... or maybe dropdown to choose f-/F-test... or drop F-test altogether?
       },
       if (GSEA_tst) {
-        div(
-          div(h3("GSEA"),
-              # NB: I also tried the plotly::subplot() approach to displaying the plots together in one,
-              # but this fails (subplots look corrupted, possibly because they are slightly hacky)
-              fluidRow(column(6L,
-                              h5("dot plot"),
-                              tags$div(id = GSEA_IDs[1L],
-                                       style = styleOn5,
-                                       class = "plot-container",
-                                       fix_plotly_sizing(GSEA_plotly$standard[[slotNm]][[GSEA_plotNms[1L]]][[contr]], 500L)),
-                              h5("enrichment map"),
-                              tags$div(id = GSEA_IDs[2L],
-                                       style = styleOn5,
-                                       class = "plot-container",
-                                       fix_plotly_sizing(GSEA_plotly$standard[[slotNm]][[GSEA_plotNms[2L]]][[contr]], 500L))),
-                       column(6L,
-                              h5("ridge plot"),
-                              tags$div(id = GSEA_IDs[3L],
-                                       style = styleOn5,
-                                       class = "plot-container",
-                                       fix_plotly_sizing(GSEA_plotly$standard[[slotNm]][[GSEA_plotNms[3L]]][[contr]], 500L)),
-                              h5("net plot"),
-                              tags$div(id = GSEA_IDs[4L],
-                                       style = styleOn5,
-                                       class = "plot-container",
-                                       fix_plotly_sizing(GSEA_plotly$standard[[slotNm]][[GSEA_plotNms[4L]]][[contr]], 500L)))),
-              style = "background: #ffffff;"),
-          tags$hr(style = "border-color: black;"))
+        shiny::div(
+          shiny::div(shiny::h3("GSEA"),
+                     # NB: I also tried the plotly::subplot() approach to displaying the plots together in one,
+                     # but this fails (subplots look corrupted, possibly because they are slightly hacky)
+                     shiny::fluidRow(shiny::column(6L,
+                                                   shiny::h5("dot plot"),
+                                                   shiny::tags$div(id = GSEA_IDs[1L],
+                                                                   style = styleOn5,
+                                                                   class = "plot-container",
+                                                                   fix_plotly_sizing(GSEA_plotly$standard[[slotNm]][[GSEA_plotNms[1L]]][[contr]], 500L)),
+                                                   shiny::h5("enrichment map"),
+                                                   shiny::tags$div(id = GSEA_IDs[2L],
+                                                                   style = styleOn5,
+                                                                   class = "plot-container",
+                                                                   fix_plotly_sizing(GSEA_plotly$standard[[slotNm]][[GSEA_plotNms[2L]]][[contr]], 500L))),
+                                     shiny::column(6L,
+                                                   shiny::h5("ridge plot"),
+                                                   shiny::tags$div(id = GSEA_IDs[3L],
+                                                                   style = styleOn5,
+                                                                   class = "plot-container",
+                                                                   fix_plotly_sizing(GSEA_plotly$standard[[slotNm]][[GSEA_plotNms[3L]]][[contr]], 500L)),
+                                                   shiny::h5("net plot"),
+                                                   shiny::tags$div(id = GSEA_IDs[4L],
+                                                                   style = styleOn5,
+                                                                   class = "plot-container",
+                                                                   fix_plotly_sizing(GSEA_plotly$standard[[slotNm]][[GSEA_plotNms[4L]]][[contr]], 500L)))),
+                     style = "background: #ffffff;"),
+          shiny::tags$hr(style = "border-color: black;"))
       },
       if (tables) {
         if (missing(ptm)) {
@@ -1087,90 +1089,90 @@ make_strt_tab <- \(shiny = TRUE) {
   # TO DO
   # Add Dataset GO terms enrichment
   if (shiny) {
-    tagList(tags$div(
+    shiny::tagList(shiny::tags$div(
       make_comment_ui("Dataset overview", shiny),
-      br(),
+      shiny::br(),
       make_summTbl_ui(),
-      br(),
+      shiny::br(),
       if (heatMaps_ON) {
-        div(fluidRow(column(1L,
-                            em("Heatmap type:")),
-                     column(11L,
-                            selectInput("myHeatMap",
-                                        "",
-                                        nmsHtMp,
-                                        nmsHtMp[1L]))),
-            fluidRow(column(12L,
-                            withSpinner(plotlyOutput("heatMap", height = "700px")))))
+        shiny::div(shiny::fluidRow(shiny::column(1L,
+                                                 shiny::em("Heatmap type:")),
+                                   shiny::column(11L,
+                                                 shiny::selectInput("myHeatMap",
+                                                                    "",
+                                                                    nmsHtMp,
+                                                                    nmsHtMp[1L]))),
+                   shiny::fluidRow(shiny::column(12L,
+                                                 shinycssloaders::withSpinner(shiny::plotlyOutput("heatMap", height = "700px")))))
       },
-      br(),
-      fluidRow(
+      shiny::br(),
+      shiny::fluidRow(
         if (globalGO && (!is.null(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar))) {
-          column(5L,
-                 withSpinner(plotlyOutput("GO_enrich_Dataset", height = "700px")))
+          shiny::column(5L,
+                        shinycssloaders::withSpinner(shiny::plotlyOutput("GO_enrich_Dataset", height = "700px")))
         },
         if (PCA_ON) {
-          column(4L,
-                 withSpinner(plotlyOutput("PCA", height = "700px")))
+          shiny::column(4L,
+                        shinycssloaders::withSpinner(shiny::plotlyOutput("PCA", height = "700px")))
         },
         if (Venn_ON) {
-          column(3L,
-                 withSpinner(plotlyOutput("Venn", height = "700px")))
+          shiny::column(3L,
+                        shinycssloaders::withSpinner(shiny::plotlyOutput("Venn", height = "700px")))
         },
       ),
-      br(),
+      shiny::br(),
       style = paste0("background: ", myCol, ";")))
   } else {
     styleOn7 <- "display: block; height: 700px"
-    tagList(tags$div(
+    shiny::tagList(shiny::tags$div(
       make_comment_ui("Dataset overview", shiny),
-      br(),
+      shiny::br(),
       make_summTbl_ui(),
-      br(),
+      shiny::br(),
       if (heatMaps_ON) {
-        div(fluidRow(column(1L,
-                            em("Heatmap type:")),
-                     column(11L,
-                            make_select_tag("myHeatMap",
-                                            "",
-                                            "myHeatMap",
-                                            nmsHtMp,
-                                            nmsHtMp[1L]))),
-            fluidRow(column(12L,
-                            lapply(nmsHtMp, \(nm) {
-                              i <- match(nm, nmsHtMp)
-                              tags$div(id = paste0("HeatMap_", i),
-                                       style = if (i == 1L) { styleOn7 } else { "display: none;" },
-                                       class = "plot-container",
-                                       fix_plotly_sizing(plotLeatMaps$Global[[nm]]$Plot))
-                            }))))
+        shiny::div(shiny::fluidRow(shiny::column(1L,
+                                                 shiny::em("Heatmap type:")),
+                                   shiny::column(11L,
+                                                 make_select_tag("myHeatMap",
+                                                                 "",
+                                                                 "myHeatMap",
+                                                                 nmsHtMp,
+                                                                 nmsHtMp[1L]))),
+                   shiny::fluidRow(shiny::column(12L,
+                                                 lapply(nmsHtMp, \(nm) {
+                                                   i <- match(nm, nmsHtMp)
+                                                   shiny::tags$div(id = paste0("HeatMap_", i),
+                                                                   style = if (i == 1L) { styleOn7 } else { "display: none;" },
+                                                                   class = "plot-container",
+                                                                   fix_plotly_sizing(plotLeatMaps$Global[[nm]]$Plot))
+                                                 }))))
       },
-      br(),
-      fluidRow(
+      shiny::br(),
+      shiny::fluidRow(
         if (globalGO && (!is.null(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar))) {
-          column(5L,
-                 tags$div(id = "GO_enrich_Dataset",
-                          style = styleOn7,
-                          class = "plot-container",
-                          fix_plotly_sizing(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar)))
+          shiny::column(5L,
+                        shiny::tags$div(id = "GO_enrich_Dataset",
+                                        style = styleOn7,
+                                        class = "plot-container",
+                                        fix_plotly_sizing(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar)))
         },
         if (PCA_ON) {
-          column(4L,
-                 tags$div(id = "PCA",
-                          style = styleOn7,
-                          class = "plot-container",
-                          fix_plotly_sizing(dimRedPlotLy$PG$PCA)))
+          shiny::column(4L,
+                        shiny::tags$div(id = "PCA",
+                                        style = styleOn7,
+                                        class = "plot-container",
+                                        fix_plotly_sizing(dimRedPlotLy$PG$PCA)))
         },
         if (Venn_ON) {
-          column(3L,
-                 tags$div(id = "Venn",
-                          style = styleOn7,
-                          class = "plot-container",
-                          fix_plotly_sizing(plotly_Venn$`Global, LFQ`)))
+          shiny::column(3L,
+                        shiny::tags$div(id = "Venn",
+                                        style = styleOn7,
+                                        class = "plot-container",
+                                        fix_plotly_sizing(plotly_Venn$`Global, LFQ`)))
         },
       ),
-      br(),
-      tags$script(HTML(paste0("document.getElementById('myHeatMap').addEventListener('change', function() {
+      shiny::br(),
+      shiny::tags$script(shiny::HTML(paste0("document.getElementById('myHeatMap').addEventListener('change', function() {
   const HtMpID = document.getElementById('myHeatMap').selectedIndex + 1;
   const HtMp = document.getElementById('HeatMap_' + HtMpID);
   document.querySelectorAll('[id^=\"HeatMap_\"]').forEach(function(el) {
@@ -1190,16 +1192,16 @@ make_QC_tab <- \(shiny = TRUE,
   myCol <- tolower(viridis::viridis(6L, alpha = 0.2)[5L])
   QC_comments <- allComments[names(plotsList)]
   if (shiny) {
-    tagList(tags$div(
-      selectInput("QC", "", names(plotsList), names(plotsList)[1L]),
-      fluidRow(column(8L,
-                      withSpinner(plotlyOutput("QCplotLy", height = plotHght))),
-               column(4L,
-                      uiOutput("QCtxt"))),
-      br(),
+    shiny::tagList(shiny::tags$div(
+      shiny::selectInput("QC", "", names(plotsList), names(plotsList)[1L]),
+      shiny::fluidRow(shiny::column(8L,
+                                    shinycssloaders::withSpinner(shiny::plotlyOutput("QCplotLy", height = plotHght))),
+                      shiny::column(4L,
+                                    shiny::uiOutput("QCtxt"))),
+      shiny::br(),
       style = paste0("background: ", myCol, ";")))
   } else {
-    tagList(tags$div(
+    shiny::tagList(shiny::tags$div(
       make_select_tag("myQC",
                       "",
                       "myQC",
@@ -1207,19 +1209,19 @@ make_QC_tab <- \(shiny = TRUE,
                       names(plotsList)[1L]),
       lapply(seq_along(plotsList), \(i) { #i <-1L #i <- i+1L
         nm <- names(plotsList)[i]
-        fluidRow(column(8L,
-                        tags$div(id = paste0("QC_", i),
-                                 style = if (i == 1L) { "display: block;" } else { "display: none;" },
-                                 class = "plot-container",
-                                 fix_plotly_sizing(plotsList[[nm]], plotHght))),
-                 column(4L,
-                        make_comment_ui(nm,
-                                        shiny,
-                                        QC_comments,
-                                        nm == names(plotsList)[1L])))
+        shiny::fluidRow(shiny::column(8L,
+                                      shiny::tags$div(id = paste0("QC_", i),
+                                                      style = if (i == 1L) { "display: block;" } else { "display: none;" },
+                                                      class = "plot-container",
+                                                      fix_plotly_sizing(plotsList[[nm]], plotHght))),
+                        shiny::column(4L,
+                                      make_comment_ui(nm,
+                                                      shiny,
+                                                      QC_comments,
+                                                      nm == names(plotsList)[1L])))
       }),
-      br(),
-      tags$script(HTML("document.getElementById('myQC').addEventListener('change', function() {
+      shiny::br(),
+      shiny::tags$script(shiny::HTML("document.getElementById('myQC').addEventListener('change', function() {
   const selected = document.getElementById('myQC').selectedIndex + 1;
   document.querySelectorAll('[id^=\"QC_\"]').forEach(function(div) { div.style.display = 'none'; });
   document.getElementById('QC_' + selected).style.display = 'block';
@@ -1243,26 +1245,26 @@ make_matmet_tab <- \(matmeth = matmethTxt,
     paste0(as.character(20L*(sum(ceiling(nchar(unlist(x))/ceiling(screenRes$width/5.75)))+2L)), "px")
   }, "")
   if (shiny) {
-    tagList(tags$div(
-      textAreaInput("MatMet_SamplePrep", matmethSections[1L], matmeth[1L], "100%", hght[1L]),
-      br(),
-      textAreaInput("MatMet_LCMS", matmethSections[2L], matmeth[2L], "100%", hght[2L]),
-      br(),
-      textAreaInput("MatMet_DataAnalysis", matmethSections[3L], matmeth[3L], "100%", hght[3L]),
-      br(),
+    shiny::tagList(shiny::tags$div(
+      shiny::textAreaInput("MatMet_SamplePrep", matmethSections[1L], matmeth[1L], "100%", hght[1L]),
+      shiny::br(),
+      shiny::textAreaInput("MatMet_LCMS", matmethSections[2L], matmeth[2L], "100%", hght[2L]),
+      shiny::br(),
+      shiny::textAreaInput("MatMet_DataAnalysis", matmethSections[3L], matmeth[3L], "100%", hght[3L]),
+      shiny::br(),
       style = paste0("background: ", myCol, ";")))
   } else {
-    tagList(tags$div(
-      em(HTML("This is an automatically-generated materials and methods template and may contain inaccuracies. Please remember to check with us the details before including this in a publication!")),
-      h5(matmethSections[1L]),
-      tags$p(matmeth[1L]),
-      br(),
-      h5(matmethSections[2L]),
-      tags$p(matmeth[2L]),
-      br(),
-      h5(matmethSections[3L]),
-      tags$p(matmeth[3L]),
-      br(),
+    shiny::tagList(shiny::tags$div(
+      shiny::em(shiny::HTML("This is an automatically-generated materials and methods template and may contain inaccuracies. Please remember to check with us the details before including this in a publication!")),
+      shiny::h5(matmethSections[1L]),
+      shiny::tags$p(matmeth[1L]),
+      shiny::br(),
+      shiny::h5(matmethSections[2L]),
+      shiny::tags$p(matmeth[2L]),
+      shiny::br(),
+      shiny::h5(matmethSections[3L]),
+      shiny::tags$p(matmeth[3L]),
+      shiny::br(),
       style = paste0("background: ", myCol, ";")))
   }
 }

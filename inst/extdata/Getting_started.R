@@ -51,7 +51,7 @@ WrkFlwsTbl <- data.frame(Name = c("Protein Groups - with replicates",
                                     "PG_modPep_regulation_noRep_Worfklow",
                                     "pep_regulation_Rep_Worfklow",
                                     "histones_PTMs_Workflow"))
-myWrkFlw %<o% dlg_list(WrkFlwsTbl$Name, WrkFlwsTbl$Name[1L], title = "Choose analysis workflow")$res
+myWrkFlw %<o% svDialogs::dlg_list(WrkFlwsTbl$Name, WrkFlwsTbl$Name[1L], title = "Choose analysis workflow")$res
 wrkflwSrc %<o% paste0(homePath, "/", WrkFlwsTbl$Script[match(myWrkFlw, WrkFlwsTbl$Name)], ".R")
 #rstudioapi::documentOpen(wrkflwSrc) # Inspect current workflow script
 #rstudioapi::documentOpen(Src) # In case a specific sub-source throws an error

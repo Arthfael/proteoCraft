@@ -1,44 +1,6 @@
 ######################
 ### Start analysis ###
 ######################
-inst <- as.data.frame(installed.packages())
-if ((!"proteoCraft" %in% inst$Package) || (exists("updt_proteoCraft") && updt_proteoCraft)) {
-  locFl <- paste0(homePath, "/Default_locations.xlsx")
-  locs <- openxlsx2::read_xlsx(locFl)
-  pckgloc <- paste0(locs$Path[match("Server share", locs$Folder)], "/proteoCraft_package")
-  goOn <- dir.exists(pckgloc)
-  if (goOn) {
-    pckgs <- list.files(pckgloc, "\\.tar\\.gz$", full.names = TRUE)
-    goOn <- length(pckgs) > 0L
-    if (goOn) {
-      pckgs <- data.frame(Name = pckgs, check.names = FALSE)
-      temp <- strsplit(gsub(".*/proteoCraft_|\\.tar\\.gz$", "", pckgs$Name), "\\.")
-      pckgs[, paste0("V", as.character(1L:4L))] <- as.data.frame(t(sapply(temp, \(x) {
-        x <- as.numeric(unlist(x))
-        if (length(x) < 4L) { x <- c(x, rep(0L, 4L-length(x))) }
-        return(x)
-      })))
-      k <- 1L
-      klK <- paste0("V", as.character(k))
-      pckgs <- pckgs[pckgs[[klK]] == max(pckgs[[klK]]), , drop = FALSE]
-      while (nrow(pckgs) > 1L) {
-        k <- k+1L
-        klK <- paste0("V", as.character(k))
-        pckgs <- pckgs[pckgs[[klK]] == max(pckgs[[klK]]), , drop = FALSE]
-      }
-      nuPack <- pckgs$Name
-    } else {
-      nuPack <- rstudioapi::selectFile("Select tarball (.tar.gz) for updating the proteoCraft package", filter = "tarball (*.tar.gz)")
-    }
-  }
-  if ((!is.na(nuPack)) && file.exists(nuPack)) {
-    cat("Updating proteoCraft package...\n")
-    unloadNamespace("proteoCraft")
-    remove.packages("proteoCraft")
-    install.packages(nuPack, dependencies = TRUE)
-  }
-}
-library(proteoCraft)
 
 if (!exists("renv")) { renv %<o% FALSE }
 
@@ -54,7 +16,8 @@ if (!exists("mySeed")) { mySeed <- 1234567 }
 mySeed %<o% mySeed
 
 # Define input, output, project folder etc...
-if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }
+N.tot <- parallel::detectCores()
+if (!exists("N.clust")) { N.clust <- max(c(round(N.tot*0.95)-1L, 1L)) }
 if (!exists("writeRaws")) { writeRaws <- TRUE }
 if (!exists("writeSearch")) { writeSearch <- TRUE }
 
@@ -87,16 +50,16 @@ ProcessedByUs %<o% ProcessedByUs
 scrptPaths <- setNames(ScriptPath,
                        c("Replicates",
                          "No replicates")[match(scrptType, c("withReps", "noReps"))])
-WorkFlows %<o% eval(parse(text = gsub("^###-\\|-### *Workflows: *", "",
-                                      grep("^###-\\|-### *Workflows: *",
-                                           readr::read_lines(ScriptPath), value = TRUE))),
+WorkFlows %<o% eval(parse(text = sub("^###-\\|-### *Workflows: *", "",
+                                     grep("^###-\\|-### *Workflows: *",
+                                          readr::read_lines(ScriptPath), value = TRUE))),
                     envir = .GlobalEnv)
 stopifnot(length(WorkFlows) > 0L) # This would mean that when ScriptPath was captured we had the wrong script open in the RStudio window!
 if (!RunByMaster) {
   locDirsFl2 <- paste0(homePath, "/Default_locations.xlsx")
   flTst <- file.exists(locDirsFl2)
   if (!flTst) { file.copy(paste0(RPath, "/proteoCraft/extdata/Default_locations.xlsx"), locDirsFl2) }
-  dirTbl <- openxlsx::read.xlsx(locDirsFl2)
+  dirTbl <- openxlsx2::read_xlsx(locDirsFl2)
   if (is.na(dirTbl$Path[match("Temporary folder", dirTbl$Folder)])) {
     dirTbl$Path[match("Temporary folder", dirTbl$Folder)] <- homePath
     
@@ -158,7 +121,7 @@ if (!RunByMaster) {
     if (!length(inDirs)) { rm(inDirs) }
   }
   if (!exists("inDirs")) { inDirs <- dirTbl2[grep("^Search folder ", names(dirTbl2))[1L]] }
-  defRt <- dirTbl2[match(gsub("/.*", "/", dirTbl2[grep("^Search folder ", names(dirTbl2))]), dirTbl2)]
+  defRt <- dirTbl2[match(sub("/.*", "/", dirTbl2[grep("^Search folder ", names(dirTbl2))]), dirTbl2)]
   tmp <- c("MaxQuant", "DiaNN", "FragPipe", "Proteome Discoverer")
   SearchSoftware %<o% setNames(gsub(" ", "", toupper(tmp)), tmp)
   srchSoftOpt <- names(SearchSoftware)
@@ -167,7 +130,7 @@ if (!RunByMaster) {
   scriptPar <- gsub("^###-\\|-### *", "", grep("^###-\\|-### *", scriptPar, value = TRUE))
   appNm <- "Start analysis"
   dtstNm2 <- gsub(":|\\*|\\?|<|>|\\||/", "-", dtstNm)
-  updt_Type0 <- function(searchDir, default = NULL) {
+  updt_Type0 <- \(searchDir, default = NULL) {
     if (is.null(default) || (!default %in% srchSoftOpt)) {
       fls <- list.files(searchDir)
       tsv2txt <- length(grep("\\.tsv$", fls))/length(grep("\\.txt$", fls))
@@ -200,7 +163,7 @@ if (!RunByMaster) {
   inputTbl2$`Input search folder` <- vapply(paste0("selectDir___", rng0), \(id) {
     as.character(shiny::actionButton(id, "Select input"))
   }, "")
-  fSlct0 <- function(i, data = inputTbl, opt = srchSoftOpt) {
+  fSlct0 <- \(i, data = inputTbl, opt = srchSoftOpt) {
     srchSoftOpt2 <- paste0("<option value=\"", opt, "\"",
                            c("", " selected")[(opt == data$"Search engine"[i])+1],
                            ">", opt, "</option>", collapse = "")
@@ -343,7 +306,7 @@ if (!RunByMaster) {
     }
   })
   #eval(parse(text = run_App), envir = .GlobalEnv)
-  server <- shiny::shinyServer(function(input, output, session) {
+  server <- shiny::shinyServer(\(input, output, session) {
     WHO <- shiny::reactiveVal(WhoAmI)
     USECUST <- shiny::reactiveVal(FALSE)
     DATASETNAME <- shiny::reactiveVal(dtstNm)
@@ -354,7 +317,7 @@ if (!RunByMaster) {
     wrkFlw <- setNames(WorkFlow, NULL)
     #
     # Reactive functions to update UI
-    updt_inDirs <- function(reactive = TRUE) {
+    updt_inDirs <- \(reactive = TRUE) {
       if (reactive) { dat2 <- INPUTTBL2() } else { dat2 <- inputTbl2 }
       return(DT::renderDT({ dat2 },
                           FALSE,
@@ -373,7 +336,7 @@ if (!RunByMaster) {
                                                            list(width = "100px", targets = 3L)),
                                          scrollX = FALSE),
                           # the callback is essential to capture the inputs in each row
-                          callback = DT::JS("
+                          callback = htmlwidgets::JS("
 // Buttons
 table.on('click', 'button', function() {
   var id = this.id;
@@ -390,17 +353,17 @@ table.on('change', 'select', function() {
     shiny::observeEvent(input$dt_event, {
       evnt <- input$dt_event
       id <- evnt$id
-      i <- as.integer(gsub(".*___", "", id))
-      root <- gsub("___.*", "", id)
+      i <- as.integer(sub(".*___", "", id))
+      root <- sub("___.*", "", id)
       if (evnt$type == "button") {
         # Directory selection
-        if(root == "selectDir") { eval(slctDirXprs) }
+        if (root == "selectDir") { eval(slctDirXprs) }
         # Row removal?
-        if(root == "removeMe") { eval(rmvDirXprs) }
+        if (root == "removeMe") { eval(rmvDirXprs) }
       }
       if (evnt$type == "select") {
         # Software selection
-        if(root == "searchSoft") { eval(srchSoftXprs) }
+        if (root == "searchSoft") { eval(srchSoftXprs) }
       }
     })
     shiny::observeEvent(input$addBtn, {
@@ -411,7 +374,7 @@ table.on('change', 'select', function() {
       i <- nr+1
       iChr <- as.character(i)
       datDflt <- data.frame("Input search folder" = "",
-                            "Value" = gsub("/[^/]+$", "", dat$Value[nr]),
+                            "Value" = sub("/[^/]+$", "", dat$Value[nr]),
                             "Search engine" = dat$"Search engine"[nr],
                             "Remove" = "",
                             check.names = FALSE)
@@ -495,7 +458,7 @@ table.on('change', 'select', function() {
       shiny::stopApp()
     })
     shiny::observeEvent(input$cancel, { shiny::stopApp() })
-    session$onSessionEnded(function() { shiny::stopApp() })
+    session$onSessionEnded(\() { shiny::stopApp() })
   })
   g <- shiny:::.globals
   g$appState <- NULL
@@ -505,14 +468,14 @@ table.on('change', 'select', function() {
   #
   inDirs <- gsub("/+", "/", inDirs)
   #
-  tst <- gsub("[^A-Z,a-z,0-9]", "", unlist(sapply(c(dtstNm, inDirs), strsplit, "/")))
-  tst <- sum(sapply(tst, TeachingDemos::char2seed, set = FALSE))
+  tst <- gsub("[^A-Za-z0-9]", "", unlist(sapply(c(dtstNm, inDirs), strsplit, "/")))
+  tst <- sum(vapply(tst, TeachingDemos::char2seed, 1, set = FALSE))
   tst2 <- lapply(unlist(strsplit(WhoAmI, " +")), \(x) {
     x <- unlist(strsplit(x, ""))
     return(x[1L:(min(c(2, length(x))))])
   })
-  tst2 <- c(sapply(tst2, \(x) { x[[1L]] }),
-            sapply(tst2, \(x) { if (length(x) >= 2L) { x[[2L]] } else { NA } }))
+  tst2 <- c(vapply(tst2, \(x) { x[[1L]] }, ""),
+            vapply(tst2, \(x) { if (length(x) >= 2L) { x[[2L]] } else { NA } }, ""))
   tst2 <- tst2[!is.na(tst2)]
   tst2 <- paste(tst2[1L:(min(c(2L, length(tst2))))], collapse = "")
   tst3 <- gsub("[a-z, ]", "", dtstNm)
@@ -549,8 +512,6 @@ RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winsl
 options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
 #
-RPath <- as.data.frame(library()$results)
-RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 
 setwd(wd)
 
@@ -576,22 +537,13 @@ if (length(fls)) {
         fls$replname[x] %in% list.files(fls$dir[x])
       }, TRUE)]
     }
-    w2 <- setdiff(w, w1)
+    w2 <- base::setdiff(w, w1)
     if (length(w1)) { unlink(fls$path[w1]) }
     if (length(w2)) { file.rename(fls$path[w2], fls$repl[w2]) }
   }
 }
 #
-
-for (pack in c(cran_req, bioc_req, "proteoCraft")) {
-  try(library(pack, character.only = TRUE), silent = TRUE)
-  if (inherits(tst, "try-error")) {
-    warning(paste0("Package ", pack, " could not be loaded!"))
-  }
-  # 
-  # add something here to catch issues with packages which cannot be unloaded...
-}
-data.table::setDTthreads(threads = detectCores()-1L)
+data.table::setDTthreads(threads = max(c(round(N.tot*0.95)-1L, 1L)))
 #
 set.seed(mySeed)
 if (renv) {
@@ -674,7 +626,8 @@ if (nrow(allBckps)) {
   w <- which(allBckps$Dir != wd)
   if (length(w)) { allBckps$Value[w] <- allBckps$Full[w] }
   allBckps$Value <- paste0(do.call(paste, c(allBckps[, c("Role", "Value")], sep = " (file = ")), ")")
-  bckps2Reload %<o% dlg_list(allBckps$Value, allBckps$Value, TRUE, title = "Backups detected: which should we reload?")$res
+  bckps2Reload %<o% svDialogs::dlg_list(allBckps$Value, allBckps$Value, TRUE,
+                                        title = "Backups detected: which should we reload?")$res
   #
   unusedBckps <- allBckps[!allBckps$Value %in% bckps2Reload,]
   if (nrow(unusedBckps)) { # Remove the object if it already exists and we do not want to reload it!
@@ -702,7 +655,7 @@ if (nrow(allBckps)) {
         fastas_reloaded <- allBckps$Full[i]
       }
       if (ext == "rdata") {
-        try({ load(allBckps$Full[i]) })
+        try({ base::load(allBckps$Full[i]) })
       }
       if (ext == "rds") { loadFun(allBckps$Full[i]) }
       if (ext == "csv") {
@@ -723,7 +676,7 @@ if (nrow(allBckps)) {
           colnames(tmp)[colnames(tmp) == "Isobaric.label.details"] <- "Isobaric label details"
           if (exists("FracMap")) {
             expKl <- c("MQ.Exp", "Parent sample")
-            expKl <- intersect(expKl, colnames(FracMap))[1L]
+            expKl <- base::intersect(expKl, colnames(FracMap))[1L]
           }
         }
         if (areUok) { assign(allBckps$ObjNm[[i]], tmp) }
@@ -731,16 +684,16 @@ if (nrow(allBckps)) {
     }
   }
   cat("    Done!\n")
-  .obj <- union(unlist(allBckps$ObjNm[allBckps$Reload]), .obj)
-  .obj <- setdiff(.obj, unlist(allBckps$ObjNm[!allBckps$Reload]))
+  .obj <- base::union(unlist(allBckps$ObjNm[allBckps$Reload]), .obj)
+  .obj <- base::setdiff(.obj, unlist(allBckps$ObjNm[!allBckps$Reload]))
   reloadedBckps %<o% allBckps[allBckps$Reload,]
 }
 
 # Clean-up WD to remove all output folders/files/plots/tables before we start?
 drs <- list.dirs(wd, TRUE, FALSE)
 if (length(drs)) {
-  cleanUpWD <- c(TRUE, FALSE)[match(dlg_message("The work directory isn't empty. Should we remove all output data (parameters will remain, but plots and output tables will be deleted)?",
-                                                "yesno")$res,
+  cleanUpWD <- c(TRUE, FALSE)[match(svDialogs::dlg_message("The work directory isn't empty. Should we remove all output data (parameters will remain, but plots and output tables will be deleted)?",
+                                                           "yesno")$res,
                                     c("yes", "no"))]
   if (cleanUpWD) {
     for (dr in drs) { #dr<- drs[1L]
@@ -762,11 +715,12 @@ if (length(drs)) {
 
 # Re-load fasta of proteins of interest?
 if ((!nrow(reloadedBckps)) || (!"FASTA of proteins of special interest" %in% reloadedBckps$Role)) {
-  loadInt <- c(TRUE, FALSE)[match(dlg_message("Load a fasta of proteins of interest?", "yesno")$res, c("yes", "no"))]
+  loadInt <- c(TRUE, FALSE)[match(svDialogs::dlg_message("Load a fasta of proteins of interest?", "yesno")$res,
+                                  c("yes", "no"))]
   if (loadInt) {
     intFast <- selectFile(paste0("Select proteins of interest fasta", intPrtFst), path = wd)
     if (!is.null(intFast)) {
-      intFast <- gsub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), intFast)
+      intFast <- sub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), intFast)
       if (intFast != intPrtFst) {
         file.copy(intFast, intPrtFst, TRUE)
         cat(paste0("   FYI: a copy of your input fasta has been saved at \"", intPrtFst, "\"...\n"))

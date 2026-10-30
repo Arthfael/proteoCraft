@@ -15,7 +15,7 @@
 #' @export
 
 Param_filter <- function(param, filter) {
-  param <- unlist(strsplit(param, ";"))
-  param <- setdiff(param, filter)
-  return(paste(param, collapse = ";"))
+  paste(base::setdiff(unlist(strsplit(param, ";")),
+                      filter),
+        collapse = ";")
 }

@@ -73,7 +73,7 @@ make_Rat2 <- function(myData = pep,
   }
   #
   ABkol <- c("A_samples", "B_samples")
-  CDkol <- intersect(c("C_samples", "D_samples"), colnames(contrasts))
+  CDkol <- base::intersect(c("C_samples", "D_samples"), colnames(contrasts))
   CDkol_tst <- length(CDkol) == 2L
   myData <- myData[, paste0(int.root, unique(unlist(contrasts[, c(ABkol, CDkol)])))]
   #
@@ -85,7 +85,7 @@ make_Rat2 <- function(myData = pep,
       em <- experiment.map[experiment.map[[refGroups$column]] == grp,]
       rs <- setNames(lapply(ABkol, \(x) { #x <- ABkol[1L]
         x <- contrasts[[x]][[i]]
-        x <- intersect(x, em[[experiment.map_col]])
+        x <- base::intersect(x, em[[experiment.map_col]])
         if (!length(x)) { return() }
         kol <- paste0(int.root, x)
         dat <- myData[, kol, drop = FALSE]
@@ -101,7 +101,7 @@ make_Rat2 <- function(myData = pep,
         em <- experiment.map[experiment.map[[refGroups$column]] == grp,]
         rs <- setNames(lapply(CDkol, \(x) { #x <- CDkol[1L]
           x <- contrasts[[x]][[i]]
-          x <- intersect(x, em[[experiment.map_col]])
+          x <- base::intersect(x, em[[experiment.map_col]])
           if (!length(x)) { return() }
           kol <- paste0(int.root, x)
           dat <- myData[, kol, drop = FALSE]

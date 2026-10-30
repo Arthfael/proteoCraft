@@ -5,13 +5,11 @@
 
 warning("As of August 2025, the main scripts can now handle an arbitrary number of input directories from even different software...\nThis script is thus obsolete and should be retired.")
 
-require(rstudioapi)
-require(data.table)
-try(setDTthreads(threads = parallel::detectCores()-1L), silent = TRUE)
+try(data.table::setDTthreads(threads = parallel::detectCores()-1L), silent = TRUE)
 
 
 dflt <- "C:"
-if ((exists("dir1"))&&(dir.exists(dir1))) { dflt <- dir1 }
+if (exists("dir1") && dir.exists(dir1)) { dflt <- dir1 }
 #fl2lg <- fl1lg <- normalizePath(choose.files(paste0(dflt, "/*.log.txt"), "Select 1st DiaNN log file", FALSE), winslash = "/")
 fl2lg <- fl1lg <- rstudioapi::selectFile("Select 1st DiaNN log file",
                                          path = paste0(dflt, "/*.log.txt"),
@@ -19,7 +17,7 @@ fl2lg <- fl1lg <- rstudioapi::selectFile("Select 1st DiaNN log file",
 dir1 <- dirname(fl1lg)
 while (fl2lg == fl1lg) {
   dflt <- dir1
-  if ((exists("dir2"))&&(nchar(paste0(dir2, "")))&&(dir.exists(dir2))) { dflt <- dir2 }
+  if (exists("dir2") && nchar(paste0(dir2, "")) && dir.exists(dir2)) { dflt <- dir2 }
   dflt <- gsub("/[^/]+$", "", dflt)
   #fl2lg <- normalizePath(choose.files(paste0(dflt, "/*.log.txt"), "Select 2nd DiaNN log file", FALSE), winslash = "/")
   fl2lg <- rstudioapi::selectFile("Select 2nd DiaNN log file",
@@ -28,8 +26,8 @@ while (fl2lg == fl1lg) {
   dir2 <- dirname(fl2lg)
 }
 dstDir <- NA
-while ((is.na(dstDir))||(dstDir == dir1)||(dstDir == dir2)) { dstDir <- selectDirectory("Select destination directory", path = gsub("/[^/]+$", "/.*", dir2)) }
-setwd(dstDir)
+while (is.na(dstDir) || (dstDir == dir1) || (dstDir == dir2)) { dstDir <- selectDirectory("Select destination directory", path = gsub("/[^/]+$", "/.*", dir2)) }
+proteoCraft::setwd(dstDir)
 
 # Parse and edit calls to create a fake .log.txt
 dirs <- logFls <- logs <- calls <- list()
@@ -44,68 +42,68 @@ for (i in 1L:2L) { #i <- 1L
   tmp <- tmp[2L:length(tmp)]
   tmp <- strsplit(tmp, " +")
   l <- sapply(tmp, length)
-  tmp[which(l == 1L)] <- lapply(tmp[which(l == 1L)], \(x) { c(x, "") })
+  tmp[l == 1L] <- lapply(tmp[l == 1L], \(x) { c(x, "") })
   tmp <- data.frame(Arg = vapply(tmp, `[[`, "", 1L),
                     Val = vapply(tmp, `[[`, "", 2L))
   calls[[nm]] <- tmp
 }
 files <- unique(unlist(lapply(paste0("DiaNN", 1L:2L), \(nm) {
   tmp <- calls[[nm]]
-  tmp$Val[which(tmp$Arg == "f")]
+  tmp$Val[tmp$Arg == "f"]
 })))
 fastas <- unique(unlist(lapply(paste0("DiaNN", 1L:2L), \(nm) {
   tmp <- calls[[nm]]
-  tmp$Val[which(tmp$Arg == "fasta")]
+  tmp$Val[tmp$Arg == "fasta"]
 })))
-fastas <- fastas[which(nchar(fastas) > 0L)]
+fastas <- fastas[nchar(fastas) > 0L]
 libs <- unique(unlist(lapply(paste0("DiaNN", 1L:2L), \(nm) {
   tmp <- calls[[nm]]
-  tmp$Val[which(tmp$Arg == "lib")]
+  tmp$Val[tmp$Arg == "lib"]
 })))
-libs <- libs[which(nchar(libs) > 0L)]
+libs <- libs[nchar(libs) > 0L]
 varmods <- unique(unlist(lapply(paste0("DiaNN", 1L:2L), \(nm) {
   tmp <- calls[[nm]]
-  tmp$Val[which(tmp$Arg == "var-mod")]
+  tmp$Val[tmp$Arg == "var-mod"]
 })))
 reports <- setNames(lapply(paste0("DiaNN", 1L:2L), \(nm) {
   tmp <- calls[[nm]]
-  tmp <- tmp$Val[which(tmp$Arg == "out")]
+  tmp <- tmp$Val[tmp$Arg == "out"]
   gsub("\\\\", "/", tmp)
 }), paste0("DiaNN", 1L:2L))
 FDRs <- as.numeric(unique(unlist(sapply(paste0("DiaNN", 1L:2L), \(nm) {
   tmp <- calls[[nm]]
-  tmp$Val[which(tmp$Arg == "qvalue")]
+  tmp$Val[tmp$Arg == "qvalue"]
 }))))
 if (length(FDRs) > 1L) { warning("Do we really want to combine datasets at different FDRs?!") }
 
 # Create fake DiaNN-like call to put into a fake log.txt file
 call <- calls[[1L]]
-call$Val[which(call$Arg == "out")] <- gsub("/", "\\\\",paste0(dstDir, "/report.tsv"))
-call$Val[which(call$Arg == "call")] <- ""
+call$Val[call$Arg == "out"] <- gsub("/", "\\\\",paste0(dstDir, "/report.tsv"))
+call$Val[call$Arg == "call"] <- ""
 wf <- which(call$Arg == "f")
 wbf <- 1L:(min(wf)-1L)
 waf <- 1L:nrow(call)
-waf <- waf[which(!waf %in% c(wf, wbf))]
+waf <- base::setdiff(waf, c(wf, wbf))
 call <- rbind(call[wbf, ],
               data.frame(Arg = "f", Val = files),
               call[waf,])
 wf <- which(call$Arg == "fasta")
 wbf <- 1L:(min(wf)-1L)
 waf <- 1L:nrow(call)
-waf <- waf[which(!waf %in% c(wf, wbf))]
+waf <- base::setdiff(waf, c(wf, wbf))
 call <- rbind(call[wbf, ],
               data.frame(Arg = "fasta", Val = fastas),
               call[waf,])
 wf <- which(call$Arg == "var-mod")
 wbf <- 1L:(min(wf)-1L)
 waf <- 1L:nrow(call)
-waf <- waf[which(!waf %in% c(wf, wbf))]
+waf <- base::setdiff(waf, c(wf, wbf))
 call <- rbind(call[wbf, ],
               data.frame(Arg = "var-mod", Val = varmods),
               call[waf,])
 Call <- paste0("diann.exe ", paste(paste0(" --", apply(call, 1L, \(x) {
   x <- unlist(x)
-  x <- x[which(x != "")]
+  x <- base::setdiff(x, "")
   if (length(x) > 1L) { x <- paste(x, collapse = " ") }
   return(x)
 })), collapse = ""))

@@ -18,7 +18,7 @@ load_Context <- function(record,
                          clean = FALSE) {
   TESTING <- FALSE
   #DefArg(load_Bckp); TESTING <- TRUE
-  if (clean) { rm(list = setdiff(ls(), c("TESTING", "clean")), envir = .GlobalEnv) }
+  if (clean) { rm(list = base::setdiff(ls(), c("TESTING", "clean")), envir = .GlobalEnv) }
   misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
@@ -32,7 +32,7 @@ load_Context <- function(record,
         defltdir <- wd
       } else {
         homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
-        dlft <- openxlsx::read.xlsx(paste0(homePath, "/Default_locations.xlsx"))
+        dlft <- openxlsx2::read_xlsx(paste0(homePath, "/Default_locations.xlsx"))
         defltdir <- dlft$Path[match("Temporary folder", dlft$Folder)]
       }
     } else { defltdir <- startDir }
@@ -57,6 +57,6 @@ load_Context <- function(record,
     if (!dir.exists(indir)) { warning(paste0("Input directory \"", indir, "\" does not exist!")) }
   })
   setwd(wd)
-  assign(".obj", c(".obj", intersect(c("dtstNm", "inDirs", "outdir", "wd"), ls(envir = .GlobalEnv))),
+  assign(".obj", c(".obj", base::intersect(c("dtstNm", "inDirs", "outdir", "wd"), ls(envir = .GlobalEnv))),
          envir = .GlobalEnv)
 }

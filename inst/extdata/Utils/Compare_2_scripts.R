@@ -1,9 +1,6 @@
 # Compare 2 versions of the same script to identify divergences and harmonize them 
 options(stringsAsFactors = FALSE)
 require(proteoCraft)
-require(rstudioapi)
-require(reshape2)
-require(openxlsx)
 
 wrkDr <- dirname(rstudioapi::getActiveDocumentContext()$path)
 Sys.sleep(1L) # Required because sometimes R will attempt to set the word directory too quickly and fail.
@@ -11,16 +8,16 @@ setwd(wrkDr)
 checkPlot <- FALSE
 
 homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
-dlft <- read.xlsx(paste0(homePath, "/Default_locations.xlsx"))
+dlft <- openxlsx2::read_xlsx(paste0(homePath, "/Default_locations.xlsx"))
 
-defltdir <- if ((exists("dir1"))&&(length(dir1))&&(nchar(dir1))&&(dir.exists(dir1))) { dir1 } else {
+defltdir <- if (exists("dir1") && length(dir1) && nchar(dir1) && dir.exists(dir1)) { dir1 } else {
   dlft$Path[match("Search folder", dlft$Folder)]
 }
 f1 <- rstudioapi::selectFile("Select first script", path = gsub("/+", "/", paste0(defltdir, "/*.R")))
-dir1 <- gsub("/$", "", dirname(f1))
+dir1 <- sub("/$", "", dirname(f1))
 setwd(dir1)
 f2 <- rstudioapi::selectFile("Select second script", path = paste0(dir1, "/*.R"))
-dir2 <- gsub("/$", "", dirname(f2))
+dir2 <- sub("/$", "", dirname(f2))
 #setwd(dir2)
 setwd(wrkDr)
 cat(paste0("Last modified dates:\n - File 1: ", file.info(f1)$mtime, "\n - File 2: ", file.info(f2)$mtime, "\n"))
@@ -40,7 +37,7 @@ checkPlotXprs <- expression({
   flb <- get(paste0("fl", 1L:2L)[wb])
   fla <- fla[g1]
   flb <- flb[g2]
-  test <- lapply(fla, function(x) { which(flb == x) })
+  test <- lapply(fla, \(x) { which(flb == x) })
   test <- listMelt(test, NULL, c("Y", "X"))
   Xlab <- basename(get(paste0("f", 1L:2L)[wa]))
   Ylab <- basename(get(paste0("f", 1L:2L)[wb]))
@@ -48,21 +45,23 @@ checkPlotXprs <- expression({
     Xlab <- dirname(get(paste0("f", 1L:2L)[wa]))
     Ylab <- dirname(get(paste0("f", 1L:2L)[wb]))
   }
-  plot <- ggplot(test) + geom_tile(aes(x = X, y = Y), fill = "white", height = 1L, width = 1L) +
-    theme(panel.background = element_rect(fill = "black"),
-          plot.background = element_rect(fill = "transparent", colour = NA),
-          panel.grid = element_blank(),
-          panel.border = element_blank(),
-          plot.margin = unit(c(0L, 0L, 0L, 0L), "null"),
-          panel.spacing = unit(c(0L, 0L, 0L, 0L), "null"),
-          axis.line = element_blank(),
-          legend.position = "none",
-          axis.ticks.length = unit(0L, "null"),
-          legend.margin = margin(0L, 0L, 0L, 0L, "cm")) +
-    xlab(Xlab) + ylab(Ylab) +
-    coord_fixed() +
-    scale_x_continuous(expand = c(0L, 0L), limits = range(test$X)) +
-    scale_y_continuous(expand = c(0L, 0L), limits = range(test$Y))
+  plot <- ggplot2::ggplot(test) +
+    ggplot2::geom_tile(ggplot2::aes(x = X, y = Y),
+                       fill = "white", height = 1L, width = 1L) +
+    ggplot2::theme(panel.background = ggplot2::element_rect(fill = "black"),
+                   plot.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+                   panel.grid = ggplot2::element_blank(),
+                   panel.border = ggplot2::element_blank(),
+                   plot.margin = ggplot2::unit(c(0L, 0L, 0L, 0L), "null"),
+                   panel.spacing = ggplot2::unit(c(0L, 0L, 0L, 0L), "null"),
+                   axis.line = ggplot2::element_blank(),
+                   legend.position = "none",
+                   axis.ticks.length = ggplot2::unit(0L, "null"),
+                   legend.margin = ggplot2::margin(0L, 0L, 0L, 0L, "cm")) +
+    ggplot2::xlab(Xlab) + ggplot2::ylab(Ylab) +
+    ggplot2::coord_fixed() +
+    ggplot2::scale_x_continuous(expand = c(0L, 0L), limits = range(test$X)) +
+    ggplot2::scale_y_continuous(expand = c(0L, 0L), limits = range(test$Y))
   poplot(plot, 12L, 20L)
 })
 checkScriptXprs <- expression({
@@ -76,12 +75,12 @@ checkScriptXprs <- expression({
   if (length(w) >= i) {
     # Let's open both documents in this session
     #if (!isOpen1) {
-      rstudioapi::documentOpen(f1, w1[w[i]])
-      #isOpen1 <- TRUE
+    rstudioapi::documentOpen(f1, w1[w[i]])
+    #isOpen1 <- TRUE
     #}
     #if (!isOpen2) {
-      rstudioapi::documentOpen(f2, w2[w[i]])
-      #isOpen2 <- TRUE
+    rstudioapi::documentOpen(f2, w2[w[i]])
+    #isOpen2 <- TRUE
     #}
     cat(paste0("Discrepancy at line ", paste(unique(c(w1[w[i]], w2[w[i]])), collapse = "/"),
                ":\n\n - file 1: ", fl1[w1][w[i]], "\n\n - file 2: ", fl2[w2][w[i]], "\n"))

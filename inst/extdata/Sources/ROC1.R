@@ -1,6 +1,7 @@
 # ROC1 - for excluding PSMs based on GO term annotations
 # Only basic in place now, add shiny app
 # see https://rpubs.com/Wangzf/pROC
+requireNamespace("data.table")
 ROCfilt_Pos <- ROCfilt_Neg <- c()
 if (length(ROCfilt_GOterms_Pos)) {
   ROCfilt_Pos <- unique(unlist(lapply(ROCfilt_GOterms_Pos, \(x) {
@@ -10,8 +11,8 @@ if (length(ROCfilt_GOterms_Pos)) {
     ROCfilt_Neg <- unique(unlist(lapply(ROCfilt_GOterms_Neg, \(x) {
       GO_terms$Offspring[match(x, GO_terms$ID)]
     })))
-    ROCfilt_Pos <- setdiff(ROCfilt_Pos, ROCfilt_Neg)
-    ROCfilt_Neg <- setdiff(ROCfilt_Neg, ROCfilt_Pos)
+    ROCfilt_Pos <- base::setdiff(ROCfilt_Pos, ROCfilt_Neg)
+    ROCfilt_Neg <- base::setdiff(ROCfilt_Neg, ROCfilt_Pos)
   }
 }
 if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
@@ -44,7 +45,7 @@ if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
     } else {
       rocobj1 <- pROC::roc(tmp2$"True Positive", tmp2$Predictor)
       rocPlot1 <- pROC::ggroc(rocobj1, color = "red") +
-        theme_bw()
+        ggplot2::theme_bw()
       tst[1L] <- TRUE
     }
   }
@@ -59,26 +60,26 @@ if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
     } else {
       rocobj2 <- pROC::roc(tmp2$`Not True Negative`, tmp2$Predictor)
       rocPlot2 <- pROC::ggroc(rocobj2, color = "blue") +
-        theme_bw()
+        ggplot2::theme_bw()
       tst[2L] <- TRUE
     }
   }
   ttl <- paste0("PSMs ROC analysis")
-  plotPath <- paste0(dir, "/", ttl, ".png")
+  plotPath <- paste0(dir, "/", ttl, ".svg")
   if (sum(tst)) {
     if (sum(tst) == 2L) {
       rocPlot1 <- ggplotify::as.grob(rocPlot1)
       rocPlot2 <- ggplotify::as.grob(rocPlot2)
-      grDevices::png(plotPath); gridExtra::grid.arrange(rocPlot1, rocPlot2); grDevices::dev.off()
+      grDevices::sv(plotPath); gridExtra::grid.arrange(rocPlot1, rocPlot2); grDevices::dev.off()
     } else {
       rocPlot <- get(paste0("rocPlot", which(tst)))
-      ggsave(plotPath, rocPlot)
+      ggplot2::ggsave(plotPath, rocPlot)
     }
     system(paste0("open \"", plotPath, "\""))
     ROCintPerc %<o% NA
     msg <- "Look at the ROC analysis image then enter the percentage of values to keep..."
     while (is.na(ROCintPerc) || (ROCintPerc <= 0) || (ROCintPerc > 100)) {
-      suppressWarnings({ ROCintPerc <- as.numeric(dlg_input(msg, 100)$res) })
+      suppressWarnings({ ROCintPerc <- as.numeric(svDialogs::dlg_input(msg, 100)$res) })
     }
     # Would be much better with, wait for it, a shiny app!
     tmp2Flt <- tmp2[1L:round(nrow(tmp2)*ROCintPerc/100),]

@@ -1,6 +1,6 @@
 Package: proteoCraft
 Title: Functions and scripts for Proteomics Data Analysis
-Version: 4.3.6
+Version: 4.4.0
 Date: 2026-04-22
 Authors@R: 
     person("Armel", "Developer", , "armel.nicolas@ista.ac.at", role = c("aut", "cre"))
@@ -10,11 +10,11 @@ Description: Functions and scripts for Proteomics Data Analysis.
 License: GPL (>= 2)
 URL: https://github.com/Arthfael/proteoCraft
 Imports: 
-    affy,
     annotate,
     arrow,
     base64enc,
     Biobase,
+    BiocGenerics,
     BiocManager,
     Biostrings,
     bslib,
@@ -22,11 +22,13 @@ Imports:
     cluster,
     coin,
     colorspace,
+    cowplot,
     curl,
     data.table,
     DBI,
     devtools,
     DT,
+    dynamicTreeCut,
     evaluate,
     ExploreModelMatrix,
     factoextra,
@@ -45,7 +47,6 @@ Imports:
     grid,
     gridExtra,
     gtools,
-    hexbin,
     htmltools,
     htmlwidgets,
     httr,
@@ -58,7 +59,6 @@ Imports:
     limma,
     limpa,
     lubridate,
-    magrittr,
     MASS,
     matrixStats,
     methods,
@@ -71,11 +71,11 @@ Imports:
     mzID,
     norm,
     officer,
-    openxlsx,
     openxlsx2 (== 1.14),
     pak,
     parallel,
     Peptides,
+    pkgload,
     plotly,
     plyr,
     png,
@@ -112,7 +112,6 @@ Imports:
     shinyFiles,
     shinyjs,
     shinyWidgets,
-    snow,
     ssh,
     stats,
     stringi,
@@ -125,10 +124,8 @@ Imports:
     tools,
     topGO,
     truncdist,
-    UniProt.ws,
     utils,
     viridis,
-    viridisLite,
     vsn,
     XML,
     xml2

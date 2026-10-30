@@ -1,4 +1,5 @@
 # Annotate our data
+requireNamespace("data.table")
 setwd(wd)
 if (!Annotate) { globalGO <- FALSE }
 p <- unique(unlist(strsplit(pep$Proteins, ";"))) #Here taking just the minimum set of protein IDs to explain the observed dataset.
@@ -19,12 +20,12 @@ if (globalGO) {
   source(Src)
   #
   temp <- listMelt(strsplit(myData[[myCol]], ";"), myData$id, c("Accession", "id"))
-  kol <- intersect(annot.col, colnames(db))
+  kol <- base::intersect(annot.col, colnames(db))
   if ("Taxonomy" %in% kol) { # Taxonomy can be dealt with differently
     myData$Taxonomy <- db$Taxonomy[match(sub(";.*", "", myData[[myCol]]), db$`Protein ID`)]
   }
-  kol2 <- setdiff(annot.col, "Taxonomy")
-  kol2 <- intersect(kol2, colnames(db))
+  kol2 <- base::setdiff(annot.col, "Taxonomy")
+  kol2 <- base::intersect(kol2, colnames(db))
   temp[, kol2] <- db[match(temp$Accession, db$"Protein ID"), kol2]
   tst1 <- unlist(strsplit(temp$`GO-ID`, ";"))
   tst2 <- unlist(strsplit(temp$GO, ";"))
@@ -52,7 +53,9 @@ if (globalGO) {
   # temp2 <- as.data.frame(temp2)
   #
   for (i in kol2) {
-    temp[[i]] <- parSapply(parClust, temp[[i]], \(x) { paste(unique(unlist(x)), collapse = ";") }) # Do not use sort here or it will break the matching between "GO" and "GO-ID"
+    temp[[i]] <- parallel::parSapply(parClust, temp[[i]], \(x) {
+      paste(unique(unlist(x)), collapse = ";")
+    }) # Do not use sort here or it will break the matching between "GO" and "GO-ID"
   }
   tst1 <- unlist(strsplit(temp$`GO-ID`, ";"))
   tst2 <- unlist(strsplit(temp$GO, ";"))
@@ -75,6 +78,5 @@ if (globalGO) {
     pep[, kol] <- PG[match(as.integer(sub(";.*", "", pep$`Protein group ID`)), PG$id), kol]
   }
   #
-  stopCluster(parClust)
   source(parSrc)
 }

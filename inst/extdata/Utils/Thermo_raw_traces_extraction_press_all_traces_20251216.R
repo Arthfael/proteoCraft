@@ -1,34 +1,23 @@
 #
-options(stringsAsFactors = FALSE)
+requireNamespace("data.table")
 getInt <- FALSE
-if (!require("BiocManager", quietly = TRUE)) { install.packages("BiocManager") }
-if(!require("data.table", quietly = TRUE)) { install.packages("data.table") }
-if(!require("XML", quietly = TRUE)) { install.packages("XML") }
-if(!require("plyr", quietly = TRUE)) { install.packages("plyr") }
-if(!require("svDialogs", quietly = TRUE)) { install.packages("svDialogs") }
-if(!require("parallel", quietly = TRUE)) { install.packages("parallel") }
-if(!require("snow", quietly = TRUE)) { install.packages("snow") }
-if(!require("ggplot2", quietly = TRUE)) { install.packages("ggplot2") }
-require(svDialogs)
-require(parallel)
-require(ggplot2)
 
 rm(list = ls()[!ls() %in% c("fls")])
 
 # Create cluster
-if (exists("parClust")) { try(stopCluster(parClust), silent = TRUE) } # A fresh start if re-running
-N.clust <- detectCores()-1L
+if (exists("parClust")) { try(parallel::stopCluster(parClust), silent = TRUE) } # A fresh start if re-running
+N.clust <- parallel::detectCores()-1L
 a <- 1
-tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
+tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)
 if (inherits(tst, "try-error")) {
-  try(stopCluster(parClust), silent = TRUE)
-  parClust <- makeCluster(N.clust, type = "SOCK")
+  try(parallel::stopCluster(parClust), silent = TRUE)
+  parClust <- parallel::makeCluster(N.clust, type = "SOCK")
 }
 
 # Some useful functions
-cleanRawNm <- \(rawFileNm) { gsub("\\.raw$", "", rawFileNm, ignore.case = TRUE) }
+cleanRawNm <- \(rawFileNm) { sub("\\.raw$", "", rawFileNm, ignore.case = TRUE) }
 environment(cleanRawNm) <- .GlobalEnv
-clusterExport(parClust, "cleanRawNm", envir = environment())
+parallel::clusterExport(parClust, "cleanRawNm", envir = environment())
 listMelt <- \(List, Names = NULL, ColNames = c("value", "L1")) {
   List <- setNames(List, 1L:length(List))
   List <- stack(List)
@@ -50,27 +39,24 @@ rawrrVers <- c("github",
                "bioc",
                "bioc_1.11.14")
 tst <- try({
-  if (!require(rawrr, quietly = TRUE)) {
-    rawrrVers <- dlg_list(rawrrVers, rawrrVers[3L], title = "Select which rawrr version should be installed")$res
+  if (!requireNamespace("rawrr")) {
+    rawrrVers <- svDialogs::dlg_list(rawrrVers, rawrrVers[3L], title = "Select which rawrr version should be installed")$res
     if (rawrrVers == "github") {
-      if(!require(devtools)) { install.packages("devtools") }
       devtools::install_github("cpanse/rawrr")
       #install.packages('http://fgcz-ms.uzh.ch/~cpanse/rawrr_0.2.1.tar.gz', repo = NULL) # Old address, now on github
     }
     if (rawrrVers == "bioc") {
-      if (!require("BiocManager", quietly = TRUE)) { install.packages("BiocManager") }
       BiocManager::install("rawrr", version = "1.11")
       BiocManager::install("rawrr")
     }
     if (rawrrVers == "bioc_1.11.14") {
       url <- "https://bioconductor.org/packages/3.19/bioc/src/contrib/Archive/rawrr/rawrr_1.11.14.tar.gz"
-      require(curl)
       dstfl <- paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads/rawrr_1.11.14.tar.gz")
-      curl_download(url, dstfl)
+      curl::curl_download(url, dstfl)
       install.packages(dstfl)
     }
     # 
-    require(rawrr)
+    requireNamespace("rawrr")
     yesRawFileReaderLicenseIsAccepted <- \() {
       licenseFile <- file.path(system.file(package = "rawrr"), 
                                "rawrrassembly", "RawFileReaderLicense.txt")
@@ -86,9 +72,9 @@ tst <- try({
             dir.create(dirname(eulaFile), recursive = TRUE)
           }
           fileConn <- file(eulaFile)
-          writeLines(paste(msg, paste0("# ", date()), "eula=true", 
+          writeLines(paste(msg, paste0("# ", base::date()), "eula=true", 
                            sep = "\n"), fileConn)
-          close(fileConn)
+          base::close(fileConn)
           return(TRUE %in% grepl("eula=true", tolower(readr::read_lines(eulaFile))))
         }
       } else { return(TRUE %in% grepl("eula=true", tolower(readr::read_lines(eulaFile)))) }
@@ -118,10 +104,10 @@ tst <- try({
     }
     installRawFileReaderDLLsNoAcpt(sourceUrl = .thermofisherlsmsUrl())
     #rawrr::installRawFileReaderDLLs(sourceUrl = .thermofisherlsmsUrl())
-    #require(rawrr); getAnywhere(".isRawFileReaderLicenseAccepted")
+    #getAnywhere(".isRawFileReaderLicenseAccepted")
     rawrr::installRawrrExe()
   }
-  require(rawrr)
+  requireNamespace("rawrr")
 }, silent = TRUE)
 getInt <- !inherits(tst, "try-error")
 #
@@ -171,7 +157,6 @@ if (getInt) {
   environment(bpcFun) <- .GlobalEnv
   environment(xicFun) <- .GlobalEnv
 }
-#require(RaMS)
 dflt <- "D:/groups_temp"
 if (!dir.exists(dflt)) { dflt <- "D:/Data" }
 if (!dir.exists(dflt)) { dflt <- "B:/group/lsfgrp/Mass_Spec/Acquired data_v2" }
@@ -179,14 +164,14 @@ if (!dir.exists(dflt)) { dflt <- "B:/archive/lsfgrp/MS/Acquired data" }
 
 # Raw files
 if (exists("fls")) {
-  fls <- fls[which(file.exists(fls))]
+  fls <- fls[file.exists(fls)]
 } else { fls <- c() }
 l <- length(fls)
 if (l) {
   msg <- paste0(l, " input Raw files already present in environment from a previous run:")
   opt <- c("Remove them                                                                                                             ",
            "Reprocess them                                                                                                          ")
-  startFresh <- c(TRUE, FALSE)[match(dlg_list(opt, opt[1L], title = msg)$res, opt)]
+  startFresh <- c(TRUE, FALSE)[match(svDialogs::dlg_list(opt, opt[1L], title = msg)$res, opt)]
   if (startFresh) { fls <- c() }
 }
 l <- length(fls)
@@ -197,7 +182,7 @@ if (!l) {
   fls <- normalizePath(choose.files(paste0(dflt, "/*.raw"), filters = filt), winslash = "/")
   fls <- fls[order(file.info(fls)$mtime, decreasing = FALSE)]
   if (getInt) {
-    tst <- parSapply(parClust, fls, \(fl) {
+    tst <- parallel::parSapply(parClust, fls, \(fl) {
       rawrr::readFileHeader(fl)$`Creation date`
     }) # Get created time directly from raw file!
     tst <- as.POSIXct.default(tst, tz = Sys.timezone(), format = "%d/%m/%Y %H:%M:%S")
@@ -208,7 +193,7 @@ if (!l) {
 
 # Work directory
 wd <- unique(dirname(fls))[1L]
-dtst <- gsub(".*/", "", wd)
+dtst <- sub(".*/", "", wd)
 tst <- try(suppressWarnings(write("Test", paste0(wd, "/test.txt"))), silent = TRUE)
 while (inherits(tst, "try-error")) {
   wd <- rstudioapi::selectDirectory("Choose a work directory where we have write permission!", path = "D:/")
@@ -216,7 +201,7 @@ while (inherits(tst, "try-error")) {
 }
 unlink(paste0(wd, "/test.txt"))
 setwd(wd)
-clusterExport(parClust, "wd", envir = environment())
+parallel::clusterExport(parClust, "wd", envir = environment())
 
 # Convert to mzML
 deer <- list()
@@ -225,12 +210,11 @@ ParsDirs <- grep("/ThermoRawFileParser", c(list.dirs("C:/Program Files", full.na
                  value = TRUE)
 if (!length(ParsDirs)) {
   url <- "https://github.com/compomics/ThermoRawFileParser/releases/download/v1.4.4/ThermoRawFileParser1.4.4.zip"
-  require(curl)
   dstfl <- paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads/ThermoRawFileParser1.4.4.zip")
-  curl_download(url, dstfl)
+  curl::curl_download(url, dstfl)
   ParsDirs <- "C:/ThermoRawFileParser/V_1.4.4"
   if (!dir.exists(ParsDirs)) { dir.create(ParsDirs, recursive = TRUE) }
-  unzip(dstfl, exdir = ParsDirs)
+  utils::unzip(dstfl, exdir = ParsDirs)
 }
 if (length(ParsDirs) > 1L) {
   w <- which(vapply(ParsDirs, \(x) { "ThermoRawFileParser.exe" %in% list.files(x) }, TRUE))
@@ -256,7 +240,7 @@ if (!MSConvertInst) {
     #MSConvertDirs <- c("C:/Program Files/ProteoWizard/ProteoWizard 3.0.19172.57d620127",
     #                   "C:/Program Files/ProteoWizard/ProteoWizard 3.0.22099.89b871a",
     #                  "C:/Program Files/ProteoWizard/ProteoWizard 3.0.22317.1e024d4")
-    MSConvertVers <- as.data.frame(t(sapply(strsplit(gsub(".*/ProteoWizard ", "", MSConvertDirs), "\\."), unlist)))
+    MSConvertVers <- as.data.frame(t(sapply(strsplit(sub(".*/ProteoWizard ", "", MSConvertDirs), "\\."), unlist)))
     MSConvertVers <- MSConvertVers[order(MSConvertVers$V1, MSConvertVers$V2, MSConvertVers$V3, MSConvertVers$V4, decreasing = TRUE),]
     MSConvertVers <- MSConvertVers[1L,]
     MSConvertDir <- paste0("C:/Program Files/ProteoWizard/ProteoWizard ", paste(MSConvertVers, collapse = "."))
@@ -266,16 +250,16 @@ if (!MSConvertInst) {
 Convert_mode <- "thermorawfileparser"
 zlib <- TRUE
 PeakPicking <- TRUE
-mzMLs <- paste0(wd, "/", gsub("\\.raw$", ".mzML", basename(fls), ignore.case = TRUE))
-pressFls <- gsub("\\.mzML$", ".csv", mzMLs)
-clusterExport(parClust, list("fls", "mzMLs", "pressFls"), envir = environment())
-w <- which((!file.exists(mzMLs)) | (file.size(mzMLs) <= 2000))
+mzMLs <- paste0(wd, "/", sub("\\.raw$", ".mzML", basename(fls), ignore.case = TRUE))
+pressFls <- sub("\\.mzML$", ".csv", mzMLs)
+parallel::clusterExport(parClust, list("fls", "mzMLs", "pressFls"), envir = environment())
+w <- which((!file.exists(mzMLs)) | (base::file.size(mzMLs) <= 2000))
 if (length(w)) {
   if (tolower(Convert_mode) == "thermorawfileparser") { # Mode 1: using ThermoRawFileParser
-    clusterExport(parClust, list("deer", "zlib", "PeakPicking"), envir = environment())
-    tst <- parSapply(parClust, w, \(i) { #i <- w[1L]
+    parallel::clusterExport(parClust, list("deer", "zlib", "PeakPicking"), envir = environment())
+    tst <- parallel::parSapply(parClust, w, \(i) { #i <- w[1L]
       cmd <- paste0("\"", deer$ParsDir, "/ThermoRawFileParser.exe\" -i=\"",
-                    fls[i], "\" -b=\"", gsub(".*/", paste0(wd, "/"), mzMLs[i]), "\" -f=2 -a",
+                    fls[i], "\" -b=\"", sub(".*/", paste0(wd, "/"), mzMLs[i]), "\" -f=2 -a",
                     c(" -z", "")[zlib+1L], c(" -p", "")[PeakPicking+1L])
       write(cmd, paste0(wd, "/tmp", i, ".bat"))
       cmd2 <- paste0("\"", wd, "/tmp", i, ".bat\"") # I have to go through an intermediate batch file to run cmd,
@@ -303,7 +287,7 @@ sz <- 24L
 N <- ceiling(nFls/sz)
 Ranges <- lapply(1L:N, \(x) {
   x <- (1L:sz)+(x-1)*sz
-  x[which(x <= nFls)]
+  x[x <= nFls]
 })
 
 # Getting the pressure profile is unfortunately not doable using rawrr... but with xml2, using the mzML, it is feasible!
@@ -314,7 +298,6 @@ mzML_scan <- \(file # mzML file
                ,
                ont = "MS:1003019" # Which ontology to scan for, the default defines pressure
                ) {
-  library(xml2)
   # parse mzML
   doc <- xml2::read_xml(file)
   #
@@ -339,8 +322,6 @@ mzML_getChrom <- \(file, # mzML file
                    chroms, # Chromatograms to extract. If missing, all chromatograms matching the ontology are extracted.
                    ont = "MS:1003019" # Which ontology to scan for, the default defines pressure
                    ) {
-  library(xml2)
-  library(base64enc)
   # parse mzML
   doc <- xml2::read_xml(file)
   #
@@ -375,7 +356,7 @@ mzML_getChrom <- \(file, # mzML file
       size <- NULL
       for (p in params) {
         name_parts <- strsplit(xml2::xml_attr(p, "name"), " ")[[1L]]
-        last <- tail(name_parts, 1)
+        last <- tail(name_parts, n = 1L)
         if (last == "array") {
           kind <- name_parts[1L]
         } else if (last == "compression") {
@@ -411,18 +392,18 @@ mzML_getChrom <- \(file, # mzML file
   #View(Res[[1L]])
   return(Res)
 }
-clusterExport(parClust, list("mzML_scan", "mzML_getChrom", "mzMLs"), envir = environment())
-allPressChrom <- parLapply(parClust, mzMLs, mzML_scan)
+parallel::clusterExport(parClust, list("mzML_scan", "mzML_getChrom", "mzMLs"), envir = environment())
+allPressChrom <- parallel::parLapply(parClust, mzMLs, mzML_scan)
 whichPressChrom <- allPressChrom <- unique(unlist(allPressChrom))
 whichPressChromDum <- vapply(whichPressChrom, \(x) {
   paste(c(x, rep(" ", 250L-nchar(x))), collapse = "")
 }, "")
 if (length(whichPressChrom) > 1L) {
-  whichPressChromDum <- dlg_list(whichPressChromDum, whichPressChromDum[1L], title = "Select pressure chromatogram(s) to extract", multiple = TRUE)$res
-  whichPressChrom <- gsub(" +$", "", whichPressChromDum)
+  whichPressChromDum <- svDialogs::dlg_list(whichPressChromDum, whichPressChromDum[1L], title = "Select pressure chromatogram(s) to extract", multiple = TRUE)$res
+  whichPressChrom <- sub(" +$", "", whichPressChromDum)
 }
 if (length(whichPressChrom)) {
-  myPressChrom <- parLapply(parClust, mzMLs, mzML_getChrom, chroms = whichPressChrom)
+  myPressChrom <- parallel::parLapply(parClust, mzMLs, mzML_getChrom, chroms = whichPressChrom)
   names(myPressChrom) <- mzMLs
 }
 pressChrom <- setNames(lapply(whichPressChrom, \(Crom) { #Crom <- whichPressChrom[1L]
@@ -440,46 +421,45 @@ allChroms <- list(Pressure = pressChrom)
 #
 #chromtypes <- setNames(c("tic", "bpc", "xic"), c("TIC", "Base peak", "XIC"))
 if (getInt) {
-  tol <- as.numeric(dlg_input("Enter mass tolerance (ppm)", 20)$res)
-  clusterCall(parClust, \() library(rawrr))
-  MS2s <- parLapply(parClust, fls, \(fl) { #fl <- fls[1L]
+  tol <- as.numeric(svDialogs::dlg_input("Enter mass tolerance (ppm)", 20)$res)
+  MS2s <- parallel::parLapply(parClust, fls, \(fl) { #fl <- fls[1L]
     x <- rawrr::readIndex(fl)
-    x <- x[which(x$MSOrder == "Ms2"),]
-    return(unique(gsub("@.*", "", unique(x$scanType))))
+    x <- x[x$MSOrder == "Ms2",]
+    return(unique(sub("@.*", "", unique(x$scanType))))
   })
   ms2s <- unique(unlist(MS2s))
   if (length(ms2s) == 1L) {
     cat(paste0("Single MS2 filter detected:\"", ms2s, "\"\n"))
   } else {
     tmp <- sapply(ms2s, \(x) { paste(c(x, rep(" ", 200L-nchar(x))), collapse = "") })
-    tmp <- dlg_list(tmp, tmp[1L], TRUE, "Select filter(s) for which you want to get an XIC")$res
-    ms2s <- gsub(" *$", "", tmp)
+    tmp <- svDialogs::dlg_list(tmp, tmp[1L], TRUE, "Select filter(s) for which you want to get an XIC")$res
+    ms2s <- sub(" *$", "", tmp)
   }
   masses <- setNames(lapply(ms2s, \(ms2) { #ms2 <- ms2s[1L]
     msg <- paste0(ms2, " XIC: enter M/Z to extract (if multiple M/Zs, separate them with \" \")")
-    mass <- as.numeric(unlist(strsplit(dlg_input(msg, 134.0472)$res, " ")))
-    return(mass[which(!is.na(mass))])
+    mass <- as.numeric(unlist(strsplit(svDialogs::dlg_input(msg, 134.0472)$res, " ")))
+    return(mass[!is.na(mass)])
   }), ms2s)
   # TIC
-  tic <- setNames(parLapply(parClust, fls, ticFun), fls)
+  tic <- setNames(parallel::parLapply(parClust, fls, ticFun), fls)
   w <- sapply(tic, \(x) { x$Outcome })
   tic <- lapply(tic[w], \(x) { x$Output })
   if (length(tic)) { allChroms$TIC <- tic }
   # BPC
-  bpc <- setNames(parLapply(parClust, fls, bpcFun), fls)
+  bpc <- setNames(parallel::parLapply(parClust, fls, bpcFun), fls)
   w <- sapply(bpc, \(x) { x$Outcome })
   bpc <- lapply(bpc[w], \(x) { x$Output })
   if (length(bpc)) { allChroms$BPC <- bpc }
   # XICs
-  clusterExport(parClust, list("ms2s", "tol", "masses", "xicFun"), envir = environment())
+  parallel::clusterExport(parClust, list("ms2s", "tol", "masses", "xicFun"), envir = environment())
   fltms2 <- listMelt(masses, names(masses))
-  clusterExport(parClust, list("tol", "xicFun"), envir = environment())
+  parallel::clusterExport(parClust, list("tol", "xicFun"), envir = environment())
   xicNms <- do.call(paste, c(fltms2, sep = " for "))
   xic <- setNames(apply(fltms2, 1L, \(x) {
     mass <- x[[1L]]
     ms2 <- x[[2L]]
-    clusterExport(parClust, list("ms2", "mass"), envir = environment())
-    setNames(parLapply(parClust, fls, \(fl) { xicFun(fl, mass, tol, ms2) }), fls)
+    parallel::clusterExport(parClust, list("ms2", "mass"), envir = environment())
+    setNames(parallel::parLapply(parClust, fls, \(fl) { xicFun(fl, mass, tol, ms2) }), fls)
   }), xicNms)
   w <- setNames(lapply(xicNms, \(x) { #x <- names(xic)[1L]
     which(sapply(xic[[x]], \(y) { y$Outcome }))
@@ -537,7 +517,7 @@ while (getRTRange) {
     for (nm2 in names(tmpDat)) { #nm2 <- names(tmpDat)[1L]
       x <- tmpDat[[nm2]]
       if (kount > 1L) {
-        x <- x[which((x$`Retention time` >= RTRange[1L])&(x$`Retention time` <= RTRange[2L])),]
+        x <- x[(x$`Retention time` >= RTRange[1L]) & (x$`Retention time` <= RTRange[2L]),]
       }
       xLim <- c(min(x$`Retention time`, na.rm = TRUE), max(x$`Retention time`, na.rm = TRUE))
       rgX <- xLim[2L]-xLim[1L]
@@ -549,7 +529,7 @@ while (getRTRange) {
           tmp <- unlist(strsplit(nm2, " for "))
           mass <- as.numeric(tmp[1L])
           ms2 <- tmp[2L]
-          ms2Trg <- as.numeric(gsub(".* ", "", ms2))
+          ms2Trg <- as.numeric(sub(".* ", "", ms2))
         }
         x$`Raw file` <- factor(x$`Raw file`, levels = fls)
         x$`Raw file name` <- factor(x$`Raw file name`, levels = cleanRawNm(basename(fls)))
@@ -569,17 +549,18 @@ while (getRTRange) {
             }
             if (kount > 1L) { ttl <- paste0(ttl, ", RT ", RTRange[1L], "-", RTRange[L2], " min") }
             if (length(Ranges) > 1L) { ttl <- paste0(ttl, ", files ", min(rg), "-", max(rg)) }
-            plot <- ggplot(x[w,], aes(x = `Retention time`, y = .data[[Ykol]], colour = `Raw file name`)) +
-              ggtitle(ttl) + coord_fixed(rgX/(rgY*3)) +
-              facet_wrap(~`Raw file name`) +
-              #geom_point() +
-              geom_line(aes(group = `Raw file name`)) +
-              theme_bw()  +
-              theme(strip.text.y = element_text(angle = 0)) +
-              xlim(xLim[1L], xLim[2L]) + ylim(yLim[1L], yLim[2L])
+            plot <- ggplot2::ggplot(x[w,],
+                                    ggplot2::aes(x = `Retention time`, y = .data[[Ykol]], colour = `Raw file name`)) +
+              ggplot2::ggtitle(ttl) + ggplot2::coord_fixed(rgX/(rgY*3)) +
+              ggplot2::facet_wrap(~`Raw file name`) +
+              ggplot2::geom_line(ggplot2::aes(group = `Raw file name`)) +
+              ggplot2::theme_bw()  +
+              ggplot2::theme(strip.text.y = ggplot2::element_text(angle = 0)) +
+              ggplot2::xlim(xLim[1L], xLim[2L]) +
+              ggplot2::ylim(yLim[1L], yLim[2L])
             # Only pop up pressure and XIC plots
-            if (!nm %in% c("TIC", "BPC")) { grDevices::windows(12L, 22L); print(plot) }
-            ggsave(paste0(wd, "/", ttl, ".jpeg"), plot, dpi = 100L)
+            if (!nm %in% c("TIC", "BPC")) { grDevices::x11(12L, 22L); print(plot) }
+            ggplot2::ggsave(paste0(wd, "/", ttl, ".jpeg"), plot, dpi = 100L)
           }
         }
       } else {
@@ -593,12 +574,12 @@ while (getRTRange) {
   }
   kount <- kount + 1L
   msg <- paste0("Extract a", c("", "nother")[(kount > 2L)+1L], " RT sub-range?")
-  getRTRange <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
+  getRTRange <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
   if (getRTRange) {
     if (exists("RTRange")) { dflt <- RTRange } else { dflt <- fullRTRange }
-    RTRange <- as.numeric(unlist(strsplit(dlg_input("Enter min. and max. RT divided by \"-\"",
+    RTRange <- as.numeric(unlist(strsplit(svDialogs::dlg_input("Enter min. and max. RT divided by \"-\"",
                                                     paste(dflt, collapse = "-"))$res, " *- *")))
-    RTRange <- RTRange[which(!is.na(RTRange))]
+    RTRange <- RTRange[!is.na(RTRange)]
     if (length(RTRange) != 2L) {
       warning("Invalid RT range! Cancelling...")
       getRTRange <- FALSE
@@ -615,14 +596,14 @@ while (getRTRange) {
     }
   }
 }
-#nms <- names(allChroms)[which(names(allChroms) != "Pressure")] # No need to write pressure, we have it already
+#nms <- base::setdiff(names(allChroms), "Pressure") # No need to write pressure, we have it already
 nms <- names(allChroms) # Actually let's write it, it's spread over different files
 sapply(nms, \(nm) { #nm <- "BPC"
   nm2 <- paste0(nm, ".csv")
   if (!nm %in% c("TIC", "BPC", "Pressure")) { nm2 <- paste0("XIC ", nm2) }
   x <- allChroms[[nm]]
   x$`Raw file name` <- NULL
-  x <- x[, c("Raw file", colnames(x)[which(colnames(x) != "Raw file")])]
+  x <- x[, base::union("Raw file", colnames(x))]
   data.table::fwrite(x, paste0(wd, "/", nm2), row.names = FALSE, na = "NA")
 })
 

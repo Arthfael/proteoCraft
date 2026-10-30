@@ -35,7 +35,7 @@ if (DiscFilt) {
                grep(topattern(paste0(Prot.Expr.Root, grp, ".REF")), colnames(quantData), value = TRUE),
                paste0(Prot.Rat.Root, em$Ref.Sample.Aggregate),
                grep(topattern(paste0(Prot.Rat.Root, grp, "_REF.to.REF_")), colnames(quantData), value = TRUE))
-      kol <- intersect(kol, colnames(quantData))
+      kol <- base::intersect(kol, colnames(quantData))
       quantData[w, kol] <- NA_real_
     }
     DatAnalysisTxt$PGfilt <- "Data was filtered to only include proteins identified in a pre-defined true-discovery filter."

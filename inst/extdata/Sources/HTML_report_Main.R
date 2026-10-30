@@ -1,16 +1,6 @@
 # Create a html report to:
 # - organize the most important tables and plots into a coherent set of html files
 # - capture user comments on each section
-#
-library(shiny)
-library(shinyjs)
-library(bslib)
-library(htmltools)
-library(DT)
-library(plotly)
-library(jsonlite)
-library(svDialogs)
-require(base64enc)
 
 showSmplGrpTabs <- TRUE
 if (scrptType == "withReps") {
@@ -30,8 +20,8 @@ if (scrptType == "withReps") {
   #   m <- match(showSmplGrpTabs, c(TRUE, FALSE))
   #   opt <- c("Yes                                                                                                ",
   #            "No                                                                                                 ")
-  #   showSmplGrpTabs <- c(TRUE, FALSE)[match(sub(" +$", "", dlg_list(opt, opt[m],
-  #                                                                   title = "Include sample group tabs in the HTML report?")$res),
+  #   showSmplGrpTabs <- c(TRUE, FALSE)[match(sub(" +$", "", svDialogs::dlg_list(opt, opt[m],
+  #                                                                              title = "Include sample group tabs in the HTML report?")$res),
   #                                           c("Yes", "No"))]
   #   showSmplGrpTabs_askedOnce <- TRUE
   # }
@@ -42,7 +32,7 @@ funFile <- paste0(libPath, "/extdata/Sources/HTML_report_Fun.R")
 # obj2Xport <- readLines(funFile)
 # obj2Xport <- grep("^[^ ]+ *(<-|%<[co]%) *", obj2Xport, value = TRUE)
 # obj2Xport <- sub(" *(<-|%<[co]%) *.*", "", obj2Xport)
-# obj2Xport <- intersect(obj2Xport, ls())
+# obj2Xport <- base::intersect(obj2Xport, ls())
 
 # Materials and methods object
 MatMetCalls$Texts$DatAnalysis <- if (exists("matmethTxt") && (!is.null(matmethTxt$"Data analysis"))) {
@@ -137,39 +127,12 @@ if (GO_ON) {
   if (!exists("GO_plot_ly")) { loadFun(GO_plot_ly_fl) }
 }
 
-# -----------------------------------------------------------------------------------------------------
-# Re-apply plotly::partial_bundle() in THIS session.
-# Every object above was loaded back in via loadFun() from an RDS file written in an earlier R session.
-# partial_bundle() caches its trimmed JS bundle under that earlier session's tempdir(), which no longer
-# so save_html()'s copyDependencyToDir() fails trying to copy from a path like
-# "AppData/Local/Temp/2/RtmpXXXXXX/plotly-cartesian-....min.js".
-# Re-bundling now writes fresh files into the CURRENT tempdir(), which save_html() can find.
-# NOTE: this block is currently commented out in your copy -- if that's intentional (debugging
-# something else?), fine, but if it was left off by accident, save_html() will hit the same stale-
-# tempdir error as before once any of these objects were loaded via loadFun() in an earlier session.
-# -----------------------------------------------------------------------------------------------------
-# partial_bundle_list <- \(x) {
-#   if (inherits(x, "plotly")) { return(plotly::partial_bundle(x)) }
-#   if (is.list(x) && identical(class(x), "list")) { return(lapply(x, partial_bundle_list)) }
-#   return(x)
-# }
-# volcPlotly <- partial_bundle_list(volcPlotly)
-# if (rat_ON) { ratioPlots <- partial_bundle_list(ratioPlots) }
-# if (heatMaps_ON) { plotLeatMaps <- partial_bundle_list(plotLeatMaps) }
-# if (PCA_ON) { dimRedPlotLy <- partial_bundle_list(dimRedPlotLy) }
-# if (Venn_ON) { plotly_Venn <- partial_bundle_list(plotly_Venn) }
-# if (cov_ON) { covPlots <- partial_bundle_list(covPlots) }
-# if (GO_ON) { GO_plot_ly <- partial_bundle_list(GO_plot_ly) }
-# if (runGSEA) { GSEA_plotly <- partial_bundle_list(GSEA_plotly) }
-# ggQuantLy <- partial_bundle_list(ggQuantLy)
-# QC_plotLys <- partial_bundle_list(QC_plotLys)
-
 plotHght <- paste0(round(screenRes$height*0.75), "px")
 nmsHtMp <- names(plotLeatMaps$Global)
 if ((scrptType == "noReps") && (length(Exp) == 2L)) {
-  nmsHtMp <- setdiff(nmsHtMp, "Z-scored")
+  nmsHtMp <- base::setdiff(nmsHtMp, "Z-scored")
 }
-nmsHtMp <- intersect(union("None", nmsHtMp), nmsHtMp)
+nmsHtMp <- base::intersect(base::union("None", nmsHtMp), nmsHtMp)
 plotHtMpHght <- paste0(max(c(500L, as.integer(round(vapply(nmsHtMp, \(nm) {
   plotLeatMaps$Global[[nm]]$Plot$sizingPolicy$defaultHeight
 }, 1))))), "px")
@@ -184,7 +147,7 @@ PTMs <- c()
 if (exists("PTMs_pep")) { PTMs <- names(PTMs_pep) }
 if (length(PTMs)) {
   for (Ptm in PTMs) {
-    myTabs <- union(myTabs, paste0(Ptm, ": ", myContrasts$Contrast))
+    myTabs <- base::union(myTabs, paste0(Ptm, ": ", myContrasts$Contrast))
   }
 }
 nms <- myTabs
@@ -192,17 +155,17 @@ if (prot.list.Cond) {
   if (cov_ON) {
     allProt <- names(covPlots)[vapply(names(covPlots), \(x) { length(covPlots[[x]]$logInt) > 0L }, TRUE)]
     dfltProt <- allProt[1L]
-    nms <- union(nms, allProt)
+    nms <- base::union(nms, allProt)
   } else {
     allProt <- do.call(paste, c(db[match(prot.list, db$`Protein ID`), c("Protein ID", "Common Name")], sep = "_"))
     dfltProt <- allProt[1L]
   }
-  myTabs <- union(myTabs, "Proteins of interest")
+  myTabs <- base::union(myTabs, "Proteins of interest")
 } else {
   dfltProt <- c()
 }
-myTabs <- union(myTabs, c("QC", "Materials and methods"))
-nms <- union(nms, c("QC", names(QC_plotLys)))
+myTabs <- base::union(myTabs, c("QC", "Materials and methods"))
+nms <- base::union(nms, c("QC", names(QC_plotLys)))
 dfltComment <- paste0(nrow(PG), " protein groups were identified from ", nrow(ev), " PSMs", " corresponding to ", nrow(pep),
                       " distinct peptidoforms. ...")
 if ((!exists("allComments")) || (!is.character(allComments))) {
@@ -210,7 +173,7 @@ if ((!exists("allComments")) || (!is.character(allComments))) {
     if (nm == "Dataset overview") { dfltComment } else { "" }
   }, ""), nms)
 }
-nms_ <- setdiff(nms, names(allComments))
+nms_ <- base::setdiff(nms, names(allComments))
 if (length(nms_)) {
   allComments[nms_] <- ""
   if ("Dataset overview" %in% nms_) { allComments$"Dataset overview" <- dfltComment }
@@ -289,26 +252,26 @@ make_nav_bar <- \(current_label) { #current_label <- sec$label
   nav_row <- \(label, items, itemTexts) {
     if (!length(label)) { return(NULL) }
     if (missing(itemTexts)) { itemTexts <- items }
-    tags$div(style = "margin-bottom:6px;",
-             if (nzchar(label)) { tags$strong(label) },
-             lapply(1L:length(items), \(i) { #i <- 1L
-               itm <- items[i]
-               txt <- itemTexts[i]
-               fn <- basename(sections[[itm]]$file)
-               if (identical(itm, current_label)) {
-                 tags$span(txt, style = "font-weight:bold; margin-right:16px;")
-               } else {
-                 tags$a(txt, href = fn, style = "margin-right:16px;")
-               }
-             }))
+    shiny::tags$div(style = "margin-bottom:6px;",
+                    if (nzchar(label)) { shiny::tags$strong(label) },
+                    lapply(1L:length(items), \(i) { #i <- 1L
+                      itm <- items[i]
+                      txt <- itemTexts[i]
+                      fn <- basename(sections[[itm]]$file)
+                      if (identical(itm, current_label)) {
+                        shiny::tags$span(txt, style = "font-weight:bold; margin-right:16px;")
+                      } else {
+                        shiny::tags$a(txt, href = fn, style = "margin-right:16px;")
+                      }
+                    }))
   }
   allLbls <- names(sections)
   types <- vapply(sections, `[[`, "", "type")
   # Row 1: the fixed, un-labelled set -- order matters more than lookup speed here.
   topOrder <- c("Dataset Overview", "QC", "Proteins of interest", "Materials & Methods")
-  topLbls <- intersect(topOrder, allLbls[types %in% c("summary", "qc", "proteins", "matmeth")])
+  topLbls <- base::intersect(topOrder, allLbls[types %in% c("summary", "qc", "proteins", "matmeth")])
   sampleLbls <- allLbls[types == "sample"]
-  ptmTypes <- setdiff(unique(types), c("summary", "sample", "contrast", "proteins", "qc", "matmeth"))
+  ptmTypes <- base::setdiff(unique(types), c("summary", "sample", "contrast", "proteins", "qc", "matmeth"))
   contrastLbls <- allLbls[types == "contrast"]
   contrastLbls2 <- lapply(sections, \(sec){
     if ("key" %in% names(sec)) { return(sec$key) }
@@ -317,17 +280,17 @@ make_nav_bar <- \(current_label) { #current_label <- sec$label
   # Any type that isn't one of the six fixed kinds is a PTM name (see sections
   # construction above); unique() preserves the PTMs' original order since the
   # sections loop nests PTM outside contrast.
-  tags$nav(style = "padding:10px 0 16px 0; border-bottom:1px solid #ddd; margin-bottom:20px;",
-           nav_row("", topLbls),
-           nav_row(paste0("Sample", c(" group", "")[(scrptType == "noReps")+1L], "s: "),
-                   sampleLbls),
-           nav_row(paste0(c("C", "Protein group c"), "ontrasts: ")[(length(ptmTypes) > 0L)+1L],
-                   contrastLbls),
-           lapply(ptmTypes, \(ptm) { nav_row(paste0(ptm, " contrasts: "), allLbls[types == ptm],
-                                             contrastLbls2[types == ptm]) }))
+  shiny::tags$nav(style = "padding:10px 0 16px 0; border-bottom:1px solid #ddd; margin-bottom:20px;",
+                  nav_row("", topLbls),
+                  nav_row(paste0("Sample", c(" group", "")[(scrptType == "noReps")+1L], "s: "),
+                          sampleLbls),
+                  nav_row(paste0(c("C", "Protein group c"), "ontrasts: ")[(length(ptmTypes) > 0L)+1L],
+                          contrastLbls),
+                  lapply(ptmTypes, \(ptm) { nav_row(paste0(ptm, " contrasts: "), allLbls[types == ptm],
+                                                    contrastLbls2[types == ptm]) }))
 }
 # Re-run of the same "reset <select data-default> on load" defensive script the original single-file export used.
-select_default_script <- tags$script(HTML(
+select_default_script <- shiny::tags$script(shiny::HTML(
   "document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('select[data-default]').forEach(function(sel) {
     sel.value = sel.dataset.default;
@@ -391,7 +354,7 @@ build_section <- \(sec) { #sec <- sections[[1L]]
     # contrast name after the sections-loop fix above.
     make_ctrst_tab(sec$key, shiny = FALSE, ptm = sec$type)
   }
-  bslib::page_fluid(tags$head(myCSS),
+  bslib::page_fluid(shiny::tags$head(myCSS),
                     select_default_script,
                     report_header,
                     make_nav_bar(sec$label),
@@ -411,43 +374,45 @@ if (runGSEA) {
 
 appPage <- 1L
 appNm <- "Edit report"
-ui <- fluidPage(useShinyjs(),
-                extendShinyjs(text = jsFun$toggle_full_screen,
-                              functions = c("toggleFullScreen")),
-                tags$head(myCSS),
-                titlePanel(tag("u", appNm), appNm),
-                br(),
-                fluidRow(column(4L, h2(dtstNm), br()),
-                         column(8L,
-                                actionBttn("xprtBtn", " export final html report", icon = icon("file-export"), color = "success", style = "pill"),
-                                br(), br(),
-                                uiOutput("xprtMsg"))),
-                br(),
-                uiOutput("myUI"),
-                br(), br())
+ui <- shiny::fluidPage(useShinyjs(),
+                       shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                                              functions = c("toggleFullScreen")),
+                       shiny::tags$head(myCSS),
+                       shiny::titlePanel(shiny::tag("u", appNm), appNm),
+                       shiny::br(),
+                       shiny::fluidRow(shiny::column(4L, shiny::h2(dtstNm), shiny::br()),
+                                       shiny::column(8L,
+                                                     shinyWidgets::actionBttn("xprtBtn", " export final html report",
+                                                                              icon = shiny::icon("file-export"),
+                                                                              color = "success", style = "pill"),
+                                                     shiny::br(), shiny::br(),
+                                                     shiny::uiOutput("xprtMsg"))),
+                       shiny::br(),
+                       shiny::uiOutput("myUI"),
+                       shiny::br(), shiny::br())
 server <- \(input, output, session) {
-  QUANT <- reactiveVal(dfltQuant)
-  XPRTMSG <- reactiveVal(NULL)
-  MYPROT <- reactiveVal(dfltProt)
-  SAMPLE <- reactiveVal(myExp[1L])
-  NORMMETH <- reactiveVal("None")
-  ALLCOMMENTS <- reactiveVal(allComments)
+  QUANT <- shiny::reactiveVal(dfltQuant)
+  XPRTMSG <- shiny::reactiveVal(NULL)
+  MYPROT <- shiny::reactiveVal(dfltProt)
+  SAMPLE <- shiny::reactiveVal(myExp[1L])
+  NORMMETH <- shiny::reactiveVal("None")
+  ALLCOMMENTS <- shiny::reactiveVal(allComments)
   #
-  output$xprtMsg <- renderUI(XPRTMSG())
-  output$myUI <- renderUI(make_ui())
-  if (heatMaps_ON) { output$heatMap <- renderPlotly(plotLeatMaps$Global[[NORMMETH()]]$Plot) }
-  if (PCA_ON) { output$PCA <- renderPlotly(dimRedPlotLy$PG$PCA) }
-  if (Venn_ON) { output$Venn <- renderPlotly(plotly_Venn$`Global, LFQ`) }
+  output$xprtMsg <- shiny::renderUI(XPRTMSG())
+  output$myUI <- shiny::renderUI(make_ui())
+  if (heatMaps_ON) { output$heatMap <- shiny::renderPlotly(plotLeatMaps$Global[[NORMMETH()]]$Plot) }
+  if (PCA_ON) { output$PCA <- shiny::renderPlotly(dimRedPlotLy$PG$PCA) }
+  if (Venn_ON) { output$Venn <- shiny::renderPlotly(plotly_Venn$`Global, LFQ`) }
   #
   lapply(myExp, \(exp) {
     exp_ <- safe_id(exp)
     exp2 <- if (scrptType == "noReps") { exp } else { names(smplGrps)[match(exp, smplGrps)] }
-    output[[paste0("cmmnt_", exp_)]] <- renderUI(make_comment_ui(exp))
+    output[[paste0("cmmnt_", exp_)]] <- shiny::renderUI(make_comment_ui(exp))
     idQ <- paste0("quant_", exp)
     idQLy <- paste0("quantLy_", exp)
     idSmplPGTbl <- paste0("PG_table_", exp)
-    output[[idQLy]] <- renderPlotly(ggQuantLy[[input[[idQ]]]][[exp2]]$plotly)
-    output[[idSmplPGTbl]] <- renderUI(make_smpl_tbl_ui(exp))
+    output[[idQLy]] <- shiny::renderPlotly(ggQuantLy[[input[[idQ]]]][[exp2]]$plotly)
+    output[[idSmplPGTbl]] <- shiny::renderUI(make_smpl_tbl_ui(exp))
   })
   #
   if (scrptType == "withReps") {
@@ -469,40 +434,40 @@ server <- \(input, output, session) {
           GSEA_IDs[PTMs] <- lapply(PTMs, \(Ptm) { paste0(Ptm, "_", GSEA_IDs$PG) })
         }
       }
-      output[[volcIDs$PG]] <- renderPlotly(volcPlotly$"t-test"[[paste0("Volcano plot ", contr)]]$Plot)
-      output[[commentIDs$PG]] <- renderUI(make_comment_ui(contr))
-      if (enrichGO) { output[[goIDs$PG]] <- renderPlotly(GO_plot_ly$PG$"t-test"[[contr]]$Bar) }
+      output[[volcIDs$PG]] <- shiny::renderPlotly(volcPlotly$"t-test"[[paste0("Volcano plot ", contr)]]$Plot)
+      output[[commentIDs$PG]] <- shiny::renderUI(make_comment_ui(contr))
+      if (enrichGO) { output[[goIDs$PG]] <- shiny::renderPlotly(GO_plot_ly$PG$"t-test"[[contr]]$Bar) }
       saintIDs <- c(paste0("SAINTexpress volcano plot ", contr), paste0(contr_, c("_SAINT_volcPlot", "_SAINT_GObars")))
       if (saintExprs && (saintIDs[1L] %in% names(volcPlotly$SAINTexpress))) {
-        output[[saintIDs[2L]]] <- renderPlotly(volcPlotly$SAINTexpress[[saintIDs[1L]]]$Plot)
-        if (enrichGO) { output[[saintIDs[3L]]] <- renderPlotly(GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar) }
+        output[[saintIDs[2L]]] <- shiny::renderPlotly(volcPlotly$SAINTexpress[[saintIDs[1L]]]$Plot)
+        if (enrichGO) { output[[saintIDs[3L]]] <- shiny::renderPlotly(GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar) }
       }
       lapply(PTMs, \(Ptm) { #Ptm <- PTMs[1L]
-        output[[volcIDs[[Ptm]]]] <- renderPlotly(volcPlotly[[paste0(Ptm, " t-test")]][[paste0(Ptm, " volcano plot ", contr)]]$Plot)
-        output[[commentIDs[[Ptm]]]] <- renderUI(make_comment_ui(paste0(Ptm, ": ", contr)))
-        if (enrichGO) { output[[goIDs[[Ptm]]]] <- renderPlotly(GO_plot_ly[[Ptm]]$"t-test"[[contr]]$Bar) }
+        output[[volcIDs[[Ptm]]]] <- shiny::renderPlotly(volcPlotly[[paste0(Ptm, " t-test")]][[paste0(Ptm, " volcano plot ", contr)]]$Plot)
+        output[[commentIDs[[Ptm]]]] <- shiny::renderUI(make_comment_ui(paste0(Ptm, ": ", contr)))
+        if (enrichGO) { output[[goIDs[[Ptm]]]] <- shiny::renderPlotly(GO_plot_ly[[Ptm]]$"t-test"[[contr]]$Bar) }
         # No SAINTexpress analysis with PTMs
       })
       if (runGSEA && length(wh_GSEA[[contr]])) {
         # We will deal with PG and PTMs in one loop
         # We only want to draw space for the plots if they are available
         lapply(wh_GSEA[[contr]], \(GSEA_nm) {
-          output[[GSEA_IDs[[GSEA_nm]][[1L]]]] <- renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[1L]]][[contr]])
-          output[[GSEA_IDs[[GSEA_nm]][[2L]]]] <- renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[2L]]][[contr]])
-          output[[GSEA_IDs[[GSEA_nm]][[3L]]]] <- renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[3L]]][[contr]])
-          output[[GSEA_IDs[[GSEA_nm]][[4L]]]] <- renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[4L]]][[contr]])
+          output[[GSEA_IDs[[GSEA_nm]][[1L]]]] <- shiny::renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[1L]]][[contr]])
+          output[[GSEA_IDs[[GSEA_nm]][[2L]]]] <- shiny::renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[2L]]][[contr]])
+          output[[GSEA_IDs[[GSEA_nm]][[3L]]]] <- shiny::renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[3L]]][[contr]])
+          output[[GSEA_IDs[[GSEA_nm]][[4L]]]] <- shiny::renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[4L]]][[contr]])
         })
       }
     })
   }
   if (globalGO && (!is.null(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar))) {
-    output$GO_enrich_Dataset <- renderPlotly(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar)
+    output$GO_enrich_Dataset <- shiny::renderPlotly(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar)
   }
   #
-  observeEvent(input$myHeatMap, { NORMMETH(input$myHeatMap) })
+  shiny::observeEvent(input$myHeatMap, { NORMMETH(input$myHeatMap) })
   sapply(names(allComments), \(id) {
     id_ <- paste0("comment_", safe_id(id))
-    observeEvent(input[[id_]], {
+    shiny::observeEvent(input[[id_]], {
       #cat(input[[id_]], "\n", tmp[[id]], "\n\n")
       tmp <- ALLCOMMENTS()
       tmp[[id]] <- input[[id_]]
@@ -513,46 +478,46 @@ server <- \(input, output, session) {
     exp2 <- if (scrptType == "noReps") { exp } else { names(smplGrps)[match(exp, smplGrps)] }
     idQ <- paste0("quant_", exp)
     idQLy <- paste0("quantLy_", exp)
-    observeEvent(input[[idQ]], {
+    shiny::observeEvent(input[[idQ]], {
       dq <- QUANT()
       dq[exp] <- input[[idQ]]
       QUANT(dq)
       assign("dfltQuant", dq, envir = .GlobalEnv)
-      output[[idQLy]] <- renderPlotly(ggQuantLy[[input[[idQ]]]][[exp2]]$plotly)
+      output[[idQLy]] <- shiny::renderPlotly(ggQuantLy[[input[[idQ]]]][[exp2]]$plotly)
     })
   })
   if (prot.list.Cond) {
-    if (scrptType == "noReps") { output$ratioPlot <- renderPlotly(ratioPlots[[MYPROT()]]) }
-    output$coverPlot <- renderPlotly({
+    if (scrptType == "noReps") { output$ratioPlot <- shiny::renderPlotly(ratioPlots[[MYPROT()]]) }
+    output$coverPlot <- shiny::renderPlotly({
       p <- covPlots[[MYPROT()]]$logInt[[SAMPLE()]]
       if (is.null(p)) {
-        return(plot_ly(type = "scatter", mode = "markers") |>
-                 layout(xaxis = list(visible = FALSE), yaxis = list(visible = FALSE),
-                        annotations = list(list(text = "No identifications for this protein in this sample!",
-                                                x = 0.5, y = 0.5, xref = "paper", yref = "paper", showarrow = FALSE))))
+        return(plotly::plot_ly(type = "scatter", mode = "markers") |>
+                 plotly::layout(xaxis = list(visible = FALSE), yaxis = list(visible = FALSE),
+                                annotations = list(list(text = "No identifications for this protein in this sample!",
+                                                        x = 0.5, y = 0.5, xref = "paper", yref = "paper", showarrow = FALSE))))
       }
       return(p)
     })
-    output$protComment <- renderUI(make_comment_ui(MYPROT()))
+    output$protComment <- shiny::renderUI(make_comment_ui(MYPROT()))
     if (peptidoTst) {
-      output$protPep <- renderUI({ make_smpl_tbl_ui(tab = "All peptidoforms", filt = MYPROT()) })
+      output$protPep <- shiny::renderUI({ make_smpl_tbl_ui(tab = "All peptidoforms", filt = MYPROT()) })
     }
-    if (cov_ON && (length(allProt) > 1L)) { observeEvent(input$myProtein, { MYPROT(input$myProtein) }) }
-    if (length(myExp) > 1L) { observeEvent(input$mySample, { SAMPLE(input$mySample) }) }
+    if (cov_ON && (length(allProt) > 1L)) { shiny::observeEvent(input$myProtein, { MYPROT(input$myProtein) }) }
+    if (length(myExp) > 1L) { shiny::observeEvent(input$mySample, { SAMPLE(input$mySample) }) }
   }
-  observeEvent(input$QC, {
-    output$QCplotLy <- renderPlotly(QC_plotLys[[input$QC]])
-    output$QCtxt <- renderUI(make_comment_ui(input$QC))
+  shiny::observeEvent(input$QC, {
+    output$QCplotLy <- shiny::renderPlotly(QC_plotLys[[input$QC]])
+    output$QCtxt <- shiny::renderUI(make_comment_ui(input$QC))
   })
-  observeEvent(input$MatMet_SamplePrep, {
+  shiny::observeEvent(input$MatMet_SamplePrep, {
     txt <- matmethTxt; txt[matmethSections[1L]] <- input$MatMet_SamplePrep
     assign("matmethTxt", txt, envir = .GlobalEnv)
   })
-  observeEvent(input$MatMet_LCMS, {
+  shiny::observeEvent(input$MatMet_LCMS, {
     txt <- matmethTxt; txt[matmethSections[2L]] <- input$MatMet_LCMS
     assign("matmethTxt", txt, envir = .GlobalEnv)
   })
-  observeEvent(input$MatMet_DataAnalysis, {
+  shiny::observeEvent(input$MatMet_DataAnalysis, {
     txt <- matmethTxt; txt[matmethSections[3L]] <- input$MatMet_DataAnalysis
     assign("matmethTxt", txt, envir = .GlobalEnv)
   })
@@ -561,13 +526,13 @@ server <- \(input, output, session) {
   # which calls the make_*_tab functions with shiny = FALSE, tables = FALSE),
   # instead of one combined file previously
   # ------------------------------------------------------------------------------
-  observeEvent(input$xprtBtn, {
+  shiny::observeEvent(input$xprtBtn, {
     assign("allComments", ALLCOMMENTS(), envir = .GlobalEnv)
     # lapply(names(allComments), \(id) {
     #   id_ <- paste0("comment_", safe_id(id))
     #   print(paste0(id, " = ", input[[id_]], " | ", allComments[id]))
     # })
-    XPRTMSG(em("Exporting .html report(s), this will take a few minutes...", style = "color:green", .noWS = "outside"))
+    XPRTMSG(shiny::em("Exporting .html report(s), this will take a few minutes...", style = "color:green", .noWS = "outside"))
     later::later(\() {
       # Commented attempt at parallelization: this won't work!
       # We are already extending time in this session to reload the plotly widget lists stored as .RDS, and these are massive.
@@ -585,10 +550,10 @@ server <- \(input, output, session) {
         htmltools::save_html(page, sec$file, libdir = "lib")
       }
       assign("appRunTst", TRUE, envir = .GlobalEnv)
-      stopApp()
+      shiny::stopApp()
     }, 0.1)
   })
-  session$onSessionEnded(\() { stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
 }
 runKount <- 0L
 if (exists("appRunTst")) { rm(appRunTst) }

@@ -4,7 +4,7 @@ minFact <- c("Experiment", "Replicate")
 minFactDesc <- setNames(c("grouping of sample groups to compare", "maximum number of replicates per sample group"),
                         minFact)
 if (file.exists("Factors.RData")) {
-  load("Factors.RData")
+  base::load("Factors.RData")
   Factors <- setNames(tmp$Factors, substr(tmp$Factors, 1L, 3L))
   Factors <- Factors[!is.na(Factors)]
   if (length(Factors)) { FactorsLevels %<o% tmp$Levels[Factors] } else { rm(Factors) }
@@ -29,7 +29,7 @@ if (!exists("Factors")) {
   Factors <- minFact
   FactorsLevels %<o% setNames(lapply(Factors, \(x) { c("") }), Factors)
 } else { Factors %<o% unique(c(Factors, minFact)) }
-Factors <- setdiff(Factors, "Group") # See below...
+Factors <- base::setdiff(Factors, "Group") # See below...
 if (WorkFlow == "BIOID") {
   Factors <- unique(c(Factors, "Target")) # In this case target is not obligatory
   minFactDesc["Target"] <- "ID (e.g. UniProtKB accession) in the search database(s) of the bait protein"
@@ -46,7 +46,7 @@ if (length(w)) {
 }
 Factors %<o% Factors[!is.na(Factors)]
 if (LabelType == "Isobaric") {
-  for (Fct in setdiff(Factors, c("Experiment", "Replicate", "Isobaric.set"))) {
+  for (Fct in base::setdiff(Factors, c("Experiment", "Replicate", "Isobaric.set"))) {
     FactorsLevels[[Fct]] <- unique(c(FactorsLevels[[Fct]], "Mixed_IRS"))
   }
 }
@@ -55,70 +55,74 @@ FactorsLevels %<o% FactorsLevels[Factors]
 # Do not use my usual meta-coding approach!!! It is flexible... but not reactive, and almost as bad as shiny to debug!
 appNm <- paste0(dtstNm, " - Exp. Factors")
 if (exists("runTst")) { rm(runTst) }
-ui <- fluidPage(
-  useShinyjs(),
-  setBackgroundColor( # Doesn't work
+shinyAggrInsrt <- \(txt) {
+  aggr <- substr(txt, 1L, 3L)
+  txt <- substr(txt, 4L, nchar(txt))
+  shiny::h5(shiny::em(shiny::HTML(paste0("&emsp;- ",
+                                         gsub("\n *", "", shiny::strong(shiny::tag("u", aggr))),
+                                         txt))))
+}
+ui <- shiny::fluidPage(
+  shinyjs::useShinyjs(),
+  shinyWidgets::setBackgroundColor( # Doesn't work
     color = c(#"#F8F8FF",
       "#F2F0FA"),
     gradient = "linear",
-    direction = "bottom"
-  ),
-  extendShinyjs(text = jsFun$toggle_full_screen,
-                functions = c("toggleFullScreen")),
-  titlePanel(tag("u", "Experimental Factors editor"),
-             appNm),
-  h2(dtstNm), 
-  h3("Enter the names and levels of all the Factors describing the samples."),
-  br(),
-  h4("The following Factors are included by defaults and cannot be removed:"),
-  uiOutput("minFact"),
-  br(),
-  sidebarLayout(
-    sidebarPanel(
-      textInput("nuFact", "Experimental Factor name(s)", ""),
-      actionBttn("addFactor", "Create Factor(s)", color = "primary", size = "xs", style = "pill"),
-      actionBttn("rmvFactor", "Remove Factor(s)", color = "primary", size = "xs", style = "pill"),
-      h5(em("Factor names must be:")),
-      h5(em("- at least 3 characters long,")),
-      h5(em("- start with a capital letter,")),
-      h5(em("- followed by only lower case letters, numbers or dots.")),
-      h5(em("- These Factor names and 3-letter Factor roots are reserved:")),
-      h5(em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Exp"))), "eriment = always present, group of samples to analyze together")))),
-      # This one because it may conflict with other uses of Group elsewhere:
-      h5(em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Gro"))), "up = used internally, do not use")))),
-      h5(em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Rep"))), "licate = always present, strictly biological replicate")))),
-      h5(
-        em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Tim"))), "e.point = activates certain time-series specific functionalities")))
-      ),
-      h5(em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Tar"))), "get = for pull downs, the bait")))),
-      h5(em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Iso"))), "baric.set = for isobaric labelling only, set of labelled samples combined into a meta-sample")))),
-      h5(em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Com"))), "partment = for Re-localization analysis, main target compartment of the subcellular fraction")))),
-      h5(em(HTML(paste0("&emsp;- ", gsub("\n *", "", strong(tag("u", "Tis"))), "sue and ",
-                        gsub("\n *", "", strong(tag("u", "Dev"))), "elopmental.stage may also trigger specific behaviour in the future")))),
-      br(),
-      br(),
+    direction = "bottom"),
+  shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                         functions = c("toggleFullScreen")),
+  shiny::titlePanel(shiny::tag("u", "Experimental Factors editor"),
+                    appNm),
+  shiny::h2(dtstNm), 
+  shiny::h3("Enter the names and levels of all the Factors describing the samples."),
+  shiny::br(),
+  shiny::h4("The following Factors are included by defaults and cannot be removed:"),
+  shiny::uiOutput("minFact"),
+  shiny::br(),
+  shiny::sidebarLayout(
+    shiny::sidebarPanel(
+      shiny::textInput("nuFact", "Experimental Factor name(s)", ""),
+      shinyWidgets::actionBttn("addFactor", "Create Factor(s)", color = "primary", size = "xs", style = "pill"),
+      shinyWidgets::actionBttn("rmvFactor", "Remove Factor(s)", color = "primary", size = "xs", style = "pill"),
+      shiny::h5(shiny::em("Factor names must be:")),
+      shiny::h5(shiny::em("- at least 3 characters long,")),
+      shiny::h5(shiny::em("- start with a capital letter,")),
+      shiny::h5(shiny::em("- followed by only lower case letters, numbers or dots.")),
+      shiny::h5(shiny::em("- These Factor names and 3-letter Factor roots are reserved:")),
+      shinyAggrInsrt("Experiment = always present, group of samples to analyze together"),
+      shinyAggrInsrt("Group = used internally, do not use!"), # This one because it may conflict with other uses of Group elsewhere:
+      shinyAggrInsrt("Replicate = always present, strictly biological replicate"),
+      shinyAggrInsrt("Time.point = activates certain time-series specific functionalities"),
+      shinyAggrInsrt("Target = for pull downs, the bait"),
+      shinyAggrInsrt("Isobaric.set = for isobaric labelling only, set of labelled samples combined into a meta-sample"),
+      shinyAggrInsrt("Com = activates certain time-series specific functionalities"),
+      shinyAggrInsrt("Tis = activates certain time-series specific functionalities"),
+      shiny::h5(shiny::em(shiny::HTML(paste0("&emsp;- ", gsub("\n *", "", shiny::strong(shiny::tag("u", "Tis"))), "sue and ",
+                                             gsub("\n *", "", shiny::strong(shiny::tag("u", "Dev"))), "elopmental.stage may also trigger specific behaviour in the future")))),
+      shiny::br(),
+      shiny::br(),
     ),
-    mainPanel(
-      h5(em("Add Factor levels:")),
-      h5(em(" - you may use underscores, but no spaces or hyphens, within level names")),
-      h5(em(" - sequences of more than 2 consecutive underscores are forbidden!")),
-      h5(em(" - use a space to add multiple levels at a time")),
-      br(),
-      span(uiOutput("Message"), style = "color:red"),
-      h3("Factor levels:"),
-      uiOutput("Factors"),
-      br(),
-      br(),
-      actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+    shiny::mainPanel(
+      shiny::h5(shiny::em("Add Factor levels:")),
+      shiny::h5(shiny::em(" - you may use underscores, but no spaces or hyphens, within level names")),
+      shiny::h5(shiny::em(" - sequences of more than 2 consecutive underscores are forbidden!")),
+      shiny::h5(shiny::em(" - use a space to add multiple levels at a time")),
+      shiny::br(),
+      shiny::span(shiny::uiOutput("Message"), style = "color:red"),
+      shiny::h3("Factor levels:"),
+      shiny::uiOutput("Factors"),
+      shiny::br(),
+      shiny::br(),
+      shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
     )
   ),
-  br(),
-  br()
+  shiny::br(),
+  shiny::br()
 )
 server <- \(input, output, session) {
   # Initialize reactive variables
-  FACT <- reactiveVal(Factors)
-  FACTLevels <- reactiveVal(FactorsLevels)
+  FACT <- shiny::reactiveVal(Factors)
+  FACTLevels <- shiny::reactiveVal(FactorsLevels)
   intFact <- c("Replicate", "Isobaric.set")
   dfltInt <- c(2L, 1L)
   # Create function to update output$Factors for UI
@@ -132,7 +136,7 @@ server <- \(input, output, session) {
     }
     L <- length(FAKT)
     # Update UI
-    return(renderUI({
+    return(shiny::renderUI({
       lst <- vector("list", L)
       for (i in 1L:L) {
         Fact <- FAKT[i]
@@ -141,36 +145,36 @@ server <- \(input, output, session) {
           dflt <- max(c(miN, FAKTLevels[[Fact]]))
           txt <- as.character(dflt)
           if (!length(txt)) { txt <- "" }
-          lst[[i]] <- list(fluidRow(numericInput(paste0(Fact, "_lev"),
-                                                 paste0("N. of ", gsub("\\.", " ", Fact), "s = ", txt), dflt, miN, step = 1)))
+          lst[[i]] <- list(shiny::fluidRow(shiny::numericInput(paste0(Fact, "_lev"),
+                                                               paste0("N. of ", gsub("\\.", " ", Fact), "s = ", txt), dflt, miN, step = 1L)))
         }
         if (Fact == "Time.point") {
-          lst[[i]] <- list(fluidRow(textInput(paste0(Fact, "_lev"),
-                                              paste0(Fact, ", levels (numeric(s) only!) = ", paste(FAKTLevels[[Fact]], collapse = " / ")), "")))
+          lst[[i]] <- list(shiny::fluidRow(shiny::textInput(paste0(Fact, "_lev"),
+                                                            paste0(Fact, ", levels (numeric(s) only!) = ", paste(FAKTLevels[[Fact]], collapse = " / ")), "")))
         }
         if (!Fact %in% c(intFact, "Time.point")) {
-          lst[[i]] <- list(fluidRow(textInput(paste0(Fact, "_lev"),
-                                              paste0(Fact, ", levels = ", paste(FAKTLevels[[Fact]], collapse = " / ")), "")))
+          lst[[i]] <- list(shiny::fluidRow(shiny::textInput(paste0(Fact, "_lev"),
+                                                            paste0(Fact, ", levels = ", paste(FAKTLevels[[Fact]], collapse = " / ")), "")))
         }
         lst[[i]] <- append(lst[[i]],
-                           list(fluidRow(column(3L, actionBttn(paste0(Fact, "_levAdd"), "Add level(s)", color = "primary", size = "xs", style = "pill")),
-                                         column(3L, actionBttn(paste0(Fact, "_levRmv"), "Remove level(s)", color = "primary", size = "xs", style = "pill"))),
-                                tags$hr(style = "border-color: grey;"),
-                                br()))
+                           list(shiny::fluidRow(shiny::column(3L, shinyWidgets::actionBttn(paste0(Fact, "_levAdd"), "Add level(s)", color = "primary", size = "xs", style = "pill")),
+                                                shiny::column(3L, shinyWidgets::actionBttn(paste0(Fact, "_levRmv"), "Remove level(s)", color = "primary", size = "xs", style = "pill"))),
+                                shiny::tags$hr(style = "border-color: grey;"),
+                                shiny::br()))
       }
       return(list(lst))
     }))
   }
   #
-  output$minFact <- renderUI({ HTML(paste0(" - ", minFact, ": ", minFactDesc, collapse = "<br>")) })
-  output$Message <- renderUI({ em(" ") })
+  output$minFact <- shiny::renderUI({ shiny::HTML(paste0(" - ", minFact, ": ", minFactDesc, collapse = "<br>")) })
+  output$Message <- shiny::renderUI({ shiny::em(" ") })
   # Initialize
   output$Factors <- updtFactUI(reactive = FALSE)
   #
   # Observers for already extent factors
   #  - Add new Factor level
   sapply(Factors, \(Fact) {
-    observeEvent(input[[paste0(Fact, "_levAdd")]], {
+    shiny::observeEvent(input[[paste0(Fact, "_levAdd")]], {
       vals <- input[[paste0(Fact, "_lev")]]
       vals <- vals[!is.na(vals)]
       if (length(vals)) {
@@ -185,7 +189,7 @@ server <- \(input, output, session) {
             vals <- vals[!is.na(vals)]
           }
           tmp <- unique(c(FACTLevels()[[Fact]], vals))
-          tmp <- setdiff(tmp, "")
+          tmp <- base::setdiff(tmp, "")
           tmp2[[Fact]] <- tmp
         }
         FACTLevels(tmp2)
@@ -195,7 +199,7 @@ server <- \(input, output, session) {
   })
   #  - Remove Factor level
   sapply(Factors, \(Fact) {
-    observeEvent(input[[paste0(Fact, "_levRmv")]], {
+    shiny::observeEvent(input[[paste0(Fact, "_levRmv")]], {
       vals <- input[[paste0(Fact, "_lev")]]
       vals <- vals[!is.na(vals)]
       if (length(vals)) {
@@ -209,7 +213,7 @@ server <- \(input, output, session) {
             vals <- suppressWarnings(as.numeric(vals))
             vals <- vals[!is.na(vals)]
           }
-          tmp2[[Fact]] <- setdiff(tmp2[[Fact]], vals)
+          tmp2[[Fact]] <- base::setdiff(tmp2[[Fact]], vals)
         }
         FACTLevels(tmp2)
         output$Factors <- updtFactUI()
@@ -218,13 +222,13 @@ server <- \(input, output, session) {
   })
   #
   # Create new Factor(s)
-  observeEvent(input$addFactor, {
+  shiny::observeEvent(input$addFactor, {
     msg <- " "
-    Facts <- gsub("[^A-Z,a-z,0-9]", "\\.", unlist(strsplit(input$nuFact, " +")))
+    Facts <- gsub("[^A-Za-z0-9]", "\\.", unlist(strsplit(input$nuFact, " +")))
     # We must strictly disallow Group here or rewrite any bit of code where Group is used generically
-    Facts <- setdiff(Facts, "Group")
+    Facts <- base::setdiff(Facts, "Group")
     sapply(Facts, \(Fact) {
-      if ((nchar(Fact) < 3L)||(grepl("^[0-9]", Fact))||(substr(Fact, 1L, 3L) %in% substr(FACT(), 1L, 3L))) {
+      if ((nchar(Fact) < 3L) || grepl("^[0-9]", Fact) || (substr(Fact, 1L, 3L) %in% substr(FACT(), 1L, 3L))) {
         msg <- "Invalid Factor name! Must be at least 3 characters long and start with a capital letter! The first 3 characters must be unique to this Factor!"
       } else {
         Fact <- paste0(toupper(substr(Fact, 1L, 1L)), tolower(substr(Fact, 2L, nchar(Fact))))
@@ -234,7 +238,7 @@ server <- \(input, output, session) {
           tmp[Fact] <- list(NULL)
           FACTLevels(tmp)
           # Also, ABSOLUTELY crucial: create new observers for level addition/removal!!!
-          observeEvent(input[[paste0(Fact, "_levAdd")]], {
+          shiny::observeEvent(input[[paste0(Fact, "_levAdd")]], {
             vals <- input[[paste0(Fact, "_lev")]]
             vals <- vals[!is.na(vals)]
             if (length(vals)) {
@@ -249,14 +253,14 @@ server <- \(input, output, session) {
                   vals <- vals[!is.na(vals)]
                 }
                 tmp <- unique(c(FACTLevels()[[Fact]], vals))
-                tmp <- setdiff(tmp, "")
+                tmp <- base::setdiff(tmp, "")
                 tmp2[[Fact]] <- tmp
               }
               FACTLevels(tmp2)
               output$Factors <- updtFactUI()
             }
           })
-          observeEvent(input[[paste0(Fact, "_levRmv")]], {
+          shiny::observeEvent(input[[paste0(Fact, "_levRmv")]], {
             vals <- input[[paste0(Fact, "_lev")]]
             vals <- vals[!is.na(vals)]
             if (length(vals)) {
@@ -271,7 +275,7 @@ server <- \(input, output, session) {
                   vals <- vals[!is.na(vals)]
                 }
                 tmp <- unique(c(FACTLevels()[[Fact]], vals))
-                tmp2[[Fact]] <- setdiff(tmp2[[Fact]], vals)
+                tmp2[[Fact]] <- base::setdiff(tmp2[[Fact]], vals)
               }
               FACTLevels(tmp2)
               output$Factors <- updtFactUI()
@@ -280,14 +284,14 @@ server <- \(input, output, session) {
         }
       }
     })
-    output$Message <- renderUI({ em(msg) })
+    output$Message <- shiny::renderUI({ shiny::em(msg) })
     output$Factors <- updtFactUI()
   })
   # Remove extant Factor
-  observeEvent(input$rmvFactor, {
+  shiny::observeEvent(input$rmvFactor, {
     msg <- " "
-    tmp <- gsub("[^A-Z,a-z,0-9]", "\\.", input$nuFact)
-    if ((nchar(tmp) < 3)||(grepl("^[0-9]", tmp))) {
+    tmp <- gsub("[^A-Za-z0-9]", "\\.", input$nuFact)
+    if ((nchar(tmp) < 3L) || grepl("^[0-9]", tmp)) {
       msg <- "Invalid Factor name! Must be at least 3 characters long and start with a capital letter!"
     } else {
       tmp <- paste0(toupper(substr(tmp, 1L, 1L)), tolower(substr(tmp, 2L, nchar(tmp))))
@@ -298,27 +302,27 @@ server <- \(input, output, session) {
           msg <- paste0("Factor ", tmp, " is included by default in this workflow and cannot be removed!")
         } else {
           tmp2 <- FACT()
-          tmp2 <- setdiff(tmp2, tmp)
+          tmp2 <- base::setdiff(tmp2, tmp)
           FACT(tmp2)
           FACTLevels(FACTLevels()[FACT()])
         }
       }
     }
-    output$Message <- renderUI({ em(msg) })
+    output$Message <- shiny::renderUI({ shiny::em(msg) })
     output$Factors <- updtFactUI()
   })
   #
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     assign("Factors", FACT(), envir = .GlobalEnv)
     assign("FactorsLevels", FACTLevels(), envir = .GlobalEnv)
     assign("runTst", TRUE, envir = .GlobalEnv)
-    stopApp()
+    shiny::stopApp()
   })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(\() { stopApp() })
+  #shiny::observeEvent(input$cancel, { shiny::stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
 }
 runKount <- 0L
-while ((!runKount)||(!exists("runTst"))) {
+while ((!runKount) || (!exists("runTst"))) {
   g <- shiny:::.globals
   g$appState <- NULL
   eval(parse(text = run_App), envir = .GlobalEnv)
@@ -341,7 +345,7 @@ FactorsLevels <- setNames(lapply(Factors, \(fct) {
 }), Factors)
 Factors <- Factors[lengths(FactorsLevels[Factors]) > 0L]
 names(Factors) <- substr(Factors, 1L, 3L)
-Factors <- Factors[c("Exp", setdiff(names(Factors), c("Exp", "Rep")), "Rep")]
+Factors <- Factors[c("Exp", base::setdiff(names(Factors), c("Exp", "Rep")), "Rep")]
 FactorsLevels <- FactorsLevels[Factors]
 tmp <- list(Factors = Factors, Levels = FactorsLevels)
 save(tmp, file = "Factors.RData")

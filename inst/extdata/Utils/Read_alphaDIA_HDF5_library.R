@@ -2,24 +2,22 @@
 
 file_path <- ".../alphaDIA/library/speclib.mbr.hdf"
 
-if (!require(rhdf5)) { pak::pak("rhdf5") }
-library(rhdf5)
-myLib <- h5read(file_path, "library", bit64conversion = "double")
+myLib <- rhdf5::h5read(file_path, "library", bit64conversion = "double")
 names(myLib)
 
 fragment_intensity_df <- as.data.frame(myLib$fragment_intensity_df)
 fragment_mz_df <- as.data.frame(myLib$fragment_mz_df)
 precursor_df <- as.data.frame(myLib$precursor_df)
 # Information linking precursor_df to corresponding fragments is in columns "frag_start_idx" "frag_stop_idx"
-fullLib <- apply(precursor_df[, c("frag_start_idx", "frag_stop_idx")], 1, function(x) { x[[1]]:x[[2]] })
-fullLib <- setNames(fullLib, 1:nrow(precursor_df))
+fullLib <- apply(precursor_df[, c("frag_start_idx", "frag_stop_idx")], 1L, \(x) { x[[1L]]:x[[2L]] })
+fullLib <- setNames(fullLib, 1L:nrow(precursor_df))
 fullLib <- utils::stack(fullLib)
 colnames(fullLib) <- c("libFragment", "libPrecursor")
 min(fullLib$libFragment)
 # RRRRRRRAAHAHHHHAHHHHH DO I HATE IT WHEN INDEXING STARTS AT 0!!!
 # Ahem...
 # Anyhow...
-fullLib$libFragment <- fullLib$libFragment+1
+fullLib$libFragment <- fullLib$libFragment+1L
 k1 <- colnames(precursor_df)
 k2 <- colnames(fragment_mz_df)
 k3 <- colnames(fragment_intensity_df)

@@ -57,7 +57,7 @@ Param.load <- function(file = "Parameters.csv", filter.deprecated = TRUE, WD_det
   if (length(w)) { Param[, w] <- as.logical(Param[, w]) }
   # Test and normalize paths if necessary
   w <- which(vapply(colnames(Param), \(x) { is.character(Param[[x]]) }, TRUE))
-  w <- setdiff(w, match("MQ.Experiments", colnames(Param)))
+  w <- base::setdiff(w, match("MQ.Experiments", colnames(Param)))
   g <- grep("\\\\", Param[1L, w])
   if (length(g)) {
     test <- lapply(strsplit(as.character(Param[1L, w[g]]), ";"), \(x) {

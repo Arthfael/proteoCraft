@@ -216,10 +216,10 @@ basic.heatmap <- function(matr,
     # - Horizontal
     Hdendr <- Hddata$segments
     Hdendr$Type <- c("horizontal", "vertical")[(Hdendr$x == Hdendr$xend)+1L]
-    xScl <- summary(c(Hdendr$x, Hdendr$xend))
-    yScl <- summary(c(Hdendr$y, Hdendr$yend))
-    XScl <- summary(ColNms$X)
-    YScl <- summary(ColNms$Y)
+    xScl <- base::summary(c(Hdendr$x, Hdendr$xend))
+    yScl <- base::summary(c(Hdendr$y, Hdendr$yend))
+    XScl <- base::summary(ColNms$X)
+    YScl <- base::summary(ColNms$Y)
     Hdendr$X <- (Hdendr$x-xScl["Min."])/(xScl["Max."]-xScl["Min."])
     Hdendr$X <- Hdendr$X*(XScl["Max."]-XScl["Min."])+XScl["Min."]
     Hdendr$Xend <- (Hdendr$xend-xScl["Min."])/(xScl["Max."]-xScl["Min."])
@@ -238,10 +238,10 @@ basic.heatmap <- function(matr,
     colnames(Vdendr)[mtch] <- c("y", "x", "yend",  "xend")
     Vdendr <- Vdendr[, c("x", "y", "xend", "yend")]
     Vdendr$Type <- c("horizontal", "vertical")[(Vdendr$x == Vdendr$xend)+1]
-    xScl <- summary(c(Vdendr$x, Vdendr$xend))
-    yScl <- summary(c(Vdendr$y, Vdendr$yend))
-    XScl <- summary(RowNms$X)
-    YScl <- summary(RowNms$Y)
+    xScl <- base::summary(c(Vdendr$x, Vdendr$xend))
+    yScl <- base::summary(c(Vdendr$y, Vdendr$yend))
+    XScl <- base::summary(RowNms$X)
+    YScl <- base::summary(RowNms$Y)
     Vdendr$Y <- (Vdendr$y-yScl["Min."])/(yScl["Max."]-yScl["Min."])
     Vdendr$Y <- Vdendr$Y*(YScl["Max."]-YScl["Min."])+YScl["Min."]
     Vdendr$Yend <- (Vdendr$yend-yScl["Min."])/(yScl["Max."]-yScl["Min."])
@@ -262,7 +262,7 @@ basic.heatmap <- function(matr,
   }
   # Save
   save <- unique(sub("^jpg$", "jpeg", sub("^\\.", "", tolower(as.character(save)))))
-  save <- setdiff(save, "false")
+  save <- base::setdiff(save, "false")
   if (length(save)) {
     if ("svg" %in% save) { requireNamespace("svglite") }
     if (!dir.exists(folder)) { dir.create(folder, recursive = TRUE) }

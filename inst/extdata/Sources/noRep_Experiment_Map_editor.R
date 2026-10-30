@@ -34,7 +34,7 @@ rws <- 1L:nr
 chRws <- as.character(rws)
 # if ("Order" %in% colnames(SamplesMap)) {
 #   u <- unique(SamplesMap$Order)
-#   u <- setdiff(u %in% rws)
+#   u <- base::setdiff(u %in% rws)
 #   if (length(u) < nr) { SamplesMap$Order <- rws }
 # } else { SamplesMap$Order <- rws }
 smplMapKol1 <- c("Negative Filter", "Use")
@@ -109,7 +109,7 @@ for (kol in c("Reference", "Negative Filter", "Use")) {
             kol %in% colnames(SamplesMap))) == 2L) {
     smplMap2[[kol]] <- shinyCheckInput(SamplesMap[[kol]], kol)
     IDs <- c(IDs, paste0(kol, "___", chRws#2
-                         ))
+    ))
     stopifnot(length(IDs) == length(unique(IDs)))
   }
 }
@@ -117,39 +117,39 @@ if (MakeRatios) {
   kol <- "Ratios group"
   smplMap2[[kol]] <- shinyNumInput(SamplesMap[[kol]], 1L, Inf, 1L, 1L, root = kol)
   IDs <- c(IDs, paste0(kol, "___", chRws#2
-                       ))
+  ))
   stopifnot(length(IDs) == length(unique(IDs)))
 }
 
 #
 msg <- ""
 appNm <- paste0(dtstNm, " - Experiment map")
-ui <- fluidPage(useShinyjs(),
-                setBackgroundColor( # Doesn't work
-                  color = c(#"#F8F8FF",
-                    "#EBEFF7"),
-                  gradient = "linear",
-                  direction = "bottom"
-                ),
-                titlePanel(tag("u", "Experiment map"),
-                           appNm),
-                extendShinyjs(text = jsFun$toggle_full_screen,
-                              functions = c("toggleFullScreen")),
-                tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-                mainPanel(h4("Optional: define samples order"),
-                          selectInput("expOrder", "",
+ui <- shiny::fluidPage(
+  shinyjs::useShinyjs(),
+  shinyWidgets::setBackgroundColor( # Doesn't work
+    color = c(#"#F8F8FF",
+      "#EBEFF7"),
+    gradient = "linear",
+    direction = "bottom"),
+  shiny::titlePanel(shiny::tag("u", "Experiment map"),
+                    appNm),
+  shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                         functions = c("toggleFullScreen")),
+  shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+  shiny::mainPanel(shiny::h4("Optional: define samples order"),
+                   shiny::selectInput("expOrder", "",
                                       expOrder, expOrder, TRUE, TRUE, width = "1200px"),
-                          br(),
-                          br(),
-                          span(uiOutput("Message"), style = "color:red"),
-                          withSpinner(DT::DTOutput("mySampleMap"))),
-                br(),
-                actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"))
+                   shiny::br(),
+                   shiny::br(),
+                   shiny::span(shiny::uiOutput("Message"), style = "color:red"),
+                   shinycssloaders::withSpinner(DT::DTOutput("mySampleMap"))),
+  shiny::br(),
+  shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"))
 if (exists("smplMap3")) { rm(smplMap3) }
-server <- function(input, output, session) {
+server <- \(input, output, session) {
   # Create copies table
   smplMap3 <- smplMap
-  output$Message <- renderUI({ em(" ") })
+  output$Message <- shiny::renderUI({ shiny::em(" ") })
   output$mySampleMap <- DT::renderDT({ smplMap2 },
                                      FALSE,
                                      escape = FALSE,
@@ -163,7 +163,7 @@ server <- function(input, output, session) {
                                                     autoWidth = TRUE,
                                                     columnDefs = wTest1,
                                                     scrollX = TRUE),
-                                     callback = JS("table.rows().every(function(i, tab, row) {
+                                     callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
   var $this = $(this.node());
   $this.attr('id', this.data()[0]);
   $this.addClass('shiny-input-container');
@@ -172,27 +172,27 @@ Shiny.unbindAll(table.table().node());
 Shiny.bindAll(table.table().node());"))
   #
   # Observe events
-  observeEvent(input$mySampleMap_cell_edit, {
+  shiny::observeEvent(input$mySampleMap_cell_edit, {
     smplMap3[input$mySampleMap_cell_edit$row,
              input$mySampleMap_cell_edit$col+1L] <- input$mySampleMap_cell_edit$value
   })
-  observeEvent(input$expOrder, {
+  shiny::observeEvent(input$expOrder, {
     tmp <- input$expOrder
-    tmp <- union(tmp, exp)
+    tmp <- base::union(tmp, exp)
     assign("expOrder", tmp, envir = .GlobalEnv)
   })
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     for (k in smplMapKol) {
       smplMap3[[k]] <- sapply(chRws, \(x) { input[[paste0(k, "___", x)]] })
     }
     assign("smplMap3", smplMap3, envir = .GlobalEnv)
     tmp <- input$expOrder
-    tmp <- union(tmp, exp)
+    tmp <- base::union(tmp, exp)
     assign("expOrder", tmp, envir = .GlobalEnv)
-    stopApp()
+    shiny::stopApp()
   })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(function() { stopApp() })
+  #shiny::observeEvent(input$cancel, { shiny::stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
 }
 runKount <- 0L
 while ((!runKount) || (!exists("smplMap3"))) {
@@ -211,7 +211,7 @@ w <- which(vapply(colnames(tmp), \(x) { inherits(tmp[[x]], "list") }, TRUE))
 if (length(w)) { for (i in w) { tmp[[i]] <- vapply(tmp[[i]], paste, "", collapse = ";") } }
 tst <- try(write.csv(tmp, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
 while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) { # We only want this to happen if the file is locked for editing
-  dlg_message(paste0("File \"", SamplesMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+  svDialogs::dlg_message(paste0("File \"", SamplesMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmp, file = SamplesMapPath, row.names = FALSE), silent = TRUE)
 }
 
@@ -224,4 +224,4 @@ SamplesMap$Experiment <- SamplesMap$"Parent sample"
 #
 cat(" Check message in popup box before proceeding...\n")
 msg <- "Are you happy with the edits? (click no to try again)"
-tstXpMp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = TRUE)$res, c("yes", "no"))]
+tstXpMp <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno", rstudio = TRUE)$res, c("yes", "no"))]

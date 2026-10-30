@@ -3,7 +3,7 @@ if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
   # (It's not implemented yet for other types of scripts)
   if (!exists("clustDat")) {
     if (exists("clustDat_fl") && file.exists(clustDat_fl)) {
-      loadImg(clustDat_fl)
+      loadFun(clustDat_fl)
     } else {
       Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
       #rstudioapi::documentOpen(Src)
@@ -17,9 +17,9 @@ if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
     prtRfRoot %<o% { if (LocAnalysis) { Prot.Expr.Root2 } else { Prot.Expr.Root } }
     refRoot <- prtRfRoot
     dirlist <- unique(c(dirlist, dir))
-    datNm <- intersect(c("ComBat", "Imputed", #"Filtered",
-                         "Original"),
-                       names(clustDat[[dataType]]))[1L]
+    datNm <- base::intersect(c("ComBat", "Imputed", #"Filtered",
+                               "Original"),
+                             names(clustDat[[dataType]]))[1L]
     myData <- clustDat[[dataType]][[datNm]]
     allSamples <- colnames(myData)
     colnames(myData) <- paste0(prtRfRoot, allSamples)
@@ -91,28 +91,33 @@ if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
   corMap$`Sample 1` <- factor(corMap$`Sample 1`, levels = allSamples)
   corMap$`Sample 2` <- factor(corMap$`Sample 2`, levels = allSamples)
   ttl <- "Samples Pearson correlation map"
-  plot <- ggplot(scattrMap)
+  plot <- ggplot2::ggplot(scattrMap)
   plot <- if (nrow(myData) > 500L) {
-    plot + geom_bin_2d(aes(x = X, y = Y), bins = max(c(20L, round(nrow(myData)/100))))
+    plot + ggplot2::geom_bin_2d(ggplot2::aes(x = X, y = Y),
+                                bins = max(c(20L, round(nrow(myData)/100))))
   } else {
-    plot + geom_point(aes(x = X, y = Y), size = 0.1)
+    plot + ggplot2::geom_point(ggplot2::aes(x = X, y = Y),
+                               size = 0.1)
   }
   plot <- plot +
-    scale_fill_viridis() +
-    new_scale("fill") +
-    geom_tile(data = corMap, aes(fill = `Pearson corr.`, x = 0.5, y = 0.5), width = 1L, height = 1L) +
-    scale_fill_viridis(option = "B") + coord_fixed() +
-    facet_grid(`Sample 2`~`Sample 1`) + ggtitle(ttl, subtitle = subTtl) +
-    theme_minimal() + theme(axis.text.x = element_blank(),
-                            axis.text.y = element_blank(),
-                            panel.grid.major = element_blank(), 
-                            panel.grid.minor = element_blank(),
-                            panel.background = element_blank(),
-                            axis.line = element_line(colour = "black"),
-                            strip.text.y.right = element_text(angle = 0, size = 5.5),
-                            strip.text.x.top = element_text(angle = 45, size = 5.5))
+    viridis::scale_fill_viridis() +
+    ggnewscale::new_scale("fill") +
+    ggplot2::geom_tile(data = corMap, width = 1L, height = 1L,
+                       ggplot2::aes(fill = `Pearson corr.`, x = 0.5, y = 0.5)) +
+    viridis::scale_fill_viridis(option = "B") + ggplot2::coord_fixed() +
+    ggplot2::facet_grid(`Sample 2`~`Sample 1`) +
+    ggplot2::ggtitle(ttl, subtitle = subTtl) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(axis.text.x = ggplot2::element_blank(),
+                   axis.text.y = ggplot2::element_blank(),
+                   panel.grid.major = ggplot2::element_blank(), 
+                   panel.grid.minor = ggplot2::element_blank(),
+                   panel.background = ggplot2::element_blank(),
+                   axis.line = ggplot2::element_line(colour = "black"),
+                   strip.text.y.right = ggplot2::element_text(angle = 0, size = 5.5),
+                   strip.text.x.top = ggplot2::element_text(angle = 45, size = 5.5))
   poplot(plot, 12L, 22L)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 600L)
+    ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 600L)
   })
 }

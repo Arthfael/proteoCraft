@@ -39,107 +39,103 @@ if (exists("appRunTest")) { rm(appRunTest) }
 #dotLab <- RSA$names
 colLab <- VPAL$names
 if (length(Exp) == 1L) {
-  #dotLab <- setdiff(dotLab, "Experiment")
-  colLab <- setdiff(colLab, "Experiment")
+  #dotLab <- base::setdiff(dotLab, "Experiment")
+  colLab <- base::setdiff(colLab, "Experiment")
 }
 #dotLab <- paste(dotLab, collapse = " ")
 colLab <- paste(colLab, collapse = " ")
 appNm <- paste0(dtstNm, " - Check for outliers")
-ui <- fluidPage(
-  useShinyjs(),
-  setBackgroundColor( # Doesn't work
+ui <- shiny::fluidPage(
+  shinyjs::useShinyjs(),
+  shinyWidgets::setBackgroundColor( # Doesn't work
     color = c(#"#F8F8FF",
       "#E5EDE1"),
     gradient = "linear",
     direction = "bottom"
   ),
-  extendShinyjs(text = jsFun$toggle_full_screen,
-                functions = c("toggleFullScreen")),
-  tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-  titlePanel(tag("u", "Check for outliers"),
-             appNm),
-  br(),
-  h5(tags$div(
-    "Check visually how samples are regrouped within expected sample groupings,", tags$br(),
-    "then decide whether to remove any outliers (by unticking them in the \"Use\" column),", tags$br(),
+  shiny::extendShinyjs(text = jsFun$toggle_full_screen,
+                       functions = c("toggleFullScreen")),
+  shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+  shiny::titlePanel(shiny::tag("u", "Check for outliers"),
+                    appNm),
+  shiny::br(),
+  shiny::h5(shiny::tags$div(
+    "Check visually how samples are regrouped within expected sample groupings,", shiny::tags$br(),
+    "then decide whether to remove any outliers (by unticking them in the \"Use\" column),", shiny::tags$br(),
     "finally click \"Save\".")),
-  br(),
-  sidebarLayout(
-    sidebarPanel(
-      actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-      span(uiOutput("Msg"), style = "color:red"),
-      br(),
-      DTOutput("Include"),
-      br(),
-      width = 6L
-    ),
-    mainPanel(
-      h4(em("Plot mappings:")),
-      #h5(em(paste0("Dot labels = ", dotLab))),
-      h5(em(paste0("Colour = ", outlierAnnot_color))),
-      h5(em(paste0("Colour labels = ", colLab))),
-      h5(em(paste0("Shape = ", outlierAnnot_shape))),
-      plotlyOutput("PCA", height = paste0(screenRes$width*0.4, "px")),
-      br(),
-      width = 6L
-    )
+  shiny::br(),
+  shiny::sidebarLayout(
+    shiny::sidebarPanel(
+      shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
+      shiny::span(shiny::uiOutput("Msg"), style = "color:red"),
+      shiny::br(),
+      DT::DTOutput("Include"),
+      shiny::br(),
+      width = 6L),
+    shiny::mainPanel(
+      shiny::h4(shiny::em("Plot mappings:")),
+      #shiny::h5(shiny::em(paste0("Dot labels = ", dotLab))),
+      shiny::h5(shiny::em(paste0("Colour = ", outlierAnnot_color))),
+      shiny::h5(shiny::em(paste0("Colour labels = ", colLab))),
+      shiny::h5(shiny::em(paste0("Shape = ", outlierAnnot_shape))),
+      shiny::plotlyOutput("PCA", height = paste0(screenRes$width*0.4, "px")),
+      shiny::br(),
+      width = 6L)
   ))
 server <- \(input, output, session) {
   tstGrps <- aggregate(Exp.map$Use, list(Exp.map[[VPAL$column]]), sum)
   if (min(tstGrps$x) < 2L) { shinyjs::disable("saveBtn") }
   if (min(tstGrps$x) >= 2L) { shinyjs::enable("saveBtn") }
-  output$Include <- renderDT({ Include },
-                             FALSE,
-                             escape = FALSE,
-                             class = "compact",
-                             selection = "none",
-                             editable = FALSE,
-                             rownames = FALSE,
-                             options = list(
-                               dom = "t",
-                               paging = FALSE,
-                               ordering = FALSE,
-                               autoWidth = TRUE,
-                               columnDefs = wTest1,
-                               scrollX = FALSE
-                             ),
-                             callback = JS("table.rows().every(function(i, tab, row) {
+  output$Include <- DT::renderDT({ Include },
+                                 FALSE,
+                                 escape = FALSE,
+                                 class = "compact",
+                                 selection = "none",
+                                 editable = FALSE,
+                                 rownames = FALSE,
+                                 options = list(dom = "t",
+                                                paging = FALSE,
+                                                ordering = FALSE,
+                                                autoWidth = TRUE,
+                                                columnDefs = wTest1,
+                                                scrollX = FALSE),
+                                 callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
         var $this = $(this.node());
         $this.attr('id', this.data()[0]);
         $this.addClass('shiny-input-container');
       });
       Shiny.unbindAll(table.table().node());
       Shiny.bindAll(table.table().node());"))
-  output$Msg <- renderUI({ em(" ") })
-  output$PCA <- renderPlotly(dimRedPlotLy$peptides[["Samples PCA"]])
+  output$Msg <- shiny::renderUI({ shiny::em(" ") })
+  output$PCA <- shiny::renderPlotly(dimRedPlotLy$peptides[["Samples PCA"]])
   # sapply(seq_len(nrow(Include)), \(x) {
   #   id <- paste0("check___", as.character(x))
-  #   observeEvent(input[[id]], {
+  #   shiny::observeEvent(input[[id]], {
   #     Exp.map$Use[x] <- as.logical(input[[id]])
   #     assign("Exp.map", Exp.map, envir = .GlobalEnv)
   #     tstGrps <- aggregate(Exp.map$Use, list(Exp.map[[VPAL$column]]), sum)
   #     if (min(tstGrps$x) < 2L) {
   #       shinyjs::disable("saveBtn")
-  #       output$Msg <- renderUI({ em("Remember: this script requires at least 2 replicates per sample group!!!") })
+  #       output$Msg <- shiny::renderUI({ shiny::em("Remember: this script requires at least 2 replicates per sample group!!!") })
   #     }
   #     if (min(tstGrps$x) >= 2L) {
   #       shinyjs::enable("saveBtn")
-  #       output$Msg <- renderUI({ em(" ") })
+  #       output$Msg <- shiny::renderUI({ shiny::em(" ") })
   #     }
   #   })
   # })
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     Exp.map$Use <- vapply(seq_len(nrow(Include)), \(x) {
       as.logical(input[[paste0("check___", as.character(x))]])
     }, TRUE)
     tstGrps <- aggregate(Exp.map$Use, list(Exp.map[[VPAL$column]]), sum)
     if (min(tstGrps$x) < 2L) {
       #shinyjs::disable("saveBtn")
-      output$Msg <- renderUI({ em("Remember: this script requires at least 2 replicates per sample group!!!") })
+      output$Msg <- shiny::renderUI({ shiny::em("Remember: this script requires at least 2 replicates per sample group!!!") })
     }
     if (min(tstGrps$x) >= 2L) {
       #shinyjs::enable("saveBtn")
-      output$Msg <- renderUI({ em(" ") })
+      output$Msg <- shiny::renderUI({ shiny::em(" ") })
       #
       assign("Exp.map", Exp.map, envir = .GlobalEnv)
       #
@@ -148,16 +144,16 @@ server <- \(input, output, session) {
       if (length(w)) { for (i in w) { tmpTbl[[i]] <- vapply(tmpTbl[[i]], paste, "", collapse = ";") }}
       tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE, quote = TRUE), silent = TRUE)
       while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
-        dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+        svDialogs::dlg_message(paste0("File \"", ExpMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
         tst <- try(write.csv(tmpTbl, file = ExpMapPath, row.names = FALSE, quote = TRUE), silent = TRUE)
       }
       #
       assign("appRunTest", TRUE, envir = .GlobalEnv)
-      stopApp()
+      shiny::stopApp()
     }
   })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(\() { stopApp() })
+  #shiny::observeEvent(input$cancel, { shiny::stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
 }
 runKount <- 0L
 while ((!runKount) || (!exists("appRunTest"))) {

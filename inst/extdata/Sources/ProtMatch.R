@@ -22,7 +22,7 @@
 #' I have also improved the parallelisation: now instead of using parallel::clusterExport() for large objects, the functions writes (then deletes) temporary .RDS files.
 #' If at some point writing those should fail, we could try the following solutions:
 #'  - using tmpfile() for those instead of a fixed-name file,
-#'  - or allow reverting to clusterExport() if .RDS serialization doesn't work.
+#'  - or allow reverting to parallel::clusterExport() if .RDS serialization doesn't work.
 #' 
 #' These changes have yielded an about 20x gain in speed, turning the function, then its script heir, from a cumbersome monster to a decently fast one.
 #'
@@ -37,6 +37,8 @@
 #'
 #' @import data.table
 #' @export
+
+requireNamespace("data.table")
 
 if (!exists("I_eq_L")) { I_eq_L <- TRUE } # Sensible default
 I_eq_L %<o% I_eq_L
@@ -102,8 +104,8 @@ parallel::clusterExport(parClust, c("Nms", "g", "myWD", "fAggr0"), envir = envir
 readr::write_rds(Dig, paste0(myWD, "/tmpDig.RDS"))
 readr::write_rds(frstPepNoMeth, paste0(myWD, "/1stPepNoMeth.RDS"))
 invisible(parallel::clusterCall(parClust, \(x) {
-  Dig <<- readr::read_rds(paste0(myWD, "/tmpDig.RDS")) # So it stays in cluster for next call!
-  frstPepNoMeth <<- readr::read_rds(paste0(myWD, "/1stPepNoMeth.RDS")) # Same as above
+  assign("Dig", readr::read_rds(paste0(myWD, "/tmpDig.RDS")), envir = .GlobalEnv) # So it stays in cluster for next call!
+  assign("frstPepNoMeth", readr::read_rds(paste0(myWD, "/1stPepNoMeth.RDS")), envir = .GlobalEnv) # Same as above
   return()
 }))
 #f0 <- \(x) { exists("Dig") & exists("frstPepNoMeth") }
@@ -190,7 +192,7 @@ if (length(wM)) { # Peptides with missed cleavages: the real fun begins...
           })
           Longest <- vapply(1L:n_ij, \(x) { fr_ij[x, wLongest[x]]}, "")
           # Other fragments
-          wOthers <- do.call(rbind, lapply(wLongest, \(x) { setdiff(fragRg, x) }))
+          wOthers <- do.call(rbind, lapply(wLongest, \(x) { base::setdiff(fragRg, x) }))
           Others <- do.call(rbind, lapply(1L:n_ij, \(x) { fr_ij[x, wOthers[x,]] }))
           # Offset to apply to the position of those vs the longest peptide's own position, when searchging for matches
           posOffsets <- sweep(wOthers, 1L, wLongest, "-")

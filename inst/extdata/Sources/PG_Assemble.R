@@ -34,7 +34,6 @@
 #' @export
 
 source(parSrc)
-cl <- parClust
 # Below: expected values of old arguments.
 # These can be superseded by providing a value before calling the source.
 if (!exists("Peptide.IDs")) { Peptide.IDs <- "id" }
@@ -74,14 +73,14 @@ tm1 <- Sys.time()
 # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
 misFun <- \(x) { return(!exists(deparse(substitute(x)))) }
 #
-require(data.table)
-invisible(parallel::clusterCall(cl, \() {
-  library(data.table)
+requireNamespace("data.table")
+invisible(parallel::clusterCall(parClust, \() {
+  requireNamespace("data.table")
   return()
 }))
 #
 if (!"MW [kDa]" %in% colnames(DB)) {
-  DB$"MW [kDa]" <- round(suppressWarnings(parallel::parSapply(cl, DB$Sequence, Peptides::mw))/1000, 3L)
+  DB$"MW [kDa]" <- round(suppressWarnings(parallel::parSapply(parClust, DB$Sequence, Peptides::mw))/1000, 3L)
 }
 # We do not want any NAs in our protein and gene names!
 tmpDB <- as.matrix(DB)
@@ -140,7 +139,7 @@ if (CustPG) {
       wlp <- which(Custom_PGs$"Priority level" > i)
       if (length(wlp)) {
         Custom_PGs$.pep.ids[wlp] <- lapply(Custom_PGs$.pep.ids[wlp], \(x) {
-          setdiff(x, unlist(Custom_PGs$.pep.ids[wcp]))
+          base::setdiff(x, unlist(Custom_PGs$.pep.ids[wcp]))
         })
       }
     }
@@ -240,8 +239,8 @@ tmp1 <- prot$.pep.ids
 tmp2 <- seq[, c("id", ".Prot.ids")]
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
 readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
-parallel::clusterExport(cl, list("wd", "Coverage"), envir = environment())
-invisible(parallel::clusterCall(cl, \() {
+parallel::clusterExport(parClust, list("wd", "Coverage"), envir = environment())
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
   return()
@@ -250,7 +249,7 @@ unlink(paste0(wd, "/tmp1.RDS"))
 unlink(paste0(wd, "/tmp2.RDS"))
 f0 <- \(x) { sort(unique(unlist(tmp2$.Prot.ids[match(unlist(x), tmp2$id)]))) }
 #environment(f0) <- .GlobalEnv
-prot$pep_to_P <- parallel::parSapply(cl, tmp1, f0)
+prot$pep_to_P <- parallel::parSapply(parClust, tmp1, f0)
 # Alternative slower rewrite
 #a2 <- Sys.time()
 # b1 <- Sys.time()
@@ -271,10 +270,10 @@ prot$pep_to_P <- parallel::parSapply(cl, tmp1, f0)
 #... then get those proteins' peptides
 # Skipping, this takes too long
 # tmp1 <- prot[, c("pep_to_P", ".pep.ids", "Prot.id")]
-# parallel::clusterExport(cl, "tmp1", envir = environment())
+# parallel::clusterExport(parClust, "tmp1", envir = environment())
 # f0 <- \(x) { lapply(unlist(x), \(y) { tmp1$.pep.ids[match(y, tmp1$Prot.id)] }) }
 # #environment(f0) <- .GlobalEnv
-# prot$pep_to_P_to_pep <- parallel::parSapply(cl, tmp1$pep_to_P, f0)
+# prot$pep_to_P_to_pep <- parallel::parSapply(parClust, tmp1$pep_to_P, f0)
 # Identify minimal set of proteins required to explain the identified peptides:
 cat(" - Identifying minimal set of proteins required to explain observed peptides.\n")
 ## Checking which proteins are contained within another?
@@ -282,7 +281,7 @@ cat(" - Identifying minimal set of proteins required to explain observed peptide
 cat(" - Identifying, for each protein ID, whether its peptides are contained by a single other protein ID.\n")
 tmp1 <- prot[, c(".pep.ids", "pep_to_P", "Prot.id")]
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   return()
 }))
@@ -299,14 +298,14 @@ f0 <- \(x) {
   return(res)
 }
 #environment(f0) <- .GlobalEnv
-protTemp <- parallel::parApply(cl, tmp1[, c(".pep.ids", "pep_to_P")], 1L, f0)
+protTemp <- parallel::parApply(parClust, tmp1[, c(".pep.ids", "pep_to_P")], 1L, f0)
 #
 ## For each protein ID, which proteins does it contain?
 cat(" - Identifying, for each protein ID, which other IDs are subsumable within it.\n")
 tmp1 <- prot[, "Prot.id", drop = FALSE]
 tmp1$temp <- protTemp
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   return()
 }))
@@ -314,10 +313,10 @@ unlink(paste0(wd, "/tmp1.RDS"))
 f0 <- \(x) {
   x1 <- tmp1[["Prot.id"]][[x]]
   x2 <- tmp1[["temp"]][[x]]
-  return(list(setdiff(x2, x1)))
+  return(list(base::setdiff(x2, x1)))
 }
 #environment(f0) <- .GlobalEnv
-prot$Contains <- parallel::parLapply(cl, 1L:nrow(prot), f0)
+prot$Contains <- parallel::parLapply(parClust, 1L:nrow(prot), f0)
 ## Contained proteins and their temp peptide ids:
 contained <- data.frame(Contained = sort(as.integer(unique(unlist(prot$Contains)))))
 contained$.pep.ids <- prot$.pep.ids[match(contained$Contained, prot$Prot.id)]
@@ -342,7 +341,7 @@ if (length(a)) {
   tmp4 <- prot[, c(".pep.ids", "Prot.id")]
   readr::write_rds(tmp3, paste0(wd, "/tmp3.RDS"))
   readr::write_rds(tmp4, paste0(wd, "/tmp4.RDS"))
-  invisible(parallel::clusterCall(cl, \() {
+  invisible(parallel::clusterCall(parClust, \() {
     assign("tmp3", readr::read_rds(paste0(wd, "/tmp3.RDS")), .GlobalEnv)
     assign("tmp4", readr::read_rds(paste0(wd, "/tmp4.RDS")), .GlobalEnv)
     return()
@@ -351,11 +350,11 @@ if (length(a)) {
   unlink(paste0(wd, "/tmp4.RDS"))
   f0 <- \(x) { tmp4$.pep.ids[match(unlist(x), tmp4$Prot.id)] }
   #environment(f0) <- .GlobalEnv
-  contained$Container.pep.ids <- parallel::parLapply(cl, tmp3, f0)
+  contained$Container.pep.ids <- parallel::parLapply(parClust, tmp3, f0)
   ## Now these containers, are they "larger" (N of peptides)?
   tmp1 <- contained[, c(".pep.ids", "Container.pep.ids")]
   readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
-  invisible(parallel::clusterCall(cl, \() {
+  invisible(parallel::clusterCall(parClust, \() {
     assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
     return()
   }))
@@ -369,18 +368,18 @@ if (length(a)) {
     return(res)
   }
   #environment(f0) <- .GlobalEnv
-  contained$Container.is.larger <- parallel::parApply(cl, tmp1, 1L, f0)
+  contained$Container.is.larger <- parallel::parApply(parClust, tmp1, 1L, f0)
   #
   tmp1 <- contained$Container.is.larger
   readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
-  invisible(parallel::clusterCall(cl, \() {
+  invisible(parallel::clusterCall(parClust, \() {
     assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
     return()
   }))
   unlink(paste0(wd, "/tmp1.RDS"))
   f0 <- \(x) { sum(x) }
   #environment(f0) <- .GlobalEnv
-  contained$test <- parallel::parSapply(cl, tmp1, f0)
+  contained$test <- parallel::parSapply(parClust, tmp1, f0)
   ## Contained proteins get (temporary) Leading status here if they are equivalent to all of their containers,
   ## i.e. if they have no container larger than them:
   contained$Is.Leading <- contained$test == 0L
@@ -406,7 +405,7 @@ tmp1 <- pg$.lead.protein.ids
 tmp2 <- prot[, c("Contains", "Prot.id")]
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
 readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
   return()
@@ -416,17 +415,17 @@ unlink(paste0(wd, "/tmp2.RDS"))
 f0 <- \(x) {
   x <- unlist(x)
   res <- unlist(tmp2$Contains[match(x, tmp2$Prot.id)])
-  res <- setdiff(res, x)
+  res <- base::setdiff(res, x)
   return(res)
 }
 #environment(f0) <- .GlobalEnv
-pg$"Also contains" <- parallel::parSapply(cl, tmp1, f0)
+pg$"Also contains" <- parallel::parSapply(parClust, tmp1, f0)
 #
 tmp1 <- pg[,c(".lead.protein.ids", "Also contains")]
 tmp2 <- prot[, c("Protein", "Prot.id")]
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
 readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
   return()
@@ -435,12 +434,12 @@ unlink(paste0(wd, "/tmp1.RDS"))
 unlink(paste0(wd, "/tmp2.RDS"))
 f0 <- \(x) { list(tmp2$Protein[match(unlist(x), tmp2$Prot.id)]) }
 #environment(f0) <- .GlobalEnv
-pg$.Protein.IDs <- parallel::parApply(cl, tmp1, 1L, f0)
+pg$.Protein.IDs <- parallel::parApply(parClust, tmp1, 1L, f0)
 pg$"Protein IDs" <- vapply(pg$.Protein.IDs, \(x) { paste(unlist(x), collapse = ";") }, "")
 if (CustPG) {
   Custom_PGs$"Also contains" <- lapply(Custom_PGs$.lead.protein.ids, \(x) {
     res <- unlist(prot$Contains[match(unlist(x), prot$Prot.id)])
-    res <- setdiff(res, x)
+    res <- base::setdiff(res, x)
     return(res)
   })
   Custom_PGs$.Protein.IDs <- apply(Custom_PGs[,c(".lead.protein.ids", "Also contains")], 1L, \(x) {
@@ -465,7 +464,7 @@ tmp1 <- 1L:nrow(pg)
 tmp2 <- pg$.pep.ids
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
 readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
   return()
@@ -474,13 +473,13 @@ unlink(paste0(wd, "/tmp1.RDS"))
 unlink(paste0(wd, "/tmp2.RDS"))
 f0 <- \(x) {
   x <- unlist(x)
-  a1 <- setdiff(tmp1, x)
+  a1 <- base::setdiff(tmp1, x)
   x1 <- unlist(tmp2[x]) # pep ids for that PG
   y <- unique(unlist(tmp2[a1])) # pep ids for all other PGs
   sum(x1 %in% y) == length(x1) # Are all peptides for that PG contained in the others?
 }
 #environment(f0) <- .GlobalEnv
-pg$Removable <- parallel::parSapply(cl, tmp1, f0)
+pg$Removable <- parallel::parSapply(parClust, tmp1, f0)
 # Calculate individual and global PEPs - useful for later
 cat(" - Calculating individual and global protein group PEPs (Posterior Error Probabilities).\n")
 temp <- listMelt(strsplit(seq$Proteins, ";"), seq$PEP)
@@ -503,7 +502,7 @@ tmp1 <- pg$.Protein.IDs
 tmp2 <- prot[, c("PEP", "Protein")]
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
 readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
   return()
@@ -512,21 +511,21 @@ unlink(paste0(wd, "/tmp1.RDS"))
 unlink(paste0(wd, "/tmp2.RDS"))
 f0 <- \(x) { tmp2$PEP[match(unlist(x), tmp2$Protein)] }
 #environment(f0) <- .GlobalEnv
-pg$.PEPs <- parallel::parSapply(cl, tmp1, f0)
+pg$.PEPs <- parallel::parSapply(parClust, tmp1, f0)
 #
 tmp1 <- pg$.PEPs
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   return()
 }))
 unlink(paste0(wd, "/tmp1.RDS"))
 f0 <- \(x) { paste(x, collapse = ";") }
 #environment(f0) <- .GlobalEnv
-pg$PEPs <- parallel::parSapply(cl, tmp1, f0)
+pg$PEPs <- parallel::parSapply(parClust, tmp1, f0)
 f0 <- \(x) { min(x) }
 #environment(f0) <- .GlobalEnv
-pg$PEP <- parallel::parSapply(cl, tmp1, f0)
+pg$PEP <- parallel::parSapply(parClust, tmp1, f0)
 if (CustPG) {
   Custom_PGs$.Protein.IDs
   Custom_PGs$.PEPs <- lapply(Custom_PGs$.Protein.IDs, \(x) { prot$PEP[match(x, prot$Protein)] })
@@ -640,7 +639,7 @@ if (length(W)) {
     go <- length(removables) > 0L
     while (go) {
       tst2 <- vapply(removables, \(x) {
-        length(unique(unlist(pg$.pep.ids[setdiff(keepers, x)])))
+        length(unique(unlist(pg$.pep.ids[base::setdiff(keepers, x)])))
       }, 1L) == L # Can any of these be dropped without affecting the number of peptides?
       witch <- which(tst2)
       if (length(witch)) {
@@ -648,7 +647,7 @@ if (length(W)) {
         if (length(witch) > 1L) { witch <- witch[tst1b[witch] == min(tst1b[witch])][1L] }
         wutch <- which(!c(1L:length(removables)) %in% witch)
         goners <- c(goners, removables[witch])
-        keepers <- setdiff(keepers, goners)
+        keepers <- base::setdiff(keepers, goners)
         tst1a <- tst1a[wutch]
         tst1b <- tst1b[wutch]
         removables <- removables[wutch]
@@ -681,7 +680,7 @@ if (length(W)) {
     #  if (r == lr) { stop("Something went wrong!") }
     #  keepers <- sort(c(core, unique(as.integer(Com[tst,]))))
     #} else { keepers <- core }
-    #goners <- setdiff(overlappers, keepers)
+    #goners <- base::setdiff(overlappers, keepers)
     pg$Remove[goners] <- TRUE
     pt$Done[pt$id %in% unlist(pg$.pep.ids[overlappers])] <- TRUE
   }
@@ -703,7 +702,7 @@ if (CustPG) {
   Custom_PGs$Origin <- "Custom"
   #Custom_PGs$"Priority level" <- NULL
   custpgpep <- unique(unlist(Custom_PGs$.pep.ids))
-  pg$.pep.ids <- lapply(pg$.pep.ids, \(x) { setdiff(x, custpgpep) })
+  pg$.pep.ids <- lapply(pg$.pep.ids, \(x) { base::setdiff(x, custpgpep) })
   pg$"Priority level" <- Inf
   pg <- rbind(Custom_PGs, pg)
   seq <- rbind(seq2, seq)
@@ -737,7 +736,7 @@ tmp1 <- seq$.temp.pg.ids
 tmp2 <- pg[, c("id", "temp.pg.id")]
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
 readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
   return()
@@ -746,16 +745,16 @@ unlink(paste0(wd, "/tmp1.RDS"))
 unlink(paste0(wd, "/tmp2.RDS"))
 f0 <- \(x) { tmp2$id[tmp2$temp.pg.id %in% unlist(x)] }
 #environment(f0) <- .GlobalEnv
-tmp1 <- seq$.PG.ids <- parallel::parSapply(cl, tmp1, f0)
+tmp1 <- seq$.PG.ids <- parallel::parSapply(parClust, tmp1, f0)
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   return()
 }))
 unlink(paste0(wd, "/tmp1.RDS"))
 f0 <- \(x) { paste(x, collapse = ";") }
 #environment(f0) <- .GlobalEnv
-seq$"Protein group IDs" <- parallel::parSapply(cl, tmp1, f0)
+seq$"Protein group IDs" <- parallel::parSapply(parClust, tmp1, f0)
 pg$temp.pg.id <- NULL
 # Unique peptides: peptides unique to a protein group
 cat(" - Identifying unique peptides.\n")
@@ -781,13 +780,13 @@ seq$.Protein.group.IDs <- strsplit(seq$"Protein group IDs", ";")
 tmp <- data.frame(PG_IDs = unique(seq$"Protein group IDs"))
 tmp$.PG_IDs <- strsplit(tmp$PG_IDs, ";")
 kol <- c("id", "Peptides count", "PEP", "Priority level")
-kol <- intersect(kol, colnames(pg))
+kol <- base::intersect(kol, colnames(pg))
 tmp1 <- tmp$.PG_IDs
 tmp2 <- pg[, kol]
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
 readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
 readr::write_rds(CustPG, paste0(wd, "/CustPG.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
   assign("CustPG", readr::read_rds(paste0(wd, "/CustPG.RDS")), .GlobalEnv)
@@ -819,7 +818,7 @@ f0 <- \(x) {
   return(x[w2][w3])
 }
 #environment(f0) <- .GlobalEnv
-tmp$.Razor_PG_IDs <- parallel::parSapply(cl, tmp1, f0)
+tmp$.Razor_PG_IDs <- parallel::parSapply(parClust, tmp1, f0)
 tmp$Razor_PG_IDs <- vapply(tmp$.Razor_PG_IDs, paste, "", collapse = ";")
 seq[, c(".Razor.protein.group.ID", "Razor protein group ID")] <- tmp[match(seq$"Protein group IDs", tmp$PG_IDs), c(".Razor_PG_IDs", "Razor_PG_IDs")]
 c1 <- c("Leading proteins", "Leading razor proteins")
@@ -831,7 +830,7 @@ readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
 readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
 readr::write_rds(tmp3, paste0(wd, "/tmp3.RDS"))
 readr::write_rds(c2, paste0(wd, "/c2.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
   assign("tmp3", readr::read_rds(paste0(wd, "/tmp3.RDS")), .GlobalEnv)
@@ -850,7 +849,7 @@ f0 <- \(x) {
 }
 #environment(f0) <- .GlobalEnv
 for (i in 1L:length(c1)) {
-  seq[[c1[i]]] <- parallel::parSapply(cl, tmp3[[c2[i]]], f0)
+  seq[[c1[i]]] <- parallel::parSapply(parClust, tmp3[[c2[i]]], f0)
 }
 # Sort by PEP
 if (CustPG) { # Priority-based razor peptides decision for custom protein groups
@@ -858,9 +857,9 @@ if (CustPG) { # Priority-based razor peptides decision for custom protein groups
     wcp <- which(pg$"Priority level" == i)
     p <- unique(unlist(pg$.pep.ids[wcp]))
     whp <- which(pg$"Priority level" < i)
-    if (length(whp)) { p <- setdiff(!p, unique(unlist(pg$.pep.ids[whp]))) } # Remove peptides matching protein groups of higher priority
+    if (length(whp)) { p <- base::setdiff(!p, unique(unlist(pg$.pep.ids[whp]))) } # Remove peptides matching protein groups of higher priority
     m <- match(p, seq$id)
-    seq$.Razor.protein.group.ID[m] <- lapply(seq$.Protein.group.IDs[m], \(x) { intersect(x %in% pg$id[wcp]) })
+    seq$.Razor.protein.group.ID[m] <- lapply(seq$.Protein.group.IDs[m], \(x) { base::intersect(x %in% pg$id[wcp]) })
   }
 }
 # Update columns
@@ -889,7 +888,7 @@ tmp2 <- prot[, c(".pep.ids", "Protein")]
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
 readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
 readr::write_rds(c2, paste0(wd, "/c2.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
   assign("c2", readr::read_rds(paste0(wd, "/c2.RDS")), .GlobalEnv)
@@ -907,7 +906,7 @@ f0 <- \(x) {
   return(c(x1, x2, x3))
 }
 #environment(f0) <- .GlobalEnv
-pg[, c1] <- as.data.frame(t(parallel::parApply(cl, tmp1[, c2], 1L, f0)))
+pg[, c1] <- as.data.frame(t(parallel::parApply(parClust, tmp1[, c2], 1L, f0)))
 test1 <- as.integer(unlist(strsplit(pg$"Peptide counts (all)", ";")))
 test2 <- as.integer(unlist(strsplit(pg$"Peptide counts (unique)", ";")))
 test3 <- as.integer(unlist(strsplit(pg$"Peptide counts (razor+unique)", ";")))
@@ -956,7 +955,7 @@ readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
 readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
 readr::write_rds(tmp3, paste0(wd, "/tmp3.RDS"))
 readr::write_rds(c2, paste0(wd, "/c2.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
   assign("tmp3", readr::read_rds(paste0(wd, "/tmp3.RDS")), .GlobalEnv)
@@ -992,21 +991,21 @@ f0 <- \(x) {
   return(res)
 }
 #environment(f0) <- .GlobalEnv
-#pg[, c1] <- as.data.frame(t(parallel::parApply(cl, pg[, c2], 1L, \(x) {
-pg[, c1] <- t(parallel::parApply(cl, tmp2[, c2], 1L, f0))
+#pg[, c1] <- as.data.frame(t(parallel::parApply(parClust, pg[, c2], 1L, \(x) {
+pg[, c1] <- t(parallel::parApply(parClust, tmp2[, c2], 1L, f0))
 # Note:
 #   The "Gene names" and "Protein names" columns will not match the MQ ones...
 #   but after checking that seems to be because the MQ list is missing some!
 cat(" - Getting Gene and Protein names + annotations...\n")
 ca <- c("Common Names", "Common Name")
 if (sum(ca %in% colnames(DB))) {
-  ca <- intersect(ca, colnames(DB))
+  ca <- base::intersect(ca, colnames(DB))
   test <- vapply(ca, \(x) { length(is.na(DB[[x]])) }, 1L) > 0L
   ca <- ca[test][1L]
 }
 cb <- c("Genes", "Gene", "Gene IDs", "Gene ID")
 if (sum(cb %in% colnames(DB))) {
-  cb <- intersect(cb, colnames(DB))
+  cb <- base::intersect(cb, colnames(DB))
   test <- vapply(cb, \(x) { length(is.na(DB[[x]])) }, 1L) > 0L
   cb <- cb[test][1L]
 }
@@ -1021,7 +1020,7 @@ if (length(cb) == 1L) {
   c2 <- c(c2, cb)
 }
 kol <- c("Protein ID", "Header", ca, cb)
-kol <- intersect(kol, colnames(DB))
+kol <- base::intersect(kol, colnames(DB))
 temp <- DB[, kol]
 temp$temp <- sub("^>", "", temp$Header)
 temp$"Protein ID" <- sub("^CON_+", "", temp$"Protein ID")
@@ -1034,7 +1033,7 @@ readr::write_rds(c1, paste0(wd, "/c1.RDS"))
 readr::write_rds(c2, paste0(wd, "/c2.RDS"))
 readr::write_rds(ca, paste0(wd, "/ca.RDS"))
 readr::write_rds(cb, paste0(wd, "/cb.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
   assign("c1", readr::read_rds(paste0(wd, "/c1.RDS")), .GlobalEnv)
@@ -1069,7 +1068,7 @@ f0 <- \(x) { #x <- tmp2[1L]
   return(setNames(c(length(x), res2), c1))
 }
 #environment(f0) <- .GlobalEnv
-tst2 <- parallel::parLapply(cl, tmp2, f0)
+tst2 <- parallel::parLapply(parClust, tmp2, f0)
 tst2 <- as.data.frame(do.call(rbind, tst2))
 pg[, c1] <- tst2
 #vapply(1L:4L, \(x) { sum(tst1[[x]] != tst2[[x]]) }, 1L)
@@ -1080,7 +1079,7 @@ tmp1 <- DB[, c("Protein ID", "MW [kDa]", "Sequence length")]
 tmp2 <- vapply(strsplit(pg$"Leading protein IDs", ";"), \(x) { x[1L] }, "")
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
 readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
   return()
@@ -1089,17 +1088,17 @@ unlink(paste0(wd, "/tmp1.RDS"))
 unlink(paste0(wd, "/tmp2.RDS"))
 f0 <- \(x) { unlist(tmp1[match(x, tmp1$"Protein ID"), c("MW [kDa]", "Sequence length")]) }
 #environment(f0) <- .GlobalEnv
-pg[, c("Mol. weight [kDa]", "Sequence length")] <- as.data.frame(t(parallel::parSapply(cl, tmp2, f0)))
+pg[, c("Mol. weight [kDa]", "Sequence length")] <- as.data.frame(t(parallel::parSapply(parClust, tmp2, f0)))
 f0 <- \(x) { paste(tmp1$"Sequence length"[match(x, tmp1$"Protein ID")], collapse = ";") } # (I checked, the order is fine) 
 #environment(f0) <- .GlobalEnv
-pg$"Sequence lengths" <- parallel::parSapply(cl, tmp2, f0)
+pg$"Sequence lengths" <- parallel::parSapply(parClust, tmp2, f0)
 tmp1 <- pg$.pep.ids
 tmp2 <- seq$id
 tmp3 <- nchar(gsub(paste(c(AA, "_"), collapse = "|"), "", seq$"Modified sequence"))
 readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
 readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
 readr::write_rds(tmp3, paste0(wd, "/tmp3.RDS"))
-invisible(parallel::clusterCall(cl, \() {
+invisible(parallel::clusterCall(parClust, \() {
   assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
   assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
   assign("tmp3", readr::read_rds(paste0(wd, "/tmp3.RDS")), .GlobalEnv)
@@ -1115,7 +1114,7 @@ f0 <- \(x) { #x <- tmp1[1L]
   return(x)
 }
 #environment(f0) <- .GlobalEnv
-temp <- parallel::parSapply(cl, tmp1, f0)
+temp <- parallel::parSapply(parClust, tmp1, f0)
 u <- unique(temp)
 if (length(u) > 1L) {
   pg$"Only identified by site" <- temp
@@ -1129,7 +1128,7 @@ if (!misFun(Ev)) {
   tmp2 <- seq[, c("id", ".Evidence.IDs")]
   readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
   readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
-  invisible(parallel::clusterCall(cl, \() {
+  invisible(parallel::clusterCall(parClust, \() {
     assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
     assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
     return()
@@ -1142,7 +1141,7 @@ if (!misFun(Ev)) {
           collapse = ";")
   }
   #environment(f0) <- .GlobalEnv
-  pg$"Evidence IDs" <- parallel::parSapply(cl, tmp1, f0)
+  pg$"Evidence IDs" <- parallel::parSapply(parClust, tmp1, f0)
   Ev$"Protein group IDs" <- seq$"Protein group IDs"[match(Ev$"Modified sequence", seq$"Modified sequence")]
   if ("MS/MS count" %in% colnames(Ev)) {
     temp <- aggregate(Ev$"MS/MS count", list(Ev$"Modified sequence"), sum)
@@ -1176,7 +1175,7 @@ if ("Common Name" %in% colnames(DB)) {
   tmp2 <- strsplit(pg$"Leading protein IDs", ";")
   readr::write_rds(tmp1, paste0(wd, "/tmp1.RDS"))
   readr::write_rds(tmp2, paste0(wd, "/tmp2.RDS"))
-  invisible(parallel::clusterCall(cl, \() {
+  invisible(parallel::clusterCall(parClust, \() {
     assign("tmp1", readr::read_rds(paste0(wd, "/tmp1.RDS")), .GlobalEnv)
     assign("tmp2", readr::read_rds(paste0(wd, "/tmp2.RDS")), .GlobalEnv)
     return()
@@ -1189,7 +1188,7 @@ if ("Common Name" %in% colnames(DB)) {
     paste(x, collapse = ";")
   }
   #environment(f0) <- .GlobalEnv
-  pg$"Common Names" <- parallel::parSapply(cl, tmp2, f0)
+  pg$"Common Names" <- parallel::parSapply(parClust, tmp2, f0)
   w <- which(pg$"Common Names" == "")
   if (length(w)) { if ("Protein names" %in% colnames(pg)) {
     pg$"Common Names"[w] <- pg$"Protein names"[w]
@@ -1201,7 +1200,7 @@ if ("Common Name" %in% colnames(DB)) {
     if (!length(x)) { x <- "" }
     return(x)
   }, "")
-  id.col <- intersect(c("Names", "Protein IDs", "Gene names"), colnames(pg))
+  id.col <- base::intersect(c("Names", "Protein IDs", "Gene names"), colnames(pg))
   w <- which(pg$"Common Name (short)" == "")
   if ((length(id.col))&&(length(w))) {
     pg$"Common Name (short)"[w] <- apply(pg[w, id.col], 1L, \(x) {
@@ -1244,7 +1243,7 @@ PG_assembly <- list(Protein.groups = pg,
                     Peptides = Pep,
                     Database = DB)
 if (!misFun(Ev)) { PG_assembly$Evidences <- Ev }
-invisible(parallel::clusterCall(cl, \(x) {
+invisible(parallel::clusterCall(parClust, \(x) {
   try(rm(tmp1, tmp2, tmp3, tmp4, CustPG, c1, c2, ca, cb), silent = TRUE)
   return()
 }))

@@ -3,7 +3,7 @@ if (!interactive()) { stop("This script should only be run within an interactive
 options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
 options(svDialogs.rstudio = TRUE)
-#rm(list = setdiff(ls(), c("dtstNm", "wd", "inDirs", "outDir")))
+#rm(list = base::setdiff(ls(), c("dtstNm", "wd", "inDirs", "outDir")))
 closeAllConnections()
 
 ## Load proteoCraft
@@ -68,7 +68,7 @@ if(!exists("bioc_req")) { bioc_req <- c() }
 bioc_req %<o% bioc_req
 cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT",
                      "gplots", "ggplot2", "ggpubr", "reshape", "reshape2", "compiler", "stats", "ggrepel", "rstudioapi", "gtools", "minpack.lm",
-                     "parallel", "openxlsx", "openxlsx2", "plotly", "Peptides", "venn", "ggdendro", "ggpubr", "colorspace", "ggnewscale",
+                     "parallel", "openxlsx2", "plotly", "Peptides", "venn", "ggdendro", "ggpubr", "colorspace", "ggnewscale",
                      "viridis", "factoextra", "NbClust", "svDialogs", "htmlwidgets", "fs", "officer", "snow",
                      "imputeLCMD", "ggplotify", "plyr", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders", "jpeg", "stringi",
                      "readr", "ssh", "taxize", "arrow", "iq", "Rtsne", "svglite"))
@@ -102,8 +102,8 @@ for (pack in cran_req) {
       }
       if (inherits(tst, "try-error")) {
         warning(paste0("Package ", pack, " wasn't installed properly, skipping..."))
-        cran_req <- setdiff(cran_req, pack)
-        bioc_req <- setdiff(bioc_req, pack)
+        cran_req <- base::setdiff(cran_req, pack)
+        bioc_req <- base::setdiff(bioc_req, pack)
       }
     }
     inst <- as.data.frame(installed.packages())
@@ -137,11 +137,6 @@ source(locScrptSrc)
 Src <- paste0(libPath, "/extdata/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
-
-# Update the proteoCraft package?
-# msg <- "Should we update the proteoCraft package?"
-# updt_proteoCraft %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
-updt_proteoCraft %<o% FALSE
 
 # Define input, output, project folder etc...
 Src <- paste0(libPath, "/extdata/Sources/Start_analysis.R")
@@ -221,7 +216,8 @@ if (LabelType == "LFQ") {
 
 IsBioID %<o% FALSE
 if (WorkFlow == "Pull-down") {
-  IsBioID <- c(TRUE, FALSE)[match(dlg_message("Is this a BioID (and variants) experiment?", "yesno")$res, c("yes", "no"))]
+  IsBioID <- c(TRUE, FALSE)[match(svDialogs::dlg_message("Is this a BioID (and variants) experiment?", "yesno")$res,
+                                  c("yes", "no"))]
   if (IsBioID) { AnalysisParam$"Type - advanced" <- "BioID" }
 }
 IsBioID2 %<o% FALSE
@@ -307,12 +303,15 @@ if (PTMriched) {
     tmp[[ptm]] <- c("-", "+")[tmp[[ptm]] + 1L]
     tmp[[ptm]] <- factor(tmp[[ptm]], levels = c("-", "+"))
     tmp$"Raw file" <- gsub(".*/|\\.[^.]+$", "", tmp$"Raw file")
-    plot <- ggplot(tmp) + geom_bar(aes(x = `Raw file`, y = Count, fill = .data[[ptm]]), stat = "identity") +
-      scale_fill_viridis(discrete = TRUE, option = "H", begin = 0.25, end = 0.8) + ggtitle(ttl) + 
-      theme_bw() + theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1))
+    plot <- ggplot2::ggplot(tmp) +
+      ggplot2::geom_bar(ggplot2::aes(x = `Raw file`, y = Count, fill = .data[[ptm]]),
+                        stat = "identity") +
+      viridis::scale_fill_viridis(discrete = TRUE, option = "H", begin = 0.25, end = 0.8) +
+      ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
+      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 60, vjust = 1, hjust = 1))
     poplot(plot)
     suppressMessages({
-      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L)
+      ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L)
     })
     #
     PTMev2Remov[[ptm]] <- lapply(Exp, \(exp) { #exp <- Exp[1L]
@@ -362,7 +361,7 @@ if (RemovZ1 && length(w1)) {
 #
 # Remove evidences with null intensity values
 w1 <- which(is.finite(ev$Intensity) & (ev$Intensity > 0))
-w2 <- setdiff(1L:nrow(ev), w1)
+w2 <- base::setdiff(1L:nrow(ev), w1)
 l2 <- length(w2)
 if (l2) {
   warning(paste0("Removing ", l2, " (", round(100*l2/nrow(ev), 2L), "%) peptide evidences with invalid or null intensity values!"))
@@ -370,7 +369,7 @@ if (l2) {
   ev <- ev[w1,]
 }
 w1 <- which(is.na(ev$Reverse) | (ev$Reverse != "+"))
-w2 <- setdiff(1L:nrow(ev), w1)
+w2 <- base::setdiff(1L:nrow(ev), w1)
 l2 <- length(w2)
 if (l2) {
   warning(paste0("Removing ", l2, " (", round(100*l2/nrow(ev), 2L), "%) reverse peptide evidences!"))
@@ -378,7 +377,7 @@ if (l2) {
   ev <- ev[w1, ]
 }
 w1 <- which(is.na(ev$"Potential contaminant") | (ev$"Potential contaminant" != "+"))
-w2 <- setdiff(1L:nrow(ev), w1)
+w2 <- base::setdiff(1L:nrow(ev), w1)
 l2 <- length(w2)
 if (l2) {
   message(paste0(round(100*l2/nrow(ev), 2L), "% of valid identifications are potential contaminants."))
@@ -482,21 +481,27 @@ temp$Sample <- factor(temp$Sample, levels = Exp)
 ttl <- "Density plot - Peptides level"
 if (prot.list.Cond) {
   temp$"In list" <- pep$"In list"[match(temp$`Modified sequence`, pep$`Modified sequence`)]
-  plot <- ggplot(temp) + geom_histogram(aes(x = value, fill = `In list`), bins = 100L)
+  plot <- ggplot2::ggplot(temp) +
+    ggplot2::geom_histogram(ggplot2::aes(x = value, fill = `In list`),
+                            bins = 100L)
 } else {
-  plot <- ggplot(temp) + geom_histogram(aes(x = value, fill = Sample), bins = 100L)
+  plot <- ggplot2::ggplot(temp) +
+    ggplot2::geom_histogram(ggplot2::aes(x = value, fill = Sample),
+                            bins = 100L)
 }
 plot <- plot +
-  facet_grid(form) +
-  theme_bw() + theme(strip.text.y = element_text(angle = 0, vjust = 0.5, hjust = 0)) +
-  scale_y_continuous(expand = c(0L, 0L)) +
-  scale_fill_viridis(option = "D", discrete = TRUE, begin = 0.25) +
-  ggtitle(ttl) + xlab("log10(Peptides Intensity)")
+  ggplot2::facet_grid(form) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(strip.text.y = ggplot2::element_text(angle = 0, vjust = 0.5, hjust = 0)) +
+  ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
+  viridis::scale_fill_viridis(option = "D", discrete = TRUE, begin = 0.25) +
+  ggplot2::ggtitle(ttl) + ggplot2::xlab("log10(Peptides Intensity)")
 poplot(plot, 12L, 22L)
 dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 suppressMessages({
-  ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+  ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                  dpi = 300L, width = 10L, height = 10L, units = "in")
 })
 
 # Correlation:
@@ -509,14 +514,14 @@ if (length(Exp) > 1L) {
   temp2 <- temp[, grep(topattern("log10(Intensity) - "), colnames(temp), value = TRUE)]
   source(parSrc)
   tmpFl <- tempfile(fileext = ".rds")
-  clusterExport(parClust, "tmpFl", envir = environment())
+  parallel::clusterExport(parClust, "tmpFl", envir = environment())
   readr::write_rds(temp2, tmpFl)
-  invisible(clusterCall(parClust, \(x) {
+  invisible(parallel::clusterCall(parClust, \(x) {
     assign("temp2", readr::read_rds(tmpFl), envir = .GlobalEnv)
     return()
   }))
   unlink(tmpFl)
-  temp2 <- parApply(parClust, comb, 1L, \(x) {
+  temp2 <- parallel::parApply(parClust, comb, 1L, \(x) {
     temp3 <- temp2[, paste0("log10(Intensity) - ", unlist(x))]
     temp3$X <- x[[1L]]
     temp3$Y <- x[[2L]]
@@ -526,7 +531,7 @@ if (length(Exp) > 1L) {
   })
   temp2 <- plyr::rbind.fill(temp2)
   temp2$"Modified sequence" <- temp$"Modified sequence"
-  test <- parApply(parClust, temp2[, c("log10(X intensity)", "log10(Y intensity)")], 1L, \(x) {
+  test <- parallel::parApply(parClust, temp2[, c("log10(X intensity)", "log10(Y intensity)")], 1L, \(x) {
     sum(is.finite(x))
   }) == 2L
   temp2 <- temp2[test,]
@@ -559,15 +564,15 @@ if (length(Exp) > 1L) {
   }
   tmp2 <- temp2[, c("log10(X intensity)", "log10(Y intensity)", "Comparison", "Modified sequence")]
   tmpFl <- tempfile(fileext = ".rds")
-  clusterExport(parClust, list("tmpFl", "get_density"), envir = environment())
+  parallel::clusterExport(parClust, list("tmpFl", "get_density"), envir = environment())
   readr::write_rds(tmp2, tmpFl)
-  invisible(clusterCall(parClust, \(x) {
+  invisible(parallel::clusterCall(parClust, \(x) {
     assign("tmp2", readr::read_rds(tmpFl), envir = .GlobalEnv)
     return()
   }))
   unlink(tmpFl)
   comps <- unique(temp2$Comparison)
-  tmp2D <- setNames(parLapply(parClust, comps, \(cmp) { #cmp <- comps[1L]
+  tmp2D <- setNames(parallel::parLapply(parClust, comps, \(cmp) { #cmp <- comps[1L]
     w <- which(tmp2$Comparison == cmp)
     x <- try({
       y <- get_density(tmp2$`log10(X intensity)`[w], tmp2$`log10(Y intensity)`[w], n = 500L)
@@ -588,27 +593,31 @@ if (length(Exp) > 1L) {
       temp2$Density[w] <- tmp2Dw$Density[match(temp2$`Modified sequence`[w], tmp2Dw$Seq)]
     }
     ttl <- "Correlation plot - Peptides level"
-    plot <- ggplot(temp2) +
-      geom_point(aes(x = `log10(X intensity)`, y = `log10(Y intensity)`,
-                     colour = Density), size = 0.1) +
-      geom_abline(intercept = 0, slope = 1, colour = "red") +
-      geom_text(data = temp3, x = x_min, y = y_max - 0.01*(y_max - y_min),
-                aes(label = R), hjust = 0, cex = 2.5) +
-      geom_text(data = temp3, x = x_min, y = y_max - 0.06*(y_max - y_min),
-                aes(label = Median), hjust = 0, cex = 2.5) +
-      geom_text(data = temp3, x = x_min, y = y_max - 0.11*(y_max - y_min),
-                aes(label = SD), hjust = 0, cex = 2.5) +
-      facet_grid(Y~X, drop = TRUE) + coord_fixed(1L) +
-      scale_color_viridis() +
-      theme_bw() + theme(strip.text.y = element_text(angle = 0, vjust = 0.5, hjust = 0),
-                         strip.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0)) + ggtitle(ttl)
+    plot <- ggplot2::ggplot(temp2) +
+      ggplot2::geom_point(ggplot2::aes(x = `log10(X intensity)`, y = `log10(Y intensity)`, colour = Density),
+                          size = 0.1) +
+      ggplot2::geom_abline(intercept = 0, slope = 1, colour = "red") +
+      ggplot2::geom_text(data = temp3, ggplot2::aes(label = R),
+                         x = x_min, y = y_max - 0.01*(y_max - y_min),
+                         hjust = 0, cex = 2.5) +
+      ggplot2::geom_text(data = temp3, ggplot2::aes(label = Median),
+                         x = x_min, y = y_max - 0.06*(y_max - y_min), hjust = 0, cex = 2.5) +
+      ggplot2::geom_text(data = temp3, ggplot2::aes(label = SD),
+                         x = x_min, y = y_max - 0.11*(y_max - y_min), hjust = 0, cex = 2.5) +
+      ggplot2::facet_grid(Y~X, drop = TRUE) + ggplot2::coord_fixed(1L) +
+      viridis::scale_color_viridis() +
+      ggplot2::theme_bw() +
+      ggplot2::theme(strip.text.y = ggplot2::element_text(angle = 0, vjust = 0.5, hjust = 0),
+                     strip.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust = 0)) +
+      ggplot2::ggtitle(ttl)
     poplot(plot, 12L, 22L)
     suppressMessages({
-      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                      dpi = 300L, width = 10L, height = 10L, units = "in")
     })
   } else { warning("Do we really have enough data to continue? Investigate...") }
 }
-invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
+invisible(parallel::clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 
 # Calculate peptide ratios
 rat.col %<o% "log2(Ratio)"
@@ -643,17 +652,24 @@ if (MakeRatios) {
   temp$Sample <- factor(temp$Sample, levels = Exp)
   temp <- temp[is.finite(temp$value),]
   ttl <- "Ratios density plot - Peptides level"
-  plot <- ggplot(temp) + geom_histogram(aes(x = value, fill = Sample), bins = 100L) +
-    geom_vline(xintercept = RatiosThresh, colour = "red") +
-    ggtitle(ttl) + facet_grid(.~Sample) +
-    scale_y_continuous(expand = c(0L, 0L)) +
-    scale_fill_viridis(option = "D", discrete = TRUE, begin = 0.25) +
-    theme_bw() + theme(strip.text.y = element_text(angle = 0, vjust = 0.5, hjust = 0)) +
-    xlab("log2(Ratio)")
-  if (RatiosThresh_2sided) { plot <- plot + geom_vline(xintercept = -RatiosThresh, colour = "red") }
+  plot <- ggplot2::ggplot(temp) +
+    ggplot2::geom_histogram(ggplot2::aes(x = value, fill = Sample),
+                            bins = 100L) +
+    ggplot2::geom_vline(xintercept = RatiosThresh, colour = "red") +
+    ggplot2::ggtitle(ttl) + ggplot2::facet_grid(.~Sample) +
+    ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
+    viridis::scale_fill_viridis(option = "D", discrete = TRUE, begin = 0.25) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(strip.text.y = ggplot2::element_text(angle = 0, vjust = 0.5, hjust = 0)) +
+    ggplot2::xlab("log2(Ratio)")
+  if (RatiosThresh_2sided) {
+    plot <- plot +
+      ggplot2::geom_vline(xintercept = -RatiosThresh, colour = "red")
+  }
   poplot(plot, 12L, 22L)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                    dpi = 300L, width = 10L, height = 10L, units = "in")
   })
 }
 
@@ -716,7 +732,7 @@ if (tstFllID) {
   exports <- append(exports, "tmp3")
 }
 source(parSrc)
-clusterExport(parClust, exports, envir = environment())
+parallel::clusterExport(parClust, exports, envir = environment())
 for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
   j <- if (i == "No Isoforms") { i } else { sub("s$", "", i) }
   if (!j %in% colnames(db)) {
@@ -729,8 +745,8 @@ for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
   if (length(j) == 1L) {
     tmp4 <- db[[j]]
     exports <- list("i", "tmp4")
-    clusterExport(parClust, exports, envir = environment())
-    PG[[i]] <- parSapply(parClust, tmp, \(x) {
+    parallel::clusterExport(parClust, exports, envir = environment())
+    PG[[i]] <- parallel::parSapply(parClust, tmp, \(x) {
       x <- unlist(x)
       m1 <- match(x, tmp2)
       if (tstFllID) {
@@ -746,13 +762,13 @@ for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
       x[x %in% c("", " ", "NA", NA)] <- ""
       if (!length(x)) { x <- "" }
       if (i == "Genes") { x <- unique(x) }
-      x <- setdiff(x, "")
+      x <- base::setdiff(x, "")
       x <- paste(x, collapse = ";")
       return(x)
     })
   }
 }
-invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
+invisible(parallel::clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 # Simplify Gene columns
 genkol <- c("Genes", "Gene names")
 w <- which(genkol %in% colnames(PG))
@@ -801,35 +817,34 @@ if (IsBioID) {
 
 # Number of spectra, evidences and peptides per sample:
 source(parSrc)
-invisible(clusterCall(parClust, \() {
-  library(proteoCraft)
-  library(reshape)
-  library(data.table)
+invisible(parallel::clusterCall(parClust, \() {
+  requireNamespace("proteoCraft")
+  requireNamespace("data.table")
   return()
 }))
 temp_PG <- data.frame(id = PG$id,
                       Accession1 = vapply(strsplit(PG$"Leading protein IDs", ";"), \(x) { unlist(x)[1L] }, ""))
-temp_PG$Pep <- parLapply(parClust, strsplit(PG$"Peptide IDs", ";"), as.integer)
+temp_PG$Pep <- parallel::parLapply(parClust, strsplit(PG$"Peptide IDs", ";"), as.integer)
 tmp <- pep[, c("id", "Sequence")]
-clusterExport(parClust, "tmp", envir = environment())
-temp_PG$Pep <- parLapply(parClust, temp_PG$Pep, \(x) { tmp$Sequence[match(x, tmp$id)] })
+parallel::clusterExport(parClust, "tmp", envir = environment())
+temp_PG$Pep <- parallel::parLapply(parClust, temp_PG$Pep, \(x) { tmp$Sequence[match(x, tmp$id)] })
 temp_PG$Seq <- db$Sequence[match(temp_PG$Accession1, db$"Protein ID")]
 if (!"Sequence coverage [%]" %in% colnames(PG)) {
   exports <- list("Coverage")
-  clusterExport(parClust, exports, envir = environment())
-  PG$"Sequence coverage [%]" <- round(100*parApply(parClust, temp_PG[, c("Seq", "Pep")], 1L, \(x) {
+  parallel::clusterExport(parClust, exports, envir = environment())
+  PG$"Sequence coverage [%]" <- round(100*parallel::parApply(parClust, temp_PG[, c("Seq", "Pep")], 1L, \(x) {
     Coverage(x[[1L]], x[[2L]])
   }), 1L)
 }
 CreateMSMSKol %<o% (("MS/MS IDs" %in% colnames(ev)) && (sum(c("integer", "character") %in% class(ev$"MS/MS IDs"))))
 if (CreateMSMSKol) {
   # Somehow there are no MSMS IDs for DIA, but this may be a late tables writing bug.
-  ev$temp <- parLapply(parClust, strsplit(as.character(ev$"MS/MS IDs"), ";"), as.integer)
+  ev$temp <- parallel::parLapply(parClust, strsplit(as.character(ev$"MS/MS IDs"), ";"), as.integer)
   #PG[, paste0("Spectr", c("al count", "um IDs"))]
-  temp <- reshape::melt(setNames(lapply(strsplit(PG$`Evidence IDs`, ";"), as.integer), PG$id))
+  temp <- listMelt(lapply(strsplit(PG$`Evidence IDs`, ";"), as.integer), PG$id)
   temp$MSMSIDs <- ev$temp[match(temp$value, ev$id)]
   temp <- temp[lengths(temp$MSMSIDs) > 0L,] # Remove Match-Between-Runs evidences (no MS/MS)
-  temp <- reshape::melt(setNames(temp$MSMSIDs, temp$L1))
+  temp <- listMelt(temp$MSMSIDs, temp$L1)
   temp <- do.call(data.frame, aggregate(temp$value, list(temp$L1), \(x) {
     x <- unique(x)
     return(c(Count = length(x), List = list(x)))
@@ -848,12 +863,11 @@ tmpFl2 <- tempfile(fileext = ".rds")
 tmpFl3 <- tempfile(fileext = ".rds")
 exports <- list("wd", "IsBioID2", "Exp", "Modifs", "CreateMSMSKol", "tmpFl1", "tmpFl2", "tmpFl3")
 if (IsBioID2) { exports <- append(exports, "wbiot") }
-clusterExport(parClust, exports, envir = environment())
+parallel::clusterExport(parClust, exports, envir = environment())
 readr::write_rds(temp_ev, tmpFl1)
 readr::write_rds(temp_pep, tmpFl2)
 readr::write_rds(temp_PG, tmpFl3)
-invisible(clusterCall(parClust, \(x) {
-  library(data.table)
+invisible(parallel::clusterCall(parClust, \(x) {
   assign("temp_ev", readr::read_rds(tmpFl1), envir = .GlobalEnv)
   assign("temp_pep", readr::read_rds(tmpFl2), envir = .GlobalEnv)
   assign("temp_PG", readr::read_rds(tmpFl3), envir = .GlobalEnv)
@@ -862,8 +876,8 @@ invisible(clusterCall(parClust, \(x) {
 unlink(tmpFl1)
 unlink(tmpFl2)
 unlink(tmpFl3)
-clusterExport(parClust, list("listMelt", "Coverage", "topattern"), envir = environment())
-temp <- parLapply(parClust, Exp, \(exp) { #exp <- Exp[1L]
+parallel::clusterExport(parClust, list("listMelt", "Coverage", "topattern"), envir = environment())
+temp <- parallel::parLapply(parClust, Exp, \(exp) { #exp <- Exp[1L]
   res <- temp_PG[, "id", drop = FALSE]
   kol <- c()
   if (CreateMSMSKol) {
@@ -935,7 +949,7 @@ temp <- parLapply(parClust, Exp, \(exp) { #exp <- Exp[1L]
       kolBp <- grep("^Biot\\. peptide", kolB, value = TRUE)
       if (CreateMSMSKol) {
         kolBs <- grep("^Biot\\. spectr", kolB, value = TRUE)
-        kolB <- setdiff(kolB, kolBs); rm(kolBs) #I don't think we need those columns now... too many is too many
+        kolB <- base::setdiff(kolB, kolBs); rm(kolBs) #I don't think we need those columns now... too many is too many
       }
       kolBk <- grep(" count - ", kolB, value = TRUE)
       kolBi <- grep(" IDs - ", kolB, value = TRUE)
@@ -994,15 +1008,15 @@ for (exp in Exp) { #exp <- Exp[1L]
 }
 tmp <- do.call(rbind, tmpLst)
 tmpFl <- tempfile(fileext = ".rds")
-clusterExport(parClust, "tmpFl", envir = environment())
+parallel::clusterExport(parClust, "tmpFl", envir = environment())
 readr::write_rds(tmp, tmpFl)
-invisible(clusterCall(parClust, \(x) {
+invisible(parallel::clusterCall(parClust, \(x) {
   assign("tmp", readr::read_rds(tmpFl), envir = .GlobalEnv)
   return()
 }))
 unlink(tmpFl)
-clusterExport(parClust, "Coverage", envir = environment())
-tmp$Coverage <- parSapply(parClust, seq_len(nrow(tmp)), \(x) {
+parallel::clusterExport(parClust, "Coverage", envir = environment())
+tmp$Coverage <- parallel::parSapply(parClust, seq_len(nrow(tmp)), \(x) {
   round(100*Coverage(tmp$"Sequence (1st accession)"[x], tmp$"Peptides"[[x]]), 1L)
 })
 nRws <- lengths(tmpRws)
@@ -1095,14 +1109,14 @@ if (length(Exp) > 1L) {
     temp2 <- PG[, kolZ] 
     source(parSrc)
     tmpFl <- tempfile(fileext = ".rds")
-    clusterExport(parClust, list("kol", "klnm", "tmpFl"), envir = environment())
+    parallel::clusterExport(parClust, list("kol", "klnm", "tmpFl"), envir = environment())
     readr::write_rds(temp2, tmpFl)
-    clusterCall(parClust, \(x) {
+    parallel::clusterCall(parClust, \(x) {
       assign("temp2", readr::read_rds(tmpFl), envir = .GlobalEnv)
       return()
     })
     unlink(tmpFl)
-    temp2 <- parApply(parClust, comb, 1L, \(x) {
+    temp2 <- parallel::parApply(parClust, comb, 1L, \(x) {
       temp3 <- temp2[, paste0(kol, unlist(x))]
       temp3$X <- x[[1L]]
       temp3$Y <- x[[2L]]
@@ -1117,7 +1131,7 @@ if (length(Exp) > 1L) {
     return(temp2)
   }), names(PG.int.cols))
   temp <- plyr::rbind.fill(temp)
-  test <- parApply(parClust, temp[, c("log10(X LFQ)", "log10(Y LFQ)")], 1L, \(x) {
+  test <- parallel::parApply(parClust, temp[, c("log10(X LFQ)", "log10(Y LFQ)")], 1L, \(x) {
     sum(is.finite(x))
   }) == 2L
   temp <- temp[test,]
@@ -1144,15 +1158,15 @@ if (length(Exp) > 1L) {
   y_max <- max(temp$`log10(Y LFQ)`)
   tmp <- temp[, c("log10(X LFQ)", "log10(Y LFQ)", "Comparison", "Common Name (short)")]
   tmpFl <- tempfile(fileext = ".rds")
-  clusterExport(parClust, list("get_density", "tmpFl"), envir = environment())
+  parallel::clusterExport(parClust, list("get_density", "tmpFl"), envir = environment())
   readr::write_rds(tmp, tmpFl)
-  clusterCall(parClust, \(x) {
+  parallel::clusterCall(parClust, \(x) {
     assign("tmp", readr::read_rds(tmpFl), envir = .GlobalEnv)
     return()
   })
   unlink(tmpFl)
   comps <- unique(temp$Comparison)
-  tmpD <- setNames(parLapply(parClust, comps, \(cmp) { #cmp <- comps[1L]
+  tmpD <- setNames(parallel::parLapply(parClust, comps, \(cmp) { #cmp <- comps[1L]
     w <- which(tmp$Comparison == cmp)
     x <- get_density(tmp$`log10(X LFQ)`[w], tmp$`log10(Y LFQ)`[w], n = 500L)
     x <- data.frame(Density = x,
@@ -1169,30 +1183,40 @@ if (length(Exp) > 1L) {
   if (prot.list.Cond) {
     temp$"In list" <- PG$`In list`[match(temp$`Common Name (short)`, PG$`Common Name (short)`)]
   }
-  plot <- ggplot(temp) + geom_point(aes(x = `log10(X LFQ)`, y = `log10(Y LFQ)`, color = Intensity), size = 0.1) +
-    geom_abline(intercept = 0, slope = 1, colour = "red") +
-    geom_text(data = temp2, x = x_min, y = y_max - 0.01*(y_max - y_min), aes(label = R), hjust = 0, cex = 2.5) +
-    geom_text(data = temp2, x = x_min, y = y_max - 0.06*(y_max - y_min), aes(label = Median), hjust = 0, cex = 2.5) +
-    geom_text(data = temp2, x = x_min, y = y_max - 0.11*(y_max - y_min), aes(label = SD), hjust = 0, cex = 2.5) +
-    facet_grid(Y~Type+X) + ggtitle(ttl) + coord_fixed(1) +
-    scale_color_viridis() +
-    theme_bw() + theme(strip.text.y = element_text(angle = -90, vjust = 0, hjust = 0.5),
-                       strip.text.x = element_text(angle = 0, vjust = 0, hjust = 0.5))
+  plot <- ggplot2::ggplot(temp) +
+    ggplot2::geom_point(ggplot2::aes(x = `log10(X LFQ)`, y = `log10(Y LFQ)`, color = Intensity),
+                        size = 0.1) +
+    ggplot2::geom_abline(intercept = 0, slope = 1, colour = "red") +
+    ggplot2::geom_text(data = temp2, ggplot2::aes(label = R),
+                       x = x_min, y = y_max - 0.01*(y_max - y_min), hjust = 0, cex = 2.5) +
+    ggplot2::geom_text(data = temp2, ggplot2::aes(label = Median),
+                       x = x_min, y = y_max - 0.06*(y_max - y_min), hjust = 0, cex = 2.5) +
+    ggplot2::geom_text(data = temp2, ggplot2::aes(label = SD),
+                       x = x_min, y = y_max - 0.11*(y_max - y_min), hjust = 0, cex = 2.5) +
+    ggplot2::facet_grid(Y~Type+X) + ggplot2::ggtitle(ttl) + ggplot2::coord_fixed(1) +
+    viridis::scale_color_viridis() +
+    ggplot2::theme_bw() +
+    ggplot2::theme(strip.text.y = ggplot2::element_text(angle = -90, vjust = 0, hjust = 0.5),
+                   strip.text.x = ggplot2::element_text(angle = 0, vjust = 0, hjust = 0.5))
   if (prot.list.Cond) {
     plot <- plot +
-      geom_point(data = temp[temp$`In list` == "+",], aes(x = `log10(X LFQ)`, y = `log10(Y LFQ)`), size = 1L, shape = 1L, color = "red") +
-      geom_text(data = temp[temp$`In list` == "+",], aes(label = `Common Name (short)`, x = `log10(X LFQ)`, y = `log10(Y LFQ)`),
-                size = 2L, hjust = 0, vjust = 0, color = "red")
+      ggplot2::geom_point(data = temp[temp$`In list` == "+",],
+                          ggplot2::aes(x = `log10(X LFQ)`, y = `log10(Y LFQ)`),
+                          size = 1L, shape = 1L, color = "red") +
+      ggplot2::geom_text(data = temp[temp$`In list` == "+",],
+                         ggplot2::aes(label = `Common Name (short)`, x = `log10(X LFQ)`, y = `log10(Y LFQ)`),
+                         size = 2L, hjust = 0, vjust = 0, color = "red")
   }
   poplot(plot, 12L, 22L)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                    dpi = 300L, width = 10L, height = 10L, units = "in")
   })
 }
 g <- as.character(sapply(PG.int.cols, \(x) { grep(topattern(x), colnames(PG), value = TRUE) }))
 test <- vapply(g, \(x) { sum(is.finite(PG[[x]])) }, 1L)
 print(test)
-invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
+invisible(parallel::clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 
 # Intensities distribution:
 long.dat <- list()
@@ -1215,37 +1239,42 @@ temp$Type <- factor(temp$Type, levels = paste0("log10(", c("orig", "imput", "nor
 long.dat$intens <- temp
 temp <- temp[is.finite(temp$"log10(Intensity)"),]
 ttl <- "LFQ density plot - PGs level"
+plot <- ggplot2::ggplot(temp)
 if (prot.list.Cond) {
   temp$"In list" <- PG$"In list"[match(temp$`Common Name (short)`, PG$`Common Name (short)`)]
-  plot <- ggplot(temp) + geom_histogram(aes(x = `log10(Intensity)`, fill = `In list`), bins = 100L)
+  plot <- plot +
+    ggplot2::geom_histogram(ggplot2::aes(x = `log10(Intensity)`, fill = `In list`),
+                            bins = 100L)
 } else {
-  plot <- ggplot(temp) + geom_histogram(aes(x = `log10(Intensity)`, fill = Type), bins = 100L)
+  plot <- plot +
+    ggplot2::geom_histogram(ggplot2::aes(x = `log10(Intensity)`, fill = Type),
+                            bins = 100L)
 }
 plot <- plot +
-  theme_bw() + theme(#axis.line = element_blank(),
-    #axis.text.x = element_blank(),
-    #axis.text.y = element_blank(),
-    #axis.ticks = element_blank(),
-    #axis.title.x = element_blank(),
-    #axis.title.y = element_blank(),
+  ggplot2::theme_bw() + ggplot2::theme(#axis.line = ggplot2::element_blank(),
+    #axis.text.x = ggplot2::element_blank(),
+    #axis.text.y = ggplot2::element_blank(),
+    #axis.ticks = ggplot2::element_blank(),
+    #axis.title.x = ggplot2::element_blank(),
+    #axis.title.y = ggplot2::element_blank(),
     #legend.position = "none",
-    panel.background = element_blank(),
-    panel.border = element_blank(),
-    #panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    plot.background = element_blank(),
-    #strip.text.y = element_blank(),
-    axis.title.y = element_blank()) +
-  ggtitle(ttl) + facet_grid(Type~Experiment) +
-  scale_y_continuous(expand = c(0L, 0L)) +
-  scale_fill_viridis(option = "D", discrete = TRUE, begin = 0.25) +
-  xlab("log10(Protein Groups LFQ)")
+    panel.background = ggplot2::element_blank(),
+    panel.border = ggplot2::element_blank(),
+    #panel.grid.major = ggplot2::element_blank(),
+    panel.grid.minor = ggplot2::element_blank(),
+    plot.background = ggplot2::element_blank(),
+    #strip.text.y = ggplot2::element_blank(),
+    axis.title.y = ggplot2::element_blank()) +
+  ggplot2::ggtitle(ttl) + ggplot2::facet_grid(Type~Experiment) +
+  ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
+  viridis::scale_fill_viridis(option = "D", discrete = TRUE, begin = 0.25) +
+  ggplot2::xlab("log10(Protein Groups LFQ)")
 #poplot(plot)
 M <- c()
 if (GO_filt) {
   CompGOTerms %<o%setNames(c("GO:0005634", "GO:0005654", "GO:0000785", "GO:0005730", "GO:0005635", "GO:0005737", "GO:0005829", "GO:0005783", "GO:0005794", "GO:0031988", "GO:0005739", "GO:0009536", "GO:0005886", "GO:0031012", "GO:1903561"),
                            c("Nucleus", "Nucleoplasm", "Chromatin", "Nucleolus", "Nuclear envelope", "Cytoplasm", "Cytosol", "ER", "Golgi", "Vesicle", "Mitochondrion", "Plastid", "Plasma membrane", "Extracellular matrix", "Extracellular vesicle"))
-  GO_filter1 %<o% unique(c(GO_filter, CompGOTerms))
+  GO_filter1 %<o% base::union(GO_filter, CompGOTerms)
   for (goID in GO_filter1) { #goID <- GO_filter1[1L]
     # Get children terms
     gofilter <- unique(unlist(c(goID,
@@ -1265,14 +1294,14 @@ if (GO_filt) {
       wtst3 <- which(temp$"Common Name (short)"[w] %in% PG$"Common Name (short)"[wtst])
       if (length(wtst3) > 1L) {
         d <- density(temp[wtst3, "log10(Intensity)"])
-        M[goID] <- d$x[which.max(d$y)]
+        M[goID] <- d$x[base::which.max(d$y)]
       }
     }
   }
 }
 if (length(M)) {
-  leg2 <- get_legend(plot)
-  plot2 <- plot + theme(legend.position = "none")
+  leg2 <- cowplot::get_legend(plot)
+  plot2 <- plot + ggplot2::theme(legend.position = "none")
   #
   temp2 <- temp[temp$Type == "log10(orig. LFQ)",
                 c("log10(Intensity)", "Experiment", names(M))]
@@ -1284,56 +1313,64 @@ if (length(M)) {
     temp2$`GO term` <- sub("\\]$", "", gsub(" \\[", "\n",  temp2$`GO term`))
   }
   ttl2 <- "LFQ density plot - PGs level, GO terms"
-  plot3 <- ggplot(temp2) + geom_density(stat = "density", aes(x = `log10(Intensity)`, fill = `GO term`),
-                                        colour = "black", alpha = 0.5) +
-    geom_density(data = temp, stat = "density", aes(x = `log10(Intensity)`), colour = "red",
-                 linewidth = 1L, linetype = "dotted", show.legend = FALSE) +
-    scale_y_continuous(expand = c(0L, 0L)) +
-    scale_fill_viridis(option = "C", discrete = TRUE) + theme_bw() +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          panel.grid.minor = element_blank(),
-          panel.grid.major = element_blank(),
-          plot.background = element_blank(),
-          strip.background.x = element_blank(),
-          strip.text.x = element_blank(),
-          axis.title.x = element_blank(),
-          axis.text.x = element_blank(),
-          axis.ticks.x = element_blank(),
-          strip.text.y = element_blank(),
-          axis.title.y = element_blank(),
-          plot.subtitle = element_text(face = "italic", color = "red"))
-  if (globalGO) { plot3 <- plot3 + facet_grid(`GO term`~Experiment)  } else { plot2 <- plot2 + facet_wrap(~Experiment) }
-  plot3a <- plot3 + ggtitle(ttl2, subtitle = "(dotted line = sample's reference density)")
-  plot3 <- plot3 + ggtitle("", subtitle = "(dotted line = sample's reference density)")
+  plot3 <- ggplot2::ggplot(temp2) +
+    ggplot2::geom_density(stat = "density",
+                          ggplot2::aes(x = `log10(Intensity)`, fill = `GO term`),
+                          colour = "black", alpha = 0.5) +
+    ggplot2::geom_density(data = temp, stat = "density",
+                          ggplot2::aes(x = `log10(Intensity)`), colour = "red",
+                          linewidth = 1L, linetype = "dotted", show.legend = FALSE) +
+    ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
+    viridis::scale_fill_viridis(option = "C", discrete = TRUE) + ggplot2::theme_bw() +
+    ggplot2::theme(panel.background = ggplot2::element_blank(),
+                   panel.border = ggplot2::element_blank(),
+                   panel.grid.minor = ggplot2::element_blank(),
+                   panel.grid.major = ggplot2::element_blank(),
+                   plot.background = ggplot2::element_blank(),
+                   strip.background.x = ggplot2::element_blank(),
+                   strip.text.x = ggplot2::element_blank(),
+                   axis.title.x = ggplot2::element_blank(),
+                   axis.text.x = ggplot2::element_blank(),
+                   axis.ticks.x = ggplot2::element_blank(),
+                   strip.text.y = ggplot2::element_blank(),
+                   axis.title.y = ggplot2::element_blank(),
+                   plot.subtitle = ggplot2::element_text(face = "italic", color = "red"))
+  if (globalGO) { plot3 <- plot3 + ggplot2::facet_grid(`GO term`~Experiment)  } else {
+    plot2 <- plot2 + ggplot2::facet_wrap(~Experiment)
+  }
+  plot3a <- plot3 + ggplot2::ggtitle(ttl2, subtitle = "(dotted line = sample's reference density)")
+  plot3 <- plot3 + ggplot2::ggtitle("", subtitle = "(dotted line = sample's reference density)")
   #poplot(plot2)
   #poplot(plot3)
   #poplot(plot3a)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl2, ".svg"), plot3a, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggplot2::ggsave(paste0(dir, "/", ttl2, ".svg"), plot3a,
+                    dpi = 300L, width = 10L, height = 10L, units = "in")
   })
-  leg3 <- get_legend(plot3)
-  plot3 <- plot3 + theme(legend.position = "none")
-  g2 <- ggplotGrob(plot2)
-  g3 <- ggplotGrob(plot3)
+  leg3 <- cowplot::get_legend(plot3)
+  plot3 <- plot3 + ggplot2::theme(legend.position = "none")
+  g2 <- ggplot2::ggplotGrob(plot2)
+  g3 <- ggplot2::ggplotGrob(plot3)
   maxWidth <- grid::unit.pmax(g2$widths[2L:5L], g3$widths[2L:5L])
   g2$widths[2L:5L] <- as.list(maxWidth)
   g3$widths[2L:5L] <- as.list(maxWidth)
-  plot4 <- arrangeGrob(grobs = list(g2, leg2, g3, leg3),
-                       widths = c(4L, 1L),
-                       heights = c(length(unique(temp$Type)), length(M)/5),
-                       layout_matrix = rbind(c(1L, 2L), c(3L, 4L)),
-                       padding = 5L)
-  plot4 <- as.ggplot(plot4)
+  plot4 <- gridExtra::arrangeGrob(grobs = list(g2, leg2, g3, leg3),
+                                  widths = c(4L, 1L),
+                                  heights = c(length(unique(temp$Type)), length(M)/5),
+                                  layout_matrix = rbind(c(1L, 2L), c(3L, 4L)),
+                                  padding = 5L)
+  plot4 <- ggplotify::as.ggplot(plot4)
   poplot(plot4)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".svg"), plot4, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot4,
+                    dpi = 300L, width = 10L, height = 10L, units = "in")
   })
   #poplot(plot3)
 } else {
   poplot(plot, 12L, 22L)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                    dpi = 300L, width = 10L, height = 10L, units = "in")
   })
 }
 
@@ -1351,7 +1388,7 @@ if (MakeRatios) {
   FC_filt %<o% list()
   FC_Smpls %<o% list()
   # Fold change filters:
-  ref <- rev(setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
+  ref <- rev(base::setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
   rat.grps <- unique(SamplesMap$`Ratios group`)
   rat.grps <- rat.grps[!is.na(rat.grps)]
   for (grp in rat.grps) { #grp <- rat.grps[1L]
@@ -1363,7 +1400,7 @@ if (MakeRatios) {
     if (NegFilt) {
       nf <- SmplMp$Experiment[SmplMp$"Negative Filter"]
       if (length(nf)) {
-        smpl1 <- setdiff(smpl1, nf)
+        smpl1 <- base::setdiff(smpl1, nf)
         nftst <- apply(PG[, paste0(ref, nf), drop = FALSE], 1L, \(x) { sum(is.finite(x)) }) > 0L
       }
     }
@@ -1397,17 +1434,24 @@ if (MakeRatios) {
   long.dat$ratios <- temp
   temp <- temp[is.finite(temp$"log2(Ratio)"),]
   ttl <- "Ratios density plot - PGs level"
-  plot <- ggplot(temp) + geom_histogram(aes(x = `log2(Ratio)`, fill = Type), bins = 100L) +
-    geom_vline(xintercept = RatiosThresh, colour = "red") +
-    theme_bw() + theme(strip.text.y = element_text(angle = 0, vjust = 0.5, hjust = 0)) +
-    scale_y_continuous(expand = c(0L, 0L)) +
-    scale_fill_viridis(option = "D", discrete = TRUE, begin = 0.25) +
-    ggtitle(ttl) + facet_grid(Type~Experiment) +
-    xlab("log2(Ratio)")
-  if (RatiosThresh_2sided) { plot <- plot + geom_vline(xintercept = -RatiosThresh, colour = "red") }
+  plot <- ggplot2::ggplot(temp) +
+    ggplot2::geom_histogram(ggplot2::aes(x = `log2(Ratio)`, fill = Type),
+                            bins = 100L) +
+    ggplot2::geom_vline(xintercept = RatiosThresh, colour = "red") +
+    ggplot2::theme_bw() +
+    ggplot2::theme(strip.text.y = ggplot2::element_text(angle = 0, vjust = 0.5, hjust = 0)) +
+    ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
+    viridis::scale_fill_viridis(option = "D", discrete = TRUE, begin = 0.25) +
+    ggplot2::ggtitle(ttl) + ggplot2::facet_grid(Type~Experiment) +
+    ggplot2::xlab("log2(Ratio)")
+  if (RatiosThresh_2sided) {
+    plot <- plot +
+      ggplot2::geom_vline(xintercept = -RatiosThresh, colour = "red")
+  }
   poplot(plot)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                    dpi = 300L, width = 10L, height = 10L, units = "in")
   })
   # MA plots:
   temp <- long.dat$intens
@@ -1417,18 +1461,22 @@ if (MakeRatios) {
   temp$"log2(Ratio)" <- long.dat$ratios$`log2(Ratio)`[match(tst1, tst2)]
   temp <- temp[is.finite(temp$`log2(Ratio)`),]
   ttl <- "MA plots - PGs level"
-  plot <- ggplot(temp) + geom_point(aes(x = `Mean log10(Intensity)`, y = `log2(Ratio)`, colour = Type), size = 0.1) +
-    geom_hline(yintercept = 0, linewidth = 0.8, linetype = "dashed") +
-    ggtitle(ttl) + coord_fixed(log10(2L)/log2(10L)) + theme_bw() + facet_grid(Type~Experiment) +
-    scale_color_viridis(option = "D", discrete = TRUE, begin = 0.1, end = 0.4) +
-    xlab("A = mean log10(Intensity)") + ylab("M = sample log2(Ratio)") +
-    theme(strip.text.y = element_text(angle = 0))
+  plot <- ggplot2::ggplot(temp) +
+    ggplot2::geom_point(ggplot2::aes(x = `Mean log10(Intensity)`, y = `log2(Ratio)`, colour = Type),
+                        size = 0.1) +
+    ggplot2::geom_hline(yintercept = 0, linewidth = 0.8, linetype = "dashed") +
+    ggplot2::ggtitle(ttl) + ggplot2::coord_fixed(log10(2L)/log2(10L)) +
+    ggplot2::theme_bw() + ggplot2::facet_grid(Type~Experiment) +
+    viridis::scale_color_viridis(option = "D", discrete = TRUE, begin = 0.1, end = 0.4) +
+    ggplot2::xlab("A = mean log10(Intensity)") + ggplot2::ylab("M = sample log2(Ratio)") +
+    ggplot2::theme(strip.text.y = ggplot2::element_text(angle = 0))
   poplot(plot)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                    dpi = 300L, width = 10L, height = 10L, units = "in")
   })
   # "Regulated/Enriched" columns
-  ref <- rev(setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
+  ref <- rev(base::setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
   for (grp in rat.grps) { #grp <- rat.grps[1L]
     SmplMp <- SamplesMap[SamplesMap$`Ratios group` == grp,]
     if (sum(c(TRUE, FALSE) %in% SmplMp$Reference) < 2L) {
@@ -1460,8 +1508,8 @@ if (MakeRatios) {
     PTMs_FC_Smpls %<o% list()
     PTM_normalize %<o% list()
     PTMs_pep %<o% list()
-    PTMs_intRf %<o% rev(setdiff(int.cols, paste0("Imput. ", int.cols["Original"])))[1L]
-    PTMs_ratRf %<o% rev(setdiff(rat.cols, paste0("Imput. ", rat.cols["Original"])))[1L]
+    PTMs_intRf %<o% rev(base::setdiff(int.cols, paste0("Imput. ", int.cols["Original"])))[1L]
+    PTMs_ratRf %<o% rev(base::setdiff(rat.cols, paste0("Imput. ", rat.cols["Original"])))[1L]
     PTMs_intNm0 <- names(PTMs_intRf)
     PTMs_ratNm0 <- names(PTMs_ratRf)
     for (ptm in EnrichedPTMs) { #ptm <- EnrichedPTMs[1L]
@@ -1611,7 +1659,7 @@ if (MakeRatios) {
           cols1 <- paste0(PTMs_intRf["Re-normalized"], " - ", smpls1)
           # The re-normalised ratios we use for that // these are log2-transformed!
           colr0 <- paste0(PTMs_ratRf["Re-normalized"], " - ", smpls0)
-          colr0 <- intersect(colr0, colnames(ptmpep))
+          colr0 <- base::intersect(colr0, colnames(ptmpep))
           colr1 <- paste0(PTMs_ratRf["Re-normalized"], " - ", smpls1)
           #
           totB <- apply(ptmpep[, c(cole0, cole1)], 1L, sum, na.rm = TRUE)
@@ -1619,13 +1667,13 @@ if (MakeRatios) {
             av <- apply(ptmpep[, cole0, drop = FALSE], 1L, mean, na.rm = TRUE)
             temp[, c(cols0, cols1)] <- sweep(2L^ptmpep[, c(colr0, colr1)], 1L, av, "*")
             #tst <- log10(temp[, cols1]/temp[, cols0])
-            #tst2 <- apply(tst, 2L, \(x) { summary(x[is.finite(x)]) })
+            #tst2 <- apply(tst, 2L, \(x) { base::summary(x[is.finite(x)]) })
           } else {
             temp[, cols0] <- ptmpep[, cole0] # This stays the same as before
             temp[, cols1] <- ptmpep[, cole0]*(2L^ptmpep[, colr1])
           }
           #tst <- log10(temp[, cols1]/temp[, cols0])
-          #tst2 <- apply(tst, 2L, \(x) { summary(x[is.finite(x)]) })
+          #tst2 <- apply(tst, 2L, \(x) { base::summary(x[is.finite(x)]) })
           # Note: the price of normalisation is that often there is no valid parent protein so a lot of NAs are introduced
           #
           totA <- apply(temp[, c(cols0, cols1)], 1L, sum, na.rm = TRUE)
@@ -1633,7 +1681,7 @@ if (MakeRatios) {
         }
         ptmpep[, colnames(temp)] <- temp
         #kol <- grep("ReNorm. log2", colnames(ptmpep), value = TRUE)
-        #tst <- apply(ptmpep[, kol], 2L, \(x) { summary(x[is.finite(x)]) })
+        #tst <- apply(ptmpep[, kol], 2L, \(x) { base::summary(x[is.finite(x)]) })
       }
       #
       # Fold change filters:
@@ -1648,7 +1696,7 @@ if (MakeRatios) {
         if (NegFilt) {
           nf <- SmplMp$Experiment[SmplMp$"Negative Filter"]
           if (length(nf)) {
-            smpl1 <- setdiff(smpl1, nf)
+            smpl1 <- base::setdiff(smpl1, nf)
             nftst <- apply(ptmpep[, paste0(Int, " - ", nf), drop = FALSE], 1L, \(x) {
               sum(is.finite(x))
             }) > 0L
@@ -1709,17 +1757,24 @@ if (MakeRatios) {
       long.dat$ratios <- temp
       temp <- temp[is.finite(temp$"log2(Ratio)"),]
       ttl <- paste0("Ratios density plot - ", ptm, "-modified peptides")
-      plot <- ggplot(temp) + geom_histogram(aes(x = `log2(Ratio)`, fill = Type), bins = 100L) +
-        geom_vline(xintercept = RatiosThresh, colour = "red") +
-        theme_bw() + theme(strip.text.y = element_text(angle = 0, vjust = 0.5, hjust = 0)) +
-        scale_y_continuous(expand = c(0L, 0L)) +
-        scale_fill_viridis(option = "D", discrete = TRUE, begin = 0.25) +
-        ggtitle(ttl) + facet_grid(Type~Experiment) +
-        xlab("log2(Ratio)")
-      if (RatiosThresh_2sided) { plot <- plot + geom_vline(xintercept = -RatiosThresh, colour = "red") }
+      plot <- ggplot2::ggplot(temp) +
+        ggplot2::geom_histogram(ggplot2::aes(x = `log2(Ratio)`, fill = Type),
+                                bins = 100L) +
+        ggplot2::geom_vline(xintercept = RatiosThresh, colour = "red") +
+        ggplot2::theme_bw() +
+        ggplot2::theme(strip.text.y = ggplot2::element_text(angle = 0, vjust = 0.5, hjust = 0)) +
+        ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
+        viridis::scale_fill_viridis(option = "D", discrete = TRUE, begin = 0.25) +
+        ggplot2::ggtitle(ttl) + ggplot2::facet_grid(Type~Experiment) +
+        ggplot2::xlab("log2(Ratio)")
+      if (RatiosThresh_2sided) {
+        plot <- plot +
+          ggplot2::geom_vline(xintercept = -RatiosThresh, colour = "red")
+      }
       poplot(plot)
       suppressMessages({
-        ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+        ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                        dpi = 300L, width = 10L, height = 10L, units = "in")
       })
       #
       # Gene-Set Enrichment Analysis (GSEA)
@@ -1753,7 +1808,7 @@ if (IsBioID2) {
 
 #### Code chunk - Proteomic ruler
 if (protrul) {
-  ref <- rev(setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
+  ref <- rev(base::setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
   if (length(Exp) > 1L) { ref <- c(ref, paste0("Mean ", sub(" - $", "", ref))) }
   temp <- try(Prot.Ruler(PG, db, ref, NuclL = ProtRulNuclL), silent = TRUE)
   if ((!inherits(temp, "try-error")) && (!is.logical(temp))) {
@@ -1806,19 +1861,23 @@ tmp <- aggregate(tmp$Intensity, list(tmp$Experiment, tmp$Organism), sum)
 colnames(tmp) <- c("Experiment", "Organism", "Total intensity")
 tmp$Experiment <- factor(tmp$Experiment, levels = SamplesMap$Experiment)
 ttl <- "Contributions to TIC"
-plot <- ggplot(tmp) + geom_bar(stat = "identity", aes(x = Experiment, y = `Total intensity`, fill = Organism)) +
-  theme_bw() + scale_fill_viridis(discrete = TRUE, begin = 0.2, end = 0.8) +
-  ggtitle(ttl, subtitle = "Summed TIC for each class of identified peptides")
+plot <- ggplot2::ggplot(tmp) +
+  ggplot2::geom_bar(stat = "identity",
+                    ggplot2::aes(x = Experiment, y = `Total intensity`, fill = Organism)) +
+  ggplot2::theme_bw() + viridis::scale_fill_viridis(discrete = TRUE, begin = 0.2, end = 0.8) +
+  ggplot2::ggtitle(ttl, subtitle = "Summed TIC for each class of identified peptides")
 poplot(plot)
 suppressMessages({
-  ggsave(paste0(wd, "/Summary plots/", ttl, ".svg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
+  ggplot2::ggsave(paste0(wd, "/Summary plots/", ttl, ".svg"), plot,
+                  dpi = 150L, width = 10L, height = 10L, units = "in")
 })
-plotLy <- ggplotly(plot, tooltip = c("x", "y", "fill"))
+plotLy <- plotly::ggplotly(plot, tooltip = c("x", "y", "fill"))
 plotLy <- plotly::config(plotLy,
                          modeBarButtonsToRemove = c("select2d", "lasso2d"))
-plotLy <- plotly_build(plotLy)
+plotLy <- plotly::plotly_build(plotLy)
 setwd(paste0(wd, "/Summary plots"))
-saveWidget(partial_bundle(plotLy), paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
+htmlwidgets::saveWidget(plotly::partial_bundle(plotLy),
+                        paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)
 if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
 if (!exists("QC_plotLys")) { QC_plotLys <- list() }
@@ -1916,10 +1975,12 @@ if (length(Exp) > 2L) {
   tst <- apply(scores[, c("PC1", "PC2")], 2L, \(x) { length(unique(x)) })
   if (min(tst) > 1L) {
     ttl <- "PCA plot - Samples-level"
-    plot <- ggplot(scores) + geom_point(aes(x = PC1, y = PC2, colour = Sample)) +
-      coord_fixed() + ggtitle(ttl, subtitle = pv) +
-      geom_text_repel(aes(x = PC1, y = PC2, label = Sample, colour = Sample), size = 2.5) + 
-      theme_bw() + theme(legend.position = "none")
+    plot <- ggplot2::ggplot(scores) +
+      ggplot2::geom_point(ggplot2::aes(x = PC1, y = PC2, colour = Sample)) +
+      ggplot2::coord_fixed() + ggplot2::ggtitle(ttl, subtitle = pv) +
+      ggrepel::geom_text_repel(ggplot2::aes(x = PC1, y = PC2, label = Sample, colour = Sample),
+                               size = 2.5) + 
+      ggplot2::theme_bw() + ggplot2::theme(legend.position = "none")
     #poplot(plot)
     if ("PC3" %in% colnames(scores)) {
       plot_lyPCA <- plot_ly(scores, x = ~PC1, y = ~PC2, z = ~PC3, color = ~Sample, text = ~Sample, type = "scatter3d",
@@ -1930,13 +1991,14 @@ if (length(Exp) > 2L) {
       
       plot_lyPCA <- plotly_build(plot_lyPCA)
       setwd(paste0(wd, "/PCA plots"))
-      tst <- try(saveWidget(partial_bundle(plot_lyPCA), paste0(wd, "/PCA plots/", ttl, ".html")), silent = TRUE)
-      if (inherits(tst, "try-error")) { tst <- try(saveWidget(plot_lyPCA, paste0(wd, "/PCA plots/", ttl, ".html")), silent = TRUE) }
+      fl <- paste0(wd, "/PCA plots/", ttl, ".html")
+      tst <- try(htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyPCA), fl), silent = TRUE)
+      if (inherits(tst, "try-error")) { tst <- try(htmlwidgets::saveWidget(plot_lyPCA, fl), silent = TRUE) }
       setwd(wd)
       if (!inherits(tst, "try-error")) { system(paste0("open \"", wd, "/PCA plots/", ttl, ".html")) }
     } else { poplot(plot, width = 18L) }
     suppressMessages({
-      ggsave(paste0(wd, "/PCA plots/", ttl, ".svg"), plot, dpi = 150L)
+      ggplot2::ggsave(paste0(wd, "/PCA plots/", ttl, ".svg"), plot, dpi = 150L)
     })
     ## 2/ Protein groups level:
     pc <- prcomp(temp, scale. = TRUE)
@@ -1969,52 +2031,59 @@ if (length(Exp) > 2L) {
       }
     }
     ttl <- "PCA plot - Protein groups (PG-level)"
-    plot <- ggplot(scores) + geom_point(aes(x = PC1, y = PC2, alpha = Alpha, colour = Direction, text = `Protein group`), shape = 1) +
-      coord_fixed() + ggtitle(ttl, subtitle = pv) +
-      theme_bw() + guides(alpha = "none", shape = "none") +
-      scale_color_gradientn(colors = hcl.colors(length(Exp)), breaks = breaks, labels = labels, guide = "legend")
+    plot <- ggplot2::ggplot(scores) +
+      ggplot2::geom_point(ggplot2::aes(x = PC1, y = PC2, alpha = Alpha, colour = Direction, text = `Protein group`),
+                          shape = 1L) +
+      ggplot2::coord_fixed() + ggplot2::ggtitle(ttl, subtitle = pv) +
+      ggplot2::theme_bw() + ggplot2::guides(alpha = "none", shape = "none") +
+      ggplot2::scale_color_gradientn(colors = grDevices::hcl.colors(length(Exp)),
+                                     breaks = breaks, labels = labels, guide = "legend")
     if (prot.list.Cond && length(g1)) {
-      plot <- plot + geom_point(data = scores2, colour = "red", shape = 2L, aes(x = PC1, y = PC2, text = `Protein group`))      
+      plot <- plot +
+        ggplot2::geom_point(data = scores2, colour = "red", shape = 2L,
+                            ggplot2::aes(x = PC1, y = PC2, text = `Protein group`))      
     }
   }
   suppressMessages({
-    ggsave(paste0(wd, "/PCA plots/", ttl, ".svg"), plot, dpi = 150L)
+    ggplot2::ggsave(paste0(wd, "/PCA plots/", ttl, ".svg"), plot, dpi = 150L)
   })
   plot_lyPCAProt <- if ("PC3" %in% colnames(scores)) {
-    plot_ly(scores, x = ~PC1, y = ~PC2, z = ~PC3, color = ~Direction, text = ~`Protein group`,
-            type = "scatter3d", mode = "markers", showlegend = FALSE, marker = list(size = 1L))
+    plotly::plot_ly(scores, x = ~PC1, y = ~PC2, z = ~PC3, color = ~Direction, text = ~`Protein group`,
+                    type = "scatter3d", mode = "markers", showlegend = FALSE, marker = list(size = 1L))
   } else {
-    plot_ly(scores, x = ~PC1, y = ~PC2, color = ~Direction, text = ~`Protein group`,
-            type = "scatter3d", mode = "markers", showlegend = FALSE, marker = list(size = 1L))
+    plotly::plot_ly(scores, x = ~PC1, y = ~PC2, color = ~Direction, text = ~`Protein group`,
+                    type = "scatter3d", mode = "markers", showlegend = FALSE, marker = list(size = 1L))
   }
-  plot_lyPCAProt <- layout(plot_lyPCAProt, title = ttl)
+  plot_lyPCAProt <- plotly::layout(plot_lyPCAProt, title = ttl)
   if (prot.list.Cond && length(g1)) {
     scores3 <- scores2
     scores3$"Protein group" <- gsub(" - | ?, ?", "<br>", scores3$"Protein group")
     plot_lyPCAProt <- if ("PC3" %in% colnames(scores)) {
-      add_trace(plot_lyPCAProt, data = scores3, x = ~PC1, y = ~PC2, z = ~PC3,
-                type = "scatter3d", mode = "markers+text", color = I("red"), marker = list(size = 5L),
-                showlegend = FALSE, textposition = "bottom right")
+      plotly::add_trace(plot_lyPCAProt, data = scores3, x = ~PC1, y = ~PC2, z = ~PC3,
+                        type = "scatter3d", mode = "markers+text", color = I("red"), marker = list(size = 5L),
+                        showlegend = FALSE, textposition = "bottom right")
     } else {
-      add_trace(plot_lyPCAProt, data = scores3, x = ~PC1, y = ~PC2,
-                type = "scatter3d", mode = "markers+text", color = I("red"), marker = list(size = 5L),
-                showlegend = FALSE, textposition = "bottom right")
+      plotly::add_trace(plot_lyPCAProt, data = scores3, x = ~PC1, y = ~PC2,
+                        type = "scatter3d", mode = "markers+text", color = I("red"), marker = list(size = 5L),
+                        showlegend = FALSE, textposition = "bottom right")
     }
   }
-  plot_lyPCAProt <- plotly_build(plot_lyPCAProt)
+  plot_lyPCAProt <- plotly::plotly_build(plot_lyPCAProt)
   setwd(paste0(wd, "/PCA plots"))
-  tst <- try(saveWidget(partial_bundle(plot_lyPCAProt), paste0(wd, "/PCA plots/", ttl, ".html")), silent = TRUE)
-  if (inherits(tst, "try-error")) { tst <- try(saveWidget(plot_lyPCAProt, paste0(wd, "/PCA plots/", ttl, ".html")), silent = TRUE) }
+  fl <- paste0(wd, "/PCA plots/", ttl, ".html")
+  tst <- try(htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyPCAProt), fl), silent = TRUE)
+  if (inherits(tst, "try-error")) { tst <- try(htmlwidgets::saveWidget(plot_lyPCAProt, fl), silent = TRUE) }
   setwd(wd)
   if (!inherits(tst, "try-error")) { system(paste0("open \"", wd, "/PCA plots/", ttl, ".html")) }
-  #plot <- plot + geom_text_repel(data = scores, aes(x = PC1, y = PC2, label = `Protein group`, alpha = Alpha), size = 2.5)
+  #plot <- plot + ggrepel::geom_text_repel(data = scores, ggplot2::aes(x = PC1, y = PC2, label = `Protein group`, alpha = Alpha), size = 2.5)
   if (prot.list.Cond && length(g1)) {
-    plot <- plot + geom_text_repel(data = scores2, colour = "red", size = 2.5,
-                                   aes(x = PC1, y = PC2, label = `Protein group`))
+    plot <- plot +
+      ggrepel::geom_text_repel(data = scores2, colour = "red", size = 2.5,
+                               ggplot2::aes(x = PC1, y = PC2, label = `Protein group`))
   }
   #poplot(plot, width = 18L)
   suppressMessages({
-    ggsave(paste0(wd, "/PCA plots/", ttl, " (labels).svg"), plot, dpi = 150L)
+    ggplot2::ggsave(paste0(wd, "/PCA plots/", ttl, " (labels).svg"), plot, dpi = 150L)
   })
 } else { warning("No PCA plots drawn: samples are too similar!") }
 
@@ -2078,12 +2147,9 @@ source(parSrc)
 if (WorkFlow == "Band ID") {
   m <- match(frstProt, db$`Protein ID`)
   Dig <- data.frame(ID = frstProt, Seq = db$Sequence[m])
-  invisible(clusterCall(parClust, \(x) {
-    library(proteoCraft)
-    return()
-  }))
   Dig$Digest <- Digest(Dig$Seq, min = MinPepSz, missed = Missed, cl = parClust)
-  Dig$MaxCov <- parApply(parClust, Dig[, c("Seq", "Digest")], 1L, \(x) {
+  source(parSrc)
+  Dig$MaxCov <- parallel::parApply(parClust, Dig[, c("Seq", "Digest")], 1L, \(x) {
     Coverage(x[[1L]], x[[2L]])
   })
   PG$`Max. theoretical sequence coverage [%]` <- round(100*Dig$MaxCov, 1L)
@@ -2094,7 +2160,7 @@ if (WorkFlow == "Band ID") {
 dir <- paste0(wd, "/Tables")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 w <- which(vapply(colnames(ev), \(x) { inherits(ev[[x]], "list") }, TRUE))
-if (length(w)) { for (i in w) { ev[[i]] <- parSapply(parClust, ev[[i]], paste, collapse = ";") } }
+if (length(w)) { for (i in w) { ev[[i]] <- parallel::parSapply(parClust, ev[[i]], paste, collapse = ";") } }
 data.table::fwrite(ev, paste0(dir, "/evidence.tsv"), sep = "\t", row.names = FALSE, na = "NA")
 #
 ## Main peptidoforms- and protein groups-level, multi-tabs report
@@ -2128,7 +2194,7 @@ if ((length(Exp) > 1L) && (!is.null(prot.list)) && length(prot.list)) {
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   ref <- int.cols[which(names(int.cols) == "Imputed")-1L]
   kol <- paste0(ref, " - ", Exp)
-  kol <- intersect(kol, colnames(pep))
+  kol <- base::intersect(kol, colnames(pep))
   StdWdth <- 6L
   for (plp in prot.list) { #plp <- prot.list[1L]
     Plp <- paste(db[db$"Protein ID" == plp, c("Common Name", "Protein ID")], collapse = " - ")
@@ -2186,25 +2252,36 @@ if ((length(Exp) > 1L) && (!is.null(prot.list)) && length(prot.list)) {
         temp2b$Label[c(1L, Splits/2L+1L, Splits+1L, Splits+2L)] <- c(paste0("log10(max)", c("", -StdWdth/2, -StdWdth)), "0 or NA")
         # Create graph
         ttl <- paste0("Peptides log2 heatmap - ", gsub("/", "-", Plp))
-        heatmap.plot <- ggplot(temp2a) +
-          geom_rect(aes(xmin = Xmin, xmax = Xmin+1, ymin = Ymin, ymax = Ymin+1, fill = value)) +
-          geom_rect(data = temp2b, aes(xmin = Xmin, xmax = Xmax, ymin = Ymin, ymax = Ymin+1, fill = value)) +
-          geom_text(data = hlab, aes(x = X, label = Sample), y = Yscale+1, angle = 60, hjust = 0, size = 2.5) +
-          geom_text(data = vlab, aes(y = Y, label = `Modified sequence`), x = Xscale+0.5, hjust = 0, size = 1.7) +
-          geom_text(data = temp2b, aes(x = Xmin, label = Label), y = Yscale+11.25, angle = 60, hjust = 0, vjust = 0.5, size = 2.5) +
-          ggtitle("Peptides heatmap (log2 scale, normalised)", subtitle = Plp) +
-          theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-                axis.text.y = element_blank(), axis.ticks.y = element_blank(), 
-                panel.background = element_rect(fill = "transparent", color = NA),
-                plot.margin = margin(0L, 0L, 0L, 0L, "cm")) +
-          coord_fixed(0.5) +
-          scale_fill_gradient2(low = "#D55E00", mid = "black", high = "#009E73", na.value = "lightblue", breaks = c(-StdWdth/2, 0, StdWdth/2)) +
-          xlab(NULL) + ylab(NULL) + theme(legend.position = "none") +
-          xlim(Xlim[1L], Xlim[2L]) + ylim(Ylim[1L], Ylim[2L])
+        heatmap.plot <- ggplot2::ggplot(temp2a) +
+          ggplot2::geom_rect(ggplot2::aes(xmin = Xmin, xmax = Xmin+1, ymin = Ymin, ymax = Ymin+1, fill = value)) +
+          ggplot2::geom_rect(data = temp2b,
+                             ggplot2::aes(xmin = Xmin, xmax = Xmax, ymin = Ymin, ymax = Ymin+1, fill = value)) +
+          ggplot2::geom_text(data = hlab,
+                             ggplot2::aes(x = X, label = Sample),
+                             y = Yscale+1, angle = 60, hjust = 0, size = 2.5) +
+          ggplot2::geom_text(data = vlab,
+                             ggplot2::aes(y = Y, label = `Modified sequence`),
+                             x = Xscale+0.5, hjust = 0, size = 1.7) +
+          ggplot2::geom_text(data = temp2b,
+                             ggplot2::aes(x = Xmin, label = Label),
+                             y = Yscale+11.25, angle = 60, hjust = 0, vjust = 0.5, size = 2.5) +
+          ggplot2::ggtitle("Peptides heatmap (log2 scale, normalised)", subtitle = Plp) +
+          ggplot2::coord_fixed(0.5) +
+          ggplot2::scale_fill_gradient2(low = "#D55E00", mid = "black", high = "#009E73",
+                                        na.value = "lightblue", breaks = c(-StdWdth/2, 0, StdWdth/2)) +
+          ggplot2::xlab(NULL) + ggplot2::ylab(NULL) +
+          ggplot2::theme(axis.text.x = ggplot2::element_blank(),
+                         axis.ticks.x = ggplot2::element_blank(),
+                         axis.text.y = ggplot2::element_blank(),
+                         axis.ticks.y = ggplot2::element_blank(),
+                         panel.background = ggplot2::element_rect(fill = "transparent", color = NA),
+                         plot.margin = ggplot2::margin(0L, 0L, 0L, 0L, "cm"),
+                         legend.position = "none") +
+          ggplot2::xlim(Xlim[1L], Xlim[2L]) + ylim(Ylim[1L], Ylim[2L])
         poplot(heatmap.plot)
         suppressMessages({
-          ggsave(paste0(dir, "/", ttl, ".svg"), heatmap.plot,
-                 dpi = 600L, width = 20L, height = 12L, units = "in")
+          ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), heatmap.plot,
+                          dpi = 600L, width = 20L, height = 12L, units = "in")
         })
         #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
       }

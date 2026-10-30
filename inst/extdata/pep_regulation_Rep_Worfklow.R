@@ -3,7 +3,7 @@ if (!interactive()) { stop("This script should only be run within an interactive
 options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
 options(svDialogs.rstudio = TRUE)
-#rm(list = setdiff(ls(), c("dtstNm", "wd", "inDirs", "outDir")))
+#rm(list = base::setdiff(ls(), c("dtstNm", "wd", "inDirs", "outDir")))
 closeAllConnections()
 
 ## Load proteoCraft
@@ -68,7 +68,7 @@ if(!exists("bioc_req")) { bioc_req <- c() }
 bioc_req %<o% bioc_req
 cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT",
                      "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "ggrepel", "rstudioapi", "modeest",
-                     "minpack.lm", "snow", "viridis", "imputeLCMD", "parallel", "coin", "openxlsx", "openxlsx2", "plotly",
+                     "minpack.lm", "snow", "viridis", "imputeLCMD", "parallel", "coin", "openxlsx2", "plotly",
                      "Peptides", "xml2", "statmod", "ggpolypath", "venn", "svDialogs", "htmlwidgets",
                      "officer", "hexbin", "igraph", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
                      "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "ssh", "taxize", "arrow", "PTMods",
@@ -103,8 +103,8 @@ for (pack in cran_req) {
       }
       if (inherits(tst, "try-error")) {
         warning(paste0("Package ", pack, " wasn't installed properly, skipping..."))
-        cran_req <- setdiff(cran_req, pack)
-        bioc_req <- setdiff(bioc_req, pack)
+        cran_req <- base::setdiff(cran_req, pack)
+        bioc_req <- base::setdiff(bioc_req, pack)
       }
     }
     inst <- as.data.frame(installed.packages())
@@ -152,7 +152,7 @@ Answers from a previous run could be found in the analysis folder, do you want t
   if (is.na(ReUseAnsw)) { ReUseAnsw <- FALSE }
 }
 if (ReUseAnsw) {
-  load("All_decisions.RData")
+  base::load("All_decisions.RData")
   AllAnsw <- AllAnsw
 }
 if (!exists("AllAnsw")) {
@@ -160,11 +160,6 @@ if (!exists("AllAnsw")) {
   AllAnsw$Value <- list("Value of the answer")
 }
 AllAnsw %<o% AllAnsw
-
-# Update the proteoCraft package?
-# msg <- "Should we update the proteoCraft package?"
-# updt_proteoCraft %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
-updt_proteoCraft %<o% FALSE
 
 # Define input, output, project folder etc...
 Src <- paste0(libPath, "/extdata/Sources/Start_analysis.R")
@@ -178,7 +173,7 @@ setwd(wd)
 # Log the current analysis:
 dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- unique(c(dirlist, dir))
+dirlist <- base::union(dirlist, dir)
 start_date %<o% gsub(":", "-", gsub(" ", "_", Sys.time()))
 if (! paste0(wd, "/Workflow control/Data_analysis_log_", start_date, ".txt") %in% list.files()) {
   write(c(paste0("Data_analysis_log_", start_date), "__________________________", ""),
@@ -334,7 +329,7 @@ Src <- paste0(libPath, "/extdata/Sources/filtPSMs.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
-rm(list = setdiff(ls(), .obj))
+rm(list = base::setdiff(ls(), .obj))
 
 #### Code chunk - Summary table and QC plots
 Src <- paste0(libPath, "/extdata/Sources/rep_Summary.R")
@@ -454,7 +449,7 @@ Src <- paste0(libPath, "/extdata/Sources/pepNorm_VarPlot.R")
 source(Src)
 #View(pep[, grep(topattern(pep.ref[length(pep.ref)]), colnames(pep), value = TRUE)]) # Check final data visually
 
-rm(list = setdiff(ls(), .obj))
+rm(list = base::setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 
 # Calculate peptide ratios - currently off
@@ -516,7 +511,7 @@ source(Src)
 filter_types %<o% tolower(unlist(strsplit(Param$Filters.type, ";")))
 filter_types[grep("^dat.+2$", filter_types, invert = TRUE)] <- substr(filter_types[!grepl("^dat.+2$", filter_types)], 1L, 3L)
 filter_types[grep("^dat.+2$", filter_types)] <- "dat2"
-filter_types <- unique(c("con", filter_types))
+filter_types <- base::union("con", filter_types)
 if ("ref" %in% filter_types) {
   if ((RRG$aggregate != RG$aggregate) || Nested) {
     warning("Grouping filter by reference is not feasible if replicates are paired!")
@@ -580,9 +575,9 @@ rm(GO_plot_ly)
 ## PSMs
 dir <- paste0(wd, "/Tables")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- unique(c(dirlist, dir))
+dirlist <- base::union(dirlist, dir)
 w <- which(vapply(colnames(ev), \(x) { inherits(ev[[x]], "list") }, TRUE))
-if (length(w)) { for (i in w) { ev[[i]] <- parSapply(parClust, ev[[i]], paste, collapse = ";") } }
+if (length(w)) { for (i in w) { ev[[i]] <- parallel::parSapply(parClust, ev[[i]], paste, collapse = ";") } }
 data.table::fwrite(ev, paste0(dir, "/evidence.tsv"), sep = "\t", row.names = FALSE, na = "NA")
 #
 ## Main peptidoforms- and protein groups-level, multi-tabs report
@@ -591,8 +586,8 @@ xlSrc <- paste0(libPath, "/extdata/Sources/rep_Write_Excel_pepOnly.R")
 source(xlSrc)
 #xl_open(repFl)
 
-rm(list = setdiff(ls(), .obj))
-invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
+rm(list = base::setdiff(ls(), .obj))
+invisible(parallel::clusterCall(parClust, \(x) { rm(list = ls());gc() }))
 Script <- readr::read_lines(ScriptPath)
 
 #### Code chunk - Venn diagrams
@@ -612,7 +607,7 @@ dirlist <- dirlist[order(nchar(dirlist), decreasing = TRUE)]
 for (dir in dirlist) { #d <- dirlist[1L]
   if (!length(list.files(dir))) {
     unlink(dir, recursive = TRUE)
-    dirlist <- setdiff(dirlist, dir)
+    dirlist <- base::setdiff(dirlist, dir)
   }
 }
 # Save decisions

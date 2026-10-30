@@ -87,9 +87,9 @@
     goOn <- TRUE
     if (plotType == "All") {
       ttl <- baseTtl
-      lev1 <- setdiff(unique(profData$Category),
-                      c("In list", "Contaminant"))
-      lev1 <- union(lev1, c("In list", "Contaminant"))
+      lev1 <- base::setdiff(unique(profData$Category),
+                            c("In list", "Contaminant"))
+      lev1 <- base::union(lev1, c("In list", "Contaminant"))
       catnm <- "Category"
       profData$Category <- factor(profData$Category, levels = lev1)
       if ("Cluster" %in% colnames(profData)) {
@@ -124,7 +124,7 @@
         myFlt2 <- CompGOTerms
       }
       catnm <- "GO term"
-      myFlt2 <- intersect(myFlt2, colnames(profData))
+      myFlt2 <- base::intersect(myFlt2, colnames(profData))
       goOn <- length(myFlt2)
       if (goOn) {
         profData <- lapply(myFlt2, \(go) { #go <- myFlt2[1L]
@@ -161,7 +161,7 @@
     wTxt <- which(profData$Sample == rev(levels(profData$Sample))[1L])
     yLim <- c(min(profData$Y, na.rm = TRUE),
               max(profData$Y, na.rm = TRUE))
-    # It's important to have fixed colours here (using scale_linetype_identity()) so we can consistently plot in the app
+    # It's important to have fixed colours here (using ggplot2::scale_linetype_identity()) so we can consistently plot in the app
     # different protein subsets with always the same colors assigned to each.
     ggCall_txt <- "plot <- ggplot2::ggplot(profData, ggplot2::aes(x = Sample, y = Y, text1 = .data[[yKol]], text2 = .data[[kolnm]], text3 = PEP, text4 = .data[[txt4Kol]], colour = .data[[colKol]])) +
   ggplot2::geom_line(ggplot2::aes(group = id), alpha = 0.1) +
@@ -205,7 +205,7 @@
       ggCall_txt3[g] <- "ggplot2::ylab(\"log10 avg. norm. profile\")"
       g <- grep("ggplot2::ggtitle\\(", ggCall_txt3)
       ggCall_txt3[g] <- "ggplot2::ggtitle(ttl3, subtitle = \"ribbon = 95% confidence interval\")"
-      g <- grep("ggplot2::geom_point\\(|scale_[a-z]+_identity\\(", ggCall_txt3)
+      g <- grep("ggplot2::geom_point\\(|ggplot2::scale_[a-z]+_identity\\(", ggCall_txt3)
       ggCall_txt3 <- ggCall_txt3[-g]
       ggCall_txt3 <- c(ggCall_txt3, "ggplot2::geom_line()")
       ggCall_txt3 <- paste(ggCall_txt3, collapse = " + \n")
@@ -289,7 +289,7 @@
       myData <- myPG[, c(myKol, varkol)]
       txt4Kol <- "Peptides count"
       myData[[txt4Kol]] <- myPG[[paste0("Peptides count - ", smpl)]]
-      varkol <- union(varkol, txt4Kol)
+      varkol <- base::union(varkol, txt4Kol)
     }
     if (dataType == "pep") {
       subDir <- paste0(MainDir, "/Peptide ", quantType)
@@ -407,7 +407,9 @@
     ySpan <- c(intmin-yStep*nSteps, intmax*1.2+intscale*0.05)
     ySpan[1L] <- ySpan[1L]-(ySpan[2L]-ySpan[1L])*0.2
     #
-    plot <- ggplot2::ggplot() + ggplot2::theme_bw() + ggplot2::ylab(kolnm) + ggplot2::xlab(xKol) + ggplot2::scale_size_identity() +
+    plot <- ggplot2::ggplot() +
+      ggplot2::theme_bw() + ggplot2::ylab(kolnm) + ggplot2::xlab(xKol) +
+      ggplot2::scale_size_identity() +
       ggplot2::ggtitle(ttl,
                        subtitle = paste0(length(unique(myData$id)), " ", tolower(xKol), "s"))  +
       ggplot2::theme(panel.border = ggplot2::element_blank(),

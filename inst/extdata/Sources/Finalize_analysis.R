@@ -40,7 +40,7 @@ if (ok2Deliver) {
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   if (writeRaws) {
     Tsts$"MS files" <- list()
-    xst <- sapply(rawFiles, file.exists)
+    xst <- vapply(rawFiles, file.exists, TRUE)
     if (sum(!xst)) {
       if (sum(!xst) == length(rawFiles)) {
         msg <- "None of your MS files could be located. We will not be able to copy them to the delivery folder!"
@@ -49,7 +49,7 @@ if (ok2Deliver) {
       warning(msg)
     }
     w <- which(xst)
-    ext <- gsub(".*\\.", "", rawFiles[w])
+    ext <- sub(".*\\.", "", rawFiles[w])
     for (xt in unique(ext)) {
       w2 <- which(ext == xt)
       eval(parse(text = paste0("copFun <- fs::", c("file", "dir")[(xt == "d")+1L], "_copy")), envir = .GlobalEnv)
@@ -72,7 +72,7 @@ if (ok2Deliver) {
     lapply(1L:length(inDirs), \(dir_i) { #dir_i <- 1L #dir_i <- 2L
       rs <- FALSE
       indir <- inDirs[dir_i]
-      indirNm <- gsub(".*/" , "", indir)
+      indirNm <- sub(".*/" , "", indir)
       fls1 <- list.files(indir, recursive = TRUE, full.names = TRUE) # Compare with what we want to copy
       doYouCopy <- length(fls1) > 0L
       if (!doYouCopy) {
@@ -150,7 +150,7 @@ if (ok2Deliver) {
     x <- unlist(x) 
     vapply(1L:length(x), \(y) { paste(x[1L:y], collapse = "/") }, "")
   })))
-  tstDrs <- setdiff(tstDrs, tstDrs2)
+  tstDrs <- base::setdiff(tstDrs, tstDrs2)
   if (length(tstDrs)) { for (dr in tstDrs) { unlink(dr) } } # Remove empty directories
   # - 3b) create final output directory
   g <- grep("^3(\\.[0-9]+)?_", list.dirs(outDir, FALSE, FALSE), value = TRUE)
@@ -159,14 +159,14 @@ if (ok2Deliver) {
   # - 3c) temporarily move .RDS files out of the way
   tmpRDS <- grep("\\.RDS$", list.files(wd, full.names = TRUE), value = TRUE, ignore.case = TRUE) # Move all RDS files out of the way for now
   tmpRDS <- grep("/Backup\\.RDS$", tmpRDS, value = TRUE, invert = TRUE, ignore.case = TRUE) # We do want to export the final Backup.RDS file: it is large, but useful to have
-  tmpRDS2 <- gsub(topattern(wd), projDir, tmpRDS)
+  tmpRDS2 <- sub(topattern(wd), projDir, tmpRDS)
   if (length(tmpRDS)) {
     fs::file_move(tmpRDS, tmpRDS2)
   }
   # - 3d) copy analysis results
   cat(" - Copying processing results from\n\t\t", wd, "\n   to\n\t\t", procDir, "\n\n")
   if (dir.exists(procDir)) { unlink(procDir) }
-  tmpDr <- gsub(".*/" , paste0(outDir, "/"), wd)
+  tmpDr <- sub(".*/" , paste0(outDir, "/"), wd)
   Tsts$"Data analysis" <- try(fs::dir_copy(wd, tmpDr, overwrite = FALSE), silent = TRUE)
   if (inherits(Tsts$"Data analysis", "try-error")) {
     warning("Analysis results not copied to destination - usually this is a path length issue.\nYou will have to copy them manually.")
@@ -191,7 +191,7 @@ if (ok2Deliver) {
 }
 # - 4 Cleanup!
 if (ok2Deliver && dataDeliveryOk) {
-  cleanUp <- c(TRUE, FALSE)[match(dlg_message("Should we cleanup the temporary folder? (parameter files will remain)", "yesno")$res, c("yes", "no"))]
+  cleanUp <- c(TRUE, FALSE)[match(svDialogs::dlg_message("Should we cleanup the temporary folder? (parameter files will remain)", "yesno")$res, c("yes", "no"))]
   if (cleanUp) {
     drs <- list.dirs(wd, recursive = FALSE, full.names = TRUE)
     unlink(drs, TRUE, TRUE)
@@ -201,11 +201,12 @@ if (ok2Deliver && dataDeliveryOk) {
 
 # End logging:
 if (scrptType == "withReps") { sink(NULL, type = "message") }
-#close(logcon)
-rm(list = setdiff(ls(), .obj))
+#base::close(logcon)
+rm(list = base::setdiff(ls(), .obj))
 Script <- readr::read_lines(ScriptPath)
 gc()
-invisible(parLapply(parClust, 1L:N.clust, \(x) { rm(list = ls());gc() }))
+source(parSrc)
+invisible(parallel::parLapply(parClust, 1L:N.clust, \(x) { rm(list = ls());gc() }))
 setwd(wd); saveImgFun(BckUpFl) # Leave an ultimate backup in the temporary folder
 #loadFun(BckUpFl)
 
@@ -228,36 +229,37 @@ if (dataDeliveryOk && (length(archDirDflt) == 1L)) {
   inDirs2Arch <- c()
   if (L == 1L) {
     msg <- "Archive input (= search) folder?"
-    archiveIndirs <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
+    archiveIndirs <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
     inDirs2Arch <- inDirs2[archiveIndirs]
   }
   if (L > 1L) { 
     msg <- paste0("Which input (= search) folder(s) would you like to archive?")
-    opt <- gsub(".*/", ".../", inDirs2)
+    opt <- sub(".*/", ".../", inDirs2)
     nc <- max(c(nchar(opt), 200L))
     opt <- vapply(opt, \(x) { paste(c(x, rep(" ", nc-nchar(x))), collapse = "") }, "")
-    archiveIndirs <- dlg_list(opt, opt, TRUE, title = msg)$res
+    archiveIndirs <- svDialogs::dlg_list(opt, opt, TRUE, title = msg)$res
     inDirs2Arch <- inDirs2[match(archiveIndirs, opt)]
   }
   if (length(inDirs2Arch)) {
     archDir <- rstudioapi::selectDirectory("Navigate to target group folder in proteomics search archive",
                                            path = archDirDflt)
-    projNm <- gsub(".*/", "", outDir)
+    projNm <- sub(".*/", "", outDir)
     tst <- grepl(paste0("/", projNm, "$"), archDir)
     if (!tst) { archDir <- paste0(archDir, "/", projNm) }
     if (!dir.exists(archDir)) { dir.create(archDir, recursive = TRUE) }
     lapply(inDirs2Arch, \(indir) { #indir <- inDirs2Arch[1L]
-      indirArch <- paste0(archDir, "/", gsub(".*/", "", indir))
+      indirArch <- paste0(archDir, "/", sub(".*/", "", indir))
       if (!dir.exists(indirArch)) { dir.create(indirArch, recursive = TRUE) }
       fls <- list.files(indir, recursive = TRUE#, all.files = TRUE
       )
       if (length(fls)) { # Checking because we may already have archived...
-        clusterExport(parClust, list("fls", "indir", "indirArch"), envir = environment())
-        parLapply(parClust, 1L:length(fls), \(x) { #x <- 1L
+        source(parSrc)
+        parallel::clusterExport(parClust, list("fls", "indir", "indirArch"), envir = environment())
+        parallel::parLapply(parClust, 1L:length(fls), \(x) { #x <- 1L
           fl <- fls[x]
           oldFl <- paste0(indir, "/", fl)
           nuFl <- paste0(indirArch, "/", fl)
-          nuDr <- gsub("/[^/]+$", "", nuFl)
+          nuDr <- sub("/[^/]+$", "", nuFl)
           if (!dir.exists(nuDr)) { dir.create(nuDr, recursive = TRUE) }
           fs::file_move(oldFl, nuFl)
         })
@@ -266,7 +268,7 @@ if (dataDeliveryOk && (length(archDirDflt) == 1L)) {
                 ""),
               paste0(indir, "/Archiving_log.txt"))
         drs <- list.dirs(indir, recursive = TRUE, full.names = TRUE)
-        drs <- setdiff(drs, indir)
+        drs <- base::setdiff(drs, indir)
         fls <- list.files(indir, recursive = TRUE)
         if (length(drs) && (length(fls) == 1L) && (fls == "Archiving_log.txt")) {
           for (dr in drs) { unlink(dr, TRUE, TRUE) }

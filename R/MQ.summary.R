@@ -257,8 +257,7 @@ MQ.summary <- function(wd,
       ttl <- "Sequence coverage"
       sttl <- "(1st protein in group)"
       lev <- unique(temp$Sample)
-      lev <- c(intersect(lev, "Global"),
-               setdiff(lev, "Global"))
+      lev <- base::union("Global", lev)
       temp$Sample <- factor(temp$Sample, levels = lev)
       meds$Sample <- factor(meds$Sample, levels = lev)
       plot <- ggplot2::ggplot(temp) +

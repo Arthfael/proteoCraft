@@ -5,7 +5,7 @@
 # Correlation plots now run for any workflow with >=2 samples/sample groups,
 # independently of the ratio-plot selection.
 #
-#stopCluster(parClust)
+#parallel::stopCluster(parClust)
 source(parSrc)
 nCharLim <- 40L
 goAhead <- FALSE
@@ -65,7 +65,7 @@ if (goAhead) {
   ##############################################################################
   if (scrptType == "noReps" && corrOK) {
     opt <- vapply(myCombAll, \(x) { paste(c(x, rep(" ", max(c(1L, 250L-nchar(x))))), collapse = "") }, "")
-    slct <- dlg_list(opt, opt, TRUE, "Ratio plots: select comparisons of interest")$res
+    slct <- svDialogs::dlg_list(opt, opt, TRUE, "Ratio plots: select comparisons of interest")$res
     m <- match(slct, opt)
     comb <- corrCombAll[m,]
     myComb <- myCombAll[m]
@@ -94,14 +94,6 @@ if (goAhead) {
   goAhead <- length(whMtch)
 }
 if (goAhead) {
-  invisible(clusterCall(parClust, \() {
-    library(Peptides)
-    library(proteoCraft)
-    library(ggplot2)
-    library(plotly)
-    library(htmlwidgets)
-    return()
-  }))
   ##############################################################################
   # 1. MASTER: slim down and serialize the input data, one small file per unit
   ##############################################################################
@@ -271,7 +263,7 @@ if (goAhead) {
           s2 <- tempAB[w2,]
           s1$tmp <- apply(s1[, c("Modified sequence", "tmp")], 1L, paste, collapse = "___")
           s2$tmp <- apply(s2[, c("Modified sequence", "tmp")], 1L, paste, collapse = "___")
-          s <- data.frame(tmp = union(s1$tmp, s2$tmp),
+          s <- data.frame(tmp = base::union(s1$tmp, s2$tmp),
                           "log10(LFQ, A)" = NA,
                           "log10(LFQ, B)" = NA,
                           check.names = FALSE)
@@ -356,7 +348,7 @@ if (goAhead) {
     return(list(tasks = tasks, msg = NULL))
   }
   # Stage 2 helpers: one function per plot type. Each loads only its own file.
-  plotCov <- function(d, type) {
+  plotCov <- \(d, type) {
     cfg <- plotCfg
     tmp <- d$tmp
     exp_ <- if (cfg$scrptType == "withReps") { cleanNms(d$exp) } else { d$exp }
@@ -376,7 +368,7 @@ if (goAhead) {
     if (type == "Heat") { return(NULL) } # Saved to disk only, as before
     return(res[[1L]][[1L]])
   }
-  plotCorr <- function(d) {
+  plotCorr <- \(d) {
     cfg <- plotCfg
     temp2 <- d$temp2
     temp3 <- d$temp3
@@ -386,35 +378,40 @@ if (goAhead) {
     y_min <- min(temp2Corr$"log10(LFQ, B)")
     y_max <- max(temp2Corr$"log10(LFQ, B)")
     if (cfg$scrptType == "withReps") {
-      lvls <- cleanNms(union(temp2Corr$A, temp2Corr$B))
+      lvls <- cleanNms(base::union(temp2Corr$A, temp2Corr$B))
       temp2Corr$A <- factor(cleanNms(temp2Corr$A), lvls)
       temp2Corr$B <- factor(cleanNms(temp2Corr$B), lvls)
     }
-    plot <- ggplot(temp2Corr) +
-      geom_point(aes(x = `log10(LFQ, A)`, y = `log10(LFQ, B)`, colour = `C-terminal extent`),
-                 alpha = 1, size = 1L, shape = 16L) +
-      geom_abline(intercept = 0, slope = 1, colour = "red") + coord_fixed(1L) +
-      scale_colour_gradient(low = "green", high = "red") +
-      geom_text(data = temp3, x = x_min, y = y_max - 0.01*(y_max - y_min), aes(label = R), hjust = 0, cex = 2.5) +
-      geom_text(data = temp3, x = x_min, y = y_max - 0.06*(y_max - y_min), aes(label = Median), hjust = 0, cex = 2.5) +
-      geom_text(data = temp3, x = x_min, y = y_max - 0.11*(y_max - y_min), aes(label = SD), hjust = 0, cex = 2.5) +
-      theme_bw() + theme(strip.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
-                         strip.text.y = element_text(angle = -90, hjust = 0.5, vjust = 0.5)) +
-      ggtitle("Correlation plot", subtitle = d$nm1)
+    plot <- ggplot2::ggplot(temp2Corr) +
+      ggplot2::geom_point(ggplot2::aes(x = `log10(LFQ, A)`, y = `log10(LFQ, B)`, colour = `C-terminal extent`),
+                          alpha = 1, size = 1L, shape = 16L) +
+      ggplot2::geom_abline(intercept = 0, slope = 1, colour = "red") +
+      ggplot2::scale_colour_gradient(low = "green", high = "red") +
+      ggplot2::geom_text(data = temp3, ggplot2::aes(label = R),
+                         x = x_min, y = y_max - 0.01*(y_max - y_min), hjust = 0, cex = 2.5) +
+      ggplot2::geom_text(data = temp3, ggplot2::aes(label = Median),
+                         x = x_min, y = y_max - 0.06*(y_max - y_min), hjust = 0, cex = 2.5) +
+      ggplot2::geom_text(data = temp3, ggplot2::aes(label = SD),
+                         x = x_min, y = y_max - 0.11*(y_max - y_min), hjust = 0, cex = 2.5) +
+      ggplot2::coord_fixed(1L) + ggplot2::theme_bw() +
+      ggplot2::theme(strip.text.x = ggplot2::element_text(angle = 0, hjust = 0.5, vjust = 0.5),
+                     strip.text.y = ggplot2::element_text(angle = -90, hjust = 0.5, vjust = 0.5)) +
+      ggplot2::ggtitle("Correlation plot", subtitle = d$nm1)
     u <- unique(temp2Corr$Comparison)
     if (length(u) == 1L) {
       v <- unlist(strsplit(sub(" \\(B\\)$", "", u),  " \\(A\\) vs "))
-      plot <- plot + xlab(v[1L]) + ylab(v[2L])
+      plot <- plot + ggplot2::xlab(v[1L]) + ggplot2::ylab(v[2L])
     } else {
-      plot <- plot + facet_grid(B~A)
+      plot <- plot + ggplot2::facet_grid(B~A)
     }
     ttl_ <- gsub(":|\\*|\\?|<|>|\\||/", "-", paste0("Correlation plot - ", d$nm))
     suppressMessages({
-      ggsave(paste0(d$dirCorr, "/", ttl_, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggplot2::ggsave(paste0(d$dirCorr, "/", ttl_, ".svg"), plot,
+                      dpi = 300L, width = 10L, height = 10L, units = "in")
     })
     return(NULL)
   }
-  plotRatio <- function(d) {
+  plotRatio <- \(d) {
     temp2 <- d$temp2
     P <- d$P; nm <- d$nm; nm1 <- d$nm1
     tstInf <- d$tstInf; tstInfA <- d$tstInfA; tstInfB <- d$tstInfB; logFC_rng <- d$logFC_rng
@@ -425,7 +422,7 @@ if (goAhead) {
     Bext <- max(temp2$`log2(A/B)`) - min(temp2$`log2(A/B)`) + 1L
     sk <- Aext/(3*Bext)
     aaMW <- data.frame(AA = unlist(strsplit(P, "")))
-    aaMW$MW <- cumsum(vapply(aaMW$AA, mw, 1.5))
+    aaMW$MW <- cumsum(vapply(aaMW$AA, Peptides::mw, 1))
     mwScl <- ceiling(max(aaMW$MW)/1000)*1000
     intSp <- round((mwScl/5)/1000)*1000
     mwScl <- (0L:(mwScl/intSp))*intSp
@@ -450,7 +447,7 @@ if (goAhead) {
                                 "AA" = mwScl$AA[nr]*2-mwScl$AA[nr-1L]))
       mwScl$kDa <- paste0(round(mwScl$Da/1000), " kDa")
     }
-    ySum <- summary(temp2$`log2(A/B)`[is.finite(temp2$`log2(A/B)`)])
+    ySum <- base::summary(temp2$`log2(A/B)`[is.finite(temp2$`log2(A/B)`)])
     yScl <- ySum["Max."] - ySum["Min."]
     yMin <- ySum["Min."] - 0.1*yScl
     xLim <- c(-10L, max(c(seqL, mwScl$AA)))
@@ -477,54 +474,55 @@ if (goAhead) {
                                         "</i>\n", myCol, "<i>: ", x[4L],
                                         "</i>\navg. log10(int.): <i>", x[5L], "</i>")
                                })
-    plot <- ggplot(temp2) +
-      annotate(geom = "rect", xmin = 0L, xmax = seqL, ymin = yLim[1L], ymax = yLim[2L],
-               fill = "lightblue", alpha = 0.1)
+    plot <- ggplot2::ggplot(temp2) +
+      ggplot2::annotate(geom = "rect", xmin = 0L, xmax = seqL, ymin = yLim[1L], ymax = yLim[2L],
+                        fill = "lightblue", alpha = 0.1)
     tstN <- aggregate(temp2$Match, list(temp2$A, temp2$B), \(x) { length(unique(x)) })
     if (min(tstN$x) >= 20L) {
       plot <- plot +
-        geom_smooth(data = temp2[temp2$finiTest,], aes(x = (`C-terminal extent`+Match)/2, y = .data[[myCol]]),
-                    alpha = 0.1, linewidth = 0.5, method = "loess", formula = y ~ x)
+        ggplot2::geom_smooth(data = temp2[temp2$finiTest,],
+                             ggplot2::aes(x = (`C-terminal extent`+Match)/2, y = .data[[myCol]]),
+                             alpha = 0.1, linewidth = 0.5, method = "loess", formula = y ~ x)
     }
     plot <- plot +
-      geom_segment(aes(x = Match, xend = `C-terminal extent`, tooltip = `mod. seq.`,
-                       y = .data[[myCol]], yend = .data[[myCol]], colour = `avg. log10(intensity)`),
-                   linewidth = 1L)
+      ggplot2::geom_segment(ggplot2::aes(x = Match, xend = `C-terminal extent`, tooltip = `mod. seq.`,
+                                         y = .data[[myCol]], yend = .data[[myCol]], colour = `avg. log10(intensity)`), linewidth = 1L)
     if (nr) {
       plot <- plot +
-        geom_point(data = mwScl, aes(x = AA), y = yMin-0.1, shape = 17L, color = "blue") +
-        geom_text(data = mwScl, aes(x = AA-0.25, label = kDa), y = yMin - 0.1*yScl, hjust = 1,
-                  cex = 4, angle = 30, color = "blue")
+        ggplot2::geom_point(data = mwScl, ggplot2::aes(x = AA),
+                            y = yMin-0.1, shape = 17L, color = "blue") +
+        ggplot2::geom_text(data = mwScl, ggplot2::aes(x = AA-0.25, label = kDa),
+                           y = yMin - 0.1*yScl, hjust = 1, cex = 4, angle = 30, color = "blue")
     }
-    plot <- plot + coord_fixed(round(sk*2)) +
-      scale_colour_gradient(low = "green", high = "red") +
-      scale_x_continuous(limits = c(0L, seqL), breaks = 50L*(1L:floor(seqL/50))) +
-      xlim(xLim[1L]-5L, xLim[2L]+5L) +
-      ylim(yLim[1L], yLim[2L]) +
-      xlab("Position") +
-      ggtitle("Ratio plot", subtitle = nm1) +
-      theme_bw()
-    if (length(u) > 1L) { plot <- plot + facet_grid(B~A) }
+    plot <- plot + ggplot2::coord_fixed(round(sk*2)) +
+      ggplot2::scale_colour_gradient(low = "green", high = "red") +
+      ggplot2::scale_x_continuous(limits = c(0L, seqL), breaks = 50L*(1L:floor(seqL/50))) +
+      ggplot2::xlim(xLim[1L]-5L, xLim[2L]+5L) +
+      ggplot2::ylim(yLim[1L], yLim[2L]) +
+      ggplot2::xlab("Position") +
+      ggplot2::ggtitle("Ratio plot", subtitle = nm1) +
+      ggplot2::theme_bw()
+    if (length(u) > 1L) { plot <- plot + ggplot2::facet_grid(B~A) }
     if (tstInf) {
       datInfB <- datInfA <- aggregate(temp2[, c("A", "B")], list(temp2$Comparison), unique)
       if (tstInfA) {
         datInfA$Label <- paste0(sub("^A = ", "", datInfA$A), "-only")
         plot <- plot +
-          geom_hline(yintercept = logFC_rng[2L] + 0.5, color = "darkred", linetype = "dashed") +
-          geom_text(data = datInfA, aes(label = Label),
-                    x = 5L, y = logFC_rng[2L] + 0.115*(logFC_rng[2L] - logFC_rng[1L]),
-                    color = "darkred", hjust = 0, fontface = "italic")
+          ggplot2::geom_hline(yintercept = logFC_rng[2L] + 0.5, color = "darkred", linetype = "dashed") +
+          ggplot2::geom_text(data = datInfA, ggplot2::aes(label = Label),
+                             x = 5L, y = logFC_rng[2L] + 0.115*(logFC_rng[2L] - logFC_rng[1L]),
+                             color = "darkred", hjust = 0, fontface = "italic")
       }
       if (tstInfB) {
         datInfB$Label <- paste0(sub("^B = ", "", datInfB$B), "-only")
         plot <- plot +
-          geom_hline(yintercept = logFC_rng[1L] - 0.5, color = "darkred", linetype = "dashed") +
-          geom_text(data = datInfB, aes(label = Label),
-                    x = 5L, y = logFC_rng[1L] - 0.115*(logFC_rng[2L] - logFC_rng[1L]),
-                    color = "darkred", hjust = 0, fontface = "italic")
+          ggplot2::geom_hline(yintercept = logFC_rng[1L] - 0.5, color = "darkred", linetype = "dashed") +
+          ggplot2::geom_text(data = datInfB, ggplot2::aes(label = Label),
+                             x = 5L, y = logFC_rng[1L] - 0.115*(logFC_rng[2L] - logFC_rng[1L]),
+                             color = "darkred", hjust = 0, fontface = "italic")
       }
     }
-    plotLY <- ggplotly(plot, tooltip = "tooltip")
+    plotLY <- plotly::ggplotly(plot, tooltip = "tooltip")
     plotLY <- plotly::config(plotLY, modeBarButtonsToRemove = c("select2d", "lasso2d"))
     w <- which(vapply(plotLY$x$data, \(x) {
       isTRUE(x$mode == "text") && (length(x$text) == 1L) && grepl("-only$", x$text)
@@ -535,7 +533,7 @@ if (goAhead) {
     if (length(u) > 1L) {
       w <- which(vapply(1L:length(plotLY$x$data), \(x) { !is.null(plotLY$x$data[[x]]$marker$colorbar) }, TRUE))
       plotLY$x$data[[w]]$marker$colorbar$x <- 1.1
-      plot <- plot + theme(strip.text.y = element_text(angle = 0, vjust = 0.5, hjust = 0))
+      plot <- plot + ggplot2::theme(strip.text.y = ggplot2::element_text(angle = 0, vjust = 0.5, hjust = 0))
     }
     plotLY$x$layout$xaxis$autorange <- TRUE
     plotLY$x$layout$yaxis$autorange <- TRUE
@@ -547,12 +545,12 @@ if (goAhead) {
     tstSave <- try(htmlwidgets::saveWidget(plotly::partial_bundle(plotLY), fl), silent = TRUE)
     okSave <- !inherits(tstSave, "try-error")
     suppressMessages({
-      ggsave(paste0(d$dirRatio, "/", ttl_, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggplot2::ggsave(paste0(d$dirRatio, "/", ttl_, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     })
     return(list(plotLY = plotLY, file = fl, okSave = okSave,
                 gg = if (okSave) { NULL } else { plot }))
   }
-  runPlotTask <- function(task) { #task <- taskList[[1L]]
+  runPlotTask <- \(task) { #task <- taskList[[1L]]
     tryCatch({
       d <- readr::read_rds(task$File)
       res <- switch(task$Type,
@@ -562,23 +560,25 @@ if (goAhead) {
                     Corr = plotCorr(d),
                     Ratio = plotRatio(d))
       list(ok = TRUE, Result = res, err = NULL)
-    }, error = function(e) { list(ok = FALSE, Result = NULL, err = conditionMessage(e)) })
+    }, error = \(e) { list(ok = FALSE, Result = NULL, err = conditionMessage(e)) })
   }
   for (f in c("prepPlotData", "plotCov", "plotCorr", "plotRatio", "runPlotTask")) {
-    fn <- get(f); environment(fn) <- .GlobalEnv; assign(f, fn)
+    fn <- get(f)
+    environment(fn) <- .GlobalEnv
+    assign(f, fn)
   }
-  clusterExport(parClust, c("plotCfg", "prepPlotData", "plotCov", "plotCorr", "plotRatio", "runPlotTask",
-                            "Coverage", "listMelt", "jsFun", "Exp", "topattern",
-                            "annot_to_tabl", "poplot", "wd"),
-                envir = environment())
+  parallel::clusterExport(parClust,
+                          c("plotCfg", "prepPlotData", "plotCov", "plotCorr", "plotRatio", "runPlotTask", "wd",
+                            "Coverage", "listMelt", "jsFun", "Exp", "topattern", "annot_to_tabl", "poplot"),
+                          envir = environment())
   if (scrptType == "withReps") {
-    clusterExport(parClust, "cleanNms", envir = environment())
+    parallel::clusterExport(parClust, "cleanNms", envir = environment())
   }
   ##############################################################################
   # 3. STAGE 1 (parallel, per accession): prepare data + build the task table
   ##############################################################################
   pidJobs <- lapply(seq_len(nrow(pidTab)), \(i) { as.list(pidTab[i, , drop = FALSE]) })
-  prep <- parLapplyLB(parClust, pidJobs, prepPlotData)
+  prep <- parallel::parLapplyLB(parClust, pidJobs, prepPlotData)
   for (m in unlist(lapply(prep, `[[`, "msg"))) { warning(m) }
   tasks <- do.call(rbind, lapply(prep, `[[`, "tasks"))
   rm(prep, pidJobs)
@@ -589,7 +589,7 @@ if (goAhead) {
     # 4. STAGE 2 (parallel, per plot)
     ############################################################################
     taskList <- lapply(seq_len(nrow(tasks)), \(i) { as.list(tasks[i, , drop = FALSE]) })
-    results <- parLapplyLB(parClust, taskList, runPlotTask)
+    results <- parallel::parLapplyLB(parClust, taskList, runPlotTask)
     rm(taskList)
     wErr <- which(!vapply(results, \(x) { isTRUE(x$ok) }, TRUE))
     for (i in wErr) {

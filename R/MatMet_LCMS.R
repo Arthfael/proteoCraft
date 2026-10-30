@@ -156,10 +156,10 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
   #w <- which((nchar(allKolumns$Description) == 0L) | is.na(allKolumns$Description))
   w <- 1L:nrow(allKolumns)
   allKolumns$Description[w] <- kolDescr(allKolumns[w,])
-  Kolumns <- union(allKolumns$Description[allKolumns$Function == "Analytical"],
-                   c("None (direct infusion)", "Add new..."))
-  preKolumns <- union(allKolumns$Description[allKolumns$Function == "Trap"],
-                      c("None (direct injection)", "Add new..."))
+  Kolumns <- base::union(allKolumns$Description[allKolumns$Function == "Analytical"],
+                         c("None (direct infusion)", "Add new..."))
+  preKolumns <- base::union(allKolumns$Description[allKolumns$Function == "Trap"],
+                            c("None (direct injection)", "Add new..."))
   AddKolKount  <- 0L
   #View(allKolumns)
   #
@@ -263,7 +263,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     uBrMeth$MS_method <- BrMeth$MS_method[w][match(uBrMeth$MethodID, BrMeth$MethodID[w])]
     uBrMeth$MS_meth <- NA
     w2 <- which(!is.na(uBrMeth$MS_method))
-    uBrMeth$MS_meth[w2] <- parLapply(cl, uBrMeth$MS_method[w2], \(fl) { #fl <- uBrMeth$MS_method[w2][1L]
+    uBrMeth$MS_meth[w2] <- parallel::parLapply(cl, uBrMeth$MS_method[w2], \(fl) { #fl <- uBrMeth$MS_method[w2][1L]
       #x <- readr::read_lines(fl)
       #x[1L:100L]
       SQltTDF <- RSQLite::dbConnect(drv = RSQLite::SQLite(),
@@ -360,11 +360,11 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     uBrMeth$RunTime <- sapply(uBrMeth$Method, \(x) { x$LC$HyStarMethodData$NoStandardMethodData })
     for (i in which(!is.na(uBrMeth$Column))) {
       kol <- paste0("\" ", uBrMeth$Column[i], " \"")
-      kol <- svDialogs::dlg_list(union(kol, Kolumns), kol,
+      kol <- svDialogs::dlg_list(base::union(kol, Kolumns), kol,
                                  title = paste0(uBrMeth$Root[i], " - select column used:"))$res
       if (kol == "Add new...") {
         colCharDf <- data.frame(Description = "Analytical")
-        for (kk in setdiff(colChar, "Function")) {
+        for (kk in base::setdiff(colChar, "Function")) {
           colCharDf[[kk]] <- svDialogs::dlg_input(paste0("Enter value for field \"", kk, "\""), "")$res
         }
         kol <- colCharDf$Name
@@ -373,8 +373,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         tst <- apply(allKolumns, 1L, paste, collapse = "|")
         tst <- aggregate(1L:length(tst), list(tst), min)
         allKolumns <- allKolumns[sort(tst$x),]
-        Kolumns <- union(allKolumns$Description[allKolumns$Function == "Analytical"],
-                         c("None (direct infusion)", "Add new..."))
+        Kolumns <- base::union(allKolumns$Description[allKolumns$Function == "Analytical"],
+                               c("None (direct infusion)", "Add new..."))
         AddKolKount <- AddKolKount + 1L
         kol <- tmp$Description
       }
@@ -383,11 +383,11 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     for (i in which(!is.na(uBrMeth$Trap))) {
       if (uBrMeth$usesTrap[i]) {
         kol <- paste0("\" ", uBrMeth$Trap[i], " \"")
-        kol <- svDialogs::dlg_list(union(kol, preKolumns), kol,
+        kol <- svDialogs::dlg_list(base::union(kol, preKolumns), kol,
                                    title = paste0(uBrMeth$Root[i],  " - select trap used:"))$res
         if (kol == "Add new...") {
           colCharDf <- data.frame(Description = "Trap")
-          for (kk in setdiff(colChar, "Function")) {
+          for (kk in base::setdiff(colChar, "Function")) {
             colCharDf[[kk]] <- svDialogs::dlg_input(paste0("Enter value for field \"", kk, "\""), "")$res
           }
           kol <- colCharDf$Name
@@ -396,8 +396,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
           tst <- apply(allKolumns, 1L, paste, collapse = "|")
           tst <- aggregate(1L:length(tst), list(tst), min)
           allKolumns <- allKolumns[sort(tst$x),]
-          preKolumns <- union(allKolumns$Description[allKolumns$Function == "Trap"],
-                              c("None (direct injection)", "Add new..."))
+          preKolumns <- base::union(allKolumns$Description[allKolumns$Function == "Trap"],
+                                    c("None (direct injection)", "Add new..."))
           AddKolKount <- AddKolKount + 1L
           kol <- tmp$Description
         }
@@ -444,12 +444,11 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                                min(FrmDat$IsolationMz[FrmDat$IsolationWidth == isoWdths$Width[2L]])))
         CEs <- data.frame(CE = round(c(min(FrmDat$CollisionEnergy), max(FrmDat$CollisionEnergy))),
                           IM = as.numeric(MobRng))
-        #require(ggplot2)
-        #plot1 <- ggplot(FrmDat) + geom_point(aes(x = IsolationMz, y = IsolationWidth, colour = Frame)) + theme_bw()
+        #plot1 <- ggplot2::ggplot(FrmDat) + ggplot2::geom_point(ggplot2::aes(x = IsolationMz, y = IsolationWidth, colour = Frame)) + ggplot2::theme_bw()
         #poplot(plot1) # -> Isolation width is strictly a function of m/z and based on the table in the timsControl GUI...
-        #plot2 <- ggplot(FrmDat) + geom_point(aes(x = IsolationMz, y = CollisionEnergy, colour = Frame)) + theme_bw()
+        #plot2 <- ggplot2::ggplot(FrmDat) + ggplot2::geom_point(ggplot2::aes(x = IsolationMz, y = CollisionEnergy, colour = Frame)) + ggplot2::theme_bw()
         #poplot(plot2) # ... but Collision Energy isn't.
-        #plot2a <- ggplot(FrmDat) + geom_point(aes(x = IsolationMz, y = CollisionEnergy, colour = ScanNumBegin)) + theme_bw()
+        #plot2a <- ggplot2::ggplot(FrmDat) + ggplot2::geom_point(ggplot2::aes(x = IsolationMz, y = CollisionEnergy, colour = ScanNumBegin)) + ggplot2::theme_bw()
         #poplot(plot2a) # ... but Collision Energy isn't.
       } else { isoWdths <- CEs <- NA }
       #
@@ -548,9 +547,9 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
         DIAfl <- sub("\\.m$", " - DIA_windows.csv", fl)
         cat("Writing DIA windows to", DIAfl, "\n")
         write.csv(DIADat1, DIAfl, row.names = FALSE)
-        #plot <- ggplot(DIADat1, aes(xmin = IsolationMz-IsolationWidth/2, xmax = IsolationMz+IsolationWidth/2,
-        #                            ymin = ScanNumBegin, ymax = ScanNumEnd, colour = WindowGroup)) + theme_bw() +
-        #  geom_rect(alpha = 0.1) + scale_y_reverse() + xlab("M/Z") + ylab("Scan number")
+        #plot <- ggplot2::ggplot(DIADat1, ggplot2::aes(xmin = IsolationMz-IsolationWidth/2, xmax = IsolationMz+IsolationWidth/2,
+        #                        ymin = ScanNumBegin, ymax = ScanNumEnd, colour = WindowGroup)) + ggplot2::theme_bw() +
+        #  ggplot2::geom_rect(alpha = 0.1) + ggplot2::scale_y_reverse() + ggplot2::xlab("M/Z") + ggplot2::ylab("Scan number")
         #poplot(plot)
         if (DIATxt_verbose) {
           tmp1 <- paste0("scan ranges: ", paste(apply(DIADat1[, c("ScanNumBegin", "ScanNumEnd")], 1L, paste, collapse = "-"), collapse = "/"))
@@ -692,8 +691,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     # # Vector of material and methods text for each LC/MS method
     all_LCMS_txts <- c(all_LCMS_txts, brLCMS_txt)
     #
-    all_LCMS_instr$LC <- union(all_LCMS_instr$LC, uBrMeth$LC)
-    all_LCMS_instr$MS <- union(all_LCMS_instr$MS, uBrMeth$MS)
+    all_LCMS_instr$LC <- base::union(all_LCMS_instr$LC, uBrMeth$LC)
+    all_LCMS_instr$MS <- base::union(all_LCMS_instr$MS, uBrMeth$MS)
   }
   if ("raw" %in% tolower(Ext)) {
     rawMeth <- MethodsTbl[tolower(MethodsTbl$Ext) == "raw",]
@@ -833,7 +832,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
               colnames(tmp) <- c("Name", "Material", "Length (cm)", "ID (\u{00b5}m)", "Particles size (\u{00b5}m)", "Vendor", "P/N")
               tmp$Function <- "Analytical"
               tmp$Description <- kolDescr(tmp)
-              k <- setdiff(colnames(allKolumns), colnames(tmp))
+              k <- base::setdiff(colnames(allKolumns), colnames(tmp))
               tmp[, k] <- NA
               tmp[1L, tmp[1L,] == "NA"] <- NA
               allKolumns <- rbind(allKolumns, tmp)
@@ -841,8 +840,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
               tst <- apply(allKolumns, 1L, paste, collapse = "|")
               tst <- aggregate(1L:length(tst), list(tst), min)
               allKolumns <- allKolumns[sort(tst$x),]
-              Kolumns <- union(allKolumns$Description[allKolumns$Function == "Analytical"],
-                               c("None (direct infusion)", "Add new..."))
+              Kolumns <- base::union(allKolumns$Description[allKolumns$Function == "Analytical"],
+                                     c("None (direct infusion)", "Add new..."))
               AddKolKount <- AddKolKount + 1L
               kol <- tmp$Description
             }
@@ -859,7 +858,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                 tmp <- as.data.frame(t(as.data.frame(unlist(strsplit(kol, " *\\| *")))))
                 colnames(tmp) <- c("Name", "Material", "Length (cm)", "ID (\u{00b5}m)", "Particles size (\u{00b5}m)", "Vendor", "P/N")
                 tmp$Function <- "Trap"
-                k <- setdiff(colnames(allKolumns), colnames(tmp))
+                k <- base::setdiff(colnames(allKolumns), colnames(tmp))
                 tmp[, k] <- NA
                 tmp$Description <- kolDescr(tmp)
                 allKolumns <- rbind(allKolumns, tmp)
@@ -867,8 +866,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                 tst <- apply(allKolumns, 1L, paste, collapse = "|")
                 tst <- aggregate(1L:length(tst), list(tst), min)
                 allKolumns <- allKolumns[sort(tst$x),]
-                preKolumns <- union(allKolumns$Description[allKolumns$Function == "Trap"],
-                                    c("None (direct injection)", "Add new..."))
+                preKolumns <- base::union(allKolumns$Description[allKolumns$Function == "Trap"],
+                                          c("None (direct injection)", "Add new..."))
                 AddKolKount <- AddKolKount + 1L
                 kol <- tmp$Description
               }
@@ -968,7 +967,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                 EXCLZ <- "excluding"
                 if (tst1) {
                   #EXCLZ <- paste0(EXCLZ, " unassigned charges, charges ")
-                  ExclZ <- setdiff(ExclZ, "unassigned")
+                  ExclZ <- base::setdiff(ExclZ, "unassigned")
                 }
                 wNC1 <- which(nchar(ExclZ) == 1L)
                 ExclZ[wNC1] <- paste0(ExclZ[wNC1], POL)
@@ -1110,8 +1109,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
       })
       thMeth_LC <- vapply(thMeth, \(x) { x$LC }, "")
       thMeth_MS <- vapply(thMeth, \(x) { x$MS }, "")
-      all_LCMS_instr$LC <- union(all_LCMS_instr$LC, thMeth_LC)
-      all_LCMS_instr$MS <- union(all_LCMS_instr$MS, thMeth_MS)
+      all_LCMS_instr$LC <- base::union(all_LCMS_instr$LC, thMeth_LC)
+      all_LCMS_instr$MS <- base::union(all_LCMS_instr$MS, thMeth_MS)
       thLCMS_txt <- lapply(thMeth, \(x) { x$Method })
       thLCMS_txt <- do.call(rbind, thLCMS_txt)
       tmp <- thLCMS_txt[, c("LC_txt", "MS_txt")]

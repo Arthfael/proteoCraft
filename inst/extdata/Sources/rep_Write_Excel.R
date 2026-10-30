@@ -1,8 +1,6 @@
 ##############################
 # Create output Excel tables #
 ##############################
-require(openxlsx2)
-require(xml2)
 #
 # Write the main peptidoforms- and protein groups-level, multi-tabs report.
 #
@@ -12,8 +10,8 @@ require(xml2)
 #   But the one thing I preferred in openxlsx over openxlsx2 was how it dealt with style.
 #   Anyway... 
 #   So. We will. CHEAT!
-#   I have saved a dummy tab with my old openxlsx styles,
-#   which I will load in openxlsx2 to get and copy the styles from.
+#   we will start from an Excel file with a dummy tab containing ready-made styles,
+#   which we will load in openxlsx2 to get and copy the styles from it.
 MakeRatios <- TRUE # (Used by the sourced, core sub-script)
 dxfs_Style_nms <- c()
 intNms <- \(nms, topLvl = FALSE, type = "PG", newLine = FALSE) {
@@ -68,14 +66,14 @@ for (nm in names(Prot.Rat.Root)) { #nm <- names(Prot.Rat.Root)[1L]
 }
 fl <- system.file("extdata", "Report_column_names_Rep.xlsx", package = "proteoCraft")
 styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[, 1L]
-WorkBook <- wb_load(fl)
+WorkBook <- openxlsx2::wb_load(fl)
 repFl %<o% paste0(wd, "/Tables/Report_", dtstNm, ".xlsx")
-WorkBook <- wb_add_data(WorkBook, "Description", dtstNm, wb_dims(2L, 5L))
-WorkBook <- wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"), wb_dims(3L, 5L))
-WorkBook <- wb_add_data(WorkBook, "Description", WhoAmI, wb_dims(4L, 5L))
+WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description", dtstNm, openxlsx2::wb_dims(2L, 5L))
+WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"), openxlsx2::wb_dims(3L, 5L))
+WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description", WhoAmI, openxlsx2::wb_dims(4L, 5L))
 tmp <- loadedPackages(TRUE)
-WorkBook <- wb_add_data(WorkBook, "Description", tmp$Version[grep("proteoCraft", tmp$Name)], wb_dims(5L, 5L))
-WorkBook <- wb_set_base_font(WorkBook, 11L, font_name = "Calibri")
+WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description", tmp$Version[grep("proteoCraft", tmp$Name)], openxlsx2::wb_dims(5L, 5L))
+WorkBook <- openxlsx2::wb_set_base_font(WorkBook, 11L, font_name = "Calibri")
 cat(" -> Writing Excel report...\n")
 #
 
@@ -230,7 +228,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     gel <- setNames(lapply(intRf, \(rf) {
       x <- c(paste0(rf, RSA$values),
              paste0("Mean ", rf, VPAL$values))
-      return(intersect(x, colnames(tempData)))
+      return(base::intersect(x, colnames(tempData)))
     }), intRf)
     if (ii == 1L) {
       # Log transform for normal tables - not necessary for PTM-modified tables as we already transformed
@@ -298,30 +296,30 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     quantcol <- unlist(quantCols)
     PepColList <- c("gel", "quantcol", "signcol", "regcol") # These are any column for which we want to gsub "___" to " "
     if (!is.null(ratRf)) {
-      PepColList <- union(PepColList, "grl")
+      PepColList <- base::union(PepColList, "grl")
     }
-    .obj <- union(PepColList, .obj) # Here easier than using a custom operator
+    .obj <- base::union(PepColList, .obj) # Here easier than using a custom operator
     if (ii > 1L) {
       gpl <- grep(topattern(pvalue.col[pvalue.use]), colnames(tempData), value = TRUE)
       quantcol <- c(quantcol, gpl)
       PepColList <- c(PepColList, "gpl")
     }
     aacol <- paste0(AA, " Count")
-    qualFlt <- intersect(QualFilt, colnames(ev))
+    qualFlt <- base::intersect(QualFilt, colnames(ev))
     w <- which(!qualFlt %in% colnames(tempData))
     if (length(w)) {
       tempData[, qualFlt[w]] <- ev[match(tempData$"Modified sequence", ev$"Modified sequence"), qualFlt[w]]
     }
-    kol <- union(CoreCol, c("In list", CoreCol2, evcol, spcol, "PEP", quantcol, signcol, regcol, qualFlt, aacol))
+    kol <- base::union(CoreCol, c("In list", CoreCol2, evcol, spcol, "PEP", quantcol, signcol, regcol, qualFlt, aacol))
     if (ii > 1L) { kol <- c(kol, "Code") }
     if (Annotate) {
-      PepAnnotCol %<o% intersect(annot.col, colnames(tempData))
+      PepAnnotCol %<o% base::intersect(annot.col, colnames(tempData))
       kol <- c(kol, PepAnnotCol)
     }
     #tst <- data.frame(Names = names(kol), Column = setNames(kol, NULL), Found = kol %in% colnames(tempData));View(tst)
-    #setdiff(kol, colnames(tempData))
-    kol <- intersect(kol, colnames(tempData))
-    #setdiff(colnames(tempData), kol)
+    #base::setdiff(kol, colnames(tempData))
+    kol <- base::intersect(kol, colnames(tempData))
+    #base::setdiff(colnames(tempData), kol)
     tempData <- tempData[, kol]
     # If there is only one experiment, remove it from the names here...
     colnames(tempData) <- cleanNms(colnames(tempData), start = FALSE)
@@ -347,7 +345,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     }
     if ((ii > 1L) && F.test) {
       tempPepF <- PTMs_F_test_data[[Ptm]]
-      tempPepF <- tempPepF[, setdiff(colnames(tempPepF), c(Param$Plot.labels, "Rel. log10(Peptides count)", "Av. log10 abundance"))]
+      tempPepF <- tempPepF[, base::setdiff(colnames(tempPepF), c(Param$Plot.labels, "Rel. log10(Peptides count)", "Av. log10 abundance"))]
       colnames(tempPepF) <- cleanNms(colnames(tempPepF), start = FALSE)
       #mnratcolF %<o% grep("Mean log2\\(Ratio\\) - ", colnames(tempPepF), value = TRUE)
       #m <- match(mnratcolF, colnames(tempPepF))
@@ -412,7 +410,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     if (Annotate) {
       AnnotTbl$Columns <- list(c("GO", "GO-ID"), c("Taxonomy", "TaxID"), NA, NA, NA, NA, "EMBL", NA)
       for (i in annot) { AnnotTbl$Columns[match(i, AnnotTbl$Name)] <- list(c(i, paste0(i, " names"))) }
-      AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(setdiff(annot.col2, unlist(AnnotTbl$Columns)))
+      AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(base::setdiff(annot.col2, unlist(AnnotTbl$Columns)))
       for (i in 1L:nrow(AnnotTbl)) { ColumnsTbl[[paste0(AnnotTbl$Name[i], " annotations")]] <- AnnotTbl$Columns[[i]] }
     }
     # - PEP
@@ -463,7 +461,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     #rstudioapi::documentOpen(Src)
     source(Src)
     #saveFun(WorkBook, file = "WorkBook_bckp.RDS")
-    #wb_save(WorkBook, paste0(wd, "/tst.xlsx")); xl_open(paste0(wd, "/tst.xlsx"))
+    #openxlsx2::wb_save(WorkBook, paste0(wd, "/tst.xlsx"));openxlsx2::xl_open(paste0(wd, "/tst.xlsx"))
     #loadFun("WorkBook_bckp.RDS")
   }
 }
@@ -569,7 +567,7 @@ pepevspeccol <- c("Peptides count",
                   grep("^Biot\\. spectral count - ", colnames(tempData), value = TRUE),
                   "Biot. spectrum IDs",
                   grep("^Biot\\. spectrum IDs - ", colnames(tempData), value = TRUE))
-pepevspeccol <- intersect(pepevspeccol, colnames(tempData))
+pepevspeccol <- base::intersect(pepevspeccol, colnames(tempData))
 pepcountcol1 <- grep("[Pp]eptides count$", pepevspeccol, value = TRUE)
 pepcountcol2 <- grep("[Pp]eptides count - ", pepevspeccol, value = TRUE)
 pepidcol1 <- grep("[Pp]eptide IDs$", pepevspeccol, value = TRUE)
@@ -658,7 +656,7 @@ for (gr in grl) {
   w <- which(is.infinite(tempData[[gr]]))
   tempData[w, gr] <- NA_real_
 }
-quantcol <- union(quantcol, grl)
+quantcol <- base::union(quantcol, grl)
 quantCols[names(ratRf)] <- ratCols
 if (protrul) {
   tmp <- grep(topattern("log10(est. copies/cell) - ", start = FALSE), colnames(tempData), value = TRUE)
@@ -675,11 +673,11 @@ covcol <- c(#xmlCovCol,
     "Unique sequence coverage [%]")[1L:c(1L, 3L)[isEukaLike+1L]],
   grep(topattern("Sequence coverage [%] - "), colnames(tempData), value = TRUE))
 kol <- c(kol, "Mol. weight [kDa]", covcol, "PEP", covcol, quantcol, pvalcol, regcol, signcol)
-if (exists("KlustKols") && length(KlustKols)) { kol <- union(kol, KlustKols) }
+if (exists("KlustKols") && length(KlustKols)) { kol <- base::union(kol, KlustKols) }
 qualFlt <- QualFilt
-if (length(GO_PG_col)) { qualFlt <- union(qualFlt, GO_PG_col2) }
-kol <- union(kol, setdiff(qualFlt, "In list"))
-if (Annotate) { kol <- union(kol, annot.col) }
+if (length(GO_PG_col)) { qualFlt <- base::union(qualFlt, GO_PG_col2) }
+kol <- base::union(kol, base::setdiff(qualFlt, "In list"))
+if (Annotate) { kol <- base::union(kol, annot.col) }
 if (Annotate && LocAnalysis) {
   PG$Marker <- ""
   w <- which(PG$Label %in% names(SubCellMark2))
@@ -714,12 +712,12 @@ if (Annotate && LocAnalysis) {
     kol <- c(kol, lokol6, lokol2, lokol3, lokol4, lokol5)
   }
 } else { SubCellLocTbl <- NULL}
-kol <- unique(intersect(kol, colnames(tempData)))
+kol <- unique(base::intersect(kol, colnames(tempData)))
 tempData <- tempData[, kol]
 #
 if (F.test) {
   tmpPGf <- F_test_data
-  tmpPGf <- tmpPGf[, setdiff(colnames(tmpPGf), c(Param$Plot.labels, "Rel. log10(Peptides count)", "Av. log10 abundance"))]
+  tmpPGf <- tmpPGf[, base::setdiff(colnames(tmpPGf), c(Param$Plot.labels, "Rel. log10(Peptides count)", "Av. log10 abundance"))]
   colnames(tmpPGf) <- cleanNms(colnames(tmpPGf), start = FALSE)
   #mnratcolF %<o% grep("Mean log2\\(Ratio\\) - ", colnames(tmpPGf), value = TRUE)
   #m <- match(mnratcolF, colnames(tmpPGf))
@@ -739,7 +737,7 @@ if (F.test) {
 if (Annotate && LocAnalysis) {
   if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) { loadFun("GO_terms.RDS") }
   GOCC <- GO_terms$ID[GO_terms$Ontology == "CC"]
-  tempData$"GO-ID (CC)" <- lapply(strsplit(tempData$`GO-ID`, ";"), \(x) { intersect(x, GOCC) })
+  tempData$"GO-ID (CC)" <- lapply(strsplit(tempData$`GO-ID`, ";"), \(x) { base::intersect(x, GOCC) })
   w <- which(lengths(tempData$"GO-ID (CC)") > 0L)
   tempData$"GO (CC)" <- ""
   tempData$"GO (CC)"[w] <- vapply(tempData$"GO-ID (CC)"[w], \(x) {
@@ -819,7 +817,7 @@ if (Annotate) {
   AnnotTbl$Columns <- list(c("GO", "GO-ID"), c("Taxonomy", "TaxID"), NA, NA, NA, NA, "EMBL", NA)
   annot <- c("InterPro", "Pfam", "PIRSF", "PROSITE")
   for (i in annot) { AnnotTbl$Columns[match(i, AnnotTbl$Name)] <- list(c(i, paste0(i, " names"))) }
-  AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(setdiff(annot.col2, unlist(AnnotTbl$Columns)))
+  AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(base::setdiff(annot.col2, unlist(AnnotTbl$Columns)))
   for (i in 1L:nrow(AnnotTbl)) { ColumnsTbl[[paste0(AnnotTbl$Name[i], " annotations")]] <- AnnotTbl$Columns[[i]] }
   if (LocAnalysis) {
     ColumnsTbl[["GO annotations"]] <- c(ColumnsTbl[["GO"]], "GO (CC)")
@@ -866,7 +864,7 @@ if (IsBioID2) {
 for (nm in names(intRf)) { #nm <- names(intRf)[1L]
   rpl <- intNms(nm, TRUE)
   kl <- c(paste0("Mean ", intRf[[nm]], VPAL$values), paste0(intRf[[nm]], RSA$values))
-  kl <- intersect(kl, ColumnsTbl$Col)
+  kl <- base::intersect(kl, ColumnsTbl$Col)
   ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
 }
 ColumnsTbl$Class[grep("Ruler", ColumnsTbl$Grp)] <- "log10(est. copies/cell)"
@@ -874,7 +872,7 @@ for (nm in names(ratRf)) { #nm <- names(ratRf)[1L]
   rpl <- ratNms(nm, TRUE)
   #kl <- c(paste0("Mean ", ratRf[[nm]], VPAL$values), paste0(ratRf[[nm]], RSA$values))
   kl <- paste0(ratRf[[nm]], myContrasts$Contrast)
-  kl <- intersect(kl, ColumnsTbl$Col)
+  kl <- base::intersect(kl, ColumnsTbl$Col)
   ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
 }
 ColumnsTbl$Class[ColumnsTbl$Grp == "Proteome Ruler"] <- "log10(est. copies/cell)"
@@ -963,13 +961,13 @@ if (length(ratCols) > 1L) {
 #
 a <- if (MakeRatios) { KolEdit(ColumnsTbl$Col, intColsTbl, ratColsTbl) } else { KolEdit(ColumnsTbl$Col, intColsTbl) }
 ColumnsTbl$edit_Col <- unlist(a)
-#wb_save(WorkBook, paste0(wd, "/tst.xlsx"));xl_open(paste0(wd, "/tst.xlsx"))
+#openxlsx2::wb_save(WorkBook, paste0(wd, "/tst.xlsx"));openxlsx2::xl_open(paste0(wd, "/tst.xlsx"))
 #
 Src <- paste0(libPath, "/extdata/Sources/fstWrite_Excel_core_script.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 #saveFun(WorkBook, file = "WorkBook_bckp.RDS")
-#wb_save(WorkBook, paste0(wd, "/tst.xlsx")); xl_open(paste0(wd, "/tst.xlsx"))
+#openxlsx2::wb_save(WorkBook, paste0(wd, "/tst.xlsx"));openxlsx2::xl_open(paste0(wd, "/tst.xlsx"))
 #loadFun("WorkBook_bckp.RDS")
 if (saintExprs) {
   tblMode <- tblMode2 <- TbNm <- "SAINTexpress"
@@ -1049,9 +1047,9 @@ if (saintExprs) {
   qualFlt <- "Potential contaminant"
   kol <- c(CoreCol, "In list", regcol, quantcol, fdrcol, avgPcol, maxPcol, topoAvgPcol, topoMaxPcol,
            #saintcol, oddscol, # Those 2 columns look a bit useless... 
-           boostcol, setdiff(qualFlt, "In list"))
+           boostcol, base::setdiff(qualFlt, "In list"))
   kol <- unique(kol)
-  kol <- intersect(kol, colnames(tempData))
+  kol <- base::intersect(kol, colnames(tempData))
   tempData <- tempData[, kol]
   #
   # Re-order
@@ -1094,7 +1092,7 @@ if (saintExprs) {
   for (nm in names(ratRf)) { #nm <- names(ratRf)[1L]
     rpl <- "log2(rat.), avg."
     kl <- paste0(ratRf[[nm]], myContrasts$Contrast)
-    kl <- intersect(kl, ColumnsTbl$Col)
+    kl <- base::intersect(kl, ColumnsTbl$Col)
     ColumnsTbl$Class[match(kl, ColumnsTbl$Col)] <- rpl
   }
   ColumnsTbl$Class[ColumnsTbl$Col %in% fdrcol] <- "FDR"
@@ -1131,7 +1129,7 @@ if (saintExprs) {
   #rstudioapi::documentOpen(Src)
   source(Src)
   #saveFun(WorkBook, file = "WorkBook_bckp.RDS")
-  #wb_save(WorkBook, paste0(wd, "/tst.xlsx")); xl_open(paste0(wd, "/tst.xlsx"))
+  #openxlsx2::wb_save(WorkBook, paste0(wd, "/tst.xlsx"));openxlsx2::xl_open(paste0(wd, "/tst.xlsx"))
   #loadFun("WorkBook_bckp.RDS")
 }
 #tmpFl <- tempfile(fileext = ".RDS")
@@ -1141,4 +1139,4 @@ Src <- paste0(libPath, "/extdata/Sources/Write_Excel_end_script.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 #WorkBook$get_active_sheet()
-#xl_open(repFl)
+#openxlsx2::xl_open(repFl)

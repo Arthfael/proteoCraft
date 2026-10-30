@@ -2,23 +2,23 @@ if (LabelType == "LFQ") {
   source(parSrc)
   if ((Param$Label == "DIA") && ("MS2 intensities" %in% colnames(ev))) {
     ev$MS2_intensities <- strsplit(ev$"MS2 intensities", ";")
-    ev$MS2_intensities <- parLapply(parClust, ev$MS2_intensities, as.numeric) # (Let's keep this as a numeric list)
+    ev$MS2_intensities <- parallel::parLapply(parClust, ev$MS2_intensities, as.numeric) # (Let's keep this as a numeric list)
     temp <- ev[, c(ev.col["Original"], "MS2_intensities")]
-    temp$SumS2 <- parSapply(parClust, temp$MS2_intensities, \(x) { sum(x[is.finite(x)]) })
+    temp$SumS2 <- parallel::parSapply(parClust, temp$MS2_intensities, \(x) { sum(x[is.finite(x)]) })
     # While we're at it, let's estimate missing MS1 intensities if we only have MS2:
     # (sum of MS2 intensities * median ratio of precursor intensity to sum of MS2 intensities)
     m <- temp$Intensity/temp$SumS2
     m <- m[is.finite(m)]
     m <- median(m)
     #sd(m)
-    #plot <- ggplot(temp) + geom_point(aes(x = log10(Intensity), y = log10(SumS2))) + theme_bw() + geom_abline(intercept = log10(1/m), slope = 1, colour = "red")
+    #plot <- ggplot2::ggplot(temp) + ggplot2::geom_point(ggplot2::aes(x = log10(Intensity), y = log10(SumS2))) + ggplot2::theme_bw() + ggplot2::geom_abline(intercept = log10(1/m), slope = 1, colour = "red")
     #poplot(plot)
     w <- which(((!is.finite(ev[[ev.col["Original"]]])) | (ev[[ev.col["Original"]]] <= 0)) & (temp$SumS2 > 0))
     if (length(w)) { ev[w, ev.col["Original"]] <- temp$SumS2[w]*m }
-    test <- parApply(parClust, temp[, c(ev.col["Original"], "SumS2")], 1L, sum)
+    test <- parallel::parApply(parClust, temp[, c(ev.col["Original"], "SumS2")], 1L, sum)
   } else {
     temp <- ev[, ev.col["Original"], drop = FALSE]
-    test <- parApply(parClust, temp, 1L, \(x) { sum(x[is.finite(x)]) })
+    test <- parallel::parApply(parClust, temp, 1L, \(x) { sum(x[is.finite(x)]) })
   }
   l <- sum(test == 0)
   if (l) {
@@ -53,7 +53,7 @@ if (LabelType == "Isobaric") { # If isobaric
   m <- m[is.finite(m)]
   m <- median(m)
   #sd(m)
-  #plot <- ggplot(tst) + geom_point(aes(x = log10(MS1), y = log10(Reporter))) + theme_bw() + geom_abline(intercept = log10(1/m), slope = 1, colour = "red")
+  #plot <- ggplot2::ggplot(tst) + ggplot2::geom_point(ggplot2::aes(x = log10(MS1), y = log10(Reporter))) + ggplot2::theme_bw() + ggplot2::geom_abline(intercept = log10(1/m), slope = 1, colour = "red")
   #poplot(plot)
   #
   #View()

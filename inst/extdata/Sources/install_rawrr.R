@@ -9,27 +9,11 @@ rawrr_tst <- try({
   #remove.packages("rawrr")
   #
   rawrrVers_inst <- packageVersion("rawrr")
-  if ((rawrrVers_inst != "1.11.14") || (!require(rawrr, quietly = TRUE))) {
-    # if (length(rawrrVers) > 1L) {
-    #   rawrrVers <- dlg_list(rawrrVersions, rawrrVersions[3L], title = "Select which rawrr version should be installed")$res
-    # }
-    # if (rawrrVers == "github") {
-    #   pak::pak("cpanse/rawrr")
-    #   #install.packages('http://fgcz-ms.uzh.ch/~cpanse/rawrr_0.2.1.tar.gz', repo = NULL) # Old address, now on github
-    # }
-    # if (rawrrVers == "bioc") {
-    #   if (!require("BiocManager", quietly = TRUE)) { install.packages("BiocManager") }
-    #   BiocManager::install("rawrr", version = "1.11")
-    #   BiocManager::install("rawrr")
-    # }
-    # if (rawrrVers == "bioc_1.11.14") {
+  if ((rawrrVers_inst != "1.11.14") || (!requireNamespace("rawrr", quietly = TRUE))) {
     url <- "https://bioconductor.org/packages/3.19/bioc/src/contrib/Archive/rawrr/rawrr_1.11.14.tar.gz"
-    require(curl)
     dstfl <- paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads/rawrr_1.11.14.tar.gz")
-    curl_download(url, dstfl)
+    curl::curl_download(url, dstfl)
     install.packages(dstfl)
-    #}
-    # 
   }
   yesRawFileReaderLicenseIsAccepted <- \(showLicense = FALSE) {
     licenseFile <- file.path(system.file(package = "rawrr"), 
@@ -46,9 +30,9 @@ rawrr_tst <- try({
           dir.create(dirname(eulaFile), recursive = TRUE)
         }
         fileConn <- file(eulaFile)
-        writeLines(paste(msg, paste0("# ", date()), "eula=true", 
+        writeLines(paste(msg, paste0("# ", base::date()), "eula=true", 
                          sep = "\n"), fileConn)
-        close(fileConn)
+        base::close(fileConn)
         return(TRUE %in% grepl("eula=true", tolower(readr::read_lines(eulaFile))))
       }
     } else { return(TRUE %in% grepl("eula=true", tolower(readr::read_lines(eulaFile)))) }
@@ -79,9 +63,8 @@ rawrr_tst <- try({
   }
   installRawFileReaderDLLsNoAcpt()
   #rawrr::installRawFileReaderDLLs(sourceUrl = .thermofisherlsmsUrl())
-  #require(rawrr); getAnywhere(".isRawFileReaderLicenseAccepted")
+  #requireNamespace("rawrr"); getAnywhere(".isRawFileReaderLicenseAccepted")
   rawrr::installRawrrExe()
-  library(rawrr)
 }, silent = TRUE)
 if (inherits(rawrr_tst, "try-error")) {
   warning("Could not install rawrr 1.11.14!")

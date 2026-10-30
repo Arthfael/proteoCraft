@@ -1,5 +1,6 @@
 # Run peptides-level normalisations
 # - Can I rewrite this to handle also proteins level re-normalisation?
+source(parSrc)
 lNorm <- length(normSequence) #lNorm <- 1L
 if (lNorm) {
   cat("Peptides-level normalisations:\n------------------------------\n\n")
@@ -31,7 +32,7 @@ if (lNorm) {
   addKol <- setNames(c("id", "Group", "Modified sequence", "Proteins"),
                      c("id", "Normalisation group", "Modified sequence", "Proteins"))
   tmpDat1[, addKol] <- pep[, names(addKol)]
-  wAG1 <- which(parApply(parClust, tmpDat1[, allSamples], 1L, \(x) { sum(is.finite(x)) }) > 0L)
+  wAG1 <- which(parallel::parApply(parClust, tmpDat1[, allSamples], 1L, \(x) { sum(is.finite(x)) }) > 0L)
   pepNorm[[1L]] <- list(Data = tmpDat1,
                        Filter = wAG1,
                        Pass = TRUE)
@@ -82,10 +83,10 @@ if (lNorm) {
     #   - Outcome -> did it work, or was it accepted by the user?
     #View(tmpDat2)
     pepNorm[[nrmStp+1L]] <- list(Data = tmpDat2,
-                                Normalisation = normSequence[[nrmStp]],
-                                Filter = wAG2,
-                                Text = txt2,
-                                Pass = Outcome)
+                                 Normalisation = normSequence[[nrmStp]],
+                                 Filter = wAG2,
+                                 Text = txt2,
+                                 Pass = Outcome)
   }
   wNorm <- which(vapply(pepNorm, \(x) { x$Pass }, TRUE))
   wNorm <- wNorm[wNorm != 1L]
@@ -93,7 +94,7 @@ if (lNorm) {
     # Visualisations
     dat <- lapply(c(1L, wNorm), \(i) {
       df <- as.data.frame(pepNorm[[i]]$Data)
-      currSamples <- intersect(allSamples, colnames(df))
+      currSamples <- base::intersect(allSamples, colnames(df))
       x <- df[, currSamples]
       colnames(x) <- cleanNms(colnames(x))
       x[, addKol] <- pep[, names(addKol)]
@@ -116,23 +117,27 @@ if (lNorm) {
     kolz <- "."
     if (length(unique(pep$Normalisation_group)) > 1L) { kolz <- c(kolz, "Normalisation_group") }
     form <- as.formula(paste0("Norm~", paste0(kolz, collapse = "+")))
-    plot <- ggplot(dat) +
-      geom_violin(aes(x = Sample, y = value, color = `Samples group`, fill = `Samples group`), alpha = 0.25) +
-      geom_boxplot(aes(x = Sample, y = value, color = `Samples group`, fill = `Samples group`), alpha = 0.5) +
-      scale_color_viridis(begin = 0.25, discrete = TRUE, option = "C") +
-      scale_fill_viridis(begin = 0.25, discrete = TRUE, option = "C") +
-      theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
-      geom_vline(xintercept = 0) + ggtitle(ttl) + facet_grid(form) +
-      theme(strip.text.y = element_text(angle = 0)) +
-      coord_fixed(0.5)
+    plot <- ggplot2::ggplot(dat) +
+      ggplot2::geom_violin(ggplot2::aes(x = Sample, y = value, color = `Samples group`, fill = `Samples group`),
+                           alpha = 0.25) +
+      ggplot2::geom_boxplot(ggplot2::aes(x = Sample, y = value, color = `Samples group`, fill = `Samples group`),
+                            alpha = 0.5) +
+      viridis::scale_color_viridis(begin = 0.25, discrete = TRUE, option = "C") +
+      viridis::scale_fill_viridis(begin = 0.25, discrete = TRUE, option = "C") +
+      ggplot2::theme_bw() +
+      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust = 1),
+                     strip.text.y = ggplot2::element_text(angle = 0)) +
+      ggplot2::geom_vline(xintercept = 0) +
+      ggplot2::ggtitle(ttl) + ggplot2::facet_grid(form) +
+      ggplot2::coord_fixed(0.5)
     poplot(plot, 12L, 22L)
     suppressWarnings({
-      ggsave(paste0(nrmDr, "/", ttl, ".svg"), plot, dpi = 150L, height = 8L, units = "in")
+      ggplot2::ggsave(paste0(nrmDr, "/", ttl, ".svg"), plot, dpi = 150L, height = 8L, units = "in")
     })
     #
     finNorm <- max(wNorm)
     newDat <- as.data.frame(pepNorm[[finNorm]]$Data)
-    currSamples <- intersect(allSamples, colnames(newDat))
+    currSamples <- base::intersect(allSamples, colnames(newDat))
     newDat <- newDat[, currSamples]
     tmp <- newDat
     tmp <- Data_Impute2(tmp,
@@ -181,7 +186,7 @@ if (lNorm) {
     for (wrd in c("normalized", "corrected")) {
       pat <- paste0("^", wrd, " ")
       g <- grep(pat, TxtSteps)
-      g <- intersect(g, (g+1L))
+      g <- base::intersect(g, (g+1L))
       if (length(g)) { TxtSteps[g] <- gsub(pat, "", TxtSteps[g]) }
     }
     TxtSteps <- paste0(paste(TxtSteps[1L:(l-1L)], collapse = ", "), ", then ", TxtSteps[l])

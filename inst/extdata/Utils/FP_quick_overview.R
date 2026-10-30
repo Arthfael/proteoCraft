@@ -24,10 +24,10 @@ tmpFP <- FP_to_MQ(wrkflw, mnfst, cl = parClust)
 
 tmp <- tmpFP$Evidence
 #
-require(ggplot2)
 tmp <- aggregate(tmp$id, list(tmp$Experiment), length)
 colnames(tmp) <- c("Run", "PSMs")
-plot <- ggplot(tmp) +
-  geom_bar(aes(Run, PSMs, fill = Run), stat = "identity") +
-  theme_bw()
+plot <- ggplot2::ggplot(tmp) +
+  ggplot2::geom_bar(ggplot2::aes(Run, PSMs, fill = Run),
+                    stat = "identity") +
+  ggplot2::theme_bw()
 poplot(plot)

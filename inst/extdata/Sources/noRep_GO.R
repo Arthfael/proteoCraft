@@ -1,7 +1,7 @@
 #### Code chunk - Gene Ontology terms enrichment analysis
 if (globalGO) {
   # Global dataset GO enrichment - expression per sample vs total proteome
-  ref <- rev(setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
+  ref <- rev(base::setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
   xprsFilt <- setNames(lapply(Exp, \(e) { which(is.finite(PG[[paste0(ref, e)]])) }), Exp)
   dir <- paste0(wd, "/GO enrichment analysis/Sample vs total proteome")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
@@ -48,7 +48,7 @@ if (globalGO) {
     zs <- grep("^(Z-score|\\(N_Up - N_Down\\)/sqrt\\(Tot\\.\\))", colnames(temp), value = TRUE)
     lf <- grep("^logFC", colnames(temp), value = TRUE)
     si <- grep("^Significance", colnames(temp), value = TRUE)
-    kl <- setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, pr))
+    kl <- base::setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, pr))
     temp <- temp[, c(kl, si, gn, pg, pr, kn, pv, zs, lf)]
     w <- apply(temp[, pv, drop = FALSE], 1L, sum, na.rm = TRUE) > 0L
     temp <- temp[w,]
@@ -168,7 +168,7 @@ if (globalGO) {
         zs <- grep("^(Z-score|\\(N_Up - N_Down\\)/sqrt\\(Tot\\.\\))", colnames(temp), value = TRUE)
         lf <- grep("^logFC", colnames(temp), value = TRUE)
         si <- grep("^Significance", colnames(temp), value = TRUE)
-        kl <- setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, pr))
+        kl <- base::setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, pr))
         temp <- temp[, c(kl, si, gn, pg, pr, kn, pv, zs, lf)]
         w <- apply(temp[, pv, drop = FALSE], 1L, sum, na.rm = TRUE) > 0L
         temp <- temp[w,]
@@ -269,7 +269,7 @@ if (globalGO) {
             zs <- grep("^(Z-score|\\(N_Up - N_Down\\)/sqrt\\(Tot\\.\\))", colnames(temp), value = TRUE)
             lf <- grep("^logFC", colnames(temp), value = TRUE)
             si <- grep("^Significance", colnames(temp), value = TRUE)
-            kl <- setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, pr))
+            kl <- base::setdiff(colnames(temp), c(gn, kn, pv, zs, lf, si, pg, pr))
             temp <- temp[, c(kl, si, gn, pg, pr, kn, pv, zs, lf)]
             w <- apply(temp[, pv, drop = FALSE], 1L, sum, na.rm = TRUE) > 0L
             temp <- temp[w,]

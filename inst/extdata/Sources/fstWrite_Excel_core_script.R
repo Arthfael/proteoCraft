@@ -1,7 +1,7 @@
 
 # Filter for cases where number of characters is more than the Excel limit:
 ## Should only ever be character columns (lists of spectra IDs, sequences...)
-data(XL_formatting, package = "proteoCraft")
+utils::data(XL_formatting, package = "proteoCraft")
 w <- which(sapply(colnames(tempData), \(x) { class(tempData[[x]]) }) == "character")
 if (length(w)) {
   for (i in w) { #i <- w[1L]
@@ -28,13 +28,13 @@ if (tblMode == "PG") {
   # We now want coverage columns in another tab - they are otherwise slowing the main tab too much
   xlTabs$Coverage <- c(CoreCol, CoreCol2, covcol)
   tmp <- xlTabs[[TbNm]]
-  tmp <- setdiff(tmp, covcol)
+  tmp <- base::setdiff(tmp, covcol)
   xlTabs[[TbNm]] <- tmp
 }
 # Write tab, apply formatting etc...
 for (l in LS) { if (!exists(l)) { assign(l, list()) } }
 sheetnmsA <- names(xlTabs)
-sheetnmsB <- setdiff(sheetnmsA, c("Description", "Quality control"))
+sheetnmsB <- base::setdiff(sheetnmsA, c("Description", "Quality control"))
 cat(paste0("    - building ", tblMode2, " tab...\n"))
 if (tblMode == "pep") {
   nms <- sub(" ///NL///$", "", intNms(names(intRf), TRUE, "pep"))
@@ -60,8 +60,8 @@ wrtHeader <- TRUE
 for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   # Very important early filter, to avoid discrepancies between header and columns!
   # Should be done at least before the header is written
-  xlTabs[[sheetnm]] <- intersect(xlTabs[[sheetnm]], colnames(tempData))
-  xlTabs[[sheetnm]] <- intersect(xlTabs[[sheetnm]], ColumnsTbl$Col) # The order matters!
+  xlTabs[[sheetnm]] <- base::intersect(xlTabs[[sheetnm]], colnames(tempData))
+  xlTabs[[sheetnm]] <- base::intersect(xlTabs[[sheetnm]], ColumnsTbl$Col) # The order matters!
   #
   if (!sheetnm %in% names(data_filt)) { data_filt[[sheetnm]] <- 1L:nrow(tempData) }
   if (!sheetnm %in% names(data_order)) { data_order[[sheetnm]] <- 1L:length(data_filt[[sheetnm]]) }
@@ -277,7 +277,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
     match(ColumnsTbl$Grp[match(x, ColumnsTbl$Col)], styleNms)
   }, 1L)))
   w2 <- colRg
-  w2 <- setdiff(w2, w1)
+  w2 <- base::setdiff(w2, w1)
   #View(ColumnsTbl[w1,])
   #View(ColumnsTbl[w2,])
   if (length(w1)) {
@@ -316,7 +316,8 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
       m <- match(x, ColumnsTbl$Col)
       res <- list(Group = ColumnsTbl$Grp[m],
                   Class = ColumnsTbl$Class[m])
-      res$Style <- Styles[[res$Group]]
+      #res$Style <- Styles[[res$Group]]
+      res$Style <- res$Group
       return(res)
     }), xlTabs[[sheetnm]][w2])
     CS2tst <- vapply(CS2, paste, "", collapse = "-")
@@ -373,18 +374,15 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
           }
           if (stlNm %in% names(xl_cellContains)) {
             cntn <- xl_cellContains[[stlNm]]
-            stl <- capture.output(cntn$style)
-            deco <- tolower(gsub(".* ", "", gsub(" *$", "", grep("Font decoration", stl, value = TRUE))))
-            cntnFrt <- gsub(".* ", "", gsub(" *$", "", grep("Font colour", stl, value = TRUE)))
-            cntnBgrd <- gsub(".* ", "", gsub(" *$", "", grep("Cell fill background", stl, value = TRUE)))
-            cntnHrz <- gsub(".* ", "", gsub(" *$", "", grep("Cell horz. align", stl, value = TRUE)))
+            stl <- cntn$style
+            deco <- stl$textDecoration
             if (!stlNm %in% dxfs_Style_nms) {
               WorkBook <- openxlsx2::wb_add_dxfs_style(WorkBook, stlNm,
-                                                       font_color = openxlsx2::wb_color(cntnFrt),
-                                                       bg_fill = openxlsx2::wb_color(cntnBgrd),
+                                                       font_color = openxlsx2::wb_color(stl$fontColour),
+                                                       bg_fill = openxlsx2::wb_color(stl$bgFill),
                                                        text_bold = c("", "single")[("bold" %in% deco)+1L],
                                                        text_italic = c("", "italic")[("italic" %in% deco)+1L])
-              dxfs_Style_nms <- union(dxfs_Style_nms, stlNm)
+              dxfs_Style_nms <- base::union(dxfs_Style_nms, stlNm)
             }
             WorkBook <- openxlsx2::wb_add_conditional_formatting(WorkBook, sheetnm, dims,
                                                                  type = "containsText", style = stlNm, rule = cntn$rule)
@@ -393,7 +391,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
       }
     }
   }
-  #wb_save(WorkBook, paste0(wd, "/tst.xlsx"));xl_open(paste0(wd, "/tst.xlsx"))
+  #openxlsx2::wb_save(WorkBook, paste0(wd, "/tst.xlsx"));openxlsx2::xl_open(paste0(wd, "/tst.xlsx"))
   #
   # Now add the rest of the data
   #  - CC = actual data!
@@ -600,7 +598,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   if (tblMode == "PG") {
     # - Coverage columns:
     #   - Xml encoded coverage
-    kols <- intersect(xmlCovCol, xlTabs[[sheetnm]])
+    kols <- base::intersect(xmlCovCol, xlTabs[[sheetnm]])
     if (length(kols)) {
       for (kol in kols) {
         dims <- openxlsx2::wb_dims(tblRws[1L]:tblRws[2L], match(kol, xlTabs[[sheetnm]]))
@@ -610,7 +608,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
       }
     }
     #   - Data bar summaries
-    kols <- intersect(grep("\\[%\\]", covcol, value = TRUE), xlTabs[[sheetnm]])
+    kols <- base::intersect(grep("\\[%\\]", covcol, value = TRUE), xlTabs[[sheetnm]])
     if (length(kols)) {
       for (kol in kols) {
         dims <- openxlsx2::wb_dims(tblRws[1L]:tblRws[2L], match(kol,
@@ -623,7 +621,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
       }
     }
   }
-  # Below: this is done now with the "In list" column, so as not to allow unformating of columns
+  # Below: this is done now with the "In list" column, so as not to allow un-formatting of columns
   # Unfortunately, openxlsx2 does not allow for easy font color changes because of how it deals with styles.
   #
   # if (prot.list.Cond) {

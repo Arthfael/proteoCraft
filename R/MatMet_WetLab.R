@@ -24,7 +24,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                           Label = "LFQ",
                           Columns = "default") {
   TESTING <- FALSE
-  #rm(list = setdiff(ls(), c(.obj, "wd", "Exp.map")))
+  #rm(list = base::setdiff(ls(), c(.obj, "wd", "Exp.map")))
   #Exp.map = SamplesMap
   #DefArg(MatMet_WetLab); TESTING <- TRUE
   #
@@ -126,10 +126,10 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
   #w <- which((nchar(allKolumns$Description) == 0L) | is.na(allKolumns$Description))
   w <- 1L:nrow(allKolumns)
   allKolumns$Description[w] <- kolDescr(allKolumns[w,])
-  Kolumns <- union(allKolumns$Description[allKolumns$Function == "Fractionation"],
-                   "Add new...")
-  # preKolumns <- union(allKolumns$Description[allKolumns$Function == "Trap"],
-  #                     c("None (direct injection)", "Add new..."))
+  Kolumns <- base::union(allKolumns$Description[allKolumns$Function == "Fractionation"],
+                         "Add new...")
+  # preKolumns <- base::union(allKolumns$Description[allKolumns$Function == "Trap"],
+  #                           c("None (direct injection)", "Add new..."))
   # AddKolKount  <- 0L # Only needed in MatMet_LCMS, where we may add columns or pre-columns more than once
   #View(allKolumns)
   #
@@ -325,7 +325,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                                            title = paste0("Which column was used for offline fractionation?"))$res
             if (FracCol == "Add new...") {
               colCharDf <- data.frame(Description = "Fractionation")
-              for (kk in setdiff(colChar, "Function")) {
+              for (kk in base::setdiff(colChar, "Function")) {
                 colCharDf[[kk]] <- svDialogs::dlg_input(paste0("Enter value for field \"", kk, "\""), "")$res
               }
               FracCol <- colCharDf$Name
@@ -522,7 +522,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                     "5% FA (Formic Acid)")
           write(opt1, fl1)
         }
-        opt <- union(opt1, "Other...")
+        opt <- base::union(opt1, "Other...")
         m <- max(250L, nchar(opt))
         opt <- sapply(opt, \(x) { paste(c(x, rep(" ", m-nchar(x))), collapse = "") })
         loadBuf <- svDialogs::dlg_list(opt, opt[1L], "Which LCMS loading buffer were the samples re-dissolved in?")$res
@@ -538,3 +538,4 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
   }
   return(MatMetTxt)
 }
+

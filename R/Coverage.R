@@ -43,7 +43,7 @@
 #'  - If mode is "Align2" and a plotly html plot is saved, it is returned.
 #' 
 #' @examples
-#' data(FMDV_Lpro, package = "proteoCraft")
+#' utils::data(FMDV_Lpro, package = "proteoCraft")
 #' Coverage(FMDV_Lpro$sequence, FMDV_Lpro$peptides, "Coverage")
 #' Coverage(FMDV_Lpro$sequence, FMDV_Lpro$peptides, "Align", TRUE, c(TRUE, TRUE, TRUE), 30L)
 #' Coverage(FMDV_Lpro$sequence, FMDV_Lpro$peptides, "Align", TRUE, c(TRUE, TRUE, TRUE), 60L)
@@ -140,8 +140,8 @@ Coverage <- function(proteins,
       }
     } else {
       stopifnot(is.character(save))
-      save <- intersect(gsub(" ", "", sub("^\\.", "", save)),
-                        allExt)
+      save <- base::intersect(gsub(" ", "", sub("^\\.", "", save)),
+                              allExt)
       savePlots <- length(save) > 0L
     }
     if (savePlots) {
@@ -531,24 +531,26 @@ Coverage <- function(proteins,
             # Flip luminance
             L <- 100L - L
             # Ensure sufficient chroma
-            C <- pmax(C, target_chroma)
+            C <- base::pmax(C, target_chroma)
             # Reduce chroma until the colour is in gamut
             repeat {
               out <- colorspace::polarLUV(L = L, C = C, H = H)
-              ok <- is.na(hex(out)) == FALSE
+              ok <- is.na(colorspace::hex(out)) == FALSE
               if (all(ok)) { break }
               C[!ok] <- C[!ok] * 0.95
             }
-            hex(out)
+            colorspace::hex(out)
           }
           myCol <- contrast_color(bgcol)
           yxRat <- yxRat2 <- 3
-          covPlot <- ggplot2::ggplot() + ggplot2::coord_fixed(yxRat) +
+          covPlot <- ggplot2::ggplot() +
+            ggplot2::coord_fixed(yxRat) +
             ggplot2::geom_text(data = align.temp,
                                ggplot2::aes(label = AA, x = X, y = Y, fontface = Face, hjust = Hjust),
                                colour = myCol, cex = size, vjust = 0, inherit.aes = FALSE) + 
             ggplot2::geom_rect(data = matches,
-                               ggplot2::aes(xmin = X1, xmax = X2, ymin = Y2, ymax = Y1, fill = Intensity, peptide = peptide),
+                               ggplot2::aes(xmin = X1, xmax = X2, ymin = Y2, ymax = Y1, fill = Intensity,
+                                            peptide = peptide),
                                show.legend = (length(unique(matches$Intensity)) > 1L), inherit.aes = FALSE) +
             ggplot2::scale_fill_gradient(low = colscale[1L], high = colscale[2L], na.value = na,
                                          breaks = brks, labels = brkstxt, limits = c(0, maxInt)) +
@@ -761,10 +763,10 @@ Coverage <- function(proteins,
             ggplot2::coord_fixed(yxRat) +
             ggplot2::geom_text(ggplot2::aes(label = AA, x = X, y = Y, fontface = Face, hjust = Hjust),
                                colour = "white", cex = size, vjust = 0) +
-            # geom_rtile(data = align.temp2[wFnd,],
-            #            ggplot2::aes(x = X, y = Y-1, fill = Intensity),
-            #            width = 0.9, height = 0.9,
-            #            radius = ggplot2::unit(3, "pt"))
+            # statebins:::geom_rtile(data = align.temp2[wFnd,],
+            #                        ggplot2::aes(x = X, y = Y-1, fill = Intensity),
+            #                        width = 0.9, height = 0.9,
+            #                        radius = ggplot2::unit(3, "pt"))
             ggplot2::geom_tile(data = align.temp2[wFnd,],
                                ggplot2::aes(x = X, y = Y-1L, fill = Intensity),
                                width = 0.9, height = 0.9)
@@ -780,10 +782,10 @@ Coverage <- function(proteins,
                                  ggplot2::aes(label = Mod, x = X, y = Y),
                                  hjust = 1, vjust = 0.5, fontface = "italic",
                                  colour = "white", cex = size*1.1) +
-              # geom_rtile(data = mods2,
-              #            ggplot2::aes(x = X, y = Y-1, fill = Intensity, colour = Modification),
-              #            width = 0.9, height = 0.9,
-              #            radius = ggplot2::unit(3, "pt"))
+              # statebins:::geom_rtile(data = mods2,
+              #                        ggplot2::aes(x = X, y = Y-1, fill = Intensity, colour = Modification),
+              #                        width = 0.9, height = 0.9,
+              #                        radius = ggplot2::unit(3, "pt"))
               ggplot2::geom_tile(data = mods2,
                                  ggplot2::aes(x = X, y = Y-1L, fill = Intensity, colour = Modification),
                                  width = 0.9, height = 0.9#, cex = 0.5

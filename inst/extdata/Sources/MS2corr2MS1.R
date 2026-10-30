@@ -3,9 +3,10 @@
 # Use MS2-based measurements to improve estimates of precursor abundance.
 # In the future (and also for Prot.Quant) we should take the data's noisiness into account, i.e.,
 # "what is the confidence we have on the averaged MS2-based profile?"
+requireNamespace("data.table")
 MS2_based_Correction %<o% ((!exists("QuantUMS")) | (sum(QuantUMS) == 0L))
 # A column named "MS2_intensities" or "MS2 intensities" with individual MS2 fragment intensities should be present!
-ms2Kol <- intersect(c("MS2 intensities", "MS2_intensities"), colnames(ev))[1L]
+ms2Kol <- base::intersect(c("MS2 intensities", "MS2_intensities"), colnames(ev))[1L]
 if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we are in DIA mode and...
   # ... we are either not using DiaNN or we are but we did not run QuantUMS
   if (MS2_based_Correction) {
@@ -34,7 +35,7 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
     }
     GrpsVct <- ev$Search_ID
     Grps <- names(isDIA)[isDIA]
-    Grps <- intersect(Grps, GrpsVct)
+    Grps <- base::intersect(Grps, GrpsVct)
     chckMS2Corr <- FALSE
     ev[[nuRef]] <- ev[[ref]]
     for (grp in Grps) { #grp <- Grps[1L]
@@ -55,17 +56,11 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
                            MS1_Av = mean(MS1, na.rm = TRUE)),
                        by = .(`Modified sequence` = MS2Tbl$mod, Charge = MS2Tbl$Z)]
       MS2Tbl <- as.data.frame(MS2Tbl)
-      source(parSrc)
-      invisible(clusterCall(parClust, \() {
-        require(stats)
-        require(minpack.lm)
-        return()
-      }))
-      clusterExport(parClust, list("LFQ.lm", "diffLog"), envir = environment())
       tst1 <- lengths(MS2Tbl$IDs)
       wMult <- which(tst1 > 1L)
       MS2Tbl <- MS2Tbl[wMult,]
-      MS2Tbl$FiltMS2 <- parLapply(parClust, MS2Tbl$MS2, \(x) { #x <- MS2Tbl$MS2[1L]
+      source(parSrc)
+      MS2Tbl$FiltMS2 <- parallel::parLapply(parClust, MS2Tbl$MS2, \(x) { #x <- MS2Tbl$MS2[1L]
         L <- min(lengths(x))
         x <- as.data.frame(sapply(x, \(y) { y[1L:L] })) # Crop if necessary (shouldn't be the case)
         # Re-order fragments
@@ -74,7 +69,9 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
         # }
         return(x)
       })
-      MS2Tbl$CorrVal <- parLapply(parClust, MS2Tbl$FiltMS2, \(x) { #x <- MS2Tbl$FiltMS2[[1L]]
+      source(parSrc)
+      parallel::clusterExport(parClust, list("LFQ.lm", "diffLog"), envir = environment())
+      MS2Tbl$CorrVal <- parallel::parLapply(parClust, MS2Tbl$FiltMS2, \(x) { #x <- MS2Tbl$FiltMS2[[1L]]
         Dat <- x
         k <- colnames(Dat)
         Dat$id <- 1L:nrow(Dat)
@@ -89,11 +86,14 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
                     Is.log = FALSE)
         return(x)
       })
-      MS2Tbl$Av <- parSapply(parClust, MS2Tbl$CorrVal, mean)
-      MS2Tbl$CorrVal_Scl <- parApply(parClust, MS2Tbl[, c("CorrVal", "Av", "MS1_Av")], 1L, \(x) {
+      source(parSrc)
+      MS2Tbl$Av <- parallel::parSapply(parClust, MS2Tbl$CorrVal, mean)
+      source(parSrc)
+      MS2Tbl$CorrVal_Scl <- parallel::parApply(parClust, MS2Tbl[, c("CorrVal", "Av", "MS1_Av")], 1L, \(x) {
         x[[1L]]*x[[3L]]/x[[2L]]
       })
-      MS2Tbl$CorrVal2 <- parApply(parClust, MS2Tbl[, c("IDs", "MS1", "CorrVal_Scl")], 1L, \(x) {
+      source(parSrc)
+      MS2Tbl$CorrVal2 <- parallel::parApply(parClust, MS2Tbl[, c("IDs", "MS1", "CorrVal_Scl")], 1L, \(x) {
         data.frame(ID = x[[1L]], OrigVal = x[[2L]], CorrVal = x[[3L]])
       })
       tst <- plyr::rbind.fill(MS2Tbl$CorrVal2)
@@ -123,24 +123,33 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
       tst$Samples_group <- tmp$L1[match(tst$MQ.Exp, tmp$value)]
       ttl <- paste0("Group ", grpMtch, " - Original MS1 vs MS2-corrected MS1 (PEP)")
       scl <- 2L*(ceiling(sqrt(length(unique(tst$Sample))))+1L)
-      plot <- ggplot(tst) + geom_point(aes(x = log10(OrigVal), y = log10(CorrVal), colour = -log10(PEP)),
-                                       size = 0.01, alpha = 0.1, shape = 16L) + coord_fixed() +
-        theme_bw() + ggtitle(ttl, subtitle = grp) + facet_wrap(~Sample)
+      plot <- ggplot2::ggplot(tst) +
+        ggplot2::geom_point(ggplot2::aes(x = log10(OrigVal), y = log10(CorrVal), colour = -log10(PEP)),
+                            size = 0.01, alpha = 0.1, shape = 16L) +
+        ggplot2::coord_fixed() +
+        ggplot2::theme_bw() + ggplot2::ggtitle(ttl, subtitle = grp) + ggplot2::facet_wrap(~Sample)
       #poplot(plot)
-      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L, width = scl, height = scl, units = "in")
+      ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                      dpi = 150L, width = scl, height = scl, units = "in")
       # ttl <- paste0("Group ", grpMtch, " - Original MS1 vs MS2-corrected MS1 (Nb. of fragments)")
-      # plot <- ggplot(tst) + geom_point(aes(x = log10(OrigVal), y = log10(CorrVal), colour = N_of_fragments),
-      #                                  size = 0.01, alpha = 0.1, shape = 16) + coord_fixed() +
-      #   theme_bw() + ggtitle(ttl, subtitle = grp) + facet_grid(N_of_fragments~Sample)
+      # plot <- ggplot2::ggplot(tst) +
+      #   ggplot2::geom_point(ggplot2::aes(x = log10(OrigVal), y = log10(CorrVal), colour = N_of_fragments),
+      #                       size = 0.01, alpha = 0.1, shape = 16) +
+      #   ggplot2::coord_fixed() +
+      #   ggplot2::theme_bw() + ggplot2::ggtitle(ttl, subtitle = grp) +
+      #   ggplot2::facet_grid(N_of_fragments~Sample)
       # poplot(plot)
-      # ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L)
+      # ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L)
       ttl <- paste0("Group ", grpMtch, " - Original MS1 vs final corrected MS1 (PEP)")
-      plot <- ggplot(tst) +
-        geom_scattermore(aes(x = log10(OrigVal), y = log10(CorrVal2), colour = -log10(PEP)),
-                         size = 0.01, alpha = 0.1, shape = 16L) + coord_fixed() +
-        theme_bw() + ggtitle(ttl, subtitle = grp) + facet_wrap(~Sample)
+      plot <- ggplot2::ggplot(tst) +
+        scattermore::geom_scattermore(ggplot2::aes(x = log10(OrigVal), y = log10(CorrVal2),
+                                                   colour = -log10(PEP)),
+                                      size = 0.01, alpha = 0.1, shape = 16L) +
+        ggplot2::coord_fixed() + ggplot2::theme_bw() +
+        ggplot2::ggtitle(ttl, subtitle = grp) + ggplot2::facet_wrap(~Sample)
       #poplot(plot)
-      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L, width = scl, height = scl, units = "in")
+      ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
+                      dpi = 150L, width = scl, height = scl, units = "in")
       if (chckMS2Corr) {
         tst0 <- data.table(Samples_group = tst$Samples_group, Sample = tst$Sample_name,
                            ModSeq = tst$ModSeq, Charge = tst$Z,

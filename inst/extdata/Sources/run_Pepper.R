@@ -7,14 +7,14 @@ if (runPepper) {
   #
   # Placeholder for when this gets ported to the main script
   # if (scrptType == "withReps") {
-  #   if ("Pepper" %in% names(ev.col)) { ref <- ev.col[match("Pepper", names(ev.col))-1] } else {
-  #     ref <- ev.col[length(ev.col)]
+  #   ref <- if ("Pepper" %in% names(ev.col)) { ev.col[match("Pepper", names(ev.col))-1] } else {
+  #     ev.col[length(ev.col)]
   #   }
   #   nuRef <- ev.col["Pepper"] <- paste0("Pepper ", ev.col["Original"])
   # }
   if (scrptType == "noReps") {
-    if ("Pepper" %in% names(int.cols)) { ref <- int.cols[match("Pepper", names(int.cols))-1L] } else {
-      ref <- int.cols[length(int.cols)]
+    ref <- if ("Pepper" %in% names(int.cols)) { int.cols[match("Pepper", names(int.cols))-1L] } else {
+      int.cols[length(int.cols)]
     }
     nuRef <- int.col <- int.cols["Pepper"] <- "Pepper-adj. intensity"
   }
@@ -28,7 +28,7 @@ if (runPepper) {
   trainParam <- sapply(args, \(arg) {
     sapply(seq_along(g), \(x) {
       h <- grep(paste0("--", arg), trainParam)
-      h <- sub(paste0(".*'--", arg, "' +"), "", trainParam[intersect(h %in% g[x]:c(g, l)[x+1L])])
+      h <- sub(paste0(".*'--", arg, "' +"), "", trainParam[base::intersect(h %in% g[x]:c(g, l)[x+1L])])
       pat1 <- paste0("^", substr(h, 1L, 1L))
       pat2 <- paste0(substr(h, 1L, 1L), ".*$")
       h <- sub(pat2, "", sub(pat1, "", h))
@@ -79,8 +79,8 @@ if (runPepper) {
   if (length(GrdSrchFls)) {
     opt <- setNames(c(FALSE, TRUE), c("No                                                                                                                                              ",
                                       "Yes                                                                                                                                             "))
-    CleanUp <- opt[dlg_list(names(opt), names(opt)[1L],
-                            title = paste0(dtstNm, ": shall we start from scratch hyperparameter tuning?"))$res]
+    CleanUp <- opt[svDialogs::dlg_list(names(opt), names(opt)[1L],
+                                       title = paste0(dtstNm, ": shall we start from scratch hyperparameter tuning?"))$res]
     names(CleanUp) <- NULL
   }
   # NB: This code is written in a way that it will always sample Step1Tries + Step2Tries parameter combinations.
@@ -95,10 +95,10 @@ if (runPepper) {
   L <- length(GrdSrchFls)
   N <- Step1Tries - L
   kount <- 0L
-  while ((N > 0L)&&(kount < N+1L)) {
-    clusterExport(parClust, "cmd", envir = environment())
+  while ((N > 0L) && (kount < N+1L)) {
+    parallel::clusterExport(parClust, "cmd", envir = environment())
     # Below, we are never running less tests than the number of cores, so we do not waste a round on a few tests.
-    tst <- parSapply(parClust, 1L:max(c(N.clust, N)), \(x) {
+    tst <- parallel::parSapply(parClust, 1L:max(c(N.clust, N)), \(x) {
       try(system(cmd), silent = TRUE)
     })
     GrdSrchFls <- list.files(tuneDir, "Gridsearch_Results_", full.names = TRUE)
@@ -129,10 +129,10 @@ if (runPepper) {
   L <- length(GrdSrchFls)
   N <- Step1Tries + Step2Tries - L
   kount <- 0L
-  while ((N)&&(kount < N+1L)) {
-    clusterExport(parClust, "cmd", envir = environment())
+  while ((N > 0L) && (kount < N+1L)) {
+    parallel::clusterExport(parClust, "cmd", envir = environment())
     # Below, we are never running less tests than the number of cores, so we do not waste a round on a few tests.
-    tst <- parSapply(parClust, 1L:max(c(N.clust, N)), \(x) {
+    tst <- parallel::parSapply(parClust, 1L:max(c(N.clust, N)), \(x) {
       try(system(cmd), silent = TRUE)
     })
     GrdSrchFls <- list.files(tuneDir, "Gridsearch_Results_", full.names = TRUE)
@@ -185,11 +185,11 @@ if (runPepper) {
     val <- bstParam[[arg]]
     tst1 <- suppressWarnings(!is.na(as.numeric(val)))
     tst2 <- suppressWarnings(!is.na(as.integer(val)))
-    if (tst1) {
-      if (tst2) { TrCoeff[g] <- paste0(arg, " = float(", val, ")") } else {
-        TrCoeff[g] <- paste0(arg, " = int(", val, ")")
+    TrCoeff[g] <- if (tst1) {
+      if (tst2) { paste0(arg, " = float(", val, ")") } else {
+        paste0(arg, " = int(", val, ")")
       }
-    } else { TrCoeff[g] <- paste0(arg, " = '", val, "'") }
+    } else { paste0(arg, " = '", val, "'") }
   }
   # Default parameters
   G <- grep(basePat, TrCoeff)
@@ -201,11 +201,11 @@ if (runPepper) {
       val <- unlist(strsplit(tmp, "[,(] *default *= *"))
       if (!length(val) == 2L) { stop(paste0("No default for argument ", arg, "! Give me a hand here, human!")) }
       val <- sub(" *[,)].*", "", val[2L])
-      if (tst1) {
-        if (tst2) { TrCoeff[g] <- paste0(arg, " = float(", val, ")") } else {
-          TrCoeff[g] <- paste0(arg, " = int(", val, ")")
+      TrCoeff[g] <- if (tst1) {
+        if (tst2) {  paste0(arg, " = float(", val, ")") } else {
+           paste0(arg, " = int(", val, ")")
         }
-      } else { TrCoeff[g] <- paste0(arg, " = '", val, "'") }
+      } else { paste0(arg, " = '", val, "'") }
     }
   }
   TrCoeff <- gsub(" args\\.", " ", TrCoeff)
@@ -304,14 +304,14 @@ if (runPepper) {
     pat <- paste0(basePat, "\'--", arg)
     g <- grep(pat, TrsfrCoeff)
     stopifnot(length(g) == 1L)
-    if (arg == "peptide_file") { val <- OHfl } else { val <- bstParam2[[arg]] }
+    val <- if (arg == "peptide_file") { OHfl } else { bstParam2[[arg]] }
     tst1 <- suppressWarnings(!is.na(as.numeric(val)))
     tst2 <- suppressWarnings(!is.na(as.integer(val)))
-    if (tst1) {
-      if (tst2) { TrsfrCoeff[g] <- paste0(arg, " = float(", val, ")") } else {
-        TrsfrCoeff[g] <- paste0(arg, " = int(", val, ")")
+    TrsfrCoeff[g] <- if (tst1) {
+      if (tst2) { paste0(arg, " = float(", val, ")") } else {
+         paste0(arg, " = int(", val, ")")
       }
-    } else { TrsfrCoeff[g] <- paste0(arg, " = '", val, "'") }
+    } else { paste0(arg, " = '", val, "'") }
   }
   # Default parameters
   G <- grep(basePat, TrsfrCoeff)
@@ -323,11 +323,11 @@ if (runPepper) {
       val <- unlist(strsplit(tmp, "[,(] *default *= *"))
       if (!length(val) == 2L) { stop(paste0("No default for argument ", arg, "! Give me a hand here, human!")) }
       val <- sub(" *[,)].*", "", val[2L])
-      if (tst1) {
-        if (tst2) { TrsfrCoeff[g] <- paste0(arg, " = float(", val, ")") } else {
-          TrsfrCoeff[g] <- paste0(arg, " = int(", val, ")")
+      TrsfrCoeff[g] <- if (tst1) {
+        if (tst2) { paste0(arg, " = float(", val, ")") } else {
+           paste0(arg, " = int(", val, ")")
         }
-      } else { TrsfrCoeff[g] <- paste0(arg, " = '", val, "'") }
+      } else { paste0(arg, " = '", val, "'") }
     }
   }
   TrsfrCoeff <- gsub(" args\\.", " ", TrsfrCoeff)
@@ -378,12 +378,13 @@ if (runPepper) {
   tmp$ModSeq <- ev$"Modified sequence"[match(tmp$ID, ev$id)]
   #
   ttl <- "Pepper - distribution of coefficients"
-  plot <- ggplot(tmp) + geom_histogram(aes(x = log10(`Pepper coefficient`)), fill = "red", bins = 250L) + 
-    scale_y_continuous(expand = c(0L, 0L)) +
-    theme_bw() + ggtitle(ttl)
+  plot <- ggplot2::ggplot(tmp) +
+    ggplot2::geom_histogram(ggplot2::aes(x = log10(`Pepper coefficient`)), fill = "red", bins = 250L) + 
+    ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
+    ggplot2::theme_bw() + ggplot2::ggtitle(ttl)
   poplot(plot)
   suppressMessages({
-    ggsave(paste0(pepDir, "/", ttl, ".jpeg"), plot, dpi = 150L)
+    ggplot2::ggsave(paste0(pepDir, "/", ttl, ".jpeg"), plot, dpi = 150L)
   })
   #
   tmp2 <- ev[[ref]]/tmp$"Pepper coefficient"[match(ev$"Modified sequence", tmp$ModSeq)]
@@ -399,28 +400,32 @@ if (runPepper) {
                           "Intensity" = ev[[nuRef]],
                           "Type" = "Pepper-corrected",
                           check.names = FALSE))
-  plot <- ggplot(tmp) + geom_density(stat = "density", aes(x = log10(`Intensity`), fill = Type), alpha = 0.3) +
-    scale_y_continuous(expand = c(0L, 0L)) +
-    theme_bw() + ggtitle(ttl)
+  plot <- ggplot2::ggplot(tmp) +
+    ggplot2::geom_density(stat = "density",
+                          ggplot2::aes(x = log10(`Intensity`), fill = Type), alpha = 0.3) +
+    ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
+    ggplot2::theme_bw() + ggplot2::ggtitle(ttl)
   poplot(plot)
   suppressMessages({
-    ggsave(paste0(pepDir, "/", ttl, ".jpeg"), plot, dpi = 150L)
+    ggplot2::ggsave(paste0(pepDir, "/", ttl, ".jpeg"), plot, dpi = 150L)
   })
   #
   # Test results ourselves
+  requireNamespace("data.table")
   g <- grep(";", ev$Proteins, invert = TRUE)
   tmp <- ev[g, c("Modified sequence", "Proteins", "Experiment", ref, nuRef)]
   colnames(tmp) <- c("ModSeq", "Proteins", "Experiment", "Original", "Pepper")
-  tmp <- as.data.table(tmp)
+  tmp <- data.table::as.data.table(tmp)
   obj <- setNames(c("Original", "Pepper"), c("Before", "After"))
   call <- paste0(vapply(Exp, \(x) { paste0(x, " = sd(", x, ")") }, ""), collapse = ", ") # start building our call
   for (i in 1L:2L) {
     tmp2 <- copy(tmp)
-    tmp2 <- dcast(tmp2, ModSeq + Proteins ~ Experiment, value.var = obj[i], fun.aggregate = sum, na.rm = TRUE)
+    tmp2 <- data.table::dcast(tmp2, ModSeq + Proteins ~ Experiment, value.var = obj[i],
+                              fun.aggregate = sum, na.rm = TRUE)
     tmp2 <- as.data.frame(tmp2)
     w <- which(tmp2[, Exp] == 0, arr.ind = TRUE)
     tmp2[, Exp][w] <- NA
-    tmp2 <- as.data.table(tmp2)
+    tmp2 <- data.table::as.data.table(tmp2)
     call2 <- paste0("tmp2 <- tmp2[, .(", call, "), by = .(Proteins = Proteins)]")
     eval(parse(text = call2), envir = .GlobalEnv)
     tmp2 <- as.data.frame(tmp2)

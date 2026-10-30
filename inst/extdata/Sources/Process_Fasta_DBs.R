@@ -1,4 +1,6 @@
 #### Load and process search database(s) (or reload a pre-processed version if available)
+requireNamespace("data.table")
+#
 SSH_on %<o% FALSE
 fastas <- unique(fastas)
 #fastas <- fastas$Full
@@ -56,24 +58,22 @@ fastasTbl$TXTExists <- grepl("\\.txt$", fastasTbl$TXT) & file.exists(fastasTbl$T
 fastasTbl$TXTExistsHere <- grepl("\\.txt$", fastasTbl$TXTHere) & file.exists(fastasTbl$TXTHere)
 w1 <- which((fastasTbl$ExistsHere) & (fastasTbl$Loc == "Cluster")) # Conflict between here and cluster
 if (length(w1)) {
-  require(tools)
   if (!SSH_on) {
-    require(ssh)
     msg <- "SSH session required\nEnter host name!"
-    sshost <- dlg_input(msg)$res
-    sshsess <- ssh_connect(sshost)
+    sshost <- svDialogs::dlg_input(msg)$res
+    sshsess <- ssh::ssh_connect(sshost)
     kount <- 1L
     while ((kount < 5L) && (!inherits(sshsess, "ssh_session"))) {
-      sshsess <- ssh_connect(sshost)
+      sshsess <- ssh::ssh_connect(sshost)
       kount <- kount + 1L
     }
     #print(sshsess)
     SSH_on <- inherits(sshsess, "ssh_session")
   }
   if (SSH_on) {
-    tst1 <- md5sum(fastasTbl$Name[w1])
+    tst1 <- tools::md5sum(fastasTbl$Name[w1])
     tst2 <- vapply(fastasTbl$Full[w1], \(x) { #x <- fastasTbl$Full[w1[1L]]
-      gsub(" .*", "", capture.output(ssh_exec_wait(sshsess, paste0("md5sum \"", x, "\"")))[1L])
+      gsub(" .*", "", capture.output(ssh::ssh_exec_wait(sshsess, paste0("md5sum \"", x, "\"")))[1L])
     }, "")
     w1y <- w1[tst1 == tst2]
     w1n <- w1[tst1 != tst2]
@@ -119,7 +119,7 @@ if (length(w2)) {
   # ... the ones which were not found should be located one by one by the user!!!
   dfltDr <- wd
   for (i in w2) { #i <- 1L
-    tmp <- selectFile(paste0("Select missing fasta ", fastasTbl$Name[i]), path = wd)
+    tmp <- rstudioapi::selectFile(paste0("Select missing fasta ", fastasTbl$Name[i]), path = wd)
     tmp <- sub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), tmp)
     fastasTbl$Dir[i] <- dfltDr <- dirname(tmp)
     fastasTbl$Full[i] <- tmp
@@ -140,28 +140,26 @@ if (length(w3)) {
   fastasTbl$Dir[w3] <- wd
   w3b <- which((!fastasTbl$TXTExistsHere[w3]) & fastasTbl$TXTExists[w3])
   if (length(w3b)) {
-    file_copy(fastasTbl$TXT[w3][w3b], wd)
+    fs::file_copy(fastasTbl$TXT[w3][w3b], wd)
     fastasTbl$TXTExistsHere[w3][w3b] <- TRUE
   }
 }
 w4 <- which((!fastasTbl$ExistsHere) & (fastasTbl$Loc == "Cluster")) # These do not exist here but are on the cluster
 if (length(w4)) {
-  require(tools)
   if (!SSH_on) {
-    require(ssh)
     msg <- "SSH session required\nEnter host name!"
-    sshost <- dlg_input(msg)$res
-    sshsess <- ssh_connect(sshost)
+    sshost <- svDialogs::dlg_input(msg)$res
+    sshsess <- ssh::ssh_connect(sshost)
     kount <- 1L
     while ((kount < 5L) && (!inherits(sshsess, "ssh_session"))) {
-      sshsess <- ssh_connect(sshost)
+      sshsess <- ssh::ssh_connect(sshost)
       kount <- kount + 1L
     }
     #print(sshsess)
     SSH_on <- inherits(sshsess, "ssh_session")
   }
   if (SSH_on) {
-    tst <- try(scp_download(sshsess, fastasTbl$Full[w4], wd), silent = TRUE)
+    tst <- try(ssh::scp_download(sshsess, fastasTbl$Full[w4], wd), silent = TRUE)
     w4y <- w4[file.exists(paste0(wd, "/", fastasTbl$Name[w4]))]
     w4n <- w4[!file.exists(paste0(wd, "/", fastasTbl$Name[w4]))]
     if (length(w4y)) {
@@ -173,7 +171,7 @@ if (length(w4)) {
     if (length(w4n)) {
       dfltDr <- wd
       for (i in w4n) { #i <- 1L
-        tmp <- selectFile(paste0("Select missing fasta ", fastasTbl$Name[i]), path = wd)
+        tmp <- rstudioapi::selectFile(paste0("Select missing fasta ", fastasTbl$Name[i]), path = wd)
         tmp <- sub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), tmp)
         fastasTbl$Dir[i] <- dfltDr <- dirname(tmp)
         fastasTbl$Full[i] <- tmp
@@ -194,7 +192,8 @@ if (max(tst$L) > 1L) {
   msg <- paste0("Possible duplicate fasta databases detected:", 
                 paste(paste0("\n\n", unlist(tst$x[tst$L > 1L])), collapse = ""),
                 "\n\n\nAre they really duplicates?\n")
-  simplFasta <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = TRUE)$res, c("yes", "no"))]
+  simplFasta <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno",
+                                                            rstudio = TRUE)$res, c("yes", "no"))]
   if (simplFasta) {
     fastasTbl2 <- tst[, c("Group.1", "x")]
     colnames(fastasTbl2) <- c("Name", "Full_list")
@@ -251,7 +250,7 @@ fastasTbl$Species[whFnd] <- vapply(fastasTbl$Headers[whFnd], \(hdrs) { #hdrs <- 
   g <- grep(pat, hdrs)
   hdrs <- gsub(pat, "", hdrs[g])
   hdrs <- hdrs[nchar(hdrs) > 0L]
-  hdrs <- grep("^[A-Z][a-z]+( [a-z,A-Z]+( .*)?)", hdrs, value = TRUE)
+  hdrs <- grep("^[A-Z][a-z]+( [a-zA-Z]+( .*)?)", hdrs, value = TRUE)
   if (length(hdrs)) {
     hdrs <- data.table(Species = hdrs, Species2 = hdrs)
     hdrs <- hdrs[, .(Count = length(c(Species))), by = .(Species = Species2)]
@@ -363,43 +362,43 @@ colnames(annotTbl2)[4L] <- ""
 nr <- nrow(fastasTbl)
 rws <- seq_len(nr)
 appNm <- paste0(dtstNm, " - Fasta databases")
-ui <- fluidPage(
-  useShinyjs(),
-  setBackgroundColor( # Doesn't work
+ui <- shiny::fluidPage(
+  shinyjs::useShinyjs(),
+  shinyWidgets::setBackgroundColor( # Doesn't work
     color = c(#"#F8F8FF",
       "#E1E2ED"),
     gradient = "linear",
     direction = "bottom"
   ),
-  extendShinyjs(text = jsFun$toggle_full_screen,
-                functions = c("toggleFullScreen")),
-  tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-  titlePanel(tag("u", "Fasta databases"),
-             appNm),
-  h2(dtstNm),
-  br(),
-  h5("Indicate the source of fasta databases, which will define how the headers are parsed to extract protein accession and name, gene name, taxonomy etc... as available."),
-  br(),
-  h4("Regexes should be compatible with R's grep function:"),
-  h5(" - Use the \"Contaminants regex\" column when a fasta contains a mixture of non-contaminants and contaminant proteins. Matches to the Protein IDs (accession) column will be marked as contaminants."),
-  h5(" - Use the \"Reverse regex\" column when a fasta contains reverse proteins (decoys). Matches to the Full ID column will be removed from the database."),
-  br(),
-  h5(em("Whilst you have the option to choose from several types of common fasta, we only ever use UniProtKB, so for now use the other types at your own risk:")),
-  h5(em("they are likely to break the script at a later stage!")),
-  br(),
-  h4(strong(em(tag("u", "Fasta databases")))),
-  DTOutput("Fastas"),
-  br(),
-  br(),
-  br(),
-  h4(strong(em(tag("u", "Functional annotation files")))),
-  DTOutput("annotFls"),
+  shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                         functions = c("toggleFullScreen")),
+  shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+  shiny::titlePanel(shiny::tag("u", "Fasta databases"),
+                    appNm),
+  shiny::h2(dtstNm),
+  shiny::br(),
+  shiny::h5("Indicate the source of fasta databases, which will define how the headers are parsed to extract protein accession and name, gene name, taxonomy etc... as available."),
+  shiny::br(),
+  shiny::h4("Regexes should be compatible with R's grep function:"),
+  shiny::h5(" - Use the \"Contaminants regex\" column when a fasta contains a mixture of non-contaminants and contaminant proteins. Matches to the Protein IDs (accession) column will be marked as contaminants."),
+  shiny::h5(" - Use the \"Reverse regex\" column when a fasta contains reverse proteins (decoys). Matches to the Full ID column will be removed from the database."),
+  shiny::br(),
+  shiny::h5(shiny::em("Whilst you have the option to choose from several types of common fasta, we only ever use UniProtKB, so for now use the other types at your own risk:")),
+  shiny::h5(shiny::em("they are likely to break the script at a later stage!")),
+  shiny::br(),
+  shiny::h4(shiny::strong(shiny::em(shiny::tag("u", "Fasta databases")))),
+  DT::DTOutput("Fastas"),
+  shiny::br(),
+  shiny::br(),
+  shiny::br(),
+  shiny::h4(shiny::strong(shiny::em(shiny::tag("u", "Functional annotation files")))),
+  DT::DTOutput("annotFls"),
   shiny::actionButton("addBtn", "+ add one more annotation file"),
-  br(),
-  br(),
-  br(),
-  actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-  br()
+  shiny::br(),
+  shiny::br(),
+  shiny::br(),
+  shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
+  shiny::br()
 )
 # Dummy table for display in app
 fastasTbl2 <- data.frame("Name" = fastasTbl$Name,
@@ -427,7 +426,7 @@ wTest <- list(list(width = NmWdth, targets = 0L),
 edith <- list(target = "column",
               enable = list(columns = grep(" regex$", colnames(fastasTbl2))-1L))
 tmp <- c(0L:(ncol(fastasTbl2)-1L))
-tmp <- setdiff(tmp, edith$enable$columns)
+tmp <- base::setdiff(tmp, edith$enable$columns)
 edith$disable <- list(columns = tmp)
 if (exists("fastasTbl3")) { rm(fastasTbl3) }
 if (exists("annotTbl3")) { rm(annotTbl3) }
@@ -435,7 +434,7 @@ slctXprs <- expression({
   dat <- ANNOTTBL()
   nAnnot <- nrow(dat)
   rg <- 1L:nAnnot
-  rg0 <- setdiff(rg, i)
+  rg0 <- base::setdiff(rg, i)
   fls <- dat$Path[rg0]
   fl <- rstudioapi::selectFile(paste0("Select ", c("", "additional ")[(i>1L)+1L], " functional annotation file"),
                                path = ANNOTDIR())
@@ -479,7 +478,7 @@ typeXprs <- expression({
 rmvXprs <- expression({
   dat <- ANNOTTBL()
   nAnnot <- nrow(dat)
-  w <- setdiff(1L:nAnnot, i)
+  w <- base::setdiff(1L:nAnnot, i)
   if (nAnnot > 1L) {
     dat <- dat[-i, , drop = FALSE]
     dat2 <- ANNOTTBL2()[w,]
@@ -511,21 +510,21 @@ server <- \(input, output, session) {
   ANNOTDIR <- shiny::reactiveVal(annotDir)
   # Outputs
   fastasTbl3 <- fastasTbl
-  output$Fastas <- renderDT({ fastasTbl2 },
-                            FALSE,
-                            escape = FALSE,
-                            class = "compact",
-                            selection = "none",
-                            editable = edith,
-                            rownames = FALSE,
-                            options = list(dom = 't',
-                                           paging = FALSE,
-                                           ordering = FALSE,
-                                           autoWidth = TRUE,
-                                           columnDefs = wTest,
-                                           scrollX = TRUE),
-                            # the callback is essential to capture the inputs in each row
-                            callback = JS("table.rows().every(function(i, tab, row) {
+  output$Fastas <- DT::renderDT({ fastasTbl2 },
+                                FALSE,
+                                escape = FALSE,
+                                class = "compact",
+                                selection = "none",
+                                editable = edith,
+                                rownames = FALSE,
+                                options = list(dom = 't',
+                                               paging = FALSE,
+                                               ordering = FALSE,
+                                               autoWidth = TRUE,
+                                               columnDefs = wTest,
+                                               scrollX = TRUE),
+                                # the callback is essential to capture the inputs in each row
+                                callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
         var $this = $(this.node());
         $this.attr('id', this.data()[0]);
         $this.addClass('shiny-input-container');
@@ -552,7 +551,7 @@ server <- \(input, output, session) {
                                                          list(width = "100px", targets = 3L)),
                                        scrollX = FALSE),
                         # the callback is essential to capture the inputs in each row
-                        callback = DT::JS("
+                        callback = htmlwidgets::JS("
 // Buttons
 table.on('click', 'button', function() {
   var id = this.id;
@@ -568,17 +567,17 @@ table.on('change', 'select', function() {
   }
   output$annotFls <- updt_AnnotFls(FALSE)
   # Observers
-  observeEvent(input$Fastas_cell_edit, {
+  shiny::observeEvent(input$Fastas_cell_edit, {
     kol <- colnames(fastasTbl2)[input$Fastas_cell_edit$col+1L]
     if (length(kol) && (kol %in% colnames(fastasTbl3))) {
       fastasTbl3[input$Fastas_cell_edit$row, kol] <<- input$Fastas_cell_edit$value
     }
   }, ignoreNULL = FALSE)
-  observeEvent(input$dt_event, {
+  shiny::observeEvent(input$dt_event, {
     evnt <- input$dt_event
     id <- evnt$id
-    i <- as.integer(gsub(".*___", "", id))
-    root <- gsub("___.*", "", id)
+    i <- as.integer(sub(".*___", "", id))
+    root <- sub("___.*", "", id)
     if (evnt$type == "button") {
       # Directory selection
       if (root == "selectAnnotFl") { eval(slctXprs) }
@@ -590,7 +589,7 @@ table.on('change', 'select', function() {
       if(root == "searchSoft") { eval(typeXprs) }
     }
   })
-  observeEvent(input$addBtn, {
+  shiny::observeEvent(input$addBtn, {
     dat <- ANNOTTBL()
     dat2 <- ANNOTTBL2()
     fls <- dat$Path
@@ -620,16 +619,16 @@ table.on('change', 'select', function() {
     assign("annotTbl2", dat2, envir = .GlobalEnv)
     output$annotFls <- updt_AnnotFls()
   })
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     fastasTbl3$Contaminant <- vapply(rws, \(x) { input[[paste0("ContOnly___", as.character(x))]] }, TRUE)
     fastasTbl3$Type <- vapply(rws, \(x) { input[[paste0("Type___", as.character(x))]] }, "a")
     fastasTbl3$Species <- vapply(rws, \(x) { input[[paste0("Species___", as.character(x))]] }, "a")
     assign("fastasTbl3", fastasTbl3, envir = .GlobalEnv)
     assign("annotTbl3", ANNOTTBL(), envir = .GlobalEnv)
-    stopApp()
+    shiny::stopApp()
   })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(\() { stopApp() })
+  #shiny::observeEvent(input$cancel, { shiny::stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
 }
 runKount <- 0L
 while ((!runKount) || (!exists("fastasTbl3"))) {
@@ -650,9 +649,9 @@ fastasTbl %<o% fastasTbl3
 w <- which(fastasTbl$Species == "prompt user")
 if (length(w)) {
   for (i in w) {
-    fastasTbl$Species[i] <- dlg_input(paste0("What is the main species in Fasta \"",
-                                             fastasTbl$Full[i],
-                                             "\" (ignore contaminants; write \"mixed\" if not single species)?"))$res
+    fastasTbl$Species[i] <- svDialogs::dlg_input(paste0("What is the main species in Fasta \"",
+                                                        fastasTbl$Full[i],
+                                                        "\" (ignore contaminants; write \"mixed\" if not single species)?"))$res
   }
 }
 Sp <- gsub(" *[(|[].*", "", fastasTbl$Species)
@@ -716,7 +715,7 @@ dbs <- setNames(lapply(whFnd, \(i) { #i <- whFnd[1L] #i <- whFnd[2L]
 #
 kol <- c("Organism_Full", "Organism")
 dbs_Org %<o% setNames(lapply(dbs, \(db) { #db <- dbs[[1L]] #db <- dbs[[2L]] #db <- dbs[[3L]] #db <- dbs[[4L]]
-  kol <- intersect(kol, colnames(db))
+  kol <- base::intersect(kol, colnames(db))
   tst <- vapply(kol, \(x) { length(unique(db[!as.character(db[[x]]) %in% c("", "NA"), x])) }, 1L)
   kol <- kol[order(tst, decreasing = TRUE)][1L]
   w <- which(db$`Potential contaminant` != "+")
@@ -784,7 +783,7 @@ db %<o% plyr::rbind.fill(dbs)
 wInt <- which(db$"Protein of interest")
 wRst <- which(!db$"Protein of interest")
 db <- db[c(wInt, wRst),]
-tst <- data.table::data.table(Row = 1L:nrow(db), Seq = db$Sequence)
+tst <- data.table(Row = 1L:nrow(db), Seq = db$Sequence)
 tst <- tst[, .(Row = min(Row)), by = .(Seq)]
 n <- nrow(db)-nrow(tst)
 if (n) {
@@ -834,6 +833,7 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
                                                                       "MAXQUANT" %in% SearchSoft)])
   contDBFls <- contDBFls[file.exists(contDBFls)]
   if (length(contDBFls)) {
+    source(parSrc)
     contDB <- lapply(contDBFls, \(contDBFl) {
       x <- readr::read_lines(contDBFl)
       x <- Format.DB(x, in.env = TRUE, cl = parClust)
@@ -847,8 +847,9 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
       # This is a bastard Fasta...
       dr <- paste0(fastasDir, "/Contaminants")
       if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
-      clusterExport(parClust, "dr", envir = environment())
-      tst <- parLapply(parClust, contDB$`Full ID`, \(x) { #x <- contDB$`Full ID`[1L]
+      source(parSrc)
+      parallel::clusterExport(parClust, "dr", envir = environment())
+      tst <- parallel::parLapply(parClust, contDB$`Full ID`, \(x) { #x <- contDB$`Full ID`[1L]
         if (!grepl(":", x)) {
           tmp <- paste0("https://rest.uniprot.org/uniprotkb/", x, ".fasta")
           dest <- paste0(dr, "/", x, ".fasta")
@@ -859,7 +860,8 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
         }
       })
       w <- which(file.exists(paste0(dr, "/", contDB$`Full ID`, ".fasta")))
-      tst <- parLapply(parClust, paste0(dr, "/", contDB$`Full ID`[w], ".fasta"), \(x) { #x <- paste0(dr, "/", contDB$`Full ID`[w], ".fasta")
+      source(parSrc)
+      tst <- parallel::parLapply(parClust, paste0(dr, "/", contDB$`Full ID`[w], ".fasta"), \(x) { #x <- paste0(dr, "/", contDB$`Full ID`[w], ".fasta")
         tst <- try(proteoCraft::Format.DB(x), silent = TRUE)
         tst <- if (inherits(tst, "try-error")) { list(Outcome = FALSE) } else {
           list(Outcome = TRUE,
@@ -875,14 +877,14 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
                                    contDB[!contDB$`Full ID` %in% tst$`Protein ID`,])
         w1 <- which(grepl("^>(sp|tr)\\|", contDB$Header))
         org <- unique(contDB$Organism_Full[w1])
-        library(UniProt.ws)
         txIDs <- setNames(lapply(org, \(x) { c() }), org)
         w <- which(org %in% names(Taxonomies))
         if (length(w)) { txIDs[w] <- Taxonomies[w] }
         w <- which(!org %in% names(Taxonomies))
         if (length(w)) {
-          clusterExport(parClust, "taxonomy", envir = environment())
-          txIDs[w] <- setNames(parLapply(parClust, org[w], \(x) {
+          source(parSrc)
+          parallel::clusterExport(parClust, "taxonomy", envir = environment())
+          txIDs[w] <- setNames(parallel::parLapply(parClust, org[w], \(x) {
             tst <- try(taxonomy(organism = x, db = "ncbi", output = "classification"), silent = TRUE)
             rs <- if (inherits(rs, "try-error")) { list(Outcome = FALSE) } else {
               list(Outcome = TRUE,
@@ -904,7 +906,9 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
           sp <- gsub(" ", "+", txIDs[kount])
           #tmp <- paste0("https://www.uniprot.org/uniprot/?query=organism_name:", sp, "&format=fasta") # Old 
           tmp <- paste0("https://rest.uniprot.org/uniprotkb/search?query=organism_id:", sp, "&format=fasta")
-          dest <- paste0("D:/Fasta_databases/", gsub(" ", "_", sp), "_-_uniprot-all-accessions_", gsub("-", "", Sys.Date()), ".fasta")
+          dest <- paste0("D:/Fasta_databases/",
+                         gsub(" ", "_", sp), "_-_uniprot-all-accessions_",
+                         gsub("-", "", Sys.Date()), ".fasta")
           tmp2 <- if (!file.exists(dest)) { try(download.file(tmp, dest), silent = TRUE) } else { 0L }
           if ((!inherits(tmp2, "try-error")) && (!tmp2)) {
             tmp2 <- Format.DB(dest)

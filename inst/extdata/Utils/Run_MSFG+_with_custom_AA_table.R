@@ -1,43 +1,39 @@
-if (!require("BiocManager", quietly = TRUE)) { install.packages("BiocManager") }
-if (!require("mzID", quietly = TRUE)) { BiocManager::install("mzID") }
-require(mzID)
-require(rstudioapi)
 require(proteoCraft)
 
 
-wd <- selectDirectory(path = "...Search_Folder")
+wd <- rstudioapi::selectDirectory(path = "...Search_Folder")
 setwd(wd)
 
 #fasta <- choose.files(paste0(wd, "/*.fasta"), multi = FALSE)
 fasta <- rstudioapi::selectFile("Select fasta file",
-                               path = paste0(defltdir, "/*"),
-                               filter = "fasta file (*.fasta|*.fas|*.fa|*.faa|*.fasta.fas|*.txt)")
+                                path = paste0(defltdir, "/*"),
+                                filter = "fasta file (*.fasta|*.fas|*.fa|*.faa|*.fasta.fas|*.txt)")
 
 mzMLs <- grep("\\.mzML$", list.files(), value = TRUE)
 MSGFplus <- "C:\\MSGFPlus_v20230112\\MSGFPlus.jar"
 for (mzML in mzMLs) { #mzML <- mzMLs[2]
   cmd <- paste0('java -Xmx3500M -jar "', MSGFplus, '" -s "',
                 normalizePath(wd), "\\\\", mzML, '" -d "', fasta,'" -inst 1 -t 20ppm -ti -1,2 -ntt 2 -tda 1 -o "',
-                normalizePath(wd), "\\\\", gsub("\\.mzML$", ".mzid", mzML),
+                normalizePath(wd), "\\\\", sub("\\.mzML$", ".mzid", mzML),
                 '" -conf "', gsub("/", "\\\\", wd), '" -maxMissedCleavages 2')
   cat(cmd)
   write(cmd, paste0(wd, "/MSGF command line.bat"))
   tst <- system(paste0('"', wd, '/MSGF command line.bat"'))
 }
 
-mzIDs <- lapply(mzMLs, function(mzML) { mzID(gsub("\\.mzML$", ".mzid", mzML)) })
-names(mzIDs) <- mzMLs
-Evs <- setNames(lapply(names(mzIDs), function(x) { #x <- names(mzIDs)[1]
-  Ev <- evidence(mzIDs[[x]])
+mz_IDs <- lapply(mzMLs, \(mzML) { mzID::mzID(sub("\\.mzML$", ".mzid", mzML)) })
+names(mz_IDs) <- mzMLs
+Evs <- setNames(lapply(names(mz_IDs), \(x) { #x <- names(mz_IDs)[1L]
+  Ev <- mzID::evidence(mz_IDs[[x]])
   Ev$File <- x
-  Ev$Sequence <- gsub("\\[?[+-][0-9]+", "", gsub("^Pep_", "", Ev$peptide_ref))
+  Ev$Sequence <- gsub("\\[?[+-][0-9]+", "", sub("^Pep_", "", Ev$peptide_ref))
   return(Ev)
 }), mzMLs)
 #View(Evs$`VLX_S1-DDA.mzML`)
-PSMs <- setNames(lapply(names(mzIDs), function(x) { #x <- names(mzIDs)[1]
-  psms <- id(mzIDs[[x]])
+PSMs <- setNames(lapply(names(mz_IDs), \(x) { #x <- names(mz_IDs)[1L]
+  psms <- mzID::id(mz_IDs[[x]])
   psms$File <- x
-  psms$Sequence <- gsub("\\[?[+-][0-9]+", "", gsub("^Pep_", "", psms$peptide_ref))
+  psms$Sequence <- gsub("\\[?[+-][0-9]+", "", sub("^Pep_", "", psms$peptide_ref))
   return(psms)
 }), mzMLs)
 
@@ -45,26 +41,33 @@ PSMs <- setNames(lapply(names(mzIDs), function(x) { #x <- names(mzIDs)[1]
 MeltEvs <- plyr::rbind.fill(Evs)
 MeltPSMs <- plyr::rbind.fill(PSMs)
 MeltPSMs$isdecoy <- MeltEvs$isdecoy[match(MeltPSMs$peptide_ref, MeltEvs$peptide_ref)]
-require(ggplot2)
 ttl <- "-log10(E-value)"
-plot <- ggplot(MeltPSMs) +
-  geom_density(stat = "density", aes(-log10(`ms-gf:evalue`), colour = isdecoy)) +
-  facet_wrap(~File+passthreshold) + theme_bw() + ggtitle(ttl)
+plot <- ggplot2::ggplot(MeltPSMs) +
+  ggplot2::geom_density(stat = "density",
+                        ggplot2::aes(-log10(`ms-gf:evalue`), colour = isdecoy)) +
+  ggplot2::facet_wrap(~File+passthreshold) +
+  ggplot2::theme_bw() + ggplot2::ggtitle(ttl)
 poplot(plot)
 ttl <- "PSM-level P-value"
-plot <- ggplot(MeltPSMs) +
-  geom_density(stat = "density", aes(`ms-gf:qvalue`, colour = isdecoy)) +
-  facet_wrap(~File+passthreshold) + theme_bw() + ggtitle(ttl)
+plot <- ggplot2::ggplot(MeltPSMs) +
+  ggplot2::geom_density(stat = "density",
+                        ggplot2::aes(`ms-gf:qvalue`, colour = isdecoy)) +
+  ggplot2::facet_wrap(~File + passthreshold) +
+  ggplot2::theme_bw() + ggplot2::ggtitle(ttl)
 poplot(plot)
 ttl <- "Peptide-level P-value"
-plot <- ggplot(MeltPSMs) +
-  geom_density(stat = "density", aes(`ms-gf:pepqvalue`, colour = isdecoy)) +
-  facet_wrap(~File+passthreshold) + theme_bw() + ggtitle(ttl)
+plot <- ggplot2::ggplot(MeltPSMs) +
+  ggplot2::geom_density(stat = "density",
+                        ggplot2::aes(`ms-gf:pepqvalue`, colour = isdecoy)) +
+  ggplot2::facet_wrap(~File + passthreshold) +
+  ggplot2::theme_bw() + ggplot2::ggtitle(ttl)
 poplot(plot)
 ttl <- "Score"
-plot <- ggplot(MeltPSMs) +
-  geom_density(stat = "density", aes(`ms-gf:rawscore`, colour = isdecoy)) +
-  facet_wrap(~File+passthreshold) + theme_bw() + ggtitle(ttl)
+plot <- ggplot2::ggplot(MeltPSMs) +
+  ggplot2::geom_density(stat = "density",
+                        ggplot2::aes(`ms-gf:rawscore`, colour = isdecoy)) +
+  ggplot2::facet_wrap(~File + passthreshold) +
+  ggplot2::theme_bw() + ggplot2::ggtitle(ttl)
 poplot(plot)
 # Conclusion: I need to filter, cannot take at face value the results!!!
 Thr <- 0.05

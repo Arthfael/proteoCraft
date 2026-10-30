@@ -45,7 +45,7 @@ if (dataType == "peptides") {
   # pep is not log-transformed at this stage, we need to log(10)-transform it (same as modPeptides and PG)!
   # We must then make sure that this modified quant does not get pushed back to the original table.
   # (Note: for limma the log base is adjusted to 2)
-  kol1 <- intersect(paste0(intRef, RSA$values), colnames(myData))
+  kol1 <- base::intersect(paste0(intRef, RSA$values), colnames(myData))
   intRef <- paste0("log10 ", intRef) 
   kol2 <- paste0(intRef, RSA$values)
   myData[, kol2] <- log10(myData[, kol1])
@@ -115,12 +115,12 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       grpTst <- aggregate(1L:nrow(expMap), list(expMap[[VPAL$limmaCol]]), list)
       tmpFl <- tempfile(fileext = ".rds")
       readr::write_rds(myData[, quantCol], tmpFl)
-      clusterExport(parClust, list("grpTst", "quantCol", "tmpFl"), envir = environment())
-      invisible(clusterCall(parClust, \() {
+      parallel::clusterExport(parClust, list("grpTst", "quantCol", "tmpFl"), envir = environment())
+      invisible(parallel::clusterCall(parClust, \() {
         assign("tmp", readr::read_rds(tmpFl), envir = .GlobalEnv)
       }))
       unlink(tmpFl)
-      tst <- parLapply(parClust, 1L:nrow(myData), \(i) { #i <- 1L
+      tst <- parallel::parLapply(parClust, 1L:nrow(myData), \(i) { #i <- 1L
         vapply(grpTst$x, \(smpls) { #smpls <- grpTst$x[1L]
           sum(is.finite(unlist(tmp[i, unlist(smpls)])))
         }, 1L)
@@ -141,9 +141,9 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
     Block <- expMap[match(rownames(designMatr), gsub("___", "_", as.character(expMap[[RSA$limmaCol]]))),
                     Blocking.factors$limmaCol]
     corfit <- tryCatch(
-      duplicateCorrelation(tmpData,
-                           designMatr,
-                           block = Block),
+      limma::duplicateCorrelation(tmpData,
+                                  designMatr,
+                                  block = Block),
       warning = \(w) {
         message(w$message)
         return(list(consensus = 0))
@@ -152,13 +152,13 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
     fit <- if (limpaMode) {
       limpa::dpcDE(tmpData, designMatr, block = Block)
     } else {
-      lmFit(tmpData, designMatr, block = Block, correlation = corfit$consensus)
+      limma::lmFit(tmpData, designMatr, block = Block, correlation = corfit$consensus)
     }
   } else {
     fit <- if (limpaMode) {
       limpa::dpcDE(tmpData, designMatr)
     } else {
-      lmFit(tmpData, designMatr)
+      limma::lmFit(tmpData, designMatr)
     }
   }
   #NB: voomaLmFit doesn't work as a replacement for lmFit here unless we either:
@@ -166,15 +166,15 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
   # - use limpa (but then we should use dpcDE instead!)
   # - filter out any row with even a single NA!
   fit$genes <- rownames(tmpData)
-  limmaFits[[dataType]][[TEST]]$fitted_values <- fitted(fit)
-  fit <- contrasts.fit(fit, contrMatr)
-  fit2 <- eBayes(fit) # Note: eBayes() performs empirical Bayes moderation of variances; the default settings are appropriate, and e.g. do not assume 1% of proteins are differentially expressed.
+  limmaFits[[dataType]][[TEST]]$fitted_values <- stats::fitted(fit)
+  fit <- limma::contrasts.fit(fit, contrMatr)
+  fit2 <- limma::eBayes(fit) # Note: limma::eBayes performs empirical Bayes moderation of variances; the default settings are appropriate, and e.g. do not assume 1% of proteins are differentially expressed.
   fit2$genes <- fit$genes
   # Do not use topTable!
   # - It adjusts P values (with "BH") by default...
   #   If using it (e.g. rewriting to include systematic P-value adjustment), set adjust.method = "none"!!!
   # - The way it tests a hypothesis seems better suited to F.tests than t-tests!
-  # Here you could use decideTests() if wanting to switch to directly using decisions from limma
+  # Here you could use limma::decideTests if wanting to switch to directly using decisions from limma
   if (!deqmsMode) {
     limmaFits[[dataType]][[TEST]]$fit <- fit2
     kols1 <- paste0(sub(" -log10\\(", " ", sub("\\) - $", " - ", pRoot)), colnames(contrMatr))
@@ -187,23 +187,23 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
     #View(myData[w, c(kols1, kols2)])
     # Plot moderated t-test results
     for (contr in colnames(contrMatr)) { #contr <- colnames(contrMatr)[1L]
-      # Q-Q plot
-      ttl <- paste0(c("", "limpa-")[limpaMode+1L], "mod. t-test QQ plot - ", contr)
-      fl <- paste0(ohDeer, "/", ttl)
-      jpeg(file = paste0(fl, ".jpeg"), width = 400L, height = 350L)
       tmp <- as.data.frame(fit2$t)[[contr]]
       w <- which(!is.na(tmp))
       if (length(w)) {
-        qqt(tmp, df = fit2$df.prior + fit2$df.residual, pch = 16L, cex = 0.2)
-        abline(0, 1)
-        dev.off()
-        # MA plot
+        # Q-Q plot
+        ttl <- paste0(c("", "limpa-")[limpaMode+1L], "mod. t-test QQ plot - ", contr)
+        fl <- paste0(ohDeer, "/", ttl)
+        grDevices::jpeg(file = paste0(fl, ".jpeg"), width = 400L, height = 350L)
+        limma::qqt(tmp, df = fit2$df.prior + fit2$df.residual, pch = 16L, cex = 0.2)
+        graphics::abline(0, 1)
+        grDevices::dev.off()
+        # Mean-Difference Plot of Expression Data
         ttl <- paste0(insrt, " MA plot - ", contr)
         fl <- paste0(ohDeer, "/", ttl)
-        jpeg(file = paste0(fl, ".jpeg"), width = 400L, height = 350L)
+        grDevices::jpeg(file = paste0(fl, ".jpeg"), width = 400L, height = 350L)
         fit2$genes <- NULL
-        plotMD(fit2, column = match(contr, colnames(fit2$p.value)))
-        dev.off()
+        limma::plotMD(fit2, column = match(contr, colnames(fit2$p.value)))
+        grDevices::dev.off()
       }
     }
   }
@@ -211,7 +211,6 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
     # DEqMS is meant as en extension to limma to account "for variance dependence on the number of quantified peptides or PSMs
     # for statistical testing of differential protein expression."
     # https://www.bioconductor.org/packages/devel/bioc/vignettes/DEqMS/inst/doc/DEqMS-package-vignette.html#overview-of-deqms
-    library(DEqMS)
     if (dataType == "PG") {
       countCol <- grep("^Evidences count - ", colnames(myData), value = TRUE)
     }
@@ -237,9 +236,9 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
       tst <- try({
         ttl <- paste0(insrt, " variance plot")
         fl <- paste0(ohDeer, "/", ttl)
-        jpeg(file = paste0(fl, ".jpeg"), width = 400L, height = 350L)
+        grDevices::jpeg(file = paste0(fl, ".jpeg"), width = 400L, height = 350L)
         DEqMS::VarianceBoxplot(fit3, n = max(psm.counts), main = ttl, xlab = "PSM count")
-        dev.off()
+        grDevices::dev.off()
       }, silent = TRUE)
       #
       limmaFits[[dataType]][[TEST]]$fit <- fit3
@@ -264,8 +263,8 @@ for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
 
 # msqrob2
 if (((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) || (dataType %in% c("peptides", "modPeptides"))) {
-  library(msqrob2)
-  library(ExploreModelMatrix)
+  requireNamespace("msqrob2")
+  requireNamespace("ExploreModelMatrix")
   cat("   - MSqRob test\n")
   #
   # Supplement experiment structure in the object
@@ -316,7 +315,7 @@ if (((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) || (dat
   w <- which(Lit %in% colnames(myContrasts))
   tmp <- myContrasts[, Lit[w]]
   nms <- VPAL$names
-  if (length(Exp) == 1L) { nms <- setdiff(nms, "Experiment") }
+  if (length(Exp) == 1L) { nms <- base::setdiff(nms, "Experiment") }
   fct <- paste(paste0(nms, "_._"), collapse = "_")
   for (lit in Lit[w]) {
     tmp[[lit]] <- paste0(fct, tmp[[lit]])
@@ -455,11 +454,11 @@ if (hasBatch) {
   batchCol <- Batch.effect$limmaCol
   exports <- append(exports, "batchCol")
 }
-clusterExport(parClust, exports, envir = environment())
+parallel::clusterExport(parClust, exports, envir = environment())
 tmpData <- myData[, grep(topattern(intRef), colnames(myData), value = TRUE)]
 rownames(tmpData) <- myData[[namesCol]]
 readr::write_rds(tmpData, tmpFl)
-invisible(clusterCall(parClust, \() {
+invisible(parallel::clusterCall(parClust, \() {
   tmpData <- readr::read_rds(tmpFl)
   assign("tmpData", tmpData, envir = .GlobalEnv)
   return()
@@ -472,7 +471,7 @@ if (length(whSingle)) {
   cat("   - t-tests and permutation tests\n")
   logRoots <- c(StudentRoot, WelchRoot, permRoot)
   rawRoots <- sub(" -log10\\(", " ", sub("\\) - $", " - ", logRoots))
-  clusterExport(parClust, "rawRoots", envir = environment())
+  parallel::clusterExport(parClust, "rawRoots", envir = environment())
   tmpTsts <- lapply(whSingle, \(i) { #i <- 1L #i <- 2L #i <- 3L
     # Get two groups from the contrast
     A <- myContrasts$A[[i]]
@@ -509,8 +508,8 @@ if (length(whSingle)) {
                      group = c(rep(A, length(A_)), rep(B, length(B_))))
     if (Nested) { dt$block <- em[[blockCol]] }
     if (hasBatch) { dt$batch <- em[[batchCol]] }
-    clusterExport(parClust, list("em", "A", "B", "A_k", "B_k", "altHyp", "dt", "Nested"), envir = environment())
-    RES <- parLapply(parClust, 1L:nrow(tmpData), \(ii) { #ii <- 1L
+    parallel::clusterExport(parClust, list("em", "A", "B", "A_k", "B_k", "altHyp", "dt", "Nested"), envir = environment())
+    RES <- parallel::parLapply(parClust, 1L:nrow(tmpData), \(ii) { #ii <- 1L
       vA <- as.numeric(tmpData[ii, A_k])
       vB <- as.numeric(tmpData[ii, B_k])
       dt$values <- c(vA, vB)
@@ -561,20 +560,22 @@ if (length(whSingle)) {
     tmp <- dfMelt(tmpTsts_)
     tmp <- tmp[is.finite(tmp$value),]
     tmp[, c("test", "contrast")] <- do.call(rbind, strsplit(as.character(tmp$variable), " Pvalue - "))
-    plot <- ggplot(tmp) + geom_density(stat = "density", aes(x = value, color = test)) +
-      facet_grid(test~contrast) + theme_bw() + ggtitle("Classic tests: dist. of P-values")
+    plot <- ggplot2::ggplot(tmp) +
+      ggplot2::geom_density(stat = "density",
+                            ggplot2::aes(x = value, color = test)) +
+      ggplot2::facet_grid(test~contrast) +
+      ggplot2::theme_bw() + ggplot2::ggtitle("Classic tests: dist. of P-values")
     poplot(plot)
   }
   #
   myData[, kolRaw] <- tmpTsts_[, kolRaw]
   myData[, kolLog] <- -log10(tmpTsts_[, kolRaw])
   #View(tmpTsts_)
-  #summary(tmpTsts_)
+  #base::summary(tmpTsts_)
   #
   # - Reproducibility-Optimized Test Statistic (ROTS)
   if (requireNamespace("ROTS")) { #... equivalent to if (pkgsCheck["ROTS"]) { ... }
-    bioc_req <- union(bioc_req, "ROTS")
-    library(ROTS)
+    bioc_req <- base::union(bioc_req, "ROTS")
     cat("   - ROTS tests\n")
     if (!exists("ROTS_res")) {
       if (file.exists(ROTS_res_fl)) {
@@ -583,10 +584,10 @@ if (length(whSingle)) {
         ROTS_res <- list()
       }
     }
-    clusterExport(parClust, list("myContrasts", "mySeed", "intRef"), envir = environment())
+    parallel::clusterExport(parClust, list("myContrasts", "mySeed", "intRef"), envir = environment())
     # Can't believe the below wasn't parallelized yet!!!
     # In fact, it's so slow it should probably become parameter-dependent!
-    ROTS_tmp <- try(setNames(parLapply(parClust, whSingle, \(i) { #i <- 1L #i <- 2L #i <- 3L
+    ROTS_tmp <- try(setNames(parallel::parLapply(parClust, whSingle, \(i) { #i <- 1L #i <- 2L #i <- 3L
       # Get two groups from the contrast
       A_ <- myContrasts$A_samples[[i]]
       B_ <- myContrasts$B_samples[[i]]
@@ -633,12 +634,7 @@ if (length(whSingle)) {
     # Careful: siggenes truncates names at 50 characters!!!
     # So we will just create artificial short names
     rownames(tmpData2) <- paste0(namesRoot, as.character(1L:nrow(tmpData2)))
-    library(siggenes)
-    clusterExport(parClust, list("samDir", "ebamDir"), envir = environment())
-    invisible(clusterCall(parClust, \() {
-      library(siggenes)
-      return()
-    }))
+    parallel::clusterExport(parClust, list("samDir", "ebamDir"), envir = environment())
     if (exists("samThresh")) { rm(samThresh) }
     for (taest in c("SAM", "EBAM")) { #taest <- "SAM" #taest <- "EBAM"
       cat(paste0("   - ", taest, " test\n"))
@@ -660,7 +656,7 @@ if (length(whSingle)) {
           A_k <- paste0(intRef, A_)
           B_k <- paste0(intRef, B_)
           tmpData3 <- tmpData2[, c(B_k, A_k)]
-          tst <- parApply(parClust, tmpData3, 1L, \(x) { sum(is.finite(x)) })
+          tst <- parallel::parApply(parClust, tmpData3, 1L, \(x) { sum(is.finite(x)) })
           # Create filter for missing values appropriate for the current test:
           if (taest == "SAM") {
             wh <- which(tst > 1L)
@@ -684,7 +680,7 @@ if (length(whSingle)) {
                                              , rand = mySeed)
               })
               #print(tmpSIGGENES)
-              #summary(tmpSIGGENES)
+              #base::summary(tmpSIGGENES)
               # NB: The current siggenes vignette has a typo: obviously FDR isn't equal to p0*False/FDR but to p0*False/Called
               s0 <- if ("s0" %in% slotNames(tmpSIGGENES)) { slot(tmpSIGGENES, "s0") } else { numeric(0) }
               #si <- median(apply(tmpData3[wh,], 1L, sd, na.rm = TRUE))
@@ -703,10 +699,10 @@ if (length(whSingle)) {
               msg <- capture.output({ a0 <- siggenes::find.a0(tmpData3[wh,], clss) })
               tmpSIGGENES <- siggenes::ebam(a0, delta = 1-BH.FDR, rand = mySeed)
               #print(tmpSIGGENES)
-              #summary(tmpSIGGENES)
+              #base::summary(tmpSIGGENES)
             }
-            clusterExport(parClust, c("nm", "tmpSIGGENES", "taest"), envir = environment())
-            tmpSig <- setNames(parLapply(parClust, BH.FDR, \(f) { #f <- BH.FDR[1L]
+            parallel::clusterExport(parClust, c("nm", "tmpSIGGENES", "taest"), envir = environment())
+            tmpSig <- setNames(parallel::parLapply(parClust, BH.FDR, \(f) { #f <- BH.FDR[1L]
               d <- siggenes::findDelta(tmpSIGGENES, fdr = f, prec = 10)
               if (!is.null(d)) {
                 if (is.numeric(d)) {
@@ -724,9 +720,9 @@ if (length(whSingle)) {
                   dlt <- 0
                 }
                 XLfun(tmpSIGGENES, dlt, paste0(dr, "/", taest, " - ", nm, ", ", f, " FDR.csv"), what = "both")
-                jpeg(filename = paste0(dr, "/Delta plot - ", nm, ", ", f, " FDR.jpeg"))
-                plot(tmpSIGGENES, dlt)
-                dev.off()
+                grDevices::jpeg(filename = paste0(dr, "/Delta plot - ", nm, ", ", f, " FDR.jpeg"))
+                graphics::plot(tmpSIGGENES, dlt)
+                grDevices::dev.off()
                 res <- siggenes::list.siggenes(tmpSIGGENES, dlt)
                 res <- list(Delta.est = d,
                             Delta = dlt,

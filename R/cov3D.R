@@ -303,7 +303,7 @@ cov3D <- function(pdb,
   if (!misFun(path)) {
     dir <- dirname(path)
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    setwd(dir) # Somehow the self-contained argument of saveWidget only works if the current work directory is the same as the location of the destination html 
+    setwd(dir) # Somehow the self-contained argument of htmlwidgets::saveWidget only works if the current work directory is the same as the location of the destination html 
     htmlwidgets::saveWidget(plotly::partial_bundle(my3dplotly), path)
     #htmlwidgets::saveWidget(my3dplotly, path)
     setwd(wdBckp)

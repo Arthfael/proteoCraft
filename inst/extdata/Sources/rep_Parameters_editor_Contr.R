@@ -2,15 +2,15 @@
 
 # expMap: limma-compatible version of Exp.map
 hasBlocks %<o% FALSE
-origCoeff <- union(RSA$names, RRG$names)
+origCoeff <- base::union(RSA$names, RRG$names)
 if ((!is.na(Param$Blocking.factors)) && (Param$Blocking.factors != "")) {
   parse.Param.aggreg.2("Blocking.factors")
-  origCoeff <- union(origCoeff, Blocking.factors$names)
+  origCoeff <- base::union(origCoeff, Blocking.factors$names)
   hasBlocks <- TRUE
 }
 if ((!is.na(Param$Batch.effect)) && (Param$Batch.effect != "")) {
   parse.Param.aggreg.2("Batch.effect")
-  origCoeff <- union(origCoeff, Batch.effect$names)
+  origCoeff <- base::union(origCoeff, Batch.effect$names)
 }
 Coefficients %<o% origCoeff
 expMap %<o% Exp.map[, origCoeff]
@@ -58,7 +58,7 @@ for (aggrNm in c("RSA", "VPAL", "RG", "RRG", "Blocking.factors", "Batch.effect")
     expMap[[nm]] <- do.call(paste, c(expMap[, tmp, drop = FALSE], sep = "_"))
     expMap[[nm]] <- factor(expMap[[nm]], levels = unique(expMap[[nm]]))
     nm %<c% as.factor(expMap[[nm]])
-    if (length(Exp) == 1L) { tmp <- setdiff(tmp, "Experiment_._") }
+    if (length(Exp) == 1L) { tmp <- base::setdiff(tmp, "Experiment_._") }
     if (length(tmp)) {
       nm <- paste(tmp, collapse = "_")
       if (!grepl("_\\._$", nm)) { nm <- paste0(nm, "_._") }
@@ -164,8 +164,8 @@ if (alsoDouble) {
 }
 appNm <- "Define contrasts"
 make_ui0 <- \() {
-  shinyUI(
-    fluidPage(
+  shiny::shinyUI(
+    shiny::fluidPage(
       shinyjs::useShinyjs(),
       shinyWidgets::setBackgroundColor( # Doesn't work
         color = c(#"#F8F8FF",
@@ -175,7 +175,7 @@ make_ui0 <- \() {
       ),
       shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
                              functions = c("toggleFullScreen")),
-      tags$head(tags$script(HTML("
+      shiny::tags$head(shiny::tags$script(shiny::HTML("
 Shiny.addCustomMessageHandler('updateSecondary', function(data) {
   var sel = document.getElementById('Secondary');
   if (!sel) return;
@@ -190,51 +190,51 @@ Shiny.addCustomMessageHandler('updateSecondary', function(data) {
   });
 });
 "))),
-      tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-      titlePanel(tag("u", "Define contrasts of interest"),
+      shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+      shiny::titlePanel(shiny::tag("u", "Define contrasts of interest"),
                         appNm),
-      mainPanel(
-        em("Select each \"A - B\" contrast of interest, then click \"Add\" to add it to the analysis."),
-        br(),
-        em("(NB: \"A - B\" means \"A versus B\", i.e. FC = A/B and logFC = log(A)-log(B))"),
-        br(),
-        br(),
-        em("Tick \"one-sided\" for \"up-regulated\" (for \"down-regulated\", just select the reverse contrast first)."),
-        br(),
+      shiny::mainPanel(
+        shiny::em("Select each \"A - B\" contrast of interest, then click \"Add\" to add it to the analysis."),
+        shiny::br(),
+        shiny::em("(NB: \"A - B\" means \"A versus B\", i.e. FC = A/B and logFC = log(A)-log(B))"),
+        shiny::br(),
+        shiny::br(),
+        shiny::em("Tick \"one-sided\" for \"up-regulated\" (for \"down-regulated\", just select the reverse contrast first)."),
+        shiny::br(),
         if (alsoDouble) {
-          em(HTML("<br>You may also add double contrasts (interaction contrasts) of the form \"(A - B) - (C - D)\" (where all 4 are distinct)."))
+          shiny::em(shiny::HTML("<br>You may also add double contrasts (interaction contrasts) of the form \"(A - B) - (C - D)\" (where all 4 are distinct)."))
         },
         if (alsoDouble) {
-          em(HTML("<br><br>For now we are restricting users to \"sensible contrasts\" - this may change!"))
+          shiny::em(shiny::HTML("<br><br>For now we are restricting users to \"sensible contrasts\" - this may change!"))
         },
         if (alsoDouble) {
-          br()
+          shiny::br()
         },
-        em(HTML("<br><br>Once you are finished, click&nbsp;")),
-        shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-        em(HTML("&nbsp;to continue.")),
-        br(),
-        em("Saving is only possible once at least one contrast has been entered"),
-        em("(otherwise why even run this workflow?)"),
-        br(),
-        br(),
+        shiny::em(shiny::HTML("<br><br>Once you are finished, click&nbsp;")),
+        shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
+        shiny::em(shiny::HTML("&nbsp;to continue.")),
+        shiny::br(),
+        shiny::em("Saving is only possible once at least one contrast has been entered"),
+        shiny::em("(otherwise why even run this workflow?)"),
+        shiny::br(),
+        shiny::br(),
         DT::DTOutput("makeContrasts"),
-        uiOutput("msg"),
-        br(),
-        br(),
-        br(),
-        em("-> your current contrasts:"),
+        shiny::uiOutput("msg"),
+        shiny::br(),
+        shiny::br(),
+        shiny::br(),
+        shiny::em("-> your current contrasts:"),
         DT::DTOutput("myContrasts"),
-        br(),
-        br()
+        shiny::br(),
+        shiny::br()
       )))
 }
-server0 <- shinyServer(\(input, output, session) {
-  CONTRASTSTBL <- reactiveVal(myContrasts2)
-  MSG <- reactiveVal("")
-  formVALS <- reactiveValues(Primary = dfltContr_Opt$Contrast[1L],
-                             Secondary = "",
-                             upOnly = FALSE)
+server0 <- shiny::shinyServer(\(input, output, session) {
+  CONTRASTSTBL <- shiny::reactiveVal(myContrasts2)
+  MSG <- shiny::reactiveVal("")
+  formVALS <- shiny::reactiveValues(Primary = dfltContr_Opt$Contrast[1L],
+                                    Secondary = "",
+                                    upOnly = FALSE)
   output$makeContrasts <- DT::renderDT({ makeContr },
                                        FALSE,
                                        escape = FALSE,
@@ -248,7 +248,7 @@ server0 <- shinyServer(\(input, output, session) {
                                                       autoWidth = TRUE,
                                                       columnDefs = colDefs1,
                                                       scrollX = FALSE),
-                                       callback = DT::JS("
+                                       callback = htmlwidgets::JS("
 // Buttons
 table.on('click', 'button', function() {
   var id = this.id;
@@ -283,7 +283,7 @@ table.on('change', 'select', function() {
                                        autoWidth = TRUE,
                                        columnDefs = colDefs2,
                                        scrollX = FALSE),
-                        callback = DT::JS("
+                        callback = htmlwidgets::JS("
 // Buttons
 table.on('click', 'button', function() {
   var id = this.id;
@@ -293,22 +293,22 @@ table.on('click', 'button', function() {
   }
   updt_Msg <- \(reactive = TRUE) {
     msg <- if (reactive) { MSG() } else { "" }
-    renderUI(h5(strong(em(msg,
-                          style = "color:red",
-                          .noWS = "outside"))))
+    shiny::renderUI(shiny::h5(shiny::strong(shiny::em(msg,
+                                                      style = "color:red",
+                                                      .noWS = "outside"))))
   }
   #
   output$myContrasts <- updt_ContrTbl(FALSE)
   output$msg <- updt_Msg(FALSE)
   #
   # Event observers
-  observeEvent(input$dt1_event, {
+  shiny::observeEvent(input$dt1_event, {
     info <- input$dt1_event
     if (info$type == "select") {
       formVALS[[info$id]] <- info$value
       if (info$id == "Primary") {
         AB <- dfltContr_Opt[match(info$value, dfltContr_Opt$Contrast), c("A","B")]
-        tmp <- c("", dfltContr_Opt$Contrast[(!dfltContr_Opt$A %in% AB)&(!dfltContr_Opt$B %in% AB)])
+        tmp <- c("", dfltContr_Opt$Contrast[(!dfltContr_Opt$A %in% AB) & (!dfltContr_Opt$B %in% AB)])
         session$sendCustomMessage("updateSecondary",
                                   list(choices = tmp))
         formVALS$Secondary <- ""
@@ -318,15 +318,15 @@ table.on('click', 'button', function() {
       formVALS[[info$id]] <- as.logical(info$value)
     }
   })
-  observeEvent(input$Primary, {
+  shiny::observeEvent(input$Primary, {
     #AB <- dfltContr_Opt[match(dfltContr_Opt$Contrast[1L], dfltContr_Opt$Contrast), c("A", "B")]
     AB <- dfltContr_Opt[match(input$Primary, dfltContr_Opt$Contrast), c("A", "B")]
     tmp <- c("", dfltContr_Opt$Contrast[(!dfltContr_Opt$A %in% AB) & (!dfltContr_Opt$B %in% AB)])
-    updateSelectInput(inputId = "Secondary",
-                      choices = tmp,
-                      selected = "")
+    shiny::updateSelectInput(inputId = "Secondary",
+                             choices = tmp,
+                             selected = "")
   })
-  observeEvent(input$dt1_event, {
+  shiny::observeEvent(input$dt1_event, {
     info <- input$dt1_event
     if ((info$type == "button") && (info$id == "addContr")) {
       dat <- CONTRASTSTBL()
@@ -374,7 +374,7 @@ table.on('click', 'button', function() {
       }
     }
   })
-  observeEvent(input$dt2_event, {
+  shiny::observeEvent(input$dt2_event, {
     info <- input$dt2_event
     if ((info$type == "button") && (grepl("^rmvBtn_", info$id))) {
       i <- as.integer(sub("rmvBtn_", "", info$id))
@@ -399,15 +399,15 @@ table.on('click', 'button', function() {
       }
     }
   })
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     myContrasts2 <- CONTRASTSTBL()[, c("Contrast", "Up-only")]
     assign("myContrasts2", myContrasts2, envir = .GlobalEnv)
     readr::write_rds(myContrasts2, contrastsFl)
     assign("appRunTest", TRUE, envir = .GlobalEnv)
-    stopApp()
+    shiny::stopApp()
   })
-  observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(\() { stopApp() })
+  shiny::observeEvent(input$cancel, { shiny::stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
 })
 if (exists("appRunTest")) { rm(appRunTest) }
 appTxt0 <- sub("myApp", "myApp0", sub("\\(ui", "(ui0", sub(", server", ", server0", run_App)))
@@ -446,7 +446,7 @@ if (alsoDouble) {
   myContrasts$D[g] <- contrBlocks2$`Samples group`[match(sub(".* - ", "", myContrasts$Secondary[g]), contrBlocks2$Name_)]
 }
 kol <- c("A", "B", "C", "D")
-kol <- intersect(kol, colnames(myContrasts))
+kol <- base::intersect(kol, colnames(myContrasts))
 for (i in kol) {
   myContrasts[[paste0(i, "_samples")]] <- lapply(myContrasts[[i]], \(x) {
     rownames(expMap)[expMap[[VPAL$limmaCol]] == x]
@@ -468,7 +468,7 @@ if ((!is.na(Param$Batch.effect)) && (Param$Batch.effect != "")) {
   # Let's first make a design matrix without batch effect for use by ComBat
   designMatr_noBatch %<o% model.matrix(as.formula(limmaForm)#,
                                        #data = expMap
-                                       )
+  )
   # Test before we edit column names
   tst <- lapply(tmpForm, \(x) { grep(topattern(x), colnames(designMatr_noBatch)) })
   l <- length(tmpForm)
@@ -490,7 +490,7 @@ if ((!is.na(Param$Batch.effect)) && (Param$Batch.effect != "")) {
 }
 designMatr %<o% model.matrix(as.formula(limmaForm)#,
                              #data = expMap
-                             )
+)
 # Test before we edit column names
 tst <- lapply(tmpForm, \(x) { grep(topattern(x), colnames(designMatr)) })
 l <- length(tmpForm)
@@ -509,5 +509,5 @@ expMap$designMatr_rowNames <- dimnames(designMatr)[[1L]]
 #
 # Contrasts matrix
 # ----------------
-contrMatr %<o% makeContrasts(contrasts = myContrasts$Contrast,
-                             levels = designMatr)
+contrMatr %<o% limma::makeContrasts(contrasts = myContrasts$Contrast,
+                                    levels = designMatr)

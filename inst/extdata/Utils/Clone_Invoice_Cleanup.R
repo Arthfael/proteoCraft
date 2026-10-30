@@ -1,30 +1,19 @@
 # Clone folder securely to a new location
 options(stringsAsFactors = FALSE)
 
-if (!require(tools)) { install.packages("tools") }
-if (!require(rstudioapi)) { install.packages("rstudioapi") }
-if (!require(svDialogs)) { install.packages("svDialogs") }
-if (!require(fs)) { install.packages("fs") }
-if (!require(snow)) { install.packages("snow") }
-if (!require(parallel)) { install.packages("parallel") }
-require(rstudioapi)
-require(svDialogs)
-require(fs)
-require(snow)
-require(parallel)
-N.clust <- detectCores()-1L
+N.clust <- parallel::detectCores()-1L
 a <- 1
-tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
+tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)
 if (inherits(tst, "try-error")) {
   cat("Creating parallel cluster for faster operations...\n")
-  parClust <- makeCluster(N.clust, type = "SOCK")
+  parClust <- parallel::makeCluster(N.clust, type = "SOCK")
 }
 MaxAttempts <- 5L
 
 # Start with clean slate
 #rm(list = ls())
 
-if (!require(proteoCraft)) {
+if (!requireNamespace("proteoCraft")) {
   openwd <- \(Dir) {
     cmd <- paste0("explorer \"", normalizePath(Dir), "\"")
     #cat(cmd)
@@ -50,7 +39,10 @@ if (!require(proteoCraft)) {
     if ((length(x) > 1L) && (collapse != FALSE)) { x <- paste(x, collapse = collapse) }
     return(x)
   }
-} else { openwd <- proteoCraft::openwd }
+} else {
+  openwd <- proteoCraft::openwd
+  topattern <- proteoCraft::topattern
+}
 
 if (exists("targDir") && (!is.null(targDir)) && dir.exists(targDir)) {
   dflt <- targDir
@@ -76,29 +68,29 @@ adjstTimes <- FALSE
 # Capture operator's name
 Whodunnit <- ""
 while(!nchar(Whodunnit)) {
-  Whodunnit <- dlg_input("Enter your first and last names:\n(For now this script will operate under the assumption that users are honest.\nDo not make me change this policy!)")$res
+  Whodunnit <- svDialogs::dlg_input("Enter your first and last names:\n(For now this script will operate under the assumption that users are honest.\nDo not make me change this policy!)")$res
 }
 Whodunnit <- paste(vapply(unlist(strsplit(Whodunnit, " +")), \(x) {
   paste0(toupper(substring(x, 1L, 1L)), tolower(substring(x, 2L, nchar(x))))
 }, ""), collapse = " ")
 #
-targDir <- selectDirectory("Select folder to clone", path = dflt)
+targDir <- rstudioapi::selectDirectory("Select folder to clone", path = dflt)
 if (!is.null(targDir)) {
   msg <- "Please confirm that this folder is not currently being modified?
 (e.g. do not run this if raw files are stil being recorded here!)"
-  OngoingAcq <- !c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
+  OngoingAcq <- !c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
   if (!OngoingAcq) {
     Fls <- list.files(targDir, recursive = TRUE, full.names = TRUE)
     if (length(Fls)) {
       #
-      parDir <- gsub(".*/", "", targDir)
-      rootDir <- gsub("/[^/]+$", "", targDir)
+      parDir <- sub(".*/", "", targDir)
+      rootDir <- sub("/[^/]+$", "", targDir)
       #
       # Create hash function
       HashFun <- \(x) { as.character(tools::md5sum(x)) } #tools::md5sum takes a character path, not a connection
-      clusterExport(parClust, "HashFun", envir = environment())
+      parallel::clusterExport(parClust, "HashFun", envir = environment())
       #
-      tmp <- as.data.frame(t(parSapply(parClust, Fls, file.info)))
+      tmp <- as.data.frame(t(parallel::parSapply(parClust, Fls, file.info)))
       tmp$isdir <- NULL
       tmp$exe <- NULL
       tmp$atime <- NULL
@@ -114,7 +106,8 @@ if (!is.null(targDir)) {
       #
       DestDir <- NULL
       while (is.null(DestDir)) {
-        DestDir <- selectDirectory("Choose location where files will be cloned and/or the log(s) saved", path = "C:/")
+        DestDir <- rstudioapi::selectDirectory("Choose location where files will be cloned and/or the log(s) saved",
+                                               path = "C:/")
       }
       #
       # Check available space
@@ -129,7 +122,7 @@ if (!is.null(targDir)) {
       disks$FreeSpace <- as.numeric(as.character(disks$FreeSpace))
       disks$Size <- as.numeric(disks$Size)
       disks$FreeSpace[disks$Caption == "B:"] <- Inf # Hack because archive space is not being properly read and we will always have enough space there
-      FrSp <- as.numeric(disks$FreeSpace[match(gsub("/.*", "", DestDir), disks$Caption)])
+      FrSp <- as.numeric(disks$FreeSpace[match(sub("/.*", "", DestDir), disks$Caption)])
       #
       pat <- gsub("/+", "/", paste0(rootDir, "/", parDir, "/"))
       if (grepl("^[A-Z]:/", pat)) { pat <- paste0("^", pat) }
@@ -141,8 +134,8 @@ if (!is.null(targDir)) {
       mx <- max(nchar(FilesDF$New))
       abort <- FALSE
       if (mx > 260) { 
-        abort <- dlg_message("Long paths (> 260 characters) predicted for destination files. Please check in the registry that HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/FileSystem/LongPathsEnabled=1; If yes, we can continue...",
-                             "yesno")$res
+        abort <- svDialogs::dlg_message("Long paths (> 260 characters) predicted for destination files. Please check in the registry that HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/FileSystem/LongPathsEnabled=1; If yes, we can continue...",
+                                        "yesno")$res
         abort <- abort != "yes"
       }
       if (abort) {
@@ -157,7 +150,7 @@ if (!is.null(targDir)) {
         FilesDF$py_diAID <- grepl("/Optimization_plot_A1_ *[0-9]+\\.[0-9]+_A2_ *[0-9]+\\.[0-9]+_B1_ *[0-9]+\\.[0-9]+_B2_ *[0-9]+\\.[0-9]+_result_ *[0-9]+\\.[0-9]+\\.png",
                                   FilesDF$Files)
         if (sum(FilesDF$py_diAID)) {
-          FilesDF$New[FilesDF$py_diAID] <- parSapply(parClust, FilesDF$Files[FilesDF$py_diAID], \(x) {
+          FilesDF$New[FilesDF$py_diAID] <- parallel::parSapply(parClust, FilesDF$Files[FilesDF$py_diAID], \(x) {
             #x <- FilesDF$Files[py_diAID[1L]]
             x <- unlist(strsplit(x, "/"))
             dr <- paste(x[1L:(length(x)-1L)], collapse = "/")
@@ -182,7 +175,7 @@ if (!is.null(targDir)) {
         #
         # Decide whether to invoice and if so, which files to use to calculate MS time
         # (e.g. exclude some blanks, reruns, failed injections etc...)
-        #msgRoot <- paste0("Cloning from \n       ", gsub(".*/", ".../", targDir), "\nto \n       ", gsub(".*/", ".../", DestDir), "\n")
+        #msgRoot <- paste0("Cloning from \n       ", sub(".*/", ".../", targDir), "\nto \n       ", sub(".*/", ".../", DestDir), "\n")
         msgRoot <- paste0("Cloning from \n       ", targDir, "\nto\n       ",
                           DestDir, "\n")
         logTm <- Sys.time()
@@ -226,12 +219,11 @@ if (!is.null(targDir)) {
           #   ParsDirs <- ParsDirs[tst]
           #   if (!length(ParsDirs)) {
           #     url <- "https://github.com/compomics/ThermoRawFileParser/releases/download/v1.4.4/ThermoRawFileParser1.4.4.zip"
-          #     require(curl)
           #     dstfl <- paste0("C:/Users/", Sys.getenv("USERNAME"), "/Downloads/ThermoRawFileParser1.4.4.zip")
-          #     curl_download(url, dstfl)
+          #     curl::curl_download(url, dstfl)
           #     ParsDirs <- "C:/ThermoRawFileParser/V_1.4.4"
           #     if (!dir.exists(ParsDirs)) { dir.create(ParsDirs, recursive = TRUE) }
-          #     unzip(dstfl, exdir = ParsDirs)
+          #     utils::unzip(dstfl, exdir = ParsDirs)
           #   }
           #   if (length(ParsDirs) > 1L) {
           #     tst <- vapply(ParsDirs, \(x) { file.info(x)$ctime }, 1)
@@ -253,7 +245,7 @@ if (!is.null(targDir)) {
           #       #MSConvertDirs <- c("C:/Program Files/ProteoWizard/ProteoWizard 3.0.19172.57d620127",
           #       #                   "C:/Program Files/ProteoWizard/ProteoWizard 3.0.22099.89b871a",
           #       #                  "C:/Program Files/ProteoWizard/ProteoWizard 3.0.22317.1e024d4")
-          #       MSConvertVers <- as.data.frame(t(sapply(strsplit(gsub(".*/ProteoWizard ", "", MSConvertDirs), "\\."), unlist)))
+          #       MSConvertVers <- as.data.frame(t(sapply(strsplit(sub(".*/ProteoWizard ", "", MSConvertDirs), "\\."), unlist)))
           #       MSConvertVers <- MSConvertVers[order(MSConvertVers$V1, MSConvertVers$V2, MSConvertVers$V3, MSConvertVers$V4, decreasing = TRUE),]
           #       MSConvertVers <- MSConvertVers[1,]
           #       MSConvertDir <- paste0("C:/Program Files/ProteoWizard/ProteoWizard ", paste(MSConvertVers, collapse = "."))
@@ -263,15 +255,15 @@ if (!is.null(targDir)) {
           #   Convert_mode <- "thermorawfileparser"
           #   zlib <- TRUE
           #   PeakPicking <- TRUE
-          #   clusterExport(parClust, list("rawFiles", "mzMLs", "pressFls", "w"), envir = environment())
+          #   parallel::clusterExport(parClust, list("rawFiles", "mzMLs", "pressFls", "w"), envir = environment())
           #   cat("Temporarily converting", length(w), "Thermo raw files to mzML to extract run time...\n")
           #   # (Unfortunately, it does not seem to work if I include only the pressure chromatograms...)
           #   if (tolower(Convert_mode) == "thermorawfileparser") { # Mode 1: using ThermoRawFileParser
-          #     clusterExport(parClust, list("DestDir", "deer", "zlib", "PeakPicking"), envir = environment())
-          #     tst <- parSapply(parClust, w, \(i) { #i <- w[1L]
+          #     parallel::clusterExport(parClust, list("DestDir", "deer", "zlib", "PeakPicking"), envir = environment())
+          #     tst <- parallel::parSapply(parClust, w, \(i) { #i <- w[1L]
           #       cmd <- paste0("\"", deer$ParsDir, "/ThermoRawFileParser.exe\" -i=\"",
-          #                     rawFiles[i], "\" -b=\"", gsub(".*/", paste0(DestDir, "/"), mzMLs[i]), "\" -f=2 -a",
-          #                     c(" -z", "")[zlib+1], c(" -p", "")[PeakPicking+1]#, " -L=1"
+          #                     rawFiles[i], "\" -b=\"", sub(".*/", paste0(DestDir, "/"), mzMLs[i]), "\" -f=2 -a",
+          #                     c(" -z", "")[zlib+1L], c(" -p", "")[PeakPicking+1L]#, " -L=1"
           #                     )
           #       write(cmd, paste0(DestDir, "/tmp", i, ".bat"))
           #       cmd2 <- paste0("\"", DestDir, "/tmp", i, ".bat\"") # I have to go through an intermediate batch file to run cmd,
@@ -294,8 +286,8 @@ if (!is.null(targDir)) {
           #   }
           # }
           # # 3 - get pressure traces
-          # clusterExport(parClust, list("pressScript2", "mzMLs"), envir = environment())
-          # tst <- parSapply(parClust, w, \(i) { #i <- w[1L]
+          # parallel::clusterExport(parClust, list("pressScript2", "mzMLs"), envir = environment())
+          # tst <- parallel::parSapply(parClust, w, \(i) { #i <- w[1L]
           #   cmd <- paste0("python \"", pressScript2, "\" ", paste0("\"", mzMLs[i], "\"", collapse = " "))
           #   #cat(cmd)
           #   system(cmd)
@@ -309,7 +301,7 @@ if (!is.null(targDir)) {
         }
         if (isBruker) {
           dDrs <- unique(grep("[^/]+\\.d$", dirname(FilesDF$Files[FilesDF$BrukerD]), value = TRUE))
-          tst <- parSapply(parClust, dDrs, \(dr) {
+          tst <- parallel::parSapply(parClust, dDrs, \(dr) {
             length(grep("/[0-9]+\\.m$", list.dirs(dr))) == 1L
             # If not specific enough, add more tests:
             # Our d folders typically always contain the same files, but which specifically?
@@ -325,11 +317,11 @@ if (!is.null(targDir)) {
         if (isMS) {
           modes <- c("Copy data to the destination folder                                                                    ",
                      "Run invoicing part only                                                                                ")
-          justSimul <- c(FALSE, TRUE)[match(dlg_list(modes, modes[1L], title = "MS acquisition folder detected. What do you want to do?")$res, modes)]
+          justSimul <- c(FALSE, TRUE)[match(svDialogs::dlg_list(modes, modes[1L], title = "MS acquisition folder detected. What do you want to do?")$res, modes)]
           ## Thermo case
           if (isThermo) {
             msg <- paste0(msgRoot, "\n-> Write a log of which Thermo .raw files will be invoiced?\n\n")
-            Invoicing <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res,
+            Invoicing <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res,
                                               c("yes", "no"))]
             if (Invoicing) {
               wRw <- which(FilesDF$ThermoRaw)
@@ -338,14 +330,14 @@ if (!is.null(targDir)) {
               rwFlsSz <- as.character(rwFls$size)
               tmpFls <- sub(topattern(targDir), "...", rwFls$Files)
               tmp <- nchar(tmpFls)+nchar(rwFlsSz)
-              clusterExport(parClust, "tmp", env = environment())
-              tmp <- parSapply(parClust, tmp, \(x) {
+              parallel::clusterExport(parClust, "tmp", env = environment())
+              tmp <- parallel::parSapply(parClust, tmp, \(x) {
                 paste(rep(" ", (max(tmp) - x + 3L)*2L), collapse = "")
               })
               rwFlstmp <- paste0(tmpFls, tmp, rwFlsSz, " bytes")
               msg <- paste0(msgRoot,
                             "\n-> Select Thermo .raw files to include in calculations of useful instrument time (to charge):")
-              Fls2Chrg <- dlg_list(rwFlstmp, rwFlstmp, TRUE, msg)$res
+              Fls2Chrg <- svDialogs::dlg_list(rwFlstmp, rwFlstmp, TRUE, msg)$res
               Fls2Chrg <- rwFls[match(Fls2Chrg, rwFlstmp),]
               
               w <- which(FilesDF$Files %in% Fls2Chrg$Files)
@@ -373,18 +365,18 @@ if (!is.null(targDir)) {
                         "")
               Log1Fl <- paste0(targDir, "/Thermo invoicing log_", gsub("[^0-9]", "", logTm), ".txt")
               write(Log1, Log1Fl)
-              file.copy(Log1Fl, paste0(gsub("/$", "", DestDir), "/", parDir))
+              file.copy(Log1Fl, paste0(sub("/$", "", DestDir), "/", parDir))
               system(paste0("open \"", Log1Fl, "\""))
             }
           }
           ## Bruker case
           if (isBruker) {
             msg <- paste0(msgRoot, "\n-> Write a log of which Bruker .d folders will be invoiced?\n\n")
-            Invoicing <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res,
+            Invoicing <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res,
                                               c("yes", "no"))]
             if (Invoicing) {
               back2basics <- FALSE
-              dCrTm <- parSapply(parClust, dDrs, \(dFl) { #dFl <- dDrs[1L]
+              dCrTm <- parallel::parSapply(parClust, dDrs, \(dFl) { #dFl <- dDrs[1L]
                 fls <- list.files(dFl, full.names = TRUE)
                 min(file.info(fls)$ctime, na.rm = TRUE)
               })
@@ -414,15 +406,15 @@ if (!is.null(targDir)) {
               if (goOn) {
                 dDrs <- dDrs[w]; dDrsTbl <- dDrsTbl[w,]; tst <- tst[w]
                 dDrsTbl$Log_file <- vapply(tst, \(x) { x$file }, "")
-                clusterExport(parClust, list("pat", "DestDir", "parDir"), envir = environment())
-                dDrsTbl$"Length (h)" <- parApply(parClust, dDrsTbl[, c("d", "Log_file")], 1L, \(x) { #x <- dDrsTbl[1, c("d", "Log_file")]
+                parallel::clusterExport(parClust, list("pat", "DestDir", "parDir"), envir = environment())
+                dDrsTbl$"Length (h)" <- parallel::parApply(parClust, dDrsTbl[, c("d", "Log_file")], 1L, \(x) { #x <- dDrsTbl[1, c("d", "Log_file")]
                   lgFl <- x[[2L]]
                   lg <- readr::read_lines(lgFl)
                   #system(paste0("open \"", lgFl, "\""))
                   stp <- grep("COMPLETED", lg, value = TRUE)
                   if (!length(stp)) { stp <- grep("ABORTED", lg, value = TRUE) }
                   if (!length(stp)) { res <- list(outcome = FALSE) } else {
-                    stp <- unlist(strsplit(gsub("\t.*", "", stp), " - "))[2L]
+                    stp <- unlist(strsplit(sub("\t.*", "", stp), " - "))[2L]
                     if (!grep("^000\\.", stp)) { stop("This doesn't (yet) support methods this long!") }
                     tm <- unlist(strsplit(sub("^000\\.", "", stp), ":"))
                     res <- list(outcome = TRUE, value = sum(as.numeric(tm) * c(1, 1/60, 1/3600)))
@@ -434,13 +426,13 @@ if (!is.null(targDir)) {
                 dDrsTbl$"Length (h)" <- vapply(dDrsTbl$"Length (h)", \(x) { x$value }, 1)
               } else {
                 msg <- "Looks like this was not run with a Bruker LC, is this correct?"
-                back2basics <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
+                back2basics <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
               }
               if (back2basics) {
                 goOn <- TRUE
-                dDrsTbl$Files <- parLapply(parClust, dDrsTbl$d, list.files, full.names = TRUE)
-                dDrsTbl$Created <- parSapply(parClust, dDrsTbl$Files, \(x) { min(file.info(x)$ctime) })
-                dDrsTbl$Closed <- parSapply(parClust, dDrsTbl$Files, \(x) { max(file.info(x)$mtime) })
+                dDrsTbl$Files <- parallel::parLapply(parClust, dDrsTbl$d, list.files, full.names = TRUE)
+                dDrsTbl$Created <- parallel::parSapply(parClust, dDrsTbl$Files, \(x) { min(file.info(x)$ctime) })
+                dDrsTbl$Closed <- parallel::parSapply(parClust, dDrsTbl$Files, \(x) { max(file.info(x)$mtime) })
                 dDrsTbl$"Length (h)" <- (dDrsTbl$Closed - dDrsTbl$Created)/3600
               }
               if (goOn) {
@@ -450,14 +442,14 @@ if (!is.null(targDir)) {
                 #dDrsTbl <- dDrsTbl[order(dDrsTbl$Bruker_ID, dDrsTbl$Created),]
                 tmpDr <- sub(topattern(targDir), "...", dDrs)
                 tmp <- nchar(tmpDr) + nchar(dDrsTbl$Created)
-                clusterExport(parClust, "tmp", env = environment())
-                tmp <- parSapply(parClust, tmp, \(x) {
+                parallel::clusterExport(parClust, "tmp", env = environment())
+                tmp <- parallel::parSapply(parClust, tmp, \(x) {
                   paste(rep(" ", (max(tmp) - x + 3L)*2L), collapse = "")
                 })
                 dDrstmp <- paste0(tmpDr, tmp, dDrsTbl$Created)
                 msg <- paste0(msgRoot,
                               "\n-> Select Bruker .d folders to include in calculations of useful instrument time (to charge):")
-                Fls2Chrg <- dlg_list(dDrstmp, dDrstmp, TRUE, msg)$res
+                Fls2Chrg <- svDialogs::dlg_list(dDrstmp, dDrstmp, TRUE, msg)$res
                 Fls2Chrg <- dDrs[match(Fls2Chrg, dDrstmp)]
                 #View(cbind(dDrsCrTm, dDrsMdTm, dDrsMdTm-dDrsCrTm))
                 #View(cbind(dDrsCrTmPos, dDrsMdTmPos, dDrsMdTmPos-dDrsCrTmPos))
@@ -476,7 +468,7 @@ if (!is.null(targDir)) {
                           "")
                 Log1Fl <- paste0(targDir, "/Bruker invoicing log_", gsub("[^0-9]", "", logTm), ".txt")
                 write(Log1, Log1Fl)
-                file.copy(Log1Fl, paste0(gsub("/$", "", DestDir), "/", parDir))
+                file.copy(Log1Fl, paste0(sub("/$", "", DestDir), "/", parDir))
                 system(paste0("open \"", Log1Fl, "\""))
               } else { warning("Nothing to invoice: there are no valid/complete Bruker .d folders in the target folder.") }
             }
@@ -493,10 +485,10 @@ if (!is.null(targDir)) {
             cat("Some matching files found in the target directory,\nchecking hashes for overlapping files:
 (hang in there, this will take a while...)\n")
             cat(" - Original files...\n")
-            FilesDF$Hash[wExst] <- parSapply(parClust, FilesDF$Files[wExst], HashFun)
+            FilesDF$Hash[wExst] <- parallel::parSapply(parClust, FilesDF$Files[wExst], HashFun)
             w <- which(is.na(FilesDF$Hash[wExst]))
             if (length(w)) {
-              FilesDF$Hash[wExst[w]] <- parSapply(parClust, FilesDF$Files[wExst[w]], HashFun)
+              FilesDF$Hash[wExst[w]] <- parallel::parSapply(parClust, FilesDF$Files[wExst[w]], HashFun)
             }
             w <- which(is.na(FilesDF$Hash[wExst]))
             if (length(w)) {
@@ -508,7 +500,7 @@ if (!is.null(targDir)) {
               warning(msg)
             }
             cat(" - Destination files...\n")
-            FilesDF$NewHash[wExst] <- parSapply(parClust, FilesDF$New[wExst], HashFun)
+            FilesDF$NewHash[wExst] <- parallel::parSapply(parClust, FilesDF$New[wExst], HashFun)
             BdHsh <- is.na(FilesDF$NewHash[wExst]) | (FilesDF$Hash[wExst] != FilesDF$NewHash[wExst])
             BdHsh[is.na(BdHsh)] <- TRUE
             tstBdHsh <- (sum(BdHsh) > 0L) + 1L
@@ -535,17 +527,17 @@ if (!is.null(targDir)) {
             # Check for space
             if (sum(FilesDF$size[wC], na.rm = TRUE) > FrSp) { 
               msg <- "Insufficient free space in target volume! Copy anyway? (only do this for network resources which may not report free space correctly)"
-              CopyFls <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
+              CopyFls <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
             }
             if (CopyFls) {
               # Calculate original hash
               wBlh <- wC[FilesDF$Hash[wC] == "Bleh!"]
               if (length(wBlh)) {
                 cat(" - Calculating original file hashes...\n")
-                FilesDF$Hash[wBlh] <- parSapply(parClust, FilesDF$Files[wBlh], HashFun)
+                FilesDF$Hash[wBlh] <- parallel::parSapply(parClust, FilesDF$Files[wBlh], HashFun)
                 w <- which(is.na(FilesDF$Hash[wBlh]))
                 if (length(w)) {
-                  FilesDF$Hash[wBlh[w]] <- parSapply(parClust, FilesDF$Files[wBlh[w]], HashFun)
+                  FilesDF$Hash[wBlh[w]] <- parallel::parSapply(parClust, FilesDF$Files[wBlh[w]], HashFun)
                 }
                 w <- which(is.na(FilesDF$Hash[wBlh]))
                 if (length(w)) {
@@ -561,8 +553,8 @@ if (!is.null(targDir)) {
               # Only export what we need
               Fls_wC <- FilesDF$Files[wC]
               nuFls_wC <- FilesDF$New[wC]
-              clusterExport(parClust, list("Fls_wC", "nuFls_wC"), env = environment())
-              tst <- try(parSapply(parClust, 1L:length(wC), \(x) {
+              parallel::clusterExport(parClust, list("Fls_wC", "nuFls_wC"), env = environment())
+              tst <- try(parallel::parSapply(parClust, 1L:length(wC), \(x) {
                 fs::file_copy(Fls_wC[x], nuFls_wC[x], overwrite = TRUE)
               }), silent = TRUE)
               FilesDF$NewExists[wC] <- file.exists(FilesDF$New[wC])
@@ -581,7 +573,7 @@ if (!is.null(targDir)) {
                     FilesDF$NewExists[wC[wN[1L]]] <- file.exists(FilesDF$New[wC[wN[1L]]])
                     wN <- wN[wN != wN[1L]]
                     if (length(wN)) {
-                      tst <- try(parSapply(parClust, wN, \(x) {
+                      tst <- try(parallel::parSapply(parClust, wN, \(x) {
                         fs::file_copy(Fls_wC[wC[x]], nuFls_wC[wC[x]], overwrite = TRUE)
                       }), silent = TRUE)
                       FilesDF$NewExists[wC[wN]] <- file.exists(FilesDF$New[wC[wN]])
@@ -599,7 +591,7 @@ if (!is.null(targDir)) {
               wExst <- wC[FilesDF$NewExists[wC]] # Normally wExst should be identical to wC
               FilesDF$NewSize[wExst] <- base::file.size(FilesDF$New[wExst])
               cat(" - Calculating cloned file hashes...\n")
-              FilesDF$NewHash[wExst] <- parSapply(parClust, FilesDF$New[wExst], HashFun)
+              FilesDF$NewHash[wExst] <- parallel::parSapply(parClust, FilesDF$New[wExst], HashFun)
               BdHsh <- is.na(FilesDF$NewHash[wExst]) | (FilesDF$Hash[wExst] != FilesDF$NewHash[wExst])
               BdHsh[is.na(BdHsh)] <- TRUE
               tstBdHsh <- (sum(BdHsh) > 0L) + 1L
@@ -607,7 +599,7 @@ if (!is.null(targDir)) {
                 cat("   checking discrepancies...\n")
                 wBdHsh <- wExst[BdHsh]
                 FilesDF$size[wBdHsh] <- base::file.size(FilesDF$Files[wBdHsh])
-                FilesDF$Hash[wBdHsh] <- parSapply(parClust, FilesDF$Files[wBdHsh], HashFun)
+                FilesDF$Hash[wBdHsh] <- parallel::parSapply(parClust, FilesDF$Files[wBdHsh], HashFun)
                 BdHsh <- is.na(FilesDF$NewHash[wExst]) | (FilesDF$Hash[wExst] != FilesDF$NewHash[wExst])
                 BdHsh[is.na(BdHsh)] <- TRUE
                 tstBdHsh <- (sum(BdHsh) > 0L) + 1L
@@ -638,8 +630,8 @@ if (!is.null(targDir)) {
                     sum(FilesDF$Hash != FilesDF$NewHash) == 0L) # And are those valid hashes?
           tsts[is.na(tsts)] <- FALSE # Fix NAs: they are failures!
           if (!sum(!tsts)) { # Are all tests successes?
-            FilesDF$nuFlsCrTm <- parSapply(parClust, FilesDF$New, \(fl) { file.info(fl)$ctime })
-            FilesDF$nuFlsMdTm <- parSapply(parClust, FilesDF$New, \(fl) { file.info(fl)$mtime })
+            FilesDF$nuFlsCrTm <- parallel::parSapply(parClust, FilesDF$New, \(fl) { file.info(fl)$ctime })
+            FilesDF$nuFlsMdTm <- parallel::parSapply(parClust, FilesDF$New, \(fl) { file.info(fl)$mtime })
             # Adjust created time (modified time is normally good)
             # This is currently turned off by default, for 2 reasons:
             # - Data is currently mostly being transferred to the archive... where we do not want to modify it once written. Does this count as a modification?
@@ -654,10 +646,10 @@ if (!is.null(targDir)) {
                   nuFls_wJ <- FilesDF$New[wJ]
                   flsCrTm_wJ <- FilesDF$flsCrTm[wJ]
                   flsMdTm_wJ <- FilesDF$flsMdTm[wJ]
-                  clusterExport(parClust, list("nuFls_wJ", "nrmPath4PS", "flsCrTm_wJ", "flsMdTm_wJ"), env = environment())
+                  parallel::clusterExport(parClust, list("nuFls_wJ", "nrmPath4PS", "flsCrTm_wJ", "flsMdTm_wJ"), env = environment())
                   if (length(wCr)) {
                     cat("Adjusting file created times...\n")
-                    parSapply(parClust, wCr, \(i) {
+                    parallel::parSapply(parClust, wCr, \(i) {
                       nufl <- nuFls_wJ[i]
                       flnm4pwrshll <- nrmPath4PS(nufl)
                       tm <- flsCrTm_wJ[i]
@@ -675,7 +667,7 @@ if (!is.null(targDir)) {
                   }
                   if (length(wMd)) {
                     cat("Adjusting file modified times...\n")
-                    parSapply(parClust, wCr, \(i) {
+                    parallel::parSapply(parClust, wCr, \(i) {
                       nufl <- nuFls_wJ[i]
                       flnm4pwrshll <- nrmPath4PS(nufl)
                       tm <- flsMdTm_wJ[i]
@@ -697,11 +689,11 @@ if (!is.null(targDir)) {
             # Logs
             if (isMS) {
               # - Optionally remove local MS files (it will leave other ones behind!)
-              Remove <- c(TRUE, FALSE)[match(dlg_message(paste0("Do you want to delete local MS files?\n(", msgRoot, ")"),
-                                                         "yesno")$res, c("yes", "no"))]
+              Remove <- c(TRUE, FALSE)[match(svDialogs::dlg_message(paste0("Do you want to delete local MS files?\n(", msgRoot, ")"),
+                                                                    "yesno")$res, c("yes", "no"))]
               if (Remove) {
                 openwd(targDir)
-                openwd(paste0(gsub("/$", "", DestDir), "/", parDir))
+                openwd(paste0(sub("/$", "", DestDir), "/", parDir))
                 # Filter to only keep files to remove
                 rawFls2Rmv <- dDrs2Rmv <- c()
                 if (isThermo) {
@@ -752,7 +744,7 @@ if (!is.null(targDir)) {
                   }
                   Log2Fl <- paste0(targDir, "/MS files deletion log_", gsub("[^0-9]", "", logTm), ".txt")
                   write(Log2, Log2Fl)
-                  file.copy(Log2Fl, paste0(gsub("/$", "", DestDir), "/", parDir))
+                  file.copy(Log2Fl, paste0(sub("/$", "", DestDir), "/", parDir))
                   system(paste0("open \"", Log2Fl, "\""))
                 } else { message("No files were deleted.") }
               }
@@ -775,4 +767,4 @@ if (!is.null(targDir)) {
 
 # NB:
 # Sometimes when running the script several times, the cluster gets corrupted. It can be a good idea to stop the cluster in between by running:
-# stopCluster(parClust) # (This may become the default behaviour: re-creating the cluster from scratch takes maybe 10s, not a huge deal...)
+# parallel::stopCluster(parClust) # (This may become the default behaviour: re-creating the cluster from scratch takes maybe 10s, not a huge deal...)

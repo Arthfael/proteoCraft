@@ -1,4 +1,5 @@
 ### Load and process annotations
+requireNamespace("data.table")
 if (!exists("homePath")) { homePath %<o% paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft") }
 dfltLocsFl <- paste0(homePath, "/Default_locations.xlsx")
 dfltLocs <- openxlsx2::read_xlsx(dfltLocsFl)
@@ -112,9 +113,9 @@ if (Annotate) {
   #View(Parsed_annotations[, c("GO", "GO-ID")])
   #db <- db[, which(!colnames(db) %in% annot.col)]
   kol <- colnames(Parsed_annotations)
-  annot.col %<o% setdiff(kol, c("Accession", "id", "ID", "Names", "Sequence", "MW (Da)", "Common Name"))
-  annot.col2 %<o% setdiff(annot.col, colnames(db))
-  annot.col3 %<o% intersect(annot.col, colnames(db))
+  annot.col %<o% base::setdiff(kol, c("Accession", "id", "ID", "Names", "Sequence", "MW (Da)", "Common Name"))
+  annot.col2 %<o% base::setdiff(annot.col, colnames(db))
+  annot.col3 %<o% base::intersect(annot.col, colnames(db))
   if (length(annot.col2)) { db[, annot.col2] <- NA_character_ }
   w <- which(db$`Protein ID` %in% Parsed_annotations$Accession)
   if (mType == "Sequence") {
@@ -174,7 +175,7 @@ if (Annotate) {
   w <- which(vapply(colnames(db), \(x) { inherits(db[[x]], "list") }, TRUE))
   if (length(w)) {
     for (i in w) {
-      db[[i]] <- parSapply(parClust, db[[i]], paste, collapse = ";")
+      db[[i]] <- parallel::parSapply(parClust, db[[i]], paste, collapse = ";")
     }
   }
   saveFun(Parsed_annotations, file = "Parsed_annotations.RDS")
@@ -185,7 +186,7 @@ if (Annotate) {
   }
   tst <- try(f0(), silent = TRUE)
   while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
-    dlg_message(paste0("File \"", pth, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+    svDialogs::dlg_message(paste0("File \"", pth, "\" appears to be locked for editing, close the file then click ok..."), "ok")
     tst <- try(f0(), silent = TRUE)
   }
   #db <- data.table::fread(paste0(wd, "/Parsed, annotated search db.csv"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)

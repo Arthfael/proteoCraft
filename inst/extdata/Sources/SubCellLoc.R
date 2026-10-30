@@ -3,10 +3,10 @@ if (Annotate && LocAnalysis) {
   cat("Sub-Cellular localisation analysis:\n")
   dir <- paste0(wd, "/pRoloc")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- union(dirlist, dir)
+  dirlist <- base::union(dirlist, dir)
   packs <- c("pRoloc", "pRolocGUI") # We will not use pRolocGUI as it seems to be using an outdated version of shinydashboardPlus (specifically a retired function)
   for (pack in packs) { #pack <- packs[1L]
-    bioc_req <- union(bioc_req, pack)
+    bioc_req <- base::union(bioc_req, pack)
     biocInstall(pack)
   }
   parse.Param.aggreg.2("Ratios.Groups.Ref.Aggregate.Level", "SubCellFracAggr", "Com")
@@ -23,7 +23,7 @@ if (Annotate && LocAnalysis) {
   # For sub-cellular localisation analysis, we need to define a series of compartment markers to predict protein location
   # We can use the very granular markers already defined above (pRoloc or built-in), or define new ones here
   ObjNm <- "CompGOTerms2"
-  .obj <- union(ObjNm, .obj)
+  .obj <- base::union(ObjNm, .obj)
   if (ReUseAnsw && (ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
     msg <- "Enter a list of GO Cell Compartment (GO CC) terms for compartments of interest (semicolon-separated).
 You may also include:
@@ -32,10 +32,10 @@ You may also include:
 
 Example: \"GO:0031012;2\"
 "
-    tmp <- unlist(strsplit(dlg_input(msg, "2")$res, "[;,] ?"))
-    if ("1" %in% tmp) { tmp <- union(tmp, c("GO:0005654", "GO:0000785", "GO:0005737")) }
-    if ("2" %in% tmp) { tmp <- union(tmp, CompGOTerms) }
-    tmp <- intersect(tmp, GO_terms$ID[GO_terms$Ontology == "CC"]) # (Also neatly removes "1" and "2"...)
+    tmp <- unlist(strsplit(svDialogs::dlg_input(msg, "2")$res, "[;,] ?"))
+    if ("1" %in% tmp) { tmp <- base::union(tmp, c("GO:0005654", "GO:0000785", "GO:0005737")) }
+    if ("2" %in% tmp) { tmp <- base::union(tmp, CompGOTerms) }
+    tmp <- base::intersect(tmp, GO_terms$ID[GO_terms$Ontology == "CC"]) # (Also neatly removes "1" and "2"...)
     ObjNm %<c% tmp
     AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm, , drop = FALSE]
     tmp <- AllAnsw[1L, , drop = FALSE]
@@ -50,7 +50,7 @@ Example: \"GO:0031012;2\"
     allOffspr <- unlist(CompGOTerms2$Offspring)
     allOffspr <- aggregate(allOffspr, list(allOffspr), length)
     CompGOTerms2$Offspring <- lapply(CompGOTerms2$Offspring, \(x) {
-      setdiff(x, c(CompGOTerms2$Term, allOffspr$Group.1[allOffspr$x > 1L]))
+      base::setdiff(x, c(CompGOTerms2$Term, allOffspr$Group.1[allOffspr$x > 1L]))
     })
     CompGOTerms2$Name <- sub(" *\\[GO:[0-9]{7}\\]$", "", GO_terms$Term[match(CompGOTerms2$Term, GO_terms$ID)])
     CompGOTerms2$All <- apply(CompGOTerms2[, c("Term", "Offspring")], 1L, \(x) { unique(unlist(x)) })
@@ -58,7 +58,7 @@ Example: \"GO:0031012;2\"
                     CompGOTerms2$Name)
     tst2 <- unique(unlist(tst))
     tst2 <- tst2[vapply(tst2, \(x) { sum(vapply(tst, \(y) { x %in% y }, TRUE)) }, 1L) == 1L]
-    tst <- lapply(tst, \(x) { intersect(x, tst2) })
+    tst <- lapply(tst, \(x) { base::intersect(x, tst2) })
     tst <- tst[lengths(tst) > 0L]
     SubCellMark2 %<o% listMelt(tst) # Overwrite former value
     SubCellMark2$value <- PG$Label[SubCellMark2$value]
@@ -69,16 +69,8 @@ Example: \"GO:0031012;2\"
       pRolocVisMeth <- "t-SNE"
       tmpPG <- PG[, c("id", "Leading protein IDs", "Protein IDs", "Protein names", "Genes", "Label")]
       exports <- list("SubCellMark2", "Exp.map", "SubCellFracAggr", "prtRfRoot", "tempDat", "VPAL", "tmpPG", "Aggregates",
-                      "prot.list", "pRolocVisMeth", "Exp", "dir", "wNC")
-      clusterExport(parClust, exports, envir = environment())
-      invisible(clusterCall(parClust, \() {
-        library(graphics)
-        library(Biobase)
-        library(MSnbase)
-        library(pRoloc)
-        library(proteoCraft)
-        return()
-      }))
+                      "prot.list", "pRolocVisMeth", "Exp", "dir", "wNC", "cleanNms", "grsep2")
+      parallel::clusterExport(parClust, exports, envir = environment())
       f0 <- \(grp) { #grp <- SubCellFracAggr$values[1L]
         ttl_s <- c()
         grp1 <- cleanNms(grp)
@@ -87,15 +79,15 @@ Example: \"GO:0031012;2\"
         if (length(w)) {
           em <- Exp.map[w,]
           kol <- paste0(prtRfRoot, unique(em$Ref.Sample.Aggregate))
-          kol <- intersect(kol, colnames(tempDat))
+          kol <- base::intersect(kol, colnames(tempDat))
           temp1 <- tempDat[, kol]
           # Add a small noise to avoid non-unicity issue
-          sd <- sd(unlist(temp1))
-          noise <- rnorm(length(unlist(temp1)), 0, sd*10L^-6)
+          sd <- stats::sd(unlist(temp1))
+          noise <- stats::rnorm(length(unlist(temp1)), 0, sd*10L^-6)
           temp1 <- temp1 + noise
           #
           temp1 <- 10L^temp1
-          tst <- rowSums(temp1)
+          tst <- base::rowSums(temp1)
           wAG <- which((!is.na(tst)) & is.finite(tst) & (tst > 0L))
           if (length(wAG)) {
             #cat(paste0(grp1, ":\n", paste(rep("-", nchar(grp1)+1L), collapse = ""), "\n"))
@@ -106,51 +98,49 @@ Example: \"GO:0031012;2\"
             temp1 <- as.matrix(temp1)
             temp2 <- em[m, Aggregates]
             rownames(temp2) <- cleanNms(unique(em[[VPAL$column]]))
-            temp2 <- AnnotatedDataFrame(temp2)
-            temp3 <- AnnotatedDataFrame(tmpPG[wAG, c("id", "Leading protein IDs", "Protein IDs", "Protein names", "Genes")])
+            temp2 <- Biobase::AnnotatedDataFrame(temp2)
+            temp3 <- Biobase::AnnotatedDataFrame(tmpPG[wAG, c("id", "Leading protein IDs", "Protein IDs", "Protein names", "Genes")])
             rownames(temp3) <- tmpPG$Label[wAG]
-            MSnData <- MSnSet(exprs = temp1,
-                              pData = temp2,
-                              fData = temp3)
-            MSnData <- addMarkers(MSnData, SubCellMark2)
+            MSnData <- MSnbase::MSnSet(exprs = temp1,
+                                       pData = temp2,
+                                       fData = temp3)
+            MSnData <- pRoloc::addMarkers(MSnData, SubCellMark2)
             #pRolocData[[grp]] <<- MSnData
-            #getMarkers(MSnData)
+            #pRoloc::getMarkers(MSnData)
             # Define features of interest
             plotPLmtchs <- FALSE
             if (length(prot.list)) {
               PLmtchs <- grsep2(prot.list, tmpPG$"Leading protein IDs"[wAG])
               if (length(PLmtchs)) {
                 plotPLmtchs <- TRUE
-                foi1 <- FeaturesOfInterest(description = "Proteins of interest",
-                                           fnames = featureNames(MSnData)[PLmtchs])
-                description(foi1)
-                foi(foi1)
+                foi1 <- MSnbase::FeaturesOfInterest(description = "Proteins of interest",
+                                                    fnames = MSnbase::featureNames(MSnData)[PLmtchs])
+                MSnbase::description(foi1)
+                MSnbase::foi(foi1)
               }
             }
-            # the plotDist function is unsatisfactory
-            #plotDist(MSnData, featureNames(MSnData))
             #
             # Markers hierarchical dendrogram
             ttl <- paste0("Markers hier. clust. - ", grp1)
             ttl2 <- paste0("Markers hierarchical clustering\n", grp1)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
-            mrkHClust(MSnData, main = ttl2)
-            dev.off()
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); graphics::par(cex.main = 1L)
+            pRoloc::mrkHClust(MSnData, main = ttl2)
+            grDevices::dev.off()
             #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             #
             # Average markers class profile plots
-            hc <- mrkHClust(MSnData, plot = FALSE)
+            hc <- pRoloc::mrkHClust(MSnData, plot = FALSE)
             ## order of markers according to histogram
-            mm <- getMarkerClasses(MSnData)
+            mm <- pRoloc::getMarkerClasses(MSnData)
             m_order <- levels(factor(mm))[order.dendrogram(hc)]
             ## average marker profile
-            fmat <- mrkConsProfiles(MSnData)
+            fmat <- pRoloc::mrkConsProfiles(MSnData)
             ttl <- paste0("Marker classes av. profiles - ", grp1)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
-            plotConsProfiles(fmat, order = m_order)
-            dev.off()
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); graphics::par(cex.main = 1L)
+            pRoloc::plotConsProfiles(fmat, order = m_order)
+            grDevices::dev.off()
             #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             #
             # Dimensionality reduction
@@ -159,56 +149,54 @@ Example: \"GO:0031012;2\"
             ttl <- paste0(pRolocVisMeth, " - ", grp1)
             ttl2 <- gsub(" - ", "\n", ttl)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
-            plot2D(MSnData, fcol = "markers", main = ttl2, method = pRolocVisMeth2)
-            addLegend(MSnData, fcol = "markers", cex = 0.7, where = "bottomright", ncol = 2L)
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); graphics::par(cex.main = 1L)
+            pRoloc::plot2D(MSnData, fcol = "markers", main = ttl2, method = pRolocVisMeth2)
+            pRoloc::addLegend(MSnData, fcol = "markers", cex = 0.7, where = "bottomright", ncol = 2L)
             if (plotPLmtchs) {
-              highlightOnPlot(MSnData, foi1, col = "black", lwd = 2)
-              legend("topright", c("Proteins of interest"),
-                     bty = "n", col = c("purple"),
-                     pch = 1)
+              pRoloc::highlightOnPlot(MSnData, foi1, col = "black", lwd = 2)
+              graphics::legend("topright", c("Proteins of interest"),
+                               bty = "n", col = c("purple"), pch = 1)
             }
-            dev.off()
+            grDevices::dev.off()
             #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
-            #plot3D(MSnData, fcol = "markers", main = ttl2) # Much worse - but also much older - than plotly
             #
-            #pRolocVis(MSnData) # Not used: buggy
+            #pRoloc::pRolocVis(MSnData) # Not used: buggy
             #
             # Assess the resolution of the fractionation for the different compartments
-            hlq <- QSep(MSnData)
+            hlq <- pRoloc::QSep(MSnData)
             ttl <- paste0("Subcell. res. heatmap - ", grp1)
             ttl2 <- paste0("Sub-cellular resolution heatmap\n", grp1)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
-            levelPlot(hlq, main = ttl2)
-            dev.off()
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); graphics::par(cex.main = 1L)
+            pRoloc::levelPlot(hlq, main = ttl2)
+            grDevices::dev.off()
             #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             ttl <- paste0("Subcell. res. boxplot - ", grp1)
             ttl2 <- paste0("Sub-cellular resolution boxplot\n", grp1)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
-            plot(hlq, main = ttl2)
-            dev.off()
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); graphics::par(cex.main = 1L)
+            MSnbase::plot(hlq, main = ttl2)
+            grDevices::dev.off()
             #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             #
             # Prediction of compartment assignment
             ## ... Unsupervised (kept as an example here, but doesn't look very useful)
             #kcl <- MLInterfaces::MLearn( ~ ., MSnData,  kmeansI, centers = length(Com))
-            #plot(kcl, exprs(MSnData))
+            #MSnbase::plot(kcl, MSnbase::exprs(MSnData))
             #hcl <- MLInterfaces::MLearn( ~ ., MSnData,
-            #                             MLInterfaces::hclustI(distFun = dist,
-            #                       cutParm = list(k = length(Com))))
-            #plot(hcl, labels = FALSE)
-            #pcl <- MLearn( ~ ., MSnData,  pamI(dist), k = length(Com))
-            #plot(pcl, data = exprs(MSnData))
+            #                            MLInterfaces::hclustI(distFun = dist,
+            #                                                  cutParm = list(k = length(Com))))
+            #MSnbase::plot(hcl, labels = FALSE)
+            #pcl <- MLInterfaces::MLearn( ~ ., MSnData, MLInterfaces::pamI(dist), k = length(Com))
+            #MSnbase::plot(pcl, data = MSnbase::exprs(MSnData))
             #
             ## ... Supervised
             # This is really, reaaally slow!
             cat(" Predicting compartment localisation using SVM (100 iterations), please wait...\n")
-            wghts <- classWeights(MSnData, fcol = "markers")
+            wghts <- pRoloc::classWeights(MSnData, fcol = "markers")
             wghts <- wghts[wghts < 1]
-            params <- suppressMessages(suppressWarnings(svmOptimisation(MSnData, "markers", times = 10L, xval = 5L,
-                                                                        class.weights = wghts, verbose = TRUE)))
+            params <- suppressMessages(suppressWarnings(pRoloc::svmOptimisation(MSnData, "markers", times = 10L, xval = 5L,
+			                                                                    class.weights = wghts, verbose = TRUE)))
             # The line above takes a millenium and a half
             # Unfortunately it cannot be parallelized or optimized easily without rewriting pRoloc
             # But this loop could be parallelized at least
@@ -217,41 +205,39 @@ Example: \"GO:0031012;2\"
             ttl <- paste0("SVM opt. boxplot - ", grp1)
             ttl2 <- paste0("SVM optimisation boxplot\n", grp1)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
-            plot(params, main = ttl2)
-            dev.off()
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); graphics::par(cex.main = 1L)
+            MSnbase::plot(params, main = ttl2)
+            grDevices::dev.off()
             #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             ttl <- paste0("SVM opt. heatmap - ", grp1)
             ttl2 <- paste0("SVM optimisation heatmap\n", grp1)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
-            levelPlot(params)
-            dev.off()
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); graphics::par(cex.main = 1L)
+            pRoloc::levelPlot(params)
+            grDevices::dev.off()
             #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             #f1Count(params)
-            params2 <- getParams(params)
-            MSnData <- svmClassification(MSnData, params,
-                                         fcol = "markers", class.weights = wghts)
-            #processingData(MSnData)
-            p1 <- getPredictions(MSnData, fcol = "svm")
-            p1 <- fData(p1)$svm.pred
-            minprob <- median(fData(MSnData)$svm.scores)
-            p2 <- getPredictions(MSnData, fcol = "svm", t = minprob)
-            p2 <- fData(p2)$svm.pred
+            params2 <- pRoloc::getParams(params)
+            MSnData <- pRoloc::svmClassification(MSnData, params,
+                                                 fcol = "markers", class.weights = wghts)
+            p1 <- pRoloc::getPredictions(MSnData, fcol = "svm")
+            p1 <- MSnbase::fData(p1)$svm.pred
+            minprob <- median(MSnbase::fData(MSnData)$svm.scores)
+            p2 <- pRoloc::getPredictions(MSnData, fcol = "svm", t = minprob)
+            p2 <- MSnbase::fData(p2)$svm.pred
             #table(p1, p2)
-            ptsze <- exp(fData(MSnData)$svm.scores) - 1
+            ptsze <- exp(MSnbase::fData(MSnData)$svm.scores) - 1
             ttl <- paste0(pRolocVisMeth, " with predictions - ", grp1)
             ttl2 <- gsub(" - ", "\n", ttl)
             ttl_s <- c(ttl_s, ttl)
-            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); par(cex.main = 1L)
-            plot2D(MSnData, fcol = "markers", main = ttl2, method = pRolocVisMeth2)
-            addLegend(MSnData, fcol = "markers", cex = 0.7, where = "bottomright", ncol = 2L)
+            grDevices::svg(paste0(dir, "/", ttl, ".svg"), width = 10L, height = 10L); graphics::par(cex.main = 1L)
+            pRoloc::plot2D(MSnData, fcol = "markers", main = ttl2, method = pRolocVisMeth2)
+            pRoloc::addLegend(MSnData, fcol = "markers", cex = 0.7, where = "bottomright", ncol = 2L)
             if (plotPLmtchs) {
-              highlightOnPlot(MSnData, foi1, col = "black", lwd = 2)
-              legend("topright", c("Proteins of interest"),
-                     bty = "n", col = c("purple"),
-                     pch = 1)
-              dev.off()
+              pRoloc::highlightOnPlot(MSnData, foi1, col = "black", lwd = 2)
+              graphics::legend("topright", c("Proteins of interest"),
+                               bty = "n", col = c("purple"), pch = 1)
+              grDevices::dev.off()
             }
             #system(paste0("open \"", dir, "/", ttl, ".svg", "\""))
             lokol <- paste0("Localisation - ", grp)
@@ -271,7 +257,7 @@ Example: \"GO:0031012;2\"
         }
         return(RES)
       }
-      tmpClass <- parLapply(parClust, SubCellFracAggr$values, f0)
+      tmpClass <- parallel::parLapply(parClust, SubCellFracAggr$values, f0)
       names(tmpClass) <- SubCellFracAggr$values
       grps <- names(tmpClass)[vapply(tmpClass, \(x) { x$Success }, TRUE)]
       for (grp in grps) {
@@ -323,10 +309,10 @@ Example: \"GO:0031012;2\"
         #   A <- tempDat2[, paste0(prtRfRoot, EM0$Ref.Sample.Aggregate[EM0$Replicate == i[[1L]]])]
         #   B <- tempDat2[, paste0(prtRfRoot, EM0$Ref.Sample.Aggregate[EM0$Replicate == i[[2L]]])]
         #   if (NormSSDs) {
-        #     A <- sweep(A, 1L, rowSums(A), "/") 
-        #     B <- sweep(B, 1L, rowSums(B), "/") 
+        #     A <- sweep(A, 1L, base::rowSums(A), "/") 
+        #     B <- sweep(B, 1L, base::rowSums(B), "/") 
         #   }
-        #   res <- log2(rowSums((A-B)^2))
+        #   res <- log2(base::rowSums((A-B)^2))
         #   return(res)
         # }))
         # RefSSDs <- setNames(lapply(SubCellFracAggr2$values, \(x) { RefSSDs }), SubCellFracAggr2$values)
@@ -346,11 +332,11 @@ Example: \"GO:0031012;2\"
             P0 <- tempDat2[, paste0(prtRfRoot, EM0$Ref.Sample.Aggregate[EM0$Replicate == rp])]
             P1 <- tempDat2[, paste0(prtRfRoot, EM1$Ref.Sample.Aggregate[EM1$Replicate == rp])]
             if (NormSSDs) {
-              P0 <- sweep(P0, 1L, rowSums(P0), "/") 
-              P1 <- sweep(P1, 1L, rowSums(P1), "/") 
+              P0 <- sweep(P0, 1L, base::rowSums(P0), "/") 
+              P1 <- sweep(P1, 1L, base::rowSums(P1), "/") 
             }
             res <- P0-P1
-            res <- log2(rowSums((P0-P1)^2L))
+            res <- log2(base::rowSums((P0-P1)^2L))
             return(res)
           }))
           colnames(SSDs[[grp]]) <- SSDkols <- paste0(SSD.Root, EM1[match(rps, EM1$Replicate), SubCellFracAggr$column])
@@ -360,10 +346,10 @@ Example: \"GO:0031012;2\"
             P0 <- tempDat2[, paste0(prtRfRoot, EM0$Ref.Sample.Aggregate[EM0$Replicate == i[[1L]]])]
             P1 <- tempDat2[, paste0(prtRfRoot, EM1$Ref.Sample.Aggregate[EM1$Replicate == i[[2L]]])]
             if (NormSSDs) {
-              P0 <- sweep(P0, 1L, rowSums(P0), "/") 
-              P1 <- sweep(P1, 1L, rowSums(P1), "/") 
+              P0 <- sweep(P0, 1L, base::rowSums(P0), "/") 
+              P1 <- sweep(P1, 1L, base::rowSums(P1), "/") 
             }
-            res <- log2(rowSums((P0-P1)^2L))
+            res <- log2(base::rowSums((P0-P1)^2L))
             return(res)
           }))
           colnames(SSDs[[grp]]) <- SSDkols <- paste0(SSD.Root, apply(comb, 1L, \(i) {
@@ -398,7 +384,7 @@ Example: \"GO:0031012;2\"
       test2[, a] <- test[match(test2$variable, test$variable), a]
       MinMax <- c(min(test$value), max(test$value))
       nbinz <- ceiling((MinMax[2L]-MinMax[1L])/0.1)
-      binz <- c(0:nbinz)/nbinz
+      binz <- c(0L:nbinz)/nbinz
       binz <- binz*(MinMax[2L] - MinMax[1L]) + MinMax[1L]
       binz[1L] <- binz[1L] - 0.000001
       testI <- data.frame(Intensity = (binz[2L:(nbinz+1L)]+binz[seq_len(nbinz)])/2L)
@@ -408,27 +394,28 @@ Example: \"GO:0031012;2\"
           sum((test$value[wv] > binz[x]) & (test$value[wv] <= binz[x+1L]))
         }, 1L)
       }
-      testI <- reshape2::melt(testI, id.vars = "Intensity")
+      testI <- dfMelt(testI, id.vars = "Intensity")
       testI[, a] <- test[match(testI$variable, test$variable), a]
       testI$variable <- cleanNms(testI$variable)
       dir <- paste0(wd, "/Reg. analysis/Localisation")
       if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-      dirlist <- union(dirlist, dir)
+      dirlist <- base::union(dirlist, dir)
       ttl <- paste0("Distribution of ", sub(" - $", " values", log2(SSD)))
-      plot <- ggplot(testI) +
-        geom_area(aes(x = Intensity, y = value, fill = variable, group = variable,
-                      colour = variable), alpha = 0.25) +
-        scale_color_viridis_d(begin = 0.25) +
-        scale_fill_viridis_d(begin = 0.25) +
-        geom_vline(data = test2, aes(xintercept = value), linetype = "dashed", color = "grey") +
-        ggtitle(ttl) + theme_bw() + theme(legend.position = "none", strip.text.y = element_text(angle = 0)) +
-        scale_y_continuous(limits = c(0, max(testI$value)*1.1), expand = c(0L, 0L))
-      plot <- if (length(a) == 1L) { plot + facet_wrap(as.formula(paste0("~", a))) } else {
-        plot + facet_grid(as.formula(paste0(a[1L], "~", paste(a[2L:length(a)], collapse = "+"))))
+      plot <- ggplot2::ggplot(testI) +
+        ggplot2::geom_area(ggplot2::aes(x = Intensity, y = value, fill = variable, group = variable,
+                           colour = variable), alpha = 0.25) +
+        ggplot2::scale_color_viridis_d(begin = 0.25) +
+        ggplot2::scale_fill_viridis_d(begin = 0.25) +
+        ggplot2::geom_vline(data = test2, ggplot2::aes(xintercept = value), linetype = "dashed", color = "grey") +
+        ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
+		ggplot2::theme(legend.position = "none", strip.text.y = ggplot2::element_text(angle = 0)) +
+        ggplot2::scale_y_continuous(limits = c(0, max(testI$value)*1.1), expand = c(0L, 0L))
+      plot <- if (length(a) == 1L) { plot + ggplot2::facet_wrap(stats::as.formula(paste0("~", a))) } else {
+        plot + ggplot2::facet_grid(stats::as.formula(paste0(a[1L], "~", paste(a[2L:length(a)], collapse = "+"))))
       }
       poplot(plot, 12L, 22L)
       suppressMessages({
-        ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
+        ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L, width = 10L, height = 10L, units = "in")
       })
       # Statistical test
       svDialogs::dlg_message("I'm sure it would be beneficial to implement a limma test here: do it!", "ok")
@@ -436,7 +423,7 @@ Example: \"GO:0031012;2\"
       for (wh in wh1) { #wh <- wh1[1L]
         grp <- SubCellFracAggr2$values[wh]
         SSDs[[grp]][[paste0(SSD.Pval.Root, grp)]] <- apply(SSDs[[grp]][, SSDkols], 1L, \(x) {
-          -log10(t.test(x, alternative = "greater", mu = M)$p.value)
+          -log10(stats::t.test(x, alternative = "greater", mu = M)$p.value)
         })
         temp <- FDR(SSDs[[grp]],
                     grp,
@@ -496,7 +483,7 @@ Example: \"GO:0031012;2\"
             PrtWidth <- 5
             dir <- paste0(wd, "/Reg. analysis/Localisation/Relocalised proteins")
             if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-            dirlist <- union(dirlist, dir)
+            dirlist <- base::union(dirlist, dir)
             plotNorm <- FALSE
             grp <- sub("^Re-localized - ", "", gi)
             EM1 <- Exp.map[Exp.map[[SubCellFracAggr2$column]] == grp,]
@@ -520,22 +507,21 @@ Example: \"GO:0031012;2\"
                                                                                           c(SubCellFracAggr$column, SubCellFracAggr2$column)]
               Prfl$x <- 0
               Prfl$xend <- Prfl$x + Prfl$value/max(Prfl$value)*PrtWidth
-              Prfl$y <- 0:(nrow(Prfl)-1)
+              Prfl$y <- 0L:(nrow(Prfl)-1)
               Prfl$"SubCell. Frac." <- factor(Prfl$Compartment, levels = Com)
               Prfl$Entity <- "Protein"
               Prfl$Angle <- 0
               Prfl$Size <- 3L
-              kol <- paste0(pep.ref[length(pep.ref)], Prfl$Sample)
               kol <- paste0(PepRoot, Prfl$Sample)
               pepPrfl <- pep[match(as.integer(unlist(strsplit(PG$`Peptide IDs`[wup], ";"))), pep$id),
                              c("Modified sequence", "Sequence", kol)]
               Match <- vapply(pepPrfl$Sequence, \(x) { nchar(unlist(strsplit(Seq, x))[1L]) }, 1L)
               pepPrfl <- pepPrfl[order(Match),]
-              pepPrfl[, kol] <- sweep(pepPrfl[, kol], 1L, rowMax(as.matrix(pepPrfl[, kol])), "/")
+              pepPrfl[, kol] <- sweep(pepPrfl[, kol], 1L, Biobase::rowMax(as.matrix(pepPrfl[, kol])), "/")
               mSeq <- unique(pepPrfl$"Modified sequence") 
               colnames(pepPrfl) <- sub(topattern(PepRoot), "", colnames(pepPrfl))
               pepPrfl$Sequence <- NULL
-              pepPrfl <- reshape2::melt(pepPrfl, id.vars = "Modified sequence")
+              pepPrfl <- dfMelt(pepPrfl, id.vars = "Modified sequence")
               colnames(pepPrfl) <- c("Entity", "Sample", "value")
               pepPrfl$Sample <- as.character(pepPrfl$Sample)              
               pepPrfl[, RSA$names] <- Isapply(strsplit(pepPrfl$Sample, "___"), unlist)
@@ -572,31 +558,31 @@ Example: \"GO:0031012;2\"
               temp5$"SubCell. frac." <- Exp.map$Compartment[match(temp5$Sample, Exp.map$Ref.Sample.Aggregate)]
               NCSc <- max(nchar(temp5$`SubCell. frac.`))
               ttl <- paste0("Subcell. fract. distr. - ", PG$`Leading protein IDs`[wup])
-              plot <- ggplot(temp) +
-                geom_rect(aes(xmin = x, xmax = xend, ymin = y, ymax = y+1, fill = `SubCell. Frac.`)) +
-                scale_fill_viridis_d(begin = 0.25) +
-                geom_segment(aes(x = x, xend = x), y = -2, yend = max(temp$y + 1.5), colour = "lightgrey") +
-                geom_segment(x = max(temp$x)+1, xend =  max(temp$x)+1, y = -2, yend = max(temp$y + 1.5), colour = "lightgrey") +
-                geom_segment(x = PrtWidth + 0.5, xend = PrtWidth + 0.5, y = -2, yend = max(temp$y + 1.5)) +
-                geom_hline(yintercept = max(temp$y + 1.5)) +
-                geom_text(data = temp2, aes(x = X, label = Entity, angle = Angle, size = Size), y = max(temp$y + 2.5), hjust = 0) +
-                geom_text(data = temp4, aes(y = Mean, label = `Samples group 2`), x = -3-NCSc, hjust = 1, vjust = 0.5, size = 2.5) +
-                geom_segment(data = temp4, aes(y = Min+0.1, yend = Max-0.1), x = -2.8-NCSc, xend = -2.8-NCSc) +
-                geom_text(data = temp3, aes(y = Mean, label = Replicate), x = -2-NCSc, hjust = 1, vjust = 0.5, size = 1.8) +
-                geom_segment(data = temp3, aes(y = Min+0.1, yend = Max-0.1), x = -1.8-NCSc, xend = -1.8-NCSc) +
-                geom_text(data = temp5, aes(y = Mean, label = `SubCell. frac.`), x = -1, hjust = 1, vjust = 0.5, size = 1.8) +
-                coord_fixed() + theme_bw() + scale_size_identity() +
-                ggtitle("Distribution across subcellular fractions", subtitle = PG$Label[wup]) +
-                theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-                      axis.text.y = element_blank(), axis.ticks.y = element_blank(),
-                      panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                      panel.background = element_blank(),  axis.line = element_line(colour = "black"),
-                      plot.margin = margin(0, 0, 0, 0, "cm"), legend.position = "none") +
-                xlab(NULL) + ylab(NULL) + #theme(legend.position = "none") +
-                xlim(-5-NCSc, max(temp$xend+1)) + ylim(0, max(temp$y+20))
+              plot <- ggplot2::ggplot(temp) +
+                ggplot2::geom_rect(ggplot2::aes(xmin = x, xmax = xend, ymin = y, ymax = y+1, fill = `SubCell. Frac.`)) +
+                ggplot2::scale_fill_viridis_d(begin = 0.25) +
+                ggplot2::geom_segment(ggplot2::aes(x = x, xend = x), y = -2, yend = max(temp$y + 1.5), colour = "lightgrey") +
+                ggplot2::geom_segment(x = max(temp$x)+1, xend =  max(temp$x)+1, y = -2, yend = max(temp$y + 1.5), colour = "lightgrey") +
+                ggplot2::geom_segment(x = PrtWidth + 0.5, xend = PrtWidth + 0.5, y = -2, yend = max(temp$y + 1.5)) +
+                ggplot2::geom_hline(yintercept = max(temp$y + 1.5)) +
+                ggplot2::geom_text(data = temp2, ggplot2::aes(x = X, label = Entity, angle = Angle, size = Size), y = max(temp$y + 2.5), hjust = 0) +
+                ggplot2::geom_text(data = temp4, ggplot2::aes(y = Mean, label = `Samples group 2`), x = -3-NCSc, hjust = 1, vjust = 0.5, size = 2.5) +
+                ggplot2::geom_segment(data = temp4, ggplot2::aes(y = Min+0.1, yend = Max-0.1), x = -2.8-NCSc, xend = -2.8-NCSc) +
+                ggplot2::geom_text(data = temp3, ggplot2::aes(y = Mean, label = Replicate), x = -2-NCSc, hjust = 1, vjust = 0.5, size = 1.8) +
+                ggplot2::geom_segment(data = temp3, ggplot2::aes(y = Min+0.1, yend = Max-0.1), x = -1.8-NCSc, xend = -1.8-NCSc) +
+                ggplot2::geom_text(data = temp5, ggplot2::aes(y = Mean, label = `SubCell. frac.`), x = -1, hjust = 1, vjust = 0.5, size = 1.8) +
+                ggplot2::coord_fixed() + ggplot2::theme_bw() + ggplot2::scale_size_identity() +
+                ggplot2::ggtitle("Distribution across subcellular fractions", subtitle = PG$Label[wup]) +
+                ggplot2::theme(axis.text.x = ggplot2::element_blank(), axis.ticks.x = ggplot2::element_blank(), 
+                               axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank(),
+                               panel.grid.major = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(),
+                               panel.background = ggplot2::element_blank(),  axis.line = ggplot2::element_line(colour = "black"),
+                               plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"), legend.position = "none") +
+                ggplot2::xlab(NULL) + ggplot2::ylab(NULL) + #ggplot2::theme(legend.position = "none") +
+                ggplot2::xlim(-5-NCSc, max(temp$xend+1)) + ggplot2::ylim(0, max(temp$y+20))
               #poplot(plot, 12L, 22L)
               suppressMessages({
-                ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L, width = 20L, height = 12L, units = "in")
+                ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L, width = 20L, height = 12L, units = "in")
               })
             }
           }
@@ -609,9 +595,9 @@ Example: \"GO:0031012;2\"
           rat <- paste0("Mean ", SSD.Root, g1)
           for (i in seq_along(g)) { #i <- 1L
             Reg_filters$Localisation$"By condition"[[g1[i]]] <- list(Columns = g[i],
-                                                                     Filter_up = sort(which(PG[[g[i]]] %in% up)),
+                                                                     Filter_up = which(PG[[g[i]]] %in% up),
                                                                      Filter_down = c(),
-                                                                     Filter = sort(which(PG[[g[i]]] %in% up)),
+                                                                     Filter = which(PG[[g[i]]] %in% up),
                                                                      Ratios = PG[[rat[i]]],
                                                                      Background_filter = seq_len(nrow(PG)))
             # To do here: check that Ratios values above are correct
@@ -640,10 +626,10 @@ Example: \"GO:0031012;2\"
   } else {
     warning("Skipping re-localisation analysis: some subcellular fraction groups contain both reference and non-reference samples...")
   }
-  rm(list = setdiff(ls(), .obj))
+  rm(list = base::setdiff(ls(), .obj))
   Script <- readr::read_lines(ScriptPath)
   gc()
-  invisible(clusterCall(parClust, \(x) { rm(list = ls());gc() }))
+  invisible(parallel::clusterCall(parClust, \(x) { rm(list = ls());gc() }))
   saveImgFun(BckUpFl)
   #loadFun(BckUpFl)
   source(parSrc)

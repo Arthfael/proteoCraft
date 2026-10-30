@@ -1,8 +1,6 @@
 ##############################
 # Create output Excel tables #
 ##############################
-require(openxlsx2)
-require(xml2)
 #
 # Version for peptides-only script with replicates
 #
@@ -15,8 +13,8 @@ require(xml2)
 #   But the one thing I preferred in openxlsx over openxlsx2 was how it dealt with style.
 #   Anyway... 
 #   So. We will. CHEAT!
-#   I have saved a dummy tab with my old openxlsx styles,
-#   which I will load in openxlsx2 to get and copy the styles from.
+#   we will start from an Excel file with a dummy tab containing ready-made styles,
+#   which we will load in openxlsx2 to get and copy the styles from it.
 MakeRatios <- TRUE # (Used by the sourced, core sub-script)
 dxfs_Style_nms <- c()
 intNms <- \(nms, topLvl = FALSE, type = "PG", newLine = FALSE) {
@@ -62,14 +60,14 @@ for (nm in names(pep.ref)) { #nm <- names(pep.ref[1L])
 }
 fl <- system.file("extdata", "Report_column_names_Rep.xlsx", package = "proteoCraft")
 styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[, 1L]
-WorkBook %<o% wb_load(fl)
+WorkBook %<o% openxlsx2::wb_load(fl)
 repFl <- paste0(wd, "/Tables/Report_", dtstNm, ".xlsx")
-WorkBook <- wb_add_data(WorkBook, "Description", dtstNm, wb_dims(2L, 5L))
-WorkBook <- wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"), wb_dims(3L, 5L))
-WorkBook <- wb_add_data(WorkBook, "Description", WhoAmI, wb_dims(4L, 5L))
+WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description", dtstNm, openxlsx2::wb_dims(2L, 5L))
+WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"), openxlsx2::wb_dims(3L, 5L))
+WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description", WhoAmI, openxlsx2::wb_dims(4L, 5L))
 tmp <- loadedPackages(TRUE)
-WorkBook <- wb_add_data(WorkBook, "Description", tmp$Version[grep("proteoCraft", tmp$Name)], wb_dims(5L, 5L))
-WorkBook <- wb_set_base_font(WorkBook, 11L, font_name = "Calibri")
+WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description", tmp$Version[grep("proteoCraft", tmp$Name)], openxlsx2::wb_dims(5L, 5L))
+WorkBook <- openxlsx2::wb_set_base_font(WorkBook, 11L, font_name = "Calibri")
 cat(" - Writing Excel report...\n")
 #
 # Function for editing our header
@@ -214,7 +212,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     gel <- setNames(lapply(intRf, \(rf) {
       x <- c(paste0(rf, RSA$values),
              paste0("Mean ", rf, VPAL$values))
-      return(intersect(x, colnames(tempData)))
+      return(base::intersect(x, colnames(tempData)))
     }), intRf)
     if (ii == 1L) {
       # Log transform for normal tables - not necessary for PTM-modified tables as we already transformed
@@ -282,16 +280,16 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     quantcol <- unlist(quantCols)
     PepColList <- c("gel", "quantcol", "signcol", "regcol") # These are any column for which we want to gsub "___" to " "
     if (!is.null(ratRf)) {
-      PepColList <- union(PepColList, "grl")
+      PepColList <- base::union(PepColList, "grl")
     }
-    .obj <- unique(c(PepColList, .obj)) # Here easier than using a custom operator
+    .obj <- base::union(PepColList, .obj) # Here easier than using a custom operator
     if (ii > 1L) {
       gpl <- grep(topattern(pvalue.col[pvalue.use]), colnames(tempData), value = TRUE)
       quantcol <- c(quantcol, gpl)
       PepColList <- c(PepColList, "gpl")
     }
     aacol <- paste0(AA, " Count")
-    qualFlt <- intersect(QualFilt, colnames(ev))
+    qualFlt <- base::intersect(QualFilt, colnames(ev))
     w <- which(!qualFlt %in% colnames(tempData))
     if (length(w)) {
       tempData[, qualFlt[w]] <- ev[match(tempData$"Modified sequence", ev$"Modified sequence"), qualFlt[w]]
@@ -299,13 +297,13 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     kol <- c(CoreCol, CoreCol2, evcol, spcol, "PEP", quantcol, signcol, regcol, qualFlt, aacol)
     if (ii > 1L) { kol <- c(kol, "Code") }
     if (Annotate) {
-      PepAnnotCol %<o% intersect(annot.col, colnames(tempData))
+      PepAnnotCol %<o% base::intersect(annot.col, colnames(tempData))
       kol <- c(kol, PepAnnotCol)
     }
     #tst <- data.frame(Names = names(kol), Column = setNames(kol, NULL), Found = kol %in% colnames(tempData));View(tst)
-    kol <- intersect(kol, colnames(tempData))
-    #setdiff(kol, colnames(tempData))
-    #setdiff(colnames(tempData), kol)
+    kol <- base::intersect(kol, colnames(tempData))
+    #base::setdiff(kol, colnames(tempData))
+    #base::setdiff(colnames(tempData), kol)
     tempData <- tempData[, kol]
     # If there is only one experiment, remove it from the names here...
     colnames(tempData) <- cleanNms(colnames(tempData), start = FALSE)
@@ -388,7 +386,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L]
     if (Annotate) {
       AnnotTbl$Columns <- list(c("GO", "GO-ID"), c("Taxonomy", "TaxID"), NA, NA, NA, NA, "EMBL", NA)
       for (i in annot) { AnnotTbl$Columns[match(i, AnnotTbl$Name)] <- list(c(i, paste0(i, " names"))) }
-      AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(setdiff(annot.col2, unlist(AnnotTbl$Columns)))
+      AnnotTbl$Columns[match("Other", AnnotTbl$Name)] <- list(base::setdiff(annot.col2, unlist(AnnotTbl$Columns)))
       for (i in 1L:nrow(AnnotTbl)) { ColumnsTbl[[paste0(AnnotTbl$Name[i], " annotations")]] <- AnnotTbl$Columns[[i]] }
     }
     # - PEP
@@ -443,4 +441,4 @@ Src <- paste0(libPath, "/extdata/Sources/Write_Excel_end_script.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 #WorkBook$get_active_sheet()
-#xl_open(repFl)
+#openxlsx2::xl_open(repFl)

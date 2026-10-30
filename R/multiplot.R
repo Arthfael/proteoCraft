@@ -33,7 +33,7 @@ multiplot <- function(...,
   }
   save <- tolower(as.character(save))
   save <- save[nchar(save) > 0L]
-  save <- setdiff(save, "false")
+  save <- base::setdiff(save, "false")
   if (length(save)) {
     filename <- gsub(":|\\*|\\?|<|>|\\||/", "-", filename)
     save <- unique(sub("^jpg$", "jpeg", sub("^\\.", "", save)))

@@ -316,8 +316,8 @@ Volcano.plot <- function(Prot,
     FDR_table$fdr.col.line <- fdr.col.line[m]
   }
   if (!Contaminants) {
-    kontkol <- intersect(c("Contaminant", "Potential contaminant"),
-                         colnames(Prot))
+    kontkol <- base::intersect(c("Contaminant", "Potential contaminant"),
+                               colnames(Prot))
     if (length(kontkol) != 1L) {
       warning("I could not identify the contaminants column, did you already filter out contaminants?")
       Contaminants <- TRUE
@@ -420,7 +420,7 @@ Volcano.plot <- function(Prot,
   A <- if (useContrasts) {
     contrasts$Contrast
   } else {
-    intersect(A, experiments.map[[B]])
+    base::intersect(A, experiments.map[[B]])
   }
   lA <- length(A)
   #
@@ -458,7 +458,7 @@ Volcano.plot <- function(Prot,
   if (misFun(plotly_labels)) { # Create those even if plotly off!
     plotly_labels <- setNames(c("Labels", IDs.col, "Genes"),
                               c("Name(s)", "Accession(s)", "Gene(s)")) # (column "Labels" gets created later, before we use those columns: should not break!)
-    plotly_labels <- intersect(plotly_labels, colnames(Prot))
+    plotly_labels <- base::intersect(plotly_labels, colnames(Prot))
   } else {
     wlabkol <- which(plotly_labels %in% colnames(Prot))
     if (plotly && (length(wlabkol) < length(plotly_labels))) {
@@ -479,7 +479,7 @@ Volcano.plot <- function(Prot,
     if (misFun(Proteins.col) || (!Proteins.col %in% colnames(Prot))) { Proteins.col <- IDs.col }
     proteins <- sub("^CON_+", "", proteins)
     Prot[[Proteins.col]] <- gsub(";CON_+", ";", sub("^CON_+", "", Prot[[Proteins.col]]))
-    proteins <- intersect(proteins, unique(unlist(strsplit(Prot[[Proteins.col]], ";"))))
+    proteins <- base::intersect(proteins, unique(unlist(strsplit(Prot[[Proteins.col]], ";"))))
     useProtList <- length(proteins) > 0L
     if (useProtList) {
       Prot$Found_in_List <- FALSE
@@ -615,7 +615,7 @@ Volcano.plot <- function(Prot,
   weech <- which(Prot$Labels == "")
   id.col <- unique(c(IDs.col, "Common Names", "Common Name (short)", "Names", "Name", "Genes", "Gene", "Code"))
   id.col <- c(id.col, tolower(id.col), toupper(id.col))
-  id.col <- intersect(id.col, colnames(Prot))
+  id.col <- base::intersect(id.col, colnames(Prot))
   if (length(weech)) {
     kount <- 0L
     while (length(weech) && (kount < length(id.col))) {
@@ -667,7 +667,7 @@ Volcano.plot <- function(Prot,
       Prot$dot_size[(Prot$dot_size > 0L) & is.infinite(Prot$dot_size)] <- max(Prot$dot_size[wF])
       Prot$dot_size[!is.finite(Prot$dot_size)] <- min(Prot$dot_size[wF])
       Prot$dot_size <- Size.min + (Prot$dot_size - min(Prot$dot_size))*(Size.max-Size.min)/(max(Prot$dot_size)-min(Prot$dot_size))
-      baseCols <- union(baseCols, "dot_size")
+      baseCols <- base::union(baseCols, "dot_size")
     }
   } else {
     if (is.na(Size) || (Size < 0)) {
@@ -691,7 +691,7 @@ Volcano.plot <- function(Prot,
         Prot$dot_alpha[(Prot$dot_alpha > 0L) & is.infinite(Prot$dot_alpha)] <- max(Prot$dot_alpha[wF])
         Prot$dot_alpha[!is.finite(Prot$dot_alpha)] <- min(Prot$dot_alpha[wF])
         Prot$dot_alpha <- Alpha.min+(Prot$dot_alpha-min(Prot$dot_alpha))*(Alpha.max-Alpha.min)/(max(Prot$dot_alpha)-min(Prot$dot_alpha))
-        baseCols <- union(baseCols, "dot_alpha")
+        baseCols <- base::union(baseCols, "dot_alpha")
       }
     }
   } else {
@@ -717,7 +717,7 @@ Volcano.plot <- function(Prot,
     e <- c(xKol, yKol)
     #
     # Below: should never occur, we already checked and filtered -> candidate code for deletion:
-    #e <- intersect(e, colnames(Prot))
+    #e <- base::intersect(e, colnames(Prot))
     #stopifnot(length(e) == 2L)
     #
     plot.metrics <- Plot.metrics
@@ -840,7 +840,7 @@ Volcano.plot <- function(Prot,
         if ("Sample" %in% colnames(fdr_table)) {
           f1 <- paste0(f1, " - ", i)
         }
-        f1 <- intersect(f1, colnames(Prot))
+        f1 <- base::intersect(f1, colnames(Prot))
         f2 <- paste0("FDR=", sort(fdr.values, decreasing = TRUE), "%")
         temp[, f2] <- Prot[Wych[[i]], f1]
         test <- apply(temp[, rev(f2), drop = FALSE], 1L, \(x) {
@@ -848,7 +848,7 @@ Volcano.plot <- function(Prot,
         })
         #unique(test)
         temp$FDR <- test
-        temp <- temp[, setdiff(colnames(temp), f2)]
+        temp <- temp[, base::setdiff(colnames(temp), f2)]
       }
     }
     #
@@ -860,7 +860,7 @@ Volcano.plot <- function(Prot,
         which(experiments.map[[aggregate.name]] == i)
       }
       target <- unique(unlist(strsplit(experiments.map$Target[w], ";")))
-      target <- setdiff(target, c("", "NA", NA))
+      target <- base::setdiff(target, c("", "NA", NA))
       target <- unique(sub("^CON_+", "", target))
       use_target <- length(target) > 0L
     }
@@ -961,7 +961,7 @@ Volcano.plot <- function(Prot,
               wU <- wA[temp$X[wA] > samMd]
               temp$Colour[wU] <- FDR_table$fdr.col.up[w]
               if (symm) {
-                #setdiff(wA, c(wU, wD))
+                #base::setdiff(wA, c(wU, wD))
                 wD <- wA[temp$X[wA] < samMd]
                 temp$Colour[wU] <- FDR_table$fdr.col.down[w]
               }
@@ -1080,7 +1080,7 @@ Volcano.plot <- function(Prot,
     }
     if ("proteins" %in% labels) {
       w <- which(temp$Colour %in% c("protein in list", "target"))
-      noLbl <- setdiff(noLbl, w)
+      noLbl <- base::setdiff(noLbl, w)
     }
     temp$Labels[noLbl] <- ""
     w1 <- if (useFDRtbl || (mode == "curved")) {
@@ -1093,10 +1093,10 @@ Volcano.plot <- function(Prot,
       w2 <- if ("Colour2" %in% colnames(temp)) { which(temp$Colour2 == "protein in list") } else {
         which(temp$Colour2 == "protein in list")
       }
-      w1 <- setdiff(w1, w2) # Here it could be that we have overlap of w1 and w2 => we don't want that!
+      w1 <- base::setdiff(w1, w2) # Here it could be that we have overlap of w1 and w2 => we don't want that!
     }
     w3 <- which(temp$Colour == "target")
-    w0 <- setdiff(1L:nrow(temp), c(w1, w2, w3))
+    w0 <- base::setdiff(1L:nrow(temp), c(w1, w2, w3))
     temp <- rbind(temp[w0,], temp[w1,], temp[w2,], temp[w3,])
     #temp <- temp[is.finite(temp$Y),]
     ttl <- paste0(title, i2)
@@ -1458,10 +1458,10 @@ Volcano.plot <- function(Prot,
     # Evaluate plots
     args_gg_Simp <- args_gg_
     args_gg_$mapping <- do.call(ggplot2::aes, aes_)
-    args_gg_Simp$mapping <- do.call(ggplot2::aes, aes_[setdiff(names(aes_), "size")])
+    args_gg_Simp$mapping <- do.call(ggplot2::aes, aes_[base::setdiff(names(aes_), "size")])
     main_layer <- do.call(ggplot2::geom_point, args_gg_)
     main_layer_Simp <- do.call(ggplot2::geom_point, args_gg_Simp)
-    plot <- ggplot(temp)
+    plot <- ggplot2::ggplot(temp)
     simPlot <- plot + main_layer_Simp
     plot <- plot + main_layer
     if (plotLabels) {
@@ -1503,7 +1503,7 @@ Volcano.plot <- function(Prot,
       args_gg_prot <- args_gg_
       args_gg_prot$mapping <- do.call(ggplot2::aes, aes_prot)
       main_layer_prot <- do.call(ggplot2::geom_point, args_gg_prot)
-      plot_prot <- ggplot(temp) + main_layer_prot
+      plot_prot <- ggplot2::ggplot(temp) + main_layer_prot
       if (plotLabels) {
         labels_dat_prot <- labels_dat[labels_dat$Colour2 %in% c("protein in list", "target"),]
         labels_args_prot_ <- labels_args_
@@ -1590,7 +1590,7 @@ Volcano.plot <- function(Prot,
       # Build
       plotLy <- plotly::plotly_build(plotLy)
       # Add search java-script
-      searchCol <- intersect(setdiff(plotly_labels, "PEP"), colnames(temp))
+      searchCol <- base::intersect(base::setdiff(plotly_labels, "PEP"), colnames(temp))
       searchDat <- as.matrix(temp[, searchCol, drop = FALSE])
       plotLy <- .plotlySearch(plotLy, searchDat, 0.1)
       #

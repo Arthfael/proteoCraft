@@ -1,9 +1,5 @@
 # This may evolve into a full function
-library(reshape2)
-library(gtools)
-library(ggplot2)
-library(svDialogs)
-library(proteoCraft)
+requireNamespace("proteoCraft")
 
 RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
@@ -34,13 +30,12 @@ if (!temp[1L] %in% IsotopeProbs$Atom) {
     for (i in L-Nc) { IsotopeProbs[[paste0("N+", tst+i)]] <- "" }
   }
   IsotopeProbs <- rbind(IsotopeProbs, temp)
-  
 }
 
 # Option: remove N-terminal methionine
 if (grepl("^M", Seq)) {
   msg <- "The sequence starts with a Methionine, should we remove it?"
-  RemoveNTermMet <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
+  RemoveNTermMet <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
   if (RemoveNTermMet) { Seq <- gsub("^M", "", Seq) }
 }
 
@@ -57,22 +52,26 @@ Alkylator <- FALSE
 nCfree <- 0L
 if (grepl("C", Seq)) {
   msg <- "Is the protein denatured?"
-  Native <- !c(TRUE, FALSE)[match(dlg_message(msg, "yesno")$res, c("yes", "no"))]
+  Native <- !c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno")$res, c("yes", "no"))]
   if (Native) {
     nC <- AACounts$Count[match("C", AACounts$AA)]
     if (nC > 1L) {
       nIntra2Smax <- floor(nC/2)
       msg <- paste0("There are ", nC, " cysteines in the protein, how many intra-molecular disulfide bonds (1-",
                     nIntra2Smax, ") do you expect?")
-      nIntra2S <- as.integer(dlg_input(msg, n2Smax)$res)
-      while((!is.integer(nIntra2S))||(!nIntra2S %in% 1L:n2Smax)) { nIntra2S <- as.integer(dlg_input(msg, nIntra2Smax)$res) }
+      nIntra2S <- as.integer(svDialogs::dlg_input(msg, n2Smax)$res)
+      while ((!is.integer(nIntra2S)) || (!nIntra2S %in% 1L:n2Smax)) {
+        nIntra2S <- as.integer(svDialogs::dlg_input(msg, nIntra2Smax)$res)
+      }
     } else { nIntra2S <- 0L }
     nCfree <- nC-2*nIntra2S
     if (nCfree) {
       msg <- paste0("There ", c("is", "are still")[(nC > 1L)+1L], " " , nCfree, " free cysteine", c("", "s")[(nC > 1L)+1L],
                     " in the protein, how many inter-molecular disulfide bonds (0-", nCfree, ") do you expect?")
-      nInter2S <- as.integer(dlg_input(msg, 0L)$res)
-      while((!is.integer(nInter2S))||(!nInter2S %in% 0:nCfree)) { nInter2S <- as.integer(dlg_input(msg, 0L)$res) }
+      nInter2S <- as.integer(svDialogs::dlg_input(msg, 0L)$res)
+      while ((!is.integer(nInter2S)) || (!nInter2S %in% 0L:nCfree)) {
+        nInter2S <- as.integer(svDialogs::dlg_input(msg, 0L)$res)
+      }
     } else { nInter2S <- 0L }
     nCfree  <- nC-2L*nIntra2S-nInter2S
   } else { nCfree <- nC }
@@ -80,8 +79,10 @@ if (grepl("C", Seq)) {
     msg <- paste0("Did you alkylate the protein?\n - 0: no",
                   paste0("\n - ", 1L:nrow(alkTbl), ": ", alkTbl$Full_name, collapse = ""), "\n")
     defAlk <- c(match("iodoacetamide", tolower(alkTbl$Full_name)), 0)[Native+1L]
-    whichalk <- as.integer(dlg_input(msg, defAlk)$res)
-    while ((!is.integer(whichalk))||(!whichalk %in% 0L:nrow(alkTbl))) { whichalk <- as.integer(dlg_input(msg, defAlk)$res) }
+    whichalk <- as.integer(svDialogs::dlg_input(msg, defAlk)$res)
+    while ((!is.integer(whichalk)) || (!whichalk %in% 0L:nrow(alkTbl))) {
+      whichalk <- as.integer(svDialogs::dlg_input(msg, defAlk)$res)
+    }
     if (whichalk > 0L) { Alkylator <- alkTbl$Alk[whichalk] } else { Alkylator <- FALSE }
   } else { Alkylator <- FALSE }
 }
@@ -205,7 +206,7 @@ Masses <- setNames(lapply(Form$Element, \(x) { #x <- Form$Element[1L]
   # Mathematically correct code:
   Crazy <- FALSE
   if (Crazy) {
-    masses <- combinations(K, N, repeats.allowed = TRUE)
+    masses <- gtools::combinations(K, N, repeats.allowed = TRUE)
     masses <- as.data.frame(t(apply(masses, 1L, \(x) {
       sapply(1L:K, \(y) { sum(x == y)} )
     })))
@@ -224,14 +225,14 @@ Masses <- setNames(lapply(Form$Element, \(x) { #x <- Form$Element[1L]
   # Heuristic:
   masses <- data.frame(N1 = N)
   if (K > 1L) {
-    for (i in 2L:K) { #i <- 2
+    for (i in 2L:K) { #i <- 2L
       masses[[paste0("N", as.character(i))]] <- 0
       masses2 <- masses
       p <- AtPs[2L, i]
-      k <- 1; p0 <- p
-      while (p0 > ProbThresh) { k <- k+1; p0 <- p0*p }
-      for (j in 1L:k) { #j <- 1
-        tmp <- combinations(i-1, j, repeats.allowed = TRUE)
+      k <- 1L; p0 <- p
+      while (p0 > ProbThresh) { k <- k+1L; p0 <- p0*p }
+      for (j in 1L:k) { #j <- 1L
+        tmp <- gtools::combinations(i-1L, j, repeats.allowed = TRUE)
         tmp <- as.data.frame(t(apply(tmp, 1L, \(x) { sapply(1L:(i-1L), \(y) { sum(x == y) }) })))
         tmp <- as.data.frame(cbind(-tmp, j))
         colnames(tmp) <- colnames(masses)
@@ -255,7 +256,7 @@ Masses <- setNames(lapply(Form$Element, \(x) { #x <- Form$Element[1L]
     masses$Probability <- apply(masses[, paste0("N", as.numeric(1L:K))], 1L, \(x) {
       #x <- masses[4, paste0("N", as.numeric(1L:K))]
       x <- unlist(x)
-      Ncum <- N-c(0, cumsum(x)[1L:(length(x)-1L)])
+      Ncum <- N-c(0L, cumsum(x)[1L:(length(x)-1L)])
       prod(choose(Ncum, x)*(AtPs[2L,]^x))
     })
     masses$Probability <- masses$Probability/sum(masses$Probability)
@@ -294,10 +295,11 @@ m2 <- Envelope2$Mass[which(Envelope2$Density > 0)]
 stopifnot(sum(!(c(m2-Res/2, m2+Res/2) %in% Envelope2$Mass)) == 0)
 Envelope2 <- Envelope2[order(Envelope2$Mass, decreasing = FALSE),]
 ttl <- "Mass envelope"
-plot <- ggplot(Envelope2) +
-  geom_path(aes(x = Mass, y = Density), size = 0.1) + theme_bw() + ggtitle(ttl)
+plot <- ggplot2::ggplot(Envelope2) +
+  ggplot2::geom_path(ggplot2::aes(x = Mass, y = Density), size = 0.1) +
+  ggplot2::theme_bw() + ggplot2::ggtitle(ttl)
 poplot(plot, 12L, 22L)
-ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300L)
+ggplot2::ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300L)
 
 # This would be the part to incorporate variable modifications, allowing for a range of incorporation rates.
 # Example: incorporate Fluorine (F has a single main isotope. Yes! Why is this not always so simple?)
@@ -326,11 +328,13 @@ if (IncorpFl) {
   AllEnvs2$Fluorines <- factor(AllEnvs2$Fluorines, levels = nW:0L)
   AllEnvs2$"Incorporation Rate" <- factor(AllEnvs2$"Incorporation Rate", levels = IncRate)
   ttl <- "Mass envelope with effect of Fluorine incorporation"
-  plot <- ggplot(AllEnvs2) +
-    geom_bar(stat = "identity", aes(x = Mass, y = Density, fill = Fluorines), width = Res,#position = "stack"
-    ) + facet_grid(`Incorporation Rate`~.) + theme_bw() + ggtitle(ttl)
+  plot <- ggplot2::ggplot(AllEnvs2) +
+    ggplot2::geom_bar(stat = "identity", width = Res, #position = "stack",
+                      ggplot2::aes(x = Mass, y = Density, fill = Fluorines)) +
+    ggplot2::facet_grid(`Incorporation Rate`~.) +
+    ggplot2::theme_bw() + ggplot2::ggtitle(ttl)
   poplot(plot, 12L, 22L)
-  ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300L)
+  ggplot2::ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300L)
 } else {
   AllEnvs <- Envelopes
 }
@@ -340,18 +344,25 @@ if (IncorpFl) {
 # The lowest observed charge was 25+ for denatured Tet, 9+ for native ARF1
 # The most intense observed charge was 51+ for denatured Tet, 19-21 for native ARF1
 msg <- "Enter the most intense observed charge state:"
-Zmean <- as.integer(dlg_input(msg, c(50L, 20L)[Native+1L])$res)
-while ((!is.integer(Zmean))||(is.na(Zmean))) { Zmean <- dlg_input(msg, c(50L, 20L)[Native+1L])$res }
+Zmean <- as.integer(svDialogs::dlg_input(msg, c(50L, 20L)[Native+1L])$res)
+while ((!is.integer(Zmean)) || is.na(Zmean)) {
+  Zmean <- svDialogs::dlg_input(msg, c(50L, 20L)[Native+1L])$res
+}
 msg <- "Enter the width of the observed charge states envelope (= Zmax - Zmin):"
-Zwidth <- as.integer(dlg_input(msg, c(50, 20)[Native+1L])$res)
-while ((!is.integer(Zwidth))||(is.na(Zwidth))) { Zwidth <- dlg_input(msg, c(50L, 20L)[Native+1L])$res }
+Zwidth <- as.integer(svDialogs::dlg_input(msg, c(50, 20)[Native+1L])$res)
+while ((!is.integer(Zwidth)) || is.na(Zwidth)) {
+  Zwidth <- svDialogs::dlg_input(msg, c(50L, 20L)[Native+1L])$res
+}
 Zmin <- Zmean - ceiling(Zwidth/2)
 Zmax <- Zmean + floor(Zwidth/2)
 ZPr <- data.frame(Z = Zmin:Zmax, Probability = dnorm(Zmin:Zmax, Zmean, (Zwidth)/6))
 ttl <- "Simulated charge distribution"
-plot <- ggplot(ZPr) + geom_bar(stat = "identity", aes(x = Z, y = Probability)) + theme_bw() + ggtitle(ttl) 
+plot <- ggplot2::ggplot(ZPr) +
+  ggplot2::geom_bar(stat = "identity",
+                    ggplot2::aes(x = Z, y = Probability)) +
+  ggplot2::theme_bw() + ggplot2::ggtitle(ttl) 
 poplot(plot, 12L, 22L)
-ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300L)
+ggplot2::ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300L)
 ZPr <- ZPr[which(ZPr$Probability >= ProbThresh),]
 ZPr$Probability <- ZPr$Probability/sum(ZPr$Probability)
 MZs <- data.frame(Row = rep(1L:nrow(AllEnvs), nrow(ZPr)))
@@ -388,7 +399,7 @@ if (IncorpFl) {
   wLst <- list()
   for (i in IncRate) { #i <- IncRate[1L]
     for (f in 0L:nW) { #f <- 0L
-      wLst[[paste0(i, " ", f)]] <- which((MZs2$`Incorporation Rate` == i)&(MZs2$Fluorines == f))
+      wLst[[paste0(i, " ", f)]] <- which((MZs2$`Incorporation Rate` == i) & (MZs2$Fluorines == f))
     }
   }
 }
@@ -406,10 +417,10 @@ for (wNm in names(wLst)) {
     MZs2 <- rbind(MZs2, temp)
     w2 <- 1L:nrow(MZs2)
     if  (IncorpFl) {
-      w2 <- which((MZs2$`Incorporation Rate` == i)&(MZs2$Fluorines == f))
+      w2 <- which((MZs2$`Incorporation Rate` == i) & (MZs2$Fluorines == f))
     }
     m2 <- MZs2$`M/Z`[w2][which(MZs2$Intensity[w2] > 0)]
-    stopifnot(sum(!(c(m2-Res/2, m2+Res/2) %in% MZs2$`M/Z`[w2])) == 0)
+    stopifnot(sum(!(c(m2-Res/2, m2+Res/2) %in% MZs2$`M/Z`[w2])) == 0L)
   }
 }
 ttl <- "M/Z envelope"
@@ -422,14 +433,16 @@ if (IncorpFl) {
 MZs2 <- MZs2[order(MZs2$`M/Z`, decreasing = FALSE),]
 m <- max(MZs2$Intensity)
 #w <- which(MZs2$Intensity >= 1)
-#plot <- ggplot(MZs2[w,]) +
-#  geom_bar(stat = "identity", aes(x = `M/Z`, y = Intensity, fill = Fluorines), width = Res, position = "stack") +
-plot <- ggplot(MZs2)
-plot <- plot + geom_path(aes(x = `M/Z`, y = Intensity), size = 0.1)
+#plot <- ggplot2::ggplot(MZs2[w,]) +
+#  ggplot2::geom_bar(stat = "identity", ggplot2::aes(x = `M/Z`, y = Intensity, fill = Fluorines), width = Res, position = "stack") +
+plot <- ggplot2::ggplot(MZs2) +
+  ggplot2::geom_path(ggplot2::aes(x = `M/Z`, y = Intensity), size = 0.1)
 if (IncorpFl) {
-  plot <- plot + geom_path(aes(x = `M/Z`, y = Intensity, colour = Fluorines, group = Fluorines), size = 0.1) +
-    facet_grid(`Incorporation Rate`~Fluorines)
+  plot <- plot +
+    ggplot2::geom_path(size = 0.1,
+                       ggplot2::aes(x = `M/Z`, y = Intensity, colour = Fluorines, group = Fluorines)) +
+    ggplot2::facet_grid(`Incorporation Rate`~Fluorines)
 }
-plot <- plot + theme_bw() + ggtitle(ttl)
+plot <- plot + ggplot2::theme_bw() + ggplot2::ggtitle(ttl)
 poplot(plot, 12L, 22L)
-ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300L)
+ggplot2::ggsave(paste0(gsub("/", "", ttl), ".jpeg"), plot, dpi = 300L)

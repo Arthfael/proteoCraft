@@ -13,17 +13,15 @@ while (Moar) {
 }
 path <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R")
 if (length(FILES)) {
-  require(XML)
-  require(RSQLite)
   # LC method
   tstLC <- try({
     LC_method <- paste0(FILES, sub("\\.d$", ".m/hystar.method", sub(".+_", "/", FILES)))
     LC_method.exists <- file.exists(LC_method)
     w <- which(LC_method.exists)
     LC_meth <- lapply(LC_method, \(fl) { #fl <- LC_method[1L]
-      x <- xmlToList(fl)
+      x <- XML::xmlToList(fl)
       lc <- x$LCMethodData$ModuleMethods$ModuleMethodData$text
-      lc <- xmlToList(lc)
+      lc <- XML::xmlToList(lc)
       #lc$ModuleMethodData$Method$AdvancedSettings
       return(lc)
     })
@@ -50,7 +48,7 @@ if (length(FILES)) {
     LC$RunTime <- sapply(LC_meth, \(x) { x$HyStarMethodData$NoStandardMethodData })
     kolFl <- paste0(path, "/proteoCraft/LC_columns.xlsx")
     if (!file.exists(kolFl)) { proteoCraft::Configure() }
-    allKolumns <- openxlsx::read.xlsx(kolFl, check.names = FALSE)
+    allKolumns <- openxlsx2::read_xlsx(kolFl, check.names = FALSE)
     if (!"Description" %in% colnames(allKolumns)) { allKolumns$Description <- "" }
     kolDescr <- \(Colonnes) {
       apply(Colonnes[, c("Name", "Material", "Length (cm)", "ID (µm)", "Particles size (µm)", "Vendor", "P/N"), drop = FALSE], 1L, \(x) {
@@ -147,24 +145,24 @@ if (length(FILES)) {
   MS_meth <- setNames(lapply(MS_method[w], \(fl) { #fl <- MS_method[w[1L]]
     #x <- readr::read_lines(fl)
     #x[1L:100L]
-    SQltTDF <- dbConnect(drv = RSQLite::SQLite(), dbname = fl)
-    #Obj <- setNames(lapply(nms, \(nm) { suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", nm, "'"))) }), nms)
+    SQltTDF <- RSQLite::dbConnect(drv = RSQLite::SQLite(), dbname = fl)
+    #Obj <- setNames(lapply(nms, \(nm) { suppressWarnings(RSQLite::dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", nm, "'"))) }), nms)
     #for (nm in nms) { if (nrow(Obj[[nm]])) { Obj[[nm]] <- cbind(rep(nm, nrow(Obj[[nm]])), Obj[[nm]]); colnames(Obj[[nm]])[1L] <- "Table_name" } }
     #for (nm in nms) { if (nrow(Obj[[nm]])) { View(Obj[[nm]]) } }
-    GlobMetDat <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "GlobalMetadata", "'")))
-    PropsDat <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "Properties", "'")))
-    PropsDefDat <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "PropertyDefinitions", "'")))
-    FrmDat <- try(suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "PasefFrameMsMsInfo", "'"))), silent = TRUE)
+    GlobMetDat <- suppressWarnings(RSQLite::dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "GlobalMetadata", "'")))
+    PropsDat <- suppressWarnings(RSQLite::dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "Properties", "'")))
+    PropsDefDat <- suppressWarnings(RSQLite::dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "PropertyDefinitions", "'")))
+    FrmDat <- try(suppressWarnings(RSQLite::dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "PasefFrameMsMsInfo", "'"))), silent = TRUE)
     if (inherits(FrmDat, "try-error")) { FrmDat <- NA }
-    DIADat1 <- try(suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "DiaFrameMsMsWindows", "'"))), silent = TRUE)
+    DIADat1 <- try(suppressWarnings(RSQLite::dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "DiaFrameMsMsWindows", "'"))), silent = TRUE)
     if (inherits(DIADat1, "try-error")) { DIADat1 <- NA } else {
       DIADat1$CollisionEnergy <- signif(DIADat1$CollisionEnergy, 2L) # Do we really need more precision?!?!
     }
-    #DIADat2 <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "DiaFrameMsMsInfo", "'")))
-    #DIADat3 <- suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "DiaFrameMsMsWindowGroups", "'")))
-    PRMDat <- try(suppressWarnings(dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "PrmFrameMsMsInfo", "'"))), silent = TRUE)
+    #DIADat2 <- suppressWarnings(RSQLite::dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "DiaFrameMsMsInfo", "'")))
+    #DIADat3 <- suppressWarnings(RSQLite::dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "DiaFrameMsMsWindowGroups", "'")))
+    PRMDat <- try(suppressWarnings(RSQLite::dbGetQuery(SQltTDF, statement = paste0("SELECT * FROM '", "PrmFrameMsMsInfo", "'"))), silent = TRUE)
     if (inherits(PRMDat, "try-error")) { PRMDat <- NA }
-    dbDisconnect(SQltTDF)
+    RSQLite::dbGetQuery(SQltTDF)
     return(list(Method = list(Global = GlobMetDat,
                               Properties = PropsDat,
                               Definitions = PropsDefDat,
@@ -197,12 +195,11 @@ if (length(FILES)) {
                              min(FrmDat$IsolationMz[FrmDat$IsolationWidth == isoWdths$Width[2L]])))
       CEs <- data.frame(CE = round(c(min(FrmDat$CollisionEnergy), max(FrmDat$CollisionEnergy))),
                         IM = as.numeric(MobRng))
-      #require(ggplot2)
-      #plot1 <- ggplot(FrmDat) + geom_point(aes(x = IsolationMz, y = IsolationWidth, colour = Frame)) + theme_bw()
+      #plot1 <- ggplot2::ggplot(FrmDat) + ggplot2::geom_point(ggplot2::aes(x = IsolationMz, y = IsolationWidth, colour = Frame)) + ggplot2::theme_bw()
       #poplot(plot1) # -> Isolation width is strictly a function of m/z and based on the table in the timsControl GUI...
-      #plot2 <- ggplot(FrmDat) + geom_point(aes(x = IsolationMz, y = CollisionEnergy, colour = Frame)) + theme_bw()
+      #plot2 <- ggplot2::ggplot(FrmDat) + ggplot2::geom_point(ggplot2::aes(x = IsolationMz, y = CollisionEnergy, colour = Frame)) + ggplot2::theme_bw()
       #poplot(plot2) # ... but Collision Energy isn't.
-      #plot2a <- ggplot(FrmDat) + geom_point(aes(x = IsolationMz, y = CollisionEnergy, colour = ScanNumBegin)) + theme_bw()
+      #plot2a <- ggplot2::ggplot(FrmDat) + ggplot2::geom_point(ggplot2::aes(x = IsolationMz, y = CollisionEnergy, colour = ScanNumBegin)) + ggplot2::theme_bw()
       #poplot(plot2a) # ... but Collision Energy isn't.
     } else { isoWdths <- CEs <- NA }
     #
@@ -301,9 +298,9 @@ if (length(FILES)) {
       DIAfl <- sub("\\.m$", " - DIA_windows.csv", fl)
       message(paste0("Writing DIA windows to ", DIAfl))
       write.csv(DIADat1, DIAfl, row.names = FALSE)
-      #plot <- ggplot(DIADat1, aes(xmin = IsolationMz-IsolationWidth/2, xmax = IsolationMz+IsolationWidth/2,
-      #                            ymin = ScanNumBegin, ymax = ScanNumEnd, colour = WindowGroup)) + theme_bw() +
-      #  geom_rect(alpha = 0.1) + scale_y_reverse() + xlab("M/Z") + ylab("Scan number")
+      #plot <- ggplot2::ggplot(DIADat1, ggplot2::aes(xmin = IsolationMz-IsolationWidth/2, xmax = IsolationMz+IsolationWidth/2,
+      #                        ymin = ScanNumBegin, ymax = ScanNumEnd, colour = WindowGroup)) + ggplot2::theme_bw() +
+      #  ggplot2::geom_rect(alpha = 0.1) + ggplot2::scale_y_reverse() + ggplot2::xlab("M/Z") + ggplot2::ylab("Scan number")
       #poplot(plot)
       tmp1 <- paste0("scan ranges: ", paste(apply(DIADat1[, c("ScanNumBegin", "ScanNumEnd")], 1L, paste, collapse = "-"), collapse = "/"))
       tmp2 <- paste0("isolation M/Z: ", paste(round(DIADat1$IsolationMz, 3L), collapse = "/")) # That is already wayyyyyy more precise than we need!!!

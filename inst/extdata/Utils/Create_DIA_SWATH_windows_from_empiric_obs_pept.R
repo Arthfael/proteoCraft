@@ -1,12 +1,6 @@
 # Header
 options(stringsAsFactors = FALSE)
-library(ggplot2)
-library(reshape2)
 library(proteoCraft)
-library(modeest)
-library(MASS)
-library(truncdist)
-library(minpack.lm)
 
 # Note:
 # This appears to be useless on a QE-HF, as variable window size is not supported.
@@ -23,10 +17,11 @@ destd <- rstudioapi::selectDirectory()
 # Choose MaxQuant evidence.txt file to process:
 ev <- rstudioapi::selectFile()
 ev <- read.delim(ev)
-rm(list = setdiff(ls(), c("wd", "ev", "destd")))
+rm(list = base::setdiff(ls(), c("wd", "ev", "destd")))
 
-ev$temp <- apply(ev[,c("Modified.sequence", "Charge")], 1L, \(x) {paste(x, collapse = "_")})
-test <- aggregate(ev$m.z, list(ev$temp), unique); colnames(test) <- c("Unique_ID", "m.z")
+ev$temp <- do.call(paste, c(ev[, c("Modified.sequence", "Charge")], sep = "_"))
+test <- aggregate(ev$m.z, list(ev$temp), unique)
+colnames(test) <- c("Unique_ID", "m.z")
 test$Charge <- as.factor(sub("^[^0-9]+", "", test$Unique_ID))
 test <- test[order(test$m.z),]
 test$"log10(m/z)" <- log10(test$m.z)
@@ -51,16 +46,17 @@ for (i in c("", "blurred.")) {
   bins[[paste0(i, "density")]] <- bins[[paste0(i, "counts")]]/sum(bins[[paste0(i, "counts")]])
 }
 bins$"log10(m/z)" <- log10(bins$m.z)
-loki <- mlv(test$"log10(m/z)", method = "mfv")
+loki <- modeest::mlv(test$"log10(m/z)", method = "mfv")
 skael <- sd(test$"log10(m/z)")
-fit <- fitdistr(x = test$"log10(m/z)", "normal")
+fit <- MASS::fitdistr(x = test$"log10(m/z)", "normal")
 phun <- \(par, x) {
-  x$DTrunc <- dtrunc(x = x$"log10(m/z)", spec = "norm", a = log10(Lower), b = log10(Upper),
-                     mean = par[1L], sd = par[2L])
+  x$DTrunc <- truncdist::dtrunc(x = x$"log10(m/z)", spec = "norm",
+                                a = log10(Lower), b = log10(Upper),
+                                mean = par[1L], sd = par[2L])
   x$DTrunc <- x$DTrunc/sum(x$DTrunc)
   return(x$density - x$DTrunc)
 }
-LM <- nls.lm(fn = phun, par = fit$estimate, x = bins)
+LM <- minpack.lm::nls.lm(fn = phun, par = fit$estimate, x = bins)
 model <- LM$par
 
 ## Calculate windows:
@@ -90,19 +86,25 @@ SWATH.windows$Model_Centre <- round((SWATH.windows$Model_Start+SWATH.windows$Mod
 SWATH.windows$Model_Width <- round(SWATH.windows$Model_End-SWATH.windows$Model_Start, 1L)
 
 # Plots
-plot2 <- ggplot(SWATH.windows) + geom_segment(aes(x = Start, xend = End, y = Y, yend = Y), colour = "green") +
-  geom_segment(aes(x = Model_Start, xend = Model_End, y = Y-0.1, yend = Y-0.1), colour = "red") +
-  theme_bw()
+plot2 <- ggplot2::ggplot(SWATH.windows) +
+  ggplot2::geom_segment(ggplot2::aes(x = Start, xend = End, y = Y, yend = Y),
+                        colour = "green") +
+  ggplot2::geom_segment(ggplot2::aes(x = Model_Start, xend = Model_End, y = Y-0.1, yend = Y-0.1),
+                        colour = "red") +
+  ggplot2::theme_bw()
 poplot(plot2)
 phun <- \(x) { dnorm(x, mean = model[["mean"]], sd = model[["sd"]]) }
 scaling <- mean(bins$blurred.density[c(max(which(bins$"log10(m/z)" <= loki)), min(which(bins$"log10(m/z)" >= loki)))])
 scphun <- \(x) { phun(x)*scaling/phun(loki) }
-temp <- melt(bins[,c("log10(m/z)", "density", "blurred.density")], id.vars = "log10(m/z)")
+temp <- dfMelt(bins[, c("log10(m/z)", "density", "blurred.density")], id.vars = "log10(m/z)")
 colnames(temp)[colnames(temp) == "value"] <- "density"
-plot <- ggplot(temp) + geom_point(aes(x = `log10(m/z)`, y = density, colour = variable)) +
-  stat_function(fun = scphun, color = "red") +
-  geom_vline(data = SWATH.windows, aes(xintercept = log10(Model_End)),
-             colour = "red", linetype = "dotted") + theme_bw()
+plot <- ggplot2::ggplot(temp) +
+  ggplot2::geom_point(ggplot2::aes(x = `log10(m/z)`, y = density, colour = variable)) +
+  ggplot2::stat_function(fun = scphun, color = "red") +
+  ggplot2::geom_vline(data = SWATH.windows,
+                      ggplot2::aes(xintercept = log10(Model_End)),
+                      colour = "red", linetype = "dotted") +
+  ggplot2::theme_bw()
 poplot(plot, height = 10L, width = 10L)
 
 SWATH.windows2 <- SWATH.windows[, c("Model_Start", "Model_End")]

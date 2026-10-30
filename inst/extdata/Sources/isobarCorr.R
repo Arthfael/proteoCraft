@@ -46,8 +46,8 @@ if ((LabelType == "Isobaric")&&
           }, 1L) == length(lb))
           A <- A[(1L:length(lb))+w-1L,]
           source(parSrc)
-          clusterExport(parClust, list("A", "e", "kol"), envir = environment())
-          temp <- as.data.frame(t(parApply(parClust, e[, kol], 1L, \(x) {
+          parallel::clusterExport(parClust, list("A", "e", "kol"), envir = environment())
+          temp <- as.data.frame(t(parallel::parApply(parClust, e[, kol], 1L, \(x) {
             b <- as.numeric(x)
             b[!is.finite(b)] <- 0
             sb <- sum(b)
@@ -118,8 +118,8 @@ if ((LabelType == "Isobaric")&&
             }
           }
           A <- as.matrix(A[, 3L:(length(lb)+2L)])
-          clusterExport(parClust, list("A", "e", "kol"), envir = environment())
-          temp <- as.data.frame(t(parApply(parClust, e[, kol], 1L, \(x) {
+          parallel::clusterExport(parClust, list("A", "e", "kol"), envir = environment())
+          temp <- as.data.frame(t(parallel::parApply(parClust, e[, kol], 1L, \(x) {
             b <- as.numeric(x)
             b[!is.finite(b)] <- 0
             sb <- sum(b)

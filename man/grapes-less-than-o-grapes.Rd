@@ -46,7 +46,7 @@ exists("a")
 exists("b")
 a
 b
-rm(list = setdiff(ls(), .obj))
+rm(list = base::setdiff(ls(), .obj))
 a
 b
 .obj

@@ -7,8 +7,6 @@
 # This implementation is based on the tutorial:
 # https://fuzzyatelin.github.io/bioanth-stats/module-F21-Group1/module-F21-Group1.html
 #
-library(WGCNA)
-#
 L <- length(RSA$values)
 if (L <= 15L) { warning("WGCNA is not recommended below 15 samples!") } else {
   if (L <= 30L) { warning("Low number of samples, WGCNA modules reliability may be poor !") }
@@ -42,7 +40,7 @@ minReps <- max(c(repThresh, round(length(Rep)*repProp))) # Let's be stringent an
 # We now get for WGCNA the data prepared for downstream analyses by cluster_Heatmap_PrepTop.R
 if (!exists("clustDat")) {
   if (exists("clustDat_fl") && file.exists(clustDat_fl)) {
-    loadImg(clustDat_fl)
+    loadFun(clustDat_fl)
   } else {
     Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
     #rstudioapi::documentOpen(Src)
@@ -51,12 +49,12 @@ if (!exists("clustDat")) {
 }
 dataType <- "PG"
 if (dataType == "PG") {
-  datNm <- intersect(c("ComBat", "Imputed", #"Filtered",
-                       "Original"),
-                     names(clustDat[[dataType]]))[1L]
+  datNm <- base::intersect(c("ComBat", "Imputed", #"Filtered",
+                             "Original"),
+                           names(clustDat[[dataType]]))[1L]
 }
 # if (dataType == "peptides") {
-#   datNm <- intersect(c("ComBat", "Original"),
+#   datNm <- base::intersect(c("ComBat", "Original"),
 #                      names(clustDat[[dataType]]))[1L]
 # }
 myClustData <- clustDat[[dataType]][[datNm]]
@@ -79,27 +77,25 @@ exprData <- exprData[, whWGCNA]
 exprMean <- rowMeans(PG[whWGCNA, col], na.rm = TRUE)
 #
 # Visualize data
-sampleTree <- hclust(dist(exprData), method = "average") #Clustering samples based on distance 
+sampleTree <- stats::hclust(stats::dist(exprData), method = "average") #Clustering samples based on distance 
 #Plotting the cluster dendrogram
 # Original code using base functions:
-# par(cex = 0.6)
-# par(mar = c(0L, 4L, 2L, 0L))
-# plot(sampleTree, main = "Sample clustering to detect outliers",
-#      sub = "", xlab = "", cex.lab = 1.5,
-#      cex.axis = 1.5, cex.main = 2L)
+# graphics::par(cex = 0.6)
+# graphics::par(mar = c(0L, 4L, 2L, 0L))
+# graphics::plot(sampleTree, main = "Sample clustering to detect outliers",
+#                sub = "", xlab = "", cex.lab = 1.5,
+#                cex.axis = 1.5, cex.main = 2L)
 # #draw on line to show cutoff height
-# abline(h = max(sampleTree$height)*0.95, col = "red")
-# dev.off()
+# graphics::abline(h = max(sampleTree$height)*0.95, col = "red")
+# grDevices::dev.off()
 # ggdendro option; problem: branch lengths are lost when it converts input from class "hclust" to "dendrogram"
-# library(ggplot2)
-# library(ggdendro)
-# ggPlot <- ggdendrogram(sampleTree, rotate = FALSE, size = 1.5) +
-#   ggtitle("Sample clustering to detect outliers") +
-#   ylab("Height")
+# ggPlot <- ggdendro::ggdendrogram(sampleTree, rotate = FALSE, size = 1.5) +
+#   ggplot2::ggtitle("Sample clustering to detect outliers") +
+#   ggplot2::ylab("Height")
 # poplot(ggPlot, 12, 22)
 # Solution: fix branch lengths (they were originally arbitrary anyway)
 L <- max(sampleTree$height)*0.025
-sampleTree2 <- as.dendrogram(sampleTree)
+sampleTree2 <- stats::as.dendrogram(sampleTree)
 dend_data <- ggdendro::dendro_data(sampleTree2, type = "rectangle")
 w <- which(dend_data$segments$yend == 0)
 dend_data$segments$yend[w] <- dend_data$segments$y[w] - L
@@ -109,119 +105,118 @@ dend_data$segments$label[w] <- dend_data$labels$label[match(dend_data$segments$x
 xMx <- max(dend_data$segments$x)
 yMn <- min(c(dend_data$segments$y, dend_data$segments$yend))
 yMx <- max(c(dend_data$segments$y, dend_data$segments$yend))
-yMnRnd <-floor(yMn-L*0.1)
+yMnRnd <- floor(yMn-L*0.1)
 yMxRnd <- ceiling(yMx)
 yLab <- data.frame(pos = yMnRnd:yMxRnd)
 ttl <- "Samples clustering"
-ggPlot <- ggplot(dend_data$segments) + theme_bw() +
-  geom_segment(aes(x = x, y = y, xend = xend, yend = yend)) +
-  geom_text(data = dend_data$segments[w,],
-             aes(label = label, x = x, y = yend-L*0.1), angle = 90, hjust = 1, cex = 3) +
-  geom_segment(y = yMx * 0.95, yend = yMx * 0.95, x = 1, xend = xMx, color = "red") +
-  geom_segment(x = 0, xend = 0, y = yMnRnd, yend = yMxRnd) +
-  geom_segment(data = yLab, x = -0.2, xend = 0, aes(y = pos, yend = pos)) +
-  geom_text(data = yLab, x = -0.3, aes(y = pos, label = pos), hjust = 1, cex = 2) +
-  labs(title = ttl, y = "Height", x = "") +
-  xlim(-0.2, xMx + 1) + ylim(yMnRnd-0.5, yMxRnd+0.25) +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank())
+ggPlot <- ggplot2::ggplot(dend_data$segments) + ggplot2::theme_bw() +
+  ggplot2::geom_segment(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
+  ggplot2::geom_text(data = dend_data$segments[w,],
+                     ggplot2::aes(label = label, x = x, y = yend-L*0.1), angle = 90, hjust = 1, cex = 3) +
+  ggplot2::geom_segment(y = yMx * 0.95, yend = yMx * 0.95, x = 1, xend = xMx, color = "red") +
+  ggplot2::geom_segment(x = 0, xend = 0, y = yMnRnd, yend = yMxRnd) +
+  ggplot2::geom_segment(data = yLab, x = -0.2, xend = 0,
+                        ggplot2::aes(y = pos, yend = pos)) +
+  ggplot2::geom_text(data = yLab, x = -0.3,
+                     ggplot2::aes(y = pos, label = pos), hjust = 1, cex = 2) +
+  ggplot2::labs(title = ttl, y = "Height", x = "") +
+  ggplot2::xlim(-0.2, xMx + 1) + ggplot2::ylim(yMnRnd-0.5, yMxRnd+0.25) +
+  ggplot2::theme(panel.grid.major = ggplot2::element_blank(),
+                 panel.grid.minor = ggplot2::element_blank(),
+                 panel.border = ggplot2::element_blank(),
+                 panel.background = ggplot2::element_blank(),
+                 axis.text.x = ggplot2::element_blank(),
+                 axis.ticks.x = ggplot2::element_blank(),
+                 axis.text.y = ggplot2::element_blank(),
+                 axis.ticks.y = ggplot2::element_blank())
 poplot(ggPlot, 6L, 11L)
 suppressMessages({
-  ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), ggPlot, dpi = 300L)
+  ggplot2::ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), ggPlot, dpi = 300L)
 })
 #
 # Unlike in the tutorial, we will NOT remove outliers:
 # We consider that these would already have been removed by then if necessary.
 #
-require(parallel)
-try(stopCluster(parClust), silent = TRUE) # Free-up connections if necessary...
-tst <- try(enableWGCNAThreads(N.clust), silent = TRUE) # Seems to be working based on plotting in tasks manager
+try(parallel::stopCluster(parClust), silent = TRUE) # Free-up connections if necessary...
+tst <- try(WGCNA::enableWGCNAThreads(N.clust), silent = TRUE) # Seems to be working based on plotting in tasks manager
 if (inherits(tst, "try-error")) {
   open_conns <- showConnections()
   sock_conns <- as.integer(rownames(open_conns[grep("sockconn", open_conns[,"class"]), , drop = FALSE]))
-  for (i in sock_conns) try(close(getConnection(i)), silent = TRUE)
-  tst <- try(enableWGCNAThreads(N.clust), silent = TRUE)
+  for (i in sock_conns) try(base::close(getConnection(i)), silent = TRUE)
+  tst <- try(WGCNA::enableWGCNAThreads(N.clust), silent = TRUE)
   if (inherits(tst, "try-error")) {
     closeAllConnections()
-    tst <- try(enableWGCNAThreads(N.clust), silent = TRUE)
+    tst <- try(WGCNA::enableWGCNAThreads(N.clust), silent = TRUE)
   }
 }
 # Soft threshold
 # Rather slow, although internally parallelized...
-spt <- pickSoftThreshold(exprData,
-                         powerVector = 1L:20L # This bit to make our life easier selecting a power level in the Shiny app
-                         )
+spt <- WGCNA::pickSoftThreshold(exprData,
+                                powerVector = 1L:20L # This bit to make our life easier selecting a power level in the Shiny app
+)
 # Scale independence vs Mean connectivity
 scaleFact <- max(spt$fitIndices$SFT.R.sq)/max(spt$fitIndices$mean.k.)
 #mxSFT.R.sq <- max(spt$fitIndices$SFT.R.sq)
 ttl <- "Scale independence vs Mean connectivity"
-ggPlot <- ggplot(spt$fitIndices) +
-  geom_text(aes(label = Power, x = Power, y = SFT.R.sq), color = "darkgreen") +
-  geom_line(aes(x = Power, y = SFT.R.sq), color = "darkgreen", linetype = "dotted") +
-  geom_text(aes(label = Power, x = Power, y = mean.k.*scaleFact), color = "purple") +
-  geom_line(aes(x = Power, y = mean.k.*scaleFact), color = "purple", linetype = "dotted") +
-  scale_y_continuous(name = "Scale independence",
-                     sec.axis = sec_axis(transform = ~./scaleFact, name = "Mean connectivity")) +
-  geom_hline(yintercept = sftThresh, color = "blue", linetype = "dashed") +
-  ggtitle(ttl) + xlab("Soft Threshold (power)") +
-  theme_bw() + theme(panel.grid.major = element_blank(),
-                     panel.grid.minor = element_blank(),
-                     panel.background = element_blank(),
-                     axis.ticks.x = element_blank(),
-                     axis.text.x = element_blank(),
-                     axis.ticks.y = element_blank(),
-                     axis.title.y = element_text(color = "darkgreen"),
-                     axis.title.y.right = element_text(color = "purple"))
+ggPlot <- ggplot2::ggplot(spt$fitIndices) +
+  ggplot2::geom_text(ggplot2::aes(label = Power, x = Power, y = SFT.R.sq), color = "darkgreen") +
+  ggplot2::geom_line(ggplot2::aes(x = Power, y = SFT.R.sq), color = "darkgreen", linetype = "dotted") +
+  ggplot2::geom_text(ggplot2::aes(label = Power, x = Power, y = mean.k.*scaleFact), color = "purple") +
+  ggplot2::geom_line(ggplot2::aes(x = Power, y = mean.k.*scaleFact), color = "purple", linetype = "dotted") +
+  ggplot2::scale_y_continuous(name = "Scale independence",
+                              sec.axis = ggplot2::sec_axis(transform = ~./scaleFact, name = "Mean connectivity")) +
+  ggplot2::geom_hline(yintercept = sftThresh, color = "blue", linetype = "dashed") +
+  ggplot2::ggtitle(ttl) + ggplot2::xlab("Soft Threshold (power)") +
+  ggplot2::theme_bw() +
+  ggplot2::theme(panel.grid.major = ggplot2::element_blank(),
+                 panel.grid.minor = ggplot2::element_blank(),
+                 panel.background = ggplot2::element_blank(),
+                 axis.ticks.x = ggplot2::element_blank(),
+                 axis.text.x = ggplot2::element_blank(),
+                 axis.ticks.y = ggplot2::element_blank(),
+                 axis.title.y = ggplot2::element_text(color = "darkgreen"),
+                 axis.title.y.right = ggplot2::element_text(color = "purple"))
 #poplot(ggPlot, 6, 11)
 suppressMessages({
-  ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), ggPlot, dpi = 300L)
+  ggplot2::ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), ggPlot, dpi = 300L)
 })
 pwrEst <- spt$powerEstimate
 if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
   # Shiny app to select threshold
-  library(shiny)
-  library(shinyWidgets)
-  library(shinyjs)
   ggPlot2 <- ggPlot +
-    geom_vline(xintercept = pwrEst, color = "red") +
-    geom_hline(yintercept = spt$fitIndices$SFT.R.sq[spt$fitIndices$Power == pwrEst],
-               color = "red")
+    ggplot2::geom_vline(xintercept = pwrEst, color = "red") +
+    ggplot2::geom_hline(yintercept = spt$fitIndices$SFT.R.sq[spt$fitIndices$Power == pwrEst],
+                        color = "red")
   appNm <- "Select WGCNA threshold"
   if (exists("appRunTest")) { rm(appRunTest) }
-  ui <- fluidPage(
-    useShinyjs(),
-    setBackgroundColor( # Doesn't work
+  ui <- shiny::fluidPage(
+    shinyjs::useShinyjs(),
+    shinyWidgets::setBackgroundColor( # Doesn't work
       color = c(#"#F8F8FF",
         "#E5EDE1"),
       gradient = "linear",
       direction = "bottom"
     ),
-    extendShinyjs(text = jsFun$toggle_full_screen,
-                  functions = c("toggleFullScreen")),
-    tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-    titlePanel(tag("u", appNm),
-               appNm),
-    br(),
-    h5(tags$div(
+    shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                           functions = c("toggleFullScreen")),
+    shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+    shiny::titlePanel(shiny::tag("u", appNm),
+                      appNm),
+    shiny::br(),
+    shiny::h5(shiny::tags$div(
       "Select the lowest power for which R^2 is above 0.8 - or starts to plateau, keeping mean connectivity in a reasonable range (10-100),", tags$br(),
       "then click \"Save\".")),
-    uiOutput("Current"),
-    br(),
-    actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-    br(),
-    sliderInput("Power", "Power", 1L, max(spt$fitIndices$Power), pwrEst, 1L, TRUE, width = "400px"),
-    br(),
-    plotOutput("IndepConnect", height = paste0(screenRes$width*0.4, "px")),
-    br(),
+    shiny::uiOutput("Current"),
+    shiny::br(),
+    shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+    shiny::br(),
+    shiny::sliderInput("Power", "Power", 1L, max(spt$fitIndices$Power), pwrEst, 1L, TRUE, width = "400px"),
+    shiny::br(),
+    shiny::plotOutput("IndepConnect", height = paste0(screenRes$width*0.4, "px")),
+    shiny::br(),
   )
   server <- \(input, output, session) {
-    POWER <- reactiveVal(pwrEst)
+    POWER <- shiny::reactiveVal(pwrEst)
     updtPlot <- \(reactive = TRUE) {
       if (reactive) {
         pwr <- input$Power
@@ -234,39 +229,39 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         POWER(pwr)
         assign("ggPlot2",
                ggPlot +
-                 geom_vline(xintercept = pwr, color = "red") +
-                 geom_hline(yintercept = spt$fitIndices$SFT.R.sq[spt$fitIndices$Power == pwr],
-                            color = "red"),
+                 ggplot2::geom_vline(xintercept = pwr, color = "red") +
+                 ggplot2::geom_hline(yintercept = spt$fitIndices$SFT.R.sq[spt$fitIndices$Power == pwr],
+                                     color = "red"),
                envir = .GlobalEnv)
       }
-      return(renderPlot({ ggPlot2 }))
+      return(shiny::renderPlot({ ggPlot2 }))
     }
     updtVal <- \(reactive = TRUE) {
       pwr <- if (reactive) { input$Power } else { pwrEst }
       m <- match(pwr, spt$fitIndices$Power)
-      return(renderUI({ list(list(em("Current values:"), br(),
-                                  em(paste0("- R^2 = ", signif(spt$fitIndices$SFT.R.sq[m], 3L))), br(),
-                                  em(paste0("- Mean connectivity = ", signif(spt$fitIndices$mean.k.[m], 3L))),
-                                  br()))
-        }))
+      return(shiny::renderUI({ list(list(shiny::em("Current values:"), shiny::br(),
+                                         shiny::em(paste0("- R^2 = ", signif(spt$fitIndices$SFT.R.sq[m], 3L))), shiny::br(),
+                                         shiny::em(paste0("- Mean connectivity = ", signif(spt$fitIndices$mean.k.[m], 3L))),
+                                         shiny::br()))
+      }))
     }
     output$IndepConnect <- updtPlot(FALSE)
     output$Current <- updtVal(FALSE)
     spt$fitIndices
-    observeEvent(input$Power, {
+    shiny::observeEvent(input$Power, {
       output$IndepConnect <- updtPlot()
       output$Current <- updtVal()
     })
-    observeEvent(input$saveBtn, {
+    shiny::observeEvent(input$saveBtn, {
       assign("pwrEst", input$Power, envir = .GlobalEnv)
       suppressWarnings({
-        ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), ggPlot2, dpi = 300L)
+        ggplot2::ggsave(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), ggPlot2, dpi = 300L)
       })
       assign("appRunTest", TRUE, envir = .GlobalEnv)
-      stopApp()
+      shiny::stopApp()
     })
-    #observeEvent(input$cancel, { stopApp() })
-    session$onSessionEnded(\() { stopApp() })
+    #observeEvent(input$cancel, { shiny::stopApp() })
+    session$onSessionEnded(\() { shiny::stopApp() })
   }
   runKount <- 0L
   while ((!runKount)||(!exists("appRunTest"))) {
@@ -282,26 +277,26 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
   while ((roundWeGo)&&(pwrEst >= 1)) {
     cat("   Power level =", pwrEst, "\n")
     # Adjacency
-    adjacency <- adjacency(exprData, power = pwrEst)
+    adjacency <- WGCNA::adjacency(exprData, power = pwrEst)
     rownames(adjacency) <- colnames(adjacency) <- colnames(exprData)
     #
     # Module construction
-    TOM <- TOMsimilarity(adjacency) # TOM stands for Topological Overlap Matrix
+    TOM <- WGCNA::TOMsimilarity(adjacency) # TOM stands for Topological Overlap Matrix
     rownames(TOM) <- colnames(TOM) <- colnames(exprData)
     # (this is the rate limiting step!!!)
     TOMdissimil <- 1-TOM
-    PGsTree <- hclust(as.dist(TOMdissimil), method = "average")
+    PGsTree <- stats::hclust(stats::as.dist(TOMdissimil), method = "average")
     # Plot
     ttl <- "Protein groups clustering on TOM-based dissimilarity"
-    plot(PGsTree, xlab = "", sub = "",
-         main = "Protein groups clustering on TOM-based dissimilarity", 
-         labels = FALSE, hang = 0.04)
+    graphics::plot(PGsTree, xlab = "", sub = "",
+                   main = "Protein groups clustering on TOM-based dissimilarity", 
+                   labels = FALSE, hang = 0.04)
     # Identify modules
-    Modules <- cutreeDynamic(dendro = PGsTree,
-                             distM = TOMdissimil,
-                             deepSplit = 2,
-                             pamRespectsDendro = FALSE,
-                             minClusterSize = 30L)
+    Modules <- dynamicTreeCut::cutreeDynamic(dendro = PGsTree,
+                                             distM = TOMdissimil,
+                                             deepSplit = 2,
+                                             pamRespectsDendro = FALSE,
+                                             minClusterSize = 30L)
     names(Modules) <- PGsTree$labels
     #table(Modules)
     modColors <- labels2colors(Modules) #assigns each module number a color
@@ -318,57 +313,53 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     # NOTE:
     # Module "grey" is NOT a module but a dumping ground for "boring proteins".
     #table(modColors) # returns the counts for each color (aka the number of PGs within each module)
-    plotDendroAndColors(PGsTree, modColors,"Module",
-                        dendroLabels = FALSE, hang = 0.03,
-                        addGuide = TRUE, guideHang = 0.05,
-                        main = "Protein groups dendrogram and module colors")
+    WGCNA::plotDendroAndColors(PGsTree, modColors,"Module",
+                               dendroLabels = FALSE, hang = 0.03,
+                               addGuide = TRUE, guideHang = 0.05,
+                               main = "Protein groups dendrogram and module colors")
     # Record plot
-    p <- recordPlot()
-    dev.off()
+    p <- grDevices::recordPlot()
+    grDevices::dev.off()
     # Replay plot to svg device (or any other device)
-    svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
-    replayPlot(p)
-    dev.off()
-    # jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-    # replayPlot(p)
-    # dev.off()
+    grDevices::svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
+    grDevices::replayPlot(p)
+    grDevices::dev.off()
     #
     # Identify each module's Eigengene ("Well, akshually, it's an Eigen-Protein-Group!")
-    MElist <- moduleEigengenes(exprData, colors = modColors) 
+    MElist <- WGCNA::moduleEigengenes(exprData, colors = modColors) 
     MEs <- MElist$eigengenes
     #head(MEs)
     #
     MEdissimil <- 1-cor(MElist$eigengenes, use = "complete")
-    METree <- hclust(as.dist(MEdissimil), method = "average") # Clustering Eigengenes 
+    METree <- stats::hclust(stats::as.dist(MEdissimil), method = "average") # Clustering Eigengenes 
     ttl <- "Cluster dendrogram"
-    par(mar = c(0L, 4L, 2L, 0L),
-        cex = 1L)
+    graphics::par(mar = c(0L, 4L, 2L, 0L),
+                  cex = 1L)
     METree$labels <- substring(METree$labels, 3L)
-    goOn <- !inherits(try({ plot(METree) }, silent = TRUE), "try-error")
+    goOn <- !inherits(try({ graphics::plot(METree) }, silent = TRUE), "try-error")
   } else {
     # Quick plot for when this fails - to check that the reason is the underlying structure of the data
-    MEs <- moduleEigengenes(exprData, modColors)$eigengenes
+    MEs <- WGCNA::moduleEigengenes(exprData, modColors)$eigengenes
     MEs$Samples <- factor(rownames(exprData))
     RGroups <- cleanNms(Exp.map[match(RSA$values, Exp.map$Ref.Sample.Aggregate), RG$column])
     MEs$RGroups <- factor(RGroups, levels = unique(RGroups))
-    plot <- ggplot(MEs) + geom_point(aes(x = Samples, y = MEturquoise, color = RGroups)) + theme_bw()
+    plot <- ggplot2::ggplot(MEs) +
+      ggplot2::geom_point(ggplot2::aes(x = Samples, y = MEturquoise, color = RGroups)) +
+      ggplot2::theme_bw()
     poplot(plot)
     warning("WGCNA analysis failed.\nThere is possibly not enough variation in the data, or maybe a single too large source of variation(?)")
   }
   if (goOn) {
-    abline(h = 0.25, col = "red") #a height of .25 corresponds to correlation of .75
-    p <- recordPlot()
-    dev.off()
+    graphics::abline(h = 0.25, col = "red") #a height of .25 corresponds to correlation of .75
+    p <- grDevices::recordPlot()
+    grDevices::dev.off()
     # Replay plot to devices
-    svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
-    replayPlot(p)
-    dev.off()
-    # jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-    # replayPlot(p)
-    # dev.off()
+    grDevices::svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
+    grDevices::replayPlot(p)
+    grDevices::dev.off()
     #
     # Merge modules below default 0.25 line (75% similarity or more)
-    merge <- mergeCloseModules(exprData, modColors, cutHeight = mergeThresh)
+    merge <- WGCNA::mergeCloseModules(exprData, modColors, cutHeight = mergeThresh)
     mergedMEs <- merge$newMEs
     mergedModColors <- merge$colors # Update colors
     mergedModules <- match(mergedModColors, substring(colnames(mergedMEs), 3))
@@ -378,20 +369,17 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     #
     # New dendrogram
     ttl <- "Protein groups dendrogram and module colors for original and merged modules"
-    plotDendroAndColors(PGsTree, cbind(modColors, mergedModColors), 
-                        c("Original Module", "Merged Module"),
-                        dendroLabels = FALSE, hang = 0.03,
-                        addGuide = TRUE, guideHang = 0.05,
-                        main = "Protein groups dendrogram and module colors for original and merged modules")
-    p <- recordPlot()
-    dev.off()
+    WGCNA::plotDendroAndColors(PGsTree, cbind(modColors, mergedModColors), 
+                               c("Original Module", "Merged Module"),
+                               dendroLabels = FALSE, hang = 0.03,
+                               addGuide = TRUE, guideHang = 0.05,
+                               main = "Protein groups dendrogram and module colors for original and merged modules")
+    p <- grDevices::recordPlot()
+    grDevices::dev.off()
     # Replay plot to devices
-    svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
-    replayPlot(p)
-    dev.off()
-    # jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-    # replayPlot(p)
-    # dev.off()
+    grDevices::svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
+    grDevices::replayPlot(p)
+    grDevices::dev.off()
     #
     # Relate samples to experimental factors
     myFact <- Factors[vapply(Factors, \(Fact) { length(FactorsLevels[[Fact]]) }, 1L) > 1L]
@@ -411,7 +399,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
             xpMap[[nm]] <- as.integer(xpMap[[Fact]] == u[i])
           }
           xpMap[[Fact]] <- NULL
-          myFact <- c(setdiff(myFact, Fact), names(u))
+          myFact <- c(base::setdiff(myFact, Fact), names(u))
         }
       }
     }
@@ -424,8 +412,8 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     # Define numbers of PGs and samples
     nPGs <- ncol(exprData)
     nSamples <- nrow(exprData)
-    moduleTraitCor <- cor(mergedMEs, xpMap, use = "p") #p for pearson correlation coefficient 
-    moduleTraitPVal <- corPvalueStudent(moduleTraitCor, nSamples) #calculate the p-value associated with the correlation
+    moduleTraitCor <- WGCNA::cor(mergedMEs, xpMap, use = "p") #p for pearson correlation coefficient 
+    moduleTraitPVal <- WGCNA::corPvalueStudent(moduleTraitCor, nSamples) #calculate the p-value associated with the correlation
     # Identify for each trait the best modules
     traitModules <- setNames(lapply(myFact, \(Fact) {
       tst <- vapply(1L:nrow(moduleTraitCor), \(x) {
@@ -441,27 +429,24 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     dim(textMatrix) <- dim(moduleTraitCor)
     # Display the correlation values within a heatmap plot
     ttl <- "Module-exp. factor relationships"
-    par(mar = c(12L, 12L, 4L, 1L))
-    labeledHeatmap(Matrix = moduleTraitCor,
-                   xLabels = names(xpMap),
-                   yLabels = substring(names(mergedMEs), 3L),
-                   ySymbols = names(mergedMEs),
-                   colorLabels = FALSE,
-                   colors = blueWhiteRed(50L),
-                   textMatrix = textMatrix,
-                   setStdMargins = FALSE,
-                   cex.main = 1.6, cex.lab = 1.4, cex.text = 1.2,
-                   zlim = c(-1L, 1L),
-                   main = ttl)
-    p <- recordPlot()
-    dev.off()
+    graphics::par(mar = c(12L, 12L, 4L, 1L))
+    WGCNA::labeledHeatmap(Matrix = moduleTraitCor,
+                          xLabels = names(xpMap),
+                          yLabels = substring(names(mergedMEs), 3L),
+                          ySymbols = names(mergedMEs),
+                          colorLabels = FALSE,
+                          colors = blueWhiteRed(50L),
+                          textMatrix = textMatrix,
+                          setStdMargins = FALSE,
+                          cex.main = 1.6, cex.lab = 1.4, cex.text = 1.2,
+                          zlim = c(-1L, 1L),
+                          main = ttl)
+    p <- grDevices::recordPlot()
+    grDevices::dev.off()
     # Replay plot to devices
-    svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
-    replayPlot(p)
-    dev.off()
-    # jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-    # replayPlot(p)
-    # dev.off()
+    grDevices::svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
+    grDevices::replayPlot(p)
+    grDevices::dev.off()
     #
     # Let's check the relationship between our modules and our Traits
     MET <- MEs
@@ -471,31 +456,28 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
     MET <- orderMEs(cbind(MET, tmpXp))
     # Plot the relationships among the eigengenes and all traits
     ttl <- "Eigengenes vs exp. Factors"
-    par(cex = 1.4, mar = c(1L, 1L, 1L, 1L))
-    plotEigengeneNetworks(MET, "", marDendro = c(2L, 6L, 1L, 2L), marHeatmap = c(6L, 6L, 0L, 2L),
-                          cex.lab = 0.8, xLabelsAngle = 90)
-    p <- recordPlot()
-    dev.off()
+    graphics::par(cex = 1.4, mar = c(1L, 1L, 1L, 1L))
+    WGCNA::plotEigengeneNetworks(MET, "", marDendro = c(2L, 6L, 1L, 2L), marHeatmap = c(6L, 6L, 0L, 2L),
+                                 cex.lab = 0.8, xLabelsAngle = 90)
+    p <- grDevices::recordPlot()
+    grDevices::dev.off()
     # Replay plot to devices
-    svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
-    replayPlot(p)
-    dev.off()
-    # jpeg(paste0(wgcnaDirs[1L], "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-    # replayPlot(p)
-    # dev.off()
+    grDevices::svg(paste0(wgcnaDirs[1L], "/", ttl, ".svg"), width = 16L, height = 12L)
+    grDevices::replayPlot(p)
+    grDevices::dev.off()
     #
-    shScale <- scale_shape_manual(values = c(`FALSE` = 21L, `TRUE` = 24L))
+    shScale <- ggplot2::scale_shape_manual(values = c(`FALSE` = 21L, `TRUE` = 24L))
     if (length(traitModules)) {
       # Calculate modules membership and connectivity - sometimes called kME
       modNames <- substring(names(mergedMEs), 3L)
-      PGmodMembership <- signedKME(exprData, mergedMEs, outputColumnName = "")
+      PGmodMembership <- WGCNA::signedKME(exprData, mergedMEs, outputColumnName = "")
       # Below, alternative, roughly equivalent way to create PGmodMembership:
       #PGmodMembership <- as.data.frame(cor(exprData, mergedMEs, use = "p"))
       # ... but signedKME() - according to chatGPT, applies the correct sign convention for signed networks,
       # optionally accounts for missing data, ensures column names match module colors,
       # and can handle networks with different sign types (signed, unsigned, signed hybrid).
       # At least in my examples I could verify that the outcome was identical.
-      kIntraMod <- intramodularConnectivity(adjacency, mergedModColors)
+      kIntraMod <- WGCNA::intramodularConnectivity(adjacency, mergedModColors)
       # Extract PGs which have high significance for each Trait (aka Factor)
       modMembPval <- as.data.frame(corPvalueStudent(as.matrix(PGmodMembership), nSamples))
       names(PGmodMembership) <- modNames
@@ -538,19 +520,18 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
                            if (is.finite(corXY)) {
                              paste0(", p-val. = ", signif(pvalXY, 2))
                            } else { "" })
-          tst <- sqrt(sum(hex2RGB(gplots::col2hex(mod))@coords^2L)) < 0.2
-          ggPlot <- ggplot(tmp) +
-            geom_point(aes(x = X, y = Y, shape = `is a Hub?`, size = `mean log10 expression`),
-                       color = c("black", "red")[tst + 1L], fill = mod) +
-            theme_bw() + ggtitle(ttl, subtitle = subttl) + shScale +
-            xlab(paste("Module Membership in", mod, "module")) +
-            ylab(paste0("Significance for factor \"", Fact, "\"")) +
-            theme(panel.grid.major = element_blank(),
-                  panel.grid.minor = element_blank())
+          tst <- sqrt(sum(colorspace::hex2RGB(gplots::col2hex(mod))@coords^2L)) < 0.2
+          ggPlot <- ggplot2::ggplot(tmp) +
+            ggplot2::geom_point(ggplot2::aes(x = X, y = Y, shape = `is a Hub?`, size = `mean log10 expression`),
+                                color = c("black", "red")[tst + 1L], fill = mod) +
+            ggplot2::theme_bw() + ggplot2::ggtitle(ttl, subtitle = subttl) + shScale +
+            ggplot2::xlab(paste("Module Membership in", mod, "module")) +
+            ggplot2::ylab(paste0("Significance for factor \"", Fact, "\"")) +
+            ggplot2::theme(panel.grid.major = ggplot2::element_blank(),
+                           panel.grid.minor = ggplot2::element_blank())
           #poplot(ggPlot)
           suppressMessages({
-            ggsave(paste0(dr, "/", ttl, ".jpeg"), ggPlot, dpi = 300L)
-            ggsave(paste0(dr, "/", ttl, ".pdf"), ggPlot, dpi = 300L)          
+            ggplot2::ggsave(paste0(dr, "/", ttl, ".svg"), ggPlot, dpi = 300L)
           })
           #
           # save as list and do Preranked GSEA
@@ -558,56 +539,47 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
         }
         # Add all Factors to existing module eigengenes
         MET <- MEs
-        colnames(MET) <- substring(colnames(MET), 3)
+        colnames(MET) <- substring(colnames(MET), 3L)
         tmpXp <- tmpFact
         colnames(tmpXp) <- paste0("[ ", colnames(tmpXp), " ]")
-        MET <- orderMEs(cbind(MET, tmpXp))
+        MET <- WGCNA::orderMEs(cbind(MET, tmpXp))
         # Plot the relationships among the eigengenes and the trait to identify meta-modules:
         ttl <- paste0(Fact, " vs Eigengenes")
-        par(cex = 0.9)
-        plotEigengeneNetworks(MET, "", marDendro = c(0L, 4L, 1L, 2L), marHeatmap = c(5L, 4L, 1L, 2L),
-                              cex.lab = 0.8, xLabelsAngle = 90)
-        p <- recordPlot()
-        dev.off()
+        graphics::par(cex = 0.9)
+        WGCNA::orderMEsplotEigengeneNetworks(MET, "", marDendro = c(0L, 4L, 1L, 2L), marHeatmap = c(5L, 4L, 1L, 2L),
+                                             cex.lab = 0.8, xLabelsAngle = 90)
+        p <- grDevices::recordPlot()
+        grDevices::dev.off()
         # Replay plot to devices
-        svg(paste0(dr, "/", ttl, ".svg"), width = 16L, height = 12L)
-        replayPlot(p)
-        dev.off()
-        # jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-        # replayPlot(p)
-        # dev.off()
+        grDevices::svg(paste0(dr, "/", ttl, ".svg"), width = 16L, height = 12L)
+        grDevices::replayPlot(p)
+        grDevices::dev.off()
         #
         # -> Meta-modules:
         # = groups of modules with mutual correlations stronger than their correlation with the specified trait
         #
         ttl <- paste0(Fact, " - Eigengene dendrogram")
-        par(cex = 1L)
-        plotEigengeneNetworks(MET, ttl, marDendro = c(0L, 4L, 2L, 0L),
-                              plotHeatmaps = FALSE)
-        p <- recordPlot()
-        dev.off()
+        graphics::par(cex = 1L)
+        WGCNA::orderMEsplotEigengeneNetworks(MET, ttl, marDendro = c(0L, 4L, 2L, 0L),
+                                             plotHeatmaps = FALSE)
+        p <- grDevices::recordPlot()
+        grDevices::dev.off()
         # Replay plot to devices
-        svg(paste0(dr, "/", ttl, ".svg"), width = 16L, height = 12L)
-        replayPlot(p)
-        dev.off()
-        # jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-        # replayPlot(p)
-        # dev.off()
+        grDevices::svg(paste0(dr, "/", ttl, ".svg"), width = 16L, height = 12L)
+        grDevices::replayPlot(p)
+        grDevices::dev.off()
         #
         # Plot the heatmap matrix
         ttl <- paste0(Fact, " - Eigengene adjacency heatmap")
-        par(cex = 1L, mar = c(1L, 1L, 1L, 1L))
-        plotEigengeneNetworks(MET, "Eigengene adjacency heatmap", marHeatmap = c(5L, 5L, 2L, 2L),
-                              plotDendrograms = FALSE, xLabelsAngle = 90)
-        p <- recordPlot()
-        dev.off()
+        graphics::par(cex = 1L, mar = c(1L, 1L, 1L, 1L))
+        WGCNA::orderMEsplotEigengeneNetworks(MET, "Eigengene adjacency heatmap", marHeatmap = c(5L, 5L, 2L, 2L),
+                                             plotDendrograms = FALSE, xLabelsAngle = 90)
+        p <- grDevices::recordPlot()
+        grDevices::dev.off()
         # Replay plot to devices
-        svg(paste0(dr, "/", ttl, ".svg"), width = 16L, height = 12L)
-        replayPlot(p)
-        dev.off()
-        # jpeg(paste0(dr, "/", ttl, ".jpeg"), quality = 100L, width = 1600L, height = 1200L)
-        # replayPlot(p)
-        # dev.off()
+        grDevices::svg(paste0(dr, "/", ttl, ".svg"), width = 16L, height = 12L)
+        grDevices::replayPlot(p)
+        grDevices::dev.off()
       }
       #
       if (runGSEA) {
@@ -642,10 +614,10 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
 }
 #
 # Finally, since we killed our cluster, we recreate it for later
-disableWGCNAThreads()
+WGCNA::disableWGCNAThreads()
 open_conns <- showConnections()
 sock_conns <- as.integer(rownames(open_conns[grep("sockconn", open_conns[,"class"]), , drop = FALSE]))
-for (i in sock_conns) try(close(getConnection(i)), silent = TRUE)
+for (i in sock_conns) try(base::close(getConnection(i)), silent = TRUE)
 source(parSrc)
 detach("package:WGCNA", unload = TRUE)
 #

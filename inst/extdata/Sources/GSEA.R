@@ -38,7 +38,7 @@ if (GSEAmode == "standard") {
   if (scrptType == "noReps") {
     rankCol <- paste0(ratRef, Exp)
   }
-  rankCol <- intersect(rankCol, colnames(myData))
+  rankCol <- base::intersect(rankCol, colnames(myData))
   isOK <- length(rankCol) > 0L
 }
 if (GSEAmode == "WGCNA") {
@@ -71,9 +71,8 @@ ohDeer <- paste0(ohDeer, c("", "/svg"))
 for (dr in ohDeer) {
   if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
 }
-if (exists("dirlist")) { dirlist <- union(dirlist, ohDeer) }
-packs <- c()
-exports <- c("packs", "idCol", "rankCol", "keyType", "cpParam", "Annotate", "rdsFls")
+if (exists("dirlist")) { dirlist <- base::union(dirlist, ohDeer) }
+exports <- c("idCol", "rankCol", "keyType", "cpParam", "Annotate", "rdsFls")
 if (isOK) {
   if (Annotate) {
     
@@ -95,7 +94,7 @@ if (isOK) {
   } else {
     # Or we will have to get an annotations package (currently 20 organisms are supported)
     if ((!exists("Org")) || (!is.data.frame(Org)) || (nrow(Org) != 1L)) {
-      kol <- intersect(c("Organism_Full", "Organism"), colnames(db))
+      kol <- base::intersect(c("Organism_Full", "Organism"), colnames(db))
       tst <- sapply(kol, \(x) { length(unique(db[!as.character(db[[x]]) %in% c("", "NA"), x])) })
       kol <- kol[order(tst, decreasing = TRUE)][1L]
       w <- which(db$`Potential contaminant` != "+")
@@ -152,46 +151,36 @@ if (isOK) {
                                   "org.EcSakai.eg.db",
                                   "org.Mxanthus.db"))
       organism <- if (Org$Organism %in% orgDBs$Full) { Org$Organism } else {
-        dlg_list(c(orgDBs$Full, "none of these"), orgDBs$Full[1L], title = "Organism")$res
+        svDialogs::dlg_list(c(orgDBs$Full, "none of these"), orgDBs$Full[1L], title = "Organism")$res
       }
       if (!length(organism)) { organism <- "none of these" }
       isOK <- organism != "none of these" 
     }
     # See https://guangchuangyu.github.io/2016/01/go-analysis-using-clusterprofiler/ for how to create annotations with the format clusterProfiler expects
-    #BiocManager::install("AnnotationHub")
-    #library(AnnotationHub)
-    #hub <- AnnotationHub()
-    #query(hub, organism)
-    #myOrgAnnot <- hub[db$`Protein ID`]
     if (isOK) {
       orgDBpkg <- orgDBs$db[match(organism, orgDBs$Full)]
       if (!requireNamespace(orgDBpkg)) {
         opt <- c("Yes                                                                                                                                  ",
                  "No                                                                                                                                   ")
-        installMe <- c(TRUE, FALSE)[match(dlg_list(opt, opt[1L],
-                                                   title = paste0("Install missing annotation package \"", orgDBpkg,
-                                                                  "\" for organism \"", organism, "\"?"))$res, opt)]
+        installMe <- c(TRUE, FALSE)[match(svDialogs::dlg_list(opt, opt[1L],
+                                                              title = paste0("Install missing annotation package \"", orgDBpkg,
+                                                                             "\" for organism \"", organism, "\"?"))$res, opt)]
         if (installMe) { pak::pak(orgDBpkg) }
       }
-      library(AnnotationDbi)
-      library(orgDBpkg, character.only = TRUE)
-      packs <- union(packs, c("AnnotationDbi", orgDBpkg))
-      eval(parse(text = paste0("myKeys <- keytypes(", orgDBpkg, ")")))
-      if (!"UNIPROT" %in% myKeys) {
-        if ((organism == "Arabidopsis thaliana") && ("TAIR" %in% colnames(db))) {
-          myData$TAIR <- sub(";.*", "", db$TAIR[match(sub(";.*", "", myData[[idCol]]), db$`Protein ID`)])
-          keyType <- idCol <- "TAIR"
-        } else { isOK <- FALSE }
+      isOK <- requireNamespace(orgDBpkg)
+      if (isOK) {
+        eval(parse(text = paste0("myKeys <- AnnotationDbi::keytypes(", orgDBpkg, ")")))
+        if (!"UNIPROT" %in% myKeys) {
+          if ((organism == "Arabidopsis thaliana") && ("TAIR" %in% colnames(db))) {
+            myData$TAIR <- sub(";.*", "", db$TAIR[match(sub(";.*", "", myData[[idCol]]), db$`Protein ID`)])
+            keyType <- idCol <- "TAIR"
+          } else { isOK <- FALSE }
+        }
       }
     }
   }
 }
 if (isOK) {
-  packs3 <- c("GO.db", "clusterProfiler", "BiocParallel", "pathview", "enrichplot", "DOSE")
-  for (pck in packs3) {
-    library(pck, character.only = TRUE)
-  }
-  packs <- union(packs, packs3)
   tmpDat <- myData[(nchar(myData[[idCol]]) > 0L) & (!is.na(myData[[idCol]])),
                    c(idCol, rankCol)]
   if (length(unique(tmpDat[[idCol]])) < nrow(tmpDat)) {
@@ -213,9 +202,8 @@ if (isOK) {
     exports <- c(exports, "orgDBpkg")
   }
   source(parSrc)
-  clusterExport(parClust, exports, envir = environment())
-  invisible(clusterCall(parClust, \(x) {
-    for (pck in packs) { library(pck, character.only = TRUE) }
+  parallel::clusterExport(parClust, exports, envir = environment())
+  invisible(parallel::clusterCall(parClust, \(x) {
     assign("tmpDat", readr::read_rds(rdsFls[1L]), envir = .GlobalEnv)
     if (Annotate) {
       assign("term2Prot", readr::read_rds(rdsFls[2L]), envir = .GlobalEnv)
@@ -235,35 +223,35 @@ if (isOK) {
     #View(tmp)
     gse <- suppressMessages({
       if (userAnnot) {
-        GSEA(geneList = tmp,
-             TERM2GENE = term2Prot,
-             TERM2NAME = term2name,
-             nPerm = 10000L,
-             minGSSize = 3L,
-             maxGSSize = 800L,
-             pvalueCutoff = 0.05,
-             pAdjustMethod = "none",
-             verbose = TRUE,
-             BPPARAM = cpParam)
+        clusterProfiler::GSEA(geneList = tmp,
+                              TERM2GENE = term2Prot,
+                              TERM2NAME = term2name,
+                              nPerm = 10000L,
+                              minGSSize = 3L,
+                              maxGSSize = 800L,
+                              pvalueCutoff = 0.05,
+                              pAdjustMethod = "none",
+                              verbose = TRUE,
+                              BPPARAM = cpParam)
       } else {
-        gseGO(tmp,
-              ont = "ALL", 
-              keyType = keyType, 
-              nPerm = 10000L, 
-              minGSSize = 3L, 
-              maxGSSize = 800L, 
-              pvalueCutoff = 0.05, 
-              verbose = TRUE, 
-              OrgDb = orgDBpkg, 
-              pAdjustMethod = "none",
-              BPPARAM = cpParam)
+        clusterProfiler::gseGO(tmp,
+                               ont = "ALL", 
+                               keyType = keyType, 
+                               nPerm = 10000L, 
+                               minGSSize = 3L, 
+                               maxGSSize = 800L, 
+                               pvalueCutoff = 0.05, 
+                               verbose = TRUE, 
+                               OrgDb = orgDBpkg, 
+                               pAdjustMethod = "none",
+                               BPPARAM = cpParam)
       }
     })
     return(list(GSE = gse,
                 lFC = tmp))
   }
   environment(f0) <- .GlobalEnv
-  gses <- clusterApplyLB(parClust, rankCol, f0)
+  gses <- parallel::clusterApplyLB(parClust, rankCol, f0)
   #
   # Rename
   names(gses) <- rankCol
@@ -301,7 +289,8 @@ if (isOK) {
       svpth <- paste0(ohDeer, "/", ttl, ".", c("html", "svg"))
       plot <- clusterProfiler::dotplot(gse, showCategory = nCat, split = ".sign", font.size = 4L,
                                        label_format = 500L # don't you dare wrap my labels!!!
-      ) + ggplot2::facet_grid(.~.sign) +
+      ) +
+        ggplot2::facet_grid(.~.sign) +
         ggplot2::coord_fixed(0.025) +
         ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5),
                        plot.subtitle = ggplot2::element_text(hjust = 0.5),
@@ -311,7 +300,7 @@ if (isOK) {
                        plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"))
       suppressMessages({
         plot <- plot + viridis::scale_fill_viridis()
-        #plot <- dotplot(gse, showCategory = nCat, color = "pvalue", split = ".sign") + facet_grid(.~.sign)
+        #plot <- dotplot(gse, showCategory = nCat, color = "pvalue", split = ".sign") + ggplot2::facet_grid(.~.sign)
         #poplot(plot)
         plotL <- plotly::ggplotly(plot)
         # Fix tooltip
@@ -554,16 +543,16 @@ if (isOK) {
   #
   plotsDF <- data.frame(GSE = rep(names(gses), 4L),
                         type = unlist(lapply(c("dotplot", "enrichment", "net", "ridge"), \(x) {  rep(x, length(gses)) })))
-  clusterExport(parClust, list("GSEA_dotplotFun", "GSEA_enrichFun", "GSEA_netFun", "GSEA_ridgeFun",
-                               "GSEA_plotFun", "plotsDF", "nmRoots", "ohDeer",
-                               "jsFun"), envir = environment())
+  parallel::clusterExport(parClust,
+                          list("GSEA_dotplotFun", "GSEA_enrichFun", "GSEA_netFun", "GSEA_ridgeFun",
+                               "GSEA_plotFun", "plotsDF", "nmRoots", "ohDeer", "jsFun"),
+                          envir = environment())
   readr::write_rds(gses, rdsFls[4L])
   if (!"Label" %in% colnames(db)) {
     db$Label <- do.call(paste, c(db[, c("Common Name", "Protein ID")], sep = "\n"))
   }
   readr::write_rds(db[, c("Protein ID", "Label")], rdsFls[5L])
-  invisible(clusterCall(parClust, \() {
-    for (pck in packs) { library(pck, character.only = TRUE) }
+  invisible(parallel::clusterCall(parClust, \() {
     environment(GSEA_plotFun) <- .GlobalEnv
     environment(GSEA_dotplotFun) <- .GlobalEnv
     environment(GSEA_enrichFun) <- .GlobalEnv
@@ -576,12 +565,12 @@ if (isOK) {
   unlink(rdsFls[4L])
   unlink(rdsFls[5L])
   # NB:
-  # Do not use clusterApplyLB here, it fails if a "try-error" object is returned
+  # Do not use parallel::clusterApplyLB here, it fails if a "try-error" object is returned
   # (it does not distinguish between my try-errors and a failed node calculation)
-  # Going for clusterApplyLB would thus require rewriting the output of the functions as
+  # Going for parallel::clusterApplyLB would thus require rewriting the output of the functions as
   #   list(outcome = ..., plot = plotL)
   # instead of directly returning plotL...
-  temp <- parLapply(parClust, 1L:nrow(plotsDF), \(i) { #i <- 9L
+  temp <- parallel::parLapply(parClust, 1L:nrow(plotsDF), \(i) { #i <- 9L
     grp <- plotsDF$GSE[i]
     type <- plotsDF$type[i]
     GSEA_plotFun(grp, type)
@@ -593,25 +582,25 @@ if (isOK) {
   # Assign to list object
   # - GSEA dot plots
   w <- which(plotsDF$type == "dotplot")
-  w <- setdiff(w, errorTst)
+  w <- base::setdiff(w, errorTst)
   if (length(w)) {
     GSEA_plotly[[GSEAmode]][[dataType2]][[nmRoots[1L]]] <- setNames(temp[w], plotsDF$GSE[w])
   }
   # - GSEA enrichment map plots
   w <- which(plotsDF$type == "enrichment")
-  w <- setdiff(w, errorTst)
+  w <- base::setdiff(w, errorTst)
   if (length(w)) {
     GSEA_plotly[[GSEAmode]][[dataType2]][[nmRoots[2L]]] <- setNames(temp[w], plotsDF$GSE[w])
   }
   # - GSEA category net plots
   w <- which(plotsDF$type == "net")
-  w <- setdiff(w, errorTst)
+  w <- base::setdiff(w, errorTst)
   if (length(w)) {
     GSEA_plotly[[GSEAmode]][[dataType2]][[nmRoots[3L]]] <- setNames(temp[w], plotsDF$GSE[w])
   }
   # - GSEA ridge plots
   w <- which(plotsDF$type == "ridge")
-  w <- setdiff(w, errorTst)
+  w <- base::setdiff(w, errorTst)
   if (length(w)) {
     GSEA_plotly[[GSEAmode]][[dataType2]][[nmRoots[4L]]] <- setNames(temp[w], plotsDF$GSE[w])
   }
@@ -621,22 +610,6 @@ if (isOK) {
   }
   # See https://learn.gencore.bio.nyu.edu/rna-seq-analysis/gene-set-enrichment-analysis/ for more
   #
-}
-# Final cleanup
-# - global env
-for (pck in rev(packs)) {
-  try(detach(paste0("package:", pck), unload = TRUE), silent = TRUE)
-}
-# - the cluster (not applicable if mode is WGCNA)
-if (GSEAmode == "standard") {
-  invisible(clusterCall(parClust, \(x) {
-    for (pck in rev(packs)) {
-      try(detach(paste0("package:", pck), unload = TRUE), silent = TRUE)
-    }
-    rm(list = ls())
-    gc()
-    return()
-  }))
 }
 cat("    - Saving results...\n")
 saveFun(GSEA_plotly, GSEA_plotly_fl)

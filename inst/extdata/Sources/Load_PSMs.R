@@ -1,8 +1,8 @@
 # Load PSMs
 source(parSrc)
 #
-library(PTMods)
-data(modifications, package = "PTMods")
+requireNamespace("PTMods")
+utils::data(modifications, package = "PTMods")
 UniMod <- modifications
 rm(modifications)
 #
@@ -154,10 +154,10 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1L #dir_i <- 2L
                  archDir))
       })))
       dirs <- dirs[dir.exists(dirs)]
-      dirs <- setdiff(dirs, ".")
+      dirs <- base::setdiff(dirs, ".")
       if (length(dirs) > 1L) {
-        dirTst <- lapply(dirs, \(x) { grep(topattern(x), setdiff(dirs, x), value = TRUE) })
-        dirs <- setdiff(dirs, unlist(dirTst))
+        dirTst <- lapply(dirs, \(x) { grep(topattern(x), base::setdiff(dirs, x), value = TRUE) })
+        dirs <- base::setdiff(dirs, unlist(dirTst))
       }
       if (length(dirs)) {
         dirFls <- setNames(lapply(dirs, safe_listFls), dirs)
@@ -321,7 +321,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1L #dir_i <- 2L
       assign(isobarLab_i, val)
     } else {
       fracMap_i$"Parent sample" <- fracMap_i$MQ.Exp
-      k <- setdiff(colnames(fracMap_i), "Parent sample")
+      k <- base::setdiff(colnames(fracMap_i), "Parent sample")
       fracMap_i <- fracMap_i[, c("Parent sample", k)]
     }
     #
@@ -334,7 +334,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1L #dir_i <- 2L
     gVar <- (grep("<variableModifications>", mqpar_i)+1L):(grep("</variableModifications>", mqpar_i)-1L)
     FxMd <- gsub(" *</?string> *", "", mqpar_i[gFx])
     FxMdC <- grep("\\(C\\)", FxMd, value = TRUE)
-    FxMd <- setdiff(FxMd, FxMdC)
+    FxMd <- base::setdiff(FxMd, FxMdC)
     VarMd <- gsub(" *</?string> *", "", mqpar_i[gVar])
     searchTxt_i <- paste0(c("The r", "R")[moult], "aw file", c(" was", "s were")[moult], " searched in MaxQuant")
     if (length(mqVers_i) && nchar(mqVers_i)) {
@@ -345,7 +345,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1L #dir_i <- 2L
     SecPep <- gsub(" *</?secondPeptide> *", "", grep("<secondPeptide>", mqpar_i, value = TRUE))
     DPep <- gsub(" *</?dependentPeptides> *", "", grep("<dependentPeptides>", mqpar_i, value = TRUE))
     tstFDRs <- grep("Fdr", mqpar_i, value = TRUE)
-    FDRs <- gsub(" *</?[A-Z,a-z]*Fdr[A-Z,a-z]*> *", "", tstFDRs)
+    FDRs <- gsub(" *</?[A-Za-z]*Fdr[A-Za-z]*> *", "", tstFDRs)
     w <- which(!FDRs %in% c("False", "True"))
     FDRs <- setNames(as.numeric(FDRs[w]), gsub(" *</?|>.+", "", tstFDRs[w]))
     FDRs <- FDRs[names(FDRs) != "psmFdrCrosslink"]
@@ -528,10 +528,10 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1L #dir_i <- 2L
                  archDir))
       })))
       dirs <- dirs[dir.exists(dirs)]
-      dirs <- setdiff(dirs, ".")
+      dirs <- base::setdiff(dirs, ".")
       if (length(dirs) > 1L) {
-        dirTst <- lapply(dirs, \(x) { grep(topattern(x), setdiff(dirs, x), value = TRUE) })
-        dirs <- setdiff(dirs, unlist(dirTst))
+        dirTst <- lapply(dirs, \(x) { grep(topattern(x), base::setdiff(dirs, x), value = TRUE) })
+        dirs <- base::setdiff(dirs, unlist(dirTst))
       }
       if (length(dirs)) {
         dirFls <- setNames(lapply(dirs, safe_listFls), dirs)
@@ -690,7 +690,7 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1L #dir_i <- 2L
     diannCall_i2 <- unlist(strsplit(diannCall_i, " +--"))
     FxMd <- gsub(" enabled as a fixed modification$", "", grep(" enabled as a fixed modification$", diannLog_i, value = TRUE))
     FxMdC <- grep("Cysteine", FxMd, value = TRUE)
-    FxMd <- setdiff(FxMd, FxMdC)
+    FxMd <- base::setdiff(FxMd, FxMdC)
     FxMdC <- gsub("cysteine[ ,-]?", "", FxMdC, ignore.case = TRUE)
     FxMdC <- paste0(toupper(substr(FxMdC, 1L, 1L)), substr(FxMdC, 2L, nchar(FxMdC)))
     VarMd <- sub("^Modification ", "", sub(" will be considered as variable$", "", grep(" will be considered as variable$", diannLog_i, value = TRUE)))
@@ -871,10 +871,10 @@ for (dir_i in 1L:l_inDirs) { #dir_i <- 1L #dir_i <- 2L
                  archDir))
       })))
       dirs <- dirs[dir.exists(dirs)]
-      dirs <- setdiff(dirs, ".")
+      dirs <- base::setdiff(dirs, ".")
       if (length(dirs) > 1L) {
-        dirTst <- lapply(dirs, \(x) { grep(topattern(x), setdiff(dirs, x), value = TRUE) })
-        dirs <- setdiff(dirs, unlist(dirTst))
+        dirTst <- lapply(dirs, \(x) { grep(topattern(x), base::setdiff(dirs, x), value = TRUE) })
+        dirs <- base::setdiff(dirs, unlist(dirTst))
       }
       if (length(dirs)) {
         dirFls <- setNames(lapply(dirs, safe_listFls), dirs)
@@ -1266,7 +1266,7 @@ if (!sum(!kol1 %in% colnames(tst))) {
   modsTst_a$Type <- aggregate(modsTst$Type, list(modsTst$Mark, round(modsTst$"Mass shift", 4L)), \(x) {
     x <- unique(x)
     x <- x[!is.na(x)]
-    x <- setdiff(x, "NA")
+    x <- base::setdiff(x, "NA")
     if ((length(x) > 1L) && ("Variable" %in% x)) {
       x <- "Variable"
     }
@@ -1326,10 +1326,10 @@ fastas_map$Actual <- setNames(lapply(names(fastas_map$Original), \(nm) {
 }), names(fastas_map$Original))
 fastas %<o% unique(fastas)
 if (loadInt && exists("intPrtFst") && file.exists(intPrtFst)) { # Load from input popup at start
-  fastas <- union(fastas, intPrtFst)
+  fastas <- base::union(fastas, intPrtFst)
 }
 if (exists("fastas_reloaded") && file.exists(fastas_reloaded)) { # Re-load from detected local backup
-  fastas <- union(fastas, fastas_reloaded)
+  fastas <- base::union(fastas, fastas_reloaded)
 }
 
 #  - FracMap
@@ -1340,7 +1340,7 @@ FracMap %<o% lapply(1L:length(searchOutputs), \(i) {
 })
 FracMap <- do.call(plyr::rbind.fill, c(FracMap))
 if (length(unique(FracMap$Search)) == 1L) { FracMap$Search <- NULL } else {
-  FracMap <- FracMap[, c("Search", setdiff(colnames(FracMap), "Search"))]
+  FracMap <- FracMap[, c("Search", base::setdiff(colnames(FracMap), "Search"))]
 }
 tst1 <- "Parent sample" %in% colnames(FracMap)
 tst2 <- "MQ.Exp" %in% colnames(FracMap)
@@ -1446,7 +1446,7 @@ if (exists("FracMap_reloaded")) {
     }
     if (!tst) {
       k <- c("Raw file", "Raw files name", "Parent sample", "Fraction", "Use", "PTM-enriched")
-      k <- intersect(k, colnames(FracMap_reloaded))
+      k <- base::intersect(k, colnames(FracMap_reloaded))
       FracMap[, k] <- FracMap_reloaded[m, k]
       if (LabelType == "LFQ") {
         if ("Parent sample" %in% colnames(FracMap_reloaded)) {

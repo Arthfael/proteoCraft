@@ -15,7 +15,6 @@ if (length(dianXDirs)) {
   xicDirs <- xicDirs[dianXDirs]
 }
 if (length(dianXDirs)) {
-  library(arrow)
   for (inDir in dianXDirs) { #inDir <- dianXDirs[1L] #inDir <- dianXDirs[2L]
     xicDir <- xicDirs[inDir]
     XIC_fls <- xicFiles[[inDir]]
@@ -38,10 +37,10 @@ if (length(dianXDirs)) {
     myProts <- names(myProts_pepList)
     u <- unique(unlist(myProts_pepList))
     tmp <- unique(Frac.map$`Raw files name`)
-    clusterExport(parClust, list("tmp", "u"), envir = environment())
-    XICs <- parLapply(parClust, XIC_fls, \(x) { #x <- XIC_fls[1L]
+    parallel::clusterExport(parClust, list("tmp", "u", "gsub_Rep"), envir = environment())
+    XICs <- parallel::parLapply(parClust, XIC_fls, \(x) { #x <- XIC_fls[1L]
       res <- arrow::read_parquet(x)
-      res$"Mod. seq." <- proteoCraft::gsub_Rep("[0-9]+$", "", res$pr)
+      res$"Mod. seq." <- gsub_Rep("[0-9]+$", "", res$pr)
       res <- res[res$"Mod. seq." %in% u,]
       nm <- gsub(".*/|\\.xic\\.parquet$", "", x)
       res$File <- nm
@@ -67,21 +66,21 @@ if (length(dianXDirs)) {
                                `RT (start)` = ev$`Retention time (start)`[w],
                                `RT (end)` = ev$`Retention time (end)`[w],
                                check.names = FALSE)
-      Boundaries$File <- gsub(".*>>>", "", Boundaries$Seq_Run)
+      Boundaries$File <- sub(".*>>>", "", Boundaries$Seq_Run)
       tmpFl1 <- tempfile(fileext = ".rds")
       tmpFl2 <- tempfile(fileext = ".rds")
-      clusterExport(parClust, list("tmpFl1", "tmpFl2", "myProts_pepList", "xicOutDir"), envir = environment())
+      parallel::clusterExport(parClust, list("tmpFl1", "tmpFl2", "myProts_pepList", "xicOutDir"), envir = environment())
       readr::write_rds(XICs, tmpFl1)
       readr::write_rds(Boundaries, tmpFl2)
-      invisible(clusterCall(parClust, \() {
+      invisible(parallel::clusterCall(parClust, \() {
         assign("XICs", readr::read_rds(tmpFl1), envir = .GlobalEnv)
         assign("Boundaries", readr::read_rds(tmpFl2), envir = .GlobalEnv)
         return()
       }))
       unlink(tmpFl1)
       unlink(tmpFl2)
-      dirlist <- union(dirlist, paste0(xicOutDir, "/", myProts))
-      invisible(parLapply(parClust, myProts, \(pr) { #pr <- myProts[1L]
+      dirlist <- base::union(dirlist, paste0(xicOutDir, "/", myProts))
+      invisible(parallel::parLapply(parClust, myProts, \(pr) { #pr <- myProts[1L]
         xicDir2 <- paste0(xicOutDir, "/", pr)
         if (!dir.exists(xicDir2)) { dir.create(xicDir2, recursive = TRUE) }
         pp <- myProts_pepList[[pr]]
@@ -137,7 +136,7 @@ if (length(dianXDirs)) {
               ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
               ggplot2::ggtitle(sq1, subtitle = pr) +
               ggplot2::xlab("Retention time") + ggplot2::ylab("Intensity")
-            #proteoCraft::poplot(plot, 12L, 22L)
+            #poplot(plot, 12L, 22L)
             #
             suppressMessages({
               ggplot2::ggsave(paste0(xicDir2, "/", sq2, ".svg"), plot, height = 10L, width = 10L)

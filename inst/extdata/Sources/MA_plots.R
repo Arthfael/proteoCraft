@@ -14,17 +14,9 @@
 
 ev2fr <- match(ev$"Raw file path", Frac.map$"Raw file") # Update again
 #
-MAplotFls %<o% c()
+MA_plot_fls %<o% c()
 if ((length(MQ.Exp) <= 1L) && (LabelType != "Isobaric")) { stop("Whut? Something's gone wrong!") } # Should be always TRUE
 source(parSrc)
-invisible(clusterCall(parClust, \() {
-  library(ggplot2)
-  library(scattermore)
-  library(ggnewscale)
-  library(grid)
-  library(mgcv)
-  return()
-}))
 #
 data <- ev
 colnames(data)[colnames(data) == "MQ.Exp"] <- "Parent sample"
@@ -60,7 +52,7 @@ if (LabelType == "LFQ") {
   Y <- if (length(w1) > 1L) { kols[w1[2L]] } else { kols[w2[2L]] }
 }
 # X and Y each have length 1!
-kols <- setdiff(kols, c(X, Y))
+kols <- base::setdiff(kols, c(X, Y))
 if (length(kols) > 1L) {
   data$Group <- do.call(paste, c(data[, kols], sep = " "))
   Grpkol <- "Group"
@@ -71,6 +63,7 @@ dir <- paste0(wd, "/Workflow control/MA plots")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 dirlist <- unique(c(dirlist, dir))
 #
+requireNamespace("data.table")
 for (grp in grps) { #grp <- grps[1L]
   data2 <- data[data[[Grpkol]] == grp,]
   lsKl <- c("Modified sequence", Y)
@@ -141,8 +134,8 @@ for (grp in grps) { #grp <- grps[1L]
     lst <- lapply(wrpKl, \(k) { tmpDat[[k]] })
     annot <- aggregate(tmpDat$"M (mean log2 FC)", lst, \(x) {
       x <- x[is.finite(x)]
-      c(paste0("Median: ", signif(median(x), 3L)),
-        paste0("IQR: ", signif(IQR(x), 3L)))
+      c(paste0("Median: ", round(median(x), 3L)),
+        paste0("IQR: ", round(stats::IQR(x), 3L)))
     })
     annot[, c("Median", "IQR")] <- do.call(as.data.frame, annot)
     annot$x <- NULL
@@ -167,76 +160,84 @@ for (grp in grps) { #grp <- grps[1L]
       tmpDat$"PTM-enrich." <- factor(tmpDat$"PTM-enrich.", levels = c("", Modifs$`Full name`))
       tmpDat$Alpha <- c(0.1, 1)[(tmpDat$"PTM-enrich." != "")+1L]
       myColors <- setNames(c("darkblue", "red"), c("Not-enriched/Flow-through", "Enriched"))
-      plot <- ggplot(tmpDat[1L:5L,]) +
-        geom_scattermore(aes(x = `A (mean log10 Intensity)`, y = `M (mean log2 FC)`, color = `PTM-enrich.`),
-                         shape = 16L, size = 1L)
-      if (length(unique(data$`PTM-enrich.`)) == 1L) { plot <- plot + guides(color = "none") }
+      plot <- ggplot2::ggplot(tmpDat[1L:5L,]) +
+        scattermore::geom_scattermore(ggplot2::aes(x = `A (mean log10 Intensity)`, y = `M (mean log2 FC)`,
+                                                   color = `PTM-enrich.`),
+                                      shape = 16L, size = 1L)
+      if (length(unique(data$`PTM-enrich.`)) == 1L) { plot <- plot + ggplot2::guides(color = "none") }
     } else {
-      plot <- ggplot(tmpDat[1L:5L,]) +
-        geom_scattermore(aes(x = `A (mean log10 Intensity)`, y = `M (mean log2 FC)`, color = .data[[smplKl]]),
-                         size = 1L)
+      plot <- ggplot2::ggplot(tmpDat[1L:5L,]) +
+        scattermore::geom_scattermore(ggplot2::aes(x = `A (mean log10 Intensity)`, y = `M (mean log2 FC)`,
+                                                   color = .data[[smplKl]]),
+                                      size = 1L)
     }
     plot <- plot +
-      geom_hline(yintercept = 0, color = "grey", linewidth = 0.3, linetype = "dashed") +
-      scale_fill_viridis(begin = 0.25, end = 0.75, discrete = TRUE, option = "H") +
-      xlab("A = log10(Intensity)") + ylab("M = log2(Ratio)") +
-      coord_fixed(0.05) + theme_bw() + ylim(-ylim, ylim) +
-      theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-            axis.line = element_line(colour = "black"), axis.text = element_text(size = 3L),
-            strip.text.x = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 7),
-            strip.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 7))
+      ggplot2::geom_hline(yintercept = 0, color = "grey", linewidth = 0.3, linetype = "dashed") +
+      viridis::scale_fill_viridis(begin = 0.25, end = 0.75, discrete = TRUE, option = "H") +
+      ggplot2::xlab("A = log10(Intensity)") + ggplot2::ylab("M = log2(Ratio)") +
+      ggplot2::coord_fixed(0.05) + ggplot2::ylim(-ylim, ylim) + ggplot2::theme_bw() +
+      ggplot2::theme(panel.grid.major = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(),
+                     axis.line = ggplot2::element_line(colour = "black"), axis.text = ggplot2::element_text(size = 3L),
+                     strip.text.x = ggplot2::element_text(angle = 0, hjust = 0, vjust = 0.5, size = 7),
+                     strip.text.y = ggplot2::element_text(angle = 0, hjust = 0, vjust = 0.5, size = 7))
     #
     MAfl <- paste0(dir, "/", MAttl)
     tmpFl <- tempfile(fileext = ".RDS")
     readr::write_rds(tmpDat, tmpFl)
-    clusterExport(parClust,
+    parallel::clusterExport(parClust,
                   list("plot", "tmpFl", "MAttl", "MAfl", "smplKl", "annot2"),
                   envir = environment())
-    invisible(clusterCall(parClust, \() {
+    invisible(parallel::clusterCall(parClust, \() {
+      requireNamespace("mgcv") # for GAM
       assign("tmpDat", readr::read_rds(tmpFl), envir = .GlobalEnv)
       return()
     }))
     unlink(tmpFl)
-    MAplotFls[smpls] <- parSapply(parClust, smpls, \(smpl) { #smpl <- smpls[1L] 
+    MA_plot_fls[smpls] <- parallel::parSapply(parClust, smpls, \(smpl) { #smpl <- smpls[1L] 
       dat <- tmpDat[tmpDat$`Parent sample` == smpl,]
       ann <- annot2[annot2$`Parent sample` == smpl,]
       plot$data <- dat
       ttl <- paste0(MAttl, " - ", smpl)
-      plot <- plot + ggtitle(ttl) +
-        geom_text(data = ann, aes(x = Amax, y = Y, label = Tag), hjust = 1, cex = 2L) +
-        new_scale_color() +
-        geom_smooth(aes(x = `A (mean log10 Intensity)`, y = `M (mean log2 FC)`, color = "GAM", linetype = "GAM"),
-                    method = "gam", formula = y ~ s(x, bs = "cs")) +
-        geom_smooth(aes(x = `A (mean log10 Intensity)`, y = `M (mean log2 FC)`, color = "LOESS", linetype = "LOESS"),
-                    method = "loess", formula = y ~ x, se = FALSE) +
-        scale_color_manual(name = "Method", values = c(LOESS = "green", GAM = "magenta")) +
-        scale_linetype_manual(name = "Method", values = c(LOESS = "dotted", GAM = "dashed"))
+      plot <- plot + ggplot2::ggtitle(ttl) +
+        ggplot2::geom_text(data = ann,
+                           ggplot2::aes(x = Amax, y = Y, label = Tag),
+                           hjust = 1, cex = 2L) +
+        ggnewscale::new_scale_color() +
+        ggplot2::geom_smooth(ggplot2::aes(x = `A (mean log10 Intensity)`, y = `M (mean log2 FC)`,
+                                          color = "GAM", linetype = "GAM"),
+                             method = "gam", formula = y ~ s(x, bs = "cs")) +
+        ggplot2::geom_smooth(ggplot2::aes(x = `A (mean log10 Intensity)`, y = `M (mean log2 FC)`,
+                                          color = "LOESS", linetype = "LOESS"),
+                             method = "loess", formula = y ~ x, se = FALSE) +
+        ggplot2::scale_color_manual(name = "Method", values = c(LOESS = "green", GAM = "magenta")) +
+        ggplot2::scale_linetype_manual(name = "Method", values = c(LOESS = "dotted", GAM = "dashed"))
       # Estimate plot dimensions
       #poplot(plot, 12L, 22L)
       fl <- paste0(MAfl, " - ", smpl)
-      ggsave(paste0(fl, ".svg"), plot, width = 10L, units = "in")
+      ggplot2::ggsave(paste0(fl, ".svg"), plot, width = 10L, units = "in")
       return(fl)
     })
     # You could then visualize those individually in the parameters app as opposed to seeing a very zoomed-out facet plot
     plot$data <- tmpDat
     plot <- if (length(wrpKl) == 1L) {
-      plot + facet_wrap(as.formula(paste0(" ~ ", wrpKl2)), drop = TRUE)
+      plot + ggplot2::facet_wrap(as.formula(paste0(" ~ ", wrpKl2)), drop = TRUE)
     } else {
       # X and Y each have length 1!
-      plot + facet_grid(as.formula(paste0("`", Y, "` ~ `", X, "`")), drop = TRUE)
+      plot + ggplot2::facet_grid(as.formula(paste0("`", Y, "` ~ `", X, "`")), drop = TRUE)
     }
-    plot <- plot + ggtitle(MAttl) +
-      geom_text(data = annot2, aes(x = Amax, y = Y, label = Tag), hjust = 1, cex = 2L)
+    plot <- plot + ggplot2::ggtitle(MAttl) +
+      ggplot2::geom_text(data = annot2,
+                         ggplot2::aes(x = Amax, y = Y, label = Tag),
+                         hjust = 1, cex = 2L)
     # Estimate plot dimensions
-    library(grid)
-    gt <- ggplotGrob(plot)
+    gt <- ggplot2::ggplotGrob(plot)
     width <- sum(gt$widths)
     height <- sum(gt$heights)
-    a <- convertWidth(width, "in", valueOnly = TRUE)
-    b <- convertHeight(height, "in", valueOnly = TRUE)
+    a <- grid::convertWidth(width, "in", valueOnly = TRUE)
+    b <- grid::convertHeight(height, "in", valueOnly = TRUE)
     #poplot(plot, 12L, 22L)
     suppressMessages({
-      ggsave(paste0(MAfl, ".svg"), plot, width = 10L, height = 10L*b/a, units = "in")
+      ggplot2::ggsave(paste0(MAfl, ".svg"), plot, width = 10L, height = 10L*b/a, units = "in")
     })
   } else {
     cat(paste0("Not enough valid data", c("", paste0(" for group ", grp))[(length(grps) > 1L) + 1L], " to draw an MA plot!\n"))

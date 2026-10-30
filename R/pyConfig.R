@@ -37,7 +37,7 @@
     return(FALSE)
   }
   tmp <- unique(unlist(strsplit(Sys.getenv("PATH"), ";")))
-  tmp <- union(tmp, normalizePath(all_pyScrptPaths, winslash = "\\"))
+  tmp <- base::union(tmp, normalizePath(all_pyScrptPaths, winslash = "\\"))
   w <- which(!file.exists(tmp))
   lW <- length(w)
   if (lW) {

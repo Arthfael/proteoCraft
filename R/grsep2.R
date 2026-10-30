@@ -47,7 +47,7 @@ grsep2 <- function(IDs,
     temp$value <- tolower(temp$value)
   }
   res <- sort(as.numeric(unique(temp$L1[temp$value %in% IDs])))
-  if (invert) { res <- setdiff(Wh, res) }
+  if (invert) { res <- base::setdiff(Wh, res) }
   if (value) { res <- x[res] }
   return(res)
 }

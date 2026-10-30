@@ -84,7 +84,7 @@ The order in which peptides are plotted may differ from before as a result.\cr
 Display issues from when too many peptides were plotted (and spilled into the next row) have also been addressed (by enforcing a minimum peptide segment width).\cr
 }
 \examples{
-data(FMDV_Lpro, package = "proteoCraft")
+utils::data(FMDV_Lpro, package = "proteoCraft")
 Coverage(FMDV_Lpro$sequence, FMDV_Lpro$peptides, "Coverage")
 Coverage(FMDV_Lpro$sequence, FMDV_Lpro$peptides, "Align", TRUE, c(TRUE, TRUE, TRUE), 30L)
 Coverage(FMDV_Lpro$sequence, FMDV_Lpro$peptides, "Align", TRUE, c(TRUE, TRUE, TRUE), 60L)

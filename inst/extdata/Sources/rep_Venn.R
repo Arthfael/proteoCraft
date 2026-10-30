@@ -1,10 +1,6 @@
 #### Venn diagrams
 setwd(wd)
-library(ggplot2)
-library(ggpolypath)
-library(venn)
-library(plotly)
-library(htmlwidgets)
+requireNamespace("ggpolypath")
 #
 if (!exists("plotly_Venn")) { plotly_Venn <- list() }
 #
@@ -15,17 +11,17 @@ HdrStlVenn <- openxlsx2::create_cell_style(num_fmt_id = "General",
                                            wrap_text = TRUE)
 #
 # cleanNms2 function specifically designed to clean names for Venn diagrams
-cleanNms2 %<o% function(names,
-                        groups = VPAL, # Must match the type of aggregate of names
-                        sep = "\n/vs/\n",
-                        simplify) {
+cleanNms2 %<o% \(names,
+                 groups = VPAL, # Must match the type of aggregate of names
+                 sep = "\n/vs/\n",
+                 simplify) {
   isList <- inherits(names, "list")
   if (missing(simplify)) { simplify <- !isList }
   if (!isList) {
     names <- sapply(strsplit(gsub("^\\(|\\)$", "", names), "\\) - \\("), unlist)
   }
   uNms <- unique(unlist(names))
-  stopifnot(length(setdiff(names, groups$values)) == 0L)
+  stopifnot(length(base::setdiff(names, groups$values)) == 0L)
   nuNms <- as.data.frame(t(as.data.frame(strsplit(uNms, "___"))))
   colnames(nuNms) <- groups$names
   nuNms$Full <- uNms
@@ -125,9 +121,9 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
     }
   }
   topTitle <- paste0("Venn diagram - ", names(II)[ii])
-  infoKol <- intersect(infoKol, colnames(myData))
+  infoKol <- base::intersect(infoKol, colnames(myData))
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dir))
+  dirlist <- base::union(dirlist, dir)
   #
   setwd(dir)
   #View(myData[, paste0(myRef, VPAL$values)])
@@ -145,7 +141,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
     msg <- paste0("Too many groups, select at least 2 and up to ", VennMx,
                   " to include in Venn diagram ", ttl, ", or cancel to skip.")
     opt <- vapply(VennExp, \(x) { paste(c(x, rep(" ", 200L-nchar(x))), collapse = "") }, "")
-    VennExp <- VennExp[match(dlg_list(opt, opt[1L:VennMx], TRUE, msg)$res, opt)]
+    VennExp <- VennExp[match(svDialogs::dlg_list(opt, opt[1L:VennMx], TRUE, msg)$res, opt)]
     if (length(VennExp) <= 1L) {
       warning("Skipping per-sample-group observations Venn diagrams: you should have selected at least 2 groups!")
       OK <- FALSE
@@ -161,24 +157,24 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
     comp_list <- comp_list[VennExp]
     plot <- venn::venn(comp_list, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)
     subTtl <- "Global, LFQ"
-    plot <- plot + ggtitle(topTitle, subtitle = subTtl) +
-      theme(plot.title = element_text(size = 15L),
-            plot.subtitle = element_text(size = 10L))
+    plot <- plot + ggplot2::ggtitle(topTitle, subtitle = subTtl) +
+      ggplot2::theme(plot.title = ggplot2::element_text(size = 15L),
+                     plot.subtitle = ggplot2::element_text(size = 10L))
     plot@layers$geom_path <- NULL
-    plotLy <- ggplotly(plot, tooltip = "label")
+    plotLy <- plotly::ggplotly(plot, tooltip = "label")
     plotLy <- plotly::config(plotLy,
                              modeBarButtonsToRemove = c("select2d", "lasso2d"))
     plotly_Venn[[subTtl]] <- plotLy
     poplot(plot)
     suppressMessages({
-      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L)
+      ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 150L)
     })
     #system(paste0("open \"", dir, "/", ttl, ".jpg", "\""))
     #
     wb <- openxlsx2::wb_workbook()
     wb$styles_mgr$add(HdrStlVenn, "Header_style")
     SheetNm <- "Sample groups composition"
-    if (SheetNm %in% wb_get_sheet_names(wb)) { wb <- openxlsx2::wb_remove_worksheet(wb, SheetNm) }
+    if (SheetNm %in% openxlsx2::wb_get_sheet_names(wb)) { wb <- openxlsx2::wb_remove_worksheet(wb, SheetNm) }
     wb <- openxlsx2::wb_add_worksheet(wb, SheetNm)
     l <- length(comp_list)
     tmp <- sapply(names(comp_list), \(grp) {
@@ -205,7 +201,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
   #
   dir2 <- paste0(dir, "/t-tests")
   if (!dir.exists(dir2)) { dir.create(dir2, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dir2))
+  dirlist <- base::union(dirlist, dir2)
   setwd(dir2)
   wb <- openxlsx2::wb_workbook()
   wb$styles_mgr$add(HdrStlVenn, "Header_style")
@@ -229,7 +225,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
           cat(paste0("     + ", grpTxt, "\n"))
         }
         em <- Exp.map[Exp.map[[VennGrp2$column]] == grp,]
-        nmz <- intersect(flt_nmz, myContrasts$Contrast)
+        nmz <- base::intersect(flt_nmz, myContrasts$Contrast)
         comp_list <- setNames(lapply(nmz, \(x) { #x <- nmz[1L]
           ttest_Filt[[x]][[paste0("Filter_", r)]]
         }), nmz)
@@ -242,7 +238,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
           msg <- paste0("Too many groups, select at least 2 and up to ", VennMx,
                         " to include in Venn diagram ", ttl)
           opt <- vapply(VennExp, \(x) { paste(c(x, rep(" ", 200L-nchar(x))), collapse = "") }, "")
-          VennExp <- VennExp[match(dlg_list(opt, opt[1L:VennMx], TRUE, msg)$res, opt)]
+          VennExp <- VennExp[match(svDialogs::dlg_list(opt, opt[1L:VennMx], TRUE, msg)$res, opt)]
           if (length(VennExp) <= 1L) {
             warning("       ", ttl,
                     " - skipping: you should have selected at least 2 groups!")
@@ -261,30 +257,30 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
           kr <- paste0("Regulated - ", nmz)
           tmp <- myData[unique(unlist(comp_list)), c(idKol, infoKol, "id", kr)]
           if (r == "up") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
-          if (r == "down") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
+          if (r == "down") { good <- grep("^down|^Anti-specific", unique(unlist(tmp[, kr])), value = TRUE) }
           tst <- apply(tmp[, kr], 1L, \(x) { length(w[x %in% good]) })
           tmp <- tmp[order(tst, decreasing = TRUE),]
           write.csv(tmp, paste0(dir2, "/", ttl, " - table.csv"), row.names = FALSE)
           subTtl <- paste0("t-tests, ", r)
-          plot <- venn(comp_list, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)
+          plot <- venn::venn(comp_list, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)
           plot <- plot +
-            ggtitle(topTitle, subtitle = subTtl) +
-            theme(plot.title = element_text(size = 15L),
-                  plot.subtitle = element_text(size = 10L))
+            ggplot2::ggtitle(topTitle, subtitle = subTtl) +
+            ggplot2::theme(plot.title = ggplot2::element_text(size = 15L),
+                           plot.subtitle = ggplot2::element_text(size = 10L))
           plot@layers$geom_path <- NULL
-          plotLy <- ggplotly(plot, tooltip = "label")
+          plotLy <- plotly::ggplotly(plot, tooltip = "label")
           plotLy <- plotly::config(plotLy,
                                    modeBarButtonsToRemove = c("select2d", "lasso2d"))
           plotly_Venn[[ttl]] <- plotLy
           poplot(plot)
           suppressMessages({
-            ggsave(paste0(dir2, "/", ttl, ".svg"), plot, dpi = 150L)
+            ggplot2::ggsave(paste0(dir2, "/", ttl, ".svg"), plot, dpi = 150L)
           })
           #system(paste0("open \"", dir2, "/", ttl, ".jpg", "\""))
           #
           wbKount <- wbKount+1L
           SheetNm <- paste0("t-test", grpTxt1, levTxt1)
-          if (SheetNm %in% wb_get_sheet_names(wb)) { wb <- openxlsx2::wb_remove_worksheet(wb, SheetNm) }
+          if (SheetNm %in% openxlsx2::wb_get_sheet_names(wb)) { wb <- openxlsx2::wb_remove_worksheet(wb, SheetNm) }
           wb <- openxlsx2::wb_add_worksheet(wb, SheetNm)
           l <- length(comp_list)
           tmp <- sapply(names(comp_list), \(grp) {
@@ -317,7 +313,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
   if (F.test) {
     dir2 <- paste0(dir, "/F-test")
     if (!dir.exists(dir2)) { dir.create(dir2, recursive = TRUE) }
-    dirlist <- unique(c(dirlist, dir2))
+    dirlist <- base::union(dirlist, dir2)
     setwd(dir2)
     wb <- openxlsx2::wb_workbook()
     wb$styles_mgr$add(HdrStlVenn, "Header_style")
@@ -330,7 +326,7 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
       msg <- paste0("Too many groups, select at least 2 and up to ", VennMx,
                     " to include in Venn diagram ", ttl, ", or cancel to skip.")
       opt <- vapply(nmz, \(x) { paste(c(x, rep(" ", 200L-nchar(x))), collapse = "") }, "")
-      nmz <- nmz[match(dlg_list(opt, opt[1L:VennMx], TRUE, msg)$res, opt)]
+      nmz <- nmz[match(svDialogs::dlg_list(opt, opt[1L:VennMx], TRUE, msg)$res, opt)]
       if (length(nmz) <= 1L) {
         warning("   Skipping F-test Venn diagrams: you should have selected at least 2 groups!")
         OK <- FALSE
@@ -370,29 +366,29 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
             kr <- paste0("mod. F-test Regulated - ", nmz)
             tmp[, kr] <- myFData[w, kr]
             if (r == "up") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
-            if (r == "down") { good <- grep("^up|^Specific", unique(unlist(tmp[, kr])), value = TRUE) }
+            if (r == "down") { good <- grep("^down|^Anti-specific", unique(unlist(tmp[, kr])), value = TRUE) }
             tst <- apply(tmp[, kr], 1L, \(x) { length(w[x %in% good]) })
             tmp <- tmp[order(tst, decreasing = TRUE),]
             write.csv(tmp, paste0(dir2, "/", ttl, " - table.csv"), row.names = FALSE)
-            plot <- venn(comp_list, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)
+            plot <- venn::venn(comp_list, ilabels = "counts", ellipse = TRUE, zcolor = "style", ggplot = TRUE)
             plot <- plot +
-              ggtitle(topTitle, subtitle = paste0(vennRoot, "F-test", levTxt2)) +
-              theme(plot.title = element_text(size = 15L),
-                    plot.subtitle = element_text(size = 10L))
+              ggplot2::ggtitle(topTitle, subtitle = paste0(vennRoot, "F-test", levTxt2)) +
+              ggplot2::theme(plot.title = ggplot2::element_text(size = 15L),
+                             plot.subtitle = ggplot2::element_text(size = 10L))
             plot@layers$geom_path <- NULL
-            plotLy <- ggplotly(plot, tooltip = "label")
+            plotLy <- plotly::ggplotly(plot, tooltip = "label")
             plotLy <- plotly::config(plotLy,
                                      modeBarButtonsToRemove = c("select2d", "lasso2d"))
             plotly_Venn[[ttl]] <- plotLy
             poplot(plot)
             suppressMessages({
-              ggsave(paste0(dir2, "/", ttl, ".svg"), plot, dpi = 150L)
+              ggplot2::ggsave(paste0(dir2, "/", ttl, ".svg"), plot, dpi = 150L)
             })
             #system(paste0("open \"", dir2, "/", ttl, ".jpg", "\""))
             #
             wbKount <- wbKount+1L
             SheetNm <- paste0("F-test", levTxt1)
-            if (SheetNm %in% wb_get_sheet_names(wb)) { wb <- openxlsx2::wb_remove_worksheet(wb, SheetNm) }
+            if (SheetNm %in% openxlsx2::wb_get_sheet_names(wb)) { wb <- openxlsx2::wb_remove_worksheet(wb, SheetNm) }
             wb <- openxlsx2::wb_add_worksheet(wb, SheetNm)
             l <- length(comp_list)
             tmp <- sapply(names(comp_list), \(grp) {

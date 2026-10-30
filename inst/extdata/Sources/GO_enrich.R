@@ -56,6 +56,8 @@
 # Check our parent cluster
 source(parSrc)
 
+requireNamespace("data.table")
+
 setwd(wd)
 # Argument names
 allArgs <- c("db_ID_col",
@@ -224,13 +226,13 @@ if (Mode == "dataset") {
       filters <- list("Observed dataset" = 1L:nrow(Prot))
       # - Quantified protein groups
       kol <- paste0(Prot.Expr.Root, RSA$values)
-      kol <- intersect(kol, colnames(Prot))
+      kol <- base::intersect(kol, colnames(Prot))
       filters[["Quant. - dataset"]] <- which(apply(Prot[, kol], 1L, \(x) { sum(is.finite(x)) }) > 0L)
       # Quantified protein groups per sample group
       if (!Impute) { # No point having sample-specific filters if all samples have the same amount of stuff!
         filters[paste0("Quant. - ", VPAL$values)] <- lapply(VPAL$values, \(x) { #x <- VPAL$values[1L]
           kol <- paste0(Prot.Expr.Root, Exp.map$Ref.Sample.Aggregate[Exp.map[[VPAL$column]] == x])
-          kol <- intersect(kol, colnames(Prot))
+          kol <- base::intersect(kol, colnames(Prot))
           which(apply(Prot[, kol], 1L, \(x) { sum(is.finite(as.numeric(x))) }) > 0L)
         })
       }
@@ -286,11 +288,11 @@ if ((!exists("subfolder")) || is.null(subfolder) || (!nchar(subfolder))) {
   subfolder <- origWD
 } else {
   subfolder <- paste0(origWD, "/", # Check for full path - step 2
-                      gsub(topattern(paste0(origWD, "/")), "", # Check for full path - step 1
-                           gsub("\\*|\\?|<|>|\\|", "-", # Remove disallowed characters
-                                gsub("^/+|/+$", "", # Check for outward slashes
-                                     gsub("\\\\", "/", # Convert to forward slashes
-                                          subfolder)))))
+                      sub(topattern(paste0(origWD, "/")), "", # Check for full path - step 1
+                          gsub("\\*|\\?|<|>|\\|", "-", # Remove disallowed characters
+                               gsub("^/+|/+$", "", # Check for outward slashes
+                                    gsub("\\\\", "/", # Convert to forward slashes
+                                         subfolder)))))
   if (!dir.exists(subfolder)) {
     tst <- try(dir.create(subfolder, recursive = TRUE), silent = TRUE)
     if (inherits(tst, "try-error")) {
@@ -371,11 +373,11 @@ if (plotly) {
     plotly_subfolder <- subfolder
   } else {
     plotly_subfolder <- paste0(origWD, "/", # Check for full path - step 2
-                               gsub(topattern(paste0(origWD, "/")), "", # Check for full path - step 1
-                                    gsub("\\*|\\?|<|>|\\|", "-", # Remove unallowed characters
-                                         gsub("^/+|/+$", "", # Check for outward slashes
-                                              gsub("\\\\", "/", # Convert to forward slashes
-                                                   plotly_subfolder)))))
+                               sub(topattern(paste0(origWD, "/")), "", # Check for full path - step 1
+                                   gsub("\\*|\\?|<|>|\\|", "-", # Remove unallowed characters
+                                        gsub("^/+|/+$", "", # Check for outward slashes
+                                             gsub("\\\\", "/", # Convert to forward slashes
+                                                  plotly_subfolder)))))
     if (!dir.exists(plotly_subfolder)) {
       tst <- try(dir.create(plotly_subfolder, recursive = TRUE), silent = TRUE)
       if (inherits(tst, "try-error")) {
@@ -384,7 +386,6 @@ if (plotly) {
       }
     }
   }
-  library(htmlwidgets)
   if ((plotly_subfolder == origWD) && subfolderpertype) {
     plotly_subfolder <- paste0(plotly_subfolder, "/html")
     if (!dir.exists(plotly_subfolder)) { dir.create(plotly_subfolder, recursive = TRUE) }
@@ -418,10 +419,10 @@ if (NoOnt + NoOffspr) {
       GO.terms$Ontology[w] <- ont
     } else { w <- which(GO.terms$Ontology == ont) }
     if (NoOffspr) {
-      Offspr <- get(paste0("GO.db::GO", ont, "OFFSPRING"))
+      Offspr <- get(paste0("GO", ont, "OFFSPRING"), envir = as.environment(getNamespace("GO.db")))
       # Finally I managed to rewrite the tedious topGO code much faster,
       # and without even using parallel!!!
-      Offspr <- AnnotationDbi::toTable(Offspr)
+      Offspr <- BiocGenerics::toTable(Offspr)
       colnames(Offspr) <- c("Offspring", "Parent")
       Offspr <- data.table::as.data.table(Offspr)
       Offspr <- Offspr[, .(Offspring = list(Offspring)), by = .(Parent = Parent)]
@@ -543,10 +544,10 @@ if ("Potential contaminant" %in% colnames(parentData)) {
   wCnt <- which((!is.na(parentData$"Potential contaminant")) & (parentData$"Potential contaminant" == "+"))
   if (length(wCnt)) {
     filters <- setNames(lapply(filters, \(x) {
-      setdiff(x, wCnt)
+      base::setdiff(x, wCnt)
     }), names(filters))
     ref.filters <- setNames(lapply(ref.filters, \(x) {
-      setdiff(x, wCnt)
+      base::setdiff(x, wCnt)
     }), names(ref.filters))
   }
 }
@@ -554,12 +555,12 @@ if ("Potential contaminant" %in% colnames(parentData)) {
 mapFilters <- setNames(lapply(filters, \(x) {
   # At some point a bug was introduced here applying these filters to parentData, not Prot
   # This is corrected here:
-  intersect(names(Mappings), unique(unlist(strsplit(Prot[unlist(x), ID_col], ";"))))
+  base::intersect(names(Mappings), unique(unlist(strsplit(Prot[unlist(x), ID_col], ";"))))
 }), names(filters))
 #lengths(filters)
 #lengths(mapFilters)
 ref.mapFilters <- setNames(lapply(ref.filters, \(x) {
-  intersect(names(Mappings), unique(unlist(strsplit(parentData[unlist(x), parentCol], ";"))))
+  base::intersect(names(Mappings), unique(unlist(strsplit(parentData[unlist(x), parentCol], ";"))))
 }), names(ref.filters))
 #lengths(ref.filters)
 #lengths(ref.mapFilters)
@@ -568,7 +569,7 @@ goPlots <- GO_FDR_thresholds <- list()
 kount <- 0L
 scrange <- c(1L, 30L)
 grphs <- c()
-require(topGO)
+requireNamespace("topGO") # Important to keep so the proper classes are defined
 FishTst <- new("classicCount",
                testStatistic = GOFisherTest,
                name = "Fisher test")
@@ -696,7 +697,6 @@ if (length(wFltL)) {
   }
   #environment(Fisher0) <- .GlobalEnv # Only needed if code run as function!
   cat("     Running Fisher tests...\n")
-  invisible(parallel::clusterCall(parClust, \() { library(topGO); return() }))
   tst <- try({
     GO_tbls <- setNames(parallel::parLapply(parClust, names(mapFilters), Fisher0), names(mapFilters))
   })
@@ -716,7 +716,7 @@ if (length(wFltL)) {
       }
       #environment(f0) <- .GlobalEnv # Only needed if code run as function!
       f1 <- \(x, filt, ids) {
-        x <- intersect(x, filt)
+        x <- base::intersect(x, filt)
         x <- if (length(x)) { paste(sort(unique(unlist(ids[x]))), collapse = ";") } else { "" }
         return(x)
       }
@@ -745,7 +745,7 @@ if (length(wFltL)) {
           wo <- which(annotate::filterGOByOntology(tmpGO.terms$ID, ont))
           if (length(wo)) {
             Offspr <- get(paste0("GO", ont, "OFFSPRING"))
-            Offspr <- toTable(Offspr)
+            Offspr <- BiocGenerics::toTable(Offspr)
             colnames(Offspr) <- c("Offspring", "Parent")
             Offspr <- data.table::as.data.table(Offspr)
             Offspr <- Offspr[, .(Offspring = list(Offspring)), by = .(Parent = Parent)]
@@ -778,7 +778,7 @@ if (length(wFltL)) {
             tmpGO.terms[[paste0(nm, "s")]] <- tmp1$x[match(1L:nrow(tmpGO.terms), tmp1$Group.1)] 
           }
         }
-        k <- setdiff(colnames(GO.terms), colnames(tmpGO.terms))
+        k <- base::setdiff(colnames(GO.terms), colnames(tmpGO.terms))
         if (length(k)) { tmpGO.terms[, k] <- NA }
         GO.terms <- rbind(GO.terms, tmpGO.terms)
         #cat("ok...\n")
@@ -816,25 +816,11 @@ if (length(wFltL)) {
         rfflt <- unique(unlist(c(fcflt, ref.filters[[n1]]))) # In case we are missing somethin'
         #
         # Some silly shenanigans to deal with random cluster corruption:
-        a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f0, filt = rfflt)
-        if (!length(a) == nrow(GO.terms)) {
-          stopCluster(parClust)
-          source(parSrc)
-          a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f0, filt = rfflt)
-        }
-        if (length(a) != nrow(GO.terms)) { stop() }
-        GO.terms[[kkol1]] <- a
-        rm(a)
+        source(parSrc)
+        GO.terms[[kkol1]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f0, filt = rfflt)
         #
-        a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f0, filt = fcflt)
-        if (!length(a) == nrow(GO.terms)) {
-          stopCluster(parClust)
-          source(parSrc)
-          a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f0, filt = fcflt)
-        }
-        if (!length(a) == nrow(GO.terms)) { stop() }
-        GO.terms[[kkol2]] <- a
-        rm(a)
+        source(parSrc)
+        GO.terms[[kkol2]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f0, filt = fcflt)
         #
         GO_tbl[, c(kkol1, "Count")] <- GO.terms[match(GO_tbl$ID, GO.terms$ID), c(kkol1, kkol2)]
         stopifnot(max(GO_tbl[[kkol1]] - GO_tbl$Count) >= 0L)
@@ -846,39 +832,18 @@ if (length(wFltL)) {
           #parallel::clusterExport(parClust, "tmpProtID", envir = environment())
         }
         if (MultRef || (kount == 1L)) {
-          a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpProt)
-          if (!length(a) == nrow(GO.terms)) {
-            stopCluster(parClust)
-            source(parSrc)
-            a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpProt)
-          }
-          if (length(a) != nrow(GO.terms)) { stop() }
-          GO.terms[[protkol1]] <- a
-          rm(a)
+          source(parSrc)
+          GO.terms[[protkol1]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpProt)
           #
           if (ID_col2_found) {
-            a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpProtID)
-            if (!length(a) == nrow(GO.terms)) {
-              stopCluster(parClust)
-              source(parSrc)
-              a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpProt)
-            }
-            if (!length(a) == nrow(GO.terms)) { stop() }
-            GO.terms[[pgkol1]] <- a
-            rm(a)
+            source(parSrc)
+            GO.terms[[pgkol1]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpProtID)
             #
           }
         }
         #
-        a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpProt)
-        if (!length(a) == nrow(GO.terms)) {
-          stopCluster(parClust)
-          source(parSrc)
-          a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpProt)
-        }
-        if (!length(a) == nrow(GO.terms)) { stop() }
-        GO.terms[[protkol2]] <- a
-        rm(a)
+        source(parSrc)
+        GO.terms[[protkol2]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpProt)
         #
         tst <- GO.terms[, c(protkol1, protkol2)]
         tst[[protkol1]] <- strsplit(tst[[protkol1]], ";")
@@ -887,15 +852,8 @@ if (length(wFltL)) {
         stopifnot(max(tst2) == 0L)
         ## Protein groups
         if (ID_col2_found) {
-          a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpProtID)
-          if (!length(a) == nrow(GO.terms)) {
-            stopCluster(parClust)
-            source(parSrc)
-            a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpProtID)
-          }
-          if (length(a) != nrow(GO.terms)) { stop() }
-          GO.terms[[pgkol2]] <- a
-          rm(a)
+          source(parSrc)
+          GO.terms[[pgkol2]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpProtID)
           #    
           tst <- GO.terms[, c(pgkol1, pgkol2)]
           tst[[pgkol1]] <- strsplit(tst[[pgkol1]], ";")
@@ -913,26 +871,12 @@ if (length(wFltL)) {
           tmpGn <- tmp2$x[match(tmpGn$row, tmp2$Group.1)]
           #parallel::clusterExport(parClust, "tmpGn", envir = environment())
           if (MultRef || (kount == 1L)) {
-            a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpGn)
-            if (!length(a) == nrow(GO.terms)) {
-              stopCluster(parClust)
-              source(parSrc)
-              a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpGn)
-            }
-            if (!length(a) == nrow(GO.terms)) { stop() }
-            GO.terms[[genkol1]] <- a
-            rm(a)
+            source(parSrc)
+            GO.terms[[genkol1]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpGn)
             #
           }
-          a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpGn)
-          if (!length(a) == nrow(GO.terms)) {
-            stopCluster(parClust)
-            source(parSrc)
-            a <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpGn)
-          }
-          if (!length(a) == nrow(GO.terms)) { stop() }
-          GO.terms[[genkol2]] <- a
-          rm(a)
+          source(parSrc)
+          GO.terms[[genkol2]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = fcflt, ids = tmpGn)
           #
           tst <- GO.terms[, c(genkol1, genkol2)]
           tst[[genkol1]] <- strsplit(tst[[genkol1]], ";")
@@ -974,8 +918,8 @@ if (length(wFltL)) {
             }
           }
           thresh <- reshape::melt.data.frame(thresh, id.vars = "FDR")
-          colnames(thresh) <- gsub("^value$", "Threshold", gsub("^variable$", "Ontology", colnames(thresh)))
-          GO_FDR_thresholds[[n1]] <- thresh[,c("FDR", "Ontology", "Threshold")]
+          colnames(thresh) <- sub("^value$", "Threshold", sub("^variable$", "Ontology", colnames(thresh)))
+          GO_FDR_thresholds[[n1]] <- thresh[, c("FDR", "Ontology", "Threshold")]
         }
         GO_tbl$Y <- -log10(GO_tbl[[c("Pvalue", "adj. Pvalue")[P_adjust+1L]]]) # I am choosing to call it Y because I am artificially editing some values (+Inf -> Ymax + 1) below
         GO.terms[wh, paste0("Pvalue - ", n1)] <- GO_tbl$Pvalue
@@ -990,22 +934,22 @@ if (length(wFltL)) {
         if (length(winf)) { GO_tbl$Y[winf] <- Ymax + 1 }
         # Calculate logFC
         if ((Mode == "regulated") || ((Mode == "dataset") && (!defltFilt))) {
-          Prot_FC_root <- paste0(gsub(" (- )?$", "", Prot_FC_root), " - ")
+          Prot_FC_root <- paste0(sub(" (- )?$", "", Prot_FC_root), " - ")
           FCkol <- paste0(Prot_FC_root, n1)
           if ((!FCkol %in% colnames(Prot)) && (Mode == "dataset")) {
-            FCkol <- gsub(" (- )?$", "", Prot_FC_root)
+            FCkol <- sub(" (- )?$", "", Prot_FC_root)
           }
         } else {
           FCkol <- Prot_FC_root
         }
-        FCkol <- intersect(FCkol, colnames(Prot))
+        FCkol <- base::intersect(FCkol, colnames(Prot))
         if (!length(FCkol)) {
           warning(paste0("No fold change column found for this filter (expected name: \"", FCkol, "\"), replacing it with a dummy column!"))
           Prot[[FCkol]] <- if (Prot_FC_is_log) { 0 } else { 1 }
         }
         w <- which(is.na(Prot[[FCkol]]))
         if ((Mode == "regulated") && FillGaps && exists("FillGaps_Expr_root") && (!is.null(FillGaps_Expr_root)) && length(w)) {
-          FillGaps_Expr_root <- paste0(gsub(" (- )?$", "", FillGaps_Expr_root), " - ")
+          FillGaps_Expr_root <- paste0(sub(" (- )?$", "", FillGaps_Expr_root), " - ")
           Intkol0 <- paste0(FillGaps_Expr_root, FillGaps_Smpls[[n1]]$Denominator)
           Intkol1 <- paste0(FillGaps_Expr_root, FillGaps_Smpls[[n1]]$Numerator)
           if (!sum(!c(Intkol1, Intkol0) %in% colnames(Prot))) {
@@ -1051,7 +995,7 @@ if (length(wFltL)) {
             l <- length(x)
             if (!l) { return(NA_real_) }
             x <- x-m
-            x <- setdiff(x, 0)
+            x <- base::setdiff(x, 0)
             x <- ifelse(x > 0, 1L, -1L)
             x <- sum(x)/sqrt(l)
             return(x)
@@ -1156,7 +1100,7 @@ if (length(wFltL)) {
                       paste0("ggplot2::ylim(0, ", Ymax, ")"))
           aes <- paste(sapply(1L:ncol(aes), \(x) { paste(colnames(aes)[x], aes[x], sep = " = ") }), collapse = ", ")
           #non.aes <- paste(sapply(1L:ncol(non.aes), \(x) { paste(colnames(non.aes)[x], non.aes[x], sep = " = ") }), collapse = ", ")
-          #non.aes <- gsub("^dummy = NA, ", "", non.aes)
+          #non.aes <- sub("^dummy = NA, ", "", non.aes)
           pluses <- paste(pluses, collapse = " + ")
           plot.txt <- paste0("plot <- ggplot2::ggplot(GO_tbl) + ggplot2::geom_point(shape = 16, ggplot2::aes(", aes, "))")
           if (exists("non.aes", inherits = FALSE) && length(non.aes)) {
@@ -1201,11 +1145,8 @@ if (length(wFltL)) {
               sfpt <- if (subfolderpertype) { paste0(subfolder, "/", sv) } else { subfolder }
               if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
               suppressMessages({
-                if (sv %in% c("jpeg", "tiff", "png", "bmp", "svg")) { #Note: tiff does not seem to work currently!
-                  ggplot2::ggsave(paste0(sfpt, "/", nm, ".", sv), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
-                } else {
-                  ggplot2::ggsave(paste0(sfpt, "/",nm, ".", sv), plot)
-                }
+                ggplot2::ggsave(paste0(sfpt, "/", nm, ".", sv), plot,
+                                dpi = 300L, width = 10L, height = 10L, units = "in")
               })
             }
           }
@@ -1262,7 +1203,8 @@ if (length(wFltL)) {
                 ggplot2::guides(colour = "none")
               if (labels) {
                 plot <- plot +
-                  ggplot2::geom_text(ggplot2::aes(label = Label3, x = X), y = -Ymax/20, hjust = 1, angle = 60, cex = 4L) +
+                  ggplot2::geom_text(ggplot2::aes(label = Label3, x = X),
+                                     y = -Ymax/20, hjust = 1, angle = 60, cex = 4L) +
                   ggplot2::theme(panel.spacing = ggplot2::unit(2L, "in"))
               }
               return(plot)
@@ -1310,7 +1252,7 @@ if (length(wFltL)) {
               zMsg <- c("", paste0("\n(truncated at ", col_lim, ")"))[(max(abs(GO_tbl3$`Z-score`)) > col_lim) + 1L]
               barplot_txt <- paste0("PLOT <- ggplot2::ggplot(GO_tbl3) +
   ggplot2::geom_bar(stat = \"identity\", ggplot2::aes(x = X, y = Y, fill = `Z-score*`INSERT1))")
-              text_tmp <- gsub("INSERT1", "", gsub("^PLOT", "barplot1", barplot_txt))
+              text_tmp <- sub("INSERT1", "", sub("^PLOT", "barplot1", barplot_txt))
               #cat(text_tmp)
               suppressWarnings(eval(parse(text = text_tmp)))
               barplot1 <- barAddStuff(barplot1)
@@ -1335,18 +1277,15 @@ if (length(wFltL)) {
                   if (!dir.exists(sfpt)) { dir.create(sfpt, recursive = TRUE) }
                   setwd(sfpt)
                   suppressMessages({
-                    if (sv %in% c("jpeg", "tiff", "png", "bmp", "svg")) { #Note: tiff does not seem to work currently!
-                      ggplot2::ggsave(paste0(sfpt, "/", barnm, ".", sv), barplot1, dpi = 150L, width = nX/4, height = 15L, units = "in")
-                    } else {
-                      ggplot2::ggsave(paste0(sfpt, "/", barnm, ".", sv), barplot1)
-                    }
+                    ggplot2::ggsave(paste0(sfpt, "/", barnm, ".", sv), barplot1,
+                                    dpi = 150L, width = nX/4, height = 15L, units = "in")
                   })
                 }
               }
               if (plotly) {
-                text_tmp <- gsub("INSERT1",
-                                 ", text1 = Label, text2 = Count, text3 = Y, text4 = Mapping",
-                                 gsub("^PLOT", "barplot2", barplot_txt))
+                text_tmp <- sub("INSERT1",
+                                ", text1 = Label, text2 = Count, text3 = Y, text4 = Mapping",
+                                sub("^PLOT", "barplot2", barplot_txt))
                 #cat(text_tmp)
                 suppressWarnings(eval(parse(text = text_tmp)))
                 barplot2 <- barAddStuff(barplot2, FALSE)
@@ -1409,7 +1348,7 @@ if (length(wFltL)) {
         for (flt in names(tstPlots)) { #flt <- names(tstPlots)[1L]
           nms <- names(tstPlots[[flt]]$GO_plots)
           goPlots[nms] <- tstPlots[[flt]]$GO_plots[nms]
-          nm <- unique(sub("GO (bar|bubble) plot - ", "", nms))
+          nm <- unique(ub("GO (bar|bubble) plot - ", "", nms))
           stopifnot(length(nm) == 1L)
           GO_plot_ly[[dataType2]][[slotNm]][[nm]] <- tstPlots[[flt]]$GO_plotly
         }

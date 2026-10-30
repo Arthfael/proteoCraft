@@ -7,14 +7,12 @@
 # If you want to run this, you will thus first need to run the GO enrichment section first
 setwd(wd)
 # Packages for STRINGdb graphs
-library(igraph)
-library(RCy3)
-library(png)
+#requireNamespace("png")
 # Create STRINGdb directory
 GraphTypes %<o% c("Functional", "Physical")
 dirs <- paste0(wd, "/STRINGdb/", GraphTypes)
 for (dir in dirs) { if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) } }
-dirlist <- union(dirlist, dir)
+dirlist <- base::union(dirlist, dir)
 # Process filters for STRINGdb
 intNets <- list()
 Tsts <- c("t-tests", "F-tests", "Localisation", "SAINTexpress")
@@ -39,13 +37,13 @@ tmpPG <- tmpPG[tmpPG$value %in% IDs,]
 source(parSrc)
 allProteins_mapped <- try(setNames(lapply(allTaxIDs, \(txid) { #txid <- allTaxIDs[1L]
   kol <- c("Protein ID", "Common Name", "TAIR")
-  kol <- intersect(kol, colnames(db))
+  kol <- base::intersect(kol, colnames(db))
   tmpDB <- db[(db$`Protein ID` %in% IDs) & (db$TaxID == txid), kol]
   x <- sub("^cRAP[0-9]{3}", "", sub("^CON__", "", tmpDB$`Protein ID`))
   y <- split(x, ceiling(seq_along(x)/20))
   n <- length(y)
-  clusterExport(parClust, c("txid", "y", "tmpDB"), envir = environment())
-  res <- parLapply(parClust, 1L:n, \(i) {
+  parallel::clusterExport(parClust, c("txid", "y", "tmpDB"), envir = environment())
+  res <- parallel::parLapply(parClust, 1L:n, \(i) {
     ids <- y[[i]]
     #a <- try(rbioapi::rba_string_map_ids(ids, txid), silent = TRUE)
     #if (inherits(a, "try-error")) {
@@ -178,10 +176,10 @@ if (length(WhTsts) && length(allProteins_mapped)) {
     nr <- nr*2L
     txidsTst <- (length(unique(filtersDF$TaxID)) > 1L)+1L
     source(parSrc)
-    clusterExport(parClust,
-                  c("wd", "filtersDF", "allProteins_mapped", "tmpPG", "GraphTypes", "Exp", "txidsTst", "cleanNms", "topattern"),
-                  envir = environment())
-    tstSTRINGs <- parLapply(parClust, 1L:nr, \(i) { #i <- 1L #i <- 4L #i <- 10L #i <- 11L
+    parallel::clusterExport(parClust,
+                            c("wd", "filtersDF", "allProteins_mapped", "tmpPG", "GraphTypes", "Exp", "txidsTst", "cleanNms", "topattern"),
+                            envir = environment())
+    tstSTRINGs <- parallel::parLapply(parClust, 1L:nr, \(i) { #i <- 1L #i <- 4L #i <- 10L #i <- 11L
       fltNm <- cleanNms(filtersDF$Name[i], rep = "_")
       regTbl <- filtersDF$Reg[[i]]
       grphType <- filtersDF$GraphType[i]
@@ -263,7 +261,7 @@ if (length(WhTsts) && length(allProteins_mapped)) {
                 response <- httr::POST(rqst, encode = "json")
                 if (httr::http_status(response)$category != "Success") { Sys.sleep(2L) }
                 img_I <- httr::content(response, "raw")
-                writeBin(img_I, imgpath)
+                base::writeBin(img_I, imgpath)
               }, silent = TRUE)
             }
           }
@@ -290,8 +288,8 @@ if (length(WhTsts) && length(allProteins_mapped)) {
         fls <- STRINGplots[[grphType]]
         fls <- fls[file.exists(fls)]
         if (length(fls) > 1L) {
-          PNGs <- parLapply(parClust, fls, png::readPNG)
-          g <- parLapply(parClust, PNGs, \(png) { grid::rasterGrob(png, interpolate = TRUE) })
+          PNGs <- parallel::parLapply(parClust, fls, png::readPNG)
+          g <- parallel::parLapply(parClust, PNGs, \(png) { grid::rasterGrob(png, interpolate = TRUE) })
           dim <- ceiling(sqrt(length(g)))
           l <- length(gsub(".*/|\\.png$", "", fls))
           tst <- data.frame(tile = gsub(".*/|\\.png$", "", fls))
@@ -300,22 +298,23 @@ if (length(WhTsts) && length(allProteins_mapped)) {
           tst$Grob <- g
           tst$Lab <- sub("\\)$", "", gsub("\\)_-_\\(", "\nvs\n", gsub("_by_condition_(\\()?", "\n", tst$tile)))
           ttl <- paste0(tolower(grphType), " STRING plots")
-          plot <- ggplot(tst) +
-            geom_tile(aes(x = x, y = y), width = 0.96, height = 0.96, fill = "white") + coord_equal() + theme_bw() +
-            xlim(0.5, dim+0.5) + ylim(0.5, dim+1) +
-            theme(axis.line = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(),
-                  axis.ticks = element_blank(), axis.title.x = element_blank(), axis.title.y = element_blank(),
-                  legend.position = "none", panel.border = element_blank(), panel.grid.major = element_blank(),
-                  panel.grid.minor = element_blank(), plot.background = element_blank())
+          plot <- ggplot2::ggplot(tst) +
+            ggplot2::geom_tile(ggplot2::aes(x = x, y = y), width = 0.96, height = 0.96, fill = "white") +
+			ggplot2::coord_equal() + ggplot2::theme_bw() +
+            ggplot2::xlim(0.5, dim + 0.5) + ggplot2::ylim(0.5, dim + 1) +
+            ggplot2::theme(axis.line = ggplot2::element_blank(), axis.text.x = ggplot2::element_blank(), axis.text.y = ggplot2::element_blank(),
+                           axis.ticks = ggplot2::element_blank(), axis.title.x = ggplot2::element_blank(), axis.title.y = ggplot2::element_blank(),
+                           legend.position = "none", panel.border = ggplot2::element_blank(), panel.grid.major = ggplot2::element_blank(),
+                           panel.grid.minor = ggplot2::element_blank(), plot.background = ggplot2::element_blank())
           for (i in 1L:nrow(tst)) {
-            plot <- plot + annotation_custom(tst$Grob[[i]], xmin = tst$x[i]-0.48, xmax = tst$x[i]+0.48, ymin = tst$y[i]-0.48, ymax = tst$y[i]+0.48)
+            plot <- plot + ggplot2::annotation_custom(tst$Grob[[i]], xmin = tst$x[i]-0.48, xmax = tst$x[i]+0.48, ymin = tst$y[i]-0.48, ymax = tst$y[i]+0.48)
           }
           plot <- plot +
-            geom_text(aes(label = Lab, x = x, y = y + 0.48), cex = 2.5) +
-            geom_text(label = paste0(grphType, " interactions"), x = dim/2+0.5, y = dim+0.7, cex = 5)
+            ggplot2::geom_text(ggplot2::aes(label = Lab, x = x, y = y + 0.48), cex = 2.5) +
+            ggplot2::geom_text(label = paste0(grphType, " interactions"), x = dim/2+0.5, y = dim+0.7, cex = 5)
           poplot(plot)
-          ggsave(paste0(wd, "/STRINGdb/", grphType, "/All ", ttl, ".svg"), plot,
-                 dpi = 120L, width = 100L, height = 100L, units = "in", limitsize = FALSE)
+          ggplot2::ggsave(paste0(wd, "/STRINGdb/", grphType, "/All ", ttl, ".svg"), plot,
+                          dpi = 120L, width = 100L, height = 100L, units = "in", limitsize = FALSE)
         }
       }
     }
@@ -335,7 +334,7 @@ if (length(WhTsts) && length(allProteins_mapped)) {
         dirs <- paste0(wd, "/STRINGdb/", GraphTypes) # These are Cytoscape versions of STRINGdb graphs,
         # the logical place to save them is in STRINGdb!!!
         for (dir in dirs) { if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) } }
-        dirlist <- union(dirlist, dir)
+        dirlist <- base::union(dirlist, dir)
         #
         # Use Cytoscape to represent networks of gated proteins with overlayed logFC
         cat("Creating Cytoscape network .cx files...\n")
@@ -404,7 +403,7 @@ if (length(WhTsts) && length(allProteins_mapped)) {
             dsAll <- igraph::similarity(gD, vids = igraph::V(gD), mode = "all", method = "dice")
             gD <- igraph::set_vertex_attr(gD, "degree", index = igraph::V(gD), value = degAll)
             gD <- igraph::set_vertex_attr(gD, "betweenness", index = igraph::V(gD), value = betAll.norm)
-            #summary(gD)
+            #base::summary(gD)
             F1 <- \(x) {
               data.frame(V4 = dsAll[igraph::V(gD)$name == as.character(x$V1),
                                     igraph::V(gD)$name == as.character(x$V2)])
@@ -417,8 +416,8 @@ if (length(WhTsts) && length(allProteins_mapped)) {
               igraph::E(gD)[as.character(dataSet.ext$V1) %--% as.character(dataSet.ext$V2)]$similarity <- as.numeric(dataSet.ext$V4)
             }
             rm(dsAll, i, F1)
-            #summary(gD)
-            exprs <- expression({
+            #base::summary(gD)
+            exprs <- base::expression({
               tst <- RCy3::createNetworkFromIgraph(gD, new.title = Nm)
               RCy3::layoutNetwork("force-directed defaultSpringLength=70 defaultSpringCoefficient=0.000003")
               rg <- max(abs(logFC))

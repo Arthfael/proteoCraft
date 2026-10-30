@@ -1,5 +1,4 @@
 require(proteoCraft)
-require(parallel)
 require(XML)
 dSrcs <- c("...MS_File_Archive",
            "...Projects_Doc_Folder/Mass_Spec/Acquired data_v2",
@@ -8,15 +7,15 @@ dSrcs <- c("...MS_File_Archive",
 dSrcs <- dSrcs[which(dir.exists(dSrcs))]
 
 # Create parallel processing cluster
-N.clust <- detectCores()-1L
+N.clust <- parallel::detectCores()-1L
 a <- 1
-tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
+tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)
 if (inherits(tst, "try-error")) {
-  try(stopCluster(parClust), silent = TRUE)
-  parClust <- makeCluster(N.clust, type = "SOCK")
+  try(parallel::stopCluster(parClust), silent = TRUE)
+  parClust <- parallel::makeCluster(N.clust, type = "SOCK")
 }
 
-dFls <- parLapply(parClust, dSrcs, function(dr) { 
+dFls <- parallel::parLapply(parClust, dSrcs, function(dr) { 
   x <- list.dirs(dr)
   grep("_[0-9]+\\.d$", x, value = TRUE)
 })
@@ -24,7 +23,7 @@ names(dFls) <- dSrcs
 
 dFls2 <- data.frame(File = unlist(dFls))
 dFls2$"Bruker run" <- as.integer(gsub(".*_|\\.d$", "", dFls2$File))
-dFls2$execLog <- parLapply(parClust, dFls2$File, function(dFl) { #dFl <- dDrs[1]
+dFls2$execLog <- parallel::parLapply(parClust, dFls2$File, function(dFl) { #dFl <- dDrs[1]
   sbdr <- grep("\\.m$", list.dirs(dFl), invert = TRUE, value = TRUE)
   sbdr <- sbdr[which(sbdr != dFl)]
   grep("execution-log", list.files(sbdr, full.names = TRUE), value = TRUE)
@@ -32,7 +31,7 @@ dFls2$execLog <- parLapply(parClust, dFls2$File, function(dFl) { #dFl <- dDrs[1]
 dFls2$execLog_ok <- lengths(dFls2$execLog) == 1L
 w <- which(dFls2$execLog_ok)
 dFls2$startPress <- NA_real_
-dFls2$startPress[w] <- parSapply(parClust, dFls2$execLog[w], function(lgFl) { #lgFl <- dFls2$execLog[w[1L]]
+dFls2$startPress[w] <- parallel::parSapply(parClust, dFls2$execLog[w], function(lgFl) { #lgFl <- dFls2$execLog[w[1L]]
   lg <- readr::read_lines(unlist(lgFl))
   writeClipboard(lg)
   #... now I need to figure out which pressure to extract
@@ -80,7 +79,7 @@ cmd <- paste0("python \"", pressScript, "\" ", paste0("\"", mzMLs, "\"", collaps
 system(cmd)
 # Step 3 - read and plot
 pressFls <- gsub("\\.mzML$", "_Pump_Pressure_1.csv", mzMLs)
-press <- parLapply(parClust, pressFls, function(fl) {
+press <- parallel::parLapply(parClust, pressFls, function(fl) {
   x <- read.csv(fl)
   fl <- gsub("_Pump_Pressure_1\\.csv$", ".raw", fl)
   colnames(x) <- c("Retention time", "Pressure")
@@ -96,7 +95,8 @@ offset <- max(press$Pressure)/3
 nc <- nchar(floor(offset))
 offset <- ceiling(offset/10L^(nc-1))*10^(nc-1)
 press$Press <- press$Pressure + offset*(match(press$`Raw file`, fls)-1)
-plot <- ggplot(press, aes(x = `Retention time`, y = Press, colour = `Raw file name`)) +
-  geom_line(aes(group = `Raw file name`)) +
-  theme_bw() #+ facet_grid(`Raw file name`~.)
+plot <- ggplot2::ggplot(press,
+                        ggplot2::aes(x = `Retention time`, y = Press, colour = `Raw file name`)) +
+  ggplot2::geom_line(ggplot2::aes(group = `Raw file name`)) +
+  ggplot2::theme_bw() #+ ggplot2::facet_grid(`Raw file name`~.)
 poplot(plot, 12L, 22L)

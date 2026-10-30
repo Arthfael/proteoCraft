@@ -112,12 +112,15 @@
 #' 
 #' @export
 
+requireNamespace("data.table")
 
 TESTING <- FALSE
 
-
-DefArg(protQuant)#;TESTING <- TRUE
-invisible(lapply(names(quantArgs2), \(x) { assign(x, quantArgs2[[x]], envir = .GlobalEnv); return() }))
+DefArg(protQuant)# This is the reason why for now protQuant MUST remain
+invisible(lapply(names(quantArgs2), \(x) {
+  assign(x, quantArgs2[[x]], envir = .GlobalEnv)
+  return()
+}))
 
 
 if (!exists("ref_Mode")) { ref_Mode <- 2L }
@@ -365,7 +368,7 @@ if (!skipRatios) {
   } else {
     Pep.Ratios.Nms <- paste0(pepRat_root, mySmpls)
   }
-  Pep.Ratios.Nms <- intersect(Pep.Ratios.Nms, colnames(Pep))
+  Pep.Ratios.Nms <- base::intersect(Pep.Ratios.Nms, colnames(Pep))
   if (Priority == "rat") { stopifnot(length(Pep.Ratios.Nms) > 0L) }
 }
 #
@@ -421,7 +424,7 @@ if ((!!exists("mods_to_Exclude")) && nrow(mods_to_Exclude)) {
     # For protein N-terminal peptides, we remove them later for those proteins for which the peptide is N-terminal!!!
     #
     wh_A <- grep("^[NC]term", wh, invert = TRUE, value = TRUE) #anywhere
-    wh_A <- setdiff(wh_A, "")
+    wh_A <- base::setdiff(wh_A, "")
     wh_N_trm <- grep("^Nterm$", wh, value = TRUE) # N-terminus, any
     wh_N_trm_sp <- grep("^Nterm_", wh, value = TRUE) # N-terminus, specific
     wh_C_trm <- grep("^Cterm$", wh, value = TRUE) # C-terminus, any
@@ -855,8 +858,7 @@ if ("LM" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
                           list("diffLog", "LFQ.lm", "tmpFl1", "tmpFl2"),
                           envir = environment()) # (Overwrite the package's versions in case we have local ones)
   invisible(parallel::clusterCall(parClust, \() {
-    library(stats)
-    library(minpack.lm)
+    requireNamespace("minpack.lm")
     assign("tmpPep", readr::read_rds(tmpFl1), envir = .GlobalEnv)
     assign("quant_pep_IDs", readr::read_rds(tmpFl2), envir = .GlobalEnv)
     return()
@@ -1016,9 +1018,9 @@ if (sum(c("IQ", "LIMPA", "QFEATURES", "MSSTATS") %in% c(LFQ_ALGO, RESCALING, ALS
     tmp4$PeptideSequence  <- do.call(paste, c(tmp4[, c("PeptideModifiedSequence", "tmp")], sep = "pg"))
     # ... not a mistake, cf. how MSstats defines feature!
     #
-    #    Note that MSstat's dataProcess() function provides log10 values which are pre-modelling and DO NOT constitute LFQ
+    #    Note that MSstats::dataProcess() provides log10 values which are pre-modelling and DO NOT constitute LFQ
     #       (very poor correlation with other methods at both intensity and logFCs level)
-    #    These are not consistent with the modelling based avg. logFCs per contrast provided by groupComparison()
+    #    These are not consistent with the modelling based avg. logFCs per contrast provided by MSstats::groupComparison()
     tmp4$PeptideModifiedSequence <- NULL
     MSstats_list <- MSstats::dataProcess(tmp4,
                                          normalization = FALSE,
@@ -1076,11 +1078,11 @@ colnames(res2) <- paste0(Expr.root.full, colnames(res2))
 # tst <- tst[(!is.na(tst$X)) & (!is.na(tst$Y)),]
 # tst$X_method <- factor(tst$X_method, levels = c("LM", "iq", "limpa", "QFeatures"))
 # tst$Y_method <- factor(tst$Y_method, levels = c("LM", "iq", "limpa", "QFeatures"))
-# plot <- ggplot(tst) +
-#   scattermore::geom_scattermore(aes(x = X, y = Y, color = Sample)) +
-#   facet_grid(Sample~X_method*Y_method) + coord_fixed() +
-#   theme_bw() + theme(strip.text.y = element_text(angle = 0)) +
-#   ggtitle("log10 abundances")
+# plot <- ggplot2::ggplot(tst) +
+#   scattermore::geom_scattermore(ggplot2::aes(x = X, y = Y, color = Sample)) +
+#   ggplot2::facet_grid(Sample~X_method*Y_method) + ggplot2::coord_fixed() +
+#   ggplot2::theme_bw() + ggplot2::theme(strip.text.y = ggplot2::element_text(angle = 0)) +
+#   ggplot2::ggtitle("log10 abundances")
 # poplot(plot, 12, 22)
 # #
 # em <- experimentMap
@@ -1139,11 +1141,11 @@ colnames(res2) <- paste0(Expr.root.full, colnames(res2))
 # tst <- tst[(!is.na(tst$X)) & (!is.na(tst$Y)),]
 # tst$X_method <- factor(tst$X_method, levels = c("LM", "iq", "limpa", "QFeatures", "MSstats"))
 # tst$Y_method <- factor(tst$Y_method, levels = c("LM", "iq", "limpa", "QFeatures", "MSstats"))
-# plot <- ggplot(tst) +
-#   scattermore::geom_scattermore(aes(x = X, y = Y, color = Group)) +
-#   facet_grid(Group~X_method*Y_method) + coord_fixed() +
-#   theme_bw() + theme(strip.text.y = element_text(angle = 0)) +
-#   ggtitle("avg. logFCs")
+# plot <- ggplot2::ggplot(tst) +
+#   scattermore::geom_scattermore(ggplot2::aes(x = X, y = Y, color = Group)) +
+#   ggplot2::facet_grid(Group~X_method*Y_method) + ggplot2::coord_fixed() +
+#   ggplot2::theme_bw() + ggplot2::theme(strip.text.y = ggplot2::element_text(angle = 0)) +
+#   ggplot2::ggtitle("avg. logFCs")
 # poplot(plot, 12, 22)
 #######
 # End #

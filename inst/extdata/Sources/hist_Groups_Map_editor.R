@@ -17,7 +17,7 @@ grpsMap <- if (reLoad) {
 } else {
   data.frame(Group = Groups,
              Reference = FALSE,
-                        Comparison_group = 1L)
+             Comparison_group = 1L)
 }
 grpsMap$Reference <- as.logical(grpsMap$Reference)
 w <- which(is.na(grpsMap$Reference))
@@ -67,44 +67,42 @@ g <- grep("___(FD|INCR)$", colnames(grpsMap2))
 colnames(grpsMap2)[g] <- ""
 #
 if (exists("appRunTest")) { rm(appRunTest) }
-ui <- fluidPage(useShinyjs(),
-                setBackgroundColor( # Doesn't work
-                  color = c(#"#F8F8FF",
-                    "#E5EDE1"),
-                  gradient = "linear",
-                  direction = "bottom"
-                ),
-                extendShinyjs(text = jsFun$toggle_full_screen,
-                              functions = c("toggleFullScreen")),
-                tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-                titlePanel(tag("u", "Sample groups map"),
-                           appNm),
-                br(),
-                h5("Edit the relationship between sample groups, defining comparison groups which must include exactly one reference group and any number of non-reference groups, then click \"Save\"."),
-                br(),
-                actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-                br(),
-                DTOutput("grpsMap2"),
-                br(),
-                br())
+ui <- shiny::fluidPage(
+  shinyjs::useShinyjs(),
+  shinyWidgets::setBackgroundColor( # Doesn't work
+    color = c(#"#F8F8FF",
+      "#E5EDE1"),
+    gradient = "linear",
+    direction = "bottom"),
+  shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                         functions = c("toggleFullScreen")),
+  shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+  shiny::titlePanel(shiny::tag("u", "Sample groups map"),
+                    appNm),
+  shiny::br(),
+  shiny::h5("Edit the relationship between sample groups, defining comparison groups which must include exactly one reference group and any number of non-reference groups, then click \"Save\"."),
+  shiny::br(),
+  shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
+  shiny::br(),
+  DT::DTOutput("grpsMap2"),
+  shiny::br(),
+  shiny::br())
 server <- \(input, output, session) {
   grpsMap3 <- grpsMap
-  output$grpsMap2 <- renderDT({ grpsMap2 },
-                              FALSE,
-                              escape = FALSE,
-                              class = "compact",
-                              selection = "none",
-                              editable = FALSE,
-                              rownames = FALSE,
-                              options = list(
-                                dom = "t",
-                                paging = FALSE,
-                                ordering = FALSE,
-                                autoWidth = TRUE,
-                                columnDefs = wTest1,
-                                scrollX = FALSE
-                              ),
-                              callback = JS("table.rows().every(function(i, tab, row) {
+  output$grpsMap2 <- DT::renderDT({ grpsMap2 },
+                                  FALSE,
+                                  escape = FALSE,
+                                  class = "compact",
+                                  selection = "none",
+                                  editable = FALSE,
+                                  rownames = FALSE,
+                                  options = list(dom = "t",
+                                                 paging = FALSE,
+                                                 ordering = FALSE,
+                                                 autoWidth = TRUE,
+                                                 columnDefs = wTest1,
+                                                 scrollX = FALSE),
+                                  callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
         var $this = $(this.node());
         $this.attr('id', this.data()[0]);
         $this.addClass('shiny-input-container');
@@ -119,22 +117,22 @@ server <- \(input, output, session) {
     fct <- tmp[[1L]]
     i <- as.integer(tmp[[2L]])
     if (i < nr) {
-      observeEvent(input[[id2]],
-                   {
-                     x <- input[[id1]]
-                     for (k in (i+1L):nr) {
-                       idK <- paste0(fct, "___", as.character(k))
-                       if (fct == "Comparison_group") {
-                         updateTextInput(session, idK, NULL, x)
-                       }
-                       if (fct == "Reference") {
-                         updateCheckboxInput(session, idK, NULL, as.logical(x))
-                       }
-                     }
-                   })
+      shiny::observeEvent(input[[id2]],
+                          {
+                            x <- input[[id1]]
+                            for (k in (i+1L):nr) {
+                              idK <- paste0(fct, "___", as.character(k))
+                              if (fct == "Comparison_group") {
+                                shiny::updateTextInput(session, idK, NULL, x)
+                              }
+                              if (fct == "Reference") {
+                                shiny::updateCheckboxInput(session, idK, NULL, as.logical(x))
+                              }
+                            }
+                          })
     }
   })
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     kls <- c("Comparison_group", "Reference")
     for (kl in kls) {
       grpsMap3[[kl]] <- sapply(rws, \(i) {
@@ -147,10 +145,10 @@ server <- \(input, output, session) {
     assign("grpsMap3", grpsMap3, envir = .GlobalEnv)
     #
     assign("appRunTest", TRUE, envir = .GlobalEnv)
-    stopApp()
+    shiny::stopApp()
   })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(\() { stopApp() })
+  #shiny::observeEvent(input$cancel, { shiny::stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
 }
 runKount <- 0L
 while ((!runKount)||(!exists("appRunTest"))) {
@@ -179,7 +177,7 @@ w <- which(tst == "list")
 if (length(w)) { for (i in w) { grpsMap_Disk[[i]] <- vapply(grpsMap_Disk[[i]], paste, "", collapse = ";") }}
 tst <- try(write.csv(grpsMap_Disk, file = grpsMapFl, row.names = FALSE, quote = TRUE), silent = TRUE)
 while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
-  dlg_message(paste0("File \"", grpsMapFl, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+  svDialogs::dlg_message(paste0("File \"", grpsMapFl, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(grpsMap_Disk, file = grpsMapFl, row.names = FALSE, quote = TRUE), silent = TRUE)
 }
 #

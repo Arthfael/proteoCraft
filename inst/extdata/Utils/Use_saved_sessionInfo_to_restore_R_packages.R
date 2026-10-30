@@ -108,7 +108,7 @@ if (length(w)) {
   # Make/check cluster
   N.clust <- parallel::detectCores()-1L
   a <- 1L
-  tst <- try(clusterExport(parClust, "a", envir = environment()), silent = TRUE)
+  tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)
   if (inherits(tst, "try-error")) {
     try(parallel::stopCluster(parClust), silent = TRUE)
     parClust <- parallel::makeCluster(N.clust, type = "SOCK")
@@ -130,13 +130,13 @@ if (length(w)) {
         if (pck %in% inst$Package) {
           tst <- try({
             a <- try({ remove.packages(pck) })
-            if (inherits(a, "try-error")) { pkg_remove(pkg) }
+            if (inherits(a, "try-error")) { pak::pkg_remove(pkg) }
           }, silent = TRUE)
           return(!inherits(tst, "try-error"))
         } else { return(TRUE) }
       })
       inst <- as.data.frame(installed.packages())
-      clusterExport(parClust, list("inst"), envir = environment())
+      parallel::clusterExport(parClust, list("inst"), envir = environment())
       w <- which(pckDF$Package %in% inst$Package)
       kount <- kount + 1L
     }
@@ -153,7 +153,7 @@ if (length(w)) {
     if (a) {
       try({
         unloadNamespace(pck) # Can stay here as long as it is within sapply
-        # If you ever turn this sapply into parSapply then you will need to move unloadNamespace to a separate sapply(... parLapply...) (see above)
+        # If you ever turn this sapply into parallel::parSapply then you will need to move unloadNamespace to a separate sapply(... parallel::parLapply...) (see above)
         # so it applies to the whole cluster before we even 
         b <- try({ remove.packages(pck) }, silent = TRUE)
         if (inherits(b, "try-error")) { pak::pkg_remove(pck) }
@@ -179,8 +179,8 @@ if (length(w)) {
     #wNO_ord <- wNO <- which(!pckDF$Installed)
     wNO <- which(pckDF$goAhead & (!pckDF$Installed))
     #pckDF$Package[wNO]
-    #if (i == -1) { wNO_ord <- rev(wNO_ord) } # In case package installation is important
-    clusterExport(parClust, list("pckDF", "wNO"), envir = environment())
+    #if (i == -1L) { wNO_ord <- rev(wNO_ord) } # In case package installation is important
+    parallel::clusterExport(parClust, list("pckDF", "wNO"), envir = environment())
     A <- parallel::parLapply(parClust, wNO#_ord
                              , \(i) { #i <- wNO[1L] #i <- wNO[2L]
                                pck <- pckDF$Package[i]

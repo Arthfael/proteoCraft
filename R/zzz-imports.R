@@ -2,118 +2,44 @@
 #' @noRd
 
 .workflow_imports <- function() {
-  affy::updateMe
-  affy::hist
-  affy::close
-  affy::MAplot
-  affy::exprs
-  affy::featureNames
-  affy::mm
-  annotate::Ontology
   annotate::filterGOByOntology
   annotate::getGOTerm
-  annotate::organism
-  annotate::fileName
-  base64enc::base64encode
   base64enc::base64decode
-  Biobase::dims
-  Biobase::Aggregate
   Biobase::package.version
-  Biobase::content
-  Biobase::exprs
   Biobase::AnnotatedDataFrame
-  Biobase::featureNames
-  Biobase::description
-  Biobase::fData
   Biobase::rowMax
+  BiocGenerics::Ontology
+  BiocGenerics::toTable
   BiocManager::install
-  BiocManager::version
   BiocManager::repositories
-  Biostrings::match
-  Biostrings::as.data.frame
-  Biostrings::union
-  Biostrings::order
-  Biostrings::nchar
-  Biostrings::strsplit
-  Biostrings::setdiff
-  Biostrings::substr
-  Biostrings::intersect
-  Biostrings::sort
-  Biostrings::as.matrix
-  Biostrings::substring
-  Biostrings::start
-  Biostrings::end
-  Biostrings::collapse
-  Biostrings::summary
-  Biostrings::as.list
-  Biostrings::toString
-  Biostrings::width
-  Biostrings::tail
   Biostrings::AAStringSetList
-  Biostrings::rank
-  bslib::page_fluid
-  bslib::page
   bslib::navset_tab
-  camprotR::download_ccp_crap
+  bslib::page_fluid
   cluster::clusGap
-  coin::size
   coin::pvalue
   coin::independence_test
+  cowplot::get_legend
   devtools::install_git
-  devtools::wd
-  devtools::test
-  devtools::check
   devtools::install_github
-  devtools::unload
   DT::DTOutput
   DT::renderDT
-  DT::JS
-  DT::saveWidget
   DT::datatable
   DT::formatRound
   DT::formatStyle
   DT::styleInterval
+  dynamicTreeCut::cutreeDynamic
   evaluate::evaluate
-  ExploreModelMatrix::ExploreModelMatrix
   factoextra::fviz_gap_stat
   fs::file_copy
-  fs::path
   fs::dir_copy
   fs::file_move
-  fs::dir_delete
   ggh4x::facet_nested
   grateful::cite_packages
   gridExtra::arrangeGrob
   gridExtra::grid.arrange
-  hexbin::plot
-  hexbin::summary
-  hexbin::hexbin
-  htmltools::a
-  htmltools::tags
-  htmltools::HTML
-  htmltools::tag
-  htmltools::br
-  htmltools::h4
-  htmltools::h5
-  htmltools::em
-  htmltools::strong
-  htmltools::span
-  htmltools::p
+  htmltools::htmlEscape
   htmltools::browsable
   htmltools::save_html
-  htmltools::h2
-  htmltools::h1
-  htmltools::h3
-  htmltools::htmlEscape
-  htmltools::div
-  htmltools::tagList
-  htmltools::h6
-  igraph::union
-  igraph::path
-  igraph::blocks
-  igraph::.data
-  igraph::graph
-  igraph::groups
   igraph::simplify
   igraph::graph_from_data_frame
   igraph::V
@@ -124,8 +50,6 @@
   igraph::similarity
   igraph::set_edge_attr
   igraph::E
-  igraph::parent
-  igraph::ends
   knitr::image_uri
   later::later
   limma::makeContrasts
@@ -135,94 +59,39 @@
   limma::eBayes
   limma::decideTests
   limma::vennCounts
-  limma::qqt
-  limma::plotMD
-  limma::topGO
   limma::normalizeCyclicLoess
   limma::voomaLmFit
-  lubridate::union
-  lubridate::setdiff
-  lubridate::intersect
-  lubridate::date
-  lubridate::today
-  lubridate::now
-  lubridate::Date
-  lubridate::parse_date_time
-  lubridate::origin
-  lubridate::ms
-  lubridate::second
-  lubridate::ym
-  magrittr::mod
-  magrittr::set_rownames
-  magrittr::set_colnames
-  magrittr::set_names
+  limma::qqt
+  limma::plotMD
   MASS::kde2d
   MASS::fitdistr
   matrixStats::rowMins
-  methods::slotNames
-  methods::slot
-  methods::new
-  methods::getFunction
-  methods::as
-  mgcv::s
-  mgcv::t2
   mgcv::gam
-  mgcv::lp
-  mgcv::ti
-  mgcv::nb
+  mgcv::s
   modeest::mlv
-  MSnbase::t
-  MSnbase::plot
-  MSnbase::metadata
-  MSnbase::split
-  MSnbase::header
-  MSnbase::width
-  MSnbase::topN
-  MSnbase::MAplot
-  MSnbase::exprs
   MSnbase::MSnSet
   MSnbase::FeaturesOfInterest
   MSnbase::featureNames
   MSnbase::description
   MSnbase::foi
+  MSnbase::plot
   MSnbase::fData
-  MSnbase::psms
-  MSnbase::scale
-  MSnbase::mz
-  MSnbase::tic
-  MSnbase::fileName
-  MSnbase::clean
   msqrob2::msqrob
   msqrob2::hypothesisTest
   MSstats::dataProcess
   MSstats::groupComparison
-  mzID::id
-  mzID::files
   mzID::mzID
   mzID::evidence
-  mzID::parameters
+  mzID::id
   pak::pak
   pak::pkg_remove
+  pkgload::load_all
+  pkgload::is_dev_package
   png::readPNG
-  prideR::as.data.frame
-  prideR::plot
-  prideR::file.size
-  prideR::modifications
-  prideR::title
-  prideR::id
-  prideR::results
   prideR::get.ProjectSummary
-  prideR::accession
-  pROC::var
   pROC::roc
   pROC::ggroc
-  pROC::ci
   processx::process
-  processx::poll
-  pRoloc::plot
-  pRoloc::col1
-  pRoloc::col2
-  pRoloc::data2
   pRoloc::addMarkers
   pRoloc::mrkHClust
   pRoloc::getMarkerClasses
@@ -239,20 +108,10 @@
   pRoloc::svmClassification
   pRoloc::getPredictions
   pRoloc::pRolocmarkers
-  pwalign::nchar
-  pwalign::as.matrix
-  pwalign::start
-  pwalign::end
-  pwalign::summary
-  pwalign::toString
-  pwalign::type
-  pwalign::width
   pwalign::pairwiseAlignment
-  pwalign::pattern
   qvalue::pi0est
   qvalue::qvalue
   RColorBrewer::brewer.pal
-  RCurl::close
   RCurl::CFILE
   RCurl::curlPerform
   RCy3::exportNetwork
@@ -265,39 +124,21 @@
   RCy3::setNodeFontSizeDefault
   RCy3::setNodeSizeMapping
   RCy3::deleteAllNetworks
-  renv::load
-  renv::use_python
   renv::init
   renv::status
   renv::project
   renv::snapshot
   renv::deactivate
-  renv::paths
-  renv::clean
-  renv::record
   rhdf5::h5read
   RJSONIO::toJSON
-  RJSONIO::fromJSON
   rsvg::rsvg_png
   scattermore::geom_scattermore
-  scattermore::scattermore
   shinyBS::bsTooltip
   shinycssloaders::withSpinner
-  shinyFiles::getVolumes
   shinyFiles::shinyFilesButton
-  shinyFiles::shinyDirButton
   shinyFiles::shinyFileChoose
+  shinyFiles::getVolumes
   shinyFiles::parseFilePaths
-  shinyFiles::shinyDirChoose
-  snow::clusterExport
-  snow::parSapply
-  snow::parLapply
-  snow::clusterCall
-  snow::parApply
-  snow::stopCluster
-  snow::makeCluster
-  snow::clusterApplyLB
-  snow::clusterEvalQ
   ssh::ssh_connect
   ssh::ssh_exec_wait
   ssh::scp_download
@@ -308,25 +149,13 @@
   stringi::stri_opts_regex
   sva::num.sv
   sva::ComBat
-  sva::sva
   taxize::classification
   taxize::get_uid
   taxize::get_tsn
   taxize::children
   TeachingDemos::char2seed
-  TeachingDemos::dots
   tools::md5sum
-  tools::file_ext
-  tools::R
   truncdist::dtrunc
-  UniProt.ws::keys
-  UniProt.ws::UniProt.ws
-  viridisLite::turbo
-  viridisLite::viridis
-  vsn::nrow
-  vsn::ncol
   vsn::justvsn
   vsn::meanSdPlot
-  vsn::exprs
-  vsn::predict
 }

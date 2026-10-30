@@ -26,7 +26,7 @@ make_Rat(
 
 \item{rat.log}{Input ratios log scale, default = 2}
 
-\item{refGroups}{Aggregate defining ratio groups.}
+\item{refGroups}{Factors aggregate defining ratio groups.}
 
 \item{experiment.map}{Experiment map.}
 

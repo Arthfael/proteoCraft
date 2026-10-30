@@ -17,10 +17,10 @@ if (saintExprs) {
       kount <- kount+1L
     }
     if (inherits(tst, "try-error")) { saintExprs <- FALSE } else {
-      gunzip(destFl)
-      utils::untar(gsub("\\.gz$", "", destFl), exdir = SaintRoot)
+      R.utils::gunzip(destFl)
+      utils::untar(sub("\\.gz$", "", destFl), exdir = SaintRoot)
       unlink(destFl)
-      unlink(gsub("\\.gz$", "", destFl))
+      unlink(sub("\\.gz$", "", destFl))
       saintExprs <- file.exists(SaintEx)
     }
   }
@@ -28,7 +28,7 @@ if (saintExprs) {
 if (saintExprs) {
   #
   subDr <- "Reg. analysis/SAINTexpress"
-  saintDir <- paste0(gsub("/+$", "", wd), "/", subDr)
+  saintDir <- paste0(sub("/+$", "", wd), "/", subDr)
   if (!dir.exists(saintDir)) { dir.create(saintDir, recursive = TRUE) }
   dirlist <- unique(c(dirlist, saintDir))
   fcRt <- "log2(FC) - "
@@ -72,7 +72,7 @@ if (saintExprs) {
   mtch <- aggregate(mtch$`PG id`, list(mtch$Protein), unique)
   colnames(mtch) <- c("Protein", "PG ids")
   Prey <- data.frame(Protein = mtch$Protein)
-  Prey[, c("Sequence", "Gene")] <- db[match(gsub("^CON__", "", Prey$Protein), gsub("^CON__", "", db$`Protein ID`)),
+  Prey[, c("Sequence", "Gene")] <- db[match(sub("^CON__", "", Prey$Protein), sub("^CON__", "", db$`Protein ID`)),
                                       c("Sequence", "Gene")]
   Prey$Length <- nchar(Prey$Sequence)
   w <- which(is.na(Prey$Length))
@@ -102,10 +102,10 @@ if (saintExprs) {
     GO <- listMelt(strsplit(db$`GO-ID`[w], ";"), db$`Protein ID`[w], c("L1", "value"))
   }
   #
-  clusterExport(parClust,
-                list("Exp", "VPAL", "RG", "Annotate", "wd", "saintDir", "fcRt", "SaintEx", "kol_A", "kol_B",
-                     "cleanNms", "topattern"),
-                envir = environment())
+  parallel::clusterExport(parClust,
+                          list("Exp", "VPAL", "RG", "Annotate", "wd", "saintDir", "fcRt", "SaintEx", "kol_A", "kol_B",
+                               "cleanNms", "topattern"),
+                          envir = environment())
   #
   SAINT_list <- lapply(1L:length(allContr), \(ii) { #ii <- 1L
     w0 <- which(Exp.map[[VPAL$column]] %in% allContr[[ii]]$Ref)
@@ -141,14 +141,14 @@ if (saintExprs) {
     klnms <- setNames(gsub("\\.", "", cleanNms(em$Ref.Sample.Aggregate[c(w0, w1)], rep = "")),
                       em$Ref.Sample.Aggregate[c(w0, w1)])
     tmp <- PG[, c("id", kol, kolk)]
-    clusterExport(parClust,
-                  list("tmp", "kol", "kolk", "em"),
-                  envir = environment())
+    parallel::clusterExport(parClust,
+                            list("tmp", "kol", "kolk", "em"),
+                            envir = environment())
     Interact <- allSAINTs[, "Protein", drop = FALSE]
     # We are removing:
     #  - values not based on PSMs (e.g. when limpa used, or imputed values)
     #  - values in the same row with nearly identical value (down to 6 decimals)
-    Interact[, klnms] <- as.data.frame(t(parSapply(parClust, mtch$`PG ids`, \(x) {
+    Interact[, klnms] <- as.data.frame(t(parallel::parSapply(parClust, mtch$`PG ids`, \(x) {
       #x <- mtch$`PG ids`[[1L]]
       #x <- mtch$`PG ids`[[grep(prot.list[1L], mtch$Protein)]]
       m <- match(unlist(x), tmp$id)
@@ -188,10 +188,10 @@ if (saintExprs) {
       readr::write_rds(GO, tmpFl3)
       exports <- append(exports, "tmpFl3")
     } 
-    clusterExport(parClust,
-                  exports,
-                  envir = environment())
-    invisible(clusterCall(parClust, \() {
+    parallel::clusterExport(parClust,
+                            exports,
+                            envir = environment())
+    invisible(parallel::clusterCall(parClust, \() {
       assign("Interact", readr::read_rds(tmpFl1), envir = .GlobalEnv)
       assign("Prey", readr::read_rds(tmpFl2), envir = .GlobalEnv)
       if (Annotate) {
@@ -204,7 +204,7 @@ if (saintExprs) {
     if (Annotate) {
       unlink(tmpFl3)
     }
-    saint_Lst <- setNames(parLapply(parClust, Grps, \(grp) { #grp <- Grps[1L] #grp <- Grps[2L]
+    saint_Lst <- setNames(parallel::parLapply(parClust, Grps, \(grp) { #grp <- Grps[1L] #grp <- Grps[2L]
       grpMtch <- match(grp, Grps)
       dr <- paste0(saintDir, "/", grp)
       if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
@@ -318,7 +318,7 @@ if (saintExprs) {
                          colour = colorRampPalette(c("orange", "red"))(length(BH.FDR)),
                          label = paste0(BH.FDR*100, "% FDR"))
     k1 <- grep("^BFDR - ", colnames(allSAINTs), value = TRUE)
-    k2 <- gsub("^BFDR - ", fdrRt, k1)
+    k2 <- sub("^BFDR - ", fdrRt, k1)
     tmp1 <- as.matrix(allSAINTs[, k1])
     tmp2 <- -log10(tmp1)
     w <- which(tmp1 == 0, arr.ind = TRUE)
@@ -386,10 +386,10 @@ if (saintExprs) {
     #
     # Folder cleanup
     dirs <- list.dirs(saintDir)
-    dirs <- setdiff(dirs, saintDir)
+    dirs <- base::setdiff(dirs, saintDir)
     unlink(dirs, force = TRUE)
     dirs <- list.dirs(saintDir)
-    dirs <- setdiff(dirs, saintDir)
+    dirs <- base::setdiff(dirs, saintDir)
     if (length(dirs)) {
       for (dr in dirs) {
         shell(paste0("RMDIR /S /Q \"", dr, "\""), mustWork = FALSE)
@@ -417,10 +417,10 @@ if (saintExprs) {
       }
       # Create SAINTexpress-based filters
       if ("con" %in% filter_types) {
-        up <- grep("^up|^Specific", unique(unlist(allSAINTs[, regkol])), value = TRUE)
+        up <- grep("^(up|Specific)", unique(unlist(allSAINTs[, regkol])), value = TRUE)
         #
         flt <- list(Columns = k3,
-                    prot_Filter = sort(which(allSAINTs[[k3]] %in% up)),
+                    prot_Filter = which(allSAINTs[[k3]] %in% up),
                     prot_Background_filter = 1L:nrow(allSAINTs))
         # We want to translate it into rows from PG
         u <- unique(unlist(flt[paste0("Filter", c("_up", ""))]))
@@ -453,7 +453,7 @@ if (saintExprs) {
     #
   }
   # "Master, don't forget the Athenians!"
-  dlg_message("TO DO (maybe?): add SAINTq for PSM-level analysis of DIA data!", "ok")
+  svDialogs::dlg_message("TO DO (maybe?): add SAINTq for PSM-level analysis of DIA data!", "ok")
   # SaintQDir <- paste0(SaintRoot, "/saintq")
   # SAINTqVers <- "saintq_v0.0.4"
   # url <- paste0("https://download.sourceforge.net/saint-apms/", SAINTqVers, ".tar.gz")
@@ -464,10 +464,10 @@ if (saintExprs) {
   #   kount <- kount+1L
   # }
   # if (inherits(tst, "try-error")) { saintQ <- FALSE } else {
-  #   gunzip(destFl)
-  #   utils::untar(gsub("\\.gz$", "", destFl), exdir = SaintRoot)
+  #   R.utils::gunzip(destFl)
+  #   utils::untar(sub("\\.gz$", "", destFl), exdir = SaintRoot)
   #   unlink(destFl)
-  #   unlink(gsub("\\.gz$", "", destFl))
+  #   unlink(sub("\\.gz$", "", destFl))
   #   SaintQEx <- paste0(SaintQDir, "/binaries/saintq.exe")
   #   saintQ <- file.exists(SaintQEx)
   # }

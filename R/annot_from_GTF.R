@@ -71,11 +71,11 @@ annot_from_GTF <- \(file,
   if (!"protein_id" %in% colnames(tmp)) { return() }
   tmp$Accession <- tmp$protein_id
   tmp$protein_id <- NULL
-  goKol1 <- intersect(c("go_component", "go_function", "go_process"),
-                      colnames(tmp))
-  kol <- intersect(c("product", #"Ontology_term",
-                     goKol1),
-                   colnames(tmp))
+  goKol1 <- base::intersect(c("go_component", "go_function", "go_process"),
+                            colnames(tmp))
+  kol <- base::intersect(c("product", #"Ontology_term",
+                           goKol1),
+                         colnames(tmp))
   # Sometimes we have nothing to work with...
   if (!length(kol)) { return() }
   # ... but usually we should've something
@@ -88,7 +88,7 @@ annot_from_GTF <- \(file,
   tmp2 <- reshape::melt(tmp[, c("Accession", goKol1)], id.vars = "Accession")
   tmp2 <- tmp2[!is.na(tmp2$value),]
   tmp2$"GO-ID" <- gsub(".* \\[", "", sub("\\]$", "", tmp2$value))
-  tst <- setdiff(unique(sub("^GO:[0-9]{7}$", "", tmp2$"GO-ID")), "")
+  tst <- base::setdiff(unique(sub("^GO:[0-9]{7}$", "", tmp2$"GO-ID")), "")
   stopifnot(length(tst) == 0L) # Again, error would indicate false parsing assumptions
   tmp2 <- aggregate(tmp2[, c("value", "GO-ID")], list(tmp2$Accession), \(x) {
     paste(unique(x), collapse = ";")

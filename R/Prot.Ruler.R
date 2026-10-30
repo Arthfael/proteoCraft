@@ -107,11 +107,11 @@ Prot.Ruler <- function(Prot,
       Orgs <- Orgs[Orgs$Organism %in% orgChc,]
     }
   } else {
-    Orgs <- dlgInput("Enter the Linnaean name of the relevant (Eukaryotic) organism:", "Homo sapiens")$res
+    Orgs <- svDialogs::dlg_input("Enter the Linnaean name of the relevant (Eukaryotic) organism:", "Homo sapiens")$res
     m <- match(Orgs, orgmap$Linnean_name)
     Kngdm <- orgmap$Kingdom[m]
     while (Kngdm != "Eukaryota") {
-      Orgs <- dlgInput("Enter the Linnaean name of the relevant organism:\nThis must be a Eukaryote:\n - Bacteria do not have histones.\n - Archaea do, but inter-nucleosome distance does not seem to be as consistent than in Eukaryotes.\n", "Homo sapiens")$res
+      Orgs <- svDialogs::dlg_input("Enter the Linnaean name of the relevant organism:\nThis must be a Eukaryote:\n - Bacteria do not have histones.\n - Archaea do, but inter-nucleosome distance does not seem to be as consistent than in Eukaryotes.\n", "Homo sapiens")$res
       m <- match(Orgs, orgmap$Linnean_name)
       Kngdm <- orgmap$Kingdom[m]
     }

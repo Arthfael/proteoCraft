@@ -1,6 +1,8 @@
-
 # In case we have enriched for a PTM, it helps to check how good the enrichment was:
 # This should be before any PSMs are filtered out - we want to look at the data "straight out of the MS"
+
+requireNamespace("data.table")
+
 tstEnrich <- unique(FracMap$`PTM-enriched`)
 tstEnrich <- tstEnrich[(!is.na(tstEnrich)) & (tstEnrich != "NA")]
 if (length(tstEnrich)) {
@@ -47,7 +49,7 @@ if (length(tstEnrich)) {
       tst <- tst[tst$Sample %in% unlist(Exp.map$MQ.Exp),]
       tst <- tst[tst$Sample %in% unlist(Exp.map$MQ.Exp),]
       #which(vapply(Exp.map$MQ.Exp, \(y) { x %in% unlist(y) }, TRUE))
-      tst2 <- dfMelt(tst, id.vars = intersect(c("Search", "MS_file", Mod, "Sample"), colnames(tst)))
+      tst2 <- dfMelt(tst, id.vars = base::intersect(c("Search", "MS_file", Mod, "Sample"), colnames(tst)))
       pat1 <- "\\(|\\)|\\[|\\]"
       colnames(tst2) <- gsub(pat1, "", gsub(" ", "_", colnames(tst2)))
       frml <- if (inclSearch) {
@@ -80,16 +82,18 @@ if (length(tstEnrich)) {
         tst$Search <- factor(tst$Search, levels = 1L:length(uSrch))
       }
       ttl <- paste0(Mod, "-", Root, "s per MS file")
-      plot <- ggplot(tst) + geom_bar(stat = "identity", position = "dodge",
-                                     aes(x = MS_file, y = log10(Count), fill = .data[[Mod]])) +
-        theme_bw() + scale_fill_viridis(discrete = TRUE) + ggtitle(ttl) +
-        theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1, size = 5L),
-              plot.margin = unit(c(0L, 0L, 0L, 3L), "in"))
+      plot <- ggplot2::ggplot(tst) +
+        ggplot2::geom_bar(stat = "identity", position = "dodge",
+                          ggplot2::aes(x = MS_file, y = log10(Count), fill = .data[[Mod]])) +
+        ggplot2::theme_bw() + viridis::scale_fill_viridis(discrete = TRUE) +
+        ggplot2::ggtitle(ttl) +
+        ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 60, vjust = 1, hjust = 1, size = 5L),
+                       plot.margin = ggplot2::unit(c(0L, 0L, 0L, 3L), "in"))
       if (inclSearch) {
-        plot <- plot + facet_grid(Search~.)
+        plot <- plot + ggplot2::facet_grid(Search~.)
       }
       #poplot(plot, 12L, 22L)
-      ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L)
+      ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L)
     }
   }
 }

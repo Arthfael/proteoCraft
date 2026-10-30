@@ -25,17 +25,19 @@ if (makePepRat) {
   temp <- temp[is.finite(temp$ratio),]
   dir <- paste0(wd, "/Workflow control/Peptides/Ratios")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- union(dirlist, dir)
+  dirlist <- base::union(dirlist, dir)
   ttl <- "Peptide ratios distribution"
-  plot <- ggplot(temp) +
-    geom_histogram(aes(x = ratio, fill = contrast), bins = ceiling((max(temp$ratio)-min(temp$ratio))/0.05)) +
-    scale_y_continuous(expand = c(0L, 0L)) +
-    scale_fill_viridis_d(begin = 0.25) +
-    ggtitle(ttl) + theme_bw() + theme(legend.position = "none") + facet_wrap(~contrast)
+  plot <- ggplot2::ggplot(temp) +
+    ggplot2::geom_histogram(ggplot2::aes(x = ratio, fill = contrast),
+                            bins = ceiling((max(temp$ratio)-min(temp$ratio))/0.05)) +
+    ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
+    ggplot2::scale_fill_viridis_d(begin = 0.25) +
+    ggplot2::ggtitle(ttl) + ggplot2::theme_bw() +
+    ggplot2::theme(legend.position = "none") + ggplot2::facet_wrap(~contrast)
   #poplot(plot, 12L, 22L)
   print(plot)
   suppressMessages({
-    ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+    ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
   })
   #
   #### Code chunk - Normalize peptide ratios

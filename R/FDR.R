@@ -125,7 +125,7 @@ FDR <- function(data,
     #P[w2, adjKol] <- vapply(w2, \(x) {
     # old buggy code # min(c(1, P[w2[x:N], adjKol]))
     # }, 1)
-    P[w2, adjKol] <- pmin(cummin(rev(P[w2, adjKol]))[N:1L], 1)
+    P[w2, adjKol] <- base::pmin(cummin(rev(P[w2, adjKol]))[N:1L], 1)
     #
     #P$pAdjTst <- p.adjust(P$Pvalues, "BH")
     # You can verify that we get the same value using p.adjust()

@@ -421,7 +421,7 @@ Format.DB_txt <- function(txt,
       })
     }
     #for (kol in colnames(tbl)) { g <- grep("\n|>>>|<->", tbl[[kol]]) ; if (length(g)) { stop(kol) } } # Check for residuals of our parsing tricks
-    rm(list = setdiff(ls(), "tbl"))
+    rm(list = base::setdiff(ls(), "tbl"))
     return(tbl)
   }
   if (usePar) {
@@ -445,8 +445,8 @@ Format.DB_txt <- function(txt,
   tst <- nchar(gsub("[^;]", "", rsTbl$Accession))
   m <- max(tst)
   if (m) {
-    kl <- setdiff(colnames(rsTbl),
-                  "Accession")
+    kl <- base::setdiff(colnames(rsTbl),
+                        "Accession")
     w <- which(tst > 0L)
     rsTbl$ROW <- 1L:nrow(rsTbl)
     tmp <- listMelt(strsplit(rsTbl$Accession[w], ";"), w, c("Accession", "ROW"))

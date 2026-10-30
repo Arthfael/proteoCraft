@@ -13,11 +13,13 @@ searchDir <- dfltLocs$Path[match("Search folder", dfltLocs$Folder)]
 wd <- rstudioapi::selectDirectory(path = searchDir)
 setwd(wd)
 MQ.load(pep = FALSE, prot = FALSE)
-plot <- ggplot(ev) + geom_density(stat = "density", aes(Retention.length*60))
+plot <- ggplot2::ggplot(ev) +
+  ggplot2::geom_density(stat = "density",
+                        ggplot2::aes(Retention.length*60))
 poplot(plot)
 scale <- (max(ev$Retention.time)-min(ev$Retention.time))/10
 midrange <- (min(ev$Retention.time)+max(ev$Retention.time))/2
-w <- which((ev$Retention.time <= midrange-scale*2)&(ev$Retention.time <= midrange+scale*2))
+w <- which((ev$Retention.time <= midrange-scale*2) & (ev$Retention.time <= midrange+scale*2))
 cpw <- round(mean(ev$Retention.length[w])*6)*10
 message(paste0("Values to use:\n - Chromatographic peak width: ", cpw, ",\n - Dynamic exclusion window: ", cpw/2))
 

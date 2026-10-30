@@ -1,10 +1,4 @@
 #### Define analysis parameters
-require(shiny)
-require(shinyFiles)
-require(shinycssloaders)
-require(shinyjs)
-require(shinyBS)
-require(htmlwidgets)
 #
 # Check whether packages necessary for optional analyses are installed
 Src <- paste0(libPath, "/extdata/Sources/optPkgs_check.R")
@@ -59,8 +53,8 @@ if (sum(c("knockout", "knockin", "knockdown") %in% tst)) {
   w <- which(c("knockout", "knockin", "knockdown") %in% tst)
   # There should be only one for now, because all three share the same 3-characters root = "Kno"
   # This should evolve but will be difficult, knowing how complex this script is now.
-  prot.list %<o% union(Exp.map[[Factors["Kno"]]], prot.list)
-  prot.list_pep %<o% union(Exp.map[[Factors["Kno"]]], prot.list_pep)
+  prot.list %<o% base::union(Exp.map[[Factors["Kno"]]], prot.list)
+  prot.list_pep %<o% base::union(Exp.map[[Factors["Kno"]]], prot.list_pep)
 }
 #
 Src <- paste0(libPath, "/extdata/Sources/protList2.R")
@@ -135,8 +129,8 @@ if (ParamFl == ParamFls[2L]) {
   if ("Target" %in% Factors) {
     tmp <- FactorsLevels$Target
     tmp <- tmp[(!is.na(tmp)) & (tmp != "NA")]
-    Param$Prot.list <- paste(union(tmp, unlist(strsplit(Param$Prot.list, ";"))), collapse = ";")
-    Param$Prot.list_pep <- paste(union(tmp, unlist(strsplit(Param$Prot.list_pep, ";"))), collapse = ";")
+    Param$Prot.list <- paste(base::union(tmp, unlist(strsplit(Param$Prot.list, ";"))), collapse = ";")
+    Param$Prot.list_pep <- paste(base::union(tmp, unlist(strsplit(Param$Prot.list_pep, ";"))), collapse = ";")
   }
   ptmDflt2 <- Param$PTM.analysis <- paste(grep("^[Pp]hospho", Modifs$`Full name`, value = TRUE), collapse = ";")
   #
@@ -145,7 +139,7 @@ if (ParamFl == ParamFls[2L]) {
   ptmDflt2 <- ""
   if ("PTM.analysis" %in% colnames(Param)) {
     tmp <- unlist(strsplit(as.character(Param$PTM.analysis), ";"))
-    tmp <- intersect(tmp, Modifs$`Full name`)
+    tmp <- base::intersect(tmp, Modifs$`Full name`)
     ptmDflt2 <- tmp
   }
 }
@@ -180,7 +174,7 @@ if (tst) {
   if (!tst) { tmp <- "MAP2FACTS" }
 }
 if ((length(tmp) == 1L) && (tmp == "AUTOFACT")) {
-  Param$Volcano.plots.Aggregate.Level <- paste(substr(setdiff(Factors, "Replicate"), 1L, 3L), collapse = ";")
+  Param$Volcano.plots.Aggregate.Level <- paste(substr(base::setdiff(Factors, "Replicate"), 1L, 3L), collapse = ";")
 }
 klustChoices %<o% c("K-means", "hierarchical")
 KlustMeth %<o% 1L # Changed from 2L
@@ -197,7 +191,7 @@ if (Annotate) {
   allGO <- unique(unlist(strsplit(db$GO[!is.na(db$GO)], ";")))
   allGO2 <- paste0("GO:", gsub(".* \\[GO:|\\]$", "", allGO))
   dftlGO2 <- unique(unlist(strsplit(Param$GO.tabs, ";")))
-  dftlGO2 <- intersect(dftlGO2, allGO2)
+  dftlGO2 <- base::intersect(dftlGO2, allGO2)
   dftlGO <- allGO[match(dftlGO2, allGO2)]
   w <- c(which(allGO %in% dftlGO),
          which(!allGO %in% dftlGO))
@@ -208,10 +202,10 @@ if (Annotate) {
       && (is.character(Param$Norma.Prot.Ratio.to.GO))
       && nchar(Param$Norma.Prot.Ratio.to.GO)) {
     tmp <- unlist(strsplit(Param$Norma.Prot.Ratio.to.GO, ";"))
-    tmp <- intersect(tmp, allGO2)
+    tmp <- base::intersect(tmp, allGO2)
     if (length(tmp)) {
       nrm2GO <- allGO[match(tmp, allGO2)]
-      nrm2GOall <- union(nrm2GO, allGO)
+      nrm2GOall <- base::union(nrm2GO, allGO)
     }
   } else {
     nrm2GOall <- allGO
@@ -305,7 +299,7 @@ Param$Min.N.pep <- N_Pep
 ptmDflt1 <- grep("^[Pp]hospho", Modifs$`Full name`, value = TRUE, invert = TRUE)
 Mod4Quant %<o% Modifs$Mark[match(ptmDflt1, Modifs$`Full name`)]
 if ("Prot.Quant.Mod.Excl" %in% colnames(Param)) {
-  Mod4Quant <- setdiff(Mod4Quant, unlist(strsplit(Param$Prot.Quant.Mod.Excl, ";")))
+  Mod4Quant <- base::setdiff(Mod4Quant, unlist(strsplit(Param$Prot.Quant.Mod.Excl, ";")))
 }
 ptmDflt1 <- Modifs$`Full name`[match(Mod4Quant, Modifs$Mark)]
 Mod2Xclud %<o% Modifs[!Modifs$Mark %in% Mod4Quant, c("Mark", "AA")]
@@ -325,7 +319,7 @@ allQuantAlgos %<o% data.frame(Algorithm = c("limpa",
                                        "QFeatures aggregateFeatures() uses a robust summarization procedure and is meant to be used upstream of msqrob2 statistics."))
 quantAlgoOpt %<o% allQuantAlgos$Algorithm
 if ((scrptType == "noReps") && (length(Exp) == 1L)) { # limpa needs at least 2 samples
-  quantAlgoOpt <- setdiff(quantAlgoOpt, "limpa")
+  quantAlgoOpt <- base::setdiff(quantAlgoOpt, "limpa")
 }
 quantAlgoDflt <- c("LM", "LM")[match(scrptType, c("noReps", "withReps"))] # limpa is temporarily demoted
 if (("QuantMeth" %in% colnames(Param)) && (!"Quant_algorithm" %in% colnames(Param))) { # Old parameter name
@@ -359,7 +353,7 @@ allReScAlgoOpt %<o% data.frame(Algorithm = c("limpa",
                                            "Use MaxLFQ's scale"))
 reScAlgoOpt %<o% allReScAlgoOpt$Algorithm
 if ((scrptType == "noReps") && (length(Exp) == 1L)) { # limpa needs at least 2 samples
-  reScAlgoOpt <- setdiff(reScAlgoOpt, "limpa")
+  reScAlgoOpt <- base::setdiff(reScAlgoOpt, "limpa")
 }
 if ((!validCharPar("reScAlgo", reScAlgoOpt)) && ("ReScaling_algorithm" %in% colnames(Param))) {
   tmp1 <- Param$ReScaling_algorithm
@@ -573,17 +567,17 @@ if (annotRep) {
   }
   if ("ROC_GOterms" %in% colnames(Param)) { 
     tmp <- unlist(strsplit(Param$ROC_GOterms, ";"))
-    tmp <- intersect(tmp, GO_terms$ID)
+    tmp <- base::intersect(tmp, GO_terms$ID)
     if (length(tmp)) { ROC_GOterms <- tmp }
   }
   if ("ROCfilt_GOterms_Pos" %in% colnames(Param)) {
     tmp <- unlist(strsplit(Param$ROCfilt_GOterms_Pos, ";"))
-    tmp <- intersect(tmp, GO_terms$ID)
+    tmp <- base::intersect(tmp, GO_terms$ID)
     if (length(tmp)) { ROCfilt_GOterms_Pos <- tmp }
   }
   if ("ROCfilt_GOterms_Neg" %in% colnames(Param)) {
     tmp <- unlist(strsplit(Param$ROCfilt_GOterms_Neg, ";"))
-    tmp <- intersect(tmp, GO_terms$ID)
+    tmp <- base::intersect(tmp, GO_terms$ID)
     if (length(tmp)) { ROCfilt_GOterms_Neg <- tmp }
   }
 }
@@ -681,9 +675,9 @@ pepNormMethodsDF <- data.frame(Method = vapply(1L:L, \(i) { pepNormMethods[[i]]$
                                Source = vapply(1L:L, \(i) { pepNormMethods[[i]]$Source }, ""))
 # General normalisation methods
 genPepNormMeth <- pepNormMethodsDF$Method[pepNormMethodsDF$Source == "pepNorm_General.R"]
-# genPepNormMeth <- setdiff(genPepNormMeth, c("proteins", "GO terms")) # These have their own box // NO THEY DON'T, NOT AS STEPS!
+# genPepNormMeth <- base::setdiff(genPepNormMeth, c("proteins", "GO terms")) # These have their own box // NO THEY DON'T, NOT AS STEPS!
 if (!IsBioID) {
-  genPepNormMeth <- setdiff(genPepNormMeth, "biotinylated proteins")
+  genPepNormMeth <- base::setdiff(genPepNormMeth, "biotinylated proteins")
 }
 # "Shape" (variance stabilisation) normalisation methods
 shapePepNormMeth <- pepNormMethodsDF$Method[pepNormMethodsDF$Source == "pepNorm_Shape.R"]
@@ -709,7 +703,7 @@ normSeqProc21 <- \(seq2) { #seq2 <- dfltNormSeq2
     x <- unlist(strsplit(seq2[[i]], ": "))
     rs <- list(Method = x[[1L]])
     m <- match(x[[1L]], dict)
-    nms <- setdiff(names(pepNormMethods[[m]]), "Method")
+    nms <- base::setdiff(names(pepNormMethods[[m]]), "Method")
     if (length(nms)) {
       rs[nms] <- pepNormMethods[[m]][nms]
     }
@@ -765,7 +759,7 @@ for (parI in myPar) {
   parOK <- (exists(parNm))
   if (parOK) {
     tmpPar <- get(parNm)
-    parOK <- (length(tmpPar) == 1L) && is.logical(tmpPar) && (!is.na(tmpPar))
+    parOK <- isTRUE(tmpPar) | isFALSE(tmpPar)
   }
   if (parOK) { par_dflt <- tmpPar }
   # Backup value in case the previous operations failed somehow
@@ -773,7 +767,7 @@ for (parI in myPar) {
   #
   if (!parOK) { assign(parNm, par_dflt) }
   assign(parNm, par_dflt)
-  .obj <- union(parNm, .obj)
+  .obj <- base::union(parNm, .obj)
 }
 #
 mnFct <- mnFct2 <- "Experiment"
@@ -781,7 +775,7 @@ if (WorkFlow == "TIMECOURSE") {
   mnFct <- c("Experiment", "Time.point")
   mnFct2 <- "Experiment and Time.point"
 }
-if (length(Exp) == 1L) { mnFct2 <- setdiff(mnFct2, "Experiment") }
+if (length(Exp) == 1L) { mnFct2 <- base::setdiff(mnFct2, "Experiment") }
 grpTxt <- "Sample groups___Combination of Factors defining sample groups."
 if (length(mnFct2)) {
   grpTxt <- paste0(grpTxt, "/nMust include ", mnFct2, ".")
@@ -815,7 +809,7 @@ wMp <- c(which(colnames(Param) == coreNms[1L]),
                  (!colnames(Param) %in% c(coreNms, "Batch.correction")))) # (for backwards compatibility; different from "Batch.effect")
 lstFct <- list()
 dfltFct <- list()
-factOpt2 <- setdiff(Factors, "Replicate")
+factOpt2 <- base::setdiff(Factors, "Replicate")
 for (w in wMp) { #w <- wMp[3L] #w <- wMp[5L] #w <- wMp[6L]
   myFct <- colnames(Param)[w]
   lbl <- gsub("\\.", " ", myFct)
@@ -838,16 +832,16 @@ for (w in wMp) { #w <- wMp[3L] #w <- wMp[5L] #w <- wMp[6L]
   if (myFct %in% c("Volcano.plots.Aggregate.Level", "Ratios.Groups", "GO.enrichment.Ref.Aggr")) {
     Opt <- factOpt2
     if (myFct %in% c("Volcano.plots.Aggregate.Level", "Ratios.Groups")) {
-      dflt <- union(mnFct, dflt)
+      dflt <- base::union(mnFct, dflt)
     }
   }
   if (myFct == "Batch.effect") {
-    Opt <- setdiff(Factors, "Experiment")
-    dflt <- intersect(c(dflt, "Batch"), Factors)
+    Opt <- base::setdiff(Factors, "Experiment")
+    dflt <- base::intersect(c(dflt, "Batch"), Factors)
   }
   if (myFct == "Blocking.factors") {
-    Opt <- setdiff(Factors, "Experiment")
-    dflt <- intersect(c(dflt, "Block"), Factors)
+    Opt <- base::setdiff(Factors, "Experiment")
+    dflt <- base::intersect(c(dflt, "Block"), Factors)
   }
   w <- which(!dflt %in% Opt)
   l <- length(w)
@@ -856,36 +850,36 @@ for (w in wMp) { #w <- wMp[3L] #w <- wMp[5L] #w <- wMp[6L]
     warning(paste0("Factor", c("", "s")[(l > 1L)+1L], " ",
                    rmvOptTxt, " ha", c("s", "ve")[(l > 1L)+1L],
                    " special meaning and cannot be used to define ", myFct))
-    dflt <- intersect(dflt, Opt)
+    dflt <- base::intersect(dflt, Opt)
   }
   if (length(Exp) == 1L) {
-    Opt <- setdiff(Opt, "Experiment")
-    dflt <- setdiff(dflt, "Experiment")
+    Opt <- base::setdiff(Opt, "Experiment")
+    dflt <- base::setdiff(dflt, "Experiment")
   }
   names(Opt) <- NULL
   names(dflt) <- NULL
   dfltFct[[myFct]] <- dflt
-  blck <- list(list(br()),
-               tags$table(
-                 tags$tr(width = "80%",
-                         tags$td(width = "25%",
-                                 div(strong(lbl[1L]))),
-                         tags$td(width = "55%",
-                                 selectInput(myFct,
-                                             "",
-                                             Opt,
-                                             dflt,
-                                             TRUE,
-                                             TRUE)),
-                         #addTooltip(session, myFct, Param_Help[w], "bottom", "hover", list(container = "body"))
+  blck <- list(list(shiny::br()),
+               shiny::tags$table(
+                 shiny::tags$tr(width = "80%",
+                                shiny::tags$td(width = "25%",
+                                               shiny::div(shiny::strong(lbl[1L]))),
+                                shiny::tags$td(width = "55%",
+                                               shiny::selectInput(myFct,
+                                                                  "",
+                                                                  Opt,
+                                                                  dflt,
+                                                                  TRUE,
+                                                                  TRUE)),
+                                #shinyBS::addTooltip(session, myFct, Param_Help[w], "bottom", "hover", list(container = "body"))
                  )
                ))
   lbl2 <- unlist(strsplit(lbl[2L], "/n"))
-  for (lbl2a in lbl2) { blck <- append(blck, list(span(em(lbl2a)), br())) }
+  for (lbl2a in lbl2) { blck <- append(blck, list(shiny::span(shiny::em(lbl2a)), shiny::br())) }
   lstFct <- append(lstFct, blck)
 }
 tmp1 <- Factors[unlist(strsplit(Param$Volcano.plots.Aggregate.Level, ";"))]
-if (length(Exp) == 1L) { tmp1 <- setdiff(tmp1, "Experiment") }
+if (length(Exp) == 1L) { tmp1 <- base::setdiff(tmp1, "Experiment") }
 tmp2 <- Factors[unlist(strsplit(Param$Batch.effect, ";"))]
 limmaForm %<o% c("~ 0 ", paste(tmp1, collapse = "_"))
 if (length(tmp2)) { limmaForm <- c(limmaForm, paste(tmp2, collapse = "_")) }
@@ -943,15 +937,15 @@ if ((!exists("dimRedPlotLy")) && exists("dimRed_fl") && file.exists(dimRed_fl)) 
 }
 appNm <- paste0(dtstNm, " - Parameters")
 make_ui1 <- \() {
-  fluidPage(
-    useShinyjs(),
-    setBackgroundColor( # Doesn't work
+  shiny::fluidPage(
+    shinyjs::useShinyjs(),
+    shinyWidgets::setBackgroundColor( # Doesn't work
       color = c(#"#F8F8FF",
         "#E6F7F4"),
       gradient = "linear",
       direction = "bottom"
     ),
-    tags$head(tags$style(HTML("#MAplot img { max-width: 80%; height: auto; }
+    shiny::tags$head(shiny::tags$style(shiny::HTML("#MA_plot img { max-width: 80%; height: auto; }
 #PTMstats .ptm-row {
   display: flex;
   align-items: center;
@@ -984,275 +978,275 @@ make_ui1 <- \() {
 #PTMstats .checkbox input {
   margin-top: 0 !important;
 }"))),
-    extendShinyjs(text = jsFun$toggle_full_screen,
-                  functions = c("toggleFullScreen")),
-    titlePanel(tag("u", "Parameters"),
-               #em(appNm)), # Doesn't work =(
-               appNm),
-    h2(dtstNm),
-    tags$hr(style = "border-color: black;"),
-    br(),
-    h4(strong("Factors")),
-    span("Here we map specific actions to experimental Factors:"),
-    fluidRow(column(4L,
-                    uiOutput("RSA_msg"),
-                    withSpinner(uiOutput("FactMappings")),
-                    br(),
-                    em("-> limma model formula: "),
-                    uiOutput("FORMULA")),
-             column(8L,
-                    withSpinner(plotlyOutput("PSMsPCA", height = "600px")))),
-    br(),
-    tags$hr(style = "border-color: black;"),
-    h4(strong("Proteins of interest")),
-    pickerInput("IntProt",
-                NULL,
-                protHeads,
-                protDeflt,
-                TRUE,
-                pickerOptions(title = "Search me",
-                              `live-search` = TRUE,
-                              actionsBox = TRUE,
-                              deselectAllText = "Clear search",
-                              showTick = TRUE),
-                width = "600px"),
-    br(),
-    tags$hr(style = "border-color: black;"),
-    h4(strong("Data processing")),
-    fluidRow(
-      column(3L,
-             numericInput("minInt",
-                          "Exclude PSMs with intensity lower than...",
-                          minInt,
-                          0,
-                          .Machine$double.xmax,
-                          width = "100%")),
+    shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                           functions = c("toggleFullScreen")),
+    shiny::titlePanel(shiny::tag("u", "Parameters"),
+                      #shiny::em(appNm)), # Doesn't work =(
+                      appNm),
+    shiny::h2(dtstNm),
+    shiny::tags$hr(style = "border-color: black;"),
+    shiny::br(),
+    shiny::h4(shiny::strong("Factors")),
+    shiny::span("Here we map specific actions to experimental Factors:"),
+    shiny::fluidRow(shiny::column(4L,
+                                  shiny::uiOutput("RSA_msg"),
+                                  shinycssloaders::withSpinner(shiny::uiOutput("FactMappings")),
+                                  shiny::br(),
+                                  shiny::em("-> limma model formula: "),
+                                  shiny::uiOutput("FORMULA")),
+                    shiny::column(8L,
+                                  shinycssloaders::withSpinner(shiny::plotlyOutput("PSMsPCA", height = "600px")))),
+    shiny::br(),
+    shiny::tags$hr(style = "border-color: black;"),
+    shiny::h4(shiny::strong("Proteins of interest")),
+    shinyWidgets::pickerInput("IntProt",
+                              NULL,
+                              protHeads,
+                              protDeflt,
+                              TRUE,
+                              shinyWidgets::pickerOptions(title = "Search me",
+                                                          `live-search` = TRUE,
+                                                          actionsBox = TRUE,
+                                                          deselectAllText = "Clear search",
+                                                          showTick = TRUE),
+                              width = "600px"),
+    shiny::br(),
+    shiny::tags$hr(style = "border-color: black;"),
+    shiny::h4(shiny::strong("Data processing")),
+    shiny::fluidRow(
+      shiny::column(3L,
+                    shiny::numericInput("minInt",
+                                        "Exclude PSMs with intensity lower than...",
+                                        minInt,
+                                        0,
+                                        .Machine$double.xmax,
+                                        width = "100%")),
       # Imputation: add a new parameter here to define the counts limit between MCAR and MNAR 
-      column(3L,
-             checkboxInput("Impute", "Impute missing peptides-level values?", Impute, "100%"),
-             em("Imputation is done at peptides (not PSMs or protein groups) level, after removing any outlier samples.",
-                br(),
-                "This is independent of any temporary imputations done by default to run specific procedures without data loss.",
-                br(),
-                "- MAR/MCAR data is imputed with a KNN method.",
-                br(),
-                "- MNAR data is imputed with the QRILC method.",
-                br())),
-      column(3L,
-             checkboxInput("Update_Prot_matches", "Update peptide-to-protein assignments?", Update_Prot_matches, "100%"),
-             bsTooltip("Update_Prot_matches",
-                       paste0(mtchCheckMsg1, "\n", mtchCheckMsg2),
-                       placement = "right", trigger = "hover", options = list(container = "body")),
-             h5(em(mtchCheckMsg1)),
-             h5(em(mtchCheckMsg2))#, withSpinner(uiOutput("ReloadMatches"))
+      shiny::column(3L,
+                    shiny::checkboxInput("Impute", "Impute missing peptides-level values?", Impute, "100%"),
+                    shiny::em("Imputation is done at peptides (not PSMs or protein groups) level, after removing any outlier samples.",
+                              shiny::br(),
+                              "This is independent of any temporary imputations done by default to run specific procedures without data loss.",
+                              shiny::br(),
+                              "- MAR/MCAR data is imputed with a KNN method.",
+                              shiny::br(),
+                              "- MNAR data is imputed with the QRILC method.",
+                              shiny::br())),
+      shiny::column(3L,
+                    shiny::checkboxInput("Update_Prot_matches", "Update peptide-to-protein assignments?", Update_Prot_matches, "100%"),
+                    shinyBS::bsTooltip("Update_Prot_matches",
+                                       paste0(mtchCheckMsg1, "\n", mtchCheckMsg2),
+                                       placement = "right", trigger = "hover", options = list(container = "body")),
+                    shiny::h5(shiny::em(mtchCheckMsg1)),
+                    shiny::h5(shiny::em(mtchCheckMsg2))#, shinycssloaders::withSpinner(shiny::uiOutput("ReloadMatches"))
       )
     ),
-    br(),
+    shiny::br(),
     if (annotRep) {
-      fluidRow(column(6L,
-                      checkboxInput("ROC1on", "PSMs-level ROC filter", length(ROC_GOterms) > 0L, "100%"),
-                      withSpinner(uiOutput("ROC1"))))
+      shiny::fluidRow(shiny::column(6L,
+                                    shiny::checkboxInput("ROC1on", "PSMs-level ROC filter", length(ROC_GOterms) > 0L, "100%"),
+                                    shinycssloaders::withSpinner(shiny::uiOutput("ROC1"))))
     },
-    tags$hr(style = "border-color: black;"),
-    withSpinner(uiOutput("IsobarCorr")),
-    h4(strong("Normalisation")),
-    withSpinner(uiOutput("Norm")),
-    br(),
+    shiny::tags$hr(style = "border-color: black;"),
+    shinycssloaders::withSpinner(shiny::uiOutput("IsobarCorr")),
+    shiny::h4(shiny::strong("Normalisation")),
+    shinycssloaders::withSpinner(shiny::uiOutput("Norm")),
+    shiny::br(),
     # Quantitation
     ## Choice of algorithm + Proteomics ruler
-    tags$hr(style = "border-color: black;"),
-    h4(strong("Protein Groups quantitation")),
-    fluidRow(column(2L,
-                    h4("Peptides eligible for quantitation:"),
-                    selectInput("Prot.Quant.Use",
-                                "Peptide classes",
-                                names(Pep4QuantOpt),
-                                names(Pep4QuantOpt)[match(setNames(Pep4Quant, NULL),
-                                                          setNames(Pep4QuantOpt, NULL))],
-                                width = "100%"),
-                    pickerInput("PTMsQuant",
-                                "PTM(s)",
-                                Modifs$"Full name", # Keep all mods here, otherwise we may mistakenly exclude carbamidomethyl peptides!!!
-                                ptmDflt1,
-                                TRUE,
-                                pickerOptions(title = "Search me",
-                                              `live-search` = TRUE,
-                                              actionsBox = TRUE,
-                                              deselectAllText = "Clear search",
-                                              showTick = TRUE)),
-                    numericInput("N_Pep",
-                                 "Minimum number of peptides for quantitation", N_Pep, 1L, Inf, 1L, "100%"),
-                    numericInput("N_unique_Pep",
-                                 "Number of unique peptides which - if available - will be used to the exclusivity of non-unique ones",
-                                 N_unique_Pep, 1L, Inf, 1L, "100%"),
-                    strong(em("Use only peptidoforms found in at least how many samples in...")),
-                    numericInput("PepFoundInAtLeast",
-                                 " -> the whole dataset?", PepFoundInAtLeast, 1L, nSmpls, 1L, "100%"),
-                    numericInput("PepFoundInAtLeastGrp",
-                                 " -> one sample group at least? (overrides parameter above)",
-                                 PepFoundInAtLeastGrp,
-                                 1L,
-                                 mxRp,
-                                 1L,
-                                 "100%")),
-             column(3L,
-                    h4("Main LFQ algorithm"),
-                    selectInput("Quant_algorithm",
-                                "Quantitation algorithm",
-                                quantAlgoOpt,
-                                quantAlgo,
-                                width = "100%"),
-                    uiOutput("QuantMsg"),
-                    br(),
-                    h4("Re-Scaling"),
-                    selectInput("ReScaling",
-                                "Re-scaling algorithm",
-                                reScAlgoOpt,
-                                reScAlgo,
-                                width = "100%"),
-                    em("Re-scaling has no effect on individual intra-protein (row-wise, inter-samples) fold changes but defines inter-protein (column-wise, intra-sample) relative abundance estimates.",
-                       br(),
-                       br(),
-                       strong("TopN parameters")),
-                    fillRow(em(HTML("&nbsp;&nbsp;&nbsp;-> N = ")),
-                            numericInput("topN", NULL, topN, 1L, Inf, 1L, "100%"),
-                            height = "40px"),
-                    fillRow(em(HTML("&nbsp;&nbsp;&nbsp;-> Correct systematic intensity shift between ranks?")),
-                            checkboxInput("topN_correct", NULL, topN_correct, "100%"),
-                            height = "40px")),
-             column(2L,
-                    h4("Proteomic Ruler"),
-                    checkboxInput("ProtRul",
-                                  "Estimate copy numbers per cell using signal from all histones as reference?",
-                                  protrul,
-                                  "100%"),
-                    numericInput("ProtRulNuclL",
-                                 "Use inter-nucleosome length = ? (kb)",
-                                 ProtRulNuclL,
-                                 1L,
-                                 Inf,
-                                 1L,
-                                 "100%"))
+    shiny::tags$hr(style = "border-color: black;"),
+    shiny::h4(shiny::strong("Protein Groups quantitation")),
+    shiny::fluidRow(shiny::column(2L,
+                                  shiny::h4("Peptides eligible for quantitation:"),
+                                  shiny::selectInput("Prot.Quant.Use",
+                                                     "Peptide classes",
+                                                     names(Pep4QuantOpt),
+                                                     names(Pep4QuantOpt)[match(setNames(Pep4Quant, NULL),
+                                                                               setNames(Pep4QuantOpt, NULL))],
+                                                     width = "100%"),
+                                  shinyWidgets::pickerInput("PTMsQuant",
+                                                            "PTM(s)",
+                                                            Modifs$"Full name", # Keep all mods here, otherwise we may mistakenly exclude carbamidomethyl peptides!!!
+                                                            ptmDflt1,
+                                                            TRUE,
+                                                            shinyWidgets::pickerOptions(title = "Search me",
+                                                                                        `live-search` = TRUE,
+                                                                                        actionsBox = TRUE,
+                                                                                        deselectAllText = "Clear search",
+                                                                                        showTick = TRUE)),
+                                  shiny::numericInput("N_Pep",
+                                                      "Minimum number of peptides for quantitation", N_Pep, 1L, Inf, 1L, "100%"),
+                                  shiny::numericInput("N_unique_Pep",
+                                                      "Number of unique peptides which - if available - will be used to the exclusivity of non-unique ones",
+                                                      N_unique_Pep, 1L, Inf, 1L, "100%"),
+                                  shiny::strong(shiny::em("Use only peptidoforms found in at least how many samples in...")),
+                                  shiny::numericInput("PepFoundInAtLeast",
+                                                      " -> the whole dataset?", PepFoundInAtLeast, 1L, nSmpls, 1L, "100%"),
+                                  shiny::numericInput("PepFoundInAtLeastGrp",
+                                                      " -> one sample group at least? (overrides parameter above)",
+                                                      PepFoundInAtLeastGrp,
+                                                      1L,
+                                                      mxRp,
+                                                      1L,
+                                                      "100%")),
+                    shiny::column(3L,
+                                  shiny::h4("Main LFQ algorithm"),
+                                  shiny::selectInput("Quant_algorithm",
+                                                     "Quantitation algorithm",
+                                                     quantAlgoOpt,
+                                                     quantAlgo,
+                                                     width = "100%"),
+                                  shiny::uiOutput("QuantMsg"),
+                                  shiny::br(),
+                                  shiny::h4("Re-Scaling"),
+                                  shiny::selectInput("ReScaling",
+                                                     "Re-scaling algorithm",
+                                                     reScAlgoOpt,
+                                                     reScAlgo,
+                                                     width = "100%"),
+                                  shiny::em("Re-scaling has no effect on individual intra-protein (row-wise, inter-samples) fold changes but defines inter-protein (column-wise, intra-sample) relative abundance estimates.",
+                                            shiny::br(),
+                                            shiny::br(),
+                                            shiny::strong("TopN parameters")),
+                                  shiny::fillRow(shiny::em(shiny::HTML("&nbsp;&nbsp;&nbsp;-> N = ")),
+                                                 shiny::numericInput("topN", NULL, topN, 1L, Inf, 1L, "100%"),
+                                                 height = "40px"),
+                                  shiny::fillRow(shiny::em(shiny::HTML("&nbsp;&nbsp;&nbsp;-> Correct systematic intensity shift between ranks?")),
+                                                 shiny::checkboxInput("topN_correct", NULL, topN_correct, "100%"),
+                                                 height = "40px")),
+                    shiny::column(2L,
+                                  shiny::h4("Proteomic Ruler"),
+                                  shiny::checkboxInput("ProtRul",
+                                                       "Estimate copy numbers per cell using signal from all histones as reference?",
+                                                       protrul,
+                                                       "100%"),
+                                  shiny::numericInput("ProtRulNuclL",
+                                                      "Use inter-nucleosome length = ? (kb)",
+                                                      ProtRulNuclL,
+                                                      1L,
+                                                      Inf,
+                                                      1L,
+                                                      "100%"))
     ),
-    br(),
-    tags$hr(style = "border-color: black;"),
-    fluidRow(column(2L,
-                    radioButtons("Clustering",
-                                 "Heatmaps: clustering method",
-                                 klustChoices,
-                                 klustChoices[1L], TRUE, "100%"))),
-    br(),
-    tags$hr(style = "border-color: black;"),
-    h4(strong("Statistical tests")),
-    h5(strong(" -> t-test(s)")),
-    fluidRow(
-      column(5L,
-             strong("Volcano plot: select default variant"),
-             radioButtons("TtstPval", "", names(pvalue.col), "Moderated", TRUE, "100%"),
-             em(h6(" - Moderated t-test (limma): gold-standard linear modeling approach; fits protein group-wise linear models and applies empirical Bayes shrinkage of variances toward a pooled prior estimate, yielding more stable inference than classical t-tests; may be run on the LFQ data or on the output of a limpa model"),
-                h6(" - DEqMS: extends limma by modeling the dependence of variance on (as implemented here) number of observations, improving empirical Bayes variance estimation"),
-                h6(" - MSqRob: a robust regression framework for proteomics differential analysis that reduces sensitivity to outliers and can better accommodate missingness patterns compared to limma"),
-                h6(" - Welch's t-test: modification of Student’s t-test that relaxes the equal-variance assumption and is more robust to heteroscedasticity (NB: for paired experimental designs, becomes identical to Student's t-test)"),
-                h6(" - Permutation test (coin): based on the permutation distribution of a test statistic under the null hypothesis of exchangeability between groups"),
-                h6(" - SAM's modified t-test (siggenes): modified t-statistic that adds a data-driven offset s₀ to the denominator to stabilize variance estimates and reduce false positives in low-replicate settings"),
-                h6(" - ROTS: \"reproducibility-optimized test statist\", a t-statistic modified according to the inherent properties of the data"),
-                #h6(" - LRT (Likelihood Ratio Test //edge): compares a full and reduced linear model by testing whether inclusion of the explanatory variable significantly increases the likelihood of the observed data"),
-                #h6(" - ODP (Optimal Discovery Procedure, Storey et al., 2007 //edge): a multiple-testing framework designed to maximize the expected number of true discoveries by borrowing information across hypotheses to improve ranking of signals"),
-             ),
-             if (scrptTypeFull == "withReps_PG_and_PTMs") {
-               # Not available for now for the peptides-only workflow,
-               # but this could be done by turning the code for this into an app which is called individually for each PTM class.
-               # This would mean allowing for a different selection for each PTM class.
-               # We will anyway want to allow for multiple tests selected in the future, so go out of the "choose one t-test" variant approach...
-               em(h6("(you can change which one will be used for Volcano plots later, after we compare each test's power)"))
-             },
-             checkboxInput("useSAM_thresh", "For Student's t-test, plot SAM-based curved significance thresholds?", useSAM_thresh, "100%")),
-      column(2L,
-             h5(strong("Benjamini-Hochberg FDR thresholds")),
-             withSpinner(uiOutput("FDR")),
-             numericInput("FDR", "", 0.01, 0, 1),
-             actionBttn("AddFDR", "Add threshold", color = "primary", size = "xs", style = "pill"),
-             actionBttn("RemvFDR", "Remove threshold", color = "primary", size = "xs", style = "pill")),
-      column(2L,
-             # radioButtons("typeOfThresh", "Ratios thresholds: use...", threshOpt, threshDflt, FALSE, "100%"),
-             # numericInput("RatCont", "Threshold value = ", KontRt, 0, 100, 0.001, width = "100%"),
-             # selectInput("RatContGrp",
-             #             "Control ratios are grouped by:",
-             #             KontGrps,
-             #             Param$Ratios.Contaminant.Groups,
-             #             width = "100%")
-             numericInput("RatCont", "Abs. log2(FC) threshold value = ", KontRt, 0, Inf, 0.001, width = "100%")
+    shiny::br(),
+    shiny::tags$hr(style = "border-color: black;"),
+    shiny::fluidRow(shiny::column(2L,
+                                  shiny::radioButtons("Clustering",
+                                                      "Heatmaps: clustering method",
+                                                      klustChoices,
+                                                      klustChoices[1L], TRUE, "100%"))),
+    shiny::br(),
+    shiny::tags$hr(style = "border-color: black;"),
+    shiny::h4(shiny::strong("Statistical tests")),
+    shiny::h5(shiny::strong(" -> t-test(s)")),
+    shiny::fluidRow(
+      shiny::column(5L,
+                    shiny::strong("Volcano plot: select default variant"),
+                    shiny::radioButtons("TtstPval", "", names(pvalue.col), "Moderated", TRUE, "100%"),
+                    shiny::em(shiny::h6(" - Moderated t-test (limma): gold-standard linear modeling approach; fits protein group-wise linear models and applies empirical Bayes shrinkage of variances toward a pooled prior estimate, yielding more stable inference than classical t-tests; may be run on the LFQ data or on the output of a limpa model"),
+                              shiny::h6(" - DEqMS: extends limma by modeling the dependence of variance on (as implemented here) number of observations, improving empirical Bayes variance estimation"),
+                              shiny::h6(" - MSqRob: a robust regression framework for proteomics differential analysis that reduces sensitivity to outliers and can better accommodate missingness patterns compared to limma"),
+                              shiny::h6(" - Welch's t-test: modification of Student’s t-test that relaxes the equal-variance assumption and is more robust to heteroscedasticity (NB: for paired experimental designs, becomes identical to Student's t-test)"),
+                              shiny::h6(" - Permutation test (coin): based on the permutation distribution of a test statistic under the null hypothesis of exchangeability between groups"),
+                              shiny::h6(" - SAM's modified t-test (siggenes): modified t-statistic that adds a data-driven offset s₀ to the denominator to stabilize variance estimates and reduce false positives in low-replicate settings"),
+                              shiny::h6(" - ROTS: \"reproducibility-optimized test statist\", a t-statistic modified according to the inherent properties of the data"),
+                              #shiny::h6(" - LRT (Likelihood Ratio Test //edge): compares a full and reduced linear model by testing whether inclusion of the explanatory variable significantly increases the likelihood of the observed data"),
+                              #shiny::h6(" - ODP (Optimal Discovery Procedure, Storey et al., 2007 //edge): a multiple-testing framework designed to maximize the expected number of true discoveries by borrowing information across hypotheses to improve ranking of signals"),
+                    ),
+                    if (scrptTypeFull == "withReps_PG_and_PTMs") {
+                      # Not available for now for the peptides-only workflow,
+                      # but this could be done by turning the code for this into an app which is called individually for each PTM class.
+                      # This would mean allowing for a different selection for each PTM class.
+                      # We will anyway want to allow for multiple tests selected in the future, so go out of the "choose one t-test" variant approach...
+                      shiny::em(shiny::h6("(you can change which one will be used for Volcano plots later, after we compare each test's power)"))
+                    },
+                    shiny::checkboxInput("useSAM_thresh", "For Student's t-test, plot SAM-based curved significance thresholds?", useSAM_thresh, "100%")),
+      shiny::column(2L,
+                    shiny::h5(shiny::strong("Benjamini-Hochberg FDR thresholds")),
+                    shinycssloaders::withSpinner(shiny::uiOutput("FDR")),
+                    shiny::numericInput("FDR", "", 0.01, 0, 1),
+                    shiny::actionBttn("AddFDR", "Add threshold", color = "primary", size = "xs", style = "pill"),
+                    shiny::actionBttn("RemvFDR", "Remove threshold", color = "primary", size = "xs", style = "pill")),
+      shiny::column(2L,
+                    # shiny::radioButtons("typeOfThresh", "Ratios thresholds: use...", threshOpt, threshDflt, FALSE, "100%"),
+                    # shiny::numericInput("RatCont", "Threshold value = ", KontRt, 0, 100, 0.001, width = "100%"),
+                    # shiny::selectInput("RatContGrp",
+                    #                    "Control ratios are grouped by:",
+                    #                    KontGrps,
+                    #                    Param$Ratios.Contaminant.Groups,
+                    #                    width = "100%")
+                    shiny::numericInput("RatCont", "Abs. log2(FC) threshold value = ", KontRt, 0, Inf, 0.001, width = "100%")
       )
     ),
-    br(),
-    fluidRow(column(2L,
-                    checkboxInput("run_F_test", " Run an ANOVA (moderated F-test //limma)", fTstDflt, "100%"),
-                    em("(only makes sense if N(sample groups) > 2!)")),
-             column(2L,
-                    uiOutput("sntXprs")),
-             if (annotRep) {
-               column(3L,
-                      checkboxInput("ROC2on", "ROC analysis of P-values (experimental)",
-                                    length(ROC_GOterms) > 0L, "100%"),
-                      withSpinner(uiOutput("ROC2")))
-             }
+    shiny::br(),
+    shiny::fluidRow(shiny::column(2L,
+                                  shiny::checkboxInput("run_F_test", " Run an ANOVA (moderated F-test //limma)", fTstDflt, "100%"),
+                                  shiny::em("(only makes sense if N(sample groups) > 2!)")),
+                    shiny::column(2L,
+                                  shiny::uiOutput("sntXprs")),
+                    if (annotRep) {
+                      shiny::column(3L,
+                                    shiny::checkboxInput("ROC2on", "ROC analysis of P-values (experimental)",
+                                                         length(ROC_GOterms) > 0L, "100%"),
+                                    shinycssloaders::withSpinner(shiny::uiOutput("ROC2")))
+                    }
     ),
-    tags$hr(style = "border-color: black;"),
-    withSpinner(uiOutput("GO")),
+    shiny::tags$hr(style = "border-color: black;"),
+    shinycssloaders::withSpinner(shiny::uiOutput("GO")),
     if (scrptTypeFull == "withReps_PG_and_PTMs") {
       list(
-        tags$hr(style = "border-color: black;"),
-        h4(strong("Optional analyses")),
-        fluidRow(column(2L,
-                        checkboxInput("runProfPlots", "Draw protein profile plots?",
-                                      runProfPlots, "100%"),
-                        checkboxInput("runRankAbundPlots", "Draw protein ranked abundance plots?",
-                                      runRankAbundPlots, "100%"),
-                        br()),
-                 column(2L,
-                        if (pkgsCheck["GSEA"]) {
-                          checkboxInput("runGSEA", "Run Gene Set Enrichment Analysis (GSEA)?",
-                                        runGSEA, "100%")
-                        },
-                        if (pkgsCheck["WGCNA"]) {
-                          checkboxInput("runWGCNA", "Run Weighted Gene Correlation Network Analysis (WGCNA)?",
-                                        runWGCNA, "100%")
-                        },
-                        br()))
+        shiny::tags$hr(style = "border-color: black;"),
+        shiny::h4(shiny::strong("Optional analyses")),
+        shiny::fluidRow(shiny::column(2L,
+                                      shiny::checkboxInput("runProfPlots", "Draw protein profile plots?",
+                                                           runProfPlots, "100%"),
+                                      shiny::checkboxInput("runRankAbundPlots", "Draw protein ranked abundance plots?",
+                                                           runRankAbundPlots, "100%"),
+                                      shiny::br()),
+                        shiny::column(2L,
+                                      if (pkgsCheck["GSEA"]) {
+                                        shiny::checkboxInput("runGSEA", "Run Gene Set Enrichment Analysis (GSEA)?",
+                                                             runGSEA, "100%")
+                                      },
+                                      if (pkgsCheck["WGCNA"]) {
+                                        shiny::checkboxInput("runWGCNA", "Run Weighted Gene Correlation Network Analysis (WGCNA)?",
+                                                             runWGCNA, "100%")
+                                      },
+                                      shiny::br()))
       )
     },
-    tags$hr(style = "border-color: black;"),
-    withSpinner(uiOutput("CytoScape")),
-    h4(strong("Post-translational modifications (PTMs)")),
-    fluidRow(column(3L,
-                    uiOutput("PTMstats")),
-             column(2L,
-                    checkboxInput("PTMsReNorm",
-                                  "Re-normalize modified peptides ratios to those of parent Protein Group(s)?",
-                                  Param$PTM.analysis_Norm, "100%")),
-             column(2L,
-                    radioButtons("NAsReplMethod",
-                                 "Some modified peptides do not have a quantified parent protein group to re-normalize to. Replace missing values using:",
-                                 NAsReplMethods,
-                                 NAsReplMethods[NAsReplMeth],
-                                 width = "100%"))
+    shiny::tags$hr(style = "border-color: black;"),
+    shinycssloaders::withSpinner(shiny::uiOutput("CytoScape")),
+    shiny::h4(shiny::strong("Post-translational modifications (PTMs)")),
+    shiny::fluidRow(shiny::column(3L,
+                                  shiny::uiOutput("PTMstats")),
+                    shiny::column(2L,
+                                  shiny::checkboxInput("PTMsReNorm",
+                                                       "Re-normalize modified peptides ratios to those of parent Protein Group(s)?",
+                                                       Param$PTM.analysis_Norm, "100%")),
+                    shiny::column(2L,
+                                  shiny::radioButtons("NAsReplMethod",
+                                                      "Some modified peptides do not have a quantified parent protein group to re-normalize to. Replace missing values using:",
+                                                      NAsReplMethods,
+                                                      NAsReplMethods[NAsReplMeth],
+                                                      width = "100%"))
     ),
-    h4(strong("Output tables")),
-    fluidRow(column(3L,
-                    checkboxInput("Amica",
-                                  "Write tables compatible with https://bioapps.maxperutzlabs.ac.at/app/amica",
-                                  Param$Amica,
-                                  "100%"))),
-    br(),
-    tags$hr(style = "border-color: black;"),
-    checkboxInput("AdvOptOn", "Advanced options", tstAdvOpt),
-    withSpinner(uiOutput("AdvOpt")),
-    br(),
-    actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-    br(),
-    br()
+    shiny::h4(shiny::strong("Output tables")),
+    shiny::fluidRow(shiny::column(3L,
+                                  shiny::checkboxInput("Amica",
+                                                       "Write tables compatible with https://bioapps.maxperutzlabs.ac.at/app/amica",
+                                                       Param$Amica,
+                                                       "100%"))),
+    shiny::br(),
+    shiny::tags$hr(style = "border-color: black;"),
+    shiny::checkboxInput("AdvOptOn", "Advanced options", tstAdvOpt),
+    shinycssloaders::withSpinner(shiny::uiOutput("AdvOpt")),
+    shiny::br(),
+    shiny::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+    shiny::br(),
+    shiny::br()
     # ,
-    # setBackgroundColor( # Doesn't work
+    # shinyWidgets::setBackgroundColor( # Doesn't work
     #    color = c("#F8F8FF", "#91E0E3"),
     #    gradient = "linear",
     #    direction = "bottom"
@@ -1260,11 +1254,11 @@ make_ui1 <- \() {
   )
 }
 server1 <- \(input, output, session) {
-  NORMALIZE <- reactiveVal(normDat)
-  NORMSEQ <- reactiveVal(dfltNormSeq2)
-  PURFL <- reactiveVal(Param$Label.Purities.file)
-  RSA_msg <- reactiveVal("")
-  FORMULA <- reactiveVal(limmaForm)
+  NORMALIZE <- shiny::reactiveVal(normDat)
+  NORMSEQ <- shiny::reactiveVal(dfltNormSeq2)
+  PURFL <- shiny::reactiveVal(Param$Label.Purities.file)
+  RSA_msg <- shiny::reactiveVal("")
+  FORMULA <- shiny::reactiveVal(limmaForm)
   #
   # Server sub-functions
   # (unfortunately, it does not look like these can be pre-created outside the server - the reactive objects do not work if they are)
@@ -1281,135 +1275,135 @@ server1 <- \(input, output, session) {
       lst <- list(list(
         #
         # Parameters shared by multiple normalisations
-        h5(strong(" -> Normalisation filters"))),
-        fluidRow(column(1L),
-                 column(6L,
-                        pickerInput("Norma.Prot.Ratio.to.proteins",
-                                    "Proteins",
-                                    protHeads,
-                                    nrm2PrtSlctDflt,
-                                    TRUE,
-                                    pickerOptions(title = "Search me",
-                                                  `live-search` = TRUE,
-                                                  actionsBox = TRUE,
-                                                  deselectAllText = "Clear search",
-                                                  showTick = TRUE),
-                                    width = "600px"),
-                        checkboxInput("Norma.to.Hist",
-                                      "include all histones",
-                                      FALSE,
-                                      "100%")),
-                 if (Annotate) {
-                   column(3L,
-                          pickerInput("Norma.Prot.Ratio.to.GO",
-                                      "GO terms",
-                                      nrm2GOall,
-                                      nrm2GO,
-                                      TRUE,
-                                      pickerOptions(title = "Search me",
-                                                    `live-search` = TRUE,
-                                                    actionsBox = TRUE,
-                                                    deselectAllText = "Clear search",
-                                                    showTick = TRUE)))
-                 },
-                 if (WorkFlow == "BIOID") {
-                   column(3L,
-                          checkboxInput("Norma.Prot.Ratio.to.Biot", " -> all biotinylated proteins: ",
-                                        Param$Norma.Prot.Ratio.to.Biot, "100%"))
-                 },
+        shiny::h5(shiny::strong(" -> Normalisation filters"))),
+        shiny::fluidRow(shiny::column(1L),
+                        shiny::column(6L,
+                                      shinyWidgets::pickerInput("Norma.Prot.Ratio.to.proteins",
+                                                                "Proteins",
+                                                                protHeads,
+                                                                nrm2PrtSlctDflt,
+                                                                TRUE,
+                                                                shinyWidgets::pickerOptions(title = "Search me",
+                                                                                            `live-search` = TRUE,
+                                                                                            actionsBox = TRUE,
+                                                                                            deselectAllText = "Clear search",
+                                                                                            showTick = TRUE),
+                                                                width = "600px"),
+                                      shiny::checkboxInput("Norma.to.Hist",
+                                                           "include all histones",
+                                                           FALSE,
+                                                           "100%")),
+                        if (Annotate) {
+                          shiny::column(3L,
+                                        shinyWidgets::pickerInput("Norma.Prot.Ratio.to.GO",
+                                                                  "GO terms",
+                                                                  nrm2GOall,
+                                                                  nrm2GO,
+                                                                  TRUE,
+                                                                  shinyWidgets::pickerOptions(title = "Search me",
+                                                                                              `live-search` = TRUE,
+                                                                                              actionsBox = TRUE,
+                                                                                              deselectAllText = "Clear search",
+                                                                                              showTick = TRUE)))
+                        },
+                        if (WorkFlow == "BIOID") {
+                          shiny::column(3L,
+                                        shiny::checkboxInput("Norma.Prot.Ratio.to.Biot", " -> all biotinylated proteins: ",
+                                                             Param$Norma.Prot.Ratio.to.Biot, "100%"))
+                        },
         ),
         if (scrptTypeFull == "withReps_PG_and_PTMs") {
-          em("Normalisation filters defined here are used for:", br(),
-             " - Peptidoforms-level normalisation to Proteins or GO terms", br(),
-             " - Protein Group-level re-normalisation", br())
+          shiny::em("Normalisation filters defined here are used for:", shiny::br(),
+                    " - Peptidoforms-level normalisation to Proteins or GO terms", shiny::br(),
+                    " - Protein Group-level re-normalisation", shiny::br())
         },
         if (scrptTypeFull == "withReps_PTMs_only") {
-          em("Proteins defined here are used as normalisation filter for Peptidoforms-level proteins- or GO terms- normalisation methods", br())
+          shiny::em("Proteins defined here are used as normalisation filter for Peptidoforms-level proteins- or GO terms- normalisation methods", shiny::br())
         },
-        br(),
+        shiny::br(),
         #
         # PSMs normalisations
-        fluidRow(column(1L,
-                        h5(strong(" -> PSMs-level:"))),
-                 column(2L,
-                        checkboxInput("evLM", "Levenberg-Marquardt",
-                                      Param$Adv.Norma.Ev.Intens, "100%"))),
-        br(),
+        shiny::fluidRow(shiny::column(1L,
+                                      shiny::h5(shiny::strong(" -> PSMs-level:"))),
+                        shiny::column(2L,
+                                      shiny::checkboxInput("evLM", "Levenberg-Marquardt",
+                                                           Param$Adv.Norma.Ev.Intens, "100%"))),
+        shiny::br(),
         #
         # Peptidoforms
-        fluidRow(column(6L,
-                        selectInput("PepNormSeq",
-                                    " -> Peptidoforms-level:",
-                                    nrmSq2,
-                                    nrmSq2,
-                                    TRUE,
-                                    TRUE,
-                                    width = "90%"))),
-        #h5(strong(em(paste(nrmSq2, collapse = " -> ")))),
-        fluidRow(column(2L,
-                        actionBttn("addClassicNorm", "Add normalisation", color = "primary", size = "xs", style = "pill"),
-                        pickerInput("ClassicNormMeth",
-                                    "methods:",
-                                    genPepNormMeth,
-                                    genPepNormMeth[1L],
-                                    width = "80%"),
-                        em("It is usually a good idea to start with a rough median normalisation, unless it makes no biological sense (very different samples, e.g. starvation).",
-                           br(),
-                           "You may close the normalisation sequence with a more precise alignment method such as robust-Huber.",
-                           br(),
-                           "Normalisation to proteins or GO terms normalizes to the median of the corresponding protein filter (e.g. use all histones to normalize to the number of cells).",
-                           br(),
-                           "Use sum to normalize to total sample intensity.",
-                           br())),
-                 column(2L,
-                        actionBttn("addVarCorr", "Add intensity-bias correction", color = "primary", size = "xs", style = "pill"),
-                        pickerInput("VarCorrMeth",
-                                    "methods:",
-                                    shapePepNormMeth,
-                                    shapePepNormMeth[1L],
-                                    width = "80%"),
-                        em("Use GAM or LOESS to correct for systematic intensity-dependent bias in mean logFC.",
-                           br(),
-                           "Use VSN to stabilize intensity-dependent variance. Redundant if downstream statistical inference is performed with limma, which includes a voom step which explicitly models the mean-variance relationship.",
-                           br(),
-                           "Avoid stacking several of these, which may introduce unwanted distortions!",
-                           br())),
-                 column(2L,
-                        actionBttn("addComBat", "Add ComBat batch correction", color = "primary", size = "xs", style = "pill"),
-                        pickerInput("ComBatBatch",
-                                    "batches (select one or more):",
-                                    Factors,
-                                    c("Replicate", "Batch")[("Batch" %in% Factors)+1L],
-                                    TRUE,
-                                    width = "80%"),
-                        em("Not recommended if using limma downstream: prefer encoding the batch in the model formula using the Batch field above.",
-                           br())),
-                 if (LabelType == "Isobaric") {
-                   column(2L,
-                          actionBttn("addIRS", "Add IRS batch correction", color = "primary", size = "xs", style = "pill"),
-                          h5(em("IRS = Internal Reference Scaling")))
-                 },
-                 column(c(6L, 4L)[(LabelType == "Isobaric")+1L],
-                        selectInput("my_MA_plot", "", names(MAplotFls), names(MAplotFls)[1L]),
-                        imageOutput("MAplot", inline = TRUE))
+        shiny::fluidRow(shiny::column(6L,
+                                      shiny::selectInput("PepNormSeq",
+                                                         " -> Peptidoforms-level:",
+                                                         nrmSq2,
+                                                         nrmSq2,
+                                                         TRUE,
+                                                         TRUE,
+                                                         width = "90%"))),
+        #shiny::h5(shiny::strong(shiny::em(paste(nrmSq2, collapse = " -> ")))),
+        shiny::fluidRow(shiny::column(2L,
+                                      shiny::actionBttn("addClassicNorm", "Add normalisation", color = "primary", size = "xs", style = "pill"),
+                                      shinyWidgets::pickerInput("ClassicNormMeth",
+                                                                "methods:",
+                                                                genPepNormMeth,
+                                                                genPepNormMeth[1L],
+                                                                width = "80%"),
+                                      shiny::em("It is usually a good idea to start with a rough median normalisation, unless it makes no biological sense (very different samples, e.g. starvation).",
+                                                shiny::br(),
+                                                "You may close the normalisation sequence with a more precise alignment method such as robust-Huber.",
+                                                shiny::br(),
+                                                "Normalisation to proteins or GO terms normalizes to the median of the corresponding protein filter (e.g. use all histones to normalize to the number of cells).",
+                                                shiny::br(),
+                                                "Use sum to normalize to total sample intensity.",
+                                                shiny::br())),
+                        shiny::column(2L,
+                                      shiny::actionBttn("addVarCorr", "Add intensity-bias correction", color = "primary", size = "xs", style = "pill"),
+                                      shinyWidgets::pickerInput("VarCorrMeth",
+                                                                "methods:",
+                                                                shapePepNormMeth,
+                                                                shapePepNormMeth[1L],
+                                                                width = "80%"),
+                                      shiny::em("Use GAM or LOESS to correct for systematic intensity-dependent bias in mean logFC.",
+                                                shiny::br(),
+                                                "Use VSN to stabilize intensity-dependent variance. Redundant if downstream statistical inference is performed with limma, which includes a voom step which explicitly models the mean-variance relationship.",
+                                                shiny::br(),
+                                                "Avoid stacking several of these, which may introduce unwanted distortions!",
+                                                shiny::br())),
+                        shiny::column(2L,
+                                      shiny::actionBttn("addComBat", "Add ComBat batch correction", color = "primary", size = "xs", style = "pill"),
+                                      shinyWidgets::pickerInput("ComBatBatch",
+                                                                "batches (select one or more):",
+                                                                Factors,
+                                                                c("Replicate", "Batch")[("Batch" %in% Factors)+1L],
+                                                                TRUE,
+                                                                width = "80%"),
+                                      shiny::em("Not recommended if using limma downstream: prefer encoding the batch in the model formula using the Batch field above.",
+                                                shiny::br())),
+                        if (LabelType == "Isobaric") {
+                          shiny::column(2L,
+                                        shiny::actionBttn("addIRS", "Add IRS batch correction", color = "primary", size = "xs", style = "pill"),
+                                        shiny::h5(shiny::em("IRS = Internal Reference Scaling")))
+                        },
+                        shiny::column(c(6L, 4L)[(LabelType == "Isobaric")+1L],
+                                      shiny::selectInput("my_MA_plot", "", names(MA_plot_fls), names(MA_plot_fls)[1L]),
+                                      shiny::imageOutput("MA_plot", inline = TRUE))
         ),
-        em(h5("(It goes without saying that you should aim for a REASONABLE normalisation scheme!!!)"), br())
+        shiny::em(shiny::h5("(It goes without saying that you should aim for a REASONABLE normalisation scheme!!!)"), shiny::br())
       )
       #
       # Protein groups
       if (scrptTypeFull == "withReps_PG_and_PTMs") {
         lst <- append(lst,
-                      list(fluidRow(column(1L,
-                                           h5(strong(" -> Protein Groups-level:"))),
-                                    column(2L,
-                                           checkboxInput("prtLM", "Re-normalize?",
-                                                         Param$Adv.Norma.Prot.Intens, "100%")))))
+                      list(shiny::fluidRow(shiny::column(1L,
+                                                         shiny::h5(shiny::strong(" -> Protein Groups-level:"))),
+                                           shiny::column(2L,
+                                                         shiny::checkboxInput("prtLM", "Re-normalize?",
+                                                                              Param$Adv.Norma.Prot.Intens, "100%")))))
       }
-      lst <- append(lst, list(br()))
+      lst <- append(lst, list(shiny::br()))
     } else {
-      lst <- list(list(br()))
+      lst <- list(list(shiny::br()))
     }
-    renderUI(lst)
+    shiny::renderUI(lst)
   }
   updtOptOn <- \(reactive = TRUE) {
     tst <- { if (reactive) { ADVOPT() } else { tstAdvOpt } }
@@ -1418,156 +1412,156 @@ server1 <- \(input, output, session) {
       RatGrps <- paste(unique(apply(ExpMap[, rgKol, drop = FALSE], 1L, paste, collapse = " ")), collapse = " / ")
       lst <- vector("list", 1L)
       lst[[1L]] <- list(
-        fluidRow(column(12L,
-                        em("->"), 
-                        shinyFilesButton("CustPG", em("Custom Protein Groups"), "", FALSE), br(),
-                        em("Allows \"cheating\" with the naive Protein Groups assembly algorithm.",
-                           br(),
-                           "Useful when for instance genetically-motified/transduced samples synthesize a custom protein (e.g. fusion construct) to which matching peptides should be assigned in priority over the canonical form.",
-                           br(),
-                           "Should be a table with two columns: \"Leading protein IDs\" (\";\"-separated) and \"Priority\" (integer).",
-                           br()),
-                        strong("Current selection = "), span(Param$Custom.PGs, style = "color:blue", .noWS = "outside"),
-                        br(),
-                        br()
+        shiny::fluidRow(shiny::column(12L,
+                                      shiny::em("->"), 
+                                      shinyFiles::shinyFilesButton("CustPG", shiny::em("Custom Protein Groups"), "", FALSE), shiny::br(),
+                                      shiny::em("Allows \"cheating\" with the naive Protein Groups assembly algorithm.",
+                                                shiny::br(),
+                                                "Useful when for instance genetically-motified/transduced samples synthesize a custom protein (e.g. fusion construct) to which matching peptides should be assigned in priority over the canonical form.",
+                                                shiny::br(),
+                                                "Should be a table with two columns: \"Leading protein IDs\" (\";\"-separated) and \"Priority\" (integer).",
+                                                shiny::br()),
+                                      shiny::strong("Current selection = "), shiny::span(Param$Custom.PGs, style = "color:blue", .noWS = "outside"),
+                                      shiny::br(),
+                                      shiny::br()
         )),
-        fluidRow(column(12L,
-                        em("->"), 
-                        shinyFilesButton("TrueDisc", em("TRUE/FALSE protein discovery filter"), "", FALSE), br(),
-                        em("Select TRUE/FALSE protein discovery filter .csv file (useful when you know from another experiment which proteins are contaminants).",
-                           br(),
-                           "Should contain a \"Protein ID\" column and one TRUE/FALSE column per \"Ratio group\" value.",
-                           br(),
-                           "Current values: ", RatGrps, br(), br(),
-                           DiscFiltModesHlp[1L], br(),
-                           DiscFiltModesHlp[2L], br(),
-                           DiscFiltModesHlp[3L], br()),
-                        strong("Current selection = "), span(Param$TrueDisc_filter, style = "color:blue", .noWS = "outside"),
-                        br(),
-                        br()
+        shiny::fluidRow(shiny::column(12L,
+                                      shiny::em("->"), 
+                                      shinyFiles::shinyFilesButton("TrueDisc", shiny::em("TRUE/FALSE protein discovery filter"), "", FALSE), shiny::br(),
+                                      shiny::em("Select TRUE/FALSE protein discovery filter .csv file (useful when you know from another experiment which proteins are contaminants).",
+                                                shiny::br(),
+                                                "Should contain a \"Protein ID\" column and one TRUE/FALSE column per \"Ratio group\" value.",
+                                                shiny::br(),
+                                                "Current values: ", RatGrps, shiny::br(), shiny::br(),
+                                                DiscFiltModesHlp[1L], shiny::br(),
+                                                DiscFiltModesHlp[2L], shiny::br(),
+                                                DiscFiltModesHlp[3L], shiny::br()),
+                                      shiny::strong("Current selection = "), shiny::span(Param$TrueDisc_filter, style = "color:blue", .noWS = "outside"),
+                                      shiny::br(),
+                                      shiny::br()
         )),
-        fluidRow(column(12L,
-                        em("->"),
-                        shinyFilesButton("CRAPome", em("CRAPome filter"), "", FALSE), br(),
-                        em("CRAPome-like filter: 1 column table of protein accessions to mark as contaminants.",
-                           br(),
-                           "Column name = \"Protein ID\" or \"Protein IDs\", use \";\" if including more than one ID per row).",
-                           br()),
-                        strong("Current selection = "), span(Param$CRAPome_file, style = "color:blue", .noWS = "outside"),
-                        br(),
-                        br()
+        shiny::fluidRow(shiny::column(12L,
+                                      shiny::em("->"),
+                                      shinyFiles::shinyFilesButton("CRAPome", shiny::em("CRAPome filter"), "", FALSE), shiny::br(),
+                                      shiny::em("CRAPome-like filter: 1 column table of protein accessions to mark as contaminants.",
+                                                shiny::br(),
+                                                "Column name = \"Protein ID\" or \"Protein IDs\", use \";\" if including more than one ID per row).",
+                                                shiny::br()),
+                                      shiny::strong("Current selection = "), shiny::span(Param$CRAPome_file, style = "color:blue", .noWS = "outside"),
+                                      shiny::br(),
+                                      shiny::br()
         ))
       )
-    } else { lst <- list(list(em(""))) }
-    renderUI(lst)
+    } else { lst <- list(list(shiny::em(""))) }
+    shiny::renderUI(lst)
   }
   if (annotRep) { # Not implemented yet for script without Reps
     updtROC1 <- \(reactive = TRUE) {
       tst <- { if (reactive) { ROC1ON() } else { length(c(ROCfilt_GOterms_Pos, ROCfilt_GOterms_Neg)) > 0L } }
       if (tst) {
         lst <- list(
-          fluidRow(column(4L,
-                          pickerInput("ROC1_pos",
-                                      "Positive GO term(s)",
-                                      ROC1_allGOPos1,
-                                      ROC1_GOterms_Pos,
-                                      TRUE,
-                                      pickerOptions(title = "Search me",
-                                                    `live-search` = TRUE,
-                                                    actionsBox = TRUE,
-                                                    deselectAllText = "Clear search",
-                                                    showTick = TRUE))),
-                   column(4L,
-                          pickerInput("ROC1_neg",
-                                      "Negative GO term(s)",
-                                      ROC1_allGONeg1,
-                                      ROC1_GOterms_Neg,
-                                      TRUE,
-                                      pickerOptions(title = "Search me",
-                                                    `live-search` = TRUE,
-                                                    actionsBox = TRUE,
-                                                    deselectAllText = "Clear search",
-                                                    showTick = TRUE)),
-                          em("Optional: these can be used for an inverted ROC analysis."))))
-      } else { lst <- list(list(em(""))) }
-      renderUI(lst)
+          shiny::fluidRow(shiny::column(4L,
+                                        shinyWidgets::pickerInput("ROC1_pos",
+                                                                  "Positive GO term(s)",
+                                                                  ROC1_allGOPos1,
+                                                                  ROC1_GOterms_Pos,
+                                                                  TRUE,
+                                                                  shinyWidgets::pickerOptions(title = "Search me",
+                                                                                              `live-search` = TRUE,
+                                                                                              actionsBox = TRUE,
+                                                                                              deselectAllText = "Clear search",
+                                                                                              showTick = TRUE))),
+                          shiny::column(4L,
+                                        shinyWidgets::pickerInput("ROC1_neg",
+                                                                  "Negative GO term(s)",
+                                                                  ROC1_allGONeg1,
+                                                                  ROC1_GOterms_Neg,
+                                                                  TRUE,
+                                                                  shinyWidgets::pickerOptions(title = "Search me",
+                                                                                              `live-search` = TRUE,
+                                                                                              actionsBox = TRUE,
+                                                                                              deselectAllText = "Clear search",
+                                                                                              showTick = TRUE)),
+                                        shiny::em("Optional: these can be used for an inverted ROC analysis."))))
+      } else { lst <- list(list(shiny::em(""))) }
+      shiny::renderUI(lst)
     }
     updtROC2 <- \(reactive = TRUE) {
       tst <- { if (reactive) { ROC2ON() } else { length(ROC_GOterms) > 0L } }
       if (tst) {
         lst <- list(
-          fluidRow(column(4L,
-                          em("GO terms to evaluate acceptable P-value significance thresholds, e.g. if you know that all proteins with a given term should be significant. Currently this is only used for personal interpretation of the plots and not fed back into the automated significance analysis."),
-                          pickerInput("ROC2_terms",
-                                      "",
-                                      ROC2_allGO1,
-                                      ROC2_GOterms,
-                                      TRUE,
-                                      pickerOptions(title = "Search me",
-                                                    `live-search` = TRUE,
-                                                    actionsBox = TRUE,
-                                                    deselectAllText = "Clear search",
-                                                    showTick = TRUE)))))
+          shiny::fluidRow(shiny::column(4L,
+                                        shiny::em("GO terms to evaluate acceptable P-value significance thresholds, e.g. if you know that all proteins with a given term should be significant. Currently this is only used for personal interpretation of the plots and not fed back into the automated significance analysis."),
+                                        shinyWidgets::pickerInput("ROC2_terms",
+                                                                  "",
+                                                                  ROC2_allGO1,
+                                                                  ROC2_GOterms,
+                                                                  TRUE,
+                                                                  shinyWidgets::pickerOptions(title = "Search me",
+                                                                                              `live-search` = TRUE,
+                                                                                              actionsBox = TRUE,
+                                                                                              deselectAllText = "Clear search",
+                                                                                              showTick = TRUE)))))
       } else { lst <- list(list(em(""))) }
-      renderUI(lst)
+      shiny::renderUI(lst)
     }
   }
   updtRSAmsg <- \(reactive = TRUE) {
     myMsg <- { if (reactive) { RSA_msg() } else { "" } }
-    renderUI(h5(strong(em(myMsg,
-                          style = paste0("color:", c("black", "red")[(nchar(myMsg) > 0L)+1L]),
-                          .noWS = "outside"))))
+    shiny::renderUI(shiny::h5(shiny::strong(shiny::em(myMsg,
+                                                      style = paste0("color:", c("black", "red")[(nchar(myMsg) > 0L)+1L]),
+                                                      .noWS = "outside"))))
   }
   updtFORM <- \(reactive = TRUE) {
     myMsg <- { if (reactive) { FORMULA() } else { limmaForm } }
-    renderUI(strong(em(myMsg,
-                       .noWS = "outside")))
+    shiny::renderUI(shiny::strong(shiny::em(myMsg,
+                                            .noWS = "outside")))
   }
   updtQuantMsg <- \(reactive = TRUE) {
     myQuant <- { if (reactive) { input$Quant_algorithm } else { quantAlgo } }
     quantMsg <- allQuantAlgos$Help[match(myQuant, allQuantAlgos$Algorithm)]
-    renderUI(em(quantMsg))
+    shiny::renderUI(shiny::em(quantMsg))
   }
   updtMA <- \(reactive = TRUE) {
-    myMA <- { if (reactive) { input$my_MA_plot } else { names(MAplotFls)[1L] } }
-    renderImage(list(src = paste0(MAplotFls[myMA], ".jpeg"), # For now any MA plots will do if there are several
-                     contentType = "image/jpeg",
-                     height = "500px"),
-                deleteFile = FALSE)
+    myMA <- { if (reactive) { input$my_MA_plot } else { names(MA_plot_fls)[1L] } }
+    shiny::renderImage(list(src = paste0(MA_plot_fls[myMA], ".jpeg"), # For now any MA plots will do if there are several
+                            contentType = "image/jpeg",
+                            height = "500px"),
+                       deleteFile = FALSE)
   }
-  output$MAplot <- updtMA(FALSE)
+  output$MA_plot <- updtMA(FALSE)
   #
   # Initialize variables to create in main environment
-  PARAM <- reactiveVal(Param)
-  m4Quant <- reactiveVal(Mod4Quant)
-  m2Xclud <- reactiveVal(Mod2Xclud)
-  ADVOPT <- reactiveVal(tstAdvOpt)
+  PARAM <- shiny::reactiveVal(Param)
+  m4Quant <- shiny::reactiveVal(Mod4Quant)
+  m2Xclud <- shiny::reactiveVal(Mod2Xclud)
+  ADVOPT <- shiny::reactiveVal(tstAdvOpt)
   if (annotRep) {
-    ROC1ON <- reactiveVal(length(c(ROCfilt_GOterms_Pos,
-                                   ROCfilt_GOterms_Neg)) > 0L)
-    ROC2ON <- reactiveVal(length(ROC_GOterms) > 0L)
+    ROC1ON <- shiny::reactiveVal(length(c(ROCfilt_GOterms_Pos,
+                                          ROCfilt_GOterms_Neg)) > 0L)
+    ROC2ON <- shiny::reactiveVal(length(ROC_GOterms) > 0L)
   }
   #
   # Dynamic UI
   # Map Parameters to Factors
   output$QuantMsg <- updtQuantMsg(FALSE)
-  output$PSMsPCA <- renderPlotly(dimRedPlotLy$PSMs$"Samples PCA")
+  output$PSMsPCA <- shiny::renderPlotly(dimRedPlotLy$PSMs$"Samples PCA")
   output$RSA_msg <- updtRSAmsg(FALSE)
   output$FORMULA <- updtFORM(FALSE)
-  output$FactMappings <- renderUI({ lstFct })
-  # output$RatioGroups <- renderUI({
-  #   em(paste(unique(do.call(paste, c(ExpMap[, input[["Ratios.Groups"]], drop = FALSE], sep = "_"))),
-  #            collapse = " / "))
+  output$FactMappings <- shiny::renderUI({ lstFct })
+  # output$RatioGroups <- shiny::renderUI({
+  #   shiny::em(paste(unique(do.call(paste, c(ExpMap[, input[["Ratios.Groups"]], drop = FALSE], sep = "_"))),
+  #                   collapse = " / "))
   # })
   # Factors
   sapply(rev(wMp), \(w) { # Reversed order so the red warning message isn't displayed by default!
-    observeEvent(input[[myFct]], {
+    shiny::observeEvent(input[[myFct]], {
       myFct <- colnames(Param)[w]
       #tmpVal <- VPAL$names
       #myFct <- "Volcano.plots.Aggregate.Level"
       tmpVal <- input[[myFct]] # Current aggregate
       if ((length(Exp) == 1L) && (!myFct %in% c("Batch.effect", "Blocking.factors"))) {
-        tmpVal <- union("Experiment", tmpVal)
+        tmpVal <- base::union("Experiment", tmpVal)
       }
       if (myFct == "Volcano.plots.Aggregate.Level") {
         tmpVal_ind <- c(tmpVal, "Replicate")
@@ -1617,7 +1611,7 @@ server1 <- \(input, output, session) {
       }
       if (myFct %in% c("Volcano.plots.Aggregate.Level", "Batch.effect")) {
         tmpVal2 <- input$Volcano.plots.Aggregate.Level
-        if (length(Exp) == 1L) { tmpVal2 <- setdiff(tmpVal2, "Experiment") }
+        if (length(Exp) == 1L) { tmpVal2 <- base::setdiff(tmpVal2, "Experiment") }
         limmaForm <- paste0("~ 0 + ", paste(tmpVal2, collapse = "_"))
         if (length(input$Batch.effect)) {
           limmaForm <- paste0(limmaForm, " + ", paste(input$Batch.effect, collapse = "_"))
@@ -1632,68 +1626,68 @@ server1 <- \(input, output, session) {
     }, ignoreNULL = FALSE, ignoreInit = TRUE)
   })
   # SAINTexpress
-  output$sntXprs <- renderUI({
-    lst <- list(list(br()))
+  output$sntXprs <- shiny::renderUI({
+    lst <- list(list(shiny::br()))
     if (WorkFlow %in% c("PULLDOWN", "BIOID")) {
-      lst <- list(list(h5(strong(" -> SAINTexpress")),
-                       checkboxInput("saintExprs", "run?", saintExprs, "100%"))
+      lst <- list(list(shiny::h5(shiny::strong(" -> SAINTexpress")),
+                       shiny::checkboxInput("saintExprs", "run?", saintExprs, "100%"))
       )
     }
     return(lst)
   })
   # CytoScape
-  output$CytoScape <- renderUI({
+  output$CytoScape <- shiny::renderUI({
     if (!length(CytoScExe)) {
-      lst <- shinyFilesButton("CytoScVers2",
-                              "No Cytoscape.exe detected, select one (optional)",
-                              "", FALSE)
+      lst <- shinyFiles::shinyFilesButton("CytoScVers2",
+                                          "No Cytoscape.exe detected, select one (optional)",
+                                          "", FALSE)
     }
     if (length(CytoScExe) == 1L) {
-      lst <- em(paste0("Cytoscape version detected: ", CytoScExe))
+      lst <- shiny::em(paste0("Cytoscape version detected: ", CytoScExe))
     }
     if (length(CytoScExe) > 1L) {
-      lst <- pickerInput("CytoScVers1",
-                         "Choose Cytoscape version:",
-                         CytoScExe,
-                         CytoScExe[1L],
-                         FALSE)
+      lst <- shinyWidgets::pickerInput("CytoScVers1",
+                                       "Choose Cytoscape version:",
+                                       CytoScExe,
+                                       CytoScExe[1L],
+                                       FALSE)
     }
-    lst <- list(list(fluidRow(column(12L,
-                                     lst)),
-                     tags$hr(style = "border-color: black;")))
+    lst <- list(list(shiny::fluidRow(shiny::column(12L,
+                                                   lst)),
+                     shiny::tags$hr(style = "border-color: black;")))
     
     return(lst)
   })
   # PTMs
   if (lVar) {
-    output$PTMstats <- renderUI({
-      div(style = "display: grid; grid-template-columns: 1fr; width: 100%;",
-          lapply(wVar, \(i) { #ii <- 4L
-            aa <- Modifs$AA[[i]]
-            aa[aa == "_"] <- "N-term"
-            ptm <- Modifs$`Full name`[i]
-            ids <- ptmIDsLst[[ptm]]
-            div(class = "ptm-row",
-                span(class = "ptm-name",
-                     paste0(ptm, ":")),
-                lapply(1L:length(aa), \(ii) { #ii <- 1L
-                  a <- aa[ii]
-                  checkboxInput(ids[[ii]],
-                                a,
-                                a %in% PTMstats$sites[[ptm]],
-                                c("50px", "80px")[(a == "N-term") + 1L])
-                }))
-          }))
+    output$PTMstats <- shiny::renderUI({
+      shiny::div(style = "display: grid; grid-template-columns: 1fr; width: 100%;",
+                 lapply(wVar, \(i) { #ii <- 4L
+                   aa <- Modifs$AA[[i]]
+                   aa[aa == "_"] <- "N-term"
+                   ptm <- Modifs$`Full name`[i]
+                   ids <- ptmIDsLst[[ptm]]
+                   shiny::div(class = "ptm-row",
+                              shiny::span(class = "ptm-name",
+                                          paste0(ptm, ":")),
+                              lapply(1L:length(aa), \(ii) { #ii <- 1L
+                                a <- aa[ii]
+                                shiny::checkboxInput(ids[[ii]],
+                                                     a,
+                                                     a %in% PTMstats$sites[[ptm]],
+                                                     c("50px", "80px")[(a == "N-term") + 1L])
+                              }))
+                 }))
     })
     sapply(ptmIDs, \(id) { #id <- ptmIDs[[1L]]
-      observeEvent(input[[id]], {
+      shiny::observeEvent(input[[id]], {
         tmp <- unlist(strsplit(sub("^PTMstats_", "", id), "___"))
         ptm <- tmp[1L]
         aa <- tmp[[2L]] # Use explicit "N-term", not "_" or any other alternative!
         # Below: somehow only going through these intermediate variables is working, otherwise this fails...
         tmp <- PTMstats$sites
         sts <- tmp[[ptm]]
-        sts <- if (input[[id]]) { sort(union(sts, aa)) } else { setdiff(sts, aa) }
+        sts <- if (input[[id]]) { sort(base::union(sts, aa)) } else { base::setdiff(sts, aa) }
         tmp[[ptm]] <- sts
         PTMstats$sites[names(tmp)] <- tmp
         assign("PTMstats", PTMstats, envir = .GlobalEnv)
@@ -1705,16 +1699,16 @@ server1 <- \(input, output, session) {
   updtIsoPur <- \(reactive = TRUE, lblType = LabelType) {
     if (lblType == "Isobaric") {
       fl <- { if (reactive) { PURFL() } else { Param$Label.Purities.file } }
-      lst <- list(list(fluidRow(column(1L,
-                                       shinyFilesButton("PurityFl", "Browse", paste0(IsobarLab, " purity table"), "", FALSE)),
-                                column(3L,
-                                       em(fl))),
-                       br()))
+      lst <- list(list(shiny::fluidRow(shiny::column(1L,
+                                                     shinyFiles::shinyFilesButton("PurityFl", "Browse", paste0(IsobarLab, " purity table"), "", FALSE)),
+                                       shiny::column(3L,
+                                                     shiny::em(fl))),
+                       shiny::br()))
       
     } else {
-      lst <- list(list(HTML("")))
+      lst <- list(list(shiny::HTML("")))
     }
-    renderUI(lst)
+    shiny::renderUI(lst)
   }
   output$IsobarCorr <- updtIsoPur(FALSE)
   #
@@ -1722,35 +1716,35 @@ server1 <- \(input, output, session) {
   output$Norm <- updtNorm(FALSE)
   #
   # GO
-  output$GO <- renderUI({
-    lst <- list(list(br()))
+  output$GO <- shiny::renderUI({
+    lst <- list(list(shiny::br()))
     if (Annotate) {
       lst <- list(
-        list(h4(strong("GO terms enrichment")),
-             fluidRow(column(1L,
-                             checkboxInput("GOenrich", "GO enrichment", goDflt, "100%"),
-                             checkboxInput("runClueGO", "run ClueGO enrichment (NB: this is rather slow)", runClueGO, "100%")),
-                      column(2L,
-                             pickerInput("GO.tabs",
-                                         "GO terms of interest",
-                                         allGO,
-                                         dftlGO,
-                                         TRUE,
-                                         pickerOptions(title = "Search me",
-                                                       `live-search` = TRUE,
-                                                       actionsBox = TRUE,
-                                                       deselectAllText = "Clear search",
-                                                       showTick = TRUE))),
-                      column(1L,
-                             checkboxInput("GO2Int", "Use GO terms to define list of proteins of interest?",
-                                           as.character(toupper(Param$GO.terms.for.proteins.of.interest)) == "TRUE", # Clumsy but possibly more backwards proof
-                                           "100%"))))
+        list(shiny::h4(shiny::strong("GO terms enrichment")),
+             shiny::fluidRow(shiny::column(1L,
+                                           shiny::checkboxInput("GOenrich", "GO enrichment", goDflt, "100%"),
+                                           shiny::checkboxInput("runClueGO", "run ClueGO enrichment (NB: this is rather slow)", runClueGO, "100%")),
+                             shiny::column(2L,
+                                           shinyWidgets::pickerInput("GO.tabs",
+                                                                     "GO terms of interest",
+                                                                     allGO,
+                                                                     dftlGO,
+                                                                     TRUE,
+                                                                     shinyWidgets::pickerOptions(title = "Search me",
+                                                                                                 `live-search` = TRUE,
+                                                                                                 actionsBox = TRUE,
+                                                                                                 deselectAllText = "Clear search",
+                                                                                                 showTick = TRUE))),
+                             shiny::column(1L,
+                                           shiny::checkboxInput("GO2Int", "Use GO terms to define list of proteins of interest?",
+                                                                as.character(toupper(Param$GO.terms.for.proteins.of.interest)) == "TRUE", # Clumsy but possibly more backwards proof
+                                                                "100%"))))
       )
     }
     return(lst)
   })
   # # Pepper
-  # observeEvent(input$runPepper, {
+  # shiny::observeEvent(input$runPepper, {
   #   runPepper <- as.logical(input$runPepper)
   #   assign("runPepper", runPepper, envir = .GlobalEnv)
   #   Par <- PARAM()
@@ -1758,7 +1752,7 @@ server1 <- \(input, output, session) {
   #   PARAM(Par)
   # })
   # Impute?
-  observeEvent(input$Impute, {
+  shiny::observeEvent(input$Impute, {
     Impute <- as.logical(input$Impute)
     assign("Impute", Impute, envir = .GlobalEnv)
     Par <- PARAM()
@@ -1766,7 +1760,7 @@ server1 <- \(input, output, session) {
     PARAM(Par)
   })
   # Update PSM-to-Protein matches?
-  observeEvent(input$Update_Prot_matches, {
+  shiny::observeEvent(input$Update_Prot_matches, {
     Update_Prot_matches <- as.logical(input$Update_Prot_matches)
     assign("Update_Prot_matches", Update_Prot_matches, envir = .GlobalEnv)
     Par <- PARAM()
@@ -1774,21 +1768,21 @@ server1 <- \(input, output, session) {
     PARAM(Par)
   })
   # Clustering method
-  observeEvent(input$Clustering, {
+  shiny::observeEvent(input$Clustering, {
     KlustMeth <- match(input$Clustering, klustChoices)
     assign("KlustMeth", KlustMeth, envir = .GlobalEnv)
   })
   # Quantitation
-  observeEvent(input$Quant_algorithm, {
+  shiny::observeEvent(input$Quant_algorithm, {
     quantAlgo <- input$Quant_algorithm
     assign("quantAlgo", quantAlgo, envir = .GlobalEnv)
     if (quantAlgo == "limpa") {
-      updateCheckboxInput(inputId = "Impute", value = FALSE)
-      updatePickerInput(inputId = "Norma.Prot.Ratio.to.proteins", selected = NULL)
-      updateCheckboxInput(inputId = "Norma.to.Hist", value = FALSE)
-      updatePickerInput(inputId = "Norma.Prot.Ratio.to.GO", selected = NULL)
-      updateCheckboxInput(inputId = "Norma.Prot.Ratio.to.Biot", value = FALSE)
-      updateRadioButtons(inputId = "TtstPval", selected = "Moderated")
+      shiny::updateCheckboxInput(inputId = "Impute", value = FALSE)
+      shinyWidgets::updatePickerInput(inputId = "Norma.Prot.Ratio.to.proteins", selected = NULL)
+      shiny::updateCheckboxInput(inputId = "Norma.to.Hist", value = FALSE)
+      shinyWidgets::updatePickerInput(inputId = "Norma.Prot.Ratio.to.GO", selected = NULL)
+      shiny::updateCheckboxInput(inputId = "Norma.Prot.Ratio.to.Biot", value = FALSE)
+      shiny::updateRadioButtons(inputId = "TtstPval", selected = "Moderated")
       shinyjs::disable("Impute")
       shinyjs::disable("Norma.Prot.Ratio.to.proteins")
       shinyjs::disable("Norma.to.Hist")
@@ -1809,7 +1803,7 @@ server1 <- \(input, output, session) {
     PARAM(Par)
     output$QuantMsg <- updtQuantMsg()
   })
-  observeEvent(input$ReScaling, {
+  shiny::observeEvent(input$ReScaling, {
     reScAlgo <- input$ReScaling
     assign("reScAlgo", reScAlgo, envir = .GlobalEnv)
     if (input$ReScaling == "topN") {
@@ -1825,7 +1819,7 @@ server1 <- \(input, output, session) {
   })
   # - Peptides eligible for quant
   #   - Classes
-  observeEvent(input$Prot.Quant.Use, {
+  shiny::observeEvent(input$Prot.Quant.Use, {
     Pep4QuantOpt[input$Prot.Quant.Use]
     assign("Pep4Quant", Pep4Quant, envir = .GlobalEnv)
     Par <- PARAM()
@@ -1833,7 +1827,7 @@ server1 <- \(input, output, session) {
     PARAM(Par)
   })
   #   - PTMs to use for PG Quant
-  observeEvent(input$PTMsQuant, {
+  shiny::observeEvent(input$PTMsQuant, {
     ptmDflt1 <- input$PTMsQuant
     assign("ptmDflt1", ptmDflt1, envir = .GlobalEnv)
     m4Quant(Modifs$Mark[match(unlist(input$PTMsQuant), Modifs$`Full name`)])
@@ -1842,7 +1836,7 @@ server1 <- \(input, output, session) {
     m2Xclud(tmp)
   }, ignoreNULL = FALSE)
   #   - Number of samples in which observed
-  observeEvent(input$PepFoundInAtLeast, {
+  shiny::observeEvent(input$PepFoundInAtLeast, {
     PepFoundInAtLeast <- as.integer(input$PepFoundInAtLeast)
     assign("PepFoundInAtLeast", PepFoundInAtLeast, envir = .GlobalEnv)
     Par <- PARAM()
@@ -1850,7 +1844,7 @@ server1 <- \(input, output, session) {
     PARAM(Par)
   })
   #   - Number of samples in at least one sample group in which observed
-  observeEvent(input$PepFoundInAtLeastGrp, {
+  shiny::observeEvent(input$PepFoundInAtLeastGrp, {
     PepFoundInAtLeastGrp <- as.integer(input$PepFoundInAtLeastGrp)
     assign("PepFoundInAtLeastGrp", PepFoundInAtLeastGrp, envir = .GlobalEnv)
     Par <- PARAM()
@@ -1858,7 +1852,7 @@ server1 <- \(input, output, session) {
     PARAM(Par)
   })
   #   - Number of peptides to use for quantitation
-  observeEvent(input$N_Pep, {
+  shiny::observeEvent(input$N_Pep, {
     N_Pep <- as.integer(input$N_Pep)
     assign("N_Pep", N_Pep, envir = .GlobalEnv)
     Par <- PARAM()
@@ -1866,7 +1860,7 @@ server1 <- \(input, output, session) {
     PARAM(Par)
   })
   #   - Number of unique peptides to use, if available, to the exclusion of non-unique ones
-  observeEvent(input$N_unique_Pep, {
+  shiny::observeEvent(input$N_unique_Pep, {
     N_unique_Pep <- as.integer(input$N_unique_Pep)
     assign("N_unique_Pep", N_unique_Pep, envir = .GlobalEnv)
     Par <- PARAM()
@@ -1875,7 +1869,7 @@ server1 <- \(input, output, session) {
   })
   # - Top N parameters
   #   - N = ?
-  observeEvent(input$topN, {
+  shiny::observeEvent(input$topN, {
     topN <- as.integer(input$topN)
     assign("topN", topN, envir = .GlobalEnv)
     Par <- PARAM()
@@ -1883,7 +1877,7 @@ server1 <- \(input, output, session) {
     PARAM(Par)
   })
   #   - topN correct?
-  observeEvent(input$topN_correct, {
+  shiny::observeEvent(input$topN_correct, {
     topN_correct <- as.logical(input$topN_correct)
     assign("topN_correct", topN_correct, envir = .GlobalEnv)
     Par <- PARAM()
@@ -1892,7 +1886,7 @@ server1 <- \(input, output, session) {
   })
   # - Proteome ruler
   #   - Yes/no?
-  observeEvent(input$ProtRul, {
+  shiny::observeEvent(input$ProtRul, {
     protrul <- as.logical(input$ProtRul)
     assign("protrul", protrul, envir = .GlobalEnv)
     if (protrul) { shinyjs::enable("ProtRulNuclL") }
@@ -1902,7 +1896,7 @@ server1 <- \(input, output, session) {
     PARAM(Par)
   })
   #   - Nucleosome length
-  observeEvent(input$ProtRulNuclL, {
+  shiny::observeEvent(input$ProtRulNuclL, {
     ProtRulNuclL <- as.integer(input$ProtRulNuclL)
     assign("ProtRulNuclL", ProtRulNuclL, envir = .GlobalEnv)
     Par <- PARAM()
@@ -1910,7 +1904,7 @@ server1 <- \(input, output, session) {
     PARAM(Par)
   })
   # WGCNA
-  observeEvent(input$runWGCNA, {
+  shiny::observeEvent(input$runWGCNA, {
     runWGCNA <- as.logical(input$runWGCNA)
     assign("runWGCNA", runWGCNA, envir = .GlobalEnv)
     Par <- PARAM()
@@ -1919,7 +1913,7 @@ server1 <- \(input, output, session) {
   })
   # GSEA
   if (pkgsCheck["GSEA"]) {
-    observeEvent(input$runGSEA, {
+    shiny::observeEvent(input$runGSEA, {
       runGSEA <- as.logical(input$runGSEA)
       assign("runGSEA", runGSEA, envir = .GlobalEnv)
       Par <- PARAM()
@@ -1928,7 +1922,7 @@ server1 <- \(input, output, session) {
     })
   }
   # Profile plots
-  observeEvent(input$runProfPlots, {
+  shiny::observeEvent(input$runProfPlots, {
     runProfPlots <- as.logical(input$runProfPlots)
     assign("runProfPlots", runProfPlots, envir = .GlobalEnv)
     assign("runProfPlots", runProfPlots, envir = .GlobalEnv)
@@ -1937,7 +1931,7 @@ server1 <- \(input, output, session) {
     PARAM(Par)
   })
   # Ranked abundance plots
-  observeEvent(input$runRankAbundPlots, {
+  shiny::observeEvent(input$runRankAbundPlots, {
     runRankAbundPlots <- as.logical(input$runRankAbundPlots)
     assign("runRankAbundPlots", runRankAbundPlots, envir = .GlobalEnv)
     Par <- PARAM()
@@ -1949,26 +1943,26 @@ server1 <- \(input, output, session) {
   output$AdvOpt <- updtOptOn(FALSE)
   # Event observers
   # Optional input files
-  observeEvent(input$AdvOptOn, {
+  shiny::observeEvent(input$AdvOptOn, {
     ADVOPT(input$AdvOptOn)
     output$AdvOpt <- updtOptOn()
   })
-  observe({ shinyFileChoose(input, "CustPG", roots = getVolumes(), filetypes = "csv")
+  shiny::observe({ shinyFiles::shinyFileChoose(input, "CustPG", roots = shinyFiles::getVolumes(), filetypes = "csv")
     {
       tmp <- input$CustPG
       if ((!is.null(tmp)) && inherits(tmp, "list")) {
-        tmp <- parseFilePaths(getVolumes(), tmp)$datapath
+        tmp <- shinyFiles::parseFilePaths(shinyFiles::getVolumes(), tmp)$datapath
         Par <- PARAM()
         Par$Custom.PGs <- normalizePath(tmp, winslash = "/")
         PARAM(Par)
       }
   }
   })
-  observe({ shinyFileChoose(input, "TrueDisc", roots = getVolumes(), filetypes = "csv")
+  shiny::observe({ shinyFiles::shinyFileChoose(input, "TrueDisc", roots = shinyFiles::getVolumes(), filetypes = "csv")
     {
       tmp <- input$TrueDisc
       if ((!is.null(tmp)) && inherits(tmp, "list")) {
-        tmp <- parseFilePaths(getVolumes(), tmp)$datapath
+        tmp <- shinyFiles::parseFilePaths(shinyFiles::getVolumes(), tmp)$datapath
         Par <- PARAM()
         Par$TrueDisc_filter <- normalizePath(tmp, winslash = "/")
         PARAM(Par)
@@ -1976,16 +1970,16 @@ server1 <- \(input, output, session) {
       } else { shinyjs::disable("TrueDiscMode") }
   }
   })
-  observeEvent(input$TrueDiscMode, {
+  shiny::observeEvent(input$TrueDiscMode, {
     Par <- PARAM()
     Par$TrueDisc_filter_mode <- input$TrueDiscMode
     PARAM(Par)
   })
-  observe({ shinyFileChoose(input, "CRAPome", roots = getVolumes(), filetypes = "csv" )
+  shiny::observe({  shinyFiles::shinyFileChoose(input, "CRAPome", roots = shinyFiles::getVolumes(), filetypes = "csv" )
     {
       tmp <- input$CRAPome
       if ((!is.null(tmp)) && inherits(tmp, "list")) {
-        tmp <- parseFilePaths(getVolumes(), tmp)$datapath
+        tmp <- shinyFiles::parseFilePaths(shinyFiles::getVolumes(), tmp)$datapath
         Par <- PARAM()
         Par$CRAPome_file <- normalizePath(tmp, winslash = "/")
         PARAM(Par)
@@ -1996,29 +1990,29 @@ server1 <- \(input, output, session) {
   if (annotRep) { # Not implemented yet for script without Reps
     output$ROC1 <- updtROC1(FALSE)
     output$ROC2 <- updtROC1(FALSE)
-    observeEvent(input$ROC1on, {
+    shiny::observeEvent(input$ROC1on, {
       ROC1ON(input$ROC1on)
       output$ROC1 <- updtROC1()
     })
-    observeEvent(input$ROC2on, {
+    shiny::observeEvent(input$ROC2on, {
       ROC2ON(input$ROC2on)
       output$ROC2 <- updtROC2()
     })
-    observeEvent(input$ROC1_pos, {
+    shiny::observeEvent(input$ROC1_pos, {
       ROCfilt_GOterms_Pos <- ROC1_allGOPos2[match(input$ROC1_pos, ROC1_allGOPos1)]
       assign("ROCfilt_GOterms_Pos", ROCfilt_GOterms_Pos, envir = .GlobalEnv)
       Par <- PARAM()
       Par$ROCfilt_GOterms_Pos <- paste(ROCfilt_GOterms_Pos, collapse = ";")
       PARAM(Par)
     })
-    observeEvent(input$ROC1_neg, {
+    shiny::observeEvent(input$ROC1_neg, {
       ROCfilt_GOterms_Neg <- ROC1_allGONeg2[match(input$ROC1_neg, ROC1_allGONeg1)]
       assign("ROCfilt_GOterms_Neg", ROCfilt_GOterms_Neg, envir = .GlobalEnv)
       Par <- PARAM()
       Par$ROCfilt_GOterms_Neg <- paste(ROCfilt_GOterms_Neg, collapse = ";")
       PARAM(Par)
     })
-    observeEvent(input$ROC2_terms, {
+    shiny::observeEvent(input$ROC2_terms, {
       ROC_GOterms <- ROC2_allGO2[match(input$ROC2_terms, ROC2_allGO1)]
       assign("ROC_GOterms", ROC_GOterms, envir = .GlobalEnv)
       Par <- PARAM()
@@ -2028,7 +2022,7 @@ server1 <- \(input, output, session) {
   }
   #
   # Minimum intensity
-  observeEvent(input$minInt, {
+  shiny::observeEvent(input$minInt, {
     minInt <- as.numeric(input$minInt)
     assign("minInt", minInt, envir = .GlobalEnv)
     Par <- PARAM()
@@ -2036,7 +2030,7 @@ server1 <- \(input, output, session) {
     PARAM(Par)
   })
   # Normalisations
-  observeEvent(input$Norm, {
+  shiny::observeEvent(input$Norm, {
     output$Norm <- updtNorm()
     NORMALIZE(input$Norm)
     Par <- PARAM()
@@ -2045,92 +2039,92 @@ server1 <- \(input, output, session) {
     Par$Norma.Prot.Ratio <- input$Norm & (input$Quant_algorithm != "limpa")
     PARAM(Par)
   })
-  observeEvent(input$evLM, {
+  shiny::observeEvent(input$evLM, {
     Par <- PARAM()
     Par$Adv.Norma.Ev.Intens <- input$evLM
     PARAM(Par)
   })
-  normProt_debounced <- debounce(reactive(input$Norma.Prot.Ratio.to.proteins), 5000L)
-  observeEvent(normProt_debounced(), {
+  normProt_debounced <- shiny::debounce(shiny::reactive(input$Norma.Prot.Ratio.to.proteins), 5000L)
+  shiny::observeEvent(normProt_debounced(), {
     tmp <- normProt_debounced()
-    updatePickerInput(inputId = "Norma.Prot.Ratio.to.proteins",
-                      selected = tmp,
-                      choices = union(tmp, protHeads))
+    shinyWidgets::updatePickerInput(inputId = "Norma.Prot.Ratio.to.proteins",
+                                    selected = tmp,
+                                    choices = base::union(tmp, protHeads))
   }, ignoreNULL = FALSE)
-  observeEvent(input$Norma.to.Hist, {
+  shiny::observeEvent(input$Norma.to.Hist, {
     Par <- PARAM()
     if (input$Norma.to.Hist) {
-      tmp1 <- union(allHist, normProt_debounced())
+      tmp1 <- base::union(allHist, normProt_debounced())
       tmp1 <- tmp1[nchar(tmp1) > 0L]
-      tmp2 <- union(allHistIDs,
-                    db$`Protein ID`[dbOrd][match(normProt_debounced(), protHeads)])
+      tmp2 <- base::union(allHistIDs,
+                          db$`Protein ID`[dbOrd][match(normProt_debounced(), protHeads)])
     } else {
-      tmp1 <- setdiff(normProt_debounced(), allHist)
-      tmp2 <- setdiff(db$`Protein ID`[dbOrd][match(normProt_debounced(), protHeads)],
-                      allHistIDs)
+      tmp1 <- base::setdiff(normProt_debounced(), allHist)
+      tmp2 <- base::setdiff(db$`Protein ID`[dbOrd][match(normProt_debounced(), protHeads)],
+                            allHistIDs)
     }
-    updatePickerInput(inputId = "Norma.Prot.Ratio.to.proteins",
-                      selected = tmp1,
-                      choices = union(tmp1, protHeads))
+    shinyWidgets::updatePickerInput(inputId = "Norma.Prot.Ratio.to.proteins",
+                                    selected = tmp1,
+                                    choices = base::union(tmp1, protHeads))
     Par$Norma.Prot.Ratio.to.proteins <- paste(tmp2, collapse = ";")
     PARAM(Par)
   }, ignoreNULL = TRUE)
   if (Annotate) {
-    observeEvent(input$Norma.Prot.Ratio.to.GO, {
+    shiny::observeEvent(input$Norma.Prot.Ratio.to.GO, {
       Par <- PARAM()
       tmpGO <- allGO2[match(input$Norma.Prot.Ratio.to.GO, allGO)]
       Par$Norma.Prot.Ratio.to.GO <- paste(tmpGO, collapse = ";")
       PARAM(Par)
     }, ignoreNULL = FALSE)
   }
-  observeEvent(input$addClassicNorm, {
+  shiny::observeEvent(input$addClassicNorm, {
     tmp <- NORMSEQ()
     tmp <- c(tmp,
              paste0(length(tmp)+1L, " - ", input$ClassicNormMeth))
     normSequence <- normSeqProc21(tmp)
     NORMSEQ(tmp)
-    updateSelectInput(inputId = "PepNormSeq",
-                      choices = tmp,
-                      selected = tmp)
+    shiny::updateSelectInput(inputId = "PepNormSeq",
+                             choices = tmp,
+                             selected = tmp)
     assign("normSequence", normSequence, envir = .GlobalEnv)
   }, ignoreInit = TRUE)
-  observeEvent(input$addVarCorr, {
+  shiny::observeEvent(input$addVarCorr, {
     tmp <- NORMSEQ()
     tmp <- c(tmp,
              paste0(length(tmp)+1L, " - ", input$VarCorrMeth))
     normSequence <- normSeqProc21(tmp)
     NORMSEQ(tmp)
-    updateSelectInput(inputId = "PepNormSeq",
-                      choices = tmp,
-                      selected = tmp)
+    shiny::updateSelectInput(inputId = "PepNormSeq",
+                             choices = tmp,
+                             selected = tmp)
     assign("normSequence", normSequence, envir = .GlobalEnv)
   }, ignoreInit = TRUE)
-  observeEvent(input$addComBat, {
+  shiny::observeEvent(input$addComBat, {
     tmp <- NORMSEQ()
     tmp <- c(tmp,
              paste0(length(tmp)+1L, " - ",
                     paste0("ComBat: ", paste(input$ComBatBatch, collapse = ";"))))
     normSequence <- normSeqProc21(tmp)
     NORMSEQ(tmp)
-    updateSelectInput(inputId = "PepNormSeq",
-                      choices = tmp,
-                      selected = tmp)
+    shiny::updateSelectInput(inputId = "PepNormSeq",
+                             choices = tmp,
+                             selected = tmp)
     assign("normSequence", normSequence, envir = .GlobalEnv)
   }, ignoreInit = TRUE)
   if (LabelType == "Isobaric") {
-    observeEvent(input$addIRS, {
+    shiny::observeEvent(input$addIRS, {
       tmp <- NORMSEQ()
       tmp <- c(tmp,
                paste0(length(tmp)+1L, " - IRS"))
       normSequence <- normSeqProc21(tmp)
       NORMSEQ(tmp)
-      updateSelectInput(inputId = "PepNormSeq",
-                        choices = tmp,
-                        selected = tmp)
+      shiny::updateSelectInput(inputId = "PepNormSeq",
+                               choices = tmp,
+                               selected = tmp)
       assign("normSequence", normSequence, envir = .GlobalEnv)
     }, ignoreInit = TRUE)
   }
-  observeEvent(input$PepNormSeq, {
+  shiny::observeEvent(input$PepNormSeq, {
     tmp <- input$PepNormSeq
     if (length(tmp)) {
       tmp <- paste0(1L:length(tmp),
@@ -2138,36 +2132,36 @@ server1 <- \(input, output, session) {
     }
     normSequence <- normSeqProc21(tmp)
     NORMSEQ(tmp)
-    updateSelectInput(inputId = "PepNormSeq",
-                      choices = tmp,
-                      selected = tmp)
+    shiny::updateSelectInput(inputId = "PepNormSeq",
+                             choices = tmp,
+                             selected = tmp)
     assign("normSequence", normSequence, envir = .GlobalEnv)
   }, ignoreInit = TRUE, ignoreNULL = FALSE)
   #
   if (scrptTypeFull == "withReps_PG_and_PTMs") {
-    observeEvent(input$prtLM, {
+    shiny::observeEvent(input$prtLM, {
       Par <- PARAM()
       Par$Adv.Norma.Prot.Intens <- input$prtLM
       PARAM(Par)
     })
     if (WorkFlow == "BIOID") {
-      observeEvent(input$Norma.Prot.Ratio.to.Biot, {
+      shiny::observeEvent(input$Norma.Prot.Ratio.to.Biot, {
         Par <- PARAM()
         Par$Norma.Prot.Ratio.to.Biot <- input$Norma.Prot.Ratio.to.Biot
         PARAM(Par)
       })
     }
   }
-  observeEvent(input$my_MA_plot, {
-    output$MAplot <- updtMA()
+  shiny::observeEvent(input$my_MA_plot, {
+    output$MA_plot <- updtMA()
   }, ignoreNULL = FALSE)
   # Purity correction
   if (LabelType == "Isobaric") {
-    observe({ shinyFileChoose(input, "PurityFl", roots = getVolumes(), filetypes = "csv")
+    shiny::observe({ shinyFiles::shinyFileChoose(input, "PurityFl", roots = shinyFiles::getVolumes(), filetypes = "csv")
       {
         tmp <- input$PurityFl
         if ((!is.null(tmp)) && inherits(tmp, "list")) {
-          tmp <- parseFilePaths(getVolumes(), tmp)$datapath
+          tmp <- shinyFiles::parseFilePaths(shinyFiles::getVolumes(), tmp)$datapath
           tmp <- normalizePath(tmp, winslash = "/")
           PURFL(tmp)
           Par <- PARAM()
@@ -2179,88 +2173,88 @@ server1 <- \(input, output, session) {
     })
   }
   # Default type of T-test
-  observeEvent(input$TtstPval, {
+  shiny::observeEvent(input$TtstPval, {
     Par <- PARAM()
     Par$P.values.type <- input$TtstPval
     PARAM(Par)
   })
   # FDR values
-  output$FDR <- renderUI(em(gsub(";", " / ", Param$BH.FDR.values)))
-  observeEvent(input$AddFDR, {
+  output$FDR <- shiny::renderUI(shiny::em(gsub(";", " / ", Param$BH.FDR.values)))
+  shiny::observeEvent(input$AddFDR, {
     Par <- PARAM()
-    tmp <- sort(union(unlist(strsplit(Par$BH.FDR.values, ";")), input$FDR))
+    tmp <- sort(base::union(unlist(strsplit(Par$BH.FDR.values, ";")), input$FDR))
     tmp <- tmp[(tmp <= 1) & (tmp > 0)]
     tmp1 <- paste(tmp, collapse = ";") 
     tmp2 <- paste(tmp, collapse = " / ") 
     Par$BH.FDR.values <- tmp1
     PARAM(Par)
-    output$FDR <- renderUI(HTML(tmp2))
+    output$FDR <- shiny::renderUI(shiny::HTML(tmp2))
   })
-  observeEvent(input$RemvFDR, {
+  shiny::observeEvent(input$RemvFDR, {
     Par <- PARAM()
     tmp <- sort(unique(unlist(strsplit(Par$BH.FDR.values, ";"))))
-    tmp <- setdiff(tmp, input$FDR)
+    tmp <- base::setdiff(tmp, input$FDR)
     tmp1 <- paste(tmp, collapse = ";") 
     tmp2 <- paste(tmp, collapse = " / ") 
     Par$BH.FDR.values <- tmp1
     PARAM(Par)
-    output$FDR <- renderUI(HTML(tmp2))
+    output$FDR <- shiny::renderUI(shiny::HTML(tmp2))
   })
   # Ratio-level thresholds
-  # observeEvent(input$typeOfThresh, {
+  # shiny::observeEvent(input$typeOfThresh, {
   #   ratiosThresh <- input$typeOfThresh
   #   assign("ratiosThresh", ratiosThresh, envir = .GlobalEnv)
   #   Par <- PARAM()
   #   Par$Ratios.Thresholds <- ratiosThresh
   #   PARAM(Par)
   # })
-  observeEvent(input$RatCont, {
+  shiny::observeEvent(input$RatCont, {
     KontRt <- as.numeric(input$RatCont)
     assign("KontRt", KontRt, envir = .GlobalEnv)
     Par <- PARAM()
     Par$Ratios.Contamination.Rates <- KontRt
     PARAM(Par)
   })
-  # observeEvent(input$RatContGrp, {
+  # shiny::observeEvent(input$RatContGrp, {
   #   Par <- PARAM()
   #   Par$Ratios.Contaminant.Groups <- input$RatContGrp
   #   PARAM(Par)
   # })
   # Proteins of interest
-  IntProt_debounced <- debounce(reactive(input$IntProt), 5000L)
-  observeEvent(IntProt_debounced(), {
+  IntProt_debounced <- shiny::debounce(shiny::reactive(input$IntProt), 5000L)
+  shiny::observeEvent(IntProt_debounced(), {
     tmp <- IntProt_debounced()
-    updatePickerInput(inputId = "IntProt",
-                      selected = tmp,
-                      choices = union(tmp, protHeads))
+    shinyWidgets::updatePickerInput(inputId = "IntProt",
+                                    selected = tmp,
+                                    choices = base::union(tmp, protHeads))
   })
   # Use curved SAM thresholds for Student's t-test
-  observeEvent(input$useSAM_thresh, {
+  shiny::observeEvent(input$useSAM_thresh, {
     useSAM_thresh <- as.logical(input$useSAM_thresh)
     assign("useSAM_thresh", useSAM_thresh, envir = .GlobalEnv)
     #output$F_test_grps <- updtFTstUI()
   })
   # F-test
-  observeEvent(input$run_F_test, {
+  shiny::observeEvent(input$run_F_test, {
     Par <- PARAM()
     Par$F.test <- tmp <- as.logical(input$run_F_test)
     PARAM(Par)
     #output$F_test_grps <- updtFTstUI()
   })
-  # observeEvent(input$F.test_within, {
+  # shiny::observeEvent(input$F.test_within, {
   #   Par <- PARAM()
   #   Par$F.test_within <- paste(substr(input$F.test_within, 1L, 3L), collapse = ";")
   #   PARAM(Par)
   # }, ignoreNULL = FALSE)
   # GO enrichment
-  observeEvent(input$GOenrich, {
+  shiny::observeEvent(input$GOenrich, {
     if (input$GOenrich) { shinyjs::enable("runClueGO") }
     if (!input$GOenrich) { shinyjs::disable("runClueGO") }
     Par <- PARAM()
     Par$GO.enrichment <- paste(input$GOenrich, collapse = ";")
     PARAM(Par)
   })
-  observeEvent(input$runClueGO, {
+  shiny::observeEvent(input$runClueGO, {
     runClueGO <- input$runClueGO&input$GOenrich
     assign("runClueGO", runClueGO, envir = .GlobalEnv)
     Par <- PARAM()
@@ -2269,26 +2263,26 @@ server1 <- \(input, output, session) {
   })
   # GO terms of interest
   if (Annotate) {
-    observeEvent(input$GO.tabs, {
+    shiny::observeEvent(input$GO.tabs, {
       Par <- PARAM()
       tmpGO <- allGO2[match(input$GO.tabs, allGO)]
       Par$GO.tabs <- paste(tmpGO, collapse = ";")
       PARAM(Par)
     }, ignoreNULL = FALSE)
   }
-  observeEvent(input$GO2Int, {
+  shiny::observeEvent(input$GO2Int, {
     Par <- PARAM()
     Par$GO.terms.for.proteins.of.interest <- paste(input$GO2Int, collapse = ";")
     PARAM(Par)
   })
   #
-  observeEvent(input$Amica, {
+  shiny::observeEvent(input$Amica, {
     Par <- PARAM()
     Par$Amica <- input$Amica
     PARAM(Par)
   })
   # SAINTexpress
-  observeEvent(input$saintExprs, {
+  shiny::observeEvent(input$saintExprs, {
     saintExprs <- as.logical(input$saintExprs)
     assign("saintExprs", saintExprs, envir = .GlobalEnv)
     Par <- PARAM()
@@ -2297,7 +2291,7 @@ server1 <- \(input, output, session) {
   })
   # CytoScape
   if (!length(CytoScExe)) {
-    observeEvent(input$CytoScVers1, {
+    shiny::observeEvent(input$CytoScVers1, {
       CytoScExe <- input$CytoScVers1
       assign("CytoScExe", CytoScExe, envir = .GlobalEnv)
       Par <- PARAM()
@@ -2306,13 +2300,13 @@ server1 <- \(input, output, session) {
     })
   }
   if (length(CytoScExe) > 1L) {
-    observe({ shinyFileChoose(input, "CytoScVers2", roots = getVolumes(), filetypes = "exe")
+    shiny::observe({  shinyFiles::shinyFileChoose(input, "CytoScVers2", roots = shinyFiles::getVolumes(), filetypes = "exe")
       {
         tmp <- input$CytoScVers2
         if ((!is.null(tmp)) && inherits(tmp, "list")) {
           CytoScExe <- input$CytoScVers2
           assign("CytoScExe", CytoScExe, envir = .GlobalEnv)
-          tmp <- parseFilePaths(getVolumes(), tmp)$datapath
+          tmp <- shinyFiles::parseFilePaths(shinyFiles::getVolumes(), tmp)$datapath
           Par <- PARAM()
           Par$CytoscapePath <- normalizePath(tmp, winslash = "/")
           Par$CytoScape
@@ -2323,12 +2317,12 @@ server1 <- \(input, output, session) {
   }
   #
   # Re-normalize PTM peptides
-  observeEvent(input$PTMsReNorm, {
+  shiny::observeEvent(input$PTMsReNorm, {
     Par <- PARAM()
     Par$PTM.analysis_Norm <- input$PTMsReNorm
     PARAM(Par)
   })
-  observeEvent(input$NAsReplMethod, {
+  shiny::observeEvent(input$NAsReplMethod, {
     NAsReplMeth <- match(input$NAsReplMethod, NAsReplMethods)
     assign("NAsReplMeth", NAsReplMeth, envir = .GlobalEnv)
     Par <- PARAM()
@@ -2337,7 +2331,7 @@ server1 <- \(input, output, session) {
   })
   #
   # Save
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     Par <- PARAM()
     for (w in wMp) {
       if (nchar(Par[[w]])) { Par[[w]] <- paste(substr(unlist(strsplit(Par[[w]], ";")), 1L, 3L), collapse = ";") }
@@ -2358,9 +2352,9 @@ server1 <- \(input, output, session) {
     assign("Mod4Quant", m4Quant(), envir = .GlobalEnv)
     assign("Mod2Xclud", m2Xclud(), envir = .GlobalEnv)
     assign("appRunTest", TRUE, envir = .GlobalEnv)
-    stopApp()
+    shiny::stopApp()
   })
-  session$onSessionEnded(\() { stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
 }
 if (exists("appRunTest")) { rm(appRunTest) }
 appTxt1 <- sub("myApp", "myApp1", sub("\\(ui", "(ui1", sub(", server", ", server1", run_App)))
@@ -2387,9 +2381,9 @@ if (F_test_override) {
 Param$Ratios.Groups.Ref.Aggregate.Level <- paste0(Param$Volcano.plots.Aggregate.Level, ";Rep")
 Param$Ratios.Plot.split <- "Exp"
 tmp <- unlist(strsplit(Param$Ratios.Groups.Ref.Aggregate.Level, ";"))
-tmp <- c(setdiff(tmp, c("Exp", "Rep")), "Rep")
+tmp <- c(base::setdiff(tmp, c("Exp", "Rep")), "Rep")
 Param$Ratios.Plot.wrap <- tmp[1L]
-Param$Ratios.Plot.colour <- tmp[min(c(2, length(tmp)))]
+Param$Ratios.Plot.colour <- tmp[min(c(2L, length(tmp)))]
 # if (Param$Ratios.Thresholds == "% of intra-sample group ratios") {
 #   Param$Ratios.Contamination.Rates <- Param$Ratios.Contamination.Rates/100
 # }
@@ -2412,8 +2406,8 @@ CytoScape %<o% file.exists(CytoScVrs)
 Param$Ratios.Groups_Nested <- nchar(Param$Blocking.factors) > 0L
 Nested %<o% Param$Ratios.Groups_Nested
 Param$Ratios.Ref.Groups <- if (Nested) {
-  paste0(union(unlist(strsplit(Param$Ratios.Groups, ";")),
-               unlist(strsplit(Param$Blocking.factors, ";"))), collapse = ";")
+  paste0(base::union(unlist(strsplit(Param$Ratios.Groups, ";")),
+                     unlist(strsplit(Param$Blocking.factors, ";"))), collapse = ";")
 } else { Param$Ratios.Groups }
 #
 # Defaults in case we missed a parameter
@@ -2466,9 +2460,9 @@ if (lVar) {
 
 # Override any optional analysis for which the package check was failed, independent of which value parameters may have
 # - Rerun package checks just in case
-pkgsCheck <- (vapply(opt_Pkgs, \(pkgs) {
+pkgsCheck <- vapply(opt_Pkgs, \(pkgs) {
   sum(!vapply(pkgs, \(pkg) { requireNamespace(pkg) }, TRUE))
-}, 1L) == 0L)
+}, 1L) == 0L
 # - Then apply overrides if necessary
 if(!pkgsCheck["topGO"]) {
   if (GOenrich) { warning("Turning off topGO-based GO enrichment:\n -> some necesary packages are missing") }
@@ -2507,7 +2501,7 @@ dir <- c("Workflow control/MA plots", paste0("Workflow control/", evNm, "s", c("
 enrichGO <- ("GO.enrichment" %in% colnames(Param)) && is.logical(Param$GO.enrichment) && Param$GO.enrichment
 globalGO %<o% (("GO.enrichment_Whole_dataset" %in% colnames(Param)) && is.logical(Param$GO.enrichment_Whole_dataset) && Param$GO.enrichment_Whole_dataset)
 if (enrichGO || globalGO) { dir <- c(dir, "Reg. analysis/GO enrich") }
-dirlist <- union(dirlist, paste0(wd, "/", dir))
+dirlist <- base::union(dirlist, paste0(wd, "/", dir))
 
 # Refresh list of interesting proteins:
 Src <- paste0(libPath, "/extdata/Sources/protList.R")
@@ -2525,9 +2519,10 @@ if ("Prot.list_separate.plots" %in% colnames(Param)) {
 if (Param$GO.terms.for.proteins.of.interest) {
   tmpGO <- unlist(strsplit(Param$GO.tabs, ";"))
   GO_prot.list <- list()
+  GO.db_env <- as.environment(getNamespace("GO.db"))
   GO_prot.list$Offspring <- lapply(tmpGO, \(x) {
-    ont <- Ontology(x)
-    x <- c(x, get(paste0("GO", ont, "OFFSPRING"))[[x]])
+    ont <- BiocGenerics::Ontology(x)
+    x <- c(x, get(paste0("GO", ont, "OFFSPRING"), envir = GO.db_env)[[x]])
     x <- x[!is.na(x)]
     return(x)
   })
@@ -2535,7 +2530,7 @@ if (Param$GO.terms.for.proteins.of.interest) {
   GO_prot.list$Proteins <- lapply(GO_prot.list$Offspring, \(x) {
     unique(tmpGO2$L1[tmpGO2$value %in% unlist(x)])
   })
-  prot.list <- union(prot.list, unlist(GO_prot.list$Proteins))
+  prot.list <- base::union(prot.list, unlist(GO_prot.list$Proteins))
 }
 prot.list.Cond %<o% (length(prot.list) > 0L)
 if (prot.list.Cond) {
@@ -2594,7 +2589,7 @@ if ("Prot.list_pep" %in% colnames(Param)) {
   }
 } else { tmp <- c() }
 if (exists("TargetProteins")) { tmp <- c(tmp, TargetProteins) }
-prot.list_pep %<o% union(prot.list_pep, tmp)
+prot.list_pep %<o% base::union(prot.list_pep, tmp)
 # Filter lists to only keep existing ones
 if (prot.list.Cond) {
   prot.list <- sub("^CON_+", "", prot.list)
@@ -2617,8 +2612,8 @@ if (("Custom.PGs" %in% colnames(Param)) && (!as.character(Param$Custom.PGs) %in%
     warning("I could not make sense of the custom protein groups file provided, skipping!")
     custPGs <- NA
   } else {
-    prot.list <- union(prot.list, unlist(strsplit(custPGs$"Leading protein IDs", ";")))
-    prot.list_pep <- union(prot.list_pep, unlist(strsplit(custPGs$"Leading protein IDs", ";")))
+    prot.list <- base::union(prot.list, unlist(strsplit(custPGs$"Leading protein IDs", ";")))
+    prot.list_pep <- base::union(prot.list_pep, unlist(strsplit(custPGs$"Leading protein IDs", ";")))
   }
 }
 
@@ -2682,7 +2677,7 @@ if (DiscFilt) {
       ObjNm <- "DiscFiltCol"
       if (ReUseAnsw && (ObjNm %in% AllAnsw$Parameter)) { ObjNm %<c% AllAnsw$Value[[match(ObjNm, AllAnsw$Parameter)]] } else {
         msg <- "How should we name the filter column?"
-        tmp <- dlg_input(msg, "Found in ...")$res
+        tmp <- svDialogs::dlg_input(msg, "Found in ...")$res
         ObjNm %<c% tmp
         AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm, , drop = FALSE]
         tmp <- AllAnsw[1L, , drop = FALSE]
@@ -2734,7 +2729,7 @@ if ("Pep.Impute" %in% colnames(Param)) { Impute %<o% as.logical(Param$Pep.Impute
   } else {
     msg <- "Do you want to impute missing peptide values (recommended for pull-down experiments)?"
     tmp <- paste(rep(" ", 180L), collapse = "")
-    tmp <- opt[sub(" +$", "", dlg_list(paste0(names(opt), tmp), paste0(dflt, tmp), title = msg)$res)]
+    tmp <- opt[sub(" +$", "", svDialogs::dlg_list(paste0(names(opt), tmp), paste0(dflt, tmp), title = msg)$res)]
     if (is.na(tmp)) { tmp <- FALSE }
     ObjNm %<c% tmp
     AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm, , drop = FALSE]
@@ -2756,7 +2751,7 @@ tmp$Help <- vapply(tmp$Param, \(x) {
 colnames(tmp) <- NULL
 tst <- try(write.csv(tmp, file = ParamPath, row.names = FALSE), silent = TRUE)
 while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
-  dlg_message(paste0("File \"", ParamPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+  svDialogs::dlg_message(paste0("File \"", ParamPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(tmp, file = ParamPath, row.names = FALSE), silent = TRUE)
 }
 
@@ -2826,6 +2821,6 @@ if (!inherits(Exp.map$MQ.Exp, "list")) { Exp.map$MQ.Exp <- strsplit(Exp.map$MQ.E
 tstMQXp <- listMelt(Exp.map$MQ.Exp, 1L:nrow(Exp.map), c("MQ.Exp", "Row"))
 tstMQXp <- aggregate(tstMQXp$Row, list(tstMQXp$MQ.Exp), list)
 tstMQXp <- setNames(tstMQXp$x, tstMQXp$Group.1) 
-MQ.Exp <- intersect(MQ.Exp, names(tstMQXp))
+MQ.Exp <- base::intersect(MQ.Exp, names(tstMQXp))
 ev <- ev[ev$MQ.Exp %in% names(tstMQXp),]
 rownames(Exp.map) <- Exp.map$Clean_name <- cleanNms(Exp.map$Ref.Sample.Aggregate)

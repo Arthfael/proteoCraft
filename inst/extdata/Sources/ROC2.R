@@ -1,7 +1,5 @@
 #### ROC analysis
 if (length(ROC_GOterms)) {
-  library(ggplot2)
-  library(pROC)
   cat("ROC analysis\n")
   ROC_GOterms <- unique(unlist(c(ROC_GOterms, GO_terms$Offspring[match(ROC_GOterms, GO_terms$ID)])))
   PG$"ROC - True Positive" <- FALSE
@@ -10,7 +8,7 @@ if (length(ROC_GOterms)) {
     cat("Not enough TRUE positives for ROC analysis (min = 10), skipping!\n")
   } else {
     dir <- paste0(wd, "/ROC analysis")
-    dirlist <- unique(c(dirlist, dir))
+    dirlist <- base::union(dirlist, dir)
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
     w1 <- which(paste0(pvalue.col[pvalue.use], VPAL$values) %in% colnames(PG))
     if (!length(w1)) { stop("Where are my P-values?!?!%&$+*!*") } else {
@@ -22,11 +20,11 @@ if (length(ROC_GOterms)) {
         rocobj <- pROC::roc(PG[w2, ], "ROC - True Positive", "ROC - Predictor")
         ttl <- paste0("ROC analysis - ", grp2)
         plot <- pROC::ggroc(rocobj, color = "red") +
-          geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dotted") +
-          theme_bw() + ggtitle(ttl)
+          ggplot2::geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dotted") +
+          ggplot2::theme_bw() + ggplot2::ggtitle(ttl)
         poplot(plot)
         suppressMessages({
-          ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L)
+          ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot, dpi = 300L)
         })
       }
     }

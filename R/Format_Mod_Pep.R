@@ -20,10 +20,10 @@ Format_Mod_Pep <- function(x) {
   x2 <- gsub("^_|_$", "", x1)
   for (aa in AA) { x2 <- gsub(aa, paste0("-", aa, "-"), x2) }
   x2 <- strsplit(x2, "-+")
-  y <- setdiff(unique(unlist(x2)),
-               AA)
-  y <- setdiff(unique(unlist(strsplit(gsub("\\(", "-(", gsub("\\)", ")-", y)), "-"))),
-               "")
+  y <- base::setdiff(unique(unlist(x2)),
+                     AA)
+  y <- base::setdiff(unique(unlist(strsplit(gsub("\\(", "-(", gsub("\\)", ")-", y)), "-"))),
+                     "")
   g <- grepl("^\\([^A-Z]{2}\\)$", y)
   n <- nchar(y)
   w <- which(nchar(y[!g]) > 1L)

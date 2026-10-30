@@ -1,9 +1,5 @@
 # A sourced script to edit the MS files map
 #
-library(shiny)
-library(shinyjs)
-library(DT)
-#
 labelMode <- match(LabelType, c("LFQ", "Isobaric"))
 # Important distinction here:
 # - If LabelType == "LFQ", a priori "Parent sample" == MQ.Exp, but this can be changed!
@@ -52,7 +48,7 @@ if (LabelType == "Isobaric") {
   kol0 <- c(kol0, "Isobaric.set")
 }
 ALLIDS <- unlist(lapply(kol1, \(x) { paste0(x, "___", chRws) }))
-allPTMs <- union(Modifs$`Full name`, NA)
+allPTMs <- base::union(Modifs$`Full name`, NA)
 #
 # Dummy for shiny app
 FracMap2a <- FracMap
@@ -67,7 +63,7 @@ lu <- length(unique(FracMap2a$"Raw files name"))
 if (lu == nr) {
   FracMap2a$"Raw file" <- NULL
 } else {
-  tst <- gsub("/[^/]+$", "", FracMap2a$"Raw file")
+  tst <- sub("/[^/]+$", "", FracMap2a$"Raw file")
   nc <- nchar(tst)
   mnc <- min(nc)
   if (mnc >= 5L) {
@@ -88,7 +84,7 @@ wTest0 <- setNames(vapply(colnames(FracMap2a), \(k) { #k <- colnames(FracMap2a)[
   x <- if (is.na(x)) { 15L } else { max(c(ceiling(x/10)*10, 30)) }
   return(as.integer(x))
 }, 1L), colnames(FracMap2a))
-FracMap2 <- FracMap2a[, setdiff(colnames(FracMap2a), "Exp_Backup")]
+FracMap2 <- FracMap2a[, base::setdiff(colnames(FracMap2a), "Exp_Backup")]
 FracMap2$Use <- shinyCheckInput(FracMap2a$Use,
                                 "Use")
 FracMap2[[parKol2]] <- shinyTextInput(FracMap[[parKol]],
@@ -115,7 +111,7 @@ if (LabelType == "Isobaric") {
                                           "IsobaricSet")
   FracMap2$"Isobaric.set" <- NULL
 }
-kol <- setdiff(colnames(FracMap2), c(kol0, kol1))
+kol <- base::setdiff(colnames(FracMap2), c(kol0, kol1))
 #kol %in% names(wTest0)
 #wTest0[kol]
 ALLFDIDS <- c()
@@ -161,47 +157,47 @@ edith <- list(target = "column",
 #
 if (exists("FracMap3")) { rm(FracMap3) }
 appNm <- paste0(dtstNm, " - MS files map")
-ui <- fluidPage(
-  useShinyjs(),
-  setBackgroundColor( # Doesn't work
+ui <- shiny::fluidPage(
+  shinyjs::useShinyjs(),
+  shinyWidgets::setBackgroundColor( # Doesn't work
     color = c(#"#F8F8FF",
       "#EFE6F5"),
     gradient = "linear",
     direction = "bottom"
   ),
-  extendShinyjs(text = jsFun$toggle_full_screen,
-                functions = c("toggleFullScreen")),
+  shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                         functions = c("toggleFullScreen")),
   # Dummy, hidden div to load arrow-down icon
-  # tags$div(
+  # shiny::tags$div(
   #   class = "container",
   #   style = "display: none;",
-  #   tags$div(
+  #   shiny::tags$div(
   #     style = "margin-top: 50xp;",
-  #     actionButton(
+  #     shiny::actionButton(
   #       "add_thing",
   #       label="do it",
   #       class="btn-success",
-  #       icon=icon("arrow-down")
+  #       icon = shiny::icon("arrow-down")
   #     )
   #   )
   # ),
   # #
-  tags$head(tags$style(HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-  titlePanel(tag("u", FracMapNm),
-             appNm),
-  h2(dtstNm), 
-  br(),
-  h3(paste0("Enter details of MS raw files to \"", parKol2, "\" and \"Fraction\" mappings, then click \"Save\".")),
-  br(),
-  h4(em(c(paste0("NB: Here we use \"", parKol2,
-                 "\" in the same sense as what MaxQuant's \"Raw data\" and FragPipe's \"Workflow\" tabs call \"Experiment\"\n(i.e. group of MS files, such as fractions, derived from a same parent biological sample)."),
-          paste0("NB: Here \"", parKol2,
-                 "\" does not mean parent biological sample but combined isobarically-labelled sample - we will deal with individual samples later"))[labelMode])),
-  br(),
-  mainPanel(#tabsetPanel(tabPanel(
-    actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+  shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+  shiny::titlePanel(shiny::tag("u", FracMapNm),
+                    appNm),
+  shiny::h2(dtstNm), 
+  shiny::br(),
+  shiny::h3(paste0("Enter details of MS raw files to \"", parKol2, "\" and \"Fraction\" mappings, then click \"Save\".")),
+  shiny::br(),
+  shiny::h4(shiny::em(c(paste0("NB: Here we use \"", parKol2,
+                               "\" in the same sense as what MaxQuant's \"Raw data\" and FragPipe's \"Workflow\" tabs call \"Experiment\"\n(i.e. group of MS files, such as fractions, derived from a same parent biological sample)."),
+                        paste0("NB: Here \"", parKol2,
+                               "\" does not mean parent biological sample but combined isobarically-labelled sample - we will deal with individual samples later"))[labelMode])),
+  shiny::br(),
+  shiny::mainPanel(#tabsetPanel(tabPanel(
+    shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
     DT::DTOutput("FracTbl", width = paste0(wTest2, "px")),
-    br(),
+    shiny::br(),
     width = 12L
   ))
 server <- \(input, output, session) {
@@ -223,7 +219,7 @@ server <- \(input, output, session) {
                                                 columnDefs = wTest1,
                                                 scrollX = FALSE),
                                  # the callback is essential to capture the inputs in each row
-                                 callback = JS("table.rows().every(function(i, tab, row) {
+                                 callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
         var $this = $(this.node());
         $this.attr('id', this.data()[0]);
         $this.addClass('shiny-input-container');
@@ -233,47 +229,47 @@ server <- \(input, output, session) {
   )
   # Fill down
   sapply(ALLFDIDS, \(id2) {
-    id1 <- gsub("___FD$", "", id2)
+    id1 <- sub("___FD$", "", id2)
     #cat(id2, "\n")
     tmp <- unlist(strsplit(id1, "___"))
     k1 <- tmp[[1L]]
     #k0 <- kol0[match(k1, kol1)]
     i <- as.integer(tmp[[2L]])
     if (i < nr) {
-      observeEvent(input[[id2]],
-                   {
-                     x <- input[[id1]]
-                     if (k1 == "Sample") { x <- as.character(x) }
-                     if (k1 %in% c("Fraction", "IsobaricSet")) { x <- as.integer(x) }
-                     if (k1 == "Use") { x <- as.logical(x) }
-                     if (k1 == "ISo") { x <- as.integer(x) }
-                     for (k in (i+1L):nr) {
-                       idK <- paste0(k1, "___", as.character(k))
-                       if (k1 == "PTMenriched") { updateSelectInput(session, idK, NULL, allPTMs, x) }
-                       if (k1 %in% c("Fraction", "IsobaricSet")) { updateNumericInput(session, idK, NULL, x, 1L, Inf, 1L) }
-                       if (k1 == "Use") { updateCheckboxInput(session, idK, NULL, x) }
-                       if (k1 == "Sample") { updateTextInput(session, idK, NULL, x) }
-                     }
-                   }, ignoreInit = TRUE)
+      shiny::observeEvent(input[[id2]],
+                          {
+                            x <- input[[id1]]
+                            if (k1 == "Sample") { x <- as.character(x) }
+                            if (k1 %in% c("Fraction", "IsobaricSet")) { x <- as.integer(x) }
+                            if (k1 == "Use") { x <- as.logical(x) }
+                            if (k1 == "ISo") { x <- as.integer(x) }
+                            for (k in (i+1L):nr) {
+                              idK <- paste0(k1, "___", as.character(k))
+                              if (k1 == "PTMenriched") { shiny::updateSelectInput(session, idK, NULL, allPTMs, x) }
+                              if (k1 %in% c("Fraction", "IsobaricSet")) { shiny::updateNumericInput(session, idK, NULL, x, 1L, Inf, 1L) }
+                              if (k1 == "Use") { shiny::updateCheckboxInput(session, idK, NULL, x) }
+                              if (k1 == "Sample") { shiny::updateTextInput(session, idK, NULL, x) }
+                            }
+                          }, ignoreInit = TRUE)
     }
   })
   # Manual cell edit (sample names)
-  observeEvent(input$FracTbl_cell_edit, {
+  shiny::observeEvent(input$FracTbl_cell_edit, {
     k2 <- colnames(FracTbl_cell_edit$col+1)
     m3 <- match(k2, colnames(FracMap3))
     FracMap3[input$FracTbl_cell_edit$row, m3] <- input$FracTbl_cell_edit$value
   })
   # Save
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     for (k1 in kol1) {
       k0 <- kol0[match(k1, kol1)]
       FracMap3[[k0]] <- sapply(rws, \(i) { input[[paste0(k1, "___", as.character(i))]] })
     }
     assign("FracMap3", FracMap3, envir = .GlobalEnv)
-    stopApp()
+    shiny::stopApp()
   })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(\() { stopApp() })
+  #observeEvent(input$cancel, { shiny::stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
 }
 runKount <- 0L
 while ((!runKount) || (!exists("FracMap3"))) {
@@ -302,7 +298,7 @@ if (LabelType == "LFQ") {
 }
 tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
 while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) {
-  dlg_message(paste0("File \"", FracMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+  svDialogs::dlg_message(paste0("File \"", FracMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
 }
 FracMap <- FracMap[FracMap$Use,]
@@ -312,7 +308,7 @@ kol <- setNames(c("Raw file", "Fraction", "PTM-enriched"), c("Raw files", "Fract
 if (LabelType == "Isobaric") {
   kol["Isobaric.set"] <- "Isobaric.set"
 }
-kol <- intersect(kol, colnames(FracMap))
+kol <- base::intersect(kol, colnames(FracMap))
 stopifnot(length(kol) > 0L)
 tst <- aggregate(FracMap[, kol], list(FracMap$MQ.Exp), \(x) { length(unique(x)) })
 colnames(tst)[1L] <- "Biological sample"
@@ -342,8 +338,8 @@ msg2 <- msg <- paste(c(paste0("Check the number of:\n - MS files\n - fractions\n
                        msg, "\n   -----\n"), collapse = "\n")
 # if (nchar(msg) > 1000L) {
 #   cat(msg)
-#   msg2 <- paste0(gsub(" +$", "", substr(msg, 1L, 997L)), "...")
+#   msg2 <- paste0(sub(" +$", "", substr(msg, 1L, 997L)), "...")
 # }
 #
 cat(" Check message in popup box before proceeding...\n")
-tstFrMp <- c(TRUE, FALSE)[match(dlg_message(msg2, "yesno", rstudio = TRUE)$res, c("yes", "no"))]
+tstFrMp <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg2, "yesno", rstudio = TRUE)$res, c("yes", "no"))]

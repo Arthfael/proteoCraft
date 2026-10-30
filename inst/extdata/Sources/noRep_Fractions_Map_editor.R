@@ -44,7 +44,7 @@ frMap$"PTM-enriched" <- shinySelectInput(FracMap$"PTM-enriched",
                                          paste0(30*max(c(nchar(as.character(Modifs$`Full name`)), 2)), "px"))
 frMap$"Parent sample" <- shinyTextInput(frMap$"Parent sample", "Sample", paste0(wTest0["Parent sample"], "px"))
 k <- c("Raw file", "Parent sample", "Fraction", "PTM-enriched", "Bruker_run_ID", "Use")
-k <- intersect(k, colnames(frMap))
+k <- base::intersect(k, colnames(frMap))
 frMap <- frMap[, k]
 # Estimate dummy table column widths
 wTest1 <- vapply(colnames(frMap), \(k) { #k <- colnames(frMap)[1L]
@@ -64,22 +64,23 @@ wTest1 <- apply(wTest1, 1L, \(x) {
 #
 appNm <- paste0(dtstNm, " - ", FracMapNm)
 if (exists("frMap2")) { rm(frMap2) }
-ui <- shinyUI(fluidPage(titlePanel(tag("u", FracMapNm),
-                                   appNm),
-                        useShinyjs(),
-                        setBackgroundColor( # Doesn't work
-                          color = c(#"#F8F8FF",
-                            "#EFE6F5"),
-                          gradient = "linear",
-                          direction = "bottom"
-                        ),
-                        extendShinyjs(text = jsFun$toggle_full_screen,
-                                      functions = c("toggleFullScreen")),
-                        mainPanel(
-                          withSpinner(DT::DTOutput("myFracMap", width = wTest2)),
-                          br(),
-                          actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
-                        )))
+ui <- shiny::shinyUI(
+  shiny::fluidPage(
+    shiny::titlePanel(shiny::tag("u", FracMapNm),
+                      appNm),
+    shinyjs::useShinyjs(),
+    shinyWidgets::setBackgroundColor( # Doesn't work
+      color = c(#"#F8F8FF",
+        "#EFE6F5"),
+      gradient = "linear",
+      direction = "bottom"),
+    shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                           functions = c("toggleFullScreen")),
+    shiny::mainPanel(
+      shinycssloaders::withSpinner(DT::DTOutput("myFracMap", width = wTest2)),
+      shiny::br(),
+      shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill")))
+)
 server <- \(input, output, session) {
   frMap2 <- FracMap
   output$myFracMap <- DT::renderDT({ frMap },
@@ -96,14 +97,14 @@ server <- \(input, output, session) {
                                                   columnDefs = wTest1,
                                                   scrollX = FALSE),
                                    # the callback is essential to capture the inputs in each row
-                                   callback = JS("table.rows().every(function(i, tab, row) {
+                                   callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
   var $this = $(this.node());
   $this.attr('id', this.data()[0]);
   $this.addClass('shiny-input-container');
 });
 Shiny.unbindAll(table.table().node());
 Shiny.bindAll(table.table().node());"))
-  observeEvent(input$myFracMap_cell_edit, { # This is not goddamn working!!!
+  shiny::observeEvent(input$myFracMap_cell_edit, { # This is not goddamn working!!!
     kl <- colnames(frMap)[input$myFracMap_cell_edit$col+1L]
     if (kl %in% colnames(frMap2)) {
       frMap2[input$myFracMap_cell_edit$row, kl] <<- input$myFracMap_cell_edit$value
@@ -111,7 +112,7 @@ Shiny.bindAll(table.table().node());"))
       warning(paste0("Could not find column ", kl, " from dummy table in the real table!"))
     }
   })
-  observeEvent(input$saveBtn, {
+  shiny::observeEvent(input$saveBtn, {
     for (k in c("Use", "PTM-enriched", "Parent sample")) {
       root <- gsub("-", "", k)
       if (k == "Use") { tp <- TRUE }
@@ -122,10 +123,10 @@ Shiny.bindAll(table.table().node());"))
       frMap2[[k]] <- vapply(chRws, \(x) { input[[paste0(root, "___", x)]] }, tp)
     }
     assign("frMap2", frMap2, envir = .GlobalEnv)
-    stopApp()
+    shiny::stopApp()
   })
-  #observeEvent(input$cancel, { stopApp() })
-  session$onSessionEnded(\() { stopApp() })
+  #shiny::observeEvent(input$cancel, { shiny::stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
 }
 runKount <- 0L
 while ((!runKount) || (!exists("frMap2"))) {
@@ -139,10 +140,10 @@ FracMap %<o% frMap2
 #
 tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
 while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L])) { # We only want this to happen if the file is locked for editing
-  dlg_message(paste0("File \"", FracMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
+  svDialogs::dlg_message(paste0("File \"", FracMapPath, "\" appears to be locked for editing, close the file then click ok..."), "ok")
   tst <- try(write.csv(FracMap, file = FracMapPath, row.names = FALSE), silent = TRUE)
 }
 #
 cat(" Check message in popup box before proceeding...\n")
 msg <- "Are you happy with the edits? (click no to try again)"
-tstFrMp <- c(TRUE, FALSE)[match(dlg_message(msg, "yesno", rstudio = TRUE)$res, c("yes", "no"))]
+tstFrMp <- c(TRUE, FALSE)[match(svDialogs::dlg_message(msg, "yesno", rstudio = TRUE)$res, c("yes", "no"))]

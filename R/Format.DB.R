@@ -218,7 +218,7 @@ Format.DB <- function(file,
     seq <- unique(res$Sequence)
     if (length(seq) < nrow(res)) {
       wY <- match(seq, res$Sequence)
-      wN <- setdiff(1L:nrow(res), wY)
+      wN <- base::setdiff(1L:nrow(res), wY)
       lN <- length(wN)
       cat(paste0("Removing ", lN, " duplicate sequence", c("", "s")[(lN > 1L)+1L], "\n"))
       res <- res[wY, , drop = FALSE]

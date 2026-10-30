@@ -1,8 +1,9 @@
 #' listMelt
 #'
 #' @description 
-#' Wrapper function for utils::stack(), allowing much faster and efficient melting of simple lists, i.e. lists where each element is a 1-dimension vector.
-#' This won't work on more complex lists!!!
+#' Wrapper function for utils::stack(), allowing much faster and efficient melting of simple lists, i.e. lists where each element is a 1-dimension vector.\cr
+#' This won't work on more complex lists. Or at least it will work, but unlike reshape::melt it will only an L1 column, with the names of the 1st (top) level list.\cr
+#' Should be fairly easy to turn into a full melt function by recursive calls to itself if the input is a list of lists.\cr
 #' 
 #' @param List A list.
 #' @param Names Names to apply to each element, if missing. Can be convenient in case you want to preserve Name's original non-character data type (e.g. numeric).
@@ -24,14 +25,14 @@ listMelt <- function(List,
                      ColNames = c("value", "L1")) {
   #List <- prjcts
   toInt <- FALSE
-  stopifnot(is.atomic(List)|inherits(List, "list"),
+  stopifnot(is.atomic(List) | inherits(List, "list"),
             length(ColNames) == 2L)
   lL <- length(List)
   w <- which(lengths(List) > 0L) # Filter necessary not only to avoid warning for empty elements ("In stack.default(List) : non-vector elements will be ignored")
   # But also a bug which would cause improper names assignment if the list contains empty elements!!!
   if (!missing(Names)) {
     stopifnot(length(Names) == lL)
-    # Important to catch improper use!!!
+    # Important to catch improper usage!!!
   } else {
     if (!is.null(names(List))) {
       Names <- names(List)

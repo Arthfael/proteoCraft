@@ -120,7 +120,7 @@
       ModTbl$Name <- rownames(ModTbl)
       #Mods <<- ModTbl
       serialize(ModTbl, con)
-      close(con)
+      base::close(con)
     }, silent = TRUE))) # Only necessary in function mode
     shiny::stopApp()
   })
@@ -129,7 +129,7 @@
   #     ModTbl$Name <- rownames(ModTbl)
   #     #Mods <<- ModTbl
   #     serialize(ModTbl, con)
-  #     close(con)
+  #     base::close(con)
   #   }, silent = TRUE))) # Only necessary in function mode
   #   shiny::stopApp()
   # })
@@ -138,7 +138,7 @@
       ModTbl$Name <- rownames(ModTbl)
       #Mods <<- ModTbl
       serialize(ModTbl, con)
-      close(con)
+      base::close(con)
     }, silent = TRUE))) # Only necessary in function mode
     shiny::stopApp()
   })

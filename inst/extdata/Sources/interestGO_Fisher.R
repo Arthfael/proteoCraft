@@ -41,20 +41,20 @@ if (length(GO.tabs)) {
   fishrTsts <- list()
   for (go in GO.tabs) { #go <- GO.tabs[1L]
     fishrTsts[[go]] <- c()
-    go_and_offspring <- union(go, GO_terms$Offspring[[match(go, GO_terms$ID)]])
+    go_and_offspring <- base::union(go, GO_terms$Offspring[[match(go, GO_terms$ID)]])
     #
     goRws <- unique(tmpGO$Row[tmpGO$GO %in% go_and_offspring]) # pep rows with annotations for the current term
     tstFish <- lapply(names(kol), \(grp) { #grp <- names(kol)[1L]
       tmp <- pep[, kol[[grp]], drop = FALSE] > 0
       w <- which(rowSums(tmp) >= 2L)
-      w1 <- intersect(w, goRws) # Row of pep with non missing quant values for this group AND the current term
-      w2 <- setdiff(w, goRws) # Row of pep with non missing quant values for this group BUT not the current term
+      w1 <- base::intersect(w, goRws) # Row of pep with non missing quant values for this group AND the current term
+      w2 <- base::setdiff(w, goRws) # Row of pep with non missing quant values for this group BUT not the current term
       p1 <- unique(tmpPrt$Protein[tmpPrt$Row %in% w1])
       p2 <- unique(tmpPrt$Protein[tmpPrt$Row %in% w2])
       n1 <- length(p1)
       n2 <- length(p2)
       p3 <- unique(dbGO$Protein[(dbGO$GO %in% go_and_offspring) & (!dbGO$Protein %in% c(p1, p2))])
-      p4 <- setdiff(dbGO$Protein, c(p1, p2, p3))
+      p4 <- base::setdiff(dbGO$Protein, c(p1, p2, p3))
       n3 <- length(p3)
       n4 <- length(p4)
       dat <- data.frame("In group" = c(n1, n2),
@@ -72,6 +72,7 @@ if (length(GO.tabs)) {
   fishrTsts <- fishrTsts[order(fishrTsts[[1L]], decreasing = FALSE), , drop = FALSE]
   #
   #
+  requireNamespace("data.table")
   Mappings <- data.table(dbGO)
   Mappings <- Mappings[, .(GO = list(unique(GO))), by = .(Protein = Protein)]
   Mappings <- as.data.frame(Mappings)
@@ -88,8 +89,7 @@ if (length(GO.tabs)) {
   myGOdata <- setNames(lapply(Ontologies, \(ont) { #ont <- Ontologies[1L]
     my_topGO_tst <- setNames(lapply(names(kol), \(nm) { #nm <- names(kol)[1L]
       myFlt <- allProt[IDs_flt[[nm]]]
-      require(AnnotationDbi)
-      require(topGO)
+      requireNamespace("topGO")
       GOdata <- new("topGOdata",
           description = paste0(ont, " - ", nm),
           ontology = ont,

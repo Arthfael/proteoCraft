@@ -17,7 +17,7 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #   for (k in g) {
 #     m <- pep[w, k]
 #     m <- median(m[is.finite(m)])
-#     #m <- mlv(pep[is.finite(pep[[k]]), k], method = "Parzen")[1L]
+#     #m <- modeest::mlv(pep[is.finite(pep[[k]]), k], method = "Parzen")[1L]
 #     pep[w, paste0("norm. ", k)] <- pep[w, k]-m
 #     Norm.log2.Pep.Ratios[paste0(nrmgrp, " - ", sub(topattern(pep.ratios.ref[1L]), "", k))] <- m
 #   }
@@ -33,13 +33,10 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #       return(sum(paste0(pep.ratios.ref[length(pep.ratios.ref)], i) %in% colnames(pep)))
 #     }, 1L)
 #     agg <- Adv.Norma.Pep.Ratio.Type.Group$values[test > 1L]
+#     source(parSrc)
 #     exports <- list("agg", "Adv.Norma.Pep.Ratio.Type.Group", "Exp.map", "pep.ratios.ref", "pep", "Param")
-#     clusterExport(parClust, exports, envir = environment())
-#     invisible(clusterCall(parClust, \() {
-#       library(proteoCraft)
-#       return()
-#     }))
-#     norm_temp <- parSapply(parClust, 0L:length(agg), \(i) { #i <- 1L
+#     parallel::clusterExport(parClust, exports, envir = environment())
+#     norm_temp <- parallel::parSapply(parClust, 0L:length(agg), \(i) { #i <- 1L
 #       if (i == 0L) {
 #         kol <- grep(paste0(topattern(pep.ratios.ref[1L]), ".+_REF\\.to\\.REF_"), colnames(pep), value = TRUE)
 #       } else {
@@ -102,8 +99,8 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #     temp <- Exp.map$Ref.Sample.Aggregate[l[test]]
 #     a1 <- paste0(pep.ratios.ref[1L], temp)
 #     a2 <- paste0(pep.ratios.ref[length(pep.ratios.ref)], temp)
-#     a1 <- intersect(a1, colnames(pep))
-#     a2 <- intersect(a2, colnames(pep))
+#     a1 <- base::intersect(a1, colnames(pep))
+#     a2 <- base::intersect(a2, colnames(pep))
 #     if (length(a1)) {
 #       temp <- pep[, c("Modified sequence", a1, a2)]
 #       temp <- reshape2::melt(temp)
@@ -131,19 +128,21 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #       if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 #       dirlist <- unique(c(dirlist, dir))
 #       ttl <- paste0("Peptide ratios distribution_sample group: ", i)
-#       plot <- ggplot(temp) +
-#         geom_violin(aes(x = X, y = value, color = Colour, fill = Colour), alpha = 0.25) +
-#         geom_boxplot(aes(x = X, y = value, color = Colour, fill = Colour), alpha = 0.5) +
-#         theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
-#         scale_color_viridis_d(begin = 0.25) +
-#         scale_fill_viridis_d(begin = 0.25) +
-#         facet_grid(. ~ Norm, scales = "free", space = "free") +
-#         ggtitle(ttl)
-#       if (length(unique(temp$Wrap)) > 1L) { plot <- plot + facet_wrap(~Wrap) }
+#       plot <- ggplot2::ggplot(temp) +
+#         ggplot2::geom_violin(ggplot2::aes(x = X, y = value, color = Colour, fill = Colour),
+#           alpha = 0.25) +
+#         ggplot2::geom_boxplot(ggplot2::aes(x = X, y = value, color = Colour, fill = Colour),
+#           alpha = 0.5) +
+#         ggplot2::theme_bw() + ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+#         ggplot2::scale_color_viridis_d(begin = 0.25) +
+#         ggplot2::scale_fill_viridis_d(begin = 0.25) +
+#         ggplot2::facet_grid(. ~ Norm, scales = "free", space = "free") +
+#         ggplot2::ggtitle(ttl)
+#       if (length(unique(temp$Wrap)) > 1L) { plot <- plot + ggplot2::facet_wrap(~Wrap) }
 #       print(plot) # This type of QC plot does not need to pop up, the side panel is fine
 #       suppressMessages({
-#         ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".svg"), plot,
-#                dpi = 300L, width = 10L, height = 10L, units = "in")
+#         ggplot2::ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".svg"), plot,
+#                         dpi = 300L, width = 10L, height = 10L, units = "in")
 #       })
 #     } else { warning(paste0("Nothing to plot for level ", i)) }
 #   }
@@ -165,18 +164,20 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 #     dirlist <- unique(c(dirlist, dir))
 #     ttl <- "Peptide ratios distribution_References-to-References"
-#     plot <- ggplot(temp) +
-#       geom_violin(aes(x = variable, y = value, color = variable, fill = variable), alpha = 0.25) +
-#       geom_boxplot(aes(x = variable, y = value, color = variable, fill = variable), alpha = 0.5) +
-#       scale_color_viridis_d(begin = 0.25) +
-#       scale_fill_viridis_d(begin = 0.25) +
-#       theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
-#       facet_wrap(~Ratios.Group, scales = "free") +
+#     plot <- ggplot2::ggplot(temp) +
+#       ggplot2::geom_violin(ggplot2::aes(x = variable, y = value, color = variable, fill = variable),
+#         alpha = 0.25) +
+#       ggplot2::geom_boxplot(ggplot2::aes(x = variable, y = value, color = variable, fill = variable),
+#         alpha = 0.5) +
+#       ggplot2::scale_color_viridis_d(begin = 0.25) +
+#       ggplot2::scale_fill_viridis_d(begin = 0.25) +
+#       ggplot2::theme_bw() + ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+#       ggplot2::facet_wrap(~Ratios.Group, scales = "free") +
 #       ggtitle(ttl)
 #     print(plot) # This type of QC plot does not need to pop up, the side panel is fine
 #     suppressMessages({
-#       ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".svg"), plot,
-#              dpi = 300L, width = 10L, height = 10L, units = "in")
+#       ggplot2::ggsave(paste0(dir, "/", gsub(":", "_", ttl), ".svg"), plot,
+#                       dpi = 300L, width = 10L, height = 10L, units = "in")
 #     })
 #     DatAnalysisTxt$pepRatNorm <- "Peptide ratios were then re-normalized."
 #   } else { warning("Nothing to plot for Reference-to-Reference ratios!") }
