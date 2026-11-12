@@ -19,10 +19,7 @@
 #' 
 #' The way the previous version used data.tables was not that great (creating un-necessarily large tables), and the function remained too slow.
 #' I have dropped those parts and instead have focused on filtering stuff as early as possible.
-#' I have also improved the parallelisation: now instead of using parallel::clusterExport() for large objects, the functions writes (then deletes) temporary .RDS files.
-#' If at some point writing those should fail, we could try the following solutions:
-#'  - using tmpfile() for those instead of a fixed-name file,
-#'  - or allow reverting to parallel::clusterExport() if .RDS serialization doesn't work.
+#' I have also improved the parallelisation: now instead of exporting large objects, the functions writes (then deletes) temporary .RDS files.
 #' 
 #' These changes have yielded an about 20x gain in speed, turning the function, then its script heir, from a cumbersome monster to a decently fast one.
 #'
@@ -45,11 +42,11 @@ I_eq_L %<o% I_eq_L
 if (!exists("Cut")) { Cut <- c("K_", "R_") } # Provide default here,
 # but defining Cut before running this allows to override it.
 # Should be in the future pulled from the search parameters.
-misFun <- \(x) { return(!exists(deparse(substitute(x)))) }
-#
-RPath <- as.data.frame(library()$results)
-RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
-libPath <- paste0(RPath, "/proteoCraft")
+if (!exists("libPath")) {
+  RPath %<o% as.data.frame(library()$results)
+  RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
+  libPath %<o% paste0(RPath, "/proteoCraft")
+}
 parSrc <- paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
 #rstudioapi::documentOpen(parSrc)
 source(parSrc)
@@ -99,6 +96,7 @@ frstPepNoMeth <- gsub("^M", "", frstPep)
 # - Cluster export small objects
 myWD <- getwd()
 if (exists("wd") && dir.exists(wd)) { myWD <- wd }
+source(parSrc)
 parallel::clusterExport(parClust, c("Nms", "g", "myWD", "fAggr0"), envir = environment())
 # - Use serialization to export efficiently large objects
 readr::write_rds(Dig, paste0(myWD, "/tmpDig.RDS"))
@@ -244,7 +242,7 @@ if (length(wM)) { # Peptides with missed cleavages: the real fun begins...
       readr::write_rds(Seq2flt_i, paste0(myWD, "/tmpA.RDS"))
       readr::write_rds(Frag2Prot_i, paste0(myWD, "/tmpB.RDS"))
       readr::write_rds(Dig2_i, paste0(myWD, "/tmpC.RDS"))
-      parallel::clusterExport(parClust, list("i", "myWD", "listMelt"), envir = environment())
+      parallel::clusterExport(parClust, list("i", "myWD"), envir = environment())
       tmpResI <- parallel::parLapply(parClust, 1L:length(myRng), f0Mtch, nFrag = i, pepRange = myRng)
       tmpResI <- do.call(rbind, tmpResI)
       Res[[paste0(i, "-missed cleavages")]] <- tmpResI

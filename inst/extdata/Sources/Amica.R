@@ -65,7 +65,6 @@ if (Param$Amica) {
     AmicTbl <- AmicTbl[AmicTbl$quantified == "+",]
     dir <- paste0(wd, "/Amica")
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    dirlist <- unique(c(dirlist, dir))
     data.table::fwrite(AmicTbl, paste0(wd, "/Amica/Amica_file.csv"), row.names = FALSE, na = "NaN", sep = "\t", quote = FALSE)
     data.table::fwrite(AmicaDesign, paste0(wd, "/Amica/Experimental_design.csv"), row.names = FALSE, sep = "\t", quote = FALSE, na = "NA")
     #data.table::fwrite(AmicTbl[1L:500L,], paste0(wd, "/Amica/Amica_file_short.csv"), row.names = FALSE, na = "NaN", quote = FALSE)

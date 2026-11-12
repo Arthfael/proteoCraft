@@ -4,7 +4,10 @@
 \alias{.pyConfig}
 \title{.pyConfig}
 \usage{
-.pyConfig()
+.pyConfig(pathWarn = FALSE)
+}
+\arguments{
+\item{pathWarn}{Logical, default = FALSE. If TRUE, and it finds in the output of Sys.getenv("PATH") some paths which do not exist, this will issue a warning. However, this may trigger false alerts - it seems that some versions of R/RStudio have paths there which have since slightly changed - without breaking functionality.}
 }
 \description{
 A function to automatically check our python configuration, upgrade pip, install sdrf-pipelines and check that python scripts is in path.

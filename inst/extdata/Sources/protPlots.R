@@ -139,14 +139,13 @@ if (goAhead) {
                   myComb = if (runRat) { myComb } else { NULL },
                   myCombAll = if (corrOK) { myCombAll } else { NULL },
                   pepR = if (corrOK) { pepR } else { NULL })
-  
   ##############################################################################
   # 2. WORKER FUNCTIONS
   ##############################################################################
   # Stage 1 (per protein accession): peptide/sequence matching, per-sample tables,
   # comparison tables. Writes one small RDS per sample (coverage) and up to two
   # per accession (correlation / ratio), and returns the list of plot tasks.
-  prepPlotData <- function(job) { #job <- pidJobs[[1L]]
+  prepPlotData <- \(job) { #job <- pidJobs[[1L]]
     cfg <- plotCfg
     smplLvl <- cfg$smplLvl
     TMP <- readr::read_rds(job$protFile)
@@ -227,7 +226,7 @@ if (goAhead) {
     # Ratio plots use only the user-selected pairs (cfg$myComb), gated on cfg$runRat.
     ############################################################################
     if ((length(tempev) > 1L) && (cfg$corrOK || cfg$runRat)) {
-      tempAB <- reshape::melt(tempev)
+      tempAB <- dfMelt(tempev, id.vars = c("Modified sequence", "Matches"))
       tempAB$Match <- sapply(strsplit(tempAB$Matches, ";"), as.integer)
       tempAB$Matches <- NULL
       if (inherits(tempAB$Match, "list")) { # Multiple peptide matches in the protein
@@ -249,7 +248,7 @@ if (goAhead) {
       #
       # Builds temp2/temp3 for a given subset of comparisons (e.g. all pairs, or
       # only the user-selected ones); returns NULL if that subset yields nothing.
-      buildCompData <- function(myCombSubset) {
+      buildCompData <- \(myCombSubset) {
         comb2 <- as.data.frame(gtools::permutations(length(smplLvl), 2L, smplLvl, repeats.allowed = TRUE))
         colnames(comb2) <- c("A", "B")
         myComb2 <- do.call(paste, c(comb2, sep = " / "))
@@ -567,18 +566,20 @@ if (goAhead) {
     environment(fn) <- .GlobalEnv
     assign(f, fn)
   }
+  source(parSrc)
   parallel::clusterExport(parClust,
-                          c("plotCfg", "prepPlotData", "plotCov", "plotCorr", "plotRatio", "runPlotTask", "wd",
-                            "Coverage", "listMelt", "jsFun", "Exp", "topattern", "annot_to_tabl", "poplot"),
+                          c("plotCfg", "prepPlotData", "plotCov", "plotCorr", "plotRatio",
+                            "runPlotTask", "wd", "jsFun", "Exp"),
                           envir = environment())
-  if (scrptType == "withReps") {
-    parallel::clusterExport(parClust, "cleanNms", envir = environment())
-  }
   ##############################################################################
   # 3. STAGE 1 (parallel, per accession): prepare data + build the task table
   ##############################################################################
   pidJobs <- lapply(seq_len(nrow(pidTab)), \(i) { as.list(pidTab[i, , drop = FALSE]) })
   prep <- parallel::parLapplyLB(parClust, pidJobs, prepPlotData)
+  # a <- list()
+  # for (job in pidJobs) {
+  #   a[[job$key]] <- prepPlotData(job)
+  # }
   for (m in unlist(lapply(prep, `[[`, "msg"))) { warning(m) }
   tasks <- do.call(rbind, lapply(prep, `[[`, "tasks"))
   rm(prep, pidJobs)
@@ -627,12 +628,15 @@ if (goAhead) {
     }
     rm(results)
     if (scrptType == "noReps") {
+      stop()
       ratioPlots_fl %<o% paste0(wd, "/Protein plots/ratioPlots.RDS")
       saveFun(ratioPlots, ratioPlots_fl)
+      #loadFun(ratioPlots_fl)
     }
     rm(ratioPlots)
     covPlots_fl %<o% paste0(wd, "/Protein plots/covPlots.RDS")
     saveFun(covPlots, covPlots_fl)
+    #loadFun(covPlots_fl)
     rm(covPlots)
   }
   unlink(dataDir, recursive = TRUE)

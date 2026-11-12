@@ -12,7 +12,6 @@ if (length(Iso) <= 1L) {
 } else {
   irsDr <- paste0(nrmDr, "/Step ", nrmStp, " - IRS normalisation")
   if (!dir.exists(irsDr)) { dir.create(irsDr, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, irsDr))
   #
   currSamples <- base::intersect(allSamples, colnames(tmpDat1))
   m <- match(currSamples, Exp.map$Ref.Sample.Aggregate)
@@ -104,17 +103,17 @@ if (length(Iso) <= 1L) {
       gradient = "linear",
       direction = "bottom"),
     shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
-                  functions = c("toggleFullScreen")),
+                           functions = c("toggleFullScreen")),
     shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
     shiny::titlePanel(shiny::tag("u", appNm),
-               appNm),
+                      appNm),
     shiny::br(),
     shiny::fluidRow(shiny::column(5L,
-                                  shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+                                  shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
                                   shiny::h5(shiny::HTML("Select 1 reference channel per Isobaric set for Internal Reference Scaling normalisation")),
-                    shiny::h5(shiny::HTML("We define an \"Isobaric set\" as a combined sample made up of pooled samples individually labelled isobarically.")),
-                    shiny::h5(shiny::HTML("If no reference channel was included, select all (or any you want to average as your reference for that set) to simulate a reference!")),
-                    shinycssloaders::withSpinner(DT::DTOutput("IsoMap", width = wTest2)))),
+                                  shiny::h5(shiny::HTML("We define an \"Isobaric set\" as a combined sample made up of pooled samples individually labelled isobarically.")),
+                                  shiny::h5(shiny::HTML("If no reference channel was included, select all (or any you want to average as your reference for that set) to simulate a reference!")),
+                                  shinycssloaders::withSpinner(DT::DTOutput("IsoMap", width = wTest2)))),
     shiny::br(),
     shiny::br()
   )
@@ -302,10 +301,10 @@ Shiny.bindAll(table.table().node());"))
       gradient = "linear",
       direction = "bottom"),
     shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
-                  functions = c("toggleFullScreen")),
+                           functions = c("toggleFullScreen")),
     shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
     shiny::titlePanel(shiny::tag("u", appNm),
-               appNm),
+                      appNm),
     shiny::br(),
     shiny::fluidRow(shiny::column(12L,
                                   shiny::checkboxInput("KeepIRSRes", msg, KeepIRSRes),
@@ -314,35 +313,35 @@ Shiny.bindAll(table.table().node());"))
                                   shiny::h5(shiny::HTML(paste0("&nbsp;Does the original grouping follow known ", IsobarLab, " sets (it usually does)?"))),
                                   shiny::h5(shiny::HTML(paste0("&nbsp;&nbsp;-> If yes: accept the correction if it removes the original grouping by ", IsobarLab, " sets."))),
                                   shiny::h5(shiny::HTML(paste0("&nbsp;&nbsp;-> If no: you can reject the correction, congratulations: you were lucky, this time there was no ",
-                                   IsobarLab, " set-related batch effect."))),
+                                                               IsobarLab, " set-related batch effect."))),
                                   shinycssloaders::withSpinner(DT::DTOutput("PCs"))),
                     shiny::br(),
-                    shiny::fluidRow(shiny::column(5L, shinycssloaders::withSpinner(shiny::plotlyOutput("Before", height = "600px"))),
-                                    shiny::column(5L, shinycssloaders::withSpinner(shiny::plotlyOutput("After", height = "600px"))))),
+                    shiny::fluidRow(shiny::column(5L, shinycssloaders::withSpinner(plotly::plotlyOutput("Before", height = "600px"))),
+                                    shiny::column(5L, shinycssloaders::withSpinner(plotly::plotlyOutput("After", height = "600px"))))),
     shiny::br(),
     shiny::br()
   )
   server <- \(input, output, session) {
-    output$Before <- shiny::renderPlotly(PCAlyLst[[prev]]$Isobaric.set)
-    output$After <- shiny::renderPlotly(PCAlyLst[[curr]]$Isobaric.set)
+    output$Before <- plotly::renderPlotly(PCAlyLst[[prev]]$Isobaric.set)
+    output$After <- plotly::renderPlotly(PCAlyLst[[curr]]$Isobaric.set)
     output$PCs <- DT::renderDT({ PCs },
-                           FALSE,
-                           escape = FALSE,
-                           class = "compact",
-                           selection = "none",
-                           editable = FALSE,
-                           rownames = FALSE,
-                           options = list(dom = 't',
-                             paging = FALSE,
-                             ordering = FALSE),
-      #                      callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
-      #   var $this = $(this.node());
-      #   $this.attr('id', this.data()[0]);
-      #   $this.addClass('shiny-input-container');
-      # });
-      # Shiny.unbindAll(table.table().node());
-      # Shiny.bindAll(table.table().node());")
-      )
+                               FALSE,
+                               escape = FALSE,
+                               class = "compact",
+                               selection = "none",
+                               editable = FALSE,
+                               rownames = FALSE,
+                               options = list(dom = 't',
+                                              paging = FALSE,
+                                              ordering = FALSE),
+                               #                      callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
+                               #   var $this = $(this.node());
+                               #   $this.attr('id', this.data()[0]);
+                               #   $this.addClass('shiny-input-container');
+                               # });
+                               # Shiny.unbindAll(table.table().node());
+                               # Shiny.bindAll(table.table().node());")
+    )
     shiny::observeEvent(input[["KeepIRSRes"]], {
       assign("KeepIRSRes", as.logical(input[["KeepIRSRes"]]), envir = .GlobalEnv)
     })

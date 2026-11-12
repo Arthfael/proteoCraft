@@ -3,7 +3,6 @@ if (Annotate && LocAnalysis) {
   cat("Sub-Cellular localisation analysis:\n")
   dir <- paste0(wd, "/pRoloc")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- base::union(dirlist, dir)
   packs <- c("pRoloc", "pRolocGUI") # We will not use pRolocGUI as it seems to be using an outdated version of shinydashboardPlus (specifically a retired function)
   for (pack in packs) { #pack <- packs[1L]
     bioc_req <- base::union(bioc_req, pack)
@@ -68,8 +67,9 @@ Example: \"GO:0031012;2\"
       ttls <- c()
       pRolocVisMeth <- "t-SNE"
       tmpPG <- PG[, c("id", "Leading protein IDs", "Protein IDs", "Protein names", "Genes", "Label")]
+      source(parSrc)
       exports <- list("SubCellMark2", "Exp.map", "SubCellFracAggr", "prtRfRoot", "tempDat", "VPAL", "tmpPG", "Aggregates",
-                      "prot.list", "pRolocVisMeth", "Exp", "dir", "wNC", "cleanNms", "grsep2")
+                      "prot.list", "pRolocVisMeth", "Exp", "dir", "wNC")
       parallel::clusterExport(parClust, exports, envir = environment())
       f0 <- \(grp) { #grp <- SubCellFracAggr$values[1L]
         ttl_s <- c()
@@ -399,7 +399,6 @@ Example: \"GO:0031012;2\"
       testI$variable <- cleanNms(testI$variable)
       dir <- paste0(wd, "/Reg. analysis/Localisation")
       if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-      dirlist <- base::union(dirlist, dir)
       ttl <- paste0("Distribution of ", sub(" - $", " values", log2(SSD)))
       plot <- ggplot2::ggplot(testI) +
         ggplot2::geom_area(ggplot2::aes(x = Intensity, y = value, fill = variable, group = variable,
@@ -483,7 +482,6 @@ Example: \"GO:0031012;2\"
             PrtWidth <- 5
             dir <- paste0(wd, "/Reg. analysis/Localisation/Relocalised proteins")
             if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-            dirlist <- base::union(dirlist, dir)
             plotNorm <- FALSE
             grp <- sub("^Re-localized - ", "", gi)
             EM1 <- Exp.map[Exp.map[[SubCellFracAggr2$column]] == grp,]

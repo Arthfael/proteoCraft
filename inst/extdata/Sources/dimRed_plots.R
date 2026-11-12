@@ -61,16 +61,15 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
   # PCA plots, by sample
   if (dataType == "PG") {
     msg <- "PCA plot, by sample"
-    myLittleRed_dir <- paste0(wd, "/Dimensionality red. plots/PCA")
+    my_little_Dir <- paste0(wd, "/Dimensionality red. plots/PCA")
     ttl <- "PCA plot - Samples (PG-level)"
   }
   if (dataType == "modPeptides") {
     msg <- paste0(ptm, " PCA plot, by sample")
-    myLittleRed_dir <- paste0(modDirs[1L], "/PCA")
+    my_little_Dir <- paste0(modDirs[1L], "/PCA")
     ttl <- paste0(ptm, " PCA plot - Samples")
   }
-  if (!dir.exists(myLittleRed_dir)) { dir.create(myLittleRed_dir, recursive = TRUE) }
-  dirlist <- base::union(dirlist, myLittleRed_dir)
+  if (!dir.exists(my_little_Dir)) { dir.create(my_little_Dir, recursive = TRUE) }
   cat(msg, "\n")
   pc <- stats::prcomp(t(dimRedDat), scale. = TRUE)
   scores <- as.data.frame(pc$x)
@@ -109,7 +108,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                                size = 2.5, show.legend = FALSE)
     plot <- if (substr(form, 1L, 1L) == "~") { plot + ggplot2::facet_wrap(form) } else { plot + ggplot2::facet_grid(form) }
     suppressMessages({
-      ggplot2::ggsave(paste0(myLittleRed_dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggplot2::ggsave(paste0(my_little_Dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     })
     #
     scores$"Samples group" <- factor(scores$Group)
@@ -140,11 +139,11 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     plot_lyPCAProt <- plotly::plotly_build(plot_lyPCAProt)
     #plot_lyPCAProt <- plotly::partial_bundle(plot_lyPCAProt)
     dimRedPlotLy[[dataType]][["Samples PCA"]] <- plot_lyPCAProt
-    setwd(myLittleRed_dir)
-    htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyPCAProt), paste0(myLittleRed_dir, "/", ttl, ".html"))
-    #htmlwidgets::saveWidget(plot_lyPCAProt, paste0(myLittleRed_dir, "/", ttl, ".html"))
+    setwd(my_little_Dir)
+    htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyPCAProt), paste0(my_little_Dir, "/", ttl, ".html"))
+    #htmlwidgets::saveWidget(plot_lyPCAProt, paste0(my_little_Dir, "/", ttl, ".html"))
     setwd(wd)
-    #system(paste0("open \"", myLittleRed_dir, "/", ttl, ".html"))
+    #system(paste0("open \"", my_little_Dir, "/", ttl, ".html"))
     # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
   } else { warning("PCA failed, investigate!") }
   #
@@ -152,9 +151,8 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
   if (dataType == "PG") {
     # PCA, t-SNE and UMAP plots, by protein group
     cat("PCA plots, by protein group\n")
-    myLittleRed_dir <- paste0(wd, "/Dimensionality red. plots/PCA")
-    if (!dir.exists(myLittleRed_dir)) { dir.create(myLittleRed_dir, recursive = TRUE) }
-    dirlist <- base::union(dirlist, myLittleRed_dir)
+    my_little_Dir <- paste0(wd, "/Dimensionality red. plots/PCA")
+    if (!dir.exists(my_little_Dir)) { dir.create(my_little_Dir, recursive = TRUE) }
     pc <- stats::prcomp(dimRedDat, scale. = TRUE)
     scores <- as.data.frame(pc$x)
     pv <- round(100L*(pc$sdev)^2L / sum(pc$sdev^2L), 0L)
@@ -278,7 +276,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       ggplot2::guides(alpha = "none", size = "none", colour = ggplot2::guide_legend(title = gsub("/", "/\n", ClassNm)))
     #poplot(plot, 12L, 22L)
     suppressMessages({
-      ggplot2::ggsave(paste0(myLittleRed_dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+      ggplot2::ggsave(paste0(my_little_Dir, "/", ttl, ".svg"), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
     })
     #
     # Plotly
@@ -369,20 +367,19 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
     plot_lyPCAProt2 <- plotly::plotly_build(plot_lyPCAProt2)
     #plot_lyPCAProt2 <- plotly::partial_bundle(plot_lyPCAProt2)
     dimRedPlotLy[[dataType]][["PCA"]] <- plot_lyPCAProt2
-    setwd(myLittleRed_dir)
-    htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyPCAProt2), paste0(myLittleRed_dir, "/", ttl, ".html"))
-    #htmlwidgets::saveWidget(plot_lyPCAProt2, paste0(myLittleRed_dir, "/", ttl, ".html"))
+    setwd(my_little_Dir)
+    htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyPCAProt2), paste0(my_little_Dir, "/", ttl, ".html"))
+    #htmlwidgets::saveWidget(plot_lyPCAProt2, paste0(my_little_Dir, "/", ttl, ".html"))
     setwd(wd)
-    #system(paste0("open \"", myLittleRed_dir, "/", ttl, ".html"))
+    #system(paste0("open \"", my_little_Dir, "/", ttl, ".html"))
     # NB: There is currently no way to create a 3D, faceted plot in plotly for R that I know of) 
     #
     if (requireNamespace("Rtsne")) { #... equivalent to if (pkgsCheck["Rtsne"]) { ... }
       cat("t-SNE plots, by protein group\n")
       cran_req <- base::union(cran_req, "Rtsne")
       tsne <- try(Rtsne(dimRedDat, dims = 3L, perplexity = 30L, verbose = TRUE, max_iter = 500L), silent = TRUE)
-      myLittleRed_dir <- paste0(wd, "/Dimensionality red. plots/t-SNE")
-      if (!dir.exists(myLittleRed_dir)) { dir.create(myLittleRed_dir, recursive = TRUE) }
-      dirlist <- base::union(dirlist, myLittleRed_dir)
+      my_little_Dir <- paste0(wd, "/Dimensionality red. plots/t-SNE")
+      if (!dir.exists(my_little_Dir)) { dir.create(my_little_Dir, recursive = TRUE) }
       if (!inherits(tsne, "try-error")) {
         scores2 <- as.data.frame(tsne$Y)[, 1L:3L]
         rownames(scores2) <- rownames(dimRedDat)
@@ -414,7 +411,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                           colour = ggplot2::guide_legend(title = gsub("/", "/\n", ClassNm)))
         #poplot(plot, 12L, 22L)
         suppressMessages({
-          ggplot2::ggsave(paste0(myLittleRed_dir, "/", ttl2, ".svg"), plot,
+          ggplot2::ggsave(paste0(my_little_Dir, "/", ttl2, ".svg"), plot,
                           dpi = 300L, width = 10L, height = 10L, units = "in")
         })
         #
@@ -467,11 +464,11 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         plot_lytSNE <- plotly::plotly_build(plot_lytSNE)
         #plot_lytSNE <- plotly::partial_bundle(plot_lytSNE)
         dimRedPlotLy[[dataType]][["t-SNE"]] <- plot_lytSNE
-        setwd(myLittleRed_dir)
-        htmlwidgets::saveWidget(plotly::partial_bundle(plot_lytSNE), paste0(myLittleRed_dir, "/", ttl2, ".html"))
-        #htmlwidgets::saveWidget(plot_lytSNE, paste0(myLittleRed_dir, "/", ttl2, ".html"))
+        setwd(my_little_Dir)
+        htmlwidgets::saveWidget(plotly::partial_bundle(plot_lytSNE), paste0(my_little_Dir, "/", ttl2, ".html"))
+        #htmlwidgets::saveWidget(plot_lytSNE, paste0(my_little_Dir, "/", ttl2, ".html"))
         setwd(wd)
-        #system(paste0("open \"", myLittleRed_dir, "/", ttl2, ".html"))
+        #system(paste0("open \"", my_little_Dir, "/", ttl2, ".html"))
       } else { warning(tsne) } 
     }
     #
@@ -479,9 +476,8 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       cat("UMAP plots, by protein group\n")
       cran_req <- base::union(cran_req, "umap")
       UMAP <- try(umap(dimRedDat, n_components = 3L), silent = TRUE)
-      myLittleRed_dir <- paste0(wd, "/Dimensionality red. plots/UMAP")
-      if (!dir.exists(myLittleRed_dir)) { dir.create(myLittleRed_dir, recursive = TRUE) }
-      dirlist <- base::union(dirlist, myLittleRed_dir)
+      my_little_Dir <- paste0(wd, "/Dimensionality red. plots/UMAP")
+      if (!dir.exists(my_little_Dir)) { dir.create(my_little_Dir, recursive = TRUE) }
       if (!inherits(UMAP, "try-error")) {
         UMAPlayout <- data.frame(UMAP$layout)
         rownames(UMAPlayout) <- rownames(dimRedDat)
@@ -512,7 +508,7 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
                           colour = ggplot2::guide_legend(title = gsub("/", "/\n", ClassNm)))
         #poplot(plot, 12L, 22L)
         suppressMessages({
-          ggplot2::ggsave(paste0(myLittleRed_dir, "/", ttl3, ".svg"), plot,
+          ggplot2::ggsave(paste0(my_little_Dir, "/", ttl3, ".svg"), plot,
                           dpi = 300L, width = 10L, height = 10L, units = "in")
         })
         #
@@ -565,11 +561,11 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
         plot_lyUMAP <- plotly::plotly_build(plot_lyUMAP)
         #plot_lyUMAP <- plotly::partial_bundle(plot_lyUMAP)
         dimRedPlotLy[[dataType]][["UMAP"]] <- plot_lyUMAP
-        setwd(myLittleRed_dir)
-        htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyUMAP), paste0(myLittleRed_dir, "/", ttl3, ".html"))
-        #htmlwidgets::saveWidget(plot_lyUMAP, paste0(myLittleRed_dir, "/", ttl3, ".html"))
+        setwd(my_little_Dir)
+        htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyUMAP), paste0(my_little_Dir, "/", ttl3, ".html"))
+        #htmlwidgets::saveWidget(plot_lyUMAP, paste0(my_little_Dir, "/", ttl3, ".html"))
         setwd(wd)
-        #system(paste0("open \"", myLittleRed_dir, "/", ttl3, ".html"))
+        #system(paste0("open \"", my_little_Dir, "/", ttl3, ".html"))
       } else { warning(umap) }
     }
   }

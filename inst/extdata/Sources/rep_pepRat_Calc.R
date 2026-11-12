@@ -18,14 +18,12 @@ if (makePepRat) {
   # Visualize:
   temp <- pep[, kol]
   colnames(temp) <- sub(topattern(pep.ratios.ref[1L]), "", colnames(temp))
-  temp <- reshape::melt(temp, measure.vars = colnames(temp))
-  colnames(temp) <- c("contrast", "ratio")
+  temp <- dfMelt(temp, c("contrast", "ratio"))
   temp$contrast <- factor(sub("\\) - \\(", ")\n- (", temp$contrast),
                           levels = sub("\\) - \\(", ")\n- (", myContrasts$Contrast))
   temp <- temp[is.finite(temp$ratio),]
   dir <- paste0(wd, "/Workflow control/Peptides/Ratios")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- base::union(dirlist, dir)
   ttl <- "Peptide ratios distribution"
   plot <- ggplot2::ggplot(temp) +
     ggplot2::geom_histogram(ggplot2::aes(x = ratio, fill = contrast),

@@ -70,9 +70,7 @@ PD_to_MQ <- function(PD,
   PD[w, c("temp_mod", "temp_pos")] <- Isapply(temp[w], \(x) { #x <- temp[[1L]]
     x <- unlist(x)
     x <- as.data.frame(strsplit(x, "_"))
-    x1 <- strsplit(as.character(x[2,]), "\\+")
-    names(x1) <- x[1L,]
-    x1 <- reshape2::melt(x1)
+    x1 <- listMelt(strsplit(as.character(x[2L,]), "\\+"), x[1L,])
     x1 <- do.call(paste, c(x1, sep = ";"))
     return(x1)
   })
@@ -295,8 +293,7 @@ PD_to_MQ <- function(PD,
       evtemp$PEP <- test$x[match(evtemp$test, test$Group.1)]
     }
     if ("Proteins" %in% col[w]) {
-      test <- setNames(strsplit(EV$Proteins, ";"), EV$test)
-      test <- reshape2::melt(test)
+      test <- listMelt(strsplit(EV$Proteins, ";"), EV$test)
       test <- aggregate(test$value, list(test$L1), \(x) { paste(sort(unique(x)), collapse = ";") })
       evtemp$Proteins <- test$x[match(evtemp$test, test$Group.1)]
     }

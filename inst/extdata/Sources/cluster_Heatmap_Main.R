@@ -53,8 +53,6 @@ if (clustHtMp) {
   verbose <- FALSE
   if (!dir.exists(clustDir)) { dir.create(clustDir, recursive = TRUE) }
   if (scrptType == "withReps") {
-    dirlist <- base::union(dirlist, clustDir)
-    #
     I <- list(Global = mySmpls)
     # Cluster groups based on Ratios-, GO enrichment- or Normalisation groups
     # Basically any level where we have specified that we have a group smaller than the whole experiment containing sample groups which may be more
@@ -877,8 +875,5 @@ if (clustHtMp) {
     }
   } else {
     unlink(clustDir)
-    if (scrptType == "withReps") {
-      dirlist <- base::setdiff(dirlist, clustDir)
-    }
   }
 }

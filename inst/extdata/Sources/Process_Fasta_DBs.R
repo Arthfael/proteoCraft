@@ -660,17 +660,13 @@ Sp <- gsub(" *[(|[].*", "", fastasTbl$Species)
 # Thus, I am redistributing it (barely modified: I dropped the dplyr dependency) so I can save my old code
 source(paste0(libPath, "/extdata/Sources/taxonomy.R"))
 #
-tst %<o% try(setNames(lapply(Sp, \(x) {
-  suppressMessages(taxonomy(organism = x, db = "ncbi", output = "classification"))
-}), Sp), silent = TRUE)
-if (inherits(tst, "try-error")) {
-  kount <- 0L
-  while ((kount < 20L) && inherits(tst, "try-error")) {
-    tst %<o% try(setNames(lapply(Sp, \(x) {
-      suppressMessages(taxonomy(organism = x, db = "ncbi", output = "classification"))
-    }), Sp), silent = TRUE)
-    kount <- kount + 1L
-  } 
+kount <- 0L
+while (((!kount) || inherits(tst, "try-error")) && (kount < 20L)) {
+  tst <- try(setNames(lapply(Sp, \(x) {
+    if (is.na(x) | (x %in% c("mixed", "prompt user", "unknown"))) { return() }
+    suppressMessages(taxonomy(organism = x, db = "ncbi", output = "classification"))
+  }), Sp), silent = TRUE)
+  kount <- kount + 1L
 }
 taxTst %<o% !inherits(tst, "try-error")
 if (taxTst) {
@@ -678,9 +674,11 @@ if (taxTst) {
   w <- which(!is.na(fastasTbl$Species))
   fastasTbl$Kingdom <- fastasTbl$Taxonomy <- NA_character_
   fastasTbl$Taxonomy[w] <- vapply(Taxonomies, \(x) { #x <- Taxonomies[[1L]]
+    if (is.null(x)) { return(NA_character_) }
     paste(x$name, collapse = "; ")
   }, "")
   fastasTbl$Kingdom[w] <- vapply(Taxonomies, \(x) { #x <- Taxonomies[[1L]]
+    if (is.null(x)) { return(NA_character_) }
     x$name[match("superkingdom", x$rank)]
   }, "")
 }
@@ -787,7 +785,8 @@ tst <- data.table(Row = 1L:nrow(db), Seq = db$Sequence)
 tst <- tst[, .(Row = min(Row)), by = .(Seq)]
 n <- nrow(db)-nrow(tst)
 if (n) {
-  cat("(Removing", n, "redundant protein sequences from the", c("", "combined")[(length(dbs) > 1L)+1L], "database.)\n")
+  cat(paste0("(Removing ", n, " redundant protein sequence", c("", "s")[(n > 1L)+1L],
+             " from the ", c("", "combined ")[(length(dbs) > 1L)+1L], "database.)\n"))
   db <- db[tst$Row,]
 }
 #
@@ -938,7 +937,7 @@ if (sum(c("MAXQUANT", "DIANN", "FRAGPIPE") %in% SearchSoft)) {
   contDB %<o% contDB[!contDB$Sequence %in% db$Sequence,]
   if (nrow(contDB)) {
     contDB$"Potential contaminant" <- "+"
-    db <- rbind.fill(db, contDB)
+    db <- plyr::rbind.fill(db, contDB)
   }
 } else { if (SearchSoft == "PROTEOMEDISCOVERER") { stop("This part has not yet been re-written for PD!") } }
 

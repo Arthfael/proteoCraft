@@ -658,7 +658,7 @@ make_ui <- function() {
     shiny::checkboxInput("AdvOptOn", "Advanced options", tstAdvOpt),
     shinycssloaders::withSpinner(shiny::uiOutput("AdvOpt")),
     shiny::br(),
-    shiny::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+    shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
     shiny::br(),
     shiny::br()
   )
@@ -666,10 +666,10 @@ make_ui <- function() {
 if (exists("appRunTest")) { rm(appRunTest) }
 server1 <- function(input, output, session) {
   # Initialize variables to create in main environment
-  m4Quant <- shiny::reactiveValue(Mod4Quant)
-  m2Xclud <- shiny::reactiveValue(Mod2Xclud)
-  ADVOPT <- shiny::reactiveValue(tstAdvOpt)
-  PARAM <- shiny::reactiveValue(AnalysisParam)
+  m4Quant <- shiny::reactiveVal(Mod4Quant)
+  m2Xclud <- shiny::reactiveVal(Mod2Xclud)
+  ADVOPT <- shiny::reactiveVal(tstAdvOpt)
+  PARAM <- shiny::reactiveVal(AnalysisParam)
   #
   updtQuantMsg <- function(reactive = TRUE) {
     myQuant <- { if (reactive) { input$Quant_algorithm } else { quantAlgo } }
@@ -838,9 +838,9 @@ server1 <- function(input, output, session) {
     assign("quantAlgo", input$Quant_algorithm, envir = .GlobalEnv)
     if (quantAlgo == "limpa") {
       shiny::updateCheckboxInput(inputId = "Impute", value = FALSE)
-      # shiny::updatePickerInput(inputId = "Norma.Prot.Ratio.to.proteins", selected = NULL)
-      # shiny::updatePickerInput(inputId = "Norma.Prot.Ratio.to.GO", selected = NULL)
-      # shiny::updateCheckboxInput(inputId = "Norma.Prot.Ratio.to.Biot", value = FALSE)
+      # shinyWidgets::updatePickerInput(inputId = "Norma.Prot.Ratio.to.proteins", selected = NULL)
+      # shinyWidgets::updatePickerInput(inputId = "Norma.Prot.Ratio.to.GO", selected = NULL)
+      # shinyWidgets::updateCheckboxInput(inputId = "Norma.Prot.Ratio.to.Biot", value = FALSE)
       shiny::updateRadioButtons(inputId = "TtstPval", selected = "Moderated")
       shinyjs::disable("Impute")
       # shinyjs::disable("Norma.Prot.Ratio.to.proteins")
@@ -1018,9 +1018,9 @@ server1 <- function(input, output, session) {
   IntProt_debounced <- debounce(shiny::reactive(input$IntProt), 5000L)
   shiny::observeEvent(IntProt_debounced(), {
     tmp <- IntProt_debounced()
-    updatePickerInput(inputId = "IntProt",
-                      selected = tmp,
-                      choices = base::union(tmp, protHeads))
+    shinyWidgets::updatePickerInput(inputId = "IntProt",
+                                    selected = tmp,
+                                    choices = base::union(tmp, protHeads))
   })
   # GO enrichment
   shiny::observeEvent(input$GOenrich, {
@@ -1217,17 +1217,17 @@ AnalysisParam$"PTMs to exclude from quantitation" <- Mod2Xclud
 
 # Override any optional analysis for which the package check was failed, independent of which value parameters may have
 # - Rerun package checks just in case
-pkgsCheck <- vapply(opt_Pkgs, \(pkgs) {
-  sum(!vapply(pkgs, \(pkg) { requireNamespace(pkg) }, TRUE))
-}, 1L) == 0L
+pkgsCheck %<o% vapply(optAnalyses, \(pkgs) {
+  suppressMessages(sum(!vapply(pkgs, \(pkg) { requireNamespace(pkg) }, TRUE))) == 0L
+}, TRUE)
 # - Then apply overrides if necessary
-if(!pkgsCheck["topGO"]) {
+if (("topGO" %in% names(pkgsCheck)) && (!pkgsCheck["topGO"])) {
   if (GOenrich) { warning("Turning off topGO-based GO enrichment:\n -> some necesary packages are missing") }
   if (globalGO) { warning("Turning off topGO-based GO enrichment:\n -> some necesary packages are missing") }
   GOenrich <- FALSE
   globalGO <- FALSE
 }
-if ((!CytoScape) || (!pkgsCheck["ClueGO"])) {
+if ((!CytoScape) || (("ClueGO" %in% names(pkgsCheck)) && (!pkgsCheck["ClueGO"]))) {
   if (runClueGO) {
     msg <- "Turning off clueGO:\n"
     if (!CytoScape) { msg <- paste0(, " -> Cytoscape is missing") }
@@ -1235,15 +1235,15 @@ if ((!CytoScape) || (!pkgsCheck["ClueGO"])) {
   }
   runClueGO <- FALSE
 }
-if (!pkgsCheck["GSEA"]) {
+if (("GSEA" %in% names(pkgsCheck)) && (!pkgsCheck["GSEA"])) {
   if (runGSEA) { warning("Turning off GSEA:\n -> some necesary packages are missing") }
   runGSEA <- FALSE
 }
-if (!pkgsCheck["WGCNA"]) {
+if (("WGCNA" %in% names(pkgsCheck)) && (!pkgsCheck["WGCNA"])) {
   if (runWGCNA) { warning("Turning off WGCNA:\n -> some necesary packages are missing") }
   runWGCNA <- FALSE
 }
-# runSTRINGdb %<o% pkgsCheck["STRINGdb"] # Not currently implemented in this workflow
+# runSTRINGdb %<o% (("STRINGdb" %in% names(pkgsCheck)) && (pkgsCheck["STRINGdb"])) # Not currently implemented in this workflow
 # pkgsCheck["Venn"] is being handled differently - see above (it bypasses/hides the parameter)
 
 # Experiments

@@ -20,6 +20,7 @@ N.tot <- parallel::detectCores()
 if (!exists("N.clust")) { N.clust <- max(c(round(N.tot*0.95)-1L, 1L)) }
 if (!exists("writeRaws")) { writeRaws <- TRUE }
 if (!exists("writeSearch")) { writeSearch <- TRUE }
+if (!exists("splitByOrg")) { splitByOrg <- FALSE }
 
 ObjNm <- "ProcessedByUs"
 if (!exists(ObjNm)) {
@@ -46,6 +47,7 @@ N.clust %<o% N.clust
 writeRaws %<o% writeRaws
 writeSearch %<o% writeSearch
 ProcessedByUs %<o% ProcessedByUs
+splitByOrg %<o% splitByOrg
 
 scrptPaths <- setNames(ScriptPath,
                        c("Replicates",
@@ -213,13 +215,18 @@ if (!RunByMaster) {
             DT::DTOutput("inDirs"),
             shiny::actionButton("addBtn", "+ add input folder"),
             shiny::br(),
-            shiny::column(4,
+            shiny::column(4L,
                           shiny::checkboxInput("writeRaws", "Copy raw files to delivery folder?", writeRaws)),
-            shiny::column(4,
+            shiny::column(4L,
                           shiny::checkboxInput("writeSearch", "Copy search results to delivery folder?", writeSearch)),
-            shiny::column(4,
+            shiny::column(4L,
                           shiny::checkboxInput("ProcessedByUs", "Attempt to write interactively a template sample prep text?", ProcessedByUs)),
-            shiny::br())),
+            shiny::br(),
+            if (grepl("_PG_", scrptTypeFull)) {
+              shiny::column(4L,
+                            shiny::checkboxInput("splitByOrg", "Enforce single species per Protein Group?", splitByOrg))
+            },
+            )),
         shiny::br(),
         shiny::em("Once you are finished, click "),
         shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
@@ -445,6 +452,9 @@ table.on('change', 'select', function() {
         if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
         assign("AllAnsw", input$AllAnsw, envir = .GlobalEnv)
       }
+    })
+    shiny::observeEvent(input$splitByOrg, {
+      assign("splitByOrg", input$splitByOrg, envir = .GlobalEnv)
     })
     shiny::observeEvent(input$saveBtn, {
       WhoAmI <- WHO()
@@ -691,12 +701,14 @@ if (nrow(allBckps)) {
 
 # Clean-up WD to remove all output folders/files/plots/tables before we start?
 drs <- list.dirs(wd, TRUE, FALSE)
+drs <- base::setdiff(drs,
+                     c(wd, paste0(wd, "/_param")))
 if (length(drs)) {
-  cleanUpWD <- c(TRUE, FALSE)[match(svDialogs::dlg_message("The work directory isn't empty. Should we remove all output data (parameters will remain, but plots and output tables will be deleted)?",
+  cleanUpWD <- c(TRUE, FALSE)[match(svDialogs::dlg_message("The work directory isn't empty. Should we remove all output data folders? (parameters will remain, but plots and output tables will be deleted)",
                                                            "yesno")$res,
                                     c("yes", "no"))]
   if (cleanUpWD) {
-    for (dr in drs) { #dr<- drs[1L]
+    for (dr in drs) { #dr <- drs[1L]
       tst <- try(unlink(dr, force = TRUE), silent = TRUE)
       if (inherits(tst, " try-error") || tst != 0L) {
         shell(paste0("RMDIR /S /Q \"", dr, "\""), mustWork = FALSE)
@@ -718,12 +730,12 @@ if ((!nrow(reloadedBckps)) || (!"FASTA of proteins of special interest" %in% rel
   loadInt <- c(TRUE, FALSE)[match(svDialogs::dlg_message("Load a fasta of proteins of interest?", "yesno")$res,
                                   c("yes", "no"))]
   if (loadInt) {
-    intFast <- selectFile(paste0("Select proteins of interest fasta", intPrtFst), path = wd)
+    intFast <- rstudioapi::selectFile(paste0("Select proteins of interest fasta", intPrtFst), path = wd)
     if (!is.null(intFast)) {
       intFast <- sub("^~", normalizePath(Sys.getenv("HOME"), winslash = "/"), intFast)
       if (intFast != intPrtFst) {
         file.copy(intFast, intPrtFst, TRUE)
-        cat(paste0("   FYI: a copy of your input fasta has been saved at \"", intPrtFst, "\"...\n"))
+        cat(paste0("   FYI: a copy of the fasta you provided has been saved at \"", intPrtFst, "\"...\n"))
       }
       if (!exists("fastas")) { fastas <- c() }
       intPrtFst %<o% intPrtFst

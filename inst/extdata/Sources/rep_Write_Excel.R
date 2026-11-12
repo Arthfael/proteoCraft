@@ -67,7 +67,7 @@ for (nm in names(Prot.Rat.Root)) { #nm <- names(Prot.Rat.Root)[1L]
 fl <- system.file("extdata", "Report_column_names_Rep.xlsx", package = "proteoCraft")
 styleNms <- openxlsx2::read_xlsx(fl, "tmp", colNames = FALSE)[, 1L]
 WorkBook <- openxlsx2::wb_load(fl)
-repFl %<o% paste0(wd, "/Tables/Report_", dtstNm, ".xlsx")
+repFl %<o% paste0(wd, "/Report_", dtstNm, ".xlsx")
 WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description", dtstNm, openxlsx2::wb_dims(2L, 5L))
 WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description", format(Sys.Date(), "%d/%m/%Y"), openxlsx2::wb_dims(3L, 5L))
 WorkBook <- openxlsx2::wb_add_data(WorkBook, "Description", WhoAmI, openxlsx2::wb_dims(4L, 5L))

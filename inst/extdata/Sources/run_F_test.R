@@ -216,9 +216,10 @@ if (globalFDR) {
     return(x)
   })
 } else {
+  source(parSrc)
   tmpFl <- tempfile(fileext = ".rds")
   readr::write_rds(tmp, tmpFl)
-  parallel::clusterExport(parClust, list("F_Root1", "BH.FDR_F", "tmpFl", "FDR"))
+  parallel::clusterExport(parClust, list("F_Root1", "BH.FDR_F", "tmpFl"))
   invisible(parallel::clusterCall(parClust, \() {
     tmp <- readr::read_rds(tmpFl)
     assign("tmp", tmp, .GlobalEnv)
@@ -296,7 +297,6 @@ volcPlot_args2$cl <- parClust
 #DefArg(Volcano.plot);TESTING <- TRUE
 #invisible(lapply(names(volcPlot_args2), \(x) { assign(x, volcPlot_args2[[x]], envir = .GlobalEnv); return() }))
 F_volc <- do.call(Volcano.plot, volcPlot_args2)
-parallel::stopCluster(parClust)
 source(parSrc)
 #
 if (!exists("volcPlotly_fl")) { volcPlotly_fl %<o% paste0(wd, "/Reg. analysis/volcPlotly.RDS") }

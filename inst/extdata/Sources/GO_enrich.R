@@ -588,8 +588,8 @@ if (length(wFltL)) {
   mapFilters <- mapFilters[wFltL]
   ref.mapFilters <- ref.mapFilters[wFltL]
   tmpGO <- GO.terms[, c("ID", "Term")]
-  exports <- list("mapFilters", "ref.mapFilters", "KKol1", "ProtKol1", "PGKol1", "MultRef", "GenTst", "tmpGO", "Mappings", "Ont", "Mode",
-                  "Prot_is_Pep", "MinCount", "FishTst")
+  exports <- list("mapFilters", "ref.mapFilters", "KKol1", "ProtKol1", "PGKol1", "MultRef", "GenTst", "tmpGO",
+                  "Mappings", "Ont", "Mode", "Prot_is_Pep", "MinCount", "FishTst")
   if (!MultRef) { exports <- append(exports, "GenKol1") }
   parallel::clusterExport(parClust, exports, envir = environment())
   #parallel::clusterExport(parClust, "FishTst", envir = environment())
@@ -672,6 +672,7 @@ if (length(wFltL)) {
       }
     }
     if (length(GO_tbl)) {
+      stop()
       GO_tbl <- reshape::melt.list(GO_tbl, id.vars = c("Ontology", "ID"))
       GO_tbl$Ontology <- Ont[Wh1][GO_tbl$L1]
       GO_tbl$L1 <- NULL
@@ -826,10 +827,8 @@ if (length(wFltL)) {
         stopifnot(max(GO_tbl[[kkol1]] - GO_tbl$Count) >= 0L)
         ## Proteins
         tmpProt <- strsplit(Prot[[ID_col]], ";")
-        #parallel::clusterExport(parClust, "tmpProt", envir = environment())
         if (ID_col2_found) {
           tmpProtID <- Prot[[ID_col2]]
-          #parallel::clusterExport(parClust, "tmpProtID", envir = environment())
         }
         if (MultRef || (kount == 1L)) {
           source(parSrc)
@@ -869,7 +868,6 @@ if (length(wFltL)) {
           tmp2 <- aggregate(tmp2$value, list(as.numeric(tmp2$L1)), list)
           tmpGn <- data.frame(row = 1L:nrow(Prot))
           tmpGn <- tmp2$x[match(tmpGn$row, tmp2$Group.1)]
-          #parallel::clusterExport(parClust, "tmpGn", envir = environment())
           if (MultRef || (kount == 1L)) {
             source(parSrc)
             GO.terms[[genkol1]] <- parallel::parSapply(parClust, GO.terms$`Protein table row(s)`, f1, filt = rfflt, ids = tmpGn)
@@ -917,9 +915,8 @@ if (length(wFltL)) {
               thresh[[ont]] <- f$Thresholds
             }
           }
-          thresh <- reshape::melt.data.frame(thresh, id.vars = "FDR")
-          colnames(thresh) <- sub("^value$", "Threshold", sub("^variable$", "Ontology", colnames(thresh)))
-          GO_FDR_thresholds[[n1]] <- thresh[, c("FDR", "Ontology", "Threshold")]
+          thresh <- dfMelt(thresh, c("FDR", "Ontology", "Threshold"), "FDR")
+          GO_FDR_thresholds[[n1]] <- thresh
         }
         GO_tbl$Y <- -log10(GO_tbl[[c("Pvalue", "adj. Pvalue")[P_adjust+1L]]]) # I am choosing to call it Y because I am artificially editing some values (+Inf -> Ymax + 1) below
         GO.terms[wh, paste0("Pvalue - ", n1)] <- GO_tbl$Pvalue
@@ -1061,8 +1058,7 @@ if (length(wFltL)) {
         }
         exports <- list("GlobalScales", "Xxtr", "Xbreadth", "Xmin", "Xmax", "Ymax", "GO_tbls2", "title.root", "P_adjust", "plotly", "grphs",
                         "save", "origWD", "subfolder", "subfolderpertype", "bars", "graph", "True_Zscore", "scrange", "textFun", "cex", "lineheight", "repel",
-                        "plotly_subfolder", "MaxTerms", "MaxTerms_bar", "MaxChar", "plotEval",
-                        "Ont", "title", "title.root", "bars_title", "bars_title.root", "GO_FDR")
+                        "plotly_subfolder", "MaxTerms", "MaxTerms_bar", "MaxChar", "Ont", "title", "title.root", "bars_title", "bars_title.root", "GO_FDR")
         parallel::clusterExport(parClust, exports, envir = environment())
         plotsF0 <- \(n1) { #n1 <- names(GO_tbls2)[1L] #n1 <- names(GO_tbls2)[2L]
           GOplts <- list()

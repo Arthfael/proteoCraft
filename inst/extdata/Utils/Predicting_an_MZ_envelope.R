@@ -1,5 +1,5 @@
 # This may evolve into a full function
-requireNamespace("proteoCraft")
+require(proteoCraft)
 
 RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")

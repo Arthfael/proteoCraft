@@ -16,7 +16,6 @@ if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
     dataType <- "PG"
     prtRfRoot %<o% { if (LocAnalysis) { Prot.Expr.Root2 } else { Prot.Expr.Root } }
     refRoot <- prtRfRoot
-    dirlist <- unique(c(dirlist, dir))
     datNm <- base::intersect(c("ComBat", "Imputed", #"Filtered",
                                "Original"),
                              names(clustDat[[dataType]]))[1L]
@@ -60,7 +59,7 @@ if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
   corMap <- corMap[!is.na(corMap$"Pearson corr."),]
   tmp <- myData[, g[2L:length(g)]]
   colnames(tmp) <- allSamples[2L:length(g)]
-  tmp <- reshape::melt(tmp, measure.vars = allSamples[2L:length(g)])
+  tmp <- dfMelt(tmp)
   scattrMap <- data.frame("Sample 1" = allSamples[1L],
                           "Sample 2" = tmp$variable,
                           "X" = myData[[g[1L]]],

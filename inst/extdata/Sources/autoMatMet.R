@@ -4,25 +4,27 @@ if (ProcessedByUs) { cat("Materials & Methods: (the user will be prompted for in
 # 1) Wet lab
 if (scrptType == "noReps") { nr <- nrow(SamplesMap) }
 if (scrptType == "withReps") { nr <- nrow(Exp.map) }
-MatMetCalls %<o% list(Calls = list("read_docx()",
-                                   paste0("body_add_fpar(MatMet, fpar(ftext(\"Sample", c("", "s")[(nr>1L)+1L],
+MatMetCalls %<o% list(Calls = list("officer::read_docx()",
+                                   paste0("officer::body_add_fpar(MatMet, officer::fpar(officer::ftext(\"Sample", c("", "s")[(nr>1L)+1L],
                                           " preparation\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))")),
                       Texts = list())
+WetLabMeth %<o% "TEMPLATE"
 if (ProcessedByUs) {
-  if (scrptType == "noReps") { WetLabMeth <- try(MatMet_WetLab(exp.map = SamplesMap), silent = TRUE) }
-  if (scrptType == "withReps") {
-    if (LabelType == "LFQ") { WetLabMeth <- try(MatMet_WetLab(), silent = TRUE) }
-    if (LabelType == "Isobaric") { WetLabMeth <- try(MatMet_WetLab(Label = IsobarLab), silent = TRUE) }
-  }
-  if (inherits(WetLabMeth, "try-error")) { WetLabMeth <- "TEMPLATE" }
-} else { WetLabMeth <- "TEMPLATE" }
+  tmp <- try(switch(scrptType,
+                    noReps = MatMet_WetLab(exp.map = SamplesMap),
+                    withReps = switch(LabelType,
+                                      LFQ = MatMet_WetLab,
+                                      Isobaric = MatMet_WetLab(Label = IsobarLab))),
+             silent = TRUE)
+  if (!inherits(tmp, "try-error")) { WetLabMeth <- tmp }
+}
 MatMetCalls$Texts$WetLab <- WetLabMeth
 for (i in 1L:length(WetLabMeth)) {
   MatMetCalls$Calls <- append(MatMetCalls$Calls,
-                              paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$WetLab[", i,"], prop = WrdFrmt$",
+                              paste0("officer::body_add_fpar(MatMet, officer::fpar(officer::ftext(MatMetCalls$Texts$WetLab[", i,"], prop = WrdFrmt$",
                                      c("Body", "Template_text")[(WetLabMeth[i] == "TEMPLATE")+1L], "_text), fp_p = WrdFrmt$just))"))
 }
-MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style = \"Normal\")")
+MatMetCalls$Calls <- append(MatMetCalls$Calls, "officer::body_add_par(MatMet, \"\", style = \"Normal\")")
 #
 # 2) LCMS
 if ((!exists("LCMS_instr")) || (!inherits(LCMS_instr, "list")) || (sum(c("LC", "MS") %in% names(LCMS_instr)) != 2L)) {
@@ -30,7 +32,7 @@ if ((!exists("LCMS_instr")) || (!inherits(LCMS_instr, "list")) || (sum(c("LC", "
                      MS = c())
 }
 MatMetCalls$Calls <- append(MatMetCalls$Calls,
-                            "body_add_fpar(MatMet, fpar(ftext(\"LC-MS/MS analysis\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))")
+                            "officer::body_add_fpar(MatMet, officer::fpar(officer::ftext(\"LC-MS/MS analysis\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))")
 LCMS_meth_lst <- try(MatMet_LCMS(cl = parClust), silent = TRUE)
 mzMLtst <- ("mzML" %in% gsub(".*\\.", "", rawFiles))
 if (mzMLtst) { # Fix for when we searched mzML-converted files
@@ -54,12 +56,12 @@ LCMS_instr %<o% LCMS_instr
 MatMetCalls$Texts$LCMS <- LCMS_meth
 for (i in 1L:length(LCMS_meth)) {
   MatMetCalls$Calls <- append(MatMetCalls$Calls,
-                              paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$LCMS[", i,
+                              paste0("officer::body_add_fpar(MatMet, officer::fpar(officer::ftext(MatMetCalls$Texts$LCMS[", i,
                                      "], prop = WrdFrmt$",
                                      c("Body", "Template_text")[(LCMS_meth[i] == "TEMPLATE")+1L],
                                      "_text), fp_p = WrdFrmt$just))"))
 }
-MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style = \"Normal\")")
+MatMetCalls$Calls <- append(MatMetCalls$Calls, "officer::body_add_par(MatMet, \"\", style = \"Normal\")")
 #
 # 3) Search
 MatMetCalls$Texts$DatAnalysis <- MatMet_Search
@@ -74,4 +76,4 @@ DatAnalysisTxt$Start <- if (length(SearchSoft) == 1L) {
     "The output PSMs tables from individual search engines were converted to similar formats and combined, then re-processed using in-house R scripts."
   }
 MatMetCalls$Calls <- append(MatMetCalls$Calls,
-                            "body_add_fpar(MatMet, fpar(ftext(\"Data analysis\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))")
+                            "officer::body_add_fpar(MatMet, officer::fpar(officer::ftext(\"Data analysis\", prop = WrdFrmt$Section_title), fp_p = WrdFrmt$just))")

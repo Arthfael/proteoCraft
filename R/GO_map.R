@@ -35,7 +35,7 @@ GO_map <- function(DB,
                    N.clust,
                    N.reserved = 1L) {
   TESTING <- FALSE
-  #DefArg(GO_map);DB <- db; TESTING <- TRUE
+  #DefArg(GO_map);DB <- db; cl = parClust; TESTING <- TRUE
   misFun <- if (TESTING) {
     # Note:
     # This is not a perfect alternative to missing but will work in most cases, unless x matches a function imported by a package 
@@ -44,7 +44,7 @@ GO_map <- function(DB,
   #
   # Create cluster
   stopCl <- FALSE
-  if ((is.null(cl))||(!inherits(cl, "cluster"))) {
+  if (misFun(cl) || is.null(cl) || (!inherits(cl, "cluster"))) {
     dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1L }
     nMax <- max(c(dc - N.reserved, 1L))
@@ -61,7 +61,7 @@ GO_map <- function(DB,
   #
   method <- toupper(method)
   Ont <- c("BP", "CC", "MF")
-  GenTst <- (!is.null(db_Gene_col))&&(db_Gene_col %in% colnames(DB))
+  GenTst <- (!is.null(db_Gene_col)) && (db_Gene_col %in% colnames(DB))
   # Note about the code below:
   # For consistency with GO_enrich, we now use topGO's function (which is also slightly faster)
   # However, the code for method "DIY" finds slightly more mappings, the latter which seemed correct when checked.
@@ -79,6 +79,10 @@ GO_map <- function(DB,
     Pr2GO <- aggregate(temp$L1, list(temp$value), c)
     Pr2GO <- setNames(Pr2GO$x, Pr2GO$Group.1)
     Pr2GO <- Pr2GO[lengths(Pr2GO) > 0]
+    topGO::groupGOTerms(where = .GlobalEnv)
+    GOBPTerm <- get("GOBPTerm", envir = .GlobalEnv)
+    GOCCTerm <- get("GOCCTerm", envir = .GlobalEnv)
+    GOMFTerm <- get("GOMFTerm", envir = .GlobalEnv)
     Prs2GO <- list(BP = topGO::annFUN.gene2GO("BP", names(Pr2GO), Pr2GO),
                    CC = topGO::annFUN.gene2GO("CC", names(Pr2GO), Pr2GO),
                    MF = topGO::annFUN.gene2GO("MF", names(Pr2GO), Pr2GO))

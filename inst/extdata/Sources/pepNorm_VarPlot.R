@@ -34,7 +34,6 @@ temp2$"Main charge" <- paste0("Z = ", tst2$x[match(pep$`Modified sequence`[w], t
 temp2$"Main charge" <- factor(temp2$"Main charge", levels = paste0("Z = ", as.character(1L:8L)))
 dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- unique(c(dirlist, dir))
 plot <- ggplot2::ggplot(temp2) +
   scattermore::geom_scattermore(ggplot2::aes(x = `log10(Mean)`, y = `log10(Variance)`, colour = `Strongest in...`),
                                 size = 1L, alpha = 1) + ggtitle(ttl, subtitle = rfnm) +

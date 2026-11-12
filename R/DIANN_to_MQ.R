@@ -2,7 +2,7 @@
 #'
 #' @description 
 #' Converts a diaNN PSMs table to a MaxQuant evidence.txt-like table.
-#' As with the other functions of this type, the idea is not to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.
+#' As with the other functions of this family, the idea is not necessarily to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.
 #' 
 #' @returns
 #' A list of 3 items:\cr
@@ -14,7 +14,7 @@
 #' For now they are either detected from the library file (same folder) or computed.
 #' Cysteine alkylation is assumed to be Carbamidomethyl
 #' 
-#' @param DIANN_fl External diaNN PSMs table file (.tsv, .parquet format, or both).
+#' @param DIANN_fl Path to a diaNN PSMs table file (.tsv, .parquet, or both).
 #' @param Fixed.mods A vector of those Fixed modifications which will not be reported in the results (reported by diaNN, but MQ ignores them). Default = "Carbamidomethyl"
 #' @param PG.Genes If TRUE, will include per Protein Group/Gene quantitative and Q-values columns. Default = FALSE, because we will mostly be using this function in contexts where we want to perform protein groups inference re-calculate quantitative values ourselves.
 #' @param Detect.Lib diaNN does not output M/Z values, but those are in the library generated at the end of some runs. If this is set to TRUE, it will try to detect the library and if available get M/Z values from there. Otherwise they will be computed.
@@ -25,7 +25,6 @@
 #' @param shinyOpt One of "popup" (default), "pane", "dialog", or "browser".
 #' @param digPattern Default = "KR" for trypsin. Only used for the "Missed cleavages" column. Vector of amino acids after which the enzyme cleaves. 
 #' @param log_Fl If missing, the function will try to detect the log file based on the name of the report - but this may fail!
-# #' @param useQuantUMS Logical. If missing, and QuantUMS data is detected, the user will be prompted for which to use.
 #' 
 #' @examples
 #' DIANN_fl <- rstudioapi::selectFile()
@@ -47,9 +46,7 @@ DIANN_to_MQ <- function(DIANN_fl,
                         cl,
                         shinyOpt = "popup",
                         digPattern = "KR",
-                        log_Fl#,
-                        #useQuantUMS
-) {
+                        log_Fl) {
   TESTING <- FALSE
   #DefArg(DIANN_to_MQ);TESTING <- TRUE; cl <- parClust
   #DIANN_fl <- PSMsFls
@@ -72,7 +69,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   #
   # Create cluster
   stopCl <- FALSE
-  if ((is.null(cl))||(!inherits(cl, "cluster"))) {
+  if (misFun(cl) || is.null(cl) || (!inherits(cl, "cluster"))) {
     dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1L }
     nMax <- max(c(dc - N.reserved, 1L))
@@ -92,11 +89,13 @@ DIANN_to_MQ <- function(DIANN_fl,
   rm(modifications)
   # Remove:
   # - substitutions
-  UniMod <- UniMod[grep("^[A-Z][a-z]{2}->[A-Z][a-z]{2} substitution$", UniMod$Description, invert = TRUE),]
+  gS <- grepl("^[A-Z][a-z]{2}->[A-Z][a-z]{2} substitution$", UniMod$Description)
+  UniMod_S <- UniMod[gS,]
+  UniMod <- UniMod[!gS,]
   # - deltas
-  g <- grepl("^Delta:", UniMod$Name)
-  UniMod_D <- UniMod[g,]
-  UniMod <- UniMod[!g,]
+  gD <- grepl("^Delta:", UniMod$Name)
+  UniMod_D <- UniMod[gD,]
+  UniMod <- UniMod[!gD,]
   #
   # Read PSMs (report file)
   wTsv <- grep("\\.tsv$", DIANN_fl)
@@ -148,42 +147,53 @@ DIANN_to_MQ <- function(DIANN_fl,
     libKol <- c()
     if (Detect.Lib) {
       if (file.exists(log_Fl)) {
-        DIANNLib_fl <- gsub(".+\\] Saving the library to |\\.speclib$", "", grep("\\] Saving the library to ", log, value = TRUE))
+        DIANNLib_fls <- gsub(".+\\] Saving the library to |\\.speclib$", "", grep("\\] Saving the library to ", log, value = TRUE))
+        DIANNLib_fls <- c(grep("\\.predicted$", DIANNLib_fls, value = TRUE, invert = TRUE),
+                          grep("\\.predicted$", DIANNLib_fls, value = TRUE))
         x <- sub("^lib ", "", grep("^lib ", diannCall, value = TRUE))
         x <- x[nchar(x) > 0L]
         if (length(x)) { diannCall <- c(diannCall, x) }
-        DIANNLib_fl <- gsub("\\\\", "/", DIANNLib_fl)
-        DIANNLib_fl <- unique(DIANNLib_fl[DIANNLib_fl != ""])
-        DIANNLib_fl <- unique(c(DIANNLib_fl, sub("\\.skyline$", "", DIANNLib_fl)))
-        if (length(DIANNLib_fl)) {
-          if (sum(dirname(DIANNLib_fl) != dirname(DIANN_fl))) {
-            DIANNLib_fl <- c(DIANNLib_fl, paste0(dirname(DIANN_fl), "/", basename(DIANNLib_fl)))
+        DIANNLib_fls <- gsub("\\\\", "/", DIANNLib_fls)
+        DIANNLib_fls <- base::setdiff(DIANNLib_fls, "")
+        DIANNLib_fls <- base::union(sub("\\.skyline$", "", DIANNLib_fls), DIANNLib_fls)
+        if (length(DIANNLib_fls)) {
+          if (sum(dirname(DIANNLib_fls) != dirname(DIANN_fl))) {
+            DIANNLib_fls <- c(DIANNLib_fls, paste0(dirname(DIANN_fl), "/", basename(DIANNLib_fls)))
           }
-          DIANNLib_fl <- as.character(sapply(DIANNLib_fl, \(x) { paste0(x, c(".tsv", ".parquet", "")) }))
-          DIANNLib_fl <- DIANNLib_fl[file.exists(DIANNLib_fl)]
-          if (length(DIANNLib_fl)) {
-            DIANNLib_fl <- DIANNLib_fl[1L]
-            if (grepl("\\parquet$", DIANNLib_fl)) {
-              tst <- try({ DIANNLib <- arrow::read_parquet(DIANNLib_fl) }, silent = TRUE)
-              if (!inherits(libTst, "try-error")) { # Should never happen...
-                tst <- try({ DIANNLib <- data.table::fread(DIANNLib_fl, integer64 = "numeric", check.names = FALSE, data.table = FALSE) }, silent = TRUE)
+          DIANNLib_fls <- DIANNLib_fls[file.exists(DIANNLib_fls)]
+          nLibs <- length(DIANNLib_fls)
+          if (nLibs) {
+            DIANNLibs <- lapply(DIANNLib_fls, \(diannLib_fl) { #diannLib_fl <- DIANNLib_fls[1L]
+              if (grepl("\\.parquet$", diannLib_fl)) {
+                diannLib <- arrow::read_parquet(diannLib_fl)
+              } else {
+                diannLib <- data.table::fread(diannLib_fl, integer64 = "numeric", check.names = FALSE, data.table = FALSE)
               }
-            } else {
-              tst <- try({ DIANNLib <- data.table::fread(DIANNLib_fl, integer64 = "numeric", check.names = FALSE, data.table = FALSE) }, silent = TRUE)
-              if (inherits(tst, "try-error")) {
-                tst <- try({ DIANNLib <- arrow::read_parquet(DIANNLib_fl) }, silent = TRUE)
-              }
+              return(diannLib)
+            })
+            DIANNLibs <- plyr::rbind.fill(DIANNLibs)
+            if (identical(c("Modified.Sequence", "ModifiedPeptideSequence") %in% colnames(DIANNLib),
+                          c("FALSE, TRUE"))) {
+              colnames(DIANNLib)[match("ModifiedPeptideSequence", colnames(DIANNLib))] <- "Modified.Sequence"
+            }
+            if (identical(c("Precursor.Charge", "PrecursorCharge") %in% colnames(DIANNLib),
+                          c("FALSE, TRUE"))) {
+              colnames(DIANNLib)[match("PrecursorCharge", colnames(DIANNLib))] <- "Precursor.Charge"
+            }
+            if (identical(c("Precursor.Mz", "PrecursorMz") %in% colnames(DIANNLib),
+                          c("FALSE, TRUE"))) {
+              colnames(DIANNLib)[match("PrecursorMz", colnames(DIANNLib))] <- "Precursor.Mz"
             }
             if ("transition_group_id" %in% colnames(DIANNLib)) {
               DIANNLib$transition_group_id <- gsub("\\[", "(", gsub("\\]", ")", DIANNLib$transition_group_id))
             } else {
-              DIANNLib$ModifiedPeptideSequence <- gsub("\\[", "(", gsub("\\]", ")", DIANNLib$ModifiedPeptideSequence))
-              DIANNLib$transition_group_id <- do.call(paste, c(DIANNLib[, c("ModifiedPeptideSequence", "PrecursorCharge")], sep = "+"))
+              DIANNLib$Modified.Sequence <- gsub("\\[", "(", gsub("\\]", ")", DIANNLib$Modified.Sequence))
+              DIANNLib$transition_group_id <- do.call(paste, c(DIANNLib[, c("Modified.Sequence", "Precursor.Charge")], sep = "+"))
             }
-            #a <- unique(unlist(strsplit(gsub("^[A-Z]*\\(|\\)[A-Z]*$|^[A-Z]+$", "", gsub("\\)[A-Z]*\\(", "_", DIANNLib$ModifiedPeptideSequence)), "_")))
+            #a <- unique(unlist(strsplit(gsub("^[A-Z]*\\(|\\)[A-Z]*$|^[A-Z]+$", "", gsub("\\)[A-Z]*\\(", "_", DIANNLib$Modified.Sequence)), "_")))
             tmp <- do.call(paste, c(DIANN[, c("Modified.Sequence", "Precursor.Charge")], sep = "+"))
             m <- match(tmp, DIANNLib$transition_group_id)
-            DIANN$"m/z" <- DIANNLib$PrecursorMz[m]
+            DIANN$"m/z" <- DIANNLib$Precursor.Mz[m]
             # Also library index + rt
             DIANN$"Library index" <- DIANNLib$transition_group_id[m]
             DIANN$"Library rt" <- if ("RetentionTime" %in% colnames(DIANNLib)) { DIANNLib$RetentionTime[m] } else {
@@ -223,6 +233,7 @@ DIANN_to_MQ <- function(DIANN_fl,
                    "Sequence" = DIANN$Stripped.Sequence,
                    "Mod. seq. (DiaNN format)" = DIANN$Modified.Sequence, # Useful for matching to other DiaNN outputs!
                    "Modified sequence" = paste0("_", DIANN$Modified.Sequence, "_"), # Will need some reprocessing further down
+                   "Modifications" = "Unmodified",
                    "Length" = nchar(DIANN$Stripped.Sequence),
                    "Charge" = DIANN$Precursor.Charge,
                    "PEP" = DIANN$PEP,
@@ -238,6 +249,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   #}
   # Process modifications
   wMod <- grep("\\(", EV$`Modified sequence`)
+  wNotMod <- base::setdiff(1L:nrow(EV), wMod)
   mWMod <- match(unique(EV$`Modified sequence`[wMod]), EV$`Modified sequence`)
   tmp <- data.frame(Seq = EV$Sequence[mWMod],
                     ModSeq = EV$`Modified sequence`[mWMod],
@@ -330,9 +342,9 @@ DIANN_to_MQ <- function(DIANN_fl,
       Mods$Options <- apply(Mods[, c("DM", "AA")], 1L, \(x) {
         dm <- as.numeric(x[[1L]])
         w <- if (substr(x[[2L]], 1L, 1L) == "_") {
-          which((abs(UniMod$MonoMass - dm) <= precVal)&(UniMod$Site %in% c(substr(x[[2L]], 2L, 2L), "N-term")))
+          which((abs(UniMod$MonoMass - dm) <= precVal) & (UniMod$Site %in% c(substr(x[[2L]], 2L, 2L), "N-term")))
         } else {
-          which((abs(UniMod$MonoMass - dm) <= precVal)&(UniMod$Site == x[[2L]]))
+          which((abs(UniMod$MonoMass - dm) <= precVal) & (UniMod$Site == x[[2L]]))
         }
         if (length(w)) {
           Ddm <- dm - UniMod$MonoMass[w]
@@ -421,15 +433,13 @@ DIANN_to_MQ <- function(DIANN_fl,
                           check.names = FALSE)
     allPTMs$UniMod <- NA
   }
-  allPTMs$Type <- "Variable"
-  allPTMs$Type[allPTMs$"Full name" %in% Fixed.mods] <- "Fixed"
-  allPTMs$Mark <- tolower(substr(allPTMs$"Full name", 1L, 2L))  
+  allPTMs$Type <- c("Variable", "Fixed")[(allPTMs$"Full name" %in% Fixed.mods) + 1L]
+  allPTMs$Mark <- tolower(substr(allPTMs$"Full name", 1L, 2L))
   ## Identify affected Amino Acids
+  uMdSq <- unique(EV$`Modified sequence`[wMod])
   if (modsType == "UniMod") {
     allPTMs$AA <- list(NA)
-    uMdSq <- unique(EV$`Modified sequence`)
     for (i in 1L:nrow(allPTMs)) { #i <- 1L
-      uMdSq <- unique(EV$`Modified sequence`)
       temp <- gsub(topattern(paste0("(", allPTMs$UniMod[i], ")"), start = FALSE),
                    ">>>.___", uMdSq)
       temp2 <- grep(">>>$", unlist(strsplit(temp, "\\.___")), value = TRUE)
@@ -493,7 +503,7 @@ DIANN_to_MQ <- function(DIANN_fl,
         taken <- unique(c(allPTMs$Mark, m$Mark))
         for (j in s) {
           tst <- paste0(tolower(m$AA[s]), char[kount])
-          while (((tst) %in% taken)&&(kount < length(char))) {
+          while ((tst %in% taken) && (kount < length(char))) {
             kount <- kount+1L
             tst <- paste0(tolower(m$AA[s]), char[kount])
           }
@@ -524,110 +534,96 @@ DIANN_to_MQ <- function(DIANN_fl,
     }
   }
   #
+  tmpLst <- listMelt(strsplit(uMdSq, "\\(|\\)"), ColNames = c("modSeq", "wh"))
+  tmpLst$Verbose <- tmpLst$modSeq
   if (modsType == "UniMod") {
-    tmpMds <- listMelt(allPTMs$AA, 1L:nrow(allPTMs), c("AA", "Row"))
-    kol <- c("UniMod", "Full name", "Mark")
-    #kol %in% colnames(allPTMs)
-    tmpMds[, c("UniMod", "Name", "Mark")] <- allPTMs[tmpMds$Row, kol]
-    w <- grep("^UniMod:", tmpMds$UniMod, invert = TRUE)
-    if (length(w)) {
-      tmpMds$UniMod[w] <- paste0("UniMod:", tmpMds$UniMod[w])
-    }
+    mtchKol <- "UniMod"
   }
   if (modsType == "StrangerThings") {
-    tmpMds <- listMelt(allPTMs$AA, 1L:nrow(allPTMs), c("AA", "Row"))
-    kol <- c("Full name", "Mark")
-    #kol %in% colnames(allPTMs)
-    tmpMds[, c("Name", "Mark")] <- allPTMs[tmpMds$Row, kol]
+    mtchKol <- "Name"
   }
   if (modsType == "No idea") {
-    tmpMds <- listMelt(allPTMs$`Old mark`, allPTMs$`Full name`, c("Old", "Name"))
-    tmpMds$Mark <- allPTMs$Mark[match(tmpMds$Name, allPTMs$`Full name`)]
+    mtchKol <- "Old"
   }
-  parallel::clusterExport(cl, list("tmpMds", "modsType"), envir = environment())
-  uMdSq <- unique(EV$`Modified sequence`[wMod])
-  temp1 <- strsplit(uMdSq, "\\(|\\)")
-  f0 <- \(x) {
-    #x <- temp1[[1L]]
-    x1 <- x2 <- unlist(x)
-    l <- length(x1)
-    rg <- c(1L:((l-1L)/2L))*2L
-    nc <- nchar(x1[rg-1L])
-    aa <- substr(x1[rg-1L], nc, nc)
-    if (nc[1L] == 1L) { aa[1L] <- substr(x1[3L], 1L, 1L) }
-    if (modsType == "UniMod") {
-      m <- match(x1[rg], tmpMds$UniMod)
-    }
-    if (modsType == "StrangerThings") {
-      m <- match(x1[rg], tmpMds$Name)
-    }
-    if (modsType == "No idea") {
-      m <- match(x1[rg], tmpMds$Old)
-    }
-    x1[rg] <- paste0("(", tmpMds$Mark[m], ")")
-    x2[rg] <- paste0("(", tmpMds$Name[m], ")")
-    x1 <- paste(x1, collapse = "")
-    x2 <- paste(x2, collapse = "")
-    return(c(x1, x2))
+  wV <- which(tmpLst$modSeq %in% allPTMs[allPTMs$Type == "Variable", mtchKol])
+  wF <- which(tmpLst$modSeq %in% allPTMs[allPTMs$Type == "Fixed", mtchKol])
+  if (length(wV)) {
+    mV <- match(tmpLst$modSeq[wV], allPTMs[[mtchKol]])
+    tmpLst$modSeq[wV] <- paste0("(", allPTMs$Mark[mV], ")")
+    tmpLst$Verbose[wV] <- paste0("(", allPTMs$"Full name"[mV], ")")
   }
-  environment(f0) <- .GlobalEnv
-  temp2 <- as.data.frame(t(parallel::parSapply(cl, temp1, f0)))
-  temp2 <- temp2[match(EV$`Modified sequence`[wMod], uMdSq),]
-  EV$`Modified sequence_verbose` <- paste0("_", EV$Sequence, "_")
-  EV$`Modified sequence`[wMod] <- temp2[, 1L]
-  EV$`Modified sequence_verbose`[wMod] <- temp2[, 2L]
+  if (length(wF)) {
+    mF <- match(tmpLst$modSeq[wF], allPTMs[[mtchKol]])
+    tmpLst$modSeq[wF] <- ""
+    tmpLst$Verbose[wF] <- paste0("(", allPTMs$"Full name"[mF], ")")
+  }
+  # Important: create data.tables individually, or use data.table::copy()
+  tmp1 <- data.table::as.data.table(tmpLst[, c("modSeq", "wh")])
+  tmp2 <- data.table::as.data.table(tmpLst[, c("Verbose", "wh")])
+  tmp3 <- tmpLst
+  tmp3$Mods <- gsub("^\\(|\\)$", "", tmp3$Verbose)
+  tmp3 <- tmp3[tmp3$Mods %in% allPTMs$"Full name", c("Mods", "wh")]
+  tmp3$Mods <- allPTMs$Mark[match(tmp3$Mods, allPTMs$"Full name")]
+  tmp3 <- data.table::as.data.table(tmp3)
+  tmp1 <- tmp1[, .(modSeq = paste0(modSeq, collapse = "")), by = .(wh = wh)]
+  tmp2 <- tmp2[, .(Verbose = paste0(Verbose, collapse = "")), by = .(wh = wh)]
+  tmp3 <- tmp3[, .(n = .N), by = .(wh = wh, Mods = Mods)]
+  tmp3$n <- as.character(tmp3$n)
+  tmp3$modTag <- tmp3$Mods
+  w2p <- which(tmp3$n != "1")
+  tmp3$modTag[w2p] <- do.call(paste, c(tmp3[w2p, c("n", "Mods")], sep = " "))
+  tmp3 <- tmp3[order(tmp3$Mods),]
+  tmp3 <- tmp3[, .(Mods = paste(modTag, collapse = ",")), by = .(wh = wh),]
+  tmp3 <- as.data.frame(tmp3)
+  tmp3 <- tmp3[order(tmp3$wh),]
+  EV$`Modified sequence_verbose` <- EV$"Modified sequence"
+  tmp1$Verbose <- tmp2$Verbose[match(tmp1$wh, tmp2$wh)]
+  tmp1$Mods <- tmp3$Mods[match(tmp1$wh, tmp3$wh)]
+  tmp1$Orig <- uMdSq[tmp1$wh]
+  uM <- match(EV$"Modified sequence"[wMod], tmp1$Orig)
+  stopifnot(sum(is.na(uM)) == 0L)
+  EV[wMod, c("Modified sequence", "Modified sequence_verbose", "Modifications")] <- tmp1[uM, c("modSeq", "Verbose", "Mods")]
   #
-  EV$Modifications <- "Unmodified"
-  uMdSq <- unique(EV$`Modified sequence`[wMod])
-  tempMod1 <- gsub("[_|\\)][A-Z]*[_|\\(]", ",", uMdSq)
-  tempMod2 <- strsplit(tempMod1, ",")
-  parallel::clusterExport(cl, "Fixed.mods", envir = environment())
-  f0 <- \(x) { x[!x %in% c("", Fixed.mods)] }
-  environment(f0) <- .GlobalEnv
-  tempMod2 <- parallel::parLapply(cl, tempMod2, f0)
-  if (modsType == "No idea") {
-    f0 <- \(x) {
-      tmpMds$Name[match(x, tmpMds$Mark)]
-    } 
-    environment(f0) <- .GlobalEnv
-    tempMod2 <- parallel::parLapply(cl, tempMod2, f0)
-  }
-  f0 <- \(x) {
-    if (!length(x)) { x <- "Unmodified" } else {
-      x <- aggregate(x, list(x), length)
-      x <- x[order(x$Group.1, decreasing = FALSE), 2L:1L]
-      x$x <- gsub("1 ", "", paste0(as.character(x$x), " "))
-      x <- paste0(apply(x, 1L, paste, collapse = ""), collapse = ",") 
-    }
-    return(x)
-  }
-  environment(f0) <- .GlobalEnv
-  tempMod3 <- parallel::parSapply(cl, tempMod2, f0)
-  EV$Modifications[wMod] <- tempMod3[match(EV$`Modified sequence`[wMod], uMdSq)]
-  # M/Z
+  # Mass, theoretical mass and M/Z
   #cat("   Calculating theoretical m/z values...\n")
-  parallel::clusterExport(cl, "allPTMs", envir = environment())
-  f0 <- \(x) {
-    x <- x[x != ""]
-    # x <- x[x != "UniMod:4"] # Don't filter out carbamidomethyl! Yes, by default Peptides::mz() can deal with it,
-    # but what if we use another? Since we are writing all PTM, including variable, in DiaNN, best to just calculate all from there!
-    return(sum(allPTMs$"Mass shift"[match(x, paste0("UniMod:", allPTMs$UniMod))])) # No na.rm = TRUE: if we fail to calculate, I want to see it
-  }
-  environment(f0) <- .GlobalEnv
-  tempMod4 <- parallel::parSapply(cl, tempMod2, f0)
-  tmp1 <- do.call(paste, c(EV[, c("Sequence", "Charge")], sep = "___"))
-  tmp2 <- unique(tmp1)
-  tmp3 <- EV[match(tmp2, tmp1), c("Sequence", "Charge")]                              
-  f0 <- \(x) { Peptides::mz(x[[1L]], as.integer(x[[2L]], cysteins = 0)) }
-  environment(f0) <- .GlobalEnv
-  tmp3 <- parallel::parApply(cl, tmp3, 1L, f0) # Peptides::mz doesn't like vectorization clearly
-  EV$"Theoretical m/z" <- tmp3[match(tmp1, tmp2)] 
-  EV$"Theoretical m/z"[wMod] <- EV$"Theoretical m/z"[wMod] + tempMod4[match(EV$`Modified sequence`[wMod], uMdSq)]/EV$Charge[wMod]
-  if (!"m/z" %in% colnames(EV)) { EV$"m/z" <- EV$"Theoretical m/z" }
-  w <- which(is.na(EV$"m/z"))
-  if (length(w)) { EV$"m/z"[w] <- EV$"Theoretical m/z"[w] }
+  EV$"Theoretical mass" <- NA_real_
+  tmp1 <- tmpLst[!tmpLst$Verbose %in% c("", "_"), c("Verbose", "wh")]
+  tmp1$Verbose <- gsub("^[(_]|[_)]$", "", tmp1$Verbose) # Verbose because it includes fixed mods!
+  tmp1 <- tmp1[tmp1$Verbose != "", c("Verbose", "wh")]
+  wPTM <- which(tmp1$Verbose %in% allPTMs$"Full name")
+  wSeq <- base::setdiff(1L:nrow(tmp1), wPTM)
+  tmp2 <- data.table::data.table(tmp1[wSeq,]) # We need to re-aggregate those fragments because the mass(PEPTIDER) = mass(PEP) + mass(TIDER)... - mass(H20) -> don't forget the water!!!
+  tmp1 <- tmp1[wPTM,]
+  tmp2 <- as.data.frame(tmp2[, .(Verbose = paste0(Verbose, collapse = "")), by = .(wh = wh)])
+  tmp1 <- rbind(tmp1, tmp2)
+  tmp1$Mass <- 0
+  # update
+  wPTM <- which(tmp1$Verbose %in% allPTMs$"Full name")
+  wSeq <- base::setdiff(1L:nrow(tmp1), wPTM)
   #
-  EV$Mass <- (EV$"m/z"-1.007276466879)*EV$Charge
+  tmp1$Mass[wPTM] <- allPTMs$`Mass shift`[match(tmp1$Verbose[wPTM], allPTMs$"Full name")]
+  uS <- base::union(tmp1$Verbose[wSeq], EV$Sequence[wNotMod])
+  mss <- parallel::parSapply(cl, uS, Peptides::mw, monoisotopic = TRUE)
+  tmp1$Mass[wSeq] <- mss[match(tmp1$Verbose[wSeq], uS)]
+  EV$"Theoretical mass"[wNotMod] <- mss[match(EV$Sequence[wNotMod], uS)]
+  tmp1 <- data.table::as.data.table(tmp1)
+  tmp1 <- tmp1[, .(Mass = sum(Mass)), by = .(wh = wh)]
+  tmp1$Orig <- sub("^_", "", sub("_$", "", uMdSq[tmp1$wh]))
+  uM <- match(EV$"Mod. seq. (DiaNN format)"[wMod], tmp1$Orig)
+  stopifnot(sum(is.na(uM)) == 0L)
+  EV$"Theoretical mass"[wMod] <- tmp1$Mass[uM]
+  EV$"Theoretical m/z" <- EV$"Theoretical mass"/EV$Charge + 1.007276466879
+  if ("m/z" %in% colnames(EV)) {
+    w <- which(is.na(EV$"m/z"))
+    if (length(w)) { EV$"m/z"[w] <- EV$"Theoretical m/z"[w] }
+    EV$Mass <- (EV$"m/z"-1.007276466879)*EV$Charge
+  } else {
+    colnames(EV)[match("Theoretical m/z", colnames(EV))] <- "m/z"
+    colnames(EV)[match("Theoretical mass", colnames(EV))] <- "Mass"
+  }
+  #View(EV[, c("Sequence", "Modified sequence", "Modified sequence_verbose", "Modifications")])
+  #View(EV[wMod, c("Sequence", "Modified sequence", "Charge", "Mass", "m/z")])
+  #
   # Retention time (in minutes, as in MaxQuant)
   EV$"Retention time" <- as.numeric(DIANN$RT)
   EV$"Retention time (predicted)" <- as.numeric(DIANN$Predicted.RT)
@@ -636,7 +632,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   EV$"Retention time (start)" <- as.numeric(DIANN$RT.Start)
   EV$"Retention time (end)" <- as.numeric(DIANN$RT.Stop)
   EV$"Retention length" <- EV$"Retention time (end)" - EV$"Retention time (start)"
-  # 
+  #
   EV$Reverse <- if ("Decoy" %in% colnames(DIANN)) {
     c("", "+")[as.logical(DIANN$Decoy)+1L]
   } else { "" }
@@ -717,6 +713,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   #
   EV$Type <- "LIB-DIA" # This may need to change if important; usually diaNN recommends library-free + MBR, not library-based searches;
   # Not sure if MaxQuant assigns a type for each different way to run DIA
+  #
   digPat <- paste(c("[", digPattern, "]"), collapse = "")
   tmp <- gsub(paste0(digPat, "$"), "", EV$Sequence)
   EV$"Missed cleavages" <- nchar(tmp) - nchar(gsub(digPat, "", tmp))
@@ -727,7 +724,7 @@ DIANN_to_MQ <- function(DIANN_fl,
     sort(DIANN_fl, decreasing = TRUE)[1L] # Provide default: there can be one or 2 files, the .tsv or .parquet, we want just one (ideally the .tsv)
   }
   # Optional: filter by delta score
-  if (("Delta score" %in% colnames(EV))&&(!is.na(Min.Delta.Score))) {
+  if (("Delta score" %in% colnames(EV)) && (!is.na(Min.Delta.Score))) {
     EV <- EV[EV$"Delta score" > Min.Delta.Score,]
   }
   #

@@ -18,7 +18,6 @@ if (length(ROCfilt_GOterms_Pos)) {
 if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
   cat("PSMs filtering using ROC analysis\n")
   dir <- paste0(wd, "/Workflow control/", evNm, "s/ROC analysis")
-  dirlist <- unique(c(dirlist, dir))
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   tmp <- data.table(Proteins = ev$Proteins, Sequence = ev$Sequence)
   tmp <- tmp[, .(Proteins = unique(Proteins)), by = .(Sequence = Sequence)]

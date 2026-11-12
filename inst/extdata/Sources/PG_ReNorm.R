@@ -26,10 +26,8 @@ accept_PG_reNorm %<o% accept_PG_reNorm
 if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
   dirPG <- paste0(wd, "/Workflow control/Protein groups/Renorm")
   if (!dir.exists(dirPG)) { dir.create(dirPG, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dirPG))
   dirPep <- paste0(wd, "/Workflow control/Peptides/PG-based renorm")
   if (!dir.exists(dirPep)) { dir.create(dirPep, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dirPep))
   #
   if (!exists("quantData_list")) { loadFun(myQuantBckpFl) }
   quantData <- quantData_list$Data

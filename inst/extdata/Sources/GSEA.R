@@ -71,7 +71,6 @@ ohDeer <- paste0(ohDeer, c("", "/svg"))
 for (dr in ohDeer) {
   if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
 }
-if (exists("dirlist")) { dirlist <- base::union(dirlist, ohDeer) }
 exports <- c("idCol", "rankCol", "keyType", "cpParam", "Annotate", "rdsFls")
 if (isOK) {
   if (Annotate) {
@@ -198,9 +197,7 @@ if (isOK) {
   if (Annotate) {
     readr::write_rds(term2Prot, rdsFls[2L])
     readr::write_rds(term2name, rdsFls[3L])
-  } else {
-    exports <- c(exports, "orgDBpkg")
-  }
+  } else { exports <- c(exports, "orgDBpkg") }
   source(parSrc)
   parallel::clusterExport(parClust, exports, envir = environment())
   invisible(parallel::clusterCall(parClust, \(x) {

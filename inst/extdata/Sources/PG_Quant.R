@@ -324,6 +324,7 @@ if (writeMatMeth && (!post_ReNorm_reRun)) {
     }
   }
   DatAnalysisTxt$PG_quant <- insrt
+  DatAnalysisTxt$PG_assemble <- sub("\\.$", "", DatAnalysisTxt$PG_assemble)
 }
 
 quantData <- quantData_list$Data

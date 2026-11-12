@@ -57,8 +57,9 @@
       temp1$Organism[g] <- temp1$Organism_Full[g] <- sub(" [A-Z]{2}=.+$", "", sub("^>.+OS=", "", temp1$Header[g]))
       g <- grep("[^_]+_[^_]+", temp1$"Full ID")
       temp1$Organism[g] <- gsub(".*_", "", temp1$"Full ID"[g])
-      unique(temp1$Organism_Full)
+      #unique(temp1$Organism_Full)
       temp1$Organism <- gsub(" +\\(.+", "", temp1$Organism)
+      #unique(temp1$Organism_Full)
       w <- which((nchar(temp1$Organism_Full) == 0L)&(nchar(temp1$Organism) > 0L))
       temp1$Organism_Full[w] <- temp1$Organism[w]
       temp1$TaxID <- NA_integer_

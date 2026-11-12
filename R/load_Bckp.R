@@ -11,14 +11,14 @@
 #' @param backup The backup file to reload. If missing, opens a popup selection window.
 #' @param startDir Here you can specify the directory in which the selection window will start.
 #' @param clean If set to TRUE (default), will first remove all objects existing in the current environment.
-#' @param loadPack Should we load packages? Default = TRUE
+#' @param loadPack Should we load packages? Default = FALSE
 #'
 #' @export
 
 load_Bckp <- function(backup,
                       startDir,
                       clean = TRUE,
-                      loadPack = TRUE) {
+                      loadPack = FALSE) {
   # Cleanup workspace here
   TESTING <- FALSE
   #DefArg(load_Bckp);TESTING <- TRUE
@@ -108,46 +108,49 @@ load_Bckp <- function(backup,
   }
   allCores <- parallel::detectCores()
   maxCores <- max(c(round(allCores*0.95)-1L, 1L)) # New slightly more conservative default
+  if (exists("cran_req") && ("data.table" %in% cran_req)) { data.table::setDTthreads(threads = maxCores) }
+  library(proteoCraft)
   if (loadPack) {
     if (exists("cran_req")) {
       for (pack in cran_req) {
-        if (!requireNamespace(pack)) { warning(loadTst) }
+        if (!requireNamespace(pack)) { warning(paste0("Package \"", pack, "\" isn't installed!")) }
       }
-      if ("data.table" %in% cran_req) { data.table::setDTthreads(threads = maxCores) }
     }
     if (exists("bioc_req")) {
       for (pack in bioc_req) {
-        if (!requireNamespace(pack)) { warning(loadTst) }
+        if (!requireNamespace(pack)) { warning(paste0("Package \"", pack, "\" isn't installed!")) }
       }
     }
-    library(proteoCraft)
   }
-  # Re-create parallel cluster
-  usePar <- FALSE
-  if (!sum(!c("parClust", "N.clust") %in% .obj)) {
-    #
-    # Check N.clust parameter validity
+  # Check N.clust parameter validity
+  if ("N.clust" %in% .obj) {
     N.clust <- try(as.integer(N.clust), silent = TRUE)
     if ((!exists("N.clust")) || (!is.numeric(N.clust)) || is.na(N.clust) || (N.clust < 1L) || (N.clust > maxCores)) {
       N.clust <- maxCores
     }
     assign("N.clust", N.clust, envir = .GlobalEnv) # Export
     if (exists("cran_req") && ("data.table" %in% cran_req)) { data.table::setDTthreads(threads = N.clust) }
-    #
+  }
+  # Re-create parallel cluster
+  usePar <- all(c("parClust", "N.clust") %in% .obj)
+  if (usePar) {
     # Do we already have a compatible cluster running?
-    if (exists("parClust") && exists("N.clust") && inherits(parClust, "cluster")) {
-      currNodes <- as.integer(sub(" .*", "", sub("socket cluster with ", "", capture.output(parClust))))
-      if (currNodes != N.clust) { parallel::stopCluster(parClust) } # Delete if there is one but is is incompatible
+    clusTst <- exists("parClust")
+    if (clusTst) {
+      if (exists("N.clust") && inherits(parClust, "cluster")) {
+        currNodes <- as.integer(sub(" .*", "", sub("socket cluster with ", "", capture.output(parClust))))
+        tst2 <- clustCheck(parClust)
+        if ((currNodes != N.clust) || (!tst2)) { # Delete if there is one but is is incompatible or broken
+          parallel::stopCluster(parClust)
+          clusTst <- FALSE
+        }
+      } 
     }
-    # If not, create it:
-    a <- 1
-    tst <- try(parallel::clusterExport(parClust, "a", envir = environment()), silent = TRUE)
-    if (inherits(tst, "try-error")) {
-      if (exists("parClust")) { try(parallel::stopCluster(parClust), silent = TRUE) }
+    # Create it if necessary:
+    if (!clusTst) {
       parClust <- parallel::makeCluster(N.clust, type = "SOCK")
       assign("parClust", parClust, envir = .GlobalEnv) # Export cluster
     }
-    usePar <- TRUE
   }
   #
   cat(paste0("Backup \"", bckp, "\" loaded, work directory set and packages loaded.\n"))

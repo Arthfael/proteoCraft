@@ -132,7 +132,6 @@ if (exists("PTMstats") && nrow(PTMstats)) {
     if (exists("F.test") && F.test) { modDirs <- c(modDirs, "/F-tests") }
     modDirs <-  paste0(wd, "/Reg. analysis/", ptm, modDirs)
     for (dr in modDirs) { if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }}
-    dirlist <- base::union(dirlist, modDirs)
     #
     Ptm <- ptmNms[ptm]
     g <- ptmsTst[[ptm]]
@@ -161,7 +160,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
     temp$`ModSeq*` <- strsplit(temp$`ModSeq*`, "")
     temp2 <- temp[, kol]
     source(parSrc)
-    parallel::clusterExport(parClust, list("temp2", "dbsmall", "ptmsh", "listMelt"), envir = environment())
+    parallel::clusterExport(parClust, list("temp2", "dbsmall", "ptmsh"), envir = environment())
     temp3 <- parallel::parApply(parClust, temp2, 1L, \(x) {
       #x <- temp[1L, kol]
       #A <- sapply(seq_len(nrow(temp)), \(i) {
@@ -861,7 +860,6 @@ if (exists("PTMstats") && nrow(PTMstats)) {
         myDir <- paste0(modDirs[1L], "/GO enrich/", tstrt)
         modDirs <- c(modDirs, myDir)
         if (!dir.exists(myDir)) { dir.create(myDir, recursive = TRUE) }
-        dirlist <- base::union(dirlist, myDir)
         filt <- PTMs_Reg_filters[[Ptm]][[tstrt]]
         #By <- c("By condition", "By reference", "By analysis", "Whole dataset")
         By <- "By condition"
@@ -883,10 +881,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
             if (length(flt)) {
               for (kol in Kol) { tmpdat[, kol] <- ptmpep[, kol] }
               flt <- flt[order(names(flt))]
-              reg <- setNames(lapply(flt, \(x) { list(x$Columns) }), names(flt))
-              reg <- reshape2::melt(reg)
-              colnames(reg) <- c("Name", "Bleh", "For")
-              reg$Bleh <- NULL
+              reg <- listMelt(lapply(flt, \(x) { x$Columns }), names(flt), c("Name", "For"))
               # PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]] <- paste0("Mean ", c(ptms.ratios.ref[length(ptms.ratios.ref)],
               #                                                           "log2(Ratio) - ")[tt])
               PTMs_GO_enrich.FCRt[[Ptm]][[tstbee]] <- ptms.ratios.ref

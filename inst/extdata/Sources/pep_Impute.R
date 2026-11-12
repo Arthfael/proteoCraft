@@ -5,7 +5,6 @@ if (Impute) {
   #
   dir <- paste0(wd, "/Workflow control/Peptides/Imputation")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dir))
   #
   ref <- pep.ref[length(pep.ref)]
   pat <- topattern(ref)

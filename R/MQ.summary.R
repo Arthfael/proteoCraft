@@ -397,7 +397,7 @@ MQ.summary <- function(wd,
         #
         # Create cluster
         stopCl <- FALSE
-        if (is.null(cl) || (!inherits(cl, "cluster"))) {
+        if (misFun(cl) || is.null(cl) || (!inherits(cl, "cluster"))) {
           dc <- parallel::detectCores()
           if (misFun(N.reserved)) { N.reserved <- 1L }
           nMax <- max(c(dc - N.reserved, 1L))
@@ -415,7 +415,6 @@ MQ.summary <- function(wd,
         #
         chromtypes <- setNames(c("tic", "bpc"),
                                c("TIC", "Base peak"))
-        parallel::clusterExport(cl, exports, envir = environment())
         f0 <- .bind_worker(.summaryWrkr1,
                            list(we = we,
                                 Raw = Raw,

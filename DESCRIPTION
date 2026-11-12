@@ -95,7 +95,6 @@ Imports:
     readr,
     renv,
     reshape,
-    reshape2,
     rhdf5,
     RJSONIO,
     rlang,

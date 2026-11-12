@@ -1,6 +1,6 @@
 # This script 
 requireNamespace("data.table")
-requireNamespace("proteoCraft")
+require(proteoCraft)
 
 wd <- "D:/Fasta_databases/Marchantia_polymorpha"
 setwd(wd)

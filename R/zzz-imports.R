@@ -63,8 +63,6 @@
   limma::voomaLmFit
   limma::qqt
   limma::plotMD
-  MASS::kde2d
-  MASS::fitdistr
   matrixStats::rowMins
   mgcv::gam
   mgcv::s
@@ -86,12 +84,10 @@
   pak::pak
   pak::pkg_remove
   pkgload::load_all
-  pkgload::is_dev_package
   png::readPNG
   prideR::get.ProjectSummary
   pROC::roc
   pROC::ggroc
-  processx::process
   pRoloc::addMarkers
   pRoloc::mrkHClust
   pRoloc::getMarkerClasses
@@ -129,6 +125,8 @@
   renv::project
   renv::snapshot
   renv::deactivate
+  reshape::melt.list
+  reshape::cast
   rhdf5::h5read
   RJSONIO::toJSON
   rsvg::rsvg_png

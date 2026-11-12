@@ -123,7 +123,6 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
   topTitle <- paste0("Venn diagram - ", names(II)[ii])
   infoKol <- base::intersect(infoKol, colnames(myData))
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- base::union(dirlist, dir)
   #
   setwd(dir)
   #View(myData[, paste0(myRef, VPAL$values)])
@@ -201,7 +200,6 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
   #
   dir2 <- paste0(dir, "/t-tests")
   if (!dir.exists(dir2)) { dir.create(dir2, recursive = TRUE) }
-  dirlist <- base::union(dirlist, dir2)
   setwd(dir2)
   wb <- openxlsx2::wb_workbook()
   wb$styles_mgr$add(HdrStlVenn, "Header_style")
@@ -313,7 +311,6 @@ for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
   if (F.test) {
     dir2 <- paste0(dir, "/F-test")
     if (!dir.exists(dir2)) { dir.create(dir2, recursive = TRUE) }
-    dirlist <- base::union(dirlist, dir2)
     setwd(dir2)
     wb <- openxlsx2::wb_workbook()
     wb$styles_mgr$add(HdrStlVenn, "Header_style")

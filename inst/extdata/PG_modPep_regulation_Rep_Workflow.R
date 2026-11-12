@@ -9,7 +9,6 @@ closeAllConnections()
 ## Load proteoCraft
 if (exists(".obj")) { rm(".obj") }
 library(proteoCraft)
-dirlist %<o% c() # This should go!!!
 # Get local work directory:
 ScriptPath %<o% normalizePath(gtools::script_file(), winslash = "/")
 RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
@@ -26,19 +25,15 @@ xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
 locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
 locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
 
-# Load backup?
-load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Re-load a backup?", "yesno")$res, c("yes", "no"))]
-if (load_a_Bckp) {
-  tst <- try({
-    locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
-    load_Bckp(startDir = locDirs$Path[match("Temporary folder", locDirs$Folder)])
-  }, silent = TRUE)
-  # Update values!
-  xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
-  locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
-  locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
-  ScriptPath <- normalizePath(gtools::script_file(), winslash = "/") # update
-}
+# Run local scripts at startup - keep this after loading the backup!
+locScrptSrc %<o% paste0(libPath, "/extdata/Sources/runLocScrpts.R")
+source(locScrptSrc)
+
+# Re-load backup?
+Src <- paste0(libPath, "/extdata/Sources/reloadBackup.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
+ScriptPath <- normalizePath(gtools::script_file(), winslash = "/") # must stay in top-level script!
 
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }
 parSrc %<o% paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
@@ -66,53 +61,53 @@ if(!exists("cran_req")) { cran_req <- "pak" }
 cran_req %<o% cran_req
 if(!exists("bioc_req")) { bioc_req <- c() } 
 bioc_req %<o% bioc_req
-cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT",
-                     "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "ggrepel", "rstudioapi", "modeest",
-                     "minpack.lm", "snow", "viridis", "imputeLCMD", "parallel", "coin", "openxlsx2", "plotly",
-                     "Peptides", "xml2", "statmod", "ggpolypath", "venn", "svDialogs", "htmlwidgets", "magrittr",
-                     "officer", "hexbin", "igraph", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
-                     "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "ssh", "taxize", "arrow", "PTMods",
-                     "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "iq", "Rtsne", "DEP", "svglite"))
-bioc_req <- unique(c(bioc_req, "biomaRt", "GO.db", "UniProt.ws", "limma", "sva", "qvalue", "MSnbase",
-                     "Rgraphviz", "RCy3", "siggenes", "DEqMS", "limpa", "QFeatures", "pRoloc", "pRolocGUI", "rbioapi", "png", "Rhdf5lib"))
-inst <- as.data.frame(installed.packages())
-for (pack in cran_req) {
-  if (!pack %in% inst$Package) {
-    if (pack %in% c("pak", "uchardet", "taxize", "DEP")) {
-      # Exceptions where for now we want a specific version to be installed,
-      # or have to help the installer so it finds the right location
-      if (pack == "pak") {
-        install.packages("pak", dependencies = TRUE)
-      }
-      if (pack == "uchardet") {
-        url <- "https://cran.r-project.org/src/contrib/Archive/uchardet/uchardet_1.1.1.tar.gz"
-        destfile <- "uchardet_1.1.1.tar.gz"
-        tst <- try(download.file(url, destfile, "curl"), silent = TRUE)
-        if (inherits(tst, "try-error")) { try(download.file(url, destfile, "wget"), silent = TRUE) }
-        install.packages(destfile, dependencies = TRUE)
-        unlink(destfile)
-      }
-      if (pack == "taxize") {
-        pak::pak("ropensci/bold", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
-        pak::pak("ropensci/taxize", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
-      }
-      if (pack == "DEP") {
-        pak::pak("arnesmits/DEP", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
-      }
-    } else {
-      tst <- try(pak::pak(pack, ask = FALSE, upgrade = TRUE, dependencies = TRUE), silent = TRUE)
-      if (inherits(tst, "try-error")) {
-        tst <- try(install.packages(pack, dependencies = TRUE), silent = TRUE)
-      }
-      if (inherits(tst, "try-error")) {
-        warning(paste0("Package ", pack, " wasn't installed properly, skipping..."))
-        cran_req <- base::setdiff(cran_req, pack)
-        bioc_req <- base::setdiff(bioc_req, pack)
-      }
-    }
-    inst <- as.data.frame(installed.packages())
-  }
-}
+# cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT",
+#                      "gplots", "ggplot2", "ggpubr", "gtools", "compiler", "stats", "ggrepel", "rstudioapi", "modeest",
+#                      "minpack.lm", "snow", "viridis", "imputeLCMD", "parallel", "coin", "openxlsx2", "plotly",
+#                      "Peptides", "xml2", "statmod", "ggpolypath", "venn", "svDialogs", "htmlwidgets", "magrittr",
+#                      "officer", "hexbin", "igraph", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
+#                      "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "ssh", "taxize", "arrow", "PTMods",
+#                      "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "iq", "Rtsne", "DEP", "svglite"))
+# bioc_req <- unique(c(bioc_req, "biomaRt", "GO.db", "UniProt.ws", "limma", "sva", "qvalue", "MSnbase",
+#                      "Rgraphviz", "RCy3", "siggenes", "DEqMS", "limpa", "QFeatures", "pRoloc", "pRolocGUI", "rbioapi", "png", "Rhdf5lib"))
+# inst <- as.data.frame(installed.packages())
+# for (pack in cran_req) {
+#   if (!pack %in% inst$Package) {
+#     if (pack %in% c("pak", "uchardet", "taxize", "DEP")) {
+#       # Exceptions where for now we want a specific version to be installed,
+#       # or have to help the installer so it finds the right location
+#       if (pack == "pak") {
+#         install.packages("pak", dependencies = TRUE)
+#       }
+#       if (pack == "uchardet") {
+#         url <- "https://cran.r-project.org/src/contrib/Archive/uchardet/uchardet_1.1.1.tar.gz"
+#         destfile <- "uchardet_1.1.1.tar.gz"
+#         tst <- try(download.file(url, destfile, "curl"), silent = TRUE)
+#         if (inherits(tst, "try-error")) { try(download.file(url, destfile, "wget"), silent = TRUE) }
+#         install.packages(destfile, dependencies = TRUE)
+#         unlink(destfile)
+#       }
+#       if (pack == "taxize") {
+#         pak::pak("ropensci/bold", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
+#         pak::pak("ropensci/taxize", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
+#       }
+#       if (pack == "DEP") {
+#         pak::pak("arnesmits/DEP", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
+#       }
+#     } else {
+#       tst <- try(pak::pak(pack, ask = FALSE, upgrade = TRUE, dependencies = TRUE), silent = TRUE)
+#       if (inherits(tst, "try-error")) {
+#         tst <- try(install.packages(pack, dependencies = TRUE), silent = TRUE)
+#       }
+#       if (inherits(tst, "try-error")) {
+#         warning(paste0("Package ", pack, " wasn't installed properly, skipping..."))
+#         cran_req <- base::setdiff(cran_req, pack)
+#         bioc_req <- base::setdiff(bioc_req, pack)
+#       }
+#     }
+#     inst <- as.data.frame(installed.packages())
+#   }
+# }
 ## Bioconductor packages:
 biocInstall %<o% function(pack, load = TRUE) {
   inst <- as.data.frame(installed.packages())
@@ -130,13 +125,9 @@ biocInstall %<o% function(pack, load = TRUE) {
   }
   if (load) { library(pack, character.only = TRUE) }
 }
-for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
+# for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
 
-# Run local scripts at startup - keep this after loading the backup!
-locScrptSrc %<o% paste0(libPath, "/extdata/Sources/runLocScrpts.R")
-source(locScrptSrc)
-
-# Set Shiny options, load functions for creating a Word report, create Excel styles
+# Set Shiny options, create Excel styles
 Src <- paste0(libPath, "/extdata/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
@@ -175,7 +166,6 @@ setwd(wd)
 # Log the current analysis:
 dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- base::union(dirlist, dir)
 start_date %<o% gsub(":", "-", gsub(" ", "_", Sys.time()))
 if (! paste0(wd, "/Workflow control/Data_analysis_log_", start_date, ".txt") %in% list.files()) {
   write(c(paste0("Data_analysis_log_", start_date), "__________________________", ""),
@@ -186,8 +176,10 @@ if (! paste0(wd, "/Workflow control/Data_analysis_log_", start_date, ".txt") %in
 sink(paste0("Workflow control/Data_analysis_log_", start_date, ".txt"), type = "output", append = TRUE, split = TRUE)
 
 # Create parallel processing cluster
+#rstudioapi::documentOpen(parSrc)
 source(parSrc)
-setDTthreads(threads = N.clust)
+requireNamespace("data.table")
+data.table::setDTthreads(threads = N.clust)
 
 # Load PSMs`
 Src <- paste0(libPath, "/extdata/Sources/Load_PSMs.R")
@@ -473,61 +465,10 @@ N_Pep %<o% N_Pep
 #
 tm1 <- Sys.time()
 
-splitByOrg <- WorkFlow == "MIXEDPROTEOME"
-pgSrc <- paste0(libPath, "/extdata/Sources/PG_Assemble.R")
-#rstudioapi::documentOpen(pgSrc)
-if (splitByOrg) {
-  uOrgs <- unique(db[[dbOrgKol]])
-  uOrgsNorm <- gsub("_+", "_", gsub("[<>,:\"/|?.\\\\]", "_", uOrgs))
-  stopifnot(length(uOrgsNorm) == length(uOrgs)) # Unhandled exception
-  names(uOrgsNorm) <- uOrgs
-  PGs_list <- list()
-  myTmpPepFilt <- listMelt(strsplit(pep$Proteins, ";"), ColNames = c("ID", "Row"))
-  myTmpPepFilt$Org <- db[match(myTmpPepFilt$ID, db$`Protein ID`), dbOrgKol]
-  for (currOrg in uOrgs) {
-    DB <- db[db[[dbOrgKol]] == currOrg,]
-    Pep <- pep[1L:nrow(pep) %in% myTmpPepFilt$Row[myTmpPepFilt$Org == currOrg],]
-    Ev <- ev[ev$`Modified sequence` %in% Pep$`Modified sequence`,]
-    source(pgSrc)
-    PGs_list[[currOrg]] <- PG_assembly
-  }
-  # Stitch database back together
-  db <- plyr::rbind.fill(lapply(PGs_list, \(x) { x$Database }))
-  # Protein groups
-  PGs <- lapply(PGs_list, \(x) { x$Protein.groups })
-  PG <- plyr::rbind.fill(PGs)
-  # Peptides and PSMs
-  # NB: For now we are allowing one razor protein group per organism!
-  #     Mainly because we are lazy and it doesn't sound too important.
-  #     True.
-  #     We will probably change this in the future.
-  kol <- c("Protein group IDs", "Razor protein group ID",
-           "Leading proteins", "Leading razor proteins",
-           "Protein names", "Protein names (all)", "Common protein names",
-           "Gene names", "Gene names (all)")
-  tmpPeps <- lapply(PGs_list, \(x) { x$Peptides[, c("Modified sequence", kol)] })
-  tmpPeps <- plyr::rbind.fill(tmpPeps)
-  tmpPeps <- as.data.table(tmpPeps)
-  for (k in kol) {
-    if (is.character(tmpPeps[[k]])) { tmpPeps[[k]] <- strsplit(tmpPeps[[k]], ";") }
-  }
-  tmpPeps <- tmpPeps[,
-                     lapply(.SD, \(x) { paste(unique(unlist(x)), collapse = ";") }),
-                     keyby = `Modified sequence`]
-  tmpPeps <- as.data.frame(tmpPeps)
-  pep[, kol] <- tmpPeps[match(pep$`Modified sequence`, tmpPeps$`Modified sequence`), kol]
-  ev[, kol] <- tmpPeps[match(ev$`Modified sequence`, tmpPeps$`Modified sequence`), kol]
-} else {
-  #rstudioapi::documentOpen(pgSrc)
-  source(pgSrc)
-  #loadFun("PG_assembly.RDS")
-  PG <- PG_assembly$Protein.groups
-  pep <- PG_assembly$Peptides
-  db <- PG_assembly$Database
-  if ("Evidences" %in% names(PG_assembly)) { ev <- PG_assembly$Evidences }
-}
-#
-PG %<o% PG
+#### Code chunk - Assemble protein groups
+Src <- paste0(libPath, "/extdata/Sources/PG_AssembleTop.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
 
 # Here would be a good place to check protein taxonomy and [if necessary/as per parameters] split hybrid groups!
 # Should be controlled by a parameter only showing up if taxonomy is present in db and has more than one value!
@@ -550,7 +491,6 @@ if (length(g)) {
   }
 }
 #
-DatAnalysisTxt$PG_assemble <- "Observed peptides were grouped and assembled into Protein Groups using a heuristic maximum parsimony algorithm."
 
 # Peptidoforms per Protein Group
 Src <- paste0(libPath, "/extdata/Sources/pep_per_PG.R")
@@ -560,7 +500,6 @@ source(Src)
 source(parSrc)
 tmp1 <- strsplit(pep$Proteins, ";")
 tmp2 <- db[db$"Protein ID" %in% unlist(tmp1), c("Protein ID", "Gene", "Name", "Common Name")]
-exports <- list("tmp1", "tmp2")
 parallel::clusterExport(parClust, "tmp2", envir = environment())
 tmp <- parallel::parSapply(parClust, tmp1, \(x) {
   m <- match(unlist(x), tmp2$"Protein ID")
@@ -604,8 +543,7 @@ for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
   }
   if (length(j) == 1L) {
     tmp4 <- db[[j]]
-    exports <- list("i", "tmp4")
-    parallel::clusterExport(parClust, exports, envir = environment())
+    parallel::clusterExport(parClust, list("i", "tmp4"), envir = environment())
     PG[[i]] <- parallel::parSapply(parClust, tmp, \(x) {
       x <- unlist(x)
       m1 <- match(x, tmp2)
@@ -710,7 +648,6 @@ PG$"Sequence (1st accession)" <- db$Sequence[m]
 source(parSrc)
 invisible(parallel::clusterCall(parClust, \() {
   library(proteoCraft)
-  library(reshape)
   library(data.table)
   return()
 }))
@@ -724,9 +661,8 @@ tmp <- as.data.table(tmp)
 tmp <- tmp[, .(Seq = list(Seq)), by = .(PG = PG)]
 temp_PG$Pep <- tmp$Seq[match(PG$id, tmp$PG)]
 temp_PG$Seq <- db$Sequence[match(temp_PG$Accession1, db$"Protein ID")]
-exports <- if (!"Sequence coverage [%]" %in% colnames(PG)) {
-  exports <- list("Coverage")
-  parallel::clusterExport(parClust, exports, envir = environment())
+if (!"Sequence coverage [%]" %in% colnames(PG)) {
+  source(parSrc)
   PG$"Sequence coverage [%]" <- round(100*parallel::parApply(parClust, temp_PG[, c("Seq", "Pep")], 1L, \(x) {
     Coverage(x[[1L]], x[[2L]])
   }), 1L)
@@ -752,7 +688,6 @@ if (CreateMSMSKol) {
 temp_ev <- ev[, c("id", "MQ.Exp", "Protein group IDs", "Peptide ID")]
 if (CreateMSMSKol) { temp_ev$"MS/MS IDs" <- ev$"MS/MS IDs" }
 temp_pep <- pep[, c("id", "Sequence")]
-parallel::clusterExport(parClust, exports, envir = environment())
 Samplez <- list(Sample = c(), Group = c())
 MQ_Exp <- list()
 for (gr in VPAL$values) { #gr <- VPAL$values[1L]
@@ -974,12 +909,11 @@ for (v in unique(test$variable)) {
     sum((test$value[wv] > binz[x]) & (test$value[wv] <= binz[x+1L]))
   }, 1L)
 }
-testI <- reshape2::melt(testI, id.vars = "log10(Expression)")
+testI <- dfMelt(testI, id.vars = "log10(Expression)")
 testI[, a] <- test[match(testI$variable, test$variable), a]
 testI$variable <- cleanNms(testI$variable)
 dir <- paste0(wd, "/Workflow control/Protein groups/Expression")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- base::union(dirlist, dir)
 ttl <- "Protein groups - distribution of Expression values"
 plot <- ggplot2::ggplot(testI) +
   ggplot2::geom_area(ggplot2::aes(x = `log10(Expression)`, y = value, fill = variable,
@@ -1031,7 +965,6 @@ testR <- dfMelt(testR, id.vars = "log2FC")
 colnames(testR)[colnames(testR) == "variable"] <- "Contrast"
 dir <- paste0(wd, "/Workflow control/Protein groups/Expression")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- base::union(dirlist, dir)
 ttl <- "Protein groups - distribution of Ratios"
 plot <- ggplot2::ggplot(testR) +
   ggplot2::geom_area(ggplot2::aes(x = log2FC, y = value, fill = Contrast,
@@ -1570,7 +1503,6 @@ if (("F.test" %in% colnames(Param)) && is.logical(Param$F.test) && (length(Param
 if (F.test) {
   dir <- paste0(wd, "/Reg. analysis/F-tests")
   for (d in dir) { if (!dir.exists(d)) { dir.create(d, recursive = TRUE) }}
-  dirlist <- base::union(dirlist, dir)
   cat("Running F-test\n")
   #
   if (("F.test_within" %in% colnames(Param)) && (Param$F.test_within != "")) {
@@ -1712,7 +1644,6 @@ for (tt in WhTsts) { #tt <- WhTsts[1L]
   stopifnot(!is.na(tstrt))
   dir <- paste0(wd, "/Reg. analysis/", tstrt)
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- base::union(dirlist, dir)
   filt <- Reg_filters[[tstrt]]
   By <- c("By condition", "By reference", "By analysis")
   By <- base::intersect(By, names(filt))
@@ -1809,7 +1740,6 @@ if (exists("Tim")) {
   cat("Time profile plots\n")
   dir <- paste0(wd, "/Time profile plots")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- base::union(dirlist, dir)
   r <- paste0("Mean ", Prot.Rat.Root)
   p <- pvalue.col[pvalue.use]
   a <- gsub("Tim", "", VPAL$aggregate)
@@ -1849,12 +1779,12 @@ if (exists("Tim")) {
         temp1 <- PG[test, c(col, Param$Plot.labels, t1)]
         temp1$IDs <- as.character(1L:nrow(temp1))
         temp2 <- PG[test, c(col, Param$Plot.labels, t2)]
-        temp1 <- reshape2::melt(temp1, id.vars = c(col, "IDs", Param$Plot.labels))
+        temp1 <- dfMelt(temp1, id.vars = c(col, "IDs", Param$Plot.labels))
         colnames(temp1)[colnames(temp1) == "value"] <- "log2(Ratio)"
         temp1$variable <- gsub_Rep(topattern(r, start = FALSE), "", as.character(temp1$variable))
-        temp2 <- reshape2::melt(temp2, id.vars = c(col, Param$Plot.labels))
+        temp2 <- dfMelt(temp2, id.vars = c(col, Param$Plot.labels))
         temp1$"-log10(Pvalue)" <- temp2$value[match(temp1$"Protein IDs", temp2$"Protein IDs")]
-        temp1[,o1] <- Isapply(strsplit(temp1$variable, "___"), unlist)
+        temp1[, o1] <- Isapply(strsplit(temp1$variable, "___"), unlist)
         temp[[i]] <- temp1
       }
     }
@@ -1942,9 +1872,10 @@ source(goSrc)
 modPepSrc <- paste0(libPath, "/extdata/Sources/modPeptides.R")
 #rstudioapi::documentOpen(modPepSrc)
 source(modPepSrc)
-
-saveFun(GO_plot_ly, GO_plot_ly_fl)
-rm(GO_plot_ly)
+if (exists("GO_plot_ly")) {
+  saveFun(GO_plot_ly, GO_plot_ly_fl)
+  rm(GO_plot_ly)
+}
 
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
@@ -2028,9 +1959,17 @@ source(bckpSrc)
 ## PSMs
 dir <- paste0(wd, "/Tables")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- base::union(dirlist, dir)
 w <- which(vapply(colnames(ev), \(x) { inherits(ev[[x]], "list") }, TRUE))
-if (length(w)) { for (i in w) { ev[[i]] <- parallel::parSapply(parClust, ev[[i]], paste, collapse = ";") } }
+if (length(w)) {
+  rg <- 1L:nrow(ev)
+  for (i in w) {
+    tmp <- listMelt(ev[[i]]) #tmp <- listMelt(strsplit(ev$Proteins, ";"))
+    tmp <- data.table::as.data.table(tmp)
+    tmp <- tmp[, .(x = paste(value, collapse = ";")), by = .(row = L1)]
+    ev[[i]] <- tmp$x[match(rg, tmp$row)]
+    #tst <- tmp$x[match(rg, tmp$row)]; identical(ev$Proteins, tst)
+  }
+}
 data.table::fwrite(ev, paste0(dir, "/evidence.tsv"), sep = "\t", row.names = FALSE, na = "NA")
 #
 ## Main peptidoforms- and protein groups-level, multi-tabs report
@@ -2127,7 +2066,6 @@ if (pkgsCheck["3d_Cov"]) {
 #   if (length(prot)) {
 #     dir <- paste0(wd, "/Evidences type tables")
 #     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-#     dirlist <- base::union(dirlist, dir)
 #     for (i in prot) {
 #       temp <- ev[grsep2(i, ev$"Leading proteins"),]
 #       temp <- sapply(unique(ev$Type), \(x) {
@@ -2139,16 +2077,12 @@ if (pkgsCheck["3d_Cov"]) {
 # }
 
 #### Code chunk - Finalize analysis and export results
+
 # Remove empty directories:
-#dirlist <- list.dirs()
-dirlist <- as.character(unlist(dirlist))
-dirlist <- dirlist[order(nchar(dirlist), decreasing = TRUE)]
-for (dir in dirlist) { #d <- dirlist[1L]
-  if (!length(list.files(dir))) {
-    unlink(dir, recursive = TRUE)
-    dirlist <- base::setdiff(dirlist, dir)
-  }
-}
+Src <- paste0(libPath, "/extdata/Sources/rmEmptyDirs.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
+
 # Save decisions - should this go?
 save(AllAnsw, file = "All_decisions.RData")
 

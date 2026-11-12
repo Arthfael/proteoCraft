@@ -995,7 +995,7 @@ make_ui1 <- \() {
                                   shiny::em("-> limma model formula: "),
                                   shiny::uiOutput("FORMULA")),
                     shiny::column(8L,
-                                  shinycssloaders::withSpinner(shiny::plotlyOutput("PSMsPCA", height = "600px")))),
+                                  shinycssloaders::withSpinner(plotly::plotlyOutput("PSMsPCA", height = "600px")))),
     shiny::br(),
     shiny::tags$hr(style = "border-color: black;"),
     shiny::h4(shiny::strong("Proteins of interest")),
@@ -1165,8 +1165,8 @@ make_ui1 <- \() {
                     shiny::h5(shiny::strong("Benjamini-Hochberg FDR thresholds")),
                     shinycssloaders::withSpinner(shiny::uiOutput("FDR")),
                     shiny::numericInput("FDR", "", 0.01, 0, 1),
-                    shiny::actionBttn("AddFDR", "Add threshold", color = "primary", size = "xs", style = "pill"),
-                    shiny::actionBttn("RemvFDR", "Remove threshold", color = "primary", size = "xs", style = "pill")),
+                    shinyWidgets::actionBttn("AddFDR", "Add threshold", color = "primary", size = "xs", style = "pill"),
+                    shinyWidgets::actionBttn("RemvFDR", "Remove threshold", color = "primary", size = "xs", style = "pill")),
       shiny::column(2L,
                     # shiny::radioButtons("typeOfThresh", "Ratios thresholds: use...", threshOpt, threshDflt, FALSE, "100%"),
                     # shiny::numericInput("RatCont", "Threshold value = ", KontRt, 0, 100, 0.001, width = "100%"),
@@ -1242,7 +1242,7 @@ make_ui1 <- \() {
     shiny::checkboxInput("AdvOptOn", "Advanced options", tstAdvOpt),
     shinycssloaders::withSpinner(shiny::uiOutput("AdvOpt")),
     shiny::br(),
-    shiny::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+    shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
     shiny::br(),
     shiny::br()
     # ,
@@ -1341,7 +1341,7 @@ server1 <- \(input, output, session) {
                                                          width = "90%"))),
         #shiny::h5(shiny::strong(shiny::em(paste(nrmSq2, collapse = " -> ")))),
         shiny::fluidRow(shiny::column(2L,
-                                      shiny::actionBttn("addClassicNorm", "Add normalisation", color = "primary", size = "xs", style = "pill"),
+                                      shinyWidgets::actionBttn("addClassicNorm", "Add normalisation", color = "primary", size = "xs", style = "pill"),
                                       shinyWidgets::pickerInput("ClassicNormMeth",
                                                                 "methods:",
                                                                 genPepNormMeth,
@@ -1356,7 +1356,7 @@ server1 <- \(input, output, session) {
                                                 "Use sum to normalize to total sample intensity.",
                                                 shiny::br())),
                         shiny::column(2L,
-                                      shiny::actionBttn("addVarCorr", "Add intensity-bias correction", color = "primary", size = "xs", style = "pill"),
+                                      shinyWidgets::actionBttn("addVarCorr", "Add intensity-bias correction", color = "primary", size = "xs", style = "pill"),
                                       shinyWidgets::pickerInput("VarCorrMeth",
                                                                 "methods:",
                                                                 shapePepNormMeth,
@@ -1369,7 +1369,7 @@ server1 <- \(input, output, session) {
                                                 "Avoid stacking several of these, which may introduce unwanted distortions!",
                                                 shiny::br())),
                         shiny::column(2L,
-                                      shiny::actionBttn("addComBat", "Add ComBat batch correction", color = "primary", size = "xs", style = "pill"),
+                                      shinyWidgets::actionBttn("addComBat", "Add ComBat batch correction", color = "primary", size = "xs", style = "pill"),
                                       shinyWidgets::pickerInput("ComBatBatch",
                                                                 "batches (select one or more):",
                                                                 Factors,
@@ -1380,7 +1380,7 @@ server1 <- \(input, output, session) {
                                                 shiny::br())),
                         if (LabelType == "Isobaric") {
                           shiny::column(2L,
-                                        shiny::actionBttn("addIRS", "Add IRS batch correction", color = "primary", size = "xs", style = "pill"),
+                                        shinyWidgets::actionBttn("addIRS", "Add IRS batch correction", color = "primary", size = "xs", style = "pill"),
                                         shiny::h5(shiny::em("IRS = Internal Reference Scaling")))
                         },
                         shiny::column(c(6L, 4L)[(LabelType == "Isobaric")+1L],
@@ -1545,7 +1545,7 @@ server1 <- \(input, output, session) {
   # Dynamic UI
   # Map Parameters to Factors
   output$QuantMsg <- updtQuantMsg(FALSE)
-  output$PSMsPCA <- shiny::renderPlotly(dimRedPlotLy$PSMs$"Samples PCA")
+  output$PSMsPCA <- plotly::renderPlotly(dimRedPlotLy$PSMs$"Samples PCA")
   output$RSA_msg <- updtRSAmsg(FALSE)
   output$FORMULA <- updtFORM(FALSE)
   output$FactMappings <- shiny::renderUI({ lstFct })
@@ -2460,17 +2460,17 @@ if (lVar) {
 
 # Override any optional analysis for which the package check was failed, independent of which value parameters may have
 # - Rerun package checks just in case
-pkgsCheck <- vapply(opt_Pkgs, \(pkgs) {
-  sum(!vapply(pkgs, \(pkg) { requireNamespace(pkg) }, TRUE))
-}, 1L) == 0L
+pkgsCheck %<o% vapply(optAnalyses, \(pkgs) {
+  suppressMessages(sum(!vapply(pkgs, \(pkg) { requireNamespace(pkg) }, TRUE))) == 0L
+}, TRUE)
 # - Then apply overrides if necessary
-if(!pkgsCheck["topGO"]) {
+if (("topGO" %in% names(pkgsCheck)) && (!pkgsCheck["topGO"])) {
   if (GOenrich) { warning("Turning off topGO-based GO enrichment:\n -> some necesary packages are missing") }
   if (globalGO) { warning("Turning off topGO-based GO enrichment:\n -> some necesary packages are missing") }
   GOenrich <- FALSE
   globalGO <- FALSE
 }
-if ((!CytoScape) || (!pkgsCheck["ClueGO"])) {
+if ((!CytoScape) || (("ClueGO" %in% names(pkgsCheck)) && (!pkgsCheck["ClueGO"]))) {
   if (runClueGO) {
     msg <- "Turning off clueGO:\n"
     if (!CytoScape) { msg <- paste0(, " -> Cytoscape is missing") }
@@ -2478,15 +2478,15 @@ if ((!CytoScape) || (!pkgsCheck["ClueGO"])) {
   }
   runClueGO <- FALSE
 }
-if (!pkgsCheck["GSEA"]) {
+if (("GSEA" %in% names(pkgsCheck)) && (!pkgsCheck["GSEA"])) {
   if (runGSEA) { warning("Turning off GSEA:\n -> some necesary packages are missing") }
   runGSEA <- FALSE
 }
-if (!pkgsCheck["WGCNA"]) {
+if (("WGCNA" %in% names(pkgsCheck)) && (!pkgsCheck["WGCNA"])) {
   if (runWGCNA) { warning("Turning off WGCNA:\n -> some necesary packages are missing") }
   runWGCNA <- FALSE
 }
-runSTRINGdb %<o% pkgsCheck["STRINGdb"] # Not currently implemented in this workflow
+runSTRINGdb %<o% (("STRINGdb" %in% names(pkgsCheck)) && (pkgsCheck["STRINGdb"])) # Not currently implemented in this workflow
 # pkgsCheck["Venn"] is being handled differently - for now not through a parameter but directly in the main script's body
 
 # Create sub-directories vector:
@@ -2501,7 +2501,6 @@ dir <- c("Workflow control/MA plots", paste0("Workflow control/", evNm, "s", c("
 enrichGO <- ("GO.enrichment" %in% colnames(Param)) && is.logical(Param$GO.enrichment) && Param$GO.enrichment
 globalGO %<o% (("GO.enrichment_Whole_dataset" %in% colnames(Param)) && is.logical(Param$GO.enrichment_Whole_dataset) && Param$GO.enrichment_Whole_dataset)
 if (enrichGO || globalGO) { dir <- c(dir, "Reg. analysis/GO enrich") }
-dirlist <- base::union(dirlist, paste0(wd, "/", dir))
 
 # Refresh list of interesting proteins:
 Src <- paste0(libPath, "/extdata/Sources/protList.R")

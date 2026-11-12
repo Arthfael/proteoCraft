@@ -3,18 +3,18 @@
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }
 N.clust %<o% N.clust
 # Check cluster
-tst1 <- exists("parClust")
-if (tst1) {
+clusTst <- exists("parClust")
+if (clusTst) {
   tst2 <- clustCheck(parClust)
   if (!tst2) {
     try({
       parallel::stopCluster(parClust)
       rm(parClust)
     }, silent = TRUE)
-    tst1 <- FALSE
+    clusTst <- FALSE
   }
 }
-if (!tst1) {
+if (!clusTst) {
   parClust %<o% parallel::makeCluster(N.clust, type = "SOCK")
 }
 #invisible(parallel::clusterCall(parClust, \() { NULL }))
@@ -30,12 +30,12 @@ if (!exists("validLogicPar")) {
 # (can take a while to run)
 if (!validLogicPar("loadpack")) { loadpack <- FALSE }
 if (loadpack) {
-  pck <- c()
-  if (exists("cran_req")) { pck <- base::union(pck, cran_req) }
-  if (exists("bioc_req")) { pck <- base::union(pck, bioc_req) }
-  if (length(pck)) {
-    parallel::clusterExport(parClust, "pck", envir = environment())
-    invisible(parallel::clusterCall(parClust, \() { lapply(pck, requireNamespace) }))
+  pkgs <- c()
+  if (exists("cran_req")) { pkgs <- base::union(pkgs, cran_req) }
+  if (exists("bioc_req")) { pkgs <- base::union(pkgs, bioc_req) }
+  if (length(pkgs)) {
+    parallel::clusterExport(parClust, "pkgs", envir = environment())
+    invisible(parallel::clusterCall(parClust, \() { lapply(pkgs, requireNamespace) }))
   }
 }
 
@@ -44,13 +44,14 @@ if (!exists("useLocalFun")) { useLocalFun %<o% FALSE }
 if (useLocalFun && exists("locPkgPath") && dir.exists(locPkgPath)) {
   pkgload::load_all(locPkgPath, quiet = TRUE)
   parallel::clusterExport(parClust, "locPkgPath", envir = environment())
-  isDev <- unlist(parallel::clusterCall(parClust, \() { pkgload::is_dev_package("proteoCraft") }))
-  if (!all(isDev)) {
+  # Below: check commented because, even if this is already a dev version, we MUST check that we have the latest versions!
+  #isDev <- unlist(parallel::clusterCall(parClust, \() { pkgload::is_dev_package("proteoCraft") }))
+  #if (!all(isDev)) {
     invisible(parallel::clusterCall(parClust, \() {
       pkgload::load_all(locPkgPath, quiet = TRUE)
       return(NULL)
     }))
-  }
+  #}
 } else {
-  invisible(parallel::clusterCall(parClust, \() { requireNamespace("proteoCraft") })) # otherwise this is handled by parSrc
+  invisible(parallel::clusterCall(parClust, \() { require(proteoCraft) }))
 }

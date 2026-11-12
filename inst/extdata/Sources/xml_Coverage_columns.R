@@ -18,7 +18,7 @@ for (grp in Grps) { #grp <- VPAL$values[1L]
   temp1$"Peptide IDs" <- strsplit(temp1$"Peptide IDs", ";")
   tmp <- listMelt(temp1$`Peptide IDs`, 1L:nrow(temp1))
   requireNamespace("data.table")
-  tmp <- data.table(Row = as.integer(tmp$L1), pepID = tmp$value)
+  tmp <- data.table::data.table(Row = as.integer(tmp$L1), pepID = tmp$value)
   tmp$Seq <- pep$Sequence[match(tmp$pepID, pep$id)]
   tmp <- tmp[, .(Seq = list(Seq)), keyby = .(Row)]
   tmp <- as.data.frame(tmp)
@@ -28,12 +28,11 @@ for (grp in Grps) { #grp <- VPAL$values[1L]
 tmpLs <- plyr::rbind.fill(tmpLs)
 tmpLs <- tmpLs[, c("Sequence", "PepSeq")]
 source(parSrc)
-#parallel::clusterExport(parClust, "Coverage", envir = environment())
 res <- parallel::parApply(parClust, tmpLs[, c("Sequence", "PepSeq")], 1L, \(x) { #x <- tmpLs[1L, c("Sequence", "PepSeq")]
   prsq <- x[[1L]]
   ppsq <- x[[2L]]
   if (!is.na(prsq)) {
-    rs <- proteoCraft::Coverage(prsq, ppsq, "XML", colour = "#006666")
+    rs <- Coverage(prsq, ppsq, "XML", colour = "#006666")
   } else {
     rs <- list(openxlsx2::fmt_txt("", color = openxlsx2::wb_color(hex = "grey")))
   }
@@ -57,9 +56,8 @@ tst <- setNames(lapply(xmlCovCol, \(x) {
     inherits(try(openxlsx2::as_xml(y), silent = TRUE), "try-error")
   })), NULL)
 }), cleanNms(xmlCovCol, start = FALSE))
-sapply(tEst, length)
-tmp <- fmt_txt("This sequence is too long to display in an Excel cell!",
-               bold = TRUE, italic = TRUE, color = wb_colour("red"))
+tmp <- openxlsx2::fmt_txt("This sequence is too long to display in an Excel cell!",
+                          bold = TRUE, italic = TRUE, color = openxlsx2::wb_colour("red"))
 for (kol in xmlCovCol) { #kol <- xmlCovCol[1L]
   w <- tst[[cleanNms(kol, start = FALSE)]]
   if (length(w)) { PG[w, kol] <- tmp }

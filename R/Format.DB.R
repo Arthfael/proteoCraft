@@ -149,7 +149,7 @@ Format.DB <- function(file,
   }
   if (parallel) {
     stopCl <- FALSE
-    if (is.null(cl) || (!inherits(cl, "cluster"))) {
+    if (misFun(cl) || is.null(cl) || (!inherits(cl, "cluster"))) {
       dc <- parallel::detectCores()
       if (misFun(N.reserved)) { N.reserved <- 1L }
       nMax <- max(c(dc - N.reserved, 1L))
@@ -178,7 +178,7 @@ Format.DB <- function(file,
     batChes <- list(Batch1 = DB)
   }
   if (parallel) {
-    xports <- list("Roolz", "IDs_only", "MODE", "Unique", "nms.list", "trimName", "Isapply")
+    xports <- list("Roolz", "IDs_only", "MODE", "Unique", "nms.list", "trimName")
     parallel::clusterExport(cl, xports, envir = environment())
     if (verbose) { cat(" Running parallel...\n") }
     f0 <- .bind_worker(.Format.DB_worker,
@@ -208,8 +208,7 @@ Format.DB <- function(file,
   res <- plyr::rbind.fill(res)
   #
   # Backup code in case we do not have an Organism column yet
-  if (!"Organism" %in% colnames(res)) {
-    # Not clean but a last resort cheat - this is likely to go wrong often
+  if ((!"Organism" %in% colnames(res)) && (!in.env)) {
     res$Organism <- gsub("_", " ", unlist(strsplit(sub(".*/", "", file), "\\."))[1L])
   }
   #

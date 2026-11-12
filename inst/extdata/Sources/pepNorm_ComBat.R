@@ -8,7 +8,6 @@ txt2 <- ""
 #
 btchDir <- paste0(nrmDr, "/Step ", nrmStp, " - Batch corr.")
 if (!dir.exists(btchDir)) { dir.create(btchDir, recursive = TRUE) }
-dirlist <- base::union(dirlist, btchDir)
 #
 # Let's do some imputation:
 # (remember to remove those afterwards!)
@@ -122,7 +121,7 @@ ui <- shiny::fluidPage(
   shiny::br(),
   shiny::fluidRow(shiny::column(5L,
                                 shiny::checkboxInput("KeepResults", msg, KeepComBatRes),
-                                shiny::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
+                                shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
                                 shiny::h4("Recommended criteria:"),
                                 shiny::h5(shiny::HTML("&nbsp;Does the original grouping follow known batches?")),
                                 shiny::h5(shiny::HTML("&nbsp;&nbsp;-> If no: only accept the correction if it improves the apparent grouping of expected sample groups.")),
@@ -132,15 +131,15 @@ ui <- shiny::fluidPage(
                                 shinycssloaders::withSpinner(DT::DTOutput("PCs")))),
   shiny::br(),
   shiny::fluidRow(shiny::column(6L,
-                  shinycssloaders::withSpinner(shiny::plotlyOutput("Before", height = "600px"))),
+                                shinycssloaders::withSpinner(plotly::plotlyOutput("Before", height = "600px"))),
                   shiny::column(6L,
-                  shinycssloaders::withSpinner(shiny::plotlyOutput("After", height = "600px")))),
+                                shinycssloaders::withSpinner(plotly::plotlyOutput("After", height = "600px")))),
   shiny::br(),
   shiny::br()
 )
 server <- \(input, output, session) {
-  output$Before <- shiny::renderPlotly(PCAlyLst[["original"]][[myBatch2]])
-  output$After <- shiny::renderPlotly(PCAlyLst[[myBatch2]][[myBatch2]])
+  output$Before <- plotly::renderPlotly(PCAlyLst[["original"]][[myBatch2]])
+  output$After <- plotly::renderPlotly(PCAlyLst[[myBatch2]][[myBatch2]])
   output$PCs <- DT::renderDT({ PCs },
                              FALSE,
                              escape = FALSE,
@@ -153,14 +152,14 @@ server <- \(input, output, session) {
                                paging = FALSE,
                                ordering = FALSE
                              ),
-      #                        callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
-      #   var $this = $(this.node());
-      #   $this.attr('id', this.data()[0]);
-      #   $this.addClass('shiny-input-container');
-      # });
-      # Shiny.unbindAll(table.table().node());
-      # Shiny.bindAll(table.table().node());")
-      )
+                             #                        callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
+                             #   var $this = $(this.node());
+                             #   $this.attr('id', this.data()[0]);
+                             #   $this.addClass('shiny-input-container');
+                             # });
+                             # Shiny.unbindAll(table.table().node());
+                             # Shiny.bindAll(table.table().node());")
+  )
   shiny::observeEvent(input[["KeepResults"]], {
     assign("KeepComBatRes", as.logical(input[["KeepResults"]]), envir = .GlobalEnv)
   })

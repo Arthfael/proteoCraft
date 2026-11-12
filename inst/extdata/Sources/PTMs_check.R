@@ -7,7 +7,6 @@ tstEnrich <- unique(FracMap$`PTM-enriched`)
 tstEnrich <- tstEnrich[(!is.na(tstEnrich)) & (tstEnrich != "NA")]
 if (length(tstEnrich)) {
   dir <- paste0(wd, "/Summary plots")
-  dirlist <- unique(c(dirlist, dir))
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
   for (Mod in tstEnrich) { #Mod <- tstEnrich[1L]
     pat <- paste0("\\(", Modifs$Mark[match(Mod, Modifs$`Full name`)], "\\)")
@@ -103,7 +102,6 @@ temp <- Modifs
 w <- which(vapply(colnames(Modifs), \(x) { inherits(Modifs[[x]], "list") }, TRUE))
 for (i in w) { temp[[i]] <- vapply(temp[[i]], paste, "", collapse = ", ") }
 dir <- paste0(wd, "/Workflow control")
-dirlist <- unique(c(dirlist, dir))
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 write.csv(temp, paste0(dir, "/Modifications.csv"), row.names = FALSE)
 
@@ -132,7 +130,6 @@ if (LabelType == "Isobaric") {
 }
 # Plot of contamination levels per sample
 dir <- paste0(wd, "/Summary plots")
-dirlist <- unique(c(dirlist, dir))
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
 tmp2 <- listMelt(strsplit(tmp$Proteins, ";"), 1L:nrow(tmp), c("Protein", "Row"))
 m <- match(tmp2$Protein, db$`Protein ID`)

@@ -43,10 +43,10 @@
     qKol <- grep(topattern(ref), colnames(myData), value = TRUE)
     if (dataType == "PG") {
       nKol <- sub(topattern(ref), "Peptides count - ", qKol)
-      myData2 <- reshape::melt(myData[, c(varkol, nKol)], id.vars = varkol)
+      myData2 <- dfMelt(myData[, c(varkol, nKol)], id.vars = varkol)
     }
     #
-    myData <- reshape::melt(myData[, c(varkol, qKol)], id.vars = varkol)
+    myData <- dfMelt(myData[, c(varkol, qKol)], id.vars = varkol)
     colnames(myData)[match("variable", colnames(myData))] <- "Sample"
     myData$Sample <- gsub_Rep(topattern(ref), "", myData$Sample)
     if (scrptType == "withReps") {
@@ -259,7 +259,7 @@
       evPlot_txt <- plotEval(plot_txt)
       myRes <- list(title = ttl,
                     # path = pth,
-                    # ggCall = ggCall_txt,
+                    #ggCall = ggCall_txt,
                     # ggPlot = evPlot_txt,
                     # ggPlot_no_text = evPlot,
                     # dpi = 150L,
@@ -308,11 +308,11 @@
     # if (tstReg) {
     #   myData2 <- myData[, c(rgKol, varkol)]
     #   colnames(myData2)[1L] <- sub(topattern(ref), "", colnames(myData2)[1L])
-    #   myData2 <- reshape::melt(myData2, id.vars = varkol)
+    #   myData2 <- dfMelt(myData2, id.vars = varkol)
     #   colnames(myData2) <- c(varkol, "Sample", "Reg")
     # }
     colnames(myData)[1L] <- sub(topattern(ref), "", colnames(myData)[1L])
-    myData <- reshape::melt(myData, id.vars = varkol)
+    myData <- dfMelt(myData, id.vars = varkol)
     colnames(myData) <- c(varkol, "Sample", "Y")
     # if (tstReg) {
     #   myData$Regulated <- myData2$Reg

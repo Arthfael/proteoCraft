@@ -7,7 +7,7 @@
 ################################################################
 
 # Packages
-requireNamespace("proteoCraft")
+require(proteoCraft)
 
 # Library paths
 RPath <- as.data.frame(library()$results)

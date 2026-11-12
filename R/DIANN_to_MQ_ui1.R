@@ -27,5 +27,5 @@
                                                                        NULL,
                                                                        c("yes", "no"),
                                                                        dflt))),
-                     shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill")))))
+                     shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill")))))
 }

@@ -61,7 +61,6 @@ grps <- sort(unique(data[[Grpkol]]))
 cat("Drawing MA plots...\n")
 dir <- paste0(wd, "/Workflow control/MA plots")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- unique(c(dirlist, dir))
 #
 requireNamespace("data.table")
 for (grp in grps) { #grp <- grps[1L]

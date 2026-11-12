@@ -12,7 +12,6 @@ setwd(wd)
 GraphTypes %<o% c("Functional", "Physical")
 dirs <- paste0(wd, "/STRINGdb/", GraphTypes)
 for (dir in dirs) { if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) } }
-dirlist <- base::union(dirlist, dir)
 # Process filters for STRINGdb
 intNets <- list()
 Tsts <- c("t-tests", "F-tests", "Localisation", "SAINTexpress")
@@ -177,7 +176,7 @@ if (length(WhTsts) && length(allProteins_mapped)) {
     txidsTst <- (length(unique(filtersDF$TaxID)) > 1L)+1L
     source(parSrc)
     parallel::clusterExport(parClust,
-                            c("wd", "filtersDF", "allProteins_mapped", "tmpPG", "GraphTypes", "Exp", "txidsTst", "cleanNms", "topattern"),
+                            c("wd", "filtersDF", "allProteins_mapped", "tmpPG", "GraphTypes", "Exp", "txidsTst"),
                             envir = environment())
     tstSTRINGs <- parallel::parLapply(parClust, 1L:nr, \(i) { #i <- 1L #i <- 4L #i <- 10L #i <- 11L
       fltNm <- cleanNms(filtersDF$Name[i], rep = "_")
@@ -334,7 +333,6 @@ if (length(WhTsts) && length(allProteins_mapped)) {
         dirs <- paste0(wd, "/STRINGdb/", GraphTypes) # These are Cytoscape versions of STRINGdb graphs,
         # the logical place to save them is in STRINGdb!!!
         for (dir in dirs) { if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) } }
-        dirlist <- base::union(dirlist, dir)
         #
         # Use Cytoscape to represent networks of gated proteins with overlayed logFC
         cat("Creating Cytoscape network .cx files...\n")

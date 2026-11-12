@@ -23,19 +23,18 @@ plot <- ggplot2::ggplot(tmp) +
   ggplot2::theme_bw() + ggplot2::ggtitle(ttl) +
   #ggplot2::geom_text(data = tmp2, ggplot2::aes(x = X, y = Y, label = Txt), hjust = 1, size = 3L) +
   ggplot2::geom_text(label = tmpTxt,
-            x = max(as.numeric(tmp2$Value[match("Max.", tmp2$Variable)]))*0.8,
-            y = max(tmp$"Protein groups")*0.8,
-            hjust = 0.5,
-            vjust = 0.5,
-            size = 3L) +
+                     x = max(as.numeric(tmp2$Value[match("Max.", tmp2$Variable)]))*0.8,
+                     y = max(tmp$"Protein groups")*0.8,
+                     hjust = 0.5,
+                     vjust = 0.5,
+                     size = 3L) +
   ggplot2::scale_fill_identity() +
   ggplot2::scale_x_continuous(breaks = seq(10L, floor(max(tmp$`Peptides count`)/10L)*10L, by = 10L),
-                              expand = expansion(mult = c(0, 0.05))) +
-  ggplot2::scale_y_continuous(expand = expansion(mult = c(0, 0.05)))
+                              expand = ggplot2::expansion(mult = c(0, 0.05))) +
+  ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0.05)))
 # ggplot2::coord_trans(x = "log10", y = "log10")
 poplot(plot, 12L, 22L) # This type of QC plot does not need to pop up, the side panel is fine
 qcDir <- paste0(wd, "/Summary plots")
-if (scrptType == "withReps") { dirlist <- base::union(dirlist, qcDir) }
 if (!dir.exists(qcDir)) { dir.create(qcDir, recursive = TRUE) }
 suppressMessages({
   ggplot2::ggsave(paste0(qcDir, "/", ttl, ".svg"), plot, dpi = 300L)

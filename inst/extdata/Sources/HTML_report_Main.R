@@ -35,24 +35,29 @@ funFile <- paste0(libPath, "/extdata/Sources/HTML_report_Fun.R")
 # obj2Xport <- base::intersect(obj2Xport, ls())
 
 # Materials and methods object
-MatMetCalls$Texts$DatAnalysis <- if (exists("matmethTxt") && (!is.null(matmethTxt$"Data analysis"))) {
-  strsplit(matmethTxt$"Data analysis", "\n")
+#MatMetCalls$Texts$WetLab <- 
+#MatMetCalls$Texts$LCMS <- MatMet_Search
+MatMetCalls$Texts$DatAnalysis <- if (exists("matmethTxt") && (!is.null(matmethTxt["Data analysis"]))) {
+  unlist(strsplit(matmethTxt["Data analysis"], "\n"))
 } else {
   c(MatMetCalls$Texts$DatAnalysis, paste(unlist(DatAnalysisTxt), collapse = " "))
 }
+MatMetCalls$Texts$DatAnalysis <- unlist(MatMetCalls$Texts$DatAnalysis) # safety
 for (i in seq_along(MatMetCalls$Texts$DatAnalysis)) {
   MatMetCalls$Calls <- append(MatMetCalls$Calls,
-                              paste0("body_add_fpar(MatMet, fpar(ftext(MatMetCalls$Texts$DatAnalysis[", i,"], prop = WrdFrmt$",
+                              paste0("officer::body_add_fpar(MatMet, officer::fpar(officer::ftext(MatMetCalls$Texts$DatAnalysis[", i,"L], prop = WrdFrmt$",
                                      c("Body", "Template_text")[(MatMetCalls$Texts$DatAnalysis[i] == "TEMPLATE")+1L],
                                      "_text), fp_p = WrdFrmt$just))"))
 }
-MatMetCalls$Calls <- append(MatMetCalls$Calls, "body_add_par(MatMet, \"\", style = \"Normal\")")
+MatMetCalls$Calls <- append(MatMetCalls$Calls, "officer::body_add_par(MatMet, \"\", style = \"Normal\")")
+# Create temp edited object if it doesn't exist yet:
 if (!exists("matmethTxt")) {
   matmethTxt <- c("Samples preparation" = paste(MatMetCalls$Texts$WetLab, collapse = "\n"),
                   "LC-MS/MS analysis" = paste(MatMetCalls$Texts$LCMS, collapse = "\n"),
                   "Data analysis" = paste(MatMetCalls$Texts$DatAnalysis, collapse = "\n"))
 }
-matmethSections <- names(matmethTxt)
+matmethSec2Nm <- data.frame(Section = names(matmethTxt),
+                            Name = c("WetLab", "LCMS", "DatAnalysis"))
 
 if (!exists("xlDat")) { loadFun(paste0(wd, "/Tables/xlDat.RDS")) }
 peptidoTst <- "All peptidoforms" %in% names(xlDat)
@@ -63,7 +68,7 @@ if (!exists("volcPlotly")) { loadFun(volcPlotly_fl) }
 rat_ON <- exists("ratioPlots")
 if (!rat_ON) {
   if (!exists("ratioPlots_fl")) { ratioPlots_fl <- paste0(wd, "/Protein plots/ratioPlots.RDS") }
-  rat_ON <- (scrptType == "noReps") && MakeRatios && file.exists(ratioPlots_fl)
+  rat_ON <- (scrptType == "noReps") && file.exists(ratioPlots_fl)
   if (rat_ON) { loadFun(ratioPlots_fl) }
 }
 if (rat_ON) { rat_ON <- length(ratioPlots) > 0L }
@@ -284,8 +289,10 @@ make_nav_bar <- \(current_label) { #current_label <- sec$label
                   nav_row("", topLbls),
                   nav_row(paste0("Sample", c(" group", "")[(scrptType == "noReps")+1L], "s: "),
                           sampleLbls),
-                  nav_row(paste0(c("C", "Protein group c"), "ontrasts: ")[(length(ptmTypes) > 0L)+1L],
-                          contrastLbls),
+                  if (length(contrastLbls)) {
+                    nav_row(paste0(c("C", "Protein group c"), "ontrasts: ")[(length(ptmTypes) > 0L)+1L],
+                            contrastLbls)
+                  },
                   lapply(ptmTypes, \(ptm) { nav_row(paste0(ptm, " contrasts: "), allLbls[types == ptm],
                                                     contrastLbls2[types == ptm]) }))
 }
@@ -374,22 +381,23 @@ if (runGSEA) {
 
 appPage <- 1L
 appNm <- "Edit report"
-ui <- shiny::fluidPage(useShinyjs(),
-                       shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
-                                              functions = c("toggleFullScreen")),
-                       shiny::tags$head(myCSS),
-                       shiny::titlePanel(shiny::tag("u", appNm), appNm),
-                       shiny::br(),
-                       shiny::fluidRow(shiny::column(4L, shiny::h2(dtstNm), shiny::br()),
-                                       shiny::column(8L,
-                                                     shinyWidgets::actionBttn("xprtBtn", " export final html report",
-                                                                              icon = shiny::icon("file-export"),
-                                                                              color = "success", style = "pill"),
-                                                     shiny::br(), shiny::br(),
-                                                     shiny::uiOutput("xprtMsg"))),
-                       shiny::br(),
-                       shiny::uiOutput("myUI"),
-                       shiny::br(), shiny::br())
+ui <- shiny::fluidPage(
+  shinyjs::useShinyjs(),
+  shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                         functions = c("toggleFullScreen")),
+  shiny::tags$head(myCSS),
+  shiny::titlePanel(shiny::tag("u", appNm), appNm),
+  shiny::br(),
+  shiny::fluidRow(shiny::column(4L, shiny::h2(dtstNm), shiny::br()),
+                  shiny::column(8L,
+                                shinyWidgets::actionBttn("xprtBtn", " export final html report",
+                                                         icon = shiny::icon("file-export"),
+                                                         color = "success", style = "pill"),
+                                shiny::br(), shiny::br(),
+                                shiny::uiOutput("xprtMsg"))),
+  shiny::br(),
+  shiny::uiOutput("myUI"),
+  shiny::br(), shiny::br())
 server <- \(input, output, session) {
   QUANT <- shiny::reactiveVal(dfltQuant)
   XPRTMSG <- shiny::reactiveVal(NULL)
@@ -400,9 +408,9 @@ server <- \(input, output, session) {
   #
   output$xprtMsg <- shiny::renderUI(XPRTMSG())
   output$myUI <- shiny::renderUI(make_ui())
-  if (heatMaps_ON) { output$heatMap <- shiny::renderPlotly(plotLeatMaps$Global[[NORMMETH()]]$Plot) }
-  if (PCA_ON) { output$PCA <- shiny::renderPlotly(dimRedPlotLy$PG$PCA) }
-  if (Venn_ON) { output$Venn <- shiny::renderPlotly(plotly_Venn$`Global, LFQ`) }
+  if (heatMaps_ON) { output$heatMap <- plotly::renderPlotly(plotLeatMaps$Global[[NORMMETH()]]$Plot) }
+  if (PCA_ON) { output$PCA <- plotly::renderPlotly(dimRedPlotLy$PG$PCA) }
+  if (Venn_ON) { output$Venn <- plotly::renderPlotly(plotly_Venn$`Global, LFQ`) }
   #
   lapply(myExp, \(exp) {
     exp_ <- safe_id(exp)
@@ -411,7 +419,7 @@ server <- \(input, output, session) {
     idQ <- paste0("quant_", exp)
     idQLy <- paste0("quantLy_", exp)
     idSmplPGTbl <- paste0("PG_table_", exp)
-    output[[idQLy]] <- shiny::renderPlotly(ggQuantLy[[input[[idQ]]]][[exp2]]$plotly)
+    output[[idQLy]] <- plotly::renderPlotly(ggQuantLy[[input[[idQ]]]][[exp2]]$plotly)
     output[[idSmplPGTbl]] <- shiny::renderUI(make_smpl_tbl_ui(exp))
   })
   #
@@ -434,34 +442,34 @@ server <- \(input, output, session) {
           GSEA_IDs[PTMs] <- lapply(PTMs, \(Ptm) { paste0(Ptm, "_", GSEA_IDs$PG) })
         }
       }
-      output[[volcIDs$PG]] <- shiny::renderPlotly(volcPlotly$"t-test"[[paste0("Volcano plot ", contr)]]$Plot)
+      output[[volcIDs$PG]] <- plotly::renderPlotly(volcPlotly$"t-test"[[paste0("Volcano plot ", contr)]]$Plot)
       output[[commentIDs$PG]] <- shiny::renderUI(make_comment_ui(contr))
-      if (enrichGO) { output[[goIDs$PG]] <- shiny::renderPlotly(GO_plot_ly$PG$"t-test"[[contr]]$Bar) }
+      if (enrichGO) { output[[goIDs$PG]] <- plotly::renderPlotly(GO_plot_ly$PG$"t-test"[[contr]]$Bar) }
       saintIDs <- c(paste0("SAINTexpress volcano plot ", contr), paste0(contr_, c("_SAINT_volcPlot", "_SAINT_GObars")))
       if (saintExprs && (saintIDs[1L] %in% names(volcPlotly$SAINTexpress))) {
-        output[[saintIDs[2L]]] <- shiny::renderPlotly(volcPlotly$SAINTexpress[[saintIDs[1L]]]$Plot)
-        if (enrichGO) { output[[saintIDs[3L]]] <- shiny::renderPlotly(GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar) }
+        output[[saintIDs[2L]]] <- plotly::renderPlotly(volcPlotly$SAINTexpress[[saintIDs[1L]]]$Plot)
+        if (enrichGO) { output[[saintIDs[3L]]] <- plotly::renderPlotly(GO_plot_ly$Prot$SAINTexpress[[contr]]$Bar) }
       }
       lapply(PTMs, \(Ptm) { #Ptm <- PTMs[1L]
-        output[[volcIDs[[Ptm]]]] <- shiny::renderPlotly(volcPlotly[[paste0(Ptm, " t-test")]][[paste0(Ptm, " volcano plot ", contr)]]$Plot)
+        output[[volcIDs[[Ptm]]]] <- plotly::renderPlotly(volcPlotly[[paste0(Ptm, " t-test")]][[paste0(Ptm, " volcano plot ", contr)]]$Plot)
         output[[commentIDs[[Ptm]]]] <- shiny::renderUI(make_comment_ui(paste0(Ptm, ": ", contr)))
-        if (enrichGO) { output[[goIDs[[Ptm]]]] <- shiny::renderPlotly(GO_plot_ly[[Ptm]]$"t-test"[[contr]]$Bar) }
+        if (enrichGO) { output[[goIDs[[Ptm]]]] <- plotly::renderPlotly(GO_plot_ly[[Ptm]]$"t-test"[[contr]]$Bar) }
         # No SAINTexpress analysis with PTMs
       })
       if (runGSEA && length(wh_GSEA[[contr]])) {
         # We will deal with PG and PTMs in one loop
         # We only want to draw space for the plots if they are available
         lapply(wh_GSEA[[contr]], \(GSEA_nm) {
-          output[[GSEA_IDs[[GSEA_nm]][[1L]]]] <- shiny::renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[1L]]][[contr]])
-          output[[GSEA_IDs[[GSEA_nm]][[2L]]]] <- shiny::renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[2L]]][[contr]])
-          output[[GSEA_IDs[[GSEA_nm]][[3L]]]] <- shiny::renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[3L]]][[contr]])
-          output[[GSEA_IDs[[GSEA_nm]][[4L]]]] <- shiny::renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[4L]]][[contr]])
+          output[[GSEA_IDs[[GSEA_nm]][[1L]]]] <- plotly::renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[1L]]][[contr]])
+          output[[GSEA_IDs[[GSEA_nm]][[2L]]]] <- plotly::renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[2L]]][[contr]])
+          output[[GSEA_IDs[[GSEA_nm]][[3L]]]] <- plotly::renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[3L]]][[contr]])
+          output[[GSEA_IDs[[GSEA_nm]][[4L]]]] <- plotly::renderPlotly(GSEA_plotly$standard[[GSEA_nm]][[GSEA_plotNms[4L]]][[contr]])
         })
       }
     })
   }
   if (globalGO && (!is.null(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar))) {
-    output$GO_enrich_Dataset <- shiny::renderPlotly(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar)
+    output$GO_enrich_Dataset <- plotly::renderPlotly(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar)
   }
   #
   shiny::observeEvent(input$myHeatMap, { NORMMETH(input$myHeatMap) })
@@ -483,12 +491,12 @@ server <- \(input, output, session) {
       dq[exp] <- input[[idQ]]
       QUANT(dq)
       assign("dfltQuant", dq, envir = .GlobalEnv)
-      output[[idQLy]] <- shiny::renderPlotly(ggQuantLy[[input[[idQ]]]][[exp2]]$plotly)
+      output[[idQLy]] <- plotly::renderPlotly(ggQuantLy[[input[[idQ]]]][[exp2]]$plotly)
     })
   })
   if (prot.list.Cond) {
-    if (scrptType == "noReps") { output$ratioPlot <- shiny::renderPlotly(ratioPlots[[MYPROT()]]) }
-    output$coverPlot <- shiny::renderPlotly({
+    if (rat_ON) { output$ratioPlot <- plotly::renderPlotly(ratioPlots[[MYPROT()]]) }
+    output$coverPlot <- plotly::renderPlotly({
       p <- covPlots[[MYPROT()]]$logInt[[SAMPLE()]]
       if (is.null(p)) {
         return(plotly::plot_ly(type = "scatter", mode = "markers") |>
@@ -506,19 +514,19 @@ server <- \(input, output, session) {
     if (length(myExp) > 1L) { shiny::observeEvent(input$mySample, { SAMPLE(input$mySample) }) }
   }
   shiny::observeEvent(input$QC, {
-    output$QCplotLy <- shiny::renderPlotly(QC_plotLys[[input$QC]])
+    output$QCplotLy <- plotly::renderPlotly(QC_plotLys[[input$QC]])
     output$QCtxt <- shiny::renderUI(make_comment_ui(input$QC))
   })
   shiny::observeEvent(input$MatMet_SamplePrep, {
-    txt <- matmethTxt; txt[matmethSections[1L]] <- input$MatMet_SamplePrep
+    txt <- matmethTxt; txt[matmethSec2Nm$Section[1L]] <- input$MatMet_SamplePrep
     assign("matmethTxt", txt, envir = .GlobalEnv)
   })
   shiny::observeEvent(input$MatMet_LCMS, {
-    txt <- matmethTxt; txt[matmethSections[2L]] <- input$MatMet_LCMS
+    txt <- matmethTxt; txt[matmethSec2Nm$Section[2L]] <- input$MatMet_LCMS
     assign("matmethTxt", txt, envir = .GlobalEnv)
   })
   shiny::observeEvent(input$MatMet_DataAnalysis, {
-    txt <- matmethTxt; txt[matmethSections[3L]] <- input$MatMet_DataAnalysis
+    txt <- matmethTxt; txt[matmethSec2Nm$Section[3L]] <- input$MatMet_DataAnalysis
     assign("matmethTxt", txt, envir = .GlobalEnv)
   })
   # ------------------------------------------------------------------------------
@@ -571,15 +579,15 @@ cat("Embedding dependencies...\n")
 source(parSrc)
 parallel::clusterExport(parClust, "wd", envir = environment())
 invisible(parallel::parLapply(parClust, sectionFiles, embed_assets))
-removeDirectory(paste0(wd, "/lib"), TRUE, FALSE)
+R.utils::removeDirectory(paste0(wd, "/lib"), TRUE, FALSE)
 
 # Save the final materials and methods to a local file
 # ====================================================
 cat("Writing materials and methods template...\n")
-# - Update values
+# - Update default values - commented, now this is controlled in how matmethTxt is initialized
 MatMetCalls$Texts$WetLab <- matmethTxt["Samples preparation"]
 MatMetCalls$Texts$LCMS <- matmethTxt["LC-MS/MS analysis"]
-MatMetCalls$Texts$DatAnalysis <- matmethTxt["Data analysis"]
+MatMetCalls$Texts$DatAnalysis <- unlist(strsplit(matmethTxt["Data analysis"], "\n"))
 # - Word formatting styles (package used = officer):
 WrdFrmt <-list()
 WrdFrmt$Main_title <- officer::fp_text(bold = TRUE, font.family = "Calibri", font.size = 12L, underlined = TRUE) # For Main title
@@ -595,6 +603,7 @@ WrdFrmt$left <- officer::fp_par(text.align = "left")
 setwd(wd)
 tmp <- paste0("MatMet <- ", unlist(MatMetCalls$Calls))
 tmpSrc <- paste0(wd, "/tmp.R")
+#rstudioapi::documentOpen(tmpSrc)
 write(tmp, tmpSrc)
 MatMetFl <- paste0(wd, "/Materials and methods_WIP.docx")
 tst <- try({
@@ -606,6 +615,7 @@ if (inherits(tst, "try-error")) {
   warning("Couldn't write materials and methods template, investigate...")
 }
 unlink(tmpSrc)
+#system(paste0("open \"", tst, "\""))
 
 source(bckpSrc)
 

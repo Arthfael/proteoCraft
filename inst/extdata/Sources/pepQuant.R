@@ -111,7 +111,6 @@ data <- data[w,]
 pc1 <- stats::prcomp(t(data[, kol]), scale. = TRUE)
 dir <- paste0(wd, "/Workflow control/Peptides/PCA plot")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-if (exists("dirlist")) { dirlist <- base::union(dirlist, dir) } 
 if (!length(pc1$rotation)) {
   stop("There was only one component to the PCA, something must've gone wrong when generating the peptides table!")
 }

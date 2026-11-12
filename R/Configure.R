@@ -3,7 +3,8 @@
 #' @description
 #' Configuration function to run once at least after first installation, and once in a while after updating the package.
 #' 
-#' @param updateOntologies Should we update ontologies? This is a very slow process, so false by default.
+#' @param updateOntologies Should we update ontologies? This is a very slow process, so FALSE by default.
+#' @param updateLoc Should we update default folder locations? FALSE by default.
 #' 
 #' @details
 #' This function:
@@ -22,19 +23,21 @@
 #' 
 #' @export
 
-Configure <- function(updateOntologies = FALSE) {
+Configure <- function(updateOntologies = FALSE,
+                      updateLoc = FALSE) {
   #updateOntologies = TRUE
-  libPath <- as.data.frame(library()$results)
-  libPath <- normalizePath(libPath$LibPath[match("proteoCraft", libPath$Package)], winslash = "/")
-  proteoPath <- paste0(libPath, "/proteoCraft")
+  RPath <- as.data.frame(library()$results)
+  RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
+  libPath <- paste0(RPath, "/proteoCraft")
   homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+  #
   if (!dir.exists(homePath)) {
     dir.create(homePath, recursive = TRUE)
     cat(paste0("Created package HOME in \"", homePath, "\"\n"))
   } else {
     paste0("Existing package HOME found in \"", homePath, "\"\n")
   }
-  KolDef1 <- paste0(proteoPath, "/extdata/LC_columns.xlsx")
+  KolDef1 <- paste0(libPath, "/extdata/LC_columns.xlsx")
   KolDef2 <- paste0(homePath, "/LC_columns.xlsx")
   if (file.exists(KolDef1) && (!file.exists(KolDef2))) {
     tst <- try(file.copy(KolDef1, homePath, overwrite = FALSE), silent = TRUE)
@@ -43,7 +46,7 @@ Configure <- function(updateOntologies = FALSE) {
   } else {
     cat(" - Default LC columns Excel table already found in HOME.\n")
   }
-  locDirsFl1 <- paste0(proteoPath, "/extdata/Default_locations.xlsx")
+  locDirsFl1 <- paste0(libPath, "/extdata/Default_locations.xlsx")
   locDirsFl2 <- paste0(homePath, "/Default_locations.xlsx")
   writeDefltLoc <- \(locFile = locDirsFl2, dirTbl = locDirs) {
     wb <- openxlsx2::wb_workbook()
@@ -67,7 +70,7 @@ Configure <- function(updateOntologies = FALSE) {
     wb <- openxlsx2::wb_set_col_widths(wb, "Default_folders",
                                        match(c("Folder", "Path", "Help"), colnames(dirTbl)),
                                        c(25L, 60L, 150L))
-    openxlsx2::wb_save(wb, locFile2, TRUE)
+    openxlsx2::wb_save(wb, locDirsFl2, TRUE)
     #openxlsx2::xl_open(locFile)
   }
   if (file.exists(locDirsFl1) && (!file.exists(locDirsFl2))) {
@@ -88,15 +91,22 @@ Configure <- function(updateOntologies = FALSE) {
     } else { cat(".\n") }
   }
   locDirs <- openxlsx2::read_xlsx(locDirsFl2)
-  locDirs <- locDirs[!is.na(locDirs$Folder), ]
-  w <- which((locDirs$Path == "") | (!file.exists(locDirs$Path)))
+  locDirs <- locDirs[!is.na(locDirs$Folder),]
+  w <- if (updateLoc) { w <- 1L:nrow(locDirs) } else {
+    which((locDirs$Path == "") | (!file.exists(locDirs$Path)))
+  }
   if (length(w)) {
     for (i in w) {
+      dflt <- locDirs$Path[i]
       locDirs$Path[i] <- if (locDirs$Folder[i] == "Python") {
+        if (is.na(dflt) || (!file.exists(dflt))) { dflt <- "C:/PROGRA~1/*.exe" }
         rstudioapi::selectFile(paste0("Select ", locDirs$Folder[i], " executable (.exe file)"),
-                               path = "C:/PROGRA~1/*.exe")
+                               path = dflt)
       } else {
-        rstudioapi::selectDirectory(gsub("( folder)+", " folder", paste0("Select ", locDirs$Folder[i], " folder")))
+        if (is.na(dflt) || (!dir.exists(dflt))) {
+          dflt <- gsub("( folder)+", " folder", paste0("proteoCraft config: select ", locDirs$Folder[i], " folder"))
+        }
+        rstudioapi::selectDirectory(dflt)
       }
     }
     writeDefltLoc(locDirsFl2, locDirs)
@@ -107,7 +117,7 @@ Configure <- function(updateOntologies = FALSE) {
     writeDefltLoc(locDirsFl2, locDirs)
   }
   #
-  fl0 <- paste0(proteoPath, "/extdata/Sample_solvents.txt")
+  fl0 <- paste0(libPath, "/extdata/Sample_solvents.txt")
   fl1 <- paste0(homePath, "/Sample_solvents.txt")
   if (file.exists(fl1)) {
     opt0 <- readr::read_lines(fl0)
@@ -125,14 +135,14 @@ Configure <- function(updateOntologies = FALSE) {
                "pep_regulation_Rep_Worfklow",
                "histones_PTMs_Workflow", 
                "Reload_renv_from_lock_file")
-  extDr1 <- paste0(proteoPath, "/extdata")
+  extDr1 <- paste0(libPath, "/extdata")
   fls <- paste0(extDr1, "/", scrpts2, ".R")
   for (fl in fls) {
     tst <- try(file.copy(fl, homePath, overwrite = TRUE), 
                silent = TRUE)
     print(tst)
   }
-  cat("Updated analysis scripts in HOME...")
+  cat("Updated analysis scripts in HOME...\n")
   pyPath <- c()
   if ("Python" %in% locDirs$Folder) {
     try(.pyConfig(), silent = TRUE)
@@ -311,7 +321,7 @@ Configure <- function(updateOntologies = FALSE) {
       MS_onto <- rols::olsOntology("ms")
       #MS_trms <- rols::olsTerms(MS_onto)
       #instrMod <- MS_trms[["MS:1000031"]]
-      instrMod2 <- rols::olsTerm(MS_onto, "MS:1000031")
+      instrMod <- rols::olsTerm(MS_onto, "MS:1000031")
       vendors <- rols::children(instrMod)
       vendorsLab <- lapply(vendors@x, \(x) {
         x@label
@@ -399,6 +409,6 @@ Configure <- function(updateOntologies = FALSE) {
           "If you save the logo of your institution here as logo.png (or other extensions: tif, tiff, gif, jpeg, jpg), it will be included in the header of the final html report.",
           ""),
         paste0(homePath, "/Readme.txt"))
-  cat("Done\n")
+  cat("Done\n\n")
   return()
 }

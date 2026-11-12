@@ -147,7 +147,7 @@ ui <- shiny::fluidPage(
   shiny::br(),
   DT::DTOutput("smplsMap2"),
   shiny::br(),
-  #shiny::plotlyOutput("PCA", height = paste0(screenRes$width*0.4, "px")),
+  #plotly::plotlyOutput("PCA", height = paste0(screenRes$width*0.4, "px")),
   shiny::br())
 server <- \(input, output, session) {
   smplsMap3 <- smplsMap
@@ -216,7 +216,7 @@ server <- \(input, output, session) {
       })
     }
   })
-  #output$PCA <- shiny::renderPlotly(plot_lyPCA)
+  #output$PCA <- plotly::renderPlotly(plot_lyPCA)
   shiny::observeEvent(input$saveBtn, {
     kls <- c("Sample name", "Group", myFact, "Replicate", "Use")
     for (kl in kls) {

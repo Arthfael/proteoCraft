@@ -7,7 +7,6 @@
 # Save session info
 dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-if (scrptType == "withReps") { dirlist <- unique(c(dirlist, dir)) }
 writeLines(capture.output(sessionInfo()), paste0(dir, "/sessionInfo.txt"))
 
 # Copy script itself and guide to the results there:
@@ -31,6 +30,7 @@ if (exists("outDir") && (length(outDir) == 1L) && (!is.na(outDir)) && dir.exists
 if (!dir.exists(dflt)) { dflt <- wd }
 outDir %<o% rstudioapi::selectDirectory("Select data delivery folder",
                                         path = dflt)
+outDir <- normalizePath(outDir, winslash = "/") # In case it started e.g. with "~"
 ok2Deliver %<o% (exists("outDir") && (length(outDir) == 1L) && (!is.na(outDir)) && dir.exists(outDir))
 dataDeliveryOk %<o% FALSE
 if (ok2Deliver) {
@@ -189,8 +189,21 @@ if (ok2Deliver) {
   }
   dataDeliveryOk <- is.logical(Tsts$"Data analysis") && (!is.na(Tsts$"Data analysis")) && Tsts$"Data analysis"
 }
+if (dataDeliveryOk) {
+  # Re-organize final folder
+  fls <- list.files(procDir, full.names = TRUE,
+                    recursive = FALSE, include.dirs = FALSE) # Explicit... still doesn't work, I get dirs too...
+  fls <- fls[!dir.exists(fls)] # ... so redundant filtering!
+  fls <- fls[!grepl(paste0("^", dtstNm, " - .+\\.html$"), basename(fls))]
+  fls <- base::setdiff(fls, repFl)
+  if (length(fls)) {
+    procParDir <- paste0(procDir, "/_param")
+    if (!dir.exists(procParDir)) { dir.create(procParDir, recursive = TRUE) }
+    fs::file_move(fls, paste0(procParDir, "/", basename(fls)))
+  }
+}
 # - 4 Cleanup!
-if (ok2Deliver && dataDeliveryOk) {
+if (dataDeliveryOk) {
   cleanUp <- c(TRUE, FALSE)[match(svDialogs::dlg_message("Should we cleanup the temporary folder? (parameter files will remain)", "yesno")$res, c("yes", "no"))]
   if (cleanUp) {
     drs <- list.dirs(wd, recursive = FALSE, full.names = TRUE)
@@ -198,6 +211,9 @@ if (ok2Deliver && dataDeliveryOk) {
     #openwd(wd)
   }
 }
+
+stop()
+# TIME TO RE-ORGANIZE THAT FOLDER A BIT!!!
 
 # End logging:
 if (scrptType == "withReps") { sink(NULL, type = "message") }

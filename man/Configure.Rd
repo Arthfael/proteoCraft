@@ -4,10 +4,12 @@
 \alias{Configure}
 \title{Configure}
 \usage{
-Configure(updateOntologies = FALSE)
+Configure(updateOntologies = FALSE, updateLoc = FALSE)
 }
 \arguments{
-\item{updateOntologies}{Should we update ontologies? This is a very slow process, so false by default.}
+\item{updateOntologies}{Should we update ontologies? This is a very slow process, so FALSE by default.}
+
+\item{updateLoc}{Should we update default folder locations? FALSE by default.}
 }
 \value{
 This function does not return anything.

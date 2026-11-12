@@ -15,7 +15,6 @@ normMeth <- normSequence[[nrmStp]]$Method #normMeth <- "LOESS" #normMeth <- "VSN
 packs <- c()
 shpDr <- paste0(nrmDr, "/Step ", nrmStp, " - ", normMeth)
 if (!dir.exists(shpDr)) { dir.create(shpDr, recursive = TRUE) }
-dirlist <- base::union(dirlist, shpDr)
 #
 currSamples <- base::intersect(allSamples, colnames(tmpDat1))
 A <- parallel::parApply(parClust, tmpDat1[wAG1, currSamples], 1L, \(x) { mean(x[is.finite(x)]) })
@@ -252,7 +251,7 @@ if (!inherits(tstNorm, "try-error")) {
     shiny::br(),
     shiny::fluidRow(shiny::column(5L,
                                   shiny::checkboxInput("KeepResults", msg, KeepShapeCorrRes),
-                                  shiny::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
+                                  shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
                                   shiny::h4("Recommended criteria:"),
                                   shiny::h5(shiny::HTML("&nbsp;Does the original MA plot look like it is skewed?")),
                                   shiny::h5(shiny::HTML("&nbsp;&nbsp;-> If yes: accept the correction if the correction did remove the skew.")))),

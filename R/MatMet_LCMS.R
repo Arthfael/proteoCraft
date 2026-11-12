@@ -81,18 +81,20 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                "Description",
                "P/N",
                "Function")
-  libPath <- as.data.frame(library()$results)
-  libPath <- normalizePath(libPath$LibPath[match("proteoCraft", libPath$Package)], winslash = "/")
-  pkgPath <- paste0(libPath, "/proteoCraft")
-  docPath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
-  Columns2 <- paste0(docPath, "/LC_columns.xlsx")
+  #
+  RPath <- as.data.frame(library()$results)
+  RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
+  libPath <- paste0(RPath, "/proteoCraft")
+  homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+  #
+  Columns2 <- paste0(homePath, "/LC_columns.xlsx")
   if ((Columns != "default") && (!file.exists(Columns))) {
     warning("Columns definition file provided not found, reverting to default!")
     Columns <- "default"
   }
   if (Columns == "default") {
     altColFls <- c()
-    dfltLocFl <- paste0(docPath, "/Default_locations.xlsx")
+    dfltLocFl <- paste0(homePath, "/Default_locations.xlsx")
     if (file.exists(dfltLocFl)) {
       dfltLoc <- openxlsx2::read_xlsx(dfltLocFl)
       tmpPath <- dfltLoc$Path[match("Temporary folder", dfltLoc$Folder)]
@@ -100,10 +102,10 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     }
     altColFls <- c(Columns2,
                    altColFls,
-                   paste0(pkgPath, "/extdata/LC_columns.xlsx"))
+                   paste0(libPath, "/extdata/LC_columns.xlsx"))
     Columns <- altColFls[file.exists(altColFls)][1L]
   }
-  Columns2 <- paste0(myPath, "/LC_columns.xlsx")
+  Columns2 <- paste0(homePath, "/LC_columns.xlsx")
   colTst2 <- file.exists(Columns2)
   if (file.exists(Columns)) {
     allKolumns <- openxlsx2::read_xlsx(Columns)
@@ -261,7 +263,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     BrMeth$MS_method.exists <- file.exists(BrMeth$MS_method)
     w <- which(BrMeth$MS_method.exists)
     uBrMeth$MS_method <- BrMeth$MS_method[w][match(uBrMeth$MethodID, BrMeth$MethodID[w])]
-    uBrMeth$MS_meth <- NA
+    uBrMeth$MS_meth <- list(NA)
     w2 <- which(!is.na(uBrMeth$MS_method))
     uBrMeth$MS_meth[w2] <- parallel::parLapply(cl, uBrMeth$MS_method[w2], \(fl) { #fl <- uBrMeth$MS_method[w2][1L]
       #x <- readr::read_lines(fl)
@@ -329,7 +331,7 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
                                                                             title = paste0(uBrMeth$Root[i], " - confirm LC version:"))$res),
                                                    as.character(1L:2L))]
     }
-    uBrMeth$Root <- apply(uBrMeth[, c("MethodID", "NANO")], 1L, paste, collapse = " - ")
+    uBrMeth$Root <- apply(uBrMeth[, c("MethodID", "NANO")], 1L, paste, collapse = " - ") # Update
     uBrMeth$Column <- vapply(uBrMeth$Method, \(x) {
       a <- x$LC$ModuleMethodData$Method$SeparatorName
       if (is.null(a)) { return(NA_character_) }
@@ -358,30 +360,36 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     })
     uBrMeth$Flow <- sapply(uBrMeth$Method, \(x) { x$LC$HyStarMethodData$MainFlow })
     uBrMeth$RunTime <- sapply(uBrMeth$Method, \(x) { x$LC$HyStarMethodData$NoStandardMethodData })
-    for (i in which(!is.na(uBrMeth$Column))) {
-      kol <- paste0("\" ", uBrMeth$Column[i], " \"")
-      kol <- svDialogs::dlg_list(base::union(kol, Kolumns), kol,
-                                 title = paste0(uBrMeth$Root[i], " - select column used:"))$res
-      if (kol == "Add new...") {
-        colCharDf <- data.frame(Description = "Analytical")
-        for (kk in base::setdiff(colChar, "Function")) {
-          colCharDf[[kk]] <- svDialogs::dlg_input(paste0("Enter value for field \"", kk, "\""), "")$res
+    for (i in 1L:nrow(uBrMeth)) {
+      uBrMeth$SolvA[i] <- svDialogs::dlg_input(paste0(uBrMeth$Root[i],
+                                                      " confirm solvent A composition:"),
+                                               ADflt)$res
+      uBrMeth$SolvB[i] <- svDialogs::dlg_input(paste0(uBrMeth$Root[i],
+                                                      " confirm solvent B composition:"),
+                                               BDflt)$res
+      if (!is.na(uBrMeth$Column[i])) {
+        kol <- paste0("\" ", uBrMeth$Column[i], " \"")
+        kol <- svDialogs::dlg_list(base::union(kol, Kolumns), kol,
+                                   title = paste0(uBrMeth$Root[i], " - select column used:"))$res
+        if (kol == "Add new...") {
+          colCharDf <- data.frame(Description = "Analytical")
+          for (kk in base::setdiff(colChar, "Function")) {
+            colCharDf[[kk]] <- svDialogs::dlg_input(paste0("Enter value for field \"", kk, "\""), "")$res
+          }
+          kol <- colCharDf$Name
+          allKolumns <- plyr::rbind.fill(allKolumns, colCharDf)
+          rownames(allKolumns) <- NULL
+          tst <- apply(allKolumns, 1L, paste, collapse = "|")
+          tst <- aggregate(1L:length(tst), list(tst), min)
+          allKolumns <- allKolumns[sort(tst$x),]
+          Kolumns <- base::union(allKolumns$Description[allKolumns$Function == "Analytical"],
+                                 c("None (direct infusion)", "Add new..."))
+          AddKolKount <- AddKolKount + 1L
+          kol <- tmp$Description
         }
-        kol <- colCharDf$Name
-        allKolumns <- plyr::rbind.fill(allKolumns, colCharDf)
-        rownames(allKolumns) <- NULL
-        tst <- apply(allKolumns, 1L, paste, collapse = "|")
-        tst <- aggregate(1L:length(tst), list(tst), min)
-        allKolumns <- allKolumns[sort(tst$x),]
-        Kolumns <- base::union(allKolumns$Description[allKolumns$Function == "Analytical"],
-                               c("None (direct infusion)", "Add new..."))
-        AddKolKount <- AddKolKount + 1L
-        kol <- tmp$Description
+        uBrMeth$Column[i] <- kol
       }
-      uBrMeth$Column[i] <- kol
-    }
-    for (i in which(!is.na(uBrMeth$Trap))) {
-      if (uBrMeth$usesTrap[i]) {
+      if ((!is.na(uBrMeth$Trap[i])) && (uBrMeth$usesTrap[i])) {
         kol <- paste0("\" ", uBrMeth$Trap[i], " \"")
         kol <- svDialogs::dlg_list(base::union(kol, preKolumns), kol,
                                    title = paste0(uBrMeth$Root[i],  " - select trap used:"))$res
@@ -402,12 +410,6 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
           kol <- tmp$Description
         }
         uBrMeth$Trap[i] <- kol
-        uBrMeth$SolvA[i] <- svDialogs::dlg_input(paste0(uBrMeth$Root[i],
-                                                        " confirm solvent A composition:"),
-                                                 ADflt)$res
-        uBrMeth$SolvB[i] <- svDialogs::dlg_input(paste0(uBrMeth$Root[i],
-                                                        " confirm solvent B composition:"),
-                                                 BDflt)$res
       }
     }
     uBrMeth$Par <- lapply(uBrMeth$Method, \(x) { #x <- uBrMeth$Method[1L]
@@ -421,7 +423,8 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     })
     uBrMeth <- uBrMeth[!is.na(uBrMeth$MS_meth),]
     uBrMeth$MS_method_parsed <- lapply(uBrMeth$MS_meth, \(x) { #x <- uBrMeth$MS_meth[1L]
-      fl <- paste0(getwd(), "/", x$Name)
+      #fl <- paste0(getwd(), "/", x$Name)
+      #x <- x[[1L]]
       GlobMetDat <- x$Method$Global
       PropsDat <- x$Method$Properties
       PropsDefDat <- x$Method$Definitions
@@ -582,34 +585,29 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
     })
     uBrMeth$MS_txt <- vapply(uBrMeth$MS_method_parsed, \(x) { x$Method$Text }, "")
     uBrMeth$MS <- vapply(uBrMeth$MS_method_parsed, \(x) { x$MS }, "")
-    kol <- c("Samples", "NANO", "Column", "Trap", "usesTrap", "OvenT", "Gradient", "Flow", "RunTime", "SolvA", "SolvB", "MS_method_parsed")
     #kol %in% colnames(uBrMeth)
-    uBrMeth$LC_method_parsed  <- apply(uBrMeth[, kol], 1L, \(x) {
-      #x <- uBrMeth[1, c("Samples", "NANO", "Column", "Trap", "usesTrap", "OvenT", "Gradient", "Flow", "RunTime", "SolvA", "SolvB", "MS_method_parsed")]
-      #x <- uBrMeth[1, kol]
-      NANO <- x[[2L]]
-      Moult <- length(x[[1L]]) > 1L
-      INSTR <- x[[12L]]$Instrument
-      if (is.null(INSTR)) { INSTR <- x[[12L]]$Method$Instrument }
-      if (is.null(INSTR)) { INSTR <- x[[12L]]$MS }
-      INSTRMAKER <- x[[12L]]$Vendor
-      if (is.null(INSTRMAKER)) { INSTRMAKER <- x[[12L]]$Method$Vendor }
+    uBrMeth$LC_method_parsed  <- lapply(1L:nrow(uBrMeth), \(i) { #i <- 1L
+      x <- uBrMeth[i, , drop = FALSE]
+      NANO <- x$NANO
+      Moult <- length(x$Samples) > 1L
+      INSTR <- x$MS
+      INSTRMAKER <- x$MS_method_parsed[[1L]]$MS_vendor
       NANOMAKER <- "unknown manufacturer"
       if (NANO %in% c("RSLC Nano", "Vanquish NEO")) { NANOMAKER <- "ThermoFisher Scientific" }
       if (NANO %in% c(paste0("nanoElute", c("", paste0(" ", 1L:2L))),
                       paste0("Bruker nanoElute", c("", paste0(" ", 1L:2L))))) { NANOMAKER <- "Bruker Daltonics" }
       tstNano <- tolower(substring(NANO, 1L, 1L)) %in% c("a", "e", "i", "o", "u")
       tstInstr <- tolower(substring(INSTR, 1L, 1L)) %in% c("a", "e", "i", "o", "u")
-      COLUMN <- x[[3L]]
+      COLUMN <- x$Column
       tstCol <- tolower(substring(COLUMN, 1L, 1L)) %in% c("a", "e", "i", "o", "u")
-      USESTRAP <- x[[5L]]
-      PRECOLUMN <- x[[4L]]
-      ovenTEMP <- x[[6L]]
+      USESTRAP <- x$usesTrap
+      PRECOLUMN <- x$Trap
+      ovenTEMP <- x$OvenT
       tstPreCol <- tolower(substring(PRECOLUMN, 1L, 1L)) %in% c("a", "e", "i", "o", "u")
-      SolvA <- x[[10L]]
-      SolvB <- x[[11L]]
-      FLOWVALUE <- x[[8L]]
-      Grad <- as.data.frame(x[[7L]])
+      SolvA <- x$SolvA
+      SolvB <- x$SolvB
+      FLOWVALUE <- x$Flow
+      Grad <- as.data.frame(x$Gradient[[1L]])
       Grad$Time <- as.numeric(Grad$Time)/60
       Grad$Mix <- round(as.numeric(Grad$Mix)*100, 2L)
       GRADLENGTH <- max(Grad$Time)
@@ -730,13 +728,13 @@ MatMet_LCMS <- function(ScanHdsMnLoc = "C:/ScanHeadsman-1.2.20200730", # Should 
             warning("Invalid ScanHdsMnLoc argument, no \"ScanHeadsman.exe\" found there!")
           }
           tst <- grep("ScanHeadsman-1\\.2", list.dirs("C:/", recursive = FALSE), value = TRUE)
-          ScanHdsMnTst <- length(tst) > 0
+          ScanHdsMnTst <- length(tst) > 0L
           if (ScanHdsMnTst) { ScanHdsMnLoc <- normalizePath(tst[1L], winslash = "/") } else {
             warning("No valid version of ScanHeadsman-1.2 could be located in the system!")
           }
         }
         if (ScanHdsMnTst) {
-          parallel::clusterExport(cl, list("ScanHdsMnLoc"), envir = environment())
+          parallel::clusterExport(cl, "ScanHdsMnLoc", envir = environment())
           f0 <- \(rwfl) { #rwfl <- rawMeth$Raw.file[w2][1L]
             cmd <- paste0("\"", ScanHdsMnLoc, "/ScanHeadsman.exe\" \"", rwfl, "\" -n -m=1 -t=1")
             #cat(paste0(cmd, "\n"))

@@ -27,10 +27,9 @@ Src <- paste0(libPath, "/extdata/Sources/parBooleans.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
 
-
 locDirs_fl %<o% grep("/Default_locations\\.xlsx$", fls, value = TRUE)
 locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
-locScriptsDir <- sub("/[^/]+$", "/proteoCraft_localScripts", locDirs$Path[match("Temporary folder", locDirs$Folder)])
+locScriptsDir <- sub("/[^/]+$", "/proteoCraft_localScripts", locDirs$Path[match("Data processing (temporary) folder", locDirs$Folder)])
 
 # Run local scripts at startup - keep this after loading the backup!
 locScrptSrc %<o% paste0(libPath, "/extdata/Sources/runLocScrpts.R")
@@ -72,8 +71,6 @@ if ((length(locScriptsDir) == 1L)&&(dir.exists(locScriptsDir))) {
 #load_Bckp()
 
 # Some questions to start...
-#updateMe <- c(TRUE, FALSE)[match(svDialogs::dlg_message("Update the proteoCraft package?", "yesno")$res, c("yes", "no"))]
-updateMe <- FALSE
 inputTypes <- c("DiaNN", "FragPipe", "Skyline", "alphaDIA")
 opt <- vapply(inputTypes, \(x) { paste(c(x, rep(" ", 250L - nchar(x))), collapse = "") }, "")
 inputType <- sub(" +$", "", svDialogs::dlg_list(opt, opt[1L],
@@ -86,20 +83,7 @@ dbFl <- "D:/Fasta_databases/Mus_musculus/Mus_musculus_(C57BL-6J)_UP_20230201_Iso
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }
 N.clust <- as.integer(svDialogs::dlg_input("Select number of threads to use", N.clust)$res)
 
-if (updateMe) {
-  try({
-    unloadNamespace("proteoCraft")
-    remove.packages("proteoCraft")
-  }, silent = TRUE)
-  pak::pak("Arthfael/proteoCraft")
-}
-
-RPath <- as.data.frame(library()$results)
-RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
-libPath <- paste0(RPath, "/proteoCraft")
-homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
-
-# Set Shiny options, load functions for creating a Word report, create Excel styles
+# Set Shiny options, create Excel styles
 Src <- paste0(libPath, "/extdata/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
@@ -108,6 +92,9 @@ source(Src)
 parSrc <- paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
 #rstudioapi::documentOpen(parSrc)
 source(parSrc)
+
+requireNamespace("data.table")
+data.table::setDTthreads(threads = N.clust)
 
 # Mode
 if ((exists("inDir"))&&(!is.null(inDir))&&(dir.exists(inDir))) { dfltDir <- inDir } else {
@@ -727,7 +714,8 @@ if (useExtTbl) {
   mods2 <- mods
   mods2$newMark <- paste0("(", mods2$newMark, ")")
   mods2$newName <- paste0("(", mods2$newName, ")")
-  parallel::clusterExport(parClust, list("mods2", "nmKol", "annot_to_tabl", "AA"), envir = environment())
+  source(parSrc)
+  parallel::clusterExport(parClust, list("mods2", "nmKol"), envir = environment())
   unq2 <- as.data.frame(t(parallel::parSapply(parClust, unq, \(x) {
     #x <- unq[1L]
     x <- y <- annot_to_tabl(x)[[1L]]
@@ -1075,9 +1063,8 @@ saveImgFun(backupFl)
 kol <- c("Experiment", "Histone(s)", "Intensity", "Modified sequence", "Modified sequence_verbose")
 kol %in% colnames(histEv)
 tmpEv <- histEv[, kol]
-parallel::clusterExport(parClust, list("tmpEv", "histDir", "Hist", "histDB",
-                                       "Coverage", "listMelt", "Isapply"), envir = environment())
-#parallel::clusterExport(parClust, "Coverage", envir = environment())
+source(parSrc)
+parallel::clusterExport(parClust, list("tmpEv", "histDir", "Hist", "histDB"), envir = environment())
 for (e in Exp) { #e <- Exp[1L]
   w <- which(tmpEv$Experiment == e)
   #w <- which(tmpEv$Experiment %in% Exp)
@@ -1152,8 +1139,7 @@ logIntRoot <- setNames("log10(int.) - ", intType)
 ratRoot <- "log2(Ratio) - "
 #
 tmp <- evSum[, c("Experiment", "Modified sequence", "Intensity")]
-exports <- list("allSamples", "samplesMap", "tmp", "intRoot")
-parallel::clusterExport(parClust, exports, envir = environment())
+parallel::clusterExport(parClust, list("allSamples", "samplesMap", "tmp", "intRoot"), envir = environment())
 parallel::clusterCall(parClust, \() { requireNamespace("data.table") })
 tmp4 <- setNames(parallel::parLapply(parClust, allSamples, \(smpl) { #smpl <- allSamples[1L] #smpl <- allSamples[4L]
   w <- which(tmp$Experiment == smpl)
@@ -1369,20 +1355,20 @@ if (length(kol)) {
                                         shiny::h5(shiny::HTML("&nbsp;&nbsp;-> If no: only accept the correction if it improves the apparent grouping of expected sample groups.")),
                                         shiny::h5(shiny::HTML("&nbsp;&nbsp;-> If yes: accept the correction if...")),
                                         shiny::h5(shiny::HTML("&nbsp;&nbsp;&nbsp;- ... it removes the original grouping by batches...")),
-                          shiny::h5(shiny::HTML("&nbsp;&nbsp;&nbsp;- ... or it improves the apparent grouping of expected sample groups.")),
-                          shinycssloaders::withSpinner(DT::DTOutput("PCs")),
-                          shiny::br(),
-                          shiny::br(),
-                          shiny::br()),
+                                        shiny::h5(shiny::HTML("&nbsp;&nbsp;&nbsp;- ... or it improves the apparent grouping of expected sample groups.")),
+                                        shinycssloaders::withSpinner(DT::DTOutput("PCs")),
+                                        shiny::br(),
+                                        shiny::br(),
+                                        shiny::br()),
                           shiny::column(7L,
-                                        shinycssloaders::withSpinner(shiny::plotlyOutput("Before", height = "550px")),
-                                        shinycssloaders::withSpinner(shiny::plotlyOutput("After", height = "550px")))),
+                                        shinycssloaders::withSpinner(plotly::plotlyOutput("Before", height = "550px")),
+                                        shinycssloaders::withSpinner(plotly::plotlyOutput("After", height = "550px")))),
           shiny::br(),
           shiny::br()
         )
         server <- \(input, output, session) {
-          output$Before <- shiny::renderPlotly(PCAlyLst[[prev]][[btch]])
-          output$After <- shiny::renderPlotly(PCAlyLst[[btch]][[btch]])
+          output$Before <- plotly::renderPlotly(PCAlyLst[[prev]][[btch]])
+          output$After <- plotly::renderPlotly(PCAlyLst[[btch]][[btch]])
           output$PCs <- DT::renderDT({ PCs },
                                      FALSE,
                                      escape = FALSE,
@@ -1393,7 +1379,7 @@ if (length(kol)) {
                                      options = list(dom = 't',
                                                     paging = FALSE,
                                                     ordering = FALSE),
-                                     callback = shinyWidgets::JS("table.rows().every(function(i, tab, row) {
+                                     callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
         var $this = $(this.node());
         $this.attr('id', this.data()[0]);
         $this.addClass('shiny-input-container');
@@ -1538,7 +1524,8 @@ if (length(Exp) > 1L) {
         # Calculate Core peptides-only re-normalization factor at protein level:
         #prt2pep$Norm <- lapply(1L:nrow(prt2pep), \(x) { c() })
         tmp <- pep[, c("id", quntCol2)]
-        parallel::clusterExport(parClust, list("tmp", "quntCol2", "allSamples", "AdvNorm.IL"), envir = environment())
+        source(parSrc)
+        parallel::clusterExport(parClust, list("tmp", "quntCol2", "allSamples"), envir = environment())
         prt2pep[, allSamples] <- as.data.frame(t(parallel::parSapply(parClust, prt2pep$Core, \(x) { #x <- prt2pep$Core[2L]
           tmp1 <- tmp[match(unlist(x), tmp$id),]
           M <- unlist(tmp1[, quntCol2])
@@ -1723,7 +1710,7 @@ tmpSq <- paste0("_", db$Sequence[m])
 tmp$Match <- vapply(1L:nrow(tmp), \(x) {
   nchar(unlist(strsplit(tmpSq[x], tmp$Sequence[x]))[1L])
 }, 1L)
-parallel::clusterExport(parClust, "annot_to_tabl", envir = environment())
+source(parSrc)
 tmp$Tbl <- parallel::parLapply(parClust, paste0("_", tmp$`Modified sequence_verbose`, "_"), annot_to_tabl)
 tmp$Sites <- lapply(1L:nrow(tmp), \(x) { #x <- 1L
   # Do not parallelize me: it's slower!
@@ -2301,8 +2288,7 @@ if (length(Exp) > 1L) {
       hlabs$label2[w] <- paste0(substr(hlabs$label2[w], 1L, MaxChar-3L), "...")
       # Create heatmap
       temp$Rowname <- row.names(temp)
-      temp2 <- reshape2::melt(temp, id.vars = "Rowname")
-      colnames(temp2) <- c("Label", "Sample", "value")
+      temp2 <- dfMelt(temp, c("Label", "Sample", "value"), "Rowname")
       temp2$Label <- as.character(temp2$Label)
       temp2$Sample <- as.character(temp2$Sample)
       temp2$Xmax <- match(temp2$Label, hlabs$label) # Explicitly should be the case now!

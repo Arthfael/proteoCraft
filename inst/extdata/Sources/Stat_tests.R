@@ -397,6 +397,7 @@ if ((dataType == "PG") && ("MSstats_list" %in% names(quantData_list))) {
                                           data = quantData_list$MSstats_list)
   # Process results
   msstatsRes <- msstatsComp$ComparisonResult
+  stop()
   msstatsLFC <- reshape::cast(msstatsRes,
                               Protein ~ Label,
                               unique,

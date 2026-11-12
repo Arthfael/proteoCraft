@@ -119,7 +119,7 @@ if ((LabelType == "Isobaric")&&
           }
           A <- as.matrix(A[, 3L:(length(lb)+2L)])
           parallel::clusterExport(parClust, list("A", "e", "kol"), envir = environment())
-          temp <- as.data.frame(t(parallel::parApply(parClust, e[, kol], 1L, \(x) {
+          temp <- as.data.frame(t(parallel::parApply(parClustobj2Xport, e[, kol], 1L, \(x) {
             b <- as.numeric(x)
             b[!is.finite(b)] <- 0
             sb <- sum(b)

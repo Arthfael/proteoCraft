@@ -1,4 +1,3 @@
-require(reshape2)
 require(rstudioapi)
 require(ggplot2)
 
@@ -22,8 +21,7 @@ test <- lengths(tmp$x) # Should always be 1, but isn't for now; simple fix:
 if (max(test) > 1L) {
   tmp2 <- tmp[which(test > 1L),]
   tmp <- tmp[which(test == 1L),]
-  tmp2 <- melt(setNames(tmp2$x, tmp2$Group.1))
-  colnames(tmp2) <- c("x", "Group.1")
+  tmp2 <- listMelt(tmp2$x, tmp2$Group.1, c("x", "Group.1"))
   tmp <- rbind(tmp2, tmp)
 }
 # Unlist, now those do not need to be lists

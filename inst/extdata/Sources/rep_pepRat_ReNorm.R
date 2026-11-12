@@ -102,8 +102,7 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #     a1 <- base::intersect(a1, colnames(pep))
 #     a2 <- base::intersect(a2, colnames(pep))
 #     if (length(a1)) {
-#       temp <- pep[, c("Modified sequence", a1, a2)]
-#       temp <- reshape2::melt(temp)
+#       temp <- dfMelt(pep[, c("Modified sequence", a1, a2)], id.vars = "Modified sequence")
 #       temp$Norm <- grepl(topattern(pep.ratios.ref[length(pep.ratios.ref)]), temp$variable)
 #       temp$Norm <- c("Original", "Normalised")[temp$Norm + 1L]
 #       temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
@@ -126,7 +125,6 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #       temp <- temp[is.finite(temp$value),]
 #       dir <- paste0(wd, "/Workflow control/Peptides/Ratios")
 #       if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-#       dirlist <- unique(c(dirlist, dir))
 #       ttl <- paste0("Peptide ratios distribution_sample group: ", i)
 #       plot <- ggplot2::ggplot(temp) +
 #         ggplot2::geom_violin(ggplot2::aes(x = X, y = value, color = Colour, fill = Colour),
@@ -151,7 +149,7 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #   a2 <- grep(paste0(topattern(pep.ratios.ref[length(pep.ratios.ref)]), ".+_REF.to.REF_[0-9]+$"), colnames(pep), value = TRUE)
 #   if (length(a1)) {
 #     temp <- pep[, c("Modified sequence", a1, a2)]
-#     temp <- reshape2::melt(temp)
+#     temp <- dfMelt(temp, id.vars = "Modified sequence")
 #     temp$Norm <- grepl(topattern(pep.ratios.ref[length(pep.ratios.ref)]), temp$variable)
 #     temp$Norm <- c("Original", "Normalised")[temp$Norm + 1L]
 #     temp$Norm <- factor(temp$Norm, levels = c("Original", "Normalised"))
@@ -162,7 +160,6 @@ stop("Currently this is not supported! The scripts exist but need a revision as 
 #     temp <- temp[is.finite(temp$value),]
 #     dir <- paste0(wd, "/Workflow control/Peptides/Ratios")
 #     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-#     dirlist <- unique(c(dirlist, dir))
 #     ttl <- "Peptide ratios distribution_References-to-References"
 #     plot <- ggplot2::ggplot(temp) +
 #       ggplot2::geom_violin(ggplot2::aes(x = variable, y = value, color = variable, fill = variable),

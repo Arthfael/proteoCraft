@@ -46,9 +46,8 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
     tmpDB <- db[g2, c("Protein ID", "Common Name", "Sequence", "PDB")]
     source(parSrc)
     parallel::clusterExport(parClust,
-                            list("grsep", "grsep2", "listMelt", "cov3D", "annot_to_tabl", "topattern", "cleanNms", "Exp",
-                                 "prVect", "intVect", "wd", "PDB_in_DB", "SCV_PTMs", "tmpDB", "Modifs", "valid_url", "modSq",
-                                 "AA_table", "AA", "nCharLim"),
+                            list("Exp", "prVect", "intVect", "wd", "PDB_in_DB", "SCV_PTMs", "tmpDB", "Modifs", "valid_url",
+                                 "modSq", "nCharLim"),
                             envir = environment())
     tst3D <- parallel::parSapply(parClust, prot.list, \(plp) { #plp <- prot.list[1L]
       #
@@ -114,7 +113,7 @@ if ((!is.null(prot.list))&&(length(prot.list))) {
         seq2 <- vapply(seq2, \(x) { #x <- seq2[1L]
           x <- unlist(x)
           w <- grep("\\[.+\\]", x)
-          x[w] <- paste0("[", round(Modifs$`Mass shifts`[match(x[w], paste0("[", Modifs$Mark, "]"))], 0L), "]")
+          x[w] <- paste0("[", round(Modifs$`Mass shift`[match(x[w], paste0("[", Modifs$Mark, "]"))], 0L), "]")
           return(paste(x, collapse = ""))
         }, "")
       } else { seq2 <- gsub("[^A-Z]", "", seq2) }

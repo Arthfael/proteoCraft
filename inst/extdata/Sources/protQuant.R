@@ -855,7 +855,7 @@ if ("LM" %in% c(LFQ_ALGO, RESCALING, ALSORUN)) {
   readr::write_rds(tmpPep, tmpFl1)
   readr::write_rds(quant_pep_IDs, tmpFl2)
   parallel::clusterExport(parClust,
-                          list("diffLog", "LFQ.lm", "tmpFl1", "tmpFl2"),
+                          list("tmpFl1", "tmpFl2"),
                           envir = environment()) # (Overwrite the package's versions in case we have local ones)
   invisible(parallel::clusterCall(parClust, \() {
     requireNamespace("minpack.lm")
@@ -1028,6 +1028,7 @@ if (sum(c("IQ", "LIMPA", "QFEATURES", "MSSTATS") %in% c(LFQ_ALGO, RESCALING, ALS
                                          #numberOfCores = N.clust # Unfortunately not available on Windows!
                                          )
     MSstats_quant <- MSstats_list$ProteinLevelData
+    stop()
     MSstats_quant <- reshape::cast(MSstats_quant,
                                    Protein ~ originalRUN,
                                    mean,

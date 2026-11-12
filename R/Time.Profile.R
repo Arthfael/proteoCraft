@@ -85,16 +85,18 @@ Time.Profile <- function(df,
     }
   } else {
     if (labels != FALSE) {
-      temp <- reshape2::melt(df[, c(prot.col, labels, a1)])
-      colnames(temp) <- c("IDs", "Tag", "variable", "Expression")
+      temp <- dfMelt(df[, c(prot.col, labels, a1)],
+                     c("IDs", "Tag", "variable", "Expression"),
+                     c(prot.col, labels))
       temp$Tag <- vapply(strsplit(temp$Tag, split = ";"), \(x) {
         x <- unlist(x)
         if (length(x) == 1L) { return(x) }
         return(paste0(x[1L], "..."))
       }, "")
     } else {
-      temp <- reshape2::melt(df[, c(prot.col, a1)])
-      colnames(temp) <- c("IDs", "variable", "Expression")
+      temp <- dfMelt(df[, c(prot.col, a1)],
+                     c("IDs", "variable", "Expression"),
+                     prot.col)
     }
     temp$IDs <- vapply(strsplit(temp$IDs, split = ";"), \(x) {
       x <- unlist(x)
@@ -108,20 +110,21 @@ Time.Profile <- function(df,
     temp$X <- do.call(paste, c(temp[c("IDs", "Condition")], sep = "_"))
     plot <- ggplot2::ggplot(temp) +
       ggplot2::geom_line(data = temp,
-                ggplot2::aes(x = Time.point, y = Expression, group = IDs, color = IDs)) +
+                         ggplot2::aes(x = Time.point, y = Expression, group = IDs, color = IDs)) +
       ggplot2::ggtitle(paste0("Global temporal profile", prot)) +
       ggplot2::facet_wrap(~Condition) + ggplot2::theme_bw() +
       ggplot2::labs(y = exprs.name) + ggplot2::ggtitle(title)
     if (plotRibbon) {
-      temp2 <- reshape2::melt(df[, c(prot.col, a2)])
-      temp$Error <- temp2$value
+      temp2 <- dfMelt(df[, c(prot.col, a2)],
+                      c("variable", "Error"),
+                      prot.col)
       temp$min <- temp$Expression - temp$Error
       temp$max <- temp$Expression + temp$Error
       plot <- plot +
         ggplot2::geom_ribbon(data = temp,
                              ggplot2::aes(x = Time.point, ymin = min, ymax = max,
                                           group = IDs, fill = IDs),
-                    alpha = 0.2)
+                             alpha = 0.2)
     }
     if (labels != FALSE) {
       x1 <- min(temp$Time.point[is.finite(temp$Time.point)])

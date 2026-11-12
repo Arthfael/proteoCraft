@@ -65,7 +65,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   #
   if (!sheetnm %in% names(data_filt)) { data_filt[[sheetnm]] <- 1L:nrow(tempData) }
   if (!sheetnm %in% names(data_order)) { data_order[[sheetnm]] <- 1L:length(data_filt[[sheetnm]]) }
-  #WorkBook <- wb_add_worksheet(WorkBook, sheetnm, grid_lines = FALSE)
+  #WorkBook <- openxlsx2::wb_add_worksheet(WorkBook, sheetnm, grid_lines = FALSE)
   #saveFun(WorkBook, file = "WorkBook_bckp.RDS")
   #
   # For testing:
@@ -135,10 +135,12 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
     # We'll cross that bridge when we hit it...
   }
   #
-  if (sheetnm %in% wb_get_sheet_names(WorkBook)) { WorkBook <- wb_remove_worksheet(WorkBook, sheetnm) }
-  WorkBook <- wb_add_worksheet(WorkBook,
-                               sheetnm,
-                               grid_lines = FALSE)
+  if (sheetnm %in% openxlsx2::wb_get_sheet_names(WorkBook)) {
+    WorkBook <- openxlsx2::wb_remove_worksheet(WorkBook, sheetnm)
+  }
+  WorkBook <- openxlsx2::wb_add_worksheet(WorkBook,
+                                          sheetnm,
+                                          grid_lines = FALSE)
   #WorkBook <- openxlsx2::wb_remove_worksheet(WorkBook, sheetnm);WorkBook <- openxlsx2::wb_add_worksheet(WorkBook, sheetnm, grid_lines = FALSE)
   #
   #WorkBook <- openxlsx2::wb_load(fl);WorkBook <- openxlsx2::wb_add_worksheet(WorkBook, sheetnm, grid_lines = FALSE)
@@ -179,9 +181,9 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
                                            banded_cols = FALSE)
   WorkBook <- openxlsx2::wb_add_cell_style(WorkBook,
                                            sheetnm,
-                                           wb_dims(rows = hdRg[2L], cols = 1L:ncol(dummyData)),
+                                           openxlsx2::wb_dims(rows = hdRg[2L], cols = 1L:ncol(dummyData)),
                                            wrap_text = TRUE)
-  #wb_save(WorkBook, paste0(wd, "/tst.xlsx"));xl_open(paste0(wd, "/tst.xlsx"))
+  #openxlsx2::wb_save(WorkBook, paste0(wd, "/tst.xlsx"));openxlsx2::xl_open(paste0(wd, "/tst.xlsx"))
   #
   # Attempt to override the banding in the data columns,
   # because #N/A values are not affected by conditional formatting
@@ -212,7 +214,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
       }
     }
   }
-  #openxlsx2::wb_save(WorkBook, repFl);xl_open(repFl)
+  #openxlsx2::wb_save(WorkBook, repFl);openxlsx2::xl_open(repFl)
   #
   # Style the table
   # - vertical align to center
@@ -270,7 +272,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
                                         first_active_row = c(1L, 3L)[wrtHeader+1L],
                                         firstActiveCol = max(m, na.rm = TRUE)+1L)
   #
-  #openxlsx2::wb_save(WorkBook, repFl);xl_open(repFl)
+  #openxlsx2::wb_save(WorkBook, repFl);openxlsx2::xl_open(repFl)
   #
   # Conditional formatting
   w1 <- which(!is.na(vapply(xlTabs[[sheetnm]], \(x) { #x <- xlTabs[[sheetnm]][1L]
@@ -331,8 +333,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
       x <- w2[x[[1L]]:x[[2L]]]
       split(x, cumsum(c(TRUE, diff(x) != 1L)))
     })
-    #wb_save(WorkBook, paste0(wd, "/tst.xlsx"));xl_open(paste0(wd, "/tst.xlsx"))
-    #wb_save(WorkBook, paste0(wd, "/tst.xlsx"));xl_open(paste0(wd, "/tst.xlsx"))
+    #openxlsx2::wb_save(WorkBook, paste0(wd, "/tst.xlsx"));openxlsx2::xl_open(paste0(wd, "/tst.xlsx"))
     # for (rw in 1L:nrow(CS2tst)) { #rw <- 1L
     #   print(CS2tst$Group.1[[rw]])
     # }
@@ -395,7 +396,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   #
   # Now add the rest of the data
   #  - CC = actual data!
-  sheetMtch <- match(sheetnm, wb_get_sheet_names(WorkBook))
+  sheetMtch <- match(sheetnm, openxlsx2::wb_get_sheet_names(WorkBook))
   cc <- WorkBook$worksheets[[sheetMtch]]$sheet_data$cc
   cc_12 <- cc[cc$row_r %in% c("1", "2"),]
   cc_3 <- cc[cc$row_r == "3",]
@@ -537,8 +538,8 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   # Also xml, etc...
   try(WorkBook$worksheets[[sheetMtch]]$sheet_data$cc_out <- NULL, silent = TRUE) # Worked until at least 1.10, doesn't work for 1.14 (I don't know when the break occurred)
   # I don't think this was necessary anyway...
-  fullDims <- wb_dims(rows = 1L:(nRws+2L), cols = 1L:ncol(myData))
-  tblDims <- wb_dims(rows = 2L:(nRws+2L), cols = 1L:ncol(myData))
+  fullDims <- openxlsx2::wb_dims(rows = 1L:(nRws+2L), cols = 1L:ncol(myData))
+  tblDims <- openxlsx2::wb_dims(rows = 2L:(nRws+2L), cols = 1L:ncol(myData))
   WorkBook$worksheets[[sheetMtch]]$dimension <- paste0("<dimension ref=\"", fullDims, "\"/>")
   WorkBook$tables$tab_ref[match(sheetMtch, WorkBook$tables$tab_sheet)] <- tblDims
   xml <- WorkBook$tables$tab_xml[length(WorkBook$tables$tab_xml)]
@@ -562,7 +563,7 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   WorkBook$tables$tab_xml[length(WorkBook$tables$tab_xml)] <- xml
   #
   #writeClipboard(xml)
-  #wb_save(WorkBook, paste0(wd, "/tst.xlsx"));xl_open(paste0(wd, "/tst.xlsx"))
+  #openxlsx2::wb_save(WorkBook, paste0(wd, "/tst.xlsx"));openxlsx2::xl_open(paste0(wd, "/tst.xlsx"))
   #
   # - Groupings
   tst <- aggregate(ColumnsTbl$Hide, list(ColumnsTbl$Class), unique)
@@ -645,5 +646,5 @@ for (sheetnm in sheetnmsB) { #sheetnm <- sheetnmsB[1L] #sheetnm <- sheetnmsB[2L]
   #   }
   # }
   #
-  #wb_save(WorkBook, paste0(wd, "/tst.xlsx"));xl_open(paste0(wd, "/tst.xlsx"))
+  #openxlsx2::wb_save(WorkBook, paste0(wd, "/tst.xlsx"));openxlsx2::xl_open(paste0(wd, "/tst.xlsx"))
 }

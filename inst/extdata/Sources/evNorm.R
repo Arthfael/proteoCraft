@@ -200,9 +200,9 @@ if (Param$Norma.Ev.Intens) {
         wg <- which(ev$"Raw file path" %in% r)
         tmp <- data.table(Uniq = ev$`Unique State`[wg], Grp = ev[wg, Grps2Kol], Int = ev[wg, ev.col["Normalisation"]])
         tmp <- tmp[, .(x = sum(Int, na.rm = TRUE)), keyby = .(Group.1 = Uniq, Group.2 = Grp)]
-        tmp <- as.data.frame(tmp)
-        tmp <- suppressMessages(reshape2::dcast(tmp, Group.1~Group.2))
+        tmp <- data.table::dcast(tmp, Group.1~Group.2)
         colnames(tmp) <- c("Unique State", paste0("Grp", colnames(tmp)[2L:ncol(tmp)]))
+        tmp <- as.data.frame(tmp)
         kol <- paste0("Grp", Grps2)
         w <- which(kol %in% colnames(tmp))
         kol <- kol[w] 
@@ -272,7 +272,7 @@ if (Param$Norma.Ev.Intens) {
           tmp <- as.data.frame(tmp)
           Fr <- unique(tmp$Fraction)
           source(parSrc)
-          parallel::clusterExport(parClust, list("tmp", "k0", "Fr", "AdvNorm.IL"), envir = environment())
+          parallel::clusterExport(parClust, list("tmp", "k0", "Fr"), envir = environment())
           # Create normalized data
           tmp2 <- setNames(parallel::parLapply(parClust, Fr, \(fr) { #fr <- Fr[1L]
             dat <- tmp[tmp$Fraction == fr,]
@@ -324,15 +324,15 @@ if (Param$Norma.Ev.Intens) {
     # Combine results of all reporter intensity normalisation steps
     Norm.Ev.RepIntens.All %<o% Norm.Ev.RepIntens
     rownames(Norm.Ev.RepIntens.All) <- Norm.Ev.RepIntens.All$Group; Norm.Ev.RepIntens.All$Group <- NULL
-    Norm.Ev.RepIntens.All <- suppressMessages(reshape2::melt(Norm.Ev.RepIntens.All))
+    Norm.Ev.RepIntens.All <- suppressMessages(dfMelt(Norm.Ev.RepIntens.All)) # was reshape2::melt...
     Norm.Ev.RepIntens.All$Iso <- Iso
-    Norm.Ev.RepIntens.All$Channel <- as.numeric(gsub("^Channel_", "", Norm.Ev.RepIntens.All$variable))
+    Norm.Ev.RepIntens.All$Channel <- as.numeric(sub("^Channel_", "", Norm.Ev.RepIntens.All$variable))
     Norm.Ev.RepIntens.All$Fraction <- "All"
     if (tstAdvNrm) {
       tmp2tst <- suppressMessages(melt(tstRI))
       colnames(tmp2tst)[colnames(tmp2tst) == "L1"] <- "Iso"
       tmp2tst$Channel <- get(IsobarLab)
-      tmp2tst$Fraction <- as.numeric(gsub("^Fr\\. ", "", tmp2tst$variable))
+      tmp2tst$Fraction <- as.numeric(sub("^Fr\\. ", "", tmp2tst$variable))
       for (i in Iso) {
         for (ch in get(IsobarLab)) {
           w1 <- which((Norm.Ev.RepIntens.All$Iso == i)&(Norm.Ev.RepIntens.All$Channel == ch))
@@ -343,7 +343,8 @@ if (Param$Norma.Ev.Intens) {
       tmp2tst$Fraction <- factor(tmp2tst$Fraction, levels = 1L:max(tmp2tst$Fraction))
       Norm.Ev.RepIntens.All <- tmp2tst
     }
-    Norm.Ev.RepIntens.All$Channel <- factor(Norm.Ev.RepIntens.All$Channel, levels = 0L:max(Norm.Ev.RepIntens.All$Channel))
+    Norm.Ev.RepIntens.All$Channel <- factor(Norm.Ev.RepIntens.All$Channel,
+                                            levels = 0L:max(Norm.Ev.RepIntens.All$Channel))
     Norm.Ev.RepIntens.All$Iso <- factor(paste0(IsobarLab, " sample ", Norm.Ev.RepIntens.All$Iso),
                                         levels = paste0(IsobarLab, " sample ", Iso))
     w <- (("Adv.Norma.Ev.Intens" %in% colnames(Param))&(Param$Adv.Norma.Ev.Intens != FALSE))+1L
@@ -354,7 +355,6 @@ if (Param$Norma.Ev.Intens) {
     # Visualize results
     dir <- paste0(wd, "/Workflow control/", evNm, "s/Reporter intensities")
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    dirlist <- unique(c(dirlist, dir))
     ttl <- "Reporter intensities trend VS fractions"
     plot <- ggplot2::ggplot(Norm.Ev.RepIntens.All) +
       ggplot2::geom_tile(ggplot2::aes(x = Fraction, y = Channel, fill = value),
@@ -378,7 +378,7 @@ if (Param$Norma.Ev.Intens) {
     DatAnalysisTxt$evNorm <- sub("\\.$",
                                  ", then individual MS2 intensities were re-scaled using MS1 intensities.",
                                  DatAnalysisTxt$evNorm)
-    kol <- gsub("Intensity", "MS2 intensities", ev.col[length(ev.col)])
+    kol <- sub("Intensity", "MS2 intensities", ev.col[length(ev.col)])
     stopifnot(grepl("MS2 intensities", kol))
     ev[[kol]] <- ev$MS2_intensities # (Let's keep this as a numeric list)
     for (smpl in RSA$values) {
@@ -409,7 +409,6 @@ if (Param$Norma.Ev.Intens) {
     ttl <- paste0(evNm, "s intensity normalisation")
     dir <- paste0(wd, "/Workflow control/", evNm, "s/Normalisation")
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    dirlist <- unique(c(dirlist, dir))
     plot <- ggplot2::ggplot(tst) +
       ggplot2::geom_violin(ggplot2::aes(x = MQ.Exp, y = value, color = Norm, fill = Norm),
                            alpha = 0.25) +
@@ -453,8 +452,7 @@ if (LabelType == "Isobaric") {
   ttl <- paste0(evNm, "s reporter intensity re-scaling")
   dir <- paste0(wd, "/Workflow control/", evNm, "s/Normalisation")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dir))
-  test$Channel <- as.numeric(gsub(topattern(c(er0, er1)), "", as.character(test$variable)))
+  test$Channel <- as.numeric(sub(topattern(c(er0, er1)), "", as.character(test$variable)))
   test$Channel <- factor(test$Channel, levels = sort(unique(test$Channel)))
   plot <- ggplot2::ggplot(test) +
     ggplot2::geom_violin(ggplot2::aes(x = Channel, y = value, color = Channel, fill= Channel),
@@ -473,7 +471,7 @@ if (LabelType == "Isobaric") {
   kol <- grep(topattern(ev.ref["Original"]), colnames(ev), value = TRUE)
   kol <- grep(" count ", kol, value = TRUE, invert = TRUE)
   tst1 <- sapply(MQ.Exp, \(x) {
-    vapply(gsub(topattern(ev.ref["Original"]), "", kol), \(y) {
+    vapply(sub(topattern(ev.ref["Original"]), "", kol), \(y) {
       w <- which(vapply(Exp.map$MQ.Exp, \(z) { x %in% unlist(z) }, TRUE)&(Exp.map$"Isobaric label" == y))
       stopifnot(length(w) <= 1L)
       res <- if (length(w)) { cleanNms(Exp.map$Ref.Sample.Aggregate[w]) } else { "" }

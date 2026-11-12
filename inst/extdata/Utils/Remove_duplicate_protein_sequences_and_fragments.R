@@ -4,8 +4,7 @@
 # - remove entries marqued as fragments
 # - add common contaminants (CCP)
 #
-require(parallel)
-require(proteoCraft)
+library(proteoCraft)
 
 # Create parallel processing cluster
 # Cluster
@@ -42,4 +41,4 @@ db2 <- Format.DB(paste0(fastaDir, "/CCP_cRAPome.fasta")) # loads contaminants
 #db <- plyr::rbind.fill(db, db2)
 db <- rbind(db, db2)
 writeFasta(db, sub(paste0("\\.", ext, "$"), paste0("_noDupl_cont.", ext), dbFl)) # Write fixed database with original extension
-openwd(dirname(dbFl))
+#openwd(dirname(dbFl))

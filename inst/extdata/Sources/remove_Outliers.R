@@ -78,7 +78,7 @@ ui <- shiny::fluidPage(
       shiny::h5(shiny::em(paste0("Colour = ", outlierAnnot_color))),
       shiny::h5(shiny::em(paste0("Colour labels = ", colLab))),
       shiny::h5(shiny::em(paste0("Shape = ", outlierAnnot_shape))),
-      shiny::plotlyOutput("PCA", height = paste0(screenRes$width*0.4, "px")),
+      plotly::plotlyOutput("PCA", height = paste0(screenRes$width*0.4, "px")),
       shiny::br(),
       width = 6L)
   ))
@@ -107,7 +107,7 @@ server <- \(input, output, session) {
       Shiny.unbindAll(table.table().node());
       Shiny.bindAll(table.table().node());"))
   output$Msg <- shiny::renderUI({ shiny::em(" ") })
-  output$PCA <- shiny::renderPlotly(dimRedPlotLy$peptides[["Samples PCA"]])
+  output$PCA <- plotly::renderPlotly(dimRedPlotLy$peptides[["Samples PCA"]])
   # sapply(seq_len(nrow(Include)), \(x) {
   #   id <- paste0("check___", as.character(x))
   #   shiny::observeEvent(input[[id]], {

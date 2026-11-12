@@ -14,9 +14,8 @@ if ((!exists("clustDat")) || (!inherits(clustDat, "list"))) {
   }
 }
 clustDat %<o% clustDat
-if (!exists("clustFilt")) { clustFilt<- list() }
+if ((!exists("clustFilt")) || (!is.list(clustFilt))) { clustFilt <- list() }
 clustFilt %<o% clustFilt
-if (scrptType == "withReps") { dirlist <- base::union(dirlist, clustDir) }
 #
 if (scrptType == "withReps") { clustHtMp <- TRUE }
 if (scrptType == "noReps") { clustHtMp <- length(Exp) > 1L }
@@ -65,11 +64,10 @@ if (dataType == "PG") {
   clustMap %<o% map
 } # (otherwise - for peptides - we re-use those from PG)
 
-
 # Original data
 # -------------
-w <- which((apply(myData[, clustXprsKol, drop = FALSE], 1L, \(x) { sum(!is.na(x)) }) > 0L)
-           & (is.na(myData$`Potential contaminant`) | (myData$`Potential contaminant` != "+")))
+w <- which((apply(myData[, clustXprsKol, drop = FALSE], 1L, \(x) { sum(!is.na(x)) }) > 0L) &
+             (is.na(myData$`Potential contaminant`) | (myData$`Potential contaminant` != "+")))
 myData <- myData[w, clustXprsKol, drop = FALSE]
 colnames(myData) <- map$Samples
 

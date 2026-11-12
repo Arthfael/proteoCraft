@@ -8,7 +8,6 @@ if (length(ROC_GOterms)) {
     cat("Not enough TRUE positives for ROC analysis (min = 10), skipping!\n")
   } else {
     dir <- paste0(wd, "/ROC analysis")
-    dirlist <- base::union(dirlist, dir)
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
     w1 <- which(paste0(pvalue.col[pvalue.use], VPAL$values) %in% colnames(PG))
     if (!length(w1)) { stop("Where are my P-values?!?!%&$+*!*") } else {

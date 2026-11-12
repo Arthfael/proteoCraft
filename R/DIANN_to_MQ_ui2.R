@@ -23,5 +23,5 @@
                                      shiny::column(4L, shiny::strong("... or pick from UniMod matches here:"))),
                      shiny::uiOutput("PTMs"),
                      shiny::span(shiny::uiOutput("Msg"), style = "color:blue", .noWS = "outside"),
-                     shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill")))))
+                     shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill")))))
 }

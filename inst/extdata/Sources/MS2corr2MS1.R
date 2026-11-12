@@ -13,7 +13,6 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
     cat("Refining MS1-level measurements using MS2 data...\n")
     dir <- paste0(wd, "/Workflow control/", evNm, "s/MS2-based MS1 correction")
     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-    if (exists("dirlist")) { dirlist <- unique(c(dirlist, dir)) }
     #
     if (scrptType == "withReps") {
       ref <- if ("MS2-corrected" %in% names(ev.col)) { ev.col[match("MS2-corrected", names(ev.col))-1L] } else {
@@ -70,7 +69,6 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
         return(x)
       })
       source(parSrc)
-      parallel::clusterExport(parClust, list("LFQ.lm", "diffLog"), envir = environment())
       MS2Tbl$CorrVal <- parallel::parLapply(parClust, MS2Tbl$FiltMS2, \(x) { #x <- MS2Tbl$FiltMS2[[1L]]
         Dat <- x
         k <- colnames(Dat)

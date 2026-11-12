@@ -26,7 +26,6 @@ wgcnaDir <- paste0(wd, "/WGCNA")
 wgcnaDirs <- paste0(wgcnaDir, "/", c("Initial",
                                      "Traits",
                                      "Modules"))
-if (scrptType == "withReps") { dirlist <- unique(c(dirlist, wgcnaDir, wgcnaDirs)) }
 for (dr in wgcnaDirs) {
   if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
 }
@@ -208,7 +207,7 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
       "then click \"Save\".")),
     shiny::uiOutput("Current"),
     shiny::br(),
-    shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+    shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
     shiny::br(),
     shiny::sliderInput("Power", "Power", 1L, max(spt$fitIndices$Power), pwrEst, 1L, TRUE, width = "400px"),
     shiny::br(),
@@ -485,7 +484,6 @@ if (is.na(pwrEst)) { warning("Data is too low quality, skipping...") } else {
       GSPvalues <- list()
       for (Fact in names(traitModules)) { #Fact <- names(traitModules)[2L]
         dr <- paste0(wgcnaDirs[2L], "/", Fact)
-        if (scrptType == "withReps") { dirlist <- unique(c(dirlist, dr)) }
         if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
         # Isolate current factor from the others
         tmpFact <- as.data.frame(xpMap[[Fact]])

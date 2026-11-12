@@ -30,7 +30,6 @@ if (saintExprs) {
   subDr <- "Reg. analysis/SAINTexpress"
   saintDir <- paste0(sub("/+$", "", wd), "/", subDr)
   if (!dir.exists(saintDir)) { dir.create(saintDir, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, saintDir))
   fcRt <- "log2(FC) - "
   fdrRt <- "-log10(BFDR) - "
   kol_A <- c("AvgP", "MaxP", "TopoAvgP", "TopoMaxP", "SaintScore")
@@ -102,9 +101,9 @@ if (saintExprs) {
     GO <- listMelt(strsplit(db$`GO-ID`[w], ";"), db$`Protein ID`[w], c("L1", "value"))
   }
   #
+  source(parSrc)
   parallel::clusterExport(parClust,
-                          list("Exp", "VPAL", "RG", "Annotate", "wd", "saintDir", "fcRt", "SaintEx", "kol_A", "kol_B",
-                               "cleanNms", "topattern"),
+                          list("Exp", "VPAL", "RG", "Annotate", "wd", "saintDir", "fcRt", "SaintEx", "kol_A", "kol_B"),
                           envir = environment())
   #
   SAINT_list <- lapply(1L:length(allContr), \(ii) { #ii <- 1L

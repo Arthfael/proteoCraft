@@ -126,7 +126,6 @@ if (LocAnalysis) {
   # Visualize
   dir <- paste0(wd, "/Workflow control/Re-scaling/")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dir))
   for (i in 1L:2L) {
     if (i == 1L) {
       rt1 <- prevRef
@@ -143,8 +142,7 @@ if (LocAnalysis) {
     kol1 <- paste0(rt1, RSA$values)
     kol2 <- paste0(rt2, RSA$values)
     w <- which((kol1 %in% colnames(temp)) & (kol2 %in% colnames(temp)))
-    tst <- temp[, c(kol1[w], kol2[w])]
-    tst <- reshape2::melt(tst, measure.vars = c(kol1[w], kol2[w]))
+    tst <- dfMelt(temp[, c(kol1[w], kol2[w])])
     tst$value <- suppressWarnings(log10(tst$value))
     tst <- tst[is.finite(tst$value),]
     tst$variable <- as.character(tst$variable)

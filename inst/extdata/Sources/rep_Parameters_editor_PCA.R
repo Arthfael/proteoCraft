@@ -43,7 +43,6 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
   cat("Drawing PSMs-level PCA plot\n")
   dir <- paste0(wd, "/Dimensionality red. plots/PCA")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  dirlist <- unique(c(dirlist, dir))
   lsKl <- c("Modified sequence", Y)
   if (LabelType == "LFQ") { lsKl <- c(lsKl, X) }
   ls <- lapply(lsKl, \(kl) { data[[kl]] })

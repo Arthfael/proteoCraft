@@ -85,7 +85,7 @@ annot_from_GTF <- \(file,
     stopifnot(sum(grepl(";", tmp[[k]])) == 0L) # Would indicate that our assumption that there is only one entry per row in incorrect
     tmp[[k]] <- gsub("\\|", " [GO:", gsub("\\|\\|.*", "]", tmp[[k]]))
   }
-  tmp2 <- reshape::melt(tmp[, c("Accession", goKol1)], id.vars = "Accession")
+  tmp2 <- dfMelt(tmp[, c("Accession", goKol1)], id.vars = "Accession")
   tmp2 <- tmp2[!is.na(tmp2$value),]
   tmp2$"GO-ID" <- gsub(".* \\[", "", sub("\\]$", "", tmp2$value))
   tst <- base::setdiff(unique(sub("^GO:[0-9]{7}$", "", tmp2$"GO-ID")), "")

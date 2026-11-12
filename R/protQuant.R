@@ -900,7 +900,7 @@ protQuant <- function(Prot,
     cat("    ----- running LM method -----\n")
     # Create cluster
     stopCl <- FALSE
-    if (is.null(cl) || (!inherits(cl, "cluster"))) {
+    if (misFun(cl) || is.null(cl) || (!inherits(cl, "cluster"))) {
       dc <- parallel::detectCores()
       if (misFun(N.reserved)) { N.reserved <- 1L }
       nMax <- max(c(dc - N.reserved, 1L))
@@ -916,7 +916,6 @@ protQuant <- function(Prot,
     }
     N.clust <- length(cl)
     #
-    parallel::clusterExport(cl, list("diffLog", "LFQ.lm"), envir = environment())
     f0 <- .bind_worker(LFQ.lm,
                        list(tmpPep = tmpPep,
                             quant_pep_IDs = quant_pep_IDs,

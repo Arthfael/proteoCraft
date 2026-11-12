@@ -19,7 +19,7 @@ DIANN_to_MQ(
 )
 }
 \arguments{
-\item{DIANN_fl}{External diaNN PSMs table file (.tsv, .parquet format, or both).}
+\item{DIANN_fl}{Path to a diaNN PSMs table file (.tsv, .parquet, or both).}
 
 \item{Fixed.mods}{A vector of those Fixed modifications which will not be reported in the results (reported by diaNN, but MQ ignores them). Default = "Carbamidomethyl"}
 
@@ -53,7 +53,7 @@ Cysteine alkylation is assumed to be Carbamidomethyl
 }
 \description{
 Converts a diaNN PSMs table to a MaxQuant evidence.txt-like table.
-As with the other functions of this type, the idea is not to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.
+As with the other functions of this family, the idea is not necessarily to get perfect conversion, but close enough that the data can be fed into this package's analysis scripts.
 }
 \examples{
 DIANN_fl <- rstudioapi::selectFile()

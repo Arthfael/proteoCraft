@@ -33,10 +33,8 @@ if (runRankAbundPlots || runProfPlots) {
   for (dr in c(MainDir, MainDir2)) {
     if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
   }
-  if (scrptType == "withReps") { dirlist <- base::union(dirlist, c(MainDir, MainDir2)) }
   for (quantType in QuantTypes) { #quantType <- QuantTypes[1L] #quantType <- "LFQ" #QuantType <- "Coverage"
     subDir <- paste0(MainDir, "/", quantType)
-    if (scrptType == "withReps") { dirlist <- base::union(dirlist, subDir) }
     if (!dir.exists(subDir)) { dir.create(subDir, recursive = TRUE) }
   }
   #
@@ -252,7 +250,7 @@ if (runRankAbundPlots || runProfPlots) {
   w <- which(myPG2$x == "Contaminant")
   suppressWarnings(myPG2$Protein_group[w] <- RColorBrewer::brewer.pal(min(c(length(w), 12L)), "Blues"))
   w <- which(myPG2$x %in% tstOrg2)
-  myPG2$Protein_group[w] <- rainbow_hcl(length(w))
+  myPG2$Protein_group[w] <- colorspace::rainbow_hcl(length(w))
   w <- which(myPG2$x %in% c("In list",  "+"))
   myPG2$Protein_group[w] <- "red"
   myPG$Protein_group <- myPG2$Protein_group[match(myPG$`Protein Group`, myPG2$Group.1)]
@@ -267,7 +265,7 @@ if (runRankAbundPlots || runProfPlots) {
   w <- which(myPep2$x == "Contaminant")
   suppressWarnings(myPep2$Peptidoform[w] <- RColorBrewer::brewer.pal(min(c(length(w), 12L)), "Blues"))
   w <- which(myPep2$x %in% tstOrg2)
-  myPep2$Peptidoform[w] <- rainbow_hcl(length(w))
+  myPep2$Peptidoform[w] <- colorspace::rainbow_hcl(length(w))
   w <- which(myPep2$x %in% c("In list",  "+"))
   myPep2$Peptidoform[w] <- "red"
   myPep$Peptidoform <- myPep2$Peptidoform[match(myPep$`Modified sequence`, myPep2$Group.1)]

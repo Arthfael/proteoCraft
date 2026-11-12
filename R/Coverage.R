@@ -110,7 +110,8 @@ Coverage <- function(proteins,
       return()
     }
     if (Mode == "XML") {
-      return(fmt_txt(paste(proteins, collapse = ";"), color = wb_color(hex = c("grey"))))
+      return(openxlsx2::fmt_txt(paste(proteins, collapse = ";"),
+                                color = openxlsx2::wb_color(hex = c("grey"))))
     }
   }
   if (Mode != "Coverage") {
@@ -853,8 +854,8 @@ Coverage <- function(proteins,
             setwd(dirname(svpth))
             covPlotLy <- plotly::ggplotly(covPlot, tooltip = c("peptide", "PTM"))
             if (addDots) {
-              nGeom <- length(ggplot_build(covPlot2)$data)
-              rectBuilt <- ggplot_build(covPlot2)$data[[nGeom]]
+              nGeom <- length(ggplot2::ggplot_build(covPlot2)$data)
+              rectBuilt <- ggplot2::ggplot_build(covPlot2)$data[[nGeom]]
               for (i in 1L:nrow(rectBuilt)) {
                 covPlotLy <- plotly::add_polygons(covPlotLy,
                                                   x = c(rectBuilt$xmin[i], rectBuilt$xmax[i],
@@ -875,7 +876,7 @@ Coverage <- function(proteins,
             covPlotLy$x$layout$xaxis$autorange <- TRUE
             covPlotLy$x$layout$yaxis$autorange <- TRUE
             covPlotLy <- htmlwidgets::onRender(covPlotLy,
-                                                "function(el, x) {
+                                               "function(el, x) {
   var gd = el;
   function globalRange(axisPrefix) {
     var axes = Object.keys(gd._fullLayout).filter(function(k) {

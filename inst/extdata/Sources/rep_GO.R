@@ -36,7 +36,6 @@ if (Annotate && (enrichGO || globalGO)) {
       cat("\n - ", tstrt, "\n")
       myDir <- paste0(wd, "/Reg. analysis/GO enrich/", tstrt)
       if (!dir.exists(myDir)) { dir.create(myDir, recursive = TRUE) }
-      dirlist <- unique(c(dirlist, myDir))
       filt <- Reg_filters[[tstrt]]
       #By <- c("By condition", "By reference", "By analysis", "Whole dataset")
       By <- "By condition"
@@ -321,7 +320,6 @@ if (Annotate && (enrichGO || globalGO)) {
     #
     myDir <- paste0(wd, "/Reg. analysis/GO enrich/Dataset")
     if (!dir.exists(myDir)) { dir.create(myDir, recursive = TRUE) }
-    dirlist <- unique(c(dirlist, myDir))
     #
     Mode <- "dataset"
     dataType <- "PG"
@@ -367,4 +365,8 @@ if (Annotate && (enrichGO || globalGO)) {
                                   "up-regulated")[(sum(myContrasts$`Up-only`) == nrow(myContrasts)) + 1L],
                                 " against observed protein groups.")
   }
+}
+if (exists("GO_plot_ly")) {
+  saveFun(GO_plot_ly, GO_plot_ly_fl)
+  rm(GO_plot_ly)
 }

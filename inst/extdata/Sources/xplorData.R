@@ -10,8 +10,8 @@ HEIGHT <- paste0(as.character(Height, "px"))
 try({
   loadFun(heatMaps_fl)
   loadFun(dimRed_fl)
-  loadFun(paste0(wd, "/Ranked abundance/quantPlots.RDS"))
-  loadFun(paste0(wd, "/Profile plots/profilePlots.RDS"))
+  loadFun(ggQuantLy_fl)
+  loadFun(ggProfLy_fl)
 }, silent = TRUE)
 heatMaps_ON <- exists("plotLeatMaps") && (length(plotLeatMaps) > 0L)
 dimRed_ON <- exists("dimRedPlotLy") && (length(dimRedPlotLy) > 0L)
@@ -68,7 +68,7 @@ if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
                         shiny::column(2L,
                                       shiny::radioButtons("NormType", "Normalisation method:", c("Norm. by row", "None"), "None"))),
         shiny::fluidRow(shiny::column(12L,
-                                      shinycssloaders::withSpinner(shiny::plotlyOutput("myHeatmap_plot"))))
+                                      shinycssloaders::withSpinner(plotly::plotlyOutput("myHeatmap_plot"))))
       )
     },
     #
@@ -76,11 +76,11 @@ if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
       shiny::fluidRow(shiny::column(8L,
                                     shiny::h4("Dimensionality reduction plots"),
                                     shiny::selectInput("DimRedPlot", "Select method", nmsDmRds, dfltDmRd),
-                                    shinycssloaders::withSpinner(shiny::plotlyOutput("myPGDimRed_plot", height = HEIGHT))),
+                                    shinycssloaders::withSpinner(plotly::plotlyOutput("myPGDimRed_plot", height = HEIGHT))),
                       shiny::column(4L,
                                     shiny::br(),
                                     shiny::br(),
-                                    shinycssloaders::withSpinner(shiny::plotlyOutput("mySmplsDimRed_plot", height = HEIGHT))))
+                                    shinycssloaders::withSpinner(plotly::plotlyOutput("mySmplsDimRed_plot", height = HEIGHT))))
     },
     #
     if (quant_ON || profile_ON) {
@@ -89,32 +89,32 @@ if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
     if (quant_ON || profile_ON) {
       shiny::fluidRow(shiny::column(3L,
                                     shiny::selectInput("QuantType", "Select Quant method", QuantTypes, dfltQuant)),
-                                    if (profile_ON) {
-                                      shiny::column(3L,
-                                                    shinyWidgets::pickerInput("ProfPlotProt", "Select protein(s) to display", allProt, dfltProt, TRUE,
-                                                                              shinyWidgets::pickerOptions(title = "Search me",
-                                                                              `live-search` = TRUE,
-                                                                              actionsBox = TRUE,
-                                                                              deselectAllText = "Clear search",
-                                                                              showTick = TRUE)))
-                                    },
-                                    if (quant_ON) {
-                                      shiny::column(3L,
-                                                    shiny::selectInput("Sample",
-                                                                       paste0("Select Sample ", c("", "Group ")[(scrptType == "withReps")+1L], "to plot"),
-                                                                       allSamples, allSamples[1L]))
-                                    },
+                      if (profile_ON) {
+                        shiny::column(3L,
+                                      shinyWidgets::pickerInput("ProfPlotProt", "Select protein(s) to display", allProt, dfltProt, TRUE,
+                                                                shinyWidgets::pickerOptions(title = "Search me",
+                                                                                            `live-search` = TRUE,
+                                                                                            actionsBox = TRUE,
+                                                                                            deselectAllText = "Clear search",
+                                                                                            showTick = TRUE)))
+                      },
+                      if (quant_ON) {
+                        shiny::column(3L,
+                                      shiny::selectInput("Sample",
+                                                         paste0("Select Sample ", c("", "Group ")[(scrptType == "withReps")+1L], "to plot"),
+                                                         allSamples, allSamples[1L]))
+                      },
       )
     },
     if (quant_ON || profile_ON) {
       shiny::fluidRow(
         if (profile_ON) {
           shiny::column(12L/(quant_ON + profile_ON),
-                        shinycssloaders::withSpinner(shiny::plotlyOutput("myProfilePlot", height = HEIGHT2)))
+                        shinycssloaders::withSpinner(plotly::plotlyOutput("myProfilePlot", height = HEIGHT2)))
         },
         if (quant_ON) {
           shiny::column(12L/(quant_ON + profile_ON),
-                        shinycssloaders::withSpinner(shiny::plotlyOutput("SortedPGPlot", height = HEIGHT2)))
+                        shinycssloaders::withSpinner(plotly::plotlyOutput("SortedPGPlot", height = HEIGHT2)))
         },
       )
     },
@@ -145,50 +145,61 @@ if (sum(c(heatMaps_ON, dimRed_ON, quant_ON, profile_ON))) {
     shiny::observeEvent(input$ProfPlotProt, PROFPROT(input$ProfPlotProt))
     shiny::observeEvent(input$Sample, SAMPLE(input$Sample))
     #
-    output$myHeatmap_plot <- shiny::renderPlotly(suppressMessages({
+    output$myHeatmap_plot <- plotly::renderPlotly(suppressMessages({
       shiny::req(heatMaps_ON)
       shiny::req(plotLeatMaps[[HEATMAP()]][[NORMTYPE()]]$Plot)
       return(plotLeatMaps[[HEATMAP()]][[NORMTYPE()]]$Plot)
     }))
     #
-    output$mySmplsDimRed_plot <- shiny::renderPlotly(suppressMessages({
+    output$mySmplsDimRed_plot <- plotly::renderPlotly(suppressMessages({
       req(dimRed_ON)
       req(dimRedPlotLy$PG[["Samples PCA"]])
       dimRedPlotLy$PG[["Samples PCA"]]
     }))
-    output$myPGDimRed_plot <- shiny::renderPlotly(suppressMessages({
+    output$myPGDimRed_plot <- plotly::renderPlotly(suppressMessages({
       shiny::req(dimRed_ON)
       shiny::req(dimRedPlotLy$PG[[DIMRED()]])
       return(dimRedPlotLy$PG[[DIMRED()]])
     }))
     #
-    output$myProfilePlot <- shiny::renderPlotly(suppressMessages({
+    output$myProfilePlot <- plotly::renderPlotly(suppressMessages({
       shiny::req(profile_ON)
       shiny::req(ggProfLy[[QUANTTYPE()]])
       shiny::req(PROFPROT())
-      myProfPlot <- ggProfLy[[QUANTTYPE()]]
-      ggCall <- gsub(", +alpha += +[^)]+\\)", ")", myProfPlot$ggCall)
-      plCall <- myProfPlot$plCall
-      profData <- myProfPlot$data
-      srchCol <- c("Protein IDs", "Proteins")[grepl("^peptides ", QUANTTYPE())+1L]
-      #if (grepl("^peptides ", QUANTTYPE())) { } else { }
-      toolTip <- paste0("text", as.character(1L:4L))
-      yKol <- myProfPlot$data2$yCol
-      colKol <- myProfPlot$data2$color
-      txt4Kol <- myProfPlot$data2$labCol
-      w <- grsep(sub(" - .*", "", PROFPROT()), x = profData[[srchCol]])
-      shiny::req(w)
-      profData <- profData[w,]
-      ttl <- myProfPlot$Ttl
-      kolnm <- myProfPlot$data2$colName
-      myFacets <- myProfPlot$data2$facets
-      Ngl <- myProfPlot$data2$angle
-      # Now that the original objects have their proper values again, we can evaluate
-      eval(parse(text = ggCall))
-      eval(parse(text = plCall))
-      return(plotlyProfiles)
+      srchCol <- c("Protein IDs", "Proteins")[grepl("^peptides ", QUANTTYPE())+1L] #srchCol <- "Protein IDs"
+      srchIDs <- PROFPROT() #srchIDs <- dfltProt
+      srchIDs <- base::setdiff(unique(unlist(strsplit(sub(" - .*", "", srchIDs), ";"))), c("...", NA))
+      myProfPlot <- ggProfLy[[QUANTTYPE()]]$plotly #myProfPlot <- ggProfLy$LFQ$plotly
+      myTraces <- myProfPlot$x$data
+      traceModes <- vapply(myTraces, \(x) { x$mode }, "")
+      traceN <- vapply(myTraces, \(x) { length(x$x) }, 1L)
+      w <- which((!grepl("lines", traceModes)) | (traceN > 1L))
+      myTraces <- myTraces[w]
+      traceModes <- traceModes[w]
+      traceN <- traceN[w]
+      myTraces <- lapply(myTraces, \(x) {
+        myIDs <- base::setdiff(unique(unlist(strsplit(sub(" - .*", "", sub("^[^:]+: ", "", x$text)), ";"))), c("...", NA))
+        wY <- which(myIDs %in% srchIDs)
+        wN <- which(!myIDs %in% srchIDs)
+        if (!is.null(x$line$color)) {
+          x$line$color[wY] <- sub(",[^,]+\\)$", ",1)",  x$line$color[wY])
+          x$line$color[wN] <- "rgba(0,0,0,0.1)"
+        }
+        if (!is.null(x$marker$line$color)) {
+          x$marker$line$color[wY] <- sub(",[^,]+\\)$", ",1)",  x$marker$line$color[wY])
+          x$marker$line$color[wN] <- "rgba(0,0,0,0.1)"
+        }
+        if (!is.null(x$line$width)) { x$line$width[wY] <- x$line$width[wY]*1.5 }
+        if (!is.null(x$marker$size)) { x$marker$width[wN] <- x$marker$size[wN]/2 }
+        if (!is.null(x$marker$line$width)) { x$marker$line$width[wY] <- x$marker$line$width[wY]*1.5 }
+        if (!is.null(x$line$dash)) { x$line$dash[wN] <- "dot" }
+        if (!is.null(x$marker$line$dash)) { x$marker$line$dash[wY] <- "dot" }
+        return(x)
+      })
+      myProfPlot$x$data <- myTraces
+      return(myProfPlot)
     }))
-    output$SortedPGPlot <- shiny::renderPlotly(suppressMessages({
+    output$SortedPGPlot <- plotly::renderPlotly(suppressMessages({
       shiny::req(quant_ON)
       shiny::req(ggQuantLy[[QUANTTYPE()]][[SAMPLE()]]$plotly)
       return(ggQuantLy[[QUANTTYPE()]][[SAMPLE()]]$plotly)

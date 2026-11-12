@@ -19,7 +19,6 @@ if (!exists("homePath")) {
 #locDirs <- openxlsx2::read_xlsx(locDirsFl)
 #if ("Python" %in% locDirs$Folder) {
 pyTest <- try(.pyConfig(), silent = TRUE)
-if (inherits(pyTest, "try-error")) { pyTest <- FALSE }
 #}
 #}
 #load_Bckp()
@@ -112,49 +111,53 @@ if (isFnd["Cell_types"]) {
   tmp <- data.table::fread(ontoFls$File[match("Cell_types", ontoFls$Name)])
   availCellTypes <- sort(unique(tmp$label))
   cellTypeTxt <- " the cell type analyzed"
-  if ((!exists("myCellType")) || (!is.character(myCellType)) || sum(!myCellType %in% availCellTypes)) {
+  if ((!exists("myCellType")) || (!is.character(myCellType)) || (!length(myCellType)) || sum(!myCellType %in% availCellTypes)) {
     myCellType <- c()
     myCellType2 <- "not available"
   } else {
     myCellType2 <- myCellType
   }
-  availCellTypes <- c(myCellType, base::setdiff(availCellTypes, myCellType))
+  myCellType <- base::intersect(myCellType, availCellTypes)
+  availCellTypes <- base::union(myCellType, availCellTypes)
 }
 if (isFnd["Tissues"]) {
   tmp <- data.table::fread(ontoFls$File[match("Tissues", ontoFls$Name)])
   availTissues <- sort(unique(tmp$label))
   tissueTxt <- " the tissue or organism part analyzed"
-  if ((!exists("myTissue")) || (!is.character(myTissue)) || sum(!myTissue %in% availTissues)) {
+  if ((!exists("myTissue")) || (!is.character(myTissue)) || (!length(myTissue)) || sum(!myTissue %in% availTissues)) {
     myTissue <- c()
     myTissue2 <- "not available"
   } else {
     myTissue2 <- myTissue
   }
-  availTissues <- c(myTissue, base::setdiff(availTissues, myTissue))
+  myTissue <- base::intersect(myTissue, availTissues)
+  availTissues <- base::union(myTissue, availTissues)
 }
 if (isFnd["Modifications"]) {
   tmp <- data.table::fread(ontoFls$File[match("Modifications", ontoFls$Name)])
   availMods <- sort(unique(tmp$label))
   modsTxt <- " any Post-Translational Modifications which were included in the analysis"
-  if ((!exists("myPTMs")) || (!is.character(myPTMs)) || sum(!myPTMs %in% availMods)) {
+  if ((!exists("myPTMs")) || (!is.character(myPTMs)) || (!length(myPTMs)) || sum(!myPTMs %in% availMods)) {
     myPTMs <- c()
     myPTMs2 <- "not available"
   } else {
     myPTMs2 <- myPTMs
   }
-  availMods <- c(myPTMs, base::setdiff(availMods, myPTMs))
+  myPTMs <- base::intersect(myPTMs, availMods)
+  availMods <- base::union(myPTMs, availMods)
 }
 if (isFnd["Diseases"]) {
   tmp <- data.table::fread(ontoFls$File[match("Diseases", ontoFls$Name)])
   availDiseases <- sort(unique(tmp$label))
   diseasesTxt <- " any diseases relevant to the dataset"
-  if ((!exists("myDisease")) || (!is.character(myDisease)) || sum(!myDisease %in% availDiseases)) {
+  if ((!exists("myDisease")) || (!is.character(myDisease)) || (!length(myDisease)) || sum(!myDisease %in% availDiseases)) {
     myDisease <- c()
     myDisease2 <- "not available"
   } else {
     myDisease2 <- myDisease
   }
-  availDiseases <- c(myDisease, base::setdiff(availDiseases, myDisease))
+  myDisease <- base::intersect(myDisease, availDiseases)
+  availDiseases <- base::union(myDisease, availDiseases)
 }
 if (isFnd["MS_models"]) {
   availInstrDF <- data.table::fread(ontoFls$File[match("MS_models", ontoFls$Name)])
@@ -169,50 +172,64 @@ if (isFnd["MS_models"]) {
   if ((!exists("myVendor")) || (!is.character(myVendor)) || sum(!myVendor %in% Vendors2Instr$Vendor)) {
     myVendor <- "All vendors"
   }
-  if ((!exists("myMSInstr")) || (!is.character(myMSInstr)) || sum(!myMSInstr %in% availInstr)) {
-    if (exists("LCMS_instr") && inherits(LCMS_instr, "list") && ("MS" %in% names(LCMS_instr))) {
+  if ((!exists("myMSInstr")) || (!is.character(myMSInstr)) || (!length(myMSInstr)) || sum(!myMSInstr %in% availInstr)) {
+    myMSInstr <- if (exists("LCMS_instr") && inherits(LCMS_instr, "list") && ("MS" %in% names(LCMS_instr))) {
       myMSInstr <- base::intersect(availInstr, LCMS_instr$MS)
-    }
+    } else { c() }
   }
   myMSInstr2 <- myMSInstr
   if (!length(myMSInstr2)) { myMSInstr2 <- "not available" }
-  availInstr <- c(myMSInstr, base::setdiff(availInstr, myMSInstr))
+  myMSInstr <- base::intersect(myMSInstr, availInstr)
+  availInstr <- base::union(myMSInstr, availInstr)
 }
 if (isFnd["MS_acq_meth"]) {
   tmp <- data.table::fread(ontoFls$File[match("MS_acq_meth", ontoFls$Name)])
   availAcqMeth <- sort(unique(tmp$Name))
   acqMethTxt <- " relevant MS acquisition method(s)"
-  if ((!exists("myAcqMeth")) || (!is.character(myAcqMeth)) || sum(!myAcqMeth %in% availAcqMeth)) {
-    myAcqMeth <- c()
-    myAcqMeth2 <- "not available"
-  } else {
-    myAcqMeth2 <- myAcqMeth
+  if ((!exists("myAcqMeth")) || (!is.character(myAcqMeth)) || (!length(myAcqMeth)) || sum(!myAcqMeth %in% availAcqMeth)) {
+    myAcqMeth <- paste0("Data-", c("", "in")[(sum(isDIA) > 0L) + 1L], "dependent acquisition")
   }
-  availAcqMeth <- c(myAcqMeth, base::setdiff(availAcqMeth, myAcqMeth))
+  myAcqMeth <- base::intersect(myAcqMeth, availAcqMeth)
+  availAcqMeth <- base::union(myAcqMeth, availAcqMeth)
 }
 if (isFnd["MS_quant_meth"]) {
   tmp <- data.table::fread(ontoFls$File[match("MS_quant_meth", ontoFls$Name)])
   availQuantMeth <- sort(unique(tmp$Name))
   quantMethTxt <- " relevant MS quantification method(s)"
-  if ((!exists("myQuantMeth")) || (!is.character(myQuantMeth)) || sum(!myQuantMeth %in% availQuantMeth)) {
-    myQuantMeth <- c()
-    myQuantMeth2 <- "not available"
-  } else {
-    myQuantMeth2 <- myQuantMeth
+  if ((!exists("myQuantMeth")) || (!is.character(myQuantMeth)) || (!length(myQuantMeth)) || sum(!myQuantMeth %in% availQuantMeth)) {
+    if (LabelType %in% c("LFQ", "DIA")) {
+      myQuantMeth <- "Label free"
+    }
+    if (LabelType %in% c("TMT", "TMTpro", "iTRAQ", "iTRAQ", "ICAT")) {
+      myQuantMeth <- base::intersect(c(Iso, get(Iso)), quantMethTxt) # Not tested!
+    }
+    if (LabelType == c("SILAC")) {
+      myQuantMeth <- "SILAC"
+    }
   }
-  availQuantMeth <- c(myQuantMeth, base::setdiff(availQuantMeth, myQuantMeth))
+  myQuantMeth <- base::intersect(myQuantMeth, availQuantMeth)
+  availQuantMeth <- base::union(myQuantMeth, availQuantMeth)
 }
 if (isFnd["MS_label_meth"]) {
   tmp <- data.table::fread(ontoFls$File[match("MS_label_meth", ontoFls$Name)])
   availLabelMeth <- sort(unique(tmp$Name))
   labelMethTxt <- " relevant MS labelling method(s)"
-  if ((!exists("myLabelMeth")) || (!is.character(myLabelMeth)) || sum(!myLabelMeth %in% availLabelMeth)) {
-    myLabelMeth <- c()
+  if ((!exists("myLabelMeth")) || (!is.character(myLabelMeth)) || (!length(myLabelMeth)) || sum(!myLabelMeth %in% availLabelMeth)) {
+    if (LabelType %in% c("LFQ", "DIA")) {
+      myLabelMeth <- "label free sample"
+    }
+    if (LabelType %in% c("TMT", "TMTpro", "iTRAQ", "iTRAQ", "ICAT")) {
+      myLabelMeth <- base::intersect(c(Iso, get(Iso)), quantMethTxt) # Not tested!
+    }
+    if (LabelType == c("SILAC")) {
+      myLabelMeth <- "SILAC"
+    }
     myLabelMeth2 <- "not available"
   } else {
     myLabelMeth2 <- myLabelMeth
   }
-  availLabelMeth <- c(myLabelMeth, base::setdiff(availLabelMeth, myLabelMeth))
+  myLabelMeth <- base::intersect(myLabelMeth, availLabelMeth)
+  availLabelMeth <- base::union(myLabelMeth, availLabelMeth)
 }
 myDS1 <- NULL
 myDS2 <- ""
@@ -340,7 +357,7 @@ uiA <- shiny::fluidPage(
       shiny::column(2L,
                     shiny::textInput("MS_acq_meth",
                                      paste0("Input", acqMethTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/pride)"),
-                                     myAcqMeth2),
+                                     myAcqMeth),
                     shiny::br())
     },
     if (isFnd["MS_quant_meth"]) {
@@ -360,7 +377,7 @@ uiA <- shiny::fluidPage(
       shiny::column(2L,
                     shiny::textInput("MS_quant_meth",
                                      paste0("Input", quantMethTxt, " (ontology = https://www.ebi.ac.uk/ols4/ontologies/pride)"),
-                                     myQuantMeth2),
+                                     myQuantMeth[1L]),
                     shiny::br())
     },
     if (isFnd["MS_label_meth"]) {
@@ -404,7 +421,7 @@ uiA <- shiny::fluidPage(
                     shiny::br())
     },
   ),
-  shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"),
+  shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
   shiny::br(),
   shiny::br()
 )
@@ -881,15 +898,14 @@ if (idsL) {
   g <- grep("___(FD|INCR)$", colnames(SDRF2))
   colnames(SDRF2)[g] <- ""
   appNm <- paste0(dtstNm, " - SDRF editor")
-  uiB <- fluidPage(
-    useShinyjs(),
-    setBackgroundColor( # Doesn't work
+  uiB <- shiny::fluidPage(
+    shinyjs::useShinyjs(),
+    shinyWidgets::setBackgroundColor( # Doesn't work
       color = c(#"#F8F8FF",
         "#EBEFF7"),
       gradient = "linear",
-      direction = "bottom"
-    ),
-    extendShinyjs(text = jsFun$toggle_full_screen,
+      direction = "bottom"),
+    shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
                   functions = c("toggleFullScreen")),
     #Dummy, hidden div to load arrow-down icon
     # shiny::tags$div(
@@ -897,11 +913,11 @@ if (idsL) {
     #   style = "display: none;",
     #   shiny::tags$div(
     #     style = "margin-top: 50xp;",
-    #     actionButton(
+    #     shiny::actionButton(
     #       "add_thing",
     #       label = "do it",
     #       class = "btn-success",
-    #       icon = icon("arrow-down")
+    #       icon = shiny::icon("arrow-down")
     #     )
     #   )
     # ),
@@ -933,7 +949,7 @@ if (idsL) {
                                                    columnDefs = wTest1,
                                                    scrollX = FALSE),
                                     # the callback is essential to capture the inputs in each row
-                                    callback = shinyWidgets::JS("table.rows().every(function(i, tab, row) {
+                                    callback = htmlwidgets::JS("table.rows().every(function(i, tab, row) {
   var $this = $(this.node());
   $this.attr('id', this.data()[0]);
   $this.addClass('shiny-input-container');
@@ -1035,9 +1051,9 @@ while (inherits(tst, "try-error") && grepl("cannot open the connection", tst[1L]
 }
 #openxlsx2::xl_open(sdrfPth)
 #
-if (pyTest) {
+if (pyTest$out) {
   cat("Validating SDRF file...\n")
-  cmd <- paste0("parse_sdrf validate-sdrf --sdrf_file \"", sdrfPth, "\"")
+  cmd <- paste0(pyTest$parse_sdrf, " validate-sdrf --sdrf_file \"", sdrfPth, "\"")
   #cat(cmd)
   a <- system(cmd, intern = TRUE)
   #openwd(dirname(sdrfPth))
@@ -1046,4 +1062,6 @@ if (pyTest) {
   } else {
     cat(paste(a, collapse = "\n"), "\n\n")
   }
+} else {
+  warning("Could not run automated sdrf-pipelines tests of the SDRF. You may need to ")
 }

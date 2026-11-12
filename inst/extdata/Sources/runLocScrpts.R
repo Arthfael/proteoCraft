@@ -29,6 +29,10 @@ if ((length(locScriptsDir) == 1L) && dir.exists(locScriptsDir)) {
   if (length(strtScripts)) {
     strtScripts <- normalizePath(strtScripts, winslash = "/")
     strtScripts <- strtScripts[order(strtScripts)]
-    for (fl in strtScripts) { source(fl) }
+    for (scrpt in strtScripts) {
+      #scrpt <- strtScripts[1L]
+      #rstudioapi::documentOpen(scrpt)
+      source(scrpt)
+    }
   }
 }

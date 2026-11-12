@@ -7,8 +7,8 @@ if (Annotate) {
   if (file.exists(GO_terms_fl)) { loadFun(GO_terms_fl) }
   if (!exists("GO_terms")) {
     # Terms from AnnotationDbi
-    GO_terms <- AnnotationDbi::select(GO.db,
-                                      keys = keys(GO.db),
+    GO_terms <- AnnotationDbi::select(GO.db::GO.db,
+                                      keys = AnnotationDbi::keys(GO.db::GO.db),
                                       columns = c("TERM", "ONTOLOGY"),
                                       keytype = "GOID")
     GO_terms$TERM <- paste0(do.call(paste, c(GO_terms[, c("TERM", "GOID")], sep = " [")), "]")
@@ -26,6 +26,7 @@ if (Annotate) {
     }
     GO_terms$Offspring <- list(NA_character_)
     requireNamespace("data.table")
+    library(GO.db) # Require to avoid error: Error in get(eName) : object 'GOBPPARENTS' not found
     for (ont in Ontologies) { #ont <- Ontologies[1L]
       wo <- which(annotate::filterGOByOntology(GO_terms$ID, ont))
       if (length(wo)) {

@@ -47,7 +47,6 @@ if (dataType == "PG") {
   appTtl <- "PG - type of P-values"
 }
 if (!dir.exists(pvalDir)) { dir.create(pvalDir, recursive = TRUE) }
-dirlist <- base::union(dirlist, pvalDir)
 #
 if ((dataType == "modPeptides") && (Ptm %in% names(PTMs_PVal_col))) {
   my_PVal_Col <- PTMs_PVal_col[[Ptm]]
@@ -91,8 +90,8 @@ readr::write_rds(temp, tmpFl)
 nr <- nrow(myContrasts)
 #
 source(parSrc)
-parallel::clusterExport(parClust, list("Comb", "tmpFl", "pvalDir", "my_PVal_Col", "gsub_Rep",
-                                       "plotEval", "slim_plotly", "entityCol", "my_PVal_Col", "nr"),
+parallel::clusterExport(parClust, list("Comb", "tmpFl", "pvalDir", "my_PVal_Col",
+                                       "slim_plotly", "entityCol", "my_PVal_Col", "nr"),
                         envir = environment())
 invisible(parallel::clusterCall(parClust, \() {
   temp <- readr::read_rds(tmpFl)
@@ -317,14 +316,14 @@ ui <- shiny::fluidPage(
   shiny::fluidRow(shiny::column(2L,
                                 shiny::selectInput("PVal", msg, names(my_PVal_Col), names(my_PVal_Col)[pval_Use])),
                   shiny::column(2L,
-                                shinyWidgets::actionBttn("saveBtn", "Save", icon = icon("save"), color = "success", style = "pill"))),
+                                shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"))),
   shiny::br(),
   shiny::fluidRow(shiny::column(5L,
                                 shiny::selectInput("XY",
                                                    "Select comparison to display...",
                                                    Imgs1Nms,
                                                    dfltImg),
-                                shinycssloaders::withSpinner(shiny::plotlyOutput("Img1", inline = TRUE))),
+                                shinycssloaders::withSpinner(plotly::plotlyOutput("Img1", inline = TRUE))),
                   shiny::column(7L,
                                 shinycssloaders::withSpinner(shiny::plotOutput("Img2", inline = TRUE)))),
   shiny::br(),
@@ -336,7 +335,7 @@ server <- \(input, output, session) {
   myIMG1 <- shiny::reactiveVal(1L)
   updtIMG1 <- \(reactive = TRUE) {
     i <- if (reactive) { myIMG1() } else { 1L }
-    shiny::renderPlotly({ plotsList[[i+1L]]$Plotly })
+    plotly::renderPlotly({ plotsList[[i+1L]]$Plotly })
   }
   output$Img1 <- updtIMG1(FALSE)
   output$Img2 <- shiny::renderPlot({ print_gg(plotsList$Histogram$Plot) },
@@ -444,13 +443,12 @@ if (dataType %in% c("modPeptides", "PG")) {
   #vapply(logFCs, ncol, 1L)
   # To check the distribution of logFCs (they should be different but still roughly similar)
   tst <- lapply(names(logFCs), \(nm) {
-    x <- reshape::melt(logFCs[[nm]])
+    x <- dfMelt(logFCs[[nm]], c("Contrast", "logFC"))
     x$Type <- nm
     return(x)
   })
   tst <- do.call(rbind, tst)
-  tst <- tst[is.finite(tst$value),]
-  colnames(tst)[1L:2L] <- c("Contrast", "logFC")
+  tst <- tst[is.finite(tst$logFC),]
   tst$Contrast <- factor(tst$Contrast, levels = myContrasts$Contrast)
   tst$Type <- factor(tst$Type, levels = names(logFCs))
   ttl <- "Distribution of logFCs"

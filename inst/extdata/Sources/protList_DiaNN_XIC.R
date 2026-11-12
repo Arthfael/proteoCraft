@@ -37,7 +37,8 @@ if (length(dianXDirs)) {
     myProts <- names(myProts_pepList)
     u <- unique(unlist(myProts_pepList))
     tmp <- unique(Frac.map$`Raw files name`)
-    parallel::clusterExport(parClust, list("tmp", "u", "gsub_Rep"), envir = environment())
+    source(parSrc)
+    parallel::clusterExport(parClust, list("tmp", "u"), envir = environment())
     XICs <- parallel::parLapply(parClust, XIC_fls, \(x) { #x <- XIC_fls[1L]
       res <- arrow::read_parquet(x)
       res$"Mod. seq." <- gsub_Rep("[0-9]+$", "", res$pr)
@@ -79,7 +80,6 @@ if (length(dianXDirs)) {
       }))
       unlink(tmpFl1)
       unlink(tmpFl2)
-      dirlist <- base::union(dirlist, paste0(xicOutDir, "/", myProts))
       invisible(parallel::parLapply(parClust, myProts, \(pr) { #pr <- myProts[1L]
         xicDir2 <- paste0(xicOutDir, "/", pr)
         if (!dir.exists(xicDir2)) { dir.create(xicDir2, recursive = TRUE) }

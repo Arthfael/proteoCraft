@@ -209,7 +209,7 @@ Volcano.plot <- function(Prot,
   #
   # Create cluster
   stopCl <- FALSE
-  if (is.null(cl) || (!inherits(cl, "cluster"))) {
+  if (misFun(cl) || is.null(cl) || (!inherits(cl, "cluster"))) {
     dc <- parallel::detectCores()
     if (misFun(N.reserved)) { N.reserved <- 1L }
     nMax <- max(c(dc - N.reserved, 1L))
@@ -603,7 +603,6 @@ Volcano.plot <- function(Prot,
   if (length(weech)) {
     tmp <- strsplit(Prot$Labels[weech], "  ?")
     colchar <- 25L
-    #parallel::clusterExport(cl, list("tmp", "colchar"), envir = environment()) # Waste of time
     F0 <- .bind_worker(.labelEdit_worker,
                        list(tmp = tmp,
                             colchar = colchar))
@@ -1659,7 +1658,6 @@ Volcano.plot <- function(Prot,
         plotsLst <- c(plotsLst, lst)
       }
     }
-    #parallel::clusterExport(cl, "plotsLst", envir = environment()) #Slows down
     F0 <- .bind_worker(.ggSave_worker,
                        list(plotsLst = plotsLst))
     tst <- parallel::parLapply(cl,

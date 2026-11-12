@@ -49,18 +49,20 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                "Description",
                "P/N",
                "Function")
-  libPath <- as.data.frame(library()$results)
-  libPath <- normalizePath(libPath$LibPath[match("proteoCraft", libPath$Package)], winslash = "/")
-  pkgPath <- paste0(libPath, "/proteoCraft")
-  docPath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
-  Columns2 <- paste0(docPath, "/LC_columns.xlsx")
+  #
+  RPath <- as.data.frame(library()$results)
+  RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
+  libPath <- paste0(RPath, "/proteoCraft")
+  homePath <- paste0(normalizePath(Sys.getenv("HOME"), winslash = "/"), "/R/proteoCraft")
+  #
+  Columns2 <- paste0(homePath, "/LC_columns.xlsx")
   if ((Columns != "default") && (!file.exists(Columns))) {
     warning("Columns definition file provided not found, reverting to default!")
     Columns <- "default"
   }
   if (Columns == "default") {
     altColFls <- c()
-    dfltLocFl <- paste0(docPath, "/Default_locations.xlsx")
+    dfltLocFl <- paste0(homePath, "/Default_locations.xlsx")
     if (file.exists(dfltLocFl)) {
       dfltLoc <- openxlsx2::read_xlsx(dfltLocFl)
       tmpPath <- dfltLoc$Path[match("Temporary folder", dfltLoc$Folder)]
@@ -68,10 +70,9 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
     }
     altColFls <- c(Columns2,
                    altColFls,
-                   paste0(pkgPath, "/extdata/LC_columns.xlsx"))
+                   paste0(libPath, "/extdata/LC_columns.xlsx"))
     Columns <- altColFls[file.exists(altColFls)][1L]
   }
-  Columns2 <- paste0(myPath, "/LC_columns.xlsx")
   colTst2 <- file.exists(Columns2)
   if (file.exists(Columns)) {
     allKolumns <- openxlsx2::read_xlsx(Columns)
@@ -158,7 +159,7 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
     MatMetTxt <- officer::docx_summary(MatMetTxt)
     MatMetTxt <- MatMetTxt$text
     MatMetTxt <- MatMetTxt[grep("^Samples? preparation", MatMetTxt) + 1L]
-    reuseMatMeth <- is.character(MatMetTxt) && (!is.na(reuseMatMeth)) && (MatMetTxt != "TEMPLATE")
+    reuseMatMeth <- is.character(MatMetTxt) && (!is.na(reuseMatMeth)) && (!MatMetTxt %in% c("", "NA", "TEMPLATE"))
   }
   if (!reuseMatMeth) {
     SPMethods <- c(paste0("iST", rep(c("", "-NHS"), 3L), " kit", c(rep("", 2L),
@@ -168,6 +169,42 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
     SPMeth <- svDialogs::dlg_list(SPMethods,
                                   title = "Select the sample processing method used:")$res
     if (SPMeth != "none of those") {
+      if (SPMeth == "in-gel digest") {
+        DestainMeth <- ""
+        msg <- "How was the gel stained?"
+        StainMethods <- c("InstantBlue",
+                          "Other MS-compatible Coomassie blue variation",
+                          "MS-incompatible Coomassie blue staining",
+                          "Silver nitrate",
+                          "SYPRO-Ruby",
+                          "Other",
+                          "None")
+        StainMeth <- svDialogs::dlg_list(StainMethods, StainMethods[1L],
+                                         title = msg)$res
+        if (StainMeth == "Other MS-compatible Coomassie blue variation") {
+          StainMeth <- svDialogs::dlg_input("Enter the name of the Coomassie variation used:",
+                                            " MS-compatible Coomassie blue")$res
+        }
+        if (StainMeth == "Other") {
+          StainMeth <- svDialogs::dlg_input("Enter the name of the staining method used:")$res
+        }
+        Destain <- FALSE
+        if (StainMeth != "None") {
+          Destain <- svDialogs::dlg_list(c("yes, our standard protocol",
+                                           "yes, manufacturer's protocol",
+                                           "no"),
+                                         title = "Were the samples destained?")$res
+          DestainMethDflt <- "destained by washing x3 in destaining buffer (900 \u{00b5}L 50% acetonitrile = ACN, 50 mM triethylammonium bicarbonate = TEAB) for 15 min with shaking"
+          if (Destain == "yes, our standard protocol") {
+            DestainMeth <- DestainMethDflt
+          }
+          if (Destain == "yes, manufacturer's protocol") {
+            DestainMeth <- svDialogs::dlg_input("Describe how the samples were destained:",
+                                                DestainMethDflt)
+          }
+          DestainMeth <- paste0(", ", DestainMeth)
+        }
+      }
       SP3 <- FALSE
       PreOmics <- grepl("iST", SPMeth)
       onBeads <- grepl("( |-)beads?( |\\.)?", SPMeth) # The SP3 kit is not compatible with other on-beads digest
@@ -202,42 +239,6 @@ MatMet_WetLab <- function(File2Reload = "Materials and methods_WIP.docx",
                                      "50 mM")$res
         AlkT <- svDialogs::dlg_input("Enter the time (min) for which the samples were alkylated:",
                                      30L)$res
-      }
-      if (SPMeth == "in-gel digest") {
-        DestainMeth <- ""
-        msg <- "How was the gel stained?"
-        StainMethods <- c("InstantBlue",
-                          "Other MS-compatible Coomassie blue variation",
-                          "MS-incompatible Coomassie blue staining",
-                          "Silver nitrate",
-                          "SYPRO-Ruby",
-                          "Other",
-                          "None")
-        StainMeth <- svDialogs::dlg_list(StainMethods, StainMethods[1L],
-                                         title = msg)$res
-        if (StainMeth == "Other MS-compatible Coomassie blue variation") {
-          StainMeth <- svDialogs::dlg_input("Enter the name of the Coomassie variation used:",
-                                            " MS-compatible Coomassie blue")$res
-        }
-        if (StainMeth == "Other") {
-          StainMeth <- svDialogs::dlg_input("Enter the name of the staining method used:")$res
-        }
-        Destain <- FALSE
-        if (StainMeth != "None") {
-          Destain <- svDialogs::dlg_list(c("yes, our standard protocol",
-                                           "yes, manufacturer's protocol",
-                                           "no"),
-                              title = "Were the samples destained?")$res
-          DestainMethDflt <- "destained by washing x3 in destaining buffer (900 \u{00b5}L 50% acetonitrile = ACN, 50 mM triethylammonium bicarbonate = TEAB) for 15 min with shaking"
-          if (Destain == "yes, our standard protocol") {
-            DestainMeth <- DestainMethDflt
-          }
-          if (Destain == "yes, manufacturer's protocol") {
-            DestainMeth <- svDialogs::dlg_input("Describe how the samples were destained:",
-                                                DestainMethDflt)
-          }
-          DestainMeth <- paste0(", ", DestainMeth)
-        }
       }
       if (grepl("iST", SPMeth)) { Dig <- "Trypsin" } else {
         Dig <- svDialogs::dlg_input("Which enzyme(s) was used for digestion?\nIf multiple, write details as if writing a methods text (e.g. \"Trypsin+Lys-C, Lys-C alone or Chymotrypsin\")",

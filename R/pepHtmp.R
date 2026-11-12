@@ -52,7 +52,7 @@ pepHtmp <- function(intProt = prot.list_pep,
     ttlRoot <- "Peptides log2 heatmap"
   }
   if (!dir.exists(dstDir)) { dir.create(dstDir, recursive = TRUE) }
-  if (exists("dirlist")) { assign("dirlist", base::union(dirlist, dstDir), envir = .GlobalEnv) }
+  if (exists("dirlist", envir = .GlobalEnv)) { assign("dirlist", base::union(dirlist, dstDir), envir = .GlobalEnv) } # For backwards comp...
   #
   g <- base::intersect(paste0(ref, RSA$values),
                        colnames(Pep))
@@ -92,8 +92,7 @@ pepHtmp <- function(intProt = prot.list_pep,
     readr::write_rds(DB, tmpFl1)
     readr::write_rds(tmpPep, tmpFl2)
     parallel::clusterExport(cl,
-                            list("tmpFl1", "tmpFl2", "g", "g1", "ttlRoot", "ttlStem",
-                                 "is.log", "dstDir", "grsep2", "dfMelt"),
+                            c("tmpFl1", "tmpFl2", "g", "g1", "ttlRoot", "ttlStem", "is.log", "dstDir"),
                             envir = environment())
     invisible(parallel::clusterCall(cl, \(x) {
       assign("DB", readr::read_rds(tmpFl1), envir = .GlobalEnv)
@@ -105,7 +104,7 @@ pepHtmp <- function(intProt = prot.list_pep,
     l <- length(intProt)
     tempDat <- data.frame(Protein = rep(intProt, 2L),
                           Method = c(rep("Mean", l), rep("ZSc", l)))
-    f0 <- \(x) { #x <- tempDat[1,]
+    f0 <- \(x) { #x <- tempDat[1L,]
       plp <- unlist(x[[1L]])
       meth <- x[[2L]]
       Plp <- paste(DB[DB$"Protein ID" == plp,

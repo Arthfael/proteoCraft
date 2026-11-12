@@ -4,7 +4,7 @@
 \alias{load_Bckp}
 \title{load_Bckp}
 \usage{
-load_Bckp(backup, startDir, clean = TRUE, loadPack = TRUE)
+load_Bckp(backup, startDir, clean = TRUE, loadPack = FALSE)
 }
 \arguments{
 \item{backup}{The backup file to reload. If missing, opens a popup selection window.}
@@ -13,7 +13,7 @@ load_Bckp(backup, startDir, clean = TRUE, loadPack = TRUE)
 
 \item{clean}{If set to TRUE (default), will first remove all objects existing in the current environment.}
 
-\item{loadPack}{Should we load packages? Default = TRUE}
+\item{loadPack}{Should we load packages? Default = FALSE}
 }
 \description{
 This function:

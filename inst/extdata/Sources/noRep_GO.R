@@ -320,3 +320,7 @@ if (globalGO) {
     }
   }
 }
+if (exists("GO_plot_ly")) {
+  saveFun(GO_plot_ly, GO_plot_ly_fl)
+  rm(GO_plot_ly)
+}

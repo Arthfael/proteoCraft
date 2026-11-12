@@ -39,24 +39,27 @@ fix_plotly_sizing <- \(x, px_height = 700L, depth = 0L) {
 }
 
 logoFl <- list.files(homePath,
-                     "^logo\\.(gif|tiff?|jpe?g|png)$", full.names = TRUE)[1L]
+                     "^logo\\.(gif|tiff?|jpe?g|png)$", full.names = TRUE)
+if (length(logoFl)) { logoFl <- logoFl[1L] }
 report_header <- shiny::tags$header(
-  shiny::fluidRow(if (length(logoFl)) {
-    shiny::column(2L,
-                  shiny::tags$img(src = knitr::image_uri(logoFl),
-                                  style = "max-width: 100%; height: auto;"))
-  },
-  shiny::column(10L,
-                shiny::br(),
-                paste0(dtstNm, " - report"),
-                shiny::br(),
-                "Analysis run by: ", shiny::em(WhoAmI),
-                shiny::br(),
-                "Date: ", shiny::em(Sys.Date()),
-                shiny::br(),
-                "Package: ", shiny::em(paste0("proteoCraft v", Biobase::package.version("proteoCraft"))),
-                shiny::br(),
-                shiny::br())),
+  shiny::fluidRow(
+    if (length(logoFl)) {
+      shiny::column(2L,
+                    shiny::tags$img(src = knitr::image_uri(logoFl),
+                                    style = "max-width: 100%; height: auto;"))
+    },
+    shiny::column(10L,
+                  shiny::br(),
+                  paste0(dtstNm, " - report"),
+                  shiny::br(),
+                  "Analysis run by: ", shiny::em(WhoAmI),
+                  shiny::br(),
+                  "Date: ", shiny::em(Sys.Date()),
+                  shiny::br(),
+                  "Package: ", shiny::em(paste0("proteoCraft v", Biobase::package.version("proteoCraft"))),
+                  shiny::br(),
+                  shiny::br())
+  ),
   style = "background: linear-gradient(to right, #e8f1ff, #ffffff); padding: 1rem; margin-bottom: 1rem;")
 
 
@@ -75,7 +78,7 @@ make_comment_ui <- \(id,
   } else {
     style <- if (ON) { "display: block; white-space: pre-wrap; padding: 10px;" } else { "display: none;" }
     shiny::tags$div(class = "comment-box",
-                    id = paste0(root, match(id, names(values))),
+                    id = paste0("comment_", match(id, names(values))),
                     style = style,
                     values[id])
   }
@@ -606,10 +609,10 @@ make_prot_tab <- \(dflt = dfltProt,
                                     if (length(myExp) > 1L) {
                                       shiny::selectInput("mySample", "", myExp, myExp[1L]) 
                                     },
-                                    shinycssloaders::withSpinner(shiny::plotlyOutput("coverPlot", height = plotHght))),
+                                    shinycssloaders::withSpinner(plotly::plotlyOutput("coverPlot", height = plotHght))),
                       if (scrptType == "noReps") {
                         shiny::column(6L,
-                                      shinycssloaders::withSpinner(shiny::plotlyOutput("ratioPlot", height = plotHght)))
+                                      shinycssloaders::withSpinner(plotly::plotlyOutput("ratioPlot", height = plotHght)))
                       },
       ),
       shiny::br(),
@@ -862,7 +865,7 @@ make_smpl_tab <- \(exp,
       shiny::uiOutput(paste0("cmmnt_", exp_)),
       if (runRankAbundPlots) {
         shiny::div(shiny::selectInput(id1, "", quant, dflt[exp]),
-                   shinycssloaders::withSpinner(shiny::plotlyOutput(paste0("quantLy_", exp), height = plotHght)),
+                   shinycssloaders::withSpinner(plotly::plotlyOutput(paste0("quantLy_", exp), height = plotHght)),
                    shiny::br())
       },
       shiny::br(),
@@ -951,24 +954,24 @@ make_ctrst_tab <- \(contr,
       if (missing(ptm) && saintXPRS) {
         shiny::div(shiny::h3("SAINTexpress"),
                    shiny::fluidRow(shiny::column(6L,
-                                                 shinycssloaders::withSpinner(shiny::plotlyOutput(saintIDs[2L], height = "600px"))),
+                                                 shinycssloaders::withSpinner(plotly::plotlyOutput(saintIDs[2L], height = "600px"))),
                                    if (enrichGO) {
                                      shiny::column(6L,
                                                    shiny::br(),
                                                    shiny::br(),
-                                                   shinycssloaders::withSpinner(shiny::plotlyOutput(saintIDs[3L], height = "600px")))
+                                                   shinycssloaders::withSpinner(plotly::plotlyOutput(saintIDs[3L], height = "600px")))
                                    },
                    ),
                    style = "background: #ffffff;")
       } else {
         shiny::div(shiny::h3("t-test"),
                    shiny::fluidRow(shiny::column(6L,
-                                                 shinycssloaders::withSpinner(shiny::plotlyOutput(volcID, height = "600px"))),
+                                                 shinycssloaders::withSpinner(plotly::plotlyOutput(volcID, height = "600px"))),
                                    if (enrichGO) {
                                      shiny::column(6L,
                                                    shiny::br(),
                                                    shiny::br(),
-                                                   shinycssloaders::withSpinner(shiny::plotlyOutput(goID, height = "600px")))
+                                                   shinycssloaders::withSpinner(plotly::plotlyOutput(goID, height = "600px")))
                                    },
                    ),
                    style = "background: #ffffff;")
@@ -982,14 +985,14 @@ make_ctrst_tab <- \(contr,
           shiny::div(shiny::h3("GSEA"),
                      shiny::fluidRow(shiny::column(6L,
                                                    shiny::h5("dot plot"),
-                                                   shinycssloaders::withSpinner(shiny::plotlyOutput(GSEA_IDs[1L], height = "600px")),
+                                                   shinycssloaders::withSpinner(plotly::plotlyOutput(GSEA_IDs[1L], height = "600px")),
                                                    shiny::h5("enrichment map"),
-                                                   shinycssloaders::withSpinner(shiny::plotlyOutput(GSEA_IDs[2L], height = "600px"))),
+                                                   shinycssloaders::withSpinner(plotly::plotlyOutput(GSEA_IDs[2L], height = "600px"))),
                                      shiny::column(6L,
                                                    shiny::h5("ridge plot"),
-                                                   shinycssloaders::withSpinner(shiny::plotlyOutput(GSEA_IDs[3L], height = "600px")),
+                                                   shinycssloaders::withSpinner(plotly::plotlyOutput(GSEA_IDs[3L], height = "600px")),
                                                    shiny::h5("net plot"),
-                                                   shinycssloaders::withSpinner(shiny::plotlyOutput(GSEA_IDs[4L], height = "600px")))),
+                                                   shinycssloaders::withSpinner(plotly::plotlyOutput(GSEA_IDs[4L], height = "600px")))),
                      style = "background: #ffffff;"),
           shiny::tags$hr(style = "border-color: black;"))
       },
@@ -1103,21 +1106,21 @@ make_strt_tab <- \(shiny = TRUE) {
                                                                     nmsHtMp,
                                                                     nmsHtMp[1L]))),
                    shiny::fluidRow(shiny::column(12L,
-                                                 shinycssloaders::withSpinner(shiny::plotlyOutput("heatMap", height = "700px")))))
+                                                 shinycssloaders::withSpinner(plotly::plotlyOutput("heatMap", height = "700px")))))
       },
       shiny::br(),
       shiny::fluidRow(
         if (globalGO && (!is.null(GO_plot_ly$PG$Dataset$`Observed dataset`$Bar))) {
           shiny::column(5L,
-                        shinycssloaders::withSpinner(shiny::plotlyOutput("GO_enrich_Dataset", height = "700px")))
+                        shinycssloaders::withSpinner(plotly::plotlyOutput("GO_enrich_Dataset", height = "700px")))
         },
         if (PCA_ON) {
           shiny::column(4L,
-                        shinycssloaders::withSpinner(shiny::plotlyOutput("PCA", height = "700px")))
+                        shinycssloaders::withSpinner(plotly::plotlyOutput("PCA", height = "700px")))
         },
         if (Venn_ON) {
           shiny::column(3L,
-                        shinycssloaders::withSpinner(shiny::plotlyOutput("Venn", height = "700px")))
+                        shinycssloaders::withSpinner(plotly::plotlyOutput("Venn", height = "700px")))
         },
       ),
       shiny::br(),
@@ -1195,7 +1198,7 @@ make_QC_tab <- \(shiny = TRUE,
     shiny::tagList(shiny::tags$div(
       shiny::selectInput("QC", "", names(plotsList), names(plotsList)[1L]),
       shiny::fluidRow(shiny::column(8L,
-                                    shinycssloaders::withSpinner(shiny::plotlyOutput("QCplotLy", height = plotHght))),
+                                    shinycssloaders::withSpinner(plotly::plotlyOutput("QCplotLy", height = plotHght))),
                       shiny::column(4L,
                                     shiny::uiOutput("QCtxt"))),
       shiny::br(),
@@ -1246,23 +1249,23 @@ make_matmet_tab <- \(matmeth = matmethTxt,
   }, "")
   if (shiny) {
     shiny::tagList(shiny::tags$div(
-      shiny::textAreaInput("MatMet_SamplePrep", matmethSections[1L], matmeth[1L], "100%", hght[1L]),
+      shiny::textAreaInput("MatMet_SamplePrep", matmethSec2Nm$Section[1L], matmeth[1L], "100%", hght[1L]),
       shiny::br(),
-      shiny::textAreaInput("MatMet_LCMS", matmethSections[2L], matmeth[2L], "100%", hght[2L]),
+      shiny::textAreaInput("MatMet_LCMS", matmethSec2Nm$Section[2L], matmeth[2L], "100%", hght[2L]),
       shiny::br(),
-      shiny::textAreaInput("MatMet_DataAnalysis", matmethSections[3L], matmeth[3L], "100%", hght[3L]),
+      shiny::textAreaInput("MatMet_DataAnalysis", matmethSec2Nm$Section[3L], matmeth[3L], "100%", hght[3L]),
       shiny::br(),
       style = paste0("background: ", myCol, ";")))
   } else {
     shiny::tagList(shiny::tags$div(
       shiny::em(shiny::HTML("This is an automatically-generated materials and methods template and may contain inaccuracies. Please remember to check with us the details before including this in a publication!")),
-      shiny::h5(matmethSections[1L]),
+      shiny::h5(matmethSec2Nm$Section[1L]),
       shiny::tags$p(matmeth[1L]),
       shiny::br(),
-      shiny::h5(matmethSections[2L]),
+      shiny::h5(matmethSec2Nm$Section[2L]),
       shiny::tags$p(matmeth[2L]),
       shiny::br(),
-      shiny::h5(matmethSections[3L]),
+      shiny::h5(matmethSec2Nm$Section[3L]),
       shiny::tags$p(matmeth[3L]),
       shiny::br(),
       style = paste0("background: ", myCol, ";")))

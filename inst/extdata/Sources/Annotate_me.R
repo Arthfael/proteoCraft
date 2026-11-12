@@ -1,8 +1,19 @@
 # Annotate our data
+# =================
+#
+# If scrptTypeFull == "custom", you must have created the following variables:
+# - myData = the data to be annotation
+# - myCol = the column with protein IDs in myData
+# before running this source...
+#
 requireNamespace("data.table")
 setwd(wd)
 if (!Annotate) { globalGO <- FALSE }
-p <- unique(unlist(strsplit(pep$Proteins, ";"))) #Here taking just the minimum set of protein IDs to explain the observed dataset.
+p <- if (scrptTypeFull != "custom") { # custom m
+  unique(unlist(strsplit(pep$Proteins, ";"))) #Here taking just the minimum set of protein IDs to explain the observed dataset.
+} else {
+  unique(unlist(strsplit(myData[[myCol]], ";")))
+}
 db$Observed <- db$"Protein ID" %in% p
 if (globalGO) {
   if (scrptTypeFull == "withReps_PTMs_only") {
@@ -10,7 +21,7 @@ if (globalGO) {
     myCol <- "Leading protein IDs"
     # NB: I used to get functional annotations for all proteins in the protein group.
     #     However we are now - and I think with reason - only using annotations from the leading protein(s)!
-  } else {
+  } else if (scrptTypeFull != "custom") {
     myData <- pep
     myCol <- "Proteins"
   }
@@ -70,13 +81,11 @@ if (globalGO) {
   myData[w, kol2] <- temp[match(myData$id[w], temp$Group.1), kol2]
   #
   myData$Ontology <- NULL # Temporary fix for now, this column is broken
-  if (scrptTypeFull != "withReps_PTMs_only") {
-    pep <- myData
-  } else {
+  if (scrptTypeFull == "withReps_PTMs_only") {
     PG <- myData
     # Also peptides (minor approximation: use first protein group)
     pep[, kol] <- PG[match(as.integer(sub(";.*", "", pep$`Protein group ID`)), PG$id), kol]
+  } else if (scrptTypeFull != "custom") {
+    pep <- myData
   }
-  #
-  source(parSrc)
 }

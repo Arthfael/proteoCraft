@@ -1,17 +1,16 @@
 #' dfMelt
 #'
 #' @description 
-#' Wrapper function for utils::stack(), allowing much faster melting of simple - and only simple! - data.frames!
+#' Wrapper function for utils::stack(), allowing much faster melting of data.frames or lists of data.frames!
 #' 
-#' @param df A data.frame (matrices get silently converted to data.frame).
+#' @param df A data.frame (matrices get silently converted to data.frame). May also be a list of data.frames, which is then traversed recursively until a data.frame is hit.
 #' @param ColNames Column names of the output data frame. Default = c("variable", "value")
-#' @param id.vars Id variables - column name only (indices are not supported!) If missing, all columns are assumed to be measure variables.
+#' @param id.vars Id variables - column name only, column indices are not supported! If missing, all columns are assumed to be measure variables.
 #' 
 #' @details
-#' This should only be used for what is essentially a "matrix in a data.frame"!
-#' It will assume that everything in the table is a value and that column names are variable names.
-#' In this case, it should be much faster than reshape::melt.data.frame()
-#' It cannot be thought of as a full substitute for the latter though. Never use it for complex data.frames, e.g. where columns are lists. 
+#' Meant for "matrix-in-a-data.frame", does not handle columns of type list!
+#' Should be much faster than reshape::melt.data.frame(), and frees us from this dependency.
+#' But this is an in-house solution so may not fully substitute.
 #' 
 #' @returns
 #' A melted (molten?) data.frame.
@@ -27,6 +26,19 @@ dfMelt <- function(df,
                    id.vars) {
   #df <- as.data.frame(matrix(rnorm(1000), ncol = 10L))
   #df <- temp; ColNames <- c("Label", "Sample", "value"); id.vars <- "Rowname"
+  if (inherits(df, "list")) {
+    # If we have a list
+    warning("dfMelt: list input detected!")
+    if (is.null(names(df))) { names(df) <- as.character(1L:length(df)) }
+    res <- lapply(names(df), \(nm) { #nm <- names(df)[1L]
+      x <- dfMelt(df[[nm]], id.vars = id.vars)
+      g <- grep("^L[0-9]+$", colnames(x), value = TRUE)
+      kol <- if (length(g)) { paste0("L", max(as.integer(sub("^L", "", g)))+1L) } else { "L1" }
+      x[[kol]] <- nm
+      return(x)
+    })
+    return(do.call(plyr::rbind.fill, res))
+  }
   if (is.matrix(df)) { df <- as.data.frame(df) } # Stack needs a data.frame
   stopifnot(is.data.frame(df),
             nrow(df) > 0L)

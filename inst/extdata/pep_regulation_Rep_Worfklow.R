@@ -9,7 +9,6 @@ closeAllConnections()
 ## Load proteoCraft
 if (exists(".obj")) { rm(".obj") }
 library(proteoCraft)
-dirlist %<o% c() # This should go!!!
 # Get local work directory:
 ScriptPath %<o% normalizePath(gtools::script_file(), winslash = "/")
 RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
@@ -26,24 +25,20 @@ xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
 locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
 locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
 
-# Load backup?
-load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Re-load a backup?", "yesno")$res, c("yes", "no"))]
-if (load_a_Bckp) {
-  tst <- try({
-    locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
-    load_Bckp(startDir = locDirs$Path[match("Temporary folder", locDirs$Folder)])
-  }, silent = TRUE)
-  # Update values!
-  xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
-  locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
-  locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
-  ScriptPath <- normalizePath(gtools::script_file(), winslash = "/") # update
-}
+# Run local scripts at startup - keep this after loading the backup!
+locScrptSrc %<o% paste0(libPath, "/extdata/Sources/runLocScrpts.R")
+#rstudioapi::documentOpen(locScrptSrc)
+source(locScrptSrc)
+
+# Re-load backup?
+Src <- paste0(libPath, "/extdata/Sources/reloadBackup.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
+ScriptPath <- normalizePath(gtools::script_file(), winslash = "/") # must stay in top-level script!
 
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }
 parSrc %<o% paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
 bckpSrc %<o% paste0(libPath, "/extdata/Sources/updateBackup.R")
-
 
 # Boolean functions to check parameter values
 Src <- paste0(libPath, "/extdata/Sources/parBooleans.R")
@@ -66,50 +61,50 @@ if(!exists("cran_req")) { cran_req <- "pak" }
 cran_req %<o% cran_req
 if(!exists("bioc_req")) { bioc_req <- c() } 
 bioc_req %<o% bioc_req
-cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT",
-                     "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "ggrepel", "rstudioapi", "modeest",
-                     "minpack.lm", "snow", "viridis", "imputeLCMD", "parallel", "coin", "openxlsx2", "plotly",
-                     "Peptides", "xml2", "statmod", "ggpolypath", "venn", "svDialogs", "htmlwidgets",
-                     "officer", "hexbin", "igraph", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
-                     "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "ssh", "taxize", "arrow", "PTMods",
-                     "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "Rtsne", "DEP", "svglite"))
-bioc_req <- unique(c(bioc_req, "biomaRt", "GO.db", "UniProt.ws", "limma", "sva", "qvalue", "MSnbase",
-                     "Rgraphviz", "RCy3", "siggenes", "DEqMS", "limpa", "QFeatures"))
-inst <- as.data.frame(installed.packages())
-for (pack in cran_req) {
-  if (!pack %in% inst$Package) {
-    if (pack %in% c("pak", "uchardet", "taxize")) {
-      # Exceptions where for now we want a specific version to be installed,
-      # or have to help the installer so it finds the right location
-      if (pack == "pak") {
-        install.packages("pak", dependencies = TRUE)
-      }
-      if (pack == "uchardet") {
-        url <- "https://cran.r-project.org/src/contrib/Archive/uchardet/uchardet_1.1.1.tar.gz"
-        destfile <- "uchardet_1.1.1.tar.gz"
-        tst <- try(download.file(url, destfile, "curl"), silent = TRUE)
-        if (inherits(tst, "try-error")) { try(download.file(url, destfile, "wget"), silent = TRUE) }
-        install.packages(destfile, dependencies = TRUE)
-        unlink(destfile)
-      }
-      if (pack == "taxize") {
-        pak::pak("ropensci/bold", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
-        pak::pak("ropensci/taxize", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
-      }
-    } else {
-      tst <- try(pak::pak(pack, ask = FALSE, upgrade = TRUE, dependencies = TRUE), silent = TRUE)
-      if (inherits(tst, "try-error")) {
-        tst <- try(install.packages(pack, dependencies = TRUE), silent = TRUE)
-      }
-      if (inherits(tst, "try-error")) {
-        warning(paste0("Package ", pack, " wasn't installed properly, skipping..."))
-        cran_req <- base::setdiff(cran_req, pack)
-        bioc_req <- base::setdiff(bioc_req, pack)
-      }
-    }
-    inst <- as.data.frame(installed.packages())
-  }
-}
+# cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT",
+#                      "gplots", "ggplot2", "ggpubr", "gtools", "compiler", "stats", "ggrepel", "rstudioapi", "modeest",
+#                      "minpack.lm", "snow", "viridis", "imputeLCMD", "parallel", "coin", "openxlsx2", "plotly",
+#                      "Peptides", "xml2", "statmod", "ggpolypath", "venn", "svDialogs", "htmlwidgets",
+#                      "officer", "hexbin", "igraph", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
+#                      "ggplotify", "jpeg", "scattermore", "rpanel", "stringi", "ssh", "taxize", "arrow", "PTMods",
+#                      "ggdendro", "colorspace", "factoextra", "NbClust", "BH", "Rtsne", "DEP", "svglite"))
+# bioc_req <- unique(c(bioc_req, "biomaRt", "GO.db", "UniProt.ws", "limma", "sva", "qvalue", "MSnbase",
+#                      "Rgraphviz", "RCy3", "siggenes", "DEqMS", "limpa", "QFeatures"))
+# inst <- as.data.frame(installed.packages())
+# for (pack in cran_req) {
+#   if (!pack %in% inst$Package) {
+#     if (pack %in% c("pak", "uchardet", "taxize")) {
+#       # Exceptions where for now we want a specific version to be installed,
+#       # or have to help the installer so it finds the right location
+#       if (pack == "pak") {
+#         install.packages("pak", dependencies = TRUE)
+#       }
+#       if (pack == "uchardet") {
+#         url <- "https://cran.r-project.org/src/contrib/Archive/uchardet/uchardet_1.1.1.tar.gz"
+#         destfile <- "uchardet_1.1.1.tar.gz"
+#         tst <- try(download.file(url, destfile, "curl"), silent = TRUE)
+#         if (inherits(tst, "try-error")) { try(download.file(url, destfile, "wget"), silent = TRUE) }
+#         install.packages(destfile, dependencies = TRUE)
+#         unlink(destfile)
+#       }
+#       if (pack == "taxize") {
+#         pak::pak("ropensci/bold", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
+#         pak::pak("ropensci/taxize", ask = FALSE, upgrade = TRUE, dependencies = TRUE)
+#       }
+#     } else {
+#       tst <- try(pak::pak(pack, ask = FALSE, upgrade = TRUE, dependencies = TRUE), silent = TRUE)
+#       if (inherits(tst, "try-error")) {
+#         tst <- try(install.packages(pack, dependencies = TRUE), silent = TRUE)
+#       }
+#       if (inherits(tst, "try-error")) {
+#         warning(paste0("Package ", pack, " wasn't installed properly, skipping..."))
+#         cran_req <- base::setdiff(cran_req, pack)
+#         bioc_req <- base::setdiff(bioc_req, pack)
+#       }
+#     }
+#     inst <- as.data.frame(installed.packages())
+#   }
+# }
 ## Bioconductor packages:
 biocInstall %<o% function(pack, load = TRUE) {
   inst <- as.data.frame(installed.packages())
@@ -127,14 +122,9 @@ biocInstall %<o% function(pack, load = TRUE) {
   }
   if (load) { library(pack, character.only = TRUE) }
 }
-for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
+#for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
 
-# Run local scripts at startup - keep this after loading the backup!
-locScrptSrc %<o% paste0(libPath, "/extdata/Sources/runLocScrpts.R")
-#rstudioapi::documentOpen(locScrptSrc)
-source(locScrptSrc)
-
-# Set Shiny options, load functions for creating a Word report, create Excel styles
+# Set Shiny options, create Excel styles
 Src <- paste0(libPath, "/extdata/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
@@ -173,7 +163,6 @@ setwd(wd)
 # Log the current analysis:
 dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- base::union(dirlist, dir)
 start_date %<o% gsub(":", "-", gsub(" ", "_", Sys.time()))
 if (! paste0(wd, "/Workflow control/Data_analysis_log_", start_date, ".txt") %in% list.files()) {
   write(c(paste0("Data_analysis_log_", start_date), "__________________________", ""),
@@ -184,8 +173,10 @@ if (! paste0(wd, "/Workflow control/Data_analysis_log_", start_date, ".txt") %in
 sink(paste0("Workflow control/Data_analysis_log_", start_date, ".txt"), type = "output", append = TRUE, split = TRUE)
 
 # Create parallel processing cluster
+#rstudioapi::documentOpen(parSrc)
 source(parSrc)
-setDTthreads(threads = N.clust)
+requireNamespace("data.table")
+data.table::setDTthreads(threads = N.clust)
 
 # Load PSMs
 Src <- paste0(libPath, "/extdata/Sources/Load_PSMs.R")
@@ -567,17 +558,26 @@ if (F.test) {
 modPepSrc <- paste0(libPath, "/extdata/Sources/modPeptides.R")
 #rstudioapi::documentOpen(modPepSrc)
 source(modPepSrc)
-
-saveFun(GO_plot_ly, GO_plot_ly_fl)
-rm(GO_plot_ly)
+if (exists("GO_plot_ly")) {
+  saveFun(GO_plot_ly, GO_plot_ly_fl)
+  rm(GO_plot_ly)
+}
 
 #### Code chunk - Create output tables
 ## PSMs
 dir <- paste0(wd, "/Tables")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-dirlist <- base::union(dirlist, dir)
 w <- which(vapply(colnames(ev), \(x) { inherits(ev[[x]], "list") }, TRUE))
-if (length(w)) { for (i in w) { ev[[i]] <- parallel::parSapply(parClust, ev[[i]], paste, collapse = ";") } }
+if (length(w)) {
+  rg <- 1L:nrow(ev)
+  for (i in w) {
+    tmp <- listMelt(ev[[i]]) #tmp <- listMelt(strsplit(ev$Proteins, ";"))
+    tmp <- data.table::as.data.table(tmp)
+    tmp <- tmp[, .(x = paste(value, collapse = ";")), by = .(row = L1)]
+    ev[[i]] <- tmp$x[match(rg, tmp$row)]
+    #tst <- tmp$x[match(rg, tmp$row)]; identical(ev$Proteins, tst)
+  }
+}
 data.table::fwrite(ev, paste0(dir, "/evidence.tsv"), sep = "\t", row.names = FALSE, na = "NA")
 #
 ## Main peptidoforms- and protein groups-level, multi-tabs report
@@ -601,15 +601,12 @@ if (inherits(vennTst, "try-error")) {
 }
 
 #### Code chunk - Finalize analysis and export results
+
 # Remove empty directories:
-#dirlist <- list.dirs()
-dirlist <- dirlist[order(nchar(dirlist), decreasing = TRUE)]
-for (dir in dirlist) { #d <- dirlist[1L]
-  if (!length(list.files(dir))) {
-    unlink(dir, recursive = TRUE)
-    dirlist <- base::setdiff(dirlist, dir)
-  }
-}
+Src <- paste0(libPath, "/extdata/Sources/rmEmptyDirs.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
+
 # Save decisions
 save(AllAnsw, file = "All_decisions.RData")
 

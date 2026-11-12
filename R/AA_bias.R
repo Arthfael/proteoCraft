@@ -25,16 +25,14 @@ AA_bias <- function(Ev,
     E <- unique(E)
   }
   E <- unlist(strsplit(E, ""))
-  AA <- data.table::data.table(E = E,
-                               dumdum = as.integer(rep(1L, length(E))))
-  AA <- AA[, .(`Occurrences - dataset` = sum(dumdum)),
+  AA <- data.table::data.table(E = E)
+  AA <- AA[, .(`Occurrences - dataset` = .N),
            keyby = .(AA = E)]
   AA <- as.data.frame(AA)
   AA$"% - dataset" <- 100*AA$`Occurrences - dataset`/sum(AA$`Occurrences - dataset`)
   D <- unlist(strsplit(toupper(DB$Sequence), ""))
-  AA_db <- data.table::data.table(D = D,
-                                  dumdum = as.integer(rep(1L, length(D))))
-  AA_db <- AA_db[, .(x = sum(dumdum)),
+  AA_db <- data.table::data.table(D = D)
+  AA_db <- AA_db[, .(x = .N),
                  keyby = .(Group.1 = D)]
   AA_db <- as.data.frame(AA_db)
   AA$"Occurrences - database" <- AA_db$x[match(AA$AA, AA_db$Group.1)]
